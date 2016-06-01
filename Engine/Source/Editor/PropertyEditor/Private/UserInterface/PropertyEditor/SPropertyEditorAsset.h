@@ -136,6 +136,16 @@ private:
 	 */
 	FText OnGetToolTip() const;
 
+	/**
+	 * Determine whether the given asset is allowed to be assigned to the property.
+	 * This is currently used to prevent non-engine assets being assigned to properties of engine assets.
+	 *
+	 * @param	AssetData	The asset to be assigned
+	 * @return	false		if the asset cannot be assigned,
+	 *			true		if it can be assigned or if this is not known (e.g. because a delegate handles the reference assignment)
+	 */
+	bool CanAssetBeAssigned(const FAssetData& AssetData) const;
+
 	/** 
 	 * Set the value of the asset referenced by this property editor.
 	 * Will set the underlying property handle if there is one.

@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Engine/AssetUserData.h"
 #include "Animation/AnimSequence.h"
 #include "AnimationUtils.h"
 #include "Animation/AnimInstanceProxy.h"
@@ -212,19 +213,25 @@ bool UAnimationAsset::ReplaceSkeleton(USkeleton* NewSkeleton, bool bConvertSpace
 	if (NewSkeleton != Skeleton)
 	{
 		// get all sequences that need to change
-		TArray<UAnimSequence*> AnimSeqsToReplace;
+		TArray<UAnimationAsset*> AnimAssetsToReplace;
+
 		if (UAnimSequence* AnimSequence = Cast<UAnimSequence>(this))
 		{
-			AnimSeqsToReplace.AddUnique(AnimSequence);
+			AnimAssetsToReplace.AddUnique(AnimSequence);
 		}
-		if (GetAllAnimationSequencesReferred(AnimSeqsToReplace))
+		if (GetAllAnimationSequencesReferred(AnimAssetsToReplace))
 		{
-			for (auto Iter = AnimSeqsToReplace.CreateIterator(); Iter; ++Iter)
+			for (auto Iter = AnimAssetsToReplace.CreateIterator(); Iter; ++Iter)
 			{
-				UAnimSequence* AnimSeq = *Iter;
+				UAnimSequence* AnimSeq = Cast<UAnimSequence>(*Iter);
 				if (AnimSeq && AnimSeq->Skeleton != NewSkeleton)
 				{
 					AnimSeq->RemapTracksToNewSkeleton(NewSkeleton, bConvertSpaces);
+				}
+				else
+				{
+					// if not anim sequence, at least replace skeleton
+					(*Iter)->SetSkeleton(NewSkeleton);
 				}
 			}
 		}
@@ -239,12 +246,12 @@ bool UAnimationAsset::ReplaceSkeleton(USkeleton* NewSkeleton, bool bConvertSpace
 	return false;
 }
 
-bool UAnimationAsset::GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& AnimationSequences)
+bool UAnimationAsset::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationSequences)
 {
 	return false;
 }
 
-void UAnimationAsset::ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSequence*>& ReplacementMap)
+void UAnimationAsset::ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& ReplacementMap)
 {
 }
 
@@ -285,6 +292,50 @@ void UAnimationAsset::ValidateSkeleton()
 		// reset Skeleton
 		ResetSkeleton(Skeleton);
 	}
+}
+
+void UAnimationAsset::AddAssetUserData(UAssetUserData* InUserData)
+{
+	if (InUserData != NULL)
+	{
+		UAssetUserData* ExistingData = GetAssetUserDataOfClass(InUserData->GetClass());
+		if (ExistingData != NULL)
+		{
+			AssetUserData.Remove(ExistingData);
+		}
+		AssetUserData.Add(InUserData);
+	}
+}
+
+UAssetUserData* UAnimationAsset::GetAssetUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass)
+{
+	for (int32 DataIdx = 0; DataIdx < AssetUserData.Num(); DataIdx++)
+	{
+		UAssetUserData* Datum = AssetUserData[DataIdx];
+		if (Datum != NULL && Datum->IsA(InUserDataClass))
+		{
+			return Datum;
+		}
+	}
+	return NULL;
+}
+
+void UAnimationAsset::RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass)
+{
+	for (int32 DataIdx = 0; DataIdx < AssetUserData.Num(); DataIdx++)
+	{
+		UAssetUserData* Datum = AssetUserData[DataIdx];
+		if (Datum != NULL && Datum->IsA(InUserDataClass))
+		{
+			AssetUserData.RemoveAt(DataIdx);
+			return;
+		}
+	}
+}
+
+const TArray<UAssetUserData*>* UAnimationAsset::GetAssetUserDataArray() const
+{
+	return &AssetUserData;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -491,42 +542,49 @@ void FBlendSampleData::NormalizeDataWeight(TArray<FBlendSampleData>& SampleDataL
 	float TotalSum = 0.f;
 
 	check(SampleDataList.Num() > 0);
-	int32 NumBones = SampleDataList[0].PerBoneBlendData.Num();
+	const int32 NumBones = SampleDataList[0].PerBoneBlendData.Num();
 
 	TArray<float> PerBoneTotalSums;
 	PerBoneTotalSums.AddZeroed(NumBones);
 
-	for(int32 I = 0; I < SampleDataList.Num(); ++I)
+	for (int32 PoseIndex = 0; PoseIndex < SampleDataList.Num(); PoseIndex++)
 	{
-		checkf(SampleDataList[I].PerBoneBlendData.Num() == NumBones, TEXT("Attempted to normalise a blend sample list, but the samples have differing numbers of bones."));
+		checkf(SampleDataList[PoseIndex].PerBoneBlendData.Num() == NumBones, TEXT("Attempted to normalise a blend sample list, but the samples have differing numbers of bones."));
 
-		TotalSum += SampleDataList[I].GetWeight();
+		TotalSum += SampleDataList[PoseIndex].GetWeight();
 
-		if(SampleDataList[I].PerBoneBlendData.Num() > 0)
+		if (SampleDataList[PoseIndex].PerBoneBlendData.Num() > 0)
 		{
 			// now interpolate the per bone weights
-			for(int32 Iter = 0; Iter<SampleDataList[I].PerBoneBlendData.Num(); ++Iter)
+			for (int32 BoneIndex = 0; BoneIndex<NumBones; BoneIndex++)
 			{
-				PerBoneTotalSums[Iter] += SampleDataList[I].PerBoneBlendData[Iter];
+				PerBoneTotalSums[BoneIndex] += SampleDataList[PoseIndex].PerBoneBlendData[BoneIndex];
 			}
 		}
 	}
 
-	if(ensure(TotalSum > ZERO_ANIMWEIGHT_THRESH))
+	// Re-normalize Pose weight
+	if (ensure(TotalSum > ZERO_ANIMWEIGHT_THRESH))
 	{
-		for(int32 I = 0; I < SampleDataList.Num(); ++I)
+		if (FMath::Abs<float>(TotalSum - 1.f) > ZERO_ANIMWEIGHT_THRESH)
 		{
-			if(FMath::Abs<float>(TotalSum - 1.f) > ZERO_ANIMWEIGHT_THRESH)
+			for (int32 PoseIndex = 0; PoseIndex < SampleDataList.Num(); PoseIndex++)
 			{
-				SampleDataList[I].TotalWeight /= TotalSum;
+				SampleDataList[PoseIndex].TotalWeight /= TotalSum;
 			}
+		}
+	}
 
-			// now interpolate the per bone weights
-			for(int32 Iter = 0; Iter < SampleDataList[I].PerBoneBlendData.Num(); ++Iter)
+	// Re-normalize per bone weights.
+	for (int32 BoneIndex = 0; BoneIndex < NumBones; BoneIndex++)
+	{
+		if (ensure(PerBoneTotalSums[BoneIndex] > ZERO_ANIMWEIGHT_THRESH))
+		{
+			if (FMath::Abs<float>(PerBoneTotalSums[BoneIndex] - 1.f) > ZERO_ANIMWEIGHT_THRESH)
 			{
-				if(FMath::Abs<float>(PerBoneTotalSums[Iter] - 1.f) > ZERO_ANIMWEIGHT_THRESH)
+				for (int32 PoseIndex = 0; PoseIndex < SampleDataList.Num(); PoseIndex++)
 				{
-					SampleDataList[I].PerBoneBlendData[Iter] /= PerBoneTotalSums[Iter];
+					SampleDataList[PoseIndex].PerBoneBlendData[BoneIndex] /= PerBoneTotalSums[BoneIndex];
 				}
 			}
 		}

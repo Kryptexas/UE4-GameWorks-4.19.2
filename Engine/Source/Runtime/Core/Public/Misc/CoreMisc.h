@@ -271,9 +271,6 @@ CORE_API class FDerivedDataCacheInterface* GetDerivedDataCache();
 /** Return the DDC interface, fatal error if it is not available. **/
 CORE_API class FDerivedDataCacheInterface& GetDerivedDataCacheRef();
 
-/** Return the DDC interface, if it is available, otherwise return NULL **/
-CORE_API void DerivedDataCachePrint();
-
 /** Return the Target Platform Manager interface, if it is available, otherwise return NULL **/
 CORE_API class ITargetPlatformManagerModule* GetTargetPlatformManager();
 
@@ -418,8 +415,10 @@ public:
 	}
 };
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	#define DO_BLUEPRINT_GUARD 1
+#ifndef DO_BLUEPRINT_GUARD
+	#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		#define DO_BLUEPRINT_GUARD 1
+	#endif
 #endif
 
 #if DO_BLUEPRINT_GUARD

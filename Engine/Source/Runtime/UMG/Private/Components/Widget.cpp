@@ -3,6 +3,7 @@
 #include "UMGPrivatePCH.h"
 
 #include "ReflectionMetadata.h"
+#include "SObjectWidget.h"
 
 /**
 * Interface for tool tips.
@@ -404,7 +405,7 @@ bool UWidget::HasUserFocusedDescendants(APlayerController* PlayerController) con
 
 void UWidget::SetUserFocus(APlayerController* PlayerController)
 {
-	if ( PlayerController == nullptr || !PlayerController->IsLocalPlayerController() )
+	if ( PlayerController == nullptr || !PlayerController->IsLocalPlayerController() || PlayerController->Player == nullptr )
 	{
 		return;
 	}
@@ -472,7 +473,25 @@ void UWidget::RemoveFromParent()
 	}
 }
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+void UWidget::VerifySynchronizeProperties()
+{
+	ensureMsgf(bRoutedSynchronizeProperties, TEXT("%s failed to route SynchronizeProperties.  Please call Super::SynchronizeProperties() in your <className>::SynchronizeProperties() function."), *GetFullName());
+}
+#endif
+
+void UWidget::OnWidgetRebuilt()
+{
+}
+
 TSharedRef<SWidget> UWidget::TakeWidget()
+{
+	return TakeWidget_Private( []( UUserWidget* Widget, TSharedRef<SWidget> Content ) -> TSharedPtr<SObjectWidget> {
+		       return SNew( SObjectWidget, Widget )[ Content ];
+		   } );
+}
+
+TSharedRef<SWidget> UWidget::TakeWidget_Private( ConstructMethodType ConstructMethod )
 {
 	TSharedPtr<SWidget> SafeWidget;
 	bool bNewlyCreated = false;
@@ -491,7 +510,7 @@ TSharedRef<SWidget> UWidget::TakeWidget()
 	}
 
 	// If it is a user widget wrap it in a SObjectWidget to keep the instance from being GC'ed
-	if ( IsA(UUserWidget::StaticClass()) )
+	if ( IsA( UUserWidget::StaticClass() ) )
 	{
 		TSharedPtr<SObjectWidget> SafeGCWidget = MyGCWidget.Pin();
 
@@ -500,13 +519,9 @@ TSharedRef<SWidget> UWidget::TakeWidget()
 		{
 			return SafeGCWidget.ToSharedRef();
 		}
-		// Otherwise we need to recreate the wrapper widget
-		else
+		else // Otherwise we need to recreate the wrapper widget
 		{
-			SafeGCWidget = SNew(SObjectWidget, Cast<UUserWidget>(this))
-				[
-					SafeWidget.ToSharedRef()
-				];
+			SafeGCWidget = ConstructMethod( Cast<UUserWidget>( this ), SafeWidget.ToSharedRef() );
 
 			MyGCWidget = SafeGCWidget;
 
@@ -538,17 +553,6 @@ TSharedRef<SWidget> UWidget::TakeWidget()
 
 		return SafeWidget.ToSharedRef();
 	}
-}
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-void UWidget::VerifySynchronizeProperties()
-{
-	ensureMsgf(bRoutedSynchronizeProperties, TEXT("%s failed to route SynchronizeProperties.  Please call Super::SynchronizeProperties() in your <className>::SynchronizeProperties() function."), *GetFullName());
-}
-#endif
-
-void UWidget::OnWidgetRebuilt()
-{
 }
 
 TSharedPtr<SWidget> UWidget::GetCachedWidget() const
@@ -678,7 +682,7 @@ const FText UWidget::GetPaletteCategory()
 
 const FSlateBrush* UWidget::GetEditorIcon()
 {
-	return FUMGStyle::Get().GetBrush("Widget");
+	return nullptr;
 }
 
 EVisibility UWidget::GetVisibilityInDesigner() const

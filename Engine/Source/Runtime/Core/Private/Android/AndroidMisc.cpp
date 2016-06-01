@@ -8,6 +8,7 @@
 #include "ModuleManager.h"
 #include <android/keycodes.h>
 #include <string.h>
+#include <dlfcn.h>
 
 #include "AndroidPlatformCrashContext.h"
 #include "PlatformMallocCrash.h"
@@ -361,8 +362,24 @@ bool FAndroidMisc::ControlScreensaver(EScreenSaverAction Action)
 	return true;
 }
 
+bool FAndroidMisc::HasPlatformFeature(const TCHAR* FeatureName)
+{
+	if (FCString::Stricmp(FeatureName, TEXT("Vulkan")) == 0)
+	{
+		return FAndroidMisc::ShouldUseVulkan();
+	}
+
+	return FGenericPlatformMisc::HasPlatformFeature(FeatureName);
+}
+
 bool FAndroidMisc::AllowRenderThread()
 {
+	if (FAndroidMisc::ShouldUseVulkan())
+	{
+		// @todo vulkan: stop forcing no RT!
+		return false;
+	}
+
 	// there is a crash with the nvidia tegra dual core processors namely the optimus 2x and xoom 
 	// when running multithreaded it can't handle multiple threads using opengl (bug)
 	// tested with lg optimus 2x and motorola xoom 
@@ -399,6 +416,81 @@ int32 FAndroidMisc::NumberOfCores()
 	int32 NumberOfCores = android_getCpuCount();
 	return NumberOfCores;
 }
+
+static FAndroidMisc::FCPUState CurrentCPUState;
+
+FAndroidMisc::FCPUState& FAndroidMisc::GetCPUState(){
+	uint64_t UserTime, NiceTime, SystemTime, SoftIRQTime, IRQTime, IdleTime, IOWaitTime;
+	int32		Index = 0;
+	ANSICHAR	Buffer[500];
+
+	CurrentCPUState.CoreCount = FAndroidMisc::NumberOfCores();
+	FILE* FileHandle = fopen("/proc/stat", "r");
+	if (FileHandle){
+		CurrentCPUState.ActivatedCoreCount = 0;
+		for (size_t n = 0; n < CurrentCPUState.CoreCount; n++) {
+			CurrentCPUState.Status[n] = 0;
+			CurrentCPUState.PreviousUsage[n] = CurrentCPUState.CurrentUsage[n];
+		}
+		
+		while (fgets(Buffer, 100, FileHandle)) {
+#if PLATFORM_64BITS
+			sscanf(Buffer, "%4s %8lu %8lu %8lu %8lu %8lu %8lu %8lu", CurrentCPUState.Name,
+				&UserTime, &NiceTime, &SystemTime, &IdleTime, &IOWaitTime, &IRQTime,
+				&SoftIRQTime);
+#else
+			sscanf(Buffer, "%4s %8llu %8llu %8llu %8llu %8llu %8llu %8llu", CurrentCPUState.Name,
+				&UserTime, &NiceTime, &SystemTime, &IdleTime, &IOWaitTime, &IRQTime,
+				&SoftIRQTime);
+#endif
+
+			if (0 == strncmp(CurrentCPUState.Name, "cpu", 3)) {
+				Index = CurrentCPUState.Name[3] - '0';
+				if (Index >= 0 && Index < CurrentCPUState.CoreCount) {
+					CurrentCPUState.CurrentUsage[Index].IdleTime = IdleTime;
+					CurrentCPUState.CurrentUsage[Index].NiceTime = NiceTime;
+					CurrentCPUState.CurrentUsage[Index].SystemTime = SystemTime;
+					CurrentCPUState.CurrentUsage[Index].SoftIRQTime = SoftIRQTime;
+					CurrentCPUState.CurrentUsage[Index].IRQTime = IRQTime;
+					CurrentCPUState.CurrentUsage[Index].IOWaitTime = IOWaitTime;
+					CurrentCPUState.CurrentUsage[Index].UserTime = UserTime;
+					CurrentCPUState.CurrentUsage[Index].TotalTime = UserTime + NiceTime + SystemTime + SoftIRQTime + IRQTime + IdleTime + IOWaitTime;
+					CurrentCPUState.Status[Index] = 1;
+					CurrentCPUState.ActivatedCoreCount++;
+				}
+				if (Index == CurrentCPUState.CoreCount-1)
+					break;
+			}
+		}
+		fclose(FileHandle);
+
+		double WallTime;
+		double CPULoad[CurrentCPUState.CoreCount];
+		CurrentCPUState.AverageUtilization = 0.0; 
+		for (size_t n = 0; n < CurrentCPUState.CoreCount; n++) {
+			if (CurrentCPUState.CurrentUsage[n].TotalTime <= CurrentCPUState.PreviousUsage[n].TotalTime) {
+				CPULoad[n] = 0;
+				continue;
+			}
+
+			WallTime = CurrentCPUState.CurrentUsage[n].TotalTime - CurrentCPUState.PreviousUsage[n].TotalTime;
+			IdleTime = CurrentCPUState.CurrentUsage[n].IdleTime - CurrentCPUState.PreviousUsage[n].IdleTime;
+
+			if (!WallTime || WallTime <= IdleTime) {
+				CPULoad[n] = 0;
+				continue;
+			}
+			CPULoad[n] = (WallTime - (double)IdleTime) * 100.0 / WallTime;
+			CurrentCPUState.Utilization[n] = CPULoad[n];
+			CurrentCPUState.AverageUtilization += CPULoad[n];
+		}
+		CurrentCPUState.AverageUtilization /= (double)CurrentCPUState.CoreCount;
+	}else{
+		FMemory::Memzero(CurrentCPUState);		
+	}
+	return CurrentCPUState;
+}
+
 
 extern FString GFilePathBase;
 extern FString GFontPathBase;
@@ -509,12 +601,17 @@ const int32 TargetSignals[] =
 const int32 NumTargetSignals = ARRAY_COUNT(TargetSignals);
 
 struct sigaction PrevActions[NumTargetSignals];
+static bool PreviousSignalHandlersValid = false;
 
 static void RestorePreviousSignalHandlers()
 {
-	for (int32 i = 0; i < NumTargetSignals; ++i)
+	if (PreviousSignalHandlersValid)
 	{
-		sigaction(TargetSignals[i],	&PrevActions[i], NULL);
+		for (int32 i = 0; i < NumTargetSignals; ++i)
+		{
+			sigaction(TargetSignals[i], &PrevActions[i], NULL);
+		}
+		PreviousSignalHandlersValid = false;
 	}
 }
 
@@ -524,7 +621,6 @@ void PlatformCrashHandler(int32 Signal, siginfo* Info, void* Context)
 	// Switch to malloc crash.
 	//FGenericPlatformMallocCrash::Get().SetAsGMalloc(); @todo uncomment after verification
 
-	//fprintf(stderr, "Signal %d caught.\n", Signal);
 	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Signal %d caught!"), Signal);
 
 	// Restore system handlers so Android could catch this signal after we are done with crashreport
@@ -548,7 +644,14 @@ void FAndroidMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCrashCont
 {
 	GCrashHandlerPointer = CrashHandler;
 
+	RestorePreviousSignalHandlers();
 	FMemory::Memzero(&PrevActions, sizeof(PrevActions));
+
+	// Passing -1 will leave these restored and won't trap them
+	if ((PTRINT)CrashHandler == -1)
+	{
+		return;
+	}
 
 	struct sigaction Action;
 	FMemory::Memzero(&Action, sizeof(struct sigaction));
@@ -560,6 +663,7 @@ void FAndroidMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCrashCont
 	{
 		sigaction(TargetSignals[i],	&Action, &PrevActions[i]);
 	}
+	PreviousSignalHandlersValid = true;
 }
 
 bool FAndroidMisc::GetUseVirtualJoysticks()
@@ -937,6 +1041,218 @@ int32 FAndroidMisc::GetAndroidBuildVersion()
 		}
 	}
 	return AndroidBuildVersion;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Extracted from vk_platform.h and vulkan.h with modifications just to allow
+// vkCreateInstance/vkDestroyInstance to be called to check if a driver is actually
+// available (presence of libvulkan.so only means it may be available, not that
+// there is an actual usable one). Cannot wait for VulkanRHI init to do this (too
+// late) and vulkan.h header not guaranteed to be available. This part of the header
+// is unlikely to change in future so safe enough to use this truncated version.
+//
+
+#if PLATFORM_ANDROID_ARM
+// On Android/ARMv7a, Vulkan functions use the armeabi-v7a-hard calling
+#define VKAPI_ATTR __attribute__((pcs("aapcs-vfp")))
+#define VKAPI_CALL
+#define VKAPI_PTR  VKAPI_ATTR
+#else
+// On other platforms, use the default calling convention
+#define VKAPI_ATTR
+#define VKAPI_CALL
+#define VKAPI_PTR
+#endif
+
+#define VK_MAKE_VERSION(major, minor, patch) \
+    (((major) << 22) | ((minor) << 12) | (patch))
+
+typedef uint32 VkFlags;
+
+#define VK_DEFINE_HANDLE(object) typedef struct object##_T* object;
+
+VK_DEFINE_HANDLE(VkInstance)
+
+typedef enum VkResult {
+	VK_SUCCESS = 0,
+	VK_NOT_READY = 1,
+	VK_TIMEOUT = 2,
+	VK_EVENT_SET = 3,
+	VK_EVENT_RESET = 4,
+	VK_INCOMPLETE = 5,
+	VK_ERROR_OUT_OF_HOST_MEMORY = -1,
+	VK_ERROR_OUT_OF_DEVICE_MEMORY = -2,
+	VK_ERROR_INITIALIZATION_FAILED = -3,
+	VK_ERROR_DEVICE_LOST = -4,
+	VK_ERROR_MEMORY_MAP_FAILED = -5,
+	VK_ERROR_LAYER_NOT_PRESENT = -6,
+	VK_ERROR_EXTENSION_NOT_PRESENT = -7,
+	VK_ERROR_FEATURE_NOT_PRESENT = -8,
+	VK_ERROR_INCOMPATIBLE_DRIVER = -9,
+	VK_ERROR_TOO_MANY_OBJECTS = -10,
+	VK_ERROR_FORMAT_NOT_SUPPORTED = -11,
+	VK_ERROR_SURFACE_LOST_KHR = -1000000000,
+	VK_ERROR_NATIVE_WINDOW_IN_USE_KHR = -1000000001,
+	VK_SUBOPTIMAL_KHR = 1000001003,
+	VK_ERROR_OUT_OF_DATE_KHR = -1000001004,
+	VK_ERROR_INCOMPATIBLE_DISPLAY_KHR = -1000003001,
+	VK_ERROR_VALIDATION_FAILED_EXT = -1000011001,
+	VK_ERROR_INVALID_SHADER_NV = -1000012000,
+	VK_RESULT_BEGIN_RANGE = VK_ERROR_FORMAT_NOT_SUPPORTED,
+	VK_RESULT_END_RANGE = VK_INCOMPLETE,
+	VK_RESULT_RANGE_SIZE = (VK_INCOMPLETE - VK_ERROR_FORMAT_NOT_SUPPORTED + 1),
+	VK_RESULT_MAX_ENUM = 0x7FFFFFFF
+} VkResult;
+
+typedef enum VkStructureType {
+	VK_STRUCTURE_TYPE_APPLICATION_INFO = 0,
+	VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO = 1,
+	VK_STRUCTURE_TYPE_MAX_ENUM = 0x7FFFFFFF
+} VkStructureType;
+
+typedef VkFlags VkInstanceCreateFlags;
+
+typedef struct VkApplicationInfo {
+	VkStructureType	sType;
+	const void*		pNext;
+	const char*		pApplicationName;
+	uint32			applicationVersion;
+	const char*		pEngineName;
+	uint			engineVersion;
+	uint			apiVersion;
+} VkApplicationInfo;
+
+typedef struct VkInstanceCreateInfo {
+	VkStructureType				sType;
+	const void*					pNext;
+	VkInstanceCreateFlags		flags;
+	const VkApplicationInfo*	pApplicationInfo;
+	uint32						enabledLayerCount;
+	const char* const*			ppEnabledLayerNames;
+	uint32						enabledExtensionCount;
+	const char* const*			ppEnabledExtensionNames;
+} VkInstanceCreateInfo;
+
+typedef struct VkAllocationCallbacks {
+	void*	pUserData;
+	void*	pfnAllocation;
+	void*	pfnReallocation;
+	void*	pfnFree;
+	void*	pfnInternalAllocation;
+	void*	pfnInternalFree;
+} VkAllocationCallbacks;
+
+typedef VkResult(VKAPI_PTR *PFN_vkCreateInstance)(const VkInstanceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkInstance* pInstance);
+typedef void (VKAPI_PTR *PFN_vkDestroyInstance)(VkInstance instance, const VkAllocationCallbacks* pAllocator);
+
+///////////////////////////////////////////////////////////////////////////////
+
+#define UE_VK_API_VERSION	VK_MAKE_VERSION(1, 0, 1)
+
+static bool AttemptVulkanInit(void* VulkanLib)
+{
+	if (VulkanLib == nullptr)
+	{
+		return false;
+	}
+
+	// Try to get required functions to check for driver
+	PFN_vkCreateInstance vkCreateInstance = (PFN_vkCreateInstance)dlsym(VulkanLib, "vkCreateInstance");
+	PFN_vkDestroyInstance vkDestroyInstance = (PFN_vkDestroyInstance)dlsym(VulkanLib, "vkDestroyInstance");
+	if (!vkCreateInstance || !vkDestroyInstance)
+	{
+		return false;
+	}
+		
+	// try to create instance to verify driver available
+	VkApplicationInfo App;
+	FMemory::Memzero(App);
+	App.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+	App.pApplicationName = "UE4";
+	App.applicationVersion = 0;
+	App.pEngineName = "UE4";
+	App.engineVersion = 0;
+	App.apiVersion = UE_VK_API_VERSION;
+
+	VkInstanceCreateInfo InstInfo;
+	FMemory::Memzero(InstInfo);
+	InstInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+	InstInfo.pNext = nullptr;
+	InstInfo.pApplicationInfo = &App;
+	InstInfo.enabledExtensionCount = 0;
+	InstInfo.ppEnabledExtensionNames = nullptr;
+
+	VkInstance Instance;
+	VkResult Result = vkCreateInstance(&InstInfo, nullptr, &Instance);
+	if (Result != VK_SUCCESS)
+	{
+		return false;
+	}
+	vkDestroyInstance(Instance, nullptr);
+	return true;
+}
+
+extern bool AndroidThunkCpp_GetMetaDataBoolean(const FString& Key);
+
+bool FAndroidMisc::ShouldUseVulkan()
+{
+#if PLATFORM_ANDROID_VULKAN
+	// just do this check once
+	static int32 ShouldUseVulkanFlag = -1;
+	if (ShouldUseVulkanFlag == -1)
+	{
+		// assume no
+		ShouldUseVulkanFlag = 0;
+
+		// make sure the project setting has enabled Vulkan support (per-project user settings in the editor) from AndroidManifest.xml
+		bool bSupportsVulkan = AndroidThunkCpp_GetMetaDataBoolean(TEXT("com.epicgames.ue4.GameActivity.bSupportsVulkan"));
+		if (bSupportsVulkan && FModuleManager::Get().ModuleExists(TEXT("VulkanRHI")))
+		{
+			FPlatformMisc::LowLevelOutputDebugString(TEXT("Compiled with Vulkan support"));
+
+			// does commandline override (using GL or ES2 for legacy commandlines)
+			bool bForceOpenGL = FParse::Param(FCommandLine::Get(), TEXT("GL")) || FParse::Param(FCommandLine::Get(), TEXT("OpenGL")) || FParse::Param(FCommandLine::Get(), TEXT("ES2"));
+			if (!bForceOpenGL)
+			{
+				// check for libvulkan.so
+				void* VulkanLib = dlopen("libvulkan.so", RTLD_NOW | RTLD_LOCAL);
+				if (VulkanLib != nullptr)
+				{
+					FPlatformMisc::LowLevelOutputDebugString(TEXT("Vulkan library detected, checking for available driver"));
+					ShouldUseVulkanFlag = AttemptVulkanInit(VulkanLib);
+					dlclose(VulkanLib);
+
+					if (ShouldUseVulkanFlag)
+					{
+						FPlatformMisc::LowLevelOutputDebugString(TEXT("Vulkan driver available, will use VulkanRHI"));
+					}
+					else
+					{
+						FPlatformMisc::LowLevelOutputDebugString(TEXT("Vulkan driver NOT available, falling back to OpenGL ES"));
+					}
+				}
+				else
+				{
+					FPlatformMisc::LowLevelOutputDebugString(TEXT("Vulkan library NOT detected, falling back to OpenGL ES"));
+				}
+			}
+			else
+			{
+				FPlatformMisc::LowLevelOutputDebugString(TEXT("Forced OpenGL ES"));
+			}
+		}
+		else
+		{
+			FPlatformMisc::LowLevelOutputDebugString(TEXT("Compiled with OpenGL ES support only"));
+		}
+	}
+
+	return ShouldUseVulkanFlag == 1;
+#else
+	return false;
+#endif
 }
 
 #if !UE_BUILD_SHIPPING

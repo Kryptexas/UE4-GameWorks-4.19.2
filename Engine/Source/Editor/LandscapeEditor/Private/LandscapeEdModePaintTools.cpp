@@ -116,6 +116,11 @@ public:
 			TSet<ULandscapeComponent*> SelectedComponents;
 			LandscapeInfo->GetComponentsInRegion(X1 + 1, Y1 + 1, X2 - 1, Y2 - 1, SelectedComponents);
 
+			for (ULandscapeComponent* Component : SelectedComponents)
+			{
+				Component->Modify();
+			}
+
 			if (bAddToWhitelist)
 			{
 				for (ULandscapeComponent* Component : SelectedComponents)
@@ -835,7 +840,7 @@ public:
 		ALandscapeProxy* LandscapeProxy = this->EdMode->CurrentToolTarget.LandscapeInfo->GetLandscapeProxy();
 		MeshComponent = NewObject<UStaticMeshComponent>(LandscapeProxy, NAME_None, RF_Transient);
 		MeshComponent->StaticMesh = PlaneMesh;
-		MeshComponent->AttachTo(LandscapeProxy->GetRootComponent());
+		MeshComponent->AttachToComponent(LandscapeProxy->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 		MeshComponent->RegisterComponent();
 
 		bool bShowGrid = this->EdMode->UISettings->bUseFlattenTarget && this->EdMode->CurrentToolTarget.TargetType == ELandscapeToolTargetType::Heightmap && this->EdMode->UISettings->bShowFlattenTargetPreview;
@@ -852,7 +857,7 @@ public:
 	{
 		FLandscapeToolPaintBase<ToolTarget, FLandscapeToolStrokeFlatten<ToolTarget>>::ExitTool();
 
-		MeshComponent->DetachFromParent();
+		MeshComponent->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
 		MeshComponent->DestroyComponent();
 	}
 };

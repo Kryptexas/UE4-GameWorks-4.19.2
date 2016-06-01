@@ -11,6 +11,9 @@
 #include "SceneTypes.h"
 #include "ShaderParameters.h"
 #include "RendererInterface.h"
+#include "RHIStaticStates.h"
+#include "GlobalDistanceFieldParameters.h"
+#include "DebugViewModeHelpers.h"
 
 class FSceneViewStateInterface;
 class FViewUniformShaderParameters;
@@ -86,6 +89,9 @@ struct FSceneViewInitOptions : public FSceneViewProjectionData
 	float WorldToMetersScale;
 
 	TSet<FPrimitiveComponentId> HiddenPrimitives;
+
+	/** The primitives which are visible for this view. If the array is not empty, all other primitives will be hidden. */
+	TSet<FPrimitiveComponentId> ShowOnlyPrimitives;
 
 	// -1,-1 if not setup
 	FIntPoint CursorPos;
@@ -353,19 +359,8 @@ enum ETranslucencyVolumeCascade
 	TVC_MAX,
 };
 
-/** 
- * Enumeration for different Quad Overdraw visualization mode.
- */
-enum EQuadOverdrawMode
-{
-	QOM_None,						// No quad overdraw.
-	QOM_QuadComplexity,				// Show quad overdraw only.
-	QOM_ShaderComplexityContained,	// Show shader complexity with quad overdraw scaling the PS instruction count.
-	QOM_ShaderComplexityBleeding	// Show shader complexity with quad overdraw bleeding the PS instruction count over the quad.
-};
-
 /** The view dependent uniform shader parameters associated with a view. */
-BEGIN_UNIFORM_BUFFER_STRUCT(FViewUniformShaderParameters,ENGINE_API)
+BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FViewUniformShaderParameters, ENGINE_API)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, TranslatedWorldToClip)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, WorldToClip)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, TranslatedWorldToView)
@@ -403,10 +398,11 @@ BEGIN_UNIFORM_BUFFER_STRUCT(FViewUniformShaderParameters,ENGINE_API)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, PrevInvViewProj)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, PrevScreenToTranslatedWorld)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, ClipToPrevClip)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, GlobalClippingPlane)
 END_UNIFORM_BUFFER_STRUCT(FViewUniformShaderParameters)
 
 /** Copy of the view dependent uniform shader parameters associated with a view for instanced stereo. */
-BEGIN_UNIFORM_BUFFER_STRUCT(FInstancedViewUniformShaderParameters, ENGINE_API)
+BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FInstancedViewUniformShaderParameters, ENGINE_API)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, TranslatedWorldToClip)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, WorldToClip)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, TranslatedWorldToView)
@@ -444,6 +440,7 @@ BEGIN_UNIFORM_BUFFER_STRUCT(FInstancedViewUniformShaderParameters, ENGINE_API)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, PrevInvViewProj)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, PrevScreenToTranslatedWorld)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, ClipToPrevClip)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, GlobalClippingPlane)
 END_UNIFORM_BUFFER_STRUCT(FInstancedViewUniformShaderParameters)
 
 /** The view independent uniform shader parameters associated with a view. */
@@ -487,6 +484,7 @@ BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FFrameUniformShaderParameters, ENGI
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4, TranslucencyLightingVolumeInvSize, [TVC_MAX])
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, TemporalAAParams)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, CircleDOFParams)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, DepthOfFieldSensorWidth)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, DepthOfFieldFocalDistance)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, DepthOfFieldScale)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, DepthOfFieldFocalLength)
@@ -522,8 +520,35 @@ BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FFrameUniformShaderParameters, ENGI
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4, SkyIrradianceEnvironmentMap, [7])
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, MobilePreviewMode)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, HMDEyePaddingOffset)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float, ReflectionCubemapMaxMip, EShaderPrecisionModifier::Half)
+
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4, GlobalVolumeCenterAndExtent_UB, [GMaxGlobalDistanceFieldClipmaps])
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4, GlobalVolumeWorldToUVAddAndMul_UB, [GMaxGlobalDistanceFieldClipmaps])
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, GlobalVolumeDimension_UB)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, GlobalVolumeTexelSize_UB)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, MaxGlobalDistance_UB)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture3D, GlobalDistanceFieldTexture0_UB)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, GlobalDistanceFieldSampler0_UB)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture3D, GlobalDistanceFieldTexture1_UB)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, GlobalDistanceFieldSampler1_UB)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture3D, GlobalDistanceFieldTexture2_UB)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, GlobalDistanceFieldSampler2_UB)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture3D, GlobalDistanceFieldTexture3_UB)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, GlobalDistanceFieldSampler3_UB)
+
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture2D, DirectionalLightShadowTexture)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, DirectionalLightShadowSampler)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture2D, AtmosphereTransmittanceTexture_UB)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, AtmosphereTransmittanceTextureSampler_UB)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture2D, AtmosphereIrradianceTexture_UB)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, AtmosphereIrradianceTextureSampler_UB)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture3D, AtmosphereInscatterTexture_UB)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, AtmosphereInscatterTextureSampler_UB)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture2D, PerlinNoiseGradientTexture)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, PerlinNoiseGradientTextureSampler)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture3D, PerlinNoise3DTexture)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, PerlinNoise3DTextureSampler)
+
 END_UNIFORM_BUFFER_STRUCT(FFrameUniformShaderParameters)
 
 BEGIN_UNIFORM_BUFFER_STRUCT(FBuiltinSamplersParameters, ENGINE_API)
@@ -544,6 +569,7 @@ public:
 	virtual void ReleaseDynamicRHI() override;
 };
 
+#define USE_GBuiltinSamplersUniformBuffer (0)
 extern ENGINE_API TGlobalResource<FBuiltinSamplersUniformBuffer> GBuiltinSamplersUniformBuffer;	
 
 namespace EDrawDynamicFlags
@@ -626,6 +652,11 @@ public:
 	/** Current buffer visualization mode */
 	FName CurrentBufferVisualizationMode;
 
+#if WITH_EDITOR
+	/* Whether to use the pixel inspector */
+	bool bUsePixelInspector;
+#endif //WITH_EDITOR
+
 	/**
 	* These can be used to override material parameters across the scene without recompiling shaders.
 	* The last component is how much to include of the material's value for that parameter, so 0 will completely remove the material's value.
@@ -638,6 +669,9 @@ public:
 	/** The primitives which are hidden for this view. */
 	TSet<FPrimitiveComponentId> HiddenPrimitives;
 
+	/** The primitives which are visible for this view. If the array is not empty, all other primitives will be hidden. */
+	TSet<FPrimitiveComponentId> ShowOnlyPrimitives;
+
 	// Derived members.
 
 	/** redundant, ViewMatrices.GetViewProjMatrix() */
@@ -647,6 +681,8 @@ public:
 	FMatrix InvViewMatrix;				
 	/** redundant, ViewMatrices.GetInvViewProjMatrix() */
 	FMatrix InvViewProjectionMatrix;	
+
+	bool bAllowTemporalJitter;
 
 	float TemporalJitterPixelsX;
 	float TemporalJitterPixelsY;
@@ -690,7 +726,10 @@ public:
 
 	/** Whether this view is being used to render a reflection capture. */
 	bool bIsReflectionCapture;
-	
+
+	/** Whether this view is being used to render a planar reflection. */
+	bool bIsPlanarReflection;
+
 	/** Whether this view was created from a locked viewpoint. */
 	bool bIsLocked;
 
@@ -702,6 +741,9 @@ public:
 
 	/** True if instanced stereo is enabled. */
 	bool bIsInstancedStereoEnabled;
+
+	/** Global clipping plane being applied to the scene, or all 0's if disabled.  This is used when rendering the planar reflection pass. */
+	FPlane GlobalClippingPlane;
 
 	/** Aspect ratio constrained view rect. In the editor, when attached to a camera actor and the camera black bar showflag is enabled, the normal viewrect 
 	  * remains as the full viewport, and the black bars are just simulated by drawing black bars. This member stores the effective constrained area within the
@@ -1060,9 +1102,16 @@ public:
 	EShaderPlatform GetShaderPlatform() const { return GShaderPlatformForFeatureLevel[GetFeatureLevel()]; }
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	EQuadOverdrawMode GetQuadOverdrawMode() const;
+	EDebugViewShaderMode DebugViewShaderMode;
+	bool bUsedDebugViewPSVSHS;
+	FORCEINLINE EDebugViewShaderMode GetDebugViewShaderMode() const { return DebugViewShaderMode; }
+	EDebugViewShaderMode ChooseDebugViewShaderMode() const;
+	FORCEINLINE bool UseDebugViewVSDSHS() const { return bUsedDebugViewPSVSHS; }
+	FORCEINLINE bool UseDebugViewPS() const { return DebugViewShaderMode != DVSM_None; }
 #else
-	FORCEINLINE EQuadOverdrawMode GetQuadOverdrawMode() const { return QOM_None; }
+	FORCEINLINE EDebugViewShaderMode GetDebugViewShaderMode() const { return DVSM_None; }
+	FORCEINLINE bool UseDebugViewVSDSHS() const { return false; }
+	FORCEINLINE bool UseDebugViewPS() const { return false; }
 #endif
 
 	/** Returns the appropriate view for a given eye in a stereo pair. */

@@ -471,7 +471,7 @@ bool ULevelExporterT3D::ExportText( const FExportObjectInnerContext* Context, UO
 				ExportRootScope = nullptr;
 
 				Ar.Logf( TEXT("%sEnd Actor\r\n"), FCString::Spc(TextIndent) );
-				Actor->AttachRootComponentToActor(ParentActor, SocketName, EAttachLocation::KeepWorldPosition);
+				Actor->AttachToActor(ParentActor, FAttachmentTransformRules::KeepWorldTransform, SocketName);
 
 				// Restore dynamic delegate bindings.
 				UBlueprintGeneratedClass::BindDynamicDelegates(Actor->GetClass(), Actor);
@@ -1943,7 +1943,7 @@ namespace MaterialExportUtils
 
 	UMaterial* CreateMaterial(const FFlattenMaterial& InFlattenMaterial, UPackage* Outer, const FString& BaseName, EObjectFlags Flags, TArray<UObject*>& OutGeneratedAssets)
 	{
-		return FMaterialUtilities::CreateMaterial(InFlattenMaterial, Outer, BaseName, Flags, OutGeneratedAssets);
+		return FMaterialUtilities::CreateMaterial(InFlattenMaterial, Outer, BaseName, Flags, FMaterialProxySettings(), OutGeneratedAssets);
 	}
 
 	bool ExportBaseColor(ULandscapeComponent* LandscapeComponent, int32 TextureSize, TArray<FColor>& OutSamples)

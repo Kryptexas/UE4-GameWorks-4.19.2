@@ -323,7 +323,7 @@ public:
 	 * @param Tolerance Error tolerance.
 	 * @return true if the vectors are equal within specified tolerance, otherwise false.
 	 */
-	bool Equals( const FVector2D& V, float Tolerance ) const;
+	bool Equals( const FVector2D& V, float Tolerance=KINDA_SMALL_NUMBER ) const;
 
 	/**
 	 * Set the values of the vector directly.
@@ -439,6 +439,13 @@ public:
 	* @param A copy of the vector with each component set to +1 or -1
 	*/
 	FORCEINLINE FVector2D GetSignVector() const;
+
+	/**
+	* Get a copy of this vector with absolute value of each component.
+	*
+	* @return A copy of this vector with absolute value of each component.
+	*/
+	FORCEINLINE FVector2D GetAbs() const;
 
 	/**
 	 * Get a textual representation of the vector.
@@ -874,6 +881,10 @@ FORCEINLINE FVector2D FVector2D::GetSignVector() const
 		);
 }
 
+FORCEINLINE FVector2D FVector2D::GetAbs() const
+{
+	return FVector2D(FMath::Abs(X), FMath::Abs(Y));
+}
 
 FORCEINLINE FString FVector2D::ToString() const
 {

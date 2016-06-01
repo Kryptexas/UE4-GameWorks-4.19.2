@@ -42,6 +42,7 @@ float2 ProjectionDepthBiasParameters;
 #endif
 
 float4 ModulatedShadowColor;
+float4 ShadowTileOffsetAndSize;
 
 float3 ModulatedShadowBlendOp(float3 Source)
 {
@@ -69,6 +70,13 @@ void Main(
 	float4 ShadowPosition = mul(float4(ScreenPosition.xy * SceneW,SceneW,1), ScreenToShadowMatrix);
 
 	ShadowPosition.xy /= ShadowPosition.w;
+
+#if MODULATED_SHADOWS
+	// UE-29083 : work around precision issues with ScreenToShadowMatrix on low end devices.
+	ShadowPosition.xy *= ShadowTileOffsetAndSize.zw;
+	ShadowPosition.xy += ShadowTileOffsetAndSize.xy;
+#endif
+
 	// Clamp pixel depth in light space for shadowing opaque, because areas of the shadow depth buffer that weren't rendered to will have been cleared to 1
 	// We want to force the shadow comparison to result in 'unshadowed' in that case, regardless of whether the pixel being shaded is in front or behind that plane
 	float LightSpacePixelDepthForOpaque = min(ShadowPosition.z, 0.99999f);
@@ -187,9 +195,10 @@ void Main(
 		if (GetHDR32bppEncodeMode() == HDR_ENCODE_RGBA)
 		{
 			OutColor.rgb = ModulatedShadowBlendOp(OutColor.rgb);
+			// do 32bpp hdr encoding for mobile if required.
+			// Do not mosaic encode result as this will break during hw modulated blend op.
+			OutColor = Encode32BPPHDR(OutColor, SVPos.xy);
 		}
-		// do 32bpp hdr encoding for mobile if required.
-		OutColor = Encode32BPPHDR(OutColor, SVPos.xy);
 #endif
 #endif
 }

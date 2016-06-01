@@ -110,7 +110,7 @@ class ENGINE_API UKismetArrayLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, CustomThunk, meta=(DisplayName = "Last Index", CompactNodeTitle = "LAST INDEX", ArrayParm = "TargetArray"), Category="Utilities|Array")
 	static int32 Array_LastIndex(const TArray<int32>& TargetArray);
 
-	/* 
+	/*
 	 *Given an array and an index, returns the item found at that index
 	 *
 	 *@param	TargetArray		The array to get an item from
@@ -167,6 +167,16 @@ class ENGINE_API UKismetArrayLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, CustomThunk, meta=(BlueprintInternalUseOnly = "true", ArrayParm = "Value", ArrayTypeDependentParams="Value"))
 	static void SetArrayPropertyByName(UObject* Object, FName PropertyName, const TArray<int32>& Value);
 
+	/*
+	 *Tests if IndexToTest is valid, i.e. greater than or equal to zero, and less than the number of elements in TargetArray.
+	 *
+	 *@param	TargetArray		Array to use for the IsValidIndex test
+	 *@param	IndexToTest		The Index, that we want to test for being valid
+	 *@return	True if the Index is Valid, i.e. greater than or equal to zero, and less than the number of elements in TargetArray.
+	*/
+	UFUNCTION(BlueprintPure, CustomThunk, meta = (DisplayName = "Is Valid Index", CompactNodeTitle = "IS VALID INDEX", ArrayParm = "TargetArray"), Category = "Utilities/Array")
+	static bool Array_IsValidIndex(const TArray<int32>& TargetArray, int32 IndexToTest);
+
 	// Native functions that will be called by the below custom thunk layers, which read off the property address, and call the appropriate native handler
 	static int32 GenericArray_Add(void* TargetArray, const UArrayProperty* ArrayProp, const void* NewItem);
 	static int32 GenericArray_AddUnique(void* TargetArray, const UArrayProperty* ArrayProp, const void* NewItem);
@@ -183,7 +193,8 @@ class ENGINE_API UKismetArrayLibrary : public UBlueprintFunctionLibrary
 	static void GenericArray_Set(void* TargetArray, const UArrayProperty* ArrayProp, int32 Index, const void* NewItem, bool bSizeToFit);
 	static int32 GenericArray_Find(const void* TargetArray, const UArrayProperty* ArrayProperty, const void* ItemToFind);
 	static void GenericArray_SetArrayPropertyByName(UObject* OwnerObject, FName ArrayPropertyName, const void* SrcArrayAddr);
-
+	static bool GenericArray_IsValidIndex(const void* TargetArray, const UArrayProperty* ArrayProp, int32 IndexToTest);
+	
 private:
 	static void GenericArray_HandleBool(const UProperty* Property, void* ItemPtr);
 
@@ -218,9 +229,9 @@ public:
 		void* NewItemPtr = (Stack.MostRecentPropertyAddress != NULL && Stack.MostRecentProperty->GetClass() == InnerProp->GetClass()) ? Stack.MostRecentPropertyAddress : StorageSpace;
  
  		P_FINISH;
- 
+		P_NATIVE_BEGIN;
 		*(int32*)RESULT_PARAM = GenericArray_Add(ArrayAddr, ArrayProperty, NewItemPtr);
- 
+		P_NATIVE_END;
 		InnerProp->DestroyValue(StorageSpace);
 	}
 
@@ -247,9 +258,9 @@ public:
 		void* NewItemPtr = (Stack.MostRecentPropertyAddress != NULL && Stack.MostRecentProperty->GetClass() == InnerProp->GetClass()) ? Stack.MostRecentPropertyAddress : StorageSpace;
 
 		P_FINISH;
-
+		P_NATIVE_BEGIN;
 		*(int32*)RESULT_PARAM = GenericArray_AddUnique(ArrayAddr, ArrayProperty, NewItemPtr);
-
+		P_NATIVE_END;
 		InnerProp->DestroyValue(StorageSpace);
 	}
 
@@ -266,8 +277,9 @@ public:
 		}
 
 		P_FINISH;
-
+		P_NATIVE_BEGIN;
 		GenericArray_Shuffle(ArrayAddr, ArrayProperty);
+		P_NATIVE_END;
 	}
 
 	DECLARE_FUNCTION(execArray_Append)
@@ -294,8 +306,9 @@ public:
 		}
 
 		P_FINISH;
-
+		P_NATIVE_BEGIN;
 		GenericArray_Append(TargetArrayAddr, TargetArrayProperty, SourceArrayAddr, SourceArrayProperty);
+		P_NATIVE_END;
 	}
 
 	DECLARE_FUNCTION(execArray_Insert)
@@ -322,9 +335,9 @@ public:
 
 		P_GET_PROPERTY(UIntProperty, Index);
 		P_FINISH;
-
+		P_NATIVE_BEGIN;
 		GenericArray_Insert(ArrayAddr, ArrayProperty, NewItemPtr, Index);
-
+		P_NATIVE_END;
 		InnerProp->DestroyValue(StorageSpace);
 	}
 
@@ -342,8 +355,9 @@ public:
 
 		P_GET_PROPERTY(UIntProperty, Index);
 		P_FINISH;
-
+		P_NATIVE_BEGIN;
 		GenericArray_Remove(ArrayAddr, ArrayProperty, Index);
+		P_NATIVE_END;
 	}
 
 	DECLARE_FUNCTION(execArray_RemoveItem)
@@ -371,9 +385,9 @@ public:
 
 		// Bools need to be processed internally by the property so that C++ bool value is properly set.
 		GenericArray_HandleBool(InnerProp, ItemPtr);
-		  
-		bool WasRemoved = GenericArray_RemoveItem(ArrayAddr, ArrayProperty, ItemPtr);
-		*(bool*)RESULT_PARAM = WasRemoved; 
+		P_NATIVE_BEGIN;
+		*(bool*)RESULT_PARAM = GenericArray_RemoveItem(ArrayAddr, ArrayProperty, ItemPtr);
+		P_NATIVE_END;
 
 		InnerProp->DestroyValue(StorageSpace);
 	}
@@ -390,8 +404,9 @@ public:
 			return;
 		}
 		P_FINISH;
-
+		P_NATIVE_BEGIN;
 		GenericArray_Clear(ArrayAddr, ArrayProperty);
+		P_NATIVE_END;
 	}
 
 	DECLARE_FUNCTION(execArray_Resize)
@@ -407,8 +422,9 @@ public:
 		}
 		P_GET_PROPERTY(UIntProperty, Size);
 		P_FINISH;
-
+		P_NATIVE_BEGIN;
 		GenericArray_Resize(ArrayAddr, ArrayProperty, Size);
+		P_NATIVE_END;
 	}
 
 	DECLARE_FUNCTION(execArray_Length)
@@ -423,8 +439,9 @@ public:
 			return;
 		}
 		P_FINISH;
-
+		P_NATIVE_BEGIN;
 		*(int32*)RESULT_PARAM = GenericArray_Length(ArrayAddr, ArrayProperty);
+		P_NATIVE_END;
 	}
 
 	DECLARE_FUNCTION(execArray_LastIndex)
@@ -439,8 +456,9 @@ public:
 			return;
 		}
 		P_FINISH;
-
+		P_NATIVE_BEGIN;
 		*(int32*)RESULT_PARAM = GenericArray_LastIndex(ArrayAddr, ArrayProperty);
+		P_NATIVE_END;
 	}
 
 	DECLARE_FUNCTION(execArray_Get)
@@ -467,9 +485,9 @@ public:
 		void* ItemPtr = (Stack.MostRecentPropertyAddress != NULL && Stack.MostRecentProperty->GetClass() == InnerProp->GetClass()) ? Stack.MostRecentPropertyAddress : StorageSpace;
 
 		P_FINISH;
-
+		P_NATIVE_BEGIN;
 		GenericArray_Get(ArrayAddr, ArrayProperty, Index, ItemPtr);
-
+		P_NATIVE_END;
 		InnerProp->DestroyValue(StorageSpace);
 	}
 
@@ -500,8 +518,9 @@ public:
 
 		P_FINISH;
 
+		P_NATIVE_BEGIN;
 		GenericArray_Set(ArrayAddr, ArrayProperty, Index, NewItemPtr, bSizeToFit);
-
+		P_NATIVE_END;
 		InnerProp->DestroyValue(StorageSpace);
 	}
 
@@ -531,9 +550,10 @@ public:
 		// Bools need to be processed internally by the property so that C++ bool value is properly set.
 		GenericArray_HandleBool(InnerProp, ItemToFindPtr);
 
+		P_NATIVE_BEGIN;
 		// Perform the search
-		int32 FoundIndex = GenericArray_Find(ArrayAddr, ArrayProperty, ItemToFindPtr);
-		*(int32*)RESULT_PARAM = FoundIndex;
+		*(int32*)RESULT_PARAM = GenericArray_Find(ArrayAddr, ArrayProperty, ItemToFindPtr);
+		P_NATIVE_END;
 
 		InnerProp->DestroyValue(StorageSpace);
 	}
@@ -565,8 +585,9 @@ public:
 		GenericArray_HandleBool(InnerProp, ItemToFindPtr);
 
 		// Perform the search
-		int32 FoundIndex = GenericArray_Find(ArrayAddr, ArrayProperty, ItemToFindPtr);
-		*(bool*)RESULT_PARAM = (FoundIndex >= 0);
+		P_NATIVE_BEGIN;
+		*(bool*)RESULT_PARAM = GenericArray_Find(ArrayAddr, ArrayProperty, ItemToFindPtr) >= 0;
+		P_NATIVE_END;
 
 		InnerProp->DestroyValue(StorageSpace);
 	}
@@ -581,6 +602,29 @@ public:
 
 		P_FINISH;
 
+		P_NATIVE_BEGIN;
 		GenericArray_SetArrayPropertyByName(OwnerObject, ArrayPropertyName, SrcArrayAddr);
+		P_NATIVE_END;
+	}
+	
+	DECLARE_FUNCTION(execArray_IsValidIndex)
+	{
+		Stack.MostRecentProperty = nullptr;
+		Stack.StepCompiledIn<UArrayProperty>(NULL);
+		void* ArrayAddr = Stack.MostRecentPropertyAddress;
+		UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Stack.MostRecentProperty);
+		if (!ArrayProperty)
+		{
+			Stack.bArrayContextFailed = true;
+			return;
+		}
+
+		P_GET_PROPERTY(UIntProperty, IndexToTest);
+
+		P_FINISH;
+
+		P_NATIVE_BEGIN;
+		*(bool*)RESULT_PARAM = GenericArray_IsValidIndex(ArrayAddr, ArrayProperty, IndexToTest);
+		P_NATIVE_END;
 	}
 };

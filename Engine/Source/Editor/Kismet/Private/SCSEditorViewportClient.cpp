@@ -203,9 +203,9 @@ void FSCSEditorViewportClient::Tick(float DeltaSeconds)
 	}
 }
 
-FSceneView* FSCSEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
+FSceneView* FSCSEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, const EStereoscopicPass StereoPass)
 {
-	FSceneView* SceneView = FEditorViewportClient::CalcSceneView(ViewFamily);
+	FSceneView* SceneView = FEditorViewportClient::CalcSceneView(ViewFamily, StereoPass);
 
 	FFinalPostProcessSettings::FCubemapEntry& CubemapEntry = *new(SceneView->FinalPostProcessSettings.ContributingCubemaps) FFinalPostProcessSettings::FCubemapEntry;
 	CubemapEntry.AmbientCubemap = GUnrealEd->GetThumbnailManager()->AmbientCubemap;
@@ -372,9 +372,18 @@ bool FSCSEditorViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 			if(SelectedNodes.Num() > 0)
 			{
 				FVector ModifiedScale = Scale;
-				if( GEditor->UsePercentageBasedScaling() )
+
+				// (mirrored from Level Editor VPC) - we don't scale components when we only have a very small scale change
+				if (!Scale.IsNearlyZero())
 				{
-					ModifiedScale = Scale * ((GEditor->GetScaleGridSize() / 100.0f) / GEditor->GetGridSize());
+					if (GEditor->UsePercentageBasedScaling())
+					{
+						ModifiedScale = Scale * ((GEditor->GetScaleGridSize() / 100.0f) / GEditor->GetGridSize());
+					}
+				}
+				else
+				{
+					ModifiedScale = FVector::ZeroVector;
 				}
 
 				TSet<USceneComponent*> UpdatedComponents;

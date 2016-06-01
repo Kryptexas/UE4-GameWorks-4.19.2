@@ -38,6 +38,7 @@ void* FCachedOSPageAllocator::AllocateImpl(SIZE_T Size, FFreePageBlock* First, F
 		if (Found)
 		{
 			void* Result = Found->Ptr;
+			UE_CLOG(!Result, LogMemory, Fatal, TEXT("OS memory allocation cache has been corrupted!"));
 			CachedTotal -= Found->ByteSize;
 			if (Found + 1 != Last)
 			{
@@ -92,4 +93,20 @@ void FCachedOSPageAllocator::FreeImpl(void* Ptr, SIZE_T Size, uint32 NumCacheBlo
 
 	CachedTotal += Size;
 	++FreedPageBlocksNum;
+}
+
+void FCachedOSPageAllocator::FreeAllImpl(FFreePageBlock* First, uint32& FreedPageBlocksNum, uint32& CachedTotal)
+{
+	while (FreedPageBlocksNum)
+	{
+		//Remove the oldest one
+		void* FreePtr = First->Ptr;
+		CachedTotal -= First->ByteSize;
+		FreedPageBlocksNum--;
+		if (FreedPageBlocksNum)
+		{
+			FMemory::Memmove(First, First + 1, sizeof(FFreePageBlock)* FreedPageBlocksNum);
+		}
+		FPlatformMemory::BinnedFreeToOS(FreePtr);
+	}
 }

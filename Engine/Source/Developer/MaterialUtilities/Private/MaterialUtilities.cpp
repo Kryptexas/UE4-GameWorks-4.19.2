@@ -821,7 +821,7 @@ bool FMaterialUtilities::ExportLandscapeMaterial(ALandscapeProxy* InLandscape, c
 	return true;
 }
 
-UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenMaterial, UPackage* InOuter, const FString& BaseName, EObjectFlags Flags, TArray<UObject*>& OutGeneratedAssets)
+UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenMaterial, UPackage* InOuter, const FString& BaseName, EObjectFlags Flags, const struct FMaterialProxySettings& MaterialProxySettings, TArray<UObject*>& OutGeneratedAssets, const TextureGroup& InTextureGroup /*= TEXTUREGROUP_World*/)
 {
 	// Base name for a new assets
 	// In case outer is null BaseName has to be long package name
@@ -859,7 +859,7 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 		const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_D");
 		const FString AssetLongName = AssetBasePath + AssetName;
 		const bool bSRGB = true;
-		UTexture2D* Texture = CreateTexture(InOuter, AssetLongName, InFlattenMaterial.DiffuseSize, InFlattenMaterial.DiffuseSamples, TC_Default, TEXTUREGROUP_World, Flags, bSRGB);
+		UTexture2D* Texture = CreateTexture(InOuter, AssetLongName, InFlattenMaterial.DiffuseSize, InFlattenMaterial.DiffuseSamples, TC_Default, InTextureGroup, Flags, bSRGB);
 		OutGeneratedAssets.Add(Texture);
 			
 		auto BasecolorExpression = NewObject<UMaterialExpressionTextureSample>(Material);
@@ -937,7 +937,7 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 
 		const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_MRS");
 		const bool bSRGB = true;
-		UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, MergedSize, MergedSamples, TC_Default, TEXTUREGROUP_World, Flags, bSRGB);
+		UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, MergedSize, MergedSamples, TC_Default, InTextureGroup, Flags, bSRGB);
 		OutGeneratedAssets.Add(Texture);
 
 		auto MergedExpression = NewObject<UMaterialExpressionTextureSample>(Material);
@@ -985,16 +985,16 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 	else
 	{
 		// Metallic
-		if (InFlattenMaterial.MetallicSamples.Num() > 1)
+		if (InFlattenMaterial.MetallicSamples.Num() > 1 && MaterialProxySettings.bMetallicMap)
 		{
 			const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_M");
 			const bool bSRGB = true;
-			UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.MetallicSize, InFlattenMaterial.MetallicSamples, TC_Grayscale, TEXTUREGROUP_World, Flags, bSRGB);
+			UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.MetallicSize, InFlattenMaterial.MetallicSamples, TC_Default, InTextureGroup, Flags, bSRGB);
 			OutGeneratedAssets.Add(Texture);
 
 			auto MetallicExpression = NewObject<UMaterialExpressionTextureSample>(Material);
 			MetallicExpression->Texture = Texture;
-			MetallicExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_Grayscale;
+			MetallicExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_Color;
 			MetallicExpression->MaterialExpressionEditorX = -400;
 			MetallicExpression->MaterialExpressionEditorY = MaterialNodeY;
 			Material->Expressions.Add(MetallicExpression);
@@ -1004,16 +1004,16 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 		}
 
 		// Specular
-		if (InFlattenMaterial.SpecularSamples.Num() > 1)
+		if (InFlattenMaterial.SpecularSamples.Num() > 1 && MaterialProxySettings.bSpecularMap)
 		{
 			const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_S");
 			const bool bSRGB = true;
-			UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.SpecularSize, InFlattenMaterial.SpecularSamples, TC_Grayscale, TEXTUREGROUP_World, Flags, bSRGB);
+			UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.SpecularSize, InFlattenMaterial.SpecularSamples, TC_Default, InTextureGroup, Flags, bSRGB);
 			OutGeneratedAssets.Add(Texture);
 
 			auto SpecularExpression = NewObject<UMaterialExpressionTextureSample>(Material);
 			SpecularExpression->Texture = Texture;
-			SpecularExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_Grayscale;
+			SpecularExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_Color;
 			SpecularExpression->MaterialExpressionEditorX = -400;
 			SpecularExpression->MaterialExpressionEditorY = MaterialNodeY;
 			Material->Expressions.Add(SpecularExpression);
@@ -1023,16 +1023,16 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 		}
 
 		// Roughness
-		if (InFlattenMaterial.RoughnessSamples.Num() > 1)
+		if (InFlattenMaterial.RoughnessSamples.Num() > 1 && MaterialProxySettings.bRoughnessMap)
 		{
 			const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_R");
 			const bool bSRGB = true;
-			UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.RoughnessSize, InFlattenMaterial.RoughnessSamples, TC_Grayscale, TEXTUREGROUP_World, Flags, bSRGB);
+			UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.RoughnessSize, InFlattenMaterial.RoughnessSamples, TC_Default, InTextureGroup, Flags, bSRGB);
 			OutGeneratedAssets.Add(Texture);
 
 			auto RoughnessExpression = NewObject<UMaterialExpressionTextureSample>(Material);
 			RoughnessExpression->Texture = Texture;
-			RoughnessExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_Grayscale;
+			RoughnessExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_Color;
 			RoughnessExpression->MaterialExpressionEditorX = -400;
 			RoughnessExpression->MaterialExpressionEditorY = MaterialNodeY;
 			Material->Expressions.Add(RoughnessExpression);
@@ -1042,11 +1042,10 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 		}
 	}
 
-	if (InFlattenMaterial.MetallicSamples.Num() == 1)
+	if (InFlattenMaterial.MetallicSamples.Num() == 1 || !MaterialProxySettings.bMetallicMap)
 	{
-		FLinearColor MetallicColor = FLinearColor(InFlattenMaterial.MetallicSamples[0]);
 		auto MetallicExpression = NewObject<UMaterialExpressionConstant>(Material);
-		MetallicExpression->R = MetallicColor.R;
+		MetallicExpression->R = MaterialProxySettings.bMetallicMap ? FLinearColor(InFlattenMaterial.MetallicSamples[0]).R : MaterialProxySettings.MetallicConstant;
 		MetallicExpression->MaterialExpressionEditorX = -400;
 		MetallicExpression->MaterialExpressionEditorY = MaterialNodeY;
 		Material->Expressions.Add(MetallicExpression);
@@ -1055,12 +1054,11 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 		MaterialNodeY += MaterialNodeStepY;
 	}
 
-	if (InFlattenMaterial.SpecularSamples.Num() == 1)
+	if (InFlattenMaterial.SpecularSamples.Num() == 1 || !MaterialProxySettings.bSpecularMap)
 	{
 		// Set Specular to constant
-		FLinearColor SpecularColor = FLinearColor(InFlattenMaterial.SpecularSamples[0]);
 		auto SpecularExpression = NewObject<UMaterialExpressionConstant>(Material);
-		SpecularExpression->R = SpecularColor.R;
+		SpecularExpression->R = MaterialProxySettings.bSpecularMap ? FLinearColor(InFlattenMaterial.SpecularSamples[0]).R : MaterialProxySettings.SpecularConstant;
 		SpecularExpression->MaterialExpressionEditorX = -400;
 		SpecularExpression->MaterialExpressionEditorY = MaterialNodeY;
 		Material->Expressions.Add(SpecularExpression);
@@ -1069,12 +1067,11 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 		MaterialNodeY += MaterialNodeStepY;
 	}
 	
-	if (InFlattenMaterial.RoughnessSamples.Num() == 1)
+	if (InFlattenMaterial.RoughnessSamples.Num() == 1 || !MaterialProxySettings.bRoughnessMap)
 	{
 		// Set Roughness to constant
-		FLinearColor RoughnessColor = FLinearColor(InFlattenMaterial.RoughnessSamples[0]);
 		auto RoughnessExpression = NewObject<UMaterialExpressionConstant>(Material);
-		RoughnessExpression->R = RoughnessColor.R;
+		RoughnessExpression->R = MaterialProxySettings.bRoughnessMap ? FLinearColor(InFlattenMaterial.RoughnessSamples[0]).R : MaterialProxySettings.RoughnessConstant;
 		RoughnessExpression->MaterialExpressionEditorX = -400;
 		RoughnessExpression->MaterialExpressionEditorY = MaterialNodeY;
 		Material->Expressions.Add(RoughnessExpression);
@@ -1088,7 +1085,7 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 	{
 		const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_N");
 		const bool bSRGB = false;
-		UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.NormalSize, InFlattenMaterial.NormalSamples, TC_Normalmap, TEXTUREGROUP_WorldNormalMap, Flags, bSRGB);
+		UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.NormalSize, InFlattenMaterial.NormalSamples, TC_Normalmap, (InTextureGroup != TEXTUREGROUP_World) ? InTextureGroup : TEXTUREGROUP_WorldNormalMap, Flags, bSRGB);
 		OutGeneratedAssets.Add(Texture);
 			
 		auto NormalExpression = NewObject<UMaterialExpressionTextureSample>(Material);
@@ -1123,7 +1120,7 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 	{
 		const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_E");
 		const bool bSRGB = true;
-		UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.EmissiveSize, InFlattenMaterial.EmissiveSamples, TC_Default, TEXTUREGROUP_World, Flags, bSRGB);
+		UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.EmissiveSize, InFlattenMaterial.EmissiveSamples, TC_Default, InTextureGroup, Flags, bSRGB);
 		OutGeneratedAssets.Add(Texture);
 
 		//Assign emissive color to the material
@@ -1162,13 +1159,13 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 	{
 		const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_O");
 		const bool bSRGB = true;
-		UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.OpacitySize, InFlattenMaterial.OpacitySamples, TC_Grayscale, TEXTUREGROUP_World, Flags, bSRGB);
+		UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.OpacitySize, InFlattenMaterial.OpacitySamples, TC_Default, InTextureGroup, Flags, bSRGB);
 		OutGeneratedAssets.Add(Texture);
 
 		//Assign opacity to the material
 		UMaterialExpressionTextureSample* OpacityExpression = NewObject<UMaterialExpressionTextureSample>(Material);
 		OpacityExpression->Texture = Texture;
-		OpacityExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_Grayscale;
+		OpacityExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_Color;
 		OpacityExpression->MaterialExpressionEditorX = -400;
 		OpacityExpression->MaterialExpressionEditorY = MaterialNodeY;
 		Material->Expressions.Add(OpacityExpression);
@@ -1201,7 +1198,7 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 	{
 		const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_SSC");
 		const bool bSRGB = true;
-		UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.SubSurfaceSize, InFlattenMaterial.SubSurfaceSamples, TC_Default, TEXTUREGROUP_World, Flags, bSRGB);
+		UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.SubSurfaceSize, InFlattenMaterial.SubSurfaceSamples, TC_Default, InTextureGroup, Flags, bSRGB);
 		OutGeneratedAssets.Add(Texture);
 
 		//Assign emissive color to the material
@@ -1242,7 +1239,7 @@ UTexture2D* FMaterialUtilities::CreateTexture(UPackage* Outer, const FString& As
 	UTexture2D* Texture = FImageUtils::CreateTexture2D(Size.X, Size.Y, Samples, Outer, FPackageName::GetShortName(AssetLongName), Flags, TexParams);
 	Texture->LODGroup = LODGroup;
 	Texture->PostEditChange();
-		
+			
 	return Texture;
 }
 
@@ -1439,29 +1436,21 @@ void FMaterialUtilities::RemapUniqueMaterialIndices(const TArray<UMaterialInterf
 
 	for (int32 MeshIndex = 0; MeshIndex < InMeshData.Num(); MeshIndex++)
 	{
-		for (int32 LODIndex = 0; LODIndex < MAX_STATIC_MESH_LODS; ++LODIndex)
+		const int32 LODIndex = InMeshData[MeshIndex].ExportLODIndex;
+		checkf(InMeshData[MeshIndex].MeshLODData[LODIndex].RawMesh.VertexPositions.Num(), TEXT("No vertex data found in mesh LOD"));
+		const TArray<int32>& MeshMaterialMap = InMaterialMap[FMeshIdAndLOD(MeshIndex, InMeshData[MeshIndex].ExportLODIndex)];
+		int32 NumTexCoords = 0;
+		bool bUseVertexData = false;
+		// Accumulate data of all materials.
+		for (int32 LocalMaterialIndex = 0; LocalMaterialIndex < MeshMaterialMap.Num(); LocalMaterialIndex++)
 		{
-			if (InMeshData[MeshIndex].MeshLODData[LODIndex].RawMesh.VertexPositions.Num())
-			{
-				const TArray<int32>& MeshMaterialMap = InMaterialMap[FMeshIdAndLOD(MeshIndex, LODIndex)];
-				int32 NumTexCoords = 0;
-				bool bUseVertexData = false;
-				// Accumulate data of all materials.
-				for (int32 LocalMaterialIndex = 0; LocalMaterialIndex < MeshMaterialMap.Num(); LocalMaterialIndex++)
-				{
-					UMaterialInterface* Material = InMaterials[MeshMaterialMap[LocalMaterialIndex]];
-					NumTexCoords = FMath::Max(NumTexCoords, MaterialNumTexCoords[Material]);
-					bUseVertexData |= MaterialUseVertexData[Material];
-				}
-				// Store data.
-				MeshUsesVertexData[MeshIndex] = bUseVertexData;
-				OutMeshShouldBakeVertexData[MeshIndex] = bUseVertexData || (NumTexCoords >= 2);
-			}
-			else
-			{
-				break;
-			}
+			UMaterialInterface* Material = InMaterials[MeshMaterialMap[LocalMaterialIndex]];
+			NumTexCoords = FMath::Max(NumTexCoords, MaterialNumTexCoords[Material]);
+			bUseVertexData |= MaterialUseVertexData[Material];
 		}
+		// Store data.
+		MeshUsesVertexData[MeshIndex] = bUseVertexData;
+		OutMeshShouldBakeVertexData[MeshIndex] = bUseVertexData || (NumTexCoords >= 2);		
 	}
 
 	// Build new material map.
@@ -1489,52 +1478,45 @@ void FMaterialUtilities::RemapUniqueMaterialIndices(const TArray<UMaterialInterf
 	OutMaterialMap.Empty();
 	for (int32 MeshIndex = 0; MeshIndex < InMeshData.Num(); MeshIndex++)
 	{
-		for (int32 LODIndex = 0; LODIndex < MAX_STATIC_MESH_LODS; ++LODIndex)
+		const int32 LODIndex = InMeshData[MeshIndex].ExportLODIndex;
+		checkf(InMeshData[MeshIndex].MeshLODData[LODIndex].RawMesh.VertexPositions.Num(), TEXT("No vertex data found in mesh LOD"));
+		
+		const TArray<int32>& MeshMaterialMap = InMaterialMap[FMeshIdAndLOD(MeshIndex, LODIndex)];
+		TArray<int32>& NewMeshMaterialMap = OutMaterialMap.Add(FMeshIdAndLOD(MeshIndex, LODIndex));
+		UStaticMesh* StaticMesh = InMeshData[MeshIndex].SourceStaticMesh;
+
+		if (!MeshUsesVertexData[MeshIndex])
 		{
-			if (InMeshData[MeshIndex].MeshLODData[LODIndex].RawMesh.VertexPositions.Num())
+			// No vertex data needed - could merge materials with other meshes.
+			if (!OutMeshShouldBakeVertexData[MeshIndex])
 			{
-				const TArray<int32>& MeshMaterialMap = InMaterialMap[FMeshIdAndLOD(MeshIndex, LODIndex)];
-				TArray<int32>& NewMeshMaterialMap = OutMaterialMap.Add(FMeshIdAndLOD(MeshIndex, LODIndex));
-				UStaticMesh* StaticMesh = InMeshData[MeshIndex].MeshLODData[LODIndex].SourceStaticMesh;
-
-				if (!MeshUsesVertexData[MeshIndex])
-				{
-					// No vertex data needed - could merge materials with other meshes.
-					if (!OutMeshShouldBakeVertexData[MeshIndex])
-					{
-						// Set to 'nullptr' if don't need to bake vertex data to be able to merge materials with any meshes
-						// which don't require vertex data baking too.
-						StaticMesh = nullptr;
-					}
-
-					for (int32 LocalMaterialIndex = 0; LocalMaterialIndex < MeshMaterialMap.Num(); LocalMaterialIndex++)
-					{
-						FMeshMaterialData Data(InMaterials[MeshMaterialMap[LocalMaterialIndex]], StaticMesh, false);
-						int32 Index = MeshMaterialData.Find(Data);
-						if (Index == INDEX_NONE)
-						{
-							// Not found, add new entry.
-							Index = MeshMaterialData.Add(Data);
-						}
-						NewMeshMaterialMap.Add(Index);
-					}
-				}
-				else
-				{
-					// Mesh with vertex data baking, and with vertex colors - don't share materials at all.
-					for (int32 LocalMaterialIndex = 0; LocalMaterialIndex < MeshMaterialMap.Num(); LocalMaterialIndex++)
-					{
-						FMeshMaterialData Data(InMaterials[MeshMaterialMap[LocalMaterialIndex]], StaticMesh, false);
-						int32 Index = MeshMaterialData.Add(Data);
-						NewMeshMaterialMap.Add(Index);
-					}
-				}
+				// Set to 'nullptr' if don't need to bake vertex data to be able to merge materials with any meshes
+				// which don't require vertex data baking too.
+				StaticMesh = nullptr;
 			}
-			else
+
+			for (int32 LocalMaterialIndex = 0; LocalMaterialIndex < MeshMaterialMap.Num(); LocalMaterialIndex++)
 			{
-				break;
+				FMeshMaterialData Data(InMaterials[MeshMaterialMap[LocalMaterialIndex]], StaticMesh, false);
+				int32 Index = MeshMaterialData.Find(Data);
+				if (Index == INDEX_NONE)
+				{
+					// Not found, add new entry.
+					Index = MeshMaterialData.Add(Data);
+				}
+				NewMeshMaterialMap.Add(Index);
 			}
 		}
+		else
+		{
+			// Mesh with vertex data baking, and with vertex colors - don't share materials at all.
+			for (int32 LocalMaterialIndex = 0; LocalMaterialIndex < MeshMaterialMap.Num(); LocalMaterialIndex++)
+			{
+				FMeshMaterialData Data(InMaterials[MeshMaterialMap[LocalMaterialIndex]], StaticMesh, true);
+				int32 Index = MeshMaterialData.Add(Data);
+				NewMeshMaterialMap.Add(Index);
+			}
+		}		
 	}
 
 	// Build new material list - simply extract MeshMaterialData[i].Material.
@@ -1699,6 +1681,247 @@ void FMaterialUtilities::ResizeFlattenMaterial(FFlattenMaterial& InFlattenMateri
 	}
 }
 
+/** Computes the uniform scale from the input scales,  if one exists. */
+static bool GetUniformScale(const TArray<float> Scales, float& UniformScale)
+{
+	if (Scales.Num())
+	{
+		float Average = 0;
+		float Mean = 0;
+
+		for (float V : Scales)
+		{
+			Average += V;
+		}
+		Average /= (float)Scales.Num();
+
+		for (float V : Scales)
+		{
+			Mean += FMath::Abs(V - Average);
+		}
+		Mean /= (float)Scales.Num();
+
+		if (Mean * 15.f < Average) // If they are almost all the same
+		{
+			UniformScale = Average;
+			return true;
+		}
+		else // Otherwise do a much more expensive test by counting the number of similar values
+		{
+			// Try to find a small range where 80% of values fit within.
+			const int32 TryThreshold = FMath::CeilToInt(.80f * (float)Scales.Num());
+
+			int32 NextTryDomain = Scales.Num();
+
+			float NextTryMinV = 1024;
+			for (float V : Scales)
+			{
+				NextTryMinV = FMath::Min<float>(V, NextTryMinV);
+			}
+
+			while (NextTryDomain >= TryThreshold) // Stop the search it is garantied to fail.
+			{
+				float TryMinV = NextTryMinV;
+				float TryMaxV = TryMinV * 1.25f;
+				int32 TryMatches = 0;
+				NextTryMinV = 1024;
+				NextTryDomain = 0;
+				for (float V : Scales)
+				{
+					if (TryMinV <= V && V <= TryMaxV)
+					{
+						++TryMatches;
+					}
+
+					if (V > TryMinV)
+					{
+						NextTryMinV = FMath::Min<float>(V, NextTryMinV);
+						++NextTryDomain;
+					}
+				}
+
+				if (TryMatches >= TryThreshold)
+				{
+					UniformScale = TryMinV;
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+
+bool FMaterialUtilities::ExportMaterialTexCoordScales(UMaterialInterface* InMaterial, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, TArray<FMaterialTexCoordBuildInfo>& OutScales)
+{
+	TArray<FFloat16Color> RenderedVectors;
+
+	TArray<UTexture*> Textures;
+	TArray< TArray<int32> > Indices;
+	InMaterial->GetUsedTexturesAndIndices(Textures, Indices, QualityLevel, FeatureLevel);
+
+	check(Textures.Num() >= Indices.Num()); // Can't have indices if no texture.
+
+	// Clear any entry not related to UTexture2D
+	for (int32 Index = 0; Index < Textures.Num(); ++Index)
+	{
+		if (!Cast<UTexture2D>(Textures[Index]))
+		{
+			Indices[Index].Empty(); 
+		}
+	}
+
+	const int32 SCALE_PRECISION = 64.f;
+	const int32 TILE_RESOLUTION = FMaterialTexCoordBuildInfo::TILE_RESOLUTION;
+	const int32 INITIAL_GPU_SCALE = FMaterialTexCoordBuildInfo::INITIAL_GPU_SCALE;
+	const int32 MAX_NUM_TEX_COORD = FMaterialTexCoordBuildInfo::MAX_NUM_TEX_COORD;
+	const int32 MAX_NUM_TEXTURE_REGISTER = FMaterialTexCoordBuildInfo::MAX_NUM_TEXTURE_REGISTER;
+
+	const bool bUseMetrics = CVarStreamingUseNewMetrics.GetValueOnGameThread() != 0;
+
+	int32 MaxRegisterIndex = INDEX_NONE;
+
+	for (const TArray<int32>& TextureIndices : Indices)
+	{
+		for (int32 RegisterIndex : TextureIndices)
+		{
+			MaxRegisterIndex = FMath::Max<int32>(RegisterIndex, MaxRegisterIndex);
+		}
+	}
+
+	if (MaxRegisterIndex == INDEX_NONE)
+	{
+		return false;
+	}
+
+	TBitArray<> RegisterInUse(false, MaxRegisterIndex + 1);
+
+	// Set the validity flag.
+	for (const TArray<int32>& TextureIndices : Indices)
+	{
+		for (int32 RegisterIndex : TextureIndices)
+		{
+			RegisterInUse[RegisterIndex] = true;
+		}
+	}
+
+
+	const int32 NumTileX = (MaxRegisterIndex / 4 + 1);
+	const int32 NumTileY = MAX_NUM_TEX_COORD;
+	FIntPoint RenderTargetSize(TILE_RESOLUTION * NumTileX, TILE_RESOLUTION * NumTileY);
+
+	// Render the vectors
+	{
+		// The rendertarget contain factors stored in XYZW. Every X tile maps to another group : (0, 1, 2, 3), (4, 5, 6, 7), ...
+		UTextureRenderTarget2D* RenderTarget = CreateRenderTarget(true, false, PF_FloatRGBA, RenderTargetSize);
+
+		// Allocate the render output.
+		RenderedVectors.Empty(RenderTargetSize.X * RenderTargetSize.Y);
+
+		FMaterialRenderProxy* MaterialProxy = InMaterial->GetRenderProxy(false, false);
+		if (!MaterialProxy)
+		{
+			return false;
+		}
+
+		FBox2D DummyBounds(FVector2D(0, 0), FVector2D(1, 1));
+		TArray<FVector2D> EmptyTexCoords;
+		FMaterialMergeData MaterialData(InMaterial, nullptr, nullptr, 0, DummyBounds, EmptyTexCoords);
+
+		CurrentlyRendering = true;
+		bool bResult = FMeshRenderer::RenderMaterialTexCoordScales(MaterialData, MaterialProxy, RenderTarget, RenderedVectors);
+		CurrentlyRendering = false;
+
+		if (!bResult)
+		{
+			return false;
+		}
+	}
+
+	OutScales.AddDefaulted(MaxRegisterIndex + 1);
+
+	TArray<float> TextureIndexScales;
+
+	// Now compute the scale for each
+	for (int32 RegisterIndex = 0; RegisterIndex <= MaxRegisterIndex; ++RegisterIndex)
+	{
+		if (!RegisterInUse[RegisterIndex]) continue;
+
+		// If nothing works, this will fallback to 1.f
+		OutScales[RegisterIndex].Scale = 1.f;
+		OutScales[RegisterIndex].Index = 0;
+
+		if (!bUseMetrics) continue; // Old metrics would always use 1.f
+
+		int32 TextureTile = RegisterIndex / 4;
+		int32 ComponentIndex = RegisterIndex % 4;
+
+		bool bSuccess = false;
+		for (int32 CoordIndex = 0; CoordIndex < MAX_NUM_TEX_COORD && !bSuccess; ++CoordIndex)
+		{
+			TextureIndexScales.Empty(TILE_RESOLUTION * TILE_RESOLUTION);
+			for (int32 TexelX = 0; TexelX < TILE_RESOLUTION; ++TexelX)
+			{
+				for (int32 TexelY = 0; TexelY < TILE_RESOLUTION; ++TexelY)
+				{
+					int32 TexelIndex = TextureTile * TILE_RESOLUTION + TexelX + (TexelY + CoordIndex * TILE_RESOLUTION) * RenderTargetSize.X;
+					FFloat16Color& Scale16 = RenderedVectors[TexelIndex];
+
+					float TexelScale = 0;
+					if (ComponentIndex == 0) TexelScale = Scale16.R.GetFloat();
+					if (ComponentIndex == 1) TexelScale = Scale16.G.GetFloat();
+					if (ComponentIndex == 2) TexelScale = Scale16.B.GetFloat();
+					if (ComponentIndex == 3) TexelScale = Scale16.A.GetFloat();
+
+					// Quantize scale to converge faster in the TryLogic
+					TexelScale = FMath::RoundToFloat(TexelScale * SCALE_PRECISION) / SCALE_PRECISION;
+
+					if (TexelScale > 0 && TexelScale < INITIAL_GPU_SCALE)
+					{
+						TextureIndexScales.Push(TexelScale);
+					}
+				}
+			}
+
+			if (GetUniformScale(TextureIndexScales, OutScales[RegisterIndex].Scale))
+			{
+				OutScales[RegisterIndex].Index = CoordIndex;
+				bSuccess = true;
+			}
+		}
+
+		// If we couldn't find the scale, then output a warning detailing which index, texture, material is having an issue.
+		if (!bSuccess)
+		{
+			UTexture* FailedTexture = nullptr;
+			for (int32 Index = 0; Index < Indices.Num() && !FailedTexture; ++Index)
+			{
+				for (int32 SubIndex : Indices[Index])
+				{
+					if (SubIndex == RegisterIndex)
+					{
+						FailedTexture = Textures[Index];
+						break;
+					}
+				}
+			}
+
+			if (FailedTexture)
+			{
+				if (TextureIndexScales.Num())
+				{
+					UE_LOG(LogMaterialUtilities, Warning, TEXT("ExportMaterialTexCoordScales: Failed to find constant scale for texture index %d of material %s (bound to texture %s)"), RegisterIndex, *InMaterial->GetName(), *FailedTexture->GetName());
+				}
+				else
+				{
+					UE_LOG(LogMaterialUtilities, Warning, TEXT("ExportMaterialTexCoordScales: Failed to generate scales for texture index %d of material %s (bound to texture %s)"), RegisterIndex, *InMaterial->GetName(), *FailedTexture->GetName());
+				}
+			}
+		}
+	}
+
+	return true;
+}
+
 bool FMaterialUtilities::ExportMaterial(struct FMaterialMergeData& InMaterialData, FFlattenMaterial& OutFlattenMaterial, struct FExportMaterialProxyCache* ProxyCache)
 {
 	UMaterialInterface* Material = InMaterialData.Material;
@@ -1713,10 +1936,7 @@ bool FMaterialUtilities::ExportMaterial(struct FMaterialMergeData& InMaterialDat
 		// Purpose of the following line: use compiled material cached from previous call.
 		Exchange(ProxyCache, InMaterialData.ProxyCache);
 	}
-
-	// Make sure all the materials are loaded
-	FullyLoadMaterialStatic(Material);
-
+	
 	// Precache all used textures, otherwise could get everything rendered with low-res textures.
 	TArray<UTexture*> MaterialTextures;
 	Material->GetUsedTextures(MaterialTextures, EMaterialQualityLevel::Num, true, GMaxRHIFeatureLevel, true);
@@ -1831,8 +2051,8 @@ bool FMaterialUtilities::RenderMaterialPropertyToTexture(struct FMaterialMergeDa
 	check(CurrentlyRendering == false);
 	CurrentlyRendering = true;
 
-	UTextureRenderTarget2D* RenderTarget = CreateRenderTarget(bInForceLinearGamma, InPixelFormat, OutSampleSize);
-
+	const bool bNormalMap = (InMaterialProperty == MP_Normal);
+	UTextureRenderTarget2D* RenderTarget = CreateRenderTarget(bInForceLinearGamma, bNormalMap, InPixelFormat, OutSampleSize);
 	OutSamples.Empty(InTargetSize.X * InTargetSize.Y);
 	bool bResult = FMeshRenderer::RenderMaterial(
 		InMaterialData,
@@ -1841,8 +2061,9 @@ bool FMaterialUtilities::RenderMaterialPropertyToTexture(struct FMaterialMergeDa
 		RenderTarget,
 		OutSamples);
 
+	/** Disabled for now, see comment below */
 	// Check for uniform value, perhaps this can be determined before rendering the material, see WillGenerateUniformData (LightmassRender)
-	bool bIsUniform = true;
+	/*bool bIsUniform = true;
 	FColor MaxColor(0, 0, 0, 0);
 	if (bResult)
 	{
@@ -1885,15 +2106,17 @@ bool FMaterialUtilities::RenderMaterialPropertyToTexture(struct FMaterialMergeDa
 		OutSampleSize = FIntPoint(1, 1);
 		OutSamples.Empty();
 		OutSamples.Add(MaxColor);
-	}
+	}*/
 
 	CurrentlyRendering = false;
 
 	return bResult;
 }
 
-UTextureRenderTarget2D* FMaterialUtilities::CreateRenderTarget(bool bInForceLinearGamma, EPixelFormat InPixelFormat, FIntPoint& InTargetSize)
+UTextureRenderTarget2D* FMaterialUtilities::CreateRenderTarget(bool bInForceLinearGamma, bool bNormalMap, EPixelFormat InPixelFormat, FIntPoint& InTargetSize)
 {
+	const FLinearColor ClearColour = bNormalMap ? FLinearColor(0.0f, 0.0f, 0.0f, 0.0f) : FLinearColor(1.0f, 0.0f, 1.0f, 0.0f);
+	
 	// Find any pooled render target with suitable properties.
 	for (int32 RTIndex = 0; RTIndex < RenderTargetPool.Num(); RTIndex++)
 	{
@@ -1901,7 +2124,8 @@ UTextureRenderTarget2D* FMaterialUtilities::CreateRenderTarget(bool bInForceLine
 		if (RenderTarget->SizeX == InTargetSize.X &&
 			RenderTarget->SizeY == InTargetSize.Y &&
 			RenderTarget->OverrideFormat == InPixelFormat &&
-			RenderTarget->bForceLinearGamma == bInForceLinearGamma)
+			RenderTarget->bForceLinearGamma == bInForceLinearGamma &&
+			RenderTarget->ClearColor == RenderTarget->ClearColor )
 		{
 			return RenderTarget;
 		}
@@ -1911,7 +2135,7 @@ UTextureRenderTarget2D* FMaterialUtilities::CreateRenderTarget(bool bInForceLine
 	UTextureRenderTarget2D* NewRenderTarget = NewObject<UTextureRenderTarget2D>();
 	check(NewRenderTarget);
 	NewRenderTarget->AddToRoot();
-	NewRenderTarget->ClearColor = FLinearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	NewRenderTarget->ClearColor = ClearColour;
 	NewRenderTarget->TargetGamma = 0.0f;
 	NewRenderTarget->InitCustomFormat(InTargetSize.X, InTargetSize.Y, InPixelFormat, bInForceLinearGamma);
 

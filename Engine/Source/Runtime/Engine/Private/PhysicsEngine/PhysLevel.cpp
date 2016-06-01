@@ -349,6 +349,14 @@ void InitGamePhys()
 	check(ErrorCode == APEX_CE_NO_ERROR);
 	check(GApexSDK);
 
+
+#if UE_BUILD_SHIPPING
+	GApexSDK->setEnableApexStats(false);
+#endif
+
+
+
+
 #if APEX_STATICALLY_LINKED
 	// We need to instantiate the module if we have statically linked them
 	// Otherwise all createModule functions will fail
@@ -455,6 +463,24 @@ void TermGamePhys()
 	}
 #endif	// #if WITH_APEX
 
+	//Remove all scenes still registered
+	if (int32 NumScenes = GPhysXSDK->getNbScenes())
+	{
+		TArray<PxScene*> PScenes;
+		PScenes.AddUninitialized(NumScenes);
+		GPhysXSDK->getScenes(PScenes.GetData(), sizeof(PxScene*)* NumScenes);
+
+		for (PxScene* PScene : PScenes)
+		{
+			if (PScene)
+			{
+				PScene->release();
+			}
+		}
+	}
+
+
+
 #if WITH_PHYSICS_COOKING || WITH_RUNTIME_PHYSICS_COOKING
 	if(GPhysXCooking != NULL)
 	{
@@ -486,13 +512,32 @@ void TermGamePhys()
 void DeferredPhysResourceCleanup()
 {
 #if WITH_PHYSX
+
 	// Release all tri meshes and reset array
 	for(int32 MeshIdx=0; MeshIdx<GPhysXPendingKillTriMesh.Num(); MeshIdx++)
 	{
 		PxTriangleMesh* PTriMesh = GPhysXPendingKillTriMesh[MeshIdx];
+
+		// Check this as it shouldn't be null, but then gate on it so we can
+		// avoid a crash if we end up in this state in shipping
 		check(PTriMesh);
-		PTriMesh->release();
-		GPhysXPendingKillTriMesh[MeshIdx] = NULL;
+		if(PTriMesh)
+		{
+			PTriMesh->release();
+
+			if(GPhysXPendingKillTriMesh.IsValidIndex(MeshIdx))
+			{
+				GPhysXPendingKillTriMesh[MeshIdx] = NULL;
+			}
+			else
+			{
+				UE_LOG(LogPhysics, Warning, TEXT("DeferredPhysResourceCleanup found invalid index into GPhysXPendingKillTriMesh, another thread may have modified the array."), MeshIdx);
+			}
+		}
+		else
+		{
+			UE_LOG(LogPhysics, Warning, TEXT("DeferredPhysResourceCleanup found null PxTriangleMesh in pending kill array, another thread may have modified the array."), MeshIdx);
+		}
 	}
 	GPhysXPendingKillTriMesh.Reset();
 
@@ -500,9 +545,27 @@ void DeferredPhysResourceCleanup()
 	for(int32 MeshIdx=0; MeshIdx<GPhysXPendingKillConvex.Num(); MeshIdx++)
 	{
 		PxConvexMesh* PConvexMesh = GPhysXPendingKillConvex[MeshIdx];
+
+		// Check this as it shouldn't be null, but then gate on it so we can
+		// avoid a crash if we end up in this state in shipping
 		check(PConvexMesh);
-		PConvexMesh->release();
-		GPhysXPendingKillConvex[MeshIdx] = NULL;
+		if(PConvexMesh)
+		{
+			PConvexMesh->release();
+
+			if(GPhysXPendingKillConvex.IsValidIndex(MeshIdx))
+			{
+				GPhysXPendingKillConvex[MeshIdx] = NULL;
+			}
+			else
+			{
+				UE_LOG(LogPhysics, Warning, TEXT("DeferredPhysResourceCleanup found invalid index into GPhysXPendingKillConvex (%d), another thread may have modified the array."), MeshIdx);
+			}
+		}
+		else
+		{
+			UE_LOG(LogPhysics, Warning, TEXT("DeferredPhysResourceCleanup found null PxConvexMesh in pending kill array (at %d), another thread may have modified the array."), MeshIdx);
+		}
 	}
 	GPhysXPendingKillConvex.Reset();
 
@@ -510,9 +573,27 @@ void DeferredPhysResourceCleanup()
 	for(int32 HfIdx=0; HfIdx<GPhysXPendingKillHeightfield.Num(); HfIdx++)
 	{
 		PxHeightField* PHeightfield = GPhysXPendingKillHeightfield[HfIdx];
+
+		// Check this as it shouldn't be null, but then gate on it so we can
+		// avoid a crash if we end up in this state in shipping
 		check(PHeightfield);
-		PHeightfield->release();
-		GPhysXPendingKillHeightfield[HfIdx] = NULL;
+		if(PHeightfield)
+		{
+			PHeightfield->release();
+
+			if(GPhysXPendingKillHeightfield.IsValidIndex(HfIdx))
+			{
+				GPhysXPendingKillHeightfield[HfIdx] = NULL;
+			}
+			else
+			{
+				UE_LOG(LogPhysics, Warning, TEXT("DeferredPhysResourceCleanup found invalid index into GPhysXPendingKillHeightfield (%d), another thread may have modified the array."), HfIdx);
+			}
+		}
+		else
+		{
+			UE_LOG(LogPhysics, Warning, TEXT("DeferredPhysResourceCleanup found null PxHeightField in pending kill array (at %d), another thread may have modified the array."), HfIdx);
+		}
 	}
 	GPhysXPendingKillHeightfield.Reset();
 
@@ -520,9 +601,26 @@ void DeferredPhysResourceCleanup()
 	for(int32 MeshIdx=0; MeshIdx<GPhysXPendingKillMaterial.Num(); MeshIdx++)
 	{
 		PxMaterial* PMaterial = GPhysXPendingKillMaterial[MeshIdx];
+
+		// Check this as it shouldn't be null, but then gate on it so we can
+		// avoid a crash if we end up in this state in shipping
 		check(PMaterial);
-		PMaterial->release();
-		GPhysXPendingKillMaterial[MeshIdx] = NULL;
+		if(PMaterial)
+		{
+			PMaterial->release();
+			if(GPhysXPendingKillMaterial.IsValidIndex(MeshIdx))
+			{
+				GPhysXPendingKillMaterial[MeshIdx] = NULL;
+			}
+			else
+			{
+				UE_LOG(LogPhysics, Warning, TEXT("DeferredPhysResourceCleanup found invalid index into GPhysXPendingKillMaterial(%d), another thread may have modified the array."), MeshIdx);
+			}
+		}
+		else
+		{
+			UE_LOG(LogPhysics, Warning, TEXT("DeferredPhysResourceCleanup found null PxMaterial in pending kill array (at %d), another thread may have modified the array."), MeshIdx);
+		}
 	}
 	GPhysXPendingKillMaterial.Reset();
 #endif

@@ -394,10 +394,6 @@ public:
 	UPROPERTY()
 	TArray<class UActorFactory*> ActorFactories;
 
-	/** Actors that are being deleted and should processed in the global re-attach */
-	UPROPERTY()
-	TArray<class AActor*> ActorsForGlobalReregister;
-
 	/** The name of the file currently being opened in the editor. "" if no file is being opened. */
 	UPROPERTY()
 	FString UserOpenedFile;
@@ -437,10 +433,6 @@ public:
 	UPROPERTY(globalconfig)
 	uint32 bAllowMultiplePIEWorlds:1;
 
-	/** The PlayerStart class used when spawning the player at the current camera location. */
-	UPROPERTY()
-	TSubclassOf<class ANavigationObjectBase>  PlayFromHerePlayerStartClass;
-
 	/** True if there is a pending end play map queued */
 	UPROPERTY()
 	uint32 bRequestEndPlayMapQueued:1;
@@ -460,6 +452,14 @@ public:
 	/** True if we're Simulating In Editor, as opposed to Playing In Editor.  In this mode, simulation takes place right the level editing environment */
 	UPROPERTY()
 	uint32 bIsSimulatingInEditor:1;
+
+	/** True if we should not display notifications about undo/redo */
+	UPROPERTY()
+	uint32 bSquelchTransactionNotification:1;
+
+	/** The PlayerStart class used when spawning the player at the current camera location. */
+	UPROPERTY()
+	TSubclassOf<class ANavigationObjectBase>  PlayFromHerePlayerStartClass;
 
 	/** When Simulating In Editor, a pointer to the original (non-simulating) editor world */
 	UPROPERTY()
@@ -559,6 +559,17 @@ public:
 	/** The feature level we should use when loading or creating a new world */
 	ERHIFeatureLevel::Type DefaultWorldFeatureLevel;
 
+protected:
+
+	/** Count of how many PIE instances are waiting to log in */
+	int32 PIEInstancesToLogInCount;
+
+	/* These are parameters that we need to cache for late joining */
+	FString ServerPrefix;
+	int32 PIEInstance;
+	int32 SettingsIndex;
+	bool bStartLateJoinersInSpectatorMode;
+
 public:
 
 	/** The "manager" of all the layers for the UWorld currently being edited */
@@ -635,6 +646,63 @@ public:
 	DECLARE_EVENT_OneParam( UEditorEngine, FGetActorRecordingState, bool& /* bIsRecordingActive */ );
 	FGetActorRecordingState& GetActorRecordingState() { return GetActorRecordingStateEvent; }
 
+
+
+
+
+
+	/** Editor-only event triggered when a HLOD Actor is moved between clusters */
+	DECLARE_EVENT_TwoParams(UEngine, FHLODActorMovedEvent, const AActor*, const AActor*);
+	FHLODActorMovedEvent& OnHLODActorMoved() { return HLODActorMovedEvent; }
+
+	/** Called by internal engine systems after a HLOD Actor is moved between clusters */
+	void BroadcastHLODActorMoved(const AActor* InActor, const AActor* ParentActor) { HLODActorMovedEvent.Broadcast(InActor, ParentActor); }
+
+	/** Editor-only event triggered when a HLOD Actor's mesh is build */
+	DECLARE_EVENT_OneParam(UEngine, FHLODMeshBuildEvent, const class ALODActor*);
+	FHLODMeshBuildEvent& OnHLODMeshBuild() { return HLODMeshBuildEvent; }
+
+	/** Called by internal engine systems after a HLOD Actor's mesh is build */
+	void BroadcastHLODMeshBuild(const class ALODActor* InActor) { HLODMeshBuildEvent.Broadcast(InActor); }
+
+	/** Editor-only event triggered when a HLOD Actor is added to a cluster */
+	DECLARE_EVENT_TwoParams(UEngine, FHLODActorAddedEvent, const AActor*, const AActor*);
+	FHLODActorAddedEvent& OnHLODActorAdded() { return HLODActorAddedEvent; }
+
+	/** Called by internal engine systems after a HLOD Actor is added to a cluster */
+	void BroadcastHLODActorAdded(const AActor* InActor, const AActor* ParentActor) { HLODActorAddedEvent.Broadcast(InActor, ParentActor); }
+
+	/** Editor-only event triggered when a HLOD Actor is marked dirty */
+	DECLARE_EVENT_OneParam(UEngine, FHLODActorMarkedDirtyEvent, class ALODActor*);
+	FHLODActorMarkedDirtyEvent& OnHLODActorMarkedDirty() { return HLODActorMarkedDirtyEvent; }
+
+	/** Called by internal engine systems after a HLOD Actor is marked dirty */
+	void BroadcastHLODActorMarkedDirty(class ALODActor* InActor) { HLODActorMarkedDirtyEvent.Broadcast(InActor); }
+
+	/** Editor-only event triggered when a HLOD Actor is marked dirty */
+	DECLARE_EVENT(UEngine, FHLODTransitionScreenSizeChangedEvent);
+	FHLODTransitionScreenSizeChangedEvent& OnHLODTransitionScreenSizeChanged() { return HLODTransitionScreenSizeChangedEvent; }
+
+	/** Called by internal engine systems after a HLOD Actor is marked dirty */
+	void BroadcastHLODTransitionScreenSizeChanged() { HLODTransitionScreenSizeChangedEvent.Broadcast(); }
+
+	/** Editor-only event triggered when a HLOD level is added or removed */
+	DECLARE_EVENT(UEngine, FHLODLevelsArrayChangedEvent);
+	FHLODLevelsArrayChangedEvent& OnHLODLevelsArrayChanged() { return HLODLevelsArrayChangedEvent; }
+
+	/** Called by internal engine systems after a HLOD Actor is marked dirty */
+	void BroadcastHLODLevelsArrayChanged() { HLODLevelsArrayChangedEvent.Broadcast(); }
+
+	DECLARE_EVENT_TwoParams(UEngine, FHLODActorRemovedFromClusterEvent, const AActor*, const AActor*);
+	FHLODActorRemovedFromClusterEvent& OnHLODActorRemovedFromCluster() { return HLODActorRemovedFromClusterEvent; }
+
+	/** Called by internal engine systems after an Actor is removed from a cluster */
+	void BroadcastHLODActorRemovedFromCluster(const AActor* InActor, const AActor* ParentActor) { HLODActorRemovedFromClusterEvent.Broadcast(InActor, ParentActor); }
+
+
+
+
+
 	/**
 	* Called before an actor or component is about to be translated, rotated, or scaled by the editor
 	*
@@ -694,6 +762,7 @@ protected:
 	virtual void InitializeObjectReferences() override;
 	virtual void ProcessToggleFreezeCommand(UWorld* InWorld) override;
 	virtual void ProcessToggleFreezeStreamingCommand(UWorld* InWorld) override;
+	virtual void HandleBrowseToDefaultMapFailure(FWorldContext& Context, const FString& TextURL, const FString& Error) override;
 private:
 	virtual void RemapGamepadControllerIdForPIE(class UGameViewportClient* GameViewport, int32 &ControllerId) override;
 	virtual TSharedPtr<SViewport> GetGameViewportWidget() const override;
@@ -822,7 +891,7 @@ public:
 	int32 EndTransaction();
 	void ResetTransaction(const FText& Reason);
 	void CancelTransaction(int32 Index);
-	bool UndoTransaction();
+	bool UndoTransaction(bool bCanRedo = true);
 	bool RedoTransaction();
 	bool IsTransactionActive();
 	FText GetTransactionName() const;
@@ -1549,10 +1618,10 @@ public:
 	 * @param	bUseMobilePreview		True to enable mobile preview mode (PC platform only)
 	 * @param	bUseVRPreview			True to enable VR preview mode (PC platform only)
 	 */
-	void RequestPlaySession( bool bAtPlayerStart, TSharedPtr<class ILevelViewport> DestinationViewport, bool bInSimulateInEditor, const FVector* StartLocation = NULL, const FRotator* StartRotation = NULL, int32 DestinationConsole = -1, bool bUseMobilePreview = false, bool bUseVRPreview = false );
+	void RequestPlaySession( bool bAtPlayerStart, TSharedPtr<class ILevelViewport> DestinationViewport, bool bInSimulateInEditor, const FVector* StartLocation = NULL, const FRotator* StartRotation = NULL, int32 DestinationConsole = -1, bool bUseMobilePreview = false, bool bUseVRPreview = false, bool bUseVulkanPreview = false);
 
 	// @todo gmp: temp hack for Rocket demo
-	void RequestPlaySession( const FVector* StartLocation, const FRotator* StartRotation, bool MobilePreview );
+	void RequestPlaySession( const FVector* StartLocation, const FRotator* StartRotation, bool MobilePreview, bool VulkanPreview );
 
 	/**
 	 * Request to play a game on a remote device 
@@ -1595,6 +1664,11 @@ public:
 	bool ShouldEndPlayMap() const { return bRequestEndPlayMapQueued; }
 
 	/**
+	 * Request to create a new PIE window and join the currently running PIE session.
+	 */
+	void RequestLateJoin();
+
+	/**
 	 * Saves play in editor levels and also fixes up references in AWorldSettings to other levels.
 	 *
 	 * @param	Prefix				Prefix used to save files to disk.
@@ -1622,7 +1696,7 @@ public:
 	 */
 	virtual void PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor );
 
-	virtual UGameInstance* CreatePIEGameInstance(int32 PIEInstance, bool bInSimulateInEditor, bool bAnyBlueprintErrors, bool bStartInSpectatorMode, bool bPlayNetDedicated, float PIEStartTime);
+	virtual UGameInstance* CreatePIEGameInstance(int32 InPIEInstance, bool bInSimulateInEditor, bool bAnyBlueprintErrors, bool bStartInSpectatorMode, bool bPlayNetDedicated, float PIEStartTime);
 
 	/**
 	 * Kills the Play From Here session
@@ -2058,7 +2132,7 @@ public:
 	float GetGridSize();
 
 	/** 
-	 * @return - if the grid size is part of the 1,2,48,16,.. list or not
+	 * @return - if the grid size is part of the 1,2,4,8,16,.. list or not
 	 */
 	bool IsGridSizePowerOfTwo() const;
 
@@ -2131,6 +2205,16 @@ public:
 	 * @param ToClass	The class converting to
 	 */
 	void ConvertActorsFromClass( UClass* FromClass, UClass* ToClass );
+
+	/**
+	 * Gets a delegate that is executed when a matinee is requested to be opened
+	 *
+	 * The first parameter is the matinee actor
+	 *
+	 * @return The event delegate.
+	 */
+	DECLARE_DELEGATE_RetVal_OneParam(bool, FShouldOpenMatineeCallback, AMatineeActor*)
+	FShouldOpenMatineeCallback& OnShouldOpenMatinee() { return ShouldOpenMatineeCallback; }
 
 	/** 
 	 * Show a (Suppressable) warning dialog to remind the user he is about to lose his undo buffer 
@@ -2282,12 +2366,12 @@ public:
 	 * Gets the user-friendly, localized (if exists) name of a property
 	 *
 	 * @param	Property	the property we want to try to et the friendly name of	
-	 * @param	OwnerClass	if specified, uses this class's loc file instead of the property's owner class
+	 * @param	OwnerStruct	if specified, uses this class's loc file instead of the property's owner class
 	 *						useful for overriding the friendly name given a property inherited from a parent class.
 	 *
 	 * @return	the friendly name for the property.  localized first, then metadata, then the property's name.
 	 */
-	static FString GetFriendlyName( const UProperty* Property, UStruct* OwnerClass = NULL );
+	static FString GetFriendlyName( const UProperty* Property, UStruct* OwnerStruct = NULL );
 
 	/**
 	 * Register a client tool to receive undo events 
@@ -2415,6 +2499,9 @@ private:
 	/** Above function but called a frame later, to stop PIE login from happening from a network callback */
 	virtual void OnLoginPIEComplete_Deferred(int32 LocalUserNum, bool bWasSuccessful, FString ErrorString, FPieLoginStruct DataStruct);
 
+	/** Called when all PIE instances have been successfully logged in */
+	virtual void OnLoginPIEAllComplete();
+
 public:
 	/**
 	 * Continue the creation of a single PIE world after a login was successful
@@ -2465,6 +2552,11 @@ private:
 	 * Called via a delegate to toggle between the editor and pie world
 	 */
 	void OnSwitchWorldsForPIE( bool bSwitchToPieWorld );
+
+	/**
+	 * Gives focus to the server or first PIE client viewport
+	 */
+	void GiveFocusToFirstClientPIEViewport();
 
 public:
 	/**
@@ -2595,10 +2687,34 @@ private:
 
 	/** Delegate broadcast when the camera viewed through the viewport has been moved */
 	FOnEndTransformCamera OnEndCameraTransformEvent;
+	
+	/** Broadcasts after an HLOD actor has been moved between clusters */
+	FHLODActorMovedEvent HLODActorMovedEvent;
+
+	/** Broadcasts after an HLOD actor's mesh is build*/
+	FHLODMeshBuildEvent HLODMeshBuildEvent;
+
+	/** Broadcasts after an HLOD actor has added to a cluster */
+	FHLODActorAddedEvent HLODActorAddedEvent;
+
+	/** Broadcasts after an HLOD actor has been marked dirty */
+	FHLODActorMarkedDirtyEvent HLODActorMarkedDirtyEvent;
+
+	/** Broadcasts after a Draw distance value (World settings) is changed */
+	FHLODTransitionScreenSizeChangedEvent HLODTransitionScreenSizeChangedEvent;
+
+	/** Broadcasts after the HLOD levels array is changed */
+	FHLODLevelsArrayChangedEvent HLODLevelsArrayChangedEvent;
+
+	/** Broadcasts after an Actor is removed from a cluster */
+	FHLODActorRemovedFromClusterEvent HLODActorRemovedFromClusterEvent;
 
 	/** Delegate broadcast by the engine every tick when PIE/SIE is active, to check to see whether we need to
 		be able to capture state for simulating actor (for Sequencer recording features) */
 	FGetActorRecordingState GetActorRecordingStateEvent;
+
+	/** Delegate to be called when a matinee is requested to be opened */
+	FShouldOpenMatineeCallback ShouldOpenMatineeCallback;
 
 	/** Reference to owner of the current popup */
 	TWeakPtr<class SWindow> PopupWindow;
@@ -2637,6 +2753,7 @@ private:
 	// @todo: This should be an enum along with bPlayOnLocalPcSession, or completely refactored
 	bool bPlayUsingLauncher;
 	bool bPlayUsingMobilePreview;
+	bool bPlayUsingVulkanPreview;
 
 	/** The platform to run on (as selected in dreop down) */
 	FString PlayUsingLauncherDeviceId;
@@ -2757,7 +2874,7 @@ public:
 
 	virtual void HandleTravelFailure(UWorld* InWorld, ETravelFailure::Type FailureType, const FString& ErrorString);
 
-	void AutomationLoadMap(const FString& MapName);
+	void AutomationLoadMap(const FString& MapName, FString* OutError);
 
 private:
 	FTimerHandle CleanupPIEOnlineSessionsTimerHandle;

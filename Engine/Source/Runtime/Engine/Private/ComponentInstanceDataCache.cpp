@@ -179,7 +179,7 @@ FComponentInstanceDataCache::FComponentInstanceDataCache(const AActor* Actor)
 				// If the instance component is attached to a BP component we have to be prepared for the possibility that it will be deleted
 				if (USceneComponent* SceneComponent = Cast<USceneComponent>(Component))
 				{
-					if (SceneComponent->AttachParent && SceneComponent->AttachParent->IsCreatedByConstructionScript())
+					if (SceneComponent->GetAttachParent() && SceneComponent->GetAttachParent()->IsCreatedByConstructionScript())
 					{
 						InstanceComponentTransformToRootMap.Add(SceneComponent, SceneComponent->GetComponentTransform().GetRelativeTransform(Actor->GetRootComponent()->GetComponentTransform()));
 					}
@@ -244,9 +244,9 @@ void FComponentInstanceDataCache::ApplyToActor(AActor* Actor, const ECacheApplyP
 			check(Actor->GetRootComponent());
 
 			USceneComponent* SceneComponent = InstanceTransformPair.Key;
-			if (SceneComponent && (SceneComponent->AttachParent == nullptr || SceneComponent->AttachParent->IsPendingKill()))
+			if (SceneComponent && (SceneComponent->GetAttachParent() == nullptr || SceneComponent->GetAttachParent()->IsPendingKill()))
 			{
-				SceneComponent->AttachTo(Actor->GetRootComponent());
+				SceneComponent->AttachToComponent(Actor->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 				SceneComponent->SetRelativeTransform(InstanceTransformPair.Value);
 			}
 		}

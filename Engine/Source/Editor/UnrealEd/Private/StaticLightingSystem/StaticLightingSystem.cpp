@@ -22,7 +22,7 @@ FSwarmDebugOptions GSwarmDebugOptions;
 #include "ShadowMap.h"
 #include "RendererInterface.h"
 #include "EditorBuildUtils.h"
-
+#include "ComponentRecreateRenderStateContext.h"
 #include "Engine/LODActor.h"
 
 DEFINE_LOG_CATEGORY(LogStaticLightingSystem);
@@ -42,6 +42,7 @@ DEFINE_LOG_CATEGORY(LogStaticLightingSystem);
 #include "Engine/Selection.h"
 #include "Components/SkyLightComponent.h"
 #include "Components/LightmassPortalComponent.h"
+#include "Runtime/CoreUObject/Public/Misc/UObjectToken.h"
 
 #define LOCTEXT_NAMESPACE "StaticLightingSystem"
 
@@ -776,12 +777,20 @@ void UpdateStaticLightingHLODTreeIndices(TMultiMap<AActor*, FStaticLightingMesh*
 
 			for (FStaticLightingMesh* SubActorMesh : SubActorMeshes)
 			{
-				checkf(SubActorMesh->HLODTreeIndex == 0, TEXT("ERROR: HLODTreeIndex != 0 for '%s' while processing LOD actor '%s'"), *SubActorMesh->Component->GetPathName(), *LODActor->GetName());
+				if (SubActorMesh->HLODTreeIndex == 0)
 				{
 					SubActorMesh->HLODTreeIndex = HLODTreeIndex;
 					SubActorMesh->HLODChildStartIndex = HLODLeafIndex;
 					SubActorMesh->HLODChildEndIndex = HLODLeafIndex;
 					++HLODLeafIndex;
+				}
+				else
+				{
+					// Output error to message log containing tokens to the problematic objects
+					FMessageLog("LightingResults").Warning()
+						->AddToken(FUObjectToken::Create(SubActorMesh->Component->GetOwner()))
+						->AddToken(FTextToken::Create(LOCTEXT("LightmassError_InvalidHLODTreeIndex", "will not be correctly lit since it is part of another Hierarchical LOD cluster besides ")))
+						->AddToken(FUObjectToken::Create(LODActor));
 				}
 			}
 		}
@@ -1225,8 +1234,9 @@ void FStaticLightingSystem::ApplyNewLightingData(bool bLightingSuccessful)
 		// by scene proxies will be fully released before any components are reregistered.
 		// We do not rerun construction scripts - nothing should have changed that requires that, and 
 		// want to know which components were not moved during lighting rebuild
-		World->ClearWorldComponents();
-		World->UpdateWorldComponents(false, false);
+		{
+			FGlobalComponentRecreateRenderStateContext RecreateRenderState;
+		}
 
 		// Clean up old shadow-map and light-map data.
 		CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );

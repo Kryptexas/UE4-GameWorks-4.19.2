@@ -27,7 +27,7 @@ UAbilityTask_ApplyRootMotionJumpForce* UAbilityTask_ApplyRootMotionJumpForce::Ap
 	MyTask->Rotation = Rotation;
 	MyTask->Distance = Distance;
 	MyTask->Height = Height;
-	MyTask->Duration = FMath::Max(Duration, SMALL_NUMBER); // No zero duration
+	MyTask->Duration = FMath::Max(Duration, KINDA_SMALL_NUMBER); // No zero duration
 	MyTask->MinimumLandedTriggerTime = MinimumLandedTriggerTime * Duration; // MinimumLandedTriggerTime is normalized
 	MyTask->bFinishOnLanded = bFinishOnLanded;
 	MyTask->PathOffsetCurve = PathOffsetCurve;
@@ -44,6 +44,7 @@ void UAbilityTask_ApplyRootMotionJumpForce::Activate()
 	{
 		Character->LandedDelegate.AddDynamic(this, &UAbilityTask_ApplyRootMotionJumpForce::OnLandedCallback);
 	}
+	SetWaitingOnAvatar();
 }
 
 void UAbilityTask_ApplyRootMotionJumpForce::OnLandedCallback(const FHitResult& Hit)

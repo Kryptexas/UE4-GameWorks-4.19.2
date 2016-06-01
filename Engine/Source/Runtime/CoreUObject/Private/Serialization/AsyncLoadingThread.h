@@ -69,9 +69,7 @@ class FAsyncLoadingThread : public FRunnable
 	/** [ASYNC/GAME THREAD] Number of package load requests in the async loading queue */
 	FThreadSafeCounter QueuedPackagesCounter;
 	/** [ASYNC/GAME THREAD] Number of packages being loaded on the async thread and post loaded on the game thread */
-	FThreadSafeCounter AsyncLoadingCounter;
-	/** [ASYNC/GAME THREAD] Number of packages being loaded on the async thread */
-	FThreadSafeCounter AsyncPackagesCounter;
+	FThreadSafeCounter ExistingAsyncPackagesCounter;
 
 	FThreadSafeCounter AsyncThreadReady;
 
@@ -166,7 +164,7 @@ public:
 	FORCEINLINE bool IsAsyncLoadingPackages()
 	{
 		FPlatformMisc::MemoryBarrier();
-		return QueuedPackagesCounter.GetValue() != 0 || AsyncLoadingCounter.GetValue() != 0;
+		return QueuedPackagesCounter.GetValue() != 0 || ExistingAsyncPackagesCounter.GetValue() != 0;
 	}
 
 	/** Returns true this codes runs on the async loading thread */
@@ -195,11 +193,17 @@ public:
 		return IsLoadingSuspended.GetValue() != 0;
 	}
 
+	FORCEINLINE int32 GetAsyncLoadingSuspendedCount()
+	{
+		FPlatformMisc::MemoryBarrier();
+		return IsLoadingSuspended.GetValue();
+	}
+
 	/** Returns the number of async packages that are currently being processed */
 	FORCEINLINE int32 GetAsyncPackagesCount()
 	{
 		FPlatformMisc::MemoryBarrier();
-		return AsyncLoadingCounter.GetValue();
+		return ExistingAsyncPackagesCounter.GetValue();
 	}
 
 	/**

@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "MovieSceneSection.h"
+#include "IKeyframeSection.h"
 #include "MovieSceneBoolSection.generated.h"
 
 /**
@@ -40,7 +42,9 @@ public:
 	 */
 	virtual void MoveSection(float DeltaPosition, TSet<FKeyHandle>& KeyHandles) override;
 	virtual void DilateSection(float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles) override;
-	virtual void GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const override;
+	virtual void GetKeyHandles(TSet<FKeyHandle>& OutKeyHandles, TRange<float> TimeRange) const override;
+	virtual TOptional<float> GetKeyTime( FKeyHandle KeyHandle ) const override;
+	virtual void SetKeyTime( FKeyHandle KeyHandle, float Time ) override;
 
 	/** Gets all the keys of this boolean section */
 	FIntegralCurve& GetCurve() { return BoolCurve; }
@@ -49,6 +53,6 @@ private:
 	/** Ordered curve data */
 	// @todo Sequencer This could be optimized by packing the bools separately
 	// but that may not be worth the effort
-	UPROPERTY(EditAnywhere, Category="Curve")
+	UPROPERTY()
 	FIntegralCurve BoolCurve;
 };

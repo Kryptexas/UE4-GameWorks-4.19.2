@@ -18,6 +18,13 @@ class SVirtualWindow : public SWindow
 
 public:
 	void Construct(const FArguments& InArgs);
+	
+	virtual FPopupMethodReply OnQueryPopupMethod() const override;
+	virtual bool OnVisualizeTooltip(const TSharedPtr<SWidget>& TooltipContent) override;
+	virtual void OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const override;
+
+private:
+	TSharedPtr<class STooltipPresenter> TooltipPresenter;
 };
 
 /**
@@ -54,6 +61,18 @@ public:
 
 	void DrawWindow(
 		UTextureRenderTarget2D* RenderTarget,
+		TSharedRef<FHittestGrid> HitTestGrid,
+		TSharedRef<SWindow> Window,
+		FGeometry WindowGeometry,
+		FSlateRect WindowClipRect,
+		float DeltaTime);
+
+private:
+	void PrepassWindowAndChildren(TSharedRef<SWindow> Window, float Scale);
+
+	void DrawWindowAndChildren(
+		UTextureRenderTarget2D* RenderTarget,
+		FSlateDrawBuffer& DrawBuffer,
 		TSharedRef<FHittestGrid> HitTestGrid,
 		TSharedRef<SWindow> Window,
 		FGeometry WindowGeometry,

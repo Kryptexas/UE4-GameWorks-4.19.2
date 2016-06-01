@@ -15,6 +15,13 @@
 
 DEFINE_LOG_CATEGORY(LogPakFile);
 
+DEFINE_STAT(STAT_PakFile_Read);
+DEFINE_STAT(STAT_PakFile_NumOpenHandles);
+
+// Enable to stop the loading of any loose files outside of the pak file
+#ifndef ENABLE_LOOSE_FILE_SECURITY
+#define ENABLE_LOOSE_FILE_SECURITY 0
+#endif
 
 /**
  * Class to handle correctly reading from a compressed file within a compressed package
@@ -95,7 +102,7 @@ public:
 			// Decrypt and Uncompress from memory to memory.
 			int64 EncryptionSize = EncryptionPolicy::AlignReadRequest(CompressedSize);
 			EncryptionPolicy::DecryptBlock(CompressedBuffer, EncryptionSize);
-			FCompression::UncompressMemory(Flags, UncompressedBuffer, UncompressedSize, CompressedBuffer, CompressedSize, false);
+			FCompression::UncompressMemory(Flags, UncompressedBuffer, UncompressedSize, CompressedBuffer, CompressedSize, false, FPlatformMisc::GetPlatformCompression()->GetCompressionBitWindow());
 			if (CopyOut)
 			{
 				FMemory::Memcpy(CopyOut, UncompressedBuffer+CopyOffset, CopyLength);
@@ -139,7 +146,7 @@ public:
 		FCompressionScratchBuffers& ScratchSpace = FCompressionScratchBuffers::Get();
 		bool bStartedUncompress = false;
 
-		int64 WorkingBufferRequiredSize = FCompression::CompressMemoryBound((ECompressionFlags)PakEntry.CompressionMethod,CompressionBlockSize);
+		int64 WorkingBufferRequiredSize = FCompression::CompressMemoryBound((ECompressionFlags)PakEntry.CompressionMethod,CompressionBlockSize, FPlatformMisc::GetPlatformCompression()->GetCompressionBitWindow());
 		WorkingBufferRequiredSize = EncryptionPolicy::AlignReadRequest(WorkingBufferRequiredSize);
 		ScratchSpace.EnsureBufferSpace(CompressionBlockSize, WorkingBufferRequiredSize*2);
 		WorkingBuffers[0] = ScratchSpace.ScratchBuffer;
@@ -233,6 +240,53 @@ bool FPakEntry::VerifyPakEntriesMatch(const FPakEntry& FileEntryA, const FPakEnt
 	return bResult;
 }
 
+bool FPakPlatformFile::IsFilenameAllowed(const FString& InFilename)
+{
+	if (bForceSecurityBypass || !bSecurityEnabled)
+	{
+		return true;
+	}
+
+	FName FilenameHash(*InFilename);
+
+#if PAKFILE_TRACK_SECURITY_EXCLUDED_FILES
+	if (SecurityExcludedFiles.Contains(FilenameHash))
+	{
+		return false;
+	}
+#endif
+
+	if (AllowedExtensions.Num() == 0)
+	{
+		static const FName PakExtension(TEXT("pak"));
+		static const FName LogExtension(TEXT("log"));
+		AllowedExtensions.Add(PakExtension);
+		AllowedExtensions.Add(LogExtension);
+	}
+
+	static const FName IniExtension(TEXT("ini"));
+
+	FName ExtensionName = FName(*FPaths::GetExtension(InFilename));
+	bool bAllowed = false;
+
+	if (AllowedExtensions.Contains(ExtensionName))
+	{
+		bAllowed = true;
+	}
+	else if (ExtensionName == IniExtension)
+	{
+		// TODO: Filter out ini files that we don't trust
+		bAllowed = InFilename.Contains(TEXT("GameUserSettings"), ESearchCase::IgnoreCase);
+	}
+
+#if PAKFILE_TRACK_SECURITY_EXCLUDED_FILES
+	UE_CLOG(!bAllowed, LogPakFile, Log, TEXT("Ignoring request for loose file '%s'"), *InFilename);
+	SecurityExcludedFiles.Add(FilenameHash);
+#endif
+
+	return bAllowed;
+}
+
 FPakFile::FPakFile(const TCHAR* Filename, bool bIsSigned)
 	: PakFilename(Filename)
 	, bSigned(bIsSigned)
@@ -273,26 +327,29 @@ FPakFile::~FPakFile()
 FArchive* FPakFile::CreatePakReader(const TCHAR* Filename)
 {
 	FArchive* ReaderArchive = IFileManager::Get().CreateFileReader(Filename);
-	return SetupSignedPakReader(ReaderArchive);
+	return SetupSignedPakReader(ReaderArchive, Filename);
 }
 
 FArchive* FPakFile::CreatePakReader(IFileHandle& InHandle, const TCHAR* Filename)
 {
 	FArchive* ReaderArchive = new FArchiveFileReaderGeneric(&InHandle, Filename, InHandle.Size());
-	return SetupSignedPakReader(ReaderArchive);
+	return SetupSignedPakReader(ReaderArchive, Filename);
 }
 
-FArchive* FPakFile::SetupSignedPakReader(FArchive* ReaderArchive)
+FArchive* FPakFile::SetupSignedPakReader(FArchive* ReaderArchive, const TCHAR* Filename)
 {
+	if (FPlatformProperties::RequiresCookedData())
+	{
 #if !USING_SIGNED_CONTENT
-	if (bSigned || FParse::Param(FCommandLine::Get(), TEXT("signedpak")) || FParse::Param(FCommandLine::Get(), TEXT("signed")))
+		if (bSigned || FParse::Param(FCommandLine::Get(), TEXT("signedpak")) || FParse::Param(FCommandLine::Get(), TEXT("signed")))
 #endif
-	{	
-		if (!Decryptor.IsValid())
 		{
-			Decryptor = new FChunkCacheWorker(ReaderArchive);
+			if (!Decryptor.IsValid())
+			{
+				Decryptor = new FChunkCacheWorker(ReaderArchive, Filename);
+			}
+			ReaderArchive = new FSignedArchiveReader(ReaderArchive, Decryptor);
 		}
-		ReaderArchive = new FSignedArchiveReader(ReaderArchive, Decryptor);
 	}
 	return ReaderArchive;
 }
@@ -301,15 +358,15 @@ void FPakFile::Initialize(FArchive* Reader)
 {
 	if (Reader->TotalSize() < Info.GetSerializedSize())
 	{
-		UE_LOG(LogPakFile, Fatal, TEXT("Corrupted pak file (too short)."));
+		UE_LOG(LogPakFile, Fatal, TEXT("Corrupted pak file (too short). Verify your installation."));
 	}
 	else
 	{
 		// Serialize trailer and check if everything is as expected.
 		Reader->Seek(Reader->TotalSize() - Info.GetSerializedSize());
 		Info.Serialize(*Reader);
-		check(Info.Magic == FPakInfo::PakFile_Magic);
-		check(Info.Version >= FPakInfo::PakFile_Version_Initial && Info.Version <= FPakInfo::PakFile_Version_Latest);
+		UE_CLOG(Info.Magic != FPakInfo::PakFile_Magic, LogPakFile, Fatal, TEXT("Trailing magic number (%ud) is different than the expected one. Verify your installation."), Info.Magic);
+		UE_CLOG(!(Info.Version >= FPakInfo::PakFile_Version_Initial && Info.Version <= FPakInfo::PakFile_Version_Latest), LogPakFile, Fatal, TEXT("Invalid pak file version (%d). Verify your installation."), Info.Version);
 
 		LoadIndex(Reader);
 		// LoadIndex should crash in case of an error, so just assume everything is ok if we got here.
@@ -505,7 +562,9 @@ void FPakPlatformFile::HandlePakListCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 FPakPlatformFile::FPakPlatformFile()
 	: LowerLevel(NULL)
 	, bSigned(false)
+	, bForceSecurityBypass(false)
 {
+	bSecurityEnabled = (!!ENABLE_LOOSE_FILE_SECURITY) || FParse::Param(FCommandLine::Get(), TEXT("PlatformFileSecurity"));
 }
 
 FPakPlatformFile::~FPakPlatformFile()
@@ -645,7 +704,7 @@ bool FPakPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine)
 		// Even if -signed is not provided in the command line, use signed reader if the hardcoded key is non-zero.
 		FEncryptionKey DecryptionKey;
 		DecryptionKey.Exponent.Parse(DECRYPTION_KEY_EXPONENT);
-		DecryptionKey.Modulus.Parse(DECYRPTION_KEY_MODULUS);
+		DecryptionKey.Modulus.Parse(DECRYPTION_KEY_MODULUS);
 		bSigned = !DecryptionKey.Exponent.IsZero() && !DecryptionKey.Modulus.IsZero();
 	}
 #else
@@ -811,9 +870,28 @@ IFileHandle* FPakPlatformFile::CreatePakFileHandle(const TCHAR* Filename, FPakFi
 	return Result;
 }
 
-bool FPakPlatformFile::HandleMountPakDelegate(const FString& PakFilePath, uint32 PakOrder)
+bool FPakPlatformFile::HandleMountPakDelegate(const FString& PakFilePath, uint32 PakOrder, IPlatformFile::FDirectoryVisitor* Visitor)
 {
-	return Mount(*PakFilePath, PakOrder);
+	bool bReturn = Mount(*PakFilePath, PakOrder);
+	if (bReturn && Visitor != nullptr)
+	{
+		TArray<FPakListEntry> Paks;
+		GetMountedPaks(Paks);
+		// Find the single pak we just mounted
+		for (auto Pak : Paks)
+		{
+			if (PakFilePath == Pak.PakFile->GetFilename())
+			{
+				// Get a list of all of the files in the pak
+				for (FPakFile::FFileIterator It(*Pak.PakFile); It; ++It)
+				{
+					Visitor->Visit(*It.Filename(), false);
+				}
+				return true;
+			}
+		}
+	}
+	return bReturn;
 }
 
 bool FPakPlatformFile::HandleUnmountPakDelegate(const FString& PakFilePath)
@@ -831,10 +909,13 @@ IFileHandle* FPakPlatformFile::OpenRead(const TCHAR* Filename, bool bAllowWrite)
 		Result = CreatePakFileHandle(Filename, PakFile, FileEntry);
 	}
 #if !USING_SIGNED_CONTENT
-	else if (!bSigned)
+	else
 	{
-		// Default to wrapped file but only if we don't force use signed content
-		Result = LowerLevel->OpenRead(Filename, bAllowWrite);
+		if (IsFilenameAllowed(Filename))
+		{
+			// Default to wrapped file
+			Result = LowerLevel->OpenRead(Filename, bAllowWrite);
+		}
 	}
 #endif
 	return Result;
@@ -887,6 +968,10 @@ bool FPakPlatformFile::CopyFile(const TCHAR* To, const TCHAR* From)
 	return Result;
 }
 
+uint32 ComputePakChunkHash(const uint8* InData, const int64 InDataSize)
+{
+	return FCrc::MemCrc32(InData, InDataSize);
+}
 
 /**
  * Module for the pak file

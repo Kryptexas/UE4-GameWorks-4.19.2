@@ -201,7 +201,7 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 				if (Obj->HasAllFlags(RF_ClassDefaultObject))
 				{
 					IsEnabledAttribute.Set(false);
-					TooltipAttribute.Set(LOCTEXT("VariableHasDisableEditOnTemplate", "Editing this value in a Class Default Object is not allowed"));
+					TooltipAttribute.Set(LOCTEXT("VariableHasDisableEditOnTemplateTooltip", "Editing this value in a Class Default Object is not allowed"));
 					break;
 				}
 
@@ -459,7 +459,7 @@ void SPropertyEditorAsset::OnMenuOpenChanged(bool bOpen)
 
 bool SPropertyEditorAsset::IsFilteredActor( const AActor* const Actor ) const
 {
-	return Actor->IsA( ObjectClass );
+	return Actor->IsA( ObjectClass ) && !Actor->IsChildActor();
 }
 
 void SPropertyEditorAsset::CloseComboButton()

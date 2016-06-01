@@ -12,17 +12,12 @@ class FRunnableThread;
  */
 enum EThreadPriority
 {
-	/** Normal priority. */
 	TPri_Normal,
-
-	/** Above normal priority. */
 	TPri_AboveNormal,
-
-	/** Below normal priority. */
 	TPri_BelowNormal,
-	
-	/** Highest priority. */
-	TPri_Highest
+	TPri_Highest,
+	TPri_Lowest,
+	TPri_SlightlyBelowNormal,
 };
 
 
@@ -263,6 +258,7 @@ class CORE_API FRunnableThread
 {
 	friend class FThreadSingletonInitializer;
 	friend class FTlsAutoCleanup;
+	friend class FThreadManager;
 
 	/** Index of TLS slot for FRunnableThread pointer. */
 	static uint32 RunnableTlsSlot;
@@ -365,7 +361,7 @@ public:
 	FRunnableThread();
 
 	/** Virtual destructor */
-	virtual ~FRunnableThread(){}
+	virtual ~FRunnableThread();
 
 protected:
 
@@ -417,6 +413,11 @@ protected:
 
 	/** ID set during thread creation. */
 	uint32 ThreadID;
+
+private:
+
+	/** Used by the thread manager to tick threads in single-threaded mode */
+	virtual void Tick() {}
 };
 
 
@@ -492,40 +493,45 @@ public:
 
 
 /**
- * Manages runnables and runnable threads when multithreading is disabled.
+ * Manages runnables and runnable threads.
  */
-class CORE_API FSingleThreadManager
+class CORE_API FThreadManager
 {
 	/** List of thread objects to be ticked. */
-	TArray<class FFakeThread*> ThreadList;
+	TMap<uint32, class FRunnableThread*> Threads;
+	/** Critical section for ThreadList */
+	FCriticalSection ThreadsCritical;
 
 public:
 
 	/**
-	 * Used internally to add a new thread object when multithreading is disabled.
-	 *
-	 * @param Thread Fake thread object.
-	 * @see RemoveThread
-	 */
-	void AddThread( class FFakeThread* Thread );
+	* Used internally to add a new thread object.
+	*
+	* @param Thread thread object.
+	* @see RemoveThread
+	*/
+	void AddThread(uint32 ThreadId, class FRunnableThread* Thread);
 
 	/**
-	 * Used internally to remove fake thread object.
-	 *
-	 * @param Thread Fake thread object to be removed.
-	 * @see AddThread
-	 */
-	void RemoveThread( class FFakeThread* Thread );
+	* Used internally to remove thread object.
+	*
+	* @param Thread thread object to be removed.
+	* @see AddThread
+	*/
+	void RemoveThread(class FRunnableThread* Thread);
 
 	/** Ticks all fake threads and their runnable objects. */
 	void Tick();
+
+	/** Returns the name of a thread given its TLS id */
+	const FString& GetThreadName(uint32 ThreadId);
 
 	/**
 	 * Access to the singleton object.
 	 *
 	 * @return Thread manager object.
 	 */
-	static FSingleThreadManager& Get();
+	static FThreadManager& Get();
 };
 
 
@@ -655,6 +661,7 @@ extern CORE_API FQueuedThreadPool* GLargeThreadPool;
 class FThreadSafeCounter
 {
 public:
+	typedef int32 IntegerType;
 
 	/**
 	 * Default constructor.
@@ -778,6 +785,141 @@ private:
 	volatile int32 Counter;
 };
 
+// This class cannot be implemented on platforms that don't define 64bit atomic functions
+#if PLATFORM_HAS_64BIT_ATOMICS
+/** Thread safe counter for 64bit ints */
+class FThreadSafeCounter64
+{
+public:
+	typedef int64 IntegerType;
+
+	/**
+	* Default constructor.
+	*
+	* Initializes the counter to 0.
+	*/
+	FThreadSafeCounter64()
+	{
+		Counter = 0;
+	}
+
+	/**
+	* Copy Constructor.
+	*
+	* If the counter in the Other parameter is changing from other threads, there are no
+	* guarantees as to which values you will get up to the caller to not care, synchronize
+	* or other way to make those guarantees.
+	*
+	* @param Other The other thread safe counter to copy
+	*/
+	FThreadSafeCounter64(const FThreadSafeCounter& Other)
+	{
+		Counter = Other.GetValue();
+	}
+
+	/** Assignment has the same caveats as the copy ctor. */
+	FThreadSafeCounter64& operator=(const FThreadSafeCounter64& Other)
+	{
+		if (this == &Other) return *this;
+		Set(Other.GetValue());
+		return *this;
+	}
+
+
+	/**
+	* Constructor, initializing counter to passed in value.
+	*
+	* @param Value	Value to initialize counter to
+	*/
+	FThreadSafeCounter64(int64 Value)
+	{
+		Counter = Value;
+	}
+
+	/**
+	* Increment and return new value.
+	*
+	* @return the new, incremented value
+	* @see Add, Decrement, Reset, Set, Subtract
+	*/
+	int64 Increment()
+	{
+		return FPlatformAtomics::InterlockedIncrement(&Counter);
+	}
+
+	/**
+	* Adds an amount and returns the old value.
+	*
+	* @param Amount Amount to increase the counter by
+	* @return the old value
+	* @see Decrement, Increment, Reset, Set, Subtract
+	*/
+	int64 Add(int64 Amount)
+	{
+		return FPlatformAtomics::InterlockedAdd(&Counter, Amount);
+	}
+
+	/**
+	* Decrement and return new value.
+	*
+	* @return the new, decremented value
+	* @see Add, Increment, Reset, Set, Subtract
+	*/
+	int64 Decrement()
+	{
+		return FPlatformAtomics::InterlockedDecrement(&Counter);
+	}
+
+	/**
+	* Subtracts an amount and returns the old value.
+	*
+	* @param Amount Amount to decrease the counter by
+	* @return the old value
+	* @see Add, Decrement, Increment, Reset, Set
+	*/
+	int64 Subtract(int64 Amount)
+	{
+		return FPlatformAtomics::InterlockedAdd(&Counter, -Amount);
+	}
+
+	/**
+	* Sets the counter to a specific value and returns the old value.
+	*
+	* @param Value	Value to set the counter to
+	* @return The old value
+	* @see Add, Decrement, Increment, Reset, Subtract
+	*/
+	int64 Set(int64 Value)
+	{
+		return FPlatformAtomics::InterlockedExchange(&Counter, Value);
+	}
+
+	/**
+	* Resets the counter's value to zero.
+	*
+	* @return the old value.
+	* @see Add, Decrement, Increment, Set, Subtract
+	*/
+	int64 Reset()
+	{
+		return FPlatformAtomics::InterlockedExchange(&Counter, 0);
+	}
+
+	/**
+	* Gets the current value.
+	*
+	* @return the current value
+	*/
+	int64 GetValue() const
+	{
+		return Counter;
+	}
+
+private:
+	/** Thread-safe counter */
+	volatile int64 Counter;
+};
+#endif
 
 /**
  * Thread safe bool, wraps FThreadSafeCounter
@@ -1065,7 +1207,16 @@ private:
 
 
 /** @return True if called from the game thread. */
-extern CORE_API bool IsInGameThread();
+FORCEINLINE bool IsInGameThread()
+{
+	if(GIsGameThreadIdInitialized)
+	{
+		const uint32 CurrentThreadId = FPlatformTLS::GetCurrentThreadId();
+		return CurrentThreadId == GGameThreadId || CurrentThreadId == GSlateLoadingThreadId;
+	}
+
+	return true;
+}
 
 /** @return True if called from the slate thread, and not merely a thread calling slate functions. */
 extern CORE_API bool IsInSlateThread();

@@ -27,10 +27,11 @@ public:
 	uint8					bPartial;				// Not a complete bunch
 	uint8					bPartialInitial;		// The first bunch of a partial bunch
 	uint8					bPartialFinal;			// The final bunch of a partial bunch
-	uint8					bHasGUIDs;				// This bunch has networkGUID name/id pairs
+	uint8					bHasPackageMapExports;	// This bunch has networkGUID name/id pairs
 	uint8					bHasMustBeMappedGUIDs;	// This bunch has guids that must be mapped before we can process this bunch
 
 	TArray< FNetworkGUID >	ExportNetGUIDs;			// List of GUIDs that went out on this bunch
+	TArray< uint64 >		ExportRepLayoutCmds;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	FString			DebugString;
@@ -73,7 +74,7 @@ public:
 		Str += FString::Printf(TEXT("bDormant: %d "), bDormant);
 		Str += FString::Printf(TEXT("bReliable: %d "), bReliable);
 		Str += FString::Printf(TEXT("bPartial: %d//%d//%d "), bPartial, bPartialInitial, bPartialFinal);
-		Str += FString::Printf(TEXT("bHasGUIDs: %d "), bHasGUIDs);
+		Str += FString::Printf( TEXT( "bHasPackageMapExports: %d " ), bHasPackageMapExports );
 		Str += GetDebugString();
 #else
 		FString Str = FString::Printf(TEXT("Channel[%d]. Seq %d. PacketId: %d"), ChIndex, ChSequence, PacketId);
@@ -102,7 +103,7 @@ public:
 	uint8				bPartial;				// Not a complete bunch
 	uint8				bPartialInitial;		// The first bunch of a partial bunch
 	uint8				bPartialFinal;			// The final bunch of a partial bunch
-	uint8				bHasGUIDs;				// This bunch has networkGUID name/id pairs
+	uint8				bHasPackageMapExports;	// This bunch has networkGUID name/id pairs
 	uint8				bHasMustBeMappedGUIDs;	// This bunch has guids that must be mapped before we can process this bunch
 
 	FString	ToString()
@@ -119,7 +120,7 @@ public:
 		Str += FString::Printf(TEXT("bDormant: %d "), bDormant);
 		Str += FString::Printf(TEXT("bReliable: %d "), bReliable);
 		Str += FString::Printf(TEXT("bPartial: %d//%d//%d "), bPartial, bPartialInitial, bPartialFinal);
-		Str += FString::Printf(TEXT("bHasGUIDs: %d "), bHasGUIDs);
+		Str += FString::Printf( TEXT( "bHasPackageMapExports: %d " ), bHasPackageMapExports );
 #else
 		FString Str = FString::Printf(TEXT("Channel[%d]. Seq %d. PacketId: %d"), ChIndex, ChSequence, PacketId);
 #endif

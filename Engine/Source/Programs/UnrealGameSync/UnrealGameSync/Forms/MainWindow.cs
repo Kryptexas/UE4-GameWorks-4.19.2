@@ -64,6 +64,7 @@ namespace UnrealGameSync
 		string SelectedFileName;
 		string SelectedProjectIdentifier;
 		string BranchDirectoryName;
+		string StreamName;
 		string EditorTargetName;
 		PerforceMonitor PerforceMonitor;
 		Workspace Workspace;
@@ -377,6 +378,7 @@ namespace UnrealGameSync
 				SelectedProjectIdentifier = DetectSettings.NewSelectedProjectIdentifier;
 				EditorTargetName = DetectSettings.NewProjectEditorTarget;
 				BranchDirectoryName = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(DetectSettings.BaseEditorTargetPath), "..", ".."));
+				StreamName = DetectSettings.StreamName;
 				ServerTimeZone = DetectSettings.ServerTimeZone;
 
 				// Check if we've the project we've got open in this workspace is the one we're actually synced to
@@ -440,11 +442,15 @@ namespace UnrealGameSync
 
 		private void StreamChangedCallback()
 		{
+			StatusPanel.SuspendDisplay();
+
 			string PrevSelectedFileName = SelectedFileName;
 			if(TryCloseProject())
 			{
 				OpenProject(PrevSelectedFileName);
 			}
+
+			StatusPanel.ResumeDisplay();
 		}
 
 		private void StreamChangedCallbackAsync()
@@ -1633,7 +1639,7 @@ namespace UnrealGameSync
 
 		private void UpdateStatusPanel()
 		{
-			int NewContentWidth = Math.Max(TextRenderer.MeasureText("Last synced to changelist 123456789. 12 users are on a newer build.        | Sync Now | Sync To...", StatusPanel.Font).Width, 400);
+			int NewContentWidth = Math.Max(TextRenderer.MeasureText(String.Format("Last synced to {0} at changelist 123456789. 12 users are on a newer build.        | Sync Now | Sync To...", StreamName ?? ""), StatusPanel.Font).Width, 400);
 			StatusPanel.SetContentWidth(NewContentWidth);
 
 			List<StatusLine> Lines = new List<StatusLine>();
@@ -1672,7 +1678,16 @@ namespace UnrealGameSync
 				StatusLine SummaryLine = new StatusLine();
 				if(Workspace.CurrentChangeNumber != -1)
 				{
-					SummaryLine.AddText("Last synced to changelist ");
+					if(StreamName == null)
+					{
+						SummaryLine.AddText("Last synced to changelist ");
+					}
+					else
+					{
+						SummaryLine.AddText("Last synced to ");
+						SummaryLine.AddLink(StreamName + "\u25BE", FontStyle.Regular, (P, R) => { SelectOtherStream(R); });
+						SummaryLine.AddText(" at changelist ");
+					}
 					SummaryLine.AddLink(String.Format("{0}.", Workspace.CurrentChangeNumber), FontStyle.Regular, () => { SelectChange(Workspace.CurrentChangeNumber); });
 					int NumUsersOnNewerChange = SortedChangeNumbers.Where(x => (x > Workspace.CurrentChangeNumber)).OrderByDescending(x => x).Select(x => EventMonitor.GetSummaryForChange(x)).Where(x => x != null && (!ShouldSyncPrecompiledEditor || GetArchivePathForChangeNumber(x.ChangeNumber) != null)).Sum(x => x.CurrentUsers.Count);
 					if(NumUsersOnNewerChange > 0)
@@ -1682,7 +1697,15 @@ namespace UnrealGameSync
 				}
 				else
 				{
-					SummaryLine.AddText("You are not currently synced to this branch.");
+					SummaryLine.AddText("You are not currently synced to ");
+					if(StreamName == null)
+					{
+						SummaryLine.AddText("this branch.");
+					}
+					else
+					{
+						SummaryLine.AddLink(StreamName + " \u25BE", FontStyle.Regular, (P, R) => { SelectOtherStream(R); });
+					}
 				}
 				SummaryLine.AddText("  |  ");
 				SummaryLine.AddLink("Sync Now", FontStyle.Bold | FontStyle.Underline, () => { SyncLatestChange(); });
@@ -1749,6 +1772,42 @@ namespace UnrealGameSync
 				}
 			}
 			StatusPanel.Set(Lines);
+		}
+
+		private void SelectOtherStream(Rectangle Bounds)
+		{
+			if(StreamName != null)
+			{
+				IReadOnlyList<string> OtherStreamNames = PerforceMonitor.OtherStreamNames;
+
+				StreamContextMenu.Items.Clear();
+				foreach(string OtherStreamName in OtherStreamNames.OrderBy(x => x).Where(x => !x.EndsWith("/Dev-Binaries")))
+				{
+					string ThisStreamName = OtherStreamName; // Local for lambda capture
+
+					ToolStripMenuItem Item = new ToolStripMenuItem(ThisStreamName, null, new EventHandler((S, E) => SelectStream(ThisStreamName)));
+					if(String.Compare(StreamName, OtherStreamName, StringComparison.InvariantCultureIgnoreCase) == 0)
+					{
+						Item.Checked = true;
+					}
+					StreamContextMenu.Items.Add(Item);
+				}
+				StreamContextMenu.Show(StatusPanel, new Point(Bounds.Left, Bounds.Bottom), ToolStripDropDownDirection.BelowRight);
+			}
+		}
+
+		private void SelectStream(string StreamName)
+		{
+			if(Workspace.IsBusy())
+			{
+				MessageBox.Show("Please retry after the current sync has finished.", "Sync in Progress");
+			}
+			else if(Workspace.Perforce != null && Workspace.Perforce.SwitchStream(StreamName, Log))
+			{
+				StatusPanel.SuspendLayout();
+				StreamChangedCallback();
+				StatusPanel.ResumeLayout();
+			}
 		}
 
 		private void ViewLastSyncStatus()
@@ -1894,7 +1953,7 @@ namespace UnrealGameSync
 					BuildListContextMenu_Sync.Font = new Font(SystemFonts.MenuFont, bIsCurrentChange? FontStyle.Regular : FontStyle.Bold);
 					BuildListContextMenu_SyncContentOnly.Visible = !bIsBusy && ShouldSyncPrecompiledEditor;
 					BuildListContextMenu_SyncOnlyThisChange.Visible = !bIsBusy && !bIsCurrentChange && ContextMenuChange.Number > Workspace.CurrentChangeNumber && Workspace.CurrentChangeNumber != -1;
-					BuildListContextMenu_Build.Visible = !bIsBusy && bIsCurrentChange && !ShouldSyncPrecompiledEditor;
+					BuildListContextMenu_Build.Visible = !bIsBusy && bIsCurrentChange && !ShouldSyncPrecompiledEditor && OptionsContextMenu_UseIncrementalBuilds.Checked;
 					BuildListContextMenu_Rebuild.Visible = !bIsBusy && bIsCurrentChange && !ShouldSyncPrecompiledEditor;
 					BuildListContextMenu_GenerateProjectFiles.Visible = !bIsBusy && bIsCurrentChange;
 					BuildListContextMenu_LaunchEditor.Visible = !bIsBusy && ContextMenuChange.Number == Workspace.CurrentChangeNumber;
@@ -1983,6 +2042,11 @@ namespace UnrealGameSync
 			{
 				OpenProject(Dialog.FileName);
 			}
+		}
+
+		private void ProjectList_MouseWheel(object sender, MouseEventArgs e)
+		{
+			((HandledMouseEventArgs)e).Handled = true;
 		}
 
 		private void ProjectList_SelectionChangeCommitted(object sender, EventArgs e)
@@ -2175,7 +2239,7 @@ namespace UnrealGameSync
 
 		private void BuildListContextMenu_SyncContentOnly_Click(object sender, EventArgs e)
 		{
-			StartWorkspaceUpdate(ContextMenuChange.Number, WorkspaceUpdateOptions.Sync);
+			StartWorkspaceUpdate(ContextMenuChange.Number, WorkspaceUpdateOptions.Sync | WorkspaceUpdateOptions.SkipShaders);
 		}
 
 		private void BuildListContextMenu_SyncOnlyThisChange_Click(object sender, EventArgs e)
@@ -2918,6 +2982,15 @@ namespace UnrealGameSync
 		{
 			Settings.bKeepInTray ^= true;
 			Settings.Save();
+		}
+
+		private void BuildList_KeyDown(object Sender, KeyEventArgs Args)
+		{
+			if(Args.Control && Args.KeyCode == Keys.C && BuildList.SelectedItems.Count > 0)
+			{
+				int SelectedChange = ((PerforceChangeSummary)BuildList.SelectedItems[0].Tag).Number;
+				Clipboard.SetText(String.Format("{0}", SelectedChange));
+			}
 		}
 	}
 }

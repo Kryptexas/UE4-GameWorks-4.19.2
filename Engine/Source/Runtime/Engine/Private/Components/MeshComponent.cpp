@@ -2,6 +2,8 @@
 
 #include "EnginePrivate.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogMaterialParameter, Log, All);
+
 UMeshComponent::UMeshComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -191,6 +193,10 @@ void UMeshComponent::SetScalarParameterValueOnMaterials(const FName ParameterNam
 			}
 		}
 	}
+	else
+	{
+		UE_LOG(LogMaterialParameter, Log, TEXT("%s material parameter hasn't found on the component %s"), *ParameterName.ToString(), *GetName());
+	}
 
 	// CreateAndSetMaterialInstanceDynamic should not flag the cached data as dirty, since only the type of material changes not the contents (UMaterialInstanceDynamic)
 	check(bCachedMaterialParameterIndicesAreDirty == false);
@@ -282,3 +288,48 @@ void UMeshComponent::CacheMaterialParameterNameIndices()
 
 	bCachedMaterialParameterIndicesAreDirty = false;
 }
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
+void UMeshComponent::LogMaterialsAndTextures(FOutputDevice& Ar, int32 Indent) const
+{
+	Ar.Logf(TEXT("%s%s:"), FCString::Tab(Indent), *GetClass()->GetName());
+
+	for (int32 MaterialIndex = 0; MaterialIndex < OverrideMaterials.Num(); ++MaterialIndex)
+	{
+		Ar.Logf(TEXT("%s[Material Override: %d]"), FCString::Tab(Indent + 1), MaterialIndex);
+		const UMaterialInterface* MaterialInterface = OverrideMaterials[MaterialIndex];
+		if (MaterialInterface)
+		{
+			MaterialInterface->LogMaterialsAndTextures(Ar, Indent + 2);
+		}
+		else
+		{
+			Ar.Logf(TEXT("%snullptr"), FCString::Tab(Indent + 2), MaterialIndex);
+		}
+	}
+
+	// Backup the material overrides so we can access the mesh original materials.
+	TArray<class UMaterialInterface*> OverrideMaterialsBackup;
+	FMemory::Memswap(&OverrideMaterialsBackup, &const_cast<UMeshComponent*>(this)->OverrideMaterials, sizeof(OverrideMaterialsBackup));
+
+	TArray<UMaterialInterface*> MaterialInterfaces = GetMaterials();
+	for (int32 MaterialIndex = 0; MaterialIndex < MaterialInterfaces.Num(); ++MaterialIndex)
+	{
+		Ar.Logf(TEXT("%s[Mesh Material: %d]"), FCString::Tab(Indent + 1), MaterialIndex);
+		const UMaterialInterface* MaterialInterface = MaterialInterfaces[MaterialIndex];
+		if (MaterialInterface)
+		{
+			MaterialInterface->LogMaterialsAndTextures(Ar, Indent + 2);
+		}
+		else
+		{
+			Ar.Logf(TEXT("%snullptr"), FCString::Tab(Indent + 2), MaterialIndex);
+		}
+	}
+
+	// Restore the overrides.
+	FMemory::Memswap(&OverrideMaterialsBackup, &const_cast<UMeshComponent*>(this)->OverrideMaterials, sizeof(OverrideMaterialsBackup));
+}
+
+#endif

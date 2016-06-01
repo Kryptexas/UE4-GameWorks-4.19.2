@@ -200,9 +200,9 @@ struct FSlotEvaluationPose
 	UPROPERTY()
 	float Weight;
 
-	/** Pose */
+	/*** ATTENTION *****/
+	/* These Pose/Curve is stack allocator. You should not use it outside of stack. */
 	FCompactPose Pose;
-	/** Curve */
 	FBlendedCurve Curve;
 
 	FSlotEvaluationPose()
@@ -468,6 +468,13 @@ class ENGINE_API UAnimInstance : public UObject
 	UPROPERTY()
 	bool bCanUseParallelUpdateAnimation;
 
+	/**
+	 * Selecting this option will cause the compiler to emit warnings whenever a call into Blueprint
+	 * is made from the animation graph. This can help track down optimizations that need to be made.
+	 */
+	UPROPERTY(Category = Optimization, EditDefaultsOnly)
+	bool bWarnAboutBlueprintUsage;
+
 	/** Flag to check back on the game thread that indicates we need to run PostUpdateAnimation() in the post-eval call */
 	bool bNeedsUpdate;
 
@@ -587,7 +594,10 @@ public:
 
 	/** Return true if it's playing the slot animation */
 	UFUNCTION(BlueprintCallable, Category="Animation")
-	bool IsPlayingSlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeName ); 
+	bool IsPlayingSlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeName); 
+
+	/** Return true if this instance playing the slot animation, also returning the montage it is playing on */
+	bool IsPlayingSlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeName, UAnimMontage*& OutMontage);
 
 	/*********************************************************************************************
 	 * AnimMontage
@@ -601,9 +611,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Animation")
 	void Montage_Stop(float InBlendOutTime, UAnimMontage * Montage = NULL);
 
-	/** Pauses the animation montage. If reference is NULL, it will stop ALL active montages. */
+	/** Pauses the animation montage. If reference is NULL, it will pause ALL active montages. */
 	UFUNCTION(BlueprintCallable, Category = "Animation")
 	void Montage_Pause(UAnimMontage * Montage = NULL);
+
+	/** Resumes a paused animation montage. If reference is NULL, it will resume ALL active montages. */
+	UFUNCTION(BlueprintCallable, Category = "Animation")
+	void Montage_Resume(UAnimMontage* Montage);
 
 	/** Makes a montage jump to a named section. If Montage reference is NULL, it will do that to all active montages. */
 	UFUNCTION(BlueprintCallable, Category="Animation")
@@ -701,6 +715,9 @@ public:
 	/** Get Active FAnimMontageInstance for given Montage asset. Will return NULL if Montage is not currently Active. */
 	FAnimMontageInstance * GetActiveInstanceForMontage(UAnimMontage const & Montage) const;
 
+	/** Get the FAnimMontageInstance currently running that matches this ID.  Will return NULL if no instance is found. */
+	FAnimMontageInstance * GetMontageInstanceForID(int32 MontageInstanceID);
+
 	/** AnimMontage instances that are running currently
 	* - only one is primarily active per group, and the other ones are blending out
 	*/
@@ -711,6 +728,7 @@ public:
 	TArray<FMontageEvaluationState> MontageEvaluationData;
 
 	virtual void OnMontageInstanceStopped(FAnimMontageInstance & StoppedMontageInstance);
+	void ClearMontageInstanceReferences(FAnimMontageInstance& InMontageInstance);
 
 protected:
 	/** Map between Active Montages and their FAnimMontageInstance */
@@ -1004,6 +1022,9 @@ public:
 	/** Called after updates are completed, dispatches notifies etc. */
 	void PostUpdateAnimation();
 
+	/** Called on the game thread pre-evaluation. */
+	void PreEvaluateAnimation();
+
 	DEPRECATED(4.11, "This function should no longer be used. Use ParallelEvaluateAnimation")
 	void EvaluateAnimation(struct FPoseContext& Output);
 
@@ -1011,7 +1032,7 @@ public:
 	bool ParallelCanEvaluate(const USkeletalMesh* InSkeletalMesh) const;
 
 	/** Perform evaluation. Can be called from worker threads. */
-	void ParallelEvaluateAnimation(bool bForceRefPose, const USkeletalMesh* InSkeletalMesh, TArray<FTransform>& OutLocalAtoms, FBlendedCurve& OutCurve);
+	void ParallelEvaluateAnimation(bool bForceRefPose, const USkeletalMesh* InSkeletalMesh, TArray<FTransform>& OutLocalAtoms, FBlendedHeapCurve& OutCurve);
 
 	void PostEvaluateAnimation();
 	void UninitializeAnimation();
@@ -1057,6 +1078,10 @@ public:
 
 	// Debug output for this anim instance 
 	void DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos);
+
+	/** Reset any dynamics running simulation-style updates (e.g. on teleport, time skip etc.) */
+	void ResetDynamics();
+
 public:
 
 	/** Access the required bones array */
@@ -1098,7 +1123,7 @@ private:
 
 public: 
 	/** Update all internal curves from Blended Curve */
-	void UpdateCurves(const FBlendedCurve& InCurves);
+	void UpdateCurves(const FBlendedHeapCurve& InCurves);
 
 	/** Refresh currently existing curves */
 	void RefreshCurves(USkeletalMeshComponent* Component);
@@ -1179,6 +1204,9 @@ public:
 
 	/** Add curve float data using a curve Uid, the name of the curve will be resolved from the skeleton **/
 	void AddCurveValue(const USkeleton::AnimCurveUID Uid, float Value, int32 CurveTypeFlags);
+
+	/** Given a machine and state index, record a state weight for this frame */
+	void RecordStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex, const float& InStateWeight);
 
 protected:
 	/** 

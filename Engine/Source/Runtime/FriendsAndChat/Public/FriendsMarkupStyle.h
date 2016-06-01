@@ -14,7 +14,11 @@ struct FRIENDSANDCHAT_API FFriendsMarkupStyle
 	GENERATED_USTRUCT_BODY()
 
 	// Default Constructor
-	FFriendsMarkupStyle() { }
+	FFriendsMarkupStyle() 
+	: SeperatorThickness(2.0)
+	, MarkupPadding(0, 7)
+	, ButtonPadding(30, 7)
+	{ }
 
 	// Default Destructor
 	virtual ~FFriendsMarkupStyle() { }
@@ -50,7 +54,7 @@ struct FRIENDSANDCHAT_API FFriendsMarkupStyle
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FSlateBrush MarkupBackground;
-	FFriendsMarkupStyle& SetTipBackgroundBrush(const FSlateBrush& InChatBackgroundBrush);
+	FFriendsMarkupStyle& SetMarkupBackgroundBrush(const FSlateBrush& InChatBackgroundBrush);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FSlateColor ButtonColor;

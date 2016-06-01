@@ -171,6 +171,71 @@ bool FRenderTarget::ReadFloat16Pixels(TArray<FFloat16Color>& OutputBuffer,ECubeF
 	return ReadFloat16Pixels((FFloat16Color*)&(OutputBuffer[0]), CubeFace);
 }
 
+/**
+* Reads the viewport's displayed pixels into a preallocated color buffer.
+* @param OutImageData - LinearColor array to fill!
+* @param CubeFace - optional cube face for when reading from a cube render target
+* @return True if the read succeeded.
+*/
+bool FRenderTarget::ReadLinearColorPixels(TArray<FLinearColor> &OutImageData, FReadSurfaceDataFlags InFlags, FIntRect InRect)
+{
+	if (InRect == FIntRect(0, 0, 0, 0))
+	{
+		InRect = FIntRect(0, 0, GetSizeXY().X, GetSizeXY().Y);
+	}
+
+	// Read the render target surface data back.	
+	struct FReadSurfaceContext
+	{
+		FRenderTarget* SrcRenderTarget;
+		TArray<FLinearColor>* OutData;
+		FIntRect Rect;
+		FReadSurfaceDataFlags Flags;
+	};
+
+	OutImageData.Reset();
+	FReadSurfaceContext ReadSurfaceContext =
+	{
+		this,
+		&OutImageData,
+		InRect,
+		InFlags
+	};
+
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+		ReadSurfaceCommand,
+		FReadSurfaceContext, Context, ReadSurfaceContext,
+		{
+			RHICmdList.ReadSurfaceData(
+			Context.SrcRenderTarget->GetRenderTargetTexture(),
+				Context.Rect,
+				*Context.OutData,
+				Context.Flags
+				);
+		});
+	FlushRenderingCommands();
+
+	return true;
+}
+
+/**
+* Reads the viewport's displayed pixels into a preallocated color buffer.
+* @param OutputBuffer - RGBA8 values will be stored in this buffer
+* @return True if the read succeeded.
+*/
+bool FRenderTarget::ReadLinearColorPixelsPtr(FLinearColor* OutImageBytes, FReadSurfaceDataFlags InFlags, FIntRect InRect)
+{
+	TArray<FLinearColor> SurfaceData;
+
+	bool bResult = ReadLinearColorPixels(SurfaceData, InFlags, InRect);
+	if (bResult)
+	{
+		FMemory::Memcpy(OutImageBytes, &SurfaceData[0], SurfaceData.Num() * sizeof(FLinearColor));
+	}
+
+	return bResult;
+}
+
 /** 
 * @return display gamma expected for rendering to this render target 
 */
@@ -419,6 +484,36 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 		{
 			const FColor GPUMaxColor = GEngine->GetFrameTimeDisplayColor(Max_GPUFrameTime);
 			InCanvas->DrawShadowedString(X3, InY, *FString::Printf(TEXT("%4.2f ms"), Max_GPUFrameTime), Font, GPUMaxColor);
+		}
+		if(GMaxRHIShaderPlatform == SP_PS4)
+		{
+			FString Warnings;
+
+			{
+				static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.PS4ContinuousSubmits"));
+				int32 Value = CVar->GetInt();
+
+				if (!Value)
+				{
+					// good for profiling (avoids bubles) but bad for high fps
+					Warnings += TEXT(" r.PS4ContinuousSubmits");
+				}
+			}
+			{
+				static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.PS4StallsOnMarkers"));
+				int32 Value = CVar->GetInt();
+
+				if (Value)
+				{
+					// good to get Razor aligned GPU profiling but bad for high fps
+					Warnings += TEXT(" r.PS4StallsOnMarkers");
+				}
+			}
+
+			if(!Warnings.IsEmpty())
+			{
+				InCanvas->DrawShadowedString(X3 + 100, InY, *Warnings, Font, FColor::Red);
+			}
 		}
 		InY += RowHeight;
 	}
@@ -682,6 +777,7 @@ FViewport::FViewport(FViewportClient* InViewportClient):
 	bHitProxiesCached(false),
 	bHasRequestedToggleFreeze(false),
 	bIsSlateViewport(false),
+	FlushOnDrawCount(0),
 	bTakeHighResScreenShot(false)
 {
 	//initialize the hit proxy kernel
@@ -765,7 +861,7 @@ void FViewport::HighResScreenshot()
 	BeginInitResource(DummyViewport);
 
 	bool MaskShowFlagBackup = ViewportClient->GetEngineShowFlags()->HighResScreenshotMask;
-	const uint32 MotionBlurShowFlagBackup = ViewportClient->GetEngineShowFlags()->MotionBlur;
+	const auto MotionBlurShowFlagBackup = ViewportClient->GetEngineShowFlags()->MotionBlur;
 
 	ViewportClient->GetEngineShowFlags()->SetHighResScreenshotMask(GetHighResScreenshotConfig().bMaskEnabled);
 	ViewportClient->GetEngineShowFlags()->SetMotionBlur(false);
@@ -1096,6 +1192,11 @@ void FViewport::Draw( bool bShouldPresent /*= true */)
 			}
 		}
 
+		if (FlushOnDrawCount != 0)
+		{
+			FlushRenderingCommands();
+		}
+
 		if(GCaptureCompositionNextFrame)
 		{
 			GRenderingThreadSuspension.Reset();
@@ -1130,10 +1231,18 @@ const TArray<FColor>& FViewport::GetRawHitProxyData(FIntRect InRect)
 {
 	FScopedConditionalWorldSwitcher WorldSwitcher(ViewportClient);
 
-	bool bFetchHitProxyBytes = !bHitProxiesCached || (SizeY*SizeX) != CachedHitProxyData.Num();
+	const bool bIsRenderingStereo = GEngine->IsStereoscopic3D( this ) && this->IsStereoRenderingAllowed();
 
+	bool bFetchHitProxyBytes = !bIsRenderingStereo && ( !bHitProxiesCached || (SizeY*SizeX) != CachedHitProxyData.Num() );
+
+	if( bIsRenderingStereo )
+	{
+		// Stereo viewports don't support hit proxies, and we don't want to update them because it will adversely
+		// affect performance.
+		CachedHitProxyData.SetNumZeroed( SizeY * SizeX );
+	}
 	// If the hit proxy map isn't up to date, render the viewport client's hit proxies to it.
-	if (!bHitProxiesCached)
+	else if (!bHitProxiesCached)
 	{
 		EnqueueBeginRenderFrame();
 
@@ -1370,6 +1479,8 @@ FIntRect FViewport::CalculateViewExtents(float AspectRatio, const FIntRect& View
 			const int32 NewSizeY = FMath::Max(1, FMath::RoundToInt( CurrentSizeX / AdjustedAspectRatio ) );
 			Result.Min.Y = FMath::RoundToInt( 0.5f * (CurrentSizeY - NewSizeY) );
 			Result.Max.Y = Result.Min.Y + NewSizeY;
+			Result.Min.Y += ViewRect.Min.Y;
+			Result.Max.Y += ViewRect.Min.Y;
 		}
 		// Otherwise - will place bars on the sides.
 		else
@@ -1377,6 +1488,8 @@ FIntRect FViewport::CalculateViewExtents(float AspectRatio, const FIntRect& View
 			const int32 NewSizeX = FMath::Max(1, FMath::RoundToInt( CurrentSizeY * AdjustedAspectRatio ) );
 			Result.Min.X = FMath::RoundToInt( 0.5f * (CurrentSizeX - NewSizeX) );
 			Result.Max.X = Result.Min.X + NewSizeX;
+			Result.Min.X += ViewRect.Min.X;
+			Result.Max.X += ViewRect.Min.X;
 		}
 	}
 

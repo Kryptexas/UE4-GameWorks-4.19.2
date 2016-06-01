@@ -1,6 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PhATModule.h"
+#include "PhATPrivatePCH.h"
 #include "PhATEdSkeletalMeshComponent.h"
 #include "PhAT.h"
 #include "MouseDeltaTracker.h"
@@ -18,6 +18,7 @@
 #include "PhysicsEngine/PhysicsSettings.h"
 #include "PhysicsEngine/PhysicsHandleComponent.h"
 #include "DrawDebugHelpers.h"
+#include "PersonaModule.h"
 
 FPhATEdPreviewViewportClient::FPhATEdPreviewViewportClient(TWeakPtr<FPhAT> InPhAT, TSharedPtr<FPhATSharedData> Data, const TSharedRef<SPhATPreviewViewport>& InPhATPreviewViewport)
 	: FEditorViewportClient(nullptr, &Data->PreviewScene, StaticCastSharedRef<SEditorViewport>(InPhATPreviewViewport))
@@ -69,7 +70,7 @@ FPhATEdPreviewViewportClient::FPhATEdPreviewViewportClient(TWeakPtr<FPhAT> InPhA
 
 	// Take into account internal mesh translation/rotation/scaling etc.
 	FTransform LocalToWorld = SharedData->EditorSkelComp->ComponentToWorld;
-	FSphere WorldSphere = SharedData->EditorSkelMesh->Bounds.GetSphere().TransformBy(LocalToWorld);
+	FSphere WorldSphere = SharedData->EditorSkelMesh->GetImportedBounds().GetSphere().TransformBy(LocalToWorld);
 
 	CollBoxExtent = CollBox.GetExtent();
 	if (CollBoxExtent.X > CollBoxExtent.Y)
@@ -683,12 +684,6 @@ void FPhATEdPreviewViewportClient::Tick(float DeltaSeconds)
 	}
 
 	World->Tick(LEVELTICK_All, DeltaSeconds * SharedData->EditorSimOptions->TimeDilation);
-
-	if(SharedData->Recorder.InRecording())
-	{
-		// make sure you don't allow switch SharedData->EditorSkelComp
-		SharedData->Recorder.UpdateRecord(SharedData->EditorSkelComp, DeltaSeconds);
-	}
 }
 
 FSceneInterface* FPhATEdPreviewViewportClient::GetScene() const

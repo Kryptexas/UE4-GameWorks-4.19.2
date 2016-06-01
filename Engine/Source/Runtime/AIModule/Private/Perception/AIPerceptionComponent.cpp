@@ -5,6 +5,10 @@
 #include "DrawDebugHelpers.h"
 #include "Engine/Canvas.h"
 
+#if WITH_GAMEPLAY_DEBUGGER
+#include "GameplayDebuggerCategory.h"
+#endif
+
 #include "Perception/AISense_Sight.h"
 #include "Perception/AISense_Hearing.h"
 #include "Perception/AISense_Damage.h"
@@ -198,7 +202,7 @@ void UAIPerceptionComponent::OnUnregister()
 	Super::OnUnregister();
 }
 
-void UAIPerceptionComponent::OnOwnerEndPlay(EEndPlayReason::Type EndPlayReason)
+void UAIPerceptionComponent::OnOwnerEndPlay(AActor* Actor, EEndPlayReason::Type EndPlayReason)
 {
 	if (EndPlayReason != EEndPlayReason::EndPlayInEditor && EndPlayReason != EEndPlayReason::Quit)
 	{
@@ -257,7 +261,7 @@ void UAIPerceptionComponent::GetHostileActors(TArray<AActor*>& OutActors) const
 	OutActors.Reserve(PerceptualData.Num());
 	for (TActorPerceptionContainer::TConstIterator DataIt = GetPerceptualDataConstIterator(); DataIt; ++DataIt)
 	{
-		if (DataIt->Value.bIsHostile)
+		if (DataIt->Value.bIsHostile && DataIt->Value.HasAnyKnownStimulus())
 		{
 			if (DataIt->Value.Target.IsValid())
 			{
@@ -427,7 +431,8 @@ void UAIPerceptionComponent::ProcessStimuli()
 		check(SourcedStimulus->Stimulus.Type.IsValid());
 
 		FAIStimulus& StimulusStore = PerceptualInfo->LastSensedStimuli[SourcedStimulus->Stimulus.Type];
-		const bool bActorInfoUpdated = SourcedStimulus->Stimulus.WantsToNotifyOnlyOnPerceptionChange() == false || SourcedStimulus->Stimulus.WasSuccessfullySensed() != StimulusStore.WasSuccessfullySensed();
+		const bool bActorInfoUpdated = SourcedStimulus->Stimulus.WantsToNotifyOnlyOnPerceptionChange() == false 
+			|| SourcedStimulus->Stimulus.WasSuccessfullySensed() != StimulusStore.WasSuccessfullySensed();
 
 		if (SourcedStimulus->Stimulus.WasSuccessfullySensed())
 		{
@@ -443,7 +448,7 @@ void UAIPerceptionComponent::ProcessStimuli()
 				StimulusStore.SetStimulusAge(0);
 			}
 		}
-		else if (StimulusStore.GetAge() != FAIStimulus::NeverHappenedAge)
+		else
 		{
 			HandleExpiredStimulus(StimulusStore);
 		}
@@ -487,7 +492,6 @@ void UAIPerceptionComponent::RefreshStimulus(FAIStimulus& StimulusStore, const F
 void UAIPerceptionComponent::HandleExpiredStimulus(FAIStimulus& StimulusStore)
 {
 	ensure(StimulusStore.IsExpired() == true);
-	StimulusStore = FAIStimulus();
 }
 
 bool UAIPerceptionComponent::AgeStimuli(const float ConstPerceptionAgingRate)
@@ -579,17 +583,7 @@ bool UAIPerceptionComponent::HasAnyActiveStimulus(const AActor& Source) const
 		return false;
 	}
 
-	for (uint32 SenseID = 0; SenseID < FAISenseID::GetSize(); ++SenseID)
-	{
-		if (Info->LastSensedStimuli[SenseID].WasSuccessfullySensed() &&
-			Info->LastSensedStimuli[SenseID].GetAge() < FAIStimulus::NeverHappenedAge &&
-			(Info->LastSensedStimuli[SenseID].GetAge() <= MaxActiveAge[SenseID] || MaxActiveAge[SenseID] == 0.f))
-		{
-			return true;
-		}
-	}
-
-	return false;
+	return Info->HasAnyKnownStimulus();
 }
 
 bool UAIPerceptionComponent::HasActiveStimulus(const AActor& Source, FAISenseID Sense) const
@@ -657,49 +651,42 @@ bool UAIPerceptionComponent::GetActorsPerception(AActor* Actor, FActorPerception
 //----------------------------------------------------------------------//
 // debug
 //----------------------------------------------------------------------//
-#if !UE_BUILD_SHIPPING
-void UAIPerceptionComponent::GrabGameplayDebuggerData(TArray<FString>& OnScreenStrings, TArray<FGameplayDebuggerShapeElement>& DebugShapes) const
+#if WITH_GAMEPLAY_DEBUGGER
+void UAIPerceptionComponent::DescribeSelfToGameplayDebugger(FGameplayDebuggerCategory* DebuggerCategory) const
 {
-#if ENABLED_GAMEPLAY_DEBUGGER
-	UAIPerceptionSystem* PerceptionSys = UAIPerceptionSystem::GetCurrent(GetWorld());
-	check(PerceptionSys);
+	if (DebuggerCategory == nullptr)
+	{
+		return;
+	}
 
 	for (UAIPerceptionComponent::TActorPerceptionContainer::TConstIterator It(GetPerceptualDataConstIterator()); It; ++It)
 	{
-		if (It->Key == NULL)
-		{
-			continue;
-		}
-
 		const FActorPerceptionInfo& ActorPerceptionInfo = It->Value;
-
-		if (ActorPerceptionInfo.Target.IsValid())
+		if (ActorPerceptionInfo.Target.IsValid() && It->Key)
 		{
 			const FVector TargetLocation = ActorPerceptionInfo.Target->GetActorLocation();
-			for (const auto& Stimulus : ActorPerceptionInfo.LastSensedStimuli)
+			for (const FAIStimulus& Stimulus : ActorPerceptionInfo.LastSensedStimuli)
 			{
-				if (Stimulus.Strength >= 0)
+				const UAISenseConfig* SenseConfig = GetSenseConfig(Stimulus.Type);
+				if (Stimulus.IsValid() && (Stimulus.IsExpired() == false) && SenseConfig)
 				{
-					const FString Description = FString::Printf(TEXT("%s: %.2f a:%.2f"), *PerceptionSys->GetSenseName(Stimulus.Type), Stimulus.Strength, Stimulus.GetAge());
-					DebugShapes.Add(UGameplayDebuggerHelper::MakeString(Description, Stimulus.StimulusLocation + FVector(0, 0, 30)));
+					const FString Description = FString::Printf(TEXT("%s: %.2f age:%.2f"), *SenseConfig->GetSenseName(), Stimulus.Strength, Stimulus.GetAge());
+					const FColor DebugColor = SenseConfig->GetDebugColor();
 
-					const FColor DebugColor = PerceptionSys->GetSenseDebugColor(Stimulus.Type);
-					DebugShapes.Add(UGameplayDebuggerHelper::MakePoint(Stimulus.StimulusLocation, DebugColor, 30));
-					DebugShapes.Add(UGameplayDebuggerHelper::MakeLine(Stimulus.ReceiverLocation, Stimulus.StimulusLocation, DebugColor));
-					DebugShapes.Add(UGameplayDebuggerHelper::MakeLine(TargetLocation, Stimulus.StimulusLocation, FColor::Black));
+					DebuggerCategory->AddShape(FGameplayDebuggerShape::MakePoint(Stimulus.StimulusLocation + FVector(0, 0, 30), 30.0f, DebugColor, Description));
+					DebuggerCategory->AddShape(FGameplayDebuggerShape::MakeSegment(Stimulus.ReceiverLocation, Stimulus.StimulusLocation, DebugColor));
+					DebuggerCategory->AddShape(FGameplayDebuggerShape::MakeSegment(TargetLocation, Stimulus.StimulusLocation, FColor::Black));
 				}
 			}
 		}
 	}
 
-	for (auto Sense : SensesConfig)
+	for (UAISenseConfig* SenseConfig : SensesConfig)
 	{
-		Sense->GetDebugData(OnScreenStrings, DebugShapes, *this);
+		SenseConfig->DescribeSelfToGameplayDebugger(this, DebuggerCategory);
 	}
-#endif
 }
-
-#endif // !UE_BUILD_SHIPPING
+#endif // WITH_GAMEPLAY_DEBUGGER
 
 #if ENABLE_VISUAL_LOG
 void UAIPerceptionComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const

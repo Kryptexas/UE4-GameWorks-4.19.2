@@ -10,8 +10,6 @@
 
 DEFINE_LOG_CATEGORY(LogAnimMarkerSync);
 
-DECLARE_CYCLE_STAT(TEXT("AnimSeq EvalCurveData"), STAT_AnimSeq_EvalCurveData, STATGROUP_Anim);
-
 
 /////////////////////////////////////////////////////
 
@@ -115,6 +113,10 @@ void UAnimSequenceBase::SortNotifies()
 	Notifies.Sort();
 }
 
+bool UAnimSequenceBase::IsNotifyAvailable() const
+{
+	return (Notifies.Num() != 0) && (SequenceLength > 0.f);
+}
 /** 
  * Retrieves AnimNotifies given a StartTime and a DeltaTime.
  * Time will be advanced and support looping if bAllowLooping is true.
@@ -123,12 +125,17 @@ void UAnimSequenceBase::SortNotifies()
  */
 void UAnimSequenceBase::GetAnimNotifies(const float& StartTime, const float& DeltaTime, const bool bAllowLooping, TArray<const FAnimNotifyEvent *> & OutActiveNotifies) const
 {
-	// Early out if we have no notifies
-	if( (Notifies.Num() == 0) || (DeltaTime == 0.f) )
+	if(DeltaTime == 0.f)
 	{
 		return;
 	}
 
+	// Early out if we have no notifies
+	if (!IsNotifyAvailable())
+	{
+		return;
+	}
+	
 	bool const bPlayingBackwards = (DeltaTime < 0.f);
 	float PreviousPosition = StartTime;
 	float CurrentPosition = StartTime;
@@ -140,7 +147,8 @@ void UAnimSequenceBase::GetAnimNotifies(const float& StartTime, const float& Del
 		const ETypeAdvanceAnim AdvanceType = FAnimationRuntime::AdvanceTime(false, DesiredDeltaMove, CurrentPosition, SequenceLength);
 
 		// Verify position assumptions
-		checkf(bPlayingBackwards ? (CurrentPosition <= PreviousPosition) : (CurrentPosition >= PreviousPosition), TEXT("in Animsequence %s"), *GetName());
+		ensureMsgf(bPlayingBackwards ? (CurrentPosition <= PreviousPosition) : (CurrentPosition >= PreviousPosition), TEXT("in Animation %s(Skeleton %s) : bPlayingBackwards(%d), PreviousPosition(%0.2f), Current Position(%0.2f)"), 
+			*GetName(), *GetNameSafe(GetSkeleton()), bPlayingBackwards, PreviousPosition, CurrentPosition);
 		
 		GetAnimNotifiesFromDeltaPositions(PreviousPosition, CurrentPosition, OutActiveNotifies);
 	
@@ -241,16 +249,24 @@ void UAnimSequenceBase::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimN
 	else
 	{
 		// Follow the leader
-		if (Instance.bCanUseMarkerSync && Context.CanUseMarkerPosition() && Context.MarkerTickContext.IsMarkerSyncStartValid())
+		if (Instance.bCanUseMarkerSync)
 		{
-			TickByMarkerAsFollower(*Instance.MarkerTickRecord, Context.MarkerTickContext, CurrentTime, PreviousTime, Context.GetLeaderDelta(), Instance.bLooping);
+			if (Context.CanUseMarkerPosition() && Context.MarkerTickContext.IsMarkerSyncStartValid())
+			{
+				TickByMarkerAsFollower(*Instance.MarkerTickRecord, Context.MarkerTickContext, CurrentTime, PreviousTime, Context.GetLeaderDelta(), Instance.bLooping);
+			}
+			else
+			{
+				// If leader is not valid, advance time as normal, do not jump position and pop.
+				FAnimationRuntime::AdvanceTime(Instance.bLooping, MoveDelta, CurrentTime, SequenceLength);
+				UE_LOG(LogAnimMarkerSync, Log, TEXT("Follower (%s) (normal advance)  - PreviousTime (%0.2f), CurrentTime (%0.2f), MoveDelta (%0.2f), Looping (%d) "), *GetName(), PreviousTime, CurrentTime, MoveDelta, Instance.bLooping ? 1 : 0);
+			}
 		}
 		else
 		{
 			CurrentTime = Context.GetAnimationPositionRatio() * SequenceLength;
-			UE_LOG(LogAnimMarkerSync, Log, TEXT("Follower (%s) (normal advance) - PreviousTime (%0.2f), CurrentTime (%0.2f), MoveDelta (%0.2f), Looping (%d) "), *GetName(), PreviousTime, CurrentTime, MoveDelta, Instance.bLooping ? 1 : 0);
+			UE_LOG(LogAnimMarkerSync, Log, TEXT("Follower (%s) (normalized position advance) - PreviousTime (%0.2f), CurrentTime (%0.2f), MoveDelta (%0.2f), Looping (%d) "), *GetName(), PreviousTime, CurrentTime, MoveDelta, Instance.bLooping ? 1 : 0);
 		}
-
 
 		//@TODO: NOTIFIES: Calculate AdvanceType based on what the new delta time is
 
@@ -467,16 +483,13 @@ uint8* UAnimSequenceBase::FindArrayProperty(const TCHAR* PropName, UArrayPropert
 
 
 /** Add curve data to Instance at the time of CurrentTime **/
-void UAnimSequenceBase::EvaluateCurveData(FBlendedCurve& OutCurve, float CurrentTime ) const
+void UAnimSequenceBase::EvaluateCurveData(FBlendedCurve& OutCurve, float CurrentTime, bool bForceUseRawData) const
 {
-	SCOPE_CYCLE_COUNTER(STAT_AnimSeq_EvalCurveData);
 	RawCurveData.EvaluateCurveData(OutCurve, CurrentTime);
 }
 
 void UAnimSequenceBase::Serialize(FArchive& Ar)
 {
-	Super::Serialize(Ar);
-
 	if(Ar.ArIsSaving && Ar.UE4Ver() >= VER_UE4_SKELETON_ADD_SMARTNAMES)
 	{
 		if(USkeleton* Skeleton = GetSkeleton())
@@ -505,6 +518,8 @@ void UAnimSequenceBase::Serialize(FArchive& Ar)
 		}
 	}
 #endif //WITH_EDITORONLY_DATA
+
+	Super::Serialize(Ar);
 
 	RawCurveData.Serialize(Ar);
 }

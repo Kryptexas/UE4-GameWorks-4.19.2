@@ -124,10 +124,10 @@ We're now ready to finish coding our MyPawn class in **Visual Studio**.
 				UCameraComponent* OurCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("OurCamera"));
 				OurVisibleComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("OurVisibleComponent"));
 				// Attach our camera and visible object to our root component. Offset and rotate the camera.
-				OurCamera->AttachTo(RootComponent);
+				OurCamera->SetupAttachment(RootComponent);
 				OurCamera->SetRelativeLocation(FVector(-250.0f, 0.0f, 250.0f));
 				OurCamera->SetRelativeRotation(FRotator(-45.0f, 0.0f, 0.0f));
-				OurVisibleComponent->AttachTo(RootComponent);
+				OurVisibleComponent->SetupAttachment(RootComponent);
 			}
 
 			// Called when the game starts or when spawned

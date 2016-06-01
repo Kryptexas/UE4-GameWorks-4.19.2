@@ -279,6 +279,12 @@ uint32 FBuildPatchDownloader::Run()
 				{
 					const double ChunkTime = InFlightJob.DownloadRecord.EndTime - InFlightJob.DownloadRecord.StartTime;
 					MeanChunkTime.AddSample(ChunkTime);
+					// If we know the SHA for this chunk, add it to the header for improved verification
+					FSHAHashData ChunkShaHash;
+					if (InstallManifest->GetChunkShaHash(InFlightKey, ChunkShaHash))
+					{
+						FBuildPatchUtils::InjectShaToChunkFile(InFlightJob.DataArray, ChunkShaHash);
+					}
 					// Uncompress if needed
 					if (bIsChunkData)
 					{
@@ -288,6 +294,7 @@ uint32 FBuildPatchDownloader::Run()
 					{
 						bSuccess = FBuildPatchUtils::UncompressFileDataFile(InFlightJob.DataArray);
 					}
+					// Check if the chunk was successfully uncompressed
 					if( !bSuccess )
 					{
 						FBuildPatchAnalytics::RecordChunkDownloadError( InFlightJob.DownloadUrl, FPlatformMisc::GetLastError(), TEXT( "Uncompress Fail" ) );

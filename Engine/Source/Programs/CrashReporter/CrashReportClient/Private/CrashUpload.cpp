@@ -12,6 +12,10 @@
 #include "CrashDescription.h"
 #include "EngineBuildSettings.h"
 
+// TODO Chris.Wood: switch these when backend migrates to DR
+#define PRIMARY_UPLOAD_RECEIVER 1
+#define PRIMARY_UPLOAD_DATAROUTER 0
+
 #define LOCTEXT_NAMESPACE "CrashReportClient"
 
 namespace CrashUploadDefs
@@ -160,7 +164,7 @@ bool FCrashUploadBase::CompressData(const TArray<FString>& InPendingFiles, FComp
 			else
 			{
 				UE_LOG(CrashReportClientLog, Warning, TEXT("Copying full crash minidump to %s"), *DestinationPath);
-				IFileManager::Get().Copy(*DestinationPath, *PathOfFileToUpload);
+				IFileManager::Get().Copy(*DestinationPath, *PathOfFileToUpload, false);
 			}
 
 			continue;
@@ -398,6 +402,10 @@ bool FCrashUploadToReceiver::SendCheckReportRequest()
 	auto Request = CreateHttpRequest();
 	if (State == EUploadState::CheckingReport)
 	{
+#if PRIMARY_UPLOAD_RECEIVER
+		// first stage of any upload to CRR so send analytics
+		FPrimaryCrashProperties::Get()->SendPreUploadAnalytics();
+#endif
 		AssignReportIdToPostDataBuffer();
 		Request->SetURL(UrlPrefix / TEXT("CheckReport"));
 		Request->SetHeader(TEXT("Content-Type"), TEXT("text/plain; charset=us-ascii"));
@@ -489,7 +497,6 @@ void FCrashUploadToReceiver::PostReportComplete()
 	}
 
 	AssignReportIdToPostDataBuffer();
-
 	
 	auto Request = CreateHttpRequest();
 	Request->SetVerb( TEXT( "POST" ) );
@@ -500,6 +507,10 @@ void FCrashUploadToReceiver::PostReportComplete()
 
 	if (Request->ProcessRequest())
 	{
+#if PRIMARY_UPLOAD_RECEIVER
+		// completed upload to CRR so send analytics
+		FPrimaryCrashProperties::Get()->SendPostUploadAnalytics();
+#endif
 		SetCurrentState(EUploadState::PostingReportComplete);
 	}
 	else
@@ -722,6 +733,11 @@ void FCrashUploadToDataRouter::BeginUpload(const FPlatformErrorReport& PlatformE
 
 void FCrashUploadToDataRouter::CompressAndSendData()
 {
+#if PRIMARY_UPLOAD_DATAROUTER
+	// first stage of any upload to DR so send analytics
+	FPrimaryCrashProperties::Get()->SendPreUploadAnalytics();
+#endif
+
 	FCompressedHeader CompressedHeader;
 	CompressedHeader.DirectoryName = ErrorReport.GetReportDirectoryLeafName();
 	CompressedHeader.FileName = ErrorReport.GetReportDirectoryLeafName() + TEXT(".ue4crash");
@@ -755,6 +771,10 @@ void FCrashUploadToDataRouter::CompressAndSendData()
 
 	if (Request->ProcessRequest())
 	{
+#if PRIMARY_UPLOAD_DATAROUTER
+		// completed upload to DR so send analytics
+		FPrimaryCrashProperties::Get()->SendPostUploadAnalytics();
+#endif
 		return;
 	}
 	else

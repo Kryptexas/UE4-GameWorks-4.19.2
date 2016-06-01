@@ -531,6 +531,15 @@ FORCEINLINE void VectorMatrixMultiply( void *Result, const void* Matrix1, const 
 #define VectorBitwiseOR( Vec1, Vec2 )	_mm_or_ps( (Vec1), (Vec2) )
 
 /**
+ * Returns the bitwise XOR.
+ *
+ * @param	Vec1	Vector to XOR
+ * @param	Vec2	Vector to XOR
+ * @return	bitwise per component XOR operation.
+ */
+#define VectorBitwiseXOR( Vec1, Vec2 )	_mm_xor_ps( (Vec1), (Vec2) )
+
+/**
  * Returns the bitwise AND NOT.
  *
  * @param	Vec1	Vector to NOT AND

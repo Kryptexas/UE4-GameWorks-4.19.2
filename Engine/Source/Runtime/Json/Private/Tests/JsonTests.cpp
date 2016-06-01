@@ -3,6 +3,8 @@
 #include "JsonPrivatePCH.h"
 #include "Json.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 /**
  * FJsonAutomationTest
  * Simple unit test that runs Json's in-built test cases
@@ -683,3 +685,5 @@ bool FJsonAutomationTest::RunTest(const FString& Parameters)
 
 	return true;
 }
+
+#endif //WITH_DEV_AUTOMATION_TESTS

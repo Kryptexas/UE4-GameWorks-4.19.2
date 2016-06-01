@@ -302,6 +302,25 @@ struct FInEditorCapture
 
 		bScreenMessagesWereEnabled = GAreScreenMessagesEnabled;
 		GAreScreenMessagesEnabled = false;
+
+		if (!InCaptureObject->Settings.bEnableTextureStreaming)
+		{
+			const int32 UndefinedTexturePoolSize = -1;
+			IConsoleVariable* CVarStreamingPoolSize = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Streaming.PoolSize"));
+			if (CVarStreamingPoolSize)
+			{
+				BackedUpStreamingPoolSize = CVarStreamingPoolSize->GetInt();
+				CVarStreamingPoolSize->Set(UndefinedTexturePoolSize, ECVF_SetByConsole);
+			}
+
+			IConsoleVariable* CVarUseFixedPoolSize = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Streaming.UseFixedPoolSize"));
+			if (CVarUseFixedPoolSize)
+			{
+				BackedUpUseFixedPoolSize = CVarUseFixedPoolSize->GetInt(); 
+				CVarUseFixedPoolSize->Set(0, ECVF_SetByConsole);
+			}
+		}
+
 		OnStarted = InOnStarted;
 		FObjectWriter(PlayInEditorSettings, BackedUpPlaySettings);
 		OverridePlaySettings(PlayInEditorSettings);
@@ -333,6 +352,8 @@ struct FInEditorCapture
 			.HasCloseButton(true)
 			.SupportsMaximize(false)
 			.SupportsMinimize(true)
+			.MaxWidth( Settings.Resolution.ResX )
+			.MaxHeight( Settings.Resolution.ResY )
 			.SizingRule(ESizingRule::FixedSize);
 
 		FSlateApplication::Get().AddWindow(CustomWindow);
@@ -405,6 +426,21 @@ struct FInEditorCapture
 
 		GAreScreenMessagesEnabled = bScreenMessagesWereEnabled;
 
+		if (!CaptureObject->Settings.bEnableTextureStreaming)
+		{
+			IConsoleVariable* CVarStreamingPoolSize = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Streaming.PoolSize"));
+			if (CVarStreamingPoolSize)
+			{
+				CVarStreamingPoolSize->Set(BackedUpStreamingPoolSize, ECVF_SetByConsole);
+			}
+
+			IConsoleVariable* CVarUseFixedPoolSize = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Streaming.UseFixedPoolSize"));
+			if (CVarUseFixedPoolSize)
+			{
+				CVarUseFixedPoolSize->Set(BackedUpUseFixedPoolSize, ECVF_SetByConsole);
+			}
+		}
+
 		FObjectReader(GetMutableDefault<ULevelEditorPlaySettings>(), BackedUpPlaySettings);
 
 		CaptureObject->Close();
@@ -427,6 +463,8 @@ struct FInEditorCapture
 
 	TFunction<void()> OnStarted;
 	bool bScreenMessagesWereEnabled;
+	int32 BackedUpStreamingPoolSize;
+	int32 BackedUpUseFixedPoolSize;
 	TArray<uint8> BackedUpPlaySettings;
 	UMovieSceneCapture* CaptureObject;
 };
@@ -642,8 +680,8 @@ class FMovieSceneCaptureDialogModule : public IMovieSceneCaptureDialogModule
 			EditorCommandLine.Append(TEXT(" -NoTextureStreaming"));
 		}
 		
-		// Set the game resolution
-		EditorCommandLine += FString::Printf(TEXT(" -ResX=%d -ResY=%d"), CaptureObject->Settings.Resolution.ResX, CaptureObject->Settings.Resolution.ResY);
+		// Set the game resolution - we always want it windowed
+		EditorCommandLine += FString::Printf(TEXT(" -ResX=%d -ResY=%d -Windowed"), CaptureObject->Settings.Resolution.ResX, CaptureObject->Settings.Resolution.ResY);
 
 		// Ensure game session is correctly set up 
 		EditorCommandLine += FString::Printf(TEXT(" -messaging -SessionName=\"%s\""), MovieCaptureSessionName);
@@ -661,9 +699,14 @@ class FMovieSceneCaptureDialogModule : public IMovieSceneCaptureDialogModule
 		FString GamePath = FPlatformProcess::GenerateApplicationPath(FApp::GetName(), FApp::GetBuildConfiguration());
 		FProcHandle ProcessHandle = FPlatformProcess::CreateProc(*GamePath, *Params, true, false, false, nullptr, 0, nullptr, nullptr);
 
-		// @todo: progress reporting, UI feedback
 		if (ProcessHandle.IsValid())
 		{
+			if (CaptureObject->bCloseEditorWhenCaptureStarts)
+			{
+				FPlatformMisc::RequestExit(false);
+				return FText();
+			}
+
 			TSharedRef<FProcHandle> SharedProcHandle = MakeShareable(new FProcHandle(ProcessHandle));
 			auto GetCaptureStatus = [=]{
 				if (!FPlatformProcess::IsProcRunning(*SharedProcHandle))

@@ -703,13 +703,14 @@ IStatGroupEnableManager& IStatGroupEnableManager::Get()
 FName FStatNameAndInfo::ToLongName(FName InStatName, char const* InGroup, char const* InCategory, TCHAR const* InDescription)
 {
 	FString LongName;
+	LongName.Reserve(255);
 	if (InGroup)
 	{
 		LongName += TEXT("//");
 		LongName += InGroup;
 		LongName += TEXT("//");
 	}
-	LongName += InStatName.ToString();
+	InStatName.AppendString(LongName);
 	if (InDescription)
 	{
 		LongName += TEXT("///");
@@ -843,8 +844,10 @@ public:
 	/** Attaches to the task graph stats thread, all processing will be handled by the task graph. */
 	virtual uint32 Run() override
 	{
+		FMemory::SetupTLSCachesOnCurrentThread();
 		FTaskGraphInterface::Get().AttachToThread(ENamedThreads::StatsThread);
 		FTaskGraphInterface::Get().ProcessThreadUntilRequestReturn(ENamedThreads::StatsThread);
+		FMemory::ClearAndDisableTLSCachesOnCurrentThread();
 		return 0;
 	}
 

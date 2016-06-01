@@ -90,7 +90,6 @@ private:
 
 	void HandleEditableTextTextCommitted(const FText& NewText, ETextCommit::Type CommitInfo);
 	FReply HandleTextBlockDoubleClicked();
-	EVisibility HandleIconVisibility() const;
 
 private:
 

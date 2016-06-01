@@ -75,12 +75,25 @@ namespace FXConsoleVariables
  */
 inline bool SupportsGPUParticles(EShaderPlatform Platform)
 {
-	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::ES3_1)
+		|| IsPCPlatform(Platform) // For editor mobile preview 
+		|| Platform == SP_OPENGL_ES2_ANDROID; // Android device might support it (ex. Adreno 420)
 }
 
-inline bool RHISupportsGPUParticles(ERHIFeatureLevel::Type InFeatureLevel)
+/*
+ * Returns true if the current RHI supports GPU particles 
+ */
+//@todo rename this function. 
+// Unlike other RHI* functions which are static, it actually returns true if the
+// RHI on the current hardware is able to support GPU particles.
+inline bool RHISupportsGPUParticles()
 {
-	return InFeatureLevel >= ERHIFeatureLevel::SM4;
+	return GSupportsMultipleRenderTargets 
+		&& GSupportsWideMRT
+		&& GPixelFormats[PF_G32R32F].Supported 
+		&& GSupportsTexture3D 
+		&& GSupportsResourceView 
+		&& GRHISupportsInstancing;
 }
 
 /*-----------------------------------------------------------------------------

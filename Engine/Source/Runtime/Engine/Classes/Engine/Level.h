@@ -2,12 +2,14 @@
 
 #pragma once
 #include "Engine/World.h"
+#include "MaterialMerging.h"
 #include "Level.generated.h"
 
 class ALevelBounds;
 class UTexture2D;
 class UNavigationDataChunk;
 class AInstancedFoliageActor;
+class AWorldSettings;
 
 /**
  * Structure containing all information needed for determining the screen space
@@ -19,7 +21,7 @@ struct ENGINE_API FStreamableTextureInstance
 	GENERATED_USTRUCT_BODY()
 
 	/** Bounding sphere/ box of object */
-	FSphere BoundingSphere;
+	FBoxSphereBounds  Bounds;
 
 	/** Min distance from view where this instance is usable */
 	float MinDistance;
@@ -257,7 +259,7 @@ struct ENGINE_API FLevelSimplificationDetails
 	UPROPERTY(Category = Landscape, EditAnywhere)
 	FMaterialProxySettings StaticMeshMaterialSettings;
 
-	UPROPERTY()
+	UPROPERTY(Category = Landscape, EditAnywhere, meta=(InlineEditConditionToggle))
 	bool bOverrideLandscapeExportLOD;
 
 	/** Landscape LOD to use for static mesh generation, when not specified 'Max LODLevel' from landscape actor will be used */
@@ -392,6 +394,10 @@ public:
 	UPROPERTY()
 	TArray<FVector> StaticNavigableGeometry;
 
+	/** The Guid of each texture refered by FStreamingTextureBuildInfo::TextureLevelIndex	*/
+	UPROPERTY()
+	TArray<FGuid> StreamingTextureGuids;
+
 	/** Static information used by texture streaming code, generated during PreSave									*/
 	TMap<UTexture2D*,TArray<FStreamableTextureInstance> >	TextureToInstancesMap;
 
@@ -431,10 +437,14 @@ public:
 	/** Has texture streaming been built */
 	uint32										bTextureStreamingBuilt:1;
 
+	/** Whether a level transform rotation was applied since the texture streaming builds. Invalidates the precomputed streaming bounds. */
+	UPROPERTY()
+	uint32 										bTextureStreamingRotationChanged : 1;
+
 	/** Whether the level is currently visible/ associated with the world */
 	UPROPERTY(transient)
-	uint32										bIsVisible:1;
-	
+	uint32										bIsVisible:1;	
+
 	/** Whether this level is locked; that is, its actors are read-only 
 	 *	Used by WorldBrowser to lock a level when corresponding ULevelStreaming does not exist
 	 */
@@ -509,6 +519,9 @@ public:
 private:
 	FLevelBoundsActorUpdatedEvent LevelBoundsActorUpdatedEvent; 
 
+	UPROPERTY()
+	AWorldSettings* WorldSettings;
+
 protected:
 
 	/** Array of user data stored with the asset */
@@ -519,10 +532,10 @@ private:
 	// Actors awaiting input to be enabled once the appropriate PlayerController has been created
 	TArray<FPendingAutoReceiveInputActor> PendingAutoReceiveInputActors;
 
+public:
 	// Used internally to determine which actors should go on the world's NetworkActor list
 	static bool IsNetActor(const AActor* Actor);
 
-public:
 	/** Called when a level package has been dirtied. */
 	ENGINE_API static FSimpleMulticastDelegate LevelDirtiedEvent;
 
@@ -550,6 +563,7 @@ public:
 #if	WITH_EDITOR
 	virtual void PreEditUndo() override;
 	virtual void PostEditUndo() override;	
+	virtual void BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPlatform) override;
 #endif // WITH_EDITOR
 	virtual void PostLoad() override;
 	virtual void PreSave() override;
@@ -684,8 +698,9 @@ public:
 	 *
 	 * @return		The AWorldSettings for this level.
 	 */
-	ENGINE_API 
-	class AWorldSettings* GetWorldSettings() const;
+	ENGINE_API AWorldSettings* GetWorldSettings(bool bChecked = true) const;
+
+	ENGINE_API void SetWorldSettings(AWorldSettings* NewWorldSettings);
 
 	/**
 	 * Returns the level scripting actor associated with this level

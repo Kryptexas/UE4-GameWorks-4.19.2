@@ -395,7 +395,8 @@ bool FEdModeMeshPaint::InputKey( FEditorViewportClient* InViewportClient, FViewp
 	bool bHandled = false;
 
 	const bool bIsLeftButtonDown = ( InKey == EKeys::LeftMouseButton && InEvent != IE_Released ) || InViewport->KeyState( EKeys::LeftMouseButton );
-	const bool bIsCtrlDown = ( ( InKey == EKeys::LeftControl || InKey == EKeys::RightControl ) && InEvent != IE_Released ) || InViewport->KeyState( EKeys::LeftControl ) || InViewport->KeyState( EKeys::RightControl );
+	const bool bIsRightButtonDown = (InKey == EKeys::RightMouseButton && InEvent != IE_Released) || InViewport->KeyState(EKeys::RightMouseButton);
+	const bool bIsCtrlDown = ((InKey == EKeys::LeftControl || InKey == EKeys::RightControl) && InEvent != IE_Released) || InViewport->KeyState(EKeys::LeftControl) || InViewport->KeyState(EKeys::RightControl);
 	const bool bIsShiftDown = ( ( InKey == EKeys::LeftShift || InKey == EKeys::RightShift ) && InEvent != IE_Released ) || InViewport->KeyState( EKeys::LeftShift ) || InViewport->KeyState( EKeys::RightShift );
 	const bool bIsAltDown = ( ( InKey == EKeys::LeftAlt || InKey == EKeys::RightAlt ) && InEvent != IE_Released ) || InViewport->KeyState( EKeys::LeftAlt ) || InViewport->KeyState( EKeys::RightAlt );
 
@@ -462,7 +463,7 @@ bool FEdModeMeshPaint::InputKey( FEditorViewportClient* InViewportClient, FViewp
 	if( !bIsAltDown && InViewportClient->IsPerspective() && InViewportClient->EngineShowFlags.ModeWidgets)
 	{
 		// Does the user want to paint right now?
-		const bool bUserWantsPaint = bIsLeftButtonDown && !bIsAltDown;
+		const bool bUserWantsPaint = bIsLeftButtonDown && !bIsRightButtonDown && !bIsAltDown;
 		bool bAnyPaintAbleActorsUnderCursor = false;
 
 		// Stop current tracking if the user is no longer painting
@@ -1064,7 +1065,10 @@ void FEdModeMeshPaint::DoPaint( const FVector& InCameraOrigin,
 			{
 				UMeshComponent* ComponentToPaint = CastChecked<UMeshComponent>(BestTraceResult.GetComponent());
 
-				PaintableComponents.AddUnique(ComponentToPaint);
+				if (ComponentToAdapterMap.Contains(ComponentToPaint))
+				{
+					PaintableComponents.AddUnique(ComponentToPaint);
+				}
 			}
 			else
 			{
@@ -1075,7 +1079,7 @@ void FEdModeMeshPaint::DoPaint( const FVector& InCameraOrigin,
 				{
 					const FBox ComponentBounds = TestComponent->Bounds.GetBox();
 					
-					if (ComponentBounds.Intersect(BrushBounds))
+					if (ComponentToAdapterMap.Contains(TestComponent) && ComponentBounds.Intersect(BrushBounds))
 					{
 						// OK, this mesh potentially overlaps the brush!
 						PaintableComponents.AddUnique(TestComponent);
@@ -1124,6 +1128,11 @@ void FEdModeMeshPaint::DoPaint( const FVector& InCameraOrigin,
 	for (UMeshComponent* MeshComponent : PaintableComponents)
 	{
 		IMeshPaintGeometryAdapter* MeshAdapter = ComponentToAdapterMap.FindRef(MeshComponent).Get();
+		if (!ensure(MeshAdapter))
+		{
+			continue;
+		}
+
 		MeshAdapter->SetCurrentUVChannelIndex(FMeshPaintSettings::Get().UVChannel);
 
 		// Brush properties
@@ -4446,15 +4455,21 @@ void FEdModeMeshPaint::SetSelectedTexture( const UTexture2D* Texture )
 	// Loop through our list of textures and see which one the user wants to select
 	for( int32 targetIndex = 0; targetIndex < TexturePaintTargetList.Num(); targetIndex++ )
 	{
-		if(TexturePaintTargetList[targetIndex].TextureData == Texture )
+		FTextureTargetListInfo& TextureTarget = TexturePaintTargetList[targetIndex];
+		if (TextureTarget.TextureData == Texture)
 		{
-			TexturePaintTargetList[targetIndex].bIsSelected = true;
-			FMeshPaintSettings::Get().UVChannel = TexturePaintTargetList[targetIndex].UVChannelIndex;
+			TextureTarget.bIsSelected = true;
+			FMeshPaintSettings::Get().UVChannel = TextureTarget.UVChannelIndex;
 		}
 		else
 		{
-			TexturePaintTargetList[targetIndex].bIsSelected = false;
+			TextureTarget.bIsSelected = false;
 		}
+	}
+
+	if (ActorBeingEdited.IsValid())
+	{
+		SaveSettingsForActor(ActorBeingEdited.Get());
 	}
 }
 

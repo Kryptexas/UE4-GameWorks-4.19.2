@@ -315,7 +315,7 @@ private:
 	/** SlotName to GroupName TMap, only at runtime, not serialized. **/
 	TMap<FName, FName> SlotToGroupNameMap;
 
-	void BuildSlotToGroupMap();
+	void BuildSlotToGroupMap(bool bInRemoveDuplicates = false);
 
 public:
 	ENGINE_API FAnimSlotGroup* FindAnimSlotGroup(const FName& InGroupName);
@@ -552,7 +552,7 @@ public:
 	 *
 	 * @return	Index of Track of Animation Sequence
 	 */
-	ENGINE_API int32 GetAnimationTrackIndex(const int32& InSkeletonBoneIndex, const UAnimSequence* InAnimSeq);
+	ENGINE_API int32 GetAnimationTrackIndex(const int32& InSkeletonBoneIndex, const UAnimSequence* InAnimSeq, const bool bUseRawData);
 
 	/** 
 	 * Get Bone Tree Index from Reference Bone Index

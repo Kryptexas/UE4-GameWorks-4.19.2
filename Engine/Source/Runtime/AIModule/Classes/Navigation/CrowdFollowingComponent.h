@@ -43,6 +43,9 @@ class AIMODULE_API UCrowdFollowingComponent : public UPathFollowingComponent, pu
 	virtual FVector GetCrowdAgentVelocity() const override;
 	virtual void GetCrowdAgentCollisions(float& CylinderRadius, float& CylinderHalfHeight) const override;
 	virtual float GetCrowdAgentMaxSpeed() const override;
+	virtual int32 GetCrowdAgentAvoidanceGroup() const override;
+	virtual int32 GetCrowdAgentGroupsToAvoid() const override;
+	virtual int32 GetCrowdAgentGroupsToIgnore() const override;
 	// ICrowdAgentInterface END
 
 	// PathFollowingComponent BEGIN
@@ -137,6 +140,8 @@ class AIMODULE_API UCrowdFollowingComponent : public UPathFollowingComponent, pu
 	DEPRECATED(4.11, "Use SetCrowdSimulationState function instead.")
 	virtual void SetCrowdSimulation(bool bEnable);
 
+	void UpdateDestinationForMovingGoal(const FVector& NewDestination);
+
 protected:
 
 	UPROPERTY(transient)
@@ -219,7 +224,10 @@ protected:
 	bool ShouldSwitchPathPart(int32 CorridorSize) const;
 	bool HasMovedDuringPause() const;
 	void UpdateCachedDirections(const FVector& NewVelocity, const FVector& NextPathCorner, bool bTraversingLink);
+
+	DEPRECATED(4.12, "This function is now deprecated and was renamed to ShouldTrackMovingGoal.")
 	virtual bool UpdateCachedGoal(FVector& NewGoalPos);
+	virtual bool ShouldTrackMovingGoal(FVector& OutGoalLocation) const;
 	
 	void OnPendingNavigationInit();
 	void RegisterCrowdAgent();

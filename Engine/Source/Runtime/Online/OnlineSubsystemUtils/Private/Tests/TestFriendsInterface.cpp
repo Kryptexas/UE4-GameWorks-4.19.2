@@ -5,6 +5,8 @@
 #include "TestFriendsInterface.h"
 #include "OnlinePresenceInterface.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 void FTestFriendsInterface::Test(UWorld* InWorld, const TArray<FString>& Invites)
 {
 	OnlineSub = Online::GetSubsystem(InWorld, SubsystemName.Len() ? FName(*SubsystemName, FNAME_Find) : NAME_None);
@@ -256,3 +258,4 @@ void FTestFriendsInterface::OnDeleteFriendsListComplete(int32 LocalPlayer, bool 
 	StartNextTest();
 }
 
+#endif //WITH_DEV_AUTOMATION_TESTS

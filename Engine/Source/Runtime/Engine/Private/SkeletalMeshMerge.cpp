@@ -91,6 +91,12 @@ void FSkeletalMeshMerge::MergeSkeleton(const TArray<FRefPoseOverride>* RefPoseOv
 	// Assign new referencer skeleton.
 
 	MergeMesh->RefSkeleton = NewRefSkeleton;
+
+	// Rebuild inverse ref pose matrices here as some access patterns 
+	// may need to access these matrices before FinalizeMesh is called
+	// (which would *normally* rebuild the inv ref matrices).
+	MergeMesh->RefBasesInvMatrix.Empty();
+	MergeMesh->CalculateInvRefMatrices();
 }
 
 bool FSkeletalMeshMerge::FinalizeMesh()
@@ -629,7 +635,8 @@ bool FSkeletalMeshMerge::ProcessMergeMesh()
 			if( bNeedsInit )
 			{
 				// initialize the merged mesh with the first src mesh entry used
-				MergeMesh->Bounds = SrcMesh->Bounds;
+				MergeMesh->SetImportedBounds(SrcMesh->GetImportedBounds());
+
 				MergeMesh->SkelMirrorAxis = SrcMesh->SkelMirrorAxis;
 				MergeMesh->SkelMirrorFlipAxis = SrcMesh->SkelMirrorFlipAxis;
 
@@ -639,8 +646,8 @@ bool FSkeletalMeshMerge::ProcessMergeMesh()
 			else
 			{
 				// add bounds
-				MergeMesh->Bounds = MergeMesh->Bounds + SrcMesh->Bounds;
-			}			
+				MergeMesh->SetImportedBounds(MergeMesh->GetImportedBounds() + SrcMesh->GetImportedBounds());
+			}
 		}
 	}
 

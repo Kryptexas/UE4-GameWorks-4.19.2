@@ -49,9 +49,6 @@ public:
 
 	TSharedPtr< FUICommandInfo > ToggleFavorite;
 
-	/** Import */
-	TSharedPtr< FUICommandInfo > Import;
-	
 	/** Import Scene */
 	TSharedPtr< FUICommandInfo > ImportScene;
 
@@ -74,6 +71,7 @@ public:
 	TSharedPtr< FUICommandInfo > BuildGeometryOnly_OnlyCurrentLevel;
 	TSharedPtr< FUICommandInfo > BuildPathsOnly;
 	TSharedPtr< FUICommandInfo > BuildLODsOnly;
+	TSharedPtr< FUICommandInfo > BuildTextureStreamingOnly;
 	TSharedPtr< FUICommandInfo > LightingQuality_Production;
 	TSharedPtr< FUICommandInfo > LightingQuality_High;
 	TSharedPtr< FUICommandInfo > LightingQuality_Medium;
@@ -518,6 +516,7 @@ public:
 	TSharedPtr< FUICommandInfo > OpenContentBrowser;
 	TSharedPtr< FUICommandInfo > OpenMarketplace;
 	TSharedPtr< FUICommandInfo > EditMatinee;
+	TSharedPtr< FUICommandInfo > ToggleVR;
 
 	/**
 	 * Blueprints commands
@@ -627,6 +626,12 @@ public:
 	static void OpenLevel();
 	static bool OpenLevel_CanExecute();
 
+	/** Toggles VR mode */
+	static void ToggleVR();
+	static bool ToggleVR_CanExecute();
+	static bool ToggleVR_IsChecked();
+	static bool ToggleVR_IsVisible();
+
 	/** Opens delta transform */
 	static void DeltaTransform();
 
@@ -670,13 +675,8 @@ public:
 
 
 	/**
-	 * Called when import is selected
+	 * Called when import scene is selected
 	 */
-	static void Import_Clicked();
-
-	/**
-	* Called when import scene is selected
-	*/
 	static void ImportScene_Clicked();
 
 
@@ -717,6 +717,7 @@ public:
 	static void BuildGeometryOnly_OnlyCurrentLevel_Execute();
 	static void BuildPathsOnly_Execute();
 	static void BuildLODsOnly_Execute();
+	static void BuildTextureStreamingOnly_Execute();
 	static void SetLightingQuality( ELightingBuildQuality NewQuality );
 	static bool IsLightingQualityChecked( ELightingBuildQuality TestQuality );
 	static float GetLightingDensityIdeal();

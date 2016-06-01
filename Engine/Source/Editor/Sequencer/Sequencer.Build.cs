@@ -15,6 +15,8 @@ public class Sequencer : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
+				"AppFramework", 
+                "CinematicCamera",
 				"Core", 
 				"CoreUObject", 
                 "InputCore",
@@ -37,9 +39,11 @@ public class Sequencer : ModuleRules
 
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
+                "ContentBrowser",
 				"PropertyEditor",
 				"Kismet",
-				"SceneOutliner"
+				"SceneOutliner",
+				"SequenceRecorder"
 			}
 		);
 
@@ -48,7 +52,9 @@ public class Sequencer : ModuleRules
 				"PropertyEditor",
 				"LevelEditor",
 				"SceneOutliner",
-				"WorkspaceMenuStructure"
+				"WorkspaceMenuStructure",
+				"SequenceRecorder",
+				"SequenceRecorderSections",
 			}
 		);
 

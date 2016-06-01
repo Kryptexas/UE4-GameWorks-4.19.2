@@ -64,6 +64,18 @@ void FPerforceSourceControlSettings::SetHostOverride(const FString& InString)
 	ConnectionInfo.HostOverride = InString;
 }
 
+const FString& FPerforceSourceControlSettings::GetChangelistNumber() const
+{
+	FScopeLock ScopeLock(&CriticalSection);
+	return ConnectionInfo.ChangelistNumber;
+}
+
+void FPerforceSourceControlSettings::SetChangelistNumber(const FString& InString)
+{
+	FScopeLock ScopeLock(&CriticalSection);
+	ConnectionInfo.ChangelistNumber = InString;
+}
+
 void FPerforceSourceControlSettings::LoadSettings()
 {
 	FScopeLock ScopeLock(&CriticalSection);

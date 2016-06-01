@@ -83,7 +83,7 @@ FString FMacPlatformProcess::GenerateApplicationPath( const FString& AppName, EB
 	{
 		FString ExecutablePath = FString::Printf(TEXT("../%s/%s.app/Contents/MacOS/%s"), *PlatformName, *ExecutableName, *ExecutableName);
 			
-		NSString* LaunchPath = (NSString*)FPlatformString::TCHARToCFString(*ExecutablePath);
+		NSString* LaunchPath = ExecutablePath.GetNSString();
 		
 		if ([[NSFileManager defaultManager] fileExistsAtPath: LaunchPath])
 		{
@@ -408,15 +408,16 @@ bool FMacPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params, in
 				*OutReturnCode = [ProcessHandle terminationStatus];
 			}
 			
-			if(OutStdOut)
+			if (OutStdOut)
 			{
 				[StdOutPipe copyPipeData: *OutStdOut];
 			}
 			
-			if(OutStdErr)
+			if (OutStdErr)
 			{
 				[StdErrPipe copyPipeData: *OutStdErr];
 			}
+			
 			return true;
 		}
 		@catch (NSException* Exc)
@@ -705,6 +706,10 @@ bool FMacPlatformProcess::IsSandboxedApplication()
 		
 		bIsSandboxedApplication = (Err == errSecSuccess);
 		
+		if(SandboxRequirement)
+		{
+			CFRelease(SandboxRequirement);
+		}
 		CFRelease(SecCodeObj);
 	}
 	

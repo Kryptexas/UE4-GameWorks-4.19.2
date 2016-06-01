@@ -193,6 +193,10 @@ FString FOnlineSubsystemGooglePlay::GetAppId() const
 
 bool FOnlineSubsystemGooglePlay::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) 
 {
+	if (FOnlineSubsystemImpl::Exec(InWorld, Cmd, Ar))
+	{
+		return true;
+	}
 	return false;
 }
 

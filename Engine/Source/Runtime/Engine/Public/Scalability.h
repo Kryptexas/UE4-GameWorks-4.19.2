@@ -14,15 +14,21 @@ namespace Scalability
 	**/
 	struct ENGINE_API FQualityLevels
 	{
-		int32 ResolutionQuality;
+		float ResolutionQuality;
 		int32 ViewDistanceQuality;
 		int32 AntiAliasingQuality;
 		int32 ShadowQuality;
 		int32 PostProcessQuality;
 		int32 TextureQuality;
 		int32 EffectsQuality;
+		int32 FoliageQuality;
+
+		float CPUBenchmarkResults;
+		float GPUBenchmarkResults;
 
 		FQualityLevels()
+			: CPUBenchmarkResults(-1.0f)
+			, GPUBenchmarkResults(-1.0f)
 		{
 			SetDefaults();
 		}
@@ -74,14 +80,45 @@ namespace Scalability
 	ENGINE_API void RecordQualityLevelsAnalytics(bool bAutoApplied);
 
 	/** Run synthbenchmark and configure scalability based on results **/
-	ENGINE_API FQualityLevels BenchmarkQualityLevels(uint32 WorkScale=10);
+	ENGINE_API FQualityLevels BenchmarkQualityLevels(uint32 WorkScale=10, float CPUMultiplier = 1.0f, float GPUMultiplier = 1.0f);
 
 	/** Process a console command line **/
 	ENGINE_API void ProcessCommand(const TCHAR* Cmd, FOutputDevice& Ar);
 
 	/** Minimum single axis scale for render resolution */
-	static const int32 MinResolutionScale = 50;
+	static const float MinResolutionScale = 10.0f;
 
 	/** Maximum single axis scale for render resolution */
-	static const int32 MaxResolutionScale = 100;
+	static const float MaxResolutionScale = 100.0f;
+
+
+	// A set of accessor helper objects that allow fast and thread safe access to the scalability CVars values without giving direct access.
+	struct ENGINE_API FResolutionQualityCVarAccessor : public FCVarAccessorFloat
+	{
+		FResolutionQualityCVarAccessor();
+	};
+	struct ENGINE_API FViewDistanceQualityCVarAccessor : public FCVarAccessorInt
+	{
+		FViewDistanceQualityCVarAccessor();
+	};
+	struct ENGINE_API FAntiAliasingQualityCVarAccessor : public FCVarAccessorInt
+	{
+		FAntiAliasingQualityCVarAccessor();
+	};
+	struct ENGINE_API FShadowQualityCVarAccessor : public FCVarAccessorInt
+	{
+		FShadowQualityCVarAccessor();
+	};
+	struct ENGINE_API FPostProcessQualityCVarAccessor : public FCVarAccessorInt
+	{
+		FPostProcessQualityCVarAccessor();
+	};
+	struct ENGINE_API FTextureQualityCVarAccessor : public FCVarAccessorInt
+	{
+		FTextureQualityCVarAccessor();
+	};
+	struct ENGINE_API FEffectsQualityCVarAccessor : public FCVarAccessorInt
+	{
+		FEffectsQualityCVarAccessor();
+	};
 }

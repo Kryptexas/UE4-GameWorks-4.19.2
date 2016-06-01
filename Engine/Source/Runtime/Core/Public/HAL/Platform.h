@@ -35,6 +35,9 @@
 #if !defined(PLATFORM_ANDROID_X64)
 	#define PLATFORM_ANDROID_X64 0
 #endif
+#if !defined(PLATFORM_ANDROID_VULKAN)
+	#define PLATFORM_ANDROID_VULKAN 0
+#endif
 #if !defined(PLATFORM_ANDROIDGL4)
 	#define PLATFORM_ANDROIDGL4 0
 #endif
@@ -147,7 +150,7 @@
 	#define PLATFORM_ENABLE_VECTORINTRINSICS	0
 #endif
 #ifndef PLATFORM_HAS_CPUID
-	#if defined(_M_IX86) || defined(__i386__)
+	#if defined(_M_IX86) || defined(__i386__) || defined(_M_X64) || defined(__x86_64__) || defined (__amd64__) 
 		#define PLATFORM_HAS_CPUID				1
 	#else
 		#define PLATFORM_HAS_CPUID				0
@@ -270,6 +273,10 @@
 	#define PLATFORM_USES_FIXED_RHI_CLASS		0
 #endif
 
+#ifndef PLATFORM_USES_FIXED_GMalloc_CLASS
+	#define PLATFORM_USES_FIXED_GMalloc_CLASS		0
+#endif
+
 #ifndef PLATFORM_SUPPORTS_MULTIPLE_NATIVE_WINDOWS
 	#define PLATFORM_SUPPORTS_MULTIPLE_NATIVE_WINDOWS	1
 #endif
@@ -282,6 +289,10 @@
 	#define PLATFORM_SUPPORTS_STACK_SYMBOLS 0
 #endif
 
+#ifndef PLATFORM_HAS_64BIT_ATOMICS
+	#define PLATFORM_HAS_64BIT_ATOMICS 1
+#endif
+
 #ifndef PLATFORM_HAS_128BIT_ATOMICS
 	#define PLATFORM_HAS_128BIT_ATOMICS 0
 #endif
@@ -292,10 +303,6 @@
 
 #ifndef PLATFORM_RHITHREAD_DEFAULT_BYPASS
 	#define PLATFORM_RHITHREAD_DEFAULT_BYPASS					1
-#endif
-
-#ifndef PLATFORM_CAN_TOGGLE_RHITHREAD_IN_SHIPPING
-	#define PLATFORM_CAN_TOGGLE_RHITHREAD_IN_SHIPPING			0
 #endif
 
 // deprecated, do not use

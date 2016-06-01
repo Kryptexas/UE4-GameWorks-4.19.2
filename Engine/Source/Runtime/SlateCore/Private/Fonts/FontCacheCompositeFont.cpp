@@ -181,29 +181,41 @@ const FFontData& FCompositeFontCache::GetFontDataForCharacter(const FSlateFontIn
 {
 	static const FFontData DummyFontData;
 
+	auto FontDataHasCharacter = [&](const FFontData& InFontData) -> bool
+	{
+#if WITH_FREETYPE
+		TSharedPtr<FFreeTypeFace> FaceAndMemory = GetFontFace(InFontData);
+		return FaceAndMemory.IsValid() && FT_Get_Char_Index(FaceAndMemory->GetFace(), InChar) != 0;
+#else  // WITH_FREETYPE
+		return false;
+#endif // WITH_FREETYPE
+	};
+
 	const FCompositeFont* const ResolvedCompositeFont = InFontInfo.GetCompositeFont();
 	const FCachedTypefaceData* const CachedTypefaceData = GetCachedTypefaceForCharacter(ResolvedCompositeFont, InChar);
 	if (CachedTypefaceData)
 	{
 		OutScalingFactor = CachedTypefaceData->GetScalingFactor();
 
+		const FCachedTypefaceData* const CachedDefaultTypefaceData = GetDefaultCachedTypeface(ResolvedCompositeFont);
+		const bool bIsDefaultTypeface = CachedTypefaceData == CachedDefaultTypefaceData;
+
 		// Try to find the correct font from the typeface
 		const FFontData* FoundFontData = CachedTypefaceData->GetFontData(InFontInfo.TypefaceFontName);
-		if (FoundFontData)
+		if (FoundFontData && (bIsDefaultTypeface || FontDataHasCharacter(*FoundFontData)))
 		{
 			return *FoundFontData;
 		}
 
 		// Failing that, try and find a font by the attributes of the default font with the given name
-		const FCachedTypefaceData* const CachedDefaultTypefaceData = GetDefaultCachedTypeface(ResolvedCompositeFont);
-		if (CachedDefaultTypefaceData && CachedTypefaceData != CachedDefaultTypefaceData)
+		if (!bIsDefaultTypeface && CachedDefaultTypefaceData)
 		{
 			const FFontData* const FoundDefaultFontData = CachedDefaultTypefaceData->GetFontData(InFontInfo.TypefaceFontName);
 			if (FoundDefaultFontData)
 			{
 				const TSet<FName>& DefaultFontAttributes = GetFontAttributes(*FoundDefaultFontData);
 				FoundFontData = GetBestMatchFontForAttributes(CachedTypefaceData, DefaultFontAttributes);
-				if (FoundFontData)
+				if (FoundFontData && FontDataHasCharacter(*FoundFontData))
 				{
 					return *FoundFontData;
 				}
@@ -212,9 +224,29 @@ const FFontData& FCompositeFontCache::GetFontDataForCharacter(const FSlateFontIn
 
 		// Failing that, return the first font available (the "None" font)
 		FoundFontData = CachedTypefaceData->GetFontData(NAME_None);
-		if (FoundFontData)
+		if (FoundFontData && (bIsDefaultTypeface || FontDataHasCharacter(*FoundFontData)))
 		{
 			return *FoundFontData;
+		}
+
+		// Failing that, try again using the default font (as the sub-font may not have actually supported the character we needed)
+		if (!bIsDefaultTypeface && CachedDefaultTypefaceData)
+		{
+			OutScalingFactor = CachedDefaultTypefaceData->GetScalingFactor();
+
+			// Try to find the correct font from the typeface
+			FoundFontData = CachedDefaultTypefaceData->GetFontData(InFontInfo.TypefaceFontName);
+			if (FoundFontData)
+			{
+				return *FoundFontData;
+			}
+
+			// Failing that, return the first font available (the "None" font)
+			FoundFontData = CachedDefaultTypefaceData->GetFontData(NAME_None);
+			if (FoundFontData)
+			{
+				return *FoundFontData;
+			}
 		}
 	}
 
@@ -227,6 +259,8 @@ TSharedPtr<FFreeTypeFace> FCompositeFontCache::GetFontFace(const FFontData& InFo
 	TSharedPtr<FFreeTypeFace> FaceAndMemory = FontFaceMap.FindRef(&InFontData);
 	if (!FaceAndMemory.IsValid() && InFontData.BulkDataPtr)
 	{
+		FScopeCycleCounterUObject ContextScope(InFontData.BulkDataPtr);
+
 		int32 LockedFontDataSizeBytes = 0;
 		const void* const LockedFontData = InFontData.BulkDataPtr->Lock(LockedFontDataSizeBytes);
 		if (LockedFontDataSizeBytes > 0)

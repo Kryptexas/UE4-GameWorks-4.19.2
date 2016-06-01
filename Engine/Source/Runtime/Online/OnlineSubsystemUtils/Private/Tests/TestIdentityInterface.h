@@ -5,6 +5,8 @@
 #include "Core.h"
 #include "OnlineIdentityInterface.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 /**
  * Class used to test the identity interface
  */
@@ -90,3 +92,5 @@
 
 	bool IsTheUserLoggedIn();
  };
+
+#endif //WITH_DEV_AUTOMATION_TESTS

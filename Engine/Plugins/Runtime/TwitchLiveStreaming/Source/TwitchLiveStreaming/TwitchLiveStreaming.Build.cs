@@ -47,7 +47,7 @@ namespace UnrealBuildTool.Rules
 
  			if( bHaveTwitchSDK )
 			{
-				AddThirdPartyPrivateStaticDependencies( Target, "Twitch" );
+				AddEngineThirdPartyPrivateStaticDependencies( Target, "Twitch" );
 				Definitions.Add( "WITH_TWITCH=1" );
 			}
 			else

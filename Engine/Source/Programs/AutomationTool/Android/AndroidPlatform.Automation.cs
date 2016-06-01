@@ -105,9 +105,9 @@ public class AndroidPlatform : Platform
 		}
     }
 
-	private static string GetFinalBatchName(string ApkName, ProjectParams Params, string Architecture, string GPUArchitecture, bool NoOBBInstall)
+	private static string GetFinalBatchName(string ApkName, ProjectParams Params, string Architecture, string GPUArchitecture, bool NoOBBInstall, bool Uninstall)
 	{
-		return Path.Combine(Path.GetDirectoryName(ApkName), "Install_" + Params.ShortProjectName + (!NoOBBInstall ? "_" : "_NoOBBInstall_") + Params.ClientConfigsToBuild[0].ToString() + Architecture + GPUArchitecture + (Utils.IsRunningOnMono ? ".command" : ".bat"));
+		return Path.Combine(Path.GetDirectoryName(ApkName), (Uninstall ? "Uninstall_" : "Install_") + Params.ShortProjectName + (!NoOBBInstall ? "_" : "_NoOBBInstall_") + Params.ClientConfigsToBuild[0].ToString() + Architecture + GPUArchitecture + (Utils.IsRunningOnMono ? ".command" : ".bat"));
 	}
 
 	private List<string> CollectPluginDataPaths(DeploymentContext SC)
@@ -216,28 +216,33 @@ public class AndroidPlatform : Platform
 			    }
 
 				// Write install batch file(s).
-                string BatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "", false);
+                string BatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "", false, false);
                 string PackageName = GetPackageInfo(ApkName, false);
 				// make a batch file that can be used to install the .apk and .obb files
 				string[] BatchLines = GenerateInstallBatchFile(bPackageDataInsideApk, PackageName, ApkName, Params, ObbName, DeviceObbName, false);
 				File.WriteAllLines(BatchName, BatchLines);
+				// make a batch file that can be used to uninstall the .apk and .obb files
+				string UninstallBatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "", false, true);
+				BatchLines = GenerateUninstallBatchFile(bPackageDataInsideApk, PackageName, ApkName, Params, ObbName, DeviceObbName, false);
+				File.WriteAllLines(UninstallBatchName, BatchLines);
 
-                // If we aren't packaging data in the APK then lets write out a bat file to also let us test without the OBB
-                // on the device.
-                //String NoInstallBatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "", true);
-                // if(!bPackageDataInsideApk)
-                //{
-                //    BatchLines = GenerateInstallBatchFile(bPackageDataInsideApk, PackageName, ApkName, Params, ObbName, DeviceObbName, true);
-                //    File.WriteAllLines(NoInstallBatchName, BatchLines);
-                //}
+				// If we aren't packaging data in the APK then lets write out a bat file to also let us test without the OBB
+				// on the device.
+				//String NoInstallBatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "", true, false);
+				// if(!bPackageDataInsideApk)
+				//{
+				//    BatchLines = GenerateInstallBatchFile(bPackageDataInsideApk, PackageName, ApkName, Params, ObbName, DeviceObbName, true);
+				//    File.WriteAllLines(NoInstallBatchName, BatchLines);
+				//}
 
 				if (Utils.IsRunningOnMono)
 				{
 					CommandUtils.FixUnixFilePermissions(BatchName);
-                    //if(File.Exists(NoInstallBatchName)) 
-                    //{
-                    //    CommandUtils.FixUnixFilePermissions(NoInstallBatchName);
-                    //}
+					CommandUtils.FixUnixFilePermissions(UninstallBatchName);
+					//if(File.Exists(NoInstallBatchName)) 
+					//{
+					//    CommandUtils.FixUnixFilePermissions(NoInstallBatchName);
+					//}
 				}
 			}
 		}
@@ -336,6 +341,60 @@ public class AndroidPlatform : Platform
         } 
         return BatchLines;
     }
+
+	private string[] GenerateUninstallBatchFile(bool bPackageDataInsideApk, string PackageName, string ApkName, ProjectParams Params, string ObbName, string DeviceObbName, bool bNoObbInstall)
+	{
+		string[] BatchLines = null;
+
+		if (Utils.IsRunningOnMono)
+		{
+			Log("Writing shell script for uninstall with {0}", bPackageDataInsideApk ? "data in APK" : "separate obb");
+			BatchLines = new string[] {
+						"#!/bin/sh",
+						"cd \"`dirname \"$0\"`\"",
+						"ADB=",
+						"if [ \"$ANDROID_HOME\" != \"\" ]; then ADB=$ANDROID_HOME/platform-tools/adb; else ADB=" +Environment.GetEnvironmentVariable("ANDROID_HOME") + "; fi",
+						"DEVICE=",
+						"if [ \"$1\" != \"\" ]; then DEVICE=\"-s $1\"; fi",
+						"echo",
+						"echo Uninstalling existing application. Failures here can almost always be ignored.",
+						"$ADB $DEVICE uninstall " + PackageName,
+						"echo",
+						"echo Removing old data. Failures here are usually fine - indicating the files were not on the device.",
+						"$ADB $DEVICE shell 'rm -r $EXTERNAL_STORAGE/UE4Game/" + Params.ShortProjectName + "'",
+						"$ADB $DEVICE shell 'rm -r $EXTERNAL_STORAGE/UE4Game/UE4CommandLine.txt" + "'",
+						"$ADB $DEVICE shell 'rm -r $EXTERNAL_STORAGE/" + TargetAndroidLocation + PackageName + "'",
+						"echo",
+						"echo Uninstall completed",
+						"exit 0",
+					};
+		}
+		else
+		{
+			Log("Writing bat for uninstall with {0}", bPackageDataInsideApk ? "data in APK" : "separate OBB");
+			BatchLines = new string[] {
+						"setlocal",
+						"set ANDROIDHOME=%ANDROID_HOME%",
+						"if \"%ANDROIDHOME%\"==\"\" set ANDROIDHOME="+Environment.GetEnvironmentVariable("ANDROID_HOME"),
+						"set ADB=%ANDROIDHOME%\\platform-tools\\adb.exe",
+						"set DEVICE=",
+						"if not \"%1\"==\"\" set DEVICE=-s %1",
+						"for /f \"delims=\" %%A in ('%ADB% %DEVICE% " + GetStorageQueryCommand() +"') do @set STORAGE=%%A",
+						"@echo.",
+						"@echo Uninstalling existing application. Failures here can almost always be ignored.",
+						"%ADB% %DEVICE% uninstall " + PackageName,
+						"@echo.",
+						"echo Removing old data. Failures here are usually fine - indicating the files were not on the device.",
+						"%ADB% %DEVICE% shell rm -r %STORAGE%/UE4Game/" + Params.ShortProjectName,
+						"%ADB% %DEVICE% shell rm -r %STORAGE%/UE4Game/UE4CommandLine.txt", // we need to delete the commandline in UE4Game or it will mess up loading
+						"%ADB% %DEVICE% shell rm -r %STORAGE%/" + TargetAndroidLocation + PackageName,
+						"@echo.",
+						"@echo Uninstall completed",
+					};
+		}
+		return BatchLines;
+	}
+
 	public override void GetFilesToArchive(ProjectParams Params, DeploymentContext SC)
 	{
 		if (SC.StageTargetConfigurations.Count != 1)
@@ -356,8 +415,9 @@ public class AndroidPlatform : Platform
 			{
 				string ApkName = GetFinalApkName(Params, SC.StageExecutables[0], true, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "");
 				string ObbName = GetFinalObbName(ApkName);
-				string BatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "", false);
-                string NoOBBBatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "", true);
+				string BatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "", false, false);
+				string UninstallBatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "", false, true);
+				//string NoOBBBatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "", true, false);
 
 				// verify the files exist
 				if (!FileExists(ApkName))
@@ -377,7 +437,8 @@ public class AndroidPlatform : Platform
 				}
 
 				SC.ArchiveFiles(Path.GetDirectoryName(BatchName), Path.GetFileName(BatchName));
-                SC.ArchiveFiles(Path.GetDirectoryName(NoOBBBatchName), Path.GetFileName(NoOBBBatchName));
+                SC.ArchiveFiles(Path.GetDirectoryName(UninstallBatchName), Path.GetFileName(UninstallBatchName));
+				//SC.ArchiveFiles(Path.GetDirectoryName(NoOBBBatchName), Path.GetFileName(NoOBBBatchName));
 
 			}
 		}
@@ -493,16 +554,16 @@ public class AndroidPlatform : Platform
 		string DeviceName = Params.Device.Replace(":", "_");
 
 		// Try retrieving the UFS files manifest files from the device
-		string UFSManifestFileName = CombinePaths(SC.StageDirectory, DeploymentContext.UFSDeployedManifestFileName + "_" + DeviceName);
-		ProcessResult UFSResult = RunAdbCommand(Params, " pull " + RemoteDir + "/" + DeploymentContext.UFSDeployedManifestFileName + " \"" + UFSManifestFileName + "\"", null, ERunOptions.AppMustExist);
+		string UFSManifestFileName = CombinePaths(SC.StageDirectory, SC.UFSDeployedManifestFileName + "_" + DeviceName);
+		ProcessResult UFSResult = RunAdbCommand(Params, " pull " + RemoteDir + "/" + SC.UFSDeployedManifestFileName + " \"" + UFSManifestFileName + "\"", null, ERunOptions.AppMustExist);
 		if (!UFSResult.Output.Contains("bytes"))
 		{
 			return false;
 		}
 
 		// Try retrieving the non UFS files manifest files from the device
-		string NonUFSManifestFileName = CombinePaths(SC.StageDirectory, DeploymentContext.NonUFSDeployedManifestFileName + "_" + DeviceName);
-		ProcessResult NonUFSResult = RunAdbCommand(Params, " pull " + RemoteDir + "/" + DeploymentContext.NonUFSDeployedManifestFileName + " \"" + NonUFSManifestFileName + "\"", null, ERunOptions.AppMustExist);
+		string NonUFSManifestFileName = CombinePaths(SC.StageDirectory, SC.NonUFSDeployedManifestFileName + "_" + DeviceName);
+		ProcessResult NonUFSResult = RunAdbCommand(Params, " pull " + RemoteDir + "/" + SC.NonUFSDeployedManifestFileName + " \"" + NonUFSManifestFileName + "\"", null, ERunOptions.AppMustExist);
 		if (!NonUFSResult.Output.Contains("bytes"))
 		{
 			// Did not retrieve both so delete one we did retrieve
@@ -608,7 +669,7 @@ public class AndroidPlatform : Platform
 			// adb install doesn't always return an error code on failure, and instead prints "Failure", followed by an error code.
 			if (SuccessCode != 0 || FailureIndex != -1)
 			{
-				string ErrorMessage = String.Format("Installation of apk '{0}' failed", ApkName);
+				string ErrorMessage = string.Format("Installation of apk '{0}' failed", ApkName);
 				if (FailureIndex != -1)
 				{
 					string FailureString = InstallOutput.Substring(FailureIndex + 7).Trim();
@@ -617,7 +678,10 @@ public class AndroidPlatform : Platform
 						ErrorMessage += ": " + FailureString;
 					}
 				}
-
+				if (ErrorMessage.Contains("OLDER_SDK"))
+				{
+					LogError("minSdkVersion is higher than Android version installed on device, possibly due to NDK API Level");
+				}
 				throw new AutomationException(ExitCode.Error_AppInstallFailed, ErrorMessage);
 			}
 		}

@@ -8,7 +8,7 @@
 typedef struct FInputChord FInputGesture;
 
 /** An Input Chord is a key and the modifier keys that are to be held with it. */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct SLATE_API FInputChord
 {
 	GENERATED_USTRUCT_BODY()

@@ -21,9 +21,11 @@ void SSequencerCurveEditorToolBar::Construct( const FArguments& InArgs, TSharedR
 		TAttribute<FSlateIcon>(),
 		true );
 
+	ToolBarBuilder.AddToolBarButton(FRichCurveEditorCommands::Get().ToggleOutputSnapping);
+
 	ToolBarBuilder.AddWidget(
 		SNew( SImage )
-			.Image(FEditorStyle::GetBrush("Sequencer.Value")) );
+			.Image(FEditorStyle::GetBrush("Sequencer.Value.Small")) );
 
 	ToolBarBuilder.AddWidget(
 		SNew( SBox )
@@ -135,6 +137,9 @@ TSharedRef<SWidget> SSequencerCurveEditorToolBar::MakeCurveEditorCurveOptionsMen
 	};
 
 	FMenuBuilder MenuBuilder( true, CurveEditorCommandList );
+
+	MenuBuilder.AddMenuEntry( FRichCurveEditorCommands::Get().BakeCurve);
+	MenuBuilder.AddMenuEntry( FRichCurveEditorCommands::Get().ReduceCurve);
 
 	MenuBuilder.AddSubMenu(
 		LOCTEXT( "PreInfinitySubMenu", "Pre-Infinity" ),

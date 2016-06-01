@@ -4,13 +4,24 @@
 
 #include "LandscapeGrassType.generated.h"
 
+UENUM()
+enum class EGrassScaling : uint8
+{
+	/** Grass instances will have uniform X, Y and Z scales. */
+	Uniform,
+	/** Grass instances will have random X, Y and Z scales. */
+	Free,
+	/** X and Y will be the same random scale, Z will be another */
+	LockXY,
+};
+
 USTRUCT()
 struct FGrassVariety
 {
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, Category=Grass)
-	class UStaticMesh* GrassMesh;
+	UStaticMesh* GrassMesh;
 
 	/* Instances per 10 square meters. */
 	UPROPERTY(EditAnywhere, Category=Grass)
@@ -35,29 +46,56 @@ struct FGrassVariety
 	int32 EndCullDistance;
 
 	/** 
-	 * Specifies the smallest LOD that will be used for this component.  
+	 * Specifies the smallest LOD that will be used for this component.
 	 * If -1 (default), the MinLOD of the static mesh asset will be used instead.
 	 */
 	UPROPERTY(EditAnywhere, Category = Grass)
 	int32 MinLOD;
 
+	/** Specifies grass instance scaling type */
+	UPROPERTY(EditAnywhere, Category=Grass)
+	EGrassScaling Scaling;
+
+	/** Specifies the range of scale, from minimum to maximum, to apply to a grass instance's X Scale property */
+	UPROPERTY(EditAnywhere, Category=Grass)
+	FFloatInterval ScaleX;
+
+	/** Specifies the range of scale, from minimum to maximum, to apply to a grass instance's Y Scale property */
+	UPROPERTY(EditAnywhere, Category=Grass)
+	FFloatInterval ScaleY;
+
+	/** Specifies the range of scale, from minimum to maximum, to apply to a grass instance's Z Scale property */
+	UPROPERTY(EditAnywhere, Category=Grass)
+	FFloatInterval ScaleZ;
+
+	/** Whether the grass instances should be placed at random rotation (true) or all at the same rotation (false) */
 	UPROPERTY(EditAnywhere, Category = Grass)
 	bool RandomRotation;
 
+	/** Whether the grass instances should be tilted to the normal of the landscape (true), or always vertical (false) */
 	UPROPERTY(EditAnywhere, Category = Grass)
 	bool AlignToSurface;
 
+	/* Whether to use the landscape's lightmap when rendering the grass. */
+	UPROPERTY(EditAnywhere, Category = Grass)
+	bool bUseLandscapeLightmap;
+
 	FGrassVariety()
+		: GrassMesh(nullptr)
+		, GrassDensity(400)
+		, bUseGrid(true)
+		, PlacementJitter(1.0f)
+		, StartCullDistance(10000.0f)
+		, EndCullDistance(10000.0f)
+		, MinLOD(-1)
+		, Scaling(EGrassScaling::Uniform)
+		, ScaleX(1.0f, 1.0f)
+		, ScaleY(1.0f, 1.0f)
+		, ScaleZ(1.0f, 1.0f)
+		, RandomRotation(true)
+		, AlignToSurface(true)
+		, bUseLandscapeLightmap(false)
 	{
-		GrassMesh = nullptr;
-		GrassDensity = 400;
-		StartCullDistance = 10000.0f;
-		EndCullDistance = 10000.0f;
-		PlacementJitter = 1.0f;
-		MinLOD = -1;
-		RandomRotation = true;
-		AlignToSurface = true;
-		bUseGrid = true;
 	}
 };
 
@@ -70,7 +108,7 @@ class ULandscapeGrassType : public UObject
 	TArray<FGrassVariety> GrassVarieties;
 
 	UPROPERTY()
-	class UStaticMesh* GrassMesh_DEPRECATED;
+	UStaticMesh* GrassMesh_DEPRECATED;
 	UPROPERTY()
 	float GrassDensity_DEPRECATED;
 	UPROPERTY()

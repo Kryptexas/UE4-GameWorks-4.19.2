@@ -394,7 +394,9 @@ void CullObjectsToTileWithGather(
 
 	float ExpandRadius = 0;
 
-	float2 TanViewFOV = float2(1 / View.ViewToClip[0][0], 1 / View.ViewToClip[1][1]);
+	// Note: this code is assuming a centered projection, aka no translation present in ViewToClip
+	// Stereo rendering uses an off center projection
+	float2 TanViewFOV = GetTanHalfFieldOfView();
 	// tan(FOV) = HalfUnitPlaneWidth / 1, so TanViewFOV * 2 is the size of the whole unit view plane
 	// We are operating on a subset of that defined by ScissorRectMinAndSize
 	float2 TileSize = TanViewFOV * 2 * ScissorRectMinAndSize.zw / ((float2)Frame.ViewSizeAndInvSize.xy * NumGroups);

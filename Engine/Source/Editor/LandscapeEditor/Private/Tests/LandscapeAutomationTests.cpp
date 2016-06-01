@@ -10,6 +10,8 @@
 #include "ScopedTransaction.h"
 #include "Landscape.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 #define LOCTEXT_NAMESPACE "LandscapeEditor.NewLandscape"
 
 DEFINE_LOG_CATEGORY_STATIC(LogLandscapeAutomationTests, Log, All);
@@ -170,3 +172,5 @@ bool FLandscapeEditorTest::RunTest(const FString& Parameters)
 }
 
 #undef LOCTEXT_NAMESPACE
+
+#endif //WITH_DEV_AUTOMATION_TESTS

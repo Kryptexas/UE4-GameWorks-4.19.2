@@ -19,6 +19,15 @@ void UAbilityTask_PlayMontageAndWait::OnMontageBlendingOut(UAnimMontage* Montage
 		if (Montage == MontageToPlay)
 		{
 			AbilitySystemComponent->ClearAnimatingAbility(Ability);
+
+			// Reset AnimRootMotionTranslationScale
+			ACharacter* Character = Cast<ACharacter>(GetAvatarActor());
+			if (Character && (Character->Role == ROLE_Authority ||
+							  (Character->Role == ROLE_AutonomousProxy && Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::LocalPredicted)))
+			{
+				Character->SetAnimRootMotionTranslationScale(1.f);
+			}
+
 		}
 	}
 
@@ -28,10 +37,8 @@ void UAbilityTask_PlayMontageAndWait::OnMontageBlendingOut(UAnimMontage* Montage
 	}
 	else
 	{
-		OnComplete.Broadcast();
+		OnBlendOut.Broadcast();
 	}
-
-	EndTask();
 }
 
 void UAbilityTask_PlayMontageAndWait::OnMontageInterrupted()
@@ -43,13 +50,24 @@ void UAbilityTask_PlayMontageAndWait::OnMontageInterrupted()
 	}
 }
 
+void UAbilityTask_PlayMontageAndWait::OnMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (!bInterrupted)
+	{
+		OnCompleted.Broadcast();
+	}
+
+	EndTask();
+}
+
 UAbilityTask_PlayMontageAndWait* UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(UObject* WorldContextObject,
-	FName TaskInstanceName, UAnimMontage *MontageToPlay, float Rate, FName StartSection, bool bStopWhenAbilityEnds)
+	FName TaskInstanceName, UAnimMontage *MontageToPlay, float Rate, FName StartSection, bool bStopWhenAbilityEnds, float AnimRootMotionTranslationScale)
 {
 	UAbilityTask_PlayMontageAndWait* MyObj = NewAbilityTask<UAbilityTask_PlayMontageAndWait>(WorldContextObject, TaskInstanceName);
 	MyObj->MontageToPlay = MontageToPlay;
 	MyObj->Rate = Rate;
 	MyObj->StartSection = StartSection;
+	MyObj->AnimRootMotionTranslationScale = AnimRootMotionTranslationScale;
 	MyObj->bStopWhenAbilityEnds = bStopWhenAbilityEnds;
 
 	return MyObj;
@@ -81,7 +99,17 @@ void UAbilityTask_PlayMontageAndWait::Activate()
 				InterruptedHandle = Ability->OnGameplayAbilityCancelled.AddUObject(this, &UAbilityTask_PlayMontageAndWait::OnMontageInterrupted);
 
 				BlendingOutDelegate.BindUObject(this, &UAbilityTask_PlayMontageAndWait::OnMontageBlendingOut);
-				ActorInfo->AnimInstance->Montage_SetBlendingOutDelegate(BlendingOutDelegate);
+				ActorInfo->AnimInstance->Montage_SetBlendingOutDelegate(BlendingOutDelegate, MontageToPlay);
+
+				MontageEndedDelegate.BindUObject(this, &UAbilityTask_PlayMontageAndWait::OnMontageEnded);
+				ActorInfo->AnimInstance->Montage_SetEndDelegate(MontageEndedDelegate, MontageToPlay);
+
+				ACharacter* Character = Cast<ACharacter>(GetAvatarActor());
+				if (Character && (Character->Role == ROLE_Authority ||
+								  (Character->Role == ROLE_AutonomousProxy && Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::LocalPredicted)))
+				{
+					Character->SetAnimRootMotionTranslationScale(AnimRootMotionTranslationScale);
+				}
 
 				bPlayedMontage = true;
 			}
@@ -93,12 +121,13 @@ void UAbilityTask_PlayMontageAndWait::Activate()
 		ABILITY_LOG(Warning, TEXT("UAbilityTask_PlayMontageAndWait called in Ability %s failed to play montage; Task Instance Name %s."), *Ability->GetName(), *InstanceName.ToString());
 		OnCancelled.Broadcast();
 	}
+
+	SetWaitingOnAvatar();
 }
 
 void UAbilityTask_PlayMontageAndWait::ExternalCancel()
 {
 	check(AbilitySystemComponent);
-
 
 	OnCancelled.Broadcast();
 	Super::ExternalCancel();
@@ -139,9 +168,11 @@ bool UAbilityTask_PlayMontageAndWait::StopPlayingMontage()
 			&& AbilitySystemComponent->GetCurrentMontage() == MontageToPlay)
 		{
 			// Unbind delegates so they don't get called as well
-			if (FOnMontageBlendingOutStarted* BoundDelegate = ActorInfo->AnimInstance->Montage_GetBlendingOutDelegate(MontageToPlay))
+			FAnimMontageInstance* MontageInstance = ActorInfo->AnimInstance->GetActiveInstanceForMontage(*MontageToPlay);
+			if (MontageInstance)
 			{
-				BoundDelegate->Unbind();
+				MontageInstance->OnMontageBlendingOutStarted.Unbind();
+				MontageInstance->OnMontageEnded.Unbind();
 			}
 
 			AbilitySystemComponent->CurrentMontageStop();

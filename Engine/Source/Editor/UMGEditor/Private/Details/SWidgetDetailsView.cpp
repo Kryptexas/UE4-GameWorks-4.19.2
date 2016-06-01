@@ -219,6 +219,8 @@ void SWidgetDetailsView::OnEditorSelectionChanged()
 	{
 		for ( FWidgetReference& WidgetRef : SelectedWidgets )
 		{
+			// Edit actions will go directly to the preview widget, changes will be
+			// propagated to the template via SWidgetDetailsView::NotifyPostChange
 			SelectedObjects.Add(WidgetRef.GetPreview());
 		}
 	}
@@ -339,6 +341,8 @@ FText SWidgetDetailsView::GetCategoryText() const
 	return FText::GetEmpty();
 }
 
+const FSlateBrush* GetEditorIcon_Deprecated(UWidget* Widget);
+
 const FSlateBrush* SWidgetDetailsView::GetNameIcon() const
 {
 	if ( SelectedObjects.Num() == 1 )
@@ -346,7 +350,9 @@ const FSlateBrush* SWidgetDetailsView::GetNameIcon() const
 		UWidget* Widget = Cast<UWidget>(SelectedObjects[0].Get());
 		if ( Widget )
 		{
-			return Widget->GetEditorIcon();
+			// @todo UMG: remove after 4.12
+			return GetEditorIcon_Deprecated(Widget);
+			// return FClassIconFinder::FindIconForClass(Widget->GetClass());
 		}
 	}
 

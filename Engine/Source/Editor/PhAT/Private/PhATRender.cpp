@@ -1,6 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PhATModule.h"
+#include "PhATPrivatePCH.h"
 #include "PhATSharedData.h"
 #include "PhATHitProxies.h"
 #include "PhATEdSkeletalMeshComponent.h"

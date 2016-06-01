@@ -1,10 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#include "GameplayDebuggerPrivate.h"
+
+//////////////////////////////////////////////////////////////////////////
+// THIS CLASS IS NOW DEPRECATED AND WILL BE REMOVED IN NEXT VERSION
+// Please check GameplayDebugger.h for details.
+
+#include "GameplayDebuggerPrivatePCH.h"
 #include "Net/UnrealNetwork.h"
 #include "DebugRenderSceneProxy.h"
-#include "AI/Navigation/RecastNavMeshGenerator.h"
-#include "NavMeshRenderingHelpers.h"
 #include "AI/Navigation/NavigationSystem.h"
+#include "AI/Navigation/NavMeshRenderingComponent.h"
+#include "AI/Navigation/RecastNavMesh.h"
 #include "EnvironmentQuery/EnvQueryTypes.h"
 #include "EnvironmentQuery/EnvQueryManager.h"
 #include "EnvironmentQuery/EQSRenderingComponent.h"
@@ -19,7 +24,6 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Engine/Channel.h"
 #include "Animation/AnimMontage.h"
-#include "GameplayAbilitiesModule.h"
 #include "GameplayTasksComponent.h"
 #include "Perception/AIPerceptionComponent.h"
 
@@ -29,6 +33,98 @@
 #endif // WITH_EDITOR
 
 #include "GameplayDebuggingComponent.h"
+#include "GameplayDebuggingControllerComponent.h"
+#include "GameplayDebuggingReplicator.h"
+#include "GameplayDebuggerCategory.h"
+
+DEFINE_LOG_CATEGORY(LogGameplayDebugger);
+
+FGameplayDebuggerShapeElement FGameplayDebuggerShapeElement::MakePoint(const FVector& Location, const float Radius, const FColor& Color, const FString& Description)
+{
+	FGameplayDebuggerShapeElement NewElement;
+	NewElement.Points.Add(Location);
+	NewElement.ThicknesOrRadius = Radius;
+	NewElement.Color = Color;
+	NewElement.Description = Description;
+	NewElement.Type = EGameplayDebuggerShapeElement::SinglePoint;
+
+	return NewElement;
+}
+
+FGameplayDebuggerShapeElement FGameplayDebuggerShapeElement::MakeSegment(const FVector& StartLocation, const FVector& EndLocation, const float Thickness, const FColor& Color, const FString& Description)
+{
+	FGameplayDebuggerShapeElement NewElement;
+	NewElement.Points.Add(StartLocation);
+	NewElement.Points.Add(EndLocation);
+	NewElement.ThicknesOrRadius = Thickness;
+	NewElement.Color = Color;
+	NewElement.Description = Description;
+	NewElement.Type = EGameplayDebuggerShapeElement::Segment;
+
+	return NewElement;
+}
+
+FGameplayDebuggerShapeElement FGameplayDebuggerShapeElement::MakeBox(const FVector& Center, const FVector& Extent, const FColor& Color, const FString& Description)
+{
+	FGameplayDebuggerShapeElement NewElement;
+	NewElement.Points.Add(Center);
+	NewElement.Points.Add(Extent);
+	NewElement.Color = Color;
+	NewElement.Description = Description;
+	NewElement.Type = EGameplayDebuggerShapeElement::Box;
+
+	return NewElement;
+}
+
+FGameplayDebuggerShapeElement FGameplayDebuggerShapeElement::MakeCone(const FVector& Location, const FVector& Direction, const float Length, const FColor& Color, const FString& Description)
+{
+	FGameplayDebuggerShapeElement NewElement;
+	NewElement.Points.Add(Location);
+	NewElement.Points.Add(Direction);
+	NewElement.ThicknesOrRadius = Length;
+	NewElement.Color = Color;
+	NewElement.Description = Description;
+	NewElement.Type = EGameplayDebuggerShapeElement::Cone;
+
+	return NewElement;
+}
+
+FGameplayDebuggerShapeElement FGameplayDebuggerShapeElement::MakeCylinder(const FVector& Center, const float Radius, const float HalfHeight, const FColor& Color, const FString& Description)
+{
+	FGameplayDebuggerShapeElement NewElement;
+	NewElement.Points.Add(Center - FVector(0, 0, HalfHeight));
+	NewElement.Points.Add(Center + FVector(0, 0, HalfHeight));
+	NewElement.ThicknesOrRadius = Radius;
+	NewElement.Color = Color;
+	NewElement.Description = Description;
+	NewElement.Type = EGameplayDebuggerShapeElement::Cylinder;
+
+	return NewElement;
+}
+
+FGameplayDebuggerShapeElement FGameplayDebuggerShapeElement::MakeCapsule(const FVector& Center, const float Radius, const float HalfHeight, const FColor& Color, const FString& Description)
+{
+	FGameplayDebuggerShapeElement NewElement;
+	NewElement.Points.Add(Center - FVector(0, 0, HalfHeight));
+	NewElement.Points.Add(Center + FVector(0, 0, HalfHeight));
+	NewElement.ThicknesOrRadius = Radius;
+	NewElement.Color = Color;
+	NewElement.Description = Description;
+	NewElement.Type = EGameplayDebuggerShapeElement::Capsule;
+
+	return NewElement;
+}
+
+FGameplayDebuggerShapeElement FGameplayDebuggerShapeElement::MakePolygon(const TArray<FVector>& Verts, const FColor& Color, const FString& Description)
+{
+	FGameplayDebuggerShapeElement NewElement;
+	NewElement.Points = Verts;
+	NewElement.Color = Color;
+	NewElement.Description = Description;
+	NewElement.Type = EGameplayDebuggerShapeElement::Polygon;
+	return NewElement;
+}
+
 
 //----------------------------------------------------------------------//
 // Composite Scene proxy
@@ -155,9 +251,9 @@ UGameplayDebuggingComponent::UGameplayDebuggingComponent(const FObjectInitialize
 	{
 		Replicator->OnCycleDetailsView.AddUObject(this, &UGameplayDebuggingComponent::OnCycleDetailsView);
 		FGameplayDebuggerSettings Settings = GameplayDebuggerSettings(Replicator);
-		for (int32 Index = EAIDebugDrawDataView::Empty + 1; Index < EAIDebugDrawDataView::MAX; ++Index)
+		for (EAIDebugDrawDataView::Type View : TEnumRange<EAIDebugDrawDataView::Type>())
 		{
-			ReplicateViewDataCounters[Index] = Settings.CheckFlag(Index);
+			ReplicateViewDataCounters[View] = Settings.CheckFlag(View);
 		}
 	}
 #endif
@@ -241,7 +337,7 @@ void UGameplayDebuggingComponent::GetLifetimeReplicatedProps( TArray< FLifetimeP
 	DOREPLIFETIME(UGameplayDebuggingComponent, DistanceFromPlayer);
 	DOREPLIFETIME(UGameplayDebuggingComponent, DistanceFromSensor);
 	DOREPLIFETIME(UGameplayDebuggingComponent, SensingComponentLocation);
-	DOREPLIFETIME(UGameplayDebuggingComponent, PerceptionShapeElements);
+//	DOREPLIFETIME(UGameplayDebuggingComponent, PerceptionShapeElements);
 
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
@@ -255,6 +351,7 @@ void UGameplayDebuggingComponent::ClientEnableTargetSelection_Implementation(boo
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	bEnabledTargetSelection = bEnable;
+	UWorld* World = GetWorld();
 	if (bEnabledTargetSelection && World && World->GetNetMode() != NM_DedicatedServer)
 	{
 		NextTargrtSelectionTime = 0;
@@ -279,6 +376,7 @@ void UGameplayDebuggingComponent::TickComponent(float DeltaTime, enum ELevelTick
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
+	UWorld* World = GetWorld();
 	if (World && World->GetNetMode() != NM_DedicatedServer)
 	{
 		if (bEnabledTargetSelection)
@@ -550,14 +648,26 @@ void UGameplayDebuggingComponent::CollectBasicBehaviorData(APawn* MyPawn)
 		CurrentAIAssets = TEXT("");
 	}
 
+	GameplayTasksState = TEXT("");
 	UGameplayTasksComponent* GTComponent = MyPawn->FindComponentByClass<UGameplayTasksComponent>();
 	if (GTComponent)
 	{
-		GameplayTasksState = FString::Printf(TEXT("Ticking Tasks: %s\nTask Queue: %s"), *GTComponent->GetTickingTasksDescription(), *GTComponent->GetTasksPriorityQueueDescription());
-	}
-	else
-	{
-		GameplayTasksState = TEXT("");
+		for (FConstGameplayTaskIterator It = GTComponent->GetPriorityQueueIterator(); It; ++It)
+		{
+			const UGameplayTask* QueueTask = *It;
+			if (QueueTask)
+			{
+				const UObject* OwnerOb = Cast<const UObject>(QueueTask->GetTaskOwner());
+
+				GameplayTasksState += FString::Printf(TEXT("{white}%s%s {%s}%s {white}Owner:{yellow}%s {white}Res:{yellow}%s\n"),
+					*QueueTask->GetName(),
+					QueueTask->GetInstanceName() != NAME_None ? *FString::Printf(TEXT(" {yellow}[%s]"), *QueueTask->GetInstanceName().ToString()) : TEXT(""),
+					QueueTask->IsActive() ? TEXT("green") : TEXT("orange"),
+					*QueueTask->GetTaskStateName(),
+					(OwnerOb == GTComponent) ? TEXT("default") : *GetNameSafe(OwnerOb),
+					*QueueTask->GetRequiredResources().GetDebugDescription());
+			}
+		}
 	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
@@ -565,18 +675,10 @@ void UGameplayDebuggingComponent::CollectBasicBehaviorData(APawn* MyPawn)
 void UGameplayDebuggingComponent::CollectBasicAbilityData(APawn* MyPawn)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (IGameplayAbilitiesModule::IsAvailable())
-	{
-		bool bUsingAbilities;
-		IGameplayAbilitiesModule& AbilitiesModule = FModuleManager::LoadModuleChecked<IGameplayAbilitiesModule>("GameplayAbilities");
-		AbilitiesModule.GetActiveAbilitiesDebugDataForActor(MyPawn, AbilityInfo, bUsingAbilities);
-		bIsUsingAbilities = bUsingAbilities;
-	}
-	else
-	{
-		bIsUsingAbilities = false;
-		AbilityInfo = TEXT("None");
-	}
+// DEPRECATED and not supported anymore, use new category based GameplayDebugger instead
+//		IGameplayAbilitiesModule& AbilitiesModule = FModuleManager::LoadModuleChecked<IGameplayAbilitiesModule>("GameplayAbilities");
+//		AbilitiesModule.GetActiveAbilitiesDebugDataForActor(MyPawn, AbilityInfo, bUsingAbilities);
+//		bIsUsingAbilities = bUsingAbilities;
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
@@ -608,6 +710,7 @@ void UGameplayDebuggingComponent::CollectBehaviorTreeData()
 
 		BlackboardString = MyController->BrainComponent->GetBlackboardComponent() ? MyController->BrainComponent->GetBlackboardComponent()->GetDebugInfoString(EBlackboardDescription::KeyWithValue) : TEXT("");
 
+		UWorld* World = GetWorld();
 		if (World && World->GetNetMode() != NM_Standalone)
 		{
 			TArray<uint8> UncompressedBuffer;
@@ -635,6 +738,7 @@ void UGameplayDebuggingComponent::CollectBehaviorTreeData()
 void UGameplayDebuggingComponent::OnRep_UpdateBlackboard()
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	UWorld* World = GetWorld();
 	if (World && World->GetNetMode() != NM_Standalone)
 	{
 		TArray<uint8> UncompressedBuffer;
@@ -694,6 +798,7 @@ void UGameplayDebuggingComponent::CollectPathData()
 				}
 				CurrentPath = NewPath;
 
+				UWorld* World = GetWorld();
 				if (PathCorridorPolygons.Num() && World && World->GetNetMode() != NM_Client)
 				{
 					PathCorridorData.Reset();
@@ -726,6 +831,7 @@ void UGameplayDebuggingComponent::CollectPathData()
 		}
 	}
 
+	UWorld* World = GetWorld();
 	if (bRefreshRendering && World && World->GetNetMode() != NM_DedicatedServer)
 	{
 		UpdateBounds();
@@ -737,6 +843,7 @@ void UGameplayDebuggingComponent::CollectPathData()
 void UGameplayDebuggingComponent::OnRep_PathCorridorData()
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	UWorld* World = GetWorld();
 	if (World && World->GetNetMode() != NM_DedicatedServer)
 	{
 		FMemoryReader ArReader(PathCorridorData);
@@ -851,6 +958,7 @@ void UGameplayDebuggingComponent::OnRep_UpdateEQS()
 {
 #if  USE_EQS_DEBUGGER
 	// decode scoring data
+	UWorld* World = GetWorld();
 	if (World && World->GetNetMode() == NM_Client)
 	{
 		TArray<uint8> UncompressedBuffer;
@@ -1142,6 +1250,172 @@ ARecastNavMesh* UGameplayDebuggingComponent::GetNavData()
 }
 #endif
 
+static const FColor NavMeshRenderColor_Recast_TriangleEdges(255, 255, 255);
+static const FColor NavMeshRenderColor_Recast_TileEdges(16, 16, 16, 32);
+static const FColor NavMeshRenderColor_Recast_NavMeshEdges(32, 63, 0, 220);
+static const FColor NavMeshRenderColor_RecastMesh(140, 255, 0, 164);
+static const FColor NavMeshRenderColor_TileBounds(255, 255, 64, 255);
+static const FColor NavMeshRenderColor_PathCollidingGeom(255, 255, 255, 40);
+static const FColor NavMeshRenderColor_RecastTileBeingRebuilt(255, 0, 0, 64);
+static const FColor NavMeshRenderColor_OffMeshConnectionInvalid(64, 64, 64);
+static const float DefaultEdges_LineThickness = 0.0f;
+static const float PolyEdges_LineThickness = 1.5f;
+static const float NavMeshEdges_LineThickness = 3.5f;
+static const float LinkLines_LineThickness = 2.0f;
+static const float ClusterLinkLines_LineThickness = 2.0f;
+
+namespace FNavMeshRenderingHelpers_DEPRECATEDSUPPORT
+{
+	bool LineInView(const FVector& Start, const FVector& End, const FSceneView* View, bool bUseDistanceCheck)
+	{
+		if (FVector::DistSquared(Start, View->ViewMatrices.ViewOrigin) > ARecastNavMesh::GetDrawDistanceSq() ||
+			FVector::DistSquared(End, View->ViewMatrices.ViewOrigin) > ARecastNavMesh::GetDrawDistanceSq())
+		{
+			return false;
+		}
+
+		for (int32 PlaneIdx = 0; PlaneIdx < View->ViewFrustum.Planes.Num(); ++PlaneIdx)
+		{
+			const FPlane& CurPlane = View->ViewFrustum.Planes[PlaneIdx];
+			if (CurPlane.PlaneDot(Start) > 0.f && CurPlane.PlaneDot(End) > 0.f)
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	bool LineInCorrectDistance(const FVector& Start, const FVector& End, const FSceneView* View, float CorrectDistance = -1)
+	{
+		const float MaxDistanceSq = (CorrectDistance > 0) ? FMath::Square(CorrectDistance) : ARecastNavMesh::GetDrawDistanceSq();
+		return FVector::DistSquared(Start, View->ViewMatrices.ViewOrigin) < MaxDistanceSq &&
+			FVector::DistSquared(End, View->ViewMatrices.ViewOrigin) < MaxDistanceSq;
+	}
+
+	FVector EvalArc(const FVector& Org, const FVector& Dir, const float h, const float u)
+	{
+		FVector Pt = Org + Dir * u;
+		Pt.Z += h * (1 - (u * 2 - 1)*(u * 2 - 1));
+
+		return Pt;
+	}
+
+	void CacheArc(TArray<FDebugRenderSceneProxy::FDebugLine>& DebugLines, const FVector& Start, const FVector& End, const float Height, const uint32 Segments, const FLinearColor& Color, float LineThickness = 0)
+	{
+		if (Segments == 0)
+		{
+			return;
+		}
+
+		const float ArcPtsScale = 1.0f / (float)Segments;
+		const FVector Dir = End - Start;
+		const float Length = Dir.Size();
+
+		FVector Prev = Start;
+		for (uint32 i = 1; i <= Segments; ++i)
+		{
+			const float u = i * ArcPtsScale;
+			const FVector Pt = EvalArc(Start, Dir, Length*Height, u);
+
+			DebugLines.Add(FDebugRenderSceneProxy::FDebugLine(Prev, Pt, Color.ToFColor(true)));
+			Prev = Pt;
+		}
+	}
+
+	void CacheArrowHead(TArray<FDebugRenderSceneProxy::FDebugLine>& DebugLines, const FVector& Tip, const FVector& Origin, const float Size, const FLinearColor& Color, float LineThickness = 0)
+	{
+		FVector Ax, Ay, Az(0, 1, 0);
+		Ay = Origin - Tip;
+		Ay.Normalize();
+		Ax = FVector::CrossProduct(Az, Ay);
+
+		FHitProxyId HitProxyId;
+		DebugLines.Add(FDebugRenderSceneProxy::FDebugLine(Tip, FVector(Tip.X + Ay.X*Size + Ax.X*Size / 3, Tip.Y + Ay.Y*Size + Ax.Y*Size / 3, Tip.Z + Ay.Z*Size + Ax.Z*Size / 3), Color.ToFColor(true)));
+		DebugLines.Add(FDebugRenderSceneProxy::FDebugLine(Tip, FVector(Tip.X + Ay.X*Size - Ax.X*Size / 3, Tip.Y + Ay.Y*Size - Ax.Y*Size / 3, Tip.Z + Ay.Z*Size - Ax.Z*Size / 3), Color.ToFColor(true)));
+	}
+
+	void DrawWireCylinder(TArray<FDebugRenderSceneProxy::FDebugLine>& DebugLines, const FVector& Base, const FVector& X, const FVector& Y, const FVector& Z, FColor Color, float Radius, float HalfHeight, int32 NumSides, uint8 DepthPriority, float LineThickness = 0)
+	{
+		const float	AngleDelta = 2.0f * PI / NumSides;
+		FVector	LastVertex = Base + X * Radius;
+
+		FHitProxyId HitProxyId;
+		for (int32 SideIndex = 0; SideIndex < NumSides; SideIndex++)
+		{
+			const FVector Vertex = Base + (X * FMath::Cos(AngleDelta * (SideIndex + 1)) + Y * FMath::Sin(AngleDelta * (SideIndex + 1))) * Radius;
+
+			DebugLines.Add(FDebugRenderSceneProxy::FDebugLine(LastVertex - Z * HalfHeight, Vertex - Z * HalfHeight, Color));
+			DebugLines.Add(FDebugRenderSceneProxy::FDebugLine(LastVertex + Z * HalfHeight, Vertex + Z * HalfHeight, Color));
+			DebugLines.Add(FDebugRenderSceneProxy::FDebugLine(LastVertex - Z * HalfHeight, LastVertex + Z * HalfHeight, Color));
+
+			LastVertex = Vertex;
+		}
+	}
+
+	inline uint8 GetBit(int32 v, uint8 bit)
+	{
+		return (v & (1 << bit)) >> bit;
+	}
+
+	FColor GetClusterColor(int32 Idx)
+	{
+		uint8 r = 1 + GetBit(Idx, 1) + GetBit(Idx, 3) * 2;
+		uint8 g = 1 + GetBit(Idx, 2) + GetBit(Idx, 4) * 2;
+		uint8 b = 1 + GetBit(Idx, 0) + GetBit(Idx, 5) * 2;
+		return FColor(r * 63, g * 63, b * 63, 164);
+	}
+
+	FColor DarkenColor(const FColor& Base)
+	{
+		const uint32 Col = Base.DWColor();
+		return FColor(((Col >> 1) & 0x007f7f7f) | (Col & 0xff000000));
+	}
+
+	void AddVertex(FNavMeshSceneProxyData::FDebugMeshData& MeshData, const FVector& Pos, const FColor Color = FColor::White)
+	{
+		const int32 VertexIndex = MeshData.Vertices.Num();
+		FDynamicMeshVertex* Vertex = new(MeshData.Vertices) FDynamicMeshVertex;
+		Vertex->Position = Pos;
+		Vertex->TextureCoordinate = FVector2D::ZeroVector;
+		Vertex->TangentX = FVector(1.0f, 0.0f, 0.0f);
+		Vertex->TangentZ = FVector(0.0f, 1.0f, 0.0f);
+		// store the sign of the determinant in TangentZ.W (-1=0,+1=255)
+		Vertex->TangentZ.Vector.W = 255;
+		Vertex->Color = Color;
+	}
+
+	void AddTriangle(FNavMeshSceneProxyData::FDebugMeshData& MeshData, int32 V0, int32 V1, int32 V2)
+	{
+		MeshData.Indices.Add(V0);
+		MeshData.Indices.Add(V1);
+		MeshData.Indices.Add(V2);
+	}
+
+	FVector Recast2UnrealPoint(const float* RecastPoint)
+	{
+		return FVector(-RecastPoint[0], -RecastPoint[2], RecastPoint[1]);
+	}
+
+	void AddRecastGeometry(TArray<FVector>& OutVertexBuffer, TArray<int32>& OutIndexBuffer, const float* Coords, int32 NumVerts, const int32* Faces, int32 NumFaces)
+	{
+		const int32 VertIndexBase = OutVertexBuffer.Num();
+		for (int32 VertIdx = 0; VertIdx < NumVerts * 3; VertIdx += 3)
+		{
+			OutVertexBuffer.Add(Recast2UnrealPoint(&Coords[VertIdx]));
+		}
+
+		const int32 FirstNewFaceVertexIndex = OutIndexBuffer.Num();
+		const uint32 NumIndices = NumFaces * 3;
+		OutIndexBuffer.AddUninitialized(NumIndices);
+		for (uint32 Index = 0; Index < NumIndices; ++Index)
+		{
+			OutIndexBuffer[FirstNewFaceVertexIndex + Index] = VertIndexBase + Faces[Index];
+		}
+	}
+}
+
+
 void UGameplayDebuggingComponent::ServerCollectNavmeshData_Implementation(FVector_NetQuantize10 TargetLocation)
 {
 #if WITH_RECAST
@@ -1227,7 +1501,7 @@ void UGameplayDebuggingComponent::ServerCollectNavmeshData_Implementation(FVecto
 			NavMeshDebug::FOffMeshLink Link;
 			Link.Left = SrcLink.Left - TileData.Location;
 			Link.Right = SrcLink.Right - TileData.Location;
-			Link.Color = ((SrcLink.Direction && SrcLink.ValidEnds) || (SrcLink.ValidEnds & FRecastDebugGeometry::OMLE_Left)) ? DarkenColor(NavMeshColors[SrcLink.AreaID]) : NavMeshRenderColor_OffMeshConnectionInvalid;
+			Link.Color = ((SrcLink.Direction && SrcLink.ValidEnds) || (SrcLink.ValidEnds & FRecastDebugGeometry::OMLE_Left)) ? NavMeshColors[SrcLink.AreaID] : NavMeshRenderColor_OffMeshConnectionInvalid;
 			Link.PackedFlags.Radius = (int8)SrcLink.Radius;
 			Link.PackedFlags.Direction = SrcLink.Direction;
 			Link.PackedFlags.ValidEnds = SrcLink.ValidEnds;
@@ -1261,6 +1535,7 @@ void UGameplayDebuggingComponent::ServerCollectNavmeshData_Implementation(FVecto
 		FMath::TruncToInt(100.0f * NavmeshRepData.Num() / UncompressedBuffer.Num()), 1000.0f * (Timer3 - Timer2));
 #endif
 
+	UWorld* World = GetWorld();
 	if (World && World->GetNetMode() != NM_DedicatedServer)
 	{
 		OnRep_UpdateNavmesh();
@@ -1293,8 +1568,7 @@ void UGameplayDebuggingComponent::PrepareNavMeshData(struct FNavMeshSceneProxyDa
 		}
 
 		// read serialized values
-		CurrentData->bEnableDrawing = (UncompressedBuffer.Num() > 0);
-		if (!CurrentData->bEnableDrawing)
+		if (UncompressedBuffer.Num() == 0)
 		{
 			return;
 		}
@@ -1339,12 +1613,12 @@ void UGameplayDebuggingComponent::PrepareNavMeshData(struct FNavMeshSceneProxyDa
 					CurrentData->TileEdgeLines.Add(FDebugRenderSceneProxy::FDebugLine(V1 + CurrentData->NavMeshDrawOffset, V2 + CurrentData->NavMeshDrawOffset, NavMeshRenderColor_Recast_TileEdges));
 					CurrentData->TileEdgeLines.Add(FDebugRenderSceneProxy::FDebugLine(V2 + CurrentData->NavMeshDrawOffset, V0 + CurrentData->NavMeshDrawOffset, NavMeshRenderColor_Recast_TileEdges));
 
-					AddTriangleHelper(DebugMeshData, Index0 + IndexesOffset, Index1 + IndexesOffset, Index2 + IndexesOffset);
+					FNavMeshRenderingHelpers_DEPRECATEDSUPPORT::AddTriangle(DebugMeshData, Index0 + IndexesOffset, Index1 + IndexesOffset, Index2 + IndexesOffset);
 				}
 
 				for (int32 iVert = 0; iVert < Verts.Num(); iVert++)
 				{
-					AddVertexHelper(DebugMeshData, Verts[iVert] + CurrentData->NavMeshDrawOffset);
+					FNavMeshRenderingHelpers_DEPRECATEDSUPPORT::AddVertex(DebugMeshData, Verts[iVert] + CurrentData->NavMeshDrawOffset);
 				}
 				CurrentData->MeshBuilders.Add(DebugMeshData);
 				IndexesOffset += Verts.Num();
@@ -1358,13 +1632,13 @@ void UGameplayDebuggingComponent::PrepareNavMeshData(struct FNavMeshSceneProxyDa
 				const FVector V1 = SrcLink.Right.ToVector() + OffsetLocation + CurrentData->NavMeshDrawOffset;
 				const FColor LinkColor = SrcLink.Color;
 
-				CacheArc(CurrentData->NavLinkLines, V0, V1, 0.4f, 4, LinkColor, LinkLines_LineThickness);
+				FNavMeshRenderingHelpers_DEPRECATEDSUPPORT::CacheArc(CurrentData->NavLinkLines, V0, V1, 0.4f, 4, LinkColor, LinkLines_LineThickness);
 
 				const FVector VOffset(0, 0, FVector::Dist(V0, V1) * 1.333f);
-				CacheArrowHead(CurrentData->NavLinkLines, V1, V0+VOffset, 30.f, LinkColor, LinkLines_LineThickness);
+				FNavMeshRenderingHelpers_DEPRECATEDSUPPORT::CacheArrowHead(CurrentData->NavLinkLines, V1, V0+VOffset, 30.f, LinkColor, LinkLines_LineThickness);
 				if (SrcLink.PackedFlags.Direction)
 				{
-					CacheArrowHead(CurrentData->NavLinkLines, V0, V1+VOffset, 30.f, LinkColor, LinkLines_LineThickness);
+					FNavMeshRenderingHelpers_DEPRECATEDSUPPORT::CacheArrowHead(CurrentData->NavLinkLines, V0, V1+VOffset, 30.f, LinkColor, LinkLines_LineThickness);
 				}
 
 				// if the connection as a whole is valid check if there are any of ends is invalid
@@ -1373,12 +1647,12 @@ void UGameplayDebuggingComponent::PrepareNavMeshData(struct FNavMeshSceneProxyDa
 					if (SrcLink.PackedFlags.Direction && (SrcLink.PackedFlags.ValidEnds & FRecastDebugGeometry::OMLE_Left) == 0)
 					{
 						// left end invalid - mark it
-						DrawWireCylinder(CurrentData->NavLinkLines, V0, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), NavMeshRenderColor_OffMeshConnectionInvalid, SrcLink.PackedFlags.Radius, 30 /*NavMesh->AgentMaxStepHeight*/, 16, 0, DefaultEdges_LineThickness);
+						FNavMeshRenderingHelpers_DEPRECATEDSUPPORT::DrawWireCylinder(CurrentData->NavLinkLines, V0, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), NavMeshRenderColor_OffMeshConnectionInvalid, SrcLink.PackedFlags.Radius, 30 /*NavMesh->AgentMaxStepHeight*/, 16, 0, DefaultEdges_LineThickness);
 					}
 
 					if ((SrcLink.PackedFlags.ValidEnds & FRecastDebugGeometry::OMLE_Right) == 0)
 					{
-						DrawWireCylinder(CurrentData->NavLinkLines, V1, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), NavMeshRenderColor_OffMeshConnectionInvalid, SrcLink.PackedFlags.Radius, 30 /*NavMesh->AgentMaxStepHeight*/, 16, 0, DefaultEdges_LineThickness);
+						FNavMeshRenderingHelpers_DEPRECATEDSUPPORT::DrawWireCylinder(CurrentData->NavLinkLines, V1, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), NavMeshRenderColor_OffMeshConnectionInvalid, SrcLink.PackedFlags.Radius, 30 /*NavMesh->AgentMaxStepHeight*/, 16, 0, DefaultEdges_LineThickness);
 					}
 				}
 			}
@@ -1418,17 +1692,18 @@ public:
 
 FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 {
-	FDebugRenderSceneCompositeProxy* CompositeProxy = NULL;
+	FDebugRenderSceneCompositeProxy* CompositeProxy = nullptr;
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(GetOwner());
+	UWorld* World = GetWorld();
 	if (!World || World->GetNetMode() == NM_DedicatedServer)
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	if (!Replicator || !Replicator->IsDrawEnabled() || Replicator->IsPendingKill() || IsPendingKill())
 	{
-		return NULL;
+		return nullptr;
 	}
 
 #if WITH_RECAST	
@@ -1437,17 +1712,16 @@ FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 		FNavMeshSceneProxyData NewNavmeshRenderData;
 		NewNavmeshRenderData.Reset();
 		NewNavmeshRenderData.bNeedsNewData = false;
-		NewNavmeshRenderData.bEnableDrawing = false;
 		PrepareNavMeshData(&NewNavmeshRenderData);
 
 		NavMeshBounds = NewNavmeshRenderData.Bounds.GetCenter().ContainsNaN() || NewNavmeshRenderData.Bounds.GetExtent().ContainsNaN() ? FBox(FVector(-HALF_WORLD_MAX1, -HALF_WORLD_MAX1, -HALF_WORLD_MAX1), FVector(HALF_WORLD_MAX1, HALF_WORLD_MAX1, HALF_WORLD_MAX1)) : NewNavmeshRenderData.Bounds;
 		CompositeProxy = CompositeProxy ? CompositeProxy : (new FDebugRenderSceneCompositeProxy(this));
-		CompositeProxy->AddChild(new FRecastRenderingSceneProxy(this, &NewNavmeshRenderData, true));
+		CompositeProxy->AddChild(new FNavMeshSceneProxy(this, &NewNavmeshRenderData, true));
 	}
 #endif
 
 #if USE_EQS_DEBUGGER
-	if (ShouldReplicateData(EAIDebugDrawDataView::EQS) && IsClientEQSSceneProxyEnabled() && GetSelectedActor() != NULL)
+	if (ShouldReplicateData(EAIDebugDrawDataView::EQS) && IsClientEQSSceneProxyEnabled() && GetSelectedActor() != nullptr)
 	{
 		const int32 EQSIndex = EQSLocalData.Num() > 0 ? FMath::Clamp(CurrentEQSIndex, 0, EQSLocalData.Num() - 1) : INDEX_NONE;
 		if (EQSLocalData.IsValidIndex(EQSIndex))
@@ -1468,7 +1742,7 @@ FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 	}
 #endif // USE_EQS_DEBUGGER
 	
-	const bool bDrawFullData = Replicator->GetSelectedActorToDebug() == GetSelectedActor() && GetSelectedActor() != NULL;
+	const bool bDrawFullData = Replicator->GetSelectedActorToDebug() == GetSelectedActor() && GetSelectedActor() != nullptr;
 	if (bDrawFullData && ShouldReplicateData(EAIDebugDrawDataView::Basic))
 	{
 		CompositeProxy = CompositeProxy ? CompositeProxy : (new FDebugRenderSceneCompositeProxy(this));
@@ -1592,9 +1866,43 @@ void UGameplayDebuggingComponent::CollectPerceptionData()
 			}
 			if (PerceptionComponent)
 			{
-				TArray<FString> PerceptionTexts;
+				FGameplayDebuggerCategory DummyCategory;
+				PerceptionComponent->DescribeSelfToGameplayDebugger(&DummyCategory);
+
+				TArray<FString> LoggedLines = DummyCategory.GetReplicatedLinesCopy();
+				TArray<FGameplayDebuggerShape> LoggedShapes = DummyCategory.GetReplicatedShapesCopy();
+
 				PerceptionShapeElements.Reset();
-				PerceptionComponent->GrabGameplayDebuggerData(PerceptionTexts, PerceptionShapeElements);
+				for (int32 Idx = 0; Idx < LoggedShapes.Num(); Idx++)
+				{
+					const FGameplayDebuggerShape& ShapeItem = LoggedShapes[Idx];
+					switch (LoggedShapes[Idx].Type)
+					{
+						case EGameplayDebuggerShape::Box:
+							PerceptionShapeElements.Add(FGameplayDebuggerShapeElement::MakeBox(ShapeItem.ShapeData[0], ShapeItem.ShapeData[1], ShapeItem.Color, ShapeItem.Description));
+							break;
+						case EGameplayDebuggerShape::Capsule:
+							PerceptionShapeElements.Add(FGameplayDebuggerShapeElement::MakeCapsule(ShapeItem.ShapeData[0], ShapeItem.ShapeData[1].X, ShapeItem.ShapeData[1].Z, ShapeItem.Color, ShapeItem.Description));
+							break;
+						case EGameplayDebuggerShape::Cone:
+							PerceptionShapeElements.Add(FGameplayDebuggerShapeElement::MakeCone(ShapeItem.ShapeData[0], ShapeItem.ShapeData[1], ShapeItem.ShapeData[2].X, ShapeItem.Color, ShapeItem.Description));
+							break;
+						case EGameplayDebuggerShape::Cylinder:
+							PerceptionShapeElements.Add(FGameplayDebuggerShapeElement::MakeCylinder(ShapeItem.ShapeData[0], ShapeItem.ShapeData[1].X, ShapeItem.ShapeData[1].Z, ShapeItem.Color, ShapeItem.Description));
+							break;
+						case EGameplayDebuggerShape::Point:
+							PerceptionShapeElements.Add(FGameplayDebuggerShapeElement::MakePoint(ShapeItem.ShapeData[0], ShapeItem.ShapeData[1].X, ShapeItem.Color, ShapeItem.Description));
+							break;
+						case EGameplayDebuggerShape::Polygon:
+							PerceptionShapeElements.Add(FGameplayDebuggerShapeElement::MakePolygon(ShapeItem.ShapeData, ShapeItem.Color, ShapeItem.Description));
+							break;
+						case EGameplayDebuggerShape::Segment:
+							PerceptionShapeElements.Add(FGameplayDebuggerShapeElement::MakeSegment(ShapeItem.ShapeData[0], ShapeItem.ShapeData[1], ShapeItem.ShapeData[2].X, ShapeItem.Color, ShapeItem.Description));
+							break;
+						default:
+							break;
+					}
+				}
 
 				DistanceFromPlayer = DistanceFromSensor = -1;
 
@@ -1607,14 +1915,16 @@ void UGameplayDebuggingComponent::CollectPerceptionData()
 					DistanceFromPlayer = (MyPawn->GetActorLocation() - MyPC->GetPawn()->GetActorLocation()).Size();
 					DistanceFromSensor = SensingComponentLocation != FVector::ZeroVector ? (SensingComponentLocation - MyPC->GetPawn()->GetActorLocation()).Size() : -1;
 				}
-			}
 
-			UAIPerceptionSystem* PerceptionSys = UAIPerceptionSystem::GetCurrent(MyPawn->GetWorld());
-			if (PerceptionSys)
-			{
-				PerceptionLegend = PerceptionSys->GetPerceptionDebugLegend();
+				PerceptionLegend = TEXT("\n");
+				for (int32 Idx = 0; Idx < LoggedLines.Num(); Idx++)
+				{
+					PerceptionLegend += LoggedLines[Idx];
+					PerceptionLegend += TEXT('\n');
+				}
 			}
 		}
 	}
+
 #endif
 }

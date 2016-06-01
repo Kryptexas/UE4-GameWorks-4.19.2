@@ -53,23 +53,24 @@ public:
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-		OutEnvironment.SetDefine(TEXT("READ_QUAD_OVERDRAW"), AllowQuadOverdraw(Platform) ? TEXT("1") : TEXT("0"));
+		OutEnvironment.SetDefine(TEXT("READ_QUAD_OVERDRAW"), AllowDebugViewPS(DVSM_QuadComplexity, Platform) ? TEXT("1") : TEXT("0"));
 		OutEnvironment.SetDefine(TEXT("MAX_NUM_COMPLEXITY_COLORS"), MaxNumShaderComplexityColors);
 		// EColorSampling values
 		OutEnvironment.SetDefine(TEXT("CS_RAMP"), (uint32)CS_RAMP);
 		OutEnvironment.SetDefine(TEXT("CS_LINEAR"), (uint32)CS_LINEAR);
 		OutEnvironment.SetDefine(TEXT("CS_STAIR"), (uint32)CS_STAIR);
-		// EQuadOverdrawMode values
-		OutEnvironment.SetDefine(TEXT("QOM_None"), (uint32)QOM_None);
-		OutEnvironment.SetDefine(TEXT("QOM_QuadComplexity"), (uint32)QOM_QuadComplexity);
-		OutEnvironment.SetDefine(TEXT("QOM_ShaderComplexityContained"), (uint32)QOM_ShaderComplexityContained);
-		OutEnvironment.SetDefine(TEXT("QOM_ShaderComplexityBleeding"), (uint32)QOM_ShaderComplexityBleeding);
+		// EDebugViewShaderMode values
+		OutEnvironment.SetDefine(TEXT("DVSM_None"), (uint32)DVSM_None);
+		OutEnvironment.SetDefine(TEXT("DVSM_ShaderComplexity"), (uint32)DVSM_ShaderComplexity);
+		OutEnvironment.SetDefine(TEXT("DVSM_ShaderComplexityContainedQuadOverhead"), (uint32)DVSM_ShaderComplexityContainedQuadOverhead);
+		OutEnvironment.SetDefine(TEXT("DVSM_ShaderComplexityBleedingQuadOverhead"), (uint32)DVSM_ShaderComplexityBleedingQuadOverhead);
+		OutEnvironment.SetDefine(TEXT("DVSM_QuadComplexity"), (uint32)DVSM_QuadComplexity);
 	}
 
 	bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << ShaderComplexityColors << MiniFontTexture << ShaderComplexityParams << NumComplexityColors << QuadOverdrawTexture;
+		Ar << PostprocessParameter << ShaderComplexityColors << MiniFontTexture << ShaderComplexityParams << ShaderComplexityParams2 << QuadOverdrawTexture;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -79,7 +80,7 @@ private:
 	FShaderParameter ShaderComplexityColors;
 	FShaderResourceParameter MiniFontTexture;
 	FShaderParameter ShaderComplexityParams;
-	FShaderParameter NumComplexityColors;
+	FShaderParameter ShaderComplexityParams2;
 	FShaderResourceParameter QuadOverdrawTexture;
 };
 

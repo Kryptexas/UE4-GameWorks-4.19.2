@@ -156,7 +156,7 @@ protected:
 public:
 	/**
 	 * Called after the C++ constructor and after the properties have been initialized, including those loaded from config.
-	 * mainly this is to emulate some behavior of when the constructor was called after the properties were intialized.
+	 * mainly this is to emulate some behavior of when the constructor was called after the properties were initialized.
 	 */
 	virtual void PostInitProperties();
 
@@ -1083,6 +1083,8 @@ public:
 
 	// Constants
 	DECLARE_FUNCTION(execIntConst);
+	DECLARE_FUNCTION(execInt64Const);
+	DECLARE_FUNCTION(execUInt64Const);
 	DECLARE_FUNCTION(execSkipOffsetConst);
 	DECLARE_FUNCTION(execFloatConst);
 	DECLARE_FUNCTION(execStringConst);
@@ -1151,6 +1153,8 @@ public:
 	DECLARE_FUNCTION(execCallMathFunction);
 
 	DECLARE_FUNCTION(execSwitchValue);
+
+	DECLARE_FUNCTION(execArrayGetByRef);
 
 	// -- K2 support functions
 	struct Object_eventExecuteUbergraph_Parms

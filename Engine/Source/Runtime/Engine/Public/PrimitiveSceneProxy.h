@@ -18,6 +18,8 @@ class FLightSceneProxy;
 class FLightSceneInfo;
 class FPrimitiveDrawInterface;
 
+struct FStreamingSectionBuildInfo;
+
 /** Data for a simple dynamic light. */
 class FSimpleLightEntry
 {
@@ -431,6 +433,7 @@ public:
 	inline bool NeedsLevelAddedToWorldNotification() const { return bNeedsLevelAddedToWorldNotification; }
 	inline bool IsComponentLevelVisible() const { return bIsComponentLevelVisible; }
 	inline bool IsStaticPathAvailable() const { return !bDisableStaticPath; }
+	inline bool ShouldReceiveCombinedCSMAndStaticShadowsFromStationaryLights() const { return bReceiveCombinedCSMAndStaticShadowsFromStationaryLights; }
 
 #if WITH_EDITOR
 	inline int32 GetNumUncachedStaticLightingInteractions() { return NumUncachedStaticLightingInteractions; }
@@ -515,6 +518,15 @@ public:
 	 */
 	typedef TArray<class FLightCacheInterface*, TInlineAllocator<8> > FLCIArray;
 	ENGINE_API virtual void GetLCIs(FLCIArray& LCIs) {}
+
+	/**
+	 * Get the temp data used in the texture streaming build. Used to debug accuracy.
+	 * @param OutDistanceMultiplier	The component streaming distance multiplier.
+	 * @param LODIndex			LOD index of the query. INDEX_NONE for a value for all LODs.
+	 * @param ElementIndex		Element index of the query. INDEX_NONE for a value for all elements.
+	 * @return					The section data built in the texture streaming build.
+	 */
+	virtual const FStreamingSectionBuildInfo* GetStreamingSectionData(float& OutDistanceMultiplier, int32 LODIndex, int32 ElementIndex) const { return nullptr; }
 
 protected:
 
@@ -697,6 +709,9 @@ private:
 	/** Whether this primitive should be composited onto the scene after post processing (editor only) */
 	uint32 bUseEditorCompositing : 1;
 
+	/** Should this primitive receive dynamic-only CSM shadows */
+	uint32 bReceiveCombinedCSMAndStaticShadowsFromStationaryLights : 1;
+		
 	/** This primitive has bRenderCustomDepth enabled */
 	uint32 bRenderCustomDepth : 1;
 

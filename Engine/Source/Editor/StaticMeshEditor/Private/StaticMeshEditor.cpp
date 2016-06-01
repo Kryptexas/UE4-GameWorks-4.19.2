@@ -1202,10 +1202,7 @@ void FStaticMeshEditor::GenerateKDop(const FVector* Directions, uint32 NumDirect
 		const FPrimData PrimData = FPrimData(KPT_Convex, PrimIndex);
 		ClearSelectedPrims();
 		AddSelectedPrim(PrimData, true);
-		while( OverlapsExistingPrim(PrimData) )
-		{
-			TranslateSelectedPrims(OverlapNudge);
-		}
+		// Don't 'nudge' KDop prims, as they are fitted specifically around the geometry
 	}
 
 	Viewport->RefreshViewport();

@@ -387,7 +387,7 @@ struct FMeshParticleInstanceVertex
 	FVector4 Transform[3];
 
 	/** The velocity of the particle, XYZ: direction, W: speed. */
-	FVector Velocity;
+	FVector4 Velocity;
 
 	/** The sub-image texture offsets for the particle. */
 	int16 SubUVParams[4];
@@ -403,6 +403,13 @@ struct FMeshParticleInstanceVertexDynamicParameter
 {
 	/** The dynamic parameter of the particle. */
 	float DynamicValue[4];
+};
+
+struct FMeshParticleInstanceVertexPrevTransform
+{
+	FVector4 PrevTransform0;
+	FVector4 PrevTransform1;
+	FVector4 PrevTransform2;
 };
 
 //
@@ -762,6 +769,16 @@ struct FMeshRotationPayloadData
 	FVector  RotationRateBase;
 };
 
+struct FMeshMotionBlurPayloadData
+{
+	FVector BaseParticlePrevVelocity;
+	FVector BaseParticlePrevSize;
+	FVector PayloadPrevRotation;
+	FVector PayloadPrevOrbitOffset;
+	float   BaseParticlePrevRotation;
+	float   PayloadPrevCameraOffset;
+};
+
 /** ModuleLocationEmitter instance payload							*/
 struct FLocationEmitterInstancePayload
 {
@@ -841,33 +858,6 @@ private:
 	int32 ArrayMax;
 	/** Pointer to an array, stored within a contiguous memory block.*/
 	ElementType* Array;
-};
-
-/** ModuleLocationBoneSocket instance payload */
-struct FModuleLocationBoneSocketInstancePayload
-{
-	/** The skeletal mesh component used as the source of the sockets */
-	TWeakObjectPtr<USkeletalMeshComponent> SourceComponent;
-	/** The last selected index into the socket array */
-	int32 LastSelectedIndex;
-	/** The index of the current 'unused' indices */
-	int32 CurrentUnused;
-	/** The position of each bone/socket from the previous tick. Used to calculate the inherited bone velocity when spawning particles. */
-	TPreallocatedArrayProxy<FVector> PrevFrameBoneSocketPositions;
-	/** The velocity of each bone/socket. Used to calculate the inherited bone velocity when spawning particles. */
-	TPreallocatedArrayProxy<FVector> BoneSocketVelocities;
-	
-	/** Initialize array proxies and map to memory that has been allocated in the emitter's instance data buffer */
-	void InitArrayProxies( int32 FixedArraySize )
-	{
-		// Calculate offsets into instance data buffer for the arrays and initialize the buffer proxies. The allocation 
-		// size for these arrays is calculated in RequiredBytesPerInstance.
-		const uint32 StructSize =  sizeof(FModuleLocationBoneSocketInstancePayload);
-		PrevFrameBoneSocketPositions = TPreallocatedArrayProxy<FVector>((uint8*)this + StructSize, FixedArraySize);
-
-		const uint32 StructOffset = StructSize + (FixedArraySize*sizeof(FVector));
-		BoneSocketVelocities = TPreallocatedArrayProxy<FVector>((uint8*)this + StructOffset, FixedArraySize );
-	}
 };
 
 /** ModuleLocationBoneSocket per-particle payload */
@@ -1367,8 +1357,10 @@ struct FDynamicEmitterDataBase
 	void* operator new(size_t Size);
 	void operator delete(void *RawMemory, size_t Size);
 
-	virtual void CreateVertexFactory(const FSceneView *View)
-	{}
+	virtual FParticleVertexFactoryBase *CreateVertexFactory()
+	{
+		return nullptr;
+	}
 
 	/**
 	 *	Create the render thread resources for this emitter data
@@ -1402,7 +1394,7 @@ struct FDynamicEmitterDataBase
 		ReturnVertexFactory();
 	}
 
-	virtual void GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector) const {}
+	virtual void GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector, FParticleVertexFactoryBase *VertexFactory) const {}
 
 	/**
 	 *	Retrieve the material render proxy to use for rendering this emitter. PURE VIRTUAL
@@ -1422,11 +1414,14 @@ struct FDynamicEmitterDataBase
 	/** Returns the current macro uv override. Specialized by FGPUSpriteDynamicEmitterData  */
 	virtual const FMacroUVOverride& GetMacroUVOverride() const { return GetSource().MacroUVOverride; }
 
+	/** Stat id of this object, 0 if nobody asked for it yet */
+	mutable TStatId StatID;
 	/** true if this emitter is currently selected */
 	uint32	bSelected:1;
 	/** true if this emitter has valid rendering data */
 	uint32	bValid:1;
 
+	int32  EmitterIndex;
 protected:
 	/**
 	 *	Create the vertex factory for this emitter data
@@ -1512,9 +1507,9 @@ struct FDynamicSpriteEmitterDataBase : public FDynamicEmitterDataBase
 	 *
 	 *	@return	FMaterialRenderProxy*	The material proxt to render with.
 	 */
-	const FMaterialRenderProxy* GetMaterialRenderProxy(bool bSelected) 
+	const FMaterialRenderProxy* GetMaterialRenderProxy(bool bInSelected) 
 	{ 
-		return MaterialResource[bSelected]; 
+		return MaterialResource[bInSelected]; 
 	}
 
 	/**
@@ -1637,20 +1632,14 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 {
 	FDynamicSpriteEmitterData(const UParticleModuleRequired* RequiredModule) :
 		FDynamicSpriteEmitterDataBase(RequiredModule)
-		, VertexFactory(nullptr)
 	{
 	}
 
 	~FDynamicSpriteEmitterData()
 	{
-		if (VertexFactory != nullptr)
-		{
-			VertexFactory->ReleaseResource();
-			delete VertexFactory;
-		}
 	}
 
-	virtual void CreateVertexFactory(const FSceneView *View);
+	virtual FParticleVertexFactoryBase *CreateVertexFactory() override;
 
 	/** Initialize this emitter's dynamic rendering data, called after source data has been filled in */
 	void Init( bool bInSelected );
@@ -1712,7 +1701,7 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 	/** Gathers simple lights for this emitter. */
 	virtual void GatherSimpleLights(const FParticleSystemSceneProxy* Proxy, const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const override;
 
-	virtual void GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector) const override;
+	virtual void GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector, FParticleVertexFactoryBase *VertexFactory) const override;
 
 	/**
 	 *	Create the render thread resources for this emitter data
@@ -1738,23 +1727,22 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 
 	/** Uniform parameters. Most fields are filled in when updates are sent to the rendering thread, some are per-view! */
 	FParticleSpriteUniformParameters UniformParameters;
-
-	class FParticleSpriteVertexFactory *VertexFactory;
 };
 
 /** Source data for Mesh emitters */
 struct FDynamicMeshEmitterReplayData
 	: public FDynamicSpriteEmitterReplayDataBase
 {
-	int32					SubUVInterpMethod;
-	int32					SubUVDataOffset;
-	int32					SubImages_Horizontal;
-	int32					SubImages_Vertical;
-	bool				bScaleUV;
-	int32					MeshRotationOffset;
-	uint8				MeshAlignment;
-	bool				bMeshRotationActive;
-	FVector				LockedAxis;	
+	int32	SubUVInterpMethod;
+	int32	SubUVDataOffset;
+	int32	SubImages_Horizontal;
+	int32	SubImages_Vertical;
+	bool	bScaleUV;
+	int32	MeshRotationOffset;
+	int32	MeshMotionBlurOffset;
+	uint8	MeshAlignment;
+	bool	bMeshRotationActive;
+	FVector	LockedAxis;	
 
 	/** Constructor */
 	FDynamicMeshEmitterReplayData() : 
@@ -1764,6 +1752,7 @@ struct FDynamicMeshEmitterReplayData
 		SubImages_Vertical( 0 ),
 		bScaleUV( false ),
 		MeshRotationOffset( 0 ),
+		MeshMotionBlurOffset( 0 ),
 		MeshAlignment( 0 ),
 		bMeshRotationActive( false ),
 		LockedAxis(1.0f, 0.0f, 0.0f)
@@ -1776,13 +1765,14 @@ struct FDynamicMeshEmitterReplayData
 	{
 		// Call parent implementation
 		FDynamicSpriteEmitterReplayDataBase::Serialize( Ar );
-
+		
 		Ar << SubUVInterpMethod;
 		Ar << SubUVDataOffset;
 		Ar << SubImages_Horizontal;
 		Ar << SubImages_Vertical;
 		Ar << bScaleUV;
 		Ar << MeshRotationOffset;
+		Ar << MeshMotionBlurOffset;
 		Ar << MeshAlignment;
 		Ar << bMeshRotationActive;
 		Ar << LockedAxis;
@@ -1799,10 +1789,10 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 
 	virtual ~FDynamicMeshEmitterData();
 
-	void CreateVertexFactory(const FSceneView *View);
+	FParticleVertexFactoryBase *CreateVertexFactory() override;
 
 	/** Initialize this emitter's dynamic rendering data, called after source data has been filled in */
-	void Init(bool bInSelected,const FParticleMeshEmitterInstance* InEmitterInstance,UStaticMesh* InStaticMesh);
+	void Init(bool bInSelected,const FParticleMeshEmitterInstance* InEmitterInstance,UStaticMesh* InStaticMesh, ERHIFeatureLevel::Type InFeatureLevel );
 
 	/**
 	 *	Create the render thread resources for this emitter data
@@ -1824,7 +1814,7 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	 */
 	virtual void ReleaseRenderThreadResources(const FParticleSystemSceneProxy* InOwnerProxy) override;
 
-	virtual void GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector) const override;
+	virtual void GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector, FParticleVertexFactoryBase *VertexFactory) const override;
 
 	/**
 	 *	Retrieve the instance data required to render this emitter.
@@ -1832,25 +1822,38 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	 *
 	 *	@param	InstanceData            The memory to fill the vertex data into
 	 *	@param	DynamicParameterData    The memory to fill the vertex dynamic parameter data into
+	 *	@param	PrevTransformBuffer     The memory to fill the vertex prev transform data into. May be null
 	 *	@param	Proxy                   The scene proxy for the particle system that owns this emitter
 	 *	@param	View                    The scene view being rendered
 	 */
-	void GetInstanceData(void* InstanceData, void* DynamicParameterData, const FParticleSystemSceneProxy* Proxy, const FSceneView* View) const;
+	void GetInstanceData(void* InstanceData, void* DynamicParameterData, void* PrevTransformBuffer, const FParticleSystemSceneProxy* Proxy, const FSceneView* View) const;
 
 	/**
 	 *	Helper function for retrieving the particle transform.
 	 *
 	 *	@param	InParticle					The particle being processed
-	 *  @param	ParticleBase				The scene proxy for the particle system that owns this emitter
-	 *  @param  CameraPosition				The position of the camera
-	 *  @param	CameraFacingOpVector		The facing option for the camera.
-	 *  @param  PointToLockedAxis			A quaternion for locked axis rotation
 	 *  @param	Proxy					    The scene proxy for the particle system that owns this emitter
 	 *	@param	View						The scene view being rendered
 	 *	@param	OutTransform				The InstanceToWorld transform matrix for the particle
 	 */
-	void GetParticleTransform(const FBaseParticle& InParticle, const FVector& CameraPosition, const FVector& CameraFacingOpVector, 
-		const FQuat& PointToLockedAxis, const FParticleSystemSceneProxy* Proxy, const FSceneView* View, FMatrix& OutTransformMat) const;
+	void GetParticleTransform(const FBaseParticle& InParticle, const FParticleSystemSceneProxy* Proxy, const FSceneView* View, FMatrix& OutTransformMat) const;
+
+	void GetParticlePrevTransform(const FBaseParticle& InParticle, const FParticleSystemSceneProxy* Proxy, const FSceneView* View, FMatrix& OutTransformMat) const;
+
+	void CalculateParticleTransform(
+		const FMatrix& ProxyLocalToWorld,
+		const FVector& ParticleLocation,
+			  float    ParticleRotation,
+		const FVector& ParticleVelocity,
+		const FVector& ParticleSize,
+		const FVector& ParticlePayloadInitialOrientation,
+		const FVector& ParticlePayloadRotation,
+		const FVector& ParticlePayloadCameraOffset,
+		const FVector& ParticlePayloadOrbitOffset,
+		const FVector& ViewOrigin,
+		const FVector& ViewDirection,
+		FMatrix& OutTransformMat
+		) const;
 
 	/** Gathers simple lights for this emitter. */
 	virtual void GatherSimpleLights(const FParticleSystemSceneProxy* Proxy, const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const override;
@@ -1892,7 +1895,6 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 		non-simulating 'replay' particle systems, this data may have come straight from disk! */
 	FDynamicMeshEmitterReplayData Source;
 
-
 	int32					LastFramePreRendered;
 
 	UStaticMesh*		StaticMesh;
@@ -1924,8 +1926,6 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	uint32 bFaceCameraDirectionRatherThanPosition:1;
 	/** The EMeshCameraFacingOption setting to use if bUseCameraFacing is true. */
 	uint8 CameraFacingOption;
-
-	FMeshParticleVertexFactory *VertexFactory;
 };
 
 /** Source data for Beam emitters */
@@ -2081,19 +2081,18 @@ struct FDynamicBeam2EmitterData : public FDynamicSpriteEmitterDataBase
 		: 
 		  FDynamicSpriteEmitterDataBase(RequiredModule)
 		, LastFramePreRendered(-1)
-		, VertexFactory(nullptr)
 	{
 	}
 
 	~FDynamicBeam2EmitterData();
 
-	void CreateVertexFactory(const FSceneView *View);
+	virtual FParticleVertexFactoryBase *CreateVertexFactory() override;
 
 	/** Initialize this emitter's dynamic rendering data, called after source data has been filled in */
 	void Init( bool bInSelected );
 
 
-	virtual void GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector) const override;
+	virtual void GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector, FParticleVertexFactoryBase *VertexFactory) const override;
 
 	virtual FParticleVertexFactoryBase* BuildVertexFactory(const FParticleSystemSceneProxy* InOwnerProxy) override;
 
@@ -2145,8 +2144,6 @@ struct FDynamicBeam2EmitterData : public FDynamicSpriteEmitterDataBase
 	FDynamicBeam2EmitterReplayData Source;
 
 	int32									LastFramePreRendered;
-
-	class FParticleBeamTrailVertexFactory *VertexFactory;
 };
 
 /** Source data for trail-type emitters */
@@ -2233,20 +2230,19 @@ struct FDynamicTrailsEmitterData : public FDynamicSpriteEmitterDataBase
 		, DistanceTessellationStepSize(12.5f)
 		, TangentTessellationScalar(25.0f)
 		, TextureTileDistance(0.0f)
-		, VertexFactory(nullptr)
 	{
 	}
 
 	~FDynamicTrailsEmitterData();
 
-	virtual void CreateVertexFactory(const FSceneView *View);
+	virtual FParticleVertexFactoryBase *CreateVertexFactory() override;
 
 	/** Initialize this emitter's dynamic rendering data, called after source data has been filled in */
 	virtual void Init(bool bInSelected);
 
 	virtual FParticleVertexFactoryBase* BuildVertexFactory(const FParticleSystemSceneProxy* InOwnerProxy) override;
 
-	virtual void GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector) const override;
+	virtual void GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector, FParticleVertexFactoryBase *VertexFactory) const override;
 
 	virtual void RenderDebug(const FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI, const FSceneView* View, bool bCrosses) const override;
 
@@ -2313,8 +2309,6 @@ struct FDynamicTrailsEmitterData : public FDynamicSpriteEmitterDataBase
 	float DistanceTessellationStepSize;
 	float TangentTessellationScalar;
 	float TextureTileDistance;
-
-	class FParticleBeamTrailVertexFactory *VertexFactory;
 };
 
 /** Dynamic emitter data for Ribbon emitters */
@@ -2523,6 +2517,61 @@ public:
 	/** Gets a mesh batch from the pool. */
 	FMeshBatch* GetPooledMeshBatch();
 
+	void MarkVertexFactoriesDirty()
+	{
+		bVertexFactoriesDirty = true;
+	}
+
+	void ClearVertexFactoriesIfDirty() const
+	{
+		if (bVertexFactoriesDirty)
+		{
+			ClearVertexFactories();
+		}
+	}
+
+	void ClearVertexFactories() const
+	{
+		for (int32 Index = 0; Index < EmitterVertexFactoryArray.Num(); Index++)
+		{
+			FParticleVertexFactoryBase *VertexFactory = EmitterVertexFactoryArray[Index];
+			if (VertexFactory)
+			{
+				VertexFactory->ReleaseResource();
+				delete VertexFactory;
+				EmitterVertexFactoryArray[Index] = nullptr;
+			}
+		}
+		bVertexFactoriesDirty = false;
+	}
+
+	void AddEmitterVertexFactory(FDynamicEmitterDataBase *InDynamicData) const
+	{
+		while(InDynamicData->EmitterIndex >= EmitterVertexFactoryArray.Num())
+		{
+			EmitterVertexFactoryArray.Add(nullptr);
+		}
+
+		if (EmitterVertexFactoryArray[InDynamicData->EmitterIndex] == nullptr)
+		{
+			EmitterVertexFactoryArray[InDynamicData->EmitterIndex] = InDynamicData->CreateVertexFactory();
+		}
+	}
+
+	void QueueVertexFactoryCreation(FDynamicEmitterDataBase *InDynamicData)
+	{
+		DynamicDataForThisFrame.Add(InDynamicData);
+	}
+
+	void UpdateVertexFactories() const
+	{
+		for (int32 Index = 0; Index < DynamicDataForThisFrame.Num(); Index++)
+		{
+			AddEmitterVertexFactory(DynamicDataForThisFrame[Index]);
+		}
+		DynamicDataForThisFrame.Empty();
+	}
+
 protected:
 
 	/**
@@ -2543,6 +2592,7 @@ protected:
 #endif
 
 	uint32 bCastShadow : 1;
+	uint32 bManagingSignificance : 1;
 	
 	FMaterialRelevance MaterialRelevance;
 
@@ -2563,6 +2613,11 @@ protected:
 	/** Pool for holding FMeshBatches to reduce allocations. */
 	TIndirectArray<FMeshBatch, TInlineAllocator<4> > MeshBatchPool;
 	int32 FirstFreeMeshBatch;
+
+	/** vertex factories for all emitters */
+	mutable TArray<FParticleVertexFactoryBase*> EmitterVertexFactoryArray;
+	mutable TArray<FDynamicEmitterDataBase*> DynamicDataForThisFrame; 
+	mutable bool bVertexFactoriesDirty : 1;
 
 	friend struct FDynamicSpriteEmitterDataBase;
 };
@@ -2708,3 +2763,48 @@ FORCEINLINE FVector2D GetParticleSizeWithUVFlipInSign(const FBaseParticle& Parti
 		Particle.BaseSize.X >= 0.0f ? ScaledSize.X : -ScaledSize.X,
 		Particle.BaseSize.Y >= 0.0f ? ScaledSize.Y : -ScaledSize.Y);
 }
+
+
+/** A level of significance for a particle system. Used by game code to enable/disable emitters progressively as they move away from the camera or are occluded/off screen. */
+UENUM()
+enum class EParticleSignificanceLevel : uint8
+{
+	/** Low significance emitter. Culled first. */
+	Low,
+	/** Medium significance emitter. */
+	Medium,
+	/** High significance emitter. Culled last. */
+	High,
+	/** Critical emitter. Never culled. */
+	Critical,
+
+	Num UMETA(Hidden),
+};
+
+/** Determines what a particle system will do when all of it's emitters become insignificant. */
+UENUM()
+enum class EParticleSystemInsignificanceReaction: uint8
+{
+	/** Looping systems will DisableTick. Non-looping systems will Complete.*/
+	Auto,
+	/** The system will be considered complete and will auto destroy if desired etc.*/
+	Complete,
+	/** The system will simply stop ticking. Tick will be re-enabled when any emitters become significant again. This is useful for persistent fx such as environmental fx.  */
+	DisableTick,
+	/** As DisableTick but will also kill all particles. */
+	DisableTickAndKill UMETA(Hidden), //Hidden for now until I make it useful i.e. Killing particles saves memory.
+
+	Num UMETA(Hidden),
+};
+
+/** Helper class to reset and recreate all PSCs with specific templates on their next tick. */
+class ENGINE_API FParticleResetContext
+{
+public:
+
+	TArray<class UParticleSystem*, TInlineAllocator<32>> SystemsToReset;
+	void AddTemplate(class UParticleSystem* Template);
+	void AddTemplate(class UParticleModule* Module);
+	void AddTemplate(class UParticleEmitter* Emitter);
+	~FParticleResetContext();
+};

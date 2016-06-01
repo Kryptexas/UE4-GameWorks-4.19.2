@@ -20,7 +20,7 @@ public:
 
 	virtual TSharedRef<const FUniqueNetId> GetUserId() const override;
 	virtual FString GetRealName() const override;
-	virtual FString GetDisplayName() const override;
+	virtual FString GetDisplayName(const FString& Platform = FString()) const override;
 	virtual bool GetUserAttribute(const FString& AttrName, FString& OutAttrValue) const override;
 
 	// FOnlineFriend
@@ -103,6 +103,7 @@ public:
 	virtual bool UnblockPlayer(int32 LocalUserNum, const FUniqueNetId& PlayerId) override;
 	virtual bool QueryBlockedPlayers(const FUniqueNetId& UserId) override;
 	virtual bool GetBlockedPlayers(const FUniqueNetId& UserId, TArray< TSharedRef<FOnlineBlockedPlayer> >& OutBlockedPlayers) override;
+	virtual void DumpBlockedPlayers() const override;
 
 	// FOnlineFriendsIOS
 

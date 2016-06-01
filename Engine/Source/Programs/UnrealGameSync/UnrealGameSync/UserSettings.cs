@@ -285,7 +285,7 @@ namespace UnrealGameSync
 			GeneralSection.SetValue("OpenSolutionAfterSync", bOpenSolutionAfterSync);
 			GeneralSection.SetValue("ShowLogWindow", bShowLogWindow);
 			GeneralSection.SetValue("AutoResolveConflicts", bAutoResolveConflicts);
-			GeneralSection.SetValue("UseIncrementalBuilds", bUseIncrementalBuilds);
+			GeneralSection.SetValue("IncrementalBuilds", bUseIncrementalBuilds);
 			GeneralSection.SetValue("ShowLocalTimes", bShowLocalTimes);
 			GeneralSection.SetValue("LastProjectFileName", LastProjectFileName);
 			GeneralSection.SetValue("KeepInTray", bKeepInTray);

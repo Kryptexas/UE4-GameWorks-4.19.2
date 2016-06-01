@@ -78,10 +78,10 @@ class UAnimSequenceBase : public UAnimationAsset
 	 * Supports playing backwards (CurrentPosition<PreviousPosition).
 	 * Only supports contiguous range, does NOT support looping and wrapping over.
 	 */
-	ENGINE_API void GetAnimNotifiesFromDeltaPositions(const float& PreviousPosition, const float & CurrentPosition, TArray<const FAnimNotifyEvent *>& OutActiveNotifies) const;
+	ENGINE_API virtual void GetAnimNotifiesFromDeltaPositions(const float& PreviousPosition, const float & CurrentPosition, TArray<const FAnimNotifyEvent *>& OutActiveNotifies) const;
 
 	/** Evaluate curve data to Instance at the time of CurrentTime **/
-	ENGINE_API virtual void EvaluateCurveData(FBlendedCurve& OutCurve, float CurrentTime) const;
+	ENGINE_API virtual void EvaluateCurveData(FBlendedCurve& OutCurve, float CurrentTime, bool bForceUseRawData=false) const;
 
 #if WITH_EDITOR
 	/** Return Number of Frames **/
@@ -155,8 +155,17 @@ class UAnimSequenceBase : public UAnimationAsset
 	virtual float GetFirstMatchingPosFromMarkerSyncPos(const FMarkerSyncAnimPosition& InMarkerSyncGroupPosition) const { return 0.f; }
 	virtual float GetNextMatchingPosFromMarkerSyncPos(const FMarkerSyncAnimPosition& InMarkerSyncGroupPosition, const float& StartingPosition) const { return 0.f; }
 
+	// default implementation, no additive
+	virtual EAdditiveAnimationType GetAdditiveAnimType() const { return AAT_None; }
+	virtual bool CanBeUsedInMontage() const { return true;  }
+
+	// to support anim sequence base to montage
+	virtual void EnableRootMotionSettingFromMontage(bool bInEnableRootMotion, const ERootMotionRootLock::Type InRootMotionRootLock) {};
 
 #if WITH_EDITOR
+	// Store that our raw data has changed so that we can get correct compressed data later on
+	virtual void MarkRawDataAsModified(bool bForceNewRawDatGuid = true) {}
+
 private:
 	DECLARE_MULTICAST_DELEGATE( FOnNotifyChangedMulticaster );
 	FOnNotifyChangedMulticaster OnNotifyChanged;
@@ -168,8 +177,12 @@ public:
 	ENGINE_API void RegisterOnNotifyChanged(const FOnNotifyChanged& Delegate);
 	ENGINE_API void UnregisterOnNotifyChanged(void* Unregister);
 	ENGINE_API virtual bool IsValidToPlay() const { return true; }
+	// ideally this would be animsequcnebase, but we might have some issue with that. For now, just allow AnimSequence
+	virtual class UAnimSequence* GetAdditiveBasePose() const { return nullptr; }
 
 #endif
+	// return true if anim notify is available 
+	virtual bool IsNotifyAvailable() const;
 
 protected:
 	template <typename DataType>

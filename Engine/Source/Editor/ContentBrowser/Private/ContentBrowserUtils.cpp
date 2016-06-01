@@ -1117,14 +1117,7 @@ bool ContentBrowserUtils::IsPluginFolder( const FString& InPath )
 
 bool ContentBrowserUtils::IsLocalizationFolder( const FString& InPath )
 {
-	static const FString EngineLocPathWithSlash = TEXT("/Engine/L10N");
-	static const FString EngineLocPathWithoutSlash = TEXT("Engine/L10N");
-
-	static const FString GameLocPathWithSlash = TEXT("/Game/L10N");
-	static const FString GameLocPathWithoutSlash = TEXT("Game/L10N");
-
-	return	InPath.StartsWith(EngineLocPathWithSlash) || InPath.StartsWith(EngineLocPathWithoutSlash) ||
-			InPath.StartsWith(GameLocPathWithSlash) || InPath.StartsWith(GameLocPathWithoutSlash);
+	return FPackageName::IsLocalizedPackage(InPath);
 }
 
 void ContentBrowserUtils::GetObjectsInAssetData(const TArray<FAssetData>& AssetList, TArray<UObject*>& OutDroppedObjects)
@@ -1529,7 +1522,7 @@ FText ContentBrowserUtils::GetExploreFolderText()
 {
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("FileManagerName"), FPlatformMisc::GetFileManagerName());
-	return FText::Format(NSLOCTEXT("GenericPlatform", "ShowInFileManager", "Show In {FileManagerName}"), Args);
+	return FText::Format(NSLOCTEXT("GenericPlatform", "ShowInFileManager", "Show in {FileManagerName}"), Args);
 }
 
 static const auto CVarMaxFullPathLength = 
@@ -1609,12 +1602,6 @@ bool ContentBrowserUtils::IsValidFolderPathForCreate(const FString& InFolderPath
 
 	const FString NewFolderPath = InFolderPath / NewFolderName;
 
-	if (ContentBrowserUtils::IsLocalizationFolder(NewFolderPath))
-	{
-		OutErrorMessage = LOCTEXT("LocalizationFolderReserved", "The L10N folder is reserved for localized content.");
-		return false;
-	}
-
 	if (ContentBrowserUtils::DoesFolderExist(NewFolderPath))
 	{
 		OutErrorMessage = LOCTEXT("RenameFolderAlreadyExists", "A folder already exists at this location with this name.");
@@ -1629,6 +1616,13 @@ bool ContentBrowserUtils::IsValidFolderPathForCreate(const FString& InFolderPath
 			"The full path for the folder is too deep, the maximum is '{0}'. Please choose a shorter name for the folder or create it in a shallower folder structure."),
 			FText::AsNumber(PLATFORM_MAX_FILEPATH_LENGTH));
 		// Return false to indicate that the user should enter a new name for the folder
+		return false;
+	}
+
+	const bool bDisplayL10N = GetDefault<UContentBrowserSettings>()->GetDisplayL10NFolder();
+	if (!bDisplayL10N && ContentBrowserUtils::IsLocalizationFolder(NewFolderPath))
+	{
+		OutErrorMessage = LOCTEXT("LocalizationFolderReserved", "The L10N folder is reserved for localized content and is currently hidden.");
 		return false;
 	}
 
@@ -1710,6 +1704,69 @@ bool ContentBrowserUtils::IsValidPackageForCooking(const FString& PackageName, F
 	}
 
 	return true;
+}
+
+void ContentBrowserUtils::SyncPackagesFromSourceControl(TArray<FString> PackageNames)
+{
+	// Form a list of loaded packages to prompt for save
+	TArray<UPackage*> LoadedPackages;
+	TArray<FString> LoadedPackageNames;
+	for (const auto& PackageName : PackageNames)
+	{
+		UPackage* Package = FindPackage(nullptr, *PackageName);
+		if (Package != nullptr)
+		{
+			LoadedPackages.Add(Package);
+			LoadedPackageNames.Add(PackageName);
+		}
+	}
+
+	// Prevent any level assets from being synced if they are currently being edited
+	bool bSyncingLevelBeingEdited = false;
+	LoadedPackages.RemoveAllSwap(
+		[&bSyncingLevelBeingEdited, &PackageNames, &LoadedPackageNames](UPackage* Package)
+		{
+			UWorld* ExistingWorld = UWorld::FindWorldInPackage(Package);
+			if (ExistingWorld && ExistingWorld->WorldType == EWorldType::Editor)
+			{
+				PackageNames.RemoveSwap(Package->GetName());
+				LoadedPackageNames.RemoveSwap(Package->GetName());
+				bSyncingLevelBeingEdited = true;
+				return true;
+			}
+
+			return false;
+		}
+	);
+
+	if (bSyncingLevelBeingEdited)
+	{
+		FNotificationInfo Info(LOCTEXT("CannotSyncLevelBeingEdited", "Level(s) being currently edited have not been synced."));
+		Info.ExpireDuration = 3.0f;
+		FSlateNotificationManager::Get().AddNotification(Info);
+	}
+
+	if (PackageNames.Num() > 0)
+	{
+		FText ErrorMessage;
+		PackageTools::UnloadPackages(LoadedPackages, ErrorMessage);
+
+		if (!ErrorMessage.IsEmpty())
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, ErrorMessage);
+		}
+		else
+		{
+			ISourceControlProvider& SCCProvider = ISourceControlModule::Get().GetProvider();
+			const TArray<FString> PackageFilenames = SourceControlHelpers::PackageFilenames(PackageNames);
+			SCCProvider.Execute(ISourceControlOperation::Create<FSync>(), PackageFilenames);
+			for (const FString& PackageName : LoadedPackageNames)
+			{
+				PackageTools::LoadPackage(PackageName);
+			}
+			SCCProvider.Execute(ISourceControlOperation::Create<FUpdateStatus>(), PackageFilenames, EConcurrency::Asynchronous);
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

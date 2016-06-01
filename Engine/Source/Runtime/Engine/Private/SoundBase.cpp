@@ -5,6 +5,9 @@
 #include "Sound/AudioSettings.h"
 #include "AudioDevice.h"
 
+USoundClass* USoundBase::DefaultSoundClassObject = nullptr;
+USoundConcurrency* USoundBase::DefaultSoundConcurrencyObject = nullptr;
+
 USoundBase::USoundBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, bIgnoreFocus(false)
@@ -17,17 +20,26 @@ void USoundBase::PostInitProperties()
 {
 	Super::PostInitProperties();
 
-	const FStringAssetReference DefaultSoundClassName = GetDefault<UAudioSettings>()->DefaultSoundClassName;
-	if (DefaultSoundClassName.IsValid())
+	if (USoundBase::DefaultSoundClassObject == nullptr)
 	{
-		SoundClassObject = LoadObject<USoundClass>(nullptr, *DefaultSoundClassName.ToString());
+		const FStringAssetReference DefaultSoundClassName = GetDefault<UAudioSettings>()->DefaultSoundClassName;
+		if (DefaultSoundClassName.IsValid())
+		{
+			USoundBase::DefaultSoundClassObject = LoadObject<USoundClass>(nullptr, *DefaultSoundClassName.ToString());
+		}
 	}
+	SoundClassObject = USoundBase::DefaultSoundClassObject;
 
-	const FStringAssetReference DefaultSoundConcurrencyName = GetDefault<UAudioSettings>()->DefaultSoundConcurrencyName;
-	if (DefaultSoundConcurrencyName.IsValid())
+	if (USoundBase::DefaultSoundConcurrencyObject == nullptr)
 	{
-		SoundConcurrencySettings = LoadObject<USoundConcurrency>(nullptr, *DefaultSoundConcurrencyName.ToString());
+		const FStringAssetReference DefaultSoundConcurrencyName = GetDefault<UAudioSettings>()->DefaultSoundConcurrencyName;
+		if (DefaultSoundConcurrencyName.IsValid())
+		{
+			USoundBase::DefaultSoundConcurrencyObject = LoadObject<USoundConcurrency>(nullptr, *DefaultSoundConcurrencyName.ToString());
+		}
 	}
+	SoundConcurrencySettings = USoundBase::DefaultSoundConcurrencyObject;
+
 }
 
 bool USoundBase::IsPlayable() const

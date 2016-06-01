@@ -270,7 +270,6 @@ namespace AutomationTool
             this.CrashIndex = InParams.CrashIndex;
             this.Port = InParams.Port;
 			this.SkipServer = InParams.SkipServer;
-			this.Rocket = InParams.Rocket;
 			this.Unattended = InParams.Unattended;
             this.ServerDeviceAddress = InParams.ServerDeviceAddress;
             this.DeviceUsername = InParams.DeviceUsername;
@@ -299,13 +298,14 @@ namespace AutomationTool
 			this.bCodeSign = InParams.bCodeSign;
 			this.UploadSymbols = InParams.UploadSymbols;
 			this.TitleID = InParams.TitleID;
+			this.bTreatNonShippingBinariesAsDebugFiles = InParams.bTreatNonShippingBinariesAsDebugFiles;
 			this.RunAssetNativization = InParams.RunAssetNativization;
 		}
 
 		/// <summary>
 		/// Constructor. Be sure to use this.ParamName to set the actual property name as parameter names and property names
 		/// overlap here.
-		/// If a parameter value is not set, it will be parsed from the command line if the command is null, the default value will be used.
+		/// If a parameter value is not set, it will be parsed from the command line; if the command is null, the default value will be used.
 		/// </summary>
 		public ProjectParams(			
 			FileReference RawProjectPath,
@@ -384,7 +384,6 @@ namespace AutomationTool
             bool? RunAutomationTests = null,
             string RunAutomationTest = null,
             int? CrashIndex = null,
-            bool? Rocket = null,
 			bool? SkipCook = null,
 			bool? SkipCookOnTheFly = null,
 			bool? SkipPak = null,
@@ -408,6 +407,7 @@ namespace AutomationTool
 			bool? IgnoreCookErrors = null,
             bool? RunAssetNativization = null,
 			bool? CodeSign = null,
+			bool? TreatNonShippingBinariesAsDebugFiles = null,
 			bool? UploadSymbols = null,
 			string Provision = null,
 			string Certificate = null,
@@ -425,10 +425,24 @@ namespace AutomationTool
 				this.DirectoriesToCook = DirectoriesToCook;
 			}
             this.InternationalizationPreset = ParseParamValueIfNotSpecified(Command, InternationalizationPreset, "i18npreset");
-            if (CulturesToCook != null)
-			{
+
+            // If not specified in parameters, check commandline.
+            if (CulturesToCook == null)
+            {
+                if (Command != null)
+                {
+                    var CookCulturesString = Command.ParseParamValue("CookCultures");
+                    if (CookCulturesString != null)
+                    {
+                        this.CulturesToCook = new ParamList<string>(CookCulturesString.Split(','));
+                    }
+                }
+            }
+            else
+            {
                 this.CulturesToCook = CulturesToCook;
-			}
+            }
+
 			if (ClientCookedTargets != null)
 			{
 				this.ClientCookedTargets = ClientCookedTargets;
@@ -484,6 +498,14 @@ namespace AutomationTool
 			this.Clean = GetOptionalParamValueIfNotSpecified(Command, Clean, this.Clean, "clean", null);
 			this.SignPak = ParseParamValueIfNotSpecified(Command, SignPak, "signpak", String.Empty);
 			this.SignedPak = !String.IsNullOrEmpty(this.SignPak) || GetParamValueIfNotSpecified(Command, SignedPak, this.SignedPak, "signedpak");
+			if (string.IsNullOrEmpty(this.SignPak))
+			{
+				this.SignPak = Path.Combine(RawProjectPath.Directory.FullName, @"Build\NoRedist\Keys.txt");
+				if (!File.Exists(this.SignPak))
+				{
+					this.SignPak = null;
+				}
+			}
 			this.Pak = this.SignedPak || GetParamValueIfNotSpecified(Command, Pak, this.Pak, "pak");
 			this.SkipPak = GetParamValueIfNotSpecified(Command, SkipPak, this.SkipPak, "skippak");
 			if (this.SkipPak)
@@ -530,6 +552,7 @@ namespace AutomationTool
 			}
 			this.StageDirectoryParam = ParseParamValueIfNotSpecified(Command, StageDirectoryParam, "stagingdirectory", String.Empty, true);
 			this.bCodeSign = GetParamValueIfNotSpecified(Command, CodeSign, CommandUtils.IsBuildMachine, "CodeSign");
+			this.bTreatNonShippingBinariesAsDebugFiles = GetParamValueIfNotSpecified(Command, TreatNonShippingBinariesAsDebugFiles, false, "TreatNonShippingBinariesAsDebugFiles");
 			this.Manifests = GetParamValueIfNotSpecified(Command, Manifests, this.Manifests, "manifests");
             this.CreateChunkInstall = GetParamValueIfNotSpecified(Command, CreateChunkInstall, this.CreateChunkInstall, "createchunkinstall");
 			this.ChunkInstallDirectory = ParseParamValueIfNotSpecified(Command, ChunkInstallDirectory, "chunkinstalldirectory", String.Empty, true);
@@ -595,7 +618,6 @@ namespace AutomationTool
             this.RunAutomationTest = ParseParamValueIfNotSpecified(Command, RunAutomationTest, "RunAutomationTest");
             this.RunAutomationTests = this.RunAutomationTest != "" || GetParamValueIfNotSpecified(Command, RunAutomationTests, this.RunAutomationTests, "RunAutomationTests");
             this.SkipServer = GetParamValueIfNotSpecified(Command, SkipServer, this.SkipServer, "skipserver");
-			this.Rocket = GetParamValueIfNotSpecified(Command, Rocket, this.Rocket || Automation.RunningRocket(), "rocket");
 			this.UE4Exe = ParseParamValueIfNotSpecified(Command, UE4Exe, "ue4exe", "UE4Editor-Cmd.exe");
 			this.Unattended = GetParamValueIfNotSpecified(Command, Unattended, this.Unattended, "unattended");
 			this.DeviceUsername = ParseParamValueIfNotSpecified(Command, DeviceUsername, "deviceuser", String.Empty);
@@ -789,13 +811,7 @@ namespace AutomationTool
 		public bool ForeignCode { private set; get; }
 
 		/// <summary>
-		/// Shared: true if we are running rocket
-		/// </summary>
-		[Help("Rocket", "true if we are running rocket")]
-		public bool Rocket { private set; get; }
-
-		/// <summary>
-		/// Shared: true if we are running rocket
+		/// Shared: true if we should build crash reporter
 		/// </summary>
 		[Help("CrashReporter", "true if we should build crash reporter")]
 		public bool CrashReporter { private set; get; }
@@ -870,11 +886,30 @@ namespace AutomationTool
 			return Pak || PlatformToCheck.RequiresPak(this) == Platform.PakType.Always;
 		}
 
+		private string SignPakInternal { get; set; }
+
 		/// <summary>
 		/// Shared: Encryption keys used for signing the pak file.
 		/// </summary>
 		[Help("signpak=keys", "sign the generated pak file with the specified key, i.e. -signpak=C:\\Encryption.keys. Also implies -signedpak.")]
-		public string SignPak { private set; get; }
+		public string SignPak 
+		{ 
+			private set
+			{
+				if (string.IsNullOrEmpty(value) || value.StartsWith("0x", StringComparison.InvariantCultureIgnoreCase))
+				{
+					SignPakInternal = value;
+				}
+				else
+				{
+					SignPakInternal = Path.GetFullPath(value);
+				}
+			}
+			get
+			{
+				return SignPakInternal;
+			}
+		}
 
 		/// <summary>
 		/// Shared: the game will use only signed content.
@@ -989,15 +1024,7 @@ namespace AutomationTool
 		/// <summary>
 		/// Shared: Ref to an auto-generated plugin file that should be incorporated into the project's build
 		/// </summary>
-		public FileReference NativizedScriptPlugin;
-
-		/// <summary>
-		/// Shared: Used to guard against fatal use of the GeneratedScriptPlugin param
-		/// </summary>
-		public bool UseNativizedScriptPlugin()
-		{
-			return (NativizedScriptPlugin != null) && NativizedScriptPlugin.Exists();
-		}
+        public List<FileReference> BlueprintPluginPaths = new List<FileReference>();
 
 		#endregion
 
@@ -1178,7 +1205,7 @@ namespace AutomationTool
         /// <summary>
         /// Cook: List of cultures to cook.
         /// </summary>
-        public ParamList<string> CulturesToCook = new ParamList<string>();
+        public ParamList<string> CulturesToCook;
 
         /// <summary>
         /// Compress packages during cook.
@@ -1193,7 +1220,7 @@ namespace AutomationTool
         /// <summary>
         /// Cook: Do not include a version number in the cooked content
         /// </summary>
-        public bool UnversionedCookedContent;
+        public bool UnversionedCookedContent = true;
 
 
 		/// <summary>
@@ -1325,6 +1352,11 @@ namespace AutomationTool
 		/// TitleID to package
 		/// </summary>
 		public ParamList<string> TitleID = new ParamList<string>();
+
+		/// <summary>
+		/// If true, non-shipping binaries will be considered DebugUFS files and will appear on the debugfiles manifest
+		/// </summary>
+		public bool bTreatNonShippingBinariesAsDebugFiles = false;
 
 		#endregion
 
@@ -1562,50 +1594,7 @@ namespace AutomationTool
 			var ProgramTarget = String.Empty;
 			var ProjectType = TargetRules.TargetType.Game;
 
-			if (Automation.RunningRocket())
-			{
-				if (!CommandUtils.CmdEnv.HasCapabilityToCompile || !bIsCodeBasedProject)
-				{
-					if (bIsCodeBasedProject)
-					{
-						var ShortName = ProjectUtils.GetShortProjectName(RawProjectPath);
-						GameTarget = ShortName;
-						EditorTarget = ShortName + "Editor";
-						ServerTarget = ShortName + "Server";
-					}
-					else
-					{
-						GameTarget = "UE4Game";
-						EditorTarget = "UE4Editor";
-						//ServerTarget = "RocketServer";
-
-						Build = false;
-					}
-				}
-				else
-				{
-					SingleTargetProperties TargetData;
-					if (DetectedTargets.TryGetValue(TargetRules.TargetType.Editor, out TargetData))
-					{
-						EditorTarget = TargetData.TargetName;
-					}
-
-					if (DetectedTargets.TryGetValue(TargetRules.TargetType.Program, out TargetData))
-					{
-						ProgramTarget = TargetData.TargetName;
-					}
-					//DetectedTargets.TryGetValue(TargetRules.TargetType.Server, out ServerTarget);
-
-					if (string.IsNullOrEmpty(GameTarget))
-					{
-						if (DetectedTargets.TryGetValue(TargetRules.TargetType.Game, out TargetData))
-						{
-							GameTarget = TargetData.TargetName;
-						}
-					}
-				}
-			}
-			else if (!bIsCodeBasedProject)
+			if (!bIsCodeBasedProject)
 			{
 				GameTarget = "UE4Game";
 				EditorTarget = "UE4Editor";
@@ -1697,7 +1686,7 @@ namespace AutomationTool
 
 			IsProgramTarget = ProjectType == TargetRules.TargetType.Program;
 
-			if (String.IsNullOrEmpty(EditorTarget) && ProjectType != TargetRules.TargetType.Program && CommandUtils.IsNullOrEmpty(EditorTargetsList) && !Rocket)
+			if (String.IsNullOrEmpty(EditorTarget) && ProjectType != TargetRules.TargetType.Program && CommandUtils.IsNullOrEmpty(EditorTargetsList))
 			{
 				if (Properties.bWasGenerated)
 				{
@@ -1708,7 +1697,7 @@ namespace AutomationTool
 					throw new AutomationException("Editor target not found!");
 				}
 			}
-			if (String.IsNullOrEmpty(GameTarget) && Run && !NoClient && (Cook || CookOnTheFly) && CommandUtils.IsNullOrEmpty(ClientCookedTargetsList) && !Rocket)
+			if (String.IsNullOrEmpty(GameTarget) && Run && !NoClient && (Cook || CookOnTheFly) && CommandUtils.IsNullOrEmpty(ClientCookedTargetsList))
 			{
 				throw new AutomationException("Game target not found. Game target is required with -cook or -cookonthefly");
 			}
@@ -1861,7 +1850,7 @@ namespace AutomationTool
 
         public bool HasCulturesToCook
         {
-            get { return !CommandUtils.IsNullOrEmpty(CulturesToCook); }
+            get { return CulturesToCook != null; }
         }
 
 		public bool HasGameTargetDetected
@@ -1934,12 +1923,18 @@ namespace AutomationTool
 			String Platform = SC.StageTargetPlatform.GetCookPlatform(SC.DedicatedServer, false, CookFlavor);
 			if (String.IsNullOrEmpty(BasePath))
 			{
-				BasePath = CommandUtils.CombinePaths(SC.ProjectRoot, "Releases", BasedOnReleaseVersion, Platform);
+                BasePath = CommandUtils.CombinePaths(SC.ProjectRoot, "Releases", BasedOnReleaseVersion, Platform);
 			}
 			else
 			{
 				BasePath = CommandUtils.CombinePaths(BasePath, BasedOnReleaseVersion, Platform);
 			}
+
+            /*if ( TitleID != null && TitleID.Count == 1 )
+            {
+                BasePath = CommandUtils.CombinePaths( BasePath, TitleID[0]);
+            }*/
+
 			return BasePath;
 		}
 
@@ -1960,6 +1955,12 @@ namespace AutomationTool
 			{
 				BasePath = CommandUtils.CombinePaths(BasePath, CreateReleaseVersion, Platform);
 			}
+
+            /*if (TitleID != null && TitleID.Count == 1)
+            {
+                BasePath = CommandUtils.CombinePaths(BasePath, TitleID[0]);
+            }*/
+
 			return BasePath;
 		}
 
@@ -2236,7 +2237,7 @@ namespace AutomationTool
                 CommandUtils.LogLog("AdditionalCookerOptions={0}", AdditionalCookerOptions);
 				CommandUtils.LogLog("DedicatedServer={0}", DedicatedServer);
 				CommandUtils.LogLog("DirectoriesToCook={0}", DirectoriesToCook.ToString());
-                CommandUtils.LogLog("CulturesToCook={0}", CulturesToCook.ToString());
+                CommandUtils.LogLog("CulturesToCook={0}", CommandUtils.IsNullOrEmpty(CulturesToCook) ? "<Not Specified> (Use Defaults)" : CulturesToCook.ToString());
 				CommandUtils.LogLog("EditorTargets={0}", EditorTargets.ToString());
 				CommandUtils.LogLog("Foreign={0}", Foreign);
 				CommandUtils.LogLog("IsCodeBasedProject={0}", IsCodeBasedProject.ToString());
@@ -2275,7 +2276,6 @@ namespace AutomationTool
 				CommandUtils.LogLog("Prereqs={0}", Prereqs);
 				CommandUtils.LogLog("NoBootstrapExe={0}", NoBootstrapExe);
 				CommandUtils.LogLog("RawProjectPath={0}", RawProjectPath);
-				CommandUtils.LogLog("Rocket={0}", Rocket);
 				CommandUtils.LogLog("Run={0}", Run);
 				CommandUtils.LogLog("ServerConfigsToBuild={0}", string.Join(",", ServerConfigsToBuild));
 				CommandUtils.LogLog("ServerCookedTargets={0}", ServerCookedTargets.ToString());
@@ -2292,6 +2292,7 @@ namespace AutomationTool
 				CommandUtils.LogLog("bUsesCEF3={0}", bUsesCEF3);
 				CommandUtils.LogLog("bUsesSlate={0}", bUsesSlate);
                 CommandUtils.LogLog("bDebugBuildsActuallyUseDebugCRT={0}", bDebugBuildsActuallyUseDebugCRT);
+				CommandUtils.LogLog("bTreatNonShippingBinariesAsDebugFiles={0}", bTreatNonShippingBinariesAsDebugFiles);
 				CommandUtils.LogLog("UploadSymbols={0}", UploadSymbols);
                 CommandUtils.LogLog("NativizeAssets={0}", RunAssetNativization);
 				CommandUtils.LogLog("Project Params **************");

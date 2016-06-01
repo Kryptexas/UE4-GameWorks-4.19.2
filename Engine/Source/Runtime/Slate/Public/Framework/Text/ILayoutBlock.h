@@ -5,6 +5,8 @@ class SLATE_API ILayoutBlock
 {
 public:
 
+	virtual ~ILayoutBlock() {}
+
 	virtual TSharedRef< class IRun > GetRun() const = 0;
 	virtual FTextRange GetTextRange() const = 0;
 	virtual FVector2D GetSize() const = 0;

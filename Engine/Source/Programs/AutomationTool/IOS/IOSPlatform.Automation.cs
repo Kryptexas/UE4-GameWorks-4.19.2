@@ -440,16 +440,25 @@ public class IOSPlatform : Platform
 			// project.xcodeproj doesn't exist, so generate temp project
 			string Arguments = "-project=\"" + RawProjectPath + "\"";
 			Arguments += " -platforms=" + PlatformName + " -game -nointellisense -" + PlatformName + "deployonly -ignorejunk";
-			string Script = CombinePaths(CmdEnv.LocalRoot, "Engine/Build/BatchFiles/Mac/GenerateProjectFiles.sh");
-			if (Automation.RunningRocket())
+
+			// If engine is installed then UBT doesn't need to be built
+			if (Automation.IsEngineInstalled())
 			{
-				Script = CombinePaths(CmdEnv.LocalRoot, "Engine/Build/BatchFiles/Mac/RocketGenerateProjectFiles.sh");
+				// Get the path to UBT
+				string InstalledUBT = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/DotNET/UnrealBuildTool.exe");
+				Arguments = "-XcodeProjectFile " + Arguments;
+				RunUBT(CmdEnv, InstalledUBT, Arguments);
 			}
-			string CWD = Directory.GetCurrentDirectory ();
-			Directory.SetCurrentDirectory (Path.GetDirectoryName (Script));
-			Run (Script, Arguments, null, ERunOptions.Default);
+			else
+			{
+				string Script = CombinePaths(CmdEnv.LocalRoot, "Engine/Build/BatchFiles/Mac/GenerateProjectFiles.sh");
+				string CWD = Directory.GetCurrentDirectory();
+				Directory.SetCurrentDirectory(Path.GetDirectoryName(Script));
+				Run(Script, Arguments, null, ERunOptions.Default);
+				Directory.SetCurrentDirectory(CWD);
+			}
+
 			bWasGenerated = true;
-			Directory.SetCurrentDirectory (CWD);
 
 			if (!Directory.Exists (XcodeProj))
 			{
@@ -705,6 +714,107 @@ public class IOSPlatform : Platform
 			throw new AutomationException("ARCHIVE FAILED - {0} was not found", ProjectIPA);
 		}
 
+		// create a temporary archive
+		string ArchivePath = CombinePaths((SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "/Engine"), "Intermediate", PlatformName, "Archive");
+		if (!DirectoryExists(ArchivePath))
+		{
+			CreateDirectory(ArchivePath);
+		}
+		string ArchiveName = Path.Combine(ArchivePath, Path.GetFileNameWithoutExtension(ProjectIPA) + ".xcarchive");
+		if (!DirectoryExists(ArchiveName))
+		{
+			CreateDirectory(ArchiveName);
+		}
+		DeleteDirectoryContents(ArchiveName);
+
+		// create the archive folders
+		CreateDirectory(new string[] { Path.Combine(ArchiveName, "dSYMS"), Path.Combine(ArchiveName, "Products", "Applications") });
+
+		// copy in the application
+		string AppName = Path.GetFileNameWithoutExtension(ProjectIPA) + ".app";
+		using (ZipFile Zip = new ZipFile(ProjectIPA))
+		{
+			Zip.ExtractAll(ArchivePath, ExtractExistingFileAction.OverwriteSilently);
+
+			List<string> Dirs = new List<string>(Directory.EnumerateDirectories(Path.Combine(ArchivePath, "Payload"), "*.app"));
+			AppName = Dirs[0].Substring(Dirs[0].LastIndexOf(UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac ? "\\" : "/") + 1);
+			CopyDirectory_NoExceptions(Path.Combine(ArchivePath, "Payload", AppName), Path.Combine(ArchiveName, "Products", "Applications", AppName));
+		}
+
+		// copy in the dSYM if found
+		if (File.Exists(Path.Combine(SC.ProjectBinariesFolder, (SC.IsCodeBasedProject ? Path.GetFileNameWithoutExtension(ProjectIPA) : "UE4Game") + ".dSYM")))
+		{
+			CopyFile_NoExceptions(Path.Combine(SC.ProjectBinariesFolder, (SC.IsCodeBasedProject ? Path.GetFileNameWithoutExtension(ProjectIPA) : "UE4Game") + ".dSYM"), Path.Combine(ArchiveName, "dSYMS", (SC.IsCodeBasedProject ? Path.GetFileNameWithoutExtension(ProjectIPA) : "UE4Game") + ".dSYM"));
+		}
+
+		// get the settings from the app plist file
+		string AppPlist = Path.Combine(ArchiveName, "Products", "Applications", AppName, "Info.plist");
+		string OldPListData = File.Exists(AppPlist) ? File.ReadAllText(AppPlist) : "";
+
+		// bundle identifier
+		int index = OldPListData.IndexOf("CFBundleIdentifier");
+		index = OldPListData.IndexOf("<string>", index) + 8;
+		int length = OldPListData.IndexOf("</string>", index) - index;
+		string BundleIdentifier = OldPListData.Substring(index, length);
+
+		// short version
+		index = OldPListData.IndexOf("CFBundleShortVersionString");
+		index = OldPListData.IndexOf("<string>", index) + 8;
+		length = OldPListData.IndexOf("</string>", index) - index;
+		string BundleShortVersion = OldPListData.Substring(index, length);
+
+		// bundle version
+		index = OldPListData.IndexOf("CFBundleVersion");
+		index = OldPListData.IndexOf("<string>", index) + 8;
+		length = OldPListData.IndexOf("</string>", index) - index;
+		string BundleVersion = OldPListData.Substring(index, length);
+
+		// date we made this
+		const string Iso8601DateTimeFormat = "yyyy-MM-ddTHH:mm:ssZ";
+		string TimeStamp = DateTime.UtcNow.ToString(Iso8601DateTimeFormat);
+
+		// TODO: signing identity used
+		string SigningIdentity = "iPhone Developer: Josh2 Adams (NR2G5M9GN3)";
+
+		// create the archive plist
+		StringBuilder Text = new StringBuilder();
+		Text.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+		Text.AppendLine("<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">");
+		Text.AppendLine("<plist version=\"1.0\">");
+		Text.AppendLine("<dict>");
+		Text.AppendLine("\t<key>ApplicationProperties</key>");
+		Text.AppendLine("\t<dict>");
+		Text.AppendLine("\t\t<key>ApplicationPath</key>");
+		Text.AppendLine("\t\t<string>Applications/" + AppName + "</string>");
+		Text.AppendLine("\t\t<key>CFBundleIdentifier</key>");
+		Text.AppendLine(string.Format("\t\t<string>{0}</string>", BundleIdentifier));
+		Text.AppendLine("\t\t<key>CFBundleShortVersionString</key>");
+		Text.AppendLine(string.Format("\t\t<string>{0}</string>", BundleShortVersion));
+		Text.AppendLine("\t\t<key>CFBundleVersion</key>");
+		Text.AppendLine(string.Format("\t\t<string>{0}</string>", BundleVersion));
+		Text.AppendLine("\t\t<key>SigningIdentity</key>");
+		Text.AppendLine(string.Format("\t\t<string>iPhone Developer: Josh2 Adams (NR2G5M9GN3)</string>", SigningIdentity));
+		Text.AppendLine("\t</dict>");
+		Text.AppendLine("\t<key>ArchiveVersion</key>");
+		Text.AppendLine("\t<integer>2</integer>");
+		Text.AppendLine("\t<key>CreationDate</key>");
+		Text.AppendLine(string.Format("\t<date>{0}</date>", TimeStamp));
+		Text.AppendLine("\t<key>DefaultToolchainInfo</key>");
+		Text.AppendLine("\t<dict>");
+		Text.AppendLine("\t\t<key>DisplayName</key>");
+		Text.AppendLine("\t\t<string>Xcode 7.3 Default</string>");
+		Text.AppendLine("\t\t<key>Identifier</key>");
+		Text.AppendLine("\t\t<string>com.apple.dt.toolchain.XcodeDefault</string>");
+		Text.AppendLine("\t</dict>");
+		Text.AppendLine("\t<key>Name</key>");
+		Text.AppendLine(string.Format("\t<string>{0}</string>", SC.ShortProjectName));
+		Text.AppendLine("\t<key>SchemeName</key>");
+		Text.AppendLine(string.Format("\t<string>{0}</string>", SC.ShortProjectName));
+		Text.AppendLine("</dict>");
+		Text.AppendLine("</plist>");
+		File.WriteAllText(Path.Combine(ArchiveName, "Info.plist"), Text.ToString());
+
+		SC.ArchiveFiles(ArchiveName, "*", true, null, Path.GetFileNameWithoutExtension(ProjectIPA) + ".xcarchive");
 		SC.ArchiveFiles(Path.GetDirectoryName(ProjectIPA), Path.GetFileName(ProjectIPA));
 	}
 
@@ -726,7 +836,7 @@ public class IOSPlatform : Platform
 				int EndPos = Contents.IndexOf("</string>", Pos);
 				BundleIdentifier = Contents.Substring(Pos, EndPos - Pos);
 			}
-			RunAndLog(CmdEnv, DeployServer, "Backup -file \"" + CombinePaths(Params.BaseStageDirectory, PlatformName, DeploymentContext.UFSDeployedManifestFileName) + "\" -file \"" + CombinePaths(Params.BaseStageDirectory, PlatformName, DeploymentContext.NonUFSDeployedManifestFileName) + "\"" + (String.IsNullOrEmpty(Params.Device) ? "" : " -device " + Params.Device.Substring(Params.Device.IndexOf("@") + 1)) + " -bundle " + BundleIdentifier);
+			RunAndLog(CmdEnv, DeployServer, "Backup -file \"" + CombinePaths(Params.BaseStageDirectory, PlatformName, SC.UFSDeployedManifestFileName) + "\" -file \"" + CombinePaths(Params.BaseStageDirectory, PlatformName, SC.NonUFSDeployedManifestFileName) + "\"" + (String.IsNullOrEmpty(Params.Device) ? "" : " -device " + Params.Device.Substring(Params.Device.IndexOf("@") + 1)) + " -bundle " + BundleIdentifier);
 
 			string[] ManifestFiles = Directory.GetFiles(CombinePaths(Params.BaseStageDirectory, PlatformName), "*_Manifest_UFS*.txt");
 			UFSManifests.AddRange(ManifestFiles);

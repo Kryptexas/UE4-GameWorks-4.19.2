@@ -362,7 +362,7 @@ void UDebugSkelMeshComponent::EnablePreview(bool bEnable, UAnimationAsset* Previ
 
 bool UDebugSkelMeshComponent::ShouldCPUSkin()
 {
-	return bDrawBoneInfluences || bDrawNormals || bDrawTangents || bDrawBinormals;
+	return 	bCPUSkinning || bDrawBoneInfluences || bDrawNormals || bDrawTangents || bDrawBinormals;
 }
 
 
@@ -420,7 +420,7 @@ void UDebugSkelMeshComponent::GenSpaceBases(TArray<FTransform>& OutSpaceBases)
 	TArray<FTransform> TempLocalAtoms;
 	TempLocalAtoms.AddUninitialized(OutSpaceBases.Num());
 	FVector TempRootBoneTranslation;
-	FBlendedCurve TempCurve;
+	FBlendedHeapCurve TempCurve;
 	PerformAnimationEvaluation(SkeletalMesh, AnimScriptInstance, OutSpaceBases, TempLocalAtoms, TempRootBoneTranslation, TempCurve);
 }
 
@@ -501,11 +501,25 @@ void UDebugSkelMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction*
 					CSAdditiveBasePose.InitPose(AdditiveBasePose);
 				}
 
-				AdditiveBasePoses.AddUninitialized(PreviewInstance->GetRequiredBones().GetNumBones());
+				FBoneContainer& BoneContainer = PreviewInstance->GetRequiredBones();
+				const int32 NumSkeletonBones = BoneContainer.GetNumBones();
+
+				AdditiveBasePoses.AddUninitialized(NumSkeletonBones);
+
 				for (int32 i = 0; i < AdditiveBasePoses.Num(); ++i)
 				{
-					FCompactPoseBoneIndex CompactIndex = PreviewInstance->GetRequiredBones().MakeCompactPoseIndex(FMeshPoseBoneIndex(i));
-					AdditiveBasePoses[i] = CSAdditiveBasePose.GetComponentSpaceTransform(CompactIndex);
+					FCompactPoseBoneIndex CompactIndex = BoneContainer.MakeCompactPoseIndex(FMeshPoseBoneIndex(i));
+
+					// AdditiveBasePoses has one entry for every bone in the asset ref skeleton - if we're on a LOD
+					// we need to check this is actually valid for the current pose.
+					if(CSAdditiveBasePose.GetPose().IsValidIndex(CompactIndex))
+					{
+						AdditiveBasePoses[i] = CSAdditiveBasePose.GetComponentSpaceTransform(CompactIndex);
+					}
+					else
+					{
+						AdditiveBasePoses[i] = FTransform::Identity;
+					}
 				}
 			}
 		}

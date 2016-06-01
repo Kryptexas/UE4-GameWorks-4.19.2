@@ -158,7 +158,14 @@ public:
 	 */
 	virtual ECompressionFlags GetBaseCompressionMethod() const = 0;
 
-	/** 
+	/**
+	 * Gets the bit window for compressor for this platform.
+	 *
+	 * @return Compression bit window.
+	 */
+	virtual int32 GetCompressionBitWindow() const = 0;
+
+	/**
 	 * Generates a platform specific asset manifest given an array of FAssetData.
 	 *
 	 * @param ChunkMap A map of asset path to ChunkIDs for all of the assets.

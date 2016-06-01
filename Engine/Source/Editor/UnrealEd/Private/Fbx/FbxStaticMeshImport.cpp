@@ -1,33 +1,5 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-/*
-* Copyright 2009 Autodesk, Inc.  All Rights Reserved.
-*
-* Permission to use, copy, modify, and distribute this software in object
-* code form for any purpose and without fee is hereby granted, provided
-* that the above copyright notice appears in all copies and that both
-* that copyright notice and the limited warranty and restricted rights
-* notice below appear in all supporting documentation.
-*
-* AUTODESK PROVIDES THIS PROGRAM "AS IS" AND WITH ALL FAULTS.
-* AUTODESK SPECIFICALLY DISCLAIMS ANY AND ALL WARRANTIES, WHETHER EXPRESS
-* OR IMPLIED, INCLUDING WITHOUT LIMITATION THE IMPLIED WARRANTY
-* OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR USE OR NON-INFRINGEMENT
-* OF THIRD PARTY RIGHTS.  AUTODESK DOES NOT WARRANT THAT THE OPERATION
-* OF THE PROGRAM WILL BE UNINTERRUPTED OR ERROR FREE.
-*
-* In no event shall Autodesk, Inc. be liable for any direct, indirect,
-* incidental, special, exemplary, or consequential damages (including,
-* but not limited to, procurement of substitute goods or services;
-* loss of use, data, or profits; or business interruption) however caused
-* and on any theory of liability, whether in contract, strict liability,
-* or tort (including negligence or otherwise) arising in any way out
-* of such code.
-*
-* This software is provided to the U.S. Government with the same rights
-* and restrictions as described herein.
-*/
-
 /*=============================================================================
 	Static mesh creation from FBX data.
 	Largely based on StaticMeshEdit.cpp
@@ -139,6 +111,10 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxNode* Node, UStaticMesh
 					{
 						const char* UVSetName = ElementUV->GetName();
 						FString LocalUVSetName = UTF8_TO_TCHAR(UVSetName);
+						if (LocalUVSetName.IsEmpty())
+						{
+							LocalUVSetName = TEXT("UVmap_") + FString::FromInt(UVLayerIndex);
+						}
 
 						UVSets.AddUnique(LocalUVSetName);
 					}
@@ -310,6 +286,10 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxNode* Node, UStaticMesh
 					{
 						const char* UVSetName = ElementUV->GetName();
 						FString LocalUVSetName = UTF8_TO_TCHAR(UVSetName);
+						if (LocalUVSetName.IsEmpty())
+						{
+							LocalUVSetName = TEXT("UVmap_") + FString::FromInt(UVLayerIndex);
+						}
 						if (LocalUVSetName == UVSets[UVIndex])
 						{
 							LayerElementUV[UVIndex] = ElementUV;
@@ -518,7 +498,7 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxNode* Node, UStaticMesh
 			else
 			{
 				FbxVector4 FbxPosition = Mesh->GetControlPoints()[ControlPointIndex];
-				FbxVector4 FinalPosition = ImportOptions->bTransformVertexToAbsolute ? TotalMatrix.MultT(FbxPosition) : FbxPosition;
+				FbxVector4 FinalPosition = TotalMatrix.MultT(FbxPosition);
 				int32 VertexIndex = RawMesh.VertexPositions.Add(Converter.ConvertPos(FinalPosition));
 				RawMesh.WedgeIndices[WedgeIndex] = VertexIndex;
 				IndexMap.Add(ControlPointIndex,VertexIndex);
@@ -545,10 +525,7 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxNode* Node, UStaticMesh
 						TangentMapIndex : LayerElementTangent->GetIndexArray().GetAt(TangentMapIndex);
 
 					FbxVector4 TempValue = LayerElementTangent->GetDirectArray().GetAt(TangentValueIndex);
-					if (ImportOptions->bTransformVertexToAbsolute)
-					{
-						TempValue = TotalMatrixForNormal.MultT(TempValue);
-					}
+					TempValue = TotalMatrixForNormal.MultT(TempValue);
 					FVector TangentX = Converter.ConvertDir(TempValue);
 					RawMesh.WedgeTangentX[WedgeIndex] = TangentX.GetSafeNormal();
 
@@ -558,19 +535,13 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxNode* Node, UStaticMesh
 						BinormalMapIndex : LayerElementBinormal->GetIndexArray().GetAt(BinormalMapIndex);
 
 					TempValue = LayerElementBinormal->GetDirectArray().GetAt(BinormalValueIndex);
-					if (ImportOptions->bTransformVertexToAbsolute)
-					{
-						TempValue = TotalMatrixForNormal.MultT(TempValue);
-					}
+					TempValue = TotalMatrixForNormal.MultT(TempValue);
 					FVector TangentY = -Converter.ConvertDir(TempValue);
 					RawMesh.WedgeTangentY[WedgeIndex] = TangentY.GetSafeNormal();
 				}
 
 				FbxVector4 TempValue = LayerElementNormal->GetDirectArray().GetAt(NormalValueIndex);
-				if (ImportOptions->bTransformVertexToAbsolute)
-				{
-					TempValue = TotalMatrixForNormal.MultT(TempValue);
-				}
+				TempValue = TotalMatrixForNormal.MultT(TempValue);
 				FVector TangentZ = Converter.ConvertDir(TempValue);
 				RawMesh.WedgeTangentZ[WedgeIndex] = TangentZ.GetSafeNormal();
 			}
@@ -706,10 +677,10 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxNode* Node, UStaticMesh
 	return true;
 }
 
-UStaticMesh* UnFbx::FFbxImporter::ReimportSceneStaticMesh(uint64 FbxUniqueId, UStaticMesh* Mesh, UFbxStaticMeshImportData* TemplateImportData)
+UStaticMesh* UnFbx::FFbxImporter::ReimportSceneStaticMesh(uint64 FbxNodeUniqueId, uint64 FbxUniqueId, UStaticMesh* Mesh, UFbxStaticMeshImportData* TemplateImportData)
 {
 	TArray<FbxNode*> FbxMeshArray;
-	UStaticMesh* NewMesh = NULL;
+	UStaticMesh* FirstBaseMesh = NULL;
 	FbxNode* Node = NULL;
 
 	// get meshes in Fbx file
@@ -726,10 +697,21 @@ UStaticMesh* UnFbx::FFbxImporter::ReimportSceneStaticMesh(uint64 FbxUniqueId, US
 		//Find the first node using the mesh attribute with the unique ID
 		for (FbxNode *MeshNode : FbxMeshArray)
 		{
-			if(FbxUniqueId == MeshNode->GetMesh()->GetUniqueID())
+			if (FbxNodeUniqueId == INVALID_UNIQUE_ID || ImportOptions->bBakePivotInVertex == false)
 			{
-				Node = MeshNode;
-				break;
+				if (FbxUniqueId == MeshNode->GetMesh()->GetUniqueID())
+				{
+					Node = MeshNode;
+					break;
+				}
+			}
+			else
+			{
+				if (FbxNodeUniqueId == MeshNode->GetUniqueID() && FbxUniqueId == MeshNode->GetMesh()->GetUniqueID())
+				{
+					Node = MeshNode;
+					break;
+				}
 			}
 		}
 	}
@@ -741,31 +723,33 @@ UStaticMesh* UnFbx::FFbxImporter::ReimportSceneStaticMesh(uint64 FbxUniqueId, US
 		return Mesh;
 	}
 
-	struct ExistingStaticMeshData* ExistMeshDataPtr = SaveExistingStaticMeshData(Mesh, false);
+	struct ExistingStaticMeshData* ExistMeshDataPtr = SaveExistingStaticMeshData(Mesh, !ImportOptions->bImportMaterials);
 
 	if (Node)
 	{
-		FbxNode* NodeParent = Node->GetParent();
-		// Don't import materials and textures during a reimport
-		ImportOptions->bImportMaterials = true;
-		ImportOptions->bImportTextures = true;
+		FbxNode* NodeParent = RecursiveFindParentLodGroup(Node->GetParent());
 
 		// if the Fbx mesh is a part of LODGroup, update LOD
 		if (NodeParent && NodeParent->GetNodeAttribute() && NodeParent->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)
 		{
-			NewMesh = ImportStaticMesh(Mesh->GetOutermost(), NodeParent->GetChild(0), *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, Mesh, 0);
-			if (NewMesh)
+			TArray<UStaticMesh*> BaseMeshes;
+			TArray<FbxNode*> AllNodeInLod;
+			FindAllLODGroupNode(AllNodeInLod, NodeParent, 0);
+			FirstBaseMesh = ImportStaticMeshAsSingle(Mesh->GetOutermost(), AllNodeInLod, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, Mesh, 0);
+			if(FirstBaseMesh)
 			{
 				// import LOD meshes
 				for (int32 LODIndex = 1; LODIndex < NodeParent->GetChildCount(); LODIndex++)
 				{
-					ImportStaticMesh(Mesh->GetOutermost(), NodeParent->GetChild(LODIndex), *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, Mesh, LODIndex);
+					AllNodeInLod.Empty();
+					FindAllLODGroupNode(AllNodeInLod, NodeParent, LODIndex);
+					ImportStaticMeshAsSingle(Mesh->GetOutermost(), AllNodeInLod, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, FirstBaseMesh, LODIndex);
 				}
 			}
 		}
 		else
 		{
-			NewMesh = ImportStaticMesh(Mesh->GetOutermost(), Node, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, Mesh, 0);
+			FirstBaseMesh = ImportStaticMesh(Mesh->GetOutermost(), Node, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, Mesh, 0);
 		}
 	}
 	else
@@ -773,7 +757,7 @@ UStaticMesh* UnFbx::FFbxImporter::ReimportSceneStaticMesh(uint64 FbxUniqueId, US
 		// no FBX mesh match, maybe the Unreal mesh is imported from multiple FBX mesh (enable option "Import As Single")
 		if (FbxMeshArray.Num() > 0)
 		{
-			NewMesh = ImportStaticMeshAsSingle(Mesh->GetOutermost(), FbxMeshArray, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, Mesh, 0);
+			FirstBaseMesh = ImportStaticMeshAsSingle(Mesh->GetOutermost(), FbxMeshArray, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, Mesh, 0);
 		}
 		else // no mesh found in the FBX file
 		{
@@ -781,8 +765,8 @@ UStaticMesh* UnFbx::FFbxImporter::ReimportSceneStaticMesh(uint64 FbxUniqueId, US
 		}
 	}
 	//Don't restore materials when reimporting scene
-	RestoreExistingMeshData(ExistMeshDataPtr, NewMesh);
-	return NewMesh;
+	RestoreExistingMeshData(ExistMeshDataPtr, FirstBaseMesh);
+	return FirstBaseMesh;
 }
 
 
@@ -850,7 +834,8 @@ UStaticMesh* UnFbx::FFbxImporter::ReimportStaticMesh(UStaticMesh* Mesh, UFbxStat
 	if (!Node && FbxMeshArray.IsValidIndex(0))
 	{
 		FbxNode* BaseLODNode = FbxMeshArray[0];
-		FbxNode* NodeParent = BaseLODNode ? BaseLODNode->GetParent() : NULL;
+		
+		FbxNode* NodeParent = BaseLODNode ? RecursiveFindParentLodGroup(BaseLODNode->GetParent()) : nullptr;
 		if (NodeParent && NodeParent->GetNodeAttribute() && NodeParent->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)
 		{
 			// Reimport the entire LOD chain.
@@ -858,25 +843,37 @@ UStaticMesh* UnFbx::FFbxImporter::ReimportStaticMesh(UStaticMesh* Mesh, UFbxStat
 		}
 	}
 	
-	struct ExistingStaticMeshData* ExistMeshDataPtr = SaveExistingStaticMeshData(Mesh, true);
+	UFbxAssetImportData* ImportData = Cast<UFbxAssetImportData>(Mesh->AssetImportData);
+	ImportOptions->bImportMaterials = ImportData->bImportMaterials;
+	ImportOptions->bImportTextures = ImportData->bImportMaterials;
+
+	struct ExistingStaticMeshData* ExistMeshDataPtr = SaveExistingStaticMeshData(Mesh, !ImportOptions->bImportMaterials);
 
 	if (Node)
 	{
-		FbxNode* NodeParent = Node->GetParent();
-		// Don't import materials and textures during a reimport
-		ImportOptions->bImportMaterials = false;
-		ImportOptions->bImportTextures = false;
-		
+		FbxNode* NodeParent = RecursiveFindParentLodGroup(Node->GetParent());
+
 		// if the Fbx mesh is a part of LODGroup, update LOD
 		if (NodeParent && NodeParent->GetNodeAttribute() && NodeParent->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)
 		{
-			NewMesh = ImportStaticMesh(Mesh->GetOuter(), NodeParent->GetChild(0), *Mesh->GetName(), RF_Public|RF_Standalone, TemplateImportData, Mesh, 0);
-			if (NewMesh)
+			TArray<FbxNode*> AllNodeInLod;
+			FindAllLODGroupNode(AllNodeInLod, NodeParent, 0);
+			if (AllNodeInLod.Num() > 0)
+			{
+				NewMesh = ImportStaticMeshAsSingle(Mesh->GetOuter(), AllNodeInLod, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, Mesh, 0);
+			}
+
+			if (NewMesh && ImportOptions->bImportStaticMeshLODs)
 			{
 				// import LOD meshes
 				for (int32 LODIndex = 1; LODIndex < NodeParent->GetChildCount(); LODIndex++)
 				{
-					ImportStaticMesh(Mesh->GetOuter(), NodeParent->GetChild(LODIndex), *Mesh->GetName(), RF_Public|RF_Standalone, TemplateImportData, Mesh, LODIndex);
+					AllNodeInLod.Empty();
+					FindAllLODGroupNode(AllNodeInLod, NodeParent, LODIndex);
+					if (AllNodeInLod.Num() > 0)
+					{
+						ImportStaticMeshAsSingle(Mesh->GetOuter(), AllNodeInLod, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, NewMesh, LODIndex);
+					}
 				}
 			}
 		}
@@ -957,7 +954,7 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 
 	// Parent package to place new meshes
 	UPackage* Package = NULL;
-	if (InParent != nullptr && InParent->IsA(UPackage::StaticClass()))
+	if (ImportOptions->bImportScene && InParent != nullptr && InParent->IsA(UPackage::StaticClass()))
 	{
 		Package = StaticCast<UPackage*>(InParent);
 	}
@@ -1263,8 +1260,7 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 			StaticMesh->Materials.Empty();
 		}
 		
-		// Build a new map of sections with the unique material set
-		FMeshSectionInfoMap NewMap;
+		// Replace map of sections with the unique material set
 		int32 NumMaterials = FMath::Min(SortedMaterials.Num(),MaxMaterialIndex+1);
 		for (int32 MaterialIndex = 0; MaterialIndex < NumMaterials; ++MaterialIndex)
 		{
@@ -1273,12 +1269,9 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 			int32 Index = StaticMesh->Materials.Add(SortedMaterials[MaterialIndex].Material);
 
 			Info.MaterialIndex = Index;
-			NewMap.Set( LODIndex, MaterialIndex, Info);
+			StaticMesh->SectionInfoMap.Remove(LODIndex, MaterialIndex);
+			StaticMesh->SectionInfoMap.Set(LODIndex, MaterialIndex, Info);
 		}
-
-		// Copy the final section map into the static mesh
-		StaticMesh->SectionInfoMap.Clear();
-		StaticMesh->SectionInfoMap.CopyFrom(NewMap);
 
 		FRawMesh LocalRawMesh;
 		SrcModel.RawMeshBulkData->LoadRawMesh(LocalRawMesh);
@@ -1302,7 +1295,7 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 		}
 
 		UFbxStaticMeshImportData* ImportData = UFbxStaticMeshImportData::GetImportDataForStaticMesh(StaticMesh, TemplateImportData);
-		ImportData->Update(UFactory::CurrentFilename);
+		ImportData->Update(UFactory::GetCurrentFilename());
 
 		// @todo This overrides restored values currently but we need to be able to import over the existing settings if the user chose to do so.
 		SrcModel.BuildSettings.bRemoveDegenerates = ImportOptions->bRemoveDegenerates;
@@ -1615,7 +1608,7 @@ bool UnFbx::FFbxImporter::ImportCollisionModels(UStaticMesh* StaticMesh, const F
 
 		for ( ControlPointsIndex = 0; ControlPointsIndex < ControlPointsCount; ControlPointsIndex++ )
 		{
-			new(CollisionVertices)FVector(Converter.ConvertPos(ImportOptions->bTransformVertexToAbsolute ? Matrix.MultT(ControlPoints[ControlPointsIndex]) : ControlPoints[ControlPointsIndex]));
+			new(CollisionVertices)FVector(Converter.ConvertPos(Matrix.MultT(ControlPoints[ControlPointsIndex])));
 		}
 
 		int32 TriangleCount = FbxMesh->GetPolygonCount();
@@ -1658,7 +1651,7 @@ bool UnFbx::FFbxImporter::ImportCollisionModels(UStaticMesh* StaticMesh, const F
 
 				// This function cooks the given data, so we cannot test for duplicates based on the position data
 				// before we call it
-				AddConvexGeomFromVertices( CollisionVertices, &AggGeo, (const TCHAR*)Node->GetName() );
+				AddConvexGeomFromVertices( CollisionVertices, &AggGeo, ANSI_TO_TCHAR(Node->GetName()) );
 
 				// Now test the late element in the AggGeo list and remove it if its a duplicate
 				if(AggGeo.ConvexElems.Num() > 1)
@@ -1696,7 +1689,7 @@ bool UnFbx::FFbxImporter::ImportCollisionModels(UStaticMesh* StaticMesh, const F
 		{
 			FKAggregateGeom& AggGeo = StaticMesh->BodySetup->AggGeom;
 
-			AddBoxGeomFromTris( CollisionTriangles, &AggGeo, (const TCHAR*)Node->GetName() );
+			AddBoxGeomFromTris( CollisionTriangles, &AggGeo, ANSI_TO_TCHAR(Node->GetName()) );
 
 			// Now test the last element in the AggGeo list and remove it if its a duplicate
 			if(AggGeo.BoxElems.Num() > 1)
@@ -1720,7 +1713,7 @@ bool UnFbx::FFbxImporter::ImportCollisionModels(UStaticMesh* StaticMesh, const F
 		{
 			FKAggregateGeom& AggGeo = StaticMesh->BodySetup->AggGeom;
 
-			AddSphereGeomFromVerts( CollisionVertices, &AggGeo, (const TCHAR*)Node->GetName() );
+			AddSphereGeomFromVerts( CollisionVertices, &AggGeo, ANSI_TO_TCHAR(Node->GetName()) );
 
 			// Now test the late element in the AggGeo list and remove it if its a duplicate
 			if(AggGeo.SphereElems.Num() > 1)

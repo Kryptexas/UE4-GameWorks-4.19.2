@@ -3,209 +3,119 @@
 #include "DetailCustomizationsPrivatePCH.h"
 #include "TextCustomization.h"
 #include "IPropertyUtilities.h"
+#include "STextPropertyEditableTextBox.h"
 
 namespace
 {
-	class STextPropertyWidget : public SCompoundWidget
+	/** Allows STextPropertyEditableTextBox to edit a property handle */
+	class FEditableTextPropertyHandle : public IEditableTextProperty
 	{
-		SLATE_BEGIN_ARGS(STextPropertyWidget)
-			: _Font( FEditorStyle::GetFontStyle( TEXT("PropertyWindow.NormalFont") ) ) 
-			{}
-			SLATE_ATTRIBUTE( FSlateFontInfo, Font )
-		SLATE_END_ARGS()
-
 	public:
-		void Construct(const FArguments& Arguments, const TSharedRef<IPropertyHandle>& InPropertyHandle, const TSharedPtr<IPropertyUtilities>& InPropertyUtilities);
-		void GetDesiredWidth( float& OutMinDesiredWidth, float& OutMaxDesiredWidth );
-		bool SupportsKeyboardFocus() const;
-		FReply OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent );
-		void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime );
-		bool CanEdit() const;
-		bool IsReadOnly() const;
-
-	private:
-		TSharedPtr<IPropertyHandle> PropertyHandle;
-
-		TSharedPtr<IPropertyUtilities> PropertyUtilities;
-
-		TSharedPtr< class SWidget > PrimaryWidget;
-
-		TSharedPtr<SMultiLineEditableTextBox> MultiLineWidget;
-
-		TSharedPtr<SEditableTextBox> SingleLineWidget;
-
-		TOptional< float > PreviousHeight;
-
-		bool bIsMultiLine;
-
-		static FText MultipleValuesText;
-	};
-
-	FText STextPropertyWidget::MultipleValuesText(NSLOCTEXT("PropertyEditor", "MultipleValues", "Multiple Values"));
-
-	void STextPropertyWidget::Construct(const FArguments& InArgs, const TSharedRef<IPropertyHandle>& InPropertyHandle, const TSharedPtr<IPropertyUtilities>& InPropertyUtilities)
-	{
-		PropertyHandle = InPropertyHandle;
-		PropertyUtilities = InPropertyUtilities;
-
-		const auto& GetTextValue = [this]() -> FText
+		FEditableTextPropertyHandle(const TSharedRef<IPropertyHandle>& InPropertyHandle, const TSharedPtr<IPropertyUtilities>& InPropertyUtilities)
+			: PropertyHandle(InPropertyHandle)
+			, PropertyUtilities(InPropertyUtilities)
 		{
-			FText TextValue;
+		}
 
-			TArray<const void*> RawData;
-			PropertyHandle->AccessRawData(RawData);
-			if (RawData.Num() == 1)
+		virtual bool IsMultiLineText() const override
+		{
+			return PropertyHandle->IsValidHandle() && PropertyHandle->GetBoolMetaData("MultiLine");
+		}
+
+		virtual bool IsPassword() const override
+		{
+			return PropertyHandle->IsValidHandle() && PropertyHandle->GetBoolMetaData("PasswordField");
+		}
+
+		virtual bool IsReadOnly() const override
+		{
+			return !PropertyHandle->IsValidHandle() || PropertyHandle->IsEditConst();
+		}
+
+		virtual bool IsDefaultValue() const override
+		{
+			return PropertyHandle->IsValidHandle() && !PropertyHandle->DiffersFromDefault();
+		}
+
+		virtual FText GetToolTipText() const override
+		{
+			return (PropertyHandle->IsValidHandle())
+				? PropertyHandle->GetToolTipText()
+				: FText::GetEmpty();
+		}
+
+		virtual int32 GetNumTexts() const override
+		{
+			return (PropertyHandle->IsValidHandle())
+				? PropertyHandle->GetNumPerObjectValues() 
+				: 0;
+		}
+
+		virtual FText GetText(const int32 InIndex) const override
+		{
+			if (PropertyHandle->IsValidHandle())
 			{
-				const FText* RawDatum = reinterpret_cast<const FText*>(RawData.Top());
-				if (RawDatum)
+				FString ObjectValue;
+				if (PropertyHandle->GetPerObjectValue(InIndex, ObjectValue) == FPropertyAccess::Success)
 				{
-					TextValue = *RawDatum;
+					FText TextValue;
+					if (FTextStringHelper::ReadFromString(*ObjectValue, TextValue))
+					{
+						return TextValue;
+					}
 				}
 			}
-			else if(RawData.Num() > 1)
-			{
-				TextValue = MultipleValuesText;
-			}
-			else
-			{
-				TextValue = FText::GetEmpty();
-			}
 
-			return TextValue;
-		};
+			return FText::GetEmpty();
+		}
 
-		const auto& OnTextCommitted = [this](const FText& NewText, ETextCommit::Type CommitInfo)
+		virtual void SetText(const int32 InIndex, const FText& InText) override
 		{
-			TArray<void*> RawData;
-			PropertyHandle->AccessRawData(RawData);
+			if (PropertyHandle->IsValidHandle())
+			{
+				FString ObjectValue;
+				if (FTextStringHelper::WriteToString(ObjectValue, InText))
+				{
+					PropertyHandle->SetPerObjectValue(InIndex, ObjectValue);
+				}
+			}
+		}
 
-			// Don't commit the Multiple Values text if there are multiple properties being set
-			if (RawData.Num() > 0 && (RawData.Num() == 1 || NewText.ToString() != MultipleValuesText.ToString()))
+		virtual void PreEdit() override
+		{
+			if (PropertyHandle->IsValidHandle())
 			{
 				PropertyHandle->NotifyPreChange();
+			}
+		}
 
-				for (void* const RawDatum : RawData)
-				{
-					FText& PropertyValue = *(reinterpret_cast<FText* const>(RawDatum));
-
-					// FText::FromString on the result of FText::ToString is intentional. For now, we want to nuke any namespace/key info and let it get regenerated from scratch,
-					// rather than risk adopting whatever came through some chain of calls. This will be replaced when preserving of identity is implemented.
-					PropertyValue = FText::FromString(NewText.ToString());
-				}
-
+		virtual void PostEdit() override
+		{
+			if (PropertyHandle->IsValidHandle())
+			{
 				PropertyHandle->NotifyPostChange();
 				PropertyHandle->NotifyFinishedChangingProperties();
 			}
-		};
-
-		TSharedPtr<SHorizontalBox> HorizontalBox;
-
-		bool bIsPassword = PropertyHandle->GetBoolMetaData("PasswordField");
-		bIsMultiLine = PropertyHandle->GetBoolMetaData("MultiLine");
-		if(bIsMultiLine)
-		{
-			ChildSlot
-				[
-					SAssignNew(HorizontalBox, SHorizontalBox)
-					+SHorizontalBox::Slot()
-					.FillWidth(1.0f)
-					[
-						SNew( SBox )
-						.MaxDesiredHeight(300.f)
-						[
-							SAssignNew(MultiLineWidget, SMultiLineEditableTextBox)
-							.Text_Lambda(GetTextValue)
-							.Font(InArgs._Font)
-							.SelectAllTextWhenFocused(false)
-							.ClearKeyboardFocusOnCommit(false)
-							.OnTextCommitted_Lambda(OnTextCommitted)
-							.SelectAllTextOnCommit(false)
-							.IsReadOnly(this, &STextPropertyWidget::IsReadOnly)
-							.AutoWrapText(true)
-							.ModiferKeyForNewLine(EModifierKey::Shift)
-							.IsPassword(bIsPassword)
-						]
-					]
-				];
-
-			PrimaryWidget = MultiLineWidget;
-		}
-		else
-		{
-			ChildSlot
-				[
-					SAssignNew(HorizontalBox, SHorizontalBox)
-					+SHorizontalBox::Slot()
-					.FillWidth(1.0f)
-					[
-						SAssignNew( SingleLineWidget, SEditableTextBox )
-						.Text_Lambda(GetTextValue)
-						.Font( InArgs._Font )
-						.SelectAllTextWhenFocused( true )
-						.ClearKeyboardFocusOnCommit(false)
-						.OnTextCommitted_Lambda(OnTextCommitted)
-						.SelectAllTextOnCommit( true )
-						.IsReadOnly(this, &STextPropertyWidget::IsReadOnly)
-						.IsPassword(bIsPassword)
-
-					]
-				];
-
-			PrimaryWidget = SingleLineWidget;
 		}
 
-		SetEnabled( TAttribute<bool>( this, &STextPropertyWidget::CanEdit ) );
-	}
-
-	void STextPropertyWidget::GetDesiredWidth( float& OutMinDesiredWidth, float& OutMaxDesiredWidth )
-	{
-		if(bIsMultiLine)
+		virtual void RequestRefresh() override
 		{
-			OutMinDesiredWidth = 250.0f;
-		}
-		else
-		{
-			OutMinDesiredWidth = 125.0f;
+			if (PropertyUtilities.IsValid())
+			{
+				PropertyUtilities->RequestRefresh();
+			}
 		}
 
-		OutMaxDesiredWidth = 600.0f;
-	}
-
-	bool STextPropertyWidget::SupportsKeyboardFocus() const
-	{
-		return PrimaryWidget.IsValid() && PrimaryWidget->SupportsKeyboardFocus();
-	}
-
-	FReply STextPropertyWidget::OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent )
-	{
-		// Forward keyboard focus to our editable text widget
-		return FReply::Handled().SetUserFocus(PrimaryWidget.ToSharedRef(), InFocusEvent.GetCause());
-	}
-
-	void STextPropertyWidget::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
-	{
-		const float CurrentHeight = AllottedGeometry.GetLocalSize().Y;
-		if (bIsMultiLine && PreviousHeight.IsSet() && PreviousHeight.GetValue() != CurrentHeight && PropertyUtilities.IsValid())
-		{
-			PropertyUtilities->RequestRefresh();
-		}
-		PreviousHeight = CurrentHeight;
-	}
-
-	bool STextPropertyWidget::CanEdit() const
-	{
-		return PropertyHandle.IsValid() ? !PropertyHandle->IsEditConst() : true;
-	}
-
-	bool STextPropertyWidget::IsReadOnly() const
-	{
-		return !CanEdit();
-	}
+	private:
+		TSharedRef<IPropertyHandle> PropertyHandle;
+		TSharedPtr<IPropertyUtilities> PropertyUtilities;
+	};
 }
 
 void FTextCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle> InPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& PropertyTypeCustomizationUtils )
 {
-	const bool bIsMultiLine = InPropertyHandle->GetProperty()->GetBoolMetaData("MultiLine");
+	TSharedRef<IEditableTextProperty> EditableTextProperty = MakeShareable(new FEditableTextPropertyHandle(InPropertyHandle, PropertyTypeCustomizationUtils.GetPropertyUtilities()));
+	const bool bIsMultiLine = EditableTextProperty->IsMultiLineText();
 
 	HeaderRow.FilterString(InPropertyHandle->GetPropertyDisplayName())
 		.NameContent()
@@ -216,7 +126,9 @@ void FTextCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle> InPr
 		.MinDesiredWidth(bIsMultiLine ? 250.f : 125.f)
 		.MaxDesiredWidth(600.f)
 		[
-			SNew(STextPropertyWidget, InPropertyHandle, PropertyTypeCustomizationUtils.GetPropertyUtilities())
+			SNew(STextPropertyEditableTextBox, EditableTextProperty)
+				.Font(FEditorStyle::GetFontStyle("PropertyWindow.NormalFont"))
+				.AutoWrapText(true)
 		];
 }
 

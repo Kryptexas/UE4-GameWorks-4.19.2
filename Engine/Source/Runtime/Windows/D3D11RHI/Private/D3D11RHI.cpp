@@ -185,6 +185,13 @@ void FD3D11DynamicRHI::InternalSetShaderResourceView(FD3D11BaseShaderResource* R
 	check((Resource && SRV) || (!Resource && !SRV));
 	CheckIfSRVIsResolved(SRV);
 
+	//avoid state cache crash
+	if (!((Resource && SRV) || (!Resource && !SRV)))
+	{
+		//UE_LOG(LogRHI, Warning, TEXT("Bailing on InternalSetShaderResourceView on resource: %i, %s"), ResourceIndex, *SRVName.ToString());
+		return;
+	}
+
 	if (Resource)
 	{		
 		const EResourceTransitionAccess CurrentAccess = Resource->GetCurrentGPUAccess();
@@ -382,7 +389,7 @@ void FD3DGPUProfiler::BeginFrame(FD3D11DynamicRHI* InRHI)
 
 	if (GEmitDrawEvents)
 	{
-		PushEvent(TEXT("FRAME"));
+		PushEvent(TEXT("FRAME"), FColor(0, 255, 0, 255));
 	}
 }
 
@@ -544,13 +551,13 @@ void FD3D11DynamicRHI::RHIEndScene()
 	ResourceTableFrameCounter = INDEX_NONE;
 }
 
-void FD3DGPUProfiler::PushEvent(const TCHAR* Name)
+void FD3DGPUProfiler::PushEvent(const TCHAR* Name, FColor Color)
 {
 #if WITH_DX_PERF
-	D3DPERF_BeginEvent(FColor(0,0,0).DWColor(),Name);
+	D3DPERF_BeginEvent(Color.DWColor(),Name);
 #endif
 
-	FGPUProfiler::PushEvent(Name);
+	FGPUProfiler::PushEvent(Name, Color);
 }
 
 void FD3DGPUProfiler::PopEvent()

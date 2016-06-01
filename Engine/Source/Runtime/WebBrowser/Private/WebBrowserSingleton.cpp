@@ -30,6 +30,8 @@
 
 #if PLATFORM_ANDROID
 #	include <Android/AndroidPlatformWebBrowser.h>
+#elif PLATFORM_IOS
+#	include <IOS/IOSPlatformWebBrowser.h>
 #endif
 
 // Define some platform-dependent file locations
@@ -151,7 +153,7 @@ FWebBrowserSingleton::FWebBrowserSingleton()
 	CefString(&Settings.locale) = *LocaleCode;
 
 	// Append engine version to the user agent string.
-	FString ProductVersion = FString::Printf( TEXT("%s UnrealEngineChrome/%s"), FApp::GetGameName(), ENGINE_VERSION_STRING);
+	FString ProductVersion = FString::Printf( TEXT("%s UnrealEngine/%s"), FApp::GetGameName(), ENGINE_VERSION_STRING);
 	CefString(&Settings.product_version) = *ProductVersion;
 
 	// Enable on disk cache
@@ -257,7 +259,7 @@ TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(
 	bool bThumbMouseButtonNavigation = BrowserWindowParent->IsThumbMouseButtonNavigationEnabled();
 	bool bUseTransparency = BrowserWindowParent->UseTransparency();
 	FString InitialURL = BrowserWindowInfo->Browser->GetMainFrame()->GetURL().ToWString().c_str();
-	TSharedPtr<FWebBrowserWindow> NewBrowserWindow(new FWebBrowserWindow(BrowserWindowInfo->Browser, InitialURL, ContentsToLoad, bShowErrorMessage, bThumbMouseButtonNavigation, bUseTransparency));
+	TSharedPtr<FWebBrowserWindow> NewBrowserWindow(new FWebBrowserWindow(BrowserWindowInfo->Browser, BrowserWindowInfo->Handler, InitialURL, ContentsToLoad, bShowErrorMessage, bThumbMouseButtonNavigation, bUseTransparency));
 	BrowserWindowInfo->Handler->SetBrowserWindow(NewBrowserWindow);
 
 	WindowInterfaces.Add(NewBrowserWindow);
@@ -309,21 +311,21 @@ TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(
 
 
 		// WebBrowserHandler implements browser-level callbacks.
-		CefRefPtr<FWebBrowserHandler> NewHandler(new FWebBrowserHandler);
+		CefRefPtr<FWebBrowserHandler> NewHandler(new FWebBrowserHandler(bUseTransparency));
 
 		// Create the CEF browser window.
 		CefRefPtr<CefBrowser> Browser = CefBrowserHost::CreateBrowserSync(WindowInfo, NewHandler.get(), *InitialURL, BrowserSettings, nullptr);
 		if (Browser.get())
 		{
 			// Create new window
-			TSharedPtr<FWebBrowserWindow> NewBrowserWindow(new FWebBrowserWindow(Browser, InitialURL, ContentsToLoad, ShowErrorMessage, bThumbMouseButtonNavigation, bUseTransparency));
+			TSharedPtr<FWebBrowserWindow> NewBrowserWindow(new FWebBrowserWindow(Browser, NewHandler, InitialURL, ContentsToLoad, ShowErrorMessage, bThumbMouseButtonNavigation, bUseTransparency));
 			NewHandler->SetBrowserWindow(NewBrowserWindow);
 
 			WindowInterfaces.Add(NewBrowserWindow);
 			return NewBrowserWindow;
 		}
 	}
-#elif PLATFORM_ANDROID
+#elif PLATFORM_ANDROID || PLATFORM_IOS
 	// Create new window
 	TSharedPtr<FWebBrowserWindow> NewBrowserWindow = MakeShareable(new FWebBrowserWindow(InitialURL, ContentsToLoad, ShowErrorMessage, bThumbMouseButtonNavigation, bUseTransparency));
 
@@ -342,7 +344,7 @@ bool FWebBrowserSingleton::Tick(float DeltaTime)
 	{
 		if (!WindowInterfaces[Index].IsValid())
 		{
-			WindowInterfaces.RemoveAtSwap(Index);
+			WindowInterfaces.RemoveAt(Index);
 		}
 		else if (bIsSlateAwake) // only check for Tick activity if Slate is currently ticking
 		{

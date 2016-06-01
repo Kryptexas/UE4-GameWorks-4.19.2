@@ -18,7 +18,7 @@ private:
 	int8 AutoResourceID;
 
 public:
-	UPROPERTY()
+	UPROPERTY(EditDefaultsOnly, Category = "Task Resource", meta=(InlineEditConditionToggle))
 	uint32 bManuallySetID : 1;
 
 public:
@@ -49,5 +49,16 @@ protected:
 #endif // WITH_EDITOR
 
 	void UpdateAutoResourceID();
-};
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+protected:
+	static TArray<FString> ResourceDescriptions;
+	virtual FString GenerateDebugDescription() const;
+
+public:
+	static FString GetDebugDescription(uint8 ResourceId)
+	{
+		return ResourceDescriptions.IsValidIndex(ResourceId) ? ResourceDescriptions[ResourceId] : FString();
+	}
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+};

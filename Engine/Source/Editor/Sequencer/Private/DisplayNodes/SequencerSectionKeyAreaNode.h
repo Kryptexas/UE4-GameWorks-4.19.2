@@ -59,7 +59,7 @@ public:
 	 * 
 	 * @return All key areas
 	 */
-	TArray<TSharedRef<IKeyArea>> GetAllKeyAreas() const
+	const TArray<TSharedRef<IKeyArea>>& GetAllKeyAreas() const
 	{
 		return KeyAreas;
 	}
@@ -75,7 +75,7 @@ public:
 	// FSequencerDisplayNode interface
 
 	virtual bool CanRenameNode() const override;
-	virtual TSharedRef<SWidget> GenerateEditWidgetForOutliner() override;
+	virtual TSharedRef<SWidget> GetCustomOutlinerContent() override;
 	virtual FText GetDisplayName() const override;
 	virtual float GetNodeHeight() const override;
 	virtual FNodePadding GetNodePadding() const override;

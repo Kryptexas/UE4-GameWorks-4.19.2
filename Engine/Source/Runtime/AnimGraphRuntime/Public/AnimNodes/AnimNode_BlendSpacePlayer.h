@@ -50,8 +50,16 @@ protected:
 	UPROPERTY()
 	TArray<FBlendSampleData> BlendSampleDataCache;
 
+	UPROPERTY(transient)
+	UBlendSpaceBase* PreviousBlendSpace;
+
 public:	
 	FAnimNode_BlendSpacePlayer();
+
+	// FAnimNode_AssetPlayerBase interface
+	virtual float GetCurrentAssetTime();
+	virtual float GetCurrentAssetLength();
+	// End of FAnimNode_AssetPlayerBase interface
 
 	// FAnimNode_Base interface
 	virtual void Initialize(const FAnimationInitializeContext& Context) override;
@@ -68,4 +76,9 @@ public:
 
 protected:
 	void UpdateInternal(const FAnimationUpdateContext& Context);
+
+private:
+	void Reinitialize();
+
+	const FBlendSampleData* GetHighestWeightedSample() const;
 };

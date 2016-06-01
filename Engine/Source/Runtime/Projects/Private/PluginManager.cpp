@@ -376,7 +376,8 @@ bool FPluginManager::ConfigureEnabledPlugins()
 			TArray<FPluginReferenceDescriptor> PluginsCopy = Project->Plugins;
 			for(const FPluginReferenceDescriptor& Plugin: PluginsCopy)
 			{
-				if ((Plugin.bEnabled && !FindPluginInstance(Plugin.Name).IsValid()) &&
+				bool bShouldBeEnabled = Plugin.bEnabled && Plugin.IsEnabledForPlatform(FPlatformMisc::GetUBTPlatform()) && Plugin.IsEnabledForTarget(FPlatformMisc::GetUBTTarget());
+				if ((bShouldBeEnabled && !FindPluginInstance(Plugin.Name).IsValid() && !Plugin.bOptional) &&
 					 (!IS_PROGRAM || AllEnabledPlugins.Contains(Plugin.Name))) // skip if this is a program and the plugin is not enabled
 				{
 					FText Caption(LOCTEXT("PluginMissingCaption", "Plugin missing"));
@@ -448,9 +449,9 @@ bool FPluginManager::ConfigureEnabledPlugins()
 			// Build the list of content folders
 				if (Plugin->Descriptor.bCanContainContent)
 				{
-					if (auto EngineConfigFile = GConfig->Find(GEngineIni, false))
+					if (FConfigFile* EngineConfigFile = GConfig->Find(GEngineIni, false))
 					{
-						if (auto CoreSystemSection = EngineConfigFile->Find(TEXT("Core.System")))
+						if (FConfigSection* CoreSystemSection = EngineConfigFile->Find(TEXT("Core.System")))
 						{
 							CoreSystemSection->AddUnique("Paths", Plugin->GetContentDir());
 						}
@@ -488,11 +489,11 @@ bool FPluginManager::ConfigureEnabledPlugins()
 				{
 					FoundPaks.Reset();
 					PlatformFile.IterateDirectoryRecursively(*(ContentDir / TEXT("Paks") / FPlatformProperties::PlatformName()), PakVisitor);
-					for (const auto& PakPath : FoundPaks)
+					for (const FString& PakPath : FoundPaks)
 					{
 						if (FCoreDelegates::OnMountPak.IsBound())
 						{
-							FCoreDelegates::OnMountPak.Execute(PakPath, 0);
+							FCoreDelegates::OnMountPak.Execute(PakPath, 0, nullptr);
 						}
 					}
 				}
@@ -539,8 +540,8 @@ bool FPluginManager::LoadModulesForEnabledPlugins( const ELoadingPhase::Type Loa
 			FText FailureMessage;
 			for( auto FailureIt( ModuleLoadFailures.CreateConstIterator() ); FailureIt; ++FailureIt )
 			{
-				const auto ModuleNameThatFailedToLoad = FailureIt.Key();
-				const auto FailureReason = FailureIt.Value();
+				const FName ModuleNameThatFailedToLoad = FailureIt.Key();
+				const EModuleLoadResult FailureReason = FailureIt.Value();
 
 				if( FailureReason != EModuleLoadResult::Success )
 				{

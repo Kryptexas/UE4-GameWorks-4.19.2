@@ -4,6 +4,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
 #include "K2Node_CallFunction.h"
+#include "BlueprintsObjectVersion.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_FunctionEntry"
 
@@ -119,6 +120,8 @@ void UK2Node_FunctionEntry::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
+	Ar.UsingCustomVersion(FBlueprintsObjectVersion::GUID);
+
 	if (Ar.IsLoading())
 	{
 		if (Ar.UE4Ver() < VER_UE4_BLUEPRINT_ENFORCE_CONST_IN_FUNCTION_OVERRIDES)
@@ -127,8 +130,7 @@ void UK2Node_FunctionEntry::Serialize(FArchive& Ar)
 			bEnforceConstCorrectness = false;
 		}
 
-		// @TODO: Dev-BP=>Main; gate this with a version check once it makes its way into main
-		//if (Ar.UE4Ver() < VER_UE4_CLEAN_BLUEPRINT_FUNC_FLAGS))
+		if (Ar.CustomVer(FBlueprintsObjectVersion::GUID) < FBlueprintsObjectVersion::CleanBlueprintFunctionFlags)
 		{
 			// Flags we explicitly use ExtraFlags for (at the time this fix was made):
 			//     FUNC_Public, FUNC_Protected, FUNC_Private, 
@@ -331,6 +333,14 @@ void UK2Node_FunctionEntry::ExpandNode(class FKismetCompilerContext& CompilerCon
 
 		// Find the associated UFunction
 		UFunction* Function = FindField<UFunction>(CompilerContext.Blueprint->SkeletonGeneratedClass, *OriginalNode->GetOuter()->GetName());
+
+		// When regenerating on load, we may need to import text on certain properties to force load the assets
+		TSharedPtr<FStructOnScope> LocalVarData;
+		if (CompilerContext.Blueprint->bIsRegeneratingOnLoad)
+		{
+			LocalVarData = MakeShareable(new FStructOnScope(Function));
+		}
+
 		for (TFieldIterator<UProperty> It(Function); It; ++It)
 		{
 			if (const UProperty* Property = *It)
@@ -398,6 +408,16 @@ void UK2Node_FunctionEntry::ExpandNode(class FKismetCompilerContext& CompilerCon
 							}
 							else
 							{
+								if (CompilerContext.Blueprint->bIsRegeneratingOnLoad)
+								{
+									// When regenerating on load, we want to force load assets referenced by local variables.
+									// This functionality is already handled when generating Terms in the Kismet Compiler for Arrays and Structs, so we do not have to worry about them.
+									if (LocalVar.VarType.PinCategory == Schema->PC_Object || LocalVar.VarType.PinCategory == Schema->PC_Class || LocalVar.VarType.PinCategory == Schema->PC_Interface)
+									{
+										FBlueprintEditorUtils::PropertyValueFromString(Property, LocalVar.DefaultValue, LocalVarData->GetStructMemory());
+									}
+								}
+
 								// Set the default value
 								Schema->TrySetDefaultValue(*SetPin, LocalVar.DefaultValue);
 							}

@@ -15,10 +15,6 @@ USafeZone::USafeZone()
 }
 
 #if WITH_EDITOR
-const FSlateBrush* USafeZone::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush( "Widget.SafeZone" );
-}
 
 const FText USafeZone::GetPaletteCategory()
 {

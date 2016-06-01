@@ -22,6 +22,15 @@ public:
 	void ProcessLpvIndirect(FRHICommandListImmediate& RHICmdList, FViewInfo& View);
 
 	void ProcessAfterLighting(FRHICommandListImmediate& RHICmdList, FViewInfo& View);
+
+	bool CanProcessAsyncSSAO(TArray<FViewInfo>& Views);
+	void ProcessAsyncSSAO(FRHICommandListImmediate& RHICmdList, TArray<FViewInfo>& Views);
+	void GfxWaitForAsyncSSAO(FRHICommandListImmediate& RHICmdList);
+
+private:
+	void PrepareAsyncSSAO(FRHICommandListImmediate& RHICmdList, TArray<FViewInfo>& Views);
+	void FinishAsyncSSAO(FRHICommandListImmediate& RHICmdList);
+	FComputeFenceRHIRef AsyncSSAOFence;
 };
 
 /** The global used for deferred lighting. */

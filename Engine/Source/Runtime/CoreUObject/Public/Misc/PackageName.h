@@ -56,7 +56,7 @@ public:
 	 * @param InExtension Package extension.
 	 * @return Package filename.
 	 */
-	static bool TryConvertLongPackageNameToFilename(const FString& InLongPackageName, FString& OutFilename, const FString& InExtension = TEXT(""), const bool ShouldGetLocalizedPackage = false);
+	static bool TryConvertLongPackageNameToFilename(const FString& InLongPackageName, FString& OutFilename, const FString& InExtension = TEXT(""));
 	/** 
 	 * Converts a long package name to a file name with the supplied extension.
 	 *
@@ -64,7 +64,7 @@ public:
 	 * @param InExtension Package extension.
 	 * @return Package filename.
 	 */
-	static FString LongPackageNameToFilename(const FString& InLongPackageName, const FString& InExtension = TEXT(""), const bool ShouldGetLocalizedPackage = false);
+	static FString LongPackageNameToFilename(const FString& InLongPackageName, const FString& InExtension = TEXT(""));
 	/** 
 	 * Returns the path to the specified package, excluding the short package name
 	 *
@@ -193,16 +193,7 @@ public:
 	 * @param OutFilename Package filename on disk.
 	 * @return true if the specified package name points to an existing package, false otherwise.
 	 **/
-	static bool DoesPackageExist(const FString& LongPackageName, const FGuid* Guid = NULL, FString* OutFilename = NULL, const bool ShouldGetLocalizedPackage = false);
-
-	/**
-	* Checks if the package and any localized version exist on disk.
-	*
-	* @param LongPackageName Package name.
-	* @param OutFilenameNative Package package filename on disk. Set to empty string if the package is not found.
-	* @param OutFilenameLocalized Localized package filename on disk. Set to empty string if the package is not found
-	**/
-	static bool DoesPackageExistWithLocalization(const FString& LongPackageName, const FGuid* Guid = NULL, FString* OutNativeFilename = NULL, FString* OutLocalizedFilename = NULL);
+	static bool DoesPackageExist(const FString& LongPackageName, const FGuid* Guid = NULL, FString* OutFilename = NULL);
 
 	/**
 	 * Attempts to find a package given its short name on disk (very slow).
@@ -211,7 +202,7 @@ public:
 	 * @param OutLongPackageName Long package name corresponding to the found file (if any).
 	 * @return true if the specified package name points to an existing package, false otherwise.
 	 **/
-	static bool SearchForPackageOnDisk(const FString& PackageName, FString* OutLongPackageName = NULL, FString* OutFilename = NULL, bool bUseLocalizedNames = false);
+	static bool SearchForPackageOnDisk(const FString& PackageName, FString* OutLongPackageName = NULL, FString* OutFilename = NULL);
 
 	/**
 	 * Tries to convert object path with short package name to object path with long package name found on disk (very slow)
@@ -231,6 +222,25 @@ public:
 	 * @returns Normalized path (or empty path, if short object path was given and it wasn't found on the disk).
 	 */
 	static FString GetNormalizedObjectPath(const FString& ObjectPath);
+
+	/**
+	 * Gets the localized version of a long package path for the current culture, or returns the source package if there is no suitable localized package.
+	 *
+	 * @param InSourcePackagePath	Path to the source package.
+	 *
+	 * @returns Localized package path, or the source package path if there is no suitable localized package.
+	 */
+	static FString GetLocalizedPackagePath(const FString& InSourcePackagePath);
+
+	/**
+	 * Gets the localized version of a long package path for the given culture, or returns the source package if there is no suitable localized package.
+	 *
+	 * @param InSourcePackagePath	Path to the source package.
+	 * @param InCultureName			Culture name to get the localized package for.
+	 *
+	 * @returns Localized package path, or the source package path if there is no suitable localized package.
+	 */
+	static FString GetLocalizedPackagePath(const FString& InSourcePackagePath, const FString& InCultureName);
 
 	/**
 	 * Strips all path and extension information from a relative or fully qualified file name.
@@ -360,6 +370,12 @@ public:
 	static bool IsScriptPackage(const FString& InPackageName);
 
 	/**
+	 * Checks the root of the package's path to see if it is a localized package
+	 * @return true if the root of the path matches any localized root path
+	 */
+	static bool IsLocalizedPackage(const FString& InPackageName);
+
+	/**
 	 * Checks if a package name contains characters that are invalid for package names.
 	 */
 	static bool DoesPackageNameContainInvalidCharacters(const FString& InLongPackageName, FText* OutReason = NULL);
@@ -372,11 +388,6 @@ public:
 	* @return true if the package could be found on disk.
 	*/
 	static bool FindPackageFileWithoutExtension(const FString& InPackageFilename, FString& OutFilename);
-
-	/**
-	* TODO
-	*/
-	static void FindPackageFileAndLocalizationWithoutExtension(const FString& InNativePackageFilename, const FString& InLocalizedPackageFilename, FString& OutNativeFilename, FString& OutLocalizedFilename);
 
 private:
 

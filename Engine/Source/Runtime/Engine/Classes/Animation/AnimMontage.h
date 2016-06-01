@@ -35,7 +35,6 @@ struct FCompositeSection : public FAnimLinkableElement
 	UPROPERTY()
 	FName NextSectionName;
 
-private:
 	/** Meta data that can be saved with the asset 
 	 * 
 	 * You can query by GetMetaData function
@@ -198,6 +197,9 @@ private:
 	// reference to AnimInstance
 	TWeakObjectPtr<UAnimInstance> AnimInstance;
 
+	// Unique ID for this instance
+	int32 InstanceID;
+
 	/** Currently Active AnimNotifyState, stored as a copy of the event as we need to
 		call NotifyEnd on the event after a deletion in the editor. After this the event
 		is removed correctly. */
@@ -283,6 +285,7 @@ public:
 		, DefaultBlendTimeMultiplier(1.0f)
 		, bDidUseMarkerSyncThisTick(false)
 		, AnimInstance(NULL)
+		, InstanceID(INDEX_NONE)
 		, Position(0.f)
 		, PlayRate(1.f)
 		, bInterrupted(false)
@@ -301,6 +304,7 @@ public:
 		, DefaultBlendTimeMultiplier(1.0f)
 		, bDidUseMarkerSyncThisTick(false)
 		, AnimInstance(InAnimInstance)
+		, InstanceID(INDEX_NONE)
 		, Position(0.f)
 		, PlayRate(1.f)
 		, bInterrupted(false)
@@ -325,6 +329,7 @@ public:
 
 	bool IsValid() const { return (Montage!=NULL); }
 	bool IsPlaying() const { return IsValid() && bPlaying; }
+	void SetPlaying(bool bInPlaying) { bPlaying = bInPlaying; }
 	bool IsStopped() const { return Blend.GetDesiredValue() == 0.f; }
 
 	/** Returns true if this montage is active (valid and not blending out) */
@@ -338,6 +343,7 @@ public:
 	/**
 	 *  Getters
 	 */
+	int32 GetInstanceID() const { return InstanceID; }
 	float GetPosition() const { return Position; };
 	float GetPlayRate() const { return PlayRate; }
 	float GetDeltaMoved() const { return DeltaMoved; }
@@ -374,7 +380,7 @@ public:
 
 	/** Delegate function handlers
 	 */
-	void HandleEvents(float PreviousTrackPos, float CurrentTrackPos, const FBranchingPointMarker* BranchingPointMarker);
+	ENGINE_API void HandleEvents(float PreviousTrackPos, float CurrentTrackPos, const FBranchingPointMarker* BranchingPointMarker);
 private:
 	/** Called by blueprint functions that modify the montages current position. */
 	void OnMontagePositionChanged(FName const & ToSectionName);
@@ -388,8 +394,8 @@ private:
 
 public:
 	/** static functions that are used by matinee functionality */
-	static void SetMatineeAnimPositionInner(FName SlotName, USkeletalMeshComponent* SkeletalMeshComponent, UAnimSequence* InAnimSequence, TWeakObjectPtr<UAnimMontage>& CurrentlyPlayingMontage, float InPosition, bool bLooping);
-	static void PreviewMatineeSetAnimPositionInner(FName SlotName, USkeletalMeshComponent* SkeletalMeshComponent, UAnimSequence* InAnimSequence, TWeakObjectPtr<UAnimMontage>& CurrentlyPlayingMontage, float InPosition, bool bLooping, bool bFireNotifies, float DeltaTime);
+	ENGINE_API static void SetMatineeAnimPositionInner(FName SlotName, USkeletalMeshComponent* SkeletalMeshComponent, UAnimSequence* InAnimSequence, TWeakObjectPtr<UAnimMontage>& CurrentlyPlayingMontage, float InPosition, bool bLooping);
+	ENGINE_API static void PreviewMatineeSetAnimPositionInner(FName SlotName, USkeletalMeshComponent* SkeletalMeshComponent, UAnimSequence* InAnimSequence, TWeakObjectPtr<UAnimMontage>& CurrentlyPlayingMontage, float InPosition, bool bLooping, bool bFireNotifies, float DeltaTime);
 };
 
 UCLASS(config=Engine, hidecategories=(UObject, Length), MinimalAPI, BlueprintType)
@@ -483,12 +489,13 @@ public:
 	virtual void TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNotifyQueue& NotifyQueue, FAnimAssetTickContext& Context) const override;
 	virtual TArray<FName>* GetUniqueMarkerNames() override { return &MarkerData.UniqueMarkerNames; }
 	virtual void RefreshCacheData() override;
+	virtual bool CanBeUsedInMontage() const { return false; }
 	//~ End AnimSequenceBase Interface
 
 #if WITH_EDITOR
 	//~ Begin UAnimationAsset Interface
-	virtual bool GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& AnimationSequences) override;
-	virtual void ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSequence*>& ReplacementMap) override;
+	virtual bool GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets) override;
+	virtual void ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& ReplacementMap) override;
 	//~ End UAnimationAsset Interface
 
 	/** Update all linkable elements contained in the montage */
@@ -507,7 +514,7 @@ public:
 	bool IsValidAdditiveSlot(const FName& SlotNodeName) const;
 
 	/** Get FCompositeSection with InSectionName */
-	FCompositeSection& GetAnimCompositeSection(int32 SectionIndex);
+	ENGINE_API FCompositeSection& GetAnimCompositeSection(int32 SectionIndex);
 	const FCompositeSection& GetAnimCompositeSection(int32 SectionIndex) const;
 
 	// @todo document
@@ -638,4 +645,9 @@ public:
 
 	// update markers
 	void CollectMarkers();
+
+	//~Begin UAnimCompositeBase Interface
+	virtual void InvalidateRecursiveAsset() override;
+	virtual bool ContainRecursive(TArray<UAnimCompositeBase*>& CurrentAccumulatedList) override;
+	//~End UAnimCompositeBase Interface
 };

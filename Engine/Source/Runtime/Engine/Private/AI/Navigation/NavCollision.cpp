@@ -256,6 +256,13 @@ void UNavCollision::GetNavigationModifier(FCompositeNavModifier& Modifier, const
 				Modifier.Add(AreaMod);
 			}
 		}
+
+		if (TriMeshCollision.VertexBuffer.Num() > 0)
+		{
+			FAreaNavModifier AreaMod(TriMeshCollision.VertexBuffer, 0, TriMeshCollision.VertexBuffer.Num() - 1, ENavigationCoordSystem::Unreal, LocalToWorld, UseAreaClass);
+			AreaMod.SetIncludeAgentHeight(true);
+			Modifier.Add(AreaMod);
+		}
 	}
 }
 

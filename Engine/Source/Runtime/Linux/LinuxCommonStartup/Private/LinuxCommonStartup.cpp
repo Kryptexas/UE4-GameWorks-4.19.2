@@ -17,19 +17,19 @@ extern void LaunchStaticShutdownAfterError();
 // see comment in LaunchLinux.cpp for details why it is done this way
 extern void LaunchLinux_FEngineLoop_AppExit();
 #endif // WITH_ENGINE
-// FIXME: handle expose it someplace else?
-extern int32 DLLIMPORT ReportCrash(const FLinuxCrashContext& Context);
-extern void DLLIMPORT GenerateCrashInfoAndLaunchReporter(const FLinuxCrashContext& Context);
 
 /**
  * Game-specific crash reporter
  */
 void CommonLinuxCrashHandler(const FGenericCrashContext& GenericContext)
 {
-	const FLinuxCrashContext& Context = static_cast< const FLinuxCrashContext& >( GenericContext );
+	// at this point we should already be using malloc crash handler (see PlatformCrashHandler)
 
-	printf("EngineCrashHandler: Signal=%d\n", Context.Signal);
-	ReportCrash(Context);
+	const FLinuxCrashContext& Context = static_cast< const FLinuxCrashContext& >( GenericContext );
+	printf("CommonLinuxCrashHandler: Signal=%d\n", Context.Signal);
+
+	// better than having mutable fields?
+	const_cast< FLinuxCrashContext& >(Context).CaptureStackTrace();
 	if (GLog)
 	{
 		GLog->Flush();
@@ -44,7 +44,7 @@ void CommonLinuxCrashHandler(const FGenericCrashContext& GenericContext)
 		GError->HandleError();
 	}
 
-	return GenerateCrashInfoAndLaunchReporter(Context);
+	return Context.GenerateCrashInfoAndLaunchReporter();
 }
 
 
@@ -236,6 +236,13 @@ int CommonLinuxMain(int argc, char *argv[], int (*RealMain)(const TCHAR * Comman
 #if WITH_ENGINE
 	LaunchLinux_FEngineLoop_AppExit();
 #endif // WITH_ENGINE
+
+	// check if a specific return code has been set
+	uint8 OverriddenErrorLevel = 0;
+	if (FPlatformMisc::HasOverriddenReturnCode(&OverriddenErrorLevel))
+	{
+		ErrorLevel = OverriddenErrorLevel;
+	}
 
 	if (ErrorLevel)
 	{

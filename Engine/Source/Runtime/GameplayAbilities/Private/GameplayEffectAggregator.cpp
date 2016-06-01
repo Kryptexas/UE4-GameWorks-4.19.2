@@ -99,6 +99,26 @@ float FAggregator::EvaluateBonus(const FAggregatorEvaluateParameters& Parameters
 	return (Evaluate(Parameters) - GetBaseValue());
 }
 
+float FAggregator::EvaluateContribution(const FAggregatorEvaluateParameters& Parameters, FActiveGameplayEffectHandle ActiveHandle) const
+{
+	FAggregator Temp;
+	Temp.BaseValue = BaseValue;
+
+	if (ActiveHandle.IsValid())
+	{
+		for (int32 Idx = 0; Idx < ARRAY_COUNT(Mods); ++Idx)
+		{
+			Temp.Mods[Idx] = Mods[Idx];
+
+			Temp.RemoveModsWithActiveHandle(Temp.Mods[Idx], ActiveHandle);
+		}
+
+		return Evaluate(Parameters) - Temp.Evaluate(Parameters);
+	}
+
+	return 0.f;
+}
+
 float FAggregator::GetBaseValue() const
 {
 	return BaseValue;

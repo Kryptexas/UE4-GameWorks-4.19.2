@@ -2,6 +2,7 @@
 
 #pragma once
 #include "EdGraph/EdGraphSchema.h"
+#include "EdGraph/EdGraphPin.h"
 #include "EdGraphSchema_K2.generated.h"
 
 /** Reference to an structure (only used in 'docked' palette) */
@@ -171,6 +172,13 @@ public:
 
 	static const FName MD_ArrayParam;
 	static const FName MD_ArrayDependentParam;
+
+	/** Metadata that identifies an integral property as a bitmask. */
+	static const FName MD_Bitmask;
+	/** Metadata that associates a bitmask property with a bitflag enum. */
+	static const FName MD_BitmaskEnum;
+	/** Metadata that identifies an enum as a set of explicitly-named bitflags. */
+	static const FName MD_Bitflags;
 	
 private:
 	// This class should never be instantiated
@@ -241,6 +249,7 @@ class BLUEPRINTGRAPH_API UEdGraphSchema_K2 : public UEdGraphSchema
 	static const FString PSC_Self;    // Category=PC_Object or PC_Class, indicates the class being compiled
 
 	static const FString PSC_Index;	// Category=PC_Wildcard, indicates the wildcard will only accept Int, Bool, Byte and Enum pins (used when a pin represents indexing a list)
+	static const FString PSC_Bitmask;	// Category=PC_Byte or PC_Int, indicates that the pin represents a bitmask field. SubCategoryObject is either NULL or the UEnum object to which the bitmap is linked for bitflag name specification.
 
 	// Pin names that have special meaning and required types in some contexts (depending on the node type)
 	static const FString PN_Execute;    // Category=PC_Exec, singleton, input
@@ -416,7 +425,7 @@ public:
 	virtual void GetAssetsPinHoverMessage(const TArray<FAssetData>& Assets, const UEdGraphPin* HoverPin, FString& OutTooltipText, bool& OutOkIcon) const override;
 	virtual bool CanDuplicateGraph(UEdGraph* InSourceGraph) const override;
 	virtual UEdGraph* DuplicateGraph(UEdGraph* GraphToDuplicate) const override;
-	virtual UEdGraphNode* CreateSubstituteNode(UEdGraphNode* Node, const UEdGraph* Graph, FObjectInstancingGraph* InstanceGraph) const override;
+	virtual UEdGraphNode* CreateSubstituteNode(UEdGraphNode* Node, const UEdGraph* Graph, FObjectInstancingGraph* InstanceGraph, TArray<FName>& InOutExtraNames) const override;
 	virtual int32 GetNodeSelectionCount(const UEdGraph* Graph) const override;
 	virtual TSharedPtr<FEdGraphSchemaAction> GetCreateCommentAction() const override;
 	virtual bool FadeNodeWhenDraggingOffPin(const UEdGraphNode* Node, const UEdGraphPin* Pin) const override;

@@ -359,22 +359,23 @@ static inline ovrMatrix4f ovrMatrix4f_TanAngleMatrixFromUnitSquare( const ovrMat
 		return r2;
 	*/
 
-	const ovrMatrix4f inv = ovrMatrix4f_Inverse( modelView );
+	const ovrMatrix4f inv = ovrMatrix4f_Inverse(modelView);
+	float coef = (inv.M[2][3] > 0.0f) ? 1.0f : -1.0f;
 
 	ovrMatrix4f m;
-	m.M[0][0] = + 0.5f * ( inv.M[0][0] * inv.M[2][3] - inv.M[0][3] * inv.M[2][0] ) - 0.5f * inv.M[2][0];
-	m.M[0][1] = + 0.5f * ( inv.M[0][1] * inv.M[2][3] - inv.M[0][3] * inv.M[2][1] ) - 0.5f * inv.M[2][1];
-	m.M[0][2] = + 0.5f * ( inv.M[0][2] * inv.M[2][3] - inv.M[0][3] * inv.M[2][2] ) - 0.5f * inv.M[2][2];
+	m.M[0][0] = (+ 0.5f * ( inv.M[0][0] * inv.M[2][3] - inv.M[0][3] * inv.M[2][0] ) - 0.5f * inv.M[2][0])*coef;
+	m.M[0][1] = (+ 0.5f * ( inv.M[0][1] * inv.M[2][3] - inv.M[0][3] * inv.M[2][1] ) - 0.5f * inv.M[2][1])*coef;
+	m.M[0][2] = (+ 0.5f * ( inv.M[0][2] * inv.M[2][3] - inv.M[0][3] * inv.M[2][2] ) - 0.5f * inv.M[2][2])*coef;
 	m.M[0][3] = 0.0f;
 										 									
-	m.M[1][0] = - 0.5f * ( inv.M[1][0] * inv.M[2][3] - inv.M[1][3] * inv.M[2][0] ) - 0.5f * inv.M[2][0];
-	m.M[1][1] = - 0.5f * ( inv.M[1][1] * inv.M[2][3] - inv.M[1][3] * inv.M[2][1] ) - 0.5f * inv.M[2][1];
-	m.M[1][2] = - 0.5f * ( inv.M[1][2] * inv.M[2][3] - inv.M[1][3] * inv.M[2][2] ) - 0.5f * inv.M[2][2];
+	m.M[1][0] = (-0.5f * (inv.M[1][0] * inv.M[2][3] - inv.M[1][3] * inv.M[2][0]) - 0.5f * inv.M[2][0])*coef;
+	m.M[1][1] = (-0.5f * (inv.M[1][1] * inv.M[2][3] - inv.M[1][3] * inv.M[2][1]) - 0.5f * inv.M[2][1])*coef;
+	m.M[1][2] = (-0.5f * (inv.M[1][2] * inv.M[2][3] - inv.M[1][3] * inv.M[2][2]) - 0.5f * inv.M[2][2])*coef;
 	m.M[1][3] = 0.0f;
 
-	m.M[2][0] = - inv.M[2][0];
-	m.M[2][1] = - inv.M[2][1];
-	m.M[2][2] = - inv.M[2][2];
+	m.M[2][0] = (-inv.M[2][0])*coef;
+	m.M[2][1] = (-inv.M[2][1])*coef;
+	m.M[2][2] = (-inv.M[2][2])*coef;
 	m.M[2][3] = 0.0f;
 
 	m.M[3][0] = 0.0f;

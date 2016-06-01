@@ -395,6 +395,9 @@ struct FOpenGLRHIState : public FOpenGLCommonState
 	uint32							RenderTargetMipmapLevels[MaxSimultaneousRenderTargets];
 	uint32							RenderTargetArrayIndex[MaxSimultaneousRenderTargets];
 	FOpenGLTextureBase*				DepthStencil;
+	ERenderTargetStoreAction		StencilStoreAction;
+	uint32							DepthTargetWidth;
+	uint32							DepthTargetHeight;
 	bool							bFramebufferSetupInvalid;
 
 	// Information about pending BeginDraw[Indexed]PrimitiveUP calls.
@@ -439,6 +442,9 @@ struct FOpenGLRHIState : public FOpenGLCommonState
 	,	RunningOcclusionQuery(0)
 	,	FirstNonzeroRenderTarget(-1)
 	,	DepthStencil(0)
+	,	StencilStoreAction(ERenderTargetStoreAction::ENoAction)
+	,	DepthTargetWidth(0)
+	,	DepthTargetHeight(0)
 	,	bFramebufferSetupInvalid(true)
 	,	NumVertices(0)
 	,	PrimitiveType(0)

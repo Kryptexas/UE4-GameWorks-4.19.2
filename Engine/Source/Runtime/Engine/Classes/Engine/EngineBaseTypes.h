@@ -549,6 +549,34 @@ namespace ENetworkFailure
 	}
 }
 
+UENUM()
+namespace ENetworkLagState
+{
+	enum Type
+	{
+		/** The net driver is operating normally or it is not possible to tell if it is lagging */
+		NotLagging,
+		/** The net driver is in the process of timing out all of the client connections */
+		Lagging
+	};
+}
+
+
+namespace ENetworkLagState
+{
+	inline const TCHAR* ToString(ENetworkLagState::Type LagType)
+	{
+		switch (LagType)
+		{
+			case NotLagging:
+				return TEXT("NotLagging");
+			case Lagging:
+				return TEXT("Lagging");
+		}
+		return TEXT("Unknown lag type occurred.");
+	}
+}
+
 /** Types of server travel failures broadcast by the engine */
 UENUM(BlueprintType)
 namespace ETravelFailure
@@ -861,7 +889,19 @@ enum EViewModeIndex
 	/** Colored according to the current LOD index. */
 	VMI_LODColoration = 18,
 	/** Colored according to the quad coverage. */
-	VMI_QuadComplexity = 19,
+	VMI_QuadOverdraw = 19,
+	/** Visualize the accuracy of the CPU primitive distance when compared with the GPU value. */
+	VMI_PrimitiveDistanceAccuracy = 20,
+	/** Visualize the accuracy of the CPU mesh texture coordinate size when compared to the GPU value. */
+	VMI_MeshTexCoordSizeAccuracy = 21,
+	/** Colored according to shader complexity, including quad overdraw. */
+	VMI_ShaderComplexityWithQuadOverdraw = 22,
+	/** Colored according to the current HLOD index. */
+	VMI_HLODColoration = 23,
+	/** Group item for LOD and HLOD coloration*/
+	VMI_GroupLODColoration = 24,
+	/** Visualize the accuracy of CPU material texture coordinate scales when compared to the GPU values. */
+	VMI_MaterialTexCoordScalesAccuracy = 25,
 
 	VMI_Max UMETA(Hidden),
 

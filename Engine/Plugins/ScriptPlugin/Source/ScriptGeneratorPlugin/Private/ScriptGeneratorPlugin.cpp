@@ -68,7 +68,7 @@ void FScriptGeneratorPlugin::Initialize(const FString& RootLocalPath, const FStr
 
 bool FScriptGeneratorPlugin::ShouldExportClassesForModule(const FString& ModuleName, EBuildModuleType::Type ModuleType, const FString& ModuleGeneratedIncludeDirectory) const
 { 
-	bool bCanExport = (ModuleType == EBuildModuleType::Runtime || ModuleType == EBuildModuleType::Game);
+	bool bCanExport = (ModuleType == EBuildModuleType::EngineRuntime || ModuleType == EBuildModuleType::GameRuntime);
 	if (bCanExport)
 	{
 		// Only export functions from selected modules

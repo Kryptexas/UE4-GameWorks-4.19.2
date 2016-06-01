@@ -36,7 +36,7 @@ static void TemporalRandom(FVector2D* RESTRICT const Constant, uint32 FrameNumbe
 
 static TAutoConsoleVariable<float> CVarTemporalAASharpness(
 	TEXT("r.TemporalAASharpness"),
-	0.0f,
+	1.0f,
 	TEXT("Sharpness of temporal AA (0.0 = smoother, 1.0 = sharper)."),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
@@ -83,6 +83,7 @@ public:
 	FShaderParameter PlusWeights;
 	FShaderParameter RandomOffset;
 	FShaderParameter DitherScale;
+	FShaderParameter VelocityScaling;
 
 	/** Initialization constructor. */
 	FPostProcessTemporalAAPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -95,13 +96,14 @@ public:
 		PlusWeights.Bind(Initializer.ParameterMap, TEXT("PlusWeights"));
 		RandomOffset.Bind(Initializer.ParameterMap, TEXT("RandomOffset"));
 		DitherScale.Bind(Initializer.ParameterMap, TEXT("DitherScale"));
+		VelocityScaling.Bind(Initializer.ParameterMap, TEXT("VelocityScaling"));
 	}
 
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << DeferredParameters << SampleWeights << LowpassWeights << PlusWeights << RandomOffset << DitherScale;
+		Ar << PostprocessParameter << DeferredParameters << SampleWeights << LowpassWeights << PlusWeights << RandomOffset << DitherScale << VelocityScaling;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -205,6 +207,9 @@ public:
 		}
 
 		SetShaderValue(Context.RHICmdList, ShaderRHI, DitherScale, bUseDither ? 1.0f : 0.0f);
+
+		const bool bIgnoreVelocity = (ViewState && ViewState->bSequencerIsPaused);
+		SetShaderValue(Context.RHICmdList, ShaderRHI, VelocityScaling, bIgnoreVelocity ? 0.0f : 1.0f);
 
 		SetUniformBufferParameter(Context.RHICmdList, ShaderRHI, GetUniformBufferParameter<FCameraMotionParameters>(), CreateCameraMotionParametersUniformBuffer(Context.View));
 	}
@@ -551,7 +556,7 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 	}
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(Context.RHICmdList);
 
-	FViewInfo& View = Context.View;
+	const FViewInfo& View = Context.View;
 	FSceneViewState* ViewState = Context.ViewState;
 
 	FIntPoint TexSize = InputDesc->Extent;
@@ -739,22 +744,25 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 		ViewState->TemporalAAHistoryRT = PassOutputs[0].PooledRenderTarget;
 	}
 
-#if WITH_EDITOR
-	FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::WaitForOutstandingTasksOnly);
+	if (FSceneRenderer::ShouldCompositeEditorPrimitives(Context.View))
+	{
+		FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::WaitForOutstandingTasksOnly);
+		// because of the flush it's ok to remove the const, this is not ideal as the flush can cost performance
+		FViewInfo& NonConstView = (FViewInfo&)Context.View;
 
-	// Remove jitter
-	View.ViewMatrices.RemoveTemporalJitter();
+		// Remove jitter
+		NonConstView.ViewMatrices.RemoveTemporalJitter();
 
-	// Compute the view projection matrix and its inverse.
-	View.ViewProjectionMatrix = View.ViewMatrices.ViewMatrix * View.ViewMatrices.ProjMatrix;
-	View.InvViewProjectionMatrix = View.ViewMatrices.GetInvProjMatrix() * View.InvViewMatrix;
+		// Compute the view projection matrix and its inverse.
+		NonConstView.ViewProjectionMatrix = NonConstView.ViewMatrices.ViewMatrix * NonConstView.ViewMatrices.ProjMatrix;
+		NonConstView.InvViewProjectionMatrix = NonConstView.ViewMatrices.GetInvProjMatrix() * NonConstView.InvViewMatrix;
 
-	// Compute a transform from view origin centered world-space to clip space.
-	View.ViewMatrices.TranslatedViewProjectionMatrix = View.ViewMatrices.TranslatedViewMatrix * View.ViewMatrices.ProjMatrix;
-	View.ViewMatrices.InvTranslatedViewProjectionMatrix = View.ViewMatrices.GetInvProjMatrix() * View.ViewMatrices.TranslatedViewMatrix.Inverse();
+		// Compute a transform from view origin centered world-space to clip space.
+		NonConstView.ViewMatrices.TranslatedViewProjectionMatrix = NonConstView.ViewMatrices.TranslatedViewMatrix * NonConstView.ViewMatrices.ProjMatrix;
+		NonConstView.ViewMatrices.InvTranslatedViewProjectionMatrix = NonConstView.ViewMatrices.GetInvProjMatrix() * NonConstView.ViewMatrices.TranslatedViewMatrix.Inverse();
 
-	View.InitRHIResources(nullptr);
-#endif
+		NonConstView.InitRHIResources(nullptr);
+	}
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessTemporalAA::ComputeOutputDesc(EPassOutputId InPassOutputId) const

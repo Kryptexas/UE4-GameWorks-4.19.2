@@ -26,10 +26,9 @@ UMovieSceneSection* FEventTrackSection::GetSectionObject()
 	return Section;
 }
 
-
-int32 FEventTrackSection::OnPaintSection(const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled) const
+int32 FEventTrackSection::OnPaintSection( FSequencerSectionPainter& InPainter ) const
 {
-	return LayerId + 1;
+	return InPainter.PaintSectionBackground();
 }
 
 

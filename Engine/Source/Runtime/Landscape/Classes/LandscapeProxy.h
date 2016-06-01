@@ -322,7 +322,7 @@ public:
 };
 
 UCLASS(NotPlaceable, NotBlueprintable, hidecategories=(Display, Attachment, Physics, Debug, Lighting, LOD), showcategories=(Lighting, Rendering, "Utilities|Transformation"), MinimalAPI)
-class ALandscapeProxy : public AActor, public FTickableGameObject
+class ALandscapeProxy : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
@@ -351,9 +351,15 @@ public:
 	UPROPERTY(EditAnywhere, Category=LOD)
 	int32 MaxLODLevel;
 
+	UPROPERTY(EditAnywhere, Category=LOD)
+	float LODDistanceFactor;
+
+	UPROPERTY(EditAnywhere, Category=LOD)
+	TEnumAsByte<ELandscapeLODFalloff::Type> LODFalloff;
+
 #if WITH_EDITORONLY_DATA
 	/** LOD level to use when exporting the landscape to obj or FBX */
-	UPROPERTY(EditAnywhere, Category=LOD)
+	UPROPERTY(EditAnywhere, Category=LOD, AdvancedDisplay)
 	int32 ExportLOD;
 #endif
 
@@ -381,8 +387,17 @@ public:
 	UPROPERTY(EditAnywhere, Category=Landscape, AdvancedDisplay)
 	UMaterialInterface* LandscapeHoleMaterial;
 
-	UPROPERTY(EditAnywhere, Category=LOD)
-	float LODDistanceFactor;
+	/** Allows overriding the landscape bounds. This is useful if you distort the landscape with world-position-offset, for example
+	 *  Extension value in the negative Z axis, positive value increases bound size
+	 *  Note that this can also be overridden per-component when the component is selected with the component select tool */
+	UPROPERTY(EditAnywhere, Category=Landscape)
+	float NegativeZBoundsExtension;
+
+	/** Allows overriding the landscape bounds. This is useful if you distort the landscape with world-position-offset, for example
+	 *  Extension value in the positive Z axis, positive value increases bound size
+	 *  Note that this can also be overridden per-component when the component is selected with the component select tool */
+	UPROPERTY(EditAnywhere, Category=Landscape)
+	float PositiveZBoundsExtension;
 
 	/** The array of LandscapeComponent that are used by the landscape */
 	UPROPERTY()
@@ -399,6 +414,11 @@ public:
 	FCachedLandscapeFoliage FoliageCache;
 	/** A transient data structure for tracking the grass tasks*/
 	TArray<FAsyncTask<FAsyncGrassTask>* > AsyncFoliageTasks;
+
+	// Only used outside of the editor (e.g. in cooked builds)
+	// Disables landscape grass processing entirely if no landscape components have landscape grass configured
+	UPROPERTY()
+	bool bHasLandscapeGrass;
 
 	/**
 	 *	The resolution to cache lighting at, in texels/quad in one axis
@@ -421,6 +441,12 @@ public:
 	/** Whether this primitive should cast shadows in the far shadow cascades. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Lighting, meta=(DisplayName = "Far Shadow"))
 	uint32 bCastFarShadow:1;
+	
+	/** Whether to use the landscape material's vertical world position offset when calculating static lighting.
+		Note: Only z (vertical) offset is supported. XY offsets are ignored.
+		Does not work correctly with an XY offset map (mesh collision) */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Lighting)
+	uint32 bUseMaterialPositionOffsetInStaticLighting:1;
 
 	UPROPERTY()
 	uint32 bIsProxy:1;
@@ -435,11 +461,16 @@ public:
 	FLightmassPrimitiveSettings LightmassSettings;
 
 	// Landscape LOD to use for collision tests. Higher numbers use less memory and process faster, but are much less accurate
-	UPROPERTY(EditAnywhere, Category=Landscape)
+	UPROPERTY(EditAnywhere, Category=Collision)
 	int32 CollisionMipLevel;
 
+	// If set higher than the "Collision Mip Level", this specifies the Landscape LOD to use for "simple collision" tests, otherwise the "Collision Mip Level" is used for both simple and complex collision.
+	// Does not work with an XY offset map (mesh collision)
+	UPROPERTY(EditAnywhere, Category=Collision)
+	int32 SimpleCollisionMipLevel;
+
 	/** Thickness of the collision surface, in unreal units */
-	UPROPERTY(EditAnywhere, Category=Landscape)
+	UPROPERTY(EditAnywhere, Category=Collision)
 	float CollisionThickness;
 
 	/** Collision profile settings for this landscape */
@@ -448,10 +479,9 @@ public:
 
 	/** Whether to bake the landscape material's vertical world position offset into the collision heightfield.
 		Note: Only z (vertical) offset is supported. XY offsets are ignored.
-		Does not work with CollisionMipLevel > 0
 		Does not work with an XY offset map (mesh collision) */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Landscape)
-	bool bBakeMaterialPositionOffsetIntoCollision;
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Collision)
+	uint32 bBakeMaterialPositionOffsetIntoCollision:1;
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()
@@ -481,13 +511,14 @@ public:
 	UPROPERTY(EditAnywhere, Category = Landscape, AdvancedDisplay)
 	ENavDataGatheringMode NavigationGeometryGatheringMode;
 
-	UPROPERTY(EditAnywhere, Category=LOD)
-	TEnumAsByte<ELandscapeLODFalloff::Type> LODFalloff;
-
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(EditAnywhere, Category=Landscape)
 	int32 MaxPaintedLayersPerComponent; // 0 = disabled
 #endif
+
+	/** Flag whether or not this Landscape's surface can be used for culling hidden triangles **/
+	UPROPERTY(EditAnywhere, Category = HLOD)
+	bool bUseLandscapeForCullingInvisibleHLODVertices;
 
 public:
 
@@ -576,26 +607,12 @@ public:
 	int32 UpdateBakedTexturesCountdown;
 #endif
 
-	//~ Begin FTickableGameObject Interface.
-	virtual void Tick(float DeltaTime) override;
-	virtual bool IsTickable() const override 
-	{ 
-		return !HasAnyFlags(RF_ClassDefaultObject); 
-	}
-	virtual bool IsTickableWhenPaused() const override
-	{
-		return !HasAnyFlags(RF_ClassDefaultObject); 
-	}
-	virtual bool IsTickableInEditor() const override
-	{
-		return !HasAnyFlags(RF_ClassDefaultObject); 
-	}
-	virtual TStatId GetStatId() const override
-	{
-		return GetStatID();
-	}
+	//~ Begin AActor Interface.
+	virtual void TickActor(float DeltaTime, ELevelTick TickType, FActorTickFunction& ThisTickFunction) override;
+	//~ End AActor Interface
 
 	//~ Begin UObject Interface.
+	virtual void PreSave() override;
 	virtual void Serialize(FArchive& Ar) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	virtual void PostLoad() override;

@@ -34,7 +34,7 @@ public class DestructibleMeshEditor : ModuleRules
 
 		DynamicallyLoadedModuleNames.Add("PropertyEditor");
 
-		AddThirdPartyPrivateStaticDependencies(Target, "FBX");
+		AddEngineThirdPartyPrivateStaticDependencies(Target, "FBX");
 
 		SetupModulePhysXAPEXSupport(Target);
 	}

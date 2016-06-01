@@ -18,17 +18,20 @@ struct FKSphylElem : public FKShapeElem
 	UPROPERTY()
 	FMatrix TM_DEPRECATED;
 
-	UPROPERTY(Category=KBoxElem, VisibleAnywhere)
+	/** Position of the capsule's origin */
+	UPROPERTY(Category=Capsule, EditAnywhere)
 	FVector Center;
 
-	UPROPERTY(Category=KBoxElem, VisibleAnywhere)
+	/** Orientation of the capsule */
+	UPROPERTY(Category= Capsule, EditAnywhere)
 	FQuat Orientation;
 
-	UPROPERTY(Category=KSphylElem, VisibleAnywhere)
+	/** Radius of the capsule */
+	UPROPERTY(Category= Capsule, EditAnywhere)
 	float Radius;
 
 	/** This is of line-segment ie. add Radius to both ends to find total length. */
-	UPROPERTY(Category=KSphylElem, VisibleAnywhere)
+	UPROPERTY(Category= Capsule, EditAnywhere)
 	float Length;
 
 	FKSphylElem()
@@ -81,6 +84,27 @@ struct FKSphylElem : public FKShapeElem
 	ENGINE_API FBox CalcAABB(const FTransform& BoneTM, float Scale) const;
 
 	ENGINE_API void ScaleElem(FVector DeltaSize, float MinSize);
+
+	ENGINE_API FKSphylElem GetFinalScaled(const FVector& Scale3D, const FTransform& RelativeTM) const;
+
+	/**	
+	 * Finds the shortest distance between the element and a world position. Input and output are given in world space
+	 * @param	WorldPosition	The point we are trying to get close to
+	 * @param	BodyToWorldTM	The transform to convert BodySetup into world space
+	 * @return					The distance between WorldPosition and the shape. 0 indicates WorldPosition is inside one of the shapes.
+	 */
+
+	ENGINE_API float GetShortestDistanceToPoint(const FVector& WorldPosition, const FTransform& BodyToWorldTM) const;
+
+	/**	
+	 * Finds the closest point on the shape given a world position. Input and output are given in world space
+	 * @param	WorldPosition			The point we are trying to get close to
+	 * @param	BodyToWorldTM			The transform to convert BodySetup into world space
+	 * @param	ClosestWorldPosition	The closest point on the shape in world space
+	 * @param	Normal					The normal of the feature associated with ClosestWorldPosition.
+	 * @return							The distance between WorldPosition and the shape. 0 indicates WorldPosition is inside the shape.
+	 */
+	ENGINE_API float GetClosestPointAndNormal(const FVector& WorldPosition, const FTransform& BodyToWorldTM, FVector& ClosestWorldPosition, FVector& Normal) const;
 
 	ENGINE_API static EAggCollisionShape::Type StaticShapeType;
 };

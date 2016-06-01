@@ -218,13 +218,13 @@ version:4.9
 				//Create our components
 				RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
 				OurCameraSpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraSpringArm"));
-				OurCameraSpringArm->AttachTo(RootComponent);
+				OurCameraSpringArm->SetupAttachment(RootComponent);
 				OurCameraSpringArm->SetRelativeLocationAndRotation(FVector(0.0f, 0.0f, 50.0f), FRotator(-60.0f, 0.0f, 0.0f));
 				OurCameraSpringArm->TargetArmLength = 400.f;
 				OurCameraSpringArm->bEnableCameraLag = true;
 				OurCameraSpringArm->CameraLagSpeed = 3.0f;
 				OurCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("GameCamera"));
-				OurCamera->AttachTo(OurCameraSpringArm, USpringArmComponent::SocketName);
+				OurCamera->SetupAttachment(OurCameraSpringArm, USpringArmComponent::SocketName);
 
 				//Take control of the default Player
 				AutoPossessPlayer = EAutoReceiveInput::Player0;

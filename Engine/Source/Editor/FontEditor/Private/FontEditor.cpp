@@ -1054,7 +1054,11 @@ bool FFontEditor::RecreateFontObject(const EFontCacheType NewCacheType)
 
 	if(FontFactoryPtr && FontFactoryPtr->ConfigureProperties())
 	{
-		bSuccess = UFactory::StaticImportObject(Font->GetClass(), Font->GetOuter(), *Font->GetName(), RF_Public|RF_Standalone, TEXT(""), nullptr, FontFactoryPtr) != nullptr;
+		bool OutCanceled = false;
+		if (FontFactoryPtr->ImportObject(Font->GetClass(), Font->GetOuter(), *Font->GetName(), RF_Public | RF_Standalone, TEXT(""), nullptr, OutCanceled) != nullptr)
+		{
+			bSuccess = true;
+		}
 	}
 
 	if(bSuccess)

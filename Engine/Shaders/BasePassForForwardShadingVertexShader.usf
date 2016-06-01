@@ -54,6 +54,7 @@ void Main(
 	half3 WorldPositionOffset = GetMaterialWorldPositionOffset(VertexParameters);
 	
 	WorldPosition.xyz += WorldPositionOffset;
+
 	float4 RasterizedWorldPosition = VertexFactoryGetRasterizedWorldPosition(Input, VFIntermediates, WorldPosition);
 	Output.Position = mul(RasterizedWorldPosition, ResolvedView.TranslatedWorldToClip);
 	Output.BasePassInterpolants.PixelPosition = WorldPosition;

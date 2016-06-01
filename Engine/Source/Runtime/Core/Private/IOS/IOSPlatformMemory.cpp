@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "CorePrivatePCH.h"
-#include "MallocBinned2.h"
+#include "MallocBinned.h"
 #include "MallocAnsi.h"
 
 
@@ -99,7 +99,7 @@ FMalloc* FIOSPlatformMemory::BaseAllocator()
 	uint64 MemoryLimit = FMath::Min<uint64>( uint64(1) << FMath::CeilLogTwo(Stats.free_count * PageSize), 0x100000000);
 
 	//return new FMallocAnsi();
-	return new FMallocBinned2(PageSize, MemoryLimit);
+	return new FMallocBinned(PageSize, MemoryLimit);
 }
 
 void* FIOSPlatformMemory::BinnedAllocFromOS( SIZE_T Size )

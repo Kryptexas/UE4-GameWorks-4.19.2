@@ -537,21 +537,75 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 	float LodValue = floor(LODCalculated);
 	float MorphAlpha = frac(LODCalculated);
 
-	// Base to Actual LOD, Base to Next LOD
-	float2 CoordTranslate = float2( LandscapeParameters.SubsectionSizeVertsLayerUVPan.x * pow(2, -LodValue) - 1, max(LandscapeParameters.SubsectionSizeVertsLayerUVPan.x * pow(2, -LodValue-1), 2) - 1 ) * LandscapeParameters.SubsectionSizeVertsLayerUVPan.y;
-
 	// InputPositionLODAdjusted : Position for actual LOD in base LOD units
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 	float2 ActualLODCoordsInt = floor(Intermediates.InputPosition.xy * pow(2, -(LodValue - LodValues.x)));
+	float InvLODScaleFactor = pow(2, -LodValue);
+#else
+	// select the height values from the vertex input corresponding to the current and next LOD
+	float InputHeight;
+	float InputHeightNextLOD;
+	// we can hardcode InvLODScaleFactor
+	float InvLODScaleFactor;
+
+	if( LodValue < 1 )
+	{
+		InvLODScaleFactor	= 1.0;
+		InputHeight			= Input.LODHeights[1][0];
+		InputHeightNextLOD	= Input.LODHeights[1][1];
+	}
+	else
+	if( LodValue < 2 )
+	{
+		InvLODScaleFactor	= 0.5;
+		InputHeight			= Input.LODHeights[1][1];
+		InputHeightNextLOD	= Input.LODHeights[1][2];
+	}
+	else
+	if( LodValue < 3 )
+	{
+		InvLODScaleFactor	= 0.25;
+		InputHeight			= Input.LODHeights[1][2];
+		InputHeightNextLOD	= Input.LODHeights[1][3];
+	}
+	else
+	if (LodValue < 4)
+	{
+		InvLODScaleFactor	= 0.125;
+		InputHeight			= Input.LODHeights[1][3];
+		InputHeightNextLOD	= LOD45[0];
+	}
+	else
+	if( LodValue < 5 )
+	{
+		InvLODScaleFactor	= 0.0625;
+		InputHeight			= LOD45[0];
+		InputHeightNextLOD	= LOD45[1];
+	}
+	else
+	{
+		InvLODScaleFactor	= 0.03125;
+		InputHeight			= LOD45[1];
+		InputHeightNextLOD	= LOD45[1];	// clamp to last LOD.
+	}
+
+	float MinHeight = DecodePackedHeight(Input.LODHeights[0].xy);
+	float MaxHeight = DecodePackedHeight(Input.LODHeights[0].zw);
+
+	float Height = lerp(MinHeight, MaxHeight, InputHeight);
+	float HeightNextLOD = lerp(MinHeight, MaxHeight, InputHeightNextLOD);
+
+	// LodValues.x is always 0 on mobile.
+	float2 ActualLODCoordsInt = floor(Intermediates.InputPosition.xy * InvLODScaleFactor);
+#endif
+
+	// Base to Actual LOD, Base to Next LOD
+	float2 CoordTranslate = float2( LandscapeParameters.SubsectionSizeVertsLayerUVPan.x * InvLODScaleFactor - 1, max(LandscapeParameters.SubsectionSizeVertsLayerUVPan.x * 0.5f * InvLODScaleFactor, 2) - 1 ) * LandscapeParameters.SubsectionSizeVertsLayerUVPan.y;
 	float2 InputPositionLODAdjusted = ActualLODCoordsInt / CoordTranslate.x;
 
 	// InputPositionNextLOD : Position for next LOD in base LOD units
 	float2 NextLODCoordsInt = floor(ActualLODCoordsInt * 0.5);
 	float2 InputPositionNextLOD = NextLODCoordsInt / CoordTranslate.y;
-
-	// Adjust MorphAlpha based on actual LOD - Improves multi-LOD transitions
-	//xy = ActualLODCoordsInt / (LandscapeParameters.SubsectionSizeVertsLayerUVPan.x * pow(2, -LodValue) - 1);
-	//LODCalculated = CalcLOD(xy, Intermediates.InputPosition.zw);
-	//MorphAlpha = saturate(LODCalculated - LodValue);
 
 	// Get the height and normal XY for current and next LOD out of the textures
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
@@ -562,54 +616,6 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 	float2 SampleCoordsNextLOD = InputPositionNextLOD * LandscapeParameters.HeightmapUVScaleBias.xy + LandscapeParameters.HeightmapUVScaleBias.zw + 0.5*LandscapeParameters.HeightmapUVScaleBias.xy + Intermediates.InputPosition.zw * LandscapeParameters.SubsectionOffsetParams.xy;
 	float4 SampleValueNextLOD = Texture2DSampleLevel(HeightmapTexture, HeightmapTextureSampler, SampleCoordsNextLOD, LodValue+1-LodBias.z );
 	float HeightNextLOD = DecodePackedHeight(SampleValueNextLOD.xy);
-
-#else
-	// select the height values from the vertex input corresponding to the current and next LOD
-	float SampleLOD = floor(LodValue);
-	float InputHeight;
-	float InputHeightNextLOD;
-	if( SampleLOD < 1 )
-	{
-		InputHeight			= Input.LODHeights[1][0];
-		InputHeightNextLOD	= Input.LODHeights[1][1];
-	}
-	else
-	if( SampleLOD < 2 )
-	{
-		InputHeight			= Input.LODHeights[1][1];
-		InputHeightNextLOD	= Input.LODHeights[1][2];
-	}
-	else
-	if( SampleLOD < 3 )
-	{
-		InputHeight			= Input.LODHeights[1][2];
-		InputHeightNextLOD	= Input.LODHeights[1][3];
-	}
-	else
-	if (SampleLOD < 4)
-	{
-		InputHeight			= Input.LODHeights[1][3];
-		InputHeightNextLOD	= LOD45[0];
-	}
-	else
-	if( SampleLOD < 5 )
-	{
-		InputHeight			= LOD45[0];
-		InputHeightNextLOD	= LOD45[1];
-	}
-	else
-	{
-		InputHeight			= LOD45[1];
-		InputHeightNextLOD	= LOD45[1];	// clamp to last LOD.
-	}
-
-
-	float MinHeight = DecodePackedHeight(Input.LODHeights[0].xy);
-	float MaxHeight = DecodePackedHeight(Input.LODHeights[0].zw);
-
-	float Height = lerp(MinHeight, MaxHeight, InputHeight);
-	float HeightNextLOD = lerp(MinHeight, MaxHeight, InputHeightNextLOD);
-
 #endif
 
 
@@ -624,6 +630,7 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 	InputPositionLODAdjusted = InputPositionLODAdjusted + XYOffset;
 	InputPositionNextLOD = InputPositionNextLOD + XYOffsetNextLOD;
 #endif
+
 	Intermediates.LocalPosition = lerp( float3(InputPositionLODAdjusted, Height), float3(InputPositionNextLOD, HeightNextLOD), MorphAlpha );
 
 #if USING_TESSELLATION
@@ -636,7 +643,7 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 	return Intermediates;
 }
 
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && VERTEXSHADER
+#if RENDERING_LANDSCAPE_GRASS && FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && VERTEXSHADER
 float2 LandscapeVertexFactorySampleHeight(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates)
 {
 	/*
@@ -649,14 +656,12 @@ float2 LandscapeVertexFactorySampleHeight(FVertexFactoryInput Input, FVertexFact
 	float2 xy = Intermediates.InputPosition.xy * LodValues.w;
 	float LODCalculated = CalcLOD(xy, Intermediates.InputPosition.zw);
 	float LodValue = floor(LODCalculated);
-
-	// Base to Actual LOD, Base to Next LOD
-	float2 CoordTranslate = float2( LandscapeParameters.SubsectionSizeVertsLayerUVPan.x * pow(2, -LodValue) - 1, max(LandscapeParameters.SubsectionSizeVertsLayerUVPan.x * pow(2, -LodValue-1), 2) - 1 ) * LandscapeParameters.SubsectionSizeVertsLayerUVPan.y;
+	float CoordTranslate_x = (LandscapeParameters.SubsectionSizeVertsLayerUVPan.x * pow(2, -LodValue) - 1) * LandscapeParameters.SubsectionSizeVertsLayerUVPan.y;
 
 	// InputPositionLODAdjusted : Position for actual LOD in base LOD units
 	float2 ActualLODCoordsInt = floor(Intermediates.InputPosition.xy * pow(2, -(LodValue - LodValues.x)));
 
-	float2 InputPositionLODAdjusted = ActualLODCoordsInt / CoordTranslate.x;
+	float2 InputPositionLODAdjusted = ActualLODCoordsInt / CoordTranslate_x;
 	float2 SampleCoords = InputPositionLODAdjusted * LandscapeParameters.HeightmapUVScaleBias.xy + LandscapeParameters.HeightmapUVScaleBias.zw + 0.5*LandscapeParameters.HeightmapUVScaleBias.xy + Intermediates.InputPosition.zw * LandscapeParameters.SubsectionOffsetParams.xy;
 	float4 SampleValue = Texture2DSampleLevel(HeightmapTexture, HeightmapTextureSampler, SampleCoords, LodValue-LodBias.z);
 	return SampleValue.rg;
@@ -679,7 +684,24 @@ float3x3 VertexFactoryGetTangentToLocal( FVertexFactoryInput Input, FVertexFacto
 
 float4 VertexFactoryGetRasterizedWorldPosition(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates, float4 InWorldPosition)
 {
+#if RENDERING_LANDSCAPE_GRASS
+	float2 xy = Intermediates.InputPosition.xy * LodValues.w;
+	float LODCalculated = CalcLOD(xy, Intermediates.InputPosition.zw);
+	float LodValue = floor(LODCalculated);
+	float CoordTranslate_x = (LandscapeParameters.SubsectionSizeVertsLayerUVPan.x * pow(2, -LodValue) - 1) * LandscapeParameters.SubsectionSizeVertsLayerUVPan.y;
+
+	float4 LocalPosition = mul(InWorldPosition, Primitive.WorldToLocal);
+	LocalPosition.xy *= CoordTranslate_x;
+
+	return mul(LocalPosition, Primitive.LocalToWorld);
+#else
 	return InWorldPosition;
+#endif
+}
+
+float3 VertexFactoryGetPositionForVertexLighting(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates, float3 TranslatedWorldPosition)
+{
+	return TranslatedWorldPosition;
 }
 
 FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates, FMaterialVertexParameters VertexParameters)

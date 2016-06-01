@@ -37,10 +37,16 @@ FText UMovieSceneNameableTrack::GetDisplayName() const
 {
 	if (DisplayName.IsEmpty())
 	{
-		return LOCTEXT("UnnamedTrackName", "Unnamed Track");
+		return GetDefaultDisplayName();
 	}
 
 	return DisplayName;
+}
+
+FText UMovieSceneNameableTrack::GetDefaultDisplayName() const
+
+{ 
+	return LOCTEXT("UnnamedTrackName", "Unnamed Track"); 
 }
 
 #endif

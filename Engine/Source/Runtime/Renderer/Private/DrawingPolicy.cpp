@@ -21,11 +21,10 @@ FMeshDrawingPolicy::FMeshDrawingPolicy(
 	const FVertexFactory* InVertexFactory,
 	const FMaterialRenderProxy* InMaterialRenderProxy,
 	const FMaterial& InMaterialResource,
-	bool bInOverrideWithShaderComplexity,
+	EDebugViewShaderMode InDebugViewShaderMode,
 	bool bInTwoSidedOverride,
 	bool bInDitheredLODTransitionOverride,
-	bool bInWireframeOverride,
-	EQuadOverdrawMode InQuadOverdrawMode
+	bool bInWireframeOverride
 	):
 	VertexFactory(InVertexFactory),
 	MaterialRenderProxy(InMaterialRenderProxy),
@@ -33,8 +32,7 @@ FMeshDrawingPolicy::FMeshDrawingPolicy(
 	bIsDitheredLODTransitionMaterial(InMaterialResource.IsDitheredLODTransition() || bInDitheredLODTransitionOverride),
 	bIsWireframeMaterial(InMaterialResource.IsWireframe() || bInWireframeOverride),
 	//convert from signed bool to unsigned uint32
-	bOverrideWithShaderComplexity(bInOverrideWithShaderComplexity != false),
-	QuadOverdrawMode((uint32)InQuadOverdrawMode)
+	DebugViewShaderMode((uint32)InDebugViewShaderMode)
 {
 	// using this saves a virtual function call
 	bool bMaterialResourceIsTwoSided = InMaterialResource.IsTwoSided();
@@ -89,8 +87,9 @@ void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch&
 		if(BatchElement.IndexBuffer)
 		{
 			check(BatchElement.IndexBuffer->IsInitialized());
-			if (BatchElement.InstanceRuns)
+			if (BatchElement.bIsInstanceRuns)
 			{
+				checkSlow(BatchElement.bIsInstanceRuns);
 				if (!GRHISupportsFirstInstance)
 				{
 					if (bUsePositionOnlyVS)

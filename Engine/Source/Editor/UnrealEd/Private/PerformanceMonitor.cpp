@@ -148,6 +148,7 @@ bool FPerformanceMonitor::WillAutoScalabilityHelp() const
 	IsAutoScaleLower |= NewLevels.PostProcessQuality < CurrentLevels.PostProcessQuality;
 	IsAutoScaleLower |= NewLevels.TextureQuality < CurrentLevels.TextureQuality;
 	IsAutoScaleLower |= NewLevels.EffectsQuality < CurrentLevels.EffectsQuality;
+	IsAutoScaleLower |= NewLevels.FoliageQuality < CurrentLevels.FoliageQuality;
 
 	// We don't check things like real-time, because the user may have enabled it temporarily.
 
@@ -167,6 +168,7 @@ Scalability::FQualityLevels FPerformanceMonitor::GetAutoScalabilityQualityLevels
 	NewLevels.PostProcessQuality	= FMath::Min(NewLevels.PostProcessQuality, ExistingLevels.PostProcessQuality);
 	NewLevels.TextureQuality		= FMath::Min(NewLevels.TextureQuality, ExistingLevels.TextureQuality);
 	NewLevels.EffectsQuality		= FMath::Min(NewLevels.EffectsQuality, ExistingLevels.EffectsQuality);
+	NewLevels.FoliageQuality		= FMath::Min(NewLevels.FoliageQuality, ExistingLevels.FoliageQuality);
 
 	return NewLevels;
 }

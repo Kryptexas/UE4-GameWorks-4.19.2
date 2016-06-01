@@ -388,7 +388,8 @@ if (Controller.Previous##Gamepad != nil && Gamepad.GCAxis.value != Controller.Pr
         }
 		
 		// motion is orthogonal to buttons
-#if 0 // will need to fix this to work with tvOS SDK 9.1 and higher
+// @todo tvos: handle motion without attitude or rotation rate
+#if 0
 		if (Motion != nil)
 		{
 			FVector Attitude;
@@ -434,11 +435,12 @@ if (Controller.Previous##Gamepad != nil && Gamepad.GCAxis.value != Controller.Pr
 //			NSLog(@"Acce %.2f, %.2f, %.2f\n", Acceleration.X, Acceleration.Y, Acceleration.Z);
 		}
 #endif
+		
 #endif
 	}
 }
 
-void FIOSInputInterface::QueueTouchInput(TArray<TouchInput> InTouchEvents)
+void FIOSInputInterface::QueueTouchInput(const TArray<TouchInput>& InTouchEvents)
 {
 	FScopeLock Lock(&CriticalSection);
 
@@ -574,7 +576,6 @@ bool FIOSInputInterface::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& 
 
 	return bHandledCommand;
 }
-
 bool FIOSInputInterface::IsControllerAssignedToGamepad(int32 ControllerId)
 {
 	return ControllerId < ARRAY_COUNT(Controllers) &&

@@ -43,6 +43,8 @@ struct FFlatTessellationHSToDS
 
 	FHullShaderConstantOutput HS_FlatTrianglesConstant( const OutputPatch<FFlatTessellationHSToDS, 3> I )
 	{
+		ResolvedView = ResolveView();
+
 		FHullShaderConstantOutput O = (FHullShaderConstantOutput)0;
 
 		#if INSTANCED_STEREO
@@ -62,9 +64,9 @@ struct FFlatTessellationHSToDS
 		float3 WorldPostion2 = I[2].PassSpecificData.Position.xyz;
 
 		float4 TessellationMultipliers;
-		TessellationMultipliers.x = 0.5 * (I[0].TessellationMultiplier + I[1].TessellationMultiplier);
-		TessellationMultipliers.y = 0.5 * (I[1].TessellationMultiplier + I[2].TessellationMultiplier);
-		TessellationMultipliers.z = 0.5 * (I[2].TessellationMultiplier + I[0].TessellationMultiplier);
+		TessellationMultipliers.x = 0.5 * (I[1].TessellationMultiplier + I[2].TessellationMultiplier);
+		TessellationMultipliers.y = 0.5 * (I[2].TessellationMultiplier + I[0].TessellationMultiplier);
+		TessellationMultipliers.z = 0.5 * (I[0].TessellationMultiplier + I[1].TessellationMultiplier);
 		TessellationMultipliers.w = 0.333 * (I[0].TessellationMultiplier + I[1].TessellationMultiplier + I[2].TessellationMultiplier);
 
 		//@todo: This should be vectorized and done in the MainHull shader.
@@ -131,9 +133,12 @@ struct FFlatTessellationHSToDS
 		FHullShaderConstantOutput HSConstantData,
 		const OutputPatch<FFlatTessellationHSToDS, 3> I,
 		float3 BarycentricCoords : SV_DomainLocation 
+#if USE_GLOBAL_CLIP_PLANE
+		, out float OutGlobalClipPlaneDistance : SV_ClipDistance
+#endif
 #if INSTANCED_STEREO
-		, out float4 OutClipDistance : SV_ClipDistance
-		, out float4 OutCullDistance : SV_CullDistance
+		, out float OutClipDistance : SV_ClipDistance1
+		, out float OutCullDistance : SV_CullDistance1
 #endif
 		)
 	{
@@ -198,6 +203,10 @@ struct FFlatTessellationHSToDS
 		float3 WorldDisplacement = GetMaterialWorldDisplacement(DisplacementMaterialParameters);
 
 		WorldPosition.xyz += WorldDisplacement;
+
+		#if USE_GLOBAL_CLIP_PLANE
+			OutGlobalClipPlaneDistance = dot(ResolvedView.GlobalClippingPlane, float4(WorldPosition.xyz - ResolvedView.PreViewTranslation.xyz, 1));
+		#endif
 
 		FPassSpecificVSToPS Result = PassFinalizeTessellationOutput(Interp, WorldPosition,MaterialParameters);
 

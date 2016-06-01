@@ -76,14 +76,14 @@ namespace UnrealBuildTool
 		/// Path to rsync executable and parameters for your rsync utility
 		/// </summary>
 		[XmlConfig]
-		public static string RSyncExe = "${PROGRAM_FILES}\\DeltaCopy\\rsync.exe";
+		public static string RSyncExe = "${ENGINE_ROOT}\\Engine\\Extras\\ThirdPartyNotUE\\DeltaCopy\\Binaries\\rsync.exe";
 		public static string ResolvedRSyncExe = null;
 
 		/// <summary>
 		/// Path to rsync executable and parameters for your rsync utility
 		/// </summary>
 		[XmlConfig]
-		public static string SSHExe = "${PROGRAM_FILES}\\DeltaCopy\\ssh.exe";
+		public static string SSHExe = "${ENGINE_ROOT}\\Engine\\Extras\\ThirdPartyNotUE\\DeltaCopy\\Binaries\\ssh.exe";
 		public static string ResolvedSSHExe = null;
 
 		/// <summary>
@@ -381,7 +381,7 @@ namespace UnrealBuildTool
 				// we need a server name!
 				if (string.IsNullOrEmpty(RemoteServerName))
 				{
-					Log.TraceError("Remote compiling requires a server name. Use the editor to set up your remote compilation settings.");
+					Log.TraceError("Remote compiling requires a server name. Use the editor (Project Settings, IOS) to set up your remote compilation settings.");
 					return RemoteToolChainErrorCode.ServerNameNotSpecified;
 				}
 
@@ -393,7 +393,7 @@ namespace UnrealBuildTool
 
 					if (!File.Exists(ResolvedRSyncExe) || !File.Exists(ResolvedSSHExe))
 					{
-						Log.TraceError("Remote compiling requires Delta Copy to be installed.");
+						Log.TraceError("Remote compiling requires Delta Copy to be installed. Use the editor (Project Settings, IOS) to set up your remote compilation settings.");
 						return RemoteToolChainErrorCode.MissingDeltaCopyInstall;
 					}
 
@@ -401,7 +401,7 @@ namespace UnrealBuildTool
 					ResolvedRSyncUsername = ResolveString(RSyncUsername, false);
 					if (string.IsNullOrEmpty(ResolvedRSyncUsername))
 					{
-						Log.TraceError("Remote compiling requires a user name. Use the editor to set up your remote compilation settings.");
+						Log.TraceError("Remote compiling requires a user name. Use the editor (Project Settings, IOS) to set up your remote compilation settings.");
 						return RemoteToolChainErrorCode.MissingRemoteUserName;
 					}
 
@@ -519,6 +519,10 @@ namespace UnrealBuildTool
 			{
 				if (OriginalPath[1] != ':')
 				{
+                    if (OriginalPath[0] == '/')
+                    {
+                        return OriginalPath.Replace("\\", "/");
+                    }
 					throw new BuildException("Can only convert full paths ({0})", OriginalPath);
 				}
 
@@ -599,11 +603,24 @@ namespace UnrealBuildTool
 			return RemoteFileItem;
 		}
 
-		/// <summary>
-		/// Helper function to sync source files to and from the local system and a remote Mac
-		/// </summary>
-		//This chunk looks to be required to pipe output to VS giving information on the status of a remote build.
-		public static bool OutputReceivedDataEventHandlerEncounteredError = false;
+        public FileItem RemoteToLocalFileItem(FileItem RemoteFileItem)
+        {
+            // Look to see if we've already made a remote FileItem for this local FileItem
+            foreach (var Item in CachedRemoteFileItems)
+            {
+                if (Item.Value.AbsolutePath == RemoteFileItem.AbsolutePath)
+                {
+                    return Item.Key;
+                }
+            }
+            return RemoteFileItem;
+        }
+
+        /// <summary>
+        /// Helper function to sync source files to and from the local system and a remote Mac
+        /// </summary>
+        //This chunk looks to be required to pipe output to VS giving information on the status of a remote build.
+        public static bool OutputReceivedDataEventHandlerEncounteredError = false;
 		public static string OutputReceivedDataEventHandlerEncounteredErrorMessage = "";
 		public static void OutputReceivedDataEventHandler(Object Sender, DataReceivedEventArgs Line)
 		{

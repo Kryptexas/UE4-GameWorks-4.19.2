@@ -70,6 +70,9 @@ public:
 	 */
 	static UObject* CheckPropertyNameOnScope(UStruct* Scope, const FName& PropertyName);
 
+	// Find groups of nodes, that can be executed separately.
+	static TArray<TSet<UEdGraphNode*>> FindUnsortedSeparateExecutionGroups(const TArray<UEdGraphNode*>& Nodes);
+
 private:
 	/** Counter to ensure unique names in the transient package, to avoid GC collection issues with classes and their CDOs */
 	static uint32 ConsignToOblivionCounter;

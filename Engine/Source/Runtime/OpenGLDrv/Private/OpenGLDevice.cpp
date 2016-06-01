@@ -17,6 +17,7 @@ extern GLint GMaxOpenGLColorSamples;
 extern GLint GMaxOpenGLDepthSamples;
 extern GLint GMaxOpenGLIntegerSamples;
 extern GLint GMaxOpenGLTextureFilterAnisotropic;
+extern GLint GMaxOpenGLDrawBuffers;
 
 /** OpenGL texture format table. */
 FOpenGLTextureFormat GOpenGLTextureFormats[PF_MAX];
@@ -479,6 +480,56 @@ void InitDebugContext()
 #endif
 }
 
+TAutoConsoleVariable<FString> CVarOpenGLStripExtensions(
+	TEXT("r.OpenGL.StripExtensions"), 
+	TEXT(""), 
+	TEXT("List of comma separated OpenGL extensions to strip from a driver reported extensions string"),
+	ECVF_ReadOnly);
+
+TAutoConsoleVariable<FString> CVarOpenGLAddExtensions(
+	TEXT("r.OpenGL.AddExtensions"), 
+	TEXT(""), 
+	TEXT("List of comma separated OpenGL extensions to add to a driver reported extensions string"),
+	ECVF_ReadOnly);
+
+void ApplyExtensionsOverrides(FString& ExtensionsString)
+{
+	// Strip extensions
+	{
+		TArray<FString> ExtList;
+		FString ExtString = CVarOpenGLStripExtensions.GetValueOnAnyThread();
+		ExtString.ParseIntoArray(ExtList, TEXT(","), /*InCullEmpty=*/true);
+
+		for (FString& ExtName : ExtList)
+		{
+			ExtName = ExtName.Trim().TrimTrailing();
+			if (ExtensionsString.ReplaceInline(*ExtName, TEXT("")) > 0)
+			{
+				UE_LOG(LogRHI, Log, TEXT("Stripped extension: %s"), *ExtName);
+			}
+		}
+	}
+
+	// Add extensions
+	{
+		TArray<FString> ExtList;
+		FString ExtString = CVarOpenGLAddExtensions.GetValueOnAnyThread();
+		ExtString.ParseIntoArray(ExtList, TEXT(","), /*InCullEmpty=*/true);
+
+		for (FString& ExtName : ExtList)
+		{
+			ExtName = ExtName.Trim().TrimTrailing();
+			if (!ExtensionsString.Contains(ExtName))
+			{
+				ExtensionsString.Append(TEXT(" ")); // extensions delimiter 
+				ExtensionsString.Append(ExtName);
+				UE_LOG(LogRHI, Log, TEXT("Added extension: %s"), *ExtName);
+			}
+		}
+	}
+}
+
+
 /**
  * Initialize RHI capabilities for the current OpenGL context.
  */
@@ -519,9 +570,9 @@ static void InitRHICapabilitiesForGL()
 
 #if PLATFORM_WINDOWS
 		if (ExtensionsString.Contains(TEXT("WGL_EXT_swap_control")))
-				{
-					bWindowsSwapControlExtensionPresent = true;
-				}
+		{
+			bWindowsSwapControlExtensionPresent = true;
+		}
 #endif
 
 		// Log supported GL extensions
@@ -532,6 +583,8 @@ static void InitRHICapabilitiesForGL()
 		{
 			UE_LOG(LogRHI, Log, TEXT("  %s"), *GLExtensionArray[ExtIndex]);
 		}
+
+		ApplyExtensionsOverrides(ExtensionsString);
 
 		FOpenGL::ProcessExtensions(ExtensionsString);
 	}
@@ -580,6 +633,7 @@ static void InitRHICapabilitiesForGL()
 	if (FOpenGL::SupportsDrawBuffers())
 	{
 		LOG_AND_GET_GL_INT_TEMP(GL_MAX_DRAW_BUFFERS, 1);
+		GMaxOpenGLDrawBuffers = FMath::Min(Value_GL_MAX_DRAW_BUFFERS, (GLint)MaxSimultaneousRenderTargets);
 	}
 	LOG_AND_GET_GL_INT_TEMP(GL_MAX_COLOR_ATTACHMENTS, 1);
 	LOG_AND_GET_GL_INT_TEMP(GL_MAX_SAMPLES, 1);
@@ -610,7 +664,10 @@ static void InitRHICapabilitiesForGL()
 	GMaxOpenGLIntegerSamples = Value_GL_MAX_INTEGER_SAMPLES;
 
 	// Verify some assumptions.
+	// Android seems like reports one color attachment even when it supports MRT
+#if !PLATFORM_ANDROID
 	check(Value_GL_MAX_COLOR_ATTACHMENTS >= MaxSimultaneousRenderTargets || !FOpenGL::SupportsMultipleRenderTargets());
+#endif
 
 	// We don't check for compressed formats right now because vendors have not
 	// done a great job reporting what is actually supported:
@@ -690,14 +747,20 @@ static void InitRHICapabilitiesForGL()
 	GSupportsSeparateRenderTargetBlendState = FOpenGL::SupportsSeparateAlphaBlend();
 	GSupportsDepthBoundsTest = FOpenGL::SupportsDepthBoundsTest();
 
-	GSupportsRenderTargetFormat_PF_FloatRGBA = (FOpenGL::SupportsColorBufferHalfFloat() && FOpenGL::SupportsTextureHalfFloat());
-
+	GSupportsRenderTargetFormat_PF_FloatRGBA = FOpenGL::SupportsColorBufferHalfFloat();
+	
+	GSupportsMultipleRenderTargets = FOpenGL::SupportsMultipleRenderTargets();
+	GSupportsWideMRT = FOpenGL::SupportsWideMRT();
+	GSupportsTexture3D = FOpenGL::SupportsTexture3D();
+	GSupportsResourceView = FOpenGL::SupportsResourceView();
+		
 	GSupportsShaderFramebufferFetch = FOpenGL::SupportsShaderFramebufferFetch();
 	GSupportsShaderDepthStencilFetch = FOpenGL::SupportsShaderDepthStencilFetch();
 	GMaxShadowDepthBufferSizeX = FMath::Min<int32>(Value_GL_MAX_RENDERBUFFER_SIZE, 4096); // Limit to the D3D11 max.
 	GMaxShadowDepthBufferSizeY = FMath::Min<int32>(Value_GL_MAX_RENDERBUFFER_SIZE, 4096);
 	GHardwareHiddenSurfaceRemoval = FOpenGL::HasHardwareHiddenSurfaceRemoval();
 	GRHISupportsInstancing = FOpenGL::SupportsInstancing(); // HTML5 does not support it. Android supports it with OpenGL ES3.0+ 
+	GSupportsTimestampRenderQueries = FOpenGL::SupportsTimestampQueries();
 
 	GSupportsHDR32bppEncodeModeIntrinsic = FOpenGL::SupportsHDR32bppEncodeModeIntrinsic();
 
@@ -721,8 +784,9 @@ static void InitRHICapabilitiesForGL()
 		GRHISupportsTextureStreaming = true;
 	}
 
-	GVertexElementTypeSupport.SetSupported(VET_Half2, FOpenGL::SupportsVertexHalfFloat());
-	GVertexElementTypeSupport.SetSupported(VET_Half4, FOpenGL::SupportsVertexHalfFloat());
+	GVertexElementTypeSupport.SetSupported(VET_Half2,		FOpenGL::SupportsVertexHalfFloat());
+	GVertexElementTypeSupport.SetSupported(VET_Half4,		FOpenGL::SupportsVertexHalfFloat());
+	GVertexElementTypeSupport.SetSupported(VET_URGB10A2N,	FOpenGL::SupportsRGB10A2());
 
 	for (int32 PF = 0; PF < PF_MAX; ++PF)
 	{
@@ -827,7 +891,7 @@ static void InitRHICapabilitiesForGL()
 		SetupTextureFormat(PF_A8, FOpenGLTextureFormat(GL_ALPHA, GL_ALPHA, GL_ALPHA, GL_ALPHA, GL_ALPHA, GL_UNSIGNED_BYTE, false, false));
 	#endif
 
-		if (GSupportsRenderTargetFormat_PF_FloatRGBA && FOpenGL::SupportsTextureHalfFloat())
+		if (FOpenGL::SupportsColorBufferHalfFloat() && FOpenGL::SupportsTextureHalfFloat())
 		{
 #if PLATFORM_ANDROID
 			SetupTextureFormat(PF_FloatRGBA, FOpenGLTextureFormat(GL_RGBA, GL_RGBA, GL_RGBA16F_EXT, GL_RGBA16F_EXT, GL_RGBA, GL_HALF_FLOAT_OES, false, false));
@@ -838,6 +902,22 @@ static void InitRHICapabilitiesForGL()
 		else
 		{
 			SetupTextureFormat( PF_FloatRGBA, FOpenGLTextureFormat(GL_RGBA, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false));
+		}
+
+		if (FOpenGL::SupportsColorBufferFloat())
+		{
+			SetupTextureFormat( PF_G16,				FOpenGLTextureFormat( GL_R16,					GL_R16,					GL_RED,			GL_UNSIGNED_SHORT,					false,	false));
+			SetupTextureFormat( PF_R32_FLOAT,		FOpenGLTextureFormat( GL_R32F,					GL_R32F,				GL_RED,			GL_FLOAT,							false,	false));
+#ifdef GL_RG_EXT
+			SetupTextureFormat( PF_G16R16F,			FOpenGLTextureFormat( GL_RG16F,					GL_RG16F,				GL_RG_EXT,		GL_HALF_FLOAT,						false,	false));
+			SetupTextureFormat( PF_G16R16F_FILTER,	FOpenGLTextureFormat( GL_RG16F,					GL_RG16F,				GL_RG_EXT,		GL_HALF_FLOAT,						false,	false));
+			SetupTextureFormat( PF_G32R32F,			FOpenGLTextureFormat( GL_RG32F,					GL_RG32F,				GL_RG_EXT,		GL_FLOAT,							false,	false));
+#endif
+#ifdef GL_UNSIGNED_INT_2_10_10_10_REV
+			SetupTextureFormat( PF_A2B10G10R10,		FOpenGLTextureFormat( GL_RGB10_A2,				GL_RGB10_A2,			GL_RGBA,		GL_UNSIGNED_INT_2_10_10_10_REV,		false,	false));
+#endif
+			SetupTextureFormat( PF_R16F,			FOpenGLTextureFormat( GL_R16F,					GL_R16F,				GL_RED,			GL_HALF_FLOAT,						false,	false));
+			SetupTextureFormat( PF_R16F_FILTER,		FOpenGLTextureFormat( GL_R16F,					GL_R16F,				GL_RED,			GL_HALF_FLOAT,						false,	false));
 		}
 
 		if (FOpenGL::SupportsPackedDepthStencil())
@@ -1023,7 +1103,7 @@ static void CheckVaryingLimit()
 		UE_LOG(LogRHI, Display, TEXT("Testing for gl_FragCoord requiring a varying since mosaic is enabled"));
 		FOpenGL::bIsCheckingShaderCompilerHacks = true;
 
-		static const ANSICHAR* TestVertexProgram = "\n"
+		static const ANSICHAR TestVertexProgram[] = "\n"
 			"#version 100\n"
 			"attribute vec4 in_ATTRIBUTE0;\n"
 			"attribute vec4 in_ATTRIBUTE1;\n"
@@ -1047,7 +1127,7 @@ static void CheckVaryingLimit()
 			"   TexCoord7 = in_ATTRIBUTE1 * vec4(0.56,0.66,0.76,0.86);\n"
 			"	gl_Position.xyzw = in_ATTRIBUTE0;\n"
 			"}\n";
-		static const ANSICHAR* TestFragmentProgram = "\n"
+		static const ANSICHAR TestFragmentProgram[] = "\n"
 			"#version 100\n"
 			"varying highp vec4 TexCoord0;\n"
 			"varying highp vec4 TexCoord1;\n"

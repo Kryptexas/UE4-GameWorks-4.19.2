@@ -28,9 +28,10 @@ extern RENDERCORE_API bool GIsThreadedRendering;
 extern RENDERCORE_API bool GUseThreadedRendering;
 /**
  * Whether the RHI thread should be created or not, requires rendering thread
- * Currently set by command line parameter and by the ToggleRHIThread console command.
+ * Currently set by command line parameter and by the r.rhithread.enable cvar.
  */
 extern RENDERCORE_API bool GUseRHIThread;
+extern RENDERCORE_API void SetEnableRHIThread(bool bEnable);
 
 #if (UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	static FORCEINLINE void CheckNotBlockedOnRenderThread() {}
@@ -393,7 +394,7 @@ DECLARE_STATS_GROUP(TEXT("Render Thread Commands"), STATGROUP_RenderThreadComman
 
 #define ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER_DECLARE_TEMPLATE(TypeName,TemplateParamName,ParamType1,ParamName1,ParamValue1,ParamType2,ParamName2,ParamValue2,ParamType3,ParamName3,ParamValue3,ParamType4,ParamName4,ParamValue4,Code) \
 	template <typename TemplateParamName> \
-	ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER_DECLARE_OPTTYPENAME(TypeName,ParamType1,ParamName1,ParamValue1,ParamType2,ParamName2,ParamValue2,ParamType3,ParamName3,ParamValue3,ParamType4,ParamName4,ParamValue4,OptTypename,Code)
+	ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER_DECLARE_OPTTYPENAME(TypeName,ParamType1,ParamName1,ParamValue1,ParamType2,ParamName2,ParamValue2,ParamType3,ParamName3,ParamValue3,ParamType4,ParamName4,ParamValue4,typename,Code)
 
 #define ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER_CREATE_TEMPLATE(TypeName,TemplateParamName,ParamType1,ParamValue1,ParamType2,ParamValue2,ParamType3,ParamValue3,ParamType4,ParamValue4) \
 	ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER_CREATE(TypeName<TemplateParamName>,ParamType1,ParamValue1,ParamType2,ParamValue2,ParamType3,ParamValue3,ParamType4,ParamValue4)
@@ -446,7 +447,7 @@ DECLARE_STATS_GROUP(TEXT("Render Thread Commands"), STATGROUP_RenderThreadComman
 
 #define ENQUEUE_UNIQUE_RENDER_COMMAND_FIVEPARAMETER_DECLARE_TEMPLATE(TypeName,TemplateParamName,ParamType1,ParamName1,ParamValue1,ParamType2,ParamName2,ParamValue2,ParamType3,ParamName3,ParamValue3,ParamType4,ParamName4,ParamValue4,ParamType5,ParamName5,ParamValue5,Code) \
 	template <typename TemplateParamName> \
-	ENQUEUE_UNIQUE_RENDER_COMMAND_FIVEPARAMETER_DECLARE_OPTTYPENAME(TypeName,ParamType1,ParamName1,ParamValue1,ParamType2,ParamName2,ParamValue2,ParamType3,ParamName3,ParamValue3,ParamType4,ParamName4,ParamValue4,ParamType5,ParamName5,ParamValue5,OptTypename,Code)
+	ENQUEUE_UNIQUE_RENDER_COMMAND_FIVEPARAMETER_DECLARE_OPTTYPENAME(TypeName,ParamType1,ParamName1,ParamValue1,ParamType2,ParamName2,ParamValue2,ParamType3,ParamName3,ParamValue3,ParamType4,ParamName4,ParamValue4,ParamType5,ParamName5,ParamValue5,typename,Code)
 
 #define ENQUEUE_UNIQUE_RENDER_COMMAND_FIVEPARAMETER_CREATE_TEMPLATE(TypeName,TemplateParamName,ParamType1,ParamValue1,ParamType2,ParamValue2,ParamType3,ParamValue3,ParamType4,ParamValue4,ParamType5,ParamValue5) \
 	ENQUEUE_UNIQUE_RENDER_COMMAND_FIVEPARAMETER_CREATE(TypeName<TemplateParamName>,ParamType1,ParamValue1,ParamType2,ParamValue2,ParamType3,ParamValue3,ParamType4,ParamValue4,ParamType5,ParamValue5)
@@ -501,7 +502,7 @@ DECLARE_STATS_GROUP(TEXT("Render Thread Commands"), STATGROUP_RenderThreadComman
 
 #define ENQUEUE_UNIQUE_RENDER_COMMAND_SIXPARAMETER_DECLARE_TEMPLATE(TypeName,TemplateParamName,ParamType1,ParamName1,ParamValue1,ParamType2,ParamName2,ParamValue2,ParamType3,ParamName3,ParamValue3,ParamType4,ParamName4,ParamValue4,ParamType5,ParamName5,ParamValue5,ParamType6,ParamName6,ParamValue6,Code) \
 	template <typename TemplateParamName> \
-	ENQUEUE_UNIQUE_RENDER_COMMAND_SIXPARAMETER_DECLARE_OPTTYPENAME(TypeName,ParamType1,ParamName1,ParamValue1,ParamType2,ParamName2,ParamValue2,ParamType3,ParamName3,ParamValue3,ParamType4,ParamName4,ParamValue4,ParamType5,ParamName5,ParamValue5,ParamType6,ParamName6,ParamValue6,OptTypename,Code)
+	ENQUEUE_UNIQUE_RENDER_COMMAND_SIXPARAMETER_DECLARE_OPTTYPENAME(TypeName,ParamType1,ParamName1,ParamValue1,ParamType2,ParamName2,ParamValue2,ParamType3,ParamName3,ParamValue3,ParamType4,ParamName4,ParamValue4,ParamType5,ParamName5,ParamValue5,ParamType6,ParamName6,ParamValue6,typename,Code)
 
 #define ENQUEUE_UNIQUE_RENDER_COMMAND_SIXPARAMETER_CREATE_TEMPLATE(TypeName,TemplateParamName,ParamType1,ParamValue1,ParamType2,ParamValue2,ParamType3,ParamValue3,ParamType4,ParamValue4,ParamType5,ParamValue5,ParamType6,ParamValue6) \
 	ENQUEUE_UNIQUE_RENDER_COMMAND_SIXPARAMETER_CREATE(TypeName<TemplateParamName>,ParamType1,ParamValue1,ParamType2,ParamValue2,ParamType3,ParamValue3,ParamType4,ParamValue4,ParamType5,ParamValue5,ParamType6,ParamValue6)

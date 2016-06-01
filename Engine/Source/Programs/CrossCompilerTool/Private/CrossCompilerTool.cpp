@@ -6,6 +6,10 @@
 #include "hlslcc.h"
 #include "MetalBackend.h"
 #include "GlslBackend.h"
+#define PLATFORM_SUPPORTS_VULKAN			PLATFORM_WINDOWS		// for now just Windows
+#if PLATFORM_SUPPORTS_VULKAN
+#include "VulkanBackend.h"
+#endif
 #include "HlslAST.h"
 #include "HlslLexer.h"
 #include "HlslParser.h"
@@ -67,7 +71,12 @@ namespace CCT
 		FGlslLanguageSpec GlslLanguage(RunInfo.Target == HCT_FeatureLevelES2);
 		FGlslCodeBackend GlslBackend(Flags, RunInfo.Target);
 		FMetalLanguageSpec MetalLanguage;
-		FMetalCodeBackend MetalBackend(Flags, CompileTarget);
+		FMetalCodeBackend MetalBackend(Flags, CompileTarget, (RunInfo.Target == HCT_FeatureLevelES2 || RunInfo.Target == HCT_FeatureLevelES3_1));
+#if PLATFORM_SUPPORTS_VULKAN
+		FVulkanBindingTable VulkanBindingTable(RunInfo.Frequency);
+		FVulkanLanguageSpec VulkanLanguage(false);
+		FVulkanCodeBackend VulkanBackend(Flags, VulkanBindingTable, CompileTarget);
+#endif
 
 		switch (RunInfo.BackEnd)
 		{
@@ -82,6 +91,14 @@ namespace CCT
 			Backend = &GlslBackend;
 			Flags |= HLSLCC_DX11ClipSpace;
 			break;
+
+#if PLATFORM_SUPPORTS_VULKAN
+		case CCT::FRunInfo::BE_Vulkan:
+			Language = &VulkanLanguage;
+			Backend = &VulkanBackend;
+			Flags |= HLSLCC_DX11ClipSpace;
+			break;
+#endif
 
 		default:
 			return 1;

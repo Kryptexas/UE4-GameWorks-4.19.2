@@ -169,11 +169,6 @@ FReply UImage::HandleMouseButtonDown(const FGeometry& Geometry, const FPointerEv
 
 #if WITH_EDITOR
 
-const FSlateBrush* UImage::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.Image");
-}
-
 const FText UImage::GetPaletteCategory()
 {
 	return LOCTEXT("Common", "Common");

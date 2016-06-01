@@ -70,6 +70,10 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	FFriendsAndChatStyle& SetLargeFriendsFontStyle(const FFriendsFontStyle& FontStyle);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
+	FFriendsFontStyle ChatFontStyle;
+	FFriendsAndChatStyle& SetChatFontStyle(const FFriendsFontStyle& FontStyle);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
 	FCheckBoxStyle CheckBoxStyle;
 	FFriendsAndChatStyle& SetCheckBoxStyle(const FCheckBoxStyle& InCheckBoxStyle);
 

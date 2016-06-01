@@ -7,6 +7,8 @@
 #include "Serialization/Archive.h"
 #include "Serialization/CustomVersion.h"
 #include "EngineVersion.h"
+#include "TargetPlatform.h"
+#include "GenericPlatformCompression.h"
 
 /*-----------------------------------------------------------------------------
 	FArchiveProxy implementation.
@@ -91,6 +93,8 @@ void FArchive::Reset()
 	ArMaxSerializeSize					= 0;
 	ArIsFilterEditorOnly				= false;
 	ArIsSaveGame						= false;
+	ArCustomPropertyList				= nullptr;
+	ArUseCustomPropertyList				= false;
 	CookingTargetPlatform = nullptr;
 	SerializedProperty = nullptr;
 #if WITH_EDITORONLY_DATA
@@ -136,6 +140,8 @@ void FArchive::CopyTrivialFArchiveStatusMembers(const FArchive& ArchiveToCopy)
 	ArMaxSerializeSize                   = ArchiveToCopy.ArMaxSerializeSize;
 	ArIsFilterEditorOnly                 = ArchiveToCopy.ArIsFilterEditorOnly;
 	ArIsSaveGame                         = ArchiveToCopy.ArIsSaveGame;
+	ArCustomPropertyList				 = ArchiveToCopy.ArCustomPropertyList;
+	ArUseCustomPropertyList				 = ArchiveToCopy.ArUseCustomPropertyList;
 	CookingTargetPlatform                = ArchiveToCopy.CookingTargetPlatform;
 	SerializedProperty = ArchiveToCopy.SerializedProperty;
 #if WITH_EDITORONLY_DATA
@@ -305,6 +311,8 @@ public:
 	int32 CompressedSize;
 	/** Uncompressed size in bytes as passed to compressor.						*/
 	int32 UncompressedSize;
+	/** Target platform for compressed data										*/
+	int32 BitWindow;
 	/** Flags to control compression											*/
 	ECompressionFlags Flags;
 
@@ -316,6 +324,7 @@ public:
 		, CompressedBuffer(0)
 		, CompressedSize(0)
 		, UncompressedSize(0)
+		, BitWindow(DEFAULT_ZLIB_BIT_WINDOW)
 		, Flags(ECompressionFlags(0))
 	{
 	}
@@ -325,7 +334,7 @@ public:
 	void DoWork()
 	{
 		// Compress from memory to memory.
-		verify( FCompression::CompressMemory( Flags, CompressedBuffer, CompressedSize, UncompressedBuffer, UncompressedSize ) );
+		verify( FCompression::CompressMemory( Flags, CompressedBuffer, CompressedSize, UncompressedBuffer, UncompressedSize, BitWindow) );
 	}
 
 	FORCEINLINE TStatId GetStatId() const
@@ -411,7 +420,7 @@ void FArchive::SerializeCompressed( void* V, int64 Length, ECompressionFlags Fla
 			// Read compressed data.
 			Serialize( CompressedBuffer, Chunk.CompressedSize );
 			// Decompress into dest pointer directly.
-			verify( FCompression::UncompressMemory( Flags, Dest, Chunk.UncompressedSize, CompressedBuffer, Chunk.CompressedSize, (Padding > 0) ? true : false ) );
+			verify( FCompression::UncompressMemory( Flags, Dest, Chunk.UncompressedSize, CompressedBuffer, Chunk.CompressedSize, (Padding > 0) ? true : false, FPlatformMisc::GetPlatformCompression()->GetCompressionBitWindow() ) );
 			// And advance it by read amount.
 			Dest += Chunk.UncompressedSize;
 		}
@@ -552,6 +561,17 @@ void FArchive::SerializeCompressed( void* V, int64 Length, ECompressionFlags Fla
 						SrcBuffer += NewChunk.UncompressedSize;
 					}
 
+					if (CookingTargetPlatform)
+					{
+						NewChunk.BitWindow = CookingTargetPlatform->GetCompressionBitWindow();
+					}
+					else
+					{
+						IPlatformCompression* PlatformCompression = FPlatformMisc::GetPlatformCompression();
+						check(PlatformCompression);
+						NewChunk.BitWindow = PlatformCompression->GetCompressionBitWindow();
+					}
+
 					// Update status variables for tracking how much work is left, what to do next.
 					BytesRemainingToKickOff -= NewChunk.UncompressedSize;
 					AsyncChunkIndex[FreeIndex] = CurrentChunkIndex++;
@@ -665,7 +685,20 @@ void FArchive::SerializeCompressed( void* V, int64 Length, ECompressionFlags Fla
 
 			check(CompressedSize < INT_MAX);
 			int32 CompressedSizeInt = (int32)CompressedSize;
-			verify( FCompression::CompressMemory( Flags, CompressedBuffer, CompressedSizeInt, Src, BytesToCompress ) );
+			
+			int32 BitWindow = 0;
+			if (CookingTargetPlatform)
+			{
+				BitWindow = CookingTargetPlatform->GetCompressionBitWindow();
+			}
+			else
+			{
+				IPlatformCompression* PlatformCompression = FPlatformMisc::GetPlatformCompression();
+				check(PlatformCompression);
+				BitWindow = PlatformCompression->GetCompressionBitWindow();
+			}
+			
+			verify( FCompression::CompressMemory( Flags, CompressedBuffer, CompressedSizeInt, Src, BytesToCompress, BitWindow) );
 			CompressedSize = CompressedSizeInt;
 			// move to next chunk if not reading from file
 			if (!bTreatBufferAsFileReader)
@@ -798,7 +831,6 @@ VARARG_BODY( void, FArchive::Logf, const TCHAR*, VARARG_NONE )
 	// Free temporary buffers.
 	FMemory::SystemFree( Buffer );
 }
-
 
 /*----------------------------------------------------------------------------
 	Transparent compression/ decompression archives.

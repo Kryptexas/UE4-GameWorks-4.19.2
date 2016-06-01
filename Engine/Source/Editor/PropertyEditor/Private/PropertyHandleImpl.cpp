@@ -28,20 +28,37 @@ FPropertyValueImpl::~FPropertyValueImpl()
 {
 }
 
-void FPropertyValueImpl::GetObjectsToModify( TArray<FObjectBaseAddress>& ObjectsToModify, FPropertyNode* InPropertyNode ) const
+void FPropertyValueImpl::EnumerateObjectsToModify( FPropertyNode* InPropertyNode, const EnumerateObjectsToModifyFuncRef& InObjectsToModifyCallback ) const
 {
 	// Find the parent object node which contains offset addresses for reading a property value on an object
 	FComplexPropertyNode* ComplexNode = InPropertyNode->FindComplexParent();
 	if (ComplexNode)
 	{
 		const bool bIsStruct = FComplexPropertyNode::EPT_StandaloneStructure == ComplexNode->GetPropertyType();
-		for (int32 Index = 0; Index < ComplexNode->GetInstancesNum(); ++Index)
+		const int32 NumInstances = ComplexNode->GetInstancesNum();
+		for (int32 Index = 0; Index < NumInstances; ++Index)
 		{
 			UObject*	Object = ComplexNode->GetInstanceAsUObject(Index).Get();
 			uint8*		Addr = InPropertyNode->GetValueBaseAddress(ComplexNode->GetMemoryOfInstance(Index));
-			ObjectsToModify.Add(FObjectBaseAddress(Object, Addr, bIsStruct));
+			if (!InObjectsToModifyCallback(FObjectBaseAddress(Object, Addr, bIsStruct), Index, NumInstances))
+			{
+				break;
+			}
 		}
 	}
+}
+
+void FPropertyValueImpl::GetObjectsToModify( TArray<FObjectBaseAddress>& ObjectsToModify, FPropertyNode* InPropertyNode ) const
+{
+	EnumerateObjectsToModify(InPropertyNode, [&](const FObjectBaseAddress& ObjectToModify, const int32 ObjectIndex, const int32 NumObjects) -> bool
+	{
+		if (ObjectIndex == 0)
+		{
+			ObjectsToModify.Reserve(ObjectsToModify.Num() + NumObjects);
+		}
+		ObjectsToModify.Add(ObjectToModify);
+		return true;
+	});
 }
 
 FPropertyAccess::Result FPropertyValueImpl::GetPropertyValueString( FString& OutString, FPropertyNode* InPropertyNode, const bool bAllowAlternateDisplayValue ) const
@@ -475,44 +492,48 @@ FPropertyAccess::Result FPropertyValueImpl::ImportText( const TArray<FObjectBase
 	return Result;
 }
 
+void FPropertyValueImpl::EnumerateRawData( const IPropertyHandle::EnumerateRawDataFuncRef& InRawDataCallback )
+{
+	EnumerateObjectsToModify(PropertyNode.Pin().Get(), [&](const FObjectBaseAddress& ObjectToModify, const int32 ObjectIndex, const int32 NumObjects) -> bool
+	{
+		return InRawDataCallback(ObjectToModify.BaseAddress, ObjectIndex, NumObjects);
+	});
+}
+
+void FPropertyValueImpl::EnumerateConstRawData( const IPropertyHandle::EnumerateConstRawDataFuncRef& InRawDataCallback ) const
+{
+	EnumerateObjectsToModify(PropertyNode.Pin().Get(), [&](const FObjectBaseAddress& ObjectToModify, const int32 ObjectIndex, const int32 NumObjects) -> bool
+	{
+		return InRawDataCallback(ObjectToModify.BaseAddress, ObjectIndex, NumObjects);
+	});
+}
+
 void FPropertyValueImpl::AccessRawData( TArray<void*>& RawData )
 {
-	TArray<FObjectBaseAddress> ObjectAddresses;
-	GetObjectsToModify(ObjectAddresses, PropertyNode.Pin().Get());
-
-	if (ObjectAddresses.Num() > 0)
+	RawData.Empty();
+	EnumerateObjectsToModify(PropertyNode.Pin().Get(), [&](const FObjectBaseAddress& ObjectToModify, const int32 ObjectIndex, const int32 NumObjects) -> bool
 	{
-		RawData.Empty();
-		RawData.AddZeroed(ObjectAddresses.Num());
-		for (int32 ObjectIndex = 0; ObjectIndex < ObjectAddresses.Num(); ++ObjectIndex)
+		if (ObjectIndex == 0)
 		{
-			const FObjectBaseAddress& Cur = ObjectAddresses[ObjectIndex];
-			if (Cur.BaseAddress != nullptr)
-			{
-				RawData[ObjectIndex] = Cur.BaseAddress;
-			}
+			RawData.Reserve(NumObjects);
 		}
-	}
+		RawData.Add(ObjectToModify.BaseAddress);
+		return true;
+	});
 }
 
 void FPropertyValueImpl::AccessRawData( TArray<const void*>& RawData ) const
 {
-	TArray<FObjectBaseAddress> ObjectAddresses;
-	GetObjectsToModify(ObjectAddresses, PropertyNode.Pin().Get());
-
-	if (ObjectAddresses.Num() > 0)
+	RawData.Empty();
+	EnumerateObjectsToModify(PropertyNode.Pin().Get(), [&](const FObjectBaseAddress& ObjectToModify, const int32 ObjectIndex, const int32 NumObjects) -> bool
 	{
-		RawData.Empty();
-		RawData.AddZeroed(ObjectAddresses.Num());
-		for (int32 ObjectIndex = 0; ObjectIndex < ObjectAddresses.Num(); ++ObjectIndex)
+		if (ObjectIndex == 0)
 		{
-			const FObjectBaseAddress& Cur = ObjectAddresses[ObjectIndex];
-			if (Cur.BaseAddress != nullptr)
-			{
-				RawData[ObjectIndex] = Cur.BaseAddress;
-			}
+			RawData.Reserve(NumObjects);
 		}
-	}
+		RawData.Add(ObjectToModify.BaseAddress);
+		return true;
+	});
 }
 
 void FPropertyValueImpl::SetOnPropertyValueChanged( const FSimpleDelegate& InOnPropertyValueChanged )
@@ -880,7 +901,10 @@ bool FPropertyValueImpl::IsPropertyTypeOf( UClass* ClassType ) const
 	TSharedPtr<FPropertyNode> PropertyNodePin = PropertyNode.Pin();
 	if( PropertyNodePin.IsValid() )
 	{
-		return PropertyNodePin->GetProperty()->IsA( ClassType );
+		if(UProperty* Property = PropertyNodePin->GetProperty())
+		{
+			return Property->IsA( ClassType );
+		}
 	}
 	return false;
 }
@@ -1675,6 +1699,16 @@ void FPropertyHandleBase::GetOuterObjects( TArray<UObject*>& OuterObjects ) cons
 
 }
 
+void FPropertyHandleBase::EnumerateRawData( const EnumerateRawDataFuncRef& InRawDataCallback )
+{
+	Implementation->EnumerateRawData( InRawDataCallback );
+}
+
+void FPropertyHandleBase::EnumerateConstRawData( const EnumerateConstRawDataFuncRef& InRawDataCallback ) const
+{
+	Implementation->EnumerateConstRawData( InRawDataCallback );
+}
+
 void FPropertyHandleBase::AccessRawData( TArray<void*>& RawData )
 {
 	Implementation->AccessRawData( RawData );
@@ -1684,7 +1718,6 @@ void FPropertyHandleBase::AccessRawData( TArray<const void*>& RawData ) const
 {
 	Implementation->AccessRawData(RawData);
 }
-
 
 void FPropertyHandleBase::SetOnPropertyValueChanged( const FSimpleDelegate& InOnPropertyValueChanged )
 {
@@ -1824,6 +1857,20 @@ void FPropertyHandleBase::SetToolTipText( const FText& ToolTip )
 	}
 }
 
+int32 FPropertyHandleBase::GetNumPerObjectValues() const
+{
+	TSharedPtr<FPropertyNode> PropertyNode = Implementation->GetPropertyNode();
+	if (PropertyNode.IsValid() && PropertyNode->GetProperty())
+	{
+		FComplexPropertyNode* ComplexNode = PropertyNode->FindComplexParent();
+		if (ComplexNode)
+		{
+			return ComplexNode->GetInstancesNum();
+		}
+	}
+	return 0;
+}
+
 FPropertyAccess::Result FPropertyHandleBase::SetPerObjectValues( const TArray<FString>& InPerObjectValues, EPropertyValueSetFlags::Type Flags )
 {
 	TSharedPtr<FPropertyNode> PropertyNode = Implementation->GetPropertyNode();
@@ -1845,7 +1892,7 @@ FPropertyAccess::Result FPropertyHandleBase::SetPerObjectValues( const TArray<FS
 	return FPropertyAccess::Fail;
 }
 
-FPropertyAccess::Result FPropertyHandleBase::GetPerObjectValues( TArray<FString>& OutPerObjectValues )
+FPropertyAccess::Result FPropertyHandleBase::GetPerObjectValues( TArray<FString>& OutPerObjectValues ) const
 {
 	FPropertyAccess::Result Result = FPropertyAccess::Fail;
 	TSharedPtr<FPropertyNode> PropertyNode = Implementation->GetPropertyNode();
@@ -1859,19 +1906,18 @@ FPropertyAccess::Result FPropertyHandleBase::GetPerObjectValues( TArray<FString>
 
 		if( ReadAddresses.Num() > 0 )
 		{
-			// Create a list of object names.
-			TArray<FString> ObjectNames;
-			ObjectNames.Empty( ReadAddresses.Num() );
-
-			// Copy each object's object property name off into the name list.
+			// Copy each object's value into the value list
+			OutPerObjectValues.SetNum( ReadAddresses.Num(), /*bAllowShrinking*/false );
 			for ( int32 AddrIndex = 0 ; AddrIndex < ReadAddresses.Num() ; ++AddrIndex )
 			{
 				uint8* Address = ReadAddresses.GetAddress(AddrIndex);
-
-				new( OutPerObjectValues ) FString();
 				if( Address )
 				{
 					NodeProperty->ExportText_Direct(OutPerObjectValues[AddrIndex], Address, Address, nullptr, 0 );
+				}
+				else
+				{
+					OutPerObjectValues[AddrIndex].Reset();
 				}
 			}
 
@@ -1879,6 +1925,67 @@ FPropertyAccess::Result FPropertyHandleBase::GetPerObjectValues( TArray<FString>
 		}
 	}
 	
+	return Result;
+}
+
+FPropertyAccess::Result FPropertyHandleBase::SetPerObjectValue( const int32 ObjectIndex, const FString& ObjectValue, EPropertyValueSetFlags::Type Flags )
+{
+	FPropertyAccess::Result Result = FPropertyAccess::Fail;
+
+	TSharedPtr<FPropertyNode> PropertyNode = Implementation->GetPropertyNode();
+	if (PropertyNode.IsValid() && PropertyNode->GetProperty())
+	{
+		Implementation->EnumerateObjectsToModify(PropertyNode.Get(), [&](const FObjectBaseAddress& ObjectToModify, const int32 ObjIndex, const int32 NumObjects) -> bool
+		{
+			if (ObjIndex == ObjectIndex)
+			{
+				TArray<FObjectBaseAddress> ObjectsToModify;
+				ObjectsToModify.Add(ObjectToModify);
+
+				TArray<FString> PerObjectValues;
+				PerObjectValues.Add(ObjectValue);
+
+				Implementation->ImportText(ObjectsToModify, PerObjectValues, PropertyNode.Get(), Flags);
+
+				Result = FPropertyAccess::Success;
+				return false; // End enumeration
+			}
+			return true;
+		});
+	}
+
+	return Result;
+}
+
+FPropertyAccess::Result FPropertyHandleBase::GetPerObjectValue( const int32 ObjectIndex, FString& OutObjectValue ) const
+{
+	FPropertyAccess::Result Result = FPropertyAccess::Fail;
+
+	TSharedPtr<FPropertyNode> PropertyNode = Implementation->GetPropertyNode();
+	if (PropertyNode.IsValid() && PropertyNode->GetProperty())
+	{
+		// Get a list of addresses for objects handled by the property window.
+		FReadAddressList ReadAddresses;
+		PropertyNode->GetReadAddress(!!PropertyNode->HasNodeFlags(EPropertyNodeFlags::SingleSelectOnly), ReadAddresses, false);
+
+		UProperty* NodeProperty = PropertyNode->GetProperty();
+
+		if (ReadAddresses.IsValidIndex(ObjectIndex))
+		{
+			uint8* Address = ReadAddresses.GetAddress(ObjectIndex);
+			if (Address)
+			{
+				NodeProperty->ExportText_Direct(OutObjectValue, Address, Address, nullptr, 0);
+			}
+			else
+			{
+				OutObjectValue.Reset();
+			}
+
+			Result = FPropertyAccess::Success;
+		}
+	}
+
 	return Result;
 }
 

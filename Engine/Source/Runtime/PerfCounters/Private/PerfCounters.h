@@ -102,6 +102,12 @@ private:
 	/** Unique name of this instance */
 	FString UniqueInstanceId;
 
+	/** Interval (in seconds) to update internal counters, added by the module itself, a config value */
+	float InternalCountersUpdateInterval;
+
+	/** Last time internal counters were updated */
+	float LastTimeInternalCountersUpdated;
+
 	/** Map of all known performance counters */
 	TMap<FString, FJsonVariant>  PerfCounterMap;
 

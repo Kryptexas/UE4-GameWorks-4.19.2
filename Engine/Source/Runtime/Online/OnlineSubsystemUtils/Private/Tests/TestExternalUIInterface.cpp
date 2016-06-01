@@ -5,6 +5,7 @@
 #include "Online.h"
 #include "TestExternalUIInterface.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
 
 void FTestExternalUIInterface::Test()
 {
@@ -197,3 +198,5 @@ void FTestExternalUIInterface::OnShowWebUrlClosed(const FString& FinalUrl)
 {
 	UE_LOG(LogOnline, Log, TEXT("Show Web Url closed with FinalUrl=%s."), *FinalUrl);
 }
+
+#endif //WITH_DEV_AUTOMATION_TESTS

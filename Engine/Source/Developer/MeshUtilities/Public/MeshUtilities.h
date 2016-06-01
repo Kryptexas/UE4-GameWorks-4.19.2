@@ -221,10 +221,20 @@ public:
 		const FMeshMergingSettings& InSettings,
 		UPackage* InOuter,
 		const FString& InBasePackageName,
-		int32 UseLOD, // does not build all LODs but only use this LOD to create base mesh
 		TArray<UObject*>& OutAssetsToSync, 
 		FVector& OutMergedActorLocation, 
 		bool bSilent=false) const = 0;
+
+	virtual void MergeActors(
+		const TArray<AActor*>& SourceActors,
+		const FMeshMergingSettings& InSettings,
+		UPackage* InOuter,		
+		const FString& InBasePackageName,
+		int32 UseLOD, // does not build all LODs but only use this LOD to create base mesh
+		TArray<UObject*>& OutAssetsToSync,
+		FVector& OutMergedActorLocation,
+		bool bSilent = false) const = 0;
+
 
 	/**
 	* MergeStaticMeshComponents
@@ -248,11 +258,22 @@ public:
 		const FMeshMergingSettings& InSettings,
 		UPackage* InOuter,
 		const FString& InBasePackageName,
-		int32 UseLOD, /* does not build all LODs but only use this LOD to create base mesh */
 		TArray<UObject*>& OutAssetsToSync,
 		FVector& OutMergedActorLocation,
 		const float ScreenAreaSize,
 		bool bSilent /*= false*/) const = 0;
+
+	virtual void MergeStaticMeshComponents(
+		const TArray<UStaticMeshComponent*>& ComponentsToMerge,
+		UWorld* World,
+		const FMeshMergingSettings& InSettings,
+		UPackage* InOuter,
+		const FString& InBasePackageName,
+		int32 UseLOD, // does not build all LODs but only use this LOD to create base mesh
+		TArray<UObject*>& OutAssetsToSync,
+		FVector& OutMergedActorLocation,
+		const float ScreenAreaSize,
+		bool bSilent = false) const = 0;
 
 	/**
 	* Creates a (proxy)-mesh combining the static mesh components from the given list of actors (at the moment this requires having Simplygon)
@@ -265,7 +286,7 @@ public:
 	* @param InProxyCreatedDelegate - Delegate callback for when the proxy is finished
 	* @param bAllowAsync - Flag whether or not this call could be run async (SimplygonSwarm)
 	*/
-	virtual void CreateProxyMesh(const TArray<class AActor*>& InActors, const struct FMeshProxySettings& InMeshProxySettings, UPackage* InOuter, const FString& InProxyBasePackageName, const FGuid InGuid, FCreateProxyDelegate InProxyCreatedDelegate, const bool bAllowAsync = false) = 0;
+	virtual void CreateProxyMesh(const TArray<class AActor*>& InActors, const struct FMeshProxySettings& InMeshProxySettings, UPackage* InOuter, const FString& InProxyBasePackageName, const FGuid InGuid, FCreateProxyDelegate InProxyCreatedDelegate, const bool bAllowAsync = false, const float ScreenAreaSize = 1.0f) = 0;
 
 	/**
 	*	Merges list of actors into single proxy mesh
@@ -300,7 +321,8 @@ public:
 		const struct FMeshProxySettings& InProxySettings,
 		UPackage* InOuter,
 		const FString& ProxyBasePackageName,
-		TArray<UObject*>& OutAssetsToSync ) = 0;
+		TArray<UObject*>& OutAssetsToSync, 		
+		const float ScreenAreaSize = 1.0f) = 0;
 
 	/**
 	* FlattenMaterialsWithMeshData
@@ -332,7 +354,7 @@ public:
 	* @param RawMesh - Target raw mesh to propagate vertex colours to
 	* @return bool - whether or not propagating succeeded
 	*/
-	virtual bool PropagatePaintedColorsToRawMesh(UStaticMeshComponent* StaticMeshComponent, int32 LODIndex, FRawMesh& RawMesh) const = 0;
+	virtual bool PropagatePaintedColorsToRawMesh(const UStaticMeshComponent* StaticMeshComponent, int32 LODIndex, FRawMesh& RawMesh) const = 0;
 	
 	/**
 	*	Calculates UV coordinates bounds for the given Raw Mesh

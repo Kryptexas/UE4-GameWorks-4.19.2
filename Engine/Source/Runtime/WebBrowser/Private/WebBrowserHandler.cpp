@@ -2,8 +2,6 @@
 
 #include "WebBrowserPrivatePCH.h"
 
-#define LOCTEXT_NAMESPACE "WebBrowserHandler"
-
 #if WITH_CEF3
 
 #include "WebBrowserHandler.h"
@@ -17,11 +15,16 @@
 #include "SlateApplication.h"
 #include "ThreadingBase.h"
 
+
+#define LOCTEXT_NAMESPACE "WebBrowserHandler"
+
+
 // Used to force returning custom content instead of performing a request.
 const FString CustomContentHeader(TEXT("X-UE-Content"));
 const FString CustomContentMethod(TEXT("X-GET-CUSTOM-CONTENT"));
 
-FWebBrowserHandler::FWebBrowserHandler()
+FWebBrowserHandler::FWebBrowserHandler(bool InUseTransparency)
+: bUseTransparency(InUseTransparency)
 { }
 
 void FWebBrowserHandler::OnTitleChange(CefRefPtr<CefBrowser> Browser, const CefString& Title)
@@ -58,13 +61,12 @@ bool FWebBrowserHandler::OnTooltip(CefRefPtr<CefBrowser> Browser, CefString& Tex
 	return false;
 }
 
-
 void FWebBrowserHandler::OnAfterCreated(CefRefPtr<CefBrowser> Browser)
 {
 	if(Browser->IsPopup())
 	{
-		TSharedPtr<FWebBrowserWindow> BrowserWindowParent = BrowserWindowParentPtr.Pin();
-		if(BrowserWindowParent.IsValid() && BrowserWindowParent->SupportsNewWindows())
+		TSharedPtr<FWebBrowserWindow> BrowserWindowParent = ParentHandler.get() ? ParentHandler->BrowserWindowPtr.Pin() : nullptr;
+		if(BrowserWindowParent.IsValid() && ParentHandler->OnCreateWindow().IsBound())
 		{
 			TSharedPtr<FWebBrowserWindowInfo> NewBrowserWindowInfo = MakeShareable(new FWebBrowserWindowInfo(Browser, this));
 			TSharedPtr<IWebBrowserWindow> NewBrowserWindow = IWebBrowserModule::Get().GetSingleton()->CreateBrowserWindow( 
@@ -79,7 +81,7 @@ void FWebBrowserHandler::OnAfterCreated(CefRefPtr<CefBrowser> Browser)
 			}
 
 			// Request a UI window for the browser.  If it is not created we do some cleanup.
-			bool bUIWindowCreated = BrowserWindowParent->RequestCreateWindow(NewBrowserWindow.ToSharedRef(), BrowserPopupFeatures);
+			bool bUIWindowCreated = ParentHandler->OnCreateWindow().Execute(TWeakPtr<IWebBrowserWindow>(NewBrowserWindow), TWeakPtr<IWebBrowserPopupFeatures>(BrowserPopupFeatures));
 			if(!bUIWindowCreated)
 			{
 				NewBrowserWindow->CloseBrowser(true);
@@ -141,62 +143,41 @@ bool FWebBrowserHandler::OnBeforePopup( CefRefPtr<CefBrowser> Browser,
 	const CefString& TargetUrl,
 	const CefString& TargetFrameName,
 	const CefPopupFeatures& PopupFeatures,
-	CefWindowInfo& WindowInfo,
-	CefRefPtr<CefClient>& Client,
-	CefBrowserSettings& Settings,
-	bool* NoJavascriptAccess )
+	CefWindowInfo& OutWindowInfo,
+	CefRefPtr<CefClient>& OutClient,
+	CefBrowserSettings& OutSettings,
+	bool* OutNoJavascriptAccess )
 {
-	// By default, we ignore any popup requests unless they are handled by us in some way.
-	bool bSupressCEFWindowCreation = true;
-	if (CefCurrentlyOn(TID_UI))
+	FString URL = TargetUrl.ToWString().c_str();
+	FString FrameName = TargetFrameName.ToWString().c_str();
+
+	/* If OnBeforePopup() is not bound, we allow creating new windows as long as OnCreateWindow() is bound.
+	   The BeforePopup delegate is always executed even if OnCreateWindow is not bound to anything .
+	  */
+	if((OnBeforePopup().IsBound() && OnBeforePopup().Execute(URL, FrameName)) || !OnCreateWindow().IsBound())
 	{
-		TSharedPtr<FWebBrowserWindow> BrowserWindow = BrowserWindowPtr.Pin();
-
-		if (BrowserWindow.IsValid())
-		{
-			bSupressCEFWindowCreation = BrowserWindow->OnCefBeforePopup(TargetUrl, TargetFrameName);
-
-			if(!bSupressCEFWindowCreation)
-			{
-				if(BrowserWindow->SupportsNewWindows())
-				{
-					CefRefPtr<FWebBrowserHandler> NewHandler(new FWebBrowserHandler);
-					NewHandler->SetBrowserWindowParent(BrowserWindow);
-					NewHandler->SetPopupFeatures(MakeShareable(new FWebBrowserPopupFeatures(PopupFeatures)));
-					Client = NewHandler;
-					
-					// Allow overriding transparency setting for child windows
-					bool bUseTransparency = BrowserWindow->UseTransparency()
-											? NewHandler->BrowserPopupFeatures->GetAdditionalFeatures().Find(TEXT("Epic_NoTransparency")) == INDEX_NONE
-											: NewHandler->BrowserPopupFeatures->GetAdditionalFeatures().Find(TEXT("Epic_UseTransparency")) != INDEX_NONE;
-
-					// Always use off screen rendering so we can integrate with our windows
-					WindowInfo.SetAsWindowless(nullptr, bUseTransparency);
-
-					// We need to rely on CEF to create our window so we set the WindowInfo, BrowserSettings, Client, and then return false
-					bSupressCEFWindowCreation = false;
-				}
-				else
-				{
-					bSupressCEFWindowCreation = true;
-				}
-			}
-		}
+		return true;
 	}
 	else
-	{
-		// Current thread is IO thread. We need to invoke our stuff on the UI thread
-		FEvent* Done = FPlatformProcess::GetSynchEventFromPool(true);
-		CefPostTask(TID_UI, new FWebBrowserClosureTask(this, [&]()
 		{
-			bSupressCEFWindowCreation = OnBeforePopup(Browser, Frame, TargetUrl, TargetFrameName, PopupFeatures, WindowInfo, Client, Settings, NoJavascriptAccess);
-			Done->Trigger();
-		}));
-		Done->Wait();
-		FPlatformProcess::ReturnSynchEventToPool(Done);
-	}
+		TSharedPtr<FWebBrowserPopupFeatures> NewBrowserPopupFeatures = MakeShareable(new FWebBrowserPopupFeatures(PopupFeatures));
+		// Allow overriding transparency setting for child windows
+		bool shouldUseTransparency = bUseTransparency
+								? NewBrowserPopupFeatures->GetAdditionalFeatures().Find(TEXT("Epic_NoTransparency")) == INDEX_NONE
+								: NewBrowserPopupFeatures->GetAdditionalFeatures().Find(TEXT("Epic_UseTransparency")) != INDEX_NONE;
 
-	return bSupressCEFWindowCreation; 
+		CefRefPtr<FWebBrowserHandler> NewHandler(new FWebBrowserHandler(shouldUseTransparency));
+		NewHandler->ParentHandler = this;
+		NewHandler->SetPopupFeatures(NewBrowserPopupFeatures);
+		OutClient = NewHandler;
+					
+
+					// Always use off screen rendering so we can integrate with our windows
+		OutWindowInfo.SetAsWindowless(nullptr, shouldUseTransparency);
+
+					// We need to rely on CEF to create our window so we set the WindowInfo, BrowserSettings, Client, and then return false
+		return false;
+				}
 }
 
 bool FWebBrowserHandler::OnCertificateError(CefRefPtr<CefBrowser> Browser,
@@ -425,11 +406,6 @@ void FWebBrowserHandler::SetBrowserWindow(TSharedPtr<FWebBrowserWindow> InBrowse
 	BrowserWindowPtr = InBrowserWindow;
 }
 
-void FWebBrowserHandler::SetBrowserWindowParent(TSharedPtr<FWebBrowserWindow> InBrowserWindow)
-{
-	BrowserWindowParentPtr = InBrowserWindow;
-}
-
 bool FWebBrowserHandler::OnProcessMessageReceived(CefRefPtr<CefBrowser> Browser,
 	CefProcessId SourceProcess,
 	CefRefPtr<CefProcessMessage> Message)
@@ -468,6 +444,10 @@ bool FWebBrowserHandler::ShowDevTools(const CefRefPtr<CefBrowser>& Browser)
 	// Override the parent window setting for transparency, as the Dev Tools require a solid background
 	CefString OverrideTransparencyFeature = "Epic_NoTransparency";
 	cef_string_list_append(PopupFeatures.additionalFeatures, OverrideTransparencyFeature.GetStruct());
+
+	// Add a custom tag used to detect dev tools.
+	CefString DevToolsTag = "Epic_DevTools";
+	cef_string_list_append(PopupFeatures.additionalFeatures, DevToolsTag.GetStruct());
 
 	// Set max framerate to maximum supported.
 	BrowserSettings.windowless_frame_rate = 60;
@@ -584,6 +564,7 @@ void FWebBrowserHandler::OnResetDialogState(CefRefPtr<CefBrowser> Browser)
 	}
 }
 
-#endif // WITH_CEF
 
 #undef LOCTEXT_NAMESPACE
+
+#endif // WITH_CEF

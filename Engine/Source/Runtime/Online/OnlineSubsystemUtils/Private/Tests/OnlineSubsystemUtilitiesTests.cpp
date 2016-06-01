@@ -3,6 +3,8 @@
 #include "OnlineSubsystemUtilsPrivatePCH.h"
 #include "TestIdentityInterface.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 DEFINE_LOG_CATEGORY_STATIC(OSSUtilsTestLog, All, All);
 
 namespace OSSUtilsTestHelper
@@ -195,3 +197,5 @@ bool FTestIdentityInterfaceLogoutWhileNotLoggedIn::RunTest(const FString& Parame
 
 	return true;
 }
+
+#endif //#if WITH_DEV_AUTOMATION_TESTS

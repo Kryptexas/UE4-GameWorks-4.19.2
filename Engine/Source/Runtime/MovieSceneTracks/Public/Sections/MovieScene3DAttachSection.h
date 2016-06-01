@@ -36,6 +36,9 @@ public:
 	FName AttachSocketName;
 
 	UPROPERTY(EditAnywhere, Category="Attach")
+	FName AttachComponentName;
+
+	UPROPERTY(EditAnywhere, Category="Attach")
 	uint32 bConstrainTx:1;
 
 	UPROPERTY(EditAnywhere, Category="Attach")

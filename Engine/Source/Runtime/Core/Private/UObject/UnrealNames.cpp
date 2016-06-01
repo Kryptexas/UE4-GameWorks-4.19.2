@@ -6,7 +6,7 @@
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealNames, Log, All);
 
 /*-----------------------------------------------------------------------------
-	FName helpers.
+	FName helpers. 
 -----------------------------------------------------------------------------*/
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 	void CallNameCreationHook();
@@ -16,7 +16,11 @@ DEFINE_LOG_CATEGORY_STATIC(LogUnrealNames, Log, All);
 	}
 #endif
 
-FNameEntry* AllocateNameEntry( const void* Name, NAME_INDEX Index, FNameEntry* HashNext, bool bIsPureAnsi );
+// Get the size of a FNameEntry without the union buffer included
+static const int32 NameEntryWithoutUnionSize = sizeof(FNameEntry) - (NAME_SIZE * sizeof(TCHAR));
+
+template<typename TCharType>
+FNameEntry* AllocateNameEntry( const void* Name, NAME_INDEX Index, FNameEntry* HashNext);
 
 /**
 * Helper function that can be used inside the debuggers watch window. E.g. "DebugFName(Class->Name.Index)". 
@@ -61,6 +65,17 @@ const TCHAR* DebugFName(FName& Name)
 	return TempName;
 }
 
+template <typename TCharType>
+static uint16 GetRawCasePreservingHash(const TCharType* Source)
+{
+	return FCrc::StrCrc32(Source) & 0xFFFF;
+
+}
+template <typename TCharType>
+static uint16 GetRawNonCasePreservingHash(const TCharType* Source)
+{
+	return FCrc::Strihash_DEPRECATED(Source) & 0xFFFF;
+}
 
 /*-----------------------------------------------------------------------------
 	FNameEntry
@@ -172,11 +187,27 @@ int32 FNameEntry::GetSize( const TCHAR* Name )
  */
 int32 FNameEntry::GetSize( int32 Length, bool bIsPureAnsi )
 {
-	// Calculate base size without union array.
-	int32 Size = sizeof(FNameEntry) - NAME_SIZE * sizeof(TCHAR);
-	// Add size required for string.
-	Size += (Length+1) * (bIsPureAnsi ? sizeof(ANSICHAR) : sizeof(TCHAR));
+	// Add size required for string to the base size used by the FNameEntry
+	int32 Size = NameEntryWithoutUnionSize + (Length + 1) * (bIsPureAnsi ? sizeof(ANSICHAR) : sizeof(TCHAR));
 	return Size;
+}
+
+FNameEntrySerialized::FNameEntrySerialized(const FNameEntry& NameEntry)
+{
+	if (NameEntry.IsWide())
+	{
+		PreSetIsWideForSerialization(true);
+		FCString::Strcpy(WideName, NAME_SIZE, NameEntry.GetWideName());
+		NonCasePreservingHash = GetRawNonCasePreservingHash(NameEntry.GetWideName());
+		CasePreservingHash = GetRawCasePreservingHash(NameEntry.GetWideName());
+	}
+	else
+	{
+		PreSetIsWideForSerialization(false);
+		FCStringAnsi::Strcpy(AnsiName, NAME_SIZE, NameEntry.GetAnsiName());
+		NonCasePreservingHash = GetRawNonCasePreservingHash(NameEntry.GetAnsiName());
+		CasePreservingHash = GetRawCasePreservingHash(NameEntry.GetAnsiName());
+	}
 }
 
 /*-----------------------------------------------------------------------------
@@ -362,7 +393,7 @@ int32							FName::NumWideNames;
  * @param Name Value for the string portion of the name
  * @param FindType Action to take (see EFindName)
  */
-FName::FName( const WIDECHAR* Name, EFindName FindType, bool )
+FName::FName(const WIDECHAR* Name, EFindName FindType)
 {
 	if (Name)
 	{
@@ -374,7 +405,7 @@ FName::FName( const WIDECHAR* Name, EFindName FindType, bool )
 	}
 }
 
-FName::FName( const ANSICHAR* Name, EFindName FindType, bool )
+FName::FName(const ANSICHAR* Name, EFindName FindType)
 {
 	if (Name)
 	{
@@ -399,23 +430,33 @@ FName::FName( const TCHAR* Name, int32 InNumber, EFindName FindType )
 	Init(Name, InNumber, FindType);
 }
 
-
-/**
- * Constructor used by FLinkerLoad when loading its name table; Creates an FName with an instance
- * number of 0 that does not attempt to split the FName into string and number portions.
- */
-FName::FName( ELinkerNameTableConstructor, const WIDECHAR* Name )
+FName::FName(const FNameEntrySerialized& LoadedEntry)
 {
-	Init(Name, NAME_NO_NUMBER_INTERNAL, FNAME_Add, false);
+	if (LoadedEntry.bWereHashesLoaded)
+{
+		// Since the name table can change sizes we need to mask the raw hash to the current size so we don't access out of bounds
+		const uint16 NonCasePreservingHash = LoadedEntry.NonCasePreservingHash & (ARRAY_COUNT(NameHash) - 1);
+		const uint16 CasePreservingHash = LoadedEntry.CasePreservingHash & (ARRAY_COUNT(NameHash) - 1);
+		if (LoadedEntry.IsWide())
+		{
+			Init(LoadedEntry.GetWideName(), NAME_NO_NUMBER_INTERNAL, FNAME_Add, NonCasePreservingHash, CasePreservingHash);
 }
-
-/**
- * Constructor used by FLinkerLoad when loading its name table; Creates an FName with an instance
- * number of 0 that does not attempt to split the FName into string and number portions.
- */
-FName::FName( ELinkerNameTableConstructor, const ANSICHAR* Name )
+		else
+		{
+			Init(LoadedEntry.GetAnsiName(), NAME_NO_NUMBER_INTERNAL, FNAME_Add, NonCasePreservingHash, CasePreservingHash);
+		}
+	}
+	else
+	{
+		if (LoadedEntry.IsWide())
+		{
+			Init(LoadedEntry.GetWideName(), NAME_NO_NUMBER_INTERNAL, FNAME_Add, false);
+		}
+		else
 {
-	Init(Name, NAME_NO_NUMBER_INTERNAL, FNAME_Add, false);
+			Init(LoadedEntry.GetAnsiName(), NAME_NO_NUMBER_INTERNAL, FNAME_Add, false);
+		}
+	}
 }
 
 FName::FName( EName HardcodedIndex, const TCHAR* Name )
@@ -463,27 +504,51 @@ int32 FName::Compare( const FName& Other ) const
 	}
 }
 
+template <typename TCharType>
+int32 FName::GetCasePreservingHash(const TCharType* Source)
+{
+	return GetRawCasePreservingHash(Source) & (ARRAY_COUNT(NameHash) - 1);
+}
+
+template <typename TCharType>
+int32 FName::GetNonCasePreservingHash(const TCharType* Source)
+{
+	return GetRawNonCasePreservingHash(Source) & (ARRAY_COUNT(NameHash) - 1);
+}
+
 void FName::Init(const WIDECHAR* InName, int32 InNumber, EFindName FindType, bool bSplitName, int32 HardcodeIndex)
 {
-	InitInternal<WIDECHAR>(InName, InNumber, FindType, bSplitName, HardcodeIndex);
+	const bool bIsPureAnsi = TCString<WIDECHAR>::IsPureAnsi(InName);
+	// Switch to ANSI if possible to save memory
+	if (bIsPureAnsi)
+	{
+		InitInternal_HashSplit<ANSICHAR>(StringCast<ANSICHAR>(InName).Get(), InNumber, FindType, bSplitName, HardcodeIndex);
+	}
+	else
+	{
+		InitInternal_HashSplit<WIDECHAR>(InName, InNumber, FindType, bSplitName, HardcodeIndex);
+	}
+}
+
+void FName::Init(const WIDECHAR* InName, int32 InNumber, EFindName FindType, const uint16 NonCasePreservingHash, const uint16 CasePreservingHash)
+{
+	// Since this comes from the FLinkerLoad we know that it is not pure ansi
+	InitInternal<WIDECHAR>(InName, InNumber, FindType, -1, NonCasePreservingHash, CasePreservingHash);
 }
 
 void FName::Init(const ANSICHAR* InName, int32 InNumber, EFindName FindType, bool bSplitName, int32 HardcodeIndex)
 {
-	InitInternal<ANSICHAR>(InName, InNumber, FindType, bSplitName, HardcodeIndex);
+	InitInternal_HashSplit<ANSICHAR>(InName, InNumber, FindType, bSplitName, HardcodeIndex);
 }
 
-template <typename TCharType>
-void FName::InitInternal(const TCharType* InName, int32 InNumber, const EFindName FindType, const bool bSplitName, const int32 HardcodeIndex)
-{
-	check(TCString<TCharType>::Strlen(InName)<=NAME_SIZE);
-
-	// initialize the name subsystem if necessary
-	if (!GetIsInitialized())
+void FName::Init(const ANSICHAR* InName, int32 InNumber, EFindName FindType, const uint16 NonCasePreservingHash, const uint16 CasePreservingHash)
 	{
-		StaticInit();
+	InitInternal<ANSICHAR>(InName, InNumber, FindType, -1, NonCasePreservingHash, CasePreservingHash);
 	}
 
+template <typename TCharType>
+void FName::InitInternal_HashSplit(const TCharType* InName, int32 InNumber, const EFindName FindType, bool bSplitName, const int32 HardcodeIndex)
+{
 	TCharType TempBuffer[NAME_SIZE];
 	int32 TempNumber;
 	// if we were passed in a number, we can't split again, other wise, a_1_2_3_4 would change every time
@@ -495,6 +560,26 @@ void FName::InitInternal(const TCharType* InName, int32 InNumber, const EFindNam
 			InName = TempBuffer;
 			InNumber = NAME_EXTERNAL_TO_INTERNAL(TempNumber);
 		}
+	}
+	// Hash value of string after splitting
+	const uint16 NonCasePreservingHash = GetNonCasePreservingHash(InName);
+#if WITH_CASE_PRESERVING_NAME
+	const uint16 CasePreservingHash = GetCasePreservingHash(InName);
+#else
+	const uint16 CasePreservingHash = 0;
+#endif
+	InitInternal<TCharType>(InName, InNumber, FindType, HardcodeIndex, NonCasePreservingHash, CasePreservingHash);
+}
+
+template <typename TCharType>
+void FName::InitInternal(const TCharType* InName, int32 InNumber, const EFindName FindType, const int32 HardcodeIndex, const uint16 NonCasePreservingHash, const uint16 CasePreservingHash)
+{
+	check(TCString<TCharType>::Strlen(InName)<=NAME_SIZE);
+
+	// initialize the name subsystem if necessary
+	if (!GetIsInitialized())
+	{
+		StaticInit();
 	}
 
 	check(InName);
@@ -521,11 +606,11 @@ void FName::InitInternal(const TCharType* InName, int32 InNumber, const EFindNam
 	const bool bIsPureAnsi = TCString<TCharType>::IsPureAnsi(InName);
 	if(bIsPureAnsi)
 	{
-		bWasFoundOrAdded = InitInternal_FindOrAdd<ANSICHAR>(StringCast<ANSICHAR>(InName).Get(), FindType, HardcodeIndex, OutComparisonIndex, OutDisplayIndex);
+		bWasFoundOrAdded = InitInternal_FindOrAdd<ANSICHAR>(StringCast<ANSICHAR>(InName).Get(), FindType, HardcodeIndex, NonCasePreservingHash, CasePreservingHash, OutComparisonIndex, OutDisplayIndex);
 	}
 	else
 	{
-		bWasFoundOrAdded = InitInternal_FindOrAdd<WIDECHAR>(StringCast<WIDECHAR>(InName).Get(), FindType, HardcodeIndex, OutComparisonIndex, OutDisplayIndex);
+		bWasFoundOrAdded = InitInternal_FindOrAdd<WIDECHAR>(StringCast<WIDECHAR>(InName).Get(), FindType, HardcodeIndex, NonCasePreservingHash, CasePreservingHash, OutComparisonIndex, OutDisplayIndex);
 	}
 
 	if(bWasFoundOrAdded)
@@ -544,6 +629,16 @@ void FName::InitInternal(const TCharType* InName, int32 InNumber, const EFindNam
 #endif
 		Number = NAME_NO_NUMBER_INTERNAL;
 	}
+}
+
+template <typename TCharType> void IncrementNameCount();
+template <> void IncrementNameCount<ANSICHAR>()
+{
+	FName::NumAnsiNames++;
+}
+template <> void IncrementNameCount<WIDECHAR>()
+{
+	FName::NumWideNames++;
 }
 
 template <typename TCharType>
@@ -567,6 +662,25 @@ struct FNameInitHelper<ANSICHAR>
 		// the remainder of the array of NAME_SIZE with 0xfd.  So, we have to pass in the length of the dynamically allocated array instead.
 		FCStringAnsi::Strcpy(const_cast<ANSICHAR*>(DestNameEntry->GetAnsiName()), DestNameEntry->GetNameLength()+1, SrcName);
 	}
+
+	static void SetNameString(FNameEntry* const DestNameEntry, const ANSICHAR* SrcName, const int32 NameLength)
+	{
+		// Can't rely on the template override for static arrays since the safe crt version of strcpy will fill in
+		// the remainder of the array of NAME_SIZE with 0xfd.  So, we have to pass in the length of the dynamically allocated array instead.
+		FCStringAnsi::Strcpy(const_cast<ANSICHAR*>(DestNameEntry->GetAnsiName()), NameLength + 1, SrcName);
+	}
+
+	static int32 GetIndexShiftValue()
+	{
+		return 0;
+	}
+
+	static int32 GetSize(int32 Length)
+	{
+		// Add size required for string to the base size used by the FNameEntry
+		int32 Size = NameEntryWithoutUnionSize + (Length + 1) * sizeof(ANSICHAR);
+		return Size;
+	}
 };
 
 template <>
@@ -585,12 +699,31 @@ struct FNameInitHelper<WIDECHAR>
 		// the remainder of the array of NAME_SIZE with 0xfd.  So, we have to pass in the length of the dynamically allocated array instead.
 		FCStringWide::Strcpy(const_cast<WIDECHAR*>(DestNameEntry->GetWideName()), DestNameEntry->GetNameLength()+1, SrcName);
 	}
+
+	static void SetNameString(FNameEntry* const DestNameEntry, const WIDECHAR* SrcName, const int32 NameLength)
+	{
+		// Can't rely on the template override for static arrays since the safe crt version of strcpy will fill in
+		// the remainder of the array of NAME_SIZE with 0xfd.  So, we have to pass in the length of the dynamically allocated array instead.
+		FCStringWide::Strcpy(const_cast<WIDECHAR*>(DestNameEntry->GetWideName()), NameLength + 1, SrcName);
+	}
+
+	static int32 GetIndexShiftValue()
+	{
+		return 1;
+	}
+
+	static int32 GetSize(int32 Length)
+	{
+		// Add size required for string to the base size used by the FNameEntry
+		int32 Size = NameEntryWithoutUnionSize + (Length + 1) * sizeof(TCHAR);
+		return Size;
+	}
 };
 
 template <typename TCharType>
-bool FName::InitInternal_FindOrAdd(const TCharType* InName, const EFindName FindType, const int32 HardcodeIndex, int32& OutComparisonIndex, int32& OutDisplayIndex)
+bool FName::InitInternal_FindOrAdd(const TCharType* InName, const EFindName FindType, const int32 HardcodeIndex, const uint16 NonCasePreservingHash, const uint16 CasePreservingHash, int32& OutComparisonIndex, int32& OutDisplayIndex)
 {
-	const bool bWasFoundOrAdded = InitInternal_FindOrAddNameEntry<TCharType>(InName, FindType, ENameCase::IgnoreCase, OutComparisonIndex);
+	const bool bWasFoundOrAdded = InitInternal_FindOrAddNameEntry<TCharType>(InName, FindType, ENameCase::IgnoreCase, NonCasePreservingHash, OutComparisonIndex);
 	
 #if WITH_CASE_PRESERVING_NAME
 	if(bWasFoundOrAdded && HardcodeIndex < 0)
@@ -601,7 +734,7 @@ bool FName::InitInternal_FindOrAdd(const TCharType* InName, const EFindName Find
 		// If the string we got back doesn't match the case of the string we provided, also add a case variant version for display purposes
 		if(TCString<TCharType>::Strcmp(InName, FNameInitHelper<TCharType>::GetNameString(NameEntry)) != 0)
 		{
-			if(!InitInternal_FindOrAddNameEntry<TCharType>(InName, FindType, ENameCase::CaseSensitive, OutDisplayIndex))
+			if(!InitInternal_FindOrAddNameEntry<TCharType>(InName, FindType, ENameCase::CaseSensitive, CasePreservingHash, OutDisplayIndex))
 			{
 				// We don't consider failing to find/add the case variant a full failure
 				OutDisplayIndex = OutComparisonIndex;
@@ -622,12 +755,9 @@ bool FName::InitInternal_FindOrAdd(const TCharType* InName, const EFindName Find
 }
 
 template <typename TCharType>
-bool FName::InitInternal_FindOrAddNameEntry(const TCharType* InName, const EFindName FindType, const ENameCase ComparisonMode, int32& OutIndex)
+bool FName::InitInternal_FindOrAddNameEntry(const TCharType* InName, const EFindName FindType, const ENameCase ComparisonMode, const uint16 iHash, int32& OutIndex)
 {
 	CallNameCreationHook();
-	// Hash value of string
-	const int32 iHash = ( (ComparisonMode == ENameCase::IgnoreCase) ? FCrc::Strihash_DEPRECATED( InName ) : FCrc::StrCrc32( InName ) ) & (ARRAY_COUNT(NameHash)-1);
-
 	if (OutIndex < 0)
 	{
 		// Try to find the name in the hash.
@@ -693,7 +823,7 @@ bool FName::InitInternal_FindOrAddNameEntry(const TCharType* InName, const EFind
 	{
 		check(OutIndex < Names.Num());
 	}
-	FNameEntry* NewEntry = AllocateNameEntry( InName, OutIndex, OldHash, FNameInitHelper<TCharType>::IsAnsi );
+	FNameEntry* NewEntry = AllocateNameEntry<TCharType>( InName, OutIndex, OldHash);
 	if (FPlatformAtomics::InterlockedCompareExchangePointer((void**)&Names[OutIndex], NewEntry, NULL) != NULL) // we use an atomic operation to check for unexpected concurrency, verify alignment, etc
 	{
 		UE_LOG(LogUnrealNames, Fatal, TEXT("Hardcoded name '%s' at index %i was duplicated (or unexpected concurrency). Existing entry is '%s'."), *NewEntry->GetPlainNameString(), NewEntry->GetIndex(), *Names[OutIndex]->GetPlainNameString() );
@@ -1009,8 +1139,64 @@ FArchive& operator<<( FArchive& Ar, FNameEntry& E )
 	}
 	else
 	{
+		// Convert to our serialized type
+		FNameEntrySerialized EntrySerialized(E);
+		Ar << EntrySerialized;
+	}
+
+	return Ar;
+}
+
+FArchive& operator<<(FArchive& Ar, FNameEntrySerialized& E)
+{
+	if (Ar.IsLoading())
+	{
+		// for optimization reasons, we want to keep pure Ansi strings as Ansi for initializing the name entry
+		// (and later the FName) to stop copying in and out of TCHARs
+		int32 StringLen;
+		Ar << StringLen;
+
+		// negative stringlen means it's a wide string
+		if (StringLen < 0)
+		{
+			StringLen = -StringLen;
+
+			// mark the name will be wide
+			E.PreSetIsWideForSerialization(true);
+
+			// get the pointer to the wide array 
+			WIDECHAR* WideName = const_cast<WIDECHAR*>(E.GetWideName());
+
+			// read in the UCS2CHAR string and byteswap it, etc
+			auto Sink = StringMemoryPassthru<UCS2CHAR>(WideName, StringLen, StringLen);
+			Ar.Serialize(Sink.Get(), StringLen * sizeof(UCS2CHAR));
+			Sink.Apply();
+
+			INTEL_ORDER_TCHARARRAY(WideName)
+		}
+		else
+		{
+			// mark the name will be ansi
+			E.PreSetIsWideForSerialization(false);
+
+			// ansi strings can go right into the AnsiBuffer
+			ANSICHAR* AnsiName = const_cast<ANSICHAR*>(E.GetAnsiName());
+			Ar.Serialize(AnsiName, StringLen);
+		}
+		if (Ar.UE4Ver() >= VER_UE4_NAME_HASHES_SERIALIZED)
+		{
+			// Read the save time calculated hashes to save load time perf
+			Ar << E.NonCasePreservingHash;
+			Ar << E.CasePreservingHash;
+			E.bWereHashesLoaded = true;
+		}
+	}
+	else
+	{
 		FString Str = E.GetPlainNameString();
 		Ar << Str;
+		Ar << E.NonCasePreservingHash;
+		Ar << E.CasePreservingHash;
 	}
 
 	return Ar;
@@ -1069,7 +1255,7 @@ public:
 	FORCEINLINE int32 PoolSize()
 	{
 		// Allocate in 64k chunks as it's ideal for page size.
-		return 64 * 1024;
+		return 256 * 1024;
 	}
 
 	/**
@@ -1104,26 +1290,17 @@ private:
 /** Global allocator for name entries. */
 FNameEntryPoolAllocator GNameEntryPoolAllocator;
 
-FNameEntry* AllocateNameEntry( const void* Name, NAME_INDEX Index, FNameEntry* HashNext, bool bIsPureAnsi )
+template<typename TCharType>
+FNameEntry* AllocateNameEntry( const void* Name, NAME_INDEX Index, FNameEntry* HashNext)
 {
-	const SIZE_T NameLen  = bIsPureAnsi ? FCStringAnsi::Strlen((ANSICHAR*)Name) : FCString::Strlen((TCHAR*)Name);
-	int32 NameEntrySize	  = FNameEntry::GetSize( NameLen, bIsPureAnsi );
+	const SIZE_T NameLen  = TCString<TCharType>::Strlen((TCharType*)Name);
+	int32 NameEntrySize	  = FNameInitHelper<TCharType>::GetSize( NameLen );
 	FNameEntry* NameEntry = GNameEntryPoolAllocator.Allocate( NameEntrySize );
 	FName::NameEntryMemorySize += NameEntrySize;
-	NameEntry->Index      = (Index << NAME_INDEX_SHIFT) | (bIsPureAnsi ? 0 : 1);
+	NameEntry->Index      = (Index << NAME_INDEX_SHIFT) | (FNameInitHelper<TCharType>::GetIndexShiftValue());
 	NameEntry->HashNext   = HashNext;
-	// Can't rely on the template override for static arrays since the safe crt version of strcpy will fill in
-	// the remainder of the array of NAME_SIZE with 0xfd.  So, we have to pass in the length of the dynamically allocated array instead.
-	if( bIsPureAnsi )
-	{
-		FCStringAnsi::Strcpy( const_cast<ANSICHAR*>(NameEntry->GetAnsiName()), NameLen + 1, (ANSICHAR*) Name );
-		FName::NumAnsiNames++;
-	}
-	else
-	{
-		FCStringWide::Strcpy( const_cast<WIDECHAR*>(NameEntry->GetWideName()), NameLen + 1, (WIDECHAR*) Name );
-		FName::NumWideNames++;
-	}
+	FNameInitHelper<TCharType>::SetNameString(NameEntry, (TCharType*)Name, NameLen);
+	IncrementNameCount<TCharType>();
 	return NameEntry;
 }
 

@@ -60,11 +60,17 @@ struct FBTPendingExecutionInfo
 	/** if set, request can't be executed */
 	uint32 bLocked : 1;
 
-	FBTPendingExecutionInfo() : NextTask(NULL), bOutOfNodes(false), bLocked(false) {}
+	/** if set, active task is in the middle of Abort call */
+	uint32 bAborting : 1;
+
+	FBTPendingExecutionInfo() : NextTask(NULL), bOutOfNodes(false), bLocked(false), bAborting(false) {}
 	bool IsSet() const { return (NextTask || bOutOfNodes) && !bLocked; }
 
 	void Lock() { bLocked = true; }
 	void Unlock() { bLocked = false; }
+
+	void OnAbortStart() { bAborting = true; }
+	void OnAbortProcessed() { bAborting = false; }
 };
 
 struct FBTTreeStartInfo

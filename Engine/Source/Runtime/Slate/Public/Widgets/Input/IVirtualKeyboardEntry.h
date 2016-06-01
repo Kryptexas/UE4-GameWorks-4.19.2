@@ -23,6 +23,8 @@ class SLATE_API IVirtualKeyboardEntry
 {
 
 public:
+	virtual ~IVirtualKeyboardEntry() {}
+
 	/**
 	* Sets the text to that entered by the virtual keyboard
 	*
@@ -37,14 +39,14 @@ public:
 	*
 	* @return  Text
 	*/
-	virtual const FText& GetText() const = 0;
+	virtual FText GetText() const = 0;
 
 	/**
 	* Returns the hint text.
 	*
 	* @return  HintText
 	*/
-	virtual const FText GetHintText() const = 0;
+	virtual FText GetHintText() const = 0;
 
 	/**
 	* Returns the virtual keyboard type.

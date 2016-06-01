@@ -5,6 +5,13 @@
 DEFINE_LOG_CATEGORY_STATIC(LogGenericPlatformTime, Log, All);
 
 double FGenericPlatformTime::SecondsPerCycle = 0.0;	
+double FGenericPlatformTime::SecondsPerCycle64 = 0.0;
+
+double FGenericPlatformTime::GetSecondsPerCycle64()
+{
+	check(SecondsPerCycle64 != 0.0);
+	return SecondsPerCycle64;
+}
 
 #if PLATFORM_HAS_BSD_TIME 
 
@@ -15,6 +22,7 @@ double FGenericPlatformTime::InitTiming()
 {
 	// we use gettimeofday() instead of rdtsc, so it's 1000000 "cycles" per second on this faked CPU.
 	SecondsPerCycle = 1.0f / 1000000.0f;
+	SecondsPerCycle64 = 1.0 / 1000000.0;
 	return FPlatformTime::Seconds();
 }
 

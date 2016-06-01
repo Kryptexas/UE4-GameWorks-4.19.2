@@ -13,6 +13,7 @@
 #include "SceneUtils.h"
 #include "HdrCustomResolveShaders.h"
 #include "Public/LightPropagationVolumeBlendable.h"
+#include "Engine/EngineTypes.h"
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FGBufferResourceStruct,TEXT("GBuffers"));
 
@@ -93,8 +94,11 @@ static TAutoConsoleVariable<int32> CVarGBufferFormat(
 	TEXT("(affects performance, mostly through bandwidth, quality of normals and material attributes).\n")
 	TEXT(" 0: lower precision (8bit per component, for profiling)\n")
 	TEXT(" 1: low precision (default)\n")
+	TEXT(" 3: high precision normals encoding\n")
 	TEXT(" 5: high precision"),
 	ECVF_RenderThreadSafe);
+
+extern ENGINE_API TAutoConsoleVariable<int32> CVarReflectionCaptureSize;
 
 /** The global render targets used for scene rendering. */
 static TGlobalResource<FSceneRenderTargets> SceneRenderTargetsSingleton;
@@ -184,6 +188,7 @@ FSceneRenderTargets::FSceneRenderTargets(const FViewInfo& View, const FSceneRend
 	, DirectionalOcclusion(GRenderTargetPool.MakeSnapshot(SnapshotSource.DirectionalOcclusion))
 	, SceneDepthZ(GRenderTargetPool.MakeSnapshot(SnapshotSource.SceneDepthZ))
 	, LightingChannels(GRenderTargetPool.MakeSnapshot(SnapshotSource.LightingChannels))
+	, NoMSAASceneDepthZ(GRenderTargetPool.MakeSnapshot(SnapshotSource.NoMSAASceneDepthZ))
 	, SceneAlphaCopy(GRenderTargetPool.MakeSnapshot(SnapshotSource.SceneAlphaCopy))
 	, AuxiliarySceneDepthZ(GRenderTargetPool.MakeSnapshot(SnapshotSource.AuxiliarySceneDepthZ))
 	, SmallDepthZ(GRenderTargetPool.MakeSnapshot(SnapshotSource.SmallDepthZ))
@@ -222,6 +227,8 @@ FSceneRenderTargets::FSceneRenderTargets(const FViewInfo& View, const FSceneRend
 	, bSeparateTranslucencyPass(SnapshotSource.bSeparateTranslucencyPass)
 	, GBufferResourcesUniformBuffer(SnapshotSource.GBufferResourcesUniformBuffer)
 	, BufferSize(SnapshotSource.BufferSize)
+	, SeparateTranslucencyBufferSize(SnapshotSource.SeparateTranslucencyBufferSize)
+	, SeparateTranslucencyScale(SnapshotSource.SeparateTranslucencyScale)
 	, SmallColorDepthDownsampleFactor(SnapshotSource.SmallColorDepthDownsampleFactor)
 	, bLightAttenuationEnabled(SnapshotSource.bLightAttenuationEnabled)
 	, bUseDownsizedOcclusionQueries(SnapshotSource.bUseDownsizedOcclusionQueries)
@@ -351,6 +358,22 @@ FIntPoint FSceneRenderTargets::ComputeDesiredSize(const FSceneViewFamily& ViewFa
 
 	return DesiredBufferSize;
 }
+inline uint16 GetNumSceneColorMSAASamples(ERHIFeatureLevel::Type InFeatureLevel)
+{
+	if (InFeatureLevel > ERHIFeatureLevel::ES3_1 ||
+		//@todo-rco: Fix when iOS OpenGL supports MSAA
+		GShaderPlatformForFeatureLevel[InFeatureLevel] == SP_OPENGL_ES2_IOS)
+	{
+		return 1;
+	}
+
+	uint16 NumSamples = CVarMobileMSAA.GetValueOnRenderThread();
+	if (NumSamples != 1 && NumSamples != 2 && NumSamples != 4)
+	{
+		NumSamples = 1;
+	}
+	return NumSamples;
+}
 
 void FSceneRenderTargets::Allocate(FRHICommandList& RHICmdList, const FSceneViewFamily& ViewFamily)
 {
@@ -403,8 +426,7 @@ void FSceneRenderTargets::Allocate(FRHICommandList& RHICmdList, const FSceneView
 
 	uint32 Mobile32bpp = !IsMobileHDR() || IsMobileHDR32bpp();
 
-	static const auto MobileMSAACVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
-	int32 MobileMSAA = GShaderPlatformForFeatureLevel[NewFeatureLevel] == SP_OPENGL_ES2_IOS ? 1 : MobileMSAACVar->GetValueOnRenderThread();
+	int32 MobileMSAA = GetNumSceneColorMSAASamples(NewFeatureLevel);
 
 	bool bLightPropagationVolume = UseLightPropagationVolumeRT(NewFeatureLevel);
 
@@ -549,7 +571,7 @@ void FSceneRenderTargets::BeginRenderingGBuffer(FRHICommandList& RHICmdList, ERe
 			bSceneDepthCleared = true;			
 		}		
 
-		if (bBindQuadOverdrawBuffers && AllowRuntimeQuadOverdraw(CurrentFeatureLevel))
+		if (bBindQuadOverdrawBuffers && AllowDebugViewPS(DVSM_QuadComplexity, GetFeatureLevelShaderPlatform(CurrentFeatureLevel)))
 		{
 			if (QuadOverdrawBuffer.IsValid() && QuadOverdrawBuffer->GetRenderTargetItem().UAV.IsValid())
 			{
@@ -633,17 +655,6 @@ int32 FSceneRenderTargets::GetNumGBufferTargets() const
 	return NumGBufferTargets;
 }
 
-inline uint16 GetNumSceneColorMSAASamples(ERHIFeatureLevel::Type InFeatureLevel)
-{
-	//@todo-rco: Fix when OpenGL supports MSAA
-	uint16 NumSamples = GShaderPlatformForFeatureLevel[InFeatureLevel] == SP_OPENGL_ES2_IOS ? 1 : CVarMobileMSAA.GetValueOnRenderThread();
-	if (NumSamples != 1 && NumSamples != 2 && NumSamples != 4)
-	{
-		NumSamples = 1;
-	}
-	return NumSamples;
-}
-
 void FSceneRenderTargets::AllocSceneColor(FRHICommandList& RHICmdList)
 {
 	if (GetSceneColorForCurrentShadingPath())
@@ -658,7 +669,7 @@ void FSceneRenderTargets::AllocSceneColor(FRHICommandList& RHICmdList)
 
 	// Create the scene color.
 	{
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, SceneColorBufferFormat, FClearValueBinding::Black, TexCreate_None, TexCreate_RenderTargetable, false));
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, SceneColorBufferFormat, FClearValueBinding::Black, TexCreate_None, TexCreate_RenderTargetable | TexCreate_DeltaColorCompression, false));
 
 		Desc.Flags |= TexCreate_FastVRAM;
 
@@ -752,20 +763,24 @@ void FSceneRenderTargets::AllocGBufferTargets(FRHICommandList& RHICmdList)
 	// create GBuffer on demand so it can be shared with other pooled RT
 
 	// good to see the quality loss due to precision in the gbuffer
-	const bool bHighPrecisionGBuffers = (CurrentGBufferFormat >= 5);
+	const bool bHighPrecisionGBuffers = (CurrentGBufferFormat >= EGBufferFormat::Force16BitsPerChannel);
 	// good to profile the impact of non 8 bit formats
-	const bool bEnforce8BitPerChannel = (CurrentGBufferFormat == 0);
+	const bool bEnforce8BitPerChannel = (CurrentGBufferFormat == EGBufferFormat::Force8BitsPerChannel);
 
 	// Create the world-space normal g-buffer.
 	{
-		EPixelFormat NormalGBufferFormat = bHighPrecisionGBuffers ? PF_FloatRGBA : PF_A2B10G10R10;
+		EPixelFormat NormalGBufferFormat = bHighPrecisionGBuffers ? PF_FloatRGBA : PF_B8G8R8A8;
 
 		if(bEnforce8BitPerChannel)
 		{
 			NormalGBufferFormat = PF_B8G8R8A8;
 		}
+		else if (CurrentGBufferFormat == EGBufferFormat::HighPrecisionNormals)
+		{
+			NormalGBufferFormat = PF_FloatRGBA;
+		}
 
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, NormalGBufferFormat, FClearValueBinding::Transparent, TexCreate_None, TexCreate_RenderTargetable, false));
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, NormalGBufferFormat, FClearValueBinding::Transparent, TexCreate_None, TexCreate_RenderTargetable | TexCreate_DeltaColorCompression, false));
 		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, GBufferA, TEXT("GBufferA"));
 	}
 
@@ -773,26 +788,26 @@ void FSceneRenderTargets::AllocGBufferTargets(FRHICommandList& RHICmdList)
 	{
 		const EPixelFormat SpecularGBufferFormat = bHighPrecisionGBuffers ? PF_FloatRGBA : PF_B8G8R8A8;
 
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, SpecularGBufferFormat, FClearValueBinding::Transparent, TexCreate_None, TexCreate_RenderTargetable, false));
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, SpecularGBufferFormat, FClearValueBinding::Transparent, TexCreate_None, TexCreate_RenderTargetable | TexCreate_DeltaColorCompression, false));
 		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, GBufferB, TEXT("GBufferB"));
 	}
 
 	// Create the diffuse color g-buffer.
 	{
 		const EPixelFormat DiffuseGBufferFormat = bHighPrecisionGBuffers ? PF_FloatRGBA : PF_B8G8R8A8;
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, DiffuseGBufferFormat, FClearValueBinding::Transparent, TexCreate_SRGB, TexCreate_RenderTargetable, false));
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, DiffuseGBufferFormat, FClearValueBinding::Transparent, TexCreate_SRGB, TexCreate_RenderTargetable | TexCreate_DeltaColorCompression, false));
 		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, GBufferC, TEXT("GBufferC"));
 	}
 
 	// Create the mask g-buffer (e.g. SSAO, subsurface scattering, wet surface mask, skylight mask, ...).
 	{
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_B8G8R8A8, FClearValueBinding(FLinearColor(0, 1, 1, 1)), TexCreate_None, TexCreate_RenderTargetable, false));
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_B8G8R8A8, FClearValueBinding(FLinearColor(0, 1, 1, 1)), TexCreate_None, TexCreate_RenderTargetable | TexCreate_DeltaColorCompression, false));
 		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, GBufferD, TEXT("GBufferD"));
 	}
 
 	if (bAllowStaticLighting)
 	{
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_B8G8R8A8, FClearValueBinding(FLinearColor(1, 1, 1, 1)), TexCreate_None, TexCreate_RenderTargetable, false));
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_B8G8R8A8, FClearValueBinding(FLinearColor(1, 1, 1, 1)), TexCreate_None, TexCreate_RenderTargetable | TexCreate_DeltaColorCompression, false));
 		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, GBufferE, TEXT("GBufferE"));
 	}
 
@@ -1020,7 +1035,8 @@ void FSceneRenderTargets::ResolveSceneColor(FRHICommandList& RHICmdList, const F
 
 	uint32 samples = CurrentSceneColor->GetDesc().NumSamples;
 
-	if(samples <= 1 || GShaderPlatformForFeatureLevel[CurrentFeatureLevel] == SP_METAL)
+	const EShaderPlatform CurrentShaderPlatform = GShaderPlatformForFeatureLevel[CurrentFeatureLevel];
+	if (samples <= 1 || CurrentShaderPlatform == SP_METAL || IsVulkanMobilePlatform(CurrentShaderPlatform))
 	{
 		RHICmdList.CopyToResolveTarget(GetSceneColorSurface(), GetSceneColorTexture(), true, FResolveParams(ResolveRect));
 	}
@@ -1124,7 +1140,11 @@ void FSceneRenderTargets::BeginRenderingPrePass(FRHICommandList& RHICmdList, boo
 	{
 		// Set the scene depth surface and a DUMMY buffer as color buffer
 		// (as long as it's the same dimension as the depth buffer),	
-		SetRenderTarget(RHICmdList, FTextureRHIRef(), GetSceneDepthSurface());
+		FRHIRenderTargetView ColorView(ColorTarget, 0, -1, ERenderTargetLoadAction::ENoAction, ERenderTargetStoreAction::ENoAction);
+		FRHIDepthRenderTargetView DepthRTV(DepthTarget, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::EStore);
+		
+		RHICmdList.SetRenderTargets(1, &ColorView, &DepthRTV, 0, NULL);
+		
 		RHICmdList.BindClearMRTValues(false, true, true);
 	}
 }
@@ -1275,9 +1295,9 @@ bool FSceneRenderTargets::BeginRenderingSeparateTranslucency(FRHICommandList& RH
 	bSeparateTranslucencyPass = true;
 	if(IsSeparateTranslucencyActive(View))
 	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.SeparateTranslucencyScreenPercentage"));
-		float Scale = CVar->GetValueOnRenderThread() / 100.0f;
-		FIntPoint ScaledSize(GetBufferSizeXY().X * Scale, GetBufferSizeXY().Y * Scale);
+		FIntPoint ScaledSize;
+		float Scale = 1.0f;
+		GetSeparateTranslucencyDimensions(ScaledSize, Scale);
 
 		SCOPED_DRAW_EVENT(RHICmdList, BeginSeparateTranslucency);
 
@@ -1328,10 +1348,10 @@ void FSceneRenderTargets::FinishRenderingSeparateTranslucency(FRHICommandList& R
 		}
 		else
 		{
-			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.SeparateTranslucencyScreenPercentage"));
-			float Scale = CVar->GetValueOnRenderThread() / 100.0f;
-			FIntPoint ScaledSize(GetBufferSizeXY().X * Scale, GetBufferSizeXY().Y * Scale);
-			SeparateTranslucency = &GetSeparateTranslucency( RHICmdList, ScaledSize );
+			FIntPoint ScaledSize;
+			float Scale = 1.0f;
+			GetSeparateTranslucencyDimensions(ScaledSize, Scale);
+			SeparateTranslucency = &GetSeparateTranslucency(RHICmdList, ScaledSize);
 			SeparateTranslucencyDepth = &GetSeparateTranslucencyDepth(RHICmdList, GetBufferSizeXY());
 		}
 
@@ -1418,7 +1438,7 @@ const FTexture2DRHIRef& FSceneRenderTargets::GetEditorPrimitivesDepth(FRHIComman
 {
 	const bool bIsValid = IsValidRef(EditorPrimitivesDepth);
 
-	if( !bIsValid || EditorPrimitivesDepth->GetDesc().NumSamples != GetEditorMSAACompositingSampleCount() )
+	if (!bIsValid || (CurrentFeatureLevel >= ERHIFeatureLevel::SM5 && EditorPrimitivesDepth->GetDesc().NumSamples != GetEditorMSAACompositingSampleCount()) )
 	{
 		// If the target is does not match the MSAA settings it needs to be recreated
 		InitEditorPrimitivesDepth(RHICmdList);
@@ -1490,12 +1510,30 @@ void FSceneRenderTargets::SetBufferSize(int32 InBufferSizeX, int32 InBufferSizeY
 	BufferSize.Y = InBufferSizeY;
 }
 
+void FSceneRenderTargets::SetSeparateTranslucencyBufferSize(bool bAnyViewWantsDownsampledSeparateTranslucency)
+{
+	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.SeparateTranslucencyScreenPercentage"));
+	const float CVarScale = FMath::Clamp(CVar->GetValueOnRenderThread() / 100.0f, 0.0f, 100.0f);
+	float EffectiveScale = CVarScale;
+
+	// 'r.SeparateTranslucencyScreenPercentage' CVar wins over automatic downsampling
+	if (FMath::Abs(CVarScale - 1.0f) < .001f && bAnyViewWantsDownsampledSeparateTranslucency)
+	{
+		EffectiveScale = .5f;
+	}
+
+	int32 ScaledX = GetBufferSizeXY().X * EffectiveScale;
+	int32 ScaledY = GetBufferSizeXY().Y * EffectiveScale;
+	SeparateTranslucencyBufferSize = FIntPoint(FMath::Max(ScaledX, 1), FMath::Max(ScaledY, 1));
+	SeparateTranslucencyScale = EffectiveScale;
+}
+
 void FSceneRenderTargets::AllocateForwardShadingPathRenderTargets(FRHICommandList& RHICmdList)
 {
 	// on ES2 we don't do on demand allocation of SceneColor yet (in non ES2 it's released in the Tonemapper Process())
 	AllocSceneColor(RHICmdList);
 	AllocateCommonDepthTargets(RHICmdList);
-	AllocateReflectionTargets(RHICmdList);
+	AllocateReflectionTargets(RHICmdList, CVarReflectionCaptureSize.GetValueOnRenderThread());
 	AllocateDebugViewModeTargets(RHICmdList);
 
 	EPixelFormat Format = GetSceneColor()->GetDesc().Format;
@@ -1562,25 +1600,30 @@ static TCHAR* const GetTranslucencyShadowTransmissionName(uint32 Id)
 	return (TCHAR*)TEXT("InvalidName");
 }
 
-void FSceneRenderTargets::AllocateReflectionTargets(FRHICommandList& RHICmdList)
+void FSceneRenderTargets::AllocateReflectionTargets(FRHICommandList& RHICmdList, int32 TargetSize)
 {	
 	if (GSupportsRenderTargetFormat_PF_FloatRGBA)
 	{
+		const int32 NumReflectionCaptureMips = FMath::CeilLogTwo(TargetSize) + 1;
+
+		if (ReflectionColorScratchCubemap[0] && ReflectionColorScratchCubemap[0]->GetRenderTargetItem().TargetableTexture->GetNumMips() != NumReflectionCaptureMips)
+		{
+			ReflectionColorScratchCubemap[0].SafeRelease();
+			ReflectionColorScratchCubemap[1].SafeRelease();
+		}
+
 		// Reflection targets are shared between both forward and deferred shading paths. If we have already allocated for one and are now allocating for the other,
 		// we can skip these targets.
 		bool bSharedReflectionTargetsAllocated = ReflectionColorScratchCubemap[0] != nullptr;
 
 		if (!bSharedReflectionTargetsAllocated)
 		{
-			extern ENGINE_API int32 GReflectionCaptureSize;
-			const int32 NumReflectionCaptureMips = FMath::CeilLogTwo(GReflectionCaptureSize) + 1;
-
 			// We write to these cubemap faces individually during filtering
 			uint32 CubeTexFlags = TexCreate_TargetArraySlicesIndependently;
 
 			{
 				// Create scratch cubemaps for filtering passes
-				FPooledRenderTargetDesc Desc2(FPooledRenderTargetDesc::CreateCubemapDesc(GReflectionCaptureSize, PF_FloatRGBA, FClearValueBinding::None, CubeTexFlags, TexCreate_RenderTargetable, false, 1, NumReflectionCaptureMips));
+				FPooledRenderTargetDesc Desc2(FPooledRenderTargetDesc::CreateCubemapDesc(TargetSize, PF_FloatRGBA, FClearValueBinding::None, CubeTexFlags, TexCreate_RenderTargetable, false, 1, NumReflectionCaptureMips));
 				GRenderTargetPool.FindFreeElement(RHICmdList, Desc2, ReflectionColorScratchCubemap[0], TEXT("ReflectionColorScratchCubemap0"));
 				GRenderTargetPool.FindFreeElement(RHICmdList, Desc2, ReflectionColorScratchCubemap[1], TEXT("ReflectionColorScratchCubemap1"));
 			}
@@ -1621,7 +1664,7 @@ void FSceneRenderTargets::AllocateReflectionTargets(FRHICommandList& RHICmdList)
 void FSceneRenderTargets::AllocateDebugViewModeTargets(FRHICommandList& RHICmdList)
 {
 	// If the shader/quad complexity shader need a quad overdraw buffer to be bind, allocate it.
-	if (AllowRuntimeQuadOverdraw(CurrentFeatureLevel) && AllowDebugViewmodes())
+	if (AllowDebugViewPS(DVSM_QuadComplexity, GetFeatureLevelShaderPlatform(CurrentFeatureLevel)))
 	{
 		FIntPoint QuadOverdrawSize;
 		QuadOverdrawSize.X = 2 * FMath::Max<uint32>((BufferSize.X + 1) / 2, 1); // The size is time 2 since left side is QuadDescriptor, and right side QuadComplexity.
@@ -1650,6 +1693,18 @@ void FSceneRenderTargets::AllocateCommonDepthTargets(FRHICommandList& RHICmdList
 		Desc.Flags |= TexCreate_FastVRAM;
 		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SceneDepthZ, TEXT("SceneDepthZ"));
 		SceneStencilSRV = RHICreateShaderResourceView((FTexture2DRHIRef&)SceneDepthZ->GetRenderTargetItem().TargetableTexture, 0, 1, PF_X24_G8);
+
+		// create non-MSAA version for hit proxies on PC
+		const EShaderPlatform CurrentShaderPlatform = GShaderPlatformForFeatureLevel[CurrentFeatureLevel];
+		if (Desc.NumSamples > 1 && CurrentShaderPlatform != SP_METAL && !IsVulkanMobilePlatform(CurrentShaderPlatform))
+		{
+			Desc.NumSamples = 1;
+			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, NoMSAASceneDepthZ, TEXT("NoMSAASceneDepthZ"));
+		}
+		else
+		{
+			NoMSAASceneDepthZ = SceneDepthZ;
+		}
 	}
 
 	// When targeting DX Feature Level 10, create an auxiliary texture to store the resolved scene depth, and a render-targetable surface to hold the unresolved scene depth.
@@ -1799,7 +1854,7 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets(FRHICommandLi
 		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, LightAccumulation, TEXT("LightAccumulation"));
 	}
 
-	AllocateReflectionTargets(RHICmdList);
+	AllocateReflectionTargets(RHICmdList, CVarReflectionCaptureSize.GetValueOnRenderThread());
 	AllocateDebugViewModeTargets(RHICmdList);
 
 	if (CurrentFeatureLevel >= ERHIFeatureLevel::SM5)
@@ -1848,23 +1903,30 @@ EPixelFormat FSceneRenderTargets::GetSceneColorFormat() const
 		}
 	}
 	else
-	{
-	switch(CurrentSceneColorFormat)
-	{
-		case 0:
-			SceneColorBufferFormat = PF_R8G8B8A8; break;
-		case 1:
-			SceneColorBufferFormat = PF_A2B10G10R10; break;
-		case 2:	
-			SceneColorBufferFormat = PF_FloatR11G11B10; break;
-		case 3:	
-			SceneColorBufferFormat = PF_FloatRGB; break;
-		case 4:
-			// default
-			break;
-		case 5:
-			SceneColorBufferFormat = PF_A32B32G32R32F; break;
-	}
+    {
+	    switch(CurrentSceneColorFormat)
+	    {
+		    case 0:
+			    SceneColorBufferFormat = PF_R8G8B8A8; break;
+		    case 1:
+			    SceneColorBufferFormat = PF_A2B10G10R10; break;
+		    case 2:	
+			    SceneColorBufferFormat = PF_FloatR11G11B10; break;
+		    case 3:	
+			    SceneColorBufferFormat = PF_FloatRGB; break;
+		    case 4:
+			    // default
+			    break;
+		    case 5:
+			    SceneColorBufferFormat = PF_A32B32G32R32F; break;
+	    }
+    
+		// Fallback in case the scene color selected isn't supported.
+	    if (!GPixelFormats[SceneColorBufferFormat].Supported)
+	    {
+		    SceneColorBufferFormat = PF_FloatRGBA;
+	    }
+
 	}
 
 	return SceneColorBufferFormat;
@@ -1903,6 +1965,7 @@ void FSceneRenderTargets::ReleaseAllTargets()
 	SceneDepthZ.SafeRelease();
 	SceneStencilSRV.SafeRelease();
 	LightingChannels.SafeRelease();
+	NoMSAASceneDepthZ.SafeRelease();
 	AuxiliarySceneDepthZ.SafeRelease();
 	SmallDepthZ.SafeRelease();
 	DBufferA.SafeRelease();
@@ -2263,13 +2326,18 @@ void FSceneTextureShaderParameters::Set(
 
 		if(SceneDepthTextureParameter.IsBound() || SceneDepthTextureParameterSampler.IsBound())
 		{
-			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.SeparateTranslucencyScreenPercentage"));
 			const FTexture2DRHIRef* DepthTexture = SceneContext.GetActualDepthTexture();
-			if (SceneContext.IsSeparateTranslucencyPass()
-				&& CVar->GetValueOnRenderThread() < 100
-				&& SceneContext.IsSeparateTranslucencyDepthValid())
+
+			if (SceneContext.IsSeparateTranslucencyPass() && SceneContext.IsSeparateTranslucencyDepthValid())
 			{
-				DepthTexture = &SceneContext.GetSeparateTranslucencyDepthSurface();
+				FIntPoint OutScaledSize;
+				float OutScale;
+				SceneContext.GetSeparateTranslucencyDimensions(OutScaledSize, OutScale);
+
+				if (OutScale < 1.0f)
+				{
+					DepthTexture = &SceneContext.GetSeparateTranslucencyDepthSurface();
+				}
 			}
 
 			SetTextureParameter(

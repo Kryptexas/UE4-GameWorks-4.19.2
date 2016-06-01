@@ -552,9 +552,11 @@ class UTransactor : public UObject
 	/**
 	 * Executes an undo transaction, undoing all actions contained by that transaction.
 	 * 
+	 * @param	bCanRedo	If false indicates that the undone transaction (and any transactions that came after it) cannot be redone
+	 * 
 	 * @return				true if the transaction was successfully undone
 	 */
-	virtual bool Undo() PURE_VIRTUAL(UTransactor::Undo,return false;);
+	virtual bool Undo(bool bCanRedo = true) PURE_VIRTUAL(UTransactor::Undo,return false;);
 
 	/**
 	 * Executes an redo transaction, redoing all actions contained by that transaction.

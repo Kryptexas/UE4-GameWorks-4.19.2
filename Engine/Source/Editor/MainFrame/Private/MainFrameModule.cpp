@@ -41,7 +41,7 @@ const FText StaticGetApplicationTitle( const bool bIncludeGameName )
 /* IMainFrameModule implementation
  *****************************************************************************/
 
-void FMainFrameModule::CreateDefaultMainFrame( const bool bStartImmersivePIE )
+void FMainFrameModule::CreateDefaultMainFrame( const bool bStartImmersive, const bool bStartPIE )
 {
 	if (!IsWindowInitialized())
 	{
@@ -74,6 +74,12 @@ void FMainFrameModule::CreateDefaultMainFrame( const bool bStartImmersivePIE )
 		}
 		else
 		{
+			if( bStartImmersive )
+			{
+				// Start maximized if we are in immersive mode
+				DefaultWindowLocation.InitiallyMaximized = true;
+			}
+
 			const bool bIncludeGameName = true;
 			WindowTitle = GetApplicationTitle( bIncludeGameName );
 		}
@@ -194,7 +200,7 @@ void FMainFrameModule::CreateDefaultMainFrame( const bool bStartImmersivePIE )
 		MainFrameHandler->OnMainFrameGenerated( MainTab, RootWindow );
 		
 		// Show the window!
-		MainFrameHandler->ShowMainFrameWindow( RootWindow, bStartImmersivePIE );
+		MainFrameHandler->ShowMainFrameWindow( RootWindow, bStartImmersive, bStartPIE );
 		
 		MRUFavoritesList = new FMainMRUFavoritesList;
 		MRUFavoritesList->ReadFromINI();

@@ -321,6 +321,12 @@ void FEnvQueryInstance::ExecuteOneStep(double InCurrentStepTimeLimit)
 				// not doing it always for debugging purposes
 				OptionIndex++;
 				CurrentTest = -1;
+#if USE_EQS_DEBUGGER
+				if (bStoreDebugInfo)
+				{
+					DebugData.Reset();
+				}
+#endif // USE_EQS_DEBUGGER
 			}
 		}
 	}

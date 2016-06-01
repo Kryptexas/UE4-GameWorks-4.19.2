@@ -5,7 +5,7 @@
 #include "MaterialBillboardComponent.generated.h"
 
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FMaterialSpriteElement
 {
 	GENERATED_USTRUCT_BODY()
@@ -55,12 +55,17 @@ class ENGINE_API UMaterialBillboardComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Sprite)
-	TArray<struct FMaterialSpriteElement> Elements;
+	/** Current array of material billboard elements */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Sprite)
+	TArray<FMaterialSpriteElement> Elements;
+
+	/** Set all elements of this material billboard component */
+	UFUNCTION(BlueprintCallable, Category="Rendering|Components|MaterialSprite")
+	void SetElements(const TArray<FMaterialSpriteElement>& NewElements);
 
 	/** Adds an element to the sprite. */
-	UFUNCTION(BlueprintCallable,Category="Rendering|Components|MaterialSprite")
-	virtual void AddElement(
+	UFUNCTION(BlueprintCallable, Category="Rendering|Components|MaterialSprite")
+	void AddElement(
 		class UMaterialInterface* Material,
 		class UCurveFloat* DistanceToOpacityCurve,
 		bool bSizeIsInScreenSpace,

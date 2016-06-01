@@ -83,15 +83,16 @@ void UDestructibleComponent::PostEditChangeProperty( struct FPropertyChangedEven
 FBoxSphereBounds UDestructibleComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 #if WITH_APEX
-	if( ApexDestructibleActor == NULL )
+	if(ApexDestructibleActor == NULL || ApexDestructibleActor->getBounds().isEmpty())
 	{
-		// Fallback if we don't have physics
+		// Fallback if we don't have physics, or we have empty bounds (all chunks inactive/not visible)
 		return Super::CalcBounds(LocalToWorld);
 	}
 
 	const PxBounds3& PBounds = ApexDestructibleActor->getBounds();
 
-	return FBoxSphereBounds( FBox( P2UVector(PBounds.minimum), P2UVector(PBounds.maximum) ) );
+	return FBoxSphereBounds(FBox(P2UVector(PBounds.minimum), P2UVector(PBounds.maximum)));
+
 #else	// #if WITH_APEX
 	return Super::CalcBounds(LocalToWorld);
 #endif	// #if WITH_APEX
@@ -128,17 +129,17 @@ bool IsImpactDamageEnabled(const UDestructibleMesh* TheDestructibleMesh, int32 L
 	}
 }
 
-void UDestructibleComponent::OnUpdateTransform(bool bSkipPhysicsMove, ETeleportType Teleport)
+void UDestructibleComponent::OnUpdateTransform(EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport)
 {
 	// We are handling the physics move below, so don't handle it at higher levels
-	Super::OnUpdateTransform(true, Teleport);
+	Super::OnUpdateTransform(UpdateTransformFlags | EUpdateTransformFlags::SkipPhysicsUpdate, Teleport);
 
 	if (SkeletalMesh == NULL)
 	{
 		return;
 	}
 
-	if (!bPhysicsStateCreated || bSkipPhysicsMove)
+	if (!bPhysicsStateCreated || !!(UpdateTransformFlags & EUpdateTransformFlags::SkipPhysicsUpdate))
 	{
 		return;
 	}
@@ -194,6 +195,7 @@ void UDestructibleComponent::CreatePhysicsState()
 		return;
 	}
 
+	UWorld* World = GetWorld();
 	FPhysScene* PhysScene = World->GetPhysicsScene();
 	check(PhysScene);
 
@@ -293,7 +295,7 @@ void UDestructibleComponent::CreatePhysicsState()
 
 	// Passing AssetInstanceID = 0 so we'll have self-collision
 	AActor* Owner = GetOwner();
-	CreateShapeFilterData(MoveChannel, FMaskFilter(0), GetUniqueID(), CollResponse, 0, 0, PQueryFilterData, PSimFilterData, BodyInstance.bUseCCD, bEnableImpactDamage, false, bEnableContactModification);
+	CreateShapeFilterData(MoveChannel, FMaskFilter(0), Owner->GetUniqueID(), CollResponse, GetUniqueID(), 0, PQueryFilterData, PSimFilterData, BodyInstance.bUseCCD, bEnableImpactDamage, false, bEnableContactModification);
 
 	// Build filterData variations for complex and simple
 	PSimFilterData.word3 |= EPDF_SimpleCollision | EPDF_ComplexCollision;
@@ -698,8 +700,8 @@ void UDestructibleComponent::OnVisibilityEvent(const NxApexChunkStateEventData &
 		const NxDestructibleChunkEvent &  Event = InVisibilityEvent.stateEventList[EventIndex];
 		// Right now the only events are visibility changes.  So as an optimization we won't check for the event type.
 		//				if (Event.event & physx::NxDestructibleChunkEvent::VisibilityChanged)
-		const bool bVisible = (Event.event & physx::NxDestructibleChunkEvent::ChunkVisible) != 0;
-		SetChunkVisible(Event.chunkIndex, bVisible);
+		const bool bIsVisible = (Event.event & physx::NxDestructibleChunkEvent::ChunkVisible) != 0;
+		SetChunkVisible(Event.chunkIndex, bIsVisible);
 	}
 }
 #endif // WITH_APEX
@@ -803,7 +805,7 @@ class UDestructibleMesh * UDestructibleComponent::GetDestructibleMesh()
 	return Cast<UDestructibleMesh>(SkeletalMesh);
 }
 
-void UDestructibleComponent::SetSkeletalMesh( USkeletalMesh* InSkelMesh )
+void UDestructibleComponent::SetSkeletalMesh(USkeletalMesh* InSkelMesh, bool bReinitPose)
 {
 	if(InSkelMesh != NULL && !InSkelMesh->IsA(UDestructibleMesh::StaticClass()))
 	{
@@ -877,13 +879,13 @@ void UDestructibleComponent::Pair( int32 ChunkIndex, PxShape* PShape)
 }
 #endif
 
-void UDestructibleComponent::SetChunkVisible( int32 ChunkIndex, bool bVisible )
+void UDestructibleComponent::SetChunkVisible( int32 ChunkIndex, bool bInVisible )
 {
 #if WITH_APEX
 	// Bone 0 is a dummy root bone
 	const int32 BoneIndex = ChunkIdxToBoneIdx(ChunkIndex);
 
-	if( bVisible )
+	if( bInVisible )
 	{
 		UnHideBone(BoneIndex);
 
@@ -1407,11 +1409,16 @@ bool UDestructibleComponent::IsChunkLarge(PxRigidActor* ChunkActor) const
 {
 #if WITH_APEX
 	check(ChunkActor);
-	physx::PxBounds3 Bounds = ChunkActor->getWorldBounds();
-	return Bounds.getExtents().maxElement() > LargeChunkThreshold;
+	return ChunkActor->getWorldBounds().getExtents().maxElement() > LargeChunkThreshold;
 #else
 	return true;
 #endif // WITH_APEX
+}
+
+void UDestructibleComponent::OnActorEnableCollisionChanged()
+{
+	ECollisionEnabled::Type NewCollisionType = GetBodyInstance()->GetCollisionEnabled();
+	SetCollisionEnabled(NewCollisionType);
 }
 
 void UDestructibleComponent::SetCollisionEnabled(ECollisionEnabled::Type NewType)
@@ -1468,7 +1475,7 @@ void UDestructibleComponent::SetCollisionResponseForActor(PxRigidDynamic* Actor,
 		physx::PxU32 SupportDepth = TheDestructibleMesh->ApexDestructibleAsset->getChunkDepth(ChunkIdx);
 
 		const bool bEnableImpactDamage = IsImpactDamageEnabled(TheDestructibleMesh, SupportDepth);
-		CreateShapeFilterData(MoveChannel, FMaskFilter(0), GetUniqueID(), UseResponse, 0, ChunkIdxToBoneIdx(ChunkIdx), PQueryFilterData, PSimFilterData, BodyInstance.bUseCCD, bEnableImpactDamage, false);
+		CreateShapeFilterData(MoveChannel, FMaskFilter(0), Owner->GetUniqueID(), UseResponse, GetUniqueID(), ChunkIdxToBoneIdx(ChunkIdx), PQueryFilterData, PSimFilterData, BodyInstance.bUseCCD, bEnableImpactDamage, false);
 		
 		PQueryFilterData.word3 |= EPDF_SimpleCollision | EPDF_ComplexCollision;
 
@@ -1511,7 +1518,7 @@ void UDestructibleComponent::SetCollisionResponseForShape(PxShape* Shape, int32 
 		bool bLargeChunk = IsChunkLarge(Shape->getActor());
 		const FCollisionResponse& ColResponse = bLargeChunk ? LargeChunkCollisionResponse : SmallChunkCollisionResponse;
 		//TODO: we currently assume chunks will not have impact damage as it's very expensive. Should look into exposing this a bit more
-		CreateShapeFilterData(MoveChannel, FMaskFilter(0), (Owner ? Owner->GetUniqueID() : 0), ColResponse.GetResponseContainer(), 0, ChunkIdxToBoneIdx(ChunkIdx), PQueryFilterData, PSimFilterData, BodyInstance.bUseCCD, false, false);
+		CreateShapeFilterData(MoveChannel, FMaskFilter(0), (Owner ? Owner->GetUniqueID() : 0), ColResponse.GetResponseContainer(), GetUniqueID(), ChunkIdxToBoneIdx(ChunkIdx), PQueryFilterData, PSimFilterData, BodyInstance.bUseCCD, false, false);
 
 		PQueryFilterData.word3 |= EPDF_SimpleCollision | EPDF_ComplexCollision;
 

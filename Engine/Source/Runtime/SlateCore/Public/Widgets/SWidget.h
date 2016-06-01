@@ -99,6 +99,32 @@ public:
 };
 
 
+/**
+ * An FPopupLayer hosts the pop-up content which could be anything you want to appear on top of a widget.
+ * The widget must understand how to host pop-ups to make use of this.
+ */
+class FPopupLayer : public TSharedFromThis<FPopupLayer>
+{
+public:
+	FPopupLayer(const TSharedRef<SWidget>& InitHostWidget, const TSharedRef<SWidget>& InitPopupContent)
+		: HostWidget(InitHostWidget)
+		, PopupContent(InitPopupContent)
+	{
+	}
+
+	virtual ~FPopupLayer() { }
+	
+	virtual TSharedRef<SWidget> GetHost() { return HostWidget; }
+	virtual TSharedRef<SWidget> GetContent() { return PopupContent; }
+
+	virtual void Remove() = 0;
+
+private:
+	TSharedRef<SWidget> HostWidget;
+	TSharedRef<SWidget> PopupContent;
+};
+
+
 class IToolTip;
 
 /**
@@ -379,6 +405,17 @@ public:
 	virtual bool OnVisualizeTooltip(const TSharedPtr<SWidget>& TooltipContent);
 
 	/**
+	 * Visualize a new pop-up if possible.  If it's not possible for this widget to host the pop-up
+	 * content you'll get back an invalid pointer to the layer.  The returned FPopupLayer allows you 
+	 * to remove the pop-up when you're done with it
+	 * 
+	 * @param PopupContent The widget to try and host overlaid on top of the widget.
+	 *
+	 * @return a valid FPopupLayer if this widget supported hosting it.  You can call Remove() on this to destroy the pop-up.
+	 */
+	virtual TSharedPtr<FPopupLayer> OnVisualizePopup(const TSharedRef<SWidget>& PopupContent);
+
+	/**
 	 * Called when Slate detects that a widget started to be dragged.
 	 * Usage:
 	 * A widget can ask Slate to detect a drag.
@@ -626,7 +663,7 @@ public:
 	TOptional<EFocusCause> HasUserFocus(int32 UserIndex) const;
 
 	/**
-	 * Gets whether or not any users users has this widget focused, and if so the type of focus (first one found).
+	 * Gets whether or not any users have this widget focused, and if so the type of focus (first one found).
 	 *
 	 * @return The optional will be set with the focus cause, if unset this widget doesn't have focus.
 	 */

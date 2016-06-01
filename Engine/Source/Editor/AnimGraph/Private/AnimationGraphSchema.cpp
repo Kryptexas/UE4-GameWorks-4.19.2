@@ -12,6 +12,7 @@
 #include "AnimationGraphSchema.h"
 #include "K2Node_TransitionRuleGetter.h"
 #include "AnimStateNode.h"
+#include "AnimGraphNode_AssetPlayerBase.h"
 #include "AnimGraphNode_BlendSpacePlayer.h"
 #include "AnimGraphNode_ComponentToLocalSpace.h"
 #include "AnimGraphNode_LocalToComponentSpace.h"
@@ -87,14 +88,14 @@ void UAnimationGraphSchema::HandleGraphBeingDeleted(UEdGraph& GraphBeingRemoved)
 	if (UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(&GraphBeingRemoved))
 	{
 		// Look for state nodes that reference this graph
-		TArray<UAnimStateNode*> StateNodes;
-		FBlueprintEditorUtils::GetAllNodesOfClass<UAnimStateNode>(Blueprint, /*out*/ StateNodes);
+		TArray<UAnimStateNodeBase*> StateNodes;
+		FBlueprintEditorUtils::GetAllNodesOfClassEx<UAnimStateNode>(Blueprint, StateNodes);
 
-		TSet<UAnimStateNode*> NodesToDelete;
+		TSet<UAnimStateNodeBase*> NodesToDelete;
 		for (int32 i = 0; i < StateNodes.Num(); ++i)
 		{
-			UAnimStateNode* StateNode = StateNodes[i];
-			if (StateNode->BoundGraph == &GraphBeingRemoved)
+			UAnimStateNodeBase* StateNode = StateNodes[i];
+			if (StateNode->GetBoundGraph() == &GraphBeingRemoved)
 			{
 				NodesToDelete.Add(StateNode);
 			}
@@ -102,15 +103,14 @@ void UAnimationGraphSchema::HandleGraphBeingDeleted(UEdGraph& GraphBeingRemoved)
 
 		// Delete the node that owns us
 		ensure(NodesToDelete.Num() <= 1);
-		for (TSet<UAnimStateNode*>::TIterator It(NodesToDelete); It; ++It)
+		for (TSet<UAnimStateNodeBase*>::TIterator It(NodesToDelete); It; ++It)
 		{
-			UAnimStateNode* NodeToDelete = *It;
+			UAnimStateNodeBase* NodeToDelete = *It;
+
+			FBlueprintEditorUtils::RemoveNode(Blueprint, NodeToDelete, true);
 
 			// Prevent re-entrancy here
-			NodeToDelete->BoundGraph = NULL;
-
-			NodeToDelete->Modify();
-			NodeToDelete->DestroyNode();
+			NodeToDelete->ClearBoundGraph();
 		}
 	}
 }
@@ -248,42 +248,18 @@ void UAnimationGraphSchema::SpawnNodeFromAsset(UAnimationAsset* Asset, const FVe
 	{
 		FEdGraphSchemaAction_K2NewNode Action;
 
-		if (UAnimSequence* Sequence = Cast<UAnimSequence>(Asset))
+		UClass* NewNodeClass = GetNodeClassForAsset(Asset->GetClass());
+		
+		if (NewNodeClass)
 		{
-			UAnimGraphNode_SequencePlayer* PlayerNode = NewObject<UAnimGraphNode_SequencePlayer>();
-			PlayerNode->Node.Sequence = Sequence;
-			Action.NodeTemplate = PlayerNode;
-		}
-		else if (UBlendSpaceBase* BlendSpace = Cast<UBlendSpaceBase>(Asset))
-		{
-			if (IsAimOffsetBlendSpace(BlendSpace))
-			{
-				UAnimGraphNode_RotationOffsetBlendSpace* PlayerNode = NewObject<UAnimGraphNode_RotationOffsetBlendSpace>();
-				PlayerNode->Node.BlendSpace = BlendSpace;
+			check(NewNodeClass->IsChildOf(UAnimGraphNode_AssetPlayerBase::StaticClass()));
 
-				Action.NodeTemplate = PlayerNode;
-			}
-			else
-			{
-				UAnimGraphNode_BlendSpacePlayer* PlayerNode = NewObject<UAnimGraphNode_BlendSpacePlayer>();
-				PlayerNode->Node.BlendSpace = BlendSpace;
+			UAnimGraphNode_AssetPlayerBase* NewNode = NewObject<UAnimGraphNode_AssetPlayerBase>(GetTransientPackage(), NewNodeClass);
+			NewNode->SetAnimationAsset(Asset);
+			Action.NodeTemplate = NewNode;
 
-				Action.NodeTemplate = PlayerNode;
-			}
+			Action.PerformAction(Graph, PinIfAvailable, GraphPosition);
 		}
-		else if (UAnimComposite* Composite = Cast<UAnimComposite>(Asset))
-		{
-			UAnimGraphNode_SequencePlayer* PlayerNode = NewObject<UAnimGraphNode_SequencePlayer>();
-			PlayerNode->Node.Sequence = Composite;
-			Action.NodeTemplate = PlayerNode;
-		}
-		else
-		{
-			//unknown type
-			return;
-		}
-
-		Action.PerformAction(Graph, PinIfAvailable, GraphPosition);
 	}
 }
 

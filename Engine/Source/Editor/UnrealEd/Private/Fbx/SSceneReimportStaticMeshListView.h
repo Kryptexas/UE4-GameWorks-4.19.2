@@ -2,9 +2,9 @@
 #pragma once
 
 #include "Classes/Factories/FbxSceneImportFactory.h"
-#include "SSceneImportStaticMeshListView.h"
+#include "SSceneBaseMeshListView.h"
 
-class SFbxSceneStaticMeshReimportListView : public SListView<FbxMeshInfoPtr>
+class SFbxSceneStaticMeshReimportListView : public SFbxSSceneBaseMeshListView
 {
 public:
 
@@ -22,19 +22,17 @@ public:
 		SLATE_ARGUMENT(TSharedPtr<FFbxSceneInfo>, SceneInfoOriginal)
 		SLATE_ARGUMENT(FbxSceneReimportStatusMapPtr, MeshStatusMap)
 		SLATE_ARGUMENT( UnFbx::FBXImportOptions*, GlobalImportSettings)
+		SLATE_ARGUMENT(FbxOverrideNameOptionsArrayPtr, OverrideNameOptions)
 		SLATE_ARGUMENT( ImportOptionsNameMapPtr, OverrideNameOptionsMap)
 		SLATE_ARGUMENT( class UFbxSceneImportOptionsStaticMesh*, SceneImportOptionsStaticMeshDisplay)
 		SLATE_END_ARGS()
 
 	/** Construct this widget */
+	
 	void Construct(const FArguments& InArgs);
 	TSharedRef< ITableRow > OnGenerateRowFbxSceneListView(FbxMeshInfoPtr Item, const TSharedRef< STableViewBase >& OwnerTable);
-	FString FindUniqueOptionName();
-	FReply OnCreateOverrideOptions();
-	void OnToggleSelectAll(ECheckBoxState CheckType);
 
 	void OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent);
-	TSharedPtr<STextComboBox> CreateOverrideOptionComboBox();
 
 	/** Filter show every reimport that will add content */
 	void OnToggleFilterAddContent(ECheckBoxState CheckType);
@@ -65,16 +63,10 @@ public:
 	}
 
 protected:
-	TSharedPtr<FFbxSceneInfo> SceneInfo;
 	TSharedPtr<FFbxSceneInfo> SceneInfoOriginal;
-	UnFbx::FBXImportOptions* GlobalImportSettings;
-	ImportOptionsNameMapPtr OverrideNameOptionsMap;
 	class UFbxSceneImportOptionsStaticMesh* SceneImportOptionsStaticMeshDisplay;
 
-	UnFbx::FBXImportOptions *CurrentStaticMeshImportOptions;
-
 	/** the elements we show in the list view */
-	TArray<FbxMeshInfoPtr> FbxMeshesArray;
 	TArray<FbxMeshInfoPtr> FilterFbxMeshesArray;
 	bool FilterAddContent;
 	bool FilterDeleteContent;
@@ -84,22 +76,14 @@ protected:
 	void UpdateFilterList();
 
 	FbxSceneReimportStatusMapPtr MeshStatusMap;
+	
+	virtual void SetSelectionImportState(bool MarkForImport);
+	virtual void OnToggleSelectAll(ECheckBoxState CheckType);
 
 	/** Open a context menu for the current selection */
 	TSharedPtr<SWidget> OnOpenContextMenu();
 	void AssignToStaticMesh();
 	bool ShowResetAssignToStaticMesh();
 	void ResetAssignToStaticMesh();
-	void AddSelectionToImport();
-	void RemoveSelectionFromImport();
-	void SetSelectionImportState(bool MarkForImport);
-
-	void OnSelectionChanged(FbxMeshInfoPtr Item, ESelectInfo::Type SelectionType);
-	void OnChangedOverrideOptions(TSharedPtr<FString> ItemSelected, ESelectInfo::Type SelectInfo);
-	TSharedPtr<FString> FindOptionNameFromName(FString OptionName);
-	void AssignToOptions(FString OptionName);
-
-	TArray<TSharedPtr<FString>> OverrideNameOptions;
-	TSharedPtr<STextComboBox> OptionComboBox;
-	TSharedPtr<FString> DefaultOptionNamePtr;
+	virtual void OnChangedOverrideOptions(TSharedPtr<FString> ItemSelected, ESelectInfo::Type SelectInfo);
 };

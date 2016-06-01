@@ -393,11 +393,13 @@ bool SScrollBox::ScrollDescendantIntoView(const FGeometry& MyGeometry, const TSh
 	FindChildGeometries( MyGeometry, WidgetsToFind, Result );
 
 	FArrangedWidget* WidgetGeometry = Result.Find( WidgetToFind.ToSharedRef() );
-	if ( ensureMsgf( WidgetGeometry, TEXT("Unable to scroll to descendant as it's not a child of the scrollbox") ) )
+	if (!WidgetGeometry)
 	{
-		// @todo: This is a workaround because DesiredScrollOffset can exceed the ScrollMax when mouse dragging on the scroll bar and we need it clamped here or the offset is wrong
-		ScrollBy(MyGeometry, 0, EAllowOverscroll::No, false);
+		UE_LOG(LogSlate, Warning, TEXT("Unable to scroll to descendant as it's not a child of the scrollbox"));
+	}
 
+	if ( WidgetGeometry )
+	{
 		float ScrollOffset = 0.0f;
 		if ( InDestination == EDescendantScrollDestination::TopOrLeft )
 		{
@@ -563,7 +565,7 @@ void SScrollBox::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 
 	if ( bScrollToEnd )
 	{
-		DesiredScrollOffset = ContentSize;
+		DesiredScrollOffset = FMath::Max(ContentSize - GetScrollComponentFromVector(ScrollPanelGeometry.Size), 0.0f);
 		bScrollToEnd = false;
 	}
 
@@ -934,7 +936,11 @@ int32 SScrollBox::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeom
 
 void SScrollBox::ScrollBar_OnUserScrolled( float InScrollOffsetFraction )
 {
-	DesiredScrollOffset = InScrollOffsetFraction * GetScrollComponentFromVector(ScrollPanel->GetDesiredSize());
+	const float ContentSize = GetScrollComponentFromVector(ScrollPanel->GetDesiredSize());
+	const FGeometry ScrollPanelGeometry = FindChildGeometry(CachedGeometry, ScrollPanel.ToSharedRef());
+
+	// Clamp to max scroll offset
+	DesiredScrollOffset = FMath::Min(InScrollOffsetFraction * ContentSize, ContentSize - GetScrollComponentFromVector(ScrollPanelGeometry.Size));
 	OnUserScrolled.ExecuteIfBound(DesiredScrollOffset);
 }
 

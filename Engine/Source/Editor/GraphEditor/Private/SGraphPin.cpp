@@ -478,7 +478,7 @@ FReply SGraphPin::OnPinNameMouseDown( const FGeometry& SenderGeometry, const FPo
 {
 	const float LocalX = SenderGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() ).X;
 
-	if ((GetDirection() == EGPD_Input) || (LocalX > SenderGeometry.GetDrawSize().X * 0.5f))
+	if ((GetDirection() == EGPD_Input) || FMath::Abs( SenderGeometry.GetLocalSize().X - LocalX ) < 60.f )
 	{
 		// Right half of the output pin or all of the input pin, treat it like a connection attempt
 		return OnPinMouseDown(SenderGeometry, MouseEvent);

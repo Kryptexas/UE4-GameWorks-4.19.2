@@ -7,6 +7,7 @@
 #include "BlueprintActionDatabaseRegistrar.h"
 #include "BlueprintActionFilter.h"	// for FBlueprintActionContext
 #include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
+#include "BlueprintEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_BreakStruct"
 
@@ -88,7 +89,9 @@ public:
 				CompilerContext.MessageLog.Warning(*Message.ToString(), Net->GetOuter());
 			}
 
+			UBlueprintEditorSettings* Settings = GetMutableDefault<UBlueprintEditorSettings>();
 			FBPTerminal* Term = Context.CreateLocalTerminalFromPinAutoChooseScope(Net, Net->PinName);
+			Term->bPassedByReference = ContextTerm->bPassedByReference;
 			Term->AssociatedVarProperty = BoundProperty;
 			Context.NetMap.Add(Net, Term);
 			Term->Context = ContextTerm;

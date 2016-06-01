@@ -21,7 +21,6 @@ namespace AutomationTool
 		private BuildCommand OwnerCommand;
 
 		private String XGEConsoleExePath = "";
-		private String ParallelExecutorPath = "";
 
 		public void PrepareBuildProduct(string File, bool DeleteProduct = true)
 		{
@@ -60,7 +59,7 @@ namespace AutomationTool
 			}
 		}
 
-		void PrepareManifest(string ManifestName, bool bAddReceipt)
+		BuildManifest PrepareManifest(string ManifestName, bool bAddReceipt)
 		{
 			if (FileExists(ManifestName) == false)
 			{
@@ -94,6 +93,11 @@ namespace AutomationTool
 					PrepareBuildProduct(Item);
 				}
 			}
+			foreach(string Item in Manifest.LibraryBuildProducts)
+			{
+				LibraryBuildProductFiles.Add(Item);
+			}
+			return Manifest;
 		}
 
 		static bool IsBuildReceipt(string FileName)
@@ -116,6 +120,10 @@ namespace AutomationTool
 				}
 				AddBuildProduct(Item);
 			}
+			foreach(string Item in Manifest.LibraryBuildProducts)
+			{
+				LibraryBuildProductFiles.Add(Item);
+			}
 		}
 
 	
@@ -133,7 +141,7 @@ namespace AutomationTool
 
 				MsBuild(CmdEnv,
 						CmdEnv.LocalRoot + @"/Engine/Source/Programs/UnrealBuildTool/" + HostPlatform.Current.UBTProjectName + @".csproj",
-						"/verbosity:normal /target:Rebuild /property:Configuration=Development /property:Platform=AnyCPU",
+						"/verbosity:minimal /target:Rebuild /property:Configuration=Development /property:Platform=AnyCPU",
 						"BuildUBT");
 
 				bIsUBTReady = true;
@@ -293,7 +301,7 @@ namespace AutomationTool
 			}
         }
 
-		void BuildWithUBT(string TargetName, UnrealBuildTool.UnrealTargetPlatform TargetPlatform, string Config, FileReference UprojectPath, bool ForceMonolithic = false, bool ForceNonUnity = false, bool ForceDebugInfo = false, bool ForceFlushMac = false, bool DisableXGE = false, string InAddArgs = "", bool ForceUnity = false, Dictionary<string, string> EnvVars = null)
+		BuildManifest BuildWithUBT(string TargetName, UnrealBuildTool.UnrealTargetPlatform TargetPlatform, string Config, FileReference UprojectPath, bool ForceMonolithic = false, bool ForceNonUnity = false, bool ForceDebugInfo = false, bool ForceFlushMac = false, bool DisableXGE = false, string InAddArgs = "", bool ForceUnity = false, Dictionary<string, string> EnvVars = null)
 		{
 			string AddArgs = "";
 			if (UprojectPath != null)
@@ -331,6 +339,7 @@ namespace AutomationTool
 			// let the platform determine when to use the manifest
             bool UseManifest = Platform.Platforms[TargetPlatform].ShouldUseManifestForUBTBuilds(AddArgs);
 
+			BuildManifest Manifest = null;
 			if (UseManifest)
 			{
                 string UBTManifest = GetUBTManifest(UprojectPath, AddArgs);
@@ -340,7 +349,7 @@ namespace AutomationTool
 				{
 					RunUBT(CmdEnv, UBTExecutable: UBTExecutable, Project: UprojectPath, Target: TargetName, Platform: TargetPlatform.ToString(), Config: Config, AdditionalArgs: AddArgs + " -generatemanifest", EnvVars: EnvVars);
 				}
-                PrepareManifest(UBTManifest, false);
+                Manifest = PrepareManifest(UBTManifest, false);
 			}
 
 			using(TelemetryStopwatch CompileStopwatch = new TelemetryStopwatch("Compile.{0}.{1}.{2}", TargetName, TargetPlatform.ToString(), Config))
@@ -358,6 +367,7 @@ namespace AutomationTool
 
 				DeleteFile(UBTManifest);
 			}
+			return Manifest;
 		}
 
 		string[] DotNetProductExtenstions()
@@ -449,15 +459,20 @@ namespace AutomationTool
 			bool bIsLicenseeVersion = ParseParam("Licensee");
 			bool bDoUpdateVersionFiles = CommandUtils.P4Enabled && ActuallyUpdateVersionFiles;		
 			int ChangelistNumber = 0;
-			string ChangelistString = String.Empty;
 			if (bDoUpdateVersionFiles)
 			{
 				ChangelistNumber = ChangelistNumberOverride.HasValue? ChangelistNumberOverride.Value : P4Env.Changelist;
-				ChangelistString = ChangelistNumber.ToString();
 			}
 
-			var Result = new List<String>();
 			string Branch = P4Enabled ? P4Env.BuildRootEscaped : "";
+			return StaticUpdateVersionFiles(ChangelistNumber, Branch, bIsLicenseeVersion, bDoUpdateVersionFiles);
+		}
+
+		public static List<string> StaticUpdateVersionFiles(int ChangelistNumber, string Branch, bool bIsLicenseeVersion, bool bDoUpdateVersionFiles)
+		{
+			string ChangelistString = (ChangelistNumber != 0 && bDoUpdateVersionFiles)? ChangelistNumber.ToString() : String.Empty;
+
+			var Result = new List<String>();
 			{
 				string VerFile = CombinePaths(CmdEnv.LocalRoot, "Engine", "Build", "Build.version");
 				if (bDoUpdateVersionFiles)
@@ -540,27 +555,33 @@ namespace AutomationTool
 		/// </summary>
 		public void UpdatePublicKey(string KeyFilename)
 		{
-			var Lines = ReadEncryptionKeys(KeyFilename);
-			if (Lines != null && Lines.Length >= 3)
-			{
-				// Line0: Private key exponent, Line1: Modulus, Line2: Public key exponent.
-				string Modulus = String.Format("\"{0}\"", Lines[1]);
-				string PublicKeyExponent = String.Format("\"{0}\"", Lines[2]);
-				string VerFile = CmdEnv.LocalRoot + @"/Engine/Source/Runtime/PakFile/Private/PublicKey.inl";
+			string Modulus = "\"0x0\"";
+			string PublicKeyExponent = "\"0x0\"";
 
-				LogVerbose("Updating {0} with:", VerFile);
-				LogVerbose(" #define DECRYPTION_KEY_EXPONENT {0}", PublicKeyExponent);
-				LogVerbose(" #define DECYRPTION_KEY_MODULUS {0}", Modulus);
-
-				VersionFileUpdater PublicKeyInl = new VersionFileUpdater(VerFile);
-				PublicKeyInl.ReplaceLine("#define DECRYPTION_KEY_EXPONENT ", PublicKeyExponent);
-				PublicKeyInl.ReplaceLine("#define DECYRPTION_KEY_MODULUS ", Modulus);
-                PublicKeyInl.Commit();
-			}
-			else
+			if (!string.IsNullOrEmpty(KeyFilename))
 			{
-				LogError("{0} doesn't look like a valid encryption key file or value.");
+				var Lines = ReadEncryptionKeys(KeyFilename);
+				if (Lines != null && Lines.Length >= 3)
+				{
+					Modulus = String.Format("\"{0}\"", Lines[1]);
+					PublicKeyExponent = String.Format("\"{0}\"", Lines[2]);
+				}
+				else
+				{
+					LogError("{0} doesn't look like a valid encryption key file or value.", KeyFilename);
+				}
 			}
+
+			string VerFile = CmdEnv.LocalRoot + @"/Engine/Source/Runtime/PakFile/Private/PublicKey.inl";
+
+			LogVerbose("Updating {0} with:", VerFile);
+			LogVerbose(" #define DECRYPTION_KEY_EXPONENT {0}", PublicKeyExponent);
+			LogVerbose(" #define DECRYPTION_KEY_MODULUS {0}", Modulus);
+
+			VersionFileUpdater PublicKeyInl = new VersionFileUpdater(VerFile);
+			PublicKeyInl.ReplaceLine("#define DECRYPTION_KEY_EXPONENT ", PublicKeyExponent);
+			PublicKeyInl.ReplaceLine("#define DECRYPTION_KEY_MODULUS ", Modulus);
+			PublicKeyInl.Commit();
 		}
 
 		/// <summary>
@@ -637,7 +658,7 @@ namespace AutomationTool
 			/// Used for special jobs to test things. At the moment, debugging some megaXGE thing
 			public bool SpecialTestFlag = false;
 
-			public bool DoRetries = IsBuildMachine;
+			public bool DoRetries = false;
 
 			/// <summary>
 			/// Adds a target with the specified configuration.
@@ -700,6 +721,7 @@ namespace AutomationTool
 		{
 			OwnerCommand = Command;
 			BuildProductFiles.Clear();
+			LibraryBuildProductFiles.Clear();
 		}
 
 		public List<string> FindXGEFiles()
@@ -735,27 +757,8 @@ namespace AutomationTool
 			return XGEConsoleExePath;
 		}
 
-		public string ParallelExecutorExec()
-		{
-			if (string.IsNullOrEmpty(ParallelExecutorPath))
-			{
-				string RootPath = Path.Combine(CmdEnv.LocalRoot, @"Engine\Binaries\Win64");
-				string FullPath = Path.Combine(RootPath, "ParallelExecutor.exe");
-				if (FileExists(FullPath))
-				{
-					ParallelExecutorPath = FullPath;
-				}
-			}
-			return ParallelExecutorPath;
-		}
-
 		public bool ProcessXGEItems(List<XGEItem> Actions, string XGETool, string Args, string TaskFilePath, bool DoRetries, bool SpecialTestFlag, bool ShowProgress)
 		{
-            if (string.IsNullOrEmpty(XGETool))
-			{
-				throw new AutomationException("Unable to find xge tool: " + XGETool);
-			}
-
 			TelemetryStopwatch CombineXGEStopwatch = new TelemetryStopwatch("CombineXGEItemFiles.{0}", Path.GetFileNameWithoutExtension(XGETool));
 
 			XmlDocument XGETaskDocument;	
@@ -811,55 +814,73 @@ namespace AutomationTool
 				}
 
 				CombineXGEStopwatch.Finish();
-               
-				using(TelemetryStopwatch ProcessXGEStopwatch = new TelemetryStopwatch("ProcessXGE.{0}", Path.GetFileNameWithoutExtension(XGETool)))
+
+				if(XGETool == null)
 				{
-					int Retries = DoRetries ? 2 : 1;
-					int ConnectionRetries = 4;
-					for (int i = 0; i < Retries; i++)
+					PushDir(CombinePaths(CmdEnv.LocalRoot, @"\Engine\Source"));
+					try
 					{
-						try
+						int ExitCode = ParallelExecutor.Execute(TaskFilePath);
+						if(ExitCode != 0)
 						{
-							while (true)
+							return false;
+						}
+					}
+					finally
+					{
+						PopDir();
+					}
+				}
+				else
+				{
+					using (TelemetryStopwatch ProcessXGEStopwatch = new TelemetryStopwatch("ProcessXGE.{0}", Path.GetFileNameWithoutExtension(XGETool)))
+					{
+						int Retries = DoRetries ? 2 : 1;
+						int ConnectionRetries = 4;
+						for (int i = 0; i < Retries; i++)
+						{
+							try
 							{
-								LogVerbose("Running {0} *******", XGETool);
-								PushDir(CombinePaths(CmdEnv.LocalRoot, @"\Engine\Source"));
-								int SuccesCode;
-								string LogFile = GetRunAndLogOnlyName(CmdEnv, XGETool);
-								string Output = RunAndLog(XGETool, Args, out SuccesCode, LogFile);
-								PopDir();
-								if (ConnectionRetries > 0 && (SuccesCode == 4 || SuccesCode == 2) && !Output.Contains("------Project:"))
+								while (true)
 								{
-									LogWarning(String.Format("{0} failure on the local connection timeout", XGETool));
-									if (ConnectionRetries < 2)
+									LogVerbose("Running {0} *******", XGETool);
+									PushDir(CombinePaths(CmdEnv.LocalRoot, @"\Engine\Source"));
+									int SuccesCode;
+									string LogFile = GetRunAndLogOnlyName(CmdEnv, XGETool);
+									string Output = RunAndLog(XGETool, Args, out SuccesCode, LogFile);
+									bool bOutputContainsProject = Output.Contains("------Project:");
+									PopDir();
+									if (ConnectionRetries > 0 && (SuccesCode == 4 || SuccesCode == 2) && !bOutputContainsProject && XGETool != null)
 									{
-										System.Threading.Thread.Sleep(60000);
+										LogWarning(String.Format("{0} failure on the local connection timeout", XGETool));
+										if (ConnectionRetries < 2)
+										{
+											System.Threading.Thread.Sleep(60000);
+										}
+										ConnectionRetries--;
+										continue;
 									}
-									ConnectionRetries--;
-									continue;
+									else if (SuccesCode != 0)
+									{
+										throw new AutomationException("Command failed (Result:{3}): {0} {1}. See logfile for details: '{2}' ",
+																		XGETool, Args, Path.GetFileName(LogFile), SuccesCode);
+									}
+									LogVerbose("{0} {1} Done *******", XGETool, Args);
+									break;
 								}
-								else if (SuccesCode != 0)
-								{
-									LogWarning("{0} did not succeed *******", XGETool);
-									throw new AutomationException("Command failed (Result:{3}): {0} {1}. See logfile for details: '{2}' ",
-																	XGETool, Args, Path.GetFileName(LogFile), SuccesCode);
-								}
-								LogVerbose("{0} {1} Done *******", XGETool, Args);
 								break;
 							}
-							break;
-						}
-						catch (Exception Ex)
-						{
-							LogWarning("{0} failed on try {1}: {2}", XGETool, i + 1, Ex.ToString());
-							if (i + 1 >= Retries)
+							catch (Exception Ex)
 							{
-								return false;
-							}
-							LogWarning("Deleting build products to force a rebuild.");
-							foreach (var Item in Actions)
-							{
-								XGEDeleteBuildProducts(Item.Manifest);
+								if (i + 1 >= Retries)
+								{
+									throw;
+								}
+								LogWarning("{0} failed on try {1}, deleting products to force a rebuild: {2}", XGETool, i + 1, Ex.ToString());
+								foreach (var Item in Actions)
+								{
+									XGEDeleteBuildProducts(Item.Manifest);
+								}
 							}
 						}
 					}
@@ -1218,7 +1239,7 @@ namespace AutomationTool
 		/// <param name="InUpdateVersionFiles">True if the version files are to be updated </param>
 		/// <param name="InForceNoXGE">If true will force XGE off</param>
 		/// <param name="InUseParallelExecutor">If true AND XGE not present or not being used then use ParallelExecutor</param>
-		public void Build(BuildAgenda Agenda, bool? InDeleteBuildProducts = null, bool InUpdateVersionFiles = true, bool InForceNoXGE = false, bool InUseParallelExecutor = false, bool InForceNonUnity = false, bool InForceUnity = false, bool InShowProgress = false, Dictionary<UnrealBuildTool.UnrealTargetPlatform, Dictionary<string, string>> PlatformEnvVars = null)
+		public void Build(BuildAgenda Agenda, bool? InDeleteBuildProducts = null, bool InUpdateVersionFiles = true, bool InForceNoXGE = false, bool InUseParallelExecutor = false, bool InForceNonUnity = false, bool InForceUnity = false, bool InShowProgress = false, Dictionary<UnrealBuildTool.UnrealTargetPlatform, Dictionary<string, string>> PlatformEnvVars = null, int? InChangelistNumberOverride = null, Dictionary<BuildTarget, BuildManifest> InTargetToManifest = null)
 		{
 			if (!CmdEnv.HasCapabilityToCompile)
 			{
@@ -1227,15 +1248,7 @@ namespace AutomationTool
 			DeleteBuildProducts = InDeleteBuildProducts.HasValue ? InDeleteBuildProducts.Value : ParseParam("Clean");
 			if (InUpdateVersionFiles)
 			{
-				UpdateVersionFiles();
-			}
-
-			{
-				var EncryptionKeyFilename = ParseParamValue("SignPak");
-				if (String.IsNullOrEmpty(EncryptionKeyFilename) == false)
-				{
-					UpdatePublicKey(EncryptionKeyFilename);
-				}
+				UpdateVersionFiles(ActuallyUpdateVersionFiles: true, ChangelistNumberOverride: InChangelistNumberOverride);
 			}
 
 			//////////////////////////////////////
@@ -1334,7 +1347,7 @@ namespace AutomationTool
 			}
 
 			// only run ParallelExecutor if not running XGE (and we've requested ParallelExecutor and it exists)
-			bool bCanUseParallelExecutor = !bCanUseXGE && InUseParallelExecutor && !string.IsNullOrEmpty(ParallelExecutorExec());
+			bool bCanUseParallelExecutor = !bCanUseXGE && InUseParallelExecutor;
 			LogLog("************************* UE4Build:");
 			LogLog("************************* ForceMonolithic: {0}", bForceMonolithic);
 			LogLog("************************* ForceNonUnity:{0} ", bForceNonUnity);
@@ -1361,7 +1374,11 @@ namespace AutomationTool
 						// When building a target for Mac or iOS, use UBT's -flushmac option to clean up the remote builder
 						bool bForceFlushMac = DeleteBuildProducts && (Target.Platform == UnrealBuildTool.UnrealTargetPlatform.Mac || Target.Platform == UnrealBuildTool.UnrealTargetPlatform.IOS);
 						LogSetProgress(InShowProgress, "Building header tool...");
-						BuildWithUBT(Target.TargetName, Target.Platform, Target.Config.ToString(), Target.UprojectPath, bForceMonolithic, bForceNonUnity, bForceDebugInfo, bForceFlushMac, true, Target.UBTArgs, bForceUnity);
+						BuildManifest Manifest = BuildWithUBT(Target.TargetName, Target.Platform, Target.Config.ToString(), Target.UprojectPath, bForceMonolithic, bForceNonUnity, bForceDebugInfo, bForceFlushMac, !CanUseXGE(Target.Platform), Target.UBTArgs, bForceUnity);
+						if(InTargetToManifest != null)
+						{
+							InTargetToManifest[Target] = Manifest;
+						}
 					}
 				}
 
@@ -1372,24 +1389,24 @@ namespace AutomationTool
 					if (Target.TargetName != "UnrealHeaderTool" && CanUseXGE(Target.Platform))
 					{
 						XGEItem Item = XGEPrepareBuildWithUBT(Target.TargetName, Target.Platform, Target.Config.ToString(), Target.UprojectPath, bForceMonolithic, bForceNonUnity, bForceDebugInfo, Target.UBTArgs, bForceUnity);
+						if(InTargetToManifest != null)
+						{
+							InTargetToManifest[Target] = Item.Manifest;
+						}
 						XGEItems.Add(Item);
 					}
 				}
 				if (XGEItems.Count > 0)
 				{
-					string XGETool = "";
-					string Args = "";
+					string XGETool = null;
+					string Args = null;
 					if (bCanUseXGE) 
 					{
 						XGETool = XGEConsoleExePath;
 						Args = "\"" + TaskFilePath + "\" /Rebuild /MaxCPUS=200";
 					}
-					else if (bCanUseParallelExecutor)
-					{
-						XGETool = ParallelExecutorExec();
-						Args = "\"" + TaskFilePath + "\"";
-					}
-					if (XGETool.Equals(""))
+
+					if (!bCanUseParallelExecutor && String.IsNullOrEmpty(XGETool))
 					{
 						throw new AutomationException("BUILD FAILED: no tool present to process XGE files");
 					}
@@ -1423,7 +1440,11 @@ namespace AutomationTool
 				{
 					// When building a target for Mac or iOS, use UBT's -flushmac option to clean up the remote builder
 					bool bForceFlushMac = DeleteBuildProducts && (Target.Platform == UnrealBuildTool.UnrealTargetPlatform.Mac || Target.Platform == UnrealBuildTool.UnrealTargetPlatform.IOS);
-					BuildWithUBT(Target.TargetName, Target.Platform, Target.Config.ToString(), Target.UprojectPath, bForceMonolithic, bForceNonUnity, bForceDebugInfo, bForceFlushMac, true, Target.UBTArgs, bForceUnity);
+					BuildManifest Manifest = BuildWithUBT(Target.TargetName, Target.Platform, Target.Config.ToString(), Target.UprojectPath, bForceMonolithic, bForceNonUnity, bForceDebugInfo, bForceFlushMac, true, Target.UBTArgs, bForceUnity);
+					if(InTargetToManifest != null)
+					{
+						InTargetToManifest[Target] = Manifest;
+					}
 				}
 			}
 
@@ -1547,6 +1568,30 @@ namespace AutomationTool
 		/// <summary>
 		/// Copy the UAT files to their precompiled location, and add them as build products
 		/// </summary>
+		public void AddUATLauncherFilesToBuildProducts()
+		{
+            var DotNetOutputLocation = CombinePaths(CmdEnv.LocalRoot, "Engine", "Binaries", "DotNET");
+
+			var UATFiles = new List<string>(new string[] 
+					{
+						"AutomationToolLauncher.exe",
+						"AutomationToolLauncher.exe.config",
+					});
+
+			foreach (var UATFile in UATFiles)
+			{
+				var OutputFile = CombinePaths(DotNetOutputLocation, UATFile);
+				if (!FileExists_NoExceptions(OutputFile))
+				{
+					throw new AutomationException("Cannot add UAT to the build products because {0} does not exist.", OutputFile);
+				}
+				AddBuildProduct(OutputFile);
+			}
+		}
+
+		/// <summary>
+		/// Copy the UAT files to their precompiled location, and add them as build products
+		/// </summary>
 		public void AddUATFilesToBuildProducts()
 		{
 			// Find all DLLs (scripts and their dependencies)
@@ -1593,10 +1638,8 @@ namespace AutomationTool
 
 		string GetUBTManifest(FileReference UProjectPath, string InAddArgs)
 		{
-			// Can't write to Engine directory on 
-            bool bForceRocket = InAddArgs.ToLowerInvariant().Contains(" -rocket"); //awful
-
-            if ((Automation.IsEngineInstalled() || bForceRocket) && UProjectPath != null)
+			// Can't write to Engine directory on installed builds
+			if (Automation.IsEngineInstalled() && UProjectPath != null)
 			{
 				return Path.Combine(Path.GetDirectoryName(UProjectPath.FullName), "Intermediate/Build/Manifest.xml");				
 			}
@@ -1621,6 +1664,9 @@ namespace AutomationTool
 
 		// List of everything we built so far
 		public readonly List<string> BuildProductFiles = new List<string>();
+
+		// Library files that were part of the build
+		public readonly List<string> LibraryBuildProductFiles = new List<string>();
 
 		private bool DeleteBuildProducts = true;
 	}

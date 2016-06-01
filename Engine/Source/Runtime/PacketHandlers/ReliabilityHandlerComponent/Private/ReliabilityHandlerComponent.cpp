@@ -56,8 +56,8 @@ void ReliabilityHandlerComponent::Outgoing(FBitWriter& Packet)
 					memcpy(Data, Packet.GetData(), Packet.GetNumBytes());
 					ReliablePacket->Data = Data;
 					ReliablePacket->Id = LocalPacketID;
-					ReliablePacket->BytesCount = Packet.GetNumBytes();
-					ReliablePacket->SendTime = Handler->Time + ResendResolutionTime;
+					ReliablePacket->CountBits = Packet.GetNumBits();
+					ReliablePacket->ResendTime = Handler->Time + ResendResolutionTime;
 					BufferedPackets.Enqueue(ReliablePacket);
 				}
 
@@ -139,7 +139,7 @@ void ReliabilityHandlerComponent::Tick(float DeltaTime)
 		BufferedPackets.Peek(Packet);
 
 		// Resend
-		if (Packet->SendTime > CurrentTime)
+		if (Packet->ResendTime > CurrentTime)
 		{
 			BufferedPackets.Dequeue(Packet);
 
@@ -168,16 +168,9 @@ void ReliabilityHandlerComponent::Tick(float DeltaTime)
 	}
 }
 
-void ReliabilityHandlerComponent::QueuePacketForResending(uint8* Packet, int32 Count)
+void ReliabilityHandlerComponent::QueuePacketForResending(uint8* Packet, int32 CountBits)
 {
-	BufferedPacket* Buffered = new BufferedPacket;
-	Buffered->Data = new uint8[Count];
-	memcpy(Buffered->Data, Packet, Count);
-	Buffered->Id = LocalPacketID;
-	Buffered->SendTime = Handler->Time + ResendResolutionTime;
-	Buffered->BytesCount = Count;
-
-	BufferedPackets.Enqueue(Buffered);
+	BufferedPackets.Enqueue(new BufferedPacket(Packet, CountBits, Handler->Time + ResendResolutionTime, LocalPacketID));
 }
 
 // MODULE INTERFACE

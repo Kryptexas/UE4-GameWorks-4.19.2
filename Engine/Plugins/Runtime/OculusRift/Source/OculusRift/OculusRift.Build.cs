@@ -28,6 +28,7 @@ namespace UnrealBuildTool.Rules
 					"HeadMountedDisplay",
 					"Slate",
 					"SlateCore",
+                    "MediaAssets"
 				});
 
 			if (UEBuildConfiguration.bBuildEditor == true)
@@ -59,12 +60,12 @@ namespace UnrealBuildTool.Rules
 						// ... add other private include paths required here ...
 				    });
 
-				AddThirdPartyPrivateStaticDependencies(Target, "DX11");
-				AddThirdPartyPrivateStaticDependencies(Target, "DX12");
-				AddThirdPartyPrivateStaticDependencies(Target, "OpenGL");
-				AddThirdPartyPrivateStaticDependencies(Target, "NVAPI");
-				AddThirdPartyPrivateStaticDependencies(Target, "DX11Audio");
-				AddThirdPartyPrivateStaticDependencies(Target, "DirectSound");
+				AddEngineThirdPartyPrivateStaticDependencies(Target, "DX11");
+				AddEngineThirdPartyPrivateStaticDependencies(Target, "DX12");
+				AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenGL");
+				AddEngineThirdPartyPrivateStaticDependencies(Target, "NVAPI");
+				AddEngineThirdPartyPrivateStaticDependencies(Target, "DX11Audio");
+				AddEngineThirdPartyPrivateStaticDependencies(Target, "DirectSound");
 				
 				// Disable Unity, where all source files are merged into a single CPP, because
 				// there are symbols declared in D3D11Util.h and D3D12Util.h which conflict if

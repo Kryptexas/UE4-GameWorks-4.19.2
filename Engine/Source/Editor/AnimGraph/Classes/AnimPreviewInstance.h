@@ -85,7 +85,7 @@ public:
 #endif
 	}
 
-	void RefreshCurveBoneControllers();
+	void RefreshCurveBoneControllers(UAnimationAsset* AssetToRefreshFrom);
 
 	TArray<FAnimNode_ModifyBone>& GetBoneControllers()
 	{
@@ -261,11 +261,6 @@ class ANIMGRAPH_API UAnimPreviewInstance : public UAnimSingleNodeInstance
 	 * Refresh Curve Bone Controllers based on TransformCurves from Animation data
 	 */
 	void RefreshCurveBoneControllers();
-
-	/**
-	 * Apply all Transform Curves to the RawAnimationData of the animation
-	 */
-	void BakeAnimation();
 
 	/** 
 	 * Enable Controllers

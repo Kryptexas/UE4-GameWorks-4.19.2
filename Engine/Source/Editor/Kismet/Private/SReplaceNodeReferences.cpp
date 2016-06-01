@@ -366,7 +366,7 @@ void SReplaceNodeReferences::GatherAllAvailableBlueprintVariables(UClass* InTarg
 				CategoryReference->Children.Add(VariableItem);
 
 				// If this is the first Child, add the category to the main Blueprint category
-				if (CategoryReference->Children.Num() == 1)
+				if (CategoryReference != BlueprintCategory && CategoryReference->Children.Num() == 1)
 				{
 					BlueprintCategory->Children.Add(CategoryReference);
 				}

@@ -14,6 +14,9 @@
 
 #define ALL_SLICES uint32(0xffffffff)
 
+// GL_MAX_DRAW_BUFFERS value
+GLint GMaxOpenGLDrawBuffers = 0;
+
 /**
 * Key used to map a set of unique render/depth stencil target combinations to
 * a framebuffer resource
@@ -760,6 +763,13 @@ void FOpenGLDynamicRHI::ReadSurfaceDataRaw(FOpenGLContextState& ContextState, FT
 
 void FOpenGLDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI,FIntRect Rect,TArray<FColor>& OutData, FReadSurfaceDataFlags InFlags)
 {
+	if (!ensure(TextureRHI))
+	{
+		OutData.Empty();
+		OutData.AddZeroed(Rect.Width() * Rect.Height());
+		return;
+	}
+
 	TArray<uint8> Temp;
 
 	FOpenGLContextState& ContextState = GetContextStateForCurrentContext();
@@ -943,11 +953,13 @@ void FOpenGLDynamicRHI::BindPendingFramebuffer( FOpenGLContextState& ContextStat
 			{
 				FOpenGL::ReadBuffer( PendingState.FirstNonzeroRenderTarget >= 0 ? GL_COLOR_ATTACHMENT0 + PendingState.FirstNonzeroRenderTarget : GL_NONE);
 				GLenum DrawFramebuffers[MaxSimultaneousRenderTargets];
-				for (int32 RenderTargetIndex = 0; RenderTargetIndex < MaxSimultaneousRenderTargets; ++RenderTargetIndex)
+				const GLint MaxDrawBuffers = GMaxOpenGLDrawBuffers;
+
+				for (int32 RenderTargetIndex = 0; RenderTargetIndex < MaxDrawBuffers; ++RenderTargetIndex)
 				{
 					DrawFramebuffers[RenderTargetIndex] = PendingState.RenderTargets[RenderTargetIndex] ? GL_COLOR_ATTACHMENT0 + RenderTargetIndex : GL_NONE;
 				}
-				FOpenGL::DrawBuffers( MaxSimultaneousRenderTargets, DrawFramebuffers );
+				FOpenGL::DrawBuffers(MaxDrawBuffers, DrawFramebuffers);
 			}
 		}
 		else

@@ -38,6 +38,7 @@ DEFINE_LOG_CATEGORY(LogAINavigation);
 AAIController::AAIController(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	bSetControlRotationFromPawnOrientation = true;
 	PathFollowingComponent = CreateDefaultSubobject<UPathFollowingComponent>(TEXT("PathFollowingComponent"));
 	PathFollowingComponent->OnMoveFinished.AddUObject(this, &AAIController::OnMoveCompleted);
 
@@ -164,13 +165,16 @@ void AAIController::GrabDebugSnapshot(FVisualLogEntry* Snapshot) const
 
 void AAIController::SetFocalPoint(FVector NewFocus, EAIFocusPriority::Type InPriority)
 {
+	// clear out existing
+	ClearFocus(InPriority);
+
+	// now set new focus
 	if (InPriority >= FocusInformation.Priorities.Num())
 	{
 		FocusInformation.Priorities.SetNum(InPriority + 1);
 	}
+	
 	FFocusKnowledge::FFocusItem& FocusItem = FocusInformation.Priorities[InPriority];
-
-	FocusItem.Actor = nullptr;
 	FocusItem.Position = NewFocus;
 }
 
@@ -262,6 +266,10 @@ void AAIController::K2_ClearFocus()
 
 void AAIController::SetFocus(AActor* NewFocus, EAIFocusPriority::Type InPriority)
 {
+	// clear out existing
+	ClearFocus(InPriority);
+
+	// now set new
 	if (NewFocus)
 	{
 		if (InPriority >= FocusInformation.Priorities.Num())
@@ -269,10 +277,6 @@ void AAIController::SetFocus(AActor* NewFocus, EAIFocusPriority::Type InPriority
 			FocusInformation.Priorities.SetNum(InPriority + 1);
 		}
 		FocusInformation.Priorities[InPriority].Actor = NewFocus;
-	}
-	else
-	{
-		ClearFocus(InPriority);
 	}
 }
 
@@ -414,28 +418,36 @@ DEFINE_LOG_CATEGORY_STATIC(LogTestAI, All, All);
 
 void AAIController::UpdateControlRotation(float DeltaTime, bool bUpdatePawn)
 {
-	// Look toward focus
-	FVector FocalPoint = GetFocalPoint();
-	APawn* const Pawn = GetPawn();
-
-	if (Pawn)
+	APawn* const MyPawn = GetPawn();
+	if (MyPawn)
 	{
-		FVector Direction = FAISystem::IsValidLocation(FocalPoint) ? (FocalPoint - Pawn->GetPawnViewLocation()) : Pawn->GetActorForwardVector();
-		FRotator NewControlRotation = Direction.Rotation();
+		const FRotator InitialControlRotation = GetControlRotation();		
+		FRotator NewControlRotation = InitialControlRotation;
+
+		// Look toward focus
+		const FVector FocalPoint = GetFocalPoint();
+		if (FAISystem::IsValidLocation(FocalPoint))
+		{
+			NewControlRotation = (FocalPoint - MyPawn->GetPawnViewLocation()).Rotation();
+		}
+		else if (bSetControlRotationFromPawnOrientation)
+		{
+			NewControlRotation = MyPawn->GetActorRotation();
+		}
 
 		// Don't pitch view unless looking at another pawn
-		if (Cast<APawn>(GetFocusActor()) == nullptr)
+		if (NewControlRotation.Pitch != 0 && Cast<APawn>(GetFocusActor()) == nullptr)
 		{
 			NewControlRotation.Pitch = 0.f;
 		}
 
-		if (GetControlRotation().Equals(NewControlRotation, 1e-3f) == false)
+		if (InitialControlRotation.Equals(NewControlRotation, 1e-3f) == false)
 		{
 			SetControlRotation(NewControlRotation);
 
 			if (bUpdatePawn)
 			{
-				Pawn->FaceRotation(NewControlRotation, DeltaTime);
+				MyPawn->FaceRotation(NewControlRotation, DeltaTime);
 			}
 		}
 	}
@@ -499,7 +511,7 @@ void AAIController::Possess(APawn* InPawn)
 
 void AAIController::UnPossess()
 {
-	APawn* OldPawn = GetPawn();
+	APawn* CurrentPawn = GetPawn();
 
 	Super::UnPossess();
 
@@ -522,7 +534,7 @@ void AAIController::UnPossess()
 		CachedGameplayTasksComponent = nullptr;
 	}
 
-	OnUnpossess(OldPawn);
+	OnUnpossess(CurrentPawn);
 }
 
 void AAIController::SetPawn(APawn* InPawn)
@@ -738,7 +750,8 @@ bool AAIController::PreparePathfinding(const FAIMoveRequest& MoveRequest, FPathF
 				}
 			}
 
-			Query = FPathFindingQuery(*this, *NavData, GetNavAgentLocation(), GoalLocation, UNavigationQueryFilter::GetQueryFilter(*NavData, MoveRequest.GetNavigationFilter()));
+			FSharedConstNavQueryFilter NavFilter = UNavigationQueryFilter::GetQueryFilter(*NavData, this, MoveRequest.GetNavigationFilter());
+			Query = FPathFindingQuery(*this, *NavData, GetNavAgentLocation(), GoalLocation, NavFilter);
 			Query.SetAllowPartialPaths(MoveRequest.IsUsingPartialPaths());
 
 			if (PathFollowingComponent)
@@ -966,9 +979,9 @@ bool AAIController::SuggestTossVelocity(FVector& OutTossVelocity, FVector Start,
 
 	return UGameplayStatics::SuggestProjectileVelocity(this, OutTossVelocity, Start, End, TossSpeed, bPreferHighArc, CollisionRadius, GravityOverride, TraceOption);
 }
-bool AAIController::PerformAction(UPawnAction& Action, EAIRequestPriority::Type Priority, UObject* const Instigator /*= NULL*/)
+bool AAIController::PerformAction(UPawnAction& Action, EAIRequestPriority::Type Priority, UObject* const InInstigator /*= NULL*/)
 {
-	return ActionsComp != NULL && ActionsComp->PushAction(Action, Priority, Instigator);
+	return ActionsComp != NULL && ActionsComp->PushAction(Action, Priority, InInstigator);
 }
 
 FString AAIController::GetDebugIcon() const

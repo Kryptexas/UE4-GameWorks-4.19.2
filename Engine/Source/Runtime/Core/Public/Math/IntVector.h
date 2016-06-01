@@ -194,9 +194,9 @@ public:
 	float GetMin() const;
 
 	/**
-	 * Gets the distance of this point from (0,0).
+	 * Gets the distance of this point from (0,0,0).
 	 *
-	 * @return The distance of this point from (0,0).
+	 * @return The distance of this point from (0,0,0).
 	 */
 	int32 Size() const;
 
@@ -403,13 +403,16 @@ FORCEINLINE float FIntVector::GetMin() const
 
 FORCEINLINE int32 FIntVector::Num()
 {
-	return 2;
+	return 3;
 }
 
 
 FORCEINLINE int32 FIntVector::Size() const
 {
-	return int32(FMath::Sqrt(float(X * X + Y * Y + Z * Z)));
+	int64 X64 = (int64)X;
+	int64 Y64 = (int64)Y;
+	int64 Z64 = (int64)Z;
+	return int32(FMath::Sqrt(float(X64 * X64 + Y64 * Y64 + Z64 * Z64)));
 }
 
 
@@ -423,4 +426,116 @@ FORCEINLINE uint32 GetTypeHash(const FIntVector& Vector)
 	return FCrc::MemCrc_DEPRECATED(&Vector,sizeof(FIntVector));
 }
 
+struct FIntVector4
+{
+	int32 X, Y, Z, W;
+
+	FORCEINLINE FIntVector4()
+	{
+	}
+
+	FORCEINLINE FIntVector4(int32 InX, int32 InY, int32 InZ, int32 InW)
+		: X(InX)
+		, Y(InY)
+		, Z(InZ)
+		, W(InW)
+	{
+	}
+
+	FORCEINLINE explicit FIntVector4(int32 InValue)
+		: X(InValue)
+		, Y(InValue)
+		, Z(InValue)
+		, W(InValue)
+	{
+	}
+
+	FORCEINLINE FIntVector4(EForceInit)
+		: X(0)
+		, Y(0)
+		, Z(0)
+		, W(0)
+	{
+	}
+
+	FORCEINLINE const int32& operator[](int32 ComponentIndex) const
+	{
+		return (&X)[ComponentIndex];
+	}
+
+
+	FORCEINLINE int32& operator[](int32 ComponentIndex)
+	{
+		return (&X)[ComponentIndex];
+	}
+
+	FORCEINLINE bool operator==(const FIntVector4& Other) const
+	{
+		return X==Other.X && Y==Other.Y && Z==Other.Z && W==Other.W;
+	}
+
+
+	FORCEINLINE bool operator!=(const FIntVector4& Other) const
+	{
+		return X!=Other.X || Y!=Other.Y || Z!=Other.Z || W!=Other.W;
+	}
+};
+
+struct FUintVector4
+{
+	uint32 X, Y, Z, W;
+
+	FORCEINLINE FUintVector4()
+	{
+	}
+
+	FORCEINLINE FUintVector4(uint32 InX, uint32 InY, uint32 InZ, uint32 InW)
+		: X(InX)
+		, Y(InY)
+		, Z(InZ)
+		, W(InW)
+	{
+	}
+
+	FORCEINLINE explicit FUintVector4(uint32 InValue)
+		: X(InValue)
+		, Y(InValue)
+		, Z(InValue)
+		, W(InValue)
+	{
+	}
+
+	FORCEINLINE FUintVector4(EForceInit)
+		: X(0)
+		, Y(0)
+		, Z(0)
+		, W(0)
+	{
+	}
+
+	FORCEINLINE const uint32& operator[](int32 ComponentIndex) const
+	{
+		return (&X)[ComponentIndex];
+	}
+
+
+	FORCEINLINE uint32& operator[](int32 ComponentIndex)
+	{
+		return (&X)[ComponentIndex];
+	}
+
+	FORCEINLINE bool operator==(const FUintVector4& Other) const
+	{
+		return X==Other.X && Y==Other.Y && Z==Other.Z && W==Other.W;
+	}
+
+
+	FORCEINLINE bool operator!=(const FUintVector4& Other) const
+	{
+		return X!=Other.X || Y!=Other.Y || Z!=Other.Z || W!=Other.W;
+	}
+};
+
 template <> struct TIsPODType<FIntVector> { enum { Value = true }; };
+template <> struct TIsPODType<FIntVector4> { enum { Value = true }; };
+template <> struct TIsPODType<FUintVector4> { enum { Value = true }; };

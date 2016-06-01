@@ -57,7 +57,7 @@ ATP_VehiclePawn::ATP_VehiclePawn()
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm0"));
 	SpringArm->TargetOffset = FVector(0.f, 0.f, 200.f);
 	SpringArm->SetRelativeRotation(FRotator(-15.f, 0.f, 0.f));
-	SpringArm->AttachTo(RootComponent);
+	SpringArm->SetupAttachment(RootComponent);
 	SpringArm->TargetArmLength = 600.0f;
 	SpringArm->bEnableCameraRotationLag = true;
 	SpringArm->CameraRotationLagSpeed = 7.f;
@@ -66,7 +66,7 @@ ATP_VehiclePawn::ATP_VehiclePawn()
 
 	// Create camera component 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera0"));
-	Camera->AttachTo(SpringArm, USpringArmComponent::SocketName);
+	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 	Camera->bUsePawnControlRotation = false;
 	Camera->FieldOfView = 90.f;
 
@@ -75,30 +75,24 @@ ATP_VehiclePawn::ATP_VehiclePawn()
 
 	InternalCameraBase = CreateDefaultSubobject<USceneComponent>(TEXT("InternalCameraBase"));
 	InternalCameraBase->SetRelativeLocation(InternalCameraOrigin);
-	InternalCameraBase->AttachTo(GetMesh());
+	InternalCameraBase->SetupAttachment(GetMesh());
 
 	InternalCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("InternalCamera"));
-	InternalCamera->AttachTo(SpringArm, USpringArmComponent::SocketName);
 	InternalCamera->bUsePawnControlRotation = false;
 	InternalCamera->FieldOfView = 90.f;
-	InternalCamera->AttachTo(InternalCameraBase);
+	InternalCamera->SetupAttachment(InternalCameraBase);
 
 	//Setup TextRenderMaterial
-	UPROPERTY(EditAnywhere)
-		UMaterialInterface* Material;
 	static ConstructorHelpers::FObjectFinder<UMaterial> TextMaterial(TEXT("Material'/Engine/EngineMaterials/AntiAliasedTextMaterialTranslucent.AntiAliasedTextMaterialTranslucent'"));
 	
-	Material = TextMaterial.Object;
-	
-	
-
+	UMaterialInterface* Material = TextMaterial.Object;
 
 	// Create text render component for in car speed display
 	InCarSpeed = CreateDefaultSubobject<UTextRenderComponent>(TEXT("IncarSpeed"));
 	InCarSpeed->SetTextMaterial(Material);
 	InCarSpeed->SetRelativeLocation(FVector(70.0f, -75.0f, 99.0f));
 	InCarSpeed->SetRelativeRotation(FRotator(18.0f, 180.0f, 0.0f));
-	InCarSpeed->AttachTo(GetMesh());
+	InCarSpeed->SetupAttachment(GetMesh());
 	InCarSpeed->SetRelativeScale3D(FVector(1.0f, 0.4f, 0.4f));
 
 	// Create text render component for in car gear display
@@ -107,7 +101,7 @@ ATP_VehiclePawn::ATP_VehiclePawn()
 	InCarGear->SetRelativeLocation(FVector(66.0f, -9.0f, 95.0f));	
 	InCarGear->SetRelativeRotation(FRotator(25.0f, 180.0f,0.0f));
 	InCarGear->SetRelativeScale3D(FVector(1.0f, 0.4f, 0.4f));
-	InCarGear->AttachTo(GetMesh());
+	InCarGear->SetupAttachment(GetMesh());
 	
 	// Colors for the incar gear display. One for normal one for reverse
 	GearDisplayReverseColor = FColor(255, 0, 0, 255);

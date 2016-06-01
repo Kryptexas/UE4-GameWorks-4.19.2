@@ -89,11 +89,6 @@ void UNamedSlot::OnSlotRemoved(UPanelSlot* Slot)
 
 #if WITH_EDITOR
 
-const FSlateBrush* UNamedSlot::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.NamedSlot");
-}
-
 const FText UNamedSlot::GetPaletteCategory()
 {
 	return LOCTEXT("Common", "Common");

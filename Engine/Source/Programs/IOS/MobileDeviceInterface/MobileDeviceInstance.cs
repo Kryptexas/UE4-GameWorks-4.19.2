@@ -666,6 +666,7 @@ namespace Manzana
 				{
 					//						string BaseFolder = Path.GetDirectoryName(Filename);
 					string Manifest = Path.GetDirectoryName (Filename) + "\\" + SafeDeviceName + "_" + Path.GetFileName (Filename);
+                    WriteProgressLine("File to be written '{0}'", 100, Manifest);
 					File.WriteAllText (Manifest, "");
 				}
 				WriteProgressLine("Error: Failed to connect to bundle '{0}'", 100, BundleIdentifier);

@@ -335,6 +335,15 @@ template struct FRHICommandTransitionUAVs<ECmdList::EGfx>;
 template struct FRHICommandTransitionUAVs<ECmdList::ECompute>;
 
 template<ECmdList CmdListType>
+void FRHICommandSetAsyncComputeBudget<CmdListType>::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(SetAsyncComputeBudget);
+	INTERNAL_DECORATOR_CONTEXT(SetAsyncComputeBudget)(Budget);
+}
+template struct FRHICommandSetAsyncComputeBudget<ECmdList::EGfx>;
+template struct FRHICommandSetAsyncComputeBudget<ECmdList::ECompute>;
+
+template<ECmdList CmdListType>
 void FRHICommandWaitComputeFence<CmdListType>::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(WaitComputeFence);
@@ -353,24 +362,6 @@ void FRHICommandClearMRT::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(ClearMRT);
 	INTERNAL_DECORATOR(ClearMRT)(bClearColor, NumClearColors, ColorArray, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
-}
-
-void FRHIBeginAsyncComputeJob_DrawThread::Execute(FRHICommandListBase& CmdList)
-{
-	RHISTAT(BeginAsyncComputeJob_DrawThread);
-	INTERNAL_DECORATOR(BeginAsyncComputeJob_DrawThread)(Priority);
-}
-
-void FRHIEndAsyncComputeJob_DrawThread::Execute(FRHICommandListBase& CmdList)
-{
-	RHISTAT(EndAsyncComputeJob_DrawThread);
-	INTERNAL_DECORATOR(EndAsyncComputeJob_DrawThread)(FenceIndex);
-}
-
-void FRHIGraphicsWaitOnAsyncComputeJob::Execute(FRHICommandListBase& CmdList)
-{
-	RHISTAT(GraphicsWaitOnAsyncComputeJob);
-	INTERNAL_DECORATOR(GraphicsWaitOnAsyncComputeJob)(FenceIndex);
 }
 
 void FRHICommandBuildLocalBoundShaderState::Execute(FRHICommandListBase& CmdList)
@@ -508,7 +499,7 @@ template<ECmdList CmdListType>
 void FRHICommandPushEvent<CmdListType>::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(PushEvent);
-	INTERNAL_DECORATOR_CONTEXT(PushEvent)(Name);
+	INTERNAL_DECORATOR_CONTEXT(PushEvent)(Name, Color);
 }
 template struct FRHICommandPushEvent<ECmdList::EGfx>;
 template struct FRHICommandPushEvent<ECmdList::ECompute>;

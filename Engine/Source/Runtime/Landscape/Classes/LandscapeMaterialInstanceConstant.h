@@ -10,12 +10,6 @@ class ULandscapeMaterialInstanceConstant : public UMaterialInstanceConstant
 
 	UPROPERTY()
 	uint32 bIsLayerThumbnail:1;
-
-	UPROPERTY()
-	int32 DataWeightmapIndex;
-
-	UPROPERTY()
-	int32 DataWeightmapSize;
 };
 
 

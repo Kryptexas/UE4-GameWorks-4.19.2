@@ -233,7 +233,7 @@ class ULandscapeEditorObject : public UObject
 	float ToolStrength;
 
 	// Enable to make tools blend towards a target value
-	UPROPERTY(NonTransactional)
+	UPROPERTY(Category = "Tool Settings", NonTransactional, EditAnywhere, meta = (InlineEditConditionToggle))
 	bool bUseWeightTargetValue;
 
 	// Enable to make tools blend towards a target value
@@ -259,7 +259,7 @@ class ULandscapeEditorObject : public UObject
 	bool bPickValuePerApply;
 
 	// Enable to flatten towards a target height
-	UPROPERTY(NonTransactional)
+	UPROPERTY(Category = "Tool Settings", NonTransactional, EditAnywhere, meta = (InlineEditConditionToggle))
 	bool bUseFlattenTarget;
 
 	// Target height to flatten towards (in Unreal Units)
@@ -288,7 +288,7 @@ class ULandscapeEditorObject : public UObject
 	int32 SmoothFilterKernelSize;
 
 	// If checked, performs a detail preserving smooth using the specified detail smoothing value
-	UPROPERTY(NonTransactional)
+	UPROPERTY(Category = "Tool Settings", NonTransactional, EditAnywhere, meta = (InlineEditConditionToggle))
 	bool bDetailSmooth;
 
 	// Larger detail smoothing values remove more details, while smaller values preserve more details
@@ -340,7 +340,7 @@ class ULandscapeEditorObject : public UObject
 	float RainDistScale;
 
 	// If checked, performs a detail-preserving smooth to the erosion effect using the specified detail smoothing value
-	UPROPERTY(NonTransactional)
+	UPROPERTY(Category = "Tool Settings", NonTransactional, EditAnywhere, meta = (InlineEditConditionToggle))
 	bool bHErosionDetailSmooth;
 
 	// Larger detail smoothing values remove more details, while smaller values preserve more details

@@ -6,6 +6,7 @@
 #include "EngineLogs.h"
 #include "K2Node.generated.h"
 
+class UActorComponent;
 class UBlueprintNodeSpawner;
 class FBlueprintActionDatabaseRegistrar;
 class UDynamicBlueprintBinding;
@@ -147,7 +148,7 @@ class UK2Node : public UEdGraphNode
 	BLUEPRINTGRAPH_API virtual FLinearColor GetNodeTitleColor() const override;
 	BLUEPRINTGRAPH_API virtual void AutowireNewNode(UEdGraphPin* FromPin) override;
 	BLUEPRINTGRAPH_API void PinConnectionListChanged(UEdGraphPin* Pin) override;
-	virtual UObject* GetJumpTargetForDoubleClick() const override { return GetReferencedLevelActor(); }
+    BLUEPRINTGRAPH_API virtual UObject* GetJumpTargetForDoubleClick() const override;
 	BLUEPRINTGRAPH_API virtual FString GetDocumentationLink() const override;
 	BLUEPRINTGRAPH_API virtual void GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const override;
 	BLUEPRINTGRAPH_API virtual bool ShowPaletteIconOnNode() const override { return true; }
@@ -158,7 +159,14 @@ class UK2Node : public UEdGraphNode
 
 	// K2Node interface
 
-	// Reallocate pins during reconstruction; by default ignores the old pins and calls AllocateDefaultPins()
+	UPROPERTY()
+	TMap<UEdGraphPin*, UEdGraphPin*> ByRefMatchupPins;
+
+	/**
+	 * Reallocate pins during reconstruction; by default ignores the old pins and calls AllocateDefaultPins()
+	 * If you override this to create additional pins you likely need to call RestoreSplitPins to restore any
+	 * pins that have been split (e.g. a vector pin split into its components)
+	 */
 	BLUEPRINTGRAPH_API virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins);
 
 	/** Returns whether this node is considered 'pure' by the compiler */
@@ -291,6 +299,9 @@ class UK2Node : public UEdGraphNode
 	/** This function if used for nodes that needs CDO for validation (Called before expansion)*/
 	BLUEPRINTGRAPH_API virtual void EarlyValidation(class FCompilerResultsLog& MessageLog) const {}
 
+	/** This function if used for nodes that should validate after expansion */
+	BLUEPRINTGRAPH_API virtual void ValidateNodeAfterPrune(class FCompilerResultsLog& MessageLog) const {}
+
 	/** This function returns an arbitrary number of attributes that describe this node for analytics events */
 	BLUEPRINTGRAPH_API virtual void GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const;
 
@@ -369,6 +380,9 @@ protected:
 	 * returns the redirect type
 	 */
 	BLUEPRINTGRAPH_API ERedirectType ShouldRedirectParam(const TArray<FString>& OldPinNames, FName& NewPinName, const UK2Node * NewPinNode) const;
+
+	// Helper function to restore Split Pins after ReallocatePinsDuringReconstruction, call after recreating all pins to restore split pin state
+	BLUEPRINTGRAPH_API void RestoreSplitPins(TArray<UEdGraphPin*>& OldPins);
 
 	/** 
 	 * Sends a message to the owning blueprint's CurrentMessageLog, if there is one available.  Otherwise, defaults to logging to the normal channels.

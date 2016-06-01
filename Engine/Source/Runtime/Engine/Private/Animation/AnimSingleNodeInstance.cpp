@@ -29,8 +29,50 @@ UAnimSingleNodeInstance::UAnimSingleNodeInstance(const FObjectInitializer& Objec
 
 void UAnimSingleNodeInstance::SetAnimationAsset(class UAnimationAsset* NewAsset, bool bInIsLooping, float InPlayRate)
 {
+	if (NewAsset != CurrentAsset)
+	{
+		CurrentAsset = NewAsset;
+	}
+
 	FAnimSingleNodeInstanceProxy& Proxy = GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>();
+
+	if (
+#if WITH_EDITOR
+		!Proxy.CanProcessAdditiveAnimations() &&
+#endif
+		NewAsset && NewAsset->IsValidAdditive())
+	{
+		UE_LOG(LogAnimation, Warning, TEXT("Setting an additive animation (%s) on an AnimSingleNodeInstance is not allowed. This will not function correctly in cooked builds!"), *NewAsset->GetName());
+	}
+
+	USkeletalMeshComponent* MeshComponent = GetSkelMeshComponent();
+	if (MeshComponent)
+	{
+		if (MeshComponent->SkeletalMesh == nullptr)
+		{
+			// if it does not have SkeletalMesh, we nullify it
+			CurrentAsset = nullptr;
+		}
+		else if (CurrentAsset != nullptr)
+		{
+			// if we have an asset, make sure their skeleton matches, otherwise, null it
+			if (MeshComponent->SkeletalMesh == nullptr || MeshComponent->SkeletalMesh->Skeleton != CurrentAsset->GetSkeleton())
+			{
+				// clear asset since we do not have matching skeleton
+				CurrentAsset = nullptr;
+			}
+		}
+	}
+	
 	Proxy.SetAnimationAsset(NewAsset, GetSkelMeshComponent(), bInIsLooping, InPlayRate);
+
+	// if composite, we want to make sure this is valid
+	// this is due to protect recursive created composite
+	// however, if we support modifying asset outside of viewport, it will have to be called whenever modified
+	if (UAnimCompositeBase* CompositeBase = Cast<UAnimCompositeBase>(NewAsset))
+	{
+		CompositeBase->InvalidateRecursiveAsset();
+	}
 
 	UAnimMontage* Montage = Cast<UAnimMontage>(NewAsset);
 	if ( Montage!=NULL )
@@ -50,9 +92,32 @@ void UAnimSingleNodeInstance::SetAnimationAsset(class UAnimationAsset* NewAsset,
 	}
 }
 
-void UAnimSingleNodeInstance::SetVertexAnimation(UVertexAnimation * NewVertexAnim, bool bIsLooping, float InPlayRate)
+void UAnimSingleNodeInstance::SetVertexAnimation(UVertexAnimation* NewVertexAnim, bool bIsLooping, float InPlayRate)
 {
-	GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>().SetVertexAnimation(NewVertexAnim, bIsLooping, InPlayRate);
+	if (NewVertexAnim != CurrentVertexAnim)
+	{
+		CurrentVertexAnim = NewVertexAnim;
+	}
+
+	if (USkeletalMeshComponent * MeshComponent = GetSkelMeshComponent())
+	{
+		if (MeshComponent->SkeletalMesh == nullptr)
+		{
+			// if it does not have SkeletalMesh, we nullify it
+			CurrentVertexAnim = NULL;
+		}
+		else if (CurrentVertexAnim != nullptr)
+		{
+			// if we have an anim, make sure their mesh matches, otherwise, null it
+			if (MeshComponent->SkeletalMesh != CurrentVertexAnim->BaseSkelMesh)
+			{
+				// clear asset since we do not have matching skeleton
+				CurrentVertexAnim = nullptr;
+			}
+		}
+	}
+
+	GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>().SetVertexAnimation(CurrentVertexAnim, bIsLooping, InPlayRate);
 
 	// reinitialize
 	InitializeAnimation();
@@ -123,10 +188,10 @@ void UAnimSingleNodeInstance::UpdateBlendspaceSamples(FVector InBlendInput)
 
 void UAnimSingleNodeInstance::RestartMontage(UAnimMontage* Montage, FName FromSection)
 {
-	FAnimSingleNodeInstanceProxy& Proxy = GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>();
-
-	if( Montage == Proxy.GetCurrentAsset() )
+	if(Montage == CurrentAsset)
 	{
+		FAnimSingleNodeInstanceProxy& Proxy = GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>();
+
 		Proxy.ResetWeightInfo();
 		Montage_Play(Montage, Proxy.GetPlayRate());
 		if( FromSection != NAME_None )
@@ -153,7 +218,7 @@ void UAnimSingleNodeInstance::NativePostEvaluateAnimation()
 void UAnimSingleNodeInstance::OnMontageInstanceStopped(FAnimMontageInstance& StoppedMontageInstance) 
 {
 	FAnimSingleNodeInstanceProxy& Proxy = GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>();
-	if (StoppedMontageInstance.Montage == Proxy.GetCurrentAsset())
+	if (StoppedMontageInstance.Montage == CurrentAsset)
 	{
 		Proxy.SetCurrentTime(StoppedMontageInstance.GetPosition());
 	}
@@ -191,9 +256,9 @@ void UAnimSingleNodeInstance::SetLooping(bool bIsLooping)
 	FAnimSingleNodeInstanceProxy& Proxy = GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>();
 	Proxy.SetLooping(bIsLooping);
 
-	if (UAnimMontage* Montage = Cast<UAnimMontage>(GetCurrentAsset()))
+	if (UAnimMontage* Montage = Cast<UAnimMontage>(CurrentAsset))
 	{
-		SetMontageLoop(Montage, Proxy.IsLooping(), Montage_GetCurrentSection());
+		SetMontageLoop(Montage, Proxy.IsLooping());
 	}
 }
 
@@ -208,7 +273,7 @@ void UAnimSingleNodeInstance::SetPlaying(bool bIsPlaying)
 	}
 	else if (Proxy.IsPlaying())
 	{
-		UAnimMontage* Montage = Cast<UAnimMontage>(GetCurrentAsset());
+		UAnimMontage* Montage = Cast<UAnimMontage>(CurrentAsset);
 		if (Montage)
 		{
 			RestartMontage(Montage);
@@ -254,12 +319,12 @@ void UAnimSingleNodeInstance::SetPlayRate(float InPlayRate)
 
 UAnimationAsset* UAnimSingleNodeInstance::GetCurrentAsset()
 {
-	return GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>().GetCurrentAsset();
+	return CurrentAsset;
 }
 
 UVertexAnimation* UAnimSingleNodeInstance::GetCurrentVertexAnimation()
 {
-	return GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>().GetCurrentVertexAnimation();
+	return CurrentVertexAnim;
 }
 
 float UAnimSingleNodeInstance::GetCurrentTime() const
@@ -272,11 +337,10 @@ void UAnimSingleNodeInstance::SetReverse(bool bInReverse)
 	GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>().SetReverse(bInReverse);
 }
 
-void UAnimSingleNodeInstance::SetPosition(float InPosition, bool bFireNotifies)
+void UAnimSingleNodeInstance::SetPositionWithPreviousTime(float InPosition, float InPreviousTime, bool bFireNotifies)
 {
 	FAnimSingleNodeInstanceProxy& Proxy = GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>();
 
-	float PreviousTime = Proxy.GetCurrentTime();
 	Proxy.SetCurrentTime(FMath::Clamp<float>(InPosition, 0.f, GetLength()));
 
 	if (FAnimMontageInstance* CurMontageInstance = GetActiveMontageInstance())
@@ -289,13 +353,13 @@ void UAnimSingleNodeInstance::SetPosition(float InPosition, bool bFireNotifies)
 	// this will need to handle manually, emptying, it and collect it, and trigger them at once. 
 	if (bFireNotifies)
 	{
-		UAnimSequenceBase * SequenceBase = Cast<UAnimSequenceBase> (Proxy.GetCurrentAsset());
+		UAnimSequenceBase * SequenceBase = Cast<UAnimSequenceBase> (CurrentAsset);
 		if (SequenceBase)
 		{
 			NotifyQueue.Reset(GetSkelMeshComponent());
 
 			TArray<const FAnimNotifyEvent*> Notifies;
-			SequenceBase->GetAnimNotifiesFromDeltaPositions(PreviousTime, Proxy.GetCurrentTime(), Notifies);
+			SequenceBase->GetAnimNotifiesFromDeltaPositions(InPreviousTime, Proxy.GetCurrentTime(), Notifies);
 			if ( Notifies.Num() > 0 )
 			{
 				// single node instance only has 1 asset at a time
@@ -308,6 +372,15 @@ void UAnimSingleNodeInstance::SetPosition(float InPosition, bool bFireNotifies)
 	}
 }
 
+void UAnimSingleNodeInstance::SetPosition(float InPosition, bool bFireNotifies)
+{
+	FAnimSingleNodeInstanceProxy& Proxy = GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>();
+
+	float PreviousTime = Proxy.GetCurrentTime();
+
+	SetPositionWithPreviousTime(InPosition, PreviousTime, bFireNotifies);
+}
+
 void UAnimSingleNodeInstance::SetBlendSpaceInput(const FVector& InBlendInput)
 {
 	GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>().SetBlendSpaceInput(InBlendInput);
@@ -315,12 +388,24 @@ void UAnimSingleNodeInstance::SetBlendSpaceInput(const FVector& InBlendInput)
 
 float UAnimSingleNodeInstance::GetLength()
 {
-	return GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>().GetLength();
+	if ((CurrentAsset != NULL))
+	{
+		if (UBlendSpace* BlendSpace = Cast<UBlendSpace>(CurrentAsset))
+		{
+			return BlendSpace->AnimLength;
+		}
+		else if (UAnimSequenceBase* SequenceBase = Cast<UAnimSequenceBase>(CurrentAsset))
+		{
+			return SequenceBase->SequenceLength;
+		}
+	}
+
+	return 0.f;
 }
 
 void UAnimSingleNodeInstance::StepForward()
 {
-	if (UAnimSequence* Sequence = Cast<UAnimSequence>(GetCurrentAsset()))
+	if (UAnimSequence* Sequence = Cast<UAnimSequence>(CurrentAsset))
 	{
 		FAnimSingleNodeInstanceProxy& Proxy = GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>();
 
@@ -333,7 +418,7 @@ void UAnimSingleNodeInstance::StepForward()
 
 void UAnimSingleNodeInstance::StepBackward()
 {
-	if (UAnimSequence* Sequence = Cast<UAnimSequence>(GetCurrentAsset()))
+	if (UAnimSequence* Sequence = Cast<UAnimSequence>(CurrentAsset))
 	{
 		FAnimSingleNodeInstanceProxy& Proxy = GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>();
 
@@ -351,7 +436,7 @@ FAnimInstanceProxy* UAnimSingleNodeInstance::CreateAnimInstanceProxy()
 
 FVector UAnimSingleNodeInstance::GetFilterLastOutput()
 {
-	if (UBlendSpaceBase* Blendspace = Cast<UBlendSpaceBase>(GetCurrentAsset()))
+	if (UBlendSpaceBase* Blendspace = Cast<UBlendSpaceBase>(CurrentAsset))
 	{
 		FAnimSingleNodeInstanceProxy& Proxy = GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>();
 		return Proxy.GetFilterLastOutput();

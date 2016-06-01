@@ -82,6 +82,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
 	void PlayLooping(int32 NumLoops = -1);
 
+	/** Start playback from the current time cursor position, using the current play rate. Does not update the animation until next tick. */
+	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
+	void StartPlayingNextTick();
+
 	/** Pause playback. */
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
 	void Pause();
@@ -133,16 +137,18 @@ public:
 protected:
 
 	// IMovieScenePlayer interface
-	virtual void GetRuntimeObjects(TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray<UObject*>& OutObjects) const override;
-	virtual void UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject) const override;
+	virtual void GetRuntimeObjects(TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray<TWeakObjectPtr<UObject>>& OutObjects) const override;
+	virtual void UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject, bool bJumpCut) const override;
 	virtual void SetViewportSettings(const TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap) override;
 	virtual void GetViewportSettings(TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap) const override;
 	virtual EMovieScenePlayerStatus::Type GetPlaybackStatus() const override;
+	virtual void SetPlaybackStatus(EMovieScenePlayerStatus::Type InPlaybackStatus) override;
 	virtual void AddOrUpdateMovieSceneInstance(UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToAdd) override;
 	virtual void RemoveMovieSceneInstance(UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToRemove) override;
 	virtual TSharedRef<FMovieSceneSequenceInstance> GetRootMovieSceneSequenceInstance() const override;
 	virtual IMovieSceneSpawnRegister& GetSpawnRegister() override;
 	virtual UObject* GetPlaybackContext() const override;
+	virtual TArray<UObject*> GetEventContexts() const override;
 
 public:
 
@@ -150,12 +156,15 @@ public:
 
 private:
 
-	/** Update the movie scene instance from the specified previous position, to the specified time position */
+	/** Update the movie scene instance from the specified previous position, to the specified time position. */
 	void UpdateMovieSceneInstance(float CurrentPosition, float PreviousPosition);
 
-	/** Called when the cursor position has changed to implement looping */
-	void OnCursorPositionChanged();
+	/** Update the time cursor position and handle stopping & looping. */
+	void UpdateTimeCursorPosition(float NewPosition);
 
+	/** Add tick prerequisites so that the level sequence actor ticks before all the actors it controls */
+	void SetTickPrerequisites(bool bAddTickPrerequisites);
+	
 private:
 
 	/** The level sequence to play. */
@@ -166,9 +175,15 @@ private:
 	UPROPERTY()
 	bool bIsPlaying;
 
+	/** True where we're waiting for the first update of the sequence after calling StartPlayingNextTick. */
+	bool bPendingFirstUpdate;
+
 	/** The current time cursor position within the sequence (in seconds) */
 	UPROPERTY()
 	float TimeCursorPosition;
+
+	/** The time cursor position in the previous update. */
+	float LastCursorPosition;
 
 	/** Time time at which to start playing the sequence (defaults to the lower bound of the sequence's play range) */
 	float StartTime;
@@ -196,6 +211,9 @@ private:
 
 	/** Register responsible for managing spawned objects */
 	TSharedPtr<FLevelSequenceSpawnRegister> SpawnRegister;
+
+	/** The last view target to reset to when updating camera cuts to null */
+	mutable TWeakObjectPtr<AActor> LastViewTarget;
 
 #if WITH_EDITOR
 public:

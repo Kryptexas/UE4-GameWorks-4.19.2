@@ -56,7 +56,7 @@ namespace UnrealBuildTool
 			{
 				Files = Directory.GetFiles(InTargetFolder.FullName, "*.Target.cs", SearchOption.TopDirectoryOnly).AsEnumerable();
 			}
-			foreach (var TargetFilename in Files)
+			foreach (string TargetFilename in Files)
 			{
 				bFoundTargetFiles = true;
 				foreach (KeyValuePair<FileReference, UProjectInfo> Entry in ProjectInfoDictionary)
@@ -87,7 +87,7 @@ namespace UnrealBuildTool
 			bOutFoundTargetFiles |= FindTargetFilesInFolder(CurrentTopDirectory);
 			if (bOutFoundTargetFiles == false)
 			{
-				foreach (var TargetFolder in Directory.EnumerateDirectories(CurrentTopDirectory.FullName, "*", SearchOption.TopDirectoryOnly).Select(x => new DirectoryReference(x)))
+				foreach (DirectoryReference TargetFolder in Directory.EnumerateDirectories(CurrentTopDirectory.FullName, "*", SearchOption.TopDirectoryOnly).Select(x => new DirectoryReference(x)))
 				{
 					SubFolderList.Add(TargetFolder);
 					bOutFoundTargetFiles |= FindTargetFilesInFolder(TargetFolder);
@@ -97,7 +97,7 @@ namespace UnrealBuildTool
 			if (bOutFoundTargetFiles == false)
 			{
 				// Recurse each folders folders
-				foreach (var SubFolder in SubFolderList)
+				foreach (DirectoryReference SubFolder in SubFolderList)
 				{
 					FindTargetFiles(SubFolder, ref bOutFoundTargetFiles);
 				}
@@ -127,7 +127,7 @@ namespace UnrealBuildTool
 				UProjectInfo NewProjectInfo = new UProjectInfo(ProjectFile, bIsCodeProject);
 				if (ShortProjectNameDictionary.ContainsKey(NewProjectInfo.GameName))
 				{
-					var FirstProject = ProjectInfoDictionary[ShortProjectNameDictionary[NewProjectInfo.GameName]];
+					UProjectInfo FirstProject = ProjectInfoDictionary[ShortProjectNameDictionary[NewProjectInfo.GameName]];
 					throw new BuildException("There are multiple projects with name {0}\n\t* {1}\n\t* {2}\nThis is not currently supported.", NewProjectInfo.GameName, FirstProject.FilePath.FullName, NewProjectInfo.FilePath.FullName);
 				}
 
@@ -164,7 +164,7 @@ namespace UnrealBuildTool
 			string RootDirectory = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().GetOriginalLocation()), "..", "..", "..");
 			string EngineSourceDirectory = Path.GetFullPath(Path.Combine(RootDirectory, "Engine", "Source"));
 
-			foreach (var File in Directory.EnumerateFiles(RootDirectory, "*.uprojectdirs", SearchOption.TopDirectoryOnly))
+			foreach (string File in Directory.EnumerateFiles(RootDirectory, "*.uprojectdirs", SearchOption.TopDirectoryOnly))
 			{
 				string FilePath = Path.GetFullPath(File);
 				Log.TraceVerbose("\tFound uprojectdirs file {0}", FilePath);
@@ -305,7 +305,7 @@ namespace UnrealBuildTool
 		/// <param name="Plugin">Information about the plugin</param>
 		/// <param name="Platform">The target platform</param>
 		/// <returns>True if the plugin should be enabled for this project</returns>
-		public static bool IsPluginEnabledForProject(PluginInfo Plugin, ProjectDescriptor Project, UnrealTargetPlatform Platform)
+		public static bool IsPluginEnabledForProject(PluginInfo Plugin, ProjectDescriptor Project, UnrealTargetPlatform Platform, TargetRules.TargetType Target)
 		{
 			bool bEnabled = Plugin.Descriptor.bEnabledByDefault || Plugin.LoadedFrom == PluginLoadedFrom.GameProject;
 			if (Project != null && Project.Plugins != null)
@@ -314,11 +314,51 @@ namespace UnrealBuildTool
 				{
 					if (String.Compare(PluginReference.Name, Plugin.Name, true) == 0)
 					{
-						bEnabled = PluginReference.IsEnabledForPlatform(Platform);
+						bEnabled = PluginReference.IsEnabledForPlatform(Platform) && PluginReference.IsEnabledForTarget(Target);
 					}
 				}
 			}
 			return bEnabled;
+		}
+
+		/// <summary>
+		/// Determine if a plugin is enabled for a given project
+		/// </summary>
+		/// <param name="Project">The project to check</param>
+		/// <param name="Plugin">Information about the plugin</param>
+		/// <param name="Platform">The target platform</param>
+		/// <returns>True if the plugin should be enabled for this project</returns>
+		public static bool IsPluginDescriptorRequiredForProject(PluginInfo Plugin, ProjectDescriptor Project, UnrealTargetPlatform Platform, TargetRules.TargetType TargetType, bool bBuildDeveloperTools, bool bBuildEditor)
+		{
+			// Check if it's referenced by name from the project descriptor. If it is, we'll need the plugin to be included with the project regardless of whether it has
+			// any platform-specific modules or content, just so the runtime can make the call.
+			if (Project != null && Project.Plugins != null)
+			{
+				foreach (PluginReferenceDescriptor PluginReference in Project.Plugins)
+				{
+					if (String.Compare(PluginReference.Name, Plugin.Name, true) == 0)
+					{
+						return PluginReference.IsEnabledForPlatform(Platform) && PluginReference.IsEnabledForTarget(TargetType);
+					}
+				}
+			}
+
+			// If the plugin contains content, it should be included for all platforms
+			if(Plugin.Descriptor.bCanContainContent)
+			{
+				return true;
+			}
+
+			// Check if the plugin has any modules for the given target
+			foreach (ModuleDescriptor Module in Plugin.Descriptor.Modules)
+			{
+				if(Module.IsCompiledInConfiguration(Platform, TargetType, bBuildDeveloperTools, bBuildEditor))
+				{
+					return true;
+				}
+			}
+
+			return false;
 		}
 	}
 }

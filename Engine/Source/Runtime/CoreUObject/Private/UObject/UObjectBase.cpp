@@ -59,8 +59,8 @@ static FPendingRegistrant* GLastPendingRegistrant = NULL;
 UObjectBase::UObjectBase( EObjectFlags InFlags )
 :	ObjectFlags			(InFlags)
 ,	InternalIndex		(INDEX_NONE)
-,	Class				(NULL)
-,	Outer				(NULL)
+,	ClassPrivate		(nullptr)
+,	OuterPrivate		(nullptr)
 {}
 
 /**
@@ -74,10 +74,10 @@ UObjectBase::UObjectBase( EObjectFlags InFlags )
 UObjectBase::UObjectBase(UClass* InClass, EObjectFlags InFlags, EInternalObjectFlags InInternalFlags, UObject *InOuter, FName InName)
 :	ObjectFlags			(InFlags)
 ,	InternalIndex		(INDEX_NONE)
-,	Class				(InClass)
-,	Outer				(InOuter)
+,	ClassPrivate		(InClass)
+,	OuterPrivate		(InOuter)
 {
-	check(Class);
+	check(ClassPrivate);
 	// Add to global table.
 	AddObject(InName, InInternalFlags);
 }
@@ -89,7 +89,7 @@ UObjectBase::UObjectBase(UClass* InClass, EObjectFlags InFlags, EInternalObjectF
 UObjectBase::~UObjectBase()
 {
 	// If not initialized, skip out.
-	if( UObjectInitialized() && Class && !GIsCriticalError )
+	if( UObjectInitialized() && ClassPrivate && !GIsCriticalError )
 	{
 		// Validate it.
 		check(IsValidLowLevel());
@@ -130,12 +130,12 @@ void UObjectBase::DeferredRegister(UClass *UClassStaticClass,const TCHAR* Packag
 {
 	check(Internal::GObjInitialized);
 	// Set object properties.
-	Outer        = CreatePackage(NULL,PackageName);
-	check(Outer);
+	OuterPrivate        = CreatePackage(nullptr,PackageName);
+	check(OuterPrivate);
 
 	check(UClassStaticClass);
-	check(!Class);
-	Class = UClassStaticClass;
+	check(!ClassPrivate);
+	ClassPrivate = UClassStaticClass;
 
 	// Add to the global object table.
 	AddObject(FName(InName), EInternalObjectFlags::None);
@@ -151,7 +151,7 @@ void UObjectBase::DeferredRegister(UClass *UClassStaticClass,const TCHAR* Packag
  */
 void UObjectBase::AddObject(FName InName, EInternalObjectFlags InSetInternalFlags)
 {
-	Name = InName;
+	NamePrivate = InName;
 	EInternalObjectFlags InternalFlagsToSet = InSetInternalFlags;
 	if (!IsInGameThread())
 	{
@@ -189,10 +189,10 @@ void UObjectBase::LowLevelRename(FName NewName,UObject *NewOuter)
 	STAT(StatID = TStatId();) // reset the stat id since this thing now has a different name
 	UnhashObject(this);
 	check(InternalIndex >= 0);
-	Name = NewName;
+	NamePrivate = NewName;
 	if (NewOuter)
 	{
-		Outer = NewOuter;
+		OuterPrivate = NewOuter;
 	}
 	HashObject(this);
 }
@@ -203,11 +203,12 @@ void UObjectBase::SetClass(UClass* NewClass)
 
 	UnhashObject(this);
 #if USE_UBER_GRAPH_PERSISTENT_FRAME
-	Class->DestroyPersistentUberGraphFrame((UObject*)this);
+	UClass* OldClass = ClassPrivate;
+	ClassPrivate->DestroyPersistentUberGraphFrame((UObject*)this);
 #endif
-	Class = NewClass;
+	ClassPrivate = NewClass;
 #if USE_UBER_GRAPH_PERSISTENT_FRAME
-	Class->CreatePersistentUberGraphFrame((UObject*)this);
+	ClassPrivate->CreatePersistentUberGraphFrame((UObject*)this, /*bCreateOnlyIfEmpty =*/false, /*bSkipSuperClass =*/false, OldClass);
 #endif
 	HashObject(this);
 }
@@ -224,7 +225,7 @@ bool UObjectBase::IsValidLowLevel() const
 		UE_LOG(LogUObjectBase, Warning, TEXT("NULL object") );
 		return false;
 	}
-	if( !Class )
+	if( !ClassPrivate )
 	{
 		UE_LOG(LogUObjectBase, Warning, TEXT("Object is not registered") );
 		return false;
@@ -248,33 +249,33 @@ bool UObjectBase::IsValidLowLevelFast(bool bRecursive /*= true*/) const
 		UE_LOG(LogUObjectBase, Error, TEXT("\'this\' pointer is misaligned."));
 		return false;
 	}
-	if (*(void**)this == NULL)
+	if (*(void**)this == nullptr)
 	{
 		UE_LOG(LogUObjectBase, Error, TEXT("Virtual functions table is invalid."));
 		return false;
 	}
 
 	// These should all be 0.
-	const UPTRINT CheckZero = (ObjectFlags & ~RF_AllFlags) | ((UPTRINT)Class & AlignmentCheck) | ((UPTRINT)Outer & AlignmentCheck);
+	const UPTRINT CheckZero = (ObjectFlags & ~RF_AllFlags) | ((UPTRINT)ClassPrivate & AlignmentCheck) | ((UPTRINT)OuterPrivate & AlignmentCheck);
 	if (!!CheckZero)
 	{
 		UE_LOG(LogUObjectBase, Error, TEXT("Object flags are invalid or either Class or Outer is misaligned"));
 		return false;
 	}
 	// These should all be non-NULL (except CDO-alignment check which should be 0)
-	if (Class == NULL || Class->ClassDefaultObject == NULL || ((UPTRINT)Class->ClassDefaultObject & AlignmentCheck) != 0)
+	if (ClassPrivate == nullptr || ClassPrivate->ClassDefaultObject == nullptr || ((UPTRINT)ClassPrivate->ClassDefaultObject & AlignmentCheck) != 0)
 	{
 		UE_LOG(LogUObjectBase, Error, TEXT("Class pointer is invalid or CDO is invalid."));
 		return false;
 	}
 	// Avoid infinite recursion so call IsValidLowLevelFast on the class object with bRecirsive = false.
-	if (bRecursive && !Class->IsValidLowLevelFast(false))
+	if (bRecursive && !ClassPrivate->IsValidLowLevelFast(false))
 	{
 		UE_LOG(LogUObjectBase, Error, TEXT("Class object failed IsValidLowLevelFast test."));
 		return false;
 	}
 	// Lightweight versions of index checks.
-	if (!GUObjectArray.IsValidIndex(this) || !Name.IsValidIndexFast())
+	if (!GUObjectArray.IsValidIndex(this) || !NamePrivate.IsValidIndexFast())
 	{
 		UE_LOG(LogUObjectBase, Error, TEXT("Object array index or name index is invalid."));
 		return false;
@@ -286,8 +287,8 @@ void UObjectBase::EmitBaseReferences(UClass *RootClass)
 {
 	static const FName ClassPropertyName(TEXT("Class"));
 	static const FName OuterPropertyName(TEXT("Outer"));
-	RootClass->EmitObjectReference(STRUCT_OFFSET(UObjectBase, Class), ClassPropertyName);
-	RootClass->EmitObjectReference(STRUCT_OFFSET(UObjectBase, Outer), OuterPropertyName, GCRT_PersistentObject);
+	RootClass->EmitObjectReference(STRUCT_OFFSET(UObjectBase, ClassPrivate), ClassPropertyName);
+	RootClass->EmitObjectReference(STRUCT_OFFSET(UObjectBase, OuterPrivate), OuterPropertyName, GCRT_PersistentObject);
 }
 
 /** Enqueue the registration for this object. */

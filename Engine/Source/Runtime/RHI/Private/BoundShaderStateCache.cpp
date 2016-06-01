@@ -11,18 +11,19 @@
 typedef TMap<FBoundShaderStateKey,FCachedBoundShaderStateLink*> FBoundShaderStateCache;
 typedef TMap<FBoundShaderStateKey,FCachedBoundShaderStateLink_Threadsafe*> FBoundShaderStateCache_Threadsafe;
 
+static FBoundShaderStateCache GBoundShaderStateCache;
+static FBoundShaderStateCache_Threadsafe GBoundShaderStateCache_ThreadSafe;
+
 /** Lazily initialized bound shader state cache singleton. */
 static FBoundShaderStateCache& GetBoundShaderStateCache()
 {
-	static FBoundShaderStateCache BoundShaderStateCache;
-	return BoundShaderStateCache;
+	return GBoundShaderStateCache;
 }
 
 /** Lazily initialized bound shader state cache singleton. */
 static FBoundShaderStateCache_Threadsafe& GetBoundShaderStateCache_Threadsafe()
 {
-	static FBoundShaderStateCache_Threadsafe BoundShaderStateCache;
-	return BoundShaderStateCache;
+	return GBoundShaderStateCache_ThreadSafe;
 }
 
 static FCriticalSection BoundShaderStateCacheLock;
@@ -124,3 +125,8 @@ FBoundShaderStateRHIRef GetCachedBoundShaderState_Threadsafe(
 	return FBoundShaderStateRHIRef();
 }
 
+void EmptyCachedBoundShaderStates()
+{
+	GetBoundShaderStateCache().Empty(0);
+	GetBoundShaderStateCache_Threadsafe().Empty(0);
+}

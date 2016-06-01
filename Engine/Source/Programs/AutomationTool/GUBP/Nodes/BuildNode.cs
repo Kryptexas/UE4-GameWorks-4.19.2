@@ -31,6 +31,9 @@ namespace AutomationTool
 		[XmlAttribute, DefaultValue("")]
 		public string DependsOn = "";
 
+		[XmlAttribute, DefaultValue("")]
+		public string AgentTypes = "";
+
 		[XmlAttribute, DefaultValue(0)]
 		public int FrequencyShift;
 
@@ -45,6 +48,9 @@ namespace AutomationTool
 
 		[XmlAttribute, DefaultValue(true)]
 		public bool EmailSubmitters = true;
+
+		[XmlAttribute, DefaultValue(true)]
+		public bool NotifyOnWarnings = true;
 
 		[XmlAttribute, DefaultValue(UnrealTargetPlatform.Win64)]
 		public UnrealTargetPlatform AgentPlatform = UnrealTargetPlatform.Win64;
@@ -92,6 +98,7 @@ namespace AutomationTool
 
 		public readonly string Name;
 		public UnrealTargetPlatform AgentPlatform = UnrealTargetPlatform.Win64;
+		public string[] AgentTypes;
 		public string AgentRequirements;
 		public string AgentSharingGroup;
 		public int FrequencyShift;
@@ -105,10 +112,12 @@ namespace AutomationTool
 		public bool IsComplete;
 		public string[] RecipientsForFailureEmails;
 		public bool AddSubmittersToFailureEmails;
+		public bool NotifyOnWarnings;
 		public bool SendSuccessEmail;
 		public bool IsParallelAgentShareEditor;
 		public bool IsSticky;
 		public bool IsTest;
+		public bool CopyToSharedStorage;
 		public string DisplayGroupName;
 
 		public List<string> BuildProducts;
@@ -116,6 +125,7 @@ namespace AutomationTool
 		public BuildNode(BuildNodeDefinition Definition)
 		{
 			Name = Definition.Name;
+			AgentTypes = Definition.AgentTypes.Split(new char[]{ ';' }, StringSplitOptions.RemoveEmptyEntries);
 			AgentPlatform = Definition.AgentPlatform;
 			AgentRequirements = Definition.AgentRequirements;
 			AgentSharingGroup = Definition.AgentSharingGroup;
@@ -125,6 +135,7 @@ namespace AutomationTool
 			Priority = Definition.Priority;
 			RecipientsForFailureEmails = Definition.Notify.Split(';');
 			AddSubmittersToFailureEmails = Definition.AddSubmittersToFailureEmails;
+			NotifyOnWarnings = Definition.NotifyOnWarnings;
 			SendSuccessEmail = Definition.SendSuccessEmail;
 			IsParallelAgentShareEditor = Definition.IsParallelAgentShareEditor;
 			IsSticky = Definition.IsSticky;
@@ -132,17 +143,17 @@ namespace AutomationTool
 			DisplayGroupName = Definition.DisplayGroupName;
 		}
 
-		public virtual void ArchiveBuildProducts(TempStorageNodeInfo TempStorageNodeInfo, bool bLocalOnly)
+		public virtual void ArchiveBuildProducts(string SharedStorageDir, bool bWriteToSharedStorage)
 		{
-			TempStorage.StoreToTempStorage(TempStorageNodeInfo, BuildProducts, bLocalOnly, CommandUtils.CmdEnv.LocalRoot);
+			TempStorage.StoreToTempStorage(Name, BuildProducts, SharedStorageDir, bWriteToSharedStorage);
 		}
 
-		public virtual void RetrieveBuildProducts(TempStorageNodeInfo TempStorageNodeInfo)
+		public virtual void RetrieveBuildProducts(string SharedStorageDir)
 		{
-			CommandUtils.Log("***** Retrieving GUBP Node {0} from {1}", Name, TempStorageNodeInfo.GetRelativeDirectory());
+			CommandUtils.Log("***** Retrieving GUBP Node {0}", Name);
 			try
 			{
-				BuildProducts = TempStorage.RetrieveFromTempStorage(TempStorageNodeInfo, CommandUtils.CmdEnv.LocalRoot);
+				BuildProducts = TempStorage.RetrieveFromTempStorage(SharedStorageDir, Name);
 			}
 			catch (Exception Ex)
 			{
@@ -153,6 +164,11 @@ namespace AutomationTool
 		public abstract bool DoBuild();
 
 		public abstract bool DoFakeBuild();
+
+		public TriggerNode ControllingTrigger
+		{
+			get { return (ControllingTriggers.Length == 0)? null : ControllingTriggers[ControllingTriggers.Length - 1]; }
+		}
 
 		public string ControllingTriggerDotName
 		{

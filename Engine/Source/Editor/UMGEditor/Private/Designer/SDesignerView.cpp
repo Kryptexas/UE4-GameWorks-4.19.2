@@ -886,7 +886,10 @@ void SDesignerView::PushDesignerMessage(const FText& Message)
 
 void SDesignerView::PopDesignerMessage()
 {
-	DesignerMessageStack.Pop();
+	if ( DesignerMessageStack.Num() > 0)
+	{
+		DesignerMessageStack.Pop();
+	}
 }
 
 void SDesignerView::OnEditorSelectionChanged()
@@ -1283,7 +1286,10 @@ FReply SDesignerView::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoin
 			{
 				for (const auto& SelectedWidget : SelectedWidgets)
 				{
-					if (PendingSelectedWidget == SelectedWidget || PendingSelectedWidget.GetTemplate()->IsChildOf(SelectedWidget.GetTemplate()))
+					auto PendingTemplate = PendingSelectedWidget.GetTemplate();
+					auto SelectedTemplate = SelectedWidget.GetTemplate();
+
+					if ( PendingSelectedWidget == SelectedWidget || ( PendingTemplate && SelectedTemplate && PendingTemplate->IsChildOf( SelectedTemplate ) ) )
 					{
 						bResolvePendingSelectionImmediately = false;
 						break;

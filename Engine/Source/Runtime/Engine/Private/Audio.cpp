@@ -594,7 +594,7 @@ float FWaveInstance::GetVolumeWeightedPriority() const
 	float ActualVolume = GetActualVolume();
 	if (ActualVolume > 0.0f)
 	{
-		return GetActualVolume() * Priority;
+		return ActualVolume * Priority;
 	}
 	else
 	{
@@ -606,6 +606,16 @@ bool FWaveInstance::IsStreaming() const
 {
 	return FPlatformProperties::SupportsAudioStreaming() && WaveData != nullptr && WaveData->IsStreaming();
 }
+
+FString FWaveInstance::GetName() const
+{
+	if (WaveData)
+	{
+		return WaveData->GetName();
+	}
+	return TEXT("Null");
+}
+
 
 /*-----------------------------------------------------------------------------
 	WaveModInfo implementation - downsampling of wave files.

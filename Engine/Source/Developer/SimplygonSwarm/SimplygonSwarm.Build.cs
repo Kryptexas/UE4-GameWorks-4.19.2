@@ -46,9 +46,9 @@ public class SimplygonSwarm : ModuleRules
 			}
         );
 
-		AddThirdPartyPrivateStaticDependencies(Target, "Simplygon");
-		AddThirdPartyPrivateStaticDependencies(Target, "SSF");
-		AddThirdPartyPrivateDynamicDependencies(Target, "PropertyEditor");
+		AddEngineThirdPartyPrivateStaticDependencies(Target, "Simplygon");
+		AddEngineThirdPartyPrivateStaticDependencies(Target, "SSF");
+		AddEngineThirdPartyPrivateDynamicDependencies(Target, "PropertyEditor");
 
 		PrecompileForTargets = PrecompileTargetsType.None;
 	}

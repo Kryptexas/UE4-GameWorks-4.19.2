@@ -12,6 +12,11 @@ TNumericUnitTypeInterface<NumericType>::TNumericUnitTypeInterface(EUnit InUnits)
 template<typename NumericType>
 FString TNumericUnitTypeInterface<NumericType>::ToString(const NumericType& Value) const
 {
+	if (UnderlyingUnits == EUnit::Unspecified)
+	{
+		return TDefaultNumericTypeInterface<NumericType>::ToString(Value);
+	}
+
 	using namespace LexicalConversion;
 
 	FNumericUnit<NumericType> FinalValue(Value, UnderlyingUnits);
@@ -29,12 +34,19 @@ FString TNumericUnitTypeInterface<NumericType>::ToString(const NumericType& Valu
 }
 
 template<typename NumericType>
-TOptional<NumericType> TNumericUnitTypeInterface<NumericType>::FromString(const FString& InString)
+TOptional<NumericType> TNumericUnitTypeInterface<NumericType>::FromString(const FString& InString, const NumericType& InExistingValue)
 {
+	if (UnderlyingUnits == EUnit::Unspecified)
+	{
+		return TDefaultNumericTypeInterface<NumericType>::FromString(InString, InExistingValue);
+	}
+
 	using namespace LexicalConversion;
 
+	EUnit DefaultUnits = FixedDisplayUnits.IsSet() ? FixedDisplayUnits.GetValue() : UnderlyingUnits;
+
 	// Always parse in as a double, to allow for input of higher-order units with decimal numerals into integral types (eg, inputting 0.5km as 500m)
-	auto NewValue = FNumericUnit<double>::TryParseExpression(*InString, FixedDisplayUnits.IsSet() ? FixedDisplayUnits.GetValue() : UnderlyingUnits);
+	TValueOrError<FNumericUnit<double>, FText> NewValue = FNumericUnit<double>::TryParseExpression( *InString, DefaultUnits, InExistingValue );
 	if (NewValue.IsValid())
 	{
 		// Convert the number into the correct units
@@ -53,7 +65,7 @@ TOptional<NumericType> TNumericUnitTypeInterface<NumericType>::FromString(const 
 template<typename NumericType>
 bool TNumericUnitTypeInterface<NumericType>::IsCharacterValid(TCHAR InChar) const
 {
-	return true;
+	return (UnderlyingUnits == EUnit::Unspecified) ? TDefaultNumericTypeInterface<NumericType>::IsCharacterValid(InChar) : true;
 }
 
 template<typename NumericType>

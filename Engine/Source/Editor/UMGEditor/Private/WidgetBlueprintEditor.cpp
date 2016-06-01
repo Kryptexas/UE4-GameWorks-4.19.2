@@ -23,6 +23,11 @@
 #include "WidgetBlueprint.h"
 #include "Engine/SimpleConstructionScript.h"
 
+#include "MovieSceneWidgetMaterialTrack.h"
+#include "WidgetMaterialTrackUtilities.h"
+
+#include "ScopedTransaction.h"
+
 #define LOCTEXT_NAMESPACE "UMG"
 
 FWidgetBlueprintEditor::FWidgetBlueprintEditor()
@@ -657,8 +662,7 @@ void FWidgetBlueprintEditor::UpdatePreview(UBlueprint* InBlueprint, bool bInForc
 
 		// Update the generated class'es widget tree to match the blueprint tree.  That way the preview can update
 		// without needing to do a full recompile.
-		Cast<UWidgetBlueprintGeneratedClass>(PreviewBlueprint->GeneratedClass)->DesignerWidgetTree = DuplicateObject<UWidgetTree>(PreviewBlueprint->WidgetTree, PreviewBlueprint->GeneratedClass);
-
+		Cast<UWidgetBlueprintGeneratedClass>(PreviewBlueprint->GeneratedClass)->DesignerWidgetTree = (UWidgetTree*)StaticDuplicateObject(PreviewBlueprint->WidgetTree, PreviewBlueprint->GeneratedClass, NAME_None, RF_Transactional); 
 		PreviewActor = CreateWidget<UUserWidget>(PreviewScene.GetWorld(), PreviewBlueprint->GeneratedClass);
 		PreviewActor->SetFlags(RF_Transactional);
 		
@@ -816,6 +820,9 @@ void FWidgetBlueprintEditor::OnGetAnimationAddMenuContent(FMenuBuilder& MenuBuil
 
 void FWidgetBlueprintEditor::AddObjectToAnimation(UObject* ObjectToAnimate)
 {
+	const FScopedTransaction Transaction( LOCTEXT( "AddWidgetToAnimation", "Add widget to animation" ) );
+	Sequencer->GetFocusedMovieSceneSequence()->Modify();
+
 	// @todo Sequencer - Make this kind of adding more explicit, this current setup seem a bit brittle.
 	Sequencer->GetHandleToObject(ObjectToAnimate);
 }
@@ -831,21 +838,48 @@ TSharedRef<FExtender> FWidgetBlueprintEditor::GetContextSensitiveSequencerExtend
 	return AddTrackMenuExtender;
 }
 
-void FWidgetBlueprintEditor::ExtendSequencerAddTrackMenu( FMenuBuilder& AddTrackMenuBuilder, TArray<UObject*> ContextObjects )
+void FWidgetBlueprintEditor::ExtendSequencerAddTrackMenu( FMenuBuilder& AddTrackMenuBuilder, const TArray<UObject*> ContextObjects )
 {
 	if ( ContextObjects.Num() == 1 )
 	{
 		UWidget* Widget = Cast<UWidget>( ContextObjects[0] );
-		if ( Widget != nullptr && Widget->GetParent() != nullptr && Widget->Slot != nullptr )
+		if ( Widget != nullptr )
 		{
-			AddTrackMenuBuilder.BeginSection( "Slot", LOCTEXT( "SlotSection", "Slot" ) );
+			if( Widget->GetParent() != nullptr && Widget->Slot != nullptr )
 			{
-				FUIAction AddSlotAction( FExecuteAction::CreateRaw( this, &FWidgetBlueprintEditor::AddSlotTrack, Widget->Slot ) );
-				FText AddSlotLabel = FText::Format(LOCTEXT("SlotLabelFormat", "{0} Slot"), FText::FromString(Widget->GetParent()->GetName()));
-				FText AddSlotToolTip = FText::Format(LOCTEXT("SlotToolTipFormat", "Add {0} slot"), FText::FromString( Widget->GetParent()->GetName()));
-				AddTrackMenuBuilder.AddMenuEntry(AddSlotLabel, AddSlotToolTip, FSlateIcon(), AddSlotAction);
+				AddTrackMenuBuilder.BeginSection( "Slot", LOCTEXT( "SlotSection", "Slot" ) );
+				{
+					FUIAction AddSlotAction( FExecuteAction::CreateRaw( this, &FWidgetBlueprintEditor::AddSlotTrack, Widget->Slot ) );
+					FText AddSlotLabel = FText::Format(LOCTEXT("SlotLabelFormat", "{0} Slot"), FText::FromString(Widget->GetParent()->GetName()));
+					FText AddSlotToolTip = FText::Format(LOCTEXT("SlotToolTipFormat", "Add {0} slot"), FText::FromString( Widget->GetParent()->GetName()));
+					AddTrackMenuBuilder.AddMenuEntry(AddSlotLabel, AddSlotToolTip, FSlateIcon(), AddSlotAction);
+				}
+				AddTrackMenuBuilder.EndSection();
 			}
-			AddTrackMenuBuilder.EndSection();
+
+			TArray<TArray<UProperty*>> MaterialBrushPropertyPaths;
+			WidgetMaterialTrackUtilities::GetMaterialBrushPropertyPaths( Widget, MaterialBrushPropertyPaths );
+			if ( MaterialBrushPropertyPaths.Num() > 0 )
+			{
+				AddTrackMenuBuilder.BeginSection( "Materials", LOCTEXT( "MaterialsSection", "Materials" ) );
+				{
+					for ( TArray<UProperty*>& MaterialBrushPropertyPath : MaterialBrushPropertyPaths )
+					{
+						FString DisplayName = MaterialBrushPropertyPath[0]->GetDisplayNameText().ToString();
+						for ( int32 i = 1; i < MaterialBrushPropertyPath.Num(); i++)
+						{
+							DisplayName.AppendChar( '.' );
+							DisplayName.Append( MaterialBrushPropertyPath[i]->GetDisplayNameText().ToString() );
+						}
+						FText DisplayNameText = FText::FromString( DisplayName );
+						FUIAction AddMaterialAction( FExecuteAction::CreateRaw( this, &FWidgetBlueprintEditor::AddMaterialTrack, Widget, MaterialBrushPropertyPath, DisplayNameText ) );
+						FText AddMaterialLabel = DisplayNameText;
+						FText AddMaterialToolTip = FText::Format( LOCTEXT( "MaterialToolTipFormat", "Add a material track for the {0} property." ), DisplayNameText );
+						AddTrackMenuBuilder.AddMenuEntry( AddMaterialLabel, AddMaterialToolTip, FSlateIcon(), AddMaterialAction );
+					}
+				}
+				AddTrackMenuBuilder.EndSection();
+			}
 		}
 	}
 }
@@ -853,6 +887,33 @@ void FWidgetBlueprintEditor::ExtendSequencerAddTrackMenu( FMenuBuilder& AddTrack
 void FWidgetBlueprintEditor::AddSlotTrack( UPanelSlot* Slot )
 {
 	GetSequencer()->GetHandleToObject( Slot );
+}
+
+void FWidgetBlueprintEditor::AddMaterialTrack( UWidget* Widget, TArray<UProperty*> MaterialPropertyPath, FText MaterialPropertyDisplayName )
+{
+	FGuid WidgetHandle = Sequencer->GetHandleToObject( Widget );
+	if ( WidgetHandle.IsValid() )
+	{
+		UMovieScene* MovieScene = Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene();
+		TArray<FName> MaterialPropertyNamePath;
+		for ( UProperty* Property : MaterialPropertyPath )
+		{
+			MaterialPropertyNamePath.Add( Property->GetFName() );
+		}
+		if( MovieScene->FindTrack( UMovieSceneWidgetMaterialTrack::StaticClass(), WidgetHandle, WidgetMaterialTrackUtilities::GetTrackNameFromPropertyNamePath( MaterialPropertyNamePath ) ) == nullptr)
+		{
+			const FScopedTransaction Transaction( LOCTEXT( "AddWidgetMaterialTrack", "Add widget material track" ) );
+
+			MovieScene->Modify();
+
+			UMovieSceneWidgetMaterialTrack* NewTrack = Cast<UMovieSceneWidgetMaterialTrack>( MovieScene->AddTrack( UMovieSceneWidgetMaterialTrack::StaticClass(), WidgetHandle ) );
+			NewTrack->Modify();
+			NewTrack->SetBrushPropertyNamePath( MaterialPropertyNamePath );
+			NewTrack->SetDisplayName( FText::Format( LOCTEXT( "TrackDisplayNameFormat", "{0} Material"), MaterialPropertyDisplayName ) );
+
+			Sequencer->NotifyMovieSceneDataChanged();
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -39,36 +39,45 @@ namespace AutomationTool
 		/// <param name="UE4Exe">The name of the UE4 Editor executable to use.</param>
 		/// <param name="Maps">List of maps to cook, can be null in which case -MapIniSection=AllMaps is used.</param>
 		/// <param name="Dirs">List of directories to cook, can be null</param>
+        /// <param name="InternationalizationPreset">The name of a prebuilt set of internationalization data to be included.</param>
+        /// <param name="CulturesToCook">List of culture names whose localized assets should be cooked, can be null (implying defaults should be used).</param>
 		/// <param name="TargetPlatform">Target platform.</param>
 		/// <param name="Parameters">List of additional parameters.</param>
-		public static void CookCommandlet(FileReference ProjectName, string UE4Exe = "UE4Editor-Cmd.exe", string[] Maps = null, string[] Dirs = null, string InternationalizationPreset = "", string[] Cultures = null, string TargetPlatform = "WindowsNoEditor", string Parameters = "-Unversioned")
+		public static void CookCommandlet(FileReference ProjectName, string UE4Exe = "UE4Editor-Cmd.exe", string[] Maps = null, string[] Dirs = null, string InternationalizationPreset = "", string[] CulturesToCook = null, string TargetPlatform = "WindowsNoEditor", string Parameters = "-Unversioned")
 		{
-			string MapsToCook = "";
+            string CommandletArguments = "";
+
 			if (IsNullOrEmpty(Maps))
 			{
 				// MapsToCook = "-MapIniSection=AllMaps";
 			}
 			else
 			{
-				MapsToCook = "-Map=" + CombineCommandletParams(Maps);
-				MapsToCook.Trim();
+				string MapsToCookArg = "-Map=" + CombineCommandletParams(Maps);
+                MapsToCookArg.Trim();
+                CommandletArguments += (CommandletArguments.Length > 0 ? " " : "") + MapsToCookArg;
 			}
 
-			string DirsToCook = "";
 			if (!IsNullOrEmpty(Dirs))
 			{
-				DirsToCook = "-CookDir=" + CombineCommandletParams(Dirs);
-				DirsToCook.Trim();		
-			}
-
-            string CulturesToCook = "";
-            if (!IsNullOrEmpty(Cultures))
-            {
-                CulturesToCook = "-CookCultures=" + CombineCommandletParams(Cultures);
-                CulturesToCook.Trim();
+				string DirsToCookArg = "-CookDir=" + CombineCommandletParams(Dirs);
+                DirsToCookArg.Trim();
+                CommandletArguments += (CommandletArguments.Length > 0 ? " " : "") + DirsToCookArg;
             }
 
-            RunCommandlet(ProjectName, UE4Exe, "Cook", String.Format("{0} {1} -I18NPreset={2} {3} -TargetPlatform={4} {5}", MapsToCook, DirsToCook, InternationalizationPreset, CulturesToCook, TargetPlatform, Parameters));
+            if (!String.IsNullOrEmpty(InternationalizationPreset))
+            {
+                CommandletArguments += (CommandletArguments.Length > 0 ? " " : "") + InternationalizationPreset;
+            }
+
+            if (!IsNullOrEmpty(CulturesToCook))
+            {
+                string CulturesToCookArg = "-CookCultures=" + CombineCommandletParams(CulturesToCook);
+                CulturesToCookArg.Trim();
+                CommandletArguments += (CommandletArguments.Length > 0 ? " " : "") + CulturesToCookArg;
+            }
+
+            RunCommandlet(ProjectName, UE4Exe, "Cook", String.Format("{0} -TargetPlatform={1} {2}",  CommandletArguments, TargetPlatform, Parameters));
 		}
 
         /// <summary>
@@ -107,7 +116,7 @@ namespace AutomationTool
 				MapsToRebuildLighting.Trim();
 			}
 
-			RunCommandlet(ProjectName, UE4Exe, "ResavePackages", String.Format("-buildlighting -MapsOnly -ProjectOnly -AllowCommandletRendering -AutoCheckoutPackages {0} {1}", MapsToRebuildLighting, Parameters));
+			RunCommandlet(ProjectName, UE4Exe, "ResavePackages", String.Format("-buildlighting -MapsOnly -ProjectOnly -AllowCommandletRendering {0} {1}", MapsToRebuildLighting, Parameters));
 		}
 
         /// <summary>
@@ -232,7 +241,7 @@ namespace AutomationTool
 				String.IsNullOrEmpty(Parameters) ? "" : Parameters,
 				CommandUtils.MakePathSafeToUseWithCommandLine(LocalLogFile),
 				IsBuildMachine ? "-buildmachine" : "",
-				GlobalCommandLine.Verbose ? "-AllowStdOutLogVerbosity " : ""
+                (GlobalCommandLine.Verbose || GlobalCommandLine.AllowStdOutLogVerbosity) ? "-AllowStdOutLogVerbosity " : ""
 			);
 			ERunOptions Opts = ERunOptions.Default;
 			if (GlobalCommandLine.UTF8Output)
@@ -282,28 +291,39 @@ namespace AutomationTool
 				List<FileInfo> CrashFileInfos = new List<FileInfo>();
 				foreach(string CrashDir in CrashDirs)
 				{
-					DirectoryInfo CrashDirInfo = new DirectoryInfo(CrashDir);
-					if(CrashDirInfo.Exists)
+					try
 					{
-						CrashFileInfos.AddRange(CrashDirInfo.EnumerateFiles("*.crash", SearchOption.TopDirectoryOnly).Where(x => x.LastWriteTimeUtc >= StartTime));
+						DirectoryInfo CrashDirInfo = new DirectoryInfo(CrashDir);
+						if (CrashDirInfo.Exists)
+						{
+							CrashFileInfos.AddRange(CrashDirInfo.EnumerateFiles("*.crash", SearchOption.TopDirectoryOnly).Where(x => x.LastWriteTimeUtc >= StartTime));
+						}
+					}
+					catch (UnauthorizedAccessException)
+					{
+						// Not all account types can access /Library/Logs/DiagnosticReports
 					}
 				}
 				
 				// Dump them all to the log
 				foreach(FileInfo CrashFileInfo in CrashFileInfos)
 				{
-					CommandUtils.LogWarning("Found crash log - {0}:", CrashFileInfo.FullName);
-					try
+					// snmpd seems to often crash (suspect due to it being starved of CPU cycles during cooks)
+					if(!CrashFileInfo.Name.StartsWith("snmpd_"))
 					{
-						string[] Lines = File.ReadAllLines(CrashFileInfo.FullName);
-						foreach(string Line in Lines)
+						CommandUtils.Log("Found crash log - {0}", CrashFileInfo.FullName);
+						try
 						{
-							CommandUtils.Log("CrashDump: {0}", Line);
+							string[] Lines = File.ReadAllLines(CrashFileInfo.FullName);
+							foreach(string Line in Lines)
+							{
+								CommandUtils.Log("Crash: {0}", Line);
+							}
 						}
-					}
-					catch(Exception Ex)
-					{
-						CommandUtils.LogWarning("Failed to read file ({0})", Ex.Message);
+						catch(Exception Ex)
+						{
+							CommandUtils.LogWarning("Failed to read file ({0})", Ex.Message);
+						}
 					}
 				}
 			}
@@ -336,7 +356,7 @@ namespace AutomationTool
 
 			if (RunResult.ExitCode != 0)
 			{
-				throw new AutomationException("BUILD FAILED: Failed while running {0} for {1}; see log {2}", Commandlet, ProjectName, DestLogFile);
+				throw new AutomationException(DestLogFile, RunResult.ExitCode, "BUILD FAILED: Failed while running {0} for {1}; see log {2}", Commandlet, ProjectName, DestLogFile);
 			}
 		}
 		

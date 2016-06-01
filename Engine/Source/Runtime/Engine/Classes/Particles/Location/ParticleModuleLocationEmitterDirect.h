@@ -13,7 +13,7 @@
 #include "ParticleModuleLocationEmitterDirect.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Emitter Direct Location"))
-class UParticleModuleLocationEmitterDirect : public UParticleModuleLocationBase
+class ENGINE_API UParticleModuleLocationEmitterDirect : public UParticleModuleLocationBase
 {
 	GENERATED_UCLASS_BODY()
 

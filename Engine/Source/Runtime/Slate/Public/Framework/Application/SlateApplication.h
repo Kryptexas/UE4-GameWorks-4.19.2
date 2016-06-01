@@ -169,8 +169,9 @@ public:
 	 * Initializes the renderer responsible for drawing all elements in this application
 	 *
 	 * @param InRenderer The renderer to use.
+	 * @param bQuietMode Don't show any message boxes when initialization fails.
 	 */
-	virtual void InitializeRenderer( TSharedRef<FSlateRenderer> InRenderer );
+	virtual bool InitializeRenderer( TSharedRef<FSlateRenderer> InRenderer, bool bQuietMode = false );
 
 	/** Set the slate sound provider that the slate app should use. */
 	virtual void InitializeSound( const TSharedRef<ISlateSoundDevice>& InSlateSoundDevice );
@@ -415,6 +416,14 @@ public:
 	void RegisterGameViewport( TSharedRef<SViewport> InViewport );
 
 	/**
+	 * Registers a viewport with the Slate application so that specific messages can be routed directly to a viewport
+	 * This is for all viewports, there can be multiple of these as opposed to the singular "Game Viewport"
+	 * 
+	 * @param InViewport	The viewport to register.  Note there is currently only one registered viewport
+	 */
+	void RegisterViewport(TSharedRef<SViewport> InViewport);
+
+	/**
 	 * Returns the game viewport registered with the slate application
 	 *
 	 * @return registered game viewport
@@ -496,6 +505,15 @@ public:
 	 * @param ReasonFocusIsChanging The reason that keyboard focus is changing
 	 */
 	void ClearKeyboardFocus(const EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
+
+#if WITH_EDITOR
+	/**
+	* Gets a delegate that is invoked before the input key get process by slate widgets bubble system.
+	* Its read only and you cannot mark the input as handled.
+	*/
+	DECLARE_EVENT_OneParam(FSlateApplication, FOnApplicationPreInputKeyDownListener, const FKeyEvent&);
+	FOnApplicationPreInputKeyDownListener& OnApplicationPreInputKeyDownListener() { return OnApplicationPreInputKeyDownListenerEvent; }
+#endif //WITH_EDITOR
 
 	/**
 	 * Returns the current modifier keys state
@@ -594,6 +612,11 @@ public:
 	 * @return True if there is a mouse device attached
 	 */
 	bool IsMouseAttached() const { return PlatformApplication.IsValid() ? PlatformApplication->IsMouseAttached() : false; }
+
+	/**
+	 * @return True if there is a gamepad attached
+	 */
+	bool IsGamepadAttached() const { return PlatformApplication.IsValid() ? PlatformApplication->IsGamepadAttached() : false; }
 
 	/**
 	 * Sets the widget reflector.
@@ -965,7 +988,7 @@ public:
 
 public:
 
-	void SetNavigationConfig( FNavigationConfig&& Config );
+	void SetNavigationConfig( TSharedRef<FNavigationConfig> Config );
 
 	/** Called when the slate application is being shut down. */
 	void OnShutdown();
@@ -1135,6 +1158,9 @@ public:
 	virtual void SetAllUserFocus(const FWidgetPath& InFocusPath, const EFocusCause InCause) override;
 	virtual void SetAllUserFocusAllowingDescendantFocus(const FWidgetPath& InFocusPath, const EFocusCause InCause) override;
 
+	DECLARE_EVENT_OneParam(FSlateApplication, FApplicationActivationStateChangedEvent, const bool /*IsActive*/)
+	virtual FApplicationActivationStateChangedEvent& OnApplicationActivationStateChanged() { return ApplicationActivationStateChangedEvent; }
+
 public:
 
 	//~ Begin FGenericApplicationMessageHandler Interface
@@ -1144,16 +1170,20 @@ public:
 	virtual bool OnKeyDown( const int32 KeyCode, const uint32 CharacterCode, const bool IsRepeat ) override;
 	virtual bool OnKeyUp( const int32 KeyCode, const uint32 CharacterCode, const bool IsRepeat ) override;
 	virtual bool OnMouseDown( const TSharedPtr< FGenericWindow >& PlatformWindow, const EMouseButtons::Type Button ) override;
+	virtual bool OnMouseDown( const TSharedPtr< FGenericWindow >& PlatformWindow, const EMouseButtons::Type Button, const FVector2D CursorPos ) override;
 	virtual bool OnMouseUp( const EMouseButtons::Type Button ) override;
+	virtual bool OnMouseUp( const EMouseButtons::Type Button, const FVector2D CursorPos ) override;
 	virtual bool OnMouseDoubleClick( const TSharedPtr< FGenericWindow >& PlatformWindow, const EMouseButtons::Type Button ) override;
+	virtual bool OnMouseDoubleClick( const TSharedPtr< FGenericWindow >& PlatformWindow, const EMouseButtons::Type Button, const FVector2D CursorPos ) override;
 	virtual bool OnMouseWheel( const float Delta ) override;
+	virtual bool OnMouseWheel( const float Delta, const FVector2D CursorPos ) override;
 	virtual bool OnMouseMove() override;
 	virtual bool OnRawMouseMove( const int32 X, const int32 Y ) override;
 	virtual bool OnCursorSet() override;
 	virtual bool OnControllerAnalog( FGamepadKeyNames::Type KeyName, int32 ControllerId, float AnalogValue ) override;
 	virtual bool OnControllerButtonPressed( FGamepadKeyNames::Type KeyName, int32 ControllerId, bool IsRepeat ) override;
 	virtual bool OnControllerButtonReleased( FGamepadKeyNames::Type KeyName, int32 ControllerId, bool IsRepeat ) override;
-	virtual bool OnTouchGesture( EGestureEvent::Type GestureType, const FVector2D& Delta, float WheelDelta ) override;
+	virtual bool OnTouchGesture( EGestureEvent::Type GestureType, const FVector2D& Delta, float WheelDelta, bool bIsDirectionInvertedFromDevice ) override;
 	virtual bool OnTouchStarted( const TSharedPtr< FGenericWindow >& PlatformWindow, const FVector2D& Location, int32 TouchIndex, int32 ControllerId ) override;
 	virtual bool OnTouchMoved( const FVector2D& Location, int32 TouchIndex, int32 ControllerId ) override;
 	virtual bool OnTouchEnded( const FVector2D& Location, int32 TouchIndex, int32 ControllerId ) override;
@@ -1197,8 +1227,10 @@ public:
 	 *
 	 * @param WidgetsUnderPointer	The path of widgets the event is routed to.
 	 * @param PointerEvent		The event data that is is routed to the widget path
+	 *
+	 * @return The reply from the event
 	 */
-	void RoutePointerUpEvent(FWidgetPath& WidgetsUnderPointer, FPointerEvent& PointerEvent);
+	FReply RoutePointerUpEvent(FWidgetPath& WidgetsUnderPointer, FPointerEvent& PointerEvent);
 
 	/**
 	 * Directly routes a pointer move event to the widgets in the specified widget path
@@ -1208,6 +1240,33 @@ public:
 	 * @param bIsSynthetic		Whether or not the move event is synthetic.  Synthetic pointer moves used simulate an event without the pointer actually moving 
 	 */
 	bool RoutePointerMoveEvent( const FWidgetPath& WidgetsUnderPointer, FPointerEvent& PointerEvent, bool bIsSynthetic );
+
+	/**
+	 * Directly routes a pointer double click event to the widgets in the specified widget path
+	 *
+	 * @param WidgetsUnderPointer	The path of widgets the event is routed to.
+	 * @param PointerEvent		The event data that is is routed to the widget path
+	 */
+	FReply RoutePointerDoubleClickEvent( FWidgetPath& WidgetsUnderPointer, FPointerEvent& PointerEvent );
+
+	/**
+	 * Directly routes a pointer mouse wheel or gesture event to the widgets in the specified widget path.
+	 * 
+	 * @param WidgetsUnderPointer	The path of widgets the event is routed to.
+	 * @param InWheelEvent			The event data that is is routed to the widget path
+	 * @param InGestureEvent		The event data that is is routed to the widget path
+	 */
+	FReply RouteMouseWheelOrGestureEvent(const FWidgetPath& WidgetsUnderPointer, const FPointerEvent& InWheelEvent, const FPointerEvent* InGestureEvent = nullptr);
+
+	/**
+	 * @return int user index that the keyboard is mapped to. -1 if the keyboard isn't mapped
+	 */
+	int32 GetUserIndexForKeyboard() const;
+
+	/** 
+	 * @return int user index that this controller is mapped to. -1 if the controller isn't mapped
+	 */
+	int32 GetUserIndexForController(int32 ControllerId) const;
 
 private:
 
@@ -1226,16 +1285,6 @@ private:
 	 * @return if a new widget was navigated too
 	 */
 	bool AttemptNavigation(const FNavigationEvent& NavigationEvent, const FNavigationReply& NavigationReply, const FArrangedWidget& BoundaryWidget);
-
-	/**
-	 * @return int user index that the keyboard is mapped to. -1 if the keyboard isn't mapped
-	 */
-	int32 GetUserIndexForKeyboard() const;
-
-	/** 
-	 * @return int user index that this controller is mapped to. -1 if the controller isn't mapped
-	 */
-	int32 GetUserIndexForController(int32 ControllerId) const;
 
 private:
 
@@ -1654,6 +1703,7 @@ private:
 	/** The icon to use on application windows */
 	const FSlateBrush *AppIcon;
 
+	FApplicationActivationStateChangedEvent ApplicationActivationStateChangedEvent;
 	//
 	// Hittest 2.0
 	//
@@ -1683,7 +1733,7 @@ private:
 	TArray< TSharedPtr<FCacheElementPools> > ReleasedCachedElementLists;
 
 	/** Configured fkeys to control navigation */
-	FNavigationConfig NavigationConfig;
+	TSharedRef<FNavigationConfig> NavigationConfig;
 
 	/** Delegate for pre slate tick */
 	FSlateTickEvent PreTickEvent;
@@ -1693,4 +1743,12 @@ private:
 
 	/** Critical section to avoid multiple threads calling Slate Tick when we're synchronizing between the Slate Loading Thread and the Game Thread. */
 	FCriticalSection SlateTickCriticalSection;
+
+#if WITH_EDITOR
+	/**
+	* Delegate that is invoked before the input key get process by slate widgets bubble system.
+	* User Function cannot mark the input as handled.
+	*/
+	FOnApplicationPreInputKeyDownListener OnApplicationPreInputKeyDownListenerEvent;
+#endif // WITH_EDITOR
 };

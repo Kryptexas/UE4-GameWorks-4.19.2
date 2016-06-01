@@ -63,6 +63,12 @@ namespace UnrealBuildTool.Rules
                 // module, so it's definitions won't propagate to modules that import Engine.
                 Definitions.Add("WITH_RECAST=0");
             }
-		}
-	}
+
+            if (UEBuildConfiguration.bBuildDeveloperTools || (Target.Configuration != UnrealTargetConfiguration.Shipping && Target.Configuration != UnrealTargetConfiguration.Test))
+            {
+                PrivateDependencyModuleNames.Add("GameplayDebugger");
+                Definitions.Add("WITH_GAMEPLAY_DEBUGGER=1");
+            }
+        }
+    }
 }

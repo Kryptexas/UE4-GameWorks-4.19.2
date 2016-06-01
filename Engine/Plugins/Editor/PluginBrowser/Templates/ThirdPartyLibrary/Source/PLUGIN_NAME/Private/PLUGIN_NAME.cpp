@@ -4,9 +4,7 @@
 #include "Core.h"
 #include "ModuleManager.h"
 #include "IPluginManager.h"
-#if PLATFORM_WINDOWS
-    #include "ExampleLibrary.h"
-#endif // PLATFORM_WINDOWS
+#include "ExampleLibrary.h"
 
 #define LOCTEXT_NAMESPACE "FPLUGIN_NAMEModule"
 
@@ -21,6 +19,9 @@ void FPLUGIN_NAMEModule::StartupModule()
 	FString LibraryPath;
 #if PLATFORM_WINDOWS
 	LibraryPath = FPaths::Combine(*BaseDir, TEXT("Binaries/ThirdParty/PLUGIN_NAMELibrary/Win64/ExampleLibrary.dll"));
+#elif PLATFORM_MAC
+    LibraryPath = FPaths::Combine(*BaseDir, TEXT("Source/ThirdParty/PLUGIN_NAMELibrary/Mac/Release/libExampleLibrary.dylib"));
+#endif // PLATFORM_WINDOWS
 
 	ExampleLibraryHandle = !LibraryPath.IsEmpty() ? FPlatformProcess::GetDllHandle(*LibraryPath) : nullptr;
 
@@ -30,7 +31,6 @@ void FPLUGIN_NAMEModule::StartupModule()
 		ExampleLibraryFunction();
 	}
 	else
-#endif // PLATFORM_WINDOWS
 	{
 		FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("ThirdPartyLibraryError", "Failed to load example third party library"));
 	}

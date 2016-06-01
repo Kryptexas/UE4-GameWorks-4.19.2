@@ -37,6 +37,8 @@ enum EModuleType
 	EPMT_Event UMETA(DisplayName="Event"),
 	/** Light related modules							*/
 	EPMT_Light UMETA(DisplayName="Light"),
+	/** SubUV related modules							*/
+	EPMT_SubUV UMETA(DisplayName = "SubUV"),
 	EPMT_MAX,
 };
 

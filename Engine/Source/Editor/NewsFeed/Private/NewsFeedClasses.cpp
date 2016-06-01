@@ -20,6 +20,6 @@ void UNewsFeedSettings::PostEditChangeProperty( struct FPropertyChangedEvent& Pr
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	const FName Name = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
-	SettingChangedEvent.Broadcast(Name);
+	const FName PropertyName = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+	SettingChangedEvent.Broadcast(PropertyName);
 }

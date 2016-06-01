@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "BasicMathExpressionEvaluator.h"
+
+
 /** Interface to provide specific functionality for dealing with a numeric type. Currently includes string conversion functionality. */
 template<typename NumericType>
 struct INumericTypeInterface
@@ -10,7 +13,7 @@ struct INumericTypeInterface
 
 	/** Convert the type to/from a string */
 	virtual FString ToString(const NumericType& Value) const = 0;
-	virtual TOptional<NumericType> FromString(const FString& InString) = 0;
+	virtual TOptional<NumericType> FromString(const FString& InString, const NumericType& ExistingValue) = 0;
 
 	/** Check whether the typed character is valid */
 	virtual bool IsCharacterValid(TCHAR InChar) const = 0;
@@ -25,40 +28,27 @@ struct TDefaultNumericTypeInterface : INumericTypeInterface<NumericType>
 	{
 		return LexicalConversion::ToSanitizedString(Value);
 	}
-	virtual TOptional<NumericType> FromString(const FString& InString) override
+	virtual TOptional<NumericType> FromString(const FString& InString, const NumericType& InExistingValue) override
 	{
-		NumericType NewValue;
-		bool bEvalResult = LexicalConversion::TryParseString( NewValue, *InString );
-		if (!bEvalResult)
+		static FBasicMathExpressionEvaluator Parser;
+
+		TValueOrError<double, FExpressionError> Result = Parser.Evaluate(*InString, double(InExistingValue));
+		if (Result.IsValid())
 		{
-			float FloatValue = 0.f;
-			bEvalResult = FMath::Eval( *InString, FloatValue  );
-			NewValue = FloatValue;
+			return NumericType(Result.GetValue());
 		}
 
-		return bEvalResult ? NewValue : TOptional<NumericType>();
+		return TOptional<NumericType>();
 	}
 
 	/** Check whether the typed character is valid */
-	virtual bool IsCharacterValid(TCHAR InChar) const override;	
+	virtual bool IsCharacterValid(TCHAR InChar) const override
+	{
+		static FString ValidChars(TEXT("1234567890()-+=\\/.,*^%%"));
+		int32 OutUnused;
+		return ValidChars.FindChar(InChar, OutUnused);
+	}
 };
-
-template<typename T>
-bool TDefaultNumericTypeInterface<T>::IsCharacterValid(TCHAR InChar) const
-{
-	static FString ValidChars(TEXT("1234567890-.")); // for integers and doubles
-	int32 OutUnused;
-	return ValidChars.FindChar( InChar, OutUnused );
-}
-
-/** Specialized for floats */
-template<>
-inline bool TDefaultNumericTypeInterface<float>::IsCharacterValid(TCHAR InChar) const
-{
-	static FString ValidChars(TEXT("1234567890()-+=\\/.,*^%%"));
-	int32 OutUnused;
-	return ValidChars.FindChar( InChar, OutUnused );		
-}
 
 /** Forward declaration of types defined in UnitConversion.h */
 enum class EUnit;
@@ -84,7 +74,7 @@ struct TNumericUnitTypeInterface : TDefaultNumericTypeInterface<NumericType>
 	virtual FString ToString(const NumericType& Value) const override;
 
 	/** Attempt to parse a numeral with our units from the specified string. */
-	virtual TOptional<NumericType> FromString(const FString& ValueString) override;
+	virtual TOptional<NumericType> FromString(const FString& ValueString, const NumericType& InExistingValue) override;
 
 	/** Check whether the specified typed character is valid */
 	virtual bool IsCharacterValid(TCHAR InChar) const override;

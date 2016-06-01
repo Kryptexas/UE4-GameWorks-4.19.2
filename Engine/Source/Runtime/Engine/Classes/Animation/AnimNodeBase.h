@@ -131,6 +131,7 @@ public:
 struct FPoseContext : public FAnimationBaseContext
 {
 public:
+	/* These Pose/Curve is stack allocator. You should not use it outside of stack. */
 	FCompactPose	Pose;
 	FBlendedCurve	Curve;
 
@@ -387,7 +388,7 @@ public:
 #if ENABLE_ANIMNODE_POSE_DEBUG
 private:
 	// forwarded pose data from the wired node which current node's skeletal control is not applied yet
-	FCompactPose CurrentPose;
+	FCompactHeapPose CurrentPose;
 #endif //#if ENABLE_ANIMNODE_POSE_DEBUG
 };
 
@@ -424,13 +425,16 @@ struct FExposedValueCopyRecord
 		, DestArrayIndex(0)
 		, Size(0)
 		, PostCopyOperation(EPostCopyOperation::None)
+		, CachedBoolSourceProperty(nullptr)
+		, CachedBoolDestProperty(nullptr)
+		, CachedSourceContainer(nullptr)
+		, CachedDestContainer(nullptr)
 		, Source(nullptr)
 		, Dest(nullptr)
 	{}
 
 	void PostSerialize(const FArchive& Ar);
 
-	// HACK for hotfix - re-used for boolean property copies
 	UPROPERTY()
 	UProperty* SourceProperty_DEPRECATED;
 
@@ -455,10 +459,24 @@ struct FExposedValueCopyRecord
 	UPROPERTY()
 	EPostCopyOperation PostCopyOperation;
 
-	// Cached source copy ptr - HACK for hotfix - also cached container ptr for bools
+	// cached source property for performing boolean operations
+	UPROPERTY(Transient)
+	UBoolProperty* CachedBoolSourceProperty;
+
+	// cached dest property for performing boolean operations
+	UPROPERTY(Transient)
+	UBoolProperty* CachedBoolDestProperty;
+
+	// cached source container for use with boolean operations
+	void* CachedSourceContainer;
+
+	// cached dest container for use with boolean operations
+	void* CachedDestContainer;
+
+	// Cached source copy ptr
 	void* Source;
 
-	// Cached dest copy ptr - HACK for hotfix - also cached container ptr for bools
+	// Cached dest copy ptr
 	void* Dest;
 };
 
@@ -548,6 +566,15 @@ struct ENGINE_API FAnimNode_Base
 
 	/** Override this to perform game-thread work prior to non-game thread Update() being called */
 	virtual void PreUpdate(const UAnimInstance* InAnimInstance) {}
+
+	/**
+	 * For nodes that implement some kind of simulation, return true here so ResetDynamics() gets called
+	 * when things like teleports, time skips etc. occur that might require special handling
+	 */
+	virtual bool NeedsDynamicReset() const { return false; }
+
+	/** Override this to perform game-thread work prior to non-game thread Update() being called */
+	virtual void ResetDynamics() {}
 	// End of interface to implement
 
 	virtual ~FAnimNode_Base() {}

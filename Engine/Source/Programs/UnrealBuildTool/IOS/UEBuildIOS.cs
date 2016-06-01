@@ -265,7 +265,6 @@ namespace UnrealBuildTool
 			UEBuildConfiguration.bCompileSimplygon = false;
             UEBuildConfiguration.bCompileSimplygonSSF = false;
 			UEBuildConfiguration.bBuildDeveloperTools = false;
-			UEBuildConfiguration.bCompileICU = true;
 
 			// we currently don't have any simulator libs for PhysX
 			if (GetActiveArchitecture() == "-simulator")

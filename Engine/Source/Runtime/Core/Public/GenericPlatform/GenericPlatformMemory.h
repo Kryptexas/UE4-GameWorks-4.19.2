@@ -33,6 +33,17 @@ struct FGenericPlatformMemoryConstants
 	/** The size of a page, in bytes. */
 	SIZE_T PageSize;
 
+	/** 
+	* For platforms that support multiple page sizes this is non-zero and smaller than PageSize.
+	* If non-zero, then BinnedAllocFromOS will take allocation requests aligned to this size and return blocks aligned to PageSize
+	*/
+	SIZE_T OsAllocationGranularity;
+
+	// AddressLimit - Second parameter is estimate of the range of addresses expected to be returns by BinnedAllocFromOS(). Binned
+	// Malloc will adjust its internal structures to make lookups for memory allocations O(1) for this range. 
+	// It is ok to go outside this range, lookups will just be a little slower
+	uint64 AddressLimit;
+
 	/** Approximate physical RAM in GB; 1 on everything except PC. Used for "course tuning", like FPlatformMisc::NumberOfCores(). */
 	uint32 TotalPhysicalGB;
 
@@ -41,6 +52,8 @@ struct FGenericPlatformMemoryConstants
 		: TotalPhysical( 0 )
 		, TotalVirtual( 0 )
 		, PageSize( 0 )
+		, OsAllocationGranularity(0)
+		, AddressLimit((uint64)0xffffffff + 1)
 		, TotalPhysicalGB( 1 )
 	{}
 
@@ -49,7 +62,9 @@ struct FGenericPlatformMemoryConstants
 		: TotalPhysical( Other.TotalPhysical )
 		, TotalVirtual( Other.TotalVirtual )
 		, PageSize( Other.PageSize )
-		, TotalPhysicalGB( Other.TotalPhysicalGB )
+		, OsAllocationGranularity(Other.OsAllocationGranularity)
+		, AddressLimit(Other.AddressLimit)
+		, TotalPhysicalGB(Other.TotalPhysicalGB)
 	{}
 };
 
@@ -129,6 +144,7 @@ struct CORE_API FGenericPlatformMemory
 		MCR_GPU, // memory directly a GPU (graphics card, etc)
 		MCR_GPUSystem, // system memory directly accessible by a GPU
 		MCR_TexturePool, // presized texture pools
+		MCR_GPUDefragPool, // presized pool of memory that can be defragmented.
 		MCR_MAX
 	};
 
@@ -224,6 +240,17 @@ struct CORE_API FGenericPlatformMemory
 	static uint32 GetPhysicalGBRam();
 
 	/**
+	 * Changes the protection on a region of committed pages in the virtual address space.
+	 *
+	 * @param Ptr Address to the starting page of the region of pages whose access protection attributes are to be changed.
+	 * @param Size The size of the region whose access protection attributes are to be changed, in bytes.
+	 * @param bCanRead Can the memory be read.
+	 * @param bCanWrite Can the memory be written to.
+	 * @return True if the specified pages' protection mode was changed.
+	 */
+	static bool PageProtect(void* const Ptr, const SIZE_T Size, const bool bCanRead, const bool bCanWrite);
+
+	/**
 	 * Allocates pages from the OS.
 	 *
 	 * @param Size Size to allocate, not necessarily aligned
@@ -308,13 +335,16 @@ private:
 		B = Tmp;
 	}
 
-	static void MemswapImpl( void* Ptr1, void* Ptr2, SIZE_T Size );
+	static void MemswapGreaterThan8( void* Ptr1, void* Ptr2, SIZE_T Size );
 
 public:
 	static inline void Memswap( void* Ptr1, void* Ptr2, SIZE_T Size )
 	{
 		switch (Size)
 		{
+			case 0:
+				break;
+
 			case 1:
 				Valswap(*(uint8*)Ptr1, *(uint8*)Ptr2);
 				break;
@@ -323,8 +353,29 @@ public:
 				Valswap(*(uint16*)Ptr1, *(uint16*)Ptr2);
 				break;
 
+			case 3:
+				Valswap(*((uint16*&)Ptr1)++, *((uint16*&)Ptr2)++);
+				Valswap(*(uint8*)Ptr1, *(uint8*)Ptr2);
+				break;
+
 			case 4:
 				Valswap(*(uint32*)Ptr1, *(uint32*)Ptr2);
+				break;
+
+			case 5:
+				Valswap(*((uint32*&)Ptr1)++, *((uint32*&)Ptr2)++);
+				Valswap(*(uint8*)Ptr1, *(uint8*)Ptr2);
+				break;
+
+			case 6:
+				Valswap(*((uint32*&)Ptr1)++, *((uint32*&)Ptr2)++);
+				Valswap(*(uint16*)Ptr1, *(uint16*)Ptr2);
+				break;
+
+			case 7:
+				Valswap(*((uint32*&)Ptr1)++, *((uint32*&)Ptr2)++);
+				Valswap(*((uint16*&)Ptr1)++, *((uint16*&)Ptr2)++);
+				Valswap(*(uint8*)Ptr1, *(uint8*)Ptr2);
 				break;
 
 			case 8:
@@ -337,7 +388,7 @@ public:
 				break;
 
 			default:
-				MemswapImpl(Ptr1, Ptr2, Size);
+				MemswapGreaterThan8(Ptr1, Ptr2, Size);
 				break;
 		}
 	}

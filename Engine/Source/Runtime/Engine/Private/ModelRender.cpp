@@ -27,6 +27,8 @@ namespace
 
 }	// anon namespace
 
+DEFINE_LOG_CATEGORY_STATIC(LogModelComponent, Log, All);
+
 /*-----------------------------------------------------------------------------
 FModelVertexBuffer
 -----------------------------------------------------------------------------*/
@@ -250,7 +252,7 @@ public:
 				{
 					ESceneDepthPriorityGroup DepthPriorityGroup = (ESceneDepthPriorityGroup)GetDepthPriorityGroup(View);
 
-					const FMaterialRenderProxy* MatProxyOverride = NULL;
+					const FMaterialRenderProxy* MatProxyOverride = nullptr;
 
 #if WITH_EDITOR
 					if(bInCollisionView && AllowDebugViewmodes())
@@ -350,7 +352,7 @@ public:
 												FMeshBatchElement& BatchElement = MeshElement.Elements[0];
 												BatchElement.IndexBuffer = IndexAllocation.IndexBuffer;
 												MeshElement.VertexFactory = &Component->GetModel()->VertexFactory;
-												MeshElement.MaterialRenderProxy = (MatProxyOverride != NULL) ? MatProxyOverride : ProxyElementInfo.GetMaterial()->GetRenderProxy(bOnlySelectedSurfaces, bOnlyHoveredSurfaces);
+												MeshElement.MaterialRenderProxy = (MatProxyOverride != nullptr) ? MatProxyOverride : ProxyElementInfo.GetMaterial()->GetRenderProxy(bOnlySelectedSurfaces, bOnlyHoveredSurfaces);
 												MeshElement.LCI = &ProxyElementInfo;
 												BatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();
 												BatchElement.FirstIndex = FirstIndex;
@@ -385,7 +387,7 @@ public:
 								FMeshBatchElement& BatchElement = MeshElement.Elements[0];
 								BatchElement.IndexBuffer = ModelElement.IndexBuffer;
 								MeshElement.VertexFactory = &Component->GetModel()->VertexFactory;
-								MeshElement.MaterialRenderProxy = (MatProxyOverride != NULL) ? MatProxyOverride : Elements[ElementIndex].GetMaterial()->GetRenderProxy(false);
+								MeshElement.MaterialRenderProxy = (MatProxyOverride != nullptr) ? MatProxyOverride : Elements[ElementIndex].GetMaterial()->GetRenderProxy(false);
 								MeshElement.LCI = &Elements[ElementIndex];
 								BatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();
 								BatchElement.FirstIndex = ModelElement.FirstIndex;
@@ -557,13 +559,19 @@ private:
 			, ModelElement(InModelElement)
 			, Bounds(ModelElement.BoundingBox)
 		{
-			const bool bHasStaticLighting = ModelElement.LightMap != NULL || ModelElement.ShadowMap != NULL;
+			const bool bHasStaticLighting = ModelElement.LightMap != nullptr || ModelElement.ShadowMap != nullptr;
 
 			// Determine the material applied to the model element.
 			Material = ModelElement.Material;
 
+			if (RequiresAdjacencyInformation(Material, InModelElement.Component->GetModel()->VertexFactory.GetType(), InModelElement.Component->GetScene()->GetFeatureLevel()))
+			{
+				UE_LOG(LogModelComponent, Warning, TEXT("Material %s requires adjacency information because of Crack Free Displacement or PN Triangle Tesselation, which is not supported with model components. Falling back to DefaultMaterial."), *Material->GetName());
+				Material = nullptr;
+			}
+
 			// If there isn't an applied material, or if we need static lighting and it doesn't support it, fall back to the default material.
-			if(!ModelElement.Material || (bHasStaticLighting && !ModelElement.Material->CheckMaterialUsage(MATUSAGE_StaticLighting)))
+			if(!Material || (bHasStaticLighting && !Material->CheckMaterialUsage(MATUSAGE_StaticLighting)))
 			{
 				Material = UMaterial::GetDefaultMaterial(MD_Surface);
 			}
@@ -647,7 +655,7 @@ public:
 	 *	@param	Index			The index of interest
 	 *
 	 *	@return	FElementInfo*	The element info at that index.
-	 *							NULL if out of range.
+	 *							nullptr if out of range.
 	 */
 	const FElementInfo* GetElement(int32 Index) const 
 	{
@@ -655,7 +663,7 @@ public:
 		{
 			return &(Elements[Index]);
 		}
-		return NULL;
+		return nullptr;
 	}
 
 	virtual void GetLCIs(FLCIArray& LCIs) override

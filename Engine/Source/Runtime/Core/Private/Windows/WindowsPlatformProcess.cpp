@@ -42,7 +42,7 @@ void* FWindowsPlatformProcess::GetDllHandle( const TCHAR* Filename )
 {
 	check(Filename);
 
-	// In order to load the DLL and resolve its imports correctly, we update the PATH environment variable before the load, and restore it when we're done.
+	// In order to load the DLL and resolve its imports correctly, we update the PATH environment variable before the load, and restore it when we're done. 
 	TArray<TCHAR> InitialPathVariable;
 	InitialPathVariable.AddUninitialized(::GetEnvironmentVariable(TEXT("PATH"), NULL, 0));
 	if (::GetEnvironmentVariable(TEXT("PATH"), InitialPathVariable.GetData(), InitialPathVariable.Num()) == 0)
@@ -718,28 +718,46 @@ const TCHAR* FWindowsPlatformProcess::BaseDir()
 	static TCHAR Result[512]=TEXT("");
 	if( !Result[0] )
 	{
-		// Get directory this executable was launched from.
-		GetModuleFileName( hInstance, Result, ARRAY_COUNT(Result) );
-		FString TempResult(Result);
-		TempResult = TempResult.Replace(TEXT("\\"), TEXT("/"));
-		FCString::Strcpy(Result, *TempResult);
-		int32 StringLength = FCString::Strlen(Result);
-		if(StringLength > 0)
+		// Normally the BaseDir is determined from the path of the running process module, 
+		// but for debugging, particularly client or server, it can be useful to point the
+		// code at an existing cooked directory. If using -BaseFromWorkingDir set the
+		// workingdir in your debugger to the <path>/Project/Binaries/Win64 of your cooked
+		// data
+		// Too early to use the FCommand line interface
+		if (FCString::Stristr(::GetCommandLine(), TEXT("-BaseFromWorkingDir")))
 		{
-			--StringLength;
-			for(; StringLength > 0; StringLength-- )
+			::GetCurrentDirectory(512, Result);
+
+			FString TempResult(Result);
+			TempResult = TempResult.Replace(TEXT("\\"), TEXT("/"));
+			TempResult += TEXT('/');
+			FCString::Strcpy(Result, *TempResult);
+		}
+		else
+		{
+			// Get directory this executable was launched from.
+			GetModuleFileName(hInstance, Result, ARRAY_COUNT(Result));
+			FString TempResult(Result);
+			TempResult = TempResult.Replace(TEXT("\\"), TEXT("/"));
+			FCString::Strcpy(Result, *TempResult);
+			int32 StringLength = FCString::Strlen(Result);
+			if (StringLength > 0)
 			{
-				if( Result[StringLength - 1] == TEXT('/') || Result[StringLength - 1] == TEXT('\\') )
+				--StringLength;
+				for (; StringLength > 0; StringLength--)
 				{
-					break;
+					if (Result[StringLength - 1] == TEXT('/') || Result[StringLength - 1] == TEXT('\\'))
+					{
+						break;
+					}
 				}
 			}
-		}
-		Result[StringLength] = 0;
+			Result[StringLength] = 0;
 
-		FString CollapseResult(Result);
-		FPaths::CollapseRelativeDirectories(CollapseResult);
-		FCString::Strcpy(Result, *CollapseResult);
+			FString CollapseResult(Result);
+			FPaths::CollapseRelativeDirectories(CollapseResult);
+			FCString::Strcpy(Result, *CollapseResult);
+		}
 	}
 	return Result;
 }

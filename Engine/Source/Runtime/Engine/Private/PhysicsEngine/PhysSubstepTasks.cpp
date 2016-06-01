@@ -4,8 +4,6 @@
 #include "PhysicsPublic.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 
-#if WITH_SUBSTEPPING
-
 #if WITH_PHYSX
 #include "PhysXSupport.h"
 #include "../Vehicles/PhysXVehicleManager.h"
@@ -361,7 +359,7 @@ void FPhysSubstepTask::SubstepSimulationStart()
 	PhysXCompletionTask* SubstepTask = new PhysXCompletionTask(CompletionEvent,
 		 PST_MAX //we don't care about sub-step time. The full time is recorded by FullSimulationTask
 		,PAScene->getTaskManager());
-	ENamedThreads::Type NamedThread = PhysSingleThreadedMode() ? ENamedThreads::GameThread : ENamedThreads::HiPri(ENamedThreads::AnyThread);
+	ENamedThreads::Type NamedThread = PhysSingleThreadedMode() ? ENamedThreads::GameThread : ENamedThreads::SetTaskPriority(ENamedThreads::GameThread, ENamedThreads::HighTaskPriority);
 
 	DECLARE_CYCLE_STAT(TEXT("FDelegateGraphTask.ProcessPhysSubstepSimulation"),
 		STAT_FDelegateGraphTask_ProcessPhysSubstepSimulation,
@@ -369,7 +367,7 @@ void FPhysSubstepTask::SubstepSimulationStart()
 
 	FDelegateGraphTask::CreateAndDispatchWhenReady(
 		FDelegateGraphTask::FDelegate::CreateRaw(this, &FPhysSubstepTask::SubstepSimulationEnd),
-		GET_STATID(STAT_FDelegateGraphTask_ProcessPhysSubstepSimulation), CompletionEvent, NamedThread, NamedThread);
+		GET_STATID(STAT_FDelegateGraphTask_ProcessPhysSubstepSimulation), CompletionEvent, ENamedThreads::GameThread, NamedThread);
 
 	++CurrentSubStep;	
 
@@ -449,5 +447,3 @@ void FPhysSubstepTask::SetVehicleManager(FPhysXVehicleManager * InVehicleManager
 {
 	VehicleManager = InVehicleManager;
 }
-
-#endif //if WITH_SUBSTEPPING

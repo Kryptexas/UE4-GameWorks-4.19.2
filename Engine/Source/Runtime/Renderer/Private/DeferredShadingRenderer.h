@@ -61,18 +61,17 @@ public:
 
 	/**
 	 * Renders the scene's prepass for a particular view in parallel
+	 * @return true if the depth was cleared
 	 */
-	void RenderPrePassViewParallel(const FViewInfo& View, FRHICommandListImmediate& ParentCmdList);
+	bool RenderPrePassViewParallel(const FViewInfo& View, FRHICommandListImmediate& ParentCmdList, TFunctionRef<void()> AfterTasksAreStarted, bool bDoPrePre);
 
 	/** Renders the basepass for the static data of a given View. */
 	bool RenderBasePassStaticData(FRHICommandList& RHICmdList, FViewInfo& View);
-	bool RenderBasePassStaticDataMasked(FRHICommandList& RHICmdList, FViewInfo& View);
-	bool RenderBasePassStaticDataDefault(FRHICommandList& RHICmdList, FViewInfo& View);
+	bool RenderBasePassStaticDataType(FRHICommandList& RHICmdList, FViewInfo& View, const EBasePassDrawListType DrawType);
 
 	/** Renders the basepass for the static data of a given View. Parallel versions.*/
 	void RenderBasePassStaticDataParallel(FParallelCommandListSet& ParallelCommandListSet);
-	void RenderBasePassStaticDataMaskedParallel(FParallelCommandListSet& ParallelCommandListSet);
-	void RenderBasePassStaticDataDefaultParallel(FParallelCommandListSet& ParallelCommandListSet);
+	void RenderBasePassStaticDataTypeParallel(FParallelCommandListSet& ParallelCommandListSet, const EBasePassDrawListType DrawType);
 
 	/** Asynchronously sorts base pass draw lists front to back for improved GPU culling. */
 	void AsyncSortBasePassStaticData(const FVector ViewPosition, FGraphEventArray &SortEvents);
@@ -126,6 +125,7 @@ private:
 
 	// fences to make sure the rhi thread has digested the occlusion query renders before we attempt to read them back async
 	static FGraphEventRef OcclusionSubmittedFence[FOcclusionQueryHelpers::MaxBufferedOcclusionFrames];
+	static FGraphEventRef TranslucencyTimestampQuerySubmittedFence[FOcclusionQueryHelpers::MaxBufferedOcclusionFrames + 1];
 
 	/** Creates a per object projected shadow for the given interaction. */
 	void CreatePerObjectProjectedShadow(
@@ -157,15 +157,26 @@ private:
 	bool CheckForLightFunction(const FLightSceneInfo* LightSceneInfo) const;
 
 	/** Determines which primitives are visible for each view. */
-	void InitViews(FRHICommandListImmediate& RHICmdList);
+	bool InitViews(FRHICommandListImmediate& RHICmdList, struct FILCUpdatePrimTaskData& ILCTaskData, FGraphEventArray& SortEvents);
+
+	void InitViewsPossiblyAfterPrepass(FRHICommandListImmediate& RHICmdList, struct FILCUpdatePrimTaskData& ILCTaskData, FGraphEventArray& SortEvents);
+
+	/** Updates auto-downsampling of separate translucency and sets FSceneRenderTargets::SeparateTranslucencyBufferSize */
+	void UpdateSeparateTranslucencyBufferSize(FRHICommandListImmediate& RHICmdList);
 
 	void CreateIndirectCapsuleShadows();
 
 	/**
+	* Setup the prepass. This is split out so that in parallel we can do the fx prerender after we start the parallel tasks
+	* @return true if the depth was cleared
+	*/
+	bool PreRenderPrePass(FRHICommandListImmediate& RHICmdList);
+
+	/**
 	 * Renders the scene's prepass and occlusion queries.
-	 * @return true if anything was rendered
+	 * @return true if the depth was cleared
 	 */
-	bool RenderPrePass(FRHICommandListImmediate& RHICmdList, bool bDepthWasCleared);
+	bool RenderPrePass(FRHICommandListImmediate& RHICmdList, TFunctionRef<void()> AfterTasksAreStarted);
 
 	/**
 	 * Renders the active HMD's hidden area mask as a depth prepass, if available.
@@ -174,7 +185,7 @@ private:
 	bool RenderPrePassHMD(FRHICommandListImmediate& RHICmdList);
 
 	/** Issues occlusion queries. */
-	void BeginOcclusionTests(FRHICommandListImmediate& RHICmdList, bool bRenderQueries, bool bRenderHZB);
+	void BeginOcclusionTests(FRHICommandListImmediate& RHICmdList, bool bRenderQueries);
 
 	/** Renders the scene's fogging. */
 	bool RenderFog(FRHICommandListImmediate& RHICmdList, const FLightShaftsOutput& LightShaftsOutput);
@@ -188,6 +199,12 @@ private:
 	/** Render dynamic sky lighting from Movable sky lights. */
 	void RenderDynamicSkyLighting(FRHICommandListImmediate& RHICmdList, const TRefCountPtr<IPooledRenderTarget>& VelocityTexture, TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO);
 
+	/** Computes DFAO, modulates it to scene color (which is assumed to contain diffuse indirect lighting), and stores the output bent normal for use occluding specular. */
+	void RenderDFAOAsIndirectShadowing(
+		FRHICommandListImmediate& RHICmdList,
+		const TRefCountPtr<IPooledRenderTarget>& VelocityTexture,
+		TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO);
+
 	/** Render Ambient Occlusion using mesh distance fields and the surface cache, which supports dynamic rigid meshes. */
 	bool RenderDistanceFieldLighting(
 		FRHICommandListImmediate& RHICmdList, 
@@ -195,6 +212,7 @@ private:
 		const TRefCountPtr<IPooledRenderTarget>& VelocityTexture,
 		TRefCountPtr<IPooledRenderTarget>& OutDynamicBentNormalAO, 
 		TRefCountPtr<IPooledRenderTarget>& OutDynamicIrradiance,
+		bool bModulateToSceneColor,
 		bool bVisualizeAmbientOcclusion,
 		bool bVisualizeGlobalIllumination);
 
@@ -208,6 +226,14 @@ private:
 		const TRefCountPtr<IPooledRenderTarget>& DistanceFieldNormal, 
 		TRefCountPtr<IPooledRenderTarget>& OutDynamicBentNormalAO, 
 		TRefCountPtr<IPooledRenderTarget>& OutDynamicIrradiance);
+
+	void RenderDistanceFieldSpecularOcclusion(
+		FRHICommandListImmediate& RHICmdList, 
+		const FViewInfo& View,
+		FIntPoint TileListGroupSize,
+		const FDistanceFieldAOParameters& Parameters, 
+		const TRefCountPtr<IPooledRenderTarget>& DistanceFieldNormal, 
+		TRefCountPtr<IPooledRenderTarget>& OutSpecularOcclusion);
 
 	void RenderMeshDistanceFieldVisualization(FRHICommandListImmediate& RHICmdList, const FDistanceFieldAOParameters& Parameters);
 
@@ -229,6 +255,12 @@ private:
 	/** Render stationary light overlap as complexity to scene color. */
 	void RenderStationaryLightOverlap(FRHICommandListImmediate& RHICmdList);
 	
+	/** Issues a timestamp query for the beginning of the separate translucency pass. */
+	void BeginTimingSeparateTranslucencyPass(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
+
+	/** Issues a timestamp query for the end of the separate translucency pass. */
+	void EndTimingSeparateTranslucencyPass(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
+
 	/** 
 	 * Renders the scene's translucency, parallel version
 	 */
@@ -270,7 +302,7 @@ private:
 	void UpdateDownsampledDepthSurface(FRHICommandList& RHICmdList);
 
 	/** Downsample the scene depth with a specified scale factor to a specified render target*/
-	void DownsampleDepthSurface(FRHICommandList& RHICmdList, const FTexture2DRHIRef& RenderTarget, const FViewInfo &View, float ScaleFactor, float MinMaxFilterBlend = 0.0f);
+	void DownsampleDepthSurface(FRHICommandList& RHICmdList, const FTexture2DRHIRef& RenderTarget, const FViewInfo& View, float ScaleFactor, bool bUseMaxDepth);
 
 	void CopyStencilToLightingChannelTexture(FRHICommandList& RHICmdList);
 
@@ -367,6 +399,8 @@ private:
 
 	/** Render image based reflections (SSR, Env, SkyLight) without compute shaders */
 	void RenderStandardDeferredImageBasedReflections(FRHICommandListImmediate& RHICmdList, bool bReflectionEnv, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO);
+
+	bool RenderDeferredPlanarReflections(FRHICommandListImmediate& RHICmdList, bool bLightAccumulationIsInUse, TRefCountPtr<IPooledRenderTarget>& Output);
 
 	bool ShouldDoReflectionEnvironment() const;
 	

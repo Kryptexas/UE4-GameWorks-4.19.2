@@ -39,6 +39,7 @@ namespace SteamVRControllerKeyNames
 
 class FSteamVRController : public IInputDevice, public IMotionController
 {
+#if STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 	FSteamVRHMD* GetSteamVRHMD() const
 	{
 		if (GEngine->HMDDevice.IsValid() && (GEngine->HMDDevice->GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR))
@@ -48,6 +49,7 @@ class FSteamVRController : public IInputDevice, public IMotionController
 
 		return nullptr;
 	}
+#endif // STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 
 public:
 
@@ -80,11 +82,11 @@ public:
 		};
 	};
 
-
 	FSteamVRController(const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler)
 		: MessageHandler(InMessageHandler),
 		  SteamVRPlugin(nullptr)
 	{
+#if STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 		FMemory::Memzero(ControllerStates, sizeof(ControllerStates));
 
 		for (int32 i=0; i < vr::k_unMaxTrackedDeviceCount; ++i)
@@ -125,14 +127,14 @@ public:
 		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TouchPadRight ] = FGamepadKeyNames::MotionController_Right_FaceButton2;
 
 		IModularFeatures::Get().RegisterModularFeature(GetModularFeatureName(), this);
-
-		//@todo:  fix this.  construction of the controller happens after InitializeMotionControllers(), so we manually insert into the array here.
-		GEngine->MotionControllerDevices.AddUnique(this);
+#endif // STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 	}
 
 	virtual ~FSteamVRController()
 	{
-		GEngine->MotionControllerDevices.Remove(this);
+#if STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
+		IModularFeatures::Get().UnregisterModularFeature(GetModularFeatureName(), this);
+#endif // STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 	}
 
 	virtual void Tick( float DeltaTime ) override
@@ -141,6 +143,7 @@ public:
 
 	virtual void SendControllerEvents() override
 	{
+#if STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 		vr::VRControllerState_t VRControllerState;
 
 		vr::IVRSystem* VRSystem = GetVRSystem();
@@ -298,17 +301,19 @@ public:
 				}
 			}
 		}
+#endif // STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 	}
 
-
+#if STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 	int32 UnrealControllerIdToControllerIndex( const int32 UnrealControllerId, const EControllerHand Hand ) const
 	{
 		return UnrealControllerId * CONTROLLERS_PER_PLAYER + (int32)Hand;
 	}
-
+#endif // STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 	
 	void SetChannelValue(int32 UnrealControllerId, FForceFeedbackChannelType ChannelType, float Value) override
 	{
+#if STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 		// Skip unless this is the left or right large channel, which we consider to be the only SteamVRController feedback channel
 		if( ChannelType != FForceFeedbackChannelType::LEFT_LARGE && ChannelType != FForceFeedbackChannelType::RIGHT_LARGE )
 		{
@@ -326,10 +331,12 @@ public:
 
 			UpdateVibration( ControllerIndex );
 		}
+#endif // STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 	}
 
 	void SetChannelValues(int32 UnrealControllerId, const FForceFeedbackValues& Values) override
 	{
+#if STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 		const int32 LeftControllerIndex = UnrealControllerIdToControllerIndex( UnrealControllerId, EControllerHand::Left );
 		if ((LeftControllerIndex >= 0) && ( LeftControllerIndex < MaxControllers))
 		{
@@ -347,8 +354,10 @@ public:
 
 			UpdateVibration( RightControllerIndex );
 		}
+#endif // STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 	}
 
+#if STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 	void UpdateVibration( const int32 ControllerIndex )
 	{
 		// make sure there is a valid device for this controller
@@ -373,16 +382,23 @@ public:
 			VRSystem->TriggerHapticPulse(DeviceIndex, TOUCHPAD_AXIS, LeftIntensity);
 		}
 	}
+#endif // STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 
 	virtual void SetMessageHandler( const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler ) override
 	{
 		MessageHandler = InMessageHandler;
 	}
 
+	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override
+	{
+		return false;
+	}
+
 	virtual bool GetControllerOrientationAndPosition(const int32 ControllerIndex, const EControllerHand DeviceHand, FRotator& OutOrientation, FVector& OutPosition) const
 	{
 		bool RetVal = false;
 
+#if STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
  		FSteamVRHMD* SteamVRHMD = GetSteamVRHMD();
  		if (SteamVRHMD)
  		{
@@ -390,6 +406,7 @@ public:
  			RetVal = SteamVRHMD->GetControllerHandPositionAndOrientation(ControllerIndex, DeviceHand, OutPosition, DeviceOrientation);
  			OutOrientation = DeviceOrientation.Rotator();
  		}
+#endif // STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 
 		return RetVal;
 	}
@@ -398,20 +415,18 @@ public:
 	{
 		ETrackingStatus TrackingStatus = ETrackingStatus::NotTracked;
 
+#if STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 		FSteamVRHMD* SteamVRHMD = GetSteamVRHMD();
  		if (SteamVRHMD)
  		{
 			TrackingStatus = SteamVRHMD->GetControllerTrackingStatus(ControllerIndex, DeviceHand);
  		}
+#endif // STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 
 		return TrackingStatus;
 	}
 
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override
-	{
-		return false;
-	}
-
+#if STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 private:
 
 	inline vr::IVRSystem* GetVRSystem()
@@ -473,14 +488,15 @@ private:
 	/** Mapping of controller buttons */
 	FGamepadKeyNames::Type Buttons[ CONTROLLERS_PER_PLAYER ][ ESteamVRControllerButton::TotalButtonCount ];
 
+	/** weak pointer to the IVRSystem owned by the HMD module */
+	TWeakPtr<vr::IVRSystem> HMDVRSystem;
+#endif // STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
+
 	/** handler to send all messages to */
 	TSharedRef<FGenericApplicationMessageHandler> MessageHandler;
 
 	/** the SteamVR plugin module */
 	ISteamVRPlugin* SteamVRPlugin;
-
-	/** weak pointer to the IVRSystem owned by the HMD module */
-	TWeakPtr<vr::IVRSystem> HMDVRSystem;
 };
 
 

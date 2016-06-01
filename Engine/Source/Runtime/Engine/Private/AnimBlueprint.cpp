@@ -5,6 +5,11 @@
 #include "LatentActions.h"
 #include "Animation/AnimBlueprint.h"
 #include "Animation/AnimBlueprintGeneratedClass.h"
+#include "FrameworkObjectVersion.h"
+
+#if WITH_EDITORONLY_DATA
+#include "AnimationEditorUtils.h"
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 // UAnimBlueprint
@@ -149,6 +154,19 @@ void UAnimBlueprint::PostLoad()
 		});
 	}
 #endif
+
+#if WITH_EDITORONLY_DATA
+	if(GetLinkerCustomVersion(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::AnimBlueprintSubgraphFix)
+	{
+		AnimationEditorUtils::RegenerateSubGraphArrays(this);
+	}
+#endif
+}
+
+void UAnimBlueprint::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
 }
 
 #endif

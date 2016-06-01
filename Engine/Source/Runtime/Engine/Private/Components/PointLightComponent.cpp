@@ -165,14 +165,14 @@ void UPointLightComponent::SetSourceLength(float NewValue)
 	}
 }
 
-bool UPointLightComponent::AffectsBounds(const FBoxSphereBounds& Bounds) const
+bool UPointLightComponent::AffectsBounds(const FBoxSphereBounds& InBounds) const
 {
-	if((Bounds.Origin - ComponentToWorld.GetLocation()).SizeSquared() > FMath::Square(AttenuationRadius + Bounds.SphereRadius))
+	if((InBounds.Origin - ComponentToWorld.GetLocation()).SizeSquared() > FMath::Square(AttenuationRadius + InBounds.SphereRadius))
 	{
 		return false;
 	}
 
-	if(!Super::AffectsBounds(Bounds))
+	if(!Super::AffectsBounds(InBounds))
 	{
 		return false;
 	}

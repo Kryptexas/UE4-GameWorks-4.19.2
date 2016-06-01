@@ -916,8 +916,10 @@ namespace ImportExportAssetHelper
 
 				TArray<FColor> OutImageData;
 				FIntVector OutImageSize;
-				FSlateApplication::Get().TakeScreenshot(WindowRef, OutImageData, OutImageSize);
-				FAutomationTestFramework::GetInstance().OnScreenshotCaptured().ExecuteIfBound(OutImageSize.X, OutImageSize.Y, OutImageData, ScreenshotName);
+				if (FSlateApplication::Get().TakeScreenshot(WindowRef, OutImageData, OutImageSize))
+				{
+					FAutomationTestFramework::GetInstance().OnScreenshotCaptured().ExecuteIfBound(OutImageSize.X, OutImageSize.Y, OutImageData, ScreenshotName);
+				}
 
 				//Close the editor
 				FAssetEditorManager::Get().CloseAllAssetEditors();

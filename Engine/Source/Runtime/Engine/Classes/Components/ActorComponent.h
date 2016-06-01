@@ -34,6 +34,38 @@ enum class ETeleportType
 
 FORCEINLINE ETeleportType TeleportFlagToEnum(bool bTeleport) { return bTeleport ? ETeleportType::TeleportPhysics : ETeleportType::None; }
 
+/** Information about how to update transform*/
+enum class EUpdateTransformFlags : int32
+{
+	None = 0x0,
+	SkipPhysicsUpdate = 0x1,	//Don't update the underlying physics
+	PropagateFromParent = 0x2	//The update is coming as a result of the parent updating (i.e. not called directly)
+
+};
+
+CONSTEXPR inline EUpdateTransformFlags operator|(EUpdateTransformFlags Left, EUpdateTransformFlags Right)
+{
+	return static_cast<EUpdateTransformFlags> ( static_cast<int32> (Left) | static_cast<int32> (Right) );
+}
+
+CONSTEXPR inline EUpdateTransformFlags operator&(EUpdateTransformFlags Left, EUpdateTransformFlags Right)
+{
+	return static_cast<EUpdateTransformFlags> (static_cast<int32> (Left) & static_cast<int32> (Right));
+}
+
+CONSTEXPR inline bool operator !(EUpdateTransformFlags Value)
+{
+	return Value == EUpdateTransformFlags::None;
+}
+
+CONSTEXPR inline EUpdateTransformFlags operator ~(EUpdateTransformFlags Value)
+{
+	return static_cast<EUpdateTransformFlags>(~static_cast<int32>(Value));
+}
+
+
+FORCEINLINE EUpdateTransformFlags SkipPhysicsToEnum(bool bSkipPhysics){ return bSkipPhysics ? EUpdateTransformFlags::SkipPhysicsUpdate : EUpdateTransformFlags::None; }
+
 /**
  * ActorComponent is the base class for components that define reusable behavior that can be added to different types of Actors.
  * ActorComponents that have a transform are known as SceneComponents and those that can be rendered are PrimitiveComponents.
@@ -186,7 +218,7 @@ public:
 	EComponentCreationMethod CreationMethod;
 
 private:
-	mutable AActor* Owner;
+	mutable AActor* OwnerPrivate;
 
 	UPROPERTY()
 	TArray<FSimpleMemberReference> UCSModifiedProperties;
@@ -278,7 +310,7 @@ public:
 	/** IsSupportedForNetworking means an object can be referenced over the network */
 	virtual bool IsSupportedForNetworking() const override;
 
-	/** Enable or disable replication. This is the equivelent of RemoteRole for actors (only a bool is required for components) */
+	/** Enable or disable replication. This is the equivalent of RemoteRole for actors (only a bool is required for components) */
 	UFUNCTION(BlueprintCallable, Category="Components")
 	void SetIsReplicated(bool ShouldReplicate);
 
@@ -299,7 +331,7 @@ public:
 	/** Returns whether this component is an editor-only object or not */
 	virtual bool IsEditorOnly() const { return false; }
 
-	/** Returns neat role of the owning actor */
+	/** Returns net role of the owning actor */
 	/** Returns true if we are replicating and not authorative */
 	bool	IsNetSimulating() const;
 
@@ -307,13 +339,15 @@ public:
 
 	ENetMode GetNetMode() const;
 
-protected:
+private:
 
 	/** 
 	 * Pointer to the world that this component is currently registered with. 
 	 * This is only non-NULL when the component is registered.
 	 */
-	UWorld* World;
+	UWorld* WorldPrivate;
+
+protected:
 
 	/** "Trigger" related function. Return true if it should activate **/
 	virtual bool ShouldActivate() const;
@@ -518,7 +552,7 @@ public:
 	void DoDeferredRenderUpdates_Concurrent();
 
 	/** Recalculate the value of our component to world transform */
-	virtual void UpdateComponentToWorld(bool bSkipPhysicsMove = false, ETeleportType Teleport = ETeleportType::None){}
+	virtual void UpdateComponentToWorld(EUpdateTransformFlags UpdateTransformFlags = EUpdateTransformFlags::None, ETeleportType Teleport = ETeleportType::None){}
 
 	/** Mark the render state as dirty - will be sent to the render thread at the end of the frame. */
 	void MarkRenderStateDirty();
@@ -728,16 +762,16 @@ FORCEINLINE_DEBUGGABLE class AActor* UActorComponent::GetOwner() const
 	// During undo/redo the cached owner is unreliable so just used GetTypedOuter
 	if (bCanUseCachedOwner)
 	{
-		checkSlow(Owner == GetTypedOuter<AActor>()); // verify cached value is correct
-		return Owner;
+		checkSlow(OwnerPrivate == GetTypedOuter<AActor>()); // verify cached value is correct
+		return OwnerPrivate;
 	}
 	else
 	{
 		return GetTypedOuter<AActor>();
 	}
 #else
-	checkSlow(Owner == GetTypedOuter<AActor>()); // verify cached value is correct
-	return Owner;
+	checkSlow(OwnerPrivate == GetTypedOuter<AActor>()); // verify cached value is correct
+	return OwnerPrivate;
 #endif
 }
 

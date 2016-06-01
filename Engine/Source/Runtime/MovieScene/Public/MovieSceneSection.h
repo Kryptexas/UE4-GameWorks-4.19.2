@@ -9,19 +9,19 @@
 /**
  * Base class for movie scene sections
  */
-UCLASS( abstract, MinimalAPI )
+UCLASS(abstract, MinimalAPI)
 class UMovieSceneSection
 	: public UObject
 {
 	GENERATED_UCLASS_BODY()
 public:
 
-	/*
-	 * Calls Modify if this section can be modified. ie. can't be modified if it's locked
+	/**
+	 * Calls Modify if this section can be modified, i.e. can't be modified if it's locked
 	 *
-	 * @return The return value of Modify()
+	 * @return Returns whether this section is locked or not
 	 */
-	virtual MOVIESCENE_API bool TryModify( bool bAlwaysMarkDirty=true );
+	virtual MOVIESCENE_API bool TryModify(bool bAlwaysMarkDirty=true);
 
 	/**
 	 * @return The start time of the section
@@ -52,7 +52,7 @@ public:
 	 * 
 	 * @param InEndTime	The new end time
 	 */
-	void SetStartTime( float NewStartTime )
+	void SetStartTime(float NewStartTime)
 	{ 
 		if (TryModify())
 		{
@@ -65,7 +65,7 @@ public:
 	 * 
 	 * @param InEndTime	The new end time
 	 */
-	void SetEndTime( float NewEndTime )
+	void SetEndTime(float NewEndTime)
 	{ 
 		if (TryModify())
 		{
@@ -108,7 +108,7 @@ public:
 	 * @param Position	The position to check
 	 * @return true if the position is within the timespan, false otherwise
 	 */
-	bool IsTimeWithinSection( float Position ) const 
+	bool IsTimeWithinSection(float Position) const 
 	{
 		return Position >= StartTime && Position <= EndTime;
 	}
@@ -119,7 +119,7 @@ public:
 	 * @param DeltaTime	The distance in time to move the curve
 	 * @param KeyHandles The key handles to operate on
 	 */
-	virtual void MoveSection( float DeltaTime, TSet<FKeyHandle>& KeyHandles )
+	virtual void MoveSection(float DeltaTime, TSet<FKeyHandle>& KeyHandles)
 	{
 		if (TryModify())
 		{
@@ -135,7 +135,7 @@ public:
 	 * @param bFromStart Whether to dilate from the beginning or end (whichever stays put)
 	 * @param KeyHandles The key handles to operate on
 	 */
-	virtual void DilateSection( float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles )
+	virtual void DilateSection(float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles)
 	{
 		if (TryModify())
 		{
@@ -163,9 +163,21 @@ public:
 	/**
 	 * Get the key handles for the keys on the curves within this section
 	 *
-	 * @param KeyHandles The key handles of the keys on the curves within this section
+	 * @param OutKeyHandles Will contain the key handles of the keys on the curves within this section
+	 * @param TimeRange Optional time range that the keys must be in (default = all)
 	 */
-	virtual void GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const {};
+	virtual void GetKeyHandles(TSet<FKeyHandle>& OutKeyHandles, TRange<float> TimeRange) const { };
+
+	/**
+	 * Get the data structure representing the specified key.
+	 *
+	 * @param KeyHandle The handle of the key.
+	 * @return The key's data structure representation, or nullptr if key not found or no structure available.
+	 */
+	virtual TSharedPtr<FStructOnScope> GetKeyStruct(const TArray<FKeyHandle>& KeyHandles)
+	{
+		return nullptr;
+	}
 
 	/**
 	 * Gets all snap times for this section
@@ -211,7 +223,7 @@ public:
 	 * @param KeyParams The keying parameters
 	 * @param bUnwindRotation Unwind rotation
 	 */
-	void MOVIESCENE_API AddKeyToCurve( FRichCurve& InCurve, float Time, float Value, EMovieSceneKeyInterpolation Interpolation, const bool bUnwindRotation = false );
+	void MOVIESCENE_API AddKeyToCurve(FRichCurve& InCurve, float Time, float Value, EMovieSceneKeyInterpolation Interpolation, const bool bUnwindRotation = false);
 
 	/**
 	 * Sets the default value for a curve.
@@ -219,7 +231,7 @@ public:
 	 * @param InCurve The curve to set a default value on.
 	 * @param Value The value to use as the default.
 	 */
-	void MOVIESCENE_API SetCurveDefault( FRichCurve& InCurve, float Value );
+	void MOVIESCENE_API SetCurveDefault(FRichCurve& InCurve, float Value);
 
 	/**
 	 * Checks to see if this section overlaps with an array of other sections
@@ -253,6 +265,12 @@ public:
 	/** Whether or not this section is infinite. An infinite section will draw the entire width of the track. StartTime and EndTime will be ignored but not discarded. */
 	void SetIsInfinite(bool bInIsInfinite) { bIsInfinite = bInIsInfinite; }
 	bool IsInfinite() const { return bIsInfinite; }
+
+	/** Gets the time for the key referenced by the supplied key handle. */
+	virtual TOptional<float> GetKeyTime( FKeyHandle KeyHandle ) const PURE_VIRTUAL( UAISenseEvent::GetKeyTime, return TOptional<float>(); );
+
+	/** Sets the time for the key referenced by the supplied key handle. */
+	virtual void SetKeyTime( FKeyHandle KeyHandle, float Time ) PURE_VIRTUAL( UAISenseEvent::SetKeyTime, );
 
 private:
 

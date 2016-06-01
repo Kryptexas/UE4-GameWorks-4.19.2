@@ -236,6 +236,7 @@ void FD3D11DynamicRHI::RHIGetTextureMemoryStats(FTextureMemoryStats& OutStats)
 	OutStats.TotalGraphicsMemory = FD3D11GlobalStats::GTotalGraphicsMemory ? FD3D11GlobalStats::GTotalGraphicsMemory : -1;
 
 	OutStats.AllocatedMemorySize = int64(GCurrentTextureMemorySize) * 1024;
+	OutStats.LargestContiguousAllocation = OutStats.AllocatedMemorySize;
 	OutStats.TexturePoolSize = GTexturePoolSize;
 	OutStats.PendingMemoryAdjustment = 0;
 }
@@ -428,7 +429,8 @@ void SafeCreateTexture2D(ID3D11Device* Direct3DDevice, const D3D11_TEXTURE2D_DES
 			TextureDesc->ArraySize,
 			TextureDesc->Format,
 			TextureDesc->MipLevels,
-			TextureDesc->BindFlags
+			TextureDesc->BindFlags,
+			Direct3DDevice
 			);
 #if GUARDED_TEXTURE_CREATES
 		bDriverCrash = false;
@@ -480,7 +482,7 @@ TD3D11Texture2D<BaseResourceType>* FD3D11DynamicRHI::CreateD3D11Texture2D(uint32
 
 	bool bPooledTexture = true;
 
-	if (GMaxRHIFeatureLevel <= ERHIFeatureLevel::ES2)
+	if (GMaxRHIFeatureLevel <= ERHIFeatureLevel::ES3_1)
 	{
 		// Remove sRGB read flag when not supported
 		Flags &= ~TexCreate_SRGB;
@@ -935,7 +937,8 @@ FD3D11Texture3D* FD3D11DynamicRHI::CreateD3D11Texture3D(uint32 SizeX,uint32 Size
 		SizeZ,
 		PlatformShaderResourceFormat,
 		NumMips,
-		TextureDesc.BindFlags
+		TextureDesc.BindFlags,
+		Direct3DDevice
 		);
 
 	// Create a shader resource view for the texture.
@@ -1006,7 +1009,7 @@ FTexture2DRHIRef FD3D11DynamicRHI::RHIAsyncCreateTexture2D(uint32 SizeX,uint32 S
 	check(GRHISupportsAsyncTextureCreation);
 	check((Flags & InvalidFlags) == 0);
 
-	if (GMaxRHIFeatureLevel <= ERHIFeatureLevel::ES2)
+	if (GMaxRHIFeatureLevel <= ERHIFeatureLevel::ES3_1)
 	{
 		// Remove sRGB read flag when not supported
 		Flags &= ~TexCreate_SRGB;
@@ -1440,7 +1443,8 @@ void* TD3D11Texture2D<RHIResourceType>::Lock(uint32 MipIndex,uint32 ArrayIndex,E
 			GetSizeZ(),
 			StagingTextureDesc.Format,
 			1,
-			0
+			0,
+			D3DRHI->GetDevice()
 			);
 		LockedData.StagingResource = StagingTexture;
 
@@ -1596,6 +1600,60 @@ void FD3D11DynamicRHI::RHIVirtualTextureSetFirstMipVisible(FTexture2DRHIParamRef
 FTextureReferenceRHIRef FD3D11DynamicRHI::RHICreateTextureReference(FLastRenderTimeContainer* LastRenderTime)
 {
 	return new FD3D11TextureReference(this,LastRenderTime);
+}
+
+bool FD3D11DynamicRHI::RHICopySubTextureRegion(FTexture2DRHIParamRef SourceTextureRHI, FTexture2DRHIParamRef DestinationTextureRHI, FBox2D SourceBox, FBox2D DestinationBox)
+{
+	FD3D11Texture2D* SourceTexture = ResourceCast(SourceTextureRHI);
+	FD3D11Texture2D* DestinationTexture = ResourceCast(DestinationTextureRHI);
+
+	//Make sure the source box is fitting on right and top side of the source texture, no need to offset the destination
+	if (SourceBox.Max.X >= (float)SourceTexture->GetSizeX())
+	{
+		float Delta = (SourceBox.Max.X - (float)SourceTexture->GetSizeX());
+		SourceBox.Max.X -= Delta;
+	}
+	if (SourceBox.Max.Y >= (float)SourceTexture->GetSizeY())
+	{
+		float Delta = (SourceBox.Max.Y - (float)SourceTexture->GetSizeY());
+		SourceBox.Max.Y -= Delta;
+	}
+
+	int32 DestinationOffsetX = 0;
+	int32 DestinationOffsetY = 0;
+	int32 SourceStartX = SourceBox.Min.X;
+	int32 SourceEndX = SourceBox.Max.X;
+	int32 SourceStartY = SourceBox.Min.Y;
+	int32 SourceEndY = SourceBox.Max.Y;
+	//If the source box is not fitting on the left bottom side, offset the result so the destination pixel match the expectation
+	if (SourceStartX < 0)
+	{
+		DestinationOffsetX -= SourceStartX;
+		SourceStartX = 0;
+	}
+	if (SourceStartY < 0)
+	{
+		DestinationOffsetY -= SourceStartY;
+		SourceStartY = 0;
+	}
+
+	D3D11_BOX SourceBoxAdjust =
+	{
+		SourceStartX,
+		SourceStartY,
+		0,
+		SourceEndX,
+		SourceEndY,
+		1
+	};
+
+	check(GPixelFormats[SourceTexture->GetFormat()].BlockSizeX == 1);
+	check(GPixelFormats[SourceTexture->GetFormat()].BlockSizeY == 1);
+	check(GPixelFormats[DestinationTexture->GetFormat()].BlockSizeX == 1);
+	check(GPixelFormats[DestinationTexture->GetFormat()].BlockSizeY == 1);
+	ID3D11Texture2D* DestinationRessource = DestinationTexture->GetResource();
+	Direct3DDeviceIMContext->CopySubresourceRegion(DestinationRessource, 0, DestinationBox.Min.X + DestinationOffsetX, DestinationBox.Min.Y + DestinationOffsetY, 0, SourceTexture->GetResource(), 0, &SourceBoxAdjust);
+	return true;
 }
 
 void FD3D11DynamicRHI::RHIUpdateTextureReference(FTextureReferenceRHIParamRef TextureRefRHI, FTextureRHIParamRef NewTextureRHI)

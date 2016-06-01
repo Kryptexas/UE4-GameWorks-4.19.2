@@ -18,7 +18,7 @@ public class MetalShaderFormat : ModuleRules
 			}
 			);
 
-		AddThirdPartyPrivateStaticDependencies(Target, 
+		AddEngineThirdPartyPrivateStaticDependencies(Target, 
 			"HLSLCC"
 			);
 	}

@@ -9,42 +9,6 @@ class ALevelScriptActor;
 
 
 /**
- * Structure for event section keys.
- */
-USTRUCT()
-struct FMovieSceneEventSectionKey
-{
-	GENERATED_USTRUCT_BODY()
-
-	/** The names of the events to be triggered. */
-	UPROPERTY(EditAnywhere, Category=EventTrackKey)
-	TArray<FName> EventNames;
-
-	/** The time at which the event should be triggered. */
-	UPROPERTY()
-	float Time;
-
-	/** Default constructor. */
-	FMovieSceneEventSectionKey()
-		: Time(0.0f)
-	{ }
-
-	/** Creates and initializes a new instance. */
-	FMovieSceneEventSectionKey(const FName& InEventName, float InTime)
-		: Time(InTime)
-	{
-		EventNames.Add(InEventName);
-	}
-
-	/** Operator less, used to sort the heap based on time until execution. */
-	bool operator<(const FMovieSceneEventSectionKey& Other) const
-	{
-		return Time < Other.Time;
-	}
-};
-
-
-/**
  * Implements a section in movie scene event tracks.
  */
 UCLASS( MinimalAPI )
@@ -78,33 +42,35 @@ public:
 	/**
 	 * Trigger the events that fall into the given time range.
 	 *
-	 * @param LevelScriptActor The script actor to trigger the events on.
+	 * @param EventContextObjects The objects to trigger the events on.
 	 * @param Position The current position in time.
 	 * @param LastPosition The time at the last update.
 	 */
-	void TriggerEvents(ALevelScriptActor* LevelScriptActor, float Position, float LastPosition);
+	void TriggerEvents(TArray<UObject*> EventContextObjects, float Position, float LastPosition);
 
 public:
 
 	// UMovieSceneSection interface
 
 	virtual void DilateSection(float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles) override;
-	virtual void GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const override;
+	virtual void GetKeyHandles(TSet<FKeyHandle>& KeyHandles, TRange<float> TimeRange) const override;
 	virtual void MoveSection(float DeltaPosition, TSet<FKeyHandle>& KeyHandles) override;
+	virtual TOptional<float> GetKeyTime( FKeyHandle KeyHandle ) const override;
+	virtual void SetKeyTime( FKeyHandle KeyHandle, float Time ) override;
 
 protected:
 
 	/**
-	 * Trigger event for the specified key.
+	 * Trigger event for the specified name.
 	 *
-	 * @param Key The key to trigger.
-	 * @param LevelScriptActor The script actor to trigger the events on.
+	 * @param Event The Name to trigger.
+	 * @param EventContextObjects The objects to trigger the events on.
 	 */
-	void TriggerEvent(const FName& Event, ALevelScriptActor* LevelScriptActor);
+	void TriggerEvent(const FName& Event, TArray<UObject*> EventContextObjects);
 
 private:
 
 	/** The section's keys. */
-	UPROPERTY(EditAnywhere, Category="Events")
+	UPROPERTY()
 	FNameCurve Events;
 };

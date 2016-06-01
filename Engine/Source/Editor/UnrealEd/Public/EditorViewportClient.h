@@ -5,16 +5,26 @@
 #include "UnrealWidget.h"
 #include "Framework/Commands/Commands.h"
 #include "Layout/SlateRect.h"
+#include "Editor.h"
 #include "EditorComponents.h"
 
-class FEditorCameraController;
-class FCameraControllerUserImpulseData;
-class FMouseDeltaTracker;
-class FWidget;
-class FCameraControllerConfig;
+
 class FCachedJoystickState;
-class FPreviewScene;
+class FCameraControllerConfig;
+class FCameraControllerUserImpulseData;
+class FDragTool;
+class FEditorCameraController;
 class FEditorModeTools;
+class FEditorViewportClient;
+class FMouseDeltaTracker;
+class FPreviewScene;
+class FSceneView;
+class FWidget;
+class HHitProxy;
+class IMatineeBase;
+class SEditorViewport;
+class UActorFactory;
+
 
 /** Delegate called by FEditorViewportClient to check its visibility */
 DECLARE_DELEGATE_RetVal( bool, FViewportStateGetter );
@@ -106,25 +116,25 @@ private:
 struct FViewportCursorLocation
 {
 public:
-	UNREALED_API FViewportCursorLocation( const class FSceneView* View, class FEditorViewportClient* InViewportClient, int32 X, int32 Y );
+	UNREALED_API FViewportCursorLocation( const FSceneView* View, FEditorViewportClient* InViewportClient, int32 X, int32 Y );
 
 	const FVector&		GetOrigin()			const	{ return Origin; }
 	const FVector&		GetDirection()		const	{ return Direction; }
 	const FIntPoint&	GetCursorPos()		const	{ return CursorPos; }
 	ELevelViewportType	GetViewportType()	const;
-	class FEditorViewportClient*	GetViewportClient()	const	{ return ViewportClient; }
+	FEditorViewportClient*	GetViewportClient()	const	{ return ViewportClient; }
 
 private:
 	FVector	Origin;
 	FVector	Direction;
 	FIntPoint CursorPos;
-	class FEditorViewportClient* ViewportClient;
+	FEditorViewportClient* ViewportClient;
 };
 
 struct FViewportClick : public FViewportCursorLocation
 {
 public:
-	UNREALED_API FViewportClick( const class FSceneView* View, class FEditorViewportClient* ViewportClient, FKey InKey, EInputEvent InEvent, int32 X, int32 Y );
+	UNREALED_API FViewportClick( const FSceneView* View, FEditorViewportClient* ViewportClient, FKey InKey, EInputEvent InEvent, int32 X, int32 Y );
 
 	/** @return The 2D screenspace cursor position of the mouse when it was clicked. */
 	const FIntPoint&	GetClickPos()	const	{ return GetCursorPos(); }
@@ -157,8 +167,6 @@ struct FDropQuery
 	FText HintText;
 };
 
-// Forward declare
-class SEditorViewport;
 
 /** 
  * Stores the transformation data for the viewport camera
@@ -426,9 +434,8 @@ public:
 	virtual void RequestInvalidateHitProxy(FViewport* Viewport) override;
 	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed = 1.f, bool bGamepad=false) override;
 	virtual bool InputAxis(FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime, int32 NumSamples=1, bool bGamepad=false) override;
-	virtual bool InputGesture(FViewport* Viewport, EGestureEvent::Type GestureType, const FVector2D& GestureDelta) override;
+	virtual bool InputGesture(FViewport* Viewport, EGestureEvent::Type GestureType, const FVector2D& GestureDelta, bool bIsDirectionInvertedFromDevice) override;
 	virtual void ReceivedFocus(FViewport* Viewport) override;
-	virtual void OnJoystickPlugged(const uint32 InControllerID, const uint32 InType, const uint32 bInConnected)  override;
 	virtual void MouseEnter(FViewport* Viewport,int32 x, int32 y) override;
 	virtual void MouseMove(FViewport* Viewport,int32 x, int32 y) override;
 	virtual void MouseLeave( FViewport* Viewport ) override;
@@ -455,7 +462,7 @@ public:
 	 * @param HitX			The X location of the mouse
 	 * @param HitY			The Y location of the mouse
 	 */
-	virtual void ProcessClick(class FSceneView& View, class HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY);
+	virtual void ProcessClick(FSceneView& View, HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY);
 	
 	/**
 	 * Called when mouse movement tracking begins
@@ -561,9 +568,10 @@ public:
 	/**
 	 * Configures the specified FSceneView object with the view and projection matrices for this viewport.
 	 * @param	View		The view to be configured.  Must be valid.
+	 * @param	StereoPass	Which eye we're drawing this view for when in stereo mode
 	 * @return	A pointer to the view within the view family which represents the viewport's primary view.
 	 */
-	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily);
+	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily, const EStereoscopicPass StereoPass = eSSP_FULL);
 
 	/** 
 	 * @return The scene being rendered in this viewport
@@ -615,7 +623,7 @@ public:
 	 * @param DragToolType	The type of drag tool to make
 	 * @return The new drag tool
 	 */
-	virtual TSharedPtr<class FDragTool> MakeDragTool( EDragTool::Type DragToolType );
+	virtual TSharedPtr<FDragTool> MakeDragTool( EDragTool::Type DragToolType );
 
 	/** @return true if a drag tool can be used */
 	virtual bool CanUseDragTool() const;
@@ -652,7 +660,7 @@ public:
 	 *
 	 * Returns true if preview actors were updated
 	 */
-	virtual bool UpdateDropPreviewActors(int32 MouseX, int32 MouseY, const TArray<UObject*>& DroppedObjects, bool& out_bDroppedObjectsVisible, class UActorFactory* FactoryToUse = NULL) { return false; }
+	virtual bool UpdateDropPreviewActors(int32 MouseX, int32 MouseY, const TArray<UObject*>& DroppedObjects, bool& out_bDroppedObjectsVisible, UActorFactory* FactoryToUse = NULL) { return false; }
 
 	/**
 	 * If dragging an actor for placement, this function destroys the actor.
@@ -899,7 +907,7 @@ public:
 	/**
 	 * Allows custom disabling of camera recoil
 	 */
-	void SetMatineeRecordingWindow(class IMatineeBase* InInterpEd);
+	void SetMatineeRecordingWindow(IMatineeBase* InInterpEd);
 
 	/**
 	 * Returns true if camera recoil is currently allowed
@@ -930,6 +938,9 @@ public:
 	{
 		return ModeTools;
 	}
+
+	/** Get the editor viewport widget */
+	TSharedPtr<SEditorViewport> GetEditorViewportWidget() const { return EditorViewportWidget.Pin(); }
 
 protected:
 
@@ -993,6 +1004,14 @@ public:
 	
 	/** Override the far clipping plane. Set to a negative value to disable the override. */
 	void OverrideFarClipPlane(const float InFarPlane);
+
+	/** When collision draw mode changes, this function allows hidden objects to be drawn, so hidden colliding objects can be seen */
+	void UpdateHiddenCollisionDrawing();
+	/** Returns the scene depth at the given viewport X,Y */
+	float GetSceneDepthAtLocation(int32 X, int32 Y);
+
+	/** Returns the location of the object at the given viewport X,Y */
+	FVector GetHitProxyObjectLocation(int32 X, int32 Y);
 
 protected:
 	/** Invalidates the viewport widget (if valid) to register its active timer */
@@ -1237,6 +1256,9 @@ public:
 	/** The viewport's scene view state. */
 	FSceneViewStateReference ViewState;
 
+	/** Viewport view state when stereo rendering is enabled */
+	FSceneViewStateReference StereoViewState;
+
 	/** A set of flags that determines visibility for various scene elements. */
 	FEngineShowFlags		EngineShowFlags;
 
@@ -1308,7 +1330,7 @@ protected:
 	FMouseDeltaTracker*		MouseDeltaTracker;
 		
 	/**InterpEd, should only be set if used for matinee recording*/
-	class IMatineeBase* RecordingInterpEd;
+	IMatineeBase* RecordingInterpEd;
 
 	/** If true, the canvas has been been moved using bMoveCanvas Mode*/
 	bool bHasMouseMovedSinceClick;
@@ -1333,6 +1355,8 @@ protected:
 
 	bool bUseControllingActorViewInfo;
 	FMinimalViewInfo ControllingActorViewInfo;
+	TArray<FPostProcessSettings> ControllingActorExtraPostProcessBlends;
+	TArray<float> ControllingActorExtraPostProcessBlendWeights;
 
 	/* Updated on each mouse drag start */
 	uint32 LastMouseX;

@@ -121,7 +121,7 @@ TSharedRef<SWidget> SMessageLogMessageListRow::GenerateWidget()
 
 void SMessageLogMessageListRow::CreateMessage(const TSharedRef<SHorizontalBox>& InHorzBox, const TSharedRef<IMessageToken>& InMessageToken, float Padding)
 {
-	TSharedPtr<SWidget> Content;
+	TSharedPtr<SWidget> RowContent;
 	FName IconBrushName;
 
 	TAttribute<EVisibility> TokenContentVisbility;
@@ -136,7 +136,7 @@ void SMessageLogMessageListRow::CreateMessage(const TSharedRef<SHorizontalBox>& 
 		{
 			if (InMessageToken->GetOnMessageTokenActivated().IsBound())
 			{
-				Content = SNew(SButton)
+				RowContent = SNew(SButton)
 					.OnClicked(this, &SMessageLogMessageListRow::HandleTokenButtonClicked, InMessageToken)
 					.Content()
 					[
@@ -146,7 +146,7 @@ void SMessageLogMessageListRow::CreateMessage(const TSharedRef<SHorizontalBox>& 
 			}
 			else
 			{
-				Content = SNew(SImage)
+				RowContent = SNew(SImage)
 					.Image(FEditorStyle::GetBrush(ImageToken->GetImageName()));
 			}
 		}
@@ -158,7 +158,7 @@ void SMessageLogMessageListRow::CreateMessage(const TSharedRef<SHorizontalBox>& 
 		const TSharedRef<FUObjectToken> UObjectToken = StaticCastSharedRef<FUObjectToken>(InMessageToken);
 
 		IconBrushName = FName("PropertyWindow.Button_Browse");
-		Content = CreateHyperlink(InMessageToken, FUObjectToken::DefaultOnGetObjectDisplayName().IsBound()
+		RowContent = CreateHyperlink(InMessageToken, FUObjectToken::DefaultOnGetObjectDisplayName().IsBound()
 			? FUObjectToken::DefaultOnGetObjectDisplayName().Execute(UObjectToken->GetObject().Get(), true)
 			: UObjectToken->ToText());
 	}
@@ -169,7 +169,7 @@ void SMessageLogMessageListRow::CreateMessage(const TSharedRef<SHorizontalBox>& 
 		const TSharedRef<FURLToken> URLToken = StaticCastSharedRef<FURLToken>(InMessageToken);
 
 		IconBrushName = FName("MessageLog.Url");
-		Content = CreateHyperlink(InMessageToken, FText::FromString(URLToken->GetURL()));
+		RowContent = CreateHyperlink(InMessageToken, FText::FromString(URLToken->GetURL()));
 	}
 		break;
 
@@ -178,7 +178,7 @@ void SMessageLogMessageListRow::CreateMessage(const TSharedRef<SHorizontalBox>& 
 		const TSharedRef<FActionToken> ActionToken = StaticCastSharedRef<FActionToken>(InMessageToken);
 
 		IconBrushName = FName("MessageLog.Action");
-		Content = SNew(SHyperlink)
+		RowContent = SNew(SHyperlink)
 			.Text(InMessageToken->ToText())
 			.ToolTipText(ActionToken->GetActionDescription())
 			.TextStyle(FEditorStyle::Get(), "MessageLog")
@@ -193,7 +193,7 @@ void SMessageLogMessageListRow::CreateMessage(const TSharedRef<SHorizontalBox>& 
 		const TSharedRef<FAssetNameToken> AssetNameToken = StaticCastSharedRef<FAssetNameToken>(InMessageToken);
 
 		IconBrushName = FName("PropertyWindow.Button_Browse");
-		Content = CreateHyperlink(InMessageToken, AssetNameToken->ToText());
+		RowContent = CreateHyperlink(InMessageToken, AssetNameToken->ToText());
 	}
 		break;
 
@@ -203,7 +203,7 @@ void SMessageLogMessageListRow::CreateMessage(const TSharedRef<SHorizontalBox>& 
 		const TSharedRef<FDocumentationToken> DocumentationToken = StaticCastSharedRef<FDocumentationToken>(InMessageToken);
 
 		IconBrushName = FName("MessageLog.Docs");
-		Content = SNew(SHyperlink)
+		RowContent = SNew(SHyperlink)
 			.Text(LOCTEXT("DocsLabel", "Docs"))
 			.ToolTip(IDocumentation::Get()->CreateToolTip(
 			LOCTEXT("DocumentationTokenToolTip", "Click to open documentation"),
@@ -220,11 +220,11 @@ void SMessageLogMessageListRow::CreateMessage(const TSharedRef<SHorizontalBox>& 
 	{
 		if (InMessageToken->GetOnMessageTokenActivated().IsBound())
 		{
-			Content = CreateHyperlink(InMessageToken, InMessageToken->ToText());
+			RowContent = CreateHyperlink(InMessageToken, InMessageToken->ToText());
 		}
 		else
 		{
-			Content = SNew(STextBlock)
+			RowContent = SNew(STextBlock)
 				.ColorAndOpacity(FSlateColor::UseSubduedForeground())
 				.Text(InMessageToken->ToText());
 		}
@@ -236,7 +236,7 @@ void SMessageLogMessageListRow::CreateMessage(const TSharedRef<SHorizontalBox>& 
 		const TSharedRef<FTutorialToken> TutorialToken = StaticCastSharedRef<FTutorialToken>(InMessageToken);
 
 		IconBrushName = FName("MessageLog.Tutorial");
-		Content = SNew(SHyperlink)
+		RowContent = SNew(SHyperlink)
 			.Text(LOCTEXT("TutorialLabel", "Tutorial"))
 			.ToolTipText(LOCTEXT("TutorialTokenToolTip", "Click to open tutorial"))
 			.TextStyle(FEditorStyle::Get(), "MessageLog")
@@ -246,7 +246,7 @@ void SMessageLogMessageListRow::CreateMessage(const TSharedRef<SHorizontalBox>& 
 #endif
 	}
 
-	if (Content.IsValid())
+	if (RowContent.IsValid())
 	{
 		InHorzBox->AddSlot()
 			.AutoWidth()
@@ -272,7 +272,7 @@ void SMessageLogMessageListRow::CreateMessage(const TSharedRef<SHorizontalBox>& 
 					.VAlign(VAlign_Center)
 					.Padding(2.0f, 0.0f, 0.0f, 0.0f)
 					[
-						Content.ToSharedRef()
+						RowContent.ToSharedRef()
 					]
 			];
 	}

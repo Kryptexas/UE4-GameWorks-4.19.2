@@ -206,13 +206,14 @@ FUniformBufferRHIRef FD3D11DynamicRHI::RHICreateUniformBuffer(const void* Conten
 		FRHIResource** InResources = (FRHIResource**)((uint8*)Contents + Layout.ResourceOffset);
 		NewUniformBuffer->ResourceTable.Empty(NumResources);
 		NewUniformBuffer->ResourceTable.AddZeroed(NumResources);
+
+		checkf(InResources, TEXT("Invalid resources creating uniform buffer for %s [0x%x + %u]."), *Layout.GetDebugName().ToString(), Contents, Layout.ResourceOffset);
+
 		for (int32 i = 0; i < NumResources; ++i)
 		{
-			check(InResources[i]);
+			checkf(InResources[i], TEXT("Invalid resource entry creating uniform buffer, %s.Resources[%u], ResourceType 0x%x."), *Layout.GetDebugName().ToString(), i, Layout.Resources[i]);
 			NewUniformBuffer->ResourceTable[i] = InResources[i];
 		}
-		NewUniformBuffer->RawResourceTable.Empty(NumResources);
-		NewUniformBuffer->RawResourceTable.AddZeroed(NumResources);
 	}
 
 	return NewUniformBuffer;
@@ -251,60 +252,6 @@ FD3D11UniformBuffer::~FD3D11UniformBuffer()
 	}
 }
 
-void FD3D11UniformBuffer::CacheResourcesInternal()
-{
-	const FRHIUniformBufferLayout& Layout = GetLayout();
-	int32 NumResources = Layout.Resources.Num();
-	const uint8* RESTRICT ResourceTypes = Layout.Resources.GetData();
-	const TRefCountPtr<FRHIResource>* RESTRICT Resources = ResourceTable.GetData();
-	FResourcePair* RESTRICT RawResources = RawResourceTable.GetData();
-	float CurrentTime = FApp::GetCurrentTime();
-
-	// todo: Immutable resources, i.e. not textures, can be safely cached across frames.
-	// Texture streaming makes textures complicated :)
-	for (int32 i = 0; i < NumResources; ++i)
-	{
-		RawResources[i].SetResourceName(NAME_None);
-		switch (ResourceTypes[i])
-		{
-		case UBMT_SRV:
-			{
-				FD3D11ShaderResourceView* ShaderResourceViewRHI = (FD3D11ShaderResourceView*)Resources[i].GetReference();
-				RawResources[i].ShaderResource = ShaderResourceViewRHI->Resource.GetReference();
-				RawResources[i].D3D11Resource = (IUnknown*)ShaderResourceViewRHI->View.GetReference();				
-			}
-			break;
-
-		case UBMT_TEXTURE:
-			{
-				// todo: this does multiple virtual function calls to find the right type to cast to
-				// this is due to multiple inheritance nastiness, NEEDS CLEANUP
-				FRHITexture* TextureRHI = (FRHITexture*)Resources[i].GetReference();
-				TextureRHI->SetLastRenderTime(CurrentTime);
-				FD3D11TextureBase* TextureD3D11 = GetD3D11TextureFromRHITexture(TextureRHI);
-				RawResources[i].ShaderResource = TextureD3D11->GetBaseShaderResource();
-				RawResources[i].D3D11Resource = (IUnknown*)TextureD3D11->GetShaderResourceView();
-				RawResources[i].SetResourceName(TextureRHI->GetName());
-			}
-			break;
-
-		case UBMT_UAV:
-			RawResources[i].ShaderResource = NULL;
-			RawResources[i].D3D11Resource = NULL;
-			check(0);
-			break;
-
-		case UBMT_SAMPLER:
-			RawResources[i].ShaderResource = NULL;
-			RawResources[i].D3D11Resource = (IUnknown*)((FD3D11SamplerState*)Resources[i].GetReference())->Resource.GetReference();
-			break;
-
-		default:
-			check(0);
-			break;
-		}
-	}
-}
 
 void FD3D11DynamicRHI::ReleasePooledUniformBuffers()
 {

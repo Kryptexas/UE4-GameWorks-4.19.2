@@ -24,34 +24,57 @@ void USphereComponent::CalcBoundingCylinder(float& CylinderRadius, float& Cylind
 	CylinderHalfHeight = CylinderRadius;
 }
 
-void USphereComponent::UpdateBodySetup()
+template <EShapeBodySetupHelper UpdateBodySetupAction>
+bool InvalidateOrUpdateSphereBodySetup(UBodySetup*& ShapeBodySetup, bool bUseArchetypeBodySetup, float SphereRadius)
 {
-	if (ShapeBodySetup == NULL || ShapeBodySetup->IsPendingKill())
-	{
-		ShapeBodySetup = NewObject<UBodySetup>(this);
-		ShapeBodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
-		ShapeBodySetup->AggGeom.SphereElems.Add(FKSphereElem());
-		ShapeBodySetup->bNeverNeedsCookedCollisionData = true;
-	}
-
-	check (ShapeBodySetup->AggGeom.SphereElems.Num() == 1);
-	FKSphereElem* se = ShapeBodySetup->AggGeom.SphereElems.GetData();
+	check((bUseArchetypeBodySetup && UpdateBodySetupAction == EShapeBodySetupHelper::InvalidateSharingIfStale) || (!bUseArchetypeBodySetup && UpdateBodySetupAction == EShapeBodySetupHelper::UpdateBodySetup) );
+	check(ShapeBodySetup->AggGeom.SphereElems.Num() == 1);
+	FKSphereElem* SphereElem = ShapeBodySetup->AggGeom.SphereElems.GetData();
 
 	// check for mal formed values
 	float Radius = SphereRadius;
-	if( Radius < KINDA_SMALL_NUMBER )
+	if (Radius < KINDA_SMALL_NUMBER)
 	{
 		Radius = 0.1f;
 	}
 
-	// now set the PhysX data values
-	se->Center = FVector::ZeroVector;
-	se->Radius = Radius;
+	if(UpdateBodySetupAction == EShapeBodySetupHelper::UpdateBodySetup)
+	{
+		// now set the PhysX data values
+		SphereElem->Center = FVector::ZeroVector;
+		SphereElem->Radius = Radius;
+	}
+	else
+	{
+		if(SphereElem->Radius != Radius)
+		{
+			ShapeBodySetup = nullptr;
+			bUseArchetypeBodySetup = false;
+		}
+	}
+	
+	return bUseArchetypeBodySetup;
+}
+
+void USphereComponent::UpdateBodySetup()
+{
+	if(PrepareSharedBodySetup<USphereComponent>())
+	{
+		bUseArchetypeBodySetup = InvalidateOrUpdateSphereBodySetup<EShapeBodySetupHelper::InvalidateSharingIfStale>(ShapeBodySetup, bUseArchetypeBodySetup, SphereRadius);
+	}
+
+	CreateShapeBodySetupIfNeeded<FKSphereElem>();
+
+	if(!bUseArchetypeBodySetup)
+	{
+		InvalidateOrUpdateSphereBodySetup<EShapeBodySetupHelper::UpdateBodySetup>(ShapeBodySetup, bUseArchetypeBodySetup, SphereRadius);
+	}
 }
 
 void USphereComponent::SetSphereRadius( float InSphereRadius, bool bUpdateOverlaps )
 {
 	SphereRadius = InSphereRadius;
+	UpdateBounds();
 	UpdateBodySetup();
 	MarkRenderStateDirty();
 
@@ -135,8 +158,11 @@ FPrimitiveSceneProxy* USphereComponent::CreateSceneProxy()
 			const bool bVisibleForSelection = !bDrawOnlyIfSelected || IsSelected();
 			const bool bVisibleForShowFlags = true; // @TODO
 
+			// Should we draw this because collision drawing is enabled, and we have collision
+			const bool bShowForCollision = View->Family->EngineShowFlags.Collision && IsCollisionEnabled();
+
 			FPrimitiveViewRelevance Result;
-			Result.bDrawRelevance = IsShown(View) && bVisibleForSelection && bVisibleForShowFlags;
+			Result.bDrawRelevance = (IsShown(View) && bVisibleForSelection && bVisibleForShowFlags) || bShowForCollision;
 			Result.bDynamicRelevance = true;
 			Result.bShadowRelevance = IsShadowCast(View);
 			Result.bEditorPrimitiveRelevance = UseEditorCompositing(View);

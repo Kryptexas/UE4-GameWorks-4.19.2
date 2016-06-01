@@ -366,12 +366,13 @@ public:
 	UMaterialEditorOptions* EditorOptions;
 	
 protected:
-	/** Called when "Save" is clicked for this asset */
+	//~ FAssetEditorToolkit interface
+	virtual void GetSaveableObjects(TArray<UObject*>& OutObjects) const override;
 	virtual void SaveAsset_Execute() override;
-	
-	/** Called when this toolkit would close */
+	virtual void SaveAssetAs_Execute() override;
 	virtual bool OnRequestClose() override;
 
+protected:
 	/** Called when the selection changes in the GraphEditor */
 	void OnSelectedNodesChanged(const TSet<class UObject*>& NewSelection);
 

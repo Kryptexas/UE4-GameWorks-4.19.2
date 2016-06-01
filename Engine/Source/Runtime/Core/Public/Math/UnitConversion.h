@@ -164,7 +164,7 @@ public:
 	FNumericUnit<NumericType> QuantizeUnitsToBestFit() const;
 
 	/** Try and parse an expression into a numeric unit */
-	static TValueOrError<FNumericUnit<NumericType>, FText> TryParseExpression(const TCHAR* InExpression, EUnit InDefaultUnit);
+	static TValueOrError<FNumericUnit<NumericType>, FText> TryParseExpression(const TCHAR* InExpression, EUnit InDefaultUnit, const FNumericUnit<NumericType>& InExistingValue);
 
 	/** Parse a numeric unit from a string */
 	static TOptional<FNumericUnit<NumericType>> TryParseString(const TCHAR* InSource);

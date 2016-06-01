@@ -23,10 +23,10 @@ class ENGINE_API UAnimSingleNodeInstance : public UAnimInstance
 	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 	/** Current Asset being played **/
-	DEPRECATED(4.11, "Please use FAnimSingleNodeInstanceProxy::CurrentAsset")
+	UPROPERTY(Transient)
 	class UAnimationAsset* CurrentAsset;
 
-	DEPRECATED(4.11, "Please use FAnimSingleNodeInstanceProxy::CurrentVertexAnim")
+	UPROPERTY(Transient)
 	class UVertexAnimation* CurrentVertexAnim;
 
 	/** Random cached values to play each asset **/
@@ -82,6 +82,8 @@ public:
 	void SetReverse(bool bInReverse);
 	UFUNCTION(BlueprintCallable, Category="Animation")
 	void SetPosition(float InPosition, bool bFireNotifies=true);
+	UFUNCTION(BlueprintCallable, Category="Animation")
+	void SetPositionWithPreviousTime(float InPosition, float InPreviousTime, bool bFireNotifies=true);
 	UFUNCTION(BlueprintCallable, Category="Animation")
 	void SetBlendSpaceInput(const FVector& InBlendInput);
 	UFUNCTION(BlueprintCallable, Category="Animation")

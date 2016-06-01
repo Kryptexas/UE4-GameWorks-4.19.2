@@ -9,6 +9,9 @@ class UAnimStateNodeBase : public UEdGraphNode
 {
 	GENERATED_UCLASS_BODY()
 
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostLoad() override;
+
 	// UEdGraphNode interface
 	virtual void PostPasteNode() override;
 	virtual UObject* GetJumpTargetForDoubleClick() const override;
@@ -29,8 +32,8 @@ class UAnimStateNodeBase : public UEdGraphNode
 	// Populates the OutTransitions array with a list of transition nodes connected to this state
 	ANIMGRAPH_API virtual void GetTransitionList(TArray<class UAnimStateTransitionNode*>& OutTransitions, bool bWantSortedList = false) { }
 
-	//
 	virtual UEdGraph* GetBoundGraph() const { return NULL; }
+	virtual void ClearBoundGraph() {}
 
 	ANIMGRAPH_API UAnimBlueprint* GetAnimBlueprint() const;
 

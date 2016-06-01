@@ -33,7 +33,7 @@ void FEventTrackEditor::BuildAddTrackMenu(FMenuBuilder& MenuBuilder)
 {
 	UMovieSceneSequence* RootMovieSceneSequence = GetSequencer()->GetRootMovieSceneSequence();
 
-	if ((RootMovieSceneSequence == nullptr) || (RootMovieSceneSequence->GetClass()->GetName() != TEXT("LevelSequence")))
+	if (RootMovieSceneSequence == nullptr)
 	{
 		return;
 	}
@@ -70,6 +70,10 @@ bool FEventTrackEditor::SupportsType(TSubclassOf<UMovieSceneTrack> Type) const
 	return (Type == UMovieSceneEventTrack::StaticClass());
 }
 
+const FSlateBrush* FEventTrackEditor::GetIconBrush() const
+{
+	return FEditorStyle::GetBrush("Sequencer.Tracks.Event");
+}
 
 /* FEventTrackEditor callbacks
  *****************************************************************************/

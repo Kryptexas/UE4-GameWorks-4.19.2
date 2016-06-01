@@ -83,7 +83,7 @@ public:
 		check(IsInRenderingThread());
 
 		// Initialize the vertex factory's stream components.
-		DataType NewData;
+		FDataType NewData;
 		NewData.PositionComponent = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer, FDynamicMeshVertex, Position, VET_Float3);
 		NewData.TextureCoordinates.Add(
 			FVertexStreamComponent(VertexBuffer, STRUCT_OFFSET(FDynamicMeshVertex, TextureCoordinate), sizeof(FDynamicMeshVertex), VET_Float2)
@@ -389,12 +389,32 @@ UProceduralMeshComponent::UProceduralMeshComponent(const FObjectInitializer& Obj
 {
 }
 
+void UProceduralMeshComponent::CreateMeshSection_LinearColor(int32 SectionIndex, const TArray<FVector>& Vertices, const TArray<int32>& Triangles, const TArray<FVector>& Normals, const TArray<FVector2D>& UV0, const TArray<FLinearColor>& VertexColors, const TArray<FProcMeshTangent>& Tangents, bool bCreateCollision)
+{
+	// Convert FLinearColors to FColors
+	TArray<FColor> Colors;
+	if (VertexColors.Num() > 0)
+	{
+		Colors.SetNum(VertexColors.Num());
+
+		for (int32 ColorIdx = 0; ColorIdx < VertexColors.Num(); ColorIdx++)
+		{
+			Colors[ColorIdx] = VertexColors[ColorIdx].ToFColor(true);
+		}
+	}
+
+	CreateMeshSection(SectionIndex, Vertices, Triangles, Normals, UV0, Colors, Tangents, bCreateCollision);
+}
+
 void UProceduralMeshComponent::CreateMeshSection(int32 SectionIndex, const TArray<FVector>& Vertices, const TArray<int32>& Triangles, const TArray<FVector>& Normals, const TArray<FVector2D>& UV0, const TArray<FColor>& VertexColors, const TArray<FProcMeshTangent>& Tangents, bool bCreateCollision)
 {
 	SCOPE_CYCLE_COUNTER(STAT_ProcMesh_CreateMeshSection);
 
 	// Ensure sections array is long enough
-	ProcMeshSections.SetNum(SectionIndex + 1, false);
+	if (SectionIndex >= ProcMeshSections.Num())
+	{
+		ProcMeshSections.SetNum(SectionIndex + 1, false);
+	}
 
 	// Reset this section (in case it already existed)
 	FProcMeshSection& NewSection = ProcMeshSections[SectionIndex];
@@ -434,6 +454,23 @@ void UProceduralMeshComponent::CreateMeshSection(int32 SectionIndex, const TArra
 	UpdateLocalBounds(); // Update overall bounds
 	UpdateCollision(); // Mark collision as dirty
 	MarkRenderStateDirty(); // New section requires recreating scene proxy
+}
+
+void UProceduralMeshComponent::UpdateMeshSection_LinearColor(int32 SectionIndex, const TArray<FVector>& Vertices, const TArray<FVector>& Normals, const TArray<FVector2D>& UV0, const TArray<FLinearColor>& VertexColors, const TArray<FProcMeshTangent>& Tangents)
+{
+	// Convert FLinearColors to FColors
+	TArray<FColor> Colors;
+	if (VertexColors.Num() > 0)
+	{
+		Colors.SetNum(VertexColors.Num());
+
+		for (int32 ColorIdx = 0; ColorIdx < VertexColors.Num(); ColorIdx++)
+		{
+			Colors[ColorIdx] = VertexColors[ColorIdx].ToFColor(true);
+		}
+	}
+
+	UpdateMeshSection(SectionIndex, Vertices, Normals, UV0, Colors, Tangents);
 }
 
 void UProceduralMeshComponent::UpdateMeshSection(int32 SectionIndex, const TArray<FVector>& Vertices, const TArray<FVector>& Normals, const TArray<FVector2D>& UV0, const TArray<FColor>& VertexColors, const TArray<FProcMeshTangent>& Tangents)

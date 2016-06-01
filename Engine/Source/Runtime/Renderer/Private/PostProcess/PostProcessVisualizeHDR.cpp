@@ -91,6 +91,15 @@ public:
 			FVector4 Temp[3];
 
 			FRCPassPostProcessEyeAdaptation::ComputeEyeAdaptationParamsValue(Context.View, Temp);
+			if (GetAutoExposureMethod(Context.View) == EAutoExposureMethod::AEM_Basic)
+			{
+				Temp[2].W = GetBasicAutoExposureFocus();
+			}
+			else
+			{
+				Temp[2].W = 0.0f;
+			}
+
 			SetShaderValueArray(Context.RHICmdList, ShaderRHI, EyeAdaptationParams, Temp, 3);
 		}
 
@@ -273,29 +282,29 @@ void FRCPassPostProcessVisualizeHDR::Process(FRenderingCompositePassContext& Con
 	Y += 3 * YStep;
 	if (GetAutoExposureMethod(ViewInfo) == EAutoExposureMethod::AEM_Basic)
 	{
-		Line = FString::Printf(TEXT("AutoExposure Basic"));
+		Line = FString::Printf(TEXT("Basic"));
 	} 
 	else
 	{
-		Line = FString::Printf(TEXT("AutoExposure Histogram"));
+		Line = FString::Printf(TEXT("Histogram"));
 	}
-	Canvas.DrawShadowedString(X, Y += YStep, TEXT("EyeAdaptationPercent Method:"), GetStatsFont(), FLinearColor(1, 1, 1));
+	Canvas.DrawShadowedString(X, Y += YStep, TEXT("Auto Exposure Method:"), GetStatsFont(), FLinearColor(1, 1, 1));
 	Canvas.DrawShadowedString(X + ColumnWidth, Y, *Line, GetStatsFont(), FLinearColor(1, 1, 1));
 
 	Line = FString::Printf(TEXT("%g%% .. %g%%"), View.FinalPostProcessSettings.AutoExposureLowPercent, View.FinalPostProcessSettings.AutoExposureHighPercent);
-	Canvas.DrawShadowedString( X, Y += YStep, TEXT("EyeAdaptationPercent Low/High:"), GetStatsFont(), FLinearColor(1, 1, 1));
+	Canvas.DrawShadowedString( X, Y += YStep, TEXT("Percent Low/High:"), GetStatsFont(), FLinearColor(1, 1, 1));
 	Canvas.DrawShadowedString( X + ColumnWidth, Y, *Line, GetStatsFont(), FLinearColor(1, 1, 1));
 
 	Line = FString::Printf(TEXT("%g .. %g"), View.FinalPostProcessSettings.AutoExposureMinBrightness, View.FinalPostProcessSettings.AutoExposureMaxBrightness);
-	Canvas.DrawShadowedString( X, Y += YStep, TEXT("EyeAdaptationBrightness Min/Max:"), GetStatsFont(), FLinearColor(1, 1, 1));
+	Canvas.DrawShadowedString( X, Y += YStep, TEXT("Brightness Min/Max:"), GetStatsFont(), FLinearColor(1, 1, 1));
 	Canvas.DrawShadowedString( X + ColumnWidth, Y, *Line, GetStatsFont(), FLinearColor(0.3f, 0.3f, 1));
 
 	Line = FString::Printf(TEXT("%g / %g"), View.FinalPostProcessSettings.AutoExposureSpeedUp, View.FinalPostProcessSettings.AutoExposureSpeedDown);
-	Canvas.DrawShadowedString( X, Y += YStep, TEXT("EyeAdaptionSpeed Up/Down:"), GetStatsFont(), FLinearColor(1, 1, 1));
+	Canvas.DrawShadowedString( X, Y += YStep, TEXT("Speed Up/Down:"), GetStatsFont(), FLinearColor(1, 1, 1));
 	Canvas.DrawShadowedString( X + ColumnWidth, Y, *Line, GetStatsFont(), FLinearColor(1, 1, 1));
 
 	Line = FString::Printf(TEXT("%g"), View.FinalPostProcessSettings.AutoExposureBias);
-	Canvas.DrawShadowedString( X, Y += YStep, TEXT("Exposure Offset: "), GetStatsFont(), FLinearColor(1, 1, 1));
+	Canvas.DrawShadowedString( X, Y += YStep, TEXT("Exposure Bias: "), GetStatsFont(), FLinearColor(1, 1, 1));
 	Canvas.DrawShadowedString( X + ColumnWidth, Y, *Line, GetStatsFont(), FLinearColor(1, 0.3f, 0.3f));
 
 	Line = FString::Printf(TEXT("%g .. %g (log2)"),
@@ -305,6 +314,13 @@ void FRCPassPostProcessVisualizeHDR::Process(FRenderingCompositePassContext& Con
 	Line = FString::Printf(TEXT("%s .. %s (Value)"),
 		*LogToString(View.FinalPostProcessSettings.HistogramLogMin), *LogToString(View.FinalPostProcessSettings.HistogramLogMax));
 	Canvas.DrawShadowedString( X + ColumnWidth, Y+= YStep, *Line, GetStatsFont(), FLinearColor(0.3f, 0.3f, 1));
+
+	if (GetAutoExposureMethod(ViewInfo) == EAutoExposureMethod::AEM_Basic)
+	{
+		Line = FString::Printf(TEXT("%g"), GetBasicAutoExposureFocus());
+		Canvas.DrawShadowedString(X, Y += YStep, TEXT("Weighting Focus: "), GetStatsFont(), FLinearColor(1, 1, 1));
+		Canvas.DrawShadowedString(X + ColumnWidth, Y, *Line, GetStatsFont(), FLinearColor(1, 0.3f, 0.3f));
+	}
 
 	Canvas.Flush_RenderThread(Context.RHICmdList);
 

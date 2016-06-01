@@ -15,7 +15,7 @@
 	"IsBetaVersion" : false,
 	"Installed" : false,
 	"CanBeUsedWithUnrealHeaderTool" : true,
-
+	
 	"Modules" :
 	[
 		{

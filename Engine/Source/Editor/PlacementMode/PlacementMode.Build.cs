@@ -21,8 +21,7 @@ public class PlacementMode : ModuleRules
                 "CollectionManager",
                 "LevelEditor",
                 "AssetTools",
-                "EditorStyle",
-				"BspMode"
+                "EditorStyle"
             } 
         );
     }

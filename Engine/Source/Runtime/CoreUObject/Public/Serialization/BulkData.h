@@ -28,6 +28,8 @@ enum EBulkDataFlags
 	BULKDATA_SerializeCompressed				= (BULKDATA_SerializeCompressedZLIB),
 	/** Forces the payload to be always streamed, regardless of its size */
 	BULKDATA_ForceStreamPayload = 1 << 7,
+	/** If set, payload is stored in a .upack file alongside the uasset				*/
+	BULKDATA_PayloadInSeperateFile				= 1 << 8,
 
 };
 

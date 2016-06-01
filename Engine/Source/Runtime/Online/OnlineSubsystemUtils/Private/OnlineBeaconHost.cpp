@@ -57,14 +57,14 @@ bool AOnlineBeaconHost::InitHost()
 	return false;
 }
 
-void AOnlineBeaconHost::HandleNetworkFailure(UWorld* World, class UNetDriver *NetDriver, ENetworkFailure::Type FailureType, const FString& ErrorString)
+void AOnlineBeaconHost::HandleNetworkFailure(UWorld* World, class UNetDriver* InNetDriver, ENetworkFailure::Type FailureType, const FString& ErrorString)
 {
-	if (NetDriver && NetDriver->NetDriverName == NetDriverName)
+	if (InNetDriver && InNetDriver->NetDriverName == NetDriverName)
 	{
 		// Timeouts from clients are ignored
 		if (FailureType != ENetworkFailure::ConnectionTimeout)
 		{
-			Super::HandleNetworkFailure(World, NetDriver, FailureType, ErrorString);
+			Super::HandleNetworkFailure(World, InNetDriver, FailureType, ErrorString);
 		}
 	}
 }
@@ -77,7 +77,7 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 
 		// We are the server.
 #if !(UE_BUILD_SHIPPING && WITH_EDITOR)
-		UE_LOG(LogBeacon, Verbose, TEXT("%s Host received: %s"), Connection ? *Connection->GetName() : TEXT("Invalid"), FNetControlMessageInfo::GetName(MessageType));
+		UE_LOG(LogBeacon, Verbose, TEXT("%s[%s] Host received: %s"), *GetName(), Connection ? *Connection->GetName() : TEXT("Invalid"), FNetControlMessageInfo::GetName(MessageType));
 #endif
 		switch (MessageType)
 		{
@@ -142,10 +142,10 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 							FNetworkGUID NetGUID = Connection->Driver->GuidCache->AssignNewNetGUID_Server( NewClientActor );
 							NewClientActor->SetNetConnection(Connection);
 							Connection->OwningActor = NewClientActor;
-							NewClientActor->Role = ROLE_Authority;
+							NewClientActor->Role = ROLE_None;
 							NewClientActor->SetReplicates(false);
 							check(NetDriverName == NetDriver->NetDriverName);
-							NewClientActor->NetDriverName = NetDriverName;
+							NewClientActor->SetNetDriverName(NetDriverName);
 							ClientActors.Add(NewClientActor);
 							FNetControlMessage<NMT_BeaconAssignGUID>::Send(Connection, NetGUID);
 						}
@@ -185,6 +185,7 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 					FOnBeaconConnected* OnBeaconConnectedDelegate = OnBeaconConnectedMapping.Find(BeaconType);
 					if (OnBeaconConnectedDelegate)
 					{
+						ClientActor->Role = ROLE_Authority;
 						ClientActor->SetReplicates(true);
 						ClientActor->SetAutonomousProxy(true);
 						ClientActor->SetConnectionState(EBeaconConnectionState::Open);
@@ -253,14 +254,15 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 
 void AOnlineBeaconHost::DisconnectClient(AOnlineBeaconClient* ClientActor)
 {
-	if (ClientActor)
+	if (ClientActor && ClientActor->GetConnectionState() != EBeaconConnectionState::Closed && !ClientActor->IsPendingKill())
 	{
 		ClientActor->SetConnectionState(EBeaconConnectionState::Closed);
 
 		// Closing the connection will start the chain of events leading to the removal from lists and destruction of the actor
 		UNetConnection* Connection = ClientActor->GetNetConnection();
-		if (Connection)
+		if (Connection && ensure(Connection->State != USOCK_Closed))
 		{
+			UE_LOG(LogBeacon, Log, TEXT("DisconnectClient for %s. PendingKill %d UNetConnection %s UNetDriver %s State %d"), *GetNameSafe(ClientActor), ClientActor->IsPendingKill(), *GetNameSafe(ClientActor->BeaconConnection), ClientActor->BeaconConnection ? *GetNameSafe(ClientActor->BeaconConnection->Driver) : TEXT("null"), ClientActor->BeaconConnection ? ClientActor->BeaconConnection->State : -1);
 			Connection->FlushNet(true);
 			Connection->Close();
 		}

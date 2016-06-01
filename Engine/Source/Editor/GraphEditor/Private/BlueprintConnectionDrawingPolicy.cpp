@@ -47,13 +47,13 @@ FKismetConnectionDrawingPolicy::FKismetConnectionDrawingPolicy(int32 InBackLayer
 	LatestTimeDiscovered = 0.0;
 }
 
-void FKismetConnectionDrawingPolicy::Draw(TMap<TSharedRef<SWidget>, FArrangedWidget>& PinGeometries, FArrangedChildren& ArrangedNodes)
+void FKismetConnectionDrawingPolicy::Draw(TMap<TSharedRef<SWidget>, FArrangedWidget>& InPinGeometries, FArrangedChildren& ArrangedNodes)
 {
 	// Build the execution roadmap (also populates execution times)
 	BuildExecutionRoadmap();
 
 	// Draw everything
-	FConnectionDrawingPolicy::Draw(PinGeometries, ArrangedNodes);
+	FConnectionDrawingPolicy::Draw(InPinGeometries, ArrangedNodes);
 }
 
 bool FKismetConnectionDrawingPolicy::CanBuildRoadmap() const
@@ -102,7 +102,7 @@ void FKismetConnectionDrawingPolicy::BuildExecutionRoadmap()
 			{
 				if (TestObject == ActiveObject)
 				{
-					UEdGraphPin* AssociatedPin = DebugData.FindExecPinFromCodeLocation(Sample.Function.Get(), Sample.Offset);
+					UEdGraphPin* AssociatedPin = DebugData.FindSourcePinFromCodeLocation(Sample.Function.Get(), Sample.Offset);
 
 					if (UEdGraphNode* Node = DebugData.FindSourceNodeFromCodeLocation(Sample.Function.Get(), Sample.Offset, /*bAllowImpreciseHit=*/ false))
 					{

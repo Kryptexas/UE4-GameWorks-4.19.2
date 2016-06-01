@@ -93,8 +93,9 @@ struct FMath : public FPlatformMath
 	/** Helper function for rand implementations. Returns a random number in [0..A) */
 	static FORCEINLINE int32 RandHelper(int32 A)
 	{
-		// RAND_MAX+1 give interval [0..A) with even distribution.
-		return A>0 ? TruncToInt(Rand()/(float)((uint32)RAND_MAX+1) * A) : 0;
+		// Note that on some platforms RAND_MAX is a large number so we cannot do ((rand()/(RAND_MAX+1)) * A)
+		// or else we may include the upper bound results, which should be excluded.
+		return A > 0 ? Min(TruncToInt(FRand() * A), A - 1) : 0;
 	}
 
 	/** Helper function for rand implementations. Returns a random number >= Min and <= Max */
@@ -417,19 +418,42 @@ struct FMath : public FPlatformMath
 	 */
 	static float CORE_API ClampAngle(float AngleDegrees, float MinAngleDegrees, float MaxAngleDegrees);
 
+	/** Find the smallest angle between two headings (in degrees) */
+	static float FindDeltaAngleDegrees(float A1, float A2)
+	{
+		// Find the difference
+		float Delta = A2 - A1;
+
+		// If change is larger than 180
+		if (Delta > 180.0f)
+		{
+			// Flip to negative equivalent
+			Delta = Delta - 360.0f;
+		}
+		else if (Delta < -180.0f)
+		{
+			// Otherwise, if change is smaller than -180
+			// Flip to positive equivalent
+			Delta = Delta + 360.0f;
+		}
+
+		// Return delta in [-180,180] range
+		return Delta;
+	}
+
 	/** Find the smallest angle between two headings (in radians) */
-	static float FindDeltaAngle(float A1, float A2)
+	static float FindDeltaAngleRadians(float A1, float A2)
 	{
 		// Find the difference
 		float Delta = A2 - A1;
 
 		// If change is larger than PI
-		if(Delta > PI)
+		if (Delta > PI)
 		{
 			// Flip to negative equivalent
 			Delta = Delta - (PI * 2.0f);
 		}
-		else if(Delta < -PI)
+		else if (Delta < -PI)
 		{
 			// Otherwise, if change is smaller than -PI
 			// Flip to positive equivalent
@@ -438,6 +462,12 @@ struct FMath : public FPlatformMath
 
 		// Return delta in [-PI,PI] range
 		return Delta;
+	}
+
+	DEPRECATED(4.12, "Please use FindDeltaAngleRadians(float A1, float A2) instead of FindDeltaAngle(float A1, float A2).")
+	static float FindDeltaAngle(float A1, float A2)
+	{
+		return FindDeltaAngleRadians(A1, A2);
 	}
 
 	/** Given a heading which may be outside the +/- PI range, 'unwind' it back into that range. */
@@ -471,6 +501,14 @@ struct FMath : public FPlatformMath
 
 		return A;
 	}
+
+	/** 
+	 * Given two angles in degrees, 'wind' the rotation in Angle1 so that it avoids >180 degree flips.
+	 * Good for winding rotations previously expressed as quaternions into a euler-angle representation.
+	 * @param	Angle0	The first angle that we wind relative to.
+	 * @param	Angle1	The second angle that we may wind relative to the first.
+	 */
+	static CORE_API void WindRelativeAnglesDegrees(float InAngle0, float& InOutAngle1);
 
 	/** Returns a new rotation component value
 	 *
@@ -557,7 +595,7 @@ struct FMath : public FPlatformMath
 		return GetMappedRangeValueClamped(InputRange, OutputRange, Value);
 	}
 
-	/** For the given Value clamped to the Input Range, returns the corresponding value in the Output Range. */
+	/** For the given Value clamped to the [Input:Range] inclusive, returns the corresponding percentage in [Output:Range] Inclusive. */
 	static FORCEINLINE float GetMappedRangeValueClamped(const FVector2D& InputRange, const FVector2D& OutputRange, const float Value)
 	{
 		const float ClampedPct = Clamp<float>(GetRangePct(InputRange, Value), 0.f, 1.f);
@@ -663,7 +701,7 @@ struct FMath : public FPlatformMath
 	template< class T >
 	static FORCEINLINE_DEBUGGABLE T InterpEaseIn(const T& A, const T& B, float Alpha, float Exp)
 	{
-		float const ModifiedAlpha = FMath::Pow(Alpha, Exp);
+		float const ModifiedAlpha = Pow(Alpha, Exp);
 		return Lerp<T>(A, B, ModifiedAlpha);
 	}
 
@@ -671,7 +709,7 @@ struct FMath : public FPlatformMath
 	template< class T >
 	static FORCEINLINE_DEBUGGABLE T InterpEaseOut(const T& A, const T& B, float Alpha, float Exp)
 	{
-		float const ModifiedAlpha = 1.f - FMath::Pow(1.f - Alpha, Exp);
+		float const ModifiedAlpha = 1.f - Pow(1.f - Alpha, Exp);
 		return Lerp<T>(A, B, ModifiedAlpha);
 	}
 
@@ -679,20 +717,22 @@ struct FMath : public FPlatformMath
 	template< class T > 
 	static FORCEINLINE_DEBUGGABLE T InterpEaseInOut( const T& A, const T& B, float Alpha, float Exp )
 	{
-		float const ModifiedAlpha = (Alpha < 0.5f) ?
-			0.5f * Pow(2.f * Alpha, Exp) :
-			1.f - 0.5f * Pow(2.f * (1.f - Alpha), Exp);
-
-		return Lerp<T>(A, B, ModifiedAlpha);
+		return Lerp<T>(A, B, (Alpha < 0.5f) ?
+			InterpEaseIn(0.f, 1.f, Alpha * 2.f, Exp) * 0.5f :
+			InterpEaseOut(0.f, 1.f, Alpha * 2.f - 1.f, Exp) * 0.5f + 0.5f);
 	}
 
 	/** Interpolation between A and B, applying a step function. */
 	template< class T >
 	static FORCEINLINE_DEBUGGABLE T InterpStep(const T& A, const T& B, float Alpha, int32 Steps)
 	{
-		if (Steps <= 1)
+		if (Steps <= 1 || Alpha <= 0)
 		{
 			return A;
+		}
+		else if (Alpha >= 1)
+		{
+			return B;
 		}
 
 		const float StepsAsFloat = static_cast<float>(Steps);
@@ -705,7 +745,7 @@ struct FMath : public FPlatformMath
 	template< class T >
 	static FORCEINLINE_DEBUGGABLE T InterpSinIn(const T& A, const T& B, float Alpha)
 	{
-		float const ModifiedAlpha = -1.f * cos(Alpha * HALF_PI) + 1.f;
+		float const ModifiedAlpha = -1.f * Cos(Alpha * HALF_PI) + 1.f;
 		return Lerp<T>(A, B, ModifiedAlpha);
 	}
 	
@@ -713,7 +753,7 @@ struct FMath : public FPlatformMath
 	template< class T >
 	static FORCEINLINE_DEBUGGABLE T InterpSinOut(const T& A, const T& B, float Alpha)
 	{
-		float const ModifiedAlpha = sin(Alpha * HALF_PI);
+		float const ModifiedAlpha = Sin(Alpha * HALF_PI);
 		return Lerp<T>(A, B, ModifiedAlpha);
 	}
 
@@ -721,16 +761,16 @@ struct FMath : public FPlatformMath
 	template< class T >
 	static FORCEINLINE_DEBUGGABLE T InterpSinInOut(const T& A, const T& B, float Alpha)
 	{
-		return (Alpha < 0.5f) ?
-			InterpSinIn(A, B, Alpha * 2.f) * 0.5f :
-			InterpSinOut(A, B, Alpha * 2.f - 1.f) * 0.5f + 0.5f;
+		return Lerp<T>(A, B, (Alpha < 0.5f) ?
+			InterpSinIn(0.f, 1.f, Alpha * 2.f) * 0.5f :
+			InterpSinOut(0.f, 1.f, Alpha * 2.f - 1.f) * 0.5f + 0.5f);
 	}
 
 	/** Interpolation between A and B, applying an exponential in function. */
 	template< class T >
 	static FORCEINLINE_DEBUGGABLE T InterpExpoIn(const T& A, const T& B, float Alpha)
 	{
-		float const ModifiedAlpha = (Alpha == 0.f) ? 0.f : pow(2.f, 10.f * (Alpha - 1.f));
+		float const ModifiedAlpha = (Alpha == 0.f) ? 0.f : Pow(2.f, 10.f * (Alpha - 1.f));
 		return Lerp<T>(A, B, ModifiedAlpha);
 	}
 
@@ -738,7 +778,7 @@ struct FMath : public FPlatformMath
 	template< class T >
 	static FORCEINLINE_DEBUGGABLE T InterpExpoOut(const T& A, const T& B, float Alpha)
 	{
-		float const ModifiedAlpha = (Alpha == 1.f) ? 1.f : -pow(2.f, -10.f * Alpha) + 1.f;
+		float const ModifiedAlpha = (Alpha == 1.f) ? 1.f : -Pow(2.f, -10.f * Alpha) + 1.f;
 		return Lerp<T>(A, B, ModifiedAlpha);
 	}
 
@@ -746,9 +786,9 @@ struct FMath : public FPlatformMath
 	template< class T >
 	static FORCEINLINE_DEBUGGABLE T InterpExpoInOut(const T& A, const T& B, float Alpha)
 	{
-		return (Alpha < 0.5f) ?
-			InterpExpoIn(A, B, Alpha * 2.f) * 0.5f :
-			InterpExpoOut(A, B, Alpha * 2.f - 1.f) * 0.5f + 0.5f;
+		return Lerp<T>(A, B, (Alpha < 0.5f) ?
+			InterpExpoIn(0.f, 1.f, Alpha * 2.f) * 0.5f :
+			InterpExpoOut(0.f, 1.f, Alpha * 2.f - 1.f) * 0.5f + 0.5f);
 	}
 
 	/** Interpolation between A and B, applying a circular in function. */
@@ -772,9 +812,9 @@ struct FMath : public FPlatformMath
 	template< class T >
 	static FORCEINLINE_DEBUGGABLE T InterpCircularInOut(const T& A, const T& B, float Alpha)
 	{
-		return (Alpha < 0.5f) ?
-			InterpCircularIn(A, B, Alpha * 2.f) * 0.5f :
-			InterpCircularOut(A, B, Alpha * 2.f - 1.f) * 0.5f + 0.5f;
+		return Lerp<T>(A, B, (Alpha < 0.5f) ?
+			InterpCircularIn(0.f, 1.f, Alpha * 2.f) * 0.5f :
+			InterpCircularOut(0.f, 1.f, Alpha * 2.f - 1.f) * 0.5f + 0.5f);
 	}
 
 	// Rotator specific interpolation

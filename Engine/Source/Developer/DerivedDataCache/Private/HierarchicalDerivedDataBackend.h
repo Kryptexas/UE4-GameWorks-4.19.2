@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "DDCStatsHelper.h"
+#include "DerivedDataCacheUsageStats.h"
 
 
 /** 
@@ -65,11 +65,12 @@ public:
 	 */
 	virtual bool CachedDataProbablyExists(const TCHAR* CacheKey) override
 	{
-		
+		COOK_STAT(auto Timer = UsageStats.TimeProbablyExists());
 		for (int32 CacheIndex = 0; CacheIndex < InnerBackends.Num(); CacheIndex++)
 		{
 			if (InnerBackends[CacheIndex]->CachedDataProbablyExists(CacheKey))
 			{
+				COOK_STAT(Timer.AddHit(0));
 				return true;
 			}
 		}
@@ -84,6 +85,7 @@ public:
 	 */
 	virtual bool GetCachedData(const TCHAR* CacheKey, TArray<uint8>& OutData) override
 	{
+		COOK_STAT(auto Timer = UsageStats.TimeGet());
 		for (int32 CacheIndex = 0; CacheIndex < InnerBackends.Num(); CacheIndex++)
 		{
 			if (InnerBackends[CacheIndex]->CachedDataProbablyExists(CacheKey) && InnerBackends[CacheIndex]->GetCachedData(CacheKey, OutData))
@@ -123,6 +125,7 @@ public:
 						}
 					}
 				}
+				COOK_STAT(Timer.AddHit(OutData.Num()));
 				return true;
 			}
 		}
@@ -137,15 +140,7 @@ public:
 	 */
 	virtual void PutCachedData(const TCHAR* CacheKey, TArray<uint8>& InData, bool bPutEvenIfExists) override
 	{
-		const static FName NAME_PutCachedData = FName(TEXT("PutCachedData"));
-		const static FName NAME_HierarchicalDDC = FName(TEXT("HierarchicalDDC"));
-		const static FName NAME_DataSize = FName(TEXT("DataSize"));
-
-		FDDCScopeStatHelper Stat(CacheKey, NAME_PutCachedData);
-		Stat.AddTag(NAME_HierarchicalDDC, FString());
-		Stat.AddTag(NAME_DataSize, InData.Num());
-
-
+		COOK_STAT(auto Timer = UsageStats.TimePut());
 		if (!bIsWritable)
 		{
 			return; // no point in continuing down the chain
@@ -159,6 +154,7 @@ public:
 			}
 			if (InnerBackends[PutCacheIndex]->IsWritable())
 			{
+				COOK_STAT(Timer.AddHit(InData.Num()));
 				if (!bSynchronousPutPeformed)
 				{
 					InnerBackends[PutCacheIndex]->PutCachedData(CacheKey, InData, bPutEvenIfExists);
@@ -183,7 +179,34 @@ public:
 			InnerBackends[PutCacheIndex]->RemoveCachedData(CacheKey, bTransient);
 		}
 	}
+
+	virtual void GatherUsageStats(TMap<FString, FDerivedDataCacheUsageStats>& UsageStatsMap, FString&& GraphPath) override
+	{
+		COOK_STAT(
+		{
+			UsageStatsMap.Add(GraphPath + TEXT(": Hierarchical"), UsageStats);
+			// All the inner backends are actually wrapped by AsyncPut backends in writable cases (most cases in practice)
+			if (AsyncPutInnerBackends.Num() > 0)
+			{
+				int Ndx = 0;
+				for (const auto& InnerBackend : AsyncPutInnerBackends)
+				{
+					InnerBackend->GatherUsageStats(UsageStatsMap, GraphPath + FString::Printf(TEXT(".%2d"), Ndx++));
+				}
+			}
+			else
+			{
+				int Ndx = 0;
+				for (auto InnerBackend : InnerBackends)
+				{
+					InnerBackend->GatherUsageStats(UsageStatsMap, GraphPath + FString::Printf(TEXT(".%2d"), Ndx++));
+				}
+			}
+		});
+	}
+
 private:
+	FDerivedDataCacheUsageStats UsageStats;
 
 	/** Array of backends forming the hierarchical cache...the first element is the fastest cache. **/
 	TArray<FDerivedDataBackendInterface*> InnerBackends;

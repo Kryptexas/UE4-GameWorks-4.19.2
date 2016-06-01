@@ -110,6 +110,13 @@ private:
 	void GeneratePlacedCameraMenuEntries( FMenuBuilder& Builder, TArray<ACameraActor*> Cameras ) const;
 
 	/**
+	 * Generates menu entries for changing the type of the viewport
+	 *
+	 * @param Builder	The menu builder to add menu entries to
+	 */
+	void GenerateViewportTypeMenu( FMenuBuilder& Builder ) const;
+
+	/**
 	 * Generates the toolbar view menu content 
 	 *
 	 * @return The widget containing the view menu content

@@ -349,11 +349,17 @@ void SEditorViewport::BindCommands()
 	MAP_VIEWMODE_ACTION( Commands.LightingOnlyMode, VMI_LightingOnly );
 	MAP_VIEWMODE_ACTION( Commands.LightComplexityMode, VMI_LightComplexity );
 	MAP_VIEWMODE_ACTION( Commands.ShaderComplexityMode, VMI_ShaderComplexity );
-	MAP_VIEWMODE_ACTION( Commands.QuadComplexityMode, VMI_QuadComplexity );
+	MAP_VIEWMODE_ACTION( Commands.QuadOverdrawMode, VMI_QuadOverdraw);
+	MAP_VIEWMODE_ACTION( Commands.ShaderComplexityWithQuadOverdrawMode, VMI_ShaderComplexityWithQuadOverdraw );
+	MAP_VIEWMODE_ACTION( Commands.TexStreamAccPrimitiveDistanceMode, VMI_PrimitiveDistanceAccuracy );
+	MAP_VIEWMODE_ACTION( Commands.TexStreamAccMeshTexCoordSizeMode, VMI_MeshTexCoordSizeAccuracy );
+	MAP_VIEWMODE_ACTION( Commands.TexStreamAccMaterialTexCoordScalesMode, VMI_MaterialTexCoordScalesAccuracy );
 	MAP_VIEWMODE_ACTION( Commands.StationaryLightOverlapMode, VMI_StationaryLightOverlap );
 	MAP_VIEWMODE_ACTION( Commands.LightmapDensityMode, VMI_LightmapDensity );
 	MAP_VIEWMODE_ACTION( Commands.ReflectionOverrideMode, VMI_ReflectionOverride );
+	MAP_VIEWMODE_ACTION( Commands.GroupLODColorationMode, VMI_GroupLODColoration);
 	MAP_VIEWMODE_ACTION( Commands.LODColorationMode, VMI_LODColoration );
+	MAP_VIEWMODE_ACTION( Commands.HLODColorationMode, VMI_HLODColoration);
 	MAP_VIEWMODE_ACTION( Commands.VisualizeBufferMode, VMI_VisualizeBuffer );
 	MAP_VIEWMODE_ACTION( Commands.CollisionPawn, VMI_CollisionPawn);
 	MAP_VIEWMODE_ACTION( Commands.CollisionVisibility, VMI_CollisionVisibility);
@@ -381,6 +387,19 @@ void SEditorViewport::OnToggleRealtime()
 		ActiveTimerHandle = RegisterActiveTimer( 0.f, FWidgetActiveTimerDelegate::CreateSP( this, &SEditorViewport::EnsureTick ) );
 	}
 }
+
+
+void SEditorViewport::SetRenderDirectlyToWindow( const bool bInRenderDirectlyToWindow )
+{
+	ViewportWidget->SetRenderDirectlyToWindow( bInRenderDirectlyToWindow );
+}
+
+
+void SEditorViewport::EnableStereoRendering( const bool bInEnableStereoRendering )
+{
+	ViewportWidget->EnableStereoRendering( bInEnableStereoRendering );
+}
+
 
 void SEditorViewport::OnToggleStats()
 {
@@ -425,6 +444,12 @@ void SEditorViewport::ToggleShowFlag(uint32 EngineShowFlagIndex)
 {
 	bool bOldState = Client->EngineShowFlags.GetSingleFlag(EngineShowFlagIndex);
 	Client->EngineShowFlags.SetSingleFlag(EngineShowFlagIndex, !bOldState);
+
+	// If changing collision flag, need to do special handling for hidden objects
+	if (EngineShowFlagIndex == FEngineShowFlags::EShowFlag::SF_Collision)
+	{
+		Client->UpdateHiddenCollisionDrawing();
+	}
 
 	// Invalidate clients which aren't real-time so we see the changes
 	Client->Invalidate();

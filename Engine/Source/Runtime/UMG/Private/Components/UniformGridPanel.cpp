@@ -109,11 +109,6 @@ void UUniformGridPanel::SynchronizeProperties()
 
 #if WITH_EDITOR
 
-const FSlateBrush* UUniformGridPanel::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.UniformGrid");
-}
-
 const FText UUniformGridPanel::GetPaletteCategory()
 {
 	return LOCTEXT("Panel", "Panel");

@@ -314,7 +314,7 @@ void UAnimCompress_RemoveLinearKeys::UpdateWorldBoneTransformTable(
 	const int32 NumFrames			= AnimSeq->NumFrames;
 	const float SequenceLength	= AnimSeq->SequenceLength;
 	const int32 FrameStart		= (BoneIndex*NumFrames);
-	const int32 TrackIndex = AnimSeq->GetSkeleton()->GetAnimationTrackIndex(BoneIndex, AnimSeq);
+	const int32 TrackIndex = AnimSeq->GetSkeleton()->GetAnimationTrackIndex(BoneIndex, AnimSeq, UseRaw);
 	
 	check(OutputWorldBones.Num() >= (FrameStart+NumFrames));
 
@@ -602,7 +602,7 @@ void UAnimCompress_RemoveLinearKeys::ProcessAnimationTracks(
 		const FBoneData& Bone = BoneData[BoneIndex];
 		const int32 ParentBoneIndex = Bone.GetParent();
 
-		const int32 TrackIndex = AnimSeq->GetSkeleton()->GetAnimationTrackIndex(BoneIndex, AnimSeq);
+		const int32 TrackIndex = AnimSeq->GetSkeleton()->GetAnimationTrackIndex(BoneIndex, AnimSeq, true);
 
 		if (TrackIndex != INDEX_NONE)
 		{
@@ -805,7 +805,7 @@ void UAnimCompress_RemoveLinearKeys::ProcessAnimationTracks(
 				{
 					const int32 NextParentBoneIndex= Bone.BonesToRoot[FamilyIndex];
 
-					GuideTrackIndex = AnimSeq->GetSkeleton()->GetAnimationTrackIndex(NextParentBoneIndex, AnimSeq);
+					GuideTrackIndex = AnimSeq->GetSkeleton()->GetAnimationTrackIndex(NextParentBoneIndex, AnimSeq, true);
 				}
 			}
 
@@ -1061,3 +1061,17 @@ void UAnimCompress_RemoveLinearKeys::DoReduction(UAnimSequence* AnimSeq, const T
 #endif // WITH_EDITORONLY_DATA
 }
 
+void UAnimCompress_RemoveLinearKeys::PopulateDDCKey(FArchive& Ar)
+{
+	Super::PopulateDDCKey(Ar);
+	Ar << MaxPosDiff;
+	Ar << MaxAngleDiff;
+	Ar << MaxScaleDiff;
+	Ar << MaxEffectorDiff;
+	Ar << MinEffectorDiff;
+	Ar << EffectorDiffSocket;
+	Ar << ParentKeyScale;
+	uint8 Flags =	MakeBitForFlag(bRetarget, 0) +
+					MakeBitForFlag(bActuallyFilterLinearKeys, 1);
+	Ar << Flags;
+}

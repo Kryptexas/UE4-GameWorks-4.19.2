@@ -20,18 +20,18 @@ IMPLEMENT_MODULE(FOpenGLDynamicRHIModule, OpenGLDrv);
 DEFINE_LOG_CATEGORY(LogOpenGL);
 
 
-void FOpenGLDynamicRHI::RHIPushEvent(const TCHAR* Name)
+void FOpenGLDynamicRHI::RHIPushEvent(const TCHAR* Name, FColor Color)
 {
 #if ENABLE_OPENGL_DEBUG_GROUPS
 	// @todo-mobile: Fix string conversion ASAP!
 	FOpenGL::PushGroupMarker(TCHAR_TO_ANSI(Name));
 #endif
-	GPUProfilingData.PushEvent(Name);
+	GPUProfilingData.PushEvent(Name, Color);
 }
 
-void FOpenGLGPUProfiler::PushEvent(const TCHAR* Name)
+void FOpenGLGPUProfiler::PushEvent(const TCHAR* Name, FColor Color)
 {
-	FGPUProfiler::PushEvent(Name);
+	FGPUProfiler::PushEvent(Name, Color);
 }
 
 void FOpenGLDynamicRHI::RHIPopEvent()
@@ -124,7 +124,7 @@ void FOpenGLGPUProfiler::BeginFrame(FOpenGLDynamicRHI* InRHI)
 
 	if (GEmitDrawEvents)
 	{
-		PushEvent(TEXT("FRAME"));
+		PushEvent(TEXT("FRAME"), FColor(0, 255, 0, 255));
 	}
 }
 

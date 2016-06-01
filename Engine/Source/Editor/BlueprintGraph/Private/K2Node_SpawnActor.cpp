@@ -110,6 +110,8 @@ void UK2Node_SpawnActor::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>
 	{
 		CreatePinsForClass(UseSpawnClass);
 	}
+
+	RestoreSplitPins(OldPins);
 }
 
 bool UK2Node_SpawnActor::IsSpawnVarPin(UEdGraphPin* Pin)

@@ -1,12 +1,23 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-
 #pragma once
 
-class UNREALED_API SEditorViewport : public SCompoundWidget
+#include "Editor.h"
+
+
+class FEditorViewportClient;
+class FSceneViewport;
+class FUICommandList;
+class SOverlay;
+class SViewport;
+class UWorld;
+
+
+class UNREALED_API SEditorViewport
+	: public SCompoundWidget
 {
 public:
-	SLATE_BEGIN_ARGS(SEditorViewport) {}
+	SLATE_BEGIN_ARGS(SEditorViewport) { }
 	SLATE_END_ARGS()
 	
 	SEditorViewport();
@@ -37,6 +48,20 @@ public:
 	void OnToggleRealtime();
 
 	/**
+	 * Sets whether this viewport can render directly to the back buffer.  Advanced use only
+	 * 
+	 * @param	bInRenderDirectlyToWindow	Whether we should be able to render to the back buffer
+	 */
+	void SetRenderDirectlyToWindow( const bool bInRenderDirectlyToWindow );
+
+	/**
+	 * Sets whether stereo rendering is allowed for this viewport.  Advanced use only
+	 * 
+	 * @param	bInEnableStereoRendering	Whether stereo rendering should be allowed for this viewport
+	 */
+	void EnableStereoRendering( const bool bInEnableStereoRendering );
+
+	/**
 	 * @return true if the specified coordinate system the active one active
 	 */
 	virtual bool IsCoordSystemActive( ECoordSystem CoordSystem ) const;
@@ -58,7 +83,7 @@ protected:
 	virtual TSharedPtr<SWidget> MakeViewportToolbar() { return TSharedPtr<SWidget>(nullptr); }
 
 	// Implement this to add an arbitrary set of toolbars or other overlays to the inside of the viewport
-	virtual void PopulateViewportOverlays(TSharedRef<class SOverlay> Overlay) { }
+	virtual void PopulateViewportOverlays(TSharedRef<SOverlay> Overlay) { }
 
 	virtual void BindCommands();
 	virtual const FSlateBrush* OnGetViewportBorderBrush() const { return NULL; }
@@ -175,7 +200,7 @@ protected:
 	TSharedPtr<SOverlay> ViewportOverlay;
 
 	/** Viewport that renders the scene provided by the viewport client */
-	TSharedPtr<class FSceneViewport> SceneViewport;
+	TSharedPtr<FSceneViewport> SceneViewport;
 	
 	/** Widget where the scene viewport is drawn in */
 	TSharedPtr<SViewport> ViewportWidget;

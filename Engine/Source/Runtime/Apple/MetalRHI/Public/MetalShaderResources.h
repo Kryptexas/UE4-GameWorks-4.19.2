@@ -143,6 +143,8 @@ struct FMetalCodeHeader
 	uint8 NumThreadsX;
 	uint8 NumThreadsY;
 	uint8 NumThreadsZ;
+
+	bool bFastMath;
 };
 
 inline FArchive& operator<<(FArchive& Ar, FMetalCodeHeader& Header)
@@ -175,6 +177,8 @@ inline FArchive& operator<<(FArchive& Ar, FMetalCodeHeader& Header)
 	Ar << Header.NumThreadsX;
 	Ar << Header.NumThreadsY;
 	Ar << Header.NumThreadsZ;
+	
+	Ar << Header.bFastMath;
 
 	return Ar;
 }

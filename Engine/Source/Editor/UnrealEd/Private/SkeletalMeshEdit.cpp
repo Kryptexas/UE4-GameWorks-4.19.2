@@ -77,7 +77,7 @@ UAnimSequence * UEditorEngine::ImportFbxAnimation( USkeleton* Skeleton, UObject*
 			{
 				// since to know full path, reimport will need to do same
 				UFbxAnimSequenceImportData* ImportData = UFbxAnimSequenceImportData::GetImportDataForAnimSequence(NewAnimation, TemplateImportData);
-				ImportData->Update(UFactory::CurrentFilename);
+				ImportData->Update(UFactory::GetCurrentFilename());
 			}
 		}
 	}
@@ -547,7 +547,7 @@ UAnimSequence * UnFbx::FFbxImporter::ImportAnimations(USkeleton* Skeleton, UObje
 
 		// since to know full path, reimport will need to do same
 		UFbxAnimSequenceImportData* ImportData = UFbxAnimSequenceImportData::GetImportDataForAnimSequence(DestSeq, TemplateImportData);
-		ImportData->Update(UFactory::CurrentFilename);
+		ImportData->Update(UFactory::GetCurrentFilename());
 
 		ImportAnimation(Skeleton, DestSeq, Name, SortedLinks, NodeArray, CurAnimStack, ResampleRate, AnimTimeSpan);
 
@@ -952,9 +952,10 @@ bool UnFbx::FFbxImporter::ImportCurveToAnimSequence(class UAnimSequence * Target
 		FFloatCurve * CurveToImport = static_cast<FFloatCurve *>(TargetSequence->RawCurveData.GetCurveData(Uid, FRawCurveTracks::FloatType));
 		if(CurveToImport==NULL)
 		{
-			if(TargetSequence->RawCurveData.AddCurveData(Uid, CurveFlags))
+			if (TargetSequence->RawCurveData.AddCurveData(Uid, ACF_DefaultCurve | CurveFlags))
 			{
 				CurveToImport = static_cast<FFloatCurve *> (TargetSequence->RawCurveData.GetCurveData(Uid, FRawCurveTracks::FloatType));
+				CurveToImport->LastObservedName = Name;
 			}
 			else
 			{
@@ -965,8 +966,11 @@ bool UnFbx::FFbxImporter::ImportCurveToAnimSequence(class UAnimSequence * Target
 		else
 		{
 			CurveToImport->FloatCurve.Reset();
+			// if existing add these curve flags. 
+			CurveToImport->SetCurveTypeFlags(CurveFlags | CurveToImport->GetCurveTypeFlags());
 		}
 
+		TargetSequence->MarkRawDataAsModified();
 		return ImportCurve(FbxCurve, CurveToImport, AnimTimeSpan, ValueScale);
 	}
 
@@ -1008,6 +1012,7 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 		DestSeq->RawCurveData.FloatCurves.Shrink();
 	}
 
+	FbxNode *SkeletalMeshRootNode = NodeArray.Num() > 0 ? NodeArray[0] : nullptr;
 	//
 	// import blend shape curves
 	//
@@ -1104,7 +1109,13 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 							const FText StatusUpate = FText::Format(LOCTEXT("ImportingCustomAttributeCurvesDetail", "Importing Custom Attribute [{CurveName}]"), Args);
 							GWarn->StatusUpdate(CurLinkIndex + 1, TotalLinks, StatusUpate);
 
-							ImportCurveToAnimSequence(DestSeq, FinalCurveName, AnimCurve,  ACF_DefaultCurve, AnimTimeSpan);
+							int32 CurveFlags = 0;
+							if (ImportOptions->bSetMaterialDriveParameterOnCustomAttribute)
+							{
+								CurveFlags |= ACF_DrivesMaterial;
+							}
+
+							ImportCurveToAnimSequence(DestSeq, FinalCurveName, AnimCurve, CurveFlags, AnimTimeSpan);
 						}
 											
 					}
@@ -1149,7 +1160,7 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 		FMatrix AddedMatrix = Converter.ConvertMatrix(FbxAddedMatrix);
 
 		const int32 NumSamplingKeys = FMath::FloorToInt(AnimTimeSpan.GetDuration().GetSecondDouble() * ResampleRate);
-		const FbxTime TimeIncrement = (NumSamplingKeys > 1)? AnimTimeSpan.GetDuration() / (NumSamplingKeys - 1) : AnimTimeSpan.GetDuration();
+		const FbxTime TimeIncrement = AnimTimeSpan.GetDuration() / FMath::Max(NumSamplingKeys, 1);
 		for(int32 SourceTrackIdx = 0; SourceTrackIdx < FbxRawBoneNames.Num(); ++SourceTrackIdx)
 		{
 			int32 NumKeysForTrack = 0;
@@ -1180,7 +1191,6 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 
 				FbxNode* Link = SortedLinks[SourceTrackIdx];
 				FbxNode * LinkParent = Link->GetParent();
-			
 				for(FbxTime CurTime = AnimTimeSpan.GetStart(); CurTime <= AnimTimeSpan.GetStop(); CurTime += TimeIncrement)
 				{
 					// save global trasnform
@@ -1215,6 +1225,13 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 						// I can't rely on LocalMatrix. I need to recalculate quaternion/scale based on global transform if Parent exists
 						FbxAMatrix ParentGlobalMatrix = Link->GetParent()->EvaluateGlobalTransform(CurTime);
 						FTransform ParentGlobalTransform =  Converter.ConvertTransform(ParentGlobalMatrix);
+						//In case we do a scene import we need to add the skeletal mesh root node matrix to the parent link.
+						if (ImportOptions->bImportScene && !ImportOptions->bTransformVertexToAbsolute && BoneTreeIndex == 0 && SkeletalMeshRootNode != nullptr)
+						{
+							FbxAMatrix GlobalSkeletalNodeFbx = SkeletalMeshRootNode->EvaluateGlobalTransform(CurTime);
+							FTransform GlobalSkeletalNode = Converter.ConvertTransform(GlobalSkeletalNodeFbx);
+							ParentGlobalTransform = ParentGlobalTransform * GlobalSkeletalNode;
+						}
 
 						LocalTransform = GlobalTransform.GetRelativeTransform(ParentGlobalTransform);
 						NewDebugData.SourceParentGlobalTransform.Add(ParentGlobalTransform);
@@ -1274,6 +1291,9 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 		}
 
 		DestSeq->NumFrames = TotalNumKeys;
+
+		DestSeq->MarkRawDataAsModified();
+
 		GWarn->EndSlowTask();
 	}
 

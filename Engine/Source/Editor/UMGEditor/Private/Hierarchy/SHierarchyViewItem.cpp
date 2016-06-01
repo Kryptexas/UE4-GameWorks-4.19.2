@@ -885,9 +885,13 @@ FText FHierarchyWidget::GetLabelToolTipText() const
 	return FText::GetEmpty();
 }
 
+const FSlateBrush* GetEditorIcon_Deprecated(UWidget* Widget);
+
 const FSlateBrush* FHierarchyWidget::GetImage() const
 {
-	return Item.GetTemplate()->GetEditorIcon();
+	// @todo UMG: remove after 4.12
+	return GetEditorIcon_Deprecated(Item.GetTemplate());
+	// return FClassIconFinder::FindIconForClass(Item.GetTemplate()->GetClass());
 }
 
 FSlateFontInfo FHierarchyWidget::GetFont() const

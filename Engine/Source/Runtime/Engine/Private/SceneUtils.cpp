@@ -7,7 +7,7 @@
 #if WANTS_DRAW_MESH_EVENTS
 
 template<typename TRHICmdList>
-void TDrawEvent<TRHICmdList>::Start(TRHICmdList& InRHICmdList, const TCHAR* Fmt, ...)
+void TDrawEvent<TRHICmdList>::Start(TRHICmdList& InRHICmdList, FColor Color, const TCHAR* Fmt, ...)
 {
 	check(IsInParallelRenderingThread() || IsInRHIThread());
 	{
@@ -16,7 +16,7 @@ void TDrawEvent<TRHICmdList>::Start(TRHICmdList& InRHICmdList, const TCHAR* Fmt,
 		TCHAR TempStr[256];
 		// Build the string in the temp buffer
 		FCString::GetVarArgs(TempStr, ARRAY_COUNT(TempStr), ARRAY_COUNT(TempStr) - 1, Fmt, ptr);
-		InRHICmdList.PushEvent(TempStr);
+		InRHICmdList.PushEvent(TempStr, Color);
 		RHICmdList = &InRHICmdList;
 	}
 }
@@ -33,18 +33,17 @@ void TDrawEvent<TRHICmdList>::Stop()
 template struct TDrawEvent<FRHICommandList>;
 template struct TDrawEvent<FRHIAsyncComputeCommandList>;
 
-void FDrawEventRHIExecute::Start(IRHIComputeContext& InRHICommandContext, const TCHAR* Fmt, ...)
+void FDrawEventRHIExecute::Start(IRHIComputeContext& InRHICommandContext, FColor Color, const TCHAR* Fmt, ...)
 {
 	check(IsInParallelRenderingThread() || IsInRHIThread() || (!GRHIThread && IsInRenderingThread()));
 	{
-		
 		va_list ptr;
 		va_start(ptr, Fmt);
 		TCHAR TempStr[256];
 		// Build the string in the temp buffer
 		FCString::GetVarArgs(TempStr, ARRAY_COUNT(TempStr), ARRAY_COUNT(TempStr) - 1, Fmt, ptr);
 		RHICommandContext = &InRHICommandContext;
-		RHICommandContext->RHIPushEvent(TempStr);		
+		RHICommandContext->RHIPushEvent(TempStr, Color);
 	}
 }
 

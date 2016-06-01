@@ -544,7 +544,7 @@ public:
 private:
 
 	/** Special feedback context used exclusively while automation testing */
-	class FAutomationTestFeedbackContext : public FFeedbackContext
+	 class FAutomationTestFeedbackContext : public FFeedbackContext
 	{
 	public:
 
@@ -583,6 +583,7 @@ private:
 		class FAutomationTestBase* CurTest;
 	};
 
+	 friend class FAutomationTestFeedbackContext;
 	/** Helper method called to prepare settings for automation testing to follow */
 	void PrepForAutomationTests();
 

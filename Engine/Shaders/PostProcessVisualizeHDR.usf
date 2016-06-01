@@ -40,7 +40,7 @@ uint ComputeAdvice(float3 HDRColor)
 		return 1;
 	}
 
-	// for some reasons HLSL compiler seems to supress  the return 1 when we comment in this code
+	// for some reasons HLSL compiler seems to suppress  the return 1 when we comment in this code
 //	if(Lum > EyeAdaptationParams[0].w)
 //	{
 //		return 2;
@@ -129,6 +129,11 @@ void MainPS(noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SvPosition :
 	float LuminanceVal = max(SceneColor.r, max(SceneColor.g, SceneColor.b));
 	OutColor = float4(Colorize(ComputeHistogramPositionFromLuminance(LuminanceVal)), 1.0f);
 
+	// Compute and apply weight value at this location 
+	float WeightSlope = EyeAdaptationParams[2].w;
+	float2 NdPos = ViewportSize.zw * (PixelPos.xy - ViewportRect.xy);
+	float weight = AdaptationWeight(NdPos.x, WeightSlope) * AdaptationWeight(NdPos.y, WeightSlope);
+	OutColor *= max(weight, 0.05f);  
 
 	// crosshair
 	{

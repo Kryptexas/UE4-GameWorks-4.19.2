@@ -61,6 +61,12 @@ FShaderResourceViewRHIRef FEmptyDynamicRHI::RHICreateShaderResourceView(FVertexB
 	return SRV;
 }
 
+FShaderResourceViewRHIRef FEmptyDynamicRHI::RHICreateShaderResourceView(FIndexBufferRHIParamRef BufferRHI)
+{
+	// there should be no need to create an object
+	return FShaderResourceViewRHIRef();
+}
+
 FShaderResourceViewRHIRef FEmptyDynamicRHI::RHICreateShaderResourceView(FTexture2DRHIParamRef Texture2DRHI, uint8 MipLevel)
 {
 	FEmptyShaderResourceView* SRV = new FEmptyShaderResourceView;

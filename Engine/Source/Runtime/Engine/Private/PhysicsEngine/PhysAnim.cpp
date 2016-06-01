@@ -27,6 +27,13 @@ struct FAssetWorldBoneTM
 };
 
 
+FAutoConsoleTaskPriority CPrio_FParallelBlendPhysicsTask(
+	TEXT("TaskGraph.TaskPriorities.ParallelBlendPhysicsTask"),
+	TEXT("Task and thread priority for FParallelBlendPhysicsTask."),
+	ENamedThreads::HighThreadPriority, // if we have high priority task threads, then use them...
+	ENamedThreads::NormalTaskPriority, // .. at normal task priority
+	ENamedThreads::HighTaskPriority // if we don't have hi pri threads, then use normal priority threads at high task priority instead
+	);
 
 class FParallelBlendPhysicsTask
 {
@@ -38,15 +45,15 @@ public:
 	{
 	}
 
-	FORCEINLINE TStatId GetStatId() const
+	static FORCEINLINE TStatId GetStatId()
 	{
 		RETURN_QUICK_DECLARE_CYCLE_STAT(FParallelBlendPhysicsTask, STATGROUP_TaskGraphTasks);
 	}
-	static ENamedThreads::Type GetDesiredThread()
+	static FORCEINLINE ENamedThreads::Type GetDesiredThread()
 	{
-		return ENamedThreads::AnyThread;
+		return CPrio_FParallelBlendPhysicsTask.Get();
 	}
-	static ESubsequentsMode::Type GetSubsequentsMode()
+	static FORCEINLINE ESubsequentsMode::Type GetSubsequentsMode()
 	{
 		return ESubsequentsMode::TrackSubsequents;
 	}
@@ -191,7 +198,7 @@ void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexTyp
 		int32 BodyIndex = PhysicsAsset ? PhysicsAsset->FindBodyIndex(SkeletalMesh->RefSkeleton.GetBoneName(BoneIndex)) : INDEX_NONE;
 		// need to update back to physX so that physX knows where it was after blending
 		bool bUpdatePhysics = false;
-		FBodyInstance* BodyInstance = NULL;
+		FBodyInstance* PhysicsAssetBodyInstance = nullptr;
 
 		// If so - get its world space matrix and its parents world space matrix and calc relative atom.
 		if(BodyIndex != INDEX_NONE )
@@ -210,18 +217,18 @@ void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexTyp
 				continue;
 			}
 #endif
-			BodyInstance = Bodies[BodyIndex];
+			PhysicsAssetBodyInstance = Bodies[BodyIndex];
 
 			//if simulated body copy back and blend with animation
-			if(BodyInstance->IsInstanceSimulatingPhysics())
+			if(PhysicsAssetBodyInstance->IsInstanceSimulatingPhysics())
 			{
-				FTransform PhysTM = BodyInstance->GetUnrealWorldTransform_AssumesLocked();
+				FTransform PhysTM = PhysicsAssetBodyInstance->GetUnrealWorldTransform_AssumesLocked();
 
 				// Store this world-space transform in cache.
 				WorldBoneTMs[BoneIndex].TM = PhysTM;
 				WorldBoneTMs[BoneIndex].bUpToDate = true;
 
-				float UsePhysWeight = (bBlendPhysics)? 1.f : BodyInstance->PhysicsBlendWeight;
+				float UsePhysWeight = (bBlendPhysics)? 1.f : PhysicsAssetBodyInstance->PhysicsBlendWeight;
 
 				// Find this bones parent matrix.
 				FTransform ParentWorldTM;
@@ -287,12 +294,12 @@ void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexTyp
 			EditableSpaceBases[BoneIndex].NormalizeRotation();
 		}
 
-		if (bUpdatePhysics && BodyInstance)
+		if (bUpdatePhysics && PhysicsAssetBodyInstance)
 		{
 			//This is extremely inefficient. We need to obtain a write lock which will block other threads from blending
 			//For now I'm juts deferring it to the end of this loop, but in general we need to move it all out of here and do it when the blend task is done
 			FBodyTMPair* BodyTMPair = new (PendingBodyTMs) FBodyTMPair;
-			BodyTMPair->BI = BodyInstance;
+			BodyTMPair->BI = PhysicsAssetBodyInstance;
 			BodyTMPair->TM = EditableSpaceBases[BoneIndex] * ComponentToWorld;
 		}
 	}

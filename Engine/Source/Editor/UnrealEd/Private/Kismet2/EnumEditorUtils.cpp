@@ -142,6 +142,34 @@ void FEnumEditorUtils::RemoveEnumeratorFromUserDefinedEnum(UUserDefinedEnum* Enu
 	Enum->MarkPackageDirty();
 }
 
+bool FEnumEditorUtils::IsEnumeratorBitflagsType(UUserDefinedEnum* Enum)
+{
+	return Enum && Enum->HasMetaData(*FBlueprintMetadata::MD_Bitflags.ToString());
+}
+
+void FEnumEditorUtils::SetEnumeratorBitflagsTypeState(UUserDefinedEnum* Enum, bool bBitflagsType)
+{
+	if (Enum)
+	{
+		PrepareForChange(Enum);
+
+		if (bBitflagsType)
+		{
+			Enum->SetMetaData(*FBlueprintMetadata::MD_Bitflags.ToString(), TEXT(""));
+		}
+		else
+		{
+			Enum->RemoveMetaData(*FBlueprintMetadata::MD_Bitflags.ToString());
+		}
+
+		TArray<TPair<FName, uint8>> Names;
+		CopyEnumeratorsWithoutMax(Enum, Names);
+		BroadcastChanges(Enum, Names);
+
+		Enum->MarkPackageDirty();
+	}
+}
+
 /** Reorder enumerators in enum. Swap an enumerator with given name, with previous or next (based on bDirectionUp parameter) */
 void FEnumEditorUtils::MoveEnumeratorInUserDefinedEnum(UUserDefinedEnum* Enum, int32 EnumeratorIndex, bool bDirectionUp)
 {
@@ -292,7 +320,7 @@ void FEnumEditorUtils::BroadcastChanges(const UUserDefinedEnum* Enum, const TArr
 	for (TObjectIterator<UEdGraphPin> It(RF_Transient); It; ++It)
 	{
 		UEdGraphPin* Pin = *It;
-		if (Pin && (Enum == Pin->PinType.PinSubCategoryObject.Get()) && (EEdGraphPinDirection::EGPD_Input == Pin->Direction))
+		if (Pin && (Pin->PinType.PinSubCategory != UEdGraphSchema_K2::PSC_Bitmask) && (Enum == Pin->PinType.PinSubCategoryObject.Get()) && (EEdGraphPinDirection::EGPD_Input == Pin->Direction))
 		{
 			UK2Node* Node = Cast<UK2Node>(Pin->GetOuter());
 			if (FNodeValidatorHelper::IsValid(Node))
@@ -311,6 +339,49 @@ void FEnumEditorUtils::BroadcastChanges(const UUserDefinedEnum* Enum, const TArr
 							Pin->DefaultValue = FEnumEditorUtilsHelper::InvalidName();
 						}
 						Node->PinDefaultValueChanged(Pin);
+						BlueprintsToRefresh.Add(Blueprint);
+					}
+				}
+			}
+		}
+	}
+
+	// Modify any properties that are using the enum as a bitflags type for bitmask values inside a Blueprint class.
+	for (TObjectIterator<UIntProperty> PropertyIter; PropertyIter; ++PropertyIter)
+	{
+		const UIntProperty* IntProperty = *PropertyIter;
+		if (IntProperty && IntProperty->HasMetaData(*FBlueprintMetadata::MD_Bitmask.ToString()))
+		{
+			UClass* OwnerClass = IntProperty->GetOwnerClass();
+			if (OwnerClass)
+			{
+				// Note: We only need to consider the skeleton class here.
+				UBlueprint* Blueprint = Cast<UBlueprint>(OwnerClass->ClassGeneratedBy);
+				if (Blueprint && OwnerClass == Blueprint->SkeletonGeneratedClass)
+				{
+					const FString& BitmaskEnumName = IntProperty->GetMetaData(FBlueprintMetadata::MD_BitmaskEnum);
+					if (BitmaskEnumName == Enum->GetName() && !Enum->HasMetaData(*FBlueprintMetadata::MD_Bitflags.ToString()))
+					{
+						FName VarName = IntProperty->GetFName();
+
+						// This will remove the metadata key from both the skeleton & full class.
+						FBlueprintEditorUtils::RemoveBlueprintVariableMetaData(Blueprint, VarName, nullptr, FBlueprintMetadata::MD_BitmaskEnum);
+
+						// Need to reassign the property since the skeleton class will have been regenerated at this point.
+						IntProperty = FindFieldChecked<UIntProperty>(Blueprint->SkeletonGeneratedClass, VarName);
+
+						// Reconstruct any nodes that reference the variable that was just modified.
+						for (TObjectIterator<UK2Node_Variable> VarNodeIt; VarNodeIt; ++VarNodeIt)
+						{
+							UK2Node_Variable* VarNode = *VarNodeIt;
+							if (VarNode && VarNode->GetPropertyForVariable() == IntProperty)
+							{
+								VarNode->ReconstructNode();
+
+								BlueprintsToRefresh.Add(VarNode->GetBlueprint());
+							}
+						}
+
 						BlueprintsToRefresh.Add(Blueprint);
 					}
 				}
@@ -400,10 +471,13 @@ void FEnumEditorUtils::EnsureAllDisplayNamesExist(UUserDefinedEnum* Enum)
 	if (Enum)
 	{
 		const int32 EnumeratorsToEnsure = (Enum->NumEnums() > 0) ? (Enum->NumEnums() - 1) : 0;
-		Enum->DisplayNames.Empty(EnumeratorsToEnsure);
+		if (Enum->DisplayNames.Num() != EnumeratorsToEnsure)
+		{
+			Enum->DisplayNames.Empty(EnumeratorsToEnsure);
+		}
 		for	(int32 Index = 0; Index < EnumeratorsToEnsure; Index++)
 		{
-			FText DisplayNameMetaData = Enum->GetEnumText(Index);
+			FText DisplayNameMetaData = Enum->UEnum::GetEnumText(Index);
 			if (DisplayNameMetaData.IsEmpty())
 			{
 				const FString EnumName = Enum->GetEnumName(Index);
@@ -414,7 +488,14 @@ void FEnumEditorUtils::EnsureAllDisplayNamesExist(UUserDefinedEnum* Enum)
 				}
 				Enum->SetMetaData(FEnumEditorUtilsHelper::DisplayName(), *DisplayNameMetaData.ToString(), Index);
 			}
-			Enum->DisplayNames.Add(DisplayNameMetaData);
+			if (!Enum->DisplayNames.IsValidIndex(Index))
+			{
+				Enum->DisplayNames.Add(DisplayNameMetaData);
+			}
+			else if (!Enum->DisplayNames[Index].EqualTo(DisplayNameMetaData))
+			{
+				Enum->DisplayNames[Index] = DisplayNameMetaData;
+			}
 		}
 	}
 }

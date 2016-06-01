@@ -29,7 +29,7 @@ namespace UnrealBuildTool.Rules
 				}
 			}
 
-			AddThirdPartyPrivateStaticDependencies(Target, "Kiss_FFT");
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "Kiss_FFT");
         }
     }
 }

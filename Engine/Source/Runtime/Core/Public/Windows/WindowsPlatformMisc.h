@@ -39,10 +39,7 @@ struct CORE_API FWindowsPlatformMisc
 	static void SubmitErrorReport( const TCHAR* InErrorHist, EErrorReportMode::Type InMode );
 
 #if !UE_BUILD_SHIPPING
-	FORCEINLINE static bool IsDebuggerPresent()
-	{
-		return !!::IsDebuggerPresent(); 
-	}
+	static bool IsDebuggerPresent();
 	FORCEINLINE static void DebugBreak()
 	{
 		if (IsDebuggerPresent())
@@ -196,7 +193,7 @@ struct CORE_API FWindowsPlatformMisc
 	static FString GetCPUVendor();
 	static FString GetCPUBrand();
 	static FString GetPrimaryGPUBrand();
-	static void GetGPUDriverInfo(const FString DeviceDescription, FString& InternalDriverVersion, FString& UserDriverVersion, FString& DriverDate);
+	static struct FGPUDriverInfo GetGPUDriverInfo(const FString& DeviceDescription);
 	static void GetOSVersions( FString& out_OSVersionLabel, FString& out_OSSubVersionLabel );
 	static bool GetDiskTotalAndFreeSpace( const FString& InPath, uint64& TotalNumberOfBytes, uint64& NumberOfFreeBytes );
 

@@ -179,7 +179,7 @@ void FAnimNotifyDetails::AddBoneNameProperty(IDetailCategoryBuilder& CategoryBui
 					[
 						SNew(SAssetSearchBoxForBones, Skeleton, Property)
 						.IncludeSocketsForSuggestions(true)
-						.MustMatchPossibleSuggestions(true)
+						.MustMatchPossibleSuggestions(false)
 						.HintText(NSLOCTEXT("AnimNotifyDetails", "Hint Text", "Bone Name..."))
 						.OnTextCommitted(this, &FAnimNotifyDetails::OnSearchBoxCommitted, PropIndex)
 					];

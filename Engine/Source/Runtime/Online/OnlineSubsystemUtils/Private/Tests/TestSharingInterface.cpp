@@ -7,6 +7,8 @@
 #include "ImageCore.h"
 #include "TestSharingInterface.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 FTestSharingInterface::FTestSharingInterface(const FString& InSubsystem)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("FTestSharingInterface::FTestSharingInterface"));
@@ -189,3 +191,5 @@ void FTestSharingInterface::OnNewsFeedRead(int32 LocalPlayer, bool bWasSuccessfu
 		delete this;
 	}
 }
+
+#endif //WITH_DEV_AUTOMATION_TESTS

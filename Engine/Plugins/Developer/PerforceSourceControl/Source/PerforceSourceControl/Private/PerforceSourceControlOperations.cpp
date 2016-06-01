@@ -190,7 +190,7 @@ FName FPerforceConnectWorker::GetName() const
 bool FPerforceConnectWorker::Execute(FPerforceSourceControlCommand& InCommand)
 {
 	FScopedPerforceConnection ScopedConnection(InCommand);
-	if(ScopedConnection.IsValid())
+	if (!InCommand.IsCanceled() && ScopedConnection.IsValid())
 	{
 		FPerforceConnection& Connection = ScopedConnection.GetConnection();
 		TArray<FString> Parameters;
@@ -241,10 +241,20 @@ FName FPerforceCheckOutWorker::GetName() const
 bool FPerforceCheckOutWorker::Execute(FPerforceSourceControlCommand& InCommand)
 {	
 	FScopedPerforceConnection ScopedConnection(InCommand);
-	if(ScopedConnection.IsValid())
+	if (!InCommand.IsCanceled() && ScopedConnection.IsValid())
 	{
 		FPerforceConnection& Connection = ScopedConnection.GetConnection();
 		TArray<FString> Parameters;
+
+		FPerforceSourceControlModule& PerforceSourceControl = FModuleManager::LoadModuleChecked<FPerforceSourceControlModule>("PerforceSourceControl");
+		FPerforceSourceControlSettings& Settings = PerforceSourceControl.AccessSettings();
+		if (Settings.GetChangelistNumber().IsEmpty() == false)
+		{
+			Parameters.Add(TEXT("-c"));
+			Parameters.Add(Settings.GetChangelistNumber());
+			// Parameters.Add(FString::Printf(TEXT("-c %s"), *Settings.GetChangelistNumber()));
+		}
+
 		Parameters.Append(InCommand.Files);
 		FP4RecordSet Records;
 		InCommand.bCommandSuccessful = Connection.RunCommand(TEXT("edit"), Parameters, Records, InCommand.ErrorMessages, FOnIsCancelled::CreateRaw(&InCommand, &FPerforceSourceControlCommand::IsCanceled), InCommand.bConnectionDropped);
@@ -283,7 +293,7 @@ static FText ParseSubmitResults(const FP4RecordSet& InRecords)
 bool FPerforceCheckInWorker::Execute(FPerforceSourceControlCommand& InCommand)
 {
 	FScopedPerforceConnection ScopedConnection(InCommand);
-	if(ScopedConnection.IsValid())
+	if (!InCommand.IsCanceled() && ScopedConnection.IsValid())
 	{	
 		FPerforceConnection& Connection = ScopedConnection.GetConnection();
 
@@ -397,7 +407,7 @@ bool FPerforceMarkForAddWorker::Execute(FPerforceSourceControlCommand& InCommand
 	}
 
 	FScopedPerforceConnection ScopedConnection(InCommand);
-	if(ScopedConnection.IsValid())
+	if (!InCommand.IsCanceled() && ScopedConnection.IsValid())
 	{
 		FPerforceConnection& Connection = ScopedConnection.GetConnection();
 		TArray<FString> Parameters;
@@ -422,7 +432,7 @@ FName FPerforceDeleteWorker::GetName() const
 bool FPerforceDeleteWorker::Execute(FPerforceSourceControlCommand& InCommand)
 {
 	FScopedPerforceConnection ScopedConnection(InCommand);
-	if(ScopedConnection.IsValid())
+	if (!InCommand.IsCanceled() && ScopedConnection.IsValid())
 	{
 		FPerforceConnection& Connection = ScopedConnection.GetConnection();
 		TArray<FString> Parameters;
@@ -447,7 +457,7 @@ FName FPerforceRevertWorker::GetName() const
 bool FPerforceRevertWorker::Execute(FPerforceSourceControlCommand& InCommand)
 {
 	FScopedPerforceConnection ScopedConnection(InCommand);
-	if(ScopedConnection.IsValid())
+	if (!InCommand.IsCanceled() && ScopedConnection.IsValid())
 	{
 		FPerforceConnection& Connection = ScopedConnection.GetConnection();
 		TArray<FString> Parameters;
@@ -495,7 +505,7 @@ static void ParseSyncResults(const FP4RecordSet& InRecords, TMap<FString, EPerfo
 bool FPerforceSyncWorker::Execute(FPerforceSourceControlCommand& InCommand)
 {
 	FScopedPerforceConnection ScopedConnection(InCommand);
-	if(ScopedConnection.IsValid())
+	if (!InCommand.IsCanceled() && ScopedConnection.IsValid())
 	{
 		FPerforceConnection& Connection = ScopedConnection.GetConnection();
 		TArray<FString> Parameters;
@@ -876,7 +886,7 @@ bool FPerforceUpdateStatusWorker::Execute(FPerforceSourceControlCommand& InComma
 {
 #if USE_P4_API
 	FScopedPerforceConnection ScopedConnection(InCommand);
-	if(ScopedConnection.IsValid())
+	if (!InCommand.IsCanceled() && ScopedConnection.IsValid())
 	{
 		FPerforceConnection& Connection = ScopedConnection.GetConnection();
 		if(InCommand.Files.Num())
@@ -1019,7 +1029,7 @@ FName FPerforceGetWorkspacesWorker::GetName() const
 bool FPerforceGetWorkspacesWorker::Execute(FPerforceSourceControlCommand& InCommand)
 {
 	FScopedPerforceConnection ScopedConnection(InCommand);
-	if(ScopedConnection.IsValid())
+	if (!InCommand.IsCanceled() && ScopedConnection.IsValid())
 	{
 		FPerforceConnection& Connection = ScopedConnection.GetConnection();
 		TArray<FString> ClientSpecList;
@@ -1046,7 +1056,7 @@ FName FPerforceCopyWorker::GetName() const
 bool FPerforceCopyWorker::Execute(class FPerforceSourceControlCommand& InCommand)
 {
 	FScopedPerforceConnection ScopedConnection(InCommand);
-	if(ScopedConnection.IsValid())
+	if (!InCommand.IsCanceled() && ScopedConnection.IsValid())
 	{
 		FPerforceConnection& Connection = ScopedConnection.GetConnection();
 
@@ -1091,7 +1101,7 @@ FName FPerforceResolveWorker::GetName() const
 bool FPerforceResolveWorker::Execute(class FPerforceSourceControlCommand& InCommand) 
 {
 	FScopedPerforceConnection ScopedConnection(InCommand);
-	if (ScopedConnection.IsValid())
+	if (!InCommand.IsCanceled() && ScopedConnection.IsValid())
 	{
 		FPerforceConnection& Connection = ScopedConnection.GetConnection();
 

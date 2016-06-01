@@ -137,7 +137,7 @@ void FMetalRHICommandContext::RHISetScissorRect(bool bEnable,uint32 MinX,uint32 
 		Scissor.width = (Viewport.originX + Viewport.width <= FBSize.width) ? Viewport.width : FBSize.width - Viewport.originX;
 		Scissor.height = (Viewport.originY + Viewport.height <= FBSize.height) ? Viewport.height : FBSize.height - Viewport.originY;
 	}
-	Context->GetCommandEncoder().SetScissorRect(Scissor);
+	Context->GetCurrentState().SetScissorRect(bEnable, Scissor);
 }
 
 void FMetalRHICommandContext::RHISetBoundShaderState( FBoundShaderStateRHIParamRef BoundShaderStateRHI)
@@ -792,9 +792,10 @@ void FMetalRHICommandContext::RHIDrawInstancedPrimitiveUP( FRHICommandList& RHIC
 
 void FMetalDynamicRHI::SetupRecursiveResources()
 {
-	if (GRHISupportsRHIThread)
+	static bool bSetupResources = false;
+	if (GRHISupportsRHIThread && !bSetupResources)
 	{
-		FRHICommandList_RecursiveHazardous RHICmdList(RHIGetDefaultContext());
+		FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
 		extern int32 GCreateShadersOnLoad;
 		TGuardValue<int32> Guard(GCreateShadersOnLoad, 1);
 		auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
@@ -859,6 +860,8 @@ void FMetalDynamicRHI::SetupRecursiveResources()
 				SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, GClearMRTBoundShaderState[NumBuffers - 1][Instanced], GVector4VertexDeclaration.VertexDeclarationRHI, VertexShader, PixelShader);
 			}
 		}
+		
+		bSetupResources = true;
 	}
 }
 
@@ -876,7 +879,7 @@ void FMetalRHICommandContext::RHIClearMRT(bool bClearColor,int32 NumClearColors,
 		return;
 	}
 
-	RHIPushEvent(TEXT("MetalClearMRT"));
+	RHIPushEvent(TEXT("MetalClearMRT"), FColor(255, 0, 255, 255));
 
 	// Build new states
 	FBlendStateRHIRef BlendStateRHI;
@@ -1090,5 +1093,10 @@ IRHICommandContext* FMetalDynamicRHI::RHIGetDefaultContext()
 	return this;
 }
 
-
-
+IRHIComputeContext* FMetalDynamicRHI::RHIGetDefaultAsyncComputeContext()
+{
+	IRHIComputeContext* ComputeContext = GSupportsEfficientAsyncCompute && AsyncComputeContext ? AsyncComputeContext : RHIGetDefaultContext();
+	// On platforms that support non-async compute we set this to the normal context.  It won't be async, but the high level
+	// code can be agnostic if it wants to be.
+	return ComputeContext;
+}

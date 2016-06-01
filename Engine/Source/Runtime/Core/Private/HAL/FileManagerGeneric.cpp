@@ -25,7 +25,7 @@ DEFINE_LOG_CATEGORY_STATIC( LogFileManager, Log, All );
 
 void FFileManagerGeneric::ProcessCommandLineOptions() 
 {
-#if !( UE_BUILD_SHIPPING || UE_BUILD_TEST )
+#if !UE_BUILD_SHIPPING
 	if( FParse::Param( FCommandLine::Get(),TEXT( "CLEANSCREENSHOTS" ) ) )
 	{
 		DeleteDirectory( *FPaths::ScreenShotDir(), false, true );
@@ -669,10 +669,39 @@ bool FArchiveFileReaderGeneric::InternalPrecache( int64 PrecacheOffset, int64 Pr
 		BufferCount = FMath::Max( BufferCount, 0LL ); // clamp to 0
 		int64 Count = 0;
 
-		// Read data from device via Win32 ReadFile API.
 		{
-			UE_CLOG( BufferCount > ARRAY_COUNT( Buffer ) || BufferCount <= 0, LogFileManager, Fatal, TEXT("Invalid BufferCount=%lld while reading %s. File is most likely corrupted, try deleting it if possible. Pos=%lld, Size=%lld, PrecacheSize=%lld, PrecacheOffset=%lld"),
-				BufferCount, *Filename, Pos, Size, PrecacheSize, PrecacheOffset );
+			#if PLATFORM_DESKTOP
+				// Show a message box indicating, possible, corrupt data (desktop platforms only)
+				if (BufferCount > ARRAY_COUNT( Buffer ) || BufferCount <= 0)
+				{
+					FText ErrorMessage, ErrorCaption;
+					GConfig->GetText(TEXT("/Script/Engine.Engine"),
+									 TEXT("SerializationOutOfBoundsErrorMessage"),
+									 ErrorMessage,
+									 GEngineIni);
+					GConfig->GetText(TEXT("/Script/Engine.Engine"),
+						TEXT("SerializationOutOfBoundsErrorMessageCaption"),
+						ErrorCaption,
+						GEngineIni);
+
+					UE_LOG( LogFileManager, Error, TEXT("Invalid BufferCount=%lld while reading %s. File is most likely corrupted. Please verify your installation. Pos=%lld, Size=%lld, PrecacheSize=%lld, PrecacheOffset=%lld"),
+						BufferCount, *Filename, Pos, Size, PrecacheSize, PrecacheOffset );
+
+					if (GLog)
+					{
+						GLog->Flush();
+					}
+
+					FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *ErrorMessage.ToString(), *ErrorCaption.ToString());
+
+					check(false);
+				}
+			#else
+				{
+					UE_CLOG( BufferCount > ARRAY_COUNT( Buffer ) || BufferCount <= 0, LogFileManager, Fatal, TEXT("Invalid BufferCount=%lld while reading %s. File is most likely corrupted. Please verify your installation. Pos=%lld, Size=%lld, PrecacheSize=%lld, PrecacheOffset=%lld"),
+						BufferCount, *Filename, Pos, Size, PrecacheSize, PrecacheOffset );
+				}
+			#endif
 
 			ReadLowLevel( Buffer, BufferCount, Count );
 		}

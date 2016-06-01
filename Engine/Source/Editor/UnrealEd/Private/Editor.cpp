@@ -141,6 +141,7 @@ FEditorDelegates::FOnPIEEvent							FEditorDelegates::EndPIE;
 FEditorDelegates::FOnPIEEvent							FEditorDelegates::PausePIE;
 FEditorDelegates::FOnPIEEvent							FEditorDelegates::ResumePIE;
 FEditorDelegates::FOnPIEEvent							FEditorDelegates::SingleStepPIE;
+FEditorDelegates::FOnPIEEvent							FEditorDelegates::OnSwitchBeginPIEAndSIE;
 FSimpleMulticastDelegate								FEditorDelegates::PropertySelectionChange;
 FSimpleMulticastDelegate								FEditorDelegates::PostLandscapeLayerUpdated;
 FEditorDelegates::FOnPreSaveWorld						FEditorDelegates::PreSaveWorld;
@@ -163,6 +164,7 @@ FEditorDelegates::FOnDollyPerspectiveCamera				FEditorDelegates::OnDollyPerspect
 FSimpleMulticastDelegate								FEditorDelegates::OnShutdownPostPackagesSaved;
 FEditorDelegates::FOnAssetsPreDelete					FEditorDelegates::OnAssetsPreDelete;
 FEditorDelegates::FOnAssetsDeleted						FEditorDelegates::OnAssetsDeleted;
+FEditorDelegates::FOnAssetDragStarted					FEditorDelegates::OnAssetDragStarted;
 FSimpleMulticastDelegate								FEditorDelegates::OnActionAxisMappingsChanged;
 FEditorDelegates::FOnAddLevelToWorld					FEditorDelegates::OnAddLevelToWorld;
 
@@ -223,7 +225,7 @@ void FReimportManager::UpdateReimportPaths( UObject* Obj, const TArray<FString>&
 	}
 }
 
-bool FReimportManager::Reimport( UObject* Obj, bool bAskForNewFileIfMissing, bool bShowNotification )
+bool FReimportManager::Reimport( UObject* Obj, bool bAskForNewFileIfMissing, bool bShowNotification, FString PreferedReimportFile)
 {
 	// Warn that were about to reimport, so prep for it
 	PreReimport.Broadcast( Obj );
@@ -265,9 +267,17 @@ bool FReimportManager::Reimport( UObject* Obj, bool bAskForNewFileIfMissing, boo
 				}
 
 				bValidSourceFilename = true;
-				if ( bAskForNewFileIfMissing && bMissingFiles )
+				if ((bAskForNewFileIfMissing || !PreferedReimportFile.IsEmpty()) && bMissingFiles )
 				{
-					GetNewReimportPath(Obj, SourceFilenames);
+					if (!bAskForNewFileIfMissing && !PreferedReimportFile.IsEmpty())
+					{
+						SourceFilenames.Empty();
+						SourceFilenames.Add(PreferedReimportFile);
+					}
+					else
+					{
+						GetNewReimportPath(Obj, SourceFilenames);
+					}
 					if ( SourceFilenames.Num() == 0 )
 					{
 						// Failed to specify a new filename. Don't show a notification of the failure since the user exited on his own
@@ -488,7 +498,7 @@ FReimportManager::~FReimportManager()
 
 int32 FReimportHandler::GetPriority() const
 {
-	return UFactory::DefaultImportPriority;
+	return UFactory::GetDefaultImportPriority();
 }
 
 /*-----------------------------------------------------------------------------

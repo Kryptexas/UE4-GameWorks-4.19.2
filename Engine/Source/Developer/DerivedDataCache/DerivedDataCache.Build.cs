@@ -8,7 +8,6 @@ public class DerivedDataCache : ModuleRules
 	public DerivedDataCache(TargetInfo Target)
 	{
 		PrivateDependencyModuleNames.Add("Core");
-        PrivateDependencyModuleNames.Add("CookingStats");
 
 		// Internal (NotForLicensees) module
 		var DDCUtilsModule = Path.Combine("Developer", "NotForLicensees", "DDCUtils", "DDCUtils.Build.cs");

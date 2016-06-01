@@ -72,7 +72,7 @@ struct FBlueprintUndoRedoHandler : public FEditorUndoClient
 	virtual void PostUndo(bool bSuccess) override;
 	virtual void PostRedo(bool bSuccess) override;
 };
-static FBlueprintUndoRedoHandler UndoRedoHandler;
+static FBlueprintUndoRedoHandler* UndoRedoHandler = nullptr;
 
 void FixSubObjectReferencesPostUndoRedo(UObject* InObject)
 {
@@ -158,13 +158,19 @@ void FBlueprintUndoRedoHandler::PostUndo(bool bSuccess)
 void FBlueprintUndoRedoHandler::PostRedo(bool bSuccess)
 {
 	// Note: We add 1 to get the correct slot, because the transaction buffer will have decremented the UndoCount prior to getting here.
-	FixSubObjectReferencesPostUndoRedo(GEditor->Trans->GetTransaction(GEditor->Trans->GetQueueLength() - (GEditor->Trans->GetUndoCount() + 1)));
+	if( GEditor->Trans->GetQueueLength() > 0 )
+	{
+		FixSubObjectReferencesPostUndoRedo(GEditor->Trans->GetTransaction(GEditor->Trans->GetQueueLength() - (GEditor->Trans->GetUndoCount() + 1)));
+	}
 }
 
 void FBlueprintEditorModule::StartupModule()
 {
 	check(GEditor);
-	GEditor->RegisterForUndo(&UndoRedoHandler);
+
+	delete UndoRedoHandler;
+	UndoRedoHandler = new FBlueprintUndoRedoHandler();
+	GEditor->RegisterForUndo(UndoRedoHandler);
 
 	MenuExtensibilityManager = MakeShareable(new FExtensibilityManager);
 	SharedBlueprintEditorCommands = MakeShareable(new FUICommandList);
@@ -216,6 +222,8 @@ void FBlueprintEditorModule::StartupModule()
 
 void FBlueprintEditorModule::ShutdownModule()
 {
+	// we're intentionally leaking UndoRedoHandler because the GEditor may be garbage when ShutdownModule is called:
+
 	// Cleanup all information for auto generated default event nodes by this module
 	FKismetEditorUtilities::UnregisterAutoBlueprintNodeCreation(this);
 

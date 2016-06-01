@@ -9,7 +9,6 @@
 #include "PersonaModule.h"
 #include "PersonaCommands.h"
 
-#include "AnimationRecorder.h"
 //////////////////////////////////////////////////////////////////////////
 // FPersona
 
@@ -177,6 +176,18 @@ public:
 	/** Called when the blend profile tab selects a profile */
 	void SetSelectedBlendProfile(UBlendProfile* InBlendProfile);
 
+	/** Check whether this Persona instance is recording */
+	bool IsRecording() const;
+
+	/** Stop recording in this Persona instance */
+	void StopRecording();
+
+	/** Get the currently recording animation */
+	UAnimSequence* GetCurrentRecording() const;
+
+	/** Get the currently recording animation time */
+	float GetCurrentRecordingTime() const;
+
 public:
 	//~ Begin IToolkit Interface
 	virtual FName GetToolkitContextFName() const override;
@@ -186,7 +197,6 @@ public:
 	virtual FText GetToolkitToolTipText() const override;
 	virtual FString GetWorldCentricTabPrefix() const override;
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
-	virtual void SaveAsset_Execute() override;
 	//~ End IToolkit Interface
 
 	/** Saves all animation assets related to a skeleton */
@@ -220,6 +230,12 @@ public:
 	bool IsShowReferencePoseEnabled() const;
 	bool CanShowReferencePose() const;
 	void ShowReferencePose(bool bReferencePose);
+
+	/* Handle error checking for additive base pose */
+	bool ShouldDisplayAdditiveScaleErrorMessage();
+
+	/** Validates curve use */
+	void TestSkeletonCurveNamesForUse() const;
 
 protected:
 	bool IsPreviewAssetEnabled() const;
@@ -287,6 +303,10 @@ protected:
 	void OnSkeletonHierarchyChanged();
 
 protected:
+	//~ IToolkit interface
+	virtual void GetSaveableObjects(TArray<UObject*>& OutObjects) const override;
+
+protected:
 	USkeleton* TargetSkeleton;
 	TWeakObjectPtr<UObject> CachedPreviewAsset;
 
@@ -299,9 +319,6 @@ public:
 	// The animation document currently being edited
 	mutable TWeakObjectPtr<UObject> SharedAnimAssetBeingEdited;
 	TWeakPtr<SDockTab> SharedAnimDocumentTab;
-
-	/** Animation recorder **/
-	FAnimationRecorder Recorder;
 
 public:
 	/** Viewport widget */
@@ -661,8 +678,8 @@ private:
 	void OnSetKey();
 	bool CanSetKey() const;
 	void OnSetKeyCompleted();
-	void OnBakeAnimation();
-	bool CanBakeAnimation() const;
+	void OnApplyRawAnimChanges();
+	bool CanApplyRawAnimChanges() const;
 	
 	/** Change skeleton preview mesh functions */
 	void ChangeSkeletonPreviewMesh();
@@ -719,4 +736,8 @@ private:
 
 	/** Last Cached LOD value of Preview Mesh Component */
 	int32 LastCachedLODForPreviewComponent;
+
+	/** Handle additive anim scale validation */
+	bool bDoesAdditiveRefPoseHaveZeroScale;
+	FGuid RefPoseGuid;
 };

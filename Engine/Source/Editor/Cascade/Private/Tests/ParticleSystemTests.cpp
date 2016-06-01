@@ -15,6 +15,8 @@
 
 #include "ScopedTransaction.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 #define LOCTEXT_NAMESPACE "ParticleEditorPromotionTests"
 
 DEFINE_LOG_CATEGORY_STATIC(LogParticleEditorPromotionTests, Log, All);
@@ -236,3 +238,5 @@ bool FParticleEditorPromotionTest::RunTest(const FString& Parameters)
 }
 
 #undef LOCTEXT_NAMESPACE
+
+#endif //WITH_DEV_AUTOMATION_TESTS

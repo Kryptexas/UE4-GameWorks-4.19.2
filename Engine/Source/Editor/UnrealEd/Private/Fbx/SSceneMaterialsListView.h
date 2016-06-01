@@ -37,7 +37,7 @@ public:
 	void OnToggleSelectAll(ECheckBoxState CheckType);
 
 	void SetCreateContentFolderHierarchy(bool CreateFolder) { CreateContentFolderHierarchy = CreateFolder; }
-	void UpdateMaterialPrefixName();
+	void UpdateMaterialBasePath();
 protected:
 	FString FullPath;
 	bool IsReimport;
@@ -59,6 +59,7 @@ protected:
 	void OnSelectionChanged(FbxMaterialInfoPtr Item, ESelectInfo::Type SelectionType);
 
 	void AssignMaterialToExisting();
+	void AssignMaterialAssetData(const FAssetData& AssetData);
 	void ResetAssignMaterial();
 
 	void GetMaterialsFromHierarchy(TArray<FbxMaterialInfoPtr> &OutMaterials, TSharedPtr<FFbxSceneInfo> SceneInfoSource, bool bFillPathInformation);

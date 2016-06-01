@@ -23,9 +23,7 @@ public class UnrealEd : ModuleRules
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] 
 			{
-				"Analytics",
 				"AssetRegistry",
-                "CookingStats",
 				"AssetTools",
                 "BehaviorTreeEditor",
 				"ClassViewer",
@@ -47,12 +45,12 @@ public class UnrealEd : ModuleRules
 				"PlacementMode",
 				"Settings",
 				"SettingsEditor",
-				"SoundClassEditor",
+                "SuperSearch",
+                "SoundClassEditor",
 				"ViewportSnapping",
 				"SourceCodeAccess",
 				"ReferenceViewer",
                 "IntroTutorials",
-                "SuperSearch",
 				"OutputLog",
 				"Landscape",
                 "Niagara",
@@ -62,6 +60,7 @@ public class UnrealEd : ModuleRules
                 "MessagingRpc",
                 "PortalRpc",
                 "PortalServices",
+                "BlueprintNativeCodeGen",
 			}
 		);
 
@@ -90,7 +89,7 @@ public class UnrealEd : ModuleRules
                 "Niagara",
                 "VectorVM",
                 "FunctionalTesting"
-			}
+            }
 		);
 
 		PrivateDependencyModuleNames.AddRange(
@@ -123,7 +122,7 @@ public class UnrealEd : ModuleRules
 				"Sockets",
 				"SoundClassEditor",
 				"SoundCueEditor",
-				"SourceControlWindows", 
+				"SourceControlWindows",
 				"StatsViewer",
 				"SwarmInterface",
 				"TargetPlatform",
@@ -144,10 +143,10 @@ public class UnrealEd : ModuleRules
 				"AddContentDialog",
 				"GameProjectGeneration",
                 "HierarchicalLODUtilities",
-                "BlueprintNativeCodeGen",
-                "Analytics",
-                "PluginWarden"
-			}
+                "AnalyticsET",
+                "PluginWarden",
+                "PixelInspectorModule"
+            }
 		);
 
 		DynamicallyLoadedModuleNames.AddRange(
@@ -183,14 +182,14 @@ public class UnrealEd : ModuleRules
 				"SettingsEditor",
 				"SessionFrontend",
 				"Sequencer",
-				"GeometryMode",
+                "SuperSearch",
+                "GeometryMode",
 				"TextureAlignMode",
 				"FoliageEdit",
 				"PackageDependencyInfo",
 				"ImageWrapper",
 				"Blutility",
 				"IntroTutorials",
-                "SuperSearch",
 				"WorkspaceMenuStructure",
 				"PlacementMode",
 				"NiagaraEditor",
@@ -217,6 +216,8 @@ public class UnrealEd : ModuleRules
                 "PortalProxies",
                 "PortalServices",
                 "GeometryCacheEd",
+                "BlueprintNativeCodeGen",
+				"VREditor"
 			}
 		);
 
@@ -256,7 +257,7 @@ public class UnrealEd : ModuleRules
 			PublicDependencyModuleNames.Add("XAudio2");
 			PublicDependencyModuleNames.Add("UnrealAudioXAudio2");
 
-			AddThirdPartyPrivateStaticDependencies(Target, 
+			AddEngineThirdPartyPrivateStaticDependencies(Target, 
 				"UEOgg",
 				"Vorbis",
 				"VorbisFile",
@@ -276,7 +277,7 @@ public class UnrealEd : ModuleRules
 			PublicDependencyModuleNames.Add("ALAudio");
         }
 
-		AddThirdPartyPrivateStaticDependencies(Target,
+		AddEngineThirdPartyPrivateStaticDependencies(Target,
             "HACD",
             "VHACD",
 			"FBX",

@@ -1481,8 +1481,11 @@ namespace ObjectTools
 
 		GWarn->EndSlowTask();
 
-		// Let the package auto-saver know that it needs to ignore the deleted packages
-		GUnrealEd->GetPackageAutoSaver().OnPackagesDeleted(PackagesToDelete);
+		if (GUnrealEd)
+		{
+			// Let the package auto-saver know that it needs to ignore the deleted packages
+			GUnrealEd->GetPackageAutoSaver().OnPackagesDeleted(PackagesToDelete);
+		}
 
 		// Unload the packages and collect garbage.
 		if ( PackagesToDelete.Num() > 0 )
@@ -1493,6 +1496,7 @@ namespace ObjectTools
 
 		// Now delete all packages that have become empty
 		bool bMakeWritable = false;
+		bool bSilent = false;
 		for ( int32 PackageFileIdx = 0; PackageFileIdx < PackageFilesToDelete.Num(); ++PackageFileIdx )
 		{
 			const FString& PackageFilename = PackageFilesToDelete[PackageFileIdx];
@@ -1539,10 +1543,15 @@ namespace ObjectTools
 				if(IFileManager::Get().IsReadOnly(*PackageFilename))
 				{
 					EAppReturnType::Type ReturnType = EAppReturnType::No;
-					if(!bMakeWritable)
+					if(!bMakeWritable && !bSilent)
 					{
-						ReturnType = FMessageDialog::Open(EAppMsgType::YesNoYesAll, NSLOCTEXT("ObjectTools", "DeleteReadOnlyWarning", "File is read-only on disk, are you sure you want to delete it?"));
+						FFormatNamedArguments Args;
+						Args.Add(TEXT("Filename"), FText::FromString(PackageFilename));
+						const FText Message = FText::Format(NSLOCTEXT("ObjectTools", "DeleteReadOnlyWarning", "File '{Filename}' is read-only on disk, are you sure you want to delete it?"), Args);
+
+						ReturnType = FMessageDialog::Open(EAppMsgType::YesNoYesAllNoAll, Message);
 						bMakeWritable = ReturnType == EAppReturnType::YesAll;
+						bSilent = ReturnType == EAppReturnType::NoAll;
 					}
 
 					if(bMakeWritable || ReturnType == EAppReturnType::Yes)
@@ -1715,7 +1724,7 @@ namespace ObjectTools
 		return DeleteModel->GetDeletedObjectCount();
 	}
 
-	static bool MakeReadOnlyPackageWritable(UObject* ObjectToDelete, bool& bMakeWritable)
+	static bool MakeReadOnlyPackageWritable(UObject* ObjectToDelete, bool& bMakeWritable, bool& bSilent)
 	{
 		// If an object's package is read only, and source control is not enabled, ask the user whether they wish
 		// to make it writable.
@@ -1730,10 +1739,15 @@ namespace ObjectTools
 				if (IFileManager::Get().IsReadOnly(*PackageFilename))
 				{
 					EAppReturnType::Type ReturnType = EAppReturnType::No;
-					if (!bMakeWritable)
+					if (!bMakeWritable && !bSilent)
 					{
-						ReturnType = FMessageDialog::Open(EAppMsgType::YesNoYesAll, NSLOCTEXT("ObjectTools", "DeleteReadOnlyWarning", "File is read-only on disk, are you sure you want to delete it?"));
+						FFormatNamedArguments Args;
+						Args.Add(TEXT("Filename"), FText::FromString(PackageFilename));
+						const FText Message = FText::Format(NSLOCTEXT("ObjectTools", "DeleteReadOnlyWarning", "File '{Filename}' is read-only on disk, are you sure you want to delete it?"), Args);
+
+						ReturnType = FMessageDialog::Open(EAppMsgType::YesNoYesAllNoAll, Message);
 						bMakeWritable = ReturnType == EAppReturnType::YesAll;
+						bSilent = ReturnType == EAppReturnType::NoAll;
 					}
 
 					if (bMakeWritable || ReturnType == EAppReturnType::Yes)
@@ -1759,6 +1773,7 @@ namespace ObjectTools
 
 		bool bSawSuccessfulDelete = false;
 		bool bMakeWritable = false;
+		bool bSilent = false;
 
 		for ( int32 Index = 0; Index < ObjectsToDelete.Num(); Index++ )
 		{
@@ -1771,7 +1786,7 @@ namespace ObjectTools
 			}
 
 			// Early exclusion for assets contained in read-only packages if the user chooses not to write enable them
-			if (!MakeReadOnlyPackageWritable(ObjectToDelete, bMakeWritable))
+			if (!MakeReadOnlyPackageWritable(ObjectToDelete, bMakeWritable, bSilent))
 			{
 				continue;
 			}
@@ -1907,6 +1922,7 @@ namespace ObjectTools
 		TArray<UObject*> ObjectsToDelete;
 		bool bNeedsGarbageCollection = false;
 		bool bMakeWritable = false;
+		bool bSilent = false;
 
 		// Clear audio components to allow previewed sounds to be consolidated
 		GEditor->ClearPreviewComponents();
@@ -1918,7 +1934,7 @@ namespace ObjectTools
 			GEditor->GetSelectedObjects()->Deselect( CurrentObject );
 
 			// Early exclusion for assets contained in read-only packages if the user chooses not to write enable them
-			if (!MakeReadOnlyPackageWritable(CurrentObject, bMakeWritable))
+			if (!MakeReadOnlyPackageWritable(CurrentObject, bMakeWritable, bSilent))
 			{
 				continue;
 			}

@@ -51,6 +51,107 @@ namespace EBrowseReturnVal
 	};
 }
 
+/** Rules for attaching components - needs to be kept synced to EDetachmentRule */
+UENUM()
+enum class EAttachmentRule : uint8
+{
+	/** Keeps current relative transform as the relative transform to the new parent. */
+	KeepRelative,
+
+	/** Automatically calculates the relative transform such that the attached component maintains the same world transform. */
+	KeepWorld,
+
+	/** Snaps transform to the attach point */
+	SnapToTarget,
+};
+
+/** Rules for attaching components */
+struct ENGINE_API FAttachmentTransformRules
+{
+	/** Various preset attachment rules. Note that these default rules do NOT by default weld simulated bodies */
+	static FAttachmentTransformRules KeepRelativeTransform;
+	static FAttachmentTransformRules KeepWorldTransform;
+	static FAttachmentTransformRules SnapToTargetNotIncludingScale;
+	static FAttachmentTransformRules SnapToTargetIncludingScale;
+
+	FAttachmentTransformRules(EAttachmentRule InRule, bool bInWeldSimulatedBodies)
+		: LocationRule(InRule)
+		, RotationRule(InRule)
+		, ScaleRule(InRule)
+		, bWeldSimulatedBodies(bInWeldSimulatedBodies)
+	{}
+
+	FAttachmentTransformRules(EAttachmentRule InLocationRule, EAttachmentRule InRotationRule, EAttachmentRule InScaleRule, bool bInWeldSimulatedBodies)
+		: LocationRule(InLocationRule)
+		, RotationRule(InRotationRule)
+		, ScaleRule(InScaleRule)
+		, bWeldSimulatedBodies(bInWeldSimulatedBodies)
+	{}
+
+	/** The rule to apply to location when attaching */
+	EAttachmentRule LocationRule;
+
+	/** The rule to apply to rotation when attaching */
+	EAttachmentRule RotationRule;
+
+	/** The rule to apply to scale when attaching */
+	EAttachmentRule ScaleRule;
+
+	/** Whether to weld simulated bodies together when attaching */
+	bool bWeldSimulatedBodies;
+};
+
+/** Rules for detaching components - needs to be kept synced to EAttachmentRule */
+UENUM()
+enum class EDetachmentRule : uint8
+{
+	/** Keeps current relative transform. */
+	KeepRelative,
+
+	/** Automatically calculates the relative transform such that the detached component maintains the same world transform. */
+	KeepWorld,
+};
+
+/** Rules for detaching components */
+struct ENGINE_API FDetachmentTransformRules
+{
+	/** Various preset detachment rules */
+	static FDetachmentTransformRules KeepRelativeTransform;
+	static FDetachmentTransformRules KeepWorldTransform;
+
+	FDetachmentTransformRules(EDetachmentRule InRule, bool bInCallModify)
+		: LocationRule(InRule)
+		, RotationRule(InRule)
+		, ScaleRule(InRule)
+		, bCallModify(bInCallModify)
+	{}
+
+	FDetachmentTransformRules(EDetachmentRule InLocationRule, EDetachmentRule InRotationRule, EDetachmentRule InScaleRule, bool bInCallModify)
+		: LocationRule(InLocationRule)
+		, RotationRule(InRotationRule)
+		, ScaleRule(InScaleRule)
+		, bCallModify(bInCallModify)
+	{}
+
+	FDetachmentTransformRules(const FAttachmentTransformRules& AttachmentRules, bool bInCallModify)
+		: LocationRule(AttachmentRules.LocationRule == EAttachmentRule::KeepRelative ? EDetachmentRule::KeepRelative : EDetachmentRule::KeepWorld)
+		, RotationRule(AttachmentRules.RotationRule == EAttachmentRule::KeepRelative ? EDetachmentRule::KeepRelative : EDetachmentRule::KeepWorld)
+		, ScaleRule(AttachmentRules.ScaleRule == EAttachmentRule::KeepRelative ? EDetachmentRule::KeepRelative : EDetachmentRule::KeepWorld)
+		, bCallModify(bInCallModify)
+	{}
+
+	/** The rule to apply to location when detaching */
+	EDetachmentRule LocationRule;
+
+	/** The rule to apply to rotation when detaching */
+	EDetachmentRule RotationRule;
+
+	/** The rule to apply to scale when detaching */
+	EDetachmentRule ScaleRule;
+
+	/** Whether to call Modify() on the components concerned when detaching */
+	bool bCallModify;
+};
 
 UENUM()
 namespace EAttachLocation
@@ -221,6 +322,22 @@ inline uint8 GetDefaultLightingChannelMask()
 	return 1;
 }
 
+/*
+* Enumerates available GBufferFormats.
+*/
+UENUM()
+namespace EGBufferFormat
+{
+	// When this enum is updated please update CVarGBufferFormat comments 
+	enum Type
+	{
+		Force8BitsPerChannel = 0 UMETA(DisplayName = "Force 8 Bits Per Channel", ToolTip = "Forces all GBuffers to 8 bits per channel. Intended as profiling for best performance."),
+		Default = 1 UMETA(ToolTip = "See GBuffer allocation function for layout details."),
+		HighPrecisionNormals = 3 UMETA(ToolTip = "Same as Default except normals are encoded at 16 bits per channel."),
+		Force16BitsPerChannel = 5 UMETA(DisplayName = "Force 16 Bits Per Channel", ToolTip = "Forces all GBuffers to 16 bits per channel. Intended as profiling for best quality."),
+	};
+}
+
 /** Controls the way that the width scale property affects animation trails. */
 UENUM()
 enum ETrailWidthMode
@@ -370,6 +487,9 @@ enum class ENetworkSmoothingMode : uint8
 
 	/** Exponential. Faster as you are further from target. */
 	Exponential		UMETA(DisplayName="Exponential"),
+
+	/** Special linear interpolation designed specifically for replays. Not intended as a selectable mode in-editor. */
+	Replay			UMETA(Hidden, DisplayName="Replay"),
 };
 
 /** This filter allows us to refine queries (channel, object) with an additional level of ignore by tagging entire classes of objects (e.g. "Red team", "Blue team")
@@ -405,7 +525,7 @@ enum ECollisionChannel
 	// search ECC_Destructible
 
 	// Unspecified Engine Trace Channels
-	ECC_EngineTraceChannel1 UMETA(Hidden),
+	ECC_EngineTraceChannel1 UMETA(Hidden),		// IMPORTANT: This engine trace channel is reserved by the COLLISION_GIZMO definition
 	ECC_EngineTraceChannel2 UMETA(Hidden),
 	ECC_EngineTraceChannel3 UMETA(Hidden),
 	ECC_EngineTraceChannel4 UMETA(Hidden), 
@@ -458,6 +578,9 @@ enum ECollisionChannel
 	ECC_OverlapAll_Deprecated UMETA(Hidden),
 	ECC_MAX,
 };
+
+
+#define COLLISION_GIZMO ECC_EngineTraceChannel1
 
 
 /** @note, if you change this, change GetCollisionChannelFromOverlapFilter() to match */
@@ -643,6 +766,11 @@ struct FResponseChannel
 	FResponseChannel( FName InChannel, ECollisionResponse InResponse )
 		: Channel(InChannel)
 		, Response(InResponse) {}
+
+	bool operator==(const FResponseChannel& Other) const
+	{
+		return Channel == Other.Channel && Response == Other.Response;
+	}
 };
 
 
@@ -898,18 +1026,18 @@ enum ETimelineSigType
 
 
 /** Enum used to describe what type of collision is enabled on a body. */
-UENUM()
+UENUM(BlueprintType)
 namespace ECollisionEnabled 
 { 
 	enum Type 
 	{ 
-		/** No collision is enabled for this body. */
+		/** Will not create any representation in the physics engine. Cannot be used for spatial queries (raycasts, sweeps, overlaps) or simulation (rigid body, constraints). Best performance possible (especially for moving objects) */
 		NoCollision UMETA(DisplayName="No Collision"), 
-		/** This body is used only for collision queries (raycasts, sweeps, and overlaps). */
+		/** Only used for spatial queries (raycasts, sweeps, and overlaps). Cannot be used for simulation (rigid body, constraints). Useful for character movement and things that do not need physical simulation. Performance gains by keeping data out of simulation tree. */
 		QueryOnly UMETA(DisplayName="Query Only (No Physics Collision)"),
-		/** This body is used only for physics collision. */
+		/** Only used only for physics simulation (rigid body, constraints). Cannot be used for spatial queries (raycasts, sweeps, overlaps). Useful for jiggly bits on characters that do not need per bone detection. Performance gains by keeping data out of query tree */
 		PhysicsOnly UMETA(DisplayName="Physics Only (No Query Collision)"),
-		/** This body interacts with all collision (Query and Physics). */
+		/** Can be used for both spatial queries (raycasts, sweeps, overlaps) and simulation (rigid body, constraints). */
 		QueryAndPhysics UMETA(DisplayName="Collision Enabled (Query and Physics)") 
 	}; 
 } 
@@ -1613,7 +1741,7 @@ struct FPrimitiveMaterialRef
 /**
  * Structure containing information about one hit of a trace, such as point of impact and surface normal at that point.
  */
-USTRUCT(BlueprintType, meta=(HasNativeBreak="Engine.GameplayStatics.BreakHitResult"))
+USTRUCT(BlueprintType, meta = (HasNativeBreak = "Engine.GameplayStatics.BreakHitResult", HasNativeMake = "Engine.GameplayStatics.MakeHitResult"))
 struct ENGINE_API FHitResult
 {
 	GENERATED_USTRUCT_BODY()
@@ -2175,150 +2303,6 @@ struct FPOV
 };
 
 
-/** The importance of a mesh feature when automatically generating mesh LODs. */
-UENUM()
-namespace EMeshFeatureImportance
-{
-	enum Type
-	{
-		Off,
-		Lowest,
-		Low,
-		Normal,
-		High,
-		Highest
-	};
-}
-
-
-/** Settings used to reduce a mesh. */
-USTRUCT()
-struct FMeshReductionSettings
-{
-	GENERATED_USTRUCT_BODY()
-
-	/** Percentage of triangles to keep. 1.0 = no reduction, 0.0 = no triangles. */
-		UPROPERTY(EditAnywhere, Category = ReductionSettings)
-	float PercentTriangles;
-
-	/** The maximum distance in object space by which the reduced mesh may deviate from the original mesh. */
-	UPROPERTY(EditAnywhere, Category = ReductionSettings)
-	float MaxDeviation;
-
-	/** Threshold in object space at which vertices are welded together. */
-	UPROPERTY(EditAnywhere, Category = ReductionSettings)
-	float WeldingThreshold;
-
-	/** Angle at which a hard edge is introduced between faces. */
-	UPROPERTY(EditAnywhere, Category = ReductionSettings)
-	float HardAngleThreshold;
-
-	/** Higher values minimize change to border edges. */
-	UPROPERTY(EditAnywhere, Category = ReductionSettings)
-	TEnumAsByte<EMeshFeatureImportance::Type> SilhouetteImportance;
-
-	/** Higher values reduce texture stretching. */
-	UPROPERTY(EditAnywhere, Category = ReductionSettings)
-	TEnumAsByte<EMeshFeatureImportance::Type> TextureImportance;
-
-	/** Higher values try to preserve normals better. */
-	UPROPERTY(EditAnywhere, Category = ReductionSettings)
-	TEnumAsByte<EMeshFeatureImportance::Type> ShadingImportance;
-
-	/*UPROPERTY(EditAnywhere, Category = ReductionSettings)
-	bool bActive;*/
-
-	UPROPERTY(EditAnywhere, Category = ReductionSettings)
-	bool bRecalculateNormals;
-
-	UPROPERTY(EditAnywhere, Category = ReductionSettings)
-	int32 BaseLODModel;
-
-	UPROPERTY(EditAnywhere, Category = ReductionSettings)
-		bool bGenerateUniqueLightmapUVs;
-
-	UPROPERTY(EditAnywhere, Category = ReductionSettings)
-		bool bKeepSymmetry;
-
-	UPROPERTY(EditAnywhere, Category = ReductionSettings)
-		bool bVisibilityAided;
-
-	UPROPERTY(EditAnywhere, Category = ReductionSettings)
-		bool bCullOccluded;
-
-	/** Higher values generates fewer samples*/
-	UPROPERTY(EditAnywhere, Category = ReductionSettings)
-		TEnumAsByte<EMeshFeatureImportance::Type> VisibilityAggressiveness;
-
-	/** Higher values minimize change to vertex color data. */
-	UPROPERTY(EditAnywhere, Category = ReductionSettings)
-		TEnumAsByte<EMeshFeatureImportance::Type> VertexColorImportance;
-
-	/** Default settings. */
-	FMeshReductionSettings()
-		: PercentTriangles(1.0f)
-		, MaxDeviation(0.0f)
-		, WeldingThreshold(0.0f)
-		, HardAngleThreshold(80.0f)
-		, SilhouetteImportance(EMeshFeatureImportance::Normal)
-		, TextureImportance(EMeshFeatureImportance::Normal)
-		, ShadingImportance(EMeshFeatureImportance::Normal)
-		, bRecalculateNormals(false)
-		, BaseLODModel(0)
-		, bGenerateUniqueLightmapUVs(false)
-		, bKeepSymmetry(false)
-		, bVisibilityAided(false)
-		, bCullOccluded(false)
-		, VisibilityAggressiveness(EMeshFeatureImportance::Lowest)
-		, VertexColorImportance(EMeshFeatureImportance::Off)
-	{
-	}
-
-	FMeshReductionSettings(const FMeshReductionSettings& Other)
-		: PercentTriangles(Other.PercentTriangles)
-		, MaxDeviation(Other.MaxDeviation)
-		, WeldingThreshold(Other.WeldingThreshold)
-		, HardAngleThreshold(Other.HardAngleThreshold)
-		, SilhouetteImportance(Other.ShadingImportance)
-		, TextureImportance(Other.TextureImportance)
-		, ShadingImportance(Other.ShadingImportance)
-		, bRecalculateNormals(Other.bRecalculateNormals)
-		, BaseLODModel(Other.BaseLODModel)
-		, bGenerateUniqueLightmapUVs(Other.bGenerateUniqueLightmapUVs)
-		, bKeepSymmetry(Other.bKeepSymmetry)
-		, bVisibilityAided(Other.bVisibilityAided)
-		, bCullOccluded(Other.bCullOccluded)
-		, VisibilityAggressiveness(Other.VisibilityAggressiveness)
-		, VertexColorImportance(Other.VertexColorImportance)
-	{
-	}
-
-	/** Equality operator. */
-	bool operator==(const FMeshReductionSettings& Other) const
-	{
-		return PercentTriangles == Other.PercentTriangles
-			&& MaxDeviation == Other.MaxDeviation
-			&& WeldingThreshold == Other.WeldingThreshold
-			&& HardAngleThreshold == Other.HardAngleThreshold
-			&& SilhouetteImportance == Other.SilhouetteImportance
-			&& TextureImportance == Other.TextureImportance
-			&& ShadingImportance == Other.ShadingImportance
-			&& bRecalculateNormals == Other.bRecalculateNormals
-			&& BaseLODModel == Other.BaseLODModel
-			&& bGenerateUniqueLightmapUVs == Other.bGenerateUniqueLightmapUVs
-			&& bKeepSymmetry == Other.bKeepSymmetry
-			&& bVisibilityAided == Other.bVisibilityAided
-			&& bCullOccluded == Other.bCullOccluded
-			&& VisibilityAggressiveness == Other.VisibilityAggressiveness
-			&& VertexColorImportance == Other.VertexColorImportance;
-	}
-
-	/** Inequality. */
-	bool operator!=(const FMeshReductionSettings& Other) const
-	{
-		return !(*this == Other);
-	}
-};
 
 /**
  * Settings applied when building a mesh.
@@ -2351,6 +2335,10 @@ struct FMeshBuildSettings
 	/** Required to optimize mesh in mirrored transform. Double index buffer size. */
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
 	bool bBuildReversedIndexBuffer;
+
+	/** If true, Tangents will be stored at 16 bit vs 8 bit precision. */
+	UPROPERTY(EditAnywhere, Category = BuildSettings)
+	bool bUseHighPrecisionTangentBasis;
 
 	/** If true, UVs will be stored at full floating point precision. */
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
@@ -2400,6 +2388,7 @@ struct FMeshBuildSettings
 		, bRemoveDegenerates(true)
 		, bBuildAdjacencyBuffer(true)
 		, bBuildReversedIndexBuffer(true)
+		, bUseHighPrecisionTangentBasis(false)
 		, bUseFullPrecisionUVs(false)
 		, bGenerateLightmapUVs(true)
 		, MinLightmapResolution(64)
@@ -2421,6 +2410,7 @@ struct FMeshBuildSettings
 			&& bRemoveDegenerates == Other.bRemoveDegenerates
 			&& bBuildAdjacencyBuffer == Other.bBuildAdjacencyBuffer
 			&& bBuildReversedIndexBuffer == Other.bBuildReversedIndexBuffer
+			&& bUseHighPrecisionTangentBasis == Other.bUseHighPrecisionTangentBasis
 			&& bUseFullPrecisionUVs == Other.bUseFullPrecisionUVs
 			&& bGenerateLightmapUVs == Other.bGenerateLightmapUVs
 			&& MinLightmapResolution == Other.MinLightmapResolution
@@ -2439,413 +2429,6 @@ struct FMeshBuildSettings
 	}
 };
 
-// Use FMaterialProxySettings instead
-USTRUCT()
-struct FMaterialSimplificationSettings
-{
-	GENERATED_USTRUCT_BODY()
-
-	// Size of generated BaseColor map
-	UPROPERTY(Category=Material, EditAnywhere)
-	FIntPoint BaseColorMapSize;
-
-	// Whether to generate normal map
-	UPROPERTY()
-	bool bNormalMap;
-	
-	// Size of generated specular map
-	UPROPERTY(Category=Material, EditAnywhere, meta=(editcondition = "bNormalMap"))
-	FIntPoint NormalMapSize;
-
-	// Metallic constant
-	UPROPERTY(Category=Material, EditAnywhere, meta=(ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1"))
-	float MetallicConstant;
-
-	// Whether to generate metallic map
-	UPROPERTY()
-	bool bMetallicMap;
-
-	// Size of generated metallic map
-	UPROPERTY(Category=Material, EditAnywhere, meta=(editcondition = "bMetallicMap"))
-	FIntPoint MetallicMapSize;
-
-	// Roughness constant
-	UPROPERTY(Category=Material, EditAnywhere, meta=(ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1"))
-	float RoughnessConstant;
-
-	// Whether to generate roughness map
-	UPROPERTY()
-	bool bRoughnessMap;
-
-	// Size of generated roughness map
-	UPROPERTY(Category=Material, EditAnywhere, meta=(editcondition = "bRoughnessMap"))
-	FIntPoint RoughnessMapSize;
-		
-	// Specular constant
-	UPROPERTY(Category=Material, EditAnywhere, meta=(ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1"))
-	float SpecularConstant;
-
-	// Whether to generate specular map
-	UPROPERTY()
-	bool bSpecularMap;
-
-	// Size of generated specular map
-	UPROPERTY(Category=Material, EditAnywhere, meta=(editcondition = "bSpecularMap"))
-	FIntPoint SpecularMapSize;
-
-	FMaterialSimplificationSettings()
-		: BaseColorMapSize(1024, 1024)
-		, bNormalMap(true)
-		, NormalMapSize(1024, 1024)
-		, MetallicConstant(0.0f)
-		, bMetallicMap(false)
-		, MetallicMapSize(1024, 1024)
-		, RoughnessConstant(0.5f)
-		, bRoughnessMap(false)
-		, RoughnessMapSize(1024, 1024)
-		, SpecularConstant(0.5f)
-		, bSpecularMap(false)
-		, SpecularMapSize(1024, 1024)
-	{
-	}
-	
-	bool operator == (const FMaterialSimplificationSettings& Other) const
-	{
-		return BaseColorMapSize == Other.BaseColorMapSize
-			&& bNormalMap == Other.bNormalMap
-			&& NormalMapSize == Other.NormalMapSize
-			&& MetallicConstant == Other.MetallicConstant
-			&& bMetallicMap == Other.bMetallicMap
-			&& MetallicMapSize == Other.MetallicMapSize
-			&& RoughnessConstant == Other.RoughnessConstant
-			&& bRoughnessMap == Other.bRoughnessMap
-			&& RoughnessMapSize == Other.RoughnessMapSize
-			&& SpecularConstant == Other.SpecularConstant
-			&& bSpecularMap == Other.bSpecularMap
-			&& SpecularMapSize == Other.SpecularMapSize;
-	}
-};
-
-UENUM()
-enum ETextureSizingType
-{
-	TextureSizingType_UseSingleTextureSize UMETA(DisplayName = "Use TextureSize for all material properties"),
-	TextureSizingType_UseAutomaticBiasedSizes UMETA(DisplayName = "Use automatically biased texture sizes based on TextureSize"),
-	TextureSizingType_UseManualOverrideTextureSize UMETA(DisplayName = "Use per property manually overriden texture sizes"),
-	TextureSizingType_UseSimplygonAutomaticSizing UMETA(DisplayName = "Use Simplygon's automatic texture sizing"),
-	TextureSizingType_MAX,
-};
-
-USTRUCT()
-struct FMaterialProxySettings
-{
-	GENERATED_USTRUCT_BODY()
-		
-	// Size of generated BaseColor map
-	UPROPERTY(Category = Material, EditAnywhere)
-	FIntPoint TextureSize;
-
-	UPROPERTY(Category = Material, EditAnywhere)
-	TEnumAsByte<ETextureSizingType> TextureSizingType;
-
-	UPROPERTY(Category = Material, EditAnywhere)
-	float GutterSpace;
-
-	// Whether to generate normal map
-	UPROPERTY(Category = Material, EditAnywhere)
-	bool bNormalMap;
-	
-	// Whether to generate metallic map
-	UPROPERTY(Category = Material, EditAnywhere)
-	bool bMetallicMap;
-	
-	// Metallic constant
-	UPROPERTY(Category = Material, EditAnywhere, meta = (ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1", editcondition = "!bMetallicMap"))
-	float MetallicConstant;
-
-	// Whether to generate roughness map
-	UPROPERTY(Category = Material, EditAnywhere)
-	bool bRoughnessMap;
-
-	// Roughness constant
-	UPROPERTY(Category = Material, EditAnywhere, meta = (ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1", editcondition = "!bRoughnessMap"))
-	float RoughnessConstant;
-		
-	// Whether to generate specular map
-	UPROPERTY(Category = Material, EditAnywhere)
-	bool bSpecularMap;	
-
-	// Specular constant
-	UPROPERTY(Category = Material, EditAnywhere, meta = (ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1", editcondition = "!bSpecularMap"))
-	float SpecularConstant;
-
-	// Whether to generate emissive map
-	UPROPERTY(Category = Material, EditAnywhere)
-	bool bEmissiveMap;
-
-	// Whether to generate opacity map
-	UPROPERTY(Category = Material, EditAnywhere)
-	bool bOpacityMap;
-
-	// Override diffuse map size
-	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
-	FIntPoint DiffuseTextureSize;
-
-	// Override normal map size
-	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
-	FIntPoint NormalTextureSize;
-
-	// Override metallic map size
-	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
-	FIntPoint MetallicTextureSize;
-
-	// Override roughness map size
-	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
-	FIntPoint RoughnessTextureSize;
-
-	// Override specular map size
-	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
-	FIntPoint SpecularTextureSize;				    
-						
-	// Override emissive map size
-	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
-	FIntPoint EmissiveTextureSize;				    
-						
-	// Override opacity map size
-	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
-	FIntPoint OpacityTextureSize;
-	
-	FMaterialProxySettings()
-		: TextureSize(1024, 1024)
-		, TextureSizingType(TextureSizingType_UseSingleTextureSize)
-		, GutterSpace(4.0f)
-		, bNormalMap(true)
-		, bMetallicMap(false)
-		, MetallicConstant(0.0f)
-		, bRoughnessMap(false)
-		, RoughnessConstant(0.5f)				
-		, bSpecularMap(false)		
-		, SpecularConstant(0.5f)
-		, bEmissiveMap(false)
-		, bOpacityMap(false)
-		, DiffuseTextureSize(1024, 1024)
-		, NormalTextureSize(1024, 1024)
-		, MetallicTextureSize(1024, 1024)
-		, RoughnessTextureSize(1024, 1024)
-		, EmissiveTextureSize(1024, 1024)
-		, OpacityTextureSize(1024, 1024)
-	{
-	}
-
-	bool operator == (const FMaterialProxySettings& Other) const
-	{
-		return TextureSize == Other.TextureSize
-			&& TextureSizingType == Other.TextureSizingType
-			&& GutterSpace == Other.GutterSpace
-			&& bNormalMap == Other.bNormalMap
-			&& MetallicConstant == Other.MetallicConstant
-			&& bMetallicMap == Other.bMetallicMap
-			&& RoughnessConstant == Other.RoughnessConstant
-			&& bRoughnessMap == Other.bRoughnessMap
-			&& SpecularConstant == Other.SpecularConstant
-			&& bSpecularMap == Other.bSpecularMap
-			&& bEmissiveMap == Other.bEmissiveMap
-			&& bOpacityMap == Other.bOpacityMap
-			&& DiffuseTextureSize == Other.DiffuseTextureSize
-			&& NormalTextureSize == Other.NormalTextureSize
-			&& MetallicTextureSize == Other.MetallicTextureSize
-			&& RoughnessTextureSize == Other.RoughnessTextureSize
-			&& EmissiveTextureSize == Other.EmissiveTextureSize
-			&& OpacityTextureSize == Other.OpacityTextureSize;
-	}
-};
-
-USTRUCT()
-struct FMeshProxySettings
-{
-	GENERATED_USTRUCT_BODY()
-	/** Screen size of the resulting proxy mesh in pixel size*/
-	UPROPERTY(EditAnywhere, Category=ProxySettings)
-	int32 ScreenSize;
-
-	/** Material simplification */
-	UPROPERTY(EditAnywhere, Category = ProxySettings)
-	FMaterialProxySettings MaterialSettings;
-
-	UPROPERTY()
-	int32 TextureWidth_DEPRECATED;
-	UPROPERTY()
-	int32 TextureHeight_DEPRECATED;
-
-	UPROPERTY()
-	bool bExportNormalMap_DEPRECATED;
-
-	UPROPERTY()
-	bool bExportMetallicMap_DEPRECATED;
-
-	UPROPERTY()
-	bool bExportRoughnessMap_DEPRECATED;
-
-	UPROPERTY()
-	bool bExportSpecularMap_DEPRECATED;
-
-	/** Material simplification */
-	UPROPERTY()
-	FMaterialSimplificationSettings Material_DEPRECATED;
-
-	/** Distance at which meshes should be merged together */
-	UPROPERTY(EditAnywhere, Category = ProxySettings)
-	float MergeDistance;
-
-	/** Angle at which a hard edge is introduced between faces */
-	UPROPERTY(EditAnywhere, Category = ProxySettings, meta = (DisplayName = "Hard Edge Angle"))
-	float HardAngleThreshold;
-	
-	/** Lightmap resolution */
-	UPROPERTY(EditAnywhere, Category=ProxySettings)
-	int32 LightMapResolution;
-
-	/** Whether Simplygon should recalculate normals, otherwise the normals channel will be sampled from the original mesh */
-	UPROPERTY(EditAnywhere, Category=ProxySettings)
-	bool bRecalculateNormals;
-		
-	/** Set to true to cap the mesh with a ground plane */
-	UPROPERTY(EditAnywhere, Category=ProxySettings)
-	bool bUseClippingPlane;
-
-	/* Ground plane level */
-	UPROPERTY(EditAnywhere, Category=ProxySettings)
-	float ClippingLevel;
-
-	/** Set the axis index for the ground plane (0:X-Axis, 1:Y-Axis, 2:Z-Axis) */
-	UPROPERTY(EditAnywhere, Category=ProxySettings)
-	int32 AxisIndex;
-
-	/** Set to true to use negative halfspace for model, and reject the positive halfspace */
-	UPROPERTY(EditAnywhere, Category=ProxySettings)
-	bool bPlaneNegativeHalfspace;
-
-	UPROPERTY()
-	bool bBakeVertexData_DEPRECATED;
-
-	/** Default settings. */
-	FMeshProxySettings()
-		: ScreenSize(300)
-		, TextureWidth_DEPRECATED(512)
-		, TextureHeight_DEPRECATED(512)
-		, bExportNormalMap_DEPRECATED(true)
-		, bExportMetallicMap_DEPRECATED(false)
-		, bExportRoughnessMap_DEPRECATED(false)
-		, bExportSpecularMap_DEPRECATED(false)
-		, MergeDistance(4)
-		, HardAngleThreshold(80.0f)
-		, LightMapResolution(256)
-		, bRecalculateNormals(true)
-		, bUseClippingPlane(false)
-		, ClippingLevel(0.0)
-		, AxisIndex(0)
-		, bPlaneNegativeHalfspace(false)
-	{ }
-
-	/** Equality operator. */
-	bool operator==(const FMeshProxySettings& Other) const
-	{
-		return ScreenSize == Other.ScreenSize
-			&& MaterialSettings == Other.MaterialSettings
-			&& bRecalculateNormals == Other.bRecalculateNormals
-			&& HardAngleThreshold == Other.HardAngleThreshold
-			&& MergeDistance == Other.MergeDistance;
-	}
-
-	/** Inequality. */
-	bool operator!=(const FMeshProxySettings& Other) const
-	{
-		return !(*this == Other);
-	}
-
-	/** Handles deprecated properties */
-	void PostLoadDeprecated();
-};
-
-/**
- * Mesh merging settings
- */
-USTRUCT()
-struct FMeshMergingSettings
-{
-	GENERATED_USTRUCT_BODY()
-
-	/** Whether to generate lightmap UVs for a merged mesh*/
-	UPROPERTY(EditAnywhere, Category=FMeshMergingSettings)
-	bool bGenerateLightMapUV;
-	
-	/** Target UV channel in a merged mesh for a lightmap */
-	UPROPERTY(EditAnywhere, Category=FMeshMergingSettings)
-	int32 TargetLightMapUVChannel;
-
-	/** Target lightmap resolution */
-	UPROPERTY(EditAnywhere, Category=FMeshMergingSettings)
-	int32 TargetLightMapResolution;
-		
-	/** Whether we should import vertex colors into merged mesh */
-	UPROPERTY()
-	bool bImportVertexColors_DEPRECATED;
-	
-	/** Whether merged mesh should have pivot at world origin, or at first merged component otherwise */
-	UPROPERTY(EditAnywhere, Category=FMeshMergingSettings)
-	bool bPivotPointAtZero;
-
-	/** Whether to merge physics data (collision primitives)*/
-	UPROPERTY(EditAnywhere, Category=FMeshMergingSettings)
-	bool bMergePhysicsData;
-
-	/** Whether to merge source materials into one flat material */
-	UPROPERTY(EditAnywhere, Category=MeshMerge)
-	bool bMergeMaterials;
-
-	/** Material simplification */
-	UPROPERTY(EditAnywhere, Category = MeshMerge, meta = (editcondition = "bMergeMaterials"))
-	FMaterialProxySettings MaterialSettings;
-
-	UPROPERTY(EditAnywhere, Category = MeshMerge)
-	bool bBakeVertexData;
-
-	/** Whether to export normal maps for material merging */
-	UPROPERTY()
-	bool bExportNormalMap_DEPRECATED;
-	/** Whether to export metallic maps for material merging */
-	UPROPERTY()
-	bool bExportMetallicMap_DEPRECATED;
-	/** Whether to export roughness maps for material merging */
-	UPROPERTY()
-	bool bExportRoughnessMap_DEPRECATED;
-	/** Whether to export specular maps for material merging */
-	UPROPERTY()
-	bool bExportSpecularMap_DEPRECATED;
-	/** Merged material texture atlas resolution */
-	UPROPERTY()
-	int32 MergedMaterialAtlasResolution_DEPRECATED;
-		
-	/** Default settings. */
-	FMeshMergingSettings()
-		: bGenerateLightMapUV(false)
-		, TargetLightMapUVChannel(1)
-		, TargetLightMapResolution(256)
-		, bImportVertexColors_DEPRECATED(false)
-		, bPivotPointAtZero(false)
-		, bMergePhysicsData(false)
-		, bMergeMaterials(false)
-		, bExportNormalMap_DEPRECATED(true)
-		, bExportMetallicMap_DEPRECATED(false)
-		, bExportRoughnessMap_DEPRECATED(false)
-		, bExportSpecularMap_DEPRECATED(false)
-		, MergedMaterialAtlasResolution_DEPRECATED(1024)
-	{
-	}
-
-	/** Handles deprecated properties */
-	void PostLoadDeprecated();
-};
 
 
 USTRUCT()
@@ -3075,21 +2658,24 @@ struct FTimerHandle
 {
 	GENERATED_BODY()
 
+	friend class FTimerManager;
+
 	FTimerHandle()
-	: Handle(INDEX_NONE)
+	: Handle(0)
 	{
 	}
 
 	bool IsValid() const
 	{
-		return Handle != INDEX_NONE;
+		return Handle != 0;
 	}
 
 	void Invalidate()
 	{
-		Handle = INDEX_NONE;
+		Handle = 0;
 	}
 
+	DEPRECATED(4.12, "This function is deprecated to avoid problems with timer wraparound. Please call FTimerManager::ValidateHandle.")
 	void MakeValid();
 
 	bool operator==(const FTimerHandle& Other) const
@@ -3104,11 +2690,12 @@ struct FTimerHandle
 
 	FString ToString() const
 	{
-		return FString::Printf(TEXT("%d"), Handle);
+		return FString::Printf(TEXT("%ull"), Handle);
 	}
 
 private:
-	int32 Handle;
+	UPROPERTY(Transient)
+	uint64 Handle;
 };
 
 UENUM()
@@ -3459,6 +3046,8 @@ struct FReplicationFlags
 			uint32 bNetSimulated:1;
 			/** True if this is actor's ReplicatedMovement.bRepPhysics flag is true. */
 			uint32 bRepPhysics:1;
+			/** True if this actor is replicating on a replay connection. */
+			uint32 bReplay:1;
 		};
 
 		uint32	Value;
@@ -4048,4 +3637,25 @@ struct FMaterialMergeData
 		, TexCoords(InTexCoords)
 		, EmissiveScale(0.0f)
 	{}
+};
+
+/**
+ * The description of a user activity
+ */
+USTRUCT(BlueprintType)
+struct FUserActivity
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** Describes the user's activity */
+	UPROPERTY(BlueprintReadWrite, Category = "Activity")
+	FString ActionName;
+
+	/** Default constructor. */
+	FUserActivity() { }
+
+	/** Creates and initializes a new instance. */
+	FUserActivity(const FString& InActionName)
+		: ActionName(InActionName)
+	{ }
 };

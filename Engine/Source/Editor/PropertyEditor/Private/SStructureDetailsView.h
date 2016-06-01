@@ -77,6 +77,7 @@ public:
 	}
 
 	virtual void ForceRefresh() override;
+	virtual void MoveScrollOffset(int32 DeltaOffset) override {}
 	virtual void AddExternalRootPropertyNode(TSharedRef<FPropertyNode> ExternalRootNode) override {}
 
 public:
@@ -98,8 +99,8 @@ public:
 	}
 
 	virtual void SetOnObjectArrayChanged(FOnObjectArrayChanged OnObjectArrayChangedDelegate) override {}
-	virtual void RegisterInstancedCustomPropertyLayout(UClass* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate) override {}
-	virtual void UnregisterInstancedCustomPropertyLayout(UClass* Class) override {}
+	virtual void RegisterInstancedCustomPropertyLayout(UStruct* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate) override;
+	virtual void UnregisterInstancedCustomPropertyLayout(UStruct* Class) override;
 	virtual void SetObjects(const TArray<UObject*>& InObjects, bool bForceRefresh = false, bool bOverrideLock = false) override {}
 	virtual void SetObjects(const TArray< TWeakObjectPtr< UObject > >& InObjects, bool bForceRefresh = false, bool bOverrideLock = false) override {}
 	virtual void SetObject(UObject* InObject, bool bForceRefresh = false) override{}
@@ -110,4 +111,6 @@ public:
 protected:
 
 	virtual void CustomUpdatePropertyMap() override;
+
+	EVisibility GetPropertyEditingVisibility() const;
 };

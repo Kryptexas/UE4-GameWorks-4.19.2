@@ -5,17 +5,14 @@
 #include "AISystem.h"
 #include "Perception/AISense.h"
 #include "AIPerceptionSystem.h"
-#if !UE_BUILD_SHIPPING
-#	include "Debug/DebugDrawService.h"
-#	include "Debug/GameplayDebuggerBaseObject.h"
-#endif
 #include "AIPerceptionComponent.generated.h"
 
 class AAIController;
-struct FVisualLogEntry;
 class UCanvas;
 class UAIPerceptionSystem;
 class UAISenseConfig;
+class FGameplayDebuggerCategory;
+struct FVisualLogEntry;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPerceptionUpdatedDelegate, TArray<AActor*>, UpdatedActors);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FActorPerceptionUpdatedDelegate, AActor*, Actor, FAIStimulus, Stimulus);
@@ -65,6 +62,21 @@ struct AIMODULE_API FActorPerceptionInfo
 		return Location;
 	}
 
+	/** it includes both currently live (visible) stimulus, as well as "remembered" ones */
+	bool HasAnyKnownStimulus() const
+	{
+		for (const FAIStimulus& Stimulus : LastSensedStimuli)
+		{
+			// not that WasSuccessfullySensed will return 'false' for expired stimuli
+			if (Stimulus.IsValid() && (Stimulus.WasSuccessfullySensed() == true || Stimulus.IsExpired() == false))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	/** @note will return FAISystem::InvalidLocation if given sense has never registered related Target actor */
 	FORCEINLINE FVector GetStimulusLocation(FAISenseID Sense) const
 	{
@@ -79,6 +91,11 @@ struct AIMODULE_API FActorPerceptionInfo
 	FORCEINLINE bool IsSenseRegistered(FAISenseID Sense) const
 	{
 		return LastSensedStimuli.IsValidIndex(Sense) && LastSensedStimuli[Sense].WasSuccessfullySensed() && (LastSensedStimuli[Sense].GetAge() < FAIStimulus::NeverHappenedAge);
+	}
+
+	FORCEINLINE bool IsSenseActive(FAISenseID Sense) const
+	{
+		return LastSensedStimuli.IsValidIndex(Sense) && LastSensedStimuli[Sense].IsActive();
 	}
 	
 	/** takes all "newer" info from Other and absorbs it */
@@ -191,7 +208,7 @@ public:
 	virtual void OnUnregister() override;
 
 	UFUNCTION()
-	void OnOwnerEndPlay(EEndPlayReason::Type EndPlayReason);
+	void OnOwnerEndPlay(AActor* Actor, EEndPlayReason::Type EndPlayReason);
 	
 	void GetLocationAndDirection(FVector& Location, FVector& Direction) const;
 	const AActor* GetBodyActor() const;
@@ -239,9 +256,9 @@ public:
 	bool HasAnyActiveStimulus(const AActor& Source) const;
 	bool HasActiveStimulus(const AActor& Source, FAISenseID Sense) const;
 
-#if !UE_BUILD_SHIPPING
-	void GrabGameplayDebuggerData(TArray<FString>& OnScreenStrings, TArray<FGameplayDebuggerShapeElement>& DebugShapes) const;
-#endif // !UE_BUILD_SHIPPING
+#if WITH_GAMEPLAY_DEBUGGER
+	virtual void DescribeSelfToGameplayDebugger(FGameplayDebuggerCategory* DebuggerCategory) const;
+#endif // WITH_GAMEPLAY_DEBUGGER
 
 #if ENABLE_VISUAL_LOG
 	virtual void DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const;

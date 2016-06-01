@@ -14,9 +14,13 @@ namespace UnrealBuildTool.Rules
 					"Analytics",
 					"HTTP",
 					"Json",
-					"Engine",	// for GAverageFPS
 				}
 			);
+
+			if (Target.Type != TargetRules.TargetType.Program)
+			{
+				PrivateDependencyModuleNames.Add("Engine"); // for GAverageFPS - unused by programs
+			}
 
 			// servers expose QoS metrics via perfcounters
 			if (Target.Type != TargetRules.TargetType.Client && Target.Type != TargetRules.TargetType.Program)

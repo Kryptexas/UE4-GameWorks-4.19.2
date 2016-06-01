@@ -82,7 +82,7 @@ void SGameLayerManager::AddWidgetForPlayer(ULocalPlayer* Player, TSharedRef<SWid
 	TSharedPtr<FPlayerLayer> PlayerLayer = FindOrCreatePlayerLayer(Player);
 	
 	// NOTE: Returns FSimpleSlot but we're ignoring here.  Could be used for alignment though.
-	PlayerLayer->Overlay->AddSlot(ZOrder)
+	PlayerLayer->Widget->AddSlot(ZOrder)
 	[
 		ViewportContent
 	];
@@ -94,7 +94,7 @@ void SGameLayerManager::RemoveWidgetForPlayer(ULocalPlayer* Player, TSharedRef<S
 	if ( PlayerLayerPtr )
 	{
 		TSharedPtr<FPlayerLayer> PlayerLayer = *PlayerLayerPtr;
-		PlayerLayer->Overlay->RemoveSlot(ViewportContent);
+		PlayerLayer->Widget->RemoveSlot(ViewportContent);
 	}
 }
 
@@ -104,7 +104,7 @@ void SGameLayerManager::ClearWidgetsForPlayer(ULocalPlayer* Player)
 	if ( PlayerLayerPtr )
 	{
 		TSharedPtr<FPlayerLayer> PlayerLayer = *PlayerLayerPtr;
-		PlayerLayer->Overlay->ClearChildren();
+		PlayerLayer->Widget->ClearChildren();
 	}
 }
 
@@ -132,7 +132,7 @@ bool SGameLayerManager::AddLayerForPlayer(ULocalPlayer* Player, const FName& Lay
 
 		PlayerLayer->Layers.Add(LayerName, Layer);
 
-		PlayerLayer->Overlay->AddSlot(ZOrder)
+		PlayerLayer->Widget->AddSlot(ZOrder)
 		[
 			Layer->AsWidget()
 		];
@@ -232,11 +232,8 @@ TSharedPtr<SGameLayerManager::FPlayerLayer> SGameLayerManager::FindOrCreatePlaye
 		TSharedPtr<FPlayerLayer> NewLayer = MakeShareable(new FPlayerLayer());
 
 		// Create a new overlay widget to house any widgets we want to display for the player.
-		NewLayer->Root = SNew(SScissorRectBox)
-			[
-				SAssignNew(NewLayer->Overlay, SOverlay)
-				.AddMetaData(StopNavigation)
-			];
+		NewLayer->Widget = SNew(SOverlay)
+			.AddMetaData(StopNavigation);
 		
 		// Add the overlay to the player canvas, which we'll update every frame to match
 		// the dimensions of the player's split screen rect.
@@ -245,7 +242,10 @@ TSharedPtr<SGameLayerManager::FPlayerLayer> SGameLayerManager::FindOrCreatePlaye
 			.VAlign(VAlign_Fill)
 			.Expose(NewLayer->Slot)
 			[
-				NewLayer->Root.ToSharedRef()
+				SNew(SScissorRectBox)
+				[
+					NewLayer->Widget.ToSharedRef()
+				]
 			];
 
 		PlayerLayerPtr = &PlayerLayers.Add(LocalPlayer, NewLayer);
@@ -278,7 +278,7 @@ void SGameLayerManager::RemoveMissingPlayerLayers(const TArray<ULocalPlayer*>& G
 void SGameLayerManager::RemovePlayerWidgets(ULocalPlayer* LocalPlayer)
 {
 	TSharedPtr<FPlayerLayer> Layer = PlayerLayers.FindRef(LocalPlayer);
-	PlayerCanvas->RemoveSlot(Layer->Root.ToSharedRef());
+	PlayerCanvas->RemoveSlot(Layer->Widget.ToSharedRef());
 
 	PlayerLayers.Remove(LocalPlayer);
 }
@@ -309,7 +309,7 @@ void SGameLayerManager::AddOrUpdatePlayerLayers(const FGeometry& AllottedGeometr
 
 			FVector2D AspectRatioInset = GetAspectRatioInset(Player);
 
-			Size = ( Size * AllottedGeometry.GetLocalSize() + ( AspectRatioInset * 2.0f ) ) * InverseDPIScale;
+			Size = ( Size * AllottedGeometry.GetLocalSize() - ( AspectRatioInset * 2.0f ) ) * InverseDPIScale;
 			Position = ( Position * AllottedGeometry.GetLocalSize() + AspectRatioInset ) * InverseDPIScale;
 
 			PlayerLayer->Slot->Size(Size);
@@ -320,27 +320,18 @@ void SGameLayerManager::AddOrUpdatePlayerLayers(const FGeometry& AllottedGeometr
 
 FVector2D SGameLayerManager::GetAspectRatioInset(ULocalPlayer* LocalPlayer) const
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_SGameLayerManager_GetAspectRatioInset);
 	FVector2D Offset(0.f, 0.f);
-
 	if ( LocalPlayer )
 	{
-		// Create a view family for the game viewport
-		FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
-			LocalPlayer->ViewportClient->Viewport,
-			LocalPlayer->GetWorld()->Scene,
-			LocalPlayer->ViewportClient->EngineShowFlags)
-			.SetRealtimeUpdate(true));
-
-		// Calculate a view where the player is to update the streaming from the players start location
-		FVector ViewLocation;
-		FRotator ViewRotation;
-		FSceneView* SceneView = LocalPlayer->CalcSceneView(&ViewFamily, /*out*/ ViewLocation, /*out*/ ViewRotation, LocalPlayer->ViewportClient->Viewport);
-
-		if ( SceneView )
+		FSceneViewInitOptions ViewInitOptions;
+		if (LocalPlayer->CalcSceneViewInitOptions(ViewInitOptions, LocalPlayer->ViewportClient->Viewport))
 		{
-			// This accounts for the borders when the aspect ratio is locked
-			Offset.X = ( SceneView->UnscaledViewRect.Min.X - SceneView->UnconstrainedViewRect.Min.X );
-			Offset.Y = ( SceneView->UnscaledViewRect.Min.Y - SceneView->UnconstrainedViewRect.Min.Y );
+			FIntRect ViewRect = ViewInitOptions.GetViewRect();
+			FIntRect ConstrainedViewRect = ViewInitOptions.GetConstrainedViewRect();
+
+			Offset.X = ( ConstrainedViewRect.Min.X - ViewRect.Min.X );
+			Offset.Y = ( ConstrainedViewRect.Min.Y - ViewRect.Min.Y );
 		}
 	}
 

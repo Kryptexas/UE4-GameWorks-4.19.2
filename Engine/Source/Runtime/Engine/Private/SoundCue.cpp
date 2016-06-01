@@ -112,35 +112,54 @@ void USoundCue::PostLoad()
 	}
 	else
 #endif
+	if (GEngine)
 	{
-		TArray<USoundNode*> NodesToEvaluate;
-		NodesToEvaluate.Push(FirstNode);
+		EvaluateNodes(false);
+	}
+	else
+	{
+		OnPostEngineInitHandle = UEngine::OnPostEngineInit.AddUObject(this, &USoundCue::OnPostEngineInit);
+	}
+}
 
-		while (NodesToEvaluate.Num() > 0)
+void USoundCue::OnPostEngineInit()
+{
+	UEngine::OnPostEngineInit.Remove(OnPostEngineInitHandle);
+	OnPostEngineInitHandle.Reset();
+
+	EvaluateNodes(true);
+}
+
+void USoundCue::EvaluateNodes(bool bAddToRoot)
+{
+	TArray<USoundNode*> NodesToEvaluate;
+	NodesToEvaluate.Push(FirstNode);
+
+	while (NodesToEvaluate.Num() > 0)
+	{
+		if (USoundNode* SoundNode = NodesToEvaluate.Pop(false))
 		{
-			if (USoundNode* SoundNode = NodesToEvaluate.Pop(false))
+			if (USoundNodeAssetReferencer* AssetReferencerNode = Cast<USoundNodeAssetReferencer>(SoundNode))
 			{
-				if (USoundNodeAssetReferencer* AssetReferencerNode = Cast<USoundNodeAssetReferencer>(SoundNode))
+				AssetReferencerNode->LoadAsset(bAddToRoot);
+			}
+			else if (USoundNodeQualityLevel* QualityLevelNode = Cast<USoundNodeQualityLevel>(SoundNode))
+			{
+				// Only pick the node connected for current quality, currently don't support changing audio quality on the fly
+				static const int32 CachedQualityLevel = GEngine->GetGameUserSettings()->GetAudioQualityLevel();
+				if (CachedQualityLevel < QualityLevelNode->ChildNodes.Num())
 				{
-					AssetReferencerNode->LoadAsset();
+					NodesToEvaluate.Add(QualityLevelNode->ChildNodes[CachedQualityLevel]);
 				}
-				else if (USoundNodeQualityLevel* QualityLevelNode = Cast<USoundNodeQualityLevel>(SoundNode))
-				{
-					// Only pick the node connected for current quality, currently don't support changing audio quality on the fly
-					static const int32 CachedQualityLevel = GEngine->GetGameUserSettings()->GetAudioQualityLevel();
-					if (CachedQualityLevel < QualityLevelNode->ChildNodes.Num())
-					{
-						NodesToEvaluate.Add(QualityLevelNode->ChildNodes[CachedQualityLevel]);
-					}
-				}
-				else
-				{
-					NodesToEvaluate.Append(SoundNode->ChildNodes);
-				}
+			}
+			else
+			{
+				NodesToEvaluate.Append(SoundNode->ChildNodes);
 			}
 		}
 	}
 }
+
 
 #if WITH_EDITOR
 

@@ -41,7 +41,6 @@ call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
 goto ReadyToCompile
 
 :NoVisualStudio2015Environment
-
 rem ## Check for Visual Studio 2013
 
 pushd %~dp0
@@ -53,18 +52,6 @@ call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
 goto ReadyToCompile
 
 :NoVisualStudio2013Environment
-rem ## Check for Visual Studio 2012
-
-pushd %~dp0
-call GetVSComnToolsPath 11
-popd
-
-if "%VsComnToolsPath%" == "" goto NoVisualStudio2012Environment
-call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
-goto ReadyToCompile
-
-
-:NoVisualStudio2012Environment
 rem ## User has no version of Visual Studio installed?
 goto Error_NoVisualStudioEnvironment
 

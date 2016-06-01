@@ -78,6 +78,16 @@ public:
 	 * @return True if the read succeeded.
 	 */
 	ENGINE_API bool ReadFloat16Pixels(TArray<FFloat16Color>& OutputBuffer,ECubeFace CubeFace=CubeFace_PosX);
+	
+	/**
+	 * Reads the viewport's displayed pixels into the given color buffer.
+	 * @param OutputBuffer - Linear color array to store the value
+	 * @param CubeFace - optional cube face for when reading from a cube render target
+	 * @return True if the read succeeded.
+	 */
+	ENGINE_API bool ReadLinearColorPixels(TArray<FLinearColor>& OutputBuffer, FReadSurfaceDataFlags InFlags = FReadSurfaceDataFlags(RCM_MinMax, CubeFace_MAX), FIntRect InRect = FIntRect(0, 0, 0, 0));
+
+	ENGINE_API bool ReadLinearColorPixelsPtr(FLinearColor* OutImageBytes, FReadSurfaceDataFlags InFlags = FReadSurfaceDataFlags(RCM_MinMax, CubeFace_MAX), FIntRect InRect = FIntRect(0, 0, 0, 0));
 
 protected:
 
@@ -284,7 +294,8 @@ public:
 	virtual float GetTabletPressure() { return 0.f; }
 	virtual bool IsPenActive() { return false; }
 	virtual void SetMouse(int32 x, int32 y) = 0;
-	virtual bool IsFullscreen()	const { return WindowMode == EWindowMode::Fullscreen || WindowMode == EWindowMode::WindowedFullscreen || WindowMode == EWindowMode::WindowedMirror; }
+	virtual bool IsFullscreen()	const { return WindowMode == EWindowMode::Fullscreen || WindowMode == EWindowMode::WindowedFullscreen; }
+	virtual EWindowMode::Type GetWindowMode()	const { return WindowMode; }
 	virtual void ProcessInput( float DeltaTime ) = 0;
 
 	/**
@@ -508,6 +519,12 @@ public:
 	/** Returns dimensions of RenderTarget texture. Can be called on a game thread. */
 	virtual FIntPoint GetRenderTargetTextureSizeXY() const { return GetSizeXY(); }
 
+	/** Causes this viewport to flush rendering commands once it has been drawn */
+	void IncrementFlushOnDraw() { ++FlushOnDrawCount; }
+	
+	/** Decrements a previously incremented count that caused this viewport to flush rendering commands when it was drawn */
+	void DecrementFlushOnDraw() { check(FlushOnDrawCount); --FlushOnDrawCount; }
+
 protected:
 
 	/** The viewport's client. */
@@ -608,6 +625,9 @@ protected:
 
 	/** If true this viewport is an FSlateSceneViewport */
 	uint32 bIsSlateViewport : 1;
+
+	/** The number of pending calls to IncrementFlushOnDraw. Non-zero implies this viewport will flush rendering commands when it is drawn. */
+	uint32 FlushOnDrawCount;
 
 	/** true if we should draw game viewports (has no effect on Editor viewports) */
 	ENGINE_API static bool bIsGameRenderingEnabled;
@@ -723,7 +743,7 @@ public:
 	 * @param	GestureDelta - @todo desc
 	 * @return	True to consume the gesture event, false to pass it on.
 	 */
-	virtual bool InputGesture(FViewport* Viewport, EGestureEvent::Type GestureType, const FVector2D& GestureDelta) { return false; }
+	virtual bool InputGesture(FViewport* Viewport, EGestureEvent::Type GestureType, const FVector2D& GestureDelta, bool bIsDirectionInvertedFromDevice) { return false; }
 
 	/**
 	 * Each frame, the input system will update the motion data.
@@ -741,13 +761,6 @@ public:
 	virtual void SetIsSimulateInEditorViewport(bool bInIsSimulateInEditorViewport) { };
 
 	virtual bool WantsPollingMouseMovement(void) const { return true; }
-
-	/**
-	 * Sets whether or not a controller is actively plugged in
-	 * @param InControllID - Unique ID of the joystick
-	 * @param bInConnected - true, if the joystick is valid for input
-	 */
-	virtual void OnJoystickPlugged(const uint32 InControllerID, const uint32 InType, const uint32 bInConnected) {};
 
 	virtual void MouseEnter( FViewport* Viewport,int32 x, int32 y ) {}
 
@@ -890,6 +903,19 @@ public:
 	 * Gets the mouse capture behavior when the viewport is clicked
 	 */
 	virtual EMouseCaptureMode CaptureMouseOnClick() { return EMouseCaptureMode::CapturePermanently; }
+
+	/**
+	 * Gets whether or not the viewport captures the Mouse on launch of the application
+	 * Technically this controls capture on the first window activate, so in situations
+	 * where the application is launched but isn't activated the effect is delayed until
+	 * activation.
+	 */
+	virtual bool CaptureMouseOnLaunch() { return true; }
+
+	/**
+	 * Gets whether or not the cursor is locked to the viewport when the viewport captures the mouse
+	 */
+	virtual bool LockDuringCapture() { return true; }
 
 	/**
 	 * Gets whether or not the cursor is hidden when the viewport captures the mouse

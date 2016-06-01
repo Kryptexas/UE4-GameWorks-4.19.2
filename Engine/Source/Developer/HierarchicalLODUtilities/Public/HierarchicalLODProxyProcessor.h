@@ -6,6 +6,8 @@
 #include "MeshUtilities.h"
 #include "GameFramework/WorldSettings.h"
 
+class ALODActor;
+
 class HIERARCHICALLODUTILITIES_API FHierarchicalLODProxyProcessor : public FTickerObjectBase
 {
 public:		
@@ -46,7 +48,7 @@ protected:
 	struct FProcessData
 	{
 		/** LODActor instance for which a proxy is generated */
-		class ALODActor* LODActor;
+		ALODActor* LODActor;
 		/** Array with resulting asset objects from proxy generation (StaticMesh/Materials/Textures) */
 		TArray<class UObject*> AssetObjects;
 		/** HLOD settings structure used for creating the proxy */

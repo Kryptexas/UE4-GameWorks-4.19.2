@@ -164,6 +164,8 @@ public:
 	// World browser information
 	TScopedPointer< FWorldTileInfo > WorldTileInfo;
 
+	TMap<FName, int32> ClassUniqueNameIndexMap;
+
 #if WITH_EDITOR
 	/** Editor only: PIE instance ID this package belongs to, INDEX_NONE otherwise */
 	int32 PIEInstanceID;
@@ -176,7 +178,7 @@ public:
 
 	/**
 	 * Called after the C++ constructor and after the properties have been initialized, but before the config has been loaded, etc.
-	 * mainly this is to emulate some behavior of when the constructor was called after the properties were intialized.
+	 * mainly this is to emulate some behavior of when the constructor was called after the properties were initialized.
 	 */
 	virtual void PostInitProperties() override;
 

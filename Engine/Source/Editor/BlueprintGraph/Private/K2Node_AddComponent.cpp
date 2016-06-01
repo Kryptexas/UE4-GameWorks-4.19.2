@@ -89,6 +89,12 @@ void UK2Node_AddComponent::AllocatePinsForExposedVariables()
 	TransformPin->SafeSetHidden(bHideTransformPins);
 }
 
+FName UK2Node_AddComponent::GetAddComponentFunctionName()
+{
+    static const FName AddComponentFunctionName(GET_FUNCTION_NAME_CHECKED(AActor, AddComponent));
+    return AddComponentFunctionName;
+}
+
 const UClass* UK2Node_AddComponent::GetSpawnedType() const
 {
 	const UActorComponent* TemplateComponent = GetTemplateFromNode();

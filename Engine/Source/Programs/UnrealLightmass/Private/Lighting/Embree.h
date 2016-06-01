@@ -124,9 +124,13 @@ namespace Lightmass
 		/** Information about the meshes used in the kDOP tree. */
 		TArray<const FEmbreeGeometry*> MeshInfos;
 
-		/*Embree scene */
+		/** Embree scene */
 		RTCDevice EmbreeDevice;
 		RTCScene EmbreeScene;
+		
+		/** Total number of triangles in the shadow mesh */
+		int32 TotalNumTriangles;
+
 	};
 
 	class FEmbreeVerifyAggregateMesh final : public FStaticLightingAggregateMesh

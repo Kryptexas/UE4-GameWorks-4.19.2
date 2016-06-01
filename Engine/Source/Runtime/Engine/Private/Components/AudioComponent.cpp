@@ -24,6 +24,7 @@ UAudioComponent::UAudioComponent(const FObjectInitializer& ObjectInitializer)
 #endif
 	VolumeMultiplier = 1.f;
 	bOverridePriority = false;
+	bIsPreviewSound = false;
 	Priority = 1.f;
 	PitchMultiplier = 1.f;
 	VolumeModulationMin = 1.f;
@@ -123,9 +124,9 @@ void UAudioComponent::SetSound( USoundBase* NewSound )
 	}
 }
 
-void UAudioComponent::OnUpdateTransform(bool bSkipPhysicsMove, ETeleportType Teleport)
+void UAudioComponent::OnUpdateTransform(EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport)
 {
-	Super::OnUpdateTransform(bSkipPhysicsMove, Teleport);
+	Super::OnUpdateTransform(UpdateTransformFlags, Teleport);
 
 	if (bIsActive && !bPreviewComponent)
 	{
@@ -157,15 +158,9 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 		// If this is an auto destroy component we need to prevent it from being auto-destroyed since we're really just restarting it
 		bool bCurrentAutoDestroy = bAutoDestroy;
 		bAutoDestroy = false;
-		if (!bShouldRemainActiveIfDropped)
-		{
-			Stop();
-		}
+		Stop();
 		bAutoDestroy = bCurrentAutoDestroy;
 	}
-
-	// Bump ActiveCount... this is used to determine if an audio component is still active after "finishing"
-	++ActiveCount;
 
 	// Whether or not we managed to actually try to play the sound
 	if (Sound && (World == nullptr || World->bAllowAudioPlayback))
@@ -213,7 +208,7 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 			NewActiveSound.bAlwaysPlay = bAlwaysPlay;
 			NewActiveSound.bReverb = bReverb;
 			NewActiveSound.bCenterChannelOnly = bCenterChannelOnly;
-
+			NewActiveSound.bIsPreviewSound = bIsPreviewSound;
 			NewActiveSound.bLocationDefined = !bPreviewComponent;
 			if (NewActiveSound.bLocationDefined)
 			{
@@ -225,7 +220,7 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 			if (NewActiveSound.bHasAttenuationSettings)
 			{
 				NewActiveSound.AttenuationSettings = *AttenuationSettingsToApply;
-				NewActiveSound.FocusPriorityScale = AttenuationSettingsToApply->GetFocusPriorityScale(FocusFactor);
+				NewActiveSound.FocusPriorityScale = AttenuationSettingsToApply->GetFocusPriorityScale(AudioDevice->GlobalFocusSettings, FocusFactor);
 			}
 
 			NewActiveSound.MaxDistance = MaxDistance;
@@ -243,9 +238,11 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 				NewActiveSound.CurrentAdjustVolumeMultiplier = FadeVolumeLevel;
 			}
 
+			// Bump ActiveCount... this is used to determine if an audio component is still active after "finishing"
+			++ActiveCount;
+
 			// TODO - Audio Threading. This call would be a task call to dispatch to the audio thread
 			AudioDevice->AddNewActiveSound(NewActiveSound);
-
 			bIsActive = true;
 		}
 	}
@@ -352,19 +349,22 @@ void UAudioComponent::PlaybackCompleted(bool bFailedToStart)
 	// Mark inactive before calling destroy to avoid recursion
 	bIsActive = (ActiveCount > 0);
 
-	if (!bFailedToStart && GetWorld() != nullptr && (OnAudioFinished.IsBound() || OnAudioFinishedNative.IsBound()))
+	if (!bIsActive)
 	{
-		INC_DWORD_STAT( STAT_AudioFinishedDelegatesCalled );
-		SCOPE_CYCLE_COUNTER( STAT_AudioFinishedDelegates );
+		if (!bFailedToStart && GetWorld() != nullptr && (OnAudioFinished.IsBound() || OnAudioFinishedNative.IsBound()))
+		{
+			INC_DWORD_STAT(STAT_AudioFinishedDelegatesCalled);
+			SCOPE_CYCLE_COUNTER(STAT_AudioFinishedDelegates);
 
-		OnAudioFinished.Broadcast();
-		OnAudioFinishedNative.Broadcast(this);
-	}
+			OnAudioFinished.Broadcast();
+			OnAudioFinishedNative.Broadcast(this);
+		}
 
-	// Auto destruction is handled via marking object for deletion.
-	if (bAutoDestroy)
-	{
-		DestroyComponent();
+		// Auto destruction is handled via marking object for deletion.
+		if (bAutoDestroy)
+		{
+			DestroyComponent();
+		}
 	}
 }
 
@@ -378,6 +378,9 @@ void UAudioComponent::UpdateSpriteTexture()
 {
 	if (SpriteComponent)
 	{
+		SpriteComponent->SpriteInfo.Category = TEXT("Sounds");
+		SpriteComponent->SpriteInfo.DisplayName = NSLOCTEXT("SpriteCategory", "Sounds", "Sounds");
+
 		if (bAutoActivate)
 		{
 			SpriteComponent->SetSprite(LoadObject<UTexture2D>(nullptr, TEXT("/Engine/EditorResources/AudioIcons/S_AudioComponent_AutoActivate.S_AudioComponent_AutoActivate")));

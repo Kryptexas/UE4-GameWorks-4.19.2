@@ -46,6 +46,12 @@ namespace UnrealBuildTool
 		// A hash that is used to determine if the project was forked from a sample
 		public uint EpicSampleNameHash;
 
+		// Steps to execute before building targets in this project
+		public CustomBuildSteps PreBuildSteps;
+
+		// Steps to execute before building targets in this project
+		public CustomBuildSteps PostBuildSteps;
+
 		/// <summary>
 		/// Constructor.
 		/// </summary>
@@ -105,6 +111,10 @@ namespace UnrealBuildTool
 
 				// Get the sample name hash
 				RawObject.TryGetUnsignedIntegerField("EpicSampleNameHash", out Descriptor.EpicSampleNameHash);
+
+				// Read the pre and post-build steps
+				CustomBuildSteps.TryRead(RawObject, "PreBuildSteps", out Descriptor.PreBuildSteps);
+				CustomBuildSteps.TryRead(RawObject, "PostBuildSteps", out Descriptor.PostBuildSteps);
 
 				return Descriptor;
 			}

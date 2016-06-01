@@ -20,6 +20,7 @@
 DEFINE_LOG_CATEGORY(LogNetworkPlatformFile);
 
 FString FNetworkPlatformFile::MP4Extension = TEXT(".mp4");
+FString FNetworkPlatformFile::BulkFileExtension = TEXT(".ubulk");
 
 FNetworkPlatformFile::FNetworkPlatformFile()
 	: bHasLoadedDDCDirectories(false)
@@ -115,7 +116,15 @@ bool FNetworkPlatformFile::InitializeInternal(IPlatformFile* Inner, const TCHAR*
 	LocalDirectories.Add(FPaths::GameSavedDir() / TEXT("Logs"));
 	LocalDirectories.Add(FPaths::GameSavedDir() / TEXT("Sandboxes"));
 
-	InnerPlatformFile->AddLocalDirectories(LocalDirectories);
+	if (InnerPlatformFile->GetLowerLevel())
+	{
+		InnerPlatformFile->GetLowerLevel()->AddLocalDirectories(LocalDirectories);
+	}
+	else
+	{
+		InnerPlatformFile->AddLocalDirectories(LocalDirectories);
+	}
+	
 
 	FNetworkFileArchive Payload(NFS_Messages::Heartbeat); 
 	FArrayReader Out;
@@ -1102,7 +1111,7 @@ void FNetworkPlatformFile::EnsureFileIsLocal(const FString& Filename)
 
 	// we only copy files that actually exist on the server, can greatly reduce network traffic for, say,
 	// the INT file each package tries to load
-	if (!bIsCookable && ServerFiles.FindFile(Filename) == NULL)
+	if (!bIsCookable && (ServerFiles.FindFile(Filename) == NULL) && (Extension != BulkFileExtension))
 	{
 		// Uncomment this to have the server file list dumped
 		// the first time a file requested is not found.

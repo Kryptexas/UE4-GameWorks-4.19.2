@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:ns1="urn:oasis:names:tc:xliff:document:1.2">
+    <!-- From: file:/tmp/tmp-deduplicated8162628151885761277/blaze-out/arm-linux-androideabi-4.8-bionic-libcxx-armv7a-opt/genfiles/vr/gvr/platform/common/android/res/values-el/strings.xml -->
+    <eat-comment/>
+    <string msgid="7991510501576515350" name="back_button_content_description">"πίσω"</string>
+    <string msgid="5437310423659570107" name="cancel_button">"Ακύρωση"</string>
+    <string msgid="8936160057500596687" name="dialog_message_no_cardboard">"Αποκτήστε την εφαρμογή Cardboard για να διαμορφώσετε το σύστημα προβολής σας."</string>
+    <string msgid="6627029590803109915" name="dialog_message_setup">"Ρυθμίστε το σύστημα προβολής σας για τη βέλτιστη εμπειρία."</string>
+    <string msgid="3248614679403583554" name="dialog_title">"Διαμόρφωση"</string>
+    <string msgid="3656229220902996794" name="go_to_playstore_button">"Μετάβαση στο Play Store"</string>
+    <string msgid="607483269550346980" name="got_it">"OK"</string>
+    <string msgid="4242663779247493666" name="no_browser_text">"Δεν βρέθηκε πρόγρ. περιήγ. για άνοιγμα ιστότοπου"</string>
+    <string msgid="3033913737471886041" name="place_your_phone_into_cardboard">"Τοποθετήστε το τηλ. στο σύστημα προβολής Cardboard"</string>
+    <string msgid="8644661894594395876" name="place_your_viewer_into_viewer_format">"Τοποθετήστε το τηλέφωνο στο σύστημα προβολής <ns1:g id="VIEWER_NAME">%s</ns1:g>"</string>
+    <string msgid="7565578605458926311" name="settings_button_content_description">"ρυθμίσεις"</string>
+    <string msgid="1112346456654686733" name="setup_button">"Ρύθμιση"</string>
+    <string msgid="1762411366348526647" name="switch_viewer_action">"Aλλαγή"</string>
+    <string msgid="4518576606713444785" name="switch_viewer_prompt">"Άλλο σύστ. προβολής;"</string>
+    <string msgid="4804039743799852394" name="viewer_configured_dialog_title">"Σύστημα προβολής διαμορφώθηκε!"</string>
+    <string msgid="4463041247783043262" name="viewer_configured_message_format">"Η εφαρμογή έχει πλέον διαμορφωθεί για το σύστημα προβολής <ns1:g id="VIEWER_NAME">%s</ns1:g>."</string>
+</resources>

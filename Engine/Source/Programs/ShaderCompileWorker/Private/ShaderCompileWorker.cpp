@@ -548,7 +548,11 @@ static FName NAME_SF_METAL(TEXT("SF_METAL"));
 static FName NAME_SF_METAL_MRT(TEXT("SF_METAL_MRT"));
 static FName NAME_GLSL_310_ES_EXT(TEXT("GLSL_310_ES_EXT"));
 static FName NAME_SF_METAL_SM5(TEXT("SF_METAL_SM5"));
-static FName NAME_PC_VULKAN_ES2(TEXT("PC_VULKAN_ES2"));
+static FName NAME_VULKAN_ES3_1_ANDROID(TEXT("SF_VULKAN_ES31_ANDROID"));
+static FName NAME_VULKAN_ES3_1(TEXT("SF_VULKAN_ES31"));
+static FName NAME_VULKAN_ES3_1_UB(TEXT("SF_VULKAN_ES31_UB"));
+static FName NAME_VULKAN_SM4(TEXT("SF_VULKAN_SM4"));
+static FName NAME_VULKAN_SM5(TEXT("SF_VULKAN_SM5"));
 static FName NAME_SF_METAL_SM4(TEXT("SF_METAL_SM4"));
 static FName NAME_SF_METAL_MACES3_1(TEXT("SF_METAL_MACES3_1"));
 
@@ -563,8 +567,8 @@ static EShaderPlatform FormatNameToEnum(FName ShaderFormat)
 	if (ShaderFormat == NAME_SF_PS4)				return SP_PS4;
 	if (ShaderFormat == NAME_SF_XBOXONE)			return SP_XBOXONE;
 	if (ShaderFormat == NAME_GLSL_430)			return SP_OPENGL_SM5;
-	if (ShaderFormat == NAME_GLSL_150_ES2 || ShaderFormat == NAME_GLSL_150_ES2_NOUB)
-		return SP_OPENGL_PCES2;
+	if (ShaderFormat == NAME_GLSL_150_ES2)			return SP_OPENGL_PCES2;
+	if (ShaderFormat == NAME_GLSL_150_ES2_NOUB)		return SP_OPENGL_PCES2;
 	if (ShaderFormat == NAME_GLSL_150_ES31)		return SP_OPENGL_PCES3_1;
 	if (ShaderFormat == NAME_GLSL_ES2)			return SP_OPENGL_ES2_ANDROID;
 	if (ShaderFormat == NAME_GLSL_ES2_WEBGL)	return SP_OPENGL_ES2_WEBGL;
@@ -573,7 +577,11 @@ static EShaderPlatform FormatNameToEnum(FName ShaderFormat)
 	if (ShaderFormat == NAME_SF_METAL_MRT)		return SP_METAL_MRT;
 	if (ShaderFormat == NAME_GLSL_310_ES_EXT)	return SP_OPENGL_ES31_EXT;
 	if (ShaderFormat == NAME_SF_METAL_SM5)		return SP_METAL_SM5;
-	if (ShaderFormat == NAME_PC_VULKAN_ES2)		return SP_VULKAN_ES2;
+	if (ShaderFormat == NAME_VULKAN_SM4)			return SP_VULKAN_SM4;
+	if (ShaderFormat == NAME_VULKAN_SM5)			return SP_VULKAN_SM5;
+	if (ShaderFormat == NAME_VULKAN_ES3_1_ANDROID)	return SP_VULKAN_ES3_1_ANDROID;
+	if (ShaderFormat == NAME_VULKAN_ES3_1)			return SP_VULKAN_PCES3_1;
+	if (ShaderFormat == NAME_VULKAN_ES3_1_UB)		return SP_VULKAN_PCES3_1;
 	if (ShaderFormat == NAME_SF_METAL_SM4)		return SP_METAL_SM4;
 	if (ShaderFormat == NAME_SF_METAL_MACES3_1)	return SP_METAL_MACES3_1;
 	return SP_NumPlatforms;
@@ -586,48 +594,58 @@ static void CompileDirect(const TArray<const class IShaderFormat*>& ShaderFormat
 	FCommandLine::Parse(FCommandLine::Get(), Tokens, Switches);
 
 	FString InputFile;
-	if (Tokens.Num() < 1)
-	{
-		return;
-	}
-	InputFile = Tokens[0];
 
 	FName FormatName;
 	FString Entry = TEXT("Main");
+	bool bPipeline = false;
 	EShaderFrequency Frequency = SF_Pixel;
-	for (const FString& Switch : Switches)
+	for (const FString& Token : Tokens)
 	{
-		if (Switch.StartsWith(TEXT("format=")))
+		if (Switches.Contains(Token))
 		{
-			FormatName = FName(*Switch.RightChop(7));
+			if (Token.StartsWith(TEXT("format=")))
+			{
+				FormatName = FName(*Token.RightChop(7));
+			}
+			else if (Token.StartsWith(TEXT("entry=")))
+			{
+				Entry = Token.RightChop(6);
+			}
+			else if (!FCString::Strcmp(*Token, TEXT("ps")))
+			{
+				Frequency = SF_Pixel;
+			}
+			else if (!FCString::Strcmp(*Token, TEXT("vs")))
+			{
+				Frequency = SF_Vertex;
+			}
+			else if (!FCString::Strcmp(*Token, TEXT("hs")))
+			{
+				Frequency = SF_Hull;
+			}
+			else if (!FCString::Strcmp(*Token, TEXT("ds")))
+			{
+				Frequency = SF_Domain;
+			}
+			else if (!FCString::Strcmp(*Token, TEXT("gs")))
+			{
+				Frequency = SF_Geometry;
+			}
+			else if (!FCString::Strcmp(*Token, TEXT("cs")))
+			{
+				Frequency = SF_Compute;
+			}
+			else if (!FCString::Strcmp(*Token, TEXT("pipeline")))
+			{
+				bPipeline = true;
+			}
 		}
-		else if (Switch.StartsWith(TEXT("entry=")))
+		else
 		{
-			Entry = Switch.RightChop(6);
-		}
-		else if (!FCString::Strcmp(*Switch, TEXT("ps")))
-		{
-			Frequency = SF_Pixel;
-		}
-		else if (!FCString::Strcmp(*Switch, TEXT("vs")))
-		{
-			Frequency = SF_Vertex;
-		}
-		else if (!FCString::Strcmp(*Switch, TEXT("hs")))
-		{
-			Frequency = SF_Hull;
-		}
-		else if (!FCString::Strcmp(*Switch, TEXT("ds")))
-		{
-			Frequency = SF_Domain;
-		}
-		else if (!FCString::Strcmp(*Switch, TEXT("gs")))
-		{
-			Frequency = SF_Geometry;
-		}
-		else if (!FCString::Strcmp(*Switch, TEXT("cs")))
-		{
-			Frequency = SF_Compute;
+			if (InputFile.Len() == 0)
+			{
+				InputFile = Token;
+			}
 		}
 	}
 
@@ -640,6 +658,8 @@ static void CompileDirect(const TArray<const class IShaderFormat*>& ShaderFormat
 	Input.Target.Platform =  FormatNameToEnum(FormatName);
 	Input.Target.Frequency = Frequency;
 	Input.bSkipPreprocessedCache = true;
+
+	Input.bCompilingForShaderPipeline = bPipeline;
 
 	FShaderCompilerOutput Output;
 

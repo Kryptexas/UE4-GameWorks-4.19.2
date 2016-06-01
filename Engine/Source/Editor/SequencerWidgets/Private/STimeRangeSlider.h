@@ -2,18 +2,19 @@
 
 #pragma once
 
-class STimeRange;
-
 class STimeRangeSlider : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS(STimeRangeSlider){}
+		/* The time snap interval for the timeline */
+		SLATE_ARGUMENT( TAttribute<float>, TimeSnapInterval )
 		SLATE_DEFAULT_SLOT(FArguments, Content)
 	SLATE_END_ARGS()
 
-	void Construct( const FArguments& InArgs, TSharedRef<ITimeSliderController> InTimeSliderController, TSharedPtr<STimeRange> InTimeRange );
+	void Construct( const FArguments& InArgs, TSharedRef<ITimeSliderController> InTimeSliderController );
 
 	// SWidget interface
+	virtual FVector2D ComputeDesiredSize(float) const override;
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
@@ -51,6 +52,7 @@ private:
 	/* The in/out view range viewed before expansion */
 	TRange<float> LastViewRange;
 
+	TAttribute<float> TimeSnapInterval;
+
 	TSharedPtr<ITimeSliderController> TimeSliderController;
-	TWeakPtr<STimeRange> TimeRange;
 };

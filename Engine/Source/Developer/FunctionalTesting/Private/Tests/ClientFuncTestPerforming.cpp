@@ -3,6 +3,8 @@
 #include "FunctionalTestingPrivatePCH.h"
 #include "AutomationCommon.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 #define LOCTEXT_NAMESPACE "FunctionalTesting"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFunctionalTesting, Log, All);
@@ -108,3 +110,5 @@ bool FClientFunctionalTestingMapsBase::RunTest(const FString& Parameters)
 }
 
 #undef LOCTEXT_NAMESPACE
+
+#endif //WITH_DEV_AUTOMATION_TESTS

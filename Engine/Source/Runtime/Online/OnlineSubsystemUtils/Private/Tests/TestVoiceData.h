@@ -2,7 +2,7 @@
 
 #pragma once
 
-#if UE_BUILD_SHIPPING
+#if WITH_DEV_AUTOMATION_TESTS
 
 uint8 RawVoiceTestData[] = { 0x0, 0x0 };
 

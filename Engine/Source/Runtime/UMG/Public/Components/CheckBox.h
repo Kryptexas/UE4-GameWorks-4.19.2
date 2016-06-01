@@ -87,6 +87,10 @@ public:
 	UPROPERTY()
 	FSlateColor BorderBackgroundColor_DEPRECATED;
 
+	/** Sometimes a button should only be mouse-clickable and never keyboard focusable. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction")
+	bool IsFocusable;
+
 public:
 
 	/** Called when the checked state has changed */
@@ -130,7 +134,6 @@ public:
 	//~ End UObject Interface
 
 #if WITH_EDITOR
-	virtual const FSlateBrush* GetEditorIcon() override;
 	virtual const FText GetPaletteCategory() override;
 #endif
 

@@ -16,7 +16,7 @@ FString FUserOnlineAccountFacebook::GetRealName() const
 	return FString();
 }
 
-FString FUserOnlineAccountFacebook::GetDisplayName() const
+FString FUserOnlineAccountFacebook::GetDisplayName(const FString& Platform) const
 {
 	//@todo samz - implement
 	return FString();
@@ -120,7 +120,7 @@ void FOnlineIdentityFacebook::TickLogin(float DeltaTime)
 						AccessToken = AccessTokenOnly;
 					}
 					// kick off http request to get user info with the new token
-					TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+					TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 					LoginUserRequests.Add(&HttpRequest.Get(), FPendingLoginUser(LocalUserNumPendingLogin, AccessToken));
 
 					FString MeUrl = TEXT("https://graph.facebook.com/me?access_token=`token");					

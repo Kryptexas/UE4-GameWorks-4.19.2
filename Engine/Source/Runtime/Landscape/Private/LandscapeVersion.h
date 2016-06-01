@@ -13,6 +13,12 @@ namespace FLandscapeCustomVersion
 		NewSplineCrossLevelMeshSerialization,
 		// Support material world-position-offset in the heightmap used for grass placement
 		GrassMaterialWPO,
+		// Support material world-position-offset in landscape simple collision
+		CollisionMaterialWPO,
+		// Support material world-position-offset in landscape lighting mesh
+		LightmassMaterialWPO,
+		// Fix for landscape grass not updating when using a material instance as the landscape material and changing parameters
+		GrassMaterialInstanceFix,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

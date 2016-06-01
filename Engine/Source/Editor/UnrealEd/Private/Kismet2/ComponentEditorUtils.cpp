@@ -84,7 +84,7 @@ protected:
 
 	// FCustomizableTextObjectFactory implementation
 
-	virtual bool CanCreateClass(UClass* ObjectClass) const override
+	virtual bool CanCreateClass(UClass* ObjectClass, bool& bOmitSubObjs) const override
 	{
 		// Only allow actor component types to be created
 		return ObjectClass->IsChildOf(UActorComponent::StaticClass());
@@ -99,13 +99,13 @@ protected:
 
 		// If this is a scene component and it has a parent
 		USceneComponent* SceneComponent = Cast<USceneComponent>(NewObject);
-		if (SceneComponent && SceneComponent->AttachParent)
+		if (SceneComponent && SceneComponent->GetAttachParent())
 		{
 			// Add an entry to the child->parent name map
-			ParentMap.Add(NewObject->GetFName(), SceneComponent->AttachParent->GetFName());
+			ParentMap.Add(NewObject->GetFName(), SceneComponent->GetAttachParent()->GetFName());
 
 			// Clear this so it isn't used when constructing the new SCS node
-			SceneComponent->AttachParent = NULL;
+			SceneComponent->SetupAttachment(nullptr);
 		}
 	}
 
@@ -325,7 +325,7 @@ void FComponentEditorUtils::CopyComponents(const TArray<UActorComponent*>& Compo
 			// If the duplicated component is a scene component, wipe its attach parent (to prevent log warnings for referencing a private object in an external package)
 			if (auto DuplicatedCompAsSceneComp = Cast<USceneComponent>(DuplicatedComponent))
 			{
-				DuplicatedCompAsSceneComp->AttachParent = nullptr;
+				DuplicatedCompAsSceneComp->SetupAttachment(nullptr);
 			}
 
 			// Find the closest parent component of the current component within the list of components to copy
@@ -360,7 +360,7 @@ void FComponentEditorUtils::CopyComponents(const TArray<UActorComponent*>& Compo
 				if (SceneComponent)
 				{
 					// Set the attach parent to the matching parent object in the temporary set. This allows us to preserve hierarchy in the copied set.
-					SceneComponent->AttachParent = Cast<USceneComponent>(ObjectMap[ParentName]);
+					SceneComponent->SetupAttachment(Cast<USceneComponent>(ObjectMap[ParentName]));
 				}
 			}
 		}
@@ -430,7 +430,7 @@ void FComponentEditorUtils::PasteComponents(TArray<UActorComponent*>& OutPastedC
 			if (NewComponentParent)
 			{
 				// Reattach the current node to the parent node
-				NewSceneComponent->AttachTo(NewComponentParent, NAME_None/*, EAttachLocation::KeepWorldPosition*/);
+				NewSceneComponent->AttachToComponent(NewComponentParent, FAttachmentTransformRules::KeepRelativeTransform);
 			}
 			else
 			{
@@ -592,7 +592,7 @@ UActorComponent* FComponentEditorUtils::DuplicateComponent(UActorComponent* Temp
 		if (NewSceneComponent)
 		{
 			// Ensure the clone doesn't think it has children
-			NewSceneComponent->AttachChildren.Empty();
+			FDirectAttachChildrenAccessor::Get(NewSceneComponent).Empty();
 
 			// If the clone is a scene component without an attach parent, attach it to the root (can happen when duplicating the root component)
 			if (!NewSceneComponent->GetAttachParent())
@@ -603,7 +603,7 @@ UActorComponent* FComponentEditorUtils::DuplicateComponent(UActorComponent* Temp
 				// ComponentToWorld is not a UPROPERTY, so make sure the clone has calculated it properly before attachment
 				NewSceneComponent->UpdateComponentToWorld();
 
-				NewSceneComponent->AttachTo(RootComponent, NAME_None, EAttachLocation::KeepWorldPosition);
+				NewSceneComponent->SetupAttachment(RootComponent);
 			}
 		}
 
@@ -627,7 +627,7 @@ void FComponentEditorUtils::AdjustComponentDelta(USceneComponent* Component, FVe
 	USceneComponent* ParentSceneComp = Component->GetAttachParent();
 	if (ParentSceneComp)
 	{
-		const FTransform ParentToWorldSpace = ParentSceneComp->GetSocketTransform(Component->AttachSocketName);
+		const FTransform ParentToWorldSpace = ParentSceneComp->GetSocketTransform(Component->GetAttachSocketName());
 
 		if (!Component->bAbsoluteLocation)
 		{
@@ -664,7 +664,7 @@ void FComponentEditorUtils::BindComponentSelectionOverride(USceneComponent* Scen
 		else
 		{
 			// Otherwise, make sure the override is set properly on any attached editor-only primitive components (ex: billboards)
-			for (auto Component : SceneComponent->AttachChildren)
+			for (USceneComponent* Component : SceneComponent->GetAttachChildren())
 			{
 				PrimComponent = Cast<UPrimitiveComponent>(Component);
 				if (PrimComponent && PrimComponent->IsEditorOnly() && PrimComponent->SelectionOverrideDelegate.IsBound() != bBind)

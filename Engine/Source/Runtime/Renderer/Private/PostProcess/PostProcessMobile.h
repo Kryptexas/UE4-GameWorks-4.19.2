@@ -106,6 +106,7 @@ public:
 private:
 	FIntPoint PrePostSourceViewportSize;
 	bool bOnChip;
+	template <bool bUseDepthTexture>
 	void SetShader(const FRenderingCompositePassContext& Context);
 };
 

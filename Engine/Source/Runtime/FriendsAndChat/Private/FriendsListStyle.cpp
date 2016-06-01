@@ -16,6 +16,12 @@ FFriendsListStyle& FFriendsListStyle::SetGlobalChatButtonStyle(const FButtonStyl
 	return *this;
 }
 
+FFriendsListStyle& FFriendsListStyle::SetGlobalChatIcon(const FSlateBrush& BrushStyle)
+{
+	GlobalChatIcon = BrushStyle;
+	return *this;
+}
+
 FFriendsListStyle& FFriendsListStyle::SetFriendItemButtonStyle(const FButtonStyle& ButtonStyle)
 {
 	FriendItemButtonStyle = ButtonStyle;
@@ -55,6 +61,12 @@ FFriendsListStyle& FFriendsListStyle::SetActionMenuArrowBrush(const FSlateBrush&
 	return *this;
 }
 
+FFriendsListStyle& FFriendsListStyle::SetToolTipArrowBrush(const FSlateBrush& BrushStyle)
+{
+	ToolTipArrowBrush = BrushStyle;
+	return *this;
+}
+
 FFriendsListStyle& FFriendsListStyle::SetBackButtonStyle(const FButtonStyle& ButtonStyle)
 {
 	BackButtonStyle = ButtonStyle;
@@ -87,43 +99,29 @@ FFriendsListStyle& FFriendsListStyle::SetStatusIconBrush(const FSlateBrush& Brus
 	return *this;
 }
 
+FFriendsListStyle& FFriendsListStyle::SetPCIconBrush(const FSlateBrush& BrushStyle)
+{
+	PCIconBrush = BrushStyle;
+	return *this;
+}
+
+FFriendsListStyle& FFriendsListStyle::SetConsoleIconBrush(const FSlateBrush& BrushStyle)
+{
+	ConsoleIconBrush = BrushStyle;
+	return *this;
+}
+
+FFriendsListStyle& FFriendsListStyle::SetEpicIconBrush(const FSlateBrush& BrushStyle)
+{
+	EpicIconBrush = BrushStyle;
+	return *this;
+}
+
+
 /** Friend Image brush style */
 FFriendsListStyle& FFriendsListStyle::SetFriendImageBrush(const FSlateBrush& BrushStyle)
 {
 	FriendImageBrush = BrushStyle;
-	return *this;
-}
-
-/** Fortnite Image brush style */
-FFriendsListStyle& FFriendsListStyle::SetFortniteImageBrush(const FSlateBrush& BrushStyle)
-{
-	FortniteImageBrush = BrushStyle;
-	return *this;
-}
-
-FFriendsListStyle& FFriendsListStyle::SetFortniteDevImageBrush(const FSlateBrush& BrushStyle)
-{
-	FortniteDevImageBrush = BrushStyle;
-	return *this;
-}
-
-FFriendsListStyle& FFriendsListStyle::SetFortniteTestImageBrush(const FSlateBrush& BrushStyle)
-{
-	FortniteTestImageBrush = BrushStyle;
-	return *this;
-}
-
-/** Launcher Image brush style */
-FFriendsListStyle& FFriendsListStyle::SetLauncherImageBrush(const FSlateBrush& BrushStyle)
-{
-	LauncherImageBrush = BrushStyle;
-	return *this;
-}
-
-/** UnrealTournament Image brush style */
-FFriendsListStyle& FFriendsListStyle::SetUTImageBrush(const FSlateBrush& BrushStyle)
-{
-	UTImageBrush = BrushStyle;
 	return *this;
 }
 
@@ -145,6 +143,13 @@ FFriendsListStyle& FFriendsListStyle::SetOnlineBrush(const FSlateBrush& BrushSty
 FFriendsListStyle& FFriendsListStyle::SetAwayBrush(const FSlateBrush& BrushStyle)
 {
 	AwayBrush = BrushStyle;
+	return *this;
+}
+
+/** Away brush style */
+FFriendsListStyle& FFriendsListStyle::SetSpectateBrush(const FSlateBrush& BrushStyle)
+{
+	SpectateBrush = BrushStyle;
 	return *this;
 }
 
@@ -194,6 +199,12 @@ FFriendsListStyle& FFriendsListStyle::SetSettingsBrush(const FSlateBrush& Brush)
 FFriendsListStyle& FFriendsListStyle::SetSeperatorBrush(const FSlateBrush& Brush)
 {
 	SeperatorBrush = Brush;
+	return *this;
+}
+
+FFriendsListStyle& FFriendsListStyle::SetPresenceSeperatorBrush(const FSlateBrush& Brush)
+{
+	PresenceSeperatorBrush = Brush;
 	return *this;
 }
 

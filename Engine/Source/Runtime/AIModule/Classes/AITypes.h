@@ -191,10 +191,11 @@ struct FAINamedID
 {
 	const typename TCounter::Type Index;
 	const FName Name;
+private:
+	static AIMODULE_API TCounter Counter;
 protected:
 	static TCounter& GetCounter() 
 	{ 
-		static TCounter Counter;
 		return Counter;
 	}
 
@@ -240,11 +241,11 @@ template<typename TCounter>
 struct FAIGenericID
 {
 	const typename TCounter::Type Index;
-protected:
+private:
+	static AIMODULE_API TCounter Counter;
 protected:
 	static TCounter& GetCounter()
 	{
-		static TCounter Counter;
 		return Counter;
 	}
 
@@ -474,7 +475,7 @@ struct AIMODULE_API FAIMoveRequest
 	FAIMoveRequest& SetUserData(FCustomMoveSharedPtr Data) { UserData = Data; return *this; }
 
 	/** the request should be either set up to move to a location, of go to a valid actor */
-	bool IsValid() const { return bMoveToActor == false || GoalActor != nullptr; }
+	bool IsValid() const { return bInitialized && (!bMoveToActor || GoalActor); }
 
 	bool IsMoveToActorRequest() const { return bMoveToActor; }
 	AActor* GetGoalActor() const { return bMoveToActor ? GoalActor : nullptr; }

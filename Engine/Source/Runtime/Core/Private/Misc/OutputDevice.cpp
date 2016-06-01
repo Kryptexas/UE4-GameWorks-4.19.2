@@ -3,7 +3,7 @@
 #include "CorePrivatePCH.h"
 #include "ExceptionHandling.h"
 #include "VarargsHelper.h"
-
+#include "HAL/ThreadHeartBeat.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogOutputDevice, Log, All);
 
@@ -47,11 +47,13 @@ const TCHAR* FOutputDevice::VerbosityToString(ELogVerbosity::Type Verbosity)
 
 FString FOutputDevice::FormatLogLine( ELogVerbosity::Type Verbosity, const class FName& Category, const TCHAR* Message /*= nullptr*/, ELogTimes::Type LogTime /*= ELogTimes::None*/, const double Time /*= -1.0*/ )
 {
+	const bool bShowCategory = GPrintLogCategory && Category != NAME_None;
 	FString Format;
+
 	switch (LogTime)
 	{
 		case ELogTimes::SinceGStartTime:
-		{
+		{																	
 			const double RealTime = Time == -1.0f ? FPlatformTime::Seconds() - GStartTime : Time;
 			Format = FString::Printf( TEXT( "[%07.2f][%3d]" ), RealTime, GFrameCounter % 1000 );
 			break;
@@ -63,19 +65,21 @@ FString FOutputDevice::FormatLogLine( ELogVerbosity::Type Verbosity, const class
 
 		default:
 			break;
-	}
-
-	bool bShowCategory = GPrintLogCategory && Category != NAME_None;
+	}	
 
 	if (bShowCategory)
 	{
 		if (Verbosity != ELogVerbosity::Log)
 		{
-			Format += Category.ToString() + TEXT(":") + VerbosityToString(Verbosity) + TEXT(": ");
+			Format += Category.ToString();
+			Format += TEXT(":");
+			Format += VerbosityToString(Verbosity);
+			Format += TEXT(": ");
 		}
 		else
 		{
-			Format += Category.ToString() + TEXT(": ");
+			Format += Category.ToString();
+			Format += TEXT(": ");
 		}
 	}
 	else
@@ -83,7 +87,8 @@ FString FOutputDevice::FormatLogLine( ELogVerbosity::Type Verbosity, const class
 		if (Verbosity != ELogVerbosity::Log)
 		{
 #if !HACK_HEADER_GENERATOR
-			Format += FString(VerbosityToString(Verbosity)) + TEXT(": ");
+			Format += VerbosityToString(Verbosity);
+			Format += TEXT(": ");
 #endif
 		}
 	}
@@ -307,6 +312,11 @@ void FDebug::EnsureFailed(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line
 	ANSICHAR* StackTrace = (ANSICHAR*) FMemory::SystemMalloc( StackTraceSize );
 	if( StackTrace != NULL )
 	{
+		// Stop checking heartbeat for this thread. Ensure can take a lot of time (when stackwalking)
+		// Thread heartbeat will be resumed the next time this thread calls FThreadHeartBeat::Get().HeartBeat();
+		// The reason why we don't call HeartBeat() at the end of this function is that maybe this thread
+		// Never had a heartbeat checked and may not be sending heartbeats at all which would later lead to a false positives when detecting hangs.
+		FThreadHeartBeat::Get().KillHeartBeat();
 
 		{
 #if STATS
@@ -314,7 +324,7 @@ void FDebug::EnsureFailed(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line
 			SCOPE_LOG_TIME_IN_SECONDS(*StackWalkPerfMessage, nullptr)
 #endif
 			StackTrace[0] = 0;
-			FPlatformStackWalk::StackWalkAndDump( StackTrace, StackTraceSize, CALLSTACK_IGNOREDEPTH );
+			FPlatformStackWalk::StackWalkAndDumpEx( StackTrace, StackTraceSize, CALLSTACK_IGNOREDEPTH, FGenericPlatformStackWalk::EStackWalkFlags::FlagsUsedWhenHandlingEnsure );
 		}
 
 		// Create a final string that we'll output to the log (and error history buffer)

@@ -42,7 +42,7 @@ public:
 		bool bPreFog,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		FHitProxyId HitProxyId,
-		bool bSeparateTranslucencyEnabled = true
+		bool bSeparateTranslucencyEnabled = false
 		);
 
 	/**
@@ -82,7 +82,7 @@ private:
 		bool bPreFog,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		FHitProxyId HitProxyId,
-		bool bSeparateTranslucencyEnabled = true
+		bool bSeparateTranslucencyEnabled = false
 		);
 
 };
@@ -98,6 +98,11 @@ public:
 	enum { bAllowSimpleElements = true };
 	struct ContextType 
 	{
+		bool bRenderingSeparateTranslucency;
+
+		ContextType(bool InbRenderingSeparateTranslucency)
+		:	bRenderingSeparateTranslucency(InbRenderingSeparateTranslucency)
+		{}
 	};
 
 	/**

@@ -178,7 +178,7 @@ struct FInstancedStaticMeshVertexFactory : public FLocalVertexFactory
 {
 	DECLARE_VERTEX_FACTORY_TYPE(FInstancedStaticMeshVertexFactory);
 public:
-	struct DataType : public FLocalVertexFactory::DataType
+	struct FDataType : public FLocalVertexFactory::FDataType
 	{
 		/** The stream to read the mesh transform from. */
 		FVertexStreamComponent InstanceOriginComponent;
@@ -209,7 +209,7 @@ public:
 	/**
 	 * An implementation of the interface used by TSynchronizedResource to update the resource with new data from the game thread.
 	 */
-	void SetData(const DataType& InData)
+	void SetData(const FDataType& InData)
 	{
 		Data = InData;
 		UpdateRHI();
@@ -237,15 +237,16 @@ public:
 	*/
 	virtual uint64 GetStaticBatchElementVisibility(const class FSceneView& View, const struct FMeshBatch* Batch) const override
 	{
-		uint32 NumElements = FMath::Min((uint32)Batch->Elements.Num(), NumBitsForVisibilityMask());
-		return (1ULL << (uint64)NumElements) - 1ULL;
+		const uint32 NumBits = NumBitsForVisibilityMask();
+		const uint32 NumElements = FMath::Min((uint32)Batch->Elements.Num(), NumBits);
+		return NumElements == NumBits ? ~0ULL : (1ULL << (uint64)NumElements) - 1ULL;
 	}
 #if ALLOW_DITHERED_LOD_FOR_INSTANCED_STATIC_MESHES
 	virtual bool SupportsNullPixelShader() const override { return false; }
 #endif
 
 private:
-	DataType Data;
+	FDataType Data;
 };
 
 

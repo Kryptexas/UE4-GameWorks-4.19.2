@@ -57,8 +57,6 @@ private:
 	TSharedPtr<FSequencerTrackNode> SectionAreaNode;
 	/** The current view range */
 	TAttribute< TRange<float> > ViewRange;
-	/** Background brush of the section area */
-	const FSlateBrush* BackgroundBrush;
 	/** All the widgets in the panel */
 	TSlotlessChildren<SSequencerSection> Children;
 };

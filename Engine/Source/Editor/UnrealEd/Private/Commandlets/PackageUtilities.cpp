@@ -1652,9 +1652,11 @@ struct CompressAnimationsFunctor
 				{
 					bool bCandidate = false;
 
-					for(int32 i=0; i<AnimSeq->TrackToSkeletonMapTable.Num(); i++)
+					for (int32 i = 0; i<AnimSeq->CompressedTrackToSkeletonMapTable.Num(); i++)
  					{
  						const int32 TrackIndex = i;
+						const int32 BoneTreeIndex = AnimSeq->CompressedTrackToSkeletonMapTable[TrackIndex].BoneTreeIndex;
+						const FName BoneTreeName = Skeleton->GetReferenceSkeleton().GetBoneName(BoneTreeIndex);
 
  						// Translation
 						{
@@ -1721,9 +1723,6 @@ struct CompressAnimationsFunctor
 
 								// Measure how much we'd save if we used "rotation only" for compression
 								// root bone is true if BoneTreeIndex == 0 
-								const int32 BoneTreeIndex = AnimSeq->GetSkeletonIndexFromTrackIndex(i);
-								const FName BoneTreeName = Skeleton->GetReferenceSkeleton().GetBoneName(BoneTreeIndex);
-
 								// @todoanim : @fixmelh : AnimRotationOnly fix
 								if( BoneTreeIndex > 0 )
 // 									&& ((AnimSet->UseTranslationBoneNames.Num() > 0 && AnimSet->UseTranslationBoneNames.FindItemIndex(BoneName) == INDEX_NONE) 
@@ -1889,9 +1888,6 @@ struct CompressAnimationsFunctor
 
 								// Measure how much we'd save if we used "rotation only" for compression
 								// root bone is true if BoneTreeIndex == 0 
-								const int32 BoneTreeIndex = AnimSeq->GetSkeletonIndexFromTrackIndex(i);
-								const FName BoneTreeName = Skeleton->GetReferenceSkeleton().GetBoneName(BoneTreeIndex);
-
 								// @todoanim : @fixmelh : AnimRotationOnly fix
 								if( BoneTreeIndex > 0 )
 									// 									&& ((AnimSet->UseScaleBoneNames.Num() > 0 && AnimSet->UseScaleBoneNames.FindItemIndex(BoneName) == INDEX_NONE) 
@@ -2045,7 +2041,8 @@ struct CompressAnimationsFunctor
 				CompressionAlgorithm->RotationCompressionFormat = ACF_Float96NoW;
 				CompressionAlgorithm->TranslationCompressionFormat = ACF_None;
 				CompressionAlgorithm->ScaleCompressionFormat = ACF_Float96NoW;
-				CompressionAlgorithm->Reduce(AnimSeq, false);
+				AnimSeq->CompressionScheme = CompressionAlgorithm;
+				AnimSeq->RequestSyncAnimRecompression();
 
 				// Force an update.
 				AnimSeq->CompressCommandletVersion = 0;
@@ -2058,7 +2055,7 @@ struct CompressAnimationsFunctor
 				*PackageFileName);
 
 			// @todoanim: expect this won't work
-			FAnimationUtils::CompressAnimSequence(AnimSeq, true, false);
+			AnimSeq->RequestAnimCompression(false, true, false);
 			{
 				FArchiveCountMem CountBytesSize( AnimSeq );
 				NewSize = CountBytesSize.GetNum();
@@ -2475,11 +2472,7 @@ int32 UReplaceActorCommandlet::Main(const FString& Params)
 
 						if (ClassToReplace->IsChildOf(AWorldSettings::StaticClass()))
 						{
-							// Find the index in the array the worldsettings has been spawned at. 
-							const int32 WorldSettingsActorIndex = Level->Actors.Find( NewActor );
-
-							// The worldsettings needs to reside at index 0.
-							Exchange(Level->Actors[0],Level ->Actors[WorldSettingsActorIndex]);
+							Level->SetWorldSettings(CastChecked<AWorldSettings>(NewActor));
 						}
 						check(OldActor->IsValidLowLevel()); // make sure DestroyActor() doesn't immediately trigger GC since that'll break the reference replacement
 						// check for any references to the old Actor and replace them with the new one

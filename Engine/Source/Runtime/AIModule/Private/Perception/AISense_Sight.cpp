@@ -97,8 +97,6 @@ UAISense_Sight::UAISense_Sight(const FObjectInitializer& ObjectInitializer)
 		OnListenerRemovedDelegate.BindUObject(this, &UAISense_Sight::OnListenerRemovedImpl);
 	}
 
-	DebugDrawColor = FColor::Green;
-	DebugName = TEXT("Sight");
 	NotifyType = EAISenseNotifyType::OnPerceptionChange;
 	
 	bAutoRegisterAllPawnsAsSources = true;
@@ -218,11 +216,17 @@ float UAISense_Sight::Update()
 							SightQuery->bLastResult = true;
 							SightQuery->LastSeenLocation = OutSeenLocation;
 						}
-						else
+						// communicate failure only if we've seen give actor before
+						else if (SightQuery->bLastResult == true)
 						{
-							SIGHT_LOG_LOCATION(Listener.Listener.Get()->GetOwner(), TargetLocation, 25.f, FColor::Red, TEXT(""));
 							Listener.RegisterStimulus(TargetActor, FAIStimulus(*this, 0.f, TargetLocation, Listener.CachedLocation, FAIStimulus::SensingFailed));
 							SightQuery->bLastResult = false;
+							SightQuery->LastSeenLocation = FAISystem::InvalidLocation;
+						}
+
+						if (SightQuery->bLastResult == false)
+						{
+							SIGHT_LOG_LOCATION(Listener.Listener.Get()->GetOwner(), TargetLocation, 25.f, FColor::Red, TEXT(""));
 						}
 
 						TracesCount += NumberOfLoSChecksPerformed;
@@ -243,11 +247,17 @@ float UAISense_Sight::Update()
 							SightQuery->bLastResult = true;
 							SightQuery->LastSeenLocation = TargetLocation;
 						}
-						else
+						// communicate failure only if we've seen give actor before
+						else if (SightQuery->bLastResult == true)
 						{
-							SIGHT_LOG_LOCATION(Listener.Listener.Get()->GetOwner(), TargetLocation, 25.f, FColor::Red, TEXT(""));
 							Listener.RegisterStimulus(TargetActor, FAIStimulus(*this, 0.f, TargetLocation, Listener.CachedLocation, FAIStimulus::SensingFailed));
 							SightQuery->bLastResult = false;
+							SightQuery->LastSeenLocation = FAISystem::InvalidLocation;
+						}
+
+						if (SightQuery->bLastResult == false)
+						{
+							SIGHT_LOG_LOCATION(Listener.Listener.Get()->GetOwner(), TargetLocation, 25.f, FColor::Red, TEXT(""));
 						}
 					}
 				}
@@ -605,16 +615,3 @@ void UAISense_Sight::OnListenerForgetsAll(const FPerceptionListener& Listener)
 		}
 	}
 }
-
-#if !UE_BUILD_SHIPPING
-//----------------------------------------------------------------------//
-// DEBUG
-//----------------------------------------------------------------------//
-FString UAISense_Sight::GetDebugLegend() const
-{
-	static const FColor SightColor = GetDebugSightRangeColor(); 
-	static const FColor LoseSightColor = GetDebugLoseSightColor();
-
-	return FString::Printf(TEXT("{%s} Sight, {%s} Lose Sight,"), *SightColor.ToString(), *LoseSightColor.ToString());
-}
-#endif // !UE_BUILD_SHIPPING

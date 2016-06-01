@@ -4,6 +4,8 @@
 
 #include "Ticker.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 class FTestVoice : public FTickerObjectBase, public FSelfRegisteringExec
 {
 public:
@@ -47,3 +49,4 @@ private:
 	void SetStaticVoiceData(TArray<uint8>& VoiceData, uint32& TotalVoiceBytes);
 };
 
+#endif //WITH_DEV_AUTOMATION_TESTS

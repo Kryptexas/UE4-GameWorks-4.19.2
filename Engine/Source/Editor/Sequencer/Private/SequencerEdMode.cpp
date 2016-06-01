@@ -51,7 +51,7 @@ bool FSequencerEdMode::InputKey( FEditorViewportClient* ViewportClient, FViewpor
 	{
 		FModifierKeysState KeyState = FSlateApplication::Get().GetModifierKeys();
 
-		if (Sequencer->GetCommandBindings().Get()->ProcessCommandBindings(Key, KeyState, (Event == IE_Repeat) ))
+		if (Sequencer->GetCommandBindings(ESequencerCommandBindings::Shared).Get()->ProcessCommandBindings(Key, KeyState, (Event == IE_Repeat) ))
 		{
 			return true;
 		}
@@ -99,9 +99,9 @@ FTransform GetRefFrame(const UObject* InObject)
 	FTransform RefTM = FTransform::Identity;
 
 	const AActor* Actor = Cast<AActor>(InObject);
-	if (Actor != nullptr && Actor->GetRootComponent() != nullptr && Actor->GetRootComponent()->AttachParent != nullptr)
+	if (Actor != nullptr && Actor->GetRootComponent() != nullptr && Actor->GetRootComponent()->GetAttachParent() != nullptr)
 	{
-		RefTM = Actor->GetRootComponent()->AttachParent->GetSocketTransform(Actor->GetRootComponent()->AttachSocketName);
+		RefTM = Actor->GetRootComponent()->GetAttachParent()->GetSocketTransform(Actor->GetRootComponent()->GetAttachSocketName());
 	}
 
 	return RefTM;
@@ -113,7 +113,7 @@ void GetLocationAtTime(UMovieScene3DTransformSection* TransformSection, float Ke
 	TransformSection->EvalRotation(KeyTime, KeyRot);
 }
 
-void DrawTransformTrack(const FSceneView* View, FPrimitiveDrawInterface* PDI, UMovieScene3DTransformTrack* TransformTrack, const TArray<UObject*>& BoundObjects)
+void DrawTransformTrack(const FSceneView* View, FPrimitiveDrawInterface* PDI, UMovieScene3DTransformTrack* TransformTrack, const TArray<TWeakObjectPtr<UObject>>& BoundObjects)
 {
 	const bool bHitTesting = PDI->IsHitTesting();
 	FLinearColor TrackColor = FLinearColor::Yellow; //@todo - customizable per track
@@ -149,6 +149,8 @@ void DrawTransformTrack(const FSceneView* View, FPrimitiveDrawInterface* PDI, UM
 			float KeyTime = TransZCurve.GetKeyTime(KeyHandle);
 			KeyTimes.Add(KeyTime);
 		}
+
+		KeyTimes.Sort([](const float& A, const float& B ) { return A < B; });
 
 		FVector OldKeyPos(0);
 		float OldKeyTime = 0.f;
@@ -189,7 +191,7 @@ void DrawTransformTrack(const FSceneView* View, FPrimitiveDrawInterface* PDI, UM
 
 				for (auto BoundObject : BoundObjects)
 				{
-					FTransform RefTM = GetRefFrame(BoundObject);
+					FTransform RefTM = GetRefFrame(BoundObject.Get());
 
 					FVector OldPos_G = RefTM.TransformPosition(OldPos);
 					FVector NewKeyPos_G = RefTM.TransformPosition(NewKeyPos);
@@ -253,7 +255,7 @@ void DrawTransformTrack(const FSceneView* View, FPrimitiveDrawInterface* PDI, UM
 
 			for (auto BoundObject : BoundObjects)
 			{
-				FTransform RefTM = GetRefFrame(BoundObject);
+				FTransform RefTM = GetRefFrame(BoundObject.Get());
 
 				FColor KeyColor = bKeySelected ? SequencerEdMode_Draw3D::KeySelectedColor : TrackColor.ToFColor(true);
 
@@ -337,7 +339,17 @@ void FSequencerEdMode::DrawTracks3D(const FSceneView* View, FPrimitiveDrawInterf
 {
 	TSet<TSharedRef<FSequencerDisplayNode> > ObjectBindingNodes;
 
-	// Look for the object binding nodes from the selected nodes
+	// Look for the object binding nodes from the nodes with selected keys or sections
+	for (auto OutlinerNode : Sequencer->GetSelection().GetNodesWithSelectedKeysOrSections())
+	{
+		TSharedRef<FSequencerDisplayNode> ObjectBindingNode = OutlinerNode;
+		if (SequencerHelpers::FindObjectBindingNode(OutlinerNode, ObjectBindingNode))
+		{
+			ObjectBindingNodes.Add(ObjectBindingNode);
+		}
+	}
+
+	// And also look for the nodes that are directly selected
 	for (auto OutlinerNode : Sequencer->GetSelection().GetSelectedOutlinerNodes())
 	{
 		TSharedRef<FSequencerDisplayNode> ObjectBindingNode = OutlinerNode;
@@ -356,7 +368,7 @@ void FSequencerEdMode::DrawTracks3D(const FSceneView* View, FPrimitiveDrawInterf
 
 		FGuid ObjectBinding = StaticCastSharedRef<FSequencerObjectBindingNode>(ObjectBindingNode)->GetObjectBinding();
 
-		TArray<UObject*> BoundObjects;
+		TArray<TWeakObjectPtr<UObject>> BoundObjects;
 		Sequencer->GetRuntimeObjects(Sequencer->GetFocusedMovieSceneSequenceInstance(), ObjectBinding, BoundObjects);
 
 		for (auto DisplayNode : AllNodes)

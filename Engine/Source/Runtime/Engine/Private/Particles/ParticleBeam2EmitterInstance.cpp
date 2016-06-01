@@ -334,79 +334,89 @@ void FParticleBeam2EmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning
 		// Handle EmitterTime setup, looping, etc.
 		float EmitterDelay = Tick_EmitterTimeSetup(DeltaTime, LODLevel);
 
-		// Kill before the spawn... Otherwise, we can get 'flashing'
-		KillParticles();
-
-		// If not suppressing spawning...
-		if (!bHaltSpawning && !bSuppressSpawning && (EmitterTime >= 0.0f))
+		if (bEnabled)
 		{
-			if ((LODLevel->RequiredModule->EmitterLoops == 0) || 
-				(LoopCount < LODLevel->RequiredModule->EmitterLoops) ||
-				(SecondsSinceCreation < (EmitterDuration * LODLevel->RequiredModule->EmitterLoops)))
+			// Kill before the spawn... Otherwise, we can get 'flashing'
+			KillParticles();
+
+			// If not suppressing spawning...
+			if (!bHaltSpawning && !bSuppressSpawning && (EmitterTime >= 0.0f))
 			{
-				// For beams, we probably want to ignore the SpawnRate distribution,
-				// and focus strictly on the BurstList...
-				float SpawnRate = 0.0f;
-				// Figure out spawn rate for this tick.
-				SpawnRate = LODLevel->SpawnModule->Rate.GetValue(EmitterTime, Component);
-				// Take Bursts into account as well...
-				int32		Burst		= 0;
-				float	BurstTime	= GetCurrentBurstRateOffset(DeltaTime, Burst);
-				SpawnRate += BurstTime;
-
-				// Spawn new particles...
-
-				//@todo. Fix the issue of 'blanking' beams when the count drops...
-				// This is a temporary hack!
-				const float InvDeltaTime = (DeltaTime > 0.0f) ? 1.0f / DeltaTime : 0.0f;
-				if ((ActiveParticles < BeamCount) && (SpawnRate <= 0.0f))
+				if ((LODLevel->RequiredModule->EmitterLoops == 0) ||
+					(LoopCount < LODLevel->RequiredModule->EmitterLoops) ||
+					(SecondsSinceCreation < (EmitterDuration * LODLevel->RequiredModule->EmitterLoops)))
 				{
-					// Force the spawn of a single beam...
-					SpawnRate = 1.0f * InvDeltaTime;
-				}
+					// For beams, we probably want to ignore the SpawnRate distribution,
+					// and focus strictly on the BurstList...
+					float SpawnRate = 0.0f;
+					// Figure out spawn rate for this tick.
+					SpawnRate = LODLevel->SpawnModule->Rate.GetValue(EmitterTime, Component);
+					// Take Bursts into account as well...
+					int32		Burst = 0;
+					float	BurstTime = GetCurrentBurstRateOffset(DeltaTime, Burst);
+					SpawnRate += BurstTime;
 
-				// Force beams if the emitter is marked "AlwaysOn"
-				if ((ActiveParticles < BeamCount) && BeamTypeData->bAlwaysOn)
-				{
-					Burst		= BeamCount;
-					if (DeltaTime > KINDA_SMALL_NUMBER)
+					// Spawn new particles...
+
+					//@todo. Fix the issue of 'blanking' beams when the count drops...
+					// This is a temporary hack!
+					const float InvDeltaTime = (DeltaTime > 0.0f) ? 1.0f / DeltaTime : 0.0f;
+					if ((ActiveParticles < BeamCount) && (SpawnRate <= 0.0f))
 					{
-						BurstTime	 = Burst * InvDeltaTime;
-						SpawnRate	+= BurstTime;
+						// Force the spawn of a single beam...
+						SpawnRate = 1.0f * InvDeltaTime;
+					}
+
+					// Force beams if the emitter is marked "AlwaysOn"
+					if ((ActiveParticles < BeamCount) && BeamTypeData->bAlwaysOn)
+					{
+						Burst = BeamCount;
+						if (DeltaTime > KINDA_SMALL_NUMBER)
+						{
+							BurstTime = Burst * InvDeltaTime;
+							SpawnRate += BurstTime;
+						}
+					}
+
+					if (SpawnRate > 0.f)
+					{
+						SpawnFraction = SpawnBeamParticles(SpawnFraction, SpawnRate, DeltaTime, Burst, BurstTime);
 					}
 				}
-
-				if (SpawnRate > 0.f)
-				{
-					SpawnFraction = SpawnBeamParticles(SpawnFraction, SpawnRate, DeltaTime, Burst, BurstTime);
-				}
 			}
+			else if (bFakeBurstsWhenSpawningSupressed)
+			{
+				FakeBursts();
+			}
+
+			// Reset particle data
+			ResetParticleParameters(DeltaTime);
+
+			// Not really necessary as beams do not LOD at the moment, but for consistency...
+			CurrentMaterial = LODLevel->RequiredModule->Material;
+
+			Tick_ModuleUpdate(DeltaTime, LODLevel);
+			Tick_ModulePostUpdate(DeltaTime, LODLevel);
+
+			// Calculate bounding box and simulate velocity.
+			UpdateBoundingBox(DeltaTime);
+
+			if (!bSuppressSpawning)
+			{
+				// Ensure that we flip the 'FirstEmission' flag
+				FirstEmission = false;
+			}
+
+			// Invalidate the contents of the vertex/index buffer.
+			IsRenderDataDirty = 1;
+
+			// Bump the tick count
+			TickCount++;
 		}
-
-		// Reset particle data
-		ResetParticleParameters(DeltaTime);
-
-		// Not really necessary as beams do not LOD at the moment, but for consistency...
-		CurrentMaterial = LODLevel->RequiredModule->Material;
-
-		Tick_ModuleUpdate(DeltaTime, LODLevel);
-		Tick_ModulePostUpdate(DeltaTime, LODLevel);
-
-		// Calculate bounding box and simulate velocity.
-		UpdateBoundingBox(DeltaTime);
-
-		if (!bSuppressSpawning)
+		else
 		{
-			// Ensure that we flip the 'FirstEmission' flag
-			FirstEmission = false;
+			FakeBursts();
 		}
-
-		// Invalidate the contents of the vertex/index buffer.
-		IsRenderDataDirty = 1;
-
-		// Bump the tick count
-		TickCount++;
-
 		// 'Reset' the emitter time so that the delay functions correctly
 		EmitterTime += CurrentDelay;
 		
@@ -422,9 +432,9 @@ void FParticleBeam2EmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning
  *	@param	DeltaTime			The current time slice
  *	@param	CurrentLODLevel		The current LOD level for the instance
  */
-void FParticleBeam2EmitterInstance::Tick_ModulePostUpdate(float DeltaTime, UParticleLODLevel* CurrentLODLevel)
+void FParticleBeam2EmitterInstance::Tick_ModulePostUpdate(float DeltaTime, UParticleLODLevel* InCurrentLODLevel)
 {
-	UParticleModuleTypeDataBase* TypeData = Cast<UParticleModuleTypeDataBase>(CurrentLODLevel->TypeDataModule);
+	UParticleModuleTypeDataBase* TypeData = Cast<UParticleModuleTypeDataBase>(InCurrentLODLevel->TypeDataModule);
 	if (TypeData)
 	{
 		// The order of the update here is VERY important
@@ -451,7 +461,7 @@ void FParticleBeam2EmitterInstance::Tick_ModulePostUpdate(float DeltaTime, UPart
 			BeamModule_Noise->Update(this, GetModuleDataOffset(BeamModule_Noise), DeltaTime);
 		}
 
-		FParticleEmitterInstance::Tick_ModulePostUpdate(DeltaTime, CurrentLODLevel);
+		FParticleEmitterInstance::Tick_ModulePostUpdate(DeltaTime, InCurrentLODLevel);
 	}
 }
 
@@ -938,7 +948,7 @@ void FParticleBeam2EmitterInstance::DetermineVertexAndTriangleCount()
 {
 	// Need to determine # tris per beam...
 	int32 VerticesToRender = 0;
-	int32 TrianglesToRender = 0;
+	int32 EmitterTrianglesToRender = 0;
 
 	check(BeamTypeData);
 	int32 Sheets = BeamTypeData->Sheets ? BeamTypeData->Sheets : 1;
@@ -977,18 +987,18 @@ void FParticleBeam2EmitterInstance::DetermineVertexAndTriangleCount()
 			VerticesToRender += (BeamData->TriangleCount + 2) * Sheets;
 			// 4 Degenerates Per Sheet (except for last one)
 			LocalTriangles	+= (Sheets - 1) * 4;
-			TrianglesToRender += LocalTriangles;
+			EmitterTrianglesToRender += LocalTriangles;
 			// Multiple beams?
 			if (i < (ActiveParticles - 1))
 			{
 				// 4 Degenerates Per Beam (except for last one)
-				TrianglesToRender	+= 4;
+				EmitterTrianglesToRender	+= 4;
 			}
 		}
 	}
 
 	VertexCount = VerticesToRender;
-	TriangleCount = TrianglesToRender;
+	TriangleCount = EmitterTrianglesToRender;
 }
 
 
@@ -997,15 +1007,16 @@ void FParticleBeam2EmitterInstance::DetermineVertexAndTriangleCount()
  *	Retrieves the dynamic data for the emitter
  *	
  *	@param	bSelected					Whether the emitter is selected in the editor
+ *  @param InFeatureLevel				The relevant shader feature level.
  *
  *	@return	FDynamicEmitterDataBase*	The dynamic data, or NULL if it shouldn't be rendered
  */
-FDynamicEmitterDataBase* FParticleBeam2EmitterInstance::GetDynamicData(bool bSelected)
+FDynamicEmitterDataBase* FParticleBeam2EmitterInstance::GetDynamicData(bool bSelected, ERHIFeatureLevel::Type InFeatureLevel)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleBeam2EmitterInstance_GetDynamicData);
 
 	UParticleLODLevel* LODLevel = SpriteTemplate->GetCurrentLODLevel(this);
-	if (IsDynamicDataRequired(LODLevel) == false)
+	if (IsDynamicDataRequired(LODLevel) == false || !bEnabled)
 	{
 		return NULL;
 	}
@@ -1057,68 +1068,6 @@ FDynamicEmitterDataBase* FParticleBeam2EmitterInstance::GetDynamicData(bool bSel
 	NewEmitterData->Init( bSelected );
 
 	return NewEmitterData;
-}
-
-/**
- *	Updates the dynamic data for the instance
- *
- *	@param	DynamicData		The dynamic data to fill in
- *	@param	bSelected		true if the particle system component is selected
- */
-bool FParticleBeam2EmitterInstance::UpdateDynamicData(FDynamicEmitterDataBase* DynamicData, bool bSelected)
-{
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleBeam2EmitterInstance_UpdateDynamicData);
-
-	if (ActiveParticles <= 0)
-	{
-		return false;
-	}
-
-	UParticleLODLevel* LODLevel = SpriteTemplate->GetCurrentLODLevel(this);
-	if ((LODLevel == NULL) || (LODLevel->bEnabled == false))
-	{
-		return false;
-	}
-
-	//@SAS. This removes the need for the assertion in the actual render call...
-	if ((ActiveParticles > FDynamicBeam2EmitterData::MaxBeams) ||	// TTP #33330 - Max of 2048 beams from a single emitter
-		(ParticleStride >
-			((FDynamicBeam2EmitterData::MaxInterpolationPoints + 2) * (sizeof(FVector) + sizeof(float))) + 
-			(FDynamicBeam2EmitterData::MaxNoiseFrequency * (sizeof(FVector) + sizeof(FVector) + sizeof(float) + sizeof(float)))
-		)	// TTP #33330 - Max of 10k per beam (includes interpolation points, noise, etc.)
-		)
-	{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if (Component && Component->GetWorld())
-		{
-			FString ErrorMessage = 
-				FString::Printf(TEXT("BeamEmitter with too much data: %s"),
-					Component ? 
-						Component->Template ? 
-							*(Component->Template->GetName()) :
-							TEXT("No template") :
-						TEXT("No component"));
-			FColor ErrorColor(255,0,0);
-			GEngine->AddOnScreenDebugMessage((uint64)((PTRINT)this), 5.0f, ErrorColor,ErrorMessage);
-			UE_LOG(LogParticles, Log, TEXT("%s"), *ErrorMessage);
-		}
-#endif	//#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		return false;
-	}
-
-	checkf((DynamicData->GetSource().eEmitterType == DET_Beam2), TEXT("Beam2::UpdateDynamicData> Invalid DynamicData type!"));
-
-	// Now fill in the source data
-	FDynamicBeam2EmitterData* BeamDynamicData = (FDynamicBeam2EmitterData*)DynamicData;
-	if( !FillReplayData( BeamDynamicData->Source ) )
-	{
-		return false;
-	}
-
-	// Setup dynamic render data.  Only call this AFTER filling in source data for the emitter.
-	BeamDynamicData->Init( bSelected );
-
-	return true;
 }
 
 /**

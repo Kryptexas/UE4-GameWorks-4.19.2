@@ -385,8 +385,8 @@ public:
 						for (int32 OtherClusterReferencedMutableObjectIndex : OtherCluster->MutableObjects)
 						{
 							Cluster.MutableObjects.AddUnique(OtherClusterReferencedMutableObjectIndex);
+						}
 					}
-				}
 				}
 				else if (ObjectItem->GetOwnerIndex() == 0 && !ObjectItem->IsRootSet() && !GUObjectArray.IsDisregardForGC(Object) &&
 					!(Object->CanBeClusterRoot() && Object->HasAnyFlags(RF_NeedLoad|RF_NeedPostLoad))) // Objects that can create clusters themselves and haven't been postloaded yet should be excluded
@@ -394,8 +394,8 @@ public:
 					// New object, add it to the cluster.
 					if (Object->CanBeInCluster())
 					{
-					AddObjectToCluster(GUObjectArray.ObjectToIndex(Object), ObjectItem, Object, ObjectsToSerialize, true);
-				}
+						AddObjectToCluster(GUObjectArray.ObjectToIndex(Object), ObjectItem, Object, ObjectsToSerialize, true);
+					}
 					else
 					{
 						Cluster.MutableObjects.AddUnique(GUObjectArray.ObjectToIndex(Object));

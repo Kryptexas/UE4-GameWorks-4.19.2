@@ -27,7 +27,7 @@ FAutoConsoleVariableRef CVarAOUseJitter(
 	TEXT("r.AOUseJitter"),
 	GAOUseJitter,
 	TEXT("Whether to use 4x temporal supersampling with Screen Grid DFAO.  When jitter is disabled, a shorter history can be used but there will be more spatial aliasing."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 int32 GConeTraceDownsampleFactor = 4;
@@ -743,6 +743,7 @@ void PostProcessBentNormalAOScreenGrid(
 			TEXT("DistanceFieldAOHistory"),
 			TEXT("DistanceFieldIrradianceHistory"),
 			VelocityTexture,
+			DistanceFieldNormal,
 			BentNormalHistoryState,
 			IrradianceHistoryState,
 			DistanceFieldAOBentNormal, 

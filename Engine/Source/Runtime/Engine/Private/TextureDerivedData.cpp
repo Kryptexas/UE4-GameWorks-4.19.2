@@ -38,77 +38,6 @@ enum
 
 #define TEXTURE_DERIVEDDATA_VER		TEXT("814DCC3DC72143F49509781513CB9855")
 
-
-// output texture building stats to Saved\Stats\Stats.csv
-#define BUILD_TEXTURE_STATS 1
-
-#if BUILD_TEXTURE_STATS
-#include "DDCStatsHelper.h"
-#endif
-
-/*------------------------------------------------------------------------------
-	Timing of derived data operations.
-------------------------------------------------------------------------------*/
-
-namespace TextureDerivedDataTimings
-{
-	enum ETimingId
-	{
-		GetMipDataTime,
-		AsyncBlockTime,
-		SyncBlockTime,
-		BuildTextureTime,
-		SerializeCookedTime,
-		SyncDoesCachedDataExist,
-		NumTimings
-	};
-
-	static FThreadSafeCounter Timings[NumTimings] = {0};
-
-	static const TCHAR* TimingStrings[NumTimings] =
-	{
-		TEXT("Get Mip Data"),
-		TEXT("Asynchronous Block"),
-		TEXT("Synchronous Loads"),
-		TEXT("Build Textures"),
-		TEXT("Serialize Cooked"),
-		TEXT("Sync Does Cached Data Exist")
-	};
-
-	void PrintTimings()
-	{
-		UE_LOG(LogTexture,Log,TEXT("--- Texture Derived Data Timings ---"));
-		for (int32 TimingIndex = 0; TimingIndex < NumTimings; ++TimingIndex)
-		{
-			UE_LOG(LogTexture,Display,TEXT("%s: %fs"), TimingStrings[TimingIndex], FPlatformTime::ToSeconds(Timings[TimingIndex].GetValue()) );
-		}
-	}
-
-	FAutoConsoleCommand DumpTimingsCommand(
-		TEXT("Tex.DerivedDataTimings"),
-		TEXT("Print timings related to texture derived data."),
-		FConsoleCommandDelegate::CreateStatic(PrintTimings)
-		);
-
-	struct FScopedMeasurement
-	{
-		ETimingId TimingId;
-		uint32 StartCycles;
-
-		explicit FScopedMeasurement(ETimingId InTimingId)
-			: TimingId(InTimingId)
-		{
-			StartCycles = FPlatformTime::Cycles();
-		}
-
-		~FScopedMeasurement()
-		{
-			uint32 TimeInCycles = FPlatformTime::Cycles() - StartCycles;
-			Timings[TimingId].Add(TimeInCycles);
-		}
-	};
-}
-
 /*------------------------------------------------------------------------------
 	Derived data key generation.
 ------------------------------------------------------------------------------*/
@@ -774,18 +703,8 @@ class FTextureCacheDerivedDataWorker : public FNonAbandonableTask
 	/** Build the texture. This function is safe to call from any thread. */
 	void BuildTexture()
 	{
-#if BUILD_TEXTURE_STATS
-		FString DerivedDataKey;
-		GetTextureDerivedDataKeyFromSuffix(KeySuffix, DerivedDataKey);
-		static const FName NAME_BuildTexture(TEXT("BuildTexture"));
-		FDDCScopeStatHelper ScopeStat(*DerivedDataKey, NAME_BuildTexture);
-#endif
-
-
 		if (SourceMips.Num())
 		{
-			TextureDerivedDataTimings::FScopedMeasurement Timer(TextureDerivedDataTimings::BuildTextureTime);
-
 			FFormatNamedArguments Args;
 			Args.Add( TEXT("TextureName"), FText::FromString( Texture.GetName() ) );
 			Args.Add( TEXT("TextureFormatName"), FText::FromString( BuildSettings.TextureFormatName.GetPlainNameString() ) );
@@ -1012,7 +931,6 @@ void FTexturePlatformData::Cache(
 	}
 	else
 	{
-		TextureDerivedDataTimings::FScopedMeasurement Timer(TextureDerivedDataTimings::SyncBlockTime);
 		FTextureCacheDerivedDataWorker Worker(Compressor, this, &InTexture, InSettings, Flags);
 		Worker.DoWork();
 		Worker.Finalize();
@@ -1024,7 +942,6 @@ void FTexturePlatformData::FinishCache()
 	if (AsyncTask)
 	{
 		{
-			TextureDerivedDataTimings::FScopedMeasurement Timer(TextureDerivedDataTimings::AsyncBlockTime);
 			AsyncTask->EnsureCompletion();
 		}
 		FTextureCacheDerivedDataWorker& Worker = AsyncTask->GetTask();
@@ -1398,9 +1315,6 @@ void FAsyncStreamDerivedMipWorker::DoWork()
 
 void UTexture2D::GetMipData(int32 FirstMipToLoad, void** OutMipData)
 {
-#if WITH_EDITOR
-	TextureDerivedDataTimings::FScopedMeasurement MipDataTimer(TextureDerivedDataTimings::GetMipDataTime);
-#endif // #if WITH_EDITOR
 	if (PlatformData->TryLoadMips(FirstMipToLoad, OutMipData) == false)
 	{
 		// Unable to load mips from the cache. Rebuild the texture and try again.
@@ -1538,7 +1452,6 @@ void UTexture::BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPla
 				// if it doesn't then allow async builds
 				
 				{
-					TextureDerivedDataTimings::FScopedMeasurement Timer(TextureDerivedDataTimings::SyncDoesCachedDataExist);
 					if ( GetDerivedDataCacheRef().CachedDataProbablyExists( *DerivedDataKey ) == false )
 					{
 						CurrentCacheFlags |= ETextureCacheFlags::AllowAsyncBuild;
@@ -1849,7 +1762,6 @@ void UTexture::SerializeCookedPlatformData(FArchive& Ar)
 
 
 #if WITH_EDITOR
-	TextureDerivedDataTimings::FScopedMeasurement Timer(TextureDerivedDataTimings::SerializeCookedTime);
 	if (Ar.IsCooking() && Ar.IsPersistent())
 	{
 		if (!Ar.CookingTarget()->IsServerOnly())

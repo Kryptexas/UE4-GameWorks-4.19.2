@@ -16,8 +16,12 @@ UGatherTextFromSourceCommandlet::UGatherTextFromSourceCommandlet(const FObjectIn
 
 const FString UGatherTextFromSourceCommandlet::FPreProcessorDescriptor::DefineString(TEXT("#define "));
 const FString UGatherTextFromSourceCommandlet::FPreProcessorDescriptor::UndefString(TEXT("#undef "));
-const FString UGatherTextFromSourceCommandlet::FPreProcessorDescriptor::LocNamespaceString(TEXT("LOCTEXT_NAMESPACE"));
-const FString UGatherTextFromSourceCommandlet::FPreProcessorDescriptor::LocDefRegionString(TEXT("LOC_DEFINE_REGION"));
+const FString UGatherTextFromSourceCommandlet::FPreProcessorDescriptor::IfString(TEXT("#if "));
+const FString UGatherTextFromSourceCommandlet::FPreProcessorDescriptor::IfDefString(TEXT("#ifdef "));
+const FString UGatherTextFromSourceCommandlet::FPreProcessorDescriptor::ElIfString(TEXT("#elif "));
+const FString UGatherTextFromSourceCommandlet::FPreProcessorDescriptor::ElseString(TEXT("#else"));
+const FString UGatherTextFromSourceCommandlet::FPreProcessorDescriptor::EndIfString(TEXT("#endif"));
+const FString UGatherTextFromSourceCommandlet::FPreProcessorDescriptor::DefinedString(TEXT("defined "));
 const FString UGatherTextFromSourceCommandlet::FPreProcessorDescriptor::IniNamespaceString(TEXT("["));
 const FString UGatherTextFromSourceCommandlet::FMacroDescriptor::TextMacroString(TEXT("TEXT"));
 const FString UGatherTextFromSourceCommandlet::ChangelistName(TEXT("Update Localization"));
@@ -212,6 +216,16 @@ int32 UGatherTextFromSourceCommandlet::Main( const FString& Params )
 
 	Parsables.Add(new FUndefDescriptor());
 
+	Parsables.Add(new FIfDescriptor());
+
+	Parsables.Add(new FIfDefDescriptor());
+
+	Parsables.Add(new FElIfDescriptor());
+
+	Parsables.Add(new FElseDescriptor());
+
+	Parsables.Add(new FEndIfDescriptor());
+
 	Parsables.Add(new FCommandMacroDescriptor());
 
 	// New Localization System with Namespace as literal argument.
@@ -230,6 +244,12 @@ int32 UGatherTextFromSourceCommandlet::Main( const FString& Params )
 	// Init a parse context to track the state of the file parsing 
 	FSourceFileParseContext ParseCtxt;
 	ParseCtxt.ManifestInfo = ManifestInfo;
+
+	// Get whether we should gather editor-only data. Typically only useful for the localization of UE4 itself.
+	if (!GetBoolFromConfig(*SectionName, TEXT("ShouldGatherFromEditorOnlyData"), ParseCtxt.ShouldGatherFromEditorOnlyData, GatherTextConfigPath))
+	{
+		ParseCtxt.ShouldGatherFromEditorOnlyData = false;
+	}
 
 	// Parse all source files for macros and add entries to SourceParsedEntries
 	for ( FString& SourceFile : FilesToProcess)
@@ -255,6 +275,7 @@ int32 UGatherTextFromSourceCommandlet::Main( const FString& Params )
 		ParseCtxt.WithinStringLiteral = false;
 		ParseCtxt.WithinNamespaceDefine = false;
 		ParseCtxt.WithinStartingLine.Empty();
+		ParseCtxt.FlushMacroStack();
 
 		FString SourceFileText;
 		if (!FFileHelper::LoadFileToString(SourceFileText, *SourceFile))
@@ -286,6 +307,192 @@ int32 UGatherTextFromSourceCommandlet::Main( const FString& Params )
 	return 0;
 }
 
+FString UGatherTextFromSourceCommandlet::UnescapeLiteralCharacterEscapeSequences(const FString& InString)
+{
+	// We need to un-escape any octal, hex, or universal character sequences that exist in this string to mimic what happens when the string is processed by the compiler
+	enum class EParseState : uint8
+	{
+		Idle,		// Not currently parsing a sequence
+		InOct,		// Within an octal sequence (\012)
+		InHex,		// Within an hexadecimal sequence (\xBEEF)
+		InUTF16,	// Within a UTF-16 sequence (\u1234)
+		InUTF32,	// Within a UTF-32 sequence (\U12345678)
+	};
+
+	FString RetString;
+	RetString.Reserve(InString.Len());
+
+	EParseState ParseState = EParseState::Idle;
+	FString EscapedLiteralCharacter;
+	for (const TCHAR* CharPtr = *InString; *CharPtr; ++CharPtr)
+	{
+		const TCHAR CurChar = *CharPtr;
+
+		switch (ParseState)
+		{
+		case EParseState::Idle:
+			{
+				const TCHAR NextChar = *(CharPtr + 1);
+				if (CurChar == TEXT('\\') && NextChar)
+				{
+					if (FChar::IsOctDigit(NextChar))
+					{
+						ParseState = EParseState::InOct;
+					}
+					else if (NextChar == TEXT('x'))
+					{
+						// Skip the format marker
+						++CharPtr;
+						ParseState = EParseState::InHex;
+					}
+					else if (NextChar == TEXT('u'))
+					{
+						// Skip the format marker
+						++CharPtr;
+						ParseState = EParseState::InUTF16;
+					}
+					else if (NextChar == TEXT('U'))
+					{
+						// Skip the format marker
+						++CharPtr;
+						ParseState = EParseState::InUTF32;
+					}
+				}
+				
+				if (ParseState == EParseState::Idle)
+				{
+					RetString.AppendChar(CurChar);
+				}
+				else
+				{
+					EscapedLiteralCharacter.Reset();
+				}
+			}
+			break;
+
+		case EParseState::InOct:
+			{
+				if (FChar::IsOctDigit(CurChar))
+				{
+					EscapedLiteralCharacter.AppendChar(CurChar);
+
+					// Octal sequences can only be up-to 3 digits long
+					check(EscapedLiteralCharacter.Len() <= 3);
+					if (EscapedLiteralCharacter.Len() == 3)
+					{
+						RetString.AppendChar((TCHAR)FCString::Strtoi(*EscapedLiteralCharacter, nullptr, 8));
+						ParseState = EParseState::Idle;
+						// Deliberately not appending the current character here, as it was already pushed into the escaped literal character string
+					}
+				}
+				else
+				{
+					RetString.AppendChar((TCHAR)FCString::Strtoi(*EscapedLiteralCharacter, nullptr, 8));
+					ParseState = EParseState::Idle;
+					RetString.AppendChar(CurChar);
+				}
+			}
+			break;
+
+		case EParseState::InHex:
+			{
+				if (FChar::IsHexDigit(CurChar))
+				{
+					EscapedLiteralCharacter.AppendChar(CurChar);
+				}
+				else
+				{
+					RetString.AppendChar((TCHAR)FCString::Strtoi(*EscapedLiteralCharacter, nullptr, 16));
+					ParseState = EParseState::Idle;
+					RetString.AppendChar(CurChar);
+				}
+			}
+			break;
+
+		case EParseState::InUTF16:
+			{
+				if (FChar::IsHexDigit(CurChar))
+				{
+					EscapedLiteralCharacter.AppendChar(CurChar);
+
+					// UTF-16 sequences can only be up-to 4 digits long
+					check(EscapedLiteralCharacter.Len() <= 4);
+					if (EscapedLiteralCharacter.Len() == 4)
+					{
+						const uint32 UnicodeCodepoint = (uint32)FCString::Strtoi(*EscapedLiteralCharacter, nullptr, 16);
+
+						FString UnicodeString;
+						if (FUnicodeChar::CodepointToString(UnicodeCodepoint, UnicodeString))
+						{
+							RetString.Append(MoveTemp(UnicodeString));
+						}
+
+						ParseState = EParseState::Idle;
+						// Deliberately not appending the current character here, as it was already pushed into the escaped literal character string
+					}
+				}
+				else
+				{
+					const uint32 UnicodeCodepoint = (uint32)FCString::Strtoi(*EscapedLiteralCharacter, nullptr, 16);
+
+					FString UnicodeString;
+					if (FUnicodeChar::CodepointToString(UnicodeCodepoint, UnicodeString))
+					{
+						RetString.Append(MoveTemp(UnicodeString));
+					}
+
+					ParseState = EParseState::Idle;
+					RetString.AppendChar(CurChar);
+				}
+			}
+			break;
+
+		case EParseState::InUTF32:
+			{
+				if (FChar::IsHexDigit(CurChar))
+				{
+					EscapedLiteralCharacter.AppendChar(CurChar);
+
+					// UTF-32 sequences can only be up-to 8 digits long
+					check(EscapedLiteralCharacter.Len() <= 8);
+					if (EscapedLiteralCharacter.Len() == 8)
+					{
+						const uint32 UnicodeCodepoint = (uint32)FCString::Strtoui64(*EscapedLiteralCharacter, nullptr, 16);
+
+						FString UnicodeString;
+						if (FUnicodeChar::CodepointToString(UnicodeCodepoint, UnicodeString))
+						{
+							RetString.Append(MoveTemp(UnicodeString));
+						}
+
+						ParseState = EParseState::Idle;
+						// Deliberately not appending the current character here, as it was already pushed into the escaped literal character string
+					}
+				}
+				else
+				{
+					const uint32 UnicodeCodepoint = (uint32)FCString::Strtoui64(*EscapedLiteralCharacter, nullptr, 16);
+
+					FString UnicodeString;
+					if (FUnicodeChar::CodepointToString(UnicodeCodepoint, UnicodeString))
+					{
+						RetString.Append(MoveTemp(UnicodeString));
+					}
+
+					ParseState = EParseState::Idle;
+					RetString.AppendChar(CurChar);
+				}
+			}
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	return RetString;
+}
+
 FString UGatherTextFromSourceCommandlet::RemoveStringFromTextMacro(const FString& TextMacro, const FString& IdentForLogging, bool& Error)
 {
 	FString Text;
@@ -296,7 +503,7 @@ FString UGatherTextFromSourceCommandlet::RemoveStringFromTextMacro(const FString
 	{
 		Error = false;
 		//UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("Missing TEXT macro in %s"), *IdentForLogging);
-		return TextMacro.TrimQuotes();
+		Text = TextMacro.TrimQuotes();
 	}
 	else
 	{
@@ -319,7 +526,101 @@ FString UGatherTextFromSourceCommandlet::RemoveStringFromTextMacro(const FString
 			}
 		}
 	}
+
+	if (!Error)
+	{
+		Text = UnescapeLiteralCharacterEscapeSequences(Text);
+	}
+
 	return Text;
+}
+
+FString UGatherTextFromSourceCommandlet::StripCommentsFromToken(const FString& InToken, FSourceFileParseContext& Context)
+{
+	check(!Context.WithinBlockComment);
+	check(!Context.WithinLineComment);
+	check(!Context.WithinStringLiteral);
+
+	// Remove both block and inline comments from the given token
+	FString StrippedToken;
+	StrippedToken.Reserve(InToken.Len());
+
+	TCHAR WithinQuote = 0;
+	bool bIgnoreNextQuote = false;
+	for (const TCHAR* Char = *InToken; *Char; ++Char)
+	{
+		if (WithinQuote != 0)
+		{
+			StrippedToken += *Char;
+
+			if (!bIgnoreNextQuote)
+			{
+				if (*Char == TEXT('\\'))
+				{
+					bIgnoreNextQuote = true;
+					continue;
+				}
+
+				if (*Char == WithinQuote)
+				{
+					// Found an unescaped closing quote - we are no longer within quotes
+					WithinQuote = 0;
+				}
+			}
+
+			bIgnoreNextQuote = false;
+		}
+		else
+		{
+			if (*Char == TEXT('/'))
+			{
+				const TCHAR* NextChar = Char + 1;
+
+				if (*NextChar == TEXT('/'))
+				{
+					// Found an inline quote - this strips the remainder of the string so just break out of the loop
+					break;
+				}
+
+				if (*NextChar == TEXT('*'))
+				{
+					// Found a block comment - skip all characters until we find the closing quote
+					Context.WithinBlockComment = true;
+					++Char; // Skip over the opening slash, and the for loop will skip over the *
+					continue;
+				}
+			}
+
+			if (Context.WithinBlockComment)
+			{
+				if (*Char == TEXT('*'))
+				{
+					const TCHAR* NextChar = Char + 1;
+
+					if (*NextChar == TEXT('/'))
+					{
+						// Found the end of a block comment
+						Context.WithinBlockComment = false;
+						++Char; // Skip over the opening *, and the for loop will skip over the slash
+						continue;
+					}
+				}
+
+				// Skip over all characters while within a block comment
+				continue;
+			}
+
+			StrippedToken += *Char;
+
+			if (*Char == TEXT('"') || *Char == TEXT('\''))
+			{
+				// We found an opening quote - keep track of it until we find a matching closing quote
+				WithinQuote = *Char;
+			}
+		}
+	}
+
+	return StrippedToken.Trim().TrimTrailing();
 }
 
 bool UGatherTextFromSourceCommandlet::ParseSourceText(const FString& Text, const TArray<UGatherTextFromSourceCommandlet::FParsableDescriptor*>& Parsables, FSourceFileParseContext& ParseCtxt)
@@ -549,13 +850,146 @@ bool UGatherTextFromSourceCommandlet::ParseSourceText(const FString& Text, const
 
 bool UGatherTextFromSourceCommandlet::FSourceFileParseContext::AddManifestText( const FString& Token, const FString& InNamespace, const FString& SourceText, const FContext& Context )
 {
-	FString EntryDescription = FString::Printf( TEXT("In %s macro at %s - line %d:%s"),
-		*Token,
-		*Filename, 
-		LineNumber, 
-		*LineText);
-	FLocItem Source( SourceText.ReplaceEscapedCharWithChar() );
-	return ManifestInfo->AddEntry(EntryDescription, InNamespace, Source, Context);
+	const bool bIsEditorOnly = EvaluateMacroStack() == EMacroBlockState::EditorOnly;
+
+	if (!bIsEditorOnly || ShouldGatherFromEditorOnlyData)
+	{
+		FString EntryDescription = FString::Printf( TEXT("In %s macro at %s - line %d:%s"),
+			*Token,
+			*Filename, 
+			LineNumber, 
+			*LineText);
+		FLocItem Source( SourceText.ReplaceEscapedCharWithChar() );
+		return ManifestInfo->AddEntry(EntryDescription, InNamespace, Source, Context);
+	}
+
+	return false;
+}
+
+void UGatherTextFromSourceCommandlet::FSourceFileParseContext::PushMacroBlock( const FString& InBlockCtx )
+{
+	MacroBlockStack.Push(InBlockCtx);
+	CachedMacroBlockState.Reset();
+}
+
+void UGatherTextFromSourceCommandlet::FSourceFileParseContext::PopMacroBlock()
+{
+	if (MacroBlockStack.Num() > 0)
+	{
+		MacroBlockStack.Pop(/*bAllowShrinking*/false);
+		CachedMacroBlockState.Reset();
+	}
+}
+
+void UGatherTextFromSourceCommandlet::FSourceFileParseContext::FlushMacroStack()
+{
+	MacroBlockStack.Reset();
+}
+
+UGatherTextFromSourceCommandlet::EMacroBlockState UGatherTextFromSourceCommandlet::FSourceFileParseContext::EvaluateMacroStack() const
+{
+	if (CachedMacroBlockState.IsSet())
+	{
+		return CachedMacroBlockState.GetValue();
+	}
+
+	static const FString WithEditorString = TEXT("WITH_EDITOR");
+	static const FString WithEditorOnlyDataString = TEXT("WITH_EDITORONLY_DATA");
+
+	CachedMacroBlockState = EMacroBlockState::Normal;
+	for (const FString& BlockCtx : MacroBlockStack)
+	{
+		if (BlockCtx.Equals(WithEditorString, ESearchCase::CaseSensitive) || BlockCtx.Equals(WithEditorOnlyDataString, ESearchCase::CaseSensitive))
+		{
+			CachedMacroBlockState = EMacroBlockState::EditorOnly;
+			break;
+		}
+	}
+
+	return CachedMacroBlockState.GetValue();
+}
+
+void UGatherTextFromSourceCommandlet::FSourceFileParseContext::SetDefine(const FString& InDefineCtx)
+{
+	static const FString LocDefRegionString = TEXT("LOC_DEFINE_REGION");
+	static const FString LocNamespaceString = TEXT("LOCTEXT_NAMESPACE");
+
+	if (InDefineCtx.Equals(LocDefRegionString, ESearchCase::CaseSensitive))
+	{
+		// #define LOC_DEFINE_REGION
+		if (ExcludedRegion)
+		{
+			UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("Found a '#define LOC_DEFINE_REGION' while still within another '#define LOC_DEFINE_REGION'. File %s at line %d"), *Filename, LineNumber);
+		}
+		else
+		{
+			ExcludedRegion = true;
+		}
+		return;
+	}
+	else if (!ExcludedRegion)
+	{
+		if (InDefineCtx.StartsWith(LocNamespaceString, ESearchCase::CaseSensitive) && InDefineCtx.IsValidIndex(LocNamespaceString.Len()) && (FText::IsWhitespace(InDefineCtx[LocNamespaceString.Len()]) || InDefineCtx[LocNamespaceString.Len()] == TEXT('"')))
+		{
+			// #define LOCTEXT_NAMESPACE <namespace>
+			if (WithinNamespaceDefine)
+			{
+				UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("Found a '#define LOCTEXT_NAMESPACE' while still within another '#define LOCTEXT_NAMESPACE'. File %s at line %d"), *Filename, LineNumber);
+			}
+			else
+			{
+				FString RemainingText = InDefineCtx.RightChop(LocNamespaceString.Len()).Trim();
+
+				bool RemoveStringError;
+				const FString DefineDesc = FString::Printf(TEXT("%s define %s(%d):%s"), *RemainingText, *Filename, LineNumber, *LineText);
+				FString NewNamespace = RemoveStringFromTextMacro(RemainingText, DefineDesc, RemoveStringError);
+
+				if (!RemoveStringError)
+				{
+					Namespace = MoveTemp(NewNamespace);
+					WithinNamespaceDefine = true;
+				}
+			}
+			return;
+		}
+	}
+}
+
+void UGatherTextFromSourceCommandlet::FSourceFileParseContext::RemoveDefine(const FString& InDefineCtx)
+{
+	static const FString LocDefRegionString = TEXT("LOC_DEFINE_REGION");
+	static const FString LocNamespaceString = TEXT("LOCTEXT_NAMESPACE");
+
+	if (InDefineCtx.Equals(LocDefRegionString, ESearchCase::CaseSensitive))
+	{
+		// #undef LOC_DEFINE_REGION
+		if (!ExcludedRegion)
+		{
+			UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("Found an '#undef LOC_DEFINE_REGION' without a corresponding '#define LOC_DEFINE_REGION'. File %s at line %d"), *Filename, LineNumber);
+		}
+		else
+		{
+			ExcludedRegion = false;
+		}
+		return;
+	}
+	else if (!ExcludedRegion)
+	{
+		if (InDefineCtx.Equals(LocNamespaceString, ESearchCase::CaseSensitive))
+		{
+			// #undef LOCTEXT_NAMESPACE
+			if (!WithinNamespaceDefine)
+			{
+				UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("Found an '#undef LOCTEXT_NAMESPACE' without a corresponding '#define LOCTEXT_NAMESPACE'. File %s at line %d"), *Filename, LineNumber);
+			}
+			else
+			{
+				Namespace.Empty();
+				WithinNamespaceDefine = false;
+			}
+			return;
+		}
+	}
 }
 
 void UGatherTextFromSourceCommandlet::FDefineDescriptor::TryParse(const FString& Text, FSourceFileParseContext& Context) const
@@ -565,44 +999,13 @@ void UGatherTextFromSourceCommandlet::FDefineDescriptor::TryParse(const FString&
 	//  or
 	// #define <defname> <value>
 
-	if (!Context.ExcludedRegion && (Context.Filename.EndsWith(TEXT(".inl")) || (!Context.WithinBlockComment && !Context.WithinLineComment && !Context.WithinStringLiteral)) )
+	if (!Context.WithinBlockComment && !Context.WithinLineComment && !Context.WithinStringLiteral)
 	{
 		FString RemainingText = Text.RightChop(GetToken().Len()).Trim();
+		RemainingText = StripCommentsFromToken(RemainingText, Context);
 
-		if (LocDefRegionString == RemainingText)
-		{
-			// #define LOC_DEFINE_REGION
-			Context.ExcludedRegion = true;
-			Context.EndParsingCurrentLine = true;
-		}
-
-		FString FoundNamespaceString;
-
-		if (RemainingText.StartsWith(LocNamespaceString, ESearchCase::CaseSensitive))
-		{
-			// #define LOCTEXT_NAMESPACE <namespace>
-			FoundNamespaceString = LocNamespaceString;
-			if (Context.WithinNamespaceDefine == true)
-			{
-				UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("Non-matching LOCTEXT_NAMESPACE defines found in %s"), *Context.Filename);
-			}
-
-			Context.WithinNamespaceDefine = true;
-		}
-
-		if( !FoundNamespaceString.IsEmpty() )
-		{
-			RemainingText = RemainingText.RightChop(FoundNamespaceString.Len()).Trim();
-
-			bool RemoveStringError;
-			FString DefineDesc = FString::Printf(TEXT("%s define %s(%d):%s"), *FoundNamespaceString, *Context.Filename, Context.LineNumber, *Context.LineText);
-			FString Namespace = RemoveStringFromTextMacro(RemainingText, DefineDesc, RemoveStringError);
-			if (!RemoveStringError)
-			{
-				Context.Namespace = Namespace;
-				Context.EndParsingCurrentLine = true;
-			}
-		}
+		Context.SetDefine(RemainingText);
+		Context.EndParsingCurrentLine = true;
 	}
 }
 
@@ -611,32 +1014,96 @@ void UGatherTextFromSourceCommandlet::FUndefDescriptor::TryParse(const FString& 
 	// Attempt to parse something of the format
 	// #undef <defname>
 
-	FString RemainingText = Text.RightChop(GetToken().Len()).Trim();
-
-	if (!Context.ExcludedRegion && (Context.Filename.EndsWith(TEXT(".inl")) || (!Context.WithinBlockComment && !Context.WithinLineComment && !Context.WithinStringLiteral)))
+	if (!Context.WithinBlockComment && !Context.WithinLineComment && !Context.WithinStringLiteral)
 	{
-		if (Context.ExcludedRegion)
+		FString RemainingText = Text.RightChop(GetToken().Len()).Trim();
+		RemainingText = StripCommentsFromToken(RemainingText, Context);
+
+		Context.RemoveDefine(RemainingText);
+		Context.EndParsingCurrentLine = true;
+	}
+}
+
+void UGatherTextFromSourceCommandlet::FIfDescriptor::TryParse(const FString& Text, FSourceFileParseContext& Context) const
+{
+	// Attempt to parse something of the format
+	// #if <defname>
+
+	if (!Context.WithinBlockComment && !Context.WithinLineComment && !Context.WithinStringLiteral)
+	{
+		FString RemainingText = Text.RightChop(GetToken().Len()).Trim();
+		RemainingText = StripCommentsFromToken(RemainingText, Context);
+
+		// Handle "#if defined <defname>"
+		if (RemainingText.StartsWith(DefinedString, ESearchCase::CaseSensitive))
 		{
-			if (LocDefRegionString == RemainingText)
-			{
-				// #undef LOC_DEFINE_REGION
-				Context.ExcludedRegion = false;
-				Context.EndParsingCurrentLine = true;
-			}
+			RemainingText = RemainingText.RightChop(DefinedString.Len()).Trim();
 		}
-		else
+
+		Context.PushMacroBlock(RemainingText);
+		Context.EndParsingCurrentLine = true;
+	}
+}
+
+void UGatherTextFromSourceCommandlet::FIfDefDescriptor::TryParse(const FString& Text, FSourceFileParseContext& Context) const
+{
+	// Attempt to parse something of the format
+	// #ifdef <defname>
+
+	if (!Context.WithinBlockComment && !Context.WithinLineComment && !Context.WithinStringLiteral)
+	{
+		FString RemainingText = Text.RightChop(GetToken().Len()).Trim();
+		RemainingText = StripCommentsFromToken(RemainingText, Context);
+
+		Context.PushMacroBlock(RemainingText);
+		Context.EndParsingCurrentLine = true;
+	}
+}
+
+void UGatherTextFromSourceCommandlet::FElIfDescriptor::TryParse(const FString& Text, FSourceFileParseContext& Context) const
+{
+	// Attempt to parse something of the format
+	// #elif <defname>
+
+	if (!Context.WithinBlockComment && !Context.WithinLineComment && !Context.WithinStringLiteral)
+	{
+		FString RemainingText = Text.RightChop(GetToken().Len()).Trim();
+		RemainingText = StripCommentsFromToken(RemainingText, Context);
+
+		// Handle "#elif defined <defname>"
+		if (RemainingText.StartsWith(DefinedString, ESearchCase::CaseSensitive))
 		{
-			if (LocNamespaceString == RemainingText)
-			{
-				Context.EndParsingCurrentLine = true;
-				Context.Namespace.Empty();
-				if (Context.WithinNamespaceDefine == false)
-				{
-					UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("Non-matching LOCTEXT_NAMESPACE defines found in %s"), *Context.Filename);
-				}
-				Context.WithinNamespaceDefine = false;
-			}
+			RemainingText = RemainingText.RightChop(DefinedString.Len()).Trim();
 		}
+
+		Context.PopMacroBlock(); // Pop the current #if or #ifdef state
+		Context.PushMacroBlock(RemainingText);
+		Context.EndParsingCurrentLine = true;
+	}
+}
+
+void UGatherTextFromSourceCommandlet::FElseDescriptor::TryParse(const FString& Text, FSourceFileParseContext& Context) const
+{
+	// Attempt to parse something of the format
+	// #else
+
+	if (!Context.WithinBlockComment && !Context.WithinLineComment && !Context.WithinStringLiteral)
+	{
+		Context.PopMacroBlock(); // Pop the current #if or #ifdef state
+		Context.PushMacroBlock(FString());
+		Context.EndParsingCurrentLine = true;
+	}
+}
+
+void UGatherTextFromSourceCommandlet::FEndIfDescriptor::TryParse(const FString& Text, FSourceFileParseContext& Context) const
+{
+	// Attempt to parse something of the format
+	// #endif
+
+	if (!Context.WithinBlockComment && !Context.WithinLineComment && !Context.WithinStringLiteral)
+	{
+		Context.PopMacroBlock(); // Pop the current #if or #ifdef state
+		Context.EndParsingCurrentLine = true;
 	}
 }
 
@@ -746,6 +1213,7 @@ bool UGatherTextFromSourceCommandlet::FMacroDescriptor::PrepareArgument(FString&
 	else
 	{
 		Argument = Argument.TrimTrailing().TrimQuotes(&OutHasQuotes);
+		Argument = UnescapeLiteralCharacterEscapeSequences(Argument);
 	}
 	return Error ? false : true;
 }
@@ -755,10 +1223,10 @@ void UGatherTextFromSourceCommandlet::FCommandMacroDescriptor::TryParse(const FS
 	// Attempt to parse something of the format
 	// UI_COMMAND(LocKey, DefaultLangString, DefaultLangTooltipString, <IgnoredParam>, <IgnoredParam>)
 
-	if (!Context.ExcludedRegion && (Context.Filename.EndsWith(TEXT(".inl")) || (!Context.WithinBlockComment && !Context.WithinLineComment && !Context.WithinStringLiteral)) )
+	if (!Context.ExcludedRegion && !Context.WithinBlockComment && !Context.WithinLineComment && !Context.WithinStringLiteral)
 	{
 		TArray<FString> Arguments;
-		if (ParseArgsFromMacro(Text, Arguments, Context))
+		if (ParseArgsFromMacro(StripCommentsFromToken(Text, Context), Arguments, Context))
 		{
 			if (Arguments.Num() != 5)
 			{
@@ -820,10 +1288,10 @@ void UGatherTextFromSourceCommandlet::FStringMacroDescriptor::TryParse(const FSt
 	// Attempt to parse something of the format
 	// MACRONAME(param0, param1, param2)
 
-	if (!Context.ExcludedRegion && (Context.Filename.EndsWith(TEXT(".inl")) || (!Context.WithinBlockComment && !Context.WithinLineComment && !Context.WithinStringLiteral)) )
+	if (!Context.ExcludedRegion && !Context.WithinBlockComment && !Context.WithinLineComment && !Context.WithinStringLiteral)
 	{
 		TArray<FString> ArgArray;
-		if (ParseArgsFromMacro(Text, ArgArray, Context))
+		if (ParseArgsFromMacro(StripCommentsFromToken(Text, Context), ArgArray, Context))
 		{
 			int32 NumArgs = ArgArray.Num();
 

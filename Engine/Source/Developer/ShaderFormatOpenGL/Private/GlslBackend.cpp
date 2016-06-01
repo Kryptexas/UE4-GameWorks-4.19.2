@@ -1,5 +1,5 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-// .
+// 
 
 // This code is largely based on that in ir_print_glsl_visitor.cpp from
 // glsl-optimizer.
@@ -321,7 +321,7 @@ static void InsertRange( TCBDMARangeMap& CBAllRanges, unsigned SourceCB, unsigne
 	SDMARange Range = { SourceCB, SourceOffset, Size, DestCBIndex, DestCBPrecision, DestOffset };
 
 	TDMARangeList& CBRanges = CBAllRanges[SourceDestCBKey];
-//printf("* InsertRange: %08x\t%d:%d - %d:%c:%d:%d\n", SourceDestCBKey, SourceCB, SourceOffset, DestCBIndex, DestCBPrecision, DestOffset, Size);
+//printf("* InsertRange: %08x\t%u:%u - %u:%c:%u:%u\n", SourceDestCBKey, SourceCB, SourceOffset, DestCBIndex, DestCBPrecision, DestOffset, Size);
 	if (CBRanges.empty())
 	{
 		CBRanges.push_back(Range);
@@ -413,7 +413,7 @@ static void DumpSortedRanges(TDMARangeList& SortedRanges)
 	printf("**********************************\n");
 	for (auto& o : SortedRanges)
 	{
-		printf("\t%d:%d - %d:%c:%d:%d\n", o.SourceCB, o.SourceOffset, o.DestCBIndex, o.DestCBPrecision, o.DestOffset, o.Size);
+		printf("\t%u:%u - %u:%c:%u:%u\n", o.SourceCB, o.SourceOffset, o.DestCBIndex, o.DestCBPrecision, o.DestOffset, o.Size);
 	}
 }
 
@@ -631,7 +631,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 			ralloc_asprintf_append(buffer, "_mdarr_");
 			do 
 			{
-				ralloc_asprintf_append(buffer, "%d_", t->length);
+				ralloc_asprintf_append(buffer, "%u_", t->length);
 				t = t->fields.array;
 			} while (t->base_type == GLSL_TYPE_ARRAY);
 			print_base_type(t);
@@ -913,12 +913,20 @@ class ir_gen_glsl_visitor : public ir_visitor
 				if(bGenerateLayoutLocations && var->explicit_location && var->is_patch_constant == 0)
 				{
 					check(layout_bits == 0);
-					
+
+					// Some devices (S6 G920L 6.0.1) may complain about second empty parameter in an INTERFACE_BLOCK macro
+					// Make sure we put something there 
+					const char* interp_qualifier = interp_str[var->interpolation];
+					if (bIsES31 && strlen(interp_qualifier) == 0)
+					{
+						interp_qualifier = "smooth ";
+					}
+										
 					ralloc_asprintf_append(
 						buffer,
 						"INTERFACE_BLOCK(%d, %s, %s%s%s%s, ",
 						var->location,
-						interp_str[var->interpolation],
+						interp_qualifier,
 						centroid_str[var->centroid],
 						invariant_str[var->invariant],
 						patch_constant_str[var->is_patch_constant],
@@ -2510,7 +2518,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 						{
 							if (bNeedsHeader)
 							{
-								ralloc_asprintf_append(buffer, "// @PackedUB: %s(%d): ",
+								ralloc_asprintf_append(buffer, "// @PackedUB: %s(%u): ",
 									block->name,
 									CBIndex);
 								bNeedsHeader = false;
@@ -2563,12 +2571,12 @@ class ir_gen_glsl_visitor : public ir_visitor
 
 				if (bGroupFlattenedUBs)
 				{
-					ralloc_asprintf_append(buffer, "%d:%d-%d:%c:%d:%d", IterList->SourceCB, IterList->SourceOffset, IterList->DestCBIndex, IterList->DestCBPrecision, IterList->DestOffset, IterList->Size);
+					ralloc_asprintf_append(buffer, "%u:%u-%u:%c:%u:%u", IterList->SourceCB, IterList->SourceOffset, IterList->DestCBIndex, IterList->DestCBPrecision, IterList->DestOffset, IterList->Size);
 				}
 				else
 				{
 					check(IterList->DestCBIndex == 0);
-					ralloc_asprintf_append(buffer, "%d:%d-%c:%d:%d", IterList->SourceCB, IterList->SourceOffset, IterList->DestCBPrecision, IterList->DestOffset, IterList->Size);
+					ralloc_asprintf_append(buffer, "%u:%u-%c:%u:%u", IterList->SourceCB, IterList->SourceOffset, IterList->DestCBPrecision, IterList->DestOffset, IterList->Size);
 				}
 			}
 		}
@@ -3014,7 +3022,7 @@ public:
 			check(state->outputstream_type>0);
 			geometry_layouts = ralloc_asprintf(
 				mem_ctx,
-				"\nlayout(%s) in;\nlayout(%s, max_vertices = %d) out;\n\n",
+				"\nlayout(%s) in;\nlayout(%s, max_vertices = %u) out;\n\n",
 				GeometryInputStrings[state->geometryinput],
 				OutputStreamTypeStrings[state->outputstream_type],
 				state->maxvertexcount);
@@ -3238,7 +3246,7 @@ struct SPromoteSampleLevelES2 : public ir_hierarchical_visitor
 				// http://www.khronos.org/registry/gles/extensions/EXT/EXT_shader_texture_lod.txt
 				// Compat work will be required for devices which do not support it.
 				/*
-				_mesa_glsl_warning(ParseState, "%s(%d, %d) Converting SampleLevel() to Sample()\n", IR->SourceLocation.SourceFile.c_str(), IR->SourceLocation.Line, IR->SourceLocation.Column);
+				_mesa_glsl_warning(ParseState, "%s(%u, %u) Converting SampleLevel() to Sample()\n", IR->SourceLocation.SourceFile.c_str(), IR->SourceLocation.Line, IR->SourceLocation.Column);
 				IR->op = ir_tex;
 				*/
 			}
@@ -4053,7 +4061,7 @@ static void GenShaderInputForVariable(
 
 			if (InputSemantic && !FieldSemantic)
 			{
-				Semantic = ralloc_asprintf(ParseState, "%s%d", InputSemantic, i);
+				Semantic = ralloc_asprintf(ParseState, "%s%u", InputSemantic, i);
 				_mesa_glsl_warning(ParseState, "  creating semantic '%s' for struct field '%s'", Semantic, InputType->fields.structure[i].name);
 			}
 			else if (!InputSemantic && FieldSemantic)
@@ -4126,7 +4134,7 @@ static void GenShaderInputForVariable(
 			GenShaderInputForVariable(
 				Frequency,
 				ParseState,
-				ralloc_asprintf(ParseState, "%s%d", Semantic, BaseIndex + i),
+				ralloc_asprintf(ParseState, "%s%u", Semantic, BaseIndex + i),
 				InputQualifier,
 				ArrayDeref,
 				DeclInstructions,
@@ -4362,7 +4370,7 @@ void GenShaderOutputForVariable(
 
 			if (OutputSemantic && !FieldSemantic)
 			{
-				Semantic = ralloc_asprintf(ParseState, "%s%d", OutputSemantic, i);
+				Semantic = ralloc_asprintf(ParseState, "%s%u", OutputSemantic, i);
 				_mesa_glsl_warning(ParseState, "  creating semantic '%s' for struct field '%s'", Semantic, OutputType->fields.structure[i].name);
 			}
 			else if (!OutputSemantic && FieldSemantic)
@@ -4434,7 +4442,7 @@ void GenShaderOutputForVariable(
 				GenShaderOutputForVariable(
 					Frequency,
 					ParseState,
-					ralloc_asprintf(ParseState, "%s%d", Semantic, BaseIndex + i),
+					ralloc_asprintf(ParseState, "%s%u", Semantic, BaseIndex + i),
 					OutputQualifier,
 					ArrayDeref,
 					DeclInstructions,

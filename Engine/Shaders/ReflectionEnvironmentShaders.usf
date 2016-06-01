@@ -181,6 +181,7 @@ void ComputeBrightnessMain(
 
 Texture2D AverageBrightnessTexture;
 SamplerState AverageBrightnessSampler;
+float CubemapMaxMip;
 
 void FilterPS(
 	FScreenVertexOutput Input,
@@ -200,7 +201,7 @@ void FilterPS(
 #if FILTER_CUBEMAP
 
 	float3 N = normalize(CubeCoordinates);
-	float Roughness = ComputeReflectionCaptureRoughnessFromMip( SourceMipIndex );
+	float Roughness = ComputeReflectionCaptureRoughnessFromMip(SourceMipIndex, CubemapMaxMip);
 
 	float4 FilteredColor = 0;
 	float Weight = 0;
@@ -327,6 +328,7 @@ float4 CapturePositionAndRadius;
 float4 CaptureProperties;
 float4x4 CaptureBoxTransform;
 float4 CaptureBoxScales;
+float3 CaptureOffset;
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 TextureCubeArray ReflectionEnvironmentColorTextureArray;
@@ -359,70 +361,20 @@ void StandardDeferredReflectionPS(
 
 		//@todo - find a way to share this code with the compute shader version
 
-		#if SPHERE_CAPTURE
-			float3 RayDirection = ReflectionVector;
-			float ProjectionSphereRadius = CapturePositionAndRadius.w * 1.2f;
-			float SphereRadiusSquared = ProjectionSphereRadius * ProjectionSphereRadius;
-
-			float3 ReceiverToSphereCenter = WorldPosition - CapturePositionAndRadius.xyz;
-			float ReceiverToSphereCenterSq = dot(ReceiverToSphereCenter, ReceiverToSphereCenter);
-
+		#if SPHERE_CAPTURE		
 			float3 CaptureVector = WorldPosition - CapturePositionAndRadius.xyz;
 			float CaptureVectorLength = sqrt(dot(CaptureVector, CaptureVector));
 			float NormalizedDistanceToCapture = saturate(CaptureVectorLength / CapturePositionAndRadius.w);
 
-			// Find the intersection between the ray along the reflection vector and the capture's sphere
-			float3 QuadraticCoef;
-			QuadraticCoef.x = 1;
-			QuadraticCoef.y = 2 * dot(RayDirection, ReceiverToSphereCenter);
-			QuadraticCoef.z = ReceiverToSphereCenterSq - SphereRadiusSquared;
-
-			float Determinant = QuadraticCoef.y * QuadraticCoef.y - 4 * QuadraticCoef.z;
-
-			BRANCH
-			// Only continue if the ray intersects the sphere
-			if (Determinant >= 0)
-			{ 
-				float FarIntersection = (sqrt(Determinant) - QuadraticCoef.y) * 0.5;
-
-				float3 IntersectPosition = WorldPosition + FarIntersection * RayDirection;
-				ProjectedCaptureVector = IntersectPosition - CapturePositionAndRadius.xyz;
-				// Fade out based on distance to capture
-				DistanceAlpha = 1.0 - smoothstep(.6, 1, NormalizedDistanceToCapture);
-			}
+			ProjectedCaptureVector = GetLookupVectorForSphereCapture(ReflectionVector, WorldPosition, CapturePositionAndRadius, NormalizedDistanceToCapture, CaptureOffset, DistanceAlpha);
 		#elif BOX_CAPTURE
-			float3 RayDirection = ReflectionVector * CapturePositionAndRadius.w * 2;
-
-			// Transform the ray into the local space of the box, where it is an AABB with mins at -1 and maxs at 1
-			float3 LocalRayStart = mul(float4(WorldPosition, 1), CaptureBoxTransform).xyz;
-			float3 LocalRayDirection = mul(RayDirection, (float3x3)CaptureBoxTransform);
-
-			// Intersections.y is the intersection with the far side of the box
-			float2 Intersections = LineBoxIntersect(LocalRayStart, LocalRayStart + LocalRayDirection, -1, 1);
-
-			{
-				// Compute the reprojected vector
-				float3 IntersectPosition = WorldPosition + Intersections.y * RayDirection;
-				ProjectedCaptureVector = IntersectPosition - CapturePositionAndRadius.xyz;
-
-				// Compute the distance from the receiving pixel to the box for masking
-				// Apply local to world scale to take scale into account without transforming back to world space
-				// Shrink the box by the transition distance (BoxScales.w) so that the fade happens inside the box influence area
-				float4 BoxScales = CaptureBoxScales;
-				float BoxDistance = ComputeDistanceFromBoxToPoint(-(BoxScales.xyz - .5f * BoxScales.w), BoxScales.xyz - .5f * BoxScales.w, LocalRayStart * BoxScales.xyz);
-
-				// Setup a fade based on receiver distance to the box, hides the box influence shape
-				float BoxDistanceAlpha = 1.0 - smoothstep(0, .7f * BoxScales.w, BoxDistance);
-				// Setup a fade based on reflection ray intersection distance, hides the discontinuity between rays that just barely 
-				float RayDistanceAlpha = smoothstep(0, BoxScales.w, Intersections.y * CapturePositionAndRadius.w * 2);
-				DistanceAlpha = BoxDistanceAlpha * RayDistanceAlpha;
-			}
+			ProjectedCaptureVector = GetLookupVectorForBoxCapture(ReflectionVector, WorldPosition, CapturePositionAndRadius, CaptureBoxTransform, CaptureBoxScales, CaptureOffset, DistanceAlpha);
 		#endif
 		
 		BRANCH
 		if (DistanceAlpha > 0)
 		{
-			float AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(InGBufferData.Roughness);
+			float AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(InGBufferData.Roughness, Frame.ReflectionCubemapMaxMip);
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 			float4 Reflection = ReflectionEnvironmentColorTextureArray.SampleLevel(ReflectionEnvironmentColorSampler, float4(ProjectedCaptureVector, CaptureArrayIndex), AbsoluteSpecularMip);
@@ -463,18 +415,32 @@ void ReflectionApplyPS(
 	{
 		// TODO if SpecularColor and Roughness were in same texture would remove 2 fetches
 		float3 V = -normalize( mul( float4(UVAndScreenPos.zw, 1, 0), View.ScreenToWorld ).xyz );
-		float NoV = saturate( dot( GBuffer.WorldNormal, V ) );
+		float3 N = GBuffer.WorldNormal;
+		float NoV = saturate( dot(N, V ) );
 		float3 SpecularColor = EnvBRDF( GBuffer.SpecularColor, GBuffer.Roughness, NoV );
-		
+		float3 ReflectionVector = reflect(-V, N);
+		ReflectionVector = GetOffSpecularPeakReflectionDir(N, ReflectionVector, GBuffer.Roughness);
+		float IndirectIrradiance = GBuffer.IndirectIrradiance;
+
 		float AO = GBuffer.GBufferAO * ScreenSpaceData.AmbientOcclusion;
 		float SpecularOcclusion = saturate( Square( NoV + AO ) - 1 + AO );
 		SpecularColor *= SpecularOcclusion;
+
+		// Indirect occlusion from DFAO, which should be applied to reflection captures and skylight specular, but not SSR
+		float IndirectSpecularOcclusion = 1.0f;
+#if SUPPORT_DFAO_INDIRECT_OCCLUSION
+		float IndirectDiffuseOcclusion = 1.0f;
+		GetDistanceFieldAOSpecularOcclusion(UV, ReflectionVector, GBuffer.Roughness, GBuffer.ShadingModelID == SHADINGMODELID_TWOSIDED_FOLIAGE, IndirectSpecularOcclusion, IndirectDiffuseOcclusion); 
+		// Apply DFAO to IndirectIrradiance before mixing with indirect specular
+		IndirectIrradiance *= IndirectDiffuseOcclusion;
+#endif
 
 		float4 SpecularLighting = float4(0, 0, 0, 1);
 		
 #if APPLY_REFLECTION_ENV
 		// Alpha of the reflection environment texture contains coverage, where 0 the sky reflection should be applied
 		SpecularLighting = Texture2DSample( ReflectionEnvTexture, ReflectionEnvSampler, UV );
+		SpecularLighting.rgb *= IndirectSpecularOcclusion;
 
 #if ALLOW_STATIC_LIGHTING
 		FLATTEN
@@ -487,68 +453,43 @@ void ReflectionApplyPS(
 			// Note: make sure this matches the lightmap mixing done for translucency (BasePassPixelShader.usf)
 
 			// NOTE: this breaks LPV specular if r.allowstaticlighting is enabled
-			SpecularLighting.rgb *= GBuffer.IndirectIrradiance;
+			SpecularLighting.rgb *= IndirectIrradiance;
 		}
 #endif
 #endif
 
-#if APPLY_SSR
+#if 1
+		// Note: this texture may also contain planar reflections
 		float4 SSR = Texture2DSample( ScreenSpaceReflectionsTexture, ScreenSpaceReflectionsSampler, UV );
+		SpecularLighting.rgb = SSR.rgb + SpecularLighting.rgb * (1 - SSR.a);
+		SpecularLighting.a *= 1 - SSR.a;
 #endif
-
-		BRANCH
-		if( GBuffer.ShadingModelID == SHADINGMODELID_CLEAR_COAT )
-		{
-			const float ClearCoat			= GBuffer.CustomData.x;
-			const float ClearCoatRoughness	= GBuffer.CustomData.y;
-
-			// TODO EnvBRDF should have a mask param
-			float2 AB = PreIntegratedGF.SampleLevel( PreIntegratedGFSampler, float2( NoV, GBuffer.Roughness ), 0 ).rg;
-			SpecularColor = GBuffer.SpecularColor * AB.x + AB.y * saturate( 50 * GBuffer.SpecularColor.g ) * (1 - ClearCoat);
-
-			// F_Schlick
-			float F0 = 0.04;
-			float Fc = Pow5( 1 - NoV );
-			float F = Fc + (1 - Fc) * F0;
-			F *= ClearCoat;
-
-			float LayerAttenuation = (1 - F);
-			SpecularColor *= LayerAttenuation;
-			SpecularColor *= SpecularOcclusion;
-
-			#if APPLY_SSR
-				SpecularLighting.rgb *= lerp( 1 - SSR.a, 1, ClearCoat );
-				SpecularLighting.rgb += lerp( SSR.rgb, 0, ClearCoat );
-			#endif
-
-			SpecularLighting.rgb *= SpecularColor;
-
-			#if APPLY_SSR
-				SpecularLighting.rgb += SSR.rgb * F;
-			#endif
-		}
-		else
-		{
-			#if APPLY_SSR
-				SpecularLighting.rgb = SSR.rgb + SpecularLighting.rgb * (1 - SSR.a);
-			#endif
-			SpecularLighting.rgb *= SpecularColor;
-		}
+		
+		SpecularLighting.rgb *= SpecularColor;
 
 #if APPLY_SKYLIGHT
 
 		BRANCH
 		if (SpecularLighting.a > .001f)
-		{
-			float3 ReflectionVector = reflect(-V, GBuffer.WorldNormal);
+		{			
+			float3 SkyLighting = float3(1,1,1);
+
 			// Normalize for static skylight types which mix with lightmaps
 			bool bNormalize = SkyLightParameters.z < 1 && Frame.UseLightmaps > 0 && !ALLOW_STATIC_LIGHTING;
-			float3 SkyLighting = GetSkyLightReflectionSupportingBlend(ReflectionVector, GBuffer.Roughness, bNormalize);
-			SkyLighting *= SpecularColor;
-
 			BRANCH
 			if( GBuffer.ShadingModelID == SHADINGMODELID_CLEAR_COAT )
 			{
+#if CLEAR_COAT_BOTTOM_NORMAL
+				const float2 oct1 = ((float2(GBuffer.CustomData.a, GBuffer.CustomData.z) * 2) - (256.0 / 255.0)) + UnitVectorToOctahedron(GBuffer.WorldNormal);
+				const float3 ClearCoatUnderNormal = OctahedronToUnitVector(oct1);
+
+				const float3 BottomEffectiveNormal = ClearCoatUnderNormal;
+				ReflectionVector = 2 * dot(V, ClearCoatUnderNormal) * ClearCoatUnderNormal - V;
+#endif				
+
+				SkyLighting = GetSkyLightReflectionSupportingBlend(ReflectionVector, GBuffer.Roughness, bNormalize);
+				SkyLighting *= SpecularColor;
+
 				const float ClearCoat			= GBuffer.CustomData.x;
 				const float ClearCoatRoughness	= GBuffer.CustomData.y;
 
@@ -558,12 +499,22 @@ void ReflectionApplyPS(
 				float F = Fc + (1 - Fc) * F0;
 				F *= ClearCoat;
 
+				float LayerAttenuation = (1 - F);
+				SkyLighting.rgb *= LayerAttenuation;
+
 				#if APPLY_SSR
 					F *= 1 - SSR.a;
-				#endif
+				#endif				
 
-				float3 SampleColor = GetSkyLightReflectionSupportingBlend(ReflectionVector, ClearCoatRoughness, bNormalize);	
+				float3 TopLayerR = 2 * dot(V, GBuffer.WorldNormal) * N - V;
+				float3 SampleColor = GetSkyLightReflectionSupportingBlend(TopLayerR, ClearCoatRoughness, bNormalize);
 				SkyLighting += SampleColor * F;
+			}
+			else
+			{
+				SkyLighting = GetSkyLightReflectionSupportingBlend(ReflectionVector, GBuffer.Roughness, bNormalize);
+				SkyLighting *= SpecularColor;
+
 			}
 
 		    float DirectionalOcclusion = ScreenSpaceData.DirectionalOcclusion.g;
@@ -572,12 +523,10 @@ void ReflectionApplyPS(
 			FLATTEN
 			if (bNormalize)
 			{
-				SkyLighting *= GBuffer.IndirectIrradiance;
+				SkyLighting *= IndirectIrradiance;
 			}
 
-			float Visibility = GetDistanceFieldAOSpecularOcclusion(UV, ReflectionVector, GBuffer.Roughness, GBuffer.ShadingModelID == SHADINGMODELID_TWOSIDED_FOLIAGE); 
-
-			SpecularLighting.rgb += (Visibility * SpecularLighting.a) * SkyLighting;
+			SpecularLighting.rgb += SpecularLighting.a * SkyLighting * IndirectSpecularOcclusion;
 		}
 #endif
 

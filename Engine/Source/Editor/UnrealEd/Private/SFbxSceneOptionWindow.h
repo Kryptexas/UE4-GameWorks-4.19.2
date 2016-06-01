@@ -7,6 +7,8 @@
 #include "Fbx/SSceneImportNodeTreeView.h"
 #include "Fbx/SSceneReimportNodeTreeView.h"
 #include "Fbx/SSceneImportStaticMeshListView.h"
+#include "Fbx/SSceneSkeletalMeshListView.h"
+#include "Fbx/SSceneReimportSkeletalMeshListView.h"
 #include "Fbx/SSceneReimportStaticMeshListView.h"
 #include "Fbx/SSceneMaterialsListView.h"
 #include "Factories/FbxSceneImportFactory.h"
@@ -27,8 +29,6 @@ public:
 		, _SceneImportOptionsStaticMeshDisplay(nullptr)
 		, _OverrideNameOptionsMap(nullptr)
 		, _SceneImportOptionsSkeletalMeshDisplay(nullptr)
-		, _SceneImportOptionsAnimationDisplay(nullptr)
-		, _SceneImportOptionsMaterialDisplay(nullptr)
 		, _OwnerWindow()
 		, _FullPath(TEXT(""))
 		{}
@@ -43,8 +43,6 @@ public:
 		SLATE_ARGUMENT( class UFbxSceneImportOptionsStaticMesh*, SceneImportOptionsStaticMeshDisplay)
 		SLATE_ARGUMENT( ImportOptionsNameMapPtr, OverrideNameOptionsMap)
 		SLATE_ARGUMENT( class UFbxSceneImportOptionsSkeletalMesh*, SceneImportOptionsSkeletalMeshDisplay)
-		SLATE_ARGUMENT( class UFbxSceneImportOptionsAnimation*, SceneImportOptionsAnimationDisplay)
-		SLATE_ARGUMENT( class UFbxSceneImportOptionsMaterial*, SceneImportOptionsMaterialDisplay)
 		SLATE_ARGUMENT( TSharedPtr<SWindow>, OwnerWindow)
 		SLATE_ARGUMENT( FString, FullPath )
 	SLATE_END_ARGS()
@@ -90,11 +88,14 @@ public:
 
 	void OnToggleReimportHierarchy(ECheckBoxState CheckType);
 	ECheckBoxState IsReimportHierarchyChecked() const;
+	void OnToggleBakePivotInVertex(ECheckBoxState CheckType);
+	ECheckBoxState IsBakePivotInVertexChecked() const;
 
 	//Material UI
-	FText GetMaterialPrefixName() const;
-	void OnMaterialPrefixCommited(const FText& InText, ETextCommit::Type InCommitType);
-	FSlateColor GetMaterialPrefixTextColor() const;
+	FText GetMaterialBasePath() const;
+	void OnMaterialBasePathCommited(const FText& InText, ETextCommit::Type InCommitType);
+	FReply OnMaterialBasePathBrowse();
+	FSlateColor GetMaterialBasePathTextColor() const;
 
 	static void CopyFbxOptionsToFbxOptions(UnFbx::FBXImportOptions *SourceOptions, UnFbx::FBXImportOptions *DestinationOptions);
 
@@ -104,15 +105,11 @@ public:
 	static void CopySkeletalMeshOptionsToFbxOptions(UnFbx::FBXImportOptions *ImportSettings, class UFbxSceneImportOptionsSkeletalMesh* SkeletalMeshOptions);
 	static void CopyFbxOptionsToSkeletalMeshOptions(UnFbx::FBXImportOptions *ImportSettings, class UFbxSceneImportOptionsSkeletalMesh* SkeletalMeshOptions);
 
-	static void CopyAnimationOptionsToFbxOptions(UnFbx::FBXImportOptions *ImportSettings, class UFbxSceneImportOptionsAnimation* AnimationOptions);
-	static void CopyFbxOptionsToAnimationOptions(UnFbx::FBXImportOptions *ImportSettings, class UFbxSceneImportOptionsAnimation* AnimationOptions);
-
-	static void CopyMaterialOptionsToFbxOptions(UnFbx::FBXImportOptions *ImportSettings, class UFbxSceneImportOptionsMaterial* MaterialOptions);
-	static void CopyFbxOptionsToMaterialOptions(UnFbx::FBXImportOptions *ImportSettings, class UFbxSceneImportOptionsMaterial* MaterialOptions);
-
 	void OnFinishedChangingPropertiesSceneTabDetailView(const FPropertyChangedEvent& PropertyChangedEvent);
 
 private:
+
+	bool CanCloseTab();
 
 	bool CanImport() const;
 
@@ -125,6 +122,7 @@ private:
 
 	TSharedRef<SDockTab> SpawnSceneReimportTab(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnStaticMeshReimportTab(const FSpawnTabArgs& Args);
+	TSharedRef<SDockTab> SpawnSkeletalMeshReimportTab(const FSpawnTabArgs& Args);
 
 private:
 	//SFbxSceneOptionWindow Arguments
@@ -138,8 +136,6 @@ private:
 	class UFbxSceneImportOptionsStaticMesh* SceneImportOptionsStaticMeshDisplay;
 	ImportOptionsNameMapPtr OverrideNameOptionsMap;
 	class UFbxSceneImportOptionsSkeletalMesh* SceneImportOptionsSkeletalMeshDisplay;
-	class UFbxSceneImportOptionsAnimation* SceneImportOptionsAnimationDisplay;
-	class UFbxSceneImportOptionsMaterial* SceneImportOptionsMaterialDisplay;
 	TSharedPtr< SWindow > OwnerWindow;
 	FString FullPath;
 
@@ -160,16 +156,28 @@ private:
 	//Material tab Variables
 	TSharedPtr<SFbxSceneMaterialsListView> MaterialsTabListView;
 	FbxTextureInfoArray TexturesArray;
-	FString MaterialPrefixName;
+	FString MaterialBasePath;
+
+	//Shared the options name between staticmesh and skeletalmesh
+	FbxOverrideNameOptionsArray OverrideNameOptions;
 
 	//StaticMesh tab Variables
 	TSharedPtr<SFbxSceneStaticMeshListView> StaticMeshTabListView;
 	TSharedPtr<IDetailsView> StaticMeshTabDetailsView;
 
+	//SkeletalMesh tab Variables
+	TSharedPtr<SFbxSceneSkeletalMeshListView> SkeletalMeshTabListView;
+	TSharedPtr<IDetailsView> SkeletalMeshTabDetailsView;
+
 	//Scene Reimport tab variables
 	TSharedPtr<SFbxReimportSceneTreeView> SceneReimportTreeview;
+	TSharedPtr<IDetailsView> SceneReimportTabDetailsView;
 
 	//StaticMesh Reimport tab variables
 	TSharedPtr<SFbxSceneStaticMeshReimportListView> StaticMeshReimportListView;
 	TSharedPtr<IDetailsView> StaticMeshReimportDetailsView;
+
+	//SkeletalMesh tab Variables
+	TSharedPtr<SFbxSceneSkeletalMeshReimportListView> SkeletalMeshReimportListView;
+	TSharedPtr<IDetailsView> SkeletalMeshReimportDetailsView;
 };

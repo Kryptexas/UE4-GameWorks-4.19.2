@@ -214,6 +214,8 @@ public:
 		ReflectionSampler1.Bind(Initializer.ParameterMap, TEXT("ReflectionCubemapSampler1"));
 		ReflectionCubemap2.Bind(Initializer.ParameterMap, TEXT("ReflectionCubemap2"));
 		ReflectionSampler2.Bind(Initializer.ParameterMap, TEXT("ReflectionCubemapSampler2"));
+
+		PlanarReflectionParams.Bind(Initializer.ParameterMap);
 	}
 	TBasePassForForwardShadingPSPolicyParamType() {}
 
@@ -299,6 +301,9 @@ public:
 			SetShaderValueArray(RHICmdList, PixelShader, LightColorAndFalloffExponentParameter, LightInfo.LightColorAndFalloffExponent, LightInfo.NumDynamicPointLights);
 		}
 
+		const FPlanarReflectionSceneProxy* CachedPlanarReflectionProxy = PrimitiveSceneInfo ? PrimitiveSceneInfo->CachedPlanarReflectionProxy : nullptr;
+		PlanarReflectionParams.SetParameters(RHICmdList, PixelShader, CachedPlanarReflectionProxy );
+
 		FMeshMaterialShader::SetMesh(RHICmdList, PixelShader,VertexFactory,View,Proxy,BatchElement,DrawRenderState);		
 	}
 
@@ -321,6 +326,7 @@ public:
 		Ar << ReflectionPositionsAndRadii;
 		Ar << ReflectionSampler1;
 		Ar << ReflectionSampler2;
+		Ar << PlanarReflectionParams;
 
 		return bShaderHasOutdatedParameters;
 	}
@@ -343,6 +349,8 @@ private:
 	FShaderResourceParameter ReflectionCubemap2;
 	FShaderResourceParameter ReflectionSampler2;
 	FShaderParameter ReflectionPositionsAndRadii;
+	//////////////////////////////////////////////////////////////////////////
+	FPlanarReflectionParameters PlanarReflectionParams;
 };
 
 template<typename LightMapPolicyType, int32 NumDynamicPointLights>
@@ -540,6 +548,9 @@ GetBasePassForForwardShadingShaders<FUniformLightMapPolicy, NumDynamicPointLight
 	case LMP_DISTANCE_FIELD_SHADOWS_AND_LQ_LIGHTMAP:
 		GetUniformBasePassorForwardShadingShaders<LMP_DISTANCE_FIELD_SHADOWS_AND_LQ_LIGHTMAP, NumDynamicPointLights>(Material, VertexFactoryType, bEnableSkyLight, VertexShader, PixelShader);
 		break;
+	case LMP_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM:
+		GetUniformBasePassorForwardShadingShaders<LMP_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM, NumDynamicPointLights>(Material, VertexFactoryType, bEnableSkyLight, VertexShader, PixelShader);
+		break;
 	case LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_INDIRECT:
 		GetUniformBasePassorForwardShadingShaders<LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_INDIRECT, NumDynamicPointLights>(Material, VertexFactoryType, bEnableSkyLight, VertexShader, PixelShader);
 		break;
@@ -548,6 +559,9 @@ GetBasePassForForwardShadingShaders<FUniformLightMapPolicy, NumDynamicPointLight
 		break;
 	case LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_DIRECTIONAL_CSM_INDIRECT:
 		GetUniformBasePassorForwardShadingShaders<LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_DIRECTIONAL_CSM_INDIRECT, NumDynamicPointLights>(Material, VertexFactoryType, bEnableSkyLight, VertexShader, PixelShader);
+		break;
+	case LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_CSM_INDIRECT:
+		GetUniformBasePassorForwardShadingShaders<LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_CSM_INDIRECT, NumDynamicPointLights>(Material, VertexFactoryType, bEnableSkyLight, VertexShader, PixelShader);
 		break;
 	case LMP_MOVABLE_DIRECTIONAL_LIGHT:
 		GetUniformBasePassorForwardShadingShaders<LMP_MOVABLE_DIRECTIONAL_LIGHT, NumDynamicPointLights>(Material, VertexFactoryType, bEnableSkyLight, VertexShader, PixelShader);
@@ -604,12 +618,12 @@ public:
 		EBlendMode InBlendMode,
 		ESceneRenderTargetsMode::Type InSceneTextureMode,
 		bool bInEnableSkyLight,
-		bool bOverrideWithShaderComplexity,
+		EDebugViewShaderMode InDebugViewShaderMode,
 		ERHIFeatureLevel::Type FeatureLevel,
 		bool bInEnableEditorPrimitiveDepthTest = false,
 		bool bInEnableReceiveDecalOutput = false
 		):
-		FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,InMaterialResource,bOverrideWithShaderComplexity),
+		FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,InMaterialResource,InDebugViewShaderMode),
 		LightMapPolicy(InLightMapPolicy),
 		BlendMode(InBlendMode),
 		SceneTextureMode(InSceneTextureMode),
@@ -636,38 +650,39 @@ public:
 
 	// FMeshDrawingPolicy interface.
 
-	bool Matches(const TBasePassForForwardShadingDrawingPolicy& Other) const
+	FDrawingPolicyMatchResult Matches(const TBasePassForForwardShadingDrawingPolicy& Other) const
 	{
-		return FMeshDrawingPolicy::Matches(Other) &&
-			VertexShader == Other.VertexShader &&
-			PixelShader == Other.PixelShader &&
-			LightMapPolicy == Other.LightMapPolicy &&
-			SceneTextureMode == Other.SceneTextureMode;
+		DRAWING_POLICY_MATCH_BEGIN
+			DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other)) &&
+			DRAWING_POLICY_MATCH(VertexShader == Other.VertexShader) &&
+			DRAWING_POLICY_MATCH(PixelShader == Other.PixelShader) &&
+			DRAWING_POLICY_MATCH(LightMapPolicy == Other.LightMapPolicy) &&
+			DRAWING_POLICY_MATCH(SceneTextureMode == Other.SceneTextureMode);
+		DRAWING_POLICY_MATCH_END
 	}
 
 	void SetSharedState(FRHICommandList& RHICmdList, const FViewInfo* View, const ContextDataType PolicyContext) const
 	{
 		VertexShader->SetParameters(RHICmdList, MaterialRenderProxy, VertexFactory, *MaterialResource, *View, SceneTextureMode);
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if (bOverrideWithShaderComplexity)
+		if (UseDebugViewPS())
 		{
-			if (BlendMode == BLEND_Opaque)
+			if (View->Family->EngineShowFlags.ShaderComplexity)
 			{
-				RHICmdList.SetBlendState( TStaticBlendStateWriteMask<CW_RGBA>::GetRHI());
-			}
-			else
-			{
-				// Add complexity to existing
-				RHICmdList.SetBlendState( TStaticBlendState<CW_RGBA,BO_Add,BF_One,BF_One,BO_Add,BF_Zero,BF_One>::GetRHI());
+				if (BlendMode == BLEND_Opaque)
+				{
+					RHICmdList.SetBlendState( TStaticBlendStateWriteMask<CW_RGBA>::GetRHI());
+				}
+				else
+				{
+					// Add complexity to existing
+					RHICmdList.SetBlendState( TStaticBlendState<CW_RGBA,BO_Add,BF_One,BF_One,BO_Add,BF_Zero,BF_One>::GetRHI());
+				}
 			}
 
-			const uint32 NumPixelShaderInstructions = PixelShader->GetNumInstructions();
-			const uint32 NumVertexShaderInstructions = VertexShader->GetNumInstructions();
-			FShaderComplexityAccumulatePS::SetParameters(View->ShaderMap,RHICmdList,NumVertexShaderInstructions,NumPixelShaderInstructions,GetQuadOverdrawMode(),View->GetFeatureLevel());
+			FDebugViewMode::GetPSInterface(View->ShaderMap, MaterialResource, GetDebugViewShaderMode())->SetParameters(RHICmdList, VertexShader, PixelShader, MaterialRenderProxy, *MaterialResource, *View);
 		}
 		else
-#endif
 		{
 			PixelShader->SetParameters(RHICmdList, MaterialRenderProxy, *MaterialResource, View, SceneTextureMode, bEnableEditorPrimitiveDepthTest);
 			bool bEncodedHDR = IsMobileHDR32bpp() && !IsMobileHDRMosaic();
@@ -698,7 +713,7 @@ public:
 		}
 		
 		// Set the light-map policy.
-		LightMapPolicy.Set(RHICmdList, VertexShader,bOverrideWithShaderComplexity ? NULL : PixelShader,VertexShader,PixelShader,VertexFactory,MaterialRenderProxy,View);		
+		LightMapPolicy.Set(RHICmdList, VertexShader, !UseDebugViewPS() ? PixelShader : nullptr, VertexShader, PixelShader, VertexFactory, MaterialRenderProxy, View);		
 	}
 
 	/** 
@@ -710,12 +725,10 @@ public:
 	{
 		FPixelShaderRHIParamRef PixelShaderRHIRef = PixelShader->GetPixelShader();
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if (bOverrideWithShaderComplexity)
+		if (UseDebugViewPS())
 		{
-			PixelShaderRHIRef = FShaderComplexityAccumulatePS::GetPixelShader(GetGlobalShaderMap(InFeatureLevel),GetQuadOverdrawMode())->GetPixelShader();
+			PixelShaderRHIRef = FDebugViewMode::GetPSInterface(GetGlobalShaderMap(InFeatureLevel), MaterialResource, GetDebugViewShaderMode())->GetShader()->GetPixelShader();
 		}
-#endif
 
 		return FBoundShaderStateInput(
 			FMeshDrawingPolicy::GetVertexDeclaration(), 
@@ -744,7 +757,7 @@ public:
 			View,
 			PrimitiveSceneProxy,
 			VertexShader,
-			bOverrideWithShaderComplexity ? NULL : PixelShader,
+			!UseDebugViewPS() ? PixelShader : nullptr,
 			VertexShader,
 			PixelShader,
 			VertexFactory,
@@ -754,22 +767,20 @@ public:
 		const FMeshBatchElement& BatchElement = Mesh.Elements[BatchElementIndex];
 		VertexShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState);
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if (bOverrideWithShaderComplexity)
+		if (UseDebugViewPS())
 		{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			// If we are in the translucent pass or rendering a masked material then override the blend mode, otherwise maintain opaque blending
-			if (BlendMode != BLEND_Opaque)
+			if (View.Family->EngineShowFlags.ShaderComplexity && BlendMode != BLEND_Opaque)
 			{
 				// Add complexity to existing, keep alpha
 				RHICmdList.SetBlendState(TStaticBlendState<CW_RGB,BO_Add,BF_One,BF_One>::GetRHI());
 			}
 
-			const uint32 NumPixelShaderInstructions = PixelShader->GetNumInstructions();
-			const uint32 NumVertexShaderInstructions = VertexShader->GetNumInstructions();
-			FShaderComplexityAccumulatePS::SetParameters(GetGlobalShaderMap(View.FeatureLevel),RHICmdList,NumVertexShaderInstructions,NumPixelShaderInstructions,GetQuadOverdrawMode(),View.GetFeatureLevel());
+			FDebugViewMode::GetPSInterface(GetGlobalShaderMap(View.FeatureLevel), MaterialResource, GetDebugViewShaderMode())->SetMesh(RHICmdList, VertexFactory, View, PrimitiveSceneProxy, Mesh.VisualizeLODIndex, BatchElement, DrawRenderState);
+#endif
 		}
 		else
-#endif
 		{
 			PixelShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState);
 		}
@@ -880,9 +891,21 @@ void ProcessBasePassMeshForForwardShading(
 		const FLightSceneInfo* SimpleDirectionalLight = Action.GetSimpleDirectionalLight();
 		const bool bUseMovableLight = SimpleDirectionalLight && !SimpleDirectionalLight->Proxy->HasStaticShadowing();
 
+		static auto* CVarMobileEnableStaticAndCSMShadowReceivers = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.EnableStaticAndCSMShadowReceivers"));
+		static auto* ConsoleVarAllReceiveDynamicCSM = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllReceiveDynamicCSM"));
+		const bool bAllReceiveDynamicCSM = (ConsoleVarAllReceiveDynamicCSM->GetValueOnAnyThread() == 1);
+		
+		const bool bUseCSM = SimpleDirectionalLight && SimpleDirectionalLight->Proxy->UseCSMForDynamicObjects()
+			&& CVarMobileEnableStaticAndCSMShadowReceivers->GetValueOnRenderThread() == 1
+			&& (bAllReceiveDynamicCSM || (Parameters.PrimitiveSceneProxy != nullptr && Parameters.PrimitiveSceneProxy->ShouldReceiveCombinedCSMAndStaticShadowsFromStationaryLights()));
+
 		if (LightMapInteraction.GetType() == LMIT_Texture)
 		{
 			// Lightmap path
+			const FShadowMapInteraction ShadowMapInteraction = (Parameters.Mesh.LCI && bIsLitMaterial)
+				? Parameters.Mesh.LCI->GetShadowMapInteraction()
+				: FShadowMapInteraction();
+
 			if (bUseMovableLight)
 			{
 				// final determination of whether CSMs are rendered can be view dependent, thus we always need to clear the CSMs even if we're not going to render to them based on the condition below.
@@ -895,12 +918,19 @@ void ProcessBasePassMeshForForwardShading(
 					Action.template Process<FUniformLightMapPolicy, NumDynamicPointLights>(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_MOVABLE_DIRECTIONAL_LIGHT_WITH_LIGHTMAP), Parameters.Mesh.LCI);
 				}
 			}
+			else if (bUseCSM)
+			{
+				if (ShadowMapInteraction.GetType() == SMIT_Texture && SimpleDirectionalLight && SimpleDirectionalLight->ShouldRenderViewIndependentWholeSceneShadows())
+				{
+					Action.template Process<FUniformLightMapPolicy, NumDynamicPointLights>(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM), Parameters.Mesh.LCI);
+				}
+				else
+				{
+					Action.template Process<FUniformLightMapPolicy, NumDynamicPointLights>(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_LQ_LIGHTMAP), Parameters.Mesh.LCI);
+				}
+			}
 			else
 			{
-				const FShadowMapInteraction ShadowMapInteraction = (Parameters.Mesh.LCI && bIsLitMaterial)
-					? Parameters.Mesh.LCI->GetShadowMapInteraction()
-					: FShadowMapInteraction();
-
 				if (ShadowMapInteraction.GetType() == SMIT_Texture)
 				{
 					Action.template Process<FUniformLightMapPolicy, NumDynamicPointLights>(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_DISTANCE_FIELD_SHADOWS_AND_LQ_LIGHTMAP), Parameters.Mesh.LCI);
@@ -932,7 +962,14 @@ void ProcessBasePassMeshForForwardShading(
 			}
 			else
 			{
-				Action.template Process<FUniformLightMapPolicy, NumDynamicPointLights>(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_INDIRECT), Parameters.Mesh.LCI);
+				if (bUseCSM)
+				{
+					Action.template Process<FUniformLightMapPolicy, NumDynamicPointLights>(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_CSM_INDIRECT), Parameters.Mesh.LCI);
+				}
+				else
+				{
+					Action.template Process<FUniformLightMapPolicy, NumDynamicPointLights>(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_INDIRECT), Parameters.Mesh.LCI);
+				}
 			}
 
 			// Exit to avoid NoLightmapPolicy

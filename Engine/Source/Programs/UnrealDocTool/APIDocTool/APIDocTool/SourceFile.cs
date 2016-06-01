@@ -120,7 +120,7 @@ namespace APIDocTool
 
 			// Build a list of tokens
 			List<SourceToken> Tokens = new List<SourceToken>();
-			for (int Position = 0; Position < Text.Length;)
+			for (int Position = 0; Position < Text.Length; )
 			{
 				if (Char.IsWhiteSpace(Text[Position]))
 				{

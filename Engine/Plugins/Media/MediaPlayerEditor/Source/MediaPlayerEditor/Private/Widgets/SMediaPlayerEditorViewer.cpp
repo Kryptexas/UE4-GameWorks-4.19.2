@@ -614,7 +614,7 @@ FText SMediaPlayerEditorViewer::HandleRemainingTimeTextBlockText() const
 
 	if (Remaining <= FTimespan::Zero())
 	{
-		return FText::GetEmpty();
+		return FText::FromString(TEXT("--:--:--"));
 	}
 
 	return FText::AsTimespan(Remaining);

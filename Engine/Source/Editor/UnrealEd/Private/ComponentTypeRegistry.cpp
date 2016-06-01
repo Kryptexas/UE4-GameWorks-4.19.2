@@ -288,23 +288,22 @@ void FComponentTypeRegistryData::ForceRefreshComponentList()
 			// that the Asset Registry could just keep asset paths:
 			TArray<FAssetData> BlueprintAssetData;
 			AssetRegistryModule.Get().GetAssetsByClass(UBlueprint::StaticClass()->GetFName(), BlueprintAssetData);
+			TMap<FString, FAssetData> BlueprintNames;
+			for (const FAssetData& Blueprint : BlueprintAssetData)
+			{
+				const auto& name = Blueprint.AssetName.ToString();
+				BlueprintNames.Add(name, Blueprint);
+			}
 
-			for (auto OnDiskClass : OnDiskClasses)
+			for (const FName& OnDiskClass : OnDiskClasses)
 			{
 				FString FixedString = OnDiskClass.ToString();
 				FixedString.RemoveFromEnd(TEXT("_C"));
 
 				FAssetData AssetData;
+				if (const FAssetData* Value = BlueprintNames.Find(FixedString))
 				{
-					// find asset data for this unloaded class, this makes our logic n^2 and may provide opportunity for further performance improvement:
-					for (auto& Blueprint : BlueprintAssetData)
-					{
-						if (Blueprint.AssetName.ToString() == FixedString)
-						{
-							AssetData = Blueprint;
-							break;
-						}
-					}
+					AssetData = *Value;
 				}
 
 				FComponentTypeEntry Entry = { FixedString, AssetData.ObjectPath.ToString(), nullptr };

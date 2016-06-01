@@ -12,7 +12,7 @@
 #include "VisualLoggerRenderingActor.h"
 #include "VisualLoggerRenderingComponent.h"
 #include "DebugRenderSceneProxy.h"
-#include "STimeline.h"
+#include "SVisualLoggerTimeline.h"
 
 class UVisualLoggerRenderingComponent;
 class FVisualLoggerSceneProxy : public FDebugRenderSceneProxy

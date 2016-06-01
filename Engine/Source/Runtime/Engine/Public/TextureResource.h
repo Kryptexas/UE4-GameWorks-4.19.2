@@ -320,6 +320,8 @@ private:
 	/** Number of file I/O requests for current request														*/
 	int32					IORequestCount;
 
+	FThreadSafeCounter AsyncReallocateCounter;
+
 #if WITH_EDITORONLY_DATA
 	/** Pending async derived data streaming tasks															*/
 	TIndirectArray<FAsyncStreamDerivedMipTask> PendingAsyncStreamDerivedMipTasks;

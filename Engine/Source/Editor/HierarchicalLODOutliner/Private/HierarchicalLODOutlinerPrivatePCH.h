@@ -4,3 +4,4 @@
 
 #include "Core.h"
 #include "UnrealEd.h"
+#include "HierarchicalLODType.h"

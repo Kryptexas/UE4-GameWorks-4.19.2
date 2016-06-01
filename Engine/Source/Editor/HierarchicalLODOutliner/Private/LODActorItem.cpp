@@ -6,17 +6,19 @@
 #include "Engine/LODActor.h"
 #include "HLODOutliner.h"
 #include "HierarchicalLODUtilities.h"
+#include "HierarchicalLODUtilitiesModule.h"
 #include "ScopedTransaction.h"
 #include "SlateBasics.h"
 #include "TreeItemID.h"
 
 #define LOCTEXT_NAMESPACE "LODActorItem"
 
-HLODOutliner::FLODActorItem::FLODActorItem(ALODActor* InLODActor)
+HLODOutliner::FLODActorItem::FLODActorItem(const ALODActor* InLODActor)
 	: LODActor(InLODActor), ID(InLODActor)
 {
 	Type = ITreeItem::HierarchicalLODActor;
 }
+
 
 bool HLODOutliner::FLODActorItem::CanInteract() const
 {
@@ -33,19 +35,20 @@ void HLODOutliner::FLODActorItem::GenerateContextMenu(FMenuBuilder& MenuBuilder,
 
 	if (LODActor->IsDirty())
 	{
-		MenuBuilder.AddMenuEntry(LOCTEXT("BuildLODActorMesh", "Build LOD Mesh"), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateRaw(&Outliner, &SHLODOutliner::BuildLODActor)));
+		MenuBuilder.AddMenuEntry(LOCTEXT("BuildLODActorMesh", "Build Proxy Mesh"), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateRaw(&Outliner, &SHLODOutliner::BuildLODActor)));
 	}
 	else
 	{		
 		MenuBuilder.AddMenuEntry(LOCTEXT("ForceView", "ForceView"), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateRaw(&Outliner, &SHLODOutliner::ForceViewLODActor)));
-
-		MenuBuilder.AddMenuEntry(LOCTEXT("RebuildLODActorMesh", "Rebuild LOD Mesh"), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateRaw(&Outliner, &SHLODOutliner::RebuildLODActor)));
+		MenuBuilder.AddMenuEntry(LOCTEXT("RebuildLODActorMesh", "Rebuild Proxy Mesh"), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateRaw(&Outliner, &SHLODOutliner::RebuildLODActor)));
 	}
 
 	MenuBuilder.AddMenuEntry(LOCTEXT("CreateHLODVolume", "Create Containing Hierarchical Volume"), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateRaw(&Outliner, &SHLODOutliner::CreateHierarchicalVolumeForActor)));
 
 	AActor* Actor = LODActor.Get();
-	ALODActor* ParentActor = FHierarchicalLODUtilities::GetParentLODActor(Actor);
+	FHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<FHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");
+	IHierarchicalLODUtilities* Utilities = Module.GetUtilities();
+	ALODActor* ParentActor = Utilities->GetParentLODActor(Actor);
 	if (ParentActor && Parent.Pin()->GetTreeItemType() == TreeItemType::HierarchicalLODActor)
 	{		
 		MenuBuilder.AddMenuEntry(LOCTEXT("RemoveChildFromCluster", "Remove from cluster"), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateRaw(&Outliner, &SHLODOutliner::RemoveLODActorFromCluster)));
@@ -90,14 +93,53 @@ FSlateColor HLODOutliner::FLODActorItem::GetTint() const
 	return FLinearColor(1.0f, 1.0f, 1.0f);
 }
 
-FText HLODOutliner::FLODActorItem::GetNumTrianglesAsText() const
+FText HLODOutliner::FLODActorItem::GetRawNumTrianglesAsText() const
+{
+	if (LODActor.IsValid())
+	{
+		const uint32 SubActorsTriangleCount = LODActor->GetNumTrianglesInSubActors();
+		return FText::FromString(FString::FromInt(SubActorsTriangleCount));
+	}
+	else
+	{
+		return FText::FromString(TEXT("Not available"));
+	}
+}
+
+FText HLODOutliner::FLODActorItem::GetReducedNumTrianglesAsText() const
+{
+	if (LODActor.IsValid())
+	{
+		const uint32 MergedCount = LODActor->GetNumTrianglesInMergedMesh();
+		return FText::FromString(FString::FromInt(MergedCount));
+	}
+	else
+	{
+		return FText::FromString(TEXT("Not available"));
+	}
+}
+
+FText HLODOutliner::FLODActorItem::GetReductionPercentageAsText() const
 {
 	if (LODActor.IsValid())
 	{
 		const uint32 SubActorCount = LODActor->GetNumTrianglesInSubActors();
 		const uint32 MergedCount = LODActor->GetNumTrianglesInMergedMesh();
 		const float PercentageOfOriginal = ((float)MergedCount / (float)SubActorCount) * 100.0f;
-		return FText::FromString(FString::FromInt(SubActorCount) + TEXT(" (Original) - ") + FString::FromInt(MergedCount) + TEXT(" (Merged) - ") + FString::SanitizeFloat(PercentageOfOriginal) + "% (of Original)");
+		return  FText::FromString(((SubActorCount != 0) ? FString::SanitizeFloat(PercentageOfOriginal) : TEXT("0")) + "%");
+	}
+	else
+	{
+		return FText::FromString(TEXT("Not available"));
+	}
+	
+}
+
+FText HLODOutliner::FLODActorItem::GetLevelAsText() const
+{
+	if (LODActor.IsValid())
+	{
+		return FText::FromString(LODActor->SubActors.Num() ? LODActor->SubActors[0]->GetLevel()->GetOuter()->GetName() : TEXT(""));
 	}
 	else
 	{
@@ -119,12 +161,12 @@ void HLODOutliner::FLODActorItem::PopulateDragDropPayload(FDragDropPayload& Payl
 }
 
 HLODOutliner::FDragValidationInfo HLODOutliner::FLODActorItem::ValidateDrop(FDragDropPayload& DraggedObjects) const
-{
+{	
 	if (Parent.IsValid())
 	{
 		if (Parent.Pin()->GetTreeItemType() == ITreeItem::HierarchicalLODActor)
 		{
-			return FDragValidationInfo(FHLODOutlinerDragDropOp::ToolTip_Incompatible, LOCTEXT("CannotAddToChildCluster", "Cannot add to child cluster"));
+			return FDragValidationInfo(EHierarchicalLODActionType::InvalidAction, FHLODOutlinerDragDropOp::ToolTip_Incompatible, LOCTEXT("CannotAddToChildCluster", "Cannot Add to Child cluster"));
 		}
 	}
 
@@ -165,35 +207,49 @@ HLODOutliner::FDragValidationInfo HLODOutliner::FLODActorDropTarget::ValidateDro
 				{
 					if (DraggedObjects.StaticMeshActors->Num() > 1)
 					{
-						return FDragValidationInfo(FHLODOutlinerDragDropOp::ToolTip_MultipleSelection_CompatibleMoveToCluster, LOCTEXT("MoveMultipleToCluster", "Move Actors to Cluster"));
+						return FDragValidationInfo(EHierarchicalLODActionType::MoveActorToCluster, FHLODOutlinerDragDropOp::ToolTip_MultipleSelection_Compatible, LOCTEXT("MoveMultipleToCluster", "Move Actors to Cluster"));
 					}
 					else
 					{
-						return FDragValidationInfo(FHLODOutlinerDragDropOp::ToolTip_CompatibleMoveToCluster, LOCTEXT("MoveToCluster", "Move Actor to Cluster"));
+						return FDragValidationInfo(EHierarchicalLODActionType::MoveActorToCluster, FHLODOutlinerDragDropOp::ToolTip_Compatible, LOCTEXT("MoveToCluster", "Move Actor to Cluster"));
 					}
 				}
 				else
 				{
-					return FDragValidationInfo(FHLODOutlinerDragDropOp::ToolTip_Incompatible, LOCTEXT("AlreadyInCluster", "Cannot add to existing cluster"));
+					return FDragValidationInfo(EHierarchicalLODActionType::InvalidAction, FHLODOutlinerDragDropOp::ToolTip_Incompatible, LOCTEXT("AlreadyInCluster", "Cannot Add to Existing cluster"));
 				}
 			}
 			else
 			{
-				if (DraggedObjects.StaticMeshActors->Num() > 1)
+				TArray<AActor*> Actors;
+				for (auto StaticMeshActor : DraggedObjects.StaticMeshActors.GetValue())
 				{
-					return FDragValidationInfo(FHLODOutlinerDragDropOp::ToolTip_MultipleSelection_CompatibleAddToCluster, LOCTEXT("AddMultipleToCluster", "Add Actors to Cluster"));
+					Actors.Add(StaticMeshActor.Get());
+				}
+
+				Actors.Add(LODActor.Get());
+				
+				const bool MultipleActors = DraggedObjects.StaticMeshActors->Num() > 1;
+				FHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<FHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");
+				IHierarchicalLODUtilities* Utilities = Module.GetUtilities();
+				if (Utilities->AreActorsInSamePersistingLevel(Actors))
+				{
+					return FDragValidationInfo(EHierarchicalLODActionType::AddActorToCluster, 
+						MultipleActors ? FHLODOutlinerDragDropOp::ToolTip_MultipleSelection_Compatible : FHLODOutlinerDragDropOp::ToolTip_Compatible,
+						MultipleActors ? LOCTEXT("AddMultipleToCluster", "Add Actors to Cluster") : LOCTEXT("AddToCluster", "Add Actor to Cluster"));
 				}
 				else
 				{
-					return FDragValidationInfo(FHLODOutlinerDragDropOp::ToolTip_CompatibleAddToCluster, LOCTEXT("AddToCluster", "Add Actor to Cluster"));
-				}
-
+					return FDragValidationInfo(EHierarchicalLODActionType::InvalidAction,
+						MultipleActors ? FHLODOutlinerDragDropOp::ToolTip_MultipleSelection_Incompatible : FHLODOutlinerDragDropOp::ToolTip_Incompatible,
+						LOCTEXT("NotInSameLODLevel", "Actors are not all in the same persisting level"));
+				}				
 			}			
 		}
 
 		if (DraggedObjects.bSceneOutliner)
 		{
-			return FDragValidationInfo(FHLODOutlinerDragDropOp::ToolTip_Incompatible, LOCTEXT("AlreadyInHLOD", "Actor is already in one of the Hierarchical LOD clusters"));
+			return FDragValidationInfo(EHierarchicalLODActionType::InvalidAction, FHLODOutlinerDragDropOp::ToolTip_Incompatible, LOCTEXT("AlreadyInHLOD", "Actor is already in one of the Hierarchical LOD clusters"));
 		}
 	}
 	else if (DraggedObjects.LODActors.IsSet() && DraggedObjects.LODActors->Num() > 0)
@@ -204,7 +260,8 @@ HLODOutliner::FDragValidationInfo HLODOutliner::FLODActorDropTarget::ValidateDro
 			bool bValidForMerge = true;
 			bool bValidForChilding = true;
 			int32 FirstLODLevel = -1;
-			ULevel* Level = nullptr;
+			UObject* LevelOuter = nullptr;
+			UObject* SubActorOuter = (LODActor->SubActors.Num()) ? LODActor->SubActors[0]->GetOuter() : nullptr;
 
 			for (auto Actor : DraggedObjects.LODActors.GetValue())
 			{
@@ -237,34 +294,41 @@ HLODOutliner::FDragValidationInfo HLODOutliner::FLODActorDropTarget::ValidateDro
 					}		
 
 					// Check if in same level asset
-					if (Level == nullptr)
+					if (LevelOuter == nullptr)
 					{
-						Level = InLODActor->GetLevel();
+						LevelOuter = InLODActor->GetOuter();
 					}
-					else if (Level != InLODActor->GetLevel())
+					else if (LevelOuter != InLODActor->GetOuter())
 					{
 						bValidForMerge = false;
 						bValidForChilding = false;
 					}
+					
+					if (InLODActor->SubActors.Num() && SubActorOuter != InLODActor->SubActors[0]->GetOuter())
+					{
+						bValidForChilding = false;
+						bValidForMerge = false;
+					}					
+					
 				}
 			}
 
 			if (bValidForMerge)
 			{
-				return FDragValidationInfo((DraggedObjects.LODActors->Num() == 1) ? FHLODOutlinerDragDropOp::ToolTip_CompatibleMergeCluster : FHLODOutlinerDragDropOp::ToolTip_MultipleSelection_CompatibleMergeClusters, LOCTEXT("MergeHLODClusters", "Merge cluster(s)"));				
+				return FDragValidationInfo(EHierarchicalLODActionType::MergeClusters, (DraggedObjects.LODActors->Num() == 1) ? FHLODOutlinerDragDropOp::ToolTip_Compatible : FHLODOutlinerDragDropOp::ToolTip_MultipleSelection_Compatible, LOCTEXT("MergeHLODClusters", "Merge Cluster(s)"));
 			}
 			else if (bValidForChilding)
 			{
-				return FDragValidationInfo((DraggedObjects.LODActors->Num() == 1) ? FHLODOutlinerDragDropOp::ToolTip_CompatibleChildCluster : FHLODOutlinerDragDropOp::ToolTip_MultipleSelection_CompatibleChildClusters, LOCTEXT("ChildHLODClusters", "Child cluster(s)"));
+				return FDragValidationInfo(EHierarchicalLODActionType::ChildCluster, (DraggedObjects.LODActors->Num() == 1) ? FHLODOutlinerDragDropOp::ToolTip_Compatible : FHLODOutlinerDragDropOp::ToolTip_MultipleSelection_Compatible, LOCTEXT("ChildHLODClusters", "Add Child Cluster(s)"));
 			}
 			else
 			{
-				return FDragValidationInfo(FHLODOutlinerDragDropOp::ToolTip_Incompatible, LOCTEXT("InvalidOperation", "Invalid Operation"));//"Cannot merge clusters from different Hierarchical LOD levels"));
+				return FDragValidationInfo(EHierarchicalLODActionType::InvalidAction, FHLODOutlinerDragDropOp::ToolTip_Incompatible, LOCTEXT("InvalidOperation", "Invalid Operation"));
 			}
 		}
 	}
 
-	return FDragValidationInfo(FHLODOutlinerDragDropOp::ToolTip_Incompatible, LOCTEXT("NotImplemented", "Not implemented"));
+	return FDragValidationInfo(EHierarchicalLODActionType::InvalidAction, FHLODOutlinerDragDropOp::ToolTip_Incompatible, LOCTEXT("NotImplemented", "Not implemented"));
 }
 
 void HLODOutliner::FLODActorDropTarget::OnDrop(FDragDropPayload& DraggedObjects, const FDragValidationInfo& ValidationInfo, TSharedRef<SWidget> DroppedOnWidget)
@@ -275,79 +339,34 @@ void HLODOutliner::FLODActorDropTarget::OnDrop(FDragDropPayload& DraggedObjects,
 		return;
 	}
 
+	FHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<FHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");
+	IHierarchicalLODUtilities* Utilities = Module.GetUtilities();
+
 	auto& DraggedStaticMeshActors = DraggedObjects.StaticMeshActors.GetValue();
 	auto& DraggedLODActors = DraggedObjects.LODActors.GetValue();
-	if (ValidationInfo.TooltipType == FHLODOutlinerDragDropOp::ToolTip_CompatibleMoveToCluster || ValidationInfo.TooltipType == FHLODOutlinerDragDropOp::ToolTip_MultipleSelection_CompatibleMoveToCluster)
+	if (ValidationInfo.ActionType == EHierarchicalLODActionType::AddActorToCluster || ValidationInfo.ActionType == EHierarchicalLODActionType::MoveActorToCluster)
 	{
 		for (int32 ActorIndex = 0; ActorIndex < DraggedStaticMeshActors.Num(); ++ActorIndex)
 		{
 			auto Actor = DraggedStaticMeshActors[ActorIndex];
-			MoveToCluster(Actor.Get(), nullptr, LODActor.Get());
+			Utilities->AddActorToCluster(Actor.Get(), LODActor.Get());
 		}
 	}
-	else if (ValidationInfo.TooltipType == FHLODOutlinerDragDropOp::ToolTip_CompatibleAddToCluster || ValidationInfo.TooltipType == FHLODOutlinerDragDropOp::ToolTip_MultipleSelection_CompatibleAddToCluster)
-	{
-		for (int32 ActorIndex = 0; ActorIndex < DraggedStaticMeshActors.Num(); ++ActorIndex)
-		{
-			auto Actor = DraggedStaticMeshActors[ActorIndex];
-			AddToCluster(Actor.Get(), LODActor.Get());
-		}
-	}
-	else if (ValidationInfo.TooltipType == FHLODOutlinerDragDropOp::ToolTip_CompatibleMergeCluster || ValidationInfo.TooltipType == FHLODOutlinerDragDropOp::ToolTip_MultipleSelection_CompatibleMergeClusters)
+	else if (ValidationInfo.ActionType == EHierarchicalLODActionType::MergeClusters)
 	{
 		for (int32 ActorIndex = 0; ActorIndex < DraggedLODActors.Num(); ++ActorIndex)
 		{
-			ALODActor* InLODActor = Cast<ALODActor>(DraggedLODActors[ActorIndex].Get());
-			MergeCluster(InLODActor);
+			ALODActor* InLODActor = Cast<ALODActor>(DraggedLODActors[ActorIndex].Get());			
+			Utilities->MergeClusters(LODActor.Get(), InLODActor);
 		}
 	}
-	else if (ValidationInfo.TooltipType == FHLODOutlinerDragDropOp::ToolTip_CompatibleChildCluster || ValidationInfo.TooltipType == FHLODOutlinerDragDropOp::ToolTip_MultipleSelection_CompatibleChildClusters)
+	else if (ValidationInfo.ActionType == EHierarchicalLODActionType::ChildCluster)
 	{
 		for (int32 ActorIndex = 0; ActorIndex < DraggedLODActors.Num(); ++ActorIndex)
 		{
-			auto Actor = DraggedLODActors[ActorIndex];
-			MoveToCluster(Actor.Get(), nullptr, LODActor.Get());
+			auto Actor = DraggedLODActors[ActorIndex];			
+			Utilities->AddActorToCluster(Actor.Get(), LODActor.Get());
 		}
-	}
-}
-
-void HLODOutliner::FLODActorDropTarget::MoveToCluster(AActor* InActor, ALODActor* OldParentActor, ALODActor* NewParentActor)
-{
-	const FScopedTransaction Transaction(LOCTEXT("UndoAction_MoveActorBetweenClusters", "Move Actor between Clusters"));
-	InActor->Modify();
-	ALODActor* CurrentParentActor = (OldParentActor) ? OldParentActor : FHierarchicalLODUtilities::GetParentLODActor(InActor);
-	if (CurrentParentActor)
-	{
-		CurrentParentActor->Modify();
-		CurrentParentActor->RemoveSubActor(InActor);
-	}
-	
-	NewParentActor->Modify();
-	NewParentActor->AddSubActor(InActor);
-	
-	GEngine->BroadcastHLODActorMoved(InActor, NewParentActor);
-}
-
-void HLODOutliner::FLODActorDropTarget::AddToCluster(AActor* InActor, ALODActor* NewParentActor)
-{
-	const FScopedTransaction Transaction(LOCTEXT("UndoAction_AddActorToCluster", "Add Actor To Cluster"));
-	NewParentActor->Modify();
-	InActor->Modify();
-
-	NewParentActor->AddSubActor(InActor);
-	GEngine->BroadcastHLODActorAdded(InActor, NewParentActor);
-}
-
-void HLODOutliner::FLODActorDropTarget::MergeCluster(ALODActor* ToMergeActor)
-{
-	const FScopedTransaction Transaction(LOCTEXT("UndoAction_MergeClusters", "Merge Clusters"));
-	ToMergeActor->Modify();
-	LODActor->Modify();
-
-	while (ToMergeActor->SubActors.Num())
-	{
-		AActor* SubActor = ToMergeActor->SubActors.Last();
-		MoveToCluster(SubActor, ToMergeActor, LODActor.Get());
 	}
 }
 

@@ -62,6 +62,12 @@ void FFPSAnalyzer::AddSample( float FPSSample )
 	AveFPS = (FPSSample + (float)(Samples.Num()-1) * AveFPS) / (float)Samples.Num();
 }
 
+SIZE_T FFPSAnalyzer::GetMemoryUsage() const
+{
+	const SIZE_T MemoryAllocated = Samples.GetAllocatedSize() + Histogram.GetAllocatedSize();
+	return MemoryAllocated;
+}
+
 int32 FFPSAnalyzer::GetTotalCount()
 {
 	return Samples.Num();

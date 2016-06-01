@@ -240,11 +240,11 @@ public:
 	};
 
 	/*Set the pin visibility mode*/
-	virtual void SetPinVisibility(EPinVisibility Visibility)
+	virtual void SetPinVisibility(EPinVisibility InVisibility)
 	{
 		if (Implementation.IsValid())
 		{
-			Implementation->SetPinVisibility(Visibility);
+			Implementation->SetPinVisibility(InVisibility);
 		}
 	}
 
@@ -393,6 +393,15 @@ public:
 		if (Implementation.IsValid())
 		{
 			Implementation->AddNotification(Info, bSuccess);
+		}
+	}
+
+	/** Capture keyboard */
+	virtual void CaptureKeyboard()
+	{
+		if (Implementation.IsValid())
+		{
+			Implementation->CaptureKeyboard();
 		}
 	}
 

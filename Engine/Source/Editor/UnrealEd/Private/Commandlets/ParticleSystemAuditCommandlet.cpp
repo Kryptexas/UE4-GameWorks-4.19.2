@@ -52,6 +52,9 @@ bool UParticleSystemAuditCommandlet::ProcessParticleSystems()
 	AssetRegistry.SearchAllAssets(true);
 
 	FARFilter Filter;
+	Filter.PackagePaths.Add(TEXT("/Game"));
+	Filter.bRecursivePaths = true;
+
 	Filter.ClassNames.Add(UParticleSystem::StaticClass()->GetFName());
 	if (!FilterCollection.IsEmpty())
 	{

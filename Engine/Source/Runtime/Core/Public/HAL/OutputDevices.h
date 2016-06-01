@@ -150,9 +150,9 @@ protected:
 	uint8 Verbosity;
 	/** Holds the break flag **/
 	bool DebugBreakOnLog;
-	/** Holds default supression **/
+	/** Holds default suppression **/
 	uint8 DefaultVerbosity;
-	/** Holds compile time supression **/
+	/** Holds compile time suppression **/
 	uint8 CompileTimeVerbosity;
 	/** FName for this category **/
 	FName CategoryFName;
@@ -388,6 +388,9 @@ public:
 /** string added to the filename of timestamped backup log files */
 #define BACKUP_LOG_FILENAME_POSTFIX TEXT("-backup-")
 
+/** Used by FOutputDeviceFile to write to a file on a separate thread */
+class FAsyncWriter;
+
 /**
  * File output device (Note: Only works if ALLOW_LOG_FILE && !NO_LOGGING is true, otherwise Serialize does nothing).
  */
@@ -405,6 +408,7 @@ public:
 	/** Sets the filename that the output device writes to.  If the output device was already writing to a file, closes that file. */
 	void SetFilename(const TCHAR* InFilename);
 
+	//~ Begin FOutputDevice Interface.
 	/**
 	 * Closes output device and cleans up. This can't happen in the destructor
 	 * as we have to call "delete" which cannot be done for static/ global
@@ -419,26 +423,30 @@ public:
 	void Flush() override;
 
 	virtual void Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category, const double Time ) override;
-
 	virtual void Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category) override;
-
 	virtual bool CanBeUsedOnAnyThread() const override
 	{
 		return true;
 	}
+	//~ End FOutputDevice Interface.
+
+	/** Creates a backup copy of a log file if it already exists */
+	static void CreateBackupCopy(const TCHAR* Filename);
 
 private:
-	FArchive*	LogAr;
-	TCHAR		Filename[1024];
-	bool		Opened;
-	bool		Dead;
+
+	/** Writes to a file on a separate thread */
+	FAsyncWriter* AsyncWriter;
+	TCHAR Filename[1024];
+	bool Opened;
+	bool Dead;
 
 	/** If true, existing files will not be backed up */
 	bool		bDisableBackup;
 	
 	void WriteRaw( const TCHAR* C );
 
-	FArchive* CreateArchive(uint32 MaxAttempts = 32);
+	FAsyncWriter* CreateWriter(uint32 MaxAttempts = 32);
 
 	void WriteByteOrderMarkToArchive(EByteOrderMark ByteOrderMark);
 

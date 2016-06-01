@@ -25,6 +25,18 @@ private:
 	int32 StreamingIndex;
 
 public:
+
+	/*
+	 * Level scope index of this texture. It is used to reduce the amount of lookup to map a texture to its level index.
+	 * Useful when building texture streaming data, as well as when filling the texture streamer with precomputed data.
+     * It relates to FStreamingTextureBuildInfo::TextureLevelIndex and also the index in ULevel::StreamingTextureGuids. 
+	 * Default value of -1, indicates that the texture has an unknown index (not yet processed). At level load time, 
+	 * -2 is also used to indicate that the texture has been processed but no entry were found in the level table.
+	 * After any of these processes, the LevelIndex is reset to INDEX_NONE. Making it ready for the next level task.
+	 */
+	UPROPERTY(transient, duplicatetransient, NonTransactional)
+	int32 LevelIndex;
+
 	/** keep track of first mip level used for ResourceMem creation */
 	UPROPERTY()
 	int32 FirstResourceMemMip;

@@ -120,6 +120,9 @@ public:
 		AudioDevice = InAudioDevice;
 	}
 
+	/** Returns whether or not the active sound can be deleted. */
+	bool CanDelete() const { return !bAsyncOcclusionPending; }
+
 	FAudioDevice* AudioDevice;
 
 	/** The group of active concurrent sounds that this sound is playing in. */
@@ -137,8 +140,8 @@ public:
 	/** Whether or not the sound has checked if it was occluded already. Used to initialize a sound as occluded and bypassing occlusion interpolation. */
 	uint32 bHasCheckedOcclusion:1;
 
-	/** whether we were occluded the last time we checked */
-	uint32 bIsOccluded:1;
+	/** Flag to trigger binding our trace delegate for async trace calls */
+	uint32 bIsTraceDelegateBound:1;
 
 	/** Is this sound allowed to be spatialized? */
 	uint32 bAllowSpatialization:1;
@@ -191,6 +194,9 @@ public:
 	/** Whether or not this sound class forces sounds to the center channel */
 	uint32 bCenterChannelOnly:1;
 
+	/** Whether or not this active sound is a preview sound */
+	uint32 bIsPreviewSound:1;
+
 	/** Whether we have queried for the interior settings at least once */
 	uint32 bGotInteriorSettings:1;
 
@@ -203,6 +209,12 @@ public:
 	uint32 bEnableLowPassFilter : 1;
 	/** Whether or not to use an async trace for occlusion */
 	uint32 bOcclusionAsyncTrace : 1;
+
+	/** whether we were occluded the last time we checked */
+	FThreadSafeBool bIsOccluded;
+
+	/** Whether or not there is an async occlusion trace pending */
+	FThreadSafeBool bAsyncOcclusionPending;
 
 	uint8 UserIndex;
 

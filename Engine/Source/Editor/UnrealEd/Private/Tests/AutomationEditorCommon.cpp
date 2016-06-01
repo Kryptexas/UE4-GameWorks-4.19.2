@@ -96,11 +96,16 @@ namespace AutomationEditorCommonUtils
 				UTextureFactory::SuppressImportOverwriteDialog();
 			}
 
-			ImportedAsset = UFactory::StaticImportObject(ImportAssetType, Pkg, FName(*ObjectName), RF_Public | RF_Standalone, bDummy, *ImportPath, NULL, ImportFactory, NULL, GWarn, 0);
+			bool OutCanceled = false;
+			ImportedAsset = ImportFactory->ImportObject(ImportAssetType, Pkg, FName(*ObjectName), RF_Public | RF_Standalone, ImportPath, nullptr, OutCanceled);
 
-			if (ImportedAsset)
+			if (ImportedAsset != nullptr)
 			{
 				UE_LOG(LogAutomationEditorCommon, Display, TEXT("Imported %s"), *ImportPath);
+			}
+			else if (OutCanceled)
+			{
+				UE_LOG(LogAutomationEditorCommon, Display, TEXT("Canceled import of %s"), *ImportPath);
 			}
 			else
 			{
@@ -923,17 +928,25 @@ void FEditorAutomationTestUtilities::CollectGameContentTests(TArray<FString>& Ou
 	for (auto ObjIter = ObjectList.CreateConstIterator(); ObjIter; ++ObjIter)
 	{
 		const FAssetData& Asset = *ObjIter;
-		FString Filename = Asset.ObjectPath.ToString();
-
-		if (Filename.StartsWith("/Game"))
+		if (Asset.GetClass() == nullptr)
 		{
-			//convert to full paths
-			Filename = FPackageName::LongPackageNameToFilename(Filename);
-			if (FAutomationTestFramework::GetInstance().ShouldTestContent(Filename))
+			// a nullptr class is bad !
+			UE_LOG(LogAutomationEditorCommon, Warning, TEXT("GetClass for %s (%s) returned nullptr. Asset ignored"), *Asset.AssetName.ToString(), *Asset.ObjectPath.ToString());
+		}
+		else 
+		{
+			FString Filename = Asset.ObjectPath.ToString();
+
+			if (Filename.StartsWith("/Game"))
 			{
-				FString BeautifiedFilename = FString::Printf(TEXT("%s.%s"), *Asset.GetClass()->GetFName().ToString(), *Asset.AssetName.ToString());
-				OutBeautifiedNames.Add(BeautifiedFilename);
-				OutTestCommands.Add(Asset.ObjectPath.ToString());
+				//convert to full paths
+				Filename = FPackageName::LongPackageNameToFilename(Filename);
+				if (FAutomationTestFramework::GetInstance().ShouldTestContent(Filename))
+				{
+					FString BeautifiedFilename = FString::Printf(TEXT("%s.%s"), *Asset.GetClass()->GetFName().ToString(), *Asset.AssetName.ToString());
+					OutBeautifiedNames.Add(BeautifiedFilename);
+					OutTestCommands.Add(Asset.ObjectPath.ToString());
+				}
 			}
 		}
 	}

@@ -5,6 +5,7 @@
 #include "MovieSceneMaterialTrack.h"
 #include "ParameterSection.h"
 #include "MovieSceneParameterSection.h"
+#include "SequencerUtilities.h"
 
 
 #define LOCTEXT_NAMESPACE "MaterialTrackEditor"
@@ -25,36 +26,12 @@ TSharedRef<ISequencerSection> FMaterialTrackEditor::MakeSectionInterface( UMovie
 }
 
 
-TSharedPtr<SWidget> FMaterialTrackEditor::BuildOutlinerEditWidget( const FGuid& ObjectBinding, UMovieSceneTrack* Track )
+TSharedPtr<SWidget> FMaterialTrackEditor::BuildOutlinerEditWidget( const FGuid& ObjectBinding, UMovieSceneTrack* Track, const FBuildEditWidgetParams& Params )
 {
 	UMovieSceneMaterialTrack* MaterialTrack = Cast<UMovieSceneMaterialTrack>(Track);
-	return
-		SNew( SComboButton )
-		.ButtonStyle( FEditorStyle::Get(), "FlatButton.Light" )
-		.OnGetMenuContent( this, &FMaterialTrackEditor::OnGetAddParameterMenuContent, ObjectBinding, MaterialTrack )
-		.ContentPadding( FMargin( 2, 0 ) )
-		.ButtonContent()
-		[
-			SNew( SHorizontalBox )
+	FOnGetContent MenuContent = FOnGetContent::CreateSP(this, &FMaterialTrackEditor::OnGetAddParameterMenuContent, ObjectBinding, MaterialTrack);
 
-			+ SHorizontalBox::Slot()
-			.VAlign( VAlign_Center )
-			.AutoWidth()
-			[
-				SNew( STextBlock )
-				.Font( FEditorStyle::Get().GetFontStyle( "FontAwesome.8" ) )
-				.Text( FText::FromString( FString( TEXT( "\xf067" ) ) ) /*fa-plus*/ )
-			]
-
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
-			.Padding( 4, 0, 0, 0 )
-			[
-				SNew( STextBlock )
-				.Font( FEditorStyle::GetFontStyle( "Sequencer.AnimationOutliner.RegularFont" ) )
-				.Text( LOCTEXT( "AddTrackButton", "Parameter" ) )
-			]
-		];
+	return FSequencerUtilities::MakeAddButton(LOCTEXT( "AddParameterButton", "Parameter" ), MenuContent, Params.NodeIsHovered);
 }
 
 
@@ -198,8 +175,13 @@ bool FComponentMaterialTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> 
 
 UMaterialInterface* FComponentMaterialTrackEditor::GetMaterialInterfaceForTrack( FGuid ObjectBinding, UMovieSceneMaterialTrack* MaterialTrack )
 {
-	UObject* ComponentObject = GetSequencer()->GetFocusedMovieSceneSequenceInstance()->FindObject( ObjectBinding, *GetSequencer() );
-	UPrimitiveComponent* Component = Cast<UPrimitiveComponent>( ComponentObject );
+	TSharedPtr<ISequencer> Sequencer = GetSequencer();
+	if (!Sequencer.IsValid())
+	{
+		return nullptr;
+	}
+
+	UPrimitiveComponent* Component = Cast<UPrimitiveComponent>(Sequencer->FindSpawnedObjectOrTemplate( ObjectBinding ));
 	UMovieSceneComponentMaterialTrack* ComponentMaterialTrack = Cast<UMovieSceneComponentMaterialTrack>( MaterialTrack );
 	if ( Component != nullptr && ComponentMaterialTrack != nullptr )
 	{

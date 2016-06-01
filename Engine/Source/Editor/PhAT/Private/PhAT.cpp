@@ -1,5 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
+#include "PhATPrivatePCH.h"
 #include "PhATModule.h"
 #include "AssetSelection.h"
 #include "ScopedTransaction.h"
@@ -32,6 +33,10 @@
 #include "Engine/StaticMesh.h"
 #include "EngineLogs.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
+#include "PersonaModule.h"
+
+const FName PhATAppIdentifier = FName(TEXT("PhATApp"));
+
 DEFINE_LOG_CATEGORY(LogPhAT);
 #define LOCTEXT_NAMESPACE "PhAT"
 
@@ -227,43 +232,42 @@ void FPhAT::InitPhAT(const EToolkitMode::Type Mode, const TSharedPtr< class IToo
 
 	CreateInternalWidgets();
 
-	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_PhAT_Layout_v2")
+	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_PhAT_Layout_v3")
 	->AddArea
 	(
 		FTabManager::NewPrimaryArea()
-		->SetOrientation(Orient_Vertical)
+		->SetOrientation(Orient_Horizontal)
 		->Split
 		(
 			FTabManager::NewStack()
-			->SetSizeCoefficient(0.1f)
-			->SetHideTabWell(true)
-			->AddTab(GetToolbarTabId(), ETabState::OpenedTab)
+			->SetSizeCoefficient(0.2f)
+			->AddTab(PhATHierarchyName, ETabState::OpenedTab)
 		)
 		->Split
 		(
 			FTabManager::NewSplitter()
-			->SetSizeCoefficient(0.9f)
-			->SetOrientation(Orient_Horizontal)
+			->SetOrientation(Orient_Vertical)
+			->SetSizeCoefficient(0.6f)
 			->Split
 			(
-				FTabManager::NewStack() 
-				->SetSizeCoefficient(0.8f)
+				FTabManager::NewStack()
+				->SetSizeCoefficient(0.1f)
+				->SetHideTabWell(true)
+				->AddTab(GetToolbarTabId(), ETabState::OpenedTab)
+			)
+			->Split
+			(
+				FTabManager::NewStack()
+				->SetSizeCoefficient(0.9f)
+				->SetHideTabWell(true)
 				->AddTab(PhATPreviewViewportName, ETabState::OpenedTab)
 			)
-			->Split
-			(
-				FTabManager::NewSplitter()
-				->SetSizeCoefficient(0.2f)
-				->Split
-				(
-					FTabManager::NewStack() ->AddTab(PhATPropertiesName, ETabState::OpenedTab)
-				)
-				->Split
-				(
-					FTabManager::NewStack() ->AddTab(PhATHierarchyName, ETabState::OpenedTab)
-				)
-
-			)
+		)
+		->Split
+		(
+			FTabManager::NewStack()
+			->SetSizeCoefficient(0.2f)
+			->AddTab(PhATPropertiesName, ETabState::OpenedTab)
 		)
 	);
 
@@ -634,7 +638,7 @@ void FPhAT::CreateInternalWidgets()
 	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	Properties = PropertyModule.CreateDetailView( Args );
 	Properties->SetObject(SharedData->EditorSimOptions);
-
+	Properties->OnFinishedChangingProperties().AddSP(this, &FPhAT::OnFinishedChangingProperties);
 
 	HierarchyControl = 
 	SNew(SBorder)
@@ -657,6 +661,20 @@ void FPhAT::CreateInternalWidgets()
 			.DefaultLabel( LOCTEXT( "Hierarchy", "Hierarchy" ) )
 		)
 	];
+}
+
+void FPhAT::OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent)
+{
+	FName PropertyName = (PropertyChangedEvent.Property != NULL) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+
+	// Update bounds bodies and setup when bConsiderForBounds was changed
+	if ((PropertyName == GET_MEMBER_NAME_CHECKED(UBodySetup, bConsiderForBounds)))
+	{
+		SharedData->PhysicsAsset->UpdateBoundsBodiesArray();
+		SharedData->PhysicsAsset->UpdateBodySetupIndexMap();
+	}
+
+	RefreshPreviewViewport();
 }
 
 FText FPhAT::GetRepeatLastSimulationToolTip() const
@@ -3202,9 +3220,19 @@ bool FPhAT::IsRecordAvailable() const
 	return (SharedData->EditorSkelComp && SharedData->EditorSkelComp->SkeletalMesh/* && SharedData->bRunningSimulation */);
 }
 
+bool FPhAT::IsRecording() const
+{
+	FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>(TEXT("Persona"));
+
+	bool bInRecording = false;
+	PersonaModule.OnIsRecordingActive().ExecuteIfBound(SharedData->EditorSkelComp, bInRecording);
+
+	return bInRecording;
+}
+
 FSlateIcon FPhAT::GetRecordStatusImage() const
 {
-	if(SharedData->Recorder.InRecording())
+	if(IsRecording())
 	{
 		return FSlateIcon(FEditorStyle::GetStyleSetName(), "Persona.StopRecordAnimation");
 	}
@@ -3214,17 +3242,17 @@ FSlateIcon FPhAT::GetRecordStatusImage() const
 
 FText FPhAT::GetRecordMenuLabel() const
 {
-	if(SharedData->Recorder.InRecording())
+	if(IsRecording())
 	{
 		return LOCTEXT("Persona_StopRecordAnimationMenuLabel", "Stop Record Animation");
 	}
 
-	return LOCTEXT("Persona_StartRecordAnimationLabel", "Start Record Animation");
+	return LOCTEXT("Persona_StartRecordAnimationMenuLabel", "Start Record Animation");
 }
 
 FText FPhAT::GetRecordStatusLabel() const
 {
-	if(SharedData->Recorder.InRecording())
+	if(IsRecording())
 	{
 		return LOCTEXT("Persona_StopRecordAnimationLabel", "Stop");
 	}
@@ -3234,7 +3262,7 @@ FText FPhAT::GetRecordStatusLabel() const
 
 FText FPhAT::GetRecordStatusTooltip() const
 {
-	if(SharedData->Recorder.InRecording())
+	if(IsRecording())
 	{
 		return LOCTEXT("Persona_StopRecordAnimation", "Stop Record Animation");
 	}
@@ -3250,23 +3278,15 @@ void FPhAT::RecordAnimation()
 		return;
 	}
 
-	if(SharedData->Recorder.InRecording())
+	FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>(TEXT("Persona"));
+
+	if(IsRecording())
 	{
-		UAnimSequence * AnimSeq = SharedData->Recorder.StopRecord(true);
-
-		// open the asset?
-		if (AnimSeq)
-		{
-			TArray<UObject*> ObjectsToSync;
-			ObjectsToSync.Add(AnimSeq);
-
-			FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-			ContentBrowserModule.Get().SyncBrowserToAssets(ObjectsToSync, true);
-		}
+		PersonaModule.OnStopRecording().ExecuteIfBound(SharedData->EditorSkelComp);
 	}
 	else
 	{
-		SharedData->Recorder.TriggerRecordAnimation(SharedData->EditorSkelComp);
+		PersonaModule.OnRecord().ExecuteIfBound(SharedData->EditorSkelComp);
 	}
 }
 

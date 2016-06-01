@@ -28,6 +28,11 @@ public:
 		return FontTexture;
 	}
 
+	virtual TSharedPtr<ISlateFontTexture> CreateNonAtlasedTexture(const uint32 InWidth, const uint32 InHeight, const TArray<uint8>& InRawData) const override
+	{
+		return nullptr;
+	}
+
 private:
 
 	/** Size of each font texture, width and height */
@@ -65,7 +70,7 @@ FSlateDrawBuffer& FSlateOpenGLRenderer::GetDrawBuffer()
 	return DrawBuffer;
 }
 
-void FSlateOpenGLRenderer::Initialize()
+bool FSlateOpenGLRenderer::Initialize()
 {
 	SharedContext.Initialize( NULL, NULL );
 
@@ -85,6 +90,8 @@ void FSlateOpenGLRenderer::Initialize()
 
 	// Create rendering resources if needed
 	RenderingPolicy->ConditionalInitializeResources();
+
+	return true;
 }
 
 /** 

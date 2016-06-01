@@ -75,6 +75,9 @@ DECLARE_MULTICAST_DELEGATE(FOnGameplayAbilityCancelled);
 /** Used to notify ability state tasks that a state is being ended */
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnGameplayAbilityStateEnded, FName);
 
+/** Used to delay execution until we leave a critical section */
+DECLARE_DELEGATE(FPostLockDelegate);
+
 /** TriggerData */
 USTRUCT()
 struct FAbilityTriggerData
@@ -104,6 +107,7 @@ class GAMEPLAYABILITIES_API UGameplayAbility : public UObject, public IGameplayT
 
 	friend class UAbilitySystemComponent;
 	friend class UGameplayAbilitySet;
+	friend struct FScopedTargetListLock;
 
 public:
 
@@ -201,6 +205,9 @@ public:
 	void RemoveGrantedByEffect();
 
 	/** Returns an effect context, given a specified actor info */
+	virtual FGameplayEffectContextHandle MakeEffectContext(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo *ActorInfo) const;
+
+	DEPRECATED(4.12, "GetEffectContext is deprecated, use MakeEffectContext")
 	virtual FGameplayEffectContextHandle GetEffectContext(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo *ActorInfo) const;
 
 	virtual UWorld* GetWorld() const override
@@ -260,17 +267,12 @@ public:
 	// --------------------------------------
 	//	IGameplayTaskOwnerInterface
 	// --------------------------------------	
-	/** setup additional properties if given task is an AbilityTask */
-	virtual void OnTaskInitialized(UGameplayTask& Task) override;
-	/** Called by an ability task, originating from this ability, when it starts */
-	virtual void OnTaskActivated(UGameplayTask& Task) override;
-
-	/** Called by an ability task, originating from this ability, when it ends */
-	virtual void OnTaskDeactivated(UGameplayTask& Task) override;
-
 	virtual UGameplayTasksComponent* GetGameplayTasksComponent(const UGameplayTask& Task) const override;
-	virtual AActor* GetOwnerActor(const UGameplayTask* Task) const override;
-	virtual AActor* GetAvatarActor(const UGameplayTask* Task) const override;
+	virtual AActor* GetGameplayTaskOwner(const UGameplayTask* Task) const override;
+	virtual AActor* GetGameplayTaskAvatar(const UGameplayTask* Task) const override;
+	virtual void OnGameplayTaskInitialized(UGameplayTask& Task) override;
+	virtual void OnGameplayTaskActivated(UGameplayTask& Task) override;
+	virtual void OnGameplayTaskDeactivated(UGameplayTask& Task) override;
 
 	// --------------------------------------
 	//	Input
@@ -292,6 +294,9 @@ public:
 
 	/** Destroys instanced-per-execution abilities. Instance-per-actor abilities should 'reset'. Any active ability state tasks receive the 'OnAbilityStateInterrupted' event. Non instance abilities - what can we do? */
 	virtual void CancelAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateCancelAbility);
+
+	/** Returns true if an an ability should be activated */
+	virtual bool ShouldActivateAbility(ENetRole Role) const;
 
 protected:
 
@@ -475,18 +480,18 @@ protected:
 	TArray<FActiveGameplayEffectHandle> K2_ApplyGameplayEffectToTarget(FGameplayAbilityTargetDataHandle TargetData, const UGameplayEffect* GameplayEffect, int32 GameplayEffectLevel = 1, int32 Stacks = 1);
 
 	/** Non blueprintcallable, safe to call on CDO/NonInstance abilities */
-	TArray<FActiveGameplayEffectHandle> ApplyGameplayEffectToTarget(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, FGameplayAbilityTargetDataHandle Target, TSubclassOf<UGameplayEffect> GameplayEffectClass, float GameplayEffectLevel, int32 Stacks = 1) const;
+	TArray<FActiveGameplayEffectHandle> ApplyGameplayEffectToTarget(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayAbilityTargetDataHandle& Target, TSubclassOf<UGameplayEffect> GameplayEffectClass, float GameplayEffectLevel, int32 Stacks = 1) const;
 
 	UFUNCTION(BlueprintCallable, Category = Ability, DisplayName = "ApplyGameplayEffectSpecToTarget")
 	TArray<FActiveGameplayEffectHandle> K2_ApplyGameplayEffectSpecToTarget(const FGameplayEffectSpecHandle EffectSpecHandle, FGameplayAbilityTargetDataHandle TargetData);
 
-	TArray<FActiveGameplayEffectHandle> ApplyGameplayEffectSpecToTarget(const FGameplayAbilitySpecHandle AbilityHandle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEffectSpecHandle SpecHandle, FGameplayAbilityTargetDataHandle TargetData) const;
+	TArray<FActiveGameplayEffectHandle> ApplyGameplayEffectSpecToTarget(const FGameplayAbilitySpecHandle AbilityHandle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEffectSpecHandle SpecHandle, const FGameplayAbilityTargetDataHandle& TargetData) const;
 
 	// ---------
 	// Remove Self
 	// ---------
 	
-	/** Removes GAmeplayEffects from owner which match the given asset level tags. */
+	/** Removes GameplayEffects from owner which match the given asset level tags. */
 	UFUNCTION(BlueprintCallable, Category = Ability, DisplayName="RemoveGameplayEffectFromOwnerWithAssetTags")
 	void BP_RemoveGameplayEffectFromOwnerWithAssetTags(FGameplayTagContainer WithAssetTags, int32 StacksToRemove = -1);
 
@@ -584,7 +589,7 @@ public:
 	UAnimMontage* GetCurrentMontage() const;
 
 	/** Call to set/get the current montage from a montage task. Set to allow hooking up montage events to ability events */
-	void SetCurrentMontage(class UAnimMontage* InCurrentMontage);
+	virtual void SetCurrentMontage(class UAnimMontage* InCurrentMontage);
 
 	/** Returns true if this ability can be canceled */
 	virtual bool CanBeCanceled() const;
@@ -629,7 +634,22 @@ public:
 	/** Called by ability system component to inform this ability instance the remote instance was ended */
 	void SetRemoteInstanceHasEnded();
 
+	/** Called to inform the ability that the AvatarActor has been replaced. If the ability is dependant on avatar state, it may want to end itself. */
+	void NotifyAvatarDestroyed();
+
 	void NotifyAbilityTaskWaitingOnPlayerData(class UAbilityTask* AbilityTask);
+
+	void NotifyAbilityTaskWaitingOnAvatar(class UAbilityTask* AbilityTask);
+
+	UFUNCTION(BlueprintCallable, Category = Ability)
+	float GetCooldownTimeRemaining() const;
+
+	/** 
+	 * Invalidates the current prediction key. This should be used in cases where there is a valid prediction window, but the server is doing logic that only he can do, and afterwards performs an action that the client could predict (had the client been able to run the server-only code prior).
+	 * This returns instantly and has no other side effects other than clearing the current prediction key.
+	 */ 
+	UFUNCTION(BlueprintCallable, Category = Ability)
+	void InvalidateClientPredictionKey() const;
 
 protected:
 
@@ -684,9 +704,6 @@ protected:
 	/** Deprecated. Use CooldownGameplayEffectClass instead */
 	UPROPERTY(VisibleDefaultsOnly, Category=Deprecated)
 	class UGameplayEffect* CooldownGameplayEffect;
-
-	UFUNCTION(BlueprintCallable, Category = Ability)
-	float GetCooldownTimeRemaining() const; 
 	
 	// ----------------------------------------------------------------------------------------------------------------
 	//
@@ -839,6 +856,18 @@ protected:
 	/** True if the ability is currently cancelable, if not will only be canceled by hard EndAbility calls */
 	UPROPERTY()
 	bool bIsCancelable;
+
+	/** A count of all the current scope locks. */
+	mutable int8 ScopeLockCount;
+
+	/** A list of all the functions waiting for the scope lock to end so they can run. */
+	mutable TArray<FPostLockDelegate> WaitingToExecute;
+
+	/** Increases the scope lock count. */
+	void IncrementListLock() const;
+
+	/** Decreases the scope lock count. Runs the waiting to execute delegates if the count drops to zero. */
+	void DecrementListLock() const;
 
 	/** True if the ability block flags are currently enabled */
 	UPROPERTY()

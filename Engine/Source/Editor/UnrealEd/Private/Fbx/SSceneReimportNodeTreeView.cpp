@@ -122,11 +122,13 @@ public:
 	SLATE_BEGIN_ARGS(SFbxReimportSceneTreeViewItem)
 		: _FbxNodeInfo(nullptr)
 		, _NodeStatusMap(nullptr)
+		, _SceneInfo(nullptr)
 	{}
 
 	/** The item content. */
 	SLATE_ARGUMENT(FbxNodeInfoPtr, FbxNodeInfo)
 	SLATE_ARGUMENT(FbxSceneReimportStatusMapPtr, NodeStatusMap)
+	SLATE_ARGUMENT(TSharedPtr<FFbxSceneInfo>, SceneInfo)
 	SLATE_END_ARGS()
 
 	/**
@@ -138,15 +140,42 @@ public:
 	{
 		FbxNodeInfo = InArgs._FbxNodeInfo;
 		NodeStatusMap = InArgs._NodeStatusMap;
+		SceneInfo = InArgs._SceneInfo;
 		
 		//This is suppose to always be valid
 		check(FbxNodeInfo.IsValid());
 		check(NodeStatusMap != nullptr);
+		check(SceneInfo.IsValid());
 
 		UClass *IconClass = AActor::StaticClass();
 		if (FbxNodeInfo->AttributeInfo.IsValid())
 		{
-			IconClass = FbxNodeInfo->AttributeInfo->GetType();
+			if(!FbxNodeInfo->AttributeInfo->bOriginalTypeChanged)
+				IconClass = FbxNodeInfo->AttributeInfo->GetType();
+		}
+		else if (FbxNodeInfo->AttributeType.Compare(TEXT("eLight")) == 0)
+		{
+			IconClass = ULightComponent::StaticClass();
+			if (SceneInfo->LightInfo.Contains(FbxNodeInfo->AttributeUniqueId))
+			{
+				TSharedPtr<FFbxLightInfo> LightInfo = *SceneInfo->LightInfo.Find(FbxNodeInfo->AttributeUniqueId);
+				if (LightInfo->Type == 0)
+				{
+					IconClass = UPointLightComponent::StaticClass();
+				}
+				else if (LightInfo->Type == 1)
+				{
+					IconClass = UDirectionalLightComponent::StaticClass();
+				}
+				else if (LightInfo->Type == 2)
+				{
+					IconClass = USpotLightComponent::StaticClass();
+				}
+			}
+		}
+		else if (FbxNodeInfo->AttributeType.Compare(TEXT("eCamera")) == 0)
+		{
+			IconClass = UCameraComponent::StaticClass();
 		}
 		const FSlateBrush* ClassIcon = FClassIconFinder::FindIconForClass(IconClass);
 
@@ -154,6 +183,7 @@ public:
 		[
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
+			.Padding(2.0f, 0.0f, 2.0f, 0.0f)
 			.AutoWidth()
 			[
 				SNew(SCheckBox)
@@ -213,8 +243,11 @@ private:
 		{
 			EFbxSceneReimportStatusFlags ReimportFlags = *NodeStatusMap->Find(FbxNodeInfo->NodeHierarchyPath);
 			//The remove only should not be possible this is why there is no remove only case
-
-			if ((ReimportFlags & EFbxSceneReimportStatusFlags::Added) != EFbxSceneReimportStatusFlags::None)
+			if(FbxNodeInfo->AttributeInfo.IsValid() && FbxNodeInfo->AttributeInfo->bOriginalTypeChanged)
+			{
+				TooltipText += LOCTEXT("SFbxReimportSceneTreeViewItem_TypeChangedTooltip", " type has changed, only the transform can be reimport.").ToString();
+			}
+			else if ((ReimportFlags & EFbxSceneReimportStatusFlags::Added) != EFbxSceneReimportStatusFlags::None)
 			{
 				TooltipText += LOCTEXT("SFbxReimportSceneTreeViewItem_AddedTooltip", " Will be add to the blueprint hierarchy.").ToString();
 			}
@@ -253,18 +286,68 @@ private:
 		return SlateBrush;
 	}
 
+	void RecursivelySetLODMeshImportState(TSharedPtr<FFbxNodeInfo> NodeInfo, bool bState)
+	{
+		//Set the bImportNode property for all mesh under eLODGroup
+		for (TSharedPtr<FFbxNodeInfo> ChildNodeInfo : NodeInfo->Childrens)
+		{
+			if (!ChildNodeInfo.IsValid())
+				continue;
+			if (ChildNodeInfo->AttributeType.Compare(TEXT("eMesh")) == 0)
+			{
+				EFbxSceneReimportStatusFlags *StatusFlag = NodeStatusMap->Find(ChildNodeInfo->NodeHierarchyPath);
+				if (bState)
+				{
+					*StatusFlag = *StatusFlag | EFbxSceneReimportStatusFlags::ReimportAsset;
+				}
+				else
+				{
+					*StatusFlag = *StatusFlag & ~EFbxSceneReimportStatusFlags::ReimportAsset;
+				}
+			}
+			else
+			{
+				RecursivelySetLODMeshImportState(ChildNodeInfo, bState);
+			}
+		}
+	}
+
 	void OnItemCheckChanged(ECheckBoxState CheckType)
 	{
 		if (!FbxNodeInfo.IsValid() || !NodeStatusMap->Contains(FbxNodeInfo->NodeHierarchyPath))
 			return;
+		bool bNewState = CheckType == ECheckBoxState::Checked;
 		EFbxSceneReimportStatusFlags *StatusFlag = NodeStatusMap->Find(FbxNodeInfo->NodeHierarchyPath);
-		if (CheckType == ECheckBoxState::Checked)
+		if (bNewState)
 		{
 			*StatusFlag = *StatusFlag | EFbxSceneReimportStatusFlags::ReimportAsset;
 		}
 		else
 		{
 			*StatusFlag = *StatusFlag & ~EFbxSceneReimportStatusFlags::ReimportAsset;
+		}
+
+		if (FbxNodeInfo->AttributeType.Compare(TEXT("eLODGroup")) == 0)
+		{
+			RecursivelySetLODMeshImportState(FbxNodeInfo, bNewState);
+		}
+		if (FbxNodeInfo->AttributeType.Compare(TEXT("eMesh")) == 0)
+		{
+			//Verify if parent is a LOD group
+			TSharedPtr<FFbxNodeInfo> ParentLODNodeInfo = FFbxSceneInfo::RecursiveFindLODParentNode(FbxNodeInfo);
+			if (ParentLODNodeInfo.IsValid())
+			{
+				EFbxSceneReimportStatusFlags *ParentStatusFlag = NodeStatusMap->Find(ParentLODNodeInfo->NodeHierarchyPath);
+				if (bNewState)
+				{
+					*ParentStatusFlag = *ParentStatusFlag | EFbxSceneReimportStatusFlags::ReimportAsset;
+				}
+				else
+				{
+					*ParentStatusFlag = *ParentStatusFlag & ~EFbxSceneReimportStatusFlags::ReimportAsset;
+				}
+				RecursivelySetLODMeshImportState(ParentLODNodeInfo, bNewState);
+			}
 		}
 	}
 
@@ -281,13 +364,15 @@ private:
 	FbxNodeInfoPtr FbxNodeInfo;
 
 	FbxSceneReimportStatusMapPtr NodeStatusMap;
+	TSharedPtr<FFbxSceneInfo> SceneInfo;
 };
 
 TSharedRef< ITableRow > SFbxReimportSceneTreeView::OnGenerateRowFbxSceneTreeView(FbxNodeInfoPtr Item, const TSharedRef< STableViewBase >& OwnerTable)
 {
 	TSharedRef< SFbxReimportSceneTreeViewItem > ReturnRow = SNew(SFbxReimportSceneTreeViewItem, OwnerTable)
 		.FbxNodeInfo(Item)
-		.NodeStatusMap(NodeStatusMap);
+		.NodeStatusMap(NodeStatusMap)
+		.SceneInfo(SceneInfo);
 	return ReturnRow;
 }
 
@@ -296,27 +381,73 @@ void SFbxReimportSceneTreeView::OnGetChildrenFbxSceneTreeView(FbxNodeInfoPtr InP
 	check(NodeTreeData.Contains(InParent));
 	TSharedPtr<FTreeNodeValue> NodeValue = *(NodeTreeData.Find(InParent));
 	TArray<FString> ChildNames;
+	TArray<FString> ChildProcess;
 	//Current node contain the add and same node
 	if (NodeValue->CurrentNode.IsValid())
 	{
-		for (FbxNodeInfoPtr Child : NodeValue->CurrentNode->Childrens)
+		if (NodeValue->CurrentNode->AttributeType.Compare(TEXT("eLODGroup")) == 0 && NodeValue->CurrentNode->Childrens.Num() > 0)
 		{
-			if (Child.IsValid())
+			TSharedPtr<FFbxNodeInfo> Child = NodeValue->CurrentNode;
+			do
 			{
-				ChildNames.Add(Child->NodeName);
-				OutChildren.Add(Child);
+				Child = Child->Childrens[0];
+				if (Child.IsValid() && Child->AttributeType.Compare(TEXT("eMesh")) == 0)
+				{
+					ChildNames.Add(Child->NodeName);
+					ChildProcess.Add(Child->NodeName);
+					OutChildren.Add(Child);
+					return;
+				}
+			} while (Child->Childrens.Num() > 0);
+			//We do not found any LOD mesh don't add any child
+		}
+		else
+		{
+			for (FbxNodeInfoPtr Child : NodeValue->CurrentNode->Childrens)
+			{
+				if (Child.IsValid() && (Child->AttributeType.Compare(TEXT("eMesh")) != 0 || Child->AttributeInfo.IsValid()))
+				{
+					ChildNames.Add(Child->NodeName);
+					ChildProcess.Add(Child->NodeName);
+					OutChildren.Add(Child);
+				}
+				else if(Child.IsValid() && Child->AttributeType.Compare(TEXT("eMesh")) == 0)
+				{
+					ChildProcess.Add(Child->NodeName);
+				}
 			}
 		}
 	}
+
 	//Original node is use for finding the remove nodes
 	if (NodeValue->OriginalNode.IsValid())
 	{
-		for (FbxNodeInfoPtr Child : NodeValue->OriginalNode->Childrens)
+		if (NodeValue->OriginalNode->AttributeType.Compare(TEXT("eLODGroup")) == 0 && NodeValue->OriginalNode->Childrens.Num() > 0)
 		{
-			//We have a delete node
-			if (Child.IsValid() && !ChildNames.Contains(Child->NodeName))
+			TSharedPtr<FFbxNodeInfo> Child = NodeValue->OriginalNode;
+			do
 			{
-				OutChildren.Add(Child);
+				Child = Child->Childrens[0];
+				if (Child.IsValid() && Child->AttributeType.Compare(TEXT("eMesh")) == 0)
+				{
+					if (!ChildProcess.Contains(Child->NodeName))
+					{
+						OutChildren.Add(Child);
+					}
+					return;
+				}
+			} while (Child->Childrens.Num() > 0);
+			//We do not found any LOD mesh don't add any child
+		}
+		else
+		{
+			for (FbxNodeInfoPtr Child : NodeValue->OriginalNode->Childrens)
+			{
+				//We have a delete node
+				if (Child.IsValid() && !ChildProcess.Contains(Child->NodeName))
+				{
+					OutChildren.Add(Child);
+				}
 			}
 		}
 	}

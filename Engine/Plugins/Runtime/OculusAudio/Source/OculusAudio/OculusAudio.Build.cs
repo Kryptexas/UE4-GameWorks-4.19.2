@@ -37,7 +37,7 @@ namespace UnrealBuildTool.Rules
 				RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/Oculus/Audio/Win64/ovraudio64.dll"));
             }
 
-            AddThirdPartyPrivateStaticDependencies(Target, "DX11Audio");
+            AddEngineThirdPartyPrivateStaticDependencies(Target, "DX11Audio");
 		}
 	}
 }

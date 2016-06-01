@@ -23,8 +23,60 @@ namespace UnrealBuildTool
 			return base.GetActiveArchitecture();
 		}
 
+		private bool IsVulkanSDKAvailable()
+		{
+			bool bHaveVulkan = false;
+
+			// First look for VulkanSDK (two possible env variables)
+			string VulkanSDKPath = Environment.GetEnvironmentVariable("VULKAN_SDK");
+			if (String.IsNullOrEmpty(VulkanSDKPath))
+			{
+				VulkanSDKPath = Environment.GetEnvironmentVariable("VK_SDK_PATH");
+			}
+
+			// Note: header is the same for all architectures so just use arch-arm
+			string NDKPath = Environment.GetEnvironmentVariable("NDKROOT");
+			string NDKVulkanIncludePath = NDKPath + "/android-24/arch-arm/usr/include/vulkan";
+
+			// Use NDK Vulkan header if discovered, or VulkanSDK if available
+			if (File.Exists(NDKVulkanIncludePath + "/vulkan.h"))
+			{
+				bHaveVulkan = true;
+			}
+			else
+			if (!String.IsNullOrEmpty(VulkanSDKPath))
+			{
+				bHaveVulkan = true;
+			}
+
+			return bHaveVulkan;
+		}
+
+		private bool IsVulkanSupportEnabled()
+		{
+			ConfigCacheIni Ini = new ConfigCacheIni(UnrealTargetPlatform.Android, "Engine", DirectoryReference.FromFile(ProjectFile));
+			bool bSupportsVulkan = false;
+			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bSupportsVulkan", out bSupportsVulkan);
+
+			return bSupportsVulkan;
+		}
+
 		public override void AddExtraModules(TargetInfo Target, List<string> PlatformExtraModules)
 		{
+			bool bVulkanExists = IsVulkanSDKAvailable();
+			if (bVulkanExists)
+			{
+				bool bSupportsVulkan = IsVulkanSupportEnabled();
+				
+				if (bSupportsVulkan)
+				{
+					PlatformExtraModules.Add("VulkanRHI");
+				}
+				else
+				{
+					Log.TraceInformationOnce("Vulkan SDK is installed, but the project disabled Vulkan (bSupportsVulkan setting in Engine). Disabling Vulkan RHI for Android");
+				}
+			}
 		}
 
 		/// <summary>
@@ -42,14 +94,10 @@ namespace UnrealBuildTool
 		{
 			ValidateUEBuildConfiguration();
 			//BuildConfiguration.bDeployAfterCompile = true;
-
-			UEBuildConfiguration.bCompileICU = true;
 		}
 
 		public override void ValidateUEBuildConfiguration()
 		{
-			BuildConfiguration.bUseUnityBuild = true;
-
 			UEBuildConfiguration.bCompileLeanAndMeanUE = true;
 			UEBuildConfiguration.bCompilePhysX = true;
 			UEBuildConfiguration.bCompileAPEX = false;
@@ -58,7 +106,7 @@ namespace UnrealBuildTool
 			UEBuildConfiguration.bBuildEditor = false;
 			UEBuildConfiguration.bBuildDeveloperTools = false;
 			UEBuildConfiguration.bCompileSimplygon = false;
-            UEBuildConfiguration.bCompileSimplygonSSF = false;
+			UEBuildConfiguration.bCompileSimplygonSSF = false;
 
 			UEBuildConfiguration.bCompileRecast = true;
 
@@ -78,14 +126,13 @@ namespace UnrealBuildTool
 
 			string GccVersion = "4.6";
 			int NDKVersionInt = ToolChain.GetNdkApiLevelInt();
+			if (Directory.Exists(Path.Combine(NDKPath, @"sources/cxx-stl/gnu-libstdc++/4.9")))
+			{
+				GccVersion = "4.9";
+			} else
 			if (Directory.Exists(Path.Combine(NDKPath, @"sources/cxx-stl/gnu-libstdc++/4.8")))
 			{
 				GccVersion = "4.8";
-			}
-			// only use 4.9 if NDK version > 19
-			if (NDKVersionInt > 19 && Directory.Exists(Path.Combine(NDKPath, @"sources/cxx-stl/gnu-libstdc++/4.9")))
-			{
-				GccVersion = "4.9";
 			}
 
 			Log.TraceInformation("NDK version: {0}, GccVersion: {1}", NDKVersionInt.ToString(), GccVersion);
@@ -122,12 +169,6 @@ namespace UnrealBuildTool
 			InBuildTarget.GlobalCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add("$(NDKROOT)/sources/android/native_app_glue");
 			InBuildTarget.GlobalCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add("$(NDKROOT)/sources/android/cpufeatures");
 
-			// Add path to statically compiled version of cxa_demangle
-			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Android/cxa_demangle/armeabi-v7a");
-			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Android/cxa_demangle/arm64-v8a");
-			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Android/cxa_demangle/x86");
-			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Android/cxa_demangle/x64");
-
 			//@TODO: Tegra Gfx Debugger - standardize locations - for now, change the hardcoded paths and force this to return true to test
 			if (UseTegraGraphicsDebugger(InBuildTarget))
 			{
@@ -150,11 +191,21 @@ namespace UnrealBuildTool
 			}
 			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("OpenSLES");
 			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("android");
-			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("cxa_demangle");
 
 			UEBuildConfiguration.bCompileSimplygon = false;
-            UEBuildConfiguration.bCompileSimplygonSSF = false;
+			UEBuildConfiguration.bCompileSimplygonSSF = false;
 			BuildConfiguration.bDeployAfterCompile = true;
+
+			bool bBuildWithVulkan = IsVulkanSDKAvailable() && IsVulkanSupportEnabled();
+			if (bBuildWithVulkan)
+			{
+				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_ANDROID_VULKAN=1");
+                Log.TraceInformationOnce("building with VULKAN define");
+			}
+			else
+			{
+				Log.TraceInformationOnce("building WITHOUT VULKAN define");
+			}
 		}
 
 		private bool UseTegraGraphicsDebugger(UEBuildTarget InBuildTarget)
@@ -238,10 +289,10 @@ namespace UnrealBuildTool
 		{
 			string[] BoolKeys = new string[] {
 				"bBuildForArmV7", "bBuildForArm64", "bBuildForX86", "bBuildForX8664", 
-				"bBuildForES2", "bBuildForES31",
+				"bBuildForES2", "bBuildForES31", "bSupportsVulkan",
 			};
 
-			// look up iOS specific settings
+			// look up Android specific settings
 			if (!DoProjectSettingsMatchDefault(Platform, ProjectPath, "/Script/AndroidRuntimeSettings.AndroidRuntimeSettings",
 				BoolKeys, null, null))
 			{
@@ -388,7 +439,7 @@ namespace UnrealBuildTool
 
 		protected override string GetRequiredSDKString()
 		{
-			return "-19";
+			return "-21";
 		}
 
 		protected override String GetRequiredScriptVersionString()
@@ -484,7 +535,8 @@ namespace UnrealBuildTool
 			NDKPath = NDKPath.Replace("\"", "");
 
 			// need a supported llvm
-			if (!Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.6")) &&
+			if (!Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm")) &&
+				!Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.6")) &&
 				!Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.5")) &&
 				!Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.3")) &&
 				!Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.1")))

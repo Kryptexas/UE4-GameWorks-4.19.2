@@ -573,10 +573,10 @@ bool UUnrealEdEngine::HandleUpdateLandscapeEditorDataCommand( const TCHAR* Str, 
 								// From MoveToLevelTool
 								FromProxy->CollisionComponents.Remove(Collision);
 								Collision->UnregisterComponent();
-								Collision->DetachFromParent(true);
+								Collision->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 								Collision->Rename(NULL, DestProxy);
 								DestProxy->CollisionComponents.Add(Collision);
-								Collision->AttachTo( DestProxy->GetRootComponent(), NAME_None, EAttachLocation::KeepWorldPosition );
+								Collision->AttachToComponent(DestProxy->GetRootComponent(), FAttachmentTransformRules::KeepWorldTransform);
 								SelectProxies.Add(FromProxy);
 								SelectProxies.Add(DestProxy);
 							}
@@ -1285,12 +1285,13 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 			{
 				TArray<FColor> OutImageData;
 				FIntVector OutImageSize;
-				FSlateApplication::Get().TakeScreenshot(InWidget,OutImageData,OutImageSize);
-
-				FString FileName;
-				const FString BaseFileName = FPaths::ScreenShotDir() / TEXT("EditorScreenshot");
-				FFileHelper::GenerateNextBitmapFilename(BaseFileName, TEXT("bmp"), FileName);
-				FFileHelper::CreateBitmap(*FileName, OutImageSize.X, OutImageSize.Y, OutImageData.GetData());
+				if (FSlateApplication::Get().TakeScreenshot(InWidget, OutImageData, OutImageSize))
+				{
+					FString FileName;
+					const FString BaseFileName = FPaths::ScreenShotDir() / TEXT("EditorScreenshot");
+					FFileHelper::GenerateNextBitmapFilename(BaseFileName, TEXT("bmp"), FileName);
+					FFileHelper::CreateBitmap(*FileName, OutImageSize.X, OutImageSize.Y, OutImageData.GetData());
+				}
 			}
 		};
 

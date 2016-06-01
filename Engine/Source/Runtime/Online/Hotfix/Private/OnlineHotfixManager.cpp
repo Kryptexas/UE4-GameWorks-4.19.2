@@ -9,38 +9,38 @@ DEFINE_LOG_CATEGORY(LogHotfixManager);
 
 FName NAME_HotfixManager(TEXT("HotfixManager"));
 
-struct FHotfixManagerExec :
-	public FSelfRegisteringExec
+class FPakFileVisitor : public IPlatformFile::FDirectoryVisitor
 {
-	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override
+public:
+	virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) override
 	{
-		if (FParse::Command(&Cmd, TEXT("HOTFIX")))
+		if (!bIsDirectory)
 		{
-			UOnlineHotfixManager* HotfixManager = UOnlineHotfixManager::Get(InWorld);
-			if (HotfixManager != nullptr)
-			{
-				HotfixManager->StartHotfixProcess();
-			}
-			return true;
+			Files.Add(FilenameOrDirectory);
 		}
-		return false;
+		return true;
 	}
+
+	TArray<FString> Files;
 };
-static FHotfixManagerExec HotfixManagerExec;
 
 UOnlineHotfixManager::UOnlineHotfixManager() :
 	Super(),
 	TotalFiles(0),
 	NumDownloaded(0),
 	TotalBytes(0),
-	NumBytes(0)
+	NumBytes(0),
+	bHotfixingInProgress(false),
+	bHotfixNeedsMapReload(false),
+	ChangedOrRemovedPakCount(0)
 {
 	OnEnumerateFilesCompleteDelegate = FOnEnumerateFilesCompleteDelegate::CreateUObject(this, &UOnlineHotfixManager::OnEnumerateFilesComplete);
 	OnReadFileProgressDelegate = FOnReadFileProgressDelegate::CreateUObject(this, &UOnlineHotfixManager::OnReadFileProgress);
 	OnReadFileCompleteDelegate = FOnReadFileCompleteDelegate::CreateUObject(this, &UOnlineHotfixManager::OnReadFileComplete);
-	// So we only try to apply files for this platform
-	PlatformPrefix = ANSI_TO_TCHAR(FPlatformProperties::PlatformName());
-	PlatformPrefix += TEXT("_");
+#if !UE_BUILD_SHIPPING
+	bLogMountedPakContents = FParse::Param(FCommandLine::Get(), TEXT("LogHotfixPakContents"));
+#endif
+	GameContentPath = FString() / FApp::GetGameName() / TEXT("Content");
 }
 
 UOnlineHotfixManager* UOnlineHotfixManager::Get(UWorld* World)
@@ -73,18 +73,27 @@ void UOnlineHotfixManager::PostInitProperties()
 #if !UE_BUILD_SHIPPING
 	FParse::Value(FCommandLine::Get(), TEXT("HOTFIXPREFIX="), DebugPrefix);
 #endif
+	// So we only try to apply files for this platform
+	PlatformPrefix = DebugPrefix + ANSI_TO_TCHAR(FPlatformProperties::PlatformName());
+	PlatformPrefix += TEXT("_");
+	// Build the default prefix too
+	DefaultPrefix = DebugPrefix + TEXT("Default");
+
 	Super::PostInitProperties();
 }
 
 void UOnlineHotfixManager::Init()
 {
+	bHotfixingInProgress = true;
+	bHotfixNeedsMapReload = false;
 	TotalFiles = 0;
 	NumDownloaded = 0;
 	TotalBytes = 0;
 	NumBytes = 0;
+	ChangedOrRemovedPakCount = 0;
 	// Build the name of the loc file that we'll care about
 	// It can change at runtime so build it just before fetching the data
-	GameLocName = FInternationalization::Get().GetCurrentCulture()->GetTwoLetterISOLanguageName() + TEXT("_Game.locres");
+	GameLocName = DebugPrefix + FInternationalization::Get().GetCurrentCulture()->GetTwoLetterISOLanguageName() + TEXT("_Game.locres");
 	OnlineTitleFile = Online::GetTitleFileInterface(OSSName.Len() ? FName(*OSSName, FNAME_Find) : NAME_None);
 	if (OnlineTitleFile.IsValid())
 	{
@@ -106,15 +115,23 @@ void UOnlineHotfixManager::Cleanup()
 		OnlineTitleFile->ClearOnReadFileCompleteDelegate_Handle(OnReadFileCompleteDelegateHandle);
 	}
 	OnlineTitleFile = nullptr;
+	bHotfixingInProgress = false;
 }
 
 void UOnlineHotfixManager::StartHotfixProcess()
 {
 	// Patching the editor this way seems like a bad idea
-	if (!IsRunningGame())
+	bool bShouldHotfix = IsRunningGame() || IsRunningDedicatedServer() || IsRunningClientOnly();
+	if (!bShouldHotfix)
 	{
-		UE_LOG(LogHotfixManager, Warning, TEXT("Hotfixing skipped due to IsRunningGame() == false"));
+		UE_LOG(LogHotfixManager, Warning, TEXT("Hotfixing skipped when not running game/server"));
 		TriggerHotfixComplete(EHotfixResult::SuccessNoChange);
+		return;
+	}
+
+	if (bHotfixingInProgress)
+	{
+		UE_LOG(LogHotfixManager, Warning, TEXT("Hotfixing already in progress"));
 		return;
 	}
 
@@ -133,33 +150,74 @@ void UOnlineHotfixManager::StartHotfixProcess()
 
 struct FHotfixFileSortPredicate
 {
-	const FString PlatformName;
+	struct FHotfixFileNameSortPredicate
+	{
+		const FString PlatformPrefix;
+		const FString DefaultPrefix;
 
-	FHotfixFileSortPredicate(const FString& InPlatformName) :
-		PlatformName(InPlatformName)
+		FHotfixFileNameSortPredicate(const FString& InPlatformPrefix, const FString& InDefaultPrefix) :
+			PlatformPrefix(InPlatformPrefix),
+			DefaultPrefix(InDefaultPrefix)
+		{
+		}
+
+		bool Compare(const FString& A, const FString& B) const
+		{
+			bool bAIsIni = A.EndsWith(TEXT("INI"));
+			bool bBIsIni = B.EndsWith(TEXT("INI"));
+			if (bAIsIni && bBIsIni)
+			{
+				bool bAStartsWithDefault = A.StartsWith(DefaultPrefix);
+				bool bBStartsWithDefault = B.StartsWith(DefaultPrefix);
+				bool bAStartsWithPlatformName = A.StartsWith(PlatformPrefix);
+				bool bBStartsWithPlatformName = B.StartsWith(PlatformPrefix);
+				// Sort any file with Default in front of the Platform version so they apply in correct order
+				if (bAStartsWithDefault && bBStartsWithPlatformName)
+				{
+					return true;
+				}
+				else if (bAStartsWithPlatformName && bBStartsWithDefault)
+				{
+					return false;
+				}
+				// Sort any Default/Platform INIs before other INIs
+				else if ((bAStartsWithDefault || bAStartsWithPlatformName) && !(bBStartsWithDefault || bBStartsWithPlatformName))
+				{
+					return true;
+				}
+				else if (!(bAStartsWithDefault || bAStartsWithPlatformName) && (bBStartsWithDefault || bBStartsWithPlatformName))
+				{
+					return false;
+				}
+			}
+			// Sort all INI files before non-INI files
+			else if (bAIsIni && !bBIsIni)
+			{
+				return true;
+			}
+			else if (!bAIsIni && bBIsIni)
+			{
+				return false;
+			}
+			// Sort by the string order
+			return A < B;
+		}
+	};
+	FHotfixFileNameSortPredicate FileNameSorter;
+
+	FHotfixFileSortPredicate(const FString& InPlatformPrefix, const FString& InDefaultPrefix) :
+		FileNameSorter(InPlatformPrefix, InDefaultPrefix)
 	{
 	}
 
 	bool operator()(const FCloudFileHeader &A, const FCloudFileHeader &B) const
 	{
-		if (A.FileName.EndsWith(TEXT("INI")) && B.FileName.EndsWith(TEXT("INI")))
-		{
-			bool bAStartsWithDefault = A.FileName.StartsWith(TEXT("Default"));
-			bool bBStartsWithDefault = B.FileName.StartsWith(TEXT("Default"));
-			bool bAStartsWithPlatformName = A.FileName.StartsWith(PlatformName);
-			bool bBStartsWithPlatformName = B.FileName.StartsWith(PlatformName);
-			// Sort any file with Default in front of the Platform version so they apply in correct order
-			if (bAStartsWithDefault && bBStartsWithPlatformName)
-			{
-				return true;
-			}
-			else if (bAStartsWithPlatformName && bBStartsWithDefault)
-			{
-				return false;
-			}
-		}
-		// Sort by the string order
-		return A < B;
+		return FileNameSorter.Compare(A.FileName, B.FileName);
+	}
+
+	bool operator()(const FString& A, const FString& B) const
+	{
+		return FileNameSorter.Compare(FPaths::GetCleanFilename(A), FPaths::GetCleanFilename(B));
 	}
 };
 
@@ -174,14 +232,22 @@ void UOnlineHotfixManager::OnEnumerateFilesComplete(bool bWasSuccessful)
 		// Get the new header data
 		OnlineTitleFile->GetFileList(HotfixFileList);
 		FilterHotfixFiles();
+		// Reduce the set of work to just the files that changed since last run
+		BuildHotfixFileListDeltas();
 		// Sort after filtering so that the comparison below doesn't fail to different order from the server
-		HotfixFileList.Sort<FHotfixFileSortPredicate>(FHotfixFileSortPredicate(PlatformPrefix));
-		if (LastHotfixFileList.Num() == 0 || LastHotfixFileList != HotfixFileList)
+		ChangedHotfixFileList.Sort<FHotfixFileSortPredicate>(FHotfixFileSortPredicate(PlatformPrefix, DefaultPrefix));
+		// Perform any undo operations needed
+		if (ChangedHotfixFileList.Num() > 0 || RemovedHotfixFileList.Num() > 0)
 		{
+			RestoreBackupIniFiles();
 			UnmountHotfixFiles();
+		}
+		// Read any changed files
+		if (ChangedHotfixFileList.Num() > 0)
+		{
 			// Update our totals for our progress delegates
-			TotalFiles = HotfixFileList.Num();
-			for (auto FileHeader : HotfixFileList)
+			TotalFiles = ChangedHotfixFileList.Num();
+			for (auto& FileHeader : ChangedHotfixFileList)
 			{
 				TotalBytes += FileHeader.FileSize;
 			}
@@ -200,6 +266,139 @@ void UOnlineHotfixManager::OnEnumerateFilesComplete(bool bWasSuccessful)
 	}
 }
 
+void UOnlineHotfixManager::CheckAvailability(FOnHotfixAvailableComplete& InCompletionDelegate)
+{
+	// Checking for hotfixes in editor is not supported
+	bool bShouldHotfix = IsRunningGame() || IsRunningDedicatedServer() || IsRunningClientOnly();
+	if (!bShouldHotfix)
+	{
+		UE_LOG(LogHotfixManager, Warning, TEXT("Hotfixing availability skipped when not running game/server"));
+		InCompletionDelegate.ExecuteIfBound(EHotfixResult::SuccessNoChange);
+		return;
+	}
+
+	if (bHotfixingInProgress)
+	{
+		UE_LOG(LogHotfixManager, Warning, TEXT("Hotfixing availability skipped because hotfix in progress"));
+		InCompletionDelegate.ExecuteIfBound(EHotfixResult::Failed);
+		return;
+	}
+
+	OnlineTitleFile = Online::GetTitleFileInterface(OSSName.Len() ? FName(*OSSName, FNAME_Find) : NAME_None);
+
+	FOnEnumerateFilesCompleteDelegate OnEnumerateFilesForAvailabilityCompleteDelegate;
+	OnEnumerateFilesForAvailabilityCompleteDelegate.BindUObject(this, &UOnlineHotfixManager::OnEnumerateFilesForAvailabilityComplete, InCompletionDelegate);
+	OnEnumerateFilesForAvailabilityCompleteDelegateHandle = OnlineTitleFile->AddOnEnumerateFilesCompleteDelegate_Handle(OnEnumerateFilesForAvailabilityCompleteDelegate);
+
+	bHotfixingInProgress = true;
+
+	// Kick off an enumeration of the files that are available to download
+	if (OnlineTitleFile.IsValid())
+	{
+		OnlineTitleFile->EnumerateFiles();
+	}
+	else
+	{
+		UE_LOG(LogHotfixManager, Error, TEXT("Failed to start the hotfix check process due to no OnlineTitleInterface present for OSS(%s)"), *OSSName);
+		TriggerHotfixComplete(EHotfixResult::Failed);
+	}
+}
+
+void UOnlineHotfixManager::OnEnumerateFilesForAvailabilityComplete(bool bWasSuccessful, FOnHotfixAvailableComplete InCompletionDelegate)
+{
+	if (OnlineTitleFile.IsValid())
+	{
+		OnlineTitleFile->ClearOnEnumerateFilesCompleteDelegate_Handle(OnEnumerateFilesForAvailabilityCompleteDelegateHandle);
+	}
+	
+	EHotfixResult Result = EHotfixResult::Failed;
+	if (bWasSuccessful)
+	{
+		TArray<FCloudFileHeader> TmpHotfixFileList;
+		TArray<FCloudFileHeader> TmpLastHotfixFileList;
+
+		TmpHotfixFileList = HotfixFileList;
+		TmpLastHotfixFileList = LastHotfixFileList;
+
+		// Cache our current set so we can compare for differences
+		LastHotfixFileList = HotfixFileList;
+		HotfixFileList.Empty();
+		// Get the new header data
+		OnlineTitleFile->GetFileList(HotfixFileList);
+		FilterHotfixFiles();
+		// Reduce the set of work to just the files that changed since last run
+		BuildHotfixFileListDeltas();
+
+		// Read any changed files
+		if (ChangedHotfixFileList.Num() > 0 || RemovedHotfixFileList.Num() > 0)
+		{
+			UE_LOG(LogHotfixManager, Display, TEXT("Hotfix files available"));
+			Result = EHotfixResult::Success;
+		}
+		else
+		{
+			UE_LOG(LogHotfixManager, Display, TEXT("Returned hotfix data is the same as last application, returning nothing to do"));
+			Result = EHotfixResult::SuccessNoChange;
+		}
+
+		// Restore state to before the check
+		RemovedHotfixFileList.Empty();
+		ChangedHotfixFileList.Empty();
+		HotfixFileList = TmpHotfixFileList;
+		LastHotfixFileList = TmpLastHotfixFileList;
+	}
+	else
+	{
+		UE_LOG(LogHotfixManager, Error, TEXT("Enumeration of hotfix files failed"));
+	}
+
+	OnlineTitleFile = nullptr;
+	bHotfixingInProgress = false;
+	InCompletionDelegate.ExecuteIfBound(Result);
+}
+
+void UOnlineHotfixManager::BuildHotfixFileListDeltas()
+{
+	RemovedHotfixFileList.Empty();
+	ChangedHotfixFileList.Empty();
+	// Go through the current list and see if it's changed from the previous attempt
+	for (auto& CurrentHeader : HotfixFileList)
+	{
+		bool bFoundMatch = false;
+		for (auto& LastHeader : LastHotfixFileList)
+		{
+			if (LastHeader == CurrentHeader)
+			{
+				bFoundMatch = true;
+				break;
+			}
+		}
+		if (!bFoundMatch)
+		{
+			// We're different so add to the process list
+			ChangedHotfixFileList.Add(CurrentHeader);
+		}
+	}
+	// Find any files that have been removed from the set of hotfix files
+	for (auto& LastHeader : LastHotfixFileList)
+	{
+		bool bFoundMatch = false;
+		for (auto& CurrentHeader : HotfixFileList)
+		{
+			if (LastHeader.FileName == CurrentHeader.FileName)
+			{
+				bFoundMatch = true;
+				break;
+			}
+		}
+		if (!bFoundMatch)
+		{
+			// We've been removed so add to the removed list
+			RemovedHotfixFileList.Add(LastHeader);
+		}
+	}
+}
+
 void UOnlineHotfixManager::FilterHotfixFiles()
 {
 	for (int32 Idx = 0; Idx < HotfixFileList.Num(); Idx++)
@@ -214,16 +413,16 @@ void UOnlineHotfixManager::FilterHotfixFiles()
 
 void UOnlineHotfixManager::ReadHotfixFiles()
 {
-	if (HotfixFileList.Num())
+	if (ChangedHotfixFileList.Num())
 	{
 		check(OnlineTitleFile.IsValid());
 		// Kick off a read for each file
 		// Do this in two passes so already cached files don't trigger completion
-		for (auto FileHeader : HotfixFileList)
+		for (auto& FileHeader : ChangedHotfixFileList)
 		{
 			PendingHotfixFiles.Add(FileHeader.DLName, FPendingFileDLProgress());
 		}
-		for (auto FileHeader : HotfixFileList)
+		for (auto& FileHeader : ChangedHotfixFileList)
 		{
 			OnlineTitleFile->ReadFile(FileHeader.DLName);
 		}
@@ -267,14 +466,11 @@ void UOnlineHotfixManager::UpdateProgress(uint32 FileCount, uint64 UpdateSize)
 	NumBytes += UpdateSize;
 	// Update our progress
 	TriggerOnHotfixProgressDelegates(NumDownloaded, TotalFiles, NumBytes, TotalBytes);
-
-	UE_LOG(LogHotfixManager, Display, TEXT("NumFiles (%d), TotalFiles (%d), NumBytes (%d), TotalBytes(%d)"),
-		NumDownloaded, TotalFiles, NumBytes, TotalBytes);
 }
 
 void UOnlineHotfixManager::ApplyHotfix()
 {
-	for (auto FileHeader : HotfixFileList)
+	for (auto& FileHeader : ChangedHotfixFileList)
 	{
 		if (!ApplyHotfixProcessing(FileHeader))
 		{
@@ -282,9 +478,22 @@ void UOnlineHotfixManager::ApplyHotfix()
 			TriggerHotfixComplete(EHotfixResult::Failed);
 			return;
 		}
+		// Let anyone listening know we just processed this file
+		TriggerOnHotfixProcessedFileDelegates(FileHeader.FileName, GetCachedDirectory() / FileHeader.DLName);
 	}
 	UE_LOG(LogHotfixManager, Display, TEXT("Hotfix data has been successfully applied"));
-	TriggerHotfixComplete(EHotfixResult::Success);
+	EHotfixResult Result = EHotfixResult::Success;
+	if (ChangedOrRemovedPakCount > 0)
+	{
+		UE_LOG(LogHotfixManager, Display, TEXT("Hotfix has changed or removed PAK files so a relaunch of the app is needed"));
+		Result = EHotfixResult::SuccessNeedsRelaunch;
+	}
+	else if (bHotfixNeedsMapReload)
+	{
+		UE_LOG(LogHotfixManager, Display, TEXT("Hotfix has detected PAK files containing currently loaded maps, so a level load is needed"));
+		Result = EHotfixResult::SuccessNeedsReload;
+	}
+	TriggerHotfixComplete(Result);
 }
 
 void UOnlineHotfixManager::TriggerHotfixComplete(EHotfixResult HotfixResult)
@@ -300,21 +509,14 @@ void UOnlineHotfixManager::TriggerHotfixComplete(EHotfixResult HotfixResult)
 
 bool UOnlineHotfixManager::WantsHotfixProcessing(const FCloudFileHeader& FileHeader)
 {
-#if !UE_BUILD_SHIPPING
-	if (!DebugPrefix.IsEmpty() && !FileHeader.FileName.StartsWith(DebugPrefix))
-	{
-		// Allow filtering of files by individual or group for testing
-		return false;
-	}
-#endif
 	const FString Extension = FPaths::GetExtension(FileHeader.FileName);
 	if (Extension == TEXT("INI"))
 	{
-		return FileHeader.FileName.StartsWith(PlatformPrefix) || FileHeader.FileName.StartsWith(TEXT("Default"));
+		return FileHeader.FileName.StartsWith(PlatformPrefix) || FileHeader.FileName.StartsWith(DefaultPrefix);
 	}
 	else if (Extension == TEXT("PAK"))
 	{
-		return FileHeader.FileName.StartsWith(PlatformPrefix);
+		return FileHeader.FileName.Find(PlatformPrefix) != -1;
 	}
 	return FileHeader.FileName == GameLocName;
 }
@@ -348,23 +550,32 @@ bool UOnlineHotfixManager::ApplyHotfixProcessing(const FCloudFileHeader& FileHea
 	return bSuccess;
 }
 
-FConfigFile* UOnlineHotfixManager::GetConfigFile(const FString& IniName)
+FString UOnlineHotfixManager::GetStrippedConfigFileName(const FString& IniName)
 {
 	FString StrippedIniName(IniName);
-#if !UE_BUILD_SHIPPING
-	if (!DebugPrefix.IsEmpty() && StrippedIniName.StartsWith(DebugPrefix))
-	{
-		StrippedIniName = IniName.Right(StrippedIniName.Len() - DebugPrefix.Len());
-	}
-#endif
 	if (StrippedIniName.StartsWith(PlatformPrefix))
 	{
 		StrippedIniName = IniName.Right(StrippedIniName.Len() - PlatformPrefix.Len());
 	}
-	if (StrippedIniName.StartsWith(TEXT("Default")))
+	else if (StrippedIniName.StartsWith(DefaultPrefix))
 	{
-		StrippedIniName = IniName.Right(StrippedIniName.Len() - 7);
+		StrippedIniName = IniName.Right(StrippedIniName.Len() - DefaultPrefix.Len());
 	}
+	else if (StrippedIniName.StartsWith(DebugPrefix))
+	{
+		StrippedIniName = IniName.Right(StrippedIniName.Len() - DebugPrefix.Len());
+	}
+	return StrippedIniName;
+}
+
+FString UOnlineHotfixManager::GetConfigFileNamePath(const FString& IniName)
+{
+	return FPaths::GeneratedConfigDir() + ANSI_TO_TCHAR(FPlatformProperties::PlatformName()) / IniName;
+}
+
+FConfigFile* UOnlineHotfixManager::GetConfigFile(const FString& IniName)
+{
+	FString StrippedIniName(GetStrippedConfigFileName(IniName));
 	FConfigFile* ConfigFile = nullptr;
 	// Look for the first matching INI file entry
 	for (TMap<FString, FConfigFile>::TIterator It(*GConfig); It; ++It)
@@ -378,7 +589,7 @@ FConfigFile* UOnlineHotfixManager::GetConfigFile(const FString& IniName)
 	// If not found, add this file to the config cache
 	if (ConfigFile == nullptr)
 	{
-		const FString IniNameWithPath = FPaths::GeneratedConfigDir() + StrippedIniName;
+		const FString IniNameWithPath = GetConfigFileNamePath(StrippedIniName);
 		FConfigFile Empty;
 		GConfig->SetFile(IniNameWithPath, &Empty);
 		ConfigFile = GConfig->Find(IniNameWithPath, false);
@@ -392,6 +603,8 @@ FConfigFile* UOnlineHotfixManager::GetConfigFile(const FString& IniName)
 bool UOnlineHotfixManager::HotfixIniFile(const FString& FileName, const FString& IniData)
 {
 	FConfigFile* ConfigFile = GetConfigFile(FileName);
+	// Store the original file so we can undo this later
+	BackupIniFile(FileName, ConfigFile);
 	// Merge the string into the config file
 	ConfigFile->CombineFromBuffer(IniData);
 	TArray<UClass*> Classes;
@@ -413,7 +626,8 @@ bool UOnlineHotfixManager::HotfixIniFile(const FString& FileName, const FString&
 				// Per object config entries will have a space in the name, but classes won't
 				if (PerObjectNameIndex == -1 || PerObjectNameIndex > EndIndex)
 				{
-					if (IniData.StartsWith(TEXT("[/Script/"), ESearchCase::IgnoreCase))
+					const TCHAR* ScriptHeader = TEXT("[/Script/");
+					if (FCString::Strnicmp(*IniData + StartIndex, ScriptHeader, FCString::Strlen(ScriptHeader)) == 0)
 					{
 						const int32 ScriptSectionTag = 9;
 						// Snip the text out and try to find the class for that
@@ -495,33 +709,81 @@ bool UOnlineHotfixManager::HotfixPakFile(const FCloudFileHeader& FileHeader)
 		return false;
 	}
 	FString PakLocation = FString::Printf(TEXT("%s/%s"), *GetCachedDirectory(), *FileHeader.DLName);
-	if (FCoreDelegates::OnMountPak.Execute(PakLocation, 0))
+	FPakFileVisitor Visitor;
+	if (FCoreDelegates::OnMountPak.Execute(PakLocation, 0, &Visitor))
 	{
 		MountedPakFiles.Add(FileHeader.DLName);
 		UE_LOG(LogHotfixManager, Log, TEXT("Hotfix mounted PAK file (%s)"), *FileHeader.FileName);
-		// @todo joeg - Merge any INI files that are part of this PAK file into the config cache
-		// Do we want/need this? Is it clear whether this will give us the right info?
+		int32 NumInisReloaded = 0;
+		const double StartTime = FPlatformTime::Seconds();
+		TArray<FString> IniList;
+		// Iterate through the pak file's contents for INI and asset reloading
+		for (auto& InternalPakFileName : Visitor.Files)
+		{
+			if (InternalPakFileName.EndsWith(TEXT(".ini")))
+			{
+				IniList.Add(InternalPakFileName);
+			}
+			else if (!bHotfixNeedsMapReload && InternalPakFileName.EndsWith(FPackageName::GetMapPackageExtension()))
+			{
+				bHotfixNeedsMapReload = IsMapLoaded(InternalPakFileName);
+			}
+		}
+		// Sort the INIs so they are processed consistently
+		IniList.Sort<FHotfixFileSortPredicate>(FHotfixFileSortPredicate(PlatformPrefix, DefaultPrefix));
+		// Now process the INIs in sorted order
+		for (auto& IniName : IniList)
+		{
+			HotfixPakIniFile(IniName);
+			NumInisReloaded++;
+		}
+		UE_LOG(LogHotfixManager, Log, TEXT("Processing pak file (%s) took %f seconds and resulted in (%d) INIs being reloaded"),
+			*FileHeader.FileName, FPlatformTime::Seconds() - StartTime, NumInisReloaded);
+#if !UE_BUILD_SHIPPING
+		if (bLogMountedPakContents)
+		{
+			UE_LOG(LogHotfixManager, Log, TEXT("Files in pak file (%s):"), *FileHeader.FileName);
+			for (auto& FileName : Visitor.Files)
+			{
+				UE_LOG(LogHotfixManager, Log, TEXT("\t\t%s"), *FileName);
+			}
+		}
+#endif
 		return true;
 	}
 	return false;
 }
 
+bool UOnlineHotfixManager::IsMapLoaded(const FString& MapName)
+{
+	FString MapPackageName(MapName.Left(MapName.Len() - 5));
+	MapPackageName = MapPackageName.Replace(*GameContentPath, TEXT("/Game"));
+	// If this map's UPackage exists, it is currently loaded
+	UPackage* MapPackage = FindObject<UPackage>(ANY_PACKAGE, *MapPackageName, true);
+	return MapPackage != nullptr;
+}
+
 bool UOnlineHotfixManager::HotfixPakIniFile(const FString& FileName)
 {
-	FConfigFile* ConfigFile = GetConfigFile(FileName);
-	ConfigFile->Combine(FileName);
-	UE_LOG(LogHotfixManager, Log, TEXT("Hotfix merged INI (%s) found in a PAK file"), *FileName);
-
-	FName IniFileName(*FileName, FNAME_Find);
-	int32 NumObjectsReloaded = 0;
+	FString StrippedName;
 	const double StartTime = FPlatformTime::Seconds();
+	// Need to strip off the PAK path
+	FileName.Split(TEXT("/"), nullptr, &StrippedName, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+	FConfigFile* ConfigFile = GetConfigFile(StrippedName);
+	if (!ConfigFile->Combine(FString(TEXT("../../../")) + FileName.Replace(*GameContentPath, TEXT("/Game"))))
+	{
+		UE_LOG(LogHotfixManager, Log, TEXT("Hotfix failed to merge INI (%s) found in a PAK file"), *FileName);
+		return false;
+	}
+	UE_LOG(LogHotfixManager, Log, TEXT("Hotfix merged INI (%s) found in a PAK file"), *FileName);
+	int32 NumObjectsReloaded = 0;
 	// Now that we have a list of classes to update, we can iterate objects and
 	// reload if they match the INI file that was changed
 	for (FObjectIterator It; It; ++It)
 	{
 		UClass* Class = It->GetClass();
 		if (Class->HasAnyClassFlags(CLASS_Config) &&
-			Class->ClassConfigName == IniFileName)
+			Class->ClassConfigName == ConfigFile->Name)
 		{
 			// Force a reload of the config vars
 			It->ReloadConfig();
@@ -535,7 +797,7 @@ bool UOnlineHotfixManager::HotfixPakIniFile(const FString& FileName)
 
 const FString UOnlineHotfixManager::GetFriendlyNameFromDLName(const FString& DLName) const
 {
-	for (auto Header : HotfixFileList)
+	for (auto& Header : HotfixFileList)
 	{
 		if (Header.DLName == DLName)
 		{
@@ -547,12 +809,40 @@ const FString UOnlineHotfixManager::GetFriendlyNameFromDLName(const FString& DLN
 
 void UOnlineHotfixManager::UnmountHotfixFiles()
 {
-	// Unmount any hotfix files since we need to download them again
-	for (auto PakFile : MountedPakFiles)
+	if (MountedPakFiles.Num() == 0)
 	{
-		FCoreDelegates::OnUnmountPak.Execute(PakFile);
+		return;
 	}
-	MountedPakFiles.Empty();
+	// Unmount any changed hotfix files since we need to download them again
+	for (auto& FileHeader : ChangedHotfixFileList)
+	{
+		for (int32 Index = 0; Index < MountedPakFiles.Num(); Index++)
+		{
+			if (MountedPakFiles[Index] == FileHeader.DLName)
+			{
+				FCoreDelegates::OnUnmountPak.Execute(MountedPakFiles[Index]);
+				MountedPakFiles.RemoveAt(Index);
+				ChangedOrRemovedPakCount++;
+				UE_LOG(LogHotfixManager, Log, TEXT("Hotfix unmounted PAK file (%s) so it can be redownloaded"), *FileHeader.FileName);
+				break;
+			}
+		}
+	}
+	// Unmount any removed hotfix files
+	for (auto& FileHeader : RemovedHotfixFileList)
+	{
+		for (int32 Index = 0; Index < MountedPakFiles.Num(); Index++)
+		{
+			if (MountedPakFiles[Index] == FileHeader.DLName)
+			{
+				FCoreDelegates::OnUnmountPak.Execute(MountedPakFiles[Index]);
+				MountedPakFiles.RemoveAt(Index);
+				ChangedOrRemovedPakCount++;
+				UE_LOG(LogHotfixManager, Log, TEXT("Hotfix unmounted PAK file (%s) since it was removed from the hotfix set"), *FileHeader.FileName);
+				break;
+			}
+		}
+	}
 }
 
 FCloudFileHeader* UOnlineHotfixManager::GetFileHeaderFromDLName(const FString& FileName)
@@ -578,3 +868,146 @@ void UOnlineHotfixManager::OnReadFileProgress(const FString& FileName, uint64 By
 		UpdateProgress(0, Delta);
 	}
 }
+
+void UOnlineHotfixManager::BackupIniFile(const FString& IniName, const FConfigFile* ConfigFile)
+{
+	int32 AddAt = IniBackups.AddDefaulted();
+	IniBackups[AddAt].IniName = GetConfigFileNamePath(GetStrippedConfigFileName(IniName));
+	IniBackups[AddAt].ConfigData = *ConfigFile;
+	// There's a lack of deep copy related to the SourceConfigFile so null it out
+	IniBackups[AddAt].ConfigData.SourceConfigFile = nullptr;
+}
+
+void UOnlineHotfixManager::RestoreBackupIniFiles()
+{
+	if (IniBackups.Num() == 0)
+	{
+		return;
+	}
+	const double StartTime = FPlatformTime::Seconds();
+	TArray<FString> RestoredInis;
+	// Restore any changed INI files and build a list of which ones changed for UObject reloading below
+	for (auto& FileHeader : ChangedHotfixFileList)
+	{
+		if (FileHeader.FileName.EndsWith(TEXT(".INI")))
+		{
+			const FString ProcessedName = GetConfigFileNamePath(GetStrippedConfigFileName(FileHeader.FileName));
+			for (int32 Index = 0; Index < IniBackups.Num(); Index++)
+			{
+				if (IniBackups[Index].IniName == ProcessedName)
+				{
+					GConfig->SetFile(IniBackups[Index].IniName, &IniBackups[Index].ConfigData);
+					IniBackups.RemoveAt(Index);
+					RestoredInis.Add(ProcessedName);
+					break;
+				}
+			}
+		}
+	}
+	// Also restore any files that were previously part of the hotfix and now are not
+	for (auto& FileHeader : RemovedHotfixFileList)
+	{
+		if (FileHeader.FileName.EndsWith(TEXT(".INI")))
+		{
+			const FString ProcessedName = GetConfigFileNamePath(GetStrippedConfigFileName(FileHeader.FileName));
+			for (int32 Index = 0; Index < IniBackups.Num(); Index++)
+			{
+				if (IniBackups[Index].IniName == ProcessedName)
+				{
+					GConfig->SetFile(IniBackups[Index].IniName, &IniBackups[Index].ConfigData);
+					IniBackups.RemoveAt(Index);
+					RestoredInis.Add(ProcessedName);
+					break;
+				}
+			}
+		}
+	}
+	// Finally reload any UObjects that were affected by this
+	uint32 NumObjectsReloaded = 0;
+	if (RestoredInis.Num() > 0)
+	{
+		for (FObjectIterator It; It; ++It)
+		{
+			UClass* Class = It->GetClass();
+			if (Class->HasAnyClassFlags(CLASS_Config))
+			{
+				for (int32 Index = 0; Index < RestoredInis.Num(); Index++)
+				{
+					if (Class->GetConfigName() == RestoredInis[Index])
+					{
+						It->ReloadConfig();
+						NumObjectsReloaded++;
+						break;
+					}
+				}
+			}
+		}
+	}
+	UE_LOG(LogHotfixManager, Log, TEXT("Restoring config for %d changed INI files took %f seconds reloading %d objects"),
+		RestoredInis.Num(), FPlatformTime::Seconds() - StartTime, NumObjectsReloaded);
+}
+
+struct FHotfixManagerExec :
+	public FSelfRegisteringExec
+{
+	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override
+	{
+		if (FParse::Command(&Cmd, TEXT("HOTFIX")))
+		{
+			UOnlineHotfixManager* HotfixManager = UOnlineHotfixManager::Get(InWorld);
+			if (HotfixManager != nullptr)
+			{
+				HotfixManager->StartHotfixProcess();
+			}
+			return true;
+		}
+		else if (FParse::Command(&Cmd, TEXT("TESTHOTFIXSORT")))
+		{
+			TArray<FCloudFileHeader> TestList;
+			FCloudFileHeader Header;
+			Header.FileName = TEXT("SomeRandom.ini");
+			TestList.Add(Header);
+			Header.FileName = TEXT("pakchunk1-PS4_P.pak");
+			TestList.Add(Header);
+			Header.FileName = TEXT("EN_Game.locres");
+			TestList.Add(Header);
+			Header.FileName = TEXT("DefaultGame.ini");
+			TestList.Add(Header);
+			Header.FileName = TEXT("PS4_DefaultEngine.ini");
+			TestList.Add(Header);
+			Header.FileName = TEXT("DefaultEngine.ini");
+			TestList.Add(Header);
+			Header.FileName = TEXT("pakchunk0-PS4_P.pak");
+			TestList.Add(Header);
+			Header.FileName = TEXT("PS4_DefaultGame.ini");
+			TestList.Add(Header);
+			Header.FileName = TEXT("AnotherRandom.ini");
+			TestList.Add(Header);
+			TestList.Sort<FHotfixFileSortPredicate>(FHotfixFileSortPredicate(TEXT("PS4_"), TEXT("Default")));
+
+			UE_LOG(LogHotfixManager, Log, TEXT("Hotfixing sort is:"));
+			for (auto& FileHeader : TestList)
+			{
+				UE_LOG(LogHotfixManager, Log, TEXT("\t%s"), *FileHeader.FileName);
+			}
+
+			TArray<FString> TestList2;
+			TestList2.Add(TEXT("SomeRandom.ini"));
+			TestList2.Add(TEXT("DefaultGame.ini"));
+			TestList2.Add(TEXT("PS4_DefaultEngine.ini"));
+			TestList2.Add(TEXT("DefaultEngine.ini"));
+			TestList2.Add(TEXT("PS4_DefaultGame.ini"));
+			TestList2.Add(TEXT("AnotherRandom.ini"));
+			TestList2.Sort<FHotfixFileSortPredicate>(FHotfixFileSortPredicate(TEXT("PS4_"), TEXT("Default")));
+
+			UE_LOG(LogHotfixManager, Log, TEXT("Hotfixing PAK INI file sort is:"));
+			for (auto& IniName : TestList2)
+			{
+				UE_LOG(LogHotfixManager, Log, TEXT("\t%s"), *IniName);
+			}
+			return true;
+		}
+		return false;
+	}
+};
+static FHotfixManagerExec HotfixManagerExec;

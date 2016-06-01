@@ -7,11 +7,13 @@
 #include "LatentActions.h"
 
 #if WITH_EDITOR
+#include "UObject/DevObjectVersion.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "Editor/UnrealEd/Public/Kismet2/CompilerResultsLog.h"
 #include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
 #include "Editor/Kismet/Public/FindInBlueprintManager.h"
+#include "Editor/UnrealEd/Public/CookerSettings.h"
 #include "Editor/UnrealEd/Public/Editor.h"
 #include "Crc.h"
 #include "MessageLog.h"
@@ -95,19 +97,19 @@ static void ConformNativeComponents(UBlueprint* Blueprint)
 						// (we're looking to fixup scene-component parents)
 						continue;
 					}
-					UActorComponent* OldNativeParent = FindNativeComponentLambda(BlueprintSceneComponent->AttachParent);
+					UActorComponent* OldNativeParent = FindNativeComponentLambda(BlueprintSceneComponent->GetAttachParent());
 
 					USceneComponent* NativeSceneComponent = CastChecked<USceneComponent>(NativeComponent);
 					// if this native component has since been reparented, we need
 					// to make sure that this blueprint reflects that change
-					if (OldNativeParent != NativeSceneComponent->AttachParent)
+					if (OldNativeParent != NativeSceneComponent->GetAttachParent())
 					{
 						USceneComponent* NewParent = nullptr;
-						if (NativeSceneComponent->AttachParent != nullptr)
+						if (NativeSceneComponent->GetAttachParent() != nullptr)
 						{
-							NewParent = CastChecked<USceneComponent>(FindNamedComponentLambda(NativeSceneComponent->AttachParent->GetFName(), OldNativeComponents));
+							NewParent = CastChecked<USceneComponent>(FindNamedComponentLambda(NativeSceneComponent->GetAttachParent()->GetFName(), OldNativeComponents));
 						}
-						BlueprintSceneComponent->AttachParent = NewParent;
+						BlueprintSceneComponent->SetupAttachment(NewParent, BlueprintSceneComponent->GetAttachSocketName());
 					}
 				}
 				else // the component has been removed from the native class
@@ -214,6 +216,10 @@ void UBlueprintCore::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
+#if WITH_EDITOR
+	Ar.UsingCustomVersion(FBlueprintsObjectVersion::GUID);
+#endif
+
 	Ar << bLegacyGeneratedClassIsAuthoritative;	
 
 	if ((Ar.UE4Ver() < VER_UE4_BLUEPRINT_SKEL_CLASS_TRANSIENT_AGAIN)
@@ -303,6 +309,19 @@ UBlueprint::UBlueprint(const FObjectInitializer& ObjectInitializer)
 {
 }
 
+#if WITH_EDITORONLY_DATA
+void UBlueprint::PreSave()
+{
+	Super::PreSave();
+
+	// Clear all upgrade notes, the user has saved and should not see them anymore
+	UpgradeNotesLog.Reset();
+
+	// Cache the BP for use
+	FFindInBlueprintSearchManager::Get().AddOrUpdateBlueprintSearchMetadata(this);
+}
+#endif // WITH_EDITORONLY_DATA
+
 void UBlueprint::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
@@ -342,14 +361,14 @@ void UBlueprint::Serialize(FArchive& Ar)
 		}
 	}
 
-	if (Ar.UE4Ver() < VER_UE4_FIX_BLUEPRINT_VARIABLE_FLAGS)
+	for (int32 i = 0; i < NewVariables.Num(); ++i)
 	{
+		FBPVariableDescription& Variable = NewVariables[i];
+
 		// Actor variables can't have default values (because Blueprint templates are library elements that can 
 		// bridge multiple levels and different levels might not have the actor that the default is referencing).
-		for (int32 i = 0; i < NewVariables.Num(); ++i)
+		if (Ar.UE4Ver() < VER_UE4_FIX_BLUEPRINT_VARIABLE_FLAGS)
 		{
-			FBPVariableDescription& Variable = NewVariables[i];
-
 			const FEdGraphPinType& VarType = Variable.VarType;
 
 			bool bDisableEditOnTemplate = false;
@@ -364,7 +383,7 @@ void UBlueprint::Serialize(FArchive& Ar)
 				}
 			}
 
-			if(bDisableEditOnTemplate)
+			if (bDisableEditOnTemplate)
 			{
 				Variable.PropertyFlags |= CPF_DisableEditOnTemplate;
 			}
@@ -373,13 +392,14 @@ void UBlueprint::Serialize(FArchive& Ar)
 				Variable.PropertyFlags &= ~CPF_DisableEditOnTemplate;
 			}
 		}
+
+		if (Ar.IsLoading())
+		{
+			// Validate metadata keys/values on load only
+			FBlueprintEditorUtils::ValidateBlueprintVariableMetadata(Variable);
+		}
 	}
 
-	if(Ar.IsSaving() && !Ar.IsTransacting())
-	{
-		// Cache the BP for use
-		FFindInBlueprintSearchManager::Get().AddOrUpdateBlueprintSearchMetadata(this);
-	}
 #endif // WITH_EDITORONLY_DATA
 }
 
@@ -982,6 +1002,105 @@ bool UBlueprint::ValidateGeneratedClass(const UClass* InClass)
 	}
 
 	return true;
+}
+
+void UBlueprint::BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPlatform)
+{
+	Super::BeginCacheForCookedPlatformData(TargetPlatform);
+
+	// Only cook component data if the setting is enabled and this is an Actor-based Blueprint class.
+	if (GeneratedClass && GeneratedClass->IsChildOf<AActor>() && GetDefault<UCookerSettings>()->bCookBlueprintComponentTemplateData)
+	{
+		int32 NumCookedComponents = 0;
+		const double StartTime = FPlatformTime::Seconds();
+
+		UBlueprintGeneratedClass* BPGClass = Cast<UBlueprintGeneratedClass>(*GeneratedClass);
+		if (BPGClass)
+		{
+			// Cook all overridden SCS component node templates inherited from the parent class hierarchy.
+			if (UInheritableComponentHandler* TargetInheritableComponentHandler = BPGClass->GetInheritableComponentHandler())
+			{
+				for (auto RecordIt = TargetInheritableComponentHandler->CreateRecordIterator(); RecordIt; ++RecordIt)
+				{
+					if (!RecordIt->CookedComponentInstancingData.bIsValid)
+					{
+						// Note: This will currently block until finished.
+						// @TODO - Make this an async task so we can potentially cook instancing data for multiple components in parallel.
+						FBlueprintEditorUtils::BuildComponentInstancingData(RecordIt->ComponentTemplate, RecordIt->CookedComponentInstancingData);
+						++NumCookedComponents;
+					}
+				}
+			}
+
+			// Cook all SCS component templates that are owned by this class.
+			if (BPGClass->SimpleConstructionScript)
+			{
+				for (auto Node : BPGClass->SimpleConstructionScript->GetAllNodes())
+				{
+					if (!Node->CookedComponentInstancingData.bIsValid)
+					{
+						// Note: This will currently block until finished.
+						// @TODO - Make this an async task so we can potentially cook instancing data for multiple components in parallel.
+						FBlueprintEditorUtils::BuildComponentInstancingData(Node->ComponentTemplate, Node->CookedComponentInstancingData);
+						++NumCookedComponents;
+					}
+				}
+			}
+
+			// Cook all UCS/AddComponent node templates that are owned by this class.
+			for (UActorComponent* ComponentTemplate : BPGClass->ComponentTemplates)
+			{
+				FBlueprintCookedComponentInstancingData& CookedComponentInstancingData = BPGClass->CookedComponentInstancingData.FindOrAdd(ComponentTemplate->GetFName());
+				if (!CookedComponentInstancingData.bIsValid)
+				{
+					// Note: This will currently block until finished.
+					// @TODO - Make this an async task so we can potentially cook instancing data for multiple components in parallel.
+					FBlueprintEditorUtils::BuildComponentInstancingData(ComponentTemplate, CookedComponentInstancingData);
+					++NumCookedComponents;
+				}
+			}
+		}
+
+		if (NumCookedComponents > 0)
+		{
+			UE_LOG(LogBlueprint, Log, TEXT("%s: Cooked %d component(s) in %.02g ms"), *GetName(), NumCookedComponents, (FPlatformTime::Seconds() - StartTime) * 1000.0);
+		}
+	}
+}
+
+bool UBlueprint::IsCachedCookedPlatformDataLoaded(const ITargetPlatform* TargetPlatform)
+{
+	// @TODO - Check async tasks for completion. For now just return TRUE since all tasks will currently block until finished.
+	return true;
+}
+
+void UBlueprint::ClearAllCachedCookedPlatformData()
+{
+	Super::ClearAllCachedCookedPlatformData();
+
+	if (UBlueprintGeneratedClass* BPGClass = Cast<UBlueprintGeneratedClass>(*GeneratedClass))
+	{
+		// Clear cooked data for overridden SCS component node templates inherited from the parent class hierarchy.
+		if (UInheritableComponentHandler* TargetInheritableComponentHandler = BPGClass->GetInheritableComponentHandler())
+		{
+			for (auto RecordIt = TargetInheritableComponentHandler->CreateRecordIterator(); RecordIt; ++RecordIt)
+			{
+				RecordIt->CookedComponentInstancingData = FBlueprintCookedComponentInstancingData();
+			}
+		}
+
+		// Clear cooked data for SCS component node templates.
+		if (BPGClass->SimpleConstructionScript)
+		{
+			for (auto Node : BPGClass->SimpleConstructionScript->GetAllNodes())
+			{
+				Node->CookedComponentInstancingData = FBlueprintCookedComponentInstancingData();
+			}
+		}
+
+		// Clear cooked data for UCS/AddComponent node templates.
+		BPGClass->CookedComponentInstancingData.Empty();
+	}
 }
 
 #endif // WITH_EDITOR

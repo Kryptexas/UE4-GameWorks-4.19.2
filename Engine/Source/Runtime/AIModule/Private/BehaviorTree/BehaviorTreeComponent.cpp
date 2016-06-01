@@ -293,6 +293,7 @@ void UBehaviorTreeComponent::StopTree(EBTStopMode::Type StopMode)
 	bRequestedFlowUpdate = false;
 	bRequestedStop = false;
 	bIsRunning = false;
+	bWaitingForAbortingTasks = false;
 }
 
 void UBehaviorTreeComponent::RestartTree()
@@ -748,7 +749,8 @@ void UBehaviorTreeComponent::RequestExecution(UBTCompositeNode* RequestedOn, int
 	if (bSwitchToHigherPriority)
 	{
 		// check if decorators allow execution on requesting link
-		const bool bShouldCheckDecorators = (RequestedByChildIndex >= 0);
+		// unless it's branch restart (abort result within current branch), when it can't be skipped because branch can be no longer valid
+		const bool bShouldCheckDecorators = (RequestedByChildIndex >= 0) && !IsExecutingBranch(RequestedBy, RequestedByChildIndex);
 		const bool bCanExecute = !bShouldCheckDecorators || RequestedOn->DoDecoratorsAllowExecution(*this, InstanceIdx, RequestedByChildIndex);
 		if (!bCanExecute)
 		{
@@ -855,7 +857,7 @@ void UBehaviorTreeComponent::RequestExecution(UBTCompositeNode* RequestedOn, int
 
 	ExecutionRequest.SearchStart = ExecutionIdx;
 	ExecutionRequest.ContinueWithResult = ContinueWithResult;
-	ExecutionRequest.bTryNextChild = !bSwitchToHigherPriority;
+	ExecutionRequest.bTryNextChild = !bSwitchToHigherPriority && !PendingExecution.bAborting;
 	ExecutionRequest.bIsRestart = (RequestedBy != GetActiveNode());
 	PendingExecution.Lock();
 	
@@ -882,21 +884,21 @@ void UBehaviorTreeComponent::ApplySearchUpdates(const TArray<FBehaviorTreeSearch
 
 		FBehaviorTreeInstance& UpdateInstance = InstanceStack[UpdateInfo.InstanceIndex];
 		int32 ParallelTaskIdx = INDEX_NONE;
-		bool bIsActive = false;
+		bool bIsComponentActive = false;
 
 		if (UpdateInfo.AuxNode)
 		{
-			bIsActive = UpdateInstance.ActiveAuxNodes.Contains(UpdateInfo.AuxNode);
+			bIsComponentActive = UpdateInstance.ActiveAuxNodes.Contains(UpdateInfo.AuxNode);
 		}
 		else if (UpdateInfo.TaskNode)
 		{
 			ParallelTaskIdx = UpdateInstance.ParallelTasks.IndexOfByKey(UpdateInfo.TaskNode);
-			bIsActive = (ParallelTaskIdx != INDEX_NONE && UpdateInstance.ParallelTasks[ParallelTaskIdx].Status == EBTTaskStatus::Active);
+			bIsComponentActive = (ParallelTaskIdx != INDEX_NONE && UpdateInstance.ParallelTasks[ParallelTaskIdx].Status == EBTTaskStatus::Active);
 		}
 
 		const UBTNode* UpdateNode = UpdateInfo.AuxNode ? (const UBTNode*)UpdateInfo.AuxNode : (const UBTNode*)UpdateInfo.TaskNode;
-		if ((UpdateInfo.Mode == EBTNodeUpdateMode::Remove && !bIsActive) ||
-			(UpdateInfo.Mode == EBTNodeUpdateMode::Add && (bIsActive || UpdateNode->GetExecutionIndex() > NewNodeExecutionIndex)) ||
+		if ((UpdateInfo.Mode == EBTNodeUpdateMode::Remove && !bIsComponentActive) ||
+			(UpdateInfo.Mode == EBTNodeUpdateMode::Add && (bIsComponentActive || UpdateNode->GetExecutionIndex() > NewNodeExecutionIndex)) ||
 			(UpdateInfo.bPostUpdate != bPostUpdate))
 		{
 			continue;
@@ -1004,7 +1006,8 @@ void UBehaviorTreeComponent::ApplyDiscardedSearch()
 	}
 
 	// apply new observing decorators
-	ApplySearchUpdates(UpdateList, 0);
+	// use MAX_uint16 to ignore execution index checks, building UpdateList checks if observer should be relevant
+	ApplySearchUpdates(UpdateList, MAX_uint16);
 
 	// remove everything else
 	SearchData.PendingUpdates.Reset();
@@ -1279,7 +1282,11 @@ void UBehaviorTreeComponent::ProcessExecutionRequest()
 		// abort task if needed
 		if (InstanceStack.Last().ActiveNodeType == EBTActiveNode::ActiveTask)
 		{
+			PendingExecution.OnAbortStart();
+
 			AbortCurrentTask();
+
+			PendingExecution.OnAbortProcessed();
 		}
 
 		// set next task to execute
@@ -1439,6 +1446,19 @@ void UBehaviorTreeComponent::ExecuteTask(UBTTaskNode* TaskNode)
 	SCOPE_CYCLE_COUNTER(STAT_AI_BehaviorTree_ExecutionTime);
 
 	FBehaviorTreeInstance& ActiveInstance = InstanceStack[ActiveInstanceIdx];
+
+	// task service activation is not part of search update (although deactivation is, through DeactivateUpTo), start them before execution
+	for (int32 ServiceIndex = 0; ServiceIndex < TaskNode->Services.Num(); ServiceIndex++)
+	{
+		UBTService* ServiceNode = TaskNode->Services[ServiceIndex];
+		uint8* NodeMemory = (uint8*)ServiceNode->GetNodeMemory<uint8>(ActiveInstance);
+
+		ActiveInstance.ActiveAuxNodes.Add(ServiceNode);
+
+		UE_VLOG(GetOwner(), LogBehaviorTree, Log, TEXT("Activating task service: %s"), *UBehaviorTreeTypes::DescribeNodeHelper(ServiceNode));
+		ServiceNode->WrappedOnBecomeRelevant(*this, NodeMemory);
+	}
+
 	ActiveInstance.ActiveNode = TaskNode;
 	ActiveInstance.ActiveNodeType = EBTActiveNode::ActiveTask;
 
@@ -1787,9 +1807,20 @@ UBTNode* UBehaviorTreeComponent::FindTemplateNode(const UBTNode* Node) const
 	{
 		FBTCompositeChild& ChildInfo = ParentNode->Children[ChildIndex];
 
-		if (ChildInfo.ChildTask && ChildInfo.ChildTask->GetExecutionIndex() == Node->GetExecutionIndex())
+		if (ChildInfo.ChildTask)
 		{
-			return ChildInfo.ChildTask;
+			if (ChildInfo.ChildTask->GetExecutionIndex() == Node->GetExecutionIndex())
+			{
+				return ChildInfo.ChildTask;
+			}
+
+			for (int32 ServiceIndex = 0; ServiceIndex < ChildInfo.ChildTask->Services.Num(); ServiceIndex++)
+			{
+				if (ChildInfo.ChildTask->Services[ServiceIndex]->GetExecutionIndex() == Node->GetExecutionIndex())
+				{
+					return ChildInfo.ChildTask->Services[ServiceIndex];
+				}
+			}
 		}
 
 		for (int32 DecoratorIndex = 0; DecoratorIndex < ChildInfo.Decorators.Num(); DecoratorIndex++)

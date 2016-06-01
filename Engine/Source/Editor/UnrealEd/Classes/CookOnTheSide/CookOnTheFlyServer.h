@@ -24,6 +24,8 @@ enum class ECookInitializationFlags
 	IncludeServerMaps =							0x080, // should we include the server maps when cooking
 	UseSerializationForPackageDependencies =	0x100, // should we use the serialization code path for generating package dependencies (old method will be deprecated)
 	BuildDDCInBackground =						0x200, // build ddc content in background while the editor is running (only valid for modes which are in editor IsCookingInEditor())
+	GeneratedAssetRegistry =					0x400, // have we generated asset registry yet
+	OutputVerboseCookerWarnings =				0x800, // output additional cooker warnings about content issues
 };
 ENUM_CLASS_FLAGS(ECookInitializationFlags);
 
@@ -673,7 +675,6 @@ public:
 		FProcHandle ProcessHandle;
 		FString ResponseFileName;
 		FString BaseResponseFileName;
-		FString ManifestFilename;
 		void* ReadPipe;
 		int32 ReturnCode;
 		bool bFinished;
@@ -693,7 +694,8 @@ private:
 			bForceEnableCompressedPackages(false),
 			bForceDisableCompressedPackages(false),
 			bIsChildCooker(false),
-			bDisableUnsolicitedPackages(false)
+			bDisableUnsolicitedPackages(false),
+			ChildCookIdentifier(-1)
 		{ }
 
 		/** Should we test for UObject leaks */
@@ -730,8 +732,8 @@ private:
 		bool bForceDisableCompressedPackages;
 		bool bIsChildCooker;
 		bool bDisableUnsolicitedPackages;
+		int32 ChildCookIdentifier;
 		FString ChildCookFilename;
-		FString ChildManifestFilename;
 		TSet<FName> ChildUnsolicitedPackages;
 		TArray<FChildCooker> ChildCookers;
 		TArray<FName> TargetPlatformNames;
@@ -890,7 +892,7 @@ public:
 		FString CreateReleaseVersion;
 		FString BasedOnReleaseVersion;
 		FString ChildCookFileName; // if we are the child cooker 
-		FString ChildManifestFilename; // again, only if you are the child cooker
+		int32 ChildCookIdentifier; // again, only if you are the child cooker
 		bool bGenerateStreamingInstallManifests; 
 		bool bGenerateDependenciesForMaps; 
 		bool bErrorOnEngineContentUse; // this is a flag for dlc, will cause the cooker to error if the dlc references engine content
@@ -898,6 +900,7 @@ public:
 		FCookByTheBookStartupOptions() :
 			CookOptions(ECookByTheBookOptions::None),
 			DLCName(FString()),
+			ChildCookIdentifier(-1),
 			bGenerateStreamingInstallManifests(false),
 			bGenerateDependenciesForMaps(false),
 			bErrorOnEngineContentUse(false),
@@ -928,6 +931,11 @@ public:
 	void CancelCookByTheBook();
 
 	bool IsCookByTheBookRunning() const;
+
+	/**
+	 * Get any packages which are in memory, these were probably required to be loaded because of the current package we are cooking, so we should probably cook them also
+	 */
+	void GetUnsolicitedPackages(TArray<UPackage*>& PackagesToSave, bool &ContainsFullGCAssetClasses, const TArray<FName>& TargetPlatformNames) const;
 
 	/**
 	 * Handles cook package requests until there are no more requests, then returns
@@ -1151,7 +1159,7 @@ private:
 	{
 		if (IsCookByTheBookMode())
 		{
-			return CookByTheBookOptions->bIsChildCooker;
+			return !(CookByTheBookOptions->ChildCookFilename.IsEmpty());
 		}
 		return false;
 	}
@@ -1344,13 +1352,6 @@ private:
 	 */
 	bool SaveCurrentIniSettings( const ITargetPlatform* TargetPlatform ) const;
 
-
-	/**
-	 * Save the accumulated cooker stats to the Saved\Stats folder
-	 * saves to different file name pending running multiprocess cooker / not
-	 */
-	void SaveCookerStats() const;
-
 	/**
 	 * IsCookFlagSet
 	 * 
@@ -1419,7 +1420,7 @@ private:
 	void PopulateCookedPackagesFromDisk( const TArray<ITargetPlatform*>& Platforms );
 
 	/** Generates asset registry */
-	void GenerateAssetRegistry(const TArray<ITargetPlatform*>& Platforms);
+	void GenerateAssetRegistry();
 
 	/** Generates long package names for all files to be cooked */
 	void GenerateLongPackageNames(TArray<FName>& FilesInPath);

@@ -20,11 +20,13 @@ class UMaterialExpressionSphericalParticleOpacity : public UMaterialExpression
 
 
 	//~ Begin UMaterialExpression Interface
+#if WITH_EDITOR
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override
 	{
 		OutCaptions.Add(TEXT("Spherical Particle Opacity"));
 	}
+#endif
 	//~ End UMaterialExpression Interface
 };
 

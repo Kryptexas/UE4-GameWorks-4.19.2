@@ -175,18 +175,15 @@ private:
 	/** Temporary array of of component-space bone matrices, update each frame and used for rendering the mesh. */
 	TArray<FTransform> SpaceBasesArray[2];
 
+protected:
 	/** The index for the space bases buffer we can currently write to */
 	int32 CurrentEditableSpaceBases;
 
 	/** The index for the space bases buffer we can currently read from */
 	int32 CurrentReadSpaceBases;
-
 protected:
 	/** Are we using double buffered blend spaces */
 	bool bDoubleBufferedBlendSpaces;
-
-	/** Are we using double buffered blend spaces */
-	bool bReInitAnimationOnSetSkeletalMeshCalls;
 
 	/** 
 	 * If set, this component has slave pose components that are associated with this 
@@ -205,6 +202,9 @@ protected:
 public:
 
 	const TArray<int32>& GetMasterBoneMap() const { return MasterBoneMap; }
+
+	/** update Recalculate Normal flag in matching section */
+	void UpdateRecomputeTangent(int32 MaterialIndex);
 
 	/** 
 	 * When true, we will just using the bounds from our MasterPoseComponent.  This is useful for when we have a Mesh Parented
@@ -407,6 +407,12 @@ public:
 	void SetForcedLOD(int32 InNewForcedLOD);
 
 	/**
+	*  Returns the number of bones in the skeleton.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|SkinnedMesh")
+	int32 GetNumBones() const;
+
+	/**
 	 * Find the index of bone by name. Looks in the current SkeletalMesh being used by this SkeletalMeshComponent.
 	 * 
 	 * @param BoneName Name of bone to look up
@@ -442,9 +448,10 @@ public:
 	 * Change the SkeletalMesh that is rendered for this Component. Will re-initialize the animation tree etc. 
 	 *
 	 * @param NewMesh New mesh to set for this component
+	 * @param bReinitPose Whether we should keep current pose or reinitialize.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Components|SkinnedMesh")
-	virtual void SetSkeletalMesh(class USkeletalMesh* NewMesh);
+	virtual void SetSkeletalMesh(class USkeletalMesh* NewMesh, bool bReinitPose = true);
 
 	/** 
 	 * Get Parent Bone of the input bone
@@ -501,7 +508,7 @@ public:
 	virtual UMaterialInterface* GetMaterial(int32 MaterialIndex) const override;
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const override;
-	virtual void GetStreamingTextureInfo(TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const override;
+	virtual void GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const override;
 	virtual int32 GetNumMaterials() const override;
 	//~ End UPrimitiveComponent Interface
 
@@ -841,10 +848,23 @@ public:
 	 * @param TestLocation the location to test against
 	 * @param BoneLocation (optional, out) if specified, set to the world space location of the bone that was found, or (0,0,0) if no bone was found
 	 * @param IgnoreScale (optional) if specified, only bones with scaling larger than the specified factor are considered
+	 * @param bRequirePhysicsAsset (optional) if true, only bones with physics will be considered
 	 *
 	 * @return the name of the bone that was found, or 'None' if no bone was found
 	 */
-	FName FindClosestBone(FVector TestLocation, FVector* BoneLocation = NULL, float IgnoreScale = 0.f) const;
+	FName FindClosestBone(FVector TestLocation, FVector* BoneLocation = NULL, float IgnoreScale = 0.f, bool bRequirePhysicsAsset = false) const;
+
+	/** finds the closest bone to the given location
+	*
+	* @param TestLocation the location to test against
+	* @param BoneLocation (optional, out) if specified, set to the world space location of the bone that was found, or (0,0,0) if no bone was found
+	* @param IgnoreScale (optional) if specified, only bones with scaling larger than the specified factor are considered
+	* @param bRequirePhysicsAsset (optional) if true, only bones with physics will be considered
+	*
+	* @return the name of the bone that was found, or 'None' if no bone was found
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|SkinnedMesh", meta=(DisplayName="FindClosestBone", AdvancedDisplay="bRequirePhysicsAsset"))
+	FName FindClosestBone_K2(FVector TestLocation, FVector& BoneLocation, float IgnoreScale = 0.f, bool bRequirePhysicsAsset = false) const;
 
 	/**
 	 * Find a named MorphTarget from the current SkeletalMesh
@@ -956,4 +976,32 @@ public:
 	virtual bool IsPlayingRootMotionFromEverything(){ return false; }
 
 	bool ShouldUseUpdateRateOptimizations() const;
+
+	friend class FRenderStateRecreator;
+};
+
+class FRenderStateRecreator
+{
+	bool bWasRenderStateCreated;
+	USkinnedMeshComponent* Component;
+
+public:
+
+	FRenderStateRecreator(USkinnedMeshComponent* InActorComponent)
+	{
+		Component = InActorComponent;
+		bWasRenderStateCreated = Component->IsRenderStateCreated();
+		if (bWasRenderStateCreated)
+		{
+			Component->DestroyRenderState_Concurrent();
+		}
+	}
+
+	~FRenderStateRecreator()
+	{
+		if (bWasRenderStateCreated)
+		{
+			Component->CreateRenderState_Concurrent();
+		}
+	}
 };

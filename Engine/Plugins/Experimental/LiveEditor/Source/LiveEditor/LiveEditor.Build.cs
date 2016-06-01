@@ -51,7 +51,7 @@ namespace UnrealBuildTool.Rules
 				}
 			);
 			
-			AddThirdPartyPrivateStaticDependencies(Target, "portmidi");
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "portmidi");
 		}
 	}
 }

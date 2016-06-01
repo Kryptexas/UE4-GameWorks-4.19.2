@@ -207,6 +207,13 @@ class UMaterialInstance : public UMaterialInterface
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=MaterialInstance)
 	struct FMaterialInstanceBasePropertyOverrides BasePropertyOverrides;
 
+	//Cached copies of the base property overrides or the value from the parent to avoid traversing the parent chain for each access.
+	float OpacityMaskClipValue;
+	TEnumAsByte<EBlendMode> BlendMode;
+	TEnumAsByte<EMaterialShadingModel> ShadingModel;
+	uint32 TwoSided : 1;
+	uint32 DitheredLODTransition : 1;
+
 	/** 
 	 * FMaterialRenderProxy derivatives that represent this material instance to the renderer, when the renderer needs to fetch parameter values. 
 	 * Second instance is used when selected, third when hovered.
@@ -222,6 +229,9 @@ private:
 
 	/** Static parameter values that are overridden in this instance. */
 	FStaticParameterSet StaticParameters;
+
+	/** Inline material resources serialized from disk. To be processed on game thread in PostLoad. */
+	TArray<FMaterialResource> LoadedMaterialResources;
 
 	/** 
 	 * Material resources used for rendering this material instance, in the case of static parameters being present.
@@ -252,6 +262,7 @@ public:
 	virtual ENGINE_API bool GetTextureParameterOverrideValue(FName ParameterName, class UTexture*& OutValue) const override;
 	virtual ENGINE_API bool GetVectorParameterValue(FName ParameterName, FLinearColor& OutValue) const override;
 	virtual ENGINE_API void GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel, bool bAllQualityLevels, ERHIFeatureLevel::Type FeatureLevel, bool bAllFeatureLevels) const override;
+	virtual ENGINE_API void GetUsedTexturesAndIndices(TArray<UTexture*>& OutTextures, TArray< TArray<int32> >& OutIndices, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel) const;
 	virtual ENGINE_API void OverrideTexture(const UTexture* InTextureToOverride, UTexture* OverrideTexture, ERHIFeatureLevel::Type InFeatureLevel) override;
 	virtual ENGINE_API void OverrideVectorParameterDefault(FName ParameterName, const FLinearColor& Value, bool bOverride, ERHIFeatureLevel::Type FeatureLevel) override;
 	virtual ENGINE_API void OverrideScalarParameterDefault(FName ParameterName, float Value, bool bOverride, ERHIFeatureLevel::Type FeatureLevel) override;
@@ -268,32 +279,29 @@ public:
 	virtual ENGINE_API float GetEmissiveBoost() const override;
 	virtual ENGINE_API float GetDiffuseBoost() const override;
 	virtual ENGINE_API float GetExportResolutionScale() const override;
+#if WITH_EDITOR
 	virtual ENGINE_API bool GetTexturesInPropertyChain(EMaterialProperty InProperty, TArray<UTexture*>& OutTextures,
 		TArray<FName>* OutTextureParamNames, class FStaticParameterSet* InStaticParameterSet) override;
+#endif
 	virtual ENGINE_API void RecacheUniformExpressions() const override;
 	virtual ENGINE_API bool GetRefractionSettings(float& OutBiasValue) const override;
 	ENGINE_API virtual void ForceRecompileForRendering() override;
 	
-	ENGINE_API virtual float GetOpacityMaskClipValue(bool bIsGameThread=IsInGameThread()) const override;
-	ENGINE_API virtual EBlendMode GetBlendMode(bool bIsGameThread = IsInGameThread()) const override;
-	ENGINE_API virtual EMaterialShadingModel GetShadingModel(bool bIsGameThread = IsInGameThread()) const override;
-	ENGINE_API virtual bool IsTwoSided(bool bIsGameThread = IsInGameThread()) const override;
-	ENGINE_API virtual bool IsDitheredLODTransition(bool bIsGameThread = IsInGameThread()) const override;
-	ENGINE_API virtual bool IsMasked(bool bIsGameThread = IsInGameThread()) const override;
-
-	ENGINE_API float RenderThread_GetOpacityMaskClipValue() const;
-	ENGINE_API EBlendMode RenderThread_GetBlendMode() const;
-	ENGINE_API EMaterialShadingModel RenderThread_GetShadingModel() const;
-	ENGINE_API bool RenderThread_IsTwoSided() const;
-	ENGINE_API bool RenderThread_IsDitheredLODTransition() const;
-	ENGINE_API bool RenderThread_IsMasked() const;
+	ENGINE_API virtual float GetOpacityMaskClipValue() const override;
+	ENGINE_API virtual EBlendMode GetBlendMode() const override;
+	ENGINE_API virtual EMaterialShadingModel GetShadingModel() const override;
+	ENGINE_API virtual bool IsTwoSided() const override;
+	ENGINE_API virtual bool IsDitheredLODTransition() const override;
+	ENGINE_API virtual bool IsMasked() const override;;
 	
 	ENGINE_API virtual USubsurfaceProfile* GetSubsurfaceProfile_Internal() const override;
 
 	/** Checks to see if an input property should be active, based on the state of the material */
 	ENGINE_API virtual bool IsPropertyActive(EMaterialProperty InProperty) const override;
+#if WITH_EDITOR
 	/** Allows material properties to be compiled with the option of being overridden by the material attributes input. */
 	ENGINE_API virtual int32 CompilePropertyEx(class FMaterialCompiler* Compiler, EMaterialProperty Property) override;
+#endif // WITH_EDITOR
 	//~ End UMaterialInterface Interface.
 
 	//~ Begin UObject Interface.
@@ -317,8 +325,16 @@ public:
 	/**
 	 * Sets new static parameter overrides on the instance and recompiles the static permutation resources if needed (can be forced with bForceRecompile).
 	 * Can be passed either a minimal parameter set (overridden parameters only) or the entire set generated by GetStaticParameterValues().
+	 * Can also trigger recompile based on new set of FMaterialInstanceBasePropertyOverrides 
 	 */
-	ENGINE_API void UpdateStaticPermutation(const FStaticParameterSet& NewParameters, bool bForceRecompile = false);
+	ENGINE_API void UpdateStaticPermutation(const FStaticParameterSet& NewParameters, FMaterialInstanceBasePropertyOverrides& NewBasePropertyOverrides);
+	/**
+	* Sets new static parameter overrides on the instance and recompiles the static permutation resources if needed.
+	* Can be passed either a minimal parameter set (overridden parameters only) or the entire set generated by GetStaticParameterValues().
+	*/
+	ENGINE_API void UpdateStaticPermutation(const FStaticParameterSet& NewParameters);
+	/** Ensure's static permutations for current parameters and overrides are upto date. */
+	ENGINE_API void UpdateStaticPermutation();
 
 #endif // WITH_EDITOR
 
@@ -351,10 +367,8 @@ public:
 	 */
 	ENGINE_API void GetStaticParameterValues(FStaticParameterSet& OutStaticParameters);
 
-	void GetAllStaticSwitchParameterValues(TArray<FStaticTerrainLayerWeightParameter> &TerrainLayerWeightParameters, UMaterial* ParentMaterial);
-
 	void GetBasePropertyOverridesHash(FSHAHash& OutHash)const;
-	bool HasOverridenBaseProperties()const;
+	ENGINE_API virtual bool HasOverridenBaseProperties()const;
 
 	// For all materials instances, UMaterialInstance::CacheResourceShadersForRendering
 	ENGINE_API static void AllMaterialsCacheResourceShadersForRendering();
@@ -367,6 +381,15 @@ public:
 	 */
 	ENGINE_API bool IsChildOf(const UMaterialInterface* Material) const;
 
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	/**
+	 * Output to the log which materials and textures are used by this material.
+	 * @param Indent	Number of tabs to put before the log.
+	 */
+	ENGINE_API virtual void LogMaterialsAndTextures(FOutputDevice& Ar, int32 Indent) const override;
+#endif
+
 protected:
 	/**
 	 * Updates parameter names on the material instance, returns true if parameters have changed.
@@ -375,7 +398,7 @@ protected:
 
 	ENGINE_API void SetParentInternal(class UMaterialInterface* NewParent, bool RecacheShaders);
 
-	void GetTextureExpressionValues(const FMaterialResource* MaterialResource, TArray<UTexture*>& OutTextures) const;
+	void GetTextureExpressionValues(const FMaterialResource* MaterialResource, TArray<UTexture*>& OutTextures, TArray< TArray<int32> >* OutIndices = nullptr) const;
 
 	/** 
 	 * Updates StaticPermutationMaterialResources based on the value of bHasStaticPermutationResource

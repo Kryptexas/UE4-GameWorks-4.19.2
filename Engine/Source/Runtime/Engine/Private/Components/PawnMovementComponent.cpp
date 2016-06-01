@@ -24,6 +24,18 @@ void UPawnMovementComponent::SetUpdatedComponent(USceneComponent* NewUpdatedComp
 	PawnOwner = NewUpdatedComponent ? CastChecked<APawn>(NewUpdatedComponent->GetOwner()) : NULL;
 }
 
+void UPawnMovementComponent::Serialize(FArchive& Ar)
+{
+	APawn* CurrentPawnOwner = PawnOwner;
+	Super::Serialize(Ar);
+
+	if (Ar.IsLoading())
+	{
+		// This was marked Transient so it won't be saved out, but we need still to reject old saved values.
+		PawnOwner = CurrentPawnOwner;
+	}
+}
+
 APawn* UPawnMovementComponent::GetPawnOwner() const
 {
 	return PawnOwner;
@@ -64,6 +76,14 @@ FVector UPawnMovementComponent::GetLastInputVector() const
 FVector UPawnMovementComponent::ConsumeInputVector()
 {
 	return PawnOwner ? PawnOwner->Internal_ConsumeMovementInputVector() : FVector::ZeroVector;
+}
+
+void UPawnMovementComponent::RequestPathMove(const FVector& MoveInput)
+{
+	if (PawnOwner)
+	{
+		PawnOwner->Internal_AddMovementInput(MoveInput);
+	}
 }
 
 // TODO: deprecated, remove

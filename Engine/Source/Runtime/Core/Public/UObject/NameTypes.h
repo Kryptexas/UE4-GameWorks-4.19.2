@@ -73,7 +73,7 @@ namespace FNameDefs
 {
 #if !WITH_EDITORONLY_DATA
 	// Use a modest bucket count on consoles
-	static const uint32 NameHashBucketCount = 4096;
+	static const uint32 NameHashBucketCount = 65536;
 #else
 	// On PC platform we use a large number of name hash buckets to accommodate the editor's
 	// use of FNames to store asset path and content tags
@@ -124,29 +124,30 @@ public:
 	/** Pointer to the next entry in this hash bin's linked list. */
 	FNameEntry*		HashNext;
 
-private:
+protected:
 	/** Name, variable-sized - note that AllocateNameEntry only allocates memory as needed. */
 	union
 	{
 		ANSICHAR	AnsiName[NAME_SIZE];
 		WIDECHAR	WideName[NAME_SIZE];
 	};
-
-	// DO NOT ADD VARIABLES BELOW UNION!
-
-public:
-	/** Default constructor doesn't do anything. AllocateNameEntry is responsible for work. */
-	FNameEntry()
-	{}
+	// DO NOT ADD VARIABLES BELOW!
 
 	/** 
 	 * Constructor called from the linker name table serialization function. Initializes the index
 	 * to a value that indicates widechar as that's what the linker is going to serialize.
+	 *
+	 * Only callable from the serialization version of this class
 	 */
 	FNameEntry( enum ELinkerNameTableConstructor )
 	{
 		Index = NAME_WIDE_MASK;
 	}
+
+public:
+	/** Default constructor doesn't do anything. AllocateNameEntry is responsible for work. */
+	FNameEntry()
+	{}
 
 	/** 
 	 * Sets whether or not the NameEntry will have a wide string, or an ansi string
@@ -247,7 +248,34 @@ public:
 	}
 
 	// Friend for access to Flags.
-	friend FNameEntry* AllocateNameEntry( const void* Name, NAME_INDEX Index, FNameEntry* HashNext, bool bIsPureAnsi );
+	template<typename TCharType>
+	friend FNameEntry* AllocateNameEntry( const void* Name, NAME_INDEX Index, FNameEntry* HashNext);
+};
+
+/**
+ *  This struct is only used during loading/saving and is not part of the runtime costs
+ */
+struct FNameEntrySerialized :
+	public FNameEntry
+{
+	uint16 NonCasePreservingHash;
+	uint16 CasePreservingHash;
+	bool bWereHashesLoaded;
+
+	FNameEntrySerialized(const FNameEntry& NameEntry);
+	FNameEntrySerialized(enum ELinkerNameTableConstructor) :
+		FNameEntry(ENAME_LinkerConstructor),
+		NonCasePreservingHash(0),
+		CasePreservingHash(0),
+		bWereHashesLoaded(false)
+	{
+	}
+
+	friend CORE_API FArchive& operator<<(FArchive& Ar, FNameEntrySerialized& E);
+	friend CORE_API FArchive& operator<<(FArchive& Ar, FNameEntrySerialized* E)
+	{
+		return Ar << *E;
+	}
 };
 
 /**
@@ -519,7 +547,7 @@ public:
 	 */
 	FORCEINLINE ANSICHAR const* GetPlainANSIString() const
 	{
-		return GetDisplayNameEntry()->GetAnsiName();		
+		return GetDisplayNameEntry()->GetAnsiName();
 	}
 
 	/**
@@ -653,7 +681,7 @@ public:
 	 * Takes an FName and checks to see that it follows the rules that Unreal requires for package or group names.
 	 *
 	 * @param	InReason		If the check fails, this string is filled in with the reason why.
-	 * @param	bIsGroupName	if true, check legallity for a group name, else check legality for a package name
+	 * @param	bIsGroupName	if true, check legality for a group name, else check legality for a package name
 	 *
 	 * @return	true if the name is valid
 	 */
@@ -687,7 +715,7 @@ public:
 	/**
 	 * Create an FName with a hardcoded string index.
 	 *
-	 * @param N The harcdcoded value the string portion of the name will have. The number portion will be NAME_NO_NUMBER
+	 * @param N The hardcoded value the string portion of the name will have. The number portion will be NAME_NO_NUMBER
 	 */
 	FORCEINLINE FName( EName N )
 		: ComparisonIndex( N )
@@ -702,7 +730,7 @@ public:
 	/**
 	 * Create an FName with a hardcoded string index and (instance).
 	 *
-	 * @param N The harcdcoded value the string portion of the name will have
+	 * @param N The hardcoded value the string portion of the name will have
 	 * @param InNumber The hardcoded value for the number portion of the name
 	 */
 	FORCEINLINE FName( EName N, int32 InNumber )
@@ -771,10 +799,13 @@ public:
 	 *
 	 * @param Name			Value for the string portion of the name
 	 * @param FindType		Action to take (see EFindName)
-	 * @param unused
 	 */
-	FName( const WIDECHAR*  Name, EFindName FindType=FNAME_Add, bool bUnused=true );
-	FName( const ANSICHAR* Name, EFindName FindType=FNAME_Add, bool bUnused=true );
+	FName(const WIDECHAR* Name, EFindName FindType=FNAME_Add);
+	FName(const ANSICHAR* Name, EFindName FindType=FNAME_Add);
+
+	// Deprecated bUnused
+	DEPRECATED(4.12, "Removed bUnused from FName") FName(const WIDECHAR* Name, EFindName FindType, bool bUnused) : FName(Name, FindType) { }
+	DEPRECATED(4.12, "Removed bUnused from FName") FName(const ANSICHAR* Name, EFindName FindType, bool bUnused) : FName(Name, FindType) { }
 
 	/**
 	 * Create an FName. If FindType is FNAME_Find, and the string part of the name 
@@ -788,21 +819,16 @@ public:
 
 	/**
 	 * Constructor used by FLinkerLoad when loading its name table; Creates an FName with an instance
-	 * number of 0 that does not attempt to split the FName into string and number portions.
+	 * number of 0 that does not attempt to split the FName into string and number portions. Also,
+	 * this version skips calculating the hashes of the names if possible
 	 */
-	FName( ELinkerNameTableConstructor, const WIDECHAR* Name );
-
-	/**
-	 * Constructor used by FLinkerLoad when loading its name table; Creates an FName with an instance
-	 * number of 0 that does not attempt to split the FName into string and number portions.
-	 */
-	FName( ELinkerNameTableConstructor, const ANSICHAR* Name );
+	FName(const FNameEntrySerialized& LoadedEntry);
 
 	/**
 	 * Create an FName with a hardcoded string index.
 	 *
 	 * @param HardcodedIndex	The hardcoded value the string portion of the name will have. 
-	 * @param Name				The hardcoded name to intialize
+	 * @param Name				The hardcoded name to initialize
 	 */
 	explicit FName( EName HardcodedIndex, const TCHAR* Name );
 
@@ -861,6 +887,11 @@ public:
 	{
 		return !operator==(Other);
 	}
+
+	template <typename TCharType>
+	static int32 GetCasePreservingHash(const TCharType* Source);
+	template <typename TCharType>
+	static int32 GetNonCasePreservingHash(const TCharType* Source);
 
 	static void StaticInit();
 	static void DisplayHash( class FOutputDevice& Ar );
@@ -986,7 +1017,10 @@ private:
 	friend const TCHAR* DebugFName(int32);
 	friend const TCHAR* DebugFName(int32, int32);
 	friend const TCHAR* DebugFName(FName&);
-	friend FNameEntry* AllocateNameEntry( const void* Name, NAME_INDEX Index, FNameEntry* HashNext, bool bIsPureAnsi );
+	template<typename TCharType>
+	friend FNameEntry* AllocateNameEntry( const void* Name, NAME_INDEX Index, FNameEntry* HashNext);
+	/** Used to increment the correct counter based upon TCharType */
+	template <typename TCharType> friend void IncrementNameCount();
 
 	/**
 	 * Initialization from a wide string
@@ -998,6 +1032,10 @@ private:
 	 * @param HardcodeIndex If >= 0, this represents a hardcoded FName and so automatically gets this index
 	 */
 	void Init(const WIDECHAR* InName, int32 InNumber, EFindName FindType, bool bSplitName=true, int32 HardcodeIndex = -1);
+	/**
+	 * Version that takes the hashes as part of the constructor (serialized previously)
+	 */
+	void Init(const WIDECHAR* InName, int32 InNumber, EFindName FindType, const uint16 NonCasePreservingHash, const uint16 CasePreservingHash);
 
 	/**
 	 * Initialization from an ANSI string
@@ -1009,15 +1047,25 @@ private:
 	 * @param HardcodeIndex If >= 0, this represents a hardcoded FName and so automatically gets this index
 	 */
 	void Init(const ANSICHAR* InName, int32 InNumber, EFindName FindType, bool bSplitName=true, int32 HardcodeIndex = -1);
+	/**
+	 * Version that takes the hashes as part of the constructor (serialized previously). Skips InitInternal_HashSplit for loading perf reasons
+	 */
+	void Init(const ANSICHAR* InName, int32 InNumber, EFindName FindType, const uint16 NonCasePreservingHash, const uint16 CasePreservingHash);
 
 	template <typename TCharType>
-	void InitInternal(const TCharType* InName, int32 InNumber, const EFindName FindType, const bool bSplitName, const int32 HardcodeIndex);
+	void InitInternal(const TCharType* InName, int32 InNumber, const EFindName FindType, const int32 HardcodeIndex, const uint16 NonCasePreservingHash, const uint16 CasePreservingHash);
+
+	/**
+	 * Version of InitInternal that calculates the hash after splitting the string. Used by runtime FName construction
+	 */
+	template <typename TCharType>
+	void InitInternal_HashSplit(const TCharType* InName, int32 InNumber, const EFindName FindType, bool bSplitName, const int32 HardcodeIndex);
 
 	template <typename TCharType>
-	static bool InitInternal_FindOrAdd(const TCharType* InName, const EFindName FindType, const int32 HardcodeIndex, int32& OutComparisonIndex, int32& OutDisplayIndex);
+	static bool InitInternal_FindOrAdd(const TCharType* InName, const EFindName FindType, const int32 HardcodeIndex, const uint16 NonCasePreservingHash, const uint16 CasePreservingHash, int32& OutComparisonIndex, int32& OutDisplayIndex);
 
 	template <typename TCharType>
-	static bool InitInternal_FindOrAddNameEntry(const TCharType* InName, const EFindName FindType, const ENameCase ComparisonMode, int32& OutIndex);
+	static bool InitInternal_FindOrAddNameEntry(const TCharType* InName, const EFindName FindType, const ENameCase ComparisonMode, const uint16 iHash, int32& OutIndex);
 
 	template <typename TCharType>
 	static bool SplitNameWithCheckImpl(const TCharType* OldName, TCharType* NewName, int32 NewNameLen, int32& NewNumber);

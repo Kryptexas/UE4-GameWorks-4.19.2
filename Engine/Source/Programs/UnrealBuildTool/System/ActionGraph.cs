@@ -295,26 +295,26 @@ namespace UnrealBuildTool
 		/// </summary>
 		public static List<Action> GetActionsToExecute(Action[] PrerequisiteActions, List<UEBuildTarget> Targets, out Dictionary<UEBuildTarget, List<FileItem>> TargetToOutdatedPrerequisitesMap)
 		{
-			var CheckOutdatednessStartTime = DateTime.UtcNow;
+			DateTime CheckOutdatednessStartTime = DateTime.UtcNow;
 
 			// Build a set of all actions needed for this target.
-			var IsActionOutdatedMap = new Dictionary<Action, bool>();
-			foreach (var Action in PrerequisiteActions)
+			Dictionary<Action, bool> IsActionOutdatedMap = new Dictionary<Action, bool>();
+			foreach (Action Action in PrerequisiteActions)
 			{
 				IsActionOutdatedMap.Add(Action, true);
 			}
 
 			// For all targets, build a set of all actions that are outdated.
-			var OutdatedActionDictionary = new Dictionary<Action, bool>();
-			var HistoryList = new List<ActionHistory>();
-			var OpenHistoryFiles = new HashSet<FileReference>();
+			Dictionary<Action, bool> OutdatedActionDictionary = new Dictionary<Action, bool>();
+			List<ActionHistory> HistoryList = new List<ActionHistory>();
+			HashSet<FileReference> OpenHistoryFiles = new HashSet<FileReference>();
 			TargetToOutdatedPrerequisitesMap = new Dictionary<UEBuildTarget, List<FileItem>>();
-			foreach (var BuildTarget in Targets)	// @todo ubtmake: Optimization: Ideally we don't even need to know about targets for ubtmake -- everything would come from the files
+			foreach (UEBuildTarget BuildTarget in Targets)	// @todo ubtmake: Optimization: Ideally we don't even need to know about targets for ubtmake -- everything would come from the files
 			{
-				var HistoryFilename = ActionHistory.GeneratePathForTarget(BuildTarget);
+				FileReference HistoryFilename = ActionHistory.GeneratePathForTarget(BuildTarget);
 				if (!OpenHistoryFiles.Contains(HistoryFilename))		// @todo ubtmake: Optimization: We should be able to move the command-line outdatedness and build product deletion over to the 'gather' phase, as the command-lines won't change between assembler runs
 				{
-					var History = new ActionHistory(HistoryFilename.FullName);
+					ActionHistory History = new ActionHistory(HistoryFilename.FullName);
 					HistoryList.Add(History);
 					OpenHistoryFiles.Add(HistoryFilename);
 					GatherAllOutdatedActions(BuildTarget, History, ref OutdatedActionDictionary, TargetToOutdatedPrerequisitesMap);
@@ -328,7 +328,7 @@ namespace UnrealBuildTool
 				AllActions.RemoveAll(x => x.ActionType != ActionType.Compile);
 
 				// Check all of the leftover compilation actions for the one we want... that one is always outdated.
-				foreach (var Action in AllActions)
+				foreach (Action Action in AllActions)
 				{
 					// Slightly hacky.  We know a compiling X:/Blah/Actor.cpp ends up with StatusDescription == "Actor.cpp".
 					bool bIsSingleFileAction = BuildConfiguration.SingleFileToCompile.EndsWith(Action.StatusDescription.ToLowerInvariant());
@@ -345,7 +345,7 @@ namespace UnrealBuildTool
 			// Save the action history.
 			// This must happen after deleting outdated produced items to ensure that the action history on disk doesn't have
 			// command-lines that don't match the produced items on disk.
-			foreach (var TargetHistory in HistoryList)
+			foreach (ActionHistory TargetHistory in HistoryList)
 			{
 				TargetHistory.Save();
 			}
@@ -354,33 +354,54 @@ namespace UnrealBuildTool
 			CreateDirectoriesForProducedItems(OutdatedActionDictionary);
 
 			// Build a list of actions that are both needed for this target and outdated.
-			List<Action> ActionsToExecute = new List<Action>();
-			bool bHasOutdatedNonLinkActions = false;
-			foreach (Action Action in AllActions)
-			{
-				if (Action.CommandPath != null && IsActionOutdatedMap.ContainsKey(Action) && OutdatedActionDictionary[Action])
-				{
-					ActionsToExecute.Add(Action);
-					if (Action.ActionType != ActionType.Link)
-					{
-						bHasOutdatedNonLinkActions = true;
-					}
-				}
-			}
+			HashSet<Action> ActionsToExecute = AllActions.Where(Action => Action.CommandPath != null && IsActionOutdatedMap.ContainsKey(Action) && OutdatedActionDictionary[Action]).ToHashSet();
 
 			// Remove link actions if asked to
-			if (UEBuildConfiguration.bSkipLinkingWhenNothingToCompile && !bHasOutdatedNonLinkActions)
+			if (UEBuildConfiguration.bSkipLinkingWhenNothingToCompile)
 			{
-				ActionsToExecute.Clear();
+				// Get all items produced by a compile action
+				HashSet<FileItem> ProducedItems = ActionsToExecute.Where(Action => Action.ActionType == ActionType.Compile).SelectMany(x => x.ProducedItems).ToHashSet();
+
+				// Get all link actions which have no out-of-date prerequisites
+				HashSet<Action> UnlinkedActions = ActionsToExecute.Where(Action => Action.ActionType == ActionType.Link && !ProducedItems.Overlaps(Action.PrerequisiteItems)).ToHashSet();
+
+				// Remove unlinked items
+				ActionsToExecute.ExceptWith(UnlinkedActions);
+
+				// Re-add unlinked items which produce things which are dependencies of other actions
+				for (;;)
+				{
+					// Get all prerequisite items of a link action
+					HashSet<Action> PrerequisiteLinkActions = ActionsToExecute.Where(Action => Action.ActionType == ActionType.Link).SelectMany(x => x.PrerequisiteItems).Select(Item => Item.ProducingAction).ToHashSet();
+
+					// Find all unlinked actions that need readding
+					HashSet<Action> UnlinkedActionsToReadd = UnlinkedActions.Where(Action => PrerequisiteLinkActions.Contains(Action)).ToHashSet();
+					if (UnlinkedActionsToReadd.Count == 0)
+					{
+						break;
+					}
+
+					ActionsToExecute.UnionWith(UnlinkedActionsToReadd);
+					UnlinkedActions.ExceptWith(UnlinkedActionsToReadd);
+
+					// Break early if there are no more unlinked actions to readd
+					if (UnlinkedActions.Count == 0)
+					{
+						break;
+					}
+				}
+
+				// Remove actions that are wholly dependent on unlinked actions
+				ActionsToExecute = ActionsToExecute.Where(Action => Action.PrerequisiteItems.Count == 0 || !Action.PrerequisiteItems.Select(Item => Item.ProducingAction).ToHashSet().IsSubsetOf(UnlinkedActions)).ToHashSet();
 			}
 
 			if (BuildConfiguration.bPrintPerformanceInfo)
 			{
-				var CheckOutdatednessTime = (DateTime.UtcNow - CheckOutdatednessStartTime).TotalSeconds;
+				double CheckOutdatednessTime = (DateTime.UtcNow - CheckOutdatednessStartTime).TotalSeconds;
 				Log.TraceInformation("Checking outdatedness took " + CheckOutdatednessTime + "s");
 			}
 
-			return ActionsToExecute;
+			return ActionsToExecute.ToList();
 		}
 
 		/// <summary>
@@ -557,7 +578,7 @@ namespace UnrealBuildTool
 				}
 			}
 			PlatformSuffix = "";
-			foreach (var CurPlatform in Enum.GetValues(typeof(UnrealTargetPlatform)))
+			foreach (object CurPlatform in Enum.GetValues(typeof(UnrealTargetPlatform)))
 			{
 				string Test = "-" + CurPlatform;
 				if (WorkingString.EndsWith(Test))
@@ -576,7 +597,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		public static void DeleteStaleHotReloadDLLs()
 		{
-			var DeleteStartTime = DateTime.UtcNow;
+			DateTime DeleteStartTime = DateTime.UtcNow;
 
 			foreach (Action BuildAction in AllActions)
 			{
@@ -641,7 +662,7 @@ namespace UnrealBuildTool
 
 			if (BuildConfiguration.bPrintPerformanceInfo)
 			{
-				var DeleteTime = (DateTime.UtcNow - DeleteStartTime).TotalSeconds;
+				double DeleteTime = (DateTime.UtcNow - DeleteStartTime).TotalSeconds;
 				Log.TraceInformation("Deleting stale hot reload DLLs took " + DeleteTime + "s");
 			}
 		}
@@ -937,16 +958,16 @@ namespace UnrealBuildTool
 					// Scan this file for included headers that may be out of date.  Note that it's OK if we break out early because we found
 					// the action to be outdated.  For outdated actions, we kick off a separate include scan in a background thread later on to
 					// catch all of the other includes and form an exhaustive set.
-					var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Target.Platform);
+					UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Target.Platform);
 					foreach (FileItem PrerequisiteItem in RootAction.PrerequisiteItems)
 					{
 						// @todo ubtmake: Make sure we are catching RC files here too.  Anything that the toolchain would have tried it on.  Logic should match the CACHING stuff below
 						if (PrerequisiteItem.CachedCPPIncludeInfo != null)
 						{
-							var IncludedFileList = CPPEnvironment.FindAndCacheAllIncludedFiles(Target, PrerequisiteItem, BuildPlatform, PrerequisiteItem.CachedCPPIncludeInfo, bOnlyCachedDependencies: !bPerformExhaustiveIncludeSearchAndUpdateCache);
+							List<FileItem> IncludedFileList = CPPEnvironment.FindAndCacheAllIncludedFiles(Target, PrerequisiteItem, BuildPlatform, PrerequisiteItem.CachedCPPIncludeInfo, bOnlyCachedDependencies: !bPerformExhaustiveIncludeSearchAndUpdateCache);
 							if (IncludedFileList != null)
 							{
-								foreach (var IncludedFile in IncludedFileList)
+								foreach (FileItem IncludedFile in IncludedFileList)
 								{
 									if (IncludedFile.bExists)
 									{
@@ -1044,7 +1065,7 @@ namespace UnrealBuildTool
 				// includes for this file, so that we'll be able to determine whether it is out of date next time very quickly.
 				if (BuildConfiguration.bUseUBTMakefiles)
 				{
-					var DeepIncludeScanStartTime = DateTime.UtcNow;
+					DateTime DeepIncludeScanStartTime = DateTime.UtcNow;
 
 					// @todo ubtmake: we may be scanning more files than we need to here -- indirectly outdated files are bIsOutdated=true by this point (for example basemost includes when deeper includes are dirty)
 					if (bIsOutdated && RootAction.ActionType == ActionType.Compile)	// @todo ubtmake: Does this work with RC files?  See above too.
@@ -1100,16 +1121,16 @@ namespace UnrealBuildTool
 		/// </summary>
 		static void GatherAllOutdatedActions(UEBuildTarget Target, ActionHistory ActionHistory, ref Dictionary<Action, bool> OutdatedActions, Dictionary<UEBuildTarget, List<FileItem>> TargetToOutdatedPrerequisitesMap)
 		{
-			var CheckOutdatednessStartTime = DateTime.UtcNow;
+			DateTime CheckOutdatednessStartTime = DateTime.UtcNow;
 
-			foreach (var Action in AllActions)
+			foreach (Action Action in AllActions)
 			{
 				IsActionOutdated(Target, Action, ref OutdatedActions, ActionHistory, TargetToOutdatedPrerequisitesMap);
 			}
 
 			if (BuildConfiguration.bPrintPerformanceInfo)
 			{
-				var CheckOutdatednessTime = (DateTime.UtcNow - CheckOutdatednessStartTime).TotalSeconds;
+				double CheckOutdatednessTime = (DateTime.UtcNow - CheckOutdatednessStartTime).TotalSeconds;
 				Log.TraceInformation("Checking actions for " + Target.GetTargetName() + " took " + CheckOutdatednessTime + "s");
 			}
 		}
@@ -1259,27 +1280,27 @@ namespace UnrealBuildTool
 		public static void SaveActionGraphVisualization(UEBuildTarget Target, string Filename, string Description, ActionGraphVisualizationType VisualizationType, List<Action> Actions, bool IncludeCompileActions = true)
 		{
 			// True if we should include individual files in the graph network, or false to include only the build actions
-			var IncludeFiles = VisualizationType != ActionGraphVisualizationType.OnlyActions;
-			var OnlyIncludeCPlusPlusFiles = VisualizationType == ActionGraphVisualizationType.OnlyCPlusPlusFilesAndHeaders;
+			bool IncludeFiles = VisualizationType != ActionGraphVisualizationType.OnlyActions;
+			bool OnlyIncludeCPlusPlusFiles = VisualizationType == ActionGraphVisualizationType.OnlyCPlusPlusFilesAndHeaders;
 
 			// True if want to show actions in the graph, otherwise we're only showing files
-			var IncludeActions = VisualizationType != ActionGraphVisualizationType.OnlyFilesAndHeaders && VisualizationType != ActionGraphVisualizationType.OnlyCPlusPlusFilesAndHeaders;
+			bool IncludeActions = VisualizationType != ActionGraphVisualizationType.OnlyFilesAndHeaders && VisualizationType != ActionGraphVisualizationType.OnlyCPlusPlusFilesAndHeaders;
 
 			// True if C++ header dependencies should be expanded into the graph, or false to only have .cpp files
-			var ExpandCPPHeaderDependencies = IncludeFiles && (VisualizationType == ActionGraphVisualizationType.ActionsWithFilesAndHeaders || VisualizationType == ActionGraphVisualizationType.OnlyFilesAndHeaders || VisualizationType == ActionGraphVisualizationType.OnlyCPlusPlusFilesAndHeaders);
+			bool ExpandCPPHeaderDependencies = IncludeFiles && (VisualizationType == ActionGraphVisualizationType.ActionsWithFilesAndHeaders || VisualizationType == ActionGraphVisualizationType.OnlyFilesAndHeaders || VisualizationType == ActionGraphVisualizationType.OnlyCPlusPlusFilesAndHeaders);
 
-			var TimerStartTime = DateTime.UtcNow;
+			DateTime TimerStartTime = DateTime.UtcNow;
 
-			var GraphNodes = new List<GraphNode>();
+			List<GraphNode> GraphNodes = new List<GraphNode>();
 
-			var FileToGraphNodeMap = new Dictionary<FileItem, GraphNode>();
+			Dictionary<FileItem, GraphNode> FileToGraphNodeMap = new Dictionary<FileItem, GraphNode>();
 
 			// Filter our list of actions
-			var FilteredActions = new List<Action>();
+			List<Action> FilteredActions = new List<Action>();
 			{
-				for (var ActionIndex = 0; ActionIndex < Actions.Count; ++ActionIndex)
+				for (int ActionIndex = 0; ActionIndex < Actions.Count; ++ActionIndex)
 				{
-					var Action = Actions[ActionIndex];
+					Action Action = Actions[ActionIndex];
 
 					if (!IncludeActions || IncludeCompileActions || (Action.ActionType != ActionType.Compile))
 					{
@@ -1289,14 +1310,14 @@ namespace UnrealBuildTool
 			}
 
 
-			var FilesToCreateNodesFor = new HashSet<FileItem>();
-			for (var ActionIndex = 0; ActionIndex < FilteredActions.Count; ++ActionIndex)
+			HashSet<FileItem> FilesToCreateNodesFor = new HashSet<FileItem>();
+			for (int ActionIndex = 0; ActionIndex < FilteredActions.Count; ++ActionIndex)
 			{
-				var Action = FilteredActions[ActionIndex];
+				Action Action = FilteredActions[ActionIndex];
 
 				if (IncludeActions)
 				{
-					var GraphNode = new GraphNode()
+					GraphNode GraphNode = new GraphNode()
 					{
 						Id = GraphNodes.Count,
 
@@ -1326,7 +1347,7 @@ namespace UnrealBuildTool
 
 				if (IncludeFiles)
 				{
-					foreach (var ProducedFileItem in Action.ProducedItems)
+					foreach (FileItem ProducedFileItem in Action.ProducedItems)
 					{
 						if (!OnlyIncludeCPlusPlusFiles || IsCPPFile(ProducedFileItem))
 						{
@@ -1334,7 +1355,7 @@ namespace UnrealBuildTool
 						}
 					}
 
-					foreach (var PrerequisiteFileItem in Action.PrerequisiteItems)
+					foreach (FileItem PrerequisiteFileItem in Action.PrerequisiteItems)
 					{
 						if (!OnlyIncludeCPlusPlusFiles || IsCPPFile(PrerequisiteFileItem))
 						{
@@ -1345,14 +1366,14 @@ namespace UnrealBuildTool
 			}
 
 
-			var OverriddenPrerequisites = new Dictionary<FileItem, List<FileItem>>();
+			Dictionary<FileItem, List<FileItem>> OverriddenPrerequisites = new Dictionary<FileItem, List<FileItem>>();
 
 			// Determine the average size of all of the C++ source files
 			Int64 AverageCPPFileSize;
 			{
 				Int64 TotalFileSize = 0;
 				int CPPFileCount = 0;
-				foreach (var FileItem in FilesToCreateNodesFor)
+				foreach (FileItem FileItem in FilesToCreateNodesFor)
 				{
 					if (IsCPPFile(FileItem))
 					{
@@ -1371,11 +1392,11 @@ namespace UnrealBuildTool
 				}
 			}
 
-			var BuildPlatform = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.Win64);
+			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.Win64);
 
-			foreach (var FileItem in FilesToCreateNodesFor)
+			foreach (FileItem FileItem in FilesToCreateNodesFor)
 			{
-				var FileGraphNode = new GraphNode()
+				GraphNode FileGraphNode = new GraphNode()
 				{
 					Id = GraphNodes.Count,
 					Label = Path.GetFileName(FileItem.AbsolutePath)
@@ -1401,15 +1422,15 @@ namespace UnrealBuildTool
 				}
 
 				// Set the size of the file node based on the size of the file on disk
-				var bIsCPPFile = IsCPPFile(FileItem);
+				bool bIsCPPFile = IsCPPFile(FileItem);
 				if (bIsCPPFile)
 				{
-					var MinNodeSize = 0.25f;
-					var MaxNodeSize = 2.0f;
-					var FileSize = new FileInfo(FileItem.AbsolutePath).Length;
+					float MinNodeSize = 0.25f;
+					float MaxNodeSize = 2.0f;
+					long FileSize = new FileInfo(FileItem.AbsolutePath).Length;
 					float FileSizeScale = (float)((double)FileSize / (double)AverageCPPFileSize);
 
-					var SourceFileSizeScaleFactor = 0.1f;		// How much to make nodes for files bigger or larger based on their difference from the average file's size
+					float SourceFileSizeScaleFactor = 0.1f;		// How much to make nodes for files bigger or larger based on their difference from the average file's size
 					FileGraphNode.Size = Math.Min(Math.Max(1.0f + SourceFileSizeScaleFactor * FileSizeScale, MinNodeSize), MaxNodeSize);
 				}
 
@@ -1427,7 +1448,7 @@ namespace UnrealBuildTool
 					List<DependencyInclude> DirectlyIncludedFilenames = CPPEnvironment.GetDirectIncludeDependencies(Target, FileItem, BuildPlatform, bOnlyCachedDependencies: false);
 
 					// Resolve the included file name to an actual file.
-					var DirectlyIncludedFiles =
+					List<FileItem> DirectlyIncludedFiles =
 						DirectlyIncludedFilenames
 						.Where(DirectlyIncludedFilename => (DirectlyIncludedFilename.IncludeResolvedNameIfSuccessful != null))
 						.Select(DirectlyIncludedFilename => DirectlyIncludedFilename.IncludeResolvedNameIfSuccessful)
@@ -1442,20 +1463,20 @@ namespace UnrealBuildTool
 
 
 			// Connect everything together
-			var GraphEdges = new List<GraphEdge>();
+			List<GraphEdge> GraphEdges = new List<GraphEdge>();
 
 			if (IncludeActions)
 			{
-				for (var ActionIndex = 0; ActionIndex < FilteredActions.Count; ++ActionIndex)
+				for (int ActionIndex = 0; ActionIndex < FilteredActions.Count; ++ActionIndex)
 				{
-					var Action = FilteredActions[ActionIndex];
-					var ActionGraphNode = GraphNodes[ActionIndex];
+					Action Action = FilteredActions[ActionIndex];
+					GraphNode ActionGraphNode = GraphNodes[ActionIndex];
 
 					List<FileItem> ActualPrerequisiteItems = Action.PrerequisiteItems;
 					if (IncludeFiles && ExpandCPPHeaderDependencies && Action.ActionType == ActionType.Compile)
 					{
 						// The first prerequisite is always the .cpp file to compile
-						var CPPFile = Action.PrerequisiteItems[0];
+						FileItem CPPFile = Action.PrerequisiteItems[0];
 						if (!IsCPPFile(CPPFile))
 						{
 							throw new BuildException("Was expecting a C++ file as the first prerequisite for a Compile action");
@@ -1466,7 +1487,7 @@ namespace UnrealBuildTool
 					}
 
 
-					foreach (var PrerequisiteFileItem in ActualPrerequisiteItems)
+					foreach (FileItem PrerequisiteFileItem in ActualPrerequisiteItems)
 					{
 						if (IncludeFiles)
 						{
@@ -1474,7 +1495,7 @@ namespace UnrealBuildTool
 							if (FileToGraphNodeMap.TryGetValue(PrerequisiteFileItem, out PrerequisiteFileGraphNode))
 							{
 								// Connect a file our action is dependent on, to our action itself
-								var GraphEdge = new GraphEdge()
+								GraphEdge GraphEdge = new GraphEdge()
 								{
 									Id = GraphEdges.Count,
 									Source = PrerequisiteFileGraphNode,
@@ -1492,12 +1513,12 @@ namespace UnrealBuildTool
 						else if (PrerequisiteFileItem.ProducingAction != null)
 						{
 							// Not showing files, so connect the actions together
-							var ProducingActionIndex = FilteredActions.IndexOf(PrerequisiteFileItem.ProducingAction);
+							int ProducingActionIndex = FilteredActions.IndexOf(PrerequisiteFileItem.ProducingAction);
 							if (ProducingActionIndex != -1)
 							{
-								var SourceGraphNode = GraphNodes[ProducingActionIndex];
+								GraphNode SourceGraphNode = GraphNodes[ProducingActionIndex];
 
-								var GraphEdge = new GraphEdge()
+								GraphEdge GraphEdge = new GraphEdge()
 								{
 									Id = GraphEdges.Count,
 									Source = SourceGraphNode,
@@ -1513,15 +1534,15 @@ namespace UnrealBuildTool
 						}
 					}
 
-					foreach (var ProducedFileItem in Action.ProducedItems)
+					foreach (FileItem ProducedFileItem in Action.ProducedItems)
 					{
 						if (IncludeFiles)
 						{
 							if (!OnlyIncludeCPlusPlusFiles || IsCPPFile(ProducedFileItem))
 							{
-								var ProducedFileGraphNode = FileToGraphNodeMap[ProducedFileItem];
+								GraphNode ProducedFileGraphNode = FileToGraphNodeMap[ProducedFileItem];
 
-								var GraphEdge = new GraphEdge()
+								GraphEdge GraphEdge = new GraphEdge()
 								{
 									Id = GraphEdges.Count,
 									Source = ActionGraphNode,
@@ -1538,18 +1559,18 @@ namespace UnrealBuildTool
 			if (IncludeFiles && ExpandCPPHeaderDependencies)
 			{
 				// Fill in overridden prerequisites
-				foreach (var FileAndPrerequisites in OverriddenPrerequisites)
+				foreach (KeyValuePair<FileItem, List<FileItem>> FileAndPrerequisites in OverriddenPrerequisites)
 				{
-					var FileItem = FileAndPrerequisites.Key;
-					var FilePrerequisites = FileAndPrerequisites.Value;
+					FileItem FileItem = FileAndPrerequisites.Key;
+					List<FileItem> FilePrerequisites = FileAndPrerequisites.Value;
 
-					var FileGraphNode = FileToGraphNodeMap[FileItem];
-					foreach (var PrerequisiteFileItem in FilePrerequisites)
+					GraphNode FileGraphNode = FileToGraphNodeMap[FileItem];
+					foreach (FileItem PrerequisiteFileItem in FilePrerequisites)
 					{
 						GraphNode PrerequisiteFileGraphNode;
 						if (FileToGraphNodeMap.TryGetValue(PrerequisiteFileItem, out PrerequisiteFileGraphNode))
 						{
-							var GraphEdge = new GraphEdge()
+							GraphEdge GraphEdge = new GraphEdge()
 							{
 								Id = GraphEdges.Count,
 								Source = PrerequisiteFileGraphNode,
@@ -1571,7 +1592,7 @@ namespace UnrealBuildTool
 
 			if (BuildConfiguration.bPrintPerformanceInfo)
 			{
-				var TimerDuration = DateTime.UtcNow - TimerStartTime;
+				TimeSpan TimerDuration = DateTime.UtcNow - TimerStartTime;
 				Log.TraceInformation("Generating and saving ActionGraph took " + TimerDuration.TotalSeconds + "s");
 			}
 		}

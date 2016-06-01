@@ -62,7 +62,7 @@ namespace UnrealBuildTool
 				{
 					case UnrealTargetPlatform.Win64:
 						return Path.Combine(SDKBase, "Win64", "python", PYTHON_VER, "python.exe");
-					case UnrealTargetPlatform.Mac: // python is default installed on mac. 
+					case UnrealTargetPlatform.Mac: // python is default installed on mac.
 						return "/usr/bin/python";
 					default:
 						return "error_unknown_platform";
@@ -75,12 +75,12 @@ namespace UnrealBuildTool
 		{
 			get
 			{
-                string HTML5IntermediatoryPath = Path.GetFullPath(Path.Combine(BuildConfiguration.RelativeEnginePath, BuildConfiguration.BaseIntermediateFolder, "HTML5"));
-                if (!Directory.Exists(HTML5IntermediatoryPath))
+				string HTML5IntermediatoryPath = Path.GetFullPath(Path.Combine(BuildConfiguration.RelativeEnginePath, BuildConfiguration.BaseIntermediateFolder, "HTML5"));
+				if (!Directory.Exists(HTML5IntermediatoryPath))
 				{
-                    Directory.CreateDirectory(HTML5IntermediatoryPath);
+					Directory.CreateDirectory(HTML5IntermediatoryPath);
 				}
-                return HTML5IntermediatoryPath;
+				return HTML5IntermediatoryPath;
 			}
 		}
 		static public string DOT_EMSCRIPTEN { get { return Path.Combine(HTML5Intermediatory, ".emscripten"); } }
@@ -122,7 +122,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-        public static string SetUpEmscriptenConfigFile()
+		public static string SetUpEmscriptenConfigFile()
 		{
 			// the following are for diff checks for file timestamps
 			string SaveDotEmscripten = DOT_EMSCRIPTEN + ".save";
@@ -142,7 +142,7 @@ namespace UnrealBuildTool
 			// the best way to generate .emscripten resource file,
 			// is to run "emcc -v" (show version info) without an existing one
 			// --------------------------------------------------
-			// save a few things 
+			// save a few things
 			string PATH_SAVE = Environment.GetEnvironmentVariable("PATH");
 			string HOME_SAVE = Environment.GetEnvironmentVariable(PLATFORM_USER_HOME);
 			// warm up the .emscripten resource file

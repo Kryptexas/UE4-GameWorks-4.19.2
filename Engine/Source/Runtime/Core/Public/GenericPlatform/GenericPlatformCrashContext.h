@@ -85,6 +85,7 @@ public:
 	static const FString PlatformPropertiesTag;
 	static const FString UE4MinidumpName;
 	static const FString NewLineTag;
+	static const int32 CrashGUIDLength = 128;
 
 	/** Initializes crash context related platform specific data that can be impossible to obtain after a crash. */
 	static void Initialize();
@@ -114,17 +115,17 @@ public:
 	/**
 	 * @return a globally unique crash name.
 	 */
-	const FString& GetUniqueCrashName();
+	void GetUniqueCrashName(TCHAR* GUIDBuffer, int32 BufferSize) const;
 
 	/**
 	 * @return whether this crash is a full memory minidump
 	 */
-	const bool IsFullCrashDump();
+	const bool IsFullCrashDump() const;
 
 	/**
 	 * @return whether this crash is a full memory minidump if the crash context is for an ensure
 	 */
-	const bool IsFullCrashDumpOnEnsure();
+	const bool IsFullCrashDumpOnEnsure() const;
 
 	/** Serializes crash's informations to the specified filename. Should be overridden for platforms where using FFileHelper is not safe, all POSIX platforms. */
 	virtual void SerializeAsXML( const TCHAR* Filename );
@@ -145,6 +146,14 @@ public:
 	/** Unescapes a specified XML string, naive implementation. */
 	static FString UnescapeXMLString( const FString& Text );
 
+	/**
+	 * @return whether this crash is a non-crash event
+	 */
+	bool GetIsEnsure() const { return bIsEnsure; }
+
+protected:
+	bool bIsEnsure;
+
 private:
 	/** Serializes platform specific properties to the buffer. */
 	virtual void AddPlatformSpecificProperties();
@@ -161,8 +170,14 @@ private:
 	/**	Whether the Initialize() has been called */
 	static bool bIsInitialized;
 
+	/**	Static counter records how many crash contexts have been constructed */
+	static int32 StaticCrashContextIndex;
+
 	/** The buffer used to store the crash's properties. */
 	FString CommonBuffer;
+
+	/**	Records which crash context we were using the StaticCrashContextIndex counter */
+	int32 CrashContextIndex;
 
 	// FNoncopyable
 	FGenericCrashContext( const FGenericCrashContext& );

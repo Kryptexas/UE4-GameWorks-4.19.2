@@ -42,8 +42,6 @@ if exist "%ProgramFiles(x86)%\MSBuild\12.0\bin\MSBuild.exe" (
 
 rem ## Check for Visual Studio 2015
 
-for %%P in (%*) do if "%%P" == "-2013" goto NoVisualStudio2015Environment
-
 pushd %~dp0
 call GetVSComnToolsPath 14
 popd
@@ -66,18 +64,6 @@ call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
 goto ReadyToCompile
 
 :NoVisualStudio2013Environment
-rem ## Check for Visual Studio 2012
-
-pushd %~dp0
-call GetVSComnToolsPath 11
-popd
-
-if "%VsComnToolsPath%" == "" goto NoVisualStudio2012Environment
-call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
-goto ReadyToCompile
-
-
-:NoVisualStudio2012Environment
 rem ## User has no version of Visual Studio installed?
 goto Error_NoVisualStudioEnvironment
 
@@ -124,7 +110,7 @@ goto Exit
 
 :Error_NoVisualStudioEnvironment
 echo.
-echo GenerateProjectFiles ERROR: We couldn't find a valid installation of Visual Studio.  This program requires Visual Studio 2015 or Visual Studio 2013 or Visual Studio 2012.  Please check that you have Visual Studio installed, then verify that the HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\VisualStudio\14.0\InstallDir (or HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\14.0\InstallDir on 32-bit machines) registry value is set.  Visual Studio configures this value when it is installed, and this program expects it to be set to the '\Common7\IDE\' sub-folder under a valid Visual Studio installation directory.
+echo GenerateProjectFiles ERROR: We couldn't find a valid installation of Visual Studio.  This program requires Visual Studio 2015.  Please check that you have Visual Studio installed, then verify that the HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\VisualStudio\14.0\InstallDir (or HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\14.0\InstallDir on 32-bit machines) registry value is set.  Visual Studio configures this value when it is installed, and this program expects it to be set to the '\Common7\IDE\' sub-folder under a valid Visual Studio installation directory.
 echo.
 pause
 goto Exit

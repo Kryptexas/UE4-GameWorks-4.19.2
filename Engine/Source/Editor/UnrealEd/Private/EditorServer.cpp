@@ -70,7 +70,6 @@
 #include "UnrealEngine.h"
 #include "AI/Navigation/NavLinkRenderingComponent.h"
 #include "PhysicsPublic.h"
-#include "AnimationRecorder.h"
 #include "Analytics/AnalyticsPrivacySettings.h"
 #include "KismetReinstanceUtilities.h"
 
@@ -1089,7 +1088,10 @@ void UEditorEngine::HandleTransactorRedo( FUndoSessionContext SessionContext, bo
 
 	BroadcastPostRedo(SessionContext.Context, SessionContext.PrimaryObject, Succeeded);
 	InvalidateAllViewportsAndHitProxies();
-	ShowUndoRedoNotification(FText::Format(NSLOCTEXT("UnrealEd", "RedoMessageFormat", "Redo: {0}"), SessionContext.Title), Succeeded);
+	if (!bSquelchTransactionNotification)
+	{
+		ShowUndoRedoNotification(FText::Format(NSLOCTEXT("UnrealEd", "RedoMessageFormat", "Redo: {0}"), SessionContext.Title), Succeeded);
+	}
 }
 
 void UEditorEngine::HandleTransactorUndo( FUndoSessionContext SessionContext, bool Succeeded )
@@ -1099,7 +1101,10 @@ void UEditorEngine::HandleTransactorUndo( FUndoSessionContext SessionContext, bo
 
 	BroadcastPostUndo(SessionContext.Context, SessionContext.PrimaryObject, Succeeded);
 	InvalidateAllViewportsAndHitProxies();
-	ShowUndoRedoNotification(FText::Format(NSLOCTEXT("UnrealEd", "UndoMessageFormat", "Undo: {0}"), SessionContext.Title), Succeeded);
+	if (!bSquelchTransactionNotification)
+	{
+		ShowUndoRedoNotification(FText::Format(NSLOCTEXT("UnrealEd", "UndoMessageFormat", "Undo: {0}"), SessionContext.Title), Succeeded);
+	}
 }
 
 bool UEditorEngine::AreEditorAnalyticsEnabled() const 
@@ -1262,7 +1267,7 @@ void UEditorEngine::PostUndo(bool bSuccess)
 	FBlueprintCompileReinstancer::BatchReplaceInstancesOfClass(OldToNewClassMapToReinstance);
 }
 
-bool UEditorEngine::UndoTransaction()
+bool UEditorEngine::UndoTransaction(bool bCanRedo)
 {
 	// make sure we're in a valid state to perform this
 	if (GIsSavingPackage || IsGarbageCollecting())
@@ -1270,7 +1275,7 @@ bool UEditorEngine::UndoTransaction()
 		return false;
 	}
 
-	return Trans->Undo();
+	return Trans->Undo(bCanRedo);
 }
 
 bool UEditorEngine::RedoTransaction()
@@ -3055,8 +3060,8 @@ ULevel*  UEditorEngine::CreateTransLevelMoveBuffer( UWorld* InWorld )
 	// Spawn worldsettings.
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.OverrideLevel = BufferLevel;
-	InWorld->SpawnActor( GEngine->WorldSettingsClass, NULL, NULL, SpawnInfo );
-	check( Cast<AWorldSettings>( BufferLevel->Actors[0] ) );
+	AWorldSettings* WorldSettings = InWorld->SpawnActor<AWorldSettings>( GEngine->WorldSettingsClass, SpawnInfo );
+	BufferLevel->SetWorldSettings(WorldSettings);
 
 	// Spawn builder brush for the buffer level.
 	ABrush* BufferDefaultBrush = InWorld->SpawnActor<ABrush>( SpawnInfo );
@@ -3403,12 +3408,30 @@ void UEditorEngine::PasteSelectedActorsFromClipboard( UWorld* InWorld, const FTe
 				// List of group actors in the selection
 				TArray<AGroupActor*> GroupActors;
 
-				// Move the actors.
+				struct FAttachData
+				{
+					FAttachData(AActor* InParentActor, FName InSocketName)
+						: ParentActor(InParentActor)
+						, SocketName(InSocketName)
+					{}
+
+					AActor* ParentActor;
+					FName SocketName;
+				};
+
+				TArray<FAttachData, TInlineAllocator<8>> AttachData;
+				AttachData.Reserve(NumActorsToMove);
+
+				// Break any parent attachments and move the actors.
 				AActor* SingleActor = NULL;
 				for ( FSelectionIterator It( GEditor->GetSelectedActorIterator() ) ; It ; ++It )
 				{
 					AActor* Actor = static_cast<AActor*>( *It );
-					checkSlow( Actor->IsA(AActor::StaticClass()) );
+
+					AActor* ParentActor = Actor->GetAttachParentActor();
+					FName SocketName = Actor->GetAttachParentSocketName();
+					Actor->DetachRootComponentFromParent(true);
+					AttachData.Emplace(ParentActor, SocketName);
 
 					// If this actor is in a group, add it to the list
 					if (GEditor->bGroupingActive)
@@ -3422,7 +3445,16 @@ void UEditorEngine::PasteSelectedActorsFromClipboard( UWorld* InWorld, const FTe
 
 					SingleActor = Actor;
 					Actor->SetActorLocation(Actor->GetActorLocation() + Adjust, false);
+				}
+
+				// Restore attachments
+				int Index = 0;
+				for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
+				{
+					AActor* Actor = static_cast<AActor*>(*It);
+					Actor->AttachToActor(AttachData[Index].ParentActor, FAttachmentTransformRules::KeepWorldTransform, AttachData[Index].SocketName);
 					Actor->PostEditMove(true);
+					Index++;
 				}
 
 				// Update the pivot location.
@@ -3667,7 +3699,7 @@ bool UEditorEngine::Map_Check( UWorld* InWorld, const TCHAR* Str, FOutputDevice&
 			if (Level != NULL)
 			{
 				// Grab the world info of the streaming level, and loop through it's streaming levels
-				AWorldSettings* SubLevelWorldSettings = CastChecked<AWorldSettings>(Level->Actors[0]);
+				AWorldSettings* SubLevelWorldSettings = Level->GetWorldSettings();
 				UWorld *SubLevelWorld = CastChecked<UWorld>(Level->GetOuter());
 				if (SubLevelWorld != NULL && SubLevelWorldSettings != NULL )
 				{
@@ -4865,6 +4897,15 @@ bool UEditorEngine::SnapObjectTo( FActorOrComponent Object, const bool InAlign, 
 		{
 			RebuildAlteredBSP();
 		}
+
+		TArray<FEdMode*> ActiveModes; 
+		GCurrentLevelEditingViewportClient->GetModeTools()->GetActiveModes(ActiveModes);
+		for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
+		{
+			// Notify active modes
+			ActiveModes[ModeIndex]->ActorMoveNotify();
+		}
+
 		return true;
 	}
 

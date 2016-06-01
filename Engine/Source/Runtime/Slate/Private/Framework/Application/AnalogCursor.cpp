@@ -44,7 +44,7 @@ void FAnalogCursor::Tick(const float DeltaTime, FSlateApplication& SlateApp, TSh
 		for(const FArrangedWidget& ArrangedWidget : AllArrangedWidgets)
 		{
 			TSharedRef<SWidget> Widget = ArrangedWidget.Widget;
-			if (Widget->SupportsKeyboardFocus() && Widget->IsInteractable())
+			if (Widget->IsInteractable())
 			{
 				SpeedMult = StickySlowdown;
 				//FVector2D Adjustment = WidgetsAndCursors.Last().Geometry.Position - OldPosition; // example of calculating distance from cursor to widget center
@@ -172,7 +172,7 @@ bool FAnalogCursor::HandleKeyUpEvent(FSlateApplication& SlateApp, const FKeyEven
 			SlateApp.GetPlatformApplication()->GetModifierKeys()
 			);
 
-		SlateApp.ProcessMouseButtonUpEvent(MouseEvent);
+		return SlateApp.ProcessMouseButtonUpEvent(MouseEvent);
 	}
 	
 	return false;
@@ -241,6 +241,12 @@ void FAnalogCursor::SetMode(AnalogCursorMode::Type NewMode)
 	Mode = NewMode;
 
 	CurrentSpeed = FVector2D::ZeroVector;
+}
+
+void FAnalogCursor::ClearAnalogValues()
+{
+	AnalogValues[static_cast<uint8>(EAnalogStick::Left)] = FVector2D::ZeroVector;
+	AnalogValues[static_cast<uint8>(EAnalogStick::Right)] = FVector2D::ZeroVector;
 }
 
 void FAnalogCursor::UpdateCursorPosition(FSlateApplication& SlateApp, TSharedRef<ICursor> Cursor, const FVector2D& NewPosition)

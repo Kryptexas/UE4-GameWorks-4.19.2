@@ -59,6 +59,8 @@ struct FDetailsViewArgs
 	uint32 bCustomNameAreaLocation : 1;
 	/** If true, the filter area will be created but will not be displayed so it can be placed in a custom location.  */
 	uint32 bCustomFilterAreaLocation : 1;
+	/** If false, the current properties editor will never display the favorite system */
+	uint32 bAllowFavoriteSystem : 1;
 	/** Controls how CPF_DisableEditOnInstance nodes will be treated */
 	EEditDefaultsOnlyNodeVisibility DefaultsOnlyVisibility;
 	/** The command list from the host of the details view, allowing child widgets to bind actions with a bound chord */
@@ -88,6 +90,7 @@ public:
 		, bShowDifferingPropertiesOption(false)
 		, bCustomNameAreaLocation(false)
 		, bCustomFilterAreaLocation(false)
+		, bAllowFavoriteSystem(true)
 		, DefaultsOnlyVisibility(EEditDefaultsOnlyNodeVisibility::Show)
 	{
 	}
@@ -127,14 +130,14 @@ public:
 	 * @param Class	The class the custom detail layout is for
 	 * @param DetailLayoutDelegate	The delegate to call when querying for custom detail layouts for the classes properties
 	 */
-	virtual void RegisterInstancedCustomPropertyLayout( UClass* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate ) = 0;
+	virtual void RegisterInstancedCustomPropertyLayout( UStruct* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate ) = 0;
 
 	/**
 	 * Unregisters a custom detail layout delegate for a specific class in this instance of the details view only
 	 *
 	 * @param Class	The class with the custom detail layout delegate to remove
 	 */
-	virtual void UnregisterInstancedCustomPropertyLayout( UClass* Class ) = 0;
+	virtual void UnregisterInstancedCustomPropertyLayout( UStruct* Class ) = 0;
 
 	/**
 	 * Sets the objects this details view is viewing

@@ -143,29 +143,33 @@ void SStructureDetailsView::Construct(const FArguments& InArgs)
 
 	ChildSlot
 	[
-		SNew( SVerticalBox )
-		+ SVerticalBox::Slot()
-		.AutoHeight()
-		.Padding( 0.0f, 0.0f, 0.0f, 2.0f )
+		SNew( SBox )
+		.Visibility(this, &SStructureDetailsView::GetPropertyEditingVisibility)
 		[
-			FilterRow
-		]
-		+ SVerticalBox::Slot()
-		.FillHeight(1)
-		.Padding(0)
-		[
-			SNew( SHorizontalBox )
-			+ SHorizontalBox::Slot()
+			SNew( SVerticalBox )
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding( 0.0f, 0.0f, 0.0f, 2.0f )
 			[
-				DetailTree.ToSharedRef()
+				FilterRow
 			]
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
+			+ SVerticalBox::Slot()
+			.FillHeight(1)
+			.Padding(0)
 			[
-				SNew( SBox )
-				.WidthOverride( 16.0f )
+				SNew( SHorizontalBox )
+				+ SHorizontalBox::Slot()
 				[
-					ExternalScrollbar
+					DetailTree.ToSharedRef()
+				]
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew( SBox )
+					.WidthOverride( 16.0f )
+					[
+						ExternalScrollbar
+					]
 				]
 			]
 		]
@@ -247,6 +251,21 @@ TSharedPtr<class FComplexPropertyNode> SStructureDetailsView::GetRootNode()
 void SStructureDetailsView::CustomUpdatePropertyMap()
 {
 	DetailLayout->DefaultCategory(NAME_None).SetDisplayName(NAME_None, CustomName);
+}
+
+EVisibility SStructureDetailsView::GetPropertyEditingVisibility() const
+{
+	return StructData.IsValid() && StructData->IsValid() && RootNode.IsValid() && RootNode->IsValid() ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+void SStructureDetailsView::RegisterInstancedCustomPropertyLayout(UStruct* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate)
+{
+	RegisterInstancedCustomPropertyLayoutInternal(Class, DetailLayoutDelegate);
+}
+
+void SStructureDetailsView::UnregisterInstancedCustomPropertyLayout(UStruct* Class)
+{
+	UnregisterInstancedCustomPropertyLayoutInternal(Class);
 }
 
 #undef LOCTEXT_NAMESPACE

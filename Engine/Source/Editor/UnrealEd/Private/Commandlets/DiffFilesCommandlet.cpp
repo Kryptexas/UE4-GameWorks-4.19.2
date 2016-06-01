@@ -6,6 +6,7 @@ DiffPackagesCommandlet.cpp: Commandlet used for comparing two packages.
 =============================================================================*/
 
 #include "UnrealEd.h"
+#include "AssetRegistryModule.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDiffFilesCommandlet, Log, All);
 
@@ -67,7 +68,13 @@ bool UDiffFilesCommandlet::Initialize(const TCHAR* Parms)
 			{
 				for (int32 i = 0; i < Paths.Num(); i++)
 				{
-					IFileManager::Get().FindFiles((TArray<FString>&)FilesInPath, *(Paths[i] / PackageWildcard), 1, 0);
+					TArray<FString> Temp;
+					IFileManager::Get().FindFiles(Temp, *(Paths[i] / PackageWildcard), 1, 0);
+					FString Path = FPaths::GetPath(Paths[i] / PackageWildcard);
+					for (const auto& T : Temp)
+					{
+						FilesInPath.Add(Path / T);
+					}
 				}
 			}
 		}
@@ -128,5 +135,11 @@ void UDiffFilesCommandlet::LoadAndDiff()
 
 	UPackage *Package = CreatePackage(NULL, TEXT("Package_(0)"));
 
-	LoadPackage(Package, *FString::Printf(TEXT("%s;%s"), *PackageInfos[0].FullPath, *PackageInfos[1].FullPath), LOAD_ForFileDiff);
+
+	Package = LoadPackage(Package, *FString::Printf(TEXT("%s;%s"), *PackageInfos[0].FullPath, *PackageInfos[1].FullPath), LOAD_ForDiff | LOAD_ForFileDiff);
+
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
+	TArray<FAssetData*> AssetData;
+	AssetRegistry.LoadPackageRegistryData(*Package->LinkerLoad->Loader, AssetData);
 }

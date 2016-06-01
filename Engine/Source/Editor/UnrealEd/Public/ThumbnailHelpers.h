@@ -216,46 +216,27 @@ class UActorComponent;
 class UNREALED_API FClassActorThumbnailScene : public FThumbnailPreviewScene
 {
 public:
-	/** Constructor/Destructor */
+
 	FClassActorThumbnailScene();
-	~FClassActorThumbnailScene();
 
 	/** Returns true if this component can be visualized */
 	bool IsValidComponentForVisualization(UActorComponent* Component) const;
-
-	void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 protected:
 	// FThumbnailPreviewScene implementation
 	virtual void GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin, float& OutOrbitPitch, float& OutOrbitYaw, float& OutOrbitZoom) const override;
 
-	/** Returns a duplicate of the specified component whose outer is the transient package. If the component can not be created, a placeholder component is made in its place. */
-	UActorComponent* CreateComponentInstanceFromTemplate(UActorComponent* ComponentTemplate) const;
-
-	/** Handler for when garbage collection occurs. Used to clear the ComponentsPool */
-	void OnPreGarbageCollect();
-
-	/** Removes all references to components in the components pool and empties all lists. This prepares all loaded components for GC. */
-	void ClearComponentsPool();
-
 	/** Sets the object (class or blueprint) used in the next GetView() */
-	virtual void SetObject(class UObject* Obj);
-
-	/** Get/Release for the component pool */
-	virtual TArray<UPrimitiveComponent*> GetPooledVisualizableComponents(UObject* Obj) = 0;
+	void SpawnPreviewActor(class UClass* Obj);
 
 	/** Get the scene thumbnail info to use for the object currently being rendered */
 	virtual USceneThumbnailInfo* GetSceneThumbnailInfo(const float TargetDistance) const = 0;
 
-	/** Instances of the visualizable components found in the blueprint. This array only has elements while the blueprint is being rendered.  */
-	TArray<UPrimitiveComponent*> VisualizableComponents;
+	FBoxSphereBounds GetPreviewActorBounds() const;
 
-	/** A map of objects to "pooled component list".
-	  * This will be populated with components that were created by this preview scene.
-	  * Objects in this map are not persistent and will be garbage collected at GC time.
-	  */
-	TMap< TWeakObjectPtr<UObject>, TArray< TWeakObjectPtr<UActorComponent> > > AllComponentsPool;
-	TMap< TWeakObjectPtr<UObject>, TArray< TWeakObjectPtr<UPrimitiveComponent> > > VisualizableComponentsPool;
+private:
+
+	class AActor* PreviewActor;
 };
 
 class UNREALED_API FBlueprintThumbnailScene : public FClassActorThumbnailScene
@@ -263,7 +244,6 @@ class UNREALED_API FBlueprintThumbnailScene : public FClassActorThumbnailScene
 public:
 	/** Constructor/Destructor */
 	FBlueprintThumbnailScene();
-	~FBlueprintThumbnailScene();
 
 	/** Sets the static mesh to use in the next GetView() */
 	void SetBlueprint(class UBlueprint* Blueprint);
@@ -272,11 +252,6 @@ public:
 	void BlueprintChanged(class UBlueprint* Blueprint);
 
 protected:
-	/** Creates instances of template components found in a blueprint's simple construction script */
-	void InstanceComponents(USCS_Node* CurrentNode, USceneComponent* ParentComponent, const TMap<UActorComponent*, UActorComponent*>& NativeInstanceMap, TArray<UActorComponent*>& OutComponents, UBlueprintGeneratedClass* ActualBPGC);
-
-	/** Get/Release for the component pool */
-	virtual TArray<UPrimitiveComponent*> GetPooledVisualizableComponents(UObject* Obj) override;
 
 	/** Get the scene thumbnail info to use for the object currently being rendered */
 	virtual USceneThumbnailInfo* GetSceneThumbnailInfo(const float TargetDistance) const override;
@@ -291,15 +266,11 @@ class UNREALED_API FClassThumbnailScene : public FClassActorThumbnailScene
 public:
 	/** Constructor/Destructor */
 	FClassThumbnailScene();
-	~FClassThumbnailScene();
 
 	/** Sets the class use in the next GetView() */
 	void SetClass(class UClass* Class);
 
 protected:
-	/** Get/Release for the component pool */
-	virtual TArray<UPrimitiveComponent*> GetPooledVisualizableComponents(UObject* Obj) override;
-
 	/** Get the scene thumbnail info to use for the object currently being rendered */
 	virtual USceneThumbnailInfo* GetSceneThumbnailInfo(const float TargetDistance) const override;
 

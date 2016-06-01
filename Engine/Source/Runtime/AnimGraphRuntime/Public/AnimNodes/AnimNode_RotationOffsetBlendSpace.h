@@ -22,6 +22,10 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_RotationOffsetBlendSpace : public FAnimNod
 	*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Performance, meta = (DisplayName = "LOD Threshold"))
 	int32 LODThreshold;
+
+	UPROPERTY(Transient)
+	bool bIsLODEnabled;
+
 public:	
 	FAnimNode_RotationOffsetBlendSpace();
 

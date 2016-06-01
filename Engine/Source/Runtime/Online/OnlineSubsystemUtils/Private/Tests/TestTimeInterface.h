@@ -5,6 +5,8 @@
 #include "Core.h"
 #include "OnlineTimeInterface.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 /**
  * Class used to test the server time interface
  */
@@ -51,3 +53,5 @@
 	 */
 	void Test(class UWorld* InWorld);
  };
+
+#endif //WITH_DEV_AUTOMATION_TESTS

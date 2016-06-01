@@ -75,6 +75,10 @@ void FMetalStateCache::Reset(void)
 	}
 	
 	PipelineDesc.Hash = 0;
+	if (PipelineDesc.PipelineDescriptor)
+	{
+		PipelineDesc.PipelineDescriptor.depthAttachmentPixelFormat = MTLPixelFormatInvalid;
+	}
 	
 	Viewport.originX = Viewport.originY = Viewport.width = Viewport.height = Viewport.znear = Viewport.zfar = 0.0;
 	
@@ -94,6 +98,7 @@ void FMetalStateCache::Reset(void)
 	RasterizerState.SafeRelease();
 	BoundShaderState.SafeRelease();
 	ComputeShader.SafeRelease();
+	DepthStencilSurface.SafeRelease();
 	StencilRef = 0;
 	
 	BlendFactor = FLinearColor::Transparent;
@@ -120,8 +125,8 @@ void FMetalStateCache::SetScissorRect(bool const bEnable, MTLScissorRect const& 
 	// Clamp to framebuffer size - Metal doesn't allow scissor to be larger.
 	Scissor.x = Scissor.x;
 	Scissor.y = Scissor.y;
-	Scissor.width = (Scissor.x + Scissor.width <= FrameBufferSize.width) ? Scissor.width : FrameBufferSize.width - Scissor.x;
-	Scissor.height = (Scissor.y + Scissor.height <= FrameBufferSize.height) ? Scissor.height : FrameBufferSize.height - Scissor.y;
+	Scissor.width = FMath::Max((Scissor.x + Scissor.width <= FMath::RoundToInt(FrameBufferSize.width)) ? Scissor.width : FMath::RoundToInt(FrameBufferSize.width) - Scissor.x, (NSUInteger)1u);
+	Scissor.height = FMath::Max((Scissor.y + Scissor.height <= FMath::RoundToInt(FrameBufferSize.height)) ? Scissor.height : FMath::RoundToInt(FrameBufferSize.height) - Scissor.y, (NSUInteger)1u);
 	
 	CommandEncoder.SetScissorRect(Scissor);
 }
@@ -247,6 +252,7 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 		
 		// at this point, we need to fully set up an encoder/command buffer, so make a new one (autoreleased)
 		MTLRenderPassDescriptor* RenderPass = [MTLRenderPassDescriptor renderPassDescriptor];
+		TRACK_OBJECT(STAT_MetalRenderPassDescriptorCount, RenderPass);
 	
 		// if we need to do queries, write to the supplied query buffer
 		if (IsFeatureLevelSupported(GMaxRHIShaderPlatform, ERHIFeatureLevel::SM4))
@@ -304,11 +310,8 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 	
 				BoundTargets |= 1 << RenderTargetIndex;
 				
-	            if (Surface.Texture == nil)
-	            {
-	                PipelineDesc.SampleCount = OldCount;
-	                return;
-	            }
+				// The surface cannot be nil - we have to have a valid render-target array after this call.
+				check (Surface.Texture != nil);
 	
 				// user code generally passes -1 as a default, but we need 0
 				uint32 ArraySliceIndex = RenderTargetView.ArraySliceIndex == 0xFFFFFFFF ? 0 : RenderTargetView.ArraySliceIndex;
@@ -338,6 +341,7 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 				}
 	
 				MTLRenderPassColorAttachmentDescriptor* ColorAttachment = [MTLRenderPassColorAttachmentDescriptor new];
+				TRACK_OBJECT(STAT_MetalRenderPassColorAttachmentDescriptorCount, ColorAttachment);
 	
 				if (Surface.MSAATexture != nil)
 				{
@@ -383,10 +387,11 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 				[RenderPass.colorAttachments setObject:ColorAttachment atIndexedSubscript:RenderTargetIndex];
 				[PipelineDesc.PipelineDescriptor.colorAttachments objectAtIndexedSubscript:RenderTargetIndex].pixelFormat = ColorAttachment.texture.pixelFormat;
 	
+				UNTRACK_OBJECT(STAT_MetalRenderPassColorAttachmentDescriptorCount, ColorAttachment);
 				[ColorAttachment release];
 	
-				bHasValidColorTarget = true;
 				bHasValidRenderTarget = true;
+				bHasValidColorTarget = true;
 			}
 			else
 			{
@@ -524,6 +529,7 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 			if (DepthTexture)
 			{
 				MTLRenderPassDepthAttachmentDescriptor* DepthAttachment = [[MTLRenderPassDepthAttachmentDescriptor alloc] init];
+				TRACK_OBJECT(STAT_MetalRenderPassDepthAttachmentDescriptorCount, DepthAttachment);
 				
 				DepthFormatKey = Surface.FormatKey;
 	
@@ -557,12 +563,15 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 	
 				// and assign it
 				RenderPass.depthAttachment = DepthAttachment;
+				
+				UNTRACK_OBJECT(STAT_MetalRenderPassDepthAttachmentDescriptorCount, DepthAttachment);
 				[DepthAttachment release];
 			}
 	
 			if (StencilTexture)
 			{
 				MTLRenderPassStencilAttachmentDescriptor* StencilAttachment = [[MTLRenderPassStencilAttachmentDescriptor alloc] init];
+				TRACK_OBJECT(STAT_MetalRenderPassStencilAttachmentDescriptorCount, StencilAttachment);
 				
 				StencilFormatKey = Surface.FormatKey;
 	
@@ -596,9 +605,16 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 	
 				// and assign it
 				RenderPass.stencilAttachment = StencilAttachment;
+				
+				UNTRACK_OBJECT(STAT_MetalRenderPassStencilAttachmentDescriptorCount, StencilAttachment);
 				[StencilAttachment release];
 			}
 		}
+		
+		// Retain and/or release the depth-stencil surface in case it is a temporary surface for a draw call that writes to depth without a depth/stencil buffer bound.
+		DepthStencilSurface = RenderTargetsInfo.DepthStencilRenderTarget.Texture;
+		
+		// Assert that the render target state is valid because there appears to be a bug where it isn't.
 		check(bHasValidRenderTarget);
 	
 		// update hash for the depth/stencil buffer & sample count
@@ -615,7 +631,7 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 		// Set render to the framebuffer
 		CommandEncoder.SetRenderPassDescriptor(RenderPass, bReset);
 		
-		// if (bNeedsClear)
+		if (bNeedsClear || !PLATFORM_MAC || IsRHIDeviceNVIDIA() || IsRHIDeviceIntel())
 		{
 			CommandEncoder.BeginRenderCommandEncoding();
 		}
@@ -752,6 +768,7 @@ void FMetalStateCache::ConditionalUpdateBackBuffer(FMetalSurface& Surface)
 			// set the texture into the backbuffer
 			Surface.GetDrawableTexture();
 		}
+		check (Surface.Texture);
 	}
 }
 

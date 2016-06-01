@@ -3,6 +3,7 @@
 #pragma once
 
 #include "GraphEditAction.h"
+#include "Runtime/Core/Public/Serialization/Archive.h"
 
 DECLARE_MULTICAST_DELEGATE_OneParam( FOnGraphChanged, const FEdGraphEditAction& );
 DECLARE_DELEGATE_OneParam( FSingleNodeEvent, class UEdGraphNode* );

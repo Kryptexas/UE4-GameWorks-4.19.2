@@ -5,6 +5,22 @@
 #include "AndroidRuntimeSettings.generated.h"
 
 UENUM()
+namespace EAndroidAntVerbosity
+{
+	enum Type
+	{
+		/** Extra quiet logging (-quiet), errors will be logged by second run at normal verbosity. */
+		Quiet,
+
+		/** Normal logging (no options) */
+		Normal,
+
+		/** Extra verbose logging (-verbose) */
+		Verbose,
+	};
+}
+
+UENUM()
 namespace EAndroidScreenOrientation
 {
 	// IF THIS CHANGES, MAKE SURE TO UPDATE UEDeployAndroid.cs, ConvertOrientationIniValue()!
@@ -137,10 +153,14 @@ public:
 	// Disable the verification of an OBB file when it is downloaded or on first start when in a distribution build. 
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Disable verify OBB on first start/update."))
 	bool bDisableVerifyOBBOnStartUp;
-	
+
 	// The permitted orientation of the application on the device
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging)
 	TEnumAsByte<EAndroidScreenOrientation::Type> Orientation;
+
+	// Level of verbosity to use during packaging with Ant
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging)
+	TEnumAsByte<EAndroidAntVerbosity::Type> AntVerbosity;
 
 	// Should the software navigation buttons be hidden or not
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Enable FullScreen Immersive on KitKat and above devices."))
@@ -183,6 +203,14 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = AdvancedAPKPackaging, Meta = (DisplayName = "Remove Oculus Signature Files from Distribution APK"))
 	bool bRemoveOSIG;
 
+	// Configure the Android to run in sustained performance with lower max speeds, but no FPS fluctuations due to temperature
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = AdvancedAPKPackaging, Meta = (DisplayName = "Configure GoogleVR for sustained-performance mode"))
+	bool bGoogleVRSustainedPerformance;
+
+	// Configure the Android to run in low-latency mode, not available on all hardware
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = AdvancedAPKPackaging, Meta = (DisplayName = "Configure GoogleVR for low-latency rendering mode (scanline racing)"))
+	bool bGoogleVRScanlineRacing;
+
 	// This is the file that keytool outputs, specified with the -keystore parameter (file should be in <Project>/Build/Android)
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = DistributionSigning, Meta = (DisplayName = "Key Store (output of keytool, placed in <Project>/Build/Android)"))
 	FString KeyStore;
@@ -203,9 +231,9 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support armv7 [aka armeabi-v7a]"))
 	bool bBuildForArmV7;
 
-//	// Enable Arm64 support?
-//	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support arm64"))
-//	bool bBuildForArm64;
+	// Enable Arm64 support?
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support arm64 [aka arm64-v8a]"))
+	bool bBuildForArm64;
 
 	// Enable x86 support? [CURRENTLY FOR FULL SOURCE GAMES ONLY]
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support x86"))
@@ -222,6 +250,10 @@ public:
 	// Enable ES31 support? [CURRENTLY FOR FULL SOURCE GAMES ONLY]
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support OpenGL ES31 + AEP"))
 	bool bBuildForES31;
+
+	// Enable Vulkan support? [CURRENTLY FOR FULL SOURCE GAMES ONLY]
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support Vulkan [Experimental]"))
+	bool bSupportsVulkan;
 
 	// If selected, the checked architectures will be split into separate .apk files [CURRENTLY FOR FULL SOURCE GAMES ONLY]
 	// @todo android fat binary: Currently, there isn't much utility in merging multiple .so's into a single .apk except for debugging,

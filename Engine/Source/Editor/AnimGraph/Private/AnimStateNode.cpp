@@ -162,7 +162,12 @@ void UAnimStateNode::PostPlacedNewNode()
 	Schema->CreateDefaultNodesForGraph(*BoundGraph);
 
 	// Add the new graph as a child of our parent graph
-	GetGraph()->SubGraphs.Add(BoundGraph);
+	UEdGraph* ParentGraph = GetGraph();
+
+	if(ParentGraph->SubGraphs.Find(BoundGraph) == INDEX_NONE)
+	{
+		ParentGraph->SubGraphs.Add(BoundGraph);
+	}
 }
 
 void UAnimStateNode::DestroyNode()

@@ -15,6 +15,9 @@
 #include "MoviePlayerSettings.h"
 #include "ShaderCompiler.h"
 
+
+DEFINE_LOG_CATEGORY_STATIC(LogMoviePlayer, Log, All);
+
 class SDefaultMovieBorder : public SBorder
 {
 public:
@@ -114,6 +117,8 @@ void FDefaultGameMoviePlayer::SetSlateRenderer(TSharedPtr<FSlateRenderer> InSlat
 
 void FDefaultGameMoviePlayer::Initialize()
 {
+	UE_LOG(LogMoviePlayer, Log, TEXT("Initializing movie player"));
+
 	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(RegisterMoviePlayerTickable, FDefaultGameMoviePlayer*, MoviePlayer, this,
 	{
 		MoviePlayer->Register();
@@ -131,6 +136,9 @@ void FDefaultGameMoviePlayer::Initialize()
 
 	// Add a delegate to start playing movies when we start loading a map
 	FCoreUObjectDelegates::PreLoadMap.AddSP( this, &FDefaultGameMoviePlayer::OnPreLoadMap );
+	
+	// Shutdown the movie player if the app is exiting
+	FCoreDelegates::OnPreExit.AddSP( this, &FDefaultGameMoviePlayer::Shutdown );
 
 	FPlatformSplash::Hide();
 
@@ -182,6 +190,8 @@ void FDefaultGameMoviePlayer::Initialize()
 
 void FDefaultGameMoviePlayer::Shutdown()
 {
+	UE_LOG(LogMoviePlayer, Log, TEXT("Shutting down movie player"));
+
 	StopMovie();
 	WaitForMovieToFinish();
 
@@ -193,6 +203,7 @@ void FDefaultGameMoviePlayer::Shutdown()
 	bInitialized = false;
 
 	FCoreUObjectDelegates::PreLoadMap.RemoveAll( this );
+	FCoreDelegates::OnPreExit.RemoveAll( this );
 
 	LoadingScreenContents.Reset();
 	LoadingScreenWidgetHolder.Reset();
@@ -202,7 +213,7 @@ void FDefaultGameMoviePlayer::Shutdown()
 
 	LoadingScreenAttributes = FLoadingScreenAttributes();
 
-	if ( SyncMechanism )
+	if( SyncMechanism )
 	{
 		SyncMechanism->DestroySlateThread();
 		FScopeLock SyncMechanismLock(&SyncMechanismCriticalSection);
@@ -212,10 +223,14 @@ void FDefaultGameMoviePlayer::Shutdown()
 }
 void FDefaultGameMoviePlayer::PassLoadingScreenWindowBackToGame() const
 {
-	auto GameEngine = Cast<UGameEngine>(GEngine);
+	UGameEngine* GameEngine = Cast<UGameEngine>(GEngine);
 	if (LoadingScreenWindowPtr.IsValid() && GameEngine)
 	{
 		GameEngine->GameViewportWindow = LoadingScreenWindowPtr;
+	}
+	else
+	{
+		UE_LOG(LogMoviePlayer, Warning, TEXT("PassLoadingScreenWindowBackToGame failed.  No Window") );
 	}
 }
 
@@ -227,6 +242,13 @@ void FDefaultGameMoviePlayer::SetupLoadingScreen(const FLoadingScreenAttributes&
 bool FDefaultGameMoviePlayer::PlayMovie()
 {
 	bool bBeganPlaying = false;
+
+	// Allow systems to hook onto the movie player and provide loading screen data on demand 
+	// if it has not been setup explicitly by the user.
+	if ( !LoadingScreenIsPrepared() )
+	{
+		OnPrepareLoadingScreenDelegate.Broadcast();
+	}
 
 	if (LoadingScreenIsPrepared() && !IsMovieCurrentlyPlaying() && FPlatformMisc::NumberOfCores() > 1)
 	{
@@ -390,12 +412,12 @@ bool FDefaultGameMoviePlayer::IsMovieStreamingFinished() const
 void FDefaultGameMoviePlayer::Tick( float DeltaTime )
 {
 	check(IsInRenderingThread());
-	if (LoadingScreenWindowPtr.IsValid() && RendererPtr.IsValid())
+	if (LoadingScreenWindowPtr.IsValid() && RendererPtr.IsValid() && !IsLoadingFinished())
 	{
 		FScopeLock SyncMechanismLock(&SyncMechanismCriticalSection);
-		if (!IsLoadingFinished() && SyncMechanism)
+		if(SyncMechanism)
 		{
-			if (SyncMechanism->IsSlateDrawPassEnqueued())
+			if(SyncMechanism->IsSlateDrawPassEnqueued())
 			{
 				GFrameNumberRenderThread++;
 				GRHICommandList.GetImmediateCommandList().BeginFrame();

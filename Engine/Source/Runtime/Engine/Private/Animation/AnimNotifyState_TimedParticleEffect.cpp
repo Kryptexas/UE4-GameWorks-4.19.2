@@ -38,13 +38,13 @@ void UAnimNotifyState_TimedParticleEffect::NotifyEnd(USkeletalMeshComponent * Me
 	{
 		if(UParticleSystemComponent* ParticleComponent = Cast<UParticleSystemComponent>(Component))
 		{
-			bool bSocketMatch = ParticleComponent->AttachSocketName == SocketName;
+			bool bSocketMatch = ParticleComponent->GetAttachSocketName() == SocketName;
 			bool bTemplateMatch = ParticleComponent->Template == PSTemplate;
 
 #if WITH_EDITORONLY_DATA
 			// In editor someone might have changed our parameters while we're ticking; so check 
 			// previous known parameters too.
-			bSocketMatch |= PreviousSocketNames.Contains(ParticleComponent->AttachSocketName);
+			bSocketMatch |= PreviousSocketNames.Contains(ParticleComponent->GetAttachSocketName());
 			bTemplateMatch |= PreviousPSTemplates.Contains(ParticleComponent->Template);
 #endif
 

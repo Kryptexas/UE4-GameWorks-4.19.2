@@ -68,8 +68,24 @@ FText SEditorViewportViewMenu::GetViewMenuLabel() const
 				Label = LOCTEXT("ViewMenuTitle_ShaderComplexity", "Shader Complexity");
 				break;
 
-			case VMI_QuadComplexity:
-				Label = LOCTEXT("ViewMenuTitle_QuadComplexity", "Quad Complexity");
+			case VMI_QuadOverdraw:
+				Label = LOCTEXT("ViewMenuTitle_QuadOverdraw", "Quad Overdraw");
+				break;
+
+			case VMI_ShaderComplexityWithQuadOverdraw:
+				Label = LOCTEXT("ViewMenuTitle_ShaderComplexityWithQuadOverdraw", "Shader Complexity & Quads");
+				break;
+
+			case VMI_PrimitiveDistanceAccuracy:
+				Label = LOCTEXT("ViewMenuTitle_PrimitiveDistanceAccuracy", "Primitive Distance Accuracy");
+				break;
+
+			case VMI_MeshTexCoordSizeAccuracy:
+				Label = LOCTEXT("ViewMenuTitle_MeshTexCoordSizeAccuracy", "Mesh Texture Coordinate Size Accuracy");
+				break;
+
+			case VMI_MaterialTexCoordScalesAccuracy:
+				Label = LOCTEXT("ViewMenuTitle_MaterialTexCoordScalesAccuracy", "Material Texture Coordinate Scales Accuracy");
 				break;
 
 			case VMI_StationaryLightOverlap:
@@ -102,6 +118,9 @@ FText SEditorViewportViewMenu::GetViewMenuLabel() const
 			case VMI_LODColoration:
 				Label = LOCTEXT("ViewMenuTitle_LODColoration", "LOD Coloration");
 				break;
+			case VMI_HLODColoration:
+				Label = LOCTEXT("ViewMenuTitle_HLODColoration", "HLOD Coloration");
+				break;
 		}
 	}
 
@@ -121,7 +140,11 @@ const FSlateBrush* SEditorViewportViewMenu::GetViewMenuLabelIcon() const
 		static FName LightingOnlyIcon("EditorViewport.LightingOnlyMode");
 		static FName LightComplexityIcon("EditorViewport.LightComplexityMode");
 		static FName ShaderComplexityIcon("EditorViewport.ShaderComplexityMode");
-		static FName QuadComplexityIcon("EditorViewport.QuadComplexityMode");
+		static FName QuadOverdrawIcon("EditorViewport.QuadOverdrawMode");
+		static FName ShaderComplexityWithQuadOverdrawIcon("EditorViewport.ShaderCOmplexityWithQuadOverdrawMode");
+		static FName PrimitiveDistanceAccuracyIcon("EditorViewport.TexStreamAccPrimitiveDistanceMode");
+		static FName MeshTexCoordSizeAccuracyIcon("EditorViewport.TexStreamAccMeshTexCoordSizeMode");
+		static FName MaterialTexCoordScalesIcon("EditorViewport.TexStreamAccMaterialTexCoordScalesMode");
 		static FName LightOverlapIcon("EditorViewport.StationaryLightOverlapMode");
 		static FName LightmapDensityIcon("EditorViewport.LightmapDensityMode");
 		static FName ReflectionModeIcon("EditorViewport.ReflectionOverrideMode");
@@ -164,8 +187,24 @@ const FSlateBrush* SEditorViewportViewMenu::GetViewMenuLabelIcon() const
 				Icon = ShaderComplexityIcon;
 				break;
 
-			case VMI_QuadComplexity:
-				Icon = QuadComplexityIcon;
+			case VMI_QuadOverdraw:
+				Icon = QuadOverdrawIcon;
+				break;
+
+			case VMI_ShaderComplexityWithQuadOverdraw:
+				Icon = ShaderComplexityWithQuadOverdrawIcon;
+				break;
+
+			case VMI_PrimitiveDistanceAccuracy:
+				Icon = PrimitiveDistanceAccuracyIcon;
+				break;
+
+			case VMI_MeshTexCoordSizeAccuracy:
+				Icon = MeshTexCoordSizeAccuracyIcon;
+				break;
+
+			case VMI_MaterialTexCoordScalesAccuracy:
+				Icon = MaterialTexCoordScalesIcon;
 				break;
 
 			case VMI_StationaryLightOverlap:
@@ -198,6 +237,14 @@ const FSlateBrush* SEditorViewportViewMenu::GetViewMenuLabelIcon() const
 			case VMI_LODColoration:
 				Icon = LODColorationIcon;
 				break;
+
+			case VMI_HLODColoration:
+				Icon = LODColorationIcon;
+				break;
+
+			case VMI_GroupLODColoration:
+				Icon = LODColorationIcon;
+				break;
 		}
 	}
 
@@ -222,14 +269,53 @@ TSharedRef<SWidget> SEditorViewportViewMenu::GenerateViewMenuContent() const
 				ViewMenuBuilder.AddMenuEntry( BaseViewportActions.WireframeMode, NAME_None, LOCTEXT("BrushWireframeViewModeDisplayName", "Wireframe") );
 				ViewMenuBuilder.AddMenuEntry( BaseViewportActions.DetailLightingMode, NAME_None, LOCTEXT("DetailLightingViewModeDisplayName", "Detail Lighting") );
 				ViewMenuBuilder.AddMenuEntry( BaseViewportActions.LightingOnlyMode, NAME_None, LOCTEXT("LightingOnlyViewModeDisplayName", "Lighting Only") );
-				ViewMenuBuilder.AddMenuEntry( BaseViewportActions.LightComplexityMode, NAME_None, LOCTEXT("LightComplexityViewModeDisplayName", "Light Complexity") );
-				ViewMenuBuilder.AddMenuEntry( BaseViewportActions.ShaderComplexityMode, NAME_None, LOCTEXT("ShaderComplexityViewModeDisplayName", "Shader Complexity") );
-				ViewMenuBuilder.AddMenuEntry( BaseViewportActions.QuadComplexityMode, NAME_None, LOCTEXT("QuadComplexityViewModeDisplayName", "Quad Complexity") );
-				ViewMenuBuilder.AddMenuEntry( BaseViewportActions.StationaryLightOverlapMode, NAME_None, LOCTEXT("StationaryLightOverlapViewModeDisplayName", "Stationary Light Overlap") );
-				ViewMenuBuilder.AddMenuEntry( BaseViewportActions.LightmapDensityMode, NAME_None, LOCTEXT("LightmapDensityViewModeDisplayName", "Lightmap Density") );
 				ViewMenuBuilder.AddMenuEntry( BaseViewportActions.ReflectionOverrideMode, NAME_None, LOCTEXT("ReflectionOverrideViewModeDisplayName", "Reflections") );
-				ViewMenuBuilder.AddMenuEntry( BaseViewportActions.LODColorationMode, NAME_None, LOCTEXT("LODColorationViewModeDisplayName", "LOD Coloration") );
 			}
+
+			// Optimization
+			{
+				struct Local
+				{
+					static void BuildOptimizationMenu( FMenuBuilder& Menu )
+					{
+						const FEditorViewportCommands& BaseViewportCommands = FEditorViewportCommands::Get();
+						Menu.AddMenuEntry( BaseViewportCommands.LightComplexityMode, NAME_None, LOCTEXT("LightComplexityViewModeDisplayName", "Light Complexity") );
+						Menu.AddMenuEntry( BaseViewportCommands.LightmapDensityMode, NAME_None, LOCTEXT("LightmapDensityViewModeDisplayName", "Lightmap Density") );
+						Menu.AddMenuEntry( BaseViewportCommands.StationaryLightOverlapMode, NAME_None, LOCTEXT("StationaryLightOverlapViewModeDisplayName", "Stationary Light Overlap") );
+						Menu.AddMenuEntry( BaseViewportCommands.ShaderComplexityMode, NAME_None, LOCTEXT("ShaderComplexityViewModeDisplayName", "Shader Complexity") );
+
+						if ( AllowDebugViewShaderMode(DVSM_ShaderComplexityContainedQuadOverhead) )
+						{
+							Menu.AddMenuEntry( BaseViewportCommands.ShaderComplexityWithQuadOverdrawMode, NAME_None, LOCTEXT("ShaderComplexityWithQuadOverdrawViewModeDisplayName", "Shader Complexity & Quads") );
+						}
+						if ( AllowDebugViewShaderMode(DVSM_QuadComplexity) )
+						{
+							Menu.AddMenuEntry( BaseViewportCommands.QuadOverdrawMode, NAME_None, LOCTEXT("QuadOverdrawViewModeDisplayName", "Quad Overdraw") );
+						}
+
+						Menu.AddMenuEntry( BaseViewportCommands.LODColorationMode, NAME_None, LOCTEXT("LODColorationViewModeDisplayName", "LOD Coloration") );
+
+						Menu.BeginSection("TextureStreaming", LOCTEXT("TextureStreamingHeader", "Texture Streaming Accuracy") );
+						if ( AllowDebugViewShaderMode(DVSM_PrimitiveDistanceAccuracy) )
+						{
+							Menu.AddMenuEntry( BaseViewportCommands.TexStreamAccPrimitiveDistanceMode, NAME_None, LOCTEXT("PrimitiveDistanceAccuracyDisplayName", "Primitive Distance") );
+						}
+						if ( AllowDebugViewShaderMode(DVSM_MeshTexCoordSizeAccuracy) )
+						{
+							Menu.AddMenuEntry( BaseViewportCommands.TexStreamAccMeshTexCoordSizeMode, NAME_None, LOCTEXT("MeshTexCoordSizeAccuracyDisplayName", "Mesh TexCoord Size") );
+						}
+						// TexCoordScale accuracy viewmode requires shaders that are only built in the TextureStreamingBuild, which requires the new metrics to be enabled.
+						if ( AllowDebugViewShaderMode(DVSM_MaterialTexCoordScalesAccuracy) && CVarStreamingUseNewMetrics.GetValueOnAnyThread() != 0)
+						{
+							Menu.AddMenuEntry( BaseViewportCommands.TexStreamAccMaterialTexCoordScalesMode, NAME_None, LOCTEXT("MaterialTexCoordScalesAccuracyDisplayName", "Material TexCoord Scales") );
+						}
+						Menu.EndSection();
+					}
+				};
+
+				ViewMenuBuilder.AddSubMenu( LOCTEXT("OptimizationSubMenu", "Optimizations"), LOCTEXT("Optimization_ToolTip", "Select optimization visualizer"), FNewMenuDelegate::CreateStatic( &Local::BuildOptimizationMenu ) );
+			}
+
 			ViewMenuBuilder.EndSection();
 		}
 

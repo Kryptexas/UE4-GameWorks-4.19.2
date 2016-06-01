@@ -4,6 +4,7 @@
 	KismetCompiler.cpp
 =============================================================================*/
 
+
 #include "KismetCompilerPrivatePCH.h"
 #include "Engine/LevelScriptBlueprint.h"
 #include "KismetCompilerBackend.h"
@@ -28,7 +29,6 @@
 #include "Components/TimelineComponent.h"
 
 static bool bDebugPropertyPropagation = false;
-
 
 #define LOCTEXT_NAMESPACE "KismetCompiler"
 
@@ -305,10 +305,18 @@ void FKismetCompilerContext::ValidateLink(const UEdGraphPin* PinA, const UEdGrap
 	const FPinConnectionResponse ConnectResponse = Schema->CanCreateConnection(PinA, PinB);
 
 	const bool bForbiddenConnection = (ConnectResponse.Response == CONNECT_RESPONSE_DISALLOW);
-	const bool bMissingConversion = (ConnectResponse.Response == CONNECT_RESPONSE_MAKE_WITH_CONVERSION_NODE);
+	const bool bMissingConversion   = (ConnectResponse.Response == CONNECT_RESPONSE_MAKE_WITH_CONVERSION_NODE);
 	if (bForbiddenConnection || bMissingConversion)
 	{
-		MessageLog.Warning(*FString::Printf(*LOCTEXT("PinTypeMismatch_Error", "Can't connect pins @@ and @@: %s").ToString(), *ConnectResponse.Message.ToString()), PinA, PinB);
+		const FString ErrorMessage = FString::Printf(*LOCTEXT("PinTypeMismatch_Error", "Can't connect pins @@ and @@: %s").ToString(), *ConnectResponse.Message.ToString());
+		if (ConnectResponse.IsFatal())
+		{
+			MessageLog.Error(*ErrorMessage, PinA, PinB);
+		}
+		else
+		{
+			MessageLog.Warning(*ErrorMessage, PinA, PinB);
+		}
 	}
 
 	if (PinA && PinB && PinA->Direction != PinB->Direction)
@@ -509,6 +517,23 @@ void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 
 	// Grab the blueprint variables
 	NewClass->NumReplicatedProperties = 0;	// Keep track of how many replicated variables this blueprint adds
+	// Clear out any existing property guids
+	const bool bRebuildPropertyMap = bIsFullCompile && !Blueprint->bIsRegeneratingOnLoad;
+	if (bRebuildPropertyMap)
+	{
+		NewClass->PropertyGuids.Reset();
+		// Add any chained parent blueprint map values
+		UBlueprint* ParentBP = Cast<UBlueprint>(Blueprint->ParentClass->ClassGeneratedBy);
+		while (ParentBP)
+		{
+			if (UBlueprintGeneratedClass* ParentBPGC = Cast<UBlueprintGeneratedClass>(ParentBP->GeneratedClass))
+			{
+				NewClass->PropertyGuids.Append(ParentBPGC->PropertyGuids);
+			}
+			ParentBP = Cast<UBlueprint>(ParentBP->ParentClass->ClassGeneratedBy);
+		}
+	}
+
 	for (int32 i = 0; i < Blueprint->NewVariables.Num(); ++i)
 	{
 		FBPVariableDescription& Variable = Blueprint->NewVariables[Blueprint->NewVariables.Num() - (i + 1)];
@@ -543,6 +568,11 @@ void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 						MessageLog.Warning(*FString::Printf(*LOCTEXT("ExposeToSpawnButPrivateWarning", "Variable %s is marked as 'Expose on Spawn' but not marked as 'Editable'; please make it 'Editable'").ToString(), *NewProperty->GetName()));
 					}
 				}
+			}
+			if (bRebuildPropertyMap)
+			{
+				// Update new class property guid map
+				NewClass->PropertyGuids.Add(Variable.VarName, Variable.VarGuid);
 			}
 		}
 	}
@@ -1157,6 +1187,14 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 			ValidateSelfPinsInGraph(Context);
 			ValidateNoWildcardPinsInGraph(Context.SourceGraph);
 
+			for (int32 ChildIndex = 0; ChildIndex < Context.SourceGraph->Nodes.Num(); ++ChildIndex)
+			{
+				if (const UK2Node* K2Node = Cast<const UK2Node>(Context.SourceGraph->Nodes[ChildIndex]))
+				{
+					K2Node->ValidateNodeAfterPrune(Context.MessageLog);
+				}
+			}
+
 			// Transforms
 			TransformNodes(Context);
 		}
@@ -1463,9 +1501,9 @@ void FKismetCompilerContext::CompileFunction(FKismetFunctionContext& Context)
 		SortKeyMap.Add(Node, i);
 
 		const FString NodeComment = Node->NodeComment.IsEmpty() ? Node->GetName() : Node->NodeComment;
-
+		const bool bPureNode = IsNodePure(Node);
 		// Debug comments
-		if (KismetCompilerDebugOptions::EmitNodeComments)
+		if (KismetCompilerDebugOptions::EmitNodeComments && !Context.bGeneratingCpp)
 		{
 			FBlueprintCompiledStatement& Statement = Context.AppendStatementForNode(Node);
 			Statement.Type = KCST_Comment;
@@ -1473,23 +1511,41 @@ void FKismetCompilerContext::CompileFunction(FKismetFunctionContext& Context)
 		}
 
 		// Debug opcode insertion point
-		if (Context.IsDebuggingOrInstrumentationRequired() && !IsNodePure(Node))
+		if (Context.IsDebuggingOrInstrumentationRequired())
 		{
-			bool bEmitDebuggingSite = true;
-
-			if (Context.IsEventGraph() && (Node->IsA(UK2Node_FunctionEntry::StaticClass())))
+			if (!bPureNode)
 			{
-				// The entry point in the ubergraph is a non-visual construct, and will lead to some
-				// other 'fake' entry point such as an event or latent action.  Therefore, don't create
-				// debug data for the behind-the-scenes entry point, only for the user-visible ones.
-				bEmitDebuggingSite = false;
-			}
+				bool bEmitDebuggingSite = true;
 
-			if (bEmitDebuggingSite)
+				if (Context.IsEventGraph() && (Node->IsA(UK2Node_FunctionEntry::StaticClass())))
+				{
+					// The entry point in the ubergraph is a non-visual construct, and will lead to some
+					// other 'fake' entry point such as an event or latent action.  Therefore, don't create
+					// debug data for the behind-the-scenes entry point, only for the user-visible ones.
+					bEmitDebuggingSite = false;
+				}
+				if (bEmitDebuggingSite)
+				{
+					FBlueprintCompiledStatement& Statement = Context.AppendStatementForNode(Node);
+					Statement.Type = Context.GetBreakpointType();
+					if (Context.IsInstrumentationRequired())
+					{
+						for (auto Pin : Node->Pins)
+						{
+							if (Pin->Direction == EGPD_Input && Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec)
+							{
+								Statement.ExecContext = Pin;
+								break;
+							}
+						}
+					}
+					Statement.Comment = NodeComment;
+				}
+			}
+			else if (Context.IsInstrumentationRequired())
 			{
 				FBlueprintCompiledStatement& Statement = Context.AppendStatementForNode(Node);
-				Statement.Type = Context.GetBreakpointType();
-				Statement.Comment = NodeComment;
+				Statement.Type = KCST_InstrumentedPureNodeEntry;
 			}
 		}
 
@@ -1519,18 +1575,40 @@ void FKismetCompilerContext::CompileFunction(FKismetFunctionContext& Context)
 
 		if (IsNodePure(Node))
 		{
+			// For profiling purposes, find the statement that marks the function's entry point.
+			FBlueprintCompiledStatement* ProfilerStatement = nullptr;
+			TArray<FBlueprintCompiledStatement*>* SourceStatementList = Context.StatementsPerNode.Find(Node);
+			const bool bDidNodeGenerateCode = SourceStatementList != nullptr && SourceStatementList->Num() > 0;
+			if (bDidNodeGenerateCode)
+			{
+				for (auto Statement : *SourceStatementList)
+				{
+					if (Statement && Statement->Type == KCST_InstrumentedPureNodeEntry)
+					{
+						ProfilerStatement = Statement;
+						break;
+					}
+				}
+			}
+
 			// Push this node to the requirements list of any other nodes using it's outputs, if this node had any real impact
-			if (Context.DidNodeGenerateCode(Node) || bHasAntecedentPureNodes)
+			if (bDidNodeGenerateCode || bHasAntecedentPureNodes)
 			{
 				for (int32 PinIndex = 0; PinIndex < Node->Pins.Num(); ++PinIndex)
 				{
 					UEdGraphPin* Pin = Node->Pins[PinIndex];
-					if (Pin->Direction == EGPD_Output)
+					if (Pin->Direction == EGPD_Output && Pin->LinkedTo.Num() > 0)
 					{
-						for (int32 OutputIndex = 0; OutputIndex < Pin->LinkedTo.Num(); ++OutputIndex)
+						// Record the pure node output pin, since it's linked
+						if (ProfilerStatement)
 						{
-							UEdGraphNode* NodeUsingOutput = Pin->LinkedTo[OutputIndex]->GetOwningNode();
-							if (NodeUsingOutput != NULL)
+							ProfilerStatement->PureOutputContextArray.AddUnique(Pin);
+						}
+
+						for (UEdGraphPin* LinkedTo : Pin->LinkedTo)
+						{
+							UEdGraphNode* NodeUsingOutput = LinkedTo->GetOwningNode();
+							if (NodeUsingOutput != nullptr)
 							{
 								// Add this node, as well as other nodes this node depends on
 								TSet<UEdGraphNode*>& TargetNodesRequired = PureNodesNeeded.FindOrAdd(NodeUsingOutput);
@@ -1562,6 +1640,12 @@ void FKismetCompilerContext::CompileFunction(FKismetFunctionContext& Context)
 					OrderedInsertIntoArray(SortedPureNodes, SortKeyMap, *It);
 				}
 
+				if (Context.IsInstrumentationRequired())
+				{
+					FBlueprintCompiledStatement& PopState = Context.PrependStatementForNode(Node);
+					PopState.Type = KCST_InstrumentedStatePop;
+				}
+
 				// Inline their code
 				for (int32 i = 0; i < SortedPureNodes.Num(); ++i)
 				{
@@ -1569,12 +1653,24 @@ void FKismetCompilerContext::CompileFunction(FKismetFunctionContext& Context)
 
 					Context.CopyAndPrependStatements(Node, NodeToInline);
 				}
+
+				if (Context.IsInstrumentationRequired())
+				{
+					FBlueprintCompiledStatement& PushState = Context.PrependStatementForNode(Node);
+					PushState.Type = KCST_InstrumentedStatePush;
+				}
 			}
 
 			// Proceed to the next node
 			++TestIndex;
 		}
 	}
+
+	if (Context.bIsUbergraph && CompileOptions.DoesRequireCppCodeGeneration())
+	{
+		Context.UnsortedSeparateExecutionGroups = FKismetCompilerUtilities::FindUnsortedSeparateExecutionGroups(Context.LinearExecutionList);
+	}
+
 }
 
 /**
@@ -2455,8 +2551,27 @@ void FKismetCompilerContext::CreateAndProcessUbergraph()
 			const UFunction* Function = *FunctionIt;
 			const FName FunctionName = Function->GetFName();
 
+			const bool bCanImplementAsEvent = UEdGraphSchema_K2::FunctionCanBePlacedAsEvent(Function);
+			bool bExistsAsGraph = false;
+
+			// Any function that can be implemented as an event needs to check to see if there is already an interface function graph
+			// If there is, we want to warn the user that this is unexpected but proceed to successfully compile the Blueprint
+			if (bCanImplementAsEvent)
+			{
+				for (UEdGraph* InterfaceGraph : InterfaceDesc.Graphs)
+				{
+					if (InterfaceGraph->GetFName() == Function->GetFName())
+					{
+						bExistsAsGraph = true;
+
+						// Having an event override implemented as a function won't cause issues but is something the user should be aware of.
+						MessageLog.Warning(TEXT("Interface '@@' is already implemented as a function graph but is expected as an event. Remove the function graph and reimplement as an event."), InterfaceGraph);
+					}
+				}
+			}
+
 			// If this is an event, check the merged ubergraph to make sure that it has an event handler, and if not, add one
-			if (UEdGraphSchema_K2::FunctionCanBePlacedAsEvent(Function) && UEdGraphSchema_K2::CanKismetOverrideFunction(Function))
+			if (bCanImplementAsEvent && UEdGraphSchema_K2::CanKismetOverrideFunction(Function) && !bExistsAsGraph)
 			{
 				bool bFoundEntry = false;
 				// Search the cached entry points to see if we have a match
@@ -2868,41 +2983,29 @@ void FKismetCompilerContext::ProcessOneFunctionGraph(UEdGraph* SourceGraph, bool
 	// If a function in the graph cannot be overridden/placed as event make sure that it is not.
 	VerifyValidOverrideFunction(FunctionGraph);
 
-	// First do some cursory validation (pin types match, inputs to outputs, pins never point to their parent node, etc...)
-	// If this fails we don't proceed any further to avoid crashes or infinite loops
-	// When compiling only the skeleton class, we want the UFunction to be generated and processed so it contains all the local variables, this is unsafe to do during any other compilation mode
-	//
-	// NOTE: the order of this conditional check is intentional, and should not
-	//       be rearranged; we do NOT want ValidateGraphIsWellFormed() ran for 
-	//       skeleton-only compiles (that's why we have that check second) 
-	//       because it would most likely result in errors (the function hasn't
-	//       been added to the class yet, etc.)
-	if ((CompileOptions.CompileType == EKismetCompileType::SkeletonOnly) || ValidateGraphIsWellFormed(FunctionGraph))
+	FKismetFunctionContext& Context = *new (FunctionList)FKismetFunctionContext(MessageLog, Schema, NewClass, Blueprint, CompileOptions.DoesRequireCppCodeGeneration(), CompileOptions.IsInstrumentationActive());
+	Context.SourceGraph = FunctionGraph;
+
+	if(FBlueprintEditorUtils::IsDelegateSignatureGraph(SourceGraph))
 	{
-		FKismetFunctionContext& Context = *new (FunctionList)FKismetFunctionContext(MessageLog, Schema, NewClass, Blueprint, CompileOptions.DoesRequireCppCodeGeneration(), CompileOptions.IsInstrumentationActive());
-		Context.SourceGraph = FunctionGraph;
+		Context.SetDelegateSignatureName(SourceGraph->GetFName());
+	}
 
-		if(FBlueprintEditorUtils::IsDelegateSignatureGraph(SourceGraph))
-		{
-			Context.SetDelegateSignatureName(SourceGraph->GetFName());
-		}
+	// If this is an interface blueprint, mark the function contexts as stubs
+	if (FBlueprintEditorUtils::IsInterfaceBlueprint(Blueprint))
+	{
+		Context.MarkAsInterfaceStub();
+	}
 
-		// If this is an interface blueprint, mark the function contexts as stubs
-		if (FBlueprintEditorUtils::IsInterfaceBlueprint(Blueprint))
-		{
-			Context.MarkAsInterfaceStub();
-		}
+	bool bEnforceConstCorrectness = true;
+	if (FBlueprintEditorUtils::IsBlueprintConst(Blueprint) || Schema->IsConstFunctionGraph(Context.SourceGraph, &bEnforceConstCorrectness))
+	{
+		Context.MarkAsConstFunction(bEnforceConstCorrectness);
+	}
 
-		bool bEnforceConstCorrectness = true;
-		if (FBlueprintEditorUtils::IsBlueprintConst(Blueprint) || Schema->IsConstFunctionGraph(Context.SourceGraph, &bEnforceConstCorrectness))
-		{
-			Context.MarkAsConstFunction(bEnforceConstCorrectness);
-		}
-
-		if ( bInternalFunction )
-		{
-			Context.MarkAsInternalOrCppUseOnly();
-		}
+	if ( bInternalFunction )
+	{
+		Context.MarkAsInternalOrCppUseOnly();
 	}
 }
 
@@ -3127,13 +3230,10 @@ void FKismetCompilerContext::Compile()
 	if (OldLinker)
 	{
 		// Cache linker addresses so we can fixup linker for old CDO
-		FName GeneratedName, SkeletonName;
-		Blueprint->GetBlueprintCDONames(GeneratedName, SkeletonName);
-
-		for( int32 i = 0; i < OldLinker->ExportMap.Num(); i++ )
+		for (int32 i = 0; i < OldLinker->ExportMap.Num(); i++)
 		{
 			FObjectExport& ThisExport = OldLinker->ExportMap[i];
-			if( ThisExport.ObjectName == GeneratedName )
+			if (ThisExport.ObjectFlags & RF_ClassDefaultObject)
 			{
 				OldGenLinkerIdx = i;
 				break;
@@ -3151,14 +3251,6 @@ void FKismetCompilerContext::Compile()
 		++TimelineIndex;
 	}
 
-	if (CompileOptions.CompileType == EKismetCompileType::Full)
-	{
-		auto InheritableComponentHandler = Blueprint->GetInheritableComponentHandler(false);
-		if (InheritableComponentHandler)
-		{
-			InheritableComponentHandler->ValidateTemplates();
-		}
-	}
 
 	CleanAndSanitizeClass(TargetClass, OldCDO);
 
@@ -3174,6 +3266,15 @@ void FKismetCompilerContext::Compile()
 	if(Blueprint->bGenerateConstClass)
 	{
 		NewClass->ClassFlags |= CLASS_Const;
+	}
+
+	if (CompileOptions.CompileType == EKismetCompileType::Full)
+	{
+		auto InheritableComponentHandler = Blueprint->GetInheritableComponentHandler(false);
+		if (InheritableComponentHandler)
+		{
+			InheritableComponentHandler->ValidateTemplates();
+		}
 	}
 
 	// Make sure that this blueprint is up-to-date with regards to its parent functions
@@ -3390,7 +3491,13 @@ void FKismetCompilerContext::Compile()
 		CopyTermDefaultsToDefaultObject(NewCDO);
 		SetCanEverTick();
 		SetWantsBeginPlay();
-		FKismetCompilerUtilities::ValidateEnumProperties(NewCDO, MessageLog);
+
+		// Note: The old->new CDO copy is deferred when regenerating, so we skip this step in that case.
+		if (!Blueprint->HasAnyFlags(RF_BeingRegenerated))
+		{
+			// Update the custom property list used in post construction logic to include native class properties for which the Blueprint CDO differs from the native CDO.
+			TargetClass->UpdateCustomPropertyListForPostConstruction();
+		}
 	}
 
 	// Fill out the function bodies, either with function bodies, or simple stubs if this is skeleton generation
@@ -3677,6 +3784,9 @@ void FKismetCompilerContext::Compile()
 
 bool FKismetCompilerContext::ValidateGeneratedClass(UBlueprintGeneratedClass* Class)
 {
+	// Our CDO should be properly constructed by this point and should always exist
+	FKismetCompilerUtilities::ValidateEnumProperties(NewClass->GetDefaultObject(), MessageLog);
+
 	return UBlueprint::ValidateGeneratedClass(Class);
 }
 

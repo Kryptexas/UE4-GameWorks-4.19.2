@@ -6,6 +6,8 @@
 #include "OnlineEntitlementsInterface.h"
 #include "OnlineIdentityInterface.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 /**
  * Class used to test the Mcp account creation/management process
  */
@@ -74,3 +76,5 @@
 	 */
 	void Test(class UWorld* InWorld);
  };
+
+#endif //WITH_DEV_AUTOMATION_TESTS

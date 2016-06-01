@@ -181,6 +181,9 @@ struct FCapsuleShape
 	FVector Orientation;
 	float Length;
 
+	FCapsuleShape()
+	{}
+
 	FCapsuleShape(FVector InCenter, float InRadius, FVector InOrientation, float InLength) :
 		Center(InCenter),
 		Radius(InRadius),

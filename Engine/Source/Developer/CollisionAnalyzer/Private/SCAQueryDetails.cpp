@@ -285,7 +285,7 @@ ECheckBoxState SCAQueryDetails::GetShowMissesState() const
 
 
 /** See if an array of results contains a particular component */
-static bool ResultsContainComponent(const TArray<FHitResult> Results, UPrimitiveComponent* Component)
+static bool ResultsContainComponent(const TArray<FHitResult>& Results, UPrimitiveComponent* Component)
 {
 	for(int32 i=0; i<Results.Num(); i++)
 	{

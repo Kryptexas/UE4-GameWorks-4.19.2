@@ -18,19 +18,23 @@ UAbilityTask_ApplyRootMotionMoveToForce::UAbilityTask_ApplyRootMotionMoveToForce
 	MovementComponent = nullptr;
 	bRestrictSpeedToExpected = false;
 	PathOffsetCurve = nullptr;
+	VelocityOnFinishMode = ERootMotionFinishVelocityMode::MaintainLastRootMotionVelocity;
+	SetVelocityOnFinish = FVector::ZeroVector;
 }
 
-UAbilityTask_ApplyRootMotionMoveToForce* UAbilityTask_ApplyRootMotionMoveToForce::ApplyRootMotionMoveToForce(UObject* WorldContextObject, FName TaskInstanceName, FVector TargetLocation, float Duration, bool bSetNewMovementMode, EMovementMode MovementMode, bool bRestrictSpeedToExpected, UCurveVector* PathOffsetCurve)
+UAbilityTask_ApplyRootMotionMoveToForce* UAbilityTask_ApplyRootMotionMoveToForce::ApplyRootMotionMoveToForce(UObject* WorldContextObject, FName TaskInstanceName, FVector TargetLocation, float Duration, bool bSetNewMovementMode, EMovementMode MovementMode, bool bRestrictSpeedToExpected, UCurveVector* PathOffsetCurve, ERootMotionFinishVelocityMode VelocityOnFinishMode, FVector SetVelocityOnFinish)
 {
 	auto MyTask = NewAbilityTask<UAbilityTask_ApplyRootMotionMoveToForce>(WorldContextObject, TaskInstanceName);
 
 	MyTask->ForceName = TaskInstanceName;
 	MyTask->TargetLocation = TargetLocation;
-	MyTask->Duration = FMath::Max(Duration, 0.001f);		// Avoid negative or divide-by-zero cases
+	MyTask->Duration = FMath::Max(Duration, KINDA_SMALL_NUMBER); // Avoid negative or divide-by-zero cases
 	MyTask->bSetNewMovementMode = bSetNewMovementMode;
 	MyTask->NewMovementMode = MovementMode;
 	MyTask->bRestrictSpeedToExpected = bRestrictSpeedToExpected;
 	MyTask->PathOffsetCurve = PathOffsetCurve;
+	MyTask->VelocityOnFinishMode = VelocityOnFinishMode;
+	MyTask->SetVelocityOnFinish = SetVelocityOnFinish;
 	if (MyTask->GetAvatarActor() != nullptr)
 	{
 		MyTask->StartLocation = MyTask->GetAvatarActor()->GetActorLocation();
@@ -153,6 +157,8 @@ void UAbilityTask_ApplyRootMotionMoveToForce::GetLifetimeReplicatedProps(TArray<
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToForce, NewMovementMode);
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToForce, bRestrictSpeedToExpected);
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToForce, PathOffsetCurve);
+	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToForce, VelocityOnFinishMode);
+	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToForce, SetVelocityOnFinish);
 }
 
 void UAbilityTask_ApplyRootMotionMoveToForce::PreDestroyFromReplication()
@@ -169,7 +175,40 @@ void UAbilityTask_ApplyRootMotionMoveToForce::OnDestroy(bool AbilityIsEnding)
 
 		if (bSetNewMovementMode)
 		{
-			MovementComponent->SetMovementMode(EMovementMode::MOVE_Falling);
+			MovementComponent->SetMovementMode(NewMovementMode);
+		}
+
+		if (VelocityOnFinishMode == ERootMotionFinishVelocityMode::SetVelocity)
+		{
+			FVector EndVelocity;
+			ACharacter* Character = MovementComponent->GetCharacterOwner();
+			if (Character)
+			{
+				EndVelocity = Character->GetActorRotation().RotateVector(SetVelocityOnFinish);
+			}
+			else
+			{
+				EndVelocity = SetVelocityOnFinish;
+			}
+
+			// When we mean to SetVelocity when finishing a MoveTo, we apply a short-duration low-priority
+			// root motion velocity override. This ensures that the velocity we set is replicated properly
+			// and takes effect.
+			{
+				const FName OnFinishForceName = FName("AbilityTaskApplyRootMotionMoveToForce_EndForce");
+				FRootMotionSource_ConstantForce* ConstantForce = new FRootMotionSource_ConstantForce();
+				ConstantForce->InstanceName = OnFinishForceName;
+				ConstantForce->AccumulateMode = ERootMotionAccumulateMode::Override;
+				ConstantForce->Priority = 1; // Low priority so any other override root motion sources stomp it
+				ConstantForce->Force = EndVelocity;
+				ConstantForce->Duration = 0.001f;
+				MovementComponent->ApplyRootMotionSource(ConstantForce);
+
+				if (Ability)
+				{
+					Ability->SetMovementSyncPoint(OnFinishForceName);
+				}
+			}
 		}
 	}
 

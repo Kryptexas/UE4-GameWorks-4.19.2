@@ -4,6 +4,8 @@
 #include "GenericPlatformCrashContext.h"
 #include "UnrealString.h"
 #include "XmlFile.h"
+#include "EngineVersion.h"
+#include "Runtime/Analytics/Analytics/Public/Analytics.h"
 
 struct FPrimaryCrashProperties;
 
@@ -15,6 +17,7 @@ struct FPrimaryCrashProperties;
 	"IsInternalBuild"
 	"IsPerforceBuild"
 	"IsSourceDistribution"
+	"IsEnsure"
 	"SecondsSinceStart"
 	"GameName"
 	"ExecutableName"
@@ -36,8 +39,10 @@ struct FPrimaryCrashProperties;
 	"CallStack"
 	"SourceContext"
 	"UserDescription"
+	"UserActivityHint"
 	"ErrorMessage"
 	"CrashDumpMode"
+	"CrashReporterMessage"
 	"Misc.NumberOfCores"
 	"Misc.NumberOfCoresIncludingHyperthreads"
 	"Misc.Is64bitOperatingSystem"
@@ -80,11 +85,6 @@ namespace LexicalConversion
 	inline void FromString( FEngineVersion& OutValue, const TCHAR* Buffer )
 	{
 		FEngineVersion::Parse( Buffer, OutValue );
-	}
-
-	inline void FromString( FString& OutValue, const TCHAR* Buffer )
-	{
-		OutValue = Buffer;
 	}
 }
 
@@ -167,6 +167,12 @@ struct FPrimaryCrashProperties
 	 * FPlatformMisc::GetEngineMode()
 	 */
 	FString EngineMode;
+
+	/**
+	 * Deployment (also known as "EpicApp"), e.g. DevPlaytest, PublicTest, Live
+	 * @DeploymentName varchar(64)
+	 */
+	FString DeploymentName;
 
 	/**
 	 * The platform that crashed e.g. Win64.
@@ -252,6 +258,13 @@ struct FPrimaryCrashProperties
 	 */
 	FCrashProperty EpicAccountId;
 
+	/** 
+	 * The last game session id set by the application. Application specific meaning. Some might not set this.
+	 * @EpicAccountId	varchar(64)
+	 * 
+	 */
+	FCrashProperty GameSessionID;
+
 	/**
 	 * An array of FStrings representing the callstack of the crash.
 	 * @RawCallStack	varchar(MAX)
@@ -280,6 +293,13 @@ struct FPrimaryCrashProperties
 	FCrashProperty UserDescription;
 
 	/**
+	 * An FString representing the user activity, if known, when the error occurred.
+	 * @UserActivityHint varchar(512)
+	 *
+	 */
+	FCrashProperty UserActivityHint;
+
+	/**
 	 * The error message, can be assertion message, ensure message or message from the fatal error.
 	 * @Summary	varchar(512)
 	 * 
@@ -306,6 +326,17 @@ struct FPrimaryCrashProperties
 	FCrashProperty bAllowToBeContacted;
 
 	/**
+	 *	Rich text string (should be localized by the crashing application) that will be displayed in the main CRC dialog
+	 *  Can be empty and the CRC's default text will be shown.
+	 */
+	FCrashProperty CrashReporterMessage;
+
+	/**
+	 *	Windows only. Non-zero integrity values are to be discounted as "genuine" crashes.
+	 */
+	FCrashProperty BuildIntegrity;
+
+	/**
 	 * Whether this crash has a minidump file.
 	 * @HasMiniDumpFile bit 
 	 */
@@ -322,6 +353,11 @@ struct FPrimaryCrashProperties
 
 	/** Copy of CommandLine that isn't anonymized so it can be used to restart the process */
 	FString RestartCommandLine;
+
+	/**
+	 *	Whether the report comes from a non-fatal event such as an ensure
+	 */
+	bool bIsEnsure;
 
 protected:
 	/** Default constructor. */
@@ -368,8 +404,11 @@ public:
 	/** Updates following properties: UserName, MachineID and EpicAccountID. */
 	void UpdateIDs();
 
-	/** Sends this crash for analytics. */
-	void SendAnalytics();
+	/** Sends this crash for analytics (before upload). */
+	void SendPreUploadAnalytics();
+
+	/** Sends this crash for analytics (after successful upload). */
+	void SendPostUploadAnalytics();
 
 	/** Saves the data. */
 	void Save();
@@ -424,6 +463,8 @@ protected:
 
 	/** Encodes multi line property to be saved as single line. */
 	FString EncodeArrayStringAsXMLString( const TArray<FString>& ArrayString ) const;
+
+	void MakeCrashEventAttributes(TArray<FAnalyticsEventAttribute>& OutCrashAttributes);
 
 	/** Reader for the xml file. */
 	FXmlFile* XmlFile;

@@ -101,7 +101,7 @@ bool FMapPakDownloader::Init()
 	//  figure out where we are hosted 
 	ANSICHAR *LocationString = (ANSICHAR*)EM_ASM_INT_V({
 
-		var hoststring = "http://" + location.host; 
+		var hoststring = location.href.substring(0, location.href.lastIndexOf('/'));
 		var buffer = Module._malloc(hoststring.length);
 		Module.writeAsciiToMemory(hoststring, buffer);
 		return buffer;
@@ -165,7 +165,7 @@ void FMapPakDownloader::CachePak()
 
 											UE_LOG(LogMapPakDownloader, Warning, TEXT("%s download complete!"), *PakRequest->GetFileName());
 											UE_LOG(LogMapPakDownloader, Warning, TEXT("Mounting..."), *Name);
-											FCoreDelegates::OnMountPak.Execute(Name, 0);
+											FCoreDelegates::OnMountPak.Execute(Name, 0, nullptr);
 											UE_LOG(LogMapPakDownloader, Warning, TEXT("%s Mounted!"), *Name);
 
 											// Get hold of the world.
@@ -228,7 +228,7 @@ void FMapPakDownloader::Cache(FString& Map, FString& InLastMap, void* InDynData)
 		FString OutLongPackageName;
 		FString OutFileName;
 
-		if (!FPackageName::SearchForPackageOnDisk(Map, &OutLongPackageName, &OutFileName, false))
+		if (!FPackageName::SearchForPackageOnDisk(Map, &OutLongPackageName, &OutFileName))
 		{
 			UE_LOG(LogMapPakDownloader, Warning, TEXT("Caching.... %s"), *Map);
 			CachePak();

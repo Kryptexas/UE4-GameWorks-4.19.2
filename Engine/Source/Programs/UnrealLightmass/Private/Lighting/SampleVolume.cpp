@@ -30,11 +30,14 @@ struct FVolumeLightingProximityOctreeSemantics
 };
 
 /** Constructs an SH environment from this lighting sample. */
-void FVolumeLightingSample::ToSHVector(FSHVectorRGB2& SHVector) const
+void FVolumeLightingSample::ToSHVector(FSHVectorRGB3& SHVector) const
 {
-	SHVector.R = FSHVector2(HighQualityCoefficients[0][0], HighQualityCoefficients[1][0], HighQualityCoefficients[2][0], HighQualityCoefficients[3][0]);
-	SHVector.G = FSHVector2(HighQualityCoefficients[0][1], HighQualityCoefficients[1][1], HighQualityCoefficients[2][1], HighQualityCoefficients[3][1]);
-	SHVector.B = FSHVector2(HighQualityCoefficients[0][2], HighQualityCoefficients[1][2], HighQualityCoefficients[2][2], HighQualityCoefficients[3][2]);
+	for (int32 CoefficientIndex = 0; CoefficientIndex < LM_NUM_SH_COEFFICIENTS; CoefficientIndex++)
+	{
+		SHVector.R.V[CoefficientIndex] = HighQualityCoefficients[CoefficientIndex][0];
+		SHVector.G.V[CoefficientIndex] = HighQualityCoefficients[CoefficientIndex][1];
+		SHVector.B.V[CoefficientIndex] = HighQualityCoefficients[CoefficientIndex][2];
+	}
 }
 
 /** Returns true if there is an existing sample in VolumeOctree within SearchDistance of Position. */
@@ -531,7 +534,7 @@ void FStaticLightingSystem::ProcessVolumeSamplesTask(const FVolumeSamplesTaskDes
 #if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
 		if (Scene.DebugMapping && DynamicObjectSettings.bVisualizeVolumeLightSamples)
 		{
-			FSHVectorRGB2 IncidentRadiance;
+			FSHVectorRGB3 IncidentRadiance;
 			CurrentSample.ToSHVector(IncidentRadiance);
 			VolumeLightingDebugOutput.VolumeLightingSamples.Add(FDebugVolumeLightingSample(CurrentSample.PositionAndRadius, IncidentRadiance.CalcIntegral() / FSHVector2::ConstantBasisIntegral));
 		}
@@ -548,7 +551,6 @@ void FStaticLightingSystem::ProcessVolumeSamplesTask(const FVolumeSamplesTaskDes
 FGatheredLightSample FStaticLightingSystem::InterpolatePrecomputedVolumeIncidentRadiance(const FStaticLightingVertex& Vertex, float SampleRadius, FCoherentRayCache& RayCache, bool bDebugThisTexel) const
 {
 	FGatheredLightSample IncidentRadiance;
-	FSHVectorRGB2 TotalIncidentRadiance;
 	float TotalWeight = 0.0f;
 
 	if (bDebugThisTexel)

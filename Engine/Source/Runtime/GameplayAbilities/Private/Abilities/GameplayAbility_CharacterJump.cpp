@@ -58,6 +58,12 @@ bool UGameplayAbility_CharacterJump::CanActivateAbility(const FGameplayAbilitySp
  */
 void UGameplayAbility_CharacterJump::CancelAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateCancelAbility)
 {
+	if (ScopeLockCount > 0)
+	{
+		WaitingToExecute.Add(FPostLockDelegate::CreateUObject(this, &UGameplayAbility_CharacterJump::CancelAbility, Handle, ActorInfo, ActivationInfo, bReplicateCancelAbility));
+		return;
+	}
+
 	Super::CancelAbility(Handle, ActorInfo, ActivationInfo, bReplicateCancelAbility);
 	
 	ACharacter * Character = CastChecked<ACharacter>(ActorInfo->AvatarActor.Get());

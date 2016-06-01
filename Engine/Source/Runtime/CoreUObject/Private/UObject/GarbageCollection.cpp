@@ -9,6 +9,7 @@
 #include "IConsoleManager.h"
 #include "LinkerPlaceholderClass.h"
 #include "UObject/GCScopeLock.h"
+#include "HAL/ExceptionHandling.h"
 
 /*-----------------------------------------------------------------------------
    Garbage collection.
@@ -1134,6 +1135,8 @@ bool VerifyClusterAssumptions(UObject* ClusterRootObject);
  */
 void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 {
+	CheckImageIntegrityAtRuntime();
+
 	DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "CollectGarbageInternal" ), STAT_CollectGarbageInternal, STATGROUP_GC );
 	STAT_ADD_CUSTOMMESSAGE_NAME( STAT_NamedMarker, TEXT( "GarbageCollection - Begin" ) );
 
@@ -1164,6 +1167,7 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 	if( GObjIncrementalPurgeIsInProgress || GObjPurgeIsRequired )
 	{
 		IncrementalPurgeGarbage( false );
+		FMemory::Trim();
 	}
 	check( !GObjIncrementalPurgeIsInProgress );
 	check( !GObjPurgeIsRequired );
@@ -1174,11 +1178,11 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 	if ((UObjectArray.DisregardForGCEnabled() || GUObjectClusters.Num()) && GShouldVerifyGCAssumptions)
 	{
 		DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "CollectGarbageInternal.VerifyGCAssumptions" ), STAT_CollectGarbageInternal_VerifyGCAssumptions, STATGROUP_GC );
+		bool bShouldAssert = false;
 
 		// Verify that objects marked to be disregarded for GC are not referencing objects that are not part of the root set.
 		for (FRawObjectIterator It(false); It; ++It)
 		{
-			bool bShouldAssert = false;
 			FUObjectItem* ObjectItem = *It;
 			UObject* Object = (UObject*)ObjectItem->Object;
 			// Don't require UGCObjectReferencer's references to adhere to the assumptions.
@@ -1215,11 +1219,11 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 					bShouldAssert = true;
 				}
 			}
-			// Assert if we encountered any objects breaking implicit assumptions.
-			if( bShouldAssert )
-			{
-				UE_LOG(LogGarbage, Fatal,TEXT("Encountered object(s) breaking Disregard for GC assumption. Please check log for details."));
-			}
+		}
+		// Assert if we encountered any objects breaking implicit assumptions.
+		if (bShouldAssert)
+		{
+			UE_LOG(LogGarbage, Fatal, TEXT("Encountered object(s) breaking Disregard for GC assumption. Please check log for details."));
 		}
 	}
 #endif
@@ -1314,6 +1318,7 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 	{
 		IncrementalPurgeGarbage( false );	
 	}
+	FMemory::Trim();
 
 	// Destroy all pending delete linkers
 	DeleteLoaders();

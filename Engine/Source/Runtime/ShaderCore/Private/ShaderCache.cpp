@@ -9,6 +9,7 @@
 #include "Shader.h"
 #include "RHI.h"
 #include "RenderingThread.h"
+#include "EngineVersion.h"
 
 DECLARE_STATS_GROUP(TEXT("Shader Cache"),STATGROUP_ShaderCache, STATCAT_Advanced);
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Shaders Cached"),STATGROUP_NumShadersCached,STATGROUP_ShaderCache);
@@ -26,6 +27,7 @@ DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("Binary Cache Load Time (s)"),STATGROUP_Bina
 const FGuid FShaderCacheCustomVersion::Key(0xB954F018, 0xC9624DD6, 0xA74E79B1, 0x8EA113C2);
 const FGuid FShaderCacheCustomVersion::GameKey(0x03D4EB48, 0xB50B4CC3, 0xA598DE41, 0x5C6CC993);
 FCustomVersionRegistration GRegisterShaderCacheVersion(FShaderCacheCustomVersion::Key, FShaderCacheCustomVersion::Latest, TEXT("ShaderCacheVersion"));
+FCustomVersionRegistration GRegisterShaderCacheGameVersion(FShaderCacheCustomVersion::GameKey, 0, TEXT("ShaderCacheGameVersion"));
 #if WITH_EDITOR
 static TCHAR const* GShaderCacheFileName = TEXT("EditorDrawCache.ushadercache");
 static TCHAR const* GShaderCodeCacheFileName = TEXT("EditorCodeCache.ushadercode");
@@ -147,6 +149,7 @@ static bool ShaderPlatformCanPrebindBoundShaderState(EShaderPlatform Platform)
 		case SP_METAL_MRT:
 		case SP_METAL_SM5:
 		case SP_METAL_MACES3_1:
+		case SP_METAL_MACES2:
 		{
 			return true;
 		}
@@ -172,22 +175,31 @@ void FShaderCache::SetGameVersion(int32 InGameVersion)
 
 void FShaderCache::InitShaderCache(uint32 Options, uint32 InMaxResources)
 {
+#if WITH_EDITORONLY_DATA
+	check(!CookCache || (Options == SCO_Cooking && WITH_EDITORONLY_DATA));
+#endif
 	check(!Cache);
+	checkf(!(Options & SCO_Cooking) || (Options == SCO_Cooking && WITH_EDITORONLY_DATA), TEXT("Binary shader cache cooking is only permitted on its own & within the editor/cooker."));
+	
+	// Set the GameVersion to the FEngineVersion::Current().GetChangelist() value if it wasn't set to ensure we don't load invalidated caches.
+	if (GameVersion == 0)
+	{
+		GameVersion = (int32)FEngineVersion::Current().GetChangelist();
+	}
+	
 	if(bUseShaderCaching)
 	{
-		checkf(!(Options & SCO_Cooking) || (Options == SCO_Cooking && WITH_EDITORONLY_DATA), TEXT("Binary shader cache cooking is only permitted on its own & within the editor/cooker."));
-		
 		if(!(Options & SCO_Cooking))
 		{
 			Cache = new FShaderCache(Options, InMaxResources);
 		}
-#if WITH_EDITORONLY_DATA
-		else if(Options & SCO_Cooking)
-		{
-			CookCache = new FShaderCookCache;
-		}
-#endif
 	}
+#if WITH_EDITORONLY_DATA
+	else if((Options & SCO_Cooking) && !CookCache)
+	{
+		CookCache = new FShaderCookCache;
+	}
+#endif
 }
 
 void FShaderCache::LoadBinaryCache()
@@ -1320,6 +1332,12 @@ void FShaderCache::InternalPreDrawShaders(FRHICommandList& RHICmdList, float Del
 				PredrawVBs.Empty();
 			}
 			
+			if ( ShadersToDraw.FindOrAdd(StreamingKey).ShaderDrawStates.Num() == 0 )
+			{
+				PredrawRTs.Empty();
+				PredrawBindings.Empty();
+				PredrawVBs.Empty();
+			}
 			bIsPreDraw = false;
 			
 			double LoadTimeUpdate = FPlatformTime::Seconds();
@@ -2159,12 +2177,12 @@ uint32 FShaderCache::FSamplerStateInitializerRHIKeyFuncs::GetKeyHash(KeyInitType
 
 int32 FShaderCache::GetPredrawBatchTime() const
 {
-	return OverridePrecompileTime == 0 ? PredrawBatchTime : OverridePrecompileTime;
+	return OverridePredrawBatchTime == 0 ? PredrawBatchTime : OverridePredrawBatchTime;
 }
 
 int32 FShaderCache::GetTargetPrecompileFrameTime() const
 {
-	return OverridePredrawBatchTime == 0 ? TargetPrecompileFrameTime : OverridePredrawBatchTime;
+	return OverridePrecompileTime == 0 ? TargetPrecompileFrameTime : OverridePrecompileTime;
 }
 
 void FShaderCache::MergePlatformCaches(FShaderPlatformCache& Target, FShaderPlatformCache const& Source)

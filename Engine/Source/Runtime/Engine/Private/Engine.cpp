@@ -164,7 +164,8 @@ void ReattachComponents(const TArray<FString>& Args)
 
 FAutoConsoleCommand ReattachComponentsCmd(
 	TEXT("Reattach.Components"),
-	TEXT("Useful for debugging, reattaches all components. Parameter needs to be the class name."),
+	TEXT("Useful for debugging, reattaches all components. Parameter needs to be the class name.\n")
+	TEXT(" Example: Reattach.Components class=SkeletalMeshComponent"),
 	FConsoleCommandWithArgsDelegate::CreateStatic(&ReattachComponents)
 	);
 

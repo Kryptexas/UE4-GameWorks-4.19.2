@@ -24,15 +24,6 @@ if errorlevel 0 (
 		copy /Y "%~dp0..\..\Extras\VisualStudioDebugging\UE4.natvis" "!UE4_MyDocs!\Visual Studio 2013\Visualizers\UE4.natvis" 1>nul 2>nul
 
 	:NoVisualStudio2013Environment
-		pushd %~dp0
-		call GetVSComnToolsPath 11
-		popd
-
-		if "!VsComnToolsPath!" == "" goto NoVisualStudio2012Environment
-		attrib -R "!UE4_MyDocs!\Visual Studio 2012\Visualizers\UE4.natvis" 1>nul 2>nul
-		copy /Y "%~dp0..\..\Extras\VisualStudioDebugging\UE4.natvis" "!UE4_MyDocs!\Visual Studio 2012\Visualizers\UE4.natvis" 1>nul 2>nul
-
-	:NoVisualStudio2012Environment
 		if "%SCE_ORBIS_SDK_DIR%" == "" goto NoPS4Environment
 		attrib -R "!UE4_MyDocs!\SCE\orbis-debugger\PS4UE4.natvis" 1>nul 2>nul
 		copy /Y "%~dp0..\..\Extras\VisualStudioDebugging\PS4UE4.natvis" "!UE4_MyDocs!\SCE\orbis-debugger\PS4UE4.natvis" 1>nul 2>nul

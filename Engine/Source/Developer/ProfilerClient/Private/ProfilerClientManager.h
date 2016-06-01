@@ -31,7 +31,7 @@ struct FServiceConnection
 
 #if STATS
 	/** Current stats data */
-	FStatsThreadState CurrentThreadState;
+	FStatsLoadedState CurrentThreadState;
 #endif
 
 	/** Provides an FName to GroupId mapping */
@@ -52,7 +52,7 @@ struct FServiceConnection
 	TArray<FProfilerDataFrame> DataFrames;
 
 	/** Messages received and pending process, they are stored in a map as we can receive them out of order */
-	TMap<int64, TArray<uint8> > PendingMessages;
+	TMap<int64, TArray<uint8>* > ReceivedData;
 
 #if STATS
 	// generates the old style cycle graph
@@ -69,12 +69,6 @@ struct FServiceConnection
 
 	// adds a new style stat FName to the list of threads and generates an old style id and description
 	int32 FindOrAddThread(const FStatNameAndInfo& Thread);
-
-	// updates the meta date for the given instance
-	void UpdateMetaData_DISABLED();
-
-	/** Adds all collected stat messages to the current stats thread state. */
-	void AddCollectedStatMessages( FStatMessage Message );
 
 	/** Generates profiler data frame based on the collected stat messages. */
 	void GenerateProfilerDataFrame();
@@ -217,7 +211,7 @@ private:
 	TArray<FGuid> PendingInstances;
 
 	/** Service connections */
-	// #YRX_tag 2015-11-19 should be only one active connection.
+	// #Profiler: 2015-11-19 should be only one active connection.
 	TMap<FGuid, FServiceConnection> Connections;
 
 	struct FReceivedFileInfo

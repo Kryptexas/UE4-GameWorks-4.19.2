@@ -195,7 +195,7 @@ namespace AssetSelectionUtils
 					}
 
 					USceneComponent* RootComp = CurrentActor->GetRootComponent();
-					if(RootComp != NULL && RootComp->AttachParent != NULL)
+					if(RootComp != nullptr && RootComp->GetAttachParent() != nullptr)
 					{
 						ActorInfo.bHaveAttachedActor = true;
 					}

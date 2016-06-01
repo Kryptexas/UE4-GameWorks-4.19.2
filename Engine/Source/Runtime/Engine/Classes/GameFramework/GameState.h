@@ -152,6 +152,8 @@ protected:
 private:
 	// Hidden functions that don't make sense to use on this class.
 	HIDE_ACTOR_TRANSFORM_FUNCTIONS();
+
+	friend class UDemoNetDriver;
 };
 
 

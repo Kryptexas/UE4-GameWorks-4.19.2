@@ -25,13 +25,13 @@ FSoundCueGraphConnectionDrawingPolicy::FSoundCueGraphConnectionDrawingPolicy(int
 	ArrowRadius = FVector2D::ZeroVector;
 }
 
-void FSoundCueGraphConnectionDrawingPolicy::Draw(TMap<TSharedRef<SWidget>, FArrangedWidget>& PinGeometries, FArrangedChildren& ArrangedNodes)
+void FSoundCueGraphConnectionDrawingPolicy::Draw(TMap<TSharedRef<SWidget>, FArrangedWidget>& InPinGeometries, FArrangedChildren& ArrangedNodes)
 {
 	// Build the execution roadmap (also populates execution times)
 	BuildAudioFlowRoadmap();
 
 	// Draw everything
-	FConnectionDrawingPolicy::Draw(PinGeometries, ArrangedNodes);
+	FConnectionDrawingPolicy::Draw(InPinGeometries, ArrangedNodes);
 }
 
 void FSoundCueGraphConnectionDrawingPolicy::BuildAudioFlowRoadmap()

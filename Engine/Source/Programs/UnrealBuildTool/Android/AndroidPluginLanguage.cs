@@ -38,7 +38,7 @@ namespace UnrealBuildTool
 	 * The following variables are initialized automatically:
 	 * 
 	 *	$S(Output) = the output returned for evaluating the section (initialized to Input)
-	 *	$S(Architecture) = target architecture (armeabi-armv7, armeabi-armv8, x86, x86_64)
+	 *	$S(Architecture) = target architecture (armeabi-armv7a, arm64-v8a, x86, x86_64)
 	 *	$S(PluginDir) = directory the XML file was loaded from
 	 *	$S(EngineDir) = engine directory
 	 *	$S(BuildDir) = project's Intermediate/Android/APK directory
@@ -255,10 +255,11 @@ namespace UnrealBuildTool
 	 * The current element is referenced with tag="$".  Element variables are referenced with $varname
 	 * since using $E(varname) will be expanded to the string equivalent of the XML.
 	 * 
-	 * <uses-permission> and <uses-feature> are updated with:
+	 * <uses-permission>, <uses-feature>, and <uses-library> are updated with:
 	 * 
 	 *	<addPermission android:name="" .. />
 	 *	<addFeature android:name="" .. />
+	 *	<addLibrary android:name="" .. />
 	 *
 	 * Any attributes in the above commands are copied to the element added to the manifest so you
 	 * can do the following, for example:
@@ -1270,6 +1271,56 @@ namespace UnrealBuildTool
 						}
 						break;
 
+					case "addLibrary":
+						{
+							string Name = GetAttributeWithNamespace(CurrentContext, Node, AndroidNameSpace, "name");
+							if (Name != null)
+							{
+								// make sure it isn't already added
+								bool bFound = false;
+								foreach (var Element in XMLWork.Descendants("uses-library"))
+								{
+									XAttribute Attribute = Element.Attribute(AndroidNameSpace + "name");
+									if (Attribute != null)
+									{
+										if (Attribute.Value == Name)
+										{
+											bFound = true;
+											break;
+										}
+									}
+								}
+
+								// add it if not found
+								if (!bFound)
+								{
+									XMLWork.Element("manifest").Element("application").Add(new XElement("uses-library", Node.Attributes()));
+								}
+							}
+						}
+						break;
+
+					case "removeLibrary":
+						{
+							string Name = GetAttributeWithNamespace(CurrentContext, Node, AndroidNameSpace, "name");
+							if (Name != null)
+							{
+								foreach (var Element in XMLWork.Descendants("uses-library"))
+								{
+									XAttribute Attribute = Element.Attribute(AndroidNameSpace + "name");
+									if (Attribute != null)
+									{
+										if (Attribute.Value == Name)
+										{
+											Element.Remove();
+											break;
+										}
+									}
+								}
+							}
+						}
+						break;
+
 					case "removeElement":
 						{
 							string Tag = GetAttribute(CurrentContext, Node, "tag");
@@ -2067,6 +2118,19 @@ namespace UnrealBuildTool
 	/// </summary>
 	public class ConfigCacheIni_APL
 	{
+		/// <summary>
+		/// Exception when parsing ini files
+		/// </summary>
+		public class IniParsingException : Exception
+		{
+			public IniParsingException(string Message)
+				: base(Message)
+			{ }
+			public IniParsingException(string Format, params object[] Args)
+				: base(String.Format(Format, Args))
+			{ }
+		}
+
 
 		// command class for being able to create config caches over and over without needing to read the ini files
 		public class Command

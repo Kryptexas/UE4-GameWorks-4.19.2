@@ -13,11 +13,15 @@
 #include "Editor/Sequencer/Public/ISequencerModule.h"
 #include "Animation/MarginTrackEditor.h"
 #include "Animation/Sequencer2DTransformTrackEditor.h"
+#include "Animation/WidgetMaterialTrackEditor.h"
 #include "IUMGModule.h"
 #include "ComponentReregisterContext.h"
 #include "WidgetComponent.h"
 #include "DesignerCommands.h"
 #include "WidgetBlueprint.h"
+
+#include "SlateStyleRegistry.h"
+#include "ClassIconFinder.h"
 
 #include "Settings/WidgetDesignerSettings.h"
 #include "ISettingsModule.h"
@@ -25,6 +29,14 @@
 #define LOCTEXT_NAMESPACE "UMG"
 
 const FName UMGEditorAppIdentifier = FName(TEXT("UMGEditorApp"));
+
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+const FSlateBrush* GetEditorIcon_Deprecated(UWidget* Widget)
+{
+	const FSlateBrush* Brush = Widget->GetEditorIcon();
+	return Brush ? Brush : FClassIconFinder::FindIconForClass(Widget->GetClass());
+}
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 class FUMGEditorModule : public IUMGEditorModule, public IBlueprintCompiler
 {
@@ -59,8 +71,9 @@ public:
 
 		// Register with the sequencer module that we provide auto-key handlers.
 		ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>("Sequencer");
-		MarginTrackEditorCreateTrackEditorHandle    = SequencerModule.RegisterTrackEditor_Handle(FOnCreateTrackEditor::CreateStatic(&FMarginTrackEditor::CreateTrackEditor));
-		TransformTrackEditorCreateTrackEditorHandle = SequencerModule.RegisterTrackEditor_Handle(FOnCreateTrackEditor::CreateStatic(&F2DTransformTrackEditor::CreateTrackEditor));
+		MarginTrackEditorCreateTrackEditorHandle          = SequencerModule.RegisterTrackEditor_Handle(FOnCreateTrackEditor::CreateStatic(&FMarginTrackEditor::CreateTrackEditor));
+		TransformTrackEditorCreateTrackEditorHandle       = SequencerModule.RegisterTrackEditor_Handle(FOnCreateTrackEditor::CreateStatic(&F2DTransformTrackEditor::CreateTrackEditor));
+		WidgetMaterialTrackEditorCreateTrackEditorHandle  = SequencerModule.RegisterTrackEditor_Handle(FOnCreateTrackEditor::CreateStatic(&FWidgetMaterialTrackEditor::CreateTrackEditor));
 
 		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 		if ( SettingsModule != nullptr )
@@ -72,11 +85,23 @@ public:
 				GetMutableDefault<UWidgetDesignerSettings>()
 				);
 		}
+
+		const ISlateStyle* UMGStyle = FSlateStyleRegistry::FindSlateStyle("UMGStyle");
+		if (UMGStyle)
+		{
+			FClassIconFinder::RegisterIconSource(UMGStyle);
+		}
 	}
 
 	/** Called before the module is unloaded, right before the module object is destroyed. */
 	virtual void ShutdownModule() override
 	{
+		const ISlateStyle* UMGStyle = FSlateStyleRegistry::FindSlateStyle("UMGStyle");
+		if (UMGStyle)
+		{
+			FClassIconFinder::UnregisterIconSource(UMGStyle);
+		}
+
 		MenuExtensibilityManager.Reset();
 		ToolBarExtensibilityManager.Reset();
 
@@ -90,6 +115,15 @@ public:
 			}
 		}
 		CreatedAssetTypeActions.Empty();
+
+		// Unregister sequencer track creation delegates
+		ISequencerModule* SequencerModule = FModuleManager::GetModulePtr<ISequencerModule>( "Sequencer" );
+		if ( SequencerModule != nullptr )
+		{
+			SequencerModule->UnRegisterTrackEditor_Handle( MarginTrackEditorCreateTrackEditorHandle );
+			SequencerModule->UnRegisterTrackEditor_Handle( TransformTrackEditorCreateTrackEditorHandle );
+			SequencerModule->UnRegisterTrackEditor_Handle( WidgetMaterialTrackEditorCreateTrackEditorHandle );
+		}
 
 		// Unregister the setting
 		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
@@ -172,6 +206,7 @@ private:
 
 	FDelegateHandle MarginTrackEditorCreateTrackEditorHandle;
 	FDelegateHandle TransformTrackEditorCreateTrackEditorHandle;
+	FDelegateHandle WidgetMaterialTrackEditorCreateTrackEditorHandle;
 
 	/** All created asset type actions.  Cached here so that we can unregister it during shutdown. */
 	TArray< TSharedPtr<IAssetTypeActions> > CreatedAssetTypeActions;

@@ -68,6 +68,19 @@ float3 OctahedronToUnitVector( float2 Oct )
 	return normalize(N);
 }
 
+float2 UnitVectorToHemiOctahedron( float3 N )
+{
+	N.xy /= dot( 1, abs(N) );
+	return float2( N.x + N.y, N.x - N.y );
+}
+
+float3 HemiOctahedronToUnitVector( float2 Oct )
+{
+	Oct = float2( Oct.x + Oct.y, Oct.x - Oct.y ) * 0.5;
+	float3 N = float3( Oct, 1 - dot( 1, abs(Oct) ) );
+	return normalize(N);
+}
+
 float3 Pack1212To888( float2 x )
 {
 	// Pack 12:12 to 8:8:8
@@ -114,6 +127,45 @@ float3 DecodeNormal( float3 N )
 {
 	return N * 2 - 1;
 	//return OctahedronToUnitVector( Pack888To1212( N ) * 2 - 1 );
+}
+
+void EncodeNormal( inout float3 N, out uint Face )
+{
+#if 1
+	uint Axis = 2;
+	if( abs(N.x) >= abs(N.y) && abs(N.x) >= abs(N.z) )
+	{
+		Axis = 0;
+	}
+	else if( abs(N.y) > abs(N.z) )
+	{
+		Axis = 1;
+	}
+	Face = Axis * 2;
+#else
+	// TODO GCN
+	Face = v_cubeid_f32( N );
+	uint Axis = Face >> 1;
+#endif
+
+	N = Axis == 0 ? N.yzx : N;
+	N = Axis == 1 ? N.xzy : N;
+	
+	Face += N.z > 0 ? 0 : 1;
+	N.xy *= N.z > 0 ? 1 : -1;
+	N.xy = N.xy * 0.5 + 0.5;
+}
+
+void DecodeNormal( inout float3 N, in uint Face )
+{
+	uint Axis = Face >> 1;
+
+	N.xy = N.xy * 2 - 1;
+	N.z = sqrt( 1 - dot( N.xy, N.xy ) );
+
+	N = Axis == 0 ? N.zxy : N;
+	N = Axis == 1 ? N.xzy : N;
+	N *= (Face & 1) ? -1 : 1;
 }
 
 float3 EncodeBaseColor(float3 BaseColor)
@@ -218,7 +270,7 @@ float Decode71(float Scalar, out uint Mask)
 #define SHADINGMODELID_MASK					0xF					
 
 // The flags are defined so that 0 value has no effect!
-#define SKIP_CUSTOMDATA_MASK			(1 << 4)
+#define SKIP_CUSTOMDATA_MASK			(1 << 4)	// TODO remove. Can be inferred from shading model.
 #define SKIP_PRECSHADOW_MASK			(1 << 5)
 #define ZERO_PRECSHADOW_MASK			(1 << 6)
 #define SKIP_VELOCITY_MASK				(1 << 7)
@@ -295,7 +347,7 @@ struct FGBufferData
 	// 0..1, only needed by SHADINGMODELID_SUBSURFACE_PROFILE which applies BaseColor later
 	float3 StoredBaseColor;
 	// 0..1, only needed by SHADINGMODELID_SUBSURFACE_PROFILE which applies Specular later
-	float3 StoredSpecular;
+	float StoredSpecular;
 };
 
 bool HasDistanceFieldRepresentation(FGBufferData GBufferData)
@@ -354,21 +406,35 @@ void EncodeGBuffer(
 	float QuantizationBias = 0		// -0.5 to 0.5 random float. Used to bias quantization.
 	)
 {
-	OutGBufferA.rgb = EncodeNormal( GBuffer.WorldNormal );
-	OutGBufferA.a = GBuffer.PerObjectGBufferData;
-
 	if (GBuffer.ShadingModelID == SHADINGMODELID_UNLIT)
 	{
+		OutGBufferA = 0;
 		OutGBufferB = 0;
 		OutGBufferC = 0;
 		OutGBufferD = 0;
+		OutGBufferE = 0;
 	}
 	else
 	{
+#if 1
+		OutGBufferA.rgb = EncodeNormal( GBuffer.WorldNormal );
+		OutGBufferA.a = GBuffer.PerObjectGBufferData;
+#else
+		float3 Normal = GBuffer.WorldNormal;
+		uint   NormalFace = 0;
+		EncodeNormal( Normal, NormalFace );
+
+		OutGBufferA.rg = Normal.xy;
+		OutGBufferA.b = 0;
+		OutGBufferA.a = GBuffer.PerObjectGBufferData;
+#endif
+
 		OutGBufferB.r = GBuffer.Metallic;
 		OutGBufferB.g = GBuffer.Specular;
 		OutGBufferB.b = GBuffer.Roughness;
-		OutGBufferC.rgb = EncodeBaseColor(GBuffer.BaseColor);
+		OutGBufferB.a = EncodeShadingModelIdAndSelectiveOutputMask(GBuffer.ShadingModelID, GBuffer.SelectiveOutputMask);
+
+		OutGBufferC.rgb = EncodeBaseColor( GBuffer.BaseColor );
 
 #if ALLOW_STATIC_LIGHTING
 		// No space for AO. Multiply IndirectIrradiance by AO instead of storing.
@@ -377,11 +443,9 @@ void EncodeGBuffer(
 		OutGBufferC.a = GBuffer.GBufferAO;
 #endif
 
-		OutGBufferB.a = EncodeShadingModelIdAndSelectiveOutputMask(GBuffer.ShadingModelID, GBuffer.SelectiveOutputMask);
 		OutGBufferD = GBuffer.CustomData;
+		OutGBufferE = GBuffer.PrecomputedShadowFactors;
 	}
-
-	OutGBufferE = GBuffer.PrecomputedShadowFactors;
 
 #if WRITES_VELOCITY_TO_GBUFFER
 	OutGBufferVelocity = GBuffer.Velocity;
@@ -440,20 +504,15 @@ FGBufferData DecodeGBufferData(
 		GBuffer.WorldNormal = normalize(GBuffer.WorldNormal);
 	}
 
+	GBuffer.PerObjectGBufferData = InGBufferA.a;
+
+	GBuffer.Metallic	= InGBufferB.r;
+	GBuffer.Specular	= InGBufferB.g;
+	GBuffer.Roughness	= InGBufferB.b;
+	GBuffer.ShadingModelID = DecodeShadingModelId(InGBufferB.a);
 	GBuffer.SelectiveOutputMask = DecodeSelectiveOutputMask(InGBufferB.a);
 
-	GBuffer.PerObjectGBufferData = InGBufferA.a;
-	GBuffer.ShadingModelID = DecodeShadingModelId(InGBufferB.a);
-	
-	GBuffer.StoredBaseColor = DecodeBaseColor(InGBufferC.rgb);
-	GBuffer.BaseColor = GBuffer.StoredBaseColor;
-
-	GBuffer.Metallic = InGBufferB.r;
-	GBuffer.StoredSpecular = InGBufferB.g;
-	GBuffer.Specular = GBuffer.StoredSpecular.g;
-	
-	GBuffer.Roughness = InGBufferB.b;
-	GBuffer.CustomData = !(GBuffer.SelectiveOutputMask & SKIP_CUSTOMDATA_MASK) ? InGBufferD : 0;
+	GBuffer.BaseColor = DecodeBaseColor(InGBufferC.rgb);
 
 #if ALLOW_STATIC_LIGHTING
 	GBuffer.GBufferAO = 1;
@@ -463,16 +522,21 @@ FGBufferData DecodeGBufferData(
 	GBuffer.IndirectIrradiance = 1;
 #endif
 
+	GBuffer.CustomData = !(GBuffer.SelectiveOutputMask & SKIP_CUSTOMDATA_MASK) ? InGBufferD : 0;
+
 	GBuffer.PrecomputedShadowFactors = !(GBuffer.SelectiveOutputMask & SKIP_PRECSHADOW_MASK) ? InGBufferE :  ((GBuffer.SelectiveOutputMask & ZERO_PRECSHADOW_MASK) ? 0 :  1);
 	GBuffer.CustomDepth = ConvertFromDeviceZ(CustomNativeDepth);
 	GBuffer.CustomStencil = CustomStencil;
 	GBuffer.Depth = SceneDepth;
 
+	GBuffer.StoredBaseColor = GBuffer.BaseColor;
+	GBuffer.StoredSpecular = GBuffer.Specular;
+	
 	if(GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE)
 	{
 		// we apply the BaseColor and Specular later, this is why we need StoredBaseColor
 		GBuffer.BaseColor = bChecker;
-		GBuffer.Specular = !bChecker;
+		GBuffer.Specular *= !bChecker;
 	}
 
 	// derived from BaseColor, Metalness, Specular
@@ -716,8 +780,7 @@ FGBufferData GetGBufferData(float2 UV, bool bGetNormalizedNormal = true)
 // Minimal path for just the lighting model, used to branch around unlit pixels (skybox)
 uint GetShadingModelId(float2 UV)
 {
-	bool Unused;
-	return DecodeShadingModelId(Decode71(Texture2DSampleLevel(GBuffers.GBufferBTexture, GBuffers.GBufferBTextureSampler, UV, 0).a, Unused));
+	return DecodeShadingModelId(Texture2DSampleLevel(GBuffers.GBufferBTexture, GBuffers.GBufferBTextureSampler, UV, 0).a);
 }
 
 // @param UV - UV space in the DBuffer textures (BufferSize resolution)
@@ -789,5 +852,40 @@ FScreenSpaceData GetScreenSpaceData(float2 UV, bool bGetNormalizedNormal = true)
 	}
 #endif
 
+
+// for debugging and to visualize
+float3 GetShadingModelColor(uint ShadingModelID)
+{
+	// TODO: PS4 doesn't optimize out correctly the switch(), so it thinks it needs all the Samplers even if they get compiled out
+	//	This will get fixed after launch per Sony...
+#if PS4_PROFILE
+		 if (ShadingModelID == SHADINGMODELID_UNLIT) return float3(0.1f, 0.1f, 0.2f); // Dark Blue
+	else if (ShadingModelID == SHADINGMODELID_DEFAULT_LIT) return float3(0.1f, 1.0f, 0.1f); // Green
+	else if (ShadingModelID == SHADINGMODELID_SUBSURFACE) return float3(1.0f, 0.1f, 0.1f); // Red
+	else if (ShadingModelID == SHADINGMODELID_PREINTEGRATED_SKIN) return float3(0.6f, 0.4f, 0.1f); // Brown
+	else if (ShadingModelID == SHADINGMODELID_CLEAR_COAT) return float3(0.1f, 0.4f, 0.4f); 
+	else if (ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE) return float3(0.2f, 0.6f, 0.5f); // Cyan
+	else if (ShadingModelID == SHADINGMODELID_TWOSIDED_FOLIAGE) return float3(0.2f, 0.2f, 0.8f); // Blue
+	else if (ShadingModelID == SHADINGMODELID_HAIR) return float3(0.6f, 0.1f, 0.5f);
+	else if (ShadingModelID == SHADINGMODELID_CLOTH) return float3(0.7f, 1.0f, 1.0f); 
+	else if (ShadingModelID == SHADINGMODELID_EYE) return float3(0.3f, 1.0f, 1.0f); 
+	else return float3(1.0f, 1.0f, 1.0f); // White
+#else
+	switch(ShadingModelID)
+	{
+		case SHADINGMODELID_UNLIT: return float3(0.1f, 0.1f, 0.2f); // Dark Blue
+		case SHADINGMODELID_DEFAULT_LIT: return float3(0.1f, 1.0f, 0.1f); // Green
+		case SHADINGMODELID_SUBSURFACE: return float3(1.0f, 0.1f, 0.1f); // Red
+		case SHADINGMODELID_PREINTEGRATED_SKIN: return float3(0.6f, 0.4f, 0.1f); // Brown
+		case SHADINGMODELID_CLEAR_COAT: return float3(0.1f, 0.4f, 0.4f); // Brown
+		case SHADINGMODELID_SUBSURFACE_PROFILE: return float3(0.2f, 0.6f, 0.5f); // Cyan
+		case SHADINGMODELID_TWOSIDED_FOLIAGE: return float3(0.2f, 0.2f, 0.8f); // Cyan
+		case SHADINGMODELID_HAIR: return float3(0.6f, 0.1f, 0.5f);
+		case SHADINGMODELID_CLOTH: return float3(0.7f, 1.0f, 1.0f);
+		case SHADINGMODELID_EYE: return float3(0.3f, 1.0f, 1.0f);
+		default: return float3(1.0f, 1.0f, 1.0f); // White
+	}
+#endif
+}
 
 #endif // __DEFERRED_SHADING_COMMON__

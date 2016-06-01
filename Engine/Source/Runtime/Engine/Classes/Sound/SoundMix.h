@@ -15,7 +15,7 @@ struct FAudioEQEffect
 	/** Center frequency in Hz for band 0 */
 	UPROPERTY(EditAnywhere, Category = Band0, meta = (ClampMin = "0.0", ClampMax = "20000.0", UIMin = "0.0", UIMax = "20000.0"))
 	float FrequencyCenter0;
-
+	
 	/** Boost/cut of band 0 */
 	UPROPERTY(EditAnywhere, Category = Band0, meta = (ClampMin = "0.0", ClampMax = "10.0", UIMin = "0.0", UIMax = "10.0"))
 	float Gain0;
@@ -82,9 +82,10 @@ struct FAudioEQEffect
 	void Interpolate( float InterpValue, const FAudioEQEffect& Start, const FAudioEQEffect& End );
 		
 	/** 
-	* Clamp all settings are in range
+	* Clamp all settings in range
 	*/
-	void ClampValues( void );
+	void ClampValues();
+
 };
 
 /**

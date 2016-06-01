@@ -844,6 +844,24 @@ bool AssociateClothingAssetWithSkeletalMesh(USkeletalMesh* SkelMesh, int32 LODIn
 		RestoreSectionIndex = SectionIndex;
 	}
 
+	// Check the influences on the original chunk to make sure the influences match
+	{
+		FSkelMeshSection& CheckOriginMeshSection = LODModel.Sections[OriginSectionIndex];
+		FSkelMeshChunk& CheckOriginChunk = LODModel.Chunks[CheckOriginMeshSection.ChunkIndex];
+		if(CheckOriginChunk.MaxBoneInfluences > MAX_INFLUENCES_PER_STREAM)
+		{
+			const FText Text = FText::Format(LOCTEXT("Error_TooManyInfluences", "Chunk {0} in Skeletal Mesh {1} has up to {2} influences on it's vertices. The maximum when using cloth is 4, reduce the number of influences and reimport the mesh to allow cloth on this mesh."),
+											 FText::AsNumber(CheckOriginMeshSection.ChunkIndex),
+											 FText::FromString(SkelMesh->GetName()),
+											 FText::AsNumber(CheckOriginChunk.MaxBoneInfluences));
+
+			FMessageDialog::Open(EAppMsgType::Ok, Text);
+
+			// Can't associate, influences don't match
+			return false;
+		}
+	}
+
 	//add new one after restoring to original section
 	if(RestoreSectionIndex >= 0)
 	{
@@ -856,15 +874,16 @@ bool AssociateClothingAssetWithSkeletalMesh(USkeletalMesh* SkelMesh, int32 LODIn
 	int32 NewSectionIndex = LODModel.Sections.AddZeroed();
 	int16 NewChunkIndex = LODModel.Chunks.Add(TempChunk);
 
-	FSkelMeshSection& ClothSection = LODModel.Sections[NewSectionIndex];
 	FSkelMeshSection& OriginMeshSection = LODModel.Sections[OriginSectionIndex];
+	FSkelMeshChunk& OriginChunk = LODModel.Chunks[OriginMeshSection.ChunkIndex];
+
+	FSkelMeshSection& ClothSection = LODModel.Sections[NewSectionIndex];
 
 	// copy default info from original section
 	ClothSection = OriginMeshSection;
 
 	FSkelMeshChunk& ClothChunk = LODModel.Chunks[NewChunkIndex];
-	FSkelMeshChunk& OriginChunk = LODModel.Chunks[OriginMeshSection.ChunkIndex];
-
+	
 	// copy data from original chunk
 	ClothChunk.BaseVertexIndex = OriginChunk.BaseVertexIndex;
 	ClothChunk.MaxBoneInfluences = OriginChunk.MaxBoneInfluences;
@@ -917,7 +936,7 @@ bool AssociateClothingAssetWithSkeletalMesh(USkeletalMesh* SkelMesh, int32 LODIn
 		FMultiSizeIndexContainerData AdjacencyIndexData;
 		IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
 
-		UE_LOG(LogApexClothingUtils, Warning, TEXT("Building adjacency information for a clothing section in skeletal mesh '%s'."), *SkelMesh->GetPathName());
+		UE_LOG(LogApexClothingUtils, Warning, TEXT("Building adjacency information for a clothing section in skeletal mesh '%s'. Please resave the asset."), *SkelMesh->GetPathName());
 
 		LODModel.GetVertices(Vertices);
 		AdjacencyIndexData.DataTypeSize = LODModel.MultiSizeIndexContainer.GetDataTypeSize();
@@ -928,6 +947,34 @@ bool AssociateClothingAssetWithSkeletalMesh(USkeletalMesh* SkelMesh, int32 LODIn
 
 	// set asset submesh info to new chunk 
 	ClothChunk.SetClothSubmeshIndex(AssetIndex, AssetSubmeshIndex);
+
+	// It's possible that the required/active bones for the new cloth chunk differ from
+	// the original chunk - here we inspect the bone map and activate any new bones.
+	bool bRequiredBonesChanged = false;
+	for(FBoneIndexType BoneIdx : ClothChunk.BoneMap)
+	{
+		if(!LODModel.RequiredBones.Contains(BoneIdx))
+		{
+			bRequiredBonesChanged = true;
+
+			FName MissingBoneName = NAME_None;
+			if(SkelMesh->RefSkeleton.IsValidIndex(BoneIdx))
+			{
+				MissingBoneName = SkelMesh->RefSkeleton.GetBoneName(BoneIdx);
+
+				UE_LOG(LogApexClothingUtils, Log, TEXT("Found a bone used by cloth (%s) that is not in the required bone list for this LOD. Adding to required bones."), *MissingBoneName.ToString());
+
+				LODModel.RequiredBones.Add(BoneIdx);
+				LODModel.ActiveBoneIndices.AddUnique(BoneIdx);
+			}
+		}
+	}
+
+	if(bRequiredBonesChanged)
+	{
+		LODModel.RequiredBones.Sort();
+		LODModel.ActiveBoneIndices.Sort();
+	}
 
 	// New Chunk is already added so needs to update VertexFactories before Render codes are called
 	ReregisterSkelMeshComponents(SkelMesh);

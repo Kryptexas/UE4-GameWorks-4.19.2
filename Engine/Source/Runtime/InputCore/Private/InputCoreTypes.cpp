@@ -172,6 +172,8 @@ const FKey EKeys::Gamepad_RightTriggerAxis("Gamepad_RightTriggerAxis");
 const FKey EKeys::Gamepad_LeftThumbstick("Gamepad_LeftThumbstick");
 const FKey EKeys::Gamepad_RightThumbstick("Gamepad_RightThumbstick");
 const FKey EKeys::Gamepad_Special_Left("Gamepad_Special_Left");
+const FKey EKeys::Gamepad_Special_Left_X("Gamepad_Special_Left_X");
+const FKey EKeys::Gamepad_Special_Left_Y("Gamepad_Special_Left_Y");
 const FKey EKeys::Gamepad_Special_Right("Gamepad_Special_Right");
 const FKey EKeys::Gamepad_FaceButton_Bottom("Gamepad_FaceButton_Bottom");
 const FKey EKeys::Gamepad_FaceButton_Right("Gamepad_FaceButton_Right");
@@ -221,6 +223,7 @@ const FKey EKeys::TouchKeys[NUM_TOUCH_KEYS] =
 // Gestures
 const FKey EKeys::Gesture_Pinch("Gesture_Pinch");
 const FKey EKeys::Gesture_Flick("Gesture_Flick");
+const FKey EKeys::Gesture_Rotate("Gesture_Rotate");
 
 // Motion Controllers
 //		Left Controller
@@ -581,6 +584,7 @@ void EKeys::Initialize()
 
 	AddKey(FKeyDetails(EKeys::Gesture_Pinch, LOCTEXT("Gesture_Pinch", "Pinch"), 0, "Gesture"));
 	AddKey(FKeyDetails(EKeys::Gesture_Flick, LOCTEXT("Gesture_Flick", "Flick"), 0, "Gesture"));
+	AddKey(FKeyDetails(EKeys::Gesture_Rotate, LOCTEXT("Gesture_Rotate", "Rotate"), 0, "Gesture"));
 
 	// Motion Controllers
 	AddMenuCategoryDisplayInfo("MotionController", LOCTEXT("MotionControllerSubCategory", "Motion Controller"), TEXT("GraphEditor.PadEvent_16x"));
@@ -647,6 +651,9 @@ void EKeys::Initialize()
 	// PS4-specific
 	AddMenuCategoryDisplayInfo("PS4", LOCTEXT("PS4SubCategory", "PS4"), TEXT("GraphEditor.PadEvent_16x"));
 	AddKey(FKeyDetails(EKeys::PS4_Special, LOCTEXT("PS4_Special", "PS4_Special"), FKeyDetails::NotBlueprintBindableKey, "PS4"));
+	AddKey(FKeyDetails(EKeys::Gamepad_Special_Left_X, LOCTEXT("PS4_Gamepad_Special_Left_X", "PS4 Touchpad Button X Axis"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis, "PS4"));
+	AddKey(FKeyDetails(EKeys::Gamepad_Special_Left_Y, LOCTEXT("PS4_Gamepad_Special_Left_Y", "PS4 Touchpad Button Y Axis"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis, "PS4"));
+
 
 	// Steam Controller specific
 	AddMenuCategoryDisplayInfo("Steam", LOCTEXT("SteamSubCateogry", "Steam"), TEXT("GraphEditor.PadEvent_16x"));

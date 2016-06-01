@@ -245,13 +245,7 @@ void FParticleSpriteVertexFactory::InitStreams()
 		TexCoordStream->Offset = 0;
 	}
 	FVertexStream* InstanceStream = new(Streams) FVertexStream;
-	InstanceStream->VertexBuffer = 0;
-	InstanceStream->Stride = 0;
-	InstanceStream->Offset = 0;
 	FVertexStream* DynamicParameterStream = new(Streams) FVertexStream;
-	DynamicParameterStream->VertexBuffer = 0;
-	DynamicParameterStream->Stride = 0;
-	DynamicParameterStream->Offset = 0;
 }
 
 void FParticleSpriteVertexFactory::SetInstanceBuffer(const FVertexBuffer* InInstanceBuffer, uint32 StreamOffset, uint32 Stride, bool bInstanced)

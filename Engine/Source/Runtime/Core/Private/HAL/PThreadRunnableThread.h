@@ -45,6 +45,8 @@ protected:
 			case TPri_AboveNormal: return 25;
 			case TPri_Normal: return 15;
 			case TPri_BelowNormal: return 5;
+			case TPri_Lowest: return 1;
+			case TPri_SlightlyBelowNormal: return 14;
 			default: UE_LOG(LogHAL, Fatal, TEXT("Unknown Priority passed to FRunnableThreadPThread::TranslateThreadPriority()"));
 		}
 	}
@@ -158,6 +160,8 @@ protected:
 
 		// cache the thread ID for this thread (defined by the platform)
 		ThisThread->ThreadID = FPlatformTLS::GetCurrentThreadId();
+
+		FThreadManager::Get().AddThread(ThisThread->ThreadID, ThisThread);
 
 		// set the affinity.  This function sets affinity on the current thread, so don't call in the Create function which will trash the main thread affinity.
 		FPlatformProcess::SetThreadAffinityMask(ThisThread->ThreadAffinityMask);		

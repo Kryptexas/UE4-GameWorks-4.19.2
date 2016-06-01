@@ -10,6 +10,7 @@
 #include "Runtime/Engine/Classes/Engine/BlueprintGeneratedClass.h"
 #include "KismetEditorUtilities.h"
 #endif
+#include "Misc/ScopeExit.h"
 
 DEFINE_LOG_CATEGORY(LogHotReload);
 
@@ -128,6 +129,17 @@ private:
 		{ }
 	};
 
+	struct FRecompiledModule
+	{
+		FString Name;
+		FString NewFilename;
+		FRecompiledModule() {}
+		FRecompiledModule(FString InName, FString InFilename)
+			: Name(MoveTemp(InName))
+			, NewFilename(MoveTemp(InFilename))
+		{}
+	};
+
 	/**
 	 * Adds a callback to directory watcher for the game binaries folder.
 	 */
@@ -146,12 +158,12 @@ private:
 	/**
 	* Performs internal module recompilation
 	*/
-	ECompilationResult::Type RebindPackagesInternal(TArray< UPackage* > Packages, TArray< FName > DependentModules, const bool bWaitForCompletion, FOutputDevice &Ar);
+	ECompilationResult::Type RebindPackagesInternal(TArray<UPackage*>&& Packages, TArray<FName>&& DependentModules, const bool bWaitForCompletion, FOutputDevice& Ar);
 
 	/**
 	 * Does the actual hot-reload, unloads old modules, loads new ones
 	 */
-	ECompilationResult::Type DoHotReloadInternal(bool bRecompileFinished, ECompilationResult::Type CompilationResult, TArray<UPackage*> Packages, TArray<FName> InDependentModules, FOutputDevice &HotReloadAr);
+	ECompilationResult::Type DoHotReloadInternal(const TArray<FRecompiledModule>& ChangedModules, const TArray<UPackage*>& Packages, const TArray<FName>& InDependentModules, FOutputDevice& HotReloadAr);
 
 	/**
 	 * Finds all references to old CDOs and replaces them with the new ones.
@@ -159,11 +171,6 @@ private:
 	 * only one needed.
 	 */
 	void ReplaceReferencesToReconstructedCDOs();
-
-	/**
-	* Callback for async ompilation
-	*/
-	void DoHotReloadCallback(bool bRecompileFinished, ECompilationResult::Type CompilationResult, TArray<UPackage*> Packages, TArray<FName> InDependentModules, FOutputDevice &HotReloadAr);
 
 	/**
 	 * Gets all currently loaded game module names and optionally, the file names for those modules
@@ -201,27 +208,17 @@ private:
 	static void StripModuleSuffixFromFilename(FString& InOutModuleFilename, const FString& ModuleName);
 
 	/**
-	 * Broadcasts that a hot reload just finished. 
-	 *
-	 * @param	bWasTriggeredAutomatically	True if the hot reload was invoked automatically by the hot reload system after detecting a changed DLL
-	 */
-	void BroadcastHotReload( bool bWasTriggeredAutomatically ) 
-	{ 
-		HotReloadEvent.Broadcast( bWasTriggeredAutomatically ); 
-	}
-
-	/**
 	 * Sends analytics event about the re-load
 	 */
 	static void RecordAnalyticsEvent(const TCHAR* ReloadFrom, ECompilationResult::Type Result, double Duration, int32 PackageCount, int32 DependentModulesCount);
 
 	/**
-	 * Declares a type of delegates that is executed after a module recompile has finished.
+	 * Declares a function type that is executed after a module recompile has finished.
 	 *
 	 * The first argument signals whether compilation has finished.
 	 * The second argument shows whether compilation was successful or not.
 	 */
-	DECLARE_DELEGATE_TwoParams( FRecompileModulesCallback, bool, ECompilationResult::Type );
+	typedef TFunction<void(const TArray<FRecompiledModule>& ChangedModules, bool bRecompileFinished, ECompilationResult::Type CompilationResult)> FRecompileModulesCallback;
 
 	/**
 	 * Tries to recompile the specified modules in the background.  When recompiling finishes, the specified callback
@@ -235,7 +232,7 @@ private:
 	 * @param Ar Output device for logging compilation status
 	 * @return	True if the recompile action was kicked off successfully.  If this returns false, then the recompile callback will never fire.  In the case where bWaitForCompletion=false, this will also return false if the compilation failed for any reason.
 	 */
-	bool RecompileModulesAsync( const TArray< FName > ModuleNames, const FRecompileModulesCallback& InRecompileModulesCallback, const bool bWaitForCompletion, FOutputDevice &Ar );
+	bool RecompileModulesAsync( const TArray< FName > ModuleNames, FRecompileModulesCallback&& InRecompileModulesCallback, const bool bWaitForCompletion, FOutputDevice &Ar );
 
 	/** Called for successfully re-complied module */
 	void OnModuleCompileSucceeded(FName ModuleName, const FString& NewModuleFilename);
@@ -265,7 +262,7 @@ private:
 	 *	@return true if successful, false otherwise.
 	 */
 	bool StartCompilingModuleDLLs(const FString& GameName, const TArray< FModuleToRecompile >& ModuleNames, 
-		const FRecompileModulesCallback& InRecompileModulesCallback, FOutputDevice& Ar, bool bInFailIfGeneratedCodeChanges, 
+		FRecompileModulesCallback&& InRecompileModulesCallback, FOutputDevice& Ar, bool bInFailIfGeneratedCodeChanges, 
 		const FString& InAdditionalCmdLineArgs, bool bForceCodeProject);
 
 	/** Launches UnrealBuildTool with the specified command line parameters */
@@ -307,17 +304,6 @@ private:
 	/** True if currently hot-reloading from editor (suppresses hot-reload from IDE) */
 	bool bIsHotReloadingFromEditor;
 	
-	struct FRecompiledModule
-	{
-		FString Name;
-		FString NewFilename;
-		FRecompiledModule() {}
-		FRecompiledModule(const FString& InName, const FString& InFilename)
-			: Name(InName)
-			, NewFilename(InFilename)
-		{}
-	};
-
 	/** New module DLLs */
 	TArray<FRecompiledModule> NewModules;
 
@@ -357,7 +343,7 @@ private:
 	/** true if we should attempt to cancel the current async compilation */
 	bool bRequestCancelCompilation;
 
-	/** Tracks the validity of the game module existance */
+	/** Tracks the validity of the game module existence */
 	EThreeStateBool::Type bIsAnyGameModuleLoaded;
 
 	/** True if the directory watcher has been successfully initialized */
@@ -573,12 +559,14 @@ bool FHotReloadModule::RecompileModule(const FName InModuleName, const bool bRel
 
 	ModuleCompilerStartedEvent.Broadcast(false); // we never perform an async compile
 
+	FModuleManager& ModuleManager = FModuleManager::Get();
+
 	// Update our set of known modules, in case we don't already know about this module
-	FModuleManager::Get().AddModule( InModuleName );
+	ModuleManager.AddModule( InModuleName );
 
 	// Only use rolling module names if the module was already loaded into memory.  This allows us to try compiling
 	// the module without actually having to unload it first.
-	const bool bWasModuleLoaded = FModuleManager::Get().IsModuleLoaded( InModuleName );
+	const bool bWasModuleLoaded = ModuleManager.IsModuleLoaded( InModuleName );
 	const bool bUseRollingModuleNames = bWasModuleLoaded;
 
 	SlowTask.EnterProgressFrame();
@@ -592,7 +580,7 @@ bool FHotReloadModule::RecompileModule(const FName InModuleName, const bool bRel
 		// Find a unique file name for the module
 		FString UniqueSuffix;
 		FString UniqueModuleFileName;
-		FModuleManager::Get().MakeUniqueModuleFilename( InModuleName, UniqueSuffix, UniqueModuleFileName );
+		ModuleManager.MakeUniqueModuleFilename( InModuleName, UniqueSuffix, UniqueModuleFileName );
 
 		TArray< FModuleToRecompile > ModulesToRecompile;
 		FModuleToRecompile ModuleToRecompile;
@@ -612,7 +600,7 @@ bool FHotReloadModule::RecompileModule(const FName InModuleName, const bool bRel
 		if( bWasModuleLoaded )
 		{
 			Ar.Logf( TEXT( "Unloading module before compile." ) );
-			FModuleManager::Get().UnloadOrAbandonModuleWithCallback( InModuleName, Ar );
+			ModuleManager.UnloadOrAbandonModuleWithCallback( InModuleName, Ar );
 		}
 
 		if( !bUseRollingModuleNames )
@@ -621,13 +609,13 @@ bool FHotReloadModule::RecompileModule(const FName InModuleName, const bool bRel
 			TArray< FModuleToRecompile > ModulesToRecompile;
 			FModuleToRecompile ModuleToRecompile;
 			ModuleToRecompile.ModuleName = InModuleName.ToString();			
-			if (FModuleManager::Get().IsModuleLoaded(InModuleName))
+			if (ModuleManager.IsModuleLoaded(InModuleName))
 			{
-				ModulesRecentlyCompiledInTheEditor.Add(FPaths::ConvertRelativePathToFull(FModuleManager::Get().GetModuleFilename(InModuleName)));
+				ModulesRecentlyCompiledInTheEditor.Add(FPaths::ConvertRelativePathToFull(ModuleManager.GetModuleFilename(InModuleName)));
 			}
 			else
 			{
-				ModuleToRecompile.NewModuleFilename = FModuleManager::Get().GetGameBinariesDirectory() / FModuleManager::GetCleanModuleFilename(InModuleName, true);
+				ModuleToRecompile.NewModuleFilename = ModuleManager.GetGameBinariesDirectory() / FModuleManager::GetCleanModuleFilename(InModuleName, true);
 				ModulesRecentlyCompiledInTheEditor.Add(FPaths::ConvertRelativePathToFull(ModuleToRecompile.NewModuleFilename));
 			}
 			ModulesToRecompile.Add( ModuleToRecompile );
@@ -637,14 +625,14 @@ bool FHotReloadModule::RecompileModule(const FName InModuleName, const bool bRel
 		// Reload the module if it was loaded before we recompiled
 		if( bWasSuccessful && (bWasModuleLoaded || bForceCodeProject) && bReloadAfterRecompile )
 		{
-			Ar.Logf( TEXT( "Reloading module after successful compile." ) );
-			bWasSuccessful = FModuleManager::Get().LoadModuleWithCallback( InModuleName, Ar );
+			Ar.Logf( TEXT( "Reloading module %s after successful compile." ), *InModuleName.ToString() );
+			bWasSuccessful = ModuleManager.LoadModuleWithCallback( InModuleName, Ar );
 		}
 	}
 
 	if (bForceCodeProject && bWasSuccessful)
 	{
-		BroadcastHotReload(false);
+		HotReloadEvent.Broadcast( false );
 	}
 
 	bIsHotReloadingFromEditor = false;	
@@ -683,9 +671,9 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadFromEditor(const bool bWai
 	TArray<FString> GameModuleNames;
 	GetGameModules(GameModuleNames);
 
-	TArray<UPackage*> PackagesToRebind;
-	TArray<FName> DependentModules;
-	
+	int32 NumPackagesToRebind = 0;
+	int32 NumDependentModules = 0;
+
 	ECompilationResult::Type Result = ECompilationResult::Unsupported;
 	
 	// Analytics
@@ -695,19 +683,18 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadFromEditor(const bool bWai
 	{
 		FScopedDurationTimer Timer(Duration);
 
+		TArray<UPackage*> PackagesToRebind;
+		TArray<FName> DependentModules;
 		GetPackagesToRebindAndDependentModules(GameModuleNames, PackagesToRebind, DependentModules);
 
-		Result = RebindPackagesInternal(PackagesToRebind, DependentModules, bWaitForCompletion, *GLog);
+		NumPackagesToRebind = PackagesToRebind.Num();
+		NumDependentModules = DependentModules.Num();
+		Result = RebindPackagesInternal(MoveTemp(PackagesToRebind), MoveTemp(DependentModules), bWaitForCompletion, *GLog);
 	}
 
-	RecordAnalyticsEvent(TEXT("Editor"), Result, Duration, PackagesToRebind.Num(), DependentModules.Num());
+	RecordAnalyticsEvent(TEXT("Editor"), Result, Duration, NumPackagesToRebind, NumDependentModules);
 
 	return Result;
-}
-
-void FHotReloadModule::DoHotReloadCallback(bool bRecompileFinished, ECompilationResult::Type CompilationResult, TArray<UPackage*> Packages, TArray< FName > InDependentModules, FOutputDevice &HotReloadAr)
-{
-	DoHotReloadInternal(bRecompileFinished, CompilationResult, Packages, InDependentModules, HotReloadAr);
 }
 
 #if WITH_HOT_RELOAD
@@ -730,147 +717,158 @@ UObject* GetCachedCDODuplicate(UObject* CDO, FName Name)
 }
 #endif // WITH_HOT_RELOAD
 
-ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(bool bRecompileFinished, ECompilationResult::Type CompilationResult, TArray<UPackage*> Packages, TArray< FName > InDependentModules, FOutputDevice &HotReloadAr)
+ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(const TArray<FRecompiledModule>& ChangedModules, const TArray<UPackage*>& Packages, const TArray<FName>& InDependentModules, FOutputDevice& HotReloadAr)
 {
-	ECompilationResult::Type Result = ECompilationResult::Unsupported;
 #if WITH_HOT_RELOAD
+
 #if WITH_ENGINE
+	// Register with the BlueprintCompileReinstancer to handle duplicate requests
 	FBlueprintCompileReinstancer::FCDODuplicatesProvider& CDODuplicatesProvider = FBlueprintCompileReinstancer::GetCDODuplicatesProviderDelegate();
 	CDODuplicatesProvider.BindStatic(&GetCachedCDODuplicate);
+	ON_SCOPE_EXIT
+	{
+		CDODuplicatesProvider.Unbind();
+		GetDuplicatedCDOMap().Empty();
+	};
 #endif
 
-	if (CompilationResult == ECompilationResult::Succeeded)
-	{
-		FModuleManager::Get().ResetModulePathsCache();
+	FModuleManager& ModuleManager = FModuleManager::Get();
 
-		FFeedbackContext& ErrorsFC = UClass::GetDefaultPropertiesFeedbackContext();
+	ModuleManager.ResetModulePathsCache();
+
+	FFeedbackContext& ErrorsFC = UClass::GetDefaultPropertiesFeedbackContext();
+	ErrorsFC.Errors.Empty();
+	ErrorsFC.Warnings.Empty();
+	// Rebind the hot reload DLL 
+	TGuardValue<bool> GuardIsHotReload(GIsHotReload, true);
+	TGuardValue<bool> GuardIsInitialLoad(GIsInitialLoad, true);
+	HotReloadFunctionRemap.Empty(); // redundant
+
+	CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS); // we create a new CDO in the transient package...this needs to go away before we try again.
+
+	// Load the new modules up
+	bool bReloadSucceeded = false;
+	ECompilationResult::Type Result = ECompilationResult::Unsupported;
+	for (UPackage* Package : Packages)
+	{
+		FString PackageName = Package->GetName();
+		FString ShortPackageName = FPackageName::GetShortName(PackageName);
+
+		if (!ChangedModules.ContainsByPredicate([ShortPackageName](const FRecompiledModule& Module){ return Module.Name == ShortPackageName; }))
+		{
+			continue;
+		}
+
+		FName ShortPackageFName = *ShortPackageName;
+
+		// Abandon the old module.  We can't unload it because various data structures may be living
+		// that have vtables pointing to code that would become invalidated.
+		const bool bAbandonModule = true;
+		ModuleManager.UnloadOrAbandonModuleWithCallback(ShortPackageFName, HotReloadAr, bAbandonModule);
+
+		// Load the newly-recompiled module up (it will actually have a different DLL file name at this point.)
+		bReloadSucceeded = ModuleManager.LoadModule(ShortPackageFName).IsValid();
+		if (!bReloadSucceeded)
+		{
+			HotReloadAr.Logf(ELogVerbosity::Warning, TEXT("HotReload failed, reload failed %s."), *PackageName);
+			Result = ECompilationResult::OtherCompilationError;
+			break;
+		}
+	}
+
+	// Load dependent modules.
+	for (FName ModuleName : InDependentModules)
+	{
+		FString ModuleNameStr = ModuleName.ToString();
+		const TCHAR* ModuleNameStrPtr = *ModuleNameStr;
+		if (!ChangedModules.ContainsByPredicate([ModuleNameStrPtr](const FRecompiledModule& Module){ return Module.Name == ModuleNameStrPtr; }))
+		{
+			continue;
+		}
+
+		ModuleManager.UnloadOrAbandonModuleWithCallback(ModuleName, HotReloadAr);
+		const bool bLoaded = ModuleManager.LoadModuleWithCallback(ModuleName, HotReloadAr);
+		if (!bLoaded)
+		{
+			HotReloadAr.Logf(ELogVerbosity::Warning, TEXT("Unable to reload module %s"), *ModuleName.GetPlainNameString());
+		}
+	}
+
+	if (ErrorsFC.Errors.Num() || ErrorsFC.Warnings.Num())
+	{
+		TArray<FString> All;
+		All = ErrorsFC.Errors;
+		All += ErrorsFC.Warnings;
+
 		ErrorsFC.Errors.Empty();
 		ErrorsFC.Warnings.Empty();
-		// Rebind the hot reload DLL 
-		TGuardValue<bool> GuardIsHotReload(GIsHotReload, true);
-		TGuardValue<bool> GuardIsInitialLoad(GIsInitialLoad, true);
-		HotReloadFunctionRemap.Empty(); // redundant
 
-		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS); // we create a new CDO in the transient package...this needs to go away before we try again.
-
-		// Load the new modules up
-		bool bReloadSucceeded = false;
-		for (TArray<UPackage*>::TConstIterator CurPackageIt(Packages); CurPackageIt; ++CurPackageIt)
+		FString AllInOne;
+		for (int32 Index = 0; Index < All.Num(); Index++)
 		{
-			UPackage* Package = *CurPackageIt;
-			FName ShortPackageName = FPackageName::GetShortFName(Package->GetFName());
-
-			// Abandon the old module.  We can't unload it because various data structures may be living
-			// that have vtables pointing to code that would become invalidated.
-			const bool bAbandonModule = true;
-			FModuleManager::Get().UnloadOrAbandonModuleWithCallback(ShortPackageName, HotReloadAr, bAbandonModule);
-
-			// Module should never be loaded at this point
-			check(!FModuleManager::Get().IsModuleLoaded(ShortPackageName));
-
-			// Load the newly-recompiled module up (it will actually have a different DLL file name at this point.)
-			FModuleManager::Get().LoadModule(ShortPackageName);
-			bReloadSucceeded = FModuleManager::Get().IsModuleLoaded(ShortPackageName);
-			if (!bReloadSucceeded)
-			{
-				HotReloadAr.Logf(ELogVerbosity::Warning, TEXT("HotReload failed, reload failed %s."), *Package->GetName());
-				Result = ECompilationResult::OtherCompilationError;
-				break;
-			}
+			AllInOne += All[Index];
+			AllInOne += TEXT("\n");
 		}
-		// Load dependent modules.
-		for (int32 Nx = 0; Nx < InDependentModules.Num(); ++Nx)
-		{
-			const FName ModuleName = InDependentModules[Nx];
-
-			FModuleManager::Get().UnloadOrAbandonModuleWithCallback(ModuleName, HotReloadAr);
-			const bool bLoaded = FModuleManager::Get().LoadModuleWithCallback(ModuleName, HotReloadAr);
-			if (!bLoaded)
-			{
-				HotReloadAr.Logf(ELogVerbosity::Warning, TEXT("Unable to reload module %s"), *ModuleName.GetPlainNameString());
-			}
-		}
-
-		if (ErrorsFC.Errors.Num() || ErrorsFC.Warnings.Num())
-		{
-			TArray<FString> All;
-			All = ErrorsFC.Errors;
-			All += ErrorsFC.Warnings;
-
-			ErrorsFC.Errors.Empty();
-			ErrorsFC.Warnings.Empty();
-
-			FString AllInOne;
-			for (int32 Index = 0; Index < All.Num(); Index++)
-			{
-				AllInOne += All[Index];
-				AllInOne += TEXT("\n");
-			}
-			HotReloadAr.Logf(ELogVerbosity::Warning, TEXT("Some classes could not be reloaded:\n%s"), *AllInOne);
-		}
-
-		if (bReloadSucceeded)
-		{
-			int32 Count = 0;
-			// Remap all native functions (and gather scriptstructs)
-			TArray<UScriptStruct*> ScriptStructs;
-			for (FRawObjectIterator It; It; ++It)
-			{
-				if (UFunction* Function = Cast<UFunction>(static_cast<UObject*>(It->Object)))
-				{
-					if (Native NewFunction = HotReloadFunctionRemap.FindRef(Function->GetNativeFunc()))
-					{
-						Count++;
-						Function->SetNativeFunc(NewFunction);
-					}
-				}
-
-				if (UScriptStruct* ScriptStruct = Cast<UScriptStruct>(static_cast<UObject*>(It->Object)))
-				{
-					if (Packages.ContainsByPredicate([=](UPackage* Package) { return ScriptStruct->IsIn(Package); }) && ScriptStruct->GetCppStructOps())
-					{
-						ScriptStructs.Add(ScriptStruct);
-					}
-				}
-			}
-			// now let's set up the script structs...this relies on super behavior, so null them all, then set them all up. Internally this sets them up hierarchically.
-			for (int32 ScriptIndex = 0; ScriptIndex < ScriptStructs.Num(); ScriptIndex++)
-			{
-				ScriptStructs[ScriptIndex]->ClearCppStructOps();
-			}
-			for (int32 ScriptIndex = 0; ScriptIndex < ScriptStructs.Num(); ScriptIndex++)
-			{
-				ScriptStructs[ScriptIndex]->PrepareCppStructOps();
-				check(ScriptStructs[ScriptIndex]->GetCppStructOps());
-			}
-			HotReloadAr.Logf(ELogVerbosity::Warning, TEXT("HotReload successful (%d functions remapped  %d scriptstructs remapped)"), Count, ScriptStructs.Num());
-
-			HotReloadFunctionRemap.Empty();
-
-			ReplaceReferencesToReconstructedCDOs();
-
-			Result = ECompilationResult::Succeeded;
-		}
-
-
-		const bool bWasTriggeredAutomatically = !bIsHotReloadingFromEditor;
-		BroadcastHotReload( bWasTriggeredAutomatically );
-
-		HotReloadAr.Logf(ELogVerbosity::Warning, TEXT("HotReload took %4.1fs."), FPlatformTime::Seconds() - HotReloadStartTime);
+		HotReloadAr.Logf(ELogVerbosity::Warning, TEXT("Some classes could not be reloaded:\n%s"), *AllInOne);
 	}
-	else if (ECompilationResult::Failed(CompilationResult) && bRecompileFinished)
+
+	if (bReloadSucceeded)
 	{
-		HotReloadAr.Logf(ELogVerbosity::Warning, TEXT("HotReload failed, recompile failed"));
-		Result = ECompilationResult::OtherCompilationError;
+		int32 NumFunctionsRemapped = 0;
+		// Remap all native functions (and gather scriptstructs)
+		TArray<UScriptStruct*> ScriptStructs;
+		for (FRawObjectIterator It; It; ++It)
+		{
+			if (UFunction* Function = Cast<UFunction>(static_cast<UObject*>(It->Object)))
+			{
+				if (Native NewFunction = HotReloadFunctionRemap.FindRef(Function->GetNativeFunc()))
+				{
+					++NumFunctionsRemapped;
+					Function->SetNativeFunc(NewFunction);
+				}
+			}
+
+			if (UScriptStruct* ScriptStruct = Cast<UScriptStruct>(static_cast<UObject*>(It->Object)))
+			{
+				if (Packages.ContainsByPredicate([=](UPackage* Package) { return ScriptStruct->IsIn(Package); }) && ScriptStruct->GetCppStructOps())
+				{
+					ScriptStructs.Add(ScriptStruct);
+				}
+			}
+		}
+		// now let's set up the script structs...this relies on super behavior, so null them all, then set them all up. Internally this sets them up hierarchically.
+		for (UScriptStruct* Script : ScriptStructs)
+		{
+			Script->ClearCppStructOps();
+		}
+		for (UScriptStruct* Script : ScriptStructs)
+		{
+			Script->PrepareCppStructOps();
+			check(Script->GetCppStructOps());
+		}
+		HotReloadAr.Logf(ELogVerbosity::Warning, TEXT("HotReload successful (%d functions remapped  %d scriptstructs remapped)"), NumFunctionsRemapped, ScriptStructs.Num());
+
+		HotReloadFunctionRemap.Empty();
+
+		ReplaceReferencesToReconstructedCDOs();
+
+		Result = ECompilationResult::Succeeded;
 	}
 
-#if WITH_ENGINE
-	CDODuplicatesProvider.Unbind();
-	GetDuplicatedCDOMap().Empty();
-#endif
-#endif
+
+	HotReloadEvent.Broadcast( !bIsHotReloadingFromEditor );
+
+	HotReloadAr.Logf(ELogVerbosity::Warning, TEXT("HotReload took %4.1fs."), FPlatformTime::Seconds() - HotReloadStartTime);
+
 	bIsHotReloadingFromEditor = false;
 	return Result;
+
+#else
+
+	bIsHotReloadingFromEditor = false;
+	return ECompilationResult::Unsupported;
+
+#endif
 }
 
 void FHotReloadModule::ReplaceReferencesToReconstructedCDOs()
@@ -1033,16 +1031,20 @@ ECompilationResult::Type FHotReloadModule::RebindPackages(TArray<UPackage*> InPa
 {
 	ECompilationResult::Type Result = ECompilationResult::Unknown;
 	double Duration = 0.0;
+
+	int32 NumPackages         = InPackages.Num();
+	int32 NumDependentModules = DependentModules.Num();
+
 	{
 		FScopedDurationTimer RebindTimer(Duration);
-		Result = RebindPackagesInternal(InPackages, DependentModules, bWaitForCompletion, Ar);
+		Result = RebindPackagesInternal(MoveTemp(InPackages), MoveTemp(DependentModules), bWaitForCompletion, Ar);
 	}
-	RecordAnalyticsEvent(TEXT("Rebind"), Result, Duration, InPackages.Num(), DependentModules.Num());
+	RecordAnalyticsEvent(TEXT("Rebind"), Result, Duration, NumPackages, NumDependentModules);
 
 	return Result;
 }
 
-ECompilationResult::Type FHotReloadModule::RebindPackagesInternal(TArray<UPackage*> InPackages, TArray<FName> DependentModules, const bool bWaitForCompletion, FOutputDevice &Ar)
+ECompilationResult::Type FHotReloadModule::RebindPackagesInternal(TArray<UPackage*>&& InPackages, TArray<FName>&& DependentModules, const bool bWaitForCompletion, FOutputDevice& Ar)
 {
 	ECompilationResult::Type Result = ECompilationResult::Unsupported;
 #if WITH_HOT_RELOAD
@@ -1093,7 +1095,16 @@ ECompilationResult::Type FHotReloadModule::RebindPackagesInternal(TArray<UPackag
 		// Start compiling modules
 		const bool bCompileStarted = RecompileModulesAsync(
 			ModuleNames,
-			FRecompileModulesCallback::CreateRaw< FHotReloadModule, TArray<UPackage*>, TArray<FName>, FOutputDevice& >(this, &FHotReloadModule::DoHotReloadCallback, InPackages, DependentModules, Ar),
+			[this, InPackages/*=MoveTemp(InPackages)*/, DependentModules/*=MoveTemp(DependentModules)*/, &Ar](const TArray<FRecompiledModule>& ChangedModules, bool bRecompileFinished, ECompilationResult::Type CompilationResult)
+			{
+				if (ECompilationResult::Failed(CompilationResult) && bRecompileFinished)
+				{
+					Ar.Logf(ELogVerbosity::Warning, TEXT("HotReload failed, recompile failed"));
+					return;
+				}
+
+				DoHotReloadInternal(ChangedModules, InPackages, DependentModules, Ar);
+			},
 			bWaitForCompletion,
 			Ar);
 
@@ -1241,7 +1252,7 @@ void FHotReloadModule::OnHotReloadBinariesChanged(const TArray<struct FFileChang
 								!ModulesRecentlyCompiledInTheEditor.Contains(FPaths::ConvertRelativePathToFull(Change.Filename)))
 							{
 								// Add to queue. We do not hot-reload here as there may potentially be other modules being compiled.
-								NewModules.Add(FRecompiledModule(GameModuleName, Change.Filename));
+								NewModules.Emplace(GameModuleName, Change.Filename);
 								UE_LOG(LogHotReload, Log, TEXT("New module detected: %s"), *Filename);
 							}
 						}
@@ -1353,10 +1364,12 @@ void FHotReloadModule::DoHotReloadFromIDE()
 	GetGameModules(GameModuleNames);
 
 	if (GameModuleNames.Num() > 0)
-	{		
+	{
 		FScopedDurationTimer Timer(Duration);
 
 		UE_LOG(LogHotReload, Log, TEXT("Starting Hot-Reload from IDE"));
+
+		HotReloadStartTime = FPlatformTime::Seconds();
 
 		FScopedSlowTask SlowTask(100.f, LOCTEXT("CompilingGameCode", "Compiling Game Code"));
 		SlowTask.MakeDialog();
@@ -1375,12 +1388,9 @@ void FHotReloadModule::DoHotReloadFromIDE()
 		GetPackagesToRebindAndDependentModules(GameModuleNames, PackagesToRebind, DependentModules);
 
 		SlowTask.EnterProgressFrame(80);
-		check(PackagesToRebind.Num() || DependentModules.Num())
-		{
-			const bool bRecompileFinished = true;
-			const ECompilationResult::Type RecompileResult = ECompilationResult::Succeeded;
-			Result = DoHotReloadInternal(bRecompileFinished, RecompileResult, PackagesToRebind, DependentModules, *GLog);
-		}
+		check(PackagesToRebind.Num() || DependentModules.Num());
+
+		Result = DoHotReloadInternal(NewModules, PackagesToRebind, DependentModules, *GLog);
 	}
 
 	RecordAnalyticsEvent(TEXT("IDE"), Result, Duration, PackagesToRebind.Num(), DependentModules.Num());
@@ -1402,7 +1412,7 @@ void FHotReloadModule::RecordAnalyticsEvent(const TCHAR* ReloadFrom, ECompilatio
 #endif
 }
 
-bool FHotReloadModule::RecompileModulesAsync( const TArray< FName > ModuleNames, const FRecompileModulesCallback& InRecompileModulesCallback, const bool bWaitForCompletion, FOutputDevice &Ar )
+bool FHotReloadModule::RecompileModulesAsync( const TArray< FName > ModuleNames, FRecompileModulesCallback&& InRecompileModulesCallback, const bool bWaitForCompletion, FOutputDevice &Ar )
 {
 #if WITH_HOT_RELOAD
 	// NOTE: This method of recompiling always using a rolling file name scheme, since we never want to unload before
@@ -1410,17 +1420,18 @@ bool FHotReloadModule::RecompileModulesAsync( const TArray< FName > ModuleNames,
 
 	ModuleCompilerStartedEvent.Broadcast(!bWaitForCompletion); // we perform an async compile providing we're not waiting for completion
 
-	TArray< FModuleToRecompile > ModulesToRecompile;
+	FModuleManager& ModuleManager = FModuleManager::Get();
 
+	TArray< FModuleToRecompile > ModulesToRecompile;
 	for( FName CurModuleName : ModuleNames )
 	{
 		// Update our set of known modules, in case we don't already know about this module
-		FModuleManager::Get().AddModule( CurModuleName );
+		ModuleManager.AddModule( CurModuleName );
 
 		// Find a unique file name for the module
 		FModuleToRecompile ModuleToRecompile;
 		ModuleToRecompile.ModuleName = CurModuleName.ToString();
-		FModuleManager::Get().MakeUniqueModuleFilename( CurModuleName, ModuleToRecompile.ModuleFileSuffix, ModuleToRecompile.NewModuleFilename );
+		ModuleManager.MakeUniqueModuleFilename( CurModuleName, ModuleToRecompile.ModuleFileSuffix, ModuleToRecompile.NewModuleFilename );
 
 		ModulesToRecompile.Add( ModuleToRecompile );
 	}
@@ -1429,7 +1440,7 @@ bool FHotReloadModule::RecompileModulesAsync( const TArray< FName > ModuleNames,
 	const FString AdditionalArguments = MakeUBTArgumentsForModuleCompiling();
 	const bool bFailIfGeneratedCodeChanges = false;
 	const bool bForceCodeProject = false;
-	bool bWasSuccessful = StartCompilingModuleDLLs(FApp::GetGameName(), ModulesToRecompile, InRecompileModulesCallback, Ar, bFailIfGeneratedCodeChanges, AdditionalArguments, bForceCodeProject);
+	bool bWasSuccessful = StartCompilingModuleDLLs(FApp::GetGameName(), ModulesToRecompile, MoveTemp(InRecompileModulesCallback), Ar, bFailIfGeneratedCodeChanges, AdditionalArguments, bForceCodeProject);
 	if (bWasSuccessful)
 	{
 		// Go ahead and check for completion right away.  This is really just so that we can handle the case
@@ -1483,7 +1494,7 @@ bool FHotReloadModule::RecompileModuleDLLs(const TArray< FModuleToRecompile >& M
 	bool bCompileSucceeded = false;
 #if WITH_HOT_RELOAD
 	const FString AdditionalArguments = MakeUBTArgumentsForModuleCompiling();
-	if (StartCompilingModuleDLLs(FApp::GetGameName(), ModuleNames, FRecompileModulesCallback(), Ar, bFailIfGeneratedCodeChanges, AdditionalArguments, bForceCodeProject))
+	if (StartCompilingModuleDLLs(FApp::GetGameName(), ModuleNames, nullptr, Ar, bFailIfGeneratedCodeChanges, AdditionalArguments, bForceCodeProject))
 	{
 		const bool bWaitForCompletion = true;	// Always wait
 		bool bCompileStillInProgress = false;
@@ -1501,7 +1512,7 @@ FString FHotReloadModule::MakeUBTArgumentsForModuleCompiling()
 		// We have to pass FULL paths to UBT
 		FString FullProjectPath = FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath());
 
-		// @todo projectdirs: Currently non-Rocket projects that exist under the UE4 root are compiled by UBT with no .uproject file
+		// @todo projectdirs: Currently non-installed projects that exist under the UE4 root are compiled by UBT with no .uproject file
 		//     name passed in (see bIsProjectTarget in VCProject.cs), which causes intermediate libraries to be saved to the Engine
 		//     intermediate folder instead of the project's intermediate folder.  We're emulating this behavior here for module
 		//     recompiling, so that compiled modules will be able to find their import libraries in the original folder they were compiled.
@@ -1519,7 +1530,7 @@ FString FHotReloadModule::MakeUBTArgumentsForModuleCompiling()
 }
 
 bool FHotReloadModule::StartCompilingModuleDLLs(const FString& GameName, const TArray< FModuleToRecompile >& ModuleNames, 
-	const FRecompileModulesCallback& InRecompileModulesCallback, FOutputDevice& Ar, bool bInFailIfGeneratedCodeChanges, 
+	FRecompileModulesCallback&& InRecompileModulesCallback, FOutputDevice& Ar, bool bInFailIfGeneratedCodeChanges, 
 	const FString& InAdditionalCmdLineArgs, bool bForceCodeProject)
 {
 #if WITH_HOT_RELOAD
@@ -1530,7 +1541,7 @@ bool FHotReloadModule::StartCompilingModuleDLLs(const FString& GameName, const T
 	const TCHAR* BuildPlatformName = FPlatformMisc::GetUBTPlatform();
 	const TCHAR* BuildConfigurationName = FModuleManager::GetUBTConfiguration();
 
-	RecompileModulesCallback = InRecompileModulesCallback;
+	RecompileModulesCallback = MoveTemp(InRecompileModulesCallback);
 
 	// Pass a module file suffix to UBT if we have one
 	FString ModuleArg;
@@ -1600,8 +1611,11 @@ bool FHotReloadModule::StartCompilingModuleDLLs(const FString& GameName, const T
 
 		// Fire task completion delegate 
 		
-		RecompileModulesCallback.ExecuteIfBound( false, ECompilationResult::OtherCompilationError );
-		RecompileModulesCallback.Unbind();
+		if (RecompileModulesCallback)
+		{
+			RecompileModulesCallback( TArray<FRecompiledModule>(), false, ECompilationResult::OtherCompilationError );
+			RecompileModulesCallback = nullptr;
+		}
 	}
 
 	return bInvocationSuccessful;
@@ -1655,126 +1669,153 @@ void FHotReloadModule::CheckForFinishedModuleDLLCompile(const bool bWaitForCompl
 	ECompilationResult::Type CompilationResult = ECompilationResult::OtherCompilationError;
 
 	// Is there a compilation in progress?
-	if( IsCurrentlyCompiling() )
+	if( !IsCurrentlyCompiling() )
 	{
-		bCompileStillInProgress = true;
+		Ar.Logf(TEXT("Error: CheckForFinishedModuleDLLCompile: There is no compilation in progress right now"));
+		return;
+	}
 
-		FText StatusUpdate;
-		if ( ModulesBeingCompiled.Num() > 0 )
-		{
-			FFormatNamedArguments Args;
-			Args.Add( TEXT("CodeModuleName"), FText::FromString( ModulesBeingCompiled[0].ModuleName ) );
-			StatusUpdate = FText::Format( NSLOCTEXT("FModuleManager", "CompileSpecificModuleStatusMessage", "{CodeModuleName}: Compiling modules..."), Args );
-		}
-		else
-		{
-			StatusUpdate = NSLOCTEXT("FModuleManager", "CompileStatusMessage", "Compiling modules...");
-		}
+	bCompileStillInProgress = true;
 
-		FScopedSlowTask SlowTask(0, StatusUpdate, GIsSlowTask);
-		SlowTask.MakeDialog();
-
-		// Check to see if the compile has finished yet
-		int32 ReturnCode = -1;
-		while (bCompileStillInProgress)
-		{
-			// Store the return code in a temp variable for now because it still gets overwritten
-			// when the process is running.
-			int32 ProcReturnCode = -1;
-			if( FPlatformProcess::GetProcReturnCode( ModuleCompileProcessHandle, &ProcReturnCode ) )
-			{
-				ReturnCode = ProcReturnCode;
-				bCompileStillInProgress = false;
-			}
-			
-			if (bRequestCancelCompilation)
-			{
-				FPlatformProcess::TerminateProc(ModuleCompileProcessHandle);
-				bCompileStillInProgress = bRequestCancelCompilation = false;
-			}
-
-			if( bCompileStillInProgress )
-			{
-				ModuleCompileReadPipeText += FPlatformProcess::ReadPipe(ModuleCompileReadPipe);
-
-				if( !bWaitForCompletion )
-				{
-					// We haven't finished compiling, but we were asked to return immediately
-
-					break;
-				}
-
-				SlowTask.EnterProgressFrame(0.0f);
-
-				// Give up a small timeslice if we haven't finished recompiling yet
-				FPlatformProcess::Sleep( 0.01f );
-			}
-		}
-		
-		bRequestCancelCompilation = false;
-
-		if( !bCompileStillInProgress )		
-		{
-			// Compilation finished, now we need to grab all of the text from the output pipe
-			ModuleCompileReadPipeText += FPlatformProcess::ReadPipe(ModuleCompileReadPipe);
-
-			// This includes 'canceled' (-1) and 'up-to-date' (-2)
-			CompilationResult = (ECompilationResult::Type)ReturnCode;
-
-			// If compilation succeeded for all modules, go back to the modules and update their module file names
-			// in case we recompiled the modules to a new unique file name.  This is needed so that when the module
-			// is reloaded after the recompile, we load the new DLL file name, not the old one.
-			// Note that we don't want to do anything in case the build was canceled or source code has not changed.
-			if(CompilationResult == ECompilationResult::Succeeded)
-			{
-				for( int32 CurModuleIndex = 0; CurModuleIndex < ModulesThatWereBeingRecompiled.Num(); ++CurModuleIndex )
-				{
-					const FModuleToRecompile& CurModule = ModulesThatWereBeingRecompiled[ CurModuleIndex ];
-
-					// Were we asked to assign a new file name for this module?
-					if( !CurModule.NewModuleFilename.IsEmpty() )
-					{
-						// If the compile succeeded, update the module info entry with the new file name for this module
-						OnModuleCompileSucceeded(FName(*CurModule.ModuleName), CurModule.NewModuleFilename);
-					}
-				}
-			}
-			ModulesThatWereBeingRecompiled.Empty();
-
-			// We're done with the process handle now
-			FPlatformProcess::CloseProc(ModuleCompileProcessHandle);
-			ModuleCompileProcessHandle.Reset();
-
-			FPlatformProcess::ClosePipe(ModuleCompileReadPipe, 0);
-
-			Ar.Log(*ModuleCompileReadPipeText);
-			const FString FinalOutput = ModuleCompileReadPipeText;
-			ModuleCompileReadPipe = NULL;
-			ModuleCompileReadPipeText = TEXT("");
-
-			// No longer compiling modules
-			ModulesBeingCompiled.Empty();
-
-			bCompileSucceeded = !ECompilationResult::Failed(CompilationResult);
-
-			if ( bFireEvents )
-			{
-				const bool bShowLogOnSuccess = false;
-				ModuleCompilerFinishedEvent.Broadcast(FinalOutput, CompilationResult, !bCompileSucceeded || bShowLogOnSuccess);
-
-				// Fire task completion delegate 
-				RecompileModulesCallback.ExecuteIfBound( true, CompilationResult );
-				RecompileModulesCallback.Unbind();
-			}
-		}
-		else
-		{
-			Ar.Logf(TEXT("Error: CheckForFinishedModuleDLLCompile: Compilation is still in progress"));
-		}
+	FText StatusUpdate;
+	if ( ModulesBeingCompiled.Num() > 0 )
+	{
+		FFormatNamedArguments Args;
+		Args.Add( TEXT("CodeModuleName"), FText::FromString( ModulesBeingCompiled[0].ModuleName ) );
+		StatusUpdate = FText::Format( NSLOCTEXT("FModuleManager", "CompileSpecificModuleStatusMessage", "{CodeModuleName}: Compiling modules..."), Args );
 	}
 	else
 	{
-		Ar.Logf(TEXT("Error: CheckForFinishedModuleDLLCompile: There is no compilation in progress right now"));
+		StatusUpdate = NSLOCTEXT("FModuleManager", "CompileStatusMessage", "Compiling modules...");
+	}
+
+	FScopedSlowTask SlowTask(0, StatusUpdate, GIsSlowTask);
+	SlowTask.MakeDialog();
+
+	// Check to see if the compile has finished yet
+	int32 ReturnCode = -1;
+	while (bCompileStillInProgress)
+	{
+		// Store the return code in a temp variable for now because it still gets overwritten
+		// when the process is running.
+		int32 ProcReturnCode = -1;
+		if( FPlatformProcess::GetProcReturnCode( ModuleCompileProcessHandle, &ProcReturnCode ) )
+		{
+			ReturnCode = ProcReturnCode;
+			bCompileStillInProgress = false;
+		}
+		
+		if (bRequestCancelCompilation)
+		{
+			FPlatformProcess::TerminateProc(ModuleCompileProcessHandle);
+			bCompileStillInProgress = bRequestCancelCompilation = false;
+		}
+
+		if( bCompileStillInProgress )
+		{
+			ModuleCompileReadPipeText += FPlatformProcess::ReadPipe(ModuleCompileReadPipe);
+
+			if( !bWaitForCompletion )
+			{
+				// We haven't finished compiling, but we were asked to return immediately
+
+				break;
+			}
+
+			SlowTask.EnterProgressFrame(0.0f);
+
+			// Give up a small timeslice if we haven't finished recompiling yet
+			FPlatformProcess::Sleep( 0.01f );
+		}
+	}
+	
+	bRequestCancelCompilation = false;
+
+	if( bCompileStillInProgress )
+	{
+		Ar.Logf(TEXT("Error: CheckForFinishedModuleDLLCompile: Compilation is still in progress"));
+		return;
+	}
+
+	// Compilation finished, now we need to grab all of the text from the output pipe
+	ModuleCompileReadPipeText += FPlatformProcess::ReadPipe(ModuleCompileReadPipe);
+
+	// This includes 'canceled' (-1) and 'up-to-date' (-2)
+	CompilationResult = (ECompilationResult::Type)ReturnCode;
+
+	// If compilation succeeded for all modules, go back to the modules and update their module file names
+	// in case we recompiled the modules to a new unique file name.  This is needed so that when the module
+	// is reloaded after the recompile, we load the new DLL file name, not the old one.
+	// Note that we don't want to do anything in case the build was canceled or source code has not changed.
+	TArray<FRecompiledModule> ChangedModules;
+	if(CompilationResult == ECompilationResult::Succeeded)
+	{
+		ChangedModules.Reserve(ModulesThatWereBeingRecompiled.Num());
+		for( FModuleToRecompile& CurModule : ModulesThatWereBeingRecompiled )
+		{
+			// Were we asked to assign a new file name for this module?
+			if( CurModule.NewModuleFilename.IsEmpty() )
+			{
+				continue;
+			}
+
+			if (IFileManager::Get().FileSize(*CurModule.NewModuleFilename) <= 0)
+			{
+				continue;
+			}
+
+			// If the file doesn't exist, then assume it doesn't needs rebinding because it wasn't recompiled
+			FDateTime FileTimeStamp = IFileManager::Get().GetTimeStamp(*CurModule.NewModuleFilename);
+			if (FileTimeStamp == FDateTime::MinValue())
+			{
+				continue;
+			}
+
+			FName ModuleName = *CurModule.ModuleName;
+
+			// If the file is the same as what we remembered it was then assume it doesn't needs rebinding because it wasn't recompiled
+			TSharedRef<FModuleCompilationData>* CompileDataPtr = ModuleCompileData.Find(ModuleName);
+			if (CompileDataPtr && (*CompileDataPtr)->FileTimeStamp == FileTimeStamp)
+			{
+				continue;
+			}
+
+			// If the compile succeeded, update the module info entry with the new file name for this module
+			OnModuleCompileSucceeded(ModuleName, CurModule.NewModuleFilename);
+
+			// Move modules
+			ChangedModules.Emplace(MoveTemp(CurModule.ModuleName), MoveTemp(CurModule.NewModuleFilename));
+		}
+	}
+	ModulesThatWereBeingRecompiled.Empty();
+
+	// We're done with the process handle now
+	FPlatformProcess::CloseProc(ModuleCompileProcessHandle);
+	ModuleCompileProcessHandle.Reset();
+
+	FPlatformProcess::ClosePipe(ModuleCompileReadPipe, 0);
+
+	Ar.Log(*ModuleCompileReadPipeText);
+	const FString FinalOutput = ModuleCompileReadPipeText;
+	ModuleCompileReadPipe = NULL;
+	ModuleCompileReadPipeText = TEXT("");
+
+	// No longer compiling modules
+	ModulesBeingCompiled.Empty();
+
+	bCompileSucceeded = !ECompilationResult::Failed(CompilationResult);
+
+	if ( bFireEvents )
+	{
+		const bool bShowLogOnSuccess = false;
+		ModuleCompilerFinishedEvent.Broadcast(FinalOutput, CompilationResult, !bCompileSucceeded || bShowLogOnSuccess);
+
+		// Fire task completion delegate 
+		if (RecompileModulesCallback)
+		{
+			RecompileModulesCallback( ChangedModules, true, CompilationResult );
+			RecompileModulesCallback = nullptr;
+		}
 	}
 #endif // WITH_HOT_RELOAD
 }

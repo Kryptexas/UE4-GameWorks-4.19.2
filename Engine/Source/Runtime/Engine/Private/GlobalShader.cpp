@@ -246,6 +246,7 @@ void BackupGlobalShaderMap(FGlobalShaderBackupData& OutGlobalShaderBackup)
 			TArray<uint8>* ShaderData = new TArray<uint8>();
 			FMemoryWriter Ar(*ShaderData);
 			GGlobalShaderMap[ShaderPlatform]->SerializeInline(Ar, true, true);
+			GGlobalShaderMap[ShaderPlatform]->RegisterSerializedShaders();
 			GGlobalShaderMap[ShaderPlatform]->Empty();
 			OutGlobalShaderBackup.FeatureLevelShaderData[i] = ShaderData;
 		}
@@ -269,6 +270,7 @@ void RestoreGlobalShaderMap(const FGlobalShaderBackupData& GlobalShaderBackup)
 		{
 			FMemoryReader Ar(*GlobalShaderBackup.FeatureLevelShaderData[i]);
 			GGlobalShaderMap[ShaderPlatform]->SerializeInline(Ar, true, true);
+			GGlobalShaderMap[ShaderPlatform]->RegisterSerializedShaders();
 		}
 	}
 }
@@ -393,14 +395,14 @@ void VerifyGlobalShaders(EShaderPlatform Platform, bool bLoadedFromCacheFile)
 
 	if (GlobalShaderJobs.Num() > 0)
 	{
-		GShaderCompilingManager->AddJobs(GlobalShaderJobs, true, true);
+		GShaderCompilingManager->AddJobs(GlobalShaderJobs, true, true, false);
 
 		const bool bAllowAsynchronousGlobalShaderCompiling =
 			// OpenGL requires that global shader maps are compiled before attaching
 			// primitives to the scene as it must be able to find FNULLPS.
 			// TODO_OPENGL: Allow shaders to be compiled asynchronously.
 			// Metal also needs this when using RHI thread because it uses TOneColorVS very early in RHIPostInit()
-			!IsOpenGLPlatform(GMaxRHIShaderPlatform) &&
+			!IsOpenGLPlatform(GMaxRHIShaderPlatform) && !IsVulkanPlatform(GMaxRHIShaderPlatform) &&
 			(!IsMetalPlatform(GMaxRHIShaderPlatform) || !GUseRHIThread) &&
 			GShaderCompilingManager->AllowAsynchronousShaderCompiling();
 
@@ -436,6 +438,8 @@ static void SerializeGlobalShaders(FArchive& Ar, TShaderMap<FGlobalShaderType>* 
 
 	// Serialize the global shaders.
 	GlobalShaderMap->SerializeInline(Ar, true, false);
+	// And now register them.
+	GlobalShaderMap->RegisterSerializedShaders();
 }
 
 static FString GetGlobalShaderCacheFilename(EShaderPlatform Platform)

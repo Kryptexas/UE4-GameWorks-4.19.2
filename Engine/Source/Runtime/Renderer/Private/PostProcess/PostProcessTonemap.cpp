@@ -8,6 +8,7 @@
 #include "ScenePrivate.h"
 #include "SceneFilterRendering.h"
 #include "PostProcessEyeAdaptation.h"
+#include "PostProcessUpscale.h"
 #include "PostProcessTonemap.h"
 #include "PostProcessing.h"
 #include "PostProcessCombineLUTs.h"
@@ -594,7 +595,8 @@ static uint32 TonemapperGenerateBitmaskMobile(const FViewInfo* RESTRICT View, bo
 	}
 
 	static const auto CVarMobileMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
-	if ((GShaderPlatformForFeatureLevel[View->GetFeatureLevel()] == SP_METAL) && (CVarMobileMSAA ? CVarMobileMSAA->GetValueOnAnyThread() > 1 : false))
+	const EShaderPlatform ShaderPlatform = GShaderPlatformForFeatureLevel[View->GetFeatureLevel()];
+	if ((GSupportsShaderFramebufferFetch && (ShaderPlatform == SP_METAL || ShaderPlatform == SP_VULKAN_PCES3_1)) && (CVarMobileMSAA ? CVarMobileMSAA->GetValueOnAnyThread() > 1 : false))
 	{
 		Bitmask += TonemapperMsaa;
 	}
@@ -609,8 +611,11 @@ static uint32 TonemapperGenerateBitmaskMobile(const FViewInfo* RESTRICT View, bo
 	{
 		// add full mobile post if FP16 is supported.
 		Bitmask += TonemapperGenerateBitmaskPost(View);
-		Bitmask += (View->FinalPostProcessSettings.DepthOfFieldScale > 0.0f) ? TonemapperDOF         : 0;
-		Bitmask += (View->bLightShaftUse)                                    ? TonemapperLightShafts : 0;
+
+		bool bUseDof = View->FinalPostProcessSettings.DepthOfFieldScale > 0.0f && (!View->FinalPostProcessSettings.bMobileHQGaussian || (View->GetFeatureLevel() < ERHIFeatureLevel::ES3_1));
+
+		Bitmask += (bUseDof)					? TonemapperDOF : 0;
+		Bitmask += (View->bLightShaftUse)		? TonemapperLightShafts : 0;
 	}
 
 	// Mobile is not supporting grain quantization and grain jitter currently.
@@ -823,7 +828,7 @@ class FPostProcessTonemapPS : public FGlobalShader
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::ES2);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -1077,29 +1082,14 @@ IMPLEMENT_SHADER_TYPE(template<>, TPostProcessTonemapVS<true>, TEXT("PostProcess
 IMPLEMENT_SHADER_TYPE(template<>, TPostProcessTonemapVS<false>, TEXT("PostProcessTonemap"), TEXT("MainVS"), SF_Vertex);
 
 
-FRCPassPostProcessTonemap::FRCPassPostProcessTonemap(const FViewInfo& View, bool bInDoGammaOnly, bool bDoScreenPercentageInTonemapper, bool bInDoEyeAdaptation )
+FRCPassPostProcessTonemap::FRCPassPostProcessTonemap(const FViewInfo& InView, bool bInDoGammaOnly, bool bInDoEyeAdaptation)
 	: bDoGammaOnly(bInDoGammaOnly)
+	, bDoScreenPercentageInTonemapper(false)
 	, bDoEyeAdaptation(bInDoEyeAdaptation)
-	, RenderTargetExtend(0, 0)
+	, View(InView)	
 {
-	uint32 ConfigBitmask = TonemapperGenerateBitmaskPC(&View, bDoGammaOnly);
+	uint32 ConfigBitmask = TonemapperGenerateBitmaskPC(&InView, bDoGammaOnly);
 	ConfigIndexPC = TonemapperFindLeastExpensive(TonemapperConfBitmaskPC, sizeof(TonemapperConfBitmaskPC)/4, TonemapperCostTab, ConfigBitmask);;
-
-	if(bDoScreenPercentageInTonemapper)
-	{
-		// Texture could be bigger than viewport
-		if (View.Family->RenderTarget->GetRenderTargetTexture())
-		{
-			RenderTargetExtend.X = View.Family->RenderTarget->GetRenderTargetTexture()->GetSizeX();
-			RenderTargetExtend.Y = View.Family->RenderTarget->GetRenderTargetTexture()->GetSizeY();
-		}
-		else
-		{
-			RenderTargetExtend = View.Family->RenderTarget->GetSizeXY();
-		}
-	}
-	
-	check(bDoScreenPercentageInTonemapper == ShouldDoScreenPercentageInTonemapper());
 }
 
 namespace PostProcessTonemapUtil
@@ -1145,32 +1135,45 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 		// input is not hooked up correctly
 		return;
 	}
-	
-	const FSceneView& View = Context.View;
+
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 	FIntRect SrcRect = View.ViewRect;
-	FIntRect DestRect = ShouldDoScreenPercentageInTonemapper() ? View.UnscaledViewRect : View.ViewRect;
+	FIntRect DestRect = bDoScreenPercentageInTonemapper ? View.UnscaledViewRect : View.ViewRect;
 	FIntPoint SrcSize = InputDesc->Extent;
-
-	SCOPED_DRAW_EVENTF(Context.RHICmdList, PostProcessTonemap, TEXT("Tonemapper#%d%s %dx%d"), ConfigIndexPC, bDoGammaOnly ? TEXT(" GammaOnly") : TEXT(""), DestRect.Width(), DestRect.Height());
+	
+	SCOPED_DRAW_EVENTF(Context.RHICmdList, PostProcessTonemap, TEXT("Tonemapper#%d GammaOnly=%d ScreenPercentage=%d  %dx%d"),
+		ConfigIndexPC, bDoGammaOnly, bDoScreenPercentageInTonemapper, DestRect.Width(), DestRect.Height());
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
-	
-	// Set the view family's render target/viewport.
-	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIParamRef(), ESimpleRenderTargetMode::EUninitializedColorAndDepth);
 
-	Context.SetViewportAndCallRHI(0, 0, 0.0f, PassOutputs[0].RenderTargetDesc.Extent.X, PassOutputs[0].RenderTargetDesc.Extent.Y, 1.0f);
-		
-	if (Context.HasHmdMesh() && View.StereoPass == eSSP_LEFT_EYE)
+	const EShaderPlatform ShaderPlatform = GShaderPlatformForFeatureLevel[Context.GetFeatureLevel()];
+
+	if (IsVulkanPlatform(ShaderPlatform))
 	{
-		// needed when using an hmd mesh instead of a full screen quad because we don't touch all of the pixels in the render target
-		Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect());
+		//@HACK: needs to set the framebuffer to clear/ignore in vulkan (doesn't support RHIClear)
+		// Clearing for letterbox mode. We could ENoAction if View.ViewRect == RT dims.
+		FRHIRenderTargetView ColorView(DestRenderTarget.TargetableTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
+		FRHISetRenderTargetsInfo Info(1, &ColorView, FRHIDepthRenderTargetView());
+		Context.RHICmdList.SetRenderTargetsAndClear(Info);
 	}
-	else if( ViewFamily.RenderTarget->GetRenderTargetTexture() != DestRenderTarget.TargetableTexture )
+	else
 	{
-		// needed to not have PostProcessAA leaking in content (e.g. Matinee black borders), is optimized away if possible (RT size=view size, )
-		Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, DestRect);
+		// Set the view family's render target/viewport.
+		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIParamRef(), ESimpleRenderTargetMode::EUninitializedColorAndDepth);
+
+		if (Context.HasHmdMesh() && View.StereoPass == eSSP_LEFT_EYE)
+		{
+			// needed when using an hmd mesh instead of a full screen quad because we don't touch all of the pixels in the render target
+			Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect());
+		}
+		else if (ViewFamily.RenderTarget->GetRenderTargetTexture() != DestRenderTarget.TargetableTexture)
+		{
+			// needed to not have PostProcessAA leaking in content (e.g. Matinee black borders), is optimized away if possible (RT size=view size, )
+			Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, DestRect);
+		}
 	}
+
+	Context.SetViewportAndCallRHI(DestRect, 0.0f, 1.0f );
 
 	// set the state
 	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
@@ -1211,11 +1214,11 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 
 	DrawPostProcessPass(
 		Context.RHICmdList,
-		DestRect.Min.X, DestRect.Min.Y,
+		0, 0,
 		DestRect.Width(), DestRect.Height(),
 		View.ViewRect.Min.X, View.ViewRect.Min.Y,
 		View.ViewRect.Width(), View.ViewRect.Height(),
-		PassOutputs[0].RenderTargetDesc.Extent,
+		DestRect.Size(),
 		SceneContext.GetBufferSizeXY(),
 		VertexShader,
 		View.StereoPass,
@@ -1232,9 +1235,17 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 		SceneContext.SetSceneColor(0);
 	}
 
-	if(ShouldDoScreenPercentageInTonemapper())
+	if (ViewFamily.Scene && !ViewFamily.Scene->ShouldUseDeferredRenderer())
 	{
-		Context.View.ViewRect = View.UnscaledViewRect;
+		// Double buffer tonemapper output for temporal AA.
+		if(View.FinalPostProcessSettings.AntiAliasingMethod == AAM_TemporalAA)
+		{
+			FSceneViewState* ViewState = (FSceneViewState*)View.State;
+			if(ViewState) 
+			{
+				ViewState->MobileAaColor0 = PassOutputs[0].PooledRenderTarget;
+			}
+		}
 	}
 }
 
@@ -1246,11 +1257,7 @@ FPooledRenderTargetDesc FRCPassPostProcessTonemap::ComputeOutputDesc(EPassOutput
 	// RGB is the color in LDR, A is the luminance for PostprocessAA
 	Ret.Format = PF_B8G8R8A8;
 	Ret.DebugName = TEXT("Tonemap");
-
-	if(ShouldDoScreenPercentageInTonemapper())
-	{
-		Ret.Extent = RenderTargetExtend;
-	}
+	Ret.ClearValue = FClearValueBinding(FLinearColor(0, 0, 0, 0));
 
 	return Ret;
 }
@@ -1322,6 +1329,7 @@ public:
 	FShaderParameter ColorShadow_Tint2;
 
 	FShaderParameter OverlayColor;
+	FShaderParameter FringeIntensity;
 
 	/** Initialization constructor. */
 	FPostProcessTonemapPS_ES2(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -1345,6 +1353,7 @@ public:
 		ColorShadow_Tint2.Bind(Initializer.ParameterMap, TEXT("ColorShadow_Tint2"));
 
 		OverlayColor.Bind(Initializer.ParameterMap, TEXT("OverlayColor"));
+		FringeIntensity.Bind(Initializer.ParameterMap, TEXT("FringeIntensity"));
 	}
 	
 	// FShader interface.
@@ -1354,7 +1363,8 @@ public:
 		Ar  << PostprocessParameter << ColorScale0 << ColorScale1 << InverseGamma
 			<< TexScale << GrainScaleBiasJitter << TonemapperParams
 			<< ColorMatrixR_ColorCurveCd1 << ColorMatrixG_ColorCurveCd3Cm3 << ColorMatrixB_ColorCurveCm2 << ColorCurve_Cm0Cd0_Cd2_Ch0Cm1_Ch3 << ColorCurve_Ch1_Ch2 << ColorShadow_Luma << ColorShadow_Tint1 << ColorShadow_Tint2
-			<< OverlayColor;
+			<< OverlayColor
+			<< FringeIntensity;
 
 		return bShaderHasOutdatedParameters;
 	}
@@ -1380,6 +1390,7 @@ public:
 		}
 			
 		SetShaderValue(Context.RHICmdList, ShaderRHI, OverlayColor, Context.View.OverlayColor);
+		SetShaderValue(Context.RHICmdList, ShaderRHI, FringeIntensity, fabsf(Settings.SceneFringeIntensity) * 0.01f); // Interpreted as [0-1] percentage
 
 		{
 			FLinearColor Col = Settings.SceneColorTint;
@@ -1475,6 +1486,7 @@ public:
 	FPostProcessPassParameters PostprocessParameter;
 	FShaderResourceParameter EyeAdaptation;
 	FShaderParameter GrainRandomFull;
+	FShaderParameter FringeIntensity;
 	bool bUsedFramebufferFetch;
 
 	FPostProcessTonemapVS_ES2(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -1482,6 +1494,7 @@ public:
 	{
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 		GrainRandomFull.Bind(Initializer.ParameterMap, TEXT("GrainRandomFull"));
+		FringeIntensity.Bind(Initializer.ParameterMap, TEXT("FringeIntensity"));
 	}
 
 	void SetVS(const FRenderingCompositePassContext& Context)
@@ -1496,12 +1509,15 @@ public:
 		// TODO: Don't use full on mobile with framebuffer fetch.
 		GrainRandomFullValue.Z = bUsedFramebufferFetch ? 0.0f : 1.0f;
 		SetShaderValue(Context.RHICmdList, ShaderRHI, GrainRandomFull, GrainRandomFullValue);
+
+		const FPostProcessSettings& Settings = Context.View.FinalPostProcessSettings;
+		SetShaderValue(Context.RHICmdList, ShaderRHI, FringeIntensity, fabsf(Settings.SceneFringeIntensity) * 0.01f); // Interpreted as [0-1] percentage
 	}
 	
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << GrainRandomFull;
+		Ar << PostprocessParameter << GrainRandomFull << FringeIntensity;
 		return bShaderHasOutdatedParameters;
 	}
 };
@@ -1564,12 +1580,25 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 	FIntPoint DstSize = OutputDesc.Extent;
 
 	// Set the view family's render target/viewport.
-	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIParamRef());
-
-	// Full clear to avoid restore
-	if (View.StereoPass == eSSP_FULL || View.StereoPass == eSSP_LEFT_EYE)
+	//@todo Ronin find a way to use the same codepath for all platforms.
+	const EShaderPlatform ShaderPlatform = GShaderPlatformForFeatureLevel[Context.GetFeatureLevel()];
+	if (IsVulkanMobilePlatform(ShaderPlatform))
 	{
-		Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect());
+		//@HACK: gets around an uneccessary load in Vulkan. NOT FOR MAIN as it'll probably kill GearVR
+		//@HACK: needs to set the framebuffer to clear/ignore in vulkan (doesn't support RHIClear)
+		FRHIRenderTargetView ColorView(DestRenderTarget.TargetableTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
+		FRHISetRenderTargetsInfo Info(1, &ColorView, FRHIDepthRenderTargetView());
+		Context.RHICmdList.SetRenderTargetsAndClear(Info);
+	}
+	else
+	{
+		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIParamRef());
+
+		// Full clear to avoid restore
+		if (View.StereoPass == eSSP_FULL || View.StereoPass == eSSP_LEFT_EYE)
+		{
+			Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect());
+		}
 	}
 
 	Context.SetViewportAndCallRHI(DestRect);
@@ -1660,5 +1689,7 @@ FPooledRenderTargetDesc FRCPassPostProcessTonemapES2::ComputeOutputDesc(EPassOut
 	Ret.Format = PF_B8G8R8A8;
 	Ret.DebugName = TEXT("Tonemap");
 	Ret.Extent = DestSize;
+	Ret.ClearValue = FClearValueBinding(FLinearColor(0, 0, 0, 0));
+
 	return Ret;
 }

@@ -33,7 +33,7 @@ public:
 	 * @param OwnerTable		The table owner of the widget being generated
 	 * @param PropertyUtilities	Property utilities to help generate widgets
 	 */
-	virtual TSharedRef< ITableRow > GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities ) = 0;
+	virtual TSharedRef< ITableRow > GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities, bool bAllowFavoriteSystem ) = 0;
 
 	/**
 	 * Filters this nodes visibility based on the provided filter strings                                                              

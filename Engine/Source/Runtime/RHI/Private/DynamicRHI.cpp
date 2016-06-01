@@ -6,6 +6,7 @@
 
 #include "RHI.h"
 #include "ModuleManager.h"
+#include "GenericPlatformDriver.h" // FGPUDriverInfo
 
 #ifndef PLATFORM_ALLOW_NULL_RHI
 	#define PLATFORM_ALLOW_NULL_RHI		0
@@ -14,14 +15,17 @@
 // Globals.
 FDynamicRHI* GDynamicRHI = NULL;
 
-static TAutoConsoleVariable<int32> CVarDetectAndWarnOfBadDrivers(
-	TEXT("r.DetectAndWarnOfBadDrivers"),
+static TAutoConsoleVariable<int32> CVarWarnOfBadDrivers(
+	TEXT("r.WarnOfBadDrivers"),
 	1,
 	TEXT("On engine startup we can check the current GPU driver and warn the user about issues and suggest a specific version\n")
 	TEXT("The test is fast so this should not cost any performance.\n")
 	TEXT(" 0: off\n")
 	TEXT(" 1: a message on startup might appear (default)\n")
-	TEXT(" 2: Test by pretending the driver has issues"),
+	TEXT(" 2: Simulating the system has a blacklisted NVIDIA driver (UI should appear)\n")
+	TEXT(" 3: Simulating the system has a blacklisted AMD driver (UI should appear)\n")
+	TEXT(" 4: Simulating the system has a not blacklisted AMD driver (no UI should appear)\n")
+	TEXT(" 5: Simulating the system has a Intel driver (no UI should appear)"),
 	ECVF_RenderThreadSafe
 	);
 
@@ -45,119 +49,113 @@ void InitNullRHI()
 	GRHISupportsTextureStreaming = false;
 }
 
-// e.g. 36143 for the NVIDIA driver 361.43
-// no floating point to avoid precision issues
-// @return -1 if the version is unknown
-static int32 ExtractGPUDriverVersionInt()
+#if PLATFORM_WINDOWS
+static void RHIDetectAndWarnOfBadDrivers()
 {
-	int32 Ret = -1;
-
-	// we use the internal version, not the user version to avoid problem where the name was altered 
-	const FString& InternalVersion = GRHIAdapterInternalDriverVersion;
-
-	if(IsRHIDeviceNVIDIA())
-	{
-		if(InternalVersion.Left(6) == TEXT("9.18.1"))		// e.g. "9.18.136.143"
-		{
-			// e.g. 36.143
-			FString RightPart = InternalVersion.RightChop(6);
-			// e.g. 36143
-			FString CompactNumber = RightPart.Replace(TEXT("."), TEXT(""));
-
-			if(FCString::IsNumeric(*CompactNumber))
-			{
-				Ret = FCString::Atoi(*CompactNumber);
-			}
-		}
-	}
-	else
-	{
-		// examples for AMD: "13.12" "15.101.1007" "13.351"
-		// todo: need to decide on what part we extract, maybe make the return argument multiple ints
-	}
-	return Ret;
-}
-
-void RHIDetectAndWarnOfBadDrivers()
-{
-	int32 CVarValue = CVarDetectAndWarnOfBadDrivers.GetValueOnGameThread();
+	int32 CVarValue = CVarWarnOfBadDrivers.GetValueOnGameThread();
 
 	if(!GIsRHIInitialized || !CVarValue || GRHIVendorId == 0)
 	{
 		return;
 	}
 
+	FGPUDriverInfo DriverInfo;
+
+	// later we should make the globals use the struct directly
+	DriverInfo.VendorId = GRHIVendorId;
+	DriverInfo.DeviceDescription = GRHIAdapterName;
+	DriverInfo.ProviderName = TEXT("Unknown");
+	DriverInfo.InternalDriverVersion = GRHIAdapterInternalDriverVersion;
+	DriverInfo.UserDriverVersion = GRHIAdapterUserDriverVersion;
+	DriverInfo.DriverDate = GRHIAdapterDriverDate;
+
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	// for testing
 	if(CVarValue == 2)
 	{
-		GRHIVendorId = 0x10DE;
-		GRHIAdapterName = TEXT("Generic NVIDIA");
-		GRHIAdapterUserDriverVersion = TEXT("361.43");
-		GRHIAdapterInternalDriverVersion = TEXT("9.18.136.143");
-		GRHIAdapterDriverDate = TEXT("01-01-1900");
+		DriverInfo.SetNVIDIA();
+		DriverInfo.DeviceDescription = TEXT("Test NVIDIA (bad)");
+		DriverInfo.UserDriverVersion = TEXT("346.43");
+		DriverInfo.InternalDriverVersion = TEXT("9.18.134.643");
+		DriverInfo.DriverDate = TEXT("01-01-1900");
 	}
-
-	int32 VersionInt = ExtractGPUDriverVersionInt();
-
-	if(VersionInt < 0)
+	else if(CVarValue == 3)
 	{
-		// no valid version
-		return;
+		DriverInfo.SetAMD();
+		DriverInfo.DeviceDescription = TEXT("Test AMD (bad)");
+		DriverInfo.UserDriverVersion = TEXT("Test Catalyst Version");
+		DriverInfo.InternalDriverVersion = TEXT("13.152.1.1000");
+		DriverInfo.DriverDate = TEXT("09-10-13");
 	}
-
-	// can be made data driven:
-	if(IsRHIDeviceNVIDIA())
+	else if(CVarValue == 4)
 	{
-		// todo: make this data driven
-		FString SuggestedVersion = TEXT("359.06");
+		DriverInfo.SetAMD();
+		DriverInfo.DeviceDescription = TEXT("Test AMD (good)");
+		DriverInfo.UserDriverVersion = TEXT("Test Catalyst Version");
+		DriverInfo.InternalDriverVersion = TEXT("15.30.1025.1001");
+		DriverInfo.DriverDate = TEXT("01-01-16");
+	}
+	else if(CVarValue == 5)
+	{
+		DriverInfo.SetIntel();
+		DriverInfo.DeviceDescription = TEXT("Test Intel (good)");
+		DriverInfo.UserDriverVersion = TEXT("Test Intel Version");
+		DriverInfo.InternalDriverVersion = TEXT("8.15.10.2302");
+		DriverInfo.DriverDate = TEXT("01-01-15");
+	}
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
-		// todo: make this data driven
-		if(VersionInt == 36143	// 361.43 "UE-25096 Viewport flashes black and white when moving in the scene on latest Nvidia drivers", at that time that was the latest driver
-		|| VersionInt <= 34709)	// 347.09 "old NVIDIA driver version we've seen driver crashes with Paragon content", we might have to adjust that further
+	FGPUHardware DetectedGPUHardware(DriverInfo);
+
+	if (DriverInfo.IsValid())
+	{
+		FBlackListEntry BlackListEntry = DetectedGPUHardware.FindDriverBlacklistEntry();
+
+		if (BlackListEntry.IsValid())
 		{
+			bool bLatestBlacklisted = DetectedGPUHardware.IsLatestBlacklisted();
+
+			// Note: we don't localize the vendor's name.
+			FString VendorString = DriverInfo.ProviderName;
+			if (DriverInfo.IsNVIDIA())
+			{
+				VendorString = TEXT("NVIDIA");
+			}
+			else if (DriverInfo.IsAMD())
+			{
+				VendorString = TEXT("AMD");
+			}
+			else if (DriverInfo.IsIntel())
+			{
+				VendorString = TEXT("Intel");
+			}
+
+			// format message box UI
 			FFormatNamedArguments Args;
-			Args.Add(TEXT("AdapterName"), FText::FromString(GRHIAdapterName));
-			Args.Add(TEXT("UserDriverVersion"), FText::FromString(GRHIAdapterUserDriverVersion));
-			Args.Add(TEXT("InternalDriverVersion"), FText::FromString(GRHIAdapterInternalDriverVersion));
-			Args.Add(TEXT("DriverDate"), FText::FromString(GRHIAdapterDriverDate));
-			Args.Add(TEXT("SuggestedVersion"), FText::FromString(SuggestedVersion));
+			Args.Add(TEXT("AdapterName"), FText::FromString(DriverInfo.DeviceDescription));
+			Args.Add(TEXT("Vendor"), FText::FromString(VendorString));
+			Args.Add(TEXT("RecommendedVer"), FText::FromString(DetectedGPUHardware.GetSuggestedDriverVersion()));
+			Args.Add(TEXT("InstalledVer"), FText::FromString(DriverInfo.UserDriverVersion));
 
-			// explicitly compact
-			FText LocalizedMsg = FText::Format(NSLOCTEXT("MessageDialog", "VideoCardDriverIssueReport",
-				"Suggested version: {SuggestedVersion} (newer drivers might be good as well)\nCurrent version: {UserDriverVersion} ({InternalDriverVersion}) {DriverDate}\nName: {AdapterName}"),
-				Args);
+			// this message can be suppressed with r.WarnOfBadDrivers=0
+			FText LocalizedMsg;
+			if (bLatestBlacklisted)
+			{
+				LocalizedMsg = FText::Format(NSLOCTEXT("MessageDialog", "LatestVideoCardDriverIssueReport","The latest version of the {Vendor} graphics driver has known issues.\n\nPlease install the last known good driver version.\n\n{AdapterName}\n{RecommendedVer} is the last known good\n{InstalledVer} is installed"),Args);
+			}
+			else
+			{
+				LocalizedMsg = FText::Format(NSLOCTEXT("MessageDialog", "VideoCardDriverIssueReport","Your {Vendor} graphics driver has known issues.\n\nPlease update to the latest driver version.\n\n{AdapterName}\n{RecommendedVer} is recommended\n{InstalledVer} is installed"),Args);
+			}
 
-			// less compact and more readable, maybe for later
-			/*
-				"Current driver:\n"
-				"  Name:\t{AdapterName}\n"
-				"  Version:\t{UserDriverVersion} (internal {InternalDriverVersion})\n"
-				"  Date:\t{DriverDate}\n"
-				"\n"
-				"Suggested driver (newer drivers might be good as well):\n"
-				"  Version: {SuggestedVersion}\n"
-				"\n"
-				"Please update your drivers to avoid problems (performance, stalls, crashes, reboot)."
-			*/
-
-			FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, 
+			FPlatformMisc::MessageBoxExt(EAppMsgType::Ok,
 				*LocalizedMsg.ToString(),
-				*NSLOCTEXT("MessageDialog", "TitleVideoCardDriverIssue", "WARNING: Video card driver with known issues").ToString());
+				*NSLOCTEXT("MessageDialog", "TitleVideoCardDriverIssue", "WARNING: Known issues with graphics driver").ToString());
 		}
 	}
-	else if(IsRHIDeviceAMD())
-	{
-		// so far we don't have any data on issues
-	}
-	else if(IsRHIDeviceIntel())
-	{
-		// so far we don't have any data on issues
-	}
-	else
-	{
-		// so far we don't have any data on issues
-	}
 }
+#endif // PLATFORM_WINDOWS
 
 void RHIInit(bool bHasEditorToken)
 {
@@ -165,7 +163,7 @@ void RHIInit(bool bHasEditorToken)
 	{
 		GRHICommandList.LatchBypass(); // read commandline for bypass flag
 
-		if (USE_NULL_RHI || FParse::Param(FCommandLine::Get(),TEXT("nullrhi")) || !FApp::CanEverRender())
+		if (FApp::ShouldUseNullRHI())
 		{
 			InitNullRHI();
 		}
@@ -190,7 +188,9 @@ void RHIInit(bool bHasEditorToken)
 		check(GDynamicRHI);
 	}
 
+#if PLATFORM_WINDOWS
 	RHIDetectAndWarnOfBadDrivers();
+#endif
 }
 
 void RHIPostInit()
@@ -211,3 +211,65 @@ void RHIExit()
 }
 
 
+static void BaseRHISetGPUCaptureOptions(const TArray<FString>& Args, UWorld* World)
+{
+	if (Args.Num() > 0)
+	{
+		const bool bEnabled = Args[0].ToBool();
+		GDynamicRHI->EnableIdealGPUCaptureOptions(bEnabled);
+	}
+	else
+	{
+		UE_LOG(LogRHI, Display, TEXT("Usage: r.PS4.EnableCaptureMode 0 or r.PS4.EnableCaptureMode 1"));
+	}
+}
+
+static FAutoConsoleCommandWithWorldAndArgs GBaseRHISetGPUCaptureOptions(
+	TEXT("r.RHISetGPUCaptureOptions"),
+	TEXT("Utility function to change multiple CVARs useful when profiling or debugging GPU rendering. Setting to 1 or 0 will guarantee all options are in the appropriate state.\n")
+	TEXT("r.rhithread.enable, r.rhicmdbypass, r.showmaterialdrawevents, toggledrawevents\n")
+	TEXT("Platform RHI's may implement more feature toggles."),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(&BaseRHISetGPUCaptureOptions)
+	);
+
+void FDynamicRHI::EnableIdealGPUCaptureOptions(bool bEnabled)
+{
+	static IConsoleVariable* RHICmdBypassVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.rhicmdbypass"));
+	static IConsoleVariable* ShowMaterialDrawEventVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ShowMaterialDrawEvents"));	
+	static IConsoleObject* RHIThreadEnableObj = IConsoleManager::Get().FindConsoleObject(TEXT("r.RHIThread.Enable"));
+	static IConsoleCommand* RHIThreadEnableCommand = RHIThreadEnableObj ? RHIThreadEnableObj->AsCommand() : nullptr;
+
+	const bool bShouldEnableDrawEvents = bEnabled;
+	const bool bShouldEnableMaterialDrawEvents = bEnabled;
+	const bool bShouldEnableRHIThread = !bEnabled;
+	const bool bShouldRHICmdBypass = bEnabled;	
+
+	const bool bDrawEvents = GEmitDrawEvents != 0;
+	const bool bMaterialDrawEvents = ShowMaterialDrawEventVar ? ShowMaterialDrawEventVar->GetInt() != 0 : false;
+	const bool bRHIThread = GRHIThread != nullptr;	
+	const bool bRHIBypass = RHICmdBypassVar ? RHICmdBypassVar->GetInt() != 0 : false;
+
+	UE_LOG(LogRHI, Display, TEXT("Setting GPU Capture Options: %i"), bEnabled ? 1 : 0);
+	if (bShouldEnableDrawEvents != bDrawEvents)
+	{
+		UE_LOG(LogRHI, Display, TEXT("Toggling draw events: %i"), bShouldEnableDrawEvents ? 1 : 0);
+		GEmitDrawEvents = bShouldEnableDrawEvents;
+	}
+	if (bShouldEnableMaterialDrawEvents != bMaterialDrawEvents)
+	{
+		UE_LOG(LogRHI, Display, TEXT("Toggling showmaterialdrawevents: %i"), bShouldEnableDrawEvents ? 1 : 0);
+		ShowMaterialDrawEventVar->Set(bShouldEnableDrawEvents ? 1 : 0);		
+	}
+	if (bRHIThread != bShouldEnableRHIThread && RHIThreadEnableCommand)
+	{
+		UE_LOG(LogRHI, Display, TEXT("Toggling rhi thread: %i"), bShouldEnableRHIThread ? 1 : 0);
+		TArray<FString> Args;
+		Args.Add(FString::Printf(TEXT("%i"), bShouldEnableRHIThread ? 1 : 0));
+		RHIThreadEnableCommand->Execute(Args, nullptr, *GLog);
+	}
+	if (bRHIBypass != bShouldRHICmdBypass && RHICmdBypassVar)
+	{
+		UE_LOG(LogRHI, Display, TEXT("Toggling rhi bypass: %i"), bEnabled ? 1 : 0);
+		RHICmdBypassVar->Set(bShouldRHICmdBypass ? 1 : 0, ECVF_SetByConsole);		
+	}	
+}

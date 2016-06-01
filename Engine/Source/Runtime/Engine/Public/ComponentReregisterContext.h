@@ -14,10 +14,10 @@ ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogActorComponent, Log, All);
 class FComponentReregisterContextBase
 {
 protected:
-	//Unregisters the Componet and returns the world it was registered to.
+	//Unregisters the Component and returns the world it was registered to.
 	UWorld* UnRegister(UActorComponent* InComponent)
 	{
-		UWorld* World = NULL;
+		UWorld* World = nullptr;
 
 		check(InComponent);
 		checkf(!InComponent->IsUnreachable(), TEXT("%s"), *InComponent->GetFullName());
@@ -31,7 +31,7 @@ protected:
 			// Will set bRegistered to false
 			InComponent->ExecuteUnregisterEvents();
 
-			InComponent->World = NULL;
+			InComponent->WorldPrivate = nullptr;
 		}
 		return World;
 	}
@@ -53,10 +53,9 @@ protected:
 				// re-register.
 				UE_LOG(LogActorComponent, Log, TEXT("~FComponentReregisterContext: (%s) Component already registered."), *InComponent->GetPathName());
 				InComponent->ExecuteUnregisterEvents();
-				InComponent->World = NULL;
 			}
 
-			InComponent->World = InWorld;
+			InComponent->WorldPrivate = InWorld;
 			FNavigationLockContext NavUpdateLock(InWorld);
 
 			// Will set bRegistered to true
@@ -143,12 +142,11 @@ private:
 	TArray<FMultiComponentReregisterPair> ComponentsPair;
 	
 public:
-	FMultiComponentReregisterContext(TArray<UActorComponent*> InComponents)
+	FMultiComponentReregisterContext(const TArray<UActorComponent*>& InComponents)
 	{
 		// Unregister each component and cache resulting scene
-		for(auto Iter = InComponents.CreateIterator(); Iter; ++Iter)
+		for (UActorComponent* Component : InComponents)
 		{
-			UActorComponent* Component = (*Iter);
 			UWorld* World = UnRegister(Component);
 			if(World)
 			{
@@ -186,15 +184,6 @@ public:
 	* @param ExcludeComponents - Component types to exclude when reregistering 
 	*/
 	FGlobalComponentReregisterContext(const TArray<UClass*>& ExcludeComponents);
-
-	/**
-	 * Initialization constructor
-	 * Only reregister those components whose replacement primitive is in a direct child of one of the InParentActors
-	 * 
-	 * @param InParentActors - list of actors called out for reregistering
-	 */
-	ENGINE_API FGlobalComponentReregisterContext(const TArray<AActor*>& InParentActors);
-
 
 	/** Destructor */
 	ENGINE_API ~FGlobalComponentReregisterContext();

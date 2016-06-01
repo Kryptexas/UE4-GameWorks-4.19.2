@@ -112,15 +112,15 @@ class AIMODULE_API UEnvQueryTest : public UEnvQueryNode
 	UPROPERTY(EditDefaultsOnly, Category=Score, Meta=(ClampMin="0.001", UIMin="0.001"))
 	FAIDataProviderFloatValue ScoringFactor;
 
-	/** When specified gets used to normalize test's results in such a way that the closer a value is to SweetSpotValue
-	 *	the higher normalized result it will produce. Value farthest from SweetSpotValue will be normalized
-	 *	to 0, and all the other values in between will get normalized linearly with the distance to SweetSpotValue. */
-	UPROPERTY(EditDefaultsOnly, Category = Score, Meta=(EditCondition = "bDefineSweetSpot"))
-	FAIDataProviderFloatValue SweetSpotValue;
+	/** When specified gets used to normalize test's results in such a way that the closer a value is to ReferenceValue
+	 *	the higher normalized result it will produce. Value farthest from ReferenceValue will be normalized
+	 *	to 0, and all the other values in between will get normalized linearly with the distance to ReferenceValue. */
+	UPROPERTY(EditDefaultsOnly, Category = Score, Meta=(EditCondition = "bDefineReferenceValue"))
+	FAIDataProviderFloatValue ReferenceValue;
 
-	/** When set to true enables usage of SweetSpotValue. It's false by default */
-	UPROPERTY()
-	bool bDefineSweetSpot;
+	/** When set to true enables usage of ReferenceValue. It's false by default */
+	UPROPERTY(EditDefaultsOnly, Category = Score, meta=(InlineEditConditionToggle))
+	bool bDefineReferenceValue;
 	
 	/** Validation: item type that can be used with this test */
 	TSubclassOf<UEnvQueryItemType> ValidItemType;

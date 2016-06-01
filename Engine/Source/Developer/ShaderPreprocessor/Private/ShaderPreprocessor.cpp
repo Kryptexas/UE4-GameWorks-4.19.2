@@ -76,7 +76,7 @@ private:
 			FString FileContents;
 			if (This->ShaderInput.Environment.IncludeFileNameToContentsMap.Contains(Filename))
 			{
-				FileContents = This->ShaderInput.Environment.IncludeFileNameToContentsMap.FindRef(Filename);
+				FileContents = FString(UTF8_TO_TCHAR(This->ShaderInput.Environment.IncludeFileNameToContentsMap.FindRef(Filename).GetData()));
 			}
 			else
 			{
@@ -124,6 +124,12 @@ bool PreprocessShader(
 	const FShaderCompilerDefinitions& AdditionalDefines
 	)
 {
+	// Skip the cache system and directly load the file path (used for debugging)
+	if (ShaderInput.bSkipPreprocessedCache)
+	{
+		return FFileHelper::LoadFileToString(OutPreprocessedShader, *ShaderInput.SourceFilename);
+	}
+
 	FString McppOptions;
 	FString McppOutput, McppErrors;
 	ANSICHAR* McppOutAnsi = NULL;

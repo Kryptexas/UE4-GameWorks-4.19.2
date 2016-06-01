@@ -491,8 +491,8 @@ public:
 	}
 };
 
-FManifestReader NonUFSManifest(TEXT("Manifest_NonUFSFiles.txt"));
-FManifestReader UFSManifest(TEXT("Manifest_UFSFiles.txt"));
+FManifestReader NonUFSManifest(TEXT("Manifest_NonUFSFiles_Android.txt"));
+FManifestReader UFSManifest(TEXT("Manifest_UFSFiles_Android.txt"));
 
 /*
 	Access to files in multiple ZIP archives.

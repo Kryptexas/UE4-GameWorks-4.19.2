@@ -51,7 +51,11 @@ protected:
 	EVisibility AreNonCurveMappingValuesVisible() const;
 	EVisibility AreRemappingValuesVisible() const;
 
-	static void AddTripletPropertyRow(const FText& Name, const FText& Tooltip, IDetailCategoryBuilder& Category, TSharedRef<IPropertyHandle> PropertyHandle, const FName XPropertyName, const FName YPropertyName, const FName ZPropertyName);
+	// Should destination bone or morph target properties be visible
+	EVisibility AreTargetBonePropertiesVisible() const;
+	EVisibility AreTargetCurvePropertiesVisible() const;
+
+	static void AddTripletPropertyRow(const FText& Name, const FText& Tooltip, IDetailCategoryBuilder& Category, TSharedRef<IPropertyHandle> PropertyHandle, const FName XPropertyName, const FName YPropertyName, const FName ZPropertyName, TAttribute<EVisibility> VisibilityAttribute);
 	static void AddRangePropertyRow(const FText& Name, const FText& Tooltip, IDetailCategoryBuilder& Category, TSharedRef<IPropertyHandle> PropertyHandle, const FName MinPropertyName, const FName MaxPropertyName, TAttribute<EVisibility> VisibilityAttribute);
 	static FText ComponentTypeToText(EComponentType::Type Component);
 };

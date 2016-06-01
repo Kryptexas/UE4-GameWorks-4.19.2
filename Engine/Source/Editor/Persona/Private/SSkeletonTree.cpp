@@ -58,7 +58,7 @@ public:
 	};
 
 private:
-	virtual bool CanCreateClass(UClass* ObjectClass) const { return true; }
+	virtual bool CanCreateClass(UClass* ObjectClass, bool& bOmitSubObjs) const override { return true; }
 
 	virtual void ProcessConstructedObject( UObject* CreatedObject )
 	{

@@ -65,6 +65,7 @@ namespace Tools.CrashReporter.CrashReportCommon
 		"CallStack"
 		"SourceContext"
 		"UserDescription"
+		"UserActivityHint" 
 		"ErrorMessage"
 		"CrashDumpMode"
 		"Misc.NumberOfCores"
@@ -460,6 +461,10 @@ namespace Tools.CrashReporter.CrashReportCommon
 
 		/// <summary></summary>
 		[XmlElement]
+		public string UserActivityHint;
+
+		/// <summary></summary>
+		[XmlElement]
 		public string SourceContext;
 
 		/// <summary> SourceContext as string[] unescaped. </summary>
@@ -614,6 +619,10 @@ namespace Tools.CrashReporter.CrashReportCommon
 		/// <summary> Whether the user allowed us to be contacted. </summary>
 		[XmlElement]
 		public bool bAllowToBeContacted = false;
+
+		/// <summary> Warning info for missing data or failed processing in the Crash Report Processor. </summary>
+		[XmlElement]
+		public string ProcessorFailedMessage;
 
 		/// <summary>A simple default constructor to allow Xml serialization.</summary>
 		public FPrimaryCrashProperties()

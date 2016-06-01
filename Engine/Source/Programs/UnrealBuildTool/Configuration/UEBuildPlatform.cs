@@ -473,26 +473,12 @@ namespace UnrealBuildTool
 		/// <param name="Only">  If this is not unknown, then only run that platform</param>
 		public static void PlatformModifyHostModuleRules(string ModuleName, ModuleRules Rules, TargetInfo Target, UnrealTargetPlatform Only = UnrealTargetPlatform.Unknown)
 		{
-			foreach (var PlatformEntry in BuildPlatformDictionary)
+			foreach (KeyValuePair<UnrealTargetPlatform, UEBuildPlatform> PlatformEntry in BuildPlatformDictionary)
 			{
 				if (Only == UnrealTargetPlatform.Unknown || PlatformEntry.Key == Only)
 				{
 					PlatformEntry.Value.ModifyModuleRulesForOtherPlatform(ModuleName, Rules, Target);
 				}
-			}
-		}
-
-		// Included for compatibility during //UE4/Main import
-		[Obsolete]
-		public CPPTargetPlatform GetCPPTargetPlatform(UnrealTargetPlatform ForPlatform)
-		{
-			if(Platform == ForPlatform)
-			{
-				return DefaultCppPlatform;
-			}
-			else
-			{
-				throw new BuildException("Target platform {0} can not be compiled on {1}", ForPlatform, Platform);
 			}
 		}
 
@@ -551,7 +537,7 @@ namespace UnrealBuildTool
 		public static bool PlatformRequiresMonolithicBuilds(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
 		{
 			// Some platforms require monolithic builds...
-			var BuildPlatform = GetBuildPlatform(InPlatform, true);
+			UEBuildPlatform BuildPlatform = GetBuildPlatform(InPlatform, true);
 			if (BuildPlatform != null)
 			{
 				return BuildPlatform.ShouldCompileMonolithicBinary(InPlatform);
@@ -1120,7 +1106,7 @@ namespace UnrealBuildTool
 					//HookProcess.StartInfo.RedirectStandardOutput = true;
 					//HookProcess.StartInfo.RedirectStandardError = true;					
 
-					using (var HookTimer = new ScopedTimer("Time to run hook: ", bShouldLogInfo ? LogEventType.Log : LogEventType.Verbose))
+					using (ScopedTimer HookTimer = new ScopedTimer("Time to run hook: ", bShouldLogInfo ? LogEventType.Log : LogEventType.Verbose))
 					{
 						//installers may require administrator access to succeed. so run as an admmin.
 						HookProcess.StartInfo.Verb = "runas";
@@ -1224,10 +1210,18 @@ namespace UnrealBuildTool
 					}
 
 
-					// actually perform the PATH stripping / adding.
-					String OrigPathVar = Environment.GetEnvironmentVariable("PATH");
-					String PathDelimiter = UEBuildPlatform.GetPathVarDelimiter();
-					String[] PathVars = OrigPathVar.Split(PathDelimiter.ToCharArray());
+                    // actually perform the PATH stripping / adding.
+                    String OrigPathVar = Environment.GetEnvironmentVariable("PATH");
+                    String PathDelimiter = UEBuildPlatform.GetPathVarDelimiter();
+                    String[] PathVars = { };
+                    if (!String.IsNullOrEmpty(OrigPathVar))
+                    {
+                        PathVars = OrigPathVar.Split(PathDelimiter.ToCharArray());
+                    }
+                    else
+                    {
+                        LogAutoSDK("Path environment variable is null during AutoSDK");
+                    }
 
 					List<String> ModifiedPathVars = new List<string>();
 					ModifiedPathVars.AddRange(PathVars);
@@ -1245,7 +1239,7 @@ namespace UnrealBuildTool
 						}
 					}
 
-					// remove all the of ADDs so that if this function is executed multiple times, the paths will be guarateed to be in the same order after each run.
+					// remove all the of ADDs so that if this function is executed multiple times, the paths will be guaranteed to be in the same order after each run.
 					// If we did not do this, a 'remove' that matched some, but not all, of our 'adds' would cause the order to change.
 					foreach (String PathAdd in PathAdds)
 					{

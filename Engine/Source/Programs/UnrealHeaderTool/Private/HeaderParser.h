@@ -25,24 +25,28 @@ extern double GHeaderCodeGenTime;
 enum {MAX_NEST_LEVELS = 16};
 
 /* Code nesting types. */
-enum ENestType
+enum class ENestType
 {
-	NEST_GlobalScope,
-	NEST_Class,
-	NEST_FunctionDeclaration,
-	NEST_Interface,
-	NEST_NativeInterface
+	GlobalScope,
+	Class,
+	FunctionDeclaration,
+	Interface,
+	NativeInterface
 };
 
 /** Types of statements to allow within a particular nesting block. */
-enum ENestAllowFlags
+enum class ENestAllowFlags
 {
-	ALLOW_Function			= 1,	// Allow Event declarations at this level.
-	ALLOW_VarDecl			= 2,	// Allow variable declarations at this level.
-	ALLOW_Class				= 4,	// Allow class definition heading.
-	ALLOW_Return			= 8,	// Allow 'return' within a function.
-	ALLOW_TypeDecl			= 16,	// Allow declarations which do not affect memory layout, such as structs, enums, and consts
+	None                 = 0,
+	Function             = 1,  // Allow Event declarations at this level.
+	VarDecl              = 2,  // Allow variable declarations at this level.
+	Class                = 4,  // Allow class definition heading.
+	Return               = 8,  // Allow 'return' within a function.
+	TypeDecl             = 16, // Allow declarations which do not affect memory layout, such as structs, enums, and consts, but not implicit delegates
+	ImplicitDelegateDecl = 32, // Allow implicit delegates (i.e. those not decorated with UDELEGATE) to be declared
 };
+
+ENUM_CLASS_FLAGS(ENestAllowFlags)
 
 namespace EDelegateSpecifierAction
 {
@@ -92,7 +96,7 @@ public:
 	ENestType NestType;
 
 	/** Types of statements to allow at this nesting level. */
-	int32 Allow;
+	ENestAllowFlags Allow;
 };
 
 struct FIndexRange
@@ -243,7 +247,7 @@ protected:
 	FFileScope* GetCurrentFileScope() const
 	{
 		int32 Index = 0;
-		while (TopNest[Index].NestType != NEST_GlobalScope)
+		while (TopNest[Index].NestType != ENestType::GlobalScope)
 		{
 			--Index;
 		}
@@ -269,7 +273,7 @@ protected:
 	 */
 	FStructScope* GetCurrentClassScope() const
 	{
-		check(TopNest->NestType == NEST_Class || TopNest->NestType == NEST_Interface || TopNest->NestType == NEST_NativeInterface);
+		check(TopNest->NestType == ENestType::Class || TopNest->NestType == ENestType::Interface || TopNest->NestType == ENestType::NativeInterface);
 
 		return (FStructScope*)TopNest->GetScope();
 	}
@@ -280,9 +284,9 @@ protected:
 	bool IsInAClass() const
 	{
 		int32 Index = 0;
-		while (TopNest[Index].NestType != NEST_GlobalScope)
+		while (TopNest[Index].NestType != ENestType::GlobalScope)
 		{
-			if (TopNest[Index].NestType == NEST_Class || TopNest->NestType == NEST_Interface || TopNest->NestType == NEST_NativeInterface)
+			if (TopNest[Index].NestType == ENestType::Class || TopNest->NestType == ENestType::Interface || TopNest->NestType == ENestType::NativeInterface)
 			{
 				return true;
 			}
@@ -521,12 +525,12 @@ protected:
 	bool CompileStatement(FClasses& AllClasses, TArray<UDelegateFunction*>& DelegatesToFixup);
 
 	// Checks to see if a particular kind of command is allowed on this nesting level.
-	bool IsAllowedInThisNesting(uint32 AllowFlags);
+	bool IsAllowedInThisNesting(ENestAllowFlags AllowFlags);
 	
 	// Make sure that a particular kind of command is allowed on this nesting level.
 	// If it's not, issues a compiler error referring to the token and the current
 	// nesting level.
-	void CheckAllow(const TCHAR* Thing, uint32 AllowFlags);
+	void CheckAllow(const TCHAR* Thing, ENestAllowFlags AllowFlags);
 
 	UStruct* GetSuperScope( UStruct* CurrentScope, const FName& SearchName );
 

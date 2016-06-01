@@ -6,6 +6,7 @@
 #include "IKeyframeSection.h"
 #include "ISequencerObjectChangeListener.h"
 #include "MovieSceneCommonHelpers.h"
+#include "MovieSceneSection.h"
 
 class IPropertyHandle;
 class FPropertyChangedParams;
@@ -62,7 +63,7 @@ protected:
 		TArray<UObject*> ObjectsToKey, float KeyTime,
 		const TArray<KeyDataType>& NewKeys, const TArray<KeyDataType>& DefaultKeys,
 		FKeyParams KeyParams, TSubclassOf<UMovieSceneTrack> TrackClass, FName PropertyName,
-		TFunction<void(TrackType*)> OnIntializeNewTrack,
+		TFunction<void(TrackType*)> OnInitializeNewTrack,
 		TFunction<void(TrackType*)> OnSetIntermediateValue)
 	{
 		bool bHandleCreated = false;
@@ -76,7 +77,7 @@ protected:
 
 			if ( ObjectHandle.IsValid() )
 			{
-				bTrackCreated |= AddKeysToHandle( ObjectHandle, KeyTime, NewKeys, DefaultKeys, KeyParams, TrackClass, PropertyName, OnIntializeNewTrack, OnSetIntermediateValue );
+				bTrackCreated |= AddKeysToHandle( ObjectHandle, KeyTime, NewKeys, DefaultKeys, KeyParams, TrackClass, PropertyName, OnInitializeNewTrack, OnSetIntermediateValue );
 			}
 		}
 		return bHandleCreated || bTrackCreated;
@@ -106,10 +107,11 @@ private:
 		FGuid ObjectHandle, float KeyTime,
 		const TArray<KeyDataType>& NewKeys, const TArray<KeyDataType>& DefaultKeys,
 		FKeyParams KeyParams, TSubclassOf<UMovieSceneTrack> TrackClass, FName PropertyName,
-		TFunction<void(TrackType*)> OnIntializeNewTrack,
+		TFunction<void(TrackType*)> OnInitializeNewTrack,
 		TFunction<void(TrackType*)> OnSetIntermediateValue)
 	{
 		bool bTrackCreated = false;
+		bool bSectionCreated = false;
 
 		// Try to find an existing Track, and if one doesn't exist check the key params and create one if requested.
 		FFindOrCreateTrackResult TrackResult = FindOrCreateTrackForObject( ObjectHandle, TrackClass, PropertyName, KeyParams.bCreateTrackIfMissing );
@@ -118,26 +120,29 @@ private:
 
 		if ( bTrackCreated )
 		{
-			if (OnIntializeNewTrack)
+			if (OnInitializeNewTrack)
 			{
-				OnIntializeNewTrack(Track);
+				OnInitializeNewTrack(Track);
 			}
 		}
 
 		if ( Track )
 		{
-			AddKeysToTrack( Track, KeyTime, NewKeys, DefaultKeys, KeyParams, bTrackCreated, OnSetIntermediateValue );
+			bSectionCreated = AddKeysToTrack( Track, KeyTime, NewKeys, DefaultKeys, KeyParams, bTrackCreated, OnSetIntermediateValue );
 		}
 
-		return bTrackCreated;
+		return bTrackCreated || bSectionCreated;
 	}
 
-	void AddKeysToTrack(
+	/* Returns whether a section was added */
+	bool AddKeysToTrack(
 		TrackType* Track, float KeyTime,
 		const TArray<KeyDataType>& NewKeys, const TArray<KeyDataType>& DefaultKeys,
 		FKeyParams KeyParams, bool bNewTrack,
 		TFunction<void(TrackType*)> OnSetIntermediateValue)
 	{
+		bool bSectionCreated = false;
+
 		bool bSettingIntermediateValue = KeyParams.bCreateKeyOnlyWhenAutoKeying && GetSequencer()->GetAutoKeyMode() == EAutoKeyMode::KeyNone;
 		if ( bSettingIntermediateValue )
 		{
@@ -147,6 +152,8 @@ private:
 		else
 		{
 			EMovieSceneKeyInterpolation InterpolationMode = GetSequencer()->GetKeyInterpolation();
+			bool bInfiniteKeyAreas = GetSequencer()->GetInfiniteKeyAreas();
+
 			for ( const KeyDataType& NewKey : NewKeys )
 			{
 				// Only modify the track if the new key will create new data, or if creating keys has been forced.
@@ -154,11 +161,11 @@ private:
 				{
 					if ( HasKeys( Track, NewKey ) || KeyParams.bCreateKeyIfEmpty )
 					{
-						AddKey( Track, KeyTime, NewKey, InterpolationMode );
+						bSectionCreated |= AddKey( Track, KeyTime, NewKey, InterpolationMode, bInfiniteKeyAreas );
 					}
 					else
 					{
-						SetDefault( Track, KeyTime, NewKey );
+						bSectionCreated |= SetDefault( Track, KeyTime, NewKey, bInfiniteKeyAreas );
 					}
 				}
 			}
@@ -167,10 +174,11 @@ private:
 			{
 				for ( const KeyDataType& DefaultKey : DefaultKeys )
 				{
-					SetDefault( Track, KeyTime, DefaultKey );
+					bSectionCreated |= SetDefault( Track, KeyTime, DefaultKey, bInfiniteKeyAreas  );
 				}
 			}
 		}
+		return bSectionCreated;
 	}
 
 	bool NewKeyIsNewData( TrackType* Track, float Time, const KeyDataType& KeyData ) const
@@ -194,15 +202,26 @@ private:
 
 	using FMovieSceneTrackEditor::AddKey;
 
-	void AddKey( TrackType* Track, float Time, const KeyDataType& KeyData, EMovieSceneKeyInterpolation KeyInterpolation )
+	/* Return whether a section was added */
+	bool AddKey( TrackType* Track, float Time, const KeyDataType& KeyData, EMovieSceneKeyInterpolation KeyInterpolation, bool bInfiniteKeyAreas )
 	{
+		bool bSectionAdded = false;
 		Track->Modify();
-		IKeyframeSection<KeyDataType>* KeyframeSection = CastChecked<SectionType>( Track->FindOrAddSection( Time ) );
+		UMovieSceneSection* NewSection = Track->FindOrAddSection( Time, bSectionAdded );
+		IKeyframeSection<KeyDataType>* KeyframeSection = CastChecked<SectionType>( NewSection );
 		KeyframeSection->AddKey( Time, KeyData, KeyInterpolation );
+
+		if (bSectionAdded)
+		{
+			NewSection->SetIsInfinite(bInfiniteKeyAreas);
+		}
+		return bSectionAdded;
 	}
 
-	void SetDefault( TrackType* Track, float Time, const KeyDataType& KeyData )
+	/* Return whether a section was added */
+	bool SetDefault( TrackType* Track, float Time, const KeyDataType& KeyData, bool bInfiniteKeyAreas )
 	{
+		bool bSectionAdded = false;
 		Track->Modify();
 		const TArray<UMovieSceneSection*>& Sections = Track->GetAllSections();
 		if ( Sections.Num() > 0)
@@ -215,9 +234,16 @@ private:
 		}
 		else
 		{
-			IKeyframeSection<KeyDataType>* KeyframeSection = CastChecked<SectionType>( Track->FindOrAddSection( Time ) );
+			UMovieSceneSection* NewSection = Track->FindOrAddSection( Time, bSectionAdded );
+			IKeyframeSection<KeyDataType>* KeyframeSection = CastChecked<SectionType>( NewSection );
 			KeyframeSection->SetDefault( KeyData );
+
+			if (bSectionAdded)
+			{
+				NewSection->SetIsInfinite(bInfiniteKeyAreas);
+			}
 		}
+		return bSectionAdded;
 	}
 };
 

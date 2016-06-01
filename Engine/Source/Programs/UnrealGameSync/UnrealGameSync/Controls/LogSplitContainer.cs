@@ -40,6 +40,13 @@ namespace UnrealGameSync
 			get { return SystemFonts.IconTitleFont; }
 		}
 
+		protected override void OnCreateControl()
+		{
+			base.OnCreateControl();
+
+			UpdateMetrics();
+		}
+
 		protected override void OnKeyUp(KeyEventArgs e)
 		{
 			// Base implementation directly repaints the splitter control in response to this message, which bypasses our custom paint handler. Invalidate the window to get it drawn again.

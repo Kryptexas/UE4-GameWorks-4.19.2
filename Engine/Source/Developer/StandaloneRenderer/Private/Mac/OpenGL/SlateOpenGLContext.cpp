@@ -54,8 +54,17 @@ void UnlockGLContext(NSOpenGLContext* Context)
 	{
 		self.Context = context;
 		self.PixelFormat = pixelFormat;
+		[self.Context retain];
+		[self.PixelFormat retain];
 	}
 	return self;
+}
+
+- (void)dealloc
+{
+	[self.Context release];
+	[self.PixelFormat release];
+	[super dealloc];
 }
 
 - (BOOL)canDrawInOpenGLContext:(NSOpenGLContext *)context pixelFormat:(NSOpenGLPixelFormat *)pixelFormat forLayerTime:(CFTimeInterval)timeInterval displayTime:(const CVTimeStamp *)timeStamp
@@ -84,6 +93,9 @@ void UnlockGLContext(NSOpenGLContext* Context)
 	{
 		self.Context = context;
 		self.PixelFormat = pixelFormat;
+		[self.Context retain];
+		[self.PixelFormat retain];
+
 		Framebuffer = 0;
 		Renderbuffer = 0;
 	}
@@ -92,6 +104,8 @@ void UnlockGLContext(NSOpenGLContext* Context)
 
 -(void)dealloc
 {
+	[self.Context release];
+	[self.PixelFormat release];
 	[super dealloc];
 }
 

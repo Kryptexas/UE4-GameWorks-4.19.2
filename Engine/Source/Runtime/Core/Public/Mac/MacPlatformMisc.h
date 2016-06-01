@@ -99,11 +99,11 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	static void LoadPreInitModules();
 	static void NormalizePath(FString& InPath);
 	static FString GetPrimaryGPUBrand();
-	static void GetGPUDriverInfo(const FString DeviceDescription, FString& InternalDriverVersion, FString& UserDriverVersion, FString& DriverDate);
+	static struct FGPUDriverInfo GetGPUDriverInfo(const FString& DeviceDescription);
 	static void GetOSVersions( FString& out_OSVersionLabel, FString& out_OSSubVersionLabel );
 	static bool HasPlatformFeature(const TCHAR* FeatureName);
 	static bool GetDiskTotalAndFreeSpace(const FString& InPath, uint64& TotalNumberOfBytes, uint64& NumberOfFreeBytes);
-
+	static bool HasSeparateChannelForDebugOutput();
 
 	/** 
 	 * Determines the shader format for the plarform
@@ -200,6 +200,7 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 		~FGPUDescriptor();
 		
 		FGPUDescriptor& operator=(FGPUDescriptor const& Other);
+		TMap<FString, float> GetPerformanceStatistics() const;
 		
 		uint32 PCIDevice; // This is really an io_registry_entry_t which is a mach port name
 		NSString* GPUName;
@@ -218,6 +219,9 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	
 	/** Returns the index of the GPU to use or -1 if we should just use the default. */
 	static int32 GetExplicitRendererIndex();
+    
+    /** Update the driver monitor statistics for the given GPU - called once a frame by the Mac RHI's, no need to call otherwise - use GetPerformanceStatistics instead. */
+    static void UpdateDriverMonitorStatistics(int32 DeviceIndex);
 };
 
 #ifdef __OBJC__

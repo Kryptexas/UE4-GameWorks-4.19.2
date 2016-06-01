@@ -1,8 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#if WITH_FANCY_TEXT
-
 class SLATE_API FSlateTextRun : public ISlateRun, public TSharedFromThis< FSlateTextRun >
 {
 public:
@@ -67,5 +65,3 @@ protected:
 	FString DebugSlice;
 #endif
 };
-
-#endif //WITH_FANCY_TEXT

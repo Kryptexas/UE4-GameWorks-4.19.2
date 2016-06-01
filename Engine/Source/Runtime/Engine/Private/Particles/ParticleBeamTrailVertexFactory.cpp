@@ -112,13 +112,7 @@ void FParticleBeamTrailVertexFactory::InitRHI()
 	SetDeclaration(GParticleBeamTrailVertexDeclaration.VertexDeclarationRHI);
 
 	FVertexStream* VertexStream = new(Streams) FVertexStream;
-	VertexStream->VertexBuffer = 0;
-	VertexStream->Stride = 0;
-	VertexStream->Offset = 0;
 	FVertexStream* DynamicParameterStream = new(Streams) FVertexStream;
-	DynamicParameterStream->VertexBuffer = 0;
-	DynamicParameterStream->Stride = 0;
-	DynamicParameterStream->Offset = 0;
 }
 
 FVertexFactoryShaderParameters* FParticleBeamTrailVertexFactory::ConstructShaderParameters(EShaderFrequency ShaderFrequency)

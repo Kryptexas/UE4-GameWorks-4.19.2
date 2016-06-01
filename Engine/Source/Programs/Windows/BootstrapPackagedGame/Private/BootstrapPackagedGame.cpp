@@ -31,10 +31,6 @@ int InstallMissingPrerequisites(const WCHAR* BaseDirectory)
 {
 	// Look for missing prerequisites
 	WCHAR MissingPrerequisites[1024] = { 0, };
-	if(LoadLibrary(L"MSVCP120.DLL") == NULL || LoadLibrary(L"MSVCR120.DLL") == NULL)
-	{
-		wcscat_s(MissingPrerequisites, TEXT("Microsoft Visual C++ 2013 Runtime\n"));
-	}
 	if(LoadLibrary(L"MSVCP140.DLL") == NULL || LoadLibrary(L"ucrtbase.dll") == NULL)
 	{
 		wcscat_s(MissingPrerequisites, TEXT("Microsoft Visual C++ 2015 Runtime\n"));

@@ -131,20 +131,6 @@ FReply SWidget::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEv
 		{
 			return FReply::Handled().SetNavigation( Direction );
 		}
-		else if ( InKeyEvent.GetKey() == EKeys::Tab )
-		{
-			//@TODO: Really these uses of input should be at a lower priority, only occurring if nothing else handled them
-			// For now this code prevents consuming them when some modifiers are held down, allowing some limited binding
-			const bool bAllowEatingKeyEvents = !InKeyEvent.IsControlDown() && !InKeyEvent.IsAltDown() && !InKeyEvent.IsCommandDown();
-
-			if (bAllowEatingKeyEvents)
-			{
-				EUINavigation MoveDirection = (InKeyEvent.IsShiftDown())
-					? EUINavigation::Previous
-					: EUINavigation::Next;
-				return FReply::Handled().SetNavigation(MoveDirection);
-			}
-		}
 	}
 	return FReply::Unhandled();
 }
@@ -215,6 +201,11 @@ FReply SWidget::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const F
 bool SWidget::OnVisualizeTooltip( const TSharedPtr<SWidget>& TooltipContent )
 {
 	return false;
+}
+
+TSharedPtr<FPopupLayer> SWidget::OnVisualizePopup(const TSharedRef<SWidget>& PopupContent)
+{
+	return TSharedPtr<FPopupLayer>();
 }
 
 FReply SWidget::OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
@@ -689,6 +680,11 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 					);
 			}
 		}
+	}
+
+	if ( OutDrawElements.ShouldResolveDeferred() )
+	{
+		NewLayerID = OutDrawElements.PaintDeferred(NewLayerID);
 	}
 
 	return NewLayerID;

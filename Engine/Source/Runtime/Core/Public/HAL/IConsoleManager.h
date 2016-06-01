@@ -2,6 +2,8 @@
 
 #pragma once
 
+#define TRACK_CONSOLE_FIND_COUNT !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
 
 /**
  * Console variable usage guide:
@@ -129,6 +131,12 @@ class IConsoleObject
 
 public:
 
+	IConsoleObject()
+#if TRACK_CONSOLE_FIND_COUNT
+		: FindCallCount(0)
+#endif
+	{}
+
 	virtual ~IConsoleObject() {}
 
 	/**
@@ -200,6 +208,11 @@ public:
 
 private: // -----------------------------------------
 
+#if TRACK_CONSOLE_FIND_COUNT
+	// no longer pure visual, if that causes problems we can change the interface
+	// to track down FindConsoleObject/FindConsoleVariable calls without static
+	uint32 FindCallCount;
+#endif
 
 	/**
 	 *  should only be called by the manager, needs to be implemented for each instance
@@ -272,7 +285,7 @@ struct IConsoleCommand : public IConsoleObject
 	 * @param	InWorld		World context for this command
 	 * @return	True if the delegate for this command was executed successfully
 	 */
-	virtual bool Execute( const TArray< FString > Args, UWorld* InWorld, class FOutputDevice& OutputDevice ) = 0;
+	virtual bool Execute( const TArray< FString >& Args, UWorld* InWorld, class FOutputDevice& OutputDevice ) = 0;
 };
 
 /**
@@ -282,6 +295,7 @@ struct IConsoleThreadPropagation
 {
 	virtual void OnCVarChange(int32& Dest, int32 NewValue) = 0;
 	virtual void OnCVarChange(float& Dest, float NewValue) = 0;
+	virtual void OnCVarChange(bool& Dest, bool NewValue) = 0;
 	virtual void OnCVarChange(FString& Dest, const FString& NewValue) = 0;
 };
 
@@ -367,6 +381,13 @@ struct CORE_API IConsoleManager
 	 * @param Flags bitmask combined from EConsoleVariableFlags
 	 */
 	virtual IConsoleVariable* RegisterConsoleVariableRef(const TCHAR* Name, float& RefValue, const TCHAR* Help, uint32 Flags = ECVF_Default) = 0;
+	/**
+	* Create a reference to a bool console variable
+	* @param Name must not be 0
+	* @param Help must not be 0
+	* @param Flags bitmask combined from EConsoleVariableFlags
+	*/
+	virtual IConsoleVariable* RegisterConsoleVariableRef(const TCHAR* Name, bool& RefValue, const TCHAR* Help, uint32 Flags = ECVF_Default) = 0;
 	/**
 	 * Create a reference to a show flag variable
 	 * @param CVarName must not be 0, e.g. "Show.PostProcessing"
@@ -972,6 +993,36 @@ public:
 	}
 
 	
+};
+
+/** Helper class for accessing an int CVar. */
+struct FCVarAccessorInt
+{
+	FCVarAccessorInt(IConsoleVariable* CVar) : Data(CVar->AsVariableInt())	{ check(Data); }
+	FORCEINLINE int32 GetGameThreadValue(){ return Data->GetValueOnAnyThread(true); }
+	FORCEINLINE int32 GetRenderThreadValue(){ return Data->GetValueOnRenderThread(); }
+private:
+	const TConsoleVariableData<int32>* Data;
+};
+
+/** Helper class for accessing a float CVar. */
+struct FCVarAccessorFloat
+{
+	FCVarAccessorFloat(IConsoleVariable* CVar) : Data(CVar->AsVariableFloat())	{ check(Data); }
+	FORCEINLINE float GetGameThreadValue(){ return Data->GetValueOnAnyThread(true); }
+	FORCEINLINE float GetRenderThreadValue(){ return Data->GetValueOnRenderThread(); }
+private:
+	const TConsoleVariableData<float>* Data;
+};
+
+/** Helper class for accessing a string CVar. */
+struct FCVarAccessorString
+{
+	FCVarAccessorString(IConsoleVariable* CVar) : Data(CVar->AsVariableString())	{ check(Data); }
+	FORCEINLINE FString GetGameThreadValue(){ return Data->GetValueOnAnyThread(true); }
+	FORCEINLINE FString GetRenderThreadValue(){ return Data->GetValueOnRenderThread(); }
+private:
+	const TConsoleVariableData<FString>* Data;
 };
 
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogConsoleResponse, Log, All);

@@ -38,15 +38,24 @@ void UPendingNetGame::InitNetDriver()
 
 		if( NetDriver->InitConnect( this, URL, ConnectionError ) )
 		{
+			UNetConnection* ServerConn = NetDriver->ServerConnection;
+
+			// Kick off the connection handshake
+			if (ServerConn->StatelessConnectComponent.IsValid())
+			{
+				ServerConn->StatelessConnectComponent.Pin()->SendInitialConnect();
+			}
+
+
 			// Send initial message.
 			uint8 IsLittleEndian = uint8(PLATFORM_LITTLE_ENDIAN);
 			check(IsLittleEndian == !!IsLittleEndian); // should only be one or zero
 			
 			uint32 LocalNetworkVersion = FNetworkVersion::GetLocalNetworkVersion();
 
-			FNetControlMessage<NMT_Hello>::Send( NetDriver->ServerConnection, IsLittleEndian, LocalNetworkVersion );
+			FNetControlMessage<NMT_Hello>::Send(ServerConn, IsLittleEndian, LocalNetworkVersion);
 
-			NetDriver->ServerConnection->FlushNet();
+			ServerConn->FlushNet();
 		}
 		else
 		{
@@ -89,6 +98,28 @@ void UPendingNetGame::AddReferencedObjects(UObject* InThis, FReferenceCollector&
 	}
 #endif
 	Super::AddReferencedObjects( This, Collector );
+}
+
+void UPendingNetGame::LoadMapCompleted(UEngine* Engine, FWorldContext& Context, bool bLoadedMapSuccessfully, const FString& LoadMapError)
+{
+	if (!bLoadedMapSuccessfully || LoadMapError != TEXT(""))
+	{
+		// we can't guarantee the current World is in a valid state, so travel to the default map
+		Engine->BrowseToDefaultMap(Context);
+		Engine->BroadcastTravelFailure(Context.World(), ETravelFailure::LoadMapFailure, LoadMapError);
+		check(Context.World() != NULL);
+	}
+	else
+	{
+		// Show connecting message, cause precaching to occur.
+		Engine->TransitionType = TT_Connecting;
+
+		Engine->RedrawViewports();
+
+		// Send join.
+		Context.PendingNetGame->SendJoin();
+		Context.PendingNetGame->NetDriver = NULL;
+	}
 }
 
 EAcceptConnection::Type UPendingNetGame::NotifyAcceptingConnection()

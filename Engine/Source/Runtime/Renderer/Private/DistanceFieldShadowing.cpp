@@ -45,7 +45,7 @@ FAutoConsoleVariableRef CVarShadowWorldTileSize(
 	TEXT("r.DFShadowWorldTileSize"),
 	GShadowWorldTileSize,
 	TEXT("World space size of a tile used for culling for directional lights."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 float GTwoSidedMeshDistanceBias = 4;
@@ -53,7 +53,7 @@ FAutoConsoleVariableRef CVarTwoSidedMeshDistanceBias(
 	TEXT("r.DFTwoSidedMeshDistanceBias"),
 	GTwoSidedMeshDistanceBias,
 	TEXT("World space amount to expand distance field representations of two sided meshes.  This is useful to get tree shadows to match up with standard shadow mapping."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 int32 GetDFShadowDownsampleFactor()

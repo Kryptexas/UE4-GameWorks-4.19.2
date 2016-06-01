@@ -122,4 +122,7 @@ protected:
 
 	/** Tracks objects created for the details panel */
 	FEditorObjectTracker EditorObjectTracker;
+
+private:
+	float GetPercentageInternal() const;
 };

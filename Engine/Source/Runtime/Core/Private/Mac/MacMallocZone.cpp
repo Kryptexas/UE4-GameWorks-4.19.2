@@ -85,6 +85,10 @@ void FMacMallocCrashHandler::Enable( FMacCrashContext* Context, uint32 CrashedTh
 	CrashContext = Context;
 	ThreadId = CrashedThreadId;
 	OriginalHeap = GMalloc;
+	if (PLATFORM_USES_FIXED_GMalloc_CLASS && GFixedMallocLocationPtr)
+	{
+		*GFixedMallocLocationPtr = nullptr; // this disables any fast-path inline allocators
+	}
 	GMalloc = this;
 }
 	

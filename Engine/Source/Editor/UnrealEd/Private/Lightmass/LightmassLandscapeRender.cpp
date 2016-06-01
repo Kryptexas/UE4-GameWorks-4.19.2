@@ -51,7 +51,7 @@ public:
 	/** Default constructor. */
 	FLightmassLandscapeVertexFactory()
 	{
-		FLocalVertexFactory::DataType Data;
+		FLocalVertexFactory::FDataType Data;
 		// Position
 		Data.PositionComponent = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(&LightmassLandscapeVertexBuffer, FLightmassLandscapeVertex, Position, VET_Float3);
 		// Tangents

@@ -14,6 +14,7 @@
 #include "Animation/AnimMontage.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/DamageType.h"
+#include "Engine/SkeletalMeshSocket.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCharacter, Log, All);
 DEFINE_LOG_CATEGORY_STATIC(LogAvatar, Log, All);
@@ -61,6 +62,8 @@ ACharacter::ACharacter(const FObjectInitializer& ObjectInitializer)
 	JumpKeyHoldTime = 0.0f;
 	JumpMaxHoldTime = 0.0f;
 
+	AnimRootMotionTranslationScale = 1.0f;
+
 #if WITH_EDITORONLY_DATA
 	ArrowComponent = CreateEditorOnlyDefaultSubobject<UArrowComponent>(TEXT("Arrow"));
 	if (ArrowComponent)
@@ -69,7 +72,7 @@ ACharacter::ACharacter(const FObjectInitializer& ObjectInitializer)
 		ArrowComponent->bTreatAsASprite = true;
 		ArrowComponent->SpriteInfo.Category = ConstructorStatics.ID_Characters;
 		ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Characters;
-		ArrowComponent->AttachParent = CapsuleComponent;
+		ArrowComponent->SetupAttachment(CapsuleComponent);
 		ArrowComponent->bIsScreenSizeScaled = true;
 	}
 #endif // WITH_EDITORONLY_DATA
@@ -91,7 +94,7 @@ ACharacter::ACharacter(const FObjectInitializer& ObjectInitializer)
 		Mesh->bCastDynamicShadow = true;
 		Mesh->bAffectDynamicIndirectLighting = true;
 		Mesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
-		Mesh->AttachParent = CapsuleComponent;
+		Mesh->SetupAttachment(CapsuleComponent);
 		static FName MeshCollisionProfileName(TEXT("CharacterMesh"));
 		Mesh->SetCollisionProfileName(MeshCollisionProfileName);
 		Mesh->bGenerateOverlapEvents = false;
@@ -547,22 +550,32 @@ namespace MovementBaseUtility
 		{
 			if (BoneName != NAME_None)
 			{
-				const USkeletalMeshComponent* SkeletalBase = Cast<USkeletalMeshComponent>(MovementBase);
-				if (SkeletalBase)
+				bool bFoundBone = false;
+				const USkinnedMeshComponent* SkinnedBase = Cast<USkinnedMeshComponent>(MovementBase);
+				if (SkinnedBase)
 				{
-					const int32 BoneIndex = SkeletalBase->GetBoneIndex(BoneName);
-					if (BoneIndex != INDEX_NONE)
+					// Check if this socket or bone exists (DoesSocketExist checks for either, as does requesting the transform).
+					if (SkinnedBase->DoesSocketExist(BoneName))
 					{
-						const FTransform BoneTransform = SkeletalBase->GetBoneTransform(BoneIndex);
-						OutLocation = BoneTransform.GetLocation();
-						OutQuat = BoneTransform.GetRotation();
-						return true;
+						SkinnedBase->GetSocketWorldLocationAndRotation(BoneName, OutLocation, OutQuat);
+						bFoundBone = true;
 					}
-
-					UE_LOG(LogCharacter, Warning, TEXT("GetMovementBaseTransform(): Invalid bone '%s' for SkeletalMeshComponent base %s"), *BoneName.ToString(), *GetPathNameSafe(MovementBase));
-					return false;
+					else
+					{
+						UE_LOG(LogCharacter, Warning, TEXT("GetMovementBaseTransform(): Invalid bone or socket '%s' for SkinnedMeshComponent base %s"), *BoneName.ToString(), *GetPathNameSafe(MovementBase));
+					}
 				}
-				// TODO: warn if not a skeletal mesh but providing bone index.
+				else
+				{
+					UE_LOG(LogCharacter, Warning, TEXT("GetMovementBaseTransform(): Requested bone or socket '%s' for non-SkinnedMeshComponent base %s, this is not supported"), *BoneName.ToString(), *GetPathNameSafe(MovementBase));
+				}
+
+				if (!bFoundBone)
+				{
+					OutLocation = MovementBase->GetComponentLocation();
+					OutQuat = MovementBase->GetComponentQuat();
+				}
+				return bFoundBone;
 			}
 
 			// No bone supplied
@@ -1312,6 +1325,7 @@ void ACharacter::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTra
 		DOREPLIFETIME_ACTIVE_OVERRIDE( ACharacter, RepRootMotion, false );
 	}
 
+	ReplicatedServerLastTransformUpdateTimeStamp = CharacterMovement->GetServerLastTransformUpdateTimeStamp();
 	ReplicatedMovementMode = CharacterMovement->PackNetworkMovementMode();	
 	ReplicatedBasedMovement = BasedMovement;
 
@@ -1327,16 +1341,39 @@ void ACharacter::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTra
 			ReplicatedBasedMovement.Rotation = GetActorRotation();
 		}
 	}
+
+	if ( ChangedPropertyTracker.IsReplay() )
+	{
+		// If this is a replay, we save out certain values we need to runtime to do smooth interpolation
+		// We'll be able to look ahead in the replay to have these ahead of time for smoother playback
+		FCharacterReplaySample ReplaySample;
+
+		ReplaySample.Location			= GetActorLocation();
+		ReplaySample.Rotation			= GetActorRotation();
+		ReplaySample.Velocity			= GetVelocity();
+		ReplaySample.Acceleration		= CharacterMovement->GetCurrentAcceleration();
+		ReplaySample.RemoteViewPitch	= RemoteViewPitch;
+
+		FBitWriter Writer( 0, true );
+		Writer << ReplaySample;
+
+		ChangedPropertyTracker.SetExternalData( Writer.GetData(), Writer.GetNumBits() );
+	}
 }
 
 void ACharacter::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
 {
 	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
 
-	DOREPLIFETIME_CONDITION( ACharacter, RepRootMotion,				COND_SimulatedOnly );
-	DOREPLIFETIME_CONDITION( ACharacter, ReplicatedBasedMovement,	COND_SimulatedOnly );
-	DOREPLIFETIME_CONDITION( ACharacter, ReplicatedMovementMode,	COND_SimulatedOnly );
-	DOREPLIFETIME_CONDITION( ACharacter, bIsCrouched,				COND_SimulatedOnly );
+	DOREPLIFETIME_CONDITION( ACharacter, RepRootMotion,						COND_SimulatedOnlyNoReplay );
+	DOREPLIFETIME_CONDITION( ACharacter, ReplicatedBasedMovement,			COND_SimulatedOnly );
+	DOREPLIFETIME_CONDITION( ACharacter, ReplicatedServerLastTransformUpdateTimeStamp, COND_SimulatedOnlyNoReplay );
+	DOREPLIFETIME_CONDITION( ACharacter, ReplicatedMovementMode,			COND_SimulatedOnly );
+	DOREPLIFETIME_CONDITION( ACharacter, bIsCrouched,						COND_SimulatedOnly );
+	DOREPLIFETIME_CONDITION( ACharacter, AnimRootMotionTranslationScale,	COND_SimulatedOnly );
+
+	// Change the condition of the replicated movement property to not replicate in replays since we handle this specifically via saving this out in external replay data
+	DOREPLIFETIME_CHANGE_CONDITION( AActor, ReplicatedMovement,				COND_SimulatedOrPhysicsNoReplay );
 }
 
 bool ACharacter::IsPlayingRootMotion() const
@@ -1365,6 +1402,16 @@ bool ACharacter::IsPlayingNetworkedRootMotionMontage() const
 		}
 	}
 	return false;
+}
+
+void ACharacter::SetAnimRootMotionTranslationScale(float InAnimRootMotionTranslationScale)
+{
+	AnimRootMotionTranslationScale = InAnimRootMotionTranslationScale;
+}
+
+float ACharacter::GetAnimRootMotionTranslationScale() const
+{
+	return AnimRootMotionTranslationScale;
 }
 
 float ACharacter::PlayAnimMontage(class UAnimMontage* AnimMontage, float InPlayRate, FName StartSectionName)
@@ -1414,31 +1461,37 @@ class UAnimMontage * ACharacter::GetCurrentMontage()
 
 void ACharacter::ClientCheatWalk_Implementation()
 {
+#if !UE_BUILD_SHIPPING
 	SetActorEnableCollision(true);
 	if (CharacterMovement)
 	{
 		CharacterMovement->bCheatFlying = false;
 		CharacterMovement->SetMovementMode(MOVE_Falling);
 	}
+#endif
 }
 
 void ACharacter::ClientCheatFly_Implementation()
 {
+#if !UE_BUILD_SHIPPING
 	SetActorEnableCollision(true);
 	if (CharacterMovement)
 	{
 		CharacterMovement->bCheatFlying = true;
 		CharacterMovement->SetMovementMode(MOVE_Flying);
 	}
+#endif
 }
 
 void ACharacter::ClientCheatGhost_Implementation()
 {
+#if !UE_BUILD_SHIPPING
 	SetActorEnableCollision(false);
 	if (CharacterMovement)
 	{
 		CharacterMovement->bCheatFlying = true;
 		CharacterMovement->SetMovementMode(MOVE_Flying);
 	}
+#endif
 }
 

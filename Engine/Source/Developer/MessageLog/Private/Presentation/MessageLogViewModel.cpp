@@ -144,6 +144,8 @@ void FMessageLogViewModel::UpdateListingViewModelArray()
 	{
 		ViewModelArray.Add(It.Value());
 	}
+
+	Update();
 }
 
 #undef LOCTEXT_NAMESPACE

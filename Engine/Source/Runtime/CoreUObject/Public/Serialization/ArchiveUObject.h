@@ -1533,6 +1533,11 @@ private:
 	int64							PrecacheEndPos[2];
 	/** Buffer containing precached data.											*/
 	uint8*							PrecacheBuffer[2];
+	/** Precahce buffer size */
+	SIZE_T PrecacheBufferSize[2];
+	/** True if the precache buffer is protected */
+	bool PrecacheBufferProtected[2];
+
 	/** Status of pending read, a value of 0 means no outstanding reads.			*/
 	FThreadSafeCounter				PrecacheReadStatus[2];
 	

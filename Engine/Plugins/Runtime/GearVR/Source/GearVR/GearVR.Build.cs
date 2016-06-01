@@ -36,7 +36,7 @@ namespace UnrealBuildTool.Rules
             PublicIncludePathModuleNames.Add("Launch");
 
 			PrivateDependencyModuleNames.AddRange(new string[] { "OpenGLDrv" });
-			AddThirdPartyPrivateStaticDependencies(Target, "OpenGL");
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenGL");
             PrivateIncludePaths.AddRange(
 				new string[] {
 					"../../../../Source/Runtime/OpenGLDrv/Private",

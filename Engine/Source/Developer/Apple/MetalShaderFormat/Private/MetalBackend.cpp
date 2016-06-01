@@ -1,5 +1,5 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-// .
+// 
 
 #include "MetalShaderFormat.h"
 #include "Core.h"
@@ -233,7 +233,7 @@ static void InsertRange( TCBDMARangeMap& CBAllRanges, unsigned SourceCB, unsigne
 	SDMARange Range = { SourceCB, SourceOffset, Size, DestCBIndex, DestCBPrecision, DestOffset };
 
 	TDMARangeList& CBRanges = CBAllRanges[SourceDestCBKey];
-//printf("* InsertRange: %08x\t%d:%d - %d:%c:%d:%d\n", SourceDestCBKey, SourceCB, SourceOffset, DestCBIndex, DestCBPrecision, DestOffset, Size);
+//printf("* InsertRange: %08x\t%u:%u - %u:%c:%u:%u\n", SourceDestCBKey, SourceCB, SourceOffset, DestCBIndex, DestCBPrecision, DestOffset, Size);
 	if (CBRanges.empty())
 	{
 		CBRanges.push_back(Range);
@@ -326,7 +326,7 @@ static void DumpSortedRanges(TDMARangeList& SortedRanges)
 	for (auto i = SortedRanges.begin(); i != SortedRanges.end(); ++i )
 	{
 		auto o = *i;
-		printf("\t%d:%d - %d:%c:%d:%d\n", o.SourceCB, o.SourceOffset, o.DestCBIndex, o.DestCBPrecision, o.DestOffset, o.Size);
+		printf("\t%u:%u - %u:%c:%u:%u\n", o.SourceCB, o.SourceOffset, o.DestCBIndex, o.DestCBPrecision, o.DestOffset, o.Size);
 	}
 }
 
@@ -808,7 +808,7 @@ protected:
 							print_type_post(PtrType);
 							ralloc_asprintf_append(
 								buffer,
-								" [[ texture(%d) ]]", Entry->offset
+								" [[ texture(%u) ]]", Entry->offset
 								);
 						}
 					}
@@ -1609,7 +1609,7 @@ protected:
 								break;
 						}
 					}
-					
+
 					//#todo-rco: Add language spec to know if indices need to be uint
 					ralloc_asprintf_append(buffer, ",(uint");
 					switch (deref->image_index->type->vector_elements)
@@ -1617,7 +1617,7 @@ protected:
 					case 4:
 					case 3:
 					case 2:
-						ralloc_asprintf_append(buffer, "%d", deref->image_index->type->vector_elements);
+						ralloc_asprintf_append(buffer, "%u", deref->image_index->type->vector_elements);
 						//fallthrough
 					case 1:
 						ralloc_asprintf_append(buffer, ")(");
@@ -1923,6 +1923,17 @@ protected:
 		{
 			ralloc_asprintf_append(buffer, "as_type<uint>(half2(");
 		}
+		else if (!strcmp(call->callee_name(), "unpackHalf2x16"))
+		{
+			if(call->return_deref && call->return_deref->type && call->return_deref->type->base_type == GLSL_TYPE_HALF)
+			{
+				ralloc_asprintf_append(buffer, "half2(as_type<half2>(");
+			}
+			else
+			{
+				ralloc_asprintf_append(buffer, "float2(as_type<half2>(");
+			}
+		}
 		else
 		{
 			ralloc_asprintf_append(buffer, "%s(", call->callee_name());
@@ -1939,10 +1950,10 @@ protected:
 			bPrintComma = true;
 		}
 		ralloc_asprintf_append(buffer, ")");
-
-		if (!strcmp(call->callee_name(), "packHalf2x16"))
+		
+		if (!strcmp(call->callee_name(), "packHalf2x16") || !strcmp(call->callee_name(), "unpackHalf2x16"))
 		{
-			ralloc_asprintf_append(buffer, ")");			
+			ralloc_asprintf_append(buffer, ")");
 		}
 	}
 
@@ -2477,7 +2488,7 @@ protected:
 		{
 			glsl_packed_uniform& Uniform = *Iter;
 			ANSICHAR Name[32];
-			FCStringAnsi::Sprintf(Name, "%si%d", glsl_variable_tag_from_parser_target(Frequency), Uniform.offset);
+			FCStringAnsi::Sprintf(Name, "%si%u", glsl_variable_tag_from_parser_target(Frequency), Uniform.offset);
 			int32 Offset = Buffers.GetIndex(Name, Backend->bIsDesktop);
 			check(Offset != -1);
 			ralloc_asprintf_append(
@@ -2590,7 +2601,7 @@ protected:
 						{
 							if (bNeedsHeader)
 							{
-								ralloc_asprintf_append(buffer, "// @PackedUB: %s(%d): ",
+								ralloc_asprintf_append(buffer, "// @PackedUB: %s(%u): ",
 									block->name,
 									CBIndex);
 								bNeedsHeader = false;
@@ -2642,7 +2653,7 @@ protected:
 				}
 
 				check(IterList->DestCBIndex == 0);
-				ralloc_asprintf_append(buffer, "%d:%d-%c:%d:%d", IterList->SourceCB, IterList->SourceOffset, IterList->DestCBPrecision, IterList->DestOffset, IterList->Size);
+				ralloc_asprintf_append(buffer, "%u:%u-%c:%u:%u", IterList->SourceCB, IterList->SourceOffset, IterList->DestCBPrecision, IterList->DestOffset, IterList->Size);
 			}
 		}
 
@@ -2955,48 +2966,130 @@ char* FMetalCodeBackend::GenerateCode(exec_list* ir, _mesa_glsl_parse_state* sta
 	return _strdup(code);
 }
 
-struct FMetalCheckRestrictionsVisitor : public ir_hierarchical_visitor
+struct FMetalCheckNonComputeRestrictionsVisitor : public ir_hierarchical_visitor
 {
 	_mesa_glsl_parse_state* ParseState;
-	EHlslShaderFrequency Frequency;
 	bool bErrors;
-	FMetalCheckRestrictionsVisitor(_mesa_glsl_parse_state* InParseState, EHlslShaderFrequency InFrequency)
+	FMetalCheckNonComputeRestrictionsVisitor(_mesa_glsl_parse_state* InParseState)
 		: ParseState(InParseState)
-		, Frequency(InFrequency)
 		, bErrors(false)
 	{
 	}
 
 	virtual ir_visitor_status visit(ir_variable* IR) override
 	{
-		if (Frequency != HSF_ComputeShader)
+		if (IR->type && IR->type->is_image())
 		{
-			if (IR->type && IR->type->is_image())
+			if (IR->name)
 			{
-				if (IR->name)
-				{
-					_mesa_glsl_error(ParseState, "Metal doesn't allow UAV '%s' on non-compute shader stages.", IR->name);
-				}
-				else
-				{
-					_mesa_glsl_error(ParseState, "Metal doesn't allow UAV on non-compute shader stages.");
-				}
-				bErrors = true;
-				return visit_stop;
+				_mesa_glsl_error(ParseState, "Metal doesn't allow UAV '%s' on non-compute shader stages.", IR->name);
 			}
+			else
+			{
+				_mesa_glsl_error(ParseState, "Metal doesn't allow UAV on non-compute shader stages.");
+			}
+			bErrors = true;
+			return visit_stop;
 		}
 
 		return visit_continue;
 	}
 }; 
 
+struct FMetalCheckComputeRestrictionsVisitor : public ir_rvalue_visitor
+{
+	_mesa_glsl_parse_state* ParseState;
+	bool bErrors;
+	enum
+	{
+		Read = 1,
+		Write = 2,
+		ReadWrite = Read | Write,
+	};
+	TMap<ir_variable*, uint32> ImageRW;
+
+	FMetalCheckComputeRestrictionsVisitor(_mesa_glsl_parse_state* InParseState)
+		: ParseState(InParseState)
+		, bErrors(false)
+	{
+	}
+
+	virtual ir_visitor_status visit(ir_variable* IR) override
+	{
+		if (IR->type && IR->type->is_image())
+		{
+			ImageRW.Add(IR, 0);
+		}
+
+		return ir_rvalue_visitor::visit(IR);
+	}
+
+	void VerifyDeReference(ir_dereference* DeRef, bool bWrite)
+	{
+		auto* Var = DeRef->variable_referenced();
+		if (Var && Var->type && Var->type->is_image() && !Var->type->sampler_buffer)
+		{
+			if (bWrite)
+			{
+				ImageRW[Var] |= Write;
+			}
+			else
+			{
+				ImageRW[Var] |= Read;
+			}
+
+			if (ImageRW[Var] == ReadWrite)
+			{
+				_mesa_glsl_error(ParseState, "Metal doesn't allow simultaneous read & write on RWTexture(s) %s%s%s", Var->name ? "(" : "", Var->name ? Var->name : "", Var->name ? ")" : "");
+				bErrors = true;
+			}
+		}
+	}
+
+	ir_visitor_status visit_leave(ir_assignment *ir) override
+	{
+		auto ReturnValue = ir_rvalue_visitor::visit_leave(ir);
+		if (ReturnValue != visit_stop)
+		{
+			VerifyDeReference(ir->lhs, true);
+			if (bErrors)
+			{
+				return visit_stop;
+			}
+		}
+		return ReturnValue;
+	}
+
+	virtual void handle_rvalue(ir_rvalue **rvalue) override
+	{
+		if (rvalue && *rvalue)
+		{
+			auto* DeRef = (*rvalue)->as_dereference();
+			if (DeRef)
+			{
+				VerifyDeReference(DeRef, in_assignee);
+			}
+		}
+	}
+};
+
 
 bool FMetalCodeBackend::ApplyAndVerifyPlatformRestrictions(exec_list* Instructions, _mesa_glsl_parse_state* ParseState, EHlslShaderFrequency Frequency)
 {
-	FMetalCheckRestrictionsVisitor Visitor(ParseState, Frequency);
-	Visitor.run(Instructions);
+	if (Frequency == HSF_ComputeShader)
+	{
+		FMetalCheckComputeRestrictionsVisitor Visitor(ParseState);
+		Visitor.run(Instructions);
 
-	return !Visitor.bErrors;
+		return !Visitor.bErrors;
+	}
+	else
+	{
+		FMetalCheckNonComputeRestrictionsVisitor Visitor(ParseState);
+		Visitor.run(Instructions);
+
+		return !Visitor.bErrors;
+	}
 }
 
 bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char* EntryPoint, exec_list* Instructions, _mesa_glsl_parse_state* ParseState)
@@ -3092,10 +3185,10 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 	return true;
 }
 
-FMetalCodeBackend::FMetalCodeBackend(unsigned int InHlslCompileFlags, EHlslCompileTarget InTarget) :
+FMetalCodeBackend::FMetalCodeBackend(unsigned int InHlslCompileFlags, EHlslCompileTarget InTarget, bool bInDesktop) :
 	FCodeBackend(InHlslCompileFlags, HCT_FeatureLevelES3_1)
 {
-	bIsDesktop = (InTarget == HCT_FeatureLevelSM4 || InTarget == HCT_FeatureLevelSM5);
+	bIsDesktop = bInDesktop;
 }
 
 void FMetalLanguageSpec::SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, exec_list* ir)

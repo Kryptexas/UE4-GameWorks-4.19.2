@@ -27,19 +27,20 @@ public:
 	TArray<uint32> Indices;
 	/** indices to original imported wedge points */
 	TArray<uint32> WedgePointIndices;
-	/** mesh that provided the source data */
-	UObject* SourceMesh;
 
 	/** Constructor (default) */
-	ENGINE_API FMorphMeshRawSource() : 
-	SourceMesh(NULL)
+	ENGINE_API FMorphMeshRawSource() 
 	{
 	}
 
 	ENGINE_API FMorphMeshRawSource( USkeletalMesh* SrcMesh, int32 LODIndex=0 );
 	ENGINE_API FMorphMeshRawSource( UStaticMesh* SrcMesh, int32 LODIndex=0 );
+	ENGINE_API FMorphMeshRawSource( FStaticLODModel& LODModel );
 
 	ENGINE_API bool IsValidTarget( const FMorphMeshRawSource& Target ) const;
+
+private:
+	void Initialize(FStaticLODModel& LODModel);
 };
 
 
@@ -55,6 +56,10 @@ struct FMorphTargetLODModel
 	int32 NumBaseMeshVerts;
 	/** Get Resource Size */
 	SIZE_T GetResourceSize() const;
+
+	FMorphTargetLODModel()
+		: NumBaseMeshVerts(0)
+	{}
 
 	/** pipe operator */
 	friend FArchive& operator<<( FArchive& Ar, FMorphTargetLODModel& M )

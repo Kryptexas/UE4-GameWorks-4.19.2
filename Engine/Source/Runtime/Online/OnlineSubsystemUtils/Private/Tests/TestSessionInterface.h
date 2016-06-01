@@ -6,6 +6,8 @@
 #include "OnlineSessionInterface.h"
 #include "OnlineFriendsInterface.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 /**
  * Class used to test the friends interface
  */
@@ -317,3 +319,5 @@
 	 */
 	void ClearDelegates();
  };
+
+#endif //WITH_DEV_AUTOMATION_TESTS

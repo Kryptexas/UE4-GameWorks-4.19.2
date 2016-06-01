@@ -74,6 +74,7 @@ class UAnimCompress_RemoveLinearKeys : public UAnimCompress
 protected:
 	//~ Begin UAnimCompress Interface
 	virtual void DoReduction(class UAnimSequence* AnimSeq, const TArray<class FBoneData>& BoneData) override;
+	virtual void PopulateDDCKey(FArchive& Ar) override;
 	//~ Begin UAnimCompress Interface
 
 	/**

@@ -271,7 +271,7 @@ bool UK2Node_GetClassDefaults::HasExternalDependencies(TArray<class UStruct*>* O
 
 void UK2Node_GetClassDefaults::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) 
 {
-	Super::ReallocatePinsDuringReconstruction(OldPins);
+	AllocateDefaultPins();
 
 	// Recreate output pins based on the previous input class
 	UEdGraphPin* OldClassPin = FindClassPin(OldPins);
@@ -279,6 +279,8 @@ void UK2Node_GetClassDefaults::ReallocatePinsDuringReconstruction(TArray<UEdGrap
 	{
 		CreateOutputPins(InputClass);
 	}
+
+	RestoreSplitPins(OldPins);
 }
 
 FNodeHandlingFunctor* UK2Node_GetClassDefaults::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const
@@ -347,26 +349,29 @@ UClass* UK2Node_GetClassDefaults::GetInputClass(const UEdGraphPin* FromPin) cons
 {
 	UClass* InputClass = nullptr;
 
-	const UEdGraphPin* ClassPin = FromPin;
-	if(ClassPin == nullptr)
+	if (FromPin != nullptr)
 	{
-		ClassPin = FindClassPin();
-	}
-	
-	if(ClassPin != nullptr)
-	{
-		check(ClassPin->Direction == EGPD_Input);
+		check(FromPin->Direction == EGPD_Input);
 
-		if(ClassPin->DefaultObject != nullptr && ClassPin->LinkedTo.Num() == 0)
+		if (FromPin->DefaultObject != nullptr && FromPin->LinkedTo.Num() == 0)
 		{
-			InputClass = CastChecked<UClass>(ClassPin->DefaultObject);
+			InputClass = CastChecked<UClass>(FromPin->DefaultObject);
 		}
-		else if(ClassPin->LinkedTo.Num() > 0)
+		else if (FromPin->LinkedTo.Num() > 0)
 		{
-			if(UEdGraphPin* LinkedPin = ClassPin->LinkedTo[0])
+			if (UEdGraphPin* LinkedPin = FromPin->LinkedTo[0])
 			{
 				InputClass = Cast<UClass>(LinkedPin->PinType.PinSubCategoryObject.Get());
 			}
+		}
+	}
+
+	// Switch Blueprint Class types to use the generated skeleton class.
+	if (InputClass)
+	{
+		if (UBlueprint* Blueprint = Cast<UBlueprint>(InputClass->ClassGeneratedBy))
+		{
+			InputClass = Blueprint->SkeletonGeneratedClass;
 		}
 	}
 
@@ -398,6 +403,53 @@ void UK2Node_GetClassDefaults::CreateOutputPins(UClass* InClass)
 	else if(!bHasAdvancedPins)
 	{
 		AdvancedPinDisplay = ENodeAdvancedPins::NoPins;
+	}
+
+	// Unbind OnChanged() delegate from a previous Blueprint, if valid.
+
+	// If the class was generated for a Blueprint, bind delegates to handle any OnChanged() & OnCompiled() events.
+	bool bShouldClearDelegate = true;
+	if (InClass)
+	{
+		if (UBlueprint* Blueprint = Cast<UBlueprint>(InClass->ClassGeneratedBy))
+		{
+			// only clear the delegate if the pin has changed:
+			bShouldClearDelegate = BlueprintSubscribedTo != Blueprint;
+		}
+	}
+
+	if (bShouldClearDelegate)
+	{
+		if (OnBlueprintChangedDelegate.IsValid())
+		{
+			if (BlueprintSubscribedTo)
+			{
+				BlueprintSubscribedTo->OnChanged().Remove(OnBlueprintChangedDelegate);
+			}
+			OnBlueprintChangedDelegate.Reset();
+		}
+
+		// Unbind OnCompiled() delegate from a previous Blueprint, if valid.
+		if (OnBlueprintCompiledDelegate.IsValid())
+		{
+			if (BlueprintSubscribedTo)
+			{
+				BlueprintSubscribedTo->OnChanged().Remove(OnBlueprintCompiledDelegate);
+			}
+			OnBlueprintCompiledDelegate.Reset();
+		}
+		// Associated Blueprint changed, clear the BlueprintSubscribedTo:
+		BlueprintSubscribedTo = nullptr;
+	}
+
+	if (InClass && bShouldClearDelegate)
+	{
+		if (UBlueprint* Blueprint = Cast<UBlueprint>(InClass->ClassGeneratedBy))
+		{
+			BlueprintSubscribedTo = Blueprint;
+			OnBlueprintChangedDelegate = Blueprint->OnChanged().AddLambda([this](UBlueprint* /* InBlueprint */) { ReconstructNode(); });
+			OnBlueprintCompiledDelegate = Blueprint->OnCompiled().AddLambda([this](UBlueprint* /* InBlueprint */) { ReconstructNode(); });
+		}
 	}
 }
 

@@ -33,11 +33,10 @@ static bool HasBadTangents(UStaticMesh* Mesh)
 			int32 NumVerts = LOD.VertexBuffer.GetNumVertices();
 			for (int32 VertIndex = 0; !bHasBadTangents && VertIndex < NumVerts; ++VertIndex)
 			{
-				FPackedNormal& TangentX = LOD.VertexBuffer.VertexTangentX(VertIndex);
-				FPackedNormal& TangentZ = LOD.VertexBuffer.VertexTangentZ(VertIndex);
-				if (FMath::Abs((int32)TangentX.Vector.X - (int32)TangentZ.Vector.X) <= 1
-					&& FMath::Abs((int32)TangentX.Vector.Y - (int32)TangentZ.Vector.Y) <= 1
-					&& FMath::Abs((int32)TangentX.Vector.Z - (int32)TangentZ.Vector.Z) <= 1)
+				const FVector TangentX = LOD.VertexBuffer.VertexTangentX(VertIndex);
+				const FVector TangentZ = LOD.VertexBuffer.VertexTangentZ(VertIndex);
+				
+				if ((TangentX - TangentZ).GetAbs().IsNearlyZero(1.0f / 255.0f))
 				{
 					bHasBadTangents = true;
 				}
@@ -132,19 +131,74 @@ void UStaticMesh::Build(bool bSilent, TArray<FText>* OutErrors)
 
 		// Find any static mesh components that use this mesh and fixup their override colors if necessary.
 		// Also invalidate lighting. *** WARNING components may be reattached here! ***
-		for( TObjectIterator<UStaticMeshComponent> It; It; ++It )
+		const uint32 NumLODs = RenderData->LODResources.Num();
+		for (TObjectIterator<UStaticMeshComponent> It; It; ++It)
 		{
 			if ( It->StaticMesh == this )
 			{
-				It->FixupOverrideColorsIfNecessary( true );
+				// Initialize override vertex colors on any new LODs which have just been created
+				It->SetLODDataCount(NumLODs, It->LODData.Num());
+
+				FStaticMeshComponentLODInfo& LOD0Info = It->LODData[0];
+				if (LOD0Info.OverrideVertexColors)
+				{
+					for (uint32 LODIndex = 1; LODIndex < NumLODs; ++LODIndex)
+					{
+						FStaticMeshComponentLODInfo& LODInfo = It->LODData[LODIndex];
+
+						if (LODInfo.OverrideVertexColors == nullptr && LODInfo.PaintedVertices.Num() == 0)
+						{
+							LODInfo.OverrideVertexColors = new FColorVertexBuffer;
+
+							FStaticMeshLODResources& CurRenderData = RenderData->LODResources[LODIndex];
+
+							TArray<FColor> NewOverrideColors;
+
+							if (LOD0Info.PaintedVertices.Num() > 0)
+							{
+								// Build override colors for LOD, based on LOD0
+								RemapPaintedVertexColors(
+									LOD0Info.PaintedVertices,
+									*LOD0Info.OverrideVertexColors,
+									CurRenderData.PositionVertexBuffer,
+									&CurRenderData.VertexBuffer,
+									NewOverrideColors
+									);
+							}
+							if (NewOverrideColors.Num())
+							{
+								LODInfo.OverrideVertexColors->InitFromColorArray(NewOverrideColors);
+
+								// Update the PaintedVertices array
+								const int32 NumVerts = CurRenderData.GetNumVertices();
+								check(NumVerts == NewOverrideColors.Num());
+
+								LODInfo.PaintedVertices.Reserve(NumVerts);
+								for (int32 VertIndex = 0; VertIndex < NumVerts; ++VertIndex)
+								{
+									FPaintedVertex* Vertex = new(LODInfo.PaintedVertices) FPaintedVertex;
+									Vertex->Position = CurRenderData.PositionVertexBuffer.VertexPosition(VertIndex);
+									Vertex->Normal = CurRenderData.VertexBuffer.VertexTangentZ(VertIndex);
+									Vertex->Color = LODInfo.OverrideVertexColors->VertexColor(VertIndex);
+								}
+							}
+						}
+					}
+				}
+
+				It->FixupOverrideColorsIfNecessary(true);
 				It->InvalidateLightingCache();
 			}
 		}
-
 	}
 
 	// Calculate extended bounds
 	CalculateExtendedBounds();
+
+	if (NavCollision == NULL && !!bHasNavigationData)
+	{
+		CreateNavCollision();
+	}
 
 	PostMeshBuild.Broadcast(this);
 
@@ -152,7 +206,7 @@ void UStaticMesh::Build(bool bSilent, TArray<FText>* OutErrors)
 	{
 		GWarn->EndSlowTask();
 	}
-	
+
 #else
 	UE_LOG(LogStaticMesh,Fatal,TEXT("UStaticMesh::Build should not be called on non-editor builds."));
 #endif
@@ -316,14 +370,18 @@ void RemapPaintedVertexColors(
 		if ( PointsToConsider.Num() > 0 )
 		{
 			FPaintedVertex BestVertex = PointsToConsider[0];
+			FVector BestVertexNormal = BestVertex.Normal;
+
 			float BestDistanceSquared = ( BestVertex.Position - CurPosition ).SizeSquared();
-			float BestNormalDot = FVector( BestVertex.Normal ) | CurNormal;
+			float BestNormalDot = BestVertexNormal | CurNormal;
 
 			for ( int32 ConsiderationIndex = 1; ConsiderationIndex < PointsToConsider.Num(); ++ConsiderationIndex )
 			{
 				FPaintedVertex& Vertex = PointsToConsider[ ConsiderationIndex ];
+				FVector VertexNormal = Vertex.Normal;
+
 				const float DistSqrd = ( Vertex.Position - CurPosition ).SizeSquared();
-				const float NormalDot = FVector( Vertex.Normal ) | CurNormal;
+				const float NormalDot = VertexNormal | CurNormal;
 				if ( DistSqrd < BestDistanceSquared - DistanceOverNormalThreshold )
 				{
 					BestVertex = Vertex;

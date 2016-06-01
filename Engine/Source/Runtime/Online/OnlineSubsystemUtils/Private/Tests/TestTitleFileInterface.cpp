@@ -3,6 +3,8 @@
 #include "OnlineSubsystemUtilsPrivatePCH.h"
 #include "TestTitleFileInterface.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 void FTestTitleFileInterface::Test(UWorld* InWorld)
 {
 	OnlineTitleFile = Online::GetTitleFileInterface(InWorld, SubsystemName.Len() ? FName(*SubsystemName, FNAME_Find) : NAME_None);
@@ -82,3 +84,5 @@ void FTestTitleFileInterface::OnReadFileComplete(bool bSuccess, const FString& F
 		FinishTest();
 	}
 }
+
+#endif //WITH_DEV_AUTOMATION_TESTS

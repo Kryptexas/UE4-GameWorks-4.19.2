@@ -179,6 +179,7 @@ protected:
 	/**
 	 * Acknowledge that client is traveling
 	 */
+	void AckJoiningServer();
 	UFUNCTION(client, reliable)
 	virtual void ClientAckJoiningServer();
 

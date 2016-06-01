@@ -1,6 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayDebuggerPrivate.h"
+//////////////////////////////////////////////////////////////////////////
+// THIS CLASS IS NOW DEPRECATED AND WILL BE REMOVED IN NEXT VERSION
+// Please check GameplayDebugger.h for details.
+
+#if ENABLE_OLD_GAMEPLAY_DEBUGGER
+
+#include "GameplayDebuggerPrivatePCH.h"
 #include "Misc/CoreMisc.h"
 #include "GameplayDebuggingComponent.h"
 #include "GameplayDebuggingHUDComponent.h"
@@ -9,6 +15,7 @@
 #include "AISystem.h"
 #include "GameplayDebuggerSettings.h"
 #include "GameFramework/PlayerState.h"
+#include "EngineUtils.h"
 #if WITH_EDITOR
 #include "Editor/EditorEngine.h"
 #include "ISettingsModule.h"
@@ -22,62 +29,22 @@ FGameplayDebuggerSettings GameplayDebuggerSettings(class AGameplayDebuggingRepli
 	return FGameplayDebuggerSettings(Replicator == NULL ? Settings : Replicator->DebuggerShowFlags);
 }
 
-class FGameplayDebugger : public FSelfRegisteringExec, public IGameplayDebugger
-{
-public:
-	// Begin IModuleInterface
-	virtual void StartupModule() override;
-	virtual void ShutdownModule() override;
-	// End IModuleInterface
+#include "GameplayDebuggerCompat.h"
 
-	void WorldAdded(UWorld* InWorld);
-	void WorldDestroyed(UWorld* InWorld);
-#if WITH_EDITOR
-	void OnLevelActorAdded(AActor* InActor);
-	void OnLevelActorDeleted(AActor* InActor);
-	TSharedRef<FExtender> OnExtendLevelEditorViewMenu(const TSharedRef<FUICommandList> CommandList);
-	void CreateSnappingOptionsMenu(FMenuBuilder& Builder);
-	void CreateSettingSubMenu(FMenuBuilder& Builder);
-	void HandleSettingChanged(FName PropertyName);
-#endif
-
-	TArray<TWeakObjectPtr<AGameplayDebuggingReplicator> >& GetAllReplicators(UWorld* InWorld);
-	void AddReplicator(UWorld* InWorld, AGameplayDebuggingReplicator* InReplicator);
-	void RemoveReplicator(UWorld* InWorld, AGameplayDebuggingReplicator* InReplicator);
-
-	// Begin FExec Interface
-	virtual bool Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar) override;
-	// End FExec Interface
-
-private:
-	virtual bool CreateGameplayDebuggerForPlayerController(APlayerController* PlayerController) override;
-	virtual bool IsGameplayDebuggerActiveForPlayerController(APlayerController* PlayerController) override;
-
-	bool DoesGameplayDebuggingReplicatorExistForPlayerController(APlayerController* PlayerController);
-
-	TMap<TWeakObjectPtr<UWorld>, TArray<TWeakObjectPtr<AGameplayDebuggingReplicator> > > AllReplicatorsPerWorlds;
-
-#if WITH_EDITOR
-	FLevelEditorModule::FLevelEditorMenuExtender ViewMenuExtender;
-#endif
-};
-
-IMPLEMENT_MODULE(FGameplayDebugger, GameplayDebugger)
+IMPLEMENT_MODULE(FGameplayDebuggerCompat, GameplayDebugger)
 
 // This code will execute after your module is loaded into memory (but after global variables are initialized, of course.)
-void FGameplayDebugger::StartupModule()
+void FGameplayDebuggerCompat::StartupModule()
 { 
-	//EMIT_CUSTOM_WARNING("/Engine/Source/Developer/GameplayDebugger module is deprecated and it's going to be removed with next UE4 version. Please use GameplayDebuggerPlugin instead.");
-	//UE_LOG(LogGameplayDebugger, Warning, TEXT("/Engine/Source/Developer/GameplayDebugger module is deprecated and it's going to be removed with next UE4 version. Please use GameplayDebuggerPlugin instead."));
-
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	bNewDebuggerEnabled = false;
 	if (GEngine)
 	{
-		GEngine->OnWorldAdded().AddRaw(this, &FGameplayDebugger::WorldAdded);
-		GEngine->OnWorldDestroyed().AddRaw(this, &FGameplayDebugger::WorldDestroyed);
+		GEngine->OnWorldAdded().AddRaw(this, &FGameplayDebuggerCompat::WorldAdded);
+		GEngine->OnWorldDestroyed().AddRaw(this, &FGameplayDebuggerCompat::WorldDestroyed);
 #if WITH_EDITOR
-		GEngine->OnLevelActorAdded().AddRaw(this, &FGameplayDebugger::OnLevelActorAdded);
-		GEngine->OnLevelActorDeleted().AddRaw(this, &FGameplayDebugger::OnLevelActorDeleted);
+		GEngine->OnLevelActorAdded().AddRaw(this, &FGameplayDebuggerCompat::OnLevelActorAdded);
+		GEngine->OnLevelActorDeleted().AddRaw(this, &FGameplayDebuggerCompat::OnLevelActorDeleted);
 
 		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 		if (SettingsModule != nullptr)
@@ -89,7 +56,7 @@ void FGameplayDebugger::StartupModule()
 				);
 		}
 
-		UGameplayDebuggerSettings::StaticClass()->GetDefaultObject<UGameplayDebuggerSettings>()->OnSettingChanged().AddRaw(this, &FGameplayDebugger::HandleSettingChanged);
+		UGameplayDebuggerSettings::StaticClass()->GetDefaultObject<UGameplayDebuggerSettings>()->OnSettingChanged().AddRaw(this, &FGameplayDebuggerCompat::HandleSettingChanged);
 
 #		if ADD_LEVEL_EDITOR_EXTENSIONS
 		const bool bExtendViewportMenu = UGameplayDebuggerSettings::StaticClass()->GetDefaultObject<UGameplayDebuggerSettings>()->bExtendViewportMenu;
@@ -97,7 +64,7 @@ void FGameplayDebugger::StartupModule()
 		{
 			// Register the extension with the level editor
 			{
-				ViewMenuExtender = FLevelEditorModule::FLevelEditorMenuExtender::CreateRaw(this, &FGameplayDebugger::OnExtendLevelEditorViewMenu);
+				ViewMenuExtender = FLevelEditorModule::FLevelEditorMenuExtender::CreateRaw(this, &FGameplayDebuggerCompat::OnExtendLevelEditorViewMenu);
 				FLevelEditorModule* LevelEditor = FModuleManager::LoadModulePtr<FLevelEditorModule>(TEXT("LevelEditor"));
 				if (LevelEditor)
 				{
@@ -112,7 +79,7 @@ void FGameplayDebugger::StartupModule()
 }
 
 #if WITH_EDITOR
-void FGameplayDebugger::HandleSettingChanged(FName PropertyName)
+void FGameplayDebuggerCompat::HandleSettingChanged(FName PropertyName)
 {
 #if ADD_LEVEL_EDITOR_EXTENSIONS
 	const bool bExtendViewportMenu = UGameplayDebuggerSettings::StaticClass()->GetDefaultObject<UGameplayDebuggerSettings>()->bExtendViewportMenu;
@@ -122,7 +89,7 @@ void FGameplayDebugger::HandleSettingChanged(FName PropertyName)
 		{
 			// Register the extension with the level editor
 			{
-				ViewMenuExtender = FLevelEditorModule::FLevelEditorMenuExtender::CreateRaw(this, &FGameplayDebugger::OnExtendLevelEditorViewMenu);
+				ViewMenuExtender = FLevelEditorModule::FLevelEditorMenuExtender::CreateRaw(this, &FGameplayDebuggerCompat::OnExtendLevelEditorViewMenu);
 				FLevelEditorModule* LevelEditor = FModuleManager::LoadModulePtr<FLevelEditorModule>(TEXT("LevelEditor"));
 				if (LevelEditor)
 				{
@@ -148,9 +115,15 @@ void FGameplayDebugger::HandleSettingChanged(FName PropertyName)
 
 // This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 // we call this function before unloading the module.
-void FGameplayDebugger::ShutdownModule()
+void FGameplayDebuggerCompat::ShutdownModule()
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (bNewDebuggerEnabled)
+	{
+		ShutdownNewDebugger();
+		return;
+	}
+
 	if (GEngine)
 	{
 		GEngine->OnWorldAdded().RemoveAll(this);
@@ -187,7 +160,7 @@ void FGameplayDebugger::ShutdownModule()
 
 #if WITH_EDITOR
 
-void FGameplayDebugger::CreateSettingSubMenu(FMenuBuilder& Builder)
+void FGameplayDebuggerCompat::CreateSettingSubMenu(FMenuBuilder& Builder)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	Builder.AddMenuEntry(
@@ -205,7 +178,7 @@ void FGameplayDebugger::CreateSettingSubMenu(FMenuBuilder& Builder)
 #endif
 }
 
-void FGameplayDebugger::CreateSnappingOptionsMenu(FMenuBuilder& Builder)
+void FGameplayDebuggerCompat::CreateSnappingOptionsMenu(FMenuBuilder& Builder)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (GCurrentLevelEditingViewportClient && GCurrentLevelEditingViewportClient->EngineShowFlags.DebugAI && GCurrentLevelEditingViewportClient->IsSimulateInEditorViewport())
@@ -214,13 +187,13 @@ void FGameplayDebugger::CreateSnappingOptionsMenu(FMenuBuilder& Builder)
 		Builder.AddSubMenu(
 			LOCTEXT("Test_GameplayDebugger_SnappingOptions_Menu", "Gameplay Debugger"),
 			LOCTEXT("Test_GameplayDebugger_SnappingOptions_Menu_Tooltip", "Quick setting for Gameplay Debugger tool in selected view"),
-			FNewMenuDelegate::CreateRaw(this, &FGameplayDebugger::CreateSettingSubMenu)
+			FNewMenuDelegate::CreateRaw(this, &FGameplayDebuggerCompat::CreateSettingSubMenu)
 			);
 	}
 #endif
 }
 
-TSharedRef<FExtender> FGameplayDebugger::OnExtendLevelEditorViewMenu(const TSharedRef<FUICommandList> CommandList)
+TSharedRef<FExtender> FGameplayDebuggerCompat::OnExtendLevelEditorViewMenu(const TSharedRef<FUICommandList> CommandList)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) && WITH_EDITOR
 	TSharedRef<FExtender> Extender(new FExtender());
@@ -231,7 +204,7 @@ TSharedRef<FExtender> FGameplayDebugger::OnExtendLevelEditorViewMenu(const TShar
 			"LevelViewportLayouts",
 			EExtensionHook::After,
 			NULL,
-			FMenuExtensionDelegate::CreateRaw(this, &FGameplayDebugger::CreateSnappingOptionsMenu));
+			FMenuExtensionDelegate::CreateRaw(this, &FGameplayDebuggerCompat::CreateSnappingOptionsMenu));
 
 	}
 #endif
@@ -239,7 +212,7 @@ TSharedRef<FExtender> FGameplayDebugger::OnExtendLevelEditorViewMenu(const TShar
 }
 #endif
 
-bool FGameplayDebugger::DoesGameplayDebuggingReplicatorExistForPlayerController(APlayerController* PlayerController)
+bool FGameplayDebuggerCompat::DoesGameplayDebuggingReplicatorExistForPlayerController(APlayerController* PlayerController)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (PlayerController == NULL)
@@ -266,7 +239,7 @@ bool FGameplayDebugger::DoesGameplayDebuggingReplicatorExistForPlayerController(
 	return false;
 }
 
-bool FGameplayDebugger::CreateGameplayDebuggerForPlayerController(APlayerController* PlayerController)
+bool FGameplayDebuggerCompat::CreateGameplayDebuggerForPlayerController(APlayerController* PlayerController)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (PlayerController == NULL)
@@ -318,7 +291,7 @@ bool FGameplayDebugger::CreateGameplayDebuggerForPlayerController(APlayerControl
 	return false;
 }
 
-bool FGameplayDebugger::IsGameplayDebuggerActiveForPlayerController(APlayerController* PlayerController)
+bool FGameplayDebuggerCompat::IsGameplayDebuggerActiveForPlayerController(APlayerController* PlayerController)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (PlayerController == NULL)
@@ -345,22 +318,22 @@ bool FGameplayDebugger::IsGameplayDebuggerActiveForPlayerController(APlayerContr
 	return false;
 }
 
-TArray<TWeakObjectPtr<AGameplayDebuggingReplicator> >& FGameplayDebugger::GetAllReplicators(UWorld* InWorld)
+TArray<TWeakObjectPtr<AGameplayDebuggingReplicator> >& FGameplayDebuggerCompat::GetAllReplicators(UWorld* InWorld)
 {
 	return AllReplicatorsPerWorlds.FindOrAdd(InWorld);
 }
 
-void FGameplayDebugger::AddReplicator(UWorld* InWorld, AGameplayDebuggingReplicator* InReplicator)
+void FGameplayDebuggerCompat::AddReplicator(UWorld* InWorld, AGameplayDebuggingReplicator* InReplicator)
 {
 	GetAllReplicators(InWorld).Add(InReplicator);
 }
 
-void FGameplayDebugger::RemoveReplicator(UWorld* InWorld, AGameplayDebuggingReplicator* InReplicator)
+void FGameplayDebuggerCompat::RemoveReplicator(UWorld* InWorld, AGameplayDebuggingReplicator* InReplicator)
 {
 	GetAllReplicators(InWorld).RemoveSwap(InReplicator);
 }
 
-void FGameplayDebugger::WorldAdded(UWorld* InWorld)
+void FGameplayDebuggerCompat::WorldAdded(UWorld* InWorld)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	bool bIsServer = InWorld && InWorld->GetNetMode() < ENetMode::NM_Client; // (Only server code)
@@ -401,7 +374,7 @@ void FGameplayDebugger::WorldAdded(UWorld* InWorld)
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
-void FGameplayDebugger::WorldDestroyed(UWorld* InWorld)
+void FGameplayDebuggerCompat::WorldDestroyed(UWorld* InWorld)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	bool bIsServer = InWorld && InWorld->GetNetMode() < ENetMode::NM_Client; // (Only work on  server)
@@ -416,7 +389,7 @@ void FGameplayDebugger::WorldDestroyed(UWorld* InWorld)
 }
 
 #if WITH_EDITOR
-void FGameplayDebugger::OnLevelActorAdded(AActor* InActor)
+void FGameplayDebuggerCompat::OnLevelActorAdded(AActor* InActor)
 {
 	// This function doesn't help much, because it's only called in EDITOR!
 	// We need a function that is called in the game!  So instead of creating it automatically, I'm leaving it
@@ -434,7 +407,7 @@ void FGameplayDebugger::OnLevelActorAdded(AActor* InActor)
 #endif
 }
 
-void FGameplayDebugger::OnLevelActorDeleted(AActor* InActor)
+void FGameplayDebuggerCompat::OnLevelActorDeleted(AActor* InActor)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (!InActor)
@@ -475,10 +448,14 @@ void FGameplayDebugger::OnLevelActorDeleted(AActor* InActor)
 }
 #endif //WITH_EDITOR
 
-bool FGameplayDebugger::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
+bool FGameplayDebuggerCompat::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	bool bHandled = false;
+	if (bNewDebuggerEnabled)
+	{
+		return false;
+	}
 
 	if (FParse::Command(&Cmd, TEXT("RunEQS")) && InWorld)
 	{
@@ -514,144 +491,74 @@ bool FGameplayDebugger::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& A
 			}
 		}
 
-		return true;
+		bHandled = true;
 	}
-
-
-	if (FParse::Command(&Cmd, TEXT("EnableGDT")) == false)
+	else if (FParse::Command(&Cmd, TEXT("EnableGDT")))
 	{
-		return false;
-	}
+		FString UniquePlayerId = FParse::Token(Cmd, 0);
+		APlayerController* LocalPC = NULL;
+		UWorld* MyWorld = InWorld;
 
-	FString UniquePlayerId = FParse::Token(Cmd, 0);
-	APlayerController* LocalPC = NULL;
-	UWorld* MyWorld = InWorld;
-
-	if (MyWorld == nullptr)
-	{
-		if (UniquePlayerId.Len() > 0)
+		if (MyWorld == nullptr)
 		{
-			// let's find correct world based on Player Id
-			const TIndirectArray<FWorldContext> WorldContexts = GEngine->GetWorldContexts();
-			for (auto& Context : WorldContexts)
+			if (UniquePlayerId.Len() > 0)
 			{
-				if (Context.WorldType != EWorldType::Game && Context.WorldType != EWorldType::PIE)
+				// let's find correct world based on Player Id
+				const TIndirectArray<FWorldContext> WorldContexts = GEngine->GetWorldContexts();
+				for (const FWorldContext& Context : WorldContexts)
 				{
-					continue;
-				}
-
-				UWorld *CurrentWorld = Context.World();
-				for (FConstPlayerControllerIterator Iterator = CurrentWorld->GetPlayerControllerIterator(); Iterator; ++Iterator)
-				{
-					APlayerController* PC = *Iterator;
-					if (PC && PC->PlayerState->UniqueId.ToString() == UniquePlayerId)
+					if (Context.WorldType != EWorldType::Game && Context.WorldType != EWorldType::PIE)
 					{
-						LocalPC = PC;
-						MyWorld = PC->GetWorld();
-						break;
+						continue;
 					}
-				}
 
-				if (LocalPC && MyWorld)
-				{
-					break;
-				}
-			}
-		}
-	}
+					UWorld *CurrentWorld = Context.World();
+					for (FConstPlayerControllerIterator Iterator = CurrentWorld->GetPlayerControllerIterator(); Iterator; ++Iterator)
+					{
+						APlayerController* PC = *Iterator;
+						if (PC && PC->PlayerState->UniqueId.ToString() == UniquePlayerId)
+						{
+							LocalPC = PC;
+							MyWorld = PC->GetWorld();
+							break;
+						}
+					}
 
-	if (MyWorld == nullptr)
-	{
-		return false;
-	}
-
-	if (LocalPC == nullptr)
-	{
-		if (UniquePlayerId.Len() > 0)
-		{
-			for (FConstPlayerControllerIterator Iterator = MyWorld->GetPlayerControllerIterator(); Iterator; ++Iterator)
-			{
-				APlayerController* PlayerController = *Iterator;
-				UE_LOG(LogGameplayDebugger, Log, TEXT("- Client: %s"), *PlayerController->PlayerState->UniqueId.ToString());
-				if (PlayerController && PlayerController->PlayerState->UniqueId.ToString() == UniquePlayerId)
-				{
-					LocalPC = PlayerController;
-					break;
-				}
-			}
-		}
-
-		if (!LocalPC && MyWorld->GetNetMode() != NM_DedicatedServer)
-		{
-			LocalPC = MyWorld->GetGameInstance() ? MyWorld->GetGameInstance()->GetFirstLocalPlayerController() : nullptr;
-		}
-	}
-
-	if (LocalPC == nullptr)
-	{
-		return false;
-	}
-
-	if (MyWorld->GetNetMode() == NM_Client)
-	{
-		AGameplayDebuggingReplicator* Replicator = NULL;
-		for (TActorIterator<AGameplayDebuggingReplicator> It(MyWorld); It; ++It)
-		{
-			Replicator = *It;
-			if (Replicator && !Replicator->IsPendingKill())
-			{
-				APlayerController* PCOwner = Replicator->GetLocalPlayerOwner();
-				if (LocalPC == PCOwner)
-				{
-					break;
-				}
-			}
-			Replicator = NULL;
-		}
-
-		if (!Replicator)
-		{
-			LocalPC->ClientMessage(TEXT("Enabling GameplayDebugger on server, please wait for replicated data..."));
-			if (LocalPC->PlayerState)
-			{
-				const FString ServerCheatString = FString::Printf(TEXT("cheat EnableGDT %s"), *LocalPC->PlayerState->UniqueId.ToString());
-				UE_LOG(LogGameplayDebugger, Warning, TEXT("Sending to Server: %s"), *ServerCheatString);
-				LocalPC->ConsoleCommand(*ServerCheatString);
-				bHandled = true;
-			}
-		}
-		else
-		{
-			if (Replicator->IsToolCreated() == false)
-			{
-				Replicator->CreateTool();
-			}
-			Replicator->EnableTool();
-			bHandled = true;
-		}
-	}
-	else
-	{
-		UE_LOG(LogGameplayDebugger, Warning, TEXT("Got from client: EnableGDT %s"), *UniquePlayerId);
-		{
-			AGameplayDebuggingReplicator* Replicator = NULL;
-			for (TActorIterator<AGameplayDebuggingReplicator> It(MyWorld); It; ++It)
-			{
-				Replicator = *It;
-				if (Replicator && !Replicator->IsPendingKill())
-				{
-					APlayerController* PCOwner = Replicator->GetLocalPlayerOwner();
-					if (LocalPC == PCOwner)
+					if (LocalPC && MyWorld)
 					{
 						break;
 					}
 				}
-				Replicator = NULL;
+			}
+		}
+
+		if (LocalPC == nullptr && MyWorld != nullptr)
+		{
+			if (UniquePlayerId.Len() > 0)
+			{
+				for (FConstPlayerControllerIterator Iterator = MyWorld->GetPlayerControllerIterator(); Iterator; ++Iterator)
+				{
+					APlayerController* PlayerController = *Iterator;
+					UE_LOG(LogGameplayDebugger, Log, TEXT("- Client: %s"), *PlayerController->PlayerState->UniqueId.ToString());
+					if (PlayerController && PlayerController->PlayerState->UniqueId.ToString() == UniquePlayerId)
+					{
+						LocalPC = PlayerController;
+						break;
+					}
+				}
 			}
 
-			if (!Replicator)
+			if (!LocalPC && MyWorld->GetNetMode() != NM_DedicatedServer)
 			{
-				CreateGameplayDebuggerForPlayerController(LocalPC);
+				LocalPC = MyWorld->GetGameInstance() ? MyWorld->GetGameInstance()->GetFirstLocalPlayerController() : nullptr;
+			}
+		}
+
+		if (LocalPC != nullptr && MyWorld != nullptr)
+		{
+			if (MyWorld->GetNetMode() == NM_Client)
+			{
+				AGameplayDebuggingReplicator* Replicator = NULL;
 				for (TActorIterator<AGameplayDebuggingReplicator> It(MyWorld); It; ++It)
 				{
 					Replicator = *It;
@@ -665,26 +572,87 @@ bool FGameplayDebugger::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& A
 					}
 					Replicator = NULL;
 				}
-			}
 
-			if (MyWorld->GetNetMode() != NM_DedicatedServer)
-			{
-				if (Replicator && !Replicator->IsToolCreated())
+				if (!Replicator)
 				{
-					Replicator->CreateTool();
-					Replicator->EnableTool();
-					bHandled = true;
+					LocalPC->ClientMessage(TEXT("Enabling GameplayDebugger on server, please wait for replicated data..."));
+					if (LocalPC->PlayerState)
+					{
+						const FString ServerCheatString = FString::Printf(TEXT("cheat EnableGDT %s"), *LocalPC->PlayerState->UniqueId.ToString());
+						UE_LOG(LogGameplayDebugger, Warning, TEXT("Sending to Server: %s"), *ServerCheatString);
+						LocalPC->ConsoleCommand(*ServerCheatString);
+					}
+				}
+				else
+				{
+					if (Replicator->IsToolCreated() == false)
+					{
+						Replicator->CreateTool();
+						Replicator->EnableTool();
+					}
+					else
+					{
+						Replicator->EnableDraw(!Replicator->IsDrawEnabled());
+					}
 				}
 			}
 			else
 			{
-				if (Replicator)
+				UE_LOG(LogGameplayDebugger, Warning, TEXT("Got from client: EnableGDT %s"), *UniquePlayerId);
 				{
-					Replicator->ClientAutoActivate();
-					bHandled = true;
+					AGameplayDebuggingReplicator* Replicator = NULL;
+					for (TActorIterator<AGameplayDebuggingReplicator> It(MyWorld); It; ++It)
+					{
+						Replicator = *It;
+						if (Replicator && !Replicator->IsPendingKill())
+						{
+							APlayerController* PCOwner = Replicator->GetLocalPlayerOwner();
+							if (LocalPC == PCOwner)
+							{
+								break;
+							}
+						}
+						Replicator = NULL;
+					}
+
+					if (!Replicator)
+					{
+						CreateGameplayDebuggerForPlayerController(LocalPC);
+						for (TActorIterator<AGameplayDebuggingReplicator> It(MyWorld); It; ++It)
+						{
+							Replicator = *It;
+							if (Replicator && !Replicator->IsPendingKill())
+							{
+								APlayerController* PCOwner = Replicator->GetLocalPlayerOwner();
+								if (LocalPC == PCOwner)
+								{
+									break;
+								}
+							}
+							Replicator = NULL;
+						}
+					}
+
+					if (MyWorld->GetNetMode() != NM_DedicatedServer)
+					{
+						if (Replicator && !Replicator->IsToolCreated())
+						{
+							Replicator->CreateTool();
+							Replicator->EnableTool();
+						}
+					}
+					else
+					{
+						if (Replicator)
+						{
+							Replicator->ClientAutoActivate();
+						}
+					}
 				}
 			}
 		}
+
+		bHandled = true;
 	}
 
 	return bHandled;
@@ -693,4 +661,31 @@ bool FGameplayDebugger::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& A
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
+void FGameplayDebuggerCompat::UseNewGameplayDebugger()
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (!bNewDebuggerEnabled)
+	{
+		ShutdownModule();
+		bNewDebuggerEnabled = true;
+
+		StartupNewDebugger();
+	}
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+}
+
 #undef LOCTEXT_NAMESPACE
+
+#else // ENABLE_OLD_GAMEPLAY_DEBUGGER
+
+#include "GameplayDebuggerPrivatePCH.h"
+#include "GameplayDebuggingReplicator.h"
+#include "GameplayDebuggerSettings.h"
+
+FGameplayDebuggerSettings GameplayDebuggerSettings(class AGameplayDebuggingReplicator* Replicator)
+{
+	uint32& Settings = UGameplayDebuggerSettings::StaticClass()->GetDefaultObject<UGameplayDebuggerSettings>()->GetSettings();
+	return FGameplayDebuggerSettings(Replicator == NULL ? Settings : Replicator->DebuggerShowFlags);
+}
+
+#endif // ENABLE_OLD_GAMEPLAY_DEBUGGER

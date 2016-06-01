@@ -72,36 +72,40 @@ void FFinalSkinVertexBuffer::InitDynamicRHI()
 template <bool bExtraBoneInfluencesT>
 void FFinalSkinVertexBuffer::InitVertexData(FStaticLODModel& LodModel)
 {
-	// Create the buffer rendering resource
-	uint32 Size = LodModel.NumVertices * sizeof(FFinalSkinVertex);
-
-	FRHIResourceCreateInfo CreateInfo;
-	void* Buffer = nullptr;
-	VertexBufferRHI = RHICreateAndLockVertexBuffer(Size,BUF_Dynamic, CreateInfo, Buffer);	
-
-	// Initialize the vertex data
-	// All chunks are combined into one (rigid first, soft next)
-	check(LodModel.VertexBufferGPUSkin.GetNumVertices() == LodModel.NumVertices);
-
-	FFinalSkinVertex* DestVertex = (FFinalSkinVertex*)Buffer;
-	for( uint32 VertexIdx=0; VertexIdx < LodModel.NumVertices; VertexIdx++ )
+	// this used to be check, but during clothing importing (when replacing Apex asset)
+	// it comes here with incomplete data causing crash during that intermediate state
+	// so I'm changing to ensure, and update won't do anything since it contains Invalid VertexBufferRHI
+	if (ensure(LodModel.VertexBufferGPUSkin.GetNumVertices() == LodModel.NumVertices))
 	{
-		const TGPUSkinVertexBase<bExtraBoneInfluencesT>* SrcVertex = LodModel.VertexBufferGPUSkin.GetVertexPtr<bExtraBoneInfluencesT>(VertexIdx);
+		// Create the buffer rendering resource
+		uint32 Size = LodModel.NumVertices * sizeof(FFinalSkinVertex);
 
-		DestVertex->Position = LodModel.VertexBufferGPUSkin.GetVertexPositionFast<bExtraBoneInfluencesT>(VertexIdx);
-		DestVertex->TangentX = SrcVertex->TangentX;
-		// w component of TangentZ should already have sign of the tangent basis determinant
-		DestVertex->TangentZ = SrcVertex->TangentZ;
+		// Initialize the vertex data
+		// All chunks are combined into one (rigid first, soft next)
+		FRHIResourceCreateInfo CreateInfo;
+		void* Buffer = nullptr;
+		VertexBufferRHI = RHICreateAndLockVertexBuffer(Size, BUF_Dynamic, CreateInfo, Buffer);
 
-		FVector2D UVs = LodModel.VertexBufferGPUSkin.GetVertexUVFast<bExtraBoneInfluencesT>(VertexIdx,0);
-		DestVertex->U = UVs.X;
-		DestVertex->V = UVs.Y;
+		FFinalSkinVertex* DestVertex = (FFinalSkinVertex*)Buffer;
+		for (uint32 VertexIdx = 0; VertexIdx < LodModel.NumVertices; VertexIdx++)
+		{
+			const TGPUSkinVertexBase<bExtraBoneInfluencesT>* SrcVertex = LodModel.VertexBufferGPUSkin.GetVertexPtr<bExtraBoneInfluencesT>(VertexIdx);
 
-		DestVertex++;
+			DestVertex->Position = LodModel.VertexBufferGPUSkin.GetVertexPositionFast<bExtraBoneInfluencesT>(VertexIdx);
+			DestVertex->TangentX = SrcVertex->TangentX;
+			// w component of TangentZ should already have sign of the tangent basis determinant
+			DestVertex->TangentZ = SrcVertex->TangentZ;
+
+			FVector2D UVs = LodModel.VertexBufferGPUSkin.GetVertexUVFast<bExtraBoneInfluencesT>(VertexIdx, 0);
+			DestVertex->U = UVs.X;
+			DestVertex->V = UVs.Y;
+
+			DestVertex++;
+		}
+
+		// Unlock the buffer.
+		RHIUnlockVertexBuffer(VertexBufferRHI);
 	}
-
-	// Unlock the buffer.
-	RHIUnlockVertexBuffer(VertexBufferRHI);
 }
 
 void FFinalSkinVertexBuffer::ReleaseDynamicRHI()
@@ -164,23 +168,49 @@ void FSkeletalMeshObjectCPUSkin::EnableBlendWeightRendering(bool bEnabled, const
 	BonesOfInterest.Append(InBonesOfInterest);
 }
 
+void FSkeletalMeshObjectCPUSkin::UpdateRecomputeTangent(int32 MaterialIndex, bool bRecomputeTangent)
+{
+	// queue a call to update this data
+	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+		SkelMeshObjectUpdateMaterialDataCommand,
+		FSkeletalMeshObjectCPUSkin*, MeshObject, this,
+		int32, MaterialIndex, MaterialIndex,
+		bool, bRecomputeTangent, bRecomputeTangent,
+		{
+			// iterate through section and find the section that matches MaterialIndex, if so, set that flag
+			for (auto& LODModel : MeshObject->SkeletalMeshResource->LODModels)
+			{
+				for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); ++SectionIndex)
+				{
+					// @todo there can be more than one section that can use same material? If not, please break. 
+					if (LODModel.Sections[SectionIndex].MaterialIndex == MaterialIndex)
+					{
+						LODModel.Sections[SectionIndex].bRecomputeTangent = bRecomputeTangent;
+					}
+				}
+			}
+		}
+	);
+}
+
 void FSkeletalMeshObjectCPUSkin::Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveVertexAnim>& ActiveVertexAnims)
 {
 	// create the new dynamic data for use by the rendering thread
 	// this data is only deleted when another update is sent
 	FDynamicSkelMeshObjectDataCPUSkin* NewDynamicData = new FDynamicSkelMeshObjectDataCPUSkin(InMeshComponent,SkeletalMeshResource,LODIndex,ActiveVertexAnims);
 
-	UpdateShadowShapes(InMeshComponent);
+	// We prepare the next frame but still have the value from the last one
+	uint32 FrameNumberToPrepare = GFrameNumber + 1;
 
 	// queue a call to update this data
 	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 		SkelMeshObjectUpdateDataCommand,
 		FSkeletalMeshObjectCPUSkin*, MeshObject, this,
-		uint32, FrameNumber, GFrameNumber,
+		uint32, FrameNumberToPrepare, FrameNumberToPrepare,
 		FDynamicSkelMeshObjectDataCPUSkin*, NewDynamicData, NewDynamicData,
 	{
 		FScopeCycleCounter Context(MeshObject->GetStatId());
-		MeshObject->UpdateDynamicData_RenderThread(RHICmdList, NewDynamicData, FrameNumber);
+		MeshObject->UpdateDynamicData_RenderThread(RHICmdList, NewDynamicData, FrameNumberToPrepare);
 	}
 	);
 
@@ -192,7 +222,7 @@ void FSkeletalMeshObjectCPUSkin::Update(int32 LODIndex,USkinnedMeshComponent* In
 	}
 }
 
-void FSkeletalMeshObjectCPUSkin::UpdateDynamicData_RenderThread(FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectDataCPUSkin* InDynamicData, uint32 FrameNumber)
+void FSkeletalMeshObjectCPUSkin::UpdateDynamicData_RenderThread(FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectDataCPUSkin* InDynamicData, uint32 FrameNumberToPrepare)
 {
 	// we should be done with the old data at this point
 	delete DynamicData;
@@ -275,7 +305,7 @@ void FSkeletalMeshObjectCPUSkin::CacheVertices(int32 LODIndex, bool bForce) cons
 	}
 }
 
-const FVertexFactory* FSkeletalMeshObjectCPUSkin::GetVertexFactory(int32 LODIndex,int32 /*ChunkIdx*/) const
+const FVertexFactory* FSkeletalMeshObjectCPUSkin::GetSkinVertexFactory(const FSceneView* View, int32 LODIndex,int32 /*ChunkIdx*/) const
 {
 	check( LODs.IsValidIndex(LODIndex) );
 	return &LODs[LODIndex].VertexFactory;
@@ -295,7 +325,7 @@ void FSkeletalMeshObjectCPUSkin::FSkeletalMeshObjectLOD::InitResources()
 		FLocalVertexFactory*,VertexFactory,&VertexFactory,
 		FVertexBuffer*,VertexBuffer,&VertexBuffer,
 		{
-			FLocalVertexFactory::DataType Data;
+			FLocalVertexFactory::FDataType Data;
 
 			// position
 			Data.PositionComponent = FVertexStreamComponent(
@@ -351,6 +381,11 @@ TArray<FTransform>* FSkeletalMeshObjectCPUSkin::GetSpaceBases() const
 	{
 		return NULL;
 	}
+}
+
+const TArray<FMatrix>& FSkeletalMeshObjectCPUSkin::GetReferenceToLocalMatrices() const
+{
+	return DynamicData->ReferenceToLocal;
 }
 
 /**
@@ -511,8 +546,8 @@ FORCEINLINE void RebuildTangentBasis( VertexType& DestVertex )
 {
 	// derive the new tangent by orthonormalizing the new normal against
 	// the base tangent vector (assuming these are normalized)
-	FVector Tangent( DestVertex.TangentX );
-	FVector Normal( DestVertex.TangentZ );
+	FVector Tangent = DestVertex.TangentX;
+	FVector Normal = DestVertex.TangentZ;
 	Tangent = Tangent - ((Tangent | Normal) * Normal);
 	Tangent.Normalize();
 	DestVertex.TangentX = Tangent;
@@ -529,8 +564,11 @@ FORCEINLINE void ApplyMorphBlend( VertexType& DestVertex, const FVertexAnimDelta
 
 	// Save W before = operator. That overwrites W to be 127.
 	uint8 W = DestVertex.TangentZ.Vector.W;
+
+	FVector TanZ = DestVertex.TangentZ;
+
 	// add normal offset. can only apply normal deltas up to a weight of 1
-	DestVertex.TangentZ = FVector(FVector(DestVertex.TangentZ) + SrcMorph.TangentZDelta * FMath::Min(Weight,1.0f)).GetUnsafeNormal();
+	DestVertex.TangentZ = FVector(TanZ + SrcMorph.TangentZDelta * FMath::Min(Weight,1.0f)).GetUnsafeNormal();
 	// Recover W
 	DestVertex.TangentZ.Vector.W = W;
 } 

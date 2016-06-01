@@ -123,6 +123,7 @@ public:
 	virtual void SetContent(const TArray<uint8>& ContentPayload) override;
 	virtual void SetContentAsString(const FString& ContentString) override;
 	virtual void SetHeader(const FString& HeaderName, const FString& HeaderValue) override;
+	virtual void AppendToHeader(const FString& HeaderName, const FString& AdditionalHeaderValue) override;
 	virtual bool ProcessRequest() override;
 	virtual FHttpRequestCompleteDelegate& OnProcessRequestComplete() override;
 	virtual FHttpRequestProgressDelegate& OnRequestProgress() override;
@@ -156,11 +157,19 @@ public:
 		bCompleted = true;
 		CurlCompletionResult = InCurlCompletionResult;
 	}
+	
+	/** 
+	 * Set the result for adding the easy handle to curl multi
+	 */
+	void SetAddToCurlMultiResult(CURLMcode Result)
+	{
+		CurlAddToMultiResult = Result;
+	}
 
 	/**
 	 * Constructor
 	 */
-	FCurlHttpRequest(CURLM * InMultiHandle);
+	FCurlHttpRequest(CURLSH* InShareHandle);
 
 	/**
 	 * Destructor. Clean up any connection/request handles
@@ -261,11 +270,11 @@ private:
 #endif // !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 
 	/**
-	 * Create the session connection and initiate the web request
+	 * Setup the request
 	 *
-	 * @return true if the request was started
+	 * @return true if the request was successfully setup
 	 */
-	bool StartRequest();
+	bool SetupRequest();
 
 	/**
 	 * Process state for a finished request that no longer needs to be ticked
@@ -280,8 +289,6 @@ private:
 
 private:
 
-	/** Pointer to parent multi handle that groups all individual easy handles */
-	CURLM *			MultiHandle;
 	/** Pointer to an easy handle specific to this request */
 	CURL *			EasyHandle;	
 	/** List of custom headers to be passed to CURL */
@@ -294,10 +301,10 @@ private:
 	bool			bCanceled;
 	/** Set to true when request has been completed */
 	bool			bCompleted;
+	/** Set to true if request failed to be added to curl multi */
+	CURLMcode		CurlAddToMultiResult;
 	/** Operation result code as returned by libcurl */
 	CURLcode		CurlCompletionResult;
-	/** Set to true when easy handle has been added to a multi handle */
-	bool			bEasyHandleAddedToMulti;
 	/** Number of bytes sent already */
 	uint32			BytesSent;
 	/** The response object which we will use to pair with this request */

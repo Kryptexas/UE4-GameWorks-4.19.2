@@ -277,6 +277,7 @@ FString FRootMotionSource::ToSimpleString() const
 
 FRootMotionSource_ConstantForce::FRootMotionSource_ConstantForce()
 	: Force(EForceInit::ForceInitToZero)
+	, StrengthOverTime(nullptr)
 {
 }
 
@@ -296,7 +297,8 @@ bool FRootMotionSource_ConstantForce::Matches(const FRootMotionSource* Other) co
 	// We can cast safely here since in FRootMotionSource::Matches() we ensured ScriptStruct equality
 	const FRootMotionSource_ConstantForce* OtherCast = static_cast<const FRootMotionSource_ConstantForce*>(Other);
 
-	return FVector::PointsAreNear(Force, OtherCast->Force, 0.1f);
+	return FVector::PointsAreNear(Force, OtherCast->Force, 0.1f) &&
+		StrengthOverTime == OtherCast->StrengthOverTime;
 }
 
 bool FRootMotionSource_ConstantForce::MatchesAndHasSameState(const FRootMotionSource* Other) const
@@ -332,6 +334,14 @@ void FRootMotionSource_ConstantForce::PrepareRootMotion
 
 	FTransform NewTransform(Force);
 
+	// Scale strength of force over time
+	if (StrengthOverTime)
+	{
+		const float TimeValue = Duration > 0.f ? FMath::Clamp(GetTime() / Duration, 0.f, 1.f) : GetTime();
+		const float TimeFactor = StrengthOverTime->GetFloatValue(TimeValue);
+		NewTransform.ScaleTranslation(TimeFactor);
+	}
+
 	// Scale force based on Simulation/MovementTime differences
 	// Ex: Force is to go 200 cm per second forward.
 	//     To catch up with server state we need to apply
@@ -356,6 +366,7 @@ bool FRootMotionSource_ConstantForce::NetSerialize(FArchive& Ar, UPackageMap* Ma
 	}
 
 	Ar << Force; // TODO-RootMotionSource: Quantization
+	Ar << StrengthOverTime;
 
 	bOutSuccess = true;
 	return true;
@@ -369,6 +380,13 @@ UScriptStruct* FRootMotionSource_ConstantForce::GetScriptStruct() const
 FString FRootMotionSource_ConstantForce::ToSimpleString() const
 {
 	return FString::Printf(TEXT("[ID:%u]FRootMotionSource_ConstantForce %s"), LocalID, *InstanceName.GetPlainNameString());
+}
+
+void FRootMotionSource_ConstantForce::AddReferencedObjects(class FReferenceCollector& Collector)
+{
+	Collector.AddReferencedObject(StrengthOverTime);
+
+	FRootMotionSource::AddReferencedObjects(Collector);
 }
 
 //
@@ -722,6 +740,202 @@ void FRootMotionSource_MoveToForce::AddReferencedObjects(class FReferenceCollect
 }
 
 //
+// FRootMotionSource_MoveToDynamicForce
+//
+
+FRootMotionSource_MoveToDynamicForce::FRootMotionSource_MoveToDynamicForce()
+	: StartLocation(EForceInit::ForceInitToZero)
+	, InitialTargetLocation(EForceInit::ForceInitToZero)
+	, TargetLocation(EForceInit::ForceInitToZero)
+	, bRestrictSpeedToExpected(false)
+	, PathOffsetCurve(nullptr)
+	, TimeMappingCurve(nullptr)
+{
+}
+
+void FRootMotionSource_MoveToDynamicForce::SetTargetLocation(FVector NewTargetLocation)
+{
+	TargetLocation = NewTargetLocation;
+}
+
+FRootMotionSource* FRootMotionSource_MoveToDynamicForce::Clone() const
+{
+	FRootMotionSource_MoveToDynamicForce* CopyPtr = new FRootMotionSource_MoveToDynamicForce(*this);
+	return CopyPtr;
+}
+
+bool FRootMotionSource_MoveToDynamicForce::Matches(const FRootMotionSource* Other) const
+{
+	if (!FRootMotionSource::Matches(Other))
+	{
+		return false;
+	}
+
+	// We can cast safely here since in FRootMotionSource::Matches() we ensured ScriptStruct equality
+	const FRootMotionSource_MoveToDynamicForce* OtherCast = static_cast<const FRootMotionSource_MoveToDynamicForce*>(Other);
+
+	return bRestrictSpeedToExpected == OtherCast->bRestrictSpeedToExpected &&
+		PathOffsetCurve == OtherCast->PathOffsetCurve &&
+		TimeMappingCurve == OtherCast->TimeMappingCurve;
+}
+
+bool FRootMotionSource_MoveToDynamicForce::MatchesAndHasSameState(const FRootMotionSource* Other) const
+{
+	// Check that it matches
+	if (!FRootMotionSource::MatchesAndHasSameState(Other))
+	{
+		return false;
+	}
+
+	return true; // MoveToDynamicForce has no unique state
+}
+
+bool FRootMotionSource_MoveToDynamicForce::UpdateStateFrom(const FRootMotionSource* SourceToTakeStateFrom, bool bMarkForSimulatedCatchup)
+{
+	if (!FRootMotionSource::UpdateStateFrom(SourceToTakeStateFrom, bMarkForSimulatedCatchup))
+	{
+		return false;
+	}
+
+	return true; // MoveToDynamicForce has no unique state other than Time which is handled by FRootMotionSource
+}
+
+void FRootMotionSource_MoveToDynamicForce::SetTime(float NewTime)
+{
+	FRootMotionSource::SetTime(NewTime);
+
+	// TODO-RootMotionSource: Check if reached destination?
+}
+
+FVector FRootMotionSource_MoveToDynamicForce::GetPathOffsetInWorldSpace(float MoveFraction) const
+{
+	if (PathOffsetCurve)
+	{
+		// Calculate path offset
+		const FVector PathOffsetInFacingSpace = PathOffsetCurve->GetVectorValue(MoveFraction);
+		FRotator FacingRotation((TargetLocation-StartLocation).Rotation());
+		FacingRotation.Pitch = 0.f; // By default we don't include pitch in the offset, but an option could be added if necessary
+		return FacingRotation.RotateVector(PathOffsetInFacingSpace);
+	}
+
+	return FVector::ZeroVector;
+}
+
+void FRootMotionSource_MoveToDynamicForce::PrepareRootMotion
+	(
+		float SimulationTime, 
+		float MovementTickTime,
+		const ACharacter& Character, 
+		const UCharacterMovementComponent& MoveComponent
+	)
+{
+	RootMotionParams.Clear();
+
+	if (Duration > SMALL_NUMBER && MovementTickTime > SMALL_NUMBER)
+	{
+		float MoveFraction = (GetTime() + SimulationTime) / Duration;
+		if (TimeMappingCurve)
+		{
+			MoveFraction = TimeMappingCurve->GetFloatValue(MoveFraction);
+		}
+
+		FVector CurrentTargetLocation = FMath::Lerp<FVector, float>(StartLocation, TargetLocation, MoveFraction);
+		CurrentTargetLocation += GetPathOffsetInWorldSpace(MoveFraction);
+
+		const FVector CurrentLocation = Character.GetActorLocation();
+
+		FVector Force = (CurrentTargetLocation - CurrentLocation) / MovementTickTime;
+
+		if (bRestrictSpeedToExpected && !Force.IsNearlyZero(KINDA_SMALL_NUMBER))
+		{
+			// Calculate expected current location (if we didn't have collision and moved exactly where our velocity should have taken us)
+			const float PreviousMoveFraction = GetTime() / Duration;
+			FVector CurrentExpectedLocation = FMath::Lerp<FVector, float>(StartLocation, TargetLocation, PreviousMoveFraction);
+			CurrentExpectedLocation += GetPathOffsetInWorldSpace(PreviousMoveFraction);
+
+			// Restrict speed to the expected speed, allowing some small amount of error
+			const FVector ExpectedForce = (CurrentTargetLocation - CurrentExpectedLocation) / MovementTickTime;
+			const float ExpectedSpeed = ExpectedForce.Size();
+			const float CurrentSpeedSqr = Force.SizeSquared();
+
+			const float ErrorAllowance = 0.5f; // in cm/s
+			if (CurrentSpeedSqr > FMath::Square(ExpectedSpeed + ErrorAllowance))
+			{
+				Force.Normalize();
+				Force *= ExpectedSpeed;
+			}
+		}
+
+		// Debug
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		if (CVarDebugRootMotionSources.GetValueOnGameThread() != 0)
+		{
+			const FVector LocDiff = MoveComponent.UpdatedComponent->GetComponentLocation() - CurrentLocation;
+			const float DebugLifetime = CVarDebugRootMotionSourcesLifetime.GetValueOnGameThread();
+
+			// Current
+			DrawDebugCapsule(Character.GetWorld(), MoveComponent.UpdatedComponent->GetComponentLocation(), Character.GetSimpleCollisionHalfHeight(), Character.GetSimpleCollisionRadius(), FQuat::Identity, FColor::Red, true, DebugLifetime);
+
+			// Current Target
+			DrawDebugCapsule(Character.GetWorld(), CurrentTargetLocation + LocDiff, Character.GetSimpleCollisionHalfHeight(), Character.GetSimpleCollisionRadius(), FQuat::Identity, FColor::Green, true, DebugLifetime);
+
+			// Target
+			DrawDebugCapsule(Character.GetWorld(), TargetLocation + LocDiff, Character.GetSimpleCollisionHalfHeight(), Character.GetSimpleCollisionRadius(), FQuat::Identity, FColor::Blue, true, DebugLifetime);
+
+			// Force
+			DrawDebugLine(Character.GetWorld(), CurrentLocation, CurrentLocation+Force, FColor::Blue, true, DebugLifetime);
+		}
+#endif
+
+		FTransform NewTransform(Force);
+		RootMotionParams.Set(NewTransform);
+	}
+	else
+	{
+		checkf(Duration > SMALL_NUMBER, TEXT("FRootMotionSource_MoveToDynamicForce prepared with invalid duration."));
+	}
+
+	SetTime(GetTime() + SimulationTime);
+}
+
+bool FRootMotionSource_MoveToDynamicForce::NetSerialize(FArchive& Ar, UPackageMap* Map, bool& bOutSuccess)
+{
+	if (!FRootMotionSource::NetSerialize(Ar, Map, bOutSuccess))
+	{
+		return false;
+	}
+
+	Ar << StartLocation; // TODO-RootMotionSource: Quantization
+	Ar << InitialTargetLocation; // TODO-RootMotionSource: Quantization
+	Ar << TargetLocation; // TODO-RootMotionSource: Quantization
+	Ar << bRestrictSpeedToExpected;
+	Ar << PathOffsetCurve;
+	Ar << TimeMappingCurve;
+
+	bOutSuccess = true;
+	return true;
+}
+
+UScriptStruct* FRootMotionSource_MoveToDynamicForce::GetScriptStruct() const
+{
+	return FRootMotionSource_MoveToDynamicForce::StaticStruct();
+}
+
+FString FRootMotionSource_MoveToDynamicForce::ToSimpleString() const
+{
+	return FString::Printf(TEXT("[ID:%u]FRootMotionSource_MoveToDynamicForce %s"), LocalID, *InstanceName.GetPlainNameString());
+}
+
+void FRootMotionSource_MoveToDynamicForce::AddReferencedObjects(class FReferenceCollector& Collector)
+{
+	Collector.AddReferencedObject(PathOffsetCurve);
+	Collector.AddReferencedObject(TimeMappingCurve);
+
+	FRootMotionSource::AddReferencedObjects(Collector);
+}
+
+
+//
 // FRootMotionSource_JumpForce
 //
 
@@ -734,6 +948,11 @@ FRootMotionSource_JumpForce::FRootMotionSource_JumpForce()
 	, TimeMappingCurve(nullptr)
 	, SavedHalfwayLocation(FVector::ZeroVector)
 {
+	// Don't allow partial end ticks. Jump forces are meant to provide velocity that
+	// carries through to the end of the jump, and if we do partial ticks at the very end,
+	// it means the provided velocity can be significantly reduced on the very last tick,
+	// resulting in lost momentum. This is not desirable for jumps.
+	Settings.SetFlag(ERootMotionSourceSettingsFlags::DisablePartialEndTick);
 }
 
 bool FRootMotionSource_JumpForce::IsTimeOutEnabled() const
@@ -1180,7 +1399,7 @@ void FRootMotionSourceGroup::PrepareRootMotion(float DeltaTime, const ACharacter
 						}
 
 						// End of root motion
-						if (RootMotionSource->IsTimeOutEnabled())
+						if (RootMotionSource->IsTimeOutEnabled() && !RootMotionSource->Settings.HasFlag(ERootMotionSourceSettingsFlags::DisablePartialEndTick))
 						{
 							const float Duration = RootMotionSource->GetDuration();
 							if (RootMotionSource->GetTime() + SimulationTime >= Duration)
@@ -1459,10 +1678,11 @@ void FRootMotionSourceGroup::UpdateStateFrom(const FRootMotionSourceGroup& Group
 
 bool FRootMotionSourceGroup::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
-	int32 SourcesNum;
+	uint8 SourcesNum;
 	if (Ar.IsSaving())
 	{
-		SourcesNum = RootMotionSources.Num();
+		UE_CLOG(RootMotionSources.Num() > MAX_uint8, LogRootMotion, Warning, TEXT("Too many root motion sources (%d!) to net serialize. Clamping to %d"), RootMotionSources.Num(), MAX_uint8);
+		SourcesNum = FMath::Min<int32>(RootMotionSources.Num(), MAX_uint8);
 	}
 	Ar << SourcesNum;
 	if (Ar.IsLoading())
@@ -1472,11 +1692,11 @@ bool FRootMotionSourceGroup::NetSerialize(FArchive& Ar, class UPackageMap* Map, 
 
 	Ar << bHasAdditiveSources;
 	Ar << bHasOverrideSources;
-	Ar << LastPreAdditiveVelocity; // TODO-RootMotionSource: quantize
+	LastPreAdditiveVelocity.NetSerialize(Ar, Map, bOutSuccess);
 	Ar << bIsAdditiveVelocityApplied;
 	Ar << LastAccumulatedSettings.Flags;
 
-	for (int32 i = 0; i < SourcesNum; ++i)
+	for (int32 i = 0; i < SourcesNum && !Ar.IsError(); ++i)
 	{
 		UScriptStruct* ScriptStruct = RootMotionSources[i].IsValid() ? RootMotionSources[i]->GetScriptStruct() : nullptr;
 		UScriptStruct* ScriptStructLocal = ScriptStruct;

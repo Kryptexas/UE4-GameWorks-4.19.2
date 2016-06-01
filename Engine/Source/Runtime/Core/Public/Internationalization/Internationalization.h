@@ -19,6 +19,9 @@ class FInternationalization
 public:
 	static CORE_API FInternationalization& Get();
 
+	/** Checks to see that an internationalization instance exists, and has been initialized. Usually you would use Get(), however this may be used to work out whether TearDown() has been called when cleaning up on shutdown. */
+	static CORE_API bool IsAvailable();
+
 	static CORE_API void TearDown();
 
 	static CORE_API FText ForUseOnlyByLocMacroAndGraphNodeTextLiterals_CreateText(const TCHAR* InTextLiteral, const TCHAR* InNamespace, const TCHAR* InKey);
@@ -54,6 +57,8 @@ public:
 #endif
 
 	CORE_API void GetCultureNames(TArray<FString>& CultureNames) const;
+
+	CORE_API TArray<FString> GetPrioritizedCultureNames(const FString& Name);
 
 	// Given some paths to look at, populate a list of cultures that we have available localization information for. If bIncludeDerivedCultures, include cultures that are derived from those we have localization data for.
 	CORE_API void GetCulturesWithAvailableLocalization(const TArray<FString>& InLocalizationPaths, TArray< FCultureRef >& OutAvailableCultures, const bool bIncludeDerivedCultures);

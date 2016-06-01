@@ -375,11 +375,11 @@ void STutorialRoot::GoToNextStage(TWeakPtr<SWindow> InNavigationWindow)
 			GetMutableDefault<UTutorialStateSettings>()->RecordProgress(CurrentTutorial, CurrentTutorialStage);
 			break;
 		}
-		if (CurrentTutorialStage + 1 >= CurrentTutorial->Stages.Num())
+		if (CurrentTutorialStage >= CurrentTutorial->Stages.Num())
 		{
 			// We went out of bounds for this tutorial, so see if we want to go to another one.
 			CurrentTutorialStage = CurrentTutorial->Stages.Num() - 1;
-			if (FName(*CurrentTutorial->PreviousTutorial.ToString()) != NAME_None)
+			if (FName(*CurrentTutorial->NextTutorial.ToString()) != NAME_None)
 			{
 				TSubclassOf<UEditorTutorial> NextTutorialClass = LoadClass<UEditorTutorial>(NULL, *CurrentTutorial->NextTutorial.ToString(), NULL, LOAD_None, NULL);
 				if (NextTutorialClass != nullptr)

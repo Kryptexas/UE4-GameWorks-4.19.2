@@ -144,6 +144,18 @@ class ENGINE_API UPhysicsSettings : public UDeveloperSettings
 	UPROPERTY(config, EditAnywhere, Category = Simulation)
 	float MaxDepenetrationVelocity;
 
+	/** Contact offset multiplier. When creating a physics shape we look at its bounding volume and multiply its minimum value by this multiplier. A bigger number will generate contact points earlier which results in higher stability at the cost of performance. */
+	UPROPERTY(config, EditAnywhere, Category = Simulation, meta = (ClampMin = "0.001", UIMin = "0.001"))
+	float ContactOffsetMultiplier;
+
+	/** Min Contact offset. */
+	UPROPERTY(config, EditAnywhere, Category = Simulation, meta = (ClampMin = "0.0001", UIMin = "0.0001"))
+	float MinContactOffset;
+
+	/** Max Contact offset. */
+	UPROPERTY(config, EditAnywhere, Category = Simulation, meta = (ClampMin = "0.001", UIMin = "0.001"))
+	float MaxContactOffset;
+
 	/**
 	*  If true, simulate physics for this component on a dedicated server.
 	*  This should be set if simulating physics and replicating with a dedicated server.
@@ -156,6 +168,16 @@ class ENGINE_API UPhysicsSettings : public UDeveloperSettings
 	*  If true, static meshes will use per poly collision as complex collision by default. If false the default behavior is the same as UseSimpleAsComplex. */
 	UPROPERTY(config, EditAnywhere, Category = Simulation)
 	bool bDefaultHasComplexCollision;
+
+	/**
+	*  If true, the internal physx face to UE face mapping will not be generated. This is a memory optimization available if you do not rely on face indices returned by scene queries. */
+	UPROPERTY(config, EditAnywhere, Category = Optimization)
+	bool bSuppressFaceRemapTable;
+
+	/**
+	* If true, physx will not update unreal with any bodies that have moved during the simulation. This should only be used if you have no physx simulation or you are manually updating the unreal data via polling physx.  */
+	UPROPERTY(config, EditAnywhere, Category = Optimization)
+	bool bDisableActiveTransforms;
 
 	/**
 	*  If true CCD will be ignored. This is an optimization when CCD is never used which removes the need for physx to check it internally. */

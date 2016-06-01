@@ -133,6 +133,7 @@ public:
 void SMyBlueprint::Construct(const FArguments& InArgs, TWeakPtr<FBlueprintEditor> InBlueprintEditor, const UBlueprint* InBlueprint )
 {
 	bNeedsRefresh = false;
+	bShowReplicatedVariablesOnly = false;
 
 	BlueprintEditorPtr = InBlueprintEditor;
 	EdGraph = nullptr;
@@ -290,6 +291,20 @@ void SMyBlueprint::Construct(const FArguments& InArgs, TWeakPtr<FBlueprintEditor
 		NAME_None,
 		EUserInterfaceActionType::ToggleButton,
 		TEXT("MyBlueprint_ShowEmptySections")
+	);
+
+	ViewOptions.AddMenuEntry(
+		LOCTEXT("ShowReplicatedVariablesOnly", "Show Replicated Variables Only"),
+		LOCTEXT("ShowReplicatedVariablesOnlyTooltip", "Should we only show variables that are replicated?"),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &SMyBlueprint::OnToggleShowReplicatedVariablesOnly),
+			FCanExecuteAction(),
+			FIsActionChecked::CreateSP(this, &SMyBlueprint::IsShowingReplicatedVariablesOnly)
+		),
+		NAME_None,
+		EUserInterfaceActionType::ToggleButton,
+		TEXT("MyBlueprint_ShowReplicatedVariablesOnly")
 	);
 
 	SAssignNew(FilterBox, SSearchBox)
@@ -990,6 +1005,8 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 		FieldIteratorSuperFlag = EFieldIteratorFlags::ExcludeSuper;
 	}
 
+	bool bShowReplicatedOnly = IsShowingReplicatedVariablesOnly();
+
 	// Helper structure to aid category sorting
 	struct FGraphActionSort
 	{
@@ -1083,6 +1100,12 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 	{
 		UProperty* Property = *PropertyIt;
 		FName PropName = Property->GetFName();
+
+		// If we're showing only replicated, ignore the rest
+		if (bShowReplicatedOnly && (!Property->HasAnyPropertyFlags(CPF_Net | CPF_RepNotify) || Property->HasAnyPropertyFlags(CPF_RepSkip)))
+		{
+			continue;
+		}
 		
 		// Don't show delegate properties, there is special handling for these
 		const bool bMulticastDelegateProp = Property->IsA(UMulticastDelegateProperty::StaticClass());
@@ -1167,9 +1190,10 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 		Graph->GetSchema()->GetGraphDisplayInformation(*Graph, DisplayInfo);
 
 		FText FunctionCategory;
-		if (BlueprintObj->SkeletonGeneratedClass)
+		if (BlueprintObj->SkeletonGeneratedClass != nullptr)
 		{
-			if(UFunction* Function = BlueprintObj->SkeletonGeneratedClass->FindFunctionByName(Graph->GetFName()))
+			UFunction* Function = BlueprintObj->SkeletonGeneratedClass->FindFunctionByName(Graph->GetFName());
+			if (Function != nullptr)
 			{
 				FunctionCategory = Function->GetMetaDataText(FBlueprintMetadata::MD_FunctionCategory, TEXT("UObjectCategory"), Function->GetFullGroupName(false));
 			}
@@ -1415,6 +1439,17 @@ void SMyBlueprint::OnToggleShowEmptySections()
 bool SMyBlueprint::IsShowingEmptySections() const
 {
 	return GetMutableDefault<UBlueprintEditorSettings>()->bShowEmptySections;
+}
+
+void SMyBlueprint::OnToggleShowReplicatedVariablesOnly()
+{
+	bShowReplicatedVariablesOnly = !bShowReplicatedVariablesOnly;
+	Refresh();
+}
+
+bool SMyBlueprint::IsShowingReplicatedVariablesOnly() const
+{
+	return bShowReplicatedVariablesOnly;
 }
 
 FReply SMyBlueprint::OnActionDragged( const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions, const FPointerEvent& MouseEvent )
@@ -2153,7 +2188,7 @@ void SMyBlueprint::OnFindReference()
 	}
 	else if (FEdGraphSchemaAction_K2Event* EventAction = SelectionAsEvent())
 	{
-		SearchTerm = EventAction->GetMenuDescription().ToString();
+		SearchTerm = EventAction->NodeTemplate->GetFindReferenceSearchString();
 	}
 	else if (FEdGraphSchemaAction_K2InputAction* InputAction = SelectionAsInputAction())
 	{
@@ -2461,7 +2496,21 @@ bool SMyBlueprint::CanDeleteEntry() const
 
 	if (FEdGraphSchemaAction_K2Graph* GraphAction = SelectionAsGraph())
 	{
-		return GraphAction->EdGraph != NULL && GraphAction->EdGraph->bAllowDeletion;
+		if (GraphAction->EdGraph != NULL)
+		{
+			// Allow the user to delete any graphs in the interface section if the function can be placed as an event, 
+			// this allows users to resolve warnings when a previously implemented graph has been changed to be an event.
+			if (GraphAction->GetSectionID() == NodeSectionID::INTERFACE)
+			{
+				UFunction* Function = GetBlueprintObj()->SkeletonGeneratedClass->FindFunctionByName(GraphAction->EdGraph->GetFName());
+				if (UEdGraphSchema_K2::FunctionCanBePlacedAsEvent(Function))
+				{
+					return true;
+				}
+			}
+			return GraphAction->EdGraph->bAllowDeletion;
+		}
+		return false;
 	}
 	else if (FEdGraphSchemaAction_K2Delegate* DelegateAction = SelectionAsDelegate())
 	{
@@ -2582,6 +2631,7 @@ void SMyBlueprint::OnDuplicateAction()
 		}
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprintObj());
 
+		BlueprintEditorPtr.Pin()->OpenDocument(DuplicatedGraph, FDocumentTracker::ForceOpenNewDocument);
 		DuplicateActionName = DuplicatedGraph->GetFName();
 	}
 	else if (FEdGraphSchemaAction_K2Var* VarAction = SelectionAsVar())

@@ -119,13 +119,20 @@ FDetailCategoryImpl& FDetailLayoutBuilderImpl::DefaultCategory( FName CategoryNa
 	return *CategoryImpl;
 }
 
+bool FDetailLayoutBuilderImpl::HasCategory(FName CategoryName)
+{
+	return DefaultCategoryMap.Contains(CategoryName);
+}
+
 void FDetailLayoutBuilderImpl::BuildCategories( const FCategoryMap& CategoryMap, TArray< TSharedRef<FDetailCategoryImpl> >& OutSimpleCategories, TArray< TSharedRef<FDetailCategoryImpl> >& OutAdvancedCategories )
 {
 	for( FCategoryMap::TConstIterator It(CategoryMap); It; ++It )
 	{
 		TSharedRef<FDetailCategoryImpl> DetailCategory = It.Value().ToSharedRef();
-
-		const bool bCategoryHidden = GetDetailsView().IsCategoryHiddenByClass( DetailCategory->GetCategoryName() ) || ForceHiddenCategories.Contains( DetailCategory->GetCategoryName() );
+		//If there is a delimiter in the name it mean its a sub category, we dont show sub category at the root level
+		FString CategoryDelimiterString;
+		CategoryDelimiterString.AppendChar(FPropertyNodeConstants::CategoryDelimiterChar);
+		const bool bCategoryHidden = GetDetailsView().IsCategoryHiddenByClass(DetailCategory->GetCategoryName()) || ForceHiddenCategories.Contains(DetailCategory->GetCategoryName()) || DetailCategory->GetCategoryName().ToString().Contains(CategoryDelimiterString);
 
 		if( !bCategoryHidden )
 		{
@@ -204,7 +211,7 @@ void FDetailLayoutBuilderImpl::FilterDetailLayout( const FDetailFilter& InFilter
 	}
 }
 
-void FDetailLayoutBuilderImpl::SetCurrentCustomizationClass( UClass* CurrentClass, FName VariableName )
+void FDetailLayoutBuilderImpl::SetCurrentCustomizationClass( UStruct* CurrentClass, FName VariableName )
 {
 	CurrentCustomizationClass = CurrentClass;
 	CurrentCustomizationVariableName = VariableName;

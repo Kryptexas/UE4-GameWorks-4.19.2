@@ -54,6 +54,11 @@ bool FFadeTrackEditor::SupportsType(TSubclassOf<UMovieSceneTrack> Type) const
 	return (Type == UMovieSceneFadeTrack::StaticClass());
 }
 
+const FSlateBrush* FFadeTrackEditor::GetIconBrush() const
+{
+	return FEditorStyle::GetBrush("Sequencer.Tracks.Fade");
+}
+
 
 /* FFadeTrackEditor callbacks
  *****************************************************************************/

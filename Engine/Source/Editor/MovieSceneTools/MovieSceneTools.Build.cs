@@ -12,7 +12,7 @@ public class MovieSceneTools : ModuleRules
                 "Editor/MovieSceneTools/Private/CurveKeyEditors",
                 "Editor/MovieSceneTools/Private/TrackEditors",
 				"Editor/MovieSceneTools/Private/TrackEditors/PropertyTrackEditors",
-                "Editor/MovieSceneTools/Private/TrackEditors/ShotTrackEditor",
+                "Editor/MovieSceneTools/Private/TrackEditorThumbnail",
 				"Editor/MovieSceneTools/Private/Sections"
             }
         );
@@ -31,6 +31,7 @@ public class MovieSceneTools : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
                 "ActorPickerMode",
+				"LevelSequence",
 				"MovieScene",
 				"MovieSceneTracks",
 				"BlueprintGraph",
@@ -38,26 +39,34 @@ public class MovieSceneTools : ModuleRules
 				"Slate",
 				"SlateCore",
                 "EditorStyle",
+				"EditorWidgets",
 				"RenderCore",
-				"RHI"
+				"RHI",
+				"ShaderCore",
+				"SequenceRecorder",
 			}
 		);
 
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
+                "AssetRegistry",
 				"AssetTools",
 				"Sequencer",
+                "Settings",
 				"SceneOutliner",
-				"PropertyEditor"
+				"PropertyEditor",
 			}
 		);
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
+                "AssetRegistry",
 				"AssetTools",
 				"SceneOutliner",
-				"PropertyEditor"
+				"PropertyEditor",
 			}
 		);
-	}
+
+        CircularlyReferencedDependentModules.Add("Sequencer");
+    }
 }

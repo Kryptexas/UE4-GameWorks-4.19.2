@@ -17,6 +17,48 @@ DEFINE_LOG_CATEGORY_STATIC(LogTabManager, Display, All);
 // 
 //////////////////////////////////////////////////////////////////////////
 
+FTabManager::FLiveTabSearch::FLiveTabSearch(FName InSearchForTabId)
+	: SearchForTabId(InSearchForTabId)
+{
+}
+
+TSharedPtr<SDockTab> FTabManager::FLiveTabSearch::Search(const FTabManager& Manager, FName PlaceholderId, const TSharedRef<SDockTab>& UnmanagedTab) const
+{
+	if ( SearchForTabId != NAME_None )
+	{
+		return Manager.FindExistingLiveTab(FTabId(SearchForTabId));
+	}
+	else
+	{
+		return Manager.FindExistingLiveTab(FTabId(PlaceholderId));
+	}
+}
+
+TSharedPtr<SDockTab> FTabManager::FRequireClosedTab::Search(const FTabManager& Manager, FName PlaceholderId, const TSharedRef<SDockTab>& UnmanagedTab) const
+{
+	return TSharedPtr<SDockTab>();
+}
+
+FTabManager::FLastMajorOrNomadTab::FLastMajorOrNomadTab(FName InFallbackTabId)
+	: FallbackTabId(InFallbackTabId)
+{
+}
+
+TSharedPtr<SDockTab> FTabManager::FLastMajorOrNomadTab::Search(const FTabManager& Manager, FName PlaceholderId, const TSharedRef<SDockTab>& UnmanagedTab) const
+{
+	TSharedPtr<SDockTab> FoundTab;
+	if ( UnmanagedTab->GetTabRole() == ETabRole::MajorTab )
+	{
+		FoundTab = Manager.FindLastTabInWindow(Manager.LastMajorDockWindow.Pin());
+		if ( !FoundTab.IsValid() && FallbackTabId != NAME_None )
+		{
+			FoundTab = Manager.FindExistingLiveTab(FTabId(FallbackTabId));
+		}
+	}
+
+	return FoundTab;
+}
+
 TSharedRef<FTabManager::FLayoutNode> FTabManager::FLayout::NewFromString_Helper( TSharedPtr<FJsonObject> JsonObject )
 {
 	struct local
@@ -392,7 +434,7 @@ void FTabManager::FPrivateApi::OnTabManagerClosing()
 
 bool FTabManager::FPrivateApi::CanTabLeaveTabWell(const TSharedRef<const SDockTab>& TabToTest) const
 {
-	return TabToTest != TabManager.MainNonCloseableTab.Pin();
+	return TabManager.bCanDoDragOperation && TabToTest != TabManager.MainNonCloseableTab.Pin();
 }
 
 const TArray< TWeakPtr<SDockingArea> >& FTabManager::FPrivateApi::GetLiveDockAreas() const
@@ -867,14 +909,45 @@ void FTabManager::DrawAttention( const TSharedRef<SDockTab>& TabToHighlight )
 	}
 }
 
-void FTabManager::InsertNewDocumentTab( FName PlaceholderId, ESearchPreference::Type SearchPreference, const TSharedRef<SDockTab>& UnmanagedTab )
+void FTabManager::InsertNewDocumentTab(FName PlaceholderId, const FSearchPreference& SearchPreference, const TSharedRef<SDockTab>& UnmanagedTab)
 {
 	InsertDocumentTab(PlaceholderId, SearchPreference, UnmanagedTab, true);
 }
 
+void FTabManager::InsertNewDocumentTab( FName PlaceholderId, ESearchPreference::Type SearchPreference, const TSharedRef<SDockTab>& UnmanagedTab )
+{
+	if ( SearchPreference == ESearchPreference::PreferLiveTab )
+	{
+		FLiveTabSearch Search;
+		InsertDocumentTab(PlaceholderId, Search, UnmanagedTab, true);
+	}
+	else if ( SearchPreference == ESearchPreference::RequireClosedTab )
+	{
+		FRequireClosedTab Search;
+		InsertDocumentTab(PlaceholderId, Search, UnmanagedTab, true);
+	}
+	else
+	{
+		check(false);
+	}
+}
+
 void FTabManager::RestoreDocumentTab( FName PlaceholderId, ESearchPreference::Type SearchPreference, const TSharedRef<SDockTab>& UnmanagedTab )
 {
-	InsertDocumentTab(PlaceholderId, SearchPreference, UnmanagedTab, false);
+	if ( SearchPreference == ESearchPreference::PreferLiveTab )
+	{
+		FLiveTabSearch Search;
+		InsertDocumentTab(PlaceholderId, Search, UnmanagedTab, false);
+	}
+	else if ( SearchPreference == ESearchPreference::RequireClosedTab )
+	{
+		FRequireClosedTab Search;
+		InsertDocumentTab(PlaceholderId, Search, UnmanagedTab, false);
+	}
+	else
+	{
+		check(false);
+	}
 }
 
 TSharedRef<SDockTab> FTabManager::InvokeTab( const FTabId& TabId )
@@ -893,7 +966,6 @@ TSharedRef<SDockTab> FTabManager::InvokeTab( const FTabId& TabId )
 
 TSharedRef<SDockTab> FTabManager::InvokeTab_Internal( const FTabId& TabId )
 {
-
 	// Tab Spawning Rules:
 	// 
 	//     * Find live instance --yes--> use it.
@@ -998,32 +1070,14 @@ void FTabManager::InvokeTabForMenu( FName TabId )
 	InvokeTab(TabId);
 }
 
-void FTabManager::InsertDocumentTab( FName PlaceholderId, ESearchPreference::Type SearchPreference, const TSharedRef<SDockTab>& UnmanagedTab, bool bPlaySpawnAnim )
+void FTabManager::InsertDocumentTab(FName PlaceholderId, const FSearchPreference& SearchPreference, const TSharedRef<SDockTab>& UnmanagedTab, bool bPlaySpawnAnim)
 {
 	const bool bTabNotManaged = ensure( ! FindTabInLiveAreas( FTabMatcher(UnmanagedTab->GetLayoutIdentifier()) ).IsValid() );
 	UnmanagedTab->SetLayoutIdentifier( FTabId(PlaceholderId, LastDocumentUID++) );
 	
 	if (bTabNotManaged)
 	{
-		TSharedPtr<SDockTab> LiveTab = (SearchPreference == ESearchPreference::PreferLiveTab) ? FindExistingLiveTab(FTabId(PlaceholderId)) : TSharedPtr<SDockTab>();
-		if (LiveTab.IsValid())
-		{
-			LiveTab->GetParent()->GetParentDockTabStack()->OpenTab( UnmanagedTab );
-		}
-		else
-		{
-			TSharedPtr<SDockingTabStack> StackToSpawnIn = FindPotentiallyClosedTab( PlaceholderId );
-			if( StackToSpawnIn.IsValid() == false )
-			{
-				UE_LOG(LogTabManager, Warning, TEXT("Unable to insert tab '%s'."), *(PlaceholderId.ToString()));
-				LiveTab = InvokeTab_Internal( FTabId( PlaceholderId ) );
-				LiveTab->GetParent()->GetParentDockTabStack()->OpenTab( UnmanagedTab );
-			}
-			else
-			{
-				StackToSpawnIn->OpenTab( UnmanagedTab );
-			}
-		}
+		OpenUnmanagedTab(PlaceholderId, SearchPreference, UnmanagedTab);
 	}
 
 	DrawAttention(UnmanagedTab);
@@ -1031,7 +1085,30 @@ void FTabManager::InsertDocumentTab( FName PlaceholderId, ESearchPreference::Typ
 	{
 		UnmanagedTab->PlaySpawnAnim();
 	}
-	
+}
+
+void FTabManager::OpenUnmanagedTab(FName PlaceholderId, const FSearchPreference& SearchPreference, const TSharedRef<SDockTab>& UnmanagedTab)
+{
+	TSharedPtr<SDockTab> LiveTab = SearchPreference.Search(*this, PlaceholderId, UnmanagedTab);
+		
+	if (LiveTab.IsValid())
+	{
+		LiveTab->GetParent()->GetParentDockTabStack()->OpenTab( UnmanagedTab );
+	}
+	else
+	{
+		TSharedPtr<SDockingTabStack> StackToSpawnIn = FindPotentiallyClosedTab( PlaceholderId );
+		if( StackToSpawnIn.IsValid() == false )
+		{
+			UE_LOG(LogTabManager, Warning, TEXT("Unable to insert tab '%s'."), *(PlaceholderId.ToString()));
+			LiveTab = InvokeTab_Internal( FTabId( PlaceholderId ) );
+			LiveTab->GetParent()->GetParentDockTabStack()->OpenTab( UnmanagedTab );
+		}
+		else
+		{
+			StackToSpawnIn->OpenTab( UnmanagedTab );
+		}
+	}
 }
 
 FTabManager::FTabManager( const TSharedPtr<SDockTab>& InOwnerTab, const TSharedRef<FTabSpawner> & InNomadTabSpawner )
@@ -1040,6 +1117,7 @@ FTabManager::FTabManager( const TSharedPtr<SDockTab>& InOwnerTab, const TSharedR
 , PrivateApi( MakeShareable(new FPrivateApi(*this)) )
 , LastDocumentUID( 0 )
 , bIsSavingVisualState( false )
+, bCanDoDragOperation( true )
 {
 	LocalWorkspaceMenuRoot = FWorkspaceItem::NewGroup(LOCTEXT("LocalWorkspaceRoot", "Local Workspace Root"));
 }
@@ -1259,6 +1337,30 @@ TSharedPtr<SDockTab> FTabManager::FindExistingLiveTab( const FTabId& TabId ) con
 				if ( TabId == ChildTabs[ChildTabIndex]->GetLayoutIdentifier() )
 				{
 					return ChildTabs[ChildTabIndex];
+				}
+			}
+		}
+	}
+
+	return TSharedPtr<SDockTab>();
+}
+
+TSharedPtr<SDockTab> FTabManager::FindLastTabInWindow(TSharedPtr<SWindow> Window) const
+{
+	if ( Window.IsValid() )
+	{
+		for ( int32 AreaIndex = 0; AreaIndex < DockAreas.Num(); ++AreaIndex )
+		{
+			const TSharedPtr<SDockingArea> SomeDockArea = DockAreas[AreaIndex].Pin();
+			if ( SomeDockArea.IsValid() )
+			{
+				if ( SomeDockArea->GetParentWindow() == Window )
+				{
+					TArray< TSharedRef<SDockTab> > ChildTabs = SomeDockArea->GetAllChildTabs();
+					if ( ChildTabs.Num() > 0 )
+					{
+						return ChildTabs[ChildTabs.Num() - 1];
+					}
 				}
 			}
 		}
@@ -1686,6 +1788,12 @@ void FGlobalTabmanager::DrawAttentionToTabManager( const TSharedRef<FTabManager>
 	if ( Tab.IsValid() )
 	{
 		this->DrawAttention(Tab.ToSharedRef());
+
+		// #HACK VREDITOR
+		if ( ProxyTabManager.IsValid() )
+		{
+			ProxyTabManager->DrawAttention(Tab.ToSharedRef());
+		}
 	}
 }
 
@@ -1794,6 +1902,11 @@ void FGlobalTabmanager::OnTabForegrounded( const TSharedPtr<SDockTab>& NewForegr
 
 void FGlobalTabmanager::OnTabRelocated( const TSharedRef<SDockTab>& RelocatedTab, const TSharedPtr<SWindow>& NewOwnerWindow )
 {
+	if ( RelocatedTab->GetTabRole() == ETabRole::MajorTab || RelocatedTab->GetTabRole() == ETabRole::NomadTab )
+	{
+		LastMajorDockWindow = NewOwnerWindow;
+	}
+
 	if (NewOwnerWindow.IsValid())
 	{
 		const int32 RelocatedManagerIndex = SubTabManagers.IndexOfByPredicate(FindByTab(RelocatedTab));
@@ -1815,7 +1928,8 @@ void FGlobalTabmanager::OnTabRelocated( const TSharedRef<SDockTab>& RelocatedTab
 					.AutoCenter(EAutoCenter::None)
 					.ScreenPosition(OldChildWindow->GetPositionInScreen())
 					.ClientSize(OldChildWindow->GetSizeInScreen())
-					.SupportsMinimize(false) .SupportsMaximize(false)
+					.SupportsMinimize(false)
+					.SupportsMaximize(false)
 					.CreateTitleBar(false)
 					[
 						ChildDockArea
@@ -1883,5 +1997,55 @@ void FGlobalTabmanager::UpdateStats()
 	AllTabsMaxCount = FMath::Max(AllTabsMaxCount, AllTabsCount);
 	AllAreasWindowMaxCount = FMath::Max(AllAreasWindowMaxCount, ParentWindows.Num());
 }
+
+void FGlobalTabmanager::OpenUnmanagedTab(FName PlaceholderId, const FSearchPreference& SearchPreference, const TSharedRef<SDockTab>& UnmanagedTab)
+{
+	if ( ProxyTabManager.IsValid() )
+	{
+		ProxyTabManager->OpenUnmanagedTab(PlaceholderId, SearchPreference, UnmanagedTab);
+	}
+	else
+	{
+		FTabManager::OpenUnmanagedTab(PlaceholderId, SearchPreference, UnmanagedTab);
+	}
+}
+
+void FGlobalTabmanager::SetProxyTabManager(TSharedPtr<FProxyTabmanager> InProxyTabManager)
+{
+	ProxyTabManager = InProxyTabManager;
+}
+
+void FProxyTabmanager::OpenUnmanagedTab(FName PlaceholderId, const FSearchPreference& SearchPreference, const TSharedRef<SDockTab>& UnmanagedTab)
+{
+	// No layout info about this tab found; start 
+	TSharedRef<FArea> NewAreaForTab = FTabManager::NewPrimaryArea()
+		->Split
+		(
+			FTabManager::NewStack()
+			->AddTab(UnmanagedTab->GetLayoutIdentifier(), ETabState::OpenedTab)
+		);
+
+	TSharedPtr<SWindow> ParentWindowPtr = ParentWindow.Pin();
+	TSharedRef<SDockingArea> DockingArea = RestoreArea(NewAreaForTab, ParentWindowPtr, false);
+	ParentWindowPtr->SetContent(DockingArea);
+
+	const TSharedPtr<SDockTab> NewlyOpenedTab = DockingArea->GetAllChildTabs()[0];
+	check(NewlyOpenedTab.IsValid());
+		
+	NewlyOpenedTab->GetParent()->GetParentDockTabStack()->OpenTab(UnmanagedTab);
+	NewlyOpenedTab->RequestCloseTab();
+
+	MainNonCloseableTab = UnmanagedTab;
+
+	OnTabOpened.Broadcast(UnmanagedTab);
+}
+
+void FProxyTabmanager::DrawAttention(const TSharedRef<SDockTab>& TabToHighlight)
+{
+	FTabManager::DrawAttention(TabToHighlight);
+
+	OnAttentionDrawnToTab.Broadcast(TabToHighlight);
+}
+
 
 #undef LOCTEXT_NAMESPACE

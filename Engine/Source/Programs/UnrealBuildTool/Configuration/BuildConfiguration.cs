@@ -60,15 +60,10 @@ namespace UnrealBuildTool
 
 		/// <summary>
 		/// New Xbox driver supports a "fast semantics" context type. This switches it on for the immediate and deferred contexts
-		/// EXPERIMENTAL - WILL CAUSE RENDERING ISSUES AND/OR CRASHES AT PRESENT!
+		/// Try disabling this if you see rendering issues and/or crashes inthe Xbox RHI.
 		/// </summary>
 		[XmlConfig]
 		public static bool bUseFastSemanticsRenderContexts;
-
-		/// Async Compute context support. Requires Mono and Fastcalls
-		/// </summary>
-		[XmlConfig]
-		public static bool bUseAsyncComputeContext;
 
 		/// <summary>
 		/// An approximate number of bytes of C++ code to target for inclusion in a single unified C++ file.
@@ -448,7 +443,7 @@ namespace UnrealBuildTool
 		public static bool bUseUBTMakefiles;
 
         /// <summary>
-        /// Enables support for fast UHT parsing by caching results of previous UHT runs. If a module or UnrealHeaderTool.manifest
+        /// Enables support for fast UHT parsing by caching results of previous UHT runs. If a module or *.uhtmanifest
         /// gets changed, all modules up to first changed one get loaded from makefile and the rest is parsed regularly.
         /// </summary>
         [XmlConfig]
@@ -536,6 +531,12 @@ namespace UnrealBuildTool
 		/// </summary>
 		[XmlConfig]
 		public static bool bUseFastPDBLinking;
+
+		/// <summary>
+		/// Whether to request the linker create a map file as part of the build
+		/// </summary>
+		[XmlConfig]
+		public static bool bCreateMapFile;
 
 		/// <summary>
 		/// Sets the configuration back to defaults.
@@ -637,7 +638,6 @@ namespace UnrealBuildTool
 			//  if this is set to true, then fast calls will be on by default on Dingo, and if false it will be off by default on Dingo.
 			//  This can be overridden by -fastmonocalls  or -nofastmonocalls in the NMAKE params.
 			bUseFastMonoCalls = true;
-			bUseAsyncComputeContext = bUseFastMonoCalls;
 
 			// Switch for fast semantics D3D contexts
 			// Try disabling this if you see rendering issues or crashes in the Xbox One RHI
@@ -701,6 +701,9 @@ namespace UnrealBuildTool
 			bAddFastPDBToProjects = false;
 			bUseFastPDBLinking = false;
 
+			// Don't create a map file by default
+			bCreateMapFile = false;
+
 			// The default for normal Mac users should be to use DistCode which installs as an Xcode plugin and provides dynamic host management
 			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 			{
@@ -723,6 +726,7 @@ namespace UnrealBuildTool
 							DefaultsProcess.StartInfo.CreateNoWindow = true;
 							DefaultsProcess.StartInfo.UseShellExecute = false;
 							DefaultsProcess.StartInfo.RedirectStandardOutput = true;
+							DefaultsProcess.StartInfo.RedirectStandardError = true;
 							DefaultsProcess.StartInfo.Arguments = "read com.marksatt.DistCode DistProp";
 							DefaultsProcess.Start();
 							string Output = DefaultsProcess.StandardOutput.ReadToEnd();
@@ -736,6 +740,43 @@ namespace UnrealBuildTool
 						{
 						}
 					}
+                    using (System.Diagnostics.Process CoordModeProcess = new System.Diagnostics.Process())
+                    {
+                        using (System.Diagnostics.Process DefaultsProcess = new System.Diagnostics.Process())
+                        {
+                            try
+                            {
+                                CoordModeProcess.StartInfo.FileName = "/usr/bin/defaults";
+                                CoordModeProcess.StartInfo.CreateNoWindow = true;
+                                CoordModeProcess.StartInfo.UseShellExecute = false;
+                                CoordModeProcess.StartInfo.RedirectStandardOutput = true;
+								CoordModeProcess.StartInfo.RedirectStandardError = true;
+                                CoordModeProcess.StartInfo.Arguments = "read com.marksatt.DistCode CoordinatorMode";
+                                CoordModeProcess.Start();
+                                string CoordModeProcessOutput = CoordModeProcess.StandardOutput.ReadToEnd();
+                                CoordModeProcess.WaitForExit();
+                                if (CoordModeProcess.ExitCode == 0 && CoordModeProcessOutput.StartsWith("1"))
+                                {
+                                    DefaultsProcess.StartInfo.FileName = "/usr/bin/defaults";
+                                    DefaultsProcess.StartInfo.CreateNoWindow = true;
+                                    DefaultsProcess.StartInfo.UseShellExecute = false;
+                                    DefaultsProcess.StartInfo.RedirectStandardOutput = true;
+									DefaultsProcess.StartInfo.RedirectStandardError = true;
+                                    DefaultsProcess.StartInfo.Arguments = "read com.marksatt.DistCode CoordinatorIP";
+                                    DefaultsProcess.Start();
+                                    string Output = DefaultsProcess.StandardOutput.ReadToEnd();
+                                    DefaultsProcess.WaitForExit();
+                                    if (DefaultsProcess.ExitCode == 0)
+                                    {
+                                        DMUCSCoordinator = Output;
+                                    }
+                                }
+                            }
+                            catch (Exception)
+                            {
+                            }
+                        }
+                    }
 				}
 			}
 		}
@@ -750,7 +791,7 @@ namespace UnrealBuildTool
 		/// <param name="bCreateDebugInfo">True if debug info should be created</param>
 		public static void ValidateConfiguration(CPPTargetConfiguration Configuration, CPPTargetPlatform Platform, bool bCreateDebugInfo, UEBuildPlatformContext PlatformContext)
 		{
-			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(Platform);
+			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(Platform);
 
 			// E&C support.
 			if (bSupportEditAndContinue)

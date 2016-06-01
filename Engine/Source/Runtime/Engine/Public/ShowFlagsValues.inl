@@ -58,10 +58,10 @@ SHOWFLAG_FIXED_IN_SHIPPING(0, VisualizeBuffer, SFG_Hidden, LOCTEXT("VisualizeBuf
 SHOWFLAG_FIXED_IN_SHIPPING(1, DirectLighting, SFG_LightingComponents, LOCTEXT("DirectLightingSF", "Direct Lighting"))
 /** Allows to disable lighting from Directional Lights */
 SHOWFLAG_FIXED_IN_SHIPPING(1, DirectionalLights, SFG_LightTypes, LOCTEXT("DirectionalLightsSF", "Directional Lights"))
-/** Allows to disable lighting from Point Lights */
-SHOWFLAG_FIXED_IN_SHIPPING(1, PointLights, SFG_LightTypes, LOCTEXT("PointLightsSF", "Point Lights"))
-/** Allows to disable lighting from Spot Lights */
-SHOWFLAG_FIXED_IN_SHIPPING(1, SpotLights, SFG_LightTypes, LOCTEXT("SpotLightsSF", "Spot Lights"))
+/** Allows to disable lighting from Point Lights, for now SHOWFLAG_ALWAYS_ACCESSIBLE because it's exposed in SceneCapture */
+SHOWFLAG_ALWAYS_ACCESSIBLE(PointLights, SFG_LightTypes, LOCTEXT("PointLightsSF", "Point Lights"))
+/** Allows to disable lighting from Spot Lights, for now SHOWFLAG_ALWAYS_ACCESSIBLE because it's exposed in SceneCapture */
+SHOWFLAG_ALWAYS_ACCESSIBLE(SpotLights, SFG_LightTypes, LOCTEXT("SpotLightsSF", "Spot Lights"))
 /** Color correction after tone mapping */
 SHOWFLAG_FIXED_IN_SHIPPING(1, ColorGrading, SFG_PostProcess, LOCTEXT("ColorGradingSF", "Color Grading"))
 /** Visualize vector fields. */
@@ -103,7 +103,7 @@ SHOWFLAG_FIXED_IN_SHIPPING(0, VisualizeOutOfBoundsPixels, SFG_Visualize, LOCTEXT
 /** Whether to display the scene's diffuse. */
 SHOWFLAG_FIXED_IN_SHIPPING(1, Diffuse, SFG_LightingComponents, LOCTEXT("DiffuseSF", "Diffuse"))
 /** Whether to display the scene's specular, including reflections. */
-SHOWFLAG_FIXED_IN_SHIPPING(1, Specular, SFG_LightingComponents, LOCTEXT("SpecularSF", "Specular"))
+SHOWFLAG_ALWAYS_ACCESSIBLE(Specular, SFG_LightingComponents, LOCTEXT("SpecularSF", "Specular"))
 /** Outline around selected objects in the editor */
 SHOWFLAG_FIXED_IN_SHIPPING(0, SelectionOutline, SFG_Hidden, LOCTEXT("SelectionOutlineSF", "Selection Outline"))
 /** If screen space reflections are enabled, for now SHOWFLAG_ALWAYS_ACCESSIBLE because it's exposed in SceneCapture */
@@ -112,8 +112,8 @@ SHOWFLAG_ALWAYS_ACCESSIBLE(ScreenSpaceReflections, SFG_LightingFeatures, LOCTEXT
 SHOWFLAG_FIXED_IN_SHIPPING(1, SubsurfaceScattering, SFG_LightingFeatures, LOCTEXT("SubsurfaceScatteringSF", "Subsurface Scattering (Screen Space)"))
 /** If Screen Space Subsurface Scattering visualization is enabled */
 SHOWFLAG_FIXED_IN_SHIPPING(0, VisualizeSSS, SFG_Visualize, LOCTEXT("VisualizeSSSSF", "Subsurface Scattering (Screen Space)"))
-/** If the indirect lighting cache is enabled */
-SHOWFLAG_FIXED_IN_SHIPPING(1, IndirectLightingCache, SFG_LightingFeatures, LOCTEXT("IndirectLightingCacheSF", "Indirect Lighting Cache"))
+/** If the indirect lighting cache is enabled, for now SHOWFLAG_ALWAYS_ACCESSIBLE because it's exposed in SceneCapture */
+SHOWFLAG_ALWAYS_ACCESSIBLE(IndirectLightingCache, SFG_LightingFeatures, LOCTEXT("IndirectLightingCacheSF", "Indirect Lighting Cache"))
 /** calls debug drawing for AIs */
 SHOWFLAG_FIXED_IN_SHIPPING(0, DebugAI, SFG_Developer, LOCTEXT("DebugAISF", "AI Debug"))
 /** calls debug drawing for whatever LogVisualizer wants to draw */
@@ -140,6 +140,8 @@ SHOWFLAG_ALWAYS_ACCESSIBLE(DynamicShadows, SFG_LightingComponents, LOCTEXT("Dyna
 SHOWFLAG_ALWAYS_ACCESSIBLE(Particles, SFG_Normal, LOCTEXT("ParticlesSF", "Particles Sprite"))
 /** if SkeletalMeshes are getting rendered, for now SHOWFLAG_ALWAYS_ACCESSIBLE because it's exposed in SceneCapture */
 SHOWFLAG_ALWAYS_ACCESSIBLE(SkeletalMeshes, SFG_Normal, LOCTEXT("SkeletalMeshesSF", "Skeletal Meshes"))
+/** if elements using the SkinCache are getting rendered (cache is still populated but not rendered, c) */
+SHOWFLAG_FIXED_IN_SHIPPING(1, SkinCache, SFG_Advanced, LOCTEXT("SkinCacheSF", "Skin Cache (GPU vertex cache for skeletal meshes)"))
 /** if the builder brush (editor) is getting rendered */
 SHOWFLAG_FIXED_IN_SHIPPING(0, BuilderBrush, SFG_Hidden, LOCTEXT("BuilderBrushSF", "Builder Brush"))
 /** Render translucency, for now SHOWFLAG_ALWAYS_ACCESSIBLE because it's exposed in SceneCapture */
@@ -169,7 +171,7 @@ SHOWFLAG_FIXED_IN_SHIPPING(0, BSPSplit, SFG_Advanced, LOCTEXT("BSPSplitSF", "BSP
 /** show editor (wireframe) brushes, for now SHOWFLAG_ALWAYS_ACCESSIBLE because it's exposed in SceneCapture */
 SHOWFLAG_FIXED_IN_SHIPPING(0, Brushes, SFG_Hidden, LOCTEXT("BrushesSF", "Brushes"))
 /** Show the usual material light interaction */
-SHOWFLAG_FIXED_IN_SHIPPING(1, Lighting, SFG_Hidden, LOCTEXT("LightingSF", "Lighting"))
+SHOWFLAG_ALWAYS_ACCESSIBLE(Lighting, SFG_Hidden, LOCTEXT("LightingSF", "Lighting"))
 /** Execute the deferred light passes, can be disabled for debugging, for now SHOWFLAG_ALWAYS_ACCESSIBLE because it's exposed in SceneCapture */
 SHOWFLAG_ALWAYS_ACCESSIBLE(DeferredLighting, SFG_Advanced, LOCTEXT("DeferredLightingSF", "DeferredLighting"))
 /** Special: Allows to hide objects in the editor, is evaluated per primitive */
@@ -250,8 +252,8 @@ SHOWFLAG_FIXED_IN_SHIPPING(0, HighResScreenshotMask, SFG_Hidden, LOCTEXT("HighRe
 SHOWFLAG_ALWAYS_ACCESSIBLE(HMDDistortion, SFG_PostProcess, LOCTEXT("HMDDistortionSF", "HMD Distortion"))
 /** Whether to render in stereoscopic 3d, for now SHOWFLAG_ALWAYS_ACCESSIBLE because it's used by StereoRendering */
 SHOWFLAG_ALWAYS_ACCESSIBLE(StereoRendering, SFG_Hidden, LOCTEXT("StereoRenderingSF", "Stereoscopic Rendering"))
-/** Show objects even if they should be distance culled */
-SHOWFLAG_FIXED_IN_SHIPPING(0, DistanceCulledPrimitives, SFG_Hidden, LOCTEXT("DistanceCulledPrimitivesSF", "Distance Culled Primitives"))
+/** Show objects even if they should be distance culled, for now SHOWFLAG_ALWAYS_ACCESSIBLE because it's exposed in SceneCapture */
+SHOWFLAG_ALWAYS_ACCESSIBLE(DistanceCulledPrimitives, SFG_Hidden, LOCTEXT("DistanceCulledPrimitivesSF", "Distance Culled Primitives"))
 /** To visualize the culling in Tile Based Deferred Lighting, later for non tiled as well */
 SHOWFLAG_FIXED_IN_SHIPPING(0, VisualizeLightCulling, SFG_Hidden, LOCTEXT("VisualizeLightCullingSF", "Light Culling"))
 /** To disable precomputed visibility */
@@ -282,6 +284,8 @@ SHOWFLAG_ALWAYS_ACCESSIBLE(DistanceFieldAO, SFG_LightingFeatures, LOCTEXT("Dista
 SHOWFLAG_FIXED_IN_SHIPPING(1, DistanceFieldGI, SFG_LightingFeatures, LOCTEXT("DistanceFieldGISF", "Distance Field Global Illumination"))
 /** Visualize screen space reflections, for developer (by default off): */
 SHOWFLAG_FIXED_IN_SHIPPING(0, VisualizeSSR, SFG_Visualize, LOCTEXT("VisualizeSSR", "Screen Space Reflections"))
+/** Visualize the Shading Models, mostly or debugging and profiling */
+SHOWFLAG_FIXED_IN_SHIPPING(0, VisualizeShadingModels, SFG_Visualize, LOCTEXT("VisualizeShadingModels", "Shading Models"))
 /** Visualize the senses configuration of AIs' PawnSensingComponent */
 SHOWFLAG_FIXED_IN_SHIPPING(0, VisualizeSenses, SFG_Advanced, LOCTEXT("VisualizeSenses", "Senses"))
 /** Visualize the bloom, for developer (by default off): */
@@ -290,10 +294,19 @@ SHOWFLAG_FIXED_IN_SHIPPING(0, VisualizeBloom, SFG_Visualize, LOCTEXT("VisualizeB
 SHOWFLAG_FIXED_IN_SHIPPING(0, VertexDensities, SFG_Hidden, LOCTEXT("VisualizeVertexDensities", "Visualize Vertex Densities"))
 /** Visualize LOD Coloration */
 SHOWFLAG_FIXED_IN_SHIPPING(0, LODColoration, SFG_Hidden, LOCTEXT("VisualizeLODColoration", "Visualize LOD Coloration"))
+/** Visualize HLOD Coloration */
+SHOWFLAG_FIXED_IN_SHIPPING(0, HLODColoration, SFG_Hidden, LOCTEXT("VisualizeHLODColoration", "Visualize HLOD Coloration"))
 /** Visualize screen quads */
-SHOWFLAG_FIXED_IN_SHIPPING(0, QuadComplexity, SFG_Hidden, LOCTEXT("QuadComplexitySF", "Quad Complexity"))
+SHOWFLAG_FIXED_IN_SHIPPING(0, QuadOverdraw, SFG_Hidden, LOCTEXT("QuadOverdrawSF", "Quad Overdraw"))
 /** Visualize the overhead of material quads */
-SHOWFLAG_FIXED_IN_SHIPPING(0, QuadOverhead, SFG_Visualize, LOCTEXT("QuadOverheadSF", "Quad Overhead"))
-
+SHOWFLAG_FIXED_IN_SHIPPING(0, ShaderComplexityWithQuadOverdraw, SFG_Hidden, LOCTEXT("ShaderComplexityWithQuadOverdraw", "Shader Complexity With Quad Overdraw"))
+/** Visualize the accuracy of the CPU primitive distance when compared with the GPU value */
+SHOWFLAG_FIXED_IN_SHIPPING(0, PrimitiveDistanceAccuracy, SFG_Hidden, LOCTEXT("PrimitiveDistanceAccuracy", "Primitive Distance Accuracy"))
+/** Visualize the accuracy of the CPU mesh texture coordinate size when compared to the GPU value */
+SHOWFLAG_FIXED_IN_SHIPPING(0, MeshTexCoordSizeAccuracy, SFG_Hidden, LOCTEXT("MeshTexCoordSizeAccuracy", "Mesh Texture Coordinate Size Accuracy"))
+/** Visualize the accuracy of CPU material texture coordinate scales when compared to the GPU values */
+SHOWFLAG_FIXED_IN_SHIPPING(0, MaterialTexCoordScalesAccuracy, SFG_Hidden, LOCTEXT("MaterialTexCoordScalesAccuracy", "Material Texture Coordinate Scales Accuracy"))
+/** Outputs the material texture coordinate scales. */
+SHOWFLAG_FIXED_IN_SHIPPING(0, MaterialTexCoordScalesAnalysis, SFG_Hidden, LOCTEXT("MaterialTexCoordScalesAnalysis", "Material Texture Coordinate Scales Analysis"))
 #undef SHOWFLAG_ALWAYS_ACCESSIBLE
 #undef SHOWFLAG_FIXED_IN_SHIPPING

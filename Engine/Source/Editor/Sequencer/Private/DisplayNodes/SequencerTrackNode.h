@@ -23,10 +23,11 @@ public:
 	 * 
 	 * @param InAssociatedType The track that this node represents.
 	 * @param InAssociatedEditor The track editor for the track that this node represents.
+	 * @param bInCanBeDragged Whether or not this node can be dragged and dropped.
 	 * @param InParentNode The parent of this node, or nullptr if this is a root node.
 	 * @param InParentTree The tree this node is in.
 	 */
-	FSequencerTrackNode(UMovieSceneTrack& InAssociatedTrack, ISequencerTrackEditor& InAssociatedEditor, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree);
+	FSequencerTrackNode(UMovieSceneTrack& InAssociatedTrack, ISequencerTrackEditor& InAssociatedEditor, bool bInCanBeDragged, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree);
 
 public:
 
@@ -67,7 +68,7 @@ public:
 	}
 
 	/** @return Returns the top level key node for the section area if it exists */
-	TSharedPtr<FSequencerSectionKeyAreaNode> GetTopLevelKeyNode()
+	TSharedPtr<FSequencerSectionKeyAreaNode> GetTopLevelKeyNode() const
 	{
 		return TopLevelKeyNode;
 	}
@@ -90,13 +91,15 @@ public:
 
 	virtual void BuildContextMenu( FMenuBuilder& MenuBuilder );
 	virtual bool CanRenameNode() const override;
-	virtual TSharedRef<SWidget> GenerateEditWidgetForOutliner() override;
+	virtual TSharedRef<SWidget> GetCustomOutlinerContent() override;
 	virtual void GetChildKeyAreaNodesRecursively(TArray<TSharedRef<FSequencerSectionKeyAreaNode>>& OutNodes) const override;
 	virtual FText GetDisplayName() const override;
 	virtual float GetNodeHeight() const override;
 	virtual FNodePadding GetNodePadding() const override;
 	virtual ESequencerNode::Type GetType() const override;
 	virtual void SetDisplayName(const FText& NewDisplayName) override;
+	virtual const FSlateBrush* GetIconBrush() const override;
+	virtual bool CanDrag() const override;
 
 private:
 
@@ -111,4 +114,7 @@ private:
 
 	/** If the section area is a key area itself, this represents the node for the keys */
 	TSharedPtr<FSequencerSectionKeyAreaNode> TopLevelKeyNode;
+
+	/** Whether or not this track node can be dragged. */
+	bool bCanBeDragged;
 };

@@ -613,10 +613,8 @@ namespace ExpressionParser
 		{
 			return MakeError(Error.GetValue());
 		}
-		else
-		{
-			return MakeValue(TokenConsumer.Extract());
-		}
+
+		return MakeValue(TokenConsumer.Extract());
 	}
 
 	CompileResultType Compile(const TCHAR* InExpression, const FTokenDefinitions& InTokenDefinitions, const FExpressionGrammar& InGrammar)
@@ -662,10 +660,8 @@ namespace ExpressionParser
 			{
 				return CompiledTokens[Index];
 			}
-			else
-			{
-				return RuntimeGeneratedTokens[Index - CompiledTokens.Num()];
-			}
+
+			return RuntimeGeneratedTokens[Index - CompiledTokens.Num()];
 		};
 
 		/** Add a new token to the runtime generated array */
@@ -750,10 +746,8 @@ namespace ExpressionParser
 		{
 			return MakeValue(GetToken(OperandStack[0]).Node.Copy());
 		}
-		else
-		{
-			return MakeError(LOCTEXT("SyntaxError_InvalidExpression", "Could not evaluate expression"));
-		}
+
+		return MakeError(LOCTEXT("SyntaxError_InvalidExpression", "Could not evaluate expression"));
 	}
 }
 

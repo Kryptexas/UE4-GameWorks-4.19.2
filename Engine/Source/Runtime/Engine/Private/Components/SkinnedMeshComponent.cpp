@@ -297,6 +297,7 @@ void USkinnedMeshComponent::OnRegister()
 	Super::OnRegister();
 
 	UpdateLODStatus();
+	InvalidateCachedBounds();
 }
 
 void USkinnedMeshComponent::OnUnregister()
@@ -518,14 +519,15 @@ void USkinnedMeshComponent::TickComponent(float DeltaTime, enum ELevelTick TickT
 	// See if this mesh was rendered recently. This has to happen first because other data will rely on this
 	bRecentlyRendered = (LastRenderTime > GetWorld()->TimeSeconds - 1.0f);
 
+	// Update component's LOD settings
+	// This must be done BEFORE animation Update and Evaluate (TickPose and RefreshBoneTransforms respectively)
+	const bool bLODHasChanged = UpdateLODStatus();
+
 	// Tick Pose first
 	if (ShouldTickPose())
 	{
 		TickPose(DeltaTime, false);
 	}
-
-	// Update component's LOD settings
-	const bool bLODHasChanged = UpdateLODStatus();
 
 	// If we have been recently rendered, and bForceRefPose has been on for at least a frame, or the LOD changed, update bone matrices.
 	if( ShouldUpdateTransform(bLODHasChanged) )
@@ -584,7 +586,7 @@ bool USkinnedMeshComponent::ShouldCPUSkin()
 	return false;
 }
 
-void USkinnedMeshComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
+void USkinnedMeshComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
 {
 	if( SkeletalMesh )
 	{
@@ -695,21 +697,21 @@ FBoxSphereBounds USkinnedMeshComponent::CalcMeshBound(const FVector& RootOffset,
 		&& ( (GetNumSpaceBases() == SkeletalMesh->RefSkeleton.GetNum()) || (MasterPhysicsAsset) );
 
 	const bool bDetailModeAllowsRendering = (DetailMode <= GetCachedScalabilityCVars().DetailMode);
-	const bool bVisible = ( bDetailModeAllowsRendering && (ShouldRender() || bCastHiddenShadow));
+	const bool bIsVisible = ( bDetailModeAllowsRendering && (ShouldRender() || bCastHiddenShadow));
 
 	const bool bHasPhysBodies = PhysicsAsset && PhysicsAsset->BodySetup.Num();
 	const bool bMasterHasPhysBodies = MasterPhysicsAsset && MasterPhysicsAsset->BodySetup.Num();
 
 	// if not visible, or we were told to use fixed bounds, use skelmesh bounds
-	if ( (!bVisible || bComponentUseFixedSkelBounds) && SkeletalMesh ) 
+	if ( (!bIsVisible || bComponentUseFixedSkelBounds) && SkeletalMesh ) 
 	{
-		FBoxSphereBounds RootAdjustedBounds = SkeletalMesh->Bounds;
+		FBoxSphereBounds RootAdjustedBounds = SkeletalMesh->GetBounds();
 		RootAdjustedBounds.Origin += RootOffset; // Adjust bounds by root bone translation
 		NewBounds = RootAdjustedBounds.TransformBy(LocalToWorld);
 	}
 	else if(MasterPoseComponentInst && MasterPoseComponentInst->SkeletalMesh && MasterPoseComponentInst->bComponentUseFixedSkelBounds)
 	{
-		FBoxSphereBounds RootAdjustedBounds = MasterPoseComponentInst->SkeletalMesh->Bounds;
+		FBoxSphereBounds RootAdjustedBounds = MasterPoseComponentInst->SkeletalMesh->GetBounds();
 		RootAdjustedBounds.Origin += RootOffset; // Adjust bounds by root bone translation
 		NewBounds = RootAdjustedBounds.TransformBy(LocalToWorld);
 	}
@@ -738,7 +740,7 @@ FBoxSphereBounds USkinnedMeshComponent::CalcMeshBound(const FVector& RootOffset,
 	// Fallback is to use the one from the skeletal mesh. Usually pretty bad in terms of Accuracy of where the SkelMesh Bounds are located (i.e. usually bigger than it needs to be)
 	else if( SkeletalMesh )
 	{
-		FBoxSphereBounds RootAdjustedBounds = SkeletalMesh->Bounds;
+		FBoxSphereBounds RootAdjustedBounds = SkeletalMesh->GetBounds();
 
 		// Adjust bounds by root bone translation
 		RootAdjustedBounds.Origin += RootOffset;
@@ -862,6 +864,10 @@ FTransform USkinnedMeshComponent::GetBoneTransform(int32 BoneIdx, const FTransfo
 	}
 }
 
+int32 USkinnedMeshComponent::GetNumBones()const
+{
+	return SkeletalMesh ? SkeletalMesh->RefSkeleton.GetNum() : 0;
+}
 
 int32 USkinnedMeshComponent::GetBoneIndex( FName BoneName) const
 {
@@ -954,7 +960,7 @@ FVector USkinnedMeshComponent::GetRefPosePosition(int32 BoneIndex)
 }
 
 
-void USkinnedMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkelMesh)
+void USkinnedMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkelMesh, bool bReinitPose)
 {
 	// NOTE: InSkelMesh may be NULL (useful in the editor for removing the skeletal mesh associated with
 	//   this component on-the-fly)
@@ -965,12 +971,20 @@ void USkinnedMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkelMesh)
 		return;
 	}
 
-	// Unregister the component, swap the skeletal mesh, and reregister.
 	{
-		FComponentReregisterContext ReregisterContext(this);
-		check(MeshObject == NULL);
+		//Handle destroying and recreating the renderstate
+		FRenderStateRecreator RenderStateRecreator(this);
+
 		SkeletalMesh = InSkelMesh;
-		InvalidateCachedBounds();
+
+		// Don't init anim state if not registered
+		if (IsRegistered())
+		{
+			AllocateTransformData();
+			UpdateMasterBoneMap();
+			UpdateLODStatus();
+			InvalidateCachedBounds();
+		}
 	}
 	
 	// TODO: (LH) find better way to call this 
@@ -1086,6 +1100,7 @@ void USkinnedMeshComponent::SetMasterPoseComponent(class USkinnedMeshComponent* 
 	}
 
 	AllocateTransformData();
+	RecreatePhysicsState();
 	UpdateMasterBoneMap();
 }
 
@@ -1242,7 +1257,7 @@ class USkeletalMeshSocket const* USkinnedMeshComponent::GetSocketByName(FName In
 	}
 	else
 	{
-		UE_LOG(LogSkinnedMeshComp, Warning,TEXT("GetSocketByName(): No SkeletalMesh for %s"), *GetName());
+		UE_LOG(LogSkinnedMeshComp, Warning,TEXT("GetSocketByName(%s): No SkeletalMesh for %s"), *InSocketName.ToString(), *GetName());
 	}
 
 	return Socket;
@@ -1465,7 +1480,7 @@ void USkinnedMeshComponent::TransformFromBoneSpace(FName BoneName, FVector InPos
 
 
 
-FName USkinnedMeshComponent::FindClosestBone(FVector TestLocation, FVector* BoneLocation, float IgnoreScale) const
+FName USkinnedMeshComponent::FindClosestBone(FVector TestLocation, FVector* BoneLocation, float IgnoreScale, bool bRequirePhysicsAsset) const
 {
 	if (SkeletalMesh == NULL)
 	{
@@ -1477,6 +1492,17 @@ FName USkinnedMeshComponent::FindClosestBone(FVector TestLocation, FVector* Bone
 	}
 	else
 	{
+		// cache the physics asset
+		const UPhysicsAsset* PhysAsset = GetPhysicsAsset();
+		if (bRequirePhysicsAsset && !PhysAsset)
+		{
+			if (BoneLocation != NULL)
+			{
+				*BoneLocation = FVector::ZeroVector;
+			}
+			return NAME_None;
+		}
+
 		// transform the TestLocation into mesh local space so we don't have to transform the (mesh local) bone locations
 		TestLocation = ComponentToWorld.InverseTransformPosition(TestLocation);
 		
@@ -1485,7 +1511,15 @@ FName USkinnedMeshComponent::FindClosestBone(FVector TestLocation, FVector* Bone
 		int32 BestIndex = -1;
 		for (int32 i = 0; i < GetNumSpaceBases(); i++)
 		{
-			if (IgnoreScale < 0.f || GetSpaceBases()[i].GetScaledAxis( EAxis::X ).SizeSquared() > IgnoreScaleSquared)
+			// If we require a physics asset, then look it up in the map
+			bool bPassPACheck = !bRequirePhysicsAsset;
+			if (bRequirePhysicsAsset)
+			{
+				FName BoneName = SkeletalMesh->RefSkeleton.GetBoneName(i);
+				bPassPACheck = (PhysAsset->BodySetupIndexMap.FindRef(BoneName) != INDEX_NONE);
+			}
+
+			if (bPassPACheck && (IgnoreScale < 0.f || GetSpaceBases()[i].GetScaledAxis(EAxis::X).SizeSquared() > IgnoreScaleSquared))
 			{
 				float DistSquared = (TestLocation - GetSpaceBases()[i].GetLocation()).SizeSquared();
 				if (DistSquared < BestDistSquared)
@@ -1514,6 +1548,12 @@ FName USkinnedMeshComponent::FindClosestBone(FVector TestLocation, FVector* Bone
 			return SkeletalMesh->RefSkeleton.GetBoneName(BestIndex);
 		}
 	}
+}
+
+FName USkinnedMeshComponent::FindClosestBone_K2(FVector TestLocation, FVector& BoneLocation, float IgnoreScale, bool bRequirePhysicsAsset) const
+{
+	BoneLocation = FVector::ZeroVector;
+	return FindClosestBone(TestLocation, &BoneLocation, IgnoreScale, bRequirePhysicsAsset);
 }
 
 void USkinnedMeshComponent::ShowMaterialSection(int32 MaterialID, bool bShow, int32 LODIndex)
@@ -1958,6 +1998,14 @@ void USkinnedMeshComponent::SetSpaceBaseDoubleBuffering(bool bInDoubleBufferedBl
 	else
 	{
 		CurrentEditableSpaceBases = CurrentReadSpaceBases;
+	}
+}
+
+void USkinnedMeshComponent::UpdateRecomputeTangent(int32 MaterialIndex)
+{
+	if (ensure(SkeletalMesh) && MeshObject)
+	{
+		MeshObject->UpdateRecomputeTangent(MaterialIndex, SkeletalMesh->Materials[MaterialIndex].bRecomputeTangent);
 	}
 }
 

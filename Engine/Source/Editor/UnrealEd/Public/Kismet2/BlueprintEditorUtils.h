@@ -6,6 +6,7 @@
 #include "EdGraph/EdGraph.h"
 #include "EdGraphSchema_K2.h"
 #include "K2Node_EditablePinBase.h"
+#include "Engine/LevelScriptBlueprint.h"
 
 class  USCS_Node;
 struct FComponentKey;
@@ -375,6 +376,9 @@ public:
 	/** Look to see if an event already exists to override a particular function */
 	static class UK2Node_Event* FindOverrideForFunction(const UBlueprint* Blueprint, const UClass* SignatureClass, FName SignatureName);
 
+	/** Find the Custom Event if it already exists in the Blueprint */
+	static class UK2Node_Event* FindCustomEventNode(const UBlueprint* Blueprint, FName const CustomName);
+
 
 	/** Returns all nodes in all graphs of the specified class */
 	template< class T > 
@@ -388,6 +392,19 @@ public:
 			TArray<T*> GraphNodes;
 			AllGraphs[i]->GetNodesOfClass<T>(GraphNodes);
 			OutNodes.Append(GraphNodes);
+		}
+	}
+
+	/** Returns all nodes in all graphs of at least the minimum node type */
+	template< class MinNodeType, class ArrayClassType>
+	static inline void GetAllNodesOfClassEx(const UBlueprint* Blueprint, TArray<ArrayClassType*>& OutNodes)
+	{
+		TArray<UEdGraph*> AllGraphs;
+		Blueprint->GetAllGraphs(AllGraphs);
+		for(UEdGraph* Graph : AllGraphs)
+		{
+			check(Graph != nullptr);
+			Graph->GetNodesOfClassEx<MinNodeType, ArrayClassType>(OutNodes);
 		}
 	}
 
@@ -856,6 +873,9 @@ public:
 	/** Replaces all variable references in the specified blueprint */
 	static void ReplaceVariableReferences(UBlueprint* Blueprint, const UProperty* OldVariable, const UProperty* NewVariable);
 
+	/** Check blueprint variable metadata keys/values for validity and make adjustments if needed */
+	static void ValidateBlueprintVariableMetadata(FBPVariableDescription& VarDesc);
+
 	/** Validate child blueprint component member variables, member variables, and timelines, and function graphs against the given variable name */
 	static void ValidateBlueprintChildVariables(UBlueprint* InBlueprint, const FName InVariableName);
 
@@ -1058,6 +1078,14 @@ public:
 
 	/** Remove an implemented interface, and its associated member function graphs.  If bPreserveFunctions is true, then the interface will move its functions to be normal implemented blueprint functions */
 	static void RemoveInterface(UBlueprint* Blueprint, const FName& InterfaceClassName, bool bPreserveFunctions = false);
+
+	/**
+	* Promotes a Graph from being an Interface Override to a full member function
+	*
+	* @param InBlueprint			Blueprint the graph is contained within
+	* @param InInterfaceGraph		The graph to promote
+	*/
+	static void PromoteGraphFromInterfaceOverride(UBlueprint* InBlueprint, UEdGraph* InInterfaceGraph);
 
 	/** Gets the graphs currently in the blueprint associated with the specified interface */
 	static void GetInterfaceGraphs(UBlueprint* Blueprint, const FName& InterfaceClassName, TArray<UEdGraph*>& ChildGraphs);
@@ -1269,7 +1297,16 @@ public:
 	 * @param PinType		The pin get the icon for.
 	 * @param returns a brush that best represents the icon (or Kismet.VariableList.TypeIcon if none is available )
 	 */
-	static const struct FSlateBrush* GetIconFromPin( const FEdGraphPinType& PinType );
+	static const struct FSlateBrush* GetIconFromPin(const FEdGraphPinType& PinType);
+
+	/**
+	 * Generate component instancing data (for cooked builds).
+	 *
+	 * @param ComponentTemplate	The component template to generate instancing data for.
+	 * @param OutData			The generated component instancing data.
+	 * @return					TRUE if component instancing data was built, FALSE otherwise.
+	 */
+	static void BuildComponentInstancingData(UActorComponent* ComponentTemplate, FBlueprintCookedComponentInstancingData& OutData);
 
 protected:
 	// Removes all NULL graph references from the SubGraphs array and recurses thru the non-NULL ones
@@ -1372,6 +1409,8 @@ struct UNREALED_API FBlueprintDuplicationScopeFlags
 		NoFlags = 0,
 		NoExtraCompilation = 1 << 0,
 		TheSameTimelineGuid = 1 << 1,
+		// This flag is needed for C++ backend (while compiler validates graphs). The actual BPGC type is compatible with the original BPGC.
+		ValidatePinsUsingSourceClass = 1 << 2,
 	};
 
 	static uint32 bStaticFlags;

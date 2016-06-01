@@ -23,6 +23,8 @@ enum class EWidgetBlendMode : uint8
 	Transparent
 };
 
+
+
 /**
  * Beware! This feature is experimental and may be substantially changed or removed in future releases.
  * A 3D instance of a Widget Blueprint that can be interacted with in the world.
@@ -49,6 +51,9 @@ public:
 	virtual FActorComponentInstanceData* GetComponentInstanceData() const override;
 
 	void ApplyComponentInstanceData(class FWidgetComponentInstanceData* ComponentInstanceData);
+
+	void RegisterHitTesterWithViewport(TSharedPtr<SViewport> ViewportWidget);
+	void UnregisterHitTesterWithViewport(TSharedPtr<SViewport> ViewportWidget);
 
 	// Begin UObject
 	virtual void PostLoad() override;
@@ -83,12 +88,21 @@ public:
 	 */
 	void GetLocalHitLocation(FVector WorldHitLocation, FVector2D& OutLocalHitLocation) const;
 
+	/** @return Gets the last local location that was hit */
+	FVector2D GetLastLocalHitLocation() const
+	{
+		return LastLocalHitLocation;
+	}
+	
 	/** @return The class of the user widget displayed by this component */
 	TSubclassOf<UUserWidget> GetWidgetClass() const { return WidgetClass; }
 
 	/** @return The user widget object displayed by this component */
 	UFUNCTION(BlueprintCallable, Category=UserInterface)
 	UUserWidget* GetUserWidgetObject() const;
+
+	/** @return Returns the Slate widget that was assigned to this component, if any */
+	const TSharedPtr<SWidget>& GetSlateWidget() const;
 
 	/** @return List of widgets with their geometry and the cursor position transformed into this Widget component's space. */
 	TArray<FWidgetAndPointer> GetHitWidgetPath(FVector WorldHitLocation, bool bIgnoreEnabledStatus, float CursorRadius = 0.0f);
@@ -100,7 +114,7 @@ public:
 	UMaterialInstanceDynamic* GetMaterialInstance() const { return MaterialInstance; }
 
 	/** @return The window containing the user widget content */
-	TSharedPtr<SWidget> GetSlateWidget() const;
+	TSharedPtr<SWindow> GetSlateWindow() const;
 
 	/**  
 	 *  Sets the widget to use directly. This function will keep track of the widget till the next time it's called
@@ -108,6 +122,12 @@ public:
 	 */ 
 	UFUNCTION(BlueprintCallable, Category=UserInterface)
 	void SetWidget(UUserWidget* Widget);
+
+	/**  
+	 *  Sets a Slate widget to be rendered.  You can use this to draw native Slate widgets using a WidgetComponent, instead
+	 *  of drawing user widgets.
+	 */ 
+	void SetSlateWidget( const TSharedPtr<SWidget>& InSlateWidget);
 
 	/**
 	 * Sets the local player that owns this widget component.  Setting the owning player controls
@@ -140,6 +160,22 @@ public:
 	/** Gets the blend mode for the widget. */
 	EWidgetBlendMode GetBlendMode() const { return BlendMode; }
 
+	/** Sets the blend mode to use for this widget */
+	void SetBlendMode( const EWidgetBlendMode NewBlendMode );
+
+	/** Sets whether the widget is two-sided or not */
+	void SetTwoSided( const bool bWantTwoSided );
+
+	/** Sets the background color and opacityscale for this widget */
+	UFUNCTION(BlueprintCallable, Category=UserInterface)
+	void SetBackgroundColor( const FLinearColor NewBackgroundColor );
+
+	/** Sets the tint color and opacity scale for this widget */
+	void SetTintColorAndOpacity( const FLinearColor NewTintColorAndOpacity );
+
+	/** Sets how much opacity from the UI widget's texture alpha is used when rendering to the viewport (0.0-1.0) */
+	void SetOpacityFromTexture( const float NewOpacityFromTexture );
+
 	/** @return The pivot point where the UI is rendered about the origin. */
 	FVector2D GetPivot() const { return Pivot; }
 
@@ -154,6 +190,9 @@ public:
 	/** Updates the actual material being used */
 	void UpdateMaterialInstance();
 	
+	/** Updates the dynamic parameters on the material instance, without re-creating it */
+	void UpdateMaterialInstanceParameters();
+
 	/** Sets the widget class used to generate the widget for this component */
 	void SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass);
 
@@ -161,11 +200,18 @@ public:
 
 	void SetWidgetSpace( EWidgetSpace NewSpace ) { Space = NewSpace; }
 
+	bool GetEditTimeUsable() const { return bEditTimeUsable; }
+
+	void SetEditTimeUsable(bool Value) { bEditTimeUsable = Value; }
+
 protected:
 	void RemoveWidgetFromScreen();
 
+	/** Allows subclasses to control if the widget should be drawn.  Called right before we draw the widget. */
+	virtual bool ShouldDrawWidget() const;
+
 	/** Draws the current widget to the render target if possible. */
-	void DrawWidgetToRenderTarget(float DeltaTime);
+	virtual void DrawWidgetToRenderTarget(float DeltaTime);
 
 protected:
 	/** The coordinate space in which to render the widget */
@@ -199,6 +245,14 @@ protected:
 	UPROPERTY(EditAnywhere, Category=Rendering)
 	FLinearColor BackgroundColor;
 
+	/** Tint color and opacity for this component */
+	UPROPERTY(EditAnywhere, Category=Rendering)
+	FLinearColor TintColorAndOpacity;
+
+	/** Sets the amount of opacity from the widget's UI texture to use when rendering the translucent or masked UI to the viewport (0.0-1.0) */
+	UPROPERTY(EditAnywhere, Category=Rendering, meta=(ClampMin=0.0f, ClampMax=1.0f))
+	float OpacityFromTexture;
+
 	/** The blend mode for the widget. */
 	UPROPERTY(EditAnywhere, Category=Rendering)
 	EWidgetBlendMode BlendMode;
@@ -225,6 +279,12 @@ protected:
 	/** The User Widget object displayed and managed by this component */
 	UPROPERTY(Transient, DuplicateTransient)
 	UUserWidget* Widget;
+	
+	/** The Slate widget to be displayed by this component.  Only one of either Widget or SlateWidget can be used */
+	TSharedPtr<SWidget> SlateWidget;
+
+	/** The slate widget currently being drawn. */
+	TWeakPtr<SWidget> CurrentSlateWidget;
 
 	/** The body setup of the displayed quad */
 	UPROPERTY(Transient, DuplicateTransient)
@@ -267,13 +327,20 @@ protected:
 
 	UPROPERTY(Transient, DuplicateTransient)
 	bool bAddedToScreen;
+
+	/**
+	 * Allows the widget component to be used at editor time.  For use in the VR-Editor.
+	 */
+	UPROPERTY()
+	bool bEditTimeUsable;
+
 protected:
 
 	/** The grid used to find actual hit actual widgets once input has been translated to the components local space */
 	TSharedPtr<class FHittestGrid> HitTestGrid;
 	
 	/** The slate window that contains the user widget content */
-	TSharedPtr<class SVirtualWindow> SlateWidget;
+	TSharedPtr<class SVirtualWindow> SlateWindow;
 
 	/** The relative location of the last hit on this component */
 	FVector2D LastLocalHitLocation;

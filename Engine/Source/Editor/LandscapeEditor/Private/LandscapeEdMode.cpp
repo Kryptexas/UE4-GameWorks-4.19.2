@@ -301,7 +301,7 @@ void FEdModeLandscape::Enter()
 	ALandscapeProxy* SelectedLandscape = GEditor->GetSelectedActors()->GetTop<ALandscapeProxy>();
 	if (SelectedLandscape)
 	{
-		CurrentToolTarget.LandscapeInfo = SelectedLandscape->GetLandscapeInfo();
+		CurrentToolTarget.LandscapeInfo = SelectedLandscape->GetLandscapeInfo(false);
 		GEditor->SelectNone(false, true);
 		GEditor->SelectActor(SelectedLandscape, true, false);
 	}
@@ -621,7 +621,7 @@ bool FEdModeLandscape::MouseMove(FEditorViewportClient* ViewportClient, FViewpor
 		if (CurrentTool)
 		{
 			Result = CurrentTool->MouseMove(ViewportClient, Viewport, MouseX, MouseY);
-			//ViewportClient->Invalidate( false, false );
+			ViewportClient->Invalidate(false, false);
 		}
 	}
 	return Result;
@@ -738,9 +738,15 @@ bool FEdModeLandscape::LandscapeMouseTrace(FEditorViewportClient* ViewportClient
 
 	FSceneView* View = ViewportClient->CalcSceneView(&ViewFamily);
 	FViewportCursorLocation MouseViewportRay(View, ViewportClient, MouseX, MouseY);
+	FVector BrushTraceDirection = MouseViewportRay.GetDirection();
 
 	FVector Start = MouseViewportRay.GetOrigin();
-	FVector End = Start + WORLD_MAX * MouseViewportRay.GetDirection();
+	if (ViewportClient->IsOrtho())
+	{
+		Start += -WORLD_MAX * BrushTraceDirection;
+	}
+
+	FVector End = Start + WORLD_MAX * BrushTraceDirection;
 
 	static FName TraceTag = FName(TEXT("LandscapeMouseTrace"));
 	TArray<FHitResult> Results;
@@ -1247,6 +1253,7 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 							{
 								Viewport->CaptureMouse(false);
 							}
+							ViewportClient->Invalidate(false, false);
 							return bToolActive;
 						}
 					}
@@ -1609,6 +1616,8 @@ void FEdModeLandscape::SetCurrentTool(int32 ToolIndex)
 	{
 		StaticCastSharedPtr<FLandscapeToolKit>(Toolkit)->NotifyToolChanged();
 	}
+
+	GEditor->RedrawLevelEditingViewports();
 }
 
 void FEdModeLandscape::SetCurrentBrushSet(FName BrushSetName)
@@ -2655,12 +2664,15 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 			Landscape->Import(FGuid::NewGuid(), NewMinX, NewMinY, NewMaxX, NewMaxY, NumSubsections, SubsectionSizeQuads, HeightData.GetData(), *OldLandscapeProxy->ReimportHeightmapFilePath, ImportLayerInfos, ELandscapeImportAlphamapType::Additive);
 
 			Landscape->MaxLODLevel = OldLandscapeProxy->MaxLODLevel;
+			Landscape->LODDistanceFactor = OldLandscapeProxy->LODDistanceFactor;
+			Landscape->LODFalloff = OldLandscapeProxy->LODFalloff;
 			Landscape->ExportLOD = OldLandscapeProxy->ExportLOD;
 			Landscape->StaticLightingLOD = OldLandscapeProxy->StaticLightingLOD;
+			Landscape->NegativeZBoundsExtension = OldLandscapeProxy->NegativeZBoundsExtension;
+			Landscape->PositiveZBoundsExtension = OldLandscapeProxy->PositiveZBoundsExtension;
 			Landscape->DefaultPhysMaterial = OldLandscapeProxy->DefaultPhysMaterial;
 			Landscape->StreamingDistanceMultiplier = OldLandscapeProxy->StreamingDistanceMultiplier;
 			Landscape->LandscapeHoleMaterial = OldLandscapeProxy->LandscapeHoleMaterial;
-			Landscape->LODDistanceFactor = OldLandscapeProxy->LODDistanceFactor;
 			Landscape->StaticLightingResolution = OldLandscapeProxy->StaticLightingResolution;
 			Landscape->bCastStaticShadow = OldLandscapeProxy->bCastStaticShadow;
 			Landscape->bCastShadowAsTwoSided = OldLandscapeProxy->bCastShadowAsTwoSided;
@@ -2683,7 +2695,7 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 			{
 				ULandscapeSplinesComponent* OldSplines = OldLandscapeActor->SplineComponent;
 				ULandscapeSplinesComponent* NewSplines = DuplicateObject<ULandscapeSplinesComponent>(OldSplines, Landscape, OldSplines->GetFName());
-				NewSplines->AttachTo(Landscape->GetRootComponent(), NAME_None, EAttachLocation::KeepWorldPosition);
+				NewSplines->AttachToComponent(Landscape->GetRootComponent(), FAttachmentTransformRules::KeepWorldTransform);
 
 				const FVector OldSplineScale = OldSplines->GetRelativeTransform().GetScale3D();
 				NewSplines->SetRelativeScale3D(FVector(OldSplineScale.X / LandscapeScaleFactor, OldSplineScale.Y / LandscapeScaleFactor, OldSplineScale.Z));
@@ -2730,6 +2742,8 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 			OldLandscapeProxy->Destroy();
 		}
 	}
+
+	GEditor->RedrawLevelEditingViewports();
 
 	return Landscape;
 }

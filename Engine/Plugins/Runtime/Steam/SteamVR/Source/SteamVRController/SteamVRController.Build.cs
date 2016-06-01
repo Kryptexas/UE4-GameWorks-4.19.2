@@ -27,7 +27,7 @@ public class SteamVRController : ModuleRules
 // 			"SteamVR",
 // 		});
 
-		AddThirdPartyPrivateStaticDependencies(Target,
+		AddEngineThirdPartyPrivateStaticDependencies(Target,
             "OpenVR"
         );
     }

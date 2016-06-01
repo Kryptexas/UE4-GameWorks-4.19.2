@@ -23,6 +23,8 @@
 #include <SetupApi.h>
 #include <devguid.h>
 #include <dwmapi.h>
+#include <cfgmgr32.h>
+#include <windowsx.h>
 
 
 // This might not be defined by Windows when maintaining backwards-compatibility to pre-Vista builds
@@ -60,6 +62,8 @@ FWindowsApplication::FWindowsApplication( const HINSTANCE HInstance, const HICON
 	, bInModalSizeLoop( false )
 
 {
+	FMemory::Memzero(ModifierKeyState, EModifierKey::Count);
+
 	// Disable the process from being showing "ghosted" not responding messages during slow tasks
 	// This is a hack.  A more permanent solution is to make our slow tasks not block the editor for so long
 	// that message pumping doesn't occur (which causes these messages).
@@ -266,11 +270,45 @@ void FWindowsApplication::SetMessageHandler( const TSharedRef< FGenericApplicati
 
 }
 
-FModifierKeysState FWindowsApplication::GetModifierKeys() const
+bool FWindowsApplication::IsGamepadAttached() const
 {
-	return CachedModifierKeyState;
+	if (XInput->IsGamepadAttached())
+	{
+		return true;
+	}
+
+	for( auto DeviceIt = ExternalInputDevices.CreateConstIterator(); DeviceIt; ++DeviceIt )
+	{
+		if ((*DeviceIt)->IsGamepadAttached())
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
+FModifierKeysState FWindowsApplication::GetModifierKeys() const
+{
+	return FModifierKeysState(
+		ModifierKeyState[EModifierKey::LeftShift], ModifierKeyState[EModifierKey::RightShift], 
+		ModifierKeyState[EModifierKey::LeftControl], ModifierKeyState[EModifierKey::RightControl], 
+		ModifierKeyState[EModifierKey::LeftAlt], ModifierKeyState[EModifierKey::RightAlt], 
+		false, false, 
+		ModifierKeyState[EModifierKey::CapsLock]
+		); // Win key is ignored
+}
+
+void FWindowsApplication::UpdateAllModifierKeyStates()
+{
+	ModifierKeyState[EModifierKey::LeftShift]		= (::GetAsyncKeyState(VK_LSHIFT) & 0x8000) != 0;
+	ModifierKeyState[EModifierKey::RightShift]		= (::GetAsyncKeyState(VK_RSHIFT) & 0x8000) != 0;
+	ModifierKeyState[EModifierKey::LeftControl]		= (::GetAsyncKeyState(VK_LCONTROL) & 0x8000) != 0;
+	ModifierKeyState[EModifierKey::RightControl]	= (::GetAsyncKeyState(VK_RCONTROL) & 0x8000) != 0;
+	ModifierKeyState[EModifierKey::LeftAlt]			= (::GetAsyncKeyState(VK_LMENU) & 0x8000) != 0;
+	ModifierKeyState[EModifierKey::RightAlt]		= (::GetAsyncKeyState(VK_RMENU) & 0x8000) != 0;
+	ModifierKeyState[EModifierKey::CapsLock]		= (::GetKeyState(VK_CAPITAL) & 0x0001) != 0;
+}
 
 static TSharedPtr< FWindowsWindow > FindWindowByHWND(const TArray< TSharedRef< FWindowsWindow > >& WindowsToSearch, HWND HandleToFind)
 {
@@ -465,19 +503,26 @@ inline bool GetSizeForDevID(const FString& TargetDevID, int32& Width, int32& Hei
 
 		if (SetupDiEnumDeviceInfo(DevInfo, MonitorIndex, &DevInfoData) == TRUE)
 		{
-			HKEY hDevRegKey = SetupDiOpenDevRegKey(DevInfo, &DevInfoData, DICS_FLAG_GLOBAL, 0, DIREG_DEV, KEY_READ);
-
-			if(!hDevRegKey || (hDevRegKey == INVALID_HANDLE_VALUE))
+			TCHAR Buffer[MAX_DEVICE_ID_LEN];
+			if (CM_Get_Device_ID(DevInfoData.DevInst, Buffer, MAX_DEVICE_ID_LEN, 0) == CR_SUCCESS)
 			{
-				continue;
+				FString DevID(Buffer);
+				DevID = DevID.Mid(8, DevID.Find(TEXT("\\"), ESearchCase::CaseSensitive, ESearchDir::FromStart, 9) - 8);
+				if (DevID == TargetDevID)
+				{
+					HKEY hDevRegKey = SetupDiOpenDevRegKey(DevInfo, &DevInfoData, DICS_FLAG_GLOBAL, 0, DIREG_DEV, KEY_READ);
+
+					if (hDevRegKey && hDevRegKey != INVALID_HANDLE_VALUE)
+					{
+						bRes = GetMonitorSizeFromEDID(hDevRegKey, Width, Height);
+						RegCloseKey(hDevRegKey);
+						break;
+					}
+				}
 			}
-
-			bRes = GetMonitorSizeFromEDID(hDevRegKey, Width, Height);
-
-			RegCloseKey(hDevRegKey);
 		}
 	}
-	
+
 	if (SetupDiDestroyDeviceInfoList(DevInfo) == FALSE)
 	{
 		bRes = false;
@@ -1035,10 +1080,28 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 			{
 				MINMAXINFO* MinMaxInfo = (MINMAXINFO*)lParam;
 				FWindowSizeLimits SizeLimits = MessageHandler->GetSizeLimitsForWindow(CurrentNativeEventWindow);
+
+				// We need to inflate the max values if using an OS window border
+				int32 BorderWidth = 0;
+				int32 BorderHeight = 0;
+				if (CurrentNativeEventWindow->GetDefinition().HasOSWindowBorder)
+				{
+					const DWORD WindowStyle = ::GetWindowLong(hwnd, GWL_STYLE);
+					const DWORD WindowExStyle = ::GetWindowLong(hwnd, GWL_EXSTYLE);
+
+					// This adjusts a zero rect to give us the size of the border
+					RECT BorderRect = { 0, 0, 0, 0 };
+					::AdjustWindowRectEx(&BorderRect, WindowStyle, false, WindowExStyle);
+
+					BorderWidth = BorderRect.right - BorderRect.left;
+					BorderHeight = BorderRect.bottom - BorderRect.top;
+				}
+
+				// We always apply BorderWidth and BorderHeight since Slate always works with client area window sizes
 				MinMaxInfo->ptMinTrackSize.x = FMath::RoundToInt( SizeLimits.GetMinWidth().Get(MinMaxInfo->ptMinTrackSize.x) );
 				MinMaxInfo->ptMinTrackSize.y = FMath::RoundToInt( SizeLimits.GetMinHeight().Get(MinMaxInfo->ptMinTrackSize.y) );
-				MinMaxInfo->ptMaxTrackSize.x = FMath::RoundToInt( SizeLimits.GetMaxWidth().Get(MinMaxInfo->ptMaxTrackSize.x) );
-				MinMaxInfo->ptMaxTrackSize.y = FMath::RoundToInt( SizeLimits.GetMaxHeight().Get(MinMaxInfo->ptMaxTrackSize.y) );
+				MinMaxInfo->ptMaxTrackSize.x = FMath::RoundToInt( SizeLimits.GetMaxWidth().Get(MinMaxInfo->ptMaxTrackSize.x) ) + BorderWidth;
+				MinMaxInfo->ptMaxTrackSize.y = FMath::RoundToInt( SizeLimits.GetMaxHeight().Get(MinMaxInfo->ptMaxTrackSize.y) ) + BorderHeight;
 				return 0;
 			}
 			break;
@@ -1131,10 +1194,13 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 
 void FWindowsApplication::CheckForShiftUpEvents(const int32 KeyCode)
 {
+	check(KeyCode == VK_LSHIFT || KeyCode == VK_RSHIFT);
+
 	// Since VK_SHIFT doesn't get an up message if the other shift key is held we need to poll for it
-	if (PressedModifierKeys.Contains(KeyCode) && ((::GetKeyState(KeyCode) & 0x8000) == 0) )
+	const EModifierKey::Type ModifierKeyIndex = KeyCode == VK_LSHIFT ? EModifierKey::LeftShift : EModifierKey::RightShift;
+	if (ModifierKeyState[ModifierKeyIndex] && ((::GetKeyState(KeyCode) & 0x8000) == 0) )
 	{
-		PressedModifierKeys.Remove(KeyCode);
+		ModifierKeyState[ModifierKeyIndex] = false;
 		MessageHandler->OnKeyUp( KeyCode, 0, false );
 	}
 }
@@ -1154,6 +1220,11 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 		// This allows us to continue receiving messages for it.
 		if ( !MessageHandler->ShouldProcessUserInputMessages( CurrentNativeEventWindowPtr ) && IsInputMessage( msg ) )
 		{
+			if (IsKeyboardInputMessage(msg))
+			{
+				// Force an update since we may have just consumed a modifier key state change
+				UpdateAllModifierKeyStates();
+			}
 			return 0;	// consume input messages
 		}
 
@@ -1215,18 +1286,14 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 					if( (lParam & 0x1000000) == 0 )
 					{
 						ActualKey = VK_LMENU;
-						if ( (bIsRepeat = PressedModifierKeys.Contains( VK_LMENU )) == false)
-						{
-							PressedModifierKeys.Add( VK_LMENU );
-						}
+						bIsRepeat = ModifierKeyState[EModifierKey::LeftAlt];
+						ModifierKeyState[EModifierKey::LeftAlt] = true;
 					}
 					else
 					{
 						ActualKey = VK_RMENU;
-						if ( (bIsRepeat = PressedModifierKeys.Contains( VK_RMENU )) == false)
-						{
-							PressedModifierKeys.Add( VK_RMENU );
-						}
+						bIsRepeat = ModifierKeyState[EModifierKey::RightAlt];
+						ModifierKeyState[EModifierKey::RightAlt] = true;
 					}
 					break;
 				case VK_CONTROL:
@@ -1234,28 +1301,32 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 					if( (lParam & 0x1000000) == 0 )
 					{
 						ActualKey = VK_LCONTROL;
-						if ( (bIsRepeat = PressedModifierKeys.Contains( VK_LCONTROL )) == false)
-						{
-							PressedModifierKeys.Add( VK_LCONTROL );
-						}
+						bIsRepeat = ModifierKeyState[EModifierKey::LeftControl];
+						ModifierKeyState[EModifierKey::LeftControl] = true;
 					}
 					else
 					{
 						ActualKey = VK_RCONTROL;
-						if ( (bIsRepeat = PressedModifierKeys.Contains( VK_RCONTROL )) == false)
-						{
-							PressedModifierKeys.Add( VK_RCONTROL );
-						}
+						bIsRepeat = ModifierKeyState[EModifierKey::RightControl];
+						ModifierKeyState[EModifierKey::RightControl] = true;
 					}
-
 					break;
 				case VK_SHIFT:
 					// Differentiate between left and right shift
 					ActualKey = MapVirtualKey( (lParam & 0x00ff0000) >> 16, MAPVK_VSC_TO_VK_EX);
-					if ( (bIsRepeat = PressedModifierKeys.Contains( ActualKey )) == false)
+					if (ActualKey == VK_LSHIFT)
 					{
-						PressedModifierKeys.Add( ActualKey );
+						bIsRepeat = ModifierKeyState[EModifierKey::LeftShift];
+						ModifierKeyState[EModifierKey::LeftShift] = true;
 					}
+					else
+					{
+						bIsRepeat = ModifierKeyState[EModifierKey::RightShift];
+						ModifierKeyState[EModifierKey::RightShift] = true;
+					}
+					break;
+				case VK_CAPITAL:
+					ModifierKeyState[EModifierKey::CapsLock] = (::GetKeyState(VK_CAPITAL) & 0x0001) != 0;
 					break;
 				default:
 					// No translation needed
@@ -1297,29 +1368,41 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 					if( (lParam & 0x1000000) == 0 )
 					{
 						ActualKey = VK_LMENU;
+						ModifierKeyState[EModifierKey::LeftAlt] = false;
 					}
 					else
 					{
 						ActualKey = VK_RMENU;
+						ModifierKeyState[EModifierKey::RightAlt] = false;
 					}
-					PressedModifierKeys.Remove( ActualKey );
 					break;
 				case VK_CONTROL:
 					// Differentiate between left and right control
 					if( (lParam & 0x1000000) == 0 )
 					{
 						ActualKey = VK_LCONTROL;
+						ModifierKeyState[EModifierKey::LeftControl] = false;
 					}
 					else
 					{
 						ActualKey = VK_RCONTROL;
+						ModifierKeyState[EModifierKey::RightControl] = false;
 					}
-					PressedModifierKeys.Remove( ActualKey );
 					break;
 				case VK_SHIFT:
 					// Differentiate between left and right shift
 					ActualKey = MapVirtualKey( (lParam & 0x00ff0000) >> 16, MAPVK_VSC_TO_VK_EX);
-					PressedModifierKeys.Remove( ActualKey );
+					if (ActualKey == VK_LSHIFT)
+					{
+						ModifierKeyState[EModifierKey::LeftShift] = false;
+					}
+					else
+					{
+						ModifierKeyState[EModifierKey::RightShift] = false;
+					}
+					break;
+				case VK_CAPITAL:
+					ModifierKeyState[EModifierKey::CapsLock] = (::GetKeyState(VK_CAPITAL) & 0x0001) != 0;
 					break;
 				default:
 					// No translation needed
@@ -1347,91 +1430,91 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 			// Mouse Button Down
 		case WM_LBUTTONDBLCLK:
 		case WM_LBUTTONDOWN:
-			{
-				if( msg == WM_LBUTTONDOWN )
-				{
-					MessageHandler->OnMouseDown( CurrentNativeEventWindowPtr, EMouseButtons::Left );
-				}
-				else
-				{
-					MessageHandler->OnMouseDoubleClick( CurrentNativeEventWindowPtr, EMouseButtons::Left );
-				}
-				return 0;
-			}
-			break;
-
 		case WM_MBUTTONDBLCLK:
 		case WM_MBUTTONDOWN:
-			{
-				if( msg == WM_MBUTTONDOWN )
-				{
-					MessageHandler->OnMouseDown( CurrentNativeEventWindowPtr, EMouseButtons::Middle );
-				}
-				else
-				{
-					MessageHandler->OnMouseDoubleClick( CurrentNativeEventWindowPtr, EMouseButtons::Middle );
-				}
-				return 0;
-			}
-			break;
-
 		case WM_RBUTTONDBLCLK:
 		case WM_RBUTTONDOWN:
-			{
-				if( msg == WM_RBUTTONDOWN )
-				{
-					MessageHandler->OnMouseDown( CurrentNativeEventWindowPtr, EMouseButtons::Right );
-				}
-				else
-				{
-					MessageHandler->OnMouseDoubleClick( CurrentNativeEventWindowPtr, EMouseButtons::Right );
-				}
-				return 0;
-			}
-			break;
-
 		case WM_XBUTTONDBLCLK:
 		case WM_XBUTTONDOWN:
+		case WM_LBUTTONUP:
+		case WM_MBUTTONUP:
+		case WM_RBUTTONUP:
+		case WM_XBUTTONUP:
 			{
-				EMouseButtons::Type MouseButton = ( HIWORD(wParam) & XBUTTON1 ) ? EMouseButtons::Thumb01  : EMouseButtons::Thumb02;
+				POINT CursorPoint;
+				CursorPoint.x = GET_X_LPARAM(lParam);
+				CursorPoint.y = GET_Y_LPARAM(lParam); 
 
-				BOOL Result = false;
-				if( msg == WM_XBUTTONDOWN )
+				ClientToScreen(hwnd, &CursorPoint);
+
+				const FVector2D CursorPos(CursorPoint.x, CursorPoint.y);
+
+				EMouseButtons::Type MouseButton = EMouseButtons::Invalid;
+				bool bDoubleClick = false;
+				bool bMouseUp = false;
+				switch(msg)
 				{
-					Result = MessageHandler->OnMouseDown( CurrentNativeEventWindowPtr, MouseButton );
+				case WM_LBUTTONDBLCLK:
+					bDoubleClick = true;
+					MouseButton = EMouseButtons::Left;
+					break;
+				case WM_LBUTTONUP:
+					bMouseUp = true;
+					MouseButton = EMouseButtons::Left;
+					break;
+				case WM_LBUTTONDOWN:
+					MouseButton = EMouseButtons::Left;
+					break;
+				case WM_MBUTTONDBLCLK:
+					bDoubleClick = true;
+					MouseButton = EMouseButtons::Middle;
+					break;
+				case WM_MBUTTONUP:
+					bMouseUp = true;
+					MouseButton = EMouseButtons::Middle;
+					break;
+				case WM_MBUTTONDOWN:
+					MouseButton = EMouseButtons::Middle;
+					break;
+				case WM_RBUTTONDBLCLK:
+					bDoubleClick = true;
+					MouseButton = EMouseButtons::Right;
+					break;
+				case WM_RBUTTONUP:
+					bMouseUp = true;
+					MouseButton = EMouseButtons::Right;
+					break;
+				case WM_RBUTTONDOWN:
+					MouseButton = EMouseButtons::Right;
+					break;
+				case WM_XBUTTONDBLCLK:
+					bDoubleClick = true;
+					MouseButton = ( HIWORD(wParam) & XBUTTON1 ) ? EMouseButtons::Thumb01  : EMouseButtons::Thumb02;
+					break;
+				case WM_XBUTTONUP:
+					bMouseUp = true;
+					MouseButton = ( HIWORD(wParam) & XBUTTON1 ) ? EMouseButtons::Thumb01  : EMouseButtons::Thumb02;
+					break;
+				case WM_XBUTTONDOWN:
+					MouseButton = ( HIWORD(wParam) & XBUTTON1 ) ? EMouseButtons::Thumb01  : EMouseButtons::Thumb02;
+					break;
+				default:
+					check(0);
+				}
+
+				if (bMouseUp)
+				{
+					return MessageHandler->OnMouseUp( MouseButton, CursorPos ) ? 0 : 1;
+				}
+				else if (bDoubleClick)
+				{
+					MessageHandler->OnMouseDoubleClick( CurrentNativeEventWindowPtr, MouseButton, CursorPos );
 				}
 				else
 				{
-					Result = MessageHandler->OnMouseDoubleClick( CurrentNativeEventWindowPtr, MouseButton );
+					MessageHandler->OnMouseDown( CurrentNativeEventWindowPtr, MouseButton, CursorPos );
 				}
-
-				return Result ? 0 : 1;
-			}
-			break;
-
-			// Mouse Button Up
-		case WM_LBUTTONUP:
-			{
-				return MessageHandler->OnMouseUp( EMouseButtons::Left ) ? 0 : 1;
-			}
-			break;
-
-		case WM_MBUTTONUP:
-			{
-				return MessageHandler->OnMouseUp( EMouseButtons::Middle ) ? 0 : 1;
-			}
-			break;
-
-		case WM_RBUTTONUP:
-			{
-				return MessageHandler->OnMouseUp( EMouseButtons::Right ) ? 0 : 1;
-			}
-			break;
-
-		case WM_XBUTTONUP:
-			{
-				EMouseButtons::Type MouseButton = ( HIWORD(wParam) & XBUTTON1 ) ? EMouseButtons::Thumb01  : EMouseButtons::Thumb02;
-				return MessageHandler->OnMouseUp( MouseButton ) ? 0 : 1;
+				return 0;
 			}
 			break;
 
@@ -1471,7 +1554,13 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 				const float SpinFactor = 1 / 120.0f;
 				const SHORT WheelDelta = GET_WHEEL_DELTA_WPARAM(wParam);
 
-				const BOOL Result = MessageHandler->OnMouseWheel( static_cast<float>( WheelDelta ) * SpinFactor );
+				POINT CursorPoint;
+				CursorPoint.x = GET_X_LPARAM(lParam);
+				CursorPoint.y = GET_Y_LPARAM(lParam); 
+
+				const FVector2D CursorPos(CursorPoint.x, CursorPoint.y);
+
+				const BOOL Result = MessageHandler->OnMouseWheel( static_cast<float>( WheelDelta ) * SpinFactor, CursorPos );
 				return Result ? 0 : 1;
 			}
 			break;
@@ -1513,6 +1602,8 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 				}
 				bForceActivateByMouse = false;
 
+				UpdateAllModifierKeyStates();
+
 				if ( CurrentNativeEventWindowPtr.IsValid() )
 				{
 					BOOL Result = false;
@@ -1525,6 +1616,7 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 			break;
 
 		case WM_ACTIVATEAPP:
+			UpdateAllModifierKeyStates();
 			MessageHandler->OnApplicationActivationChanged( !!wParam );
 			break;
 
@@ -1670,7 +1762,7 @@ void FWindowsApplication::ProcessDeferredDragDropOperation(const FDeferredWindow
 	}
 }
 
-bool FWindowsApplication::IsInputMessage( uint32 msg )
+bool FWindowsApplication::IsKeyboardInputMessage( uint32 msg )
 {
 	switch(msg)
 	{
@@ -1682,6 +1774,15 @@ bool FWindowsApplication::IsInputMessage( uint32 msg )
 	case WM_SYSKEYUP:
 	case WM_KEYUP:
 	case WM_SYSCOMMAND:
+		return true;
+	}
+	return false;
+}
+
+bool FWindowsApplication::IsMouseInputMessage( uint32 msg )
+{
+	switch(msg)
+	{
 	// Mouse input notification messages...
 	case WM_MOUSEHWHEEL:
 	case WM_MOUSEWHEEL:
@@ -1712,6 +1813,20 @@ bool FWindowsApplication::IsInputMessage( uint32 msg )
 	case WM_XBUTTONDBLCLK:
 	case WM_XBUTTONDOWN:
 	case WM_XBUTTONUP:
+		return true;
+	}
+	return false;
+}
+
+bool FWindowsApplication::IsInputMessage( uint32 msg )
+{
+	if (IsKeyboardInputMessage(msg) || IsMouseInputMessage(msg))
+	{
+		return true;
+	}
+
+	switch(msg)
+	{
 	// Raw input notification messages...
 	case WM_INPUT:
 	case WM_INPUT_DEVICE_CHANGE:
@@ -1775,19 +1890,6 @@ void FWindowsApplication::ProcessDeferredEvents( const float TimeDelta )
 			ProcessDeferredDragDropOperation(DeferredDragDropOperation);
 		}
 	}
-}
-
-void FWindowsApplication::Tick( const float TimeDelta )
-{
-	const bool bIsLeftShiftDown = (::GetAsyncKeyState(VK_LSHIFT) & 0x8000) != 0;
-	const bool bIsRightShiftDown = (::GetAsyncKeyState(VK_RSHIFT) & 0x8000) != 0;
-	const bool bIsLeftControlDown = (::GetAsyncKeyState(VK_LCONTROL) & 0x8000) != 0;
-	const bool bIsRightControlDown = (::GetAsyncKeyState(VK_RCONTROL) & 0x8000) != 0;
-	const bool bIsLeftAltDown = (::GetAsyncKeyState(VK_LMENU) & 0x8000) != 0;
-	const bool bIsRightAltDown = (::GetAsyncKeyState(VK_RMENU) & 0x8000) != 0;
-	const bool bAreCapsLocked = (::GetKeyState(VK_CAPITAL) & 0x0001) != 0;
-
-	CachedModifierKeyState = FModifierKeysState(bIsLeftShiftDown, bIsRightShiftDown, bIsLeftControlDown, bIsRightControlDown, bIsLeftAltDown, bIsRightAltDown, false, false, bAreCapsLocked); // Win key is ignored
 }
 
 void FWindowsApplication::PollGameDeviceState( const float TimeDelta )

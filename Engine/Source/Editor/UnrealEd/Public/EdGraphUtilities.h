@@ -24,6 +24,15 @@ public:
 
 //////////////////////////////////////////////////////////////////////////
 
+struct UNREALED_API FGraphPanelPinConnectionFactory : public TSharedFromThis<FGraphPanelPinConnectionFactory>
+{
+public:
+    virtual ~FGraphPanelPinConnectionFactory() {}
+    virtual class FConnectionDrawingPolicy* CreateConnectionPolicy(const class UEdGraphSchema* Schema, int32 InBackLayerID, int32 InFrontLayerID, float ZoomFactor, const class FSlateRect& InClippingRect, class FSlateWindowElementList& InDrawElements, class UEdGraph* InGraphObj) const { return nullptr; }
+};
+
+//////////////////////////////////////////////////////////////////////////
+
 class UNREALED_API FEdGraphUtilities
 {
 public:
@@ -32,6 +41,9 @@ public:
 
 	static void RegisterVisualPinFactory(TSharedPtr<FGraphPanelPinFactory> NewFactory);
 	static void UnregisterVisualPinFactory(TSharedPtr<FGraphPanelPinFactory> OldFactory);
+
+    static void RegisterVisualPinConnectionFactory(TSharedPtr<FGraphPanelPinConnectionFactory> NewFactory);
+    static void UnregisterVisualPinConnectionFactory(TSharedPtr<FGraphPanelPinConnectionFactory> OldFactory);
 
 	/** After pasting nodes, need to perform some fixup for pins etc. */
 	static void PostProcessPastedNodes(TSet<class UEdGraphNode*>& SpawnedNodes);
@@ -101,7 +113,7 @@ public:
 	/** Copy Common State of data from OldNode to NewNode **/
 	static void CopyCommonState(UEdGraphNode* OldNode, UEdGraphNode* NewNode);
 
-	struct FNodeVisitor
+	struct UNREALED_API FNodeVisitor
 	{
 		TSet<UEdGraphNode*> VisitedNodes;
 
@@ -109,35 +121,13 @@ public:
 		{
 		}
 
-		void TraverseNodes(UEdGraphNode* Node)
-		{
-			VisitedNodes.Add(Node);
-			TouchNode(Node);
-
-			// Follow every pin
-			for (int32 i = 0; i < Node->Pins.Num(); ++i)
-			{
-				UEdGraphPin* MyPin = Node->Pins[i];
-
-				// And every connection to the pin
-				for (int32 j = 0; j < MyPin->LinkedTo.Num(); ++j)
-				{
-					UEdGraphPin* OtherPin = MyPin->LinkedTo[j];
-					if( OtherPin )
-					{
-						UEdGraphNode* OtherNode = OtherPin->GetOwningNodeUnchecked();
-						if (OtherNode && !VisitedNodes.Contains(OtherNode))
-						{
-							TraverseNodes(OtherNode);
-						}
-					}
-				}
-			}
-		}
+		void TraverseNodes(UEdGraphNode* Node);
 	};
+
 private:
 	static TArray< TSharedPtr<FGraphPanelNodeFactory> > VisualNodeFactories;
 	static TArray< TSharedPtr<FGraphPanelPinFactory> > VisualPinFactories;
+    static TArray< TSharedPtr<FGraphPanelPinConnectionFactory> > VisualPinConnectionFactories;
 	friend class FNodeFactory;
 
 	// Should never create an instance of this class

@@ -63,35 +63,6 @@ namespace UnrealBuildTool
 			string ClangVersion = "";
 			string GccVersion = "";
 
-			// prefer clang 3.6, but fall back if needed for now
-			if (Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.6")))
-			{
-				ClangVersion = "3.6";
-				GccVersion = "4.9";
-			}
-			else if (Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.5")))
-			{
-				ClangVersion = "3.5";
-				GccVersion = "4.9";
-			}
-			else if (Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.3")))
-			{
-				ClangVersion = "3.3";
-				GccVersion = "4.8";
-			}
-			else if (Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.1")))
-			{
-				ClangVersion = "3.1";
-				GccVersion = "4.6";
-			}
-			else
-			{
-				throw new BuildException("Cannot find supported Android toolchain");
-			}
-
-			ClangVersionFloat = float.Parse(ClangVersion, System.Globalization.CultureInfo.InvariantCulture);
-			// Console.WriteLine("Compiling with clang {0}", ClangVersionFloat);
-
 			string ArchitecturePath = "";
 			string ArchitecturePathWindows32 = @"prebuilt/windows";
 			string ArchitecturePathWindows64 = @"prebuilt/windows-x86_64";
@@ -119,26 +90,78 @@ namespace UnrealBuildTool
 				throw new BuildException("Couldn't find 32-bit or 64-bit versions of the Android toolchain");
 			}
 
+			// prefer clang 3.6, but fall back if needed for now
+            if (Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.6")))
+			{
+				ClangVersionFloat = 3.6f;
+				ClangVersion = "-3.6";
+				GccVersion = "4.9";
+			}
+			else if (Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.5")))
+			{
+				ClangVersionFloat = 3.5f;
+				ClangVersion = "-3.5";
+				GccVersion = "4.9";
+			}
+			else if (Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.3")))
+			{
+				ClangVersionFloat = 3.3f;
+				ClangVersion = "-3.3";
+				GccVersion = "4.8";
+			}
+			else if (Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.1")))
+			{
+				ClangVersionFloat = 3.1f;
+				ClangVersion = "-3.1";
+				GccVersion = "4.6";
+			}
+            else if (Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm")))
+            {
+				// look for version in AndroidVersion.txt (fail if not found)
+				string VersionFilename = Path.Combine(NDKPath, @"toolchains/llvm/", ArchitecturePath, @"AndroidVersion.txt");
+				if (!File.Exists(VersionFilename))
+				{
+					throw new BuildException("Cannot find supported Android toolchain");
+				}
+				string[] VersionFile = File.ReadAllLines(VersionFilename);
+				string[] VersionParts = VersionFile[0].Split('.');
+				ClangVersionFloat = float.Parse(VersionParts[0] + "." + VersionParts[1], System.Globalization.CultureInfo.InvariantCulture);
+				ClangVersion = "";
+				GccVersion = "4.9";
+			}
+			else
+			{
+				throw new BuildException("Cannot find supported Android toolchain");
+			}
+
 			// set up the path to our toolchains
-			ClangPath = Path.Combine(NDKPath, @"toolchains/llvm-" + ClangVersion, ArchitecturePath, @"bin/clang++" + ExeExtension);
+			ClangPath = Path.Combine(NDKPath, @"toolchains/llvm" + ClangVersion, ArchitecturePath, @"bin/clang++" + ExeExtension);
 			ArPathArm = Path.Combine(NDKPath, @"toolchains/arm-linux-androideabi-" + GccVersion, ArchitecturePath, @"bin/arm-linux-androideabi-ar" + ExeExtension);		//@todo android: use llvm-ar.exe instead?
 			ArPathArm64 = Path.Combine(NDKPath, @"toolchains/aarch64-linux-android-" + GccVersion, ArchitecturePath, @"bin/aarch64-linux-android-ar" + ExeExtension);	//@todo android: use llvm-ar.exe instead?
 			ArPathx86 = Path.Combine(NDKPath, @"toolchains/x86-" + GccVersion, ArchitecturePath, @"bin/i686-linux-android-ar" + ExeExtension);							//@todo android: verify x86 toolchain
-			ArPathx64 = Path.Combine(NDKPath, @"toolchains/x86_64-" + GccVersion, ArchitecturePath, @"bin/x86_64-linux-android-ar" + ExeExtension);						//@todo android: verify x64 toolchain
+			ArPathx64 = Path.Combine(NDKPath, @"toolchains/x86_64-" + GccVersion, ArchitecturePath, @"bin/x86_64-linux-android-ar" + ExeExtension);                     //@todo android: verify x64 toolchain
 
+			// NDK setup (use no less than 21 for 64-bit targets)
+			int NDKApiLevelInt = GetNdkApiLevelInt();
+			string NDKApiLevel32Bit = GetNdkApiLevel();
+			string NDKApiLevel64Bit = NDKApiLevel32Bit;
+			if (NDKApiLevelInt < 21)
+			{
+				NDKApiLevel64Bit = "android-21";
+			}
 
 			// toolchain params
 			ToolchainParamsArm = " -target armv7-none-linux-androideabi" +
-								   " --sysroot=\"" + Path.Combine(NDKPath, "platforms", GetNdkApiLevel(), "arch-arm") + "\"" +
+								   " --sysroot=\"" + Path.Combine(NDKPath, "platforms", NDKApiLevel32Bit, "arch-arm") + "\"" +
 								   " -gcc-toolchain \"" + Path.Combine(NDKPath, @"toolchains/arm-linux-androideabi-" + GccVersion, ArchitecturePath) + "\"";
 			ToolchainParamsArm64 = " -target aarch64-none-linux-android" +
-								   " --sysroot=\"" + Path.Combine(NDKPath, "platforms", GetNdkApiLevel(), "arch-arm64") + "\"" +
+								   " --sysroot=\"" + Path.Combine(NDKPath, "platforms", NDKApiLevel64Bit, "arch-arm64") + "\"" +
 								   " -gcc-toolchain \"" + Path.Combine(NDKPath, @"toolchains/aarch64-linux-android-" + GccVersion, ArchitecturePath) + "\"";
 			ToolchainParamsx86 = " -target i686-none-linux-android" +
-								   " --sysroot=\"" + Path.Combine(NDKPath, "platforms", GetNdkApiLevel(), "arch-x86") + "\"" +
+								   " --sysroot=\"" + Path.Combine(NDKPath, "platforms", NDKApiLevel32Bit, "arch-x86") + "\"" +
 								   " -gcc-toolchain \"" + Path.Combine(NDKPath, @"toolchains/x86-" + GccVersion, ArchitecturePath) + "\"";
 			ToolchainParamsx64 = " -target x86_64-none-linux-android" +
-								   " --sysroot=\"" + Path.Combine(NDKPath, "platforms", GetNdkApiLevel(), "arch-x86_64") + "\"" +
+								   " --sysroot=\"" + Path.Combine(NDKPath, "platforms", NDKApiLevel64Bit, "arch-x86_64") + "\"" +
 								   " -gcc-toolchain \"" + Path.Combine(NDKPath, @"toolchains\x86_64-" + GccVersion, ArchitecturePath) + "\"";
 		}
 
@@ -148,19 +171,23 @@ namespace UnrealBuildTool
 			ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.Android, "Engine", DirectoryReference.FromFile(ProjectFile));
 			Arches = new List<string>();
 			bool bBuild = true;
-			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForArmV7", out bBuild) && bBuild)
+			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForArmV7", out bBuild) && bBuild
+				|| UEBuildConfiguration.Architectures.Contains("armv7", StringComparer.OrdinalIgnoreCase))
 			{
 				Arches.Add("-armv7");
 			}
-			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForArm64", out bBuild) && bBuild)
+			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForArm64", out bBuild) && bBuild
+				|| UEBuildConfiguration.Architectures.Contains("arm64", StringComparer.OrdinalIgnoreCase))
 			{
 				Arches.Add("-arm64");
 			}
-			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForx86", out bBuild) && bBuild)
+			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForx86", out bBuild) && bBuild
+				|| UEBuildConfiguration.Architectures.Contains("x86", StringComparer.OrdinalIgnoreCase))
 			{
 				Arches.Add("-x86");
 			}
-			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForx8664", out bBuild) && bBuild)
+			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForx8664", out bBuild) && bBuild
+				|| UEBuildConfiguration.Architectures.Contains("x64", StringComparer.OrdinalIgnoreCase))
 			{
 				Arches.Add("-x64");
 			}
@@ -173,15 +200,18 @@ namespace UnrealBuildTool
 
 			// Parse selected GPU architectures
 			GPUArchitectures = new List<string>();
-			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForES2", out bBuild) && bBuild)
+			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForES2", out bBuild) && bBuild
+				|| UEBuildConfiguration.GPUArchitectures.Contains("es2", StringComparer.OrdinalIgnoreCase))
 			{
 				GPUArchitectures.Add("-es2");
 			}
-			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForES31", out bBuild) && bBuild)
+			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForES31", out bBuild) && bBuild
+				|| UEBuildConfiguration.GPUArchitectures.Contains("es31", StringComparer.OrdinalIgnoreCase))
 			{
 				GPUArchitectures.Add("-es31");
 			}
-			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForGL4", out bBuild) && bBuild)
+			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForGL4", out bBuild) && bBuild
+				|| UEBuildConfiguration.GPUArchitectures.Contains("gl4", StringComparer.OrdinalIgnoreCase))
 			{
 				GPUArchitectures.Add("-gl4");
 			}
@@ -376,7 +406,7 @@ namespace UnrealBuildTool
 			// debug info
 			if (CompileEnvironment.Config.bCreateDebugInfo)
 			{
-				Result += " -g2 -gdwarf-2";
+				Result += " -g2 -gdwarf-4";
 			}
 
 			// optimization level
@@ -441,7 +471,9 @@ namespace UnrealBuildTool
 				Result += " -fpic";						// Generates position-independent code (PIC) suitable for use in a shared library
 				Result += " -fno-exceptions";			// Do not enable exception handling, generates extra code needed to propagate exceptions
 				Result += " -fno-rtti";					// 
-				Result += " -fno-short-enums";			// Do not allocate to an enum type only as many bytes as it needs for the declared range of possible values
+				Result += " -fno-short-enums";          // Do not allocate to an enum type only as many bytes as it needs for the declared range of possible values
+
+				Result += " -D__arm64__";				// for some reason this isn't defined and needed for PhysX
 
 				Result += " -march=armv8-a";
 				//Result += " -mfloat-abi=softfp";
@@ -568,10 +600,13 @@ namespace UnrealBuildTool
 				Result += " -Wl,--fix-cortex-a8";		// required to route around a CPU bug in some Cortex-A8 implementations
 			}
 
-			if (BuildConfiguration.bUseUnityBuild && ClangVersionFloat >= 3.6f)
+			if (BuildConfiguration.bUseUnityBuild && ClangVersionFloat >= 3.6f && ClangVersionFloat < 3.8f)
 			{
 				Result += " -fuse-ld=gold";				// ld.gold is available in r10e (clang 3.6)
 			}
+
+			// make sure the DT_SONAME field is set properly (or we can a warning toast at startup on new Android)
+			Result += " -Wl,-soname,libUE4.so";
 
 			// verbose output from the linker
 			// Result += " -v";
@@ -664,12 +699,12 @@ namespace UnrealBuildTool
 				// Newer NDK cpu_features.c uses getauxval() which causes a SIGSEGV in libhoudini.so (ARM on Intel translator) in older versions of Houdini
 				// so we patch the file to use alternative methods of detecting CPU features if libhoudini.so is detected
 				// The basis for this patch is from here: https://android-review.googlesource.com/#/c/110650/
-				String CpuFeaturesPath = Environment.GetEnvironmentVariable("NDKROOT") + "/sources/android/cpufeatures/";
-				String CpuFeaturesPatchedFile = CpuFeaturesPath + "cpu-features-patched.c";
+				string CpuFeaturesPath = Environment.GetEnvironmentVariable("NDKROOT") + "/sources/android/cpufeatures/";
+				string CpuFeaturesPatchedFile = CpuFeaturesPath + "cpu-features-patched.c";
 				if (!File.Exists(CpuFeaturesPatchedFile))
 				{
 					// Either make a copy or patch it
-					String[] CpuFeaturesLines = File.ReadAllLines(CpuFeaturesPath + "cpu-features.c");
+					string[] CpuFeaturesLines = File.ReadAllLines(CpuFeaturesPath + "cpu-features.c");
 
 					// Look for get_elf_hwcap_from_getauxval in the file
 					bool NeedsPatch = false;
@@ -1075,9 +1110,34 @@ namespace UnrealBuildTool
 		{
 			List<FileItem> Outputs = new List<FileItem>();
 
+			var NDKRoot = Environment.GetEnvironmentVariable("NDKROOT").Replace("\\", "/");
+			int NDKApiLevelInt = GetNdkApiLevelInt();
+			string OptionalLinkArguments;
+
 			for (int ArchIndex = 0; ArchIndex < Arches.Count; ArchIndex++)
 			{
 				string Arch = Arches[ArchIndex];
+
+				// 32-bit ABI may need fixup for removed bsd_signal in NDK11 for android-21+
+				OptionalLinkArguments = "";
+				if (NDKApiLevelInt >= 21)
+				{
+					// this file was added in NDK11 so use existence to detect (RELEASE.TXT no longer present)
+					if (File.Exists(Path.Combine(NDKRoot, "source.properties")))
+					{
+						switch (Arch)
+						{
+							case "-armv7":
+								OptionalLinkArguments = string.Format(" \"{0}\"", Path.Combine(UnrealBuildTool.EngineDirectory.FullName, "Build/Android/Prebuilt/bsdsignal/lib/armeabi-v7a/libbsdsignal.a"));
+								break;
+
+							case "-x86":
+								OptionalLinkArguments = string.Format(" \"{0}\"", Path.Combine(UnrealBuildTool.EngineDirectory.FullName, "Build/Android/Prebuilt/bsdsignal/lib/x86/libbsdsignal.a"));
+								break;
+						}
+					}
+				}
+
 				for (int GPUArchIndex = 0; GPUArchIndex < GPUArchitectures.Count; GPUArchIndex++)
 				{
 					string GPUArchitecture = GPUArchitectures[GPUArchIndex];
@@ -1193,6 +1253,7 @@ namespace UnrealBuildTool
 								}
 							}
 						}
+						LinkAction.CommandArguments += OptionalLinkArguments;
 						LinkAction.CommandArguments += string.Format(" -Wl,--end-group");
 					}
 
@@ -1242,6 +1303,21 @@ namespace UnrealBuildTool
 			if (SourceFileName.Contains("-armv7"))
 			{
 				StartInfo.FileName = ArPathArm.Replace("-ar.exe", "-strip.exe");
+			}
+			else
+			if (SourceFileName.Contains("-arm64"))
+            {
+				StartInfo.FileName = ArPathArm64.Replace("-ar.exe", "-strip.exe");
+			}
+			else
+			if (SourceFileName.Contains("-x86"))
+            {
+				StartInfo.FileName = ArPathx86.Replace("-ar.exe", "-strip.exe");
+			}
+			else
+			if (SourceFileName.Contains("-x64"))
+            {
+				StartInfo.FileName = ArPathx64.Replace("-ar.exe", "-strip.exe");
 			}
 			else
 			{

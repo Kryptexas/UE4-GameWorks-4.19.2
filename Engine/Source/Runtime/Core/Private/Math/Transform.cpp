@@ -130,7 +130,7 @@ void FTransform::SetToRelativeTransform(const FTransform& ParentTransform)
  	FMatrix BM = ParentTransform.ToMatrixWithScale();
 #endif
 
-	const FVector SafeRecipScale3D = GetSafeScaleReciprocal(ParentTransform.Scale3D);
+	const FVector SafeRecipScale3D = GetSafeScaleReciprocal(ParentTransform.Scale3D, SMALL_NUMBER);
 	const FQuat InverseRot = ParentTransform.Rotation.Inverse();
 
 	Scale3D *= SafeRecipScale3D;	
@@ -152,7 +152,7 @@ FTransform FTransform::GetRelativeTransform(const FTransform& Other) const
 	// where A = this, B = Other
 	FTransform Result;
 
-	FVector SafeRecipScale3D = GetSafeScaleReciprocal(Other.Scale3D);
+	FVector SafeRecipScale3D = GetSafeScaleReciprocal(Other.Scale3D, SMALL_NUMBER);
 	Result.Scale3D = Scale3D*SafeRecipScale3D;	
 
 	if (Other.Rotation.IsNormalized() == false)

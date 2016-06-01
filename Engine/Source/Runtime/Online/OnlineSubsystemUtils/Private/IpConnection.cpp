@@ -22,7 +22,6 @@ Notes:
 // Size of a UDP header.
 #define IP_HEADER_SIZE     (20)
 #define UDP_HEADER_SIZE    (IP_HEADER_SIZE+8)
-#define SLIP_HEADER_SIZE   (UDP_HEADER_SIZE+4)
 
 UIpConnection::UIpConnection(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
@@ -38,7 +37,7 @@ void UIpConnection::InitBase(UNetDriver* InDriver, class FSocket* InSocket, cons
 	Super::InitBase(InDriver, InSocket, InURL, InState, 
 		// Use the default packet size/overhead unless overridden by a child class
 		(InMaxPacket == 0 || InMaxPacket > MAX_PACKET_SIZE) ? MAX_PACKET_SIZE : InMaxPacket,
-		InPacketOverhead == 0 ? SLIP_HEADER_SIZE : InPacketOverhead);
+		InPacketOverhead == 0 ? UDP_HEADER_SIZE : InPacketOverhead);
 
 	Socket = InSocket;
 	ResolveInfo = NULL;
@@ -49,7 +48,7 @@ void UIpConnection::InitLocalConnection(UNetDriver* InDriver, class FSocket* InS
 	InitBase(InDriver, InSocket, InURL, InState, 
 		// Use the default packet size/overhead unless overridden by a child class
 		(InMaxPacket == 0 || InMaxPacket > MAX_PACKET_SIZE) ? MAX_PACKET_SIZE : InMaxPacket,
-		InPacketOverhead == 0 ? SLIP_HEADER_SIZE : InPacketOverhead);
+		InPacketOverhead == 0 ? UDP_HEADER_SIZE : InPacketOverhead);
 
 	// Figure out IP address from the host URL
 	bool bIsValid = false;
@@ -79,7 +78,7 @@ void UIpConnection::InitRemoteConnection(UNetDriver* InDriver, class FSocket* In
 	InitBase(InDriver, InSocket, InURL, InState, 
 		// Use the default packet size/overhead unless overridden by a child class
 		(InMaxPacket == 0 || InMaxPacket > MAX_PACKET_SIZE) ? MAX_PACKET_SIZE : InMaxPacket,
-		InPacketOverhead == 0 ? SLIP_HEADER_SIZE : InPacketOverhead);
+		InPacketOverhead == 0 ? UDP_HEADER_SIZE : InPacketOverhead);
 
 	// Copy the remote IPAddress passed in
 	bool bIsValid = false;
@@ -98,7 +97,7 @@ void UIpConnection::InitRemoteConnection(UNetDriver* InDriver, class FSocket* In
 	SetExpectedClientLoginMsgType( NMT_Hello );
 }
 
-void UIpConnection::LowLevelSend( void* Data, int32 Count )
+void UIpConnection::LowLevelSend(void* Data, int32 CountBytes, int32 CountBits)
 {
 	const uint8* DataToSend = reinterpret_cast<uint8*>(Data);
 
@@ -132,26 +131,28 @@ void UIpConnection::LowLevelSend( void* Data, int32 Count )
 	}
 	 
 	// Process any packet modifiers
-	if(Handler.IsValid())
+	if (Handler.IsValid() && !Handler->GetRawSend())
 	{
-		const ProcessedPacket ProcessedData = Handler->Outgoing(reinterpret_cast<uint8*>(Data), Count);
+		const ProcessedPacket ProcessedData = Handler->Outgoing(reinterpret_cast<uint8*>(Data), CountBits);
+
 		DataToSend = ProcessedData.Data;
-		Count = ProcessedData.Count;
+		CountBytes = FMath::DivideAndRoundUp(ProcessedData.CountBits, 8);
+		CountBits = ProcessedData.CountBits;
 	}
 
 	// Send to remote.
 	int32 BytesSent = 0;
 	CLOCK_CYCLES(Driver->SendCycles);
 
-	if ( Count > MaxPacket )
+	if ( CountBytes > MaxPacket )
 	{
-		UE_LOG( LogNet, Warning, TEXT( "UIpConnection::LowLevelSend: Count > MaxPacketSize! Count: %i, MaxPacket: %i %s" ), Count, MaxPacket, *Describe() );
+		UE_LOG( LogNet, Warning, TEXT( "UIpConnection::LowLevelSend: CountBytes > MaxPacketSize! Count: %i, MaxPacket: %i %s" ), CountBytes, MaxPacket, *Describe() );
 	}
 
-	Socket->SendTo(DataToSend, Count, BytesSent, *RemoteAddr);
+	Socket->SendTo(DataToSend, CountBytes, BytesSent, *RemoteAddr);
 	UNCLOCK_CYCLES(Driver->SendCycles);
 	NETWORK_PROFILER(GNetworkProfiler.FlushOutgoingBunches(this));
-	NETWORK_PROFILER(GNetworkProfiler.TrackSocketSendTo(Socket->GetDescription(),Data,BytesSent,NumPacketIdBits,NumBunchBits,NumAckBits,NumPaddingBits,this));
+	NETWORK_PROFILER(GNetworkProfiler.TrackSocketSendTo(Socket->GetDescription(),DataToSend,BytesSent,NumPacketIdBits,NumBunchBits,NumAckBits,NumPaddingBits,this));
 }
 
 FString UIpConnection::LowLevelGetRemoteAddress(bool bAppendPort)

@@ -136,7 +136,7 @@ public:
 	/** Cached number of triangles contained in the SubActors*/
 	UPROPERTY()
 	uint32 NumTrianglesInMergedMesh;
-	
+
 	/** Flag whether or not to use the override MaterialSettings when creating the proxy mesh */
 	UPROPERTY(EditAnywhere, Category = HierarchicalLODSettings)
 	bool bOverrideMaterialMergeSettings;

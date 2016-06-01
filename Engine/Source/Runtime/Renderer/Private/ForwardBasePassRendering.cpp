@@ -45,9 +45,11 @@ static_assert(MAX_BASEPASS_DYNAMIC_POINT_LIGHTS == 4, "If you change MAX_BASEPAS
 IMPLEMENT_FORWARD_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_NO_LIGHTMAP>, FNoLightMapPolicy);
 IMPLEMENT_FORWARD_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_LQ_LIGHTMAP>, TLightMapPolicyLQ);
 IMPLEMENT_FORWARD_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_DISTANCE_FIELD_SHADOWS_AND_LQ_LIGHTMAP>, TDistanceFieldShadowsAndLightMapPolicyLQ);
+IMPLEMENT_FORWARD_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM>, FDistanceFieldShadowsLightMapAndCSMLightingPolicy);
 IMPLEMENT_FORWARD_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_INDIRECT>, FSimpleDirectionalLightAndSHIndirectPolicy);
 IMPLEMENT_FORWARD_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_DIRECTIONAL_INDIRECT>, FSimpleDirectionalLightAndSHDirectionalIndirectPolicy);
 IMPLEMENT_FORWARD_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_DIRECTIONAL_CSM_INDIRECT>, FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy);
+IMPLEMENT_FORWARD_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_CSM_INDIRECT>, FSimpleDirectionalLightAndSHCSMIndirectPolicy);
 IMPLEMENT_FORWARD_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_MOVABLE_DIRECTIONAL_LIGHT>, FMovableDirectionalLightLightingPolicy);
 IMPLEMENT_FORWARD_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_MOVABLE_DIRECTIONAL_LIGHT_CSM>, FMovableDirectionalLightCSMLightingPolicy);
 IMPLEMENT_FORWARD_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_MOVABLE_DIRECTIONAL_LIGHT_WITH_LIGHTMAP>, FMovableDirectionalLightWithLightmapLightingPolicy);
@@ -68,6 +70,11 @@ bool TBasePassForForwardShadingPSPolicyParamType<PixelParametersType, NumDynamic
 	
 	return true;
 }
+
+static TAutoConsoleVariable<int32> CVarAllReceiveDynamicCSM(
+	TEXT("r.AllReceiveDynamicCSM"),
+	0,
+	TEXT("Which primitives should receive dynamic-only CSM shadows. 0: Only primitives marked bReceiveCSMFromDynamicObjects (default). 1: All primitives"));
 
 FBasePassFowardDynamicPointLightInfo::FBasePassFowardDynamicPointLightInfo(const FPrimitiveSceneProxy* InSceneProxy)
 : NumDynamicPointLights(0)
@@ -137,7 +144,7 @@ public:
 		return Scene->SimpleDirectionalLight;
 	}
 
-	/** Draws the translucent mesh with a specific light-map type, and fog volume type */
+	/** Draws the mesh with a specific light-map type */
 	template<typename LightMapPolicyType, int32 NumDynamicPointLights>
 	void Process(
 		FRHICommandList& RHICmdList, 
@@ -146,11 +153,11 @@ public:
 		const typename LightMapPolicyType::ElementDataType& LightMapElementData
 		) const
 	{
-		FScene::EBasePassDrawListType DrawType = FScene::EBasePass_Default;		
- 
+		EBasePassDrawListType DrawType = EBasePass_Default;
+
 		if (StaticMesh->IsMasked(Parameters.FeatureLevel))
 		{
-			DrawType = FScene::EBasePass_Masked;	
+			DrawType = EBasePass_Masked;	
 		}
 
 		if ( Scene )
@@ -172,7 +179,7 @@ public:
 				Parameters.BlendMode,
 				Parameters.TextureMode,
 				Parameters.ShadingModel != MSM_Unlit && Scene->ShouldRenderSkylight(),
-				false,
+				DVSM_None,
 				FeatureLevel,
 				Parameters.bEditorCompositeDepthTest,
 				IsMobileHDR() // bEnableReceiveDecalOutput
@@ -277,7 +284,7 @@ public:
 			Parameters.BlendMode,
 			Parameters.TextureMode,
 			Parameters.ShadingModel != MSM_Unlit && Scene && Scene->ShouldRenderSkylight(),
-			View.Family->EngineShowFlags.ShaderComplexity,
+			View.Family->GetDebugViewShaderMode(),
 			View.GetFeatureLevel(),
 			Parameters.bEditorCompositeDepthTest,
 			IsMobileHDR() // bEnableReceiveDecalOutput
@@ -474,7 +481,7 @@ void FForwardShadingSceneRenderer::RenderForwardShadingBasePass(FRHICommandListI
 	{
 		SCOPE_CYCLE_COUNTER(STAT_SortStaticDrawLists);
 
-		for (int32 DrawType = 0; DrawType < FScene::EBasePass_MAX; DrawType++)
+		for (int32 DrawType = 0; DrawType < EBasePass_MAX; DrawType++)
 		{
 			Scene->BasePassForForwardShadingUniformLightMapPolicyDrawList[DrawType].SortFrontToBack(Views[0].ViewLocation);
 		}
@@ -487,7 +494,15 @@ void FForwardShadingSceneRenderer::RenderForwardShadingBasePass(FRHICommandListI
 		FViewInfo& View = Views[ViewIndex];
 
 		// Opaque blending
-		RHICmdList.SetBlendState(TStaticBlendStateWriteMask<CW_RGBA>::GetRHI());
+		if (View.bIsPlanarReflection)
+		{
+			RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_Zero, BO_Add, BF_Zero, BF_Zero>::GetRHI());
+		}
+		else
+		{
+			RHICmdList.SetBlendState(TStaticBlendStateWriteMask<CW_RGBA>::GetRHI());
+		}
+
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI());
 		RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1);
 
@@ -496,12 +511,12 @@ void FForwardShadingSceneRenderer::RenderForwardShadingBasePass(FRHICommandListI
 			if (SortMode == EBasePassSort::SortPerMesh)
 			{
 				SCOPE_CYCLE_COUNTER(STAT_StaticDrawListDrawTime);
-				MaxDraws -= Scene->BasePassForForwardShadingUniformLightMapPolicyDrawList[FScene::EBasePass_Default].DrawVisibleFrontToBack(RHICmdList, View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility, MaxDraws);
+				MaxDraws -= Scene->BasePassForForwardShadingUniformLightMapPolicyDrawList[EBasePass_Default].DrawVisibleFrontToBack(RHICmdList, View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility, MaxDraws);
 			}
 			else
 			{
 				SCOPE_CYCLE_COUNTER(STAT_StaticDrawListDrawTime);
-				Scene->BasePassForForwardShadingUniformLightMapPolicyDrawList[FScene::EBasePass_Default].DrawVisible(RHICmdList, View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility);
+				Scene->BasePassForForwardShadingUniformLightMapPolicyDrawList[EBasePass_Default].DrawVisible(RHICmdList, View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility);
 			}
 		}
 
@@ -544,12 +559,12 @@ void FForwardShadingSceneRenderer::RenderForwardShadingBasePass(FRHICommandListI
 		if (SortMode == EBasePassSort::SortPerMesh)
 		{
 			SCOPE_CYCLE_COUNTER(STAT_StaticDrawListDrawTime);
-			MaxDraws -= Scene->BasePassForForwardShadingUniformLightMapPolicyDrawList[FScene::EBasePass_Masked].DrawVisibleFrontToBack(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility,MaxDraws);
+			MaxDraws -= Scene->BasePassForForwardShadingUniformLightMapPolicyDrawList[EBasePass_Masked].DrawVisibleFrontToBack(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility,MaxDraws);
 		}
 		else
 		{
 			SCOPE_CYCLE_COUNTER(STAT_StaticDrawListDrawTime);
-			Scene->BasePassForForwardShadingUniformLightMapPolicyDrawList[FScene::EBasePass_Masked].DrawVisible(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
+			Scene->BasePassForForwardShadingUniformLightMapPolicyDrawList[EBasePass_Masked].DrawVisible(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
 		}
 	}
 }

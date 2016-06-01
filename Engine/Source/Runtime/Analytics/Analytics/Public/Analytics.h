@@ -208,14 +208,6 @@ public:
 			return FName(*ProviderModuleName);
 		}
 
-		/**
-		 * Tries to get an override value for the UE4Type from config files
-		 */
-		static bool GetUE4TypeOverride(FString& OutUE4Type)
-		{
-			return GConfig->GetString(TEXT("Analytics"), TEXT("UE4TypeOverride"), OutUE4Type, GEngineIni);
-		}
-
 		/** Allows setting the INI section name based on the build type passed in. Allows access to the default section values when the application chooses the build type itself. */
 		void SetSectionNameByBuildType(FAnalytics::BuildType InBuildType)
 		{

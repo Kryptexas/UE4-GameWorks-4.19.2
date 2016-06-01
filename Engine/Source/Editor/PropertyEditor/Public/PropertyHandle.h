@@ -256,6 +256,11 @@ public:
 	virtual FPropertyAccess::Result SetObjectValueFromSelection() = 0;
 
 	/**
+	 * Gets the number of objects that this handle is editing
+	 */
+	virtual int32 GetNumPerObjectValues() const = 0;
+
+	/**
 	 * Sets a unique value for each object this handle is editing
 	 *
 	 * @param PerObjectValues	The per object values as a formatted string.  There must be one entry per object or the return value is FPropertyAccess::Fail
@@ -265,7 +270,23 @@ public:
 	/**
 	 * Gets a unique value for each object this handle is editing
 	 */
-	virtual FPropertyAccess::Result GetPerObjectValues( TArray<FString>& OutPerObjectValues ) = 0;
+	virtual FPropertyAccess::Result GetPerObjectValues( TArray<FString>& OutPerObjectValues ) const = 0;
+
+	/**
+	 * Sets a value on the specified object that this handle is editing
+	 *
+	 * @param ObjectIndex		The index of the object to set the value of
+	 * @param ObjectValue		The value to set on the given object
+	 */
+	virtual FPropertyAccess::Result SetPerObjectValue( const int32 ObjectIndex, const FString& ObjectValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
+
+	/**
+	 * Gets a value for the specified object that this handle is editing
+	 *
+	 * @param ObjectIndex		The index of the object to get the value of
+	 * @param OutObjectValue	Filled with the value for this object
+	 */
+	virtual FPropertyAccess::Result GetPerObjectValue( const int32 ObjectIndex, FString& OutObjectValue ) const = 0;
 
 	/**
 	 * @return The index of this element in an array if it is in one.  INDEX_NONE otherwise                                                              
@@ -311,6 +332,16 @@ public:
 	 * @param OuterObjects	An array that will be populated with the outer objects 
 	 */
 	virtual void GetOuterObjects( TArray<UObject*>& OuterObjects ) const = 0;
+
+	/**
+	 * Enumerate the raw data of this property.  (Each pointer can be cast to the property data type)
+	 *
+	 * @param InRawDataCallback		The function to call for each data
+	 */ 
+	typedef TFunctionRef<bool(void* /*RawData*/, const int32 /*DataIndex*/, const int32 /*NumDatas*/)> EnumerateRawDataFuncRef; /** Return true to continue enumeration */
+	typedef TFunctionRef<bool(const void* /*RawData*/, const int32 /*DataIndex*/, const int32 /*NumDatas*/)> EnumerateConstRawDataFuncRef; /** Return true to continue enumeration */
+	virtual void EnumerateRawData( const EnumerateRawDataFuncRef& InRawDataCallback ) = 0;
+	virtual void EnumerateConstRawData( const EnumerateConstRawDataFuncRef& InRawDataCallback ) const = 0;
 
 	/**
 	 * Accesses the raw data of this property.  (Each pointer can be cast to the property data type)

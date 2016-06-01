@@ -34,9 +34,9 @@ FMovieSceneCaptureSettings::FMovieSceneCaptureSettings()
 	bCreateTemporaryCopiesOfLevels = false;
 	bUseRelativeFrameNumbers = false;
 	GameModeOverride = nullptr;
-	OutputFormat = TEXT("{world}_{frame}");
+	OutputFormat = TEXT("{world}");
 	FrameRate = 24;
-	bEnableTextureStreaming = true;
+	bEnableTextureStreaming = false;
 	bCinematicMode = true;
 	bAllowMovement = false;
 	bAllowTurning = false;
@@ -70,10 +70,15 @@ void UMovieSceneCapture::PostInitProperties()
 {
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
+		if (ProtocolSettings)
+		{
+			ProtocolSettings->OnReleaseConfig(Settings);
+		}
 		ProtocolSettings = IMovieSceneCaptureModule::Get().GetProtocolRegistry().FactorySettingsType(CaptureType, this);
 		if (ProtocolSettings)
 		{
 			ProtocolSettings->LoadConfig();
+			ProtocolSettings->OnLoadConfig(Settings);
 		}
 	}
 
@@ -304,10 +309,16 @@ void UMovieSceneCapture::PostEditChangeProperty( struct FPropertyChangedEvent& P
 
 	if (PropertyName == GET_MEMBER_NAME_CHECKED(UMovieSceneCapture, CaptureType))
 	{
+		if (ProtocolSettings)
+		{
+			ProtocolSettings->OnReleaseConfig(Settings);
+		}
+
 		ProtocolSettings = IMovieSceneCaptureModule::Get().GetProtocolRegistry().FactorySettingsType(CaptureType, this);
 		if (ProtocolSettings)
 		{
 			ProtocolSettings->LoadConfig();
+			ProtocolSettings->OnLoadConfig(Settings);
 		}
 	}
 

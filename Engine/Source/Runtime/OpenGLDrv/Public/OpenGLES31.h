@@ -44,6 +44,7 @@ struct FOpenGLES31 : public FOpenGLBase
 	static FORCEINLINE bool SupportsDepthStencilRead()					{ return !bES2Fallback; }
 	static FORCEINLINE bool SupportsFloatReadSurface()					{ return !bES2Fallback; }
 	static FORCEINLINE bool SupportsMultipleRenderTargets()				{ return !bES2Fallback; }
+	static FORCEINLINE bool SupportsWideMRT()							{ return !bES2Fallback; }
 	static FORCEINLINE bool SupportsMultisampledTextures()				{ return !bES2Fallback; }
 	static FORCEINLINE bool SupportsFences()							{ return !bES2Fallback; }
 	static FORCEINLINE bool SupportsPolygonMode()						{ return false; }
@@ -66,6 +67,7 @@ struct FOpenGLES31 : public FOpenGLBase
 	static FORCEINLINE bool SupportsVertexHalfFloat()					{ return bSupportsVertexHalfFloat || !bES2Fallback; }
 	static FORCEINLINE bool SupportsTextureFloat()						{ return bSupportsTextureFloat || !bES2Fallback; }
 	static FORCEINLINE bool SupportsTextureHalfFloat()					{ return bSupportsTextureHalfFloat || !bES2Fallback; }
+	static FORCEINLINE bool SupportsColorBufferFloat()					{ return bSupportsColorBufferFloat || !bES2Fallback; }
 	static FORCEINLINE bool SupportsColorBufferHalfFloat()				{ return bSupportsColorBufferHalfFloat || !bES2Fallback; }
 	static FORCEINLINE bool	SupportsRG16UI()							{ return bSupportsNvImageFormats && !bES2Fallback; }
 	static FORCEINLINE bool SupportsR11G11B10F()						{ return bSupportsNvImageFormats && !bES2Fallback; }
@@ -74,6 +76,7 @@ struct FOpenGLES31 : public FOpenGLBase
 	static FORCEINLINE bool SupportsMultisampledRenderToTexture()		{ return bSupportsMultisampledRenderToTexture; }
 	static FORCEINLINE bool SupportsVertexArrayBGRA()					{ return false; }
 	static FORCEINLINE bool SupportsBGRA8888()							{ return bSupportsBGRA8888; }
+	static FORCEINLINE bool SupportsBGRA8888RenderTarget()				{ return bSupportsBGRA8888RenderTarget; }
 	static FORCEINLINE bool SupportsSRGB()								{ return bSupportsSGRB || !bES2Fallback; }
 	static FORCEINLINE bool SupportsRGBA8()								{ return bSupportsRGBA8; }
 	static FORCEINLINE bool SupportsDXT()								{ return bSupportsDXT; }
@@ -99,6 +102,7 @@ struct FOpenGLES31 : public FOpenGLBase
 	static FORCEINLINE bool RequiresShaderFramebufferFetchUndef()		{ return bRequiresShaderFramebufferFetchUndef; }
 	static FORCEINLINE bool RequiresARMShaderFramebufferFetchDepthStencilUndef() { return bRequiresARMShaderFramebufferFetchDepthStencilUndef; }
 	static FORCEINLINE bool IsCheckingShaderCompilerHacks()				{ return bIsCheckingShaderCompilerHacks; }
+	static FORCEINLINE bool SupportsRGB10A2()							{ return bSupportsRGB10A2 || !bES2Fallback; }
 
 	// On iOS both glMapBufferOES() and glBufferSubData() for immediate vertex and index data
 	// is the slow path (they both hit GPU sync and data cache flush in driver according to profiling in driver symbols).
@@ -859,6 +863,9 @@ protected:
 	/** GL_APPLE_texture_format_BGRA8888 */
 	static bool bSupportsBGRA8888;
 
+	/** Whether BGRA supported as color attachment */
+	static bool bSupportsBGRA8888RenderTarget;
+
 	/** GL_OES_vertex_half_float */
 	static bool bSupportsVertexHalfFloat;
 
@@ -888,6 +895,9 @@ protected:
 
 	/** GL_OES_texture_half_float */
 	static bool bSupportsTextureHalfFloat;
+
+	/** GL_EXT_color_buffer_float */
+	static bool bSupportsColorBufferFloat;
 
 	/** GL_EXT_color_buffer_half_float */
 	static bool bSupportsColorBufferHalfFloat;
@@ -942,6 +952,9 @@ protected:
 
 	/** GL_NV_timer_query for timestamp queries */
 	static bool bSupportsNvTimerQuery;
+
+	/** GL_OES_vertex_type_10_10_10_2 */
+	static bool bSupportsRGB10A2;
 
 public:
 	/* This is a hack to remove the calls to "precision sampler" defaults which are produced by the cross compiler however don't compile on some android platforms */

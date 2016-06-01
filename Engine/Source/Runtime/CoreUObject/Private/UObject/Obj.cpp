@@ -322,6 +322,21 @@ void UObject::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyCh
 {
 	FPropertyChangedEvent PropertyEvent(PropertyChangedEvent.PropertyChain.GetActiveNode()->GetValue(), PropertyChangedEvent.ChangeType);
 
+	// Set up array index per object map so that GetArrayIndex returns a valid result
+	TArray<TMap<FString, int32>> ArrayIndexForProperty;
+	if (PropertyChangedEvent.Property)
+	{
+		const FString PropertyName = PropertyChangedEvent.Property->GetName();
+		const int32 ArrayIndex = PropertyChangedEvent.GetArrayIndex(PropertyName);
+		if (ArrayIndex != INDEX_NONE)
+		{
+			PropertyEvent.ObjectIteratorIndex = 0;
+			ArrayIndexForProperty.AddDefaulted();
+			ArrayIndexForProperty.Last().Add(PropertyName, ArrayIndex);
+			PropertyEvent.SetArrayIndexPerObject(ArrayIndexForProperty);
+		}
+	}
+
 	if( PropertyChangedEvent.PropertyChain.GetActiveMemberNode() )
 	{
 		PropertyEvent.SetActiveMemberProperty( PropertyChangedEvent.PropertyChain.GetActiveMemberNode()->GetValue() );
@@ -723,7 +738,15 @@ void UObject::ConditionalPostLoad()
 
 		{
 			FExclusiveLoadPackageTimeTracker::FScopedPostLoadTracker Tracker(this);
-			PostLoad();
+
+			if (HasAnyFlags(RF_ClassDefaultObject))
+			{
+				GetClass()->PostLoadDefaultObject(this);
+			}
+			else
+			{
+				PostLoad();
+			}
 		}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -993,7 +1016,7 @@ void UObject::SerializeScriptProperties( FArchive& Ar ) const
 #endif
 		ObjClass->SerializeTaggedProperties(Ar, (uint8*)this, HasAnyFlags(RF_ClassDefaultObject) ? ObjClass->GetSuperClass() : ObjClass, (uint8*)DiffObject, bBreakSerializationRecursion ? this : NULL);
 	}
-	else if ( Ar.GetPortFlags() != 0 )
+	else if ( Ar.GetPortFlags() != 0 && !Ar.ArUseCustomPropertyList )
 	{
 		UObject* DiffObject = GetArchetype();
 		ObjClass->SerializeBinEx( Ar, const_cast<UObject *>(this), DiffObject, DiffObject ? DiffObject->GetClass() : NULL );
@@ -1616,7 +1639,7 @@ void UObject::LoadConfig( UClass* ConfigClass/*=NULL*/, const TCHAR* InFilename/
 				}
 
 					FString Value;
-				bool bFoundValue = GConfig->GetString( *ClassSection, *Key, Value, *PropFileName );
+				const bool bFoundValue = GConfig->GetString( *ClassSection, *Key, Value, *PropFileName );
 					if (bFoundValue)
 					{
 						if (Property->ImportText(*Value, Property->ContainerPtrToValuePtr<uint8>(this, i), PortFlags, this) == NULL)
@@ -1625,8 +1648,9 @@ void UObject::LoadConfig( UClass* ConfigClass/*=NULL*/, const TCHAR* InFilename/
 							UE_LOG(LogObj, Error, TEXT("LoadConfig (%s): import failed for %s in: %s"), *GetPathName(), *Property->GetName(), *Value);
 						}
 					}
+
 #if !UE_BUILD_SHIPPING
-				else if (!FPlatformProperties::RequiresCookedData())
+				if (!bFoundValue && !FPlatformProperties::RequiresCookedData())
 				{
 					CheckMissingSection(ClassSection, PropFileName);
 				}
@@ -1640,13 +1664,14 @@ void UObject::LoadConfig( UClass* ConfigClass/*=NULL*/, const TCHAR* InFilename/
 			//@Package name transition
 			if( Sec )
 			{
-				TArray<FString> List;
-				Sec->MultiFind(FName(*Key,FNAME_Find),List);
+				TArray<FConfigValue> List;
+				const FName KeyName(*Key, FNAME_Find);
+				Sec->MultiFind(KeyName,List);
 
 				// If we didn't find anything in the first section, try the alternate
 				if ((List.Num() == 0) && AltSec)
 				{
-					AltSec->MultiFind(FName(*Key,FNAME_Find),List);
+					AltSec->MultiFind(KeyName,List);
 				}
 
 				FScriptArrayHelper_InContainer ArrayHelper(Array, this);
@@ -1655,35 +1680,34 @@ void UObject::LoadConfig( UClass* ConfigClass/*=NULL*/, const TCHAR* InFilename/
 				if ( List.Num() > 0 )
 				{
 					ArrayHelper.EmptyAndAddValues(List.Num());
-
-						for( int32 i=List.Num()-1,c=0; i>=0; i--,c++ )
-						{
-							Array->Inner->ImportText( *List[i], ArrayHelper.GetRawPtr(c), PortFlags, this );
-						}
+					for( int32 i=List.Num()-1,c=0; i>=0; i--,c++ )
+					{
+						Array->Inner->ImportText( *List[i].GetValue(), ArrayHelper.GetRawPtr(c), PortFlags, this );
 					}
+				}
 				else
 				{
 					int32 Index = 0;
-					FString* ElementValue = NULL;
+					const FConfigValue* ElementValue = nullptr;
 					do
 					{
 						// Add array index number to end of key
 						FString IndexedKey = FString::Printf(TEXT("%s[%i]"), *Key, Index);
 
 						// Try to find value of key
-						FName IndexedName(*IndexedKey,FNAME_Find);
+						const FName IndexedName(*IndexedKey,FNAME_Find);
 						if (IndexedName == NAME_None)
 						{
 							break;
 						}
-						ElementValue  = Sec->Find(IndexedName);
+						ElementValue = Sec->Find(IndexedName);
 
 						// If found, import the element
-						if ( ElementValue != NULL )
+						if ( ElementValue != nullptr )
 						{
 							// expand the array if necessary so that Index is a valid element
 							ArrayHelper.ExpandForIndex(Index);
-							Array->Inner->ImportText(**ElementValue, ArrayHelper.GetRawPtr(Index), PortFlags, this);
+							Array->Inner->ImportText(*ElementValue->GetValue(), ArrayHelper.GetRawPtr(Index), PortFlags, this);
 						}
 
 						Index++;
@@ -2539,7 +2563,7 @@ TArray<const TCHAR*> ParsePropertyFlags(uint64 Flags)
 	return Results;
 }
 
-// @TODO yrx 2014-09-15 Move to ObjectCommads.cpp or ObjectExec.cpp
+// #UObject: 2014-09-15 Move to ObjectCommads.cpp or ObjectExec.cpp
 bool StaticExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	const TCHAR *Str = Cmd;

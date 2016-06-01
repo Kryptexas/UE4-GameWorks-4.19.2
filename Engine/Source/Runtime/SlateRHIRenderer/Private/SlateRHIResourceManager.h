@@ -165,11 +165,17 @@ public:
 	virtual bool LoadTexture( const FName& TextureName, const FString& ResourcePath, uint32& Width, uint32& Height, TArray<uint8>& DecodedImage );
 	virtual bool LoadTexture( const FSlateBrush& InBrush, uint32& Width, uint32& Height, TArray<uint8>& DecodedImage );
 
+	/**
+	 * 
+	 */
 	FCachedRenderBuffers* FindCachedBuffersForHandle(const FSlateRenderDataHandle* RenderHandle) const
 	{
 		return CachedBuffers.FindRef(RenderHandle);
 	}
 
+	/**
+	 * Creates a vertex and index buffer for a given render handle that it can use to store cached widget geometry to.
+	 */
 	FCachedRenderBuffers* FindOrCreateCachedBuffersForHandle(const TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe>& RenderHandle);
 
 	/**

@@ -20,8 +20,15 @@ TSharedRef<SWidget> FEnumKeyArea::CreateKeyEditor(ISequencer* Sequencer)
 		.Sequencer(Sequencer)
 		.OwningSection(OwningSection)
 		.Curve(&Curve)
+		.OnValueChanged(this, &FEnumKeyArea::OnValueChanged)
 		.Enum(Enum)
 		.IntermediateValue_Lambda([this] {
 			return IntermediateValue;
 		});
 };
+
+void FEnumKeyArea::OnValueChanged(int32 InValue)
+{
+	ClearIntermediateValue();
+}
+

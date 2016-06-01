@@ -383,6 +383,11 @@ bool UPlayerInput::InputGesture(const FKey Gesture, const EInputEvent Event, con
 	return true;
 }
 
+void UPlayerInput::UpdatePinchStartDistance()
+{
+	GestureRecognizer.SetAnchorDistanceSquared(FVector2D(Touches[ETouchIndex::Touch1]), FVector2D(Touches[ETouchIndex::Touch2]));
+}
+
 bool UPlayerInput::GetAxisProperties(const FKey AxisKey, FInputAxisProperties& OutAxisProperties)
 {
 	ConditionalInitAxisProperties();
@@ -755,7 +760,7 @@ void UPlayerInput::GetChordsForAction(const FInputActionBinding& ActionBinding, 
 			{
 				for (auto KeyStateIt(KeyStateMap.CreateConstIterator()); KeyStateIt; ++KeyStateIt)
 				{
-					if (!KeyStateIt.Key().IsFloatAxis() && !KeyStateIt.Key().IsVectorAxis() && !IsKeyConsumed(KeyStateIt.Key()))
+					if (!KeyStateIt.Key().IsFloatAxis() && !KeyStateIt.Key().IsVectorAxis() && !KeyStateIt.Value().bConsumed)
 					{
 						FInputActionKeyMapping SubKeyMapping(KeyMapping);
 						SubKeyMapping.Key = KeyStateIt.Key();
@@ -779,7 +784,7 @@ void UPlayerInput::GetChordForKey(const FInputKeyBinding& KeyBinding, const bool
 	{
 		for (auto KeyStateIt(KeyStateMap.CreateConstIterator()); KeyStateIt; ++KeyStateIt)
 		{
-			if (!KeyStateIt.Key().IsFloatAxis() && !KeyStateIt.Key().IsVectorAxis() && !IsKeyConsumed(KeyStateIt.Key()))
+			if (!KeyStateIt.Key().IsFloatAxis() && !KeyStateIt.Key().IsVectorAxis() && !KeyStateIt.Value().bConsumed)
 			{
 				FInputKeyBinding SubKeyBinding(KeyBinding);
 				SubKeyBinding.Chord.Key = KeyStateIt.Key();
@@ -1281,9 +1286,13 @@ void UPlayerInput::ClearSmoothing()
 
 float UPlayerInput::SmoothMouse(float aMouse, float DeltaTime, uint8& SampleCount, int32 Index)
 {
+	check(Index >= 0);
+	check(Index < ARRAY_COUNT(ZeroTime));
+
 	UWorld* World = GetWorld();
 	if (World)
 	{
+		check(World->GetWorldSettings());
 		const float EffectiveTimeDilation = World->GetWorldSettings()->GetEffectiveTimeDilation();
 		if (EffectiveTimeDilation != LastTimeDilation)
 		{
@@ -1292,15 +1301,13 @@ float UPlayerInput::SmoothMouse(float aMouse, float DeltaTime, uint8& SampleCoun
 		}
 	}
 
-	const float DetectedMouseSampleHz = MouseSamples / MouseSamplingTotal;
-
-	// actual num samples should be either this or this+1
-	const int32 ExpectedNumSamplesThisFrame = FMath::TruncToInt(DeltaTime * DetectedMouseSampleHz);
-
 	if (DeltaTime < 0.25f)
 	{
+		check(MouseSamples > 0);
+
 		// this is seconds/sample
 		const float MouseSamplingTime = MouseSamplingTotal/MouseSamples;
+		check(MouseSamplingTime > 0.0f);
 
 		if ( aMouse == 0 )
 		{
@@ -1324,6 +1331,8 @@ float UPlayerInput::SmoothMouse(float aMouse, float DeltaTime, uint8& SampleCoun
 				// this isn't the first tick with non-zero mouse movement
 				if ( DeltaTime < MouseSamplingTime * (SampleCount + 1) )
 				{
+					check(SampleCount > 0);
+
 					// smooth mouse movement so samples/tick is constant
 					aMouse = aMouse * DeltaTime/(MouseSamplingTime * SampleCount);
 				}
@@ -1334,6 +1343,8 @@ float UPlayerInput::SmoothMouse(float aMouse, float DeltaTime, uint8& SampleCoun
 					SampleCount = DeltaTime/MouseSamplingTime;
 				}
 			}
+
+			check(SampleCount > 0);
 			SmoothedMouse[Index] = aMouse/SampleCount;
 		}
 	}
@@ -1424,19 +1435,50 @@ void UPlayerInput::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& 
 
 bool UPlayerInput::WasJustPressed( FKey InKey ) const
 {
-	FKeyState const* const KeyState = KeyStateMap.Find(InKey);
-	return KeyState ? (KeyState->EventCounts[IE_Pressed].Num() > 0) : false;
+	if (InKey == EKeys::AnyKey)
+	{
+		// Is there any key that has just been pressed
+		for (const TPair<FKey, FKeyState>& KeyStatePair : KeyStateMap)
+		{
+			if (!KeyStatePair.Key.IsFloatAxis() && !KeyStatePair.Key.IsVectorAxis() && KeyStatePair.Value.EventCounts[IE_Pressed].Num() > 0)
+			{
+				return true;
+			}
+		}
+	}
+	else if (FKeyState const* const KeyState = KeyStateMap.Find(InKey))
+	{
+		return (KeyState->EventCounts[IE_Pressed].Num() > 0);
+	}
+
+	return false;
 }
 
 
 bool UPlayerInput::WasJustReleased( FKey InKey ) const
 {
-	FKeyState const* const KeyState = KeyStateMap.Find(InKey);
-	return KeyState ? (KeyState->EventCounts[IE_Released].Num() > 0) : false;
+	if (InKey == EKeys::AnyKey)
+	{
+		// Is there any key that has just been released
+		for (const TPair<FKey, FKeyState>& KeyStatePair : KeyStateMap)
+		{
+			if (!KeyStatePair.Key.IsFloatAxis() && !KeyStatePair.Key.IsVectorAxis() && KeyStatePair.Value.EventCounts[IE_Released].Num() > 0)
+			{
+				return true;
+			}
+		}
+	}
+	else if (FKeyState const* const KeyState = KeyStateMap.Find(InKey))
+	{
+		return (KeyState->EventCounts[IE_Released].Num() > 0);
+	}
+
+	return false;
 }
 
 float UPlayerInput::GetTimeDown( FKey InKey ) const
 {
+	UE_CLOG(InKey == EKeys::AnyKey, LogInput, Warning, TEXT("GetTimeDown cannot return a meaningful result for AnyKey"));
 	UWorld* World = GetWorld();	
 	float DownTime = 0.f;
 	if( World )
@@ -1453,32 +1495,65 @@ float UPlayerInput::GetTimeDown( FKey InKey ) const
 
 bool UPlayerInput::IsKeyConsumed( FKey InKey ) const
 {
-	FKeyState const* const KeyState = KeyStateMap.Find(InKey);
-	return KeyState ? KeyState->bConsumed : false;
+	if (InKey == EKeys::AnyKey)
+	{
+		// Is there any key that is consumed
+		for (const TPair<FKey, FKeyState>& KeyStatePair : KeyStateMap)
+		{
+			if (KeyStatePair.Value.bConsumed)
+			{
+				return true;
+			}
+		}
+	}
+	else if (FKeyState const* const KeyState = KeyStateMap.Find(InKey))
+	{
+		return KeyState->bConsumed;
+	}
+
+	return false;
 }
 
 float UPlayerInput::GetKeyValue( FKey InKey ) const
 {
+	UE_CLOG(InKey == EKeys::AnyKey, LogInput, Warning, TEXT("GetKeyValue cannot return a meaningful result for AnyKey"));
 	FKeyState const* const KeyState = KeyStateMap.Find(InKey);
 	return KeyState ? KeyState->Value.X : 0.f;
 }
 
 float UPlayerInput::GetRawKeyValue( FKey InKey ) const
 {
+	UE_CLOG(InKey == EKeys::AnyKey, LogInput, Warning, TEXT("GetRawKeyValue cannot return a meaningful result for AnyKey"));
 	FKeyState const* const KeyState = KeyStateMap.Find(InKey);
 	return KeyState ? KeyState->RawValue.X : 0.f;
 }
 
 FVector UPlayerInput::GetVectorKeyValue( FKey InKey ) const
 {
+	UE_CLOG(InKey == EKeys::AnyKey, LogInput, Warning, TEXT("GetVectorKeyValue cannot return a meaningful result for AnyKey"));
 	FKeyState const* const KeyState = KeyStateMap.Find(InKey);
 	return KeyState ? KeyState->RawValue : FVector(0,0,0);
 }
 
 bool UPlayerInput::IsPressed( FKey InKey ) const
 {
-	FKeyState const* const KeyState = KeyStateMap.Find(InKey);
-	return KeyState ? KeyState->bDown : false;
+	if (InKey == EKeys::AnyKey)
+	{
+		// Is there any key that is down
+		for (const TPair<FKey, FKeyState>& KeyStatePair : KeyStateMap)
+		{
+			if (!KeyStatePair.Key.IsFloatAxis() && !KeyStatePair.Key.IsVectorAxis() && KeyStatePair.Value.bDown)
+			{
+				return true;
+			}
+		}
+	}
+	else if (FKeyState const* const KeyState = KeyStateMap.Find(InKey))
+	{
+		return KeyState->bDown;
+	}
+
+	return false;
 }
 
 
@@ -1773,7 +1848,7 @@ FString UPlayerInput::GetBind(FKey Key)
 		for ( int32 BindIndex = DebugExecBindings.Num() - 1; BindIndex >= 0; BindIndex-- )
 		{
 			const FKeyBind&	Bind = DebugExecBindings[BindIndex];
-			if ( Bind.Key == Key )
+			if ( Bind.Key == Key && !Bind.bDisabled )
 			{
 				// if the modifier key pressed [or this key-bind doesn't require that key], and the key-bind isn't
 				// configured to ignore they modifier key, we've found a match.

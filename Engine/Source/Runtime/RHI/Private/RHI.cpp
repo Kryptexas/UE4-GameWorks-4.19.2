@@ -30,6 +30,13 @@ DEFINE_STAT(STAT_VertexBufferMemory);
 DEFINE_STAT(STAT_StructuredBufferMemory);
 DEFINE_STAT(STAT_PixelBufferMemory);
 
+static FAutoConsoleVariable CVarUseVulkanRealUBs(
+	TEXT("r.Vulkan.UseRealUBs"),
+	0,
+	TEXT("If true, enable using emulated uniform buffers on Vulkan ES2 mode."),
+	ECVF_ReadOnly
+	);
+
 const FString FResourceTransitionUtility::ResourceTransitionAccessStrings[(int32)EResourceTransitionAccess::EMaxAccess + 1] =
 {
 	FString(TEXT("EReadable")),
@@ -81,7 +88,7 @@ const FClearValueBinding FClearValueBinding::DepthNear((float)ERHIZBuffer::NearP
 const FClearValueBinding FClearValueBinding::DepthFar((float)ERHIZBuffer::FarPlane, 0);
 
 
-TLockFreePointerListUnordered<FRHIResource> FRHIResource::PendingDeletes;
+TLockFreePointerListUnordered<FRHIResource, PLATFORM_CACHE_LINE_SIZE> FRHIResource::PendingDeletes;
 FRHIResource* FRHIResource::CurrentlyDeleting = nullptr;
 TArray<FRHIResource::ResourcesToDelete> FRHIResource::DeferredDeletionQueue;
 uint32 FRHIResource::CurrentFrame = 0;
@@ -235,17 +242,23 @@ FString GRHIAdapterInternalDriverVersion;
 FString GRHIAdapterUserDriverVersion;
 FString GRHIAdapterDriverDate;
 uint32 GRHIVendorId = 0;
+uint32 GRHIDeviceId = 0;
 bool GSupportsRenderDepthTargetableShaderResources = true;
 bool GSupportsRenderTargetFormat_PF_G8 = true;
 bool GSupportsRenderTargetFormat_PF_FloatRGBA = true;
 bool GSupportsShaderFramebufferFetch = false;
 bool GSupportsShaderDepthStencilFetch = false;
+bool GSupportsTimestampRenderQueries = false;
 bool GHardwareHiddenSurfaceRemoval = false;
 bool GRHISupportsAsyncTextureCreation = false;
 bool GSupportsQuads = false;
 bool GSupportsVolumeTextureRendering = true;
 bool GSupportsSeparateRenderTargetBlendState = false;
 bool GSupportsDepthRenderTargetWithoutColorRenderTarget = true;
+bool GSupportsTexture3D = true;
+bool GSupportsResourceView = true;
+bool GSupportsMultipleRenderTargets = true;
+bool GSupportsWideMRT = true;
 float GMinClipZ = 0.0f;
 float GProjectionSignY = 1.0f;
 bool GRHINeedsExtraDeletionLatency = false;
@@ -258,8 +271,10 @@ bool GUsingNullRHI = false;
 int32 GDrawUPVertexCheckCount = MAX_int32;
 int32 GDrawUPIndexCheckCount = MAX_int32;
 bool GTriggerGPUProfile = false;
+FString GGPUTraceFileName;
 bool GRHISupportsTextureStreaming = false;
 bool GSupportsDepthBoundsTest = false;
+bool GSupportsEfficientAsyncCompute = false;
 bool GRHISupportsBaseVertexIndex = true;
 bool GRHISupportsInstancing = true;
 bool GRHISupportsFirstInstance = false;
@@ -362,9 +377,14 @@ static FName NAME_SF_METAL(TEXT("SF_METAL"));
 static FName NAME_SF_METAL_MRT(TEXT("SF_METAL_MRT"));
 static FName NAME_GLSL_310_ES_EXT(TEXT("GLSL_310_ES_EXT"));
 static FName NAME_SF_METAL_SM5(TEXT("SF_METAL_SM5"));
-static FName NAME_PC_VULKAN_ES2(TEXT("PC_VULKAN_ES2"));
+static FName NAME_VULKAN_ES3_1_ANDROID(TEXT("SF_VULKAN_ES31_ANDROID"));
+static FName NAME_VULKAN_ES3_1(TEXT("SF_VULKAN_ES31"));
+static FName NAME_VULKAN_ES3_1_UB(TEXT("SF_VULKAN_ES31_UB"));
+static FName NAME_VULKAN_SM4(TEXT("SF_VULKAN_SM4"));
+static FName NAME_VULKAN_SM5(TEXT("SF_VULKAN_SM5"));
 static FName NAME_SF_METAL_SM4(TEXT("SF_METAL_SM4"));
 static FName NAME_SF_METAL_MACES3_1(TEXT("SF_METAL_MACES3_1"));
+static FName NAME_SF_METAL_MACES2(TEXT("SF_METAL_MACES2"));
 
 FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 {
@@ -411,10 +431,21 @@ FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 		return NAME_SF_METAL_SM5;
 	case SP_METAL_MACES3_1:
 		return NAME_SF_METAL_MACES3_1;
+	case SP_METAL_MACES2:
+		return NAME_SF_METAL_MACES2;
 	case SP_OPENGL_ES31_EXT:
 		return NAME_GLSL_310_ES_EXT;
-	case SP_VULKAN_ES2:
-		return NAME_PC_VULKAN_ES2;
+	case SP_VULKAN_SM4:
+		return NAME_VULKAN_SM4;
+	case SP_VULKAN_SM5:
+		return NAME_VULKAN_SM5;
+	case SP_VULKAN_PCES3_1:
+	{
+		static auto* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Vulkan.UseRealUBs"));
+		return (CVar && CVar->GetValueOnAnyThread() != 0) ? NAME_VULKAN_ES3_1_UB : NAME_VULKAN_ES3_1;
+	}
+	case SP_VULKAN_ES3_1_ANDROID:
+		return NAME_VULKAN_ES3_1_ANDROID;
 
 	default:
 		check(0);
@@ -433,8 +464,8 @@ EShaderPlatform ShaderFormatToLegacyShaderPlatform(FName ShaderFormat)
 	if (ShaderFormat == NAME_SF_PS4)				return SP_PS4;
 	if (ShaderFormat == NAME_SF_XBOXONE)			return SP_XBOXONE;
 	if (ShaderFormat == NAME_GLSL_430)			return SP_OPENGL_SM5;
-	if (ShaderFormat == NAME_GLSL_150_ES2 || ShaderFormat == NAME_GLSL_150_ES2_NOUB)
-												return SP_OPENGL_PCES2;
+	if (ShaderFormat == NAME_GLSL_150_ES2)			return SP_OPENGL_PCES2;
+	if (ShaderFormat == NAME_GLSL_150_ES2_NOUB)		return SP_OPENGL_PCES2;
 	if (ShaderFormat == NAME_GLSL_150_ES31)		return SP_OPENGL_PCES3_1;
 	if (ShaderFormat == NAME_GLSL_ES2)			return SP_OPENGL_ES2_ANDROID;
 	if (ShaderFormat == NAME_GLSL_ES2_WEBGL)	return SP_OPENGL_ES2_WEBGL;
@@ -443,9 +474,14 @@ EShaderPlatform ShaderFormatToLegacyShaderPlatform(FName ShaderFormat)
 	if (ShaderFormat == NAME_SF_METAL_MRT)		return SP_METAL_MRT;
 	if (ShaderFormat == NAME_GLSL_310_ES_EXT)	return SP_OPENGL_ES31_EXT;
 	if (ShaderFormat == NAME_SF_METAL_SM5)		return SP_METAL_SM5;
-	if (ShaderFormat == NAME_PC_VULKAN_ES2)		return SP_VULKAN_ES2;
+	if (ShaderFormat == NAME_VULKAN_SM4)			return SP_VULKAN_SM4;
+	if (ShaderFormat == NAME_VULKAN_SM5)			return SP_VULKAN_SM5;
+	if (ShaderFormat == NAME_VULKAN_ES3_1_ANDROID)	return SP_VULKAN_ES3_1_ANDROID;
+	if (ShaderFormat == NAME_VULKAN_ES3_1)			return SP_VULKAN_PCES3_1;
+	if (ShaderFormat == NAME_VULKAN_ES3_1_UB)		return SP_VULKAN_PCES3_1;
 	if (ShaderFormat == NAME_SF_METAL_SM4)		return SP_METAL_SM4;
 	if (ShaderFormat == NAME_SF_METAL_MACES3_1)	return SP_METAL_MACES3_1;
+	if (ShaderFormat == NAME_SF_METAL_MACES2)	return SP_METAL_MACES2;
 	return SP_NumPlatforms;
 }
 

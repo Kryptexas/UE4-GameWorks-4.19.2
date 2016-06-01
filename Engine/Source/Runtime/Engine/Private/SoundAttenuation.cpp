@@ -68,26 +68,26 @@ float FAttenuationSettings::GetMaxDimension() const
 	return MaxDimension;
 }
 
-float FAttenuationSettings::GetFocusPriorityScale(float FocusFactor) const
+float FAttenuationSettings::GetFocusPriorityScale(const struct FGlobalFocusSettings& FocusSettings, float FocusFactor) const
 {
-	float Focus = FocusPriorityScale;
-	float NonFocus = NonFocusPriorityScale;
+	float Focus = FocusSettings.FocusPriorityScale * FocusPriorityScale;
+	float NonFocus = FocusSettings.NonFocusPriorityScale * NonFocusPriorityScale;
 	float Result = FMath::Lerp(Focus, NonFocus, FocusFactor);
 	return FMath::Max(0.0f, Result);
 }
 
-float FAttenuationSettings::GetFocusAttenuation(float FocusFactor) const
+float FAttenuationSettings::GetFocusAttenuation(const struct FGlobalFocusSettings& FocusSettings, float FocusFactor) const
 {
-	float Focus = FocusVolumeAttenuation;
-	float NonFocus = NonFocusVolumeAttenuation;
+	float Focus = FocusSettings.FocusVolumeScale * FocusVolumeAttenuation;
+	float NonFocus = FocusSettings.NonFocusVolumeScale * NonFocusVolumeAttenuation;
 	float Result = FMath::Lerp(Focus, NonFocus, FocusFactor);
 	return FMath::Max(0.0f, Result);
 }
 
-float FAttenuationSettings::GetFocusDistanceScale(float FocusFactor) const
+float FAttenuationSettings::GetFocusDistanceScale(const struct FGlobalFocusSettings& FocusSettings, float FocusFactor) const
 {
-	float Focus = FocusDistanceScale;
-	float NonFocus = NonFocusDistanceScale;
+	float Focus = FocusSettings.FocusDistanceScale * FocusDistanceScale;
+	float NonFocus = FocusSettings.NonFocusDistanceScale * NonFocusDistanceScale;
 	float Result = FMath::Lerp(Focus, NonFocus, FocusFactor);
 	return FMath::Max(0.0f, Result);
 }

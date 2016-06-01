@@ -9,6 +9,7 @@
 #include "SceneFilterRendering.h"
 #include "GPUBenchmark.h"
 #include "SceneUtils.h"
+#include "GPUProfiler.h"
 
 static uint32 GBenchmarkResolution = 512;
 
@@ -307,6 +308,14 @@ void RendererGPUBenchmark(FRHICommandListImmediate& RHICmdList, FSynthBenchmarkR
 	check(IsInRenderingThread());
 
 	FRenderQueryPool TimerQueryPool(RQT_AbsoluteTime);
+
+	bool bValidGPUTimer = (FGPUTiming::GetTimingFrequency() / (1000 * 1000)) != 0;
+
+	if(!bValidGPUTimer)
+	{
+		UE_LOG(LogSynthBenchmark, Warning, TEXT("RendererGPUBenchmark failed, look for \"GPU Timing Frequency\" in the log"));
+		return;
+	}
 
 	// two RT to ping pong so we force the GPU to flush it's pipeline
 	TRefCountPtr<IPooledRenderTarget> RTItems[3];

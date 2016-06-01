@@ -200,6 +200,7 @@ void FUnrealEdMisc::OnInit()
 
 	/** Delegate that gets called when a script exception occurs */
 	FBlueprintCoreDelegates::OnScriptException.AddStatic(&FKismetDebugUtilities::OnScriptException);
+	FBlueprintCoreDelegates::OnScriptExecutionEnd.AddStatic(&FKismetDebugUtilities::EndOfScriptExecution);
 	
 	FEditorDelegates::ChangeEditorMode.AddRaw(this, &FUnrealEdMisc::OnEditorChangeMode);
 	FCoreDelegates::PreModal.AddRaw(this, &FUnrealEdMisc::OnEditorPreModal);
@@ -442,8 +443,6 @@ void FUnrealEdMisc::OnInit()
 
 	SlowTask.EnterProgressFrame(10);
 
-	FEditorAnalytics::InitializeSessionManager();
-
 	// Send Project Analytics
 	InitEngineAnalytics();
 	
@@ -573,8 +572,6 @@ void FUnrealEdMisc::EditorAnalyticsHeartbeat()
 	FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Heartbeat"), Attributes);
 	
 	LastHeartbeatTime = FPlatformTime::Seconds();
-
-	FEditorAnalytics::SessionHeartbeat();
 }
 
 void FUnrealEdMisc::TickAssetAnalytics()
@@ -767,8 +764,6 @@ void FUnrealEdMisc::OnExit()
 		FSlateApplication::Get().GetPlatformApplication()->SendAnalytics(&FEngineAnalytics::GetProvider());
 		FEditorViewportStats::SendUsageData();
 	}
-
-	FEditorAnalytics::ShutdownSessionManager();
 
 	FInputBindingManager::Get().UnregisterUserDefinedChordChanged(OnUserDefinedChordChangedDelegateHandle);
 	FMessageLog::OnMessageSelectionChanged().Unbind();

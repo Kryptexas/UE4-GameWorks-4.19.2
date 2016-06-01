@@ -626,7 +626,7 @@ private:
  * This is used to keep bound shader states that have been used recently from being freed, as they're likely to be used again soon.
  */
 
-template<uint32 Size>
+template<uint32 Size, bool TThreadSafe = true>
 class TBoundShaderStateHistory : public FRenderResource
 {
 public:
@@ -637,15 +637,15 @@ public:
 	{}
 
 	/** Adds a bound shader state to the history. */
-	void Add(FBoundShaderStateRHIParamRef BoundShaderState)
+	FORCEINLINE void Add(FBoundShaderStateRHIParamRef BoundShaderState)
 	{
-		if (GRHISupportsParallelRHIExecute)
+		if (TThreadSafe && GRHISupportsParallelRHIExecute)
 		{
 			BoundShaderStateHistoryLock.Lock();
 		}
 		BoundShaderStates[NextBoundShaderStateIndex] = BoundShaderState;
 		NextBoundShaderStateIndex = (NextBoundShaderStateIndex + 1) % Size;
-		if (GRHISupportsParallelRHIExecute)
+		if (TThreadSafe && GRHISupportsParallelRHIExecute)
 		{
 			BoundShaderStateHistoryLock.Unlock();
 		}
@@ -662,7 +662,7 @@ public:
 	// FRenderResource interface.
 	virtual void ReleaseRHI()
 	{
-		if (GRHISupportsParallelRHIExecute)
+		if (TThreadSafe && GRHISupportsParallelRHIExecute)
 		{
 			BoundShaderStateHistoryLock.Lock();
 		}
@@ -670,7 +670,7 @@ public:
 		{
 			BoundShaderStates[Index].SafeRelease();
 		}
-		if (GRHISupportsParallelRHIExecute)
+		if (TThreadSafe && GRHISupportsParallelRHIExecute)
 		{
 			BoundShaderStateHistoryLock.Unlock();
 		}

@@ -10,6 +10,7 @@
 #include "Engine/Engine.h"
 #include "Engine/DemoNetDriver.h"
 #include "Engine/LatentActionManager.h"
+#include "Engine/NetworkObjectList.h"
 #include "OnlineSubsystem.h"
 #include "OnlineSessionInterface.h"
 #include "GameFramework/OnlineSession.h"
@@ -58,13 +59,17 @@ void UGameInstance::Init()
 {
 	ReceiveInit();
 
-	const auto OnlineSub = IOnlineSubsystem::Get();
-	if (OnlineSub != nullptr)
+	if (!IsRunningCommandlet())
 	{
-		IOnlineSessionPtr SessionInt = OnlineSub->GetSessionInterface();
-		if (SessionInt.IsValid())
+		const auto OnlineSub = IOnlineSubsystem::Get();
+		if (OnlineSub != nullptr)
 		{
-			SessionInt->AddOnSessionUserInviteAcceptedDelegate_Handle(FOnSessionUserInviteAcceptedDelegate::CreateUObject(this, &UGameInstance::HandleSessionUserInviteAccepted));
+			IOnlineSessionPtr SessionInt = OnlineSub->GetSessionInterface();
+			if (SessionInt.IsValid())
+			{
+				SessionInt->AddOnSessionUserInviteAcceptedDelegate_Handle(
+					FOnSessionUserInviteAcceptedDelegate::CreateUObject(this, &UGameInstance::HandleSessionUserInviteAccepted));
+			}
 		}
 	}
 
@@ -80,13 +85,16 @@ void UGameInstance::Shutdown()
 {
 	ReceiveShutdown();
 
-	const auto OnlineSub = IOnlineSubsystem::Get();
-	if (OnlineSub != nullptr)
+	if (!IsRunningCommandlet())
 	{
-		IOnlineSessionPtr SessionInt = OnlineSub->GetSessionInterface();
-		if (SessionInt.IsValid())
+		const auto OnlineSub = IOnlineSubsystem::Get();
+		if (OnlineSub != nullptr)
 		{
-			SessionInt->ClearOnSessionUserInviteAcceptedDelegate_Handle(OnSessionUserInviteAcceptedDelegateHandle);
+			IOnlineSessionPtr SessionInt = OnlineSub->GetSessionInterface();
+			if (SessionInt.IsValid())
+			{
+				SessionInt->ClearOnSessionUserInviteAcceptedDelegate_Handle(OnSessionUserInviteAcceptedDelegateHandle);
+			}
 		}
 	}
 
@@ -385,20 +393,7 @@ bool UGameInstance::HandleOpenCommand(const TCHAR* Cmd, FOutputDevice& Ar, UWorl
 	check(WorldContext && WorldContext->World() == InWorld);
 
 	UEngine* const Engine = GetEngine();
-
-	FURL TestURL(&WorldContext->LastURL, Cmd, TRAVEL_Absolute);
-	if (TestURL.IsLocalInternal())
-	{
-		// make sure the file exists if we are opening a local file
-		if (!Engine->MakeSureMapNameIsValid(TestURL.Map))
-		{
-			Ar.Logf(TEXT("ERROR: The map '%s' does not exist."), *TestURL.Map);
-			return true;
-		}
-	}
-
-	Engine->SetClientTravel(InWorld, Cmd, TRAVEL_Absolute);
-	return true;
+	return Engine->HandleOpenCommand(Cmd, Ar, InWorld);
 }
 
 bool UGameInstance::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
@@ -809,7 +804,7 @@ void UGameInstance::StartRecordingReplay(const FString& Name, const FString& Fri
 	}
 	else
 	{
-		UE_LOG(LogDemo, Log, TEXT( "Num Network Actors: %i" ), CurrentWorld->NetworkActors.Num() );
+		UE_LOG(LogDemo, Log, TEXT( "Num Network Actors: %i" ), CurrentWorld->DemoNetDriver->GetNetworkObjectList().GetObjects().Num() );
 	}
 }
 
@@ -931,3 +926,9 @@ bool UGameInstance::IsDedicatedServerInstance() const
 		return WorldContext ? WorldContext->RunAsDedicated : false;
 	}
 }
+
+void UGameInstance::NotifyPreClientTravel(const FString& PendingURL, ETravelType TravelType, bool bIsSeamlessTravel)
+{
+	OnNotifyPreClientTravel().Broadcast(PendingURL, TravelType, bIsSeamlessTravel);
+}
+

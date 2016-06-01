@@ -10,7 +10,9 @@
 #include "IWebBrowserAdapter.h"
 
 #if PLATFORM_ANDROID
-#	include "Android/AndroidPlatformWebBrowser.h"
+#include "Android/AndroidPlatformWebBrowser.h"
+#elif PLATFORM_IOS
+#include "IOS/IOSPlatformWebBrowser.h"
 #endif
 
 #define LOCTEXT_NAMESPACE "WebBrowser"
@@ -105,8 +107,8 @@ void SWebBrowserView::Construct(const FArguments& InArgs, const TSharedPtr<IWebB
 
 	if (BrowserWindow.IsValid())
 	{
-#if PLATFORM_ANDROID
-		// The inner widget creation is handled by the WebBrowserWindow implementation on android.
+#if PLATFORM_ANDROID || PLATFORM_IOS
+		// The inner widget creation is handled by the WebBrowserWindow implementation on mobile.
 		const auto& BrowserWidgetRef = static_cast<FWebBrowserWindow*>(BrowserWindow.Get())->CreateWidget();
 		ChildSlot
 		[
@@ -356,11 +358,11 @@ void SWebBrowserView::HandleToolTip(FString ToolTipText)
 	}
 }
 
-bool SWebBrowserView::HandleBeforeNavigation(const FString& Url, bool bIsRedirect)
+bool SWebBrowserView::HandleBeforeNavigation(const FString& Url, const FWebNavigationRequest& Request)
 {
 	if(OnBeforeNavigation.IsBound())
 	{
-		return OnBeforeNavigation.Execute(Url, bIsRedirect);
+		return OnBeforeNavigation.Execute(Url, Request);
 	}
 	return false;
 }

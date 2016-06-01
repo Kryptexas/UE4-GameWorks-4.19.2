@@ -272,10 +272,21 @@ namespace UnrealGameSync
 		Point? MouseDownLocation;
 		StatusElement MouseDownElement;
 		int ContentWidth = 400;
+		int SuspendDisplayCount;
 
 		public StatusPanel()
 		{
 			DoubleBuffered = true;
+		}
+
+		public void SuspendDisplay()
+		{
+			SuspendDisplayCount++;
+		}
+
+		public void ResumeDisplay()
+		{
+			SuspendDisplayCount--;
 		}
 
 		public void SetContentWidth(int NewContentWidth)
@@ -462,13 +473,16 @@ namespace UnrealGameSync
 		{
 			base.OnPaint(e);
 
-			e.Graphics.DrawImage(ProjectLogo ?? Properties.Resources.DefaultProjectLogo, ProjectLogoBounds);
-
-			e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.None;
-
-			foreach(StatusLine Line in Lines)
+			if(SuspendDisplayCount == 0)
 			{
-				Line.Draw(e.Graphics, FontCache);
+				e.Graphics.DrawImage(ProjectLogo ?? Properties.Resources.DefaultProjectLogo, ProjectLogoBounds);
+
+				e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.None;
+
+				foreach(StatusLine Line in Lines)
+				{
+					Line.Draw(e.Graphics, FontCache);
+				}
 			}
 		}
 

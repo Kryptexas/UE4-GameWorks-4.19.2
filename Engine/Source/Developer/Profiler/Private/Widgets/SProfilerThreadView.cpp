@@ -300,7 +300,7 @@ void SProfilerThreadView::DrawUIStackNodes() const
 		}
 	}
 
-	// @TODO yrx 2014-04-29 Separate layer for makebox, makeshadowtext, maketext.
+	// #Profiler: 2014-04-29 Separate layer for makebox, makeshadowtext, maketext.
 	PaintState->LayerId++;
 
 	const float MarkerPosYOffsetPx = ((float)NUM_PIXELS_PER_ROW - PaintState->SummaryFont8Height)*0.5f;

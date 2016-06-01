@@ -131,7 +131,8 @@ void FLazyObjectPtr::PossiblySerializeObjectGuid(UObject *Object, FArchive& Ar)
 				{
 					if (OtherObject != NULL)
 					{
-						UE_CLOG(!((FApp::IsGame() || GIsPlayInEditorWorld) && Package && Package->ContainsMap()), LogUObjectGlobals, Warning, TEXT("Guid is in use by %s and %s, which should never happen in the editor but could happen at runtime with duplicate level loading or PIE"), *OtherObject->GetFullName(), !!Object ? *Object->GetFullName() : TEXT("NULL"));
+						// IsGame returns true for GIsPlayInEditorWorld
+						UE_CLOG(!(FApp::IsGame() && Package && Package->ContainsMap()), LogUObjectGlobals, Warning, TEXT("Guid referenced by %s is already used by %s, which should never happen in the editor but could happen at runtime with duplicate level loading or PIE"), !!Object ? *Object->GetFullName() : TEXT("NULL"), *OtherObject->GetFullName());
 						// This guid is in use, which should never happen in the editor but could happen at runtime with duplicate level loading or PIE. If so give it an invalid GUID and don't add to the annotation map.
 						Guid = FGuid();
 					}

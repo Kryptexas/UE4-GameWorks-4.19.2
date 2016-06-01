@@ -221,7 +221,7 @@ public:
 	bool ReduceLODModel(
 		FStaticLODModel * SrcModel,
 		FStaticLODModel *& OutModel, 
-		FBoxSphereBounds & Bounds, 
+		const FBoxSphereBounds & Bounds, 
 		float &MaxDeviation, 
 		const FReferenceSkeleton& RefSkeleton, 
 		const FSkeletalMeshOptimizationSettings& Settings
@@ -355,7 +355,7 @@ public:
 		LODModels[LODIndex] = NewModel;
 
 		// Reduce LOD model with SrcMesh
-		if (ReduceLODModel(SrcModel, NewModel, SkeletalMesh->Bounds, MaxDeviation, SkeletalMesh->RefSkeleton, Settings))
+		if (ReduceLODModel(SrcModel, NewModel, SkeletalMesh->GetImportedBounds(), MaxDeviation, SkeletalMesh->RefSkeleton, Settings))
 		{
 			if (bCalcLODDistance)
 			{
@@ -516,7 +516,7 @@ public:
 			DllFilename = FPaths::Combine(*DllPath, TEXT("SimplygonSDKRuntimeReleasex64.dll"));
 		}
 
-		// If the DLL just doesn't exist, fail gracefully. Licensees and Rocket users will not necessarily have Simplygon.
+		// If the DLL just doesn't exist, fail gracefully. Licensees and Subscribers will not necessarily have Simplygon.
 		if( !FPaths::FileExists(DllFilename) )
 		{
 			UE_LOG(LogSimplygon,Warning,TEXT("Simplygon DLL not present - disabling."));
@@ -1897,7 +1897,6 @@ private:
 
 		// Set texture coordinate count on the new model.
 		NewModel->NumTexCoords = MeshData.TexCoordCount;
-		NewModel->Size = 0;
 	}
 
 	/**

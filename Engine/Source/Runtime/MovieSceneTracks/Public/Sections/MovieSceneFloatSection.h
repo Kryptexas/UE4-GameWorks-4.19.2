@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "MovieSceneSection.h"
+#include "IKeyframeSection.h"
 #include "MovieSceneFloatSection.generated.h"
 
 /**
@@ -33,7 +35,9 @@ public:
 	 */
 	virtual void MoveSection(float DeltaPosition, TSet<FKeyHandle>& KeyHandles) override;
 	virtual void DilateSection(float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles) override;
-	virtual void GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const override;
+	virtual void GetKeyHandles(TSet<FKeyHandle>& OutKeyHandles, TRange<float> TimeRange) const override;
+	virtual TOptional<float> GetKeyTime( FKeyHandle KeyHandle ) const override;
+	virtual void SetKeyTime( FKeyHandle KeyHandle, float Time ) override;
 
 	/**
 	 * @return The float curve on this section
@@ -41,6 +45,6 @@ public:
 	FRichCurve& GetFloatCurve() { return FloatCurve; }
 private:
 	/** Curve data */
-	UPROPERTY(EditAnywhere, Category="Curve")
+	UPROPERTY()
 	FRichCurve FloatCurve;
 };

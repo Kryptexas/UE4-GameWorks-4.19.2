@@ -69,14 +69,16 @@ UPrimitiveComponent* UPhysicsConstraintComponent::GetComponentInternal(EConstrai
 			{
 				PrimComp = Cast<UPrimitiveComponent>(Actor->GetRootComponent());
 			}
-			// Name specified, see if we can find that property..
+			// Name specified, see if we can find that component..
 			else
 			{
-				UObjectPropertyBase* ObjProp = FindField<UObjectPropertyBase>(Actor->GetClass(), ComponentName);
-				if(ObjProp != NULL)
+				for(UActorComponent* Comp : Actor->GetComponents())
 				{
-					// .. and return the component that is there
-					PrimComp = Cast<UPrimitiveComponent>(ObjProp->GetObjectPropertyValue_InContainer(Actor));
+					if(Comp->GetFName() == ComponentName)
+					{
+						PrimComp = Cast<UPrimitiveComponent>(Comp);
+						break;
+					}
 				}
 			}
 		}	
@@ -191,7 +193,7 @@ void UPhysicsConstraintComponent::InitComponentConstraint()
 	// Then we init the constraint
 	FBodyInstance* Body1 = GetBodyInstance(EConstraintFrame::Frame1);
 	FBodyInstance* Body2 = GetBodyInstance(EConstraintFrame::Frame2);
-	ConstraintInstance.InitConstraint(this, Body1, Body2, 1.0f);
+	ConstraintInstance.InitConstraint(this, Body1, Body2, GetConstraintScale());
 }
 
 void UPhysicsConstraintComponent::TermComponentConstraint()
@@ -202,6 +204,11 @@ void UPhysicsConstraintComponent::TermComponentConstraint()
 void UPhysicsConstraintComponent::OnConstraintBrokenHandler(FConstraintInstance* BrokenConstraint)
 {
 	OnConstraintBroken.Broadcast(BrokenConstraint->ConstraintIndex);
+}
+
+float UPhysicsConstraintComponent::GetConstraintScale() const
+{
+	return GetComponentScale().GetAbsMin();
 }
 
 void UPhysicsConstraintComponent::SetConstrainedComponents(UPrimitiveComponent* Component1, FName BoneName1, UPrimitiveComponent* Component2, FName BoneName2)
@@ -385,9 +392,10 @@ void UPhysicsConstraintComponent::CheckForErrors()
 void UPhysicsConstraintComponent::UpdateConstraintFrames()
 {
 	FTransform A1Transform = GetBodyTransform(EConstraintFrame::Frame1);
-	A1Transform.SetScale3D(FVector(1.f));
+	A1Transform.RemoveScaling();
+
 	FTransform A2Transform = GetBodyTransform(EConstraintFrame::Frame2);
-	A2Transform.SetScale3D(FVector(1.f));
+	A2Transform.RemoveScaling();
 
 	// World ref frame
 	const FVector WPos = GetComponentLocation();
@@ -400,11 +408,28 @@ void UPhysicsConstraintComponent::UpdateConstraintFrames()
 
 	const FVector RotatedX = ConstraintInstance.AngularRotationOffset.RotateVector(FVector(1,0,0));
 	const FVector RotatedY = ConstraintInstance.AngularRotationOffset.RotateVector(FVector(0,1,0));
-	const FVector WPri2 = ComponentToWorld.TransformVector(RotatedX);
-	const FVector WOrth2 = ComponentToWorld.TransformVector(RotatedY);
+	const FVector WPri2 = ComponentToWorld.TransformVectorNoScale(RotatedX);
+	const FVector WOrth2 = ComponentToWorld.TransformVectorNoScale(RotatedY);
+	
+	
 	ConstraintInstance.Pos2 = A2Transform.InverseTransformPosition(WPos);
 	ConstraintInstance.PriAxis2 = A2Transform.InverseTransformVectorNoScale(WPri2);
 	ConstraintInstance.SecAxis2 = A2Transform.InverseTransformVectorNoScale(WOrth2);
+
+	//Constraint instance is given our reference frame scale and uses it to scale position.
+	//Note that the scale passed in is also used for limits, so we first undo the position scale so that it's consistent.
+
+	//Note that in the case where there is no body instance, the position is given in world space and there is no scaling.
+	const float RefScale = FMath::Max(GetConstraintScale(), 0.01f);
+	if(GetBodyInstance(EConstraintFrame::Frame1))
+	{
+		ConstraintInstance.Pos1 /= RefScale;
+	}
+
+	if (GetBodyInstance(EConstraintFrame::Frame2))
+	{
+		ConstraintInstance.Pos2 /= RefScale;
+	}
 }
 
 void UPhysicsConstraintComponent::SetConstraintReferenceFrame(EConstraintFrame::Type Frame, const FTransform& RefFrame)

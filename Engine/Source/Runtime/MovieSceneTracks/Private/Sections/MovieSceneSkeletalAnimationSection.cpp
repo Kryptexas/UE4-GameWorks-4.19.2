@@ -52,7 +52,7 @@ UMovieSceneSection* UMovieSceneSkeletalAnimationSection::SplitSection(float Spli
 }
 
 
-void UMovieSceneSkeletalAnimationSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
+void UMovieSceneSkeletalAnimationSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles, TRange<float> TimeRange) const
 {
 	// do nothing
 }

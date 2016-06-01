@@ -168,17 +168,25 @@ FBlueprintNodeSignature UAnimGraphNode_BlendSpacePlayer::GetSignature() const
 	return NodeSignature;
 }
 
-void UAnimGraphNode_BlendSpacePlayer::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& ComplexAnims, TArray<UAnimSequence*>& AnimationSequences) const
+void UAnimGraphNode_BlendSpacePlayer::SetAnimationAsset(UAnimationAsset* Asset)
 {
-	if(Node.BlendSpace)
+	if (UBlendSpaceBase* BlendSpace = Cast<UBlendSpaceBase>(Asset))
 	{
-		HandleAnimReferenceCollection(Node.BlendSpace, ComplexAnims, AnimationSequences);
+		Node.BlendSpace = BlendSpace;
 	}
 }
 
-void UAnimGraphNode_BlendSpacePlayer::ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& ComplexAnimsMap, const TMap<UAnimSequence*, UAnimSequence*>& AnimSequenceMap)
+void UAnimGraphNode_BlendSpacePlayer::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets) const
 {
-	HandleAnimReferenceReplacement(Node.BlendSpace, ComplexAnimsMap, AnimSequenceMap);
+	if(Node.BlendSpace)
+	{
+		HandleAnimReferenceCollection(Node.BlendSpace, AnimationAssets);
+	}
+}
+
+void UAnimGraphNode_BlendSpacePlayer::ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& AnimAssetReplacementMap)
+{
+	HandleAnimReferenceReplacement(Node.BlendSpace, AnimAssetReplacementMap);
 }
 
 bool UAnimGraphNode_BlendSpacePlayer::DoesSupportTimeForTransitionGetter() const

@@ -13,14 +13,14 @@ UActorFactoryLandscape::UActorFactoryLandscape(const FObjectInitializer& ObjectI
 	NewActorClass = ALandscapeProxy::StaticClass();
 }
 
-AActor* UActorFactoryLandscape::SpawnActor(UObject* Asset, ULevel* InLevel, const FVector& Location, const FRotator& Rotation, EObjectFlags ObjectFlags, const FName& Name)
+AActor* UActorFactoryLandscape::SpawnActor(UObject* Asset, ULevel* InLevel, const FTransform& Transform, EObjectFlags ObjectFlags, const FName Name)
 {
 	GLevelEditorModeTools().ActivateMode(FBuiltinEditorModes::EM_Landscape);
 
 	FEdModeLandscape* EdMode = (FEdModeLandscape*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Landscape);
 
-	EdMode->UISettings->NewLandscape_Location = Location;
-	EdMode->UISettings->NewLandscape_Rotation = Rotation;
+	EdMode->UISettings->NewLandscape_Location = Transform.GetLocation();
+	EdMode->UISettings->NewLandscape_Rotation = Transform.GetRotation().Rotator();
 
 	EdMode->SetCurrentTool("NewLandscape");
 
@@ -28,7 +28,7 @@ AActor* UActorFactoryLandscape::SpawnActor(UObject* Asset, ULevel* InLevel, cons
 	SpawnInfo.OverrideLevel = InLevel;
 	SpawnInfo.ObjectFlags = ObjectFlags;
 	SpawnInfo.Name = Name;
-	return InLevel->OwningWorld->SpawnActor(ALandscapePlaceholder::StaticClass(), &Location, &Rotation, SpawnInfo);
+	return InLevel->OwningWorld->SpawnActor(ALandscapePlaceholder::StaticClass(), &Transform, SpawnInfo);
 }
 
 ALandscapePlaceholder::ALandscapePlaceholder(const FObjectInitializer& ObjectInitializer)
@@ -55,7 +55,7 @@ ALandscapePlaceholder::ALandscapePlaceholder(const FObjectInitializer& ObjectIni
 	{
 		SpriteComponent->Sprite = ConstructorStatics.TerrainTexture.Get();
 		SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
-		SpriteComponent->AttachParent = RootComponent;
+		SpriteComponent->SetupAttachment(RootComponent);
 		SpriteComponent->RelativeLocation = FVector(0, 0, 100);
 		SpriteComponent->bAbsoluteScale = true;
 	}

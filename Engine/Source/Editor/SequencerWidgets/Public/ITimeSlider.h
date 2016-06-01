@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Editor/Sequencer/Public/ISequencerInputHandler.h"
+#include "IMovieScenePlayer.h"
 
 class USequencerSettings;
 
@@ -70,30 +71,57 @@ struct FTimeSliderArgs
 
 	/** The scrub position */
 	TAttribute<float> ScrubPosition;
+
 	/** View time range */
 	TAttribute< FAnimatedRange > ViewRange;
+
 	/** Clamp time range */
 	TAttribute< FAnimatedRange > ClampRange;
+
 	/** Called when the scrub position changes */
 	FOnScrubPositionChanged OnScrubPositionChanged;
+
 	/** Called right before the scrubber begins to move */
 	FSimpleDelegate OnBeginScrubberMovement;
+
 	/** Called right after the scrubber handle is released by the user */
 	FSimpleDelegate OnEndScrubberMovement;
+
 	/** Called when the view range changes */
 	FOnViewRangeChanged OnViewRangeChanged;
+
 	/** Called when the clamp range changes */
 	FOnRangeChanged OnClampRangeChanged;
+
 	/** Attribute defining the playback range for this controller */
 	TAttribute<TRange<float>> PlaybackRange;
+
 	/** Delegate that is called when the playback range wants to change */
 	FOnRangeChanged OnPlaybackRangeChanged;
+
 	/** Called right before the playback range starts to be dragged */
-	FSimpleDelegate OnBeginPlaybackRangeDrag;
+	FSimpleDelegate OnPlaybackRangeBeginDrag;
+
 	/** Called right after the playback range has finished being dragged */
-	FSimpleDelegate OnEndPlaybackRangeDrag;
+	FSimpleDelegate OnPlaybackRangeEndDrag;
+
+	/** Attribute defining the selection range for this controller */
+	TAttribute<TRange<float>> SelectionRange;
+
+	/** Delegate that is called when the selection range wants to change */
+	FOnRangeChanged OnSelectionRangeChanged;
+
+	/** Called right before the selection range starts to be dragged */
+	FSimpleDelegate OnSelectionRangeBeginDrag;
+
+	/** Called right after the selection range has finished being dragged */
+	FSimpleDelegate OnSelectionRangeEndDrag;
+	/** Round the scrub position to an integer during playback */
+	TAttribute<EMovieScenePlayerStatus::Type> PlaybackStatus;
+
 	/** If we are allowed to zoom */
 	bool AllowZoom;
+
 	/** User-supplied settings object */
 	USequencerSettings* Settings;
 };
@@ -110,6 +138,9 @@ public:
 
 	/** Get the current clamp range for this controller */
 	virtual FAnimatedRange GetClampRange() const { return FAnimatedRange(); }
+
+	/** Get the current play range for this controller */
+	virtual TRange<float> GetPlayRange() const { return TRange<float>(); }
 
 	/** Convert a time to a frame */
 	virtual int32 TimeToFrame(float Time) const { return 1; }
@@ -133,6 +164,14 @@ public:
 	 * @param NewRangeMax		The new upper bound of the clamp range
 	 */
 	virtual void SetClampRange( float NewRangeMin, float NewRangeMax) {}
+
+	/**
+	 * Set a new playback range based on a min, max
+	 * 
+	 * @param NewRangeMin		The new lower bound of the playback range
+	 * @param NewRangeMax		The new upper bound of the playback range
+	 */
+	virtual void SetPlayRange( float NewRangeMin, float NewRangeMax ) {}
 };
 
 /**

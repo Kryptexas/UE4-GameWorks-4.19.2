@@ -360,9 +360,24 @@ namespace
 
 				case EFunctionSpecifier::BlueprintPure:
 				{
+					bool bIsPure = true;
+					if (Specifier.Values.Num() == 1)
+					{
+						FString IsPureStr = Specifier.Values[0];
+						bIsPure = IsPureStr.ToBool();
+					}
+
 					// This function can be called, and is also pure.
 					FuncInfo.FunctionFlags |= FUNC_BlueprintCallable;
-					FuncInfo.FunctionFlags |= FUNC_BlueprintPure;
+
+					if (bIsPure)
+					{
+						FuncInfo.FunctionFlags |= FUNC_BlueprintPure;
+					}
+					else
+					{
+						FuncInfo.bForceBlueprintImpure = true;
+					}
 				}
 				break;
 
@@ -427,6 +442,11 @@ namespace
 		if (FuncInfo.bSealedEvent && FuncInfo.FunctionFlags & FUNC_BlueprintEvent)
 		{
 			FError::Throwf(TEXT("SealedEvent cannot be used on Blueprint events"));
+		}
+
+		if (FuncInfo.bForceBlueprintImpure && (FuncInfo.FunctionFlags & FUNC_BlueprintPure) != 0)
+		{
+			FError::Throwf(TEXT("BlueprintPure (or BlueprintPure=true) and BlueprintPure=false should not both appear on the same function, they are mutually exclusive"));
 		}
 	}
 
@@ -976,7 +996,7 @@ UField* FHeaderParser::FindField
 )
 {
 	check(InIdentifier);
-	FName InName( InIdentifier, FNAME_Find, true );
+	FName InName(InIdentifier, FNAME_Find);
 	if (InName != NAME_None)
 	{
 		for( ; Scope; Scope = Cast<UStruct>(Scope->GetOuter()) )
@@ -1107,9 +1127,9 @@ void AddModuleRelativePathToMetadata(UField* Type, TMap<FName, FString> &MetaDat
 UEnum* FHeaderParser::CompileEnum()
 {
 	FUnrealSourceFile* CurrentSrcFile = GetCurrentSourceFile();
-	auto Scope = CurrentSrcFile->GetScope();
+	TSharedPtr<FFileScope> Scope = CurrentSrcFile->GetScope();
 
-	CheckAllow( TEXT("'Enum'"), ALLOW_TypeDecl );
+	CheckAllow( TEXT("'Enum'"), ENestAllowFlags::TypeDecl );
 
 	// Get the enum specifier list
 	FToken                     EnumToken;
@@ -1273,13 +1293,13 @@ UEnum* FHeaderParser::CompileEnum()
 			case UEnum::ECppForm::Namespaced:
 			case UEnum::ECppForm::EnumClass:
 			{
-				NewTag = FName(*FString::Printf(TEXT("%s::%s"), EnumToken.Identifier, TagToken.Identifier), FNAME_Add, true);
+				NewTag = FName(*FString::Printf(TEXT("%s::%s"), EnumToken.Identifier, TagToken.Identifier), FNAME_Add);
 			}
 			break;
 
 			case UEnum::ECppForm::Regular:
 			{
-				NewTag = FName(TagToken.Identifier, FNAME_Add, true);
+				NewTag = FName(TagToken.Identifier, FNAME_Add);
 			}
 			break;
 		}
@@ -1691,7 +1711,7 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(FClasses& AllClasses)
 	auto Scope = CurrentSrcFile->GetScope();
 
 	// Make sure structs can be declared here.
-	CheckAllow( TEXT("'struct'"), ALLOW_TypeDecl );//@TODO: UCREMOVAL: After the switch: Make this require global scope
+	CheckAllow( TEXT("'struct'"), ENestAllowFlags::TypeDecl );
 
 	FScriptLocation StructDeclaration;
 
@@ -2162,14 +2182,14 @@ const TCHAR *FHeaderParser::NestTypeName( ENestType NestType )
 {
 	switch( NestType )
 	{
-		case NEST_GlobalScope:
+		case ENestType::GlobalScope:
 			return TEXT("Global Scope");
-		case NEST_Class:
+		case ENestType::Class:
 			return TEXT("Class");
-		case NEST_NativeInterface:
-		case NEST_Interface:
+		case ENestType::NativeInterface:
+		case ENestType::Interface:
 			return TEXT("Interface");
-		case NEST_FunctionDeclaration:
+		case ENestType::FunctionDeclaration:
 			return TEXT("Function");
 		default:
 			check(false);
@@ -2178,9 +2198,9 @@ const TCHAR *FHeaderParser::NestTypeName( ENestType NestType )
 }
 
 // Checks to see if a particular kind of command is allowed on this nesting level.
-bool FHeaderParser::IsAllowedInThisNesting(uint32 AllowFlags)
+bool FHeaderParser::IsAllowedInThisNesting(ENestAllowFlags AllowFlags)
 {
-	return ((TopNest->Allow & AllowFlags) != 0);
+	return (TopNest->Allow & AllowFlags) != ENestAllowFlags::None;
 }
 
 //
@@ -2188,11 +2208,11 @@ bool FHeaderParser::IsAllowedInThisNesting(uint32 AllowFlags)
 // If it's not, issues a compiler error referring to the token and the current
 // nesting level.
 //
-void FHeaderParser::CheckAllow( const TCHAR* Thing, uint32 AllowFlags )
+void FHeaderParser::CheckAllow( const TCHAR* Thing, ENestAllowFlags AllowFlags )
 {
 	if (!IsAllowedInThisNesting(AllowFlags))
 	{
-		if (TopNest->NestType == NEST_GlobalScope)
+		if (TopNest->NestType == ENestType::GlobalScope)
 		{
 			FError::Throwf(TEXT("%s is not allowed before the Class definition"), Thing );
 		}
@@ -2220,7 +2240,7 @@ void FHeaderParser::PushNest(ENestType NestType, UStruct* InNode, FUnrealSourceF
 {
 	// Update pointer to top nesting level.
 	TopNest = &Nest[NestLevel++];
-	TopNest->SetScope(NestType == NEST_GlobalScope ? &SourceFile->GetScope().Get() : &FScope::GetTypeScope(InNode).Get());
+	TopNest->SetScope(NestType == ENestType::GlobalScope ? &SourceFile->GetScope().Get() : &FScope::GetTypeScope(InNode).Get());
 	TopNest->NestType = NestType;
 
 	// Prevent overnesting.
@@ -2230,7 +2250,7 @@ void FHeaderParser::PushNest(ENestType NestType, UStruct* InNode, FUnrealSourceF
 	}
 
 	// Inherit info from stack node above us.
-	if (NestLevel > 1 && NestType == NEST_GlobalScope)
+	if (NestLevel > 1 && NestType == ENestType::GlobalScope)
 	{
 		// Use the existing stack node.
 		TopNest->SetScope(TopNest[-1].GetScope());
@@ -2239,21 +2259,21 @@ void FHeaderParser::PushNest(ENestType NestType, UStruct* InNode, FUnrealSourceF
 	// NestType specific logic.
 	switch (NestType)
 	{
-	case NEST_GlobalScope:
-		TopNest->Allow = ALLOW_Class | ALLOW_TypeDecl | ALLOW_Function;
+	case ENestType::GlobalScope:
+		TopNest->Allow = ENestAllowFlags::Class | ENestAllowFlags::TypeDecl | ENestAllowFlags::ImplicitDelegateDecl;
 		break;
 
-	case NEST_Class:
-		TopNest->Allow = ALLOW_VarDecl | ALLOW_Function | ALLOW_TypeDecl;
+	case ENestType::Class:
+		TopNest->Allow = ENestAllowFlags::VarDecl | ENestAllowFlags::Function | ENestAllowFlags::ImplicitDelegateDecl;
 		break;
 
-	case NEST_NativeInterface:
-	case NEST_Interface:
-		TopNest->Allow = ALLOW_Function | ALLOW_TypeDecl;
+	case ENestType::NativeInterface:
+	case ENestType::Interface:
+		TopNest->Allow = ENestAllowFlags::Function;
 		break;
 
-	case NEST_FunctionDeclaration:
-		TopNest->Allow = ALLOW_VarDecl;
+	case ENestType::FunctionDeclaration:
+		TopNest->Allow = ENestAllowFlags::VarDecl;
 
 		break;
 
@@ -2281,19 +2301,19 @@ void FHeaderParser::PopNest(ENestType NestType, const TCHAR* Descr)
 		FError::Throwf(TEXT("Unexpected end of %s in '%s' block"), Descr, NestTypeName(TopNest->NestType));
 	}
 
-	if (NestType != NEST_GlobalScope && NestType != NEST_Class && NestType != NEST_Interface && NestType != NEST_NativeInterface && NestType != NEST_FunctionDeclaration)
+	if (NestType != ENestType::GlobalScope && NestType != ENestType::Class && NestType != ENestType::Interface && NestType != ENestType::NativeInterface && NestType != ENestType::FunctionDeclaration)
 	{
 		FError::Throwf(TEXT("Bad first pass NestType %i"), (uint8)NestType);
 	}
 
 	bool bLinkProps = true;
-	if (NestType == NEST_Class)
+	if (NestType == ENestType::Class)
 	{
 		UClass* TopClass = CastChecked<UClass>(GetCurrentClass());
 		bLinkProps = !TopClass->HasAnyClassFlags(CLASS_Intrinsic);
 	}
 
-	if (NestType != NEST_GlobalScope)
+	if (NestType != ENestType::GlobalScope)
 	{
 		GetCurrentClass()->StaticLink(bLinkProps);
 	}
@@ -2423,9 +2443,14 @@ void FHeaderParser::FixupDelegateProperties( FClasses& AllClasses, UStruct* Stru
 							for (TFieldIterator<UProperty> PropIt(SourceDelegateFunction); PropIt && (PropIt->PropertyFlags & CPF_Parm); ++PropIt)
 							{
 								UProperty* FuncParam = *PropIt;
-								if(FuncParam->HasAllPropertyFlags(CPF_OutParm) && !FuncParam->HasAllPropertyFlags(CPF_ConstParm))
+								if(FuncParam->HasAllPropertyFlags(CPF_OutParm) && !FuncParam->HasAllPropertyFlags(CPF_ConstParm)  )
 								{
-									FError::Throwf(TEXT("BlueprintAssignable delegates do not support non-const references at the moment. Function: %s Parameter: '%s'"), *SourceDelegateFunction->GetName(), *FuncParam->GetName());
+									const bool bClassGeneratedFromBP = FClass::IsDynamic(Struct);
+									const bool bAllowedArrayRefFromBP = bClassGeneratedFromBP && FuncParam->IsA<UArrayProperty>();
+									if (!bAllowedArrayRefFromBP)
+									{
+										FError::Throwf(TEXT("BlueprintAssignable delegates do not support non-const references at the moment. Function: %s Parameter: '%s'"), *SourceDelegateFunction->GetName(), *FuncParam->GetName());
+									}
 								}
 							}
 						}
@@ -2713,6 +2738,8 @@ FIndexRange*                    ParsedVarIndexRange
 	TArray<FPropertySpecifier> SpecifiersFound;
 
 	TMap<FName, FString> MetaDataFromNewStyle;
+	bool bNativeConst = false;
+	bool bNativeConstTemplateArg = false;
 
 	const bool bIsParamList = (VariableCategory != EVariableCategory::Member) && MatchIdentifier(TEXT("UPARAM"));
 
@@ -2732,6 +2759,7 @@ FIndexRange*                    ParsedVarIndexRange
 		if (MatchIdentifier(TEXT("const")))
 		{
 			Flags |= CPF_ConstParm;
+			bNativeConst = true;
 		}
 	}
 
@@ -3153,6 +3181,7 @@ FIndexRange*                    ParsedVarIndexRange
 	{
 		//@TODO: UCREMOVAL: Should use this to set the new (currently non-existent) CPF_Const flag appropriately!
 		bUnconsumedConstKeyword = true;
+		bNativeConst = true;
 	}
 
 	if (MatchIdentifier(TEXT("mutable")))
@@ -3284,6 +3313,11 @@ FIndexRange*                    ParsedVarIndexRange
 		if (VarProperty.ArrayType != EArrayType::None || VarProperty.MapKeyProp.IsValid())
 		{
 			FError::Throwf(TEXT("Nested containers are not supported.") );
+		}
+
+		if (VarProperty.MetaData.Find(TEXT("NativeConst")))
+		{
+			bNativeConstTemplateArg = true;
 		}
 
 		OriginalVarTypeFlags |= VarProperty.PropertyFlags & (CPF_ContainsInstancedReference | CPF_InstancedReference); // propagate these to the array, we will fix them later
@@ -3493,7 +3527,45 @@ FIndexRange*                    ParsedVarIndexRange
 			bStripped = true;
 		}
 
-		if (Struct)
+		auto SetDelegateType = [&](UFunction* InFunction, const FString& InIdentifierStripped)
+		{
+			bHandledType = true;
+
+			VarProperty = FPropertyBase(InFunction->HasAnyFunctionFlags(FUNC_MulticastDelegate) ? CPT_MulticastDelegate : CPT_Delegate);
+			VarProperty.DelegateName = *InIdentifierStripped;
+
+			if (!(Disallow & CPF_InstancedReference))
+			{
+				Flags |= CPF_InstancedReference;
+			}
+		};
+
+		if (!Struct && MatchSymbol(TEXT("::")))
+		{
+			FToken DelegateName;
+			if (GetIdentifier(DelegateName))
+			{
+				UClass* LocalOwnerClass = AllClasses.FindClass(*IdentifierStripped);
+				if (LocalOwnerClass)
+				{
+					TSharedRef<FScope> LocScope = FScope::GetTypeScope(LocalOwnerClass);
+					const FString DelegateIdentifierStripped = GetClassNameWithPrefixRemoved(DelegateName.Identifier);
+					if (UFunction* DelegateFunc = Cast<UFunction>(LocScope->FindTypeByName(*(DelegateIdentifierStripped + HEADER_GENERATED_DELEGATE_SIGNATURE_SUFFIX))))
+					{
+						SetDelegateType(DelegateFunc, DelegateIdentifierStripped);
+					}
+				}
+				else
+				{
+					FError::Throwf(TEXT("Cannot find class '%s', to resolve delegate '%s'"), *IdentifierStripped, DelegateName.Identifier);
+				}
+			}
+		}
+
+		if (bHandledType)
+		{
+		}
+		else if (Struct)
 		{
 			if (bStripped)
 			{
@@ -3529,15 +3601,7 @@ FIndexRange*                    ParsedVarIndexRange
 		}
 		else if (UFunction* DelegateFunc = Cast<UFunction>(Scope->FindTypeByName(*(IdentifierStripped + HEADER_GENERATED_DELEGATE_SIGNATURE_SUFFIX))))
 		{
-			bHandledType = true;
-
-			VarProperty = FPropertyBase( DelegateFunc->HasAnyFunctionFlags(FUNC_MulticastDelegate) ? CPT_MulticastDelegate : CPT_Delegate);
-			VarProperty.DelegateName = *IdentifierStripped;
-
-			if (!(Disallow & CPF_InstancedReference))
-			{
-				Flags |= CPF_InstancedReference;
-			}
+			SetDelegateType(DelegateFunc, IdentifierStripped);
 		}
 		else
 		{
@@ -3579,7 +3643,7 @@ FIndexRange*                    ParsedVarIndexRange
 				MatchIdentifier(TEXT("class"));
 
 				// Also consume const
-				MatchIdentifier(TEXT("const"));
+				bNativeConstTemplateArg |= MatchIdentifier(TEXT("const"));
 				
 				// Find the lazy/weak class
 				FToken InnerClass;
@@ -3684,7 +3748,7 @@ FIndexRange*                    ParsedVarIndexRange
 				if (!(Flags & CPF_UObjectWrapper))
 				{
 					// Const after variable type but before pointer symbol
-					MatchIdentifier(TEXT("const"));
+					bNativeConst |= MatchIdentifier(TEXT("const"));
 
 					RequireSymbol(TEXT("*"), TEXT("Expected a pointer type"));
 
@@ -3708,15 +3772,7 @@ FIndexRange*                    ParsedVarIndexRange
 		{
 			if (UFunction* DelegateFunc = (UFunction*)StaticFindObject(UFunction::StaticClass(), ANY_PACKAGE, *(IdentifierStripped + HEADER_GENERATED_DELEGATE_SIGNATURE_SUFFIX)))
 			{
-				bHandledType = true;
-
-				VarProperty = FPropertyBase( DelegateFunc->HasAnyFunctionFlags(FUNC_MulticastDelegate) ? CPT_MulticastDelegate : CPT_Delegate);
-				VarProperty.DelegateName = *IdentifierStripped;
-					
-				if (!(Disallow & CPF_InstancedReference))
-				{
-					Flags |= CPF_InstancedReference;
-				}
+				SetDelegateType(DelegateFunc, IdentifierStripped);
 			}
 
 			if (!bHandledType)
@@ -3732,6 +3788,7 @@ FIndexRange*                    ParsedVarIndexRange
 		if (MatchIdentifier(TEXT("const")))
 		{
 			Flags |= CPF_ConstParm;
+			bNativeConst = true;
 		}
 	}
 
@@ -3771,7 +3828,7 @@ FIndexRange*                    ParsedVarIndexRange
 	if (VariableCategory == EVariableCategory::Member && OwnerStruct->IsA<UClass>() && ((UClass*)OwnerStruct)->HasAnyClassFlags(CLASS_Const))
 	{
 		// Eat a 'not quite truthful' const after the type; autogenerated for member variables of const classes.
-		MatchIdentifier(TEXT("const"));
+		bNativeConst |= MatchIdentifier(TEXT("const"));
 	}
 
 	// Arrays are passed by reference but are only implicitly so; setting it explicitly could cause a problem with replicated functions
@@ -3901,7 +3958,15 @@ FIndexRange*                    ParsedVarIndexRange
 	}
 
 	VarProperty.MetaData = MetaDataFromNewStyle;
-
+	if (bNativeConst)
+	{
+		VarProperty.MetaData.Add(TEXT("NativeConst"), TEXT(""));
+	}
+	if (bNativeConstTemplateArg)
+	{
+		VarProperty.MetaData.Add(TEXT("NativeConstTemplateArg"), TEXT(""));
+	}
+	
 	if (ParsedVarIndexRange)
 	{
 		ParsedVarIndexRange->Count = InputPos - ParsedVarIndexRange->StartIndex;
@@ -4162,7 +4227,7 @@ UProperty* FHeaderParser::GetVarNameAndDim
 	// If this is the first time seeing the property name, then flag it for replace instead of add
 	const EFindName FindFlag = VarProperty.PropertyFlags & CPF_Config ? GetFindFlagForPropertyName(VarProperty.Identifier) : FNAME_Add;
 	// create the FName for the property, splitting (ie Unnamed_3 -> Unnamed,3)
-	FName PropertyName(VarProperty.Identifier, FindFlag, true);
+	FName PropertyName(VarProperty.Identifier, FindFlag);
 
 	// Add property.
 	UProperty* NewProperty = NULL;
@@ -4280,16 +4345,16 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, TArray<UDelegateFun
 	EAccessSpecifier AccessSpecifier = ParseAccessProtectionSpecifier(Token);
 	if (AccessSpecifier)
 	{
-		if (!IsAllowedInThisNesting(ALLOW_VarDecl) && !IsAllowedInThisNesting(ALLOW_Function))
+		if (!IsAllowedInThisNesting(ENestAllowFlags::VarDecl) && !IsAllowedInThisNesting(ENestAllowFlags::Function))
 		{
 			FError::Throwf(TEXT("Access specifier %s not allowed here."), Token.Identifier);
 		}
-		check(TopNest->NestType == NEST_Class || TopNest->NestType == NEST_Interface || TopNest->NestType == NEST_NativeInterface);
+		check(TopNest->NestType == ENestType::Class || TopNest->NestType == ENestType::Interface || TopNest->NestType == ENestType::NativeInterface);
 		CurrentAccessSpecifier = AccessSpecifier;
 		return true;
 	}
 
-	if (Token.Matches(TEXT("class")) && (TopNest->NestType == NEST_GlobalScope))
+	if (Token.Matches(TEXT("class")) && (TopNest->NestType == ENestType::GlobalScope))
 	{
 		// Make sure the previous class ended with valid nesting.
 		if (bEncounteredNewStyleClass_UnmatchedBrackets)
@@ -4310,9 +4375,9 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, TArray<UDelegateFun
 		return true;
 	}
 
-	if (Token.Matches(TEXT("GENERATED_IINTERFACE_BODY")) || (Token.Matches(TEXT("GENERATED_BODY")) && TopNest->NestType == NEST_NativeInterface))
+	if (Token.Matches(TEXT("GENERATED_IINTERFACE_BODY")) || (Token.Matches(TEXT("GENERATED_BODY")) && TopNest->NestType == ENestType::NativeInterface))
 	{
-		if (TopNest->NestType != NEST_NativeInterface)
+		if (TopNest->NestType != ENestType::NativeInterface)
 		{
 			FError::Throwf(TEXT("%s must occur inside the native interface definition"), Token.Identifier);
 		}
@@ -4339,9 +4404,9 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, TArray<UDelegateFun
 		return true;
 	}
 
-	if (Token.Matches(TEXT("GENERATED_UINTERFACE_BODY")) || (Token.Matches(TEXT("GENERATED_BODY")) && TopNest->NestType == NEST_Interface))
+	if (Token.Matches(TEXT("GENERATED_UINTERFACE_BODY")) || (Token.Matches(TEXT("GENERATED_BODY")) && TopNest->NestType == ENestType::Interface))
 	{
-		if (TopNest->NestType != NEST_Interface)
+		if (TopNest->NestType != ENestType::Interface)
 		{
 			FError::Throwf(TEXT("%s must occur inside the interface definition"), Token.Identifier);
 		}
@@ -4363,9 +4428,9 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, TArray<UDelegateFun
 		return true;
 	}
 
-	if (Token.Matches(TEXT("GENERATED_UCLASS_BODY")) || (Token.Matches(TEXT("GENERATED_BODY")) && TopNest->NestType == NEST_Class))
+	if (Token.Matches(TEXT("GENERATED_UCLASS_BODY")) || (Token.Matches(TEXT("GENERATED_BODY")) && TopNest->NestType == ENestType::Class))
 	{
-		if (TopNest->NestType != NEST_Class)
+		if (TopNest->NestType != ENestType::Class)
 		{
 			FError::Throwf(TEXT("%s must occur inside the class definition"), Token.Identifier);
 		}
@@ -4398,7 +4463,7 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, TArray<UDelegateFun
 		return true;
 	}
 
-	if (Token.Matches(TEXT("UCLASS"), ESearchCase::CaseSensitive) && (TopNest->Allow & ALLOW_Class))
+	if (Token.Matches(TEXT("UCLASS"), ESearchCase::CaseSensitive))
 	{
 		bHaveSeenUClass = true;
 		bEncounteredNewStyleClass_UnmatchedBrackets = true;
@@ -4406,7 +4471,7 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, TArray<UDelegateFun
 		return true;
 	}
 
-	if (Token.Matches(TEXT("UINTERFACE")) && (TopNest->Allow & ALLOW_Class))
+	if (Token.Matches(TEXT("UINTERFACE")))
 	{
 		bHaveSeenUClass = true;
 		bEncounteredNewStyleClass_UnmatchedBrackets = true;
@@ -4436,8 +4501,8 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, TArray<UDelegateFun
 
 	if (Token.Matches(TEXT("UPROPERTY"), ESearchCase::CaseSensitive))
 	{
-		CheckAllow(TEXT("'Member variable declaration'"), ALLOW_VarDecl);
-		check(TopNest->NestType == NEST_Class);
+		CheckAllow(TEXT("'Member variable declaration'"), ENestAllowFlags::VarDecl);
+		check(TopNest->NestType == ENestType::Class);
 
 		CompileVariableDeclaration(AllClasses, GetCurrentClass());
 		return true;
@@ -4482,31 +4547,31 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, TArray<UDelegateFun
 		// Pop nesting here to allow other non UClass declarations in the header file.
 		if (CurrentClass->ClassFlags & CLASS_Interface)
 		{
-			checkf(TopNest->NestType == NEST_Interface || TopNest->NestType == NEST_NativeInterface, TEXT("Unexpected end of interface block."));
+			checkf(TopNest->NestType == ENestType::Interface || TopNest->NestType == ENestType::NativeInterface, TEXT("Unexpected end of interface block."));
 			PopNest(TopNest->NestType, TEXT("'Interface'"));
 			PostPopNestInterface(AllClasses, CurrentClass);
 
-			// Ensure the UINTERFACE classes have a GENERATED_UINTERFACE_BODY declaration
+			// Ensure the UINTERFACE classes have a GENERATED_BODY declaration
 			if (bHaveSeenUClass && !bClassHasGeneratedUInterfaceBody)
 			{
-				FError::Throwf(TEXT("Expected a GENERATED_UINTERFACE_BODY() at the start of class"));
+				FError::Throwf(TEXT("Expected a GENERATED_BODY() at the start of class"));
 			}
 
-			// Ensure the non-UINTERFACE interface classes have a GENERATED_IINTERFACE_BODY declaration
+			// Ensure the non-UINTERFACE interface classes have a GENERATED_BODY declaration
 			if (!bHaveSeenUClass && !bClassHasGeneratedIInterfaceBody)
 			{
-				FError::Throwf(TEXT("Expected a GENERATED_IINTERFACE_BODY() at the start of class"));
+				FError::Throwf(TEXT("Expected a GENERATED_BODY() at the start of class"));
 			}
 		}
 		else
 		{
-			PopNest(NEST_Class, TEXT("'Class'"));
+			PopNest(ENestType::Class, TEXT("'Class'"));
 			PostPopNestClass(CurrentClass);
 
-			// Ensure classes have a GENERATED_UCLASS_BODY declaration
+			// Ensure classes have a GENERATED_BODY declaration
 			if (bHaveSeenUClass && !bClassHasGeneratedBody)
 			{
-				FError::Throwf(TEXT("Expected a GENERATED_UCLASS_BODY() at the start of class"));
+				FError::Throwf(TEXT("Expected a GENERATED_BODY() at the start of class"));
 			}
 		}
 
@@ -4857,7 +4922,7 @@ void PostParsingClassSetup(UClass* Class)
 void FHeaderParser::CompileClassDeclaration(FClasses& AllClasses)
 {
 	// Start of a class block.
-	CheckAllow(TEXT("'class'"), ALLOW_Class);
+	CheckAllow(TEXT("'class'"), ENestAllowFlags::Class);
 
 	// New-style UCLASS() syntax
 	TMap<FName, FString> MetaData;
@@ -4891,7 +4956,7 @@ void FHeaderParser::CompileClassDeclaration(FClasses& AllClasses)
 
 	Class->ClassFlags |= CLASS_Parsed;
 
-	PushNest(ENestType::NEST_Class, Class);
+	PushNest(ENestType::Class, Class);
 	
 	const uint32 PrevClassFlags = Class->ClassFlags;
 	ResetClassData();
@@ -5051,7 +5116,7 @@ bool FHeaderParser::TryParseIInterfaceClass(FClasses& AllClasses)
 	RequireSymbol(TEXT("{"), *ErrorMsg);
 
 	// Push the interface class nesting again.
-	PushNest(NEST_NativeInterface, FoundClass);
+	PushNest(ENestType::NativeInterface, FoundClass);
 
 	return true;
 }
@@ -5064,7 +5129,7 @@ void FHeaderParser::CompileInterfaceDeclaration(FClasses& AllClasses)
 	FUnrealSourceFile* CurrentSrcFile = GetCurrentSourceFile();
 	// Start of an interface block. Since Interfaces and Classes are always at the same nesting level,
 	// whereever a class declaration is allowed, an interface declaration is also allowed.
-	CheckAllow( TEXT("'interface'"), ALLOW_Class );
+	CheckAllow( TEXT("'interface'"), ENestAllowFlags::Class );
 
 	FString DeclaredInterfaceName;
 	FString RequiredAPIMacroIfPresent;
@@ -5163,8 +5228,8 @@ void FHeaderParser::CompileInterfaceDeclaration(FClasses& AllClasses)
 	check(InterfaceClass->HasAnyFlags(RF_Standalone));
 
 	// Push the interface class nesting.
-	// we need a more specific set of allow flags for NEST_Interface, only function declaration is allowed, no other stuff are allowed
-	PushNest(NEST_Interface, InterfaceClass);
+	// we need a more specific set of allow flags for ENestType::Interface, only function declaration is allowed, no other stuff are allowed
+	PushNest(ENestType::Interface, InterfaceClass);
 }
 
 // Returns true if the token is a dynamic delegate declaration
@@ -5301,6 +5366,8 @@ void FHeaderParser::ParseParameterList(FClasses& AllClasses, UFunction* Function
 }
 UDelegateFunction* FHeaderParser::CompileDelegateDeclaration(FClasses& AllClasses, const TCHAR* DelegateIdentifier, EDelegateSpecifierAction::Type SpecifierAction)
 {
+	const TCHAR* CurrentScopeName = TEXT("Delegate Declaration");
+
 	FUnrealSourceFile* CurrentSrcFile = GetCurrentSourceFile();
 	TMap<FName, FString> MetaData;
 	AddModuleRelativePathToMetadata(*CurrentSrcFile, MetaData);
@@ -5323,15 +5390,17 @@ UDelegateFunction* FHeaderParser::CompileDelegateDeclaration(FClasses& AllClasse
 			FError::Throwf(TEXT("Unexpected token following UDELEGATE(): %s"), Token.Identifier);
 
 		DelegateMacro = Token.Identifier;
+
+		//Workaround for UE-28897
+		const FStructScope* CurrentStructScope = TopNest->GetScope() ? TopNest->GetScope()->AsStructScope() : nullptr;
+		const bool bDynamicClassScope = CurrentStructScope && CurrentStructScope->GetStruct() && FClass::IsDynamic(CurrentStructScope->GetStruct());
+		CheckAllow(CurrentScopeName, bDynamicClassScope ? ENestAllowFlags::ImplicitDelegateDecl : ENestAllowFlags::TypeDecl);
 	}
 	else
 	{
 		DelegateMacro = DelegateIdentifier;
+		CheckAllow(CurrentScopeName, ENestAllowFlags::ImplicitDelegateDecl);
 	}
-
-	// Make sure we can have a delegate declaration here
-	const TCHAR* CurrentScopeName = TEXT("Delegate Declaration");
-	CheckAllow(CurrentScopeName, ALLOW_TypeDecl);//@TODO: UCREMOVAL: After the switch: Make this require global scope
 
 	// Break the delegate declaration macro down into parts
 	const bool bHasReturnValue = DelegateMacro.Contains(TEXT("_RetVal"));
@@ -5501,7 +5570,7 @@ UDelegateFunction* FHeaderParser::CompileDelegateDeclaration(FClasses& AllClasse
  */
 void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 {
-	CheckAllow(TEXT("'Function'"), ALLOW_Function);
+	CheckAllow(TEXT("'Function'"), ENestAllowFlags::Function);
 
 	FUnrealSourceFile* CurrentSrcFile = GetCurrentSourceFile();
 	TMap<FName, FString> MetaData;
@@ -5835,7 +5904,12 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 	}
 	if ( (bHasAnyOutputs == false) && (FuncInfo.FunctionFlags & (FUNC_BlueprintPure)) )
 	{
-		FError::Throwf(TEXT("BlueprintPure specifier is not allowed for functions with no return value and no output parameters."));
+		// This bad behavior would be treated as a warning in the Blueprint editor, so when converted assets generates these bad functions
+		// we don't want to prevent compilation:
+		if (!bClassGeneratedFromBP)
+		{
+			FError::Throwf(TEXT("BlueprintPure specifier is not allowed for functions with no return value and no output parameters."));
+		}
 	}
 
 
@@ -5855,8 +5929,8 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 		// or we could just rely on the use marking things BlueprintPure. Either way, checking the C++
 		// const identifier to determine purity is not desirable. We should remove the following logic:
 
-		// If its a const BlueprintCallable function with some sort of output, mark it as BlueprintPure as well
-		if ( bHasAnyOutputs && ((FuncInfo.FunctionFlags & FUNC_BlueprintCallable) != 0) )
+		// If its a const BlueprintCallable function with some sort of output and is not being marked as an BlueprintPure=false function, mark it as BlueprintPure as well
+		if ( bHasAnyOutputs && ((FuncInfo.FunctionFlags & FUNC_BlueprintCallable) != 0) && !FuncInfo.bForceBlueprintImpure)
 		{
 			FuncInfo.FunctionFlags |= FUNC_BlueprintPure;
 		}
@@ -6324,7 +6398,7 @@ void FHeaderParser::CompileVariableDeclaration(FClasses& AllClasses, UStruct* St
 		// Deprecation validation
 		ValidatePropertyIsDeprecatedIfNecessary(Property, NULL);
 
-		if (TopNest->NestType != NEST_FunctionDeclaration)
+		if (TopNest->NestType != ENestType::FunctionDeclaration)
 		{
 			if (NewProperties.Num())
 			{
@@ -6574,7 +6648,7 @@ ECompilationResult::Type FHeaderParser::ParseHeader(FClasses& AllClasses, FUnrea
 	// Init nesting.
 	NestLevel = 0;
 	TopNest = NULL;
-	PushNest(NEST_GlobalScope, nullptr, CurrentSrcFile);
+	PushNest(ENestType::GlobalScope, nullptr, CurrentSrcFile);
 
 	// C++ classes default to private access level
 	CurrentAccessSpecifier = ACCESS_Private; 
@@ -6600,7 +6674,7 @@ ECompilationResult::Type FHeaderParser::ParseHeader(FClasses& AllClasses, FUnrea
 			StatementsParsed++;
 		}
 
-		PopNest(NEST_GlobalScope, TEXT("Global scope"));
+		PopNest(ENestType::GlobalScope, TEXT("Global scope"));
 
 		auto ScopeTypeIterator = CurrentSrcFile->GetScope()->GetTypeIterator();
 		while (ScopeTypeIterator.MoveNext())
@@ -6691,13 +6765,13 @@ ECompilationResult::Type FHeaderParser::ParseHeader(FClasses& AllClasses, FUnrea
 		if (NestLevel == 0)
 		{
 			// Pushing nest so there is a file context for this error.
-			PushNest(NEST_GlobalScope, nullptr, CurrentSrcFile);
+			PushNest(ENestType::GlobalScope, nullptr, CurrentSrcFile);
 		}
 
 		// Handle compiler error.
 		{
 			TGuardValue<ELogTimes::Type> DisableLogTimes(GPrintLogTimes, ELogTimes::None);
-			FString FormattedErrorMessageWithContext = FString::Printf(TEXT("%s: %s"), *GetContext(), ErrorMsg);
+			FString FormattedErrorMessageWithContext = FString::Printf(TEXT("%s: Error: %s"), *GetContext(), ErrorMsg);
 
 			UE_LOG(LogCompile, Log,  TEXT("%s"), *FormattedErrorMessageWithContext );
 			Warn->Log(ELogVerbosity::Error, ErrorMsg);
@@ -6970,6 +7044,7 @@ FHeaderParser::FHeaderParser(FFeedbackContext* InWarn, FUHTMakefile& InUHTMakefi
 	DelegateParameterCountStrings.Add(TEXT("_SixParams"));
 	DelegateParameterCountStrings.Add(TEXT("_SevenParams"));
 	DelegateParameterCountStrings.Add(TEXT("_EightParams"));
+	DelegateParameterCountStrings.Add(TEXT("_NineParams"));
 
 	FString Version;
 	if (GConfig->GetString(TEXT("GeneratedCodeVersion"), TEXT("UnrealHeaderTool"), Version, GEngineIni))
@@ -7251,10 +7326,10 @@ void FHeaderParser::SimplifiedClassParse(const TCHAR* InBuffer, TArray<FSimplifi
 		if( bIf || FParse::Command(&Str,TEXT("#ifdef")) || FParse::Command(&Str,TEXT("#ifndef")) )
 		{
 			FStringOutputDevice TextDumpDummy;
-			int32 PreprocessorNest = 1;
 			FStringOutputDevice* Target = NULL;
 			FStringOutputDevice* SpacerTarget = NULL;
-			bool bKeepPreprocessorDirectives = true;
+			TArray<bool, TInlineAllocator<8>> KeepPreprocessorDirectiveStack;
+			KeepPreprocessorDirectiveStack.Push(true);
 			bool bNotCPP = false;
 			bool bCPP = false;
 			bool bUnknownDirective = false;
@@ -7268,14 +7343,14 @@ void FHeaderParser::SimplifiedClassParse(const TCHAR* InBuffer, TArray<FSimplifi
 			else if( bIf && FParse::Command(&Str,TEXT("!CPP")) )
 			{
 				Target = &ClassHeaderTextStrippedOfCppText;
-				bKeepPreprocessorDirectives = false;
+				KeepPreprocessorDirectiveStack.Top() = false;
 				bNotCPP = true;
 			}
 #if WITH_HOT_RELOAD_CTORS
 			else if (bIf && FParse::Command(&Str, TEXT("WITH_HOT_RELOAD")))
 			{
 				Target = &ClassHeaderTextStrippedOfCppText;
-				bKeepPreprocessorDirectives = false;
+				KeepPreprocessorDirectiveStack.Top() = false;
 			}
 #endif // WITH_HOT_RELOAD_CTORS
 			else if (bIf && (FParse::Command(&Str,TEXT("WITH_EDITORONLY_DATA")) || FParse::Command(&Str,TEXT("WITH_EDITOR"))))
@@ -7291,7 +7366,7 @@ void FHeaderParser::SimplifiedClassParse(const TCHAR* InBuffer, TArray<FSimplifi
 				SpacerTarget = &ClassHeaderTextStrippedOfCppText;
 			}
 
-			if (bKeepPreprocessorDirectives)
+			if (KeepPreprocessorDirectiveStack.Top())
 			{
 				Target->Logf( TEXT("%s\r\n"), *StrLine );
 			}
@@ -7306,7 +7381,7 @@ void FHeaderParser::SimplifiedClassParse(const TCHAR* InBuffer, TArray<FSimplifi
 				SpacerTarget->Logf( TEXT("\r\n") );
 			}
 
-			while ((PreprocessorNest > 0) && FParse::Line(&Buffer, StrLine, 1))
+			while ((KeepPreprocessorDirectiveStack.Num() > 0) && FParse::Line(&Buffer, StrLine, 1))
 			{
 				if (SpacerTarget != NULL)
 				{
@@ -7316,22 +7391,29 @@ void FHeaderParser::SimplifiedClassParse(const TCHAR* InBuffer, TArray<FSimplifi
 
 				CurrentLine++;
 				Str = *StrLine;
+				bool bKeepPreprocessorDirective = KeepPreprocessorDirectiveStack.Top();
 				bool bIsPrep = false;
 				if( FParse::Command(&Str,TEXT("#endif")) )
 				{
-					PreprocessorNest--;
+					KeepPreprocessorDirectiveStack.Pop();
 					bIsPrep = true;
 				}
 				else if( FParse::Command(&Str,TEXT("#if")) || FParse::Command(&Str,TEXT("#ifdef")) || FParse::Command(&Str,TEXT("#ifndef")) )
 				{
-					PreprocessorNest++;
+					bKeepPreprocessorDirective = FParse::Command(&Str, TEXT("WITH_EDITORONLY_DATA")) || FParse::Command(&Str, TEXT("WITH_EDITOR"));
+					KeepPreprocessorDirectiveStack.Push(bKeepPreprocessorDirective);
+					bIsPrep = true;
+				}
+				else if (FParse::Command(&Str, TEXT("#ifndef")))
+				{
+					KeepPreprocessorDirectiveStack.Push(false);
 					bIsPrep = true;
 				}
 				else if( FParse::Command(&Str,TEXT("#elif")) )
 				{
 					bIsPrep = true;
 				}
-				else if(PreprocessorNest == 1 && FParse::Command(&Str,TEXT("#else")))
+				else if (KeepPreprocessorDirectiveStack.Num() == 1 && FParse::Command(&Str, TEXT("#else")))
 				{
 					if (!bUnknownDirective)
 					{
@@ -7344,12 +7426,12 @@ void FHeaderParser::SimplifiedClassParse(const TCHAR* InBuffer, TArray<FSimplifi
 						{
 							Target = &TextDumpDummy;
 							SpacerTarget = &ClassHeaderTextStrippedOfCppText;
-							bKeepPreprocessorDirectives = true;
+							KeepPreprocessorDirectiveStack.Top() = true;
 							StrLine = TEXT("#if CPP\r\n");
 						}
 						else
 						{
-							bKeepPreprocessorDirectives = false;
+							KeepPreprocessorDirectiveStack.Top() = false;
 							Target = &ClassHeaderTextStrippedOfCppText;
 							SpacerTarget = NULL;
 						}
@@ -7357,7 +7439,7 @@ void FHeaderParser::SimplifiedClassParse(const TCHAR* InBuffer, TArray<FSimplifi
 					bIsPrep = true;
 				}
 
-				if (bKeepPreprocessorDirectives || !bIsPrep)
+				if (bKeepPreprocessorDirective || !bIsPrep)
 				{
 					Target->Logf( TEXT("%s\r\n"), *StrLine );
 				}

@@ -73,6 +73,7 @@ public:
 	virtual void RequestEventData(const FString& EventID, const FOnRequestEventDataComplete& RequestEventDataComplete) override;
 	virtual void SearchEvents(const FString& EventGroup, const FOnEnumerateStreamsComplete& Delegate) override;
 	virtual void KeepReplay( const FString& ReplayName, const bool bKeep ) override {}
+	virtual FString	GetReplayID() const override { return TEXT( "" ); }
 
 	/** FTickableObjectBase implementation */
 	virtual void Tick(float DeltaSeconds) override;

@@ -56,18 +56,6 @@ void SEditableLabel::Construct(const FArguments& InArgs)
 					.VirtualKeyboardType(EKeyboardType::Keyboard_Number)
 					.Visibility(EVisibility::Collapsed)
 			]
-
-		+ SHorizontalBox::Slot()
-			.FillWidth(1.0f)
-			.Padding(4.0f, 0.0f, 0.0f, 0.0f)
-			.HAlign(HAlign_Left)
-			.VAlign(VAlign_Center)
-			[
-				SNew(SImage)
-					.Image(FCoreStyle::Get().GetBrush(TEXT("Icons.Rename")))
-					.ToolTipText(LOCTEXT("RenameToolTip", "Press F2 or double-click the text label to rename it"))
-					.Visibility(this, &SEditableLabel::HandleIconVisibility)
-			]
 	];
 }
 
@@ -144,14 +132,6 @@ FReply SEditableLabel::HandleTextBlockDoubleClicked()
 {
 	EnterTextMode();
 	return FReply::Handled().SetUserFocus(EditableText.ToSharedRef(), EFocusCause::Navigation);
-}
-
-
-EVisibility SEditableLabel::HandleIconVisibility() const
-{
-	return (IsHovered() && !EditableText->HasKeyboardFocus() && CanEditAttribute.Get())
-		? EVisibility::Visible
-		: EVisibility::Collapsed;
 }
 
 

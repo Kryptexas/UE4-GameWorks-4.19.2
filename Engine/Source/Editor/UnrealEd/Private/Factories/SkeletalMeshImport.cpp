@@ -209,7 +209,7 @@ bool ProcessImportMeshSkeleton(FReferenceSkeleton& RefSkeleton, int32& SkeletalD
 	{
 		const VBone & BinaryBone = RefBonesBinary[ b ];
 		const FString BoneName = FSkeletalMeshImportData::FixupBoneName( BinaryBone.Name );
-		const FMeshBoneInfo BoneInfo(FName(*BoneName, FNAME_Add, true), BinaryBone.Name, BinaryBone.ParentIndex);
+		const FMeshBoneInfo BoneInfo(FName(*BoneName, FNAME_Add), BinaryBone.Name, BinaryBone.ParentIndex);
 		const FTransform BoneTransform(BinaryBone.BonePos.Transform);
 
 		if(RefSkeleton.FindBoneIndex(BoneInfo.Name) != INDEX_NONE)
@@ -283,6 +283,31 @@ void ProcessImportMeshInfluences(FSkeletalMeshImportData& ImportData)
 	float TotalWeight		= 0.f;
 	const float MINWEIGHT   = 0.01f;
 
+	//We have to normalize the data before filtering influences
+	//Because influence filtering is base on the normalize value.
+	//Some DCC like Daz studio don't have normalized weight
+	for (int32 i = 0; i < Influences.Num(); i++)
+	{
+		// if less than min weight, or it's more than 8, then we clear it to use weight
+		InfluenceCount++;
+		TotalWeight += Influences[i].Weight;
+		// we have all influence for the same vertex, normalize it now
+		if (i + 1 >= Influences.Num() || Influences[i].VertexIndex != Influences[i+1].VertexIndex)
+		{
+			// Normalize the last set of influences.
+			if (InfluenceCount && (TotalWeight != 1.0f))
+			{
+				float OneOverTotalWeight = 1.f / TotalWeight;
+				for (int r = 0; r < InfluenceCount; r++)
+				{
+					Influences[i - r].Weight *= OneOverTotalWeight;
+				}
+			}
+			// clear to count next one
+			InfluenceCount = 0;
+			TotalWeight = 0.f;
+		}
+	}
 
 	for( int32 i=0; i<Influences.Num(); i++ )
 	{
@@ -691,7 +716,7 @@ void FSavedCustomSortInfo::Restore(USkeletalMesh* NewSkeletalMesh, int32 LODMode
 
 
 
-ExistingSkelMeshData* SaveExistingSkelMeshData(USkeletalMesh* ExistingSkelMesh)
+ExistingSkelMeshData* SaveExistingSkelMeshData(USkeletalMesh* ExistingSkelMesh, bool bSaveMaterials)
 {
 	struct ExistingSkelMeshData* ExistingMeshDataPtr = NULL;
 
@@ -706,7 +731,11 @@ ExistingSkelMeshData* SaveExistingSkelMeshData(USkeletalMesh* ExistingSkelMesh)
 		}
 
 		ExistingMeshDataPtr->ExistingSockets = ExistingSkelMesh->GetMeshOnlySocketList();
-		ExistingMeshDataPtr->ExistingMaterials = ExistingSkelMesh->Materials;
+		ExistingMeshDataPtr->bSaveRestoreMaterials = bSaveMaterials;
+		if (ExistingMeshDataPtr->bSaveRestoreMaterials)
+		{
+			ExistingMeshDataPtr->ExistingMaterials = ExistingSkelMesh->Materials;
+		}
 		ExistingMeshDataPtr->ExistingRetargetBasePose = ExistingSkelMesh->RetargetBasePose;
 
 		if( ImportedResource->LODModels.Num() > 0 &&
@@ -825,16 +854,19 @@ void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeletalMesh* 
 	if(MeshData && SkeletalMesh)
 	{
 		// Fix Materials array to be the correct size.
-		if(MeshData->ExistingMaterials.Num() > SkeletalMesh->Materials.Num())
+		if (MeshData->bSaveRestoreMaterials)
 		{
-			MeshData->ExistingMaterials.RemoveAt( SkeletalMesh->Materials.Num(), MeshData->ExistingMaterials.Num() - SkeletalMesh->Materials.Num() );
-		}
-		else if(SkeletalMesh->Materials.Num() > MeshData->ExistingMaterials.Num())
-		{
-			MeshData->ExistingMaterials.AddZeroed( SkeletalMesh->Materials.Num() - MeshData->ExistingMaterials.Num() );
-		}
+			if (MeshData->ExistingMaterials.Num() > SkeletalMesh->Materials.Num())
+			{
+				MeshData->ExistingMaterials.RemoveAt(SkeletalMesh->Materials.Num(), MeshData->ExistingMaterials.Num() - SkeletalMesh->Materials.Num());
+			}
+			else if (SkeletalMesh->Materials.Num() > MeshData->ExistingMaterials.Num())
+			{
+				MeshData->ExistingMaterials.AddZeroed(SkeletalMesh->Materials.Num() - MeshData->ExistingMaterials.Num());
+			}
 
-		SkeletalMesh->Materials = MeshData->ExistingMaterials;
+			SkeletalMesh->Materials = MeshData->ExistingMaterials;
+		}
 
 		// this is not ideal. Ideally we'll have to save only diff with indicating which joints, 
 		// but for now, we allow them to keep the previous pose IF the element count is same

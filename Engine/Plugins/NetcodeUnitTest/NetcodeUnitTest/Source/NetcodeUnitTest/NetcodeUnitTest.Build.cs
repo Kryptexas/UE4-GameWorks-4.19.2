@@ -15,12 +15,21 @@ namespace UnrealBuildTool.Rules
 					"Core",
 					"CoreUObject",
 					"Engine",
-					"EngineSettings",
-					"OnlineSubsystem",
 					"OnlineSubsystemUtils",
+					"Sockets"
+				}
+			);
+
+			PrivateDependencyModuleNames.AddRange
+			(
+				new string[]
+				{
+					"EngineSettings",
 					"InputCore",
-					"SlateCore",
-					"Slate"
+					"OnlineSubsystem",
+					"PacketHandler",
+					"Slate",
+					"SlateCore"
 				}
 			);
 

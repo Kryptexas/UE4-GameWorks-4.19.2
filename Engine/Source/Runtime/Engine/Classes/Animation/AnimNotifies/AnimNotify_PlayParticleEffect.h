@@ -5,8 +5,8 @@
 #include "AnimNotify.h"
 #include "AnimNotify_PlayParticleEffect.generated.h"
 
-UCLASS(const, hidecategories=Object, collapsecategories, meta=(DisplayName="Play Particle Effect"), MinimalAPI)
-class UAnimNotify_PlayParticleEffect : public UAnimNotify
+UCLASS(const, hidecategories=Object, collapsecategories, meta=(DisplayName="Play Particle Effect"))
+class ENGINE_API UAnimNotify_PlayParticleEffect : public UAnimNotify
 {
 	GENERATED_BODY()
 

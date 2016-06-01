@@ -4,9 +4,7 @@
 
 #if UE_ENABLE_ICU
 #include "Text.h"
-#include "TextData.h"
-#include "TextHistory.h"
-#include "ICUCulture.h"
+#include "ICUText.h"
 
 PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 #include <unicode/coll.h>
@@ -17,7 +15,6 @@ PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 #include <unicode/uniset.h>
 #include <unicode/ubidi.h>
 
-#include "ICUUtilities.h"
 #include "ICUTextCharacterIterator.h"
 
 bool FText::IsWhitespace( const TCHAR Char )
@@ -26,6 +23,21 @@ bool FText::IsWhitespace( const TCHAR Char )
 	// check, since whitespace is never a pair of UTF-16 characters
 	const UChar32 ICUChar = static_cast<UChar32>(Char);
 	return u_isWhitespace(ICUChar) != 0;
+}
+
+// static
+FText FText::AsCurrencyBase(int64 BaseVal, const FString& CurrencyCode, const FCulturePtr& TargetCulture)
+{
+	FInternationalization& I18N = FInternationalization::Get();
+	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
+	const FCulture& Culture = TargetCulture.IsValid() ? *TargetCulture : *I18N.GetCurrentCulture();
+
+	const FDecimalNumberFormattingRules& FormattingRules = Culture.Implementation->GetCurrencyFormattingRules(CurrencyCode);
+	const FNumberFormattingOptions& FormattingOptions = FormattingRules.CultureDefaultFormattingOptions;
+	double Val = static_cast<double>(BaseVal) / FMath::Pow(10.0f, FormattingOptions.MaximumFractionalDigits);
+	FString NativeString = FastDecimalFormat::NumberToString(Val, FormattingRules, FormattingOptions);
+
+	return FText::CreateNumericalText(MakeShareable(new TGeneratedTextData<FTextHistory_AsCurrency>(MoveTemp(NativeString), FTextHistory_AsCurrency(Val, CurrencyCode, nullptr, TargetCulture))));
 }
 
 FText FText::AsDate(const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle, const FString& TimeZone, const FCulturePtr& TargetCulture)
@@ -74,8 +86,6 @@ FText FText::AsTimespan(const FTimespan& Timespan, const FCulturePtr& TargetCult
 	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	FCulturePtr Culture = TargetCulture.IsValid() ? TargetCulture : I18N.GetCurrentCulture();
 
-	FText TimespanFormatPattern = NSLOCTEXT("Timespan", "FormatPattern", "{Hours}:{Minutes}:{Seconds}");
-
 	double TotalHours = Timespan.GetTotalHours();
 	int32 Hours = static_cast<int32>(TotalHours);
 	int32 Minutes = Timespan.GetMinutes();
@@ -85,11 +95,23 @@ FText FText::AsTimespan(const FTimespan& Timespan, const FCulturePtr& TargetCult
 	NumberFormattingOptions.MinimumIntegralDigits = 2;
 	NumberFormattingOptions.MaximumIntegralDigits = 2;
 
-	FFormatNamedArguments TimeArguments;
-	TimeArguments.Add(TEXT("Hours"), Hours);
-	TimeArguments.Add(TEXT("Minutes"), FText::AsNumber(Minutes, &(NumberFormattingOptions), Culture));
-	TimeArguments.Add(TEXT("Seconds"), FText::AsNumber(Seconds, &(NumberFormattingOptions), Culture));
-	return FText::Format(TimespanFormatPattern, TimeArguments);
+	if (Hours > 0)
+	{
+		FText TimespanFormatPattern = NSLOCTEXT("Timespan", "FormatPattern", "{Hours}:{Minutes}:{Seconds}");
+		FFormatNamedArguments TimeArguments;
+		TimeArguments.Add(TEXT("Hours"), Hours);
+		TimeArguments.Add(TEXT("Minutes"), FText::AsNumber(Minutes, &(NumberFormattingOptions), Culture));
+		TimeArguments.Add(TEXT("Seconds"), FText::AsNumber(Seconds, &(NumberFormattingOptions), Culture));
+		return FText::Format(TimespanFormatPattern, TimeArguments);
+	}
+	else
+	{
+		FText TimespanFormatPattern = NSLOCTEXT("Timespan", "FormatPattern2", "{Minutes}:{Seconds}");
+		FFormatNamedArguments TimeArguments;
+		TimeArguments.Add(TEXT("Minutes"), Minutes);
+		TimeArguments.Add(TEXT("Seconds"), FText::AsNumber(Seconds, &(NumberFormattingOptions), Culture));
+		return FText::Format(TimespanFormatPattern, TimeArguments);
+	}
 }
 
 FText FText::AsDateTime(const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone, const FCulturePtr& TargetCulture)
@@ -196,6 +218,14 @@ bool FText::IsLetter( const TCHAR Char )
 	UErrorCode ICUStatus = U_ZERO_ERROR;
 	icu::UnicodeSet Uniscode(PatternString, ICUStatus);
 	return Uniscode.contains(Char) != 0;
+}
+
+bool FUnicodeChar::CodepointToString(const uint32 InCodepoint, FString& OutString)
+{
+	icu::UnicodeString CodepointString;
+	CodepointString.setTo((UChar32)InCodepoint);
+	ICUUtilities::ConvertString(CodepointString, OutString);
+	return true;
 }
 
 namespace TextBiDi

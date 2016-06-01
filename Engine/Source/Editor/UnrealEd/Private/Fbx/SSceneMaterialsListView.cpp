@@ -53,9 +53,13 @@ public:
 	{
 		if (ColumnName == MaterialCheckBoxSelectionHeaderIdName)
 		{
-			return SNew(SCheckBox)
-				.OnCheckStateChanged(this, &SFbxMaterialItemTableListViewRow::OnItemCheckChanged)
-				.IsChecked(this, &SFbxMaterialItemTableListViewRow::IsItemChecked);
+			return SNew(SBox)
+				.HAlign(HAlign_Center)
+				[
+					SNew(SCheckBox)
+					.OnCheckStateChanged(this, &SFbxMaterialItemTableListViewRow::OnItemCheckChanged)
+					.IsChecked(this, &SFbxMaterialItemTableListViewRow::IsItemChecked)
+				];
 		}
 		else if (ColumnName == MaterialNameHeaderIdName)
 		{
@@ -141,7 +145,8 @@ void SFbxSceneMaterialsListView::GetMaterialsFromHierarchy(TArray<FbxMaterialInf
 	OutMaterials.Reset();
 	for (FbxNodeInfoPtr NodeInfo : SceneInfoSource->HierarchyInfo)
 	{
-		if (!NodeInfo->AttributeInfo.IsValid() || NodeInfo->NodeName.Compare("RootNode") == 0)
+		//Get all the mesh material
+		if (NodeInfo->AttributeType.Compare(TEXT("eMesh")) != 0 || NodeInfo->NodeName.Compare("RootNode") == 0)
 		{
 			continue;
 		}
@@ -177,7 +182,7 @@ void SFbxSceneMaterialsListView::GetMaterialsFromHierarchy(TArray<FbxMaterialInf
 						CurrentNode = CurrentNode->ParentNodeInfo;
 					}
 				}
-				FString AssetName = FullPath + NodeTreePath + GlobalImportSettings->MaterialPrefixName.ToString() + MaterialInfo->Name;
+				FString AssetName = GlobalImportSettings->MaterialBasePath == NAME_None ? FullPath + NodeTreePath + TEXT("/") + MaterialInfo->Name : GlobalImportSettings->MaterialBasePath.ToString() + MaterialInfo->Name;
 				MaterialInfo->SetOriginalImportPath(AssetName);
 				FString OriginalFullImportName = PackageTools::SanitizePackageName(AssetName);
 				OriginalFullImportName = OriginalFullImportName + TEXT(".") + PackageTools::SanitizePackageName(MaterialInfo->Name);
@@ -254,7 +259,7 @@ void SFbxSceneMaterialsListView::Construct(const SFbxSceneMaterialsListView::FAr
 			SNew(SHeaderRow)
 				
 			+ SHeaderRow::Column(MaterialCheckBoxSelectionHeaderIdName)
-			.FixedWidth(20)
+			.FixedWidth(26)
 			.DefaultLabel(FText::GetEmpty())
 			[
 				SNew(SCheckBox)
@@ -287,7 +292,7 @@ TSharedRef< ITableRow > SFbxSceneMaterialsListView::OnGenerateRowFbxSceneListVie
 	return ReturnRow;
 }
 
-void SFbxSceneMaterialsListView::UpdateMaterialPrefixName()
+void SFbxSceneMaterialsListView::UpdateMaterialBasePath()
 {
 	TArray<FbxMaterialInfoPtr> MaterialsUpdated;
 	GetMaterialsFromHierarchy(MaterialsUpdated, SceneInfo, true);
@@ -308,7 +313,6 @@ TSharedPtr<SWidget> SFbxSceneMaterialsListView::OnOpenContextMenu()
 		MenuBuilder.AddMenuEntry(LOCTEXT("CheckForImport", "Add Selection To Import"), FText(), PlusIcon, FUIAction(FExecuteAction::CreateSP(this, &SFbxSceneMaterialsListView::AddSelectionToImport)));
 		const FSlateIcon MinusIcon(FEditorStyle::GetStyleSetName(), "PropertyWindow.Button_RemoveFromArray");
 		MenuBuilder.AddMenuEntry(LOCTEXT("UncheckForImport", "Remove Selection From Import"), FText(), MinusIcon, FUIAction(FExecuteAction::CreateSP(this, &SFbxSceneMaterialsListView::RemoveSelectionFromImport)));
-		MenuBuilder.AddMenuSeparator(TEXT("FbxImportScene_SM_Separator"));
 	}
 	MenuBuilder.EndSection();
 	MenuBuilder.BeginSection("FbxScene_MAT_AssignSection");
@@ -316,8 +320,31 @@ TSharedPtr<SWidget> SFbxSceneMaterialsListView::OnOpenContextMenu()
 		if (SelectCount == 1)
 		{
 			MenuBuilder.AddMenuEntry(LOCTEXT("AssignExistingMaterial", "Assign Existing Material..."), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(this, &SFbxSceneMaterialsListView::AssignMaterialToExisting)));
+			MenuBuilder.AddMenuEntry(LOCTEXT("ResetAssignExistingMaterial", "Reset Material to Fbx content"), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(this, &SFbxSceneMaterialsListView::ResetAssignMaterial)));
+			MenuBuilder.AddMenuSeparator();
+			
+			FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
+			// Configure filter for asset picker
+			FAssetPickerConfig Config;
+			Config.Filter.bRecursiveClasses = true;
+			Config.Filter.ClassNames.Add(UMaterialInterface::StaticClass()->GetFName());
+			Config.InitialAssetViewType = EAssetViewType::List;
+			Config.OnAssetSelected = FOnAssetSelected::CreateSP(this, &SFbxSceneMaterialsListView::AssignMaterialAssetData);
+			Config.bAllowNullSelection = false;
+			Config.bFocusSearchBoxWhenOpened = true;
+			Config.bAllowDragging = false;
+			//Thumbnail are not working since we are in a modal dialog
+			Config.bCanShowRealTimeThumbnails = true;
+			// Don't show stuff in Engine
+			Config.Filter.PackagePaths.Add("/Game");
+			Config.Filter.bRecursivePaths = true;
+			TSharedRef<SWidget> Widget =
+				SNew(SBox)
+				[
+					ContentBrowserModule.Get().CreateAssetPicker(Config)
+				];
+			MenuBuilder.AddWidget(Widget, FText::GetEmpty());
 		}
-		MenuBuilder.AddMenuEntry(LOCTEXT("ResetAssignExistingMaterial", "Reset Material to Fbx content"), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(this, &SFbxSceneMaterialsListView::ResetAssignMaterial)));
 	}
 	MenuBuilder.EndSection();
 	return MenuBuilder.MakeWidget();
@@ -361,6 +388,34 @@ void SFbxSceneMaterialsListView::OnToggleSelectAll(ECheckBoxState CheckType)
 	{
 		MaterialInfo->bImportAttribute = CheckType == ECheckBoxState::Checked;
 	}
+}
+
+void SFbxSceneMaterialsListView::AssignMaterialAssetData(const FAssetData& AssetData)
+{
+	TArray<FbxMaterialInfoPtr> SelectedItems;
+	int32 SelectCount = GetSelectedItems(SelectedItems);
+	if (SelectCount != 1)
+	{
+		FSlateApplication::Get().DismissAllMenus();
+		return;
+	}
+
+	UPackage *ContentPackage = AssetData.GetPackage();
+	UObject *ContentObject = AssetData.GetAsset();
+	if (ContentObject != nullptr)
+	{
+		if (!ContentObject->HasAnyFlags(RF_Transient) && !ContentObject->IsPendingKill())
+		{
+			for (FbxMaterialInfoPtr ItemPtr : SelectedItems)
+			{
+				//Override the MeshInfo with the new asset path
+				ItemPtr->SetOverridePath(true);
+				ItemPtr->OverrideImportPath = AssetData.PackageName.ToString();
+				ItemPtr->OverrideFullImportName = AssetData.ObjectPath.ToString();
+			}
+		}
+	}
+	FSlateApplication::Get().DismissAllMenus();
 }
 
 void SFbxSceneMaterialsListView::AssignMaterialToExisting()

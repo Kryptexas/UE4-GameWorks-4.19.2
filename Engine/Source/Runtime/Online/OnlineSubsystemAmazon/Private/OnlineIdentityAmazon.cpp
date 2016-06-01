@@ -15,7 +15,7 @@ FString FUserOnlineAccountAmazon::GetRealName() const
 	return FString();
 }
 
-FString FUserOnlineAccountAmazon::GetDisplayName() const
+FString FUserOnlineAccountAmazon::GetDisplayName(const FString& Platform) const
 {
 	return FString();
 }

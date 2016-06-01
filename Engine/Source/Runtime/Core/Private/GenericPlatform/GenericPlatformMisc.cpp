@@ -4,6 +4,7 @@
 #include "MallocAnsi.h"
 #include "GenericApplication.h"
 #include "GenericPlatformChunkInstall.h"
+#include "GenericPlatformCompression.h"
 #include "HAL/FileManagerGeneric.h"
 #include "ModuleManager.h"
 #include "VarargsHelper.h"
@@ -11,6 +12,7 @@
 #include "ExceptionHandling.h"
 #include "Containers/Map.h"
 #include "GenericPlatformCrashContext.h"
+#include "GenericPlatformDriver.h"
 
 #include "UProjectInfo.h"
 
@@ -247,12 +249,9 @@ FString FGenericPlatformMisc::GetPrimaryGPUBrand()
 	return FString( TEXT( "GenericGPUBrand" ) );
 }
 
-void FGenericPlatformMisc::GetGPUDriverInfo(const FString DeviceDescription, FString& InternalDriverVersion, FString& UserDriverVersion, FString& DriverDate)
+FGPUDriverInfo FGenericPlatformMisc::GetGPUDriverInfo(const FString& DeviceDescription)
 {
-	// to prevent bugs
-	InternalDriverVersion.Empty();
-	UserDriverVersion.Empty();
-	DriverDate.Empty();
+	return FGPUDriverInfo();
 }
 
 void FGenericPlatformMisc::GetOSVersions( FString& out_OSVersionLabel, FString& out_OSSubVersionLabel )
@@ -309,8 +308,8 @@ bool FGenericPlatformMisc::SetStoredValue(const FString& InStoreId, const FStrin
 
 	FConfigSection& Section = ConfigFile.FindOrAdd(InSectionName);
 
-	FString& KeyValue = Section.FindOrAdd(*InKeyName);
-	KeyValue = InValue;
+	FConfigValue& KeyValue = Section.FindOrAdd(*InKeyName);
+	KeyValue = FConfigValue(InValue);
 
 	ConfigFile.Dirty = true;
 	return ConfigFile.Write(ConfigPath);
@@ -331,10 +330,10 @@ bool FGenericPlatformMisc::GetStoredValue(const FString& InStoreId, const FStrin
 	const FConfigSection* const Section = ConfigFile.Find(InSectionName);
 	if(Section)
 	{
-		const FString* const KeyValue = Section->Find(*InKeyName);
+		const FConfigValue* const KeyValue = Section->Find(*InKeyName);
 		if(KeyValue)
 		{
-			OutValue = *KeyValue;
+			OutValue = KeyValue->GetValue();
 			return true;
 		}
 	}
@@ -392,6 +391,11 @@ void FGenericPlatformMisc::LocalPrint( const TCHAR* Str )
 #endif
 }
 
+bool FGenericPlatformMisc::HasSeparateChannelForDebugOutput()
+{
+	return true;
+}
+
 void FGenericPlatformMisc::RequestMinimize()
 {
 }
@@ -411,6 +415,14 @@ void FGenericPlatformMisc::RequestExit( bool Force )
 		// Tell the platform specific code we want to exit cleanly from the main loop.
 		GIsRequestingExit = 1;
 	}
+}
+
+void FGenericPlatformMisc::RequestExitWithStatus(bool Force, uint8 ReturnCode)
+{
+	// Generic implementation will ignore the return code - this may be important, so warn.
+	UE_LOG(LogGenericPlatformMisc, Warning, TEXT("FPlatformMisc::RequestExitWithStatus(%i, %d) - return code will be ignored by the generic implementation."), Force, ReturnCode);
+
+	return FPlatformMisc::RequestExit(Force);
 }
 
 const TCHAR* FGenericPlatformMisc::GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error)
@@ -594,6 +606,12 @@ const TCHAR* FGenericPlatformMisc::GetNullRHIShaderFormat()
 IPlatformChunkInstall* FGenericPlatformMisc::GetPlatformChunkInstall()
 {
 	static FGenericPlatformChunkInstall Singleton;
+	return &Singleton;
+}
+
+IPlatformCompression* FGenericPlatformMisc::GetPlatformCompression()
+{
+	static FGenericPlatformCompression Singleton;
 	return &Singleton;
 }
 
@@ -856,6 +874,11 @@ uint32 FGenericPlatformMisc::GetStandardPrintableKeyMap(uint32* KeyCodes, FStrin
 const TCHAR* FGenericPlatformMisc::GetUBTPlatform()
 {
 	return TEXT( PREPROCESSOR_TO_STRING(UBT_COMPILED_PLATFORM) );
+}
+
+const TCHAR* FGenericPlatformMisc::GetUBTTarget()
+{
+    return TEXT(PREPROCESSOR_TO_STRING(UBT_COMPILED_TARGET));
 }
 
 const TCHAR* FGenericPlatformMisc::GetDefaultDeviceProfileName()

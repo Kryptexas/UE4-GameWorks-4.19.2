@@ -49,7 +49,7 @@ const static int InscatterNuNum = 8;
 
 #define TRANSMITTANCE_NON_LINEAR			1
 #define INSCATTER_NON_LINEAR				1
-#define ATMOSPHERIC_TEXTURE_SAMPLE_FIX		(!COMPILER_METAL || !MAC) // @todo AMD & Intel's Metal shader compilers apply overly aggressive optimisations to this path & thus generate NaN when they shouldn't. They'll need to fix this in a subsequent version of OS X.
+#define ATMOSPHERIC_TEXTURE_SAMPLE_FIX		1
 
 #ifndef ATMOSPHERIC_NO_SUN_DISK
 #define	ATMOSPHERIC_NO_SUN_DISK				0
@@ -72,12 +72,24 @@ const static int InscatterNuNum = 8;
 #endif
 
 /** Textures for rendering */
-Texture2D AtmosphereTransmittanceTexture;
-SamplerState AtmosphereTransmittanceTextureSampler;
-Texture2D AtmosphereIrradianceTexture;
-SamplerState AtmosphereIrradianceTextureSampler;
-Texture3D AtmosphereInscatterTexture;
-SamplerState AtmosphereInscatterTextureSampler;
+#if IS_MATERIAL_SHADER
+    // for materials, these are in the frame UB
+	#define AtmosphereTransmittanceTexture			Frame.AtmosphereTransmittanceTexture_UB
+	#define AtmosphereTransmittanceTextureSampler	Frame.AtmosphereTransmittanceTextureSampler_UB
+	#define AtmosphereIrradianceTexture				Frame.AtmosphereIrradianceTexture_UB
+	#define AtmosphereIrradianceTextureSampler		Frame.AtmosphereIrradianceTextureSampler_UB
+	#define AtmosphereInscatterTexture				Frame.AtmosphereInscatterTexture_UB
+	#define AtmosphereInscatterTextureSampler		Frame.AtmosphereInscatterTextureSampler_UB
+#else
+	// these are only used for the precomputation shader; which doesn't have a frame UB
+	Texture2D AtmosphereTransmittanceTexture;
+	SamplerState AtmosphereTransmittanceTextureSampler;
+	Texture2D AtmosphereIrradianceTexture;
+	SamplerState AtmosphereIrradianceTextureSampler;
+	Texture3D AtmosphereInscatterTexture;
+	SamplerState AtmosphereInscatterTextureSampler;
+	#define ATMOSPHERIC_TEXTURE_PREFIX
+#endif
 
 struct FAtmosphereVSOutput
 {
@@ -283,13 +295,13 @@ float3 TransmittanceWithDistance(float Radius, float Mu, float3 V, float3 X0)
 float OpticalDepthWithDistance(float H, float Radius, float Mu, float D) 
 {
 	float ParticleDensity = 6.2831; // REK 04, Table 2
-    float A = sqrt((0.5/H)*Radius);
+    float A = sqrt(abs((0.5/H)*Radius));
     float2 A01 = A * float2(Mu, Mu + D / Radius);
     float2 A01Sign = sign(A01);
     float2 A01Squared = A01*A01;
     float X = A01Sign.y > A01Sign.x ? exp(A01Squared.x) : 0.0;
-    float2 Y = A01Sign / (2.3193*abs(A01) + sqrt(1.52*A01Squared + 4.0)) * float2(1.0, exp(-D/H*(D/(2.0*Radius)+Mu)));
-    return sqrt((ParticleDensity*H)*Radius) * exp((RadiusGround-Radius)/H) * (X + dot(Y, float2(1.0, -1.0)));
+    float2 Y = A01Sign / (2.3193*abs(A01) + sqrt(abs(1.52*A01Squared + 4.0))) * float2(1.0, exp(-D/H*(D/(2.0*Radius)+Mu)));
+    return sqrt(abs((ParticleDensity*H)*Radius)) * exp((RadiusGround-Radius)/H) * (X + dot(Y, float2(1.0, -1.0)));
 }
 
 float3 Irradiance(Texture2D Texture, SamplerState TextureSampler, float r, float muS) 
@@ -331,7 +343,7 @@ static const float HeightOffset = 0.01f;
 /** inscattered light along ray x+tv, when sun in direction s (=S[L]-T(x,x0)S[L]|x0) */
 float3 GetInscatterColor(float FogDepth, float3 X, float T, float3 V, float3 S, float Radius, float Mu, out float3 Attenuation, bool bIsSceneGeometry) 
 {
-    float3 Result = float3(0.f, 0.f, 0.f); 	// X in space and ray looking in space, intialize
+    float3 Result = float3(0.f, 0.f, 0.f); 	// X in space and ray looking in space, initialize
 	Attenuation = float3(1.f, 1.f, 1.f);
 
 	float D = -Radius * Mu - sqrt(Radius * Radius * (Mu * Mu - 1.0) + RadiusAtmosphere * RadiusAtmosphere);
@@ -543,7 +555,7 @@ float4 GetAtmosphericFog(float3 ViewPosition, float3 ViewVector, float SceneDept
 
 	float Mu = dot(ViewPosition, V) / Radius;
 
-	float T = -Radius * Mu - sqrt(Radius * Radius * (Mu * Mu - 1.0) + RadiusGround * RadiusGround);
+	float T = -Radius * Mu - sqrt(abs(Radius * Radius * (Mu * Mu - 1.0) + RadiusGround * RadiusGround));
 
 	float DepthThreshold = 100.f * Frame.AtmosphericFogDistanceScale; // 100km limit
 	SceneDepth *= Scale;

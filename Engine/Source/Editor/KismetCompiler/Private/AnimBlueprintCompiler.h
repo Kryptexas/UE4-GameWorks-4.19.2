@@ -215,6 +215,9 @@ protected:
 	// Map of cache name to encountered save cached pose nodes
 	TMap<FString, UAnimGraphNode_SaveCachedPose*> SaveCachedPoseNodes;
 
+	// List of getter node's we've found so the auto-wire can be deferred till after state machine compilation
+	TArray<class UK2Node_AnimGetter*> FoundGetterNodes;
+
 	// Set of used handler function names
 	TSet<FName> HandlerFunctionNames;
 

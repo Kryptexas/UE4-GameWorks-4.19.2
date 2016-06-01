@@ -167,6 +167,9 @@ public:
 	/** Shared pointer to the PDB Cache entry, if valid contains all information about synced PDBs. */
 	TSharedPtr<FPDBCacheEntry> PDBCacheEntry;
 
+	FString PlatformName;
+	FString PlatformVariantName;
+
 	FCrashInfo()
 		: BuiltFromCL( INVALID_CHANGELIST )
 		, SourceLineNumber( 0 )

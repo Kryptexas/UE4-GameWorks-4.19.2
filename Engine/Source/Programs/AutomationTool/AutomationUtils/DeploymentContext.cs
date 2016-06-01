@@ -7,13 +7,6 @@ using System.Reflection;
 using AutomationTool;
 using UnrealBuildTool;
 
-public enum StagedFileType
-{
-	UFS,
-	NonUFS,
-	DebugNonUFS
-}
-
 public struct StageTarget
 {
 	public TargetReceipt Receipt;
@@ -190,11 +183,11 @@ public class DeploymentContext //: ProjectParams
 	/// <summary>
 	/// Filename for the manifest of files currently deployed on a device.
 	/// </summary>
-	static public readonly string UFSDeployedManifestFileName		= "Manifest_UFSFiles.txt";
-	static public readonly string NonUFSDeployedManifestFileName	= "Manifest_NonUFSFiles.txt";
+	static public readonly string sUFSDeployedManifestFileName		= "Manifest_UFSFiles.txt";
+	static public readonly string sNonUFSDeployedManifestFileName	= "Manifest_NonUFSFiles.txt";
 
 	
-
+	
 
 	/// <summary>
 	/// The client connects to dedicated server to get data
@@ -249,7 +242,7 @@ public class DeploymentContext //: ProjectParams
 		bool InCookOnTheFly,
 		bool InArchive,
 		bool InProgram,
-		bool bHasDedicatedServerAndClient,
+		bool IsClientInsteadOfNoEditor,
 		bool bInUseWebsocketNetDriver = false
 		)
 	{
@@ -270,7 +263,7 @@ public class DeploymentContext //: ProjectParams
 
         if (CookSourcePlatform != null && InCooked)
         {
-            CookPlatform = CookSourcePlatform.GetCookPlatform(DedicatedServer, bHasDedicatedServerAndClient, CookFlavor);
+			CookPlatform = CookSourcePlatform.GetCookPlatform(DedicatedServer, IsClientInsteadOfNoEditor, CookFlavor);
         }
         else if (CookSourcePlatform != null && InProgram)
         {
@@ -283,7 +276,7 @@ public class DeploymentContext //: ProjectParams
 
 		if (StageTargetPlatform != null && InCooked)
 		{
-            FinalCookPlatform = StageTargetPlatform.GetCookPlatform(DedicatedServer, bHasDedicatedServerAndClient, CookFlavor);
+			FinalCookPlatform = StageTargetPlatform.GetCookPlatform(DedicatedServer, IsClientInsteadOfNoEditor, CookFlavor);
 		}
 		else if (StageTargetPlatform != null && InProgram)
 		{
@@ -391,7 +384,7 @@ public class DeploymentContext //: ProjectParams
 		}
 	}
 
-	public void StageBuildProductsFromReceipt(TargetReceipt Receipt, bool RequireDependenciesToExist)
+	public void StageBuildProductsFromReceipt(TargetReceipt Receipt, bool RequireDependenciesToExist, bool TreatNonShippingBinariesAsDebugFiles)
 	{
 		// Stage all the build products needed at runtime
 		foreach(BuildProduct BuildProduct in Receipt.BuildProducts)
@@ -404,7 +397,13 @@ public class DeploymentContext //: ProjectParams
 
 			if(BuildProduct.Type == BuildProductType.Executable || BuildProduct.Type == BuildProductType.DynamicLibrary || BuildProduct.Type == BuildProductType.RequiredResource)
 			{
-				StageFile(StagedFileType.NonUFS, BuildProduct.Path);
+				StagedFileType FileTypeToUse = StagedFileType.NonUFS;
+				if (TreatNonShippingBinariesAsDebugFiles && Receipt.Configuration != UnrealTargetConfiguration.Shipping)
+				{
+					FileTypeToUse = StagedFileType.DebugNonUFS;
+				}
+
+				StageFile(FileTypeToUse, BuildProduct.Path);
 			}
 			else if(BuildProduct.Type == BuildProductType.SymbolFile)
 			{
@@ -413,22 +412,29 @@ public class DeploymentContext //: ProjectParams
 		}
 	}
 
-	public void StageRuntimeDependenciesFromReceipt(TargetReceipt Receipt, bool RequireDependenciesToExist)
+	public void StageRuntimeDependenciesFromReceipt(TargetReceipt Receipt, bool RequireDependenciesToExist, bool bUsingPakFile)
 	{
+		// Patterns to exclude from wildcard searches. Any maps and assets must be cooked. 
+		List<string> ExcludePatterns = new List<string>();
+		ExcludePatterns.Add(".../*.umap");
+		ExcludePatterns.Add(".../*.uasset");
+
 		// Also stage any additional runtime dependencies, like ThirdParty DLLs
 		foreach(RuntimeDependency RuntimeDependency in Receipt.RuntimeDependencies)
 		{
-			// allow missing files if needed
-			if ((RequireDependenciesToExist == false || RuntimeDependency.bIgnoreIfMissing) && File.Exists(RuntimeDependency.Path) == false)
+			foreach(FileReference File in CommandUtils.ResolveFilespec(CommandUtils.RootDirectory, RuntimeDependency.Path, ExcludePatterns))
 			{
-				continue;
+				// allow missing files if needed
+				if ((RequireDependenciesToExist && RuntimeDependency.Type != StagedFileType.DebugNonUFS) || File.Exists())
+				{
+					bool bRemap = RuntimeDependency.Type == StagedFileType.UFS && !bUsingPakFile;
+					StageFile(RuntimeDependency.Type, File.FullName, bRemap: bRemap);
+				}
 			}
-
-			StageFile(StagedFileType.NonUFS, RuntimeDependency.Path, RuntimeDependency.StagePath);
 		}
 	}
 
-    public int StageFiles(StagedFileType FileType, string InPath, string Wildcard = "*", bool bRecursive = true, string[] ExcludeWildcard = null, string NewPath = null, bool bAllowNone = false, bool bRemap = true, string NewName = null, bool bAllowNotForLicenseesFiles = true, bool bStripFilesForOtherPlatforms = true)
+    public void StageFiles(StagedFileType FileType, string InPath, string Wildcard = "*", bool bRecursive = true, string[] ExcludeWildcard = null, string NewPath = null, bool bAllowNone = false, bool bRemap = true, string NewName = null, bool bAllowNotForLicenseesFiles = true, bool bStripFilesForOtherPlatforms = true)
 	{
 		int FilesAdded = 0;
 		// make sure any ..'s are removed
@@ -599,7 +605,6 @@ public class DeploymentContext //: ProjectParams
 			throw new AutomationException(ExitCode.Error_StageMissingFile, "No files found to deploy for {0} with wildcard {1} and exclusions {2}", InPath, Wildcard, ExcludeWildcard);
 		}
 
-		return FilesAdded;
 	}
 
 	private void AddUniqueStagingFile(Dictionary<string, string> FilesToStage, string FileToCopy, string Dest)
@@ -636,7 +641,7 @@ public class DeploymentContext //: ProjectParams
 		}
 	}
 
-	public int ArchiveFiles(string InPath, string Wildcard = "*", bool bRecursive = true, string[] ExcludeWildcard = null)
+	public int ArchiveFiles(string InPath, string Wildcard = "*", bool bRecursive = true, string[] ExcludeWildcard = null, string NewPath = null)
 	{
 		int FilesAdded = 0;
 
@@ -712,7 +717,22 @@ public class DeploymentContext //: ProjectParams
 				{
 					throw new AutomationException("Can't archive {0}; it was supposed to start with {1}", FileToCopy, InPath);
 				}
-				Dest = FileToCopy.Substring(InPath.Length);
+
+				// If the specified a new directory, first we deal with that, then apply the other things
+				// this is used to collapse the sandbox, among other things
+				if (NewPath != null)
+				{
+					Dest = FileToCopy.Substring(InPath.Length);
+					if (Dest.StartsWith("/") || Dest.StartsWith("\\"))
+					{
+						Dest = Dest.Substring(1);
+					}
+					Dest = CommandUtils.CombinePaths(NewPath, Dest);
+				}
+				else
+				{
+					Dest = FileToCopy.Substring(InPath.Length);
+				}
 
 				if (Dest.StartsWith("/") || Dest.StartsWith("\\"))
 				{
@@ -756,5 +776,36 @@ public class DeploymentContext //: ProjectParams
 	public String GetNonUFSDeploymentObsoletePath()
 	{
 		return Path.Combine(StageDirectory, NonUFSDeployObsoleteFileName);
+	}
+
+	public string UFSDeployedManifestFileName
+	{
+		get
+		{
+			return "Manifest_UFSFiles_" + StageTargetPlatform.PlatformType.ToString() + ".txt";
+		}
+	}
+
+	public string NonUFSDeployedManifestFileName
+	{
+		get
+		{
+			return "Manifest_NonUFSFiles_" + StageTargetPlatform.PlatformType.ToString() + ".txt";
+		}
+	}
+
+	public static string GetNonUFSDeployedManifestFileName(UnrealTargetPlatform PlatformType)
+	{
+		return "Manifest_NonUFSFiles_" + PlatformType.ToString() + ".txt";
+	}
+
+	public static string GetUFSDeployedManifestFileName(UnrealTargetPlatform PlatformType)
+	{
+		return "Manifest_UFSFiles_" + PlatformType.ToString() + ".txt";
+	}
+
+	public static string GetDebugFilesManifestFileName(UnrealTargetPlatform PlatformType)
+	{
+		return "Manifest_DebugFiles_" + PlatformType.ToString() + ".txt";
 	}
 }

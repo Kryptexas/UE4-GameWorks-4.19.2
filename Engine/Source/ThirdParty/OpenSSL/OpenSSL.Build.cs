@@ -28,7 +28,7 @@ public class OpenSSL : ModuleRules
 			if (Target.Platform == UnrealTargetPlatform.Win64)
 			{
 				PublicIncludePaths.Add(OpenSSLPath + "include");
-				LibFolder += "Win64/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName() + "/";
+				LibFolder += "Win64/VS2013/";
 				LibPostfixAndExt += "lib";
 				PublicLibraryPaths.Add(OpenSSLPath + LibFolder);
 			}

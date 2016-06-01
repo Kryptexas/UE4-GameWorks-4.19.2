@@ -1459,43 +1459,35 @@ dtStatus dtNavMeshQuery::findPath(dtPolyRef startRef, dtPolyRef endRef,
 			// Calculate cost and heuristic.
 			float cost = 0;
 			float heuristic = 0;
-			
+			float curCost = 0;
+
 			// Special case for last node.
 			if (neighbourRef != endRef)
 			{
-				// Cost
-				const float curCost = filter->getCost(bestNode->pos, neiPos,
-					parentRef, parentTile, parentPoly,
-					bestRef, bestTile, bestPoly,
-					neighbourRef, neighbourTile, neighbourPoly);
+				curCost = filter->getCost(bestNode->pos, neiPos, parentRef, parentTile, parentPoly, bestRef, bestTile, bestPoly, neighbourRef, neighbourTile, neighbourPoly);
 				cost = bestNode->cost + curCost;
 				heuristic = dtVdist(neiPos, endPos)*H_SCALE;
 			}
 			else
 			{
-				// Cost
-				const float curCost = filter->getCost(bestNode->pos, neiPos,
-													  parentRef, parentTile, parentPoly,
-													  bestRef, bestTile, bestPoly,
-													  neighbourRef, neighbourTile, neighbourPoly);
-				const float endCost = filter->getCost(neiPos, endPos,
-													  bestRef, bestTile, bestPoly,
-													  neighbourRef, neighbourTile, neighbourPoly,
-													  0, 0, 0);
-				
+				const float endCost = filter->getCost(neiPos, endPos, bestRef, bestTile, bestPoly, neighbourRef, neighbourTile, neighbourPoly, 0, 0, 0);
+				curCost = filter->getCost(bestNode->pos, neiPos, parentRef, parentTile, parentPoly, bestRef, bestTile, bestPoly, neighbourRef, neighbourTile, neighbourPoly);
 				cost = bestNode->cost + curCost + endCost;
 				heuristic = 0;
 			}
 
 			const float total = cost + heuristic;
-			
+
 			// The node is already in open list and the new result is worse, skip.
-			if ((neighbourNode->flags & DT_NODE_OPEN) && total >= neighbourNode->total)
-				continue;
 			// The node is already visited and process, and the new result is worse, skip.
-			if ((neighbourNode->flags & DT_NODE_CLOSED) && total >= neighbourNode->total)
+			// Cost of current link is DT_UNWALKABLE_POLY_COST, skip.
+			if (((neighbourNode->flags & DT_NODE_OPEN) && total >= neighbourNode->total) ||
+				((neighbourNode->flags & DT_NODE_CLOSED) && total >= neighbourNode->total) ||
+				(curCost == DT_UNWALKABLE_POLY_COST))
+			{
 				continue;
-			
+			}
+
 			// Add or update the node.
 			neighbourNode->pidx = m_nodePool->getNodeIdx(bestNode);
 			neighbourNode->id = neighbourRef;
@@ -2923,13 +2915,21 @@ dtStatus dtNavMeshQuery::raycast(dtPolyRef startRef, const float* startPos, cons
 		const dtPoly* poly = 0;
 		m_nav->getTileAndPolyByRefUnsafe(curRef, &tile, &poly);
 		
+		// Check if poly has valid data, bail out otherwise
+		if (poly == nullptr || poly->vertCount > DT_VERTS_PER_POLYGON)
+		{
+			if (pathCount)
+				*pathCount = n;
+			return DT_FAILURE;
+		}
+
 		// Collect vertices.
 		int nv = 0;
 		for (int i = 0; i < (int)poly->vertCount; ++i)
 		{
 			dtVcopy(&verts[nv*3], &tile->verts[poly->verts[i]*3]);
 			nv++;
-		}		
+		}
 		
 		float tmin, tmax;
 		int segMin, segMax;

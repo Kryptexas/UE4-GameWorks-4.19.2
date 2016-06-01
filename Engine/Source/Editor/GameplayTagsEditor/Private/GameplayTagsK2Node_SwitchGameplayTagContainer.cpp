@@ -52,8 +52,8 @@ void UGameplayTagsK2Node_SwitchGameplayTagContainer::PostLoad()
 void UGameplayTagsK2Node_SwitchGameplayTagContainer::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	bool bIsDirty = false;
-	FName PropertyName = (PropertyChangedEvent.Property != NULL) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
-	if (PropertyName == TEXT("PinContainers"))
+	FName PropertyName = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(UGameplayTagsK2Node_SwitchGameplayTagContainer, PinContainers))
 	{
 		bIsDirty = true;
 	}
@@ -123,7 +123,7 @@ void UGameplayTagsK2Node_SwitchGameplayTagContainer::CreateCasePins()
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 	for (int32 Index = 0; Index < PinNames.Num(); ++Index)
   	{
-		UEdGraphPin * NewPin = CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, PinContainers[Index].ToString());
+		UEdGraphPin * NewPin = CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), nullptr, false, false, PinContainers[Index].ToString());
 		NewPin->PinFriendlyName = FText::FromString(PinNames[Index].ToString());
   	}
 }
@@ -159,7 +159,7 @@ void UGameplayTagsK2Node_SwitchGameplayTagContainer::AddPinToSwitchNode()
 	PinNames.Add(FName(*PinName));
 
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	UEdGraphPin* NewPin = CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, PinName);
+	UEdGraphPin* NewPin = CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), nullptr, false, false, PinName);
 	NewPin->PinFriendlyName = FText::FromString(PinName);
 	PinContainers.Add(FGameplayTagContainer());
 }

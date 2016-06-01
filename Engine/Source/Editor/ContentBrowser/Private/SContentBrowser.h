@@ -2,14 +2,18 @@
 
 #pragma once
 
+
 struct FCollectionNameType;
+
 
 /**
  * A widget to display and work with all game and engine content
  */
-class SContentBrowser : public SCompoundWidget
+class SContentBrowser
+	: public SCompoundWidget
 {
 public:
+
 	SLATE_BEGIN_ARGS( SContentBrowser )
 		: _ContainingTab()
 		, _InitiallyLocked(false)
@@ -25,7 +29,7 @@ public:
 	~SContentBrowser();
 
 	/** Constructs this widget with InArgs */
-	void Construct( const FArguments& InArgs, const FName& InstanceName );
+	void Construct( const FArguments& InArgs, const FName& InstanceName, const FContentBrowserConfig* Config );
 
 	/** Sets up an inline-name for the creation of a new asset using the specified path and the specified class and/or factory */
 	void CreateNewAsset(const FString& DefaultAssetName, const FString& PackagePath, UClass* AssetClass, UFactory* Factory);
@@ -69,6 +73,7 @@ public:
 	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override;
 
 private:
+
 	/** Called to retrieve the text that should be highlighted on assets */
 	FText GetHighlightedText() const;
 
@@ -222,28 +227,28 @@ private:
 	FReply ForwardClicked();
 
 	/** Handler to check to see if a rename command is allowed */
-	bool CanRename() const;
+	bool HandleRenameCommandCanExecute() const;
 
 	/** Handler for Rename */
-	void OnRename();
+	void HandleRenameCommand();
 
 	/** Handler to check to see if a delete command is allowed */
-	bool CanDelete() const;
+	bool HandleDeleteCommandCanExecute() const;
 
 	/** Handler for Delete */
-	void OnDelete();
+	void HandleDeleteCommandExecute();
 
 	/** Handler for opening assets or folders */
-	void OnOpenAssetsOrFolders();
+	void HandleOpenAssetsOrFoldersCommandExecute();
 
 	/** Handler for previewing assets */
-	void OnPreviewAssets();
+	void HandlePreviewAssetsCommandEecute();
+
+	/** Handler for creating new folder */
+	void HandleCreateNewFolderCommandExecute();
 
 	/** Handler for clicking the directory up button */
-	void OnDirectoryUp();
-
-	/** Handler for clicking the directory up button */
-	FReply OnDirectoryUpClicked();
+	void HandleDirectoryUpCommandExecute();
 
 	/** True if the user may use the history back button */
 	bool IsBackEnabled() const;
@@ -331,6 +336,7 @@ private:
 
 	/** Gets the visibility of the collection view */
 	EVisibility GetCollectionViewVisibility() const;
+
 private:
 
 	/** The tab that contains this browser */
@@ -398,6 +404,9 @@ private:
 
 	/** When viewing a dynamic collection, the active search query will be stashed in this variable so that it can be restored again later */
 	TOptional<FText> StashedSearchBoxText;
+
+	/** True if we should always show collections in this Content Browser, ignoring the view settings */
+	bool bAlwaysShowCollections;
 
 public: 
 

@@ -291,6 +291,12 @@ void FContentBrowserSingleton::GetSelectedAssets(TArray<FAssetData>& SelectedAss
 	}
 }
 
+void FContentBrowserSingleton::CaptureThumbnailFromViewport(FViewport* InViewport, TArray<FAssetData>& SelectedAssets)
+{
+	ContentBrowserUtils::CaptureThumbnailFromViewport(InViewport, SelectedAssets);
+}
+
+
 void FContentBrowserSingleton::OnEditorLoadSelectedAssetsIfNeeded()
 {
 	if ( PrimaryContentBrowser.IsValid() )
@@ -466,6 +472,24 @@ void FContentBrowserSingleton::SummonNewBrowser(bool bAllowLockedBrowsers)
 	}
 }
 
+TSharedRef<SWidget> FContentBrowserSingleton::CreateContentBrowser( const FName InstanceName, TSharedPtr<SDockTab> ContainingTab, const FContentBrowserConfig* ContentBrowserConfig )
+{
+	TSharedRef<SContentBrowser> NewBrowser =
+		SNew( SContentBrowser, InstanceName, ContentBrowserConfig )
+		.IsEnabled( FSlateApplication::Get().GetNormalExecutionAttribute() )
+		.ContainingTab( ContainingTab );
+
+	AllContentBrowsers.Add( NewBrowser );
+
+	if( !PrimaryContentBrowser.IsValid() )
+	{
+		ChooseNewPrimaryBrowser();
+	}
+
+	return NewBrowser;
+}
+
+
 TSharedRef<SDockTab> FContentBrowserSingleton::SpawnContentBrowserTab( const FSpawnTabArgs& SpawnTabArgs, int32 BrowserIdx )
 {	
 	TAttribute<FText> Label = TAttribute<FText>::Create( TAttribute<FText>::FGetter::CreateRaw( this, &FContentBrowserSingleton::GetContentBrowserTabLabel, BrowserIdx ) );
@@ -475,12 +499,7 @@ TSharedRef<SDockTab> FContentBrowserSingleton::SpawnContentBrowserTab( const FSp
 		.Label( Label )
 		.ToolTip( IDocumentation::Get()->CreateToolTip( Label, nullptr, "Shared/ContentBrowser", "Tab" ) );
 
-	TSharedRef<SContentBrowser> NewBrowser =
-		SNew( SContentBrowser, SpawnTabArgs.GetTabId().TabType )
-		.IsEnabled( FSlateApplication::Get().GetNormalExecutionAttribute() )
-		.ContainingTab( NewTab );
-
-	AllContentBrowsers.Add(NewBrowser);
+	TSharedRef<SWidget> NewBrowser = CreateContentBrowser( SpawnTabArgs.GetTabId().TabType, NewTab, nullptr );
 
 	if ( !PrimaryContentBrowser.IsValid() )
 	{

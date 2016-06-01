@@ -9,8 +9,8 @@
 #include "CoreNet.h"
 #include "Engine/EngineTypes.h"
 
-class FOutBunch;
-class FInBunch;
+class FCompatibleRepLayout;
+class UPackageMapClient;
 
 class FRepChangedParent
 {
@@ -31,12 +31,14 @@ public:
 class FRepChangedPropertyTracker : public IRepChangedPropertyTracker
 {
 public:
-	FRepChangedPropertyTracker(bool InForceAlwaysActive)
+	FRepChangedPropertyTracker( const bool InbIsReplay, const bool InbIsClientReplayRecording )
 		: LastReplicationGroupFrame( 0 )
 		, LastReplicationFrame( 0 )
 		, ActiveStatusChanged( false )
 		, UnconditionalPropChanged( false )
-		, ForceAlwaysActive( InForceAlwaysActive ) { }
+		, bIsReplay( InbIsReplay )
+		, bIsClientReplayRecording( InbIsClientReplayRecording )
+		, ExternalDataNumBits( 0 ) {}
 	virtual ~FRepChangedPropertyTracker() { }
 
 	virtual void SetCustomIsActiveOverride( const uint16 RepIndex, const bool bIsActive ) override
@@ -45,7 +47,7 @@ public:
 
 		checkSlow( Parent.IsConditional );
 
-		Parent.Active = (bIsActive || ForceAlwaysActive) ? 1 : 0;
+		Parent.Active = (bIsActive || bIsClientReplayRecording) ? 1 : 0;
 
 		if ( Parent.Active != Parent.OldActive )
 		{
@@ -53,6 +55,18 @@ public:
 		}
 
 		Parent.OldActive = Parent.Active;
+	}
+
+	virtual void SetExternalData( const uint8* Src, const int32 NumBits ) override
+	{
+		ExternalDataNumBits = NumBits;
+		ExternalData.AddUninitialized( ( NumBits + 7 ) >> 3 );
+		FMemory::Memcpy( ExternalData.GetData(), Src, ( NumBits + 7 ) >> 3 );
+	}
+
+	virtual bool IsReplay() const override
+	{
+		return bIsReplay;
 	}
 
 	uint32						LastReplicationGroupFrame;		// Most recent frame number of the last FRepState that was compared this frame
@@ -63,7 +77,11 @@ public:
 
 	uint32						ActiveStatusChanged;
 	bool						UnconditionalPropChanged;
-	bool						ForceAlwaysActive;				// Used for client replay recording. The server has already evaluated any custom conditions, so the client doesn't need to.
+	bool						bIsReplay;							// True when recording/playing replays
+	bool						bIsClientReplayRecording;			// True when recording client replays
+
+	TArray< uint8 >				ExternalData;
+	uint32						ExternalDataNumBits;
 };
 
 class FRepLayout;
@@ -215,13 +233,14 @@ public:
 class FRepLayoutCmd
 {
 public:
-	UProperty * Property;		// Pointer back to property, used for NetSerialize calls, etc.
+	UProperty * Property;			// Pointer back to property, used for NetSerialize calls, etc.
 	uint8		Type;
-	uint16		EndCmd;			// For arrays, this is the cmd index to jump to, to skip this arrays inner elements
-	uint16		ElementSize;	// For arrays, element size of data
-	int32		Offset;			// Absolute offset of property
-	uint16		RelativeHandle;	// Handle relative to start of array, or top list
-	uint16		ParentIndex;	// Index into Parents
+	uint16		EndCmd;				// For arrays, this is the cmd index to jump to, to skip this arrays inner elements
+	uint16		ElementSize;		// For arrays, element size of data
+	int32		Offset;				// Absolute offset of property
+	uint16		RelativeHandle;		// Handle relative to start of array, or top list
+	uint16		ParentIndex;		// Index into Parents
+	uint32		CompatibleChecksum;	// Used to determine if property is still compatible
 };
 
 class FRepWriterState
@@ -248,6 +267,7 @@ public:
 class FRepLayout
 {
 	friend class FRepState;
+	friend class UPackageMapClient;
 
 public:
 	FRepLayout() : FirstNonCustomParent( 0 ), RoleIndex( -1 ), RemoteRoleIndex( -1 ), Owner( NULL ) {}
@@ -262,23 +282,13 @@ public:
 
 	void InitChangedTracker( FRepChangedPropertyTracker * ChangedTracker ) const;
 
-	void WritePropertyHeader( 
-		UObject *			Object,
-		UClass *			ObjectClass,
-		UActorChannel *		OwningChannel,
-		UProperty *			Property, 
-		FOutBunch &			Bunch, 
-		uint32				ArrayIndex, 
-		bool &				bContentBlockWritten ) const;
-
 	bool ReplicateProperties( 
 		FRepState * RESTRICT		RepState, 
 		const uint8* RESTRICT		Data, 
 		UClass *					ObjectClass,
 		UActorChannel *				OwningChannel,
-		FOutBunch &					Writer, 
-		const FReplicationFlags &	RepFlags,
-		bool &						bContentBlockWritten ) const;
+		FNetBitWriter&				Writer, 
+		const FReplicationFlags &	RepFlags ) const;
 
 	void SendProperties( 
 		FRepState *	RESTRICT		RepState, 
@@ -286,13 +296,12 @@ public:
 		const uint8* RESTRICT		Data, 
 		UClass *					ObjectClass,
 		UActorChannel *				OwningChannel,
-		FOutBunch &					Writer, 
-		TArray< uint16 >	 &		Changed, 
-		bool &						bContentBlockWritten ) const;
+		FNetBitWriter&				Writer,
+		TArray< uint16 >&			Changed ) const;
 
 	ENGINE_API void InitFromObjectClass( UClass * InObjectClass );
 
-	bool ReceiveProperties( UClass * InObjectClass, FRepState * RESTRICT RepState, void* RESTRICT Data, FNetBitReader & InBunch, bool & bOutHasUnmapped ) const;
+	bool ReceiveProperties( UActorChannel* OwningChannel, UClass * InObjectClass, FRepState * RESTRICT RepState, void* RESTRICT Data, FNetBitReader & InBunch, bool & bOutHasUnmapped, const bool bEnableRepNotifies ) const;
 	void UpdateUnmappedObjects( FRepState *	RepState, UPackageMap * PackageMap, UObject* Object, bool & bOutSomeObjectsWereMapped, bool & bOutHasMoreUnmapped ) const;
 
 	void CallRepNotifies( FRepState * RepState, UObject* Object ) const;
@@ -306,7 +315,7 @@ public:
 
 	void MergeDirtyList( FRepState * RepState, const void* RESTRICT Data, const TArray< uint16 > & Dirty1, const TArray< uint16 > & Dirty2, TArray< uint16 > & MergedDirty ) const;
 
-	bool DiffProperties( FRepState * RepState, const void* RESTRICT Data, const bool bSync ) const;
+	bool DiffProperties( TArray<UProperty*>* RepNotifies, void* RESTRICT Destination, const void* RESTRICT Source, const bool bSync ) const;
 
 	void GetLifetimeCustomDeltaProperties(TArray< int32 > & OutCustom, TArray< ELifetimeCondition >	& OutConditions);
 
@@ -321,9 +330,6 @@ public:
 
 	// Serializes all replicated properties of a UObject in or out of an archive (depending on what type of archive it is)
 	ENGINE_API void SerializeObjectReplicatedProperties(UObject* Object, FArchive & Ar) const;
-
-	void WriteNetworkChecksum( FOutBunch& Bunch );
-	bool ReadNetworkChecksum( FInBunch& Bunch );
 
 private:
 	void RebuildConditionalProperties( FRepState * RESTRICT	RepState, const FRepChangedPropertyTracker& ChangedTracker, const FReplicationFlags& RepFlags ) const;
@@ -388,7 +394,51 @@ private:
 		const uint8* RESTRICT		Data, 
 		uint16						Handle ) const;
 
-	void UpdateUnmappedObjects_r( 
+	void SendProperties_BackwardsCompatible_DynamicArray_r(
+		FRepState *	RESTRICT		RepState,
+		FRepWriterState &			WriterState,
+		FNetBitWriter &				Writer,
+		UPackageMapClient*			PackageMapClient,
+		FCompatibleRepLayout*		CompatibleRepLayout, 
+		const int32					CmdIndex,
+		const uint8* RESTRICT		StoredData,
+		const uint8* RESTRICT		Data ) const;
+
+	uint16 SendProperties_BackwardsCompatible_r(
+		FRepState *	RESTRICT		RepState,
+		FRepWriterState &			WriterState,
+		FNetBitWriter &				Writer,
+		UPackageMapClient*			PackageMapClient,
+		FCompatibleRepLayout*		CompatibleRepLayout,
+		const int32					CmdStart,
+		const int32					CmdEnd,
+		const uint8* RESTRICT		StoredData,
+		const uint8* RESTRICT		Data,
+		uint16						Handle ) const;
+		
+	void SendProperties_BackwardsCompatible(
+		FRepState *	RESTRICT		RepState,
+		const uint8* RESTRICT		Data,
+		UClass *					ObjectClass,
+		UActorChannel	*			OwningChannel,
+		FNetBitWriter&				Writer,
+		TArray< uint16 > &			Changed ) const;
+	
+	int32 FindCompatibleProperty( const int32 CmdStart, const int32 CmdEnd, const uint32 Checksum ) const;
+
+	bool ReceiveProperties_BackwardsCompatible_r(
+		FRepState * RESTRICT	RepState,
+		FCompatibleRepLayout*	CompatibleRepLayout,
+		FNetBitReader &			Reader,
+		const int32				CmdStart,
+		const int32				CmdEnd,
+		uint8* RESTRICT			ShadowData,
+		uint8* RESTRICT			OldData,
+		uint8* RESTRICT			Data,
+		FUnmappedGuidMgr*		UnmappedGuids,
+		bool &					bOutHasUnmapped ) const;
+
+	void UpdateUnmappedObjects_r(
 		FRepState *			RepState, 
 		FUnmappedGuidMgr *	UnmappedGuids, 
 		UObject *			OriginalObject,
@@ -420,10 +470,10 @@ private:
 
 	uint16 AddParentProperty( UProperty * Property, int32 ArrayIndex );
 
-	int32 InitFromProperty_r( UProperty * Property, int32 Offset, int32 RelativeHandle, int32 ParentIndex );
+	int32 InitFromProperty_r( UProperty * Property, int32 Offset, int32 RelativeHandle, int32 ParentIndex, uint32 ParentChecksum, int32 StaticArrayIndex );
 
-	void AddPropertyCmd( UProperty * Property, int32 Offset, int32 RelativeHandle, int32 ParentIndex );
-	void AddArrayCmd( UArrayProperty * Property, int32 Offset, int32 RelativeHandle, int32 ParentIndex );
+	uint32 AddPropertyCmd( UProperty * Property, int32 Offset, int32 RelativeHandle, int32 ParentIndex, uint32 ParentChecksum, int32 StaticArrayIndex );
+	uint32 AddArrayCmd( UArrayProperty * Property, int32 Offset, int32 RelativeHandle, int32 ParentIndex, uint32 ParentChecksum, int32 StaticArrayIndex );
 	void AddReturnCmd();
 
 	void SerializeProperties_DynamicArray_r( 

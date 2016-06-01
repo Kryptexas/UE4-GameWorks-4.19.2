@@ -26,6 +26,8 @@ public:
 	{
 		MenuExtensibilityManager = MakeShareable(new FExtensibilityManager);
 		ToolBarExtensibilityManager = MakeShareable(new FExtensibilityManager);
+
+		UParticleSystemComponent::OnSystemPreActivationChange.AddStatic(&FCascade::OnComponentActivationChange);
 	}
 
 	/** Called before the module is unloaded, right before the module object is destroyed. */
@@ -61,6 +63,10 @@ public:
 
 	virtual void ConvertModulesToSeeded(UParticleSystem* ParticleSystem) override
 	{
+		//Have to reset all existing component using this system.
+		FParticleResetContext ResetCtx;
+		ResetCtx.AddTemplate(ParticleSystem);
+
 		FCascade::ConvertAllModulesToSeeded( ParticleSystem );
 	}
 

@@ -12,5 +12,6 @@ class UAnimationCustomTransitionSchema : public UAnimationGraphSchema
 	//~ Begin UEdGraphSchema Interface.
 	virtual void CreateDefaultNodesForGraph(UEdGraph& Graph) const override;
 	void GetGraphDisplayInformation(const UEdGraph& Graph, /*out*/ FGraphDisplayInfo& DisplayInfo) const override;
+	virtual void HandleGraphBeingDeleted(UEdGraph& GraphBeingRemoved) const override;
 	//~ End UEdGraphSchema Interface.
 };

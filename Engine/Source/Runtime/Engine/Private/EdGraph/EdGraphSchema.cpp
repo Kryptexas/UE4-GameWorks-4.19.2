@@ -465,23 +465,7 @@ void UEdGraphSchema::TrySetDefaultObject(UEdGraphPin& Pin, UObject* NewDefaultOb
 
 void UEdGraphSchema::TrySetDefaultText(UEdGraphPin& InPin, const FText& InNewDefaultText) const
 {
-	if(InNewDefaultText.IsEmpty())
-	{
-		InPin.DefaultTextValue = InNewDefaultText;
-	}
-	else
-	{
-#if WITH_EDITOR
-		if(InNewDefaultText.IsCultureInvariant())
-		{
-			InPin.DefaultTextValue = InNewDefaultText;
-		}
-		else
-		{
-			InPin.DefaultTextValue = FText::ChangeKey(TEXT(""), FGuid::NewGuid().ToString(), InNewDefaultText);
-		}
-#endif
-	}
+	InPin.DefaultTextValue = InNewDefaultText;
 
 #if WITH_EDITOR
 	UEdGraphNode* Node = InPin.GetOwningNode();

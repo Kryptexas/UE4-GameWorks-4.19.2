@@ -27,6 +27,16 @@ enum class AnimPhysLinearConstraintType : uint8
 	Limited,
 };
 
+UENUM()
+enum class AnimPhysSimSpaceType : uint8
+{
+	Component UMETA(ToolTip = "Sim origin is the location/orientation of the skeletal mesh component."),
+	Actor UMETA(ToolTip = "Sim origin is the location/orientation of the actor containing the skeletal mesh component."),
+	World UMETA(ToolTip = "Sim origin is the world origin. Teleporting characters is not recommended in this mode."),
+	RootRelative UMETA(ToolTip = "Sim origin is the location/orientation of the root bone."),
+	BoneRelative UMETA(ToolTip = "Sim origin is the location/orientation of the bone specified in RelativeSpaceBone"),
+};
+
 /** Helper mapping a rigid body to a bone reference */
 struct FAnimPhysBoneRigidBody
 {
@@ -157,6 +167,14 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_AnimDynamics : public FAnimNode_SkeletalCo
 
 	FAnimNode_AnimDynamics();
 	
+	/** The space used to run the simulation */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Setup)
+	AnimPhysSimSpaceType SimulationSpace;
+
+	/** When in BoneRelative sim space, the simulation will use this bone as the origin */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Setup)
+	FBoneReference RelativeSpaceBone;
+
 	/** Set to true to use the solver to simulate a connected chain */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Setup)
 	bool bChain;
@@ -255,6 +273,10 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_AnimDynamics : public FAnimNode_SkeletalCo
 	UPROPERTY(EditAnywhere, Category = PlanarLimit, meta = (UIMin = "1", ClampMin = "1"))
 	float SphereCollisionRadius;
 
+	/** An external force to apply to all bodies in the simulation when ticked, specified in world space */
+	UPROPERTY(EditAnywhere, Category = Forces, meta = (PinShownByDefault))
+	FVector ExternalForce;
+
 	// FAnimNode_SkeletalControlBase interface
 	virtual void Initialize(const FAnimationInitializeContext& Context) override;
 	virtual void UpdateInternal(const FAnimationUpdateContext& Context) override;
@@ -262,6 +284,8 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_AnimDynamics : public FAnimNode_SkeletalCo
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
 	virtual bool HasPreUpdate() const override { return true; }
 	virtual void PreUpdate(const UAnimInstance* InAnimInstance) override;
+	virtual bool NeedsDynamicReset() const { return true; }
+	virtual void ResetDynamics() { RequestInitialise(); }
 	// End of FAnimNode_SkeletalControlBase interface
 
 	void RequestInitialise() { bRequiresInit = true; }
@@ -292,6 +316,15 @@ protected:
 	// End of FAnimNode_SkeletalControlBase protected interface
 
 private:
+
+	// Given a bone index, get it's transform in the currently selected simulation space
+	FTransform GetBoneTransformInSimSpace(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, const FCompactPoseBoneIndex& BoneIndex);
+
+	// Given a transform in simulation space, convert it back to component space
+	FTransform GetComponentSpaceTransformFromSimSpace(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, const FCompactPoseBoneIndex& BoneIndex, const FTransform& InSimTransform);
+
+	// Given a world-space vector, convert it into the current simulation space
+	FVector TransformWorldVectorToSimSpace(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, const FVector& InVec);
 
 	// We can't get clean bone positions unless we are in the evaluate step.
 	// Requesting an init or reinit sets this flag for us to pick up during evaluate
@@ -335,4 +368,7 @@ private:
 
 	// List of bone references for all bodies in this node
 	TArray<FBoneReference> BoundBoneReferences;
+
+	// Gravity direction in sim space
+	FVector SimSpaceGravityDirection;
 };

@@ -312,7 +312,7 @@ protected:
 	 * @param The detail layout builder that will be used for customization of this property map
 	 * @param CurCategory The current category name
 	 */
-	void UpdatePropertyMapRecursive( FPropertyNode& InNode, FDetailLayoutBuilderImpl& DetailLayout, FName CurCategory, FComplexPropertyNode* CurObjectNode );
+	void UpdatePropertyMapRecursive( FPropertyNode& InNode, FDetailLayoutBuilderImpl& DetailLayout, FName CurCategory, FComplexPropertyNode* CurObjectNode, bool bEnableFavoriteSystem, bool bUpdateFavoriteSystemOnly);
 
 
 	/** Called to get the visibility of the tree view */
@@ -401,6 +401,13 @@ protected:
 
 	/** Called to get the visibility of the filter box */
 	EVisibility GetFilterBoxVisibility() const;
+
+	/** Utility function allowing derived classes to optionally implement RegisterInstancedCustomPropertyLayout */
+	void RegisterInstancedCustomPropertyLayoutInternal(UStruct* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate);
+
+	/** Utility function allowing derived classes to optionally implement UnregisterInstancedCustomPropertyLayout */
+	void UnregisterInstancedCustomPropertyLayoutInternal(UStruct* Class);
+
 protected:
 	/** The user defined args for the details view */
 	FDetailsViewArgs DetailsViewArgs;

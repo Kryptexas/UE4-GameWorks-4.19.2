@@ -24,7 +24,6 @@
 #include "RecastHelpers.h"
 #include "NavigationSystemHelpers.h"
 #include "VisualLogger/VisualLogger.h"
-#include "NavMeshRenderingHelpers.h"
 
 #define SEAMLESS_REBUILDING_ENABLED 1
 
@@ -2144,14 +2143,16 @@ void FRecastTileGenerator::AppendGeometry(const TNavStatArray<uint8>& RawCollisi
 	
 	const int32 NumCoords = CollisionCache.Header.NumVerts * 3;
 	const int32 NumIndices = CollisionCache.Header.NumFaces * 3;
-	
-	GeometryElement.GeomCoords.SetNumUninitialized(NumCoords);
-	GeometryElement.GeomIndices.SetNumUninitialized(NumIndices);
+	if (NumIndices > 0)
+	{
+		GeometryElement.GeomCoords.SetNumUninitialized(NumCoords);
+		GeometryElement.GeomIndices.SetNumUninitialized(NumIndices);
 
-	FMemory::Memcpy(GeometryElement.GeomCoords.GetData(), CollisionCache.Verts, sizeof(float) * NumCoords);
-	FMemory::Memcpy(GeometryElement.GeomIndices.GetData(), CollisionCache.Indices, sizeof(int32) * NumIndices);
+		FMemory::Memcpy(GeometryElement.GeomCoords.GetData(), CollisionCache.Verts, sizeof(float) * NumCoords);
+		FMemory::Memcpy(GeometryElement.GeomIndices.GetData(), CollisionCache.Indices, sizeof(int32) * NumIndices);
 
-	RawGeometry.Add(MoveTemp(GeometryElement));
+		RawGeometry.Add(MoveTemp(GeometryElement));
+	}	
 }
 
 bool FRecastTileGenerator::GenerateTile()
@@ -2361,12 +2362,6 @@ bool FRecastTileGenerator::GenerateCompressedLayers(FNavMeshBuildContext& BuildC
 		}
 	}
 
-	// remove all low area marking at this point
-	if (TileConfig.bMarkLowHeightAreas)
-	{
-		rcReplaceBoxArea(&BuildContext, TileConfig.bmin, TileConfig.bmax, RECAST_NULL_AREA, RECAST_LOW_AREA, *RasterContext.CompactHF);
-	}
-
 	// Build layers
 	{
 		RECAST_STAT(STAT_Navigation_Async_Recast_Layers);
@@ -2561,6 +2556,12 @@ bool FRecastTileGenerator::GenerateNavigationData(FNavMeshBuildContext& BuildCon
 
 		// Rasterize obstacles.
 		MarkDynamicAreas(*GenerationContext.Layer);
+
+		// remove all low area marking at this point
+		if (TileConfig.bMarkLowHeightAreas)
+		{
+			dtReplaceArea(*GenerationContext.Layer, RECAST_NULL_AREA, RECAST_LOW_AREA);
+		}
 
 		{
 			RECAST_STAT(STAT_Navigation_Async_Recast_BuildRegions)
@@ -3072,7 +3073,6 @@ FRecastNavMeshGenerator::FRecastNavMeshGenerator(ARecastNavMesh& InDestNavMesh)
 	{
 		// recreate navmesh from scratch if no data was loaded
 		ConstructTiledNavMesh();
-		InDestNavMesh.MarkAsNeedingUpdate();
 	}
 	else
 	{
@@ -3691,6 +3691,13 @@ TArray<uint32> FRecastNavMeshGenerator::AddGeneratedTiles(FRecastTileGenerator& 
 					QUICK_SCOPE_CYCLE_COUNTER(STAT_NavMesh_AddTileToDetourMesh);
 					// let navmesh know it's tile generator who owns the data
 					status = DetourMesh->addTile(TileLayers[i].GetData(), TileLayers[i].DataSize, DT_TILE_FREE_DATA, OldTileRef, &ResultTileRef);
+
+					// if tile index was already taken by other layer try adding it on first free entry (salt was already updated by whatever took that spot)
+					if (dtStatusFailed(status) && dtStatusDetail(status, DT_OUT_OF_MEMORY) && OldTileRef)
+					{
+						OldTileRef = 0;
+						status = DetourMesh->addTile(TileLayers[i].GetData(), TileLayers[i].DataSize, DT_TILE_FREE_DATA, OldTileRef, &ResultTileRef);
+					}
 				}
 
 				if (dtStatusFailed(status))
@@ -4239,7 +4246,21 @@ void FRecastNavMeshGenerator::GrabDebugSnapshot(struct FVisualLogEntry* Snapshot
 				if (bExportGeometry && Element.Data->CollisionData.Num())
 				{
 					FRecastGeometryCache CachedGeometry(Element.Data->CollisionData.GetData());
-					AppendGeometry(CoordBuffer, Indices, CachedGeometry.Verts, CachedGeometry.Header.NumVerts, CachedGeometry.Indices, CachedGeometry.Header.NumFaces);
+					
+					const uint32 NumVerts = CachedGeometry.Header.NumVerts;
+					CoordBuffer.Reset(NumVerts);
+					for (uint32 VertIdx = 0; VertIdx < NumVerts * 3; VertIdx += 3)
+					{
+						CoordBuffer.Add(Recast2UnrealPoint(&CachedGeometry.Verts[VertIdx]));
+					}
+
+					const uint32 NumIndices = CachedGeometry.Header.NumFaces * 3;
+					Indices.SetNum(NumIndices, false);
+					for (uint32 IndicesIdx = 0; IndicesIdx < NumIndices; ++IndicesIdx)
+					{
+						Indices[IndicesIdx] = CachedGeometry.Indices[IndicesIdx];
+					}
+
 					Snapshot->AddElement(CoordBuffer, Indices, LogCategory.GetCategoryName(), LogVerbosity, FColorList::LightGrey.WithAlpha(255));
 				}
 				else

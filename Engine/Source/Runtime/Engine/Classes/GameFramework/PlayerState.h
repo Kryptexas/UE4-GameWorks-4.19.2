@@ -90,6 +90,7 @@ class ENGINE_API APlayerState : public AInfo
 	float ExactPing;
 
 	/** Used to match up InactivePlayerState with rejoining playercontroller. */
+	UPROPERTY()
 	FString SavedNetworkAddress;
 
 	/** The id used by the network to uniquely identify a player.

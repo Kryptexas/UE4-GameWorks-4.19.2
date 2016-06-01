@@ -1,0 +1,56 @@
+<?xml version='1.0' ?>
+<BuildGraph xmlns="http://www.epicgames.com/BuildGraph" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.epicgames.com/BuildGraph ../Schema.xsd" >
+	<Agent Name="Properties Agent" Type="CompileWin64">
+		<Node Name="Property Examples">
+			<!-- Some predefined properties -->
+			<Log Message="Property: Branch=$(Branch)"/>
+			<Log Message="Property: EscapedBranch=$(EscapedBranch)"/>
+			<Log Message="Property: Change=$(Change)"/>
+			<Log Message="Property: PreflightChange=$(PreflightChange)"/>
+			<Log Message="Property: RootDir=$(RootDir)"/>
+			<Log Message="Property: IsBuildMachine=$(IsBuildMachine)"/>
+			<Log Message="Property: HostPlatform=$(HostPlatform)"/>
+		
+			<!-- Basic property assignment -->
+			<Property Name="MessageText" Value="Hello"/>
+			<Property Name="MessageText" Value="$(MessageText) World"/>
+			<Log Message="MessageText=$(MessageText)"/>
+
+			<!-- Local properties take precedence over global properties for the duration of their scope -->
+			<Local Name="MessageText" Value="$(MessageText)!!!"/>
+			<Log Message="MessageText=$(MessageText)"/>
+			
+			<!-- Combine some paths together -->
+			<Local Name="TestDirWithSlash" Value="$(RootDir)\Test"/>
+			<Local Name="TestDirWithSlash" Value="$(TestDirWithSlash)\" If="!HasTrailingSlash('$(TestDirWithSlash)')"/>
+			<Local Name="TestFile" Value="$(TestDirWithSlash)Test.txt"/>
+			<Log Message="TestFile=$(TestFile)"/>
+
+			<!-- All scalar values are stored as case insensitive strings, and are identical whether they are quoted or not -->
+			<Local Name="A" Value="true"/>
+			<Local Name="B" Value="false"/>
+			<Local Name="C" Value="true"/>
+			<Log Message="Logic tests, where A=$(A), B=$(B), C=$(C):"/> 
+			<Log Message="  A is true" If="$(A) == true"/>
+			<Log Message="  A is True" If="$(A) == True"/>
+			<Log Message="  A is 'True'" If="$(A) == 'True'"/>
+			<Log Message="  A is false" If="$(A) == false"/>
+			<Log Message="  A is False" If="$(A) == False"/>
+			<Log Message="  A is 'False'" If="$(A) == 'False'"/>
+
+			<!-- Simple boolean logic -->
+			<Log Message="  A equals B" If="$(A) == $(B)"/>
+			<Log Message="  A does not equal B" If="$(A) != $(B)"/>
+			<Log Message="  A and B" If="$(A) and $(B)"/>
+			<Log Message="  A and C" If="$(A) and $(C)"/>
+			<Log Message="  A and (B or C)" If="$(A) and ($(B) or $(C))"/>
+			<Log Message="  (A and B) or C" If="($(A) and $(B)) or $(C)"/>
+			<Log Message="  (A and B) or B" If="($(A) and $(B)) or $(B)"/>
+
+			<!-- Test environment variables -->
+			<Log Message="SystemRoot = $(SystemRoot)"/>
+			<Log Message="ComSpec = $(ComSpec)"/>
+			<Log Message="COMMANDER_JOBSTEPID is $(COMMANDER_JOBSTEPID)"/>
+		</Node>
+	</Agent>
+</BuildGraph>

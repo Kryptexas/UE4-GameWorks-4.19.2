@@ -7,14 +7,7 @@
 #include "SlateTextHighlightRunRenderer.h"
 #include "SlateStats.h"
 
-#if WITH_FANCY_TEXT
-
 SLATE_DECLARE_CYCLE_COUNTER(GSlateTextBlockLayoutComputeDesiredSize, "FTextBlockLayout ComputeDesiredSize");
-
-TSharedRef<FTextBlockLayout> FTextBlockLayout::Create(FTextBlockStyle InDefaultTextStyle, const TOptional<ETextShapingMethod> InTextShapingMethod, const TOptional<ETextFlowDirection> InTextFlowDirection, TSharedRef<ITextLayoutMarshaller> InMarshaller, TSharedPtr<IBreakIterator> InLineBreakPolicy)
-{
-	return MakeShareable(new FTextBlockLayout(MoveTemp(InDefaultTextStyle), InTextShapingMethod, InTextFlowDirection, MoveTemp(InMarshaller), MoveTemp(InLineBreakPolicy)));
-}
 
 FTextBlockLayout::FTextBlockLayout(FTextBlockStyle InDefaultTextStyle, const TOptional<ETextShapingMethod> InTextShapingMethod, const TOptional<ETextFlowDirection> InTextFlowDirection, TSharedRef<ITextLayoutMarshaller> InMarshaller, TSharedPtr<IBreakIterator> InLineBreakPolicy)
 	: TextLayout(FSlateTextLayout::Create(MoveTemp(InDefaultTextStyle)))
@@ -40,6 +33,7 @@ FVector2D FTextBlockLayout::ComputeDesiredSize(const FWidgetArgs& InWidgetArgs, 
 	SLATE_CYCLE_COUNTER_SCOPE_DETAILED(SLATE_STATS_DETAIL_LEVEL_HI, GSlateTextBlockLayoutComputeDesiredSize);
 	TextLayout->SetScale(InScale);
 	TextLayout->SetWrappingWidth(CalculateWrappingWidth(InWidgetArgs));
+	TextLayout->SetWrappingPolicy(InWidgetArgs.WrappingPolicy.Get());
 	TextLayout->SetMargin(InWidgetArgs.Margin.Get());
 	TextLayout->SetJustification(InWidgetArgs.Justification.Get());
 	TextLayout->SetLineHeightPercentage(InWidgetArgs.LineHeightPercentage.Get());
@@ -158,6 +152,11 @@ void FTextBlockLayout::SetTextFlowDirection(const TOptional<ETextFlowDirection>&
 	TextLayout->SetTextFlowDirection((InTextFlowDirection.IsSet()) ? InTextFlowDirection.GetValue() : GetDefaultTextFlowDirection());
 }
 
+void FTextBlockLayout::SetDebugSourceInfo(const TAttribute<FString>& InDebugSourceInfo)
+{
+	TextLayout->SetDebugSourceInfo(InDebugSourceInfo);
+}
+
 FChildren* FTextBlockLayout::GetChildren()
 {
 	return TextLayout->GetChildren();
@@ -247,5 +246,3 @@ float FTextBlockLayout::CalculateWrappingWidth(const FWidgetArgs& InWidgetArgs) 
 
 	return FMath::Max(0.0f, WrappingWidth);
 }
-
-#endif //WITH_FANCY_TEXT

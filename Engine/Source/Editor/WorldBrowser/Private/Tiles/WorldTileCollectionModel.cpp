@@ -1445,6 +1445,38 @@ static bool ReadRawFile(TArray<DataType>& Result, const FString& Filename, uint3
 	return Reader->Close();
 }
 
+static bool ReadHeightmapFile(TArray<uint16>& Result, const FString& Filename, uint32 Flags = 0)
+{
+	bool bResult = true;
+	if (Filename.EndsWith(TEXT(".png")))
+	{
+		TArray<uint8> FileRawData;
+		bResult = ReadRawFile(FileRawData, Filename, Flags);
+		if (bResult)
+		{
+			IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>("ImageWrapper");
+			IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
+			bResult = ImageWrapper->SetCompressed(FileRawData.GetData(), FileRawData.Num());
+			if (bResult)
+			{
+				const TArray<uint8>* RawData = nullptr;
+				bResult = ImageWrapper->GetRaw(ERGBFormat::Gray, 16, RawData);
+				if (bResult)
+				{
+					Result.AddUninitialized(RawData->Num()/2);
+					FMemory::Memcpy(Result.GetData(), RawData->GetData(), RawData->Num());
+				}
+			}
+		}
+	}
+	else
+	{
+		bResult = ReadRawFile(Result, Filename, Flags);
+	}
+
+	return bResult;
+}
+
 static bool ReadWeightmapFile(TArray<uint8>& Result, const FString& Filename, uint32 Flags = 0)
 {
 	bool bResult = ReadRawFile(Result, Filename, Flags);
@@ -1544,7 +1576,7 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 
 	/** Show the dialog window as a modal window */
 	GEditor->EditorAddModalWindow(ImportWidnow);
-		
+
 	if (ImportDialog->ShouldImport() && ImportDialog->GetImportSettings().HeightmapFileList.Num())
 	{
 		const FTiledLandscapeImportSettings& ImportSettings = ImportDialog->GetImportSettings();
@@ -1560,7 +1592,7 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 		WorldRootPath+= TEXT("/");
 
 		GWarn->BeginSlowTask(LOCTEXT("ImportingLandscapeTilesBegin", "Importing landscape tiles"), true);
-		
+
 		// Create main landscape actor in persistent level, it will be empty (no components in it)
 		// All landscape tiles will go into it's own sub-levels
 		FGuid LandscapeGuid = FGuid::NewGuid();
@@ -1571,7 +1603,7 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 			// Setup layers list for importing
 			TArray<FLandscapeImportLayerInfo> ImportLayers;
 			SetupLandscapeImportLayers(ImportSettings, GetWorld()->GetOutermost()->GetName(), INDEX_NONE, ImportLayers);
-			
+
 			// Set landscape configuration
 			Landscape->LandscapeMaterial	= ImportSettings.LandscapeMaterial.Get();
 			Landscape->ComponentSizeQuads	= ImportSettings.QuadsPerSection*ImportSettings.SectionsPerComponent;
@@ -1590,12 +1622,12 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 		for (const FString& Filename : ImportSettings.HeightmapFileList)
 		{
 			check(LandscapeGuid.IsValid());
-									
+
 			FString TileName = FPaths::GetBaseFilename(Filename);
 			FVector TileScale = ImportSettings.Scale3D;
 
 			GWarn->StatusUpdate(TileIndex, ImportSettings.HeightmapFileList.Num(), FText::Format(LOCTEXT("ImportingLandscapeTiles", "Importing landscape tiles: {0}"), FText::FromString(TileName)));
-			
+
 			FWorldTileModel::FLandscapeImportSettings TileImportSettings = {};
 			TileImportSettings.LandscapeGuid		= LandscapeGuid;
 			TileImportSettings.LandscapeMaterial	= ImportSettings.LandscapeMaterial.Get();
@@ -1611,13 +1643,13 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 			SetupLandscapeImportLayers(ImportSettings, GetWorld()->GetOutermost()->GetName(), TileIndex, TileImportSettings.ImportLayers);
 			TileImportSettings.ImportLayerType = ELandscapeImportAlphamapType::Additive;
 
-			if (ReadRawFile(TileImportSettings.HeightData, Filename, FILEREAD_Silent))
+			if (ReadHeightmapFile(TileImportSettings.HeightData, Filename, FILEREAD_Silent))
 			{
 				FString MapFileName = WorldRootPath + TileName + FPackageName::GetMapPackageExtension();
 				// Create a new world - so we can 'borrow' its level
 				UWorld* NewWorld = UWorld::CreateWorld(EWorldType::None, false);
 				check(NewWorld);
-								
+
 				bool bSaved = FEditorFileUtils::SaveLevel(NewWorld->PersistentLevel, *MapFileName);
 				if (bSaved)
 				{
@@ -1626,7 +1658,7 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 					TSharedPtr<FWorldTileModel> NewTileModel = StaticCastSharedPtr<FWorldTileModel>(FindLevelModel(NewWorld->GetOutermost()->GetFName()));
 					// Hide level, so we do not depend on a current world origin
 					NewTileModel->SetVisible(false);
-					
+
 					// Create landscape proxy in a new level
 					ALandscapeProxy* NewLandscape = NewTileModel->ImportLandscapeTile(TileImportSettings);
 
@@ -1634,7 +1666,7 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 					{
 						// Set bounds of a tile
 						NewTileModel->TileDetails->Bounds = NewLandscape->GetComponentsBoundingBox();
-						
+
 						// Calculate this tile offset from world origin
 						FIntRect NewLandscapeRect = NewLandscape->GetBoundingRect();
 						float WidthX = NewLandscapeRect.Width()*TileScale.X;
@@ -1645,14 +1677,14 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 						{
 							TileOffset.Y = -(TileOffset.Y + WidthY);
 						}
-						
+
 						// Place level tile at correct position in the world
 						NewTileModel->SetLevelPosition(TileOffset);
-					
+
 						// Save level with a landscape
 						FEditorFileUtils::SaveLevel(NewWorld->PersistentLevel, *MapFileName);
 					}
-					
+
 					// Destroy the new world we created and collect the garbage
 					NewWorld->DestroyWorld(false);
 					CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
@@ -1683,7 +1715,7 @@ void FWorldTileCollectionModel::ReimportTiledLandscape_Executed(FName TargetLaye
 	{
 		return;
 	}
-			
+
 	TArray<bool> AllLevelsVisibilityState;
 	// Hide all visible levels
 	for (auto LevelModel : AllLevelsList)
@@ -1697,22 +1729,22 @@ void FWorldTileCollectionModel::ReimportTiledLandscape_Executed(FName TargetLaye
 
 	// Disable world origin tracking, so we can show, hide levels without offseting them
 	GetWorld()->WorldComposition->bTemporallyDisableOriginTracking = true;
-		
+
 	// Reimport data for each selected landscape tile
 	for (auto TileModel : TargetLandscapeTiles)
 	{
 		TileModel->SetVisible(true);
-			
+
 		ALandscapeProxy* Landscape = TileModel->GetLandscape();
 
 		ULandscapeLayerInfoObject* DataLayer = ALandscapeProxy::VisibilityLayer;
-	
+
 		if (TargetLayer == HeightmapLayerName) // Heightmap
 		{
 			if (!Landscape->ReimportHeightmapFilePath.IsEmpty())
 			{
 				TArray<uint16> RawData;
-				ReadRawFile(RawData, *Landscape->ReimportHeightmapFilePath, FILEREAD_Silent);
+				ReadHeightmapFile(RawData, *Landscape->ReimportHeightmapFilePath, FILEREAD_Silent);
 				LandscapeEditorUtils::SetHeightmapData(Landscape, RawData);
 			}
 		}
@@ -1725,7 +1757,7 @@ void FWorldTileCollectionModel::ReimportTiledLandscape_Executed(FName TargetLaye
 					if (!LayerSettings.ReimportLayerFilePath.IsEmpty())
 					{
 						TArray<uint8> RawData;
-						ReadRawFile(RawData, *LayerSettings.ReimportLayerFilePath, FILEREAD_Silent);
+						ReadWeightmapFile(RawData, *LayerSettings.ReimportLayerFilePath, FILEREAD_Silent);
 						LandscapeEditorUtils::SetWeightmapData(Landscape, LayerSettings.LayerInfoObj, RawData);
 
 						if (TargetLayer != NAME_None)
@@ -1737,13 +1769,13 @@ void FWorldTileCollectionModel::ReimportTiledLandscape_Executed(FName TargetLaye
 				}
 			}
 		}
-		
+
 		TileModel->SetVisible(false);
 	}
 
 	// Restore world origin tracking
 	GetWorld()->WorldComposition->bTemporallyDisableOriginTracking = false;
-			
+
 	// Restore levels visibility
 	for (int32 LevelIdx = 0; LevelIdx < AllLevelsList.Num(); ++LevelIdx)
 	{
@@ -1897,7 +1929,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 		{
 			continue;
 		}
-							
+
 		// We have to make original level visible, to correctly export it
 		const bool bVisibleLevel = TileModel->IsVisible();
 		if (!bVisibleLevel)
@@ -1905,7 +1937,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 			GetWorld()->WorldComposition->bTemporallyDisableOriginTracking = true;
 			TileModel->SetVisible(true);
 		}
-				
+
 		FLevelSimplificationDetails SimplificationDetails = TileModel->GetLevelObject()->LevelSimplification[TargetLODIndex];
 		
 		// Source level package name
@@ -1947,7 +1979,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 
 		TArray<FAssetToSpawnInfo>	AssetsToSpawn;
 		TArray<UObject*>			GeneratedAssets;
-		
+
 		// Where generated assets will be stored
 		UPackage* AssetsOuter = SimplificationDetails.bCreatePackagePerAsset ? nullptr : LODPackage;
 		// In case we don't have outer generated assets should have same path as LOD level
@@ -1991,7 +2023,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 		for (ALandscapeProxy* Landscape : LandscapeActors)
 		{
 			GWarn->StatusUpdate(LandscapeActorIndex, LandscapeActors.Num(), LOCTEXT("ExportingLandscape", "Exporting Landscape Actors"));
-		
+
 			FRawMesh LandscapeRawMesh;
 			FFlattenMaterial LandscapeFlattenMaterial;
 			FVector LandscapeWorldLocation = Landscape->GetActorLocation();
@@ -2042,29 +2074,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 			LandscapeFlattenMaterial.SpecularSize = SimplificationDetails.LandscapeMaterialSettings.bSpecularMap ? SimplificationDetails.LandscapeMaterialSettings.TextureSize : FIntPoint::ZeroValue;
 			
 			FMaterialUtilities::ExportLandscapeMaterial(Landscape, PrimitivesToHide, LandscapeFlattenMaterial);
-
-			// Fill landscape material constants
-			{
-				if (LandscapeFlattenMaterial.MetallicSamples.Num() == 0)
-				{
-					LandscapeFlattenMaterial.MetallicSize = FIntPoint(1, 1);
-					LandscapeFlattenMaterial.MetallicSamples.SetNum(1);
-					LandscapeFlattenMaterial.MetallicSamples[0].DWColor() = *(uint32*)(&SimplificationDetails.LandscapeMaterialSettings.MetallicConstant);
-				}
-				if (LandscapeFlattenMaterial.RoughnessSamples.Num() == 0)
-				{
-					LandscapeFlattenMaterial.RoughnessSize = FIntPoint(1, 1);
-					LandscapeFlattenMaterial.RoughnessSamples.SetNum(1);
-					LandscapeFlattenMaterial.RoughnessSamples[0].DWColor() = *(uint32*)(&SimplificationDetails.LandscapeMaterialSettings.RoughnessConstant);
-				}
-				if (LandscapeFlattenMaterial.SpecularSamples.Num() == 0)
-				{
-					LandscapeFlattenMaterial.SpecularSize = FIntPoint(1, 1);
-					LandscapeFlattenMaterial.SpecularSamples.SetNum(1);
-					LandscapeFlattenMaterial.SpecularSamples[0].DWColor() = *(uint32*)(&SimplificationDetails.LandscapeMaterialSettings.SpecularConstant);
-				}
-			}
-		
+					
 			if (SimplificationDetails.bBakeGrassToLandscape)
 			{
 				Landscape->FlushGrassComponents(); // wipe this and let it fix itself later
@@ -2072,7 +2082,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 			FString LandscapeBaseAssetName = FString::Printf(TEXT("%s_LOD%d"), *Landscape->GetName(), TargetLODIndex + 1);
 			// Construct landscape material
 			UMaterial* StaticLandscapeMaterial = FMaterialUtilities::CreateMaterial(
-				LandscapeFlattenMaterial, AssetsOuter, *(AssetsPath + LandscapeBaseAssetName), RF_Public|RF_Standalone, GeneratedAssets);
+				LandscapeFlattenMaterial, AssetsOuter, *(AssetsPath + LandscapeBaseAssetName), RF_Public | RF_Standalone, SimplificationDetails.LandscapeMaterialSettings, GeneratedAssets);
 			// Currently landscape exports world space normal map
 			StaticLandscapeMaterial->bTangentSpaceNormal = false;
 			StaticLandscapeMaterial->PostEditChange();
@@ -2104,6 +2114,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 				SrcModel->BuildSettings.bRecomputeNormals = false;
 				SrcModel->BuildSettings.bRecomputeTangents = false;
 				SrcModel->BuildSettings.bRemoveDegenerates = false;
+				SrcModel->BuildSettings.bUseHighPrecisionTangentBasis = false;
 				SrcModel->BuildSettings.bUseFullPrecisionUVs = false;
 				SrcModel->RawMeshBulkData->SaveRawMesh(LandscapeRawMesh);
 

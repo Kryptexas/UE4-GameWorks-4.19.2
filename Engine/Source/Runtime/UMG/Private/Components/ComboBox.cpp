@@ -50,11 +50,6 @@ TSharedRef<SWidget> UComboBox::HandleGenerateWidget(UObject* Item) const
 
 #if WITH_EDITOR
 
-const FSlateBrush* UComboBox::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.ComboBox");
-}
-
 const FText UComboBox::GetPaletteCategory()
 {
 	return LOCTEXT("Misc", "Misc");

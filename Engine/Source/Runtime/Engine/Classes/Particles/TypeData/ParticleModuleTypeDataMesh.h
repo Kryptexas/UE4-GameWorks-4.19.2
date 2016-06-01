@@ -89,6 +89,11 @@ class UParticleModuleTypeDataMesh : public UParticleModuleTypeDataBase
 	UPROPERTY(EditAnywhere, Category=Mesh)
 	uint32 bOverrideMaterial:1;
 
+	UPROPERTY(EditAnywhere, Category = Mesh)
+	uint32 bOverrideDefaultMotionBlurSettings : 1;
+
+	UPROPERTY(EditAnywhere, Category = Mesh, meta=(EditCondition="bOverrideDefaultMotionBlurSettings"))
+	uint32 bEnableMotionBlur : 1;
 
 	/** deprecated properties for initial orientation */
 	UPROPERTY()
@@ -184,6 +189,9 @@ class UParticleModuleTypeDataMesh : public UParticleModuleTypeDataBase
 	UPROPERTY(EditAnywhere, Category = Collision)
 	uint32 bCollisionsConsiderPartilceSize : 1;
 
+	static int32 GetCurrentDetailMode();
+	static int32 GetMeshParticleMotionBlurMinDetailMode();
+
 	//~ Begin UObject Interface
 #if WITH_EDITOR
 	virtual void	PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
@@ -204,6 +212,18 @@ class UParticleModuleTypeDataMesh : public UParticleModuleTypeDataBase
 	virtual bool	SupportsSpecificScreenAlignmentFlags() const override {	return true;	}	
 	virtual bool	SupportsSubUV() const override { return true; }
 	virtual bool	IsAMeshEmitter() const override { return true; }
+	virtual bool    IsMotionBlurEnabled() const override 
+	{ 
+		if (bOverrideDefaultMotionBlurSettings)
+		{
+			return bEnableMotionBlur;
+		}
+		else
+		{
+			return GetMeshParticleMotionBlurMinDetailMode() >= 0 && GetCurrentDetailMode() >= GetMeshParticleMotionBlurMinDetailMode();
+		}
+	}
+
 	//~ End UParticleModuleTypeDataBase Interface
 };
 

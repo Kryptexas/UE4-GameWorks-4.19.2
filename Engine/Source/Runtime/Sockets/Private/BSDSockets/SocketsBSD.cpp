@@ -92,7 +92,7 @@ bool FSocketBSD::HasPendingData(uint32& PendingDataSize)
 }
 
 
-FSocket* FSocketBSD::Accept(const FString& SocketDescription)
+FSocket* FSocketBSD::Accept(const FString& InSocketDescription)
 {
 	SOCKET NewSocket = accept(Socket, NULL, NULL);
 
@@ -101,14 +101,14 @@ FSocket* FSocketBSD::Accept(const FString& SocketDescription)
 		// we need the subclass to create the actual FSocket object
 		check(SocketSubsystem);
 		FSocketSubsystemBSD* BSDSystem = static_cast<FSocketSubsystemBSD*>(SocketSubsystem);
-		return BSDSystem->InternalBSDSocketFactory(NewSocket, SocketType, SocketDescription);
+		return BSDSystem->InternalBSDSocketFactory(NewSocket, SocketType, InSocketDescription);
 	}
 
 	return NULL;
 }
 
 
-FSocket* FSocketBSD::Accept(FInternetAddr& OutAddr, const FString& SocketDescription)
+FSocket* FSocketBSD::Accept(FInternetAddr& OutAddr, const FString& InSocketDescription)
 {
 	SOCKLEN SizeOf = sizeof(sockaddr_in);
 	SOCKET NewSocket = accept(Socket, *(FInternetAddrBSD*)(&OutAddr), &SizeOf);
@@ -118,7 +118,7 @@ FSocket* FSocketBSD::Accept(FInternetAddr& OutAddr, const FString& SocketDescrip
 		// we need the subclass to create the actual FSocket object
 		check(SocketSubsystem);
 		FSocketSubsystemBSD* BSDSystem = static_cast<FSocketSubsystemBSD*>(SocketSubsystem);
-		return BSDSystem->InternalBSDSocketFactory(NewSocket, SocketType, SocketDescription);
+		return BSDSystem->InternalBSDSocketFactory(NewSocket, SocketType, InSocketDescription);
 	}
 
 	return NULL;
@@ -426,7 +426,7 @@ ESocketBSDReturn FSocketBSD::HasState(ESocketBSDParam State, FTimespan WaitTime)
 	// convert WaitTime to a timeval
 	timeval Time;
 	Time.tv_sec = (int32)WaitTime.GetTotalSeconds();
-	Time.tv_usec = WaitTime.GetMilliseconds() * 1000;
+	Time.tv_usec = WaitTime.GetMilliseconds() * 1000 + WaitTime.GetMicroseconds();
 
 	fd_set SocketSet;
 

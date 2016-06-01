@@ -30,7 +30,7 @@ namespace FEQSHelpers
 		{
 			FHitResult OutHit;
 			const bool bHit = World->LineTraceSingleByChannel(OutHit, StartPos, EndPos, Channel, Params);
-			HitPos = OutHit.ImpactPoint;
+			HitPos = OutHit.Location;
 			return bHit;
 		}
 
@@ -38,7 +38,7 @@ namespace FEQSHelpers
 		{
 			FHitResult OutHit;
 			const bool bHit = World->SweepSingleByChannel(OutHit, StartPos, EndPos, FQuat::Identity, Channel, FCollisionShape::MakeSphere(Extent.X), Params);
-			HitPos = OutHit.ImpactPoint;
+			HitPos = OutHit.Location;
 			return bHit;
 		}
 
@@ -46,7 +46,7 @@ namespace FEQSHelpers
 		{
 			FHitResult OutHit;
 			const bool bHit = World->SweepSingleByChannel(OutHit, StartPos, EndPos, FQuat::Identity, Channel, FCollisionShape::MakeCapsule(Extent.X, Extent.Z), Params);
-			HitPos = OutHit.ImpactPoint;
+			HitPos = OutHit.Location;
 			return bHit;
 		}
 
@@ -54,7 +54,7 @@ namespace FEQSHelpers
 		{
 			FHitResult OutHit;
 			const bool bHit = World->SweepSingleByChannel(OutHit, StartPos, EndPos, FQuat((EndPos - StartPos).Rotation()), Channel, FCollisionShape::MakeBox(Extent), Params);
-			HitPos = OutHit.ImpactPoint;
+			HitPos = OutHit.Location;
 			return bHit;
 		}
 
@@ -95,29 +95,17 @@ namespace FEQSHelpers
 	template<>
 	void FBatchTrace::DoProject<EEnvTraceShape::Capsule>(TArray<FNavLocation>& Points, float StartOffsetZ, float EndOffsetZ, float HitOffsetZ);
 
-	void RunNavRaycasts(const ANavigationData& NavData, const FEnvTraceData& TraceData, const FVector& SourcePt, TArray<FNavLocation>& Points, ETraceMode TraceMode = ETraceMode::Keep);
-	void RunNavProjection(const ANavigationData& NavData, const FEnvTraceData& TraceData, TArray<FNavLocation>& Points, ETraceMode TraceMode = ETraceMode::Discard);
+	void RunNavRaycasts(const ANavigationData& NavData, const UObject& Querier, const FEnvTraceData& TraceData, const FVector& SourcePt, TArray<FNavLocation>& Points, ETraceMode TraceMode = ETraceMode::Keep);
+	void RunNavProjection(const ANavigationData& NavData, const UObject& Querier, const FEnvTraceData& TraceData, TArray<FNavLocation>& Points, ETraceMode TraceMode = ETraceMode::Discard);
 	void RunPhysRaycasts(UWorld* World, const FEnvTraceData& TraceData, const FVector& SourcePt, TArray<FNavLocation>& Points, const TArray<AActor*>& IgnoredActors, ETraceMode TraceMode = ETraceMode::Keep);
 	void RunPhysProjection(UWorld* World, const FEnvTraceData& TraceData, TArray<FNavLocation>& Points, ETraceMode TraceMode = ETraceMode::Discard);
 	void RunPhysProjection(UWorld* World, const FEnvTraceData& TraceData, TArray<FNavLocation>& Points, TArray<uint8>& TraceHits);
 
 	// deprecated
 
-	DEPRECATED(4.8, "This version of RunNavRaycasts is deprecated. Please use ANavigationData reference rather than a pointer version")
-	FORCEINLINE void RunNavRaycasts(const ANavigationData* NavData, const FEnvTraceData& TraceData, const FVector& SourcePt, TArray<FNavLocation>& Points, ETraceMode TraceMode = ETraceMode::Keep)
-	{
-		if (NavData)
-		{
-			RunNavRaycasts(*NavData, TraceData, SourcePt, Points, TraceMode);
-		}
-	}
+	DEPRECATED_FORGAME(4.12, "This function is now deprecated, please use version with Querier argument instead.")
+	void RunNavRaycasts(const ANavigationData& NavData, const FEnvTraceData& TraceData, const FVector& SourcePt, TArray<FNavLocation>& Points, ETraceMode TraceMode = ETraceMode::Keep);
 
-	DEPRECATED(4.8, "This version of RunNavProjection is deprecated. Please use ANavigationData reference rather than a pointer version")
-	FORCEINLINE void RunNavProjection(const ANavigationData* NavData, const FEnvTraceData& TraceData, TArray<FNavLocation>& Points, ETraceMode TraceMode = ETraceMode::Discard)
-	{
-		if (NavData)
-		{
-			RunNavProjection(*NavData, TraceData, Points, TraceMode);
-		}
-	}
+	DEPRECATED_FORGAME(4.12, "This function is now deprecated, please use version with Querier argument instead.")
+	void RunNavProjection(const ANavigationData& NavData, const FEnvTraceData& TraceData, TArray<FNavLocation>& Points, ETraceMode TraceMode = ETraceMode::Discard);
 }

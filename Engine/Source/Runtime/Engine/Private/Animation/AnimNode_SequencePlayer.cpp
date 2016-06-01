@@ -7,6 +7,16 @@
 /////////////////////////////////////////////////////
 // FAnimSequencePlayerNode
 
+float FAnimNode_SequencePlayer::GetCurrentAssetTime()
+{
+	return InternalTimeAccumulator;
+}
+
+float FAnimNode_SequencePlayer::GetCurrentAssetLength()
+{
+	return Sequence ? Sequence->SequenceLength : 0.0f;
+}
+
 void FAnimNode_SequencePlayer::Initialize(const FAnimationInitializeContext& Context)
 {
 	FAnimNode_AssetPlayerBase::Initialize(Context);

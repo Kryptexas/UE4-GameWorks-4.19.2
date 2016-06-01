@@ -13,6 +13,10 @@ class UK2Node_Composite : public UK2Node_Tunnel
 	UPROPERTY()
 	class UEdGraph* BoundGraph;
 
+	//~ Begin UObject Interface
+	virtual void PostEditUndo() override;
+	//~ End UObject Interface
+
 	//~ Begin UEdGraphNode Interface
 	BLUEPRINTGRAPH_API virtual void AllocateDefaultPins() override;
 	BLUEPRINTGRAPH_API virtual void DestroyNode() override;
@@ -36,6 +40,10 @@ class UK2Node_Composite : public UK2Node_Tunnel
 	// Get the entry/exit nodes inside this collapsed graph
 	BLUEPRINTGRAPH_API UK2Node_Tunnel* GetEntryNode() const;
 	BLUEPRINTGRAPH_API UK2Node_Tunnel* GetExitNode() const;
+
+protected:
+	/** Fixes up the input and output sink when needed, useful after PostEditUndo which changes which graph these nodes point to */
+	void FixupInputAndOutputSink();
 
 private:
 	/** Rename the BoundGraph to a unique name

@@ -162,6 +162,7 @@ static bool OnlineExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 			{
 				if (FParse::Command(&Cmd, TEXT("TEST")))
 				{
+#if WITH_DEV_AUTOMATION_TESTS
 					if (FParse::Command(&Cmd, TEXT("FRIENDS")))
 					{
 						TArray<FString> Invites;
@@ -305,6 +306,7 @@ static bool OnlineExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 						(new FTestExternalUIInterface(SubName, bTestLoginUI, bTestFriendsUI, bTestInviteUI, bTestAchievementsUI, bTestWebURL, bTestProfileUI))->Test();
 						bWasHandled = true;
 					}
+#endif //WITH_DEV_AUTOMATION_TESTS
 				}
 			}
 		}

@@ -7,6 +7,10 @@
 #include "VertexFactoryCommon.usf"
 #include "LocalVertexFactoryCommon.usf"
 
+#if GPUSKIN_PASS_THROUGH
+#include "GpuSkinCommon.usf"
+#endif
+
 float4x4 PreviousLocalToWorld;
 
 #include "UniformBuffers/PrecomputedLightingBuffer.usf"
@@ -137,6 +141,10 @@ struct FVertexFactoryInput
 /** Optional instance ID for vertex layered rendering */
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER
 	uint InstanceId	: SV_InstanceID;
+#endif
+
+#if GPUSKIN_PASS_THROUGH
+	uint VertexId : SV_VertexID;
 #endif
 };
 
@@ -466,22 +474,21 @@ float4 CalcWorldPosition(float4 Position)
 half3x3 CalcTangentToLocal(FVertexFactoryInput Input)
 {
 	half3x3 Result;
+	
+	half3 TangentX = TangentBias(Input.TangentX);
 	half4 TangentZ = TangentBias(Input.TangentZ);
 
 #if USE_SPLINEDEFORM
 	// Make slice rotation matrix, and use that to transform tangents
 	half3x3 SliceRot = CalcSliceRot(dot(Input.Position.xyz, SplineMeshDir));
 
-	half3 TangentX = mul(TangentBias(Input.TangentX), SliceRot);
+	TangentX = mul(TangentX, SliceRot);
 	TangentZ.xyz = mul(TangentZ.xyz, SliceRot);
-#else
-	// pass-thru the tangent
-	half3 TangentX = TangentBias(Input.TangentX);
-	// pass-thru the normal
 #endif	// USE_SPLINEDEFORM
 
 	// derive the binormal by getting the cross product of the normal and tangent
 	half3 TangentY = cross(TangentZ.xyz, TangentX) * TangentZ.w;
+	
 	// Recalculate TangentX off of the other two vectors
 	// This corrects quantization error since TangentX was passed in as a quantized vertex input
 	// The error shows up most in specular off of a mesh with a smoothed UV seam (normal is smooth, but tangents vary across the seam)
@@ -566,6 +573,11 @@ float4 VertexFactoryGetRasterizedWorldPosition(FVertexFactoryInput Input, FVerte
 	return InWorldPosition;
 }
 
+float3 VertexFactoryGetPositionForVertexLighting(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates, float3 TranslatedWorldPosition)
+{
+	return TranslatedWorldPosition;
+}
+
 FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates, FMaterialVertexParameters VertexParameters)
 {
 	FVertexFactoryInterpolantsVSToPS Interpolants;
@@ -632,12 +644,25 @@ float4 VertexFactoryGetWorldPosition(FPositionOnlyVertexFactoryInput Input)
 #endif	// USE_INSTANCING
 }
 
+// Information when using pass through to get the previous position, as no matrix is available/needed
+#if GPUSKIN_PASS_THROUGH
+uint GPUSkinCachePreviousFloatOffset;
+Buffer<float> GPUSkinCachePreviousBuffer;
+#endif
+
 // @return previous translated world position
 float4 VertexFactoryGetPreviousWorldPosition(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates)
 {
 #if USE_INSTANCING
 	float4x4 InstanceTransform = transpose(GetInstanceTransform(Input));
 	return mul(mul(Input.Position, InstanceTransform), PreviousLocalToWorld);
+#elif GPUSKIN_PASS_THROUGH
+	uint Offset = Input.VertexId * GPUSKIN_RWBUFFER_NUM_FLOATS + GPUSkinCachePreviousFloatOffset;
+	float3 PreviousPos;
+	PreviousPos.x = GPUSkinCachePreviousBuffer[Offset + GPUSKIN_RWBUFFER_OFFSET_POSITION + 0];
+	PreviousPos.y = GPUSkinCachePreviousBuffer[Offset + GPUSKIN_RWBUFFER_OFFSET_POSITION + 1];
+	PreviousPos.z = GPUSkinCachePreviousBuffer[Offset + GPUSKIN_RWBUFFER_OFFSET_POSITION + 2];
+	return mul(float4(PreviousPos, 1), PreviousLocalToWorld);
 #elif USE_SPLINEDEFORM
 	// Just like CalcWorldPosition...
 	float4x3 SliceTransform = CalcSliceTransform(dot(Input.Position.xyz, SplineMeshDir));

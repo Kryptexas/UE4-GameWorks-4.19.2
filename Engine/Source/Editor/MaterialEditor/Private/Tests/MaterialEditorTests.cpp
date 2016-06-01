@@ -18,6 +18,8 @@
 #include "Materials/MaterialExpressionTextureSample.h"
 #include "Materials/MaterialExpressionConstant3Vector.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 #define LOCTEXT_NAMESPACE "EditorMaterialEditorPromotionTests"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorMaterialEditorPromotionTests, Log, All);
@@ -248,3 +250,5 @@ bool FMaterialEditorPromotionTest::RunTest(const FString& Parameters)
 }
 
 #undef LOCTEXT_NAMESPACE
+
+#endif //WITH_DEV_AUTOMATION_TESTS

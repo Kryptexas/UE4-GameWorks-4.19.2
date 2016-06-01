@@ -51,6 +51,12 @@ FCrashReportClientConfig::FCrashReportClientConfig()
 		bHideLogFilesOption = false;
 	}
 	
+	if (!GConfig->GetBool(TEXT("CrashReportClient"), TEXT("bIsAllowedToCloseWithoutSending"), bIsAllowedToCloseWithoutSending, GEngineIni))
+	{
+		// Default to true (Allow the user to close without sending) when config is missing.
+		bIsAllowedToCloseWithoutSending = true;
+	}
+
 	ReadFullCrashDumpConfigurations();
 }
 
@@ -71,11 +77,12 @@ const FString FCrashReportClientConfig::GetFullCrashDumpLocationForBranch( const
 	for (const auto& It : FullCrashDumpConfigurations)
 	{
 		const bool bExactMatch = It.bExactMatch;
-		if (bExactMatch && BranchName == It.BranchName)
+		const FString IterBranch = It.BranchName.Replace(TEXT("+"), TEXT("/"));
+		if (bExactMatch && BranchName == IterBranch)
 		{
 			return It.Location;
 		}
-		else if (!bExactMatch && BranchName.Contains( It.BranchName ))
+		else if (!bExactMatch && BranchName.Contains(IterBranch))
 		{
 			return It.Location;
 		}

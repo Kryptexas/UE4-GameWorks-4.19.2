@@ -46,7 +46,7 @@ class UPostProcessComponent : public USceneComponent, public IInterface_PostProc
 	{
 		FPostProcessVolumeProperties Ret;
 		Ret.bIsEnabled = bEnabled != 0;
-		Ret.bIsUnbound = bUnbound != 0 || Cast<UShapeComponent>(AttachParent) == nullptr;
+		Ret.bIsUnbound = bUnbound != 0 || Cast<UShapeComponent>(GetAttachParent()) == nullptr;
 		Ret.BlendRadius = BlendRadius;
 		Ret.BlendWeight = BlendWeight;
 		Ret.Priority = Priority;

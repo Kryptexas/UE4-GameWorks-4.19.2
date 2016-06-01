@@ -235,6 +235,40 @@ void UEdGraphPin::CopyPersistentDataFromOldPin(const UEdGraphPin& SourcePin)
 #endif // WITH_EDITORONLY_DATA
 }
 
+void UEdGraphPin::AssignByRefPassThroughConnection(UEdGraphPin* InTargetPin)
+{
+	if (InTargetPin)
+	{
+		if (GetOwningNode() != InTargetPin->GetOwningNode())
+		{
+			UE_LOG(LogBlueprint, Warning, TEXT("Pin '%s' is owned by node '%s' and pin '%s' is owned by '%s', they must be owned by the same node!"), *GetName(), *GetOwningNode()->GetName(), *InTargetPin->GetName(), *InTargetPin->GetOwningNode()->GetName());
+		}
+		else if (Direction == InTargetPin->Direction)
+		{
+			UE_LOG(LogBlueprint, Warning, TEXT("Both pin '%s' and pin '%s' on node '%s' go in the same direction, one must be an input and the other an output!"), *GetName(), *InTargetPin->GetName(), *GetOwningNode()->GetName());
+		}
+		else if (!PinType.bIsReference && !InTargetPin->PinType.bIsReference)
+		{
+			UEdGraphPin* InputPin = (Direction == EGPD_Input) ? this : InTargetPin;
+			UEdGraphPin* OutputPin = (Direction == EGPD_Input) ? InTargetPin : this;
+			UE_LOG(LogBlueprint, Warning, TEXT("Input pin '%s' is attempting to by-ref pass-through to output pin '%s' on node '%s', however neither pin is by-ref!"), *InputPin->GetName(), *OutputPin->GetName(), *InputPin->GetOwningNode()->GetName());
+		}
+		else if (!PinType.bIsReference)
+		{
+			UE_LOG(LogBlueprint, Warning, TEXT("Pin '%s' on node '%s' is not by-ref but it is attempting to pass-through to '%s'"), *GetName(), *GetOwningNode()->GetName(), *InTargetPin->GetName());
+		}
+		else if (!InTargetPin->PinType.bIsReference)
+		{
+			UE_LOG(LogBlueprint, Warning, TEXT("Pin '%s' on node '%s' is not by-ref but it is attempting to pass-through to '%s'"), *InTargetPin->GetName(), *InTargetPin->GetOwningNode()->GetName(), *GetName());
+		}
+		else
+		{
+			ReferencePassThroughConnection = InTargetPin;
+			InTargetPin->ReferencePassThroughConnection = this;
+		}
+	}
+}
+
 const class UEdGraphSchema* UEdGraphPin::GetSchema() const
 {
 #if WITH_EDITOR

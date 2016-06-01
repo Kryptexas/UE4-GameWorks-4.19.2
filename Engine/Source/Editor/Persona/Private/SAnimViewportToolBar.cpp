@@ -492,8 +492,13 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateShowMenu() const
 
 			ShowMenuBuilder.BeginSection("AnimViewportPreviewBones", LOCTEXT("ShowMenu_Actions_Bones", "Hierarchy") );
 			{
+				ShowMenuBuilder.AddSubMenu(
+					LOCTEXT("AnimViewportBoneDrawSubMenu", "Bone"),
+					LOCTEXT("AnimViewportBoneDrawSubMenuToolTip", "Bone Draw Option"),
+					FNewMenuDelegate::CreateRaw(this, &SAnimViewportToolBar::FillShowBoneDrawMenu)
+					);
+
 				ShowMenuBuilder.AddMenuEntry( Actions.ShowSockets );
-				ShowMenuBuilder.AddMenuEntry( Actions.ShowBones );
 				ShowMenuBuilder.AddMenuEntry( Actions.ShowBoneNames );
 				ShowMenuBuilder.AddMenuEntry( Actions.ShowBoneWeight );
 			}
@@ -582,6 +587,19 @@ void SAnimViewportToolBar::FillShowSceneMenu(FMenuBuilder& MenuBuilder) const
 	MenuBuilder.EndSection();
 }
 
+void SAnimViewportToolBar::FillShowBoneDrawMenu(FMenuBuilder& MenuBuilder) const
+{
+	const FAnimViewportShowCommands& Actions = FAnimViewportShowCommands::Get();
+
+	MenuBuilder.BeginSection("AnimViewportPreviewHierarchyBoneDraw", LOCTEXT("ShowMenu_Actions_HierarchyAxes", "Hierarchy Local Axes"));
+	{
+		MenuBuilder.AddMenuEntry(Actions.ShowBoneDrawAll);
+		MenuBuilder.AddMenuEntry(Actions.ShowBoneDrawSelected);
+		MenuBuilder.AddMenuEntry(Actions.ShowBoneDrawNone);
+	}
+	MenuBuilder.EndSection();
+}
+
 void SAnimViewportToolBar::FillShowAdvancedMenu(FMenuBuilder& MenuBuilder) const
 {
 	const FAnimViewportShowCommands& Actions = FAnimViewportShowCommands::Get();
@@ -593,6 +611,13 @@ void SAnimViewportToolBar::FillShowAdvancedMenu(FMenuBuilder& MenuBuilder) const
 		MenuBuilder.AddWidget(Viewport.Pin()->UVChannelCombo.ToSharedRef(), FText());
 	}
 	MenuBuilder.EndSection();
+
+	MenuBuilder.BeginSection("Skinning", LOCTEXT("Skinning_Label", "Skinning"));
+	{
+		MenuBuilder.AddMenuEntry(FAnimViewportMenuCommands::Get().SetCPUSkinning);
+	}
+	MenuBuilder.EndSection();
+	
 
 	MenuBuilder.BeginSection("ShowVertex", LOCTEXT("ShowVertex_Label", "Vertex Normal Visualization"));
 	{

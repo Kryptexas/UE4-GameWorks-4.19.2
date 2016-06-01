@@ -132,6 +132,7 @@ public:
 
 	void					AddNewMontageSlot(FString NewSlotName);
 	void					RemoveMontageSlot(int32 AnimSlotIndex);
+	void					DuplicateMontageSlot(int32 AnimSlotIndex);
 	FText					GetMontageSlotName(int32 SlotIndex) const;
 
 	void					MakeDefaultSequentialSections();

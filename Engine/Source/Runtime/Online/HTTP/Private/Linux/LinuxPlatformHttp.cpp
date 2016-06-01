@@ -21,6 +21,6 @@ void FLinuxPlatformHttp::Shutdown()
 
 IHttpRequest* FLinuxPlatformHttp::ConstructRequest()
 {
-	return new FCurlHttpRequest(FCurlHttpManager::GMultiHandle);
+	return new FCurlHttpRequest(FCurlHttpManager::GShareHandle);
 }
 

@@ -29,6 +29,7 @@
 #include "Engine/StaticMeshActor.h"
 #include "ComponentEditorUtils.h"
 #include "LevelEditor.h"
+#include "Engine/LODActor.h"
 
 #define LOCTEXT_NAMESPACE "UnrealEd.EditorActor"
 
@@ -197,7 +198,7 @@ bool UUnrealEdEngine::WarnIfDestinationLevelIsHidden( UWorld* InWorld )
 {
 	bool result = false;
 	//prepare the warning dialog
-	FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT( "Warning_PasteWarningBody","You are trying to paste to a hidden level.\nSupressing this will default to Do Not Paste" ), LOCTEXT( "Warning_PasteWarningHeader","Pasting To Hidden Level" ), "PasteHiddenWarning" );
+	FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT( "Warning_PasteWarningBody","You are trying to paste to a hidden level.\nSuppressing this will default to Do Not Paste" ), LOCTEXT( "Warning_PasteWarningHeader","Pasting To Hidden Level" ), "PasteHiddenWarning" );
 	Info.ConfirmText = LOCTEXT( "Warning_PasteContinue","Unhide Level and paste" );
 	Info.CancelText = LOCTEXT( "Warning_PasteCancel","Do not paste" );
 	FSuppressableWarningDialog PasteHiddenWarning( Info );
@@ -704,6 +705,8 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 
 	bool	bRequestedDeleteAllByLevel = false;
 	bool	bRequestedDeleteAllByActor = false;
+	//  @todo remove me : this is to be removed once HLOD remove actor delegate gets moved to safer place
+	bool	bRequestedDeleteAllByLODActor = false;
 	EAppMsgType::Type MessageType = ActorsToDelete.Num() > 1 ? EAppMsgType::YesNoYesAllNoAll : EAppMsgType::YesNo;
 	int32		DeleteCount = 0;
 
@@ -722,8 +725,14 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 
 		bool bReferencedByLevelScript = (NULL != LSB && FBlueprintEditorUtils::FindNumReferencesToActorFromLevelScript(LSB, Actor) > 0);
 		bool bReferencedByActor = false;
+		bool bReferencedByLODActor = false;
 		for (AActor* ReferencingActor : ReferencingActors)
 		{
+			if (ReferencingActor->IsA(ALODActor::StaticClass()))
+			{
+				bReferencedByLODActor = true;
+				break;
+			}
 			// If the referencing actor is a child actor that is referencing us, do not treat it
 			// as referencing for the purposes of warning about deletion
 			UChildActorComponent* ParentComponent = ReferencingActor->GetParentComponent();
@@ -734,13 +743,23 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 			}
 		}
 
-		if ( bReferencedByLevelScript || bReferencedByActor )
+		if (bReferencedByLevelScript || bReferencedByActor || bReferencedByLODActor)
 		{
 			if (( bReferencedByLevelScript && !bRequestedDeleteAllByLevel ) ||
-				( bReferencedByActor && !bRequestedDeleteAllByActor ))
+				( bReferencedByActor && !bRequestedDeleteAllByActor ) ||
+				(bReferencedByLODActor && !bRequestedDeleteAllByLODActor) )
 			{
 				FText ConfirmDelete;
-				if ( bReferencedByLevelScript && bReferencedByActor )
+
+				// check LODActor outside of normal check
+				// you might like to know other actor is referencing it
+				if (bReferencedByLODActor)
+				{
+					ConfirmDelete = FText::Format(LOCTEXT("ConfirmDeleteActorReferencedByHLOD",
+						"Actor {0} is referenced by LODActor, do you really want to delete it?"),
+						FText::FromString(Actor->GetName()));
+				}
+				else if (bReferencedByLevelScript && bReferencedByActor)
 				{
 					ConfirmDelete = FText::Format(LOCTEXT( "ConfirmDeleteActorReferenceByScriptAndActor",
 														   "Actor {0} is referenced by the level blueprint and another Actor, do you really want to delete it?"),
@@ -764,6 +783,7 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 				{
 					bRequestedDeleteAllByLevel = bReferencedByLevelScript;
 					bRequestedDeleteAllByActor = bReferencedByActor;
+					bRequestedDeleteAllByLODActor = bReferencedByLODActor;
 				}
 				else if ( Result == EAppReturnType::NoAll )
 				{
@@ -786,6 +806,18 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 					ReferencingActors[ReferencingActorIndex]->Modify();
 				}
 			}
+			if (bReferencedByLODActor)
+			{
+				for (int32 ReferencingActorIndex = 0; ReferencingActorIndex < ReferencingActors.Num(); ReferencingActorIndex++)
+				{
+					ALODActor* LODActor = Cast<ALODActor>(ReferencingActors[ReferencingActorIndex]);
+					// it's possible other actor is referencing this
+					if (LODActor)
+					{
+						LODActor->RemoveSubActor(Actor);
+					}
+				}
+			}
 		}
 	
 		bool bRebuildNavigation = false;
@@ -796,6 +828,7 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 			ULevel* BrushLevel = Actor->GetLevel();
 			if (BrushLevel && !Brush->IsVolumeBrush() )
 			{
+				BrushLevel->Model->Modify();
 				LevelsToRebuildBSP.Add( BrushLevel );
 				// Rebuilding bsp will also take care of navigation
 				LevelsToRebuildNavigation.Remove( BrushLevel );
@@ -1254,7 +1287,8 @@ void UUnrealEdEngine::edactHideSelectedStartup( UWorld* InWorld )
 				FBspSurf& CurSurface = *SurfaceIterator;
 				
 				// Set the BSP surface to hide at editor startup, if it's not already set that way
-				if ( ( CurSurface.PolyFlags & PF_Selected ) && !CurSurface.IsHiddenEdAtStartup() && !CurSurface.IsHiddenEd() )
+				const bool bSelected = CurSurface.Actor->IsSelected() || (CurSurface.PolyFlags & PF_Selected);
+				if (bSelected && !CurSurface.IsHiddenEdAtStartup() && !CurSurface.IsHiddenEd())
 				{
 					CurLevelModel.Modify();
 					CurLevelModel.ModifySurf( SurfaceIterator.GetIndex(), false );
@@ -1344,7 +1378,8 @@ void UUnrealEdEngine::edactUnHideSelectedStartup( UWorld* InWorld )
 				FBspSurf& CurSurface = *SurfaceIterator;
 
 				// Mark the selected BSP surface as showing at editor startup if it was currently set to be hidden
-				if ( ( CurSurface.PolyFlags & PF_Selected ) && CurSurface.IsHiddenEdAtStartup() )
+				const bool bSelected = CurSurface.Actor->IsSelected() || (CurSurface.PolyFlags & PF_Selected);
+				if (bSelected && CurSurface.IsHiddenEdAtStartup())
 				{
 					CurLevelModel.Modify();
 					CurLevelModel.ModifySurf( SurfaceIterator.GetIndex(), false );

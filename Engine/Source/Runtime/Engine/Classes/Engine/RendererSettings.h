@@ -84,6 +84,19 @@ namespace EAntiAliasingMethodUI
 	};
 }
 
+/** used by FPostProcessSettings AutoExposure*/
+UENUM()
+namespace EAutoExposureMethodUI
+{
+	enum Type
+	{
+		/** Not supported on mobile, requires compute shader to construct 64 bin histogram */
+		AEM_Histogram  UMETA(DisplayName = "Auto Exposure Histogram"),
+		/** Not supported on mobile, faster method that computes single value by downsampling */
+		AEM_Basic      UMETA(DisplayName = "Auto Exposure Basic"),
+		AEM_MAX,
+	};
+}
 
 /**
  * Rendering settings.
@@ -110,10 +123,16 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ConfigRestartRequired = true))
 	uint32 bMobileDynamicPointLightsUseStaticBranch : 1;
 
+	UPROPERTY(config, EditAnywhere, Category = Mobile, meta = (
+		ConsoleVariable = "r.Mobile.EnableStaticAndCSMShadowReceivers", DisplayName = "Enable Combined Static and CSM Shadowing",
+		ToolTip = "Allow primitives to receive both static and CSM shadows from a stationary light. Disabling will free a mobile texture sampler.",
+		ConfigRestartRequired = true))
+		uint32 bMobileEnableStaticAndCSMShadowReceivers : 1;
+
 	UPROPERTY(config, EditAnywhere, Category = Materials, meta = (
 		ConsoleVariable = "r.DiscardUnusedQuality", DisplayName = "Game Discards Unused Material Quality Levels",
 		ToolTip = "When running in game mode, whether to keep shaders for all quality levels in memory or only those needed for the current quality level.\nUnchecked: Keep all quality levels in memory allowing a runtime quality level change. (default)\nChecked: Discard unused quality levels when loading content for the game, saving some memory."))
-		uint32 bDiscardUnusedQualityLevels : 1;
+	uint32 bDiscardUnusedQualityLevels : 1;
 
 	UPROPERTY(config, EditAnywhere, Category=Culling, meta=(
 		ConsoleVariable="r.AllowOcclusionQueries",DisplayName="Occlusion Culling",
@@ -151,6 +170,17 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ConfigRestartRequired=true))
 	uint32 bUseDXT5NormalMaps:1;
 
+	UPROPERTY(config, EditAnywhere, Category = Materials, meta =(
+		ConfigRestartRequired = true,
+		ConsoleVariable = "r.ClearCoatNormal",
+		ToolTip = "Use a separate normal map for the bottom layer of a clear coat material. This is a higher quality feature that is expensive."))
+		uint32 bClearCoatEnableSecondNormal : 1;
+
+	UPROPERTY(config, EditAnywhere, Category = Textures, meta = (
+		ConsoleVariable = "r.ReflectionCaptureResolution", DisplayName = "Reflection Capture Resolution",
+		ToolTip = "The cubemap resolution for all reflection capture probes. Must be power of 2. Note that for very high values the memory and performance impact may be severe."))
+	int32 ReflectionCaptureResolution;
+
 	UPROPERTY(config, EditAnywhere, Category=Lighting, meta=(
 		ConsoleVariable="r.AllowStaticLighting",
 		ToolTip="Whether to allow any static lighting to be generated and used, like lightmaps and shadowmaps. Games that only use dynamic lighting should set this to 0 to save some static lighting overhead. Changing this setting requires restarting the editor.",
@@ -172,7 +202,7 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		EditCondition = "bGenerateMeshDistanceFields",
 		ConsoleVariable = "r.GenerateLandscapeGIData", DisplayName = "Generate Landscape Real-time GI Data",
 		ToolTip = "Whether to generate a low-resolution base color texture for landscapes for rendering real-time global illumination.  This feature requires GenerateMeshDistanceFields is also enabled, and will increase mesh build times and memory usage."))
-		uint32 bGenerateLandscapeGIData : 1;
+	uint32 bGenerateLandscapeGIData : 1;
 
 	UPROPERTY(config, EditAnywhere, Category=Tessellation, meta=(
 		ConsoleVariable="r.TessellationAdaptivePixelsPerTriangle",DisplayName="Adaptive pixels per triangle",
@@ -212,12 +242,17 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 	UPROPERTY(config, EditAnywhere, Category = DefaultPostprocessingSettings, meta = (
 		ConsoleVariable = "r.DefaultFeature.AmbientOcclusionStaticFraction", DisplayName = "Ambient Occlusion Static Fraction (AO for baked lighting)",
 		ToolTip = "Whether the default for AmbientOcclusionStaticFraction is enabled or not (only useful for baked lighting and if AO is on, allows to have SSAO affect baked lighting as well, costs performance, postprocess volume/camera/game setting can still override and enable or disable it independently)"))
-		uint32 bDefaultFeatureAmbientOcclusionStaticFraction : 1;
+	uint32 bDefaultFeatureAmbientOcclusionStaticFraction : 1;
 
 	UPROPERTY(config, EditAnywhere, Category = DefaultPostprocessingSettings, meta = (
 		ConsoleVariable = "r.DefaultFeature.AutoExposure", DisplayName = "Auto Exposure",
 		ToolTip = "Whether the default for AutoExposure is enabled or not (postprocess volume/camera/game setting can still override and enable or disable it independently)"))
 	uint32 bDefaultFeatureAutoExposure : 1;
+	
+	UPROPERTY(config, EditAnywhere, Category = DefaultPostprocessingSettings, meta = (
+		ConsoleVariable = "r.DefaultFeature.AutoExposure.Method", DisplayName = "Auto Exposure",
+		ToolTip = "The default method for AutoExposure(postprocess volume/camera/game setting can still override and enable or disable it independently)"))
+	TEnumAsByte<EAutoExposureMethodUI::Type> DefaultFeatureAutoExposure; 
 
 	UPROPERTY(config, EditAnywhere, Category = DefaultPostprocessingSettings, meta = (
 		ConsoleVariable = "r.DefaultFeature.MotionBlur", DisplayName = "Motion Blur",
@@ -267,6 +302,17 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ConfigRestartRequired=true))
 	uint32 bSelectiveBasePassOutputs:1;
 
+	UPROPERTY(config, EditAnywhere, Category = Optimizations, meta = (
+		ConsoleVariable = "r.AllowGlobalClipPlane", DisplayName = "Support global clip plane for Planar Reflections",
+		ToolTip = "Whether to support the global clip plane needed for planar reflections.  Enabling this increases BasePass triangle cost by ~15% regardless of whether planar reflections are active. Changing this setting requires restarting the editor.",
+		ConfigRestartRequired = true))
+	uint32 bGlobalClipPlane : 1;
+
+	UPROPERTY(config, EditAnywhere, Category = Optimizations, meta = (
+		ConsoleVariable = "r.GBufferFormat", DisplayName = "GBuffer Format",
+		ToolTip = "Selects which GBuffer format should be used. Affects performance primarily via how much GPU memory bandwidth used."))
+	TEnumAsByte<EGBufferFormat::Type> GBufferFormat;
+
 	UPROPERTY(config, EditAnywhere, Category=VR, meta=(
 		ConsoleVariable="vr.InstancedStereo", DisplayName="Instanced Stereo",
 		ToolTip="Enable instanced stereo rendering (only available for D3D SM5 or PS4).",
@@ -291,6 +337,7 @@ public:
 	//~ End UObject Interface
 
 private:
+	void SanatizeReflectionCaptureResolution();
 	
 	UPROPERTY(config)
 	TEnumAsByte<EUIScalingRule> UIScaleRule_DEPRECATED;

@@ -41,6 +41,17 @@ void USoundNodeLooping::ParseNodes( FAudioDevice* AudioDevice, const UPTRINT Nod
 	UpdatedParams.NotifyBufferFinishedHooks.AddNotify(this, NodeWaveInstanceHash);
 
 	Super::ParseNodes( AudioDevice, NodeWaveInstanceHash, ActiveSound, UpdatedParams, WaveInstances );
+
+	if (ActiveSound.bFinished)
+	{
+		if (bLoopIndefinitely || CurrentLoopCount < LoopCount)
+		{
+			// We did not find a sound to play in our children but we are set to looping.
+			// Reset children to allow random nodes to reinitialize on our next attempt.
+			ResetChildren(NodeWaveInstanceHash, ActiveSound, CurrentLoopCount);
+			ActiveSound.bFinished = false;
+		}
+	}
 }
 
 bool USoundNodeLooping::NotifyWaveInstanceFinished( FWaveInstance* InWaveInstance )
@@ -49,81 +60,90 @@ bool USoundNodeLooping::NotifyWaveInstanceFinished( FWaveInstance* InWaveInstanc
 	const UPTRINT NodeWaveInstanceHash = InWaveInstance->NotifyBufferFinishedHooks.GetHashForNode(this);
 	RETRIEVE_SOUNDNODE_PAYLOAD(sizeof(int32));
 	DECLARE_SOUNDNODE_ELEMENT(int32, CurrentLoopCount);
-	check(*RequiresInitialization == 0);
 
-	if (bLoopIndefinitely || ++CurrentLoopCount < LoopCount)
+	// The looping node should be initialized, but we hit this check and need to get information about what sound cue is causing the issue.
+	ensureMsgf((*RequiresInitialization == 0), TEXT("Sound looping finished but not initialized. SoundWave: %s, Sound: %s"), *InWaveInstance->GetName(), *ActiveSound.Sound->GetName());
+
+	// Avoid the crash and continue...
+	if (!*RequiresInitialization)
 	{
-		struct FNodeHashPairs
+		if (bLoopIndefinitely || ++CurrentLoopCount < LoopCount)
 		{
-			USoundNode* Node;
-			UPTRINT NodeWaveInstanceHash;
+			ResetChildren(NodeWaveInstanceHash, ActiveSound, CurrentLoopCount);
 
-			FNodeHashPairs(USoundNode* InNode, const UPTRINT InHash)
-				: Node(InNode)
-				, NodeWaveInstanceHash(InHash)
-			{
-			}
-		};
-
-		TArray<FNodeHashPairs> NodesToReset;
-
-		for (int32 ChildNodeIndex = 0; ChildNodeIndex < ChildNodes.Num(); ++ChildNodeIndex)
-		{
-			USoundNode* ChildNode = ChildNodes[ChildNodeIndex];
-			if (ChildNode)
-			{
-				NodesToReset.Add(FNodeHashPairs(ChildNode, GetNodeWaveInstanceHash(NodeWaveInstanceHash, ChildNode, ChildNodeIndex)));
-			}
+			// Reset wave instances that notified us of completion.
+			InWaveInstance->bIsStarted = false;
+			InWaveInstance->bIsFinished = false;
+			return true;
 		}
-
-		// GetAllNodes includes current node so we have to start at Index 1.
-		for (int32 ResetNodeIndex = 0; ResetNodeIndex < NodesToReset.Num(); ++ResetNodeIndex)
-		{
-			const FNodeHashPairs& NodeHashPair = NodesToReset[ResetNodeIndex];
-
-			// Reset all child nodes so they are initialized again.
-			uint32* Offset = ActiveSound.SoundNodeOffsetMap.Find(NodeHashPair.NodeWaveInstanceHash);
-			if (Offset)
-			{
-				bool* bRequiresInitialization = (bool*)&ActiveSound.SoundNodeData[*Offset];
-				*bRequiresInitialization = true;
-			}
-
-			USoundNode* ResetNode = NodeHashPair.Node;
-
-			if (ResetNode->ChildNodes.Num())
-			{
-				for (int32 ResetChildIndex = 0; ResetChildIndex < ResetNode->ChildNodes.Num(); ++ResetChildIndex)
-				{
-					USoundNode* ResetChildNode = ResetNode->ChildNodes[ResetChildIndex];
-					if (ResetChildNode)
-					{
-						NodesToReset.Add(FNodeHashPairs(ResetChildNode, GetNodeWaveInstanceHash(NodeHashPair.NodeWaveInstanceHash, ResetChildNode, ResetChildIndex)));
-					}
-				}
-			}
-			else if (ResetNode->IsA<USoundNodeWavePlayer>())
-			{
-				FWaveInstance* WaveInstance = ActiveSound.FindWaveInstance(NodeHashPair.NodeWaveInstanceHash);
-				if (WaveInstance)
-				{
-					WaveInstance->bAlreadyNotifiedHook = true;
-					WaveInstance->bIsStarted = false;
-					WaveInstance->bIsFinished = false;
-				}
-			}
-		}
-
-		// Reset wave instances that notified us of completion.
-		InWaveInstance->bIsStarted = false;
-		InWaveInstance->bIsFinished = false;
-
-		return true;
 	}
 
 	return false;
 }
 
+
+void USoundNodeLooping::ResetChildren(const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, int32& CurrentLoopCount)
+{
+	struct FNodeHashPairs
+	{
+		USoundNode* Node;
+		UPTRINT NodeWaveInstanceHash;
+
+		FNodeHashPairs(USoundNode* InNode, const UPTRINT InHash)
+			: Node(InNode)
+			, NodeWaveInstanceHash(InHash)
+		{
+		}
+	};
+
+	TArray<FNodeHashPairs> NodesToReset;
+
+	for (int32 ChildNodeIndex = 0; ChildNodeIndex < ChildNodes.Num(); ++ChildNodeIndex)
+	{
+		USoundNode* ChildNode = ChildNodes[ChildNodeIndex];
+		if (ChildNode)
+		{
+			NodesToReset.Add(FNodeHashPairs(ChildNode, GetNodeWaveInstanceHash(NodeWaveInstanceHash, ChildNode, ChildNodeIndex)));
+		}
+	}
+
+	for (int32 ResetNodeIndex = 0; ResetNodeIndex < NodesToReset.Num(); ++ResetNodeIndex)
+	{
+		// cache both fields, ref to NodesToReset[ResetNodeIndex] can become invalid after NodesToReset.Add due to memory reallocation
+		const UPTRINT ResetNodeWaveInstanceHash = NodesToReset[ResetNodeIndex].NodeWaveInstanceHash;
+		USoundNode* ResetNode = NodesToReset[ResetNodeIndex].Node;
+
+		// Reset all child nodes so they are initialized again.
+		uint32* Offset = ActiveSound.SoundNodeOffsetMap.Find(ResetNodeWaveInstanceHash);
+		if (Offset)
+		{
+			bool* bRequiresInitialization = (bool*)&ActiveSound.SoundNodeData[*Offset];
+			*bRequiresInitialization = true;
+		}
+
+		if (ResetNode->ChildNodes.Num())
+		{
+			for (int32 ResetChildIndex = 0; ResetChildIndex < ResetNode->ChildNodes.Num(); ++ResetChildIndex)
+			{
+				USoundNode* ResetChildNode = ResetNode->ChildNodes[ResetChildIndex];
+				if (ResetChildNode)
+				{
+					NodesToReset.Add(FNodeHashPairs(ResetChildNode, GetNodeWaveInstanceHash(ResetNodeWaveInstanceHash, ResetChildNode, ResetChildIndex)));
+				}
+			}
+		}
+		else if (ResetNode->IsA<USoundNodeWavePlayer>())
+		{
+			FWaveInstance* WaveInstance = ActiveSound.FindWaveInstance(ResetNodeWaveInstanceHash);
+			if (WaveInstance)
+			{
+				WaveInstance->bAlreadyNotifiedHook = true;
+				WaveInstance->bIsStarted = false;
+				WaveInstance->bIsFinished = false;
+			}
+		}
+	}
+}
 float USoundNodeLooping::GetDuration()
 {
 	// Assume no duration (i.e. no input node)
@@ -148,7 +168,7 @@ float USoundNodeLooping::GetDuration()
 			}
 		}
 	}
-
+	
 	return Duration;
 }
 

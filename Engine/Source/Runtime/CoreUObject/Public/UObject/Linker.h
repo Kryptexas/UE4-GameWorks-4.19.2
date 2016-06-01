@@ -604,7 +604,7 @@ public:
 	/**
 	 * Number of gatherable text data items in this package
 	 */
-	int32		GatherableTextDataCount;
+	int32	GatherableTextDataCount;
 
 	/**
 	 * Location into the file on disk for the gatherable text data items
@@ -1267,7 +1267,7 @@ class FLinkerLoad : public FLinker, public FArchiveUObject
 	friend class UObject;
 	friend class UPackageMap;
 	friend struct FAsyncPackage;
-
+protected:
 	/** Linker loading status. */
 	enum ELinkerStatus
 	{
@@ -1887,6 +1887,7 @@ private:
 	 */
 	ELinkerStatus Tick( float InTimeLimit, bool bInUseTimeLimit, bool bInUseFullTimeLimit);
 
+protected: // Daniel L: Made this protected so I can override the constructor and create a custom loader to load the header of the linker in the DiffFilesCommandlet
 	/**
 	 * Private constructor, passing arguments through from CreateLinker.
 	 *
@@ -1895,7 +1896,7 @@ private:
 	 * @param	LoadFlags	Load flags determining behavior
 	 */
 	FLinkerLoad(UPackage* InParent, const TCHAR* InFilename, uint32 InLoadFlags);
-
+private:
 	/**
 	 * Returns whether the time limit allotted has been exceeded, if enabled.
 	 *
@@ -1905,12 +1906,12 @@ private:
 	 * @return true if time limit has been exceeded (and is enabled), false otherwise (including if time limit is disabled)
 	 */
 	COREUOBJECT_API bool IsTimeLimitExceeded( const TCHAR* CurrentTask, int32 Granularity = 1 );
-
+protected: // Daniel L: Made this protected so I can override the constructor and create a custom loader to load the header of the linker in the DiffFilesCommandlet
 	/**
 	 * Creates loader used to serialize content.
 	 */
 	ELinkerStatus CreateLoader();
-
+private:
 	/**
 	 * Serializes the package file summary.
 	 */
@@ -1977,6 +1978,22 @@ public:
 	* @return True if FinalizeBlueprint() is currently being ran (or about to be ran) for an export (Blueprint) class.
 	*/
 	bool IsBlueprintFinalizationPending() const;
+
+	/**
+	 * Gives external code the ability to create FLinkerPlaceholderBase objects
+	 * in place of loads that may violate the LOAD_DeferDependencyLoads state.
+	 * This will only produce a placeholder if LOAD_DeferDependencyLoads is set
+	 * for this linker.
+	 *
+	 * NOTE: For now, this will only produce UClass placeholders, as that is the 
+	 *       only type we've identified needing.
+	 * 
+	 * @param  ObjectType    The expected type of the object you want to defer loading of.
+	 * @param  ObjectPath    The full object/package path for the expected object.
+	 * @return A FLinkerPlaceholderBase UObject that can be used in place of the import dependency.
+	 */
+	UObject* RequestPlaceholderValue(UClass* ObjectType, const TCHAR* ObjectPath);
+
 private:
 	/**
 	 * Regenerates/Refreshes a blueprint class
@@ -2042,9 +2059,11 @@ private:
 	 * 
 	 * @param  Placeholder		A ULinkerPlaceholderClass that was substituted in place of a deferred dependency.
 	 * @param  ReferencingClass	The (Blueprint) class that was loading, while we deferred dependencies (now referencing the placeholder).
+	 * @param  ObjectPath		Optional param that denotes the full object/package path for the object the placeholder is supposed to represent 
+	 *                          (used when the passed placeholder is not tied to an import in the linker's ImportMap).
 	 * @return The number of placeholder references replaced (could be none, if this was recursively resolved).
 	 */
-	int32 ResolveDependencyPlaceholder(class FLinkerPlaceholderBase* Placeholder, UClass* ReferencingClass = nullptr);
+	int32 ResolveDependencyPlaceholder(class FLinkerPlaceholderBase* Placeholder, UClass* ReferencingClass = nullptr, const FName ObjectPath = NAME_None);
 
 	/**
 	 * Query method to help catch recursive behavior. When this returns true, a 
@@ -2113,7 +2132,6 @@ private:
 	 */
 	bool IsExportBeingResolved(int32 ExportIndex);
 
-
 	void ResetDeferredLoadingState();
 
 	bool HasPerformedFullExportResolvePass();
@@ -2148,6 +2166,12 @@ private:
 	 * to the next.
 	 */
 	class FLinkerPlaceholderBase* ResolvingDeferredPlaceholder;
+
+	/** 
+	 * Internal list to track imports that were deferred, but don't belong to 
+	 * the ImportMap (thinks ones loaded through config files via UProperty::ImportText).
+	 */
+	TMap<FName, FLinkerPlaceholderBase*> ImportPlaceholders;
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 
 
@@ -2208,6 +2232,8 @@ public:
 		int64 BulkDataOffsetInFilePos;
 		/** Offset to the location where the payload size is stored */
 		int64 BulkDataSizeOnDiskPos;
+		/** Offset to the location where the bulk data flags are stored */
+		int64 BulkDataFlagsPos;
 		/** Bulk data flags at the time of serialization */
 		uint32 BulkDataFlags;
 		/** The bulkdata */
@@ -2322,12 +2348,6 @@ COREUOBJECT_API void DeleteLoaders();
 
 /** Queues linker for deletion */
 COREUOBJECT_API void DeleteLoader(FLinkerLoad* Loader);
-
-/**
- * Dissociates all linker import and forced export object references. This currently needs to 
- * happen as the referred objects might be destroyed at any time.
- */
-void DissociateImportsAndForcedExports();
 
 COREUOBJECT_API FLinkerLoad* GetPackageLinker( UPackage* InOuter, const TCHAR* InLongPackageName, uint32 LoadFlags, UPackageMap* Sandbox, FGuid* CompatibleGuid );
 

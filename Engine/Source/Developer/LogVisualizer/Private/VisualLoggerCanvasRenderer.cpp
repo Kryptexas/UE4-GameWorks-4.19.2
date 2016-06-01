@@ -6,7 +6,7 @@
 #include "Editor/UnrealEd/Classes/Editor/EditorEngine.h"
 #include "VisualLoggerCanvasRenderer.h"
 #include "Debug/ReporterGraph.h"
-#include "TimeSliderController.h"
+
 
 namespace LogVisualizer
 {

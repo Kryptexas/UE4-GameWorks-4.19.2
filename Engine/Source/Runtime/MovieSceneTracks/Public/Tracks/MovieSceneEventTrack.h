@@ -21,7 +21,11 @@ public:
 	UMovieSceneEventTrack()
 		: bFireEventsWhenForwards(true)
 		, bFireEventsWhenBackwards(true)
-	{ }
+	{
+#if WITH_EDITORONLY_DATA
+		TrackTint = FColor(0, 255, 128);
+#endif
+	}
 
 public:
 
@@ -42,7 +46,7 @@ public:
 	 * @param Position The current position in time.
 	 * @param LastPosition The time at the last update.
 	 */
-	void TriggerEvents(float Position, float LastPosition);
+	void TriggerEvents(float Position, float LastPosition, TArray<UObject*> EventContextObjects);
 
 public:
 
@@ -57,6 +61,10 @@ public:
 	virtual bool IsEmpty() const override;
 	virtual void RemoveAllAnimationData() override;
 	virtual void RemoveSection(UMovieSceneSection& Section) override;
+
+#if WITH_EDITORONLY_DATA
+	virtual FText GetDefaultDisplayName() const override;
+#endif
 
 private:
 

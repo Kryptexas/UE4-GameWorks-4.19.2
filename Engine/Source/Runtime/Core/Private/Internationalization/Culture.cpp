@@ -71,10 +71,11 @@ int FCulture::GetLCID() const
 
 TArray<FString> FCulture::GetPrioritizedParentCultureNames() const
 {
-	const FString LanguageCode = GetTwoLetterISOLanguageName();
-	const FString ScriptCode = GetScript();
-	const FString RegionCode = GetRegion();
+	return GetPrioritizedParentCultureNames(GetTwoLetterISOLanguageName(), GetScript(), GetRegion());
+}
 
+TArray<FString> FCulture::GetPrioritizedParentCultureNames(const FString& LanguageCode, const FString& ScriptCode, const FString& RegionCode)
+{
 	TArray<FString> LocaleTagCombinations;
 	if (!ScriptCode.IsEmpty() && !RegionCode.IsEmpty())
 	{

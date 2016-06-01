@@ -7,6 +7,7 @@
 #include "OnlineSubsystemUtils.h"
 #include "VisualLogger/VisualLogger.h"
 #include "GameFramework/Character.h"
+#include "Engine/Console.h"
 
 #if !UE_BUILD_SHIPPING
 #include "ISlateReflectorModule.h"
@@ -187,9 +188,9 @@ void UCheatManager::God()
 	}
 }
 
-void UCheatManager::Slomo( float T )
+void UCheatManager::Slomo(float NewTimeDilation)
 {
-	GetOuterAPlayerController()->GetWorldSettings()->TimeDilation = FMath::Clamp(T, 0.0001f, 20.0f);
+	GetOuterAPlayerController()->GetWorldSettings()->SetTimeDilation(NewTimeDilation);
 }
 
 void UCheatManager::DamageTarget(float DamageAmount)
@@ -338,7 +339,7 @@ void UCheatManager::DestroyPawns(TSubclassOf<APawn> aClass)
 
 void UCheatManager::Summon( const FString& ClassName )
 {
-	UE_LOG(LogCheatManager, Log,  TEXT("Fabricate %s"), *ClassName );
+	UE_LOG(LogCheatManager, Log, TEXT("Fabricate %s"), *ClassName );
 
 	bool bIsValidClassName = true;
 	FString FailureReason;
@@ -991,6 +992,15 @@ void UCheatManager::DumpPartyState()
 	}
 }
 
+void UCheatManager::DumpChatState()
+{
+	IOnlineChatPtr ChatInt = Online::GetChatInterface(GetWorld());
+	if (ChatInt.IsValid())
+	{
+		ChatInt->DumpChatState();
+	}
+}
+
 void UCheatManager::DumpVoiceMutingState()
 {
 	UE_LOG(LogCheatManager, Display, TEXT(""));
@@ -1055,15 +1065,21 @@ void UCheatManager::BugItWorker( FVector TheLocation, FRotator TheRotation )
 {
 	UE_LOG(LogCheatManager, Log,  TEXT("BugItGo to: %s %s"), *TheLocation.ToString(), *TheRotation.ToString() );
 
+	// ghost so we can go anywhere
 	Ghost();
 
 	APlayerController* const MyPlayerController = GetOuterAPlayerController();
-	if (MyPlayerController->GetPawn())
+	APawn* const MyPawn = MyPlayerController->GetPawn();
+	if (MyPawn)
 	{
-		MyPlayerController->GetPawn()->TeleportTo( TheLocation, TheRotation );
-		MyPlayerController->GetPawn()->FaceRotation( TheRotation, 0.0f );
+		MyPawn->TeleportTo(TheLocation, TheRotation);
+		MyPawn->FaceRotation(TheRotation, 0.0f);
 	}
 	MyPlayerController->SetControlRotation(TheRotation);
+
+	// ghost again in case teleporting changed the movememt mode
+	Ghost();
+	GetOuterAPlayerController()->ClientMessage(TEXT("BugItGo: Ghost mode is ON"));
 }
 
 
@@ -1167,6 +1183,41 @@ void UCheatManager::InvertMouse()
 	}
 }
 
+void UCheatManager::CheatScript(FString ScriptName)
+{
+	APlayerController* const PlayerController = GetOuterAPlayerController();
+	ULocalPlayer* const LocalPlayer = PlayerController ? Cast<ULocalPlayer>(PlayerController->Player) : nullptr;
+
+	if (LocalPlayer)
+	{
+		// Run commands from the ini
+		FConfigSection const* const CommandsToRun = GConfig->GetSectionPrivate(*FString::Printf(TEXT("CheatScript.%s"), *ScriptName), 0, 1, GGameIni);
+
+		if (CommandsToRun)
+		{
+			for (FConfigSectionMap::TConstIterator It(*CommandsToRun); It; ++It)
+			{
+				// show user what commands ran
+				if (LocalPlayer->ViewportClient && LocalPlayer->ViewportClient->ViewportConsole)
+				{
+					FString const S = FString::Printf(TEXT("> %s"), *It.Value().GetValue());
+					LocalPlayer->ViewportClient->ViewportConsole->OutputText(S);
+				}
+
+				LocalPlayer->Exec(GetWorld(), *It.Value().GetValue(), *GLog);
+			}
+		}
+		else
+		{
+			UE_LOG(LogCheatManager, Warning, TEXT("Can't find section 'CheatScript.%s' in DefaultGame.ini"), *ScriptName);
+		}
+	}
+	else
+	{
+		UE_LOG(LogCheatManager, Warning, TEXT("Can't find local player!"));
+	}
+}
+
 void UCheatManager::LogOutBugItGoToLogFile( const FString& InScreenShotDesc, const FString& InGoString, const FString& InLocString )
 {
 #if ALLOW_DEBUG_FILES
@@ -1210,5 +1261,6 @@ void UCheatManager::LogOutBugItGoToLogFile( const FString& InScreenShotDesc, con
 	SendDataToPCViaUnrealConsole( TEXT("UE_PROFILER!BUGIT:"), *(FullFileName) );
 #endif // ALLOW_DEBUG_FILES
 }
+
 
 #undef LOCTEXT_NAMESPACE

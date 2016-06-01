@@ -10,6 +10,8 @@
 UEndUserSettings::UEndUserSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, bSendAnonymousUsageDataToEpic(true)
+	, bSendMeanTimeBetweenFailureDataToEpic(false)
+	, bAllowUserIdInUsageData(false)
 {
 }
 
@@ -88,7 +90,8 @@ void UEndUserSettings::OnSendAnonymousUsageDataToEpicChanged()
 		if (FEngineAnalytics::IsAvailable())
 		{
 			FEngineAnalytics::GetProvider().RecordEvent(FString("Engine.Privacy.EndUserOptOut"));
-			FEngineAnalytics::Shutdown();
+			const bool bIsEngineShutdown = false;
+			FEngineAnalytics::Shutdown(bIsEngineShutdown);
 		}
 	}
 }

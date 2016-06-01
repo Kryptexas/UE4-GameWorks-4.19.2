@@ -187,24 +187,68 @@ void SetupTileCullingData(
 	float3 ViewTileMin2;
 	float3 ViewTileMax2;
 
-	float ExpandRadius = 0;
+	bool bCenteredProjection = abs(View.ViewToClip[1][0]) < .00001f && abs(View.ViewToClip[2][0]) < .00001f;
 
-	float2 TanViewFOV = float2(1 / View.ViewToClip[0][0], 1 / View.ViewToClip[1][1]);
-	// tan(FOV) = HalfUnitPlaneWidth / 1, so TanViewFOV * 2 is the size of the whole unit view plane
-	// We are operating on a subset of that defined by ScissorRectMinAndSize
-	float2 TileSize = TanViewFOV * 2 * ScissorRectMinAndSize.zw / ((float2)Frame.ViewSizeAndInvSize.xy * NumGroups);
-	float2 UnitPlaneMin = -TanViewFOV + TanViewFOV * 2 * (ScissorRectMinAndSize.xy - Frame.ViewRectMin.xy) * Frame.ViewSizeAndInvSize.zw;
-	float2 UnitPlaneTileMin = (GroupId.xy * TileSize + UnitPlaneMin) * float2(1, -1);
-	float2 UnitPlaneTileMax = ((GroupId.xy + 1) * TileSize + UnitPlaneMin) * float2(1, -1);
+	BRANCH
+	// Off center projection path uses 37 more asm instructions
+	if (bCenteredProjection)
+	{
+		float2 TanViewFOV = GetTanHalfFieldOfView();
+		// tan(FOV) = HalfUnitPlaneWidth / 1, so TanViewFOV * 2 is the size of the whole unit view plane
+		// We are operating on a subset of that defined by ScissorRectMinAndSize
+		float2 TileSize = TanViewFOV * 2 * ScissorRectMinAndSize.zw / ((float2)Frame.ViewSizeAndInvSize.xy * NumGroups);
+		float2 UnitPlaneMin = -TanViewFOV + TanViewFOV * 2 * (ScissorRectMinAndSize.xy - Frame.ViewRectMin.xy) * Frame.ViewSizeAndInvSize.zw;
 
-	ViewTileMin.xy = min(MinTileZ * UnitPlaneTileMin, MaxTileZ2 * UnitPlaneTileMin) - ExpandRadius;
-	ViewTileMax.xy = max(MinTileZ * UnitPlaneTileMax, MaxTileZ2 * UnitPlaneTileMax) + ExpandRadius;
-	ViewTileMin.z = MinTileZ - ExpandRadius;
-	ViewTileMax.z = MaxTileZ2 + ExpandRadius;
-	ViewTileMin2.xy = min(MinTileZ2 * UnitPlaneTileMin, MaxTileZ * UnitPlaneTileMin) - ExpandRadius;
-	ViewTileMax2.xy = max(MinTileZ2 * UnitPlaneTileMax, MaxTileZ * UnitPlaneTileMax) + ExpandRadius;
-	ViewTileMin2.z = MinTileZ2 - ExpandRadius;
-	ViewTileMax2.z = MaxTileZ + ExpandRadius;
+		float2 UnitPlaneTileMin = (GroupId.xy * TileSize + UnitPlaneMin) * float2(1, -1);
+		float2 UnitPlaneTileMax = ((GroupId.xy + 1) * TileSize + UnitPlaneMin) * float2(1, -1);
+
+		ViewTileMin.xy = min(MinTileZ * UnitPlaneTileMin, MaxTileZ2 * UnitPlaneTileMin);
+		ViewTileMax.xy = max(MinTileZ * UnitPlaneTileMax, MaxTileZ2 * UnitPlaneTileMax);
+		ViewTileMin.z = MinTileZ;
+		ViewTileMax.z = MaxTileZ2;
+		ViewTileMin2.xy = min(MinTileZ2 * UnitPlaneTileMin, MaxTileZ * UnitPlaneTileMin);
+		ViewTileMax2.xy = max(MinTileZ2 * UnitPlaneTileMax, MaxTileZ * UnitPlaneTileMax);
+		ViewTileMin2.z = MinTileZ2;
+		ViewTileMax2.z = MaxTileZ;
+	}
+	else
+	{
+		float2 TileSize = 2 * ScissorRectMinAndSize.zw / ((float2)Frame.ViewSizeAndInvSize.xy * NumGroups);
+		float2 UnitPlaneMin = -1 + 2 * (ScissorRectMinAndSize.xy - Frame.ViewRectMin.xy) * Frame.ViewSizeAndInvSize.zw;
+
+		float2 UnitPlaneTileMin = (GroupId.xy * TileSize + UnitPlaneMin) * float2(1, -1);
+		float2 UnitPlaneTileMax = ((GroupId.xy + 1) * TileSize + UnitPlaneMin) * float2(1, -1);
+
+		{
+			float MinTileDeviceZ = ConvertToDeviceZ(MinTileZ);
+			float4 MinDepthMinCorner = mul(float4(UnitPlaneTileMin.x, UnitPlaneTileMin.y, MinTileDeviceZ, 1), View.ClipToView);
+			float4 MinDepthMaxCorner = mul(float4(UnitPlaneTileMax.x, UnitPlaneTileMax.y, MinTileDeviceZ, 1), View.ClipToView);
+	
+			float MaxTileDeviceZ = ConvertToDeviceZ(MaxTileZ2);
+			float4 MaxDepthMinCorner = mul(float4(UnitPlaneTileMin.x, UnitPlaneTileMin.y, MaxTileDeviceZ, 1), View.ClipToView);
+			float4 MaxDepthMaxCorner = mul(float4(UnitPlaneTileMax.x, UnitPlaneTileMax.y, MaxTileDeviceZ, 1), View.ClipToView);
+
+			ViewTileMin.xy = min(MinDepthMinCorner.xy / MinDepthMinCorner.w, MaxDepthMinCorner.xy / MaxDepthMinCorner.w);
+			ViewTileMax.xy = max(MinDepthMaxCorner.xy / MinDepthMaxCorner.w, MaxDepthMaxCorner.xy / MaxDepthMaxCorner.w);
+			ViewTileMin.z = MinTileZ;
+			ViewTileMax.z = MaxTileZ2;
+		}
+
+		{
+			float MinTileDeviceZ = ConvertToDeviceZ(MinTileZ2);
+			float4 MinDepthMinCorner = mul(float4(UnitPlaneTileMin.x, UnitPlaneTileMin.y, MinTileDeviceZ, 1), View.ClipToView);
+			float4 MinDepthMaxCorner = mul(float4(UnitPlaneTileMax.x, UnitPlaneTileMax.y, MinTileDeviceZ, 1), View.ClipToView);
+	
+			float MaxTileDeviceZ = ConvertToDeviceZ(MaxTileZ);
+			float4 MaxDepthMinCorner = mul(float4(UnitPlaneTileMin.x, UnitPlaneTileMin.y, MaxTileDeviceZ, 1), View.ClipToView);
+			float4 MaxDepthMaxCorner = mul(float4(UnitPlaneTileMax.x, UnitPlaneTileMax.y, MaxTileDeviceZ, 1), View.ClipToView);
+
+			ViewTileMin2.xy = min(MinDepthMinCorner.xy / MinDepthMinCorner.w, MaxDepthMinCorner.xy / MaxDepthMinCorner.w);
+			ViewTileMax2.xy = max(MinDepthMaxCorner.xy / MinDepthMaxCorner.w, MaxDepthMaxCorner.xy / MaxDepthMaxCorner.w);
+			ViewTileMin2.z = MinTileZ2;
+			ViewTileMax2.z = MaxTileZ;
+		}
+	}
 
 	float3 ViewGroup0Center = (ViewTileMax + ViewTileMin) / 2;
 	TileCullingData0.BoundingSphere.xyz = mul(float4(ViewGroup0Center, 1), View.ViewToTranslatedWorld).xyz - View.PreViewTranslation;
@@ -392,32 +436,32 @@ float ShadowConeTraceAgainstCulledCapsuleShapes(
 		BRANCH
 		if (CapsuleOrientationAndLength.w > 0)
 		{
-		float3 VectorToCapsuleCenter = CapsuleCenterAndRadius.xyz - WorldRayStart;
+			float3 VectorToCapsuleCenter = CapsuleCenterAndRadius.xyz - WorldRayStart;
 
-		// Closest point on line segment to ray
-		float3 L01 = CapsuleOrientationAndLength.xyz * CapsuleOrientationAndLength.w;
-		float3 L0 = VectorToCapsuleCenter - 0.5 * L01;
-		float3 L1 = VectorToCapsuleCenter + 0.5 * L01;
+			// Closest point on line segment to ray
+			float3 L01 = CapsuleOrientationAndLength.xyz * CapsuleOrientationAndLength.w;
+			float3 L0 = VectorToCapsuleCenter - 0.5 * L01;
+			float3 L1 = VectorToCapsuleCenter + 0.5 * L01;
 
-		// The below is computing the shortest distance between capsule line segment and ray
-		float CapsuleOrientationProjectedOntoRay = dot(UnitRayDirection, L01);
-		// Vector that spans L01 perpendicular to the ray
-		float3 PerpendicularSpanningVector = CapsuleOrientationProjectedOntoRay * UnitRayDirection - L01;
-		// Length of PerpendicularSpanningVector using the right triangle formed by L01 and UnitRayDirection * CapsuleOrientationProjectedOntoRay
-		float PerpendicularDistance = Square(CapsuleOrientationAndLength.w) - CapsuleOrientationProjectedOntoRay * CapsuleOrientationProjectedOntoRay;
-		// Project the vector to a capsule endpoint onto the perpendicular spanning vector, normalized
-		float t = saturate(dot(L0, PerpendicularSpanningVector) / PerpendicularDistance);
-		// Compute the vector to the shadow sphere which best approximates the capsule's shadowing 
-		float3 VectorToShadowSphere = L0 + t * L01;
+			// The below is computing the shortest distance between capsule line segment and ray
+			float CapsuleOrientationProjectedOntoRay = dot(UnitRayDirection, L01);
+			// Vector that spans L01 perpendicular to the ray
+			float3 PerpendicularSpanningVector = CapsuleOrientationProjectedOntoRay * UnitRayDirection - L01;
+			// Length of PerpendicularSpanningVector using the right triangle formed by L01 and UnitRayDirection * CapsuleOrientationProjectedOntoRay
+			float PerpendicularDistance = Square(CapsuleOrientationAndLength.w) - CapsuleOrientationProjectedOntoRay * CapsuleOrientationProjectedOntoRay;
+			// Project the vector to a capsule endpoint onto the perpendicular spanning vector, normalized
+			float t = saturate(dot(L0, PerpendicularSpanningVector) / PerpendicularDistance);
+			// Compute the vector to the shadow sphere which best approximates the capsule's shadowing 
+			float3 VectorToShadowSphere = L0 + t * L01;
 
 			DistanceToShadowSphere = length(VectorToShadowSphere);
 			UnitVectorToShadowSphere = VectorToShadowSphere / DistanceToShadowSphere;
 		
-		// The above 'best shadow sphere' calculation doesn't take into account the project solid angle of the potential shadow spheres
-		// As a result, there's a discontinuity when the capsule and the ray point in nearly the same direction, where the far end of the capsule gets chosen
-		// Here we mitigate the effect by overriding the distance to shadow sphere if one of the capsule end points was closer
-		DistanceToShadowSphere = min(DistanceToShadowSphere, length(L0));
-		DistanceToShadowSphere = min(DistanceToShadowSphere, length(L1));
+			// The above 'best shadow sphere' calculation doesn't take into account the project solid angle of the potential shadow spheres
+			// As a result, there's a discontinuity when the capsule and the ray point in nearly the same direction, where the far end of the capsule gets chosen
+			// Here we mitigate the effect by overriding the distance to shadow sphere if one of the capsule end points was closer
+			DistanceToShadowSphere = min(DistanceToShadowSphere, length(L0));
+			DistanceToShadowSphere = min(DistanceToShadowSphere, length(L1));
 		}
 		else
 		{
@@ -535,6 +579,9 @@ void CapsuleShadowingCS(
 				TileCullingData0,
 				TileCullingData1);
 
+			NumTileIntersectingShapes = TileNumCapsules0 + TileNumCapsules1;
+		#else
+			NumTileIntersectingShapes = NumShadowCapsules;
 		#endif
 			
 		NumPixelIntersectingShapes += NumIntersectingCapsules;
@@ -548,8 +595,6 @@ void CapsuleShadowingCS(
 			NumIntersectingCapsules,
 			USE_CULLING ? true : false);
 
-		NumTileIntersectingShapes = TileNumCapsules0 + TileNumCapsules1;
-
 #if !APPLY_TO_BENT_NORMAL
 		if (all(GroupThreadId.xy == 0) && all(GroupId.xy < TileDimensions))
 		{
@@ -562,9 +607,9 @@ void CapsuleShadowingCS(
 	BRANCH
 	if (ReduceSelfShadowingIntensity > 0)
 	{
-	FGBufferData GBufferData = GetGBufferData(ScreenUV);
-	// Reduce self shadowing intensity
-	Visibility = lerp(Visibility, 1, HasDistanceFieldRepresentation(GBufferData) ? .8f : 0);
+		FGBufferData GBufferData = GetGBufferData(ScreenUV);
+		// Reduce self shadowing intensity
+		Visibility = lerp(Visibility, 1, HasDistanceFieldRepresentation(GBufferData) ? .8f : 0);
 	}
 #endif
 

@@ -119,30 +119,40 @@ struct FWeightmapLayerAllocationInfo
 
 struct FLandscapeComponentGrassData
 {
-	FGuid MaterialStateId;
+#if WITH_EDITORONLY_DATA
+	// Variables used to detect when grass data needs to be regenerated:
+
+	// Guid per material instance in the hierarchy between the assigned landscape material (instance) and the root UMaterial
+	// used to detect changes to material instance parameters or the root material that could affect the grass maps
+	TArray<FGuid, TInlineAllocator<2>> MaterialStateIds;
+	// cached component rotation when material world-position-offset is used,
+	// as this will affect the direction of world-position-offset deformation (included in the HeightData below)
 	FQuat RotationForWPO;
+#endif
 
 	TArray<uint16> HeightData;
+#if WITH_EDITORONLY_DATA
+	// Height data for LODs 1+, keyed on LOD index
+	TMap<int32, TArray<uint16>> HeightMipData;
+#endif
 	TMap<ULandscapeGrassType*, TArray<uint8>> WeightData;
 
 	FLandscapeComponentGrassData() {}
 
+#if WITH_EDITOR
 	FLandscapeComponentGrassData(ULandscapeComponent* Component);
+#endif
 
 	bool HasData()
 	{
-		return HeightData.Num() > 0;
+		return HeightData.Num() > 0 ||
+#if WITH_EDITORONLY_DATA
+			HeightMipData.Num() > 0 ||
+#endif
+			WeightData.Num() > 0;
 	}
 
-	SIZE_T GetAllocatedSize() const
-	{
-		SIZE_T WeightSize = 0; 
-		for (auto It = WeightData.CreateConstIterator(); It; ++It)
-		{
-			WeightSize += It.Value().GetAllocatedSize();
-		}
-		return sizeof(*this) + HeightData.GetAllocatedSize() + WeightData.GetAllocatedSize() + WeightSize;
-	}
+	SIZE_T GetAllocatedSize() const;
 
 	friend FArchive& operator<<(FArchive& Ar, FLandscapeComponentGrassData& Data);
 };
@@ -237,6 +247,20 @@ public:
 	/** Heightfield mipmap used to generate collision */
 	UPROPERTY(EditAnywhere, Category=LandscapeComponent)
 	int32 CollisionMipLevel;
+
+	/** Heightfield mipmap used to generate simple collision */
+	UPROPERTY(EditAnywhere, Category=LandscapeComponent)
+	int32 SimpleCollisionMipLevel;
+
+	/** Allows overriding the landscape bounds. This is useful if you distort the landscape with world-position-offset, for example
+	 *  Extension value in the negative Z axis, positive value increases bound size */
+	UPROPERTY(EditAnywhere, Category=LandscapeComponent, meta=(EditCondition="bOverrideBounds"))
+	float NegativeZBoundsExtension;
+
+	/** Allows overriding the landscape bounds. This is useful if you distort the landscape with world-position-offset, for example
+	 *  Extension value in the positive Z axis, positive value increases bound size */
+	UPROPERTY(EditAnywhere, Category=LandscapeComponent, meta=(EditCondition="bOverrideBounds"))
+	float PositiveZBoundsExtension;
 
 	/** StaticLightingResolution overriding per component, default value 0 means no overriding */
 	UPROPERTY(EditAnywhere, Category=LandscapeComponent)
@@ -334,7 +358,7 @@ public:
 	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const override;
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual ELightMapInteractionType GetStaticLightingType() const override { return LMIT_Texture;	}
-	virtual void GetStreamingTextureInfo(TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const override;
+	virtual void GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const override;
 
 #if WITH_EDITOR
 	virtual int32 GetNumMaterials() const override;
@@ -369,6 +393,9 @@ public:
 	void GeneratePlatformVertexData();
 	void GeneratePlatformPixelData();
 
+	// true if the component's landscape material supports grass
+	bool MaterialHasGrass() const;
+
 	/** Creates and destroys cooked grass data stored in the map */
 	void RenderGrassMap();
 	void RemoveGrassMap();
@@ -381,6 +408,9 @@ public:
 
 	/* Is the grassmap data outdated, eg by a material */
 	bool IsGrassMapOutdated() const;
+
+	/** Renders the heightmap of this component (including material world-position-offset) at the specified LOD */
+	TArray<uint16> RenderWPOHeightmap(int32 LOD);
 
 	/* Serialize all hashes/guids that record the current state of this component */
 	void SerializeStateHashes(FArchive& Ar);
@@ -498,12 +528,17 @@ public:
 	static void UpdateDataMips(int32 InNumSubsections, int32 InSubsectionSizeQuads, UTexture2D* Texture, TArray<uint8*>& TextureMipData, int32 ComponentX1=0, int32 ComponentY1=0, int32 ComponentX2=MAX_int32, int32 ComponentY2=MAX_int32, FLandscapeTextureDataInfo* TextureDataInfo=nullptr);
 
 	/**
-	 * Create or updatescollision component height data
+	 * Create or updates collision component height data
 	 * @param HeightmapTextureMipData: heightmap data
 	 * @param ComponentX1, ComponentY1, ComponentX2, ComponentY2: region to update
-	 * @param Whether to update bounds from render component.
+	 * @param bUpdateBounds: Whether to update bounds from render component.
+	 * @param XYOffsetTextureMipData: xy-offset map data
 	 */
-	void UpdateCollisionHeightData(const FColor* HeightmapTextureMipData, int32 ComponentX1=0, int32 ComponentY1=0, int32 ComponentX2=MAX_int32, int32 ComponentY2=MAX_int32, bool bUpdateBounds=false, const FColor* XYOffsetTextureMipData = NULL, bool bRebuild=false);
+	void UpdateCollisionHeightData(const FColor* HeightmapTextureMipData, const FColor* SimpleCollisionHeightmapTextureData, int32 ComponentX1=0, int32 ComponentY1=0, int32 ComponentX2=MAX_int32, int32 ComponentY2=MAX_int32, bool bUpdateBounds=false, const FColor* XYOffsetTextureMipData=nullptr);
+
+	/** Updates collision component height data for the entire component, locking and unlocking heightmap textures
+	 * @param: bRebuild: If true, recreates the collision component */
+	void UpdateCollisionData(bool bRebuild);
 
 	/**
 	 * Update collision component dominant layer data
@@ -511,7 +546,7 @@ public:
 	 * @param ComponentX1, ComponentY1, ComponentX2, ComponentY2: region to update
 	 * @param Whether to update bounds from render component.
 	 */
-	void UpdateCollisionLayerData(TArray<FColor*>& WeightmapTextureMipData, int32 ComponentX1=0, int32 ComponentY1=0, int32 ComponentX2=MAX_int32, int32 ComponentY2=MAX_int32);
+	void UpdateCollisionLayerData(const FColor* const* WeightmapTextureMipData, const FColor* const* const SimpleCollisionWeightmapTextureMipData, int32 ComponentX1=0, int32 ComponentY1=0, int32 ComponentX2=MAX_int32, int32 ComponentY2=MAX_int32);
 
 	/**
 	 * Update collision component dominant layer data for the whole component, locking and unlocking the weightmap textures.

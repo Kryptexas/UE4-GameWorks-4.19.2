@@ -12,7 +12,7 @@
 bool bNeedsInstancedStereoBias;
 #endif
 
-#define IOSMETALZBIASWORKAROUND METAL_PROFILE && IOS && (ES2_PROFILE || ES3_1_PROFILE)
+#define IOSZBIASWORKAROUND IOS && (ES2_PROFILE || ES3_1_PROFILE)
 
 struct FDepthOnlyVSToPS
 {
@@ -82,10 +82,13 @@ void Main(
 	FVertexFactoryInput Input,
 	OPTIONAL_VertexID
 	out FDepthOnlyVSOutput Output
+#if USE_GLOBAL_CLIP_PLANE && !USING_TESSELLATION
+	, out float OutGlobalClipPlaneDistance : SV_ClipDistance
+#endif
 #if INSTANCED_STEREO
 	, uint InstanceId : SV_InstanceID
-	, out float4 OutClipDistance : SV_ClipDistance
-	, out float4 OutCullDistance : SV_CullDistance
+	, out float OutClipDistance : SV_ClipDistance1
+	, out float OutCullDistance : SV_CullDistance1
 #endif
 	)
 {
@@ -136,14 +139,19 @@ void Main(
 		
 		// Bias the depth
 		Output.Position.z += InstancedStereoDepthBias * Output.Position.w * (float)bNeedsInstancedStereoBias;
-		#elif IOSMETALZBIASWORKAROUND
-			// Z bias is needed here for ios metal (UE-26765)
+		#elif IOSZBIASWORKAROUND
+			// Z bias is needed here for ios metal (UE-26765) and gles (UE-27530)
 			// with metal compiler we cannot guarantee the order of operations across different shaders.
 			// Access to a fused multiply add intrinsic would solve this. In the meantime we add a small bias.
 			// This can be done here as the forward renderer's only use of the depth only shader is for modulated shadows.
+			// Addendum: This issue can occur with gles on metal capable hardware too. We apply this for all iOS shaders.
 			Output.Position.z += 0.0001 * Output.Position.w;
 		#endif
 	}
+
+#if USE_GLOBAL_CLIP_PLANE
+	OutGlobalClipPlaneDistance = dot(ResolvedView.GlobalClippingPlane, float4(WorldPos.xyz - ResolvedView.PreViewTranslation.xyz, 1));
+#endif
 #endif
 
 #if !MATERIALBLENDING_SOLID || USING_TESSELLATION || OUTPUT_PIXEL_DEPTH_OFFSET

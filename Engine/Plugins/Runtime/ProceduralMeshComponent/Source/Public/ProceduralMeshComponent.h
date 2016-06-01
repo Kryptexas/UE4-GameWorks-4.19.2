@@ -126,6 +126,7 @@ class PROCEDURALMESHCOMPONENT_API UProceduralMeshComponent : public UMeshCompone
 
 	/**
 	 *	Create/replace a section for this procedural mesh component.
+	 *	This function is deprecated for Blueprints because it uses the unsupported 'Color' type. Use new 'Create Mesh Section' function which uses LinearColor instead.
 	 *	@param	SectionIndex		Index of the section to create or replace.
 	 *	@param	Vertices			Vertex buffer of all vertex positions to use for this mesh section.
 	 *	@param	Triangles			Index buffer indicating which vertices make up each triangle. Length must be a multiple of 3.
@@ -135,8 +136,35 @@ class PROCEDURALMESHCOMPONENT_API UProceduralMeshComponent : public UMeshCompone
 	 *	@param	Tangents			Optional array of tangent vector for each vertex. If supplied, must be same length as Vertices array.
 	 *	@param	bCreateCollision	Indicates whether collision should be created for this section. This adds significant cost.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Components|ProceduralMesh", meta = (AutoCreateRefTerm = "Normals,UV0,VertexColors,Tangents"))
+	UFUNCTION(BlueprintCallable, Category = "Components|ProceduralMesh", meta = (DeprecatedFunction, DeprecationMessage = "This function is deprecated for Blueprints because it uses the unsupported 'Color' type. Use new 'Create Mesh Section' function which uses LinearColor instead.", DisplayName = "Create Mesh Section FColor", AutoCreateRefTerm = "Normals,UV0,VertexColors,Tangents"))
 	void CreateMeshSection(int32 SectionIndex, const TArray<FVector>& Vertices, const TArray<int32>& Triangles, const TArray<FVector>& Normals, const TArray<FVector2D>& UV0, const TArray<FColor>& VertexColors, const TArray<FProcMeshTangent>& Tangents, bool bCreateCollision);
+
+	/**
+	 *	Create/replace a section for this procedural mesh component.
+	 *	@param	SectionIndex		Index of the section to create or replace.
+	 *	@param	Vertices			Vertex buffer of all vertex positions to use for this mesh section.
+	 *	@param	Triangles			Index buffer indicating which vertices make up each triangle. Length must be a multiple of 3.
+	 *	@param	Normals				Optional array of normal vectors for each vertex. If supplied, must be same length as Vertices array.
+	 *	@param	UV0					Optional array of texture co-ordinates for each vertex. If supplied, must be same length as Vertices array.
+	 *	@param	VertexColors		Optional array of colors for each vertex. If supplied, must be same length as Vertices array.
+	 *	@param	Tangents			Optional array of tangent vector for each vertex. If supplied, must be same length as Vertices array.
+	 *	@param	bCreateCollision	Indicates whether collision should be created for this section. This adds significant cost.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Components|ProceduralMesh", meta = (DisplayName = "Create Mesh Section", AutoCreateRefTerm = "Normals,UV0,VertexColors,Tangents"))
+	void CreateMeshSection_LinearColor(int32 SectionIndex, const TArray<FVector>& Vertices, const TArray<int32>& Triangles, const TArray<FVector>& Normals, const TArray<FVector2D>& UV0, const TArray<FLinearColor>& VertexColors, const TArray<FProcMeshTangent>& Tangents, bool bCreateCollision);
+
+
+	/**
+	 *	Updates a section of this procedural mesh component. This is faster than CreateMeshSection, but does not let you change topology. Collision info is also updated.
+	 *	This function is deprecated for Blueprints because it uses the unsupported 'Color' type. Use new 'Create Mesh Section' function which uses LinearColor instead.
+	 *	@param	Vertices			Vertex buffer of all vertex positions to use for this mesh section.
+	 *	@param	Normals				Optional array of normal vectors for each vertex. If supplied, must be same length as Vertices array.
+	 *	@param	UV0					Optional array of texture co-ordinates for each vertex. If supplied, must be same length as Vertices array.
+	 *	@param	VertexColors		Optional array of colors for each vertex. If supplied, must be same length as Vertices array.
+	 *	@param	Tangents			Optional array of tangent vector for each vertex. If supplied, must be same length as Vertices array.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Components|ProceduralMesh", meta = (DeprecatedFunction, DeprecationMessage = "This function is deprecated for Blueprints because it uses the unsupported 'Color' type. Use new 'Update Mesh Section' function which uses LinearColor instead.", DisplayName = "Update Mesh Section FColor", AutoCreateRefTerm = "Normals,UV0,VertexColors,Tangents"))
+	void UpdateMeshSection(int32 SectionIndex, const TArray<FVector>& Vertices, const TArray<FVector>& Normals, const TArray<FVector2D>& UV0, const TArray<FColor>& VertexColors, const TArray<FProcMeshTangent>& Tangents);
 
 	/**
 	 *	Updates a section of this procedural mesh component. This is faster than CreateMeshSection, but does not let you change topology. Collision info is also updated.
@@ -146,8 +174,9 @@ class PROCEDURALMESHCOMPONENT_API UProceduralMeshComponent : public UMeshCompone
 	 *	@param	VertexColors		Optional array of colors for each vertex. If supplied, must be same length as Vertices array.
 	 *	@param	Tangents			Optional array of tangent vector for each vertex. If supplied, must be same length as Vertices array.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Components|ProceduralMesh", meta = (AutoCreateRefTerm = "Normals,UV0,VertexColors,Tangents"))
-	void UpdateMeshSection(int32 SectionIndex, const TArray<FVector>& Vertices, const TArray<FVector>& Normals, const TArray<FVector2D>& UV0, const TArray<FColor>& VertexColors, const TArray<FProcMeshTangent>& Tangents);
+	UFUNCTION(BlueprintCallable, Category = "Components|ProceduralMesh", meta = (DisplayName = "Update Mesh Section", AutoCreateRefTerm = "Normals,UV0,VertexColors,Tangents"))
+	void UpdateMeshSection_LinearColor(int32 SectionIndex, const TArray<FVector>& Vertices, const TArray<FVector>& Normals, const TArray<FVector2D>& UV0, const TArray<FLinearColor>& VertexColors, const TArray<FProcMeshTangent>& Tangents);
+
 
 	/** Clear a section of the procedural mesh. Other sections do not change index. */
 	UFUNCTION(BlueprintCallable, Category = "Components|ProceduralMesh")

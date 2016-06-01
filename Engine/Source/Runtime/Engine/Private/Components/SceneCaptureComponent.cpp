@@ -12,6 +12,10 @@
 #include "Engine/SceneCaptureCube.h"
 #include "Components/SceneCaptureComponentCube.h"
 #include "Components/DrawFrustumComponent.h"
+#include "Engine/PlanarReflection.h"
+#include "Components/PlanarReflectionComponent.h"
+#include "PlanarReflectionSceneProxy.h"
+#include "Components/BoxComponent.h"
 
 ASceneCapture::ASceneCapture(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -33,10 +37,10 @@ ASceneCapture2D::ASceneCapture2D(const FObjectInitializer& ObjectInitializer)
 	DrawFrustum = CreateDefaultSubobject<UDrawFrustumComponent>(TEXT("DrawFrust0"));
 	DrawFrustum->AlwaysLoadOnClient = false;
 	DrawFrustum->AlwaysLoadOnServer = false;
-	DrawFrustum->AttachParent = GetMeshComp();
+	DrawFrustum->SetupAttachment(GetMeshComp());
 
 	CaptureComponent2D = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("NewSceneCaptureComponent2D"));
-	CaptureComponent2D->AttachParent = GetMeshComp();
+	CaptureComponent2D->SetupAttachment(GetMeshComp());
 }
 
 void ASceneCapture2D::OnInterpToggle(bool bEnable)
@@ -89,10 +93,10 @@ ASceneCaptureCube::ASceneCaptureCube(const FObjectInitializer& ObjectInitializer
 	DrawFrustum = CreateDefaultSubobject<UDrawFrustumComponent>(TEXT("DrawFrust0"));
 	DrawFrustum->AlwaysLoadOnClient = false;
 	DrawFrustum->AlwaysLoadOnServer = false;
-	DrawFrustum->AttachParent = GetMeshComp();
+	DrawFrustum->SetupAttachment(GetMeshComp());
 
 	CaptureComponentCube = CreateDefaultSubobject<USceneCaptureComponentCube>(TEXT("NewSceneCaptureComponentCube"));
-	CaptureComponentCube->AttachParent = GetMeshComp();
+	CaptureComponentCube->SetupAttachment(GetMeshComp());
 }
 
 void ASceneCaptureCube::OnInterpToggle(bool bEnable)
@@ -205,6 +209,27 @@ void USceneCaptureComponent::HideActorComponents(AActor* InActor)
 	}
 }
 
+void USceneCaptureComponent::ShowOnlyComponent(UPrimitiveComponent* InComponent)
+{
+	if (InComponent)
+	{
+		ShowOnlyComponents.Add(InComponent);
+	}
+}
+
+void USceneCaptureComponent::ShowOnlyActorComponents(AActor* InActor)
+{
+	if (InActor)
+	{
+		TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents;
+		InActor->GetComponents(PrimitiveComponents);
+		for (int32 ComponentIndex = 0, NumComponents = PrimitiveComponents.Num(); ComponentIndex < NumComponents; ++ComponentIndex)
+		{
+			ShowOnlyComponents.Add(PrimitiveComponents[ComponentIndex]);
+		}
+	}
+}
+
 FSceneViewStateInterface* USceneCaptureComponent::GetViewState()
 {
 	FSceneViewStateInterface* ViewStateInterface = ViewState.GetReference();
@@ -307,7 +332,7 @@ void USceneCaptureComponent2D::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 	if (bCaptureEveryFrame)
 	{
-		UpdateComponentToWorld(false);
+		UpdateComponentToWorld();
 	}
 }
 
@@ -315,6 +340,7 @@ static TMultiMap<TWeakObjectPtr<UWorld>, TWeakObjectPtr<USceneCaptureComponent2D
 
 void USceneCaptureComponent2D::UpdateContent()
 {
+	UWorld* World = GetWorld();
 	if (World && World->Scene && IsVisible())
 	{
 		// Defer until after updates finish
@@ -371,6 +397,178 @@ void USceneCaptureComponent2D::Serialize(FArchive& Ar)
 
 // -----------------------------------------------
 
+APlanarReflection::APlanarReflection(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	PlanarReflectionComponent = CreateDefaultSubobject<UPlanarReflectionComponent>(TEXT("NewPlanarReflectionComponent"));
+	RootComponent = PlanarReflectionComponent;
+
+	UBoxComponent* DrawInfluenceBox = CreateDefaultSubobject<UBoxComponent>(TEXT("DrawBox0"));
+	DrawInfluenceBox->SetupAttachment(PlanarReflectionComponent);
+	DrawInfluenceBox->bUseEditorCompositing = true;
+	DrawInfluenceBox->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+	PlanarReflectionComponent->PreviewBox = DrawInfluenceBox;
+
+	GetMeshComp()->SetWorldRotation(FRotator(0, 0, 0));
+	GetMeshComp()->SetWorldScale3D(FVector(4, 4, 1));
+	GetMeshComp()->SetupAttachment(PlanarReflectionComponent);
+}
+
+void APlanarReflection::OnInterpToggle(bool bEnable)
+{
+	PlanarReflectionComponent->SetVisibility(bEnable);
+}
+
+void APlanarReflection::PostActorCreated()
+{
+	Super::PostActorCreated();
+
+	// no need load the editor mesh when there is no editor
+#if WITH_EDITOR
+	if(GetMeshComp())
+	{
+		if (!IsRunningCommandlet())
+		{
+			if( !GetMeshComp()->StaticMesh)
+			{
+				UStaticMesh* PlaneMesh = LoadObject<UStaticMesh>(NULL, TEXT("/Engine/EditorMeshes/PlanarReflectionPlane.PlanarReflectionPlane"), NULL, LOAD_None, NULL);
+				GetMeshComp()->SetStaticMesh(PlaneMesh);
+				UMaterial* PlaneMaterial = LoadObject<UMaterial>(NULL, TEXT("/Engine/EditorMeshes/ColorCalibrator/M_ChromeBall.M_ChromeBall"), NULL, LOAD_None, NULL);
+				GetMeshComp()->SetMaterial(0, PlaneMaterial);
+			}
+		}
+	}
+#endif
+}
+
+#if WITH_EDITOR
+void APlanarReflection::EditorApplyScale(const FVector& DeltaScale, const FVector* PivotLocation, bool bAltDown, bool bShiftDown, bool bCtrlDown)
+{
+	Super::EditorApplyScale(FVector(DeltaScale.X, DeltaScale.Y, 0), PivotLocation, bAltDown, bShiftDown, bCtrlDown);
+
+	UPlanarReflectionComponent* ReflectionComponent = Cast<UPlanarReflectionComponent>(GetPlanarReflectionComponent());
+	check(ReflectionComponent);
+	const FVector ModifiedScale = FVector(0, 0, DeltaScale.Z) * ( AActor::bUsePercentageBasedScaling ? 500.0f : 50.0f );
+	FMath::ApplyScaleToFloat(ReflectionComponent->DistanceFromPlaneFadeStart, ModifiedScale);
+	FMath::ApplyScaleToFloat(ReflectionComponent->DistanceFromPlaneFadeEnd, ModifiedScale);
+	PostEditChange();
+}
+#endif
+
+// -----------------------------------------------
+
+// 0 is reserved to mean invalid
+int32 NextPlanarReflectionId = 0;
+
+UPlanarReflectionComponent::UPlanarReflectionComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	bCaptureEveryFrame = true;
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.TickGroup = TG_DuringPhysics;
+	// Tick in the editor so that bCaptureEveryFrame preview works
+	bTickInEditor = true;
+	RenderTarget = NULL;
+	PrefilterRoughness = .01f;
+	PrefilterRoughnessDistance = 10000;
+	ScreenPercentage = 50;
+	NormalDistortionStrength = 500;
+	DistanceFromPlaneFadeStart = 400;
+	DistanceFromPlaneFadeEnd = 600;
+	AngleFromPlaneFadeStart = 20;
+	AngleFromPlaneFadeEnd = 30;
+	ProjectionWithExtraFOV = FMatrix::Identity;
+
+	ShowFlags.SetLightShafts(0);
+
+	// This is disabled because the math needs to be updated to compute fog from the reflection plane, not the reflected camera position (which is underwater)
+	ShowFlags.SetFog(0);
+
+	NextPlanarReflectionId++;
+	PlanarReflectionId = NextPlanarReflectionId;
+}
+
+void UPlanarReflectionComponent::CreateRenderState_Concurrent()
+{
+	UpdatePreviewShape();
+
+	Super::CreateRenderState_Concurrent();
+
+	if (ShouldComponentAddToScene() && ShouldRender())
+	{
+		SceneProxy = new FPlanarReflectionSceneProxy(this, RenderTarget);
+		GetWorld()->Scene->AddPlanarReflection(this);
+	}
+}
+
+void UPlanarReflectionComponent::SendRenderTransform_Concurrent()
+{	
+	UpdatePreviewShape();
+
+	if (SceneProxy)
+	{
+		GetWorld()->Scene->UpdatePlanarReflectionTransform(this);
+	}
+
+	Super::SendRenderTransform_Concurrent();
+}
+
+void UPlanarReflectionComponent::DestroyRenderState_Concurrent()
+{
+	Super::DestroyRenderState_Concurrent();
+
+	if (SceneProxy)
+	{
+		GetWorld()->Scene->RemovePlanarReflection(this);
+
+		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+			FDestroyPlanarReflectionCommand,
+			FPlanarReflectionSceneProxy*,SceneProxy,SceneProxy,
+		{
+			delete SceneProxy;
+		});
+
+		SceneProxy = NULL;
+	}
+}
+
+void UPlanarReflectionComponent::BeginDestroy()
+{
+	if (RenderTarget)
+	{
+		BeginReleaseResource(RenderTarget);
+	}
+	
+	// Begin a fence to track the progress of the BeginReleaseResource being processed by the RT
+	ReleaseResourcesFence.BeginFence();
+
+	Super::BeginDestroy();
+}
+
+bool UPlanarReflectionComponent::IsReadyForFinishDestroy()
+{
+	// Wait until the fence is complete before allowing destruction
+	return Super::IsReadyForFinishDestroy() && ReleaseResourcesFence.IsFenceComplete();
+}
+
+void UPlanarReflectionComponent::FinishDestroy()
+{
+	Super::FinishDestroy();
+
+	delete RenderTarget;
+	RenderTarget = NULL;
+}
+
+void UPlanarReflectionComponent::UpdatePreviewShape()
+{
+	if (PreviewBox)
+	{
+		PreviewBox->InitBoxExtent(FVector(500 * 4, 500 * 4, DistanceFromPlaneFadeEnd));
+	}
+}
+
+// -----------------------------------------------
+
 
 USceneCaptureComponentCube::USceneCaptureComponentCube(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -404,7 +602,7 @@ void USceneCaptureComponentCube::TickComponent(float DeltaTime, enum ELevelTick 
 
 	if (bCaptureEveryFrame)
 	{
-		UpdateComponentToWorld(false);
+		UpdateComponentToWorld();
 	}
 }
 
@@ -412,6 +610,7 @@ static TMultiMap<TWeakObjectPtr<UWorld>, TWeakObjectPtr<USceneCaptureComponentCu
 
 void USceneCaptureComponentCube::UpdateContent()
 {
+	UWorld* World = GetWorld();
 	if (World && World->Scene && IsVisible())
 	{
 		// Defer until after updates finish

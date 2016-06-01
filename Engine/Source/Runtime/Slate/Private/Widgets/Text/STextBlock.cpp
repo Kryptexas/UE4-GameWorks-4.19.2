@@ -3,19 +3,32 @@
 #include "SlatePrivatePCH.h"
 #include "PlainTextLayoutMarshaller.h"
 #include "TextBlockLayout.h"
+#include "ReflectionMetadata.h"
 
 DECLARE_CYCLE_STAT(TEXT("STextBlock::SetText Time"), Stat_SlateTextBlockSetText, STATGROUP_SlateVerbose)
 DECLARE_CYCLE_STAT(TEXT("STextBlock::OnPaint Time"), Stat_SlateTextBlockOnPaint, STATGROUP_SlateVerbose)
 DECLARE_CYCLE_STAT(TEXT("STextBlock::ComputeDesiredSize"), Stat_SlateTextBlockCDS, STATGROUP_SlateVerbose)
 DECLARE_CYCLE_STAT(TEXT("STextBlock::ComputeVolitility"), Stat_SlateTextBlockCV, STATGROUP_SlateVerbose)
 
+STextBlock::STextBlock()
+{
+	bCanTick = false;
+	bCanSupportFocus = false;
+}
+
+STextBlock::~STextBlock()
+{
+	// Needed to avoid "deletion of pointer to incomplete type 'FTextBlockLayout'; no destructor called" error when using TUniquePtr
+}
+
 void STextBlock::Construct( const FArguments& InArgs )
 {
-	TextStyle = InArgs._TextStyle;
+	TextStyle = *InArgs._TextStyle;
 
 	HighlightText = InArgs._HighlightText;
 	WrapTextAt = InArgs._WrapTextAt;
 	AutoWrapText = InArgs._AutoWrapText;
+	WrappingPolicy = InArgs._WrappingPolicy;
 	Margin = InArgs._Margin;
 	LineHeightPercentage = InArgs._LineHeightPercentage;
 	Justification = InArgs._Justification;
@@ -32,42 +45,39 @@ void STextBlock::Construct( const FArguments& InArgs )
 
 	BoundText = InArgs._Text;
 
-#if WITH_FANCY_TEXT
-
 	// We use a dummy style here (as it may not be safe to call the delegates used to compute the style), but the correct style is set by ComputeDesiredSize
-	TextLayoutCache = FTextBlockLayout::Create(FTextBlockStyle::GetDefault(), InArgs._TextShapingMethod, InArgs._TextFlowDirection, FPlainTextLayoutMarshaller::Create(), InArgs._LineBreakPolicy);
-
-#endif//WITH_FANCY_TEXT
+	TextLayoutCache = MakeUnique<FTextBlockLayout>(FTextBlockStyle::GetDefault(), InArgs._TextShapingMethod, InArgs._TextFlowDirection, FPlainTextLayoutMarshaller::Create(), InArgs._LineBreakPolicy);
+	TextLayoutCache->SetDebugSourceInfo(TAttribute<FString>::Create(TAttribute<FString>::FGetter::CreateLambda([this]{ return FReflectionMetaData::GetWidgetDebugInfo(this); })));
 }
 
 FSlateFontInfo STextBlock::GetFont() const
 {
-	return Font.IsSet() ? Font.Get() : TextStyle->Font;
+	return Font.IsSet() ? Font.Get() : TextStyle.Font;
 }
 
 FSlateColor STextBlock::GetColorAndOpacity() const
 {
-	return ColorAndOpacity.IsSet() ? ColorAndOpacity.Get() : TextStyle->ColorAndOpacity;
+	return ColorAndOpacity.IsSet() ? ColorAndOpacity.Get() : TextStyle.ColorAndOpacity;
 }
 
 FVector2D STextBlock::GetShadowOffset() const
 {
-	return ShadowOffset.IsSet() ? ShadowOffset.Get() : TextStyle->ShadowOffset;
+	return ShadowOffset.IsSet() ? ShadowOffset.Get() : TextStyle.ShadowOffset;
 }
 
 FLinearColor STextBlock::GetShadowColorAndOpacity() const
 {
-	return ShadowColorAndOpacity.IsSet() ? ShadowColorAndOpacity.Get() : TextStyle->ShadowColorAndOpacity;
+	return ShadowColorAndOpacity.IsSet() ? ShadowColorAndOpacity.Get() : TextStyle.ShadowColorAndOpacity;
 }
 
 FLinearColor STextBlock::GetHighlightColor() const
 {
-	return HighlightColor.IsSet() ? HighlightColor.Get() : TextStyle->HighlightColor;
+	return HighlightColor.IsSet() ? HighlightColor.Get() : TextStyle.HighlightColor;
 }
 
 const FSlateBrush* STextBlock::GetHighlightShape() const
 {
-	return HighlightShape.IsSet() ? HighlightShape.Get() : &TextStyle->HighlightShape;
+	return HighlightShape.IsSet() ? HighlightShape.Get() : &TextStyle.HighlightShape;
 }
 
 void STextBlock::SetText( const TAttribute< FString >& InText )
@@ -135,57 +145,12 @@ int32 STextBlock::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeom
 {
 	SCOPE_CYCLE_COUNTER(Stat_SlateTextBlockOnPaint);
 
-#if WITH_FANCY_TEXT
-
 	//FPlatformMisc::BeginNamedEvent(FColor::Orange, "STextBlock");
 
 	// OnPaint will also update the text layout cache if required
 	LayerId = TextLayoutCache->OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled(bParentEnabled));
 
 	//FPlatformMisc::EndNamedEvent();
-
-#else//WITH_FANCY_TEXT
-
-	// Simple stubbed version for when WITH_FANCY_TEXT is disabled (which should only ever be for testing purposes)
-	// Just draw the text as is, with no attempt at handling wrapping or highlighting
-	{
-		const FSlateRect ClippingRect = AllottedGeometry.GetClippingRect().IntersectionWith(MyClippingRect);
-		const ESlateDrawEffect::Type DrawEffects = ShouldBeEnabled(bParentEnabled) ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
-		const FLinearColor CurShadowColor = GetShadowColorAndOpacity();
-		const FVector2D CurShadowOffset = GetShadowOffset();
-		const bool ShouldDropShadow = CurShadowColor.A > 0.f && CurShadowOffset.SizeSquared() > 0.f;
-		const FSlateFontInfo FontInfo = GetFont();
-		const FText& TextToDraw = BoundText.Get(FText::GetEmpty());
-
-		// Draw the optional shadow
-		if (ShouldDropShadow)
-		{
-			FSlateDrawElement::MakeText(
-				OutDrawElements,
-				LayerId,
-				AllottedGeometry.ToPaintGeometry(CurShadowOffset, AllottedGeometry.Size),
-				TextToDraw,
-				FontInfo,
-				ClippingRect,
-				DrawEffects,
-				CurShadowColor * InWidgetStyle.GetColorAndOpacityTint()
-				);
-		}
-
-		// Draw the text itself
-		FSlateDrawElement::MakeText(
-			OutDrawElements,
-			++LayerId,
-			AllottedGeometry.ToPaintGeometry(),
-			TextToDraw,
-			FontInfo,
-			ClippingRect,
-			DrawEffects,
-			InWidgetStyle.GetColorAndOpacityTint() * GetColorAndOpacity().GetColor(InWidgetStyle)
-			);
-	}
-
-#endif//WITH_FANCY_TEXT
 
 	return LayerId;
 }
@@ -206,22 +171,12 @@ FReply STextBlock::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, cons
 FVector2D STextBlock::ComputeDesiredSize(float LayoutScaleMultiplier) const
 {
 	SCOPE_CYCLE_COUNTER(Stat_SlateTextBlockCDS);
-#if WITH_FANCY_TEXT
 
 	// ComputeDesiredSize will also update the text layout cache if required
 	const FVector2D TextSize = TextLayoutCache->ComputeDesiredSize(
-		FTextBlockLayout::FWidgetArgs(BoundText, HighlightText, WrapTextAt, AutoWrapText, Margin, LineHeightPercentage, Justification), 
+		FTextBlockLayout::FWidgetArgs(BoundText, HighlightText, WrapTextAt, AutoWrapText, WrappingPolicy, Margin, LineHeightPercentage, Justification),
 		LayoutScaleMultiplier, GetComputedTextStyle()
 		);
-
-#else//WITH_FANCY_TEXT
-
-	// Simple stubbed version for when WITH_FANCY_TEXT is disabled (which should only ever be for testing purposes)
-	// Just measure the text as is, with no attempt at handling wrapping
-	const TSharedRef<FSlateFontMeasure> FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-	const FVector2D TextSize = FontMeasureService->Measure(BoundText.Get(FText::GetEmpty()), GetFont());
-
-#endif//WITH_FANCY_TEXT
 
 	return FVector2D(FMath::Max(MinDesiredWidth.Get(0.0f), TextSize.X), TextSize.Y);
 }
@@ -249,7 +204,16 @@ void STextBlock::SetColorAndOpacity(const TAttribute<FSlateColor>& InColorAndOpa
 
 void STextBlock::SetTextStyle(const FTextBlockStyle* InTextStyle)
 {
-	TextStyle = InTextStyle;
+	if (InTextStyle)
+	{
+		TextStyle = *InTextStyle;
+	}
+	else
+	{
+		FArguments Defaults;
+		TextStyle = *Defaults._TextStyle;
+	}
+
 	Invalidate(EInvalidateWidget::Layout);
 }
 
@@ -274,6 +238,12 @@ void STextBlock::SetWrapTextAt(const TAttribute<float>& InWrapTextAt)
 void STextBlock::SetAutoWrapText(const TAttribute<bool>& InAutoWrapText)
 {
 	AutoWrapText = InAutoWrapText;
+	Invalidate(EInvalidateWidget::Layout);
+}
+
+void STextBlock::SetWrappingPolicy(const TAttribute<ETextWrappingPolicy>& InWrappingPolicy)
+{
+	WrappingPolicy = InWrappingPolicy;
 	Invalidate(EInvalidateWidget::Layout);
 }
 
@@ -315,7 +285,7 @@ void STextBlock::SetJustification(const TAttribute<ETextJustify::Type>& InJustif
 
 FTextBlockStyle STextBlock::GetComputedTextStyle() const
 {
-	FTextBlockStyle ComputedStyle = *TextStyle;
+	FTextBlockStyle ComputedStyle = TextStyle;
 	ComputedStyle.SetFont( GetFont() );
 	ComputedStyle.SetColorAndOpacity( GetColorAndOpacity() );
 	ComputedStyle.SetShadowOffset( GetShadowOffset() );

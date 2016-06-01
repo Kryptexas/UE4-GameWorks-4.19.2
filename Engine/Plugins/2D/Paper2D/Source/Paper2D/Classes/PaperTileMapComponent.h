@@ -64,7 +64,7 @@ private:
 	int32 UseSingleLayerIndex;
 
 	// Should we draw a single layer?
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=Rendering, meta=(InlineEditConditionToggle))
 	bool bUseSingleLayer;
 
 #if WITH_EDITOR

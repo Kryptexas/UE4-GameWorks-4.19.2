@@ -54,13 +54,13 @@ class ENGINE_API UMovementComponent : public UActorComponent
 	 * If this is null at startup and bAutoRegisterUpdatedComponent is true, the owning Actor's root component will automatically be set as our UpdatedComponent at startup.
 	 * @see bAutoRegisterUpdatedComponent, SetUpdatedComponent(), UpdatedPrimitive
 	 */
-	UPROPERTY(BlueprintReadOnly, DuplicateTransient, Category=MovementComponent)
+	UPROPERTY(BlueprintReadOnly, Transient, DuplicateTransient, Category=MovementComponent)
 	USceneComponent* UpdatedComponent;
 
 	/**
 	 * UpdatedComponent, cast as a UPrimitiveComponent. May be invalid if UpdatedComponent was null or not a UPrimitiveComponent.
 	 */
-	UPROPERTY(BlueprintReadOnly, DuplicateTransient, Category=MovementComponent)
+	UPROPERTY(BlueprintReadOnly, Transient, DuplicateTransient, Category=MovementComponent)
 	UPrimitiveComponent* UpdatedPrimitive;
 
 	/**
@@ -77,11 +77,11 @@ class ENGINE_API UMovementComponent : public UActorComponent
 	 * If true, movement will be constrained to a plane.
 	 * @see PlaneConstraintNormal, PlaneConstraintOrigin, PlaneConstraintAxisSetting
 	 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=PlanarMovement)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=PlanarMovement)
 	uint32 bConstrainToPlane:1;
 
 	/** If true and plane constraints are enabled, then the updated component will be snapped to the plane when first attached. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=PlanarMovement, meta=(editcondition=bConstrainToPlane))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=PlanarMovement, meta=(editcondition=bConstrainToPlane))
 	uint32 bSnapToPlaneAtStart:1;
 
 private:
@@ -96,7 +96,7 @@ private:
 	 * so that movement along the locked axis is not be possible.
 	 * @see SetPlaneConstraintAxisSetting
 	 */
-	UPROPERTY(EditDefaultsOnly, Category=PlanarMovement, meta=(editcondition=bConstrainToPlane))
+	UPROPERTY(EditAnywhere, Category=PlanarMovement, meta=(editcondition=bConstrainToPlane))
 	EPlaneConstraintAxisSetting PlaneConstraintAxisSetting;
 
 protected:
@@ -104,10 +104,10 @@ protected:
 	/**
 	 * The normal or axis of the plane that constrains movement, if bConstrainToPlane is enabled.
 	 * If for example you wanted to constrain movement to the X-Z plane (so that Y cannot change), the normal would be set to X=0 Y=1 Z=0.
-	 * This is recalculated whenever PlaneConstraintAxisSetting changes.
+	 * This is recalculated whenever PlaneConstraintAxisSetting changes. It is normalized once the component is registered with the game world.
 	 * @see bConstrainToPlane, SetPlaneConstraintNormal(), SetPlaneConstraintFromVectors()
 	 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=PlanarMovement, meta=(editcondition=bConstrainToPlane))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=PlanarMovement, meta=(editcondition=bConstrainToPlane))
 	FVector PlaneConstraintNormal;
 
 	/**
@@ -115,7 +115,7 @@ protected:
 	 * This defines the behavior of snapping a position to the plane, such as by SnapUpdatedComponentToPlane().
 	 * @see bConstrainToPlane, SetPlaneConstraintOrigin().
 	 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=PlanarMovement, meta=(editcondition=bConstrainToPlane))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=PlanarMovement, meta=(editcondition=bConstrainToPlane))
 	FVector PlaneConstraintOrigin;
 
 	/**
@@ -155,6 +155,7 @@ public:
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	virtual void RegisterComponentTickFunctions(bool bRegister) override;
 	virtual void PostLoad() override;
+	virtual void Serialize(FArchive& Ar) override;
 
 	/** Overridden to auto-register the updated component if it starts NULL, and we can find a root component on our owner. */
 	virtual void InitializeComponent() override;

@@ -352,8 +352,6 @@ public:
 			SetShaderValue(Context.RHICmdList, ShaderRHI, PrevViewProjMatrix, Context.View.ViewMatrices.GetViewRotationProjMatrix());
 		}
 
-		TRefCountPtr<IPooledRenderTarget> InputPooledElement = Context.Pass->GetInput(ePId_Input0)->GetOutput()->RequestInput();
-
 		// to mask out samples from outside of the view
 		{
 			FIntPoint BufferSize = FSceneRenderTargets::Get(Context.RHICmdList).GetBufferSizeXY();
@@ -422,6 +420,94 @@ public:
 VARIATION1(0)			VARIATION1(1)			VARIATION1(2)			VARIATION1(3)			VARIATION1(4)
 #undef VARIATION1
 
+
+class FPostProcessVisualizeMotionBlurPS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(FPostProcessVisualizeMotionBlurPS, Global);
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+	}
+
+	/** Default constructor. */
+	FPostProcessVisualizeMotionBlurPS() {}
+
+public:
+	FPostProcessPassParameters PostprocessParameter;
+	FDeferredPixelShaderParameters DeferredParameters;
+	FShaderParameter PrevViewProjMatrix;
+
+	/** Initialization constructor. */
+	FPostProcessVisualizeMotionBlurPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{
+		PostprocessParameter.Bind(Initializer.ParameterMap);
+		DeferredParameters.Bind(Initializer.ParameterMap);
+		PrevViewProjMatrix.Bind(Initializer.ParameterMap, TEXT("PrevViewProjMatrix"));
+	}
+
+	// FShader interface.
+	virtual bool Serialize(FArchive& Ar) override
+	{
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		Ar << PostprocessParameter << DeferredParameters << PrevViewProjMatrix;
+		return bShaderHasOutdatedParameters;
+	}
+
+	void SetParameters(const FRenderingCompositePassContext& Context)
+	{
+		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
+
+		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
+
+		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
+
+		SetUniformBufferParameter(Context.RHICmdList, ShaderRHI, GetUniformBufferParameter<FCameraMotionParameters>(), CreateCameraMotionParametersUniformBuffer(Context.View));
+
+		{
+			bool bFiltered = false;
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+			bFiltered = CVarMotionBlurFiltering.GetValueOnRenderThread() != 0;
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
+			if(bFiltered)
+			{
+				PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Border,AM_Border,AM_Clamp>::GetRHI());
+			}
+			else
+			{
+				PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Border,AM_Border,AM_Clamp>::GetRHI());
+			}
+		}
+		
+		if( Context.View.Family->EngineShowFlags.CameraInterpolation )
+		{
+			// Instead of finding the world space position of the current pixel, calculate the world space position offset by the camera position, 
+			// then translate by the difference between last frame's camera position and this frame's camera position,
+			// then apply the rest of the transforms.  This effectively avoids precision issues near the extents of large levels whose world space position is very large.
+			FVector ViewOriginDelta = Context.View.ViewMatrices.ViewOrigin - Context.View.PrevViewMatrices.ViewOrigin;
+			SetShaderValue(Context.RHICmdList, ShaderRHI, PrevViewProjMatrix, FTranslationMatrix(ViewOriginDelta) * Context.View.PrevViewRotationProjMatrix);
+		}
+		else
+		{
+			SetShaderValue(Context.RHICmdList, ShaderRHI, PrevViewProjMatrix, Context.View.ViewMatrices.GetViewRotationProjMatrix());
+		}
+	}
+
+	static const TCHAR* GetSourceFilename()
+	{
+		return TEXT("PostProcessMotionBlur");
+	}
+
+	static const TCHAR* GetFunctionName()
+	{
+		return TEXT("VisualizeMotionBlurPS");
+	}
+};
+
+IMPLEMENT_SHADER_TYPE3(FPostProcessVisualizeMotionBlurPS, SF_Pixel);
 
 
 // @param Quality 0: visualize, 1:low, 2:medium, 3:high, 4:very high
@@ -572,20 +658,13 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(const FRenderingCompositePassContext& Context, bool bBilinear)
+	void SetParameters(const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
 		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
 
-		if(bBilinear)
-		{
-			PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear, AM_Border, AM_Border, AM_Clamp>::GetRHI());
-		}
-		else
-		{
-			PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point, AM_Border, AM_Border, AM_Clamp>::GetRHI());
-		}
+		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear, AM_Border, AM_Border, AM_Clamp>::GetRHI());
 	}
 };
 
@@ -640,11 +719,8 @@ void FRCPassPostProcessMotionBlurRecombine::Process(FRenderingCompositePassConte
 	
 	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-	// with point filtering we can better debug in Visualize MotionBlur
-	const bool bBilinear = !View.Family->EngineShowFlags.VisualizeMotionBlur;
-
 	VertexShader->SetParameters(Context);
-	PixelShader->SetParameters(Context, bBilinear);
+	PixelShader->SetParameters(Context);
 
 	DrawPostProcessPass(
 		Context.RHICmdList,
@@ -745,7 +821,7 @@ public:
 		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
-		PostprocessParameter.SetCS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		PostprocessParameter.SetCS(ShaderRHI, Context, Context.RHICmdList, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
 		SetUniformBufferParameter(RHICmdList, ShaderRHI, GetUniformBufferParameter<FCameraMotionParameters>(), CreateCameraMotionParametersUniformBuffer(Context.View));
 
@@ -771,22 +847,12 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessVelocityFlattenCS,TEXT("PostProcessVelocityFl
 
 
 FRCPassPostProcessVelocityFlatten::FRCPassPostProcessVelocityFlatten()
-	: AsyncJobFenceID(-1)
 {}
 
 void FRCPassPostProcessVelocityFlatten::Process(FRenderingCompositePassContext& Context)
 {
 	SCOPED_DRAW_EVENT(Context.RHICmdList, VelocityFlatten);
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
-
-	if (AsyncJobFenceID != -1)
-	{
-		// If we run with AsyncCompute we use the same node twice, once to start the AsyncCompute and once to wait for the result.
-		// The later one is happening here.
-		Context.RHICmdList.GraphicsWaitOnAsyncComputeJob(AsyncJobFenceID);
-		AsyncJobFenceID = -1;
-		return;
-	}
 
 	if(!InputDesc)
 	{
@@ -802,15 +868,7 @@ void FRCPassPostProcessVelocityFlatten::Process(FRenderingCompositePassContext& 
 
 	TShaderMapRef< FPostProcessVelocityFlattenCS > ComputeShader( Context.GetShaderMap() );
 
-	const bool bAsyncComputeEnabled = IsAsyncComputeEnabled();
-
 	SetRenderTarget(Context.RHICmdList, FTextureRHIRef(), FTextureRHIRef());
-
-	if(bAsyncComputeEnabled)
-	{
-		// If AsyncCompute is enabled we start recording the commands for that
-		Context.RHICmdList.BeginAsyncComputeJob_DrawThread(AsyncComputePriority_Default);
-	}
 
 	Context.SetViewportAndCallRHI( View.ViewRect );
 	Context.RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
@@ -824,14 +882,6 @@ void FRCPassPostProcessVelocityFlatten::Process(FRenderingCompositePassContext& 
 	FIntPoint ThreadGroupCountValue = GetNumTiles16x16(View.ViewRect.Size());
 	DispatchComputeShader(Context.RHICmdList, *ComputeShader, ThreadGroupCountValue.X, ThreadGroupCountValue.Y, 1);
 
-#if USE_ASYNC_COMPUTE_CONTEXT
-	if ( AsyncJobFenceID != -1 )
-	{
-		Context.RHICmdList.GraphicsWaitOnAsyncComputeJob(AsyncJobFenceID);
-		AsyncJobFenceID = -1;
-	}
-#endif
-
 	//	void FD3D11DynamicRHI::RHIGraphicsWaitOnAsyncComputeJob( uint32 FenceIndex )
 	Context.RHICmdList.FlushComputeShaderCache();
 
@@ -841,22 +891,6 @@ void FRCPassPostProcessVelocityFlatten::Process(FRenderingCompositePassContext& 
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget0.TargetableTexture, DestRenderTarget0.ShaderResourceTexture, false, FResolveParams());
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget1.TargetableTexture, DestRenderTarget1.ShaderResourceTexture, false, FResolveParams());
-
-	// we want this pass to be executed another time
-	// so we do this: CompositeContext.Process(VelocityFlattenPass, TEXT("VelocityFlattenPass"));
-	// and this: bProcessWasCalled = false;
-	if(bAsyncComputeEnabled)
-	{
-		// we end recording the commands for AsyncCompute and get back a number to wait for it with GraphicsWaitOnAsyncComputeJob()
-		AsyncJobFenceID = Context.RHICmdList.EndAsyncComputeJob_DrawThread();
-
-		// mark it not processed so it gets executed a second time
-		bProcessWasCalled = false;
-
-		// we run this Process() two times and want to not get the dependencies processed twice (could be moved into the ComposingGraph iteration, slower but easier coding)
-		SetInput(ePId_Input0, FRenderingCompositeOutputRef());
-		SetInput(ePId_Input1, FRenderingCompositeOutputRef());
-	}
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessVelocityFlatten::ComputeOutputDesc(EPassOutputId InPassOutputId) const
@@ -1043,8 +1077,8 @@ void FRCPassPostProcessVelocityScatter::Process(FRenderingCompositePassContext& 
 
 	// clear depth
 	// Max >= Min so no need to clear on second pass
+	Context.RHICmdList.SetRenderTargetsAndClear(RTInfo);
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, TileCount.X, TileCount.Y, 1.0f);
-	Context.RHICmdList.SetRenderTargetsAndClear(RTInfo);			
 	
 	// Min,Max
 	for( int i = 0; i < 2; i++ )
@@ -1139,8 +1173,7 @@ public:
 
 		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
 
-		PostprocessParameter.SetCS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
-
+		PostprocessParameter.SetCS(ShaderRHI, Context, Context.RHICmdList, TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
 		SetShaderValue(Context.RHICmdList, ShaderRHI, MotionBlurParameters, GetMotionBlurParameters( Context.View ) );
 	}
 	
@@ -1463,12 +1496,17 @@ void FRCPassPostProcessVisualizeMotionBlur::Process(FRenderingCompositePassConte
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	// Quality 0: visualize
-	SetMotionBlurShaderTempl<0>(Context);
+	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessVisualizeMotionBlurPS> PixelShader(Context.GetShaderMap());
+
+	static FGlobalBoundShaderState BoundShaderState;
+	
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+
+	VertexShader->SetParameters(Context);
+	PixelShader->SetParameters(Context);
 
 	// Draw a quad mapping scene color to the view's render target
-	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
-
 	DrawRectangle(
 		Context.RHICmdList,
 		0, 0,
@@ -1504,7 +1542,7 @@ void FRCPassPostProcessVisualizeMotionBlur::Process(FRenderingCompositePassConte
 	FCanvas Canvas(&TempRenderTarget, NULL, ViewFamily.CurrentRealTime, ViewFamily.CurrentWorldTime, ViewFamily.DeltaWorldTime, Context.GetFeatureLevel());
 
 	float X = 20;
-	float Y = 8;
+	float Y = 38;
 	const float YStep = 14;
 	const float ColumnWidth = 200;
 

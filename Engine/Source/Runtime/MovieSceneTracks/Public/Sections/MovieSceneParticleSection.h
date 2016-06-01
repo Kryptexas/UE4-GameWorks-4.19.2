@@ -30,7 +30,7 @@ class UMovieSceneParticleSection
 {
 	GENERATED_UCLASS_BODY()
 
-	void AddKey(float Time, EParticleKey::Type KeyType);
+	MOVIESCENETRACKS_API void AddKey(float Time, EParticleKey::Type KeyType);
 
 	MOVIESCENETRACKS_API FIntegralCurve& GetParticleCurve();
 
@@ -39,10 +39,12 @@ class UMovieSceneParticleSection
 	*/
 	virtual void MoveSection( float DeltaPosition, TSet<FKeyHandle>& KeyHandles ) override;
 	virtual void DilateSection( float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles ) override;
-	virtual void GetKeyHandles( TSet<FKeyHandle>& KeyHandles ) const override;
+	virtual void GetKeyHandles( TSet<FKeyHandle>& OutKeyHandles, TRange<float> TimeRange ) const override;
+	virtual TOptional<float> GetKeyTime( FKeyHandle KeyHandle ) const override;
+	virtual void SetKeyTime( FKeyHandle KeyHandle, float Time ) override;
 
 private:
 	/** Curve containing the particle keys. */
-	UPROPERTY(EditAnywhere, Category="Particles")
+	UPROPERTY()
 	FIntegralCurve ParticleKeys;
 };

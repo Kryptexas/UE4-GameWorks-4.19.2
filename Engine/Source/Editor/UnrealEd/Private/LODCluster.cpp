@@ -12,6 +12,7 @@
 #include "MeshUtilities.h"
 #include "ObjectTools.h"
 #include "HierarchicalLODUtilities.h"
+#include "HierarchicalLODUtilitiesModule.h"
 #endif // WITH_EDITOR
 
 #include "GameFramework/WorldSettings.h"
@@ -272,7 +273,10 @@ ALODActor* FLODCluster::BuildActor(ULevel* InLevel, const int32 LODIdx, const bo
 		const int32 LODCount = InLevel->GetWorld()->GetWorldSettings()->HierarchicalLODSetup.Num();
 
 		// Where generated assets will be stored
-		UPackage* AssetsOuter = FHierarchicalLODUtilities::CreateOrRetrieveLevelHLODPackage(InLevel);
+		FHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<FHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");
+		IHierarchicalLODUtilities* Utilities = Module.GetUtilities();
+ 		UPackage* AssetsOuter = Utilities->CreateOrRetrieveLevelHLODPackage(InLevel);
+
 		if (AssetsOuter)
 		{
 			TArray<UStaticMeshComponent*> AllComponents;
@@ -283,7 +287,7 @@ ALODActor* FLODCluster::BuildActor(ULevel* InLevel, const int32 LODIdx, const bo
 
 				if (Actor->IsA<ALODActor>())
 				{
-					FHierarchicalLODUtilities::ExtractStaticMeshComponentsFromLODActor(Actor, Components);
+					Utilities->ExtractStaticMeshComponentsFromLODActor(Actor, Components);
 				}
 				else
 				{
@@ -315,10 +319,10 @@ ALODActor* FLODCluster::BuildActor(ULevel* InLevel, const int32 LODIdx, const bo
 
 			// Mark dirty according to whether or not this is a preview build
 			NewActor->SetIsDirty(!bCreateMeshes);
-
+			
 			if (bCreateMeshes)
 			{
-				FHierarchicalLODUtilities::BuildStaticMeshForLODActor(NewActor, AssetsOuter, LODSetup, LODIdx);
+				Utilities->BuildStaticMeshForLODActor(NewActor, AssetsOuter, LODSetup);
 			}
 			return NewActor;
 		}

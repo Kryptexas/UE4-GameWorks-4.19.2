@@ -604,6 +604,42 @@ FORCEINLINE VectorRegister VectorLoadByte4Reverse( const uint8* Ptr )
 #define VectorStoreByte4( Vec, Ptr )		DirectX::PackedVector::XMStoreUByte4( (DirectX::PackedVector::XMUBYTE4*)(Ptr), Vec )
 
 /**
+* Loads packed RGB10A2(4 bytes) from unaligned memory and converts them into 4 FLOATs.
+* IMPORTANT: You need to call VectorResetFloatRegisters() before using scalar FLOATs after you've used this intrinsic!
+*
+* @param Ptr			Unaligned memory pointer to the RGB10A2(4 bytes).
+* @return				VectorRegister with 4 FLOATs loaded from Ptr.
+*/
+#define VectorLoadURGB10A2N( Ptr )	DirectX::PackedVector::XMLoadUDecN4( (const DirectX::PackedVector::XMUDECN4*)(Ptr) )
+
+/**
+* Converts the 4 FLOATs in the vector RGB10A2, clamped to [0, 1023] and [0, 3], and stores to unaligned memory.
+* IMPORTANT: You need to call VectorResetFloatRegisters() before using scalar FLOATs after you've used this intrinsic!
+*
+* @param Vec			Vector containing 4 FLOATs
+* @param Ptr			Unaligned memory pointer to store the packed RGB10A2(4 bytes).
+*/
+#define VectorStoreURGB10A2N( Vec, Ptr )	DirectX::PackedVector::XMStoreUDecN4( (const DirectX::PackedVector::XMUDECN4*)(Ptr), Vec )
+
+/**
+* Loads packed RGBA16(4 bytes) from unaligned memory and converts them into 4 FLOATs.
+* IMPORTANT: You need to call VectorResetFloatRegisters() before using scalar FLOATs after you've used this intrinsic!
+*
+* @param Ptr			Unaligned memory pointer to the RGBA16(8 bytes).
+* @return				VectorRegister with 4 FLOATs loaded from Ptr.
+*/
+#define VectorLoadURGBA16N( Ptr )	DirectX::PackedVector::XMLoadUShortN4( (const DirectX::PackedVector::XMUSHORTN4*)(Ptr) )
+
+/**
+* Converts the 4 FLOATs in the vector RGBA16, clamped to [0, 65535], and stores to unaligned memory.
+* IMPORTANT: You need to call VectorResetFloatRegisters() before using scalar FLOATs after you've used this intrinsic!
+*
+* @param Vec			Vector containing 4 FLOATs
+* @param Ptr			Unaligned memory pointer to store the packed RGBA16(8 bytes).
+*/
+#define VectorStoreURGBA16N( Vec, Ptr )	DirectX::PackedVector::XMStoreUShortN4( (const DirectX::PackedVector::XMUSHORTN4*)(Ptr), Vec )
+
+/**
  * Returns non-zero if any element in Vec1 is greater than the corresponding element in Vec2, otherwise 0.
  *
  * @param Vec1			1st source vector

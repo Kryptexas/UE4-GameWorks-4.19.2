@@ -83,7 +83,7 @@ public:
 /** Default constructor. */
 FTriangleVertexFactory()
 {
-	FLocalVertexFactory::DataType Data;
+	FLocalVertexFactory::FDataType Data;
 	// position
 	Data.PositionComponent = FVertexStreamComponent(
 		&GTriangleRendererVertexBuffer, STRUCT_OFFSET(FMaterialTriangleVertex, Position), sizeof(FMaterialTriangleVertex), VET_Float3);

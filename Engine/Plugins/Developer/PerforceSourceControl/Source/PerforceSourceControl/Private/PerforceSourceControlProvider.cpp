@@ -121,18 +121,20 @@ void FPerforceSourceControlProvider::ParseCommandLineSettings(bool bForceConnect
 	FString UserName = PerforceSourceControl.AccessSettings().GetUserName();
 	FString ClientSpecName = PerforceSourceControl.AccessSettings().GetWorkspace();
 	FString HostOverrideName = PerforceSourceControl.AccessSettings().GetHostOverride();
+	FString Changelist = PerforceSourceControl.AccessSettings().GetChangelistNumber();
 	bFoundCmdLineSettings = FParse::Value(FCommandLine::Get(), TEXT("P4Port="), PortName);
 	bFoundCmdLineSettings |= FParse::Value(FCommandLine::Get(), TEXT("P4User="), UserName);
 	bFoundCmdLineSettings |= FParse::Value(FCommandLine::Get(), TEXT("P4Client="), ClientSpecName);
 	bFoundCmdLineSettings |= FParse::Value(FCommandLine::Get(), TEXT("P4Host="), HostOverrideName);
 	bFoundCmdLineSettings |= FParse::Value(FCommandLine::Get(), TEXT("P4Passwd="), Ticket);
-
+	bFoundCmdLineSettings |= FParse::Value(FCommandLine::Get(), TEXT("P4Changelist="), Changelist);
 	if(bFoundCmdLineSettings)
 	{
 		PerforceSourceControl.AccessSettings().SetPort(PortName);
 		PerforceSourceControl.AccessSettings().SetUserName(UserName);
 		PerforceSourceControl.AccessSettings().SetWorkspace(ClientSpecName);
 		PerforceSourceControl.AccessSettings().SetHostOverride(HostOverrideName);
+		PerforceSourceControl.AccessSettings().SetChangelistNumber(Changelist);
 	}
 	
 	if (bForceConnection)
@@ -349,17 +351,22 @@ void FPerforceSourceControlProvider::Tick()
 			// dump any messages to output log
 			OutputCommandMessages(Command);
 
-			// run the completion delegate if we have one bound
-			ECommandResult::Type Result = ECommandResult::Failed;
-			if(Command.bCommandSuccessful)
+			// If the command was cancelled while trying to connect, the operation complete delegate will already
+			// have been called. Otherwise, now we have to call it.
+			if (!Command.bCancelledWhileTryingToConnect)
 			{
-				Result = ECommandResult::Succeeded;
+				// run the completion delegate if we have one bound
+				ECommandResult::Type Result = ECommandResult::Failed;
+				if (Command.bCommandSuccessful)
+				{
+					Result = ECommandResult::Succeeded;
+				}
+				else if (Command.bCancelled)
+				{
+					Result = ECommandResult::Cancelled;
+				}
+				Command.OperationCompleteDelegate.ExecuteIfBound(Command.Operation, Result);
 			}
-			else if(Command.bCancelled)
-			{
-				Result = ECommandResult::Cancelled;
-			}
-			Command.OperationCompleteDelegate.ExecuteIfBound(Command.Operation, Result);
 
 			//commands that are left in the array during a tick need to be deleted
 			if(Command.bAutoDelete)
@@ -370,6 +377,21 @@ void FPerforceSourceControlProvider::Tick()
 
 			// only do one command per tick loop, as we dont want concurrent modification 
 			// of the command queue (which can happen in the completion delegate)
+			break;
+		}
+		// If a cancel is detected before the server has connected, abort immediately.
+		else if (Command.bCancelled && !Command.bConnectionWasSuccessful)
+		{
+			// Mark command as having been cancelled while trying to connect
+			Command.CancelWhileTryingToConnect();
+
+			// If this was a synchronous command, set it free so that it will be deleted automatically
+			// when its (still running) thread finally finishes
+			Command.bAutoDelete = true;
+
+			// run the completion delegate if we have one bound
+			Command.OperationCompleteDelegate.ExecuteIfBound(Command.Operation, ECommandResult::Cancelled);
+
 			break;
 		}
 	}
@@ -467,8 +489,8 @@ ECommandResult::Type FPerforceSourceControlProvider::ExecuteSynchronousCommand(F
 	// Perform the command asynchronously
 	IssueCommand( InCommand, false );
 
-	// Wait until the queue is empty. Only at this point is our command guaranteed to be removed from the queue
-	while(CommandQueue.Num() > 0)
+	// Wait until the command has been processed
+	while (!InCommand.bCancelledWhileTryingToConnect && CommandQueue.Contains(&InCommand))
 	{
 		// Tick the command queue and update progress.
 		Tick();
@@ -479,13 +501,13 @@ ECommandResult::Type FPerforceSourceControlProvider::ExecuteSynchronousCommand(F
 		FPlatformProcess::Sleep(0.01f);
 	}
 
-	if(InCommand.bCommandSuccessful)
-	{
-		Result = ECommandResult::Succeeded;
-	}
-	else if(InCommand.bCancelled)
+	if (InCommand.bCancelled)
 	{
 		Result = ECommandResult::Cancelled;
+	}
+	else if (InCommand.bCommandSuccessful)
+	{
+		Result = ECommandResult::Succeeded;
 	}
 
 	// If the command failed, inform the user that they need to try again
@@ -494,9 +516,11 @@ ECommandResult::Type FPerforceSourceControlProvider::ExecuteSynchronousCommand(F
 		FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("Perforce_ServerUnresponsive", "Perforce server is unresponsive. Please check your connection and try again.") );
 	}
 
-	// Delete the command now
-	check(!InCommand.bAutoDelete);
-	delete &InCommand;
+	// Delete the command now if not marked as auto-delete
+	if (!InCommand.bAutoDelete)
+	{
+		delete &InCommand;
+	}
 
 	return Result;
 }
@@ -536,18 +560,32 @@ void FPerforceSourceControlProvider::LoadSSLLibraries()
 #elif _MSC_VER >= 1800
 	const FString VSVersion = TEXT("VS2013/");
 #else
-	const FString VSVersion = TEXT("VS2012/");
+	#error "Unsupported Visual Studio version."
 #endif
 
 	const FString PlatformString = TEXT("Win64");
 	const FString RootOpenSSLPath = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/OpenSSL/") / PlatformString / VSVersion;
+	const FText LoadFailed = LOCTEXT("SourceControlLoadSSLLibraryFailed", "Failed to load \"{DLLPath}\". You may be unable to use SSL functionality with source control.");
 
 	FString DLLToLoad = RootOpenSSLPath + TEXT("libeay32.dll");
 	Module_libeay32 = LoadLibraryW(*DLLToLoad);
-	verifyf(Module_libeay32, TEXT("Failed to load DLL %s"), *DLLToLoad);
+
+	if(Module_libeay32 == nullptr)
+	{
+		FFormatNamedArguments Arguments;
+		Arguments.Add( TEXT("DLLPath"), FText::FromString(DLLToLoad) );
+		FMessageLog("SourceControl").Error(FText::Format(LoadFailed, Arguments));
+	}
+
 	DLLToLoad = RootOpenSSLPath + TEXT("ssleay32.dll");
 	Module_ssleay32 = LoadLibraryW(*DLLToLoad);
-	verifyf(Module_ssleay32, TEXT("Failed to load DLL %s"), *DLLToLoad);
+
+	if(Module_ssleay32 == nullptr)
+	{
+		FFormatNamedArguments Arguments;
+		Arguments.Add( TEXT("DLLPath"), FText::FromString(DLLToLoad) );
+		FMessageLog("SourceControl").Error(FText::Format(LoadFailed, Arguments));
+	}
 #endif
 #endif
 }

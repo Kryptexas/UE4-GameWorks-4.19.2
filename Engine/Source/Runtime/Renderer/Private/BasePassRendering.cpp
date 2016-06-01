@@ -6,6 +6,7 @@
 
 #include "RendererPrivate.h"
 #include "ScenePrivate.h"
+#include "PlanarReflectionSceneProxy.h"
 
 // Changing this causes a full shader recompile
 static TAutoConsoleVariable<int32> CVarSelectiveBasePassOutputs(
@@ -16,6 +17,12 @@ static TAutoConsoleVariable<int32> CVarSelectiveBasePassOutputs(
 	TEXT(" 1: Export only into relevant rendertarget.\n"),
 	ECVF_ReadOnly | ECVF_RenderThreadSafe);
 
+// Changing this causes a full shader recompile
+static TAutoConsoleVariable<int32> CVarGlobalClipPlane(
+	TEXT("r.AllowGlobalClipPlane"),
+	0,
+	TEXT("Enables mesh shaders to support a global clip plane, needed for planar reflections, which adds about 15% BasePass GPU cost on PS4."),
+	ECVF_ReadOnly | ECVF_RenderThreadSafe);
 
 bool UseSelectiveBasePassOutputs()
 {
@@ -114,20 +121,75 @@ void FSkyLightReflectionParameters::GetSkyParametersFromScene(
 	}
 }
 
-void FTranslucentLightingParameters::Set(FRHICommandList& RHICmdList, FShader* Shader, const FViewInfo* View)
+void FBasePassReflectionParameters::Set(FRHICommandList& RHICmdList, FPixelShaderRHIParamRef PixelShaderRHI, const FViewInfo* View)
 {
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
-	auto PixelShader = Shader->GetPixelShader();
 
-	TranslucentLightingVolumeParameters.Set(RHICmdList, PixelShader);
+	SkyLightReflectionParameters.SetParameters(RHICmdList, PixelShaderRHI, (const FScene*)(View->Family->Scene), true);
+}
 
-	SkyLightReflectionParameters.SetParameters(RHICmdList, Shader->GetPixelShader(), (const FScene*)(View->Family->Scene), true);
+void FBasePassReflectionParameters::SetMesh(FRHICommandList& RHICmdList, FPixelShaderRHIParamRef PixelShaderRHI, const FPrimitiveSceneProxy* Proxy, ERHIFeatureLevel::Type FeatureLevel)
+{
+	const FPrimitiveSceneInfo* PrimitiveSceneInfo = Proxy ? Proxy->GetPrimitiveSceneInfo() : NULL;
+	const FPlanarReflectionSceneProxy* ReflectionSceneProxy = NULL;
+
+	if (PrimitiveSceneInfo && PrimitiveSceneInfo->CachedPlanarReflectionProxy)
+	{
+		ReflectionSceneProxy = PrimitiveSceneInfo->CachedPlanarReflectionProxy;
+	}
+
+	PlanarReflectionParameters.SetParameters(RHICmdList, PixelShaderRHI, ReflectionSceneProxy);
+
+	// Note: GBlackCubeArrayTexture has an alpha of 0, which is needed to represent invalid data so the sky cubemap can still be applied
+	FTextureRHIParamRef CubeArrayTexture = FeatureLevel >= ERHIFeatureLevel::SM5 ? GBlackCubeArrayTexture->TextureRHI : GBlackTextureCube->TextureRHI;
+	int32 ArrayIndex = 0;
+	const FReflectionCaptureProxy* ReflectionProxy = PrimitiveSceneInfo ? PrimitiveSceneInfo->CachedReflectionCaptureProxy : nullptr;
+
+	FMatrix BoxTransformVal = FMatrix::Identity;
+	FVector4 PositionAndRadius = FVector::ZeroVector;
+	FVector4 BoxScalesVal = FVector::ZeroVector;
+	FVector CaptureOffsetVal = FVector::ZeroVector;
+	EReflectionCaptureShape::Type CaptureShape = EReflectionCaptureShape::Box;
+	
+
+	if (PrimitiveSceneInfo && ReflectionProxy)
+	{
+		PrimitiveSceneInfo->Scene->GetCaptureParameters(ReflectionProxy, CubeArrayTexture, ArrayIndex);
+		PositionAndRadius = FVector4(ReflectionProxy->Position, ReflectionProxy->InfluenceRadius);
+		CaptureShape = ReflectionProxy->Shape;
+		BoxTransformVal = ReflectionProxy->BoxTransform;
+		BoxScalesVal = ReflectionProxy->BoxScales;
+		CaptureOffsetVal = ReflectionProxy->CaptureOffset;
+	}
+
+	SetTextureParameter(
+		RHICmdList, 
+		PixelShaderRHI, 
+		ReflectionCubemap, 
+		ReflectionCubemapSampler, 
+		TStaticSamplerState<SF_Trilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
+		CubeArrayTexture);
+
+	SetShaderValue(RHICmdList, PixelShaderRHI, CubemapArrayIndex, ArrayIndex);
+	SetShaderValue(RHICmdList, PixelShaderRHI, ReflectionPositionAndRadius, PositionAndRadius);
+	SetShaderValue(RHICmdList, PixelShaderRHI, ReflectionShape, (float)CaptureShape);
+	SetShaderValue(RHICmdList, PixelShaderRHI, BoxTransform, BoxTransformVal);
+	SetShaderValue(RHICmdList, PixelShaderRHI, BoxScales, BoxScalesVal);
+	SetShaderValue(RHICmdList, PixelShaderRHI, CaptureOffset, CaptureOffsetVal);
+	
+}
+
+void FTranslucentLightingParameters::Set(FRHICommandList& RHICmdList, FPixelShaderRHIParamRef PixelShaderRHI, const FViewInfo* View)
+{
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+
+	TranslucentLightingVolumeParameters.Set(RHICmdList, PixelShaderRHI);
 
 	if (View->HZB)
 	{
 		SetTextureParameter(
 			RHICmdList, 
-			PixelShader, 
+			PixelShaderRHI, 
 			HZBTexture, 
 			HZBSampler, 
 			TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
@@ -143,7 +205,7 @@ void FTranslucentLightingParameters::Set(FRHICommandList& RHICmdList, FShader* S
 
 		SetTextureParameter(
 			RHICmdList, 
-			PixelShader, 
+			PixelShaderRHI, 
 			PrevSceneColor, 
 			PrevSceneColorSampler, 
 			TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
@@ -160,14 +222,14 @@ void FTranslucentLightingParameters::Set(FRHICommandList& RHICmdList, FShader* S
 			1.0f / HZBUvFactor.Y
 			);
 			
-		SetShaderValue(RHICmdList, PixelShader, HZBUvFactorAndInvFactor, HZBUvFactorAndInvFactorValue);
+		SetShaderValue(RHICmdList, PixelShaderRHI, HZBUvFactorAndInvFactor, HZBUvFactorAndInvFactorValue);
 	}
 	else
 	{
 		//set dummies for platforms that require bound resources.
 		SetTextureParameter(
 			RHICmdList,
-			PixelShader,
+			PixelShaderRHI,
 			HZBTexture,
 			HZBSampler,
 			TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(),
@@ -175,35 +237,12 @@ void FTranslucentLightingParameters::Set(FRHICommandList& RHICmdList, FShader* S
 
 		SetTextureParameter(
 			RHICmdList,
-			PixelShader,
+			PixelShaderRHI,
 			PrevSceneColor,
 			PrevSceneColorSampler,
 			TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(),
 			GBlackTexture->TextureRHI);
 	}
-}
-
-void FTranslucentLightingParameters::SetMesh(FRHICommandList& RHICmdList, FShader* Shader, const FPrimitiveSceneProxy* Proxy, ERHIFeatureLevel::Type FeatureLevel)
-{
-	// Note: GBlackCubeArrayTexture has an alpha of 0, which is needed to represent invalid data so the sky cubemap can still be applied
-	FTextureRHIParamRef CubeArrayTexture = FeatureLevel >= ERHIFeatureLevel::SM5 ? GBlackCubeArrayTexture->TextureRHI : GBlackTextureCube->TextureRHI;
-	int32 ArrayIndex = 0;
-	const FPrimitiveSceneInfo* PrimitiveSceneInfo = Proxy ? Proxy->GetPrimitiveSceneInfo() : NULL;
-
-	if (PrimitiveSceneInfo && PrimitiveSceneInfo->CachedReflectionCaptureProxy)
-	{
-		PrimitiveSceneInfo->Scene->GetCaptureParameters(PrimitiveSceneInfo->CachedReflectionCaptureProxy, CubeArrayTexture, ArrayIndex);
-	}
-
-	SetTextureParameter(
-		RHICmdList, 
-		Shader->GetPixelShader(), 
-		ReflectionCubemap, 
-		ReflectionCubemapSampler, 
-		TStaticSamplerState<SF_Trilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
-		CubeArrayTexture);
-
-	SetShaderValue(RHICmdList, Shader->GetPixelShader(), CubemapArrayIndex, ArrayIndex);
 }
 
 /** The action used to draw a base pass static mesh element. */
@@ -235,7 +274,7 @@ public:
 		return true;
 	}
 
-	/** Draws the translucent mesh with a specific light-map type, and fog volume type */
+	/** Draws the mesh with a specific light-map type */
 	template<typename LightMapPolicyType>
 	void Process(
 		FRHICommandList& RHICmdList,
@@ -244,16 +283,15 @@ public:
 		const typename LightMapPolicyType::ElementDataType& LightMapElementData
 		) const
 	{
-		FScene::EBasePassDrawListType DrawType = FScene::EBasePass_Default;
+		EBasePassDrawListType DrawType = EBasePass_Default;
 
 		if (StaticMesh->IsMasked(Parameters.FeatureLevel))
 		{
-			DrawType = FScene::EBasePass_Masked;
+			DrawType = EBasePass_Masked;
 		}
 
 		if (Scene)
 		{
-
 			// Find the appropriate draw list for the static mesh based on the light-map policy type.
 			TStaticMeshDrawList<TBasePassDrawingPolicy<LightMapPolicyType> >& DrawList =
 				Scene->GetBasePassDrawList<LightMapPolicyType>(DrawType);
@@ -272,7 +310,7 @@ public:
 				Parameters.TextureMode,
 				Parameters.ShadingModel != MSM_Unlit && Scene->SkyLight && Scene->SkyLight->bWantsStaticShadowing && !Scene->SkyLight->bHasStaticLighting,
 				IsTranslucentBlendMode(Parameters.BlendMode) && Scene->HasAtmosphericFog(),
-				/* bOverrideWithShaderComplexity = */ false,
+				/* DebugViewShaderMode = */ DVSM_None,
 				/* bInAllowGlobalFog = */ false,
 				/* bInEnableEditorPrimitiveDepthTest = */ false,
 				/* bInEnableReceiveDecalOutput = */ true
@@ -385,11 +423,10 @@ public:
 			Parameters.TextureMode,
 			Scene && Scene->SkyLight && !Scene->SkyLight->bHasStaticLighting && Scene->SkyLight->bWantsStaticShadowing && bIsLitMaterial,
 			IsTranslucentBlendMode(Parameters.BlendMode) && (Scene && Scene->HasAtmosphericFog()) && View.Family->EngineShowFlags.AtmosphericFog,
-			View.Family->EngineShowFlags.ShaderComplexity,
+			View.Family->GetDebugViewShaderMode(),
 			false,
 			Parameters.bEditorCompositeDepthTest,
-			/* bInEnableReceiveDecalOutput = */ Scene != nullptr,
-			View.Family->GetQuadOverdrawMode()
+			/* bInEnableReceiveDecalOutput = */ Scene != nullptr
 			);
 		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
 		DrawingPolicy.SetSharedState(RHICmdList, &View, typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType(Parameters.bIsInstancedStereo, false));

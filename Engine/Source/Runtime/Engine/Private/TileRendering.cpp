@@ -84,7 +84,7 @@ public:
 	/** Default constructor. */
 	FTileVertexFactory()
 	{
-		FLocalVertexFactory::DataType Data;
+		FLocalVertexFactory::FDataType Data;
 		// position
 		Data.PositionComponent = FVertexStreamComponent(
 			&GTileRendererVertexBuffer,STRUCT_OFFSET(FMaterialTileVertex,Position),sizeof(FMaterialTileVertex),VET_Float3);

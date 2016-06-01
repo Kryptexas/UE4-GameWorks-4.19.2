@@ -622,7 +622,7 @@ namespace APIDocTool
 
 		static bool BuildCodeTargetInfo(string TargetInfoPath, string EngineDir, string ArchivePath, BuildActions Actions)
 		{
-			if((Actions & BuildActions.Clean) != 0)
+			if ((Actions & BuildActions.Clean) != 0)
 			{
 				Console.WriteLine("Cleaning '{0}'", TargetInfoPath);
 				Utility.SafeDeleteFile(TargetInfoPath);

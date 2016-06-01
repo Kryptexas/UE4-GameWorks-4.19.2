@@ -9,15 +9,19 @@
 #include "FbxImporter.h"
 #include "STextComboBox.h"
 #include "PackageTools.h"
+#include "STextEntryPopup.h"
 
 #define LOCTEXT_NAMESPACE "SFbxReimportSceneStaticMeshListView"
 
-const FName CheckBoxSelectionHeaderIdName(TEXT("CheckBoxSelectionHeaderId"));
-const FName ClassIconHeaderIdName(TEXT("ClassIconHeaderId"));
-const FName AssetNameHeaderIdName(TEXT("AssetNameHeaderId"));
-const FName AssetStatusHeaderIdName(TEXT("AssetStatusHeaderId"));
-const FName ContentPathHeaderIdName(TEXT("ContentPathHeaderId"));
-const FName OptionNameHeaderIdName(TEXT("OptionNameHeaderId"));
+namespace FbxSceneReimportStaticMesh
+{
+	const FName CheckBoxSelectionHeaderIdName(TEXT("CheckBoxSelectionHeaderId"));
+	const FName ClassIconHeaderIdName(TEXT("ClassIconHeaderId"));
+	const FName AssetNameHeaderIdName(TEXT("AssetNameHeaderId"));
+	const FName AssetStatusHeaderIdName(TEXT("AssetStatusHeaderId"));
+	const FName ContentPathHeaderIdName(TEXT("ContentPathHeaderId"));
+	const FName OptionNameHeaderIdName(TEXT("OptionNameHeaderId"));
+}
 
 class SFbxMeshReimportItemTableListViewRow : public SMultiColumnTableRow<FbxMeshInfoPtr>
 {
@@ -25,9 +29,11 @@ public:
 	SLATE_BEGIN_ARGS(SFbxMeshReimportItemTableListViewRow)
 	: _FbxMeshInfo(nullptr)
 	, _MeshStatusMap(nullptr)
+	, _GlobalImportSettings(nullptr)
 	{}
 		SLATE_ARGUMENT(FbxMeshInfoPtr, FbxMeshInfo)
 		SLATE_ARGUMENT(FbxSceneReimportStatusMapPtr, MeshStatusMap)
+		SLATE_ARGUMENT(UnFbx::FBXImportOptions*, GlobalImportSettings)
 	SLATE_END_ARGS()
 
 
@@ -36,10 +42,12 @@ public:
 	{
 		FbxMeshInfo = InArgs._FbxMeshInfo;
 		MeshStatusMap = InArgs._MeshStatusMap;
+		GlobalImportSettings = InArgs._GlobalImportSettings;
 
 		//This is suppose to always be valid
 		check(FbxMeshInfo.IsValid());
 		check(MeshStatusMap != nullptr);
+		check(GlobalImportSettings != nullptr);
 
 		//Get item data
 		GetItemRowData();
@@ -60,13 +68,18 @@ public:
 	/** Overridden from SMultiColumnTableRow.  Generates a widget for this column of the list view. */
 	virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override
 	{
-		if (ColumnName == CheckBoxSelectionHeaderIdName)
+		if (ColumnName == FbxSceneReimportStaticMesh::CheckBoxSelectionHeaderIdName)
 		{
-			return SNew(SCheckBox)
-				.OnCheckStateChanged(this, &SFbxMeshReimportItemTableListViewRow::OnItemCheckChanged)
-				.IsChecked(this, &SFbxMeshReimportItemTableListViewRow::IsItemChecked);
+			return SNew(SBox)
+				.HAlign(HAlign_Center)
+				[
+					SNew(SCheckBox)
+					.OnCheckStateChanged(this, &SFbxMeshReimportItemTableListViewRow::OnItemCheckChanged)
+					.IsChecked(this, &SFbxMeshReimportItemTableListViewRow::IsItemChecked)
+					.IsEnabled(!FbxMeshInfo->bOriginalTypeChanged)
+				];
 		}
-		else if (ColumnName == ClassIconHeaderIdName && SlateBrush != nullptr)
+		else if (ColumnName == FbxSceneReimportStaticMesh::ClassIconHeaderIdName && SlateBrush != nullptr)
 		{
 			UClass *IconClass = FbxMeshInfo->GetType();
 			const FSlateBrush* ClassIcon = FClassIconFinder::FindIconForClass(IconClass);
@@ -92,31 +105,37 @@ public:
 				];
 				return IconContent;
 		}
-		else if (ColumnName == AssetNameHeaderIdName)
+		else if (ColumnName == FbxSceneReimportStaticMesh::AssetNameHeaderIdName)
 		{
 			return SNew(STextBlock)
 				.Text(FText::FromString(FbxMeshInfo->Name))
 				.ToolTipText(FText::FromString(FbxMeshInfo->Name));
 		}
-		else if (ColumnName == AssetStatusHeaderIdName)
+		else if (ColumnName == FbxSceneReimportStaticMesh::AssetStatusHeaderIdName)
 		{
 			return SNew(STextBlock)
 				.Text(this, &SFbxMeshReimportItemTableListViewRow::GetAssetStatus)
 				.ToolTipText(this, &SFbxMeshReimportItemTableListViewRow::GetAssetStatusTooltip);
 				
 		}
-		else if (ColumnName == ContentPathHeaderIdName)
+		else if (ColumnName == FbxSceneReimportStaticMesh::ContentPathHeaderIdName)
 		{
 			return SNew(STextBlock)
 				.Text(this, &SFbxMeshReimportItemTableListViewRow::GetAssetFullName)
 				.ColorAndOpacity(this, &SFbxMeshReimportItemTableListViewRow::GetContentPathTextColor)
 				.ToolTipText(this, &SFbxMeshReimportItemTableListViewRow::GetAssetFullName);
 		}
-		else if (ColumnName == OptionNameHeaderIdName)
+		else if (ColumnName == FbxSceneReimportStaticMesh::OptionNameHeaderIdName)
 		{
 			return SNew(STextBlock)
 				.Text(this, &SFbxMeshReimportItemTableListViewRow::GetOptionName)
 				.ToolTipText(this, &SFbxMeshReimportItemTableListViewRow::GetOptionName);
+		}
+		else if (ColumnName == FbxSceneBaseListViewColumn::PivotColumnId)
+		{
+			return SNew(STextBlock)
+				.Text(this, &SFbxMeshReimportItemTableListViewRow::GetAssetPivotNodeName)
+				.ToolTipText(this, &SFbxMeshReimportItemTableListViewRow::GetAssetPivotNodeName);
 		}
 
 		return SNullWidget::NullWidget;
@@ -172,8 +191,12 @@ private:
 		{
 			EFbxSceneReimportStatusFlags ReimportFlags = *MeshStatusMap->Find(FbxMeshInfo->OriginalImportPath);
 			//The remove only should not be possible this is why there is no remove only case
-
-			if ((ReimportFlags & EFbxSceneReimportStatusFlags::FoundContentBrowserAsset) == EFbxSceneReimportStatusFlags::None)
+			if (FbxMeshInfo->bOriginalTypeChanged)
+			{
+				AssetStatus = LOCTEXT("SFbxMeshReimportItemTableListViewRow_AssetTypeChanged", "Type Changed, no reimport").ToString();
+				AssetStatusTooltip = LOCTEXT("SFbxMeshReimportItemTableListViewRow_AssetTypeChangedTooltip", "This item type changed, we cannot reimport an asset of a different type").ToString();
+			}
+			else if ((ReimportFlags & EFbxSceneReimportStatusFlags::FoundContentBrowserAsset) == EFbxSceneReimportStatusFlags::None)
 			{
 				if ((ReimportFlags & EFbxSceneReimportStatusFlags::Added) != EFbxSceneReimportStatusFlags::None)
 				{
@@ -214,7 +237,7 @@ private:
 
 	void OnItemCheckChanged(ECheckBoxState CheckType)
 	{
-		if (!FbxMeshInfo.IsValid())
+		if (!FbxMeshInfo.IsValid() || FbxMeshInfo->bOriginalTypeChanged)
 			return;
 		if (MeshStatusMap->Contains(FbxMeshInfo->OriginalImportPath))
 		{
@@ -232,16 +255,22 @@ private:
 
 	ECheckBoxState IsItemChecked() const
 	{
-		if (MeshStatusMap->Contains(FbxMeshInfo->OriginalImportPath))
+		if (MeshStatusMap->Contains(FbxMeshInfo->OriginalImportPath) && !FbxMeshInfo->bOriginalTypeChanged)
 		{
 			return (*(MeshStatusMap->Find(FbxMeshInfo->OriginalImportPath)) & EFbxSceneReimportStatusFlags::ReimportAsset) != EFbxSceneReimportStatusFlags::None ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 		}
 		return ECheckBoxState::Unchecked;
 	}
 
+	FText GetAssetPivotNodeName() const
+	{
+		return GlobalImportSettings->bBakePivotInVertex ? FText::FromString(FbxMeshInfo->PivotNodeName) : FText::FromString(TEXT("-"));
+	}
+
 	/** The node info to build the tree view row from. */
 	FbxMeshInfoPtr FbxMeshInfo;
 	FbxSceneReimportStatusMapPtr MeshStatusMap;
+	UnFbx::FBXImportOptions *GlobalImportSettings;
 	
 	//Get item data
 	FString AssetStatus;
@@ -255,6 +284,7 @@ SFbxSceneStaticMeshReimportListView::~SFbxSceneStaticMeshReimportListView()
 	SceneInfo = nullptr;
 	SceneInfoOriginal = nullptr;
 	GlobalImportSettings = nullptr;
+	OverrideNameOptions = nullptr;
 	OverrideNameOptionsMap = nullptr;
 	SceneImportOptionsStaticMeshDisplay = nullptr;
 	MeshStatusMap = nullptr;
@@ -271,6 +301,7 @@ void SFbxSceneStaticMeshReimportListView::Construct(const SFbxSceneStaticMeshRei
 	SceneInfoOriginal = InArgs._SceneInfoOriginal;
 	MeshStatusMap = InArgs._MeshStatusMap;
 	GlobalImportSettings = InArgs._GlobalImportSettings;
+	OverrideNameOptions = InArgs._OverrideNameOptions;
 	OverrideNameOptionsMap = InArgs._OverrideNameOptionsMap;
 	SceneImportOptionsStaticMeshDisplay = InArgs._SceneImportOptionsStaticMeshDisplay;
 
@@ -278,6 +309,7 @@ void SFbxSceneStaticMeshReimportListView::Construct(const SFbxSceneStaticMeshRei
 	check(SceneInfoOriginal.IsValid());
 	check(MeshStatusMap != nullptr);
 	check(GlobalImportSettings != nullptr);
+	check(OverrideNameOptions != nullptr);
 	check(OverrideNameOptionsMap != nullptr);
 	check(SceneImportOptionsStaticMeshDisplay != nullptr);
 	
@@ -285,20 +317,32 @@ void SFbxSceneStaticMeshReimportListView::Construct(const SFbxSceneStaticMeshRei
 
 	for (auto kvp : *OverrideNameOptionsMap)
 	{
-		if (kvp.Key.Compare(UFbxSceneImportFactory::DefaultOptionName) == 0)
+		bool bNameExist = false;
+		for (TSharedPtr<FString> OverrideName : (*OverrideNameOptions))
 		{
-			OverrideNameOptions.Add(DefaultOptionNamePtr);
-			SFbxSceneOptionWindow::CopyFbxOptionsToFbxOptions(kvp.Value, GlobalImportSettings);
+			if (OverrideName.Get()->Compare(kvp.Key) == 0)
+			{
+				bNameExist = true;
+				break;
+			}
 		}
-		else
+		if (!bNameExist)
 		{
-			OverrideNameOptions.Add(MakeShareable(new FString(kvp.Key)));
+			if (kvp.Key.Compare(UFbxSceneImportFactory::DefaultOptionName) == 0)
+			{
+				OverrideNameOptions->Add(DefaultOptionNamePtr);
+				SFbxSceneOptionWindow::CopyFbxOptionsToFbxOptions(kvp.Value, GlobalImportSettings);
+			}
+			else
+			{
+				OverrideNameOptions->Add(MakeShareable(new FString(kvp.Key)));
+			}
 		}
 	}
 	//Set the default options to the current global import settings
 	GlobalImportSettings->bTransformVertexToAbsolute = false;
 	GlobalImportSettings->StaticMeshLODGroup = NAME_None;
-	CurrentStaticMeshImportOptions = GlobalImportSettings;
+	CurrentMeshImportOptions = GlobalImportSettings;
 
 	FbxMeshesArray.Empty();
 	FilterFbxMeshesArray.Empty();
@@ -309,7 +353,7 @@ void SFbxSceneStaticMeshReimportListView::Construct(const SFbxSceneStaticMeshRei
 
 	for (FbxMeshInfoPtr MeshInfo : SceneInfo->MeshInfo)
 	{
-		if (MeshInfo->bIsSkelMesh)
+		if (MeshInfo->bIsSkelMesh  || MeshInfo->IsLod || MeshInfo->IsCollision)
 		{
 			continue;
 		}
@@ -338,7 +382,7 @@ void SFbxSceneStaticMeshReimportListView::Construct(const SFbxSceneStaticMeshRei
 
 	for (FbxMeshInfoPtr OriginalMeshInfo : SceneInfoOriginal->MeshInfo)
 	{
-		if (OriginalMeshInfo->bIsSkelMesh)
+		if (OriginalMeshInfo->bIsSkelMesh || OriginalMeshInfo->IsLod || OriginalMeshInfo->IsCollision)
 		{
 			continue;
 		}
@@ -356,8 +400,29 @@ void SFbxSceneStaticMeshReimportListView::Construct(const SFbxSceneStaticMeshRei
 				break;
 			}
 		}
-		if (FoundMeshInfo.IsValid())
+		if (FoundMeshInfo.IsValid() && FoundMeshInfo->bOriginalTypeChanged)
 		{
+			//We dont reimport asset that have change their type
+			EFbxSceneReimportStatusFlags StatusFlag = EFbxSceneReimportStatusFlags::None;
+			MeshStatusMap->Add(FoundMeshInfo->OriginalImportPath, StatusFlag);
+		}
+		else if (FoundMeshInfo.IsValid())
+		{
+			//Set the old pivot information if we find one
+			FbxNodeInfoPtr OriginalPivotNode = FindNodeInfoByUid(OriginalMeshInfo->PivotNodeUid, SceneInfoOriginal);
+			if (OriginalPivotNode.IsValid())
+			{
+				for (FbxNodeInfoPtr NodeInfo : SceneInfo->HierarchyInfo)
+				{
+					if (OriginalPivotNode->NodeHierarchyPath.Compare(NodeInfo->NodeHierarchyPath) == 0)
+					{
+						FoundMeshInfo->PivotNodeUid = NodeInfo->UniqueId;
+						FoundMeshInfo->PivotNodeName = NodeInfo->NodeName;
+						break;
+					}
+				}
+			}
+
 			//We have a match
 			EFbxSceneReimportStatusFlags StatusFlag = EFbxSceneReimportStatusFlags::Same;
 			if (OriginalMeshInfo->GetContentObject() != nullptr)
@@ -403,8 +468,8 @@ void SFbxSceneStaticMeshReimportListView::Construct(const SFbxSceneStaticMeshRei
 			(
 				SNew(SHeaderRow)
 				
-				+ SHeaderRow::Column(CheckBoxSelectionHeaderIdName)
-				.FixedWidth(20)
+				+ SHeaderRow::Column(FbxSceneReimportStaticMesh::CheckBoxSelectionHeaderIdName)
+				.FixedWidth(26)
 				.DefaultLabel(FText::GetEmpty())
 				[
 					SNew(SCheckBox)
@@ -412,26 +477,26 @@ void SFbxSceneStaticMeshReimportListView::Construct(const SFbxSceneStaticMeshRei
 					.OnCheckStateChanged(this, &SFbxSceneStaticMeshReimportListView::OnToggleSelectAll)
 				]
 				
-				+ SHeaderRow::Column(ClassIconHeaderIdName)
+				+ SHeaderRow::Column(FbxSceneReimportStaticMesh::ClassIconHeaderIdName)
 				.FixedWidth(20)
 				.DefaultLabel(FText::GetEmpty())
 				
-				+ SHeaderRow::Column(AssetNameHeaderIdName)
+				+ SHeaderRow::Column(FbxSceneReimportStaticMesh::AssetNameHeaderIdName)
 				.FillWidth(250)
 				.HAlignCell(EHorizontalAlignment::HAlign_Left)
 				.DefaultLabel(LOCTEXT("AssetNameHeaderName", "Asset Name"))
 
-				+ SHeaderRow::Column(ContentPathHeaderIdName)
+				+ SHeaderRow::Column(FbxSceneReimportStaticMesh::ContentPathHeaderIdName)
 				.FillWidth(250)
 				.HAlignCell(EHorizontalAlignment::HAlign_Left)
 				.DefaultLabel(LOCTEXT("ContentPathHeaderName", "Content Path"))
 
-				+ SHeaderRow::Column(AssetStatusHeaderIdName)
+				+ SHeaderRow::Column(FbxSceneReimportStaticMesh::AssetStatusHeaderIdName)
 				.FillWidth(160)
 				.HAlignCell(EHorizontalAlignment::HAlign_Left)
 				.DefaultLabel(LOCTEXT("AssetStatusHeaderName", "Asset Status"))
 				
-				+ SHeaderRow::Column(OptionNameHeaderIdName)
+				+ SHeaderRow::Column(FbxSceneReimportStaticMesh::OptionNameHeaderIdName)
 				.FillWidth(100)
 				.HAlignCell(EHorizontalAlignment::HAlign_Left)
 				.DefaultLabel(LOCTEXT("AssetOptionNameHeaderName", "Option Name"))
@@ -443,7 +508,8 @@ TSharedRef< ITableRow > SFbxSceneStaticMeshReimportListView::OnGenerateRowFbxSce
 {
 	TSharedRef< SFbxMeshReimportItemTableListViewRow > ReturnRow = SNew(SFbxMeshReimportItemTableListViewRow, OwnerTable)
 		.FbxMeshInfo(Item)
-		.MeshStatusMap(MeshStatusMap);
+		.MeshStatusMap(MeshStatusMap)
+		.GlobalImportSettings(GlobalImportSettings);
 	return ReturnRow;
 }
 
@@ -452,82 +518,18 @@ void SFbxSceneStaticMeshReimportListView::OnChangedOverrideOptions(TSharedPtr<FS
 	check(ItemSelected.IsValid());
 	if (ItemSelected.Get()->Compare(UFbxSceneImportFactory::DefaultOptionName) == 0)
 	{
-		CurrentStaticMeshImportOptions = GlobalImportSettings;
+		CurrentMeshImportOptions = GlobalImportSettings;
 	}
 	else if (OverrideNameOptionsMap->Contains(*(ItemSelected)))
 	{
-		CurrentStaticMeshImportOptions = *OverrideNameOptionsMap->Find(*(ItemSelected));
+		CurrentMeshImportOptions = *OverrideNameOptionsMap->Find(*(ItemSelected));
 	}
-	SFbxSceneOptionWindow::CopyFbxOptionsToStaticMeshOptions(CurrentStaticMeshImportOptions, SceneImportOptionsStaticMeshDisplay);
-}
-
-FString SFbxSceneStaticMeshReimportListView::FindUniqueOptionName()
-{
-	int32 SuffixeIndex = 1;
-	bool bFoundSimilarName = true;
-	FString UniqueOptionName;
-	while (bFoundSimilarName)
-	{
-		UniqueOptionName = TEXT("Options ") + FString::FromInt(SuffixeIndex++);
-		bFoundSimilarName = false;
-		for (auto kvp : *(OverrideNameOptionsMap))
-		{
-			if (kvp.Key.Compare(UniqueOptionName) == 0)
-			{
-				bFoundSimilarName = true;
-				break;
-			}
-		}
-	}
-	return UniqueOptionName;
-}
-
-FReply SFbxSceneStaticMeshReimportListView::OnCreateOverrideOptions()
-{
-	UnFbx::FBXImportOptions *OverrideOption = new UnFbx::FBXImportOptions();
-	SFbxSceneOptionWindow::CopyFbxOptionsToFbxOptions(GlobalImportSettings, OverrideOption);
-
-	FString OverrideName = FindUniqueOptionName();
-	TSharedPtr<FString> OverrideNamePtr = MakeShareable(new FString(OverrideName));
-	OverrideNameOptions.Add(OverrideNamePtr);
-	OverrideNameOptionsMap->Add(OverrideName, OverrideOption);
-	//Update the selection to the new override
-	OptionComboBox->SetSelectedItem(OverrideNamePtr);
-	return FReply::Handled();
-}
-
-TSharedPtr<STextComboBox> SFbxSceneStaticMeshReimportListView::CreateOverrideOptionComboBox()
-{
-	OptionComboBox = SNew(STextComboBox)
-		.OptionsSource(&OverrideNameOptions)
-		.InitiallySelectedItem(DefaultOptionNamePtr)
-		.OnSelectionChanged(this, &SFbxSceneStaticMeshReimportListView::OnChangedOverrideOptions);
-	return OptionComboBox;
+	SFbxSceneOptionWindow::CopyFbxOptionsToStaticMeshOptions(CurrentMeshImportOptions, SceneImportOptionsStaticMeshDisplay);
 }
 
 void SFbxSceneStaticMeshReimportListView::OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent)
 {
-	SFbxSceneOptionWindow::CopyStaticMeshOptionsToFbxOptions(CurrentStaticMeshImportOptions, SceneImportOptionsStaticMeshDisplay);
-}
-
-void SFbxSceneStaticMeshReimportListView::OnSelectionChanged(FbxMeshInfoPtr Item, ESelectInfo::Type SelectionType)
-{
-	//Change the option selection
-	TArray<FbxMeshInfoPtr> SelectedItems;
-	GetSelectedItems(SelectedItems);
-	for (FbxMeshInfoPtr SelectItem : SelectedItems)
-	{
-		for (auto kvp : *OverrideNameOptionsMap)
-		{
-			if (kvp.Key.Compare(SelectItem->OptionName) == 0)
-			{
-				OptionComboBox->SetSelectedItem(FindOptionNameFromName(kvp.Key));
-				return;
-			}
-		}
-	}
-	//Select Default in case we don't have a valid OptionName
-	OptionComboBox->SetSelectedItem(FindOptionNameFromName(UFbxSceneImportFactory::DefaultOptionName));
+	SFbxSceneOptionWindow::CopyStaticMeshOptionsToFbxOptions(CurrentMeshImportOptions, SceneImportOptionsStaticMeshDisplay);
 }
 
 TSharedPtr<SWidget> SFbxSceneStaticMeshReimportListView::OnOpenContextMenu()
@@ -553,7 +555,6 @@ TSharedPtr<SWidget> SFbxSceneStaticMeshReimportListView::OnOpenContextMenu()
 	{
 		MenuBuilder.BeginSection("FbxImportScene_SM_Assign", LOCTEXT("FbxScene_SM_Assign", "Assign"));
 		{
-			MenuBuilder.AddMenuSeparator(TEXT("FbxImportScene_SM_Separator"));
 			if (SelectCount == 1)
 			{
 				MenuBuilder.AddMenuEntry(LOCTEXT("FbxImportScene_SM_Assign", "Assign existing static mesh..."), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(this, &SFbxSceneStaticMeshReimportListView::AssignToStaticMesh)));
@@ -565,6 +566,8 @@ TSharedPtr<SWidget> SFbxSceneStaticMeshReimportListView::OnOpenContextMenu()
 		}
 		MenuBuilder.EndSection();
 	}
+
+	AddBakePivotMenu(MenuBuilder);
 
 	bool bShowOptionMenu = false;
 	for (FbxMeshInfoPtr MeshInfo : SelectedItems)
@@ -579,7 +582,7 @@ TSharedPtr<SWidget> SFbxSceneStaticMeshReimportListView::OnOpenContextMenu()
 	{
 		MenuBuilder.BeginSection("FbxScene_SM_OptionsSection", LOCTEXT("FbxScene_SM_Options", "Options:"));
 		{
-			for (auto OptionName : OverrideNameOptions)
+			for (auto OptionName : (*OverrideNameOptions))
 			{
 				MenuBuilder.AddMenuEntry(FText::FromString(*OptionName.Get()), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(this, &SFbxSceneStaticMeshReimportListView::AssignToOptions, *OptionName.Get())));
 			}
@@ -587,39 +590,6 @@ TSharedPtr<SWidget> SFbxSceneStaticMeshReimportListView::OnOpenContextMenu()
 		MenuBuilder.EndSection();
 	}
 	return MenuBuilder.MakeWidget();
-}
-
-TSharedPtr<FString> SFbxSceneStaticMeshReimportListView::FindOptionNameFromName(FString OptionName)
-{
-	for (TSharedPtr<FString> OptionNamePtr : OverrideNameOptions)
-	{
-		if (OptionNamePtr->Compare(OptionName) == 0)
-		{
-			return OptionNamePtr;
-		}
-	}
-	return TSharedPtr<FString>();
-}
-
-void SFbxSceneStaticMeshReimportListView::AssignToOptions(FString OptionName)
-{
-	bool IsDefaultOptions = OptionName.Compare(UFbxSceneImportFactory::DefaultOptionName) == 0;
-	if (!OverrideNameOptionsMap->Contains(OptionName) && !IsDefaultOptions)
-	{
-		return;
-	}
-	TArray<FbxMeshInfoPtr> SelectedItems;
-	GetSelectedItems(SelectedItems);
-	for (FbxMeshInfoPtr MeshInfo : SelectedItems)
-	{
-		EFbxSceneReimportStatusFlags ReimportFlags = *MeshStatusMap->Find(MeshInfo->OriginalImportPath);
-		if ((ReimportFlags & EFbxSceneReimportStatusFlags::Removed) != EFbxSceneReimportStatusFlags::None)
-		{
-			continue;
-		}
-		MeshInfo->OptionName = OptionName;
-	}
-	OptionComboBox->SetSelectedItem(FindOptionNameFromName(OptionName));
 }
 
 void SFbxSceneStaticMeshReimportListView::AssignToStaticMesh()
@@ -699,16 +669,6 @@ void SFbxSceneStaticMeshReimportListView::ResetAssignToStaticMesh()
 			MeshStatusMap->Add(ItemPtr->OriginalImportPath, StatusFlag);
 		}
 	}
-}
-
-void SFbxSceneStaticMeshReimportListView::AddSelectionToImport()
-{
-	SetSelectionImportState(true);
-}
-
-void SFbxSceneStaticMeshReimportListView::RemoveSelectionFromImport()
-{
-	SetSelectionImportState(false);
 }
 
 void SFbxSceneStaticMeshReimportListView::SetSelectionImportState(bool MarkForImport)
@@ -802,7 +762,5 @@ void SFbxSceneStaticMeshReimportListView::UpdateFilterList()
 	}
 	this->RequestListRefresh();
 }
-//////////////////////////////////////////////////////////////////////////
-// Skeletal Mesh List
 
 #undef LOCTEXT_NAMESPACE

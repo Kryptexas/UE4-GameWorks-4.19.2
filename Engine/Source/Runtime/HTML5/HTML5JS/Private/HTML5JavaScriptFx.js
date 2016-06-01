@@ -117,7 +117,7 @@ var UE_JavaScriptLibary = {
     xhr.open(_verb, _url, true);
     xhr.responseType = 'arraybuffer';
 
-    // set all headers. 
+    // set all headers.
     var _headerArray = _headers.split("%");
     for(var headerArrayidx = 0; headerArrayidx < _headerArray.length; headerArrayidx++){
       var header = _headerArray[headerArrayidx].split(":");
@@ -161,7 +161,7 @@ var UE_JavaScriptLibary = {
 
     if (_verb === "POST") {
       var postData = Module.HEAP8.subarray(payload, payload + payloadsize);
- //    xhr.setRequestHeader("Connection", "close"); // NOTE: this now errors as of chrome 47.0.2526.80
+//    xhr.setRequestHeader("Connection", "close"); // NOTE: this now errors as of chrome 47.0.2526.80
       xhr.send(postData);
     } else {
       xhr.send(null);

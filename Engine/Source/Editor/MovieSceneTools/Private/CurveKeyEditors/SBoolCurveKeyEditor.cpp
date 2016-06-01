@@ -11,6 +11,7 @@ void SBoolCurveKeyEditor::Construct(const FArguments& InArgs)
 	Sequencer = InArgs._Sequencer;
 	OwningSection = InArgs._OwningSection;
 	Curve = InArgs._Curve;
+	OnValueChangedEvent = InArgs._OnValueChanged;
 	IntermediateValue = InArgs._IntermediateValue;
 	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
 	ChildSlot
@@ -56,15 +57,19 @@ void SBoolCurveKeyEditor::OnCheckStateChanged(ECheckBoxState NewCheckboxState)
 				OwningSection->SetEndTime(CurrentTime);
 			}
 		}
-
+		
+		int32 NewValue = NewCheckboxState == ECheckBoxState::Checked ? 1 : 0;
 		if (Curve->GetNumKeys() == 0)
 		{
-			Curve->SetDefaultValue(NewCheckboxState == ECheckBoxState::Checked ? 1 : 0);
+			Curve->SetDefaultValue(NewValue);
 		}
 		else
 		{
-			Curve->UpdateOrAddKey(CurrentTime, NewCheckboxState == ECheckBoxState::Checked ? 1 : 0);
+			Curve->UpdateOrAddKey(CurrentTime, NewValue);
 		}
+
+		OnValueChangedEvent.ExecuteIfBound(NewCheckboxState == ECheckBoxState::Checked);
+
 		Sequencer->UpdateRuntimeInstances();
 	}
 }

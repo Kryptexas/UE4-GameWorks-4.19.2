@@ -40,6 +40,7 @@ public:
 
 	virtual void BuildAddTrackMenu(FMenuBuilder& MenuBuilder) override;
 	virtual bool SupportsType(TSubclassOf<UMovieSceneTrack> Type) const override;
+	virtual const FSlateBrush* GetIconBrush() const override;
 
 private:
 

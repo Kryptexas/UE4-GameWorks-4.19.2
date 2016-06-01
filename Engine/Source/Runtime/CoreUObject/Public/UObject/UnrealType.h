@@ -106,7 +106,7 @@ public:
 
 	// UHT interface
 	void ExportCppDeclaration(FOutputDevice& Out, EExportedDeclaration::Type DeclarationType, const TCHAR* ArrayDimOverride = NULL, uint32 AdditionalExportCPPFlags = 0
-		, bool bSkipParameterName = false, const FString* ActualCppType = nullptr, const FString* ActualExtendedType = nullptr) const;
+		, bool bSkipParameterName = false, const FString* ActualCppType = nullptr, const FString* ActualExtendedType = nullptr, const FString* ActualParameterName = nullptr) const;
 	virtual FString GetCPPMacroType( FString& ExtendedTypeText ) const;
 	virtual bool PassCPPArgsByRef() const { return false; }
 
@@ -216,13 +216,16 @@ public:
 	 *
 	 * @param	Ar				the archive to use for serialization
 	 * @param	Data			pointer to the location of the beginning of the struct's property data
+	 * @param	ArrayIdx		if not -1 (default), only this array slot will be serialized
 	 */
-	void SerializeBinProperty( FArchive& Ar, void* Data )
+	void SerializeBinProperty( FArchive& Ar, void* Data, int32 ArrayIdx = -1 )
 	{
 		if( ShouldSerializeValue(Ar) )
 		{
 			FSerializedPropertyScope SerializedProperty(Ar, this);
-			for (int32 Idx = 0; Idx < ArrayDim; Idx++)
+			const int32 LoopMin = ArrayIdx < 0 ? 0 : ArrayIdx;
+			const int32 LoopMax = ArrayIdx < 0 ? ArrayDim : ArrayIdx + 1;
+			for (int32 Idx = LoopMin; Idx < LoopMax; Idx++)
 			{
 				// Keep setting the property in case something inside of SerializeItem changes it
 				Ar.SetSerializedProperty(this);
@@ -876,7 +879,7 @@ public:
 		*GetPropertyValuePtr(A) = Value;
 	}
 	/** Initialize the value of a property at an address, this assumes over uninitialized memory */
-	static FORCEINLINE TCppType* IntializePropertyValue(void* A)
+	static FORCEINLINE TCppType* InitializePropertyValue(void* A)
 	{
 		return new (A) TCppType();
 	}
@@ -965,7 +968,7 @@ public:
 	}
 	virtual void InitializeValueInternal( void* Dest ) const override
 	{
-		TTypeFundamentals::IntializePropertyValue(Dest);
+		TTypeFundamentals::InitializePropertyValue(Dest);
 	}
 	virtual void DestroyValueInternal( void* Dest ) const override
 	{
@@ -1472,6 +1475,29 @@ class COREUOBJECT_API UUInt64Property : public TProperty_Numeric<uint64>
 	}
 };
 
+
+/*-----------------------------------------------------------------------------
+	Aliases for implicitly-sized integer properties.
+-----------------------------------------------------------------------------*/
+
+namespace UE4Types_Private
+{
+	template <typename IntType> struct TIntegerPropertyMapping;
+
+	template <> struct TIntegerPropertyMapping<int8>   { typedef UInt8Property   Type; };
+	template <> struct TIntegerPropertyMapping<int16>  { typedef UInt16Property  Type; };
+	template <> struct TIntegerPropertyMapping<int32>  { typedef UIntProperty    Type; };
+	template <> struct TIntegerPropertyMapping<int64>  { typedef UInt64Property  Type; };
+	template <> struct TIntegerPropertyMapping<uint8>  { typedef UByteProperty   Type; };
+	template <> struct TIntegerPropertyMapping<uint16> { typedef UUInt16Property Type; };
+	template <> struct TIntegerPropertyMapping<uint32> { typedef UUInt32Property Type; };
+	template <> struct TIntegerPropertyMapping<uint64> { typedef UUInt64Property Type; };
+}
+
+typedef UE4Types_Private::TIntegerPropertyMapping<signed int>::Type UUnsizedIntProperty;
+typedef UE4Types_Private::TIntegerPropertyMapping<unsigned int>::Type UUnsizedUIntProperty;
+
+
 /*-----------------------------------------------------------------------------
 	UFloatProperty.
 -----------------------------------------------------------------------------*/
@@ -1903,6 +1929,7 @@ class COREUOBJECT_API UObjectProperty : public TUObjectPropertyBase<UObject*>
 	// UProperty interface
 	virtual void SerializeItem( FArchive& Ar, void* Value, void const* Defaults ) const override;
 	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset) override;
+	virtual const TCHAR* ImportText_Internal(const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText) const override;
 
 private:
 	virtual uint32 GetValueTypeHashInternal(const void* Src) const override
@@ -2366,6 +2393,9 @@ public:
 		return GetTypeHash(*(const FString*)Src);
 	}
 	// End of UProperty interface
+
+	// Necessary to fix Compiler Error C2026
+	static FString ExportCppHardcodedText(const FString& InSource, const FString& Indent);
 };
 
 /*-----------------------------------------------------------------------------
@@ -2626,7 +2656,7 @@ public:
 		return AddValues(1);
 	}
 	/**
-	*	Add unintialized values to the end of the array.
+	*	Add uninitialized values to the end of the array.
 	*	@param	Count: the number of items to insert.
 	*	@return	the index of the first newly added item.
 	**/
@@ -3387,6 +3417,43 @@ protected:
 
 	const TCHAR* ImportText_Add( const TCHAR* Buffer, void* PropertyValue, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText ) const;
 	const TCHAR* ImportText_Remove( const TCHAR* Buffer, void* PropertyValue, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText ) const;
+};
+
+
+/** Describes a single node in a custom property list. */
+struct COREUOBJECT_API FCustomPropertyListNode
+{
+	/** The property that's being referenced at this node. */
+	UProperty* Property;
+
+	/** Used to identify which array index is specifically being referenced if this is an array property. Defaults to 0. */
+	int32 ArrayIndex;
+
+	/** If this node represents a struct property, this may contain a "sub" property list for the struct itself. */
+	struct FCustomPropertyListNode* SubPropertyList;
+
+	/** Points to the next node in the list. */
+	struct FCustomPropertyListNode* PropertyListNext;
+
+	/** Default constructor. */
+	FCustomPropertyListNode(UProperty* InProperty = nullptr, int32 InArrayIndex = 0)
+		:Property(InProperty)
+		, ArrayIndex(InArrayIndex)
+		, SubPropertyList(nullptr)
+		, PropertyListNext(nullptr)
+	{
+	}
+
+	/** Convenience method to return the next property in the list and advance the given ptr. */
+	FORCEINLINE static UProperty* GetNextPropertyAndAdvance(const FCustomPropertyListNode*& Node)
+	{
+		if (Node)
+		{
+			Node = Node->PropertyListNext;
+		}
+
+		return Node ? Node->Property : nullptr;
+	}
 };
 
 

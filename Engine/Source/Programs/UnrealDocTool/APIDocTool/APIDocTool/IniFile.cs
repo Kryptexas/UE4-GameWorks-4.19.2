@@ -12,7 +12,7 @@ namespace APIDocTool
 	public class IniSection
 	{
 		public string Name;
-		public Dictionary<string, string> Values = new Dictionary<string,string>();
+		public Dictionary<string, string> Values = new Dictionary<string, string>();
 
 		public IniSection(string InName)
 		{
@@ -67,7 +67,7 @@ namespace APIDocTool
 				if (Section != null)
 				{
 					string Value = Section.Find(KeyPath.Substring(EndIndex + 1));
-					if(Value != null) return Value;
+					if (Value != null) return Value;
 				}
 			}
 			return null;
@@ -76,7 +76,7 @@ namespace APIDocTool
 		public string FindValueOrDefault(string KeyPath, string DefaultValue)
 		{
 			string Value = FindValue(KeyPath);
-			return (Value != null)? Value : DefaultValue;
+			return (Value != null) ? Value : DefaultValue;
 		}
 
 		public IniSection FindSection(string Name)
@@ -118,7 +118,7 @@ namespace APIDocTool
 							CurrentSection = new IniSection(Name);
 
 							InputIniFile.Sections.Add(CurrentSection);
-							if(InputIniFile.NameToSection.ContainsKey(Name.ToLowerInvariant()))
+							if (InputIniFile.NameToSection.ContainsKey(Name.ToLowerInvariant()))
 							{
 								Console.WriteLine("{0} has already been added", Name);
 							}
@@ -130,7 +130,7 @@ namespace APIDocTool
 
 							// Split the line into key/value
 							int ValueIdx = Line.IndexOf('=');
-							if(ValueIdx == -1)
+							if (ValueIdx == -1)
 							{
 								Key = Line;
 								Value = "";
@@ -142,7 +142,7 @@ namespace APIDocTool
 							}
 
 							// If it's an append operation, add the existing value
-							if(Key.Length > 0 && Key[0] == '+')
+							if (Key.Length > 0 && Key[0] == '+')
 							{
 								CurrentSection.Append(Key.Substring(1), Value);
 							}

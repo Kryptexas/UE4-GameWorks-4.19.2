@@ -324,10 +324,11 @@ void APawn::TurnOff()
 	// do not block anything, just ignore
 	SetActorEnableCollision(false);
 
-	if (GetMovementComponent())
+	UPawnMovementComponent* MovementComponent = GetMovementComponent();
+	if (MovementComponent)
 	{
-		GetMovementComponent()->StopMovementImmediately();
-		GetMovementComponent()->SetComponentTickEnabled(false);
+		MovementComponent->StopMovementImmediately();
+		MovementComponent->SetComponentTickEnabled(false);
 	}
 
 	DisableComponentsSimulatePhysics();
@@ -562,14 +563,7 @@ void APawn::DestroyPlayerInputComponent()
 
 bool APawn::IsMoveInputIgnored() const
 {
-	const APlayerController* PCOwner = Cast<const APlayerController>(Controller);
-	if (PCOwner && PCOwner->IsMoveInputIgnored())
-	{
-		return true;
-	}
-
-	// No player controller or not ignoring input. We allow non-PCs to receive input, so AI can use the movement input system.
-	return false;
+	return Controller != nullptr && Controller->IsMoveInputIgnored();
 }
 
 
@@ -671,9 +665,10 @@ void APawn::AddControllerRollInput(float Val)
 
 void APawn::Restart()
 {
-	if (GetMovementComponent())
+	UPawnMovementComponent* MovementComponent = GetMovementComponent();
+	if (MovementComponent)
 	{
-		GetMovementComponent()->StopMovementImmediately();
+		MovementComponent->StopMovementImmediately();
 	}
 	ConsumeMovementInputVector();
 	RecalculateBaseEyeHeight();
@@ -949,10 +944,10 @@ void APawn::TeleportSucceeded(bool bIsATest)
 {
 	if (bIsATest == false)
 	{
-		UMovementComponent* const MoveComponent = GetMovementComponent();
-		if (MoveComponent)
+		UPawnMovementComponent* MovementComponent = GetMovementComponent();
+		if (MovementComponent)
 		{
-			MoveComponent->OnTeleported();
+			MovementComponent->OnTeleported();
 		}
 	}
 
@@ -981,9 +976,10 @@ void APawn::PostNetReceiveVelocity(const FVector& NewVelocity)
 {
 	if (Role == ROLE_SimulatedProxy)
 	{
-		if ( GetMovementComponent() )
+		UMovementComponent* const MoveComponent = GetMovementComponent();
+		if ( MoveComponent )
 		{
-			GetMovementComponent()->Velocity = NewVelocity;
+			MoveComponent->Velocity = NewVelocity;
 		}
 	}
 }
@@ -1100,5 +1096,6 @@ void APawn::PawnMakeNoise(float Loudness, FVector NoiseLocation, bool bUseNoiseM
 
 const FNavAgentProperties& APawn::GetNavAgentPropertiesRef() const
 {
-	return GetMovementComponent() ? GetMovementComponent()->GetNavAgentPropertiesRef() : FNavAgentProperties::DefaultProperties;
+	UPawnMovementComponent* MovementComponent = GetMovementComponent();
+	return MovementComponent ? MovementComponent->GetNavAgentPropertiesRef() : FNavAgentProperties::DefaultProperties;
 }

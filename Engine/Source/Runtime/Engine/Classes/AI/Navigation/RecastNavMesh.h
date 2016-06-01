@@ -111,7 +111,7 @@ struct ENGINE_API FNavMeshPath : public FNavigationPath
 
 	void ApplyFlags(int32 NavDataFlags);
 
-	void Reset();
+	virtual void ResetForRepath() override;
 
 	/** get flags of path point or corridor poly (depends on bStringPulled flag) */
 	bool GetNodeFlags(int32 NodeIdx, FNavMeshNodeFlags& Flags) const;
@@ -154,6 +154,8 @@ struct ENGINE_API FNavMeshPath : public FNavigationPath
 
 private:
 	bool DoesPathIntersectBoxImplementation(const FBox& Box, const FVector& StartLocation, uint32 StartingIndex, int32* IntersectingSegmentIndex, FVector* AgentExtent) const;
+	void InternalResetNavMeshPath();
+
 public:
 
 #if ENABLE_VISUAL_LOG
@@ -642,11 +644,13 @@ public:
 		int32 CorridorPolysCount;
 		float HitTime;
 		FVector HitNormal;
+		uint32 bIsRaycastEndInCorridor : 1;
 
 		FRaycastResult()
 			: CorridorPolysCount(0)
 			, HitTime(FLT_MAX)
 			, HitNormal(0.f)
+			, bIsRaycastEndInCorridor(false)
 		{
 			FMemory::Memzero(CorridorPolys);
 			FMemory::Memzero(CorridorCost);
@@ -654,7 +658,7 @@ public:
 
 		FORCEINLINE int32 GetMaxCorridorSize() const { return MAX_PATH_CORRIDOR_POLYS; }
 		FORCEINLINE bool HasHit() const { return HitTime != FLT_MAX; }
-		FORCEINLINE NavNodeRef GetLastNodeRef() const { return CorridorPolysCount > 0 ? CorridorPolys[CorridorPolysCount] : INVALID_NAVNODEREF; }
+		FORCEINLINE NavNodeRef GetLastNodeRef() const { return CorridorPolysCount > 0 ? CorridorPolys[CorridorPolysCount - 1] : INVALID_NAVNODEREF; }
 	};
 
 	//----------------------------------------------------------------------//
@@ -692,7 +696,6 @@ public:
 	//~ Begin UObject Interface
 	virtual void PostInitProperties() override;
 	virtual void PostLoad() override;
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;	
 
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
@@ -875,8 +878,9 @@ public:
 	/** Returns nearest navmesh polygon to Loc, or INVALID_NAVMESHREF if Loc is not on the navmesh. */
 	NavNodeRef FindNearestPoly(FVector const& Loc, FVector const& Extent, FSharedConstNavQueryFilter Filter = NULL, const UObject* Querier = NULL) const;
 
-	/** Finds the distance to the closest wall, limited to MaxDistance */
-	float FindDistanceToWall(const FVector& StartLoc, FSharedConstNavQueryFilter Filter = nullptr, float MaxDistance = FLT_MAX) const;
+	/** Finds the distance to the closest wall, limited to MaxDistance
+	 *	[out] OutClosestPointOnWall, if supplied, will be set to closest point on closest wall. Will not be set if no wall in the area (return value 0.f) */
+	float FindDistanceToWall(const FVector& StartLoc, FSharedConstNavQueryFilter Filter = nullptr, float MaxDistance = FLT_MAX, FVector* OutClosestPointOnWall = nullptr) const;
 
 	/** Retrieves center of the specified polygon. Returns false on error. */
 	bool GetPolyCenter(NavNodeRef PolyID, FVector& OutCenter) const;

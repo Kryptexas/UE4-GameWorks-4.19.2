@@ -31,6 +31,12 @@ private:
 	/** Get the suffix to display after the custom entry box. */
 	FText GetCustomSuffix() const;
 
+	/** Get whether the loop reset button should be visible. */
+	EVisibility GetLoopResetVisibility() const;
+
+	/** Called when the "Reset to Default" button for the loop mode has been clicked. */
+	FReply OnLoopResetClicked();
+
 	/** Array of loop modes. */
 	struct FLoopMode
 	{

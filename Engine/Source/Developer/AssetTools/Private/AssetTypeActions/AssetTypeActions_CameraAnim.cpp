@@ -12,8 +12,6 @@
 #include "Camera/CameraActor.h"
 #include "GameFramework/Pawn.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogCameraAnim, Log, All);
-
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
 void FAssetTypeActions_CameraAnim::CreateMatineeActorForCameraAnim(UCameraAnim* InCameraAnim)

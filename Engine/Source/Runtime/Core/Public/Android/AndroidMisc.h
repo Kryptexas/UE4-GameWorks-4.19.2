@@ -33,6 +33,38 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 	static EAppReturnType::Type MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption );
 	static bool ControlScreensaver(EScreenSaverAction Action);
 	static bool AllowRenderThread();
+	static bool HasPlatformFeature(const TCHAR* FeatureName);
+
+	static bool AllowThreadHeartBeat()
+	{
+		return false;
+	}
+
+	struct FCPUStatTime{
+		uint64_t			TotalTime;
+		uint64_t			UserTime;
+		uint64_t			NiceTime;
+		uint64_t			SystemTime;
+		uint64_t			SoftIRQTime;
+		uint64_t			IRQTime;
+		uint64_t			IdleTime;
+		uint64_t			IOWaitTime;
+	};
+
+	struct FCPUState
+	{
+		int32						CoreCount;
+		int32						ActivatedCoreCount;
+		ANSICHAR					Name[5];
+		FAndroidMisc::FCPUStatTime	CurrentUsage[8]; //Core count 8 is maximum for now
+		FAndroidMisc::FCPUStatTime	PreviousUsage[8];
+		int32						Status[8];
+		double						Utilization[8];
+		double						AverageUtilization;
+		
+	};
+
+	static FCPUState& GetCPUState();
 	static int32 NumberOfCores();
 	static void LoadPreInitModules();
 	static void BeforeRenderThreadStarts();
@@ -87,6 +119,7 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 	static bool SupportsFloatingPointRenderTargets();
 	static bool SupportsShaderFramebufferFetch();
 	static int GetAndroidBuildVersion();
+	static bool ShouldUseVulkan();
 
 #if !UE_BUILD_SHIPPING
 	static bool IsDebuggerPresent();

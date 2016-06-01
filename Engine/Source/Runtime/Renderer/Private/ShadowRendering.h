@@ -346,20 +346,22 @@ public:
 	}
 
 	//~ Begin FMeshDrawingPolicy Interface.
-	bool Matches(const FShadowDepthDrawingPolicy& Other) const
+	FDrawingPolicyMatchResult Matches(const FShadowDepthDrawingPolicy& Other) const
 	{
-		return FMeshDrawingPolicy::Matches(Other) 
-			&& VertexShader == Other.VertexShader
-			&& GeometryShader == Other.GeometryShader
-			&& HullShader == Other.HullShader
-			&& DomainShader == Other.DomainShader
-			&& PixelShader == Other.PixelShader
-			&& bDirectionalLight == Other.bDirectionalLight
-			&& bReverseCulling == Other.bReverseCulling
-			&& bOnePassPointLightShadow == Other.bOnePassPointLightShadow
-			&& bUsePositionOnlyVS == Other.bUsePositionOnlyVS
-			&& bPreShadow == Other.bPreShadow
-			&& FeatureLevel == Other.FeatureLevel;
+		DRAWING_POLICY_MATCH_BEGIN
+			DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other)) && 
+			DRAWING_POLICY_MATCH(VertexShader == Other.VertexShader) &&
+			DRAWING_POLICY_MATCH(GeometryShader == Other.GeometryShader) &&
+			DRAWING_POLICY_MATCH(HullShader == Other.HullShader) &&
+			DRAWING_POLICY_MATCH(DomainShader == Other.DomainShader) &&
+			DRAWING_POLICY_MATCH(PixelShader == Other.PixelShader) &&
+			DRAWING_POLICY_MATCH(bDirectionalLight == Other.bDirectionalLight) &&
+			DRAWING_POLICY_MATCH(bReverseCulling == Other.bReverseCulling) &&
+			DRAWING_POLICY_MATCH(bOnePassPointLightShadow == Other.bOnePassPointLightShadow) &&
+			DRAWING_POLICY_MATCH(bUsePositionOnlyVS == Other.bUsePositionOnlyVS) &&
+			DRAWING_POLICY_MATCH(bPreShadow == Other.bPreShadow) &&
+			DRAWING_POLICY_MATCH(FeatureLevel == Other.FeatureLevel);
+		DRAWING_POLICY_MATCH_END
 	}
 	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType PolicyContext) const;
 
@@ -718,7 +720,16 @@ public:
 	}
 
 	/** Returns a matrix that transforms a screen space position into shadow space. */
-	FMatrix GetScreenToShadowMatrix(const FSceneView& View) const;
+	FMatrix GetScreenToShadowMatrix(const FSceneView& View) const
+	{
+		return GetScreenToShadowMatrix(View, X, Y, ResolutionX, ResolutionY);
+	}
+
+	/** Returns a matrix that transforms a screen space position into shadow space. 
+		Additional parameters allow overriding of shadow's tile location.
+		Used with modulated shadows to reduce precision problems when calculating ScreenToShadow in pixel shader.
+	*/
+	FMatrix GetScreenToShadowMatrix(const FSceneView& View, uint32 TileOffsetX, uint32 TileOffsetY, uint32 TileResolutionX, uint32 TileResolutionY) const;
 
 	/** Returns a matrix that transforms a world space position into shadow space. */
 	FMatrix GetWorldToShadowMatrix(FVector4& ShadowmapMinMax, const FIntPoint* ShadowBufferResolutionOverride = nullptr, bool bHasShadowBorder = true ) const;
@@ -1064,7 +1075,8 @@ public:
 };
 
 /** Shadow projection parameters used by multiple shaders. */
-class FShadowProjectionShaderParameters
+template<bool bModulatedShadows>
+class TShadowProjectionShaderParameters
 {
 public:
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -1082,6 +1094,7 @@ public:
 		ProjectionDepthBias.Bind(ParameterMap,TEXT("ProjectionDepthBiasParameters"));
 		FadePlaneOffset.Bind(ParameterMap,TEXT("FadePlaneOffset"));
 		InvFadePlaneLength.Bind(ParameterMap,TEXT("InvFadePlaneLength"));
+		ShadowTileOffsetAndSizeParam.Bind(ParameterMap, TEXT("ShadowTileOffsetAndSize"));
 	}
 
 	void Set(FRHICommandList& RHICmdList, FShader* Shader, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo)
@@ -1090,11 +1103,29 @@ public:
 
 		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
 
-		// Set the transform from screen coordinates to shadow depth texture coordinates.
-		const FMatrix ScreenToShadow = ShadowInfo->GetScreenToShadowMatrix(View);
-		SetShaderValue(RHICmdList, ShaderRHI, ScreenToShadowMatrix, ScreenToShadow);
-
 		const FIntPoint ShadowBufferResolution = ShadowInfo->GetShadowBufferResolution();
+
+		// Set the transform from screen coordinates to shadow depth texture coordinates.
+		if (bModulatedShadows)
+		{
+			// UE-29083 : work around precision issues with ScreenToShadowMatrix on low end devices.
+			const FMatrix ScreenToShadow = ShadowInfo->GetScreenToShadowMatrix(View, 0, 0, ShadowBufferResolution.X, ShadowBufferResolution.Y);
+			SetShaderValue(RHICmdList, ShaderRHI, ScreenToShadowMatrix, ScreenToShadow);
+
+			FVector2D InverseShadowBufferResolution(1.0f/ShadowBufferResolution.X, 1.0f/ShadowBufferResolution.Y);	
+			FVector4 ShadowTileOffsetAndSize(
+				(SHADOW_BORDER + ShadowInfo->X) * InverseShadowBufferResolution.X,
+				(SHADOW_BORDER + ShadowInfo->Y) * InverseShadowBufferResolution.Y,
+				ShadowInfo->ResolutionX * InverseShadowBufferResolution.X,
+				ShadowInfo->ResolutionY * InverseShadowBufferResolution.Y);
+
+			SetShaderValue(RHICmdList, ShaderRHI, ShadowTileOffsetAndSizeParam, ShadowTileOffsetAndSize);
+		}
+		else
+		{
+			const FMatrix ScreenToShadow = ShadowInfo->GetScreenToShadowMatrix(View);
+			SetShaderValue(RHICmdList, ShaderRHI, ScreenToShadowMatrix, ScreenToShadow);
+		}
 
 		if (SoftTransitionScale.IsBound())
 		{
@@ -1136,7 +1167,7 @@ public:
 	}
 
 	/** Serializer. */
-	friend FArchive& operator<<(FArchive& Ar,FShadowProjectionShaderParameters& P)
+	friend FArchive& operator<<(FArchive& Ar, TShadowProjectionShaderParameters& P)
 	{
 		Ar << P.DeferredParameters;
 		Ar << P.ScreenToShadowMatrix;
@@ -1147,6 +1178,7 @@ public:
 		Ar << P.ProjectionDepthBias;
 		Ar << P.FadePlaneOffset;
 		Ar << P.InvFadePlaneLength;
+		Ar << P.ShadowTileOffsetAndSizeParam;
 		return Ar;
 	}
 
@@ -1161,13 +1193,14 @@ private:
 	FShaderParameter ProjectionDepthBias;
 	FShaderParameter FadePlaneOffset;
 	FShaderParameter InvFadePlaneLength;
+	FShaderParameter ShadowTileOffsetAndSizeParam;
 };
 
 /**
  * TShadowProjectionPS
  * A pixel shader for projecting a shadow depth buffer onto the scene.  Used with any light type casting normal shadows.
  */
-template<uint32 Quality, bool bUseFadePlane = false> 
+template<uint32 Quality, bool bUseFadePlane = false, bool bModulatedShadows = false>
 class TShadowProjectionPS : public FShadowProjectionPixelShaderInterface
 {
 	DECLARE_SHADER_TYPE(TShadowProjectionPS,Global);
@@ -1202,7 +1235,7 @@ public:
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FShadowProjectionPixelShaderInterface::ModifyCompilationEnvironment(Platform,OutEnvironment);
-		FShadowProjectionShaderParameters::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		TShadowProjectionShaderParameters<bModulatedShadows>::ModifyCompilationEnvironment(Platform,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("SHADOW_QUALITY"), Quality);
 		OutEnvironment.SetDefine(TEXT("USE_FADE_PLANE"), (uint32)(bUseFadePlane ? 1 : 0));
 	}
@@ -1243,21 +1276,21 @@ public:
 	}
 
 protected:
-	FShadowProjectionShaderParameters ProjectionParameters;
+	TShadowProjectionShaderParameters<bModulatedShadows> ProjectionParameters;
 	FShaderParameter ShadowFadeFraction;
 	FShaderParameter ShadowSharpen;
 };
 
 /** Pixel shader to project modulated shadows onto the scene. */
 template<uint32 Quality>
-class TModulatedShadowProjection : public TShadowProjectionPS<Quality>
+class TModulatedShadowProjection : public TShadowProjectionPS<Quality, false, true>
 {
 	DECLARE_SHADER_TYPE(TModulatedShadowProjection, Global);
 public:
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		TShadowProjectionPS<Quality>::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		TShadowProjectionPS<Quality, false, true>::ModifyCompilationEnvironment(Platform, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("MODULATED_SHADOWS"), 1);
 	}
 
@@ -1269,7 +1302,7 @@ public:
 	TModulatedShadowProjection() {}
 
 	TModulatedShadowProjection(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
-		TShadowProjectionPS<Quality>(Initializer)
+		TShadowProjectionPS<Quality, false, true>(Initializer)
 	{
 		ModulatedShadowColorParameter.Bind(Initializer.ParameterMap, TEXT("ModulatedShadowColor"));
 	}
@@ -1280,7 +1313,7 @@ public:
 		const FSceneView& View,
 		const FProjectedShadowInfo* ShadowInfo) override
 	{
-		TShadowProjectionPS<Quality>::SetParameters(RHICmdList, ViewIndex, View, ShadowInfo);
+		TShadowProjectionPS<Quality, false, true>::SetParameters(RHICmdList, ViewIndex, View, ShadowInfo);
 		const FPixelShaderRHIParamRef ShaderRHI = this->GetPixelShader();
 		SetShaderValue(RHICmdList, ShaderRHI, ModulatedShadowColorParameter, ShadowInfo->GetLightSceneInfo().Proxy->GetModulatedShadowColor());
 	}
@@ -1291,7 +1324,7 @@ public:
 	*/
 	virtual bool Serialize(FArchive& Ar) override
 	{
-		bool bShaderHasOutdatedParameters = TShadowProjectionPS<Quality>::Serialize(Ar);
+		bool bShaderHasOutdatedParameters = TShadowProjectionPS<Quality, false, true>::Serialize(Ar);
 		Ar << ModulatedShadowColorParameter;
 		return bShaderHasOutdatedParameters;
 	}

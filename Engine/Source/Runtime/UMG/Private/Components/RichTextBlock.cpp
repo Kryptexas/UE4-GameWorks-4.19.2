@@ -13,7 +13,7 @@
 URichTextBlock::URichTextBlock(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	if (!UE_SERVER)
+	if (!IsRunningDedicatedServer())
 	{
 		static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(TEXT("/Engine/EngineFonts/Roboto"));
 		Font = FSlateFontInfo(RobotoFontObj.Object, 12, FName("Regular"));
@@ -69,11 +69,6 @@ void URichTextBlock::SynchronizeProperties()
 }
 
 #if WITH_EDITOR
-
-const FSlateBrush* URichTextBlock::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.RichTextBlock");
-}
 
 const FText URichTextBlock::GetPaletteCategory()
 {

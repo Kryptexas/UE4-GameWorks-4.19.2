@@ -73,7 +73,7 @@ namespace UnrealBuildTool
 				{
 					// It is. Reset the new name to the full version of this path.
 					NewFullName.Clear();
-					NewFullName.Append(Path.GetFullPath(Fragment));
+					NewFullName.Append(Path.GetFullPath(Fragment).TrimEnd(Path.DirectorySeparatorChar));
 				}
 				else
 				{

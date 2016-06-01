@@ -48,6 +48,9 @@ struct FFOscillator
 
 	/** Returns the initial value of the oscillator. */
 	static float GetInitialOffset(FFOscillator const& Osc);
+
+	/** Returns the offset at the given time */
+	static float GetOffsetAtTime(FFOscillator const& Osc, float InitialOffset, float Time);
 };
 
 /** Defines FRotator oscillation. */
@@ -208,8 +211,20 @@ protected:
 	/** Current FOV sinusoidal offset. */
 	float FOVSinOffset;
 
+	/** Initial offset (could have been assigned at random). */
+	FVector InitialLocSinOffset;
+
+	/** Initial offset (could have been assigned at random). */
+	FVector InitialRotSinOffset;
+
+	/** Initial offset (could have been assigned at random). */
+	float InitialFOVSinOffset;
+
 	/** Matrix defining the playspace, used when PlaySpace == CAPS_UserDefined */
 	FMatrix UserPlaySpaceMatrix;
+
+	/** Temp actor to use for playing camera anims. Used when playing a camera anim in non-gameplay context, e.g. in the editor */
+	AActor* TempCameraActorForCameraAnims;
 
 public:
 	/** Overall intensity scale for this shake instance. */
@@ -239,19 +254,31 @@ public:
 	UFUNCTION(BlueprintNativeEvent, Category = CameraShake)
 	bool ReceiveIsFinished() const;
 
-	/** Called when the shake is explicitly stopped. */
+	/** 
+	 * Called when the shake is explicitly stopped. 
+	 * @param bImmediatly		If true, shake stops right away regardless of blend out settings. If false, shake may blend out according to its settings.
+	 */
 	UFUNCTION(BlueprintImplementableEvent, Category = CameraShake)
-	void ReceiveStopShake();
+	void ReceiveStopShake(bool bImmediately);
 
 	// Native API
-
 	virtual void UpdateAndApplyCameraShake(float DeltaTime, float Alpha, FMinimalViewInfo& InOutPOV);
 	virtual void PlayShake(class APlayerCameraManager* Camera, float Scale, ECameraAnimPlaySpace::Type InPlaySpace, FRotator UserPlaySpaceRot = FRotator::ZeroRotator);
 	virtual bool IsFinished() const;
-	virtual void StopShake();
+
+	/** 
+	 * Stops this shake from playing. 
+	 * @param bImmediatly		If true, shake stops right away regardless of blend out settings. If false, shake may blend out according to its settings.
+	 */
+	virtual void StopShake(bool bImmediately = true);
 
 	// Returns true if this camera shake will loop forever
 	bool IsLooping() const;
+
+	/** Sets current playback time and applies the shake (both oscillation and cameraanim) to the given POV. */
+	void SetCurrentTimeAndApplyShake(float NewTime, FMinimalViewInfo& POV);
+
+	void SetTempCameraAnimActor(AActor* Actor) { TempCameraActorForCameraAnims = Actor; }
 };
 
 

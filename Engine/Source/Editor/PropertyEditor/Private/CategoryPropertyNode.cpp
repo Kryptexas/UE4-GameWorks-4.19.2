@@ -54,7 +54,8 @@ void FCategoryPropertyNode::InitChildNodes()
 			bool bMetaDataAllowVisible = true;
 			if (!bShowHiddenProperties)
 			{
-				FString MetaDataVisibilityCheckString = It->GetMetaData(TEXT("bShowOnlyWhenTrue"));
+				static const FName Name_bShowOnlyWhenTrue("bShowOnlyWhenTrue");
+				FString MetaDataVisibilityCheckString = It->GetMetaData(Name_bShowOnlyWhenTrue);
 				if (MetaDataVisibilityCheckString.Len())
 				{
 					//ensure that the metadata visibility string is actually set to true in order to show this property
@@ -65,12 +66,14 @@ void FCategoryPropertyNode::InitChildNodes()
 
 			if (bMetaDataAllowVisible)
 			{
+				static const FName Name_InlineEditConditionToggle("InlineEditConditionToggle");
+				const bool bOnlyShowAsInlineEditCondition = (*It)->HasMetaData(Name_InlineEditConditionToggle);
 				const bool bShowIfEditableProperty = (*It)->HasAnyPropertyFlags(CPF_Edit);
 				const bool bShowIfDisableEditOnInstance = !(*It)->HasAnyPropertyFlags(CPF_DisableEditOnInstance) || bShouldShowDisableEditOnInstance;
 
 				// Add if we are showing non-editable props and this is the 'None' category, 
 				// or if this is the right category, and we are either showing non-editable
-				if (FObjectEditorUtils::GetCategoryFName(*It) == CategoryName && (bShowHiddenProperties || (bShowIfEditableProperty && bShowIfDisableEditOnInstance)))
+				if (FObjectEditorUtils::GetCategoryFName(*It) == CategoryName && (bShowHiddenProperties || (bShowIfEditableProperty && !bOnlyShowAsInlineEditCondition && bShowIfDisableEditOnInstance)))
 				{
 					Properties.Add(*It);
 				}
@@ -133,7 +136,7 @@ FString FCategoryPropertyNode::GetSubcategoryName() const
 		const FString& CategoryPath = GetCategoryName().ToString();
 		FString CategoryDelimiterString;
 		CategoryDelimiterString.AppendChar( FPropertyNodeConstants::CategoryDelimiterChar );  
-		const int32 LastDelimiterCharIndex = CategoryPath.Find( CategoryDelimiterString );
+		const int32 LastDelimiterCharIndex = CategoryPath.Find( CategoryDelimiterString, ESearchCase::IgnoreCase, ESearchDir::FromEnd );
 		if( LastDelimiterCharIndex != INDEX_NONE )
 		{
 			// Grab the last sub-category from the path

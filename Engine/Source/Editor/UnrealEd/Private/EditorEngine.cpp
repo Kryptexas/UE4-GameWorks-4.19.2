@@ -122,7 +122,7 @@
 #include "Engine/CoreSettings.h"
 #include "ShaderCompiler.h"
 
-#include "AnimationRecorder.h"
+#include "PixelInspectorModule.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditor, Log, All);
 
@@ -215,7 +215,7 @@ UEditorEngine* GEditor = nullptr;
 UEditorEngine::UEditorEngine(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	if (!IsRunningCommandlet())
+	if (!IsRunningCommandlet() && !IsRunningDedicatedServer())
 	{
 		// Structure to hold one-time initialization
 		struct FConstructorStatics
@@ -717,6 +717,9 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 
 		FModuleManager::Get().LoadModule(TEXT("LogVisualizer"));
 		FModuleManager::Get().LoadModule(TEXT("HotReload"));
+
+		// Load VR Editor support
+		FModuleManager::Get().LoadModuleChecked( TEXT( "VREditor" ) );
 	}
 
 	SlowTask.EnterProgressFrame(10);
@@ -857,8 +860,11 @@ void UEditorEngine::FinishDestroy()
 {
 	if ( !HasAnyFlags(RF_ClassDefaultObject) )
 	{
-		// this needs to be already cleaned up
-		check(PlayWorld == NULL);
+		if (PlayWorld)
+		{
+			// this needs to be already cleaned up
+			UE_LOG(LogEditor, Warning, TEXT("Warning: Play world is active"));
+		}
 
 		// Unregister events
 		FEditorDelegates::MapChange.RemoveAll(this);
@@ -937,19 +943,6 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	FWorldContext& EditorContext = GetEditorWorldContext();
 	check( CurrentGWorld == EditorContext.World() );
 
-	// was there a reregister requested last frame?
-	if (bHasPendingGlobalReregister)
-	{
-		// make sure outstanding deletion has completed before the reregister
-		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
-
-		//Only reregister actors whose replacement primitive is a child of the global reregister list
-		FGlobalComponentReregisterContext Reregister(ActorsForGlobalReregister);
-		ActorsForGlobalReregister.Empty();
-
-		bHasPendingGlobalReregister = false;
-	}
-
 	// early in the Tick() to get the callbacks for cvar changes called
 	IConsoleManager::Get().CallAllConsoleVariableSinks();
 
@@ -992,6 +985,8 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 		// This assumes that UObject::StaticTick only calls ProcessAsyncLoading.	
 		StaticTick(DeltaSeconds, !!GAsyncLoadingUseFullTimeLimit, GAsyncLoadingTimeLimit / 1000.f);
 	}
+
+	FEngineAnalytics::Tick(DeltaSeconds);
 
 	// Look for realtime flags.
 	bool IsRealtime = false;
@@ -1454,6 +1449,12 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	bool bAllWindowsHidden = !bHasFocus && GEditor->AreAllWindowsHidden();
 	if( !bAllWindowsHidden )
 	{
+		FPixelInspectorModule* PixelInspectorModule = &FModuleManager::LoadModuleChecked<FPixelInspectorModule>(TEXT("PixelInspectorModule"));
+		if (PixelInspectorModule != nullptr && PixelInspectorModule->IsPixelInspectorEnable())
+		{
+			PixelInspectorModule->ReadBackSync();
+		}
+
 		// Render view parents, then view children.
 		bool bEditorFrameNonRealtimeViewportDrawn = false;
 		if (GCurrentLevelEditingViewportClient && GCurrentLevelEditingViewportClient->IsVisible())
@@ -1587,8 +1588,8 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 
 	FUnrealEdMisc::Get().TickPerformanceAnalytics();
 
-	FAnimationRecorderManager::Get().Tick(DeltaSeconds);
-	
+	BroadcastPostEditorTick(DeltaSeconds);
+
 	// If the fadeout animation has completed for the undo/redo notification item, allow it to be deleted
 	if(UndoRedoNotificationItem.IsValid() && UndoRedoNotificationItem->GetCompletionState() == SNotificationItem::CS_None)
 	{
@@ -1942,7 +1943,7 @@ void UEditorEngine::PlayPreviewSound( USoundBase* Sound,  USoundNode* SoundNode 
 		AudioComponent->bAllowSpatialization = false;
 		AudioComponent->bReverb = false;
 		AudioComponent->bCenterChannelOnly = false;
-
+		AudioComponent->bIsPreviewSound = true;
 		AudioComponent->Play();	
 	}
 }
@@ -2526,7 +2527,7 @@ void UEditorEngine::LoadMapListFromIni(const FString& InSectionName, TArray<FStr
 		for (FConfigSectionMap::TConstIterator It(*MapListList) ; It ; ++It)
 		{
 			FName EntryType = It.Key();
-			const FString& EntryValue = It.Value();
+			const FString& EntryValue = It.Value().GetValue();
 
 			if (EntryType == NAME_Map)
 			{
@@ -2941,7 +2942,7 @@ void UEditorEngine::ConvertSelectedBrushesToVolumes( UClass* VolumeClass )
 
 			FActorSpawnParameters SpawnInfo;
 			SpawnInfo.OverrideLevel = CurActorLevel;
-			ABrush* NewVolume = World->SpawnActor<ABrush>( VolumeClass, CurBrushActor->GetActorLocation(), FRotator::ZeroRotator );
+			ABrush* NewVolume = World->SpawnActor<ABrush>( VolumeClass, CurBrushActor->GetActorTransform());
 			if ( NewVolume )
 			{
 				NewVolume->PreEditChange( NULL );
@@ -3455,7 +3456,7 @@ bool UEditorEngine::ShouldOpenMatinee(AMatineeActor* MatineeActor) const
 void UEditorEngine::OpenMatinee(AMatineeActor* MatineeActor, bool bWarnUser)
 {
 	// Drop out if the user doesn't want to proceed to matinee atm
-	if( bWarnUser && !ShouldOpenMatinee( MatineeActor ) )
+	if( bWarnUser && ( (ShouldOpenMatineeCallback.IsBound() && !ShouldOpenMatineeCallback.Execute(MatineeActor)) || !ShouldOpenMatinee( MatineeActor ) ) )
 	{
 		return;
 	}
@@ -3566,11 +3567,11 @@ void UEditorEngine::ParentActors( AActor* ParentActor, AActor* ChildActor, const
 		ParentActor->Modify();
 
 		// If child is already attached to something, modify the old parent and detach
-		if(ChildRoot->AttachParent != NULL)
+		if(ChildRoot->GetAttachParent() != nullptr)
 		{
-			AActor* OldParentActor = ChildRoot->AttachParent->GetOwner();
+			AActor* OldParentActor = ChildRoot->GetAttachParent()->GetOwner();
 			OldParentActor->Modify();
-			ChildRoot->DetachFromParent(true);
+			ChildRoot->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 
 			GEngine->BroadcastLevelActorDetached(ChildActor, OldParentActor);
 		}
@@ -3578,13 +3579,13 @@ void UEditorEngine::ParentActors( AActor* ParentActor, AActor* ChildActor, const
 		// If the parent is already attached to this child, modify its parent and detach so we can allow the attachment
 		if(ParentRoot->IsAttachedTo(ChildRoot))
 		{
-			ParentRoot->AttachParent->GetOwner()->Modify();
-			ParentRoot->DetachFromParent(true);
+			ParentRoot->GetAttachParent()->GetOwner()->Modify();
+			ParentRoot->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 		}
 
 		// Snap to socket if a valid socket name was provided, otherwise attach without changing the relative transform
 		const bool bValidSocketName = !SocketName.IsNone() && ParentRoot->DoesSocketExist(SocketName);
-		ChildRoot->AttachTo(ParentRoot, SocketName, bValidSocketName ? EAttachLocation::SnapToTarget : EAttachLocation::KeepWorldPosition);
+		ChildRoot->AttachToComponent(ParentRoot, bValidSocketName ? FAttachmentTransformRules::SnapToTargetNotIncludingScale : FAttachmentTransformRules::KeepWorldTransform, SocketName);
 
 		// Refresh editor in case child was translated after snapping to socket
 		RedrawLevelEditingViewports();
@@ -3602,11 +3603,11 @@ bool UEditorEngine::DetachSelectedActors()
 		checkSlow( Actor );
 
 		USceneComponent* RootComp = Actor->GetRootComponent();
-		if( RootComp != NULL && RootComp->AttachParent != NULL)
+		if( RootComp != nullptr && RootComp->GetAttachParent() != nullptr)
 		{
-			AActor* OldParentActor = RootComp->AttachParent->GetOwner();
+			AActor* OldParentActor = RootComp->GetAttachParent()->GetOwner();
 			OldParentActor->Modify();
-			RootComp->DetachFromParent(true);
+			RootComp->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 			bDetachOccurred = true;
 			Actor->SetFolderPath_Recursively(OldParentActor->GetFolderPath());
 		}
@@ -4071,7 +4072,7 @@ void UEditorEngine::OnPostSaveWorld(uint32 SaveFlags, UWorld* World, uint32 Orig
 
 					if ( MainFrameModule.GetMRUFavoritesList() )
 					{
-						MainFrameModule.GetMRUFavoritesList()->AddMRUItem( Filename );
+						MainFrameModule.GetMRUFavoritesList()->AddMRUItem(WorldPackage->GetName());
 					}
 
 					FEditorDirectories::Get().SetLastDirectory(ELastDirectory::UNR, FPaths::GetPath(Filename)); // Save path as default for next time.
@@ -4188,27 +4189,27 @@ void UEditorEngine::SetActorLabelUnique(AActor* Actor, const FString& NewActorLa
 	FActorLabelUtilities::SetActorLabelUnique(Actor, NewActorLabel, InExistingActorLabels);
 }
 
-FString UEditorEngine::GetFriendlyName( const UProperty* Property, UStruct* OwnerClass/* = NULL*/ )
+FString UEditorEngine::GetFriendlyName( const UProperty* Property, UStruct* OwnerStruct/* = NULL*/ )
 {
 	// first, try to pull the friendly name from the loc file
 	check( Property );
-	UClass* RealOwnerClass = Property->GetOwnerClass();
-	if ( OwnerClass == NULL)
+	UStruct* RealOwnerStruct = Property->GetOwnerStruct();
+	if ( OwnerStruct == NULL)
 	{
-		OwnerClass = RealOwnerClass;
+		OwnerStruct = RealOwnerStruct;
 	}
-	checkSlow(OwnerClass);
+	checkSlow(OwnerStruct);
 
 	FText FoundText;
 	bool DidFindText = false;
-	UStruct* CurrentClass = OwnerClass;
+	UStruct* CurrentStruct = OwnerStruct;
 	do 
 	{
-		FString PropertyPathName = Property->GetPathName(CurrentClass);
+		FString PropertyPathName = Property->GetPathName(CurrentStruct);
 
-		DidFindText = FText::FindText(*CurrentClass->GetName(), *(PropertyPathName + TEXT(".FriendlyName")), /*OUT*/FoundText );
-		CurrentClass = CurrentClass->GetSuperStruct();
-	} while( CurrentClass != NULL && CurrentClass->IsChildOf(RealOwnerClass) && !DidFindText );
+		DidFindText = FText::FindText(*CurrentStruct->GetName(), *(PropertyPathName + TEXT(".FriendlyName")), /*OUT*/FoundText );
+		CurrentStruct = CurrentStruct->GetSuperStruct();
+	} while( CurrentStruct != NULL && CurrentStruct->IsChildOf(RealOwnerStruct) && !DidFindText );
 
 	if ( !DidFindText )
 	{
@@ -4464,7 +4465,7 @@ namespace ReattachActorsHelper
 						if (CanParentActors(ParentActor, ChildActor))
 						{
 							// Attach the previously attached and newly converted actor to the current converted actor.
-							ChildActor->AttachRootComponentToActor(ParentActor, CurrentAttachment.AttachedActors[AttachedIdx].SocketName, EAttachLocation::KeepWorldPosition);
+							ChildActor->AttachToActor(ParentActor, FAttachmentTransformRules::KeepWorldTransform, CurrentAttachment.AttachedActors[AttachedIdx].SocketName);
 						}
 					}
 
@@ -4477,7 +4478,7 @@ namespace ReattachActorsHelper
 					if (CanParentActors(ParentActor, ChildActor))
 					{
 						// Since the actor was not converted, reattach the unconverted actor.
-						ChildActor->AttachRootComponentToActor(ParentActor, CurrentAttachment.AttachedActors[AttachedIdx].SocketName, EAttachLocation::KeepWorldPosition);
+						ChildActor->AttachToActor(ParentActor, FAttachmentTransformRules::KeepWorldTransform, CurrentAttachment.AttachedActors[AttachedIdx].SocketName);
 					}
 				}
 
@@ -4495,7 +4496,7 @@ namespace ReattachActorsHelper
 
 					if (CanParentActors(ParentActor, ChildActor))
 					{
-						ChildActor->AttachRootComponentToActor(ParentActor, CurrentAttachment.ParentActor.SocketName, EAttachLocation::KeepWorldPosition);
+						ChildActor->AttachToActor(ParentActor, FAttachmentTransformRules::KeepWorldTransform, CurrentAttachment.ParentActor.SocketName);
 					}
 				}
 
@@ -4509,7 +4510,7 @@ namespace ReattachActorsHelper
 				if (ParentActor && CanParentActors(ParentActor, ChildActor))
 				{
 					// The parent was not converted, attach to the unconverted parent.
-					ChildActor->AttachRootComponentToActor(ParentActor, CurrentAttachment.ParentActor.SocketName, EAttachLocation::KeepWorldPosition);
+					ChildActor->AttachToActor(ParentActor, FAttachmentTransformRules::KeepWorldTransform, CurrentAttachment.ParentActor.SocketName);
 				}
 			}
 		}
@@ -4590,7 +4591,7 @@ void UEditorEngine::ReplaceActors(UActorFactory* Factory, const FAssetData& Asse
 		const FTransform OldTransform = OldActor->ActorToWorld();
 
 		// create the actor
-		NewActor = Factory->CreateActor( Asset, Level, OldTransform, RF_Transactional, OldActorName );
+		NewActor = Factory->CreateActor( Asset, Level, OldTransform );
 		// For blueprints, try to copy over properties
 		if (Factory->IsA(UActorFactoryBlueprint::StaticClass()))
 		{
@@ -4605,8 +4606,10 @@ void UEditorEngine::ReplaceActors(UActorFactory* Factory, const FAssetData& Asse
 			}
 		}
 
-		if ( NewActor != NULL )
+		if (NewActor)
 		{
+			NewActor->Rename(*OldActorName.ToString());
+
 			// The new actor might not have a root component
 			USceneComponent* const NewActorRootComponent = NewActor->GetRootComponent();
 			if(NewActorRootComponent)
@@ -5501,7 +5504,10 @@ void UEditorEngine::NotifyToolsOfObjectReplacement(const TMap<UObject*, UObject*
 		PropertyEditorModule.ReplaceViewedObjects( OldToNewInstanceMap );
 	}
 
-	// Check to see if any selected components were reinstanced
+	// Allow any other observers to act upon the object replacement
+	BroadcastObjectsReplaced(OldToNewInstanceMap);
+
+	// Check to see if any selected components were reinstanced, as a final step.
 	USelection* ComponentSelection = GetSelectedComponents();
 	if (ComponentSelection)
 	{
@@ -5525,8 +5531,6 @@ void UEditorEngine::NotifyToolsOfObjectReplacement(const TMap<UObject*, UObject*
 		}
 		ComponentSelection->EndBatchSelectOperation();
 	}
-	
-	BroadcastObjectsReplaced(OldToNewInstanceMap);
 }
 
 void UEditorEngine::DisableRealtimeViewports()
@@ -6102,8 +6106,8 @@ void UEditorEngine::UpdateAutoLoadProject()
 {
 	// If the recent project file exists and is non-empty, update the contents with the currently loaded .uproject
 	// If the recent project file exists and is empty, recent project files should not be auto-loaded
-	// If the recent project file does not exist, auto-populate it with the currently loaded project in Rocket and auto-populate empty in non-rocket
-	//		In Rocket we default to auto-loading, in non-Rocket we default to opting out of auto loading
+	// If the recent project file does not exist, auto-populate it with the currently loaded project in installed builds and auto-populate empty in non-installed
+	//		In installed builds we default to auto-loading, in non-installed we default to opting out of auto loading
 	const FString& AutoLoadProjectFileName = IProjectManager::Get().GetAutoLoadProjectFileName();
 	FString RecentProjectFileContents;
 	bool bShouldLoadRecentProjects = false;
@@ -6146,7 +6150,7 @@ void UEditorEngine::UpdateAutoLoadProject()
 			{
 				FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("UpdateMacOSX_Body","Please update to the latest version of Mac OS X for best performance."), LOCTEXT("UpdateMacOSX_Title","Update Mac OS X"), TEXT("UpdateMacOSX"), GEditorSettingsIni );
 				Info.ConfirmText = LOCTEXT( "OK", "OK");
-				Info.bDefaultToSupressInTheFuture = true;
+				Info.bDefaultToSuppressInTheFuture = true;
 				FSuppressableWarningDialog OSUpdateWarning( Info );
 				OSUpdateWarning.ShowModal();
 			}
@@ -6193,7 +6197,7 @@ void UEditorEngine::UpdateAutoLoadProject()
 			{
 				FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("UnsupportedGPUWarning_Body","The current graphics card does not meet the minimum specification, for best performance an NVIDIA GeForce 470 GTX or AMD Radeon 6870 HD series card or higher is recommended. Rendering performance and compatibility are not guaranteed with this graphics card."), LOCTEXT("UnsupportedGPUWarning_Title","Unsupported Graphics Card"), TEXT("UnsupportedGPUWarning"), GEditorSettingsIni );
 				Info.ConfirmText = LOCTEXT( "OK", "OK");
-				Info.bDefaultToSupressInTheFuture = true;
+				Info.bDefaultToSuppressInTheFuture = true;
 				FSuppressableWarningDialog OSUpdateWarning( Info );
 				OSUpdateWarning.ShowModal();
 			}
@@ -6240,7 +6244,7 @@ void UEditorEngine::UpdateAutoLoadProject()
 			{
 				FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("SlowGPUWarning_Body","The current graphics card is slower than the recommanded specification of an NVIDIA GeForce 470 GTX or AMD Radeon 6870 HD series card or higher, performance may be low."), LOCTEXT("SlowGPUWarning_Title","Slow Graphics Card"), TEXT("SlowGPUWarning"), GEditorSettingsIni );
 				Info.ConfirmText = LOCTEXT( "OK", "OK");
-				Info.bDefaultToSupressInTheFuture = true;
+				Info.bDefaultToSuppressInTheFuture = true;
 				FSuppressableWarningDialog OSUpdateWarning( Info );
 				OSUpdateWarning.ShowModal();
 			}
@@ -6257,7 +6261,7 @@ void UEditorEngine::UpdateAutoLoadProject()
 			{
 				FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("LowRAMWarning_Body","For best performance install at least 8GB of RAM."), LOCTEXT("LowRAMWarning_Title","Low RAM"), TEXT("LowRAMWarning"), GEditorSettingsIni );
 				Info.ConfirmText = LOCTEXT( "OK", "OK");
-				Info.bDefaultToSupressInTheFuture = true;
+				Info.bDefaultToSuppressInTheFuture = true;
 				FSuppressableWarningDialog OSUpdateWarning( Info );
 				OSUpdateWarning.ShowModal();
 			}
@@ -6274,7 +6278,7 @@ void UEditorEngine::UpdateAutoLoadProject()
 			{
 				FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("SlowCPUWarning_Body","For best performance a Quad-core Intel or AMD processor, 2.5 GHz or faster is recommended."), LOCTEXT("SlowCPUWarning_Title","CPU Performance Warning"), TEXT("SlowCPUWarning"), GEditorSettingsIni );
 				Info.ConfirmText = LOCTEXT( "OK", "OK");
-				Info.bDefaultToSupressInTheFuture = true;
+				Info.bDefaultToSuppressInTheFuture = true;
 				FSuppressableWarningDialog OSUpdateWarning( Info );
 				OSUpdateWarning.ShowModal();
 			}
@@ -6382,6 +6386,12 @@ void UEditorEngine::VerifyLoadMapWorldCleanup()
 			}
 		}
 	}
+}
+
+void UEditorEngine::HandleBrowseToDefaultMapFailure(FWorldContext& Context, const FString& TextURL, const FString& Error)
+{
+	Super::HandleBrowseToDefaultMapFailure(Context, TextURL, Error);
+	RequestEndPlayMap();
 }
 
 void UEditorEngine::TriggerStreamingDataRebuild()
@@ -6564,7 +6574,7 @@ void UEditorEngine::HandleTravelFailure(UWorld* InWorld, ETravelFailure::Type Fa
 	}
 }
 
-void UEditorEngine::AutomationLoadMap(const FString& MapName)
+void UEditorEngine::AutomationLoadMap(const FString& MapName, FString* OutError)
 {
 #if !UE_BUILD_SHIPPING
 	struct FFailedGameStartHandler
@@ -6632,7 +6642,10 @@ void UEditorEngine::AutomationLoadMap(const FString& MapName)
 	{
 		FFailedGameStartHandler FailHandler;
 		GEditor->PlayInEditor(GWorld, /*bInSimulateInEditor=*/false);
-		//bCanProceed = FailHandler.CanProceed();
+		if (!FailHandler.CanProceed())
+		{
+			*OutError = TEXT("Error encountered.");
+		}
 	}
 
 	//should really be wait until the map is properly loaded....in PIE or gameplay....
@@ -6641,6 +6654,7 @@ void UEditorEngine::AutomationLoadMap(const FString& MapName)
 		ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(10.f));
 	}
 #endif
+	return;
 }
 
 #undef LOCTEXT_NAMESPACE 

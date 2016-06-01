@@ -3,6 +3,13 @@
 #include "EnginePrivate.h"
 #include "Engine/RendererSettings.h"
 
+#if WITH_EDITOR
+#include "Editor/EditorEngine.h"
+
+/** The editor object. */
+extern UNREALED_API class UEditorEngine* GEditor;
+#endif // #if WITH_EDITOR
+
 URendererSettings::URendererSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -31,6 +38,8 @@ void URendererSettings::PostInitProperties()
 		}
 	}
 
+	SanatizeReflectionCaptureResolution();
+
 #if WITH_EDITOR
 	if (IsTemplate())
 	{
@@ -44,6 +53,8 @@ void URendererSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
+	SanatizeReflectionCaptureResolution();
+
 	if (PropertyChangedEvent.Property)
 	{
 		ExportValuesToConsoleVariables(PropertyChangedEvent.Property);
@@ -55,6 +66,18 @@ void URendererSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 			UUserInterfaceSettings* UISettings = GetMutableDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass());
 			UISettings->UpdateDefaultConfigFile();
 		}
+
+		if (PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(URendererSettings, ReflectionCaptureResolution) && 
+			PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive)
+		{
+			GEditor->UpdateReflectionCaptures();
+		}
 	}
 }
 #endif // #if WITH_EDITOR
+
+void URendererSettings::SanatizeReflectionCaptureResolution()
+{
+	static const int32 MaxReflectionCaptureResolution = 1024;
+	ReflectionCaptureResolution = FMath::Min(int32(FMath::RoundUpToPowerOfTwo(ReflectionCaptureResolution)), MaxReflectionCaptureResolution);
+}

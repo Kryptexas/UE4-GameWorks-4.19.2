@@ -42,12 +42,14 @@ public:
 		);
 
 	// FMeshDrawingPolicy interface.
-	bool Matches(const FDepthDrawingPolicy& Other) const
+	FDrawingPolicyMatchResult Matches(const FDepthDrawingPolicy& Other) const
 	{
-		return FMeshDrawingPolicy::Matches(Other) 
-			&& bNeedsPixelShader == Other.bNeedsPixelShader
-			&& VertexShader == Other.VertexShader
-			&& PixelShader == Other.PixelShader;
+		DRAWING_POLICY_MATCH_BEGIN
+		 	DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other)) &&
+			DRAWING_POLICY_MATCH(bNeedsPixelShader == Other.bNeedsPixelShader) &&
+			DRAWING_POLICY_MATCH(VertexShader == Other.VertexShader) &&
+			DRAWING_POLICY_MATCH(PixelShader == Other.PixelShader);
+		DRAWING_POLICY_MATCH_END
 	}
 
 	void SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) const;
@@ -103,9 +105,12 @@ public:
 		);
 
 	// FMeshDrawingPolicy interface.
-	bool Matches(const FPositionOnlyDepthDrawingPolicy& Other) const
+	FDrawingPolicyMatchResult Matches(const FPositionOnlyDepthDrawingPolicy& Other) const
 	{
-		return FMeshDrawingPolicy::Matches(Other) && VertexShader == Other.VertexShader;
+		DRAWING_POLICY_MATCH_BEGIN
+			DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other)) && 
+			DRAWING_POLICY_MATCH(VertexShader == Other.VertexShader);
+		DRAWING_POLICY_MATCH_END
 	}
 
 	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType PolicyContext) const;
@@ -150,8 +155,12 @@ public:
 	{
 		EDepthDrawingMode DepthDrawingMode;
 
-		ContextType(EDepthDrawingMode InDepthDrawingMode) :
-			DepthDrawingMode(InDepthDrawingMode)
+		/** Uses of FDepthDrawingPolicyFactory that are not the depth pre-pass will not want the bUseAsOccluder flag to interfere. */
+		bool bRespectUseAsOccluderFlag;
+
+		ContextType(EDepthDrawingMode InDepthDrawingMode, bool bInRespectUseAsOccluderFlag) :
+			DepthDrawingMode(InDepthDrawingMode),
+			bRespectUseAsOccluderFlag(bInRespectUseAsOccluderFlag)
 		{}
 	};
 

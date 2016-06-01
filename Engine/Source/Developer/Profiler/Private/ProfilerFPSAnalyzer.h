@@ -59,6 +59,8 @@ public:
 
 	void AddSample( float FPSSample );
 
+	SIZE_T GetMemoryUsage() const;
+
 	TArray<float> Samples;
 	TArray<FProfilerFPSChartEntry> Histogram;
 	float MinFPS;

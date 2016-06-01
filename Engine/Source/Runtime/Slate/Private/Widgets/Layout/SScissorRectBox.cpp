@@ -9,12 +9,13 @@ SScissorRectBox::SScissorRectBox()
 
 void SScissorRectBox::Construct(const FArguments& InArgs)
 {
+	bCanTick = false;
+
 	ChildSlot
 	[
 		InArgs._Content.Widget
 	];
 }
-
 
 FVector2D SScissorRectBox::ComputeDesiredSize( float ) const
 {

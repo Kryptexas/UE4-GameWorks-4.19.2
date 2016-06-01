@@ -25,7 +25,7 @@ FString FOnlineFriendSteam::GetRealName() const
 	return Result;
 }
 
-FString FOnlineFriendSteam::GetDisplayName() const
+FString FOnlineFriendSteam::GetDisplayName(const FString& Platform) const
 {
 	FString Result;
 	GetAccountData(TEXT("nickname"),Result);
@@ -207,6 +207,10 @@ bool FOnlineFriendsSteam::QueryBlockedPlayers(const FUniqueNetId& UserId)
 bool FOnlineFriendsSteam::GetBlockedPlayers(const FUniqueNetId& UserId, TArray< TSharedRef<FOnlineBlockedPlayer> >& OutBlockedPlayers)
 {
 	return false;
+}
+
+void FOnlineFriendsSteam::DumpBlockedPlayers() const
+{
 }
 
 void FOnlineAsyncTaskSteamReadFriendsList::Finalize()

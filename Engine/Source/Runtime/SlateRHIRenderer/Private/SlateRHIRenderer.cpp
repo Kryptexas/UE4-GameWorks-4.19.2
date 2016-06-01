@@ -151,13 +151,15 @@ FMatrix FSlateRHIRenderer::CreateProjectionMatrix(uint32 Width, uint32 Height)
 		);
 }
 
-void FSlateRHIRenderer::Initialize()
+bool FSlateRHIRenderer::Initialize()
 {
 	LoadUsedTextures();
 
 	RenderingPolicy = MakeShareable( new FSlateRHIRenderingPolicy( SlateFontServices.ToSharedRef(), ResourceManager.ToSharedRef() ) );
 
 	ElementBatcher = MakeShareable( new FSlateElementBatcher( RenderingPolicy.ToSharedRef() ) );
+
+	return true;
 }
 
 void FSlateRHIRenderer::Destroy()
@@ -1238,7 +1240,7 @@ void FSlateRHIRenderer::RequestResize( const TSharedPtr<SWindow>& Window, uint32
 
 	FViewportInfo* ViewInfo = WindowToViewportInfo.FindRef( Window.Get() );
 
-	if ( ViewInfo )
+	if (ViewInfo)
 	{
 		ViewInfo->DesiredWidth = NewWidth;
 		ViewInfo->DesiredHeight = NewHeight;
@@ -1331,5 +1333,13 @@ void FSlateEndDrawingWindowsCommand::Execute(FRHICommandListBase& CmdList)
 
 void FSlateEndDrawingWindowsCommand::EndDrawingWindows(FRHICommandListImmediate& RHICmdList, FSlateDrawBuffer* DrawBuffer, FSlateRHIRenderingPolicy& Policy)
 {
-	new ( RHICmdList.AllocCommand<FSlateEndDrawingWindowsCommand>() ) FSlateEndDrawingWindowsCommand(Policy, DrawBuffer);
+	if (!RHICmdList.Bypass())
+	{
+		new (RHICmdList.AllocCommand<FSlateEndDrawingWindowsCommand>()) FSlateEndDrawingWindowsCommand(Policy, DrawBuffer);
+	}
+	else
+	{
+		FSlateEndDrawingWindowsCommand Cmd(Policy, DrawBuffer);
+		Cmd.Execute(RHICmdList);
+	}
 }

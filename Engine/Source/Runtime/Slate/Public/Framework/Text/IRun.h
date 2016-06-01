@@ -123,6 +123,8 @@ class SLATE_API IRun
 {
 public:
 
+	virtual ~IRun() {}
+
 	virtual FTextRange GetTextRange() const = 0;
 	virtual void SetTextRange( const FTextRange& Value ) = 0;
 

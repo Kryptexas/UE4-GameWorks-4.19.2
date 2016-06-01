@@ -1,33 +1,5 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-/*
-* Copyright 2008-2009 Autodesk, Inc.  All Rights Reserved.
-*
-* Permission to use, copy, modify, and distribute this software in object
-* code form for any purpose and without fee is hereby granted, provided
-* that the above copyright notice appears in all copies and that both
-* that copyright notice and the limited warranty and restricted rights
-* notice below appear in all supporting documentation.
-*
-* AUTODESK PROVIDES THIS PROGRAM "AS IS" AND WITH ALL FAULTS.
-* AUTODESK SPECIFICALLY DISCLAIMS ANY AND ALL WARRANTIES, WHETHER EXPRESS
-* OR IMPLIED, INCLUDING WITHOUT LIMITATION THE IMPLIED WARRANTY
-* OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR USE OR NON-INFRINGEMENT
-* OF THIRD PARTY RIGHTS.  AUTODESK DOES NOT WARRANT THAT THE OPERATION
-* OF THE PROGRAM WILL BE UNINTERRUPTED OR ERROR FREE.
-*
-* In no event shall Autodesk, Inc. be liable for any direct, indirect,
-* incidental, special, exemplary, or consequential damages (including,
-* but not limited to, procurement of substitute goods or services;
-* loss of use, data, or profits; or business interruption) however caused
-* and on any theory of liability, whether in contract, strict liability,
-* or tort (including negligence or otherwise) arising in any way out
-* of such code.
-*
-* This software is provided to the U.S. Government with the same rights
-* and restrictions as described herein.
-*/
-
 #include "UnrealEd.h"
 #include "Factories.h"
 #include "BusyCursor.h"
@@ -112,24 +84,29 @@ bool UFbxFactory::DetectImportType(const FString& InFilename)
 }
 
 
-UObject* UFbxFactory::ImportANode(void* VoidFbxImporter, void* VoidNode, UObject* InParent, FName InName, EObjectFlags Flags, int32& NodeIndex, int32 Total, UObject* InMesh, int LODIndex)
+UObject* UFbxFactory::ImportANode(void* VoidFbxImporter, TArray<void*> VoidNodes, UObject* InParent, FName InName, EObjectFlags Flags, int32& NodeIndex, int32 Total, UObject* InMesh, int LODIndex)
 {
 	UnFbx::FFbxImporter* FFbxImporter = (UnFbx::FFbxImporter*)VoidFbxImporter;
-	FbxNode* Node = (FbxNode*)VoidNode;
+	TArray<FbxNode*> Nodes;
+	for (void* VoidNode : VoidNodes)
+	{
+		Nodes.Add((FbxNode*)VoidNode);
+	}
+	check(Nodes.Num() > 0 && Nodes[0] != nullptr);
 
 	UObject* NewObject = NULL;
-	FName OutputName = FFbxImporter->MakeNameForMesh(InName.ToString(), Node);
+	FName OutputName = FFbxImporter->MakeNameForMesh(InName.ToString(), Nodes[0]);
 	
 	{
 		// skip collision models
-		FbxString NodeName(Node->GetName());
+		FbxString NodeName(Nodes[0]->GetName());
 		if ( NodeName.Find("UCX") != -1 || NodeName.Find("MCDCX") != -1 ||
 			 NodeName.Find("UBX") != -1 || NodeName.Find("USP") != -1 )
 		{
 			return NULL;
 		}
 
-		NewObject = FFbxImporter->ImportStaticMesh( InParent, Node, OutputName, Flags, ImportUI->StaticMeshImportData, Cast<UStaticMesh>(InMesh), LODIndex );
+		NewObject = FFbxImporter->ImportStaticMeshAsSingle( InParent, Nodes, OutputName, Flags, ImportUI->StaticMeshImportData, Cast<UStaticMesh>(InMesh), LODIndex );
 	}
 
 	if (NewObject)
@@ -189,6 +166,12 @@ UObject* UFbxFactory::FactoryCreateBinary
 	// logger for all error/warnings
 	// this one prints all messages that are stored in FFbxImporter
 	UnFbx::FFbxImporter* FbxImporter = UnFbx::FFbxImporter::GetInstance();
+	UnFbx::FBXImportOptions* ImportOptions = FbxImporter->GetImportOptions();
+	if (bShowOption)
+	{
+		//Clean up the options
+		UnFbx::FBXImportOptions::ResetOptions(ImportOptions);
+	}
 	
 	UnFbx::FFbxLoggerSetter Logger(FbxImporter);
 
@@ -203,7 +186,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 
 	bool bShowImportDialog = bShowOption && !GIsAutomationTesting;
 	bool bImportAll = false;
-	UnFbx::FBXImportOptions* ImportOptions = GetImportOptions(FbxImporter, ImportUI, bShowImportDialog, InParent->GetPathName(), bOperationCanceled, bImportAll, bIsObjFormat, bIsObjFormat, ForcedImportType );
+	ImportOptions = GetImportOptions(FbxImporter, ImportUI, bShowImportDialog, InParent->GetPathName(), bOperationCanceled, bImportAll, bIsObjFormat, bIsObjFormat, ForcedImportType );
 	bOutOperationCanceled = bOperationCanceled;
 	
 	if( bImportAll )
@@ -217,6 +200,12 @@ UObject* UFbxFactory::FactoryCreateBinary
 
 	if (ImportOptions)
 	{
+		//Set the global option so the reimport know if we must reimport the materails and textures
+		//By default we dont reimport material, because we dont want to override the change made by
+		//the user in the static or skeletal mesh editor. Thos option can be change in those editor.
+		ImportUI->StaticMeshImportData->bImportMaterials = false;
+		ImportUI->SkeletalMeshImportData->bImportMaterials = false;
+
 		Warn->BeginSlowTask( NSLOCTEXT("FbxFactory", "BeginImportingFbxMeshTask", "Importing FBX mesh"), true );
 		if ( !FbxImporter->ImportFromFile( *UFactory::CurrentFilename, Type ) )
 		{
@@ -367,13 +356,19 @@ UObject* UFbxFactory::FactoryCreateBinary
 								FbxNode* Node = NodeArray[j];
 								if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)
 								{
+									TArray<FbxNode*> NodeInLod;
 									if (Node->GetChildCount() > LODIndex)
 									{
-										SkelMeshNodeArray.Add(Node->GetChild(LODIndex));
+										FbxImporter->FindAllLODGroupNode(NodeInLod, Node, LODIndex);
 									}
 									else // in less some LODGroups have less level, use the last level
 									{
-										SkelMeshNodeArray.Add(Node->GetChild(Node->GetChildCount() - 1));
+										FbxImporter->FindAllLODGroupNode(NodeInLod, Node, Node->GetChildCount() - 1);
+									}
+
+									for (FbxNode *MeshNode : NodeInLod)
+									{
+										SkelMeshNodeArray.Add(MeshNode);
 									}
 								}
 								else
@@ -386,7 +381,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 							{
 								FName OutputName = FbxImporter->MakeNameForMesh(Name.ToString(), SkelMeshNodeArray[0]);
 
-								USkeletalMesh* NewMesh = FbxImporter->ImportSkeletalMesh( InParent, SkelMeshNodeArray, OutputName, Flags, ImportUI->SkeletalMeshImportData, &bOperationCanceled );
+								USkeletalMesh* NewMesh = FbxImporter->ImportSkeletalMesh( InParent, SkelMeshNodeArray, OutputName, Flags, ImportUI->SkeletalMeshImportData, LODIndex, &bOperationCanceled );
 								NewObject = NewMesh;
 
 								if(bOperationCanceled)
@@ -413,7 +408,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 							{
 								USkeletalMesh* BaseSkeletalMesh = Cast<USkeletalMesh>(NewObject);
 								FName LODObjectName = NAME_None;
-								USkeletalMesh *LODObject = FbxImporter->ImportSkeletalMesh( GetTransientPackage(), SkelMeshNodeArray, LODObjectName, RF_NoFlags, ImportUI->SkeletalMeshImportData, &bOperationCanceled );
+								USkeletalMesh *LODObject = FbxImporter->ImportSkeletalMesh(BaseSkeletalMesh->GetOutermost(), SkelMeshNodeArray, LODObjectName, RF_Transient, ImportUI->SkeletalMeshImportData, LODIndex, &bOperationCanceled );
 								bool bImportSucceeded = !bOperationCanceled && FbxImporter->ImportSkeletalMeshLOD(LODObject, BaseSkeletalMesh, LODIndex, false);
 
 								if (bImportSucceeded)
@@ -504,13 +499,24 @@ UObject* UFbxFactory::FactoryCreateBinary
 
 UObject* UFbxFactory::RecursiveImportNode(void* VoidFbxImporter, void* VoidNode, UObject* InParent, FName InName, EObjectFlags Flags, int32& NodeIndex, int32 Total, TArray<UObject*>& OutNewAssets)
 {
+	TArray<void*> TmpVoidArray;
 	UObject* NewObject = NULL;
-
+	UnFbx::FFbxImporter *FbxImporter = (UnFbx::FFbxImporter *)VoidFbxImporter;
 	FbxNode* Node = (FbxNode*)VoidNode;
 	if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup && Node->GetChildCount() > 0 )
 	{
+		TArray<FbxNode*> AllNodeInLod;
 		// import base mesh
-		NewObject = ImportANode(VoidFbxImporter, Node->GetChild(0), InParent, InName, Flags, NodeIndex, Total);
+		FbxImporter->FindAllLODGroupNode(AllNodeInLod, Node, 0);
+		if (AllNodeInLod.Num() > 0)
+		{
+			TmpVoidArray.Empty();
+			for (FbxNode* LodNode : AllNodeInLod)
+			{
+				TmpVoidArray.Add(LodNode);
+			}
+			NewObject = ImportANode(VoidFbxImporter, TmpVoidArray, InParent, InName, Flags, NodeIndex, Total);
+		}
 
 		if ( NewObject )
 		{
@@ -536,8 +542,17 @@ UObject* UFbxFactory::RecursiveImportNode(void* VoidFbxImporter, void* VoidNode,
 			// import LOD meshes
 			for (int32 LODIndex = 1; LODIndex < Node->GetChildCount(); LODIndex++)
 			{
-				FbxNode* ChildNode = Node->GetChild(LODIndex);
-				ImportANode(VoidFbxImporter, ChildNode, InParent, InName, Flags, NodeIndex, Total, NewObject, LODIndex);
+				AllNodeInLod.Empty();
+				FbxImporter->FindAllLODGroupNode(AllNodeInLod, Node, LODIndex);
+				if (AllNodeInLod.Num() > 0)
+				{
+					TmpVoidArray.Empty();
+					for (FbxNode* LodNode : AllNodeInLod)
+					{
+						TmpVoidArray.Add(LodNode);
+					}
+					ImportANode(VoidFbxImporter, TmpVoidArray, InParent, InName, Flags, NodeIndex, Total, NewObject, LODIndex);
+				}
 			}
 		}
 	}
@@ -545,7 +560,9 @@ UObject* UFbxFactory::RecursiveImportNode(void* VoidFbxImporter, void* VoidNode,
 	{
 		if (Node->GetMesh())
 		{
-			NewObject = ImportANode(VoidFbxImporter, Node, InParent, InName, Flags, NodeIndex, Total);
+			TmpVoidArray.Empty();
+			TmpVoidArray.Add(Node);
+			NewObject = ImportANode(VoidFbxImporter, TmpVoidArray, InParent, InName, Flags, NodeIndex, Total);
 
 			if ( NewObject )
 			{

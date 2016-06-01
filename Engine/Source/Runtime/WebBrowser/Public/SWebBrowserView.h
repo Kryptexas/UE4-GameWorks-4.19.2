@@ -1,5 +1,4 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
 #pragma once
 
 #include "SlateBasics.h"
@@ -11,6 +10,7 @@ class FWebBrowserViewport;
 class UObject;
 class IWebBrowserPopupFeatures;
 class IWebBrowserAdapter;
+struct FWebNavigationRequest;
 
 DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnBeforePopupDelegate, FString, FString);
 DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnCreateWindowDelegate, const TWeakPtr<IWebBrowserWindow>&, const TWeakPtr<IWebBrowserPopupFeatures>&);
@@ -26,7 +26,7 @@ class WEBBROWSER_API SWebBrowserView
 	: public SCompoundWidget
 {
 public:
-	DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnBeforeBrowse, const FString&, bool)
+	DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnBeforeBrowse, const FString& /*Url*/, const FWebNavigationRequest& /*Request*/)
 	DECLARE_DELEGATE_RetVal_ThreeParams(bool, FOnLoadUrl, const FString& /*Method*/, const FString& /*Url*/, FString& /* Response */)
 	DECLARE_DELEGATE_RetVal_OneParam(EWebBrowserDialogEventResponse, FOnShowDialog, const TWeakPtr<IWebBrowserDialog>&);
 
@@ -228,7 +228,7 @@ private:
 	 *
 	 * @return true if the navigation was handled an no further action should be taken by the browser, false if the browser should handle.
 	 */
-	bool HandleBeforeNavigation(const FString& Url, bool bIsRedirect);
+	bool HandleBeforeNavigation(const FString& Url, const FWebNavigationRequest& Request);
 	
 	bool HandleLoadUrl(const FString& Method, const FString& Url, FString& OutResponse);
 

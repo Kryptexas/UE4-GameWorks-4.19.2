@@ -74,6 +74,9 @@ void SkyLightDiffusePS(
 		
 		float ScalarFactors = lerp(SkyVisibility, 1, OcclusionTintAndMinOcclusion.w);
 
+		float3 DiffuseColor = GBuffer.DiffuseColor;
+
+		BRANCH 
 		if (ShadingModelId == SHADINGMODELID_TWOSIDED_FOLIAGE)
 		{
 			float3 SubsurfaceLookup = GetSkySHDiffuse(-GBuffer.WorldNormal) * Frame.SkyLightColor.rgb;
@@ -81,15 +84,26 @@ void SkyLightDiffusePS(
 			Lighting += ScalarFactors * SubsurfaceLookup * SubsurfaceColor;
 		}
 
-		float3 DiffuseColor = GBuffer.DiffuseColor;
+		if (ShadingModelId == SHADINGMODELID_SUBSURFACE || ShadingModelId == SHADINGMODELID_PREINTEGRATED_SKIN)
+		{
+			float3 SubsurfaceColor = ExtractSubsurfaceColor(GBuffer);
+			// Add subsurface energy to diffuse
+			DiffuseColor += SubsurfaceColor;
+		}
 
-		BRANCH if( GBuffer.ShadingModelID == SHADINGMODELID_HAIR )
+		BRANCH 
+		if (ShadingModelId == SHADINGMODELID_HAIR)
 		{
 			float3 N = GBuffer.WorldNormal;
 			float3 V = -normalize(mul(float4(UVAndScreenPos.zw, 1, 0), View.ScreenToWorld).xyz);
-			float3 L = normalize( V - N * dot(V,N) );
+			float3 L = normalize(V - N * dot(V,N));
 			SkyLightingNormal = L;
 			DiffuseColor = PI * HairShading( GBuffer, L, V, N, 1, 0, 0.2, uint2(0,0) );
+		}
+
+		if (ShadingModelId == SHADINGMODELID_CLOTH)
+		{
+			DiffuseColor += GBuffer.CustomData.rgb * GBuffer.CustomData.a;
 		}
 
 		// Compute the preconvolved incoming lighting with the bent normal direction

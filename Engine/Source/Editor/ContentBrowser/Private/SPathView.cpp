@@ -638,10 +638,11 @@ void SPathView::LoadSettings(const FString& IniFilename, const FString& IniSecti
 
 			// Send the first selected item with the notification
 			const TArray<TSharedPtr<FTreeItem>> SelectedItems = TreeViewPtr->GetSelectedItems();
-			check(SelectedItems.Num() > 0);
-
-			// Signal a single selection changed event to let any listeners know that paths have changed
-			TreeSelectionChanged( SelectedItems[0], ESelectInfo::Direct );
+			if (SelectedItems.Num() > 0)
+			{
+				// Signal a single selection changed event to let any listeners know that paths have changed
+				TreeSelectionChanged( SelectedItems[0], ESelectInfo::Direct );
+			}
 		}
 	}
 }
@@ -969,11 +970,14 @@ void SPathView::Populate()
 	const FString UserDeveloperFolder = FPackageName::FilenameToLongPackageName(FPaths::GameUserDeveloperDir().LeftChop(1));
 	PathList.Add(UserDeveloperFolder);
 
-	// Remove paths of localized assets.
-	PathList.RemoveAll([](const FString& Path) -> bool
+	// Remove paths of localized assets, if not displaying localized assets.
+	if (!(GetDefault<UContentBrowserSettings>()->GetDisplayL10NFolder()))
 	{
-		return ContentBrowserUtils::IsLocalizationFolder(Path);
-	});
+		PathList.RemoveAll([](const FString& Path) -> bool
+		{
+			return ContentBrowserUtils::IsLocalizationFolder(Path);
+		});
+	}
 
 	// we have a text filter, expand all parents of matching folders
 	for ( int32 PathIdx = 0; PathIdx < PathList.Num(); ++PathIdx)
@@ -1375,11 +1379,7 @@ void SPathView::OnAssetRegistryPathAdded(const FString& Path)
 	// of successful hits in the filtered list. 
 	if ( SearchBoxFolderFilter->PassesFilter( Path ) )
 	{
-		// Do not add paths of localized assets.
-		if (!ContentBrowserUtils::IsLocalizationFolder(Path))
-		{
 		AddPath(Path);
-	}
 	}
 }
 
@@ -1416,21 +1416,23 @@ void SPathView::HandleSettingChanged(FName PropertyName)
 	if ((PropertyName == "DisplayDevelopersFolder") ||
 		(PropertyName == "DisplayEngineFolder") ||
 		(PropertyName == "DisplayPluginFolders") ||
+		(PropertyName == "DisplayL10NFolder") ||
 		(PropertyName == NAME_None))	// @todo: Needed if PostEditChange was called manually, for now
 	{
 		// If the dev or engine folder is no longer visible but we're inside it...
 		const bool bDisplayDev = GetDefault<UContentBrowserSettings>()->GetDisplayDevelopersFolder();
 		const bool bDisplayEngine = GetDefault<UContentBrowserSettings>()->GetDisplayEngineFolder();
 		const bool bDisplayPlugins = GetDefault<UContentBrowserSettings>()->GetDisplayPluginFolders();
-		if (!bDisplayDev || !bDisplayEngine || !bDisplayPlugins)
+		const bool bDisplayL10N = GetDefault<UContentBrowserSettings>()->GetDisplayL10NFolder();
+		if (!bDisplayDev || !bDisplayEngine || !bDisplayPlugins || !bDisplayL10N)
 		{
 			const FString OldSelectedPath = GetSelectedPath();
 			const ContentBrowserUtils::ECBFolderCategory OldFolderCategory = ContentBrowserUtils::GetFolderCategory(OldSelectedPath);
 
 			if ((!bDisplayDev && OldFolderCategory == ContentBrowserUtils::ECBFolderCategory::DeveloperContent) || 
 				(!bDisplayEngine && (OldFolderCategory == ContentBrowserUtils::ECBFolderCategory::EngineContent || OldFolderCategory == ContentBrowserUtils::ECBFolderCategory::EngineClasses)) || 
-				(!bDisplayPlugins && (OldFolderCategory == ContentBrowserUtils::ECBFolderCategory::PluginContent || OldFolderCategory == ContentBrowserUtils::ECBFolderCategory::PluginClasses))
-				)
+				(!bDisplayPlugins && (OldFolderCategory == ContentBrowserUtils::ECBFolderCategory::PluginContent || OldFolderCategory == ContentBrowserUtils::ECBFolderCategory::PluginClasses)) ||
+				(!bDisplayL10N && ContentBrowserUtils::IsLocalizationFolder(OldSelectedPath)))
 			{
 				// Set the folder back to the root, and refresh the contents
 				TSharedPtr<FTreeItem> GameRoot = FindItemRecursive(TEXT("/Game"));
@@ -1449,15 +1451,15 @@ void SPathView::HandleSettingChanged(FName PropertyName)
 		Populate();
 
 		// If the dev or engine folder has become visible and we're inside it...
-		if (bDisplayDev || bDisplayEngine || bDisplayPlugins)
+		if (bDisplayDev || bDisplayEngine || bDisplayPlugins || bDisplayL10N)
 		{
 			const FString NewSelectedPath = GetSelectedPath();
 			const ContentBrowserUtils::ECBFolderCategory NewFolderCategory = ContentBrowserUtils::GetFolderCategory(NewSelectedPath);
 
 			if ((bDisplayDev && NewFolderCategory == ContentBrowserUtils::ECBFolderCategory::DeveloperContent) || 
 				(bDisplayEngine && (NewFolderCategory == ContentBrowserUtils::ECBFolderCategory::EngineContent || NewFolderCategory == ContentBrowserUtils::ECBFolderCategory::EngineClasses)) || 
-				(bDisplayPlugins && (NewFolderCategory == ContentBrowserUtils::ECBFolderCategory::PluginContent || NewFolderCategory == ContentBrowserUtils::ECBFolderCategory::PluginClasses))
-				)
+				(bDisplayPlugins && (NewFolderCategory == ContentBrowserUtils::ECBFolderCategory::PluginContent || NewFolderCategory == ContentBrowserUtils::ECBFolderCategory::PluginClasses)) ||
+				(bDisplayL10N && ContentBrowserUtils::IsLocalizationFolder(NewSelectedPath)))
 			{
 				// Refresh the contents
 				OnPathSelected.ExecuteIfBound(NewSelectedPath);

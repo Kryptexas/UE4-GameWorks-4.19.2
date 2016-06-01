@@ -49,6 +49,9 @@ bool FOpenGLES31::bSupportsRGBA8 = false;
 /** GL_APPLE_texture_format_BGRA8888 */
 bool FOpenGLES31::bSupportsBGRA8888 = false;
 
+/** Whether BGRA supported as color attachment */
+bool FOpenGLES31::bSupportsBGRA8888RenderTarget = false;
+
 /** GL_EXT_discard_framebuffer */
 bool FOpenGLES31::bSupportsDiscardFrameBuffer = false;
 
@@ -60,6 +63,9 @@ bool FOpenGLES31::bSupportsTextureFloat = false;
 
 /** GL_OES_texture_half_float */
 bool FOpenGLES31::bSupportsTextureHalfFloat = false;
+
+/** GL_EXT_color_buffer_float */
+bool FOpenGLES31::bSupportsColorBufferFloat = false;
 
 /** GL_EXT_color_buffer_half_float */
 bool FOpenGLES31::bSupportsColorBufferHalfFloat = false;
@@ -153,6 +159,9 @@ bool FOpenGLES31::bTimerQueryCanBeDisjoint = true;
 
 /** GL_NV_timer_query for timestamp queries */
 bool FOpenGLES31::bSupportsNvTimerQuery = false;
+
+/** GL_OES_vertex_type_10_10_10_2 */
+bool FOpenGLES31::bSupportsRGB10A2 = false;
 
 GLint FOpenGLES31::MajorVersion = 0;
 GLint FOpenGLES31::MinorVersion = 0;
@@ -271,6 +280,7 @@ void FOpenGLES31::ProcessExtensions( const FString& ExtensionsString )
 	}
 	else
 	{
+		bSupportsRGB10A2 = ExtensionsString.Contains(TEXT("GL_OES_vertex_type_10_10_10_2"));
 		CVarAllowHighQualityLightMaps->Set(0);
 	}
 
@@ -283,9 +293,10 @@ void FOpenGLES31::ProcessExtensions( const FString& ExtensionsString )
 	bSupportsRGBA8 = ExtensionsString.Contains(TEXT("GL_OES_rgb8_rgba8"));
 	bSupportsBGRA8888 = ExtensionsString.Contains(TEXT("GL_APPLE_texture_format_BGRA8888")) || ExtensionsString.Contains(TEXT("GL_IMG_texture_format_BGRA8888")) || ExtensionsString.Contains(TEXT("GL_EXT_texture_format_BGRA8888"));
 	bSupportsVertexHalfFloat = ExtensionsString.Contains(TEXT("GL_OES_vertex_half_float"));
-	bSupportsTextureFloat = ExtensionsString.Contains(TEXT("GL_OES_texture_float"));
-	bSupportsTextureHalfFloat = ExtensionsString.Contains(TEXT("GL_OES_texture_half_float"));
+	bSupportsTextureFloat = !bES2Fallback || ExtensionsString.Contains(TEXT("GL_OES_texture_float"));
+	bSupportsTextureHalfFloat = !bES2Fallback || ExtensionsString.Contains(TEXT("GL_OES_texture_half_float"));
 	bSupportsSGRB = ExtensionsString.Contains(TEXT("GL_EXT_sRGB"));
+	bSupportsColorBufferFloat = ExtensionsString.Contains(TEXT("GL_EXT_color_buffer_float"));
 	bSupportsColorBufferHalfFloat = ExtensionsString.Contains(TEXT("GL_EXT_color_buffer_half_float"));
 	bSupportsNvImageFormats = ExtensionsString.Contains(TEXT("GL_NV_image_formats"));
 	bSupportsShaderFramebufferFetch = ExtensionsString.Contains(TEXT("GL_EXT_shader_framebuffer_fetch")) || ExtensionsString.Contains(TEXT("GL_NV_shader_framebuffer_fetch")) || ExtensionsString.Contains(TEXT("GL_ARM_shader_framebuffer_fetch"));
@@ -337,6 +348,24 @@ void FOpenGLES31::ProcessExtensions( const FString& ExtensionsString )
 		glDeleteFramebuffers(1, &FrameBuffer);
 	}
 
+	if (bSupportsBGRA8888)
+	{
+		// Check whether device supports BGRA as color attachment
+		GLuint FrameBuffer;
+		glGenFramebuffers(1, &FrameBuffer);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, FrameBuffer);
+		GLuint BGRA8888Texture;
+		glGenTextures(1, &BGRA8888Texture);
+		glBindTexture(GL_TEXTURE_2D, BGRA8888Texture);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_BGRA_EXT, 256, 256, 0, GL_BGRA_EXT, GL_UNSIGNED_BYTE, NULL);
+		glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, BGRA8888Texture, 0);
+
+		bSupportsBGRA8888RenderTarget = (glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+
+		glDeleteTextures(1, &BGRA8888Texture);
+		glDeleteFramebuffers(1, &FrameBuffer);
+	}
+	
 	bSupportsCopyImage = ExtensionsString.Contains(TEXT("GL_EXT_copy_image"));
 }
 

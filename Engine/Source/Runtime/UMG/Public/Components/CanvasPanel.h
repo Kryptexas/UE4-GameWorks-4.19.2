@@ -40,7 +40,6 @@ public:
 
 #if WITH_EDITOR
 	// UWidget interface
-	virtual const FSlateBrush* GetEditorIcon() override;
 	virtual const FText GetPaletteCategory() override;
 	// End UWidget interface
 

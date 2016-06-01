@@ -250,9 +250,9 @@ void UUnrealEdEngine::SetActorSelectionFlags (AActor* InActor)
 		{
 			// If we have a 'child actor' component, want to update its visible selection state
 			UChildActorComponent* ChildActorComponent = Cast<UChildActorComponent>(Component);
-			if(ChildActorComponent != NULL && ChildActorComponent->ChildActor != NULL)
+			if(ChildActorComponent != NULL && ChildActorComponent->GetChildActor() != NULL)
 			{
-				SetActorSelectionFlags(ChildActorComponent->ChildActor);
+				SetActorSelectionFlags(ChildActorComponent->GetChildActor());
 			}
 
 			UPrimitiveComponent* PrimComponent = Cast<UPrimitiveComponent>(Component);
@@ -468,6 +468,12 @@ bool UUnrealEdEngine::CanSelectActor(AActor* Actor, bool bInSelected, bool bSele
 			return false;
 		}
 
+		// If the actor explicitly makes itself unselectable, leave.
+		if (!Actor->IsSelectable())
+		{
+			return false;
+		}
+
 		// Ensure that neither the level nor the actor is being destroyed or is unreachable
 		const EObjectFlags InvalidSelectableFlags = RF_BeginDestroyed;
 		if (Actor->GetLevel()->HasAnyFlags(InvalidSelectableFlags) || Actor->GetLevel()->IsPendingKillOrUnreachable())
@@ -675,7 +681,7 @@ bool UUnrealEdEngine::IsComponentSelected(const UPrimitiveComponent* PrimCompone
 	bool bIsSelected = false;
 	if (GetSelectedComponentCount() > 0)
 	{
-		bIsSelected = GetSelectedComponents()->IsSelected(PrimComponent->IsEditorOnly() ? PrimComponent->AttachParent : PrimComponent);
+		bIsSelected = GetSelectedComponents()->IsSelected(PrimComponent->IsEditorOnly() ? PrimComponent->GetAttachParent() : PrimComponent);
 	}
 
 	return bIsSelected;

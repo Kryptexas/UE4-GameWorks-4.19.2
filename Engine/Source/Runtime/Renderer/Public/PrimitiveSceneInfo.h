@@ -32,11 +32,15 @@ public:
 		bIsDirty(false),
 		bUnbuiltPreview(false)
 	{
-		for (int32 VectorIndex = 0; VectorIndex < ARRAY_COUNT(TargetSamplePacked); VectorIndex++)
+		for (int32 VectorIndex = 0; VectorIndex < 3; VectorIndex++) // RGB
 		{
-			TargetSamplePacked[VectorIndex] = FVector4(0, 0, 0, 0);
-			SingleSamplePacked[VectorIndex] = FVector4(0, 0, 0, 0);
+			TargetSamplePacked0[VectorIndex] = FVector4(0, 0, 0, 0);
+			SingleSamplePacked0[VectorIndex] = FVector4(0, 0, 0, 0);
+			TargetSamplePacked1[VectorIndex] = FVector4(0, 0, 0, 0);
+			SingleSamplePacked1[VectorIndex] = FVector4(0, 0, 0, 0);
 		}
+		TargetSamplePacked2 = FVector4(0, 0, 0, 0);
+		SingleSamplePacked2 = FVector4(0, 0, 0, 0);
 	}
 
 	/** Add factor for calculating UVs from position. */
@@ -61,7 +65,9 @@ public:
 	FVector TargetPosition;
 
 	/** SH sample at the new single lighting sample position. Used for interpolation over time. */
-	FVector4 TargetSamplePacked[sizeof(FSHVectorRGB2) / sizeof(FVector4)];
+	FVector4 TargetSamplePacked0[3];	// { { R.C0, R.C1, R.C2, R.C3 }, { G.C0, G.C1, G.C2, G.C3 }, { B.C0, B.C1, B.C2, B.C3 } }
+	FVector4 TargetSamplePacked1[3];	// { { R.C4, R.C5, R.C6, R.C7 }, { G.C4, G.C5, G.C6, G.C7 }, { B.C4, B.C5, B.C6, B.C7 } }
+	FVector4 TargetSamplePacked2;		// { R.C8, R.C8, R.C8, R.C8 }
 
 	/** Target shadowing of the stationary directional light. */
 	float TargetDirectionalShadowing;
@@ -73,7 +79,9 @@ public:
 	FVector SingleSamplePosition;
 
 	/** Current SH sample used when lighting the entire object with one sample. */
-	FVector4 SingleSamplePacked[sizeof(FSHVectorRGB2) / sizeof(FVector4)];
+	FVector4 SingleSamplePacked0[3];	// { { R.C0, R.C1, R.C2, R.C3 }, { G.C0, G.C1, G.C2, G.C3 }, { B.C0, B.C1, B.C2, B.C3 } }
+	FVector4 SingleSamplePacked1[3];	// { { R.C4, R.C5, R.C6, R.C7 }, { G.C4, G.C5, G.C6, G.C7 }, { B.C4, B.C5, B.C6, B.C7 } }
+	FVector4 SingleSamplePacked2;		// { R.C8, R.C8, R.C8, R.C8 }
 
 	/** Current shadowing of the stationary directional light. */
 	float CurrentDirectionalShadowing;
@@ -205,6 +213,11 @@ public:
 	 * See FPrimitiveSceneInfo::UpdatePrecomputedLightingBuffer()
 	 */
 	FUniformBufferRHIRef IndirectLightingCacheUniformBuffer;
+
+	/** 
+	 * Planar reflection that was closest to this primitive, used for forward reflections.
+	 */
+	const class FPlanarReflectionSceneProxy* CachedPlanarReflectionProxy;
 
 	/** 
 	 * Reflection capture proxy that was closest to this primitive, used for the forward shading rendering path. 

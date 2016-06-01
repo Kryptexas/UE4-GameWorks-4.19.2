@@ -11,27 +11,24 @@ void SSequencerTrackLane::Construct(const FArguments& InArgs, const TSharedRef<F
 	TreeView = InTreeView;
 
 	ChildSlot
-		.HAlign(HAlign_Fill)
-		.Padding(0, DisplayNode->GetNodePadding().Top, 0, 0)
-		[
-			InArgs._Content.Widget
-		];
+	.HAlign(HAlign_Fill)
+	.Padding(0)
+	[
+		InArgs._Content.Widget
+	];
 }
 
 
 void DrawLaneRecursive(const TSharedRef<FSequencerDisplayNode>& DisplayNode, const FGeometry& AllottedGeometry, float& YOffs, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle)
 {
-	static const FName HoverBorderName("Sequencer.AnimationOutliner.SelectionBorderHover");
-	static const FName SelectionBorderName("Sequencer.AnimationOutliner.SelectionBorder");
-	static const FName SelectionBorderInactiveName("Sequencer.AnimationOutliner.SelectionBorderInactive");
-	static const FName SelectionColorName("SelectionColor_Pressed");
-	static const FName SelectionColorInactiveName("SelectionColor_Inactive");
+	static const FName BorderName("Sequencer.AnimationOutliner.DefaultBorder");
+	static const FName SelectionColorName("SelectionColor");
 
 	if (DisplayNode->IsHidden())
 	{
 		return;
 	}
-
+	
 	float TotalNodeHeight = DisplayNode->GetNodeHeight() + DisplayNode->GetNodePadding().Combined();
 
 	// draw selection border
@@ -39,15 +36,7 @@ void DrawLaneRecursive(const TSharedRef<FSequencerDisplayNode>& DisplayNode, con
 
 	if (SequencerSelection.IsSelected(DisplayNode))
 	{
-		FLinearColor SelectionColor = FEditorStyle::GetSlateColor(
-			(SequencerSelection.GetActiveSelection() == FSequencerSelection::EActiveSelection::OutlinerNode)
-				? SelectionColorName
-				: SelectionColorInactiveName
-		).GetColor(InWidgetStyle);
-
-		FName SelectionBrush = (SequencerSelection.GetActiveSelection() == FSequencerSelection::EActiveSelection::OutlinerNode)
-			? SelectionBorderName
-			: SelectionBorderInactiveName;
+		FLinearColor SelectionColor = FEditorStyle::GetSlateColor(SelectionColorName).GetColor(InWidgetStyle);
 
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
@@ -56,28 +45,44 @@ void DrawLaneRecursive(const TSharedRef<FSequencerDisplayNode>& DisplayNode, con
 				FVector2D(0, YOffs),
 				FVector2D(AllottedGeometry.Size.X, TotalNodeHeight)
 			),
-			FEditorStyle::GetBrush(SelectionBrush),
+			FEditorStyle::GetBrush(BorderName),
 			MyClippingRect,
 			ESlateDrawEffect::None,
 			SelectionColor
 		);
 	}
 
-	// draw hover border
-	else if (DisplayNode->IsHovered())
+	// draw hovered or node has keys or sections selected border
+	else
 	{
-		FSlateDrawElement::MakeBox(
-			OutDrawElements,
-			LayerId,
-			AllottedGeometry.ToPaintGeometry(
-				FVector2D(0, YOffs),
-				FVector2D(AllottedGeometry.Size.X, TotalNodeHeight)
-			),
-			FEditorStyle::GetBrush(HoverBorderName),
-			MyClippingRect,
-			ESlateDrawEffect::None,
-			FLinearColor(1.0f, 1.0f, 1.0f, 0.1f)
-		);
+		FLinearColor HighlightColor;
+		bool bDrawHighlight = false;
+		if (SequencerSelection.NodeHasSelectedKeysOrSections(DisplayNode))
+		{
+			bDrawHighlight = true;
+			HighlightColor = FLinearColor(1.0f, 1.0f, 1.0f, 0.15f);
+		}
+		else if (DisplayNode->IsHovered())
+		{
+			bDrawHighlight = true;
+			HighlightColor = FLinearColor(1.0f, 1.0f, 1.0f, 0.05f);
+		}
+
+		if (bDrawHighlight)
+		{
+			FSlateDrawElement::MakeBox(
+				OutDrawElements,
+				LayerId,
+				AllottedGeometry.ToPaintGeometry(
+					FVector2D(0, YOffs),
+					FVector2D(AllottedGeometry.Size.X, TotalNodeHeight)
+				),
+				FEditorStyle::GetBrush(BorderName),
+				MyClippingRect,
+				ESlateDrawEffect::None,
+				HighlightColor
+			);
+		}
 	}
 
 	YOffs += TotalNodeHeight;
@@ -120,38 +125,42 @@ int32 SSequencerTrackLane::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 	return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId + 1, InWidgetStyle, bParentEnabled);
 }
 
+void SSequencerTrackLane::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+	FVector2D ThisFrameDesiredSize = GetDesiredSize();
+
+	if (LastDesiredSize.IsSet() && ThisFrameDesiredSize.Y != LastDesiredSize.GetValue().Y)
+	{
+		TSharedPtr<SSequencerTreeView> PinnedTree = TreeView.Pin();
+		if (PinnedTree.IsValid())
+		{
+			PinnedTree->RequestTreeRefresh();
+		}
+	}
+
+	LastDesiredSize = ThisFrameDesiredSize;
+}
+
+FVector2D SSequencerTrackLane::ComputeDesiredSize(float LayoutScale) const
+{
+	float Height = DisplayNode->GetNodeHeight() + DisplayNode->GetNodePadding().Combined();
+	
+	
+	if (DisplayNode->GetType() == ESequencerNode::Track || DisplayNode->GetType() == ESequencerNode::Category)
+	{
+		const bool bIncludeThisNode = false;
+		
+		// These types of nodes need to consider the entire visible hierarchy for their desired size
+		DisplayNode->TraverseVisible_ParentFirst([&](FSequencerDisplayNode& InNode){
+			Height += InNode.GetNodeHeight() + InNode.GetNodePadding().Combined();
+			return true;
+		}, bIncludeThisNode);
+	}
+
+	return FVector2D(100.f, Height);
+}
 
 float SSequencerTrackLane::GetPhysicalPosition() const
 {
-	// Positioning strategy:
-	// We know that there must be at least one tree view row around that references something in our subtree (otherwise this widget wouldn't exist)
-	// Knowing this, we just need to root it out by traversing the visible tree, and asking for the first rows's offset
-	float NegativeOffset = 0.f;
-	TOptional<float> Top;
-
-	auto TreeViewPinned = TreeView.Pin();
-	
-	// Iterate parent first until we find a tree view row we can use for the offset height
-	auto Iter = [&](FSequencerDisplayNode& InNode){
-		
-		auto ChildRowGeometry = TreeViewPinned->GetPhysicalGeometryForNode(InNode.AsShared());
-		if (ChildRowGeometry.IsSet())
-		{
-			Top = ChildRowGeometry->PhysicalTop;
-			// Stop iterating
-			return false;
-		}
-
-		NegativeOffset -= InNode.GetNodeHeight() + InNode.GetNodePadding().Combined();
-		return true;
-	};
-
-	DisplayNode->TraverseVisible_ParentFirst(Iter);
-
-	if (!Top.IsSet())
-	{
-		Top = 0.f;
-	}
-
-	return NegativeOffset + Top.GetValue();
+	return TreeView.Pin()->ComputeNodePosition(DisplayNode.ToSharedRef()).Get(0.f);
 }

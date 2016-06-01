@@ -98,6 +98,14 @@ struct FBuildPatchUtils
 	static bool UncompressChunkFile(TArray<uint8>& ChunkFileArray);
 
 	/**
+	 * Helper function to to inject a known SHA1 hash into the header of chunk data
+	 * @param ChunkFileArray	IN OUT		The data array, should contain full chunk - header plus data. Header will be overwritten to contain with sha data.
+	 * @param SHAHash			IN			The SHA1 data to be injected
+	 * @return		true if no errors occurred and the data is not corrupted
+	 */
+	static bool InjectShaToChunkFile(TArray<uint8>& ChunkFileArray, const FSHAHashData& SHAHash);
+
+	/**
 	 * Helper function to uncompress file part data. Can be called without knowing if needed and process will be just skipped.
 	 * @param DataFileArray	IN OUT		The data array, should contain full file - header plus data. Will be overwritten with uncompressed data version.
 	 * @param OutHeader		OUT			Optional ptr to a header to receive the header from the file if you need it anyway

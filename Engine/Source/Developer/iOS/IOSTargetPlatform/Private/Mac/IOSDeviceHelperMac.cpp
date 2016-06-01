@@ -255,7 +255,7 @@ private:
 
 static TMap<IOSDevice*, FIOSLaunchDaemonPong> ConnectedDevices;
 
-void FIOSDeviceHelper::Initialize()
+void FIOSDeviceHelper::Initialize(bool bIsTVOS)
 {
     static bool bIsInitialized = false;
     

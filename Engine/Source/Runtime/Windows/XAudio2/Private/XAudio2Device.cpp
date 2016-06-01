@@ -58,6 +58,11 @@ XAUDIO2_DEVICE_DETAILS FXAudioDeviceProperties::DeviceDetails;
 
 #define DEBUG_XAUDIO2 0
 
+void FXAudio2Device::GetAudioDeviceList(TArray<FString>& OutAudioDeviceNames) const
+{
+	DeviceProperties->GetAudioDeviceList(OutAudioDeviceNames);
+}
+
 bool FXAudio2Device::InitializeHardware()
 {
 	if (IsRunningDedicatedServer())
@@ -103,7 +108,7 @@ bool FXAudio2Device::InitializeHardware()
 #endif
 
 	// Create a new XAudio2 device object instance
-	if (XAudio2Create(&DeviceProperties->XAudio2, Flags, AUDIO_HWTHREAD) != S_OK)
+	if (XAudio2Create(&DeviceProperties->XAudio2, Flags, (XAUDIO2_PROCESSOR)FPlatformAffinity::GetAudioThreadMask()) != S_OK)
 	{
 		UE_LOG(LogInit, Log, TEXT( "Failed to create XAudio2 interface" ) );
 		return( false );
@@ -131,10 +136,9 @@ bool FXAudio2Device::InitializeHardware()
 	GConfig->GetString(TEXT("/Script/WindowsTargetPlatform.WindowsTargetSettings"), TEXT("AudioDevice"), WindowsAudioDeviceName, GEngineIni);
 
 	// Allow HMD to specify audio device, if one was not specified in settings
-	if (WindowsAudioDeviceName.IsEmpty() && IHeadMountedDisplayModule::IsAvailable())
+	if (WindowsAudioDeviceName.IsEmpty() && FAudioDevice::CanUseVRAudioDevice() && IHeadMountedDisplayModule::IsAvailable()) 
 	{
-		FHeadMountedDisplayModuleExt* const HmdEx = FHeadMountedDisplayModuleExt::GetExtendedInterface(&IHeadMountedDisplayModule::Get());
-		WindowsAudioDeviceName = HmdEx ? HmdEx->GetAudioOutputDevice() : FString();
+		WindowsAudioDeviceName = IHeadMountedDisplayModule::Get().GetAudioOutputDevice();
 	}
 	
 	// If an audio device was specified, try to find it
@@ -148,7 +152,7 @@ bool FXAudio2Device::InitializeHardware()
 			XAUDIO2_DEVICE_DETAILS Details;
 			DeviceProperties->XAudio2->GetDeviceDetails(i, &Details);
 
-			if (FString(Details.DeviceID) == WindowsAudioDeviceName)
+			if (FString(Details.DeviceID) == WindowsAudioDeviceName || FString(Details.DisplayName) == WindowsAudioDeviceName)
 			{
 				DeviceIndex = i;
 				break;
@@ -158,7 +162,7 @@ bool FXAudio2Device::InitializeHardware()
 #endif
 
 	// Get the details of the desired device index (0 is default)
-	if( !ValidateAPICall(TEXT("GetDeviceDetails"),
+	if (!ValidateAPICall(TEXT("GetDeviceDetails"),
 		DeviceProperties->XAudio2->GetDeviceDetails(DeviceIndex, &FXAudioDeviceProperties::DeviceDetails)))
 	{
 		UE_LOG(LogInit, Log, TEXT("Failed to get DeviceDetails for XAudio2"));
@@ -252,6 +256,7 @@ void FXAudio2Device::TeardownHardware()
 
 void FXAudio2Device::UpdateHardware()
 {
+	DeviceProperties->ProcessPendingTasksToCleanup();
 }
 
 FAudioEffectsManager* FXAudio2Device::CreateEffectsManager()
@@ -277,6 +282,8 @@ bool FXAudio2Device::HasCompressedAudioInfoClass(USoundWave* SoundWave)
 
 class ICompressedAudioInfo* FXAudio2Device::CreateCompressedAudioInfo(USoundWave* SoundWave)
 {
+	check(SoundWave);
+
 	if (SoundWave->IsStreaming())
 	{
 		return new FOpusAudioInfo();
@@ -285,8 +292,13 @@ class ICompressedAudioInfo* FXAudio2Device::CreateCompressedAudioInfo(USoundWave
 #if WITH_OGGVORBIS
 	if (SoundWave->CompressionName.IsNone() || SoundWave->CompressionName == TEXT("OGG"))
 	{
-
-		return new FVorbisAudioInfo();
+		ICompressedAudioInfo* CompressedInfo = new FVorbisAudioInfo();
+		if (!CompressedInfo)
+		{
+			UE_LOG(LogAudio, Error, TEXT("Failed to create new FVorbisAudioInfo for SoundWave %s: out of memory."), *SoundWave->GetName());
+			return NULL;
+		}
+		return CompressedInfo;
 	}
 	else
 	{

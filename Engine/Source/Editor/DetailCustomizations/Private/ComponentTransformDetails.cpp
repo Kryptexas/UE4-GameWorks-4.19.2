@@ -667,7 +667,22 @@ void FComponentTransformDetails::OnToggleAbsoluteLocation( bool bEnable )
 				}
 
 				SceneComponent->bAbsoluteLocation = !SceneComponent->bAbsoluteLocation;
-
+				
+				// Update RelativeLocation to maintain/stabilize position when switching between relative and world.
+				if (SceneComponent->GetAttachParent())
+				{
+					if (SceneComponent->bAbsoluteLocation)
+					{
+						SceneComponent->RelativeLocation = SceneComponent->ComponentToWorld.GetTranslation();
+					}
+					else
+					{
+						FTransform ParentToWorld = SceneComponent->GetAttachParent()->GetSocketTransform(SceneComponent->GetAttachSocketName());
+						FTransform RelativeTM = SceneComponent->ComponentToWorld.GetRelativeTransform(ParentToWorld);
+						SceneComponent->RelativeLocation = RelativeTM.GetTranslation();
+					}
+				}
+				
 				FPropertyChangedEvent PropertyChangedEvent( AbsoluteLocationProperty );
 				Object->PostEditChangeProperty(PropertyChangedEvent);
 

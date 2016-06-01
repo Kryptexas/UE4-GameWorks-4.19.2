@@ -66,7 +66,7 @@ void SCulturePicker::Construct( const FArguments& InArgs )
 	const TSharedPtr<FCultureEntry>* InitialSelection = RootEntries.FindByPredicate(IsInitialSelection);
 	if (InitialSelection)
 	{
-		TGuardValue<bool> SupressSelectionGuard(SupressSelectionCallback, true);
+		TGuardValue<bool> SuppressSelectionGuard(SuppressSelectionCallback, true);
 		TreeView->SetSelection(*InitialSelection);
 	}
 }
@@ -279,7 +279,7 @@ void SCulturePicker::OnGetChildren(TSharedPtr<FCultureEntry> Entry, TArray< TSha
 
 void SCulturePicker::OnSelectionChanged(TSharedPtr<FCultureEntry> Entry, ESelectInfo::Type SelectInfo)
 {
-	if (SupressSelectionCallback)
+	if (SuppressSelectionCallback)
 	{
 		return;
 	}

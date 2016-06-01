@@ -181,11 +181,11 @@ void FActorDropTarget::PerformAttachment(FName SocketName, TWeakObjectPtr<AActor
 void FActorDropTarget::DetachActorFromParent(AActor* ChildActor)
 {
 	USceneComponent* RootComp = ChildActor->GetRootComponent();
-	if (RootComp && RootComp->AttachParent)
+	if (RootComp && RootComp->GetAttachParent())
 	{
-		AActor* OldParent = RootComp->AttachParent->GetOwner();
+		AActor* OldParent = RootComp->GetAttachParent()->GetOwner();
 		OldParent->Modify();
-		RootComp->DetachFromParent(true);
+		RootComp->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 		
 		ChildActor->SetFolderPath_Recursively(OldParent->GetFolderPath());
 	}

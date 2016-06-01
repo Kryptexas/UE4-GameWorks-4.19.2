@@ -223,7 +223,7 @@ void SCheckBox::OnMouseLeave( const FPointerEvent& MouseEvent )
 
 bool SCheckBox::IsInteractable() const
 {
-	return IsEnabled() && SupportsKeyboardFocus();
+	return IsEnabled();
 }
 
 /**
@@ -320,6 +320,14 @@ void SCheckBox::SetContent(const TSharedRef< SWidget >& InContent)
 void SCheckBox::SetStyle(const FCheckBoxStyle* InStyle)
 {
 	Style = InStyle;
+
+	if (Style == nullptr)
+	{
+		FArguments Defaults;
+		Style = Defaults._Style;
+	}
+
+	check(Style);
 
 	BuildCheckBox(ContentContainer->GetContent());
 }

@@ -3,6 +3,7 @@
 #include "HierarchicalLODOutlinerPrivatePCH.h"
 #include "HLODOutlinerDragDrop.h"
 #include "HierarchicalLODUtilities.h"
+#include "HierarchicalLODUtilitiesModule.h"
 #include "ITreeItem.h"
 #include "TreeItemID.h"
 
@@ -20,6 +21,9 @@ bool HLODOutliner::FDragDropPayload::ParseDrag(const FDragDropOperation& Operati
 
 	if (Operation.IsOfType<FHLODOutlinerDragDropOp>())
 	{
+		bApplicable = true;
+		bSceneOutliner = false;
+
 		const auto& OutlinerOp = static_cast<const FHLODOutlinerDragDropOp&>(Operation);
 
 		if (OutlinerOp.StaticMeshActorOp.IsValid())
@@ -31,17 +35,19 @@ bool HLODOutliner::FDragDropPayload::ParseDrag(const FDragDropOperation& Operati
 		{
 			LODActors = OutlinerOp.LODActorOp->Actors;
 		}
-
-		bApplicable = true;
-		bSceneOutliner = false;
 	}
 	else if (Operation.IsOfType<FActorDragDropGraphEdOp>())
 	{
+		bSceneOutliner = true;
+		bApplicable = true;
+
 		const auto& ActorOp = static_cast<const FActorDragDropGraphEdOp&>(Operation);
 		for (auto& ActorPtr : ActorOp.Actors)
 		{
 			AActor* Actor = ActorPtr.Get();
-			if (FHierarchicalLODUtilities::ShouldGenerateCluster(Actor))
+			FHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<FHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");
+			IHierarchicalLODUtilities* Utilities = Module.GetUtilities();
+			if (Utilities->ShouldGenerateCluster(Actor))
 			{
 				if (!StaticMeshActors.IsSet())
 				{
@@ -50,9 +56,13 @@ bool HLODOutliner::FDragDropPayload::ParseDrag(const FDragDropOperation& Operati
 
 				StaticMeshActors->Add(Actor);
 			}
-		}
-		bSceneOutliner = true;
-		bApplicable = true;
+			else
+			{
+				// This means we have invalid static mesh actors in the scene outliner selection (could lead to invalid state)
+				bApplicable = false;
+				break;
+			}
+		}		
 	}
 
 	return bApplicable;

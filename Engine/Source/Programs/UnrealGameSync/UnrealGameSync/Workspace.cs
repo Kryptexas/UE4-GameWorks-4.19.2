@@ -26,6 +26,7 @@ namespace UnrealGameSync
 		ScheduledBuild = 0x80,
 		RunAfterSync = 0x100,
 		OpenSolutionAfterSync = 0x200,
+		SkipShaders = 0x400,
 	}
 
 	enum WorkspaceUpdateResult
@@ -266,6 +267,10 @@ namespace UnrealGameSync
 					Filter.Exclude("..." + BuildVersionFileName);
 					Filter.Exclude("..." + VersionHeaderFileName);
 					Filter.Exclude("..." + ObjectVersionFileName);
+					if(Context.Options.HasFlag(WorkspaceUpdateOptions.SkipShaders))
+					{
+						Filter.Exclude("*.usf");
+					}
 					SyncFiles.RemoveAll(x => !Filter.Matches(x));
 
 					// Sync them all
@@ -322,7 +327,7 @@ namespace UnrealGameSync
 
 						// Find the last code change before this changelist. For consistency in versioning between local builds and precompiled binaries, we need to use the last submitted code changelist as our version number.
 						List<PerforceChangeSummary> CodeChanges;
-						if(!Perforce.FindChanges(new string[]{ ".cs", ".h", ".cpp" }.SelectMany(x => SyncPaths.Select(y => String.Format("{0}{1}@<={2}", y, x, PendingChangeNumber))), 1, out CodeChanges, Log))
+						if(!Perforce.FindChanges(new string[]{ ".cs", ".h", ".cpp", ".usf" }.SelectMany(x => SyncPaths.Select(y => String.Format("{0}{1}@<={2}", y, x, PendingChangeNumber))), 1, out CodeChanges, Log))
 						{
 							StatusMessage = String.Format("Couldn't determine last code changelist before CL {0}.", PendingChangeNumber);
 							return WorkspaceUpdateResult.FailedToSync;
@@ -342,6 +347,7 @@ namespace UnrealGameSync
 						{
 							Dictionary<string, string> BuildVersionStrings = new Dictionary<string,string>();
 							BuildVersionStrings["\"Changelist\":"] = String.Format(" {0},", VersionChangeNumber);
+							BuildVersionStrings["\"BranchName\":"] = String.Format(" \"{0}\"", BranchOrStreamName.Replace('/', '+'));
 							if(!UpdateVersionFile(ClientRootPath + BuildVersionFileName, BuildVersionStrings))
 							{
 								StatusMessage = String.Format("Failed to update {0}.", BuildVersionFileName);

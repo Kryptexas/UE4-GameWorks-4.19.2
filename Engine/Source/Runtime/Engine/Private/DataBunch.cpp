@@ -31,8 +31,8 @@ FInBunch::FInBunch( UNetConnection* InConnection, uint8* Src, int64 CountBits )
 ,	bReliable ( 0 )
 ,	bPartial ( 0 )
 ,	bPartialInitial ( 0 )
-,	bPartialFinal	( 0 )
-,	bHasGUIDs( 0 )
+,	bPartialFinal ( 0 )
+,	bHasPackageMapExports ( 0 )
 {
 	check(Connection);
 	// Match the byte swapping settings of the connection
@@ -55,7 +55,7 @@ FInBunch::FInBunch( UPackageMap *InPackageMap, uint8* Src, int64 CountBits )
 ,	bPartial	( 0 )
 ,	bPartialInitial ( 0 )
 ,	bPartialFinal	( 0 )
-,	bHasGUIDs ( 0 )
+,	bHasPackageMapExports ( 0 )
 {
 	ArMaxSerializeSize = MAX_STRING_SERIALIZE_SIZE;
 }
@@ -88,7 +88,7 @@ FOutBunch::FOutBunch()
 : FNetBitWriter( 0 )
 {}
 FOutBunch::FOutBunch( UChannel* InChannel, bool bInClose )
-:	FNetBitWriter	( InChannel->Connection->PackageMap, InChannel->Connection->MaxPacket*8-MAX_BUNCH_HEADER_BITS-MAX_PACKET_TRAILER_BITS-MAX_PACKET_HEADER_BITS )
+:	FNetBitWriter	( InChannel->Connection->PackageMap, InChannel->Connection->GetMaxSingleBunchSizeBits())
 ,	Next		( NULL )
 ,	Channel		( InChannel )
 ,	Time		( 0 )
@@ -104,7 +104,7 @@ FOutBunch::FOutBunch( UChannel* InChannel, bool bInClose )
 ,	bPartial	( 0 )
 ,	bPartialInitial			( 0 )
 ,	bPartialFinal			( 0 )
-,	bHasGUIDs				( 0 )
+,	bHasPackageMapExports	( 0 )
 ,	bHasMustBeMappedGUIDs	( 0 )
 {
 	checkSlow(!Channel->Closing);
@@ -137,7 +137,7 @@ FOutBunch::FOutBunch( UPackageMap *InPackageMap, int64 MaxBits )
 ,	bPartial	( 0 )
 ,	bPartialInitial ( 0 )
 ,	bPartialFinal	( 0 )
-,	bHasGUIDs				( 0 )
+,	bHasPackageMapExports	( 0 )
 ,	bHasMustBeMappedGUIDs	( 0 )
 {
 }

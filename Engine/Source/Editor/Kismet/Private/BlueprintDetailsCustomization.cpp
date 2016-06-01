@@ -554,6 +554,58 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 			.Font(DetailFontInfo)
 		]
 	];
+
+	TSharedPtr<SToolTip> BitmaskTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VarBitmaskTooltip", "Whether or not to treat this variable as a bitmask."), nullptr, DocLink, TEXT("Bitmask"));
+
+	Category.AddCustomRow(LOCTEXT("IsVariableBitmaskLabel", "Bitmask"))
+	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::BitmaskVisibility))
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(LOCTEXT("IsVariableBitmaskLabel", "Bitmask"))
+		.ToolTip(BitmaskTooltip)
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	[
+		SNew(SCheckBox)
+		.IsChecked(this, &FBlueprintVarActionDetails::OnBitmaskCheckboxState)
+		.OnCheckStateChanged(this, &FBlueprintVarActionDetails::OnBitmaskChanged)
+		.IsEnabled(IsVariableInBlueprint())
+		.ToolTip(BitmaskTooltip)
+	];
+
+	BitmaskEnumTypeNames.Empty();
+	BitmaskEnumTypeNames.Add(MakeShareable(new FString(LOCTEXT("BitmaskEnumTypeName_None", "None").ToString())));
+	for (TObjectIterator<UEnum> EnumIt; EnumIt; ++EnumIt)
+	{
+		UEnum* CurrentEnum = *EnumIt;
+		if (UEdGraphSchema_K2::IsAllowableBlueprintVariableType(CurrentEnum) && CurrentEnum->HasMetaData(TEXT("Bitflags")))
+		{
+			BitmaskEnumTypeNames.Add(MakeShareable(new FString(CurrentEnum->GetFName().ToString())));
+		}
+	}
+
+	TSharedPtr<SToolTip> BitmaskEnumTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VarBitmaskEnumTooltip", "If this is a bitmask, choose an optional enumeration type for the flags. Note that changing this will also reset the default value."), nullptr, DocLink, TEXT("Bitmask Flags"));
+	
+	Category.AddCustomRow(LOCTEXT("BitmaskEnumLabel", "Bitmask Enum"))
+	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::BitmaskVisibility))
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(LOCTEXT("BitmaskEnumLabel", "Bitmask Enum"))
+		.ToolTip(BitmaskEnumTooltip)
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	[
+		SNew(STextComboBox)
+		.OptionsSource(&BitmaskEnumTypeNames)
+		.InitiallySelectedItem(GetBitmaskEnumTypeName())
+		.OnSelectionChanged(this, &FBlueprintVarActionDetails::OnBitmaskEnumTypeChanged)
+		.IsEnabled(IsVariableInBlueprint() && OnBitmaskCheckboxState() == ECheckBoxState::Checked)
+	];
+
 	ReplicationOptions.Empty();
 	ReplicationOptions.Add(MakeShareable(new FString("None")));
 	ReplicationOptions.Add(MakeShareable(new FString("Replicated")));
@@ -591,10 +643,28 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 	// Add in default value editing for properties that can be edited, local properties cannot be edited
 	if ((Blueprint != NULL) && (Blueprint->GeneratedClass != NULL))
 	{
+		bool bVariableRenamed = false;
 		if (VariableProperty != NULL && IsVariableInBlueprint())
 		{
+			// Determine the current property name on the CDO is stale
+			if (PropertyOwnerBlueprint.IsValid() && VariableProperty)
+			{
+				UBlueprint* PropertyBlueprint = PropertyOwnerBlueprint.Get();
+				const int32 VarIndex = FBlueprintEditorUtils::FindNewVariableIndex(PropertyBlueprint, CachedVariableName);
+				if (VarIndex != INDEX_NONE)
+				{
+					const FGuid VarGuid = PropertyBlueprint->NewVariables[VarIndex].VarGuid;
+					if (UBlueprintGeneratedClass* AuthoritiveBPGC = Cast<UBlueprintGeneratedClass>(PropertyBlueprint->GeneratedClass))
+					{
+						if (const FName* OldName = AuthoritiveBPGC->PropertyGuids.FindKey(VarGuid))
+						{
+							bVariableRenamed = CachedVariableName != *OldName;
+						}
+					}
+				}
+			}
 			const UProperty* OriginalProperty = nullptr;
-			
+		
 			if(!IsALocalVariable(VariableProperty))
 			{
 				OriginalProperty = FindField<UProperty>(Blueprint->GeneratedClass, VariableProperty->GetFName());
@@ -604,7 +674,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 				OriginalProperty = VariableProperty;
 			}
 
-			if (OriginalProperty == NULL)
+			if (OriginalProperty == NULL || bVariableRenamed)
 			{
 				// Prevent editing the default value of a skeleton property
 				VariableProperty = NULL;
@@ -695,10 +765,11 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 			}
 			else
 			{
+				UBlueprint* CurrPropertyOwnerBlueprint = IsVariableInheritedByBlueprint() ? GetBlueprintObj() : GetPropertyOwnerBlueprint();
 				UObject* TargetBlueprintDefaultObject = nullptr;
-				if (IsVariableInheritedByBlueprint())
+				if (CurrPropertyOwnerBlueprint && CurrPropertyOwnerBlueprint->GeneratedClass)
 				{
-					TargetBlueprintDefaultObject = GetBlueprintObj()->GeneratedClass->GetDefaultObject();
+					TargetBlueprintDefaultObject = CurrPropertyOwnerBlueprint->GeneratedClass->GetDefaultObject();
 				}
 				else if (UBlueprint* PropertyOwnerBP = GetPropertyOwnerBlueprint())
 				{
@@ -710,7 +781,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 					TargetBlueprintDefaultObject = CachedVariableProperty->GetOwnerClass()->GetDefaultObject();
 				}
 
-				if (TargetBlueprintDefaultObject)
+				if (TargetBlueprintDefaultObject != nullptr)
 				{
 					// Things are in order, show the property and allow it to be edited
 					TArray<UObject*> ObjectList;
@@ -1102,9 +1173,12 @@ FText FBlueprintVarActionDetails::OnGetTooltipText() const
 	FName VarName = CachedVariableName;
 	if (VarName != NAME_None)
 	{
-		FString Result;
-		FBlueprintEditorUtils::GetBlueprintVariableMetaData(GetPropertyOwnerBlueprint(), VarName, GetLocalVariableScope(CachedVariableProperty.Get()), TEXT("tooltip"), Result);
-		return FText::FromString(Result);
+		if ( UBlueprint* OwnerBlueprint = GetPropertyOwnerBlueprint() )
+		{
+			FString Result;
+			FBlueprintEditorUtils::GetBlueprintVariableMetaData(GetPropertyOwnerBlueprint(), VarName, GetLocalVariableScope(CachedVariableProperty.Get()), TEXT("tooltip"), Result);
+			return FText::FromString(Result);
+		}
 	}
 	return FText();
 }
@@ -1319,17 +1393,21 @@ FText FBlueprintVarActionDetails::OnGetCategoryText() const
 	{
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
-		FText Category = FBlueprintEditorUtils::GetBlueprintVariableCategory(GetPropertyOwnerBlueprint(), VarName, GetLocalVariableScope(CachedVariableProperty.Get()));
+		if ( UBlueprint* OwnerBlueprint = GetPropertyOwnerBlueprint() )
+		{
+			FText Category = FBlueprintEditorUtils::GetBlueprintVariableCategory(OwnerBlueprint, VarName, GetLocalVariableScope(CachedVariableProperty.Get()));
 
-		// Older blueprints will have their name as the default category and whenever it is the same as the default category, display localized text
-		if( Category.EqualTo(FText::FromString(GetPropertyOwnerBlueprint()->GetName())) || Category.EqualTo(K2Schema->VR_DefaultCategory) )
-		{
-			return K2Schema->VR_DefaultCategory;
+			// Older blueprints will have their name as the default category and whenever it is the same as the default category, display localized text
+			if ( Category.EqualTo(FText::FromString(OwnerBlueprint->GetName())) || Category.EqualTo(K2Schema->VR_DefaultCategory) )
+			{
+				return K2Schema->VR_DefaultCategory;
+			}
+			else
+			{
+				return Category;
+			}
 		}
-		else
-		{
-			return Category;
-		}
+
 		return FText::FromName(VarName);
 	}
 	return FText();
@@ -1644,10 +1722,13 @@ FText FBlueprintVarActionDetails::OnGetMetaKeyValue(FName Key) const
 	FName VarName = CachedVariableName;
 	if (VarName != NAME_None)
 	{
-		FString Result;
-		FBlueprintEditorUtils::GetBlueprintVariableMetaData(GetPropertyOwnerBlueprint(), VarName, GetLocalVariableScope(CachedVariableProperty.Get()), Key, /*out*/ Result);
+		if ( UBlueprint* Blueprint = GetPropertyOwnerBlueprint() )
+		{
+			FString Result;
+			FBlueprintEditorUtils::GetBlueprintVariableMetaData(GetPropertyOwnerBlueprint(), VarName, GetLocalVariableScope(CachedVariableProperty.Get()), Key, /*out*/ Result);
 
-		return FText::FromString(Result);
+			return FText::FromString(Result);
+		}
 	}
 	return FText();
 }
@@ -1679,6 +1760,137 @@ EVisibility FBlueprintVarActionDetails::RangeVisibility() const
 		}
 	}
 	return EVisibility::Collapsed;
+}
+
+EVisibility FBlueprintVarActionDetails::BitmaskVisibility() const
+{
+	UProperty* VariableProperty = CachedVariableProperty.Get();
+	if (VariableProperty && IsABlueprintVariable(VariableProperty) && VariableProperty->IsA(UIntProperty::StaticClass()))
+	{
+		return EVisibility::Visible;
+	}
+
+	return EVisibility::Collapsed;
+}
+
+ECheckBoxState FBlueprintVarActionDetails::OnBitmaskCheckboxState() const
+{
+	UProperty* Property = CachedVariableProperty.Get();
+	if (Property)
+	{
+		return (Property && Property->HasMetaData(FBlueprintMetadata::MD_Bitmask)) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	}
+	return ECheckBoxState::Unchecked;
+}
+
+void FBlueprintVarActionDetails::OnBitmaskChanged(ECheckBoxState InNewState)
+{
+	const FName VarName = CachedVariableName;
+	if (VarName != NAME_None)
+	{
+		UBlueprint* Blueprint = GetBlueprintObj();
+
+		const bool bIsBitmask = (InNewState == ECheckBoxState::Checked);
+		if (bIsBitmask)
+		{
+			FBlueprintEditorUtils::SetBlueprintVariableMetaData(Blueprint, VarName, nullptr, FBlueprintMetadata::MD_Bitmask, TEXT(""));
+		}
+		else
+		{
+			FBlueprintEditorUtils::RemoveBlueprintVariableMetaData(Blueprint, VarName, nullptr, FBlueprintMetadata::MD_Bitmask);
+		}
+
+		// Reset default value
+		if (Blueprint->GeneratedClass)
+		{
+			UObject* CDO = Blueprint->GeneratedClass->GetDefaultObject(false);
+			UProperty* VarProperty = FindField<UProperty>(Blueprint->GeneratedClass, VarName);
+
+			if (CDO != nullptr && VarProperty != nullptr)
+			{
+				VarProperty->InitializeValue_InContainer(CDO);
+			}
+		}
+
+		TArray<UK2Node_Variable*> VariableNodes;
+		FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_Variable>(GetBlueprintObj(), VariableNodes);
+
+		for (TArray<UK2Node_Variable*>::TConstIterator NodeIt(VariableNodes); NodeIt; ++NodeIt)
+		{
+			UK2Node_Variable* CurrentNode = *NodeIt;
+			if (VarName == CurrentNode->GetVarName())
+			{
+				CurrentNode->ReconstructNode();
+			}
+		}
+	}
+}
+
+TSharedPtr<FString> FBlueprintVarActionDetails::GetBitmaskEnumTypeName() const
+{
+	TSharedPtr<FString> Result;
+	const FName VarName = CachedVariableName;
+
+	if (BitmaskEnumTypeNames.Num() > 0 && VarName != NAME_None)
+	{
+		Result = BitmaskEnumTypeNames[0];
+
+		FString OutValue;
+		FBlueprintEditorUtils::GetBlueprintVariableMetaData(GetBlueprintObj(), VarName, nullptr, FBlueprintMetadata::MD_BitmaskEnum, OutValue);
+
+		for (int32 i = 1; i < BitmaskEnumTypeNames.Num(); ++i)
+		{
+			if (OutValue == *BitmaskEnumTypeNames[i])
+			{
+				Result = BitmaskEnumTypeNames[i];
+				break;
+			}
+		}
+	}
+
+	return Result;
+}
+
+void FBlueprintVarActionDetails::OnBitmaskEnumTypeChanged(TSharedPtr<FString> ItemSelected, ESelectInfo::Type SelectInfo)
+{
+	const FName VarName = CachedVariableName;
+	if (VarName != NAME_None)
+	{
+		UBlueprint* Blueprint = GetBlueprintObj();
+
+		if (ItemSelected == BitmaskEnumTypeNames[0])
+		{
+			FBlueprintEditorUtils::RemoveBlueprintVariableMetaData(Blueprint, VarName, nullptr, FBlueprintMetadata::MD_BitmaskEnum);
+		}
+		else if(ItemSelected.IsValid())
+		{
+			FBlueprintEditorUtils::SetBlueprintVariableMetaData(Blueprint, VarName, nullptr, FBlueprintMetadata::MD_BitmaskEnum, *ItemSelected);
+		}
+
+		// Reset default value
+		if (Blueprint->GeneratedClass)
+		{
+			UObject* CDO = Blueprint->GeneratedClass->GetDefaultObject(false);
+			UProperty* VarProperty = FindField<UProperty>(Blueprint->GeneratedClass, VarName);
+
+			if (CDO != nullptr && VarProperty != nullptr)
+			{
+				VarProperty->InitializeValue_InContainer(CDO);
+			}
+		}
+
+		TArray<UK2Node_Variable*> VariableNodes;
+		FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_Variable>(GetBlueprintObj(), VariableNodes);
+
+		for (TArray<UK2Node_Variable*>::TConstIterator NodeIt(VariableNodes); NodeIt; ++NodeIt)
+		{
+			UK2Node_Variable* CurrentNode = *NodeIt;
+			if (VarName == CurrentNode->GetVarName())
+			{
+				CurrentNode->ReconstructNode();
+			}
+		}
+	}
 }
 
 TSharedPtr<FString> FBlueprintVarActionDetails::GetVariableReplicationType() const
@@ -4322,6 +4534,13 @@ void FBlueprintInterfaceLayout::OnRemoveInterface(FInterfaceName InterfaceName)
 	UBlueprint* Blueprint = GlobalOptionsDetailsPtr.Pin()->GetBlueprintObj();
 	check(Blueprint);
 
+	const EAppReturnType::Type DialogReturn = FMessageDialog::Open(EAppMsgType::YesNoCancel, NSLOCTEXT("UnrealEd", "TransferInterfaceFunctionsToBlueprint", "Would you like to transfer the interface functions to be part of your blueprint?"));
+
+	if (DialogReturn == EAppReturnType::Cancel)
+	{
+		// We canceled!
+		return;
+	}
 	const FName InterfaceFName = InterfaceName.Name;
 
 	// Close all graphs that are about to be removed
@@ -4332,10 +4551,8 @@ void FBlueprintInterfaceLayout::OnRemoveInterface(FInterfaceName InterfaceName)
 		GlobalOptionsDetailsPtr.Pin()->GetBlueprintEditorPtr().Pin()->CloseDocumentTab(*GraphIt);
 	}
 
-	const bool bPreserveInterfaceFunctions = (EAppReturnType::Yes == FMessageDialog::Open( EAppMsgType::YesNo, NSLOCTEXT("UnrealEd", "TransferInterfaceFunctionsToBlueprint", "Would you like to transfer the interface functions to be part of your blueprint?") ));
-
 	// Do the work of actually removing the interface
-	FBlueprintEditorUtils::RemoveInterface(Blueprint, InterfaceFName, bPreserveInterfaceFunctions);
+	FBlueprintEditorUtils::RemoveInterface(Blueprint, InterfaceFName, DialogReturn == EAppReturnType::Yes);
 
 	RegenerateChildrenDelegate.ExecuteIfBound();
 

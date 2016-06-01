@@ -29,12 +29,23 @@
 
 /**
  * Checks that the given result isn't a failure.  If it is, the application exits with an appropriate error message.
- * @param	Result - The result code to check
+ * @param	Result - The result code to check.
  * @param	Code - The code which yielded the result.
  * @param	Filename - The filename of the source file containing Code.
  * @param	Line - The line number of Code within Filename.
  */
 extern D3D11RHI_API void VerifyD3D11Result(HRESULT Result,const ANSICHAR* Code,const ANSICHAR* Filename,uint32 Line, ID3D11Device* Device);
+
+/**
+ * Checks that the given result isn't a failure.  If it is, the application exits with an appropriate error message.
+ * @param	Shader - The shader we are trying to create.
+ * @param	Result - The result code to check.
+ * @param	Code - The code which yielded the result.
+ * @param	Filename - The filename of the source file containing Code.
+ * @param	Line - The line number of Code within Filename.
+ * @param	Device - The D3D device used to create the shadr.
+ */
+extern D3D11RHI_API void VerifyD3D11ShaderResult(class FRHIShader* Shader, HRESULT Result, const ANSICHAR* Code, const ANSICHAR* Filename, uint32 Line, ID3D11Device* Device);
 
 /**
 * Checks that the given result isn't a failure.  If it is, the application exits with an appropriate error message.
@@ -44,14 +55,15 @@ extern D3D11RHI_API void VerifyD3D11Result(HRESULT Result,const ANSICHAR* Code,c
 * @param	Line - The line number of Code within Filename.	
 */
 extern D3D11RHI_API void VerifyD3D11CreateTextureResult(HRESULT D3DResult,const ANSICHAR* Code,const ANSICHAR* Filename,uint32 Line,
-										 uint32 SizeX,uint32 SizeY,uint32 SizeZ,uint8 D3DFormat,uint32 NumMips,uint32 Flags);
+										 uint32 SizeX,uint32 SizeY,uint32 SizeZ,uint8 D3DFormat,uint32 NumMips,uint32 Flags, ID3D11Device* Device);
 
 /**
  * A macro for using VERIFYD3D11RESULT that automatically passes in the code and filename/line.
  */
 #define VERIFYD3D11RESULT_EX(x, Device)	{HRESULT hr = x; if (FAILED(hr)) { VerifyD3D11Result(hr,#x,__FILE__,__LINE__, Device); }}
 #define VERIFYD3D11RESULT(x)			{HRESULT hr = x; if (FAILED(hr)) { VerifyD3D11Result(hr,#x,__FILE__,__LINE__, 0); }}
-#define VERIFYD3D11CREATETEXTURERESULT(x,SizeX,SizeY,SizeZ,Format,NumMips,Flags) {HRESULT hr = x; if (FAILED(hr)) { VerifyD3D11CreateTextureResult(hr,#x,__FILE__,__LINE__,SizeX,SizeY,SizeZ,Format,NumMips,Flags); }}
+#define VERIFYD3D11SHADERRESULT(Result, Shader, Device) {HRESULT hr = (Result); if (FAILED(hr)) { VerifyD3D11ShaderResult(Shader, hr, #Result,__FILE__,__LINE__, Device); }}
+#define VERIFYD3D11CREATETEXTURERESULT(x,SizeX,SizeY,SizeZ,Format,NumMips,Flags, Device) {HRESULT hr = x; if (FAILED(hr)) { VerifyD3D11CreateTextureResult(hr,#x,__FILE__,__LINE__,SizeX,SizeY,SizeZ,Format,NumMips,Flags, Device); }}
 
 /**
  * Checks that a COM object has the expected number of references.

@@ -40,7 +40,7 @@ public:
 	void ResetData();
 
 protected:
-	TSharedPtr<class STimelinesContainer> TimelinesContainer;
+	TSharedPtr<class SVisualLoggerTimelinesContainer> TimelinesContainer;
 	TSharedPtr<class SSplitter> SearchSplitter;
 	TSharedPtr<class SScrollBox> ScrollBox;
 	TSharedPtr<class SSearchBox> SearchBox;

@@ -41,7 +41,7 @@ void UParticleModuleParameterDynamic::InitializeDefaults()
 {
 	for(int32 ParamIdx = 0; ParamIdx < DynamicParams.Num(); ++ParamIdx)
 	{
-		if(!DynamicParams[ParamIdx].ParamValue.Distribution)
+		if(!DynamicParams[ParamIdx].ParamValue.IsCreated())
 		{
 			DynamicParams[ParamIdx].ParamValue.Distribution = NewObject<UDistributionFloatConstant>(this, TEXT("DistributionParam1"));
 		}

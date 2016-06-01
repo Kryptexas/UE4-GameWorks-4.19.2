@@ -42,7 +42,7 @@ namespace UnrealBuildTool.Rules
 
             if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Mac)
             {
-                AddThirdPartyPrivateStaticDependencies(Target,"WebSockets");
+                AddEngineThirdPartyPrivateStaticDependencies(Target,"libWebSockets");
                 Definitions.Add("ENABLE_HTTP_FOR_NFS=1");
             }
 

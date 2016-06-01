@@ -19,6 +19,12 @@
 /* Private includes
  *****************************************************************************/
 
+#include "LevelSequenceEditorModule.h"
 #include "LevelSequenceActions.h"
+#include "LevelSequenceEditorCommands.h"
+#include "LevelSequenceEditorSettings.h"
+#include "LevelSequenceEditorSpawnRegister.h"
 #include "LevelSequenceEditorToolkit.h"
+#include "LevelSequenceEditorHelpers.h"
+#include "LevelSequenceEditorStyle.h"
 #include "LevelSequencePlaybackSettingsCustomization.h"

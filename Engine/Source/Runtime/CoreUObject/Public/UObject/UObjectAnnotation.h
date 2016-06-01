@@ -297,11 +297,8 @@ public:
 		else
 		{
 			TAnnotation ExistingAnnotation = this->GetAnnotation(Object);
-			if (!Annotation.IsDefault())
-			{
-				int32 NumExistingRemoved = InverseAnnotationMap.Remove(ExistingAnnotation);
-				checkSlow(NumExistingRemoved == 0);
-			}
+			int32 NumExistingRemoved = InverseAnnotationMap.Remove(ExistingAnnotation);
+			checkSlow(NumExistingRemoved == 0);
 
 			Super::AddAnnotation(Object, Annotation);
 			// should not exist in the mapping; we require uniqueness

@@ -14,6 +14,8 @@
 #include "GatherableTextData.h"
 #include "Serialization/AsyncLoading.h"
 #include "ModuleManager.h"
+#include "LoadTimeTracker.h"
+#include "HAL/ThreadHeartBeat.h"
 
 #define LOCTEXT_NAMESPACE "LinkerLoad"
 
@@ -110,17 +112,17 @@ void FLinkerLoad::CreateActiveRedirectsMap(const FString& GEngineIniName)
 
 					bool bInstanceOnly = false;
 
-					FParse::Bool( *It.Value(), TEXT("InstanceOnly="), bInstanceOnly );
-					FParse::Value( *It.Value(), TEXT("ObjectName="), ObjectName );
+					FParse::Bool( *It.Value().GetValue(), TEXT("InstanceOnly="), bInstanceOnly );
+					FParse::Value( *It.Value().GetValue(), TEXT("ObjectName="), ObjectName );
 
-					FParse::Value( *It.Value(), TEXT("OldClassName="), OldClassName );
-					FParse::Value( *It.Value(), TEXT("NewClassName="), NewClassName );
+					FParse::Value( *It.Value().GetValue(), TEXT("OldClassName="), OldClassName );
+					FParse::Value( *It.Value().GetValue(), TEXT("NewClassName="), NewClassName );
 
-					FParse::Value( *It.Value(), TEXT("OldSubobjName="), OldSubobjName );
-					FParse::Value( *It.Value(), TEXT("NewSubobjName="), NewSubobjName );
+					FParse::Value( *It.Value().GetValue(), TEXT("OldSubobjName="), OldSubobjName );
+					FParse::Value( *It.Value().GetValue(), TEXT("NewSubobjName="), NewSubobjName );
 
-					FParse::Value( *It.Value(), TEXT("NewClassClass="), NewClassClass );
-					FParse::Value( *It.Value(), TEXT("NewClassPackage="), NewClassPackage );
+					FParse::Value( *It.Value().GetValue(), TEXT("NewClassClass="), NewClassClass );
+					FParse::Value( *It.Value().GetValue(), TEXT("NewClassPackage="), NewClassPackage );
 
 					if (NewSubobjName != NAME_None || OldSubobjName != NAME_None)
 					{
@@ -181,8 +183,8 @@ void FLinkerLoad::CreateActiveRedirectsMap(const FString& GEngineIniName)
 					FName OldGameName = NAME_None;
 					FName NewGameName = NAME_None;
 
-					FParse::Value( *It.Value(), TEXT("OldGameName="), OldGameName );
-					FParse::Value( *It.Value(), TEXT("NewGameName="), NewGameName );
+					FParse::Value( *It.Value().GetValue(), TEXT("OldGameName="), OldGameName );
+					FParse::Value( *It.Value().GetValue(), TEXT("NewGameName="), NewGameName );
 
 					GameNameRedirects.Add(OldGameName, NewGameName);
 				}
@@ -191,8 +193,8 @@ void FLinkerLoad::CreateActiveRedirectsMap(const FString& GEngineIniName)
 					FName OldStructName = NAME_None;
 					FName NewStructName = NAME_None;
 
-					FParse::Value( *It.Value(), TEXT("OldStructName="), OldStructName );
-					FParse::Value( *It.Value(), TEXT("NewStructName="), NewStructName );
+					FParse::Value( *It.Value().GetValue(), TEXT("OldStructName="), OldStructName );
+					FParse::Value( *It.Value().GetValue(), TEXT("NewStructName="), NewStructName );
 
 					StructNameRedirects.Add(OldStructName, NewStructName);
 				}
@@ -201,8 +203,8 @@ void FLinkerLoad::CreateActiveRedirectsMap(const FString& GEngineIniName)
 					FString OldPluginName;
 					FString NewPluginName;
 
-					FParse::Value( *It.Value(), TEXT("OldPluginName="), OldPluginName );
-					FParse::Value( *It.Value(), TEXT("NewPluginName="), NewPluginName );
+					FParse::Value( *It.Value().GetValue(), TEXT("OldPluginName="), OldPluginName );
+					FParse::Value( *It.Value().GetValue(), TEXT("NewPluginName="), NewPluginName );
 
 					OldPluginName = FString(TEXT("/")) + OldPluginName + FString(TEXT("/"));
 					NewPluginName = FString(TEXT("/")) + NewPluginName + FString(TEXT("/"));
@@ -213,7 +215,7 @@ void FLinkerLoad::CreateActiveRedirectsMap(const FString& GEngineIniName)
 				{
 					FName KnownMissingPackage = NAME_None;
 
-					FParse::Value( *It.Value(), TEXT("PackageName="), KnownMissingPackage );
+					FParse::Value( *It.Value().GetValue(), TEXT("PackageName="), KnownMissingPackage );
 
 					KnownMissingPackages.Add(KnownMissingPackage);
 				}
@@ -606,42 +608,49 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::Tick( float InTimeLimit, bool bInUseTime
 			// false is returned until any precaching is complete.
 			if( true )
 			{
+				SCOPED_LOADTIMER(LinkerLoad_CreateLoader);
 				Status = CreateLoader();
 			}
 
 			// Serialize the package file summary and presize the various arrays (name, import & export map)
 			if( Status == LINKER_Loaded )
 			{
+				SCOPED_LOADTIMER(LinkerLoad_SerializePackageFileSummary);
 				Status = SerializePackageFileSummary();
 			}
 
 			// Serialize the name map and register the names.
 			if( Status == LINKER_Loaded )
 			{
+				SCOPED_LOADTIMER(LinkerLoad_SerializeNameMap);
 				Status = SerializeNameMap();
 			}
 
 			// Serialize the gatherable text data map.
 			if( Status == LINKER_Loaded )
 			{
+				SCOPED_LOADTIMER(LinkerLoad_SerializeGatherableTextDataMap);
 				Status = SerializeGatherableTextDataMap();
 			}
 
 			// Serialize the import map.
 			if( Status == LINKER_Loaded )
 			{
+				SCOPED_LOADTIMER(LinkerLoad_SerializeImportMap);
 				Status = SerializeImportMap();
 			}
 
 			// Serialize the export map.
 			if( Status == LINKER_Loaded )
 			{
+				SCOPED_LOADTIMER(LinkerLoad_SerializeExportMap);
 				Status = SerializeExportMap();
 			}
 
 			// Start pre-allocation of texture memory.
 			if( Status == LINKER_Loaded )
 			{
+				SCOPED_LOADTIMER(LinkerLoad_StartTextureAllocation);
 #if WITH_ENGINE
 				Status = StartTextureAllocation();
 #endif		// WITH_ENGINE
@@ -650,41 +659,48 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::Tick( float InTimeLimit, bool bInUseTime
 			// Fix up import map for backward compatible serialization.
 			if( Status == LINKER_Loaded )
 			{	
+				SCOPED_LOADTIMER(LinkerLoad_FixupImportMap);
 				Status = FixupImportMap();
 			}
 
 			if ( Status == LINKER_Loaded )
 			{
+				SCOPED_LOADTIMER(LinkerLoad_RemapImports);
 				Status = RemapImports();
 			}
 
 			// Fix up export map for object class conversion 
 			if( Status == LINKER_Loaded )
 			{	
+				SCOPED_LOADTIMER(LinkerLoad_FixupExportMap);
 				Status = FixupExportMap();
 			}
 
 			// Serialize the dependency map.
 			if( Status == LINKER_Loaded )
 			{
+				SCOPED_LOADTIMER(LinkerLoad_SerializeDependsMap);
 				Status = SerializeDependsMap();
 			}
 
 			// Hash exports.
 			if( Status == LINKER_Loaded )
 			{
+				SCOPED_LOADTIMER(LinkerLoad_CreateExportHash);
 				Status = CreateExportHash();
 			}
 
 			// Find existing objects matching exports and associate them with this linker.
 			if( Status == LINKER_Loaded )
 			{
+				SCOPED_LOADTIMER(LinkerLoad_FindExistingExports);
 				Status = FindExistingExports();
 			}
 
 			// Finalize creation process.
 			if( Status == LINKER_Loaded )
 			{
+				SCOPED_LOADTIMER(LinkerLoad_FinalizeCreation);
 				Status = FinalizeCreation();
 			}
 		}
@@ -1245,20 +1261,15 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializeNameMap()
 
 	while( bFinishedPrecaching && NameMapIndex < Summary.NameCount && !IsTimeLimitExceeded(TEXT("serializing name map"),100) )
 	{
+		SCOPED_LOADTIMER(LinkerLoad_SerializeNameMap_ProcessingEntries);
+
 		// Read the name entry from the file.
-		FNameEntry NameEntry(ENAME_LinkerConstructor);
+		FNameEntrySerialized NameEntry(ENAME_LinkerConstructor);
 		*this << NameEntry;
 
-		// Add it to the name table. We disregard the context flags as we don't support flags on names for final release builds.
+		// Add it to the name table with no splitting and no hash calculations
+		NameMap.Add(FName(NameEntry));
 
-		// now, we make sure we DO NOT split the name here because it will have been written out
-		// split, and we don't want to keep splitting A_3_4_9 every time
-
-		NameMap.Add( 
-			NameEntry.IsWide() ? 
-				FName(ENAME_LinkerConstructor, NameEntry.GetWideName()) : 
-				FName(ENAME_LinkerConstructor, NameEntry.GetAnsiName())
-			);
 		NameMapIndex++;
 	}
 
@@ -1885,20 +1896,7 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::FinalizeCreation()
 //			UE_LOG(LogLinker, Log, TEXT("Found a user created pacakge (%s)"), *(FPaths::GetBaseFilename(Filename)));
 		}
 
-#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
-		// we can't verify our imports if we're currently deferring dependency
-		// loads (or if we've explicitly requested this linker without it);
-		// with the LOAD_DeferDependencyLoads flag, this is most likely a 
-		// UserDefinedStruct package, which we need to load for some other Blueprint
-		// package (further up the stack), but at that Blueprint's request we 
-		// cannot spider out to load anything else - don't worry though, import
-		// verification happens as needed for CreateImport() during export 
-		// serialization, so it's not like this will be skipped completely (just
-		// deferred)
-		if (!(LoadFlags & (LOAD_NoVerify | LOAD_DeferDependencyLoads)))
-#else 
-		if (!(LoadFlags & LOAD_NoVerify))
-#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+		if ( !(LoadFlags & LOAD_NoVerify) )
 		{
 			Verify();
 		}
@@ -2005,6 +2003,7 @@ void FLinkerLoad::Verify()
 			}
 		}
 	}
+
 	bHaveImportsBeenVerified = true;
 }
 
@@ -2319,10 +2318,10 @@ FLinkerLoad::EVerifyResult FLinkerLoad::VerifyImport(int32 ImportIndex)
 			// otherwise just printout warnings, and if in the editor, popup the EdLoadWarnings box
 			else
 			{
+				bool bSupressLinkerError = false;
 #if WITH_EDITOR
 				if( GIsEditor && !IsRunningCommandlet())
 				{
-					bool bSupressLinkerError = false;
 					bSupressLinkerError = IsSuppressableBlueprintImportError(ImportIndex);
 					if (!bSupressLinkerError)
 					{
@@ -2347,7 +2346,7 @@ FLinkerLoad::EVerifyResult FLinkerLoad::VerifyImport(int32 ImportIndex)
 				// try to get a pointer to the class of the original object so that we can display the class name of the missing resource
 				UObject* ClassPackage = FindObject<UPackage>(NULL, *Import.ClassPackage.ToString());
 				UClass* FindClass = ClassPackage ? FindObject<UClass>(ClassPackage, *OriginalImport.ClassName.ToString()) : NULL;
-				if( !IgnoreMissingReferencedClass( Import.ObjectName ) )
+				if( !bSupressLinkerError && !IgnoreMissingReferencedClass( Import.ObjectName ) )
 				{
 					FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
 					// failure to load a class, most likely deleted instead of deprecated
@@ -2886,6 +2885,9 @@ void FLinkerLoad::LoadAllObjects( bool bForcePreload )
 		MetaDataIndex = LoadMetaDataFromExportMap(bForcePreload);
 	}
 	
+	// Tick the heartbeat if we're loading on the game thread
+	const bool bShouldTickHeartBeat = IsInGameThread();
+
 	for(int32 ExportIndex = 0; ExportIndex < ExportMap.Num(); ++ExportIndex)
 	{
 #if WITH_EDITOR
@@ -2914,13 +2916,27 @@ void FLinkerLoad::LoadAllObjects( bool bForcePreload )
 		}
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 
-		CreateExportAndPreload(ExportIndex, bForcePreload);
+		UObject* LoadedObject = CreateExportAndPreload(ExportIndex, bForcePreload);
+		// DynamicClass could be created without calling CreateImport. The imported objects will be required later when a CDO is created.
+		if (UDynamicClass* DynamicClass = Cast<UDynamicClass>(LoadedObject))
+		{
+			for (int32 ImportIndex = 0; ImportIndex < ImportMap.Num(); ++ImportIndex)
+			{
+				CreateImport(ImportIndex);
+			}
+		}
+
+		// If needed send a heartbeat, but no need to do it too often
+		if (bShouldTickHeartBeat && (ExportIndex % 10) == 0)
+		{
+			FThreadHeartBeat::Get().HeartBeat();
+		}
 	}
 
 	// Mark package as having been fully loaded.
 	if( LinkerRoot )
 	{
-		LinkerRoot->MarkAsFullyLoaded();		
+		LinkerRoot->MarkAsFullyLoaded();
 	}
 }
 
@@ -3479,6 +3495,15 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 			if (Export.Object)
 			{
 				Export.Object->SetLinker(this, Index);
+				if (UDynamicClass* DynamicClass = Cast<UDynamicClass>(Export.Object))
+				{
+					// Dynamic Class doesn't require/use pre-loading (or post-loading), but at this point the class is not fully initialized. 
+					// The CDO is created (in a custom code) at the end of loading (when it's safe to solve cyclic dependencies).
+					if (!DynamicClass->GetDefaultObject(false))
+					{
+						FUObjectThreadContext::Get().ObjLoaded.Add(Export.Object);
+					}
+				}
 			}
 			return Export.Object;
 		}
@@ -3552,7 +3577,7 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 				// SuperStruct needs to be fully linked so that UStruct::Link will have access to UObject::SuperStruct->PropertySize. 
 				// There are other attempts to force our super struct to load, and I have not verified that they can all be removed
 				// in favor of this one:
-				if (!SuperStruct->HasAnyFlags(RF_LoadCompleted)
+				if (!SuperStruct->HasAnyFlags(RF_LoadCompleted | RF_Dynamic)
 					&& !SuperStruct->IsNative()
 					&& SuperStruct->GetLinker()
 					&& Export.SuperIndex.IsImport())
@@ -3748,7 +3773,7 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 					// Do this for all subobjects created in the native constructor.
 					FUObjectThreadContext::Get().ObjLoaded.AddUnique(Export.Object);
 					if (!Export.Object->HasAnyFlags(RF_LoadCompleted) &&
-						(Export.Object->HasAnyFlags(RF_DefaultSubObject) || (ThisParent && ThisParent->HasAnyFlags(RF_ClassDefaultObject))))
+						(Export.Object->HasAnyFlags(RF_DefaultSubObject) || (ThisParent && ThisParent->IsTemplate(RF_ClassDefaultObject))))
 					{
 						Export.Object->SetFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects | RF_WasLoaded);
 					}
@@ -3845,9 +3870,9 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 		if (FPlatformProperties::RequiresCookedData())
 		{
 			if (GIsInitialLoad || GUObjectArray.IsOpenForDisregardForGC())
-			{
-				Export.Object->AddToRoot();
-			}
+		{
+			Export.Object->AddToRoot();
+		}
 		}
 		
 		LoadClass = Export.Object->GetClass(); // this may have changed if we are overwriting a CDO component
@@ -4128,17 +4153,77 @@ UObject* FLinkerLoad::IndexToObject( FPackageIndex Index )
 {
 	if( Index.IsExport() )
 	{
-		check(ExportMap.IsValidIndex( Index.ToExport() ) );
+		#if PLATFORM_DESKTOP
+			// Show a message box indicating, possible, corrupt data (desktop platforms only)
+			if ( !ExportMap.IsValidIndex( Index.ToExport() ) )
+			{
+				FText ErrorMessage, ErrorCaption;
+				GConfig->GetText(TEXT("/Script/Engine.Engine"),
+									TEXT("SerializationOutOfBoundsErrorMessage"),
+									ErrorMessage,
+									GEngineIni);
+				GConfig->GetText(TEXT("/Script/Engine.Engine"),
+					TEXT("SerializationOutOfBoundsErrorMessageCaption"),
+					ErrorCaption,
+					GEngineIni);
+
+				UE_LOG( LogLinker, Error, TEXT("Invalid export object index=%d while reading %s. File is most likely corrupted. Please verify your installation."), Index.ToExport(), *Filename );
+
+				if (GLog)
+				{
+					GLog->Flush();
+				}
+
+				FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *ErrorMessage.ToString(), *ErrorCaption.ToString());
+
+				check(false);
+			}
+		#else
+			{
+				UE_CLOG( !ExportMap.IsValidIndex( Index.ToExport() ), LogLinker, Fatal, TEXT("Invalid export object index=%d while reading %s. File is most likely corrupted. Please verify your installation."), Index.ToExport(), *Filename );
+			}
+		#endif
+
 		return CreateExport( Index.ToExport() );
 	}
 	else if( Index.IsImport() )
 	{
-		check(ImportMap.IsValidIndex( Index.ToImport() ) );
+		#if PLATFORM_DESKTOP
+			// Show a message box indicating, possible, corrupt data (desktop platforms only)
+			if ( !ImportMap.IsValidIndex( Index.ToImport() ) )
+			{
+				FText ErrorMessage, ErrorCaption;
+				GConfig->GetText(TEXT("/Script/Engine.Engine"),
+									TEXT("SerializationOutOfBoundsErrorMessage"),
+									ErrorMessage,
+									GEngineIni);
+				GConfig->GetText(TEXT("/Script/Engine.Engine"),
+					TEXT("SerializationOutOfBoundsErrorMessageCaption"),
+					ErrorCaption,
+					GEngineIni);
+
+				UE_LOG( LogLinker, Error, TEXT("Invalid import object index=%d while reading %s. File is most likely corrupted. Please verify your installation."), Index.ToImport(), *Filename );
+
+				if (GLog)
+				{
+					GLog->Flush();
+				}
+
+				FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *ErrorMessage.ToString(), *ErrorCaption.ToString());
+
+				check(false);
+			}
+		#else
+			{
+				UE_CLOG( !ImportMap.IsValidIndex( Index.ToImport() ), LogLinker, Fatal, TEXT("Invalid import object index=%d while reading %s. File is most likely corrupted. Please verify your installation."), Index.ToImport(), *Filename );
+			}
+		#endif
+
 		return CreateImport( Index.ToImport() );
 	}
 	else 
 	{
-		return NULL;
+		return nullptr;
 	}
 }
 
@@ -4381,7 +4466,11 @@ FArchive& FLinkerLoad::operator<<( FName& Name )
 
 	if( !NameMap.IsValidIndex(NameIndex) )
 	{
-		UE_LOG(LogLinker, Fatal, TEXT("Bad name index %i/%i"), NameIndex, NameMap.Num() );
+		UE_LOG(LogLinker, Error, TEXT("Bad name index %i/%i"), NameIndex, NameMap.Num() );
+		ArIsError = true;
+		ArIsCriticalError = true;
+		Name = NAME_None;
+		return *this;
 	}
 
 	// if the name wasn't loaded (because it wasn't valid in this context)

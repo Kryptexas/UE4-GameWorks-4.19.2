@@ -36,7 +36,7 @@ public:
 		return Parent->LowLevelDescribe();
 	}
 
-	virtual void LowLevelSend( void* Data, int32 Count ) override
+	virtual void LowLevelSend(void* Data, int32 CountBytes, int32 CountBits) override
 	{
 	}
 

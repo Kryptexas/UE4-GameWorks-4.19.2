@@ -15,8 +15,8 @@ public class ALAudio : ModuleRules
 			"Engine",
 		});
 
-        AddThirdPartyPrivateStaticDependencies(Target, "OpenAL");
-        AddThirdPartyPrivateStaticDependencies(Target,
+        AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenAL");
+        AddEngineThirdPartyPrivateStaticDependencies(Target,
             "OpenAL",
             "UEOgg",
             "Vorbis",

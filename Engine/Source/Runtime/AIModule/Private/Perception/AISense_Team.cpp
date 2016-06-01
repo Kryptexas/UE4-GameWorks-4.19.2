@@ -20,8 +20,6 @@ FAITeamStimulusEvent::FAITeamStimulusEvent(AActor* InBroadcaster, AActor* InEnem
 UAISense_Team::UAISense_Team(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer)
 {
-	DebugName = TEXT("Team");
-	DebugDrawColor = FColor::Blue;
 }
 
 float UAISense_Team::Update()

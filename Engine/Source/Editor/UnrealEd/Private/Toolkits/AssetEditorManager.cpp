@@ -706,4 +706,12 @@ void FAssetEditorManager::OpenEditorsForAssets(const TArray<FString>& AssetsToOp
 	}
 }
 
+void FAssetEditorManager::OpenEditorsForAssets(const TArray<FName>& AssetsToOpen)
+{
+	for (const FName AssetName : AssetsToOpen)
+	{
+		OpenEditorForAsset(AssetName.ToString());
+	}
+}
+
 #undef LOCTEXT_NAMESPACE

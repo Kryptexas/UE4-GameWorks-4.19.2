@@ -185,6 +185,10 @@ FString FOnlineSubsystemIOS::GetAppId() const
 
 bool FOnlineSubsystemIOS::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)  
 {
+	if (FOnlineSubsystemImpl::Exec(InWorld, Cmd, Ar))
+	{
+		return true;
+	}
 	return false;
 }
 
@@ -194,7 +198,7 @@ bool FOnlineSubsystemIOS::IsEnabled()
 	GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bEnableGameCenterSupport"), bEnableGameCenter, GEngineIni);
     bool bEnableCloudKit = false;
     GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bEnableCloudKitSupport"), bEnableCloudKit, GEngineIni);
-	return bEnableGameCenter || bEnableCloudKit;
+	return bEnableGameCenter || bEnableCloudKit || IsInAppPurchasingEnabled();
 }
 
 bool FOnlineSubsystemIOS::IsInAppPurchasingEnabled()

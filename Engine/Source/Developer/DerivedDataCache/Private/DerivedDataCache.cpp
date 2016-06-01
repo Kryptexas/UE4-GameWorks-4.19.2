@@ -8,7 +8,7 @@
 #include "DerivedDataBackendInterface.h"
 #include "DerivedDataPluginInterface.h"
 #include "DDCCleanup.h"
-
+#include "CookStats.h"
 
 DEFINE_STAT(STAT_DDC_NumGets);
 DEFINE_STAT(STAT_DDC_NumPuts);
@@ -20,7 +20,117 @@ DEFINE_STAT(STAT_DDC_PutTime);
 DEFINE_STAT(STAT_DDC_SyncBuildTime);
 DEFINE_STAT(STAT_DDC_ExistTime);
 
-/** 
+#if ENABLE_COOK_STATS
+#include "DerivedDataCacheUsageStats.h"
+namespace DerivedDataCacheCookStats
+{
+	static void CollectStats(FCookStatsManager::AddStatFuncRef AddStat)
+	{
+		TMap<FString, FDerivedDataCacheUsageStats> DDCStats;
+		GetDerivedDataCacheRef().GatherUsageStats(DDCStats);
+		{
+			const FString StatName(TEXT("DDC.Usage"));
+
+			auto LogDDCNodeStats = [&](const TPair<FString, FDerivedDataCacheUsageStats>& StatPair)
+			{
+				auto LogDDCNodeCallStats = [&](const FString& NodeName, const FDerivedDataCacheUsageStats::CallStats& CallStat, const TCHAR* CallName)
+				{
+					auto LogDDCNodeCallStat = [&](const FString& InnerNodeName, const FDerivedDataCacheUsageStats::CallStats& InnerCallStat, const TCHAR* InnerCallName, FDerivedDataCacheUsageStats::CallStats::EHitOrMiss HitOrMiss, bool bGameThread)
+					{
+						// only report the stat if it's non-zero
+						if (CallStat.GetAccumulatedValue(HitOrMiss, FDerivedDataCacheUsageStats::CallStats::EStatType::Cycles, bGameThread) > 0)
+						{
+							AddStat(StatName, FCookStatsManager::CreateKeyValueArray(
+								TEXT("ThreadName"), bGameThread ? TEXT("GameThread") : TEXT("OthrThread"),
+								TEXT("Call"), InnerCallName,
+								TEXT("HitOrMiss"), HitOrMiss == FDerivedDataCacheUsageStats::CallStats::EHitOrMiss::Hit ? TEXT("Hit") : TEXT("Miss"),
+								TEXT("Count"), InnerCallStat.GetAccumulatedValue(HitOrMiss, FDerivedDataCacheUsageStats::CallStats::EStatType::Counter, bGameThread),
+								TEXT("TimeSec"), InnerCallStat.GetAccumulatedValue(HitOrMiss, FDerivedDataCacheUsageStats::CallStats::EStatType::Cycles, bGameThread) * FPlatformTime::GetSecondsPerCycle(),
+								TEXT("MB"), InnerCallStat.GetAccumulatedValue(HitOrMiss, FDerivedDataCacheUsageStats::CallStats::EStatType::Bytes, bGameThread) / (1024.0 * 1024.0),
+								TEXT("MB/s"), InnerCallStat.GetAccumulatedValue(HitOrMiss, FDerivedDataCacheUsageStats::CallStats::EStatType::Cycles, bGameThread) == 0
+									? 0.0
+									: InnerCallStat.GetAccumulatedValue(HitOrMiss, FDerivedDataCacheUsageStats::CallStats::EStatType::Bytes, bGameThread) / (1024.0 * 1024.0) /
+									(InnerCallStat.GetAccumulatedValue(HitOrMiss, FDerivedDataCacheUsageStats::CallStats::EStatType::Cycles, bGameThread) * FPlatformTime::GetSecondsPerCycle()),
+									TEXT("Node"), InnerNodeName
+								));
+						}
+					};
+
+					LogDDCNodeCallStat(NodeName, CallStat, CallName, FDerivedDataCacheUsageStats::CallStats::EHitOrMiss::Hit, true);
+					LogDDCNodeCallStat(NodeName, CallStat, CallName, FDerivedDataCacheUsageStats::CallStats::EHitOrMiss::Miss, true);
+					LogDDCNodeCallStat(NodeName, CallStat, CallName, FDerivedDataCacheUsageStats::CallStats::EHitOrMiss::Hit, false);
+					LogDDCNodeCallStat(NodeName, CallStat, CallName, FDerivedDataCacheUsageStats::CallStats::EHitOrMiss::Miss, false);
+				};
+
+				LogDDCNodeCallStats(StatPair.Key, StatPair.Value.GetStats, TEXT("Get"));
+				LogDDCNodeCallStats(StatPair.Key, StatPair.Value.PutStats, TEXT("Put"));
+				LogDDCNodeCallStats(StatPair.Key, StatPair.Value.ExistsStats, TEXT("Exists"));
+			};
+
+			for (const auto& UsageStatPair : DDCStats)
+			{
+				LogDDCNodeStats(UsageStatPair);
+			}
+		}
+
+		// Now lets add some summary data to that applies some crazy knowledge of how we set up our DDC. The goal 
+		// is to print out the global hit rate, and the hit rate of the local and shared DDC.
+		// This is done by adding up the total get/miss calls the root node receives.
+		// Then we find the FileSystem nodes that correspond to the local and shared cache using some hacky logic to detect a "network drive".
+		// If the DDC graph ever contains more than one local or remote filesystem, this will only find one of them.
+		{
+			TArray<FString, TInlineAllocator<20>> Keys;
+			DDCStats.GenerateKeyArray(Keys);
+			FString* RootKey = Keys.FindByPredicate([](const FString& Key) {return Key.StartsWith(TEXT(" 0:")); });
+			// look for a Filesystem DDC that doesn't have a UNC path. Ugly, yeah, but we only cook on PC at the moment.
+			FString* LocalDDCKey = Keys.FindByPredicate([](const FString& Key) {return Key.Contains(TEXT(": FileSystem.")) && !Key.Contains(TEXT("//")); });
+			// look for a UNC path
+			FString* SharedDDCKey = Keys.FindByPredicate([](const FString& Key) {return Key.Contains(TEXT(": FileSystem.//")); });
+			if (RootKey)
+			{
+				const FDerivedDataCacheUsageStats& RootStats = DDCStats[*RootKey];
+				int64 TotalGetHits =
+					RootStats.GetStats.GetAccumulatedValue(FDerivedDataCacheUsageStats::CallStats::EHitOrMiss::Hit, FDerivedDataCacheUsageStats::CallStats::EStatType::Counter, true) +
+					RootStats.GetStats.GetAccumulatedValue(FDerivedDataCacheUsageStats::CallStats::EHitOrMiss::Hit, FDerivedDataCacheUsageStats::CallStats::EStatType::Counter, false);
+				int64 TotalGetMisses =
+					RootStats.GetStats.GetAccumulatedValue(FDerivedDataCacheUsageStats::CallStats::EHitOrMiss::Miss, FDerivedDataCacheUsageStats::CallStats::EStatType::Counter, true) +
+					RootStats.GetStats.GetAccumulatedValue(FDerivedDataCacheUsageStats::CallStats::EHitOrMiss::Miss, FDerivedDataCacheUsageStats::CallStats::EStatType::Counter, false);
+				int64 TotalGets = TotalGetHits + TotalGetMisses;
+
+				int64 LocalHits = 0;
+				if (LocalDDCKey)
+				{
+					const FDerivedDataCacheUsageStats& LocalDDCStats = DDCStats[*LocalDDCKey];
+					LocalHits =
+						LocalDDCStats.GetStats.GetAccumulatedValue(FDerivedDataCacheUsageStats::CallStats::EHitOrMiss::Hit, FDerivedDataCacheUsageStats::CallStats::EStatType::Counter, true) +
+						LocalDDCStats.GetStats.GetAccumulatedValue(FDerivedDataCacheUsageStats::CallStats::EHitOrMiss::Hit, FDerivedDataCacheUsageStats::CallStats::EStatType::Counter, false);
+				}
+				int64 SharedHits = 0;
+				if (SharedDDCKey)
+				{
+					// The shared DDC is only queried if the local one misses (or there isn't one). So it's hit rate is technically 
+					const FDerivedDataCacheUsageStats& SharedDDCStats = DDCStats[*SharedDDCKey];
+					SharedHits =
+						SharedDDCStats.GetStats.GetAccumulatedValue(FDerivedDataCacheUsageStats::CallStats::EHitOrMiss::Hit, FDerivedDataCacheUsageStats::CallStats::EStatType::Counter, true) +
+						SharedDDCStats.GetStats.GetAccumulatedValue(FDerivedDataCacheUsageStats::CallStats::EHitOrMiss::Hit, FDerivedDataCacheUsageStats::CallStats::EStatType::Counter, false);
+				}
+				AddStat(TEXT("DDC.Summary"), FCookStatsManager::CreateKeyValueArray(
+					TEXT("TotalGetHits"), TotalGetHits,
+					TEXT("TotalGets"), TotalGets,
+					TEXT("TotalHitPct"), (double)TotalGetHits / TotalGets,
+					TEXT("LocalHitPct"), (double)LocalHits / TotalGets,
+					TEXT("SharedHitPct"), (double)SharedHits / TotalGets,
+					TEXT("OtherHitPct"), double(TotalGetHits - LocalHits - SharedHits) / TotalGets,
+					TEXT("MissPct"), (double)TotalGetMisses / TotalGets
+					));
+			}
+		}
+	}
+	FCookStatsManager::FAutoRegisterCallback RegisterCookStats(&CollectStats);
+}
+#endif
+
+/**
  * Implementation of the derived data cache
  * This API is fully threadsafe
 **/
@@ -218,7 +328,7 @@ public:
 			delete AsyncTask;
 			return false;
 		}
-		OutData = AsyncTask->GetTask().Data;
+		OutData = MoveTemp(AsyncTask->GetTask().Data);
 		delete AsyncTask;
 		check(OutData.Num());
 		return true;
@@ -337,6 +447,10 @@ public:
 		// Used by derived classes to spit out leaked pending rollups
 	}
 
+	virtual void GatherUsageStats(TMap<FString, FDerivedDataCacheUsageStats>& UsageStatsMap) override
+	{
+		FDerivedDataBackend::Get().GatherUsageStats(UsageStatsMap);
+	}
 
 protected:
 	uint32 NextHandle()
@@ -934,10 +1048,6 @@ public:
 
 	virtual void StartupModule() override
 	{
-#if WITH_EDITOR
-		// Make sure the CookingStats module gets loaded on the correct thread (used by DDCStats on a background thread)
-		FModuleManager::Get().LoadModule(TEXT("CookingStats"));
-#endif // WITH_EDITOR
 
 		// make sure DDC gets created early, previously it might have happened in ShutdownModule() (for PrintLeaks()) when it was already too late
 		DDC = static_cast< FDerivedDataCache* >( &GetDDC() );

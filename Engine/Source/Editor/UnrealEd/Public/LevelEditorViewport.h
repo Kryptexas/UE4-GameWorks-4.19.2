@@ -54,7 +54,7 @@ struct FViewportHoverTarget
 	}
 };
 
-struct FTrackingTransaction
+struct UNREALED_API FTrackingTransaction
 {
 	/** State of this transaction */
 	struct ETransactionState
@@ -131,7 +131,7 @@ public:
 	virtual void Draw(const FSceneView* View,FPrimitiveDrawInterface* PDI) override;
 	// End of FViewElementDrawer interface
 	
-	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily) override;
+	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily, const EStereoscopicPass StereoPass = eSSP_FULL) override;
 
 	////////////////////////////
 	// FEditorViewportClient interface
@@ -370,14 +370,14 @@ public:
 	 *
 	 * @param	InHoverTarget	The hoverable object to add the effect to
 	 */
-	static void AddHoverEffect( struct FViewportHoverTarget& InHoverTarget );
+	static void AddHoverEffect( const struct FViewportHoverTarget& InHoverTarget );
 
 	/**
 	 * Static: Removes a hover effect to the specified object
 	 *
 	 * @param	InHoverTarget	The hoverable object to remove the effect from
 	 */
-	static void RemoveHoverEffect( struct FViewportHoverTarget& InHoverTarget );
+	static void RemoveHoverEffect( const struct FViewportHoverTarget& InHoverTarget );
 
 	/**
 	 * Static: Clears viewport hover effects from any objects that currently have that
@@ -420,6 +420,43 @@ public:
 		return ActorLockedToCamera;
 	}
 	
+	/**
+	 * Find the camera component to use for a locked actor
+	 * note this should return the same component as SLevelViewport::GetCameraInformationFromActor uses 
+	 */
+	UCameraComponent* GetCameraComponentForLockedActor(AActor const* Actor) const
+	{
+		if (Actor)
+		{
+			// see if actor has a camera component
+			TArray<UCameraComponent*> CamComps;
+			Actor->GetComponents<UCameraComponent>(CamComps);
+			for (UCameraComponent* Comp : CamComps)
+			{
+				if (Comp->bIsActive)
+				{
+					return Comp;
+				}
+			}
+
+			// now see if any actors are attached to us, directly or indirectly, that have an active camera component we might want to use
+			// we will just return the first one.
+			// #note: assumption here that attachment cannot be circular
+			TArray<AActor*> AttachedActors;
+			Actor->GetAttachedActors(AttachedActors);
+			for (AActor* AttachedActor : AttachedActors)
+			{
+				UCameraComponent* const Comp = GetCameraComponentForLockedActor(AttachedActor);
+				if (Comp)
+				{
+					return Comp;
+				}
+			}
+		}
+
+		return nullptr;
+	}
+
 	/** 
 	 * Find the camera component that is driving this viewport, in the following order of preference:
 	 *		1. Matinee locked actor
@@ -436,23 +473,7 @@ public:
 			LockedActor = ActorLockedToCamera.Get();
 		}
 
-		UCameraComponent* CameraComponent = nullptr;
-		if (LockedActor)
-		{
-			TArray<UCameraComponent*> CamComps;
-			LockedActor->GetComponents<UCameraComponent>(CamComps);
-
-			for (UCameraComponent* Comp : CamComps)
-			{
-				if (Comp->bIsActive)
-				{
-					CameraComponent = Comp;
-					break;
-				}
-			}
-		}
-
-		return CameraComponent;
+		return GetCameraComponentForLockedActor(LockedActor);
 	}
 
 	/** 
@@ -502,6 +523,33 @@ public:
 	{
 		SoundShowFlags = InSoundShowFlags;
 	}
+
+	void UpdateHoveredObjects( const TSet<FViewportHoverTarget>& NewHoveredObjects );
+
+	/**
+	 * Static: Attempts to place the specified object in the level, returning one or more newly-created actors if successful.
+	 * IMPORTANT: The placed actor's location must be first set using GEditor->ClickLocation and GEditor->ClickPlane.
+	 *
+	 * @param	InLevel			Level in which to drop actor
+	 * @param	ObjToUse		Asset to attempt to use for an actor to place
+	 * @param	CursorLocation	Location of the cursor while dropping
+	 * @param	bSelectActors	If true, select the newly dropped actors (defaults: true)
+	 * @param	ObjectFlags		The flags to place on the actor when it is spawned
+	 * @param	FactoryToUse	The preferred actor factory to use (optional)
+	 *
+	 * @return	true if the object was successfully used to place an actor; false otherwise
+	 */
+	static TArray<AActor*> TryPlacingActorFromObject( ULevel* InLevel, UObject* ObjToUse, bool bSelectActors, EObjectFlags ObjectFlags, UActorFactory* FactoryToUse, const FName Name = NAME_None );
+
+	/**
+	 * Static: Given a texture, returns a material for that texture, creating a new asset if necessary.  This is used
+	 * for dragging and dropping assets into the scene
+	 *
+	 * @param	UnrealTexture	Texture that we need a material for
+	 *
+	 * @return	The material that uses this texture, or null if we couldn't find or create one
+	 */
+	static UObject* GetOrCreateMaterialFromTexture( UTexture* UnrealTexture );
 
 protected:
 	/** 
@@ -624,7 +672,7 @@ private:
 
 	/** Helper functions for ApplyDeltaTo* functions - modifies scale based on grid settings */
 	void ModifyScale( AActor* InActor, FVector& ScaleDelta, bool bCheckSmallExtent = false ) const;
-	void ValidateScale( const FVector& CurrentScale, const FVector& BoxExtent, FVector& ScaleDelta, bool bCheckSmallExtent = false ) const;
+	void ValidateScale( const FVector& InOriginalPreDragScale, const FVector& CurrentScale, const FVector& BoxExtent, FVector& ScaleDelta, bool bCheckSmallExtent = false ) const;
 
 	/** Project the specified actors into the world according to the current drag parameters */
 	void ProjectActorsIntoWorld(const TArray<AActor*>& Actors, FViewport* Viewport, const FVector& Drag, const FRotator& Rot);
@@ -694,12 +742,14 @@ public:
 	/** Whether this viewport recently received focus. Used to determine whether component selection is permissible. */
 	bool bReceivedFocusRecently;
 
+	/** When enabled, the Unreal transform widget will become visible after an actor is selected, even if it was turned off via a show flag */
+	bool bAlwaysShowModeWidgetAfterSelectionChanges;
 private:
 	/** The actors that are currently being placed in the viewport via dragging */
 	static TArray< TWeakObjectPtr< AActor > > DropPreviewActors;
 
 	/** A map of actor locations before a drag operation */
-	TMap<TWeakObjectPtr<AActor>, FTransform> PreDragActorTransforms;
+	mutable TMap<TWeakObjectPtr<AActor>, FTransform> PreDragActorTransforms;
 
 	/** Bit array representing the visibility of every sprite category in the current viewport */
 	TBitArray<>	SpriteCategoryVisibility;

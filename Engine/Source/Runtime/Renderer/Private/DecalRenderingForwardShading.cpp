@@ -24,7 +24,6 @@ void FForwardShadingSceneRenderer::RenderDecals(FRHICommandListImmediate& RHICmd
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
 		const FViewInfo& View = Views[ViewIndex];
-		const bool bShaderComplexity = View.Family->EngineShowFlags.ShaderComplexity;
 		
 		// Build a list of decals that need to be rendered for this view
 		FTransientDecalRenderDataList SortedDecals;
@@ -100,7 +99,7 @@ void FForwardShadingSceneRenderer::RenderDecals(FRHICommandListImmediate& RHICmd
 				}
 
 				// Set shader params
-				FDecalRendering::SetShader(RHICmdList, View, bShaderComplexity, DecalData, FrustumComponentToClip);
+				FDecalRendering::SetShader(RHICmdList, View, DecalData, FrustumComponentToClip);
 			
 				RHICmdList.DrawIndexedPrimitive(GetUnitCubeIndexBuffer(), PT_TriangleList, 0, 0, 8, 0, ARRAY_COUNT(GCubeIndices) / 3, 1);
 			}

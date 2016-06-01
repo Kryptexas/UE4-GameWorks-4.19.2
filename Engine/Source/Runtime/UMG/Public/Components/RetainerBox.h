@@ -64,9 +64,10 @@ public:
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
 #if WITH_EDITOR
-	virtual const FSlateBrush* GetEditorIcon() override;
 	virtual const FText GetPaletteCategory() override;
 #endif
+
+	const FGeometry& GetCachedAllottedGeometry() const;
 
 protected:
 

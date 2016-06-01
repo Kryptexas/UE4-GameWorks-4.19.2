@@ -122,8 +122,7 @@ FString FJavaClassObject::CallMethod<FString>(FJavaClassMethod Method, ...)
 jstring FJavaClassObject::GetJString(const FString& String)
 {
 	JNIEnv*	JEnv = FAndroidApplication::GetJavaEnv();
-	auto StringCastObj = StringCast<ANSICHAR>(*String);
-	jstring local = JEnv->NewStringUTF(StringCastObj.Get());
+	jstring local = JEnv->NewStringUTF(TCHAR_TO_UTF8(*String));
 	jstring result = (jstring)JEnv->NewGlobalRef(local);
 	JEnv->DeleteLocalRef(local);
 	return result;

@@ -387,7 +387,7 @@ bool FBaseParser::GetToken( FToken& Token, bool bNoConsts/*=false*/, ESymbolPars
 		Token.TokenType = TOKEN_Identifier;
 
 		// Lookup the token's global name.
-		Token.TokenName = FName( Token.Identifier, FNAME_Find, true );
+		Token.TokenName = FName(Token.Identifier, FNAME_Find);
 
 		// If const values are allowed, determine whether the identifier represents a constant
 		if ( !bNoConsts )
@@ -576,7 +576,7 @@ bool FBaseParser::GetToken( FToken& Token, bool bNoConsts/*=false*/, ESymbolPars
 		Token.TokenType = TOKEN_Symbol;
 
 		// Lookup the token's global name.
-		Token.TokenName = FName( Token.Identifier, FNAME_Find, true );
+		Token.TokenName = FName(Token.Identifier, FNAME_Find);
 
 		return true;
 	}

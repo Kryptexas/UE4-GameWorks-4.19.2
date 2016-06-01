@@ -5,6 +5,7 @@
 #include "Internationalization/InternationalizationManifest.h"
 #include "Internationalization/InternationalizationMetadata.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
 
 // Helper function to count the number of entries in a manifest
 int32 CountManifestEntries( const FInternationalizationManifest& Manifest )
@@ -895,3 +896,5 @@ bool FManifestTest::RunTest( const FString& Parameters )
 
 	return true;
 }
+
+#endif //WITH_DEV_AUTOMATION_TESTS

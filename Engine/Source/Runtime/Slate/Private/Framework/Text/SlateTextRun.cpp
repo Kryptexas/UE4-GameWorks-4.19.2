@@ -1,9 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
-
-#if WITH_FANCY_TEXT
-
 #include "SlateTextRun.h"
 #include "ShapedTextCache.h"
 #include "RunUtils.h"
@@ -258,5 +255,3 @@ FSlateTextRun::FSlateTextRun( const FSlateTextRun& Run )
 {
 
 }
-
-#endif //WITH_FANCY_TEXT

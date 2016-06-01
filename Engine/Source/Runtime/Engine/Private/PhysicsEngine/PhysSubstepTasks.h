@@ -40,9 +40,6 @@ public:
 #endif	//#if WITH_PHYSX
 
 
-#if WITH_SUBSTEPPING
-
-
 /** Hold information about kinematic target */
 struct FKinematicTarget
 {
@@ -187,5 +184,3 @@ private:
 #endif
 
 };
-
-#endif //if WITH_SUBSTEPPING

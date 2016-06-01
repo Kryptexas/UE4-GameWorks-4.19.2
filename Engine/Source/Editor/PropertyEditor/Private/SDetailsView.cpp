@@ -291,6 +291,22 @@ void SDetailsView::ForceRefresh()
 	SetObjectArrayPrivate( NewObjectList );
 }
 
+void SDetailsView::MoveScrollOffset(int32 DeltaOffset)
+{
+	DetailTree->AddScrollOffset((float)DeltaOffset);
+}
+
+bool SDetailsView::GetCategoryInfo(FName CategoryName, int32 &SimplePropertiesNum, int32 &AdvancePropertiesNum)
+{
+	SimplePropertiesNum = 0;
+	AdvancePropertiesNum = 0;
+	bool CategoryExist = DetailLayout.IsValid() ? DetailLayout->HasCategory(CategoryName) : false;
+	if (CategoryExist)
+	{
+		DetailLayout->DefaultCategory(CategoryName).GetCategoryInformation(SimplePropertiesNum, AdvancePropertiesNum);
+	}
+	return CategoryExist;
+}
 
 void SDetailsView::SetObjects( const TArray<UObject*>& InObjects, bool bForceRefresh/* = false*/, bool bOverrideLock/* = false*/ )
 {
@@ -579,12 +595,23 @@ void SDetailsView::PreSetObject()
 		if( ExternalRootNode.IsValid() )
 		{
 			SaveExpandedItems( ExternalRootNode.Pin().ToSharedRef() );
+
+			FComplexPropertyNode* ComplexNode = ExternalRootNode.Pin()->AsComplexNode();
+			if(ComplexNode)
+			{
+				ComplexNode->Disconnect();
+			}
 		}
 	}
 
 	ExternalRootPropertyNodes.Empty();
 
-	RootNodesPendingKill.Add(RootPropertyNode);
+	if(RootPropertyNode.IsValid())
+	{
+		RootNodesPendingKill.Add(RootPropertyNode);
+		RootPropertyNode->RemoveAllObjects();
+		RootPropertyNode->ClearCachedReadAddresses(true);
+	}
 
 	RootPropertyNode = MakeShareable(new FObjectPropertyNode);
 
@@ -676,23 +703,14 @@ UStruct* SDetailsView::GetBaseStruct() const
 	return RootPropertyNode.IsValid() ? RootPropertyNode->GetObjectBaseClass() : NULL;
 }
 
-void SDetailsView::RegisterInstancedCustomPropertyLayout( UClass* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate )
+void SDetailsView::RegisterInstancedCustomPropertyLayout( UStruct* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate )
 {
-	check( Class );
-
-	FDetailLayoutCallback Callback;
-	Callback.DetailLayoutDelegate = DetailLayoutDelegate;
-	// @todo: DetailsView: Fix me: this specifies the order in which detail layouts should be queried
-	Callback.Order = InstancedClassToDetailLayoutMap.Num();
-
-	InstancedClassToDetailLayoutMap.Add( Class, Callback );
+	RegisterInstancedCustomPropertyLayoutInternal(Class, DetailLayoutDelegate);
 }
 
-void SDetailsView::UnregisterInstancedCustomPropertyLayout( UClass* Class )
+void SDetailsView::UnregisterInstancedCustomPropertyLayout( UStruct* Class )
 {
-	check( Class );
-
-	InstancedClassToDetailLayoutMap.Remove( Class );
+	UnregisterInstancedCustomPropertyLayoutInternal(Class);
 }
 
 void SDetailsView::AddExternalRootPropertyNode( TSharedRef<FPropertyNode> ExternalRootNode )

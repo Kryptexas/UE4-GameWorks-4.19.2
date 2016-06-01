@@ -11,6 +11,8 @@
 
 #include "Matinee/MatineeActor.h"
 
+#if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
+
 DEFINE_LOG_CATEGORY_STATIC(LogEngineAutomationLatentCommand, Log, All);
 DEFINE_LOG_CATEGORY(LogEditorAutomationTests);
 DEFINE_LOG_CATEGORY(LogEngineAutomationTests);
@@ -30,21 +32,21 @@ namespace AutomationCommon
 
 		TArray<FColor> OutImageData;
 		FIntVector OutImageSize;
-		FSlateApplication::Get().TakeScreenshot(WindowRef,OutImageData,OutImageSize);
-
-		FAutomationTestFramework::GetInstance().OnScreenshotCaptured().ExecuteIfBound(OutImageSize.X, OutImageSize.Y, OutImageData, FileName);
+		if (FSlateApplication::Get().TakeScreenshot(WindowRef, OutImageData, OutImageSize))
+		{
+			FAutomationTestFramework::GetInstance().OnScreenshotCaptured().ExecuteIfBound(OutImageSize.X, OutImageSize.Y, OutImageData, FileName);
+		}
 	}
 }
-
 
 bool AutomationOpenMap(const FString& MapName)
 {
 	bool bCanProceed = true;
-
+	FString OutString = TEXT("");
 #if WITH_EDITOR
 	if (GIsEditor && AutomationCommon::OnEditorAutomationMapLoad.IsBound())
 	{
-		AutomationCommon::OnEditorAutomationMapLoad.Broadcast(MapName);
+		AutomationCommon::OnEditorAutomationMapLoad.Broadcast(MapName, &OutString);
 	}
 	else
 #endif
@@ -62,7 +64,7 @@ bool AutomationOpenMap(const FString& MapName)
 		ADD_LATENT_AUTOMATION_COMMAND(FWaitForMapToLoadCommand());
 	}
 
-	return bCanProceed;
+	return (OutString.IsEmpty());
 }
 
 
@@ -256,3 +258,5 @@ bool FExecWorldStringLatentCommand::Update()
 	GEngine->Exec(GEngine->GetWorldContexts()[0].World(), *ExecCommand);
 	return true;
 }
+
+#endif //WITH_DEV_AUTOMATION_TESTS

@@ -81,13 +81,21 @@ inline void AddRadialForceToPxRigidBody(PxRigidBody& PRigidBody, const FVector& 
 	AddRadialForceToPxRigidBody_AssumesLocked(PRigidBody, Origin, Radius, Strength, Falloff, bAccelChange);
 }
 
-bool IsRigidBodyNonKinematic_AssumesLocked(const PxRigidBody* PRigidBody);
+bool IsRigidBodyKinematic_AssumesLocked(const PxRigidBody* PRigidBody);
+
+bool IsRigidBodyKinematicAndInSimulationScene_AssumesLocked(const PxRigidBody* PRigidBody);
+
+DEPRECATED(4.12, "Please call IsRigidBodyKinematic_AssumesLocked")
+inline bool IsRigidBodyNonKinematic_AssumesLocked(const PxRigidBody* PRigidBody)
+{
+	return !IsRigidBodyKinematic_AssumesLocked(PRigidBody);
+}
 
 /** Util to see if a PxRigidActor is non-kinematic */
-DEPRECATED(4.8, "Please call IsRigidBodyNonKinematic_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
+DEPRECATED(4.8, "Please call IsRigidBodyKinematic_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
 inline bool IsRigidBodyNonKinematic(PxRigidBody* PRigidBody)
 {
-	return IsRigidBodyNonKinematic_AssumesLocked(PRigidBody);
+	return !IsRigidBodyKinematic_AssumesLocked(PRigidBody);
 }
 
 
@@ -238,7 +246,7 @@ class FPhysXAllocator : public PxAllocatorCallback
 		:	AllocationTypeName(InAllocationTypeName)
 		,	AllocationSize(InAllocationSize)
 		{
-			static_assert(sizeof(FPhysXAllocationHeader) == 32, "FPhysXAllocationHeader size must be 32 bytes.");
+			static_assert((sizeof(FPhysXAllocationHeader) % 16) == 0, "FPhysXAllocationHeader size must multiple of bytes.");
 			MagicPadding();
 		}
 
@@ -264,6 +272,7 @@ class FPhysXAllocator : public PxAllocatorCallback
 		FName AllocationTypeName;
 		size_t	AllocationSize;
 		uint8 Padding[8];	//physx needs 16 byte alignment. Additionally we fill padding with a pattern to see if there's any memory stomps
+		uint8 Padding2[(sizeof(FName) + sizeof(size_t) + sizeof(Padding)) % 16];
 
 		void Validate() const
 		{
@@ -424,44 +433,7 @@ class FPhysXBroadcastingAllocator : public PxBroadcastingAllocator
 class FPhysXErrorCallback : public PxErrorCallback
 {
 public:
-	virtual void reportError(PxErrorCode::Enum e, const char* message, const char* file, int line) override
-	{
-		// if not in game, ignore Perf warnings - i.e. Moving Static actor in editor will produce this warning
-		if (GIsEditor && e == PxErrorCode::ePERF_WARNING)
-		{
-			return;
-		}
-
-		// @MASSIVE HACK - muting 'triangle too big' warning :(
-		if(line == 223)
-		{
-			return;
-		}
-
-		// Make string to print out, include physx file/line
-		FString ErrorString = FString::Printf( TEXT("PHYSX: %s (%d) %d : %s"), ANSI_TO_TCHAR(file), line, (int32)e, ANSI_TO_TCHAR(message) );
-
-		if(e == PxErrorCode::eOUT_OF_MEMORY ||  e == PxErrorCode::eINTERNAL_ERROR || e == PxErrorCode::eABORT)
-		{
-			//UE_LOG(LogPhysics, Error, *ErrorString);
-			UE_LOG(LogPhysics, Warning, TEXT("%s"), *ErrorString);
-		}
-		else if(e == PxErrorCode::eINVALID_PARAMETER || e == PxErrorCode::eINVALID_OPERATION || e == PxErrorCode::ePERF_WARNING)
-		{
-			UE_LOG(LogPhysics, Warning, TEXT("%s"), *ErrorString);
-		}
-#if UE_BUILD_DEBUG
-		else if (e == PxErrorCode::eDEBUG_WARNING)
-		{
-			UE_LOG(LogPhysics, Warning, TEXT("%s"), *ErrorString);
-		}
-#endif
-		else
-		{
-			UE_LOG(LogPhysics, Log, TEXT("%s"), *ErrorString);
-		}
-
-	}
+	virtual void reportError(PxErrorCode::Enum e, const char* message, const char* file, int line) override;
 };
 
 /** 'Shader' used to filter simulation collisions. Could be called on any thread. */

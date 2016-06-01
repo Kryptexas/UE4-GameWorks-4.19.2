@@ -46,7 +46,7 @@ namespace UnrealBuildTool.Rules
 				}
 				);
 				
-			AddThirdPartyPrivateStaticDependencies(Target, "SpeedTree");
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "SpeedTree");
 		}
 	}
 }

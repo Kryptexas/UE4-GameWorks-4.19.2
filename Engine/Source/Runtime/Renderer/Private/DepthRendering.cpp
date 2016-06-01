@@ -70,6 +70,11 @@ public:
 			SetShaderValue(RHICmdList, GetVertexShader(), IsInstancedStereoParameter, bIsInstancedStereo);
 		}
 
+		if (InstancedEyeIndexParameter.IsBound())
+		{
+			SetShaderValue(RHICmdList, GetVertexShader(), InstancedEyeIndexParameter, 0);
+		}
+
 		if (NeedsInstancedStereoBiasParameter.IsBound())
 		{
 			SetShaderValue(RHICmdList, GetVertexShader(), NeedsInstancedStereoBiasParameter, bNeedsInstancedStereoBias);
@@ -81,8 +86,9 @@ public:
 		FMeshMaterialShader::SetMesh(RHICmdList, GetVertexShader(),VertexFactory,View,Proxy,BatchElement,DrawRenderState);
 	}
 
-	void SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) {
-		if (InstancedEyeIndexParameter.IsBound())
+	void SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex)
+	{
+		if (EyeIndex > 0 && InstancedEyeIndexParameter.IsBound())
 		{
 			SetShaderValue(RHICmdList, GetVertexShader(), InstancedEyeIndexParameter, EyeIndex);
 		}
@@ -187,9 +193,9 @@ FDepthDrawingPolicy::FDepthDrawingPolicy(
 	bool bIsTwoSided,
 	ERHIFeatureLevel::Type InFeatureLevel
 	):
-	FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,InMaterialResource,false,/*bInTwoSidedOverride=*/ bIsTwoSided)
+	FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,InMaterialResource,DVSM_None,/*bInTwoSidedOverride=*/ bIsTwoSided)
 {
-	bNeedsPixelShader = (!InMaterialResource.WritesEveryPixel() || InMaterialResource.HasPixelDepthOffsetConnected());
+	bNeedsPixelShader = (!InMaterialResource.WritesEveryPixel() || InMaterialResource.MaterialUsesPixelDepthOffset());
 	if (!bNeedsPixelShader)
 	{
 		PixelShader = nullptr;
@@ -242,7 +248,8 @@ FDepthDrawingPolicy::FDepthDrawingPolicy(
 	}
 }
 
-void FDepthDrawingPolicy::SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) const {
+void FDepthDrawingPolicy::SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) const
+{
 	VertexShader->SetInstancedEyeIndex(RHICmdList, EyeIndex);
 }
 
@@ -358,7 +365,7 @@ FPositionOnlyDepthDrawingPolicy::FPositionOnlyDepthDrawingPolicy(
 	bool bIsTwoSided,
 	bool bIsWireframe
 	):
-	FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,InMaterialResource,false,bIsTwoSided,bIsWireframe)
+	FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,InMaterialResource,DVSM_None,bIsTwoSided,bIsWireframe)
 {
 	ShaderPipeline = UseShaderPipelines() ? InMaterialResource.GetShaderPipeline(&DepthPosOnlyNoPixelPipeline, VertexFactory->GetType()) : nullptr;
 	VertexShader = ShaderPipeline
@@ -408,7 +415,8 @@ void FPositionOnlyDepthDrawingPolicy::SetMeshRenderState(
 	SetDitheredLODDepthStencilState(RHICmdList, DrawRenderState);
 }
 
-void FPositionOnlyDepthDrawingPolicy::SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) const {
+void FPositionOnlyDepthDrawingPolicy::SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) const
+{
 	VertexShader->SetInstancedEyeIndex(RHICmdList, EyeIndex);
 }
 
@@ -428,7 +436,7 @@ void FDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* Static
 	const EBlendMode BlendMode = Material->GetBlendMode();
 	const auto FeatureLevel = Scene->GetFeatureLevel();
 
-	if (!Material->WritesEveryPixel())
+	if (!Material->WritesEveryPixel() || Material->MaterialUsesPixelDepthOffset())
 	{
 		// only draw if required
 		Scene->MaskedDepthDrawList.AddMesh(
@@ -508,7 +516,7 @@ bool FDepthDrawingPolicyFactory::DrawMesh(
 
 	//Do a per-FMeshBatch check on top of the proxy check in RenderPrePass to handle the case where a proxy that is relevant 
 	//to the depth only pass has to submit multiple FMeshElements but only some of them should be used as occluders.
-	if (Mesh.bUseAsOccluder || DrawingContext.DepthDrawingMode == DDM_AllOpaque)
+	if (Mesh.bUseAsOccluder || !DrawingContext.bRespectUseAsOccluderFlag || DrawingContext.DepthDrawingMode == DDM_AllOpaque)
 	{
 		const FMaterialRenderProxy* MaterialRenderProxy = Mesh.MaterialRenderProxy;
 		const FMaterial* Material = MaterialRenderProxy->GetMaterial(View.GetFeatureLevel());

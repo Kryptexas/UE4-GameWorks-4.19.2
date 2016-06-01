@@ -16,10 +16,14 @@ struct CORE_API FWindowsPlatformCrashContext : public FGenericCrashContext
 		UE4_MINIDUMP_CRASHCONTEXT = LastReservedStream + 1,
 	};
 
-	virtual void AddPlatformSpecificProperties() override
+	FWindowsPlatformCrashContext() {}
+
+	FWindowsPlatformCrashContext(bool bInIsEnsure)
 	{
-		AddCrashProperty( TEXT( "PlatformIsRunningWindows" ), 1 );
+		bIsEnsure = bInIsEnsure;
 	}
+
+	virtual void AddPlatformSpecificProperties() override;
 };
 
 typedef FWindowsPlatformCrashContext FPlatformCrashContext;

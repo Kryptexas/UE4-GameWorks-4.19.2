@@ -3,22 +3,25 @@
 #include "MetalRHIPrivate.h"
 
 #include "MetalBufferPools.h"
+#include "MetalProfiler.h"
 
 FMetalPooledBuffer::FMetalPooledBuffer()
 : Buffer(nil)
 {
-	
+	INC_DWORD_STAT(STAT_MetalFreePooledBufferCount);
 }
 
 FMetalPooledBuffer::FMetalPooledBuffer(FMetalPooledBuffer const& Other)
 : Buffer(nil)
 {
+	INC_DWORD_STAT(STAT_MetalFreePooledBufferCount);
 	operator=(Other);
 }
 
 FMetalPooledBuffer::FMetalPooledBuffer(id<MTLBuffer> Buf)
 : Buffer(Buf)
 {
+	INC_DWORD_STAT(STAT_MetalFreePooledBufferCount);
 	[Buffer retain];
 }
 
@@ -26,6 +29,7 @@ FMetalPooledBuffer::~FMetalPooledBuffer()
 {
 	[Buffer release];
 	Buffer = nil;
+	DEC_DWORD_STAT(STAT_MetalFreePooledBufferCount);
 }
 
 FMetalPooledBuffer& FMetalPooledBuffer::operator=(FMetalPooledBuffer const& Other)
@@ -109,6 +113,8 @@ FMetalPooledBuffer FMetalBufferPoolPolicyData::CreateResource(CreationArguments 
 					 | (Args.Storage << MTLResourceStorageModeShift)
 #endif
 					 ];
+	TRACK_OBJECT(STAT_MetalBufferCount, NewBuf.Buffer);
+	INC_DWORD_STAT(STAT_MetalPooledBufferCount);
 	return NewBuf;
 }
 
@@ -123,6 +129,12 @@ FMetalBufferPoolPolicyData::CreationArguments FMetalBufferPoolPolicyData::GetCre
 #else
 	return FMetalBufferPoolPolicyData::CreationArguments(Resource.Buffer.device, Resource.Buffer.length, MTLStorageModeShared);
 #endif
+}
+
+void FMetalBufferPoolPolicyData::FreeResource(FMetalPooledBuffer Resource)
+{
+	UNTRACK_OBJECT(STAT_MetalBufferCount, Resource.Buffer);
+	DEC_DWORD_STAT(STAT_MetalPooledBufferCount);
 }
 
 /** The bucket sizes */
@@ -176,6 +188,7 @@ FMetalQueryBuffer* FMetalQueryBufferPool::GetCurrentQueryBuffer()
 					  | MTLResourceStorageModeShared
 #endif
 					  ];
+			TRACK_OBJECT(STAT_MetalBufferCount, Buffer);
         }
         CurrentBuffer = new FMetalQueryBuffer(Context, Buffer);
     }
@@ -194,6 +207,7 @@ FRingBuffer::FRingBuffer(id<MTLDevice> Device, uint32 Size, uint32 InDefaultAlig
 	Buffer = [Device newBufferWithLength:Size options:BUFFER_CACHE_MODE];
 	Offset = 0;
 	LastRead = Size;
+	TRACK_OBJECT(STAT_MetalBufferCount, Buffer);
 }
 
 uint32 FRingBuffer::Allocate(uint32 Size, uint32 Alignment)
@@ -237,9 +251,10 @@ uint32 FRingBuffer::Allocate(uint32 Size, uint32 Alignment)
 		UE_LOG(LogMetal, Warning, TEXT("Reallocating ring-buffer from %d to %d to avoid wrapping write at offset %d into outstanding buffer region %d at frame %lld]"), BufferSize, BufferSize * 2, Offset, LastRead, GFrameCounter);
 		SafeReleaseMetalResource(Buffer);
 		Buffer = [GetMetalDeviceContext().GetDevice() newBufferWithLength:BufferSize * 2 options:BUFFER_CACHE_MODE];
+		TRACK_OBJECT(STAT_MetalBufferCount, Buffer);
 		Offset = 0;
 		LastRead = Size;
-		
+
 		// get current location
 		uint32 ReturnOffset = Offset;
 		Offset += Size;

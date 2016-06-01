@@ -296,23 +296,17 @@ template <int32 TRANSFORM_BLEND_MODE>
 void BlendPosePerBone(const TArray<FBoneIndexType>& RequiredBoneIndices, const TArray<int32>& PerBoneIndices, const FBlendSampleData& BlendSampleDataCache, FTransformArrayA2& ResultAtoms, const FTransformArrayA2& SourceAtoms)
 {
 	const float BlendWeight = BlendSampleDataCache.GetWeight();
-	TArray<float> PerBoneBlends;
-	for (int32 i = 0; i < BlendSampleDataCache.PerBoneBlendData.Num(); ++i)
-	{
-		PerBoneBlends.Add(FMath::Clamp<float>(BlendSampleDataCache.PerBoneBlendData[i], 0.f, 1.f));
-	}
-
 	for (int32 i = 0; i < RequiredBoneIndices.Num(); ++i)
 	{
 		const int32 BoneIndex = RequiredBoneIndices[i];
-		int32 PerBoneIndex = PerBoneIndices[i];
+		const int32 PerBoneIndex = PerBoneIndices[i];
 		if (PerBoneIndex == INDEX_NONE || !BlendSampleDataCache.PerBoneBlendData.IsValidIndex(PerBoneIndex))
 		{
 			BlendTransform<TRANSFORM_BLEND_MODE>(SourceAtoms[BoneIndex], ResultAtoms[BoneIndex], BlendWeight);
 		}
 		else
 		{
-			BlendTransform<TRANSFORM_BLEND_MODE>(SourceAtoms[BoneIndex], ResultAtoms[BoneIndex], PerBoneBlends[PerBoneIndex]);
+			BlendTransform<TRANSFORM_BLEND_MODE>(SourceAtoms[BoneIndex], ResultAtoms[BoneIndex], BlendSampleDataCache.PerBoneBlendData[PerBoneIndex]);
 		}
 	}
 }
@@ -321,23 +315,16 @@ template <int32 TRANSFORM_BLEND_MODE>
 void BlendPosePerBone(const TArray<int32>& PerBoneIndices, const FBlendSampleData& BlendSampleDataCache, FCompactPose& ResultPose, const FCompactPose& SourcePose)
 {
 	const float BlendWeight = BlendSampleDataCache.GetWeight();
-	TArray<float> PerBoneBlends;
-	for (int32 i = 0; i < BlendSampleDataCache.PerBoneBlendData.Num(); ++i)
-	{
-		PerBoneBlends.Add(FMath::Clamp<float>(BlendSampleDataCache.PerBoneBlendData[i], 0.f, 1.f));
-	}
-
 	for (FCompactPoseBoneIndex BoneIndex : SourcePose.ForEachBoneIndex())
 	{
-		int32 PerBoneIndex = PerBoneIndices[BoneIndex.GetInt()];
-
+		const int32 PerBoneIndex = PerBoneIndices[BoneIndex.GetInt()];
 		if (PerBoneIndex == INDEX_NONE || !BlendSampleDataCache.PerBoneBlendData.IsValidIndex(PerBoneIndex))
 		{
 			BlendTransform<TRANSFORM_BLEND_MODE>(SourcePose[BoneIndex], ResultPose[BoneIndex], BlendWeight);
 		}
 		else
 		{
-			BlendTransform<TRANSFORM_BLEND_MODE>(SourcePose[BoneIndex], ResultPose[BoneIndex], PerBoneBlends[PerBoneIndex]);
+			BlendTransform<TRANSFORM_BLEND_MODE>(SourcePose[BoneIndex], ResultPose[BoneIndex], BlendSampleDataCache.PerBoneBlendData[PerBoneIndex]);
 		}
 	}
 }
@@ -624,6 +611,11 @@ ETypeAdvanceAnim FAnimationRuntime::AdvanceTime(const bool& bAllowLooping, const
 					InOutTime += EndTime;
 				}
 			}
+			else
+			{
+				// end time is 0.f
+				InOutTime = 0.f;
+			}
 
 			// it has been looped
 			return ETAA_Looped;
@@ -696,6 +688,19 @@ void FAnimationRuntime::GetKeyIndicesFromTime(int32& OutKeyIndex1, int32& OutKey
 	OutKeyIndex1 = KeyIndex1;
 	OutKeyIndex2 = KeyIndex2;
 	OutAlpha = Alpha;
+}
+
+FTransform FAnimationRuntime::GetComponentSpaceRefPose(const FCompactPoseBoneIndex& CompactPoseBoneIndex, const FBoneContainer& BoneContainer)
+{
+	FCompactPoseBoneIndex CurrentIndex = CompactPoseBoneIndex;
+	FTransform CSTransform = FTransform::Identity;
+	while (CurrentIndex.GetInt() != INDEX_NONE)
+	{
+		CSTransform *= BoneContainer.GetRefPoseTransform(CurrentIndex);
+		CurrentIndex = BoneContainer.GetParentBoneIndex(CurrentIndex);
+	}
+	
+	return CSTransform;
 }
 
 void FAnimationRuntime::FillWithRefPose(TArray<FTransform>& OutAtoms, const FBoneContainer& RequiredBones)

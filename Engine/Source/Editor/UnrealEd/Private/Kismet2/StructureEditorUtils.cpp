@@ -590,6 +590,18 @@ const TArray<FStructVariableDescription>& FStructureEditorUtils::GetVarDesc(cons
 	return CastChecked<const UUserDefinedStructEditorData>(Struct->EditorData)->VariablesDescriptions;
 }
 
+TArray<FStructVariableDescription>* FStructureEditorUtils::GetVarDescPtr(UUserDefinedStruct* Struct)
+{
+	check(Struct);
+	return Struct->EditorData ? &CastChecked<UUserDefinedStructEditorData>(Struct->EditorData)->VariablesDescriptions : nullptr;
+}
+
+const TArray<FStructVariableDescription>* FStructureEditorUtils::GetVarDescPtr(const UUserDefinedStruct* Struct)
+{
+	check(Struct);
+	return Struct->EditorData ? &CastChecked<const UUserDefinedStructEditorData>(Struct->EditorData)->VariablesDescriptions : nullptr;
+}
+
 FString FStructureEditorUtils::GetTooltip(const UUserDefinedStruct* Struct)
 {
 	const auto StructEditorData = Struct ? Cast<const UUserDefinedStructEditorData>(Struct->EditorData) : NULL;

@@ -22,6 +22,20 @@ namespace ELocalAxesMode
 };
 
 //////////////////////////////////////////////////////////////////////////
+// EBoneDrawMode
+
+namespace EBoneDrawMode
+{
+	enum Type
+	{
+		None,
+		Selected,
+		All,
+		NumAxesModes
+	};
+};
+
+//////////////////////////////////////////////////////////////////////////
 // ELocalAxesMode
 
 namespace EDisplayInfoMode
@@ -64,7 +78,7 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void Draw(const FSceneView* View,FPrimitiveDrawInterface* PDI) override;
 	virtual void DrawCanvas( FViewport& InViewport, FSceneView& View, FCanvas& Canvas ) override;
-	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily) override;
+	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily, const EStereoscopicPass StereoPass) override;
 	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed = 1.f, bool bGamepad=false) override;
 	virtual void ProcessClick(class FSceneView& View, class HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY) override;
 	virtual bool InputWidgetDelta( FViewport* Viewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale ) override;
@@ -144,6 +158,15 @@ public:
 	/** Get the Bone local axis mode */
 	ELocalAxesMode::Type GetLocalAxesMode() const {return LocalAxesMode;}
 
+	/** Function to set Bone Draw  mode for the EBoneDrawType */
+	void SetBoneDrawMode(EBoneDrawMode::Type AxesMode);
+
+	/** Bone Draw  mode checking function for the EBoneDrawType */
+	bool IsBoneDrawModeSet(EBoneDrawMode::Type AxesMode) const;
+
+	/** Get the Bone local axis mode */
+	EBoneDrawMode::Type GetBoneDrawMode() const { return BoneDrawMode; }
+	
 	/** Returns the desired target of the camera */
 	FSphere GetCameraTarget();
 
@@ -155,6 +178,13 @@ public:
 
 	/* Places the viewport camera at a good location to view the preview target */
 	void FocusViewportOnPreviewMesh();
+
+	/** Callback for toggling the normals show flag. */
+	void ToggleCPUSkinning();
+
+	/** Callback for checking the normals show flag. */
+	bool IsSetCPUSkinningChecked() const;
+
 
 	/** Callback for toggling the normals show flag. */
 	void ToggleShowNormals();
@@ -258,6 +288,9 @@ private:
 	/** Control where we display local axes for bones/sockets */
 	ELocalAxesMode::Type LocalAxesMode;
 
+	/** Control where we display local axes for bones/sockets */
+	EBoneDrawMode::Type BoneDrawMode;
+
 	/** User selected color using color picker */
 	FLinearColor SelectedHSVColor;
 
@@ -313,7 +346,7 @@ private:
 	/** Draw Bones for non retargeted animation. */
 	void DrawMeshBonesBakedAnimation(UDebugSkelMeshComponent * MeshComponent, FPrimitiveDrawInterface* PDI) const;
 	/** Draws Bones for RequiredBones with WorldTransform **/
-	void DrawBones(const USkeletalMeshComponent* MeshComponent, const TArray<FBoneIndexType> & RequiredBones, const TArray<FTransform> & WorldTransforms, FPrimitiveDrawInterface* PDI, const TArray<FLinearColor> BoneColours, float LineThickness=0.f) const;
+	void DrawBones(const USkeletalMeshComponent* MeshComponent, const TArray<FBoneIndexType> & RequiredBones, const TArray<FTransform> & WorldTransforms, FPrimitiveDrawInterface* PDI, const TArray<FLinearColor>& BoneColours, float LineThickness=0.f) const;
 	/** Draw Sub set of Bones **/
 	void DrawMeshSubsetBones(const USkeletalMeshComponent* MeshComponent, const TArray<int32>& BonesOfInterest, FPrimitiveDrawInterface* PDI) const;
 	/** Draws Gizmo for the Transform in foreground **/

@@ -79,7 +79,8 @@ private:
 
 	/** */
 	int32 SetPossibleConfigurationsForFileSize(int64 InFileSize);
-	
+	int32 SetPossibleConfigurationsForFileWidth(int64 TargetFileWidth);
+
 	/** */
 	void GenerateAllPossibleTileConfigurations();
 

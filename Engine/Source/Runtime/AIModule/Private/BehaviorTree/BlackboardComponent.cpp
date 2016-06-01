@@ -651,7 +651,11 @@ void UBlackboardComponent::ClearValue(const FName& KeyName)
 
 void UBlackboardComponent::ClearValue(FBlackboard::FKey KeyID)
 {
-	check(BlackboardAsset);
+	if (!ensure(BlackboardAsset != nullptr))
+	{
+		return;
+	}
+
 	const FBlackboardEntry* EntryInfo = BlackboardAsset->GetKey(KeyID);
 
 	uint8* RawData = GetKeyRawData(KeyID);

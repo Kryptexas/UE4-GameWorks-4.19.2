@@ -77,7 +77,7 @@ public class MainFrame : ModuleRules
 				"SourceCodeAccess",
 				"EditorLiveStreaming",
 				"HotReload",
-                "LocalizationDashboard"
+                "LocalizationDashboard",
 			}
 		);
 	}

@@ -507,7 +507,56 @@ public:
 	virtual ICustomVisibilityQuery* CreateQuery (const FSceneView& View) = 0;
 };
 
+/**
+ * Class use to add FScene pixel inspect request
+ */
+class FPixelInspectorRequest
+{
+public:
+	FPixelInspectorRequest()
+	{
+		SourcePixelPosition = FIntPoint(-1, -1);
+		BufferIndex = -1;
+		RenderingCommandSend = false;
+		RequestComplete = true;
+		ViewId = -1;
+		GBufferPrecision = 1;
+		AllowStaticLighting = true;
+		FrameCountAfterRenderingCommandSend = 0;
+		RequestTickSinceCreation = 0;
+	}
 
+	void SetRequestData(FIntPoint SrcPixelPosition, int32 TargetBufferIndex, int32 ViewUniqueId, int32 GBufferFormat, bool StaticLightingEnable)
+	{
+		SourcePixelPosition = SrcPixelPosition;
+		BufferIndex = TargetBufferIndex;
+		RenderingCommandSend = false;
+		RequestComplete = false;
+		ViewId = ViewUniqueId;
+		GBufferPrecision = GBufferFormat;
+		AllowStaticLighting = StaticLightingEnable;
+		FrameCountAfterRenderingCommandSend = 0;
+		RequestTickSinceCreation = 0;
+	}
+
+	void MarkSendToRendering() { RenderingCommandSend = true; }
+
+	~FPixelInspectorRequest()
+	{
+	}
+
+	bool RenderingCommandSend;
+	int32 FrameCountAfterRenderingCommandSend;
+	int32 RequestTickSinceCreation;
+	bool RequestComplete;
+	FIntPoint SourcePixelPosition;
+	int32 BufferIndex;
+	int32 ViewId;
+
+	//GPU state at capture time
+	int32 GBufferPrecision;
+	bool AllowStaticLighting;
+};
 
 /**
  * The public interface of the renderer module.

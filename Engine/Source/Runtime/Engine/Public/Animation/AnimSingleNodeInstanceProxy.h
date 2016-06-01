@@ -42,6 +42,8 @@ public:
 	virtual bool Evaluate(FPoseContext& Output) override;
 	virtual void UpdateAnimationNode(float DeltaSeconds) override;
 	virtual void PostUpdate(UAnimInstance* InAnimInstance) const override;
+	virtual void InitializeObjects(UAnimInstance* InAnimInstance) override;
+	virtual void ClearObjects() override;
 
 	void SetPlaying(bool bIsPlaying)
 	{
@@ -75,10 +77,6 @@ public:
 
 	virtual void SetAnimationAsset(UAnimationAsset* NewAsset, USkeletalMeshComponent* MeshComponent, bool bIsLooping, float InPlayRate);
 
-	UAnimationAsset* GetCurrentAsset() { return CurrentAsset; }
-
-	UVertexAnimation* GetCurrentVertexAnimation() { return CurrentVertexAnim; }
-
 	void UpdateBlendspaceSamples(FVector InBlendInput);
 
 	void SetCurrentTime(float InCurrentTime)
@@ -109,11 +107,14 @@ public:
 
 	void SetReverse(bool bInReverse);
 
-	float GetLength();
-
 	void SetBlendSpaceInput(const FVector& InBlendInput);
 
-	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
+#if WITH_EDITOR
+	bool CanProcessAdditiveAnimations() const
+	{
+		return bCanProcessAdditiveAnimations;
+	}
+#endif
 
 private:
 	void InternalBlendSpaceEvaluatePose(class UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, FPoseContext& OutContext);
@@ -125,13 +126,13 @@ protected:
 	bool bCanProcessAdditiveAnimations;
 #endif
 
-private:
-	/** Current Asset being played **/
+	/** Current Asset being played. Note that this will be nullptr outside of pre/post update **/
 	UAnimationAsset* CurrentAsset;
 
-	/** Current vertex anim being played **/
+	/** Current vertex anim being played. Note that this will be nullptr outside of pre/post update **/
 	UVertexAnimation* CurrentVertexAnim;
 
+private:
 	/** Random cached values to play each asset **/
 	FVector BlendSpaceInput;
 

@@ -4,6 +4,8 @@
 
 #include "MovieSceneSpawnable.generated.h"
 
+class UMovieScene;
+
 UENUM()
 enum class ESpawnOwnership : uint8
 {
@@ -23,33 +25,52 @@ enum class ESpawnOwnership : uint8
 USTRUCT()
 struct FMovieSceneSpawnable 
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
-public:
+	FMovieSceneSpawnable()
+		: ObjectTemplate(nullptr)
+		, Ownership(ESpawnOwnership::InnerSequence)
+#if WITH_EDITORONLY_DATA
+		, bIgnoreOwnershipInEditor(false)
+		, GeneratedClass_DEPRECATED(nullptr)
+#endif
+	{
+	}
 
-	/** FMovieSceneSpawnable default constructor */
-	FMovieSceneSpawnable() { }
-
-/** FMovieSceneSpawnable initialization constructor */
-	FMovieSceneSpawnable(const FString& InitName, UClass* InitClass)
+	/** FMovieSceneSpawnable initialization constructor */
+	FMovieSceneSpawnable(const FString& InitName, UObject& InObjectTemplate)
 		: Guid(FGuid::NewGuid())
 		, Name(InitName)
-		, GeneratedClass(InitClass)
+		, ObjectTemplate(&InObjectTemplate)
 		, Ownership(ESpawnOwnership::InnerSequence)
-	{ }
+#if WITH_EDITORONLY_DATA
+		, bIgnoreOwnershipInEditor(false)
+		, GeneratedClass_DEPRECATED(nullptr)
+#endif
+	{
+		ObjectTemplate->SetFlags(RF_ArchetypeObject);
+	}
 
 public:
 
 	/**
-	 * Get the Blueprint associated with the spawnable object.
+	 * Get the template object for this spawnable
 	 *
-	 * @return Blueprint class
+	 * @return Object template
 	 * @see GetGuid, GetName
 	 */
-	UClass* GetClass()
+	UObject* GetObjectTemplate()
 	{
-		return GeneratedClass;
+		return ObjectTemplate;
 	}
+
+	/**
+	 * Copy the specified object into this spawnable's template
+	 *
+	 * @param InSourceObject The source object to use. This object will be duplicated into the spawnable.
+	 * @param OwnerMovieScene The outer movie scene to which this spawnable belongs
+	 */
+	MOVIESCENE_API void CopyObjectTemplate(UObject& InSourceObject, UMovieScene& OwnerMovieScene);
 
 	/**
 	 * Get the unique identifier of the spawnable object.
@@ -60,6 +81,17 @@ public:
 	const FGuid& GetGuid() const
 	{
 		return Guid;
+	}
+
+	/**
+	 * Set the unique identifier of this spawnable object
+	 * @param InGuid The new GUID for this spawnable
+	 * @note Be careful - this guid may be referenced by spawnable/possessable child-parent relationships.
+	 * @see GetGuid
+	 */
+	void SetGuid(const FGuid& InGuid)
+	{
+		Guid = InGuid;
 	}
 
 	/**
@@ -117,6 +149,24 @@ public:
 		Ownership = InOwnership;
 	}
 
+#if WITH_EDITORONLY_DATA
+	/**
+	 * Check whether this spawnable should remain spawned when outside the play-range, regardless of ownership
+	 */
+	bool ShouldIgnoreOwnershipInEditor() const
+	{
+		return bIgnoreOwnershipInEditor;
+	}
+
+	/**
+	 * Set whether this spawnable should remain spawned when outside the play-range, regardless of ownership
+	 */
+	void SetIgnoreOwnershipInEditor(bool bInIgnoreOwnershipInEditor)
+	{
+		bIgnoreOwnershipInEditor = bInIgnoreOwnershipInEditor;
+	}
+#endif
+
 private:
 
 	/** Unique identifier of the spawnable object. */
@@ -129,11 +179,9 @@ private:
 	// @todo sequencer: Should be editor-only probably
 	UPROPERTY()
 	FString Name;
-
-	/** Data-only blueprint-generated-class for this object */
-	// @todo sequencer: Could be weak object ptr here, IF blueprints that are inners are housekept properly without references
+	
 	UPROPERTY()
-	UClass* GeneratedClass;
+	UObject* ObjectTemplate;
 
 	/** Set of GUIDs to possessable object bindings that are bound to an object inside this spawnable */
 	// @todo sequencer: This should be a TSet, but they don't duplicate correctly atm
@@ -143,4 +191,15 @@ private:
 	/** Property indicating where ownership responsibility for this object lies */
 	UPROPERTY()
 	ESpawnOwnership Ownership;
+
+#if WITH_EDITORONLY_DATA
+	/** When true, this spawnable will not respect its ownership sematics outside of the playback range, when spawned from inside a currently editing sequence */
+	UPROPERTY()
+	bool bIgnoreOwnershipInEditor;
+
+public:
+	/** Deprecated generated class */
+	UPROPERTY()
+	UClass* GeneratedClass_DEPRECATED;
+#endif
 };

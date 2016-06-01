@@ -111,12 +111,10 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 		SpriteIDToIndexMap.Add( SpriteInfo.Category, InfoIndex );
 	}
 
-	if (FPaths::IsProjectFilePathSet())
+	if (FPaths::IsProjectFilePathSet() && GIsEditor)
 	{
 		AutoReimportManager = NewObject<UAutoReimportManager>();
 		AutoReimportManager->Initialize();
-		
-		GetMutableDefault<UEditorLoadingSavingSettings>()->CheckSourceControlCompatability();
 	}
 
 	// register details panel customizations

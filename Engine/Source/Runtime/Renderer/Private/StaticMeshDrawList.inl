@@ -16,6 +16,7 @@
 template<typename DrawingPolicyType>
 void TStaticMeshDrawList<DrawingPolicyType>::FElementHandle::Remove()
 {
+	check(!GDrawListsLocked);
 	// Make a copy of this handle's variables on the stack, since the call to Elements.RemoveSwap deletes the handle.
 	TStaticMeshDrawList* const LocalDrawList = StaticMeshDrawList;
 	FDrawingPolicyLink* const LocalDrawingPolicyLink = &LocalDrawList->DrawingPolicySet[SetId];
@@ -62,7 +63,7 @@ void TStaticMeshDrawList<DrawingPolicyType>::FElementHandle::Remove()
 
 template<typename DrawingPolicyType>
 template<InstancedStereoPolicy InstancedStereo>
-void TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
+int32 TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 	FRHICommandList& RHICmdList,
 	const FViewInfo& View,
 	const typename DrawingPolicyType::ContextDataType PolicyContext,
@@ -94,6 +95,8 @@ void TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 	uint32 BackFaceEnd = DrawingPolicyLink->DrawingPolicy.NeedsBackfacePass() ? 2 : 1;
 	const FMeshDrawingRenderState DrawRenderState(View.GetDitheredLODTransitionState(*Element.Mesh, View.bAllowStencilDither));
 
+	int32 DrawCount = 0;
+
 	int32 BatchElementIndex = 0;
 	do
 	{
@@ -102,16 +105,16 @@ void TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 			const FPrimitiveSceneProxy* Proxy = Element.Mesh->PrimitiveSceneInfo->Proxy;			
 			if (InstancedStereo == InstancedStereoPolicy::Enabled)
 			{
-				// We draw instanced static meshes twice when rendering with instanced stereo. Once for each eye.
-				const bool bIsInstancedMesh = Element.Mesh->Elements[BatchElementIndex].bIsInstancedMesh;
+			    // We draw instanced static meshes twice when rendering with instanced stereo. Once for each eye.
+			    const bool bIsInstancedMesh = Element.Mesh->Elements[BatchElementIndex].bIsInstancedMesh;
 				const uint32 InstancedStereoDrawCount = bIsInstancedMesh ? 2 : 1;
-				for (uint32 DrawCountIter = 0; DrawCountIter < InstancedStereoDrawCount; ++DrawCountIter)
-				{
+			    for (uint32 DrawCountIter = 0; DrawCountIter < InstancedStereoDrawCount; ++DrawCountIter)
+			    {
 					DrawingPolicyLink->DrawingPolicy.SetInstancedEyeIndex(RHICmdList, DrawCountIter);
 
 					for (uint32 BackFace = 0; BackFace < BackFaceEnd; ++BackFace)
 					{
-						INC_DWORD_STAT(STAT_StaticDrawListMeshDrawCalls);
+						DrawCount++;
 
 						TDrawEvent<FRHICommandList> MeshEvent;
 						BeginMeshDrawEvent(RHICmdList, Proxy, *Element.Mesh, MeshEvent);
@@ -133,25 +136,25 @@ void TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 			}
 			else
 			{
-				for (uint32 BackFace = 0; BackFace < BackFaceEnd; ++BackFace)
-				{
-					INC_DWORD_STAT(STAT_StaticDrawListMeshDrawCalls);
-
-					TDrawEvent<FRHICommandList> MeshEvent;
-					BeginMeshDrawEvent(RHICmdList, Proxy, *Element.Mesh, MeshEvent);
-
-					DrawingPolicyLink->DrawingPolicy.SetMeshRenderState(
-						RHICmdList,
-						View,
-						Proxy,
-						*Element.Mesh,
-						BatchElementIndex,
-						!!BackFace,
-						DrawRenderState,
-						Element.PolicyData,
-						PolicyContext
-						);
-					DrawingPolicyLink->DrawingPolicy.DrawMesh(RHICmdList, *Element.Mesh, BatchElementIndex, false);
+			    for (uint32 BackFace = 0; BackFace < BackFaceEnd; ++BackFace)
+			    {
+				    DrawCount++;
+    
+				    TDrawEvent<FRHICommandList> MeshEvent;
+				    BeginMeshDrawEvent(RHICmdList, Proxy, *Element.Mesh, MeshEvent);
+    
+				    DrawingPolicyLink->DrawingPolicy.SetMeshRenderState(
+					    RHICmdList, 
+					    View,
+					    Proxy,
+					    *Element.Mesh,
+					    BatchElementIndex,
+					    !!BackFace,
+					    DrawRenderState,
+					    Element.PolicyData,
+					    PolicyContext
+					    );
+					    DrawingPolicyLink->DrawingPolicy.DrawMesh(RHICmdList, *Element.Mesh, BatchElementIndex, false);
 				}
 			}
 		}
@@ -159,6 +162,8 @@ void TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 		BatchElementMask >>= 1;
 		BatchElementIndex++;
 	} while(BatchElementMask);
+	INC_DWORD_STAT_BY(STAT_StaticDrawListMeshDrawCalls, DrawCount);
+	return DrawCount;
 }
 
 template<typename DrawingPolicyType>
@@ -169,6 +174,8 @@ void TStaticMeshDrawList<DrawingPolicyType>::AddMesh(
 	ERHIFeatureLevel::Type InFeatureLevel
 	)
 {
+	check(!GDrawListsLocked);
+
 	// Check for an existing drawing policy matching the mesh's drawing policy.
 	FDrawingPolicyLink* DrawingPolicyLink = DrawingPolicySet.Find(InDrawingPolicy);
 	if(!DrawingPolicyLink)
@@ -329,14 +336,14 @@ bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleInner(
 			// Single view
 			if (InstancedStereo == InstancedStereoPolicy::Disabled)
 			{
-				if (StaticMeshVisibilityMap->AccessCorrespondingBit(FRelativeBitReference(CompactElementPtr->MeshId))) {
+				if (StaticMeshVisibilityMap->AccessCorrespondingBit(FRelativeBitReference(CompactElementPtr->MeshId)))
+				{
 					const FElement& Element = DrawingPolicyLink->Elements[ElementIndex];
 					STAT(StatInc += Element.Mesh->GetNumPrimitives();)
 					int32 SubCount = Element.Mesh->Elements.Num();
-					Count += SubCount;
 					// Avoid the cache miss looking up batch visibility if there is only one element.
 					uint64 BatchElementMask = SubCount == 1 ? 1 : (*BatchVisibilityArray)[Element.Mesh->Id];
-					DrawElement<InstancedStereoPolicy::Disabled>(RHICmdList, View, PolicyContext, Element, BatchElementMask, DrawingPolicyLink, bDrawnShared);
+					Count += DrawElement<InstancedStereoPolicy::Disabled>(RHICmdList, View, PolicyContext, Element, BatchElementMask, DrawingPolicyLink, bDrawnShared);
 				}
 			}
 
@@ -356,13 +363,12 @@ bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleInner(
 
 				if (ResolvedVisiblityArray != nullptr)
 				{
-					const FElement& Element = DrawingPolicyLink->Elements[ElementIndex];
-					STAT(StatInc += Element.Mesh->GetNumPrimitives();)
-					int32 SubCount = Element.Mesh->Elements.Num();
-					Count += SubCount;
-					// Avoid the cache miss looking up batch visibility if there is only one element.
+				    const FElement& Element = DrawingPolicyLink->Elements[ElementIndex];
+					    STAT(StatInc += Element.Mesh->GetNumPrimitives();)
+				    int32 SubCount = Element.Mesh->Elements.Num();
+				    // Avoid the cache miss looking up batch visibility if there is only one element.
 					uint64 BatchElementMask = SubCount == 1 ? 1 : (*ResolvedVisiblityArray)[Element.Mesh->Id];
-					DrawElement<InstancedStereoPolicy::Enabled>(RHICmdList, View, PolicyContext, Element, BatchElementMask, DrawingPolicyLink, bDrawnShared);
+					Count += DrawElement<InstancedStereoPolicy::Enabled>(RHICmdList, View, PolicyContext, Element, BatchElementMask, DrawingPolicyLink, bDrawnShared);
 				}
 			}
 		}
@@ -389,7 +395,7 @@ bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisible(
 }
 
 template<typename DrawingPolicyType>
-class FDrawVisibleAnyThreadTask
+class FDrawVisibleAnyThreadTask : public FRenderTask
 {
 	TStaticMeshDrawList<DrawingPolicyType>& Caller;
 	FRHICommandList& RHICmdList;
@@ -437,15 +443,11 @@ public:
 		RETURN_QUICK_DECLARE_CYCLE_STAT(FDrawVisibleAnyThreadTask, STATGROUP_TaskGraphTasks);
 	}
 
-	ENamedThreads::Type GetDesiredThread()
-	{
-		return ENamedThreads::AnyThread;
-	}
-
 	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
 
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
+		FScopeCycleCounter ScopeOuter(RHICmdList.ExecuteStat);
 		if (this->PerDrawingPolicyCounts)
 		{
 			int32 Start = this->FirstPolicy;
@@ -490,6 +492,24 @@ public:
 		this->RHICmdList.HandleRTThreadTaskCompletion(MyCompletionGraphEvent);
 	}
 };
+
+ 
+extern MS_ALIGN(64) uint8 CountBitsTable[64] GCC_ALIGN(64);
+
+static FORCEINLINE int32 CountBits(uint64 Bits)
+{
+	int32 Count = 0;
+	while (true)
+	{
+		Count += CountBitsTable[Bits & 63];
+		if (!(Bits & ~63))
+		{
+			break;
+		}
+		Bits >>= 6;
+	}
+	return Count;
+}
 
 template<typename DrawingPolicyType>
 void TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleParallelInternal(
@@ -569,7 +589,23 @@ void TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleParallelInternal(
 							if (bIsVisible)
 							{
 								const FElement& Element = DrawingPolicyLink->Elements[ElementIndex];
-								Count += Element.Mesh->Elements.Num();
+								const int32 SubCount = Element.Mesh->Elements.Num();
+
+								// Avoid the cache miss looking up batch visibility if there is only one element.
+								if (SubCount == 1)
+								{
+									++Count;
+								}
+								else if (!bIsInstancedStereo)
+								{
+									Count += CountBits((*BatchVisibilityArray)[Element.Mesh->Id]);
+								}
+								else
+								{
+									const int32 LeftCount = CountBits((*StereoView->LeftViewBatchVisibilityArray)[Element.Mesh->Id]);
+									const int32 RightCount = CountBits((*StereoView->RightViewBatchVisibilityArray)[Element.Mesh->Id]);
+									Count += (LeftCount > RightCount) ? LeftCount : RightCount;
+								}
 							}
 						}
 						if (Count)
@@ -906,7 +942,26 @@ FDrawListStats TStaticMeshDrawList<DrawingPolicyType>::GetStats() const
 		Stats.NumDrawingPolicies++;
 		Stats.NumMeshes += NumMeshes;
 		MeshCounts.Add(NumMeshes);
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		if (NumMeshes == 1)
+		{
+			CollectClosestMatchingPolicies(PolicyIt, Stats.SingleMeshPolicyMatchFailedReasons);
+			
+			auto VertexFactoryName = DrawingPolicyLink->DrawingPolicy.GetVertexFactory()->GetType()->GetFName();
+
+			if (Stats.SingleMeshPolicyVertexFactoryFrequency.Contains(VertexFactoryName))
+			{
+				++Stats.SingleMeshPolicyVertexFactoryFrequency[VertexFactoryName];
+			}
+			else
+			{
+				Stats.SingleMeshPolicyVertexFactoryFrequency.Add(VertexFactoryName, 1);
+			}
+		}
+#endif
 	}
+
 	if (MeshCounts.Num())
 	{
 		MeshCounts.Sort();
@@ -937,3 +992,51 @@ void TStaticMeshDrawList<DrawingPolicyType>::ApplyWorldOffset(FVector InOffset)
 	}
 }
 
+template<typename DrawingPolicyType>
+void TStaticMeshDrawList<DrawingPolicyType>::CollectClosestMatchingPolicies(
+	typename TArray<FSetElementId>::TConstIterator DrawingPolicyIter, 
+	TMap<FString, int32>& MatchFailedReasons
+	) const
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	int32 ClosestMatchCount = -1;
+	FDrawingPolicyMatchResult ClosestMatch;
+
+	const FDrawingPolicyLink* DrawingPolicyLink = &DrawingPolicySet[*DrawingPolicyIter];
+
+	for (auto It = OrderedDrawingPolicies.CreateConstIterator(); It; ++It)
+	{
+		if (It == DrawingPolicyIter)
+		{
+			continue;
+		}
+
+		const auto* OtherPolicyLink = &DrawingPolicySet[*It];
+		auto Res = DrawingPolicyLink->DrawingPolicy.Matches(OtherPolicyLink->DrawingPolicy);
+
+		if (Res.MatchCount() > ClosestMatchCount)
+		{
+			ClosestMatchCount = Res.MatchCount();
+			ClosestMatch = Res;
+		}
+	}
+
+	if (ClosestMatchCount > -1)
+	{
+		for (int32 i = 0; i < ClosestMatch.TestResults.Num(); ++i)
+		{
+			if (!ClosestMatch.TestResults[i])
+			{
+				if (MatchFailedReasons.Contains(ClosestMatch.TestCondition[i]))
+				{
+					++MatchFailedReasons[ClosestMatch.TestCondition[i]];
+				}
+				else
+				{
+					MatchFailedReasons.Add(ClosestMatch.TestCondition[i], 1);
+				}
+			}
+		}
+	}
+#endif
+}

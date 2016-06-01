@@ -15,18 +15,22 @@ UMultiLineEditableTextBox::UMultiLineEditableTextBox(const FObjectInitializer& O
 	BackgroundColor_DEPRECATED = FLinearColor::White;
 	ReadOnlyForegroundColor_DEPRECATED = FLinearColor::Black;
 
-	if (!UE_SERVER)
-	{
-		static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(TEXT("/Engine/EngineFonts/Roboto"));
-		Font_DEPRECATED = FSlateFontInfo(RobotoFontObj.Object, 12, FName("Bold"));
-	}
-
-	AutoWrapText = true;
-
 	SMultiLineEditableTextBox::FArguments Defaults;
 	WidgetStyle = *Defaults._Style;
 	TextStyle = *Defaults._TextStyle;
 	AllowContextMenu = Defaults._AllowContextMenu.Get();
+	AutoWrapText = true;
+
+	if (!IsRunningDedicatedServer())
+	{
+		static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(TEXT("/Engine/EngineFonts/Roboto"));
+		Font_DEPRECATED = FSlateFontInfo(RobotoFontObj.Object, 12, FName("Bold"));
+
+		WidgetStyle.SetFont(Font_DEPRECATED);
+		WidgetStyle.SetForegroundColor(ForegroundColor_DEPRECATED);
+		WidgetStyle.SetBackgroundColor(BackgroundColor_DEPRECATED);
+		WidgetStyle.SetReadOnlyForegroundColor(ReadOnlyForegroundColor_DEPRECATED);
+	}
 }
 
 void UMultiLineEditableTextBox::ReleaseSlateResources(bool bReleaseChildren)
@@ -160,11 +164,6 @@ void UMultiLineEditableTextBox::PostLoad()
 }
 
 #if WITH_EDITOR
-
-const FSlateBrush* UMultiLineEditableTextBox::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.MultiLineEditableTextBox");
-}
 
 const FText UMultiLineEditableTextBox::GetPaletteCategory()
 {

@@ -6,6 +6,7 @@
 #if	STATS
 
 class FAsyncStatsWrite;
+struct FStatsReadFile;
 
 /**
 * Magic numbers for stats streams, this is for the first version.
@@ -537,6 +538,45 @@ protected:
 	Stats file reading functionality
 -----------------------------------------------------------------------------*/
 
+/** Tracks stat state and history for loaded stats. */
+class CORE_API FStatsLoadedState : public FStatsThreadState
+{
+	friend struct FStatsReadFile;
+
+public:
+	/** Default constructor. */
+	FStatsLoadedState()
+		: MaxFrameSeen( 0 )
+		, MinFrameSeen( -1 )
+	{}
+
+	/** Method to update the internal metadata. Metadata messages are removed from the array. */
+	void ProcessMetaDataAndLeaveDataOnly( TArray<FStatMessage>& CondensedMessages );
+
+	/**
+	* Method to place the data into the history,
+	* maintains the history based on the requested number of frames to keep in the history.
+	* The condensed messages are emplaced in the condensed history.
+	*/
+	void AddFrameFromCondensedMessages( TArray<FStatMessage>& CondensedMessages );
+
+	/** Return the oldest frame of data we have. **/
+	int64 GetOldestValidFrame() const;
+
+	/** Return the newest frame of data we have. **/
+	int64 GetLatestValidFrame() const;
+
+protected:
+	/** Internal method to scan the messages to find the current game/render thread frame. */
+	void AdvanceFrameForLoad( TArray<FStatMessage>& CondensedMessages );
+
+	/** Largest frame seen. **/
+	int64 MaxFrameSeen;
+
+	/** First frame seen. **/
+	int64 MinFrameSeen;
+};
+
 /**
  * Class for maintaining state of receiving a stream of stat messages
  */
@@ -637,7 +677,7 @@ public:
 			{
 				if( FNamesIndexMap.Contains( Index ) )
 				{
-					int32 MyIndex = FNamesIndexMap.FindChecked( Index );
+					const int32 MyIndex = FNamesIndexMap.FindChecked( Index );
 					TheFName = FName( MyIndex, MyIndex, 0 );
 				}
 				else
@@ -658,7 +698,7 @@ public:
 			}
 			if( FNamesIndexMap.Contains( Index ) )
 			{
-				int32 MyIndex = FNamesIndexMap.FindChecked( Index );
+				const int32 MyIndex = FNamesIndexMap.FindChecked( Index );
 				TheFName = FName( MyIndex, MyIndex, 0 );
 			}
 			else
@@ -801,8 +841,6 @@ enum class EStatsProcessingStage : int32
 	SPS_Invalid,
 
 };
-
-struct FStatsReadFile;
 
 /**
  *	Helper class used to read and process stats file on the async task.
@@ -962,7 +1000,7 @@ protected:
 	virtual void ProcessSpecialMessageMarkerOperation( const FStatMessage& Message, const FStackState& StackState )
 	{}
 
-	// #YRX_Stats: 2015-07-13 Not implemented yet.
+	// #Stats: 2015-07-13 Not implemented yet.
 // 	/** Processes set operation. */
 // 	virtual void ProcessSetOperation( const FStatMessage& Message, const FStackState& StackState )
 // 	{}
@@ -1091,7 +1129,7 @@ protected:
 
 protected:
 	/** Current state of the stats. Mostly for metadata. */
-	FStatsThreadState State;
+	FStatsLoadedState State;
 
 	/** Reading stream. */
 	FStatsReadStream Stream;
@@ -1163,6 +1201,9 @@ struct FCommandStatsFile
 
 	/** Stat StopFile. */
 	void Stop();
+
+	/** Test file by loading the last capture. */
+	void TestLastSaved();
 
 	/**
 	 * @return true, if any stats write command is active.

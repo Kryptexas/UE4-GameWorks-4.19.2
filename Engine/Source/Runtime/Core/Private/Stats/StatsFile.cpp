@@ -72,59 +72,11 @@ public:
 };
 
 /*-----------------------------------------------------------------------------
-	FStatsThreadState
+	FStatsLoadedState
 -----------------------------------------------------------------------------*/
 
-FStatsThreadState::FStatsThreadState( FString const& Filename )
-	: HistoryFrames( MAX_int32 )
-	, LastFullFrameMetaAndNonFrame( -1 )
-	, LastFullFrameProcessed( -1 )
-	, TotalNumStatMessages( 0 )
-	, MaxNumStatMessages( 0 )
-	, bFindMemoryExtensiveStats( false )
-	, CurrentGameFrame( -1 )
-	, CurrentRenderFrame( -1 )
-	, MaxFrameSeen( -1 )
-	, MinFrameSeen( -1 )
-	, bWasLoaded( true )
-{}
-
-// #YRX_remove 2015-11-17 
-void FStatsThreadState::AddCondensedMessages( TArray<FStatMessage>& CondensedMessages )
+void FStatsLoadedState::ProcessMetaDataAndLeaveDataOnly( TArray<FStatMessage>& CondensedMessages )
 {
-	bWasLoaded = true;
-	TArray<FStatMessage> Messages;
-	for (int32 Index = 0; Index < CondensedMessages.Num(); ++Index)
-	{
-		if (CondensedMessages[Index].NameAndInfo.GetField<EStatOperation>() == EStatOperation::AdvanceFrameEventGameThread)
-		{
-			ProcessMetaDataForLoad( Messages );
-			if (!CondensedStackHistory.Contains( CurrentGameFrame ) && Messages.Num())
-			{
-				TArray<FStatMessage>* Save = new TArray<FStatMessage>();
-				Exchange( *Save, Messages );
-				if (CondensedStackHistory.Num() >= HistoryFrames)
-				{
-					for (auto& It : CondensedStackHistory)
-					{
-						delete It.Value;
-					}
-					CondensedStackHistory.Reset();
-				}
-				CondensedStackHistory.Add( CurrentGameFrame, Save );
-				GoodFrames.Add( CurrentGameFrame );
-			}
-		}
-
-		new (Messages)FStatMessage( CondensedMessages[Index] );
-	}
-	//bWasLoaded = false;
-}
-
-// #YRX_remove 2015-11-17 
-void FStatsThreadState::ProcessMetaDataForLoad( TArray<FStatMessage>& CondensedMessages )
-{
-	check( bWasLoaded );
 	for (int32 Index = 0; Index < CondensedMessages.Num(); Index++)
 	{
 		FStatMessage& Item = CondensedMessages[Index];
@@ -135,42 +87,14 @@ void FStatsThreadState::ProcessMetaDataForLoad( TArray<FStatMessage>& CondensedM
 		}
 		else if (Op == EStatOperation::AdvanceFrameEventGameThread)
 		{
-			check( Item.NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_int64 );
-			if (Item.GetValue_int64() > 0)
-			{
-				CurrentGameFrame = Item.GetValue_int64();
-				if (CurrentGameFrame > MaxFrameSeen)
-				{
-					MaxFrameSeen = CurrentGameFrame;
-				}
-				if (MinFrameSeen < 0)
-				{
-					MinFrameSeen = CurrentGameFrame;
-				}
-			}
-		}
-		else if (Op == EStatOperation::AdvanceFrameEventRenderThread)
-		{
-			check( Item.NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_int64 );
-			if (Item.GetValue_int64() > 0)
-			{
-				CurrentRenderFrame = Item.GetValue_int64();
-				if (CurrentRenderFrame > MaxFrameSeen)
-				{
-					MaxFrameSeen = CurrentRenderFrame;
-				}
-				if (MinFrameSeen < 0)
-				{
-					MinFrameSeen = CurrentRenderFrame;
-				}
-			}
+			// The following messages contain only the stats data.
+			CondensedMessages.RemoveAt( 0, Index, true );
+			break;
 		}
 	}
-
-	//UE_LOG( LogStats, Log, TEXT( "Current GameFrame: %lli, RenderFrame: %lli" ), CurrentGameFrame, CurrentRenderFrame );
 }
 
-void FStatsThreadState::AddFrameFromCondensedMessages( TArray<FStatMessage>& CondensedMessages )
+void FStatsLoadedState::AddFrameFromCondensedMessages( TArray<FStatMessage>& CondensedMessages )
 {
 	// @see FStatsThreadState::Condense
 	AdvanceFrameForLoad( CondensedMessages );
@@ -205,7 +129,29 @@ void FStatsThreadState::AddFrameFromCondensedMessages( TArray<FStatMessage>& Con
 	}
 }
 
-void FStatsThreadState::AdvanceFrameForLoad( TArray<FStatMessage>& CondensedMessages )
+int64 FStatsLoadedState::GetOldestValidFrame() const
+{
+	if (MaxFrameSeen < 0 || MinFrameSeen < 0)
+	{
+		return -1;
+	}
+	return MinFrameSeen;
+}
+
+int64 FStatsLoadedState::GetLatestValidFrame() const
+{
+	if (MaxFrameSeen < 0 || MinFrameSeen < 0)
+	{
+		return -1;
+	}
+	if (MaxFrameSeen > MinFrameSeen)
+	{
+		return MaxFrameSeen - 1;
+	}
+	return MaxFrameSeen;
+}
+
+void FStatsLoadedState::AdvanceFrameForLoad( TArray<FStatMessage>& CondensedMessages )
 {
 	// @see FStatsThreadState::Condense
 	check( CondensedMessages.Num() >= 2 );
@@ -448,7 +394,7 @@ void FStatsWriteFile::SetDataDelegate( bool bSet )
 
 void FStatsWriteFile::WriteFrame( int64 TargetFrame )
 {
-	// #YRX_STATS: 2015-06-17 Add stat startfile -num=number of frames to capture
+	// #Stats: 2015-06-17 Add stat startfile -num=number of frames to capture
 
 	SCOPE_CYCLE_COUNTER( STAT_StreamFile );
 
@@ -662,8 +608,6 @@ bool FStatsReadFile::PrepareLoading()
 		}
 	}
 
-	State.MarkAsLoaded();
-
 	// Read metadata.
 	TArray<FStatMessage> MetadataMessages;
 	Stream.ReadFNamesAndMetadataMessages( *Reader, MetadataMessages );
@@ -828,7 +772,6 @@ void FStatsReadFile::ReadRawStats()
 
 void FStatsReadFile::ReadRegularStats()
 {
-	uint64 ReadMessages = 0;
 	TArray<FStatMessage> PendingMessages;
 
 	// Buffer used to store the compressed and decompressed data.
@@ -1212,6 +1155,67 @@ void FCommandStatsFile::Stop()
 		CurrentStatsFile->Stop();
 		delete CurrentStatsFile;
 		CurrentStatsFile = nullptr;
+	}
+}
+
+void FCommandStatsFile::TestLastSaved()
+{
+	const FString& FilePath = FCommandStatsFile::Get().LastFileSaved;
+
+	class FStatsTestReader : public FStatsReadFile
+	{
+		friend struct FStatsReader<FStatsTestReader>;
+		typedef FStatsReadFile Super;
+
+	public:
+		const FStatsLoadedState& GetState() const
+		{
+			return State;
+		}
+
+	protected:
+		/** Initialization constructor. */
+		FStatsTestReader( const TCHAR* InFilename )
+			: FStatsReadFile( InFilename, false )
+		{
+			// Keep the whole history.
+			SetHistoryFrames( MAX_int32 );
+		}
+	};
+
+	TAutoPtr<FStatsTestReader> Instance( FStatsReader<FStatsTestReader>::Create( *FilePath ) );
+
+	extern void DumpHistoryFrame( FStatsThreadState const& StatsData, int64 TargetFrame, float InDumpCull = 0.0f, int32 MaxDepth = MAX_int32, TCHAR const* Filter = NULL );
+
+	if (Instance)
+	{
+		Instance->ReadAndProcessSynchronously();
+		const FStatsLoadedState& Loaded = Instance->GetState();
+
+		if (Loaded.GetLatestValidFrame() < 0)
+		{
+			UE_LOG( LogStats, Log, TEXT( "Failed to stats file: %s" ), *FilePath );
+			return;
+		}
+		UE_LOG( LogStats, Log, TEXT( "Loaded stats file: %s, %lld frame" ), *FilePath, 1 + Loaded.GetLatestValidFrame() - Loaded.GetOldestValidFrame() );
+		{
+			int64 TestFrame = Loaded.GetOldestValidFrame();
+			UE_LOG( LogStats, Log, TEXT( "**************************** Test Frame %lld" ), TestFrame );
+			DumpHistoryFrame( Loaded, TestFrame );
+		}
+	{
+		int64 TestFrame = (Loaded.GetLatestValidFrame() + Loaded.GetOldestValidFrame()) / 2;
+		if (Loaded.IsFrameValid( TestFrame ))
+		{
+			UE_LOG( LogStats, Log, TEXT( "**************************** Test Frame %lld" ), TestFrame );
+			DumpHistoryFrame( Loaded, TestFrame );
+		}
+	}
+	{
+		int64 TestFrame = Loaded.GetLatestValidFrame();
+		UE_LOG( LogStats, Log, TEXT( "**************************** Test Frame %lld" ), TestFrame );
+		DumpHistoryFrame( Loaded, TestFrame );
+	}
 	}
 }
 

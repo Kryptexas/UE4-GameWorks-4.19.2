@@ -126,6 +126,43 @@ void UK2Node_Composite::PostPasteNode()
 	}
 }
 
+void UK2Node_Composite::PostEditUndo()
+{
+	Super::PostEditUndo();
+	FixupInputAndOutputSink();
+}
+
+void UK2Node_Composite::FixupInputAndOutputSink()
+{
+	if (BoundGraph)
+	{
+		// Update the InputSinkNode / OutputSourceNode pointers to point to the new graph
+		for (UEdGraphNode* Node : BoundGraph->Nodes)
+		{
+			if (Node->GetClass() == UK2Node_Tunnel::StaticClass())
+			{
+				// Exactly a tunnel node, should be the entrance or exit node
+				UK2Node_Tunnel* Tunnel = CastChecked<UK2Node_Tunnel>(Node);
+
+				if (Tunnel->bCanHaveInputs && !Tunnel->bCanHaveOutputs)
+				{
+					OutputSourceNode = Tunnel;
+					Tunnel->InputSinkNode = this;
+				}
+				else if (Tunnel->bCanHaveOutputs && !Tunnel->bCanHaveInputs)
+				{
+					InputSinkNode = Tunnel;
+					Tunnel->OutputSourceNode = this;
+				}
+				else
+				{
+					ensureMsgf(false, *LOCTEXT("UnexpectedTunnelNode", "Unexpected tunnel node '%s' in cloned graph '%s' (both I/O or neither)").ToString(), *Tunnel->GetName(), *GetName());
+				}
+			}
+		}
+	}
+}
+
 FText UK2Node_Composite::GetTooltipText() const
 {
 	if (InputSinkNode != NULL)

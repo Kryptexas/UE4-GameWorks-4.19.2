@@ -24,6 +24,7 @@ class UGeomModifier_Extrude : public UGeomModifier_Edit
 
 
 	//~ Begin UGeomModifier Interface
+	virtual bool InputDelta(class FEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale) override;
 	virtual bool Supports() override;
 	virtual void Initialize() override;
 	virtual void WasActivated() override;

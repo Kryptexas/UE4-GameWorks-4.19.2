@@ -88,4 +88,7 @@ protected:
 	// UAnimGraphNode_SkeletalControlBase protected interface
 	virtual const FAnimNode_SkeletalControlBase* GetNode() const override { return &Node; }
 	// End of UAnimGraphNode_SkeletalControlBase protected interface
+
+private:
+	FNodeTitleTextTable CachedNodeTitles;
 };

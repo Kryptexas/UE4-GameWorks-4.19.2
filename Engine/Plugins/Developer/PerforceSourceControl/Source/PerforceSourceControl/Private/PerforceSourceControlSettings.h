@@ -31,6 +31,11 @@ public:
 	/** Set the Perforce host override */
 	void SetHostOverride(const FString& InString);
 
+	/** Get the perforce cl we should use for this run (useful in commandlets) returns empty string if there is no cl*/
+	const FString& GetChangelistNumber() const;
+
+	void SetChangelistNumber(const FString& InString);
+
 	/** Load settings from ini file */
 	void LoadSettings();
 

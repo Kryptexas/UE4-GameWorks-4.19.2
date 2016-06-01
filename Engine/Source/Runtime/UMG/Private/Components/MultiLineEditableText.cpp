@@ -15,10 +15,12 @@ UMultiLineEditableText::UMultiLineEditableText(const FObjectInitializer& ObjectI
 	AllowContextMenu = Defaults._AllowContextMenu.Get();
 	AutoWrapText = true;
 	
-	if (!UE_SERVER)
+	if (!IsRunningDedicatedServer())
 	{
 		static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(TEXT("/Engine/EngineFonts/Roboto"));
 		Font_DEPRECATED = FSlateFontInfo(RobotoFontObj.Object, 12, FName("Bold"));
+
+		WidgetStyle.SetFont(Font_DEPRECATED);
 	}
 }
 
@@ -57,6 +59,7 @@ void UMultiLineEditableText::SynchronizeProperties()
 
 	TAttribute<FText> HintTextBinding = OPTIONAL_BINDING(FText, HintText);
 
+	MyMultiLineEditableText->SetTextStyle(&WidgetStyle);
 	MyMultiLineEditableText->SetText(Text);
 	MyMultiLineEditableText->SetHintText(HintTextBinding);
 	MyMultiLineEditableText->SetAllowContextMenu(AllowContextMenu);
@@ -113,11 +116,6 @@ void UMultiLineEditableText::PostLoad()
 }
 
 #if WITH_EDITOR
-
-const FSlateBrush* UMultiLineEditableText::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.MultiLineEditableText");
-}
 
 const FText UMultiLineEditableText::GetPaletteCategory()
 {

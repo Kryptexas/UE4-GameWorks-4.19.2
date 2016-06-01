@@ -259,6 +259,15 @@ uint32 UK2Node_CustomEvent::GetNetFlags() const
 		// inherited net flags take precedence 
 		NetFlags = (ParentFunction->FunctionFlags & FUNC_NetFuncFlags);
 	}
+
+	// Sanitize NetFlags, only allow replication flags that can be supported by the online system
+	// This mirrors logic in ProcessFunctionSpecifiers in HeaderParser.cpp. Basically if we want to 
+	// replicate a function we need to know whether we're replicating on the client or the server.
+	if (!(NetFlags & FUNC_Net))
+	{
+		NetFlags = 0;
+	}
+
 	return NetFlags;
 }
 

@@ -72,14 +72,14 @@ void FStaticMeshInstanceBuffer::Init(UInstancedStaticMeshComponent* InComponent,
 	bool bUseRemapTable = InComponent->PerInstanceSMData.Num() == InComponent->InstanceReorderTable.Num();
 
 	int32 NumRealInstances = InComponent->PerInstanceSMData.Num();
-	int32 NumRemoved = InComponent->RemovedInstances.Num();
+	int32 NumRenderInstances = InComponent->GetNumRenderInstances();
 
 	// Allocate the vertex data storage type.
 	AllocateData();
 
 	SetupCPUAccess(InComponent);
 
-	NumInstances = NumRealInstances + NumRemoved;
+	NumInstances = NumRenderInstances;
 	InstanceData->AllocateInstances(NumInstances);
 
 	// Setup our random number generator such that random values are generated consistently for any
@@ -90,12 +90,16 @@ void FStaticMeshInstanceBuffer::Init(UInstancedStaticMeshComponent* InComponent,
 	{
 		const FInstancedStaticMeshInstanceData& Instance = InComponent->PerInstanceSMData[InstanceIndex];
 		const int32 DestInstanceIndex = bUseRemapTable ? InComponent->InstanceReorderTable[InstanceIndex] : InstanceIndex;
-		InstanceData->SetInstance(DestInstanceIndex, Instance.Transform, RandomStream.GetFraction(), Instance.LightmapUVBias, Instance.ShadowmapUVBias);
+		if (DestInstanceIndex != INDEX_NONE)
+		{
+			InstanceData->SetInstance(DestInstanceIndex, Instance.Transform, RandomStream.GetFraction(), Instance.LightmapUVBias, Instance.ShadowmapUVBias);
+		}
 	}
 
 	SetPerInstanceEditorData(InComponent, InHitProxies);
 
 	// Hide any removed instances
+	int32 NumRemoved = InComponent->RemovedInstances.Num();
 	if (NumRemoved)
 	{
 		check(bUseRemapTable);
@@ -141,7 +145,10 @@ void FStaticMeshInstanceBuffer::SetPerInstanceEditorData(UInstancedStaticMeshCom
 			// Record if the instance is selected
 			bool bSelected = InstanceIndex < InComponent->SelectedInstances.Num() && InComponent->SelectedInstances[InstanceIndex];
 			const int32 DestInstanceIndex = bUseRemapTable ? InComponent->InstanceReorderTable[InstanceIndex] : InstanceIndex;
-			InstanceData->SetInstanceEditorData(DestInstanceIndex, HitProxyColor, bSelected);
+			if (DestInstanceIndex != INDEX_NONE)
+			{
+				InstanceData->SetInstanceEditorData(DestInstanceIndex, HitProxyColor, bSelected);
+			}
 		}
 	}
 #endif
@@ -213,7 +220,7 @@ void FInstancedStaticMeshVertexFactory::Copy(const FInstancedStaticMeshVertexFac
 	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 		FInstancedStaticMeshVertexFactoryCopyData,
 		FInstancedStaticMeshVertexFactory*,VertexFactory,this,
-		const DataType*,DataCopy,&Other.Data,
+		const FDataType*,DataCopy,&Other.Data,
 	{
 		VertexFactory->Data = *DataCopy;
 	});
@@ -313,7 +320,7 @@ void FInstancedStaticMeshVertexFactory::InitRHI()
 	}
 
 	// we don't need per-vertex shadow or lightmap rendering
-	InitDeclaration(Elements,Data);
+	InitDeclaration(Elements);
 }
 
 
@@ -336,26 +343,45 @@ void FInstancedStaticMeshRenderData::InitStaticMeshVertexFactories(
 	{
 		const FStaticMeshLODResources* RenderData = &InstancedRenderData->LODModels[LODIndex];
 						
-		FInstancedStaticMeshVertexFactory::DataType Data;
+		FInstancedStaticMeshVertexFactory::FDataType Data;
 		Data.PositionComponent = FVertexStreamComponent(
 			&RenderData->PositionVertexBuffer,
 			STRUCT_OFFSET(FPositionVertex,Position),
 			RenderData->PositionVertexBuffer.GetStride(),
 			VET_Float3
 			);
+
+		uint32 TangentXOffset = 0;
+		uint32 TangetnZOffset = 0;
+		uint32 UVsBaseOffset = 0;
+
+		SELECT_STATIC_MESH_VERTEX_TYPE(
+			RenderData->VertexBuffer.GetUseHighPrecisionTangentBasis(),
+			RenderData->VertexBuffer.GetUseFullPrecisionUVs(),
+			RenderData->VertexBuffer.GetNumTexCoords(),
+			{
+				TangentXOffset = STRUCT_OFFSET(VertexType, TangentX);
+				TangetnZOffset = STRUCT_OFFSET(VertexType, TangentZ);
+				UVsBaseOffset = STRUCT_OFFSET(VertexType, UVs);
+			});
+
 		Data.TangentBasisComponents[0] = FVertexStreamComponent(
 			&RenderData->VertexBuffer,
-			STRUCT_OFFSET(FStaticMeshFullVertex,TangentX),
+			TangentXOffset,
 			RenderData->VertexBuffer.GetStride(),
-			VET_PackedNormal
-			);
-		Data.TangentBasisComponents[1] = FVertexStreamComponent(
-			&RenderData->VertexBuffer,
-			STRUCT_OFFSET(FStaticMeshFullVertex,TangentZ),
-			RenderData->VertexBuffer.GetStride(),
-			VET_PackedNormal
+			RenderData->VertexBuffer.GetUseHighPrecisionTangentBasis() ?
+				TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::HighPrecision>::VertexElementType : 
+				TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::Default>::VertexElementType
 			);
 
+		Data.TangentBasisComponents[1] = FVertexStreamComponent(
+			&RenderData->VertexBuffer,
+			TangetnZOffset,
+			RenderData->VertexBuffer.GetStride(),
+			RenderData->VertexBuffer.GetUseHighPrecisionTangentBasis() ?
+				TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::HighPrecision>::VertexElementType : 
+				TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::Default>::VertexElementType
+			);
 
 		if( RenderData->ColorVertexBuffer.GetNumVertices() > 0 )
 		{
@@ -368,73 +394,48 @@ void FInstancedStaticMeshRenderData::InitStaticMeshVertexFactories(
 		}
 
 		Data.TextureCoordinates.Empty();
+
+		uint32 UVSizeInBytes = RenderData->VertexBuffer.GetUseFullPrecisionUVs() ?
+			sizeof(TStaticMeshVertexUVsTypeSelector<EStaticMeshVertexUVType::HighPrecision>::UVsTypeT) : sizeof(TStaticMeshVertexUVsTypeSelector<EStaticMeshVertexUVType::Default>::UVsTypeT);
+
+		EVertexElementType UVDoubleWideVertexElementType = RenderData->VertexBuffer.GetUseFullPrecisionUVs() ?
+			VET_Float4 : VET_Half4;
+
+		EVertexElementType UVVertexElementType = RenderData->VertexBuffer.GetUseFullPrecisionUVs() ?
+			VET_Float2 : VET_Half2;
+
 		// Only bind InstancedStaticMeshMaxTexCoord, even if the mesh has more.
 		int32 NumTexCoords = FMath::Min<int32>((int32)RenderData->VertexBuffer.GetNumTexCoords(), InstancedStaticMeshMaxTexCoord);
-		if( !RenderData->VertexBuffer.GetUseFullPrecisionUVs() )
-		{
-			int32 UVIndex;
-			for (UVIndex = 0; UVIndex < NumTexCoords - 1; UVIndex += 2)
-			{
-				Data.TextureCoordinates.Add(FVertexStreamComponent(
-					&RenderData->VertexBuffer,
-					STRUCT_OFFSET(TStaticMeshFullVertexFloat16UVs<MAX_STATIC_TEXCOORDS>, UVs) + sizeof(FVector2DHalf)* UVIndex,
-					RenderData->VertexBuffer.GetStride(),
-					VET_Half4
-					));
-			}
-			// possible last UV channel if we have an odd number
-			if( UVIndex < NumTexCoords )
-			{
-				Data.TextureCoordinates.Add(FVertexStreamComponent(
-					&RenderData->VertexBuffer,
-					STRUCT_OFFSET(TStaticMeshFullVertexFloat16UVs<MAX_STATIC_TEXCOORDS>,UVs) + sizeof(FVector2DHalf) * UVIndex,
-					RenderData->VertexBuffer.GetStride(),
-					VET_Half2
-					));
-			}
 
-			if (Parent->LightMapCoordinateIndex >= 0 && Parent->LightMapCoordinateIndex < NumTexCoords)
-			{
-				Data.LightMapCoordinateComponent = FVertexStreamComponent(
-					&RenderData->VertexBuffer,
-					STRUCT_OFFSET(TStaticMeshFullVertexFloat16UVs<MAX_STATIC_TEXCOORDS>, UVs) + sizeof(FVector2DHalf)* Parent->LightMapCoordinateIndex,
-					RenderData->VertexBuffer.GetStride(),
-					VET_Half2
-					);
-			}
+		int32 UVIndex;
+		for (UVIndex = 0; UVIndex < NumTexCoords - 1; UVIndex += 2)
+		{
+			Data.TextureCoordinates.Add(FVertexStreamComponent(
+				&RenderData->VertexBuffer,
+				UVsBaseOffset + UVSizeInBytes * UVIndex,
+				RenderData->VertexBuffer.GetStride(),
+				UVDoubleWideVertexElementType
+				));
 		}
-		else
+		// possible last UV channel if we have an odd number
+		if( UVIndex < NumTexCoords )
 		{
-			int32 UVIndex;
-			for (UVIndex = 0; UVIndex < NumTexCoords - 1; UVIndex += 2)
-			{
-				Data.TextureCoordinates.Add(FVertexStreamComponent(
-					&RenderData->VertexBuffer,
-					STRUCT_OFFSET(TStaticMeshFullVertexFloat32UVs<MAX_STATIC_TEXCOORDS>, UVs) + sizeof(FVector2D)* UVIndex,
-					RenderData->VertexBuffer.GetStride(),
-					VET_Float4
-					));
-			}
-			// possible last UV channel if we have an odd number
-			if (UVIndex < NumTexCoords)
-			{
-				Data.TextureCoordinates.Add(FVertexStreamComponent(
-					&RenderData->VertexBuffer,
-					STRUCT_OFFSET(TStaticMeshFullVertexFloat32UVs<MAX_STATIC_TEXCOORDS>,UVs) + sizeof(FVector2D) * UVIndex,
-					RenderData->VertexBuffer.GetStride(),
-					VET_Float2
-					));
-			}
+			Data.TextureCoordinates.Add(FVertexStreamComponent(
+				&RenderData->VertexBuffer,
+				UVsBaseOffset + UVSizeInBytes * UVIndex,
+				RenderData->VertexBuffer.GetStride(),
+				UVVertexElementType
+				));
+		}
 
-			if (Parent->LightMapCoordinateIndex >= 0 && Parent->LightMapCoordinateIndex < NumTexCoords)
-			{
-				Data.LightMapCoordinateComponent = FVertexStreamComponent(
-					&RenderData->VertexBuffer,
-					STRUCT_OFFSET(TStaticMeshFullVertexFloat32UVs<InstancedStaticMeshMaxTexCoord>, UVs) + sizeof(FVector2D)* Parent->LightMapCoordinateIndex,
-					RenderData->VertexBuffer.GetStride(),
-					VET_Float2
-					);
-			}
+		if (Parent->LightMapCoordinateIndex >= 0 && Parent->LightMapCoordinateIndex < NumTexCoords)
+		{
+			Data.LightMapCoordinateComponent = FVertexStreamComponent(
+				&RenderData->VertexBuffer,
+				UVsBaseOffset + UVSizeInBytes * Parent->LightMapCoordinateIndex,
+				RenderData->VertexBuffer.GetStride(),
+				UVVertexElementType
+				);
 		}
 
 		if (bInstanced)
@@ -574,6 +575,7 @@ void FInstancedStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const F
 						{
 							//@todo-rco this is only supporting selection on the first element
 							MeshElement.Elements[0].UserData = PassUserData[SelectionGroupIndex];
+							MeshElement.Elements[0].bUserDataIsColorVertexBuffer = false;
 							MeshElement.bCanApplyViewModeOverrides = true;
 							MeshElement.bUseSelectionOutline = BatchRenderSelection[SelectionGroupIndex];
 							MeshElement.bUseWireframeSelectionColoring = BatchRenderSelection[SelectionGroupIndex];
@@ -621,6 +623,7 @@ void FInstancedStaticMeshSceneProxy::SetupInstancedMeshBatch(int32 LODIndex, int
 	const uint32 NumInstances = InstancedRenderData.PerInstanceRenderData->InstanceBuffer.GetNumInstances();
 	FMeshBatchElement& BatchElement0 = OutMeshBatch.Elements[0];
 	BatchElement0.UserData = (void*)&UserData_AllInstances;
+	BatchElement0.bUserDataIsColorVertexBuffer = false;
 	BatchElement0.InstancedLODIndex = LODIndex;
 	BatchElement0.UserIndex = 0;
 	BatchElement0.bIsInstancedMesh = bInstanced;
@@ -633,13 +636,13 @@ void FInstancedStaticMeshSceneProxy::SetupInstancedMeshBatch(int32 LODIndex, int
 	{
 		const uint32 MaxInstancesPerBatch = FInstancedStaticMeshVertexFactory::NumBitsForVisibilityMask();
 		const uint32 NumBatches = FMath::DivideAndRoundUp(NumInstances, MaxInstancesPerBatch);
-		uint32 NumInstancesThisBatch = BatchIndex == NumBatches - 1 ? NumInstances % MaxInstancesPerBatch : MaxInstancesPerBatch;
-
-		OutMeshBatch.Elements.Reserve(NumInstancesThisBatch);
-
-		int32 InstanceIndex = BatchIndex * MaxInstancesPerBatch;
+		uint32 InstanceIndex = BatchIndex * MaxInstancesPerBatch;
+		uint32 NumInstancesThisBatch = FMath::Min(NumInstances - InstanceIndex, MaxInstancesPerBatch);
+				
 		if (NumInstancesThisBatch > 0)
 		{
+			OutMeshBatch.Elements.Reserve(NumInstancesThisBatch);
+						
 			// BatchElement0 is already inside the array; but Reserve() might have shifted it
 			OutMeshBatch.Elements[0].UserIndex = InstanceIndex;
 			--NumInstancesThisBatch;
@@ -741,6 +744,7 @@ UInstancedStaticMeshComponent::UInstancedStaticMeshComponent(const FObjectInitia
 	BodyInstance.bSimulatePhysics = false;
 
 	PhysicsSerializer = ObjectInitializer.CreateDefaultSubobject<UPhysicsSerializer>(this, TEXT("PhysicsSerializer"));
+	bDisallowMeshPaintPerInstance = true;
 }
 
 #if WITH_EDITOR
@@ -1186,7 +1190,7 @@ FBoxSphereBounds UInstancedStaticMeshComponent::CalcBounds(const FTransform& Bou
 #if WITH_EDITOR
 void UInstancedStaticMeshComponent::GetStaticLightingInfo(FStaticLightingPrimitiveInfo& OutPrimitiveInfo, const TArray<ULightComponent*>& InRelevantLights, const FLightingBuildOptions& Options)
 {
-	if (HasValidSettingsForStaticLighting())
+	if (HasValidSettingsForStaticLighting(false))
 	{
 		// create static lighting for LOD 0
 		int32 LightMapWidth = 0;
@@ -1577,6 +1581,32 @@ TArray<int32> UInstancedStaticMeshComponent::GetInstancesOverlappingSphere(const
 		FSphere InstanceSphere(Matrix.GetOrigin(), StaticMeshBoundsRadius * Matrix.GetScaleVector().GetMax());
 
 		if (Sphere.Intersects(InstanceSphere))
+		{
+			Result.Add(Index);
+		}
+	}
+
+	return Result;
+}
+
+TArray<int32> UInstancedStaticMeshComponent::GetInstancesOverlappingBox(const FBox& InBox, bool bBoxInWorldSpace) const
+{
+	TArray<int32> Result;
+
+	FBox Box(InBox);
+	if (bBoxInWorldSpace)
+	{
+		Box = Box.TransformBy(ComponentToWorld.Inverse());
+	}
+
+	FVector StaticMeshBoundsExtent = StaticMesh->GetBounds().BoxExtent;
+
+	for (int32 Index = 0; Index < PerInstanceSMData.Num(); Index++)
+	{
+		const FMatrix& Matrix = PerInstanceSMData[Index].Transform;
+		FBox InstanceBox(Matrix.GetOrigin() - StaticMeshBoundsExtent, Matrix.GetOrigin() + StaticMeshBoundsExtent);
+
+		if (Box.Intersect(InstanceBox))
 		{
 			Result.Add(Index);
 		}

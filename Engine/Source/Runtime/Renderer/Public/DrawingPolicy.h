@@ -49,6 +49,71 @@ struct FMeshDrawingRenderState
 	bool				bAllowStencilDither;
 };
 
+class FDrawingPolicyMatchResult
+{
+public:
+	FDrawingPolicyMatchResult()
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		: Matches(0)
+#else
+		: bLastResult(false)
+#endif
+	{
+	}
+
+	bool Append(const FDrawingPolicyMatchResult& Result, const TCHAR* condition)
+	{
+		bLastResult = Result.bLastResult;
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		TestResults = Result.TestResults;
+		TestCondition = Result.TestCondition;
+		Matches = Result.Matches;
+#endif
+
+		return bLastResult;
+	}
+
+	bool Append(bool Result, const TCHAR* condition)
+	{
+		bLastResult = Result;
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		TestResults.Add(Result);
+		TestCondition.Add(condition);
+		Matches += Result;
+#endif
+
+		return bLastResult;
+	}
+
+	bool Result() const
+	{
+		return bLastResult;
+	}
+
+	int32 MatchCount() const
+	{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		return Matches;
+#else
+		return 0;
+#endif
+	}
+
+	uint32 bLastResult : 1;
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	int32					Matches;
+	TBitArray<>				TestResults;
+	TArray<const TCHAR*>	TestCondition;
+#endif
+};
+
+#define DRAWING_POLICY_MATCH_BEGIN FDrawingPolicyMatchResult Result; {
+#define DRAWING_POLICY_MATCH(MatchExp) Result.Append((MatchExp), TEXT(#MatchExp))
+#define DRAWING_POLICY_MATCH_END } return Result;
+
 /**
  * The base mesh drawing policy.  Subclasses are used to draw meshes with type-specific context variables.
  * May be used either simply as a helper to render a dynamic mesh, or as a static instance shared between
@@ -72,11 +137,10 @@ public:
 		const FVertexFactory* InVertexFactory,
 		const FMaterialRenderProxy* InMaterialRenderProxy,
 		const FMaterial& InMaterialResource,
-		bool bInOverrideWithShaderComplexity = false,
+		EDebugViewShaderMode InDebugViewShaderMode = DVSM_None,
 		bool bInTwoSidedOverride = false,
 		bool bInDitheredLODTransitionOverride = false,
-		bool bInWireframeOverride = false,
-		EQuadOverdrawMode InQuadOverdrawMode = QOM_None
+		bool bInWireframeOverride = false
 		);
 
 	FMeshDrawingPolicy& operator = (const FMeshDrawingPolicy& Other)
@@ -89,8 +153,7 @@ public:
 		bIsWireframeMaterial = Other.bIsWireframeMaterial;
 		bNeedsBackfacePass = Other.bNeedsBackfacePass;
 		bUsePositionOnlyVS = Other.bUsePositionOnlyVS;
-		bOverrideWithShaderComplexity = Other.bOverrideWithShaderComplexity;
-		QuadOverdrawMode = Other.QuadOverdrawMode;
+		DebugViewShaderMode = Other.DebugViewShaderMode;
 		return *this; 
 	}
 
@@ -99,15 +162,16 @@ public:
 		return PointerHash(VertexFactory,PointerHash(MaterialRenderProxy));
 	}
 
-	bool Matches(const FMeshDrawingPolicy& OtherDrawer) const
+	FDrawingPolicyMatchResult Matches(const FMeshDrawingPolicy& OtherDrawer) const
 	{
-		return
-			VertexFactory == OtherDrawer.VertexFactory &&
-			MaterialRenderProxy == OtherDrawer.MaterialRenderProxy &&
-			bIsTwoSidedMaterial == OtherDrawer.bIsTwoSidedMaterial && 
-			bIsDitheredLODTransitionMaterial == OtherDrawer.bIsDitheredLODTransitionMaterial && 
-			bUsePositionOnlyVS == OtherDrawer.bUsePositionOnlyVS && 
-			bIsWireframeMaterial == OtherDrawer.bIsWireframeMaterial;
+		DRAWING_POLICY_MATCH_BEGIN
+			DRAWING_POLICY_MATCH(VertexFactory == OtherDrawer.VertexFactory) &&
+			DRAWING_POLICY_MATCH(MaterialRenderProxy == OtherDrawer.MaterialRenderProxy) &&
+			DRAWING_POLICY_MATCH(bIsTwoSidedMaterial == OtherDrawer.bIsTwoSidedMaterial) &&
+			DRAWING_POLICY_MATCH(bIsDitheredLODTransitionMaterial == OtherDrawer.bIsDitheredLODTransitionMaterial) &&
+			DRAWING_POLICY_MATCH(bUsePositionOnlyVS == OtherDrawer.bUsePositionOnlyVS) &&
+			DRAWING_POLICY_MATCH(bIsWireframeMaterial == OtherDrawer.bIsWireframeMaterial);
+		DRAWING_POLICY_MATCH_END
 	}
 
 	/**
@@ -187,7 +251,14 @@ public:
 	const FVertexFactory* GetVertexFactory() const { return VertexFactory; }
 	const FMaterialRenderProxy* GetMaterialRenderProxy() const { return MaterialRenderProxy; }
 
-	FORCEINLINE EQuadOverdrawMode GetQuadOverdrawMode() const { return (EQuadOverdrawMode)QuadOverdrawMode; }
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	FORCEINLINE EDebugViewShaderMode GetDebugViewShaderMode() const { return (EDebugViewShaderMode)DebugViewShaderMode; }
+	FORCEINLINE bool UseDebugViewPS() const { return DebugViewShaderMode != DVSM_None; }
+#else
+	FORCEINLINE EDebugViewShaderMode GetDebugViewShaderMode() const { return DVSM_None; }
+	FORCEINLINE bool UseDebugViewPS() const { return false; }
+#endif
+
 protected:
 	const FVertexFactory* VertexFactory;
 	const FMaterialRenderProxy* MaterialRenderProxy;
@@ -197,8 +268,7 @@ protected:
 	uint32 bIsWireframeMaterial : 1;
 	uint32 bNeedsBackfacePass : 1;
 	uint32 bUsePositionOnlyVS : 1;
-	uint32 bOverrideWithShaderComplexity : 1;
-	uint32 QuadOverdrawMode : 3;
+	uint32 DebugViewShaderMode : 6; // EDebugViewShaderMode
 };
 
 

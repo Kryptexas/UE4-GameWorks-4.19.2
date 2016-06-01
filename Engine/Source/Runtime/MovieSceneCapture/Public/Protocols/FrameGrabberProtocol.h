@@ -4,11 +4,12 @@
 
 #include "FrameGrabber.h"
 #include "IMovieSceneCaptureProtocol.h"
+#include "MovieSceneCaptureProtocolSettings.h"
 
 #include "FrameGrabberProtocol.generated.h"
 
 UCLASS()
-class MOVIESCENECAPTURE_API UFrameGrabberProtocolSettings : public UObject
+class MOVIESCENECAPTURE_API UFrameGrabberProtocolSettings : public UMovieSceneCaptureProtocolSettings
 {
 public:
 	UFrameGrabberProtocolSettings(const FObjectInitializer&) : DesiredPixelFormat(PF_B8G8R8A8), RingBufferSize(3) {}

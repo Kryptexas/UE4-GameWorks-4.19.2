@@ -1350,7 +1350,6 @@ public:
 		"runautomationtest", ""
 		"runautomationtests", "true/false"
 		"skipserver", "true/false"
-		"rocket", "true/false"
 		"ue4exe", ""
 		"unattended", "true/false"
 		"deviceuser", ""
@@ -2213,6 +2212,22 @@ protected:
 				// shipping doesn't support commandline options
 				ValidationErrors.Add(ELauncherProfileValidationErrors::ShippingDoesntSupportCommandlineOptionsCantUseCookOnTheFly);
 			}
+
+		}
+
+		
+
+		if (CookMode == ELauncherProfileCookModes::OnTheFly)
+		{
+
+			for (auto const& CookedPlatform : CookedPlatforms)
+			{
+				if (CookedPlatform.Contains("Server"))
+				{
+					ValidationErrors.Add(ELauncherProfileValidationErrors::CookOnTheFlyDoesntSupportServer);
+				}
+			}
+			
 
 		}
 

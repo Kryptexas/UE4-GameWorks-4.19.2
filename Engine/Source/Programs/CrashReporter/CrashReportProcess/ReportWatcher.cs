@@ -4,16 +4,17 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text;
 
 namespace Tools.CrashReporter.CrashReportProcess
 {
 	/// <summary>
 	/// A class to monitor the crash report repository for new crash reports.
 	/// </summary>
-	public sealed class ReportWatcher : IDisposable
+	sealed class ReportWatcher : IDisposable
 	{
 		/// <summary>A queue of freshly landed crash reports ready to be processed.</summary>
-		public List<ReportQueue> ReportQueues = new List<ReportQueue>();
+		public List<IReportQueue> ReportQueues = new List<IReportQueue>();
 
 		/// <summary>Task to periodically check for the arrival of new report folders.</summary>
 		Task WatcherTask;
@@ -49,13 +50,13 @@ namespace Tools.CrashReporter.CrashReportProcess
 		void Start()
 		{
 			CrashReporterProcessServicer.WriteEvent("CrashReportProcessor watching directories:");
-			var Settings = Properties.Settings.Default;
+			var Settings = Config.Default;
 
 			if (!string.IsNullOrEmpty(Settings.InternalLandingZone))
 			{
 				if( System.IO.Directory.Exists( Settings.InternalLandingZone ) )
 				{
-					ReportQueues.Add(new ReportQueue(Settings.InternalLandingZone));
+					ReportQueues.Add(new ReceiverReportQueue("Epic Crashes", Settings.InternalLandingZone));
 					CrashReporterProcessServicer.WriteEvent(string.Format("\t{0} (internal, high priority)", Settings.InternalLandingZone));
 				}
 				else
@@ -69,7 +70,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 			{
 				if( System.IO.Directory.Exists( Settings.ExternalLandingZone ) )
 				{
-					ReportQueues.Add( new ReportQueue( Settings.ExternalLandingZone ) );
+					ReportQueues.Add(new ReceiverReportQueue("External Crashes", Settings.ExternalLandingZone));
 					CrashReporterProcessServicer.WriteEvent( string.Format( "\t{0}", Settings.ExternalLandingZone ) );
 				}
 				else
@@ -79,16 +80,29 @@ namespace Tools.CrashReporter.CrashReportProcess
 			}
 #endif //!DEBUG
 
+			// Init queue entries in StatusReporter
+			foreach (var Queue in ReportQueues)
+			{
+				CrashReporterProcessServicer.StatusReporter.InitQueue(Queue.QueueId, Queue.LandingZonePath);
+			}
+
 			var Cancel = CancelSource.Token;
 			WatcherTask = Task.Factory.StartNew(async () =>
 			{
+				DateTime LastQueueSizeReport = DateTime.MinValue;
 				while (!Cancel.IsCancellationRequested)
 				{
 					// Check the landing zones for new reports
+					DateTime StartTime = DateTime.Now;
+
 					foreach (var Queue in ReportQueues)
 					{
-						Queue.CheckForNewReports();
+						int QueueSize = Queue.CheckForNewReports();
+						CrashReporterProcessServicer.StatusReporter.SetQueueSize(Queue.QueueId, QueueSize);
 					}
+
+					TimeSpan TimeTaken = DateTime.Now - StartTime;
+					CrashReporterProcessServicer.WriteEvent(string.Format("Checking Landing Zones took {0:F2} seconds", TimeTaken.TotalSeconds));
 					await Task.Delay(60000, Cancel);
 				}
 			});

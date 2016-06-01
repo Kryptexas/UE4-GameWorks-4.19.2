@@ -51,8 +51,9 @@ void FHierarchicalSimplificationCustomizations::CustomizeChildren( TSharedRef<IP
 	SimplifyMeshPropertyHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FHierarchicalSimplification, bSimplifyMesh));
 	TSharedPtr< IPropertyHandle > ProxyMeshSettingPropertyHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FHierarchicalSimplification, ProxySetting));
 	TSharedPtr< IPropertyHandle > MergeMeshSettingPropertyHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FHierarchicalSimplification, MergeSetting));
+	TSharedPtr< IPropertyHandle > TransitionScreenSizePropertyHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FHierarchicalSimplification, TransitionScreenSize));
 
-	for( auto Iter(PropertyHandles.CreateConstIterator()); Iter; ++Iter  )
+	for (auto Iter(PropertyHandles.CreateConstIterator()); Iter; ++Iter)
 	{
 		// Handle special property cases (done inside the loop to maintain order according to the struct
 		if (Iter.Value() == SimplifyMeshPropertyHandle)
@@ -70,11 +71,15 @@ void FHierarchicalSimplificationCustomizations::CustomizeChildren( TSharedRef<IP
 			IDetailPropertyRow& SettingsRow = MergeGroup.AddPropertyRow(Iter.Value().ToSharedRef());
 			SettingsRow.Visibility(TAttribute<EVisibility>(this, &FHierarchicalSimplificationCustomizations::IsMergeMeshSettingVisible));
 		}
+		else  if (Iter.Value() == TransitionScreenSizePropertyHandle)
+		{
+			IDetailPropertyRow& SettingsRow = MergeGroup.AddPropertyRow(Iter.Value().ToSharedRef());
+		}
 		else
 		{
 			IDetailPropertyRow& SettingsRow = ClusterGroup.AddPropertyRow(Iter.Value().ToSharedRef());
 		}
-	}	
+	}
 }
 
 EVisibility FHierarchicalSimplificationCustomizations::IsSimplifyMeshVisible() const

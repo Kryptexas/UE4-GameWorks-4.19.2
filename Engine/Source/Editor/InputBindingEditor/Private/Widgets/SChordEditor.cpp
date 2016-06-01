@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "InputBindingEditorPrivatePCH.h"
-
+#include "SlateEditableTextLayout.h"
 
 #define LOCTEXT_NAMESPACE "SChordEditor"
 
@@ -21,17 +21,16 @@ void SChordEditor::Construct( const FArguments& InArgs, TSharedPtr<FChordTreeIte
 	OnEditingStopped = InArgs._OnEditingStopped;
 	OnEditingStarted = InArgs._OnEditingStarted;
 
-	static const FSlateFontInfo Font( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 9 );
+	static const FSlateFontInfo RobotoFont( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 9 );
 
 	SEditableText::Construct( 
 		SEditableText::FArguments() 
 		.Text( this, &SChordEditor::OnGetChordInputText )
 		.HintText(  this, &SChordEditor::OnGetChordInputHintText )
-		.Font( Font )
+		.Font( RobotoFont )
 	);
 
-	LoadText();
-
+	EditableTextLayout->LoadText();
 }
 
 
@@ -52,18 +51,17 @@ FReply SChordEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& In
 			EditingInputChord.Key = Key;
 		}
 	
-		StartChangingText();
+		EditableTextLayout->BeginEditTransation();
 
 		EditingInputChord.bCtrl = InKeyEvent.IsControlDown();
 		EditingInputChord.bAlt = InKeyEvent.IsAltDown();
 		EditingInputChord.bShift = InKeyEvent.IsShiftDown();
 		EditingInputChord.bCmd = InKeyEvent.IsCommandDown();
 
-		LoadText();
-		//@todo checking the length of localized string is not valid, at the very least in this manner [10/11/2013 justin.sargent]
-		SetCaretPosition( EditingInputChord.GetInputText().ToString().Len() );
+		EditableTextLayout->LoadText();
+		EditableTextLayout->GoTo(ETextLocation::EndOfDocument);
 
-		FinishChangingText();
+		EditableTextLayout->EndEditTransaction();
 		
 		OnChordTyped( EditingInputChord );
 		

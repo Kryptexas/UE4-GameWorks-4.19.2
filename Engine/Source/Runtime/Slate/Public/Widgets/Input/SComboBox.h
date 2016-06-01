@@ -283,7 +283,7 @@ protected:
 
 	virtual bool IsInteractable() const
 	{
-		return IsEnabled() && SupportsKeyboardFocus();
+		return IsEnabled();
 	}
 
 private:

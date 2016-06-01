@@ -86,16 +86,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Startup)
 	uint32 bRestoreOpenAssetTabsOnRestart:1;
 
-public:
-
-	/** Check that the current source control settings will play nicely with the auto-reimport feature */
-	void CheckSourceControlCompatability();
-
 private:
 
-	/** true when CheckSourceControlCompatability is enabled */
 	UPROPERTY(config)
-	bool bEnableSourceControlCompatabilityCheck;
+	bool bEnableSourceControlCompatabilityCheck_DEPRECATED;
 
 public:
 
@@ -116,8 +110,10 @@ public:
 	bool bAutoCreateAssets;
 	UPROPERTY(EditAnywhere, config, AdvancedDisplay, Category=AutoReimport, meta=(DisplayName="Auto Delete Assets", ToolTip="When enabled, deleting a source content file will automatically prompt the deletion of any related assets."))
 	bool bAutoDeleteAssets;
-	UPROPERTY(EditAnywhere, config, AdvancedDisplay, Category=AutoReimport, meta=(DisplayName="Detect Changes On Restart", ToolTip="When enabled, changes to monitored directories since UE4 was closed will be detected on restart.\n(Not recommended when working in collaboration with others using source control)."))
-	bool bDetectChangesOnRestart;
+	UPROPERTY(EditAnywhere, config, AdvancedDisplay, Category=AutoReimport, meta=(DisplayName="Detect Changes On Startup", ToolTip="When enabled, changes to monitored directories since UE4 was closed will be detected on restart.\n(Not recommended when working in collaboration with others using source control)."))
+	bool bDetectChangesOnStartup;
+	UPROPERTY(EditAnywhere, config, AdvancedDisplay, Category=AutoReimport, meta=(DisplayName="Prompt Before Action", ToolTip="Whether to prompt the user to import detected changes."))
+	bool bPromptBeforeAutoImporting;
 
 	/** Internal setting to control whether we should ask the user whether we should automatically delete source files when their assets are deleted */
 	UPROPERTY(config)

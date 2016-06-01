@@ -6,7 +6,7 @@
 #include "DerivedDataBackendInterface.h"
 #include "DDCCleanup.h"
 
-#include "DDCStatsHelper.h"
+#include "DerivedDataCacheUsageStats.h"
 
 #define MAX_BACKEND_KEY_LENGTH (120)
 #define MAX_BACKEND_NUMBERED_SUBFOLDER_LENGTH (9)
@@ -105,7 +105,7 @@ public:
 			UE_LOG(LogDerivedDataCache, Display, TEXT("Files in %s will be touched."),*CachePath);
 		}
 
-		if (!bFailed && AccessDuration > SlowInitDuration)
+		if (!bFailed && AccessDuration > SlowInitDuration && !GIsBuildMachine)
 		{
 			UE_LOG(LogDerivedDataCache, Warning, TEXT("%s access is very slow (initialization took %.2lf seconds), consider disabling it."), *CachePath, AccessDuration);
 		}
@@ -135,6 +135,7 @@ public:
 	 */
 	virtual bool CachedDataProbablyExists(const TCHAR* CacheKey) override
 	{
+		COOK_STAT(auto Timer = UsageStats.TimeProbablyExists());
 		check(!bFailed);
 		FString Filename = BuildFilename(CacheKey);
 		FDateTime TimeStamp = IFileManager::Get().GetTimeStamp(*Filename);
@@ -148,6 +149,10 @@ public:
 				IFileManager::Get().SetTimeStamp(*Filename, FDateTime::UtcNow());
 			}
 		}
+		if (bExists)
+		{
+			COOK_STAT(Timer.AddHit(0));
+		}
 		return bExists;
 	}
 	/**
@@ -159,17 +164,22 @@ public:
 	 */
 	virtual bool GetCachedData(const TCHAR* CacheKey, TArray<uint8>& Data) override
 	{
+		COOK_STAT(auto Timer = UsageStats.TimeGet());
 		check(!bFailed);
 		FString Filename = BuildFilename(CacheKey);
 		double StartTime = FPlatformTime::Seconds();
 		if (FFileHelper::LoadFileToArray(Data,*Filename,FILEREAD_Silent))
 		{
-			double ReadDuration = FPlatformTime::Seconds() - StartTime;
-			double ReadSpeed = ReadDuration > 5.0 ? (Data.Num() / ReadDuration) / (1024.0 * 1024.0) : 100.0;
-			// Slower than 0.5MB/s?
-			UE_CLOG(ReadSpeed < 0.5, LogDerivedDataCache, Warning, TEXT("%s access is very slow (%.2lfMB/s), consider disabling it."), *CachePath, ReadSpeed);
+			if(!GIsBuildMachine)
+			{
+				double ReadDuration = FPlatformTime::Seconds() - StartTime;
+				double ReadSpeed = ReadDuration > 5.0 ? (Data.Num() / ReadDuration) / (1024.0 * 1024.0) : 100.0;
+				// Slower than 0.5MB/s?
+				UE_CLOG(ReadSpeed < 0.5, LogDerivedDataCache, Warning, TEXT("%s is very slow (%.2lfMB/s) when accessing %s, consider disabling it."), *CachePath, ReadSpeed, *Filename);
+			}
 
 			UE_LOG(LogDerivedDataCache, Verbose, TEXT("FileSystemDerivedDataBackend: Cache hit on %s"),*Filename);
+			COOK_STAT(Timer.AddHit(Data.Num()));
 			return true;
 		}
 		UE_LOG(LogDerivedDataCache, Verbose, TEXT("FileSystemDerivedDataBackend: Cache miss on %s"),*Filename);
@@ -185,19 +195,15 @@ public:
 	 */
 	virtual void PutCachedData(const TCHAR* CacheKey, TArray<uint8>& Data, bool bPutEvenIfExists) override
 	{
-		//static FName NAME_PutCachedData(TEXT("PutCachedData"));
-		//FDDCScopeStatHelper Stat(CacheKey, NAME_PutCachedData);
-		//static FName NAME_FileDDCPath(TEXT("FileDDCPath"));
-		//Stat.AddTag(NAME_FileDDCPath, CachePath);
-		
+		COOK_STAT(auto Timer = UsageStats.TimePut());
 		check(!bFailed);
 		if (!bReadOnly)
 		{
 			if (bPutEvenIfExists || !CachedDataProbablyExists(CacheKey))
 			{
+				COOK_STAT(Timer.AddHit(Data.Num()));
 				check(Data.Num());
 				FString Filename = BuildFilename(CacheKey);
-				double StartTime = FPlatformTime::Seconds();
 				FString TempFilename(TEXT("temp.")); 
 				TempFilename += FGuid::NewGuid().ToString();
 				TempFilename = FPaths::GetPath(Filename) / TempFilename;
@@ -259,7 +265,13 @@ public:
 		}
 	}
 
+	virtual void GatherUsageStats(TMap<FString, FDerivedDataCacheUsageStats>& UsageStatsMap, FString&& GraphPath) override
+	{
+		COOK_STAT(UsageStatsMap.Add(FString::Printf(TEXT("%s: %s.%s"), *GraphPath, TEXT("FileSystem"), *CachePath), UsageStats));
+	}
+
 private:
+	FDerivedDataCacheUsageStats UsageStats;
 
 	/**
 	 * Threadsafe method to compute the filename from the cachekey, currently just adds a path and an extension.

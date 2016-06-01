@@ -23,6 +23,13 @@ public class BspMode : ModuleRules
         DynamicallyLoadedModuleNames.AddRange(
             new string[] {
 				"PropertyEditor",
+				"PlacementMode",
+			}
+        );
+
+        PrivateIncludePathModuleNames.AddRange(
+            new string[] {
+				"PlacementMode",
 			}
         );
 	}

@@ -18,7 +18,7 @@ void UInAppPurchaseQueryCallbackProxy::TriggerQuery(APlayerController* PlayerCon
 	WorldPtr = (PlayerController != nullptr) ? PlayerController->GetWorld() : nullptr;
 	if (APlayerState* PlayerState = (PlayerController != NULL) ? PlayerController->PlayerState : nullptr)
 	{
-		if (IOnlineSubsystem* const OnlineSub = IOnlineSubsystem::Get())
+		if (IOnlineSubsystem* const OnlineSub = IOnlineSubsystem::IsLoaded() ? IOnlineSubsystem::Get() : nullptr)
 		{
 			IOnlineStorePtr StoreInterface = OnlineSub->GetStoreInterface();
 			if (StoreInterface.IsValid())
@@ -104,7 +104,7 @@ void UInAppPurchaseQueryCallbackProxy::RemoveDelegate()
 {
 	if (!bFailedToEvenSubmit)
 	{
-		if (IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get())
+		if (IOnlineSubsystem* OnlineSub = IOnlineSubsystem::IsLoaded() ? IOnlineSubsystem::Get() : nullptr)
 		{
 			IOnlineStorePtr InAppPurchases = OnlineSub->GetStoreInterface();
 			if (InAppPurchases.IsValid())

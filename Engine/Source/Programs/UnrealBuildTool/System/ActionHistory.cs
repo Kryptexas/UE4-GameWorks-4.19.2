@@ -32,7 +32,7 @@ namespace UnrealBuildTool
 		{
 			FilePath = Path.GetFullPath(InFilePath);
 
-			var bFoundCache = false;
+			bool bFoundCache = false;
 			if (File.Exists(FilePath) == true)
 			{
 				try
@@ -118,8 +118,8 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				// Shared action history (unless this is a rocket target)
-				Folder = (UnrealBuildTool.RunningRocket() && Target.ProjectFile != null) ?
+				// Shared action history (unless this is an installed build target)
+				Folder = (UnrealBuildTool.IsEngineInstalled() && Target.ProjectFile != null) ?
 					DirectoryReference.Combine(Target.ProjectFile.Directory, BuildConfiguration.BaseIntermediateFolder) :
 					DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, BuildConfiguration.BaseIntermediateFolder);
 			}

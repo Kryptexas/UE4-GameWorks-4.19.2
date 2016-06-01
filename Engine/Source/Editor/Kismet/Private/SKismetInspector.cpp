@@ -17,6 +17,7 @@
 #include "BlueprintDetailsCustomization.h"
 #include "UserDefinedEnumEditor.h"
 #include "UserDefinedStructureEditor.h"
+#include "BitmaskLiteralDetails.h"
 #include "FormatTextDetails.h"
 #include "Engine/SCS_Node.h"
 #include "Components/ChildActorComponent.h"
@@ -344,6 +345,9 @@ void SKismetInspector::Construct(const FArguments& InArgs)
 
 		FOnGetDetailCustomizationInstance LayoutFormatTextDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FFormatTextDetails::MakeInstance);
 		PropertyView->RegisterInstancedCustomPropertyLayout(UK2Node_FormatText::StaticClass(), LayoutFormatTextDetails);
+
+		FOnGetDetailCustomizationInstance LayoutBitmaskLiteralDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBitmaskLiteralDetails::MakeInstance);
+		PropertyView->RegisterInstancedCustomPropertyLayout(UK2Node_BitmaskLiteral::StaticClass(), LayoutBitmaskLiteralDetails);
 
 		FOnGetDetailCustomizationInstance LayoutDocumentationDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintDocumentationDetails::MakeInstance, BlueprintEditorPtr);
 		PropertyView->RegisterInstancedCustomPropertyLayout(UEdGraphNode_Documentation::StaticClass(), LayoutDocumentationDetails);
@@ -749,7 +753,18 @@ bool SKismetInspector::IsPropertyEditingEnabled() const
 
 	if (BlueprintEditorPtr.IsValid())
 	{
-		bIsEditable = BlueprintEditorPtr.Pin()->InEditingMode();
+		if (GetDefault<UEditorExperimentalSettings>()->bAllowPotentiallyUnsafePropertyEditing == false)
+		{
+			bIsEditable = BlueprintEditorPtr.Pin()->InEditingMode();
+		}
+		else
+		{
+			// This function is essentially for PIE use so if we are NOT doing PIE use the normal path
+			if (GEditor->GetPIEWorldContext() == nullptr)
+			{
+				bIsEditable = BlueprintEditorPtr.Pin()->InEditingMode();
+			}
+		}
 	}
 
 	for (const TWeakObjectPtr<UObject>& SelectedObject : SelectedObjects)

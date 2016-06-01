@@ -8,7 +8,6 @@
 #include "DesktopPlatformModule.h"
 #include "MainFrame.h"
 #include "VisualLoggerCameraController.h"
-#include "TimeSliderController.h"
 #if WITH_EDITOR
 #	include "Editor/UnrealEd/Public/EditorComponents.h"
 #	include "Editor/UnrealEd/Public/EditorReimportHandler.h"
@@ -422,7 +421,7 @@ void SVisualLogger::HandleStopRecordingCommandExecute()
 
 	if (FParse::Param(FCommandLine::Get(), TEXT("LogNavOctree")) == true && ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>()->bLogNavOctreeOnStop)
 	{
-		FVisualLogger::NavigationDataDump(World, LogNavigation, ELogVerbosity::Log, INDEX_NONE, FBox());
+		FVisualLogger::NavigationDataDump(World, LogNavigation, ELogVerbosity::Log, FBox());
 	}
 
 	FVisualLogger::Get().SetIsRecording(false);
@@ -653,10 +652,10 @@ void SVisualLogger::HandleSaveCommand(bool bSaveAllData)
 
 		if (bSaved)
 		{
-			if (SaveFilenames.Num() > 0)
+			if (SaveFilenames.Num() > 0 && SaveFilenames[0].IsEmpty() == false)
 			{
 				TArray<FVisualLogDevice::FVisualLogEntryItem> FrameCache;
-				for (auto CurrentName : SelectedRows)
+				for (const FName& CurrentName : SelectedRows)
 				{
 					FVisualLoggerDBRow& DataRow = FVisualLoggerDatabase::Get().GetRowByName(CurrentName);
 					FrameCache.Append(DataRow.GetItems());
@@ -665,10 +664,17 @@ void SVisualLogger::HandleSaveCommand(bool bSaveAllData)
 				if (FrameCache.Num())
 				{
 					FArchive* FileArchive = IFileManager::Get().CreateFileWriter(*SaveFilenames[0]);
-					FVisualLoggerHelpers::Serialize(*FileArchive, FrameCache);
-					FileArchive->Close();
-					delete FileArchive;
-					FileArchive = NULL;
+					if (ensure(FileArchive))
+					{
+						FVisualLoggerHelpers::Serialize(*FileArchive, FrameCache);
+						FileArchive->Close();
+						delete FileArchive;
+						FileArchive = NULL;
+					}
+					else
+					{
+						UE_LOG(LogVisualLogger, Error, TEXT("Failed to create file \"%s\""), *SaveFilenames[0]);
+					}
 				}
 			}
 		}
@@ -936,9 +942,13 @@ void SVisualLogger::UpdateVisibilityForEntry(const FVisualLoggerDBRow& DBRow, in
 	TArray<FVisualLoggerCategoryVerbosityPair> OutCategories;
 	FVisualLoggerHelpers::GetCategories(CurrentEntry.Entry, OutCategories);
 	bool bHasValidCategories = false;
-	for (FVisualLoggerCategoryVerbosityPair& Categoryair : OutCategories)
+	for (FVisualLoggerCategoryVerbosityPair& CategoryPair : OutCategories)
 	{
-		bHasValidCategories = bHasValidCategories || FVisualLoggerFilters::Get().MatchCategoryFilters(Categoryair.CategoryName.ToString(), Categoryair.Verbosity);
+		if (FVisualLoggerFilters::Get().MatchCategoryFilters(CategoryPair.CategoryName.ToString(), CategoryPair.Verbosity))
+		{
+			bHasValidCategories = true;
+			break;
+		}
 	}
 
 	if (Settings->bSearchInsideLogs && bHasValidCategories && SearchString.Len() > 0)

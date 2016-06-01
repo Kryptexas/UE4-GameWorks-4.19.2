@@ -529,8 +529,11 @@ bool FAndroidMediaPlayer::Open(const FString& Url)
 		return false;
 	}
 
-	if (Url.StartsWith(TEXT("http:")) || Url.StartsWith(TEXT("https:")) ||
-		Url.StartsWith(TEXT("rtsp:")) || Url.StartsWith(TEXT("file:")))
+	bool bIsRemote = (Url.StartsWith(TEXT("http://")) || Url.StartsWith(TEXT("httpd://")) || Url.StartsWith(TEXT("https://")) ||
+					  Url.StartsWith(TEXT("mms://")) || Url.StartsWith(TEXT("rtsp://")) || Url.StartsWith(TEXT("rtspt://")) ||
+					  Url.StartsWith(TEXT("rtspu://")));
+		
+	if (bIsRemote)
 	{
 		// Direct open media at a "remote" URL.
 		JavaMediaPlayer->SetDataSource(Url);
@@ -545,6 +548,7 @@ bool FAndroidMediaPlayer::Open(const FString& Url)
 
 		// Construct a canonical path for the movie.
 		FString MoviePath = Url;
+		MoviePath.RemoveFromStart(TEXT("file://"));
 		FPaths::NormalizeFilename(MoviePath);
 
 		// Deal with hardcoded path from editor
@@ -616,13 +620,19 @@ bool FAndroidMediaPlayer::Open(const FString& Url)
 		{
 			AudioTracks.Add(MakeShareable(new AudioTrack(*this, AudioTracks.Num())));
 		}
+		else if (bIsRemote)
+		{
+			// For video we add video track and disable audio
+			JavaMediaPlayer->SetAudioEnabled(false);
+			VideoTracks.Add(MakeShareable(new VideoTrack(*this, VideoTracks.Num())));
+		}
 
 		MediaEvent.Broadcast(EMediaEvent::TracksChanged);
 	}
 
 	if (MediaState == EMediaState::Prepared)
 	{
-		MediaEvent.Broadcast(EMediaEvent::MediaOpenFailed);
+		MediaEvent.Broadcast(EMediaEvent::MediaOpened);
 	}
 
 	return MediaState == EMediaState::Prepared;

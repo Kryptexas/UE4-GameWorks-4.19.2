@@ -130,6 +130,15 @@ bool UAnimMontage::IsWithinPos(int32 FirstIndex, int32 SecondIndex, float Curren
 		EndTime = SequenceLength;
 	}
 
+	// since we do range of [StartTime, EndTime) (excluding EndTime) 
+	// there is blindspot of when CurrentTime becomes >= SequenceLength
+	// include that frame if CurrentTime gets there. 
+	// Otherwise, we continue to use [StartTime, EndTime)
+	if (CurrentTime >= SequenceLength)
+	{
+		return (StartTime <= CurrentTime && EndTime >= CurrentTime);
+	}
+
 	return (StartTime <= CurrentTime && EndTime > CurrentTime);
 }
 
@@ -351,7 +360,7 @@ void UAnimMontage::PostLoad()
 
 		if(CurrentCalculatedLength != SequenceLength)
 		{
-			UE_LOG(LogAnimMontage, Warning, TEXT("UAnimMontage::PostLoad: The actual sequence length for montage %s does not match the length stored in the asset, please resave the montage asset."), *GetName());
+			UE_LOG(LogAnimMontage, Display, TEXT("UAnimMontage::PostLoad: The actual sequence length for %s does not match the length stored in the asset, please resave the asset."), *GetFullName());
 			SequenceLength = CurrentCalculatedLength;
 		}
 	}
@@ -378,12 +387,9 @@ void UAnimMontage::PostLoad()
 		{
 			for (FAnimSegment& Segment : Slot.AnimTrack.AnimSegments)
 			{
-				UAnimSequence * Sequence = Cast<UAnimSequence>(Segment.AnimReference);
-				if (Sequence && !Sequence->bRootMotionSettingsCopiedFromMontage)
+				if (Segment.AnimReference)
 				{
-					Sequence->bEnableRootMotion = true;
-					Sequence->RootMotionRootLock = RootMotionRootLock;
-					Sequence->bRootMotionSettingsCopiedFromMontage = true;
+					Segment.AnimReference->EnableRootMotionSettingFromMontage(true, RootMotionRootLock);
 				}
 			}
 		}
@@ -396,10 +402,11 @@ void UAnimMontage::PostLoad()
 		{
 			if ( SlotAnimTracks[I].AnimTrack.AnimSegments.Num() > 0 )
 			{
-				UAnimSequence * Sequence = Cast<UAnimSequence>(SlotAnimTracks[I].AnimTrack.AnimSegments[0].AnimReference);
-				if ( Sequence && Sequence->RefPoseSeq )
+				UAnimSequenceBase* SequenceBase = SlotAnimTracks[I].AnimTrack.AnimSegments[0].AnimReference;
+				UAnimSequence* BaseAdditivePose = (SequenceBase) ? SequenceBase->GetAdditiveBasePose() : nullptr;
+				if (BaseAdditivePose)
 				{
-					PreviewBasePose = Sequence->RefPoseSeq;
+					PreviewBasePose = BaseAdditivePose;
 					MarkPackageDirty();
 					break;
 				}
@@ -414,10 +421,10 @@ void UAnimMontage::PostLoad()
 		{
 			if ( SlotAnimTracks[I].AnimTrack.AnimSegments.Num() > 0 )
 			{
-				UAnimSequence * Sequence = Cast<UAnimSequence>(SlotAnimTracks[I].AnimTrack.AnimSegments[0].AnimReference);
-				if ( Sequence && Sequence->GetSkeleton() != MySkeleton )
+				UAnimSequenceBase* SequenceBase = SlotAnimTracks[I].AnimTrack.AnimSegments[0].AnimReference;
+				if (SequenceBase && SequenceBase->GetSkeleton() != MySkeleton )
 				{
-					SlotAnimTracks[I].AnimTrack.AnimSegments[0].AnimReference = 0;
+					SlotAnimTracks[I].AnimTrack.AnimSegments[0].AnimReference = nullptr;
 					MarkPackageDirty();
 					break;
 				}
@@ -557,7 +564,7 @@ void UAnimMontage::RefreshBranchingPointMarkers()
 	{
 		FAnimNotifyEvent& NotifyEvent = Notifies[NotifyIndex];
 
-		if (NotifyEvent.MontageTickType == EMontageNotifyTickType::BranchingPoint)
+		if (NotifyEvent.IsBranchingPoint())
 		{
 			AddBranchingPointMarker(FBranchingPointMarker(NotifyIndex, NotifyEvent.GetTriggerTime(), EAnimNotifyEventType::Begin), TriggerTimes);
 
@@ -605,8 +612,8 @@ void UAnimMontage::AddBranchingPointMarker(FBranchingPointMarker TickMarker, TMa
 	FAnimNotifyEvent** FoundNotifyEventPtr = TriggerTimes.Find(TickMarker.TriggerTime);
 	if (FoundNotifyEventPtr)
 	{
-		UE_LOG(LogAnimMontage, Warning, TEXT("Branching Point '%s' overlaps with '%s' at time: %f. One of them will not get triggered!"),
-			*Notifies[TickMarker.NotifyIndex].NotifyName.ToString(), *(*FoundNotifyEventPtr)->NotifyName.ToString(), TickMarker.TriggerTime);
+		UE_LOG(LogAnimMontage, Warning, TEXT("Branching Point '%s' overlaps with '%s' at time: %f. One of them will not get triggered! (%s)"),
+			*Notifies[TickMarker.NotifyIndex].NotifyName.ToString(), *(*FoundNotifyEventPtr)->NotifyName.ToString(), TickMarker.TriggerTime, *GetPathName());
 	}
 	else
 	{
@@ -666,7 +673,7 @@ void UAnimMontage::FilterOutNotifyBranchingPoints(TArray<const FAnimNotifyEvent*
 {
 	for (int32 Index = InAnimNotifies.Num()-1; Index >= 0; Index--)
 	{
-		if (InAnimNotifies[Index]->MontageTickType == EMontageNotifyTickType::BranchingPoint)
+		if (InAnimNotifies[Index]->IsBranchingPoint())
 		{
 			InAnimNotifies.RemoveAt(Index, 1);
 		}
@@ -942,17 +949,17 @@ const TArray<class UAnimMetaData*> UAnimMontage::GetSectionMetaData(FName Sectio
 }
 
 #if WITH_EDITOR
-bool UAnimMontage::GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& AnimationSequences)
+bool UAnimMontage::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets)
 {
 	for (auto Iter = SlotAnimTracks.CreateConstIterator(); Iter; ++Iter)
 	{
 		const FSlotAnimationTrack& Track = (*Iter);
-		Track.AnimTrack.GetAllAnimationSequencesReferred(AnimationSequences);
+		Track.AnimTrack.GetAllAnimationSequencesReferred(AnimationAssets);
 	}
-	return (AnimationSequences.Num() > 0);
+	return (AnimationAssets.Num() > 0);
 }
 
-void UAnimMontage::ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSequence*>& ReplacementMap)
+void UAnimMontage::ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& ReplacementMap)
 {
 	for (auto Iter = SlotAnimTracks.CreateIterator(); Iter; ++Iter)
 	{
@@ -1010,6 +1017,11 @@ ENGINE_API void UAnimMontage::UpdateLinkableElements(int32 SlotIdx, int32 Segmen
 
 #endif
 
+FString MakePositionMessage(const FMarkerSyncAnimPosition& Position)
+{
+	return FString::Printf(TEXT("Names(PrevName: %s | NextName: %s) PosBetweenMarkers: %.2f"), *Position.PreviousMarkerName.ToString(), *Position.NextMarkerName.ToString(), Position.PositionBetweenMarkers);
+}
+
 void UAnimMontage::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNotifyQueue& NotifyQueue, FAnimAssetTickContext& Context) const
 {
 	// nothing has to happen here
@@ -1051,12 +1063,12 @@ void UAnimMontage::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNotify
 				MarkerTickContext.MarkersPassedThisTick = *Instance.Montage.MarkersPassedThisTick;
 
 #if DO_CHECK
-				if (MarkerTickContext.MarkersPassedThisTick.Num() == 0)
+				if(MarkerTickContext.MarkersPassedThisTick.Num() == 0)
 				{
 					const FMarkerSyncAnimPosition& StartPosition = MarkerTickContext.GetMarkerSyncStartPosition();
 					const FMarkerSyncAnimPosition& EndPosition = MarkerTickContext.GetMarkerSyncEndPosition();
-					checkf(StartPosition.NextMarkerName == EndPosition.NextMarkerName, TEXT("StartPosition NextMarker = %s, EndPosition NextMarker = %s, Asset = %s"), *StartPosition.NextMarkerName.ToString(), *EndPosition.NextMarkerName.ToString(), *Instance.SourceAsset->GetFullName());
-					checkf(StartPosition.PreviousMarkerName == EndPosition.PreviousMarkerName, TEXT("StartPosition PreviousMarker = %s, EndPosition PreviousMarker = %s, Asset = %s"), *StartPosition.PreviousMarkerName.ToString(), *EndPosition.PreviousMarkerName.ToString(), *Instance.SourceAsset->GetFullName());
+					checkf(StartPosition.NextMarkerName == EndPosition.NextMarkerName, TEXT("StartPosition %s\nEndPosition %s\nPrevTime to CurrentTimeAsset: %.3f - %.3f Delta: %.3f\nAsset = %s"), *MakePositionMessage(StartPosition), *MakePositionMessage(EndPosition), PreviousTime, CurrentTime, MoveDelta, *Instance.SourceAsset->GetFullName());
+					checkf(StartPosition.PreviousMarkerName == EndPosition.PreviousMarkerName, TEXT("StartPosition %s\nEndPosition %s\nPrevTime - CurrentTimeAsset: %.3f - %.3f Delta: %.3f\nAsset = %s"), *MakePositionMessage(StartPosition), *MakePositionMessage(EndPosition), PreviousTime, CurrentTime, MoveDelta, *Instance.SourceAsset->GetFullName());
 				}
 #endif
 
@@ -1118,6 +1130,38 @@ FMarkerSyncAnimPosition UAnimMontage::GetMarkerSyncPositionfromMarkerIndicies(in
 {
 	return MarkerData.GetMarkerSyncPositionfromMarkerIndicies(PrevMarker, NextMarker, CurrentTime, SequenceLength);
 }
+
+void UAnimMontage::InvalidateRecursiveAsset()
+{
+	for (FSlotAnimationTrack& SlotTrack : SlotAnimTracks)
+	{
+		SlotTrack.AnimTrack.InvalidateRecursiveAsset(this);
+	}
+}
+
+bool UAnimMontage::ContainRecursive(TArray<UAnimCompositeBase*>& CurrentAccumulatedList) 
+{
+	// am I included already?
+	if (CurrentAccumulatedList.Contains(this))
+	{
+		return true;
+	}
+
+	// otherwise, add myself to it
+	CurrentAccumulatedList.Add(this);
+
+	for (FSlotAnimationTrack& SlotTrack : SlotAnimTracks)
+	{
+		// otherwise send to animation track
+		if (SlotTrack.AnimTrack.ContainRecursive(CurrentAccumulatedList))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 // MontageInstance
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -1211,6 +1255,10 @@ void FAnimMontageInstance::Pause()
 
 void FAnimMontageInstance::Initialize(class UAnimMontage * InMontage)
 {
+	// Generate unique ID for this instance
+	static int32 IncrementInstanceID = 0;
+	InstanceID = IncrementInstanceID++;
+
 	if (InMontage)
 	{
 		Montage = InMontage;
@@ -1270,8 +1318,7 @@ void FAnimMontageInstance::Terminate()
 	}
 
 	UAnimMontage* OldMontage = Montage;
-	Montage = NULL;
-
+	
 	UAnimInstance* Inst = AnimInstance.Get();
 	if (Inst)
 	{
@@ -1279,21 +1326,23 @@ void FAnimMontageInstance::Terminate()
 		for (int32 Index = ActiveStateBranchingPoints.Num() - 1; Index >= 0; Index--)
 		{
 			FAnimNotifyEvent& NotifyEvent = ActiveStateBranchingPoints[Index];
-			NotifyEvent.NotifyStateClass->NotifyEnd(Inst->GetSkelMeshComponent(), Cast<UAnimSequenceBase>(NotifyEvent.NotifyStateClass->GetOuter()));
+			FBranchingPointNotifyPayload BranchingPointNotifyPayload(AnimInstance->GetSkelMeshComponent(), Montage, &NotifyEvent, InstanceID);
+			NotifyEvent.NotifyStateClass->BranchingPointNotifyEnd(BranchingPointNotifyPayload);
 		}
 		ActiveStateBranchingPoints.Empty();
 
 		// terminating, trigger end
 		Inst->QueueMontageEndedEvent(FQueuedMontageEndedEvent(OldMontage, bInterrupted, OnMontageEnded));
-	}
 
-	// Clear any active synchronization
-	MontageSync_StopFollowing();
-	MontageSync_StopLeading();
+		// Clear references to this MontageInstance. Needs to happen before Montage is cleared to nullptr, as TMaps can use that as a key.
+		Inst->ClearMontageInstanceReferences(*this);
+	}
 
 	// clear Blend curve
 	Blend.SetCustomCurve(NULL);
 	Blend.SetBlendOption(EAlphaBlendOption::Linear);
+
+	Montage = nullptr;
 
 	UE_LOG(LogAnimMontage, Verbose, TEXT("Terminating: AnimMontage: %s"), *GetNameSafe(OldMontage));
 }
@@ -1819,7 +1868,8 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 		for (int32 Index = 0; Index < ActiveStateBranchingPoints.Num(); Index++)
 		{
 			FAnimNotifyEvent& NotifyEvent = ActiveStateBranchingPoints[Index];
-			NotifyEvent.NotifyStateClass->NotifyTick(AnimInstance->GetSkelMeshComponent(), Montage, DeltaTime);
+			FBranchingPointNotifyPayload BranchingPointNotifyPayload(AnimInstance->GetSkelMeshComponent(), Montage, &NotifyEvent, InstanceID);
+			NotifyEvent.NotifyStateClass->BranchingPointNotifyTick(BranchingPointNotifyPayload, DeltaTime);
 		}
 	}
 }
@@ -1836,6 +1886,7 @@ void FAnimMontageInstance::HandleEvents(float PreviousTrackPos, float CurrentTra
 	if (AnimInstance.IsValid())
 	{
 		TArray<const FAnimNotifyEvent*> Notifies;
+		TMap<FName, TArray<const FAnimNotifyEvent*>> NotifyMap;
 
 		// We already break up AnimMontage update to handle looping, so we guarantee that PreviousPos and CurrentPos are contiguous.
 		Montage->GetAnimNotifiesFromDeltaPositions(PreviousTrackPos, CurrentTrackPos, Notifies);
@@ -1847,17 +1898,13 @@ void FAnimMontageInstance::HandleEvents(float PreviousTrackPos, float CurrentTra
 		// we'll do this for all slots for now
 		for (auto SlotTrack = Montage->SlotAnimTracks.CreateIterator(); SlotTrack; ++SlotTrack)
 		{
-			if (AnimInstance->IsSlotNodeRelevantForNotifies(SlotTrack->SlotName))
-			{
-				for (auto AnimSegment = SlotTrack->AnimTrack.AnimSegments.CreateIterator(); AnimSegment; ++AnimSegment)
-				{
-					AnimSegment->GetAnimNotifiesFromTrackPositions(PreviousTrackPos, CurrentTrackPos, Notifies);
-				}
-			}
+			TArray<const FAnimNotifyEvent*>& SlotTrackNotifies = NotifyMap.FindOrAdd(SlotTrack->SlotName);
+			SlotTrack->AnimTrack.GetAnimNotifiesFromTrackPositions(PreviousTrackPos, CurrentTrackPos, SlotTrackNotifies);
 		}
 
 		// Queue all these notifies.
 		AnimInstance->NotifyQueue.AddAnimNotifies(Notifies, NotifyWeight);
+		AnimInstance->NotifyQueue.AddAnimNotifies(NotifyMap, NotifyWeight);
 	}
 
 	// Update active state branching points, before we handle the immediate tick marker.
@@ -1887,7 +1934,8 @@ void FAnimMontageInstance::UpdateActiveStateBranchingPoints(float CurrentTrackPo
 
 			if (!bNotifyIsActive)
 			{
-				NotifyEvent.NotifyStateClass->NotifyEnd(AnimInstance->GetSkelMeshComponent(), Cast<UAnimSequenceBase>(NotifyEvent.NotifyStateClass->GetOuter()));
+				FBranchingPointNotifyPayload BranchingPointNotifyPayload(AnimInstance->GetSkelMeshComponent(), Montage, &NotifyEvent, InstanceID);
+				NotifyEvent.NotifyStateClass->BranchingPointNotifyEnd(BranchingPointNotifyPayload);
 				ActiveStateBranchingPoints.RemoveAt(Index, 1);
 			}
 		}
@@ -1904,7 +1952,8 @@ void FAnimMontageInstance::UpdateActiveStateBranchingPoints(float CurrentTrackPo
 			bool bNotifyIsActive = (CurrentTrackPosition > NotifyStartTime) && (CurrentTrackPosition <= NotifyEndTime);
 			if (bNotifyIsActive && !ActiveStateBranchingPoints.Contains(NotifyEvent))
 			{
-				NotifyEvent.NotifyStateClass->NotifyBegin(AnimInstance->GetSkelMeshComponent(), Cast<UAnimSequenceBase>(NotifyEvent.NotifyStateClass->GetOuter()), NotifyEvent.GetDuration());
+				FBranchingPointNotifyPayload BranchingPointNotifyPayload(AnimInstance->GetSkelMeshComponent(), Montage, &NotifyEvent, InstanceID);
+				NotifyEvent.NotifyStateClass->BranchingPointNotifyBegin(BranchingPointNotifyPayload);
 				ActiveStateBranchingPoints.Add(NotifyEvent);
 			}
 		}
@@ -1939,16 +1988,25 @@ void FAnimMontageInstance::BranchingPointEventHandler(const FBranchingPointMarke
 			{
 				if (BranchingPointMarker->NotifyEventType == EAnimNotifyEventType::Begin)
 				{
-					NotifyEvent->NotifyStateClass->NotifyBegin(AnimInstance->GetSkelMeshComponent(), Cast<UAnimSequenceBase>(NotifyEvent->NotifyStateClass->GetOuter()), NotifyEvent->GetDuration());
+					FBranchingPointNotifyPayload BranchingPointNotifyPayload(AnimInstance->GetSkelMeshComponent(), Montage, NotifyEvent, InstanceID);
+					NotifyEvent->NotifyStateClass->BranchingPointNotifyBegin(BranchingPointNotifyPayload);
 					ActiveStateBranchingPoints.Add(*NotifyEvent);
 				}
 				else
 				{
-					NotifyEvent->NotifyStateClass->NotifyEnd(AnimInstance->GetSkelMeshComponent(), Cast<UAnimSequenceBase>(NotifyEvent->NotifyStateClass->GetOuter()));
+					FBranchingPointNotifyPayload BranchingPointNotifyPayload(AnimInstance->GetSkelMeshComponent(), Montage, NotifyEvent, InstanceID);
+					NotifyEvent->NotifyStateClass->BranchingPointNotifyEnd(BranchingPointNotifyPayload);
 					ActiveStateBranchingPoints.RemoveSingleSwap(*NotifyEvent);
 				}
 			}
-			// Regular 'non state' anim notifies
+			// Non state notify with a native notify class
+			else if	(NotifyEvent->Notify != nullptr)
+			{
+				// Implemented notify: just call Notify. UAnimNotify will forward this to the event which will do the work.
+				FBranchingPointNotifyPayload BranchingPointNotifyPayload(AnimInstance->GetSkelMeshComponent(), Montage, NotifyEvent, InstanceID);
+				NotifyEvent->Notify->BranchingPointNotify(BranchingPointNotifyPayload);
+			}
+			// Try to match a notify function by name.
 			else
 			{
 				AnimInstance.Get()->TriggerSingleAnimNotify(NotifyEvent);
@@ -1982,7 +2040,8 @@ void FAnimMontageInstance::SetMatineeAnimPositionInner(FName SlotName, USkeletal
 		}
 		else
 		{
-			bool bShouldChange = AnimInst->IsPlayingSlotAnimation(InAnimSequence, SlotName) == false;
+			UAnimMontage* PlayingMontage = nullptr;
+			bool bShouldChange = AnimInst->IsPlayingSlotAnimation(InAnimSequence, SlotName, PlayingMontage) == false;
 			if(bShouldChange)
 			{
 				if(CurrentlyPlayingMontage.IsValid())
@@ -2000,8 +2059,11 @@ void FAnimMontageInstance::SetMatineeAnimPositionInner(FName SlotName, USkeletal
 				AnimInst->PlaySlotAnimationAsDynamicMontage(InAnimSequence, SlotName, 0.0f, 0.0f, 0.f, 1);
 				CurrentlyPlayingMontage = AnimInst->GetCurrentActiveMontage();
 			}
-
-			ensure(CurrentlyPlayingMontage.IsValid());
+			else
+			{
+				CurrentlyPlayingMontage = PlayingMontage;
+				ensure(CurrentlyPlayingMontage.IsValid());
+			}
 
 			struct FAnimMontageInstance* AnimMontageInst = AnimInst->GetActiveInstanceForMontage(*CurrentlyPlayingMontage);
 			if(AnimMontageInst)
@@ -2036,12 +2098,24 @@ void FAnimMontageInstance::PreviewMatineeSetAnimPositionInner(FName SlotName, US
 			SingleNodeInst->SetAnimationAsset(InAnimSequence, bLooping);
 		}
 
+
 		SingleNodeInst->SetLooping(bLooping);
-		SingleNodeInst->SetPosition(InPosition, bFireNotifies);
+
+		// Anim notifies are fired from the previous evaluation time to the current time. When the delta time is 0, explicitly set the previous time to the current time so that anim notifies prior are not fired.
+		if (DeltaTime == 0.f)
+		{
+			const float PreviousTime = InPosition;
+			SingleNodeInst->SetPositionWithPreviousTime(InPosition, PreviousTime, bFireNotifies);
+		}
+		else
+		{
+			SingleNodeInst->SetPosition(InPosition, bFireNotifies);
+		}
 	}
-	else
+	else if (AnimInst)
 	{
-		bool bShouldChange = AnimInst->IsPlayingSlotAnimation(InAnimSequence, SlotName) == false;
+		UAnimMontage* PlayingMontage = nullptr;
+		bool bShouldChange = AnimInst->IsPlayingSlotAnimation(InAnimSequence, SlotName, PlayingMontage) == false;
 		if(bShouldChange)
 		{
 			if(CurrentlyPlayingMontage.IsValid())
@@ -2059,8 +2133,11 @@ void FAnimMontageInstance::PreviewMatineeSetAnimPositionInner(FName SlotName, US
 			AnimInst->PlaySlotAnimationAsDynamicMontage(InAnimSequence, SlotName, 0.0f, 0.0f, 0.f, 1);
 			CurrentlyPlayingMontage = AnimInst->GetCurrentActiveMontage();
 		}
-
-		ensure(CurrentlyPlayingMontage.IsValid());
+		else
+		{
+			CurrentlyPlayingMontage = PlayingMontage;
+			ensure(CurrentlyPlayingMontage.IsValid());
+		}
 
 		struct FAnimMontageInstance* AnimMontageInst = AnimInst->GetActiveInstanceForMontage(*CurrentlyPlayingMontage);
 		if(AnimMontageInst)

@@ -546,13 +546,16 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& InShaderCode)
 			glGetShaderiv(Resource, GL_COMPILE_STATUS, &CompileStatus);
 		}
 #endif
-#if (PLATFORM_HTML5) && !UE_BUILD_SHIPPING
-		glGetShaderiv(Resource, GL_COMPILE_STATUS, &CompileStatus);
-		if (CompileStatus == GL_FALSE)
+#if (PLATFORM_HTML5 || PLATFORM_ANDROID) && !UE_BUILD_SHIPPING
+		if (!FOpenGL::IsCheckingShaderCompilerHacks())
 		{
-			char Msg[2048];
-			glGetShaderInfoLog(Resource, 2048, nullptr, Msg);
-			UE_LOG(LogRHI, Error, TEXT("Shader compile failed: %s\n Original Source is (len %d) %s"), ANSI_TO_TCHAR(Msg), GlslCodeLength, ANSI_TO_TCHAR(GlslCodeString));
+		    glGetShaderiv(Resource, GL_COMPILE_STATUS, &CompileStatus);
+		    if (CompileStatus == GL_FALSE)
+		    {
+			    char Msg[2048];
+			    glGetShaderInfoLog(Resource, 2048, nullptr, Msg);
+			    UE_LOG(LogRHI, Error, TEXT("Shader compile failed: %s\n Original Source is (len %d) %s"), ANSI_TO_TCHAR(Msg), GlslCodeLength, ANSI_TO_TCHAR(GlslCodeString));
+		    }
 		}
 #endif
 
@@ -657,16 +660,19 @@ void OPENGLDRV_API GetCurrentOpenGLShaderDeviceCapabilities(FOpenGLShaderDeviceC
 
 void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, const FString& ShaderName, GLenum TypeEnum, const FOpenGLShaderDeviceCapabilities& Capabilities, FAnsiCharArray& GlslCode)
 {
+	// Whether shader was compiled for ES 3.1
+	const bool bES31 = (FCStringAnsi::Strstr(GlslCodeOriginal.GetData(), "#version 310 es") != nullptr);
+	
 	if (Capabilities.TargetPlatform == EOpenGLShaderTargetPlatform::OGLSTP_Android || Capabilities.TargetPlatform == EOpenGLShaderTargetPlatform::OGLSTP_HTML5)
 	{
-		if (IsES2Platform(Capabilities.MaxRHIShaderPlatform))
+		if (IsES2Platform(Capabilities.MaxRHIShaderPlatform) && !bES31)
 		{
 			// #version NNN has to be the first line in the file, so it has to be added before anything else.
 			if (Capabilities.bUseES30ShadingLanguage)
 			{
 				AppendCString(GlslCode, "#version 300 es\n");
 			}
-			else
+			else 
 			{
 				AppendCString(GlslCode, "#version 100\n");
 			}
@@ -674,14 +680,14 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 		}
 	}
 
-	// Only desktop with separable shader platform can use GL_ARB_separate_shader_objects for reduced shader compile/link hitches
-	// however ES3.1 relies on layout(location=) support
-	bool const bNeedsBindLocation = OpenGLShaderPlatformNeedsBindLocation(Capabilities.MaxRHIShaderPlatform);
+		// Only desktop with separable shader platform can use GL_ARB_separate_shader_objects for reduced shader compile/link hitches
+		// however ES3.1 relies on layout(location=) support
+	bool const bNeedsBindLocation = OpenGLShaderPlatformNeedsBindLocation(Capabilities.MaxRHIShaderPlatform) && !bES31;
 	if (OpenGLShaderPlatformSeparable(Capabilities.MaxRHIShaderPlatform) || !bNeedsBindLocation)
 	{
 		// Move version tag & extensions before beginning all other operations
 		MoveHashLines(GlslCode, GlslCodeOriginal);
-
+		
 		// OpenGL SM5 shader platforms require location declarations for the layout, but don't necessarily use SSOs
 		if (Capabilities.bSupportsSeparateShaderObjects || !bNeedsBindLocation)
 		{
@@ -703,7 +709,7 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 			AppendCString(GlslCode, "#define INTERFACE_BLOCK(Pos, Interp, Modifiers, Semantic, PreType, PostType) Modifiers Semantic { Interp PreType PostType; }\n");
 		}
 	}
-
+		
 	if (ShaderName.IsEmpty() == false)
 	{
 		AppendCString(GlslCode, "// ");
@@ -730,7 +736,7 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 			}
 		}
 
-		if (IsES2Platform(Capabilities.MaxRHIShaderPlatform))
+		if (IsES2Platform(Capabilities.MaxRHIShaderPlatform) && !bES31)
 		{
 			if (Capabilities.bSupportsRenderTargetFormat_PF_FloatRGBA)
 			{
@@ -772,14 +778,18 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 						"#define texture2D texture \n"
 						"#define texture2DProj textureProj \n"
 						"#define texture2DLod textureLod \n"
+						"#define texture2DLodEXT textureLod \n"
 						"#define texture2DProjLod textureProjLod \n"
 						"#define textureCube texture \n"
 						"#define textureCubeLod textureLod \n"
-						"#define textureCubeLodEXT textureLod \n");
+						"#define textureCubeLodEXT textureLod \n"
+						"#define texture3D texture \n"
+						"#define texture3DProj textureProj \n"
+						"#define texture3DLod textureLod \n");
 
 					ReplaceCString(GlslCodeOriginal, "attribute", "in");
 					ReplaceCString(GlslCodeOriginal, "varying", "out");
-				}
+				} 
 				else if (TypeEnum == GL_FRAGMENT_SHADER)
 				{
 					// #extension directives have to come before any non-# directives. Because
@@ -797,6 +807,10 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 						"#define textureCube texture \n"
 						"#define textureCubeLod textureLod \n"
 						"#define textureCubeLodEXT textureLod \n"
+						"#define texture3D texture \n"
+						"#define texture3DProj textureProj \n"
+						"#define texture3DLod textureLod \n"
+						"#define texture3DProjLod textureProjLod \n"
 						"\n"
 						"#define gl_FragColor out_FragColor \n"
 						"#ifdef EXT_shader_framebuffer_fetch_enabled \n"
@@ -808,7 +822,7 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 					ReplaceCString(GlslCodeOriginal, "varying", "in");
 				}
 			}
-			else
+			else 
 			{
 				if (TypeEnum == GL_FRAGMENT_SHADER)
 				{
@@ -845,7 +859,7 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 
 					if (Capabilities.bRequiresTexture2DPrecisionHack)
 					{
-						AppendCString(GlslCode, "#define TEXCOORDPRECISIONWORKAROUND \n");
+						AppendCString(GlslCode,	"#define TEXCOORDPRECISIONWORKAROUND \n");
 					}
 				}
 			}
@@ -863,11 +877,11 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 		}
 	}
 
-	// Append the possibly edited shader to the one we will compile.
-	// This is to make it easier to debug as we can see the whole
-	// shader source.
-	AppendCString(GlslCode, "\n\n");
-	AppendCString(GlslCode, GlslCodeOriginal.GetData());
+		// Append the possibly edited shader to the one we will compile.
+		// This is to make it easier to debug as we can see the whole
+		// shader source.
+		AppendCString(GlslCode, "\n\n");
+		AppendCString(GlslCode, GlslCodeOriginal.GetData());
 }
 
 /**

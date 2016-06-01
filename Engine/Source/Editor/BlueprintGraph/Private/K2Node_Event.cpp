@@ -5,6 +5,7 @@
 #include "KismetCompiler.h"
 #include "EventEntryHandler.h"
 #include "GraphEditorSettings.h"
+#include "BlueprintsObjectVersion.h"
 
 const FString UK2Node_Event::DelegateOutputName(TEXT("OutputDelegate"));
 
@@ -42,6 +43,7 @@ void UK2Node_Event::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
+	Ar.UsingCustomVersion(FBlueprintsObjectVersion::GUID);
 	// Fix up legacy nodes that may not yet have a delegate pin
 	if(Ar.IsLoading())
 	{
@@ -50,9 +52,7 @@ void UK2Node_Event::Serialize(FArchive& Ar)
 			EventReference.SetExternalMember(EventSignatureName_DEPRECATED, EventSignatureClass_DEPRECATED);
 		}
 
-		// @TODO: Ar.IsTransacting() is no longer needed after the version bump done in Dev-BP
-		//if (Ar.CustomVer(FBlueprintsObjectVersion::GUID) < FBlueprintsObjectVersion::OverridenEventReferenceFixup)
-		if (!Ar.IsTransacting())
+		if (Ar.CustomVer(FBlueprintsObjectVersion::GUID) < FBlueprintsObjectVersion::OverridenEventReferenceFixup)
 		{
 			FixupEventReference();
 		}
@@ -505,10 +505,17 @@ bool UK2Node_Event::CanPasteHere(const UEdGraph* TargetGraph) const
 						&& ExcludedEventNames.Contains(EventReference.GetMemberName().ToString());
 					if(!bDisallowPaste)
 					{
+						TArray<UK2Node_Event*> DisabledEventNodesToStomp;
 						// If the event function is already handled in this Blueprint, don't paste this event
 						for(int32 i = 0; i < ExistingEventNodes.Num() && !bDisallowPaste; ++i)
 						{
-							bDisallowPaste = ExistingEventNodes[i]->bOverrideFunction && ExistingEventNodes[i]->IsNodeEnabled() && AreEventNodesIdentical(this, ExistingEventNodes[i]);
+							bDisallowPaste = ExistingEventNodes[i]->bOverrideFunction /*&& ExistingEventNodes[i]->IsNodeEnabled() */&& AreEventNodesIdentical(this, ExistingEventNodes[i]);
+
+							if (bDisallowPaste && !ExistingEventNodes[i]->IsNodeEnabled())
+							{
+								DisabledEventNodesToStomp.Add(ExistingEventNodes[i]);
+								bDisallowPaste = false;
+							}
 						}
 
 						// We need to also check for 'const' BPIE methods that might already be implemented as functions with a read-only 'self' context (these were previously implemented as events)
@@ -542,6 +549,14 @@ bool UK2Node_Event::CanPasteHere(const UEdGraph* TargetGraph) const
 						else
 						{
 							UE_LOG(LogBlueprint, Log, TEXT("Cannot paste event node (%s) directly because the event function (%s) is already handled."), *GetFName().ToString(), *EventReference.GetMemberName().ToString());
+						}
+
+						if (!bDisallowPaste)
+						{
+							for (UK2Node_Event* EventNode : DisabledEventNodesToStomp)
+							{
+								EventNode->DestroyNode();
+							}
 						}
 					}
 					else
@@ -793,6 +808,18 @@ UObject* UK2Node_Event::GetJumpTargetForDoubleClick() const
 	}
 
 	return NULL;
+}
+
+FString UK2Node_Event::GetFindReferenceSearchString() const
+{
+	FString FunctionName = EventReference.GetMemberName().ToString(); // If we fail to find the function, still want to search for its expected name.
+
+	if (UFunction* Function = EventReference.ResolveMember<UFunction>(GetBlueprintClassFromNode()))
+	{
+		FunctionName = UEdGraphSchema_K2::GetFriendlySignatureName(Function).ToString();
+	}
+
+	return FunctionName;
 }
 
 bool UK2Node_Event::AreEventNodesIdentical(const UK2Node_Event* InNodeA, const UK2Node_Event* InNodeB)

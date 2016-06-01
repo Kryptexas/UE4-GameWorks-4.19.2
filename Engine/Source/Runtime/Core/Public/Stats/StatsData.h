@@ -287,6 +287,12 @@ struct CORE_API FRawStatStackNode
 	/** Print this tree to the log **/
 	void DebugPrint(TCHAR const* Filter = nullptr, int32 MaxDepth = MAX_int32, int32 Depth = 0) const;
 
+	/** Print this tree to the log **/
+	void DebugPrintLeafFilter(TCHAR const* Filter) const;
+
+	/** Print this tree to the log **/
+	void DebugPrintLeafFilterInner(TCHAR const* Filter, int32 Depth, TArray<FString>& Stack) const;
+
 	/** Condense this tree into a flat list using EStatOperation::ChildrenStart, EStatOperation::ChildrenEnd, EStatOperation::Leaf **/
 	void Encode(TArray<FStatMessage>& OutStats) const;
 
@@ -464,19 +470,17 @@ struct IItemFiler
 };
 
 
-
-// #YRX_STATS 2014-12-03 Separate stats thread state vs raw stats thread state?
-// #YRX_STATS 2014-03-21 Move metadata functionality into a separate class
+// #Stats: 2014-03-21 Move metadata functionality into a separate class
 // 
 /**
  * Tracks stat state and history
  * GetLocalState() is a singleton to the state for stats being collected in this executable.
- *  Other instances can be used to load stats for visualization.
  */
 class CORE_API FStatsThreadState
 {
 	friend class FStatsThread;
 	friend struct FStatPacketArray;
+	friend struct FStatsReadFile;
 
 	/** Delegate that FStatsThreadState calls on the stats thread whenever we have a new frame. */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnNewFrameHistory, int64);
@@ -526,6 +530,7 @@ private:
 	/** Generates a list of most memory expensive stats and dump to the log. */
 	void FindAndDumpMemoryExtensiveStats( FStatPacketArray &Frame );
 
+protected:
 	/** Called in response to SetLongName messages to update ShortNameToLongName and NotClearedEveryFrame **/
 	void FindOrAddMetaData(FStatMessage const& Item);
 
@@ -662,50 +667,6 @@ public:
 
 	/** Singleton to get the stats being collected by this executable. Can be only accessed from the stats thread. **/
 	static FStatsThreadState& GetLocalState();
-
-	/*-----------------------------------------------------------------------------
-		Stats file related functionality
-
-		#YRX_Stats: 2015-07-07 Maybe move to FStatsLoadedState
-	-----------------------------------------------------------------------------*/
-public:
-	friend struct FStatsReadFile;
-
-	/** Constructor to load stats from a file **/
-	FStatsThreadState( FString const& Filename );
-
-	/** Adds a frame worth of messages */
-	void AddCondensedMessages( TArray<FStatMessage>& CondensedMessages );
-
-	/** Marks this stats state as loaded. */
-	void MarkAsLoaded()
-	{
-		bWasLoaded = true;
-	}
-
-protected:
-	/** Internal method to update the internal metadata. **/
-	void ProcessMetaDataForLoad( TArray<FStatMessage>& CondensedMessages );
-
-	/** 
-	  * Internal method to place the data into the history, 
-	  * maintains the history based on the requested number of frames to keep in the history. 
-	  * The condensed messages are emplaced in the condensed history.
-	  */
-	void AddFrameFromCondensedMessages( TArray<FStatMessage>& CondensedMessages );
-
-	/** Internal method to scan the messages to find the current game/render thread frame. */
-	void AdvanceFrameForLoad( TArray<FStatMessage>& CondensedMessages );
-
-	/** Largest frame seen. Loaded stats only. **/
-	int64 MaxFrameSeen;
-
-	/** First frame seen. Loaded stats only. **/
-	int64 MinFrameSeen;
-
-	/** Valid frame computation is different if we just loaded these stats **/
-	bool bWasLoaded;
-
 };
 
 //@todo split header

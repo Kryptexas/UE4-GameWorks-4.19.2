@@ -791,7 +791,7 @@ void FAnimPhys::CreateSpring(TArray<FAnimPhysSpring>& SpringContainer, FAnimPhys
 	SpringContainer.Add(NewSpring);
 }
 
-void FAnimPhys::InitializeBodyVelocity(float DeltaTime, FAnimPhysRigidBody *InBody)
+void FAnimPhys::InitializeBodyVelocity(float DeltaTime, FAnimPhysRigidBody *InBody, const FVector& GravityDirection)
 {
 	// Gather weak forces being applied to body at beginning of timestep
 	// Forward euler update of the velocity and rotation/spin 
@@ -806,7 +806,7 @@ void FAnimPhys::InitializeBodyVelocity(float DeltaTime, FAnimPhysRigidBody *InBo
 	InBody->LinearMomentum *= LinearDampingLeftOver;
 	InBody->AngularMomentum *= AngularDampingLeftOver;
 
-	FVector Force = FVector(0.0f, 0.0f, UPhysicsSettings::Get()->DefaultGravityZ) * InBody->Mass * InBody->GravityScale;
+	FVector Force = GravityDirection * FMath::Abs(UPhysicsSettings::Get()->DefaultGravityZ) * InBody->Mass * InBody->GravityScale;
 	FVector Torque(0.0f, 0.0f, 0.0f);
 
 	// Add wind forces
@@ -865,13 +865,22 @@ void FAnimPhys::UpdatePose(FAnimPhysRigidBody* InBody)
 	InBody->InverseWorldSpaceTensor = OrientAsMatrix * InBody->InverseTensorWithoutMass * InBody->InverseMass * OrientAsMatrix.GetTransposed();
 }
 
-void FAnimPhys::PhysicsUpdate(float DeltaTime, TArray<FAnimPhysRigidBody*>& Bodies, TArray<FAnimPhysLinearLimit>& LinearLimits, TArray<FAnimPhysAngularLimit>& AngularLimits, TArray<FAnimPhysSpring>& Springs, int32 NumPreIterations, int32 NumPostIterations)
+void FAnimPhys::PhysicsUpdate(float DeltaTime, TArray<FAnimPhysRigidBody*>& Bodies, TArray<FAnimPhysLinearLimit>& LinearLimits, TArray<FAnimPhysAngularLimit>& AngularLimits, TArray<FAnimPhysSpring>& Springs, const FVector& GravityDirection, const FVector& ExternalForce, int32 NumPreIterations, int32 NumPostIterations)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AnimDynamicsUpdate);
 
 	for (FAnimPhysRigidBody* Body : Bodies)
 	{
-		InitializeBodyVelocity(DeltaTime, Body);	// based on previous and current force/torque
+		InitializeBodyVelocity(DeltaTime, Body, GravityDirection);	// based on previous and current force/torque
+	}
+
+	// Apply any external forces.
+	if(!ExternalForce.IsNearlyZero())
+	{
+		for(FAnimPhysRigidBody* Body : Bodies)
+		{
+			Body->LinearMomentum += ExternalForce * DeltaTime;
+		}
 	}
 
 	for (FAnimPhysSpring& Spring : Springs)

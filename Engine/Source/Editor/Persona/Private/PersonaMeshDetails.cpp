@@ -22,6 +22,8 @@
 #include "AnimGraphNodeDetails.h"
 #include "STextComboBox.h"
 
+#include "Engine/SkeletalMeshReductionSettings.h"
+
 #define LOCTEXT_NAMESPACE "PersonaMeshDetails"
 
 /** Returns true if automatic mesh reduction is available. */
@@ -247,8 +249,8 @@ void FSkelMeshReductionSettingsLayout::GenerateChildContent(IDetailChildrenBuild
 		.ValueContent()
 			[
 				SNew(SCheckBox)
-				.IsChecked(this, &FSkelMeshReductionSettingsLayout::ShouldRecalculateNormals)
-				.OnCheckStateChanged(this, &FSkelMeshReductionSettingsLayout::OnRecalculateNormalsChanged)
+				.IsChecked(this, &FSkelMeshReductionSettingsLayout::ShouldRecomputeTangents)
+				.OnCheckStateChanged(this, &FSkelMeshReductionSettingsLayout::OnRecomputeTangentsChanged)
 			];
 	}
 
@@ -375,7 +377,7 @@ float FSkelMeshReductionSettingsLayout::GetWeldingThreshold() const
 	return ReductionSettings.WeldingThreshold;
 }
 
-ECheckBoxState FSkelMeshReductionSettingsLayout::ShouldRecalculateNormals() const
+ECheckBoxState FSkelMeshReductionSettingsLayout::ShouldRecomputeTangents() const
 {
 	return ReductionSettings.bRecalcNormals ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
@@ -411,7 +413,7 @@ void FSkelMeshReductionSettingsLayout::OnWeldingThresholdChanged(float NewValue)
 	ReductionSettings.WeldingThreshold = NewValue;
 }
 
-void FSkelMeshReductionSettingsLayout::OnRecalculateNormalsChanged(ECheckBoxState NewValue)
+void FSkelMeshReductionSettingsLayout::OnRecomputeTangentsChanged(ECheckBoxState NewValue)
 {
 	ReductionSettings.bRecalcNormals = NewValue == ECheckBoxState::Checked;
 }
@@ -776,30 +778,51 @@ void FPersonaMeshDetails::ApplyChanges()
 	// we need to add more
 	else if (LODCount > CurrentNumLODs)
 	{
-		// creating new ones only
+		// Retrieve default skeletal mesh reduction settings
+		USkeletalMeshReductionSettings* ReductionSettings = USkeletalMeshReductionSettings::Get();		
+
+		// Only create new skeletal mesh LOD level entries
 		for (int32 LODIdx = CurrentNumLODs; LODIdx < LODCount; LODIdx++)
 		{
-			FSkeletalMeshOptimizationSettings Setting;
+			FSkeletalMeshOptimizationSettings Settings;
+			
+			const int32 SettingsIndex = LODIdx - 1;
+			// If there are valid default settings use those for the new LOD
 
-			// find whatever latest that was using mesh reduction, and 
-			// make it 50 % of that. 
-			for (int32 SubLOD = LODIdx - 1; SubLOD >= 0; --SubLOD)
+			const bool bHasValidUserSetting = ReductionSettings->HasValidSettings() && ReductionSettings->GetNumberOfSettings() > SettingsIndex;
+			if (bHasValidUserSetting)
 			{
-				if (SkelMesh->LODInfo[SubLOD].bHasBeenSimplified)
+				const FSkeletalMeshLODGroupSettings& GroupSettings = ReductionSettings->GetDefaultSettingsForLODLevel(SettingsIndex);
+				Settings = GroupSettings.GetSettings();
+			}
+			else
+			{
+				// Otherwise find whatever latest that was using mesh reduction, and make it 50% of that. 	
+				for (int32 SubLOD = LODIdx - 1; SubLOD >= 0; --SubLOD)
 				{
-					// copy whatever latest LOD info reduction setting
-					Setting = SkelMesh->LODInfo[SubLOD].ReductionSettings;
-					// and make it 50 % of that
-					Setting.NumOfTrianglesPercentage *= 0.5f;
-					break;
+					if (SkelMesh->LODInfo[SubLOD].bHasBeenSimplified)
+					{
+						// copy whatever latest LOD info reduction setting
+						Settings = SkelMesh->LODInfo[SubLOD].ReductionSettings;
+						// and make it 50 % of that
+						Settings.NumOfTrianglesPercentage *= 0.5f;
+						break;
+					}
 				}
 			}
 
 			// if no previous setting found, it will use default setting. 
-			FLODUtilities::SimplifySkeletalMeshLOD(UpdateContext, Setting, LODIdx);
+			FLODUtilities::SimplifySkeletalMeshLOD(UpdateContext, Settings, LODIdx);
 
 			FSkeletalMeshLODInfo& Info = SkelMesh->LODInfo[LODIdx];
-			Info.ReductionSettings = Setting;
+			Info.ReductionSettings = Settings;
+
+			// If there is a valid screensize value use that one for this new LOD
+			if (bHasValidUserSetting)
+			{
+				const FSkeletalMeshLODGroupSettings& GroupSettings = ReductionSettings->GetDefaultSettingsForLODLevel(SettingsIndex);
+				Info.ScreenSize = GroupSettings.GetScreenSize();
+			}
 		}
 	}
 	else if (IsApplyNeeded())
@@ -1109,6 +1132,20 @@ TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomMaterialWidgetsForMater
 
 		+SVerticalBox::Slot()
 		.Padding(0,2,0,0)
+		[
+			SNew(SCheckBox)
+			.IsChecked(this, &FPersonaMeshDetails::IsRecomputeTangentEnabled, MaterialIndex)
+			.OnCheckStateChanged(this, &FPersonaMeshDetails::OnRecomputeTangentChanged, MaterialIndex)
+			[
+				SNew(STextBlock)
+				.Font(FEditorStyle::GetFontStyle("StaticMeshEditor.NormalFont"))
+				.Text(LOCTEXT("RecomputeTangent_Title", "Recompute Tangent"))
+				.ToolTipText(LOCTEXT("RecomputeTangent_Tooltip", "This feature only works if you enable skin cache (r.SkinCaching) and recompute tangent console variable(r.SkinCache.RecomputeTangents). Please note that skin cache is an experimental feature and only works if you have compute shaders."))
+			]
+		]
+
+		+SVerticalBox::Slot()
+		.Padding(0,2,0,0)
 		.AutoHeight()
 		[
 			SNew(SHorizontalBox)
@@ -1291,6 +1328,51 @@ void FPersonaMeshDetails::OnShadowCastingChanged(ECheckBoxState NewState, int32 
 	}
 }
 
+
+ECheckBoxState FPersonaMeshDetails::IsRecomputeTangentEnabled(int32 MaterialIndex) const
+{
+	ECheckBoxState State = ECheckBoxState::Unchecked;
+	const USkeletalMesh* Mesh = SkeletalMeshPtr.Get();
+	if (Mesh && MaterialIndex < Mesh->Materials.Num())
+	{
+		State = Mesh->Materials[MaterialIndex].bRecomputeTangent ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	}
+
+	return State;
+}
+
+void FPersonaMeshDetails::OnRecomputeTangentChanged(ECheckBoxState NewState, int32 MaterialIndex)
+{
+	USkeletalMesh* Mesh = SkeletalMeshPtr.Get();
+
+	if (Mesh)
+	{
+		if (NewState == ECheckBoxState::Checked)
+		{
+			const FScopedTransaction Transaction(LOCTEXT("SetRecomputeTangentFlag", "Set Recompute Tangent For Material"));
+			Mesh->Modify();
+			Mesh->Materials[MaterialIndex].bRecomputeTangent = true;
+		}
+		else if (NewState == ECheckBoxState::Unchecked)
+		{
+			const FScopedTransaction Transaction(LOCTEXT("ClearRecomputeTangentFlag", "Clear Recompute Tangent For Material"));
+			Mesh->Modify();
+			Mesh->Materials[MaterialIndex].bRecomputeTangent = false;
+		}
+		for (TObjectIterator<USkinnedMeshComponent> It; It; ++It)
+		{
+			USkinnedMeshComponent* MeshComponent = *It;
+			if (MeshComponent &&
+				!MeshComponent->IsTemplate() &&
+				MeshComponent->SkeletalMesh == Mesh)
+			{
+				MeshComponent->UpdateRecomputeTangent(MaterialIndex);
+				MeshComponent->MarkRenderStateDirty();
+			}
+		}
+		PersonaPtr->RefreshViewport();
+	}
+}
 int32 FPersonaMeshDetails::GetMaterialIndex(int32 LODIndex, int32 SectionIndex)
 {
 	USkeletalMesh* SkelMesh = PersonaPtr->GetMesh();

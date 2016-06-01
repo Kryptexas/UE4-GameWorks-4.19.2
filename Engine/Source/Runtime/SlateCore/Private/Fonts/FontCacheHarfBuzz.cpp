@@ -141,10 +141,6 @@ void DestroyUserData(void* UserData)
 	delete UserDataPtr;
 }
 
-void DummyDestroyFunc(void* UserData)
-{
-}
-
 namespace Internal
 {
 
@@ -158,12 +154,6 @@ FORCEINLINE int32 get_ft_flags(hb_font_t* InFont)
 {
 	check(InFont->parent);
 	return hb_ft_font_get_load_flags(InFont->parent);
-}
-
-hb_bool_t get_glyph(hb_font_t* InFont, void* InFontData, hb_codepoint_t InUnicode, hb_codepoint_t InVariationSelector, hb_codepoint_t* OutGlyphIndex, void* InUserData)
-{
-	check(InFont->parent);
-	return InFont->parent->get_glyph(InUnicode, InVariationSelector, OutGlyphIndex);
 }
 
 hb_position_t get_glyph_h_advance(hb_font_t* InFont, void* InFontData, hb_codepoint_t InGlyphIndex, void* InUserData)
@@ -197,12 +187,6 @@ hb_position_t get_glyph_v_advance(hb_font_t* InFont, void* InFontData, hb_codepo
 	return 0;
 }
 
-hb_bool_t get_glyph_h_origin(hb_font_t* InFont, void* InFontData, hb_codepoint_t InGlyphIndex, hb_position_t* OutX, hb_position_t* OutY, void* InUserData)
-{
-	// We always work in the horizontal coordinates.
-	return true;
-}
-
 hb_bool_t get_glyph_v_origin(hb_font_t* InFont, void* InFontData, hb_codepoint_t InGlyphIndex, hb_position_t* OutX, hb_position_t* OutY, void* InUserData)
 {
 	FT_Face FreeTypeFace = get_ft_face(InFont);
@@ -225,6 +209,8 @@ hb_bool_t get_glyph_v_origin(hb_font_t* InFont, void* InFontData, hb_codepoint_t
 		{
 			*OutY = -*OutY;
 		}
+
+		return true;
 	}
 
 	return false;
@@ -241,12 +227,6 @@ hb_position_t get_glyph_h_kerning(hb_font_t* InFont, void* InFontData, hb_codepo
 		return KerningVector.x;
 	}
 
-	return 0;
-}
-
-hb_position_t get_glyph_v_kerning(hb_font_t* InFont, void* InFontData, hb_codepoint_t InTopGlyphIndex, hb_codepoint_t InBottomGlyphIndex, void* InUserData)
-{
-	// FreeType API doesn't support vertical kerning.
 	return 0;
 }
 
@@ -289,36 +269,7 @@ hb_bool_t get_glyph_contour_point(hb_font_t* InFont, void* InFontData, hb_codepo
 	return false;
 }
 
-hb_bool_t get_glyph_name(hb_font_t* InFont, void* InFontData, hb_codepoint_t InGlyphIndex, char* OutName, unsigned int InNameBufferMaxLen, void* InUserData)
-{
-	check(InFont->parent);
-	return InFont->parent->get_glyph_name(InGlyphIndex, OutName, InNameBufferMaxLen);
-}
-
-hb_bool_t get_glyph_from_name(hb_font_t* InFont, void* InFontData, const char* InName, int InNameLen, hb_codepoint_t* OutGlyphIndex, void* InUserData)
-{
-	check(InFont->parent);
-	return InFont->parent->get_glyph_from_name(InName, InNameLen, OutGlyphIndex);
-}
-
 } // namespace Internal
-
-hb_font_funcs_t* GetStaticFuncs()
-{
-	static const hb_font_funcs_t StaticFuncs = {
-		HB_OBJECT_HEADER_STATIC,
-
-		true, /* immutable */
-
-		{
-		#define HB_FONT_FUNC_IMPLEMENT(name) &Internal::get_##name,
-			HB_FONT_FUNCS_IMPLEMENT_CALLBACKS
-		#undef HB_FONT_FUNC_IMPLEMENT
-		}
-	};
-
-	return const_cast<hb_font_funcs_t*>(&StaticFuncs);
-}
 
 } // namespace HarfBuzzFontFunctions
 
@@ -332,6 +283,27 @@ FHarfBuzzFontFactory::FHarfBuzzFontFactory(FFreeTypeGlyphCache* InFTGlyphCache, 
 	check(FTGlyphCache);
 	check(FTAdvanceCache);
 	check(FTKerningPairCache);
+
+#if WITH_HARFBUZZ
+	CustomHarfBuzzFuncs = hb_font_funcs_create();
+
+	hb_font_funcs_set_glyph_h_advance_func(CustomHarfBuzzFuncs, &HarfBuzzFontFunctions::Internal::get_glyph_h_advance, nullptr, nullptr);
+	hb_font_funcs_set_glyph_v_advance_func(CustomHarfBuzzFuncs, &HarfBuzzFontFunctions::Internal::get_glyph_v_advance, nullptr, nullptr);
+	hb_font_funcs_set_glyph_v_origin_func(CustomHarfBuzzFuncs, &HarfBuzzFontFunctions::Internal::get_glyph_v_origin, nullptr, nullptr);
+	hb_font_funcs_set_glyph_h_kerning_func(CustomHarfBuzzFuncs, &HarfBuzzFontFunctions::Internal::get_glyph_h_kerning, nullptr, nullptr);
+	hb_font_funcs_set_glyph_extents_func(CustomHarfBuzzFuncs, &HarfBuzzFontFunctions::Internal::get_glyph_extents, nullptr, nullptr);
+	hb_font_funcs_set_glyph_contour_point_func(CustomHarfBuzzFuncs, &HarfBuzzFontFunctions::Internal::get_glyph_contour_point, nullptr, nullptr);
+
+	hb_font_funcs_make_immutable(CustomHarfBuzzFuncs);
+#endif // WITH_HARFBUZZ
+}
+
+FHarfBuzzFontFactory::~FHarfBuzzFontFactory()
+{
+#if WITH_HARFBUZZ
+	hb_font_funcs_destroy(CustomHarfBuzzFuncs);
+	CustomHarfBuzzFuncs = nullptr;
+#endif // WITH_HARFBUZZ
 }
 
 #if WITH_HARFBUZZ
@@ -353,12 +325,7 @@ hb_font_t* FHarfBuzzFontFactory::CreateFont(const FFreeTypeFace& InFace, const u
 		hb_font_destroy(HarfBuzzFTFont);
 	}
 
-	hb_font_set_funcs(
-		HarfBuzzFont, 
-		HarfBuzzFontFunctions::GetStaticFuncs(), 
-		FreeTypeFace, 
-		&HarfBuzzFontFunctions::DummyDestroyFunc
-		);
+	hb_font_set_funcs(HarfBuzzFont, CustomHarfBuzzFuncs, nullptr, nullptr);
 
 	hb_font_set_user_data(
 		HarfBuzzFont, 

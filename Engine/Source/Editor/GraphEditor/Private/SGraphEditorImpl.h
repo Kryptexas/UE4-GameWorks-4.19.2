@@ -144,6 +144,7 @@ public:
 	virtual void SetPinVisibility(SGraphEditor::EPinVisibility Visibility) override;
 	virtual void StraightenConnections() override;
 	virtual void StraightenConnections(UEdGraphPin* SourcePin, UEdGraphPin* PinToAlign) override;
+	virtual void CaptureKeyboard() override;
 	// End of SGraphEditor interface
 protected:
 	//

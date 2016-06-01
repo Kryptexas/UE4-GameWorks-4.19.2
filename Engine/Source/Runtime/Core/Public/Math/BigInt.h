@@ -10,9 +10,15 @@
  * Minimum sanity checks.
  * Can convert from int64 and back (by truncating the result, this is mostly for testing)
  */
-template <int32 NumBits>
+template <int32 NumBits, bool bSigned = true>
 class TBigInt
 {
+public:
+
+	typedef TBigInt<NumBits, bSigned> BigInt;
+
+private:
+
 	enum
 	{
 		/** Word size. */
@@ -33,18 +39,21 @@ class TBigInt
 	 * @param FactorB second factor
 	 * @param SignB sign of the second pactor
 	 */
-	FORCEINLINE static void MakePositiveFactors(TBigInt<NumBits>& FactorA, int32& SignA, TBigInt<NumBits>& FactorB, int32& SignB)
+	FORCEINLINE static void MakePositiveFactors(BigInt& FactorA, int32& SignA, BigInt& FactorB, int32& SignB)
 	{
-		SignA = FactorA.Sign();
-		SignB = FactorB.Sign();
-		if (SignA < 0)
-		{
-			FactorA.Negate();
-		}
-		if (SignB < 0)
-		{
-			FactorB.Negate();
-		}
+		if (bSigned)
+	  {
+		  SignA = FactorA.Sign();
+		  SignB = FactorB.Sign();
+		  if (SignA < 0)
+		  {
+			  FactorA.Negate();
+		  }
+		  if (SignB < 0)
+		  {
+			  FactorB.Negate();
+		  }
+	  }
 	}
 
 	/**
@@ -54,15 +63,20 @@ class TBigInt
 	 * @param SignA sign of the first factor
 	 * @param SignB sign of the second factor
 	 */
-	FORCEINLINE static void RestoreSign(TBigInt<NumBits>& Result, int32 SignA, int32 SignB)
+	FORCEINLINE static void RestoreSign(BigInt& Result, int32 SignA, int32 SignB)
 	{
-		if ((SignA * SignB) < 0)
+		if (bSigned && (SignA * SignB) < 0)
 		{
 			Result.Negate();
 		}
 	}
 
 public:
+
+	FORCEINLINE uint32* GetBits()
+	{
+		return Bits;
+	}
 
 	/** Sets this integer to 0. */
 	FORCEINLINE void Zero()
@@ -123,7 +137,7 @@ public:
 	{
 		checkSlow(BitCount > 0);
 
-		TBigInt<NumBits> Result;
+		BigInt Result;
 		if (BitCount & (BitsPerWord - 1))
 		{
 			const int32 LoWordOffset = (BitCount - 1) / BitsPerWord;
@@ -150,6 +164,21 @@ public:
 	}
 
 	/**
+	 * Shift left by 1 bit.
+	 */
+	FORCEINLINE void ShiftLeftByOneInternal()
+	{
+		const int32 HiWordShift = BitsPerWord - 1;
+		Bits[NumWords - 1] = Bits[NumWords - 1] << 1;
+		for (int32 WordIndex = NumWords - 2; WordIndex >= 0; --WordIndex)
+		{
+			const uint32 Value = Bits[WordIndex];
+			Bits[WordIndex + 0] = Value << 1;
+			Bits[WordIndex + 1] |= Value >> HiWordShift;
+		}
+	}
+
+	/**
 	 * Shift right by the specified amount of bits. Does not check if BitCount is valid.
 	 *
 	 * @param BitCount the number of bits to shift.
@@ -158,7 +187,7 @@ public:
 	{
 		checkSlow(BitCount > 0);
 
-		TBigInt<NumBits> Result;
+		BigInt Result;
 		if (BitCount & (BitsPerWord - 1))
 		{
 			const int32 HiWordOffset = (BitCount - 1) / BitsPerWord;
@@ -185,9 +214,24 @@ public:
 	}
 
 	/**
+	 * Shift right by 1 bit.
+	 */
+	FORCEINLINE void ShiftRightByOneInternal()
+	{
+		const int32 LoWordShift = BitsPerWord - 1;
+		Bits[0] = Bits[0] >> 1;
+		for (int32 WordIndex = 1; WordIndex < NumWords; ++WordIndex)
+		{
+			const uint32 Value = Bits[WordIndex];
+			Bits[WordIndex - 0] = Value >> 1;
+			Bits[WordIndex - 1] |= Value << LoWordShift;
+		}
+	}
+
+	/**
 	 * Adds two integers.
 	 */
-	FORCEINLINE void Add(const TBigInt<NumBits>& Other)
+	FORCEINLINE void Add(const BigInt& Other)
 	{
 		int64 CarryOver = 0;
 		for (int32 WordIndex = 0; WordIndex < NumWords; ++WordIndex)
@@ -202,9 +246,9 @@ public:
 	/**
 	 * Subtracts two integers.
 	 */
-	FORCEINLINE void Subtract(const TBigInt<NumBits>& Other)
+	FORCEINLINE void Subtract(const BigInt& Other)
 	{
-		TBigInt<NumBits> NegativeOther(Other);
+		BigInt NegativeOther(Other);
 		NegativeOther.Negate();
 		Add(NegativeOther);
 	}
@@ -214,7 +258,14 @@ public:
 	 */
 	FORCEINLINE bool IsNegative() const
 	{
-		return !!(Bits[NumWords - 1] & (1U << (BitsPerWord - 1)));
+		if (bSigned)
+		{
+			return !!(Bits[NumWords - 1] & (1U << (BitsPerWord - 1)));
+		}
+		else
+		{
+			return false;
+		}
 	}
 
 	/**
@@ -230,7 +281,7 @@ public:
 	 */
 	void Negate()
 	{
-		static const TBigInt<NumBits> One(1LL);
+		static const BigInt One(1LL);
 		for (int32 WordIndex = 0; WordIndex < NumWords; ++WordIndex)
 		{
 			Bits[WordIndex] = ~Bits[WordIndex];
@@ -238,57 +289,76 @@ public:
 		Add(One);
 	}
 
+	/**
+	* Returns the index of the highest word that is not zero. -1 if no such word exists.
+	*/
+	FORCEINLINE int32 GetHighestNonZeroWord() const
+	{
+		int32 WordIndex;
+		for (WordIndex = NumWords - 1; WordIndex >= 0 && Bits[WordIndex] == 0; --WordIndex);
+		return WordIndex;
+	}
+
+	/**
+	* Multiplies two positive integers.
+	 */
+	FORCEINLINE void MultiplyFast(const BigInt& Factor)
+	{
+		const int64 Base = 2LL << BitsPerWord;
+		TBigInt<NumBits * 2, bSigned> Result; // Twice as many bits for overflow protection
+		uint32* ResultBits = Result.GetBits();
+		BigInt Temp = *this;
+		
+		const int32 NumWordsA = Temp.GetHighestNonZeroWord() + 1;
+		const int32 NumWordsB = Factor.GetHighestNonZeroWord() + 1;
+
+		for (int32 WordIndexA = 0; WordIndexA < NumWordsA; ++WordIndexA)
+		{
+			const uint64 A = Temp.Bits[WordIndexA];
+			uint64 Carry = 0;
+			for (int32 WordIndexB = 0; WordIndexB < NumWordsB; ++WordIndexB)
+			{
+				const uint64 B = Factor.Bits[WordIndexB];
+				const uint64 Product = ResultBits[WordIndexA + WordIndexB] + Carry + A * B;
+				Carry = Product >> BitsPerWord;
+				ResultBits[WordIndexA + WordIndexB] = (uint32)(Product & (Base - 1));
+			}
+			ResultBits[WordIndexA + NumWordsB] += Carry;
+		}
+
+		for (int32 WordIndex = 0; WordIndex < NumWords; ++WordIndex)
+		{
+			Bits[WordIndex] = ResultBits[WordIndex];
+		}
+	}
 
 	/**
 	 * Multiplies two integers.
 	 */
-	void Multiply(const TBigInt<NumBits>& Factor)
+	FORCEINLINE void Multiply(const BigInt& Factor)
 	{
-		TBigInt<NumBits> Result;
-		TBigInt<NumBits> Temp = *this;
-		TBigInt<NumBits> Other = Factor;
+		BigInt Result = *this;
+		BigInt Other = Factor;
 		
-		int32 ThisSign;
+		int32 ResultSign;
 		int32 OtherSign;
-		MakePositiveFactors(Temp, ThisSign, Other, OtherSign);
+		MakePositiveFactors(Result, ResultSign, Other, OtherSign);
 
-		int32 ShiftCount = 0;
-		for (int32 WordIndex = 0; WordIndex < NumWords; ++WordIndex)
-		{			
-			if (Other.Bits[WordIndex])
-			{
-				for (int32 BitIndex = 0; BitIndex < BitsPerWord; ++BitIndex)
-				{					
-					if (!!(Other.Bits[WordIndex] & (1 << BitIndex)))
-					{
-						if (ShiftCount)
-						{
-							Temp.ShiftLeftInternal(ShiftCount);
-							ShiftCount = 0;
-						}
-						Result += Temp;
-					}
-					ShiftCount++;
-				}
-			}
-			else
-			{
-				ShiftCount += BitsPerWord;
-			}
-		}
+		Result.MultiplyFast(Other);
+
 		// Restore the sign if necessary		
-		RestoreSign(Result, OtherSign, ThisSign);
+		RestoreSign(Result, OtherSign, ResultSign);
 		*this = Result;		
 	}
 
 	/**
 	 * Divides two integers with remainder.
 	 */
-	void DivideWithRemainder(const TBigInt<NumBits>& Divisor, TBigInt<NumBits>& Remainder) 
+	void DivideWithRemainder(const BigInt& Divisor, BigInt& Remainder) 
 	{ 
-		static const TBigInt<NumBits> One(1LL);
-		TBigInt<NumBits> Denominator(Divisor);
-		TBigInt<NumBits> Dividend(*this);		
+		static const BigInt One(1LL);
+		BigInt Denominator(Divisor);
+		BigInt Dividend(*this);		
 		
 		int32 DenominatorSign;
 		int32 DividendSign;
@@ -308,26 +378,49 @@ public:
 			return;
 		}
 
-		TBigInt<NumBits> Current(One);
-		TBigInt<NumBits> Quotient;
+		BigInt Current(One);
+		BigInt Quotient;
+
+		int32 ShiftCount = Dividend.GetHighestNonZeroBit() - Denominator.GetHighestNonZeroBit();
+
+		if (ShiftCount > 0)
+		{
+			Denominator.ShiftLeftInternal(ShiftCount);
+		}
 
 		while (Denominator <= Dividend) 
 		{
-			Denominator.ShiftLeftInternal(1);	
-			Current.ShiftLeftInternal(1);
+			Denominator.ShiftLeftByOneInternal();
+			ShiftCount++;			
 		}
-    Denominator.ShiftRightInternal(1);
-    Current.ShiftRightInternal(1);
 
-		while (!Current.IsZero()) 
+		Denominator.ShiftRightByOneInternal();
+
+		ShiftCount--; // equivalent of a shift right
+		if (ShiftCount)
+		{
+			Current.ShiftLeftInternal(ShiftCount);
+		}
+
+		// Reuse ShiftCount to track number of pending shifts
+		ShiftCount = 0;
+		const int32 NumLoops = Current.GetHighestNonZeroBit() + 1;
+
+		for (int32 i = 0; i < NumLoops; ++i)
 		{
 			if (Dividend >= Denominator) 
 			{
+				if (ShiftCount != 0)
+				{
+					Current.ShiftRightInternal(ShiftCount);
+					ShiftCount = 0;
+				}
+
 				Dividend -= Denominator;
 				Quotient |= Current;
 			}
-			Current.ShiftRightInternal(1);
-			Denominator.ShiftRightInternal(1);
+			Denominator.ShiftRightByOneInternal();
+			ShiftCount++;
 		}    
 		RestoreSign(Quotient, DenominatorSign, DividendSign);
 		Remainder = Dividend;
@@ -337,23 +430,29 @@ public:
 	/**
 	 * Divides two integers.
 	 */
-	void Divide(const TBigInt<NumBits>& Divisor) 
+	void Divide(const BigInt& Divisor) 
 	{
-		TBigInt<NumBits> Remainder;
+		BigInt Remainder;
 		DivideWithRemainder(Divisor, Remainder);
 	}
 
 	/**
 	 * Performs modulo operation on this integer.
 	 */
-	void Modulo(const TBigInt<NumBits>& Modulus)
+	FORCEINLINE void Modulo(const BigInt& Modulus)
 	{
 		// a mod b = a - floor(a/b)*b
 		check(!IsNegative());
-		TBigInt<NumBits> Dividend(*this);
-		Dividend.Divide(Modulus);
-		Dividend.Multiply(Modulus);
-		Subtract(Dividend);
+		BigInt Dividend(*this);
+
+		// Dividend.Divide(Modulus);
+		BigInt Temp;
+		Dividend.DivideWithRemainder(Modulus, Temp);
+		Dividend.MultiplyFast(Modulus);
+
+		// Subtract(Dividend);
+		Dividend.Negate();
+		Add(Dividend);
 	}
 
 	/**
@@ -361,17 +460,17 @@ public:
 	 */
 	void Sqrt() 
 	{
-		TBigInt<NumBits> Number(*this);
-    TBigInt<NumBits> Result;
+		BigInt Number(*this);
+    BigInt Result;
 
-    TBigInt<NumBits> Bit(1);
+    BigInt Bit(1);
 		Bit.ShiftLeftInternal(NumBits - 2);
     while (Bit > Number)
 		{
 			Bit.ShiftRightInternal(2);
 		}
  
-		TBigInt<NumBits> Temp;
+		BigInt Temp;
     while (!Bit.IsZero()) 
 		{
 			Temp = Result;
@@ -398,16 +497,6 @@ public:
 	{
 		Set(Other);
 		return *this;
-	}
-
-	/**
-	 * Returns the index of the highest word that is not zero. -1 if no such word exists.
-	 */
-	FORCEINLINE int32 GetHighestNonZeroWord() const
-	{
-		int32 WordIndex;
-		for (WordIndex = NumWords - 1; WordIndex >= 0 && Bits[WordIndex] == 0; --WordIndex);
-		return WordIndex;
 	}
 
 	/**
@@ -507,7 +596,7 @@ public:
 	/**
 	 * Bitwise 'or'
 	 */
-	FORCEINLINE void BitwiseOr(const TBigInt<NumBits>& Other)
+	FORCEINLINE void BitwiseOr(const BigInt& Other)
 	{
 		for (int32 WordIndex = 0; WordIndex < NumWords; ++WordIndex)
 		{
@@ -518,7 +607,7 @@ public:
 	/**
 	 * Bitwise 'and'
 	 */
-	FORCEINLINE void BitwiseAnd(const TBigInt<NumBits>& Other)
+	FORCEINLINE void BitwiseAnd(const BigInt& Other)
 	{
 		for (int32 WordIndex = 0; WordIndex < NumWords; ++WordIndex)
 		{
@@ -540,7 +629,7 @@ public:
 	/**
 	 * Checks if two integers are equal.
 	 */
-	FORCEINLINE bool IsEqual(const TBigInt<NumBits>& Other) const
+	FORCEINLINE bool IsEqual(const BigInt& Other) const
 	{
 		for (int32 WordIndex = 0; WordIndex < NumWords; ++WordIndex)
 		{
@@ -556,7 +645,7 @@ public:
 	/**
 	 * this < Other
 	 */
-	bool IsLess(const TBigInt<NumBits>& Other) const
+	FORCEINLINE bool IsLess(const BigInt& Other) const
 	{
 		if (IsNegative())
 		{
@@ -577,7 +666,7 @@ public:
 	/**
 	 * this <= Other
 	 */
-	bool IsLessOrEqual(const TBigInt<NumBits>& Other) const
+	FORCEINLINE bool IsLessOrEqual(const BigInt& Other) const
 	{
 		if (IsNegative())
 		{
@@ -598,7 +687,7 @@ public:
 	/**
 	 * this > Other
 	 */
-	bool IsGreater(const TBigInt<NumBits>& Other) const
+	FORCEINLINE bool IsGreater(const BigInt& Other) const
 	{
 		if (IsNegative())
 		{
@@ -619,7 +708,7 @@ public:
 	/**
 	 * this >= Other
 	 */
-	bool IsGreaterOrEqual(const TBigInt<NumBits>& Other) const
+	FORCEINLINE bool IsGreaterOrEqual(const BigInt& Other) const
 	{
 		if (IsNegative())
 		{
@@ -663,6 +752,10 @@ public:
 		return IsNegative() && !IsZero();
 	}
 
+	FORCEINLINE bool IsFirstBitSet() const
+	{
+		return !!(Bits[0] & 1);
+	}
 	/**
 	 * Bit indexing operator
 	 */
@@ -672,170 +765,170 @@ public:
 	}
 
 	// Begin operator overloads
-	FORCEINLINE TBigInt<NumBits> operator>>(int32 Count) const
+	FORCEINLINE BigInt operator>>(int32 Count) const
 	{
-		TBigInt<NumBits> Result = *this;
+		BigInt Result = *this;
 		Result.ShiftRight(Count);
 		return Result;
 	}
 
-	FORCEINLINE TBigInt<NumBits>& operator>>=(int32 Count)
+	FORCEINLINE BigInt& operator>>=(int32 Count)
 	{
 		ShiftRight(Count);
 		return *this;
 	}
 
-	FORCEINLINE TBigInt<NumBits> operator<<(int32 Count) const
+	FORCEINLINE BigInt operator<<(int32 Count) const
 	{
-		TBigInt<NumBits> Result = *this;
+		BigInt Result = *this;
 		Result.ShiftLeft(Count);
 		return Result;
 	}
 
-	FORCEINLINE TBigInt<NumBits>& operator<<=(int32 Count)
+	FORCEINLINE BigInt& operator<<=(int32 Count)
 	{
 		ShiftLeft(Count);
 		return *this;
 	}
 
-	FORCEINLINE TBigInt<NumBits> operator+(const TBigInt<NumBits>& Other) const
+	FORCEINLINE BigInt operator+(const BigInt& Other) const
 	{
-		TBigInt<NumBits> Result(*this);
+		BigInt Result(*this);
 		Result.Add(Other);
 		return Result;
 	}
 
-	FORCEINLINE TBigInt<NumBits>& operator++()
+	FORCEINLINE BigInt& operator++()
 	{
-		static const TBigInt<NumBits> One(1);
+		static const BigInt One(1);
 		Add(One);
 		return *this;
 	}
 
-	FORCEINLINE TBigInt<NumBits>& operator+=(const TBigInt<NumBits>& Other)
+	FORCEINLINE BigInt& operator+=(const BigInt& Other)
 	{
 		Add(Other);
 		return *this;
 	}
 
-	FORCEINLINE TBigInt<NumBits> operator-(const TBigInt<NumBits>& Other) const
+	FORCEINLINE BigInt operator-(const BigInt& Other) const
 	{
-		TBigInt<NumBits> Result(*this);
+		BigInt Result(*this);
 		Result.Subtract(Other);
 		return Result;
 	}
 
-	FORCEINLINE TBigInt<NumBits>& operator--()
+	FORCEINLINE BigInt& operator--()
 	{
-		static const TBigInt<NumBits> One(1);
+		static const BigInt One(1);
 		Subtract(One);
 		return *this;
 	}
 
-	FORCEINLINE TBigInt<NumBits>& operator-=(const TBigInt<NumBits>& Other)
+	FORCEINLINE BigInt& operator-=(const BigInt& Other)
 	{
 		Subtract(Other);
 		return *this;
 	}
 
-	FORCEINLINE TBigInt<NumBits> operator*(const TBigInt<NumBits>& Other) const
+	FORCEINLINE BigInt operator*(const BigInt& Other) const
 	{
-		TBigInt<NumBits> Result(*this);
+		BigInt Result(*this);
 		Result.Multiply(Other);
 		return Result;
 	}
 
-	FORCEINLINE TBigInt<NumBits>& operator*=(const TBigInt<NumBits>& Other)
+	FORCEINLINE BigInt& operator*=(const BigInt& Other)
 	{
 		Multiply(Other);
 		return *this;
 	}
 
-	FORCEINLINE TBigInt<NumBits> operator/(const TBigInt<NumBits>& Divider) const
+	FORCEINLINE BigInt operator/(const BigInt& Divider) const
 	{
-		TBigInt<NumBits> Result(*this);
+		BigInt Result(*this);
 		Result.Divide(Divider);
 		return Result;
 	}
 
-	FORCEINLINE TBigInt<NumBits>& operator/=(const TBigInt<NumBits>& Divider)
+	FORCEINLINE BigInt& operator/=(const BigInt& Divider)
 	{
 		Divide(Divider);
 		return *this;
 	}
 
-	FORCEINLINE TBigInt<NumBits> operator%(const TBigInt<NumBits>& Modulus) const
+	FORCEINLINE BigInt operator%(const BigInt& Modulus) const
 	{
-		TBigInt<NumBits> Result(*this);
+		BigInt Result(*this);
 		Result.Modulo(Modulus);
 		return Result;
 	}
 
-	FORCEINLINE TBigInt<NumBits>& operator%=(const TBigInt<NumBits>& Modulus)
+	FORCEINLINE BigInt& operator%=(const BigInt& Modulus)
 	{
 		Modulo(Modulus);
 		return *this;
 	}
 
-	FORCEINLINE bool operator<(const TBigInt<NumBits>& Other) const
+	FORCEINLINE bool operator<(const BigInt& Other) const
 	{
 		return IsLess(Other);
 	}
 
-	FORCEINLINE bool operator<=(const TBigInt<NumBits>& Other) const
+	FORCEINLINE bool operator<=(const BigInt& Other) const
 	{
 		return IsLessOrEqual(Other);
 	}
 
-	FORCEINLINE bool operator>(const TBigInt<NumBits>& Other) const
+	FORCEINLINE bool operator>(const BigInt& Other) const
 	{
 		return IsGreater(Other);
 	}
 
-	FORCEINLINE bool operator>=(const TBigInt<NumBits>& Other) const
+	FORCEINLINE bool operator>=(const BigInt& Other) const
 	{
 		return IsGreaterOrEqual(Other);
 	}
 
-	FORCEINLINE bool operator==(const TBigInt<NumBits>& Other) const
+	FORCEINLINE bool operator==(const BigInt& Other) const
 	{
 		return IsEqual(Other);
 	}
 
-	FORCEINLINE bool operator!=(const TBigInt<NumBits>& Other) const
+	FORCEINLINE bool operator!=(const BigInt& Other) const
 	{
 		return !IsEqual(Other);
 	}
 
-	FORCEINLINE TBigInt<NumBits> operator&(const TBigInt<NumBits>& Other) const
+	FORCEINLINE BigInt operator&(const BigInt& Other) const
 	{
-		TBigInt<NumBits> Result(*this);
+		BigInt Result(*this);
 		Result.BitwiseAnd(Other);
 		return Result;
 	}
 
-	FORCEINLINE TBigInt<NumBits>& operator&=(const TBigInt<NumBits>& Other)
+	FORCEINLINE BigInt& operator&=(const BigInt& Other)
 	{
 		BitwiseAnd(Other);
 		return *this;
 	}
 
-	FORCEINLINE TBigInt<NumBits> operator|(const TBigInt<NumBits>& Other) const
+	FORCEINLINE BigInt operator|(const BigInt& Other) const
 	{
-		TBigInt<NumBits> Result(*this);
+		BigInt Result(*this);
 		Result.BitwiseOr(Other);
 		return Result;
 	}
 
-	FORCEINLINE TBigInt<NumBits>& operator|=(const TBigInt<NumBits>& Other)
+	FORCEINLINE BigInt& operator|=(const BigInt& Other)
 	{
 		BitwiseOr(Other);
 		return *this;
 	}
 
-	FORCEINLINE TBigInt<NumBits> operator~() const
+	FORCEINLINE BigInt operator~() const
 	{
-		TBigInt<NumBits> Result(*this);
+		BigInt Result(*this);
 		Result.BitwiseNot();
 		return Result;
 	}
@@ -853,7 +946,7 @@ public:
 		}
 		else
 		{
-			TBigInt<NumBits> Positive(*this);
+			BigInt Positive(*this);
 			Positive.Negate();
 			Result = (int64)Positive.Bits[0] + ((int64)Positive.Bits[1] << BitsPerWord);
 		}
@@ -886,29 +979,29 @@ public:
 	 */
 	void Parse(const FString& Value)
 	{
-		check(Value.Len() <= NumBits / 8);
 		Zero();
 		int32 ValueStartIndex = 0;
 		if (Value.Len() >= 2 && Value[0] == '0' && FChar::ToUpper(Value[1]) == 'X')
 		{
 			ValueStartIndex = 2;
 		}
-		const int32 BytesPerWord = BitsPerWord / 8;
+		check((Value.Len() - ValueStartIndex) <= (NumBits / 4));
+		const int32 NybblesPerWord = BitsPerWord / 4;
 		for (int32 CharIndex = Value.Len() - 1; CharIndex >= ValueStartIndex; --CharIndex)
 		{
 			const TCHAR ByteChar = Value[CharIndex];
 			const int32 ByteIndex = (Value.Len() - CharIndex - 1);
-			const int32 WordIndex = ByteIndex / BytesPerWord;			
+			const int32 WordIndex = ByteIndex / NybblesPerWord;
 			const int32 ByteValue = ByteChar > '9' ? (FChar::ToUpper(ByteChar) - 'A' + 10) : (ByteChar - '0');
 			check(ByteValue >= 0 && ByteValue <= 15);
-			Bits[WordIndex] |= (ByteValue << (ByteIndex - WordIndex * 4) * 4);
+			Bits[WordIndex] |= (ByteValue << (ByteIndex % NybblesPerWord) * 4);
 		}
 	}
 
 	/**
 	 * Serialization.
 	 */
-	friend FArchive& operator<<(FArchive& Ar, TBigInt<NumBits>& Value)
+	friend FArchive& operator<<(FArchive& Ar, BigInt& Value)
 	{
 		for (int32 Index = 0; Index < NumWords; ++Index)
 		{
@@ -921,6 +1014,7 @@ public:
 // Predefined big int types
 typedef TBigInt<256> int256;
 typedef TBigInt<512> int512;
+typedef TBigInt<512> TEncryptionInt;
 
 /**
  * Encyption key - exponent and modulus pair
@@ -931,12 +1025,12 @@ struct TEncryptionKey
 	IntType Exponent;
 	IntType Modulus;
 };
-typedef TEncryptionKey<int256> FEncryptionKey;
+typedef TEncryptionKey<TEncryptionInt> FEncryptionKey;
 
 /**
  * Math utils for encryption.
  */
-struct FEncryption
+namespace FEncryption
 {
 	/**
 	 * Greatest common divisor of ValueA and ValueB.
@@ -1066,7 +1160,7 @@ struct FEncryption
 		IntType Result(One);
 		while (Exponent > 0)
 		{
-			if ((Exponent & One) != 0)
+			if (Exponent.IsFirstBitSet())
 			{
 				Result = (Result * Base) % Modulus;
 			}
@@ -1075,44 +1169,118 @@ struct FEncryption
 		}
 		return Result;
 	}
-};
+
+	/**
+	* Encrypts a stream of bytes
+	*/
+	template <typename IntType>
+	FORCEINLINE static void EncryptBytes(IntType* EncryptedData, const uint8* Data, const int64 DataLength, const FEncryptionKey& EncryptionKey)
+	{
+		for (int Index = 0; Index < DataLength; ++Index)
+		{
+			EncryptedData[Index] = FEncryption::ModularPow(IntType(Data[Index]), EncryptionKey.Exponent, EncryptionKey.Modulus);
+		}
+	}
+
+	/**
+	* Decrypts a stream of bytes
+	*/
+	template <typename IntType>
+	FORCEINLINE static void DecryptBytes(uint8* DecryptedData, const IntType* Data, const int64 DataLength, const FEncryptionKey& DecryptionKey)
+	{
+		for (int64 Index = 0; Index < DataLength; ++Index)
+		{
+			IntType DecryptedByte = FEncryption::ModularPow(Data[Index], DecryptionKey.Exponent, DecryptionKey.Modulus);
+			DecryptedData[Index] = (uint8)DecryptedByte.ToInt();
+		}
+	}
+}
 
 /**
- * Specialization for int256 (performance). Avoids using temporary results and most of the operations are inplace.
+ * Specialization for int type used in encryption (performance). Avoids using temporary results and most of the operations are inplace.
  */
 template <>
-FORCEINLINE int256 FEncryption::ModularPow(int256 Base, int256 Exponent, int256 Modulus)
+FORCEINLINE TEncryptionInt FEncryption::ModularPow(TEncryptionInt Base, TEncryptionInt Exponent, TEncryptionInt Modulus)
 {
-	static const int256 One(1);
-	int256 Result(One);
+	TEncryptionInt Result(1LL);
 	while (Exponent.IsGreaterThanZero())
 	{
-		if (!(Exponent & One).IsZero())
+		if (Exponent.IsFirstBitSet())
 		{
-			Result.Multiply(Base);
+			Result.MultiplyFast(Base);
 			Result.Modulo(Modulus);
 		}
-		Exponent.ShiftRightInternal(1);
-		Base.Multiply(Base);
+		Exponent.ShiftRightByOneInternal();
+		Base.MultiplyFast(Base);
 		Base.Modulo(Modulus);
 	}
 	return Result;
 }
 
-struct FSignature
+template <class TYPE>
+struct FSignatureBase
 {
-	int256 Data[20];
+	TYPE Data;
+
+	FSignatureBase()
+	{
+		Data = 0;
+	}
 
 	void Serialize(FArchive& Ar)
 	{
-		for (int32 Index = 0; Index < ARRAY_COUNT(Data); ++Index)
-		{
-			Ar << Data[Index];
-		}
+		Ar << Data;
 	}
 
 	static int64 Size()
 	{
-		return sizeof(int256) * 20;
+		return sizeof(TYPE);
+	}
+
+	bool IsValid() const
+	{
+		return Data != 0;
+	}
+
+	bool operator != (const FSignatureBase& InOther)
+	{
+		return Data != InOther.Data;
+	}
+
+	bool operator == (const FSignatureBase& InOther)
+	{
+		return Data == InOther.Data;
+	}
+
+	/**
+	* Serialization.
+	*/
+	friend FArchive& operator<<(FArchive& Ar, FSignatureBase& Value)
+	{
+		Value.Serialize(Ar);
+		return Ar;
 	}
 };
+
+struct FEncryptedSignature : public FSignatureBase<TEncryptionInt>
+{
+
+};
+
+struct FDecryptedSignature : public FSignatureBase<uint32>
+{
+
+};
+
+namespace FEncryption
+{
+	FORCEINLINE static void EncryptSignature(const FDecryptedSignature& InUnencryptedSignature, FEncryptedSignature& OutEncryptedSignature, const FEncryptionKey& EncryptionKey)
+	{
+		OutEncryptedSignature.Data = FEncryption::ModularPow(TEncryptionInt(InUnencryptedSignature.Data), EncryptionKey.Exponent, EncryptionKey.Modulus);
+	}
+
+	FORCEINLINE static void DecryptSignature(const FEncryptedSignature& InEncryptedSignature, FDecryptedSignature& OutUnencryptedSignature, const FEncryptionKey& EncryptionKey)
+	{
+		OutUnencryptedSignature.Data = FEncryption::ModularPow(TEncryptionInt(InEncryptedSignature.Data), EncryptionKey.Exponent, EncryptionKey.Modulus).ToInt();
+	}
+}

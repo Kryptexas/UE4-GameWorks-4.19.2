@@ -147,4 +147,11 @@ class UBlueprintGameplayTagLibrary : public UBlueprintFunctionLibrary
 	/** Checks if a gameplay tag containers's name and a string are not equal to one another */
 	UFUNCTION(BlueprintPure, Category = PinOptions)
 	static bool NotEqual_TagContainerTagContainer(FGameplayTagContainer A, FString B);
+	/**
+	* Returns an FString listing all of the gameplay tags in the tag container for debugging purposes.
+	*
+	* @param TagContainer		The tag container to get the debug string from.
+	*/
+	UFUNCTION(BlueprintPure, Category = "GameplayTags|Tag Container")
+	static FString GetDebugStringFromGameplayTagContainer(const FGameplayTagContainer& TagContainer);
 };

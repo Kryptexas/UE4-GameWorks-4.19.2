@@ -1038,11 +1038,14 @@ FReply SMultiBoxWidget::FocusNextWidget(EUINavigation NavigationType)
 	{
 		FWidgetPath FocusPath;
 		FSlateApplication::Get().GeneratePathToWidgetUnchecked( FocusWidget.ToSharedRef(), FocusPath );
-		FWeakWidgetPath WeakFocusPath = FocusPath;
-		FWidgetPath NextFocusPath = WeakFocusPath.ToNextFocusedPath(NavigationType);
-		if ( NextFocusPath.Widgets.Num() > 0 )
+		if (FocusPath.IsValid())
 		{
-			return FReply::Handled().SetUserFocus(NextFocusPath.Widgets.Last().Widget, EFocusCause::Navigation);
+			FWeakWidgetPath WeakFocusPath = FocusPath;
+			FWidgetPath NextFocusPath = WeakFocusPath.ToNextFocusedPath(NavigationType);
+			if ( NextFocusPath.Widgets.Num() > 0 )
+			{
+				return FReply::Handled().SetUserFocus(NextFocusPath.Widgets.Last().Widget, EFocusCause::Navigation);
+			}
 		}
 	}
 
@@ -1073,7 +1076,11 @@ FReply SMultiBoxWidget::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent&
 		ResetSearch();
 	}
 	// allow use of up and down keys to transfer focus/hover state
-	else if( KeyEvent.GetKey() == EKeys::Up || KeyEvent.GetKey() == EKeys::Down )
+	else if( KeyEvent.GetKey() == EKeys::Up )
+	{
+		return FocusNextWidget( EUINavigation::Previous );
+	}
+	else if( KeyEvent.GetKey() == EKeys::Down )
 	{
 		return FocusNextWidget( EUINavigation::Next );
 	}
@@ -1101,11 +1108,7 @@ void SMultiBoxWidget::TypeChar(const int32 InChar)
 	// Certain characters are not allowed
 	bool bIsCharAllowed = true;
 	{
-		if ( InChar == TEXT('\t') )
-		{
-			bIsCharAllowed = true;
-		}
-		else if ( InChar <= 0x1F )
+		if ( InChar <= 0x1F )
 		{
 			bIsCharAllowed = false;
 		}

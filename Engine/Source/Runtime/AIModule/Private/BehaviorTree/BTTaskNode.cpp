@@ -6,7 +6,6 @@
 
 UBTTaskNode::UBTTaskNode(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
-	NodeName = GetClass()->GetName();
 	bNotifyTick = false;
 	bNotifyTaskFinished = false;
 	bIgnoreRestartSelf = false;
@@ -33,15 +32,6 @@ EBTNodeResult::Type UBTTaskNode::WrappedAbortTask(UBehaviorTreeComponent& OwnerC
 	UBTNode* NodeOb = const_cast<UBTNode*>(bCreateNodeInstance ? GetNodeInstance(OwnerComp, NodeMemory) : this);
 	UBTTaskNode* TaskNodeOb = static_cast<UBTTaskNode*>(NodeOb);
 	EBTNodeResult::Type Result = TaskNodeOb ? TaskNodeOb->AbortTask(OwnerComp, NodeMemory) : EBTNodeResult::Aborted;
-
-	if (TaskNodeOb && TaskNodeOb->bOwnsGameplayTasks && OwnerComp.GetAIOwner())
-	{
-		UGameplayTasksComponent* GTComp = OwnerComp.GetAIOwner()->GetGameplayTasksComponent();
-		if (GTComp)
-		{
-			GTComp->EndAllResourceConsumingTasksOwnedBy(*TaskNodeOb);
-		}
-	}
 
 	return Result;
 }
@@ -163,18 +153,17 @@ FName UBTTaskNode::GetNodeIconName() const
 
 #endif	// WITH_EDITOR
 
-//----------------------------------------------------------------------//
-// UBTTaskNode IGameplayTaskOwnerInterface
-//----------------------------------------------------------------------//
-void UBTTaskNode::OnTaskDeactivated(UGameplayTask& Task)
+void UBTTaskNode::OnGameplayTaskDeactivated(UGameplayTask& Task)
 {
 	ensure(Task.GetTaskOwner() == this);
+
 	UBehaviorTreeComponent* BTComp = GetBTComponentForTask(Task);
 	if (BTComp)
 	{
 		// this is a super-default behavior. Specific task will surely like to 
 		// handle this themselves, finishing with specific result
-		FinishLatentTask(*BTComp, EBTNodeResult::Succeeded);
+		const EBTTaskStatus::Type Status = BTComp->GetTaskStatus(this);
+		FinishLatentTask(*BTComp, Status == EBTTaskStatus::Aborting ? EBTNodeResult::Aborted : EBTNodeResult::Succeeded);
 	}
 }
 

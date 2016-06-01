@@ -16,10 +16,13 @@ void Main(
 	FVertexFactoryInput Input,
 	OPTIONAL_VertexID
 	out FBasePassVSOutput Output
+#if USE_GLOBAL_CLIP_PLANE && !USING_TESSELLATION
+	, out float OutGlobalClipPlaneDistance : SV_ClipDistance
+#endif
 #if INSTANCED_STEREO
 	, uint InstanceId : SV_InstanceID
-	, out float4 OutClipDistance : SV_ClipDistance
-	, out float4 OutCullDistance : SV_CullDistance
+	, out float OutClipDistance : SV_ClipDistance1
+	, out float OutCullDistance : SV_CullDistance1
 #endif
 	)
 {	
@@ -75,6 +78,10 @@ void Main(
 		#endif
 	}
 
+#if USE_GLOBAL_CLIP_PLANE
+	OutGlobalClipPlaneDistance = dot(ResolvedView.GlobalClippingPlane, float4(WorldPosition.xyz - ResolvedView.PreViewTranslation.xyz, 1));
+#endif
+
 	#if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
 		Output.BasePassInterpolants.PixelPositionExcludingWPO = WorldPositionExcludingWPO;
 	#endif
@@ -109,7 +116,8 @@ void Main(
 
 	//@todo - get from VF
 	float3 LightingPositionOffset = 0;
-	ComputeVolumeUVs(WorldPosition.xyz - ResolvedView.PreViewTranslation.xyz, LightingPositionOffset, InnerVolumeUVs, OuterVolumeUVs, FinalLerpFactor);
+	float3 WorldPositionForVertexLighting = VertexFactoryGetPositionForVertexLighting(Input, VFIntermediates, WorldPosition.xyz);
+	ComputeVolumeUVs(WorldPositionForVertexLighting - ResolvedView.PreViewTranslation.xyz, LightingPositionOffset, InnerVolumeUVs, OuterVolumeUVs, FinalLerpFactor);
 
 	#if TRANSLUCENCY_LIGHTING_VOLUMETRIC_PERVERTEX_DIRECTIONAL
 	

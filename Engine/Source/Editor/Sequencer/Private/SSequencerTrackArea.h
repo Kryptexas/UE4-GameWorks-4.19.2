@@ -9,6 +9,7 @@ class FSequencerTimeSliderController;
 class FSequencer;
 
 #include "SequencerInputHandlerStack.h"
+#include "ISequencerEditTool.h"
 
 /**
  * Structure representing a slot in the track area.
@@ -50,6 +51,9 @@ public:
 
 public:
 
+	/** Empty the track area */
+	void Empty();
+
 	/** Add a new track slot to this area for the given node. The slot will be automatically cleaned up when all external references to the supplied slot are removed. */
 	void AddTrackSlot(const TSharedRef<FSequencerDisplayNode>& InNode, const TSharedPtr<SSequencerTrackLane>& InSlot);
 
@@ -64,6 +68,9 @@ public:
 
 	/** Assign a tree view to this track area. */
 	void SetTreeView(const TSharedPtr<SSequencerTreeView>& InTreeView);
+
+	/** Access the currently active track area edit tool */
+	const ISequencerEditTool* GetEditTool() const { return EditTool.IsValid() ? EditTool.Get() : nullptr; }
 
 public:
 
@@ -82,6 +89,18 @@ public:
 	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
 	virtual FVector2D ComputeDesiredSize(float) const override;
 	virtual FChildren* GetChildren() override;
+
+protected:
+
+	/** Check whether it's possible to activate the specified tool */
+	bool CanActivateEditTool(FName Identifier) const;
+
+	/** Attempt to activate the tool specified by the template parameter */
+	template<typename EditToolType>
+	bool AttemptToActivateTool();
+
+	/** Update any hover state required for the track area */
+	void UpdateHoverStates( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
 
 private:
 
@@ -107,6 +126,9 @@ private:
 
 	/** Keep a hold of the size of the area so we can maintain zoom levels. */
 	TOptional<FVector2D> SizeLastFrame;
+
+	/** The currently active edit tool on this track area */
+	TUniquePtr<ISequencerEditTool> EditTool;
 
 private:
 

@@ -135,7 +135,7 @@ public:
 	 * @return true if module is currently loaded, false otherwise.
 	 * @see AbandonModule, LoadModule, LoadModuleWithFailureReason, UnloadModule
 	 */
-	bool IsModuleLoaded( const FName InModuleName );
+	bool IsModuleLoaded( const FName InModuleName ) const;
 
 	/**
 	 * Loads the specified module.
@@ -186,7 +186,7 @@ public:
 	 * @return true if the module was found and the OutModuleStatus is valid, false otherwise.
 	 * @see QueryModules
 	 */
-	bool QueryModule( const FName InModuleName, FModuleStatus& OutModuleStatus );
+	bool QueryModule( const FName InModuleName, FModuleStatus& OutModuleStatus ) const;
 
 	/**
 	 * Queries information about all of the currently known modules.
@@ -194,7 +194,7 @@ public:
 	 * @param OutModuleStatuses Status of all modules.
 	 * @see QueryModule
 	 */
-	void QueryModules( TArray<FModuleStatus>& OutModuleStatuses );
+	void QueryModules( TArray<FModuleStatus>& OutModuleStatuses ) const;
 
 	/**
 	 * Unloads a specific module
@@ -312,7 +312,7 @@ public:
 	 * @param WildcardWithoutExtension Filename part (no path, no extension, no build config info) to search for.
 	 * @param OutModules List of modules found.
 	 */
-	void FindModules( const TCHAR* WildcardWithoutExtension, TArray<FName>& OutModules );
+	void FindModules( const TCHAR* WildcardWithoutExtension, TArray<FName>& OutModules ) const;
 
 	/**
 	 * Determines if a module with the given name exists, regardless of whether it is currently loaded.
@@ -320,14 +320,14 @@ public:
 	 * @param ModuleName Name of the module to look for.
 	 * @return Whether the module exists.
 	 */
-	bool ModuleExists(const TCHAR* ModuleName);
+	bool ModuleExists(const TCHAR* ModuleName) const;
 
 	/**
 	 * Gets the number of loaded modules.
 	 *
 	 * @return The number of modules.
 	 */
-	int32 GetModuleCount( );
+	int32 GetModuleCount( ) const;
 
 	/**
 	 * Unloads modules during the shutdown process.
@@ -378,7 +378,7 @@ public:
 	 * @param InModuleName The base name of the module file.
 	 * @return true if module exists and is up to date, false otherwise.
 	 */
-	bool IsModuleUpToDate( const FName InModuleName );
+	bool IsModuleUpToDate( const FName InModuleName ) const;
 
 	/**
 	 * Determines whether the specified module contains UObjects.  The module must already be loaded into
@@ -387,7 +387,7 @@ public:
 	 * @param ModuleName Name of the loaded module to check.
 	 * @return True if the module was found to contain UObjects, or false if it did not (or wasn't loaded.)
 	 */
-	bool DoesLoadedModuleHaveUObjects( const FName ModuleName );
+	bool DoesLoadedModuleHaveUObjects( const FName ModuleName ) const;
 
 	/**
 	 * Gets the build configuration for compiling modules, as required by UBT.
@@ -397,7 +397,7 @@ public:
 	static const TCHAR *GetUBTConfiguration( );
 
 	/** Gets the filename for a module. The return value is a full path of a module known to the module manager. */
-	FString GetModuleFilename(FName ModuleName);
+	FString GetModuleFilename(FName ModuleName) const;
 
 	/** Sets the filename for a module. The module is not reloaded immediately, but the new name will be used for subsequent unload/load events. */
 	void SetModuleFilename(FName ModuleName, const FString& Filename);
@@ -459,7 +459,6 @@ protected:
 	 */
 	FModuleManager( )
 		: bCanProcessNewlyLoadedObjects(false)
-		, bModulePathsCacheInitialized(false)
 	{ }
 
 protected:
@@ -509,7 +508,7 @@ public:
 	/**
 	 * Generates a unique file name for the specified module name by adding a random suffix and checking for file collisions.
 	 */
-	void MakeUniqueModuleFilename( const FName InModuleName, FString& UniqueSuffix, FString& UniqueModuleFileName );
+	void MakeUniqueModuleFilename( const FName InModuleName, FString& UniqueSuffix, FString& UniqueModuleFileName ) const;
 
 	void AddModuleToModulesList(const FName InModuleName, TSharedRef<FModuleInfo>& ModuleInfo);
 
@@ -518,8 +517,18 @@ public:
 
 private:
 	/** Thread safe module finding routine. */
-	TSharedRef<FModuleInfo>* FindModule(FName InModuleName);
+	TSharedPtr<FModuleInfo> FindModule(FName InModuleName);
 	TSharedRef<FModuleInfo> FindModuleChecked(FName InModuleName);
+
+	FORCEINLINE TSharedPtr<const FModuleInfo> FindModule(FName InModuleName) const
+	{
+		return const_cast<FModuleManager*>(this)->FindModule(InModuleName);
+	}
+
+	FORCEINLINE TSharedRef<const FModuleInfo> FindModuleChecked(FName InModuleName) const
+	{
+		return const_cast<FModuleManager*>(this)->FindModuleChecked(InModuleName);
+	}
 
 	/** Compares file versions between the current executing engine version and the specified dll */
 	static bool CheckModuleCompatibility(const TCHAR *Filename);
@@ -528,7 +537,7 @@ private:
 	static void GetModuleFilenameFormat(bool bGameModule, FString& OutPrefix, FString& OutSuffix);
 
 	/** Finds modules matching a given name wildcard. */
-	void FindModulePaths(const TCHAR *NamePattern, TMap<FName, FString> &OutModulePaths, bool bCanUseCache = true);
+	void FindModulePaths(const TCHAR *NamePattern, TMap<FName, FString> &OutModulePaths, bool bCanUseCache = true) const;
 
 	/** Finds modules matching a given name wildcard within a given directory. */
 	void FindModulePathsInDirectory(const FString &DirectoryName, bool bIsGameDirectory, const TCHAR *NamePattern, TMap<FName, FString> &OutModulePaths) const;
@@ -547,11 +556,8 @@ private:
 	/** True if module manager should automatically register new UObjects discovered while loading C++ modules */
 	bool bCanProcessNewlyLoadedObjects;
 
-	/** True if module paths cache has already been initialized */
-	bool bModulePathsCacheInitialized;
-
 	/** Cache of known module paths. Used for performance. Can increase editor startup times by up to 30% */
-	TMap<FName, FString> ModulePathsCache;
+	mutable TOptional<TMap<FName, FString>> ModulePathsCache;
 
 	/** Multicast delegate that will broadcast a notification when modules are loaded, unloaded, or
 	    our set of known modules changes */
@@ -571,7 +577,7 @@ private:
 	TArray<FString> GameBinariesDirectories;
 
 	/** Critical section object controlling R/W access to Modules. */
-	FMultiReaderSingleWriterGT ModulesCriticalSection;
+	mutable FMultiReaderSingleWriterGT ModulesCriticalSection;
 };
 
 /**
@@ -722,7 +728,7 @@ class FDefaultGameModuleImpl
 
 /**
  * Macro for declaring the GIsDebugGame variable for monolithic development builds. NB: This define, and the UE_BUILD_DEVELOPMENT_WITH_DEBUGGAME defines like it, should NEVER be 
- * directly used or defined for engine code, because it prevents sharing the same build products with the development build (important for Rocket build sizes). In modular builds, 
+ * directly used or defined for engine code, because it prevents sharing the same build products with the development build (important for Launcher build sizes). In modular builds, 
  * DebugGame modules will be loaded by specifying the -debug parameter on the command-line.
  */
 #if IS_MONOLITHIC && UE_BUILD_DEVELOPMENT

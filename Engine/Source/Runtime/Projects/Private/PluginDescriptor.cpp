@@ -13,6 +13,7 @@ FPluginDescriptor::FPluginDescriptor()
 	, bCanContainContent(false)
 	, bIsBetaVersion(false)
 	, bInstalled(false)
+	, bRequiresBuildPlatform(true)
 { 
 }
 
@@ -102,6 +103,14 @@ bool FPluginDescriptor::Read(const FString& Text, FText& OutFailReason)
 	Object.TryGetBoolField(TEXT("IsBetaVersion"), bIsBetaVersion);
 	Object.TryGetBoolField(TEXT("Installed"), bInstalled);
 
+	if(!Object.TryGetBoolField(TEXT("RequiresBuildPlatform"), bRequiresBuildPlatform))
+	{
+		bRequiresBuildPlatform = true;
+	}
+
+	PreBuildSteps.Read(Object, TEXT("PreBuildSteps"));
+	PostBuildSteps.Read(Object, TEXT("PostBuildSteps"));
+
 	return true;
 }
 
@@ -145,6 +154,20 @@ FString FPluginDescriptor::ToString() const
 	Writer.WriteValue(TEXT("Installed"), bInstalled);
 
 	FModuleDescriptor::WriteArray(Writer, TEXT("Modules"), Modules);
+	if(!bRequiresBuildPlatform)
+	{
+		Writer.WriteValue(TEXT("RequiresBuildPlatform"), bRequiresBuildPlatform);
+	}
+
+	if(!PreBuildSteps.IsEmpty())
+	{
+		PreBuildSteps.Write(Writer, TEXT("PreBuildSteps"));
+	}
+
+	if(!PostBuildSteps.IsEmpty())
+	{
+		PostBuildSteps.Write(Writer, TEXT("PostBuildSteps"));
+	}
 
 	Writer.WriteObjectEnd();
 	Writer.Close();
@@ -157,6 +180,7 @@ FString FPluginDescriptor::ToString() const
 FPluginReferenceDescriptor::FPluginReferenceDescriptor( const FString& InName, bool bInEnabled, const FString& InMarketplaceURL )
 	: Name(InName)
 	, bEnabled(bInEnabled)
+	, bOptional(false)
 	, MarketplaceURL(InMarketplaceURL)
 { }
 
@@ -184,6 +208,28 @@ bool FPluginReferenceDescriptor::IsEnabledForPlatform( const FString& Platform )
 	return true;
 }
 
+bool FPluginReferenceDescriptor::IsEnabledForTarget(const FString& Target) const
+{
+    // If it's not enabled at all, return false
+    if (!bEnabled)
+    {
+        return false;
+    }
+
+    // If there is a list of whitelisted platforms, and this isn't one of them, return false
+    if (WhitelistTargets.Num() > 0 && !WhitelistTargets.Contains(Target))
+    {
+        return false;
+    }
+
+    // If this platform is blacklisted, also return false
+    if (BlacklistTargets.Contains(Target))
+    {
+        return false;
+    }
+
+    return true;
+}
 
 bool FPluginReferenceDescriptor::Read( const FJsonObject& Object, FText& OutFailReason )
 {
@@ -200,7 +246,10 @@ bool FPluginReferenceDescriptor::Read( const FJsonObject& Object, FText& OutFail
 		OutFailReason = LOCTEXT("PluginReferenceWithoutEnabled", "Plugin references must have an 'Enabled' field");
 		return false;
 	}
-	
+
+	// Read the optional field
+	Object.TryGetBoolField(TEXT("Optional"), bOptional);
+
 	// Read the metadata for users that don't have the plugin installed
 	Object.TryGetStringField(TEXT("Description"), Description);
 	Object.TryGetStringField(TEXT("MarketplaceURL"), MarketplaceURL);
@@ -208,6 +257,10 @@ bool FPluginReferenceDescriptor::Read( const FJsonObject& Object, FText& OutFail
 	// Get the platform lists
 	Object.TryGetStringArrayField(TEXT("WhitelistPlatforms"), WhitelistPlatforms);
 	Object.TryGetStringArrayField(TEXT("BlacklistPlatforms"), BlacklistPlatforms);
+
+	// Get the target lists
+	Object.TryGetStringArrayField(TEXT("WhitelistTargets"), WhitelistTargets);
+	Object.TryGetStringArrayField(TEXT("BlacklistTargets"), BlacklistTargets);
 
 	return true;
 }
@@ -247,6 +300,11 @@ void FPluginReferenceDescriptor::Write( TJsonWriter<>& Writer ) const
 	Writer.WriteValue(TEXT("Name"), Name);
 	Writer.WriteValue(TEXT("Enabled"), bEnabled);
 
+	if (bEnabled && bOptional)
+	{
+		Writer.WriteValue(TEXT("Optional"), bOptional);
+	}
+
 	if (Description.Len() > 0)
 	{
 		Writer.WriteValue(TEXT("Description"), Description);
@@ -276,6 +334,30 @@ void FPluginReferenceDescriptor::Write( TJsonWriter<>& Writer ) const
 		for (int Idx = 0; Idx < BlacklistPlatforms.Num(); Idx++)
 		{
 			Writer.WriteValue(BlacklistPlatforms[Idx]);
+		}
+
+		Writer.WriteArrayEnd();
+	}
+
+	if (WhitelistTargets.Num() > 0)
+	{
+		Writer.WriteArrayStart(TEXT("WhitelistTargets"));
+
+		for (int Idx = 0; Idx < WhitelistTargets.Num(); Idx++)
+		{
+			Writer.WriteValue(WhitelistTargets[Idx]);
+		}
+
+		Writer.WriteArrayEnd();
+	}
+
+	if (BlacklistTargets.Num() > 0)
+	{
+		Writer.WriteArrayStart(TEXT("BlacklistTargets"));
+
+		for (int Idx = 0; Idx < BlacklistTargets.Num(); Idx++)
+		{
+			Writer.WriteValue(BlacklistTargets[Idx]);
 		}
 
 		Writer.WriteArrayEnd();

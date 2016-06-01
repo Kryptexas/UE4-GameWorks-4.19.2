@@ -6,7 +6,14 @@
 
 
 /* FUdpDeserializedMessage structors
- *****************************************************************************/
+*****************************************************************************/
+
+FUdpDeserializedMessage::FUdpDeserializedMessage(const IMessageAttachmentPtr& InAttachment)
+	: Attachment(InAttachment)
+	, MessageData(nullptr)
+{
+}
+
 
 FUdpDeserializedMessage::~FUdpDeserializedMessage()
 {
@@ -18,6 +25,7 @@ FUdpDeserializedMessage::~FUdpDeserializedMessage()
 		}
 
 		FMemory::Free(MessageData);
+		MessageData = nullptr;
 	}
 }
 

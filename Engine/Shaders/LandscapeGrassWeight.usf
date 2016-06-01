@@ -4,6 +4,8 @@
 	LandscapeGrassWeightVertexShader.usf: Vertex shader to dump the weight map for Landscape Grass
 =============================================================================*/
 
+#define RENDERING_LANDSCAPE_GRASS 1
+
 #include "Common.usf"
 #include "Material.usf"
 #include "VertexFactory.usf"
@@ -11,7 +13,6 @@
 struct FLandscapeGrassWeightInterpolantsVSToPS
 {
 	FVertexFactoryInterpolantsVSToPS FactoryInterpolants;
-	float4 PixelPosition	: TEXCOORD8; // xyz = world position, w = clip z
 	float  Height			: TEXCOORD9;
 	float4 Position : SV_POSITION;
 };
@@ -31,13 +32,11 @@ void VSMain(
 	FVertexFactoryIntermediates VFIntermediates = GetVertexFactoryIntermediates(Input);
 	float4 WorldPositionExcludingWPO = VertexFactoryGetWorldPosition(Input, VFIntermediates);
 	float4 WorldPosition = WorldPositionExcludingWPO;
-
-	half3x3 TangentToLocal = VertexFactoryGetTangentToLocal(Input, VFIntermediates);	
-	FMaterialVertexParameters VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, WorldPosition.xyz, TangentToLocal);
-
 	float4 RasterizedWorldPosition = VertexFactoryGetRasterizedWorldPosition(Input, VFIntermediates, WorldPosition);
-	Output.PixelPosition = WorldPosition;
 	Output.Position = mul(RasterizedWorldPosition, ResolvedView.TranslatedWorldToClip);
+
+	half3x3 TangentToLocal = VertexFactoryGetTangentToLocal(Input, VFIntermediates);
+	FMaterialVertexParameters VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, WorldPosition.xyz, TangentToLocal);
 	Output.FactoryInterpolants = VertexFactoryGetInterpolantsVSToPS(Input, VFIntermediates, VertexParameters);
 
 	float2 Height2 = LandscapeVertexFactorySampleHeight(Input, VFIntermediates);
@@ -48,8 +47,6 @@ void VSMain(
 	Output.Height = Height;
 
 	Output.Position.xy += RenderOffset;
-
-	Output.PixelPosition.w = Output.Position.w;
 }
 
 #elif PIXELSHADER

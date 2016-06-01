@@ -490,6 +490,26 @@ FString FPaths::GetPath(const FString& InPath)
 	return Result;
 }
 
+FString FPaths::ChangeExtension(const FString& InPath, const FString& InNewExtension)
+{
+	int32 Pos = INDEX_NONE;
+	if (InPath.FindLastChar('.', Pos))
+	{
+		FString Result = InPath.Left(Pos);
+
+		if (InNewExtension.Len() && InNewExtension[0] != '.')
+		{
+			Result += '.';
+		}
+
+		Result += InNewExtension;
+
+		return Result;
+	}
+
+	return InPath;
+}
+
 bool FPaths::FileExists(const FString& InPath)
 {
 	return IFileManager::Get().FileExists(*InPath);

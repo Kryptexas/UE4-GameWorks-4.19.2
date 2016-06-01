@@ -39,8 +39,7 @@ namespace FbxMeshUtils
 					TArray<FbxNode*>* NodeList = new TArray<FbxNode*>;
 					LODNodeList.Add(NodeList);
 				}
-
-				LODNodeList[ChildIdx]->Add(Node->GetChild(ChildIdx));
+				FFbxImporter->FindAllLODGroupNode(*(LODNodeList[ChildIdx]), Node, ChildIdx);
 			}
 
 			if (MaxLODCount < (Node->GetChildCount() - 1))
@@ -70,7 +69,7 @@ namespace FbxMeshUtils
 		}
 	}
 
-	void ImportStaticMeshLOD( UStaticMesh* BaseStaticMesh, const FString& Filename, int32 LODLevel )
+	void ImportStaticMeshLOD( UStaticMesh* BaseStaticMesh, const FString& Filename, int32 LODLevel)
 	{
 		UE_LOG(LogExportMeshUtils, Log, TEXT("Fbx LOD loading"));
 		// logger for all error/warnings
@@ -79,11 +78,22 @@ namespace FbxMeshUtils
 		UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
 		UnFbx::FFbxLoggerSetter Logger(FFbxImporter);
 
-		// don't import materials
 		UnFbx::FBXImportOptions* ImportOptions = FFbxImporter->GetImportOptions();
+		
 		UFbxStaticMeshImportData* ImportData = Cast<UFbxStaticMeshImportData>(BaseStaticMesh->AssetImportData);
-		ImportOptions->bImportMaterials = false;
-		ImportOptions->bImportTextures = false;
+		if (ImportData != nullptr)
+		{
+			
+			UFbxImportUI* ReimportUI = NewObject<UFbxImportUI>();
+			ReimportUI->MeshTypeToImport = FBXIT_StaticMesh;
+			UnFbx::FBXImportOptions::ResetOptions(ImportOptions);
+			// Import data already exists, apply it to the fbx import options
+			ReimportUI->StaticMeshImportData = ImportData;
+			ApplyImportUIToImportOptions(ReimportUI, *ImportOptions);
+
+			ImportOptions->bImportMaterials = ImportData->bImportMaterials;
+			ImportOptions->bImportTextures = ImportData->bImportMaterials;
+		}
 
 		if ( !FFbxImporter->ImportFromFile( *Filename, FPaths::GetExtension( Filename ) ) )
 		{
@@ -94,7 +104,10 @@ namespace FbxMeshUtils
 		else
 		{
 			FFbxImporter->FlushToTokenizedErrorMessage(EMessageSeverity::Warning);
-			FFbxImporter->ApplyTransformSettingsToFbxNode(FFbxImporter->Scene->GetRootNode(), ImportData);
+			if (ImportData)
+			{
+				FFbxImporter->ApplyTransformSettingsToFbxNode(FFbxImporter->Scene->GetRootNode(), ImportData);
+			}
 
 			bool bUseLODs = true;
 			int32 MaxLODLevel = 0;
@@ -133,7 +146,7 @@ namespace FbxMeshUtils
 			{
 				// Import mesh
 				UStaticMesh* TempStaticMesh = NULL;
-				TempStaticMesh = (UStaticMesh*)FFbxImporter->ImportStaticMeshAsSingle(GetTransientPackage(), *(LODNodeList[bUseLODs? LODLevel: 0]), NAME_None, RF_NoFlags, ImportData, BaseStaticMesh, LODLevel);
+				TempStaticMesh = (UStaticMesh*)FFbxImporter->ImportStaticMeshAsSingle(BaseStaticMesh->GetOutermost(), *(LODNodeList[bUseLODs? LODLevel: 0]), NAME_None, RF_NoFlags, ImportData, BaseStaticMesh, LODLevel);
 
 				// Add imported mesh to existing model
 				if( TempStaticMesh )
@@ -166,7 +179,7 @@ namespace FbxMeshUtils
 		FFbxImporter->ReleaseScene();
 	}
 
-	void ImportSkeletalMeshLOD( class USkeletalMesh* SelectedSkelMesh, const FString& Filename, int32 LODLevel )
+	void ImportSkeletalMeshLOD( class USkeletalMesh* SelectedSkelMesh, const FString& Filename, int32 LODLevel)
 	{
 		// Check the file extension for FBX. Anything that isn't .FBX is rejected
 		const FString FileExtension = FPaths::GetExtension(Filename);
@@ -186,8 +199,29 @@ namespace FbxMeshUtils
 			UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
 			// don't import material and animation
 			UnFbx::FBXImportOptions* ImportOptions = FFbxImporter->GetImportOptions();
-			ImportOptions->bImportMaterials = false;
-			ImportOptions->bImportTextures = false;
+
+			UFbxAssetImportData *FbxAssetImportData = Cast<UFbxAssetImportData>(SelectedSkelMesh->AssetImportData);
+			if (FbxAssetImportData != nullptr)
+			{
+				UFbxSkeletalMeshImportData* ImportData = Cast<UFbxSkeletalMeshImportData>(FbxAssetImportData);
+				if (ImportData)
+				{
+					UnFbx::FBXImportOptions::ResetOptions(ImportOptions);
+					// Prepare the import options
+					UFbxImportUI* ReimportUI = NewObject<UFbxImportUI>();
+					ReimportUI->MeshTypeToImport = FBXIT_SkeletalMesh;
+					ReimportUI->Skeleton = SelectedSkelMesh->Skeleton;
+					ReimportUI->PhysicsAsset = SelectedSkelMesh->PhysicsAsset;
+					// Import data already exists, apply it to the fbx import options
+					ReimportUI->SkeletalMeshImportData = ImportData;
+					//Some options not supported with skeletal mesh
+					ReimportUI->SkeletalMeshImportData->bBakePivotInVertex = false;
+					ReimportUI->SkeletalMeshImportData->bTransformVertexToAbsolute = true;
+					ApplyImportUIToImportOptions(ReimportUI, *ImportOptions);
+				}
+				ImportOptions->bImportMaterials = FbxAssetImportData->bImportMaterials;
+				ImportOptions->bImportTextures = FbxAssetImportData->bImportMaterials;
+			}
 			ImportOptions->bImportAnimations = false;
 
 			if ( !FFbxImporter->ImportFromFile( *Filename, FPaths::GetExtension( Filename ) ) )
@@ -263,13 +297,19 @@ namespace FbxMeshUtils
 							FbxNode* Node = (*MeshObject)[j];
 							if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)
 							{
+								TArray<FbxNode*> NodeInLod;
 								if (Node->GetChildCount() > SelectedLOD)
 								{
-									SkelMeshNodeArray.Add(Node->GetChild(SelectedLOD));
+									FFbxImporter->FindAllLODGroupNode(NodeInLod, Node, SelectedLOD);
 								}
 								else // in less some LODGroups have less level, use the last level
 								{
-									SkelMeshNodeArray.Add(Node->GetChild(Node->GetChildCount() - 1));
+									FFbxImporter->FindAllLODGroupNode(NodeInLod, Node, Node->GetChildCount() - 1);
+								}
+
+								for (FbxNode *MeshNode : NodeInLod)
+								{
+									SkelMeshNodeArray.Add(MeshNode);
 								}
 							}
 							else
@@ -283,7 +323,7 @@ namespace FbxMeshUtils
 					USkeletalMesh* TempSkelMesh = NULL;
 					// @todo AssetImportData does this temp skeletal mesh need import data?
 					UFbxSkeletalMeshImportData* TempAssetImportData = NULL;
-					TempSkelMesh = (USkeletalMesh*)FFbxImporter->ImportSkeletalMesh(GetTransientPackage(), bUseLODs? SkelMeshNodeArray: *MeshObject, NAME_None, (EObjectFlags)0, TempAssetImportData);
+					TempSkelMesh = (USkeletalMesh*)FFbxImporter->ImportSkeletalMesh(SelectedSkelMesh->GetOutermost(), bUseLODs? SkelMeshNodeArray: *MeshObject, NAME_None, RF_Transient, TempAssetImportData, LODLevel);
 
 					// Add imported mesh to existing model
 					bool bImportSucceeded = false;
@@ -336,7 +376,7 @@ namespace FbxMeshUtils
 		}
 	}
 
-	void ImportMeshLODDialog( class UObject* SelectedMesh, int32 LODLevel )
+	void ImportMeshLODDialog( class UObject* SelectedMesh, int32 LODLevel)
 	{
 		if(!SelectedMesh)
 		{

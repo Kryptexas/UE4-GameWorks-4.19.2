@@ -723,8 +723,6 @@ FSlateMaterialResource* FSlateRHIResourceManager::GetMaterialResource(const UObj
 	}
 	else
 	{
-		// Keep the resource up to date
-		MaterialResource->UpdateRenderResource(Material->GetRenderProxy(false, false));
 		MaterialResource->SlateProxy->ActualSize = ImageSize.IntPoint();
 	}
 
@@ -735,6 +733,8 @@ FSlateMaterialResource* FSlateRHIResourceManager::GetMaterialResource(const UObj
 
 void FSlateRHIResourceManager::OnAppExit()
 {
+	FlushRenderingCommands();
+
 	ReleaseResources();
 
 	FlushRenderingCommands();
@@ -782,6 +782,7 @@ void FSlateRHIResourceManager::ReleaseDynamicResource( const FSlateBrush& InBrus
 
 				if (MaterialResource.IsValid())
 				{
+					MaterialResource->ResetMaterial();
 					MaterialResourceFreeList.Add( MaterialResource );
 				}
 			}
@@ -904,8 +905,8 @@ FCachedRenderBuffers* FSlateRHIResourceManager::FindOrCreateCachedBuffersForHand
 		if ( Pool.Num() == 0 )
 		{
 			Buffers = new FCachedRenderBuffers();
-			Buffers->VertexBuffer.Init(200);
-			Buffers->IndexBuffer.Init(200);
+			Buffers->VertexBuffer.Init(100);
+			Buffers->IndexBuffer.Init(100);
 		}
 		else
 		{
@@ -991,10 +992,10 @@ void FSlateRHIResourceManager::ReleaseCachedBuffer(FRHICommandListImmediate& RHI
 	}
 	else
 	{
-		PooledBuffer->VertexBuffer.Destroy();
-		PooledBuffer->IndexBuffer.Destroy();
-		delete PooledBuffer;
-	}
+			PooledBuffer->VertexBuffer.Destroy();
+			PooledBuffer->IndexBuffer.Destroy();
+			delete PooledBuffer;
+		}
 }
 
 void FSlateRHIResourceManager::ReleaseResources()

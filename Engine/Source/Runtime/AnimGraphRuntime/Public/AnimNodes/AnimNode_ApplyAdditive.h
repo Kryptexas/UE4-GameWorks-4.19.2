@@ -32,6 +32,9 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_ApplyAdditive : public FAnimNode_Base
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Performance, meta=(DisplayName="LOD Threshold"))
 	int32 LODThreshold;
 
+	UPROPERTY(Transient)
+	float ActualAlpha;
+
 public:	
 	FAnimNode_ApplyAdditive();
 

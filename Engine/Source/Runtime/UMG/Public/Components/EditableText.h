@@ -3,7 +3,7 @@
 #pragma once
 
 #include "EditableTextWidgetStyle.h"
-
+#include "TextWidgetTypes.h"
 #include "EditableText.generated.h"
 
 /**
@@ -99,12 +99,16 @@ public:
 	bool SelectAllTextOnCommit;
 
 	/** Whether the context menu can be opened */
-	UPROPERTY(EditAnywhere, Category = Behavior, AdvancedDisplay)
+	UPROPERTY(EditAnywhere, Category=Behavior, AdvancedDisplay)
 	bool AllowContextMenu;
 
 	/** If we're on a platform that requires a virtual keyboard, what kind of keyboard should this widget use? */
-	UPROPERTY( EditAnywhere, Category = Behavior, AdvancedDisplay )
-	TEnumAsByte< EVirtualKeyboardType::Type > KeyboardType;
+	UPROPERTY(EditAnywhere, Category=Behavior, AdvancedDisplay)
+	TEnumAsByte<EVirtualKeyboardType::Type> KeyboardType;
+
+	/** Controls how the text within this widget should be shaped. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Localization, AdvancedDisplay, meta=(ShowOnlyInnerProperties))
+	FShapedTextOptions ShapedTextOptions;
 
 public:
 
@@ -155,7 +159,6 @@ public:
 	//~ End UObject Interface
 
 #if WITH_EDITOR
-	virtual const FSlateBrush* GetEditorIcon() override;
 	virtual const FText GetPaletteCategory() override;
 #endif
 	//~ End UWidget Interface

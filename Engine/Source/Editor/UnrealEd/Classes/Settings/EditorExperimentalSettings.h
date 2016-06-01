@@ -37,14 +37,16 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = ( DisplayName = "Single Layout Blueprint Editor" ))
 	bool bUnifiedBlueprintEditor;
 
+	/** When enabled, all details panels will be able to have properties marked as favorite that show in a top most category.  
+	 * NOTE: Some customizations are not supported yet
+	 */
+	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Enable Details Panel Favorites"))
+	bool bEnableFavoriteSystem;
+
 	/** Enable being able to subclass components in blueprints */
 	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(ConfigRestartRequired=true))
 	bool bBlueprintableComponents;
-
-	/** Allows to use actor merging utilities (Simplygon Proxy LOD, Grouping by Materials)*/
-	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Actor Merging"))
-	bool bActorMerging;
-
+	
 	/** Device output log window (currently implemented for Android only)*/
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Device Output Log"))
 	bool bDeviceOutputLog;
@@ -65,9 +67,9 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Blueprint Performance Analysis Tools"))
 	bool bBlueprintPerformanceAnalysisTools;
 
-	/** The number of samples the blueprint profiler should use to average the current value. */
-	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Blueprint Profiler Sample Count"))
-	int32 BlueprintProfilerAverageSampleCount;
+	/** Bias to weight prominance of newer samples against hositorical samples. */
+	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Blueprint Performance Analysis Sample Bias", ClampMin=0.01, ClampMax=1.0))
+	float BlueprintProfilerRecentSampleBias;
 
 	/** Enables the visual diff tool for widget blueprints. WARNING: changes to the widget hierarchy will not be detected */
 	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Use the Diff Tool for Widget Blueprints"))
@@ -108,9 +110,17 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Tools)
 	bool bLiveStreamingFromEditor;
 
-	/** Enables Metal/High-end mobile rendering path previw on Desktop */
-	UPROPERTY(EditAnywhere, config, Category = Rendering, meta = (DisplayName = "Enable Metal/High-end mobile rendering preview"))
+	/** Enables Metal/High-end mobile rendering path preview on Desktop */
+	UPROPERTY(EditAnywhere, config, Category = Rendering, meta = (DisplayName = "Enable Metal/Vulkan/High-end mobile Preview Rendering Level in editor"))
 	bool bFeatureLevelES31Preview;
+
+	/** Enable late joining in PIE */
+	UPROPERTY(EditAnywhere, config, Category = PIE, meta = (DisplayName = "Allow late joining"))
+	bool bAllowLateJoinInPIE;
+
+	/** Allow Vulkan Preview */
+	UPROPERTY(EditAnywhere, config, Category = PIE, meta = (DisplayName = "Allow Vulkan Mobile Preview"))
+	bool bAllowVulkanPreview;
 
 	/** Enable multithreaded lightmap encoding (decreases time taken to encode lightmaps) */
 	UPROPERTY(EditAnywhere, config, Category = LightingBuilds, meta = (DisplayName = "Enable Multithreaded lightmap encoding"))
@@ -123,6 +133,14 @@ public:
 	/** Whether to use OpenCL to accelerate convex hull decomposition (uses GPU to decrease time taken to decompose meshes, currently only available on Mac OS X) */
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Use OpenCL for convex hull decomposition"))
 	bool bUseOpenCLForConvexHullDecomp;
+
+	/** Enables a preview of the Unreal Editor in VR.  This adds a new tool bar button that allows you to toggle into "VR Mode" instantly.  This feature is still in development, but your feedback is appreciated! */
+	UPROPERTY(EditAnywhere, config, Category=VR, meta = (DisplayName="Enable VR Editing"))
+	bool bEnableVREditing;
+
+	/** Allows editing of potentially unsafe properties during PIE. Advanced use only - use with caution. */
+	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Allow editing of potentially unsafe properties."))
+	bool bAllowPotentiallyUnsafePropertyEditing;
 
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.

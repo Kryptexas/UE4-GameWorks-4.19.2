@@ -45,11 +45,13 @@ class SFbxSceneTreeViewItem : public STableRow< FbxNodeInfoPtr >
 public:
 
 	SLATE_BEGIN_ARGS(SFbxSceneTreeViewItem)
-		: _FbxNodeInfo(NULL)
+		: _FbxNodeInfo(nullptr)
+		, _SceneInfo(nullptr)
 	{}
 
 	/** The item content. */
 	SLATE_ARGUMENT(FbxNodeInfoPtr, FbxNodeInfo)
+	SLATE_ARGUMENT(TSharedPtr<FFbxSceneInfo>, SceneInfo)
 	SLATE_END_ARGS()
 
 	/**
@@ -60,21 +62,56 @@ public:
 	void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView)
 	{
 		FbxNodeInfo = InArgs._FbxNodeInfo;
+		SceneInfo = InArgs._SceneInfo;
 		
 		//This is suppose to always be valid
 		check(FbxNodeInfo.IsValid());
+		check(SceneInfo.IsValid());
+
 		UClass *IconClass = AActor::StaticClass();
 		if (FbxNodeInfo->AttributeInfo.IsValid())
 		{
 			IconClass = FbxNodeInfo->AttributeInfo->GetType();
 		}
+		else if (FbxNodeInfo->AttributeType.Compare(TEXT("eLight")) == 0)
+		{
+			IconClass = ULightComponent::StaticClass();
+			if (SceneInfo->LightInfo.Contains(FbxNodeInfo->AttributeUniqueId))
+			{
+				TSharedPtr<FFbxLightInfo> LightInfo = *SceneInfo->LightInfo.Find(FbxNodeInfo->AttributeUniqueId);
+				if (LightInfo->Type == 0)
+				{
+					IconClass = UPointLightComponent::StaticClass();
+				}
+				else if (LightInfo->Type == 1)
+				{
+					IconClass = UDirectionalLightComponent::StaticClass();
+				}
+				else if (LightInfo->Type == 2)
+				{
+					IconClass = USpotLightComponent::StaticClass();
+				}
+			}
+		}
+		else if (FbxNodeInfo->AttributeType.Compare(TEXT("eCamera")) == 0)
+		{
+			IconClass = UCameraComponent::StaticClass();
+		}
 		const FSlateBrush* ClassIcon = FClassIconFinder::FindIconForClass(IconClass);
+
+		//Prepare the tooltip
+		FString Tooltip = FbxNodeInfo->NodeName;
+		if (!FbxNodeInfo->AttributeType.IsEmpty() && FbxNodeInfo->AttributeType.Compare(TEXT("eNull")) != 0)
+		{
+			Tooltip += TEXT(" [") + FbxNodeInfo->AttributeType + TEXT("]");
+		}
 
 		this->ChildSlot
 		[
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
 			.AutoWidth()
+			.Padding(2.0f, 0.0f, 2.0f, 0.0f)
 			[
 				SNew(SCheckBox)
 				.OnCheckStateChanged(this, &SFbxSceneTreeViewItem::OnItemCheckChanged)
@@ -102,7 +139,7 @@ public:
 			[
 				SNew(STextBlock)
 				.Text(FText::FromString(FbxNodeInfo->NodeName))
-				.ToolTipText(FText::FromString(FbxNodeInfo->NodeName))
+				.ToolTipText(FText::FromString(Tooltip))
 			]
 
 		];
@@ -116,11 +153,43 @@ public:
 
 private:
 
+	void RecursivelySetLODMeshImportState(TSharedPtr<FFbxNodeInfo> NodeInfo, bool bState)
+	{
+		//Set the bImportNode property for all mesh under eLODGroup
+		for (TSharedPtr<FFbxNodeInfo> ChildNodeInfo : NodeInfo->Childrens)
+		{
+			if (!ChildNodeInfo.IsValid())
+				continue;
+			if (ChildNodeInfo->AttributeType.Compare(TEXT("eMesh")) == 0)
+			{
+				ChildNodeInfo->bImportNode = bState;
+			}
+			else
+			{
+				RecursivelySetLODMeshImportState(ChildNodeInfo, bState);
+			}
+		}
+	}
+
 	void OnItemCheckChanged(ECheckBoxState CheckType)
 	{
 		if (!FbxNodeInfo.IsValid())
 			return;
 		FbxNodeInfo->bImportNode = CheckType == ECheckBoxState::Checked;
+		if (FbxNodeInfo->AttributeType.Compare(TEXT("eLODGroup")) == 0)
+		{
+			RecursivelySetLODMeshImportState(FbxNodeInfo, FbxNodeInfo->bImportNode);
+		}
+		if (FbxNodeInfo->AttributeType.Compare(TEXT("eMesh")) == 0)
+		{
+			//Verify if parent is a LOD group
+			TSharedPtr<FFbxNodeInfo> ParentLODNodeInfo = FFbxSceneInfo::RecursiveFindLODParentNode(FbxNodeInfo);
+			if (ParentLODNodeInfo.IsValid())
+			{
+				ParentLODNodeInfo->bImportNode = FbxNodeInfo->bImportNode;
+				RecursivelySetLODMeshImportState(ParentLODNodeInfo, FbxNodeInfo->bImportNode);
+			}
+		}
 	}
 
 	ECheckBoxState IsItemChecked() const
@@ -130,22 +199,42 @@ private:
 
 	/** The node info to build the tree view row from. */
 	FbxNodeInfoPtr FbxNodeInfo;
+	TSharedPtr<FFbxSceneInfo> SceneInfo;
 };
 
 TSharedRef< ITableRow > SFbxSceneTreeView::OnGenerateRowFbxSceneTreeView(FbxNodeInfoPtr Item, const TSharedRef< STableViewBase >& OwnerTable)
 {
 	TSharedRef< SFbxSceneTreeViewItem > ReturnRow = SNew(SFbxSceneTreeViewItem, OwnerTable)
-		.FbxNodeInfo(Item);
+		.FbxNodeInfo(Item)
+		.SceneInfo(SceneInfo);
 	return ReturnRow;
 }
 
 void SFbxSceneTreeView::OnGetChildrenFbxSceneTreeView(FbxNodeInfoPtr InParent, TArray< FbxNodeInfoPtr >& OutChildren)
 {
-	for (auto Child : InParent->Childrens)
+	if (InParent->AttributeType.Compare(TEXT("eLODGroup")) == 0 && InParent->Childrens.Num() > 0)
 	{
-		if (Child.IsValid())
+		TSharedPtr<FFbxNodeInfo> Child = InParent;
+		do
 		{
-			OutChildren.Add(Child);
+			Child = Child->Childrens[0];
+			if (Child.IsValid() && Child->AttributeType.Compare(TEXT("eMesh")) == 0)
+			{
+				OutChildren.Add(Child);
+				return;
+			}
+		} while (Child->Childrens.Num() > 0);
+		//We do not found any LOD mesh don't add any child
+	}
+	else
+	{
+		for (TSharedPtr<FFbxNodeInfo> Child : InParent->Childrens)
+		{
+			//We hide skeletal mesh from the tree, a mesh without a valid attributeinfo is a sub skeletal mesh
+			if (Child.IsValid() && (Child->AttributeType.Compare(TEXT("eMesh")) != 0 || Child->AttributeInfo.IsValid()))
+			{
+				OutChildren.Add(Child);
+			}
 		}
 	}
 }

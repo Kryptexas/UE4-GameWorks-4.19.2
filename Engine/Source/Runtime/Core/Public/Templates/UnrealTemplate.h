@@ -8,48 +8,12 @@
 #include "HAL/Platform.h"
 #include "Templates/UnrealTypeTraits.h"
 #include "UnrealMemory.h"
+#include "AlignmentTemplates.h"
 
 
 /*-----------------------------------------------------------------------------
 	Standard templates.
 -----------------------------------------------------------------------------*/
-
-/**
- * Aligns a value to the nearest higher multiple of 'Alignment', which must be a power of two.
- *
- * @param Ptr			Value to align
- * @param Alignment		Alignment, must be a power of two
- * @return				Aligned value
- */
-template <typename T>
-inline CONSTEXPR T Align( const T Ptr, int32 Alignment )
-{
-	return (T)(((PTRINT)Ptr + Alignment - 1) & ~(Alignment-1));
-}
-
-/**
- * Checks if a pointer is aligned to the specified alignment.
- *
- * @param Ptr - The pointer to check.
- *
- * @return true if the pointer is aligned, false otherwise.
- */
-static FORCEINLINE bool IsAligned(const volatile void* Ptr, const uint32 Alignment)
-{
-	return !(UPTRINT(Ptr) & (Alignment - 1));
-}
-
-/**
- * Aligns a value to the nearest higher multiple of 'Alignment'.
- *
- * @param Ptr			Value to align
- * @param Alignment		Alignment, can be any arbitrary uint32
- * @return				Aligned value
- */
-template< class T > inline T AlignArbitrary( const T Ptr, uint32 Alignment )
-{
-	return (T) ( ( ((UPTRINT)Ptr + Alignment - 1) / Alignment ) * Alignment );
-}
 
 /**
  * Chooses between the two parameters based on whether the first is nullptr or not.
@@ -109,6 +73,20 @@ FORCEINLINE void Move(T& A,typename TMoveSupportTraits<T>::Move B)
 	// Use placement new and a copy constructor so types with const members will work.
 	new(&A) T(MoveTemp(B));
 }
+
+/**
+ * Tests if an index is valid for a given array.
+ *
+ * @param Array  The array to check against.
+ * @param Index  The index to check.
+ * @return true if the index is valid, false otherwise.
+ */
+template <typename T, SIZE_T N>
+static FORCEINLINE bool IsValidArrayIndex(const T(&Array)[N], SIZE_T Index)
+{
+	return Index < N;
+}
+
 /*----------------------------------------------------------------------------
 	Standard macros.
 ----------------------------------------------------------------------------*/
@@ -367,7 +345,7 @@ FORCEINLINE T&& Forward(typename TRemoveReference<T>::Type&& Obj)
 }
 
 /**
- * Swap two values, using moves if possible
+ * Swap two values.  Assumes the types are trivially relocatable.
  */
 template <typename T>
 inline void Swap(T& A, T& B)
@@ -512,6 +490,15 @@ struct TIdentity
 };
 
 /**
+ * Defines a value metafunction of the given Value.
+ */
+template <typename T, T Val>
+struct TIntegralConstant
+{
+	static const T Value = Val;
+};
+
+/**
  * Does LHS::Value && RHS::Value, but short-circuits if LHS::Value == false.
  */
 template <bool LHSValue, typename RHS>
@@ -567,3 +554,18 @@ struct TBoolConstant
  */
 template <typename T>
 T&& DeclVal();
+
+
+/**
+ * Determines if T is a struct/class type
+ */
+template <typename T>
+struct TIsClass
+{
+private:
+	template <typename U> static uint16 Func(int U::*);
+	template <typename U> static uint8  Func(...);
+
+public:
+	enum { Value = !__is_union(T) && sizeof(Func<T>(0)) - 1 };
+};

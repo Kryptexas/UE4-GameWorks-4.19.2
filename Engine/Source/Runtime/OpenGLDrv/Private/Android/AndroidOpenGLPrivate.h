@@ -24,20 +24,31 @@ public:
 	FString GPUFamily;
 	FString GLVersion;
 	bool bSupportsFloatingPointRenderTargets;
-	bool bSupportsTextureHalfFloat;
 	bool bSupportsFrameBufferFetch;
 	TArray<FString> TargetPlatformNames;
 
 private:
 	FAndroidGPUInfo()
 	{
+		if (FAndroidMisc::ShouldUseVulkan())
+		{
+			// hard coded for the time being
+			GPUFamily = "Vulkan Mobile";
+			GLVersion = "3.1.0";
+			bSupportsFloatingPointRenderTargets = true;
+			bSupportsFrameBufferFetch = false;
+			TargetPlatformNames.Add(TEXT("Android_ASTC"));
+			GAndroidGPUInfoReady = true;
+		}
+		else
+		{
 #if PLATFORM_ANDROIDGL4
 		// hard coded for the time being
 		GPUFamily = "NVIDIA Tegra";
 		GLVersion = "4.4.0";
 		bSupportsFloatingPointRenderTargets = true;
-		bSupportsTextureHalfFloat = true;
 		TargetPlatformNames.Add(TEXT("Android_GL4"));
+			GAndroidGPUInfoReady = true;
 #else
 		// this is only valid in the game thread, make sure we are initialized there before being called on other threads!
 		check(IsInGameThread())
@@ -109,11 +120,10 @@ private:
 		TargetPlatformNames.Add(TEXT("Android"));
 
 #endif
-
 		bSupportsFloatingPointRenderTargets = ExtensionsString.Contains(TEXT("GL_EXT_color_buffer_half_float"));
-		bSupportsTextureHalfFloat = ExtensionsString.Contains(TEXT("GL_OES_texture_half_float"));
 		bSupportsFrameBufferFetch = ExtensionsString.Contains(TEXT("GL_EXT_shader_framebuffer_fetch")) || ExtensionsString.Contains(TEXT("GL_NV_shader_framebuffer_fetch")) || ExtensionsString.Contains(TEXT("GL_ARM_shader_framebuffer_fetch"));
 #endif
+		}
 		GAndroidGPUInfoReady = true;
 	}
 };

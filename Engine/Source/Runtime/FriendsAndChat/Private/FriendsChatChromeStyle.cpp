@@ -103,3 +103,9 @@ FFriendsChatChromeStyle& FFriendsChatChromeStyle::SetChatBackgroundColor(const F
 	ChatBackgroundColor = Value;
 	return *this;
 }
+
+FFriendsChatChromeStyle& FFriendsChatChromeStyle::SetChatMenuBackgroundBrush(const FSlateBrush& Value)
+{
+	ChatMenuBackgroundBrush = Value;
+	return *this;
+}

@@ -67,7 +67,7 @@ void AActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 				}
 				if (USceneComponent* ASC = Cast<USceneComponent>(&A))
 				{
-					if (ASC->AttachParent == &B)
+					if (ASC->GetAttachParent() == &B)
 					{
 						return false;
 					}
@@ -85,7 +85,7 @@ void AActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 				else if (Component->CreationMethod == EComponentCreationMethod::Instance)
 				{
 					USceneComponent* SC = Cast<USceneComponent>(Component);
-					if (SC == nullptr || SC == RootComponent || (SC->AttachParent && SC->AttachParent->IsRegistered()))
+					if (SC == nullptr || SC == RootComponent || (SC->GetAttachParent() && SC->GetAttachParent()->IsRegistered()))
 					{
 						Component->RegisterComponent();
 					}
@@ -239,7 +239,7 @@ void AActor::DebugShowOneComponentHierarchy( USceneComponent* SceneComp, int32& 
 	{
 		UE_LOG(LogActor, Warning, TEXT("%sSceneComp [%x] (%s) No Owner"), *Nest, SceneComp, *SceneComp->GetFName().ToString() );
 	}
-	if( SceneComp->AttachParent )
+	if( SceneComp->GetAttachParent())
 	{
 		if( bShowPosition )
 		{
@@ -251,18 +251,17 @@ void AActor::DebugShowOneComponentHierarchy( USceneComponent* SceneComp, int32& 
 		{
 			PosString = "";
 		}
-		UE_LOG(LogActor, Warning, TEXT("%sAttachParent [%x] (%s) %s"), *Nest, SceneComp->AttachParent , *SceneComp->AttachParent->GetFName().ToString(), *PosString );
+		UE_LOG(LogActor, Warning, TEXT("%sAttachParent [%x] (%s) %s"), *Nest, SceneComp->GetAttachParent(), *SceneComp->GetAttachParent()->GetFName().ToString(), *PosString );
 	}
 	else
 	{
 		UE_LOG(LogActor, Warning, TEXT("%s[NO PARENT]"), *Nest );
 	}
 
-	if( SceneComp->AttachChildren.Num() != 0 )
+	if( SceneComp->GetAttachChildren().Num() != 0 )
 	{
-		for (int32 iChild = 0; iChild < SceneComp->AttachChildren.Num() ; iChild++)
+		for (USceneComponent* EachSceneComp : SceneComp->GetAttachChildren())
 		{			
-			USceneComponent* EachSceneComp = Cast<USceneComponent>(SceneComp->AttachChildren[iChild]);			
 			DebugShowOneComponentHierarchy(EachSceneComp,NestLevel, bShowPosition );
 		}
 	}
@@ -272,26 +271,26 @@ void AActor::DebugShowOneComponentHierarchy( USceneComponent* SceneComp, int32& 
 	}
 }
 
-AActor::FActorTransactionAnnotation::FActorTransactionAnnotation(const AActor* Actor)
+AActor::FActorTransactionAnnotation::FActorTransactionAnnotation(const AActor* Actor, const bool bCacheRootComponentData)
 	: ComponentInstanceData(Actor)
 {
 	USceneComponent* ActorRootComponent = Actor->GetRootComponent();
-	if (ActorRootComponent && ActorRootComponent->IsCreatedByConstructionScript())
+	if (bCacheRootComponentData && ActorRootComponent && ActorRootComponent->IsCreatedByConstructionScript())
 	{
 		bRootComponentDataCached = true;
 		RootComponentData.Transform = ActorRootComponent->ComponentToWorld;
 		RootComponentData.Transform.SetTranslation(ActorRootComponent->GetComponentLocation()); // take into account any custom location
 
-		if (ActorRootComponent->AttachParent)
+		if (ActorRootComponent->GetAttachParent())
 		{
-			RootComponentData.AttachedParentInfo.Actor = ActorRootComponent->AttachParent->GetOwner();
-			RootComponentData.AttachedParentInfo.AttachParent = ActorRootComponent->AttachParent;
-			RootComponentData.AttachedParentInfo.AttachParentName = ActorRootComponent->AttachParent->GetFName();
-			RootComponentData.AttachedParentInfo.SocketName = ActorRootComponent->AttachSocketName;
+			RootComponentData.AttachedParentInfo.Actor = ActorRootComponent->GetAttachParent()->GetOwner();
+			RootComponentData.AttachedParentInfo.AttachParent = ActorRootComponent->GetAttachParent();
+			RootComponentData.AttachedParentInfo.AttachParentName = ActorRootComponent->GetAttachParent()->GetFName();
+			RootComponentData.AttachedParentInfo.SocketName = ActorRootComponent->GetAttachSocketName();
 			RootComponentData.AttachedParentInfo.RelativeTransform = ActorRootComponent->GetRelativeTransform();
 		}
 
-		for (USceneComponent* AttachChild : ActorRootComponent->AttachChildren)
+		for (USceneComponent* AttachChild : ActorRootComponent->GetAttachChildren())
 		{
 			AActor* ChildOwner = (AttachChild ? AttachChild->GetOwner() : NULL);
 			if (ChildOwner && ChildOwner != Actor)
@@ -299,7 +298,7 @@ AActor::FActorTransactionAnnotation::FActorTransactionAnnotation(const AActor* A
 				// Save info about actor to reattach
 				FActorRootComponentReconstructionData::FAttachedActorInfo Info;
 				Info.Actor = ChildOwner;
-				Info.SocketName = AttachChild->AttachSocketName;
+				Info.SocketName = AttachChild->GetAttachSocketName();
 				Info.RelativeTransform = AttachChild->GetRelativeTransform();
 				RootComponentData.AttachedToInfo.Add(Info);
 			}
@@ -323,12 +322,17 @@ bool AActor::FActorTransactionAnnotation::HasInstanceData() const
 
 TSharedPtr<ITransactionObjectAnnotation> AActor::GetTransactionAnnotation() const
 {
+	if (CurrentTransactionAnnotation.IsValid())
+	{
+		return CurrentTransactionAnnotation;
+	}
+
 	TSharedPtr<FActorTransactionAnnotation> TransactionAnnotation = MakeShareable(new FActorTransactionAnnotation(this));
 
 	if (!TransactionAnnotation->HasInstanceData())
 	{
 		// If there is nothing in the annotation don't bother storing it.
-		TransactionAnnotation = NULL;
+		TransactionAnnotation = nullptr;
 	}
 
 	return TransactionAnnotation;

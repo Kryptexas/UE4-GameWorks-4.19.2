@@ -9,7 +9,7 @@ INPUTCORE_API DECLARE_LOG_CATEGORY_EXTERN(LogInput, Log, All);
 
 /** Defines the controller hands for tracking.  Could be expanded, as needed, to facilitate non-handheld controllers */
 UENUM(BlueprintType)
-enum class EControllerHand
+enum class EControllerHand : uint8
 {
 	Left,
 	Right,
@@ -337,6 +337,8 @@ struct INPUTCORE_API EKeys
 	static const FKey Gamepad_LeftThumbstick;
 	static const FKey Gamepad_RightThumbstick;
 	static const FKey Gamepad_Special_Left;
+	static const FKey Gamepad_Special_Left_X;
+	static const FKey Gamepad_Special_Left_Y;
 	static const FKey Gamepad_Special_Right;
 	static const FKey Gamepad_FaceButton_Bottom;
 	static const FKey Gamepad_FaceButton_Right;
@@ -371,6 +373,7 @@ struct INPUTCORE_API EKeys
 	// Gestures
 	static const FKey Gesture_Pinch;
 	static const FKey Gesture_Flick;
+	static const FKey Gesture_Rotate;
 
 	// Motion Controllers
 	//		Left Controller

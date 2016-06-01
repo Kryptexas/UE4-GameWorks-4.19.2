@@ -114,7 +114,7 @@ ATP_VehicleAdvPawn::ATP_VehicleAdvPawn()
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	SpringArm->SetRelativeLocation(FVector(0.0f, 0.0f, 34.0f));
 	SpringArm->SetWorldRotation(FRotator(-20.0f, 0.0f, 0.0f));
-	SpringArm->AttachTo(RootComponent);
+	SpringArm->SetupAttachment(RootComponent);
 	SpringArm->TargetArmLength = 125.0f;
 	SpringArm->bEnableCameraLag = false;
 	SpringArm->bEnableCameraRotationLag = false;
@@ -124,7 +124,8 @@ ATP_VehicleAdvPawn::ATP_VehicleAdvPawn()
 
 	// Create the chase camera component 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("ChaseCamera"));
-	Camera->AttachTo(SpringArm, USpringArmComponent::SocketName);
+	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
+	Camera->SetRelativeLocation(FVector(-125.0, 0.0f, 0.0f));
 	Camera->SetRelativeRotation(FRotator(10.0f, 0.0f, 0.0f));
 	Camera->bUsePawnControlRotation = false;
 	Camera->FieldOfView = 90.f;
@@ -133,13 +134,12 @@ ATP_VehicleAdvPawn::ATP_VehicleAdvPawn()
 	InternalCameraOrigin = FVector(-34.0f, -10.0f, 50.0f);
 	InternalCameraBase = CreateDefaultSubobject<USceneComponent>(TEXT("InternalCameraBase"));
 	InternalCameraBase->SetRelativeLocation(InternalCameraOrigin);
-	InternalCameraBase->AttachTo(GetMesh());
+	InternalCameraBase->SetupAttachment(GetMesh());
 
 	InternalCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("InternalCamera"));
-	//InternalCamera->AttachTo(SpringArm, USpringArmComponent::SocketName);
 	InternalCamera->bUsePawnControlRotation = false;
 	InternalCamera->FieldOfView = 90.f;
-	InternalCamera->AttachTo(InternalCameraBase);
+	InternalCamera->SetupAttachment(InternalCameraBase);
 
 	// In car HUD
 	// Create text render component for in car speed display
@@ -147,20 +147,20 @@ ATP_VehicleAdvPawn::ATP_VehicleAdvPawn()
 	InCarSpeed->SetRelativeScale3D(FVector(0.1f, 0.1f, 0.1f));
 	InCarSpeed->SetRelativeLocation(FVector(35.0f, -6.0f, 20.0f));
 	InCarSpeed->SetRelativeRotation(FRotator(0.0f, 180.0f, 0.0f));
-	InCarSpeed->AttachTo(GetMesh());
+	InCarSpeed->SetupAttachment(GetMesh());
 
 	// Create text render component for in car gear display
 	InCarGear = CreateDefaultSubobject<UTextRenderComponent>(TEXT("IncarGear"));
 	InCarGear->SetRelativeScale3D(FVector(0.1f, 0.1f, 0.1f));
 	InCarGear->SetRelativeLocation(FVector(35.0f, 5.0f, 20.0f));
 	InCarGear->SetRelativeRotation(FRotator(0.0f, 180.0f, 0.0f));
-	InCarGear->AttachTo(GetMesh());
+	InCarGear->SetupAttachment(GetMesh());
 	
 	// Setup the audio component and allocate it a sound cue
 	static ConstructorHelpers::FObjectFinder<USoundCue> SoundCue(TEXT("/Game/VehicleAdv/Sound/Engine_Loop_Cue.Engine_Loop_Cue"));
 	EngineSoundComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("EngineSound"));
 	EngineSoundComponent->SetSound(SoundCue.Object);
-	EngineSoundComponent->AttachTo(GetMesh());
+	EngineSoundComponent->SetupAttachment(GetMesh());
 
 	// Colors for the in-car gear display. One for normal one for reverse
 	GearDisplayReverseColor = FColor(255, 0, 0, 255);

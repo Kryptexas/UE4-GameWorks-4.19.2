@@ -3,20 +3,17 @@
 #pragma once
 
 
-namespace EQueueMode
+/**
+ * Enumerates concurrent queue modes.
+ */
+enum class EQueueMode
 {
-	/**
-	 * Enumerates concurrent queue modes.
-	 */
-	enum Type
-	{
-		/** Multiple-producers, single-consumer queue. */
-		Mpsc,
+	/** Multiple-producers, single-consumer queue. */
+	Mpsc,
 
-		/** Single-producer, single-consumer queue. */
-		Spsc
-	};
-}
+	/** Single-producer, single-consumer queue. */
+	Spsc
+};
 
 
 /**
@@ -34,7 +31,7 @@ namespace EQueueMode
  * @param Mode The queue mode (single-producer, single-consumer by default).
  * @todo gmp: Implement node pooling.
  */
-template<typename ItemType, EQueueMode::Type Mode = EQueueMode::Spsc>
+template<typename ItemType, EQueueMode Mode = EQueueMode::Spsc>
 class TQueue
 {
 public:
@@ -118,6 +115,7 @@ public:
 		{
 			OldHead = Head;
 			Head = NewNode;
+			FPlatformMisc::MemoryBarrier();
 		}		
 
 		OldHead->NextNode = NewNode;
@@ -143,7 +141,7 @@ public:
 	 * @return true if an item was returned, false if the queue was empty.
 	 * @see Dequeue, Enqueue, IsEmpty
 	 */
-	bool Peek( ItemType& OutItem )
+	bool Peek( ItemType& OutItem ) const
 	{
 		if (Tail->NextNode == nullptr)
 		{
@@ -184,4 +182,9 @@ private:
 
 	/** Holds a pointer to the tail of the list. */
 	TNode* Tail;
+
+private:
+	// Non-copyable
+	TQueue(const TQueue&);
+	TQueue& operator=(const TQueue&);
 };

@@ -51,15 +51,6 @@ public:
 	 */
 	TSharedPtr<class SLevelViewport> GetActiveViewport();
 
-	/**
-	 * Gets the currently active tab containing viewports in the level editor
-	 * Based on GetActiveViewport() above.
-	 * @todo Slate: Needs a better implementation
-	 *
-	 * @return The active viewport tab.  If multiple are active it returns the first one               
-	 */
-	TSharedPtr<class FLevelViewportTabContent> GetActiveViewportTab();
-
 	/** ILevelEditor interface */
 	virtual void SummonLevelViewportContextMenu() override;
 	virtual const TArray< TSharedPtr< class IToolkit > >& GetHostedToolkits() const override;
@@ -67,6 +58,7 @@ public:
 	virtual TSharedPtr<ILevelViewport> GetActiveViewportInterface() override;
 	virtual TSharedPtr< class FAssetThumbnailPool > GetThumbnailPool() const override;
 	virtual void AppendCommands( const TSharedRef<FUICommandList>& InCommandsToAppend ) override;
+	virtual void AddStandaloneLevelViewport( const TSharedRef<SLevelViewport>& LevelViewport ) override;
 
 	/**
 	 * Given a tab ID, summons a new tab in the position saved in the current layout, or in a default position.
@@ -94,12 +86,12 @@ public:
 	 * @param MyGeometry		Information about the size and position of the viewport widget
 	 * @param InKeyEvent	The event which just occurred	
 	 */
-	virtual FReply OnKeyDownInViewport( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent );
+	virtual FReply OnKeyDownInViewport( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
 
 	bool CanCloseApp();
 
 	/** Returns the full action list for this level editor instance */
-	const TSharedPtr< FUICommandList >& GetLevelEditorActions() const
+	virtual const TSharedPtr< FUICommandList >& GetLevelEditorActions() const override
 	{
 		return LevelEditorCommands;
 	}
@@ -111,7 +103,9 @@ public:
 	virtual void OnToolkitHostingStarted( const TSharedRef< class IToolkit >& Toolkit ) override;
 	virtual void OnToolkitHostingFinished( const TSharedRef< class IToolkit >& Toolkit ) override;
 	virtual UWorld* GetWorld() const override;
-	
+	virtual TSharedRef<SWidget> CreateActorDetails( const FName TabIdentifier ) override;
+	virtual TSharedRef<SWidget> CreateToolBox() override;
+
 	/** SWidget overrides */
 	virtual bool SupportsKeyboardFocus() const override
 	{
@@ -119,7 +113,7 @@ public:
 	}
 
 	// Tab Management
-	TSharedRef<FTabManager> GetTabManager() const;
+	virtual TSharedRef<FTabManager> GetTabManager() const override;
 	
 	/** Attaches a sequencer asset editor used to animate objects in the level to this level editor */
 	void AttachSequencer( TSharedPtr<SWidget> SequencerWidget, TSharedPtr<IAssetEditorInstance> NewSequencerAssetEditor );
@@ -179,7 +173,7 @@ private:
 	void OnViewportTabClosed(TSharedRef<SDockTab> ClosedTab);
 
 	/** Save the information about the given viewport in the transient viewport information */
-	void SaveViewportTabInfo(TSharedRef<const FLevelViewportTabContent> ViewportTabContent);
+	void SaveViewportTabInfo(TSharedRef<const class FLevelViewportTabContent> ViewportTabContent);
 
 	/** Restore the information about the given viewport from the transient viewport information */
 	void RestoreViewportTabInfo(TSharedRef<FLevelViewportTabContent> ViewportTabContent) const;
@@ -196,6 +190,9 @@ private:
 
 	// Tracking the active viewports in this level editor.
 	TArray< TWeakPtr<FLevelViewportTabContent> > ViewportTabs;
+
+	// A list of any standalone editor viewports that aren't in tabs
+	TArray< TWeakPtr<SLevelViewport> > StandaloneViewports;
 
 	// Border that hosts the document content for the level editor.
 	TSharedPtr< SBorder > DocumentsAreaBorder;

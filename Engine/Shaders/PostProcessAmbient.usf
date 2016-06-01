@@ -155,29 +155,21 @@ float3 ImageBasedLightingMIS( FGBufferData GBuffer, float3 V, float3 N, uint2 Ra
 				float Weight = rcp( InvWeight );
 
 				float3 Shading = 0;
-#if USE_CLEARCOAT
 				BRANCH if( GBuffer.ShadingModelID == SHADINGMODELID_CLEAR_COAT )
 				{
 					Shading = ClearCoatShading( GBuffer, GBuffer.Roughness, 1, L, V, N );
 				}
-				else
-#endif
-//#if USE_CLOTH
-				BRANCH if( GBuffer.ShadingModelID == SHADINGMODELID_CLOTH )
+				else if( GBuffer.ShadingModelID == SHADINGMODELID_CLOTH )
 				{
 					Shading = ClothShading( GBuffer, GBuffer.Roughness, 1, L, V, N );
 				}
-				else
-//#endif
-//#if USE_EYE
-				BRANCH if( GBuffer.ShadingModelID == SHADINGMODELID_EYE )
+				else if( GBuffer.ShadingModelID == SHADINGMODELID_EYE )
 				{
 					Shading  = EyeShading( GBuffer, GBuffer.Roughness, 1, L, V, N ) * NoL;
 					Shading += EyeSubsurfaceShading( GBuffer, L, V, N );
 					NoL = 1;
 				}
 				else
-//#endif
 				{
 					Shading = StandardShading( GBuffer, GBuffer.Roughness, 1, L, V, N, 1 );
 				}
@@ -360,14 +352,14 @@ void MainPS(in noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SvPositio
 
 	float3 N = GBuffer.WorldNormal;
 	float3 V = -ScreenVector;
-	float3 R = 2 * dot( V, N ) * N - V;
+	float3 R0 = 2 * dot( V, N ) * N - V;
 
 	//float NoV = max( dot(N, V), 1e-5 );
 	float NoV = saturate( dot(N, V) );
 
 	// Point lobe in off-specular peak direction
 	float a = Square( GBuffer.Roughness );
-	R = lerp( N, R, (1 - a) * ( sqrt(1 - a) + a ) );
+	float3 R = lerp( N, R0, (1 - a) * ( sqrt(1 - a) + a ) );
 	
 	uint2 Random = ScrambleTEA( PixelPos );
 	Random.x ^= Frame.Random;
@@ -387,32 +379,47 @@ void MainPS(in noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SvPositio
 
 	// Specular
 	{
-		float Mip = ComputeCubemapMipFromRoughness( GBuffer.Roughness, AmbientCubemapMipAdjust.w );
-		float3 SampleColor = TextureCubeSampleLevel( AmbientCubemap, AmbientCubemapSampler, R, Mip ).rgb;
 
-#if USE_CLEARCOAT
 		BRANCH if( GBuffer.ShadingModelID == SHADINGMODELID_CLEAR_COAT )
 		{
-			float ClearCoat = GBuffer.CustomData.x;
-			float2 AB = PreIntegratedGF.SampleLevel( PreIntegratedGFSampler, float2( NoV, GBuffer.Roughness ), 0 ).rg;
-			SpecularContribution += SampleColor * ( GBuffer.SpecularColor * AB.x + AB.y * (1 - ClearCoat) );
+			float ClearCoat			  = GBuffer.CustomData.x;
+
+			#if CLEAR_COAT_BOTTOM_NORMAL
+				//const float3 ClearCoatUnderNormal = OctahedronToUnitVector((float2(GBuffer.CustomData.a, GBuffer.CustomData.z) * 2) - (256.0/255.0));
+				const float2 oct1 = ((float2(GBuffer.CustomData.a, GBuffer.CustomData.z) * 2) - (256.0/255.0)) + UnitVectorToOctahedron(GBuffer.WorldNormal);
+ 				const float3 ClearCoatUnderNormal = OctahedronToUnitVector(oct1);
+				float3 R2 = 2 * dot( V, ClearCoatUnderNormal ) * ClearCoatUnderNormal - V;
+			
+				float Mip = ComputeCubemapMipFromRoughness( GBuffer.Roughness, AmbientCubemapMipAdjust.w );
+				float3 SampleColor = TextureCubeSampleLevel( AmbientCubemap, AmbientCubemapSampler, R2, Mip ).rgb;
+			
+				float2 AB = PreIntegratedGF.SampleLevel( PreIntegratedGFSampler, float2( NoV, GBuffer.Roughness ), 0 ).rg;
+				SpecularContribution += SampleColor * ( GBuffer.SpecularColor * AB.x + AB.y * (1 - ClearCoat) );
+			#else
+				float Mip = ComputeCubemapMipFromRoughness( GBuffer.Roughness, AmbientCubemapMipAdjust.w );
+				float3 SampleColor = TextureCubeSampleLevel( AmbientCubemap, AmbientCubemapSampler, R, Mip ).rgb;
+
+				float2 AB = PreIntegratedGF.SampleLevel( PreIntegratedGFSampler, float2( NoV, GBuffer.Roughness ), 0 ).rg;
+				SpecularContribution += SampleColor * ( GBuffer.SpecularColor * AB.x + AB.y * (1 - ClearCoat) );
+			#endif
 		}
 		else
-#endif
 		{
+			float Mip = ComputeCubemapMipFromRoughness( GBuffer.Roughness, AmbientCubemapMipAdjust.w );
+			float3 SampleColor = TextureCubeSampleLevel( AmbientCubemap, AmbientCubemapSampler, R, Mip ).rgb;
+
 			SpecularContribution += SampleColor * EnvBRDF( GBuffer.SpecularColor, GBuffer.Roughness, NoV );
 			//SpecularContribution += ApproximateSpecularIBL( Random, GBuffer.SpecularColor, GBuffer.Roughness, GBuffer.WorldNormal, -ScreenVector );
 		}
 	}
 
-#if USE_CLEARCOAT
 	BRANCH if( GBuffer.ShadingModelID == SHADINGMODELID_CLEAR_COAT )
 	{
 		const float ClearCoat			= GBuffer.CustomData.x;
 		const float ClearCoatRoughness	= GBuffer.CustomData.y;
 
 		float Mip = ComputeCubemapMipFromRoughness( ClearCoatRoughness, AmbientCubemapMipAdjust.w );
-		float3 SampleColor = TextureCubeSampleLevel( AmbientCubemap, AmbientCubemapSampler, R, Mip ).rgb;
+		float3 SampleColor = TextureCubeSampleLevel( AmbientCubemap, AmbientCubemapSampler, R0, Mip ).rgb;
 
 		// F_Schlick
 		float F0 = 0.04;
@@ -426,7 +433,6 @@ void MainPS(in noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SvPositio
 		SpecularContribution *= LayerAttenuation;
 		SpecularContribution += SampleColor * F;
 	}
-#endif
 	
 	BRANCH if( GBuffer.ShadingModelID == SHADINGMODELID_HAIR )
 	{

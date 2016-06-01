@@ -12,10 +12,6 @@
 #include "MonteCarlo.usf"
 #include "ScreenSpaceRayCast.usf"
 
-#define SCALAR_BRANCHLESS		0
-#define VECTORIZED_BRANCHLESS	0
-#define VECTORIZED_EARLY_OUT	1
-
 // .r:Intensity in 0..1 range .g:RoughnessMaskMul, b:unused, a:unused
 float4 SSRParams;
 
@@ -42,7 +38,6 @@ float GetRoughness(const in FGBufferData GBuffer)
 {
 	float Roughness = GBuffer.Roughness;
 
-#if 1//USE_CLEARCOAT
 	BRANCH
 	if( GBuffer.ShadingModelID == SHADINGMODELID_CLEAR_COAT )
 	{
@@ -51,7 +46,6 @@ float GetRoughness(const in FGBufferData GBuffer)
 
 		Roughness = lerp( Roughness, ClearCoatRoughness, ClearCoat );
 	}
-#endif
 
 	return Roughness;
 }

@@ -78,7 +78,7 @@ inline static void ComputeEyeAdaptationValues(const ERHIFeatureLevel::Type MinFe
 	float DeltaLog = HistogramLogMax - HistogramLogMin;
 	float Multiply = 1.0f / DeltaLog;
 	float Add = -HistogramLogMin * Multiply;
-	float MinIntensity = exp2(HistogramLogMin);
+	float MinIntensity = FMath::Exp2(HistogramLogMin);
 	Out[2] = FVector4(Multiply, Add, MinIntensity, 0);
 }
 
@@ -89,9 +89,20 @@ static ERHIFeatureLevel::Type BasicEyeAdaptationMinFeatureLevel = ERHIFeatureLev
 TAutoConsoleVariable<int32> CVarEyeAdaptationMethodOveride(
 	TEXT("r.EyeAdaptation.MethodOveride"),
 	-1,
+	TEXT("Overide the eye adapation method set in post processing volumes\n")
+	TEXT("-2: override with custom settings (for testing Basic Mode)\n")
 	TEXT("-1: no override\n")
-	TEXT("1: Histogram-based. \n")
-	TEXT("2: Basic \n"),
+	TEXT(" 1: Histogram-based\n")
+	TEXT(" 2: Basic"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+// Initialize the static CVar used in computing the weighting focus in basic eye-adaptation
+TAutoConsoleVariable<float> CVarEyeAdaptationFocus(
+	TEXT("r.EyeAdaptation.Focus"),
+	1.0f,
+	TEXT("Applies to basic adapation mode only\n")
+	TEXT(" 0: Uniform weighting\n")
+	TEXT(">0: Center focus, 1 is a good number (default)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 /** Encapsulates the histogram-based post processing eye adaptation pixel shader. */
@@ -384,6 +395,7 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 		EyeAdaptationTexture.Bind(Initializer.ParameterMap, TEXT("EyeAdaptationTexture"));
 		EyeAdaptationParams.Bind(Initializer.ParameterMap, TEXT("EyeAdaptationParams"));
+		EyeAdaptationExtent.Bind(Initializer.ParameterMap, TEXT("EyeAdaptionSrcExtent"));
 	}
 
 public:
@@ -401,7 +413,7 @@ public:
 	}
 
 
-	void SetPS(const FRenderingCompositePassContext& Context, IPooledRenderTarget* EyeAdaptationLastFrameRT)
+	void SetPS(const FRenderingCompositePassContext& Context, const FIntPoint SrcSize, IPooledRenderTarget* EyeAdaptationLastFrameRT)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
@@ -428,15 +440,22 @@ public:
 			ComputeEyeAdaptationValues(BasicEyeAdaptationMinFeatureLevel, Context.View, Temp);
 			// Log-based computation of the exposure scale has a built in scaling.
 			//Temp[1].X *= 0.16;  
+			//Encode the eye-focus slope
+			// Get the focus value for the eye-focus weighting
+			Temp[2].W = GetBasicAutoExposureFocus();
 			SetShaderValueArray(Context.RHICmdList, ShaderRHI, EyeAdaptationParams, Temp, 3);
 		}
+
+		// Set the src extent for the shader
+		SetShaderValue(Context.RHICmdList, ShaderRHI, EyeAdaptationExtent, SrcSize);
 	}
 
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << EyeAdaptationTexture << EyeAdaptationParams;
+		Ar << PostprocessParameter << EyeAdaptationTexture 
+			<< EyeAdaptationParams << EyeAdaptationExtent;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -444,14 +463,13 @@ private:
 	FPostProcessPassParameters PostprocessParameter;
 	FShaderResourceParameter EyeAdaptationTexture;
 	FShaderParameter EyeAdaptationParams;
+	FShaderParameter EyeAdaptationExtent;
 };
 
 IMPLEMENT_SHADER_TYPE(, FPostProcessLogLuminance2ExposureScalePS, TEXT("PostProcessEyeAdaptation"), TEXT("MainLogLuminance2ExposureScalePS"), SF_Pixel);
 
 void FRCPassPostProcessBasicEyeAdaptation::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessBasicEyeAdaptation);
-
 	const FSceneView& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 
@@ -463,6 +481,11 @@ void FRCPassPostProcessBasicEyeAdaptation::Process(FRenderingCompositePassContex
 	check(EyeAdaptationThisFrameRT && EyeAdaptationLastFrameRT);
 
 	FIntPoint DestSize = EyeAdaptationThisFrameRT->GetDesc().Extent;
+
+	// The input texture sample size.  Averaged in the pixel shader.
+	const FIntPoint SrcSize = GetInputDesc(ePId_Input0)->Extent;
+
+	SCOPED_DRAW_EVENTF(Context.RHICmdList, PostProcessBasicEyeAdaptation, TEXT("PostProcessBasicEyeAdaptation %dx%d"), SrcSize.X, SrcSize.Y);
 
 	// we render to our own output render target, not the intermediate one created by the compositing system
 	// Set the view family's render target/viewport.
@@ -484,7 +507,7 @@ void FRCPassPostProcessBasicEyeAdaptation::Process(FRenderingCompositePassContex
 
 	// Set the parameters used by the pixel shader.
 
-	PixelShader->SetPS(Context, EyeAdaptationLastFrameRT);
+	PixelShader->SetPS(Context, SrcSize, EyeAdaptationLastFrameRT);
 
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle(
@@ -511,213 +534,6 @@ FPooledRenderTargetDesc FRCPassPostProcessBasicEyeAdaptation::ComputeOutputDesc(
 	FPooledRenderTargetDesc Ret;
 
 	Ret.DebugName = TEXT("EyeAdaptationBasic");
-
-	return Ret;
-}
-
-/** Encapsulates the post processing reduction pixel shader. */
-class FPostProcessReductionPS : public FGlobalShader
-{
-	DECLARE_SHADER_TYPE(FPostProcessReductionPS, Global);
-public:
-
-	/** Default constructor. */
-	FPostProcessReductionPS() {}
-
-	/** Initialization constructor. */
-	FPostProcessReductionPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
-		: FGlobalShader(Initializer)
-	{
-		PostprocessParameter.Bind(Initializer.ParameterMap);
-		DeferredParameters.Bind(Initializer.ParameterMap);
-	}
-
-	// FShader interface.
-	virtual bool Serialize(FArchive& Ar) override
-	{
-		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << DeferredParameters;
-		return bShaderHasOutdatedParameters;
-	}
-
-	void SetParameters(const FRenderingCompositePassContext& Context, const FPooledRenderTargetDesc* InputDesc)
-	{
-		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
-
-		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
-		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
-
-		// filter only if needed for better performance
-		FSamplerStateRHIParamRef Filter = TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
-
-		PostprocessParameter.SetPS(ShaderRHI, Context, Filter);
-	}
-
-public:
-
-	/**Static Shader boilerplate */
-	static bool ShouldCache(EShaderPlatform Platform)
-	{
-		return true;
-	}
-
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-	}
-
-
-private:
-
-	FPostProcessPassParameters PostprocessParameter;
-	FDeferredPixelShaderParameters DeferredParameters;
-};
-
-IMPLEMENT_SHADER_TYPE(, FPostProcessReductionPS, TEXT("PostProcessEyeAdaptation"), TEXT("MainReductionPS"), SF_Pixel);
-
-
-/** Encapsulates the post processing down sample vertex shader. */
-class FPostProcessReductionVS : public FGlobalShader
-{
-	DECLARE_SHADER_TYPE(FPostProcessReductionVS, Global);
-public:
-
-	static bool ShouldCache(EShaderPlatform Platform)
-	{
-		return true;
-	}
-
-	/** Default constructor. */
-	FPostProcessReductionVS() {}
-
-	/** Initialization constructor. */
-	FPostProcessReductionVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
-		FGlobalShader(Initializer)
-	{
-	}
-
-	/** Serializer */
-	virtual bool Serialize(FArchive& Ar) override
-	{
-		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		return bShaderHasOutdatedParameters;
-	}
-
-	void SetParameters(const FRenderingCompositePassContext& Context)
-	{
-		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
-
-		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
-
-		const FPooledRenderTargetDesc* InputDesc = Context.Pass->GetInputDesc(ePId_Input0);
-
-		if (!InputDesc)
-		{
-			// input is not hooked up correctly
-			return;
-		}
-	}
-};
-
-IMPLEMENT_SHADER_TYPE(, FPostProcessReductionVS, TEXT("PostProcessEyeAdaptation"), TEXT("MainReductionVS"), SF_Vertex);
-
-
-void FRCPassPostProcessExposureReduction::Process(FRenderingCompositePassContext& Context)
-{
-	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
-
-	if (!InputDesc)
-	{
-		// input is not hooked up correctly
-		return;
-	}
-
-	const FSceneView& View = Context.View;
-	const FSceneViewFamily& ViewFamily = *(View.Family);
-
-	FIntPoint SrcSize = InputDesc->Extent;
-	FIntPoint DestSize = PassOutputs[0].RenderTargetDesc.Extent;
-
-	// e.g. 4 means the input texture is 4x smaller than the buffer size
-	uint32 ScaleFactor = FSceneRenderTargets::Get(Context.RHICmdList).GetBufferSizeXY().X / SrcSize.X;
-
-	FIntRect SrcRect = View.ViewRect / ScaleFactor;
-	FIntRect DestRect = SrcRect / 2;  // FIntRect::DivideAndRoundUp(SrcRect, 2);
-
-	SCOPED_DRAW_EVENTF(Context.RHICmdList, Reduction, TEXT("Eye Reduction %dx%d"), DestRect.Width(), DestRect.Height());
-
-	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
-
-	// Set the view family's render target/viewport.
-	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EExistingColorAndDepth);
-
-	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f);
-
-	// set the state
-	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-
-
-	auto ShaderMap = Context.GetShaderMap();
-	TShaderMapRef<FPostProcessReductionVS> VertexShader(ShaderMap);
-	TShaderMapRef<FPostProcessReductionPS> PixelShader(ShaderMap);
-
-	static FGlobalBoundShaderState BoundShaderState;
-
-	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-
-	PixelShader->SetParameters(Context, InputDesc);
-	VertexShader->SetParameters(Context);
-
-	// check if we have to clear the whole surface.
-	// Otherwise perform the clear when the dest rectangle has been computed.
-	auto FeatureLevel = Context.View.GetFeatureLevel();
-	if (FeatureLevel == ERHIFeatureLevel::ES2 || FeatureLevel == ERHIFeatureLevel::ES3_1)
-	{
-		Context.RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), false, 1.0f, false, 0, FIntRect());
-	}
-	else
-	{
-		Context.RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), false, 1.0f, false, 0, DestRect);
-	}
-
-	DrawPostProcessPass(
-		Context.RHICmdList,
-		DestRect.Min.X, DestRect.Min.Y,
-		DestRect.Width(), DestRect.Height(),
-		SrcRect.Min.X, SrcRect.Min.Y,
-		SrcRect.Width(), SrcRect.Height(),
-		DestSize,
-		SrcSize,
-		*VertexShader,
-		View.StereoPass,
-		Context.HasHmdMesh(),
-		EDRF_UseTriangleOptimization);
-
-	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
-}
-
-FPooledRenderTargetDesc FRCPassPostProcessExposureReduction::ComputeOutputDesc(EPassOutputId InPassOutputId) const
-{
-	FPooledRenderTargetDesc Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
-
-	// Reset the format information.
-	Ret.Reset();
-
-	// Down sample by a factor of 2.
-	// NB: the standard PostProcessDownsample would round up the extent, 
-	// introducing a black vignette which we avoid here.
-	Ret.Extent /= int32(2);
-
-	Ret.Extent.X = FMath::Max(1, Ret.Extent.X);
-	Ret.Extent.Y = FMath::Max(1, Ret.Extent.Y);
-
-	Ret.Format = PF_FloatRGBA;
-
-	Ret.TargetableFlags &= ~TexCreate_UAV;
-	Ret.TargetableFlags |= TexCreate_RenderTargetable;
-	Ret.DebugName = DebugName;
 
 	return Ret;
 }

@@ -100,8 +100,7 @@ private:
 
 	struct FPlayerLayer : TSharedFromThis<FPlayerLayer>
 	{
-		TSharedPtr<SWidget> Root;
-		TSharedPtr<SOverlay> Overlay;
+		TSharedPtr<SOverlay> Widget;
 		SCanvas::FSlot* Slot;
 
 		TMap< FName, TSharedPtr<IGameLayer> > Layers;

@@ -36,6 +36,7 @@ public:
 		, _VScrollBar()
 		, _WrapTextAt(0.0f)
 		, _AutoWrapText(false)
+		, _WrappingPolicy(ETextWrappingPolicy::DefaultWrapping)
 		, _SelectAllTextOnCommit( false )
 		, _BackgroundColor()		
 		, _Padding()
@@ -147,6 +148,9 @@ public:
 			desired size will not be clamped.  This works best in cases where the text block's size is not affecting other widget's layout. */
 		SLATE_ATTRIBUTE( bool, AutoWrapText )
 
+		/** The wrapping policy to use */
+		SLATE_ATTRIBUTE( ETextWrappingPolicy, WrappingPolicy )
+
 		/** Whether to select all text when pressing enter to commit changes */
 		SLATE_ATTRIBUTE( bool, SelectAllTextOnCommit )
 
@@ -186,7 +190,7 @@ public:
 	 *
 	 * @return  Text string
 	 */
-	const FText& GetText() const
+	FText GetText() const
 	{
 		return EditableText->GetText();
 	}
@@ -196,7 +200,7 @@ public:
 	 *
 	 * @return  Text string
 	 */
-	const FText GetPlainText() const
+	FText GetPlainText() const
 	{
 		return EditableText->GetPlainText();
 	}
@@ -251,6 +255,9 @@ public:
 	/** See AutoWrapText attribute */
 	void SetAutoWrapText(const TAttribute<bool>& InAutoWrapText);
 
+	/** Set WrappingPolicy attribute */
+	void SetWrappingPolicy(const TAttribute<ETextWrappingPolicy>& InWrappingPolicy);
+
 	/** See LineHeightPercentage attribute */
 	void SetLineHeightPercentage(const TAttribute<float>& InLineHeightPercentage);
 
@@ -274,6 +281,15 @@ public:
 	virtual bool SupportsKeyboardFocus() const override;
 	virtual bool HasKeyboardFocus() const override;
 	virtual FReply OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent ) override;
+
+	/** Query to see if any text is selected within the document */
+	bool AnyTextSelected() const;
+
+	/** Select all the text in the document */
+	void SelectAllText();
+
+	/** Clear the active text selection */
+	void ClearSelection();
 
 	/** Get the currently selected text */
 	FText GetSelectedText() const;
@@ -304,7 +320,7 @@ public:
 	TSharedPtr<const IRun> GetRunUnderCursor() const;
 
 	/** Get the runs currently that are current selected, some of which may be only partially selected */
-	const TArray<TSharedRef<const IRun>> GetSelectedRuns() const;
+	TArray<TSharedRef<const IRun>> GetSelectedRuns() const;
 
 	/** Get the horizontal scroll bar widget */
 	TSharedPtr<const SScrollBar> GetHScrollBar() const;

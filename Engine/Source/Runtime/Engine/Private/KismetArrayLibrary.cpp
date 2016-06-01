@@ -281,6 +281,20 @@ void UKismetArrayLibrary::GenericArray_SetArrayPropertyByName(UObject* OwnerObje
 	}
 }
 
+bool UKismetArrayLibrary::GenericArray_IsValidIndex(const void* TargetArray, const UArrayProperty* ArrayProp, int32 IndexToTest)
+{
+	bool ReturnBool = false;
+
+	if (TargetArray)
+	{
+		FScriptArrayHelper ArrayHelper(ArrayProp, TargetArray);
+
+		ReturnBool = ArrayHelper.IsValidIndex(IndexToTest);
+	}
+
+	return ReturnBool;
+}
+
 void UKismetArrayLibrary::GenericArray_HandleBool(const UProperty* Property, void* ItemPtr)
 {
 	const UBoolProperty* BoolProperty = Cast<const UBoolProperty>(Property);
@@ -375,4 +389,11 @@ void UKismetArrayLibrary::SetArrayPropertyByName(UObject* Object, FName Property
 {
 	// We should never hit these!  They're stubs to avoid NoExport on the class.
 	check(0);
+}
+
+bool UKismetArrayLibrary::Array_IsValidIndex(const TArray<int32>& TargetArray, int32 IndexToTest)
+{
+	// We should never hit these!  They're stubs to avoid NoExport on the class.
+	check(0);
+	return true;
 }

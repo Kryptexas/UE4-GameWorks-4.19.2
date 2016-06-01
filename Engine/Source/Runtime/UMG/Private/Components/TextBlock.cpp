@@ -17,7 +17,7 @@ UTextBlock::UTextBlock(const FObjectInitializer& ObjectInitializer)
 	ColorAndOpacity = FLinearColor::White;
 	ShadowColorAndOpacity = FLinearColor::Transparent;
 
-	if (!UE_SERVER)
+	if (!IsRunningDedicatedServer())
 	{
 		static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(TEXT("/Engine/EngineFonts/Roboto"));
 		Font = FSlateFontInfo(RobotoFontObj.Object, 24, FName("Bold"));
@@ -185,11 +185,6 @@ void UTextBlock::HandleTextCommitted(const FText& InText, ETextCommit::Type Comm
 	//TODO UMG How will this migrate to the template?  Seems to me we need the previews to have access to their templates!
 	//TODO UMG How will the user click the editable area?  There is an overlay blocking input so that other widgets don't get them.
 	//     Need a way to recognize one particular widget and forward things to them!
-}
-
-const FSlateBrush* UTextBlock::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.TextBlock");
 }
 
 const FText UTextBlock::GetPaletteCategory()

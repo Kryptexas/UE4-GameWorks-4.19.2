@@ -388,12 +388,18 @@ void FLevelUtils::ApplyLevelTransform( ULevel* Level, const FTransform& LevelTra
 	bool bTransformActors =  !LevelTransform.Equals(FTransform::Identity);
 	if (bTransformActors)
 	{
+		if (!LevelTransform.GetRotation().IsIdentity())
+		{
+			// If there is a rotation applied, then the relative precomputed bounds become invalid.
+			Level->bTextureStreamingRotationChanged = true;
+		}
+
 		for (TMap< UTexture2D*, TArray<FStreamableTextureInstance> >::TIterator It(Level->TextureToInstancesMap); It; ++It)
 		{
 			TArray<FStreamableTextureInstance>& TextureInfo = It.Value();
 			for (int32 i = 0; i < TextureInfo.Num(); i++)
 			{
-				TextureInfo[i].BoundingSphere.Center = LevelTransform.TransformPosition(TextureInfo[i].BoundingSphere.Center);
+				TextureInfo[i].Bounds.Origin = LevelTransform.TransformPosition(TextureInfo[i].Bounds.Origin);
 			}
 		}
 

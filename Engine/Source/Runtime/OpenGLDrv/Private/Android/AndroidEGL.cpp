@@ -819,13 +819,21 @@ void AndroidEGL::UnBind()
 void FAndroidAppEntry::ReInitWindow()
 {
 	FPlatformMisc::LowLevelOutputDebugString(TEXT("AndroidEGL::ReInitWindow()"));
-	AndroidEGL::GetInstance()->ReInit();
+	// @todo vulkan: Clean this up, and does vulkan need any code here?
+	if (!FAndroidMisc::ShouldUseVulkan())
+	{
+		AndroidEGL::GetInstance()->ReInit();
+	}
 }
 
 void FAndroidAppEntry::DestroyWindow()
 {
 	FPlatformMisc::LowLevelOutputDebugString(TEXT("AndroidEGL::DestroyWindow()"));
-	AndroidEGL::GetInstance()->UnBind();
+	// @todo vulkan: Clean this up, and does vulkan need any code here?
+	if (!FAndroidMisc::ShouldUseVulkan())
+	{
+		AndroidEGL::GetInstance()->UnBind();
+	}
 }
 
 void AndroidEGL::LogConfigInfo(EGLConfig  EGLConfigInfo)

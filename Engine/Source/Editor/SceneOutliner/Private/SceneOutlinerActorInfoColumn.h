@@ -112,3 +112,5 @@ private:
 
 
 }	// namespace SceneOutliner
+
+ENUM_RANGE_BY_COUNT(SceneOutliner::ECustomColumnMode::Type, SceneOutliner::ECustomColumnMode::Count)

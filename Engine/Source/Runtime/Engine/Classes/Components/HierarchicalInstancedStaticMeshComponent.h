@@ -96,6 +96,9 @@ class ENGINE_API UHierarchicalInstancedStaticMeshComponent : public UInstancedSt
 	UPROPERTY()
 	int32 NumBuiltInstances;
 
+	// Normally equal to NumBuiltInstances, but can be lower if density scaling is in effect
+	int32 NumBuiltRenderInstances;
+
 	// Bounding box of any built instances (cached from the ClusterTree)
 	UPROPERTY()
 	FBox BuiltInstanceBounds;
@@ -108,11 +111,20 @@ class ENGINE_API UHierarchicalInstancedStaticMeshComponent : public UInstancedSt
 	UPROPERTY()
 	TArray<FBox> UnbuiltInstanceBoundsList;
 
+	// Enable for detail meshes that don't really affect the game. Disable for anything important.
+	// Typically, this will be enabled for small meshes without collision (e.g. grass) and disabled for large meshes with collision (e.g. trees)
+	UPROPERTY()
+	uint32 bEnableDensityScaling:1;
+
+	// Which instances have been removed by foliage density scaling?
+	TBitArray<> ExcludedDueToDensityScaling;
+
 	// The number of nodes in the occlusion layer
 	UPROPERTY()
 	int32 OcclusionLayerNumNodes;
 
 	bool bIsAsyncBuilding;
+	bool bDiscardAsyncBuildResults;
 	bool bConcurrentRemoval;
 
 	UPROPERTY()
@@ -125,7 +137,6 @@ public:
 
 	//Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual void PostLoad() override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform& BoundTransform) const override;
@@ -139,6 +150,7 @@ public:
 	virtual bool UpdateInstanceTransform(int32 InstanceIndex, const FTransform& NewInstanceTransform, bool bWorldSpace, bool bMarkRenderStateDirty = false) override;
 	virtual void ClearInstances() override;
 	virtual TArray<int32> GetInstancesOverlappingSphere(const FVector& Center, float Radius, bool bSphereInWorldSpace = true) const override;
+	virtual TArray<int32> GetInstancesOverlappingBox(const FBox& Box, bool bBoxInWorldSpace = true) const override;
 
 	/** Removes all the instances with indices specified in the InstancesToRemove array. Returns true on success. */
 	UFUNCTION(BlueprintCallable, Category = "Components|InstancedStaticMesh")
@@ -153,6 +165,8 @@ public:
 
 	virtual bool ShouldCreatePhysicsState() const override;
 
+	virtual int32 GetNumRenderInstances() const override { return NumBuiltRenderInstances + UnbuiltInstanceBoundsList.Num(); }
+
 	void BuildTree();
 	void BuildTreeAsync();
 	static void BuildTreeAnyThread(
@@ -165,7 +179,6 @@ public:
 		int32 MaxInstancesPerLeaf
 		);
 	void AcceptPrebuiltTree(TArray<FClusterNode>& InClusterTree, int InOcclusionLayerNumNodes);
-	void BuildFlatTree(const TArray<int32>& LeafInstanceCounts);
 	bool IsAsyncBuilding() const { return bIsAsyncBuilding; }
 	bool IsTreeFullyBuilt() const { return NumBuiltInstances == PerInstanceSMData.Num() && RemovedInstances.Num() == 0; }
 

@@ -647,7 +647,7 @@ DynamicDataRender(NULL)
 
 void NiagaraEffectRendererMeshes::SetupVertexFactory(FMeshParticleVertexFactory *InVertexFactory, const FStaticMeshLODResources& LODResources) const
 {
-	FMeshParticleVertexFactory::DataType Data;
+	FMeshParticleVertexFactory::FDataType Data;
 
 	Data.PositionComponent = FVertexStreamComponent(
 		&LODResources.PositionVertexBuffer,
@@ -656,45 +656,55 @@ void NiagaraEffectRendererMeshes::SetupVertexFactory(FMeshParticleVertexFactory 
 		VET_Float3
 		);
 
+	uint32 TangentXOffset = 0;
+	uint32 TangetnZOffset = 0;
+	uint32 UVsBaseOffset = 0;
+
+	SELECT_STATIC_MESH_VERTEX_TYPE(
+		LODResources.VertexBuffer.GetUseHighPrecisionTangentBasis(),
+		LODResources.VertexBuffer.GetUseFullPrecisionUVs(),
+		LODResources.VertexBuffer.GetNumTexCoords(),
+		{
+			TangentXOffset = STRUCT_OFFSET(VertexType, TangentX);
+			TangetnZOffset = STRUCT_OFFSET(VertexType, TangentZ);
+			UVsBaseOffset = STRUCT_OFFSET(VertexType, UVs);
+		});
+
 	Data.TangentBasisComponents[0] = FVertexStreamComponent(
 		&LODResources.VertexBuffer,
-		STRUCT_OFFSET(FStaticMeshFullVertex, TangentX),
+		TangentXOffset,
 		LODResources.VertexBuffer.GetStride(),
-		VET_PackedNormal
+		LODResources.VertexBuffer.GetUseHighPrecisionTangentBasis() ?
+			TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::HighPrecision>::VertexElementType : 
+			TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::Default>::VertexElementType
 		);
 
 	Data.TangentBasisComponents[1] = FVertexStreamComponent(
 		&LODResources.VertexBuffer,
-		STRUCT_OFFSET(FStaticMeshFullVertex, TangentZ),
+		TangetnZOffset,
 		LODResources.VertexBuffer.GetStride(),
-		VET_PackedNormal
+		LODResources.VertexBuffer.GetUseHighPrecisionTangentBasis() ?
+			TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::HighPrecision>::VertexElementType : 
+			TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::Default>::VertexElementType
 		);
 
 	Data.TextureCoordinates.Empty();
-	if (!LODResources.VertexBuffer.GetUseFullPrecisionUVs())
+
+	uint32 UVSizeInBytes = LODResources.VertexBuffer.GetUseFullPrecisionUVs() ?
+		sizeof(TStaticMeshVertexUVsTypeSelector<EStaticMeshVertexUVType::HighPrecision>::UVsTypeT) : sizeof(TStaticMeshVertexUVsTypeSelector<EStaticMeshVertexUVType::Default>::UVsTypeT);
+
+	EVertexElementType UVVertexElementType = LODResources.VertexBuffer.GetUseFullPrecisionUVs() ?
+		VET_Float2 : VET_Half2;
+
+	uint32 NumTexCoords = FMath::Min<uint32>(LODResources.VertexBuffer.GetNumTexCoords(), MAX_TEXCOORDS);
+	for (uint32 UVIndex = 0; UVIndex < NumTexCoords; UVIndex++)
 	{
-		uint32 NumTexCoords = FMath::Min<uint32>(LODResources.VertexBuffer.GetNumTexCoords(), MAX_TEXCOORDS);
-		for (uint32 UVIndex = 0; UVIndex < NumTexCoords; UVIndex++)
-		{
-			Data.TextureCoordinates.Add(FVertexStreamComponent(
-				&LODResources.VertexBuffer,
-				STRUCT_OFFSET(TStaticMeshFullVertexFloat16UVs<MAX_TEXCOORDS>, UVs) + sizeof(FVector2DHalf)* UVIndex,
-				LODResources.VertexBuffer.GetStride(),
-				VET_Half2
-				));
-		}
-	}
-	else
-	{
-		for (uint32 UVIndex = 0; UVIndex < LODResources.VertexBuffer.GetNumTexCoords(); UVIndex++)
-		{
-			Data.TextureCoordinates.Add(FVertexStreamComponent(
-				&LODResources.VertexBuffer,
-				STRUCT_OFFSET(TStaticMeshFullVertexFloat32UVs<MAX_TEXCOORDS>, UVs) + sizeof(FVector2D)* UVIndex,
-				LODResources.VertexBuffer.GetStride(),
-				VET_Float2
-				));
-		}
+		Data.TextureCoordinates.Add(FVertexStreamComponent(
+			&LODResources.VertexBuffer,
+			UVsBaseOffset + UVSizeInBytes * UVIndex,
+			LODResources.VertexBuffer.GetStride(),
+			UVVertexElementType
+			));
 	}
 
 	if (LODResources.ColorVertexBuffer.GetNumVertices() > 0)
@@ -916,6 +926,7 @@ void NiagaraEffectRendererMeshes::GetDynamicMeshElements(const TArray<const FSce
 						BatchParameters.InstanceBuffer = InstanceVerticesCPU->InstanceDataAllocationsCPU.GetData();
 						BatchParameters.DynamicParameterBuffer = InstanceVerticesCPU->DynamicParameterDataAllocationsCPU.GetData();
 						BatchElement.UserData = &BatchParameters;
+						BatchElement.bUserDataIsColorVertexBuffer = false;
 						BatchElement.UserIndex = 0;
 
 						Mesh.Elements.Reserve(ParticleCount);

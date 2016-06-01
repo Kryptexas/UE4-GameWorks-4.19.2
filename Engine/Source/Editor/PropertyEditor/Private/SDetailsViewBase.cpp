@@ -17,6 +17,7 @@
 #include "SPropertyEditorEditInline.h"
 #include "ObjectEditorUtils.h"
 #include "SColorPicker.h"
+#include "DetailPropertyRow.h"
 
 
 SDetailsViewBase::~SDetailsViewBase()
@@ -35,7 +36,7 @@ void SDetailsViewBase::OnGetChildrenForDetailTree(TSharedRef<IDetailTreeNode> In
 
 TSharedRef<ITableRow> SDetailsViewBase::OnGenerateRowForDetailTree(TSharedRef<IDetailTreeNode> InTreeNode, const TSharedRef<STableViewBase>& OwnerTable)
 {
-	return InTreeNode->GenerateNodeWidget(OwnerTable, ColumnSizeData, PropertyUtilities.ToSharedRef());
+	return InTreeNode->GenerateNodeWidget(OwnerTable, ColumnSizeData, PropertyUtilities.ToSharedRef(), DetailsViewArgs.bAllowFavoriteSystem);
 }
 
 void SDetailsViewBase::SetRootExpansionStates(const bool bExpand, const bool bRecurse)
@@ -594,7 +595,7 @@ void SDetailsViewBase::QueryCustomDetailLayout(FDetailLayoutBuilderImpl& CustomD
 				for (FClassInstanceToPropertyMap::TIterator InstanceIt(InstancedPropertyMap); InstanceIt; ++InstanceIt)
 				{
 					FName Key = InstanceIt.Key();
-					CustomDetailLayout.SetCurrentCustomizationClass(CastChecked<UClass>(Class), Key);
+					CustomDetailLayout.SetCurrentCustomizationClass(Class, Key);
 
 					const FOnGetDetailCustomizationInstance& DetailDelegate = LayoutIt.Value()->DetailLayoutDelegate;
 
@@ -841,7 +842,7 @@ void GetExpandedItems(TSharedPtr<FPropertyNode> InPropertyNode, TArray<FString>&
 * @param InNode			The node to set expanded items on
 * @param OutExpandedItems	List of expanded items to set
 */
-void SetExpandedItems(TSharedPtr<FPropertyNode> InPropertyNode, const TArray<FString>& InExpandedItems)
+void SetExpandedItems(TSharedPtr<FPropertyNode> InPropertyNode, const TSet<FString>& InExpandedItems)
 {
 	if (InExpandedItems.Num() > 0)
 	{
@@ -850,13 +851,9 @@ void SetExpandedItems(TSharedPtr<FPropertyNode> InPropertyNode, const TArray<FSt
 		Path.Empty(128);
 		InPropertyNode->GetQualifiedName(Path, bWithArrayIndex);
 
-		for (int32 ItemIndex = 0; ItemIndex < InExpandedItems.Num(); ++ItemIndex)
+		if (InExpandedItems.Contains(Path))
 		{
-			if (InExpandedItems[ItemIndex] == Path)
-			{
-				InPropertyNode->SetNodeFlags(EPropertyNodeFlags::Expanded, true);
-				break;
-			}
+			InPropertyNode->SetNodeFlags(EPropertyNodeFlags::Expanded, true);
 		}
 
 		for (int32 NodeIndex = 0; NodeIndex < InPropertyNode->GetNumChildNodes(); ++NodeIndex)
@@ -933,17 +930,20 @@ void SDetailsViewBase::RestoreExpandedItems(TSharedRef<FPropertyNode> InitialSta
 
 	ExpandedDetailNodes.Empty();
 
-	TArray<FString> ExpandedPropertyItems;
 	FString ExpandedCustomItems;
 
 	UStruct* BestBaseStruct = StartNode->FindComplexParent()->GetBaseStructure();
 
 	//while a valid class, and we're either the same as the base class (for multiple actors being selected and base class is AActor) OR we're not down to AActor yet)
+	TArray<FString> DetailPropertyExpansionStrings;
 	for (UStruct* Struct = BestBaseStruct; Struct && ((BestBaseStruct == Struct) || (Struct != AActor::StaticClass())); Struct = Struct->GetSuperStruct())
 	{
-		GConfig->GetSingleLineArray(TEXT("DetailPropertyExpansion"), *Struct->GetName(), ExpandedPropertyItems, GEditorPerProjectIni);
-		SetExpandedItems(StartNode, ExpandedPropertyItems);
+		GConfig->GetSingleLineArray(TEXT("DetailPropertyExpansion"), *Struct->GetName(), DetailPropertyExpansionStrings, GEditorPerProjectIni);
 	}
+
+	TSet<FString> ExpandedPropertyItems;
+	ExpandedPropertyItems.Append(DetailPropertyExpansionStrings);
+	SetExpandedItems(StartNode, ExpandedPropertyItems);
 
 	if (BestBaseStruct)
 	{
@@ -1019,13 +1019,15 @@ static bool IsVisibleStandaloneProperty(const FPropertyNode& PropertyNode, const
 	return bIsVisibleStandalone;
 }
 
-void SDetailsViewBase::UpdatePropertyMapRecursive(FPropertyNode& InNode, FDetailLayoutBuilderImpl& InDetailLayout, FName CurCategory, FComplexPropertyNode* CurObjectNode)
+void SDetailsViewBase::UpdatePropertyMapRecursive(FPropertyNode& InNode, FDetailLayoutBuilderImpl& InDetailLayout, FName CurCategory, FComplexPropertyNode* CurObjectNode, bool bEnableFavoriteSystem, bool bUpdateFavoriteSystemOnly)
 {
 	UProperty* ParentProperty = InNode.GetProperty();
 	UStructProperty* ParentStructProp = Cast<UStructProperty>(ParentProperty);
-
 	for (int32 ChildIndex = 0; ChildIndex < InNode.GetNumChildNodes(); ++ChildIndex)
 	{
+		//Use the original value for each child
+		bool LocalUpdateFavoriteSystemOnly = bUpdateFavoriteSystemOnly;
+
 		TSharedPtr<FPropertyNode> ChildNodePtr = InNode.GetChildNode(ChildIndex);
 		FPropertyNode& ChildNode = *ChildNodePtr;
 		UProperty* Property = ChildNode.GetProperty();
@@ -1037,12 +1039,26 @@ void SDetailsViewBase::UpdatePropertyMapRecursive(FPropertyNode& InNode, FDetail
 			{
 				// Currently object property nodes do not provide any useful information other than being a container for its children.  We do not draw anything for them.
 				// When we encounter object property nodes, add their children instead of adding them to the tree.
-				UpdatePropertyMapRecursive(ChildNode, InDetailLayout, CurCategory, ObjNode);
+				UpdatePropertyMapRecursive(ChildNode, InDetailLayout, CurCategory, ObjNode, bEnableFavoriteSystem, LocalUpdateFavoriteSystemOnly);
 			}
 			else if (CategoryNode)
 			{
+				if (!LocalUpdateFavoriteSystemOnly)
+				{
+					FName InstanceName = NAME_None;
+					FName CategoryName = CurCategory;
+					FString CategoryDelimiterString;
+					CategoryDelimiterString.AppendChar(FPropertyNodeConstants::CategoryDelimiterChar);
+					if (CurCategory != NAME_None && CategoryNode->GetCategoryName().ToString().Contains(CategoryDelimiterString))
+					{
+						// This property is child of another property so add it to the parent detail category
+						FDetailCategoryImpl& CategoryImpl = InDetailLayout.DefaultCategory(CategoryName);
+						CategoryImpl.AddPropertyNode(ChildNodePtr.ToSharedRef(), InstanceName);
+					}
+				}
+
 				// For category nodes, we just set the current category and recurse through the children
-				UpdatePropertyMapRecursive(ChildNode, InDetailLayout, CategoryNode->GetCategoryName(), CurObjectNode);
+				UpdatePropertyMapRecursive(ChildNode, InDetailLayout, CategoryNode->GetCategoryName(), CurObjectNode, bEnableFavoriteSystem, LocalUpdateFavoriteSystemOnly);
 			}
 			else
 			{
@@ -1094,7 +1110,7 @@ void SDetailsViewBase::UpdatePropertyMapRecursive(FPropertyNode& InNode, FDetail
 				const bool bIsUserVisible = IsPropertyVisible(PropertyAndParent);
 
 				// Inners of customized in structs should not be taken into consideration for customizing.  They are not designed to be individually customized when their parent is already customized
-				if (!bIsChildOfCustomizedStruct)
+				if (!bIsChildOfCustomizedStruct && !LocalUpdateFavoriteSystemOnly)
 				{
 					// Add any object classes with properties so we can ask them for custom property layouts later
 					ClassesWithProperties.Add(Property->GetOwnerStruct());
@@ -1112,7 +1128,7 @@ void SDetailsViewBase::UpdatePropertyMapRecursive(FPropertyNode& InNode, FDetail
 				}
 
 				// Do not add children of customized in struct properties or arrays
-				if (!bIsChildOfCustomizedStruct && !bIsChildOfArray)
+				if (!bIsChildOfCustomizedStruct && !bIsChildOfArray && !LocalUpdateFavoriteSystemOnly)
 				{
 					// Get the class property map
 					FClassInstanceToPropertyMap& ClassInstanceMap = ClassToPropertyMap.FindOrAdd(Property->GetOwnerStruct()->GetFName());
@@ -1132,11 +1148,10 @@ void SDetailsViewBase::UpdatePropertyMapRecursive(FPropertyNode& InNode, FDetail
 
 					PropertyNodeMap.Add(Property->GetFName(), ChildNodePtr);
 				}
-
+				bool bCanDisplayFavorite = false;
 				if (bVisibleByDefault && bIsUserVisible && !bPushOutStructProps)
 				{
 					FName CategoryName = CurCategory;
-
 					// For properties inside a struct, add them to their own category unless they just take the name of the parent struct.  
 					// In that case push them to the parent category
 					FName PropertyCatagoryName = FObjectEditorUtils::GetCategoryFName(Property);
@@ -1145,15 +1160,68 @@ void SDetailsViewBase::UpdatePropertyMapRecursive(FPropertyNode& InNode, FDetail
 						CategoryName = PropertyCatagoryName;
 					}
 
-					if (IsPropertyReadOnly(PropertyAndParent))
+					if (!LocalUpdateFavoriteSystemOnly)
 					{
-						ChildNode.SetNodeFlags(EPropertyNodeFlags::IsReadOnly, true);
-					}
+						if (IsPropertyReadOnly(PropertyAndParent))
+						{
+							ChildNode.SetNodeFlags(EPropertyNodeFlags::IsReadOnly, true);
+						}
 
-					// Add a property to the default category
-					FDetailCategoryImpl& CategoryImpl = InDetailLayout.DefaultCategory(CategoryName);
-					CategoryImpl.AddPropertyNode(ChildNodePtr.ToSharedRef(), InstanceName);
+						// Add a property to the default category
+						FDetailCategoryImpl& CategoryImpl = InDetailLayout.DefaultCategory(CategoryName);
+						CategoryImpl.AddPropertyNode(ChildNodePtr.ToSharedRef(), InstanceName);
+					}
+					
+					bCanDisplayFavorite = true;
+					if (bEnableFavoriteSystem)
+					{
+						if (bIsCustomizedStruct)
+						{
+							bCanDisplayFavorite = false;
+							//CustomizedStruct child are not categorize since they are under an object but we have to put them in favorite category if the user want to favorite them
+							LocalUpdateFavoriteSystemOnly = true;
+						}
+						else if (ChildNodePtr->IsFavorite())
+						{
+							//Find or create the favorite category, we have to duplicate favorite property row under this category
+							FString CategoryFavoritesName = TEXT("Favorites");
+							FName CatFavName = *CategoryFavoritesName;
+							FDetailCategoryImpl& CategoryFavImpl = InDetailLayout.DefaultCategory(CatFavName);
+							CategoryFavImpl.SetSortOrder(0);
+							CategoryFavImpl.SetCategoryAsSpecialFavorite();
+
+							//Add the property to the favorite
+							FObjectPropertyNode *RootObjectParent = ChildNodePtr->FindRootObjectItemParent();
+							FName RootInstanceName = NAME_None;
+							if (RootObjectParent != nullptr)
+							{
+								RootInstanceName = RootObjectParent->GetObjectBaseClass()->GetFName();
+							}
+
+							if (LocalUpdateFavoriteSystemOnly)
+							{
+								if (IsPropertyReadOnly(PropertyAndParent))
+								{
+									ChildNode.SetNodeFlags(EPropertyNodeFlags::IsReadOnly, true);
+								}
+								else
+								{
+									//If the parent has a condition that is not met, make the child as readonly
+									FDetailLayoutCustomization ParentTmpCustomization;
+									ParentTmpCustomization.PropertyRow = MakeShareable(new FDetailPropertyRow(InNode.AsShared(), CategoryFavImpl.AsShared()));
+									if(ParentTmpCustomization.PropertyRow->GetPropertyEditor()->IsPropertyEditingEnabled() == false)
+									{
+										ChildNode.SetNodeFlags(EPropertyNodeFlags::IsReadOnly, true);
+									}
+								}
+							}
+							
+							//Duplicate the row
+							CategoryFavImpl.AddPropertyNode(ChildNodePtr.ToSharedRef(), RootInstanceName);
+						}
+					}
 				}
+				ChildNodePtr->SetCanDisplayFavorite(bCanDisplayFavorite);
 
 				bool bRecurseIntoChildren =
 					!bIsChildOfCustomizedStruct // Don't recurse into built in struct children, we already know what they are and how to display them
@@ -1163,10 +1231,10 @@ void SDetailsViewBase::UpdatePropertyMapRecursive(FPropertyNode& InNode, FDetail
 					&&	bIsUserVisible // Properties must be allowed to be visible by a user if they are not then their children are not visible either
 					&& (!bIsStruct || bPushOutStructProps); //  Only recurse into struct properties if they are going to be displayed as standalone properties in categories instead of inside an expandable area inside a category
 
-				if (bRecurseIntoChildren)
+				if (bRecurseIntoChildren || LocalUpdateFavoriteSystemOnly)
 				{
 					// Built in struct properties or children of arras 
-					UpdatePropertyMapRecursive(ChildNode, InDetailLayout, CurCategory, CurObjectNode);
+					UpdatePropertyMapRecursive(ChildNode, InDetailLayout, CurCategory, CurObjectNode, bEnableFavoriteSystem, LocalUpdateFavoriteSystemOnly);
 				}
 			}
 		}
@@ -1189,9 +1257,12 @@ void SDetailsViewBase::UpdatePropertyMap()
 
 	auto RootPropertyNode = GetRootNode();
 	check(RootPropertyNode.IsValid());
+
+	bool const bEnableFavoriteSystem = GIsRequestingExit ? false : (GetDefault<UEditorExperimentalSettings>()->bEnableFavoriteSystem && DetailsViewArgs.bAllowFavoriteSystem);
+
 	// Currently object property nodes do not provide any useful information other than being a container for its children.  We do not draw anything for them.
 	// When we encounter object property nodes, add their children instead of adding them to the tree.
-	UpdatePropertyMapRecursive(*RootPropertyNode, *DetailLayout, NAME_None, RootPropertyNode.Get());
+	UpdatePropertyMapRecursive(*RootPropertyNode, *DetailLayout, NAME_None, RootPropertyNode.Get(), bEnableFavoriteSystem, false);
 
 	CustomUpdatePropertyMap();
 
@@ -1207,3 +1278,21 @@ void SDetailsViewBase::UpdatePropertyMap()
 	DetailLayout->GenerateDetailLayout();
 }
 
+void SDetailsViewBase::RegisterInstancedCustomPropertyLayoutInternal(UStruct* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate)
+{
+	check( Class );
+
+	FDetailLayoutCallback Callback;
+	Callback.DetailLayoutDelegate = DetailLayoutDelegate;
+	// @todo: DetailsView: Fix me: this specifies the order in which detail layouts should be queried
+	Callback.Order = InstancedClassToDetailLayoutMap.Num();
+
+	InstancedClassToDetailLayoutMap.Add( Class, Callback );	
+}
+
+void SDetailsViewBase::UnregisterInstancedCustomPropertyLayoutInternal(UStruct* Class)
+{
+	check( Class );
+
+	InstancedClassToDetailLayoutMap.Remove( Class );	
+}

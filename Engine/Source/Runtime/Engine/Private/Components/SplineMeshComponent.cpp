@@ -6,7 +6,12 @@
 #include "ShaderParameterUtils.h"
 #include "NavigationSystemHelpers.h"
 #include "AI/Navigation/NavCollision.h"
+#include "Engine/StaticMeshSocket.h"
 
+#if WITH_EDITOR
+#include "HierarchicalLODUtilities.h"
+#include "HierarchicalLODUtilitiesModule.h"
+#endif // WITH_EDITOR
 
 //////////////////////////////////////////////////////////////////////////
 // FSplineMeshVertexFactoryShaderParameters
@@ -38,10 +43,16 @@ void FSplineMeshVertexFactoryShaderParameters::Bind(const FShaderParameterMap& P
 
 void FSplineMeshVertexFactoryShaderParameters::SetMesh(FRHICommandList& RHICmdList, FShader* Shader, const FVertexFactory* VertexFactory, const FSceneView& View, const FMeshBatchElement& BatchElement, uint32 DataFlags) const
 {
+	if (BatchElement.bUserDataIsColorVertexBuffer)
+	{
+		FColorVertexBuffer* OverrideColorVertexBuffer = (FColorVertexBuffer*)BatchElement.UserData;
+		check(OverrideColorVertexBuffer);
+		static_cast<const FLocalVertexFactory*>(VertexFactory)->SetColorOverrideStream(RHICmdList, OverrideColorVertexBuffer);
+	}
 	if (Shader->GetVertexShader())
 	{
-		FSplineMeshVertexFactory* SplineVertexFactory = (FSplineMeshVertexFactory*)VertexFactory;
-		FSplineMeshSceneProxy* SplineProxy = SplineVertexFactory->SplineSceneProxy;
+		checkSlow(BatchElement.bIsSplineProxy);
+		FSplineMeshSceneProxy* SplineProxy = BatchElement.SplineMeshSceneProxy;
 		FSplineMeshParams& SplineParams = SplineProxy->SplineParams;
 
 		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineStartPosParam, SplineParams.StartPos);
@@ -88,17 +99,49 @@ FVertexFactoryShaderParameters* FSplineMeshVertexFactory::ConstructShaderParamet
 //////////////////////////////////////////////////////////////////////////
 // SplineMeshSceneProxy
 
-void FSplineMeshSceneProxy::InitResources( USplineMeshComponent* InComponent, int32 InLODIndex, FColorVertexBuffer* InOverrideColorVertexBuffer )
+void FSplineMeshSceneProxy::InitVertexFactory(USplineMeshComponent* InComponent, int32 InLODIndex, FColorVertexBuffer* InOverrideColorVertexBuffer)
 {
+	uint32 TangentXOffset = 0;
+	uint32 TangetnZOffset = 0;
+	uint32 UVsBaseOffset = 0;
+
+	auto& RD = InComponent->StaticMesh->RenderData->LODResources[InLODIndex];
+	SELECT_STATIC_MESH_VERTEX_TYPE(
+		RD.VertexBuffer.GetUseHighPrecisionTangentBasis(),
+		RD.VertexBuffer.GetUseFullPrecisionUVs(),
+		RD.VertexBuffer.GetNumTexCoords(),
+		{
+			TangentXOffset = STRUCT_OFFSET(VertexType, TangentX);
+			TangetnZOffset = STRUCT_OFFSET(VertexType, TangentZ);
+			UVsBaseOffset = STRUCT_OFFSET(VertexType, UVs);
+		});
+
 	// Initialize the static mesh's vertex factory.
-	ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
+	ENQUEUE_UNIQUE_RENDER_COMMAND_SIXPARAMETER(
 		InitSplineMeshVertexFactory,
-		FSplineMeshVertexFactory*, VertexFactory, LODResources[InLODIndex].VertexFactory,
 		FStaticMeshLODResources*, RenderData, &InComponent->StaticMesh->RenderData->LODResources[InLODIndex],
 		UStaticMesh*, Parent, InComponent->StaticMesh,
-		FColorVertexBuffer*, OverridenColorVertexBuffer, InOverrideColorVertexBuffer,
+		bool, bOverrideColorVertexBuffer, !!InOverrideColorVertexBuffer,
+		uint32, TangentXOffset, TangentXOffset,
+		uint32, TangetnZOffset, TangetnZOffset,
+		uint32, UVsBaseOffset, UVsBaseOffset,
 		{
-		FLocalVertexFactory::DataType Data;
+
+		if ((RenderData->SplineVertexFactory && !bOverrideColorVertexBuffer) || (RenderData->SplineVertexFactoryOverrideColorVertexBuffer && bOverrideColorVertexBuffer))
+		{
+			// we already have it
+			return;
+		}
+		FSplineMeshVertexFactory* VertexFactory = new FSplineMeshVertexFactory;
+		if (bOverrideColorVertexBuffer)
+		{
+			RenderData->SplineVertexFactoryOverrideColorVertexBuffer = VertexFactory;
+		}
+		else
+		{
+			RenderData->SplineVertexFactory = VertexFactory;
+		}
+		FLocalVertexFactory::FDataType Data;
 
 		Data.PositionComponent = FVertexStreamComponent(
 			&RenderData->PositionVertexBuffer,
@@ -106,102 +149,90 @@ void FSplineMeshSceneProxy::InitResources( USplineMeshComponent* InComponent, in
 			RenderData->PositionVertexBuffer.GetStride(),
 			VET_Float3
 			);
+
 		Data.TangentBasisComponents[0] = FVertexStreamComponent(
 			&RenderData->VertexBuffer,
-			STRUCT_OFFSET(FStaticMeshFullVertex, TangentX),
+			TangentXOffset,
 			RenderData->VertexBuffer.GetStride(),
-			VET_PackedNormal
+			RenderData->VertexBuffer.GetUseHighPrecisionTangentBasis() ?
+				TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::HighPrecision>::VertexElementType : 
+				TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::Default>::VertexElementType
 			);
+
 		Data.TangentBasisComponents[1] = FVertexStreamComponent(
 			&RenderData->VertexBuffer,
-			STRUCT_OFFSET(FStaticMeshFullVertex, TangentZ),
+			TangetnZOffset,
 			RenderData->VertexBuffer.GetStride(),
-			VET_PackedNormal
+			RenderData->VertexBuffer.GetUseHighPrecisionTangentBasis() ?
+				TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::HighPrecision>::VertexElementType : 
+				TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::Default>::VertexElementType
 			);
-		
-		FColorVertexBuffer* LODColorVertexBuffer = &RenderData->ColorVertexBuffer;
-		// Override the buffer if it has been changed
-		if ( OverridenColorVertexBuffer != NULL )
-		{
-			LODColorVertexBuffer = OverridenColorVertexBuffer;
-		}
-		if ( LODColorVertexBuffer->GetNumVertices() > 0 )
+
+		if (bOverrideColorVertexBuffer)
 		{
 			Data.ColorComponent = FVertexStreamComponent(
-				LODColorVertexBuffer,
+				&GNullColorVertexBuffer,
 				0,	// Struct offset to color
-				LODColorVertexBuffer->GetStride(),
-				VET_Color
+				sizeof(FColor), //asserted elsewhere
+				VET_Color,
+				false, // not instanced
+				true // set in SetMesh
 				);
+		}
+		else
+		{
+			FColorVertexBuffer* LODColorVertexBuffer = &RenderData->ColorVertexBuffer;
+			if (LODColorVertexBuffer->GetNumVertices() > 0)
+			{
+				Data.ColorComponent = FVertexStreamComponent(
+					LODColorVertexBuffer,
+					0,	// Struct offset to color
+					LODColorVertexBuffer->GetStride(),
+					VET_Color
+					);
+			}
 		}
 
 		Data.TextureCoordinates.Empty();
 
-		if (!RenderData->VertexBuffer.GetUseFullPrecisionUVs())
-		{
-			int32 UVIndex;
-			for (UVIndex = 0; UVIndex < (int32)RenderData->VertexBuffer.GetNumTexCoords() - 1; UVIndex += 2)
-			{
-				Data.TextureCoordinates.Add(FVertexStreamComponent(
-					&RenderData->VertexBuffer,
-					STRUCT_OFFSET(TStaticMeshFullVertexFloat16UVs<MAX_STATIC_TEXCOORDS>, UVs) + sizeof(FVector2DHalf) * UVIndex,
-					RenderData->VertexBuffer.GetStride(),
-					VET_Half4
-					));
-			}
-			// possible last UV channel if we have an odd number
-			if (UVIndex < (int32)RenderData->VertexBuffer.GetNumTexCoords())
-			{
-				Data.TextureCoordinates.Add(FVertexStreamComponent(
-					&RenderData->VertexBuffer,
-					STRUCT_OFFSET(TStaticMeshFullVertexFloat16UVs<MAX_STATIC_TEXCOORDS>, UVs) + sizeof(FVector2DHalf) * UVIndex,
-					RenderData->VertexBuffer.GetStride(),
-					VET_Half2
-					));
-			}
+		uint32 UVSizeInBytes = RenderData->VertexBuffer.GetUseFullPrecisionUVs() ?
+			sizeof(TStaticMeshVertexUVsTypeSelector<EStaticMeshVertexUVType::HighPrecision>::UVsTypeT) : sizeof(TStaticMeshVertexUVsTypeSelector<EStaticMeshVertexUVType::Default>::UVsTypeT);
 
-			if (Parent->LightMapCoordinateIndex >= 0 && (uint32)Parent->LightMapCoordinateIndex < RenderData->VertexBuffer.GetNumTexCoords())
-			{
-				Data.LightMapCoordinateComponent = FVertexStreamComponent(
-					&RenderData->VertexBuffer,
-					STRUCT_OFFSET(TStaticMeshFullVertexFloat16UVs<MAX_STATIC_TEXCOORDS>, UVs) + sizeof(FVector2DHalf) * Parent->LightMapCoordinateIndex,
-					RenderData->VertexBuffer.GetStride(),
-					VET_Half2
-					);
-			}
+		EVertexElementType UVDoubleWideVertexElementType = RenderData->VertexBuffer.GetUseFullPrecisionUVs() ?
+			VET_Float4 : VET_Half4;
+
+		EVertexElementType UVVertexElementType = RenderData->VertexBuffer.GetUseFullPrecisionUVs() ?
+			VET_Float2 : VET_Half2;
+
+		int32 UVIndex;
+		for (UVIndex = 0; UVIndex < (int32)RenderData->VertexBuffer.GetNumTexCoords() - 1; UVIndex += 2)
+		{
+			Data.TextureCoordinates.Add(FVertexStreamComponent(
+				&RenderData->VertexBuffer,
+				UVsBaseOffset + UVSizeInBytes * UVIndex,
+				RenderData->VertexBuffer.GetStride(),
+				UVDoubleWideVertexElementType
+				));
 		}
-		else
+		// possible last UV channel if we have an odd number
+		if (UVIndex < (int32)RenderData->VertexBuffer.GetNumTexCoords())
 		{
-			int32 UVIndex;
-			for (UVIndex = 0; UVIndex < (int32)RenderData->VertexBuffer.GetNumTexCoords() - 1; UVIndex += 2)
-			{
-				Data.TextureCoordinates.Add(FVertexStreamComponent(
-					&RenderData->VertexBuffer,
-					STRUCT_OFFSET(TStaticMeshFullVertexFloat32UVs<MAX_STATIC_TEXCOORDS>, UVs) + sizeof(FVector2D) * UVIndex,
-					RenderData->VertexBuffer.GetStride(),
-					VET_Float4
-					));
-			}
-			// possible last UV channel if we have an odd number
-			if (UVIndex < (int32)RenderData->VertexBuffer.GetNumTexCoords())
-			{
-				Data.TextureCoordinates.Add(FVertexStreamComponent(
-					&RenderData->VertexBuffer,
-					STRUCT_OFFSET(TStaticMeshFullVertexFloat32UVs<MAX_STATIC_TEXCOORDS>, UVs) + sizeof(FVector2D) * UVIndex,
-					RenderData->VertexBuffer.GetStride(),
-					VET_Float2
-					));
-			}
+			Data.TextureCoordinates.Add(FVertexStreamComponent(
+				&RenderData->VertexBuffer,
+				UVsBaseOffset + UVSizeInBytes * UVIndex,
+				RenderData->VertexBuffer.GetStride(),
+				UVVertexElementType
+				));
+		}
 
-			if (Parent->LightMapCoordinateIndex >= 0 && (uint32)Parent->LightMapCoordinateIndex < RenderData->VertexBuffer.GetNumTexCoords())
-			{
-				Data.LightMapCoordinateComponent = FVertexStreamComponent(
-					&RenderData->VertexBuffer,
-					STRUCT_OFFSET(TStaticMeshFullVertexFloat32UVs<MAX_STATIC_TEXCOORDS>, UVs) + sizeof(FVector2D) * Parent->LightMapCoordinateIndex,
-					RenderData->VertexBuffer.GetStride(),
-					VET_Float2
-					);
-			}
+		if (Parent->LightMapCoordinateIndex >= 0 && (uint32)Parent->LightMapCoordinateIndex < RenderData->VertexBuffer.GetNumTexCoords())
+		{
+			Data.LightMapCoordinateComponent = FVertexStreamComponent(
+				&RenderData->VertexBuffer,
+				UVsBaseOffset + UVSizeInBytes * Parent->LightMapCoordinateIndex,
+				RenderData->VertexBuffer.GetStride(),
+				UVVertexElementType
+				);
 		}
 
 		VertexFactory->SetData(Data);
@@ -210,14 +241,6 @@ void FSplineMeshSceneProxy::InitResources( USplineMeshComponent* InComponent, in
 	});
 }
 
-
-void FSplineMeshSceneProxy::ReleaseResources()
-{
-	for (FSplineMeshSceneProxy::FLODResources& LODResource : LODResources)
-	{
-		LODResource.VertexFactory->ReleaseResource();
-	}
-}
 
 //////////////////////////////////////////////////////////////////////////
 // SplineMeshComponent
@@ -483,13 +506,11 @@ void USplineMeshComponent::UpdateRenderStateAndCollision()
 {
 	MarkRenderStateDirty();
 
-#if WITH_EDITOR
-	if (!GetWorld()->AreActorsInitialized())
-	{
-		DestroyBodySetup();
-		RecreatePhysicsState();
-	}
-#endif // WITH_EDITOR
+#if WITH_EDITOR || WITH_RUNTIME_PHYSICS_COOKING
+	DestroyBodySetup();
+	RecreateCollision();
+	RecreatePhysicsState();
+#endif // WITH_EDITOR || WITH_RUNTIME_PHYSICS_COOKING
 
 	bMeshDirty = false;
 }
@@ -696,6 +717,42 @@ FBoxSphereBounds USplineMeshComponent::CalcBounds(const FTransform& LocalToWorld
 	return FBoxSphereBounds(BoundingBox.TransformBy(LocalToWorld));
 }
 
+FTransform USplineMeshComponent::GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace) const
+{
+	if (InSocketName != NAME_None)
+	{
+		UStaticMeshSocket const* const Socket = GetSocketByName(InSocketName);
+		if (Socket)
+		{
+			FTransform SocketTransform;
+			SocketTransform = FTransform(Socket->RelativeRotation, Socket->RelativeLocation * GetAxisMask(ForwardAxis), Socket->RelativeScale);
+			SocketTransform = SocketTransform * CalcSliceTransform(GetAxisValue(Socket->RelativeLocation, ForwardAxis));
+
+			switch (TransformSpace)
+			{
+			case RTS_World:
+			{
+				return SocketTransform * GetComponentToWorld();
+			}
+			case RTS_Actor:
+			{
+				if (const AActor* Actor = GetOwner())
+				{
+					return (SocketTransform * GetComponentToWorld()).GetRelativeTransform(GetOwner()->GetTransform());
+				}
+				break;
+			}
+			case RTS_Component:
+			{
+				return SocketTransform;
+			}
+			}
+		}
+	}
+
+	return Super::GetSocketTransform(InSocketName, TransformSpace);
+}
+
 
 FTransform USplineMeshComponent::CalcSliceTransform(const float DistanceAlong) const
 {
@@ -829,7 +886,7 @@ void USplineMeshComponent::GetMeshId(FString& OutMeshId)
 
 void USplineMeshComponent::CreatePhysicsState()
 {
-#if WITH_EDITOR
+#if WITH_EDITOR || WITH_RUNTIME_PHYSICS_COOKING
 	// With editor code we can recreate the collision if the mesh changes
 	const FGuid MeshBodySetupGuid = (StaticMesh != NULL ? StaticMesh->BodySetup->BodySetupGuid : FGuid());
 	if (CachedMeshBodySetupGuid != MeshBodySetupGuid)
@@ -919,7 +976,7 @@ void USplineMeshComponent::DestroyBodySetup()
 }
 
 
-#if WITH_EDITOR
+#if WITH_EDITOR || WITH_RUNTIME_PHYSICS_COOKING
 void USplineMeshComponent::RecreateCollision()
 {
 	if (StaticMesh && IsCollisionEnabled())
@@ -1102,3 +1159,57 @@ FStaticMeshStaticLightingMesh* USplineMeshComponent::AllocateStaticLightingMesh(
 {
 	return new FSplineStaticLightingMesh(this, LODIndex, InRelevantLights);
 }
+
+
+bool USplineMeshComponent::GetStreamingTextureFactors(float& OutWorldTexelFactor, float& OutWorldLightmapFactor) const
+{
+	if (UStaticMeshComponent::GetStreamingTextureFactors(OutWorldTexelFactor, OutWorldLightmapFactor))
+	{
+		// We need to come up with a compensation factor for spline deformed meshes
+
+		float SplineDeformFactor = 1.f;
+
+		// We do this by looking at the ratio between current bounds (including deformation) and undeformed (straight from staticmesh)
+		const float MinExtent = 1.0f;
+		FBoxSphereBounds UndeformedBounds = StaticMesh->GetBounds().TransformBy(ComponentToWorld);
+		if (UndeformedBounds.BoxExtent.X >= MinExtent)
+		{
+			SplineDeformFactor = FMath::Max(SplineDeformFactor, Bounds.BoxExtent.X / UndeformedBounds.BoxExtent.X);
+		}
+		if (UndeformedBounds.BoxExtent.Y >= MinExtent)
+		{
+			SplineDeformFactor = FMath::Max(SplineDeformFactor, Bounds.BoxExtent.Y / UndeformedBounds.BoxExtent.Y);
+		}
+		if (UndeformedBounds.BoxExtent.Z >= MinExtent)
+		{
+			SplineDeformFactor = FMath::Max(SplineDeformFactor, Bounds.BoxExtent.Z / UndeformedBounds.BoxExtent.Z);
+		}
+
+		OutWorldTexelFactor *= SplineDeformFactor;
+		OutWorldLightmapFactor *= SplineDeformFactor;
+
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+#if WITH_EDITOR
+void USplineMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	UStaticMeshComponent::PostEditChangeProperty(PropertyChangedEvent);
+	UProperty* MemberPropertyThatChanged = PropertyChangedEvent.MemberProperty;
+	if (MemberPropertyThatChanged)
+	{
+		// If the spline params were changed the actual geometry is, so flag the owning HLOD cluster as dirty
+		if (MemberPropertyThatChanged->GetNameCPP() == TEXT("SplineParams"))
+		{
+			IHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<IHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");
+			IHierarchicalLODUtilities* Utilities = Module.GetUtilities();
+			Utilities->HandleActorModified(GetOwner());
+		}
+	}
+}
+#endif

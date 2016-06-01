@@ -803,7 +803,9 @@ void FMacApplication::ProcessMouseDownEvent(const FDeferredMacEvent& Event, TSha
 	if (EventWindow.IsValid())
 	{
 		const EWindowZone::Type Zone = GetCurrentWindowZone(EventWindow.ToSharedRef());
+		
 		bool const bResizable = !bUsingHighPrecisionMouseInput && EventWindow->IsRegularWindow() && (EventWindow->GetDefinition().SupportsMaximize || EventWindow->GetDefinition().HasSizingFrame);
+		
 		if (Button == LastPressedMouseButton && (Event.ClickCount % 2) == 0)
 		{
 			if (Zone == EWindowZone::TitleBar)
@@ -883,7 +885,7 @@ void FMacApplication::ProcessScrollWheelEvent(const FDeferredMacEvent& Event, TS
 		const FVector2D ScrollDelta(Event.ScrollingDelta.X, Event.ScrollingDelta.Y);
 
 		// This is actually a scroll gesture from trackpad
-		MessageHandler->OnTouchGesture(EGestureEvent::Scroll, Event.IsDirectionInvertedFromDevice ? -ScrollDelta : ScrollDelta, DeltaY);
+		MessageHandler->OnTouchGesture(EGestureEvent::Scroll, ScrollDelta, DeltaY, Event.IsDirectionInvertedFromDevice);
 		RecordUsage(EGestureEvent::Scroll);
 	}
 	else
@@ -913,7 +915,7 @@ void FMacApplication::ProcessGestureEvent(const FDeferredMacEvent& Event)
 	else
 	{
 		const EGestureEvent::Type GestureType = Event.Type == NSEventTypeMagnify ? EGestureEvent::Magnify : (Event.Type == NSEventTypeSwipe ? EGestureEvent::Swipe : EGestureEvent::Rotate);
-		MessageHandler->OnTouchGesture(GestureType, Event.Delta, 0);
+		MessageHandler->OnTouchGesture(GestureType, Event.Delta, 0, Event.IsDirectionInvertedFromDevice);
 		RecordUsage(GestureType);
 	}
 }
@@ -1151,12 +1153,26 @@ void FMacApplication::OnWindowsReordered()
 	SavedWindowsOrder.Empty();
 
 	NSArray* OrderedWindows = [NSApp orderedWindows];
+
+	int32 MinLevel = 0;
+	int32 MaxLevel = 0;
 	for (NSWindow* Window in OrderedWindows)
 	{
-		if ([Window isKindOfClass:[FCocoaWindow class]] && [Window isVisible] && ![Window hidesOnDeactivate])
+		const int32 WindowLevel = Levels.Contains([Window windowNumber]) ? Levels[[Window windowNumber]] : [Window level];
+		MinLevel = FMath::Min(MinLevel, WindowLevel);
+		MaxLevel = FMath::Max(MaxLevel, WindowLevel);
+	}
+
+	for (int32 Level = MaxLevel; Level >= MinLevel; Level--)
+	{
+		for (NSWindow* Window in OrderedWindows)
 		{
-			SavedWindowsOrder.Add(FSavedWindowOrderInfo([Window windowNumber], Levels.Contains([Window windowNumber]) ? Levels[[Window windowNumber]] : [Window level]));
-			[Window setLevel:NSNormalWindowLevel];
+			const int32 WindowLevel = Levels.Contains([Window windowNumber]) ? Levels[[Window windowNumber]] : [Window level];
+			if (Level == WindowLevel && [Window isKindOfClass:[FCocoaWindow class]] && [Window isVisible] && ![Window hidesOnDeactivate])
+			{
+				SavedWindowsOrder.Add(FSavedWindowOrderInfo([Window windowNumber], WindowLevel));
+				[Window setLevel:NSNormalWindowLevel];
+			}
 		}
 	}
 }
@@ -1575,4 +1591,7 @@ void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top = ScreenFrame.size.height - (VisibleFrame.origin.y + VisibleFrame.size.height);
 	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Right = VisibleFrame.origin.x + VisibleFrame.size.width;
 	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom = OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top + VisibleFrame.size.height;
+
+	// Apply the debug safe zones
+	OutDisplayMetrics.ApplyDefaultSafeZones();
 }

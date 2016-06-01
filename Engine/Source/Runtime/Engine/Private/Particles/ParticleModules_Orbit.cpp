@@ -33,7 +33,7 @@ UParticleModuleOrbit::UParticleModuleOrbit(const FObjectInitializer& ObjectIniti
 
 void UParticleModuleOrbit::InitializeDefaults()
 {
-	if (!OffsetAmount.Distribution)
+	if (!OffsetAmount.IsCreated())
 	{
 		UDistributionVectorUniform* DistributionOffsetAmount = NewObject<UDistributionVectorUniform>(this, TEXT("DistributionOffsetAmount"));
 		DistributionOffsetAmount->Min = FVector(0.0f, 0.0f, 0.0f);
@@ -41,7 +41,7 @@ void UParticleModuleOrbit::InitializeDefaults()
 		OffsetAmount.Distribution = DistributionOffsetAmount;
 	}
 
-	if (!RotationAmount.Distribution)
+	if (!RotationAmount.IsCreated())
 	{
 		UDistributionVectorUniform* DistributionRotationAmount = NewObject<UDistributionVectorUniform>(this, TEXT("DistributionRotationAmount"));
 		DistributionRotationAmount->Min = FVector(0.0f, 0.0f, 0.0f);
@@ -49,7 +49,7 @@ void UParticleModuleOrbit::InitializeDefaults()
 		RotationAmount.Distribution = DistributionRotationAmount;
 	}
 
-	if (!RotationRateAmount.Distribution)
+	if (!RotationRateAmount.IsCreated())
 	{
 		UDistributionVectorUniform* DistributionRotationRateAmount = NewObject<UDistributionVectorUniform>(this, TEXT("DistributionRotationRateAmount"));
 		DistributionRotationRateAmount->Min = FVector(0.0f, 0.0f, 0.0f);

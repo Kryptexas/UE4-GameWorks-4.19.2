@@ -427,6 +427,18 @@ public:
 	// Required by UHT makefiles for internal data serialization.
 	friend struct FStructArchiveProxy;
 #endif // HACK_HEADER_GENERATOR
+
+protected:
+
+	/** Returns the property name from the guid */
+	virtual FName FindPropertyNameFromGuid(const FGuid& PropertyGuid) const { return NAME_None; }
+
+	/** Find property guid */
+	virtual FGuid FindPropertyGuidFromName(const FName InName) const { return FGuid(); }
+
+	/** Returns if we have access to property guids */
+	virtual bool ArePropertyGuidsAvailable() const { return false; }
+
 };
 
 enum EStructFlags
@@ -1129,7 +1141,7 @@ public:
 	 */
 	COREUOBJECT_API void CopyScriptStruct(void* Dest, void const* Src, int32 ArrayDim = 1) const;
 	/**
-	 * Reintialize a struct in memory. This may be done by calling the native destructor and then the constructor or individually reinitializing properties
+	 * Reinitialize a struct in memory. This may be done by calling the native destructor and then the constructor or individually reinitializing properties
 	 *
 	 * @param	Dest		Pointer to memory to reinitialize
 	 * @param	ArrayDim	Number of elements in the array
@@ -1140,6 +1152,14 @@ public:
 	virtual COREUOBJECT_API void RecursivelyPreload();
 
 	virtual COREUOBJECT_API FGuid GetCustomGuid() const;
+
+#if WITH_EDITOR
+	/**
+	* Initializes this structure to its default values
+	* @param InStructData		The memory location to initialize
+	*/
+	virtual COREUOBJECT_API void InitializeDefaultValue(uint8* InStructData) const;
+#endif // WITH_EDITOR
 };
 
 class FStructOnScope
@@ -1365,7 +1385,7 @@ public:
 		//@TODO: UCREMOVAL: CPF_ConstParm added as a hack to get blueprints compiling with a const DamageType parameter.
 		const uint64 IgnoreFlags = CPF_PersistentInstance | CPF_ExportObject | CPF_InstancedReference 
 			| CPF_ContainsInstancedReference | CPF_ComputedFlags | CPF_ConstParm | CPF_HasGetValueTypeHash | CPF_UObjectWrapper
-			| CPF_NativeAccessSpecifiers;
+			| CPF_NativeAccessSpecifiers | CPF_AdvancedDisplay;
 		return IgnoreFlags;
 	}
 
@@ -2180,6 +2200,12 @@ public:
 	}
 
 	/**
+	 * Override to return a linked list of properties with default values that differ from the parent default object. If non-NULL, only these properties will 
+	 * be copied post-construction. Otherwise, all properties will be copied to the new instance, even if the default value matches the inherited default value.
+	 */
+	virtual const FCustomPropertyListNode* GetCustomPropertyListForPostConstruction() const { return nullptr; }
+
+	/**
 	* Get the name of the CDO for the this class
 	* @return The name of the CDO
 	*/
@@ -2190,7 +2216,7 @@ public:
 		return NULL;
 	}
 
-	virtual void CreatePersistentUberGraphFrame(UObject* Obj, bool bCreateOnlyIfEmpty = false, bool bSkipSuperClass = false) const
+	virtual void CreatePersistentUberGraphFrame(UObject* Obj, bool bCreateOnlyIfEmpty = false, bool bSkipSuperClass = false, UClass* OldClass = nullptr) const
 	{
 	}
 
@@ -2356,7 +2382,12 @@ public:
 	 * @param Object the object to serialize as default
 	 * @param Ar the archive to serialize from
 	 */
-	void SerializeDefaultObject(UObject* Object, FArchive& Ar);
+	virtual void SerializeDefaultObject(UObject* Object, FArchive& Ar);
+
+	/** Wraps the PostLoad() call for the class default object.
+	 * @param Object the default object to call PostLoad() on
+	 */
+	virtual void PostLoadDefaultObject(UObject* Object) { Object->PostLoad(); }
 
 	/** 
 	 * Purges out the properties of this class in preparation for it to be regenerated
@@ -2907,8 +2938,43 @@ template<> struct TBaseStructure<FGuid>
 	COREUOBJECT_API static UScriptStruct* Get();
 };
 
+template<> struct TBaseStructure<FBox2D>
+{
+	COREUOBJECT_API static UScriptStruct* Get();
+};	
+
 struct FFallbackStruct;
 template<> struct TBaseStructure<FFallbackStruct>
+{
+	COREUOBJECT_API static UScriptStruct* Get();
+};
+
+template<> struct TBaseStructure<FFloatRangeBound>
+{
+	COREUOBJECT_API static UScriptStruct* Get();
+};
+
+template<> struct TBaseStructure<FFloatRange>
+{
+	COREUOBJECT_API static UScriptStruct* Get();
+};
+
+template<> struct TBaseStructure<FInt32RangeBound>
+{
+	COREUOBJECT_API static UScriptStruct* Get();
+};
+
+template<> struct TBaseStructure<FInt32Range>
+{
+	COREUOBJECT_API static UScriptStruct* Get();
+};
+
+template<> struct TBaseStructure<FFloatInterval>
+{
+	COREUOBJECT_API static UScriptStruct* Get();
+};
+
+template<> struct TBaseStructure<FInt32Interval>
 {
 	COREUOBJECT_API static UScriptStruct* Get();
 };

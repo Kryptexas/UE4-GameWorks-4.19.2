@@ -544,7 +544,10 @@ void FAssetRenameManager::RenameReferencingStringAssetReferences(const TArray<UP
 	{
 		FStringAssetReferenceRenameSerializer(const FString& InOldAssetPath, const FString& InNewAssetPath)
 			: OldAssetPath(InOldAssetPath), NewAssetPath(InNewAssetPath)
-		{ }
+		{
+			// Mark it as saving to correctly process all references
+			ArIsSaving = true;
+		}
 
 		FArchive& operator<<(FStringAssetReference& Reference) override
 		{

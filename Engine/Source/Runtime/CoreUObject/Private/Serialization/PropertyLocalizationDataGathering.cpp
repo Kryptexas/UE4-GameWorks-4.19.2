@@ -406,22 +406,50 @@ void FPropertyLocalizationDataGatherer::GatherScriptBytecode(const FString& Path
 
 		void SerializeText(int32& iCode, FArchive& Ar)
 		{
-			bIsParsingText = true;
+			// What kind of text are we dealing with?
+			const EBlueprintTextLiteralType TextLiteralType = (EBlueprintTextLiteralType)Script[iCode++];
 
-			SerializeExpr(iCode, Ar);
-			const FString SourceString = MoveTemp(LastParsedString);
+			switch (TextLiteralType)
+			{
+			case EBlueprintTextLiteralType::Empty:
+				// Don't need to gather empty text
+				break;
 
-			SerializeExpr(iCode, Ar);
-			const FString TextKey = MoveTemp(LastParsedString);
+			case EBlueprintTextLiteralType::LocalizedText:
+				{
+					bIsParsingText = true;
 
-			SerializeExpr(iCode, Ar);
-			const FString TextNamespace = MoveTemp(LastParsedString);
+					SerializeExpr(iCode, Ar);
+					const FString SourceString = MoveTemp(LastParsedString);
 
-			const FText TextInstance = FInternationalization::ForUseOnlyByLocMacroAndGraphNodeTextLiterals_CreateText(*SourceString, *TextNamespace, *TextKey);
+					SerializeExpr(iCode, Ar);
+					const FString TextKey = MoveTemp(LastParsedString);
 
-			PropertyLocalizationDataGatherer.GatherTextInstance(TextInstance, FString::Printf(TEXT("%s [Script Bytecode]"), SourceDescription), bTreatAsEditorOnlyData);
+					SerializeExpr(iCode, Ar);
+					const FString TextNamespace = MoveTemp(LastParsedString);
 
-			bIsParsingText = false;
+					bIsParsingText = false;
+
+					const FText TextInstance = FInternationalization::ForUseOnlyByLocMacroAndGraphNodeTextLiterals_CreateText(*SourceString, *TextNamespace, *TextKey);
+
+					PropertyLocalizationDataGatherer.GatherTextInstance(TextInstance, FString::Printf(TEXT("%s [Script Bytecode]"), SourceDescription), bTreatAsEditorOnlyData);
+				}
+				break;
+
+			case EBlueprintTextLiteralType::InvariantText:
+				// Don't need to gather invariant text, but we do need to walk over the string in the buffer
+				SerializeExpr(iCode, Ar);
+				break;
+
+			case EBlueprintTextLiteralType::LiteralString:
+				// Don't need to gather literal strings, but we do need to walk over the string in the buffer
+				SerializeExpr(iCode, Ar);
+				break;
+
+			default:
+				checkf(false, TEXT("Unknown EBlueprintTextLiteralType! Please update FGatherTextFromScriptBytecode::SerializeText to handle this type of text."));
+				break;
+			}
 		}
 
 		const TCHAR* SourceDescription;

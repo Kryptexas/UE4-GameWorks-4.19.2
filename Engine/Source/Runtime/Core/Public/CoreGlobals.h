@@ -22,7 +22,7 @@ extern CORE_API FOutputDeviceConsole* GLogConsole;
 
 extern CORE_API TCHAR GErrorHist[16384];
 
-// @TODO yrx 2014-08-19 Combine into one.
+// #crashReport: 2014-08-19 Combine into one, refactor.
 extern CORE_API TCHAR GErrorExceptionDescription[4096];
 extern CORE_API TCHAR GErrorMessage[4096];
 
@@ -176,6 +176,7 @@ extern CORE_API FString GEditorPerProjectIni;
 extern CORE_API FString GCompatIni;
 extern CORE_API FString GLightmassIni;
 extern CORE_API FString GScalabilityIni;
+extern CORE_API FString GHardwareIni;
 extern CORE_API FString GInputIni;
 extern CORE_API FString GGameIni;
 extern CORE_API FString GGameUserSettingsIni;
@@ -198,6 +199,9 @@ extern CORE_API void (*SuspendAsyncLoading)();
 /** Resumes async package loading. */
 extern CORE_API void (*ResumeAsyncLoading)();
 
+/** Returns true if async loading is using the async loading thread */
+extern CORE_API bool(*IsAsyncLoadingMultithreaded)();
+
 /** Whether the editor is currently loading a package or not */
 extern CORE_API bool GIsEditorLoadingPackage;
 
@@ -208,9 +212,6 @@ extern CORE_API int32 GPlayInEditorID;
 
 /** Whether or not PIE was attempting to play from PlayerStart */
 extern CORE_API bool GIsPIEUsingPlayerStart;
-
-/** Proxy class that allows verification on FApp::IsGame() accesses. */
-extern CORE_API bool IsInGameThread();
 
 /** true if the runtime needs textures to be powers of two */
 extern CORE_API bool GPlatformNeedsPowerOfTwoTextures;
@@ -314,6 +315,9 @@ extern CORE_API bool GPumpingMessagesOutsideOfMainLoop;
 
 /** Total blueprint compile time. */
 extern CORE_API double GBlueprintCompileTime;
+
+/** Enables various editor and HMD hacks that allow the experimental VR editor feature to work, perhaps at the expense of other systems */
+extern CORE_API bool GEnableVREditorHacks;
 
 #if WITH_HOT_RELOAD_CTORS
 /**

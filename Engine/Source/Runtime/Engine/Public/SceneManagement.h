@@ -18,6 +18,7 @@
 #include "MeshBatch.h"
 #include "RendererInterface.h"
 #include "SceneUtils.h"
+#include "TessellationRendering.h"
 
 // Forward declarations.
 class FLightSceneInfo;
@@ -139,25 +140,43 @@ public:
 
 	/** Resets pool for GetReusableMID() */
 	virtual void OnStartPostProcessing(FSceneView& CurrentView) = 0;
+
 	/**
 	 * Allows MIDs being created and released during view rendering without the overhead of creating and releasing objects
 	 * As MID are not allowed to be parent of MID this gets fixed up by parenting it to the next Material or MIC
 	 * @param InSource can be Material, MIC or MID, must not be 0
 	 */
 	virtual UMaterialInstanceDynamic* GetReusableMID(class UMaterialInterface* InSource) = 0;
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	/** If frozen view matrices are available, set those as active on the SceneView */
+	virtual void ActivateFrozenViewMatrices(FSceneView& SceneView) = 0;
+
+	/** If frozen view matrices were set, restore the previous view matrices */
+	virtual void RestoreUnfrozenViewMatrices(FSceneView& SceneView) = 0;
+#endif
+
 	/** Returns the temporal LOD struct from the viewstate */
 	virtual FTemporalLODState& GetTemporalLODState() = 0;
 	virtual const FTemporalLODState& GetTemporalLODState() const = 0;
+
 	/** 
 	 * Returns the blend factor between the last two LOD samples
 	 */
 	virtual float GetTemporalLODTransition() const = 0;
+
 	/** 
 	 * returns a unique key for the view state, non-zero
 	 */
 	virtual uint32 GetViewKey() const = 0;
+
 	//
 	virtual uint32 GetCurrentTemporalAASampleIndex() const = 0;
+
+	virtual void SetSequencerState(const bool bIsPaused) = 0;
+
+	virtual bool GetSequencerState() = 0;
+
 	/** 
 	 * returns the occlusion frame counter 
 	 */
@@ -173,7 +192,33 @@ private:
 	int32							NumChildren;
 };
 
+class FFrozenSceneViewMatricesGuard
+{
+public:
+	FFrozenSceneViewMatricesGuard(FSceneView& SV)
+		: SceneView(SV)
+	{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		if (SceneView.State)
+		{
+			SceneView.State->ActivateFrozenViewMatrices(SceneView);
+		}
+#endif
+	}
 
+	~FFrozenSceneViewMatricesGuard()
+	{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		if (SceneView.State)
+		{
+			SceneView.State->RestoreUnfrozenViewMatrices(SceneView);
+		}
+#endif
+	}
+
+private:
+	FSceneView& SceneView;
+};
 
 /**
  * The types of interactions between a light and a primitive.
@@ -832,6 +877,9 @@ public:
 	/** Whether this light should create per object shadows for dynamic objects. */
 	virtual bool ShouldCreatePerObjectShadowsForDynamicObjects() const;
 
+	/** Whether this light should create CSM for dynamic objects only (forward renderer) */
+	virtual bool UseCSMForDynamicObjects() const;
+
 	/** Returns the number of view dependent shadows this light will create, not counting distance field shadow cascades. */
 	virtual uint32 GetNumViewDependentWholeSceneShadows(const FSceneView& View, bool bPrecomputedLightingIsValid) const { return 0; }
 
@@ -1049,6 +1097,12 @@ protected:
 	/** Whether to use ray traced distance field area shadows. */
 	const uint32 bUseRayTracedDistanceFieldShadows : 1;
 
+	/** Whether the light will cast modulated shadows when using the forward renderer (mobile). */
+	uint32 bCastModulatedShadows : 1;
+
+	/** Whether to render csm shadows for movable objects only (mobile). */
+	uint32 bUseWholeSceneCSMForMovableObjects : 1;
+
 	float RayStartOffsetDepthScale;
 
 	/** The light type (ELightComponentType) */
@@ -1070,12 +1124,10 @@ protected:
 
 	/** Only for whole scene directional lights, 0: no FarShadowCascades, otherwise the count of cascades between WholeSceneDynamicShadowRadius and FarShadowDistance that are covered by distant shadow cascades. */
 	uint32 FarShadowCascadeCount;
-
-	/** Whether the light will cast modulated shadows when using the forward renderer (mobile). */
-	uint32 bCastModulatedShadows : 1;
-
+	
 	/** Modulated shadow color. */
 	FLinearColor ModulatedShadowColor;
+
 	/**
 	 * Updates the light proxy's cached transforms.
 	 * @param InLightToWorld - The new light-to-world transform.
@@ -1101,6 +1153,8 @@ public:
 	 */
 	void SetTransformIncludingDecalSize(const FTransform& InComponentToWorldIncludingDecalSize);
 
+	void InitializeFadingParameters(float AbsSpawnTime, float FadeDuration, float FadeStartDelay);
+
 	/** Pointer back to the game thread decal component. */
 	const UDecalComponent* Component;
 
@@ -1119,6 +1173,16 @@ public:
 
 	/** Larger values draw later (on top). */
 	int32 SortOrder;
+
+	float InvFadeDuration;
+
+	/**
+	* FadeT = saturate(1 - (AbsTime - FadeStartDelay - AbsSpawnTime) / FadeDuration)
+	*
+	*		refactored as muladd:
+	*		FadeT = saturate((AbsTime * -InvFadeDuration) + ((FadeStartDelay + AbsSpawnTime + FadeDuration) * InvFadeDuration))
+	*/
+	float FadeStartDelayNormalized;
 };
 
 /** Reflection capture shapes. */
@@ -1154,6 +1218,7 @@ public:
 	float InfluenceRadius;
 	float Brightness;
 	uint32 Guid;
+	FVector CaptureOffset;
 
 	// Box properties
 	FMatrix BoxTransform;
@@ -2126,16 +2191,16 @@ extern ENGINE_API bool IsRichView(const FSceneViewFamily& ViewFamily);
 #if WANTS_DRAW_MESH_EVENTS
 	/**
 	 * true if we debug material names with SCOPED_DRAW_EVENT.
-	 * Toggle with "ShowMaterialDrawEvents" console command.
+	 * Toggle with "r.ShowMaterialDrawEvents" cvar.
 	 */
-	extern ENGINE_API bool GShowMaterialDrawEvents;
+	extern ENGINE_API int32 GShowMaterialDrawEvents;
 	extern ENGINE_API void BeginMeshDrawEvent_Inner(FRHICommandList& RHICmdList, const class FPrimitiveSceneProxy* PrimitiveSceneProxy, const struct FMeshBatch& Mesh, struct TDrawEvent<FRHICommandList>& DrawEvent);
 #endif
 
 FORCEINLINE void BeginMeshDrawEvent(FRHICommandList& RHICmdList, const class FPrimitiveSceneProxy* PrimitiveSceneProxy, const struct FMeshBatch& Mesh, struct TDrawEvent<FRHICommandList>& DrawEvent)
 {
 #if WANTS_DRAW_MESH_EVENTS
-	if (GShowMaterialDrawEvents)
+	if (GShowMaterialDrawEvents != 0)
 	{
 		BeginMeshDrawEvent_Inner(RHICmdList, PrimitiveSceneProxy, Mesh, DrawEvent);
 	}
@@ -2154,9 +2219,6 @@ extern ENGINE_API void ApplyViewModeOverrides(
 
 /** Draws the UV layout of the supplied asset (either StaticMeshRenderData OR SkeletalMeshRenderData, not both!) */
 extern ENGINE_API void DrawUVs(FViewport* InViewport, FCanvas* InCanvas, int32 InTextYPos, const int32 LODLevel, int32 UVChannel, TArray<FVector2D> SelectedEdgeTexCoords, class FStaticMeshRenderData* StaticMeshRenderData, class FStaticLODModel* SkeletalMeshRenderData );
-
-/** Returns true if the Material and Vertex Factory combination require adjacency information. */
-ENGINE_API bool RequiresAdjacencyInformation(class UMaterialInterface* Material, const class FVertexFactoryType* VertexFactoryType, ERHIFeatureLevel::Type InFeatureLevel);
 
 /**
  * Computes the screen size of a given sphere bounds in the given view

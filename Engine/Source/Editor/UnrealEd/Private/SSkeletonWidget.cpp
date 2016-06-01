@@ -1391,7 +1391,7 @@ void SBasePoseViewport::SetSkeleton(USkeleton* Skeleton)
 				NewPosition.Normalize();
 				if(PreviewSkeletalMesh)
 				{
-					NewPosition *= (PreviewSkeletalMesh->Bounds.SphereRadius*1.5f);
+					NewPosition *= (PreviewSkeletalMesh->GetImportedBounds().SphereRadius*1.5f);
 				}
 				Client->SetViewLocation(NewPosition);
 			}

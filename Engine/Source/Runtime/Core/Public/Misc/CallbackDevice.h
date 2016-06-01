@@ -38,6 +38,12 @@ struct FTestHotFixPayload
 	bool Result;
 };
 
+// Parameters passed to CrashOverrideParamsChanged used to customize crash report client behavior/appearance
+struct FCrashOverrideParameters
+{
+	FString CrashReportClientMessageText;
+};
+
 
 class CORE_API FCoreDelegates
 {
@@ -49,7 +55,7 @@ public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnActorLabelChanged, AActor*);
 
 	// delegate type for prompting the pak system to mount a new pak
-	DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnMountPak, const FString&, uint32);
+	DECLARE_DELEGATE_RetVal_ThreeParams(bool, FOnMountPak, const FString&, uint32, IPlatformFile::FDirectoryVisitor*);
 
 	// delegate type for prompting the pak system to mount a new pak
 	DECLARE_DELEGATE_RetVal_OneParam(bool, FOnUnmountPak, const FString&);
@@ -82,6 +88,10 @@ public:
 	// first param is true for a connection, false for a disconnection.
 	// second param is UserID, third is UserIndex / ControllerId.
 	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnUserControllerConnectionChange, bool, int32, int32);
+
+	// Callback for platform handling when flushing async loads.
+	DECLARE_MULTICAST_DELEGATE(FOnAsyncLoadingFlush);
+	static FOnAsyncLoadingFlush OnAsyncLoadingFlush;
 
 	// get a hotfix delegate
 	static FHotFixDelegate& GetHotfixDelegate(EHotfixDelegates::Type HotFix);
@@ -225,6 +235,30 @@ public:
 	/** Sent when connection to VR HMD is restored */
 	DECLARE_MULTICAST_DELEGATE(FVRHeadsetReconnected);
 	static FVRHeadsetReconnected VRHeadsetReconnected;
+
+	/** Sent when application code changes the user activity hint string for analytics, crash reports, etc */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnUserActivityStringChanged, const FString&);
+	static FOnUserActivityStringChanged UserActivityStringChanged;
+
+	/** Sent when application code changes the currently active game session. The exact semantics of this will vary between games but it is useful for analytics, crash reports, etc  */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnGameSessionIDChange, const FString&);
+	static FOnGameSessionIDChange GameSessionIDChanged;
+
+	/** Sent by application code to set params that customize crash reporting behavior */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnCrashOverrideParamsChanged, const FCrashOverrideParameters&);
+	static FOnCrashOverrideParamsChanged CrashOverrideParamsChanged;
+	
+		// Callback for platform specific very early init code.
+	DECLARE_MULTICAST_DELEGATE(FOnPreMainInit);
+	static FOnPreMainInit& GetPreMainInitDelegate();
+	
+	/** Callback for notifications regarding changes of the rendering thread. */
+	DECLARE_MULTICAST_DELEGATE(FRenderingThreadChanged)
+
+	/** Sent just after the rendering thread has been created. */
+	static FRenderingThreadChanged PostRenderingThreadCreated;
+	/* Sent just before the rendering thread is destroyed. */
+	static FRenderingThreadChanged PreRenderingThreadDestroyed;
 
 private:
 

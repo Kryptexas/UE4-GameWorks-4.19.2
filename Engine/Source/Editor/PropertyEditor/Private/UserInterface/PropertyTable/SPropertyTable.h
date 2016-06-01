@@ -172,7 +172,7 @@ public:
 
 				FString CopiedText;
 				FString Tab( TEXT("\t") );
-				FString NewLine( TEXT("\n") );
+				FString NewLine( LINE_TERMINATOR );
 
 				bool IsFirstRow = true;
 				TSharedPtr< IPropertyTableCell > RowCell = ActualStartingCell;

@@ -110,6 +110,7 @@ namespace UnrealGameSync
 			this.SyncContextMenu_LatestStarredChange = new System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripSeparator8 = new System.Windows.Forms.ToolStripSeparator();
 			this.SyncContexMenu_EnterChangelist = new System.Windows.Forms.ToolStripMenuItem();
+			this.StreamContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
 			this.OptionsContextMenu.SuspendLayout();
 			this.BuildListContextMenu.SuspendLayout();
 			this.NotifyMenu.SuspendLayout();
@@ -148,6 +149,7 @@ namespace UnrealGameSync
 			this.ProjectList.TabIndex = 1;
 			this.ProjectList.SelectionChangeCommitted += new System.EventHandler(this.ProjectList_SelectionChangeCommitted);
 			this.ProjectList.KeyDown += new System.Windows.Forms.KeyEventHandler(this.ProjectList_KeyDown);
+			this.ProjectList.MouseWheel += new System.Windows.Forms.MouseEventHandler(this.ProjectList_MouseWheel);
 			// 
 			// BrowseProject
 			// 
@@ -180,7 +182,7 @@ namespace UnrealGameSync
             this.toolStripSeparator6,
             this.OptionsContextMenu_Diagnostics});
 			this.OptionsContextMenu.Name = "ToolsMenuStrip";
-			this.OptionsContextMenu.Size = new System.Drawing.Size(268, 308);
+			this.OptionsContextMenu.Size = new System.Drawing.Size(268, 286);
 			// 
 			// OptionsContextMenu_ScheduledSync
 			// 
@@ -804,6 +806,7 @@ namespace UnrealGameSync
 			this.BuildList.ItemMouseHover += new System.Windows.Forms.ListViewItemMouseHoverEventHandler(this.BuildList_ItemMouseHover);
 			this.BuildList.SelectedIndexChanged += new System.EventHandler(this.BuildList_SelectedIndexChanged);
 			this.BuildList.FontChanged += new System.EventHandler(this.BuildList_FontChanged);
+			this.BuildList.KeyDown += new System.Windows.Forms.KeyEventHandler(this.BuildList_KeyDown);
 			this.BuildList.MouseClick += new System.Windows.Forms.MouseEventHandler(this.BuildList_MouseClick);
 			this.BuildList.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.BuildList_MouseDoubleClick);
 			this.BuildList.MouseLeave += new System.EventHandler(this.BuildList_MouseLeave);
@@ -927,6 +930,11 @@ namespace UnrealGameSync
 			this.SyncContexMenu_EnterChangelist.Size = new System.Drawing.Size(189, 22);
 			this.SyncContexMenu_EnterChangelist.Text = "Specific Changelist...";
 			this.SyncContexMenu_EnterChangelist.Click += new System.EventHandler(this.SyncContextMenu_EnterChangelist_Click);
+			// 
+			// StreamContextMenu
+			// 
+			this.StreamContextMenu.Name = "StreamContextMenu";
+			this.StreamContextMenu.Size = new System.Drawing.Size(61, 4);
 			// 
 			// MainWindow
 			// 
@@ -1060,6 +1068,7 @@ namespace UnrealGameSync
 		private System.Windows.Forms.ToolStripMenuItem SyncContexMenu_EnterChangelist;
 		private System.Windows.Forms.ToolStripMenuItem SyncContextMenu_LatestStarredChange;
 		private System.Windows.Forms.ToolStripMenuItem OptionsContextMenu_KeepInTray;
+		private System.Windows.Forms.ContextMenuStrip StreamContextMenu;
 	}
 }
 

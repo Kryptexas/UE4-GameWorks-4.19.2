@@ -13,6 +13,8 @@
 
 #include "Tests/SourceControlAutomationCommon.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 static void GetProviders(TArray<FString>& OutBeautifiedNames, TArray<FString>& OutTestCommands)
 {
 	// we want to use all the providers we can find except 'None'
@@ -944,5 +946,7 @@ bool FGetRevisionTest::RunTest(const FString& Parameters)
 
 	return true;
 }
+
+#endif //WITH_DEV_AUTOMATION_TESTS
 
 #endif	// #if WITH_EDITOR

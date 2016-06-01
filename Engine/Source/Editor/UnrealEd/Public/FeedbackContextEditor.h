@@ -30,6 +30,7 @@ public:
 	virtual void StartSlowTask( const FText& Task, bool bShowCancelButton=false ) override;
 	virtual void FinalizeSlowTask( ) override;
 	virtual void ProgressReported( const float TotalProgressInterp, FText DisplayMessage ) override;
+	virtual bool IsPlayingInEditor() const override;
 
 	void SetContext( FContextSupplier* InSupplier ) override {}
 

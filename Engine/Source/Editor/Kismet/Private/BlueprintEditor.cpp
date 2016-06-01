@@ -101,6 +101,9 @@
 
 #include "IMenu.h"
 
+// Blueprint Profiler
+#include "Developer/BlueprintProfiler/Public/BlueprintProfilerModule.h"
+
 #define LOCTEXT_NAMESPACE "BlueprintEditor"
 
 /////////////////////////////////////////////////////
@@ -507,7 +510,7 @@ bool FBlueprintEditor::IsInAScriptingMode() const
 
 bool FBlueprintEditor::OnRequestClose()
 {
-	if (IsBlueprintProfilerSupported() && GetDefault<UEditorExperimentalSettings>()->bBlueprintPerformanceAnalysisTools)
+	if (IsProfilerAvailable())
 	{
 		TabManager->InvokeTab(FBlueprintEditorTabs::BlueprintProfilerID)->RequestCloseTab();
 	}
@@ -1254,6 +1257,9 @@ TSharedRef<SGraphEditor> FBlueprintEditor::CreateGraphEditorWidget(TSharedRef<FT
 		InEvents.OnCreateActionMenu = SGraphEditor::FOnCreateActionMenu::CreateSP(this, &FBlueprintEditor::OnCreateGraphActionMenu);
 	}
 
+	// Append play world commands
+	GraphEditorCommands->Append( FPlayWorldCommands::GlobalPlayWorldActions.ToSharedRef() );
+
 	TSharedRef<SGraphEditor> Editor = SNew(SGraphEditor)
 		.AdditionalCommands(GraphEditorCommands)
 		.IsEditable(this, &FBlueprintEditor::IsEditable, InGraph)
@@ -1676,7 +1682,7 @@ void FBlueprintEditor::InitBlueprintEditor(
 	PostLayoutBlueprintEditorInitialization();
 
 	// Ensure the profiler UI respects the current state if it had previously been enabled.
-	if (IsBlueprintProfilerSupported())
+	if (IsProfilerAvailable())
 	{
 		bool bOpenProfilerTab = false;
 		if (GetDefault<UEditorExperimentalSettings>()->bBlueprintPerformanceAnalysisTools)
@@ -1724,6 +1730,12 @@ void FBlueprintEditor::InitBlueprintEditor(
 			{
 				GetToolkitCommands()->ExecuteAction(FFullBlueprintEditorCommands::Get().EditClassDefaults.ToSharedRef());
 			}
+		}
+
+		// There are upgrade notes, open the log and dump the messages to it
+		if (Blueprint->UpgradeNotesLog.IsValid())
+		{
+			DumpMessagesToCompilerLog(Blueprint->UpgradeNotesLog->Messages, true);
 		}
 	}
 }
@@ -2205,7 +2217,8 @@ void FBlueprintEditor::CreateDefaultTabContents(const TArray<UBlueprint*>& InBlu
 
 		this->BlueprintProfiler =
 			SNew(SBlueprintProfilerView)
-			.ProfileViewType(PVT_LiveView);
+			.AssetEditor(SharedThis(this))
+			.ProfileViewType(EBlueprintPerfViewType::ExecutionGraph);
 
 		this->Palette = 
 			SNew(SBlueprintPalette, SharedThis(this))
@@ -2473,7 +2486,7 @@ void FBlueprintEditor::CreateDefaultCommands()
 	// Blueprint Profiler Commands
 	ToolkitCommands->MapAction(FFullBlueprintEditorCommands::Get().ToggleProfiler,
 		FExecuteAction::CreateSP(this, &FBlueprintEditor::ToggleProfiler),
-		FCanExecuteAction(),
+		FCanExecuteAction::CreateSP(this, &FBlueprintEditor::IsProfilerAvailable),
 		FIsActionChecked::CreateSP(this, &FBlueprintEditor::IsProfilerActive));
 
 	// New document actions
@@ -2559,9 +2572,29 @@ void FBlueprintEditor::CreateDefaultCommands()
 		FCanExecuteAction::CreateSP(this, &FBlueprintEditor::CanGenerateNativeCode));
 }
 
+bool FBlueprintEditor::IsProfilerAvailable() const
+{
+	bool bIsBPProfilerSupported = false;
+	if (GetDefault<UEditorExperimentalSettings>()->bBlueprintPerformanceAnalysisTools)
+	{
+		if (GetToolkitFName() == FName("BlueprintEditor") && GetCurrentMode() == FBlueprintEditorApplicationModes::StandardBlueprintEditorMode)
+		{
+			if (auto Blueprint = GetBlueprintObj())
+			{
+				if (Blueprint->BlueprintType == BPTYPE_Normal || Blueprint->BlueprintType == BPTYPE_LevelScript)
+				{
+					bIsBPProfilerSupported = true;
+				}
+			}
+		}
+	}
+	return bIsBPProfilerSupported;
+
+}
+
 bool FBlueprintEditor::IsProfilerActive() const
 {
-	if (IsBlueprintProfilerSupported() && GetDefault<UEditorExperimentalSettings>()->bBlueprintPerformanceAnalysisTools)
+	if (IsProfilerAvailable())
 	{
 		IBlueprintProfilerInterface& ProfilerModule = FModuleManager::LoadModuleChecked<IBlueprintProfilerInterface>("BlueprintProfiler");
 		return ProfilerModule.IsProfilerEnabled();
@@ -2571,7 +2604,7 @@ bool FBlueprintEditor::IsProfilerActive() const
 
 void FBlueprintEditor::ToggleProfiler()
 {
-	if (IsBlueprintProfilerSupported() && GetDefault<UEditorExperimentalSettings>()->bBlueprintPerformanceAnalysisTools)
+	if (IsProfilerAvailable())
 	{
 		IBlueprintProfilerInterface& ProfilerModule = FModuleManager::LoadModuleChecked<IBlueprintProfilerInterface>("BlueprintProfiler");
 		ProfilerModule.ToggleProfilingCapture();
@@ -2585,22 +2618,6 @@ void FBlueprintEditor::ToggleProfiler()
 			TabManager->InvokeTab(FBlueprintEditorTabs::BlueprintProfilerID)->RequestCloseTab();
 		}
 	}
-}
-
-bool FBlueprintEditor::IsBlueprintProfilerSupported() const
-{
-	bool bIsBPProfilerSupported = false;
-	if (GetToolkitFName() == FName("BlueprintEditor") && GetCurrentMode() == FBlueprintEditorApplicationModes::StandardBlueprintEditorMode)
-	{
-		if (auto Blueprint = GetBlueprintObj())
-		{
-			if (Blueprint->BlueprintType == BPTYPE_Normal || Blueprint->BlueprintType == BPTYPE_LevelScript)
-			{
-				bIsBPProfilerSupported = true;
-			}
-		}
-	}
-	return bIsBPProfilerSupported;
 }
 
 void FBlueprintEditor::OpenNativeCodeGenerationTool()
@@ -2883,6 +2900,8 @@ void FBlueprintEditor::PostUndo(bool bSuccess)
 		{
 			SetUISelectionState(NAME_None);
 
+			RefreshEditors();
+
 			FSlateApplication::Get().DismissAllMenus();
 		}
 	}
@@ -2912,6 +2931,8 @@ void FBlueprintEditor::PostRedo(bool bSuccess)
 		// Transaction affects the Blueprint this editor handles, so react as necessary
 		if (bAffectsBlueprint)
 		{
+			RefreshEditors();
+
 			FSlateApplication::Get().DismissAllMenus();
 		}
 	}
@@ -3170,6 +3191,11 @@ void FBlueprintEditor::Compile()
 			{
 				JumpToNode(NodeWithError, /*bRequestRename =*/false);
 			}
+		}
+
+		if (BlueprintObj->UpgradeNotesLog.IsValid())
+		{
+			CompilerResultsListing->AddMessages(BlueprintObj->UpgradeNotesLog->Messages);
 		}
 
 		// send record when player clicks compile and send the result
@@ -3590,17 +3616,21 @@ void FBlueprintEditor::DoPromoteToVariable( UBlueprint* InBlueprint, UEdGraphPin
 
 	FName VarName;
 	bool bWasSuccessful = false;
+	FEdGraphPinType NewPinType = InTargetPin->PinType;
+	NewPinType.bIsConst = false;
+	NewPinType.bIsReference = false;
+	NewPinType.bIsWeakPointer = false;
 	if (bInToMemberVariable)
 	{
 		VarName = FBlueprintEditorUtils::FindUniqueKismetName(GetBlueprintObj(), TEXT("NewVar"));
-		bWasSuccessful = FBlueprintEditorUtils::AddMemberVariable( GetBlueprintObj(), VarName, InTargetPin->PinType, InTargetPin->GetDefaultAsString() );
+		bWasSuccessful = FBlueprintEditorUtils::AddMemberVariable( GetBlueprintObj(), VarName, NewPinType, InTargetPin->GetDefaultAsString() );
 	}
 	else
 	{
 		ensure(FBlueprintEditorUtils::DoesSupportLocalVariables(GraphObj));
 		VarName = FBlueprintEditorUtils::FindUniqueKismetName(GetBlueprintObj(), TEXT("NewLocalVar"));
 		FunctionGraph = FBlueprintEditorUtils::GetTopLevelGraph(GraphObj);
-		bWasSuccessful = FBlueprintEditorUtils::AddLocalVariable( GetBlueprintObj(), FunctionGraph, VarName, InTargetPin->PinType, InTargetPin->GetDefaultAsString() );
+		bWasSuccessful = FBlueprintEditorUtils::AddLocalVariable( GetBlueprintObj(), FunctionGraph, VarName, NewPinType, InTargetPin->GetDefaultAsString() );
 	}
 
 	if (bWasSuccessful)
@@ -5452,6 +5482,13 @@ void FBlueprintEditor::PasteNodes()
 	}
 
 	PasteNodesHere(FocusedGraphEd->GetCurrentGraph(), FocusedGraphEd->GetPasteLocation());
+
+	// Dump any temporary pre-compile warnings to the compiler log.
+	UBlueprint* BlueprintObj = GetBlueprintObj();
+	if (BlueprintObj->PreCompileLog.IsValid())
+	{
+		DumpMessagesToCompilerLog(BlueprintObj->PreCompileLog->Messages, true);
+	}
 }
 
 
@@ -7588,7 +7625,12 @@ TSharedPtr<SGraphEditor> FBlueprintEditor::OpenGraphAndBringToFront(UEdGraph* Gr
 	TSharedPtr<SDockTab> TabWithGraph = OpenDocument(Graph, FDocumentTracker::CreateHistoryEvent);
 
 	// We know that the contents of the opened tabs will be a graph editor.
-	return StaticCastSharedRef<SGraphEditor>(TabWithGraph->GetContent());
+	TSharedRef<SGraphEditor> NewGraphEditor = StaticCastSharedRef<SGraphEditor>(TabWithGraph->GetContent());
+
+	// Handover the keyboard focus to the new graph editor widget.
+	NewGraphEditor->CaptureKeyboard();
+
+	return NewGraphEditor;
 }
 
 TSharedPtr<SDockTab> FBlueprintEditor::OpenDocument(UObject* DocumentID, FDocumentTracker::EOpenDocumentCause Cause)
@@ -8028,6 +8070,8 @@ FReply FBlueprintEditor::OnSpawnGraphNodeByShortcut(FInputChord InChord, const F
 		return FReply::Handled();
 	}
 
+	FScopedTransaction Transaction(LOCTEXT("AddNode", "Add Node"));
+
 	TArray<UEdGraphNode*> OutNodes;
 	FVector2D NodeSpawnPos = InPosition;
 	FBlueprintSpawnNodeCommands::Get().GetGraphActionByChord(InChord, InGraph, NodeSpawnPos, OutNodes);
@@ -8043,6 +8087,10 @@ FReply FBlueprintEditor::OnSpawnGraphNodeByShortcut(FInputChord InChord, const F
 	if(OutNodes.Num() > 0)
 	{
 		Graph->SelectNodeSet(NodesToSelect, /*bFromUI =*/true);
+	}
+	else
+	{
+		Transaction.Cancel();
 	}
 
 	return FReply::Handled();
@@ -8221,21 +8269,6 @@ bool FBlueprintEditor::IsFocusedGraphEditable() const
 	return true;
 }
 
-void FBlueprintEditor::SaveAsset_Execute()
-{
-	for (auto Object : GetEditingObjects())
-	{
-		auto Blueprint = Cast<UBlueprint>(Object);
-		if (Blueprint)
-		{
-			// Update the Blueprint's search data
-			FFindInBlueprintSearchManager::Get().AddOrUpdateBlueprintSearchMetadata(Blueprint);
-		}
-	}
-
-	IBlueprintEditor::SaveAsset_Execute();
-}
-
 void FBlueprintEditor::TryInvokingDetailsTab(bool bFlash)
 {
 	if ( TabManager->CanSpawnTab(FBlueprintEditorTabs::DetailsID) )
@@ -8244,19 +8277,23 @@ void FBlueprintEditor::TryInvokingDetailsTab(bool bFlash)
 
 		// We don't want to force this tab into existence when the blueprint editor isn't in the foreground and actively
 		// being interacted with.  So we make sure the window it's in is focused and the tab is in the foreground.
-		if ( BlueprintTab.IsValid() && BlueprintTab->IsForeground() && BlueprintTab->GetParentWindow()->HasFocusedDescendants()  )
+		if ( BlueprintTab.IsValid() && BlueprintTab->IsForeground() )
 		{
-			if (!Inspector.IsValid() || !Inspector->GetOwnerTab().IsValid() || Inspector->GetOwnerTab()->GetDockArea().IsValid())
+			TSharedPtr<SWindow> ParentWindow = BlueprintTab->GetParentWindow();
+			if ( ParentWindow.IsValid() && ParentWindow->HasFocusedDescendants() )
 			{
-				// Show the details panel if it doesn't exist.
-				TabManager->InvokeTab(FBlueprintEditorTabs::DetailsID);
-
-				if(bFlash)
+				if ( !Inspector.IsValid() || !Inspector->GetOwnerTab().IsValid() || Inspector->GetOwnerTab()->GetDockArea().IsValid() )
 				{
-					TSharedPtr<SDockTab> OwnerTab = Inspector->GetOwnerTab();
-					if(OwnerTab.IsValid())
+					// Show the details panel if it doesn't exist.
+					TabManager->InvokeTab(FBlueprintEditorTabs::DetailsID);
+
+					if ( bFlash )
 					{
-						OwnerTab->FlashTab();
+						TSharedPtr<SDockTab> OwnerTab = Inspector->GetOwnerTab();
+						if ( OwnerTab.IsValid() )
+						{
+							OwnerTab->FlashTab();
+						}
 					}
 				}
 			}

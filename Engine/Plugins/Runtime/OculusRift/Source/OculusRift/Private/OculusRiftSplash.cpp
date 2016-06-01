@@ -189,7 +189,7 @@ void FOculusRiftSplash::Show(EShowType InShowType)
 					const uint32 Prio = FHMDLayerDesc::MaxPriority - uint32(SplashScreenDescs[i].TransformInMeters.GetTranslation().X * 1000.f);
 					TSharedPtr<FHMDLayerDesc> layer = LayerMgr->AddLayer(FHMDLayerDesc::Quad, Prio, FHMDLayerManager::Layer_TorsoLocked, RenSplash.SplashLID);
 					check(layer.IsValid());
-					layer->SetTexture(SplashScreenDescs[i].LoadingTexture);
+					layer->SetTexture(SplashScreenDescs[i].LoadingTexture->Resource->TextureRHI);
 					layer->SetTransform(SplashScreenDescs[i].TransformInMeters);
 					layer->SetQuadSize(SplashScreenDescs[i].QuadSizeInMeters);
 
@@ -234,7 +234,8 @@ void FOculusRiftSplash::PushFrame()
 		CurrentFrame->Settings = pPlugin->GetSettings()->Clone();
 		CurrentFrame->FrameNumber = pPlugin->GetCurrentFrameNumber(); // make sure no 0 frame is used.
 		// keep units in meters rather than UU (because UU make not much sense).
-		CurrentFrame->WorldToMetersScale = CurrentFrame->Settings->WorldToMetersScale = 1.0f;
+		CurrentFrame->Settings->WorldToMetersScale = 1.0f;
+		CurrentFrame->SetWorldToMetersScale( CurrentFrame->Settings->WorldToMetersScale );
 
 		ovr_GetPredictedDisplayTime(OvrSession, CurrentFrame->FrameNumber);
 

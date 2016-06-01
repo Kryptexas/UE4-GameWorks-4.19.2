@@ -2,8 +2,10 @@
 
 #pragma once
 
-class ULevel;
 class AActor;
+class ALODActor;
+class ULevel;
+
 
 /**
  *

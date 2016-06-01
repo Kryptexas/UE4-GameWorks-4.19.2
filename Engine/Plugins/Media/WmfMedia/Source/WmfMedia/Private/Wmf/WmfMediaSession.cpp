@@ -379,39 +379,11 @@ bool FWmfMediaSession::ChangeState()
 		}
 
 		// handle rate changes
-		if (RequestedRate != CurrentRate)
+		bool bUpdateRateStopped = false;
+		UpdateRate(bUpdateRateStopped);
+		if (bUpdateRateStopped)
 		{
-			if (CurrentState != EMediaStates::Stopped)
-			{
-				if (RequestedPosition == FTimespan::MinValue())
-				{
-					RequestedPosition = GetPosition();
-				}
-
-				MediaSession->Stop();
-
-				return true;
-			}
-
-			bool RateChangeFailed;
-
-			if (IsRateSupported(RequestedRate, true))
-			{
-				RateChangeFailed = FAILED(RateControl->SetRate(FALSE, RequestedRate));
-			}
-			else
-			{
-				RateChangeFailed = FAILED(RateControl->SetRate(TRUE, RequestedRate));
-			}
-
-			if (RateChangeFailed)
-			{
-				RequestedRate = CurrentRate;
-			}
-			else
-			{
-				CurrentRate = RequestedRate;
-			}
+			return true;
 		}
 
 		// handle state changes
@@ -467,6 +439,47 @@ bool FWmfMediaSession::ChangeState()
 }
 
 
+void FWmfMediaSession::UpdateRate(bool &OutStopped)
+{
+	OutStopped = false;
+
+	if (RequestedRate != CurrentRate)
+	{
+		if (CurrentState != EMediaStates::Stopped)
+		{
+			if (RequestedPosition == FTimespan::MinValue())
+			{
+				RequestedPosition = GetPosition();
+			}
+
+			MediaSession->Stop();
+
+			OutStopped = true;
+		}
+
+		bool RateChangeFailed;
+
+		if (IsRateSupported(RequestedRate, true))
+		{
+			RateChangeFailed = FAILED(RateControl->SetRate(FALSE, RequestedRate));
+		}
+		else
+		{
+			RateChangeFailed = FAILED(RateControl->SetRate(TRUE, RequestedRate));
+		}
+
+		if (RateChangeFailed)
+		{
+			RequestedRate = CurrentRate;
+		}
+		else
+		{
+			CurrentRate = RequestedRate;
+		}
+	}
+}
+
+
 FTimespan FWmfMediaSession::GetInternalPosition() const
 {
 	MFTIME ClockTime;
@@ -493,6 +506,9 @@ void FWmfMediaSession::UpdateState(EMediaStates CompletedState)
 	if (CompletedState == RequestedState)
 	{
 		StateChangePending = false;
+
+		bool bUpdateRateStopped = false;
+		UpdateRate(bUpdateRateStopped);
 
 		if (RequestedState == EMediaStates::Stopped)
 		{

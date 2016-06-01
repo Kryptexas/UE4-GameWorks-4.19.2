@@ -166,6 +166,30 @@ bool ICrashDebugHelper::Init()
 		CrashInfo.EngineVersion = EngineVersion.ToString();
 	}
 
+	FString PlatformName;
+	const bool bHasPlatformName = FParse::Value(FCommandLine::Get(), TEXT("PlatformName="), PlatformName);
+	if (bHasPlatformName)
+	{
+		CrashInfo.PlatformName = PlatformName;
+	}
+	else
+	{
+		// Use the current values.
+		CrashInfo.PlatformName = FPlatformProperties::PlatformName();
+	}
+
+	FString PlatformVariantName;
+	const bool bHasPlatformVariantName = FParse::Value(FCommandLine::Get(), TEXT("PlatformVariantName="), PlatformVariantName);
+	if (bHasPlatformVariantName)
+	{
+		CrashInfo.PlatformVariantName = PlatformVariantName;
+	}
+	else
+	{
+		// Use the basic platform name.
+		CrashInfo.PlatformVariantName = CrashInfo.PlatformName;
+	}
+
 	UE_LOG( LogCrashDebugHelper, Log, TEXT( "DepotName: %s" ), *CrashInfo.DepotName );
 	UE_LOG( LogCrashDebugHelper, Log, TEXT( "BuiltFromCL: %i" ), CrashInfo.BuiltFromCL );
 	UE_LOG( LogCrashDebugHelper, Log, TEXT( "EngineVersion: %s" ), *CrashInfo.EngineVersion );
@@ -252,7 +276,7 @@ bool ICrashDebugHelper::SyncModules()
 		return false;
 	}
 
-	// @TODO yrx 2015-02-23 Obsolete, remove after 4.8
+	// #CrashReport: 2015-02-23 Obsolete, remove after 4.8
 	const TCHAR* UESymbols = TEXT( "Rocket/Symbols/" );
 	const bool bHasExecutable = !CrashInfo.ExecutablesPath.IsEmpty();
 	const bool bHasSymbols = !CrashInfo.SymbolsPath.IsEmpty();
@@ -768,9 +792,9 @@ void ICrashDebugHelper::FindSymbolsAndBinariesStorage()
 
 	const FPDBCacheConfigEntry ConfigEntry = FCrashDebugHelperConfig::Get().GetCacheConfigEntryForBranch( CrashInfo.DepotName );
 	FString ExecutablePathPattern = ConfigEntry.ExecutablePathPattern;
-	FString SymbolPathPattern = ConfigEntry.ExecutablePathPattern;
+	FString SymbolPathPattern = ConfigEntry.SymbolPathPattern;
 
-	if (!ExecutablePathPattern.IsEmpty() && !SymbolPathPattern.IsEmpty())
+	if (!ExecutablePathPattern.IsEmpty() || !SymbolPathPattern.IsEmpty())
 	{
 		UE_LOG( LogCrashDebugHelper, Log, TEXT( "Using branch: %s" ), *CrashInfo.DepotName );
 	}
@@ -781,26 +805,37 @@ void ICrashDebugHelper::FindSymbolsAndBinariesStorage()
 	}
 	
 	const FString StrENGINE_VERSION = CrashInfo.EngineVersion;
-	const FString StrPLATFORM_NAME = TEXT( "" ); // Not implemented yet
+	const FString StrPLATFORM_NAME = CrashInfo.PlatformName;
+	const FString StrPLATFORM_VARIANT = CrashInfo.PlatformVariantName;
 	const FString StrOLD_ENGINE_VERSION = FString::Printf( TEXT( "%s-CL-%i" ), *CrashInfo.DepotName.Replace( TEXT( "+" ), TEXT( "/" ) ), CrashInfo.BuiltFromCL )
 		.Replace( TEXT("/"), TEXT("+") );
 
 	const FString TestExecutablesPath = ExecutablePathPattern
 		.Replace( TEXT( "%ENGINE_VERSION%" ), *StrENGINE_VERSION )
 		.Replace( TEXT( "%PLATFORM_NAME%" ), *StrPLATFORM_NAME )
+		.Replace( TEXT( "%PLATFORM_VARIANT%" ), *StrPLATFORM_VARIANT )
 		.Replace( TEXT( "%OLD_ENGINE_VERSION%" ), *StrOLD_ENGINE_VERSION );
 
 	const FString TestSymbolsPath = SymbolPathPattern
 		.Replace( TEXT( "%ENGINE_VERSION%" ), *StrENGINE_VERSION )
 		.Replace( TEXT( "%PLATFORM_NAME%" ), *StrPLATFORM_NAME )
+		.Replace( TEXT( "%PLATFORM_VARIANT%" ), *StrPLATFORM_VARIANT )
 		.Replace( TEXT( "%OLD_ENGINE_VERSION%" ), *StrOLD_ENGINE_VERSION );
 
 	// Try to find the network path by using the pattern supplied via ini.
 	// If this step successes, we will grab the executable from the network path instead of P4.
 	bool bFoundDirectory = false;
 	
-	const bool bHasExecutables = IFileManager::Get().DirectoryExists( *TestExecutablesPath );
-	const bool bHasSymbols = IFileManager::Get().DirectoryExists( *TestSymbolsPath );
+	bool bHasExecutables = false;
+	if (!TestExecutablesPath.IsEmpty())
+	{
+		bHasExecutables = IFileManager::Get().DirectoryExists(*TestExecutablesPath);
+	}
+	bool bHasSymbols = false;
+	if (!TestSymbolsPath.IsEmpty())
+	{
+		bHasSymbols = IFileManager::Get().DirectoryExists(*TestSymbolsPath);
+	}
 
 	if( bHasExecutables && bHasSymbols )
 	{

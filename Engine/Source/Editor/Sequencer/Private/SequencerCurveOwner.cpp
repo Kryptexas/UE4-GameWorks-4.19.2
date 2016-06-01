@@ -68,6 +68,21 @@ FName BuildCurveName( TSharedPtr<FSequencerDisplayNode> KeyAreaNode )
 	return FName(*FString::Join(NameParts, TEXT(" - ")));
 }
 
+bool IsNodeOrAncestorSelected(TSharedPtr<FSequencerDisplayNode> DisplayNode)
+{
+	if (!DisplayNode.IsValid())
+	{
+		return false;
+	}
+	
+	if (DisplayNode->GetSequencer().GetSelection().IsSelected(DisplayNode.ToSharedRef()))
+	{
+		return true;
+	}
+
+	return IsNodeOrAncestorSelected(DisplayNode->GetParent());
+}
+
 FSequencerCurveOwner::FSequencerCurveOwner( TSharedPtr<FSequencerNodeTree> InSequencerNodeTree, ECurveEditorCurveVisibility::Type CurveVisibility )
 {
 	SequencerNodeTree = InSequencerNodeTree;
@@ -86,7 +101,7 @@ FSequencerCurveOwner::FSequencerCurveOwner( TSharedPtr<FSequencerNodeTree> InSeq
 				bAddCurve = true;
 				break;
 			case ECurveEditorCurveVisibility::SelectedCurves:
-				bAddCurve = DisplayNodeAndKeyArea.DisplayNode->GetSequencer().GetSelection().IsSelected( DisplayNodeAndKeyArea.DisplayNode.ToSharedRef() );
+				bAddCurve = IsNodeOrAncestorSelected(DisplayNodeAndKeyArea.DisplayNode);
 				break;
 			case ECurveEditorCurveVisibility::AnimatedCurves:
 				bAddCurve = RichCurve->GetNumKeys() > 0;
@@ -113,9 +128,9 @@ TArray<FRichCurve*> FSequencerCurveOwner::GetSelectedCurves() const
 	for ( const FDisplayNodeAndKeyArea& DisplayNodeAndKeyArea : DisplayNodesAndKeyAreas )
 	{
 		FRichCurve* RichCurve = DisplayNodeAndKeyArea.KeyArea->GetRichCurve();
-		if ( RichCurve != nullptr )
+		if ( RichCurve != nullptr && SelectedCurves.Find(RichCurve) == INDEX_NONE )
 		{
-			if (DisplayNodeAndKeyArea.DisplayNode->GetSequencer().GetSelection().IsSelected(DisplayNodeAndKeyArea.DisplayNode.ToSharedRef()))
+			if (IsNodeOrAncestorSelected(DisplayNodeAndKeyArea.DisplayNode))
 			{
 				SelectedCurves.Add(RichCurve);
 			}
@@ -182,4 +197,23 @@ void FSequencerCurveOwner::OnCurveChanged( const TArray<FRichCurveEditInfo>& Cha
 bool FSequencerCurveOwner::IsValidCurve( FRichCurveEditInfo CurveInfo )
 {
 	return EditInfoToSectionMap.Contains(CurveInfo);
+}
+
+FLinearColor FSequencerCurveOwner::GetCurveColor( FRichCurveEditInfo CurveInfo ) const
+{
+	FString CurveName = CurveInfo.CurveName.ToString();
+	if (CurveName.EndsWith(TEXT("- X")) || CurveName.EndsWith(TEXT("- Red")))
+	{
+		return FLinearColor(1.0f, 0.0f, 0.0f);
+	}
+	else if (CurveName.EndsWith(TEXT("- Y")) || CurveName.EndsWith(TEXT("- Green")))
+	{
+		return FLinearColor(0.0f, 1.0f, 0.0f);
+	}
+	else if (CurveName.EndsWith(TEXT("- Z")) || CurveName.EndsWith(TEXT("- Blue")))
+	{
+		return FLinearColor(0.05f, 0.05f, 1.0f);
+	}
+
+	return FCurveOwnerInterface::GetCurveColor(CurveInfo);
 }

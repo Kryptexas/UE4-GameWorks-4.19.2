@@ -391,6 +391,7 @@ int32 UReimportCurveTableFactory::GetPriority() const
 UReimportCurveFactory::UReimportCurveFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	SupportedClass = UCurveBase::StaticClass();
 }
 
 bool UReimportCurveFactory::CanReimport( UObject* Obj, TArray<FString>& OutFilenames )

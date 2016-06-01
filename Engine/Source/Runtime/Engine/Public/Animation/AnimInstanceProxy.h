@@ -165,13 +165,19 @@ public:
 		return RequiredBones;
 	}
 
-	/** Get the current skeleton we are using */
+	/** Access to LODLevel */
+	int32 GetLODLevel() const
+	{
+		return LODLevel;
+	}
+
+	/** Get the current skeleton we are using. Note that this will return nullptr outside of pre/post update */
 	USkeleton* GetSkeleton() 
 	{ 
 		return Skeleton; 
 	}
 
-	/** Get the current skeletal mesh component we are running on */
+	/** Get the current skeletal mesh component we are running on. Note that this will return nullptr outside of pre/post update */
 	USkeletalMeshComponent* GetSkelMeshComponent() 
 	{ 
 		return SkeletalMeshComponent; 
@@ -208,7 +214,7 @@ public:
 
 	/** Register a named slot */
 	void RegisterSlotNodeWithAnimInstance(FName SlotNodeName);
-	
+
 	/** Check whether we have a valid root node */
 	bool HasRootNode() const
 	{ 
@@ -250,7 +256,12 @@ public:
 	 */
 	int32 GetInstanceAssetPlayerIndex(FName MachineName, FName StateName, FName InstanceName = NAME_None);
 
+	float GetRecordedStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex);
+	void RecordStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex, const float& InStateWeight);
 
+	bool IsSlotNodeRelevantForNotifies(FName SlotNodeName) const;
+	/** Reset any dynamics running simulation-style updates (e.g. on teleport, time skip etc.) */
+	void ResetDynamics();
 
 	/** Only restricted classes can access the protected interface */
 	friend class UAnimInstance;
@@ -265,13 +276,16 @@ protected:
 	virtual void Uninitialize(UAnimInstance* InAnimInstance);
 
 	/** Called before update so we can copy any data we need */
-	virtual void PreUpdate(const UAnimInstance* InAnimInstance, float DeltaSeconds);
+	virtual void PreUpdate(UAnimInstance* InAnimInstance, float DeltaSeconds);
 
 	/** Update override point */
 	virtual void Update(float DeltaSeconds) {}
 
 	/** Updates the anim graph */
 	virtual void UpdateAnimationNode(float DeltaSeconds);
+
+	/** Called on the game thread pre-evaluate. */
+	virtual void PreEvaluateAnimation(UAnimInstance* InAnimInstance);
 
 	/** 
 	 * Evaluate override point 
@@ -282,6 +296,16 @@ protected:
 
 	/** Called after update so we can copy any data we need */
 	virtual void PostUpdate(UAnimInstance* InAnimInstance) const;
+
+	/** Copy any UObjects we might be using. Called Pre-update and pre-evaluate. */
+	virtual void InitializeObjects(UAnimInstance* InAnimInstance);
+
+	/** 
+	 * Clear any UObjects we might be using. Called at the end of the post-evaluate phase.
+	 * This is to ensure that objects are not used by anything apart from animation nodes.
+	 * Please make sure to call the base implementation if this is overridden.
+	 */
+	virtual void ClearObjects();
 
 	/** Calls Update(), updates the anim graph, ticks asset players */
 	void UpdateAnimation();
@@ -326,7 +350,6 @@ protected:
 
 	// if it doesn't tick, it will keep old weight, so we'll have to clear it in the beginning of tick
 	void ClearSlotNodeWeights();
-	bool IsSlotNodeRelevantForNotifies(FName SlotNodeName) const;
 
 	// Get the root motion weight for the montage slot
 	float GetSlotRootMotionWeight(FName SlotNodeName) const;
@@ -454,9 +477,6 @@ protected:
 	/** Initialize the root node - split into a separate function for backwards compatibility (initialization order) reasons */
 	void InitializeRootNode();
 
-	// garbage collection
-	virtual void AddReferencedObjects(FReferenceCollector& Collector);
-
 private:
 	/** Object ptr to our UAnimInstance */
 	mutable UObject* AnimInstanceObject;
@@ -464,10 +484,10 @@ private:
 	/** Our anim blueprint generated class */
 	IAnimClassInterface* AnimClassInterface;
 
-	/** Skeleton we are using, only used for comparison purposes */
+	/** Skeleton we are using, only used for comparison purposes. Note that this will be nullptr outside of pre/post update */
 	USkeleton* Skeleton;
 
-	/** Skeletal mesh component we are attached to */
+	/** Skeletal mesh component we are attached to. Note that this will be nullptr outside of pre/post update */
 	USkeletalMeshComponent* SkeletalMeshComponent;
 
 	/** The last time passed into PreUpdate() */
@@ -500,6 +520,12 @@ private:
 	/** The set of tick groups for this anim instance */
 	TArray<FAnimGroupInstance> SyncGroupArrays[2];
 
+	/** Buffers containing read/write buffers for all current state weights */
+	TArray<float> StateWeightArrays[2];
+
+	/** Map that transforms state class indices to base offsets into the weight array */
+	TMap<int32, int32> StateMachineClassIndexToWeightOffset;
+
 	// Current sync group buffer index
 	int32 SyncGroupWriteIndex;
 
@@ -528,6 +554,9 @@ private:
 	/** Temporary array of bone indices required this frame. Should be subset of Skeleton and Mesh's RequiredBones */
 	FBoneContainer RequiredBones;
 
+	/** LODLevel used by RequiredBones */
+	int32 LODLevel;
+
 	/** When RequiredBones mapping has changed, AnimNodes need to update their bones caches. */
 	bool bBoneCachesInvalidated;
 
@@ -546,6 +575,9 @@ private:
 	/** Delegate fired on the game thread before update occurs */
 	TArray<FAnimNode_Base*> GameThreadPreUpdateNodes;
 
+	/** All nodes that need to be reset on DynamicReset() */
+	TArray<FAnimNode_Base*> DynamicResetNodes;
+	
 	/** Native transition rules */
 	TArray<FNativeTransitionBinding> NativeTransitionBindings;
 

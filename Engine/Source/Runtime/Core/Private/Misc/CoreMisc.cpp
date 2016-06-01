@@ -649,12 +649,12 @@ const TCHAR* OverrideList = TEXT("-fullscreen /windowed");
 
 #ifdef FILTER_COMMANDLINE_LOGGING
 /**
-* When overriding this setting make sure that your define looks like the following in your .cs file:
-*
-*		OutCPPEnvironmentConfiguration.Definitions.Add("FILTER_COMMANDLINE_LOGGING=\"-arg1 -arg2 -arg3 -arg4\"");
-*
-* The important part is the \" as they quotes get stripped off by the compiler without them
-*/
+ * When overriding this setting make sure that your define looks like the following in your .cs file:
+ *
+ *		OutCPPEnvironmentConfiguration.Definitions.Add("FILTER_COMMANDLINE_LOGGING=\"-arg1 -arg2 -arg3 -arg4\"");
+ *
+ * The important part is the \" as they quotes get stripped off by the compiler without them
+ */
 const TCHAR* FilterForLoggingList = TEXT(FILTER_COMMANDLINE_LOGGING);
 #else
 const TCHAR* FilterForLoggingList = TEXT("");
@@ -835,23 +835,47 @@ void FCommandLine::Parse(const TCHAR* InCmdLine, TArray<FString>& Tokens, TArray
 -----------------------------------------------------------------------------*/
 void FMaintenance::DeleteOldLogs()
 {
-	int32 PurgeLogsDays = 0;
+	int32 PurgeLogsDays = -1; // -1 means don't delete old files
+	int32 MaxLogFilesOnDisk = -1; // -1 means keep all files
 	GConfig->GetInt(TEXT("LogFiles"), TEXT("PurgeLogsDays"), PurgeLogsDays, GEngineIni);
-	if (PurgeLogsDays >= 0)
+	GConfig->GetInt(TEXT("LogFiles"), TEXT("MaxLogFilesOnDisk"), MaxLogFilesOnDisk, GEngineIni);
+	if (PurgeLogsDays >= 0 || MaxLogFilesOnDisk >= 0)
 	{
 		// get a list of files in the log dir
 		TArray<FString> Files;
 		IFileManager::Get().FindFiles(Files, *FString::Printf(TEXT("%s*.*"), *FPaths::GameLogDir()), true, false);
+		for (FString& Filename : Files)
+		{
+			Filename = FPaths::GameLogDir() / Filename;
+		}
+
+		// If required, trim the number of files on disk
+		if (MaxLogFilesOnDisk >= 0 && Files.Num() > MaxLogFilesOnDisk)
+		{
+			struct FSortByDateNewestFirst
+			{
+				bool operator()(const FString& A, const FString& B) const
+				{
+					const FDateTime TimestampA = IFileManager::Get().GetTimeStamp(*A);
+					const FDateTime TimestampB = IFileManager::Get().GetTimeStamp(*B);
+					return TimestampB < TimestampA;
+				}
+			};
+			Files.Sort(FSortByDateNewestFirst());
+			while (Files.Num() && Files.Num() > MaxLogFilesOnDisk)
+			{
+				IFileManager::Get().Delete(*Files.Pop());
+			}
+		}
 
 		// delete all those with the backup text in their name and that are older than the specified number of days
 		double MaxFileAgeSeconds = 60.0 * 60.0 * 24.0 * double(PurgeLogsDays);
-		for (int32 i = 0; i < Files.Num(); i++)
+		for (const FString& Filename : Files)
 		{
-			FString FullFileName = FPaths::GameLogDir() + Files[i];
-			if (FullFileName.Contains(BACKUP_LOG_FILENAME_POSTFIX) && IFileManager::Get().GetFileAgeSeconds(*FullFileName) > MaxFileAgeSeconds)
+			if (Filename.Contains(BACKUP_LOG_FILENAME_POSTFIX) && IFileManager::Get().GetFileAgeSeconds(*Filename) > MaxFileAgeSeconds)
 			{
-				UE_LOG(LogStreaming, Log, TEXT("Deleting old log file %s"), *Files[i]);
-				IFileManager::Get().Delete(*FullFileName);
+				UE_LOG(LogStreaming, Log, TEXT("Deleting old log file %s"), *Filename);
+				IFileManager::Get().Delete(*Filename);
 			}
 		}
 
@@ -859,7 +883,7 @@ void FMaintenance::DeleteOldLogs()
 		TArray<FString> Directories;
 		IFileManager::Get().FindFiles( Directories, *FString::Printf( TEXT( "%s/UE4CC*" ), *FPaths::GameLogDir() ), false, true );
 
-		for (auto Dir : Directories)
+		for (const FString& Dir : Directories)
 		{
 			const FString CrashContextDirectory = FPaths::GameLogDir() / Dir;
 			const FDateTime DirectoryAccessTime = IFileManager::Get().GetTimeStamp( *CrashContextDirectory );
@@ -882,11 +906,11 @@ class FDerivedDataCacheInterface* GetDerivedDataCache()
 	static class FDerivedDataCacheInterface* SingletonInterface = NULL;
 	if (!FPlatformProperties::RequiresCookedData())
 	{
-		static bool bIntialized = false;
-		if (!bIntialized)
+		static bool bInitialized = false;
+		if (!bInitialized)
 		{
 			check(IsInGameThread());
-			bIntialized = true;
+			bInitialized = true;
 			class IDerivedDataCacheModule* Module = FModuleManager::LoadModulePtr<IDerivedDataCacheModule>("DerivedDataCache");
 			if (Module)
 			{
@@ -895,15 +919,6 @@ class FDerivedDataCacheInterface* GetDerivedDataCache()
 		}
 	}
 	return SingletonInterface;
-}
-
-void DerivedDataCachePrint()
-{
-	class IDerivedDataCacheModule* Module = FModuleManager::LoadModulePtr<IDerivedDataCacheModule>("DerivedDataCache");
-	if (Module)
-	{
-		Module->ShutdownModule();
-	}
 }
 
 class FDerivedDataCacheInterface& GetDerivedDataCacheRef()
@@ -922,11 +937,11 @@ class ITargetPlatformManagerModule* GetTargetPlatformManager()
 	static class ITargetPlatformManagerModule* SingletonInterface = NULL;
 	if (!FPlatformProperties::RequiresCookedData())
 	{
-		static bool bIntialized = false;
-		if (!bIntialized)
+		static bool bInitialized = false;
+		if (!bInitialized)
 		{
 			check(IsInGameThread());
-			bIntialized = true;
+			bInitialized = true;
 			SingletonInterface = FModuleManager::LoadModulePtr<ITargetPlatformManagerModule>("TargetPlatform");
 		}
 	}
@@ -1086,7 +1101,7 @@ void GenerateConvenientWindowedResolutions(const FDisplayMetrics& InDisplayMetri
 	bool bInPortraitMode = InDisplayMetrics.PrimaryDisplayWidth < InDisplayMetrics.PrimaryDisplayHeight;
 
 	// Generate windowed resolutions as scaled versions of primary monitor size
-	static const float Scales[] = { 3.0f / 6.0f, 4.0 / 6.0f, 5.0f / 6.0f };
+	static const float Scales[] = { 3.0f / 6.0f, 4.0f / 6.0f, 4.5f / 6.0f, 5.0f / 6.0f };
 	static const float Ratios[] = { 9.0f, 10.0f, 12.0f };
 	static const float MinWidth = 1280.0f;
 	static const float MinHeight = 720.0f; // UI layout doesn't work well below this, as the accept/cancel buttons go off the bottom of the screen

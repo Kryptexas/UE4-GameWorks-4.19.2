@@ -319,7 +319,8 @@ public:
 	FORCEINLINE FTransform Inverse() const
 	{
 		FQuat   InvRotation    = Rotation.Inverse();
-		FVector InvScale3D     = Scale3D.Reciprocal();
+		// this used to cause NaN if Scale contained 0 
+		FVector InvScale3D     = GetSafeScaleReciprocal(Scale3D);
 		FVector InvTranslation = InvRotation * (InvScale3D * -Translation);
 
 		return FTransform(InvRotation, InvTranslation, InvScale3D);
@@ -569,12 +570,12 @@ public:
 	FORCEINLINE FVector		GetScaledAxis(EAxis::Type InAxis) const;
 	FORCEINLINE FVector		GetUnitAxis(EAxis::Type InAxis) const;
 	FORCEINLINE void		Mirror(EAxis::Type MirrorAxis, EAxis::Type FlipAxis);
-	static FORCEINLINE FVector		GetSafeScaleReciprocal(const FVector& InScale);
+	FORCEINLINE FVector		GetSafeScaleReciprocal(const FVector& InScale, float Tolerance=SMALL_NUMBER) const;
 
 	// temp function for easy conversion
 	FORCEINLINE FVector GetLocation() const
 	{
-		return Translation;
+		return GetTranslation();
 	}
 
 	FORCEINLINE FRotator Rotator() const
@@ -720,6 +721,18 @@ public:
 	 * @param  B Transform B.
 	 */
 	FORCEINLINE static void Multiply(FTransform* OutTransform, const FTransform* A, const FTransform* B);
+
+	/**
+	* Create a new transform: OutTransform = A * B using the matrix while keeping the scale that's given by A and B
+	* Please note that this operation is a lot more expensive than normal Multiply
+	*
+	* Order matters when composing transforms : A * B will yield a transform that logically first applies A then B to any subsequent transformation.
+	*
+	* @param  OutTransform pointer to transform that will store the result of A * B.
+	* @param  A Transform A.
+	* @param  B Transform B.
+	*/
+	FORCEINLINE static void MultiplyUsingMatrixWithScale(FTransform* OutTransform, const FTransform* A, const FTransform* B);
 
 	/**
 	 * Sets the components
@@ -1195,14 +1208,47 @@ FORCEINLINE void FTransform::RemoveScaling(float Tolerance/*=SMALL_NUMBER*/)
 	DiagnosticCheckNaN_Scale3D();
 }
 
+FORCEINLINE void FTransform::MultiplyUsingMatrixWithScale(FTransform* OutTransform, const FTransform* A, const FTransform* B)
+{
+	// the goal of using M is to get the correct orientation
+	// but for translation, we still need scale
+	FMatrix M = A->ToMatrixWithScale() * B->ToMatrixWithScale();
+	M.RemoveScaling();
+
+	// get combined scale
+	FVector Scale3D = A->Scale3D*B->Scale3D;
+
+	// apply negative scale back to axes
+	FVector SignedScale = Scale3D.GetSignVector();
+
+	M.SetAxis(0, SignedScale.X * M.GetScaledAxis(EAxis::X));
+	M.SetAxis(1, SignedScale.Y * M.GetScaledAxis(EAxis::Y));
+	M.SetAxis(2, SignedScale.Z * M.GetScaledAxis(EAxis::Z));
+
+	// @note: if you have negative with 0 scale, this will return rotation that is identity
+	// since matrix loses that axes
+	FQuat Rotation = FQuat(M);
+	Rotation.Normalize();
+
+	// set values back to output
+	OutTransform->Scale3D = Scale3D;
+	OutTransform->Rotation = Rotation;
+	
+	// technically I could calculate this using FTransform but then it does more quat multiplication 
+	// instead of using Scale in matrix multiplication
+	// it's a question of between RemoveScaling vs using FTransform to move translation
+	OutTransform->Translation = M.GetOrigin();
+}
+
+
 /** Returns Multiplied Transform of 2 FTransforms **/
 FORCEINLINE void FTransform::Multiply(FTransform* OutTransform, const FTransform* A, const FTransform* B)
 {
 	A->DiagnosticCheckNaN_All();
 	B->DiagnosticCheckNaN_All();
 
-	checkSlow( A->IsRotationNormalized() );
-	checkSlow( B->IsRotationNormalized() );
+	checkSlow(A->IsRotationNormalized());
+	checkSlow(B->IsRotationNormalized());
 
 	//	When Q = quaternion, S = single scalar scale, and T = translation
 	//	QST(A) = Q(A), S(A), T(A), and QST(B) = Q(B), S(B), T(B)
@@ -1219,19 +1265,23 @@ FORCEINLINE void FTransform::Multiply(FTransform* OutTransform, const FTransform
 	//	S(AxB) = S(A)*S(B)
 	//	T(AxB) = Q(B)*S(B)*T(A)*-Q(B) + T(B)
 
-	FTransform Ret;
-	Ret.Rotation = B->Rotation*A->Rotation;
+	const bool bHaveNegativeScale = A->Scale3D.GetMin() < 0 || B->Scale3D.GetMin() < 0;
+	if (bHaveNegativeScale)
+	{
+		// @note, if you have 0 scale with negative, you're going to lose rotation as it can't convert back to quat
+		MultiplyUsingMatrixWithScale(OutTransform, A, B);
+	}
+	else
+	{
+		OutTransform->Rotation = B->Rotation*A->Rotation;
+		OutTransform->Scale3D = A->Scale3D*B->Scale3D;
+		OutTransform->Translation = B->Rotation*(B->Scale3D*A->Translation) + B->Translation;
+	}
 
-	Ret.Scale3D = A->Scale3D*B->Scale3D;
-	Ret.Translation = B->Rotation*(B->Scale3D*A->Translation) + B->Translation;
 	// we do not support matrix transform when non-uniform
 	// that was removed at rev 21 with UE4
-
-	*OutTransform = Ret;
-	Ret.DiagnosticCheckNaN_All();
+	OutTransform->DiagnosticCheckNaN_All();
 }
-
-
 /** 
  * Apply Scale to this transform
  */
@@ -1435,39 +1485,34 @@ inline float FTransform::GetMinimumAxisScale() const
 // anymore because you should be instead of showing gigantic infinite mesh
 // also returning BIG_NUMBER causes sequential NaN issues by multiplying 
 // so we hardcode as 0
-FORCEINLINE FVector FTransform::GetSafeScaleReciprocal(const FVector& InScale)
+FORCEINLINE FVector FTransform::GetSafeScaleReciprocal(const FVector& InScale, float Tolerance) const
 {
 	FVector SafeReciprocalScale;
-	// mathematically if you have 0 scale, it should be infinite, 
-	// however, in practice if you have 0 scale, and relative transform doesn't make much sense 
-	// anymore because you should be instead of showing gigantic infinite mesh
-	// also returning BIG_NUMBER causes sequential NaN issues by multiplying 
-	// so we hardcode as 0
-	if (InScale.X == 0)
+	if (FMath::Abs(InScale.X) <= Tolerance)
 	{
 		SafeReciprocalScale.X = 0.f;
 	}
 	else
 	{
-		SafeReciprocalScale.X = 1/InScale.X;
+		SafeReciprocalScale.X = 1 / InScale.X;
 	}
 
-	if (InScale.Y == 0)
+	if (FMath::Abs(InScale.Y) <= Tolerance)
 	{
 		SafeReciprocalScale.Y = 0.f;
 	}
 	else
 	{
-		SafeReciprocalScale.Y = 1/InScale.Y;
+		SafeReciprocalScale.Y = 1 / InScale.Y;
 	}
 
-	if (InScale.Z == 0)
+	if (FMath::Abs(InScale.Z) <= Tolerance)
 	{
 		SafeReciprocalScale.Z = 0.f;
 	}
 	else
 	{
-		SafeReciprocalScale.Z = 1/InScale.Z;
+		SafeReciprocalScale.Z = 1 / InScale.Z;
 	}
 
 	return SafeReciprocalScale;

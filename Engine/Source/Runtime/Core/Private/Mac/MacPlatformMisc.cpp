@@ -18,6 +18,7 @@
 #include "ApplePlatformSymbolication.h"
 #include "MacPlatformCrashContext.h"
 #include "PLCrashReporter.h"
+#include "GenericPlatformDriver.h"
 
 #include <dlfcn.h>
 #include <IOKit/IOKitLib.h>
@@ -1148,6 +1149,26 @@ FMacPlatformMisc::FGPUDescriptor& FMacPlatformMisc::FGPUDescriptor::operator=(FG
 	return *this;
 }
 
+TMap<FString, float> FMacPlatformMisc::FGPUDescriptor::GetPerformanceStatistics() const
+{
+	TMap<FString, float> Data;
+	const CFDictionaryRef PerformanceStats = (const CFDictionaryRef)IORegistryEntrySearchCFProperty(PCIDevice, kIOServicePlane, CFSTR("PerformanceStatistics"), kCFAllocatorDefault, kIORegistryIterateRecursively);
+	if(PerformanceStats)
+	{
+		if(CFGetTypeID(PerformanceStats) == CFDictionaryGetTypeID())
+		{
+			NSDictionary* PerformanceStatistics = (NSDictionary*)PerformanceStats;
+			for(NSString* Key in PerformanceStatistics)
+			{
+				NSNumber* Value = [PerformanceStatistics objectForKey:Key];
+				Data.Add(FString(Key), [Value floatValue]);
+			}
+		}
+		CFRelease(PerformanceStats);
+	}
+	return Data;
+}
+
 TArray<FMacPlatformMisc::FGPUDescriptor> const& FMacPlatformMisc::GetGPUDescriptors()
 {
 	static TArray<FMacPlatformMisc::FGPUDescriptor> GPUs;
@@ -1246,22 +1267,49 @@ TArray<FMacPlatformMisc::FGPUDescriptor> const& FMacPlatformMisc::GetGPUDescript
 							if(OpenGLLibName)
 							{
 								if(CFGetTypeID(OpenGLLibName) == CFStringGetTypeID())
-								{
+									{
 									Desc.GPUOpenGLBundle = (NSString*)OpenGLLibName;
-								}
-								else
-								{
+									}
+									else
+									{
 									CFRelease(OpenGLLibName);
+									}
 								}
+							
+							CFStringRef BundleID = nullptr;
+							
+							io_iterator_t ChildIterator;
+							if(IORegistryEntryGetChildIterator(ServiceEntry, kIOServicePlane, &ChildIterator) == kIOReturnSuccess)
+							{
+								io_registry_entry_t ChildEntry;
+								while((BundleID == nullptr) && (ChildEntry = IOIteratorNext(ChildIterator)))
+								{
+									CFStringRef IOMatchCategory = (CFStringRef)IORegistryEntrySearchCFProperty(ChildEntry, kIOServicePlane, CFSTR("IOMatchCategory"), kCFAllocatorDefault, 0);
+									if (IOMatchCategory && CFGetTypeID(IOMatchCategory) == CFStringGetTypeID() && CFStringCompare(IOMatchCategory, CFSTR("IOAccelerator"), 0) == kCFCompareEqualTo)
+									{
+										BundleID = (CFStringRef)IORegistryEntrySearchCFProperty(ChildEntry, kIOServicePlane, CFSTR("CFBundleIdentifier"), kCFAllocatorDefault, 0);
+									}
+									if (IOMatchCategory)
+									{
+										CFRelease(IOMatchCategory);
+									}
+									IOObjectRelease(ChildEntry);
+								}
+								
+								IOObjectRelease(ChildIterator);
 							}
 							
-							const CFStringRef BundleID = (const CFStringRef)IORegistryEntrySearchCFProperty(ServiceEntry, kIOServicePlane, CFSTR("CFBundleIdentifier"), kCFAllocatorDefault, kIORegistryIterateRecursively);
+							if (BundleID == nullptr)
+							{
+								BundleID = (CFStringRef)IORegistryEntrySearchCFProperty(ServiceEntry, kIOServicePlane, CFSTR("CFBundleIdentifier"), kCFAllocatorDefault, kIORegistryIterateRecursively);
+							}
+							
 							if(BundleID)
 							{
 								if(CFGetTypeID(BundleID) == CFStringGetTypeID())
 								{
 									Desc.GPUBundleID = (NSString*)BundleID;
-								}
+							}
 								else
 								{
 									CFRelease(BundleID);
@@ -1320,24 +1368,45 @@ FString FMacPlatformMisc::GetPrimaryGPUBrand()
 		{
 			PrimaryGPU = GPUs[0].GPUName;
 		}
-		
-		if ( PrimaryGPU.IsEmpty() )
-		{
-			PrimaryGPU = FGenericPlatformMisc::GetPrimaryGPUBrand();
+			
+			if ( PrimaryGPU.IsEmpty() )
+			{
+				PrimaryGPU = FGenericPlatformMisc::GetPrimaryGPUBrand();
+			}
 		}
-	}
 	return PrimaryGPU;
-}
+	}
 
-void FMacPlatformMisc::GetGPUDriverInfo(const FString DeviceDescription, FString& InternalDriverVersion, FString& UserDriverVersion, FString& DriverDate)
+FGPUDriverInfo FMacPlatformMisc::GetGPUDriverInfo(const FString& DeviceDescription)
 {
 	SCOPED_AUTORELEASE_POOL;
 
+	FGPUDriverInfo Info;
 	TArray<FMacPlatformMisc::FGPUDescriptor> const& GPUs = GetGPUDescriptors();
 	for(FMacPlatformMisc::FGPUDescriptor const& GPU : GPUs)
 	{
-		if (FString(GPU.GPUName) == DeviceDescription)
+		if (DeviceDescription.Contains(FString(GPU.GPUName).Trim()))
 		{
+			Info.VendorId = GPU.GPUVendorId;
+			Info.DeviceDescription = FString(GPU.GPUName);
+
+			if (Info.IsAMD())
+			{
+				Info.ProviderName = TEXT("AMD");
+			}
+			else if (Info.IsIntel())
+			{
+				Info.ProviderName = TEXT("Intel");
+			}
+			else if (Info.IsNVIDIA())
+			{
+				Info.ProviderName = TEXT("Nvidia");
+			}
+			else
+			{
+				Info.ProviderName = TEXT("Apple");
+			}
+			
 			bool bGotInternalVersionInfo = false;
 			bool bGotUserVersionInfo = false;
 			bool bGotDate = false;
@@ -1378,12 +1447,12 @@ void FMacPlatformMisc::GetGPUDriverInfo(const FString DeviceDescription, FString
 						uint32 Major = ((DylibID->dylib.current_version >> 16) & 0xffff);
 						uint32 Minor = ((DylibID->dylib.current_version >> 8) & 0xff);
 						uint32 Patch = ((DylibID->dylib.current_version & 0xff));
-						InternalDriverVersion = FString::Printf(TEXT("%d.%d.%d"), Major, Minor, Patch);
+						Info.InternalDriverVersion = FString::Printf(TEXT("%d.%d.%d"), Major, Minor, Patch);
 						
 						time_t DylibTime = (time_t)DylibID->dylib.timestamp;
 						struct tm Time;
 						gmtime_r(&DylibTime, &Time);
-						DriverDate = FString::Printf(TEXT("%d-%d-%d"), Time.tm_mon + 1, Time.tm_mday, 1900 + Time.tm_year);
+						Info.DriverDate = FString::Printf(TEXT("%d-%d-%d"), Time.tm_mon + 1, Time.tm_mday, 1900 + Time.tm_year);
 
 						bGotInternalVersionInfo = true;
 						bGotDate = true;
@@ -1396,14 +1465,14 @@ void FMacPlatformMisc::GetGPUDriverInfo(const FString DeviceDescription, FString
 						uint32 C = ((SourceVersion->version >> 20) & 0x3ff);
 						uint32 D = ((SourceVersion->version >> 10) & 0x3ff);
 						uint32 E = (SourceVersion->version & 0x3ff);
-						InternalDriverVersion = FString::Printf(TEXT("%d.%d.%d.%d.%d"), A, B, C, D, E);
+						Info.InternalDriverVersion = FString::Printf(TEXT("%d.%d.%d.%d.%d"), A, B, C, D, E);
 						
 						struct stat Stat;
 						stat(IndexName, &Stat);
 						
 						struct tm Time;
 						gmtime_r(&Stat.st_mtime, &Time);
-						DriverDate = FString::Printf(TEXT("%d-%d-%d"), Time.tm_mon + 1, Time.tm_mday, 1900 + Time.tm_year);
+						Info.DriverDate = FString::Printf(TEXT("%d-%d-%d"), Time.tm_mon + 1, Time.tm_mday, 1900 + Time.tm_year);
 						
 						bGotInternalVersionInfo = true;
 						bGotDate = true;
@@ -1427,12 +1496,12 @@ void FMacPlatformMisc::GetGPUDriverInfo(const FString DeviceDescription, FString
 							NSString* BundleInfoVersion = [Dict objectForKey:@"CFBundleGetInfoString"];
 							if (!bGotInternalVersionInfo && (BundleVersion || BundleShortVersion))
 							{
-								InternalDriverVersion = FString(BundleShortVersion ? BundleShortVersion : BundleVersion);
+								Info.InternalDriverVersion = FString(BundleShortVersion ? BundleShortVersion : BundleVersion);
 								bGotInternalVersionInfo = true;
 							}
 							if (!bGotUserVersionInfo && BundleInfoVersion)
 							{
-								UserDriverVersion = FString(BundleInfoVersion);
+								Info.UserDriverVersion = FString(BundleInfoVersion);
 								bGotUserVersionInfo = true;
 							}
 							
@@ -1445,7 +1514,7 @@ void FMacPlatformMisc::GetGPUDriverInfo(const FString DeviceDescription, FString
 									if([Exe getResourceValue:&Value forKey:NSURLContentModificationDateKey error:nil] && Value)
 									{
 										NSDate* Date = (NSDate*)Value;
-										DriverDate = [Date descriptionWithLocale:nil];
+										Info.DriverDate = [Date descriptionWithLocale:nil];
 										bGotDate = true;
 									}
 								}
@@ -1464,7 +1533,7 @@ void FMacPlatformMisc::GetGPUDriverInfo(const FString DeviceDescription, FString
 						if(ControllerDict)
 						{
 							NSString* BundleVersion = [ControllerDict objectForKey:@"CFBundleVersion"];
-							InternalDriverVersion = FString(BundleVersion);
+							Info.InternalDriverVersion = FString(BundleVersion);
 						}
 						[Dict release];
 					}
@@ -1472,12 +1541,14 @@ void FMacPlatformMisc::GetGPUDriverInfo(const FString DeviceDescription, FString
 			}
 			else if(bGotInternalVersionInfo && !bGotUserVersionInfo)
 			{
-				UserDriverVersion = InternalDriverVersion;
+				Info.UserDriverVersion = Info.InternalDriverVersion;
 			}
 			
 			break;
 		}
 	}
+	
+	return Info;
 }
 
 void FMacPlatformMisc::GetOSVersions( FString& out_OSVersionLabel, FString& out_OSSubVersionLabel )
@@ -1497,6 +1568,11 @@ bool FMacPlatformMisc::GetDiskTotalAndFreeSpace(const FString& InPath, uint64& T
 		NumberOfFreeBytes = FSStat.f_bavail * FSStat.f_bsize;
 	}
 	return (Err == 0);
+}
+
+bool FMacPlatformMisc::HasSeparateChannelForDebugOutput()
+{
+	return true;
 }
 
 #include "ModuleManager.h"
@@ -1561,21 +1637,18 @@ uint32 FMacPlatformMisc::GetCPUInfo()
 
 FString FMacPlatformMisc::GetDefaultLocale()
 {
-	CFLocaleRef loc = CFLocaleCopyCurrent();
 
-	TCHAR langCode[20];
-	CFArrayRef langs = CFLocaleCopyPreferredLanguages();
-	CFStringRef langCodeStr = (CFStringRef)CFArrayGetValueAtIndex(langs, 0);
-	FPlatformString::CFStringToTCHAR(langCodeStr, langCode);
+	CFArrayRef Languages = CFLocaleCopyPreferredLanguages();
+	CFStringRef LangCodeStr = (CFStringRef)CFArrayGetValueAtIndex(Languages, 0);
+	FString LangCode((__bridge NSString*)LangCodeStr);
+	CFRelease(Languages);
 
-	TCHAR countryCode[20];
-	CFStringRef countryCodeStr = (CFStringRef)CFLocaleGetValue(loc, kCFLocaleCountryCode);
-	FPlatformString::CFStringToTCHAR(countryCodeStr, countryCode);
+	CFLocaleRef Locale = CFLocaleCopyCurrent();
+	CFStringRef CountryCodeStr = (CFStringRef)CFLocaleGetValue(Locale, kCFLocaleCountryCode);
+	FString CountryCode((__bridge NSString*)CountryCodeStr);
+	CFRelease(Locale);
 
-	CFRelease(langs);
-	CFRelease(loc);
-	
-	return FString::Printf(TEXT("%s_%s"), langCode, countryCode);
+	return FString::Printf(TEXT("%s_%s"), *LangCode, *CountryCode);
 }
 
 FText FMacPlatformMisc::GetFileManagerName()
@@ -1790,7 +1863,7 @@ void FMacPlatformMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCrash
 	}
 }
 
-void FMacCrashContext::GenerateWindowsErrorReport(char const* WERPath) const
+void FMacCrashContext::GenerateWindowsErrorReport(char const* WERPath, bool bIsEnsure) const
 {
 	int ReportFile = open(WERPath, O_CREAT|O_WRONLY, 0766);
 	if (ReportFile != -1)
@@ -1947,6 +2020,9 @@ void FMacCrashContext::GenerateWindowsErrorReport(char const* WERPath) const
 		WriteUTF16String(ReportFile, TEXT("\t\t<Parameter2>"));
 		WriteUTF16String(ReportFile, *GMacAppInfo.LCID);
 		WriteLine(ReportFile, TEXT("</Parameter2>"));
+		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<DeploymentName>%s</DeploymentName>"), FApp::GetDeploymentName()));
+		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<IsEnsure>%s</IsEnsure>"), bIsEnsure ? TEXT("1") : TEXT("0")));
+
 		WriteLine(ReportFile, TEXT("\t</DynamicSignatures>"));
 		
 		WriteLine(ReportFile, TEXT("\t<SystemInformation>"));
@@ -2000,7 +2076,7 @@ void FMacCrashContext::CopyMinidump(char const* OutputPath, char const* InputPat
 	}
 }
 
-void FMacCrashContext::GenerateInfoInFolder(char const* const InfoFolder) const
+void FMacCrashContext::GenerateInfoInFolder(char const* const InfoFolder, bool bIsEnsure) const
 {
 	// create a crash-specific directory
 	char CrashInfoFolder[PATH_MAX] = {};
@@ -2028,7 +2104,7 @@ void FMacCrashContext::GenerateInfoInFolder(char const* const InfoFolder) const
 		// generate "WER"
 		FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
 		FCStringAnsi::Strcat(FilePath, PATH_MAX, "/wermeta.xml");
-		GenerateWindowsErrorReport(FilePath);
+		GenerateWindowsErrorReport(FilePath, bIsEnsure);
 		
 		// generate "minidump" (Apple crash log format)
 		FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
@@ -2147,7 +2223,8 @@ void FMacCrashContext::GenerateCrashInfoAndLaunchReporter() const
 		FCStringAnsi::Strcat(CrashInfoFolder, PATH_MAX, ItoANSI(GMacAppInfo.RunUUID.C, 16));
 		FCStringAnsi::Strcat(CrashInfoFolder, PATH_MAX, ItoANSI(GMacAppInfo.RunUUID.D, 16));
 		
-		GenerateInfoInFolder(CrashInfoFolder);
+		const bool bIsEnsure = false;
+		GenerateInfoInFolder(CrashInfoFolder, bIsEnsure);
 
 		// try launching the tool and wait for its exit, if at all
 		// Use vfork() & execl() as they are async-signal safe, CreateProc can fail in Cocoa
@@ -2211,7 +2288,8 @@ void FMacCrashContext::GenerateEnsureInfoAndLaunchReporter() const
 		FString GameName = FApp::GetGameName();
 		FString EnsureLogFolder = FString(GMacAppInfo.CrashReportPath) / FString::Printf(TEXT("EnsureReport-%s-%s"), *GameName, *Guid.ToString(EGuidFormats::Digits));
 		
-		GenerateInfoInFolder(TCHAR_TO_UTF8(*EnsureLogFolder));
+		const bool bIsEnsure = true;
+		GenerateInfoInFolder(TCHAR_TO_UTF8(*EnsureLogFolder), bIsEnsure);
 		
 		FString Arguments = FString::Printf(TEXT("\"%s/\" -Unattended"), *EnsureLogFolder);
 		FString ReportClient = FPaths::ConvertRelativePathToFull(FPlatformProcess::GenerateApplicationPath(TEXT("CrashReportClient"), EBuildConfigurations::Development));
@@ -2254,21 +2332,25 @@ typedef NSArray* (*MTLCopyAllDevices)(void);
 
 bool FMacPlatformMisc::HasPlatformFeature(const TCHAR* FeatureName)
 {
-	if (FCString::Stricmp(FeatureName, TEXT("Metal")) == 0 && !FParse::Param(FCommandLine::Get(),TEXT("opengl")) && FModuleManager::Get().ModuleExists(TEXT("MetalRHI")))
+	if (FCString::Stricmp(FeatureName, TEXT("Metal")) == 0)
 	{
-		// Find out if there are any Metal devices on the system - some Mac's have none
-		void* DLLHandle = FPlatformProcess::GetDllHandle(TEXT("/System/Library/Frameworks/Metal.framework/Metal"));
-		if (DLLHandle)
+		// Metal is only permitted on 10.11.4 and above now because of all the bug-fixes Apple made for us in 10.11.4.
+		if (FPlatformMisc::MacOSXVersionCompare(10, 11, 4) >= 0 && !FParse::Param(FCommandLine::Get(),TEXT("opengl")) && FModuleManager::Get().ModuleExists(TEXT("MetalRHI")))
 		{
-			// Use the copy all function because we don't want to invoke a GPU switch at this point on dual-GPU Macbooks
-			MTLCopyAllDevices CopyDevicesPtr = (MTLCopyAllDevices)FPlatformProcess::GetDllExport(DLLHandle, TEXT("MTLCopyAllDevices"));
-			if (CopyDevicesPtr)
+			// Find out if there are any Metal devices on the system - some Mac's have none
+			void* DLLHandle = FPlatformProcess::GetDllHandle(TEXT("/System/Library/Frameworks/Metal.framework/Metal"));
+			if (DLLHandle)
 			{
-				SCOPED_AUTORELEASE_POOL;
-				NSArray* MetalDevices = CopyDevicesPtr();
-				[MetalDevices autorelease];
-				FPlatformProcess::FreeDllHandle(DLLHandle);
-				return MetalDevices && [MetalDevices count] > 0;
+				// Use the copy all function because we don't want to invoke a GPU switch at this point on dual-GPU Macbooks
+				MTLCopyAllDevices CopyDevicesPtr = (MTLCopyAllDevices)FPlatformProcess::GetDllExport(DLLHandle, TEXT("MTLCopyAllDevices"));
+				if (CopyDevicesPtr)
+				{
+					SCOPED_AUTORELEASE_POOL;
+					NSArray* MetalDevices = CopyDevicesPtr();
+					[MetalDevices autorelease];
+					FPlatformProcess::FreeDllHandle(DLLHandle);
+					return MetalDevices && [MetalDevices count] > 0;
+				}
 			}
 		}
 	}
@@ -2276,3 +2358,404 @@ bool FMacPlatformMisc::HasPlatformFeature(const TCHAR* FeatureName)
 	return FGenericPlatformMisc::HasPlatformFeature(FeatureName);
 }
 
+/*------------------------------------------------------------------------------
+ DriverMonitor - Stats groups for Mac Driver Monitor performance statistics available from IOKit & Driver Monitor, so that they may be logged within our performance capture tools.
+    These stats provide a lot of information about what the driver is doing at any point and being able to see where the time & memory is going can be very helpful when debugging.
+    They would be especially helpful if they could be logged over time alongside out own RHI stats to compare what we *think* we are doing with what is *actually* happening.
+ ------------------------------------------------------------------------------*/
+
+DECLARE_STATS_GROUP(TEXT("Driver Monitor"),STATGROUP_DriverMonitor, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Driver Monitor (AMD specific)"),STATGROUP_DriverMonitorAMD, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Driver Monitor (Intel specific)"),STATGROUP_DriverMonitorIntel, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Driver Monitor (Nvidia specific)"),STATGROUP_DriverMonitorNvidia, STATCAT_Advanced);
+
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Device Utilization %"),STAT_DriverMonitorDeviceUtilisation,STATGROUP_DriverMonitor);
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Device Utilization % at cur p-state"),STAT_DM_I_DeviceUtilisationAtPState,STATGROUP_DriverMonitorIntel);
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Device Unit 0 Utilization %"),STAT_DM_I_Device0Utilisation,STATGROUP_DriverMonitorIntel);
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Device Unit 1 Utilization %"),STAT_DM_I_Device1Utilisation,STATGROUP_DriverMonitorIntel);
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Device Unit 2 Utilization %"),STAT_DM_I_Device2Utilisation,STATGROUP_DriverMonitorIntel);
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Device Unit 3 Utilization %"),STAT_DM_I_Device3Utilisation,STATGROUP_DriverMonitorIntel);
+
+DECLARE_MEMORY_STAT(TEXT("VRAM Used Bytes"),STAT_DriverMonitorVRAMUsedBytes,STATGROUP_DriverMonitor);
+DECLARE_MEMORY_STAT(TEXT("VRAM Free Bytes"),STAT_DriverMonitorVRAMFreeBytes,STATGROUP_DriverMonitor);
+DECLARE_MEMORY_STAT(TEXT("VRAM Largest Free Bytes"),STAT_DriverMonitorVRAMLargestFreeBytes,STATGROUP_DriverMonitor);
+DECLARE_MEMORY_STAT(TEXT("In Use Vid Mem Bytes"),STAT_DriverMonitorInUseVidMemBytes,STATGROUP_DriverMonitor);
+DECLARE_MEMORY_STAT(TEXT("In Use Sys Mem Bytes"),STAT_DriverMonitorInUseSysMemBytes,STATGROUP_DriverMonitor);
+
+DECLARE_MEMORY_STAT(TEXT("DMA Used Bytes"),STAT_DriverMonitorgartUsedBytes,STATGROUP_DriverMonitor);
+DECLARE_MEMORY_STAT(TEXT("DMA Free Bytes"),STAT_DriverMonitorgartFreeBytes,STATGROUP_DriverMonitor);
+DECLARE_MEMORY_STAT(TEXT("DMA Bytes"),STAT_DriverMonitorgartSizeBytes,STATGROUP_DriverMonitor);
+DECLARE_MEMORY_STAT(TEXT("DMA Data Mapped"),STAT_DriverMonitorgartMapInBytesPerSample,STATGROUP_DriverMonitor);
+DECLARE_MEMORY_STAT(TEXT("DMA Data Unmapped"),STAT_DriverMonitorgartMapOutBytesPerSample,STATGROUP_DriverMonitor);
+
+DECLARE_MEMORY_STAT(TEXT("Texture Page-off Bytes"),STAT_DriverMonitortexturePageOutBytes,STATGROUP_DriverMonitor);
+DECLARE_MEMORY_STAT(TEXT("Texture Read-off Bytes"),STAT_DriverMonitortextureReadOutBytes,STATGROUP_DriverMonitor);
+DECLARE_MEMORY_STAT(TEXT("Texture Volunteer Unload Bytes"),STAT_DriverMonitortextureVolunteerUnloadBytes,STATGROUP_DriverMonitor);
+DECLARE_MEMORY_STAT(TEXT("AGP Texture Creation Bytes"),STAT_DriverMonitoragpTextureCreationBytes,STATGROUP_DriverMonitor);
+DECLARE_DWORD_COUNTER_STAT(TEXT("AGP Texture Creation Count"),STAT_DriverMonitoragpTextureCreationCount,STATGROUP_DriverMonitor);
+DECLARE_MEMORY_STAT(TEXT("AGP Ref Texture Creation Bytes"),STAT_DriverMonitoragprefTextureCreationBytes,STATGROUP_DriverMonitor);
+DECLARE_DWORD_COUNTER_STAT(TEXT("AGP Ref Texture Creation Count"),STAT_DriverMonitoragprefTextureCreationCount,STATGROUP_DriverMonitor);
+
+DECLARE_MEMORY_STAT(TEXT("IOSurface Page-In Bytes"),STAT_DriverMonitorioSurfacePageInBytes,STATGROUP_DriverMonitor);
+DECLARE_MEMORY_STAT(TEXT("IOSurface Page-Out Bytes"),STAT_DriverMonitorioSurfacePageOutBytes,STATGROUP_DriverMonitor);
+DECLARE_MEMORY_STAT(TEXT("IOSurface Read-Out Bytes"),STAT_DriverMonitorioSurfaceReadOutBytes,STATGROUP_DriverMonitor);
+DECLARE_DWORD_COUNTER_STAT(TEXT("IOSurface Texture Creation Count"),STAT_DriverMonitoriosurfaceTextureCreationCount,STATGROUP_DriverMonitor);
+DECLARE_MEMORY_STAT(TEXT("IOSurface Texture Creation Bytes"),STAT_DriverMonitoriosurfaceTextureCreationBytes,STATGROUP_DriverMonitor);
+
+DECLARE_MEMORY_STAT(TEXT("OOL Texture Page-In Bytes"),STAT_DriverMonitoroolTexturePageInBytes,STATGROUP_DriverMonitor);
+DECLARE_DWORD_COUNTER_STAT(TEXT("OOL Texture Creation Count"),STAT_DriverMonitoroolTextureCreationCount,STATGROUP_DriverMonitor);
+DECLARE_MEMORY_STAT(TEXT("OOL Texture Creation Bytes"),STAT_DriverMonitoroolTextureCreationBytes,STATGROUP_DriverMonitor);
+
+DECLARE_MEMORY_STAT(TEXT("orphanedNonReusableSysMemoryBytes"),STAT_DriverMonitororphanedNonReusableSysMemoryBytes, STATGROUP_DriverMonitor);
+DECLARE_DWORD_COUNTER_STAT(TEXT("orphanedNonReusableSysMemoryCount"),STAT_DriverMonitororphanedNonReusableSysMemoryCount, STATGROUP_DriverMonitor);
+DECLARE_MEMORY_STAT(TEXT("orphanedReusableSysMemoryBytes"),STAT_DriverMonitororphanedReusableSysMemoryBytes, STATGROUP_DriverMonitor);
+DECLARE_DWORD_COUNTER_STAT(TEXT("orphanedReusableSysMemoryCount"),STAT_DriverMonitororphanedReusableSysMemoryCount, STATGROUP_DriverMonitor);
+DECLARE_FLOAT_COUNTER_STAT(TEXT("orphanedReusableSysMemoryHitRate"),STAT_DriverMonitororphanedReusableSysMemoryHitRate, STATGROUP_DriverMonitor);
+DECLARE_MEMORY_STAT(TEXT("orphanedNonReusableVidMemoryBytes"),STAT_DriverMonitororphanedNonReusableVidMemoryBytes, STATGROUP_DriverMonitor);
+DECLARE_DWORD_COUNTER_STAT(TEXT("orphanedNonReusableVidMemoryCount"),STAT_DriverMonitororphanedNonReusableVidMemoryCount, STATGROUP_DriverMonitor);
+DECLARE_MEMORY_STAT(TEXT("orphanedReusableVidMemoryBytes"),STAT_DriverMonitororphanedReusableVidMemoryBytes, STATGROUP_DriverMonitor);
+DECLARE_DWORD_COUNTER_STAT(TEXT("orphanedReusableVidMemoryCount"),STAT_DriverMonitororphanedReusableVidMemoryCount, STATGROUP_DriverMonitor);
+DECLARE_FLOAT_COUNTER_STAT(TEXT("orphanedReusableVidMemoryHitRate"),STAT_DriverMonitororphanedReusableVidMemoryHitRate, STATGROUP_DriverMonitor);
+
+DECLARE_MEMORY_STAT(TEXT("stdTextureCreationBytes"),STAT_DriverMonitorstdTextureCreationBytes, STATGROUP_DriverMonitor);
+DECLARE_DWORD_COUNTER_STAT(TEXT("stdTextureCreationCount"),STAT_DriverMonitorstdTextureCreationCount, STATGROUP_DriverMonitor);
+DECLARE_MEMORY_STAT(TEXT("stdTexturePageInBytes"),STAT_DriverMonitorstdTexturePageInBytes, STATGROUP_DriverMonitor);
+DECLARE_MEMORY_STAT(TEXT("surfaceBufferPageInBytes"),STAT_DriverMonitorsurfaceBufferPageInBytes, STATGROUP_DriverMonitor);
+DECLARE_MEMORY_STAT(TEXT("surfaceBufferPageOutBytes"),STAT_DriverMonitorsurfaceBufferPageOutBytes, STATGROUP_DriverMonitor);
+DECLARE_MEMORY_STAT(TEXT("surfaceBufferReadOutBytes"),STAT_DriverMonitorsurfaceBufferReadOutBytes, STATGROUP_DriverMonitor);
+DECLARE_DWORD_COUNTER_STAT(TEXT("surfaceTextureCreationCount"),STAT_DriverMonitorsurfaceTextureCreationCount, STATGROUP_DriverMonitor);
+
+DECLARE_CYCLE_STAT(TEXT("CPU Wait For GPU"),STAT_DriverMonitorCPUWaitForGPU,STATGROUP_DriverMonitor);
+DECLARE_CYCLE_STAT(TEXT("CPU Wait to Submit Commands"),STAT_DriverMonitorCPUWaitToSubmit,STATGROUP_DriverMonitor);
+DECLARE_CYCLE_STAT(TEXT("CPU Wait to perform Surface Read"),STAT_DriverMonitorCPUWaitToSurfaceRead,STATGROUP_DriverMonitor);
+DECLARE_CYCLE_STAT(TEXT("CPU Wait to perform Surface Resize"),STAT_DriverMonitorCPUWaitToSurfaceResize,STATGROUP_DriverMonitor);
+DECLARE_CYCLE_STAT(TEXT("CPU Wait to perform Surface Write"),STAT_DriverMonitorCPUWaitToSurfaceWrite,STATGROUP_DriverMonitor);
+DECLARE_CYCLE_STAT(TEXT("CPU Wait to perform VRAM Surface page-off"),STAT_DriverMonitorCPUWaitToSurfacePageOff,STATGROUP_DriverMonitor);
+DECLARE_CYCLE_STAT(TEXT("CPU Wait to perform VRAM Surface page-on"),STAT_DriverMonitorCPUWaitToSurfacePageOn,STATGROUP_DriverMonitor);
+DECLARE_CYCLE_STAT(TEXT("CPU Wait to reclaim Surface GART Backing Store"),STAT_DriverMonitorCPUWaitToReclaimSurfaceGART,STATGROUP_DriverMonitor);
+DECLARE_CYCLE_STAT(TEXT("CPU Wait to perform VRAM Eviction"),STAT_DriverMonitorCPUWaitToVRAMEvict,STATGROUP_DriverMonitor);
+DECLARE_CYCLE_STAT(TEXT("CPU Wait to free Data Buffer"),STAT_DriverMonitorCPUWaitToFreeDataBuffer,STATGROUP_DriverMonitor);
+
+DECLARE_DWORD_COUNTER_STAT(TEXT("surfaceCount"), STAT_DriverMonitorSurfaceCount, STATGROUP_DriverMonitor);
+DECLARE_DWORD_COUNTER_STAT(TEXT("textureCount"), STAT_DriverMonitorTextureCount, STATGROUP_DriverMonitor);
+
+DECLARE_FLOAT_COUNTER_STAT(TEXT("GPU Core Utilization"), STAT_DM_NV_GPUCoreUtilization, STATGROUP_DriverMonitorNvidia);
+DECLARE_FLOAT_COUNTER_STAT(TEXT("GPU Memory Utilization"), STAT_DM_NV_GPUMemoryUtilization, STATGROUP_DriverMonitorNvidia);
+
+DECLARE_DWORD_COUNTER_STAT(TEXT("HWChannel C0 | Commands Completed"), STAT_DM_AMD_HWChannelC0Complete, STATGROUP_DriverMonitorAMD);
+DECLARE_DWORD_COUNTER_STAT(TEXT("HWChannel C0 | Commands Submitted"), STAT_DM_AMD_HWChannelC0Submit, STATGROUP_DriverMonitorAMD);
+DECLARE_DWORD_COUNTER_STAT(TEXT("HWChannel C1 | Commands Completed"), STAT_DM_AMD_HWChannelC1Complete, STATGROUP_DriverMonitorAMD);
+DECLARE_DWORD_COUNTER_STAT(TEXT("HWChannel C1 | Commands Submitted"), STAT_DM_AMD_HWChannelC1Submit, STATGROUP_DriverMonitorAMD);
+DECLARE_DWORD_COUNTER_STAT(TEXT("HWChannel DMA0 | Commands Completed"), STAT_DM_AMD_HWChannelDMA0Complete, STATGROUP_DriverMonitorAMD);
+DECLARE_DWORD_COUNTER_STAT(TEXT("HWChannel DMA0 | Commands Submitted"), STAT_DM_AMD_HWChannelDMA0Submit, STATGROUP_DriverMonitorAMD);
+DECLARE_DWORD_COUNTER_STAT(TEXT("HWChannel DMA1 | Commands Completed"), STAT_DM_AMD_HWChannelDMA1Complete, STATGROUP_DriverMonitorAMD);
+DECLARE_DWORD_COUNTER_STAT(TEXT("HWChannel DMA1 | Commands Submitted"), STAT_DM_AMD_HWChannelDMA1Submit, STATGROUP_DriverMonitorAMD);
+DECLARE_DWORD_COUNTER_STAT(TEXT("HWChannel GFX | Commands Completed"), STAT_DM_AMD_HWChannelGFXComplete, STATGROUP_DriverMonitorAMD);
+DECLARE_DWORD_COUNTER_STAT(TEXT("HWChannel GFX | Commands Submitted"), STAT_DM_AMD_HWChannelGFXSubmit, STATGROUP_DriverMonitorAMD);
+DECLARE_DWORD_COUNTER_STAT(TEXT("HWChannel SPU | Commands Completed"), STAT_DM_AMD_HWChannelSPUComplete, STATGROUP_DriverMonitorAMD);
+DECLARE_DWORD_COUNTER_STAT(TEXT("HWChannel SPU | Commands Submitted"), STAT_DM_AMD_HWChannelSPUSubmit, STATGROUP_DriverMonitorAMD);
+DECLARE_DWORD_COUNTER_STAT(TEXT("HWChannel UVD | Commands Completed"), STAT_DM_AMD_HWChannelUVDComplete, STATGROUP_DriverMonitorAMD);
+DECLARE_DWORD_COUNTER_STAT(TEXT("HWChannel UVD | Commands Submitted"), STAT_DM_AMD_HWChannelUVDSubmit, STATGROUP_DriverMonitorAMD);
+DECLARE_DWORD_COUNTER_STAT(TEXT("HWChannel VCE | Commands Completed"), STAT_DM_AMD_HWChannelVCEComplete, STATGROUP_DriverMonitorAMD);
+DECLARE_DWORD_COUNTER_STAT(TEXT("HWChannel VCE | Commands Submitted"), STAT_DM_AMD_HWChannelVCESubmit, STATGROUP_DriverMonitorAMD);
+DECLARE_DWORD_COUNTER_STAT(TEXT("HWChannel VCELLQ | Commands Completed"), STAT_DM_AMD_HWChannelVCELLQComplete, STATGROUP_DriverMonitorAMD);
+DECLARE_DWORD_COUNTER_STAT(TEXT("HWChannel VCELLQ | Commands Submitted"), STAT_DM_AMD_HWChannelVCELLQSubmit, STATGROUP_DriverMonitorAMD);
+DECLARE_DWORD_COUNTER_STAT(TEXT("HWChannel KIQ | Commands Completed"), STAT_DM_AMD_HWChannelKIQComplete, STATGROUP_DriverMonitorAMD);
+DECLARE_DWORD_COUNTER_STAT(TEXT("HWChannel KIQ | Commands Submitted"), STAT_DM_AMD_HWChannelKIQSubmit, STATGROUP_DriverMonitorAMD);
+DECLARE_DWORD_COUNTER_STAT(TEXT("HWChannel SAMU GPCOM | Commands Completed"), STAT_DM_AMD_HWChannelSAMUGPUCOMComplete, STATGROUP_DriverMonitorAMD);
+DECLARE_DWORD_COUNTER_STAT(TEXT("HWChannel SAMU GPCOM | Commands Submitted"), STAT_DM_AMD_HWChannelSAMUGPUCOMSubmit, STATGROUP_DriverMonitorAMD);
+DECLARE_DWORD_COUNTER_STAT(TEXT("HWChannel SAMU RBI | Commands Completed"), STAT_DM_AMD_HWChannelSAMURBIComplete, STATGROUP_DriverMonitorAMD);
+DECLARE_DWORD_COUNTER_STAT(TEXT("HWChannel SAMU RBI | Commands Submitted"), STAT_DM_AMD_HWChannelSAMURBISubmit, STATGROUP_DriverMonitorAMD);
+
+
+template<typename T>
+T GetMacGPUStat(TMap<FString, float> const& Stats, FString StatName)
+{
+	T Result = (T)0;
+	if(Stats.Contains(StatName))
+	{
+		Result = Stats.FindRef(StatName);
+	}
+	return Result;
+}
+
+void FMacPlatformMisc::UpdateDriverMonitorStatistics(int32 DeviceIndex)
+{
+	if (DeviceIndex >= 0)
+	{
+		TArray<FMacPlatformMisc::FGPUDescriptor> const& GPUs = FPlatformMisc::GetGPUDescriptors();
+		if (DeviceIndex < GPUs.Num())
+		{
+			FMacPlatformMisc::FGPUDescriptor const& GPU = GPUs[DeviceIndex];
+			TMap<FString, float> Stats = GPU.GetPerformanceStatistics();
+			
+			float DeviceUtil = GetMacGPUStat<float>(Stats, TEXT("Device Utilization %"));
+			SET_FLOAT_STAT(STAT_DriverMonitorDeviceUtilisation, DeviceUtil);
+			
+			DeviceUtil = GetMacGPUStat<float>(Stats, TEXT("Device Utilization % at cur p-state"));
+			SET_FLOAT_STAT(STAT_DM_I_DeviceUtilisationAtPState, DeviceUtil);
+			
+			DeviceUtil = GetMacGPUStat<float>(Stats, TEXT("Device Unit 0 Utilization %"));
+			SET_FLOAT_STAT(STAT_DM_I_Device0Utilisation, DeviceUtil);
+			
+			DeviceUtil = GetMacGPUStat<float>(Stats, TEXT("Device Unit 1 Utilization %"));
+			SET_FLOAT_STAT(STAT_DM_I_Device1Utilisation, DeviceUtil);
+			
+			DeviceUtil = GetMacGPUStat<float>(Stats, TEXT("Device Unit 2 Utilization %"));
+			SET_FLOAT_STAT(STAT_DM_I_Device2Utilisation, DeviceUtil);
+			
+			DeviceUtil = GetMacGPUStat<float>(Stats, TEXT("Device Unit 3 Utilization %"));
+			SET_FLOAT_STAT(STAT_DM_I_Device3Utilisation, DeviceUtil);
+			
+			int64 Memory = GetMacGPUStat<int64>(Stats, TEXT("vramUsedBytes"));
+			SET_MEMORY_STAT(STAT_DriverMonitorVRAMUsedBytes, Memory);
+			
+			Memory = GetMacGPUStat<int64>(Stats, TEXT("vramFreeBytes"));
+			SET_MEMORY_STAT(STAT_DriverMonitorVRAMFreeBytes, Memory);
+			
+			Memory = GetMacGPUStat<int64>(Stats, TEXT("vramLargestFreeBytes"));
+			SET_MEMORY_STAT(STAT_DriverMonitorVRAMLargestFreeBytes, Memory);
+			
+			Memory = GetMacGPUStat<int64>(Stats, TEXT("inUseVidMemoryBytes"));
+			SET_MEMORY_STAT(STAT_DriverMonitorInUseVidMemBytes, Memory);
+			
+			Memory = GetMacGPUStat<int64>(Stats, TEXT("inUseSysMemoryBytes"));
+			SET_MEMORY_STAT(STAT_DriverMonitorInUseSysMemBytes, Memory);
+			
+			Memory = GetMacGPUStat<int64>(Stats, TEXT("gartSizeBytes"));
+			SET_MEMORY_STAT(STAT_DriverMonitorgartSizeBytes, Memory);
+			
+			Memory = GetMacGPUStat<int64>(Stats, TEXT("gartFreeBytes"));
+			SET_MEMORY_STAT(STAT_DriverMonitorgartFreeBytes, Memory);
+			
+			Memory = GetMacGPUStat<int64>(Stats, TEXT("gartUsedBytes"));
+			SET_MEMORY_STAT(STAT_DriverMonitorgartUsedBytes, Memory);
+			
+			Memory = GetMacGPUStat<int64>(Stats, TEXT("gartMapInBytesPerSample"));
+			SET_MEMORY_STAT(STAT_DriverMonitorgartMapInBytesPerSample, Memory);
+			
+			Memory = GetMacGPUStat<int64>(Stats, TEXT("gartMapOutBytesPerSample"));
+			SET_MEMORY_STAT(STAT_DriverMonitorgartMapOutBytesPerSample, Memory);
+			
+			int64 Cycles = GetMacGPUStat<int64>(Stats, TEXT("hardwareWaitTime"));
+			SET_CYCLE_COUNTER(STAT_DriverMonitorCPUWaitForGPU, Cycles);
+			
+			Cycles = GetMacGPUStat<int64>(Stats, TEXT("hardwareSubmitWaitTime"));
+			SET_CYCLE_COUNTER(STAT_DriverMonitorCPUWaitToSubmit, Cycles);
+			
+			Cycles = GetMacGPUStat<int64>(Stats, TEXT("surfaceReadLockIdleWaitTime"));
+			SET_CYCLE_COUNTER(STAT_DriverMonitorCPUWaitToSurfaceRead, Cycles);
+			
+			Cycles = GetMacGPUStat<int64>(Stats, TEXT("surfaceCopyOutWaitTime"));
+			SET_CYCLE_COUNTER(STAT_DriverMonitorCPUWaitToSurfacePageOff, Cycles);
+			
+			Cycles = GetMacGPUStat<int64>(Stats, TEXT("surfaceCopyInWaitTime"));
+			SET_CYCLE_COUNTER(STAT_DriverMonitorCPUWaitToSurfacePageOn, Cycles);
+			
+			Cycles = GetMacGPUStat<int64>(Stats, TEXT("freeSurfaceBackingWaitTime"));
+			SET_CYCLE_COUNTER(STAT_DriverMonitorCPUWaitToReclaimSurfaceGART, Cycles);
+			
+			Cycles = GetMacGPUStat<int64>(Stats, TEXT("vramEvictionWaitTime"));
+			SET_CYCLE_COUNTER(STAT_DriverMonitorCPUWaitToVRAMEvict, Cycles);
+			
+			Cycles = GetMacGPUStat<int64>(Stats, TEXT("freeDataBufferWaitTime"));
+			SET_CYCLE_COUNTER(STAT_DriverMonitorCPUWaitToFreeDataBuffer, Cycles);
+			
+			Memory = GetMacGPUStat<int64>(Stats, TEXT("texturePageOutBytes"));
+			SET_MEMORY_STAT(STAT_DriverMonitortexturePageOutBytes, Memory);
+			
+			Memory = GetMacGPUStat<int64>(Stats, TEXT("textureReadOutBytes"));
+			SET_MEMORY_STAT(STAT_DriverMonitortextureReadOutBytes, Memory);
+			
+			Memory = GetMacGPUStat<int64>(Stats, TEXT("textureVolunteerUnloadBytes"));
+			SET_MEMORY_STAT(STAT_DriverMonitortextureVolunteerUnloadBytes, Memory);
+			
+			Memory = GetMacGPUStat<int64>(Stats, TEXT("agpTextureCreationBytes"));
+			SET_MEMORY_STAT(STAT_DriverMonitoragpTextureCreationBytes, Memory);
+			
+			uint32 Dword = GetMacGPUStat<int32>(Stats, TEXT("agpTextureCreationCount"));
+			SET_DWORD_STAT(STAT_DriverMonitoragpTextureCreationCount, Dword);
+			
+			Memory = GetMacGPUStat<int64>(Stats, TEXT("agprefTextureCreationBytes"));
+			SET_MEMORY_STAT(STAT_DriverMonitoragprefTextureCreationBytes, Memory);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("agprefTextureCreationCount"));
+			SET_DWORD_STAT(STAT_DriverMonitoragprefTextureCreationCount, Dword);
+			
+			Memory = GetMacGPUStat<int64>(Stats, TEXT("ioSurfacePageInBytes"));
+			SET_MEMORY_STAT(STAT_DriverMonitorioSurfacePageInBytes, Memory);
+			
+			Memory = GetMacGPUStat<int64>(Stats, TEXT("ioSurfacePageOutBytes"));
+			SET_MEMORY_STAT(STAT_DriverMonitorioSurfacePageOutBytes, Memory);
+			
+			Memory = GetMacGPUStat<int64>(Stats, TEXT("ioSurfaceReadOutBytes"));
+			SET_MEMORY_STAT(STAT_DriverMonitorioSurfaceReadOutBytes, Memory);
+			
+			Memory = GetMacGPUStat<int64>(Stats, TEXT("iosurfaceTextureCreationBytes"));
+			SET_MEMORY_STAT(STAT_DriverMonitoriosurfaceTextureCreationBytes, Memory);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("iosurfaceTextureCreationCount"));
+			SET_DWORD_STAT(STAT_DriverMonitoriosurfaceTextureCreationCount, Dword);
+			
+			Memory = GetMacGPUStat<int64>(Stats, TEXT("oolTextureCreationBytes"));
+			SET_MEMORY_STAT(STAT_DriverMonitoroolTextureCreationBytes, Memory);
+			
+			Memory = GetMacGPUStat<int64>(Stats, TEXT("oolTexturePageInBytes"));
+			SET_MEMORY_STAT(STAT_DriverMonitoroolTexturePageInBytes, Memory);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("oolTextureCreationCount"));
+			SET_DWORD_STAT(STAT_DriverMonitoroolTextureCreationCount, Dword);
+			
+			Memory = GetMacGPUStat<int64>(Stats, TEXT("orphanedNonReusableSysMemoryBytes"));
+			SET_MEMORY_STAT(STAT_DriverMonitororphanedNonReusableSysMemoryBytes, Memory);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("orphanedNonReusableSysMemoryCount"));
+			SET_DWORD_STAT(STAT_DriverMonitororphanedNonReusableSysMemoryCount, Dword);
+			
+			Memory = GetMacGPUStat<int64>(Stats, TEXT("orphanedReusableSysMemoryBytes"));
+			SET_MEMORY_STAT(STAT_DriverMonitororphanedReusableSysMemoryBytes, Memory);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("orphanedReusableSysMemoryCount"));
+			SET_DWORD_STAT(STAT_DriverMonitororphanedReusableSysMemoryCount, Dword);
+			
+			float HitRate = GetMacGPUStat<float>(Stats, TEXT("orphanedReusableSysMemoryHitRate"));
+			SET_FLOAT_STAT(STAT_DriverMonitororphanedReusableSysMemoryHitRate, HitRate);
+			
+			Memory = GetMacGPUStat<int64>(Stats, TEXT("orphanedNonReusableVidMemoryBytes"));
+			SET_MEMORY_STAT(STAT_DriverMonitororphanedNonReusableVidMemoryBytes, Memory);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("orphanedNonReusableVidMemoryCount"));
+			SET_DWORD_STAT(STAT_DriverMonitororphanedNonReusableVidMemoryCount, Dword);
+			
+			Memory = GetMacGPUStat<int64>(Stats, TEXT("orphanedReusableVidMemoryBytes"));
+			SET_MEMORY_STAT(STAT_DriverMonitororphanedReusableVidMemoryBytes, Memory);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("orphanedReusableVidMemoryCount"));
+			SET_DWORD_STAT(STAT_DriverMonitororphanedReusableVidMemoryCount, Dword);
+			
+			HitRate = GetMacGPUStat<float>(Stats, TEXT("orphanedReusableVidMemoryHitRate"));
+			SET_FLOAT_STAT(STAT_DriverMonitororphanedReusableVidMemoryHitRate, HitRate);
+			
+			Memory = GetMacGPUStat<int64>(Stats, TEXT("stdTextureCreationBytes"));
+			SET_MEMORY_STAT(STAT_DriverMonitorstdTextureCreationBytes, Memory);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("stdTextureCreationCount"));
+			SET_DWORD_STAT(STAT_DriverMonitorstdTextureCreationCount, Dword);
+			
+			Memory = GetMacGPUStat<int64>(Stats, TEXT("stdTexturePageInBytes"));
+			SET_MEMORY_STAT(STAT_DriverMonitorstdTexturePageInBytes, Memory);
+			
+			Memory = GetMacGPUStat<int64>(Stats, TEXT("surfaceBufferPageInBytes"));
+			SET_MEMORY_STAT(STAT_DriverMonitorsurfaceBufferPageInBytes, Memory);
+			
+			Memory = GetMacGPUStat<int64>(Stats, TEXT("surfaceBufferPageOutBytes"));
+			SET_MEMORY_STAT(STAT_DriverMonitorsurfaceBufferPageOutBytes, Memory);
+			
+			Memory = GetMacGPUStat<int64>(Stats, TEXT("surfaceBufferReadOutBytes"));
+			SET_MEMORY_STAT(STAT_DriverMonitorsurfaceBufferReadOutBytes, Memory);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("surfaceTextureCreationCount"));
+			SET_DWORD_STAT(STAT_DriverMonitorsurfaceTextureCreationCount, Dword);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("surfaceCount"));
+			SET_DWORD_STAT(STAT_DriverMonitorSurfaceCount, Dword);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("textureCount"));
+			SET_DWORD_STAT(STAT_DriverMonitorTextureCount, Dword);
+			
+			HitRate = GetMacGPUStat<float>(Stats, TEXT("GPU Core Utilization"));
+			SET_FLOAT_STAT(STAT_DM_NV_GPUCoreUtilization, HitRate);
+			
+			HitRate = GetMacGPUStat<float>(Stats, TEXT("GPU Memory Utilization"));
+			SET_FLOAT_STAT(STAT_DM_NV_GPUMemoryUtilization, HitRate);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("HWChannel C0 | Commands Completed"));
+			SET_DWORD_STAT(STAT_DM_AMD_HWChannelC0Complete, Dword);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("HWChannel C0 | Commands Submitted"));
+			SET_DWORD_STAT(STAT_DM_AMD_HWChannelC0Submit, Dword);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("HWChannel C1 | Commands Completed"));
+			SET_DWORD_STAT(STAT_DM_AMD_HWChannelC1Complete, Dword);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("HWChannel C1 | Commands Submitted"));
+			SET_DWORD_STAT(STAT_DM_AMD_HWChannelC1Submit, Dword);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("HWChannel DMA0 | Commands Completed"));
+			if(!Dword)
+			{
+				Dword = GetMacGPUStat<int32>(Stats, TEXT("HWChannel sDMA0 | Commands Completed"));
+			}
+			SET_DWORD_STAT(STAT_DM_AMD_HWChannelDMA0Complete, Dword);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("HWChannel DMA0 | Commands Submitted"));
+			if(!Dword)
+			{
+				Dword = GetMacGPUStat<int32>(Stats, TEXT("HWChannel sDMA0 | Commands Submitted"));
+			}
+			SET_DWORD_STAT(STAT_DM_AMD_HWChannelDMA0Submit, Dword);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("HWChannel DMA1 | Commands Completed"));
+			if(!Dword)
+			{
+				Dword = GetMacGPUStat<int32>(Stats, TEXT("HWChannel sDMA1 | Commands Completed"));
+			}
+			SET_DWORD_STAT(STAT_DM_AMD_HWChannelDMA1Complete, Dword);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("HWChannel DMA1 | Commands Submitted"));
+			if (!Dword)
+			{
+				Dword = GetMacGPUStat<int32>(Stats, TEXT("HWChannel sDMA1 | Commands Submitted"));
+			}
+			SET_DWORD_STAT(STAT_DM_AMD_HWChannelDMA1Submit, Dword);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("HWChannel GFX | Commands Completed"));
+			SET_DWORD_STAT(STAT_DM_AMD_HWChannelGFXComplete, Dword);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("HWChannel GFX | Commands Submitted"));
+			SET_DWORD_STAT(STAT_DM_AMD_HWChannelGFXSubmit, Dword);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("HWChannel SPU | Commands Completed"));
+			SET_DWORD_STAT(STAT_DM_AMD_HWChannelSPUComplete, Dword);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("HWChannel SPU | Commands Submitted"));
+			SET_DWORD_STAT(STAT_DM_AMD_HWChannelSPUSubmit, Dword);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("HWChannel UVD | Commands Completed"));
+			SET_DWORD_STAT(STAT_DM_AMD_HWChannelUVDComplete, Dword);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("HWChannel UVD | Commands Submitted"));
+			SET_DWORD_STAT(STAT_DM_AMD_HWChannelUVDSubmit, Dword);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("HWChannel VCE | Commands Completed"));
+			SET_DWORD_STAT(STAT_DM_AMD_HWChannelVCEComplete, Dword);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("HWChannel VCE | Commands Submitted"));
+			SET_DWORD_STAT(STAT_DM_AMD_HWChannelVCESubmit, Dword);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("HWChannel VCELLQ | Commands Completed"));
+			SET_DWORD_STAT(STAT_DM_AMD_HWChannelVCELLQComplete, Dword);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("HWChannel VCELLQ | Commands Submitted"));
+			SET_DWORD_STAT(STAT_DM_AMD_HWChannelVCELLQSubmit, Dword);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("HWChannel KIQ | Commands Completed"));
+			SET_DWORD_STAT(STAT_DM_AMD_HWChannelKIQComplete, Dword);
+
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("HWChannel KIQ | Commands Submitted"));
+			SET_DWORD_STAT(STAT_DM_AMD_HWChannelKIQSubmit, Dword);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("HWChannel SAMU GPCOM | Commands Completed"));
+			SET_DWORD_STAT(STAT_DM_AMD_HWChannelSAMUGPUCOMComplete, Dword);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("HWChannel SAMU GPCOM | Commands Submitted"));
+			SET_DWORD_STAT(STAT_DM_AMD_HWChannelSAMUGPUCOMSubmit, Dword);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("HWChannel SAMU RBI | Commands Completed"));
+			SET_DWORD_STAT(STAT_DM_AMD_HWChannelSAMURBIComplete, Dword);
+			
+			Dword = GetMacGPUStat<int32>(Stats, TEXT("HWChannel SAMU RBI | Commands Submitted"));
+			SET_DWORD_STAT(STAT_DM_AMD_HWChannelSAMURBISubmit, Dword);
+		}
+	}
+}

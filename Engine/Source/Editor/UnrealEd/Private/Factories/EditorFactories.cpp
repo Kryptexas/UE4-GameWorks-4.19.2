@@ -108,6 +108,7 @@
 #include "Factories/SubUVAnimationFactory.h"
 #include "Particles/SubUVAnimation.h"
 #include "Kismet2/BlueprintEditorUtils.h"
+#include "Sound/SoundNodeDialoguePlayer.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorFactories, Log, All);
 
@@ -209,21 +210,26 @@ UObject* UMaterialFactoryNew::FactoryCreateNew(UClass* Class,UObject* InParent,F
 	if ( InitialTexture != nullptr )
 	{
 		// An initial texture was specified, add it and assign it to the BaseColor
-		UMaterialExpressionTextureSample* Expression = NewObject<UMaterialExpressionTextureSample>(NewMaterial);
-		NewMaterial->Expressions.Add( Expression );
+		UMaterialExpressionTextureSample* TextureSampler = NewObject<UMaterialExpressionTextureSample>(NewMaterial);
+		{
+			TextureSampler->MaterialExpressionEditorX = -250;
+			TextureSampler->Texture = InitialTexture;
+			TextureSampler->AutoSetSampleType();
+		}
 
-		NewMaterial->BaseColor.Expression = Expression;
-		Expression->MaterialExpressionEditorX = -250;
-		Expression->Texture = InitialTexture;
+		NewMaterial->Expressions.Add(TextureSampler);
 
-		TArray<FExpressionOutput> Outputs;
-		Outputs = Expression->GetOutputs();
-		FExpressionOutput* Output = Outputs.GetData();
-		NewMaterial->BaseColor.Mask = Output->Mask;
-		NewMaterial->BaseColor.MaskR = Output->MaskR;
-		NewMaterial->BaseColor.MaskG = Output->MaskG;
-		NewMaterial->BaseColor.MaskB = Output->MaskB;
-		NewMaterial->BaseColor.MaskA = Output->MaskA;
+		FExpressionOutput& Output = TextureSampler->GetOutputs()[0];
+		FExpressionInput& Input = (TextureSampler->SamplerType == SAMPLERTYPE_Normal)
+			? (FExpressionInput&)NewMaterial->Normal
+			: (FExpressionInput&)NewMaterial->BaseColor;
+
+		Input.Expression = TextureSampler;
+		Input.Mask = Output.Mask;
+		Input.MaskR = Output.MaskR;
+		Input.MaskG = Output.MaskG;
+		Input.MaskB = Output.MaskB;
+		Input.MaskA = Output.MaskA;
 
 		NewMaterial->PostEditChange();
 	}
@@ -1822,7 +1828,18 @@ UDialogueWaveFactory::UDialogueWaveFactory(const FObjectInitializer& ObjectIniti
 
 UObject* UDialogueWaveFactory::FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn)
 {
-	return NewObject<UObject>(InParent, Class, Name, Flags);
+	check(Class == SupportedClass);
+	UDialogueWave* DialogueWave = NewObject<UDialogueWave>(InParent, Name, Flags);
+
+	if (InitialSoundWave)
+	{
+		DialogueWave->SpokenText = InitialSoundWave->SpokenText;
+		DialogueWave->bMature = InitialSoundWave->bMature;
+	}
+
+	DialogueWave->UpdateContext(DialogueWave->ContextMappings[0], InitialSoundWave, InitialSpeakerVoice, InitialTargetVoices);
+
+	return DialogueWave;
 }
 
 /*-----------------------------------------------------------------------------
@@ -1902,18 +1919,21 @@ EReimportResult::Type UReimportSoundFactory::Reimport( UObject* Obj )
 	// Suppress the import overwrite dialog, we want to keep existing settings when re-importing
 	USoundFactory::SuppressImportOverwriteDialog();
 
-	if( UFactory::StaticImportObject( SoundWave->GetClass(), SoundWave->GetOuter(), *SoundWave->GetName(), RF_Public|RF_Standalone, *Filename, nullptr, this ) )
+	bool OutCanceled = false;
+	if (ImportObject(SoundWave->GetClass(), SoundWave->GetOuter(), *SoundWave->GetName(), RF_Public | RF_Standalone, Filename, nullptr, OutCanceled) != nullptr)
 	{
 		UE_LOG(LogEditorFactories, Log, TEXT("-- imported successfully") );
 
 		SoundWave->AssetImportData->Update(Filename);
-
-		// Mark the package dirty after the successful import
 		SoundWave->MarkPackageDirty();
+	}
+	else if (OutCanceled)
+	{
+		UE_LOG(LogEditorFactories, Warning, TEXT("-- import canceled"));
 	}
 	else
 	{
-		UE_LOG(LogEditorFactories, Warning, TEXT("-- import failed") );
+		UE_LOG(LogEditorFactories, Warning, TEXT("-- import failed"));
 	}
 
 	return EReimportResult::Succeeded;
@@ -2283,8 +2303,9 @@ EReimportResult::Type UReimportSoundSurroundFactory::Reimport( UObject* Obj )
 
 		FString SpeakerLocation = FPaths::GetBaseFilename(Filename).Right(3);
 		FName ImportName = *(SoundWave->GetName() + SpeakerLocation);
+		bool OutCanceled = false;
 
-		if (UFactory::StaticImportObject(SoundWave->GetClass(), SoundWave->GetOuter(), ImportName, RF_Public|RF_Standalone, *Filename, nullptr, this ))
+		if (ImportObject(SoundWave->GetClass(), SoundWave->GetOuter(), ImportName, RF_Public | RF_Standalone, Filename, nullptr, OutCanceled) != nullptr)
 		{
 			FFormatNamedArguments Arguments;
 			Arguments.Add(TEXT("NameText"), NameText);
@@ -2296,7 +2317,7 @@ EReimportResult::Type UReimportSoundSurroundFactory::Reimport( UObject* Obj )
 
 			bSourceReimported = true;
 		}
-		else
+		else if (!OutCanceled)
 		{
 			FFormatNamedArguments Arguments;
 			Arguments.Add(TEXT("NameText"), NameText);
@@ -2342,6 +2363,21 @@ UObject* USoundCueFactoryNew::FactoryCreateNew( UClass* Class, UObject* InParent
 		WavePlayer->SetSoundWave(InitialSoundWave);
 		WavePlayer->GraphNode->NodePosX = -250;
 		WavePlayer->GraphNode->NodePosY = -35;
+	}
+	else if (InitialDialogueWave)
+	{
+		USoundNodeDialoguePlayer* DialoguePlayer = SoundCue->ConstructSoundNode<USoundNodeDialoguePlayer>();
+		SoundCue->FirstNode = DialoguePlayer;
+		SoundCue->LinkGraphNodesFromSoundNodes();
+		DialoguePlayer->SetDialogueWave(InitialDialogueWave);
+		DialoguePlayer->GraphNode->NodePosX = -250 - DialoguePlayer->GetGraphNode()->EstimateNodeWidth();
+		DialoguePlayer->GraphNode->NodePosY = -35;
+
+		if (InitialDialogueWave->ContextMappings.Num() == 1)
+		{
+			DialoguePlayer->DialogueWaveParameter.Context.Speaker = InitialDialogueWave->ContextMappings[0].Context.Speaker;
+			DialoguePlayer->DialogueWaveParameter.Context.Targets = InitialDialogueWave->ContextMappings[0].Context.Targets;
+		}
 	}
 
 	return SoundCue;
@@ -5237,17 +5273,37 @@ void FCustomizableTextObjectFactory::ProcessBuffer(UObject* InParent, EObjectFla
 
 	FParse::Next( &Buffer );
 
+	int32 NestedDepth     = 0;
+	int32 OmittedOuterObj = 0; // zero signifies "nothing omitted"
+
 	FString StrLine;
 	while( FParse::Line(&Buffer,StrLine) )
 	{
 		const TCHAR* Str = *StrLine;
 		if( GetBEGIN(&Str,TEXT("OBJECT")) )
 		{
+			++NestedDepth;
+			if (OmittedOuterObj > 0)
+			{
+				if (NestedDepth > OmittedOuterObj)
+				{
+					continue;
+				}
+				ensure(OmittedOuterObj == NestedDepth);
+				// clear the omitted outer, we've parsed passed it
+				OmittedOuterObj = 0;
+			}
+
 			UClass* ObjClass;
 			if( ParseObject<UClass>( Str, TEXT("CLASS="), ObjClass, ANY_PACKAGE ) )
 			{
-				if (!CanCreateClass(ObjClass))
+				bool bOmitSubObjects = false;
+				if (!CanCreateClass(ObjClass, bOmitSubObjects))
 				{
+					if (bOmitSubObjects)
+					{
+						OmittedOuterObj = NestedDepth;
+					}
 					continue;
 				}
 
@@ -5307,6 +5363,10 @@ void FCustomizableTextObjectFactory::ProcessBuffer(UObject* InParent, EObjectFla
 				NewObjects.Add(CreatedObject);
 			}
 		}
+		else if (GetEND(&Str, TEXT("OBJECT")))
+		{
+			--NestedDepth;
+		}
 	}
 
 	// Apply the property text to each of the created objects
@@ -5319,6 +5379,7 @@ void FCustomizableTextObjectFactory::ProcessBuffer(UObject* InParent, EObjectFla
 		ImportObjectProperties((uint8*)CreatedObject, *PropText, CreatedObject->GetClass(), CreatedObject, CreatedObject, WarningContext, 0, 0, &InstanceGraph);
 		ProcessConstructedObject(CreatedObject);
 	}
+	PostProcessConstructedObjects();
 }
 
 
@@ -5331,28 +5392,52 @@ bool FCustomizableTextObjectFactory::CanCreateObjectsFromText( const FString& Te
 
 	FParse::Next( &Buffer );
 
+	int32 NestedDepth     = 0;
+	int32 OmittedOuterObj = 0; // zero signifies "nothing omitted"
+
 	FString StrLine;
 	while( FParse::Line(&Buffer,StrLine) )
 	{
 		const TCHAR* Str = *StrLine;
 		if( GetBEGIN(&Str,TEXT("OBJECT")) )
 		{
-			UClass* ObjClass;
-			if( ParseObject<UClass>( Str, TEXT("CLASS="), ObjClass, ANY_PACKAGE ) )
+			++NestedDepth;
+			if (OmittedOuterObj > 0)
 			{
-				if(CanCreateClass(ObjClass))
+				if (NestedDepth > OmittedOuterObj)
+				{
+					continue;
+				}
+				ensure(OmittedOuterObj == NestedDepth);
+				// clear the omitted outer, we've parsed passed it
+				OmittedOuterObj = 0;
+			}
+
+			UClass* ObjClass;
+			if (ParseObject<UClass>(Str, TEXT("CLASS="), ObjClass, ANY_PACKAGE))
+			{
+				bool bOmitSubObjects = false;;
+				if (CanCreateClass(ObjClass, bOmitSubObjects))
 				{
 					bCanCreate = true;
 					break;
 				}
+				else if (bOmitSubObjects)
+				{
+					OmittedOuterObj = NestedDepth;
+				}
 			}
+		}
+		else if ( GetEND(&Str, TEXT("OBJECT")) )
+		{
+			--NestedDepth;
 		}
 	}
 	return bCanCreate;
 }
 
 /** Return true if the an object of type ObjectClass is allowed to be created; If false is returned, the object and subobjects will be ignored. */
-bool FCustomizableTextObjectFactory::CanCreateClass(UClass* ObjectClass) const
+bool FCustomizableTextObjectFactory::CanCreateClass(UClass* ObjectClass, bool& bOmitSubObjs) const
 {
 	return false;
 }
@@ -5481,7 +5566,9 @@ EReimportResult::Type UReimportTextureFactory::Reimport( UObject* Obj )
 	// Suppress the import overwrite dialog because we know that for explicitly re-importing we want to preserve existing settings
 	UTextureFactory::SuppressImportOverwriteDialog();
 
-	if (UFactory::StaticImportObject(pTex->GetClass(), pTex->GetOuter(), *pTex->GetName(), RF_Public|RF_Standalone, *ResolvedSourceFilePath, nullptr, this))
+	bool OutCanceled = false;
+
+	if (ImportObject(pTex->GetClass(), pTex->GetOuter(), *pTex->GetName(), RF_Public | RF_Standalone, ResolvedSourceFilePath, nullptr, OutCanceled) != nullptr)
 	{
 		UE_LOG(LogEditorFactories, Log, TEXT("-- imported successfully") );
 
@@ -5497,9 +5584,13 @@ EReimportResult::Type UReimportTextureFactory::Reimport( UObject* Obj )
 			pTex->MarkPackageDirty();
 		}
 	}
+	else if (OutCanceled)
+	{
+		UE_LOG(LogEditorFactories, Warning, TEXT("-- import canceled"));
+	}
 	else
 	{
-		UE_LOG(LogEditorFactories, Warning, TEXT("-- import failed") );
+		UE_LOG(LogEditorFactories, Warning, TEXT("-- import failed"));
 	}
 	
 	return EReimportResult::Succeeded;
@@ -5580,6 +5671,8 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 	
 	UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
 	UnFbx::FBXImportOptions* ImportOptions = FFbxImporter->GetImportOptions();
+	//Clean up the options
+	UnFbx::FBXImportOptions::ResetOptions(ImportOptions);
 
 	UFbxStaticMeshImportData* ImportData = Cast<UFbxStaticMeshImportData>(Mesh->AssetImportData);
 	
@@ -5740,11 +5833,24 @@ bool UReimportFbxSkeletalMeshFactory::FactoryCanImport(const FString& Filename)
 }
 
 bool UReimportFbxSkeletalMeshFactory::CanReimport( UObject* Obj, TArray<FString>& OutFilenames )
-{	
+{
 	USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(Obj);
-	if(SkeletalMesh && !Obj->IsA( UDestructibleMesh::StaticClass() ))
+	if (SkeletalMesh && !Obj->IsA(UDestructibleMesh::StaticClass()))
 	{
-		SkeletalMesh->AssetImportData->ExtractFilenames(OutFilenames);
+		if (SkeletalMesh->AssetImportData)
+		{
+			UFbxAssetImportData *FbxAssetImportData = Cast<UFbxAssetImportData>(SkeletalMesh->AssetImportData);
+			if (FbxAssetImportData != nullptr && FbxAssetImportData->bImportAsScene)
+			{
+				//This skeletal mesh was import with a scene import, we cannot reimport it here
+				return false;
+			}
+			SkeletalMesh->AssetImportData->ExtractFilenames(OutFilenames);
+		}
+		else
+		{
+			OutFilenames.Add(TEXT(""));
+		}
 		return true;
 	}
 	return false;
@@ -5777,6 +5883,8 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 
 	UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
 	UnFbx::FBXImportOptions* ImportOptions = FFbxImporter->GetImportOptions();
+	//Clean up the options
+	UnFbx::FBXImportOptions::ResetOptions(ImportOptions);
 
 	UFbxSkeletalMeshImportData* ImportData = Cast<UFbxSkeletalMeshImportData>(SkeletalMesh->AssetImportData);
 	
@@ -5797,6 +5905,10 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 	{
 		// Import data already exists, apply it to the fbx import options
 		ReimportUI->SkeletalMeshImportData = ImportData;
+		//Some options not supported with skeletal mesh
+		ReimportUI->SkeletalMeshImportData->bBakePivotInVertex = false;
+		ReimportUI->SkeletalMeshImportData->bTransformVertexToAbsolute = true;
+
 		ApplyImportUIToImportOptions(ReimportUI, *ImportOptions);
 	}
 	else
@@ -5924,7 +6036,21 @@ bool UReimportFbxAnimSequenceFactory::CanReimport( UObject* Obj, TArray<FString>
 	UAnimSequence* AnimSequence = Cast<UAnimSequence>(Obj);
 	if(AnimSequence)
 	{
-		AnimSequence->AssetImportData->ExtractFilenames(OutFilenames);
+		if (AnimSequence->AssetImportData)
+		{
+			AnimSequence->AssetImportData->ExtractFilenames(OutFilenames);
+
+			UFbxAssetImportData *FbxAssetImportData = Cast<UFbxAssetImportData>(AnimSequence->AssetImportData);
+			if (FbxAssetImportData != nullptr && FbxAssetImportData->bImportAsScene)
+			{
+				//This mesh was import with a scene import, we cannot reimport it
+				return false;
+			}
+		}
+		else
+		{
+			OutFilenames.Add(TEXT(""));
+		}
 		return true;
 	}
 	return false;

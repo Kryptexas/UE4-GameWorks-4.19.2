@@ -658,6 +658,33 @@ UGeomModifier_Extrude::UGeomModifier_Extrude(const FObjectInitializer& ObjectIni
 	Segments = 1;
 }
 
+bool UGeomModifier_Extrude::InputDelta(FEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale)
+{
+	FEdModeGeometry* Mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+
+	const bool bGetRawValue = true;
+	const bool bIsLocalCoords = GLevelEditorModeTools().GetCoordSystem(bGetRawValue) == COORD_Local;
+
+	if (!bIsLocalCoords)
+	{
+		// Before the modal dialog has popped up, force tracking to stop and reset the focus
+		InViewportClient->LostFocus(InViewport);
+		InViewportClient->ReceivedFocus(InViewport);
+		CheckCoordinatesMode();
+	}
+
+	if (!bIsLocalCoords || Mode->GetCurrentWidgetAxis() != EAxisList::X)
+	{
+		InDrag = FVector::ZeroVector;
+		InRot = FRotator::ZeroRotator;
+		InScale = FVector::ZeroVector;
+		return false;
+	}
+
+	return Super::InputDelta(InViewportClient, InViewport, InDrag, InRot, InScale);
+}
+
+
 bool UGeomModifier_Extrude::Supports()
 {
 	FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);

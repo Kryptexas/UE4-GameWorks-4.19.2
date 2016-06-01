@@ -33,6 +33,7 @@ class FCdnNewsFeedTitleFile
 		/** File being operated on by the pending request */
 		FString FileName;
 	};
+	typedef TMap<TWeakPtr<class IHttpRequest>, FPendingFileRequest> FFileRequestsMap;
 
 public:
 
@@ -114,10 +115,10 @@ private:
 	FString FileUrl;
 
 	// List of pending Http requests for enumerating files.
-	TQueue<IHttpRequest*> EnumerateFilesRequests;
+	TQueue<TWeakPtr<class IHttpRequest>> EnumerateFilesRequests;
 
 	// List of pending Http requests for reading files.
-	TMap<class IHttpRequest*, FPendingFileRequest> FileRequests;
+	FFileRequestsMap FileRequests;
 
 	TArray<FCloudFileHeader> FileHeaders;
 	TArray<FCloudFile> Files;

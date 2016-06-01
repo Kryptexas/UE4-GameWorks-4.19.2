@@ -125,12 +125,6 @@ public:
 	bool HandleApplyUserSettingsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 #endif // !UE_BUILD_SHIPPING
 
-	/**
-	 * Called from the first Tick after LoadMap() has been called.
-	 * Turns off the loading movie if it was started by LoadMap().
-	 */
-	virtual void PostLoadMap();
-
 	/** Returns the GameViewport widget */
 	virtual TSharedPtr<SViewport> GetGameViewportWidget() const override
 	{
@@ -150,6 +144,8 @@ protected:
 
 	/** Handle to a movie capture implementation to create on startup */
 	FMovieSceneCaptureHandle StartupMovieCaptureHandle;
+
+	virtual void HandleBrowseToDefaultMapFailure(FWorldContext& Context, const FString& TextURL, const FString& Error) override;
 
 private:
 

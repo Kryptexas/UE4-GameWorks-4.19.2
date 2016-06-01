@@ -38,6 +38,8 @@ class FSteamVRHMD : public IHeadMountedDisplay, public ISceneViewExtension, publ
 {
 public:
 	/** IHeadMountedDisplay interface */
+	virtual bool OnStartGameFrame( FWorldContext& WorldContext ) override;
+
 	virtual bool IsHMDConnected() override { return true; }
 	virtual bool IsHMDEnabled() const override;
 	virtual void EnableHMD(bool allow = true) override;
@@ -62,9 +64,6 @@ public:
 	virtual bool IsChromaAbCorrectionEnabled() const override;
 
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
-	virtual void OnScreenModeChange(EWindowMode::Type WindowMode) override;
-
-	virtual bool IsFullscreenAllowed() override { return false; }
 
 	virtual bool IsPositionalTrackingEnabled() const override;
 	virtual bool EnablePositionalTracking(bool enable) override;
@@ -96,9 +95,7 @@ public:
 
 	virtual void UpdateScreenSettings(const FViewport* InViewport) override {}
 
-	virtual void OnEndPlay() override;
-
-	virtual bool OnStartGameFrame(FWorldContext& WorldContext) override;
+	virtual void OnEndPlay(FWorldContext& InWorldContext) override;
 
 	virtual void SetTrackingOrigin(EHMDTrackingOrigin::Type NewOrigin) override;
 	virtual EHMDTrackingOrigin::Type GetTrackingOrigin() override;
@@ -213,6 +210,13 @@ public:
 
 private:
 
+	enum class EPoseRefreshMode
+	{
+		None,
+		GameRefresh,
+		RenderRefresh
+	};
+
 	/**
 	 * Starts up the OpenVR API
 	 */
@@ -229,8 +233,9 @@ private:
 	bool LoadOpenVRModule();
 	void UnloadOpenVRModule();
 
-	void PoseToOrientationAndPosition(const vr::HmdMatrix34_t& Pose, FQuat& OutOrientation, FVector& OutPosition) const;
-	void GetCurrentPose(FQuat& CurrentOrientation, FVector& CurrentPosition, uint32 DeviceID = vr::k_unTrackedDeviceIndex_Hmd, bool bForceRefresh=false);
+	void PoseToOrientationAndPosition(const vr::HmdMatrix34_t& Pose, const float WorldToMetersScale, FQuat& OutOrientation, FVector& OutPosition) const;
+	void GetCurrentPose(FQuat& CurrentOrientation, FVector& CurrentPosition, uint32 DeviceID = vr::k_unTrackedDeviceIndex_Hmd, EPoseRefreshMode RefreshMode=EPoseRefreshMode::None, float ForceRefreshWorldToMetersScale = 0.0f);
+	float GetWorldToMetersScale() const;
 
 	void GetWindowBounds(int32* X, int32* Y, uint32* Width, uint32* Height);
 
@@ -272,6 +277,9 @@ private:
  		FVector DevicePosition[vr::k_unMaxTrackedDeviceCount];
  		FQuat DeviceOrientation[vr::k_unMaxTrackedDeviceCount];
 
+		/** World units (UU) to Meters scale.  Read from the level, and used to transform positional tracking data */
+		float WorldToMetersScale;
+
 		vr::HmdMatrix34_t RawPoses[vr::k_unMaxTrackedDeviceCount];
 
 		FTrackingFrame()
@@ -283,6 +291,8 @@ private:
 			FMemory::Memzero(bDeviceIsConnected, MaxDevices * sizeof(bool));
 			FMemory::Memzero(bPoseIsValid, MaxDevices * sizeof(bool));
 			FMemory::Memzero(DevicePosition, MaxDevices * sizeof(FVector));
+			
+			WorldToMetersScale = 100.0f;
 
 			for (uint32 i = 0; i < vr::k_unMaxTrackedDeviceCount; ++i)
 			{
@@ -292,7 +302,10 @@ private:
 			FMemory::Memzero(RawPoses, MaxDevices * sizeof(vr::HmdMatrix34_t));
 		}
  	};
-	FTrackingFrame TrackingFrame;
+	FTrackingFrame GameTrackingFrame;
+	FTrackingFrame RenderTrackingFrame;
+
+	const FTrackingFrame& GetTrackingFrame() const;
 
 	/** Coverts a SteamVR-space vector to an Unreal-space vector.  Does not handle scaling, only axes conversion */
 	FORCEINLINE static FVector CONVERT_STEAMVECTOR_TO_FVECTOR(const vr::HmdVector3_t InVector)
@@ -356,9 +369,6 @@ private:
 	bool					bIsQuitting;
 	float					QuitTimeElapsed;
 
-	/** World units (UU) to Meters scale.  Read from the level, and used to transform positional tracking data */
-	float WorldToMetersScale;
-
 	/** Mapping from Unreal Controller Id and Hand to a tracked device id.  Passed in from the controller plugin */
 	int32 UnrealControllerIdAndHandToDeviceIdMap[MAX_STEAMVR_CONTROLLER_PAIRS][2];
 
@@ -369,22 +379,21 @@ private:
 	vr::IVRCompositor* VRCompositor;
 	vr::IVRChaperone* VRChaperone;
 
-	FString DisplayId;
+	void* OpenVRDLLHandle;
 
-	float IdealScreenPercentage;
+	//@todo steamvr: Remove GetProcAddress() workaround once we have updated to Steamworks 1.33 or higher
+	pVRInit VRInitFn;
+	pVRShutdown VRShutdownFn;
+	pVRIsHmdPresent VRIsHmdPresentFn;
+	pVRGetStringForHmdError VRGetStringForHmdErrorFn;
+	pVRGetGenericInterface VRGetGenericInterfaceFn;
+	pVRExtendedDisplay VRExtendedDisplayFn;
+	
+	FString DisplayId;
 
 #if PLATFORM_WINDOWS
 	TRefCountPtr<D3D11Bridge>	pD3D11Bridge;
 #endif
-
-//@todo steamvr: Remove GetProcAddress() workaround once we have updated to Steamworks 1.33 or higher
-public:
-	static pVRInit VRInitFn;
-	static pVRShutdown VRShutdownFn;
-	static pVRIsHmdPresent VRIsHmdPresentFn;
-	static pVRGetStringForHmdError VRGetStringForHmdErrorFn;
-	static pVRGetGenericInterface VRGetGenericInterfaceFn;
-	static pVRExtendedDisplay VRExtendedDisplayFn;
 };
 
 

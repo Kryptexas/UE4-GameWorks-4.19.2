@@ -3,6 +3,7 @@
 #pragma once
 
 #include "SceneTypes.h"
+#include "Engine/TextureStreamingTypes.h"
 #include "Components/MeshComponent.h"
 #include "Runtime/RenderCore/Public/PackedNormal.h"
 #include "RawIndexBuffer.h"
@@ -14,6 +15,7 @@ class FStaticMeshStaticLightingMesh;
 class ULightComponent;
 struct FEngineShowFlags;
 struct FConvexVolume;
+struct FStreamingTextureBuildInfo;
 
 /** Cached vertex information at the time the mesh was painted. */
 USTRUCT()
@@ -160,7 +162,7 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	void OnRep_StaticMesh(class UStaticMesh *OldStaticMesh);
 
 	/** If true, WireframeColorOverride will be used. If false, color is determined based on mobility and physics simulation settings */
-	UPROPERTY(BlueprintReadOnly, Category=Rendering)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Rendering, meta=(InlineEditConditionToggle))
 	bool bOverrideWireframeColor;
 
 	/** Wireframe color to use if bOverrideWireframeColor is true */
@@ -188,6 +190,11 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Rendering)
 	uint32 bDisallowMeshPaintPerInstance : 1;
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	/** Option to draw mesh collision in wireframe */
+	uint32 bDrawMeshCollisionWireframe : 1;
+#endif
+
 	/**
 	 *	Ignore this instance of this static mesh when calculating streaming information.
 	 *	This can be useful when doing things like applying character textures to static geometry,
@@ -197,7 +204,7 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	uint32 bIgnoreInstanceForTextureStreaming:1;
 
 	/** Whether to override the lightmap resolution defined in the static mesh. */
-	UPROPERTY(BlueprintReadOnly, Category=Lighting)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lighting, meta=(InlineEditConditionToggle))
 	uint32 bOverrideLightMapRes:1;
 
 	/** Light map resolution to use on this component, used if bOverrideLightMapRes is true */
@@ -228,7 +235,23 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	UPROPERTY(transient)
 	TArray<struct FStaticMeshComponentLODInfo> LODData;
 
+	/** The list of texture, bounds and scales. As computed in the texture streaming build process. */
+	UPROPERTY(duplicatetransient, NonTransactional)
+	TArray<FStreamingTextureBuildInfo> StreamingTextureData;
+
+
+	/** Use the collision profile specified in the StaticMesh asset.*/
+	UPROPERTY(EditAnywhere, Category = Collision)
+	bool bUseDefaultCollision;
+
 #if WITH_EDITORONLY_DATA
+	/** 
+	 * Temporary section data used in the texture streaming build. 
+	 * Stays persistent to allow texture streaming accuracy view mode to inspect it.
+	 * The shared ptr is used to allow a safe way for the proxy to access it without duplicating it.
+	 */
+	TSharedPtr<TArray<FStreamingSectionBuildInfo>, ESPMode::NotThreadSafe> StreamingSectionData;
+
 	/** Derived data key of the static mesh, used to determine if an update from the source static mesh is required. */
 	UPROPERTY()
 	FString StaticMeshDerivedDataKey;
@@ -252,6 +275,8 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	 */
 	UFUNCTION(BlueprintCallable, Category="Components|StaticMesh")
 	void GetLocalBounds(FVector& Min, FVector& Max) const;
+
+	virtual void SetCollisionProfileName(FName InCollisionProfileName) override;
 
 public:
 
@@ -284,6 +309,7 @@ public:
 		// return IsCollisionEnabled() && (StaticMesh != NULL);
 		return false;
 	}
+
 	//~ End USceneComponent Interface
 
 	//~ Begin UActorComponent Interface.
@@ -311,7 +337,27 @@ public:
 		return LightmassSettings.bShadowIndirectOnly;
 	}
 	virtual ELightMapInteractionType GetStaticLightingType() const override;
-	virtual void GetStreamingTextureInfo(TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const override;
+
+	/**
+	 *	Update the precomputed streaming data of this component.
+	 *
+	 *	@param	LevelTextures	[in,out]	The list of textures referred by all component of a level. The array index maps to UTexture2D::LevelIndex.
+	 *	@param	TexCoordScales	[in]		The texcoord scales for each texture register of each relevant materials.
+	 *	@param	QualityLevel	[in]		The quality level being used in the texture streaming build.
+	 *	@param	FeatureLevel	[in]		The feature level being used in the texture streaming build.
+	 */
+	virtual void UpdateStreamingTextureData(TArray<UTexture2D*>& LevelTextures, const FTexCoordScaleMap& TexCoordScales, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel);
+
+	/**
+	*	Update the precomputed streaming debug data of this component.
+	*
+	*	@param	TexCoordScales				The texcoord scales for each texture register of each relevant materials.
+	*/
+	virtual void UpdateStreamingSectionData(const FTexCoordScaleMap& TexCoordScales);
+
+	virtual bool GetStreamingTextureFactors(float& OutWorldTexelFactor, float& OutWorldLightmapFactor) const;
+	virtual void GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const override;
+
 	virtual class UBodySetup* GetBodySetup() override;
 	virtual bool CanEditSimulatePhysics() override;
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
@@ -320,7 +366,7 @@ public:
 	virtual bool GetLightMapResolution( int32& Width, int32& Height ) const override;
 	virtual int32 GetStaticLightMapResolution() const override;
 	/** Returns true if the component is static AND has the right static mesh setup to support lightmaps. */
-	virtual bool HasValidSettingsForStaticLighting() const override;
+	virtual bool HasValidSettingsForStaticLighting(bool bOverlookInvalidComponents) const override;
 
 	virtual void GetLightAndShadowMapMemoryUsage( int32& LightMapMemoryUsage, int32& ShadowMapMemoryUsage ) const override;
 	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const override;
@@ -435,6 +481,12 @@ public:
 	*	@param	InSectionIndexPreview		New value of SectionIndexPreview.
 	*/
 	void SetSectionPreview(int32 InSectionIndexPreview);
+	
+	/** Sets the BodyInstance to use the mesh's body setup for external collision information*/
+	void UpdateCollisionFromStaticMesh();
+
+	/** Whether or not the component supports default collision from its static mesh asset */
+	virtual bool SupportsDefaultCollision();
 
 private:
 	/** Initializes the resources used by the static mesh component. */

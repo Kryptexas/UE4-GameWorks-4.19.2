@@ -23,6 +23,25 @@ enum EColorVisionDeficiency
 };
 
 
+UENUM()
+enum class EAssetEditorOpenLocation : uint8
+{
+	/** Attempts to dock asset editors into either a new window, or the main window if they were docked there. */
+	Default,
+	/** Docks tabs into new windows. */
+	NewWindow,
+	/** Docks tabs into the main window. */
+	MainWindow,
+	/** Docks tabs into the content browser's window. */
+	ContentBrowser,
+	/** Docks tabs into the last window that was docked into, or a new window if there is no last docked window. */
+	LastDockedWindowOrNewWindow,
+	/** Docks tabs into the last window that was docked into, or the main window if there is no last docked window. */
+	LastDockedWindowOrMainWindow,
+	/** Docks tabs into the last window that was docked into, or the content browser window if there is no last docked window. */
+	LastDockedWindowOrContentBrowser
+};
+
 /**
  * Implements the Editor style settings.
  */
@@ -89,9 +108,9 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Logging)
 	bool bPromoteOutputLogWarningsDuringPIE;
 
-	/** If checked, new asset editor tabs will open in a new window instead of docked in the tab from which they were opened */
+	/** New asset editor tabs will open at the specified location. */
 	UPROPERTY(EditAnywhere, config, Category=UserInterface)
-	bool bOpenAssetEditorTabsInNewWindow;
+	EAssetEditorOpenLocation AssetEditorOpenLocation;
 
 public:
 

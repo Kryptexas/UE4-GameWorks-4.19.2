@@ -7,6 +7,13 @@
 #include "MovieScene2DTransformTrackInstance.h"
 #include "MovieSceneCommonHelpers.h"
 
+UMovieScene2DTransformTrack::UMovieScene2DTransformTrack(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+#if WITH_EDITORONLY_DATA
+	TrackTint = FColor(48, 227, 255, 65);
+#endif
+}
 
 UMovieSceneSection* UMovieScene2DTransformTrack::CreateNewSection()
 {

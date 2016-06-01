@@ -1412,7 +1412,7 @@ namespace AutomationTool
 			}
 			foreach (var SourceSubDirectory in Directory.GetDirectories(Source))
 			{
-				string DestPath = Dest + GetPathSeparatorChar(PathSeparator.Default) + GetLastDirectoryName(SourceSubDirectory);
+				string DestPath = Dest + GetPathSeparatorChar(PathSeparator.Default) + GetLastDirectoryName(SourceSubDirectory + GetPathSeparatorChar(PathSeparator.Default));
 				if (!CopyDirectory_NoExceptions(SourceSubDirectory, DestPath, bQuiet))
 				{
 					return false;
@@ -1496,12 +1496,17 @@ namespace AutomationTool
 			return XmlHandler.ReadXml<UnrealBuildTool.BuildManifest>(ManifestName);
 		}
 
-		private static void CloneDirectoryRecursiveWorker(string SourcePathBase, string TargetPathBase, List<string> ClonedFiles)
+		private static void CloneDirectoryRecursiveWorker(string SourcePathBase, string TargetPathBase, List<string> ClonedFiles, bool bIncremental = false)
 		{
-            if (!InternalUtils.SafeCreateDirectory(TargetPathBase))
+			bool bDirectoryCreated = InternalUtils.SafeCreateDirectory(TargetPathBase);
+			if (!bIncremental && !bDirectoryCreated)
             {
                 throw new AutomationException("Failed to create directory {0} for copy", TargetPathBase);
             }
+			else if (bIncremental && !CommandUtils.DirectoryExists_NoExceptions(TargetPathBase))
+			{
+				throw new AutomationException("Target directory {0} does not exist", TargetPathBase);
+			}
 
 			DirectoryInfo SourceDirectory = new DirectoryInfo(SourcePathBase);
 			DirectoryInfo[] SourceSubdirectories = SourceDirectory.GetDirectories();
@@ -1511,6 +1516,9 @@ namespace AutomationTool
 			foreach (FileInfo SourceFI in SourceFiles)
 			{
 				string TargetFilename = CommandUtils.CombinePaths(TargetPathBase, SourceFI.Name);
+
+				if (!bIncremental || !CommandUtils.FileExists_NoExceptions(TargetFilename))
+				{
 				SourceFI.CopyTo(TargetFilename);
 
 				if (ClonedFiles != null)
@@ -1518,13 +1526,14 @@ namespace AutomationTool
 					ClonedFiles.Add(TargetFilename);
 				}
 			}
+			}
 
 			// Recurse into subfolders
 			foreach (DirectoryInfo SourceSubdir in SourceSubdirectories)
 			{
 				string NewSourcePath = CommandUtils.CombinePaths(SourcePathBase, SourceSubdir.Name);
 				string NewTargetPath = CommandUtils.CombinePaths(TargetPathBase, SourceSubdir.Name);
-				CloneDirectoryRecursiveWorker(NewSourcePath, NewTargetPath, ClonedFiles);
+				CloneDirectoryRecursiveWorker(NewSourcePath, NewTargetPath, ClonedFiles, bIncremental);
 			}
 		}
 
@@ -1539,8 +1548,19 @@ namespace AutomationTool
 		public static void CloneDirectory(string SourcePath, string TargetPath, List<string> ClonedFiles = null)
 		{
 			DeleteDirectory_NoExceptions(TargetPath);
-
 			CloneDirectoryRecursiveWorker(SourcePath, TargetPath, ClonedFiles);
+		}
+
+		/// <summary>
+		/// Clones a directory, skipping any files which already exist in the destination.
+		/// This is recursive, copying subfolders too.
+		/// </summary>
+		/// <param name="SourcePath">Source directory.</param>
+		/// <param name="TargetPath">Target directory.</param>
+		/// <param name="ClonedFiles">List of cloned files.</param>
+		public static void CloneDirectoryIncremental(string SourcePath, string TargetPath, List<string> ClonedFiles = null)
+		{
+			CloneDirectoryRecursiveWorker(SourcePath, TargetPath, ClonedFiles, bIncremental: true);
 		}
 
 		#endregion
@@ -1903,8 +1923,8 @@ namespace AutomationTool
 		/// <summary>
 		/// Command line parameters for this command (empty by non-null by default)
 		/// </summary>
-		private object[] CommandLineParams = new object[0];
-		public object[] Params
+		private string[] CommandLineParams = new string[0];
+		public string[] Params
 		{
 			get { return CommandLineParams; }
 			set { CommandLineParams = value; }
@@ -1916,6 +1936,14 @@ namespace AutomationTool
 		public static bool IsBuildMachine
 		{
 			get { return Automation.IsBuildMachine; }
+		}
+
+		/// <summary>
+		/// Path to the root directory
+		/// </summary>
+		public static DirectoryReference RootDirectory 
+		{
+			get { return UnrealBuildTool.UnrealBuildTool.RootDirectory; }
 		}
 
 		#endregion
@@ -1946,13 +1974,6 @@ namespace AutomationTool
             }
             return CachedRootBuildStorageDirectory;
         }
-
-		// Included for compatibility during //UE4/Main import
-		[Obsolete]
-		public static string RootSharedTempStorageDirectory()
-		{
-			return RootBuildStorageDirectory();
-		}
 
         public static bool DirectoryExistsAndIsWritable_NoExceptions(string Dir)
         {
@@ -1985,82 +2006,37 @@ namespace AutomationTool
 			return false;
 		}
 
-        public static void CleanFormalBuilds(string DirectoryForThisBuild, string CLString = "", int MaximumDaysToKeepTempStorage = 4)
+		public static void CleanFormalBuilds(string ParentDir, string SearchPattern, int MaximumDaysToKeepTempStorage = 4)
         {
-            if (CLString == "" && (!IsBuildMachine || !DirectoryForThisBuild.StartsWith(RootBuildStorageDirectory()) || !P4Enabled))
+            if (!IsBuildMachine || !ParentDir.StartsWith(RootBuildStorageDirectory()))
             {
                 return;
             }
             try
             {
-                if (P4Enabled && CLString == "")
-                {
-                    CLString = P4Env.ChangelistString;
-                }
-                string ParentDir = Path.GetDirectoryName(CombinePaths(DirectoryForThisBuild));
-                if (!DirectoryExists_NoExceptions(ParentDir))
-                {
-                    throw new AutomationException("Not cleaning formal builds, because the parent directory {0} does not exist.", ParentDir);
-                }
-                string MyDir = Path.GetFileName(CombinePaths(DirectoryForThisBuild));
-                int CLStart = MyDir.IndexOf(CLString);
-                if (CLStart < 0)
-                {
-                    throw new AutomationException("Not cleaning formal builds, because the directory {0} does not contain the CL {1}.", DirectoryForThisBuild, CLString);
-                }
-                string StartString = MyDir.Substring(0, CLStart);
-                string EndString = MyDir.Substring(CLStart + CLString.Length);
-
-
                 DirectoryInfo DirInfo = new DirectoryInfo(ParentDir);
-                var TopLevelDirs = DirInfo.GetDirectories();
-				Log("Looking for directories to delete in {0}   {1} dirs", ParentDir, TopLevelDirs.Length);
-                foreach (var TopLevelDir in TopLevelDirs)
+				Log("Looking for directories to delete in {0}", ParentDir);
+                foreach (DirectoryInfo ThisDirInfo in DirInfo.EnumerateDirectories(SearchPattern))
                 {
-                    if (DirectoryExists_NoExceptions(TopLevelDir.FullName))
+					double AgeDays = (DateTime.UtcNow - ThisDirInfo.CreationTimeUtc).TotalDays;
+					if (AgeDays > MaximumDaysToKeepTempStorage)
                     {
-                        var JustDir = Path.GetFileName(CombinePaths(TopLevelDir.FullName));
-                        if (JustDir.StartsWith(StartString, StringComparison.InvariantCultureIgnoreCase) && (String.IsNullOrEmpty(EndString) || JustDir.EndsWith(EndString, StringComparison.InvariantCultureIgnoreCase)))
-                        {
-                            string CLPart = JustDir.Substring(StartString.Length, JustDir.Length - StartString.Length - EndString.Length);
-                            if (CLPart.Contains("-PF-") || // always delete preflights
-                                (!CLPart.Contains("-") && !CLPart.Contains("+"))) // never delete anything else that is weird, this is probably another branch
-                            {
-                                DirectoryInfo ThisDirInfo = new DirectoryInfo(TopLevelDir.FullName);
-                                bool bOld = false;
-
-                                if ((DateTime.UtcNow - ThisDirInfo.CreationTimeUtc).TotalDays > MaximumDaysToKeepTempStorage)
-                                {
-                                    bOld = true;
-                                }
-                                if (bOld)
-                                {
-                                    LogVerbose("Deleting temp storage directory {0}, because it is more than {1} days old.", TopLevelDir.FullName, MaximumDaysToKeepTempStorage);
-                                    DeleteDirectory_NoExceptions(true, TopLevelDir.FullName);
-                                }
-                                else
-                                {
-                                    LogVerbose("Not Deleteing temp storage directory {0}, because it is less than {1} days old.", TopLevelDir.FullName, MaximumDaysToKeepTempStorage);
-                                }
-                            }
-                            else
-                            {
-                                LogVerbose("skipping {0}, because the CL part {1} had weird characters", JustDir, CLPart);
-                            }
-                        }
-                        else
-                        {
-                            LogVerbose("skipping {0}, because it didn't start with {1} or end with {2}", JustDir, StartString, EndString);
-                        }
+                        Log("Deleting formal build directory {0}, because it is {1} days old (maximum {2}).", ThisDirInfo.FullName, (int)AgeDays, MaximumDaysToKeepTempStorage);
+                        DeleteDirectory_NoExceptions(true, ThisDirInfo.FullName);
+                    }
+                    else
+                    {
+						LogVerbose("Not deleting formal build directory {0}, because it is {1} days old (maximum {2}).", ThisDirInfo.FullName, (int)AgeDays, MaximumDaysToKeepTempStorage);
                     }
                 }
             }
             catch (Exception Ex)
             {
-                LogWarning("Unable to Clean Directory with DirectoryForThisBuild {0}", DirectoryForThisBuild);
+                LogWarning("Unable to clean formal builds from directory: {0}", ParentDir);
                 LogWarning(" Exception was {0}", LogUtils.FormatException(Ex));
             }
         }
+
 
 		/// <summary>
 		/// Returns the generic name for a given platform (eg. "Windows" for Win32/Win64)
@@ -2090,20 +2066,20 @@ namespace AutomationTool
 			if (Utils.IsRunningOnMono)
 			{
 				CommandUtils.CreateDirectory(Path.GetDirectoryName(ZipFileName));
- 				CommandUtils.PushDir(BaseDirectory);
- 				string FilesList = "";
-				foreach(string FilteredFile in Filter.ApplyToDirectory(BaseDirectory, true))
+				CommandUtils.PushDir(BaseDirectory);
+				string FilesList = "";
+				foreach (string FilteredFile in Filter.ApplyToDirectory(BaseDirectory, true))
 				{
 					FilesList += " \"" + FilteredFile + "\"";
 					if (FilesList.Length > 32000)
 					{
-						CommandUtils.RunAndLog(CommandUtils.CmdEnv, "zip", "-g -q " + ZipFileName + FilesList);
+						CommandUtils.RunAndLog(CommandUtils.CmdEnv, "zip", "-g -q \"" + ZipFileName + "\"" + FilesList);
 						FilesList = "";
 					}
 				}
 				if (FilesList.Length > 0)
 				{
-					CommandUtils.RunAndLog(CommandUtils.CmdEnv, "zip", "-g -q " + ZipFileName + FilesList);
+					CommandUtils.RunAndLog(CommandUtils.CmdEnv, "zip", "-g -q \"" + ZipFileName + "\"" + FilesList);
 				}
 				CommandUtils.PopDir();
 			}
@@ -2111,12 +2087,54 @@ namespace AutomationTool
 			{
 				Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile();
 				Zip.UseZip64WhenSaving = Ionic.Zip.Zip64Option.Always;
-				foreach(string FilteredFile in Filter.ApplyToDirectory(BaseDirectory, true))
+				foreach (string FilteredFile in Filter.ApplyToDirectory(BaseDirectory, true))
 				{
 					Zip.AddFile(Path.Combine(BaseDirectory, FilteredFile), Path.GetDirectoryName(FilteredFile));
 				}
 				CommandUtils.CreateDirectory(Path.GetDirectoryName(ZipFileName));
 				Zip.Save(ZipFileName);
+			}
+		}
+
+		/// <summary>
+		/// Creates a zip file containing the given input files
+		/// </summary>
+		/// <param name="ZipFile">Filename for the zip</param>
+		/// <param name="BaseDirectory">Base directory to store relative paths in the zip file to</param>
+		/// <param name="Files">Files to include in the archive</param>
+		public static void ZipFiles(FileReference ZipFile, DirectoryReference BaseDirectory, IEnumerable<FileReference> Files)
+		{
+			// Ionic.Zip.Zip64Option.Always option produces broken archives on Mono, so we use system zip tool instead
+			if (Utils.IsRunningOnMono)
+			{
+				CommandUtils.CreateDirectory(ZipFile.Directory.FullName);
+ 				CommandUtils.PushDir(BaseDirectory.FullName);
+ 				string FilesList = "";
+				foreach(FileReference File in Files)
+				{
+					FilesList += " \"" + File.MakeRelativeTo(BaseDirectory) + "\"";
+					if (FilesList.Length > 32000)
+					{
+						CommandUtils.RunAndLog(CommandUtils.CmdEnv, "zip", "-g -q \"" + ZipFile.FullName + "\"" + FilesList);
+						FilesList = "";
+					}
+				}
+				if (FilesList.Length > 0)
+				{
+					CommandUtils.RunAndLog(CommandUtils.CmdEnv, "zip", "-g -q \"" + ZipFile.FullName + "\"" + FilesList);
+				}
+				CommandUtils.PopDir();
+			}
+			else
+			{
+				Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile();
+				Zip.UseZip64WhenSaving = Ionic.Zip.Zip64Option.Always;
+				foreach(FileReference File in Files)
+				{
+					Zip.AddFile(File.FullName, Path.GetDirectoryName(File.MakeRelativeTo(BaseDirectory)));
+				}
+				CommandUtils.CreateDirectory(ZipFile.Directory.FullName);
+				Zip.Save(ZipFile.FullName);
 			}
 		}
 
@@ -2149,6 +2167,60 @@ namespace AutomationTool
 				}
 				return OutputFileNames;
 			}
+		}
+
+		/// <summary>
+		/// Resolve an arbitrary file specification against a directory. May contain any number of p4 wildcard operators (?, *, ...).
+		/// </summary>
+		/// <param name="DefaultDir">Base directory for relative paths</param>
+		/// <param name="Pattern">Pattern to match</param>
+		/// <param name="ExcludePatterns">List of patterns to be excluded. May be null.</param>
+		/// <returns>Sequence of file references matching the given pattern</returns>
+		public static IEnumerable<FileReference> ResolveFilespec(DirectoryReference DefaultDir, string Pattern, IEnumerable<string> ExcludePatterns)
+		{
+			List<FileReference> Files = new List<FileReference>();
+
+			// Check if it contains any wildcards. If not, we can just add the pattern directly without searching.
+			int WildcardIdx = FileFilter.FindWildcardIndex(Pattern);
+			if(WildcardIdx == -1)
+			{
+				// Construct a filter which removes all the excluded filetypes
+				FileFilter Filter = new FileFilter(FileFilterType.Include);
+				if(ExcludePatterns != null)
+				{
+					Filter.AddRules(ExcludePatterns, FileFilterType.Exclude);
+				}
+
+				// Match it against the given file
+				FileReference File = FileReference.Combine(DefaultDir, Pattern);
+				if(Filter.Matches(File.FullName))
+				{
+					Files.Add(File);
+				}
+			}
+			else
+			{
+				// Find the base directory for the search. We construct this in a very deliberate way including the directory separator itself, so matches
+				// against the OS root directory will resolve correctly both on Mac (where / is the filesystem root) and Windows (where / refers to the current drive).
+				int LastDirectoryIdx = Pattern.LastIndexOfAny(new char[]{ Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, WildcardIdx);
+				DirectoryReference BaseDir = DirectoryReference.Combine(DefaultDir, Pattern.Substring(0, LastDirectoryIdx + 1));
+
+				// Construct the absolute include pattern to match against, re-inserting the resolved base directory to construct a canonical path.
+				string IncludePattern = BaseDir.FullName.TrimEnd(new char[]{ Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }) + "/" + Pattern.Substring(LastDirectoryIdx + 1);
+
+				// Construct a filter and apply it to the directory
+				if(BaseDir.Exists())
+				{
+					FileFilter Filter = new FileFilter();
+					Filter.AddRule(IncludePattern, FileFilterType.Include);
+					if(ExcludePatterns != null)
+					{
+						Filter.AddRules(ExcludePatterns, FileFilterType.Exclude);
+					}
+					Files.AddRange(Filter.ApplyToDirectory(BaseDir, BaseDir.FullName, true));
+				}
+			}
+			return Files;
 		}
 	}
 
@@ -2362,17 +2434,20 @@ namespace AutomationTool
 			string SignToolName = null;
 			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)
 			{
-				SignToolName = "C:/Program Files (x86)/Windows Kits/8.1/bin/x86/SignTool.exe";
+				//@todo: Get these paths from the registry
+				if (WindowsPlatform.bUseWindowsSDK10)
+				{
+					SignToolName = "C:/Program Files (x86)/Windows Kits/10/bin/x86/SignTool.exe";
+				}
+				else
+				{
+					SignToolName = "C:/Program Files (x86)/Windows Kits/8.1/bin/x86/SignTool.exe";
+				}
 			}
 			else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013)
 			{
 				SignToolName = "C:/Program Files (x86)/Windows Kits/8.1/bin/x86/SignTool.exe";
 			}
-			else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2012)
-			{
-				SignToolName = "C:/Program Files (x86)/Windows Kits/8.0/bin/x86/SignTool.exe";
-			}
-
 
 			if (!File.Exists(SignToolName))
 			{
@@ -2538,17 +2613,20 @@ namespace AutomationTool
 			string SignToolName = null;
 			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)
 			{
-				SignToolName = "C:/Program Files (x86)/Windows Kits/8.1/bin/x86/SignTool.exe";
+				//@todo: Get these paths from the registry
+				if (WindowsPlatform.bUseWindowsSDK10)
+				{
+					SignToolName = "C:/Program Files (x86)/Windows Kits/10/bin/x86/SignTool.exe";
+				}
+				else
+				{
+					SignToolName = "C:/Program Files (x86)/Windows Kits/8.1/bin/x86/SignTool.exe";
+				}
 			}
 			else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013)
 			{
 				SignToolName = "C:/Program Files (x86)/Windows Kits/8.1/bin/x86/SignTool.exe";
 			}
-			else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2012)
-			{
-				SignToolName = "C:/Program Files (x86)/Windows Kits/8.0/bin/x86/SignTool.exe";
-			}
-
 
 			if (!File.Exists(SignToolName))
 			{

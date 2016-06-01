@@ -117,6 +117,7 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 					.Margin(InArgs._Margin)
 					.WrapTextAt(InArgs._WrapTextAt)
 					.AutoWrapText(InArgs._AutoWrapText)
+					.WrappingPolicy(InArgs._WrappingPolicy)
 					.HScrollBar(HScrollBar)
 					.VScrollBar(VScrollBar)
 					.OnHScrollBarUserScrolled(InArgs._OnHScrollBarUserScrolled)
@@ -166,8 +167,17 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 
 void SMultiLineEditableTextBox::SetStyle(const FEditableTextBoxStyle* InStyle)
 {
-	check(InStyle);
-	Style = InStyle;
+	if (InStyle)
+	{
+		Style = InStyle;
+	}
+	else
+	{
+		FArguments Defaults;
+		Style = Defaults._Style;
+	}
+
+	check(Style);
 
 	if (!PaddingOverride.IsSet())
 	{
@@ -271,6 +281,11 @@ void SMultiLineEditableTextBox::SetAutoWrapText(const TAttribute<bool>& InAutoWr
 	EditableText->SetAutoWrapText(InAutoWrapText);
 }
 
+void SMultiLineEditableTextBox::SetWrappingPolicy(const TAttribute<ETextWrappingPolicy>& InWrappingPolicy)
+{
+	EditableText->SetWrappingPolicy(InWrappingPolicy);
+}
+
 void SMultiLineEditableTextBox::SetLineHeightPercentage(const TAttribute<float>& InLineHeightPercentage)
 {
 	EditableText->SetLineHeightPercentage(InLineHeightPercentage);
@@ -319,7 +334,7 @@ void SMultiLineEditableTextBox::SetError( const FString& InError )
 /** @return Border image for the text box based on the hovered and focused state */
 const FSlateBrush* SMultiLineEditableTextBox::GetBorderImage() const
 {
-	if ( EditableText->GetIsReadOnly() )
+	if ( EditableText->IsTextReadOnly() )
 	{
 		return BorderImageReadOnly;
 	}
@@ -364,6 +379,21 @@ FReply SMultiLineEditableTextBox::OnFocusReceived( const FGeometry& MyGeometry, 
 	return Reply;
 }
 
+bool SMultiLineEditableTextBox::AnyTextSelected() const
+{
+	return EditableText->AnyTextSelected();
+}
+
+void SMultiLineEditableTextBox::SelectAllText()
+{
+	EditableText->SelectAllText();
+}
+
+void SMultiLineEditableTextBox::ClearSelection()
+{
+	EditableText->ClearSelection();
+}
+
 FText SMultiLineEditableTextBox::GetSelectedText() const
 {
 	return EditableText->GetSelectedText();
@@ -404,7 +434,7 @@ TSharedPtr<const IRun> SMultiLineEditableTextBox::GetRunUnderCursor() const
 	return EditableText->GetRunUnderCursor();
 }
 
-const TArray<TSharedRef<const IRun>> SMultiLineEditableTextBox::GetSelectedRuns() const
+TArray<TSharedRef<const IRun>> SMultiLineEditableTextBox::GetSelectedRuns() const
 {
 	return EditableText->GetSelectedRuns();
 }

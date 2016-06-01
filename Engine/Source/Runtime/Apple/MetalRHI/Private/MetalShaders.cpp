@@ -127,7 +127,7 @@ TMetalBaseShader<BaseResourceType, ShaderType>::TMetalBaseShader(const TArray<ui
 			}
 			
 			MTLCompileOptions *CompileOptions = [[MTLCompileOptions alloc] init];
-			CompileOptions.fastMathEnabled = YES;
+			CompileOptions.fastMathEnabled = (BOOL)Header.bFastMath;
 #if PLATFORM_MAC
 			CompileOptions.languageVersion = MTLLanguageVersion1_1;
 #endif
@@ -158,13 +158,14 @@ TMetalBaseShader<BaseResourceType, ShaderType>::TMetalBaseShader(const TArray<ui
 
 #if !UE_BUILD_SHIPPING
 			[GlslCodeNSString retain];
-			TRACK_OBJECT(GlslCodeNSString);
+			//TRACK_OBJECT(GlslCodeNSString);
 #endif
 		}
 
 		// assume there's only one function called 'Main', and use that to get the function from the library
 		Function = [Library newFunctionWithName:@"Main"];
 		[Library release];
+		TRACK_OBJECT(STAT_MetalFunctionCount, Function);
 
 //		Resource = Resource;
 		Bindings = Header.Bindings;
@@ -185,9 +186,9 @@ TMetalBaseShader<BaseResourceType, ShaderType>::TMetalBaseShader(const TArray<ui
 template<typename BaseResourceType, int32 ShaderType>
 TMetalBaseShader<BaseResourceType, ShaderType>::~TMetalBaseShader()
 {
-	UNTRACK_OBJECT(Function);
+	UNTRACK_OBJECT(STAT_MetalFunctionCount, Function);
 	[Function release];
-	UNTRACK_OBJECT(GlslCodeNSString);
+	//UNTRACK_OBJECT(GlslCodeNSString);
 	[GlslCodeNSString release];
 }
 
@@ -207,8 +208,13 @@ FMetalComputeShader::FMetalComputeShader(const TArray<uint8>& InCode)
         
         UE_LOG(LogRHI, Fatal, TEXT("Failed to create compute kernel: %s"), *FString([Error description]));
 	}
+	TRACK_OBJECT(STAT_MetalComputePipelineStateCount, Kernel);
 }
 
+FMetalComputeShader::~FMetalComputeShader()
+{
+	UNTRACK_OBJECT(STAT_MetalComputePipelineStateCount, Kernel);
+}
 
 FVertexShaderRHIRef FMetalDynamicRHI::RHICreateVertexShader(const TArray<uint8>& Code)
 {
@@ -323,7 +329,7 @@ FMetalBoundShaderState::~FMetalBoundShaderState()
 	// free all of the pipeline state objects we have made
 	for (auto It = PipelineStates.CreateIterator(); It; ++It)
 	{
-		TRACK_OBJECT(It.Value());
+		UNTRACK_OBJECT(STAT_MetalRenderPipelineStateCount, It.Value());
 		[It.Value() release];
 	}
 }
@@ -333,16 +339,36 @@ void FMetalBoundShaderState::PrepareToDraw(FMetalContext* Context, const FMetalR
 	// generate a key for the current statez
 	FMetalRenderPipelineHash Hash = RenderPipelineDesc.GetHash();
 	
+	if(GUseRHIThread)
+	{
+		PipelineMutex.Lock();
+	}
 	
 	// have we made a matching state object yet?
 	id<MTLRenderPipelineState> PipelineState = PipelineStates.FindRef(Hash);
+	
+	if(GUseRHIThread)
+	{
+		PipelineMutex.Unlock();
+	}
 	
 	// make one if not
 	if (PipelineState == nil)
 	{
 		PipelineState = RenderPipelineDesc.CreatePipelineStateForBoundShaderState(this);
 		check(PipelineState);
+		
+		if(GUseRHIThread)
+		{
+			PipelineMutex.Lock();
+		}
+		
 		PipelineStates.Add(Hash, PipelineState);
+		
+		if(GUseRHIThread)
+		{
+			PipelineMutex.Unlock();
+		}
 		
 #if !UE_BUILD_SHIPPING
 		if (GFrameCounter > 3)

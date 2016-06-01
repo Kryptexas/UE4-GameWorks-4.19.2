@@ -5,6 +5,8 @@
 #include "OnlineIdentityInterface.h"
 #include "ModuleManager.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 void FTestCloudInterface::Test(UWorld* InWorld)
 {
 	IOnlineSubsystem* OnlineSub = Online::GetSubsystem(InWorld, FName(*Subsystem));
@@ -410,3 +412,4 @@ void FTestCloudInterface::OnReadEnumeratedSharedFileCompleteDelegate(bool bWasSu
 	}
 }
 
+#endif //WITH_DEV_AUTOMATION_TESTS

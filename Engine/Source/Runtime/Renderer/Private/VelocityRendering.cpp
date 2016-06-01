@@ -55,7 +55,10 @@ public:
 
 	bool SupportsVelocity() const
 	{
-		return PreviousLocalToWorld.IsBound();
+		return PreviousLocalToWorld.IsBound() || 
+			GPUSkinCachePreviousBuffer.IsBound() || 
+			PrevTransformBuffer.IsBound() || 
+			(PrevTransform0.IsBound() && PrevTransform1.IsBound() && PrevTransform2.IsBound());
 	}
 
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
@@ -75,18 +78,36 @@ protected:
 		FMeshMaterialShader(Initializer)
 	{
 		PreviousLocalToWorld.Bind(Initializer.ParameterMap,TEXT("PreviousLocalToWorld"));
+		GPUSkinCachePreviousBuffer.Bind(Initializer.ParameterMap, TEXT("GPUSkinCachePreviousBuffer"));
+		PrevTransform0.Bind(Initializer.ParameterMap, TEXT("PrevTransform0"));
+		PrevTransform1.Bind(Initializer.ParameterMap, TEXT("PrevTransform1"));
+		PrevTransform2.Bind(Initializer.ParameterMap, TEXT("PrevTransform2"));
+		PrevTransformBuffer.Bind(Initializer.ParameterMap, TEXT("PrevTransformBuffer"));
 	}
+
 	FVelocityVS() {}
 
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FMeshMaterialShader::Serialize(Ar);
+
 		Ar << PreviousLocalToWorld;
+		Ar << GPUSkinCachePreviousBuffer;
+		Ar << PrevTransform0;
+		Ar << PrevTransform1;
+		Ar << PrevTransform2;
+		Ar << PrevTransformBuffer;
+
 		return bShaderHasOutdatedParameters;
 	}
 
 private:
 	FShaderParameter PreviousLocalToWorld;
+	FShaderResourceParameter GPUSkinCachePreviousBuffer;
+	FShaderParameter PrevTransform0;
+	FShaderParameter PrevTransform1;
+	FShaderParameter PrevTransform2;
+	FShaderResourceParameter PrevTransformBuffer;
 };
 
 
@@ -536,7 +557,7 @@ bool IsMotionBlurEnabled(const FViewInfo& View)
 
 void FDeferredShadingSceneRenderer::RenderDynamicVelocitiesMeshElementsInner(FRHICommandList& RHICmdList, const FViewInfo& View, int32 FirstIndex, int32 LastIndex)
 {
-	FVelocityDrawingPolicyFactory::ContextType Context(DDM_AllOccluders);
+	FVelocityDrawingPolicyFactory::ContextType Context(DDM_AllOccluders, false);
 
 	for (int32 MeshBatchIndex = FirstIndex; MeshBatchIndex <= LastIndex; MeshBatchIndex++)
 	{
@@ -551,7 +572,7 @@ void FDeferredShadingSceneRenderer::RenderDynamicVelocitiesMeshElementsInner(FRH
 	}
 }
 
-class FRenderVelocityDynamicThreadTask
+class FRenderVelocityDynamicThreadTask : public FRenderTask
 {
 	FDeferredShadingSceneRenderer& ThisRenderer;
 	FRHICommandList& RHICmdList;
@@ -578,11 +599,6 @@ public:
 	FORCEINLINE TStatId GetStatId() const
 	{
 		RETURN_QUICK_DECLARE_CYCLE_STAT(FRenderVelocityDynamicThreadTask, STATGROUP_TaskGraphTasks);
-	}
-
-	ENamedThreads::Type GetDesiredThread()
-	{
-		return ENamedThreads::AnyThread;
 	}
 
 	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
@@ -636,12 +652,15 @@ static void SetVelocitiesState(FRHICommandList& RHICmdList, const FViewInfo& Vie
 	RHICmdList.SetRasterizerState(GetStaticRasterizerState<true>(FM_Solid, CM_CW));
 }
 
+DECLARE_CYCLE_STAT(TEXT("Velocity"), STAT_CLP_Velocity, STATGROUP_ParallelCommandListMarkers);
+
+
 class FVelocityPassParallelCommandListSet : public FParallelCommandListSet
 {
 	TRefCountPtr<IPooledRenderTarget>& VelocityRT;
 public:
 	FVelocityPassParallelCommandListSet(const FViewInfo& InView, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext, TRefCountPtr<IPooledRenderTarget>& InVelocityRT)
-		: FParallelCommandListSet(InView, InParentCmdList, bInParallelExecute, bInCreateSceneContext)
+		: FParallelCommandListSet(GET_STATID(STAT_CLP_Velocity), InView, InParentCmdList, bInParallelExecute, bInCreateSceneContext)
 		, VelocityRT(InVelocityRT)
 	{
 		SetStateOnCommandList(ParentCmdList);
@@ -809,7 +828,7 @@ FPooledRenderTargetDesc FVelocityRendering::GetRenderTargetDesc()
 {
 	const FIntPoint BufferSize = FSceneRenderTargets::Get_FrameConstantsOnly().GetBufferSizeXY();
 	const FIntPoint VelocityBufferSize = BufferSize;		// full resolution so we can reuse the existing full res z buffer
-	return FPooledRenderTargetDesc(FPooledRenderTargetDesc::Create2DDesc(VelocityBufferSize, PF_G16R16, FClearValueBinding::Transparent, TexCreate_None, TexCreate_RenderTargetable, false));
+	return FPooledRenderTargetDesc(FPooledRenderTargetDesc::Create2DDesc(VelocityBufferSize, PF_G16R16, FClearValueBinding::Transparent, TexCreate_None, TexCreate_RenderTargetable | TexCreate_DeltaColorCompression, false));
 }
 
 bool FVelocityRendering::OutputsToGBuffer()

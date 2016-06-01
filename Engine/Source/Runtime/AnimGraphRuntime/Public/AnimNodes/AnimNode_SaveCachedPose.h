@@ -13,8 +13,8 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_SaveCachedPose : public FAnimNode_Base
 	FPoseLink Pose;
 
 protected:
-	FCompactPose CachedPose;
-	FBlendedCurve CachedCurve;
+	FCompactHeapPose CachedPose;
+	FBlendedHeapCurve CachedCurve;
 
 	FGraphTraversalCounter InitializationCounter;
 	FGraphTraversalCounter CachedBonesCounter;

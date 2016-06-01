@@ -69,6 +69,11 @@ void UAIGraphNode::PostEditImport()
 void UAIGraphNode::PostEditUndo()
 {
 	ResetNodeOwner();
+	
+	if (ParentNode)
+	{
+		ParentNode->SubNodes.AddUnique(this);
+	}
 }
 
 #endif

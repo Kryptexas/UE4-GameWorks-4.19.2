@@ -115,8 +115,14 @@ public:
 	/** Returns the most recent hit breakpoint; if a PIE/SIE session is started but paused; otherwise NULL */
 	static class UEdGraphNode* GetMostRecentBreakpointHit();
 
-	/** Request an attempt to single-step to the next node */
-	static void RequestSingleStepping();
+	/** Request an attempt to single-step to the next node, with parameter to control step into sub graphs */
+	static void RequestSingleStepping(bool bInAllowStepIn);
+
+	/** Request an attempt to step out of the current graph */
+	static void RequestStepOut();
+
+	/** Called on terminatation of the current script execution so we can reset any break conditions */
+	static void EndOfScriptExecution();
 
 	// The maximum number of trace samples to gather before overwriting old ones
 	enum { MAX_TRACE_STACK_SAMPLES = 1024 };
@@ -219,6 +225,7 @@ public:
 	// This doesn't work properly if there is more than one blueprint editor open at once either (one will consume it, the others will be left in the cold)
 	static FText GetAndClearLastExceptionMessage();
 protected:
+	static void CheckBreakConditions(UEdGraphNode* NodeStoppedAt, bool& InOutBreakExecution);
 	static void AttemptToBreakExecution(UBlueprint* BlueprintObj, const UObject* ActiveObject, const FFrame& StackFrame, const FBlueprintExceptionInfo& Info, UEdGraphNode* NodeStoppedAt, int32 DebugOpcodeOffset);
 
 private:

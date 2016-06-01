@@ -23,35 +23,42 @@ float ApplyBentNormalAO;
 float InvSkySpecularOcclusionStrength;
 float MinSkySpecularOcclusion;
 
-float GetDistanceFieldAOSpecularOcclusion(float2 ScreenUV, float3 ReflectionVector, float Roughness, bool bTwoSidedFoliage)
+void GetDistanceFieldAOSpecularOcclusion(float2 ScreenUV, float3 ReflectionVector, float Roughness, bool bTwoSidedFoliage, out float IndirectSpecularOcclusion, out float IndirectDiffuseOcclusion)
 {
-	float Visibility = 1;
+	IndirectSpecularOcclusion = 1;
+	IndirectDiffuseOcclusion = 1;
 
 	BRANCH
 	if (ApplyBentNormalAO > 0)
 	{
-		float3 BentNormalAO = Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, ScreenUV, 0).xyz;
+		float4 TextureValue = Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, ScreenUV, 0);
+		float3 BentNormalAO = TextureValue.xyz;
 		float BentNormalLength = length(BentNormalAO);
 
+#define USE_CONE_TRACED_SPECULAR_OCCLUSION 0
+#if USE_CONE_TRACED_SPECULAR_OCCLUSION
+		IndirectSpecularOcclusion = TextureValue.w;
+#else
 		BRANCH
 		if (bTwoSidedFoliage)
 		{
-			Visibility = BentNormalLength;
+			IndirectSpecularOcclusion = BentNormalLength;
 		}
 		else
 		{
 			float ReflectionConeAngle = Roughness * PI;
 			float UnoccludedAngle = BentNormalLength * PI * InvSkySpecularOcclusionStrength;
 			float AngleBetween = acos(dot(BentNormalAO, ReflectionVector) / max(BentNormalLength, .001f));
-			Visibility = ApproximateConeConeIntersection(ReflectionConeAngle, UnoccludedAngle, AngleBetween);
+			IndirectSpecularOcclusion = ApproximateConeConeIntersection(ReflectionConeAngle, UnoccludedAngle, AngleBetween);
 
 			// Can't rely on the direction of the bent normal when close to fully occluded, lerp to shadowed
-			Visibility = lerp(0, Visibility, saturate((UnoccludedAngle - .1f) / .2f));
-			Visibility = lerp(Visibility, 1, MinSkySpecularOcclusion);
+			IndirectSpecularOcclusion = lerp(0, IndirectSpecularOcclusion, saturate((UnoccludedAngle - .1f) / .2f));
+			IndirectSpecularOcclusion = lerp(IndirectSpecularOcclusion, 1, MinSkySpecularOcclusion);
 		}
-	}
+#endif
 
-	return Visibility;
+		IndirectDiffuseOcclusion = lerp(BentNormalLength, 1, MinSkySpecularOcclusion);
+	}
 }
 
 float GetDynamicSkyIndirectIrradiance(float2 ScreenUV, float3 WorldNormal)

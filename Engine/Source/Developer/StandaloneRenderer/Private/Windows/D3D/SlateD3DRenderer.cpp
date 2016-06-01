@@ -52,6 +52,11 @@ public:
 		return MakeShareable( new FSlateFontAtlasD3D( TextureSize, TextureSize ) );
 	}
 
+	virtual TSharedPtr<ISlateFontTexture> CreateNonAtlasedTexture(const uint32 InWidth, const uint32 InHeight, const TArray<uint8>& InRawData) const override
+	{
+		return nullptr;
+	}
+
 private:
 
 	/** Size of each font texture, width and height */
@@ -81,18 +86,21 @@ FSlateD3DRenderer::~FSlateD3DRenderer()
 {
 }
 
-void FSlateD3DRenderer::Initialize()
+bool FSlateD3DRenderer::Initialize()
 {
-	CreateDevice();
+	bool bResult = CreateDevice();
+	if (bResult)
+	{
+		TextureManager = MakeShareable(new FSlateD3DTextureManager);
+		FSlateDataPayload::ResourceManager = TextureManager.Get();
 
-	TextureManager = MakeShareable( new FSlateD3DTextureManager );
-	FSlateDataPayload::ResourceManager = TextureManager.Get();
+		TextureManager->LoadUsedTextures();
 
-	TextureManager->LoadUsedTextures();
+		RenderingPolicy = MakeShareable(new FSlateD3D11RenderingPolicy(SlateFontServices.ToSharedRef(), TextureManager.ToSharedRef()));
 
-	RenderingPolicy = MakeShareable( new FSlateD3D11RenderingPolicy( SlateFontServices.ToSharedRef(), TextureManager.ToSharedRef() ) );
-
-	ElementBatcher = MakeShareable( new FSlateElementBatcher( RenderingPolicy.ToSharedRef() ) );
+		ElementBatcher = MakeShareable(new FSlateElementBatcher(RenderingPolicy.ToSharedRef()));
+	}
+	return bResult;
 }
 
 void FSlateD3DRenderer::Destroy()
@@ -104,8 +112,10 @@ void FSlateD3DRenderer::Destroy()
 	GD3DDevice.SafeRelease();
 	GD3DDeviceContext.SafeRelease();
 }
-void FSlateD3DRenderer::CreateDevice()
+bool FSlateD3DRenderer::CreateDevice()
 {
+	bool bResult = true;
+
 	if( !IsValidRef( GD3DDevice ) || !IsValidRef( GD3DDeviceContext ) )
 	{
 		// Init D3D
@@ -120,15 +130,10 @@ void FSlateD3DRenderer::CreateDevice()
 		const D3D_FEATURE_LEVEL FeatureLevels[] = { D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_1, D3D_FEATURE_LEVEL_10_0, D3D_FEATURE_LEVEL_9_3 };
 		D3D_FEATURE_LEVEL CreatedFeatureLevel;
 		HRESULT Hr = D3D11CreateDevice( NULL, DriverType, NULL, DeviceCreationFlags, FeatureLevels, sizeof(FeatureLevels)/sizeof(D3D_FEATURE_LEVEL), D3D11_SDK_VERSION, GD3DDevice.GetInitReference(), &CreatedFeatureLevel, GD3DDeviceContext.GetInitReference() );
-		UE_LOG(LogStandaloneRenderer, Log, TEXT("D3D11CreateDevice Result: %X"), Hr);
-
-		if (Hr == DXGI_ERROR_UNSUPPORTED)
-		{
-			FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *NSLOCTEXT("SlateD3DRenderer", "ProblemWithGraphicsCard", "There is a problem with your graphics card. Please ensure your card meets the minimum system requirements and that you have the latest drivers installed.").ToString(), *NSLOCTEXT("SlateD3DRenderer", "UnsupportedVideoCardErrorTitle", "Unsupported Video Card").ToString());
-		}
-		
-		checkf(SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr);
+		UE_LOG(LogStandaloneRenderer, Log, TEXT("D3D11CreateDevice Result: %X"), Hr);	
+		bResult = SUCCEEDED(Hr);
 	}
+	return bResult;
 }
 
 FSlateDrawBuffer& FSlateD3DRenderer::GetDrawBuffer()

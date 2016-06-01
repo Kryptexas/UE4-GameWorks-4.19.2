@@ -62,7 +62,6 @@ void SSuperSearchBox::Construct( const FArguments& InArgs )
 			SNew(SHorizontalBox)
 
 			+ SHorizontalBox::Slot()
-			.AutoWidth()
 			[
 				SAssignNew(InputText, SSearchBox)
 				.Style(InStyle)

@@ -218,6 +218,13 @@ FText::FText( FString InSourceString )
 	TextData->SetTextHistory(FTextHistory_Base(MoveTemp(InSourceString)));
 }
 
+FText::FText( FString InSourceString, FTextDisplayStringRef InDisplayString )
+	: TextData(new TLocalizedTextData<FTextHistory_Base>(MoveTemp(InDisplayString)))
+	, Flags(0)
+{
+	TextData->SetTextHistory(FTextHistory_Base(MoveTemp(InSourceString)));
+}
+
 FText::FText( FString InSourceString, const FString& InNamespace, const FString& InKey, uint32 InFlags )
 	: TextData(new TLocalizedTextData<FTextHistory_Base>(FTextLocalizationManager::Get().GetDisplayString(InNamespace, InKey, &InSourceString)))
 	, Flags(InFlags)
@@ -428,6 +435,11 @@ public:
 
 		TOptional<int32> AsIndex() const
 		{
+			if (NameLen <= 0)
+			{
+				return TOptional<int32>();
+			}
+
 			int32 Index = 0;
 			for (int32 NameOffset = 0; NameOffset < NameLen; ++NameOffset)
 			{
@@ -841,7 +853,7 @@ FText FText::FormatInternal(FText Pattern, FFormatOrderedArguments Arguments, bo
 		EstimatedArgumentValuesLength += FTextFormatHelper::EstimateArgumentValueLength(Arg);
 	}
 
-	auto GetArgumentValue = [&Arguments](const FTextFormatHelper::FArgumentName& ArgumentName, int32 ArgumentNumber) -> const FFormatArgumentValue*
+	auto GetArgumentValue = [&Arguments, &Pattern](const FTextFormatHelper::FArgumentName& ArgumentName, int32 ArgumentNumber) -> const FFormatArgumentValue*
 	{
 		TOptional<int32> ArgumentIndex = ArgumentName.AsIndex();
 		if (!ArgumentIndex.IsSet())
@@ -850,6 +862,7 @@ FText FText::FormatInternal(FText Pattern, FFormatOrderedArguments Arguments, bo
 			// We have existing code that is incorrectly using names in the format string when providing ordered arguments
 			// ICU used to fallback to treating the index of the argument within the string as if it were the index specified 
 			// by the argument name, so we need to emulate that behavior to avoid breaking some format operations
+			UE_LOG(LogText, Warning, TEXT("Failed to parse argument \"%s\" as a number (using \"%d\" as a fallback). Please check your format string for errors: \"%s\"."), *FString(ArgumentName.NameLen, ArgumentName.NamePtr), ArgumentNumber, *Pattern.ToString());
 			ArgumentIndex = ArgumentNumber;
 		}
 		return Arguments.IsValidIndex(ArgumentIndex.GetValue()) ? &(Arguments[ArgumentIndex.GetValue()]) : nullptr;
@@ -985,14 +998,15 @@ FString FText::GetInvariantTimeZone()
 
 bool FText::FindText( const FString& Namespace, const FString& Key, FText& OutText, const FString* const SourceString )
 {
-	TSharedPtr< FString, ESPMode::ThreadSafe > FoundString = FTextLocalizationManager::Get().FindDisplayString( Namespace, Key, SourceString );
+	FTextDisplayStringPtr FoundString = FTextLocalizationManager::Get().FindDisplayString( Namespace, Key, SourceString );
 
 	if ( FoundString.IsValid() )
 	{
-		OutText = FText( SourceString ? *SourceString : FString(), Namespace, Key );
+		OutText = FText( SourceString ? *SourceString : FString(), FoundString.ToSharedRef() );
+		return true;
 	}
 
-	return FoundString.IsValid();
+	return false;
 }
 
 CORE_API FArchive& operator<<(FArchive& Ar, FText& Value)
@@ -1051,10 +1065,15 @@ CORE_API FArchive& operator<<(FArchive& Ar, FText& Value)
 		Value.TextData->PersistText(); // We always need to do this when saving so that we can save the history correctly
 		if(Ar.IsPersistent())
 		{
-			Value.Flags &= ~(ETextFlag::ConvertedProperty); // Remove conversion flag before saving.
+			Value.Flags &= ~(ETextFlag::ConvertedProperty | ETextFlag::InitializedFromString); // Remove conversion flag before saving.
 		}
 	}
 	Ar << Value.Flags;
+
+	if (Ar.IsLoading() && Ar.ArIsPersistent)
+	{
+		Value.Flags &= ~(ETextFlag::ConvertedProperty | ETextFlag::InitializedFromString); // Remove conversion flag before saving.
+	}
 
 	if (Ar.IsSaving())
 	{
@@ -1210,13 +1229,14 @@ FText FText::FromString( FString String )
 	{
 		NewText.Flags |= ETextFlag::CultureInvariant;
 	}
+	NewText.Flags |= ETextFlag::InitializedFromString;
 
 	return NewText;
 }
 
 FText FText::AsCultureInvariant( FString String )
 {
-	FText NewText = FText( String );
+	FText NewText = FText( MoveTemp(String) );
 	NewText.Flags |= ETextFlag::CultureInvariant;
 
 	return NewText;
@@ -1224,7 +1244,7 @@ FText FText::AsCultureInvariant( FString String )
 
 FText FText::AsCultureInvariant( FText Text )
 {
-	FText NewText = FText( Text );
+	FText NewText = FText( MoveTemp(Text) );
 	NewText.Flags |= ETextFlag::CultureInvariant;
 
 	return NewText;
@@ -1438,7 +1458,289 @@ bool TextBiDi::IsControlCharacter(const TCHAR InChar)
 		|| InChar == TEXT('\u2066')  // LEFT-TO-RIGHT ISOLATE
 		|| InChar == TEXT('\u2067')  // RIGHT-TO-LEFT ISOLATE
 		|| InChar == TEXT('\u2068')  // FIRST STRONG ISOLATE
-		|| InChar == TEXT('\u2068'); // POP DIRECTIONAL ISOLATE
+		|| InChar == TEXT('\u2069'); // POP DIRECTIONAL ISOLATE
+}
+
+bool FTextStringHelper::ReadFromString_ComplexText(const TCHAR* Buffer, FText& OutValue, const TCHAR* Namespace, int32* OutNumCharsRead)
+{
+#define LOC_DEFINE_REGION
+	const TCHAR* const Start = Buffer;
+
+	static const FString InvTextMarker = TEXT("INVTEXT");
+	static const FString NsLocTextMarker = TEXT("NSLOCTEXT");
+	static const FString LocTextMarker = TEXT("LOCTEXT");
+
+	auto ExtractQuotedString = [&](FString& OutStr) -> const TCHAR*
+	{
+		int32 CharsRead = 0;
+		if (!FParse::QuotedString(Buffer, OutStr, &CharsRead))
+		{
+			return nullptr;
+		}
+
+		Buffer += CharsRead;
+		return Buffer;
+	};
+
+	auto WalkToCharacter = [&](const TCHAR InChar) -> const TCHAR*
+	{
+		while (*Buffer && *Buffer != InChar && *Buffer != TCHAR('\n') && *Buffer != TCHAR('\r'))
+		{
+			++Buffer;
+		}
+
+		if (*Buffer != InChar)
+		{
+			return nullptr;
+		}
+
+		return Buffer;
+	};
+
+	#define EXTRACT_QUOTED_STRING(S)		\
+		Buffer = ExtractQuotedString(S);	\
+		if (!Buffer)						\
+		{									\
+			return false;					\
+		}
+
+	#define WALK_TO_CHARACTER(C)			\
+		Buffer = WalkToCharacter(TCHAR(C));	\
+		if (!Buffer)						\
+		{									\
+			return false;					\
+		}
+
+	if (FCString::Strstr(Buffer, *InvTextMarker))
+	{
+		// Parsing something of the form: INVTEXT("...")
+		Buffer += InvTextMarker.Len();
+
+		// Walk to the opening bracket
+		WALK_TO_CHARACTER('(');
+
+		// Walk to the opening quote, and then parse out the quoted string
+		FString InvariantString;
+		WALK_TO_CHARACTER('"');
+		EXTRACT_QUOTED_STRING(InvariantString);
+
+		// Walk to the closing bracket, and then move past it to indicate that the value was successfully imported
+		WALK_TO_CHARACTER(')');
+		++Buffer;
+
+		OutValue = FText::AsCultureInvariant(MoveTemp(InvariantString));
+
+		if (OutNumCharsRead)
+		{
+			*OutNumCharsRead = (Buffer - Start);
+		}
+
+		return true;
+	}
+	else if (FCString::Strstr(Buffer, *NsLocTextMarker))
+	{
+		// Parsing something of the form: NSLOCTEXT("...", "...", "...")
+		Buffer += NsLocTextMarker.Len();
+
+		// Walk to the opening bracket
+		WALK_TO_CHARACTER('(');
+
+		// Walk to the opening quote, and then parse out the quoted namespace
+		FString NamespaceString;
+		WALK_TO_CHARACTER('"');
+		EXTRACT_QUOTED_STRING(NamespaceString);
+
+		// Walk to the opening quote, and then parse out the quoted key
+		FString KeyString;
+		WALK_TO_CHARACTER('"');
+		EXTRACT_QUOTED_STRING(KeyString);
+
+		// Walk to the opening quote, and then parse out the quoted source string
+		FString SourceString;
+		WALK_TO_CHARACTER('"');
+		EXTRACT_QUOTED_STRING(SourceString);
+
+		// Walk to the closing bracket, and then move past it to indicate that the value was successfully imported
+		WALK_TO_CHARACTER(')');
+		++Buffer;
+
+		if (KeyString.IsEmpty())
+		{
+			OutValue = FText::AsCultureInvariant(MoveTemp(SourceString));
+		}
+		else
+		{
+			OutValue = FInternationalization::ForUseOnlyByLocMacroAndGraphNodeTextLiterals_CreateText(*SourceString, *NamespaceString, *KeyString);
+		}
+
+		if (OutNumCharsRead)
+		{
+			*OutNumCharsRead = (Buffer - Start);
+		}
+
+		return true;
+	}
+	else if (FCString::Strstr(Buffer, *LocTextMarker))
+	{
+		// Parsing something of the form: LOCTEXT("...", "...")
+		// This only exists as people sometimes do this in config files. We assume an empty namespace should be used
+		Buffer += LocTextMarker.Len();
+
+		// Walk to the opening bracket
+		WALK_TO_CHARACTER('(');
+
+		// Walk to the opening quote, and then parse out the quoted key
+		FString KeyString;
+		WALK_TO_CHARACTER('"');
+		EXTRACT_QUOTED_STRING(KeyString);
+
+		// Walk to the opening quote, and then parse out the quoted source string
+		FString SourceString;
+		WALK_TO_CHARACTER('"');
+		EXTRACT_QUOTED_STRING(SourceString);
+
+		// Walk to the closing bracket, and then move past it to indicate that the value was successfully imported
+		WALK_TO_CHARACTER(')');
+		++Buffer;
+
+		if (KeyString.IsEmpty())
+		{
+			OutValue = FText::AsCultureInvariant(MoveTemp(SourceString));
+		}
+		else
+		{
+			OutValue = FInternationalization::ForUseOnlyByLocMacroAndGraphNodeTextLiterals_CreateText(*SourceString, (Namespace) ? Namespace : TEXT(""), *KeyString);
+		}
+
+		if (OutNumCharsRead)
+		{
+			*OutNumCharsRead = (Buffer - Start);
+		}
+
+		return true;
+	}
+
+	#undef EXTRACT_QUOTED_STRING
+	#undef WALK_TO_CHARACTER
+#undef LOC_DEFINE_REGION
+
+	return false;
+}
+
+bool FTextStringHelper::ReadFromString(const TCHAR* Buffer, FText& OutValue, const TCHAR* Namespace, int32* OutNumCharsRead, const bool bRequiresQuotes)
+{
+	const TCHAR* const Start = Buffer;
+
+	while (FChar::IsWhitespace(*Buffer))
+	{
+		++Buffer;
+	}
+
+	// First, try and parse the text as a complex text export
+	{
+		int32 SubNumCharsRead = 0;
+		if (FTextStringHelper::ReadFromString_ComplexText(Buffer, OutValue, Namespace, &SubNumCharsRead))
+		{
+			Buffer += SubNumCharsRead;
+			if (OutNumCharsRead)
+			{
+				*OutNumCharsRead = (Buffer - Start);
+			}
+			return true;
+		}
+	}
+
+	// This isn't special text, so just parse it from a string
+	if (bRequiresQuotes)
+	{
+		// Parse out the quoted source string
+		FString LiteralString;
+
+		int32 SubNumCharsRead = 0;
+		if (FParse::QuotedString(Buffer, LiteralString, &SubNumCharsRead))
+		{
+			OutValue = FText::FromString(MoveTemp(LiteralString));
+			Buffer += SubNumCharsRead;
+			if (OutNumCharsRead)
+			{
+				*OutNumCharsRead = (Buffer - Start);
+			}
+			return true;
+		}
+
+		return false;
+	}
+	else
+	{
+		FString LiteralString = Buffer;
+
+		// In order to indicate that the value was successfully imported, advance the buffer past the last character that was imported
+		Buffer += LiteralString.Len();
+
+		OutValue = FText::FromString(MoveTemp(LiteralString));
+
+		if (OutNumCharsRead)
+		{
+			*OutNumCharsRead = (Buffer - Start);
+		}
+		return true;
+	}
+
+	return false;
+}
+
+bool FTextStringHelper::WriteToString(FString& Buffer, const FText& Value, const bool bRequiresQuotes)
+{
+#define LOC_DEFINE_REGION
+	const FString& StringValue = FTextInspector::GetDisplayString(Value);
+
+	if (Value.IsCultureInvariant())
+	{
+		// Produces INVTEXT("...")
+		Buffer += TEXT("INVTEXT(\"");
+		Buffer += StringValue.ReplaceCharWithEscapedChar();
+		Buffer += TEXT("\")");
+	}
+	else
+	{
+		bool bIsLocalized = false;
+		FString Namespace;
+		FString Key;
+		const FString* SourceString = FTextInspector::GetSourceString(Value);
+
+		if (SourceString && Value.ShouldGatherForLocalization())
+		{
+			bIsLocalized = FTextLocalizationManager::Get().FindNamespaceAndKeyFromDisplayString(FTextInspector::GetSharedDisplayString(Value), Namespace, Key);
+		}
+
+		if (bIsLocalized)
+		{
+			// Produces NSLOCTEXT("...", "...", "...")
+			Buffer += TEXT("NSLOCTEXT(\"");
+			Buffer += Namespace.ReplaceCharWithEscapedChar();
+			Buffer += TEXT("\", \"");
+			Buffer += Key.ReplaceCharWithEscapedChar();
+			Buffer += TEXT("\", \"");
+			Buffer += SourceString->ReplaceCharWithEscapedChar();
+			Buffer += TEXT("\")");
+		}
+		else
+		{
+			if (bRequiresQuotes)
+			{
+				Buffer += TEXT("\"");
+				Buffer += StringValue.ReplaceCharWithEscapedChar();
+				Buffer += TEXT("\"");
+			}
+			else
+			{
+				Buffer += StringValue;
+			}
+		}
+	}
+#undef LOC_DEFINE_REGION
+
+	return true;
 }
 
 #undef LOCTEXT_NAMESPACE

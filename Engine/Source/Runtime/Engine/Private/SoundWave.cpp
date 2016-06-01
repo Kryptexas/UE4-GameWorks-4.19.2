@@ -61,31 +61,43 @@ USoundWave::USoundWave(const FObjectInitializer& ObjectInitializer)
 	Volume = 1.0;
 	Pitch = 1.0;
 	CompressionQuality = 40;
+	SubtitlePriority = DEFAULT_SUBTITLE_PRIORITY;
 }
 
 SIZE_T USoundWave::GetResourceSize(EResourceSizeMode::Type Mode)
 {
-	int32 CalculatedResourceSize = 0;
-
-	if (DecompressionType == DTYPE_Native)
+	if (!GEngine)
 	{
-		// If we've been decompressed, need to account for decompressed and also compressed
-		CalculatedResourceSize += RawPCMDataSize;
+		return 0;
 	}
-	else if (DecompressionType == DTYPE_RealTime)
+
+	SIZE_T CalculatedResourceSize = 0;
+
+	if (FAudioDevice* LocalAudioDevice = GEngine->GetMainAudioDevice())
 	{
-		if (CachedRealtimeFirstBuffer)
+		if (LocalAudioDevice->HasCompressedAudioInfoClass(this) && DecompressionType == DTYPE_Native)
 		{
-			CalculatedResourceSize += MONO_PCM_BUFFER_SIZE * NumChannels;
+			// In non-editor builds ensure that the "native" sound wave has unloaded its compressed asset at this point.
+			// DTYPE_Native assets fully decompress themselves on load and are supposed to unload the compressed asset when it finishes.
+			// However, in the editor, it's possible for an asset to be DTYPE_Native and not referenced by currently loaded level and thus not
+			// actually loaded (and fully decompressed) before its ResourceSize is queried.
+			if (!GIsEditor)
+			{
+				ensureMsgf(ResourceSize == 0, TEXT("ResourceSize for DTYPE_Native USoundWave '%s' was not 0 (%d)."), *GetName(), ResourceSize);
+			}
+			CalculatedResourceSize = RawPCMDataSize;
 		}
-	}
-
-	if (GEngine && GEngine->GetMainAudioDevice())
-	{
-		// Don't add compressed data to size of streaming sounds
-		if (!FPlatformProperties::SupportsAudioStreaming() || !IsStreaming())
+		else 
 		{
-			CalculatedResourceSize += GetCompressedDataSize(GEngine->GetMainAudioDevice()->GetRuntimeFormat(this));
+			if (DecompressionType == DTYPE_RealTime && CachedRealtimeFirstBuffer)
+			{
+				CalculatedResourceSize = MONO_PCM_BUFFER_SIZE * NumChannels;
+			}
+			
+			if ((!FPlatformProperties::SupportsAudioStreaming() || !IsStreaming()))
+			{
+				CalculatedResourceSize += GetCompressedDataSize(LocalAudioDevice->GetRuntimeFormat(this));
+			}
 		}
 	}
 
@@ -260,6 +272,11 @@ void USoundWave::LogSubtitle( FOutputDevice& Ar )
 #endif // WITH_EDITORONLY_DATA
 	Ar.Logf( bMature ? TEXT( "Mature:    Yes" ) : TEXT( "Mature:    No" ) );
 }
+
+float USoundWave::GetSubtitlePriority() const
+{ 
+	return SubtitlePriority;
+};
 
 void USoundWave::PostInitProperties()
 {

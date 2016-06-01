@@ -18,14 +18,20 @@ private:
 	FText GetDisplayedText(TSharedRef<IPropertyHandle> PropertyHandle) const;
 
 	/** Delegate used to display a directory picker */
-	FReply OnPickDirectory(TSharedRef<IPropertyHandle> PropertyHandle, const bool bRelativeToGameContentDir, const bool bUseRelativePaths) const;
+	FReply OnPickDirectory(TSharedRef<IPropertyHandle> PropertyHandle, const bool bRelativeToGameContentDir, const bool bUseRelativePaths, const bool bLongPackageName) const;
 
 	/** Check whether that the chosen path is valid */
 	bool IsValidPath(const FString& AbsolutePath, const bool bRelativeToGameContentDir, FText* const OutReason = nullptr) const;
 
+	/** Called when a path is picked from the path picker */
+	void OnPathPicked(const FString& Path, TSharedRef<IPropertyHandle> PropertyHandle);
+
 	/** The browse button widget */
 	TSharedPtr<SButton> BrowseButton;
 
+	/** The pick button widget */
+	TSharedPtr<SComboButton> PickerButton;
+	
 	/** Absolute path to the game content directory */
 	FString AbsoluteGameContentDir;
 };

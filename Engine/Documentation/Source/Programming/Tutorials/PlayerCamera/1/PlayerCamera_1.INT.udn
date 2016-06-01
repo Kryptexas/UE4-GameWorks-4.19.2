@@ -41,7 +41,7 @@ version:4.9
 		//Create our components
 		RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
 		OurCameraSpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraSpringArm"));
-		OurCameraSpringArm->AttachTo(RootComponent);
+		OurCameraSpringArm->SetupAttachment(RootComponent);
 		OurCameraSpringArm->SetRelativeLocationAndRotation(FVector(0.0f, 0.0f, 50.0f), FRotator(-60.0f, 0.0f, 0.0f));
 		OurCameraSpringArm->TargetArmLength = 400.f;
 		OurCameraSpringArm->bEnableCameraLag = true;
@@ -50,7 +50,7 @@ version:4.9
 	This creates a basic, empty **SceneComponent** as the root of our Component hierarchy, then creates and attaches a SpringArmComponent to it. The **Spring Arm** is then set at a default pitch of -60 degrees (that is, looking 60 degrees downward) and a position of 50 units above the root. We also establish a few values specific to the SpringArmComponent class that will determine its length and the smoothness of its motion. With that finished, we simply need to create and attach a CameraComponent to the socket on the end of the SpringArmComponent, as follows:
 
 		OurCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("GameCamera"));
-		OurCamera->AttachTo(OurCameraSpringArm, USpringArmComponent::SocketName);
+		OurCamera->SetupAttachment(OurCameraSpringArm, USpringArmComponent::SocketName);
 
 1. Finally, we can set our Pawn to be controlled by the default, local player automatically upon being spawned by adding this piece of code:
 
@@ -116,13 +116,13 @@ We now have a simple Pawn that will allow us to control our camera comfortably. 
 				//Create our components
 				RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
 				OurCameraSpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraSpringArm"));
-				OurCameraSpringArm->AttachTo(RootComponent);
+				OurCameraSpringArm->SetupAttachment(RootComponent);
 				OurCameraSpringArm->SetRelativeLocationAndRotation(FVector(0.0f, 0.0f, 50.0f), FRotator(-60.0f, 0.0f, 0.0f));
 				OurCameraSpringArm->TargetArmLength = 400.f;
 				OurCameraSpringArm->bEnableCameraLag = true;
 				OurCameraSpringArm->CameraLagSpeed = 3.0f;
 				OurCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("GameCamera"));
-				OurCamera->AttachTo(OurCameraSpringArm, USpringArmComponent::SocketName);
+				OurCamera->SetupAttachment(OurCameraSpringArm, USpringArmComponent::SocketName);
 
 				//Take control of the default Player
 				AutoPossessPlayer = EAutoReceiveInput::Player0;

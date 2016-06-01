@@ -496,8 +496,7 @@ void UPrimitiveComponent::SetMassOverrideInKg(FName BoneName, float MassInKg, bo
 	if (FBodyInstance* BI = GetBodyInstance(BoneName))
 	{
 		WarnInvalidPhysicsOperations(LOCTEXT("SetCenterOfMass", "SetCenterOfMass"), nullptr);
-		BI->bOverrideMass = bOverrideMass;
-		BI->MassInKg = MassInKg;
+		BI->SetMassOverride(MassInKg);
 		BI->UpdateMassProperties();
 	}
 }
@@ -536,7 +535,7 @@ float UPrimitiveComponent::CalculateMass(FName)
 {
 	if (BodyInstance.bOverrideMass)
 	{
-		return BodyInstance.MassInKg;
+		return BodyInstance.GetMassOverride();
 	}
 
 	if (BodyInstance.BodySetup.IsValid())
@@ -646,7 +645,7 @@ void UPrimitiveComponent::SyncComponentToRBPhysics()
 UPrimitiveComponent * GetRootWelded(const UPrimitiveComponent* PrimComponent, FName ParentSocketName = NAME_None, FName* OutSocketName = NULL, bool bAboutToWeld = false)
 {
 	UPrimitiveComponent * Result = NULL;
-	UPrimitiveComponent * RootComponent = Cast<UPrimitiveComponent>(PrimComponent->AttachParent);	//we must find the root component along hierarchy that has bWelded set to true
+	UPrimitiveComponent * RootComponent = Cast<UPrimitiveComponent>(PrimComponent->GetAttachParent());	//we must find the root component along hierarchy that has bWelded set to true
 
 	//check that body itself is welded
 	if (FBodyInstance* BI = PrimComponent->GetBodyInstance(ParentSocketName, false))
@@ -660,11 +659,11 @@ UPrimitiveComponent * GetRootWelded(const UPrimitiveComponent* PrimComponent, FN
 	FName PrevSocketName = ParentSocketName;
 	FName SocketName = NAME_None; //because of skeletal mesh it's important that we check along the bones that we attached
 	FBodyInstance* RootBI = NULL;
-	for (; RootComponent; RootComponent = Cast<UPrimitiveComponent>(RootComponent->AttachParent))
+	for (; RootComponent; RootComponent = Cast<UPrimitiveComponent>(RootComponent->GetAttachParent()))
 	{
 		Result = RootComponent;
 		SocketName = PrevSocketName;
-		PrevSocketName = RootComponent->AttachSocketName;
+		PrevSocketName = RootComponent->GetAttachSocketName();
 
 		RootBI = RootComponent->GetBodyInstance(SocketName, false);
 		if (RootBI && RootBI->bWelded)
@@ -688,7 +687,7 @@ void UPrimitiveComponent::GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodi
 	OutWeldedBodies.Add(&BodyInstance);
 	OutLabels.Add(NAME_None);
 
-	for (USceneComponent * Child : AttachChildren)
+	for (USceneComponent * Child : GetAttachChildren())
 	{
 		if (UPrimitiveComponent * PrimChild = Cast<UPrimitiveComponent>(Child))
 		{
@@ -708,7 +707,7 @@ bool UPrimitiveComponent::WeldToImplementation(USceneComponent * InParent, FName
 	SCOPE_CYCLE_COUNTER(STAT_WeldPhysics);
 
 	//WeldToInternal assumes attachment is already done
-	if (AttachParent != InParent || AttachSocketName != ParentSocketName)
+	if (GetAttachParent() != InParent || GetAttachSocketName() != ParentSocketName)
 	{
 		return false;
 	}
@@ -755,13 +754,13 @@ bool UPrimitiveComponent::WeldToImplementation(USceneComponent * InParent, FName
 			//if root is kinematic simply set child to be kinematic and we're done
 			if (RootComponent->IsSimulatingPhysics(SocketName) == false)
 			{
-				BI->WeldParent = NULL;
+				FPlatformAtomics::InterlockedExchangePtr((void**)&BI->WeldParent, nullptr);
 				SetSimulatePhysics(false);
 				return false;	//return false because we need to continue with regular body initialization
 			}
 
 			//root is simulated so we actually weld the body
-			FTransform RelativeTM = RootComponent == AttachParent ? GetRelativeTransform() : GetComponentToWorld().GetRelativeTransform(RootComponent->GetComponentToWorld());	//if direct parent we already have relative. Otherwise compute it
+			FTransform RelativeTM = RootComponent == GetAttachParent() ? GetRelativeTransform() : GetComponentToWorld().GetRelativeTransform(RootComponent->GetComponentToWorld());	//if direct parent we already have relative. Otherwise compute it
 			RootBI->Weld(BI, GetComponentToWorld());
 
 			return true;
@@ -774,9 +773,9 @@ bool UPrimitiveComponent::WeldToImplementation(USceneComponent * InParent, FName
 void UPrimitiveComponent::WeldTo(USceneComponent* InParent, FName InSocketName /* = NAME_None */)
 {
 	//automatically attach if needed
-	if (AttachParent != InParent || AttachSocketName != InSocketName)
+	if (GetAttachParent() != InParent || GetAttachSocketName() != InSocketName)
 	{
-		AttachTo(InParent, InSocketName, EAttachLocation::KeepWorldPosition);
+		AttachToComponent(InParent, FAttachmentTransformRules::KeepWorldTransform, InSocketName);
 	}
 
 	WeldToImplementation(InParent, InSocketName);
@@ -794,7 +793,7 @@ void UPrimitiveComponent::UnWeldFromParent()
 	}
 
 	FName SocketName;
-	UPrimitiveComponent * RootComponent = GetRootWelded(this, AttachSocketName, &SocketName);
+	UPrimitiveComponent * RootComponent = GetRootWelded(this, GetAttachSocketName(), &SocketName);
 
 	if (RootComponent)
 	{
@@ -809,7 +808,7 @@ void UPrimitiveComponent::UnWeldFromParent()
 
 			NewRootBI->bWelded = false;
 			const FBodyInstance* PrevWeldParent = NewRootBI->WeldParent;
-			NewRootBI->WeldParent = nullptr;
+			FPlatformAtomics::InterlockedExchangePtr((void**)&NewRootBI->WeldParent, nullptr);
 
 			bool bHasBodySetup = GetBodySetup() != nullptr;
 
@@ -843,7 +842,7 @@ void UPrimitiveComponent::UnWeldFromParent()
 					}
 
 					//At this point, NewRootBI must be kinematic because it's being unwelded. It's up to the code that simulates to call Weld on the children as needed
-					ChildBI->WeldParent = nullptr;	//null because we are currently kinematic
+					FPlatformAtomics::InterlockedExchangePtr((void**)&ChildBI->WeldParent, nullptr); //null because we are currently kinematic
 				}
 			}
 		}
@@ -852,7 +851,7 @@ void UPrimitiveComponent::UnWeldFromParent()
 
 void UPrimitiveComponent::UnWeldChildren()
 {
-	for (USceneComponent* ChildComponent : AttachChildren)
+	for (USceneComponent* ChildComponent : GetAttachChildren())
 	{
 		if (UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(ChildComponent))
 		{
@@ -866,7 +865,7 @@ FBodyInstance* UPrimitiveComponent::GetBodyInstance(FName BoneName, bool bGetWel
 	if (bGetWelded && BodyInstance.bWelded)
 	{
 		FName OutSocket;
-		if (UPrimitiveComponent * RootComponentWelded = GetRootWelded(this, AttachSocketName, &OutSocket))
+		if (UPrimitiveComponent * RootComponentWelded = GetRootWelded(this, GetAttachSocketName(), &OutSocket))
 		{
 			if (FBodyInstance* BI = RootComponentWelded->GetBodyInstance(OutSocket, bGetWelded))
 			{

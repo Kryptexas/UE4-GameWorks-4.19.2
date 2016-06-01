@@ -13,17 +13,17 @@ UAbilityTask_WaitTargetData::UAbilityTask_WaitTargetData(const FObjectInitialize
 
 UAbilityTask_WaitTargetData* UAbilityTask_WaitTargetData::WaitTargetData(UObject* WorldContextObject, FName TaskInstanceName, TEnumAsByte<EGameplayTargetingConfirmation::Type> ConfirmationType, TSubclassOf<AGameplayAbilityTargetActor> InTargetClass)
 {
-	auto MyObj = NewAbilityTask<UAbilityTask_WaitTargetData>(WorldContextObject, TaskInstanceName);		//Register for task list here, providing a given FName as a key
+	UAbilityTask_WaitTargetData* MyObj = NewAbilityTask<UAbilityTask_WaitTargetData>(WorldContextObject, TaskInstanceName);		//Register for task list here, providing a given FName as a key
 	MyObj->TargetClass = InTargetClass;
-	MyObj->TargetActor = NULL;
+	MyObj->TargetActor = nullptr;
 	MyObj->ConfirmationType = ConfirmationType;
 	return MyObj;
 }
 
 UAbilityTask_WaitTargetData* UAbilityTask_WaitTargetData::WaitTargetDataUsingActor(UObject* WorldContextObject, FName TaskInstanceName, TEnumAsByte<EGameplayTargetingConfirmation::Type> ConfirmationType, AGameplayAbilityTargetActor* InTargetActor)
 {
-	auto MyObj = NewAbilityTask<UAbilityTask_WaitTargetData>(WorldContextObject, TaskInstanceName);		//Register for task list here, providing a given FName as a key
-	MyObj->TargetClass = NULL;
+	UAbilityTask_WaitTargetData* MyObj = NewAbilityTask<UAbilityTask_WaitTargetData>(WorldContextObject, TaskInstanceName);		//Register for task list here, providing a given FName as a key
+	MyObj->TargetClass = nullptr;
 	MyObj->TargetActor = InTargetActor;
 	MyObj->ConfirmationType = ConfirmationType;
 	return MyObj;
@@ -56,7 +56,7 @@ void UAbilityTask_WaitTargetData::Activate()
 			}
 			else
 			{
-				TargetActor = NULL;
+				TargetActor = nullptr;
 
 				// We may need a better solution here.  We don't know the target actor isn't needed till after it's already been spawned.
 				SpawnedActor->Destroy();
@@ -79,7 +79,7 @@ bool UAbilityTask_WaitTargetData::BeginSpawningActor(UObject* WorldContextObject
 		if (ShouldSpawnTargetActor())
 		{
 			UClass* Class = *InTargetClass;
-			if (Class != NULL)
+			if (Class != nullptr)
 			{
 				UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 				SpawnedActor = World->SpawnActorDeferred<AGameplayAbilityTargetActor>(Class, FTransform::Identity, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
@@ -122,7 +122,7 @@ bool UAbilityTask_WaitTargetData::ShouldSpawnTargetActor() const
 
 	const AGameplayAbilityTargetActor* CDO = CastChecked<AGameplayAbilityTargetActor>(TargetClass->GetDefaultObject());
 
-	const bool bReplicates = CDO->GetReplicates();
+	const bool bReplicates = CDO->GetIsReplicated();
 	const bool bIsLocallyControlled = Ability->GetCurrentActorInfo()->IsLocallyControlled();
 	const bool bShouldProduceTargetDataOnServer = CDO->ShouldProduceTargetDataOnServer;
 
@@ -205,7 +205,7 @@ void UAbilityTask_WaitTargetData::RegisterTargetDataCallbacks()
 }
 
 /** Valid TargetData was replicated to use (we are server, was sent from client) */
-void UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback(FGameplayAbilityTargetDataHandle Data, FGameplayTag ActivationTag)
+void UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback(const FGameplayAbilityTargetDataHandle& Data, FGameplayTag ActivationTag)
 {
 	check(AbilitySystemComponent);
 
@@ -220,13 +220,14 @@ void UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback(FGameplayAbilit
 	 *	explicitly, the client is basically just sending a 'confirm' and the server is now going to do the work
 	 *	in OnReplicatedTargetDataReceived.
 	 */
-	if (TargetActor && !TargetActor->OnReplicatedTargetDataReceived(Data))
+	FGameplayAbilityTargetDataHandle MutableData = Data;
+	if (TargetActor && !TargetActor->OnReplicatedTargetDataReceived(MutableData))
 	{
-		Cancelled.Broadcast(Data);
+		Cancelled.Broadcast(MutableData);
 	}
 	else
 	{
-		ValidData.Broadcast(Data);
+		ValidData.Broadcast(MutableData);
 	}
 
 	if (ConfirmationType != EGameplayTargetingConfirmation::CustomMulti)
@@ -244,7 +245,7 @@ void UAbilityTask_WaitTargetData::OnTargetDataReplicatedCancelledCallback()
 }
 
 /** The TargetActor we spawned locally has called back with valid target data */
-void UAbilityTask_WaitTargetData::OnTargetDataReadyCallback(FGameplayAbilityTargetDataHandle Data)
+void UAbilityTask_WaitTargetData::OnTargetDataReadyCallback(const FGameplayAbilityTargetDataHandle& Data)
 {
 	check(AbilitySystemComponent);
 	if (!Ability)
@@ -278,7 +279,7 @@ void UAbilityTask_WaitTargetData::OnTargetDataReadyCallback(FGameplayAbilityTarg
 }
 
 /** The TargetActor we spawned locally has called back with a cancel event (they still include the 'last/best' targetdata but the consumer of this may want to discard it) */
-void UAbilityTask_WaitTargetData::OnTargetDataCancelledCallback(FGameplayAbilityTargetDataHandle Data)
+void UAbilityTask_WaitTargetData::OnTargetDataCancelledCallback(const FGameplayAbilityTargetDataHandle& Data)
 {
 	check(AbilitySystemComponent);
 

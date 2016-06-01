@@ -6,6 +6,9 @@
 #include "EdGraph/EdGraphNode.h"
 #include "Engine/Engine.h"
 #include "EngineGlobals.h"
+#if WITH_EDITOR
+#include "MaterialGraph/MaterialGraphNode.h"
+#endif
 
 #define LOCTEXT_NAMESPACE "Landscape"
 
@@ -113,6 +116,27 @@ FString UMaterialExpressionLandscapeLayerBlend::GetInputName(int32 InputIndex) c
 	return TEXT("");
 }
 
+#if WITH_EDITOR
+uint32 UMaterialExpressionLandscapeLayerBlend::GetInputType(int32 InputIndex)
+{
+	int32 Idx = 0;
+	for (int32 LayerIdx = 0; LayerIdx<Layers.Num(); LayerIdx++)
+	{
+		if (InputIndex == Idx++)
+		{
+			return MCT_Float | MCT_MaterialAttributes; // can accept pretty much anything including MaterialAttributes
+		}
+		if (Layers[LayerIdx].BlendType == LB_HeightBlend)
+		{
+			if (InputIndex == Idx++)
+			{
+				return MCT_Float1; // the height input must be float1
+			}
+		}
+	}
+
+	return MCT_Unknown;
+}
 
 bool UMaterialExpressionLandscapeLayerBlend::IsResultMaterialAttributes(int32 OutputIndex)
 {
@@ -130,7 +154,6 @@ bool UMaterialExpressionLandscapeLayerBlend::IsResultMaterialAttributes(int32 Ou
 	}
 	return false;
 }
-
 
 int32 UMaterialExpressionLandscapeLayerBlend::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
@@ -260,21 +283,18 @@ int32 UMaterialExpressionLandscapeLayerBlend::Compile(class FMaterialCompiler* C
 
 	return OutputCode;
 }
-
+#endif // WITH_EDITOR
 
 UTexture* UMaterialExpressionLandscapeLayerBlend::GetReferencedTexture()
 {
 	return GEngine->WeightMapPlaceholderTexture;
 }
 
-
+#if WITH_EDITOR
 void UMaterialExpressionLandscapeLayerBlend::GetCaption(TArray<FString>& OutCaptions) const
 {
 	OutCaptions.Add(FString(TEXT("Layer Blend")));
 }
-
-
-#if WITH_EDITOR
 
 void UMaterialExpressionLandscapeLayerBlend::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
@@ -294,14 +314,14 @@ void UMaterialExpressionLandscapeLayerBlend::PostEditChangeProperty(FPropertyCha
 		const FName PropertyName = PropertyChangedEvent.MemberProperty->GetFName();
 		if (PropertyName == GET_MEMBER_NAME_CHECKED(UMaterialExpressionLandscapeLayerBlend, Layers))
 		{
-			if (GraphNode)
+			if (UMaterialGraphNode* MatGraphNode = Cast<UMaterialGraphNode>(GraphNode))
 			{
-				GraphNode->ReconstructNode();
+				MatGraphNode->RecreateAndLinkNode();
 			}
 		}
 	}
 }
-#endif
+#endif // WITH_EDITOR
 
 
 void UMaterialExpressionLandscapeLayerBlend::GetAllParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const
@@ -318,6 +338,11 @@ void UMaterialExpressionLandscapeLayerBlend::GetAllParameterNames(TArray<FName> 
 			OutParameterIds.Add(ExpressionGUID);
 		}
 	}
+}
+
+bool UMaterialExpressionLandscapeLayerBlend::NeedsLoadForClient() const
+{
+	return true;
 }
 
 

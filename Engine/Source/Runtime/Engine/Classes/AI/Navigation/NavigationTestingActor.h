@@ -50,7 +50,7 @@ private_subobject:
 	UPROPERTY(EditAnywhere, Category = Navigation, meta=(EditCondition="bActAsNavigationInvoker"))
 	UNavigationInvokerComponent* InvokerComponent;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = Navigation, meta=(InlineEditConditionToggle))
 	uint32 bActAsNavigationInvoker : 1;
 
 public:
@@ -80,6 +80,9 @@ public:
 	/** if set, all steps of A* algorithm will be accessible for debugging */
 	UPROPERTY(EditAnywhere, Category=Pathfinding)
 	uint32 bGatherDetailedInfo : 1;
+
+	UPROPERTY(EditAnywhere, Category=Query)
+	uint32 bDrawDistanceToWall : 1;
 
 	/** show polys from open (orange) and closed (yellow) sets */
 	UPROPERTY(EditAnywhere, Category=Debug)
@@ -136,6 +139,8 @@ public:
 	UPROPERTY(EditAnywhere, Category=Pathfinding)
 	float OffsetFromCornersDistance;
 
+	FVector ClosestWallLocation;
+
 #if WITH_RECAST && WITH_EDITORONLY_DATA
 	/** detail data gathered from each step of regular A* algorithm */
 	TArray<struct FRecastDebugPathfindingData> DebugSteps;
@@ -185,11 +190,13 @@ public:
 	// constraints/goal evaluators).
 	virtual FPathFindingQuery BuildPathFindingQuery(const ANavigationTestingActor* Goal) const;
 
-public:
 	/** Returns CapsuleComponent subobject **/
 	class UCapsuleComponent* GetCapsuleComponent() const;
 #if WITH_EDITORONLY_DATA
 	/** Returns EdRenderComp subobject **/
 	class UNavTestRenderingComponent* GetEdRenderComp() const;
 #endif
+
+protected:
+	FVector FindClosestWallLocation() const;
 };

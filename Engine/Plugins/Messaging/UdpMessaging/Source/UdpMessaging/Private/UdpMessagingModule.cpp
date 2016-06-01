@@ -36,6 +36,9 @@ public:
 		{
 			UUdpMessagingSettings* Settings = GetMutableDefault<UUdpMessagingSettings>();
 
+			// general information
+			Ar.Logf(TEXT("Protocol Version: %i"), UDP_MESSAGING_TRANSPORT_PROTOCOL_VERSION);
+
 			// bridge status
 			if (MessageBridge.IsValid())
 			{
@@ -54,22 +57,38 @@ public:
 			}
 
 			// bridge settings
-			Ar.Logf(TEXT("  Unicast Endpoint: %s"), *Settings->UnicastEndpoint);
-			Ar.Logf(TEXT("  Multicast Endpoint: %s"), *Settings->MulticastEndpoint);
-			Ar.Logf(TEXT("  Multicast TTL: %i"), Settings->MulticastTimeToLive);
+			if (Settings->UnicastEndpoint.IsEmpty())
+			{
+				Ar.Logf(TEXT("    Unicast Endpoint: %s (default)"), *FIPv4Endpoint::Any.ToString());
+			}
+			else
+			{
+				Ar.Logf(TEXT("    Unicast Endpoint: %s"), *Settings->UnicastEndpoint);
+			}
+
+			if (Settings->MulticastEndpoint.IsEmpty())
+			{
+				Ar.Logf(TEXT("    Multicast Endpoint: %s (default)"), *UDP_MESSAGING_DEFAULT_MULTICAST_ENDPOINT.ToString());
+			}
+			else
+			{
+				Ar.Logf(TEXT("    Multicast Endpoint: %s"), *Settings->MulticastEndpoint);
+			}
+
+			Ar.Logf(TEXT("    Multicast TTL: %i"), Settings->MulticastTimeToLive);
 
 			if (Settings->StaticEndpoints.Num() > 0)
 			{
-				Ar.Log(TEXT("  Static Endpoints:"));
+				Ar.Log(TEXT("    Static Endpoints:"));
 
 				for (const auto& StaticEndpoint : Settings->StaticEndpoints)
 				{
-					Ar.Logf(TEXT("  > %s"), *StaticEndpoint);
+					Ar.Logf(TEXT("        %s"), *StaticEndpoint);
 				}
 			}
 			else
 			{
-				Ar.Log(TEXT("  Static Endpoints: None"));
+				Ar.Log(TEXT("    Static Endpoints: None"));
 			}
 
 #if PLATFORM_DESKTOP
@@ -90,19 +109,44 @@ public:
 				Ar.Log(TEXT("Message Tunnel: Not initialized."));
 			}
 
-			Ar.Logf(TEXT("  Unicast Endpoint: %s"), *Settings->TunnelUnicastEndpoint);
-			Ar.Logf(TEXT("  Multicast Endpoint: %s"), *Settings->TunnelMulticastEndpoint);
-			Ar.Log(TEXT("  Remote Endpoints:"));
-
-			for (const auto& RemoteEndpoint : Settings->RemoteTunnelEndpoints)
+			// tunnel settings
+			if (Settings->TunnelUnicastEndpoint.IsEmpty())
 			{
-				Ar.Logf(TEXT("  > %s"), *RemoteEndpoint);
+				Ar.Logf(TEXT("    Unicast Endpoint: %s (default)"), *FIPv4Endpoint::Any.ToString());
+			}
+			else
+			{
+				Ar.Logf(TEXT("    Unicast Endpoint: %s"), *Settings->TunnelUnicastEndpoint);
 			}
 
+			if (Settings->TunnelMulticastEndpoint.IsEmpty())
+			{
+				Ar.Logf(TEXT("    Multicast Endpoint: %s (default)"), *UDP_MESSAGING_DEFAULT_MULTICAST_ENDPOINT.ToString());
+			}
+			else
+			{
+				Ar.Logf(TEXT("    Multicast Endpoint: %s"), *Settings->TunnelMulticastEndpoint);
+			}
+
+			if (Settings->RemoteTunnelEndpoints.Num() > 0)
+			{
+				Ar.Log(TEXT("    Remote Endpoints:"));
+
+				for (const auto& RemoteEndpoint : Settings->RemoteTunnelEndpoints)
+				{
+					Ar.Logf(TEXT("        %s"), *RemoteEndpoint);
+				}
+			}
+			else
+			{
+				Ar.Log(TEXT("    Remote Endpoints: None"));
+			}
+
+			// tunnel performance
 			if (MessageTunnel.IsValid())
 			{
-				Ar.Logf(TEXT("  Total Bytes In: %i"), MessageTunnel->GetTotalInboundBytes());
-				Ar.Logf(TEXT("  Total Bytes Out: %i"), MessageTunnel->GetTotalOutboundBytes());
+				Ar.Logf(TEXT("    Total Bytes In: %i"), MessageTunnel->GetTotalInboundBytes());
+				Ar.Logf(TEXT("    Total Bytes Out: %i"), MessageTunnel->GetTotalOutboundBytes());
 
 				TArray<TSharedPtr<IUdpMessageTunnelConnection>> Connections;
 			
@@ -365,36 +409,30 @@ protected:
 	/**
 	 * Checks whether networked message transport is supported.
 	 *
-	 * @todo udpmessaging: gmp: this should be moved into an Engine module, so it can be shared with other transports
 	 * @return true if networked transport is supported, false otherwise.
 	 */
 	bool SupportsNetworkedTransport() const
 	{
-		if (FApp::IsGame())
+		// disallow unsupported platforms
+		if (!FPlatformMisc::SupportsMessaging())
 		{
-			// only allow in Debug and Development configurations for now
-			if ((FApp::GetBuildConfiguration() == EBuildConfigurations::Shipping) || (FApp::GetBuildConfiguration() == EBuildConfigurations::Test))
-			{
-				return false;
-			}
-
-			// disallow unsupported platforms
-			if (!FPlatformMisc::SupportsMessaging() || !FPlatformProcess::SupportsMultithreading())
-			{
-				return false;
-			}
+			return false;
 		}
 
-		if (FApp::IsGame() || IsRunningCommandlet())
+		// single thread support not implemented yet
+		if (!FPlatformProcess::SupportsMultithreading())
 		{
-			// only allow UDP transport if explicitly desired
-			if (!FParse::Param(FCommandLine::Get(), TEXT("Messaging")))
-			{
-				return false;
-			}
+			return false;
 		}
 
-		return true;
+		// always allow in standalone Slate applications
+		if (!FApp::IsGame() && !IsRunningCommandlet())
+		{
+			return true;
+		}
+
+		// otherwise only allow if explicitly desired
+		return FParse::Param(FCommandLine::Get(), TEXT("Messaging"));
 	}
 
 	/** Shuts down the message bridge. */

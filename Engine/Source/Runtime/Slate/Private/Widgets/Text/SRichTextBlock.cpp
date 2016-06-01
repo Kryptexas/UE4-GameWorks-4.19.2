@@ -9,6 +9,16 @@
 #include "IRichTextMarkupParser.h"
 #include "RichTextMarkupProcessing.h"
 #include "RichTextLayoutMarshaller.h"
+#include "ReflectionMetadata.h"
+
+SRichTextBlock::SRichTextBlock()
+{
+}
+
+SRichTextBlock::~SRichTextBlock()
+{
+	// Needed to avoid "deletion of pointer to incomplete type 'FTextBlockLayout'; no destructor called" error when using TUniquePtr
+}
 
 void SRichTextBlock::Construct( const FArguments& InArgs )
 {
@@ -18,6 +28,7 @@ void SRichTextBlock::Construct( const FArguments& InArgs )
 	TextStyle = *InArgs._TextStyle;
 	WrapTextAt = InArgs._WrapTextAt;
 	AutoWrapText = InArgs._AutoWrapText;
+	WrappingPolicy = InArgs._WrappingPolicy;
 	Margin = InArgs._Margin;
 	LineHeightPercentage = InArgs._LineHeightPercentage;
 	Justification = InArgs._Justification;
@@ -29,13 +40,19 @@ void SRichTextBlock::Construct( const FArguments& InArgs )
 			Parser = FDefaultRichTextMarkupParser::Create();
 		}
 
-		TSharedRef<FRichTextLayoutMarshaller> Marshaller = FRichTextLayoutMarshaller::Create(Parser, nullptr, InArgs._Decorators, InArgs._DecoratorStyleSet);
-		for ( const TSharedRef< ITextDecorator >& Decorator : InArgs.InlineDecorators )
+		TSharedPtr<FRichTextLayoutMarshaller> Marshaller = InArgs._Marshaller;
+		if (!Marshaller.IsValid())
 		{
-			Marshaller->AppendInlineDecorator( Decorator );
+			Marshaller = FRichTextLayoutMarshaller::Create(Parser, nullptr, InArgs._Decorators, InArgs._DecoratorStyleSet);
+		}
+		
+		for (const TSharedRef< ITextDecorator >& Decorator : InArgs.InlineDecorators)
+		{
+			Marshaller->AppendInlineDecorator(Decorator);
 		}
 
-		TextLayoutCache = FTextBlockLayout::Create(TextStyle, InArgs._TextShapingMethod, InArgs._TextFlowDirection, Marshaller, nullptr);
+		TextLayoutCache = MakeUnique<FTextBlockLayout>(TextStyle, InArgs._TextShapingMethod, InArgs._TextFlowDirection, Marshaller.ToSharedRef(), nullptr);
+		TextLayoutCache->SetDebugSourceInfo(TAttribute<FString>::Create(TAttribute<FString>::FGetter::CreateLambda([this]{ return FReflectionMetaData::GetWidgetDebugInfo(this); })));
 	}
 }
 
@@ -51,7 +68,7 @@ FVector2D SRichTextBlock::ComputeDesiredSize(float LayoutScaleMultiplier) const
 {
 	// ComputeDesiredSize will also update the text layout cache if required
 	const FVector2D TextSize = TextLayoutCache->ComputeDesiredSize(
-		FTextBlockLayout::FWidgetArgs(BoundText, HighlightText, WrapTextAt, AutoWrapText, Margin, LineHeightPercentage, Justification), 
+		FTextBlockLayout::FWidgetArgs(BoundText, HighlightText, WrapTextAt, AutoWrapText, WrappingPolicy, Margin, LineHeightPercentage, Justification),
 		LayoutScaleMultiplier, TextStyle
 		);
 
@@ -104,6 +121,12 @@ void SRichTextBlock::SetAutoWrapText(const TAttribute<bool>& InAutoWrapText)
 	Invalidate(EInvalidateWidget::Layout);
 }
 
+void SRichTextBlock::SetWrappingPolicy(const TAttribute<ETextWrappingPolicy>& InWrappingPolicy)
+{
+	WrappingPolicy = InWrappingPolicy;
+	Invalidate(EInvalidateWidget::Layout);
+}
+
 void SRichTextBlock::SetLineHeightPercentage(const TAttribute<float>& InLineHeightPercentage)
 {
 	LineHeightPercentage = InLineHeightPercentage;
@@ -119,6 +142,12 @@ void SRichTextBlock::SetMargin(const TAttribute<FMargin>& InMargin)
 void SRichTextBlock::SetJustification(const TAttribute<ETextJustify::Type>& InJustification)
 {
 	Justification = InJustification;
+	Invalidate(EInvalidateWidget::Layout);
+}
+
+void SRichTextBlock::SetTextStyle(const FTextBlockStyle& InTextStyle)
+{
+	TextStyle = InTextStyle;
 	Invalidate(EInvalidateWidget::Layout);
 }
 

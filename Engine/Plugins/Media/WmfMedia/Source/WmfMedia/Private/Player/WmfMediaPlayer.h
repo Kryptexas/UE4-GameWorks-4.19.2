@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "IWmfMediaResolverCallbacks.h"
 #include "AllowWindowsPlatformTypes.h"
 
 
@@ -9,8 +10,10 @@
  * Implements a media player using the Windows Media Foundation framework.
  */
 class FWmfMediaPlayer
-	: public IMediaInfo
+	: public FTickerObjectBase
+	, public IMediaInfo
 	, public IMediaPlayer
+	, protected IWmfMediaResolverCallbacks
 {
 public:
 
@@ -19,6 +22,12 @@ public:
 
 	/** Destructor. */
 	~FWmfMediaPlayer();
+
+public:
+
+	//~ FTickerObjectBase interface
+
+	virtual bool Tick(float DeltaTime) override;
 
 public:
 
@@ -57,6 +66,13 @@ public:
 	{
 		return MediaEvent;
 	}
+
+protected:
+
+	// IWmfMediaResolverCallbacks interface
+
+	virtual void ProcessResolveComplete(TComPtr<IUnknown> SourceObject, FString ResolvedUrl) override;
+	virtual void ProcessResolveFailed(FString FailedUrl) override;
 
 protected:
 
@@ -113,6 +129,9 @@ private:
 
 	/** The media source resolver. */
 	TComPtr<FWmfMediaResolver> Resolver;
+
+	/** Queued up asynchronous tasks. */
+	TQueue<TFunction<void()>> Tasks;
 
 	/** The available video tracks. */
 	TArray<IMediaVideoTrackRef> VideoTracks;

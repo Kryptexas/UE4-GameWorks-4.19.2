@@ -33,7 +33,7 @@ public:
 
 protected:
 	/** Called when the status of specified tracked stat has changed. */
-	void ProfilerManager_OnTrackedStatChanged( const FTrackedStat& TrackedStat, bool bIsTracked );
+	void ProfilerManager_OnTrackedStatChanged( const FTrackedStatPtr& TrackedStat, bool bIsTracked );
 
 	/**
 	 * Called when the user scrolls the scrollbar

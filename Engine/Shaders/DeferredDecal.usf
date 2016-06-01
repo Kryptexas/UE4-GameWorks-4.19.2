@@ -17,6 +17,13 @@ float4x4 DecalToWorld;
 // to transform position from world space to decal space, for normals use transpose of inverse
 float4x4 WorldToDecal;
 
+// DECAL_PRIMITIVE informs material templates which functions to expose when rendering decals.
+#define DECAL_PRIMITIVE 1
+
+// x - Fade alpha from screen size fading
+// y - Opacity over the lifetime of the decal. 1 -> 0
+float2 DecalParams;
+
 #if DECAL_PROJECTION
 	#include "Material.usf"
 #endif
@@ -25,8 +32,6 @@ float4x4 WorldToDecal;
 
 // from component to clip space (for decal frustum)
 float4x4 FrustumComponentToClip;
-// fade alpha from screen size fading
-float FadeAlpha;
 
 half3 FrameBufferDecalBlendOp(half4 Source)
 {
@@ -293,8 +298,20 @@ void MainPS(
 			// not normalized
 			float3 OSNormal = GradientNotNormalized(SvPosition, OSPosition, HitT);
 			
-			// not normalized
-			float3 WSNormal = mul(float4(OSNormal, 0), transpose(WorldToDecal)).xyz;
+			// To transform the normals use tranpose(Inverse(DecalToWorld)) = transpose(WorldToDecal)
+			// But we want to only rotate the normals (we don't want to non-uniformaly scale them).
+			// We assume the matrix is only a scale and rotation, and we remove non-uniform scale:
+			float3 lengthSqr = { length2(DecalToWorld._m00_m01_m02),
+				length2(DecalToWorld._m10_m11_m12),
+				length2(DecalToWorld._m20_m21_m22) };
+
+			float3 scale = rsqrt(lengthSqr);
+
+			// Pre-multiply by the inverse of the non-uniform scale in DecalToWorld
+		    float4 ScaledNormal = float4(OSNormal.xyz * scale.xyz, 0.f); 
+		    float3 WSNormal = mul(ScaledNormal, DecalToWorld).xyz;
+
+			// need to normalized
 
 			MaterialParameters.WorldNormal = normalize(WSNormal);
 		}
@@ -305,9 +322,23 @@ void MainPS(
 
 			// tangent/decal space to world space
 #if MATERIAL_TANGENTSPACENORMAL
-			// normals are transformed by the tranposed of the inverse
-			// DecalToWorld becomes transpose(WorldToDecal)
-			MaterialParameters.WorldNormal = normalize(mul(float4(-MaterialNormal.z, MaterialNormal.y, MaterialNormal.x, 0), transpose(WorldToDecal)).xyz);
+
+	
+			// To transform the normals use tranpose(Inverse(DecalToWorld)) = transpose(WorldToDecal)
+			// But we want to only rotate the normals (we don't want to non-uniformaly scale them).
+			// We assume the matrix is only a scale and rotation, and we remove non-uniform scale:
+			float3 lengthSqr = { length2(DecalToWorld._m00_m01_m02),
+					             length2(DecalToWorld._m10_m11_m12),
+					             length2(DecalToWorld._m20_m21_m22) };
+
+			float3 scale = rsqrt(lengthSqr);
+				
+			// Pre-multiply by the inverse of the non-uniform scale in DecalToWorld
+			float4 ScaledNormal = { -MaterialNormal.z * scale.x, MaterialNormal.y * scale.y, MaterialNormal.x * scale.z, 0.f };
+				
+			// Compute the normal 
+			MaterialParameters.WorldNormal = normalize(mul(ScaledNormal, DecalToWorld).xyz);
+
 #else
 			MaterialParameters.WorldNormal = normalize(MaterialNormal);
 #endif
@@ -346,7 +377,7 @@ void MainPS(
 	// Z fade
 	Opacity *= saturate( 4 - 4 * abs( SwizzlePos.z * 2 - 1 ) );
 
-	Opacity *= FadeAlpha;
+	Opacity *= DecalParams.x;
 
 	// RETURN_COLOR not needed unless writing to SceneColor
 	OutTarget0 = float4(Color, Opacity);
@@ -378,6 +409,7 @@ void MainPS(
 	Data.PrecomputedShadowFactors = 0;
 	Data.GBufferAO = 1;
 	Data.ShadingModelID = SHADINGMODELID_DEFAULT_LIT;
+	Data.SelectiveOutputMask = 0;
 	Data.PerObjectGBufferData = 1;
 
 	#if DECAL_RENDERSTAGE == 0

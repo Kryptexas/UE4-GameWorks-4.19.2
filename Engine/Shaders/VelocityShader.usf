@@ -9,10 +9,6 @@
 #include "VertexFactory.usf"
 #include "VelocityCommon.usf"
 
-#ifndef GPUSKIN_PASS_THROUGH
-#define GPUSKIN_PASS_THROUGH 0
-#endif
-
 // Move all geometry a little bit towards the camera to not get z fighting with existing depth
 // buffer of the same meshes rendered with slightly different float computations.
 // This is a positive number as our z buffer is inverted for better precision.
@@ -114,19 +110,16 @@ struct FVelocityVSToPS
 
 void MainVertexShader(
 	FVertexFactoryInput Input,
-#if GPUSKIN_PASS_THROUGH
-	uint VertexID : SV_VertexID,
-#else
 	OPTIONAL_VertexID
+	out FVertexOutput Output 
+#if USE_GLOBAL_CLIP_PLANE && !USING_TESSELLATION
+	, out float OutGlobalClipPlaneDistance : SV_ClipDistance
 #endif
-	out FVertexOutput Output )
+	)
 {
 	ResolvedView = ResolveView();
 	
 	FVertexFactoryIntermediates VFIntermediates = GetVertexFactoryIntermediates(Input);
-#if GPUSKIN_PASS_THROUGH
-	VFIntermediates.VertexID = VertexID;
-#endif
 	float4 TranslatedWorldPosition = VertexFactoryGetWorldPosition( Input, VFIntermediates );
 	float3x3 TangentToLocal = VertexFactoryGetTangentToLocal( Input, VFIntermediates );
 
@@ -145,7 +138,6 @@ void MainVertexShader(
 	Output.Interps.FactoryInterpolants = VertexFactoryGetInterpolants( Input, VFIntermediates, VertexParameters );
 #endif // #if USING_TESSELLATION
 	float4 PrevTranslatedWorldPosition = VertexFactoryGetPreviousWorldPosition( Input, VFIntermediates );	
-
 	VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, PrevTranslatedWorldPosition.xyz, TangentToLocal);
 	PrevTranslatedWorldPosition.xyz += GetMaterialPreviousWorldPositionOffset(VertexParameters);
 	
@@ -166,6 +158,10 @@ void MainVertexShader(
 #if !USING_TESSELLATION
 			Output.Position = ScreenPos;
 		}
+#endif
+
+#if USE_GLOBAL_CLIP_PLANE && !USING_TESSELLATION
+		OutGlobalClipPlaneDistance = dot(ResolvedView.GlobalClippingPlane, float4(TranslatedWorldPosition.xyz - ResolvedView.PreViewTranslation.xyz, 1));
 #endif
 
 		Output.Interps.PackedVelocityA = ScreenPos;

@@ -17,7 +17,9 @@
 // Copies into render target, optionally flipping it in the Y-axis
 static void CopyCaptureToTarget(FRHICommandListImmediate& RHICmdList, const FRenderTarget* Target, const FIntPoint& TargetSize, FViewInfo& View, const FIntRect& ViewRect, FTextureRHIParamRef SourceTextureRHI, bool bNeedsFlippedRenderTarget)
 {
-	SetRenderTarget(RHICmdList, Target->GetRenderTargetTexture(), NULL);
+	FRHIRenderTargetView ColorView(Target->GetRenderTargetTexture(), 0, -1, ERenderTargetLoadAction::ENoAction, ERenderTargetStoreAction::EStore);
+	FRHISetRenderTargetsInfo Info(1, &ColorView, FRHIDepthRenderTargetView());
+	RHICmdList.SetRenderTargetsAndClear(Info);
 
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
@@ -61,7 +63,7 @@ static void CopyCaptureToTarget(FRHICommandListImmediate& RHICmdList, const FRen
 	}
 }
 
-static void UpdateSceneCaptureContent_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneRenderer* SceneRenderer, FTextureRenderTargetResource* TextureRenderTarget, const FName OwnerName, const FResolveParams& ResolveParams, bool bUseSceneColorTexture)
+static void UpdateSceneCaptureContent_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneRenderer* SceneRenderer, FRenderTarget* RenderTarget, FTexture* RenderTargetTexture, const FName OwnerName, const FResolveParams& ResolveParams, bool bUseSceneColorTexture)
 {
 	FMemMark MemStackMark(FMemStack::Get());
 
@@ -89,9 +91,9 @@ static void UpdateSceneCaptureContent_RenderThread(FRHICommandListImmediate& RHI
 		if (bNeedsFlippedRenderTarget)
 		{
 			// We need to use an intermediate render target since the result will be flipped
-			auto& RenderTarget = Target->GetRenderTargetTexture();
+			auto& RenderTargetRHI = Target->GetRenderTargetTexture();
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(Target->GetSizeXY(), 
-				RenderTarget.GetReference()->GetFormat(), 
+				RenderTargetRHI.GetReference()->GetFormat(), 
 				FClearValueBinding::None,
 				TexCreate_None, 
 				TexCreate_RenderTargetable,
@@ -129,7 +131,9 @@ static void UpdateSceneCaptureContent_RenderThread(FRHICommandListImmediate& RHI
 				// Hijack the render target
 				SceneRenderer->ViewFamily.RenderTarget = &FlippedRenderTarget; //-V506
 			}
+
 			SceneRenderer->Render(RHICmdList);
+
 			if (bNeedsFlippedRenderTarget)
 			{
 				// And restore it
@@ -151,25 +155,76 @@ static void UpdateSceneCaptureContent_RenderThread(FRHICommandListImmediate& RHI
 			CopyCaptureToTarget(RHICmdList, Target, TargetSize, View, ViewRect, FSceneRenderTargets::Get(RHICmdList).GetSceneColorTexture(), false);
 		}
 
-		RHICmdList.CopyToResolveTarget(TextureRenderTarget->GetRenderTargetTexture(), TextureRenderTarget->TextureRHI, false, ResolveParams);
+		RHICmdList.CopyToResolveTarget(RenderTarget->GetRenderTargetTexture(), RenderTargetTexture->TextureRHI, false, ResolveParams);
 	}
 	FSceneRenderer::WaitForTasksClearSnapshotsAndDeleteSceneRenderer(RHICmdList, SceneRenderer);
 }
 
-
-FSceneRenderer* FScene::CreateSceneRenderer( USceneCaptureComponent* SceneCaptureComponent, UTextureRenderTarget* TextureTarget, const FMatrix& ViewRotationMatrix, const FVector& ViewLocation, float FOV, float MaxViewDistance, bool bCaptureSceneColour, FPostProcessSettings* PostProcessSettings, float PostProcessBlendWeight )
+void BuildProjectionMatrix(FIntPoint RenderTargetSize, float FOV, FMatrix& ProjectionMatrix)
 {
-	FIntPoint CaptureSize(TextureTarget->GetSurfaceWidth(), TextureTarget->GetSurfaceHeight());
+	float XAxisMultiplier;
+	float YAxisMultiplier;
 
-	FTextureRenderTargetResource* Resource = TextureTarget->GameThread_GetRenderTargetResource();
+	if (RenderTargetSize.X > RenderTargetSize.Y)
+	{
+		// if the viewport is wider than it is tall
+		XAxisMultiplier = 1.0f;
+		YAxisMultiplier = RenderTargetSize.X / (float)RenderTargetSize.Y;
+	}
+	else
+	{
+		// if the viewport is taller than it is wide
+		XAxisMultiplier = RenderTargetSize.Y / (float)RenderTargetSize.X;
+		YAxisMultiplier = 1.0f;
+	}
+
+	if ((int32)ERHIZBuffer::IsInverted != 0)
+	{
+		ProjectionMatrix = FReversedZPerspectiveMatrix(
+			FOV,
+			FOV,
+			XAxisMultiplier,
+			YAxisMultiplier,
+			GNearClippingPlane,
+			GNearClippingPlane
+			);
+	}
+	else
+	{
+		ProjectionMatrix = FPerspectiveMatrix(
+			FOV,
+			FOV,
+			XAxisMultiplier,
+			YAxisMultiplier,
+			GNearClippingPlane,
+			GNearClippingPlane
+			);
+	}
+}
+
+FSceneRenderer* CreateSceneRendererForSceneCapture(
+	FScene* Scene, 
+	USceneCaptureComponent* SceneCaptureComponent, 
+	FRenderTarget* RenderTarget, 
+	FIntPoint RenderTargetSize, 
+	const FMatrix& ViewRotationMatrix, 
+	const FVector& ViewLocation, 
+	const FMatrix& ProjectionMatrix, 
+	float MaxViewDistance, 
+	bool bCaptureSceneColour, 
+	bool bIsPlanarReflection,
+	FPostProcessSettings* PostProcessSettings, 
+	float PostProcessBlendWeight)
+{
 	FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
-		Resource,
-		this,
+		RenderTarget,
+		Scene,
 		SceneCaptureComponent->ShowFlags)
-		.SetResolveScene(!bCaptureSceneColour));
+		.SetResolveScene(!bCaptureSceneColour)
+		.SetRealtimeUpdate(bIsPlanarReflection));
 
 	FSceneViewInitOptions ViewInitOptions;
-	ViewInitOptions.SetViewRectangle(FIntRect(0, 0, CaptureSize.X, CaptureSize.Y));
+	ViewInitOptions.SetViewRectangle(FIntRect(0, 0, RenderTargetSize.X, RenderTargetSize.Y));
 	ViewInitOptions.ViewFamily = &ViewFamily;
 	ViewInitOptions.ViewOrigin = ViewLocation;
 	ViewInitOptions.ViewRotationMatrix = ViewRotationMatrix;
@@ -177,6 +232,7 @@ FSceneRenderer* FScene::CreateSceneRenderer( USceneCaptureComponent* SceneCaptur
 	ViewInitOptions.OverrideFarClippingPlaneDistance = MaxViewDistance;
 	ViewInitOptions.SceneViewStateInterface = SceneCaptureComponent->GetViewState();
     ViewInitOptions.StereoPass = SceneCaptureComponent->CaptureStereoPass;
+	ViewInitOptions.ProjectionMatrix = ProjectionMatrix;
 
 	if (bCaptureSceneColour)
 	{
@@ -184,51 +240,11 @@ FSceneRenderer* FScene::CreateSceneRenderer( USceneCaptureComponent* SceneCaptur
 		ViewInitOptions.OverlayColor = FLinearColor::Black;
 	}
 
-	// Build projection matrix
-	{
-		float XAxisMultiplier;
-		float YAxisMultiplier;
-
-		if (CaptureSize.X > CaptureSize.Y)
-		{
-			// if the viewport is wider than it is tall
-			XAxisMultiplier = 1.0f;
-			YAxisMultiplier = CaptureSize.X / (float)CaptureSize.Y;
-		}
-		else
-		{
-			// if the viewport is taller than it is wide
-			XAxisMultiplier = CaptureSize.Y / (float)CaptureSize.X;
-			YAxisMultiplier = 1.0f;
-		}
-
-		if ((int32)ERHIZBuffer::IsInverted != 0)
-		{
-			ViewInitOptions.ProjectionMatrix = FReversedZPerspectiveMatrix(
-				FOV,
-				FOV,
-				XAxisMultiplier,
-				YAxisMultiplier,
-				GNearClippingPlane,
-				GNearClippingPlane
-				);
-		}
-		else
-		{
-			ViewInitOptions.ProjectionMatrix = FPerspectiveMatrix(
-				FOV,
-				FOV,
-				XAxisMultiplier,
-				YAxisMultiplier,
-				GNearClippingPlane,
-				GNearClippingPlane
-				);
-		}
-	}
-
 	FSceneView* View = new FSceneView(ViewInitOptions);
 
 	View->bIsSceneCapture = true;
+	// Note: this has to be set before EndFinalPostprocessSettings
+	View->bIsPlanarReflection = bIsPlanarReflection;
 
 	check(SceneCaptureComponent);
 	for (auto It = SceneCaptureComponent->HiddenComponents.CreateConstIterator(); It; ++It)
@@ -238,6 +254,16 @@ FSceneRenderer* FScene::CreateSceneRenderer( USceneCaptureComponent* SceneCaptur
 		if (PrimitiveComponent)
 		{
 			View->HiddenPrimitives.Add(PrimitiveComponent->ComponentId);
+		}
+	}
+
+	for (auto It = SceneCaptureComponent->ShowOnlyComponents.CreateConstIterator(); It; ++It)
+	{
+		// If the primitive component was destroyed, the weak pointer will return NULL.
+		UPrimitiveComponent* PrimitiveComponent = It->Get();
+		if (PrimitiveComponent)
+		{
+			View->ShowOnlyPrimitives.Add(PrimitiveComponent->ComponentId);
 		}
 	}
 
@@ -265,25 +291,30 @@ void FScene::UpdateSceneCaptureContents(USceneCaptureComponent2D* CaptureCompone
 
 		// swap axis st. x=z,y=x,z=y (unreal coord space) so that z is up
 		ViewRotationMatrix = ViewRotationMatrix * FMatrix(
-			FPlane(0,	0,	1,	0),
-			FPlane(1,	0,	0,	0),
-			FPlane(0,	1,	0,	0),
-			FPlane(0,	0,	0,	1));
+			FPlane(0, 0, 1, 0),
+			FPlane(1, 0, 0, 0),
+			FPlane(0, 1, 0, 0),
+			FPlane(0, 0, 0, 1));
 		const float FOV = CaptureComponent->FOVAngle * (float)PI / 360.0f;
 		const bool bUseSceneColorTexture = CaptureComponent->CaptureSource == SCS_SceneColorHDR;
-		FSceneRenderer* SceneRenderer = CreateSceneRenderer(CaptureComponent, CaptureComponent->TextureTarget, ViewRotationMatrix , ViewLocation, FOV, CaptureComponent->MaxViewDistanceOverride, bUseSceneColorTexture, &CaptureComponent->PostProcessSettings, CaptureComponent->PostProcessBlendWeight);
+		FIntPoint CaptureSize(CaptureComponent->TextureTarget->GetSurfaceWidth(), CaptureComponent->TextureTarget->GetSurfaceHeight());
 
+		FMatrix ProjectionMatrix;
+		BuildProjectionMatrix(CaptureSize, FOV, ProjectionMatrix);
+
+		FSceneRenderer* SceneRenderer = CreateSceneRendererForSceneCapture(this, CaptureComponent, CaptureComponent->TextureTarget->GameThread_GetRenderTargetResource(), CaptureSize, ViewRotationMatrix, ViewLocation, ProjectionMatrix, CaptureComponent->MaxViewDistanceOverride, bUseSceneColorTexture, false, &CaptureComponent->PostProcessSettings, CaptureComponent->PostProcessBlendWeight);
+				
 		FTextureRenderTargetResource* TextureRenderTarget = CaptureComponent->TextureTarget->GameThread_GetRenderTargetResource();
 		const FName OwnerName = CaptureComponent->GetOwner() ? CaptureComponent->GetOwner()->GetFName() : NAME_None;
 
-		ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER( 
+		ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
 			CaptureCommand,
 			FSceneRenderer*, SceneRenderer, SceneRenderer,
 			FTextureRenderTargetResource*, TextureRenderTarget, TextureRenderTarget,
 			FName, OwnerName, OwnerName,
-			bool, bUseSceneColorTexture, bUseSceneColorTexture,
+			bool, bUseSceneColorTexture, bUseSceneColorTexture, 
 		{
-			UpdateSceneCaptureContent_RenderThread(RHICmdList, SceneRenderer, TextureRenderTarget, OwnerName, FResolveParams(), bUseSceneColorTexture);
+			UpdateSceneCaptureContent_RenderThread(RHICmdList, SceneRenderer, TextureRenderTarget, TextureRenderTarget, OwnerName, FResolveParams(), bUseSceneColorTexture);
 		});
 	}
 }
@@ -342,21 +373,24 @@ void FScene::UpdateSceneCaptureContents(USceneCaptureComponentCube* CaptureCompo
 			const ECubeFace TargetFace = (ECubeFace)faceidx;
 			const FVector Location = CaptureComponent->GetComponentToWorld().GetTranslation();
 			const FMatrix ViewRotationMatrix = FLocal::CalcCubeFaceTransform(TargetFace);
-			FSceneRenderer* SceneRenderer = CreateSceneRenderer(CaptureComponent, CaptureComponent->TextureTarget, ViewRotationMatrix, Location, FOV, CaptureComponent->MaxViewDistanceOverride);
+			FIntPoint CaptureSize(CaptureComponent->TextureTarget->GetSurfaceWidth(), CaptureComponent->TextureTarget->GetSurfaceHeight());
+			FMatrix ProjectionMatrix;
+			BuildProjectionMatrix(CaptureSize, FOV, ProjectionMatrix);
+
+			FSceneRenderer* SceneRenderer = CreateSceneRendererForSceneCapture(this, CaptureComponent, CaptureComponent->TextureTarget->GameThread_GetRenderTargetResource(), CaptureSize, ViewRotationMatrix, Location, ProjectionMatrix, CaptureComponent->MaxViewDistanceOverride, true, false, NULL, 0);
 
 			FTextureRenderTargetCubeResource* TextureRenderTarget = static_cast<FTextureRenderTargetCubeResource*>(CaptureComponent->TextureTarget->GameThread_GetRenderTargetResource());
 			const FName OwnerName = CaptureComponent->GetOwner() ? CaptureComponent->GetOwner()->GetFName() : NAME_None;
 
-			ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER( 
+			ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
 				CaptureCommand,
 				FSceneRenderer*, SceneRenderer, SceneRenderer,
 				FTextureRenderTargetCubeResource*, TextureRenderTarget, TextureRenderTarget,
 				FName, OwnerName, OwnerName,
 				ECubeFace, TargetFace, TargetFace,
 			{
-				UpdateSceneCaptureContent_RenderThread(RHICmdList, SceneRenderer, TextureRenderTarget, OwnerName, FResolveParams(FResolveRect(), TargetFace), true);
+				UpdateSceneCaptureContent_RenderThread(RHICmdList, SceneRenderer, TextureRenderTarget, TextureRenderTarget, OwnerName, FResolveParams(FResolveRect(), TargetFace), true);
 			});
 		}
 	}
 }
-

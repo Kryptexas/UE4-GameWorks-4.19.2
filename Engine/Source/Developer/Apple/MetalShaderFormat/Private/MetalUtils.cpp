@@ -35,7 +35,7 @@ static int GetIndexSuffix(const char* Prefix, int PrefixLength, const char* Sema
 	{
 		Semantic += PrefixLength;
 		int Index = 0;
-		if (isdigit(*Semantic))
+		if (isdigit((unsigned char)*Semantic))
 		{
 			Index = (*Semantic) - '0';
 
@@ -44,7 +44,7 @@ static int GetIndexSuffix(const char* Prefix, int PrefixLength, const char* Sema
 			{
 				return Index;
 			}
-			else if (isdigit(*Semantic))
+			else if (isdigit((unsigned char)*Semantic))
 			{
 				Index = Index * 10 + (*Semantic) - '0';
 				++Semantic;
@@ -2261,6 +2261,8 @@ struct FMetalBreakPrecisionChangesVisitor : public ir_rvalue_visitor
 		auto* RValue = *RValuePtr;
 		auto* Expression = RValue->as_expression();
 		auto* Constant = RValue->as_constant();
+		auto* DeRef = RValue->as_dereference();
+		auto* DeRefImage = RValue->as_dereference_image();
 		if (Expression)
 		{
 			switch (Expression->operation)
@@ -2279,6 +2281,20 @@ struct FMetalBreakPrecisionChangesVisitor : public ir_rvalue_visitor
 			if (Constant->type->base_type == GLSL_TYPE_HALF)
 			{
 				bGenerateNewVar = true;
+			}
+		}
+		else if (DeRefImage)
+		{
+			auto* Var = DeRef->variable_referenced();
+			if (!in_assignee && Var && Var->type && Var->type->is_image())
+			{
+				// RW indices have to be unsigned
+				if (DeRefImage->image_index->type && DeRefImage->image_index->type->base_type == GLSL_TYPE_INT)
+				{
+					auto* NewType = glsl_type::get_instance(GLSL_TYPE_UINT, DeRefImage->image_index->type->vector_elements, DeRefImage->image_index->type->matrix_columns);
+					auto* NewExpression = new(State) ir_expression(ir_unop_i2u, NewType, DeRefImage->image_index);
+					DeRefImage->image_index = NewExpression;
+				}
 			}
 		}
 

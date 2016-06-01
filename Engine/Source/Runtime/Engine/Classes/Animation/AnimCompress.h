@@ -8,7 +8,58 @@
  */
 
 #include "AnimSequence.h"
+#include "AnimationUtils.h"
 #include "AnimCompress.generated.h"
+
+
+//Helper function for ddc key generation
+uint8 MakeBitForFlag(uint32 Item, uint32 Position);
+
+class ENGINE_API FCompressionMemorySummary
+{
+public:
+	FCompressionMemorySummary(bool bInEnabled);
+
+	void GatherPreCompressionStats(UAnimSequence* Seq, int32 ProgressNumerator, int32 ProgressDenominator);
+
+	void GatherPostCompressionStats(UAnimSequence* Seq, TArray<FBoneData>& BoneData);
+
+	~FCompressionMemorySummary();
+
+private:
+	bool bEnabled;
+	bool bUsed;
+	int32 TotalRaw;
+	int32 TotalBeforeCompressed;
+	int32 TotalAfterCompressed;
+
+	float ErrorTotal;
+	float ErrorCount;
+	float AverageError;
+	float MaxError;
+	float MaxErrorTime;
+	int32 MaxErrorBone;
+	FName MaxErrorBoneName;
+	FName MaxErrorAnimName;
+};
+
+//////////////////////////////////////////////////////////////////////////
+// FAnimCompressContext - Context information / storage for use during
+// animation compression
+struct ENGINE_API FAnimCompressContext
+{
+	FCompressionMemorySummary	CompressionSummary;
+	uint32						AnimIndex;
+	uint32						MaxAnimations;
+	bool						bAllowAlternateCompressor;
+	bool						bOutput;
+
+	FAnimCompressContext(bool bInAllowAlternateCompressor, bool bInOutput, uint32 InMaxAnimations = 1) : CompressionSummary(bInOutput), AnimIndex(0), MaxAnimations(InMaxAnimations), bAllowAlternateCompressor(bInAllowAlternateCompressor), bOutput(bInOutput) {}
+
+	void GatherPreCompressionStats(UAnimSequence* Seq);
+
+	void GatherPostCompressionStats(UAnimSequence* Seq, TArray<FBoneData>& BoneData);
+};
 
 UCLASS(abstract, hidecategories=Object, MinimalAPI, EditInlineNew)
 class UAnimCompress : public UObject
@@ -53,7 +104,7 @@ public:
 	 * @param	bOutput			If false don't generate output or compute memory savings.
 	 * @return					false if a skeleton was needed by the algorithm but not provided.
 	 */
-	ENGINE_API bool Reduce(TArray<class UAnimSequence*> AnimSequences, bool bOutput);
+	ENGINE_API bool Reduce(class UAnimSequence* AnimSeq, FAnimCompressContext& Context);
 
 protected:
 	/**
@@ -266,6 +317,11 @@ public:
 		const TArray<FRotationTrack>& RotationData,
 		const TArray<FScaleTrack>& ScaleData,
 		bool IncludeKeyTable = false);
+
+	FString MakeDDCKey();
+
+protected:
+	virtual void PopulateDDCKey(FArchive& Ar);
 };
 
 

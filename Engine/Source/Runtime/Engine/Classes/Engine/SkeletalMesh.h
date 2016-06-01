@@ -466,7 +466,7 @@ struct FClothPhysicsProperties
 	float SelfCollisionStiffness;
 
 	// A computation parameter for the Solver.   Along with frame rate this probably specifies the number of solver iterations
-	UPROPERTY(EditAnywhere, Category = Solver, meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "1000.0"))
+	UPROPERTY(EditAnywhere, Category = Solver, meta = (ClampMin = "1.0", UIMin = "1.0", UIMax = "1000.0"))
 	float SolverFrequency;
 
 
@@ -547,13 +547,15 @@ struct FSkeletalMaterial
 	FSkeletalMaterial()
 		: MaterialInterface( NULL )
 		, bEnableShadowCasting( true )
+		, bRecomputeTangent( false )
 	{
 
 	}
 
-	FSkeletalMaterial( class UMaterialInterface* InMaterialInterface, bool bInEnableShadowCasting = true )
+	FSkeletalMaterial( class UMaterialInterface* InMaterialInterface, bool bInEnableShadowCasting = true, bool bInRecomputeTangent = false )
 		: MaterialInterface( InMaterialInterface )
 		, bEnableShadowCasting( bInEnableShadowCasting )
+		, bRecomputeTangent( bInRecomputeTangent )
 	{
 
 	}
@@ -568,6 +570,8 @@ struct FSkeletalMaterial
 	class UMaterialInterface *	MaterialInterface;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=SkeletalMesh, Category=SkeletalMesh)
 	bool						bEnableShadowCasting;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SkeletalMesh, Category = SkeletalMesh)
+	bool						bRecomputeTangent;
 };
 
 class FSkeletalMeshResource;
@@ -599,8 +603,52 @@ public:
 	UPROPERTY(Category=Mesh, AssetRegistrySearchable, VisibleAnywhere, BlueprintReadOnly)
 	USkeleton* Skeleton;
 
+private:
+	/** Original imported mesh bounds */
 	UPROPERTY(transient, duplicatetransient)
-	FBoxSphereBounds Bounds;
+	FBoxSphereBounds ImportedBounds;
+
+	/** Bounds extended by user values below */
+	UPROPERTY(transient, duplicatetransient)
+	FBoxSphereBounds ExtendedBounds;
+
+protected:
+	// The properties below are protected to force the use of the Set* methods for this data
+	// in code so we can keep the extended bounds up to date after changing the data.
+	// Property editors will trigger property events to correctly recalculate the extended bounds.
+
+	/** Bound extension values in the positive direction of XYZ, positive value increases bound size */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Mesh)
+	FVector PositiveBoundsExtension;
+
+	/** Bound extension values in the negative direction of XYZ, positive value increases bound size */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Mesh)
+	FVector NegativeBoundsExtension;
+
+public:
+
+	/** Get the extended bounds of this mesh (imported bounds plus bounds extension) */
+	UFUNCTION(BlueprintCallable, Category = Mesh)
+	ENGINE_API FBoxSphereBounds GetBounds();
+
+	/** Get the original imported bounds of the skel mesh */
+	UFUNCTION(BlueprintCallable, Category = Mesh)
+	ENGINE_API FBoxSphereBounds GetImportedBounds();
+
+	/** Set the original imported bounds of the skel mesh, will recalculate extended bounds */
+	ENGINE_API void SetImportedBounds(const FBoxSphereBounds& InBounds);
+
+	/** Set bound extension values in the positive direction of XYZ, positive value increases bound size */
+	ENGINE_API void SetPositiveBoundsExtension(const FVector& InExtension);
+
+	/** Set bound extension values in the negative direction of XYZ, positive value increases bound size */
+	ENGINE_API void SetNegativeBoundsExtension(const FVector& InExtension);
+
+	/** Calculate the extended bounds based on the imported bounds and the extension values */
+	void CalculateExtendedBounds();
+
+	/** Alters the bounds extension values to fit correctly into the current bounds (so negative values never extend the bounds etc.) */
+	void ValidateBoundsExtension();
 
 	/** List of materials applied to this mesh. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, transient, duplicatetransient, Category=SkeletalMesh)
@@ -748,6 +796,9 @@ private:
 	UPROPERTY()
 	TArray<class USkeletalMeshSocket*> Sockets;
 
+	/** Cached matrices from GetComposedRefPoseMatrix */
+	TArray<FMatrix> CachedComposedRefPoseMatrices;
+
 public:
 	/**
 	* Initialize the mesh's render resources.
@@ -785,6 +836,7 @@ public:
 #if WITH_EDITOR
 	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+
 	virtual void PostEditUndo() override;
 	virtual void GetAssetRegistryTagMetadata(TMap<FName, FAssetRegistryTagMetadata>& OutMetadata) const override;
 #endif // WITH_EDITOR
@@ -814,6 +866,22 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Animation")
 	ENGINE_API USkeletalMeshSocket* FindSocket(FName InSocketName) const;
+
+	/**
+	*	Find a socket object in this SkeletalMesh by name.
+	*	Entering NAME_None will return NULL. If there are multiple sockets with the same name, will return the first one.
+	*   Also returns the index for the socket allowing for future fast access via GetSocketByIndex()
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Animation")
+	ENGINE_API USkeletalMeshSocket* FindSocketAndIndex(FName InSocketName, int32& OutIndex) const;
+
+	/** Returns the number of sockets available. Both on this mesh and it's skeleton. */
+	UFUNCTION(BlueprintCallable, Category = "Animation")
+	ENGINE_API int32 NumSockets() const;
+
+	/** Returns a socket by index. Max index is NumSockets(). The meshes sockets are accessed first, then the skeletons.  */
+	UFUNCTION(BlueprintCallable, Category = "Animation")
+	ENGINE_API USkeletalMeshSocket* GetSocketByIndex(int32 Index) const;
 
 	// @todo document
 	ENGINE_API FMatrix GetRefPoseMatrix( int32 BoneIndex ) const;
@@ -968,6 +1036,7 @@ private:
 	* Test whether all the flags in an array are identical (could be moved to Array.h?)
 	*/
 	bool AreAllFlagsIdentical( const TArray<bool>& BoolArray ) const;
+
 };
 
 

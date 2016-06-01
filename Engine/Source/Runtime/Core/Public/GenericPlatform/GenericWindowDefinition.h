@@ -5,6 +5,7 @@
 #include "Containers/UnrealString.h"
 #include "HAL/Platform.h"
 #include "GenericApplicationMessageHandler.h"
+#include "StaticArray.h"
 
 
 #ifndef ALPHA_BLENDED_WINDOWS

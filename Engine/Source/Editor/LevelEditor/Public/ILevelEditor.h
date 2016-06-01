@@ -28,8 +28,28 @@ public:
 	/** Get the thumbnail pool used by this level editor */
 	virtual TSharedPtr< class FAssetThumbnailPool > GetThumbnailPool() const = 0;
 
+	/** Access the level editor's tab manager */
+	virtual TSharedRef<FTabManager> GetTabManager() const = 0;
+
+	/** Access the level editor's action command list */
+	virtual const TSharedPtr< FUICommandList >& GetLevelEditorActions() const = 0;
+
+	/** Called to process a key down event in a viewport when in immersive mode */
+	virtual FReply OnKeyDownInViewport( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) = 0;
+
 	/** Append commands to the command list for the level editor */
 	virtual void AppendCommands( const TSharedRef<FUICommandList>& InCommandsToAppend ) = 0;
+
+	/** After spawning a new level viewport outside of the editor's tab system, this function must be called so that
+	    the editor can keep track of that viewport */
+	virtual void AddStandaloneLevelViewport( const TSharedRef<SLevelViewport>& LevelViewport ) = 0;
+
+	/** Spawns an Actor Details widget */
+	virtual TSharedRef<SWidget> CreateActorDetails( const FName TabIdentifier ) = 0;
+
+	/** Spawns a level editor ToolBox widget (aka. "Modes") */
+	virtual TSharedRef<SWidget> CreateToolBox() = 0;
+
 };
 
 

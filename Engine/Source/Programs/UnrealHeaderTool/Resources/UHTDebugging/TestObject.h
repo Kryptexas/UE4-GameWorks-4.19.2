@@ -14,6 +14,7 @@ UCLASS()
 class UTestObject : public UObject
 {
 	GENERATED_BODY()
+
 public:
 	UTestObject(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
@@ -27,7 +28,7 @@ public:
 	ECppEnum EnumProperty;
 
 	UPROPERTY()
-	TMap<int32, FString> TestMap;
+	TMap<int32, bool> TestMap;
 
 	UFUNCTION()
 	void CodeGenTestForEnumClasses(ECppEnum Val);

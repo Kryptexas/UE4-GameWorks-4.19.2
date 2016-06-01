@@ -14,9 +14,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogD3D11ShaderCompiler, Log, All);
 
 // Disable macro redefinition warning for compatibility with Windows SDK 8+
 #pragma warning(push)
-#if _MSC_VER >= 1700
 #pragma warning(disable : 4005)	// macro redefinition
-#endif
 
 #include "AllowWindowsPlatformTypes.h"
 	#include <D3D11.h>
@@ -536,18 +534,18 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 				if (GD3DAllowRemoveUnused && Input.bCompilingForShaderPipeline && bFoundUnused && !bProcessingSecondTime)
 				{
 					// Rewrite the source removing the unused inputs so the bindings will match
-					TArray<FString> Errors;
-					if (RemoveUnusedInputs(PreprocessedShaderSource, ShaderInputs, EntryPointName, Errors))
+					TArray<FString> RemoveErrors;
+					if (RemoveUnusedInputs(PreprocessedShaderSource, ShaderInputs, EntryPointName, RemoveErrors))
 					{
 						return CompileAndProcessD3DShader(PreprocessedShaderSource, CompilerPath, CompileFlags, Input, EntryPointName, ShaderProfile, true, FilteredErrors, Output);
 					}
 					else
 					{
 						UE_LOG(LogD3D11ShaderCompiler, Warning, TEXT("Failed to Remove unused inputs [%s]!"), *Input.DumpDebugInfoPath);
-						for (int32 Index = 0; Index < Errors.Num(); ++Index)
+						for (int32 Index = 0; Index < RemoveErrors.Num(); ++Index)
 						{
 							FShaderCompilerError NewError;
-							NewError.StrippedErrorMessage = Errors[Index];
+							NewError.StrippedErrorMessage = RemoveErrors[Index];
 							Output.Errors.Add(NewError);
 						}
 						Output.bFailedRemovingUnused = true;
@@ -753,15 +751,13 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 				FMemoryWriter UniformBufferNameWriter(UniformBufferNameBytes);
 				UniformBufferNameWriter << UniformBufferNames;
 
-				// At runtime textures are just SRVs, so combine them for the purposes of building token streams.
-				GenericSRT.ShaderResourceViewMap.Append(GenericSRT.TextureMap);
-
 				// Copy over the bits indicating which resource tables are active.
 				SRT.ResourceTableBits = GenericSRT.ResourceTableBits;
 
 				SRT.ResourceTableLayoutHashes = GenericSRT.ResourceTableLayoutHashes;
 
 				// Now build our token streams.
+				BuildResourceTableTokenStream(GenericSRT.TextureMap, GenericSRT.MaxBoundResourceTable, SRT.TextureMap);
 				BuildResourceTableTokenStream(GenericSRT.ShaderResourceViewMap, GenericSRT.MaxBoundResourceTable, SRT.ShaderResourceViewMap);
 				BuildResourceTableTokenStream(GenericSRT.SamplerMap, GenericSRT.MaxBoundResourceTable, SRT.SamplerMap);
 				BuildResourceTableTokenStream(GenericSRT.UnorderedAccessViewMap, GenericSRT.MaxBoundResourceTable, SRT.UnorderedAccessViewMap);
@@ -806,7 +802,7 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 
 		if (Input.Target.Platform == SP_PCD3D_ES2)
 		{
-			if (Output.NumTextureSamplers > 8)
+			if (Output.NumTextureSamplers > 16)
 			{
 				FilteredErrors.Add(FString::Printf(TEXT("Shader uses more than 8 texture samplers which is not supported by ES2!  Used: %u"), Output.NumTextureSamplers));
 				Result = E_FAIL;
@@ -874,8 +870,14 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 		TArray<FString> UsedOutputs = Input.UsedOutputs;
 		UsedOutputs.AddUnique(TEXT("SV_POSITION"));
 
+		// We can't remove any of the output-only system semantics
+		//@todo - there are a bunch of tessellation ones as well
+		TArray<FString> Exceptions;
+		Exceptions.AddUnique(TEXT("SV_ClipDistance"));
+		Exceptions.AddUnique(TEXT("SV_CullDistance"));
+
 		TArray<FString> Errors;
-		if (!RemoveUnusedOutputs(PreprocessedShaderSource, UsedOutputs, EntryPointName, Errors))
+		if (!RemoveUnusedOutputs(PreprocessedShaderSource, UsedOutputs, Exceptions, EntryPointName, Errors))
 		{
 			UE_LOG(LogD3D11ShaderCompiler, Warning, TEXT("Failed to Remove unused outputs [%s]!"), *Input.DumpDebugInfoPath);
 			for (int32 Index = 0; Index < Errors.Num(); ++Index)

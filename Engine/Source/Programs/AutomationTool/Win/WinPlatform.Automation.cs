@@ -15,30 +15,25 @@ public abstract class BaseWinPlatform : Platform
 	{
 	}
 
-	private int StageExecutable(string Ext, DeploymentContext SC, string InPath, string Wildcard = "*", bool bRecursive = true, string[] ExcludeWildcard = null, string NewPath = null, bool bAllowNone = false, StagedFileType InStageFileType = StagedFileType.NonUFS, string NewName = null)
-	{
-		int Result = SC.StageFiles(InStageFileType, InPath, Wildcard + Ext, bRecursive, ExcludeWildcard, NewPath, bAllowNone, true, (NewName == null) ? null : (NewName + Ext));
-		if (Result > 0)
-		{
-			SC.StageFiles(StagedFileType.DebugNonUFS, InPath, Wildcard + "pdb", bRecursive, ExcludeWildcard, NewPath, true, true, (NewName == null) ? null : (NewName + "pdb"));
-			SC.StageFiles(StagedFileType.DebugNonUFS, InPath, Wildcard + "map", bRecursive, ExcludeWildcard, NewPath, true, true, (NewName == null) ? null : (NewName + "map"));
-		}
-		return Result;
-	}
-
 	public override void GetFilesToDeployOrStage(ProjectParams Params, DeploymentContext SC)
 	{
 		// Engine non-ufs (binaries)
 
 		if (SC.bStageCrashReporter)
 		{
-			StageExecutable("exe", SC, CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir), "CrashReportClient.");
+			string ReceiptFileName = TargetReceipt.GetDefaultPath(UnrealBuildTool.UnrealBuildTool.EngineDirectory.FullName, "CrashReportClient", SC.StageTargetPlatform.PlatformType, UnrealTargetConfiguration.Shipping, null);
+			if(File.Exists(ReceiptFileName))
+			{
+				TargetReceipt Receipt = TargetReceipt.Read(ReceiptFileName);
+				Receipt.ExpandPathVariables(UnrealBuildTool.UnrealBuildTool.EngineDirectory, (Params.RawProjectPath == null)? UnrealBuildTool.UnrealBuildTool.EngineDirectory : Params.RawProjectPath.Directory);
+				SC.StageBuildProductsFromReceipt(Receipt, true, false);
+			}
 		}
 
 		// Stage all the build products
 		foreach(StageTarget Target in SC.StageTargets)
 		{
-			SC.StageBuildProductsFromReceipt(Target.Receipt, Target.RequireFilesExist);
+			SC.StageBuildProductsFromReceipt(Target.Receipt, Target.RequireFilesExist, Params.bTreatNonShippingBinariesAsDebugFiles);
 		}
 
 		// Copy the splash screen, windows specific
@@ -53,7 +48,8 @@ public abstract class BaseWinPlatform : Platform
 				if(Executable != null)
 				{
 					// only create bootstraps for executables
-					if (SC.NonUFSStagingFiles.ContainsKey(Executable.Path) && Path.GetExtension(Executable.Path) == ".exe")
+					string FullExecutablePath = Path.GetFullPath(Executable.Path);
+					if (SC.NonUFSStagingFiles.ContainsKey(FullExecutablePath) && Path.GetExtension(FullExecutablePath) == ".exe")
 					{
 						string BootstrapArguments = "";
 						if (!SC.IsCodeBasedProject && !ShouldStageCommandLine(Params, SC))
@@ -64,7 +60,7 @@ public abstract class BaseWinPlatform : Platform
 						string BootstrapExeName;
 						if(SC.StageTargetConfigurations.Count > 1)
 						{
-							BootstrapExeName = Path.GetFileName(Executable.Path);
+							BootstrapExeName = Path.GetFileName(FullExecutablePath);
 						}
 						else if(Params.IsCodeBasedProject)
 						{
@@ -75,9 +71,9 @@ public abstract class BaseWinPlatform : Platform
 							BootstrapExeName = SC.ShortProjectName + ".exe";
 						}
 
-						foreach (string StagePath in SC.NonUFSStagingFiles[Executable.Path])
+						foreach (string StagePath in SC.NonUFSStagingFiles[FullExecutablePath])
 						{
-							StageBootstrapExecutable(SC, BootstrapExeName, Executable.Path, StagePath, BootstrapArguments);
+							StageBootstrapExecutable(SC, BootstrapExeName, FullExecutablePath, StagePath, BootstrapArguments);
 						}
 					}
 				}

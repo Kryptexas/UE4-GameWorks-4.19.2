@@ -103,3 +103,13 @@ bool FOnlineExternalUISteam::ShowAccountUpgradeUI(const FUniqueNetId& UniqueId)
 	return false;
 }
 
+bool FOnlineExternalUISteam::ShowStoreUI(int32 LocalUserNum, const FShowStoreParams& ShowParams, const FOnShowStoreUIClosedDelegate& Delegate)
+{
+	return false;
+}
+
+bool FOnlineExternalUISteam::ShowSendMessageUI(int32 LocalUserNum, const FShowSendMessageParams& ShowParams, const FOnShowSendMessageUIClosedDelegate& Delegate)
+{
+	return false;
+}
+

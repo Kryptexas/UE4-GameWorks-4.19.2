@@ -7,6 +7,7 @@
 #include "Common.usf"
 #include "PostProcessCommon.usf"
 #include "DepthOfFieldCommon.usf"
+#include "SeparateTranslucency.usf"
 
 // for the BokehDOF vertex shader, from postprocessing settings
 // .x: color threshold, .y:size threshold, zw: unused
@@ -20,9 +21,6 @@ float4 KernelSize;
 // small Bokeh like texture
 Texture2D LensTexture;
 SamplerState LensTextureSampler;
-
-// Multiplier for separate translucency render target resolution
-float4 SeparateTranslucencyResMult;
 
 // @return x:layer in front of focal plane, y: layer behind focal plane  1-x-y:layer in focus
 float2 ComputeLayerContributions(float Depth)
@@ -377,7 +375,6 @@ void MainPS(
 	OutColor = InColor * Kernel;
 }
 
-
 // pixel shader to combine the full res scene and the blurred images behind and in front of the the focal plane
 void MainRecombinePS(
 	noperspective in float4 UVAndScreenPos : TEXCOORD0,
@@ -441,9 +438,7 @@ void MainRecombinePS(
 #endif
 
 #if RECOMBINE_METHOD == 2 || RECOMBINE_METHOD == 3
-	// sampling from pixel centers, so we need to offset if we're using lower resolution separate translucency
-	float Offset = 1.0-(1.0/SeparateTranslucencyResMult.xxxx);
-	float4 SeparateTranslucency = Texture2DSample(PostprocessInput2, PostprocessInput2Sampler, (PixelPosCenter+Offset) * PostprocessInput2Size.zw * SeparateTranslucencyResMult.xxxx );
+	float4 SeparateTranslucency = UpsampleSeparateTranslucency(SvPosition.xy, FullResUV);
 
 	// add RGB, darken by A (this allows to represent translucent and additive blending)
 	OutColor.rgb = OutColor.rgb * SeparateTranslucency.a + SeparateTranslucency.rgb;

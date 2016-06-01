@@ -60,6 +60,10 @@ partial class GUBP
         {
             return false;
         }
+		public virtual bool NotifyOnWarnings()
+		{
+			return true;
+		}
 		public virtual bool IsTest()
 		{
 			return false;
@@ -76,6 +80,7 @@ partial class GUBP
         {
             return 90;
         }
+		public abstract string[] GetAgentTypes();
 
         /// <summary>
         /// When triggered by CIS (instead of a person) this dictates how often this node runs.
@@ -196,6 +201,11 @@ partial class GUBP
             return StaticGetFullName();
         }
 
+		public override string[] GetAgentTypes()
+		{
+			return new string[]{ };
+		}
+
         public override void DoBuild(GUBP bp)
         {
 			if (CommandUtils.P4Enabled && CommandUtils.AllowSubmit)
@@ -227,6 +237,10 @@ partial class GUBP
 			string Name = GetFullName();
 			string Suffix = GetHostPlatformSuffix();
 			return Name.EndsWith(Suffix)? Name.Substring(0, Name.Length - Suffix.Length) : Name;
+		}
+		public override string[] GetAgentTypes()
+		{
+			return new string[]{ HostPlatform.ToString() };
 		}
         public static string StaticGetHostPlatformSuffix(UnrealTargetPlatform InHostPlatform, UnrealTargetPlatform InAgentPlatform = UnrealTargetPlatform.Unknown)
         {
@@ -297,6 +311,10 @@ partial class GUBP
         {
             return false;
         }
+		public override string[] GetAgentTypes()
+		{
+			return new string[]{ "Compile" + HostPlatform.ToString(), HostPlatform.ToString() };
+		}
         public override void DoBuild(GUBP bp)
         {
             BuildProducts = new List<string>();
@@ -390,19 +408,15 @@ partial class GUBP
             {
                 Agenda.DotNetProjects.AddRange(
                     new string[] 
-			    {
-				    @"Engine\Source\Programs\DotNETCommon\DotNETUtilities\DotNETUtilities.csproj",
-                    @"Engine\Source\Programs\RPCUtility\RPCUtility.csproj",
-			    }
-                    );
+					{
+						CombinePaths(@"Engine\Source\Programs\DotNETCommon\DotNETUtilities\DotNETUtilities.csproj"),
+						CombinePaths(@"Engine\Source\Programs\RPCUtility\RPCUtility.csproj"),
+					}
+				);
             }
             string AddArgs = "-CopyAppBundleBackToDevice";
 
             Agenda.AddTargets(new string[] { "UnrealHeaderTool" }, HostPlatform, UnrealTargetConfiguration.Development, InAddArgs: AddArgs + (bNoInstalledEngine? "" : " -precompile"));
-			if (HostPlatform == UnrealTargetPlatform.Win64)
-			{
-				Agenda.AddTargets(new string[] { "ParallelExecutor" }, HostPlatform, UnrealTargetConfiguration.Development, InAddArgs: AddArgs);
-			}
             return Agenda;
         }
         public override void PostBuild(GUBP bp, UE4Build UE4Build)
@@ -1046,6 +1060,10 @@ partial class GUBP
 				{
 					UnrealPakExe = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/Linux/UnrealPak");
 				}
+                else if (HostPlatform == UnrealTargetPlatform.Mac)
+                {
+                    UnrealPakExe = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/Mac/UnrealPak");
+                }
 				else
 				{
 					throw new AutomationException("Unknown path to UnrealPak for host platform ({0})", HostPlatform);
@@ -1063,10 +1081,20 @@ partial class GUBP
     {
         BranchInfo.BranchUProject GameProj;
 		List<UnrealTargetPlatform> ActivePlatforms;
+		protected List<TargetRules.TargetType> ActiveMonolithicKinds;
         UnrealTargetPlatform TargetPlatform;
 		bool WithXp;
 		bool Precompiled; // If true, just builds targets which generate static libraries for the -UsePrecompiled option to UBT. If false, just build those that don't.
 		bool EnhanceAgentRequirements;
+		public List<UnrealTargetConfiguration> ExcludeConfigurations = new List<UnrealTargetConfiguration>();
+		public static readonly Dictionary<UnrealTargetPlatform, string[]> PrecompiledArchitectures = new Dictionary<UnrealTargetPlatform, string[]>
+		{
+			{UnrealTargetPlatform.Android, new string[] {"armv7", "arm64"/*, "x86", "x64"*/ } }
+		};
+		public static readonly Dictionary<UnrealTargetPlatform, string[]> PrecompiledGPUArchitectures = new Dictionary<UnrealTargetPlatform, string[]>
+		{
+			{UnrealTargetPlatform.Android, new string[] {"es2"/*, "es31"*/ } }
+		};
 
         public GamePlatformMonolithicsNode(GUBPBranchConfig InBranchConfig, UnrealTargetPlatform InHostPlatform, List<UnrealTargetPlatform> InActivePlatforms, BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InTargetPlatform, bool InWithXp = false, bool InPrecompiled = false)
             : base(InBranchConfig, InHostPlatform)
@@ -1077,6 +1105,7 @@ partial class GUBP
 			WithXp = InWithXp;
 			Precompiled = InPrecompiled;
 			EnhanceAgentRequirements = BranchConfig.BranchOptions.EnhanceAgentRequirements.Contains(StaticGetFullName(HostPlatform, GameProj, TargetPlatform, WithXp, Precompiled));
+			ActiveMonolithicKinds = BranchInfo.MonolithicKinds;
 
             if (TargetPlatform == UnrealTargetPlatform.PS4 || TargetPlatform == UnrealTargetPlatform.XboxOne)
             {
@@ -1084,9 +1113,11 @@ partial class GUBP
 				AddDependency(ToolsNode.StaticGetFullName(InHostPlatform));
 			}
 
+			bool bBehindTrigger = false;
 			if(IsSample(BranchConfig, InGameProj))
 			{
-				AddDependency(WaitToPackageSamplesNode.StaticGetFullName());
+				AddPseudodependency(WaitToPackageSamplesNode.StaticGetFullName());
+				bBehindTrigger = true;
 			}
 
             if (InGameProj.GameName != BranchConfig.Branch.BaseEngineProject.GameName && GameProj.Properties.Targets.ContainsKey(TargetRules.TargetType.Editor))
@@ -1110,8 +1141,13 @@ partial class GUBP
             if (InGameProj.Options(InHostPlatform).bTestWithShared)  /// compiling templates is only for testing purposes, and we will group them to avoid saturating the farm
             {
                 AddPseudodependency(WaitForTestShared.StaticGetFullName());
+				bBehindTrigger = true;
                 //AgentSharingGroup = "TemplateMonolithics" + StaticGetHostPlatformSuffix(InHostPlatform);
             }
+			if(!InBranchConfig.BranchOptions.bTargetPlatformsInParallel && !bBehindTrigger)
+			{
+				AgentSharingGroup = "TargetPlatforms" + StaticGetHostPlatformSuffix(InHostPlatform);
+			}
         }
 
 		public static bool IsSample(GUBPBranchConfig BranchConfig, BranchInfo.BranchUProject GameProj)
@@ -1292,6 +1328,18 @@ partial class GUBP
 				{
 	                Args += " -nodebuginfo";
 				}
+
+				string[] PlatformArchitectures;
+				if (PrecompiledArchitectures.TryGetValue(TargetPlatform, out PlatformArchitectures)
+					&& PlatformArchitectures.Length > 0)
+				{
+					Args += " -architectures=" + String.Join("+", PlatformArchitectures);
+				}
+				if (PrecompiledGPUArchitectures.TryGetValue(TargetPlatform, out PlatformArchitectures)
+					&& PlatformArchitectures.Length > 0)
+				{
+					Args += " -gpuarchitectures=" + String.Join("+", PlatformArchitectures);
+				}
 			}
 
 			if (WithXp)
@@ -1299,7 +1347,7 @@ partial class GUBP
 				Args += " -winxp";
 			}
 
-            foreach (var Kind in BranchInfo.MonolithicKinds)
+            foreach (var Kind in ActiveMonolithicKinds)
             {
                 if (GameProj.Properties.Targets.ContainsKey(Kind))
                 {
@@ -1322,7 +1370,7 @@ partial class GUBP
 								Configs = Target.Rules.GUBP_GetConfigs_MonolithicOnly(HostPlatform, TargetPlatform).Except(Target.Rules.GUBP_GetConfigsForPrecompiledBuilds_MonolithicOnly(HostPlatform, TargetPlatform)).ToList();
 							}
 							
-							foreach (var Config in Configs)
+							foreach (var Config in Configs.Where(x => !ExcludeConfigurations.Contains(x)))
 							{
 								if (GameProj.GameName == BranchConfig.Branch.BaseEngineProject.GameName)
 								{
@@ -1344,12 +1392,47 @@ partial class GUBP
 		public static string StaticGetArchivedHeadersPath(UnrealTargetPlatform HostPlatform, BranchInfo.BranchUProject GameProj, UnrealTargetPlatform TargetPlatform)
 		{
 			return CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Saved", "Precompiled", "Headers-" + StaticGetFullName(HostPlatform, GameProj, TargetPlatform) + ".zip");
-    }
+		}
 
 		public static string StaticGetBuildDependenciesPath(UnrealTargetPlatform HostPlatform, BranchInfo.BranchUProject GameProj, UnrealTargetPlatform TargetPlatform)
-	{
+		{
 			return CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Saved", "Precompiled", "BuildDependencies-" + StaticGetFullName(HostPlatform, GameProj, TargetPlatform) + ".xml");
 		}
+	}
+
+	public class GamePlatformMonolithicsKindNode : GamePlatformMonolithicsNode
+	{
+		public GamePlatformMonolithicsKindNode(GUBPBranchConfig InBranchConfig, UnrealTargetPlatform InHostPlatform, List<UnrealTargetPlatform> InActivePlatforms, BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InTargetPlatform, TargetRules.TargetType InTargetKind, bool InWithXp = false, bool InPrecompiled = false)
+			: base(InBranchConfig, InHostPlatform, InActivePlatforms, InGameProj, InTargetPlatform, InWithXp, InPrecompiled)
+		{
+			ActiveMonolithicKinds = new List<TargetRules.TargetType>();
+			ActiveMonolithicKinds.Add(InTargetKind);
+		}
+
+		public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform, BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InTargetPlatform, TargetRules.TargetType InTargetKind, bool WithXp = false, bool Precompiled = false)
+		{
+			string Name = GamePlatformMonolithicsNode.StaticGetFullName(InHostPlatform, InGameProj, InTargetPlatform, WithXp, Precompiled);
+			return Name + "_" + InTargetKind;
+		}
+
+		public override string GetFullName()
+		{
+			string Name = base.GetFullName();
+			return Name + "_" + ActiveMonolithicKinds[0];
+		}
+
+		public static bool HasPrecompiledTargets(BranchInfo.BranchUProject Project, UnrealTargetPlatform HostPlatform, UnrealTargetPlatform TargetPlatform, TargetRules.TargetType InTargetKind)
+		{
+			if (Project.Properties.Targets.ContainsKey(InTargetKind))
+			{
+				SingleTargetProperties Target = Project.Properties.Targets[InTargetKind];
+				if (Target.Rules.GUBP_GetConfigsForPrecompiledBuilds_MonolithicOnly(HostPlatform, TargetPlatform).Any())
+				{
+					return true;
+				}
+			}
+			return false;
+		}	
 	}
 
     public class SuccessNode : GUBPNode
@@ -1357,6 +1440,12 @@ partial class GUBP
         public SuccessNode()
         {
         }
+
+		public override string[] GetAgentTypes()
+		{
+			return new string[]{ };
+		}
+
         public override void DoBuild(GUBP bp)
         {
             BuildProducts = new List<string>();
@@ -1482,12 +1571,36 @@ partial class GUBP
 		}
 	}
 
+	public class GenericAggregateNode : GUBPAggregateNode
+	{
+		string Name;
+
+		public GenericAggregateNode(string InName, IEnumerable<string> NodeNames)
+		{
+			Name = InName;
+
+			foreach(string NodeName in NodeNames)
+			{
+				AddDependency(NodeName);
+			}
+		}
+
+		public override string GetFullName()
+		{
+			return Name;
+		}
+	}
+
     public class WaitForUserInput : GUBPNode
     {
         public WaitForUserInput()
         {
         }
 
+		public override string[] GetAgentTypes()
+		{
+			return new string[]{ };
+		}
         public override void DoBuild(GUBP bp)
         {
             BuildProducts = new List<string>();
@@ -1525,7 +1638,7 @@ partial class GUBP
         {
 			foreach(UnrealTargetPlatform HostPlatform in HostPlatforms)
 			{
-				AddDependency(RootEditorNode.StaticGetFullName(HostPlatform));
+				AddPseudodependency(RootEditorNode.StaticGetFullName(HostPlatform));
 			}
 		}
 
@@ -1636,10 +1749,11 @@ partial class GUBP
 			{
 				ExtraArgsForCook += " -WarningsAsErrors";
 			}
+            ExtraArgsForCook += " " + BranchConfig.BranchOptions.AdditionalCookArgs;
 
 			if(GamePlatformMonolithicsNode.IsSample(BranchConfig, GameProj))
 			{
-				AddDependency(WaitToPackageSamplesNode.StaticGetFullName());
+				AddPseudodependency(WaitToPackageSamplesNode.StaticGetFullName());
 				AgentSharingGroup = "SampleCooks" + StaticGetHostPlatformSuffix(HostPlatform);
 			}
         }
@@ -1671,6 +1785,10 @@ partial class GUBP
         {
             return bIsMassive ? 240 : base.TimeoutInMinutes();
         }
+		public override bool NotifyOnWarnings()
+		{
+			return false;
+		}
 
 		public string RootForCook()
 		{
@@ -2011,15 +2129,22 @@ partial class GUBP
 		{
 			return base.CISFrequencyQuantumShift(BranchConfig) + 3;
 		}
+
+		public static string GetBranchArchiveDirectory(GUBP.GUBPBranchConfig BranchConfig, BranchInfo.BranchUProject InGameProj)
+		{
+			// Find the build share where formal builds will be placed for this game.
+			string BuildShareName;
+			if (!BranchConfig.BranchOptions.GameNameToBuildShareMapping.TryGetValue(InGameProj.GameName, out BuildShareName))
+			{
+				BuildShareName = "UE4";
+			}
+			return CommandUtils.CombinePaths(CommandUtils.RootBuildStorageDirectory(), BuildShareName, "PackagedBuilds", P4Env.BuildRootEscaped);
+		}
+
 		public static string GetArchiveDirectory(GUBP.GUBPBranchConfig BranchConfig, BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InHostPlatform, List<UnrealTargetPlatform> InClientTargetPlatforms = null, List<UnrealTargetConfiguration> InClientConfigs = null, List<UnrealTargetPlatform> InServerTargetPlatforms = null, List<UnrealTargetConfiguration> InServerConfigs = null, bool InClientNotGame = false)
         {
-            // Find the build share where formal builds will be placed for this game.
-            string BuildShareName;
-            if (!BranchConfig.BranchOptions.GameNameToBuildShareMapping.TryGetValue(InGameProj.GameName, out BuildShareName))
-            {
-                BuildShareName = "UE4";
-            }
-            string BaseDir = CommandUtils.CombinePaths(CommandUtils.RootBuildStorageDirectory(), BuildShareName, "PackagedBuilds", P4Env.BuildRootEscaped, "CL-" + P4Env.ChangelistString + BranchConfig.JobInfo.GetPreflightSuffix());
+			string BranchArchiveDir = GetBranchArchiveDirectory(BranchConfig, InGameProj);
+            string BaseDir = CommandUtils.CombinePaths(BranchArchiveDir, BranchConfig.JobInfo.BuildName);
 			string NodeName = StaticGetBaseName(InGameProj, InHostPlatform, InClientTargetPlatforms, InClientConfigs, InServerTargetPlatforms, InServerConfigs, InClientNotGame);
 			string ArchiveDirectory = CombinePaths(BaseDir, NodeName);
             return ArchiveDirectory;
@@ -2147,7 +2272,7 @@ partial class GUBP
 					}
 					CreateDirectory_NoExceptions(IntermediateArchiveDirectory);
 				}
-				CleanFormalBuilds(FinalArchiveDirectory);
+				CleanFormalBuilds(GetBranchArchiveDirectory(BranchConfig, GameProj), "CL-*");
 				if (DirectoryExists_NoExceptions(FinalArchiveDirectory))
                 {
                     if (IsBuildMachine)
@@ -2654,13 +2779,19 @@ partial class GUBP
             AddDependency(ToolsNode.StaticGetFullName(HostPlatform));
 		}
 
+		public override bool NotifyOnWarnings()
+		{
+			return false;
+		}
+
 		public override void DoBuild(GUBP bp)
 		{
 			var UEProjectDirectory = GetUEProjectDirectory();
 			var UEProjectName = GetUEProjectName();
-			var OneSkyConfigName = GetOneSkyConfigName();
-			var OneSkyProjectGroupName = GetOneSkyProjectGroupName();
-			var OneSkyProjectNames = GetOneSkyProjectNames();
+			var LocalizationProjectNames = GetLocalizationProjectNames();
+			var LocalizationProviderName = GetLocalizationProviderName();
+			var LocalizationProviderArgs = GetLocalizationProviderArgs();
+			var AdditionalCommandletArguments = GetAdditionalCommandletArguments();
 
 			// Build the correct command line arguments.
 			var CommandLineArguments = "";
@@ -2675,32 +2806,53 @@ partial class GUBP
 				CommandLineArguments += " -UEProjectName=\"" + UEProjectName + "\"";
 			}
 
-			if (!String.IsNullOrEmpty(OneSkyConfigName))
+			if (!String.IsNullOrEmpty(LocalizationProjectNames))
 			{
-				CommandLineArguments += " -OneSkyConfigName=\"" + OneSkyConfigName + "\"";
-			}
-
-			if (!String.IsNullOrEmpty(OneSkyProjectGroupName))
-			{
-				CommandLineArguments += " -OneSkyProjectGroupName=\"" + OneSkyProjectGroupName + "\"";
-			}
-
-			if (!String.IsNullOrEmpty(OneSkyProjectNames))
-			{
-				CommandLineArguments += " -OneSkyProjectNames=\"" + OneSkyProjectNames + "\"";
+				CommandLineArguments += " -LocalizationProjectNames=\"" + LocalizationProjectNames + "\"";
 			}
 
 			if (!String.IsNullOrEmpty(LocalizationBranchSuffix))
 			{
-				CommandLineArguments += " -OneSkyBranchSuffix=\"" + LocalizationBranchSuffix + "\"";
+				CommandLineArguments += " -LocalizationBranch=\"" + LocalizationBranchSuffix + "\"";
+			}
+
+			if (!String.IsNullOrEmpty(LocalizationProviderName))
+			{
+				CommandLineArguments += " -LocalizationProvider=\"" + LocalizationProviderName + "\"";
+			}
+
+			if (!String.IsNullOrEmpty(LocalizationProviderArgs))
+			{
+				CommandLineArguments += " " + LocalizationProviderArgs;
+			}
+
+			if (!String.IsNullOrEmpty(AdditionalCommandletArguments))
+			{
+				CommandLineArguments += " -AdditionalCommandletArguments=\"" + AdditionalCommandletArguments + "\"";
 			}
 
 			// Run the localise script.
 			CommandUtils.RunUAT(CommandUtils.CmdEnv, "Localise" + CommandLineArguments);
 
-			// Don't pass on any build products to other build nodes at the moment.
 			BuildProducts = new List<string>();
-			SaveRecordOfSuccessAndAddToBuildProducts();
+
+			var SuccessMessage = "Updated the following localization build products:\n";
+			try
+			{
+				// Just add all of the localization content as a build product, since UAT should have updated all of it
+				var LocalizationContentDirectory = CombinePaths(CommandUtils.CmdEnv.LocalRoot, UEProjectDirectory, "Content", "Localization");
+				foreach (string FilePath in Directory.EnumerateFiles(LocalizationContentDirectory, "*", SearchOption.AllDirectories))
+				{
+					AddBuildProduct(FilePath);
+					SuccessMessage += "    " + FilePath + "\n";
+				}
+			}
+			catch (Exception e)
+			{
+				LogWarning("Failed to add build products for localization node. The follow exception was raised '%s'", e);
+			}
+
+			SaveRecordOfSuccessAndAddToBuildProducts(SuccessMessage);
 		}
 
 		public override int CISFrequencyQuantumShift(GUBP.GUBPBranchConfig BranchConfig)
@@ -2718,19 +2870,24 @@ partial class GUBP
 			throw new AutomationException("Unimplemented GetUEProjectName.");
 		}
 
-		protected virtual string GetOneSkyConfigName()
+		protected virtual string GetLocalizationProjectNames()
 		{
-			throw new AutomationException("Unimplemented GetOneSkyConfigName.");
+			throw new AutomationException("Unimplemented GetLocalizationProjectNames.");
 		}
 
-		protected virtual string GetOneSkyProjectGroupName()
+		protected virtual string GetLocalizationProviderName()
 		{
-			throw new AutomationException("Unimplemented GetOneSkyProjectGroupName.");
+			throw new AutomationException("Unimplemented GetLocalizationProviderName.");
 		}
 
-		protected virtual string GetOneSkyProjectNames()
+		protected virtual string GetLocalizationProviderArgs()
 		{
-			throw new AutomationException("Unimplemented GetOneSkyProjectNames.");
+			return "";
+		}
+
+		protected virtual string GetAdditionalCommandletArguments()
+		{
+			return "";
 		}
 
 		protected string LocalizationBranchSuffix;
@@ -2764,19 +2921,19 @@ partial class GUBP
 			return "";
 		}
 
-		protected override string GetOneSkyConfigName()
-		{
-			return "OneSkyConfig_EpicGames";
-		}
-
-		protected override string GetOneSkyProjectGroupName()
-		{
-			return "Unreal Engine";
-		}
-
-		protected override string GetOneSkyProjectNames()
+		protected override string GetLocalizationProjectNames()
 		{
 			return "Engine,Editor,EditorTutorials,PropertyNames,ToolTips,Category,Keywords";
+		}
+
+		protected override string GetLocalizationProviderName()
+		{
+			return "OneSky";
+		}
+
+		protected override string GetLocalizationProviderArgs()
+		{
+			return "-OneSkyConfigName=\"OneSkyConfig_EpicGames\" -OneSkyProjectGroupName=\"Unreal Engine\"";
 		}
 	}
 
@@ -2818,13 +2975,18 @@ partial class GUBP
         public CleanSharedTempStorageNode(GUBP bp, GUBPBranchConfig BranchConfig)
         {
             var ToolsNode = BranchConfig.FindNode(ToolsForCompileNode.StaticGetFullName(UnrealTargetPlatform.Win64));
-            RootNameForTempStorage = BranchConfig.JobInfo.RootNameForTempStorage;
+            RootNameForTempStorage = BranchConfig.BranchOptions.RootNameForTempStorage ?? "UE4";
             AgentSharingGroup = ToolsNode.AgentSharingGroup;
         }
         public override float Priority()
         {
             return -1E15f;
         }
+
+		public override string[] GetAgentTypes()
+		{
+			return new string[]{ "CompileWin64", "Win64" };
+		}
 
         public static string StaticGetFullName()
         {

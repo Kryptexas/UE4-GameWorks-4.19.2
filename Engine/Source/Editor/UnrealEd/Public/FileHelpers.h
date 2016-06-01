@@ -14,9 +14,8 @@ enum EFileInteraction
 {
 	FI_Load,
 	FI_Save,
-	FI_Import,
 	FI_ImportScene,
-	FI_Export
+	FI_ExportScene
 };
 
 namespace EAutosaveContentPackagesResult
@@ -124,12 +123,20 @@ public:
 	static UNREALED_API bool SaveLevel(ULevel* Level, const FString& DefaultFilename = TEXT( "" ) );
 
 	/**
+	 * Does a SaveAs for the specified assets.
+	 *
+	 * @param Assets The collection of assets to save.
+	 * @param SavedAssets The collection of corresponding saved assets (contains original asset if not resaved).
+	 */
+	UNREALED_API static void SaveAssetsAs(const TArray<UObject*>& Assets, TArray<UObject*>& OutSavedAssets);
+
+	/**
 	 * Does a saveAs for the specified level.
 	 *
 	 * @param	Level		The Level to be SaveAs'd.
 	 * @return				true if the world was saved.
 	 */
-	UNREALED_API static bool SaveAs(ULevel* Level);
+	UNREALED_API static bool SaveLevelAs(ULevel* Level);
 
 	/**
 	 * Saves all levels to the specified directory.
@@ -262,8 +269,8 @@ public:
 	 * Presents the user with a file dialog for importing.
 	 * If the import is not a merge (bMerging is false), AskSaveChanges() is called first.
 	 */
-	UNREALED_API static void Import(bool bImportScene);
-	UNREALED_API static void Import(const FString& InFilename, bool bImportScene);
+	UNREALED_API static void Import();
+	UNREALED_API static void Import(const FString& InFilename);
 	UNREALED_API static void Export(bool bExportSelectedActorsOnly);			// prompts user for file etc.
 
 	////////////////////////////////////////////////////////////////////////////

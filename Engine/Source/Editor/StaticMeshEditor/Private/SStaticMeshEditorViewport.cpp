@@ -233,6 +233,13 @@ void SStaticMeshEditorViewport::UpdatePreviewSocketMeshes()
 				else
 				{
 					SocketPreviewMeshComponent = SocketPreviewMeshComponents[i];
+
+					// In case of a socket rename, ensure our preview component is still snapping to the proper socket
+					if (!SocketPreviewMeshComponent->GetAttachSocketName().IsEqual(Socket->SocketName))
+					{
+						SocketPreviewMeshComponent->SnapTo(PreviewMeshComponent, Socket->SocketName);
+					}
+
 					// Force component to world update to take into account the new socket position.
 					SocketPreviewMeshComponent->UpdateComponentToWorld();
 				}
@@ -279,6 +286,10 @@ void SStaticMeshEditorViewport::UpdatePreviewMesh(UStaticMesh* InStaticMesh)
 	PreviewMeshComponent = NewObject<UStaticMeshComponent>();
 
 	PreviewMeshComponent->SetStaticMesh(InStaticMesh);
+
+	// Update streaming data for debug viewmode feedback
+	PreviewMeshComponent->UpdateStreamingSectionData(FTexCoordScaleMap());
+
 	PreviewScene.AddComponent(PreviewMeshComponent,FTransform::Identity);
 
 	const int32 SocketCount = InStaticMesh->Sockets.Num();

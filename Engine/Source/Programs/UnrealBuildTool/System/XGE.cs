@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Diagnostics;
@@ -22,7 +23,7 @@ namespace UnrealBuildTool
 			string OutFile;
 			while (true)
 			{
-				OutFile = Path.Combine(BuildConfiguration.BaseIntermediatePath, String.Format("UBTExport.{0}.xge.xml", FileNum));
+				OutFile = Path.Combine(BuildConfiguration.BaseIntermediatePath, String.Format("UBTExport.{0}.xge.xml", FileNum.ToString("D3")));
 				FileInfo ItemInfo = new FileInfo(OutFile);
 				if (!ItemInfo.Exists)
 				{
@@ -84,7 +85,7 @@ namespace UnrealBuildTool
 						XGEResult = XGE.ExecuteTaskFileWithProgressMarkup(XGETaskFilePath, Actions.Count, (sender, args) =>
 							{
 								// sometimes the args comes in as null
-								var match = XGEDurationRegex.Match(args.Data ?? "");
+								Match match = XGEDurationRegex.Match(args.Data ?? "");
 
 								/*
 																// This is considered fragile and risky parsing of undocumented XGE output, so protect this code from taking down UBT
@@ -140,7 +141,7 @@ namespace UnrealBuildTool
 
 								// XGE outputs the duration info in a format that makes VC think it's an error file/line notation if the full filename is used.
 								// So munge it a bit so we don't confuse VC.
-								var updatedData = match.Success ? args.Data.Replace('(', '[').Replace(')', ']') : args.Data;
+								string updatedData = match.Success ? args.Data.Replace('(', '[').Replace(')', ']') : args.Data;
 
 								// forward the output on to the normal handler or the console like normal
 								if (Actions[0].OutputEventHandler != null)
@@ -198,7 +199,7 @@ namespace UnrealBuildTool
 			List<Action> Actions = InActions;
 			if (BuildConfiguration.bXGEExport)
 			{
-				var CurrentEnvironment = Environment.GetEnvironmentVariables();
+				IDictionary CurrentEnvironment = Environment.GetEnvironmentVariables();
 				foreach (System.Collections.DictionaryEntry Pair in CurrentEnvironment)
 				{
 					if (!UnrealBuildTool.InitialEnvironment.Contains(Pair.Key) || (string)(UnrealBuildTool.InitialEnvironment[Pair.Key]) != (string)(Pair.Value))
@@ -231,7 +232,7 @@ namespace UnrealBuildTool
 				{
 					//Console.WriteLine("The UBT action graph was not sorted. Sorting actions....");
 					Actions = new List<Action>();
-					var UsedActions = new HashSet<int>();
+					HashSet<int> UsedActions = new HashSet<int>();
 					for (int ActionIndex = 0; ActionIndex < InActions.Count; ActionIndex++)
 					{
 						if (UsedActions.Contains(ActionIndex))
@@ -305,7 +306,7 @@ namespace UnrealBuildTool
 				XmlElement VariablesElement = XGETaskDocument.CreateElement("Variables");
 				EnvironmentElement.AppendChild(VariablesElement);
 
-				foreach (var Pair in ExportEnv)
+				foreach (KeyValuePair<string, string> Pair in ExportEnv)
 				{
 					// <Variable>...</Variable>
 					XmlElement VariableElement = XGETaskDocument.CreateElement("Variable");

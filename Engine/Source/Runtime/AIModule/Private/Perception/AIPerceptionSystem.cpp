@@ -58,9 +58,6 @@ FAISenseID UAIPerceptionSystem::RegisterSenseClass(TSubclassOf<UAISense> SenseCl
 	{
 		const int32 ItemsToAdd = SenseID.Index - Senses.Num() + 1;
 		Senses.AddZeroed(ItemsToAdd);
-#if !UE_BUILD_SHIPPING
-		DebugSenseColors.AddZeroed(ItemsToAdd);
-#endif
 	}
 
 	if (Senses[SenseID] == nullptr)
@@ -79,14 +76,9 @@ FAISenseID UAIPerceptionSystem::RegisterSenseClass(TSubclassOf<UAISense> SenseCl
 			// otherwise it will get called in StartPlay()
 		}
 
-#if !UE_BUILD_SHIPPING
-		DebugSenseColors[SenseID] = Senses[SenseID]->GetDebugColor();
-		PerceptionDebugLegend += Senses[SenseID]->GetDebugLegend();
-
 		// make senses v-log to perception system's log
 		REDIRECT_OBJECT_TO_VLOG(Senses[SenseID], this);
 		UE_VLOG(this, LogAIPerception, Log, TEXT("Registering sense %s"), *Senses[SenseID]->GetName());
-#endif
 	}
 
 	return SenseID;
@@ -600,7 +592,7 @@ void UAIPerceptionSystem::RegisterSourceForSenseClass(TSubclassOf<UAISense> Sens
 	RegisterSource(SenseID, Target);
 }
 
-void UAIPerceptionSystem::OnPerceptionStimuliSourceEndPlay(EEndPlayReason::Type EndPlayReason)
+void UAIPerceptionSystem::OnPerceptionStimuliSourceEndPlay(AActor* Actor, EEndPlayReason::Type EndPlayReason)
 {
 	// this tells us just that _a_ source has been removed. We need to parse through all sources and find which one was it
 	// this is a fall-back behavior, if source gets unregistered manually this function won't get called 
@@ -649,15 +641,3 @@ void UAIPerceptionSystem::ReportPerceptionEvent(UObject* WorldContext, UAISenseE
 		PerceptionSys->ReportEvent(PerceptionEvent);
 	}
 }
-
-#if !UE_BUILD_SHIPPING
-FColor UAIPerceptionSystem::GetSenseDebugColor(FAISenseID SenseID) const
-{
-	return SenseID.IsValid() && Senses.IsValidIndex(SenseID) && Senses[SenseID] != nullptr ? Senses[SenseID]->GetDebugColor() : FColor::Black;
-}
-
-FString UAIPerceptionSystem::GetSenseName(FAISenseID SenseID) const
-{
-	return SenseID.IsValid() && Senses.IsValidIndex(SenseID) && Senses[SenseID] != nullptr ? *Senses[SenseID]->GetDebugName() : TEXT("Invalid");
-}
-#endif 

@@ -9,6 +9,7 @@
 #include "RenderingThread.h"
 #include "IMovieSceneCaptureProtocol.h"
 #include "MovieSceneCaptureProtocolRegistry.h"
+#include "MovieSceneCaptureProtocolSettings.h"
 #include "MovieSceneCapture.generated.h"
 
 /** Structure used to cache various metrics for our capture */
@@ -48,12 +49,12 @@ public:
 public:
 
 	/** The type of capture protocol to use */
-	UPROPERTY(config, EditAnywhere, Category=CaptureSettings)
+	UPROPERTY(config, EditAnywhere, Category=CaptureSettings, DisplayName="Output Format")
 	FCaptureProtocolID CaptureType;
 
 	/** Settings specific to the capture protocol */
 	UPROPERTY(EditAnywhere, Category=CaptureSettings)
-	UObject* ProtocolSettings;
+	UMovieSceneCaptureProtocolSettings* ProtocolSettings;
 
 	/** Settings that define how to capture */
 	UPROPERTY(EditAnywhere, config, Category=CaptureSettings, meta=(ShowOnlyInnerProperties))
@@ -62,6 +63,10 @@ public:
 	/** Whether to capture the movie in a separate process or not */
 	UPROPERTY(config, EditAnywhere, Category=General, AdvancedDisplay)
 	bool bUseSeparateProcess;
+
+	/** When enabled, the editor will shutdown when the capture starts */
+	UPROPERTY(EditAnywhere, config, Category=General, AdvancedDisplay, meta=(EditCondition=bUseSeparateProcess))
+	bool bCloseEditorWhenCaptureStarts;
 
 	/** Additional command line arguments to pass to the external process when capturing */
 	UPROPERTY(EditAnywhere, config, Category=General, AdvancedDisplay, meta=(EditCondition=bUseSeparateProcess))

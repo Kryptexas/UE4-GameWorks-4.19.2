@@ -6,48 +6,89 @@
 
 #include "EnginePrivate.h"
 #include "Engine/LODActor.h"
+#include "Engine/HLODMeshCullingVolume.h"
 #include "MapErrors.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"
 
 #include "StaticMeshResources.h"
 
+#if WITH_EDITOR
+#include "Editor.h"
+#endif
+
 #define LOCTEXT_NAMESPACE "LODActor"
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-static void ToggleHLODEnabled(UWorld* InWorld)
+static void HLODConsoleCommand(const TArray<FString>& Args, UWorld* World)
 {
-	static bool bHLODEnabled = true;
-
-	FlushRenderingCommands();
-
-	auto Levels = InWorld->GetLevels();
-
-	for (auto Level : Levels)
+	if (Args.Num() == 1)
 	{
-		for (AActor* Actor : Level->Actors)
+		const int32 State = FCString::Atoi(*Args[0]);
+
+		if (State == 0 || State == 1)
 		{
-			ALODActor* LODActor = Cast<ALODActor>(Actor);
-			if (LODActor)
+			const bool bHLODEnabled = (State == 1) ?  true : false;
+			FlushRenderingCommands();
+			const TArray<ULevel*>& Levels = World->GetLevels();
+			for (ULevel* Level : Levels)
 			{
-				LODActor->SetActorHiddenInGame(bHLODEnabled);
-	#if WITH_EDITOR
-				LODActor->SetIsTemporarilyHiddenInEditor(bHLODEnabled);
-	#endif // WITH_EDITOR
-				LODActor->MarkComponentsRenderStateDirty();
+				for (AActor* Actor : Level->Actors)
+				{
+					ALODActor* LODActor = Cast<ALODActor>(Actor);
+					if (LODActor)
+					{
+						LODActor->SetActorHiddenInGame(!bHLODEnabled);
+#if WITH_EDITOR
+						LODActor->SetIsTemporarilyHiddenInEditor(!bHLODEnabled);
+#endif // WITH_EDITOR
+						LODActor->MarkComponentsRenderStateDirty();
+					}
+				}
 			}
 		}
 	}
+	else if (Args.Num() == 2)
+	{
+#if WITH_EDITOR
+		if (Args[0] == "force")
+		{
+			const int32 ForcedLevel = FCString::Atoi(*Args[1]);
 
-	bHLODEnabled = !bHLODEnabled;
+			if (ForcedLevel >= -1 && ForcedLevel < World->GetWorldSettings()->HierarchicalLODSetup.Num())
+			{
+				const TArray<ULevel*>& Levels = World->GetLevels();
+				for (ULevel* Level : Levels)
+				{
+					for (AActor* Actor : Level->Actors)
+					{
+						ALODActor* LODActor = Cast<ALODActor>(Actor);
+
+						if (LODActor)
+						{
+							if (LODActor->LODLevel == ForcedLevel + 1)
+							{
+								LODActor->SetForcedView(true);
+							}
+							else
+							{
+								LODActor->SetHiddenFromEditorView(true, ForcedLevel + 1);
+							}
+						}
+					}
+				}
+			}
+		}
+#endif // WITH_EDITOR
+	}
 }
 
-static FAutoConsoleCommandWithWorld GToggleHLODEnabledCmd(
-	TEXT("ToggleHLODEnabled"),
-	TEXT("Toggles whether or not the HLOD system is enabled."),
-	FConsoleCommandWithWorldDelegate::CreateStatic(ToggleHLODEnabled),
-	ECVF_Cheat
+static FAutoConsoleCommandWithWorldAndArgs GHLODCmd(
+	TEXT("r.HLOD"),
+	TEXT("Single argument: 0 or 1 to Disable/Enable HLOD System\nMultiple arguments: force X where X is the HLOD level that should be forced into view"),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(HLODConsoleCommand)
 	);
+
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
 ALODActor::ALODActor(const FObjectInitializer& ObjectInitializer)
@@ -214,6 +255,12 @@ bool ALODActor::GetReferencedContentObjects( TArray<UObject*>& Objects ) const
 {
 	Super::GetReferencedContentObjects(Objects);
 	Objects.Append(SubObjects);
+	
+	// Retrieve referenced objects for sub actors as well
+	for (AActor* SubActor : SubActors)
+	{
+		SubActor->GetReferencedContentObjects(Objects);
+	}
 	return true;
 }
 
@@ -388,6 +435,7 @@ void ALODActor::SetIsDirty(const bool bNewState)
 			ALODActor* LODParentActor = Cast<ALODActor>(ParentComponent->GetOwner());
 			if (LODParentActor)
 			{
+				LODParentActor->Modify();
 				LODParentActor->SetIsDirty(true);
 			}
 		}
@@ -396,19 +444,13 @@ void ALODActor::SetIsDirty(const bool bNewState)
 		StaticMeshComponent->StaticMesh = nullptr;
 		// Mark render state dirty to update viewport
 		StaticMeshComponent->MarkRenderStateDirty();
-
-		// Propagate to sub actors that we no longer have a static mesh
-		for (auto& SubActor : SubActors)
-		{
-			SubActor->SetLODParent(nullptr, LODDrawDistance);
-		}
-
-
+#if WITH_EDITOR
 		// Broadcast actor marked dirty event
-		if (GEngine)
+		if (GEditor)
 		{
-			GEngine->BroadcastHLODActorMarkedDirty(this);
-		}		
+			GEditor->BroadcastHLODActorMarkedDirty(this);
+		}
+#endif // WITH_EDITOR
 	}	
 	else
 	{
@@ -422,30 +464,7 @@ void ALODActor::SetIsDirty(const bool bNewState)
 
 const bool ALODActor::HasValidSubActors()
 {
-	if (SubActors.Num() > 1)
-	{
-		// More than one sub actor
-		return true;
-	}
-	else if (SubActors.Num() == 0)
-	{
-		// No sub actors
-		return false;
-	}	
-	else
-	{
-		if (SubActors[0]->IsA<ALODActor>())
-		{
-			// LODActor as only sub actor (which doesn't make sense for the system)
-			return false;
-		}
-		else
-		{
-			// StaticMeshActor as only sub actor
-			return true;
-		}
-	}
-	
+	return (SubActors.Num() != 0);	
 }
 
 void ALODActor::ToggleForceView()
@@ -553,7 +572,7 @@ void ALODActor::CleanSubObjectsArray()
 
 	if (bIsDirty)
 	{
-		SetIsDirty(true);
+		SetIsDirty(true);		
 	}
 }
 
@@ -572,6 +591,7 @@ void ALODActor::RecalculateDrawingDistance(const float InTransitionScreenSize)
 
 	UpdateSubActorLODParents();
 }
+
 
 #endif // WITH_EDITOR
 
@@ -607,5 +627,9 @@ FBox ALODActor::GetComponentsBoundingBox(bool bNonColliding) const
 
 	return BoundBox;	
 }
+
+//////////////////////////////////////////////////////////////////////////
+// AHLODMeshCullingVolume
+
 
 #undef LOCTEXT_NAMESPACE

@@ -19,4 +19,8 @@ public:
 	virtual FBPTerminal* RegisterLiteral(FKismetFunctionContext& Context, UEdGraphPin* Net) override;
 
 	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* InNode) override;
+
+protected:
+	/** Prevents this handler from auto-generating a GoTo to jump to the end of the node's compiled code so that child handlers can override the functionality */
+	bool bAutoGenerateGotoForPure;
 };

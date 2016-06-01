@@ -58,6 +58,11 @@ private:
 	bool ShouldEnableCustomCollisionSetup() const;
 	EVisibility ShouldShowCustomCollisionSetup() const;
 
+	bool IsCollisionEnabled() const;
+
+	// whether we can edit collision or if we're getting it from a default
+	bool AreAllCollisionUsingDefault() const;
+
 	// utility functions between property and struct
 	void CreateCustomCollisionSetup( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailGroup& CollisionGroup );
 	void SetCollisionResponseContainer(const FCollisionResponseContainer& ResponseContainer);
@@ -72,10 +77,13 @@ private:
 
 private:
 	// property handles
+	TSharedPtr<IPropertyHandle> BodyInstanceHandle;
 	TSharedPtr<IPropertyHandle> CollisionProfileNameHandle;
 	TSharedPtr<IPropertyHandle> CollisionEnabledHandle;
 	TSharedPtr<IPropertyHandle> ObjectTypeHandle;
 	TSharedPtr<IPropertyHandle> CollisionResponsesHandle;
+	TSharedPtr<IPropertyHandle> UseDefaultCollisionHandle;
+	TSharedPtr<IPropertyHandle> StaticMeshHandle;
 
 	// widget related variables
 	TSharedPtr<class SComboBox< TSharedPtr<FString> > > CollsionProfileComboBox;
@@ -90,11 +98,21 @@ private:
 	// default collision profile object
 	UCollisionProfile * CollisionProfile;
 
-	TArray<FBodyInstance*>		BodyInstances;
+	TArray<FBodyInstance*> BodyInstances;
+	TArray<UPrimitiveComponent*>		PrimComponents;
+	TMap<FBodyInstance*, UPrimitiveComponent*> BodyInstanceToPrimComponent;
 
 	TArray<FCollisionChannelInfo>	ValidCollisionChannels;
 
 	void RefreshCollisionProfiles();
+
+	UStaticMeshComponent* GetDefaultCollisionProvider(const FBodyInstance* BI) const;
+	void MarkAllBodiesDefaultCollision(bool bUseDefaultCollision);
+	bool CanUseDefaultCollision() const;
+	bool CanShowDefaultCollision() const;
+	int32 GetNumberOfSpecialProfiles() const;
+	int32 GetCustomIndex() const;
+	int32 GetDefaultIndex() const;
 };
 
 class FBodyInstanceCustomizationHelper  : public TSharedFromThis<FBodyInstanceCustomizationHelper>
@@ -109,6 +127,7 @@ private:
 	bool IsUseAsyncEditable() const;
 
 	TOptional<float> OnGetBodyMass() const;
+	void OnSetBodyMass(float InBodyMass, ETextCommit::Type Commit);
 	bool IsBodyMassReadOnly() const;
 	EVisibility IsMassVisible(bool bOverrideMass) const;
 	bool IsBodyMassEnabled() const { return !IsBodyMassReadOnly(); }

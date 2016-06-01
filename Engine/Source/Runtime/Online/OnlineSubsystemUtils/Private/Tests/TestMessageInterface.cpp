@@ -7,6 +7,8 @@
 #include "ModuleManager.h"
 #include "TestMessageInterface.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 struct TestAttribute
 {
 	FString Name;
@@ -313,3 +315,5 @@ void FTestMessageInterface::OnDeleteMessageComplete(int32 LocalPlayer, bool bWas
 	// kick off next test
 	StartNextTest();
 }
+
+#endif //WITH_DEV_AUTOMATION_TESTS

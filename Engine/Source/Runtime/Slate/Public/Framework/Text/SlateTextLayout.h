@@ -1,8 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#if WITH_FANCY_TEXT
-
 class SLATE_API FSlateTextLayout : public FTextLayout
 {
 public:
@@ -22,6 +20,8 @@ public:
 	void SetDefaultTextStyle(FTextBlockStyle InDefaultTextStyle);
 	const FTextBlockStyle& GetDefaultTextStyle() const;
 
+	void SetIsPassword(const TAttribute<bool>& InIsPassword);
+
 protected:
 
 	FSlateTextLayout(FTextBlockStyle InDefaultTextStyle);
@@ -39,10 +39,11 @@ private:
 	/** Default style used by the TextLayout */
 	FTextBlockStyle DefaultTextStyle;
 
+	/** This this layout displaying a password? */
+	TAttribute<bool> bIsPassword;
+
 	/** The localized fallback font revision the last time the text layout was updated. Used to force a flush if the font changes. */
 	int32 LocalizedFallbackFontRevision;
 
 	friend class FSlateTextLayoutFactory;
 };
-
-#endif //WITH_FANCY_TEXT

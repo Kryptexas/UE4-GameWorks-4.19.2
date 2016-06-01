@@ -24,11 +24,11 @@ public class TextureFormatAndroid : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.Win64)
 		{
-			AddThirdPartyPrivateStaticDependencies(Target, "QualcommTextureConverter");
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "QualcommTextureConverter");
 		}
 		else
 		{
-			AddThirdPartyPrivateStaticDependencies(Target, "QualcommTextureConverter");
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "QualcommTextureConverter");
 		}
 
                 // opt-out from precompile for Linux (this module cannot be built for Linux atm)

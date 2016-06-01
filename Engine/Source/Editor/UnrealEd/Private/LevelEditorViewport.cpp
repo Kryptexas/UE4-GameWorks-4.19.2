@@ -50,6 +50,7 @@
 #include "SNotificationList.h"
 #include "ComponentEditorUtils.h"
 #include "Settings/EditorProjectSettings.h"
+#include "IHeadMountedDisplay.h"
 
 DEFINE_LOG_CATEGORY(LogEditorViewport);
 
@@ -159,19 +160,7 @@ static FVector4 AttemptToSnapLocationToOriginPlane( const FViewportCursorLocatio
 	return Location;
 }
 
-/**
- * Helper function that attempts to use the provided object/asset to create an actor to place.
- *
- * @param	InLevel			Level in which to drop actor
- * @param	ObjToUse		Asset to attempt to use for an actor to place
- * @param	CursorLocation	Location of the cursor while dropping
- * @param	bSelectActors	If true, select the newly dropped actors (defaults: true)
- * @param	ObjectFlags		The flags to place on the actor when it is spawned
- * @param	FactoryToUse	The preferred actor factory to use (optional)
- *
- * @return	true if the object was successfully used to place an actor; false otherwise
- */
-static TArray<AActor*> AttemptDropObjAsActors( ULevel* InLevel, UObject* ObjToUse, const FViewportCursorLocation& CursorLocation, bool bSelectActors, EObjectFlags ObjectFlags, UActorFactory* FactoryToUse, const FName Name = NAME_None )
+TArray<AActor*> FLevelEditorViewportClient::TryPlacingActorFromObject( ULevel* InLevel, UObject* ObjToUse, bool bSelectActors, EObjectFlags ObjectFlags, UActorFactory* FactoryToUse, const FName Name )
 {
 	TArray<AActor*> PlacedActors;
 
@@ -386,7 +375,7 @@ static bool TryAndCreateMaterialInput( UMaterial* UnrealMaterial, EMaterialKind:
 	return true;
 }
 
-static UObject* GetOrCreateMaterialFromTexture( UTexture* UnrealTexture )
+UObject* FLevelEditorViewportClient::GetOrCreateMaterialFromTexture( UTexture* UnrealTexture )
 {
 	FString TextureShortName = FPackageName::GetShortName( UnrealTexture->GetOutermost()->GetName() );
 
@@ -412,7 +401,7 @@ static UObject* GetOrCreateMaterialFromTexture( UTexture* UnrealTexture )
 	}
 
 	// create an unreal material asset
-	auto MaterialFactory = NewObject<UMaterialFactoryNew>();
+	UMaterialFactoryNew* MaterialFactory = NewObject<UMaterialFactoryNew>();
 
 	UMaterial* UnrealMaterial = (UMaterial*)MaterialFactory->FactoryCreateNew(
 		UMaterial::StaticClass(), Package, *MaterialFullName, RF_Standalone | RF_Public, NULL, GWarn );
@@ -511,8 +500,8 @@ static bool AttemptApplyObjToComponent(UObject* ObjToUse, USceneComponent* Compo
 	if (ComponentToApplyTo && !ComponentToApplyTo->IsCreatedByConstructionScript())
 	{
 		// MESH/DECAL
-		auto MeshComponent = Cast<UMeshComponent>(ComponentToApplyTo);
-		auto DecalComponent = Cast<UDecalComponent>(ComponentToApplyTo);
+		UMeshComponent* MeshComponent = Cast<UMeshComponent>(ComponentToApplyTo);
+		UDecalComponent* DecalComponent = Cast<UDecalComponent>(ComponentToApplyTo);
 		if (MeshComponent || DecalComponent)
 		{
 			// Dropping a texture?
@@ -526,7 +515,7 @@ static bool AttemptApplyObjToComponent(UObject* ObjToUse, USceneComponent* Compo
 				else
 				{
 					// Turn dropped textures into materials
-					ObjToUse = GetOrCreateMaterialFromTexture(DroppedObjAsTexture);
+					ObjToUse = FLevelEditorViewportClient::GetOrCreateMaterialFromTexture(DroppedObjAsTexture);
 				}
 			}
 
@@ -546,7 +535,7 @@ static bool AttemptApplyObjToComponent(UObject* ObjToUse, USceneComponent* Compo
 		}
 
 		// SKELETAL MESH COMPONENT
-		auto SkeletalMeshComponent = Cast<USkeletalMeshComponent>(ComponentToApplyTo);
+		USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(ComponentToApplyTo);
 		if (SkeletalMeshComponent)
 		{
 			// Dropping an Anim Blueprint?
@@ -671,7 +660,7 @@ static bool AttemptApplyObjToActor( UObject* ObjToUse, AActor* ActorToApplyTo, i
 
 		TInlineComponentArray<USceneComponent*> SceneComponents;
 		ActorToApplyTo->GetComponents(SceneComponents);
-		for (auto SceneComp : SceneComponents)
+		for (USceneComponent* SceneComp : SceneComponents)
 		{
 			bResult |= AttemptApplyObjToComponent(ObjToUse, SceneComp, TargetMaterialSlot, bTest);
 		}
@@ -823,7 +812,7 @@ bool FLevelEditorViewportClient::DropObjectsOnBackground(FViewportCursorLocation
 		ensure( AssetObj );
 
 		// Attempt to create actors from the dropped object
-		TArray<AActor*> NewActors = AttemptDropObjAsActors(GetWorld()->GetCurrentLevel(), AssetObj, Cursor, bSelectActors, ObjectFlags, FactoryToUse);
+		TArray<AActor*> NewActors = TryPlacingActorFromObject(GetWorld()->GetCurrentLevel(), AssetObj, bSelectActors, ObjectFlags, FactoryToUse);
 
 		if ( NewActors.Num() > 0 )
 		{
@@ -857,7 +846,7 @@ bool FLevelEditorViewportClient::DropObjectsOnActor(FViewportCursorLocation& Cur
 		GEditor->BeginTransaction(NSLOCTEXT("UnrealEd", "CreateActors", "Create Actors"));
 	}
 
-	for ( auto DroppedObject : DroppedObjects )
+	for ( UObject* DroppedObject : DroppedObjects )
 	{
 		const bool bIsTestApplication = bCreateDropPreview;
 		const bool bAppliedToActor = ( FactoryToUse == nullptr ) ? AttemptApplyObjToActor( DroppedObject, DroppedUponActor, DroppedUponSlot, bIsTestApplication ) : false;
@@ -865,7 +854,7 @@ bool FLevelEditorViewportClient::DropObjectsOnActor(FViewportCursorLocation& Cur
 		if (!bAppliedToActor)
 		{
 			// Attempt to create actors from the dropped object
-			TArray<AActor*> NewActors = AttemptDropObjAsActors(GetWorld()->GetCurrentLevel(), DroppedObject, Cursor, bSelectActors, ObjectFlags, FactoryToUse);
+			TArray<AActor*> NewActors = TryPlacingActorFromObject(GetWorld()->GetCurrentLevel(), DroppedObject, bSelectActors, ObjectFlags, FactoryToUse);
 
 			if ( NewActors.Num() > 0 )
 			{
@@ -904,14 +893,14 @@ bool FLevelEditorViewportClient::DropObjectsOnBSPSurface(FSceneView* View, FView
 		GEditor->BeginTransaction(NSLOCTEXT("UnrealEd", "CreateActors", "Create Actors"));
 	}
 
-	for (auto DroppedObject : DroppedObjects)
+	for (UObject* DroppedObject : DroppedObjects)
 	{
 		const bool bAppliedToActor = (!bCreateDropPreview && FactoryToUse == NULL) ? AttemptApplyObjAsMaterialToSurface(DroppedObject, TargetProxy, Cursor) : false;
 
 		if (!bAppliedToActor)
 		{
 			// Attempt to create actors from the dropped object
-			TArray<AActor*> NewActors = AttemptDropObjAsActors(GetWorld()->GetCurrentLevel(), DroppedObject, Cursor, bSelectActors, ObjectFlags, FactoryToUse);
+			TArray<AActor*> NewActors = TryPlacingActorFromObject(GetWorld()->GetCurrentLevel(), DroppedObject, bSelectActors, ObjectFlags, FactoryToUse);
 
 			if (NewActors.Num() > 0)
 			{
@@ -1056,6 +1045,7 @@ bool FLevelEditorViewportClient::UpdateDropPreviewActors(int32 MouseX, int32 Mou
 	// Also, build a list of valid AActor* pointers
 	FVector ActorOrigin = FVector::ZeroVector;
 	TArray<AActor*> DraggingActors;
+	TArray<AActor*> IgnoreActors;
 	for ( auto ActorIt = DropPreviewActors.CreateConstIterator(); ActorIt; ++ActorIt )
 	{
 		AActor* DraggingActor = (*ActorIt).Get();
@@ -1063,6 +1053,8 @@ bool FLevelEditorViewportClient::UpdateDropPreviewActors(int32 MouseX, int32 Mou
 		if ( DraggingActor )
 		{
 			DraggingActors.Add(DraggingActor);
+			IgnoreActors.Add(DraggingActor);
+			DraggingActor->GetAllChildActors(IgnoreActors);
 			ActorOrigin += DraggingActor->GetActorLocation();
 		}
 	}
@@ -1084,7 +1076,7 @@ bool FLevelEditorViewportClient::UpdateDropPreviewActors(int32 MouseX, int32 Mou
 	FSceneView* View = CalcSceneView( &ViewFamily );
 	FViewportCursorLocation Cursor(View, this, MouseX, MouseY);
 
-	const FActorPositionTraceResult TraceResult = IsDroppingOn2DLayer() ? TraceForPositionOn2DLayer(Cursor) : FActorPositioning::TraceWorldForPositionWithDefault(Cursor, *View, &DraggingActors);
+	const FActorPositionTraceResult TraceResult = IsDroppingOn2DLayer() ? TraceForPositionOn2DLayer(Cursor) : FActorPositioning::TraceWorldForPositionWithDefault(Cursor, *View, &IgnoreActors);
 
 	GEditor->UnsnappedClickLocation = TraceResult.Location;
 	GEditor->ClickLocation = TraceResult.Location;
@@ -1118,7 +1110,8 @@ bool FLevelEditorViewportClient::UpdateDropPreviewActors(int32 MouseX, int32 Mou
 			.UseStartTransform(PreDragActorTransforms.FindRef(Actor))
 			.UsePlacementExtent(Actor->GetPlacementExtent());
 
-		const FTransform ActorTransform = FActorPositioning::GetSnappedSurfaceAlignedTransform(PositioningData);
+		FTransform ActorTransform = FActorPositioning::GetSnappedSurfaceAlignedTransform(PositioningData);
+		ActorTransform.SetScale3D(Actor->GetActorScale3D());		// preserve scaling
 
 		Actor->SetActorTransform(ActorTransform);
 		Actor->SetIsTemporarilyHiddenInEditor(false);
@@ -1309,7 +1302,7 @@ bool FLevelEditorViewportClient::DropObjectsAtCoordinates(int32 MouseX, int32 Mo
 							// The target component is selected, so try applying the object to every selected component
 							for (FSelectedEditableComponentIterator It(GEditor->GetSelectedEditableComponentIterator()); It; ++It)
 							{
-								auto SceneComponent = Cast<USceneComponent>(*It);
+								USceneComponent* SceneComponent = Cast<USceneComponent>(*It);
 								AttemptApplyObjToComponent(DroppedObjects[0], SceneComponent, TargetMaterialSlot, bCreateDropPreview);
 								bResult = true;
 							}
@@ -1467,7 +1460,7 @@ void FTrackingTransaction::Begin(const FText& Description)
 	}
 
 	// Modify unique group actors
-	for (auto* GroupActor : GroupActors)
+	for (AGroupActor* GroupActor : GroupActors)
 	{
 		GroupActor->Modify();
 	}
@@ -1534,6 +1527,7 @@ FLevelEditorViewportClient::FLevelEditorViewportClient(const TSharedPtr<SLevelVi
 	, bOnlyMovedPivot(false)
 	, bLockedCameraView(true)
 	, bReceivedFocusRecently(false)
+	, bAlwaysShowModeWidgetAfterSelectionChanges(true)
 	, SpriteCategoryVisibility()
 	, World(nullptr)
 	, TrackingTransaction()
@@ -1617,7 +1611,7 @@ void FLevelEditorViewportClient::InitializeVisibilityFlags()
 	SpriteCategoryVisibility.Init(true, GUnrealEd->SpriteIDToIndexMap.Num());
 }
 
-FSceneView* FLevelEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
+FSceneView* FLevelEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, const EStereoscopicPass StereoPass)
 {
 	bWasControlledByOtherViewport = false;
 
@@ -1665,7 +1659,7 @@ FSceneView* FLevelEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFami
 		}
 	}
 
-	FSceneView* View = FEditorViewportClient::CalcSceneView(ViewFamily);
+	FSceneView* View = FEditorViewportClient::CalcSceneView(ViewFamily, StereoPass);
 
 	View->SpriteCategoryVisibility = SpriteCategoryVisibility;
 	View->bCameraCut = bEditorCameraCut;
@@ -1913,7 +1907,7 @@ void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitPr
 		}
 		else if (HitProxy->IsA(HActor::StaticGetType()))
 		{
-			auto ActorHitProxy = (HActor*)HitProxy;
+			HActor* ActorHitProxy = (HActor*)HitProxy;
 
 			// We want to process the click on the component only if:
 			// 1. The actor clicked is already selected
@@ -2094,23 +2088,12 @@ void FLevelEditorViewportClient::UpdateViewForLockedActor()
 			if (bLockedCameraView)
 			{
 				// If this is a camera actor, then inherit some other settings
-				TArray<UCameraComponent*> CamComps;
-				Actor->GetComponents<UCameraComponent>(CamComps);
-
-				UCameraComponent* CameraComponent = nullptr;
-				for (UCameraComponent* Comp : CamComps)
-				{
-					if (Comp->bIsActive)
-					{
-						CameraComponent = Comp;
-						break;
-					}
-				}
-
-				if (CameraComponent != NULL)
+				UCameraComponent* const CameraComponent = GetCameraComponentForLockedActor(Actor);
+				if (CameraComponent != nullptr)
 				{
 					bUseControllingActorViewInfo = true;
 					CameraComponent->GetCameraView(0.0f, ControllingActorViewInfo);
+					CameraComponent->GetExtraPostProcessBlends(ControllingActorExtraPostProcessBlends, ControllingActorExtraPostProcessBlendWeights);
 
 					// Post processing is handled by OverridePostProcessingSettings
 					ViewFOV = ControllingActorViewInfo.FOV;
@@ -2122,7 +2105,6 @@ void FLevelEditorViewportClient::UpdateViewForLockedActor()
 		}
 	}
 }
-
 
 /*namespace ViewportDeadZoneConstants
 {
@@ -2137,7 +2119,7 @@ void FLevelEditorViewportClient::UpdateViewForLockedActor()
 void TrimLineToFrustum(const FConvexVolume& Frustum, FVector& Start, FVector& End)
 {
 	FVector Intersection;
-	for (const auto& Plane : Frustum.Planes)
+	for (const FPlane& Plane : Frustum.Planes)
 	{
 		if (FMath::SegmentPlaneIntersection(Start, End, Plane, Intersection))
 		{
@@ -2176,7 +2158,7 @@ void FLevelEditorViewportClient::ProjectActorsIntoWorld(const TArray<AActor*>& A
 
 
 	// Loop over all the actors and attempt to snap them along the drag axis normal
-	for (auto* Actor : Actors)
+	for (AActor* Actor : Actors)
 	{
 		// Use the Delta of the Mode tool with the actor pre drag location to avoid accumulating snapping offsets
 		FVector NewActorPosition;
@@ -2240,7 +2222,7 @@ void FLevelEditorViewportClient::ProjectActorsIntoWorld(const TArray<AActor*>& A
 			// Move the actor to the position of the trace hit using the spawn offset rules
 			// We only do this if we found a valid hit (we don't want to move the actor in front of the camera by default)
 
-			const auto* Factory = GEditor->FindActorFactoryForActorClass(Actor->GetClass());
+			const UActorFactory* Factory = GEditor->FindActorFactoryForActorClass(Actor->GetClass());
 			
 			const FTransform* PreDragActorTransform = PreDragActorTransforms.Find(Actor);
 			check(PreDragActorTransform);
@@ -2255,7 +2237,7 @@ void FLevelEditorViewportClient::ProjectActorsIntoWorld(const TArray<AActor*>& A
 			FTransform ActorTransform = FActorPositioning::GetSurfaceAlignedTransform(PositioningData);
 			
 			ActorTransform.SetScale3D(Actor->GetActorScale3D());
-			if (auto* RootComponent = Actor->GetRootComponent())
+			if (USceneComponent* RootComponent = Actor->GetRootComponent())
 			{
 				RootComponent->SetWorldTransform(ActorTransform);
 			}
@@ -3196,7 +3178,7 @@ void FLevelEditorViewportClient::ApplyDeltaToActors(const FVector& InDrag,
 				}
 
 				// Now actually apply the delta to the appropriate component(s)
-				for (auto SceneComp : ComponentsToMove)
+				for (USceneComponent* SceneComp : ComponentsToMove)
 				{
 					ApplyDeltaToComponent(SceneComp, InDrag, InRot, ModifiedScale);
 				}
@@ -3317,7 +3299,7 @@ static float CheckScaleValue( float ScaleDeltaToCheck, float CurrentScaleFactor,
 		AbsoluteScaleValue = FMath::GridSnap( AbsoluteScaleValue, GEditor->GetScaleGridSize() );
 	}
 	// In some situations CurrentExtent can be 0 (eg: when scaling a plane in Z), this causes a divide by 0 that we need to avoid.
-	if(CurrentExtent < KINDA_SMALL_NUMBER) {
+	if(FMath::Abs(CurrentExtent) < KINDA_SMALL_NUMBER) {
 		return AbsoluteScaleValue;
 	}
 	float UnscaledExtent = CurrentExtent / CurrentScaleFactor;
@@ -3337,30 +3319,77 @@ static float CheckScaleValue( float ScaleDeltaToCheck, float CurrentScaleFactor,
 	return AbsoluteScaleValue;
 }
 
-/** 
- * Helper function for ValidateScale().
- * If the setting is enabled, this function will appropriately re-scale the scale delta so that 
- * proportions are preserved when snapping.
- * @param	CurrentScale	The object's current scale
- * @param	bActiveAxes		The axes that are active when scaling interactively.
- * @param	InOutScaleDelta	The scale delta we are potentially transforming.
- * @return true if the axes should be snapped individually, according to the snap setting (i.e. this function had no effect)
- */
-static bool OptionallyPreserveNonUniformScale(const FVector& InCurrentScale, const bool bActiveAxes[3], FVector& InOutScaleDelta)
+/**
+* Helper function for ValidateScale().
+* If the "PreserveNonUniformScale" setting is enabled, this function will appropriately re-scale the scale delta so that
+* proportions are preserved also when snapping.
+* This function will modify the scale delta sign so that scaling is apply in the good direction when using multiple axis in same time.
+* The function will not transform the scale delta in the case the scale delta is not uniform
+* @param    InOriginalPreDragScale		The object's original scale
+* @param	bActiveAxes					The axes that are active when scaling interactively.
+* @param	InOutScaleDelta				The scale delta we are potentially transforming.
+* @return true if the axes should be snapped individually, according to the snap setting (i.e. this function had no effect)
+*/
+static bool ApplyScalingOptions(const FVector& InOriginalPreDragScale, const bool bActiveAxes[3], FVector& InOutScaleDelta)
 {
+	int ActiveAxisCount = 0;
+	bool CurrentValueSameSign = true;
+	bool FirstSignPositive = true;
+	float MaxComponentSum = -1.0f;
+	int32 MaxAxisIndex = -1;
 	const ULevelEditorViewportSettings* ViewportSettings = GetDefault<ULevelEditorViewportSettings>();
+	bool SnapScaleAfter = ViewportSettings->SnapScaleEnabled;
 
-	if(ViewportSettings->SnapScaleEnabled && ViewportSettings->PreserveNonUniformScale)
+	//Found the number of active axis
+	//Found if we have to swap some sign
+	for (int Axis = 0; Axis < 3; ++Axis)
 	{
-		// when using 'auto-precision', we take the max component & snap its scale, then proportionally scale the other components
-		float MaxComponentSum = -1.0f;
-		int32 MaxAxisIndex = -1;
-		for( int Axis = 0; Axis < 3; ++Axis )
+		if (bActiveAxes[Axis])
 		{
-			if( bActiveAxes[Axis] ) 
+			bool CurrentValueIsZero = FMath::IsNearlyZero(InOriginalPreDragScale[Axis], SMALL_NUMBER);
+			//when the current value is zero we assume it is positive
+			bool IsCurrentValueSignPositive = CurrentValueIsZero ? true : InOriginalPreDragScale[Axis] > 0.0f;
+			if (ActiveAxisCount == 0)
 			{
-				const float AbsScale = FMath::Abs(InOutScaleDelta[Axis] + InCurrentScale[Axis]);
-				if(AbsScale > MaxComponentSum)
+				//Set the first value when we find the first active axis
+				FirstSignPositive = IsCurrentValueSignPositive;
+			}
+			else
+			{
+				if (FirstSignPositive != IsCurrentValueSignPositive)
+				{
+					CurrentValueSameSign = false;
+				}
+			}
+			ActiveAxisCount++;
+		}
+	}
+
+	//If we scale more then one axis and
+	//we have to swap some sign
+	if (ActiveAxisCount > 1 && !CurrentValueSameSign)
+	{
+		//Change the scale delta to reflect the sign of the value
+		for (int Axis = 0; Axis < 3; ++Axis)
+		{
+			if (bActiveAxes[Axis])
+			{
+				bool CurrentValueIsZero = FMath::IsNearlyZero(InOriginalPreDragScale[Axis], SMALL_NUMBER);
+				//when the current value is zero we assume it is positive
+				bool IsCurrentValueSignPositive = CurrentValueIsZero ? true : InOriginalPreDragScale[Axis] > 0.0f;
+				InOutScaleDelta[Axis] = IsCurrentValueSignPositive ? InOutScaleDelta[Axis] : -(InOutScaleDelta[Axis]);
+			}
+		}
+	}
+
+	if (ViewportSettings->PreserveNonUniformScale)
+	{
+		for (int Axis = 0; Axis < 3; ++Axis)
+		{
+			if (bActiveAxes[Axis])
+			{
+				const float AbsScale = FMath::Abs(InOutScaleDelta[Axis] + InOriginalPreDragScale[Axis]);
+				if (AbsScale > MaxComponentSum)
 				{
 					MaxAxisIndex = Axis;
 					MaxComponentSum = AbsScale;
@@ -3370,38 +3399,40 @@ static bool OptionallyPreserveNonUniformScale(const FVector& InCurrentScale, con
 
 		check(MaxAxisIndex != -1);
 
-		float AbsoluteScaleValue = FMath::GridSnap( InCurrentScale[MaxAxisIndex] + InOutScaleDelta[MaxAxisIndex], GEditor->GetScaleGridSize() );
-		float ScaleRatioMax = InCurrentScale[MaxAxisIndex] == 0.0f ? 1.0f : AbsoluteScaleValue / InCurrentScale[MaxAxisIndex];
-		for( int Axis = 0; Axis < 3; ++Axis )
+		float AbsoluteScaleValue = InOriginalPreDragScale[MaxAxisIndex] + InOutScaleDelta[MaxAxisIndex];
+		if (ViewportSettings->SnapScaleEnabled)
 		{
-			if( bActiveAxes[Axis] ) 
-			{
-				if(Axis == MaxAxisIndex)
-				{
-					InOutScaleDelta[Axis] = AbsoluteScaleValue - InCurrentScale[Axis];
-				}
-				else
-				{
-					InOutScaleDelta[Axis] = (InCurrentScale[Axis] * ScaleRatioMax) - InCurrentScale[Axis];
-				}
-			}
+			AbsoluteScaleValue = FMath::GridSnap(InOriginalPreDragScale[MaxAxisIndex] + InOutScaleDelta[MaxAxisIndex], GEditor->GetScaleGridSize());
+			SnapScaleAfter = false;
 		}
 
-		return false;
+		float ScaleRatioMax = 1.0f;
+		ScaleRatioMax = AbsoluteScaleValue / InOriginalPreDragScale[MaxAxisIndex];
+		for (int Axis = 0; Axis < 3; ++Axis)
+		{
+			if (bActiveAxes[Axis])
+			{
+				InOutScaleDelta[Axis] = (InOriginalPreDragScale[Axis] * ScaleRatioMax) - InOriginalPreDragScale[Axis];
+			}
+		}
 	}
 
-	return ViewportSettings->SnapScaleEnabled;
+	
+	return SnapScaleAfter;
 }
 
+
 /** Helper function for ModifyScale - Check scale criteria to see if this is allowed */
-void FLevelEditorViewportClient::ValidateScale( const FVector& InCurrentScale, const FVector& InBoxExtent, FVector& InOutScaleDelta, bool bInCheckSmallExtent ) const
+void FLevelEditorViewportClient::ValidateScale(const FVector& InOriginalPreDragScale, const FVector& InCurrentScale, const FVector& InBoxExtent, FVector& InOutScaleDelta, bool bInCheckSmallExtent ) const
 {
 	// get the axes that are active in this operation
 	bool bActiveAxes[3];
 	CheckActiveAxes( Widget != NULL ? Widget->GetCurrentAxis() : EAxisList::None, bActiveAxes );
 
-	bool bSnapAxes = OptionallyPreserveNonUniformScale(InCurrentScale, bActiveAxes, InOutScaleDelta);
-	
+	//When scaling with more then one active axis, We must make sure we apply the correct delta sign to each delta scale axis
+	//We also want to support the PreserveNonUniformScale option
+	bool bSnapAxes = ApplyScalingOptions(InOriginalPreDragScale, bActiveAxes, InOutScaleDelta);
+
 	// check each axis
 	for( int Axis = 0; Axis < 3; ++Axis )
 	{
@@ -3425,7 +3456,14 @@ void FLevelEditorViewportClient::ModifyScale( AActor* InActor, FVector& ScaleDel
 
 		const FBox LocalBox = InActor->GetComponentsBoundingBox( true );
 		const FVector ScaledExtents = LocalBox.GetExtent() * CurrentScale;
-		ValidateScale( CurrentScale, ScaledExtents, ScaleDelta, bCheckSmallExtent );
+		const FTransform* PreDragTransform = PreDragActorTransforms.Find(InActor);
+		//In scale mode we need the predrag transform before the first delta calculation
+		if (PreDragTransform == nullptr)
+		{
+			PreDragTransform = &PreDragActorTransforms.Add(InActor, InActor->GetTransform());
+		}
+		check(PreDragTransform);
+		ValidateScale(PreDragTransform->GetScale3D(), CurrentScale, ScaledExtents, ScaleDelta, bCheckSmallExtent);
 
 		if( ScaleDelta.IsNearlyZero() )
 		{
@@ -3436,7 +3474,17 @@ void FLevelEditorViewportClient::ModifyScale( AActor* InActor, FVector& ScaleDel
 
 void FLevelEditorViewportClient::ModifyScale( USceneComponent* InComponent, FVector& ScaleDelta ) const
 {
-	ValidateScale( InComponent->RelativeScale3D, InComponent->Bounds.GetBox().GetExtent(), ScaleDelta );
+	AActor* Actor = InComponent->GetOwner();
+	const FTransform* PreDragTransform = PreDragActorTransforms.Find(Actor);
+	//In scale mode we need the predrag transform before the first delta calculation
+	if (PreDragTransform == nullptr)
+	{
+		PreDragTransform = &PreDragActorTransforms.Add(Actor, Actor->GetTransform());
+	}
+	check(PreDragTransform);
+	const FBox LocalBox = Actor->GetComponentsBoundingBox(true);
+	const FVector ScaledExtents = LocalBox.GetExtent() * InComponent->RelativeScale3D;
+	ValidateScale(PreDragTransform->GetScale3D(), InComponent->RelativeScale3D, ScaledExtents, ScaleDelta);
 
 	if( ScaleDelta.IsNearlyZero() )
 	{
@@ -3490,10 +3538,10 @@ EMouseCursor::Type FLevelEditorViewportClient::GetCursor(FViewport* Viewport,int
 	if( Viewport->IsCursorVisible() && !bWidgetAxisControlledByDrag && !HitProxy )
 	{
 		if( HoveredObjects.Num() > 0 )
-	{
+		{
 			ClearHoverFromObjects();
 			Invalidate( false, false );
-	}
+		}
 	}
 
 	return CursorType;
@@ -3615,6 +3663,11 @@ void FLevelEditorViewportClient::CheckHoveredHitProxy( HHitProxy* HoveredHitProx
 		}
 	}
 
+	UpdateHoveredObjects( NewHoveredObjects );
+}
+
+void FLevelEditorViewportClient::UpdateHoveredObjects( const TSet<FViewportHoverTarget>& NewHoveredObjects )
+{
 	// Check to see if there are any hovered objects that need to be updated
 	{
 		bool bAnyHoverChanges = false;
@@ -3634,9 +3687,9 @@ void FLevelEditorViewportClient::CheckHoveredHitProxy( HHitProxy* HoveredHitProx
 			}
 		}
 
-		for( TSet<FViewportHoverTarget>::TIterator It( NewHoveredObjects ); It; ++It )
+		for( TSet<FViewportHoverTarget>::TConstIterator It( NewHoveredObjects ); It; ++It )
 		{
-			FViewportHoverTarget& NewHoverTarget = *It;
+			const FViewportHoverTarget& NewHoverTarget = *It;
 			if( !HoveredObjects.Contains( NewHoverTarget ) )
 			{
 				// Add hover effect to this object
@@ -3855,7 +3908,6 @@ void FLevelEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDrawInter
 		}
 	}
 
-
 	Mark.Pop();
 }
 
@@ -3999,15 +4051,6 @@ void FLevelEditorViewportClient::SetupViewForRendering( FSceneViewFamily& ViewFa
 		}
 	}
 
-	if (ModeTools->GetActiveMode(FBuiltinEditorModes::EM_InterpEdit) == 0 || !AllowsCinematicPreview())
-	{
-		// in the editor, disable camera motion blur and other rendering features that rely on the former frame
-		// unless the view port is Matinee controlled
-		ViewFamily.EngineShowFlags.CameraInterpolation = 0;
-		// keep the image sharp - ScreenPercentage is an optimization and should not affect the editor
-		ViewFamily.EngineShowFlags.SetScreenPercentage(false);
-	}
-
 	TSharedPtr<FDragDropOperation> DragOperation = FSlateApplication::Get().GetDragDroppingContent();
 	if (!(DragOperation.IsValid() && DragOperation->IsOfType<FBrushBuilderDragDropOp>()))
 	{
@@ -4066,8 +4109,8 @@ void FLevelEditorViewportClient::DrawTextureStreamingBounds(const FSceneView* Vi
 				DrawWireBox(PDI, Box, FColorList::Yellow, SDPG_World);
 #else	//#if defined(_STREAMING_BOUNDS_DRAW_BOX_)
 				// Draw bounding spheres
-				FVector Origin = STI.BoundingSphere.Center;
-				float Radius = STI.BoundingSphere.W;
+				FVector Origin = STI.Bounds.Origin;
+				float Radius = STI.Bounds.SphereRadius;
 				DrawCircle(PDI, Origin, FVector(1, 0, 0), FVector(0, 1, 0), FColorList::Yellow, Radius, 32, SDPG_World);
 				DrawCircle(PDI, Origin, FVector(1, 0, 0), FVector(0, 0, 1), FColorList::Yellow, Radius, 32, SDPG_World);
 				DrawCircle(PDI, Origin, FVector(0, 1, 0), FVector(0, 0, 1), FColorList::Yellow, Radius, 32, SDPG_World);
@@ -4228,7 +4271,7 @@ bool FLevelEditorViewportClient::OverrideHighResScreenshotCaptureRegion(FIntRect
  *
  * @param	InHoverTarget	The hoverable object to add the effect to
  */
-void FLevelEditorViewportClient::AddHoverEffect( FViewportHoverTarget& InHoverTarget )
+void FLevelEditorViewportClient::AddHoverEffect( const FViewportHoverTarget& InHoverTarget )
 {
 	AActor* ActorUnderCursor = InHoverTarget.HoveredActor;
 	UModel* ModelUnderCursor = InHoverTarget.HoveredModel;
@@ -4262,7 +4305,7 @@ void FLevelEditorViewportClient::AddHoverEffect( FViewportHoverTarget& InHoverTa
  *
  * @param	InHoverTarget	The hoverable object to remove the effect from
  */
-void FLevelEditorViewportClient::RemoveHoverEffect( FViewportHoverTarget& InHoverTarget )
+void FLevelEditorViewportClient::RemoveHoverEffect( const FViewportHoverTarget& InHoverTarget )
 {
 	AActor* CurHoveredActor = InHoverTarget.HoveredActor;
 	if( CurHoveredActor != nullptr )

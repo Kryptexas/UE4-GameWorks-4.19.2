@@ -69,6 +69,11 @@ struct FRIENDSANDCHAT_API FFriendsFontStyle
 	FSlateFontInfo FriendsFontLargeBold;
 	FFriendsFontStyle& SetFontLargeBold(const FSlateFontInfo& InFontStyle);
 
+	/** Font Style */
+	UPROPERTY(EditAnywhere, Category=Appearance)
+	FSlateFontInfo FriendsChatFont;
+	FFriendsFontStyle& SetChatFont(const FSlateFontInfo& InFontStyle);
+
 	/** Default Font Color */
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FLinearColor DefaultFontColor;

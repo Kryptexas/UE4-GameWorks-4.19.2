@@ -66,6 +66,8 @@ ActorFactory.cpp:
 #include "Animation/AnimBlueprintGeneratedClass.h"
 #include "Kismet2/ComponentEditorUtils.h"
 #include "Components/BillboardComponent.h"
+#include "Classes/ActorFactories/ActorFactoryPlanarReflection.h"
+#include "Engine/PlanarReflection.h"
 
 #include "LevelSequence.h"
 #include "LevelSequenceActor.h"
@@ -200,9 +202,7 @@ AActor* UActorFactory::CreateActor( UObject* Asset, ULevel* InLevel, FTransform 
 
 	if ( PreSpawnActor(Asset, SpawnTransform) )
 	{
-		const auto Location = SpawnTransform.GetLocation();
-		const auto Rotation = SpawnTransform.GetRotation().Rotator();
-		NewActor = SpawnActor(Asset, InLevel, Location, Rotation, ObjectFlags, Name);
+		NewActor = SpawnActor(Asset, InLevel, SpawnTransform, ObjectFlags, Name);
 
 		if ( NewActor )
 		{
@@ -230,7 +230,7 @@ bool UActorFactory::PreSpawnActor( UObject* Asset, FTransform& InOutLocation)
 	return true;
 }
 
-AActor* UActorFactory::SpawnActor( UObject* Asset, ULevel* InLevel, const FVector& Location, const FRotator& Rotation, EObjectFlags ObjectFlags, const FName& Name )
+AActor* UActorFactory::SpawnActor( UObject* Asset, ULevel* InLevel, const FTransform& Transform, EObjectFlags ObjectFlags, const FName Name )
 {
 	AActor* DefaultActor = GetDefaultActor( FAssetData( Asset ) );
 	if ( DefaultActor )
@@ -239,7 +239,7 @@ AActor* UActorFactory::SpawnActor( UObject* Asset, ULevel* InLevel, const FVecto
 		SpawnInfo.OverrideLevel = InLevel;
 		SpawnInfo.ObjectFlags = ObjectFlags;
 		SpawnInfo.Name = Name;
-		return InLevel->OwningWorld->SpawnActor( DefaultActor->GetClass(), &Location, &Rotation, SpawnInfo );
+		return InLevel->OwningWorld->SpawnActor( DefaultActor->GetClass(), &Transform, SpawnInfo );
 	}
 
 	return NULL;
@@ -939,8 +939,20 @@ void UActorFactoryAnimationAsset::PostSpawnActor( UObject* Asset, AActor* NewAct
 		{
 			NewSASComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
 			NewSASComponent->AnimationData.AnimToPlay = AnimationAsset;
+			
 			// set runtime data
 			NewSASComponent->SetAnimation(AnimationAsset);
+
+			if (UAnimSequenceBase* AnimSeq = Cast<UAnimSequenceBase>(AnimationAsset))
+			{
+				//If we have a negative play rate, default initial position to sequence end
+				if (AnimSeq->RateScale < 0.f)
+				{
+					NewSASComponent->AnimationData.SavedPosition = AnimSeq->SequenceLength;
+					NewSASComponent->SetPosition(AnimSeq->SequenceLength, false);
+				}
+			}
+			
 		}
 		else if( VertexAnimation )
 		{
@@ -1173,7 +1185,7 @@ static UBillboardComponent* CreateEditorOnlyBillboardComponent(AActor* ActorOwne
 	BillboardComponent->AlwaysLoadOnClient = false;
 	BillboardComponent->AlwaysLoadOnServer = false;
 
-	BillboardComponent->AttachTo(AttachParent);
+	BillboardComponent->SetupAttachment(AttachParent);
 
 	return BillboardComponent;
 }
@@ -1193,17 +1205,17 @@ bool UActorFactoryEmptyActor::CanCreateActorFrom( const FAssetData& AssetData, F
 	return AssetData.ObjectPath == FName(*AActor::StaticClass()->GetPathName());
 }
 
-AActor* UActorFactoryEmptyActor::SpawnActor( UObject* Asset, ULevel* InLevel, const FVector& Location, const FRotator& Rotation, EObjectFlags ObjectFlags, const FName& Name )
+AActor* UActorFactoryEmptyActor::SpawnActor( UObject* Asset, ULevel* InLevel, const FTransform& Transform, EObjectFlags ObjectFlags, const FName Name )
 {
 	AActor* NewActor = nullptr;
 	{
 		// Spawn a temporary actor for dragging around
-		NewActor = Super::SpawnActor(Asset, InLevel, Location, Rotation, ObjectFlags, Name);
+		NewActor = Super::SpawnActor(Asset, InLevel, Transform, ObjectFlags, Name);
 
 		USceneComponent* RootComponent = NewObject<USceneComponent>(NewActor, USceneComponent::GetDefaultSceneRootVariableName(), RF_Transactional);
 		RootComponent->Mobility = EComponentMobility::Movable;
 		RootComponent->bVisualizeComponent = true;
-		RootComponent->SetWorldLocationAndRotation(Location, Rotation);
+		RootComponent->SetWorldTransform(Transform);
 
 		NewActor->SetRootComponent(RootComponent);
 		NewActor->AddInstanceComponent(RootComponent);
@@ -1231,14 +1243,6 @@ bool UActorFactoryCharacter::CanCreateActorFrom(const FAssetData& AssetData, FTe
 	return AssetData.ObjectPath == FName(*ACharacter::StaticClass()->GetPathName());
 }
 
-AActor* UActorFactoryCharacter::SpawnActor(UObject* Asset, ULevel* InLevel, const FVector& Location, const FRotator& Rotation, EObjectFlags ObjectFlags, const FName& Name)
-{
-	AActor* NewActor = Super::SpawnActor( Asset, InLevel, Location, Rotation, ObjectFlags, Name );
-
-	return NewActor;
-}
-
-
 /*-----------------------------------------------------------------------------
 UActorFactoryPawn
 -----------------------------------------------------------------------------*/
@@ -1252,12 +1256,6 @@ UActorFactoryPawn::UActorFactoryPawn(const FObjectInitializer& ObjectInitializer
 bool UActorFactoryPawn::CanCreateActorFrom(const FAssetData& AssetData, FText& OutErrorMsg)
 {
 	return AssetData.ObjectPath == FName(*APawn::StaticClass()->GetPathName());
-}
-
-AActor* UActorFactoryPawn::SpawnActor(UObject* Asset, ULevel* InLevel, const FVector& Location, const FRotator& Rotation, EObjectFlags ObjectFlags, const FName& Name)
-{
-	AActor* NewActor = Super::SpawnActor(Asset, InLevel, Location, Rotation, ObjectFlags, Name);
-	return NewActor;
 }
 
 /*-----------------------------------------------------------------------------
@@ -1375,7 +1373,7 @@ bool UActorFactoryClass::PreSpawnActor( UObject* Asset, FTransform& InOutLocatio
 	return false;
 }
 
-AActor* UActorFactoryClass::SpawnActor( UObject* Asset, ULevel* InLevel, const FVector& Location, const FRotator& Rotation, EObjectFlags ObjectFlags, const FName& Name )
+AActor* UActorFactoryClass::SpawnActor( UObject* Asset, ULevel* InLevel, const FTransform& Transform, EObjectFlags ObjectFlags, const FName Name )
 {
 	UClass* ActualClass = Cast<UClass>(Asset);
 
@@ -1385,7 +1383,7 @@ AActor* UActorFactoryClass::SpawnActor( UObject* Asset, ULevel* InLevel, const F
 		SpawnInfo.OverrideLevel = InLevel;
 		SpawnInfo.ObjectFlags = ObjectFlags;
 		SpawnInfo.Name = Name;
-		return InLevel->OwningWorld->SpawnActor( ActualClass, &Location, &Rotation, SpawnInfo );
+		return InLevel->OwningWorld->SpawnActor( ActualClass, &Transform, SpawnInfo );
 	}
 
 	return NULL;
@@ -1615,6 +1613,18 @@ UActorFactoryBoxReflectionCapture::UActorFactoryBoxReflectionCapture(const FObje
 	NewActorClass = ABoxReflectionCapture::StaticClass();
 	SpawnPositionOffset = FVector(50, 0, 0);
 	bUseSurfaceOrientation = true;
+}
+
+/*-----------------------------------------------------------------------------
+UActorFactoryPlanarReflection
+-----------------------------------------------------------------------------*/
+UActorFactoryPlanarReflection::UActorFactoryPlanarReflection(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
+{
+	DisplayName = LOCTEXT("PlanarReflectionDisplayName", "Planar Reflection");
+	NewActorClass = APlanarReflection::StaticClass();
+	SpawnPositionOffset = FVector(0, 0, 0);
+	bUseSurfaceOrientation = false;
 }
 
 /*-----------------------------------------------------------------------------
@@ -1969,9 +1979,9 @@ bool UActorFactoryMovieScene::CanCreateActorFrom( const FAssetData& AssetData, F
 	return true;
 }
 
-AActor* UActorFactoryMovieScene::SpawnActor( UObject* Asset, ULevel* InLevel, const FVector& Location, const FRotator& Rotation, EObjectFlags ObjectFlags, const FName& Name )
+AActor* UActorFactoryMovieScene::SpawnActor( UObject* Asset, ULevel* InLevel, const FTransform& Transform, EObjectFlags ObjectFlags, const FName Name )
 {
-	ALevelSequenceActor* NewActor = Cast<ALevelSequenceActor>(Super::SpawnActor(Asset, InLevel, Location, Rotation, ObjectFlags, Name));
+	ALevelSequenceActor* NewActor = Cast<ALevelSequenceActor>(Super::SpawnActor(Asset, InLevel, Transform, ObjectFlags, Name));
 
 	if (NewActor)
 	{

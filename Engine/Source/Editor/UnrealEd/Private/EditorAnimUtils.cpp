@@ -45,13 +45,9 @@ namespace EditorAnimUtils
 		for(auto Iter = AssetsToRetarget.CreateConstIterator(); Iter; ++Iter)
 		{
 			UObject* Asset = (*Iter).Get();
-			if( UAnimSequence* AnimSeq = Cast<UAnimSequence>(Asset) )
+			if( UAnimationAsset* AnimAsset = Cast<UAnimationAsset>(Asset) )
 			{
-				AnimSequencesToRetarget.AddUnique(AnimSeq);
-			}
-			else if( UAnimationAsset* AnimAsset = Cast<UAnimationAsset>(Asset) )
-			{
-				ComplexAnimsToRetarget.AddUnique(AnimAsset);
+				AnimationAssetsToRetarget.AddUnique(AnimAsset);
 			}
 			else if( UAnimBlueprint* AnimBlueprint = Cast<UAnimBlueprint>(Asset) )
 			{
@@ -67,36 +63,31 @@ namespace EditorAnimUtils
 
 		if(bRetargetReferredAssets)
 		{
-			for(auto Iter = ComplexAnimsToRetarget.CreateConstIterator(); Iter; ++Iter)
-			{
-				(*Iter)->GetAllAnimationSequencesReferred(AnimSequencesToRetarget);
-			}
-
+			// Grab assets from the blueprint. Do this first as it can add complex assets to the retarget array
+			// which will need to be processed next.
 			for(auto Iter = AnimBlueprintsToRetarget.CreateConstIterator(); Iter; ++Iter)
 			{
-				GetAllAnimationSequencesReferredInBlueprint( (*Iter), ComplexAnimsToRetarget, AnimSequencesToRetarget);
+				GetAllAnimationSequencesReferredInBlueprint( (*Iter), AnimationAssetsToRetarget);
 			}
 
-			int SequenceIndex = 0;
-			while (SequenceIndex < AnimSequencesToRetarget.Num())
+			int32 AssetIndex = 0;
+			while (AssetIndex < AnimationAssetsToRetarget.Num())
 			{
-				UAnimSequence* Seq = AnimSequencesToRetarget[SequenceIndex++];
-				Seq->GetAllAnimationSequencesReferred(AnimSequencesToRetarget);
+				UAnimationAsset* AnimAsset = AnimationAssetsToRetarget[AssetIndex++];
+				AnimAsset->GetAllAnimationSequencesReferred(AnimationAssetsToRetarget);
 			}
 		}
 	}
 
 	bool FAnimationRetargetContext::HasAssetsToRetarget() const
 	{
-		return	AnimSequencesToRetarget.Num() > 0 ||
-				ComplexAnimsToRetarget.Num() > 0  ||
+		return	AnimationAssetsToRetarget.Num() > 0 ||
 				AnimBlueprintsToRetarget.Num() > 0;
 	}
 
 	bool FAnimationRetargetContext::HasDuplicates() const
 	{
-		return	DuplicatedSequences.Num() > 0     ||
-				DuplicatedComplexAssets.Num() > 0 ||
+		return	DuplicatedAnimAssets.Num() > 0     ||
 				DuplicatedBlueprints.Num() > 0;
 	}
 
@@ -104,14 +95,9 @@ namespace EditorAnimUtils
 	{
 		TArray<UObject*> Duplicates;
 
-		if (AnimSequencesToRetarget.Num() > 0)
+		if (AnimationAssetsToRetarget.Num() > 0)
 		{
-			Duplicates.Append(AnimSequencesToRetarget);
-		}
-
-		if(ComplexAnimsToRetarget.Num() > 0)
-		{
-			Duplicates.Append(ComplexAnimsToRetarget);
+			Duplicates.Append(AnimationAssetsToRetarget);
 		}
 
 		if(AnimBlueprintsToRetarget.Num() > 0)
@@ -130,18 +116,11 @@ namespace EditorAnimUtils
 	{
 		if(HasDuplicates())
 		{
-			if(const UAnimSequence* Seq = Cast<const UAnimSequence>(OriginalObject))
-			{
-				if(DuplicatedSequences.Contains(Seq))
-				{
-					return DuplicatedSequences.FindRef(Seq);
-				}
-			}
 			if(const UAnimationAsset* Asset = Cast<const UAnimationAsset>(OriginalObject)) 
 			{
-				if(DuplicatedComplexAssets.Contains(Asset))
+				if(DuplicatedAnimAssets.Contains(Asset))
 				{
-					return DuplicatedComplexAssets.FindRef(Asset);
+					return DuplicatedAnimAssets.FindRef(Asset);
 				}
 			}
 			if(const UAnimBlueprint* AnimBlueprint = Cast<const UAnimBlueprint>(OriginalObject))
@@ -159,27 +138,19 @@ namespace EditorAnimUtils
 	{
 		if(!HasDuplicates())
 		{
-			TArray<UAnimSequence*> AnimSequencesToDuplicate = AnimSequencesToRetarget;
-			TArray<UAnimationAsset*> ComplexAnimsToDuplicate = ComplexAnimsToRetarget;
+			TArray<UAnimationAsset*> AnimationAssetsToDuplicate = AnimationAssetsToRetarget;
 			TArray<UAnimBlueprint*> AnimBlueprintsToDuplicate = AnimBlueprintsToRetarget;
 
 			// We only want to duplicate unmapped assets, so we remove mapped assets from the list we're duplicating
-			for(TPair<UAnimSequence*, UAnimSequence*>& Pair : RemappedSequences)
+			for(TPair<UAnimationAsset*, UAnimationAsset*>& Pair : RemappedAnimAssets)
 			{
-				AnimSequencesToDuplicate.Remove(Pair.Key);
+				AnimationAssetsToDuplicate.Remove(Pair.Key);
 			}
 
-			for(TPair<UAnimationAsset*, UAnimationAsset*>& Pair : RemappedComplexAssets)
-			{
-				ComplexAnimsToDuplicate.Remove(Pair.Key);
-			}
-
-			DuplicatedSequences = DuplicateAssets<UAnimSequence>(AnimSequencesToDuplicate, DestinationPackage, NameRule);
-			DuplicatedComplexAssets = DuplicateAssets<UAnimationAsset>(ComplexAnimsToDuplicate, DestinationPackage, NameRule);
+			DuplicatedAnimAssets = DuplicateAssets<UAnimationAsset>(AnimationAssetsToDuplicate, DestinationPackage, NameRule);
 			DuplicatedBlueprints = DuplicateAssets<UAnimBlueprint>(AnimBlueprintsToDuplicate, DestinationPackage, NameRule);
 
-			DuplicatedSequences.GenerateValueArray(AnimSequencesToRetarget);
-			DuplicatedComplexAssets.GenerateValueArray(ComplexAnimsToRetarget);
+			DuplicatedAnimAssets.GenerateValueArray(AnimationAssetsToRetarget);
 			DuplicatedBlueprints.GenerateValueArray(AnimBlueprintsToRetarget);
 		}
 	}
@@ -210,41 +181,42 @@ namespace EditorAnimUtils
 			}
 		}
 
-
-		for(auto Iter = AnimSequencesToRetarget.CreateIterator(); Iter; ++Iter)
+		// anim sequences will be retargeted first becauseReplaceSkeleton forces it to change skeleton
+		// @todo: please note that I think we can merge two loops 
+		//(without separating two loops - one for AnimSequence and one for everybody else)
+		// but if you have animation asssets that does replace skeleton, it will try fix up internal asset also
+		// so I think you might be doing twice - look at AnimationAsset:ReplaceSkeleton
+		// for safety, I'm doing Sequence first and then everything else
+		// however this can be re-investigated and fixed better in the future
+		for(auto Iter = AnimationAssetsToRetarget.CreateIterator(); Iter; ++Iter)
 		{
-			UAnimSequence* AssetToRetarget = (*Iter);
-
-			// Copy curve data from source asset, preserving data in the target if present.
-			if (OldSkeleton)
+			UAnimSequence* AnimSequenceToRetarget = Cast<UAnimSequence>(*Iter);
+			if (AnimSequenceToRetarget)
 			{
-				EditorAnimUtils::CopyAnimCurves(OldSkeleton, NewSkeleton, AssetToRetarget, USkeleton::AnimCurveMappingName, FRawCurveTracks::FloatType);
+				// Copy curve data from source asset, preserving data in the target if present.
+				if (OldSkeleton)
+				{
+					EditorAnimUtils::CopyAnimCurves(OldSkeleton, NewSkeleton, AnimSequenceToRetarget, USkeleton::AnimCurveMappingName, FRawCurveTracks::FloatType);
 
-				// clear transform curves since those curves won't work in new skeleton
-				// since we're deleting curves, mark this rebake flag off
-				AssetToRetarget->RawCurveData.TransformCurves.Empty();
-				AssetToRetarget->bNeedsRebake = false;
-				// I can't copy transform curves yet because transform curves need retargeting. 
-				//EditorAnimUtils::CopyAnimCurves(OldSkeleton, NewSkeleton, AssetToRetarget, USkeleton::AnimTrackCurveMappingName, FRawCurveTracks::TransformType);
-			}	
+					// clear transform curves since those curves won't work in new skeleton
+					// since we're deleting curves, mark this rebake flag off
+					AnimSequenceToRetarget->RawCurveData.TransformCurves.Empty();
+					AnimSequenceToRetarget->bNeedsRebake = false;
+					// I can't copy transform curves yet because transform curves need retargeting. 
+					//EditorAnimUtils::CopyAnimCurves(OldSkeleton, NewSkeleton, AssetToRetarget, USkeleton::AnimTrackCurveMappingName, FRawCurveTracks::TransformType);
+				}
+			}
 
-			AssetToRetarget->ReplaceReferredAnimations(DuplicatedSequences);
-			AssetToRetarget->ReplaceSkeleton(NewSkeleton, bConvertAnimationDataInComponentSpaces);
-		}
-
-		for(auto Iter = ComplexAnimsToRetarget.CreateIterator(); Iter; ++Iter)
-		{
 			UAnimationAsset* AssetToRetarget = (*Iter);
-			if(HasDuplicates())
+			if (HasDuplicates())
 			{
-				AssetToRetarget->ReplaceReferredAnimations(DuplicatedSequences);
+				AssetToRetarget->ReplaceReferredAnimations(DuplicatedAnimAssets);
 			}
 			AssetToRetarget->ReplaceSkeleton(NewSkeleton, bConvertAnimationDataInComponentSpaces);
 		}
 
 		// Put duplicated and remapped assets in one list
-		RemappedSequences.Append(DuplicatedSequences);
-		RemappedComplexAssets.Append(DuplicatedComplexAssets);
+		RemappedAnimAssets.Append(DuplicatedAnimAssets);
 
 		// convert all Animation Blueprints and compile 
 		for ( auto AnimBPIter = AnimBlueprintsToRetarget.CreateIterator(); AnimBPIter; ++AnimBPIter )
@@ -253,9 +225,9 @@ namespace EditorAnimUtils
 
 			AnimBlueprint->TargetSkeleton = NewSkeleton;
 
-			if(RemappedSequences.Num() > 0 || RemappedComplexAssets.Num() > 0)
+			if(RemappedAnimAssets.Num() > 0)
 			{
-				ReplaceReferredAnimationsInBlueprint(AnimBlueprint, RemappedComplexAssets, RemappedSequences);
+				ReplaceReferredAnimationsInBlueprint(AnimBlueprint, RemappedAnimAssets);
 			}
 
 			bool bIsRegeneratingOnLoad = false;
@@ -269,13 +241,9 @@ namespace EditorAnimUtils
 
 	void FAnimationRetargetContext::AddRemappedAsset(UAnimationAsset* OriginalAsset, UAnimationAsset* NewAsset)
 	{
-		if(OriginalAsset->IsA(UAnimSequence::StaticClass()) && NewAsset->IsA(UAnimSequence::StaticClass()))
+		if(OriginalAsset->IsA(UAnimationAsset::StaticClass()) && NewAsset->IsA(UAnimationAsset::StaticClass()))
 		{
-			RemappedSequences.Add(Cast<UAnimSequence>(OriginalAsset), Cast<UAnimSequence>(NewAsset));
-		}
-		else if(OriginalAsset->IsA(UAnimationAsset::StaticClass()) && NewAsset->IsA(UAnimationAsset::StaticClass()))
-		{
-			RemappedComplexAssets.Add(Cast<UAnimationAsset>(OriginalAsset), Cast<UAnimationAsset>(NewAsset));
+			RemappedAnimAssets.Add(Cast<UAnimationAsset>(OriginalAsset), Cast<UAnimationAsset>(NewAsset));
 		}
 	}
 
@@ -426,7 +394,7 @@ namespace EditorAnimUtils
 		return DuplicateMap;
 	}
 
-	void GetAllAnimationSequencesReferredInBlueprint(UAnimBlueprint* AnimBlueprint, TArray<UAnimationAsset*>& ComplexAnims, TArray<UAnimSequence*>& AnimSequences)
+	void GetAllAnimationSequencesReferredInBlueprint(UAnimBlueprint* AnimBlueprint, TArray<UAnimationAsset*>& AnimationAssets)
 	{
 		TArray<UEdGraph*> Graphs;
 		AnimBlueprint->GetAllGraphs(Graphs);
@@ -437,13 +405,34 @@ namespace EditorAnimUtils
 			{
 				if(const UAnimGraphNode_Base* AnimNode = Cast<UAnimGraphNode_Base>(*NodeIter))
 				{
-					AnimNode->GetAllAnimationSequencesReferred(ComplexAnims, AnimSequences);
+					AnimNode->GetAllAnimationSequencesReferred(AnimationAssets);
 				}
 			}
 		}
+
+		// Pull all the assets we reference from variables
+		TArray<UProperty*> SimpleAnimVariableProperties;
+		TArray<UProperty*> ComplexAnimVariableProperties;
+		TArray<UAnimSequence*> VariableReferencedSimpleAnims;
+		TArray<UAnimationAsset*> VariableReferencedComplexAnims;
+
+		UObject* DefaultObject = AnimBlueprint->GetAnimBlueprintGeneratedClass()->GetDefaultObject();
+		GetBlueprintAssetVariableProperties(AnimBlueprint, SimpleAnimVariableProperties, ComplexAnimVariableProperties);
+		GetAssetsFromProperties(SimpleAnimVariableProperties, DefaultObject, VariableReferencedSimpleAnims);
+		GetAssetsFromProperties(ComplexAnimVariableProperties, DefaultObject, VariableReferencedComplexAnims);
+
+		for(UAnimSequence* Sequence : VariableReferencedSimpleAnims)
+		{
+			AnimationAssets.AddUnique(Sequence);
+		}
+
+		for(UAnimationAsset* Asset : VariableReferencedComplexAnims)
+		{
+			AnimationAssets.AddUnique(Asset);
+		}
 	}
 
-	void ReplaceReferredAnimationsInBlueprint(UAnimBlueprint* AnimBlueprint, const TMap<UAnimationAsset*, UAnimationAsset*>& ComplexAnimMap, const TMap<UAnimSequence*, UAnimSequence*>& AnimSequenceMap)
+	void ReplaceReferredAnimationsInBlueprint(UAnimBlueprint* AnimBlueprint, const TMap<UAnimationAsset*, UAnimationAsset*>& AnimAssetReplacementMap)
 	{
 		TArray<UEdGraph*> Graphs;
 		AnimBlueprint->GetAllGraphs(Graphs);
@@ -454,7 +443,83 @@ namespace EditorAnimUtils
 			{
 				if(UAnimGraphNode_Base* AnimNode = Cast<UAnimGraphNode_Base>(*NodeIter))
 				{
-					AnimNode->ReplaceReferredAnimations(ComplexAnimMap, AnimSequenceMap);
+					AnimNode->ReplaceReferredAnimations(AnimAssetReplacementMap);
+				}
+			}
+		}
+
+		// Push all the assets we reference from variables
+		TArray<UProperty*> SimpleAnimVariableProperties;
+		TArray<UProperty*> ComplexAnimVariableProperties;
+
+		UObject* DefaultObject = AnimBlueprint->GetAnimBlueprintGeneratedClass()->GetDefaultObject();
+		GetBlueprintAssetVariableProperties(AnimBlueprint, SimpleAnimVariableProperties, ComplexAnimVariableProperties);
+
+		for(UProperty* SimpleProp : SimpleAnimVariableProperties)
+		{
+			if(UObject** ResolvedObject = SimpleProp->ContainerPtrToValuePtr<UObject*>(DefaultObject))
+			{
+				if(UAnimSequence* Sequence = Cast<UAnimSequence>(*ResolvedObject))
+				{
+					// Found an anim sequence variable that's set to a valid sequence
+					if(UAnimationAsset* const* NewSequence = AnimAssetReplacementMap.Find(Sequence))
+					{
+						*ResolvedObject = *NewSequence;
+					}
+				}
+			}
+		}
+
+		for(UProperty* ComplexProp : ComplexAnimVariableProperties)
+		{
+			if(UObject** ResolvedObject = ComplexProp->ContainerPtrToValuePtr<UObject*>(DefaultObject))
+			{
+				if(UAnimationAsset* AnimAsset = Cast<UAnimationAsset>(*ResolvedObject))
+				{
+					// Found an anim sequence variable that's set to a valid sequence
+					if(UAnimationAsset* const* NewAsset = AnimAssetReplacementMap.Find(AnimAsset))
+					{
+						*ResolvedObject = *NewAsset;
+					}
+				}
+			}
+		}
+	}
+
+	void GetBlueprintAssetVariableProperties(UAnimBlueprint* InBlueprint, TArray<UProperty*>& OutSimpleProperties, TArray<UProperty*>& OutComplexProperties)
+	{
+		OutSimpleProperties.Empty();
+		OutComplexProperties.Empty();
+
+		UAnimBlueprintGeneratedClass* GeneratedClass = InBlueprint->GetAnimBlueprintGeneratedClass();
+
+		for(FBPVariableDescription& VarDesc : InBlueprint->NewVariables)
+		{
+			// Grab any variables directly referencing and anim sequence object.
+			if(VarDesc.VarType.PinCategory == FString("object"))
+			{
+				if(UObject* VarSubObject = VarDesc.VarType.PinSubCategoryObject.Get())
+				{
+					// Get the object class
+					if(UClass* SubObjectAsClass = Cast<UClass>(VarSubObject))
+					{
+						// Anything that IS an anim sequence is a simple anim
+						// Anything that ISN'T an anim sequence but is an animation asset is a complex anim
+						if(SubObjectAsClass == UAnimSequence::StaticClass())
+						{
+							if(UProperty* Prop = GeneratedClass->FindPropertyByName(VarDesc.VarName))
+							{
+								OutSimpleProperties.Add(Prop);
+							}
+						}
+						else if(SubObjectAsClass->IsChildOf(UAnimationAsset::StaticClass()))
+						{
+							if(UProperty* Prop = GeneratedClass->FindPropertyByName(VarDesc.VarName))
+							{
+								OutComplexProperties.Add(Prop);
+							}
+						}
+					}
 				}
 			}
 		}
@@ -464,7 +529,8 @@ namespace EditorAnimUtils
 	{
 		// Copy curve data from source asset, preserving data in the target if present.
 		const FSmartNameMapping* OldNameMapping = OldSkeleton->GetSmartNameContainer(ContainerName);
-		const FSmartNameMapping* NewNameMapping = NewSkeleton->GetSmartNameContainer(ContainerName);
+		const FSmartNameMapping* NewNameMapping = NewSkeleton->GetOrAddSmartNameContainer(ContainerName);
+
 		SequenceBase->RawCurveData.UpdateLastObservedNames(OldNameMapping, CurveType);
 
 		switch (CurveType)

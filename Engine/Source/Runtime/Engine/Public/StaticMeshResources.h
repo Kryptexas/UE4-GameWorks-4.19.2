@@ -108,34 +108,133 @@ private:
 	TMap<FName,FStaticMeshLODGroup> Groups;
 };
 
-/** 
- * All information about a static-mesh vertex with a variable number of texture coordinates.
- * Position information is stored separately to reduce vertex fetch bandwidth in passes that only need position. (z prepass)
- */
-struct FStaticMeshFullVertex
+template<typename TangentTypeT>
+struct TStaticMeshVertexTangentDatum
 {
-	FPackedNormal TangentX;
-	FPackedNormal TangentZ;
+	TangentTypeT TangentX;
+	TangentTypeT TangentZ;
 
-	/**
-	* Serializer
-	*
-	* @param Ar - archive to serialize with
-	*/
-	void Serialize(FArchive& Ar)
+	FORCEINLINE FVector GetTangentX() const
 	{
-		Ar << TangentX;
-		Ar << TangentZ;
+		return TangentX;
+	}
+
+	FORCEINLINE FVector4 GetTangentZ() const
+	{
+		return TangentZ;
+	}
+
+	FORCEINLINE FVector GetTangentY() const
+	{
+		FVector  TanX = GetTangentX();
+		FVector4 TanZ = GetTangentZ();
+
+		return (FVector(TanZ) ^ TanX) * TanZ.W;
+	}
+
+	FORCEINLINE void SetTangents(FVector X, FVector Y, FVector Z)
+	{
+		TangentX = X;
+		TangentZ = FVector4(Z, GetBasisDeterminantSign(X, Y, Z));
 	}
 };
 
-/** 
-* 16 bit UV version of static mesh vertex
-*/
-template<uint32 NumTexCoords>
-struct TStaticMeshFullVertexFloat16UVs : public FStaticMeshFullVertex
+template<typename UVTypeT, uint32 NumTexCoords>
+struct TStaticMeshVertexUVsDatum
 {
-	FVector2DHalf UVs[NumTexCoords];
+	UVTypeT UVs[NumTexCoords];
+
+	FORCEINLINE FVector2D GetUV(uint32 TexCoordIndex) const
+	{
+		check(TexCoordIndex < NumTexCoords);
+
+		return UVs[TexCoordIndex];
+	}
+
+	FORCEINLINE void SetUV(uint32 TexCoordIndex, FVector2D UV)
+	{
+		check(TexCoordIndex < NumTexCoords);
+
+		UVs[TexCoordIndex] = UV;
+	}
+};
+
+enum class EStaticMeshVertexTangentBasisType
+{
+	Default,
+	HighPrecision,
+};
+
+enum class EStaticMeshVertexUVType
+{
+	Default,
+	HighPrecision,
+};
+
+template<EStaticMeshVertexTangentBasisType TangentBasisType>
+struct TStaticMeshVertexTangentTypeSelector
+{
+};
+
+template<>
+struct TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::Default>
+{
+	typedef FPackedNormal TangentTypeT;
+	static const EVertexElementType VertexElementType = VET_PackedNormal;
+};
+
+template<>
+struct TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::HighPrecision>
+{
+	typedef FPackedRGBA16N TangentTypeT;
+	static const EVertexElementType VertexElementType = VET_UShort4N;
+};
+
+template<EStaticMeshVertexUVType UVType>
+struct TStaticMeshVertexUVsTypeSelector
+{
+};
+
+template<>
+struct TStaticMeshVertexUVsTypeSelector<EStaticMeshVertexUVType::Default>
+{
+	typedef FVector2DHalf UVsTypeT;
+};
+
+template<>
+struct TStaticMeshVertexUVsTypeSelector<EStaticMeshVertexUVType::HighPrecision>
+{
+	typedef FVector2D UVsTypeT;
+};
+
+#define ConstExprStaticMeshVertexTypeID(bUseHighPrecisionTangentBasis, bUseFullPrecisionUVs, TexCoordsCount) \
+	(((((bUseHighPrecisionTangentBasis) ? 1 : 0) * 2) + ((bUseFullPrecisionUVs) ? 1 : 0)) * MAX_STATIC_TEXCOORDS) + ((TexCoordsCount) - 1)
+
+FORCEINLINE uint32 ComputeStaticMeshVertexTypeID(bool bUseHighPrecisionTangentBasis, bool bUseFullPrecisionUVs, uint32 TexCoordsCount)
+{
+	return ConstExprStaticMeshVertexTypeID(bUseHighPrecisionTangentBasis, bUseFullPrecisionUVs, TexCoordsCount);
+}
+
+/**
+* All information about a static-mesh vertex with a variable number of texture coordinates.
+* Position information is stored separately to reduce vertex fetch bandwidth in passes that only need position. (z prepass)
+*/
+template<EStaticMeshVertexTangentBasisType TangentBasisTypeT, EStaticMeshVertexUVType UVTypeT, uint32 NumTexCoordsT>
+struct TStaticMeshFullVertex : 
+	public TStaticMeshVertexTangentDatum<typename TStaticMeshVertexTangentTypeSelector<TangentBasisTypeT>::TangentTypeT>,
+	public TStaticMeshVertexUVsDatum<typename TStaticMeshVertexUVsTypeSelector<UVTypeT>::UVsTypeT, NumTexCoordsT>
+{
+	static_assert(NumTexCoordsT > 0, "Must have at least 1 texcoord.");
+
+	static const EStaticMeshVertexTangentBasisType TangentBasisType = TangentBasisTypeT;
+	static const EStaticMeshVertexUVType UVType = UVTypeT;
+	static const uint32 NumTexCoords = NumTexCoordsT;
+
+	static const uint32 VertexTypeID = ConstExprStaticMeshVertexTypeID(
+		TangentBasisTypeT == EStaticMeshVertexTangentBasisType::HighPrecision, 
+		UVTypeT == EStaticMeshVertexUVType::HighPrecision,
+		NumTexCoordsT
+		);
 
 	/**
 	* Serializer
@@ -144,42 +243,47 @@ struct TStaticMeshFullVertexFloat16UVs : public FStaticMeshFullVertex
 	* @param V - vertex to serialize
 	* @return archive that was used
 	*/
-	friend FArchive& operator<<(FArchive& Ar,TStaticMeshFullVertexFloat16UVs& Vertex)
+	friend FArchive& operator<<(FArchive& Ar, TStaticMeshFullVertex& Vertex)
 	{
-		Vertex.Serialize(Ar);
-		for(uint32 UVIndex = 0;UVIndex < NumTexCoords;UVIndex++)
+		Ar << Vertex.TangentX;
+		Ar << Vertex.TangentZ;
+
+		for (uint32 UVIndex = 0; UVIndex < NumTexCoordsT; UVIndex++)
 		{
 			Ar << Vertex.UVs[UVIndex];
 		}
+
 		return Ar;
 	}
 };
 
-/** 
-* 32 bit UV version of static mesh vertex
-*/
-template<uint32 NumTexCoords>
-struct TStaticMeshFullVertexFloat32UVs : public FStaticMeshFullVertex
-{
-	FVector2D UVs[NumTexCoords];
-
-	/**
-	* Serializer
-	*
-	* @param Ar - archive to serialize with
-	* @param V - vertex to serialize
-	* @return archive that was used
-	*/
-	friend FArchive& operator<<(FArchive& Ar,TStaticMeshFullVertexFloat32UVs& Vertex)
-	{
-		Vertex.Serialize(Ar);
-		for(uint32 UVIndex = 0;UVIndex < NumTexCoords;UVIndex++)
-		{
-			Ar << Vertex.UVs[UVIndex];
-		}
-		return Ar;
+#define APPLY_TO_STATIC_MESH_VERTEX(TangentBasisType, UVType, UVCount, ...) \
+	{ \
+		typedef TStaticMeshFullVertex<TangentBasisType, UVType, UVCount> VertexType; \
+		case VertexType::VertexTypeID: { __VA_ARGS__ } break; \
 	}
-};
+
+#define SELECT_STATIC_MESH_VERTEX_TYPE_WITH_TEX_COORDS(TangentBasisType, UVType, ...) \
+	APPLY_TO_STATIC_MESH_VERTEX(TangentBasisType, UVType, 1, __VA_ARGS__); \
+	APPLY_TO_STATIC_MESH_VERTEX(TangentBasisType, UVType, 2, __VA_ARGS__); \
+	APPLY_TO_STATIC_MESH_VERTEX(TangentBasisType, UVType, 3, __VA_ARGS__); \
+	APPLY_TO_STATIC_MESH_VERTEX(TangentBasisType, UVType, 4, __VA_ARGS__); \
+	APPLY_TO_STATIC_MESH_VERTEX(TangentBasisType, UVType, 5, __VA_ARGS__); \
+	APPLY_TO_STATIC_MESH_VERTEX(TangentBasisType, UVType, 6, __VA_ARGS__); \
+	APPLY_TO_STATIC_MESH_VERTEX(TangentBasisType, UVType, 7, __VA_ARGS__); \
+	APPLY_TO_STATIC_MESH_VERTEX(TangentBasisType, UVType, 8, __VA_ARGS__);
+
+#define SELECT_STATIC_MESH_VERTEX_TYPE(bIsHighPrecisionTangentBais, bIsHigPrecisionUVs, NumTexCoords, ...) \
+	{ \
+		uint32 VertexTypeID = ComputeStaticMeshVertexTypeID(bIsHighPrecisionTangentBais, bIsHigPrecisionUVs, NumTexCoords); \
+		switch (VertexTypeID) \
+		{ \
+			SELECT_STATIC_MESH_VERTEX_TYPE_WITH_TEX_COORDS(EStaticMeshVertexTangentBasisType::Default,		  EStaticMeshVertexUVType::Default,		  __VA_ARGS__); \
+			SELECT_STATIC_MESH_VERTEX_TYPE_WITH_TEX_COORDS(EStaticMeshVertexTangentBasisType::Default,		  EStaticMeshVertexUVType::HighPrecision, __VA_ARGS__); \
+			SELECT_STATIC_MESH_VERTEX_TYPE_WITH_TEX_COORDS(EStaticMeshVertexTangentBasisType::HighPrecision,  EStaticMeshVertexUVType::Default,		  __VA_ARGS__); \
+			SELECT_STATIC_MESH_VERTEX_TYPE_WITH_TEX_COORDS(EStaticMeshVertexTangentBasisType::HighPrecision,  EStaticMeshVertexUVType::HighPrecision, __VA_ARGS__); \
+		}; \
+	}
 
 /**
  * A set of static mesh triangles which are rendered with the same material.
@@ -390,15 +494,32 @@ public:
 	*/
 	ENGINE_API void operator=(const FStaticMeshVertexBuffer &Other);
 
-	FORCEINLINE FPackedNormal& VertexTangentX(uint32 VertexIndex)
+	FORCEINLINE FVector4 VertexTangentX(uint32 VertexIndex) const
 	{
 		checkSlow(VertexIndex < GetNumVertices());
-		return ((FStaticMeshFullVertex*)(Data + VertexIndex * Stride))->TangentX;
+
+		if (GetUseHighPrecisionTangentBasis())
+		{
+			return reinterpret_cast<const TStaticMeshFullVertex<EStaticMeshVertexTangentBasisType::HighPrecision, EStaticMeshVertexUVType::Default, 1>*>(Data + VertexIndex * Stride)->GetTangentX();
+		}
+		else
+		{
+			return reinterpret_cast<const TStaticMeshFullVertex<EStaticMeshVertexTangentBasisType::Default, EStaticMeshVertexUVType::Default, 1>*>(Data + VertexIndex * Stride)->GetTangentX();
+		}
 	}
-	FORCEINLINE const FPackedNormal& VertexTangentX(uint32 VertexIndex) const
+
+	FORCEINLINE FVector VertexTangentZ(uint32 VertexIndex) const
 	{
 		checkSlow(VertexIndex < GetNumVertices());
-		return ((FStaticMeshFullVertex*)(Data + VertexIndex * Stride))->TangentX;
+
+		if (GetUseHighPrecisionTangentBasis())
+		{
+			return reinterpret_cast<const TStaticMeshFullVertex<EStaticMeshVertexTangentBasisType::HighPrecision, EStaticMeshVertexUVType::Default, 1>*>(Data + VertexIndex * Stride)->GetTangentZ();
+		}
+		else
+		{
+			return reinterpret_cast<const TStaticMeshFullVertex<EStaticMeshVertexTangentBasisType::Default, EStaticMeshVertexUVType::Default, 1>*>(Data + VertexIndex * Stride)->GetTangentZ();
+		}
 	}
 
 	/**
@@ -409,20 +530,30 @@ public:
 	*/
 	FORCEINLINE FVector VertexTangentY(uint32 VertexIndex) const
 	{
-		const FPackedNormal& TangentX = VertexTangentX(VertexIndex);
-		const FPackedNormal& TangentZ = VertexTangentZ(VertexIndex);
-		return (FVector(TangentZ) ^ FVector(TangentX)) * ((float)TangentZ.Vector.W  / 127.5f - 1.0f);
+		checkSlow(VertexIndex < GetNumVertices());
+
+		if (GetUseHighPrecisionTangentBasis())
+		{
+			return reinterpret_cast<const TStaticMeshFullVertex<EStaticMeshVertexTangentBasisType::HighPrecision, EStaticMeshVertexUVType::Default, 1>*>(Data + VertexIndex * Stride)->GetTangentY();
+		}
+		else
+		{
+			return reinterpret_cast<const TStaticMeshFullVertex<EStaticMeshVertexTangentBasisType::Default, EStaticMeshVertexUVType::Default, 1>*>(Data + VertexIndex * Stride)->GetTangentY();
+		}
 	}
 
-	FORCEINLINE FPackedNormal& VertexTangentZ(uint32 VertexIndex)
+	FORCEINLINE void SetVertexTangents(uint32 VertexIndex, FVector X, FVector Y, FVector Z)
 	{
 		checkSlow(VertexIndex < GetNumVertices());
-		return ((FStaticMeshFullVertex*)(Data + VertexIndex * Stride))->TangentZ;
-	}
-	FORCEINLINE const FPackedNormal& VertexTangentZ(uint32 VertexIndex) const
-	{
-		checkSlow(VertexIndex < GetNumVertices());
-		return ((FStaticMeshFullVertex*)(Data + VertexIndex * Stride))->TangentZ;
+
+		if (GetUseHighPrecisionTangentBasis())
+		{
+			return reinterpret_cast<TStaticMeshFullVertex<EStaticMeshVertexTangentBasisType::HighPrecision, EStaticMeshVertexUVType::Default, 1>*>(Data + VertexIndex * Stride)->SetTangents(X, Y, Z);
+		}
+		else
+		{
+			return reinterpret_cast<TStaticMeshFullVertex<EStaticMeshVertexTangentBasisType::Default, EStaticMeshVertexUVType::Default, 1>*>(Data + VertexIndex * Stride)->SetTangents(X, Y, Z);
+		}
 	}
 
 	/**
@@ -432,21 +563,37 @@ public:
 	* @param UVIndex - [0,MAX_STATIC_TEXCOORDS] value to index into UVs array
 	* @param Vec2D - UV values to set
 	*/
-	FORCEINLINE void SetVertexUV(uint32 VertexIndex,uint32 UVIndex,const FVector2D& Vec2D)
+	FORCEINLINE void SetVertexUV(uint32 VertexIndex, uint32 UVIndex, const FVector2D& Vec2D)
 	{
 		checkSlow(VertexIndex < GetNumVertices());
-		if( !bUseFullPrecisionUVs )
+		checkSlow(UVIndex < GetNumTexCoords());
+		
+		if (GetUseHighPrecisionTangentBasis())
 		{
-			((TStaticMeshFullVertexFloat16UVs<MAX_STATIC_TEXCOORDS>*)(Data + VertexIndex * Stride))->UVs[UVIndex] = Vec2D;
+			if (GetUseFullPrecisionUVs())
+			{
+				reinterpret_cast<TStaticMeshFullVertex<EStaticMeshVertexTangentBasisType::HighPrecision, EStaticMeshVertexUVType::HighPrecision, MAX_STATIC_TEXCOORDS>*>(Data + VertexIndex * Stride)->SetUV(UVIndex, Vec2D);
+			}
+			else
+			{
+				reinterpret_cast<TStaticMeshFullVertex<EStaticMeshVertexTangentBasisType::HighPrecision, EStaticMeshVertexUVType::Default, MAX_STATIC_TEXCOORDS>*>(Data + VertexIndex * Stride)->SetUV(UVIndex, Vec2D);
+			}
 		}
 		else
 		{
-			((TStaticMeshFullVertexFloat32UVs<MAX_STATIC_TEXCOORDS>*)(Data + VertexIndex * Stride))->UVs[UVIndex] = Vec2D;
-		}		
+			if (GetUseFullPrecisionUVs())
+			{
+				reinterpret_cast<TStaticMeshFullVertex<EStaticMeshVertexTangentBasisType::Default, EStaticMeshVertexUVType::HighPrecision, MAX_STATIC_TEXCOORDS>*>(Data + VertexIndex * Stride)->SetUV(UVIndex, Vec2D);
+			}
+			else
+			{
+				reinterpret_cast<TStaticMeshFullVertex<EStaticMeshVertexTangentBasisType::Default, EStaticMeshVertexUVType::Default, MAX_STATIC_TEXCOORDS>*>(Data + VertexIndex * Stride)->SetUV(UVIndex, Vec2D);
+			}
+		}
 	}
 
 	/**
-	* Fet the vertex UV values at the given index in the vertex buffer
+	* Set the vertex UV values at the given index in the vertex buffer
 	*
 	* @param VertexIndex - index into the vertex buffer
 	* @param UVIndex - [0,MAX_STATIC_TEXCOORDS] value to index into UVs array
@@ -455,14 +602,30 @@ public:
 	FORCEINLINE FVector2D GetVertexUV(uint32 VertexIndex,uint32 UVIndex) const
 	{
 		checkSlow(VertexIndex < GetNumVertices());
-		if( !bUseFullPrecisionUVs )
+		checkSlow(UVIndex < GetNumTexCoords());
+
+		if (GetUseHighPrecisionTangentBasis())
 		{
-			return ((TStaticMeshFullVertexFloat16UVs<MAX_STATIC_TEXCOORDS>*)(Data + VertexIndex * Stride))->UVs[UVIndex];
+			if (GetUseFullPrecisionUVs())
+			{
+				return reinterpret_cast<const TStaticMeshFullVertex<EStaticMeshVertexTangentBasisType::HighPrecision, EStaticMeshVertexUVType::HighPrecision, MAX_STATIC_TEXCOORDS>*>(Data + VertexIndex * Stride)->GetUV(UVIndex);
+			}
+			else
+			{
+				return reinterpret_cast<const TStaticMeshFullVertex<EStaticMeshVertexTangentBasisType::HighPrecision, EStaticMeshVertexUVType::Default, MAX_STATIC_TEXCOORDS>*>(Data + VertexIndex * Stride)->GetUV(UVIndex);
+			}
 		}
 		else
 		{
-			return ((TStaticMeshFullVertexFloat32UVs<MAX_STATIC_TEXCOORDS>*)(Data + VertexIndex * Stride))->UVs[UVIndex];
-		}		
+			if (GetUseFullPrecisionUVs())
+			{
+				return reinterpret_cast<const TStaticMeshFullVertex<EStaticMeshVertexTangentBasisType::Default, EStaticMeshVertexUVType::HighPrecision, MAX_STATIC_TEXCOORDS>*>(Data + VertexIndex * Stride)->GetUV(UVIndex);
+			}
+			else
+			{
+				return reinterpret_cast<const TStaticMeshFullVertex<EStaticMeshVertexTangentBasisType::Default, EStaticMeshVertexUVType::Default, MAX_STATIC_TEXCOORDS>*>(Data + VertexIndex * Stride)->GetUV(UVIndex);
+			}
+		}
 	}
 
 	// Other accessors.
@@ -470,22 +633,37 @@ public:
 	{
 		return Stride;
 	}
+
 	FORCEINLINE uint32 GetNumVertices() const
 	{
 		return NumVertices;
 	}
+
 	FORCEINLINE uint32 GetNumTexCoords() const
 	{
 		return NumTexCoords;
 	}
+
 	FORCEINLINE bool GetUseFullPrecisionUVs() const
 	{
 		return bUseFullPrecisionUVs;
 	}
+
 	FORCEINLINE void SetUseFullPrecisionUVs(bool UseFull)
 	{
 		bUseFullPrecisionUVs = UseFull;
 	}
+
+	FORCEINLINE bool GetUseHighPrecisionTangentBasis() const
+	{
+		return bUseHighPrecisionTangentBasis;
+	}
+
+	FORCEINLINE void SetUseHighPrecisionTangentBasis(bool bUseHighPrecision)
+	{
+		bUseHighPrecisionTangentBasis = bUseHighPrecision;
+	}
+
 	const uint8* GetRawVertexData() const
 	{
 		check( Data != NULL );
@@ -493,11 +671,10 @@ public:
 	}
 
 	/**
-	* Convert the existing data in this mesh from 16 bit to 32 bit UVs.
-	* Without rebuilding the mesh (loss of precision)
+	* Convert the existing data in this mesh without rebuilding the mesh (loss of precision)
 	*/
-	template<int32 NumTexCoords>
-	void ConvertToFullPrecisionUVs();
+	template<typename SrcVertexTypeT, typename DstVertexTypeT>
+	void ConvertVertexFormat();
 
 	// FRenderResource interface.
 	virtual void InitRHI() override;
@@ -522,6 +699,9 @@ private:
 
 	/** Corresponds to UStaticMesh::UseFullPrecisionUVs. if true then 32 bit UVs are used */
 	bool bUseFullPrecisionUVs;
+
+	/** If true then RGB10A2 is used to store tangent else RGBA8 */
+	bool bUseHighPrecisionTangentBasis;
 
 	/** Allocates the vertex data storage type. */
 	void AllocateData( bool bNeedsCPUAccess = true );
@@ -579,6 +759,9 @@ struct FStaticMeshLODResources
 
 
 	uint32 DepthOnlyNumTriangles;
+
+	struct FSplineMeshVertexFactory* SplineVertexFactory;
+	struct FSplineMeshVertexFactory* SplineVertexFactoryOverrideColorVertexBuffer;
 
 	/** Default constructor. */
 	FStaticMeshLODResources();
@@ -698,8 +881,9 @@ class FStaticMeshComponentRecreateRenderStateContext
 public:
 
 	/** Initialization constructor. */
-	FStaticMeshComponentRecreateRenderStateContext( UStaticMesh* InStaticMesh, bool InUnbuildLighting = true )
-	: bUnbuildLighting( InUnbuildLighting )
+	FStaticMeshComponentRecreateRenderStateContext( UStaticMesh* InStaticMesh, bool InUnbuildLighting = true, bool InRefreshBounds = false )
+		: bUnbuildLighting( InUnbuildLighting ),
+		  bRefreshBounds( InRefreshBounds )
 	{
 		for ( TObjectIterator<UStaticMeshComponent> It;It;++It )
 		{
@@ -735,6 +919,11 @@ public:
 				Component->InvalidateLightingCache();
 			}
 
+			if( bRefreshBounds )
+			{
+				Component->UpdateBounds();
+			}
+
 			if ( Component->IsRegistered() && !Component->bRenderStateCreated )
 			{
 				Component->CreateRenderState_Concurrent();
@@ -746,6 +935,7 @@ private:
 
 	TArray<UStaticMeshComponent*> StaticMeshComponents;
 	bool bUnbuildLighting;
+	bool bRefreshBounds;
 };
 
 /**
@@ -783,6 +973,9 @@ public:
 	/** Sets up a wireframe FMeshBatch for a specific LOD. */
 	virtual bool GetWireframeMeshElement(int32 LODIndex, int32 BatchIndex, const FMaterialRenderProxy* WireframeRenderProxy, uint8 InDepthPriorityGroup, bool bAllowPreCulledIndices, FMeshBatch& OutMeshBatch) const;
 
+#if WITH_EDITORONLY_DATA
+	virtual const FStreamingSectionBuildInfo* GetStreamingSectionData(float& OutDistanceMultiplier, int32 LODIndex, int32 ElementIndex) const override;
+#endif
 
 protected:
 	/**
@@ -883,6 +1076,9 @@ protected:
 
 	const FDistanceFieldVolumeData* DistanceFieldData;	
 
+	/** Hierarchical LOD Index used for rendering */
+	uint8 HierarchicalLODIndex;
+
 	/**
 	 * The forcedLOD set in the static mesh editor, copied from the mesh component
 	 */
@@ -903,8 +1099,22 @@ protected:
 	FCollisionResponseContainer CollisionResponse;
 
 #if WITH_EDITORONLY_DATA
+	/** Data shared with the component */
+	TSharedPtr<TArray<FStreamingSectionBuildInfo>, ESPMode::NotThreadSafe> StreamingSectionData;
+	/** The component streaming distance multiplier */
+	float StreamingDistanceMultiplier;
+	/** The mesh streaming texel factor (fallback) */
+	float StreamingTexelFactor;
+
 	/** Index of the section to preview. If set to INDEX_NONE, all section will be rendered */
 	int32 SectionIndexPreview;
+#endif
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	/** LOD used for collision */
+	int32 LODForCollision;
+	/** If we want to draw the mesh collision for debugging */
+	uint32 bDrawMeshCollisionWireframe : 1;
 #endif
 
 	/**

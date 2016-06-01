@@ -47,7 +47,6 @@ public:
 	
 		}
 
-
 		{
 			bool bEditorStatsMaterial = Material->bIsMaterialEditorStatsMaterial;
 
@@ -63,9 +62,20 @@ public:
 				//cache for gpu skinned vertex factory if the material allows it
 				//this way we can have a preview skeletal mesh
 				if (bEditorStatsMaterial ||
-					!IsUsedWithSkeletalMesh() ||
-					(VertexFactoryType != FindVertexFactoryType(FName(TEXT("TGPUSkinVertexFactoryfalse"), FNAME_Find)) &&
-					VertexFactoryType != FindVertexFactoryType(FName(TEXT("TGPUSkinVertexFactorytrue"), FNAME_Find))))
+					!IsUsedWithSkeletalMesh())
+				{
+					return false;
+				}
+
+				extern ENGINE_API int32 GEnableGPUSkinCacheShaders;
+
+				bool bSkinCache = GEnableGPUSkinCacheShaders && (VertexFactoryType == FindVertexFactoryType(FName(TEXT("FGPUSkinPassthroughVertexFactory"), FNAME_Find)));
+					
+				if (
+					VertexFactoryType != FindVertexFactoryType(FName(TEXT("TGPUSkinVertexFactoryfalse"), FNAME_Find)) &&
+					VertexFactoryType != FindVertexFactoryType(FName(TEXT("TGPUSkinVertexFactorytrue"), FNAME_Find)) &&
+					!bSkinCache
+					)
 				{
 					return false;
 				}
@@ -189,9 +199,12 @@ void UMaterialEditorInstanceConstant::PostEditChangeProperty(FPropertyChangedEve
 
 		if(PropertyThatChanged && PropertyThatChanged->GetName()==TEXT("Parent") )
 		{
+			FMaterialUpdateContext Context;
+
 			UpdateSourceInstanceParent();
 
-			FGlobalComponentRecreateRenderStateContext RecreateComponentsRenderState;
+			Context.AddMaterialInstance(SourceInstance);
+
 			// Fully update static parameters before recreating render state for all components
 			SetSourceInstance(SourceInstance);
 		}
@@ -585,17 +598,9 @@ void UMaterialEditorInstanceConstant::CopyToSourceInstance()
 			}
 		}
 
-		//Check for changes to see if we need to force a recompile
-		bool bForceRecompile = false;
-		if (SourceInstance->BasePropertyOverrides != BasePropertyOverrides)
-		{
-			bForceRecompile = true;
-			SourceInstance->BasePropertyOverrides = BasePropertyOverrides;
-		}
-		
 		FStaticParameterSet NewStaticParameters;
 		BuildStaticParametersForSourceInstance(NewStaticParameters);
-		SourceInstance->UpdateStaticPermutation(NewStaticParameters,bForceRecompile);
+		SourceInstance->UpdateStaticPermutation(NewStaticParameters, BasePropertyOverrides);
 
 		// Copy phys material back to source instance
 		SourceInstance->PhysMaterial = PhysMaterial;
@@ -726,7 +731,11 @@ void UMaterialEditorInstanceConstant::UpdateSourceInstanceParent()
 #if WITH_EDITOR
 void UMaterialEditorInstanceConstant::PostEditUndo()
 {
+	FMaterialUpdateContext UpdateContext;
+
 	UpdateSourceInstanceParent();
+
+	UpdateContext.AddMaterialInstance(SourceInstance);
 
 	Super::PostEditUndo();
 }

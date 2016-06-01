@@ -32,6 +32,10 @@ public:
 
 	TWeakObjectPtr<const UNiagaraEmitterProperties> GetEmitterProps() const	{ return EmitterProps; }
 
+	// UMovieSceneSection interface
+	virtual TOptional<float> GetKeyTime( FKeyHandle KeyHandle ) const override { return TOptional<float>(); }
+	virtual void SetKeyTime( FKeyHandle KeyHandle, float Time ) override { }
+
 private:
 	FText EmitterName;
 	TWeakObjectPtr<const UNiagaraEmitterProperties> EmitterProps;
@@ -57,25 +61,25 @@ public:
 		return EmitterSection;
 	}
 
-	int32 OnPaintSection(const FGeometry &AllottedGeometry, const FSlateRect &SectionClippingRect, FSlateWindowElementList &OutDrawElements, int32 LayerId, bool  bParentEnabled) const
+	virtual int32 OnPaintSection( FSequencerSectionPainter& InPainter ) const override
 	{
 		// draw the first run of the emitter
 		FSlateDrawElement::MakeBox
 			(
-			OutDrawElements,
-			LayerId,
-			AllottedGeometry.ToPaintGeometry(),
+			InPainter.DrawElements,
+			InPainter.LayerId,
+			InPainter.SectionGeometry.ToPaintGeometry(),
 			FEditorStyle::GetBrush("CurveEd.TimelineArea"),
-			SectionClippingRect,
+			InPainter.SectionClippingRect,
 			ESlateDrawEffect::None,
 			FLinearColor(0.3f, 0.3f, 0.6f)
 			);
 
 		// draw all loops of the emitter as 'ghosts' of the original section
-		float X = AllottedGeometry.AbsolutePosition.X;
-		float GeomW = AllottedGeometry.GetDrawSize().X;
-		float ClipW = SectionClippingRect.Right-SectionClippingRect.Left;
-		FSlateRect NewClipRect = SectionClippingRect;
+		float X = InPainter.SectionGeometry.AbsolutePosition.X;
+		float GeomW = InPainter.SectionGeometry.GetDrawSize().X;
+		float ClipW = InPainter.SectionClippingRect.Right-InPainter.SectionClippingRect.Left;
+		FSlateRect NewClipRect = InPainter.SectionClippingRect;
 		NewClipRect.Left += 5;
 		NewClipRect.Right -= 10;
 		for (int32 Loop = 0; Loop < EmitterSection->GetEmitterProps()->NumLoops - 1; Loop++)
@@ -84,9 +88,9 @@ public:
 			NewClipRect.Right += GeomW;
 			FSlateDrawElement::MakeBox
 				(
-				OutDrawElements,
-				LayerId,
-				AllottedGeometry.ToPaintGeometry(FVector2D(GeomW*(Loop+1), 0.0f), AllottedGeometry.GetDrawSize(), 1.0f),
+				InPainter.DrawElements,
+				InPainter.LayerId,
+				InPainter.SectionGeometry.ToPaintGeometry(FVector2D(GeomW*(Loop+1), 0.0f), InPainter.SectionGeometry.GetDrawSize(), 1.0f),
 				FEditorStyle::GetBrush("CurveEd.TimelineArea"),
 				NewClipRect,
 				ESlateDrawEffect::None,
@@ -94,7 +98,7 @@ public:
 				);
 		}
 
-		return LayerId;
+		return InPainter.LayerId;
 	}
 
 	FText GetDisplayName(void) const	{ return EmitterSection->GetEmitterName(); }
@@ -120,15 +124,14 @@ public:
 	{
 	}
 
-	virtual void Update(float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass)
+	virtual void Update(EMovieSceneUpdateData& UpdateData, const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 	{
 	}
 
-	virtual void RefreshInstance(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance);
-
-	virtual void ClearInstance( IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance ) override {}
-	virtual void SaveState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) override {}
-	virtual void RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) override {}
+	virtual void RefreshInstance(const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance);
+	virtual void ClearInstance(IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) override {}
+	virtual void SaveState(const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) override {}
+	virtual void RestoreState(const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) override {}
 
 private:
 	TSharedPtr<FNiagaraSimulation> Emitter;

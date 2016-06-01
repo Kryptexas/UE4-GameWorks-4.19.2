@@ -263,7 +263,7 @@ void UWheeledVehicleMovementComponent::SetupVehicleShapes()
 			CollisionResponse.SetAllChannels(ECR_Ignore);
 
 			PxFilterData PWheelQueryFilterData, PDummySimData;
-			CreateShapeFilterData(ECC_Vehicle, FMaskFilter(0), UpdatedComponent->GetUniqueID(), CollisionResponse, 0, 0, PWheelQueryFilterData, PDummySimData, false, false, false);
+			CreateShapeFilterData(ECC_Vehicle, FMaskFilter(0), UpdatedComponent->GetOwner()->GetUniqueID(), CollisionResponse, UpdatedComponent->GetUniqueID(), 0, PWheelQueryFilterData, PDummySimData, false, false, false);
 
 			//// Give suspension raycasts the same group ID as the chassis so that they don't hit each other
 			PWheelShape->setQueryFilterData(PWheelQueryFilterData);
@@ -615,7 +615,8 @@ void UWheeledVehicleMovementComponent::CreatePhysicsState()
 	VehicleSetupTag = FPhysXVehicleManager::VehicleSetupTag;
 
 	// only create physx vehicle in game
-	if ( GetWorld()->IsGameWorld() )
+	UWorld* World = GetWorld();
+	if ( World->IsGameWorld() )
 	{
 		FPhysScene* PhysScene = World->GetPhysicsScene();
 
@@ -653,7 +654,7 @@ void UWheeledVehicleMovementComponent::DestroyPhysicsState()
 	{
 		DestroyWheels();
 
-		World->GetPhysicsScene()->GetVehicleManager()->RemoveVehicle( this );
+		GetWorld()->GetPhysicsScene()->GetVehicleManager()->RemoveVehicle( this );
 		PVehicle = NULL;
 
 		if(MeshOnPhysicsStateChangeHandle.IsValid())
@@ -679,7 +680,8 @@ bool UWheeledVehicleMovementComponent::ShouldCreatePhysicsState() const
 	}
 
 	// only create physx vehicle in game
-	if (GetWorld()->IsGameWorld())
+	UWorld* World = GetWorld();
+	if (World->IsGameWorld())
 	{
 		FPhysScene* PhysScene = World->GetPhysicsScene();
 
@@ -1233,7 +1235,7 @@ bool UWheeledVehicleMovementComponent::CheckSlipThreshold(float AbsLongSlipThres
 		return false;
 	}
 
-	FPhysXVehicleManager* MyVehicleManager = World->GetPhysicsScene()->GetVehicleManager();
+	FPhysXVehicleManager* MyVehicleManager = GetWorld()->GetPhysicsScene()->GetVehicleManager();
 	SCOPED_SCENE_READ_LOCK(MyVehicleManager->GetScene());
 
 	PxWheelQueryResult * WheelsStates = MyVehicleManager->GetWheelsStates_AssumesLocked(this);
@@ -1269,7 +1271,7 @@ float UWheeledVehicleMovementComponent::GetMaxSpringForce() const
 		return false;
 	}
 
-	FPhysXVehicleManager* MyVehicleManager = World->GetPhysicsScene()->GetVehicleManager();
+	FPhysXVehicleManager* MyVehicleManager = GetWorld()->GetPhysicsScene()->GetVehicleManager();
 	SCOPED_SCENE_READ_LOCK(MyVehicleManager->GetScene());
 
 	PxWheelQueryResult * WheelsStates = MyVehicleManager->GetWheelsStates_AssumesLocked(this);
@@ -1294,7 +1296,7 @@ void UWheeledVehicleMovementComponent::DrawDebug(UCanvas* Canvas, float& YL, flo
 		return;
 	}
 
-	FPhysXVehicleManager* MyVehicleManager = World->GetPhysicsScene()->GetVehicleManager();
+	FPhysXVehicleManager* MyVehicleManager = GetWorld()->GetPhysicsScene()->GetVehicleManager();
 
 	MyVehicleManager->SetRecordTelemetry(this, true);
 
@@ -1449,6 +1451,8 @@ void UWheeledVehicleMovementComponent::DrawDebugLines()
 		return;
 	}
 
+	UWorld* World = GetWorld();
+
 	FPhysXVehicleManager* MyVehicleManager = World->GetPhysicsScene()->GetVehicleManager();
 
 	MyVehicleManager->SetRecordTelemetry( this, true );
@@ -1459,8 +1463,6 @@ void UWheeledVehicleMovementComponent::DrawDebugLines()
 	PxShape* PShapeBuffer[32];
 	PActor->getShapes( PShapeBuffer, 32 );
 	const uint32 PNumWheels = PVehicle->mWheelsSimData.getNbWheels();
-
-	UWorld* World = GetWorld();
 
 	// draw chassis orientation
 	const PxTransform GlobalT = PActor->getGlobalPose();

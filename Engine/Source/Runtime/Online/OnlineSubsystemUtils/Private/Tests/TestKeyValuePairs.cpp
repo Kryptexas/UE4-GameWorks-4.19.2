@@ -2,6 +2,8 @@
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 /** Simple test cases for key value pair code */
 void TestKeyValuePairs()
 {
@@ -207,3 +209,5 @@ void TestKeyValuePairs()
 
 	UE_LOG(LogOnline, Warning, TEXT("KeyValuePairTest: %s!"), bSuccess ? TEXT("PASSED") : TEXT("FAILED"));
 }
+
+#endif //WITH_DEV_AUTOMATION_TESTS

@@ -49,11 +49,11 @@ This means that their properties will be visible in the **Details** tab of a Lig
 
 		/** called when something enters the sphere component */
 		UFUNCTION()
-		void OnOverlapBegin(class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+		void OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 		/** called when something leaves the sphere component */
 		UFUNCTION()
-		void OnOverlapEnd(class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+		void OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 * Declare `ToggleLight`, a function that toggles the visibility of the PointLightComponent.
 
@@ -103,11 +103,11 @@ LightSwitchCodeOnly.h
 
 			/** called when something enters the sphere component */
 			UFUNCTION()
-			void OnOverlapBegin(class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+			void OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 	
 			/** called when something leaves the sphere component */
 			UFUNCTION()
-			void OnOverlapEnd(class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+			void OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 			/** Toggles the light component's visibility*/
 			UFUNCTION()
@@ -144,7 +144,7 @@ In the `LightSwitchCodeOnly` constructor, C++ is used to:
 
 		Sphere1 = CreateDefaultSubobject<USphereComponent>(TEXT("Sphere1"));
 		Sphere1->InitSphereRadius(250.0f);
-		Sphere1->AttachParent = RootComponent;
+		Sphere1->SetupAttachment(RootComponent);
 
 * Designate the `OnOverlap` function as a delegate called when an Actor overlaps or leaves the SphereComponent.
 
@@ -173,14 +173,14 @@ LightSwitchCodeOnly.cpp
 
 		Sphere1 = CreateDefaultSubobject<USphereComponent>(TEXT("Sphere1"));
 		Sphere1->InitSphereRadius(250.0f);
-		Sphere1->AttachParent = RootComponent;
+		Sphere1->SetupAttachment(RootComponent);
 
 		Sphere1->OnComponentBeginOverlap.AddDynamic(this, &ALightSwitchCodeOnly::OnOverlap);		// set up a notification for when this component overlaps something
 		Sphere1->OnComponentEndOverlap.AddDynamic(this, &ALightSwitchCodeOnly::OnOverlap);		// set up a notification for when this component overlaps something
 
 	}
 
-	void ALightSwitchCodeOnly::OnOverlapBegin(class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+	void ALightSwitchCodeOnly::OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 	{
 		if (OtherActor && (OtherActor != this) && OtherComp)
 		{
@@ -188,7 +188,7 @@ LightSwitchCodeOnly.cpp
 		}
 	}
 
-	void ALightSwitchCodeOnly::OnOverlapEnd(class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+	void ALightSwitchCodeOnly::OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 	{
 		if (OtherActor && (OtherActor != this) && OtherComp)
 		{

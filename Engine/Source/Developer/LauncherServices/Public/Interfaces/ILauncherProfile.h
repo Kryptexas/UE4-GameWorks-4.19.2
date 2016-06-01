@@ -177,6 +177,9 @@ namespace ELauncherProfileValidationErrors
 
 		/** Shipping doesn't support commandline options can't use cook on the fly */
 		ShippingDoesntSupportCommandlineOptionsCantUseCookOnTheFly,
+
+		/** Cook on the fly doesn't support server target platforms */
+		CookOnTheFlyDoesntSupportServer,
 	};
 }
 
@@ -638,7 +641,7 @@ public:
 	 * Gets the full path to the Unreal project to use.
 	 *
 	 * @return The path.
-	 * @see SetRocketProjactPath
+	 * @see SetProjectPath
 	 */
 	virtual FString GetProjectPath( ) const = 0;
 
@@ -1083,10 +1086,10 @@ public:
 	virtual void FallbackProjectUpdated() = 0;
 
 	/**
-	 * Sets the path to the Rocket project to use.
+	 * Sets the path to the Unreal project to use.
 	 *
 	 * @param Path The full path to the project.
-	 * @see GetRocketProjectPath
+	 * @see GetProjectPath
 	 */
 	virtual void SetProjectPath( const FString& Path ) = 0;
 

@@ -3,13 +3,18 @@
 #include "SequencerPrivatePCH.h"
 #include "SSequencerTrackArea.h"
 #include "SSequencerTrackLane.h"
-#include "TimeSliderController.h"
+#include "SequencerTimeSliderController.h"
 #include "CommonMovieSceneTools.h"
 #include "Sequencer.h"
 #include "SSequencerTreeView.h"
 #include "IKeyArea.h"
 #include "ISequencerSection.h"
 #include "SSequencerSection.h"
+#include "SequencerHotspots.h"
+#include "Tools/SequencerEditTool_Movement.h"
+#include "Tools/SequencerEditTool_Selection.h"
+#include "MovieSceneSection.h"
+#include "VirtualTrackArea.h"
 #include "ISequencerTrackEditor.h"
 
 FTrackAreaSlot::FTrackAreaSlot(const TSharedPtr<SSequencerTrackLane>& InSlotContent)
@@ -52,6 +57,11 @@ void SSequencerTrackArea::SetTreeView(const TSharedPtr<SSequencerTreeView>& InTr
 	TreeView = InTreeView;
 }
 
+void SSequencerTrackArea::Empty()
+{
+	TrackSlots.Empty();
+	Children.Empty();
+}
 
 void SSequencerTrackArea::AddTrackSlot(const TSharedRef<FSequencerDisplayNode>& InNode, const TSharedPtr<SSequencerTrackLane>& InSlot)
 {
@@ -147,8 +157,36 @@ int32 SSequencerTrackArea::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 			LayerId = FMath::Max(LayerId, ThisWidgetLayerId);
 		}
 
-		return Sequencer.Pin()->GetEditTool().OnPaint(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId + 2);
+		if (EditTool.IsValid())
+		{
+			LayerId = EditTool->OnPaint(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId + 1);
+		}
+
+		TOptional<FHighlightRegion> HighlightRegion = TreeView.Pin()->GetHighlightRegion();
+		if (HighlightRegion.IsSet())
+		{
+			FSlateDrawElement::MakeBox(
+				OutDrawElements,
+				LayerId+1,
+				AllottedGeometry.ToPaintGeometry(FVector2D(0.f, HighlightRegion->Top - 4.f), FVector2D(AllottedGeometry.Size.X, 4.f)),
+				FEditorStyle::GetBrush("Sequencer.TrackHoverHighlight_Top"),
+				MyClippingRect,
+				ESlateDrawEffect::None,
+				FLinearColor::Black
+			);
+		
+			FSlateDrawElement::MakeBox(
+				OutDrawElements,
+				LayerId+1,
+				AllottedGeometry.ToPaintGeometry(FVector2D(0.f, HighlightRegion->Bottom), FVector2D(AllottedGeometry.Size.X, 4.f)),
+				FEditorStyle::GetBrush("Sequencer.TrackHoverHighlight_Bottom"),
+				MyClippingRect,
+				ESlateDrawEffect::None,
+				FLinearColor::Black
+			);
+		}
 	}
+
 	return LayerId;
 }
 
@@ -158,7 +196,7 @@ FReply SSequencerTrackArea::OnMouseButtonDown( const FGeometry& MyGeometry, cons
 	if ( Sequencer.IsValid() )
 	{
 		// Always ensure the edit tool is set up
-		InputStack.SetHandlerAt(0, &Sequencer.Pin()->GetEditTool());
+		InputStack.SetHandlerAt(0, EditTool.Get());
 		return InputStack.HandleMouseButtonDown(*this, MyGeometry, MouseEvent);
 	}
 	return FReply::Unhandled();
@@ -172,19 +210,116 @@ FReply SSequencerTrackArea::OnMouseButtonUp( const FGeometry& MyGeometry, const 
 		FContextMenuSuppressor SuppressContextMenus(TimeSliderController.ToSharedRef());
 
 		// Always ensure the edit tool is set up
-		InputStack.SetHandlerAt(0, &Sequencer.Pin()->GetEditTool());
+		InputStack.SetHandlerAt(0, EditTool.Get());
 		return InputStack.HandleMouseButtonUp(*this, MyGeometry, MouseEvent);
 	}
 	return FReply::Unhandled();
 }
 
+bool SSequencerTrackArea::CanActivateEditTool(FName Identifier) const
+{
+	if (InputStack.GetCapturedIndex() != INDEX_NONE)
+	{
+		return false;
+	}
+	else if (!EditTool.IsValid())
+	{
+		return true;
+	}
+	// Can't activate a tool that's already active
+	else if (EditTool->GetIdentifier() == Identifier)
+	{
+		return false;
+	}
+	// Can only activate a new tool if the current one will let us
+	else
+	{
+		return EditTool->CanDeactivate();
+	}
+}
+
+template<typename EditToolType>
+bool SSequencerTrackArea::AttemptToActivateTool()
+{
+	if ( Sequencer.IsValid() )
+	{
+		if (CanActivateEditTool(EditToolType::Identifier))
+		{
+			EditTool.Reset(new EditToolType(*Sequencer.Pin()));
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void SSequencerTrackArea::UpdateHoverStates( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
+{
+	TSharedPtr<SSequencerTreeView> PinnedTreeView = TreeView.Pin();
+
+	// Set the node that we are hovering
+	TSharedPtr<FSequencerDisplayNode> NewHoveredNode = PinnedTreeView->HitTestNode(MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition()).Y);
+	PinnedTreeView->GetNodeTree()->SetHoveredNode(NewHoveredNode);
+
+	if ( Sequencer.IsValid() )
+	{
+		TSharedPtr<ISequencerHotspot> Hotspot = Sequencer.Pin()->GetHotspot();
+		if (Hotspot.IsValid())
+		{
+			const ESequencerHotspot Type = Hotspot->GetType();
+
+			// Activate the move tool if we're over a key or section resize handle
+			if (Type == ESequencerHotspot::Key || Type == ESequencerHotspot::SectionResize_L || Type == ESequencerHotspot::SectionResize_R)
+			{
+				AttemptToActivateTool<FSequencerEditTool_Movement>();
+			}
+			else if (Type == ESequencerHotspot::Section)
+			{
+				UMovieSceneSection* Section = StaticCastSharedPtr<FSectionHotspot>(Hotspot)->Section.GetSectionObject();
+
+				// Move sections if they are selected
+				if (Sequencer.Pin()->GetSelection().IsSelected(Section))
+				{
+					AttemptToActivateTool<FSequencerEditTool_Movement>();
+				}
+				else
+				{
+					// Activate selection mode if the section has keys, otherwise just move it
+					TSet<FKeyHandle> KeyHandles;
+					Section->GetKeyHandles(KeyHandles, Section->GetRange());
+
+					if (KeyHandles.Num())
+					{
+						AttemptToActivateTool<FSequencerEditTool_Selection>();
+					}
+					else
+					{
+						AttemptToActivateTool<FSequencerEditTool_Movement>();
+					}
+				}
+			}
+			else
+			{
+				// Any other region implies selection mode
+				AttemptToActivateTool<FSequencerEditTool_Selection>();
+			}
+		}
+		else
+		{
+			// Any other region implies selection mode
+			AttemptToActivateTool<FSequencerEditTool_Selection>();
+		}
+	}
+}
 
 FReply SSequencerTrackArea::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	if ( Sequencer.IsValid() )
 	{
+		UpdateHoverStates(MyGeometry, MouseEvent);
+
 		// Always ensure the edit tool is set up
-		InputStack.SetHandlerAt(0, &Sequencer.Pin()->GetEditTool());
+		InputStack.SetHandlerAt(0, EditTool.Get());
 
 		FReply Reply = InputStack.HandleMouseMove(*this, MyGeometry, MouseEvent);
 
@@ -208,7 +343,7 @@ FReply SSequencerTrackArea::OnMouseWheel( const FGeometry& MyGeometry, const FPo
 	if ( Sequencer.IsValid() )
 	{
 		// Always ensure the edit tool is set up
-		InputStack.SetHandlerAt(0, &Sequencer.Pin()->GetEditTool());
+		InputStack.SetHandlerAt(0, EditTool.Get());
 		return InputStack.HandleMouseWheel(*this, MyGeometry, MouseEvent);
 	}
 	return FReply::Unhandled();
@@ -219,7 +354,10 @@ void SSequencerTrackArea::OnMouseEnter(const FGeometry& MyGeometry, const FPoint
 {
 	if ( Sequencer.IsValid() )
 	{
-		Sequencer.Pin()->GetEditTool().OnMouseEnter(*this, MyGeometry, MouseEvent);
+		if (EditTool.IsValid())
+		{
+			EditTool->OnMouseEnter(*this, MyGeometry, MouseEvent);
+		}
 	}
 }
 
@@ -228,7 +366,12 @@ void SSequencerTrackArea::OnMouseLeave(const FPointerEvent& MouseEvent)
 {
 	if ( Sequencer.IsValid() )
 	{
-		Sequencer.Pin()->GetEditTool().OnMouseLeave(*this, MouseEvent);
+		if (EditTool.IsValid())
+		{
+			EditTool->OnMouseLeave(*this, MouseEvent);
+		}
+
+		TreeView.Pin()->GetNodeTree()->SetHoveredNode(nullptr);
 	}
 }
 
@@ -237,7 +380,10 @@ void SSequencerTrackArea::OnMouseCaptureLost()
 {
 	if ( Sequencer.IsValid() )
 	{
-		Sequencer.Pin()->GetEditTool().OnMouseCaptureLost();
+		if (EditTool.IsValid())
+		{
+			EditTool->OnMouseCaptureLost();
+		}
 	}
 }
 
@@ -251,8 +397,12 @@ FCursorReply SSequencerTrackArea::OnCursorQuery( const FGeometry& MyGeometry, co
 			return FCursorReply::Cursor(EMouseCursor::GrabHandClosed);
 		}
 
-		return Sequencer.Pin()->GetEditTool().OnCursorQuery(MyGeometry, CursorEvent);
+		if (EditTool.IsValid())
+		{
+			return EditTool->OnCursorQuery(MyGeometry, CursorEvent);
+		}
 	}
+
 	return FCursorReply::Unhandled();
 }
 
@@ -260,11 +410,6 @@ FCursorReply SSequencerTrackArea::OnCursorQuery( const FGeometry& MyGeometry, co
 void SSequencerTrackArea::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	CachedGeometry = AllottedGeometry;
-
-	if ( Sequencer.IsValid() )
-	{
-		Sequencer.Pin()->GetEditTool().Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-	}
 
 	FVector2D Size = AllottedGeometry.GetLocalSize();
 

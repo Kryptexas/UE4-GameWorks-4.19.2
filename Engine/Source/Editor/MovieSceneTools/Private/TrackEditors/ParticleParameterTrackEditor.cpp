@@ -5,6 +5,7 @@
 #include "MovieSceneParticleParameterTrack.h"
 #include "ParameterSection.h"
 #include "MovieSceneParameterSection.h"
+#include "SequencerUtilities.h"
 
 
 #define LOCTEXT_NAMESPACE "ParticleParameterTrackEditor"
@@ -32,36 +33,14 @@ TSharedRef<ISequencerSection> FParticleParameterTrackEditor::MakeSectionInterfac
 }
 
 
-TSharedPtr<SWidget> FParticleParameterTrackEditor::BuildOutlinerEditWidget( const FGuid& ObjectBinding, UMovieSceneTrack* Track )
+TSharedPtr<SWidget> FParticleParameterTrackEditor::BuildOutlinerEditWidget( const FGuid& ObjectBinding, UMovieSceneTrack* Track, const FBuildEditWidgetParams& Params )
 {
 	UMovieSceneParticleParameterTrack* ParticleParameterTrack = Cast<UMovieSceneParticleParameterTrack>(Track);
-	return
-		SNew( SComboButton )
-		.ButtonStyle( FEditorStyle::Get(), "FlatButton.Light" )
-		.OnGetMenuContent( this, &FParticleParameterTrackEditor::OnGetAddParameterMenuContent, ObjectBinding, ParticleParameterTrack )
-		.ContentPadding( FMargin( 2, 0 ) )
-		.ButtonContent()
-		[
-			SNew( SHorizontalBox )
-
-			+ SHorizontalBox::Slot()
-			.VAlign( VAlign_Center )
-			.AutoWidth()
-			[
-				SNew( STextBlock )
-				.Font( FEditorStyle::Get().GetFontStyle( "FontAwesome.8" ) )
-				.Text( FText::FromString( FString( TEXT( "\xf067" ) ) ) /*fa-plus*/ )
-			]
-
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
-			.Padding( 4, 0, 0, 0 )
-			[
-				SNew( STextBlock )
-				.Font( FEditorStyle::GetFontStyle( "Sequencer.AnimationOutliner.RegularFont" ) )
-				.Text( LOCTEXT( "AddParameterButton", "Parameter" ) )
-			]
-		];
+	
+	// Create a container edit box
+	return FSequencerUtilities::MakeAddButton(LOCTEXT("ParameterText", "Parameter"),
+		FOnGetContent::CreateSP(this, &FParticleParameterTrackEditor::OnGetAddParameterMenuContent, ObjectBinding, ParticleParameterTrack),
+		Params.NodeIsHovered);
 }
 
 
@@ -94,7 +73,9 @@ TSharedRef<SWidget> FParticleParameterTrackEditor::OnGetAddParameterMenuContent(
 {
 	FMenuBuilder AddParameterMenuBuilder( true, nullptr );
 
-	AEmitter* Emitter = Cast<AEmitter>( GetSequencer()->GetFocusedMovieSceneSequenceInstance()->FindObject( ObjectBinding, *GetSequencer() ) );
+	TSharedPtr<ISequencer> Sequencer = GetSequencer();
+	AEmitter* Emitter = Sequencer.IsValid() ? Cast<AEmitter>( Sequencer->FindSpawnedObjectOrTemplate( ObjectBinding ) ) : nullptr;
+
 	if ( Emitter != nullptr )
 	{
 		UParticleSystemComponent* ParticleSystemComponent = Emitter->GetParticleSystemComponent();

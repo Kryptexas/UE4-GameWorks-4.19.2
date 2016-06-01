@@ -98,7 +98,7 @@ struct FLandscapeBatchElementParams
 	const FLandscapeComponentSceneProxy* SceneProxy;
 	int32 SubX;
 	int32 SubY;
-	int32	CurrentLOD;
+	int32 CurrentLOD;
 };
 
 class FLandscapeElementParamArray : public FOneFrameResource
@@ -156,7 +156,7 @@ public:
 
 	static FVertexFactoryShaderParameters* ConstructShaderParameters(EShaderFrequency ShaderFrequency);
 
-	struct DataType
+	struct FDataType
 	{
 		/** The stream to read the vertex position from. */
 		FVertexStreamComponent PositionComponent;
@@ -192,7 +192,7 @@ public:
 	/**
 	 * An implementation of the interface used by TSynchronizedResource to update the resource with new data from the game thread.
 	 */
-	void SetData(const DataType& InData)
+	void SetData(const FDataType& InData)
 	{
 		Data = InData;
 		UpdateRHI();
@@ -201,7 +201,7 @@ public:
 	virtual uint64 GetStaticBatchElementVisibility(const FSceneView& View, const FMeshBatch* Batch) const override;
 
 	/** stream component data bound to this vertex factory */
-	DataType Data;
+	FDataType Data;
 };
 
 
@@ -297,14 +297,20 @@ public:
 	FLandscapeIndexRanges* IndexRanges;
 	FLandscapeSharedAdjacencyIndexBuffer* AdjacencyIndexBuffers;
 	bool bUse32BitIndices;
+#if WITH_EDITOR
 	FIndexBuffer* GrassIndexBuffer;
+	TArray<int32, TInlineAllocator<8>> GrassIndexMipOffsets;
+#endif
 
-	FLandscapeSharedBuffers(int32 SharedBuffersKey, int32 SubsectionSizeQuads, int32 NumSubsections, ERHIFeatureLevel::Type InFeatureLevel, bool bRequiresAdjacencyInformation);
+	FLandscapeSharedBuffers(int32 SharedBuffersKey, int32 SubsectionSizeQuads, int32 NumSubsections, ERHIFeatureLevel::Type FeatureLevel, bool bRequiresAdjacencyInformation);
 
 	template <typename INDEX_TYPE>
 	void CreateIndexBuffers(ERHIFeatureLevel::Type InFeatureLevel, bool bRequiresAdjacencyInformation);
+
+#if WITH_EDITOR
 	template <typename INDEX_TYPE>
 	void CreateGrassIndexBuffer();
+#endif
 
 	virtual ~FLandscapeSharedBuffers();
 };
@@ -476,21 +482,21 @@ protected:
 	int32						LastLOD;	// Last LOD we have batch elements for
 
 	/** 
-	 * Number of subsections within the component in each dimension, this can be 1 or 2.  
-	 * Subsections exist to improve the speed at which LOD transitions can take place over distance. 
+	 * Number of subsections within the component in each dimension, this can be 1 or 2.
+	 * Subsections exist to improve the speed at which LOD transitions can take place over distance.
 	 */
 	int32						NumSubsections;
 	/** Number of unique heights in the subsection. */
 	int32						SubsectionSizeQuads;
-	/** Number of heightmap heights in the subsection.  This includes the duplicate row at the end. */
+	/** Number of heightmap heights in the subsection. This includes the duplicate row at the end. */
 	int32						SubsectionSizeVerts;
 	/** Size of the component in unique heights. */
-	int32						ComponentSizeQuads;	
+	int32						ComponentSizeQuads;
 	/** 
-	 * ComponentSizeQuads + 1.  
+	 * ComponentSizeQuads + 1.
 	 * Note: in the case of multiple subsections, this is not very useful, as there will be an internal duplicate row of heights in addition to the row at the end.
 	 */
-	int32						ComponentSizeVerts; 
+	int32						ComponentSizeVerts;
 	uint8						StaticLightingLOD;
 	float						StaticLightingResolution;
 	/** Address of the component within the parent Landscape in unique height texels. */
@@ -500,9 +506,11 @@ protected:
 	// Storage for static draw list batch params
 	TArray<FLandscapeBatchElementParams> StaticBatchParamArray;
 
-	// Precomputed grass rendering MeshBatch
-	FMeshBatch					GrassMeshBatch;
-	FLandscapeBatchElementParams GrassBatchParams;
+#if WITH_EDITOR
+	// Precomputed grass rendering MeshBatch and per-LOD params
+	FMeshBatch                           GrassMeshBatch;
+	TArray<FLandscapeBatchElementParams> GrassBatchParams;
+#endif
 
 	// Precomputed values
 	float					LODDistance;
@@ -544,6 +552,14 @@ protected:
 
 	ELandscapeLODFalloff::Type LODFalloff;
 
+	// data used in editor or visualisers
+#if WITH_EDITOR || !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	int32 CollisionMipLevel;
+	int32 SimpleCollisionMipLevel;
+
+	FCollisionResponseContainer CollisionResponse;
+#endif
+
 	TUniformBuffer<FLandscapeUniformShaderParameters> LandscapeUniformShaderParameters;
 
 	// Cached versions of these
@@ -579,8 +595,9 @@ public:
 	int32 CalcLODForSubsection(const FSceneView& View, int32 SubX, int32 SubY, const FVector2D& CameraLocalPos) const;
 	void CalcLODParamsForSubsection(const FSceneView& View, const FVector2D& CameraLocalPos, int32 SubX, int32 SubY, int32 BatchLOD, float& OutfLOD, FVector4& OutNeighborLODs) const;
 	uint64 GetStaticBatchElementVisibility(const FSceneView& View, const FMeshBatch* Batch) const;
+#if WITH_EDITOR
 	const FMeshBatch& GetGrassMeshBatch() const { return GrassMeshBatch; }
-
+#endif
 
 	// FLandcapeSceneProxy
 	void ChangeLODDistanceFactor_RenderThread(float InLODDistanceFactor);
@@ -614,9 +631,9 @@ public:
 	{}
 
 	// FMaterialRenderProxy interface.
-	virtual const FMaterial* GetMaterial(ERHIFeatureLevel::Type FeatureLevel) const
+	virtual const FMaterial* GetMaterial(ERHIFeatureLevel::Type InFeatureLevel) const
 	{
-		return Parent->GetMaterial(FeatureLevel);
+		return Parent->GetMaterial(InFeatureLevel);
 	}
 	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
 	{
@@ -683,9 +700,9 @@ public:
 	{}
 
 	// FMaterialRenderProxy interface.
-	virtual const FMaterial* GetMaterial(ERHIFeatureLevel::Type FeatureLevel) const
+	virtual const FMaterial* GetMaterial(ERHIFeatureLevel::Type InFeatureLevel) const
 	{
-		return Parent->GetMaterial(FeatureLevel);
+		return Parent->GetMaterial(InFeatureLevel);
 	}
 	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
 	{
@@ -732,9 +749,9 @@ public:
 	{}
 
 	// FMaterialRenderProxy interface.
-	virtual const FMaterial* GetMaterial(ERHIFeatureLevel::Type FeatureLevel) const
+	virtual const FMaterial* GetMaterial(ERHIFeatureLevel::Type InFeatureLevel) const
 	{
-		return Parent->GetMaterial(FeatureLevel);
+		return Parent->GetMaterial(InFeatureLevel);
 	}
 	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
 	{
@@ -779,9 +796,9 @@ public:
 	{}
 
 	// FMaterialRenderProxy interface.
-	virtual const FMaterial* GetMaterial(ERHIFeatureLevel::Type FeatureLevel) const
+	virtual const FMaterial* GetMaterial(ERHIFeatureLevel::Type InFeatureLevel) const
 	{
-		return Parent->GetMaterial(FeatureLevel);
+		return Parent->GetMaterial(InFeatureLevel);
 	}
 	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
 	{

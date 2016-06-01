@@ -28,6 +28,9 @@
 #include "ParallelFor.h"
 #include "Engine/CoreSettings.h"
 
+#include "InGamePerformanceTracker.h"
+#include "Streaming/TextureStreamingHelpers.h"
+
 // this will log out all of the objects that were ticked in the FDetailedTickStats struct so you can isolate what is expensive
 #define LOG_DETAILED_DUMPSTATS 0
 
@@ -36,7 +39,6 @@
 bool GLogDetailedDumpStats = true; 
 
 /** Game stats */
-
 
 // DECLARE_CYCLE_STAT is the reverse of what will be displayed in the game's stat game
 
@@ -390,10 +392,10 @@ void UWorld::TickNetClient( float DeltaSeconds )
 -----------------------------------------------------------------------------*/
 
 
-bool UWorld::IsPaused()
+bool UWorld::IsPaused() const
 {
 	// pause if specifically set or if we're waiting for the end of the tick to perform streaming level loads (so actors don't fall through the world in the meantime, etc)
-	AWorldSettings* Info = GetWorldSettings();
+	const AWorldSettings* Info = GetWorldSettings();
 	return ( (Info && Info->Pauser != NULL && TimeSeconds >= PauseDelay) ||
 				(bRequestedBlockOnAsyncLoading && GetNetMode() == NM_Client) ||
 				(GEngine->ShouldCommitPendingMapChange(this)) ||
@@ -709,7 +711,7 @@ static TAutoConsoleVariable<int32> CVarAllowAsyncRenderThreadUpdates(
 
 static TAutoConsoleVariable<int32> CVarAllowAsyncRenderThreadUpdatesDuringGamethreadUpdates(
 	TEXT("AllowAsyncRenderThreadUpdatesDuringGamethreadUpdates"),
-	0,
+	1,
 	TEXT("If > 0 then we do the gamethread updates _while_ doing parallel updates."));
 
 static TAutoConsoleVariable<int32> CVarAllowAsyncRenderThreadUpdatesEditor(
@@ -1057,12 +1059,20 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 
 	FWorldDelegates::OnWorldTickStart.Broadcast(TickType, DeltaSeconds);
 
+	//Tick game and other thread trackers.
+	for (int32 Tracker = 0; Tracker < (int32)EInGamePerfTrackers::Num; ++Tracker)
+	{
+		PerfTrackers->GetInGamePerformanceTracker((EInGamePerfTrackers)Tracker, EInGamePerfTrackerThreads::GameThread).Tick();
+		PerfTrackers->GetInGamePerformanceTracker((EInGamePerfTrackers)Tracker, EInGamePerfTrackerThreads::OtherThread).Tick();
+	}
+
 #if LOG_DETAILED_PATHFINDING_STATS
 	GDetailedPathFindingStats.Reset();
 #endif
 
 	SCOPE_CYCLE_COUNTER(STAT_WorldTickTime);
 
+	// @todo vreditor: In the VREditor, this isn't actually wrapping the whole frame.  That would have to happen in EditorEngine.cpp's Tick.  However, it didn't seem to affect anything when I tried that.
 	if (GEngine->HMDDevice.IsValid())
 	{
 		GEngine->HMDDevice->OnStartGameFrame( GEngine->GetWorldContextFromWorldChecked( this ) );
@@ -1459,6 +1469,18 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	{
 		GEngine->HMDDevice->OnEndGameFrame( GEngine->GetWorldContextFromWorldChecked( this ) );
 	}
+
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+		TickInGamePerfTrackersRT,
+		UWorld*, WorldParam, this,
+		{
+		//Tick game and other thread trackers.
+		for (int32 Tracker = 0; Tracker < (int32)EInGamePerfTrackers::Num; ++Tracker)
+		{
+			WorldParam->PerfTrackers->GetInGamePerformanceTracker((EInGamePerfTrackers)Tracker, EInGamePerfTrackerThreads::RenderThread).Tick();
+		}
+	}
+	);
 }
 
 /**

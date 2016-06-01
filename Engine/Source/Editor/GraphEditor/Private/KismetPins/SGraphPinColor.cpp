@@ -26,7 +26,7 @@ TSharedRef<SWidget>	SGraphPinColor::GetDefaultValueWidget()
 			[
 				SNew( SColorBlock )
 				.Color( this, &SGraphPinColor::GetColor )
-				.IgnoreAlpha(true)
+				.ShowBackgroundForAlpha(true)
 				.OnMouseButtonDown( this, &SGraphPinColor::OnColorBoxClicked )
 			]
 		];

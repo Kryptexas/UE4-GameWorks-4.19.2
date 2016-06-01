@@ -74,7 +74,7 @@ FExternalProfiler* FActiveExternalProfilerBase::GetActiveProfiler()
 		}
 		else
 		{
-			UE_LOG(LogExternalProfiler, Warning, TEXT("No registered external profiler was matched with a command-line switch (or the DLL could not be loaded).  External profiling features will not be available."));
+			UE_LOG(LogExternalProfiler, Log, TEXT("No external profilers were discovered.  External profiling features will not be available."));
 		}
 
 		// Don't try to initialize again this session

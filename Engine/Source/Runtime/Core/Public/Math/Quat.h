@@ -130,8 +130,8 @@ public:
 	 * Checks whether another Quaternion is equal to this, within specified tolerance.
 	 *
 	 * @param Q The other Quaternion.
-	 * @param Tolerance Error Tolerance.
-	 * @return true if two Quaternion are equal, within specified tolerance, otherwise false.
+	 * @param Tolerance Error tolerance for comparison with other Quaternion.
+	 * @return true if two Quaternions are equal, within specified tolerance, otherwise false.
 	 */
 	FORCEINLINE bool Equals(const FQuat& Q, float Tolerance=KINDA_SMALL_NUMBER) const;
 
@@ -139,9 +139,10 @@ public:
 	 * Checks whether this Quaternion is an Identity Quaternion.
 	 * Assumes Quaternion tested is normalized.
 	 *
+	 * @param Tolerance Error tolerance for comparison with Identity Quaternion.
 	 * @return true if Quaternion is a normalized Identity Quaternion.
 	 */
-	FORCEINLINE bool IsIdentity() const;
+	FORCEINLINE bool IsIdentity(float Tolerance=SMALL_NUMBER) const;
 
 	/**
 	 * Subtracts another quaternion from this.
@@ -410,8 +411,18 @@ public:
 			*const_cast<FQuat*>(this) = FQuat::Identity;
 		}
 	}
+
+	FORCEINLINE void DiagnosticCheckNaN(const TCHAR* Message) const
+	{
+		if (ContainsNaN())
+		{
+			logOrEnsureNanError(TEXT("%s: FQuat contains NaN: %s"), Message, *ToString());
+			*const_cast<FQuat*>(this) = FQuat::Identity;
+		}
+	}
 #else
 	FORCEINLINE void DiagnosticCheckNaN() const {}
+	FORCEINLINE void DiagnosticCheckNaN(const TCHAR* Message) const {}
 #endif
 
 public:
@@ -485,10 +496,19 @@ public:
 		return SlerpFullPath_NotNormalized(quat1, quat2, Alpha).GetNormalized();
 	}
 	
-	/** Given start and end quaternions of quat1 and quat2, and tangents at those points tang1 and tang2, calculate the point at Alpha (between 0 and 1) between them. Result is normalized. */
+	/**
+	 * Given start and end quaternions of quat1 and quat2, and tangents at those points tang1 and tang2, calculate the point at Alpha (between 0 and 1) between them. Result is normalized.
+	 * This will correct alignment by ensuring that the shortest path is taken.
+	 */
 	static CORE_API FQuat Squad( const FQuat& quat1, const FQuat& tang1, const FQuat& quat2, const FQuat& tang2, float Alpha );
 
-	/** 
+	/**
+	 * Simpler Squad that doesn't do any checks for 'shortest distance' etc.
+	 * Given start and end quaternions of quat1 and quat2, and tangents at those points tang1 and tang2, calculate the point at Alpha (between 0 and 1) between them. Result is normalized.
+	 */
+	static CORE_API FQuat SquadFullPath(const FQuat& quat1, const FQuat& tang1, const FQuat& quat2, const FQuat& tang2, float Alpha);
+
+	/**
 	 * Calculate tangents between given points
 	 *
 	 * @param PrevP quaternion at P-1
@@ -661,7 +681,7 @@ FORCEINLINE FQuat::FQuat( const FQuat& Q )
 
 FORCEINLINE FString FQuat::ToString() const
 {
-	return FString::Printf(TEXT("X=%.6f Y=%.6f Z=%.6f W=%.6f"), X, Y, Z, W);
+	return FString::Printf(TEXT("X=%.9f Y=%.9f Z=%.9f W=%.9f"), X, Y, Z, W);
 }
 
 
@@ -734,9 +754,9 @@ FORCEINLINE bool FQuat::Equals(const FQuat& Q, float Tolerance) const
 #endif // PLATFORM_ENABLE_VECTORINTRINSICS
 }
 
-FORCEINLINE bool FQuat::IsIdentity() const
+FORCEINLINE bool FQuat::IsIdentity(float Tolerance) const
 {
-	return ((W * W) > ((1.f - DELTA) * (1.f - DELTA)));
+	return Equals(FQuat::Identity, Tolerance);
 }
 
 FORCEINLINE FQuat FQuat::operator-=(const FQuat& Q)

@@ -33,7 +33,7 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void Draw(FViewport* Viewport,FCanvas* Canvas) override;
 	virtual bool ShouldOrbitCamera() const override;
-	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily) override;
+	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily, const EStereoscopicPass StereoPass) override;
 	
 	void SetShowGrid(bool bShowGrid);
 
@@ -134,9 +134,9 @@ FLinearColor FMaterialEditorViewportClient::GetBackgroundColor() const
 }
 
 
-FSceneView* FMaterialEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
+FSceneView* FMaterialEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, const EStereoscopicPass StereoPass)
 {
-	FSceneView* SceneView = FEditorViewportClient::CalcSceneView(ViewFamily);
+	FSceneView* SceneView = FEditorViewportClient::CalcSceneView(ViewFamily, StereoPass);
 	FFinalPostProcessSettings::FCubemapEntry& CubemapEntry = *new(SceneView->FinalPostProcessSettings.ContributingCubemaps) FFinalPostProcessSettings::FCubemapEntry;
 	CubemapEntry.AmbientCubemap = GUnrealEd->GetThumbnailManager()->AmbientCubemap;
 	CubemapEntry.AmbientCubemapTintMulScaleValue = FLinearColor::White;
@@ -611,12 +611,14 @@ public:
 	float GetZoomLevel() const;
 
 	void SetPreviewSize( const FVector2D PreviewSize );
+	void SetPreviewMaterial(UMaterialInterface* InPreviewMaterial);
 private:
 	mutable FVector2D CachedSize;
 	float ZoomLevel;
 
 	FMaterialPreviewPanelSlot ChildSlot;
 	TSharedPtr<FSlateMaterialBrush> PreviewBrush;
+	TSharedPtr<SImage> ImageWidget;
 };
 
 
@@ -626,7 +628,7 @@ void SMaterialEditorUIPreviewZoomer::Construct( const FArguments& InArgs, UMater
 
 	ChildSlot
 	[
-		SNew( SImage )
+		SAssignNew( ImageWidget, SImage )
 		.Image( PreviewBrush.Get() )
 	];
 
@@ -698,6 +700,11 @@ void SMaterialEditorUIPreviewZoomer::SetPreviewSize( const FVector2D PreviewSize
 	PreviewBrush->ImageSize = PreviewSize;
 }
 
+void SMaterialEditorUIPreviewZoomer::SetPreviewMaterial(UMaterialInterface* InPreviewMaterial)
+{
+	PreviewBrush = MakeShareable(new FSlateMaterialBrush(*InPreviewMaterial, PreviewBrush->ImageSize));
+	ImageWidget->SetImage(PreviewBrush.Get());
+}
 
 void SMaterialEditorUIPreviewViewport::Construct( const FArguments& InArgs, UMaterialInterface* PreviewMaterial )
 {
@@ -784,6 +791,11 @@ void SMaterialEditorUIPreviewViewport::Construct( const FArguments& InArgs, UMat
 
 	PreviewSize = FIntPoint(250,250);
 	PreviewZoomer->SetPreviewSize( FVector2D(PreviewSize) );
+}
+
+void SMaterialEditorUIPreviewViewport::SetPreviewMaterial(UMaterialInterface* InMaterialInterface)
+{
+	PreviewZoomer->SetPreviewMaterial(InMaterialInterface);
 }
 
 void SMaterialEditorUIPreviewViewport::OnPreviewXChanged( int32 NewValue )

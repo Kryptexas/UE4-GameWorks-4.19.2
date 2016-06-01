@@ -652,16 +652,40 @@ public:
 	}
 
 	/**
-	 * Sets whether or not the cursor is hidden when the viewport captures the mouse
+	 * Gets whether or not the viewport captures the Mouse on launch of the application
+	 * Technically this controls capture on the first window activate, so in situations 
+	 * where the application is launched but isn't activated the effect is delayed until
+	 * activation.
 	 */
+	virtual bool CaptureMouseOnLaunch() override;
+
+	/**
+	 * Sets whether or not the cursor is locked to the viewport when the viewport captures the mouse
+	 */
+	void SetLockDuringCapture(bool InLockDuringCapture)
+	{
+		bLockDuringCapture = InLockDuringCapture;
+	}
+
+	/**
+	 * Gets whether or not the cursor is locked to the viewport when the viewport captures the mouse
+	 */
+	virtual bool LockDuringCapture() override
+	{
+		return bLockDuringCapture;
+	}
+
+	/**
+	* Sets whether or not the cursor is hidden when the viewport captures the mouse
+	*/
 	void SetHideCursorDuringCapture(bool InHideCursorDuringCapture)
 	{
 		bHideCursorDuringCapture = InHideCursorDuringCapture;
 	}
 
 	/**
-	 * Gets whether or not the cursor is hidden when the viewport captures the mouse
-	 */
+	* Gets whether or not the cursor is hidden when the viewport captures the mouse
+	*/
 	virtual bool HideCursorDuringCapture() override
 	{
 		return bHideCursorDuringCapture;
@@ -711,10 +735,7 @@ private:
 
 	/** Delegate handler for when all stats are disabled in a viewport */
 	void HandleViewportStatDisableAll(const bool bInAnyViewport);
-
-	/** Delegate handler for when an actor is spawned */
-	void ShowCollisionOnSpawnedActors(AActor* Actor);
-
+	
 	/** Adds a cursor to the set based on the enum and the class reference to it. */
 	void AddCursor(EMouseCursor::Type Cursor, const FStringClassReference& CursorClass);
 
@@ -786,9 +807,6 @@ private:
 	/** Those sound stat flags which are enabled on this viewport */
 	static ESoundShowFlags::Type SoundShowFlags;
 
-	/** Number of viewports which have enabled 'show collision' */
-	static int32 NumViewportsShowingCollision;
-
 	/** Disables splitscreen, useful when game code is in menus, and doesn't want splitscreen on */
 	bool bDisableSplitScreenOverride;
 
@@ -798,11 +816,11 @@ private:
 	/** Mouse capture behavior when the viewport is clicked */
 	EMouseCaptureMode MouseCaptureMode;
 
+	/** Whether or not the cursor is locked when the viewport captures the mouse */
+	bool bLockDuringCapture;
+
 	/** Whether or not the cursor is hidden when the viewport captures the mouse */
 	bool bHideCursorDuringCapture;
-
-	/** Handle to the registered ShowCollisionOnSpawnedActors delegate */
-	FDelegateHandle ShowCollisionOnSpawnedActorsDelegateHandle;
 
 	/** Handle to the audio device created for this viewport. Each viewport (for multiple PIE) will have its own audio device. */
 	uint32 AudioDeviceHandle;

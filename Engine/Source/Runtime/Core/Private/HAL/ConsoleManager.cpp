@@ -535,8 +535,57 @@ IConsoleVariable* FConsoleManager::RegisterConsoleVariableBitRef(const TCHAR* CV
 	return AddConsoleObject(CVarName, new FConsoleVariableBitRef(FlagName, BitNumber, Force0MaskPtr, Force1MaskPtr, Help, (EConsoleVariableFlags)Flags))->AsVariable();
 }
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+// part of the automated test for console variables
+static TAutoConsoleVariable<int32> CVarDebugEarlyDefault(
+	TEXT("con.DebugEarlyDefault"),
+	21,
+	TEXT("used internally to test the console variable system"),
+	ECVF_Default);
+// part of the automated test for console variables
+static TAutoConsoleVariable<int32> CVarDebugEarlyCheat(
+	TEXT("con.DebugEarlyCheat"),
+	22,
+	TEXT("used internally to test the console variable system"),
+	ECVF_Cheat);
+#endif
+
 void FConsoleManager::CallAllConsoleVariableSinks()
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	check(IsInGameThread());
+
+	// part of the automated test for console variables
+	// test the console variable system behavior with the ECVF_Cheat flag
+	{
+		static uint32 LocalCounter = 0;
+
+		// after a few calls we assume the ini files are loaded
+		if(LocalCounter == 10)
+		{
+			IConsoleVariable* VarC = IConsoleManager::Get().RegisterConsoleVariable(TEXT("con.DebugLateDefault"), 23, TEXT("used internally to test the console variable system"), ECVF_Default);
+			IConsoleVariable* VarD = IConsoleManager::Get().RegisterConsoleVariable(TEXT("con.DebugLateCheat"), 24, TEXT("used internally to test the console variable system"), ECVF_Cheat);
+
+			int32 ValA = CVarDebugEarlyDefault.GetValueOnGameThread();
+			int32 ValB = CVarDebugEarlyCheat.GetValueOnGameThread();
+			int32 ValC = VarC->GetInt();
+			int32 ValD = VarD->GetInt();
+				
+			// in BaseEngine.ini we set all 4 cvars to "True" but only the non cheat one should pick up the value
+			check(ValA == 1);
+			check(ValB == 22);
+			check(ValC == 1);
+			check(ValD == 24);
+		}
+
+		// count up to 100 and don't warp around
+		if(LocalCounter < 100)
+		{
+			++LocalCounter;
+		}
+	}
+#endif
+
 	if(bCallAllConsoleVariableSinks)
 	{
 		for(uint32 i = 0; i < (uint32)ConsoleVariableChangeSinks.Num(); ++i)
@@ -576,7 +625,7 @@ public:
 		delete this; 
 	} 
 
-	virtual bool Execute( const TArray< FString > Args, UWorld* InWorld, FOutputDevice& OutputDevice ) override
+	virtual bool Execute( const TArray< FString >& Args, UWorld* InWorld, FOutputDevice& OutputDevice ) override
 	{
 		// NOTE: Args are ignored for FConsoleCommand.  Use FConsoleCommandWithArgs if you need parameters.
 		return Delegate.ExecuteIfBound();
@@ -607,7 +656,7 @@ public:
 		delete this; 
 	} 
 
-	virtual bool Execute( const TArray< FString > Args, UWorld* InWorld, FOutputDevice& OutputDevice ) override
+	virtual bool Execute( const TArray< FString >& Args, UWorld* InWorld, FOutputDevice& OutputDevice ) override
 	{
 		return Delegate.ExecuteIfBound( Args );
 	}
@@ -636,7 +685,7 @@ public:
 		delete this; 
 	} 
 
-	virtual bool Execute( const TArray< FString > Args, UWorld* InWorld, FOutputDevice& OutputDevice ) override
+	virtual bool Execute( const TArray< FString >& Args, UWorld* InWorld, FOutputDevice& OutputDevice ) override
 	{
 		return Delegate.ExecuteIfBound( InWorld );
 	}
@@ -665,7 +714,7 @@ public:
 		delete this; 
 	} 
 
-	virtual bool Execute( const TArray< FString > Args, UWorld* InWorld, FOutputDevice& OutputDevice ) override
+	virtual bool Execute( const TArray< FString >& Args, UWorld* InWorld, FOutputDevice& OutputDevice ) override
 	{
 		return Delegate.ExecuteIfBound( Args, InWorld );
 	}
@@ -694,7 +743,7 @@ public:
 		delete this; 
 	} 
 
-	virtual bool Execute( const TArray< FString > Args, UWorld* InWorld, FOutputDevice& OutputDevice ) override
+	virtual bool Execute( const TArray< FString >& Args, UWorld* InWorld, FOutputDevice& OutputDevice ) override
 	{
 		return Delegate.ExecuteIfBound( OutputDevice );
 	}
@@ -722,7 +771,7 @@ public:
 		delete this; 
 	} 
 
-	virtual bool Execute( const TArray< FString > Args, UWorld* InCmdWorld, FOutputDevice& OutputDevice ) override
+	virtual bool Execute( const TArray< FString >& Args, UWorld* InCmdWorld, FOutputDevice& OutputDevice ) override
 	{
 		return false;
 	}
@@ -753,6 +802,11 @@ IConsoleVariable* FConsoleManager::RegisterConsoleVariableRef(const TCHAR* Name,
 IConsoleVariable* FConsoleManager::RegisterConsoleVariableRef(const TCHAR* Name, float& RefValue, const TCHAR* Help, uint32 Flags)
 {
 	return AddConsoleObject(Name, new FConsoleVariableRef<float>(RefValue, Help, (EConsoleVariableFlags)Flags))->AsVariable();
+}
+
+IConsoleVariable* FConsoleManager::RegisterConsoleVariableRef(const TCHAR* Name, bool& RefValue, const TCHAR* Help, uint32 Flags)
+{
+	return AddConsoleObject(Name, new FConsoleVariableRef<bool>(RefValue, Help, (EConsoleVariableFlags)Flags))->AsVariable();
 }
 
 IConsoleCommand* FConsoleManager::RegisterConsoleCommand(const TCHAR* Name, const TCHAR* Help, const FConsoleCommandDelegate& Command, uint32 Flags)
@@ -807,6 +861,33 @@ IConsoleObject* FConsoleManager::FindConsoleObject(const TCHAR* Name) const
 {
 	IConsoleObject* CVar = FindConsoleObjectUnfiltered(Name);
 
+#if TRACK_CONSOLE_FIND_COUNT
+	{
+		const bool bEarlyAppPhase = GFrameCounter < 1000;
+		if(CVar)
+		{
+			++CVar->FindCallCount;
+
+			// we test for equal to avoid log spam
+			if(bEarlyAppPhase && CVar->FindCallCount == 500)
+			{
+				UE_LOG(LogConsoleManager, Warning, TEXT("Performance warning: Console object named '%s' shows many (%d) FindConsoleObject() calls (consider caching e.g. using static)"), Name, CVar->FindCallCount);
+			}
+		}
+		else
+		{
+			static uint32 NullFindCallCount = 0;
+		
+			++NullFindCallCount;
+
+			if(bEarlyAppPhase && NullFindCallCount == 500)
+			{
+				UE_LOG(LogConsoleManager, Warning, TEXT( "Performance warning: Many (%d) failed FindConsoleObject() e.g. '%s' (consider caching, is the name referencing an existing object)"), NullFindCallCount, Name);
+			}
+		}
+	}
+#endif
+
 	if(CVar && CVar->TestFlags(ECVF_CreatedFromIni))
 	{
 		return 0;
@@ -828,6 +909,7 @@ void FConsoleManager::UnregisterConsoleObject(IConsoleObject* CVar, bool bKeepSt
 	{
 		return;
 	}
+	FScopeLock ScopeLock(&ConsoleObjectsSynchronizationObject);
 
 	// Slow search for console object
 	const FString ObjName = FindConsoleObjectName( CVar );
@@ -840,12 +922,12 @@ void FConsoleManager::UnregisterConsoleObject(IConsoleObject* CVar, bool bKeepSt
 
 void FConsoleManager::UnregisterConsoleObject(const TCHAR* Name, bool bKeepState)
 {
+	FScopeLock ScopeLock(&ConsoleObjectsSynchronizationObject);
+
 	IConsoleObject* Object = FindConsoleObject(Name);
 
 	if(Object)
 	{
-		FScopeLock ScopeLock(&ConsoleObjectsSynchronizationObject);
-
 		IConsoleVariable* CVar = Object->AsVariable();
 
 		if(CVar && bKeepState)
@@ -889,7 +971,7 @@ void FConsoleManager::LoadHistoryIfNeeded()
 
 			if(Key == History)
 			{
-				HistoryEntries.Add(It.Value);
+				HistoryEntries.Add(It.Value.GetValue());
 			}
 		}
 	}
@@ -1110,8 +1192,15 @@ IConsoleObject* FConsoleManager::AddConsoleObject(const TCHAR* Name, IConsoleObj
 		{
 			if(ExistingVar->TestFlags(ECVF_CreatedFromIni))
 			{
-				// The existing one came from the ini, get the value and destroy the existing one (no need to call sink because that will happen after all ini setting have been loaded)
-				Var->Set(*ExistingVar->GetString(), (EConsoleVariableFlags)((uint32)ExistingVar->GetFlags() & ECVF_SetByMask));
+				// This is to prevent cheaters to set a value from an ini of a cvar that is created later
+				// TODO: This is not ideal as it also prevents consolevariables.ini to set the value where we allow that. We could fix that.
+				if(!Var->TestFlags(ECVF_Cheat))
+				{
+					// The existing one came from the ini, get the value
+					Var->Set(*ExistingVar->GetString(), (EConsoleVariableFlags)((uint32)ExistingVar->GetFlags() & ECVF_SetByMask));
+				}
+
+				// destroy the existing one (no need to call sink because that will happen after all ini setting have been loaded)
 				ExistingVar->Release();
 
 				ConsoleObjects.Add(Name, Var);
@@ -1497,10 +1586,14 @@ void CreateConsoleVariables()
 	IConsoleManager::Get().RegisterConsoleCommand(TEXT("Vis"),	TEXT("short version of visualizetexture"), ECVF_Cheat);
 	IConsoleManager::Get().RegisterConsoleCommand(TEXT("VisRT"),	TEXT("GUI for visualizetexture"), ECVF_Cheat);
 	IConsoleManager::Get().RegisterConsoleCommand(TEXT("HighResShot"),	TEXT("High resolution screenshots [Magnification = 2..]"), ECVF_Cheat);
-	IConsoleManager::Get().RegisterConsoleCommand(TEXT("DumpConsoleCommands"),	TEXT("Dumps all console vaiables and commands and all exec that can be discovered to the log/console"), ECVF_Default);
 	IConsoleManager::Get().RegisterConsoleCommand(TEXT("DumpUnbuiltLightInteractions"),	TEXT("Logs all lights and primitives that have an unbuilt interaction."), ECVF_Cheat);
 
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
+
+#if	!UE_BUILD_SHIPPING
+	IConsoleManager::Get().RegisterConsoleCommand( TEXT( "DumpConsoleCommands" ), TEXT( "Dumps all console vaiables and commands and all exec that can be discovered to the log/console" ), ECVF_Default );
+#endif // !UE_BUILD_SHIPPING
 
 	// testing code
 	{
@@ -1616,6 +1709,13 @@ static TAutoConsoleVariable<int32> CVarMobileDynamicPointLightsUseStaticBranch(
 	1,
 	TEXT("0: Generate unique forward rendering base pass shaders for 0, 1, ... N mobile dynamic point lights. (faster but generates many more shaders)\n")
 	TEXT("1: Use a shared shader with static branching for rendering 1 or more dynamic point lights (slightly slower but reduces shaders generated, recommended for most games)."),
+	ECVF_RenderThreadSafe | ECVF_ReadOnly);
+
+static TAutoConsoleVariable<int32> CVarMobileEnableStaticAndCSMShadowReceivers(
+	TEXT("r.Mobile.EnableStaticAndCSMShadowReceivers"),
+	1,
+	TEXT("0: Primitives can receive only static shadowing from stationary lights.\n")
+	TEXT("1: Primitives can receive both CSM and static shadowing from stationary lights. (default)"),
 	ECVF_RenderThreadSafe | ECVF_ReadOnly);
 
 static TAutoConsoleVariable<int32> CVarMobileHDR32bppMode(
@@ -1737,7 +1837,8 @@ static TAutoConsoleVariable<int32> CVarDepthOfFieldQuality(
 	TEXT(" 0: Off\n")
 	TEXT(" 1: Low\n")
 	TEXT(" 2: high quality (default, adaptive, can be 4x slower)\n")
-	TEXT(" 3: Special mode only affecting CircleDOF for very high quality but slow rendering"),
+	TEXT(" 3: very high quality, intended for non realtime cutscenes, CircleDOF only (slow)\n")
+	TEXT(" 4: extremely high quality, intended for non realtime cutscenes, CircleDOF only (very slow)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<float> CVarScreenPercentage(
@@ -1810,20 +1911,6 @@ static TAutoConsoleVariable<int32> CVarNumBufferedOcclusionQueries(
 	TEXT("Number of frames to buffer occlusion queries (including the current renderthread frame).\n")
 	TEXT("More frames reduces the chance of stalling the CPU waiting for results, but increases out of date query artifacts."),
 	ECVF_RenderThreadSafe);
-
-static TAutoConsoleVariable<int32> CVarDistField(
-	TEXT("r.GenerateMeshDistanceFields"),
-	0,	
-	TEXT("Whether to build distance fields of static meshes, needed for distance field AO, which is used to implement Movable SkyLight shadows.\n")
-	TEXT("Enabling will increase mesh build times and memory usage.  Changing this value will cause a rebuild of all static meshes."),
-	ECVF_ReadOnly);
-
-static TAutoConsoleVariable<int32> CVarLandscapeGI(
-	TEXT("r.GenerateLandscapeGIData"),
-	1,
-	TEXT("Whether to generate a low-resolution base color texture for landscapes for rendering real-time global illumination.\n")
-	TEXT("This feature requires GenerateMeshDistanceFields is also enabled, and will increase mesh build times and memory usage.\n"),
-	ECVF_Default);
 
 static TAutoConsoleVariable<int32> CVarMinLogVerbosity(
 	TEXT("con.MinLogVerbosity"),
@@ -2147,9 +2234,3 @@ static TAutoConsoleVariable<int32> CVarCheckSRVTransitions(
 	0,
 	TEXT("Tests that render targets are properly transitioned to SRV when SRVs are set."),
 	ECVF_RenderThreadSafe);  
-
-static TAutoConsoleVariable<int32> CVarHLODSystemEnabled(
-	TEXT("r.HLODEnabled"), 
-	1,
-	TEXT("Toggles whether or not the Hierarchical LOD system is enabled."),
-	ECVF_Scalability | ECVF_RenderThreadSafe);

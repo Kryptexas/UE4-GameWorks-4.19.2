@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Xml;
 using System.Text.RegularExpressions;
 using System.Linq;
+using System.Management;
 using System.Reflection;
 using System.Threading;
 
@@ -35,7 +36,7 @@ namespace UnrealBuildTool
 		/// <param name="e">  Event arguments (In this case, the line of string output)</param>
 		static protected void ActionDebugOutput(object sender, DataReceivedEventArgs e)
 		{
-			var Output = e.Data;
+			string Output = e.Data;
 			if (Output == null)
 			{
 				return;
@@ -234,8 +235,10 @@ namespace UnrealBuildTool
 
 			if (NumScriptedActions > 0)
 			{
-				// Create the process
-				ProcessStartInfo PSI = new ProcessStartInfo("dbsbuild", "-q -p UE4 -s " + BuildConfiguration.BaseIntermediatePath + "/sndbs.bat");
+                // Create the process
+                string SCERoot = Environment.GetEnvironmentVariable("SCE_ROOT_DIR");
+                string SNDBSExecutable = Path.Combine(SCERoot, "Common/SN-DBS/bin/dbsbuild.exe");
+                ProcessStartInfo PSI = new ProcessStartInfo(SNDBSExecutable, "-q -p UE4 -s " + BuildConfiguration.BaseIntermediatePath + "/sndbs.bat");
 				PSI.RedirectStandardOutput = true;
 				PSI.RedirectStandardError = true;
 				PSI.UseShellExecute = false;
@@ -289,15 +292,15 @@ namespace UnrealBuildTool
 			ExecutionResult SNDBSResult = ExecutionResult.TasksSucceeded;
 			if (Actions.Count > 0)
 			{
-				string SCERoot = Environment.GetEnvironmentVariable("SCE_ROOT_DIR");
+                string SCERoot = Environment.GetEnvironmentVariable("SCE_ROOT_DIR");
 
-				bool bSNDBSExists = false;
-				if (SCERoot != null)
-				{
-					string SNDBSExecutable = Path.Combine(SCERoot, "Common/SN-DBS/bin/dbsbuild.exe");
+                bool bSNDBSExists = false;
+                if (SCERoot != null)
+                {
+                    string SNDBSExecutable = Path.Combine(SCERoot, "Common/SN-DBS/bin/dbsbuild.exe");
 
-					// Check that SN-DBS is available
-					bSNDBSExists = File.Exists(SNDBSExecutable);
+                    // Check that SN-DBS is available
+                    bSNDBSExists = File.Exists(SNDBSExecutable);
 				}
 
 				if (bSNDBSExists == false)
@@ -311,10 +314,10 @@ namespace UnrealBuildTool
 				{
 					try
 					{
-						using (var Mos = new System.Management.ManagementObjectSearcher("Select * from Win32_Processor"))
+						using (ManagementObjectSearcher Mos = new System.Management.ManagementObjectSearcher("Select * from Win32_Processor"))
 						{
-							var MosCollection = Mos.Get();
-							foreach (var Item in MosCollection)
+							ManagementObjectCollection MosCollection = Mos.Get();
+							foreach (ManagementBaseObject Item in MosCollection)
 							{
 								NumCores += int.Parse(Item["NumberOfCores"].ToString());
 							}

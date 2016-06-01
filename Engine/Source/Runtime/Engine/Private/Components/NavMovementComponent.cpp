@@ -27,6 +27,8 @@ bool FNavAgentProperties::IsNavDataMatching(const FNavAgentProperties& Other) co
 UNavMovementComponent::UNavMovementComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, bUpdateNavAgentWithOwnersCollision(true)
+	, bUseAccelerationForPaths(false)
+	, bUseFixedBrakingDistanceForPaths(false)
 	, bStopMovementAbortPaths(true)
 {
 }
@@ -41,9 +43,19 @@ void UNavMovementComponent::RequestDirectMove(const FVector& MoveVelocity, bool 
 	Velocity = MoveVelocity;
 }
 
+void UNavMovementComponent::RequestPathMove(const FVector& MoveInput)
+{
+	// empty in base class, requires at least PawnMovementComponent for input related operations
+}
+
 bool UNavMovementComponent::CanStopPathFollowing() const
 {
 	return true;
+}
+
+float UNavMovementComponent::GetPathFollowingBrakingDistance(float MaxSpeed) const
+{
+	return bUseFixedBrakingDistanceForPaths ? FixedPathBrakingDistance : MaxSpeed;
 }
 
 void UNavMovementComponent::StopActiveMovement()

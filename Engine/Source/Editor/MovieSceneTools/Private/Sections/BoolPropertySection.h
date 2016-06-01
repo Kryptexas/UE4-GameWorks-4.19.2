@@ -22,7 +22,7 @@ public:
 	// FPropertySection interface
 
 	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override;
-	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const override;
+	virtual int32 OnPaintSection( FSequencerSectionPainter& Painter ) const override;
 	virtual void SetIntermediateValue( FPropertyChangedParams PropertyChangedParams ) override;
 	virtual void ClearIntermediateValue() override;
 

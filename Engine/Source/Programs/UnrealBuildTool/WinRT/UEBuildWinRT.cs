@@ -453,12 +453,7 @@ namespace UnrealBuildTool
 
 		public static bool IsVisualStudioInstalled()
 		{
-			string BaseVSToolPath = WindowsPlatform.GetVSComnToolsPath();
-			if (string.IsNullOrEmpty(BaseVSToolPath) == false)
-			{
-				return true;
-			}
-			return false;
+			return WindowsPlatform.HasAnyVSInstalled();
 		}
 
 		public static bool IsWindows8()

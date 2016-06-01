@@ -152,12 +152,39 @@ static FString GetD3D11TextureFlagString(uint32 TextureFlags)
 }
 
 
-static void TerminateOnDeviceRemoved(HRESULT D3DResult)
+static void TerminateOnDeviceRemoved(HRESULT D3DResult, ID3D11Device* Direct3DDevice)
 {
 	if (D3DResult == DXGI_ERROR_DEVICE_REMOVED)
 	{
-		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *LOCTEXT("DeviceRemoved", "Video driver crashed and was reset!  Make sure your video drivers are up to date.  Exiting...").ToString(), TEXT("Error"));
+		if (Direct3DDevice)
+		{
+			HRESULT hRes = Direct3DDevice->GetDeviceRemovedReason();
+
+			const TCHAR* Reason = TEXT("?");
+			switch (hRes)
+			{
+			case DXGI_ERROR_DEVICE_HUNG:			Reason = TEXT("HUNG"); break;
+			case DXGI_ERROR_DEVICE_REMOVED:			Reason = TEXT("REMOVED"); break;
+			case DXGI_ERROR_DEVICE_RESET:			Reason = TEXT("RESET"); break;
+			case DXGI_ERROR_DRIVER_INTERNAL_ERROR:	Reason = TEXT("INTERNAL_ERROR"); break;
+			case DXGI_ERROR_INVALID_CALL:			Reason = TEXT("INVALID_CALL"); break;
+			case S_OK:								Reason = TEXT("S_OK"); break;
+			}
+
+			// We currently don't support removed devices because FTexture2DResource can't recreate its RHI resources from scratch.
+			// We would also need to recreate the viewport swap chains from scratch.
+			UE_LOG(LogD3D11RHI, Fatal, TEXT("Unreal Engine is exiting due to D3D device being lost. (Error: 0x%X - '%s')"), hRes, Reason);
+		}
+		else
+		{
+			UE_LOG(LogD3D11RHI, Fatal, TEXT("Unreal Engine is exiting due to D3D device being lost. D3D device was not available to assertain DXGI cause."));
+		}
+
+		// Workaround for the fact that in non-monolithic builds the exe gets into a weird state and exception handling fails. 
+		// @todo investigate why non-monolithic builds fail to capture the exception when graphics driver crashes.
+#if !IS_MONOLITHIC
 		FPlatformMisc::RequestExit(true);
+#endif
 	}
 }
 
@@ -194,13 +221,35 @@ void VerifyD3D11Result(HRESULT D3DResult,const ANSICHAR* Code,const ANSICHAR* Fi
 
 	UE_LOG(LogD3D11RHI, Error,TEXT("%s failed \n at %s:%u \n with error %s"),ANSI_TO_TCHAR(Code),ANSI_TO_TCHAR(Filename),Line,*ErrorString);
 
-	TerminateOnDeviceRemoved(D3DResult);
+	TerminateOnDeviceRemoved(D3DResult, Device);
 	TerminateOnOutOfMemory(D3DResult, false);
 
 	UE_LOG(LogD3D11RHI, Fatal,TEXT("%s failed \n at %s:%u \n with error %s"),ANSI_TO_TCHAR(Code),ANSI_TO_TCHAR(Filename),Line,*ErrorString);
 }
 
-void VerifyD3D11CreateTextureResult(HRESULT D3DResult,const ANSICHAR* Code,const ANSICHAR* Filename,uint32 Line,uint32 SizeX,uint32 SizeY,uint32 SizeZ,uint8 Format,uint32 NumMips,uint32 Flags)
+void VerifyD3D11ShaderResult(FRHIShader* Shader, HRESULT D3DResult, const ANSICHAR* Code, const ANSICHAR* Filename, uint32 Line, ID3D11Device* Device)
+{
+	check(FAILED(D3DResult));
+
+	const FString& ErrorString = GetD3D11ErrorString(D3DResult, Device);
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (Shader->ShaderName.Len())
+	{
+		UE_LOG(LogD3D11RHI, Error, TEXT("%s failed trying to create shader %s\n at %s:%u \n with error %s"), ANSI_TO_TCHAR(Code), *Shader->ShaderName, ANSI_TO_TCHAR(Filename), Line, *ErrorString);
+		TerminateOnDeviceRemoved(D3DResult, Device);
+		TerminateOnOutOfMemory(D3DResult, false);
+
+		UE_LOG(LogD3D11RHI, Fatal, TEXT("%s failed trying to create shader %s \n at %s:%u \n with error %s"), ANSI_TO_TCHAR(Code), *Shader->ShaderName, ANSI_TO_TCHAR(Filename), Line, *ErrorString);
+	}
+	else
+#endif
+	{
+		VerifyD3D11Result(D3DResult, Code, Filename, Line, Device);
+	}
+}
+
+void VerifyD3D11CreateTextureResult(HRESULT D3DResult,const ANSICHAR* Code,const ANSICHAR* Filename,uint32 Line,uint32 SizeX,uint32 SizeY,uint32 SizeZ,uint8 Format,uint32 NumMips,uint32 Flags, ID3D11Device* Device)
 {
 	check(FAILED(D3DResult));
 
@@ -221,7 +270,7 @@ void VerifyD3D11CreateTextureResult(HRESULT D3DResult,const ANSICHAR* Code,const
 		NumMips,
 		*GetD3D11TextureFlagString(Flags));
 
-	TerminateOnDeviceRemoved(D3DResult);
+	TerminateOnDeviceRemoved(D3DResult, Device);
 	TerminateOnOutOfMemory(D3DResult, true);
 
 	UE_LOG(LogD3D11RHI, Fatal,

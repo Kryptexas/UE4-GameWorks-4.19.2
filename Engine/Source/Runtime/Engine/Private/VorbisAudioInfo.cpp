@@ -83,7 +83,8 @@ FVorbisAudioInfo::FVorbisAudioInfo( void )
 	,	SrcBufferDataSize(0)
 	,	BufferOffset(0)
 { 
-	check(VFWrapper != nullptr);
+	// Make sure we have properly allocated a VFWrapper
+	check(VFWrapper != NULL);
 }
 
 FVorbisAudioInfo::~FVorbisAudioInfo( void ) 
@@ -108,7 +109,7 @@ static size_t OggRead( void *ptr, size_t size, size_t nmemb, void *datasource )
 {
 	check(ptr);
 	check(datasource);
-	FVorbisAudioInfo* OggInfo = ( FVorbisAudioInfo* )datasource;
+	FVorbisAudioInfo* OggInfo = (FVorbisAudioInfo*)datasource;
 	return( OggInfo->Read( ptr, size * nmemb ) );
 }
 
@@ -328,7 +329,7 @@ void FVorbisAudioInfo::SeekToTime( const float SeekTime )
 {
 	FScopeLock ScopeLock(&VorbisCriticalSection);
 
-	const float TargetTime = FMath::Min(SeekTime, ( float )ov_time_total( &VFWrapper->vf, -1 ));
+	const float TargetTime = FMath::Min(SeekTime, (float)ov_time_total(&VFWrapper->vf, -1));
 	ov_time_seek( &VFWrapper->vf, TargetTime );
 }
 
@@ -336,24 +337,27 @@ void FVorbisAudioInfo::EnableHalfRate( bool HalfRate )
 {
 	FScopeLock ScopeLock(&VorbisCriticalSection);
 
-	ov_halfrate( &VFWrapper->vf, int32(HalfRate));
+	ov_halfrate(&VFWrapper->vf, int32(HalfRate));
 }
 
 void LoadVorbisLibraries()
 {
-	static bool bIsIntialized = false;
-	if (!bIsIntialized)
+	static bool bIsInitialized = false;
+	if (!bIsInitialized)
 	{
-		bIsIntialized = true;
+		bIsInitialized = true;
 #if PLATFORM_WINDOWS  && WITH_OGGVORBIS
 		//@todo if ogg is every ported to another platform, then use the platform abstraction to load these DLLs
 		// Load the Ogg dlls
+#  if _MSC_VER >= 1900
+		FString VSVersion = TEXT("VS2015/");
+#  elif _MSC_VER >= 1800
 		FString VSVersion = TEXT("VS2013/");
+#  else
+#    error "Unsupported Visual Studio version."
+#  endif
 		FString PlatformString = TEXT("Win32");
 		FString DLLNameStub = TEXT(".dll");
-#if _MSC_VER == 1900
-		VSVersion = TEXT("VS2015/");
-#endif
 #if PLATFORM_64BITS
 		PlatformString = TEXT("Win64");
 		DLLNameStub = TEXT("_64.dll");

@@ -32,7 +32,12 @@ USTRUCT()
 struct FCollectionScalarParameter : public FCollectionParameterBase
 {
 	GENERATED_USTRUCT_BODY()
-	
+
+	FCollectionScalarParameter()
+	{
+		ParameterName = FName(TEXT("Scalar"));
+	}
+
 	UPROPERTY(EditAnywhere, Category=Parameter)
 	float DefaultValue;
 };
@@ -43,6 +48,11 @@ struct FCollectionVectorParameter : public FCollectionParameterBase
 {
 	GENERATED_USTRUCT_BODY()
 	
+	FCollectionVectorParameter()
+	{
+		ParameterName = FName(TEXT("Vector"));
+	}
+
 	UPROPERTY(EditAnywhere, Category=Parameter)
 	FLinearColor DefaultValue;
 };
@@ -70,9 +80,10 @@ class UMaterialParameterCollection : public UObject
 #if WITH_EDITOR
 	virtual void PreEditChange(class FEditPropertyChain& PropertyAboutToChange) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-	virtual void PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
+	virtual void PostInitProperties() override;
 	virtual void PostLoad() override;
+	virtual void BeginDestroy() override;
 	//~ End UObject Interface.
 
 	/** Finds a parameter name given an Id, returns NAME_None if the parameter was not found. */
@@ -102,9 +113,17 @@ class UMaterialParameterCollection : public UObject
 
 private:
 
+	/** Default resource used when no instance is available. */
+	class FMaterialParameterCollectionInstanceResource* DefaultResource;
+
 	TScopedPointer<FUniformBufferStruct> UniformBufferStruct;
 
 	void CreateBufferStruct();
+
+	/** Gets default values into data to be set on the uniform buffer. */
+	void GetDefaultParameterData(TArray<FVector4>& ParameterData) const;
+
+	void UpdateDefaultResource();
 };
 
 

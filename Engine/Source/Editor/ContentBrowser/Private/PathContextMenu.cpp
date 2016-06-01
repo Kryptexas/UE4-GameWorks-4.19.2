@@ -910,32 +910,9 @@ void FPathContextMenu::ExecuteSCCSync() const
 
 	if ( PathsOnDisk.Num() > 0 )
 	{
-		// attempt to unload all assets under this path
 		TArray<FString> PackageNames;
 		GetPackageNamesInSelectedPaths(PackageNames);
-
-		// Form a list of loaded packages to prompt for save
-		TArray<UPackage*> LoadedPackages;
-		for( const auto& PackageName : PackageNames )
-		{
-			UPackage* Package = FindPackage(nullptr, *PackageName);
-			if ( Package != nullptr )
-			{
-				LoadedPackages.Add(Package);
-			}
-		}
-
-		FText ErrorMessage;
-		PackageTools::UnloadPackages(LoadedPackages, ErrorMessage);
-
-		if(!ErrorMessage.IsEmpty())
-		{
-			FMessageDialog::Open( EAppMsgType::Ok, ErrorMessage );
-		}
-		else
-		{
-			SourceControlProvider.Execute(ISourceControlOperation::Create<FSync>(), PathsOnDisk);
-		}
+		ContentBrowserUtils::SyncPackagesFromSourceControl(PackageNames);
 	}
 	else
 	{

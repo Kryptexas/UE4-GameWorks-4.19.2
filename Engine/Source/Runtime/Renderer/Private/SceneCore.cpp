@@ -96,12 +96,12 @@ void FLightPrimitiveInteraction::Create(FLightSceneInfo* LightSceneInfo,FPrimiti
 	// Attach the light to the primitive's static meshes.
 	bool bDynamic = true;
 	bool bRelevant = false;
-	bool bLightMapped = true;
+	bool bIsLightMapped = true;
 	bool bShadowMapped = false;
 
 	// Determine the light's relevance to the primitive.
 	check(PrimitiveSceneInfo->Proxy && LightSceneInfo->Proxy);
-	PrimitiveSceneInfo->Proxy->GetLightRelevance(LightSceneInfo->Proxy, bDynamic, bRelevant, bLightMapped, bShadowMapped);
+	PrimitiveSceneInfo->Proxy->GetLightRelevance(LightSceneInfo->Proxy, bDynamic, bRelevant, bIsLightMapped, bShadowMapped);
 
 	if (bRelevant && bDynamic
 		// Don't let lights with static shadowing or static lighting affect primitives that should use static lighting, but don't have valid settings (lightmap res 0, etc)
@@ -118,7 +118,7 @@ void FLightPrimitiveInteraction::Create(FLightSceneInfo* LightSceneInfo,FPrimiti
 		if (LightSceneInfo->Proxy->GetLightType() != LightType_Directional || LightSceneInfo->Proxy->HasStaticShadowing() || bTranslucentObjectShadow || bInsetObjectShadow)
 		{
 			// Create the light interaction.
-			FLightPrimitiveInteraction* Interaction = new FLightPrimitiveInteraction(LightSceneInfo, PrimitiveSceneInfo, bDynamic, bLightMapped, bShadowMapped, bTranslucentObjectShadow, bInsetObjectShadow);
+			FLightPrimitiveInteraction* Interaction = new FLightPrimitiveInteraction(LightSceneInfo, PrimitiveSceneInfo, bDynamic, bIsLightMapped, bShadowMapped, bTranslucentObjectShadow, bInsetObjectShadow);
 		}
 	}
 }
@@ -179,9 +179,13 @@ FLightPrimitiveInteraction::FLightPrimitiveInteraction(
 		{
 			// Update the game thread's counter of number of uncached static lighting interactions.
 			bUncachedStaticLighting = true;
+	#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			LightSceneInfo->NumUnbuiltInteractions++;
+	#endif
 
+	#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			FPlatformAtomics::InterlockedIncrement(&PrimitiveSceneInfo->Scene->NumUncachedStaticLightingInteractions);
+	#endif
 
 #if WITH_EDITOR
 			PrimitiveSceneInfo->Proxy->NumUncachedStaticLightingInteractions++;

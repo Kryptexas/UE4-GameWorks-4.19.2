@@ -109,11 +109,6 @@ void UThrobber::PostLoad()
 
 #if WITH_EDITOR
 
-const FSlateBrush* UThrobber::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.Throbber");
-}
-
 const FText UThrobber::GetPaletteCategory()
 {
 	return LOCTEXT("Primitive", "Primitive");

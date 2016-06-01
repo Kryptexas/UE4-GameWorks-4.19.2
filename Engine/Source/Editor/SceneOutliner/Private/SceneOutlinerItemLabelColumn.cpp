@@ -400,9 +400,15 @@ private:
 	FText GetTooltipText() const
 	{
 		auto Item = TreeItemPtr.Pin();
-		FText PersistentLevelDisplayName = Item.IsValid() ? FText::FromString(Item->GetDisplayString()) : FText();
-		
-		return FText::Format(LOCTEXT("WorldLabel_Tooltip", "The world settings for {0}, double-click to edit"), PersistentLevelDisplayName);
+		FText PersistentLevelDisplayName = Item.IsValid() ? FText::FromString(Item->GetWorldName()) : FText();
+		if(Item->CanInteract())
+		{
+			return FText::Format(LOCTEXT("WorldLabel_Tooltip", "The world settings for {0}, double-click to edit"), PersistentLevelDisplayName);
+		}
+		else
+		{
+			return FText::Format(LOCTEXT("WorldLabel_TooltipNonInteractive", "The world {0}"), PersistentLevelDisplayName);
+		}
 	}
 
 	FSlateColor GetForegroundColor() const

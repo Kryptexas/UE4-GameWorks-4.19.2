@@ -439,6 +439,7 @@ void FAIGraphEditor::PasteNodesHere(const FVector2D& Location)
 	if (AIGraph)
 	{
 		AIGraph->UpdateClassData();
+		AIGraph->OnNodesPasted(TextToImport);
 		AIGraph->UnlockUpdates();
 	}
 

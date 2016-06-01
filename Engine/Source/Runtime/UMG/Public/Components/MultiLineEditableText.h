@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "TextWidgetTypes.h"
 #include "MultiLineEditableText.generated.h"
 
 /**
@@ -32,7 +33,7 @@ public:
 public:
 
 	/** The style */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Appearance", meta=(ShowOnlyInnerProperties))
 	FTextBlockStyle WidgetStyle;
 
 	/** Font color and opacity (overrides Style) */
@@ -74,7 +75,6 @@ public:
 	//~ End UObject Interface
 
 #if WITH_EDITOR
-	virtual const FSlateBrush* GetEditorIcon() override;
 	virtual const FText GetPaletteCategory() override;
 #endif
 

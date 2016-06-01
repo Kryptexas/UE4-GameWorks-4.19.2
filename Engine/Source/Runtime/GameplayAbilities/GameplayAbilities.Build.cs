@@ -51,7 +51,14 @@ namespace UnrealBuildTool.Rules
 				PrivateDependencyModuleNames.Add("UnrealEd");
                 PrivateDependencyModuleNames.Add("GameplayTagsEditor");
                 PrivateDependencyModuleNames.Add("Slate");
+				PrivateDependencyModuleNames.Add("SequenceRecorder");
 			}
-		}
+
+            if (UEBuildConfiguration.bBuildDeveloperTools || (Target.Configuration != UnrealTargetConfiguration.Shipping && Target.Configuration != UnrealTargetConfiguration.Test))
+            {
+                PrivateDependencyModuleNames.Add("GameplayDebugger");
+                Definitions.Add("WITH_GAMEPLAY_DEBUGGER=1");
+            }
+        }
 	}
 }

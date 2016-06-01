@@ -31,6 +31,10 @@ class UMaterialExpressionParameter : public UMaterialExpression
 #endif
 	//~ End UMaterialExpression Interface
 
+	//~ Begin UObject Interface
+	virtual bool NeedsLoadForClient() const override;
+	//~ End UObject Interface
+
 	ENGINE_API virtual FGuid& GetParameterExpressionId() override
 	{
 		return ExpressionGUID;

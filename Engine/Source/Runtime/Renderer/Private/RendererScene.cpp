@@ -17,6 +17,7 @@
 #include "SpeedTreeWind.h"
 #include "HeightfieldLighting.h"
 #include "Components/WindDirectionalSourceComponent.h"
+#include "PlanarReflectionSceneProxy.h"
 
 // Enable this define to do slow checks for components being added to the wrong
 // world's scene, when using PIE. This can happen if a PIE component is reattached
@@ -67,6 +68,7 @@ FSceneViewState::FSceneViewState()
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	bIsFreezing = false;
 	bIsFrozen = false;
+	bIsFrozenViewMatricesCached = false;
 #endif
 	// Register this object as a resource, so it will receive device reset notifications.
 	if ( IsInGameThread() )
@@ -90,6 +92,8 @@ FSceneViewState::FSceneViewState()
 	bDOFHistory = true;
 	bDOFHistory2 = true;
 
+	bSequencerIsPaused = false;
+
 	LightPropagationVolume = NULL; 
 
 	bIsStereoView = false;
@@ -101,13 +105,24 @@ FSceneViewState::FSceneViewState()
 		TranslucencyLightingCacheAllocations[CascadeIndex] = NULL;
 	}
 
-	bIntializedGlobalDistanceFieldOrigins = false;
+	bInitializedGlobalDistanceFieldOrigins = false;
 	GlobalDistanceFieldUpdateIndex = 0;
 
 	ShadowOcclusionQueryMaps.Empty(FOcclusionQueryHelpers::MaxBufferedOcclusionFrames);
 	ShadowOcclusionQueryMaps.AddZeroed(FOcclusionQueryHelpers::MaxBufferedOcclusionFrames);	
 
 	bValidEyeAdaptation = false;
+
+	LastAutoDownsampleChangeTime = 0;
+	SmoothedHalfResTranslucencyGPUDuration = 0;
+	SmoothedFullResTranslucencyGPUDuration = 0;
+	bShouldAutoDownsampleTranslucency = false;
+
+	PendingTranslucencyStartTimestamps.Empty(FOcclusionQueryHelpers::MaxBufferedOcclusionFrames + 1);
+	PendingTranslucencyStartTimestamps.AddZeroed(FOcclusionQueryHelpers::MaxBufferedOcclusionFrames + 1);
+
+	PendingTranslucencyEndTimestamps.Empty(FOcclusionQueryHelpers::MaxBufferedOcclusionFrames + 1);
+	PendingTranslucencyEndTimestamps.AddZeroed(FOcclusionQueryHelpers::MaxBufferedOcclusionFrames + 1);
 }
 
 void DestroyRenderResource(FRenderResource* RenderResource)
@@ -141,6 +156,96 @@ FSceneViewState::~FSceneViewState()
 	AOScreenGridResources = NULL;
 	DestroyLightPropagationVolume();
 }
+
+#if WITH_EDITOR
+
+FPixelInspectorData::FPixelInspectorData()
+{
+	for (int32 i = 0; i < 2; ++i)
+	{
+		RenderTargetBufferFinalColor[i] = nullptr;
+		RenderTargetBufferDepth[i] = nullptr;
+		RenderTargetBufferSceneColor[i] = nullptr;
+		RenderTargetBufferHDR[i] = nullptr;
+		RenderTargetBufferA[i] = nullptr;
+		RenderTargetBufferBCDE[i] = nullptr;
+	}
+}
+
+void FPixelInspectorData::InitializeBuffers(FRenderTarget* BufferFinalColor, FRenderTarget* BufferSceneColor, FRenderTarget* BufferDepth, FRenderTarget* BufferHDR, FRenderTarget* BufferA, FRenderTarget* BufferBCDE, int32 BufferIndex)
+{
+	RenderTargetBufferFinalColor[BufferIndex] = BufferFinalColor;
+	RenderTargetBufferDepth[BufferIndex] = BufferDepth;
+	RenderTargetBufferSceneColor[BufferIndex] = BufferSceneColor;
+	RenderTargetBufferHDR[BufferIndex] = BufferHDR;
+	RenderTargetBufferA[BufferIndex] = BufferA;
+	RenderTargetBufferBCDE[BufferIndex] = BufferBCDE;
+
+	check(RenderTargetBufferBCDE[BufferIndex] != nullptr);
+	
+	FIntPoint BufferSize = RenderTargetBufferBCDE[BufferIndex]->GetSizeXY();
+	check(BufferSize.X == 4 && BufferSize.Y == 1);
+
+	if (RenderTargetBufferA[BufferIndex] != nullptr)
+	{
+		BufferSize = RenderTargetBufferA[BufferIndex]->GetSizeXY();
+		check(BufferSize.X == 1 && BufferSize.Y == 1);
+	}
+	
+	if (RenderTargetBufferFinalColor[BufferIndex] != nullptr)
+	{
+		BufferSize = RenderTargetBufferFinalColor[BufferIndex]->GetSizeXY();
+		//The Final color grab an area and can change depending on the setup
+		//It should at least contain 1 pixel but can be 3x3 or more
+		check(BufferSize.X > 0 && BufferSize.Y > 0);
+	}
+
+	if (RenderTargetBufferDepth[BufferIndex] != nullptr)
+	{
+		BufferSize = RenderTargetBufferDepth[BufferIndex]->GetSizeXY();
+		check(BufferSize.X == 1 && BufferSize.Y == 1);
+	}
+
+	if (RenderTargetBufferSceneColor[BufferIndex] != nullptr)
+	{
+		BufferSize = RenderTargetBufferSceneColor[BufferIndex]->GetSizeXY();
+		check(BufferSize.X == 1 && BufferSize.Y == 1);
+	}
+
+	if (RenderTargetBufferHDR[BufferIndex] != nullptr)
+	{
+		BufferSize = RenderTargetBufferHDR[BufferIndex]->GetSizeXY();
+		check(BufferSize.X == 1 && BufferSize.Y == 1);
+	}
+}
+
+bool FPixelInspectorData::AddPixelInspectorRequest(FPixelInspectorRequest *PixelInspectorRequest)
+{
+	if (PixelInspectorRequest == nullptr)
+		return false;
+	FIntPoint PixelPosition = PixelInspectorRequest->SourcePixelPosition;
+	if (Requests.Contains(PixelPosition))
+		return false;
+	
+	//Remove the oldest request since the new request use the buffer
+	if (Requests.Num() > 1)
+	{
+		FIntPoint FirstKey(-1, -1);
+		for (auto kvp : Requests)
+		{
+			FirstKey = kvp.Key;
+			break;
+		}
+		if (Requests.Contains(FirstKey))
+		{
+			Requests.Remove(FirstKey);
+		}
+	}
+	Requests.Add(PixelPosition, PixelInspectorRequest);
+	return true;
+}
+
+#endif //WITH_EDITOR
 
 FDistanceFieldSceneData::FDistanceFieldSceneData(EShaderPlatform ShaderPlatform) 
 	: NumObjectsInBuffer(0)
@@ -245,8 +350,21 @@ void FDistanceFieldSceneData::VerifyIntegrity()
 		check(PrimitiveAndInstance.Primitive->DistanceFieldInstanceIndices.IsValidIndex(PrimitiveAndInstance.InstanceIndex));
 
 		const int32 InstanceIndex = PrimitiveAndInstance.Primitive->DistanceFieldInstanceIndices[PrimitiveAndInstance.InstanceIndex];
-		check(InstanceIndex == PrimitiveInstanceIndex);
+		check(InstanceIndex == PrimitiveInstanceIndex || InstanceIndex == -1);
 	}
+}
+
+void FScene::UpdateSceneSettings(AWorldSettings* WorldSettings)
+{
+	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+		UpdateSceneSettings,
+		FScene*, Scene, this,
+		float, DefaultMaxDistanceFieldOcclusionDistance, WorldSettings->DefaultMaxDistanceFieldOcclusionDistance,
+		float, GlobalDistanceFieldViewDistance, WorldSettings->GlobalDistanceFieldViewDistance,
+	{
+		Scene->DefaultMaxDistanceFieldOcclusionDistance = DefaultMaxDistanceFieldOcclusionDistance;
+		Scene->GlobalDistanceFieldViewDistance = GlobalDistanceFieldViewDistance;
+	});
 }
 
 /**
@@ -404,6 +522,8 @@ FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScen
 ,	UpperDynamicSkylightColor(FLinearColor::Black)
 ,	LowerDynamicSkylightColor(FLinearColor::Black)
 ,	SceneLODHierarchy(this)
+,	DefaultMaxDistanceFieldOcclusionDistance(InWorld->GetWorldSettings()->DefaultMaxDistanceFieldOcclusionDistance)
+,	GlobalDistanceFieldViewDistance(InWorld->GetWorldSettings()->GlobalDistanceFieldViewDistance)
 ,	NumVisibleLights_GameThread(0)
 ,	NumEnabledSkylights_GameThread(0)
 {
@@ -742,7 +862,7 @@ void FScene::UpdatePrimitiveAttachment(UPrimitiveComponent* Primitive)
 				UpdatePrimitiveLightingAttachmentRoot(CurrentPrimitive);
 			}
 
-			ProcessStack.Append(Current->AttachChildren);
+			ProcessStack.Append(Current->GetAttachChildren());
 		}
 	}
 }
@@ -862,8 +982,16 @@ void FScene::AddLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 	{
 		SimpleDirectionalLight = LightSceneInfo;
 
-		// if we are forward rendered and this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy
-		bScenesPrimitivesNeedStaticMeshElementUpdate = bScenesPrimitivesNeedStaticMeshElementUpdate || (!ShouldUseDeferredRenderer() && !SimpleDirectionalLight->Proxy->HasStaticShadowing());		
+		// if we are forward rendered and this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy:
+		bool bForwardRendererRequiresLightPolicyChange = !ShouldUseDeferredRenderer() &&
+			(
+			// this light is a dynamic shadowcast 
+			!SimpleDirectionalLight->Proxy->HasStaticShadowing() || 
+			// this light casts both static and dynamic shadows.
+			SimpleDirectionalLight->Proxy->UseCSMForDynamicObjects()
+			);
+
+		bScenesPrimitivesNeedStaticMeshElementUpdate = bScenesPrimitivesNeedStaticMeshElementUpdate || (bForwardRendererRequiresLightPolicyChange);
 	}
 
 	if (LightSceneInfo->Proxy->IsUsedAsAtmosphereSunLight() &&
@@ -1189,6 +1317,34 @@ const FReflectionCaptureProxy* FScene::FindClosestReflectionCapture(FVector Posi
 	return ClosestCaptureIndex != INDEX_NONE ? ReflectionSceneData.RegisteredReflectionCaptures[ClosestCaptureIndex] : NULL;
 }
 
+const FPlanarReflectionSceneProxy* FScene::FindClosestPlanarReflection(const FPrimitiveBounds& Bounds) const
+{
+	checkSlow(IsInParallelRenderingThread());
+	const FPlanarReflectionSceneProxy* ClosestPlanarReflection = NULL;
+	float ClosestDistance = FLT_MAX;
+	FBox PrimitiveBoundingBox(Bounds.Origin - Bounds.BoxExtent, Bounds.Origin + Bounds.BoxExtent);
+
+	// Linear search through the scene's planar reflections
+	for (int32 CaptureIndex = 0; CaptureIndex < PlanarReflections.Num(); CaptureIndex++)
+	{
+		FPlanarReflectionSceneProxy* CurrentPlanarReflection = PlanarReflections[CaptureIndex];
+		const FBox ReflectionBounds = CurrentPlanarReflection->WorldBounds;
+
+		if (PrimitiveBoundingBox.Intersect(ReflectionBounds))
+		{
+			const float Distance = FMath::Abs(CurrentPlanarReflection->ReflectionPlane.PlaneDot(Bounds.Origin));
+
+			if (Distance < ClosestDistance)
+			{
+				ClosestDistance = Distance;
+				ClosestPlanarReflection = CurrentPlanarReflection;
+			}
+		}
+	}
+
+	return ClosestPlanarReflection;
+}
+
 void FScene::FindClosestReflectionCaptures(FVector Position, const FReflectionCaptureProxy* (&SortedByDistanceOUT)[FPrimitiveSceneInfo::MaxCachedReflectionCaptureProxies]) const
 {
 	checkSlow(IsInParallelRenderingThread());
@@ -1383,6 +1539,14 @@ void FScene::UpdateLightColorAndBrightness(ULightComponent* Light)
 			{
 				if( LightSceneInfo && LightSceneInfo->bVisible )
 				{
+					// Forward renderer:
+					// a light with no color/intensity can cause the light to be ignored when rendering.
+					// thus, lights that change state in this way must update the draw lists.
+					Scene->bScenesPrimitivesNeedStaticMeshElementUpdate =
+						Scene->bScenesPrimitivesNeedStaticMeshElementUpdate ||
+						( !Scene->ShouldUseDeferredRenderer() 
+						&& Parameters.NewColor.IsAlmostBlack() != LightSceneInfo->Proxy->GetColor().IsAlmostBlack() );
+
 					LightSceneInfo->Proxy->SetColor(Parameters.NewColor);
 					LightSceneInfo->Proxy->IndirectLightingScale = Parameters.NewIndirectLightingScale;
 
@@ -2101,19 +2265,45 @@ static void LogDrawListStats(FDrawListStats Stats, const TCHAR* DrawListName)
 	}
 	else
 	{
+		FString MatchFailedReasons;
+		for (auto& It : Stats.SingleMeshPolicyMatchFailedReasons)
+		{
+			TArray<FStringFormatArg> Args;
+			Args.Emplace(It.Value);
+			Args.Emplace(*It.Key);
+
+			MatchFailedReasons.Append(FString::Format(TEXT("      - {0} ({1})\n"), Args));
+		}
+
+		FString VertexFactoryFreq;
+		for (auto& It : Stats.SingleMeshPolicyVertexFactoryFrequency)
+		{
+			TArray<FStringFormatArg> Args;
+			auto KeyStr = It.Key.ToString();
+
+			Args.Emplace(It.Value);
+			Args.Emplace(*KeyStr);
+
+			VertexFactoryFreq.Append(FString::Format(TEXT("      - {0} ({1})\n"), Args));
+		}
+
 		UE_LOG(LogRenderer,Log,
 			TEXT("%s: %d policies %d meshes\n")
 			TEXT("  - %d median meshes/policy\n")
 			TEXT("  - %f mean meshes/policy\n")
 			TEXT("  - %d max meshes/policy\n")
-			TEXT("  - %d policies with one mesh"),
+			TEXT("  - %d policies with one mesh\n")
+			TEXT("    One mesh policy closest match failure reason:\n%s\n")
+			TEXT("    One mesh policy vertex factory frequencies:\n%s"),
 			DrawListName,
 			Stats.NumDrawingPolicies,
 			Stats.NumMeshes,
 			Stats.MedianMeshesPerDrawingPolicy,
 			(float)Stats.NumMeshes / (float)Stats.NumDrawingPolicies,
 			Stats.MaxMeshesPerDrawingPolicy,
-			Stats.NumSingleMeshDrawingPolicies
+			Stats.NumSingleMeshDrawingPolicies,
+			*MatchFailedReasons,
+			*VertexFactoryFreq
 			);
 	}
 }
@@ -2325,6 +2515,21 @@ void FScene::OnLevelAddedToWorld_RenderThread(FName InLevelName)
 	}
 }
 
+#if WITH_EDITOR
+bool FScene::InitializePixelInspector(FRenderTarget* BufferFinalColor, FRenderTarget* BufferSceneColor, FRenderTarget* BufferDepth, FRenderTarget* BufferHDR, FRenderTarget* BufferA, FRenderTarget* BufferBCDE, int32 BufferIndex)
+{
+	//Initialize the buffers
+	PixelInspectorData.InitializeBuffers(BufferFinalColor, BufferSceneColor, BufferDepth, BufferHDR, BufferA, BufferBCDE, BufferIndex);
+	//return true when the interface is implemented
+	return true;
+}
+
+bool FScene::AddPixelInspectorRequest(FPixelInspectorRequest *PixelInspectorRequest)
+{
+	return PixelInspectorData.AddPixelInspectorRequest(PixelInspectorRequest);
+}
+#endif //WITH_EDITOR
+
 /**
  * Dummy NULL scene interface used by dedicated servers.
  */
@@ -2453,7 +2658,7 @@ FSceneInterface* FRendererModule::AllocateScene(UWorld* World, bool bInRequiresH
 	// Create a full fledged scene if we have something to render.
 	if (GIsClient && FApp::CanEverRender() && !GUsingNullRHI)
 	{
-		FScene* NewScene = new FScene(World, bInRequiresHitProxies, GIsEditor && !World->IsGameWorld(), bCreateFXSystem, InFeatureLevel);
+		FScene* NewScene = new FScene(World, bInRequiresHitProxies, GIsEditor && (!World || !World->IsGameWorld()), bCreateFXSystem, InFeatureLevel);
 		AllocatedScenes.Add(NewScene);
 		return NewScene;
 	}

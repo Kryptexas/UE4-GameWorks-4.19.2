@@ -28,6 +28,11 @@ bool UKismetInputLibrary::EqualEqual_KeyKey(FKey A, FKey B)
 	return A == B;
 }
 
+bool UKismetInputLibrary::EqualEqual_InputChordInputChord( FInputChord A, FInputChord B )
+{
+	return A == B;
+}
+
 bool UKismetInputLibrary::Key_IsModifierKey(const FKey& Key)
 {
 	return Key.IsModifierKey();

@@ -1,15 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	HUD.cpp: Heads up Display related functionality
-=============================================================================*/
-#include "GameplayDebuggerPrivate.h"
+//////////////////////////////////////////////////////////////////////////
+// THIS CLASS IS NOW DEPRECATED AND WILL BE REMOVED IN NEXT VERSION
+// Please check GameplayDebugger.h for details.
+
+#include "GameplayDebuggerPrivatePCH.h"
 #include "GameplayDebuggerSettings.h"
 #include "Net/UnrealNetwork.h"
 #include "GameplayDebuggingComponent.h"
 #include "GameplayDebuggingHUDComponent.h"
 #include "GameplayDebuggingControllerComponent.h"
+#include "GameplayDebuggingReplicator.h"
 #include "CanvasItem.h"
+#include "Engine/Canvas.h"
 #include "AI/Navigation/NavigationSystem.h"
 
 #include "AITypes.h"
@@ -17,13 +20,13 @@
 #include "GenericTeamAgentInterface.h"
 #include "AIController.h"
 
-
 #include "EnvironmentQuery/EnvQueryTypes.h"
 #include "Engine/Texture2D.h"
 #include "Regex.h"
 #include "DrawDebugHelpers.h"
 #include "TimerManager.h"					// Game play timers
 #include "RenderUtils.h"
+#include "EngineUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHUD, Log, All);
 
@@ -376,7 +379,7 @@ void AGameplayDebuggingHUDComponent::DrawOverHeadInformation(APlayerController* 
 	FString ObjectName = FString::Printf( TEXT("{yellow}%s {white}(%s)"), *DebugComponent->ControllerName, *DebugComponent->PawnName);
 	CalulateStringSize(OverHeadContext, OverHeadContext.Font, ObjectName, TextXL, YL);
 
-	bool bDrawFullOverHead = GetDebuggingReplicator()->GetSelectedActorToDebug() == MyPawn;
+	bool bDrawFullOverHead = MyPawn != nullptr && GetDebuggingReplicator()->GetSelectedActorToDebug() == MyPawn;
 	float IconXLocation = OverHeadContext.DefaultX;
 	float IconYLocation = OverHeadContext.DefaultY;
 	if (bDrawFullOverHead)
@@ -456,8 +459,21 @@ void AGameplayDebuggingHUDComponent::DrawBasicData(APlayerController* PC, class 
 		PrintString(DefaultContext, FString::Printf(TEXT("Ability: {yellow}%s\n"), *DebugComponent->AbilityInfo));
 	}
 
-	// putting gameplay tasks' stuff last since it can expand heavily
-	PrintString(DefaultContext, FString::Printf(TEXT("GameplayTasks:\n{yellow}%s\n"), *DebugComponent->GameplayTasksState));
+	// gameplay tasks
+	int32 NumTasks = 0;
+	if (DebugComponent->GameplayTasksState.Len() > 0)
+	{
+		int32 SearchStart = -2;
+		int32 PrevStart = 0;
+		do {
+			PrevStart = SearchStart + 1;
+			SearchStart = DebugComponent->GameplayTasksState.Find(TEXT("\n"), ESearchCase::IgnoreCase, ESearchDir::FromStart, PrevStart);
+			NumTasks++;
+		} while (SearchStart >= 0 && SearchStart > PrevStart);
+		
+		NumTasks--;
+	}
+	PrintString(DefaultContext, FString::Printf(TEXT("GameplayTasks: {yellow}%d\n%s\n"), NumTasks, *DebugComponent->GameplayTasksState));
 
 	DrawPath(PC, DebugComponent);
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)

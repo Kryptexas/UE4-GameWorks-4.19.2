@@ -28,7 +28,7 @@ const TCHAR* UNameProperty::ImportText_Internal( const TCHAR* Buffer, void* Data
 {
 	if (!(PortFlags & PPF_Delimited))
 	{
-		*(FName*)Data = FName(Buffer, FNAME_Add, true);
+		*(FName*)Data = FName(Buffer, FNAME_Add);
 
 		// in order to indicate that the value was successfully imported, advance the buffer past the last character that was imported
 		Buffer += FCString::Strlen(Buffer);
@@ -40,7 +40,7 @@ const TCHAR* UNameProperty::ImportText_Internal( const TCHAR* Buffer, void* Data
 		if (!Buffer)
 			return NULL;
 
-		*(FName*)Data = FName(*Temp, FNAME_Add, true);
+		*(FName*)Data = FName(*Temp, FNAME_Add);
 	}
 	return Buffer;
 }

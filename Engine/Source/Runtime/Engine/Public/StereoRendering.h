@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "IStereoLayers.h"
+
 class IStereoRendering
 {
 public:
@@ -132,6 +134,11 @@ public:
 	 * Returns number of required buffered frames.
 	 */
 	virtual uint32 GetNumberOfBufferedFrames() const { return 1;  }
+
+	/**
+	* Returns an IStereoLayers implementation, if one is present
+	*/
+	virtual IStereoLayers* GetStereoLayers () { return nullptr; }
 
 	/**
 	 * Allocates a render target texture. 

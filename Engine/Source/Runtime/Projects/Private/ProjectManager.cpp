@@ -248,7 +248,7 @@ void FProjectManager::GetEnabledPlugins(TArray<FString>& OutPluginNames) const
 	{
 		for(const FPluginReferenceDescriptor& Plugin: Project->Plugins)
 		{
-			if(Plugin.IsEnabledForPlatform(FPlatformMisc::GetUBTPlatform()))
+			if(Plugin.IsEnabledForPlatform(FPlatformMisc::GetUBTPlatform()) && Plugin.IsEnabledForTarget(FPlatformMisc::GetUBTTarget()))
 			{
 				OutPluginNames.AddUnique(Plugin.Name);
 			}

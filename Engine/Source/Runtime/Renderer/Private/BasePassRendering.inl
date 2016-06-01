@@ -47,8 +47,9 @@ inline void TBasePassVertexShaderPolicyParamType<VertexParametersType>::SetMesh(
 }
 
 template<typename VertexParametersType>
-void TBasePassVertexShaderPolicyParamType<VertexParametersType>::SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) {
-	if (InstancedEyeIndexParameter.IsBound())
+void TBasePassVertexShaderPolicyParamType<VertexParametersType>::SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex)
+{
+	if (EyeIndex > 0 && InstancedEyeIndexParameter.IsBound())
 	{
 		SetShaderValue(RHICmdList, GetVertexShader(), InstancedEyeIndexParameter, EyeIndex);
 	}
@@ -57,10 +58,9 @@ void TBasePassVertexShaderPolicyParamType<VertexParametersType>::SetInstancedEye
 template<typename PixelParametersType>
 void TBasePassPixelShaderPolicyParamType<PixelParametersType>::SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory, const FSceneView& View, const FPrimitiveSceneProxy* Proxy, const FMeshBatchElement& BatchElement, const FMeshDrawingRenderState& DrawRenderState, EBlendMode BlendMode)
 {
-	if (View.GetFeatureLevel() >= ERHIFeatureLevel::SM4
-		&& IsTranslucentBlendMode(BlendMode))
+	if (View.GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 	{
-		TranslucentLightingParameters.SetMesh(RHICmdList, this, Proxy, View.GetFeatureLevel());
+		ReflectionParameters.SetMesh(RHICmdList, GetPixelShader(), Proxy, View.GetFeatureLevel());
 	}
 
 	FMeshMaterialShader::SetMesh(RHICmdList, GetPixelShader(), VertexFactory, View, Proxy, BatchElement, DrawRenderState);

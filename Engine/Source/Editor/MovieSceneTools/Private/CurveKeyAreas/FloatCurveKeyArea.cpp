@@ -58,6 +58,11 @@ TArray<FKeyHandle> FFloatCurveKeyArea::AddKeyUnique(float Time, EMovieSceneKeyIn
 			CurrentKey.LeaveTangentWeight = KeyToCopy.LeaveTangentWeight;
 		}
 	}
+	else if ( IntermediateValue.IsSet() )
+	{
+		float Value = IntermediateValue.GetValue();
+		Curve->UpdateOrAddKey(Time,Value);
+	}
 
 	return AddedKeyHandles;
 }
@@ -90,6 +95,7 @@ TSharedRef<SWidget> FFloatCurveKeyArea::CreateKeyEditor(ISequencer* Sequencer)
 		.Sequencer(Sequencer)
 		.OwningSection(OwningSection)
 		.Curve(Curve)
+		.OnValueChanged(this, &FFloatCurveKeyArea::OnValueChanged)
 		.IntermediateValue_Lambda([this] {
 			return IntermediateValue;
 		});
@@ -105,7 +111,7 @@ void FFloatCurveKeyArea::DeleteKey(FKeyHandle KeyHandle)
 }
 
 
-FLinearColor FFloatCurveKeyArea::GetColor()
+TOptional<FLinearColor> FFloatCurveKeyArea::GetColor()
 {
 	return Color;
 }
@@ -130,6 +136,12 @@ ERichCurveInterpMode FFloatCurveKeyArea::GetKeyInterpMode(FKeyHandle KeyHandle) 
 	}
 
 	return RCIM_None;
+}
+
+
+TSharedPtr<FStructOnScope> FFloatCurveKeyArea::GetKeyStruct(FKeyHandle KeyHandle)
+{
+	return MakeShareable(new FStructOnScope(FRichCurveKey::StaticStruct(), (uint8*)&Curve->GetKey(KeyHandle)));
 }
 
 
@@ -193,6 +205,10 @@ void FFloatCurveKeyArea::SetExtrapolationMode(ERichCurveExtrapolation ExtrapMode
 	}
 }
 
+bool FFloatCurveKeyArea::CanSetExtrapolationMode() const
+{
+	return true;
+}
 
 void FFloatCurveKeyArea::SetKeyInterpMode(FKeyHandle KeyHandle, ERichCurveInterpMode InterpMode)
 {
@@ -281,4 +297,9 @@ void FFloatCurveKeyArea::PasteKeys(const FMovieSceneClipboardKeyTrack& KeyTrack,
 
 		return true;
 	});
+}
+
+void FFloatCurveKeyArea::OnValueChanged(float InValue)
+{
+	ClearIntermediateValue();
 }

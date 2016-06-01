@@ -125,7 +125,7 @@ public:
 	{
 		// Slight Depth Bias so that the splines show up when they exactly match the target surface
 		// e.g. someone playing with splines on a newly-created perfectly-flat landscape
-		static const float DepthBias = -0.0001;
+		static const float DepthBias = 0.0001;
 
 		const FMatrix& LocalToWorld = GetLocalToWorld();
 
@@ -425,9 +425,9 @@ FBoxSphereBounds ULandscapeSplinesComponent::CalcBounds(const FTransform& LocalT
 	{
 		// There's no such thing as an "invalid" FBoxSphereBounds (unlike FBox)
 		// try to return something that won't modify the parent bounds
-		if (AttachParent)
+		if (GetAttachParent())
 		{
-			NewBounds = FBoxSphereBounds(AttachParent->Bounds.Origin, FVector::ZeroVector, 0.0f);
+			NewBounds = FBoxSphereBounds(GetAttachParent()->Bounds.Origin, FVector::ZeroVector, 0.0f);
 		}
 		else
 		{
@@ -790,7 +790,7 @@ ULandscapeSplinesComponent* ULandscapeSplinesComponent::GetStreamingSplinesCompo
 				ComponentLandscapeProxy->Modify();
 				ComponentLandscapeProxy->SplineComponent = NewObject<ULandscapeSplinesComponent>(ComponentLandscapeProxy, NAME_None, RF_Transactional);
 				ComponentLandscapeProxy->SplineComponent->RelativeScale3D = RelativeScale3D;
-				ComponentLandscapeProxy->SplineComponent->AttachTo(ComponentLandscapeProxy->GetRootComponent());
+				ComponentLandscapeProxy->SplineComponent->AttachToComponent(ComponentLandscapeProxy->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 			}
 			if (ComponentLandscapeProxy->SplineComponent)
 			{
@@ -818,7 +818,7 @@ ULandscapeSplinesComponent* ULandscapeSplinesComponent::GetStreamingSplinesCompo
 				Proxy->Modify();
 				Proxy->SplineComponent = NewObject<ULandscapeSplinesComponent>(Proxy, NAME_None, RF_Transactional);
 				Proxy->SplineComponent->RelativeScale3D = RelativeScale3D;
-				Proxy->SplineComponent->AttachTo(Proxy->GetRootComponent());
+				Proxy->SplineComponent->AttachToComponent(Proxy->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 			}
 			return Proxy->SplineComponent;
 		}
@@ -1426,7 +1426,7 @@ void ULandscapeSplineControlPoint::UpdateSplinePoints(bool bUpdateCollision, boo
 			MeshComponentOuterActor->Modify();
 			MeshComponent = NewObject<UControlPointMeshComponent>(MeshComponentOuterActor, NAME_None, RF_Transactional | RF_TextExportTransient);
 			MeshComponent->bSelected = bSelected;
-			MeshComponent->AttachTo(MeshComponentOuterSplines);
+			MeshComponent->AttachToComponent(MeshComponentOuterSplines, FAttachmentTransformRules::KeepRelativeTransform);
 			bComponentNeedsRegistering = true;
 
 			if (MeshComponentOuterSplines == OuterSplines)
@@ -1581,8 +1581,15 @@ void ULandscapeSplineControlPoint::UpdateSplinePoints(bool bUpdateCollision, boo
 		Points.Emplace(StartLocation, LeftPos, RightPos, FalloffLeftPos, FalloffRightPos, 1.0f);
 	}
 
-	// Update Bounds
+	// Update bounds
 	Bounds = FBox(0);
+
+	// Sprite bounds
+	float SpriteScale = FMath::Clamp<float>(Width != 0 ? Width / 2 : SideFalloff / 4, 10, 1000);
+	Bounds += Location + FVector(0, 0, 0.75f * SpriteScale);
+	Bounds = Bounds.ExpandBy(SpriteScale);
+
+	// Points bounds
 	for (const FLandscapeSplineInterpPoint& Point : Points)
 	{
 		Bounds += Point.FalloffLeft;
@@ -2114,7 +2121,7 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 				MeshComponentOuterActor->Modify();
 				MeshComponent = NewObject<USplineMeshComponent>(MeshComponentOuterActor, NAME_None, RF_Transactional | RF_TextExportTransient);
 				MeshComponent->bSelected = bSelected;
-				MeshComponent->AttachTo(MeshComponentOuterSplines);
+				MeshComponent->AttachToComponent(MeshComponentOuterSplines, FAttachmentTransformRules::KeepRelativeTransform);
 				if (MeshComponentOuterSplines == OuterSplines)
 				{
 					LocalMeshComponents.Add(MeshComponent);
@@ -2289,9 +2296,9 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 			MeshComponent->SplineUpDir = FVector(0,0,1); // Up, to be consistent between joined meshes. We rotate it to horizontal using roll if using Z Forward X Up or X Forward Y Up
 			MeshComponent->ForwardAxis = MeshEntry->ForwardAxis;
 
-			if (MeshComponent->AttachParent != OuterSplines)
+			if (MeshComponent->GetAttachParent() != OuterSplines)
 			{
-				FTransform RelativeTransform = OuterSplines->ComponentToWorld.GetRelativeTransform(MeshComponent->AttachParent->ComponentToWorld);
+				FTransform RelativeTransform = OuterSplines->ComponentToWorld.GetRelativeTransform(MeshComponent->GetAttachParent()->ComponentToWorld);
 				MeshComponent->SplineParams.StartPos = RelativeTransform.TransformPosition(MeshComponent->SplineParams.StartPos);
 				MeshComponent->SplineParams.EndPos   = RelativeTransform.TransformPosition(MeshComponent->SplineParams.EndPos);
 			}

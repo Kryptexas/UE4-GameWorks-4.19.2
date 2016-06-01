@@ -3,6 +3,4 @@
 #pragma once
 
 #include "SlateBasics.h"
-
-#include "SequencerWidgetsModule.h"
 #include "ITimeSlider.h"

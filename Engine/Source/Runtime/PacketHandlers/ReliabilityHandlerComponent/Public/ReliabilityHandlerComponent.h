@@ -29,7 +29,7 @@ public:
 	virtual void Outgoing(FBitWriter& Packet) override;
 
 	/* Queues a packet for resending */
-	virtual void QueuePacketForResending(uint8* Packet, int32 Count);
+	virtual void QueuePacketForResending(uint8* Packet, int32 CountBits);
 
 protected:
 	/* Buffered Packets in case they need to be resent */

@@ -36,7 +36,7 @@ UParticleModuleCameraOffset::UParticleModuleCameraOffset(const FObjectInitialize
 
 void UParticleModuleCameraOffset::InitializeDefaults()
 {
-	if (!CameraOffset.Distribution)
+	if (!CameraOffset.IsCreated())
 	{
 		UDistributionFloatConstant* DistributionCameraOffset = NewObject<UDistributionFloatConstant>(this, TEXT("DistributionCameraOffset"));
 		DistributionCameraOffset->Constant = 1.0f;

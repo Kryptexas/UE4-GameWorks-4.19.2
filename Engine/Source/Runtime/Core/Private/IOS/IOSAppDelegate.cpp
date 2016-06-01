@@ -653,6 +653,7 @@ void InstallSignalHandlers()
 }
 
 #if !PLATFORM_TVOS
+
 #ifdef __IPHONE_8_0
 - (void)application:(UIApplication *)application didRegisterUserNotificationSettings:(UIUserNotificationSettings *)notificationSettings
 {

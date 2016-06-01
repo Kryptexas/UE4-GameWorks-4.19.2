@@ -160,14 +160,14 @@ template<class T> const T*	CheckVA(const T* p)		{ return p; }
 #define VARARG_BODY( FuncRet, FuncName, FmtType, ExtraDecl )		\
 	FuncRet FuncName##__VA( ExtraDecl  FmtType Fmt, ... )
 
-#else  // !_MSC_VER
+#else  // !PLATFORM_WINDOWS
 
 #define VARARG_DECL( FuncRet, StaticFuncRet, Return, FuncName, Pure, FmtType, ExtraDecl, ExtraCall )	\
 	FuncRet FuncName( ExtraDecl FmtType Fmt, ... ) Pure
 #define VARARG_BODY( FuncRet, FuncName, FmtType, ExtraDecl )		\
 	FuncRet FuncName( ExtraDecl FmtType Fmt, ... )
 
-#endif // _MSC_VER
+#endif // PLATFORM_WINDOWS
 
 /** 
  * Enum that defines the verbosity levels of the logging system.
@@ -328,6 +328,21 @@ public:
 	}
 	FORCEINLINE bool GetAutoEmitLineTerminator() const	{	return bAutoEmitLineTerminator;	}
 
+	/** 
+	 * Dumps the contents of this output device's buffer to an archive (supported by output device that have a memory buffer) 
+	 * @param Ar Archive to dump the buffer to
+	 */
+	virtual void Dump(FArchive& Ar)
+	{
+	}
+
+	/**
+	* @return whether this output device is a memory-only device
+	*/
+	virtual bool IsMemoryOnly() const
+	{
+		return false;
+	}
 
 	/**
 	 * @return whether this output device can be used on any thread.

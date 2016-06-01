@@ -233,6 +233,8 @@ void SAnimEditorBase::RecalculateSequenceLength()
 	// Remove Gaps and update Montage Sequence Length
 	if(UAnimCompositeBase* Composite = Cast<UAnimCompositeBase>(GetEditorObject()))
 	{
+		Composite->InvalidateRecursiveAsset();
+
 		float NewSequenceLength = CalculateSequenceLengthOfEditorObject();
 		if (NewSequenceLength != GetSequenceLength())
 		{
@@ -324,14 +326,29 @@ FText SAnimEditorBase::GetCurrentSequenceTime() const
 	return FText::Format(LOCTEXT("FractionSecondsFmt", "{0} / {1} (second(s))"), FText::AsNumber(CurTime, &FractionNumberFormat), FText::AsNumber(TotalTime, &FractionNumberFormat));
 }
 
-FText SAnimEditorBase::GetCurrentPercentage() const
+float SAnimEditorBase::GetPercentageInternal() const
 {
 	UAnimSingleNodeInstance * PreviewInstance = GetPreviewInstance();
 	float Percentage = 0.f;
 	if (PreviewInstance)
 	{
-		Percentage = PreviewInstance->GetCurrentTime() / GetEditorObject()->SequenceLength;
+		float SequenceLength = GetEditorObject()->SequenceLength;
+		if (SequenceLength > 0.f)
+		{
+			Percentage = PreviewInstance->GetCurrentTime() / SequenceLength;
+		}
+		else
+		{
+			Percentage = 0.f;
+		}
 	}
+
+	return Percentage;
+}
+
+FText SAnimEditorBase::GetCurrentPercentage() const
+{
+	float Percentage = GetPercentageInternal();
 
 	static const FNumberFormattingOptions PercentNumberFormat = FNumberFormattingOptions()
 		.SetMinimumFractionalDigits(2)
@@ -341,14 +358,8 @@ FText SAnimEditorBase::GetCurrentPercentage() const
 
 FText SAnimEditorBase::GetCurrentFrame() const
 {
-	UAnimSingleNodeInstance * PreviewInstance = GetPreviewInstance();
-	float Percentage = 0.f;
+	float Percentage = GetPercentageInternal();
 	float NumFrames = GetEditorObject()->GetNumberOfFrames();
-
-	if (PreviewInstance)
-	{
-		Percentage = PreviewInstance->GetCurrentTime()/GetEditorObject()->SequenceLength;
-	}
 
 	static const FNumberFormattingOptions FractionNumberFormat = FNumberFormattingOptions()
 		.SetMinimumFractionalDigits(2)

@@ -91,7 +91,7 @@ FORCEINLINE OVR::Recti ToOVRRecti(const FIntRect& rect)
 // FOculusRiftPlugin
 //-------------------------------------------------------------------------------------------------
 
-class FOculusRiftPlugin : public IOculusRiftPlugin, public FHeadMountedDisplayModuleExt
+class FOculusRiftPlugin : public IOculusRiftPlugin
 {
 public:
 	FOculusRiftPlugin();
@@ -116,12 +116,11 @@ public:
 #endif //OCULUS_RIFT_SUPPORTED_PLATFORMS
 public:
 	/** IModuleInterface */
-	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 
 	/** IHeadMountedDisplayModule */
 	virtual FString GetModulePriorityKeyName() const override;
-	virtual bool PreInitEx();
+	virtual bool PreInit() override;
 	virtual bool IsHMDConnected() override;
 	virtual int GetGraphicsAdapter() override;
 	virtual FString GetAudioInputDevice() override;
@@ -181,6 +180,8 @@ public:
 		eMirrorWindow_Distorted,
 		eMirrorWindow_Undistorted,
 		eMirrorWindow_SingleEye,
+		eMirrorWindow_SingleEyeLetterboxed,
+		eMirrorWindow_SingleEyeCroppedToFill,
 
 		eMirrorWindow_Total_
 	};
@@ -333,8 +334,10 @@ public:
 		RenderTargetable	= 0x2,
 		ShaderResource		= 0x4,
 		EyeBuffer			= 0x8,
+		LinearSpace         = 0x10,
 
 		Default				= RenderTargetable | ShaderResource,
+		DefaultLinear       = LinearSpace | Default,
 		DefaultStaticImage	= StaticImage | Default,
 		DefaultEyeBuffer	= EyeBuffer | Default,
 	};
@@ -342,7 +345,7 @@ public:
 	virtual FTexture2DSetProxyRef CreateTextureSet(const uint32 InSizeX, const uint32 InSizeY, const EPixelFormat InSrcFormat, const uint32 InNumMips = 1, uint32 InCreateTexFlags = ECreateTexFlags::Default) = 0;
 
 	// Copies one texture to another
-	void CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef DstTexture, FTexture2DRHIParamRef SrcTexture, FIntRect DstRect = FIntRect(), FIntRect SrcRect = FIntRect(), bool bAlphaPremultiply = false) const;
+	void CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef DstTexture, FTexture2DRHIParamRef SrcTexture, int SrcSizeX, int SrcSizeY, FIntRect DstRect = FIntRect(), FIntRect SrcRect = FIntRect(), bool bAlphaPremultiply = false, bool bNoAlphaWrite = false) const;
 
 	FLayerManager* GetLayerMgr() { return static_cast<FLayerManager*>(LayerMgr.Get()); }
 	void UpdateLayers(FRHICommandListImmediate& RHICmdList);
@@ -431,7 +434,6 @@ public:
 	virtual TSharedPtr<class ISceneViewExtension, ESPMode::ThreadSafe> GetViewExtension() override;
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
 
-	virtual bool IsFullscreenAllowed() override;
 	virtual void RecordAnalytics() override;
 
 	virtual bool HasHiddenAreaMesh() const override { return HiddenAreaMeshes[0].IsValid() && HiddenAreaMeshes[1].IsValid(); }
@@ -486,8 +488,8 @@ public:
 
 	virtual bool HandleInputKey(class UPlayerInput*, const FKey& Key, EInputEvent EventType, float AmountDepressed, bool bGamepad) override;
 
-	virtual void OnBeginPlay() override;
-	virtual void OnEndPlay() override;
+	virtual void OnBeginPlay(FWorldContext& InWorldContext) override;
+	virtual void OnEndPlay(FWorldContext& InWorldContext) override;
 
 	virtual void DrawDebug(UCanvas* Canvas) override;
 
@@ -508,15 +510,19 @@ public:
 
 	virtual void					 SetTrackingOrigin(EHMDTrackingOrigin::Type) override;
 	virtual EHMDTrackingOrigin::Type GetTrackingOrigin() override;
+
+	virtual void UseImplicitHmdPosition( bool bInImplicitHmdPosition ) override;
+
 protected:
 	virtual TSharedPtr<FHMDGameFrame, ESPMode::ThreadSafe> CreateNewGameFrame() const override;
 	virtual TSharedPtr<FHMDSettings, ESPMode::ThreadSafe> CreateNewSettings() const override;
 	
-	virtual bool DoEnableStereo(bool bStereo, bool bApplyToHmd) override;
+	virtual bool DoEnableStereo(bool bStereo) override;
 	virtual void ResetStereoRenderingParams() override;
 
 	virtual void GetCurrentPose(FQuat& CurrentHmdOrientation, FVector& CurrentHmdPosition, bool bUseOrienationForPlayerCamera = false, bool bUsePositionForPlayerCamera = false) override;
 
+	void MakeSureValidFrameExists(AWorldSettings* InWorldSettings);
 public:
 
 	float GetVsyncToNextVsync() const;
@@ -637,6 +643,8 @@ private: // data
 	ovrResult					LastSubmitFrameResult;
 
 	TSharedPtr<FOculusRiftSplash> Splash;
+
+	FWorldContext*				WorldContext;
 
 	union
 	{

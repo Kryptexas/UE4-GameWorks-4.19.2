@@ -13,30 +13,28 @@ FWmfMediaPlayer::FWmfMediaPlayer()
 	, MediaSession(nullptr)
 {
 	Resolver = new(std::nothrow) FWmfMediaResolver;
-	{
-		Resolver->OnResolveComplete().BindLambda([=](TComPtr<IUnknown> SourceObject, FString ResolvedUrl) {
-			AsyncTask(ENamedThreads::GameThread, [=]() {
-				MediaEvent.Broadcast(
-					InitializeMediaSession(SourceObject, ResolvedUrl)
-						? EMediaEvent::MediaOpened
-						: EMediaEvent::MediaOpenFailed
-				);
-			});
-		});
-
-		Resolver->OnResolveFailed().BindLambda([=](FString FailedUrl) {
-			AsyncTask(ENamedThreads::GameThread, [=]() {
-				MediaEvent.Broadcast(EMediaEvent::MediaOpenFailed);
-			});
-		});
-	}
 }
 
 
 FWmfMediaPlayer::~FWmfMediaPlayer()
 {
 	Close();
-	Resolver->OnResolveComplete().Unbind();
+}
+
+
+/* FTickerObjectBase interface
+ *****************************************************************************/
+
+bool FWmfMediaPlayer::Tick(float DeltaTime)
+{
+	TFunction<void()> Task;
+
+	while (Tasks.Dequeue(Task))
+	{
+		Task();
+	}
+
+	return true;
 }
 
 
@@ -212,7 +210,7 @@ bool FWmfMediaPlayer::Open(const FString& Url)
 		return false;
 	}
 
-	return Resolver->ResolveUrl(Url);
+	return Resolver->ResolveUrl(Url, *this);
 }
 
 
@@ -223,7 +221,7 @@ bool FWmfMediaPlayer::Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Arch
 		return false;
 	}
 
-	return Resolver->ResolveByteStream(Archive, OriginalUrl);
+	return Resolver->ResolveByteStream(Archive, OriginalUrl, *this);
 }
 
 
@@ -254,6 +252,29 @@ bool FWmfMediaPlayer::SetRate(float Rate)
 	}
 
 	return MediaSession->SetRate(Rate);
+}
+
+
+/* IWmfMediaResolverCallbacks interface
+ *****************************************************************************/
+
+void FWmfMediaPlayer::ProcessResolveComplete(TComPtr<IUnknown> SourceObject, FString ResolvedUrl)
+{
+	Tasks.Enqueue([=]() {
+		MediaEvent.Broadcast(
+			InitializeMediaSession(SourceObject, ResolvedUrl)
+				? EMediaEvent::MediaOpened
+				: EMediaEvent::MediaOpenFailed
+		);
+	});
+}
+
+
+void FWmfMediaPlayer::ProcessResolveFailed(FString FailedUrl)
+{
+	Tasks.Enqueue([=]() {
+		MediaEvent.Broadcast(EMediaEvent::MediaOpenFailed);
+	});
 }
 
 

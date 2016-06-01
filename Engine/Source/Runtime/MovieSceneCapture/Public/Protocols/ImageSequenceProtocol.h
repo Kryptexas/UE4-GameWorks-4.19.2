@@ -7,15 +7,33 @@
 #endif
 
 #include "FrameGrabberProtocol.h"
+#include "MovieSceneCaptureProtocolSettings.h"
 #include "ImageSequenceProtocol.generated.h"
+
+UCLASS(config=EditorPerProjectUserSettings, DisplayName="Image Encoding")
+class MOVIESCENECAPTURE_API UBmpImageCaptureSettings : public UMovieSceneCaptureProtocolSettings
+{
+public:
+	UBmpImageCaptureSettings(const FObjectInitializer& Init) : UMovieSceneCaptureProtocolSettings(Init) {}
+
+	GENERATED_BODY()
+
+	/**~ UMovieSceneCaptureProtocolSettings implementation */
+	virtual void OnReleaseConfig(FMovieSceneCaptureSettings& InSettings) override;
+	virtual void OnLoadConfig(FMovieSceneCaptureSettings& InSettings) override;
+};
 
 UCLASS(config=EditorPerProjectUserSettings, DisplayName="Image Encoding")
 class MOVIESCENECAPTURE_API UImageCaptureSettings : public UFrameGrabberProtocolSettings
 {
 public:
-	UImageCaptureSettings(const FObjectInitializer& Init) : UFrameGrabberProtocolSettings(Init), CompressionQuality(75) {}
+	UImageCaptureSettings(const FObjectInitializer& Init) : UFrameGrabberProtocolSettings(Init), CompressionQuality(100) {}
 
 	GENERATED_BODY()
+
+	/**~ UMovieSceneCaptureProtocolSettings implementation */
+	virtual void OnReleaseConfig(FMovieSceneCaptureSettings& InSettings) override;
+	virtual void OnLoadConfig(FMovieSceneCaptureSettings& InSettings) override;
 
 	/** Level of compression to apply to the image, between 1 (worst quality, best compression) and 100 (best quality, worst compression)*/
 	UPROPERTY(config, EditAnywhere, Category=ImageSettings, meta=(ClampMin=1, ClampMax=100))

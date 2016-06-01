@@ -27,9 +27,10 @@ public:
 	virtual TArray<FKeyHandle> AddKeyUnique( float Time, EMovieSceneKeyInterpolation InKeyInterpolation, float TimeToCopyFrom = FLT_MAX ) override;
 	virtual TOptional<FKeyHandle> DuplicateKey(FKeyHandle KeyToDuplicate) override;
 	virtual void DeleteKey(FKeyHandle KeyHandle) override;
-	virtual FLinearColor GetColor() override;
+	virtual TOptional<FLinearColor> GetColor() override;
 	virtual ERichCurveExtrapolation GetExtrapolationMode(bool bPreInfinity) const override;
 	virtual ERichCurveInterpMode GetKeyInterpMode(FKeyHandle KeyHandle) const override;
+	virtual TSharedPtr<FStructOnScope> GetKeyStruct(FKeyHandle KeyHandle) override;
 	virtual ERichCurveTangentMode GetKeyTangentMode(FKeyHandle KeyHandle) const override;
 	virtual float GetKeyTime(FKeyHandle KeyHandle) const override;
 	virtual UMovieSceneSection* GetOwningSection() override;
@@ -44,6 +45,7 @@ public:
 protected:
 
 	virtual void EvaluateAndAddKey(float Time, float TimeToCopyFrom, FKeyHandle& CurrentKey) = 0;
+	virtual void SetKeyValue(float Time) = 0;
 
 protected:
 
@@ -155,6 +157,16 @@ protected:
 		}
 
 		Curve.AddKey(Time, Value, CurrentKey);
+	}
+
+	virtual void SetKeyValue(float Time) override
+	{
+		if (IntermediateValue.IsSet())
+		{
+			int32 Value = IntermediateValue.GetValue();
+
+			Curve.UpdateOrAddKey(Time, Value);
+		}
 	}
 
 protected:

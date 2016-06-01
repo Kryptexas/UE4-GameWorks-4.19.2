@@ -121,7 +121,7 @@ We have just defined our input configuration and created a custom Pawn Movement 
 
 				// Create and position a mesh component so we can see where our sphere is
 				UStaticMeshComponent* SphereVisual = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("VisualRepresentation"));
-				SphereVisual->AttachTo(RootComponent);
+				SphereVisual->SetupAttachment(RootComponent);
 				static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereVisualAsset(TEXT("/Game/StarterContent/Shapes/Shape_Sphere.Shape_Sphere"));
 				if (SphereVisualAsset.Succeeded())
 				{
@@ -132,7 +132,7 @@ We have just defined our input configuration and created a custom Pawn Movement 
 
 				// Create a particle system that we can activate or deactivate
 				OurParticleSystem = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("MovementParticles"));
-				OurParticleSystem->AttachTo(SphereVisual);
+				OurParticleSystem->SetupAttachment(SphereVisual);
 				OurParticleSystem->bAutoActivate = false;
 				OurParticleSystem->SetRelativeLocation(FVector(-20.0f, 0.0f, 20.0f));
 				static ConstructorHelpers::FObjectFinder<UParticleSystem> ParticleAsset(TEXT("/Game/StarterContent/Particles/P_Fire.P_Fire"));
@@ -143,7 +143,7 @@ We have just defined our input configuration and created a custom Pawn Movement 
 
 				// Use a spring arm to give the camera smooth, natural-feeling motion.
 				USpringArmComponent* SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraAttachmentArm"));
-				SpringArm->AttachTo(RootComponent);
+				SpringArm->SetupAttachment(RootComponent);
 				SpringArm->RelativeRotation = FRotator(-45.f, 0.f, 0.f);
 				SpringArm->TargetArmLength = 400.0f;
 				SpringArm->bEnableCameraLag = true;
@@ -151,7 +151,7 @@ We have just defined our input configuration and created a custom Pawn Movement 
 
 				// Create a camera and attach to our spring arm
 				UCameraComponent* Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("ActualCamera"));
-				Camera->AttachTo(SpringArm, USpringArmComponent::SocketName);
+				Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 
 				// Take control of the default player
 				AutoPossessPlayer = EAutoReceiveInput::Player0;

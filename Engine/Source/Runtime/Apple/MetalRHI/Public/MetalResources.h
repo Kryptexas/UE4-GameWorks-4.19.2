@@ -92,6 +92,7 @@ class FMetalComputeShader : public TMetalBaseShader<FRHIComputeShader, SF_Comput
 {
 public:
 	FMetalComputeShader(const TArray<uint8>& InCode);
+	virtual ~FMetalComputeShader();
 	
 	// the state object for a compute shader
 	id <MTLComputePipelineState> Kernel;
@@ -152,6 +153,7 @@ public:
 	void PrepareToDraw(FMetalContext* Context, const struct FMetalRenderPipelineDesc& RenderPipelineDesc);
 
 protected:
+	FCriticalSection PipelineMutex;
 	TMap<FMetalRenderPipelineHash, id<MTLRenderPipelineState> > PipelineStates;
 };
 
@@ -175,6 +177,9 @@ public:
 	 */
 	~FMetalSurface();
 
+	/** Prepare for texture-view support - need only call this once on the source texture which is to be viewed. */
+	void PrepareTextureView();
+	
 	/**
 	 * Locks one of the texture's mip-maps.
 	 * @param ArrayIndex Index of the texture array/face in the form Index*6+Face
@@ -190,7 +195,7 @@ public:
 	/**
 	 * Returns how much memory a single mip uses, and optionally returns the stride
 	 */
-	uint32 GetMipSize(uint32 MipIndex, uint32* Stride, bool bSingleLayer);
+	uint32 GetMipSize(uint32 MipIndex, uint32* Stride, bool bSingleLayer, bool bBlitAligned);
 
 	/**
 	 * Returns how much memory is used by the surface
@@ -203,8 +208,10 @@ public:
 	/** Gets the drawable texture if this is a back-buffer surface. */
 	id<MTLTexture> GetDrawableTexture();
 	
-	/** Updates an SRV surface's internal data if required. */
-	void UpdateSRV();
+	/** Updates an SRV surface's internal data if required.
+	 *  @param SourceTex Source textures that the UAV/SRV was created from.
+	 */
+	void UpdateSRV(FTextureRHIRef SourceTex);
 
 	ERHIResourceType Type;
 	EPixelFormat PixelFormat;
@@ -232,6 +239,9 @@ private:
 	
 	// next format for the pixel format mapping
 	static uint8 NextKey;
+	
+	// Count of outstanding async. texture uploads
+	static int32 ActiveUploads;
 };
 
 class FMetalTexture2D : public FRHITexture2D
@@ -264,6 +274,11 @@ public:
 	virtual ~FMetalTexture2D()
 	{
 		FShaderCache::RemoveTexture(this);
+	}
+	
+	virtual void* GetTextureBaseRHI() override final
+	{
+		return &Surface;
 	}
 };
 
@@ -299,6 +314,11 @@ public:
 	{
 		FShaderCache::RemoveTexture(this);
 	}
+	
+	virtual void* GetTextureBaseRHI() override final
+	{
+		return &Surface;
+	}
 };
 
 class FMetalTexture3D : public FRHITexture3D
@@ -333,6 +353,11 @@ public:
 	{
 		FShaderCache::RemoveTexture(this);
 	}
+	
+	virtual void* GetTextureBaseRHI() override final
+	{
+		return &Surface;
+	}
 };
 
 class FMetalTextureCube : public FRHITextureCube
@@ -366,6 +391,11 @@ public:
 	virtual ~FMetalTextureCube()
 	{
 		FShaderCache::RemoveTexture(this);
+	}
+	
+	virtual void* GetTextureBaseRHI() override final
+	{
+		return &Surface;
 	}
 };
 
@@ -578,6 +608,9 @@ public:
 
 	// The vertex buffer this SRV comes from (can be null)
 	TRefCountPtr<FMetalVertexBuffer> SourceVertexBuffer;
+	
+	// The index buffer this SRV comes from (can be null)
+	TRefCountPtr<FMetalIndexBuffer> SourceIndexBuffer;
 
 	// The texture that this SRV come from
 	TRefCountPtr<FRHITexture> SourceTexture;
@@ -633,6 +666,36 @@ private:
 	uint8* PackedUniformsScratch[CrossCompiler::PACKED_TYPEINDEX_MAX];
 
 	int32 GlobalUniformArraySize;
+};
+
+class FMetalComputeFence : public FRHIComputeFence
+{
+public:
+	
+	FMetalComputeFence(FName InName)
+	: FRHIComputeFence(InName)
+	, CommandBuffer(nil)
+	{}
+	
+	virtual void Reset() final override
+	{
+		FRHIComputeFence::Reset();
+		[CommandBuffer release];
+		CommandBuffer = nil;
+	}
+	
+	void Write(id<MTLCommandBuffer> Buffer)
+	{
+		check(CommandBuffer == nil);
+		check(Buffer != nil);
+		CommandBuffer = [Buffer retain];
+		FRHIComputeFence::WriteFence();
+	}
+	
+	void Wait();
+	
+private:
+	id<MTLCommandBuffer> CommandBuffer;
 };
 
 template<class T>
@@ -754,4 +817,9 @@ template<>
 struct TMetalResourceTraits<FRHIBlendState>
 {
 	typedef FMetalBlendState TConcreteType;
+};
+template<>
+struct TMetalResourceTraits<FRHIComputeFence>
+{
+	typedef FMetalComputeFence TConcreteType;
 };

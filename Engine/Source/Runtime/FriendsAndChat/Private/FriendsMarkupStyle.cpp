@@ -22,7 +22,7 @@ FFriendsMarkupStyle& FFriendsMarkupStyle::SetMarkupTextStyle(const FTextBlockSty
 	return *this;
 }
 
-FFriendsMarkupStyle& FFriendsMarkupStyle::SetTipBackgroundBrush(const FSlateBrush& Value)
+FFriendsMarkupStyle& FFriendsMarkupStyle::SetMarkupBackgroundBrush(const FSlateBrush& Value)
 {
 	MarkupBackground = Value;
 	return *this;

@@ -26,6 +26,27 @@ static bool SupportsAEP()
 	return bBuildForES31;
 }
 
+static bool SupportsVulkan()
+{
+	// default to not supporting Vulkan
+	bool bSupportsVulkan = false;
+	GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bSupportsVulkan"), bSupportsVulkan, GEngineIni);
+
+	// glslang library is needed for vulkan shader compiling
+	bool GlslangAvailable = false;
+#if PLATFORM_WINDOWS
+	#if PLATFORM_64BITS
+		GlslangAvailable = true;
+	#endif
+#elif PLATFORM_MAC
+	GlslangAvailable = false;	// @TODO: change when glslang library compiled for Mac
+#elif PLATFORM_LINUX
+	GlslangAvailable = false;	// @TODO: change when glslang library compiled for Linux
+#endif
+
+	return bSupportsVulkan && GlslangAvailable;
+}
+
 template<class TPlatformProperties>
 inline FAndroidTargetPlatform<TPlatformProperties>::FAndroidTargetPlatform( ) :
 	DeviceDetection(nullptr)
@@ -119,7 +140,7 @@ inline bool FAndroidTargetPlatform<TPlatformProperties>::SupportsFeature( ETarge
 			return true;
 			
 		case ETargetPlatformFeatures::LowQualityLightmaps:
-			return SupportsES2();
+			return SupportsES2() || SupportsVulkan();
 			
 		case ETargetPlatformFeatures::HighQualityLightmaps:
 		case ETargetPlatformFeatures::VertexShaderTextureSampling:
@@ -141,18 +162,18 @@ inline void FAndroidTargetPlatform<TPlatformProperties>::GetAllPossibleShaderFor
 {
 	static FName NAME_OPENGL_ES2(TEXT("GLSL_ES2"));
 	static FName NAME_GLSL_310_ES_EXT(TEXT("GLSL_310_ES_EXT"));
+	static FName NAME_VULKAN_ES3_1_ANDROID(TEXT("SF_VULKAN_ES31_ANDROID"));
 
-	// get project rendering support, default to ES2 and no ES31
-	bool bBuildForES2 = true;
-	bool bBuildForES31 = false;
-	GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bBuildForES2"), bBuildForES2, GEngineIni);
-	GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bBuildForES31"), bBuildForES31, GEngineIni);
+	if (SupportsVulkan())
+	{
+		OutFormats.AddUnique(NAME_VULKAN_ES3_1_ANDROID);
+	}
 
-	if (bBuildForES2)
+	if (SupportsES2())
 	{
 		OutFormats.AddUnique(NAME_OPENGL_ES2);
 	}
-	if (bBuildForES31)
+	if (SupportsAEP())
 	{
 		OutFormats.AddUnique(NAME_GLSL_310_ES_EXT);
 	}
@@ -189,13 +210,13 @@ inline void FAndroidTargetPlatform<TPlatformProperties>::GetTextureFormats( cons
 		|| (InTexture->Source.GetSizeY() < 4)
 		|| (InTexture->Source.GetSizeX() % 4 != 0)
 		|| (InTexture->Source.GetSizeY() % 4 != 0);
-	
+
 	bool bIsNonPOT = false;
 #if WITH_EDITORONLY_DATA
 	// is this texture not a power of 2?
 	bIsNonPOT = !InTexture->Source.IsPowerOfTwo();
 #endif
-	
+
 	// Determine the pixel format of the compressed texture.
 	if (bNoCompression && InTexture->HasHDRSource())
 	{

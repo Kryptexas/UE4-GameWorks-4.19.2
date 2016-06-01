@@ -10,7 +10,43 @@ enum EMovieSceneUpdatePass
 {
 	MSUP_PreUpdate = 0x00000001,
 	MSUP_Update = 0x00000002,
-	MSUP_PostUpdate = 0x00000004
+	MSUP_PostUpdate = 0x00000004,
+	MSUP_All = MSUP_PreUpdate | MSUP_Update | MSUP_PostUpdate
+};
+
+struct EMovieSceneUpdateData
+{
+	float Position;
+	float LastPosition;
+	bool bPreroll;
+	bool bJumpCut;
+	bool bLooped;
+	/** Indicates that this update was caused by the owning movie scene stopping playback due
+	    to the active sub-scene being deactivated. */
+	bool bSubSceneDeactivate;
+
+	EMovieSceneUpdatePass UpdatePass;
+
+	EMovieSceneUpdateData()
+	{
+		Position = 0.0f;
+		LastPosition = 0.0f;
+		bPreroll = false;
+		bJumpCut = false;
+		bLooped = false;
+		bSubSceneDeactivate = false;
+		UpdatePass = MSUP_PreUpdate;
+	}
+	EMovieSceneUpdateData(float InPosition, float InLastPosition)
+	{
+		Position = InPosition;
+		LastPosition = InLastPosition;
+		bPreroll = false;
+		bJumpCut = false;
+		bLooped = false;
+		bSubSceneDeactivate = false;
+		UpdatePass = MSUP_PreUpdate;
+	}
 };
 
 /**
@@ -27,24 +63,22 @@ public:
 	 * Save state of objects that this instance will be editing.
 	 * @todo Sequencer: This is likely editor only
 	 */
-	virtual void SaveState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) = 0;
+	virtual void SaveState(const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) = 0;
 
 	/**
 	 * Restore state of objects that this instance edited.
 	 * @todo Sequencer: This is likely editor only
 	 */
-	virtual void RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) = 0;
+	virtual void RestoreState(const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) = 0;
 
 	/**
 	 * Main update function for track instances.  Called in game and in editor when we update a moviescene.
 	 *
-	 * @param Position			The current position of the moviescene that is playing
-	 * @param LastPosition		The previous playback position
+	 * @param UpdateData		The current and previous position of the moviescene that is playing. The update pass.
 	 * @param RuntimeObjects	Runtime objects bound to this instance (if any)
 	 * @param Player			The playback interface.  Contains state and some other functionality for runtime playback
-	 * @param UpdatePass        Which update pass
 	 */
-	virtual void Update(float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass) = 0;
+	virtual void Update(EMovieSceneUpdateData& UpdateData, const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) = 0;
 	
 	/*
 	 * Which update passes does this track instance evaluate in?
@@ -52,9 +86,14 @@ public:
 	virtual EMovieSceneUpdatePass HasUpdatePasses() { return MSUP_Update; }
 
 	/**
+	 * Whether or not this track instance needs to be updated when it's deactivated because it's in a sub-scene that's ending.
+	 */
+	virtual bool RequiresUpdateForSubSceneDeactivate() { return false; }
+
+	/**
 	 * Refreshes the current instance
 	 */
-	virtual void RefreshInstance(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) = 0;
+	virtual void RefreshInstance(const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) = 0;
 
 	/**
 	 * Removes all instance data from this track instance

@@ -110,6 +110,7 @@ static void InitializeNodeHelper(UBTCompositeNode* ParentNode, UBTNode* NodeOb,
 				Service->GetInstanceMemorySize(), Service->GetSpecialMemorySize()));
 
 			Service->InitializeFromAsset(TreeAsset);
+			// don't initialize parent link for services on composite node
 			ExecutionIndex++;
 		}
 
@@ -135,7 +136,7 @@ static void InitializeNodeHelper(UBTCompositeNode* ParentNode, UBTNode* NodeOb,
 					Decorator->GetInstanceMemorySize(), Decorator->GetSpecialMemorySize()));
 
 				Decorator->InitializeFromAsset(TreeAsset);
-				Decorator->InitializeDecorator(ChildIndex);
+				Decorator->InitializeParentLink(ChildIndex);
 				ExecutionIndex++;
 			}
 
@@ -150,6 +151,29 @@ static void InitializeNodeHelper(UBTCompositeNode* ParentNode, UBTNode* NodeOb,
 			{
 				ChildInfo.ChildTask = Cast<UBTTaskNode>(StaticDuplicateObject(ChildInfo.ChildTask, NodeOuter));
 				ChildNode = ChildInfo.ChildTask;
+
+				for (int32 ServiceIndex = 0; ServiceIndex < ChildInfo.ChildTask->Services.Num(); ServiceIndex++)
+				{
+					if (ChildInfo.ChildTask->Services[ServiceIndex] == NULL)
+					{
+						UE_LOG(LogBehaviorTree, Warning, TEXT("%s has missing service node! (parent: %s)"),
+							*TreeAsset.GetName(), *UBehaviorTreeTypes::DescribeNodeHelper(ChildInfo.ChildTask));
+
+						ChildInfo.ChildTask->Services.RemoveAt(ServiceIndex, 1, false);
+						ServiceIndex--;
+						continue;
+					}
+
+					UBTService* Service = Cast<UBTService>(StaticDuplicateObject(ChildInfo.ChildTask->Services[ServiceIndex], NodeOuter));
+					ChildInfo.ChildTask->Services[ServiceIndex] = Service;
+
+					InitList.Add(FNodeInitializationData(Service, CompositeOb, ExecutionIndex, TreeDepth,
+						Service->GetInstanceMemorySize(), Service->GetSpecialMemorySize()));
+
+					Service->InitializeFromAsset(TreeAsset);
+					Service->InitializeParentLink(ChildIndex);
+					ExecutionIndex++;
+				}
 			}
 
 			if (ChildNode)
@@ -307,11 +331,10 @@ void StatNodeUsage(UBTNode* Node, FNodeClassCounter& NodeCounter)
 	{
 		for (int32 ServiceIndex = 0; ServiceIndex < CompositeOb->Services.Num(); ServiceIndex++)
 		{
-			if (CompositeOb->Services[ServiceIndex] == NULL)
+			if (CompositeOb->Services[ServiceIndex])
 			{
-				continue;
+				NodeCounter.CountNode(CompositeOb->Services[ServiceIndex]);
 			}
-			NodeCounter.CountNode(CompositeOb->Services[ServiceIndex]);
 		}
 
 		for (int32 ChildIndex = 0; ChildIndex < CompositeOb->Children.Num(); ChildIndex++)
@@ -319,12 +342,10 @@ void StatNodeUsage(UBTNode* Node, FNodeClassCounter& NodeCounter)
 			FBTCompositeChild& ChildInfo = CompositeOb->Children[ChildIndex];
 			for (int32 DecoratorIndex = 0; DecoratorIndex < ChildInfo.Decorators.Num(); DecoratorIndex++)
 			{
-				if (ChildInfo.Decorators[DecoratorIndex] == NULL)
+				if (ChildInfo.Decorators[DecoratorIndex])
 				{
-					continue;
+					NodeCounter.CountNode(ChildInfo.Decorators[DecoratorIndex]);
 				}
-
-				NodeCounter.CountNode(ChildInfo.Decorators[DecoratorIndex]);
 			}
 
 			UBTNode* ChildNode = NULL;
@@ -335,6 +356,14 @@ void StatNodeUsage(UBTNode* Node, FNodeClassCounter& NodeCounter)
 			}
 			else if (ChildInfo.ChildTask)
 			{
+				for (int32 ServiceIndex = 0; ServiceIndex < ChildInfo.ChildTask->Services.Num(); ServiceIndex++)
+				{
+					if (ChildInfo.ChildTask->Services[ServiceIndex])
+					{
+						NodeCounter.CountNode(ChildInfo.ChildTask->Services[ServiceIndex]);
+					}
+				}
+
 				NodeCounter.CountNode(ChildInfo.ChildTask);
 			}
 		}

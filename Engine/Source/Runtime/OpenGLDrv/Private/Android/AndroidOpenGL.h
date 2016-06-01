@@ -32,8 +32,8 @@ typedef khronos_uint64_t GLuint64;
 
 #define GL_BGRA			GL_BGRA_EXT 
 #define GL_UNSIGNED_INT_8_8_8_8_REV	GL_UNSIGNED_BYTE
-#define glMapBuffer		glMapBufferOES
-#define glUnmapBuffer	glUnmapBufferOES
+#define glMapBuffer		glMapBufferOESa
+#define glUnmapBuffer	glUnmapBufferOESa
 
 #ifndef GL_HALF_FLOAT
 #define GL_HALF_FLOAT	GL_HALF_FLOAT_OES
@@ -91,8 +91,8 @@ extern PFNGLGETQUERYIVEXTPROC 			glGetQueryivEXT;
 extern PFNGLGETQUERYOBJECTIVEXTPROC 	glGetQueryObjectivEXT;
 extern PFNGLGETQUERYOBJECTUIVEXTPROC 	glGetQueryObjectuivEXT;
 extern PFNGLGETQUERYOBJECTUI64VEXTPROC	glGetQueryObjectui64vEXT;
-extern PFNGLMAPBUFFEROESPROC			glMapBufferOES;
-extern PFNGLUNMAPBUFFEROESPROC			glUnmapBufferOES;
+extern PFNGLMAPBUFFEROESPROC			glMapBufferOESa;
+extern PFNGLUNMAPBUFFEROESPROC			glUnmapBufferOESa;
 extern PFNGLDISCARDFRAMEBUFFEREXTPROC 	glDiscardFramebufferEXT ;
 extern PFNGLFRAMEBUFFERTEXTURE2DMULTISAMPLEEXTPROC	glFramebufferTexture2DMultisampleEXT;
 extern PFNGLRENDERBUFFERSTORAGEMULTISAMPLEEXTPROC	glRenderbufferStorageMultisampleEXT;
@@ -116,6 +116,19 @@ extern PFNGLDRAWELEMENTSINSTANCEDPROC	glDrawElementsInstanced;
 extern PFNGLDRAWARRAYSINSTANCEDPROC		glDrawArraysInstanced;
 extern PFNGLVERTEXATTRIBDIVISORPROC		glVertexAttribDivisor;
 
+extern PFNGLTEXBUFFEREXTPROC			glTexBufferEXT;
+extern PFNGLUNIFORM4UIVPROC				glUniform4uiv;
+extern PFNGLCLEARBUFFERFIPROC			glClearBufferfi;
+extern PFNGLCLEARBUFFERFVPROC			glClearBufferfv;
+extern PFNGLCLEARBUFFERIVPROC			glClearBufferiv;
+extern PFNGLCLEARBUFFERUIVPROC			glClearBufferuiv;
+extern PFNGLDRAWBUFFERSPROC				glDrawBuffers;
+extern PFNGLTEXIMAGE3DPROC				glTexImage3D;
+extern PFNGLTEXSUBIMAGE3DPROC			glTexSubImage3D;
+extern PFNGLCOMPRESSEDTEXIMAGE3DPROC    glCompressedTexImage3D;
+extern PFNGLCOMPRESSEDTEXSUBIMAGE3DPROC	glCompressedTexSubImage3D;
+extern PFNGLCOPYTEXSUBIMAGE3DPROC		glCopyTexSubImage3D;
+
 #include "OpenGLES2.h"
 
 
@@ -133,6 +146,8 @@ struct FAndroidOpenGL : public FOpenGLES2
 	{
 		return SP_OPENGL_ES2_ANDROID;
 	}
+
+	static FORCEINLINE bool HasHardwareHiddenSurfaceRemoval() { return bHasHardwareHiddenSurfaceRemoval; };
 
 	// Optional:
 	static FORCEINLINE void QueryTimestampCounter(GLuint QueryID)
@@ -204,8 +219,16 @@ struct FAndroidOpenGL : public FOpenGLES2
 		}
 		return FR_WaitFailed;
 	}
-	
 
+	static FORCEINLINE void FramebufferTexture2D(GLenum Target, GLenum Attachment, GLenum TexTarget, GLuint Texture, GLint Level)
+	{
+		check(Attachment == GL_COLOR_ATTACHMENT0 || Attachment == GL_DEPTH_ATTACHMENT || Attachment == GL_STENCIL_ATTACHMENT 
+				|| (SupportsMultipleRenderTargets() && Attachment >= GL_COLOR_ATTACHMENT0 && Attachment <= GL_COLOR_ATTACHMENT7));
+
+		glFramebufferTexture2D(Target, Attachment, TexTarget, Texture, Level);
+		VERIFY_GL(FramebufferTexture_2D)
+	}
+	
 	// Required:
 	static FORCEINLINE void BlitFramebuffer(GLint SrcX0, GLint SrcY0, GLint SrcX1, GLint SrcY1, GLint DstX0, GLint DstY0, GLint DstX1, GLint DstY1, GLbitfield Mask, GLenum Filter)
 	{
@@ -249,6 +272,84 @@ struct FAndroidOpenGL : public FOpenGLES2
 		}
 	}
 	
+	static FORCEINLINE void TexStorage3D(GLenum Target, GLint Levels, GLint InternalFormat, GLsizei Width, GLsizei Height, GLsizei Depth, GLenum Format, GLenum Type)
+	{
+		const bool bArrayTexture = Target == GL_TEXTURE_2D_ARRAY || Target == GL_TEXTURE_CUBE_MAP_ARRAY;
+		for(uint32 MipIndex = 0; MipIndex < uint32(Levels); MipIndex++)
+		{
+			glTexImage3D(
+				Target,
+				MipIndex,
+				InternalFormat,
+				FMath::Max<uint32>(1,(Width >> MipIndex)),
+				FMath::Max<uint32>(1,(Height >> MipIndex)),
+				(bArrayTexture) ? Depth : FMath::Max<uint32>(1,(Depth >> MipIndex)),
+				0,
+				Format,
+				Type,
+				NULL
+				);
+
+			VERIFY_GL(TexImage_3D)
+		}
+	}
+	
+	static FORCEINLINE void TexImage3D(GLenum Target, GLint Level, GLint InternalFormat, GLsizei Width, GLsizei Height, GLsizei Depth, GLint Border, GLenum Format, GLenum Type, const GLvoid* PixelData)
+	{
+		glTexImage3D(Target, Level, InternalFormat, Width, Height, Depth, Border, Format, Type, PixelData);
+	}
+
+	static FORCEINLINE void CompressedTexImage3D(GLenum Target, GLint Level, GLenum InternalFormat, GLsizei Width, GLsizei Height, GLsizei Depth, GLint Border, GLsizei ImageSize, const GLvoid* PixelData)
+	{
+		glCompressedTexImage3D(Target, Level, InternalFormat, Width, Height, Depth, Border, ImageSize, PixelData);
+	}
+
+	static FORCEINLINE void TexSubImage3D(GLenum Target, GLint Level, GLint XOffset, GLint YOffset, GLint ZOffset, GLsizei Width, GLsizei Height, GLsizei Depth, GLenum Format, GLenum Type, const GLvoid* PixelData)
+	{
+		glTexSubImage3D(Target, Level, XOffset, YOffset, ZOffset, Width, Height, Depth, Format, Type, PixelData);
+	}
+
+	static FORCEINLINE void	CopyTexSubImage3D(GLenum Target, GLint Level, GLint XOffset, GLint YOffset, GLint ZOffset, GLint X, GLint Y, GLsizei Width, GLsizei Height)
+	{
+		glCopyTexSubImage3D(Target, Level, XOffset, YOffset, ZOffset, X, Y, Width, Height);
+	}
+	
+	static FORCEINLINE void ClearBufferfv(GLenum Buffer, GLint DrawBufferIndex, const GLfloat* Value)
+	{
+		glClearBufferfv(Buffer, DrawBufferIndex, Value);
+	}
+
+	static FORCEINLINE void ClearBufferfi(GLenum Buffer, GLint DrawBufferIndex, GLfloat Depth, GLint Stencil)
+	{
+		glClearBufferfi(Buffer, DrawBufferIndex, Depth, Stencil);
+	}
+
+	static FORCEINLINE void ClearBufferiv(GLenum Buffer, GLint DrawBufferIndex, const GLint* Value)
+	{
+		glClearBufferiv(Buffer, DrawBufferIndex, Value);
+	}
+
+	static FORCEINLINE void DrawBuffers(GLsizei NumBuffers, const GLenum* Buffers)
+	{
+		glDrawBuffers(NumBuffers, Buffers);
+	}
+	
+	static FORCEINLINE void ColorMaskIndexed(GLuint Index, GLboolean Red, GLboolean Green, GLboolean Blue, GLboolean Alpha)
+	{
+		check(Index == 0 || SupportsMultipleRenderTargets());
+		glColorMask(Red, Green, Blue, Alpha);
+	}
+
+	static FORCEINLINE void TexBuffer(GLenum Target, GLenum InternalFormat, GLuint Buffer)
+	{
+		glTexBufferEXT(Target, InternalFormat, Buffer);
+	}
+
+	static FORCEINLINE void ProgramUniform4uiv(GLuint Program, GLint Location, GLsizei Count, const GLuint *Value)
+	{
+		glUniform4uiv(Location, Count, Value);
+	}
+
 	// Adreno doesn't support HALF_FLOAT
 	static FORCEINLINE int32 GetReadHalfFloatPixelsEnum()				{ return GL_FLOAT; }
 
@@ -257,6 +358,11 @@ struct FAndroidOpenGL : public FOpenGLES2
 	static FORCEINLINE bool SupportsHDR32bppEncodeModeIntrinsic()		{ return true; }
 
 	static FORCEINLINE bool SupportsInstancing()						{ return bSupportsInstancing; }
+	static FORCEINLINE bool SupportsDrawBuffers()						{ return bES30Support; }
+	static FORCEINLINE bool SupportsMultipleRenderTargets()				{ return bES30Support; }
+	static FORCEINLINE bool SupportsWideMRT()							{ return bES31Support; }
+	static FORCEINLINE bool SupportsResourceView()						{ return bSupportsTextureBuffer; }
+	static FORCEINLINE bool SupportsTexture3D()							{ return bES30Support; }
 
 	static FORCEINLINE bool UseES30ShadingLanguage()
 	{
@@ -268,15 +374,23 @@ struct FAndroidOpenGL : public FOpenGLES2
 	// whether to use ES 3.0 function glTexStorage2D to allocate storage for GL_HALF_FLOAT_OES render target textures
 	static bool bUseHalfFloatTexStorage;
 
+	// GL_EXT_texture_buffer
+	static bool bSupportsTextureBuffer;
+
 	// whether to use ES 3.0 shading language
 	static bool bUseES30ShadingLanguage;
 	
 	// whether device supports ES 3.0
 	static bool bES30Support;
 
+	// whether device supports ES 3.1
+	static bool bES31Support;
+
 	// whether device supports hardware instancing
 	static bool bSupportsInstancing;
 
+	/** Whether device supports Hidden Surface Removal */
+	static bool bHasHardwareHiddenSurfaceRemoval;
 };
 
 typedef FAndroidOpenGL FOpenGL;

@@ -28,7 +28,7 @@ void FLandscapeVertexFactoryMobile::InitRHI()
 	}
 
 	// create the actual device decls
-	InitDeclaration(Elements,FVertexFactory::DataType());
+	InitDeclaration(Elements);
 }
 
 /** Shader parameters for use with FLandscapeVertexFactory */
@@ -245,9 +245,12 @@ void FLandscapeComponentSceneProxyMobile::CreateRenderThreadResources()
 {
 	// Use only Index buffers
 	SharedBuffers = FLandscapeComponentSceneProxy::SharedBuffersMap.FindRef(SharedBuffersKey);
-	if( SharedBuffers == NULL )
+	if (SharedBuffers == nullptr)
 	{
-		SharedBuffers = new FLandscapeSharedBuffers(SharedBuffersKey, SubsectionSizeQuads, NumSubsections, GetScene().GetFeatureLevel(), false);
+		SharedBuffers = new FLandscapeSharedBuffers(
+			SharedBuffersKey, SubsectionSizeQuads, NumSubsections,
+			GetScene().GetFeatureLevel(), false);
+
 		FLandscapeComponentSceneProxy::SharedBuffersMap.Add(SharedBuffersKey, SharedBuffers);
 	}
 

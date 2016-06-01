@@ -12,7 +12,9 @@ class ENGINE_API UMaterialExpressionTextureSampleParameter2D : public UMaterialE
 
 
 	//~ Begin UMaterialExpression Interface
+#if WITH_EDITOR
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
+#endif // WITH_EDITOR
 	//~ End UMaterialExpression Interface
 	
 	//~ Begin UMaterialExpressionTextureSampleParameter Interface

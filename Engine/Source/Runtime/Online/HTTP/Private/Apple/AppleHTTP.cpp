@@ -12,7 +12,7 @@
 
 
 FAppleHttpRequest::FAppleHttpRequest()
-:	Connection(NULL)
+:	Connection(nullptr)
 ,	CompletionStatus(EHttpRequestStatus::NotStarted)
 ,	ProgressBytesSent(0)
 ,	StartRequestTime(0.0)
@@ -20,13 +20,14 @@ FAppleHttpRequest::FAppleHttpRequest()
 {
 	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::FAppleHttpRequest()"));
 	Request = [[NSMutableURLRequest alloc] init];
-	[Request setTimeoutInterval: FHttpModule::Get().GetHttpTimeout()];
+	Request.timeoutInterval = FHttpModule::Get().GetHttpTimeout();
 }
 
 
 FAppleHttpRequest::~FAppleHttpRequest()
 {
 	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::~FAppleHttpRequest()"));
+	check(Connection == nullptr);
 	[Request release];
 }
 
@@ -34,9 +35,18 @@ FAppleHttpRequest::~FAppleHttpRequest()
 FString FAppleHttpRequest::GetURL()
 {
 	SCOPED_AUTORELEASE_POOL;
-	FString URL([[Request URL] absoluteString]);
-	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::GetURL() - %s"), *URL);
-	return URL;
+	NSURL* URL = Request.URL;
+	if (URL != nullptr)
+	{
+		FString ConvertedURL(URL.absoluteString);
+		UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::GetURL() - %s"), *ConvertedURL);
+		return ConvertedURL;
+	}
+	else
+	{
+		UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::GetURL() - NULL"));
+		return FString();
+	}
 }
 
 
@@ -44,23 +54,24 @@ void FAppleHttpRequest::SetURL(const FString& URL)
 {
 	SCOPED_AUTORELEASE_POOL;
 	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::SetURL() - %s"), *URL);
-	[Request setURL: [NSURL URLWithString: URL.GetNSString()]];
+	Request.URL = [NSURL URLWithString: URL.GetNSString()];
 }
 
 
 FString FAppleHttpRequest::GetURLParameter(const FString& ParameterName)
 {
+	SCOPED_AUTORELEASE_POOL;
 	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::GetURLParameter() - %s"), *ParameterName);
 
 	NSString* ParameterNameStr = ParameterName.GetNSString();
-	NSArray* Parameters = [[[Request URL] query] componentsSeparatedByString:@"&"];
+	NSArray* Parameters = [Request.URL.query componentsSeparatedByString:@"&"];
 	for (NSString* Parameter in Parameters)
 	{
 		NSArray* KeyValue = [Parameter componentsSeparatedByString:@"="];
-		NSString* Key = [KeyValue objectAtIndex:0];
+		NSString* Key = KeyValue[0];
 		if ([Key compare:ParameterNameStr] == NSOrderedSame)
 		{
-			return FString([KeyValue objectAtIndex:1]);
+			return FString(KeyValue[1]);
 		}
 	}
 	return FString();
@@ -69,6 +80,7 @@ FString FAppleHttpRequest::GetURLParameter(const FString& ParameterName)
 
 FString FAppleHttpRequest::GetHeader(const FString& HeaderName)
 {
+	SCOPED_AUTORELEASE_POOL;
 	FString Header([Request valueForHTTPHeaderField:HeaderName.GetNSString()]);
 	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::GetHeader() - %s"), *Header);
 	return Header;
@@ -77,20 +89,39 @@ FString FAppleHttpRequest::GetHeader(const FString& HeaderName)
 
 void FAppleHttpRequest::SetHeader(const FString& HeaderName, const FString& HeaderValue)
 {
+	SCOPED_AUTORELEASE_POOL;
 	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::SetHeader() - %s / %s"), *HeaderName, *HeaderValue );
 	[Request setValue: HeaderValue.GetNSString() forHTTPHeaderField: HeaderName.GetNSString()];
 }
 
+void FAppleHttpRequest::AppendToHeader(const FString& HeaderName, const FString& AdditionalHeaderValue)
+{
+    if (!HeaderName.IsEmpty() && !AdditionalHeaderValue.IsEmpty())
+    {
+        NSDictionary* Headers = [Request allHTTPHeaderFields];
+        NSString* PreviousHeaderValuePtr = [Headers objectForKey: HeaderName.GetNSString()];
+        FString PreviousValue(PreviousHeaderValuePtr);
+		FString NewValue;
+		if (PreviousValue != nullptr && !PreviousValue.IsEmpty())
+		{
+			NewValue = PreviousValue + TEXT(", ");
+		}
+		NewValue += AdditionalHeaderValue;
+
+        SetHeader(HeaderName, NewValue);
+	}
+}
 
 TArray<FString> FAppleHttpRequest::GetAllHeaders()
 {
+	SCOPED_AUTORELEASE_POOL;
 	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::GetAllHeaders()"));
-	NSDictionary* Headers = [Request allHTTPHeaderFields];
+	NSDictionary* Headers = Request.allHTTPHeaderFields;
 	TArray<FString> Result;
-	Result.Reserve([Headers count]);
-	for (NSString* Key in [Headers allKeys])
+	Result.Reserve(Headers.count);
+	for (NSString* Key in Headers.allKeys)
 	{
-		FString ConvertedValue([Headers objectForKey:Key]);
+		FString ConvertedValue(Headers[Key]);
 		FString ConvertedKey(Key);
 		UE_LOG(LogHttp, Verbose, TEXT("Header= %s, Key= %s"), *ConvertedValue, *ConvertedKey);
 
@@ -102,9 +133,11 @@ TArray<FString> FAppleHttpRequest::GetAllHeaders()
 
 const TArray<uint8>& FAppleHttpRequest::GetContent()
 {
+	SCOPED_AUTORELEASE_POOL;
 	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::GetContent()"));
+	NSData* Body = Request.HTTPBody; // accessing HTTPBody will call copy on the value, increasing its retain count
 	RequestPayload.Empty();
-	RequestPayload.Append((const uint8*)[[Request HTTPBody] bytes], GetContentLength());
+	RequestPayload.Append((const uint8*)Body.bytes, Body.length);
 	return RequestPayload;
 }
 
@@ -112,7 +145,7 @@ const TArray<uint8>& FAppleHttpRequest::GetContent()
 void FAppleHttpRequest::SetContent(const TArray<uint8>& ContentPayload)
 {
 	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::SetContent()"));
-	[Request setHTTPBody:[NSData dataWithBytes:ContentPayload.GetData() length:ContentPayload.Num()]];
+	Request.HTTPBody = [NSData dataWithBytes:ContentPayload.GetData() length:ContentPayload.Num()];
 }
 
 
@@ -126,7 +159,9 @@ FString FAppleHttpRequest::GetContentType()
 
 int32 FAppleHttpRequest::GetContentLength()
 {
-	int Len = [[Request HTTPBody] length];
+	SCOPED_AUTORELEASE_POOL;
+	NSData* Body = Request.HTTPBody;
+	int Len = Body.length;
 	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::GetContentLength() - %i"), Len);
 	return Len;
 }
@@ -138,13 +173,13 @@ void FAppleHttpRequest::SetContentAsString(const FString& ContentString)
 	FTCHARToUTF8 Converter(*ContentString);
 	
 	// The extra length computation here is unfortunate, but it's technically not safe to assume the length is the same.
-	[Request setHTTPBody:[NSData dataWithBytes:(ANSICHAR*)Converter.Get() length:Converter.Length()]];
+	Request.HTTPBody = [NSData dataWithBytes:(ANSICHAR*)Converter.Get() length:Converter.Length()];
 }
 
 
 FString FAppleHttpRequest::GetVerb()
 {
-	FString ConvertedVerb([Request HTTPMethod]);
+	FString ConvertedVerb(Request.HTTPMethod);
 	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::GetVerb() - %s"), *ConvertedVerb);
 	return ConvertedVerb;
 }
@@ -152,8 +187,9 @@ FString FAppleHttpRequest::GetVerb()
 
 void FAppleHttpRequest::SetVerb(const FString& Verb)
 {
+	SCOPED_AUTORELEASE_POOL;
 	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::SetVerb() - %s"), *Verb);
-	[Request setHTTPMethod: Verb.GetNSString()];
+	Request.HTTPMethod = Verb.GetNSString();
 }
 
 
@@ -163,7 +199,7 @@ bool FAppleHttpRequest::ProcessRequest()
 	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::ProcessRequest()"));
 	bool bStarted = false;
 
-	FString Scheme([[Request URL] scheme]);
+	FString Scheme(Request.URL.scheme);
 	Scheme = Scheme.ToLower();
 
 	// Prevent overlapped requests using the same instance
@@ -208,6 +244,7 @@ FHttpRequestProgressDelegate& FAppleHttpRequest::OnRequestProgress()
 
 bool FAppleHttpRequest::StartRequest()
 {
+	SCOPED_AUTORELEASE_POOL;
 	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::StartRequest()"));
 	bool bStarted = false;
 
@@ -230,9 +267,12 @@ bool FAppleHttpRequest::StartRequest()
 
 	Response = MakeShareable( new FAppleHttpResponse( *this ) );
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 	// Create the connection, tell it to run in the main run loop, and kick it off.
 	Connection = [[NSURLConnection alloc] initWithRequest:Request delegate:Response->ResponseWrapper startImmediately:NO];
-	if( Connection != NULL && Response->ResponseWrapper != NULL )
+#pragma clang diagnostic pop
+	if (Connection != nullptr && Response->ResponseWrapper != nullptr)
 	{
 		CompletionStatus = EHttpRequestStatus::Processing;
 		[Connection scheduleInRunLoop:[NSRunLoop mainRunLoop] forMode:NSDefaultRunLoopMode];
@@ -246,7 +286,7 @@ bool FAppleHttpRequest::StartRequest()
 	else
 	{
 		UE_LOG(LogHttp, Warning, TEXT("ProcessRequest failed. Could not initialize Internet connection."));
-		CompletionStatus = EHttpRequestStatus::Failed;
+		CompletionStatus = EHttpRequestStatus::Failed_ConnectionError;
 	}
 	StartRequestTime = FPlatformTime::Seconds();
 	// reset the elapsed time.
@@ -272,8 +312,8 @@ void FAppleHttpRequest::FinishedRequest()
 		FString URL([[Request URL] absoluteString]);
 		CompletionStatus = EHttpRequestStatus::Failed;
 
-		Response = NULL;
-		OnProcessRequestComplete().ExecuteIfBound(SharedThis(this), NULL, false);
+		Response = nullptr;
+		OnProcessRequestComplete().ExecuteIfBound(SharedThis(this), nullptr, false);
 	}
 
 	// Clean up session/request handles that may have been created
@@ -290,14 +330,16 @@ void FAppleHttpRequest::FinishedRequest()
 void FAppleHttpRequest::CleanupRequest()
 {
 	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::CleanupRequest()"));
+
 	if(CompletionStatus == EHttpRequestStatus::Processing)
 	{
 		CancelRequest();
 	}
-	if(Connection != NULL)
+
+	if(Connection != nullptr)
 	{
 		[Connection release];
-		Connection = NULL;
+		Connection = nullptr;
 	}
 }
 
@@ -305,7 +347,7 @@ void FAppleHttpRequest::CleanupRequest()
 void FAppleHttpRequest::CancelRequest()
 {
 	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::CancelRequest()"));
-	if(Connection != NULL)
+	if(Connection != nullptr)
 	{
 		[Connection cancel];
 	}
@@ -484,12 +526,13 @@ FAppleHttpResponse::~FAppleHttpResponse()
 FString FAppleHttpResponse::GetURL()
 {
 	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpResponse::GetURL()"));
-	return FString([[Request.Request URL] query]);
+	return FString(Request.Request.URL.query);
 }
 
 
 FString FAppleHttpResponse::GetURLParameter(const FString& ParameterName)
 {
+	SCOPED_AUTORELEASE_POOL;
 	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpResponse::GetURLParameter()"));
 
 	NSString* ParameterNameStr = ParameterName.GetNSString();
@@ -500,7 +543,7 @@ FString FAppleHttpResponse::GetURLParameter(const FString& ParameterName)
 		NSString* Key = [KeyValue objectAtIndex:0];
 		if ([Key compare:ParameterNameStr] == NSOrderedSame)
 		{
-			return FString([[KeyValue objectAtIndex:1] stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding]);
+			return FString([[KeyValue objectAtIndex:1] stringByRemovingPercentEncoding]);
 		}
 	}
 	return FString();
@@ -509,6 +552,7 @@ FString FAppleHttpResponse::GetURLParameter(const FString& ParameterName)
 
 FString FAppleHttpResponse::GetHeader(const FString& HeaderName)
 {
+	SCOPED_AUTORELEASE_POOL;
 	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpResponse::GetHeader()"));
 
 	NSString* ConvertedHeaderName = HeaderName.GetNSString();

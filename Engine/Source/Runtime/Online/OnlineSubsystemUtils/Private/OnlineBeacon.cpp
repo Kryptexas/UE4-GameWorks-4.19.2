@@ -20,7 +20,7 @@ bool AOnlineBeacon::InitBase()
 	if (NetDriver != nullptr)
 	{
 		HandleNetworkFailureDelegateHandle = GEngine->OnNetworkFailure().AddUObject(this, &AOnlineBeacon::HandleNetworkFailure);
-		NetDriverName = NetDriver->NetDriverName;
+		SetNetDriverName(NetDriver->NetDriverName);
 		return true;
 	}
 
@@ -62,6 +62,7 @@ void AOnlineBeacon::HandleNetworkFailure(UWorld *World, UNetDriver *InNetDriver,
 {
 	if (InNetDriver && InNetDriver->NetDriverName == NetDriverName)
 	{
+		UE_LOG(LogBeacon, Verbose, TEXT("NetworkFailure %s: %s"), *GetName(), ENetworkFailure::ToString(FailureType));
 		OnFailure();
 	}
 }

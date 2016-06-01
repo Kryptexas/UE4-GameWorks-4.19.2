@@ -83,6 +83,7 @@ public:
 	static FORCEINLINE bool SupportsDepthStencilReadSurface()			{ return true; }
 	static FORCEINLINE bool SupportsFloatReadSurface()					{ return true; }
 	static FORCEINLINE bool SupportsMultipleRenderTargets()				{ return true; }
+	static FORCEINLINE bool SupportsWideMRT()							{ return true; }
 	static FORCEINLINE bool SupportsMultisampledTextures()				{ return true; }
 	static FORCEINLINE bool SupportsFences()							{ return true; }
 	static FORCEINLINE bool SupportsPolygonMode()						{ return true; }
@@ -106,6 +107,7 @@ public:
 	static FORCEINLINE bool SupportsVertexHalfFloat()					{ return true; }
 	static FORCEINLINE bool SupportsTextureFloat()						{ return true; }
 	static FORCEINLINE bool SupportsTextureHalfFloat()					{ return true; }
+	static FORCEINLINE bool SupportsColorBufferFloat()					{ return true; }
 	static FORCEINLINE bool SupportsColorBufferHalfFloat()				{ return true; }
 	static FORCEINLINE bool	SupportsRG16UI()							{ return true; }
 	static FORCEINLINE bool SupportsR11G11B10F()						{ return true; }
@@ -114,6 +116,7 @@ public:
 	static FORCEINLINE bool SupportsShaderDepthStencilFetch()			{ return false; }
 	static FORCEINLINE bool SupportsVertexArrayBGRA()					{ return true; }
 	static FORCEINLINE bool SupportsBGRA8888()							{ return true; }
+	static FORCEINLINE bool SupportsBGRA8888RenderTarget()				{ return true; }
 	static FORCEINLINE bool SupportsSRGB()								{ return true; }
 	static FORCEINLINE bool SupportsRGBA8()								{ return true; }
 	static FORCEINLINE bool SupportsDXT()								{ return true; }
@@ -152,6 +155,7 @@ public:
 	static FORCEINLINE bool SupportsSeparateShaderObjects()				{ return false; }
 	static FORCEINLINE bool NeedsVertexAttribRemapTable()				{ return false; }
 	static FORCEINLINE bool SupportsHDR32bppEncodeModeIntrinsic()		{ return false; }
+	static FORCEINLINE bool SupportsRGB10A2()							{ return true; }
 
 
 	static FORCEINLINE GLenum GetDepthFormat()							{ return GL_DEPTH_COMPONENT16; }

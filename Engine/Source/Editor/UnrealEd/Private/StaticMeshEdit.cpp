@@ -827,6 +827,7 @@ struct ExistingLODMeshData
 
 struct ExistingStaticMeshData
 {
+	TArray<UMaterialInterface*> ExistingMaterials;
 	FMeshSectionInfoMap			ExistingSectionInfoMap;
 	TArray<ExistingLODMeshData>	ExistingLODData;
 
@@ -836,19 +837,23 @@ struct ExistingStaticMeshData
 	bool						ExistingCustomizedCollision;
 	bool						bAutoComputeLODScreenSize;
 
-	int32							ExistingLightMapResolution;
-	int32							ExistingLightMapCoordinateIndex;
+	int32						ExistingLightMapResolution;
+	int32						ExistingLightMapCoordinateIndex;
 
 	TWeakObjectPtr<UAssetImportData> ExistingImportData;
 	TWeakObjectPtr<UThumbnailInfo> ExistingThumbnailInfo;
 
 	UModel*						ExistingCollisionModel;
-	UBodySetup*				ExistingBodySetup;
+	UBodySetup*					ExistingBodySetup;
 
 	float						ExistingStreamingDistanceMultiplier;
 
 	// A mapping of vertex positions to their color in the existing static mesh
 	TMap<FVector, FColor>		ExistingVertexColorData;
+
+	float						LpvBiasMultiplier;
+	bool						bHasNavigationData;
+	FName						LODGroup;
 };
 
 
@@ -861,6 +866,15 @@ ExistingStaticMeshData* SaveExistingStaticMeshData(UStaticMesh* ExistingMesh, bo
 		ExistingMeshDataPtr = new ExistingStaticMeshData();
 
 		FMeshSectionInfoMap OldSectionInfoMap = ExistingMesh->SectionInfoMap;
+		
+		ExistingMeshDataPtr->ExistingMaterials.Empty();
+		if (bSaveMaterials)
+		{
+			for (UMaterialInterface *MaterialInterface : ExistingMesh->Materials)
+			{
+				ExistingMeshDataPtr->ExistingMaterials.Add(MaterialInterface);
+			}
+		}
 
 		ExistingMeshDataPtr->ExistingLODData.AddZeroed(ExistingMesh->SourceModels.Num());
 
@@ -916,6 +930,10 @@ ExistingStaticMeshData* SaveExistingStaticMeshData(UStaticMesh* ExistingMesh, bo
 		ExistingMeshDataPtr->ExistingBodySetup = ExistingMesh->BodySetup;
 
 		ExistingMeshDataPtr->ExistingStreamingDistanceMultiplier = ExistingMesh->StreamingDistanceMultiplier;
+
+		ExistingMeshDataPtr->LpvBiasMultiplier = ExistingMesh->LpvBiasMultiplier;
+		ExistingMeshDataPtr->bHasNavigationData = ExistingMesh->bHasNavigationData;
+		ExistingMeshDataPtr->LODGroup = ExistingMesh->LODGroup;
 	}
 
 	return ExistingMeshDataPtr;
@@ -925,10 +943,11 @@ void RestoreExistingMeshData(struct ExistingStaticMeshData* ExistingMeshDataPtr,
 {
 	if ( ExistingMeshDataPtr && NewMesh )
 	{
-		int32 NumCommonMaterials = FMath::Min(NewMesh->Materials.Num(), ExistingMeshDataPtr->ExistingLODData[0].ExistingMaterials.Num());
+		//Restore the material array
+		int32 NumCommonMaterials = FMath::Min(NewMesh->Materials.Num(), ExistingMeshDataPtr->ExistingMaterials.Num());
 		for (int32 MaterialIndex = 0; MaterialIndex < NumCommonMaterials; ++MaterialIndex)
 		{
-			NewMesh->Materials[MaterialIndex] = ExistingMeshDataPtr->ExistingLODData[0].ExistingMaterials[MaterialIndex];
+			NewMesh->Materials[MaterialIndex] = ExistingMeshDataPtr->ExistingMaterials[MaterialIndex];
 		}
 
 		int32 NumCommonLODs = FMath::Min<int32>(ExistingMeshDataPtr->ExistingLODData.Num(), NewMesh->SourceModels.Num());
@@ -957,17 +976,20 @@ void RestoreExistingMeshData(struct ExistingStaticMeshData* ExistingMeshDataPtr,
 			SrcModel->ScreenSize = ExistingMeshDataPtr->ExistingLODData[i].ExistingScreenSize;
 		}
 
-		// Restore the section info		
-		for (int32 i = 0; i < NewMesh->RenderData->LODResources.Num(); i++)
+		// Restore the section info
+		if (ExistingMeshDataPtr->ExistingSectionInfoMap.Map.Num() > 0)
 		{
-			FStaticMeshLODResources& LOD = NewMesh->RenderData->LODResources[i];
-			int32 NumSections = LOD.Sections.Num();
-			for (int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
+			for (int32 i = 0; i < NewMesh->RenderData->LODResources.Num(); i++)
 			{
-				FMeshSectionInfo OldSectionInfo = ExistingMeshDataPtr->ExistingSectionInfoMap.Get(i, SectionIndex);
-				if(NewMesh->Materials.IsValidIndex(OldSectionInfo.MaterialIndex))
+				FStaticMeshLODResources& LOD = NewMesh->RenderData->LODResources[i];
+				int32 NumSections = LOD.Sections.Num();
+				for (int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
 				{
-					NewMesh->SectionInfoMap.Set(i, SectionIndex, OldSectionInfo);
+					FMeshSectionInfo OldSectionInfo = ExistingMeshDataPtr->ExistingSectionInfoMap.Get(i, SectionIndex);
+					if (NewMesh->Materials.IsValidIndex(OldSectionInfo.MaterialIndex))
+					{
+						NewMesh->SectionInfoMap.Set(i, SectionIndex, OldSectionInfo);
+					}
 				}
 			}
 		}
@@ -1019,6 +1041,10 @@ void RestoreExistingMeshData(struct ExistingStaticMeshData* ExistingMeshDataPtr,
 				NewMesh->BodySetup->CollisionTraceFlag = ExistingMeshDataPtr->ExistingBodySetup->CollisionTraceFlag;
 			}
 		}
+
+		NewMesh->LpvBiasMultiplier = ExistingMeshDataPtr->LpvBiasMultiplier;
+		NewMesh->bHasNavigationData = ExistingMeshDataPtr->bHasNavigationData;
+		NewMesh->LODGroup = ExistingMeshDataPtr->LODGroup;
 	}
 
 	delete ExistingMeshDataPtr;

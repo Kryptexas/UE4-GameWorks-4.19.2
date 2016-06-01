@@ -800,10 +800,16 @@ public:
 	/** @return the intersection of two sets. (A AND B)*/
 	TSet Intersect(const TSet& OtherSet) const
 	{
+		const bool bOtherSmaller = (Num() > OtherSet.Num());
+		const TSet& A = (bOtherSmaller ? OtherSet : *this);
+		const TSet& B = (bOtherSmaller ? *this : OtherSet);
+
 		TSet Result;
-		for(TConstIterator SetIt(*this);SetIt;++SetIt)
+		Result.Reserve(A.Num()); // Worst case is everything in smaller is in larger
+
+		for(TConstIterator SetIt(A);SetIt;++SetIt)
 		{
-			if(OtherSet.Contains(KeyFuncs::GetSetKey(*SetIt)))
+			if(B.Contains(KeyFuncs::GetSetKey(*SetIt)))
 			{
 				Result.Add(*SetIt);
 			}
@@ -815,6 +821,8 @@ public:
 	TSet Union(const TSet& OtherSet) const
 	{
 		TSet Result;
+		Result.Reserve(Num() + OtherSet.Num()); // Worst case is 2 totally unique Sets
+
 		for(TConstIterator SetIt(*this);SetIt;++SetIt)
 		{
 			Result.Add(*SetIt);
@@ -826,10 +834,12 @@ public:
 		return Result;
 	}
 
-	/** @return the complement of two sets. (A not in B)*/
+	/** @return the complement of two sets. (A not in B where A is this and B is Other)*/
 	TSet Difference(const TSet& OtherSet) const
 	{
 		TSet Result;
+		Result.Reserve(Num()); // Worst case is no elements of this are in Other
+
 		for(TConstIterator SetIt(*this);SetIt;++SetIt)
 		{
 			if(!OtherSet.Contains(KeyFuncs::GetSetKey(*SetIt)))
@@ -850,13 +860,21 @@ public:
 	bool Includes(const TSet<ElementType,KeyFuncs,Allocator>& OtherSet) const
 	{
 		bool bIncludesSet = true;
-		for(TConstIterator OtherSetIt(OtherSet); OtherSetIt; ++OtherSetIt)
+		if (OtherSet.Num() <= Num())
 		{
-			if (!Contains(KeyFuncs::GetSetKey(*OtherSetIt)))
+			for(TConstIterator OtherSetIt(OtherSet); OtherSetIt; ++OtherSetIt)
 			{
-				bIncludesSet = false;
-				break;
+				if (!Contains(KeyFuncs::GetSetKey(*OtherSetIt)))
+				{
+					bIncludesSet = false;
+					break;
+				}
 			}
+		}
+		else
+		{
+			// Not possible to include if it is bigger than us
+			bIncludesSet = false;
 		}
 		return bIncludesSet;
 	}
@@ -865,7 +883,7 @@ public:
 	TArray<ElementType> Array() const
 	{
 		TArray<ElementType> Result;
-		Result.Empty(Num());
+		Result.Reserve(Num());
 		for(TConstIterator SetIt(*this);SetIt;++SetIt)
 		{
 			Result.Add(*SetIt);

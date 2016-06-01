@@ -13,6 +13,7 @@
 #include "EngineModule.h"
 #include "ShaderCompiler.h"
 #include "RendererInterface.h"
+#include "ComponentRecreateRenderStateContext.h"
 
 DEFINE_LOG_CATEGORY(LogShaderCompilers);
 
@@ -67,6 +68,12 @@ static TAutoConsoleVariable<int32> CVarOptimizeShaders(
 	TEXT("r.Shaders.Optimize"),
 	1,
 	TEXT("Whether to optimize shaders.  When using graphical debuggers like Nsight it can be useful to disable this on startup."),
+	ECVF_ReadOnly);
+
+static TAutoConsoleVariable<int32> CVarShaderFastMath(
+	TEXT("r.Shaders.FastMath"),
+	1,
+	TEXT("Whether to use fast-math optimisations in shaders."),
 	ECVF_ReadOnly);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -1105,6 +1112,7 @@ FShaderCompilingManager::FShaderCompilingManager() :
 {
 	WorkersBusyTime = 0;
 	bFallBackToDirectCompiles = false;
+	bRecreateComponentRenderStateOutstanding = false;
 
 	// Threads must use absolute paths on Windows in case the current directory is changed on another thread!
 	ShaderCompileWorkerName = FPaths::ConvertRelativePathToFull(ShaderCompileWorkerName);
@@ -1181,7 +1189,11 @@ FShaderCompilingManager::FShaderCompilingManager() :
 	FPaths::NormalizeDirectoryName(AbsoluteDebugInfoDirectory);
 	AbsoluteShaderDebugInfoDirectory = AbsoluteDebugInfoDirectory;
 
-	const int32 NumVirtualCores = FPlatformMisc::NumberOfCoresIncludingHyperthreads();
+#if PLATFORM_MAC // @todo marksatt 1/14/16 Temporary emergency hack for Mac builders - 24 * SCW consumes 72GB of RAM (~3GB each) which prevents successful Mac cooking.
+    const int32 NumVirtualCores = FPlatformMisc::NumberOfCores();
+#else
+    const int32 NumVirtualCores = FPlatformMisc::NumberOfCoresIncludingHyperthreads();
+#endif
 
 	NumShaderCompilingThreads = bAllowCompilingThroughWorkers ? (NumVirtualCores - NumUnusedShaderCompilingThreads) : 1;
 
@@ -1213,7 +1225,7 @@ FShaderCompilingManager::FShaderCompilingManager() :
 	Thread->StartThread();
 }
 
-void FShaderCompilingManager::AddJobs(TArray<FShaderCommonCompileJob*>& NewJobs, bool bApplyCompletedShaderMapForRendering, bool bOptimizeForLowLatency)
+void FShaderCompilingManager::AddJobs(TArray<FShaderCommonCompileJob*>& NewJobs, bool bApplyCompletedShaderMapForRendering, bool bOptimizeForLowLatency, bool bRecreateComponentRenderStateOnCompletion)
 {
 	check(!FPlatformProperties::RequiresCookedData());
 
@@ -1255,6 +1267,7 @@ void FShaderCompilingManager::AddJobs(TArray<FShaderCommonCompileJob*>& NewJobs,
 		NewJobs[JobIndex]->bOptimizeForLowLatency = bOptimizeForLowLatency;
 		FShaderMapCompileResults& ShaderMapInfo = ShaderMapJobs.FindOrAdd(NewJobs[JobIndex]->Id);
 		ShaderMapInfo.bApplyCompletedShaderMapForRendering = bApplyCompletedShaderMapForRendering;
+		ShaderMapInfo.bRecreateComponentRenderStateOnCompletion = bRecreateComponentRenderStateOnCompletion;
 		auto* PipelineJob = NewJobs[JobIndex]->GetShaderPipelineJob();
 		if (PipelineJob)
 		{
@@ -1445,7 +1458,8 @@ void FShaderCompilingManager::BlockOnAllShaderMapCompletion(TMap<int32, FShaderM
 
 void FShaderCompilingManager::ProcessCompiledShaderMaps(
 	TMap<int32, FShaderMapFinalizeResults>& CompiledShaderMaps, 
-	float TimeBudget)
+	float TimeBudget,
+	bool bRecreateComponentRenderState)
 {
 	// Keeps shader maps alive as they are passed from the shader compiler and applied to the owning FMaterial
 	TArray<TRefCountPtr<FMaterialShaderMap> > LocalShaderMapReferences;
@@ -1640,6 +1654,14 @@ void FShaderCompilingManager::ProcessCompiledShaderMaps(
 			FMaterial* Material = It.Key();
 
 			Material->NotifyCompilationFinished();
+		}
+
+		if (bRecreateComponentRenderState)
+		{
+			// This is necessary because scene proxies cache material / shadermap state, like material view relevance
+			//@todo - find a way to only recreate the components referencing materials that have been updated
+			FGlobalComponentRecreateRenderStateContext Context;
+			bRecreateComponentRenderStateOutstanding = false;
 		}
 
 #if WITH_EDITOR
@@ -1840,7 +1862,7 @@ bool FShaderCompilingManager::HandlePotentialRetryOnError(TMap<int32, FShaderMap
 				}
 
 				// Send all the shaders from this shader map through the compiler again
-				AddJobs(Results.FinishedJobs, Results.bApplyCompletedShaderMapForRendering, true);
+				AddJobs(Results.FinishedJobs, Results.bApplyCompletedShaderMapForRendering, true, Results.bRecreateComponentRenderStateOnCompletion);
 			}
 		}
 
@@ -1948,7 +1970,7 @@ void FShaderCompilingManager::FinishCompilation(const TCHAR* MaterialName, const
 	} 
 	while (bRetry);
 
-	ProcessCompiledShaderMaps(CompiledShaderMaps, FLT_MAX);
+	ProcessCompiledShaderMaps(CompiledShaderMaps, FLT_MAX, false);
 	check(CompiledShaderMaps.Num() == 0);
 
 	const double EndTime = FPlatformTime::Seconds();
@@ -1974,7 +1996,7 @@ void FShaderCompilingManager::FinishAllCompilation()
 	} 
 	while (bRetry);
 
-	ProcessCompiledShaderMaps(CompiledShaderMaps, FLT_MAX);
+	ProcessCompiledShaderMaps(CompiledShaderMaps, FLT_MAX, false);
 	check(CompiledShaderMaps.Num() == 0);
 
 	const double EndTime = FPlatformTime::Seconds();
@@ -2002,6 +2024,7 @@ void FShaderCompilingManager::ProcessAsyncResults(bool bLimitExecutionTime, bool
 			}
 
 			int32 NumCompilingShaderMaps = 0;
+
 			{
 				// Lock CompileQueueSection so we can access the input and output queues
 				FScopeLock Lock(&CompileQueueSection);
@@ -2019,6 +2042,11 @@ void FShaderCompilingManager::ProcessAsyncResults(bool bLimitExecutionTime, bool
 
 					if (GetNumTotalJobs(Results.FinishedJobs) == Results.NumJobsQueued)
 					{
+						if (Results.bRecreateComponentRenderStateOnCompletion)
+						{
+							bRecreateComponentRenderStateOutstanding = true;
+						}
+
 						PendingFinalizeShaderMaps.Add(It.Key(), FShaderMapFinalizeResults(Results));
 						ShaderMapsToRemove.Add(It.Key());
 					}
@@ -2044,7 +2072,9 @@ void FShaderCompilingManager::ProcessAsyncResults(bool bLimitExecutionTime, bool
 				while (bRetry);
 
 				const float TimeBudget = bLimitExecutionTime ? ProcessGameThreadTargetTime : FLT_MAX;
-				ProcessCompiledShaderMaps(PendingFinalizeShaderMaps, TimeBudget);
+				// Only do the recreate when we are finished all compiling, to limit the number of hitchy global render state recreates
+				const bool bRecreateComponentRenderState = bRecreateComponentRenderStateOutstanding && NumCompilingShaderMaps == 0;
+				ProcessCompiledShaderMaps(PendingFinalizeShaderMaps, TimeBudget, bRecreateComponentRenderState);
 				check(bLimitExecutionTime || PendingFinalizeShaderMaps.Num() == 0);
 			}
 
@@ -2144,43 +2174,45 @@ void GlobalBeginCompileShader(
 			}
 			Input.DumpDebugInfoPath = Input.DumpDebugInfoPath / ShaderTypeName;
 
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("BasePass"), TEXT("BP"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("ForForward"), TEXT("Fwd"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Shadow"), TEXT("Shdw"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("LightMap"), TEXT("LM"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("EAtmosphereRenderFlag==E_"), TEXT(""));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Atmospheric"), TEXT("Atm"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Atmosphere"), TEXT("Atm"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Ambient"), TEXT("Amb"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Perspective"), TEXT("Persp"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Occlusion"), TEXT("Occ"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Position"), TEXT("Pos"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Skylight"), TEXT("Sky"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("LightingPolicy"), TEXT("LP"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("TranslucentLighting"), TEXT("TranslLight"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Translucency"), TEXT("Transl"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("DistanceField"), TEXT("DistFiel"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Indirect"), TEXT("Ind"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Cached"), TEXT("Cach"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Inject"), TEXT("Inj"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Visualization"), TEXT("Viz"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Instanced"), TEXT("Inst"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Evaluate"), TEXT("Eval"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Landscape"), TEXT("Land"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Dynamic"), TEXT("Dyn"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Vertex"), TEXT("Vtx"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Output"), TEXT("Out"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Directional"), TEXT("Dir"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Irradiance"), TEXT("Irr"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Deferred"), TEXT("Def"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("true"), TEXT("_1"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("false"), TEXT("_0"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("PROPAGATE_AO"), TEXT("AO"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("PROPAGATE_SECONDARY_OCCLUSION"), TEXT("SEC_OCC"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("PROPAGATE_MULTIPLE_BOUNCES"), TEXT("MULT_BOUNC"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("PostProcess"), TEXT("Post"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("AntiAliasing"), TEXT("AA"));
-
+			if (GDumpShaderDebugInfoShort)
+			{
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("BasePass"), TEXT("BP"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("ForForward"), TEXT("Fwd"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Shadow"), TEXT("Shdw"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("LightMap"), TEXT("LM"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("EAtmosphereRenderFlag==E_"), TEXT(""));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Atmospheric"), TEXT("Atm"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Atmosphere"), TEXT("Atm"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Ambient"), TEXT("Amb"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Perspective"), TEXT("Persp"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Occlusion"), TEXT("Occ"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Position"), TEXT("Pos"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Skylight"), TEXT("Sky"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("LightingPolicy"), TEXT("LP"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("TranslucentLighting"), TEXT("TranslLight"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Translucency"), TEXT("Transl"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("DistanceField"), TEXT("DistFiel"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Indirect"), TEXT("Ind"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Cached"), TEXT("Cach"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Inject"), TEXT("Inj"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Visualization"), TEXT("Viz"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Instanced"), TEXT("Inst"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Evaluate"), TEXT("Eval"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Landscape"), TEXT("Land"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Dynamic"), TEXT("Dyn"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Vertex"), TEXT("Vtx"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Output"), TEXT("Out"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Directional"), TEXT("Dir"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Irradiance"), TEXT("Irr"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Deferred"), TEXT("Def"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("true"), TEXT("_1"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("false"), TEXT("_0"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("PROPAGATE_AO"), TEXT("AO"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("PROPAGATE_SECONDARY_OCCLUSION"), TEXT("SEC_OCC"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("PROPAGATE_MULTIPLE_BOUNCES"), TEXT("MULT_BOUNC"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("PostProcess"), TEXT("Post"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("AntiAliasing"), TEXT("AA"));
+			}
 		}
 		// Sanitize the name to be used as a path
 		// List mostly comes from set of characters not allowed by windows in a path.  Just try to rename a file and type one of these for the list.
@@ -2270,6 +2302,11 @@ void GlobalBeginCompileShader(
 	}
 
 	{
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ClearCoatNormal"));
+		Input.Environment.SetDefine(TEXT("CLEAR_COAT_BOTTOM_NORMAL"), CVar ? (CVar->GetValueOnGameThread() != 0) : 0);
+	}
+
+	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("Compat.UseDXT5NormalMaps"));
 		Input.Environment.SetDefine(TEXT("DXT5_NORMALMAPS"), CVar ? (CVar->GetValueOnGameThread() != 0) : 0);
 	}
@@ -2303,6 +2340,11 @@ void GlobalBeginCompileShader(
 	{
 		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DBuffer"));
 		Input.Environment.SetDefine(TEXT("USE_DBUFFER"), CVar ? CVar->GetInt() : 0);
+	}
+
+	{
+		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.AllowGlobalClipPlane"));
+		Input.Environment.SetDefine(TEXT("PROJECT_ALLOW_GLOBAL_CLIP_PLANE"), CVar ? (CVar->GetInt() != 0) : 0);
 	}
 
 	NewJobs.Add(NewJob);
@@ -2497,17 +2539,21 @@ bool RecompileShaders(const TCHAR* Cmd, FOutputDevice& Ar)
 			{
 				FRecompileShadersTimer TestTimer(TEXT("RecompileShaders Changed"));
 
-				// Kick off global shader recompiles
 				UMaterialInterface::IterateOverActiveFeatureLevels([&](ERHIFeatureLevel::Type InFeatureLevel) {
 					auto ShaderPlatform = GShaderPlatformForFeatureLevel[InFeatureLevel];
 					BeginRecompileGlobalShaders(OutdatedShaderTypes, OutdatedShaderPipelineTypes, ShaderPlatform);
+				});
+
+				// Block on global shaders
+				FinishRecompileGlobalShaders();
+
+				// Kick off global shader recompiles
+				UMaterialInterface::IterateOverActiveFeatureLevels([&](ERHIFeatureLevel::Type InFeatureLevel) {
+					auto ShaderPlatform = GShaderPlatformForFeatureLevel[InFeatureLevel];
 					UMaterial::UpdateMaterialShaders(OutdatedShaderTypes, OutdatedShaderPipelineTypes, OutdatedFactoryTypes, ShaderPlatform);
 				});
 
 				GWarn->StatusUpdate(0, 1, NSLOCTEXT("ShaderCompilingManager", "CompilingGlobalShaderStatus", "Compiling global shaders..."));
-
-				// Block on global shaders
-				FinishRecompileGlobalShaders();
 			}
 			else
 			{

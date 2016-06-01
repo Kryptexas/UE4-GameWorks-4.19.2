@@ -89,26 +89,27 @@ public:
 
 		// Get the movie scene we want to autokey
 		UMovieSceneSequence* MovieSceneSequence = GetMovieSceneSequence();
-		float KeyTime = GetTimeForKey( MovieSceneSequence );
-
-		if( !Sequencer.Pin()->IsRecordingLive() )
+		if (MovieSceneSequence)
 		{
-			check( MovieSceneSequence );
+			float KeyTime = GetTimeForKey( MovieSceneSequence );
 
-			// @todo Sequencer - The sequencer probably should have taken care of this
-			MovieSceneSequence->SetFlags(RF_Transactional);
-		
-			// Create a transaction record because we are about to add keys
-			const bool bShouldActuallyTransact = !Sequencer.Pin()->IsRecordingLive();		// Don't transact if we're recording in a PIE world.  That type of keyframe capture cannot be undone.
-			FScopedTransaction AutoKeyTransaction( NSLOCTEXT("AnimatablePropertyTool", "PropertyChanged", "Animatable Property Changed"), bShouldActuallyTransact );
-
-			if( OnKeyProperty.Execute( KeyTime ) )
+			if( !Sequencer.Pin()->IsRecordingLive() )
 			{
-				// Movie scene data has changed
-				NotifyMovieSceneDataChanged();
-			}
+				// @todo Sequencer - The sequencer probably should have taken care of this
+				MovieSceneSequence->SetFlags(RF_Transactional);
+		
+				// Create a transaction record because we are about to add keys
+				const bool bShouldActuallyTransact = !Sequencer.Pin()->IsRecordingLive();		// Don't transact if we're recording in a PIE world.  That type of keyframe capture cannot be undone.
+				FScopedTransaction AutoKeyTransaction( NSLOCTEXT("AnimatablePropertyTool", "PropertyChanged", "Animatable Property Changed"), bShouldActuallyTransact );
 
-			UpdatePlaybackRange();
+				if( OnKeyProperty.Execute( KeyTime ) )
+				{
+					// Movie scene data has changed
+					NotifyMovieSceneDataChanged();
+				}
+
+				UpdatePlaybackRange();
+			}
 		}
 	}
 
@@ -212,7 +213,7 @@ public:
 	virtual void BuildAddTrackMenu(FMenuBuilder& MenuBuilder) override { }
 	virtual void BuildObjectBindingEditButtons(TSharedPtr<SHorizontalBox> EditBox, const FGuid& ObjectBinding, const UClass* ObjectClass) override { }
 	virtual void BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass) override { }
-	virtual TSharedPtr<SWidget> BuildOutlinerEditWidget(const FGuid& ObjectBinding, UMovieSceneTrack* Track) override  { return TSharedPtr<SWidget>(); }
+	virtual TSharedPtr<SWidget> BuildOutlinerEditWidget(const FGuid& ObjectBinding, UMovieSceneTrack* Track, const FBuildEditWidgetParams& Params) override  { return TSharedPtr<SWidget>(); }
 	virtual void BuildTrackContextMenu( FMenuBuilder& MenuBuilder, UMovieSceneTrack* Track ) override { }
 	virtual bool HandleAssetAdded(UObject* Asset, const FGuid& TargetObjectGuid) override { return false; }
 
@@ -229,6 +230,7 @@ public:
 	}
 
 	virtual TSharedRef<ISequencerSection> MakeSectionInterface(class UMovieSceneSection& SectionObject, UMovieSceneTrack& Track) = 0;
+	virtual void OnInitialize() override { };
 	virtual void OnRelease() override { };
 
 	virtual int32 PaintTrackArea(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle) override

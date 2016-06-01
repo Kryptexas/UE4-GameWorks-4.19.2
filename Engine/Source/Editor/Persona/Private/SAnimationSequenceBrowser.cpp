@@ -47,15 +47,15 @@ SAnimationSequenceBrowser::~SAnimationSequenceBrowser()
 {
 	if(PreviewComponent)
 	{
-		for(int32 ComponentIdx = PreviewComponent->AttachChildren.Num() - 1 ; ComponentIdx >= 0 ; --ComponentIdx)
+		for(int32 ComponentIdx = PreviewComponent->GetAttachChildren().Num() - 1 ; ComponentIdx >= 0 ; --ComponentIdx)
 		{
-			USceneComponent* Component = PreviewComponent->AttachChildren[ComponentIdx];
+			USceneComponent* Component = PreviewComponent->GetAttachChildren()[ComponentIdx];
 			if(Component)
 			{
 				CleanupPreviewSceneComponent(Component);
 			}
 		}
-		PreviewComponent->AttachChildren.Empty();
+		check(PreviewComponent->GetAttachChildren().Num() == 0);
 	}
 
 	if(ViewportClient.IsValid())
@@ -945,11 +945,12 @@ bool SAnimationSequenceBrowser::OnVisualizeAssetToolTip(const TSharedPtr<SWidget
 			PreviewComponent->EnablePreview(true, Asset, nullptr);
 			PreviewComponent->PreviewInstance->PlayAnim(true);
 
+			FBoxSphereBounds MeshImportedBounds = MeshToUse->GetImportedBounds();
 			float HalfFov = FMath::DegreesToRadians(ViewportClient->ViewFOV) / 2.0f;
-			float TargetDist = MeshToUse->Bounds.SphereRadius / FMath::Tan(HalfFov);
+			float TargetDist = MeshImportedBounds.SphereRadius / FMath::Tan(HalfFov);
 
 			ViewportClient->SetViewRotation(FRotator(0.0f, -45.0f, 0.0f));
-			ViewportClient->SetViewLocationForOrbiting(FVector(0.0f, 0.0f, MeshToUse->Bounds.BoxExtent.Z / 2.0f), TargetDist);
+			ViewportClient->SetViewLocationForOrbiting(FVector(0.0f, 0.0f, MeshImportedBounds.BoxExtent.Z / 2.0f), TargetDist);
 
 			ViewportWidget->SetVisibility(EVisibility::Visible);
 			
@@ -985,12 +986,12 @@ void SAnimationSequenceBrowser::CleanupPreviewSceneComponent(USceneComponent* Co
 {
 	if(Component)
 	{
-		for(int32 ComponentIdx = Component->AttachChildren.Num() - 1 ; ComponentIdx >= 0 ; --ComponentIdx)
+		for(int32 ComponentIdx = Component->GetAttachChildren().Num() - 1 ; ComponentIdx >= 0 ; --ComponentIdx)
 		{
-			USceneComponent* ChildComponent = Component->AttachChildren[ComponentIdx];
+			USceneComponent* ChildComponent = Component->GetAttachChildren()[ComponentIdx];
 			CleanupPreviewSceneComponent(ChildComponent);
 		}
-		Component->AttachChildren.Empty();
+		check(Component->GetAttachChildren().Num() == 0);
 		Component->DestroyComponent();
 	}
 }
@@ -1016,7 +1017,7 @@ bool SAnimationSequenceBrowser::IsToolTipPreviewVisible()
 {
 	bool bVisible = false;
 	// during persona recording, disable this
-	if( PersonaPtr.IsValid() && PersonaPtr.Pin()->Recorder.InRecording() == false 
+	if( PersonaPtr.IsValid() && PersonaPtr.Pin()->IsRecording() == false 
 		&& ViewportWidget.IsValid())
 	{
 		bVisible = ViewportWidget->GetVisibility() == EVisibility::Visible;

@@ -174,7 +174,10 @@ public:
 	UFUNCTION(reliable, client, SealedEvent)
 	void RemoveDebugText(AActor* SrcActor, bool bLeaveDurationText = false);
 
-	/** Hook to allow blueprints to do custom HUD drawing. @see bSuppressNativeHUD to control HUD drawing in base class. */
+	/** 
+	 *	Hook to allow blueprints to do custom HUD drawing. @see bSuppressNativeHUD to control HUD drawing in base class. 
+	 *	Note:  the canvas resource used for drawing is only valid during this event, it will not be valid if drawing functions are called later (e.g. after a Delay node).
+	 */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic)
 	void ReceiveDrawHUD(int32 SizeX, int32 SizeY);
 
@@ -236,9 +239,10 @@ public:
 	 * @param EndScreenX		Screen-space X coordinate of end of the line.
 	 * @param EndScreenY		Screen-space Y coordinate of end of the line.
 	 * @param LineColor			Color to draw line
+	 * @param LineThickness		Thickness of the line to draw
 	 */
 	UFUNCTION(BlueprintCallable, Category=HUD, meta=(LineColor="(R=0,G=0,B=0,A=1)"))
-	void DrawLine(float StartScreenX, float StartScreenY, float EndScreenX, float EndScreenY, FLinearColor LineColor);
+	void DrawLine(float StartScreenX, float StartScreenY, float EndScreenX, float EndScreenY, FLinearColor LineColor, float LineThickness=0.f);
 
 	/**
 	 * Draws a colored untextured quad on the HUD.
@@ -430,6 +434,9 @@ public:
 
 	/** draw overlays for actors that were rendered this tick and have added themselves to the PostRenderedActors array	*/
 	virtual void DrawActorOverlays(FVector Viewpoint, FRotator ViewRotation);
+
+	/** Draw the safe zone debugging overlay when enabled */
+	virtual void DrawSafeZoneOverlay();
 
 	/** Called in PostInitializeComponents or postprocessing chain has changed (happens because of the worldproperties can define it's own chain and this one is set late). */
 	virtual void NotifyBindPostProcessEffects();

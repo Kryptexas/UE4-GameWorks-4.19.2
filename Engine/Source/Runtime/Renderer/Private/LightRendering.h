@@ -27,6 +27,7 @@ BEGIN_UNIFORM_BUFFER_STRUCT(FDeferredLightUniformStruct,)
 END_UNIFORM_BUFFER_STRUCT(FDeferredLightUniformStruct)
 
 extern float GMinScreenRadiusForLights;
+extern uint32 GetShadowQuality();
 
 template<typename ShaderRHIParamRef>
 void SetDeferredLightParameters(
@@ -77,8 +78,9 @@ void SetDeferredLightParameters(
 		ShadowMapChannel == 2 ? 1 : 0,
 		ShadowMapChannel == 3 ? 1 : 0);
 
+	const bool bDynamicShadows = View.Family->EngineShowFlags.DynamicShadows && GetShadowQuality() > 0;
 	const bool bHasLightFunction = LightSceneInfo->Proxy->GetLightFunctionMaterial() != NULL;
-	DeferredLightUniformsValue.bShadowed = LightSceneInfo->Proxy->CastsDynamicShadow() || LightSceneInfo->Proxy->CastsStaticShadow() || bHasLightFunction;
+	DeferredLightUniformsValue.bShadowed = ((LightSceneInfo->Proxy->CastsDynamicShadow() || LightSceneInfo->Proxy->CastsStaticShadow()) && bDynamicShadows) || bHasLightFunction;
 
 	if( LightSceneInfo->Proxy->IsInverseSquared() )
 	{
@@ -92,6 +94,9 @@ void SetDeferredLightParameters(
 		DeferredLightUniformsValue.LightColor *= LightSceneInfo->Proxy->GetIndirectLightingScale();
 	}
 
+	const ELightComponentType LightType = (ELightComponentType)LightSceneInfo->Proxy->GetLightType();
+
+	if (LightType == LightType_Point || LightType == LightType_Spot)
 	{
 		// Distance fade
 		FSphere Bounds = LightSceneInfo->Proxy->GetBoundingSphere();
@@ -177,7 +182,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return bRadialLight ? IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) : true;
 	}
 
 	TDeferredLightVS()	{}

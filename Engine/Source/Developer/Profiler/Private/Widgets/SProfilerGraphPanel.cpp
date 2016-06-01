@@ -2,7 +2,6 @@
 
 #include "ProfilerPrivatePCH.h"
 
-// @TODO yrx 2014-04-18 Move SProfilerWindow later
 #define LOCTEXT_NAMESPACE "SProfilerGraphPanel"
 
 SProfilerGraphPanel::SProfilerGraphPanel()
@@ -133,28 +132,26 @@ void SProfilerGraphPanel::HorizontalScrollBar_OnUserScrolled( float ScrollOffset
 
 void SProfilerGraphPanel::VerticalScrollBar_OnUserScrolled( float ScrollOffset )
 {
-	// @TODO yrx 2014-04-24 Broadcast?
 	if( ViewMode == EProfilerViewMode::LineIndexBased )
 	{
 
 	}
 	else if( ViewMode == EProfilerViewMode::ThreadViewTimeBased )
 	{
-		// @TODO yrx 2014-04-23 
 		ThreadView->SetPositonYTo( ScrollOffset );
 	}
 }
 
 
-void SProfilerGraphPanel::ProfilerManager_OnTrackedStatChanged( const FTrackedStat& TrackedStat, bool bIsTracked )
+void SProfilerGraphPanel::ProfilerManager_OnTrackedStatChanged( const FTrackedStatPtr& TrackedStat, bool bIsTracked )
 {
 	if( bIsTracked )
 	{
-		DataGraph->AddInnerGraph( TrackedStat.StatID, TrackedStat.ColorAverage, TrackedStat.ColorBackground, TrackedStat.ColorExtremes, TrackedStat.CombinedGraphDataSource );
+		DataGraph->AddInnerGraph( TrackedStat );
 	}
 	else
 	{
-		DataGraph->RemoveInnerGraph( TrackedStat.StatID );
+		DataGraph->RemoveInnerGraph( TrackedStat->StatID );
 	}
 }
 
@@ -257,7 +254,6 @@ void SProfilerGraphPanel::UpdateInternals()
 	}
 	else if( ViewMode == EProfilerViewMode::ThreadViewTimeBased )
 	{
-		// @TODO yrx 2014-04-23 
 	}
 }
 

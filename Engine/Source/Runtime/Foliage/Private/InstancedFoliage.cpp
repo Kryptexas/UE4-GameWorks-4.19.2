@@ -21,9 +21,7 @@
 #define DO_FOLIAGE_CHECK			0			// whether to validate foliage data during editing.
 #define FOLIAGE_CHECK_TRANSFORM		0			// whether to compare transforms between render and painting data.
 
-
-DEFINE_LOG_CATEGORY_STATIC(LogInstancedFoliage, Log, All);
-
+DEFINE_LOG_CATEGORY(LogInstancedFoliage);
 
 // Custom serialization version for all packages containing Instance Foliage
 struct FFoliageCustomVersion
@@ -288,12 +286,12 @@ UFoliageType::UFoliageType(const FObjectInitializer& ObjectInitializer)
 	CullDistance.Max = 0;
 	bEnableStaticLighting_DEPRECATED = true;
 	MinimumLayerWeight = 0.5f;
+#if WITH_EDITORONLY_DATA
 	IsSelected = false;
+#endif
 	DensityAdjustmentFactor = 1.0f;
 	CollisionWithWorld = false;
 	CollisionScale = FVector(0.9f, 0.9f, 0.9f);
-	VertexColorMask = FOLIAGEVERTEXCOLORMASK_Disabled;
-	VertexColorMaskThreshold = 0.5f;
 
 	Mobility = EComponentMobility::Static;
 	CastShadow = true;
@@ -332,7 +330,10 @@ UFoliageType::UFoliageType(const FObjectInitializer& ObjectInitializer)
 	Curve->AddKey(1.f, 1.f);
 
 	UpdateGuid = FGuid::NewGuid();
+#if WITH_EDITORONLY_DATA
 	HiddenEditorViews = 0;
+#endif
+	bEnableDensityScaling = false;
 
 #if WITH_EDITORONLY_DATA
 	// Deprecated since FFoliageCustomVersion::FoliageTypeCustomization
@@ -361,6 +362,39 @@ void UFoliageType::Serialize(FArchive& Ar)
 	Super::Serialize(Ar);
 
 	Ar.UsingCustomVersion(FFoliageCustomVersion::GUID);
+
+	// we now have mask configurations for every color channel
+	if (Ar.IsLoading() && Ar.IsPersistent() && !Ar.HasAnyPortFlags(PPF_Duplicate|PPF_DuplicateForPIE) && VertexColorMask_DEPRECATED != FOLIAGEVERTEXCOLORMASK_Disabled)
+	{
+		FFoliageVertexColorChannelMask* Mask = nullptr;
+		switch(VertexColorMask_DEPRECATED)
+		{
+		case FOLIAGEVERTEXCOLORMASK_Red:
+			Mask = &VertexColorMaskByChannel[(uint8)EVertexColorMaskChannel::Red];
+			break;
+
+		case FOLIAGEVERTEXCOLORMASK_Green:
+			Mask = &VertexColorMaskByChannel[(uint8)EVertexColorMaskChannel::Green];
+			break;
+
+		case FOLIAGEVERTEXCOLORMASK_Blue:
+			Mask = &VertexColorMaskByChannel[(uint8)EVertexColorMaskChannel::Blue];
+			break;
+
+		case FOLIAGEVERTEXCOLORMASK_Alpha:
+			Mask = &VertexColorMaskByChannel[(uint8)EVertexColorMaskChannel::Alpha];
+			break;
+		}
+
+		if (Mask != nullptr)
+		{
+			Mask->UseMask = true;
+			Mask->MaskThreshold = VertexColorMaskThreshold_DEPRECATED;
+			Mask->InvertMask = VertexColorMaskInvert_DEPRECATED;
+
+			VertexColorMask_DEPRECATED = FOLIAGEVERTEXCOLORMASK_Disabled;
+		}
+	}
 
 	if (LandscapeLayer_DEPRECATED != NAME_None && LandscapeLayers.Num() == 0)	//we now store an array of names so initialize the array with the old name
 	{
@@ -688,7 +722,7 @@ void FFoliageMeshInfo::CreateNewComponent(AInstancedFoliageActor* InIFA, const U
 
 	UpdateComponentSettings(InSettings);
 
-	Component->AttachTo(InIFA->GetRootComponent());
+	Component->SetupAttachment(InIFA->GetRootComponent());
 
 	if (InIFA->GetRootComponent()->IsRegistered())
 	{
@@ -833,6 +867,12 @@ void FFoliageMeshInfo::UpdateComponentSettings(const UFoliageType* InSettings)
 		if (Component->bUseAsOccluder != FoliageType->bUseAsOccluder)
 		{
 			Component->bUseAsOccluder = FoliageType->bUseAsOccluder;
+			bNeedsMarkRenderStateDirty = true;
+		}
+
+		if (Component->bEnableDensityScaling != FoliageType->bEnableDensityScaling)
+		{
+			Component->bEnableDensityScaling = FoliageType->bEnableDensityScaling;
 			bNeedsMarkRenderStateDirty = true;
 		}
 
@@ -2311,10 +2351,10 @@ void AInstancedFoliageActor::PostLoad()
 		Arguments.Add(TEXT("Level"), FText::FromString(*OwningLevel->GetOutermost()->GetName()));
 		FMessageLog("MapCheck").Warning()
 			->AddToken(FUObjectToken::Create(this))
-			->AddToken(FTextToken::Create(FText::Format(LOCTEXT("MapCheck_DuplicateInstancedFoliageActor", "Level {Level} has an unexpected duplicate Instanced Foliage Actor {Actor}."), Arguments)))
+			->AddToken(FTextToken::Create(FText::Format(LOCTEXT("MapCheck_DuplicateInstancedFoliageActor", "Level {Level} has an unexpected duplicate Instanced Foliage Actor."), Arguments)))
 #if WITH_EDITOR
 			->AddToken(FActionToken::Create(LOCTEXT("MapCheck_FixDuplicateInstancedFoliageActor", "Fix"),
-				LOCTEXT("MapCheck_FixDuplicateInstancedFoliageActor_Desc", "Click consolidate into the main foliage actor."),
+				LOCTEXT("MapCheck_FixDuplicateInstancedFoliageActor_Desc", "Click to consolidate foliage into the main foliage actor."),
 				FOnActionTokenExecuted::CreateUObject(OwningLevel->InstancedFoliageActor.Get(), &AInstancedFoliageActor::RepairDuplicateIFA, this), true))
 #endif// WITH_EDITOR
 			;
@@ -2329,7 +2369,7 @@ void AInstancedFoliageActor::PostLoad()
 			ConvertDeprecatedFoliageMeshes(this, FoliageMeshes_Deprecated, FoliageMeshes);
 			FoliageMeshes_Deprecated.Empty();
 		}
-				
+
 		{
 			bool bContainsNull = FoliageMeshes.Remove(nullptr) > 0;
 			if (bContainsNull)
@@ -2350,10 +2390,10 @@ void AInstancedFoliageActor::PostLoad()
 			FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
 			UFoliageType* FoliageType = MeshPair.Key;
 
+			// Make sure the mesh has been PostLoaded as if not it can be considered invalid resulting in a bad HISMC tree
 			UStaticMesh* StaticMesh = FoliageType->GetStaticMesh();
 			if (StaticMesh)
 			{
-				// if we ReallocateClusters or CheckComponentClass below then we need the mesh fully loaded to build the HISMC tree successfully
 				StaticMesh->ConditionalPostLoad();
 			}
 
@@ -2401,7 +2441,7 @@ void AInstancedFoliageActor::PostLoad()
 			}
 			
 			// Clean up case where embeded instances had their static mesh deleted
-			if (FoliageType->IsNotAssetOrBlueprint() && FoliageType->GetStaticMesh() == nullptr)
+			if (FoliageType->IsNotAssetOrBlueprint() && StaticMesh == nullptr)
 			{
 				OnFoliageTypeMeshChangedEvent.Broadcast(FoliageType);
 				RemoveFoliageType(&FoliageType, 1);
@@ -2602,7 +2642,7 @@ bool AInstancedFoliageActor::FoliageTrace(const UWorld* InWorld, FHitResult& Out
 
 	TArray<FHitResult> Hits;
 
-	bool bInsideProceduralVolume = false;
+	bool bInsideProceduralVolumeOrArentUsingOne = false;
 	FCollisionShape SphereShape;
 	SphereShape.SetSphere(DesiredInstance.TraceRadius);
 	InWorld->SweepMultiByObjectType(Hits, StartTrace, DesiredInstance.EndTrace, FQuat::Identity, FCollisionObjectQueryParams(ECC_WorldStatic), SphereShape, QueryParams);
@@ -2628,10 +2668,21 @@ bool AInstancedFoliageActor::FoliageTrace(const UWorld* InWorld, FHitResult& Out
 				continue;
 			}
 
-			if (bInsideProceduralVolume == false)
+			if (DesiredInstance.ProceduralVolumeBodyInstance)
 			{
-				bInsideProceduralVolume = DesiredInstance.ProceduralVolumeBodyInstance->OverlapTest(Hit.ImpactPoint, FQuat::Identity, FCollisionShape::MakeSphere(1.f));	//make sphere of 1cm radius to test if we're in the procedural volume
+				// We have a procedural volume, so lets make sure we are inside it.
+				bInsideProceduralVolumeOrArentUsingOne = DesiredInstance.ProceduralVolumeBodyInstance->OverlapTest(Hit.ImpactPoint, FQuat::Identity, FCollisionShape::MakeSphere(1.f));	//make sphere of 1cm radius to test if we're in the procedural volume
 			}
+			else
+			{
+				// We have no procedural volume, so we aren't using one.
+				bInsideProceduralVolumeOrArentUsingOne = true;
+			}
+		}
+		else
+		{
+			// Not procedural, so we aren't using a procedural volume.
+			bInsideProceduralVolumeOrArentUsingOne = true;
 		}
 			
 		// In the editor traces can hit "No Collision" type actors, so ugh.
@@ -2652,7 +2703,7 @@ bool AInstancedFoliageActor::FoliageTrace(const UWorld* InWorld, FHitResult& Out
 			}
 			
 			OutHit = Hit;
-			return (DesiredInstance.PlacementMode != EFoliagePlacementMode::Procedural) || bInsideProceduralVolume;
+			return bInsideProceduralVolumeOrArentUsingOne;
 		}
 	}
 

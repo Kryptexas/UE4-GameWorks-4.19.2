@@ -13,9 +13,9 @@
  *
  * A trivial use case appear below:
  *
- *   Given: TArray< FString* > Items;
+ *   Given: TArray< TSharedPtr<FString> > Items;
  *
- *   SNew( SListView< FString* > )
+ *   SNew( SListView< TSharedPtr<FString> > )
  *     .ItemHeight(24)
  *     .ListItemsSource( &Items )
  *     .OnGenerateRow( SListView< TSharedPtr<FString> >::MakeOnGenerateWidget( this, &MyClass::OnGenerateRowForList ) )
@@ -25,7 +25,7 @@
  *
  * A sample implementation of OnGenerateWidgetForList would simply return a TextBlock with the corresponding text:
  *
- * TSharedRef<ITableRow> OnGenerateWidgetForList( FString* InItem, const TSharedRef<STableViewBase>& OwnerTable )
+ * TSharedRef<ITableRow> OnGenerateWidgetForList( TSharedPtr<FString> InItem, const TSharedRef<STableViewBase>& OwnerTable )
  * {
  *     return SNew(STextBlock).Text( (*InItem) )
  * }
@@ -43,9 +43,12 @@ public:
 	typedef typename TSlateDelegates< ItemType >::FOnMouseButtonClick FOnMouseButtonClick;
 	typedef typename TSlateDelegates< ItemType >::FOnMouseButtonDoubleClick FOnMouseButtonDoubleClick;
 
+	DECLARE_DELEGATE_OneParam( FOnWidgetToBeRemoved, const TSharedRef<ITableRow>& );
+
 public:
 	SLATE_BEGIN_ARGS( SListView<ItemType> )
 		: _OnGenerateRow()
+		, _OnRowReleased()
 		, _ListItemsSource( static_cast<const TArray<ItemType>*>(nullptr) ) //@todo Slate Syntax: Initializing from nullptr without a cast
 		, _ItemHeight(16)
 		, _OnContextMenuOpening()
@@ -60,6 +63,8 @@ public:
 		{ }
 
 		SLATE_EVENT( FOnGenerateRow, OnGenerateRow )
+
+		SLATE_EVENT( FOnWidgetToBeRemoved, OnRowReleased )
 
 		SLATE_EVENT( FOnTableViewScrolled, OnListViewScrolled )
 
@@ -101,6 +106,7 @@ public:
 	void Construct( const typename SListView<ItemType>::FArguments& InArgs )
 	{
 		this->OnGenerateRow = InArgs._OnGenerateRow;
+		this->OnRowReleased = InArgs._OnRowReleased;
 		this->OnItemScrolledIntoView = InArgs._OnItemScrolledIntoView;
 
 		this->ItemsSource = InArgs._ListItemsSource;
@@ -470,6 +476,9 @@ private:
 					const TSharedRef<ITableRow> WidgetToCleanUp = *FindResult;
 					ItemToWidgetMap.Remove( ItemToBeCleanedUp );
 					WidgetMapToItem.Remove( &WidgetToCleanUp.Get() );
+
+					// broadcast here
+					OwnerList->OnRowReleased.ExecuteIfBound( WidgetToCleanUp );
 				}				
 			}
 
@@ -1374,6 +1383,9 @@ protected:
 
 	/** Delegate to be invoked when the list needs to generate a new widget from a data item. */
 	FOnGenerateRow OnGenerateRow;
+
+	/**/
+	FOnWidgetToBeRemoved OnRowReleased;
 
 	/** Delegate to be invoked when an item has come into view after it was requested to come into view. */
 	FOnItemScrolledIntoView OnItemScrolledIntoView;

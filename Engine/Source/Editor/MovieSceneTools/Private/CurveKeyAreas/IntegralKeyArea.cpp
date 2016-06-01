@@ -27,6 +27,10 @@ TArray<FKeyHandle> FIntegralCurveKeyAreaBase::AddKeyUnique(float Time, EMovieSce
 		EvaluateAndAddKey(Time, TimeToCopyFrom, CurrentKey);
 		AddedKeyHandles.Add(CurrentKey);
 	}
+	else
+	{
+		SetKeyValue(Time);
+	}
 
 	return AddedKeyHandles;
 }
@@ -47,15 +51,21 @@ void FIntegralCurveKeyAreaBase::DeleteKey(FKeyHandle KeyHandle)
 }
 
 
-FLinearColor FIntegralCurveKeyAreaBase::GetColor()
+TOptional<FLinearColor> FIntegralCurveKeyAreaBase::GetColor()
 {
-	return FLinearColor(0.1f, 0.1f, 0.1f, 0.7f);
+	return TOptional<FLinearColor>();
 }
 
 
 ERichCurveExtrapolation FIntegralCurveKeyAreaBase::GetExtrapolationMode(bool bPreInfinity) const
 {
 	return RCCE_None;
+}
+
+
+TSharedPtr<FStructOnScope> FIntegralCurveKeyAreaBase::GetKeyStruct(FKeyHandle KeyHandle)
+{
+	return MakeShareable(new FStructOnScope(FIntegralKey::StaticStruct(), (uint8*)&Curve.GetKey(KeyHandle)));
 }
 
 

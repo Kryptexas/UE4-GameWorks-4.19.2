@@ -23,6 +23,15 @@ class ENGINE_API UKismetInputLibrary : public UBlueprintFunctionLibrary
 	 */
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "Equal (Key)", CompactNodeTitle = "=="), Category="Utilities|Key")
 	static bool EqualEqual_KeyKey(FKey A, FKey B);
+
+	/**
+	* Test if the input chords are equal (A == B)
+	* @param A - The chord to compare against
+	* @param B - The chord to compare
+	* @returns True if the chords are equal, false otherwise
+	*/
+	UFUNCTION( BlueprintPure, meta = ( DisplayName = "Equal (Input Chord)", CompactNodeTitle = "==" ), Category = "Utilities|Key" )
+	static bool EqualEqual_InputChordInputChord( FInputChord A, FInputChord B );
 	
 	/**
 	 * @returns True if the key is a modifier key: Ctrl, Command, Alt, Shift

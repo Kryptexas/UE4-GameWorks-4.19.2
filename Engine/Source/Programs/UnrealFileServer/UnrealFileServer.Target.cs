@@ -28,7 +28,8 @@ public class UnrealFileServerTarget : TargetRules
 
 	public override bool ShouldCompileMonolithic(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
 	{
-		return true;
+		// Don't build monolithic because it could depend on modules that are not public
+		return false;
 	}
 
 	public override void SetupGlobalEnvironment(

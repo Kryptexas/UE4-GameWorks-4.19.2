@@ -22,6 +22,7 @@
 #include "AI/Navigation/NavigationSystem.h"
 #include "HierarchicalLOD.h"
 #include "ActorEditorUtils.h"
+#include "MaterialUtilities.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorBuildUtils, Log, All);
 
@@ -40,7 +41,7 @@ const FName FBuildOptions::BuildAll(TEXT("BuildAll"));
 const FName FBuildOptions::BuildAllSubmit(TEXT("BuildAllSubmit"));
 const FName FBuildOptions::BuildAllOnlySelectedPaths(TEXT("BuildAllOnlySelectedPaths"));
 const FName FBuildOptions::BuildHierarchicalLOD(TEXT("BuildHierarchicalLOD"));
-
+const FName FBuildOptions::BuildTextureStreaming(TEXT("BuildTextureStreaming"));
 
 bool FEditorBuildUtils::bBuildingNavigationFromUserRequest = false;
 TMap<FName, FEditorBuildUtils::FCustomBuildType> FEditorBuildUtils::CustomBuildTypes;
@@ -921,6 +922,9 @@ void FBuildAllHandler::ResumeBuild()
 	// Resuming from async operation, may be about to do slow stuff again so show the progress window again.
 	TWeakPtr<SBuildProgressWidget> BuildProgressWidget = GWarn->ShowBuildProgressWindow();
 
+	// We have to increment the build step, resuming from an async build step
+	CurrentStep++;
+
 	ProcessBuild(BuildProgressWidget);
 
 	// Synchronous part completed, hide the build progress dialog.
@@ -1026,6 +1030,36 @@ void FEditorBuildUtils::TriggerHierarchicalLODBuilder(UWorld* InWorld, FName Id)
 {
 	// Invoke HLOD generator, with either preview or full build
 	InWorld->HierarchicalLODBuilder->BuildMeshesForLODActors();
+}
+
+bool FEditorBuildUtils::EditorBuildTextureStreaming(UWorld* InWorld)
+{
+
+	const EMaterialQualityLevel::Type QualityLevel = EMaterialQualityLevel::High;
+	const ERHIFeatureLevel::Type FeatureLevel = GMaxRHIFeatureLevel;
+
+	CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
+
+	FTexCoordScaleMap TexCoordScales;
+	BuildTextureStreamingShaders(InWorld, QualityLevel, FeatureLevel, TexCoordScales);
+
+	{
+		const double StartTime = FPlatformTime::Seconds();
+		for (FTexCoordScaleMap::TIterator It(TexCoordScales); It; ++It)
+		{
+			UMaterialInterface* MaterialInterface = It.Key();
+			TArray<FMaterialTexCoordBuildInfo>& Scales = It.Value();
+
+
+			FMaterialUtilities::ExportMaterialTexCoordScales(MaterialInterface, QualityLevel, FeatureLevel, Scales);
+		}
+		UE_LOG(LogLevel, Display, TEXT("Export Material TexCoord Scales took %.3f seconds."), FPlatformTime::Seconds() - StartTime);
+	}
+
+	BuildTextureStreamingData(InWorld, TexCoordScales, QualityLevel, FeatureLevel);
+	CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
+
+	return true;
 }
 
 #undef LOCTEXT_NAMESPACE

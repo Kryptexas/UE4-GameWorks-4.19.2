@@ -4,12 +4,23 @@
 #include "AnimNodes/AnimNode_SequenceEvaluator.h"
 #include "Animation/AnimInstanceProxy.h"
 
+float FAnimNode_SequenceEvaluator::GetCurrentAssetTime()
+{
+	return ExplicitTime;
+}
+
+float FAnimNode_SequenceEvaluator::GetCurrentAssetLength()
+{
+	return Sequence ? Sequence->SequenceLength : 0.0f;
+}
+
 /////////////////////////////////////////////////////
 // FAnimSequenceEvaluatorNode
 
 void FAnimNode_SequenceEvaluator::Initialize(const FAnimationInitializeContext& Context)
 {
 	FAnimNode_AssetPlayerBase::Initialize(Context);
+	bReinitialized = true;
 }
 
 void FAnimNode_SequenceEvaluator::CacheBones(const FAnimationCacheBonesContext& Context) 
@@ -25,9 +36,19 @@ void FAnimNode_SequenceEvaluator::UpdateAssetPlayer(const FAnimationUpdateContex
 		// Clamp input to a valid position on this sequence's time line.
 		ExplicitTime = FMath::Clamp(ExplicitTime, 0.f, Sequence->SequenceLength);
 
-		if ((GroupIndex != INDEX_NONE) && (Context.AnimInstanceProxy->IsSkeletonCompatible(Sequence->GetSkeleton())))
+		if ((!bTeleportToExplicitTime || (GroupIndex != INDEX_NONE)) && (Context.AnimInstanceProxy->IsSkeletonCompatible(Sequence->GetSkeleton())))
 		{
+			if (bReinitialized)
+			{
+				switch (ReinitializationBehavior)
+				{
+					case ESequenceEvalReinit::StartPosition: InternalTimeAccumulator = StartPosition; break;
+					case ESequenceEvalReinit::ExplicitTime: InternalTimeAccumulator = ExplicitTime; break;
+				}
+			}
+
 			InternalTimeAccumulator = FMath::Clamp(InternalTimeAccumulator, 0.f, Sequence->SequenceLength);
+
 			float TimeJump = ExplicitTime - InternalTimeAccumulator;
 			if (bShouldLoopWhenInSyncGroup)
 			{
@@ -53,6 +74,8 @@ void FAnimNode_SequenceEvaluator::UpdateAssetPlayer(const FAnimationUpdateContex
 			InternalTimeAccumulator = ExplicitTime;
 		}
 	}
+
+	bReinitialized = false;
 }
 
 void FAnimNode_SequenceEvaluator::Evaluate(FPoseContext& Output)
@@ -79,6 +102,6 @@ void FAnimNode_SequenceEvaluator::GatherDebugData(FNodeDebugData& DebugData)
 {
 	FString DebugLine = DebugData.GetNodeName(this);
 	
-	DebugLine += FString::Printf(TEXT("('%s' Play Time: %.3f)"), *GetNameSafe(Sequence), ExplicitTime);
+	DebugLine += FString::Printf(TEXT("('%s' InputTime: %.3f, Time: %.3f)"), *GetNameSafe(Sequence), ExplicitTime, InternalTimeAccumulator);
 	DebugData.AddDebugItem(DebugLine, true);
 }

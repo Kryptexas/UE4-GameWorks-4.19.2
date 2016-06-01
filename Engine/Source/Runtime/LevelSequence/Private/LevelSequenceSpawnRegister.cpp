@@ -7,6 +7,10 @@
 #include "MovieSceneSequence.h"
 #include "MovieScene.h"
 #include "MovieSceneCommonHelpers.h"
+#include "Particles/ParticleSystem.h"
+#include "IMovieScenePlayer.h"
+
+static const FName SequencerActorTag(TEXT("SequencerActor"));
 
 UObject* FLevelSequenceSpawnRegister::SpawnObject(const FGuid& BindingId, FMovieSceneSequenceInstance& SequenceInstance, IMovieScenePlayer& Player)
 {
@@ -26,8 +30,8 @@ UObject* FLevelSequenceSpawnRegister::SpawnObject(const FGuid& BindingId, FMovie
 		return nullptr;
 	}
 
-	UClass* SpawnableClass = Spawnable->GetClass();
-	if (!SpawnableClass || !SpawnableClass->IsChildOf(AActor::StaticClass()))
+	AActor* ObjectTemplate = Cast<AActor>(Spawnable->GetObjectTemplate());
+	if (!ObjectTemplate)
 	{
 		return nullptr;
 	}
@@ -51,46 +55,52 @@ UObject* FLevelSequenceSpawnRegister::SpawnObject(const FGuid& BindingId, FMovie
 	{
 		SpawnInfo.Name = ActorName;
 		SpawnInfo.ObjectFlags = ObjectFlags;
+		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		// @todo: Spawning with a non-CDO template is fraught with issues
+		//SpawnInfo.Template = ObjectTemplate;
 	}
 
 	FTransform SpawnTransform;
 
-	AActor* ActorCDO = CastChecked<AActor>(SpawnableClass->ClassDefaultObject);
-	if (USceneComponent* RootComponent = ActorCDO->GetRootComponent())
+	if (USceneComponent* RootComponent = ObjectTemplate->GetRootComponent())
 	{
 		SpawnTransform.SetTranslation(RootComponent->RelativeLocation);
 		SpawnTransform.SetRotation(RootComponent->RelativeRotation.Quaternion());
 	}
 
-	//@todo: This is in place of SpawnActorAbsolute which doesn't exist yet in the Orion branch
-	FTransform NewTransform = SpawnTransform;
 	{
-		AActor* Template = SpawnInfo.Template;
-
-		if(!Template)
+		// Disable all particle components so that they don't auto fire as soon as the actor is spawned. The particles should be triggered through the particle track.
+		TArray<UActorComponent*> ParticleComponents = ObjectTemplate->GetComponentsByClass(UParticleSystemComponent::StaticClass());
+		for (int32 ComponentIdx = 0; ComponentIdx < ParticleComponents.Num(); ++ComponentIdx)
 		{
-			// Use class's default actor as a template.
-			Template = SpawnableClass->GetDefaultObject<AActor>();
-		}
-
-		USceneComponent* TemplateRootComponent = (Template)? Template->GetRootComponent() : NULL;
-		if(TemplateRootComponent)
-		{
-			TemplateRootComponent->UpdateComponentToWorld();
-			NewTransform = TemplateRootComponent->GetComponentToWorld().Inverse() * NewTransform;
+			ParticleComponents[ComponentIdx]->bAutoActivate = false;
 		}
 	}
 
-	UObject* SpawnedObject = GWorld->SpawnActor(SpawnableClass, &NewTransform, SpawnInfo);
-	if (!SpawnedObject)
+	UWorld* WorldContext = Cast<UWorld>(Player.GetPlaybackContext());
+	if(WorldContext == nullptr)
+	{
+		WorldContext = GWorld;
+	}
+
+	AActor* SpawnedActor = WorldContext->SpawnActorAbsolute(ObjectTemplate->GetClass(), SpawnTransform, SpawnInfo);
+	if (!SpawnedActor)
 	{
 		return nullptr;
 	}
+	
+	UEngine::FCopyPropertiesForUnrelatedObjectsParams CopyParams;
+	SpawnedActor->UnregisterAllComponents();
+	UEngine::CopyPropertiesForUnrelatedObjects(ObjectTemplate, SpawnedActor, CopyParams);
+	SpawnedActor->RegisterAllComponents();
 
-	Register.Add(Key, FSpawnedObject(*SpawnedObject, Spawnable->GetSpawnOwnership()));
+	// tag this actor so we know it was spawned by sequencer
+	SpawnedActor->Tags.Add(SequencerActorTag);
 
-	SequenceInstance.OnObjectSpawned(BindingId, *SpawnedObject, Player);
-	return SpawnedObject;
+	Register.Add(Key, FSpawnedObject(BindingId, *SpawnedActor, Spawnable->GetSpawnOwnership()));
+
+	SequenceInstance.OnObjectSpawned(BindingId, *SpawnedActor, Player);
+	return SpawnedActor;
 }
 
 void FLevelSequenceSpawnRegister::DestroySpawnedObject(const FGuid& BindingId, FMovieSceneSequenceInstance& SequenceInstance, IMovieScenePlayer& Player)
@@ -146,12 +156,12 @@ void FLevelSequenceSpawnRegister::ForgetExternallyOwnedSpawnedObjects(IMovieScen
 	}
 }
 
-void FLevelSequenceSpawnRegister::DestroyObjects(IMovieScenePlayer& Player, TFunctionRef<bool(FMovieSceneSequenceInstance&, FSpawnedObject&)> Pred)
+void FLevelSequenceSpawnRegister::DestroyObjectsByPredicate(IMovieScenePlayer& Player, const TFunctionRef<bool(const FGuid&, ESpawnOwnership, FMovieSceneSequenceInstance&)>& Predicate)
 {
 	for (auto It = Register.CreateIterator(); It; ++It)
 	{
 		FMovieSceneSequenceInstance* ThisInstance = It.Key().SequenceInstance.Pin().Get();
-		if (!ThisInstance || Pred(*ThisInstance, It.Value()))
+		if (!ThisInstance || Predicate(It.Value().Guid, It.Value().Ownership, *ThisInstance))
 		{
 			UObject* SpawnedObject = It.Value().Object.Get();
 			if (SpawnedObject)
@@ -172,38 +182,6 @@ void FLevelSequenceSpawnRegister::DestroyObjects(IMovieScenePlayer& Player, TFun
 	}
 }
 
-void FLevelSequenceSpawnRegister::DestroyObjectsOwnedByInstance(FMovieSceneSequenceInstance& SequenceInstance, IMovieScenePlayer& Player)
-{
-	DestroyObjects(Player, [&](FMovieSceneSequenceInstance& ThisInstance, FSpawnedObject& SpawnedObject){
-		if (SpawnedObject.Ownership == ESpawnOwnership::InnerSequence)
-		{
-			return &ThisInstance == &SequenceInstance;
-		}
-		return false;
-	});
-}
-
-void FLevelSequenceSpawnRegister::DestroyObjectsSpawnedByInstance(FMovieSceneSequenceInstance& SequenceInstance, IMovieScenePlayer& Player)
-{
-	DestroyObjects(Player, [&](FMovieSceneSequenceInstance& ThisInstance, FSpawnedObject& SpawnedObject){
-		return &ThisInstance == &SequenceInstance;
-	});
-}
-
-void FLevelSequenceSpawnRegister::DestroyAllOwnedObjects(IMovieScenePlayer& Player)
-{
-	DestroyObjects(Player, [&](FMovieSceneSequenceInstance&, FSpawnedObject& SpawnedObject){
-		return SpawnedObject.Ownership != ESpawnOwnership::External;
-	});
-}
-
-void FLevelSequenceSpawnRegister::DestroyAllObjects(IMovieScenePlayer& Player)
-{
-	DestroyObjects(Player, [&](FMovieSceneSequenceInstance&, FSpawnedObject&){
-		return true;
-	});
-}
-
 void FLevelSequenceSpawnRegister::PreUpdateSequenceInstance(FMovieSceneSequenceInstance& Instance, IMovieScenePlayer& Player)
 {
 	++CurrentlyUpdatingSequenceCount;
@@ -219,7 +197,7 @@ void FLevelSequenceSpawnRegister::PostUpdateSequenceInstance(FMovieSceneSequence
 			TSharedPtr<FMovieSceneSequenceInstance> Instance = WeakInstance.Pin();
 			if (Instance.IsValid() && !ActiveInstances.Contains(Instance))
 			{
-				DestroyObjectsOwnedByInstance(*Instance, Player);
+				OnSequenceExpired(*Instance, Player);
 			}
 		}
 

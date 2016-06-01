@@ -14,19 +14,11 @@ enum EShaderFrequency
 	SF_Vertex			= 0,
 	SF_Hull				= 1,
 	SF_Domain			= 2,
-	SF_Pixel				= 3,
+	SF_Pixel			= 3,
 	SF_Geometry			= 4,
 	SF_Compute			= 5,
 
 	SF_NumFrequencies	= 6,
-
-#if USE_ASYNC_COMPUTE_CONTEXT 
-	SF_AsyncCompute		= 6, // "Special" frequency to distinguish between Device Contexts, 
-							 // TODO: maybe have a separate enum for this
-	SF_NumFrequenciesIncludingAsync,
-#else
-	SF_NumFrequenciesIncludingAsync = SF_NumFrequencies,
-#endif
 
 	SF_NumBits			= 3,
 };
@@ -57,11 +49,15 @@ enum EShaderPlatform
 	/** Used when running in Feature Level ES3_1 in OpenGL. */
 	SP_OPENGL_PCES3_1	= 16,
 	SP_METAL_SM5		= 17,
-	SP_VULKAN_ES2		= 18,
+	SP_VULKAN_PCES3_1	= 18,
 	SP_METAL_SM4		= 19,
-	SP_METAL_MACES3_1	= 20,
+	SP_VULKAN_SM4		= 20,
+	SP_VULKAN_SM5		= 21,
+	SP_VULKAN_ES3_1_ANDROID = 22,
+	SP_METAL_MACES3_1 	= 23,
+	SP_METAL_MACES2		= 24,
 
-	SP_NumPlatforms		= 21,
+	SP_NumPlatforms		= 25,
 	SP_NumBits			= 5,
 };
 static_assert(SP_NumPlatforms <= (1 << SP_NumBits), "SP_NumPlatforms will not fit on SP_NumBits");
@@ -114,7 +110,7 @@ namespace ERHIFeatureLevel
 	{
 		/** Feature level defined by the core capabilities of OpenGL ES2. */
 		ES2,
-		/** Feature level defined by the core capabilities of OpenGL ES3.1 & Metal. */
+		/** Feature level defined by the core capabilities of OpenGL ES3.1 & Metal/Vulkan. */
 		ES3_1,
 		/** Feature level defined by the capabilities of DX10 Shader Model 4. */
 		SM4,
@@ -189,7 +185,7 @@ enum ECompareFunction
 
 	// Utility enumerations
 	CF_DepthNearOrEqual		= (((int32)ERHIZBuffer::IsInverted != 0) ? CF_GreaterEqual : CF_LessEqual),
-	CF_DepthNear				= (((int32)ERHIZBuffer::IsInverted != 0) ? CF_Greater : CF_Less),
+	CF_DepthNear			= (((int32)ERHIZBuffer::IsInverted != 0) ? CF_Greater : CF_Less),
 	CF_DepthFartherOrEqual	= (((int32)ERHIZBuffer::IsInverted != 0) ? CF_LessEqual : CF_GreaterEqual),
 	CF_DepthFarther			= (((int32)ERHIZBuffer::IsInverted != 0) ? CF_Less : CF_Greater),
 };
@@ -252,12 +248,13 @@ enum EVertexElementType
 	VET_UShort4,
 	VET_UShort2N,		// 16 bit word normalized to (value/65535.0,value/65535.0,0,0,1)
 	VET_UShort4N,		// 4 X 16 bit word unsigned, normalized 
+	VET_URGB10A2N,		// 10 bit r, g, b and 2 bit a normalized to (value/1023.0f, value/1023.0f, value/1023.0f, value/3.0f)
 	VET_MAX
 };
 
 enum ECubeFace
 {
-	CubeFace_PosX=0,
+	CubeFace_PosX = 0,
 	CubeFace_NegX,
 	CubeFace_PosY,
 	CubeFace_NegY,
@@ -336,7 +333,7 @@ private:
 		RTD_Shift_ResourceIndex			= RTD_Shift_BindIndex + RTD_NumBits_BindIndex,
 		RTD_Shift_UniformBufferIndex	= RTD_Shift_ResourceIndex + RTD_NumBits_ResourceIndex,
 	};
-	static_assert(RTD_NumBits_UniformBufferIndex + RTD_NumBits_ResourceIndex + RTD_NumBits_BindIndex <= sizeof(uint32) * 8, "RTD_* values must fit in 32 bits");
+	static_assert(RTD_NumBits_UniformBufferIndex + RTD_NumBits_ResourceIndex + RTD_NumBits_BindIndex <= sizeof(uint32)* 8, "RTD_* values must fit in 32 bits");
 };
 
 enum EResourceLockMode
@@ -412,7 +409,7 @@ enum EBufferUsageFlags
 {
 	// Mutually exclusive write-frequency flags
 	BUF_Static            = 0x0001, // The buffer will be written to once.
-	BUF_Dynamic           = 0x0002, // The buffer will be written to occasionally.  The data lifetime is until the next update, or the buffer is destroyed.
+	BUF_Dynamic           = 0x0002, // The buffer will be written to occasionally, GPU read only, CPU write only.  The data lifetime is until the next update, or the buffer is destroyed.
 	BUF_Volatile          = 0x0004, // The buffer's data will have a lifetime of one frame.  It MUST be written to each frame, or a new one created each frame.
 
 	// Mutually exclusive bind flags.
@@ -448,7 +445,7 @@ enum EBufferUsageFlags
 	BUF_FastVRAM          = 0x1000,
 
 	// Helper bit-masks
-	BUF_AnyDynamic      = (BUF_Dynamic|BUF_Volatile),
+	BUF_AnyDynamic = (BUF_Dynamic | BUF_Volatile),
 };
 
 /** An enumeration of the different RHI reference types. */
@@ -543,6 +540,10 @@ enum ETextureCreateFlags
 	TexCreate_Shared = 1 << 24,
 	// RenderTarget will not use full-texture fast clear functionality.
 	TexCreate_NoFastClear = 1 << 25,
+	// Texture is a depth stencil resolve target
+	TexCreate_DepthStencilResolveTarget = 1 << 26,
+	// RenderTarget will create with delta color compression
+	TexCreate_DeltaColorCompression = 1 << 27,
 };
 
 enum EAsyncComputePriority
@@ -597,32 +598,47 @@ enum class ESimpleRenderTargetMode
 	// If you add an item here, make sure to add it to DecodeRenderTargetMode() as well!
 };
 
+/**
+ * Hint to the driver on how to load balance async compute work.  On some platforms this may be a priority, on others actually masking out parts of the GPU for types of work.
+ */
+enum class EAsyncComputeBudget
+{
+	ELeast_0,			//Least amount of GPU allocated to AsyncCompute that still gets 'some' done.
+	EGfxHeavy_1,		//Gfx gets most of the GPU.
+	EBalanced_2,		//Async compute and Gfx share GPU equally.
+	EComputeHeavy_3,	//Async compute can use most of the GPU
+	EAll_4,				//Async compute can use the entire GPU.
+};
+
 inline bool IsPCPlatform(const EShaderPlatform Platform)
 {
-	return Platform == SP_PCD3D_SM5 || Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_ES2 || Platform == SP_PCD3D_ES3_1 || Platform ==  SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_PCES3_1 || Platform == SP_METAL_SM4 || Platform == SP_METAL_SM5 || Platform == SP_METAL_MACES3_1;
+	return Platform == SP_PCD3D_SM5 || Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_ES2 || Platform == SP_PCD3D_ES3_1 ||
+		Platform == SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_PCES3_1 ||
+		Platform == SP_METAL_SM4 || Platform == SP_METAL_SM5 ||
+		Platform == SP_VULKAN_PCES3_1 || Platform == SP_VULKAN_SM4 || Platform == SP_VULKAN_SM5 || Platform == SP_METAL_MACES3_1 || Platform == SP_METAL_MACES2;
 }
 
 /** Whether the shader platform corresponds to the ES2 feature level. */
 inline bool IsES2Platform(const EShaderPlatform Platform)
 {
-	return Platform == SP_PCD3D_ES2 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_ES2_ANDROID || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_METAL || Platform == SP_VULKAN_ES2 || Platform == SP_METAL_MACES3_1;
+	return Platform == SP_PCD3D_ES2 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_ES2_ANDROID || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_METAL_MACES2;
 }
 
-/** Whether the shader platform corresponds to the ES2 feature level. */
+/** Whether the shader platform corresponds to the ES2/ES3.1 feature level. */
 inline bool IsMobilePlatform(const EShaderPlatform Platform)
 {
-	return IsES2Platform(Platform) || Platform == SP_METAL || Platform == SP_PCD3D_ES3_1 || Platform == SP_OPENGL_PCES3_1 || Platform == SP_METAL_MACES3_1;
+	return IsES2Platform(Platform) || Platform == SP_METAL || Platform == SP_PCD3D_ES3_1 || Platform == SP_OPENGL_PCES3_1 || Platform == SP_VULKAN_ES3_1_ANDROID || Platform == SP_VULKAN_PCES3_1 || Platform == SP_METAL_MACES3_1;
 }
 
 inline bool IsOpenGLPlatform(const EShaderPlatform Platform)
 {
 	return Platform == SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2
-		|| Platform == SP_OPENGL_ES2_ANDROID || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_OPENGL_ES31_EXT || Platform == SP_VULKAN_ES2;
+		|| Platform == SP_OPENGL_ES2_ANDROID || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_OPENGL_ES31_EXT;
 }
 
 inline bool IsMetalPlatform(const EShaderPlatform Platform)
 {
-	return Platform == SP_METAL || Platform == SP_METAL_MRT || Platform == SP_METAL_SM4 || Platform == SP_METAL_SM5 || Platform == SP_METAL_MACES3_1;
+	return Platform == SP_METAL || Platform == SP_METAL_MRT || Platform == SP_METAL_SM4 || Platform == SP_METAL_SM5 || Platform == SP_METAL_MACES3_1 || Platform == SP_METAL_MACES2;
 }
 
 inline bool IsConsolePlatform(const EShaderPlatform Platform)
@@ -630,9 +646,19 @@ inline bool IsConsolePlatform(const EShaderPlatform Platform)
 	return Platform == SP_PS4 || Platform == SP_XBOXONE;
 }
 
+inline bool IsVulkanPlatform(const EShaderPlatform Platform)
+{
+	return Platform == SP_VULKAN_SM5 || Platform == SP_VULKAN_SM4 || Platform == SP_VULKAN_PCES3_1 || Platform == SP_VULKAN_ES3_1_ANDROID;
+}
+
+inline bool IsVulkanMobilePlatform(const EShaderPlatform Platform)
+{
+	return Platform == SP_VULKAN_PCES3_1 || Platform == SP_VULKAN_ES3_1_ANDROID;
+}
+
 inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShaderPlatform)
 {
-	switch(InShaderPlatform)
+	switch (InShaderPlatform)
 	{
 	case SP_PCD3D_SM5:
 	case SP_OPENGL_SM5:
@@ -640,7 +666,9 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 	case SP_XBOXONE:
 	case SP_OPENGL_ES31_EXT:
 	case SP_METAL_SM5:
+	case SP_VULKAN_SM5:
 		return ERHIFeatureLevel::SM5;
+	case SP_VULKAN_SM4:
 	case SP_PCD3D_SM4:
 	case SP_OPENGL_SM4:
 	case SP_OPENGL_SM4_MAC:
@@ -652,27 +680,31 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 	case SP_OPENGL_ES2_ANDROID:
 	case SP_OPENGL_ES2_WEBGL:
 	case SP_OPENGL_ES2_IOS:
-	case SP_VULKAN_ES2:
+	case SP_METAL_MACES2:
 		return ERHIFeatureLevel::ES2;
 	case SP_METAL:
+	case SP_METAL_MACES3_1:
 	case SP_PCD3D_ES3_1:
 	case SP_OPENGL_PCES3_1:
-	case SP_METAL_MACES3_1:
+	case SP_VULKAN_PCES3_1:
+	case SP_VULKAN_ES3_1_ANDROID:
 		return ERHIFeatureLevel::ES3_1;
 	default:
 		check(0);
 		return ERHIFeatureLevel::Num;
-	}	
+	}
 }
 
 /** Returns true if the feature level is supported by the shader platform. */
 inline bool IsFeatureLevelSupported(EShaderPlatform InShaderPlatform, ERHIFeatureLevel::Type InFeatureLevel)
 {
-	switch(InShaderPlatform)
+	switch (InShaderPlatform)
 	{
 	case SP_PCD3D_SM5:
+	case SP_VULKAN_SM5:
 		return InFeatureLevel <= ERHIFeatureLevel::SM5;
 	case SP_PCD3D_SM4:
+	case SP_VULKAN_SM4:
 		return InFeatureLevel <= ERHIFeatureLevel::SM4;
 	case SP_PCD3D_ES2:
 		return InFeatureLevel <= ERHIFeatureLevel::ES2;
@@ -683,11 +715,13 @@ inline bool IsFeatureLevelSupported(EShaderPlatform InShaderPlatform, ERHIFeatur
 	case SP_OPENGL_PCES3_1:
 		return InFeatureLevel <= ERHIFeatureLevel::ES3_1;
 	case SP_OPENGL_ES2_ANDROID:
-	case SP_VULKAN_ES2:
 		return InFeatureLevel <= ERHIFeatureLevel::ES2;
-	case SP_OPENGL_ES2_WEBGL: 
+	case SP_VULKAN_PCES3_1:
+	case SP_VULKAN_ES3_1_ANDROID:
+		return InFeatureLevel <= ERHIFeatureLevel::ES3_1;
+	case SP_OPENGL_ES2_WEBGL:
 		return InFeatureLevel <= ERHIFeatureLevel::ES2;
-	case SP_OPENGL_ES2_IOS: 
+	case SP_OPENGL_ES2_IOS:
 		return InFeatureLevel <= ERHIFeatureLevel::ES2;
 	case SP_OPENGL_SM4:
 		return InFeatureLevel <= ERHIFeatureLevel::SM4;
@@ -699,7 +733,7 @@ inline bool IsFeatureLevelSupported(EShaderPlatform InShaderPlatform, ERHIFeatur
 		return InFeatureLevel <= ERHIFeatureLevel::SM5;
 	case SP_XBOXONE:
 		return InFeatureLevel <= ERHIFeatureLevel::SM5;
-	case SP_METAL: 
+	case SP_METAL:
 		return InFeatureLevel <= ERHIFeatureLevel::ES3_1;
 	case SP_METAL_MRT:
 		return InFeatureLevel <= ERHIFeatureLevel::SM4;
@@ -711,16 +745,18 @@ inline bool IsFeatureLevelSupported(EShaderPlatform InShaderPlatform, ERHIFeatur
 		return InFeatureLevel <= ERHIFeatureLevel::SM5;
 	case SP_METAL_MACES3_1:
 		return InFeatureLevel <= ERHIFeatureLevel::ES3_1;
+	case SP_METAL_MACES2:
+		return InFeatureLevel <= ERHIFeatureLevel::ES2;
 	default:
 		return false;
-	}	
+	}
 }
 
 inline bool RHISupportsTessellation(const EShaderPlatform Platform)
 {
 	if (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5))
 	{
-		return ((Platform == SP_PCD3D_SM5) || (Platform == SP_XBOXONE) || (Platform == SP_OPENGL_SM5) || (Platform == SP_OPENGL_ES31_EXT));
+		return (Platform == SP_PCD3D_SM5) || (Platform == SP_XBOXONE) || (Platform == SP_OPENGL_SM5) || (Platform == SP_OPENGL_ES31_EXT) || (Platform == SP_VULKAN_SM5);
 	}
 	return false;
 }
@@ -728,18 +764,18 @@ inline bool RHISupportsTessellation(const EShaderPlatform Platform)
 inline bool RHINeedsToSwitchVerticalAxis(EShaderPlatform Platform)
 {
 	// ES2 needs to flip when rendering to an RT that will be post processed
-	return IsES2Platform(Platform) && !IsPCPlatform(Platform) && Platform != SP_METAL;
+	return IsES2Platform(Platform) && !IsPCPlatform(Platform) && Platform != SP_METAL && !IsVulkanPlatform(Platform);
 }
 
 inline bool RHISupportsSeparateMSAAAndResolveTextures(const EShaderPlatform Platform)
 {
 	// Metal needs to handle MSAA and resolve textures internally (unless RHICreateTexture2D was changed to take an optional resolve target)
-	return !IsMetalPlatform(Platform);
+	return !IsMetalPlatform(Platform) && IsVulkanPlatform(Platform);
 }
 
 inline bool RHISupportsComputeShaders(const EShaderPlatform Platform)
 {
-	//@todo-rco: Add Metal support
+	//@todo-rco: Add Metal & ES3.1 support
 	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
 }
 
@@ -750,12 +786,12 @@ inline bool RHISupportsPixelShaderUAVs(const EShaderPlatform Platform)
 
 inline bool RHISupportsGeometryShaders(const EShaderPlatform Platform)
 {
-	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && !IsMetalPlatform(Platform);
+	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && !IsMetalPlatform(Platform) && Platform != SP_VULKAN_PCES3_1 && Platform != SP_VULKAN_ES3_1_ANDROID;
 }
 
 inline bool RHIHasTiledGPU(const EShaderPlatform Platform)
 {
-	return (Platform == SP_METAL_MRT) || Platform == SP_METAL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_OPENGL_ES2_ANDROID;
+	return (Platform == SP_METAL_MRT) || Platform == SP_METAL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_OPENGL_ES2_ANDROID || Platform == SP_OPENGL_ES2_ANDROID;
 }
 
 inline uint32 GetFeatureLevelMaxTextureSamplers(ERHIFeatureLevel::Type FeatureLevel)
@@ -802,9 +838,6 @@ inline const TCHAR* GetShaderFrequencyString(EShaderFrequency Frequency)
 	case SF_Geometry:		return TEXT("SF_Geometry");
 	case SF_Pixel:			return TEXT("SF_Pixel");
 	case SF_Compute:		return TEXT("SF_Compute");
-#if USE_ASYNC_COMPUTE_CONTEXT 
-	case SF_AsyncCompute:	return TEXT("SF_AsyncCompute");
-#endif
 	default:				check(0); break;
 	}
 

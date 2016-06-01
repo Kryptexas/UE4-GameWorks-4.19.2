@@ -96,6 +96,8 @@ public:
 
 	void OnFocusSelection();
 
+	bool IsRecording() const;
+
 private:
 
 	enum EPhatHierarchyFilterMode
@@ -129,6 +131,9 @@ private:
 	void OnTreeHighlightChanged();
 	TSharedPtr<SWidget> OnTreeRightClick();
 	void OnAssetSelectedFromStaticMeshAssetPicker(const FAssetData& AssetData);
+
+	/** Call back for when bone/body properties are changed */
+	void OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent);
 
 	/** SContentReference uses this to set the current animation */
 	void AnimationSelectionChanged(UObject* Object);

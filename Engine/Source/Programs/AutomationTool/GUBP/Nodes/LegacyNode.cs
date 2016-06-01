@@ -21,11 +21,13 @@ namespace AutomationTool
 
 			// Copy the definition from the node
 			Name = Node.GetFullName();
+			AgentTypes = String.Join(";", Node.GetAgentTypes());
 			AgentRequirements = Node.ECAgentString();
 			AgentSharingGroup = Node.AgentSharingGroup;
 			AgentMemoryRequirement = Node.AgentMemoryRequirement();
 			TimeoutInMinutes = Node.TimeoutInMinutes();
 			SendSuccessEmail = Node.SendSuccessEmail();
+			NotifyOnWarnings = Node.NotifyOnWarnings();
 			Priority = Node.Priority();
 			IsSticky = Node.IsSticky();
 			DependsOn = String.Join(";", Node.FullNamesOfDependencies);
@@ -57,9 +59,9 @@ namespace AutomationTool
 			Node = Definition.Node;
 		}
 
-		public override void RetrieveBuildProducts(TempStorageNodeInfo TempStorageNodeInfo)
+		public override void RetrieveBuildProducts(string SharedStorageDir)
 		{
-			base.RetrieveBuildProducts(TempStorageNodeInfo);
+			base.RetrieveBuildProducts(SharedStorageDir);
 
 			Node.BuildProducts = BuildProducts;
 		}

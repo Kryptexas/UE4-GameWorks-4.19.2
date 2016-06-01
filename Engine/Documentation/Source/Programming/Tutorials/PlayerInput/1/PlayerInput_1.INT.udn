@@ -51,10 +51,10 @@ version:4.9
 		UCameraComponent* OurCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("OurCamera"));
 		OurVisibleComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("OurVisibleComponent"));
 		// Attach our camera and visible object to our root component. Offset and rotate the camera.
-		OurCamera->AttachTo(RootComponent);
+		OurCamera->SetupAttachment(RootComponent);
 		OurCamera->SetRelativeLocation(FVector(-250.0f, 0.0f, 250.0f));
 		OurCamera->SetRelativeRotation(FRotator(-45.0f, 0.0f, 0.0f));
-		OurVisibleComponent->AttachTo(RootComponent);
+		OurVisibleComponent->SetupAttachment(RootComponent);
 
 1. We are now ready to save our changes and compile with the **Build** command in **Visual Studio** or the **Compile** button in the **Unreal Edtior**.
 
@@ -121,10 +121,10 @@ Now that we have a customized Pawn to react to our game's input, we'll need to d
 				UCameraComponent* OurCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("OurCamera"));
 				OurVisibleComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("OurVisibleComponent"));
 				// Attach our camera and visible object to our root component. Offset and rotate the camera.
-				OurCamera->AttachTo(RootComponent);
+				OurCamera->SetupAttachment(RootComponent);
 				OurCamera->SetRelativeLocation(FVector(-250.0f, 0.0f, 250.0f));
 				OurCamera->SetRelativeRotation(FRotator(-45.0f, 0.0f, 0.0f));
-				OurVisibleComponent->AttachTo(RootComponent);
+				OurVisibleComponent->SetupAttachment(RootComponent);
 			}
 
 			// Called when the game starts or when spawned

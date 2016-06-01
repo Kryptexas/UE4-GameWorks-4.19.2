@@ -73,19 +73,19 @@ class UDataTable
 	{
 		if(RowStruct == nullptr)
 		{
-			UE_LOG(LogDataTable, Error, TEXT("UDataTable::FindRow : DataTable '%s' has no RowStruct specified (%s)."), *GetPathName(), *ContextString);
+			UE_LOG(LogDataTable, Error, TEXT("UDataTable::FindRow : '%s' specified no row for DataTable '%s'."), *ContextString, *GetPathName());
 			return nullptr;
 		}
 
 		if(!RowStruct->IsChildOf(T::StaticStruct()))
 		{
-			UE_CLOG(bWarnIfRowMissing, LogDataTable, Error, TEXT("UDataTable::FindRow : Incorrect type specified for DataTable '%s' (%s)."), *GetPathName(), *ContextString);
+			UE_CLOG(bWarnIfRowMissing, LogDataTable, Error, TEXT("UDataTable::FindRow : '%s' specified incorrect type for DataTable '%s'."), *ContextString, *GetPathName());
 			return nullptr;
 		}
 
 		if(RowName == NAME_None)
 		{
-			UE_CLOG(bWarnIfRowMissing, LogDataTable, Warning, TEXT("UDataTable::FindRow : NAME_None is invalid row name for DataTable '%s' (%s)."), *GetPathName(), *ContextString);
+			UE_CLOG(bWarnIfRowMissing, LogDataTable, Warning, TEXT("UDataTable::FindRow : '%s' requested invalid row 'None' from DataTable '%s'."), *ContextString, *GetPathName());
 			return nullptr;
 		}
 
@@ -94,7 +94,7 @@ class UDataTable
 		{
 			if (bWarnIfRowMissing)
 			{
-				UE_LOG(LogDataTable, Warning, TEXT("UDataTable::FindRow : Row '%s' not found in DataTable '%s' (%s)."), *RowName.ToString(), *GetPathName(), *ContextString);
+				UE_LOG(LogDataTable, Warning, TEXT("UDataTable::FindRow : '%s' requested row '%s' not in DataTable '%s'."), *ContextString, *GetPathName(), *RowName.ToString());
 			}
 			return nullptr;
 		}
@@ -203,7 +203,7 @@ private:
 
 
 /** Handle to a particular row in a table*/
-USTRUCT()
+USTRUCT(BlueprintType)
 struct ENGINE_API FDataTableRowHandle
 {
 	GENERATED_USTRUCT_BODY()
@@ -223,11 +223,15 @@ struct ENGINE_API FDataTableRowHandle
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=DataTableRowHandle)
 	FName				RowName;
 
-	static const FString Unknown;
+	/** Returns true if this handle is specifically pointing to nothing */
+	bool IsNull() const
+	{
+		return DataTable == nullptr && RowName == NAME_None;
+	}
 
 	/** Get the row straight from the row handle */
 	template <class T>
-	T* GetRow(const FString& ContextString = Unknown) const
+	T* GetRow(const FString& ContextString) const
 	{
 		if(DataTable == nullptr)
 		{
@@ -240,8 +244,20 @@ struct ENGINE_API FDataTableRowHandle
 
 		return DataTable->FindRow<T>(RowName, ContextString);
 	}
-};
 
+	FString ToDebugString(bool bUseFullPath = false) const
+	{
+		if (DataTable == nullptr)
+		{
+			return FString::Printf(TEXT("No Data Table Specified, Row: %s"), *RowName.ToString());
+		}
+
+		return FString::Printf(TEXT("Table: %s, Row: %s"), bUseFullPath ? *DataTable->GetPathName() : *DataTable->GetName(), *RowName.ToString());
+	}
+
+	bool operator==(FDataTableRowHandle const& Other) const;
+	bool operator!=(FDataTableRowHandle const& Other) const;
+};
 
 /** Handle to a particular row in a table*/
 USTRUCT()
@@ -261,11 +277,15 @@ struct ENGINE_API FDataTableCategoryHandle
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=DataTableCategoryHandle)
 	FName				RowContents;
 
-	static const FString Unknown;
+	/** Returns true if this handle is specifically pointing to nothing */
+	bool IsNull() const
+	{
+		return DataTable == nullptr && ColumnName == NAME_None && RowContents == NAME_None;
+	}
 
 	/** Searches DataTable for all rows that contain entries with RowContents in the column named ColumnName and returns them. */
 	template <class T>
-	void GetRows(TArray<T*>& OutRows, const FString& ContextString = Unknown) const
+	void GetRows(TArray<T*>& OutRows, const FString& ContextString) const
 	{
 		OutRows.Empty();
 		if (DataTable == nullptr)
@@ -314,6 +334,9 @@ struct ENGINE_API FDataTableCategoryHandle
 
 		return;
 	}
+
+	bool operator==(FDataTableCategoryHandle const& Other) const;
+	bool operator!=(FDataTableCategoryHandle const& Other) const;
 };
 
 

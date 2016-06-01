@@ -38,6 +38,19 @@ namespace ETextJustify
 }
 
 /** 
+ * The different methods that can be used if a word is too long to be broken by the default line-break iterator.
+ */
+UENUM( BlueprintType )
+enum class ETextWrappingPolicy : uint8
+{
+	/** No fallback, just use the given line-break iterator */
+	DefaultWrapping = 0,
+
+	/** Fallback to per-character wrapping if a word is too long */
+	AllowPerCharacterWrapping,
+};
+
+/** 
  * The different directions that text can flow within a paragraph of text.
  * @note If you change this enum, make sure and update CVarDefaultTextFlowDirection and GetDefaultTextFlowDirection.
  */
@@ -201,7 +214,7 @@ public:
 #endif
 	};
 
-	class FRunModel
+	class SLATE_API FRunModel
 	{
 	public:
 
@@ -255,7 +268,7 @@ public:
 		};
 	};
 
-	struct FLineModel
+	struct SLATE_API FLineModel
 	{
 	public:
 
@@ -295,7 +308,7 @@ public:
 	};
 
 	/** A mapping between the offsets into the text as a flat string (with line-breaks), and the internal lines used within a text layout */
-	struct FTextOffsetLocations
+	struct SLATE_API FTextOffsetLocations
 	{
 	friend class FTextLayout;
 
@@ -340,6 +353,9 @@ public:
 	FORCEINLINE float GetWrappingWidth() const { return WrappingWidth; }
 	void SetWrappingWidth( float Value );
 
+	FORCEINLINE ETextWrappingPolicy GetWrappingPolicy() const { return WrappingPolicy; }
+	void SetWrappingPolicy(ETextWrappingPolicy Value);
+
 	FORCEINLINE float GetLineHeightPercentage() const { return LineHeightPercentage; }
 	void SetLineHeightPercentage( float Value );
 
@@ -362,6 +378,9 @@ public:
 
 	/** Set the iterator to use to detect appropriate soft-wrapping points for lines (or null to go back to using the default) */
 	void SetLineBreakIterator( TSharedPtr<IBreakIterator> InLineBreakIterator );
+
+	/** Set the information used to help identify who owns this text layout in the case of an error */
+	void SetDebugSourceInfo(const TAttribute<FString>& InDebugSourceInfo);
 
 	void ClearLines();
 
@@ -630,6 +649,9 @@ protected:
 	/** The width that the text should be wrap at. If 0 or negative no wrapping occurs. */
 	float WrappingWidth;
 
+	/** The wrapping policy used by this text layout. */
+	ETextWrappingPolicy WrappingPolicy;
+
 	/** The size of the margins to put about the text. This is an unscaled value. */
 	FMargin Margin;
 
@@ -651,9 +673,15 @@ protected:
 	/** The iterator to use to detect appropriate soft-wrapping points for lines */
 	TSharedPtr<IBreakIterator> LineBreakIterator;
 
+	/** The iterator to use to detect grapheme cluster boundaries */
+	TSharedRef<IBreakIterator> GraphemeBreakIterator;
+
 	/** The iterator to use to detect word boundaries */
-	TSharedPtr<IBreakIterator> WordBreakIterator;
+	TSharedRef<IBreakIterator> WordBreakIterator;
 
 	/** Unicode BiDi text detection */
 	TUniquePtr<TextBiDi::ITextBiDi> TextBiDiDetection;
+
+	/** Information given to use by our an external source (typically our owner widget) to help identify who owns this text layout in the case of an error */
+	TAttribute<FString> DebugSourceInfo;
 };

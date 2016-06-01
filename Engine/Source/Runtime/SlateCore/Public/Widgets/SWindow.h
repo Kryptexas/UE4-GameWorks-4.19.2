@@ -3,7 +3,7 @@
 #pragma once
 
 class FHittestGrid;
-
+class ISlateViewport;
 
 /** Notification that a window has been activated */
 DECLARE_DELEGATE( FOnWindowActivated );
@@ -71,6 +71,20 @@ struct FWindowTransparency
 };
 
 /**
+ * Simple overlay layer to allow content to be laid out on a Window or similar widget.
+ */
+class FOverlayPopupLayer : public FPopupLayer
+{
+public:
+	FOverlayPopupLayer(const TSharedRef<SWidget>& InitHostWidget, const TSharedRef<SWidget>& InitPopupContent, TSharedPtr<SOverlay> InitOverlay);
+
+	virtual void Remove() override;
+
+private:
+	TSharedPtr<SOverlay> Overlay;
+};
+
+/**
  * SWindow is a platform-agnostic representation of a top-level window.
  */
 class SLATECORE_API SWindow
@@ -89,8 +103,10 @@ public:
 		, _SupportsTransparency( EWindowTransparency::None )
 		, _InitialOpacity( 1.0f )
 		, _IsInitiallyMaximized( false )
+		, _IsInitiallyMinimized(false)
 		, _SizingRule( ESizingRule::UserSized )
 		, _IsPopupWindow( false )
+		, _IsTopmostWindow( false )
 		, _FocusWhenFirstShown( true )
 		, _ActivateWhenFirstShown( true )
 		, _UseOSWindowBorder( false )
@@ -134,11 +150,17 @@ public:
 		/** Is the window initially maximized */
 		SLATE_ARGUMENT( bool, IsInitiallyMaximized )
 		
+		/** Is the window initially minimized */
+		SLATE_ARGUMENT(bool, IsInitiallyMinimized)
+
 		/** How the window should be sized */
 		SLATE_ARGUMENT( ESizingRule::Type, SizingRule )
 
 		/** True if this should be a 'pop-up' window */
 		SLATE_ARGUMENT( bool, IsPopupWindow )
+
+		/** True if this window should always be on top of all other windows */
+		SLATE_ARGUMENT(bool, IsTopmostWindow)
 
 		/** Should this window be focused immediately after it is shown? */
 		SLATE_ARGUMENT( bool, FocusWhenFirstShown )
@@ -414,6 +436,17 @@ public:
 	 */
 	void RemoveOverlaySlot( const TSharedRef<SWidget>& InContent );
 
+	/**
+	 * Visualize a new pop-up if possible.  If it's not possible for this widget to host the pop-up
+	 * content you'll get back an invalid pointer to the layer.  The returned FPopupLayer allows you 
+	 * to remove the pop-up when you're done with it
+	 * 
+	 * @param PopupContent The widget to try and host overlaid on top of the widget.
+	 *
+	 * @return a valid FPopupLayer if this widget supported hosting it.  You can call Remove() on this to destroy the pop-up.
+	 */
+	virtual TSharedPtr<FPopupLayer> OnVisualizePopup(const TSharedRef<SWidget>& PopupContent) override;
+
 	/** Return a new slot in the popup layer. Assumes that the window has a popup layer. */
 	struct FPopupLayerSlot& AddPopupLayerSlot();
 
@@ -512,6 +545,9 @@ public:
 	/** Maximize the window if bInitiallyMaximized is set */
 	void InitialMaximize();
 
+	/** Maximize the window if bInitiallyMinimized is set */
+	void InitialMinimize();
+
 	/**
 	 * Sets the opacity of this window
 	 *
@@ -608,6 +644,17 @@ public:
 		return bIsModalWindow;
 	}
 
+	/** Set mirror window flag */
+	void SetMirrorWindow(bool bSetMirrorWindow)
+	{
+		bIsMirrorWindow = bSetMirrorWindow;
+	}
+
+	bool IsMirrorWindow()
+	{
+		return bIsMirrorWindow;
+	}
+
 	void SetTitleBar( const TSharedPtr<IWindowTitleBar> InTitleBar )
 	{
 		TitleBar = InTitleBar;
@@ -642,6 +689,8 @@ private:
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 
 	/** The window's desired size takes into account the ratio between the slate units and the pixel size */
 	virtual FVector2D ComputeDesiredSize(float) const override;
@@ -727,6 +776,16 @@ public:
 		ViewportSize = VP;
 	}
 
+	void SetViewport(TSharedRef<ISlateViewport> ViewportRef)
+	{
+		Viewport = ViewportRef;
+	}
+
+	TSharedPtr<ISlateViewport> GetViewport()
+	{
+		return Viewport.Pin();
+	}
+
 	/**
 	 * Access the hittest acceleration data structure for this window.
 	 * The grid is filled out every time the window is painted.
@@ -804,6 +863,9 @@ protected:
 	/** true if this window is maximized when its created */
 	bool bInitiallyMaximized : 1;
 
+	/** true if this window is minimized when its created */
+	bool bInitiallyMinimized : 1;
+
 	/** True if this window has been shown yet */
 	bool bHasEverBeenShown : 1;
 
@@ -815,6 +877,9 @@ protected:
 
 	/** True if this window displays the os window border instead of drawing one in slate */
 	bool bHasOSWindowBorder : 1;
+
+	/** True if this window is virtual and not directly rendered by slate application or the OS. */
+	bool bVirtualWindow : 1;
 
 	/** True if this window displays an enabled close button on the toolbar area */
 	bool bHasCloseButton : 1;
@@ -830,6 +895,9 @@ protected:
 	
 	/** True if the window is modal */
 	bool bIsModalWindow : 1;
+
+	/** True if the window is a mirror window for HMD content */
+	bool bIsMirrorWindow : 1;
 
 	/** Initial desired position of the window's content in screen space */
 	FVector2D InitialDesiredScreenPosition;
@@ -848,6 +916,9 @@ protected:
 
 	/** Size of the viewport. If (0,0) then it is equal to Size */
 	FVector2D ViewportSize;
+
+	/** Pointer to the viewport registered with this window if any */
+	TWeakPtr<ISlateViewport> Viewport;
 
 	/** Size of this window's title bar.  Can be zero.  Set at construction and should not be changed afterwards. */
 	float TitleBarSize;
@@ -898,7 +969,7 @@ protected:
 	const FWindowStyle* Style;
 	const FSlateBrush* WindowBackground;
 
-private:
+protected:
 
 	/** Min and Max values for Width and Height; all optional. */
 	FWindowSizeLimits SizeLimits;
@@ -968,11 +1039,11 @@ private:
 	// The margin around the edges of the window that will be detected as places the user can grab to resize the window. 
 	FMargin UserResizeBorder;
 
-private:
+protected:
 	
-	virtual
-
 	void ConstructWindowInternals();
+
+private:
 
 	/**
 	 * @return EVisibility::Visible if we are showing this viewports content.  EVisibility::Hidden otherwise (we hide the content during full screen overlays)

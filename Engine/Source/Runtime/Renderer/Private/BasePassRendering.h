@@ -11,6 +11,7 @@
 #include "ShaderBaseClasses.h"
 #include "LightGrid.h"
 #include "EditorCompositeParams.h"
+#include "PlanarReflectionRendering.h"
 
 /** Whether to allow the indirect lighting cache to be applied to dynamic objects. */
 extern int32 GIndirectLightingCache;
@@ -118,7 +119,6 @@ protected:
 	{
 		VertexParametersType::Bind(Initializer.ParameterMap);
 		HeightFogParameters.Bind(Initializer.ParameterMap);
-		AtmosphericFogTextureParameters.Bind(Initializer.ParameterMap);
 		TranslucentLightingVolumeParameters.Bind(Initializer.ParameterMap);
 		const bool bOutputsVelocityToGBuffer = FVelocityRendering::OutputsToGBuffer();
 		if (bOutputsVelocityToGBuffer)
@@ -144,7 +144,6 @@ public:
 		bool bShaderHasOutdatedParameters = FMeshMaterialShader::Serialize(Ar);
 		VertexParametersType::Serialize(Ar);
 		Ar << HeightFogParameters;
-		Ar << AtmosphericFogTextureParameters;
 		Ar << TranslucentLightingVolumeParameters;
 		Ar << PreviousLocalToWorldParameter;
 		Ar << SkipOutputVelocityParameter;
@@ -169,7 +168,6 @@ public:
 		if (bAllowGlobalFog)
 		{
 			HeightFogParameters.Set(RHICmdList, GetVertexShader(), &View);
-			AtmosphericFogTextureParameters.Set(RHICmdList, GetVertexShader(), View);
 		}
 
 		TranslucentLightingVolumeParameters.Set(RHICmdList, GetVertexShader());
@@ -177,6 +175,11 @@ public:
 		if (IsInstancedStereoParameter.IsBound())
 		{
 			SetShaderValue(RHICmdList, GetVertexShader(), IsInstancedStereoParameter, bIsInstancedStereo);
+		}
+
+		if (InstancedEyeIndexParameter.IsBound())
+		{
+			SetShaderValue(RHICmdList, GetVertexShader(), InstancedEyeIndexParameter, 0);
 		}
 	}
 
@@ -188,7 +191,6 @@ private:
 	
 	/** The parameters needed to calculate the fog contribution from height fog layers. */
 	FHeightFogShaderParameters HeightFogParameters;
-	FAtmosphereShaderTextureParameters AtmosphericFogTextureParameters;
 	FTranslucentLightingVolumeParameters TranslucentLightingVolumeParameters;
 	// When outputting from base pass, the previous transform
 	FShaderParameter PreviousLocalToWorldParameter;
@@ -392,6 +394,61 @@ private:
 		float& OutBlendFraction);
 };
 
+/** Parameters needed for reflections, shared by multiple shaders. */
+class FBasePassReflectionParameters
+{
+public:
+
+	void Bind(const FShaderParameterMap& ParameterMap)
+	{
+		PlanarReflectionParameters.Bind(ParameterMap);
+		ReflectionCubemap.Bind(ParameterMap, TEXT("ReflectionCubemap"));
+		ReflectionCubemapSampler.Bind(ParameterMap, TEXT("ReflectionCubemapSampler"));
+		CubemapArrayIndex.Bind(ParameterMap, TEXT("CubemapArrayIndex"));
+		ReflectionPositionAndRadius.Bind(ParameterMap, TEXT("ReflectionPositionAndRadius"));
+		ReflectionShape.Bind(ParameterMap, TEXT("ReflectionShape"));
+		BoxTransform.Bind(ParameterMap, TEXT("BoxTransform"));
+		BoxScales.Bind(ParameterMap, TEXT("BoxScales"));		
+		CaptureOffset.Bind(ParameterMap, TEXT("CaptureOffset"));
+		SkyLightReflectionParameters.Bind(ParameterMap);
+	}
+
+	void Set(FRHICommandList& RHICmdList, FPixelShaderRHIParamRef PixelShaderRHI, const FViewInfo* View);
+
+	void SetMesh(FRHICommandList& RHICmdList, FPixelShaderRHIParamRef PixelShaderRH, const FPrimitiveSceneProxy* Proxy, ERHIFeatureLevel::Type FeatureLevel);
+
+	/** Serializer. */
+	friend FArchive& operator<<(FArchive& Ar,FBasePassReflectionParameters& P)
+	{
+		Ar << P.PlanarReflectionParameters;
+		Ar << P.ReflectionCubemap;
+		Ar << P.ReflectionCubemapSampler;
+		Ar << P.CubemapArrayIndex;
+		Ar << P.ReflectionPositionAndRadius;
+		Ar << P.ReflectionShape;
+		Ar << P.BoxTransform;
+		Ar << P.BoxScales;
+		Ar << P.CaptureOffset;
+		Ar << P.SkyLightReflectionParameters;
+		return Ar;
+	}
+
+private:
+
+	FPlanarReflectionParameters PlanarReflectionParameters;
+	FShaderResourceParameter ReflectionCubemap;
+	FShaderResourceParameter ReflectionCubemapSampler;
+
+	FShaderParameter CubemapArrayIndex;
+	FShaderParameter ReflectionPositionAndRadius;	
+	FShaderParameter ReflectionShape;
+	FShaderParameter BoxTransform;
+	FShaderParameter BoxScales;
+	FShaderParameter CaptureOffset;
+
+	FSkyLightReflectionParameters SkyLightReflectionParameters;
+};
+
 /** Parameters needed for lighting translucency, shared by multiple shaders. */
 class FTranslucentLightingParameters
 {
@@ -400,10 +457,6 @@ public:
 	void Bind(const FShaderParameterMap& ParameterMap)
 	{
 		TranslucentLightingVolumeParameters.Bind(ParameterMap);
-		ReflectionCubemap.Bind(ParameterMap, TEXT("ReflectionCubemap"));
-		ReflectionCubemapSampler.Bind(ParameterMap, TEXT("ReflectionCubemapSampler"));
-		CubemapArrayIndex.Bind(ParameterMap, TEXT("CubemapArrayIndex"));
-		SkyLightReflectionParameters.Bind(ParameterMap);
 		HZBTexture.Bind(ParameterMap, TEXT("HZBTexture"));
 		HZBSampler.Bind(ParameterMap, TEXT("HZBSampler"));
 		HZBUvFactorAndInvFactor.Bind(ParameterMap, TEXT("HZBUvFactorAndInvFactor"));
@@ -411,18 +464,12 @@ public:
 		PrevSceneColorSampler.Bind(ParameterMap, TEXT("PrevSceneColorSampler"));
 	}
 
-	void Set(FRHICommandList& RHICmdList, FShader* Shader, const FViewInfo* View);
-
-	void SetMesh(FRHICommandList& RHICmdList, FShader* Shader, const FPrimitiveSceneProxy* Proxy, ERHIFeatureLevel::Type FeatureLevel);
+	void Set(FRHICommandList& RHICmdList, FPixelShaderRHIParamRef PixelShaderRHI, const FViewInfo* View);
 
 	/** Serializer. */
 	friend FArchive& operator<<(FArchive& Ar,FTranslucentLightingParameters& P)
 	{
 		Ar << P.TranslucentLightingVolumeParameters;
-		Ar << P.ReflectionCubemap;
-		Ar << P.ReflectionCubemapSampler;
-		Ar << P.CubemapArrayIndex;
-		Ar << P.SkyLightReflectionParameters;
 		Ar << P.HZBTexture;
 		Ar << P.HZBSampler;
 		Ar << P.HZBUvFactorAndInvFactor;
@@ -434,10 +481,6 @@ public:
 private:
 
 	FTranslucentLightingVolumeParameters TranslucentLightingVolumeParameters;
-	FShaderResourceParameter ReflectionCubemap;
-	FShaderResourceParameter ReflectionCubemapSampler;
-	FShaderParameter CubemapArrayIndex;
-	FSkyLightReflectionParameters SkyLightReflectionParameters;
 	FShaderResourceParameter HZBTexture;
 	FShaderResourceParameter HZBSampler;
 	FShaderParameter HZBUvFactorAndInvFactor;
@@ -463,9 +506,7 @@ public:
 		const bool bOutputVelocity = FVelocityRendering::OutputsToGBuffer();
 		if (bOutputVelocity)
 		{
-			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
-			// This needs to match FSceneRenderTargets::GetNumGBufferTargets()
-			const int32 VelocityIndex = (CVar && CVar->GetValueOnAnyThread() != 0) ? 6 : 5;
+			const int32 VelocityIndex = 4; // As defined in BasePassPixelShader.usf
 			OutEnvironment.SetRenderTargetOutputFormat(VelocityIndex, PF_G16R16);
 		}
 
@@ -477,6 +518,7 @@ public:
 		FMeshMaterialShader(Initializer)
 	{
 		PixelParametersType::Bind(Initializer.ParameterMap);
+		ReflectionParameters.Bind(Initializer.ParameterMap);
 		TranslucentLightingParameters.Bind(Initializer.ParameterMap);
 		EditorCompositeParams.Bind(Initializer.ParameterMap);
 		LightGrid.Bind(Initializer.ParameterMap,TEXT("LightGrid"));
@@ -500,16 +542,18 @@ public:
 
 		if (View->GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 		{
+			ReflectionParameters.Set(RHICmdList, ShaderRHI, View);
+
 			if (IsTranslucentBlendMode(BlendMode))
 			{
 				SetShaderValue(RHICmdList, ShaderRHI, ScreenTextureUVScale, FVector(ScreenTextureScaleFactor));
-				TranslucentLightingParameters.Set(RHICmdList, this, View);
+				TranslucentLightingParameters.Set(RHICmdList, ShaderRHI, View);
 
 				// Experimental dynamic forward lighting for translucency. Can be the base for opaque forward lighting which will allow more lighting models or rendering without a GBuffer
 				if(BlendMode == BLEND_Translucent && MaterialResource.GetTranslucencyLightingMode() == TLM_SurfacePerPixelLighting)
 				{
 					check(GetUniformBufferParameter<FForwardLightData>().IsInitialized());
-
+					
 					SetUniformBufferParameter(RHICmdList, ShaderRHI,GetUniformBufferParameter<FForwardLightData>(),View->ForwardLightData);
 					SetSRVParameter(RHICmdList, ShaderRHI, LightGrid, GLightGridVertexBuffer.VertexBufferSRV);
 				}
@@ -525,6 +569,7 @@ public:
 	{
 		bool bShaderHasOutdatedParameters = FMeshMaterialShader::Serialize(Ar);
 		PixelParametersType::Serialize(Ar);
+		Ar << ReflectionParameters;
 		Ar << TranslucentLightingParameters;
  		Ar << EditorCompositeParams;
 		Ar << LightGrid;
@@ -533,6 +578,7 @@ public:
 	}
 
 private:
+	FBasePassReflectionParameters ReflectionParameters;
 	FTranslucentLightingParameters TranslucentLightingParameters;
 	FEditorCompositingParameters EditorCompositeParams;
 	FShaderResourceParameter LightGrid;
@@ -695,15 +741,14 @@ public:
 		ESceneRenderTargetsMode::Type InSceneTextureMode,
 		bool bInEnableSkyLight,
 		bool bInEnableAtmosphericFog,
-		bool bOverrideWithShaderComplexity = false,
+		EDebugViewShaderMode InDebugViewShaderMode = DVSM_None,
 		bool bInAllowGlobalFog = false,
 		bool bInEnableEditorPrimitiveDepthTest = false,
-		bool bInEnableReceiveDecalOutput = false,
-		EQuadOverdrawMode InQuadOverdrawMode = QOM_None
+		bool bInEnableReceiveDecalOutput = false
 		):
-		FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,InMaterialResource,bOverrideWithShaderComplexity, false, false, false, AllowRuntimeQuadOverdraw(InFeatureLevel) ? InQuadOverdrawMode : QOM_None),
+		FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InDebugViewShaderMode, false, false, false),
 		LightMapPolicy(InLightMapPolicy),
-		BlendMode(InBlendMode),
+		BlendMode(InBlendMode), 
 		SceneTextureMode(InSceneTextureMode),
 		bAllowGlobalFog(bInAllowGlobalFog),
 		bEnableSkyLight(bInEnableSkyLight),
@@ -744,33 +789,32 @@ public:
 
 	// FMeshDrawingPolicy interface.
 
-	bool Matches(const TBasePassDrawingPolicy& Other) const
+	FDrawingPolicyMatchResult Matches(const TBasePassDrawingPolicy& Other) const
 	{
-		return FMeshDrawingPolicy::Matches(Other) &&
-			VertexShader == Other.VertexShader &&
-			PixelShader == Other.PixelShader &&
-			HullShader == Other.HullShader &&
-			DomainShader == Other.DomainShader &&
-			SceneTextureMode == Other.SceneTextureMode &&
-			bAllowGlobalFog == Other.bAllowGlobalFog &&
-			bEnableSkyLight == Other.bEnableSkyLight && 
-
-			LightMapPolicy == Other.LightMapPolicy;
+		DRAWING_POLICY_MATCH_BEGIN
+			DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other)) &&
+			DRAWING_POLICY_MATCH(VertexShader == Other.VertexShader) &&
+			DRAWING_POLICY_MATCH(PixelShader == Other.PixelShader) &&
+			DRAWING_POLICY_MATCH(HullShader == Other.HullShader) &&
+			DRAWING_POLICY_MATCH(DomainShader == Other.DomainShader) &&
+			DRAWING_POLICY_MATCH(SceneTextureMode == Other.SceneTextureMode) &&
+			DRAWING_POLICY_MATCH(bAllowGlobalFog == Other.bAllowGlobalFog) &&
+			DRAWING_POLICY_MATCH(bEnableSkyLight == Other.bEnableSkyLight) && 
+			DRAWING_POLICY_MATCH(LightMapPolicy == Other.LightMapPolicy);
+		DRAWING_POLICY_MATCH_END
 	}
 
 	void SetSharedState(FRHICommandList& RHICmdList, const FViewInfo* View, const ContextDataType PolicyContext, float ScreenTextureScaleFactor = 1.0f) const
 	{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		// If QuadOverdraw is allowed, different VS/DS/HS must be used (with only SV_POSITION as PS interpolant).
-		if (bOverrideWithShaderComplexity && AllowRuntimeQuadOverdraw(View->GetFeatureLevel()))
+		// If the current debug view shader modes are allowed, different VS/DS/HS must be used (with only SV_POSITION as PS interpolant).
+		if (View->Family->UseDebugViewVSDSHS())
 		{
-			SetNonPSParametersForQuadOverdraw(RHICmdList, MaterialRenderProxy, MaterialResource, *View, VertexFactory, HullShader && DomainShader);
+			FDebugViewMode::SetParametersVSHSDS(RHICmdList, MaterialRenderProxy, MaterialResource, *View, VertexFactory, HullShader && DomainShader);
 		}
 		else
-#endif
 		{
 			// Set the light-map policy.
-			LightMapPolicy.Set(RHICmdList, VertexShader,bOverrideWithShaderComplexity ? NULL : PixelShader,VertexShader,PixelShader,VertexFactory,MaterialRenderProxy,View);
+			LightMapPolicy.Set(RHICmdList, VertexShader, !UseDebugViewPS() ? PixelShader : nullptr, VertexShader, PixelShader, VertexFactory, MaterialRenderProxy, View);
 
 			VertexShader->SetParameters(RHICmdList, MaterialRenderProxy, VertexFactory, *MaterialResource, *View, bAllowGlobalFog, SceneTextureMode, PolicyContext.bIsInstancedStereo);
 
@@ -785,21 +829,17 @@ public:
 			}
 		}
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if (bOverrideWithShaderComplexity)
+		if (UseDebugViewPS())
 		{
 			// If we are in the translucent pass then override the blend mode, otherwise maintain additive blending.
-			if (IsTranslucentBlendMode(BlendMode))
+			if (View->Family->EngineShowFlags.ShaderComplexity && IsTranslucentBlendMode(BlendMode))
 			{
 				RHICmdList.SetBlendState( TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_Zero, BF_One>::GetRHI());
 			}
 
-			const uint32 NumPixelShaderInstructions = PixelShader->GetNumInstructions();
-			const uint32 NumVertexShaderInstructions = VertexShader->GetNumInstructions();
-			FShaderComplexityAccumulatePS::SetParameters(View->ShaderMap,RHICmdList,NumVertexShaderInstructions,NumPixelShaderInstructions,GetQuadOverdrawMode(),View->GetFeatureLevel());
+			FDebugViewMode::GetPSInterface(View->ShaderMap, MaterialResource, GetDebugViewShaderMode())->SetParameters(RHICmdList, VertexShader, PixelShader, MaterialRenderProxy, *MaterialResource, *View);
 		}
 		else
-#endif
 		{
 			PixelShader->SetParameters(RHICmdList, MaterialRenderProxy, *MaterialResource, View, BlendMode, bEnableEditorPrimitiveDepthTest, SceneTextureMode, ScreenTextureScaleFactor);
 
@@ -830,7 +870,8 @@ public:
 		}
 	}
 
-	void SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) const {
+	void SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) const
+	{
 		VertexShader->SetInstancedEyeIndex(RHICmdList, EyeIndex);
 	}
 
@@ -851,20 +892,10 @@ public:
 			FGeometryShaderRHIRef()
 			);
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if (bOverrideWithShaderComplexity)
+		if (UseDebugViewPS())
 		{
-			if (AllowRuntimeQuadOverdraw(InFeatureLevel))
-			{
-				PatchBoundShaderStateInputForQuadOverdraw(BoundShaderStateInput, MaterialResource, VertexFactory, InFeatureLevel, GetQuadOverdrawMode());
-			}
-			else
-			{
-				TShaderMapRef<TShaderComplexityAccumulatePS> ShaderComplexityAccumulatePixelShader(GetGlobalShaderMap(InFeatureLevel));
-				BoundShaderStateInput.PixelShaderRHI = ShaderComplexityAccumulatePixelShader->FGlobalShader::GetPixelShader();
-			}
+			FDebugViewMode::PatchBoundShaderState(BoundShaderStateInput, MaterialResource, VertexFactory, InFeatureLevel, GetDebugViewShaderMode());
 		}
-#endif
 		return BoundShaderStateInput;
 	}
 
@@ -882,14 +913,12 @@ public:
 	{
 		const FMeshBatchElement& BatchElement = Mesh.Elements[BatchElementIndex];
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		// If QuadOverdraw is allowed, different VS/DS/HS must be used (with only SV_POSITION as PS interpolant).
-		if (bOverrideWithShaderComplexity && AllowRuntimeQuadOverdraw(View.GetFeatureLevel()))
+		// If debug view shader mode are allowed, different VS/DS/HS must be used (with only SV_POSITION as PS interpolant).
+		if (View.Family->UseDebugViewVSDSHS())
 		{
-			SetMeshForQuadOverdraw(RHICmdList, MaterialResource, View, VertexFactory, HullShader && DomainShader, PrimitiveSceneProxy, BatchElement, DrawRenderState);
+			FDebugViewMode::SetMeshVSHSDS(RHICmdList, VertexFactory, View, PrimitiveSceneProxy, BatchElement, DrawRenderState, MaterialResource, HullShader && DomainShader);
 		}
 		else
-#endif
 		{
 			// Set the light-map policy's mesh-specific settings.
 			LightMapPolicy.SetMesh(
@@ -897,7 +926,7 @@ public:
 				View,
 				PrimitiveSceneProxy,
 				VertexShader,
-				bOverrideWithShaderComplexity ? NULL : PixelShader,
+				!UseDebugViewPS() ? PixelShader : nullptr,
 				VertexShader,
 				PixelShader,
 				VertexFactory,
@@ -913,23 +942,19 @@ public:
 			}
 		}
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if (bOverrideWithShaderComplexity)
+		if (UseDebugViewPS())
 		{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			// If we are in the translucent pass or rendering a masked material then override the blend mode, otherwise maintain opaque blending
-			if (BlendMode != BLEND_Opaque)
+			if (View.Family->EngineShowFlags.ShaderComplexity && BlendMode != BLEND_Opaque)
 			{
 				// Add complexity to existing, keep alpha
 				RHICmdList.SetBlendState(TStaticBlendState<CW_RGB,BO_Add,BF_One,BF_One>::GetRHI());
 			}
-
-			const auto FeatureLevel = View.GetFeatureLevel();
-			const uint32 NumPixelShaderInstructions = PixelShader->GetNumInstructions();
-			const uint32 NumVertexShaderInstructions = VertexShader->GetNumInstructions();
-			FShaderComplexityAccumulatePS::SetParameters(View.ShaderMap,RHICmdList,NumVertexShaderInstructions,NumPixelShaderInstructions,GetQuadOverdrawMode(),FeatureLevel);
+			FDebugViewMode::GetPSInterface(View.ShaderMap, MaterialResource, GetDebugViewShaderMode())->SetMesh(RHICmdList, VertexFactory, View, PrimitiveSceneProxy, Mesh.VisualizeLODIndex, BatchElement, DrawRenderState);
+#endif
 		}
 		else
-#endif
 		{
 			PixelShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState,BlendMode);
 		}

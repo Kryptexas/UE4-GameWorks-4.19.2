@@ -18,10 +18,11 @@ namespace DecalEditorConstants
 #endif
 
 ADecalActor::ADecalActor(const FObjectInitializer& ObjectInitializer)
-: Super(ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Decal = CreateDefaultSubobject<UDecalComponent>(TEXT("NewDecalComponent"));
 	Decal->RelativeRotation = FRotator(-90, 0, 0);
+	Decal->bDestroyOwnerAfterFade = true;
 
 	RootComponent = Decal;
 
@@ -53,7 +54,7 @@ ADecalActor::ADecalActor(const FObjectInitializer& ObjectInitializer)
 			ArrowComponent->ArrowColor = FColor(80, 80, 200, 255);
 			ArrowComponent->SpriteInfo.Category = ConstructorStatics.ID_Decals;
 			ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Decals;
-			ArrowComponent->AttachParent = Decal;
+			ArrowComponent->SetupAttachment(Decal);
 			ArrowComponent->bAbsoluteScale = true;
 			ArrowComponent->bIsScreenSizeScaled = true;
 		}
@@ -62,7 +63,9 @@ ADecalActor::ADecalActor(const FObjectInitializer& ObjectInitializer)
 		{
 			SpriteComponent->Sprite = ConstructorStatics.DecalTexture.Get();
 			SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
-			SpriteComponent->AttachParent = Decal;
+			SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Decals;
+			SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Decals;
+			SpriteComponent->SetupAttachment(Decal);
 			SpriteComponent->bIsScreenSizeScaled = true;
 			SpriteComponent->bAbsoluteScale = true;
 			SpriteComponent->bReceivesDecals = false;

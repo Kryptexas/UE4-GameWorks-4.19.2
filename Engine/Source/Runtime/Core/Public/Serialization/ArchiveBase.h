@@ -1079,6 +1079,12 @@ public:
 	/** Max size of data that this archive is allowed to serialize. */
 	int64 ArMaxSerializeSize;
 
+	/** Custom property list attribute. If the flag below is set, only these properties will be iterated during serialization. If NULL, then no properties will be iterated. */
+	const struct FCustomPropertyListNode* ArCustomPropertyList;
+
+	/** Set TRUE to use the custom property list attribute for serialization. */
+	bool ArUseCustomPropertyList;
+
 	class FScopeSetDebugSerializationFlags
 	{
 	private:

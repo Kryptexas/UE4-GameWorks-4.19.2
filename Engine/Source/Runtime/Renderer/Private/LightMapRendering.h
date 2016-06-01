@@ -22,7 +22,9 @@ BEGIN_UNIFORM_BUFFER_STRUCT(FPrecomputedLightingParameters, )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float, DirectionalLightShadowing, EShaderPrecisionModifier::Half) // FCachedPointIndirectLightingPolicy
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, StaticShadowMapMasks) // TDistanceFieldShadowsAndLightMapPolicy
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, InvUniformPenumbraSizes) // TDistanceFieldShadowsAndLightMapPolicy
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4, IndirectLightingSHCoefficients, [3]) // FCachedPointIndirectLightingPolicy
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4, IndirectLightingSHCoefficients0, [3]) // FCachedPointIndirectLightingPolicy
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4, IndirectLightingSHCoefficients1, [3]) // FCachedPointIndirectLightingPolicy
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4,	IndirectLightingSHCoefficients2) // FCachedPointIndirectLightingPolicy
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4, IndirectLightingSHSingleCoefficient, EShaderPrecisionModifier::Half) // FCachedPointIndirectLightingPolicy used in Forward Translucent
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, LightMapCoordinateScaleBias) // TLightMapPolicy
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, ShadowMapCoordinateScaleBias) // TDistanceFieldShadowsAndLightMapPolicy
@@ -145,6 +147,27 @@ struct TDistanceFieldShadowsAndLightMapPolicy : public TLightMapPolicy< Lightmap
 	{
 		OutEnvironment.SetDefine(TEXT("STATICLIGHTING_TEXTUREMASK"), 1);
 		OutEnvironment.SetDefine(TEXT("STATICLIGHTING_SIGNEDDISTANCEFIELD"), 1);
+		Super::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+	}
+};
+
+class FDistanceFieldShadowsLightMapAndCSMLightingPolicy : public TDistanceFieldShadowsAndLightMapPolicy < LQ_LIGHTMAP >
+{
+	typedef TDistanceFieldShadowsAndLightMapPolicy < LQ_LIGHTMAP >	Super;
+
+public:
+	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
+	{
+		static auto* CVarMobileEnableStaticAndCSMShadowReceivers = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.EnableStaticAndCSMShadowReceivers"));
+		const bool bMobileEnableStaticAndCSMShadowReceivers = CVarMobileEnableStaticAndCSMShadowReceivers->GetValueOnAnyThread() == 1;
+		return bMobileEnableStaticAndCSMShadowReceivers && (Material->GetShadingModel() != MSM_Unlit) && Super::ShouldCache(Platform, Material, VertexFactoryType);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		OutEnvironment.SetDefine(TEXT("DIRECTIONAL_LIGHT_CSM"), TEXT("1"));
+		OutEnvironment.SetDefine(TEXT(PREPROCESSOR_TO_STRING(MAX_FORWARD_SHADOWCASCADES)), MAX_FORWARD_SHADOWCASCADES);
+
 		Super::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 	}
 };
@@ -331,10 +354,7 @@ struct FCachedPointIndirectLightingPolicy
 			&& (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnAnyThread() != 0);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		OutEnvironment.SetDefine(TEXT("CACHED_POINT_INDIRECT_LIGHTING"),TEXT("1"));
-	}
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment);
 };
 
 
@@ -369,7 +389,7 @@ struct FSimpleDirectionalLightAndSHIndirectPolicy
 	}
 };
 
-/** Combines a directional light with indirect lighting from a single SH sample. */
+/** Combines a movable directional light with indirect lighting from a single SH sample. */
 struct FSimpleDirectionalLightAndSHDirectionalIndirectPolicy : public FSimpleDirectionalLightAndSHIndirectPolicy
 {
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -380,13 +400,26 @@ struct FSimpleDirectionalLightAndSHDirectionalIndirectPolicy : public FSimpleDir
 	}
 };
 
-/** Combines a directional light with CSM with indirect lighting from a single SH sample. */
+/** Combines a movable directional light with CSM with indirect lighting from a single SH sample. */
 struct FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy : public FSimpleDirectionalLightAndSHDirectionalIndirectPolicy
 {
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		OutEnvironment.SetDefine(TEXT("MOVABLE_DIRECTIONAL_LIGHT_CSM"), TEXT("1"));
+		OutEnvironment.SetDefine(TEXT("DIRECTIONAL_LIGHT_CSM"), TEXT("1"));
+		OutEnvironment.SetDefine(TEXT(PREPROCESSOR_TO_STRING(MAX_FORWARD_SHADOWCASCADES)), MAX_FORWARD_SHADOWCASCADES);
 		FSimpleDirectionalLightAndSHDirectionalIndirectPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+	}
+};
+
+/** Combines an directional light with CSM with indirect lighting from a single SH sample. */
+class FSimpleDirectionalLightAndSHCSMIndirectPolicy : public FSimpleDirectionalLightAndSHIndirectPolicy
+{
+public:
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		OutEnvironment.SetDefine(TEXT("DIRECTIONAL_LIGHT_CSM"), TEXT("1"));
+		OutEnvironment.SetDefine(TEXT(PREPROCESSOR_TO_STRING(MAX_FORWARD_SHADOWCASCADES)), MAX_FORWARD_SHADOWCASCADES);
+		FSimpleDirectionalLightAndSHIndirectPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 	}
 };
 
@@ -435,7 +468,7 @@ struct FMovableDirectionalLightCSMWithLightmapLightingPolicy : public FMovableDi
 {
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		OutEnvironment.SetDefine(TEXT("MOVABLE_DIRECTIONAL_LIGHT_CSM"), TEXT("1"));
+		OutEnvironment.SetDefine(TEXT("DIRECTIONAL_LIGHT_CSM"), TEXT("1"));
 
 		FMovableDirectionalLightWithLightmapLightingPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 	}
@@ -452,9 +485,11 @@ enum ELightMapPolicyType
 	LMP_DISTANCE_FIELD_SHADOWS_AND_HQ_LIGHTMAP,
 	// Forward shading specific
 	LMP_DISTANCE_FIELD_SHADOWS_AND_LQ_LIGHTMAP,
+	LMP_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM,
 	LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_INDIRECT,
 	LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_DIRECTIONAL_INDIRECT,
 	LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_DIRECTIONAL_CSM_INDIRECT,
+	LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_CSM_INDIRECT,
 	LMP_MOVABLE_DIRECTIONAL_LIGHT,
 	LMP_MOVABLE_DIRECTIONAL_LIGHT_CSM,
 	LMP_MOVABLE_DIRECTIONAL_LIGHT_WITH_LIGHTMAP,
@@ -570,10 +605,14 @@ public:
 		
 		case LMP_DISTANCE_FIELD_SHADOWS_AND_LQ_LIGHTMAP:
 			return TDistanceFieldShadowsAndLightMapPolicy<LQ_LIGHTMAP>::ShouldCache(Platform, Material, VertexFactoryType);
+		case LMP_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM:
+			return FDistanceFieldShadowsLightMapAndCSMLightingPolicy::ShouldCache(Platform, Material, VertexFactoryType);
 		case LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_INDIRECT:
 			return FSimpleDirectionalLightAndSHIndirectPolicy::ShouldCache(Platform, Material, VertexFactoryType);
 		case LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_DIRECTIONAL_INDIRECT:
 			return FSimpleDirectionalLightAndSHDirectionalIndirectPolicy::ShouldCache(Platform, Material, VertexFactoryType);
+		case LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_CSM_INDIRECT:
+			return FSimpleDirectionalLightAndSHCSMIndirectPolicy::ShouldCache(Platform, Material, VertexFactoryType);
 		case LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_DIRECTIONAL_CSM_INDIRECT:
 			return FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy::ShouldCache(Platform, Material, VertexFactoryType);
 		case LMP_MOVABLE_DIRECTIONAL_LIGHT:
@@ -628,11 +667,17 @@ public:
 		case LMP_DISTANCE_FIELD_SHADOWS_AND_LQ_LIGHTMAP:
 			TDistanceFieldShadowsAndLightMapPolicy<LQ_LIGHTMAP>::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 			break;
+		case LMP_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM:
+			FDistanceFieldShadowsLightMapAndCSMLightingPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+			break;
 		case LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_INDIRECT:
 			FSimpleDirectionalLightAndSHIndirectPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 			break;
 		case LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_DIRECTIONAL_INDIRECT:
 			FSimpleDirectionalLightAndSHDirectionalIndirectPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+			break;
+		case LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_CSM_INDIRECT:
+			FSimpleDirectionalLightAndSHCSMIndirectPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 			break;
 		case LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_DIRECTIONAL_CSM_INDIRECT:
 			FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
@@ -696,11 +741,7 @@ public:
 			&& FSelfShadowedTranslucencyPolicy::ShouldCache(Platform, Material, VertexFactoryType);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		OutEnvironment.SetDefine(TEXT("CACHED_POINT_INDIRECT_LIGHTING"),TEXT("1"));
-		FSelfShadowedTranslucencyPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
-	}
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment);
 
 	/** Initialization constructor. */
 	FSelfShadowedCachedPointIndirectLightingPolicy() {}
@@ -718,4 +759,5 @@ public:
 		const ElementDataType& ElementData
 		) const;
 };
+
 #endif // __LIGHTMAPRENDERING_H__

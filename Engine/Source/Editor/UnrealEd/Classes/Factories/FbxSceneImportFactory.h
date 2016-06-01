@@ -17,12 +17,21 @@ public:
 	FString OriginalImportPath;
 	FString OriginalFullImportName;
 
+	bool bOriginalTypeChanged;
+
 	bool bOverridePath;
 	FString OverrideImportPath;
 	FString OverrideFullImportName;
 
 	//The name of the Options so reimport can show the options
 	FString OptionName;
+
+	//The node pivot user want to bake by default its the first node that reference the mesh
+	uint64 PivotNodeUid;
+	FString PivotNodeName; //Transient variable use for the ui to not display a uid
+
+	//If there is more then one Pivots we have to present a list to the user so he can choose which node pivot he want to bake
+	TMap<FVector, TArray<uint64>> NodeReferencePivots;
 
 	FString GetImportPath()
 	{
@@ -65,10 +74,13 @@ public:
 		, bImportAttribute(true)
 		, OriginalImportPath(TEXT(""))
 		, OriginalFullImportName(TEXT(""))
+		, bOriginalTypeChanged(false)
 		, bOverridePath(false)
 		, OverrideImportPath(TEXT(""))
 		, OverrideFullImportName(TEXT(""))
 		, OptionName(TEXT(""))
+		, PivotNodeUid(INVALID_UNIQUE_ID)
+		, PivotNodeName(TEXT("-"))
 		, IsContentObjectUpToDate(false)
 		, ContentPackage(nullptr)
 		, ContentObject(nullptr)
@@ -100,6 +112,8 @@ public:
 	FString LODGroup;
 	int32 LODLevel;
 	int32 MorphNum;
+	bool IsLod;
+	bool IsCollision;
 
 	FFbxMeshInfo()
 		: FaceNum(0)
@@ -112,6 +126,8 @@ public:
 		, LODGroup(TEXT(""))
 		, LODLevel(0)
 		, MorphNum(0)
+		, IsLod(false)
+		, IsCollision(false)
 	{}
 
 	virtual ~FFbxMeshInfo() {}
@@ -147,6 +163,84 @@ public:
 	virtual UClass *GetType();
 };
 
+class FFbxCameraInfo : public TSharedFromThis<FFbxCameraInfo>
+{
+public:
+	FString Name;
+	uint64 UniqueId;
+
+	bool ProjectionPerspective;
+	float AspectWidth;
+	float AspectHeight;
+	float NearPlane;
+	float FarPlane;
+	float OrthoZoom;
+	float FieldOfView;
+	
+
+	FFbxCameraInfo()
+		: Name(TEXT(""))
+		, UniqueId(INVALID_UNIQUE_ID)
+		, ProjectionPerspective(true)
+		, AspectWidth(0.0f)
+		, AspectHeight(0.0f)
+		, NearPlane(0.0f)
+		, FarPlane(0.0f)
+		, OrthoZoom(0.0f)
+		, FieldOfView(0.0f)
+	{}
+};
+
+class FFbxLightInfo : public TSharedFromThis<FFbxLightInfo>
+{
+public:
+	FString Name;
+	uint64 UniqueId;
+	int32 Type; //ePoint=0, eDirectional=1, eSpot=2, eArea=3, eVolume=4
+	FColor Color; //RGB color no alpha
+	float Intensity; //fbx default is 100
+	int32 Decay; //eNone=0, eLinear=1, eQuadratic=2, eCubic=3
+	bool CastLight;
+	bool CastShadow;
+	FColor ShadowColor; //RGB color no alpha
+
+	float InnerAngle;
+	float OuterAngle;
+	float Fog;
+	float DecayStart;
+	bool EnableNearAttenuation;
+	float NearAttenuationStart;
+	float NearAttenuationEnd;
+	bool EnableFarAttenuation;
+	float FarAttenuationStart;
+	float FarAttenuationEnd;
+
+	//Notes:
+	//Fbx use positive X to point light direction, we have to turn the component 90 degree in z object space
+
+	FFbxLightInfo()
+		: Name(TEXT(""))
+		, UniqueId(INVALID_UNIQUE_ID)
+		, Type(0)
+		, Color(FColor::White)
+		, Intensity(1.0f)
+		, Decay(0)
+		, CastLight(false)
+		, CastShadow(false)
+		, ShadowColor(FColor::Black)
+		, InnerAngle(0.0f)
+		, OuterAngle(0.0f)
+		, Fog(0.0f)
+		, DecayStart(0.0f)
+		, EnableNearAttenuation(false)
+		, NearAttenuationStart(0.0f)
+		, NearAttenuationEnd(0.0f)
+		, EnableFarAttenuation(false)
+		, FarAttenuationStart(0.0f)
+		, FarAttenuationEnd(0.0f)
+	{}
+};
+
 //Node use to store the scene hierarchy transform will be relative to the parent
 class FFbxNodeInfo : public TSharedFromThis<FFbxNodeInfo>
 {
@@ -158,9 +252,12 @@ public:
 	TSharedPtr<FFbxNodeInfo> ParentNodeInfo;
 	
 	TSharedPtr<FFbxAttributeInfo> AttributeInfo;
+	uint64 AttributeUniqueId;
 	FString AttributeType;
 
 	FTransform Transform;
+	FVector PivotRotation;
+	FVector PivotScaling;
 	bool bImportNode;
 
 	TArray<TSharedPtr<FFbxNodeInfo>> Childrens;
@@ -172,6 +269,7 @@ public:
 		, NodeHierarchyPath(TEXT(""))
 		, ParentNodeInfo(NULL)
 		, AttributeInfo(NULL)
+		, AttributeUniqueId(INVALID_UNIQUE_ID)
 		, AttributeType(TEXT(""))
 		, Transform(FTransform::Identity)
 		, bImportNode(true)
@@ -191,6 +289,11 @@ public:
 	int32 TotalTextureNum;
 	TArray<TSharedPtr<FFbxMeshInfo>> MeshInfo;
 	TArray<TSharedPtr<FFbxNodeInfo>> HierarchyInfo;
+	
+	//Component attributes
+	TMap<uint64, TSharedPtr<FFbxLightInfo>> LightInfo;
+	TMap<uint64, TSharedPtr<FFbxCameraInfo>> CameraInfo;
+	
 	/* true if it has animation */
 	bool bHasAnimation;
 	double FrameRate;
@@ -206,6 +309,17 @@ public:
 		, FrameRate(0.0)
 		, TotalTime(0.0)
 	{}
+
+	//Function helper to find the LOD parent of a nodeinfo with a mesh attribute
+	static TSharedPtr<FFbxNodeInfo> RecursiveFindLODParentNode(TSharedPtr<FFbxNodeInfo> NodeInfo)
+	{
+		if (!NodeInfo.IsValid())
+			return nullptr;
+		if (NodeInfo->ParentNodeInfo.IsValid() && NodeInfo->ParentNodeInfo->AttributeType.Compare(TEXT("eLODGroup")) == 0)
+			return NodeInfo->ParentNodeInfo;
+
+		return RecursiveFindLODParentNode(NodeInfo->ParentNodeInfo);
+	}
 };
 
 namespace UnFbx
@@ -238,15 +352,6 @@ class UNREALED_API UFbxSceneImportFactory : public UFactory
 	UPROPERTY(Transient)
 	class UFbxSceneImportOptionsSkeletalMesh* SceneImportOptionsSkeletalMesh;
 	
-	/** Import options UI detail when importing fbx scene animation*/
-	UPROPERTY(Transient)
-	class UFbxSceneImportOptionsAnimation* SceneImportOptionsAnimation;
-	
-	/** Import options UI detail when importing fbx scene material*/
-	UPROPERTY(Transient)
-	class UFbxSceneImportOptionsMaterial* SceneImportOptionsMaterial;
-
-
 	/** Import data used when importing static meshes */
 	UPROPERTY(Transient)
 	class UFbxStaticMeshImportData* StaticMeshImportData;
@@ -267,6 +372,8 @@ class UNREALED_API UFbxSceneImportFactory : public UFactory
 	static FString DefaultOptionName;
 
 protected:
+	/** Make sure GlobalImportSettings is pointing to the correct options */
+	void ApplyMeshInfoFbxOptions(TSharedPtr<FFbxMeshInfo> MeshInfo);
 
 	/* Compute the path of every node and fill the result in the node. This data will be use by the reimport
 	*  as a unique key for for the reimport status of the node hierarchy.
@@ -284,13 +391,12 @@ protected:
 	* LocalTransform: Must be a valid pointer
 	* PreMultiplyTransform: Can be nullptr
 	*/
-	void ApplyTransformToComponent(USceneComponent *SceneComponent, FTransform *LocalTransform, FTransform *PreMultiplyTransform);
-
-	/** This will add the scene transform options to the root node */
-	void ApplySceneTransformOptionsToRootNode(TSharedPtr<FFbxSceneInfo> SceneInfoPtr);
+	void ApplyTransformToComponent(USceneComponent *SceneComponent, FTransform *LocalTransform, FTransform *PreMultiplyTransform, FVector &PivotLocation, FVector &ParentPivotAccumulation);
 
 	/** Import all skeletal mesh from the fbx scene */
 	void ImportAllSkeletalMesh(void* VoidRootNodeToImport, void* VoidFbxImporter, EObjectFlags Flags, int32& NodeIndex, int32& InterestingNodeCount , TSharedPtr<FFbxSceneInfo> SceneInfo);
+	
+	UObject* ImportOneSkeletalMesh(void* VoidRootNodeToImport, void* VoidFbxImporter, TSharedPtr<FFbxSceneInfo> SceneInfo, EObjectFlags Flags, TArray<void*> &VoidNodeArray, int32 &TotalNumNodes);
 
 	/** Import all static mesh from the fbx scene */
 	void ImportAllStaticMesh(void* VoidRootNodeToImport, void* VoidFbxImporter, EObjectFlags Flags, int32& NodeIndex, int32& InterestingNodeCount, TSharedPtr<FFbxSceneInfo> SceneInfo);
@@ -299,7 +405,7 @@ protected:
 	UObject* RecursiveImportNode(void* FFbxImporter, void* VoidNode, EObjectFlags Flags, int32& Index, int32 Total, TSharedPtr<FFbxSceneInfo> SceneInfo, FString PackagePath);
 
 	// @todo document
-	UObject* ImportANode(void* VoidFbxImporter, void* VoidNode, EObjectFlags Flags, int32& NodeIndex, TSharedPtr<FFbxSceneInfo> SceneInfo, TSharedPtr<FFbxNodeInfo> &OutNodeInfo, FString PackagePath, int32 Total = 0, UObject* InMesh = NULL, int LODIndex = 0);
+	UObject* ImportANode(void* VoidFbxImporter, TArray<void*> &VoidNode, EObjectFlags Flags, int32& NodeIndex, TSharedPtr<FFbxSceneInfo> SceneInfo, TSharedPtr<FFbxNodeInfo> &OutNodeInfo, FString PackagePath, int32 Total = 0, UObject* InMesh = NULL, int LODIndex = 0);
 
 	/** Find the FFbxNodeInfo in the hierarchy. */
 	bool FindSceneNodeInfo(TSharedPtr<FFbxSceneInfo> SceneInfo, uint64 NodeInfoUniqueId, TSharedPtr<FFbxNodeInfo> &OutNodeInfo);
@@ -307,7 +413,7 @@ protected:
 	/** Create a package for the specified node. Package will be the concatenation of UFbxSceneImportFactory::Path and Node->GetName(). */
 	UPackage *CreatePackageForNode(FString PackageName, FString &StaticMeshName);
 
-	static TSharedPtr<FFbxSceneInfo> ConvertSceneInfo(void* VoidFbxSceneInfo);
+	static TSharedPtr<FFbxSceneInfo> ConvertSceneInfo(void* VoidFbxImporter, void* VoidFbxSceneInfo);
 	static void ExtractMaterialInfo(void* FbxImporterVoid, TSharedPtr<FFbxSceneInfo> SceneInfoPtr);
 	bool SetStaticMeshComponentOverrideMaterial(class UStaticMeshComponent* StaticMeshComponent, TSharedPtr<FFbxNodeInfo> NodeInfo);
 

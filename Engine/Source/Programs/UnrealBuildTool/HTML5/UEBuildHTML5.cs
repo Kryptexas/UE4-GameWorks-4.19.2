@@ -68,7 +68,6 @@ namespace UnrealBuildTool
 			UEBuildConfiguration.bRuntimePhysicsCooking = false;
 			UEBuildConfiguration.bCompileSimplygon = false;
             UEBuildConfiguration.bCompileSimplygonSSF = false;
-			UEBuildConfiguration.bCompileICU = true;
 			UEBuildConfiguration.bCompileForSize = true;
 		}
 

@@ -62,7 +62,40 @@ void FAnimMontageSegmentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 {
 	IDetailCategoryBuilder& SegmentCategory = DetailBuilder.EditCategory("Animation Segment", LOCTEXT("AnimationSegmentCategoryTitle", "Animation Segment") );
 
-	SegmentCategory.AddProperty("AnimSegment.AnimReference").DisplayName( LOCTEXT("AnimationReferenceLabel", "Animation Reference") );
+	TSharedRef<IPropertyHandle> TargetPropertyHandle = DetailBuilder.GetProperty("AnimSegment.AnimReference");
+	UProperty* TargetProperty = TargetPropertyHandle->GetProperty();
+
+	const UObjectPropertyBase* ObjectProperty = CastChecked<const UObjectPropertyBase>(TargetProperty);
+
+	IDetailPropertyRow& PropertyRow = SegmentCategory.AddProperty(TargetPropertyHandle);
+	PropertyRow.DisplayName(LOCTEXT("AnimationReferenceLabel", "Animation Reference"));
+
+	TSharedPtr<SWidget> NameWidget;
+	TSharedPtr<SWidget> ValueWidget;
+	FDetailWidgetRow Row;
+	PropertyRow.GetDefaultWidgets(NameWidget, ValueWidget, Row);
+
+	bool bAllowClear = !(ObjectProperty->PropertyFlags & CPF_NoClear);
+
+	SAssignNew(ValueWidget, SObjectPropertyEntryBox)
+		.PropertyHandle(TargetPropertyHandle)
+		.AllowedClass(ObjectProperty->PropertyClass)
+		.AllowClear(bAllowClear)
+		.OnShouldFilterAsset(FOnShouldFilterAsset::CreateSP(this, &FAnimMontageSegmentDetails::OnShouldFilterAnimAsset));
+
+	PropertyRow.CustomWidget()
+		.NameContent()
+		.MinDesiredWidth(Row.NameWidget.MinWidth)
+		.MaxDesiredWidth(Row.NameWidget.MaxWidth)
+		[
+			NameWidget.ToSharedRef()
+		]
+		.ValueContent()
+		.MinDesiredWidth(Row.ValueWidget.MinWidth)
+		.MaxDesiredWidth(Row.ValueWidget.MaxWidth)
+		[
+			ValueWidget.ToSharedRef()
+		];
 
 	SegmentCategory.AddProperty("AnimSegment.AnimStartTime").DisplayName( LOCTEXT("StartTimeLabel", "Start Time") );
 	SegmentCategory.AddProperty("AnimSegment.AnimEndTime").DisplayName( LOCTEXT("EndTimeLabel", "End Time") );
@@ -92,6 +125,10 @@ void FAnimMontageSegmentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 	];	
 }
 
+bool FAnimMontageSegmentDetails::OnShouldFilterAnimAsset(const FAssetData& AssetData) const
+{
+	return AssetData.GetClass() == UAnimMontage::StaticClass();
+}
 
 /////////////////////////////////////////////////
 ////////////////////////////////////////////////
@@ -101,15 +138,14 @@ SAnimationSegmentViewport::~SAnimationSegmentViewport()
 	// clean up components
 	if (PreviewComponent)
 	{
-		for (int32 I=PreviewComponent->AttachChildren.Num()-1; I >= 0; --I) // Iterate backwards because Cleancomponent will remove from AttachChildren
+		for (int32 I=PreviewComponent->GetAttachChildren().Num()-1; I >= 0; --I) // Iterate backwards because CleanupComponent will remove from AttachChildren
 		{
 			// PreviewComponet will be cleaned up by PreviewScene, 
 			// but if anything is attached, it won't be cleaned up, 
 			// so we'll need to clean them up manually
-			CleanupComponent(PreviewComponent->AttachChildren[I]);
+			CleanupComponent(PreviewComponent->GetAttachChildren()[I]);
 		}
-
-		PreviewComponent->AttachChildren.Empty();
+		check(PreviewComponent->GetAttachChildren().Num() == 0);
 	}
 
 	// Close viewport
@@ -123,12 +159,12 @@ void SAnimationSegmentViewport::CleanupComponent(USceneComponent* Component)
 {
 	if (Component)
 	{
-		for (int32 I=0; I<Component->AttachChildren.Num(); ++I)
+		for (int32 I = Component->GetAttachChildren().Num() - 1; I >= 0; --I) // Iterate backwards because CleanupComponent will remove from AttachChildren
 		{
-			CleanupComponent(Component->AttachChildren[I]);
+			CleanupComponent(Component->GetAttachChildren()[I]);
 		}
+		check(Component->GetAttachChildren().Num() == 0);
 
-		Component->AttachChildren.Empty();
 		Component->DestroyComponent();
 	}
 }
@@ -236,7 +272,7 @@ void SAnimationSegmentViewport::InitSkeleton()
 				//Place the camera at a good viewer position
 				FVector NewPosition = LevelViewportClient->GetViewLocation();
 				NewPosition.Normalize();
-				LevelViewportClient->SetViewLocation(NewPosition * (PreviewMesh->Bounds.SphereRadius*1.5f));
+				LevelViewportClient->SetViewLocation(NewPosition * (PreviewMesh->GetImportedBounds().SphereRadius*1.5f));
 			}
 		}
 	}

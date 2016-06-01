@@ -301,7 +301,7 @@ bool IsDBufferEnabled()
 }
 
 
-static EDecalRasterizerState ComputeDecalRasterizerState(bool bInsideDecal, const FViewInfo& View)
+static EDecalRasterizerState ComputeDecalRasterizerState(bool bInsideDecal, bool bIsInverted, const FViewInfo& View)
 {
 	bool bClockwise = bInsideDecal;
 
@@ -310,6 +310,10 @@ static EDecalRasterizerState ComputeDecalRasterizerState(bool bInsideDecal, cons
 		bClockwise = !bClockwise;
 	}
 
+	if (bIsInverted) 
+	{
+		bClockwise = !bClockwise;
+	}
 	return bClockwise ? DRS_CW : DRS_CCW;
 }
 
@@ -602,6 +606,8 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 				const FTransientDecalRenderData& DecalData = SortedDecals[DecalIndex];
 				const FDeferredDecalProxy& DecalProxy = *DecalData.DecalProxy;
 				const FMatrix ComponentToWorldMatrix = DecalProxy.ComponentTrans.ToMatrixWithScale();
+				
+
 				const FMatrix FrustumComponentToClip = FDecalRendering::ComputeComponentToClipMatrix(View, ComponentToWorldMatrix);
 
 				EDecalBlendMode DecalBlendMode = DecalData.DecalBlendMode;
@@ -723,7 +729,13 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 
 				// update rasterizer state if needed
 				{
-					EDecalRasterizerState DecalRasterizerState = ComputeDecalRasterizerState(bInsideDecal, View);
+					bool bReverseHanded = false;
+					{
+						// Account for the reversal of handedness caused by negative scale on the decale
+						const auto& Scale3d = DecalProxy.ComponentTrans.GetScale3D();
+						bReverseHanded =  Scale3d[0] * Scale3d[1] * Scale3d[2] < 0.f;
+					}
+					EDecalRasterizerState DecalRasterizerState = ComputeDecalRasterizerState(bInsideDecal, bReverseHanded, View);
 
 					if (LastDecalRasterizerState != DecalRasterizerState)
 					{
@@ -743,7 +755,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 					}
 				}
 
-				FDecalRendering::SetShader(RHICmdList, View, bShaderComplexity, DecalData, FrustumComponentToClip);
+				FDecalRendering::SetShader(RHICmdList, View, DecalData, FrustumComponentToClip);
 
 				RHICmdList.DrawIndexedPrimitive(GetUnitCubeIndexBuffer(), PT_TriangleList, 0, 0, 8, 0, ARRAY_COUNT(GCubeIndices) / 3, 1);
 

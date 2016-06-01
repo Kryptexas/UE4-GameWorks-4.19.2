@@ -501,7 +501,7 @@ void FSlateBatchData::Merge(FElementBatchMap& InLayerToElementBatches, uint32& V
 					TArray<SlateIndex>& BatchIndices = GetBatchIndexList(ElementBatch);
 
 					// We should have at least some vertices and indices in the batch or none at all
-					check(BatchVertices.Num() > 0 && BatchIndices.Num() > 0 || BatchVertices.Num() == 0 && BatchIndices.Num() == 0);
+					check((BatchVertices.Num() > 0 && BatchIndices.Num() > 0) || (BatchVertices.Num() == 0 && BatchIndices.Num() == 0));
 
 					if ( BatchVertices.Num() > 0 && BatchIndices.Num() > 0 )
 					{
@@ -530,12 +530,12 @@ void FSlateBatchData::Merge(FElementBatchMap& InLayerToElementBatches, uint32& V
 
 
 FSlateWindowElementList::FDeferredPaint::FDeferredPaint( const TSharedRef<const SWidget>& InWidgetToPaint, const FPaintArgs& InArgs, const FGeometry InAllottedGeometry, const FSlateRect InMyClippingRect, const FWidgetStyle& InWidgetStyle, bool InParentEnabled )
-: WidgetToPaintPtr( InWidgetToPaint )
-, Args( InArgs )
-, AllottedGeometry( InAllottedGeometry )
-, MyClippingRect( InMyClippingRect )
-, WidgetStyle( InWidgetStyle )
-, bParentEnabled( InParentEnabled )
+	: WidgetToPaintPtr( InWidgetToPaint )
+	, Args( InArgs )
+	, AllottedGeometry( InAllottedGeometry )
+	, MyClippingRect( InMyClippingRect )
+	, WidgetStyle( InWidgetStyle )
+	, bParentEnabled( InParentEnabled )
 {
 }
 
@@ -559,13 +559,33 @@ void FSlateWindowElementList::QueueDeferredPainting( const FDeferredPaint& InDef
 
 int32 FSlateWindowElementList::PaintDeferred(int32 LayerId)
 {
-	for ( int32 i = 0; i < DeferredPaintList.Num(); ++i )
+	bNeedsDeferredResolve = false;
+
+	int32 ResolveIndex = ResolveToDeferredIndex.Pop(false);
+
+	for ( int32 i = ResolveIndex; i < DeferredPaintList.Num(); ++i )
 	{
 		LayerId = DeferredPaintList[i]->ExecutePaint(LayerId, *this);
 	}
 
+	for ( int32 i = DeferredPaintList.Num() - 1; i >= ResolveIndex; --i )
+	{
+		DeferredPaintList.RemoveAt(i, 1, false);
+	}
+
 	return LayerId;
 }
+
+void FSlateWindowElementList::BeginDeferredGroup()
+{
+	ResolveToDeferredIndex.Add(DeferredPaintList.Num());
+}
+
+void FSlateWindowElementList::EndDeferredGroup()
+{
+	bNeedsDeferredResolve = true;
+}
+
 
 
 FSlateWindowElementList::FVolatilePaint::FVolatilePaint(const TSharedRef<const SWidget>& InWidgetToPaint, const FPaintArgs& InArgs, const FGeometry InAllottedGeometry, const FSlateRect InMyClippingRect, int32 InLayerId, const FWidgetStyle& InWidgetStyle, bool InParentEnabled)

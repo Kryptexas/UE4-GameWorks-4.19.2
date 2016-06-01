@@ -11,22 +11,25 @@ typedef FString FPresenceKey;
 typedef FOnlineKeyValuePairs<FPresenceKey, FVariantData> FPresenceProperties;
 
 /** The default key that will update presence text in the platform's UI */
-const FString DefaultPresenceKey = "RichPresence";
+const FString DefaultPresenceKey = TEXT("RichPresence");
 
 /** Custom presence data that is not seen by users but can be polled */
-const FString CustomPresenceDataKey = "CustomData";
+const FString CustomPresenceDataKey = TEXT("CustomData");
 
 /** Name of the client that sent the presence update */
-const FString DefaultAppIdKey = "AppId";
+const FString DefaultAppIdKey = TEXT("AppId");
 
 /** Name of the platform the the presence update */
-const FString DefaultPlatformKey = "Platform";
+const FString DefaultPlatformKey = TEXT("Platform");
 
 /** Override Id of the client to set the presence state to */
-const FString OverrideAppIdKey = "OverrideAppId";
+const FString OverrideAppIdKey = TEXT("OverrideAppId");
 
 /** Id of the session for the presence update. @todo samz - SessionId on presence data should be FUniqueNetId not uint64 */
-const FString DefaultSessionIdKey = "SessionId";
+const FString DefaultSessionIdKey = TEXT("SessionId");
+
+/** Resource the client is logged in with */
+const FString PresenceResourceKey = TEXT("ResourceKey");
 
 namespace EOnlinePresenceState
 {
@@ -62,6 +65,36 @@ namespace EOnlinePresenceState
 		}
 		return TEXT("");
 	}
+
+	static FText OnlineText =  NSLOCTEXT("OnlinePresence", "Online", "Online");
+	static FText OfflineText =  NSLOCTEXT("OnlinePresence", "Offline", "Offline");
+	static FText AwayText =  NSLOCTEXT("OnlinePresence", "Away", "Away");
+	static FText ExtendedAwayText =  NSLOCTEXT("OnlinePresence", "ExtendedAway", "ExtendedAway");
+	static FText DoNotDisturbText =  NSLOCTEXT("OnlinePresence", "DoNotDisturb", "DoNotDisturb");
+	static FText ChatText =  NSLOCTEXT("OnlinePresence", "Chat", "Chat");
+	/** 
+	 * @return the loc text version of the enum passed in 
+	 */
+	inline const FText ToLocText(EOnlinePresenceState::Type EnumVal)
+	{
+		switch (EnumVal)
+		{
+		case Online:
+			return OnlineText;
+		case Offline:
+			return OfflineText;
+		case Away:
+			return AwayText;
+		case ExtendedAway:
+			return ExtendedAwayText;
+		case DoNotDisturb:
+			return DoNotDisturbText;
+		case Chat:
+			return ChatText;
+		}
+		return FText::GetEmpty();
+	}
+
 }
 
 class FOnlineUserPresenceStatus

@@ -404,6 +404,8 @@ FReply FKismetVariableDragDropAction::DroppedOnNode(FVector2D ScreenPosition, FV
 				}
 			}
 
+			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(DropOnBlueprint);
+
 			return FReply::Handled();
 		}
 	}

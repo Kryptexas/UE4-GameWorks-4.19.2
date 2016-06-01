@@ -26,7 +26,7 @@ FAutoConsoleVariableRef CVarAOFillGaps(
 	GAOFillGaps,
 	TEXT("Whether to fill in pixels using a screen space filter that had no valid world space interpolation weight from surface cache samples.\n")
 	TEXT("This is needed whenever r.AOMinLevel is not 0."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 int32 GAOFillGapsHighQuality = 1;
@@ -34,7 +34,7 @@ FAutoConsoleVariableRef CVarAOFillGapsHighQuality(
 	TEXT("r.AOFillGapsHighQuality"),
 	GAOFillGapsHighQuality,
 	TEXT("Whether to use the higher quality gap filling method that does a 5x5 gather, or the cheaper method that just looks up the 4 grid samples."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 int32 GAOUseHistory = 1;
@@ -42,7 +42,7 @@ FAutoConsoleVariableRef CVarAOUseHistory(
 	TEXT("r.AOUseHistory"),
 	GAOUseHistory,
 	TEXT("Whether to apply a temporal filter to the distance field AO, which reduces flickering but also adds trails when occluders are moving."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 int32 GAOHistoryStabilityPass = 1;
@@ -50,7 +50,7 @@ FAutoConsoleVariableRef CVarAOHistoryStabilityPass(
 	TEXT("r.AOHistoryStabilityPass"),
 	GAOHistoryStabilityPass,
 	TEXT("Whether to gather stable results to fill in holes in the temporal reprojection.  Adds some GPU cost but improves temporal stability with foliage."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 float GAOHistoryWeight = .85f;
@@ -58,7 +58,7 @@ FAutoConsoleVariableRef CVarAOHistoryWeight(
 	TEXT("r.AOHistoryWeight"),
 	GAOHistoryWeight,
 	TEXT("Amount of last frame's AO to lerp into the final result.  Higher values increase stability, lower values have less streaking under occluder movement."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 float GAOHistoryDistanceThreshold = 30;
@@ -66,7 +66,7 @@ FAutoConsoleVariableRef CVarAOHistoryDistanceThreshold(
 	TEXT("r.AOHistoryDistanceThreshold"),
 	GAOHistoryDistanceThreshold,
 	TEXT("World space distance threshold needed to discard last frame's DFAO results.  Lower values reduce ghosting from characters when near a wall but increase flickering artifacts."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 float GAOViewFadeDistanceScale = .7f;
@@ -74,7 +74,7 @@ FAutoConsoleVariableRef CVarAOViewFadeDistanceScale(
 	TEXT("r.AOViewFadeDistanceScale"),
 	GAOViewFadeDistanceScale,
 	TEXT("Distance over which AO will fade out as it approaches r.AOMaxViewDistance, as a fraction of r.AOMaxViewDistance."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 template<bool bSupportIrradiance>
@@ -328,11 +328,14 @@ public:
 		UseHistoryFilter.Bind(Initializer.ParameterMap, TEXT("UseHistoryFilter"));
 		VelocityTexture.Bind(Initializer.ParameterMap, TEXT("VelocityTexture"));
 		VelocityTextureSampler.Bind(Initializer.ParameterMap, TEXT("VelocityTextureSampler"));
+		DistanceFieldNormalTexture.Bind(Initializer.ParameterMap, TEXT("DistanceFieldNormalTexture"));
+		DistanceFieldNormalSampler.Bind(Initializer.ParameterMap, TEXT("DistanceFieldNormalSampler"));
 	}
 
 	void SetParameters(
 		FRHICommandList& RHICmdList, 
 		const FSceneView& View, 
+		FSceneRenderTargetItem& DistanceFieldNormal, 
 		FSceneRenderTargetItem& BentNormalHistoryTextureValue, 
 		TRefCountPtr<IPooledRenderTarget>* IrradianceHistoryRT, 
 		FSceneRenderTargetItem& DistanceFieldAOBentNormal, 
@@ -358,8 +361,17 @@ public:
 			ShaderRHI,
 			BentNormalHistoryTexture,
 			BentNormalHistorySampler,
-			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+			TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
 			BentNormalHistoryTextureValue.ShaderResourceTexture
+			);
+
+		SetTextureParameter(
+			RHICmdList,
+			ShaderRHI,
+			DistanceFieldNormalTexture,
+			DistanceFieldNormalSampler,
+			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+			DistanceFieldNormal.ShaderResourceTexture
 			);
 
 		if (IrradianceTexture.IsBound())
@@ -419,6 +431,8 @@ public:
 		Ar << UseHistoryFilter;
 		Ar << VelocityTexture;
 		Ar << VelocityTextureSampler;
+		Ar << DistanceFieldNormalTexture;
+		Ar << DistanceFieldNormalSampler;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -438,6 +452,8 @@ private:
 	FShaderParameter UseHistoryFilter;
 	FShaderResourceParameter VelocityTexture;
 	FShaderResourceParameter VelocityTextureSampler;
+	FShaderResourceParameter DistanceFieldNormalTexture;
+	FShaderResourceParameter DistanceFieldNormalSampler;
 };
 
 IMPLEMENT_SHADER_TYPE(template<>,TUpdateHistoryPS<true>,TEXT("DistanceFieldLightingPost"),TEXT("UpdateHistoryPS"),SF_Pixel);
@@ -474,11 +490,14 @@ public:
 		IrradianceSampler.Bind(Initializer.ParameterMap, TEXT("IrradianceSampler"));
 		HistoryWeight.Bind(Initializer.ParameterMap, TEXT("HistoryWeight"));
 		BentNormalAOTexelSize.Bind(Initializer.ParameterMap, TEXT("BentNormalAOTexelSize"));
+		DistanceFieldNormalTexture.Bind(Initializer.ParameterMap, TEXT("DistanceFieldNormalTexture"));
+		DistanceFieldNormalSampler.Bind(Initializer.ParameterMap, TEXT("DistanceFieldNormalSampler"));
 	}
 
 	void SetParameters(
 		FRHICommandList& RHICmdList, 
 		const FSceneView& View, 
+		FSceneRenderTargetItem& DistanceFieldNormal, 
 		FSceneRenderTargetItem& BentNormalHistoryTextureValue, 
 		IPooledRenderTarget* IrradianceHistoryRT)
 	{
@@ -493,6 +512,15 @@ public:
 			BentNormalAOSampler,
 			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
 			BentNormalHistoryTextureValue.ShaderResourceTexture
+			);
+
+		SetTextureParameter(
+			RHICmdList,
+			ShaderRHI,
+			DistanceFieldNormalTexture,
+			DistanceFieldNormalSampler,
+			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+			DistanceFieldNormal.ShaderResourceTexture
 			);
 
 		if (IrradianceTexture.IsBound())
@@ -525,6 +553,8 @@ public:
 		Ar << IrradianceSampler;
 		Ar << HistoryWeight;
 		Ar << BentNormalAOTexelSize;
+		Ar << DistanceFieldNormalTexture;
+		Ar << DistanceFieldNormalSampler;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -536,6 +566,8 @@ private:
 	FShaderResourceParameter IrradianceSampler;
 	FShaderParameter HistoryWeight;
 	FShaderParameter BentNormalAOTexelSize;
+	FShaderResourceParameter DistanceFieldNormalTexture;
+	FShaderResourceParameter DistanceFieldNormalSampler;
 };
 
 IMPLEMENT_SHADER_TYPE(template<>,TFilterHistoryPS<true>,TEXT("DistanceFieldLightingPost"),TEXT("FilterHistoryPS"),SF_Pixel);
@@ -560,6 +592,7 @@ void UpdateHistory(
 	const TCHAR* BentNormalHistoryRTName,
 	const TCHAR* IrradianceHistoryRTName,
 	IPooledRenderTarget* VelocityTexture,
+	FSceneRenderTargetItem& DistanceFieldNormal,
 	/** Contains last frame's history, if non-NULL.  This will be updated with the new frame's history. */
 	TRefCountPtr<IPooledRenderTarget>* BentNormalHistoryState,
 	TRefCountPtr<IPooledRenderTarget>* IrradianceHistoryState,
@@ -616,7 +649,7 @@ void UpdateHistory(
 
 					static FGlobalBoundShaderState BoundShaderState;
 					SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-					PixelShader->SetParameters(RHICmdList, View, (*BentNormalHistoryState)->GetRenderTargetItem(), IrradianceHistoryState, BentNormalSource->GetRenderTargetItem(), IrradianceSource, VelocityTexture);
+					PixelShader->SetParameters(RHICmdList, View, DistanceFieldNormal, (*BentNormalHistoryState)->GetRenderTargetItem(), IrradianceHistoryState, BentNormalSource->GetRenderTargetItem(), IrradianceSource, VelocityTexture);
 				}
 				else
 				{
@@ -624,7 +657,7 @@ void UpdateHistory(
 
 					static FGlobalBoundShaderState BoundShaderState;
 					SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-					PixelShader->SetParameters(RHICmdList, View, (*BentNormalHistoryState)->GetRenderTargetItem(), IrradianceHistoryState, BentNormalSource->GetRenderTargetItem(), IrradianceSource, VelocityTexture);
+					PixelShader->SetParameters(RHICmdList, View, DistanceFieldNormal, (*BentNormalHistoryState)->GetRenderTargetItem(), IrradianceHistoryState, BentNormalSource->GetRenderTargetItem(), IrradianceSource, VelocityTexture);
 				}
 
 				VertexShader->SetParameters(RHICmdList, View);
@@ -689,7 +722,7 @@ void UpdateHistory(
 
 						static FGlobalBoundShaderState BoundShaderState;
 						SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-						PixelShader->SetParameters(RHICmdList, View, NewBentNormalHistory->GetRenderTargetItem(), NewIrradianceHistory);
+						PixelShader->SetParameters(RHICmdList, View, DistanceFieldNormal, NewBentNormalHistory->GetRenderTargetItem(), NewIrradianceHistory);
 					}
 					else
 					{
@@ -697,7 +730,7 @@ void UpdateHistory(
 
 						static FGlobalBoundShaderState BoundShaderState;
 						SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-						PixelShader->SetParameters(RHICmdList, View, NewBentNormalHistory->GetRenderTargetItem(), NewIrradianceHistory);
+						PixelShader->SetParameters(RHICmdList, View, DistanceFieldNormal, NewBentNormalHistory->GetRenderTargetItem(), NewIrradianceHistory);
 					}
 
 					VertexShader->SetParameters(RHICmdList, View);
@@ -946,6 +979,7 @@ void PostProcessBentNormalAOSurfaceCache(
 			TEXT("DistanceFieldAOHistory"),
 			TEXT("DistanceFieldIrradianceHistory"),
 			VelocityTexture,
+			DistanceFieldNormal,
 			BentNormalHistoryState,
 			IrradianceHistoryState,
 			DistanceFieldAOBentNormal, 
@@ -963,7 +997,7 @@ enum EAOUpsampleType
 	AOUpsample_OutputIrradiance
 };
 
-template<EAOUpsampleType UpsampleType>
+template<EAOUpsampleType UpsampleType, bool bModulateToSceneColor, bool bSupportSpecularOcclusion>
 class TDistanceFieldAOUpsamplePS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(TDistanceFieldAOUpsamplePS, Global);
@@ -977,8 +1011,10 @@ public:
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		OutEnvironment.SetDefine(TEXT("DOWNSAMPLE_FACTOR"), GAODownsampleFactor);
+		OutEnvironment.SetDefine(TEXT("MODULATE_SCENE_COLOR"), bModulateToSceneColor ? TEXT("1") : TEXT("0"));
 		OutEnvironment.SetDefine(TEXT("OUTPUT_BENT_NORMAL"), (UpsampleType == AOUpsample_OutputBentNormal || UpsampleType == AOUpsample_OutputBentNormalAndIrradiance) ? TEXT("1") : TEXT("0"));
 		OutEnvironment.SetDefine(TEXT("SUPPORT_IRRADIANCE"), (UpsampleType == AOUpsample_OutputIrradiance || UpsampleType == AOUpsample_OutputBentNormalAndIrradiance) ? TEXT("1") : TEXT("0"));
+		OutEnvironment.SetDefine(TEXT("SUPPORT_SPECULAR_OCCLUSION"), bSupportSpecularOcclusion ? TEXT("1") : TEXT("0"));
 		OutEnvironment.SetDefine(TEXT("OUTPUT_AO"), (UpsampleType == AOUpsample_OutputAO) ? TEXT("1") : TEXT("0"));
 	}
 
@@ -994,9 +1030,12 @@ public:
 		BentNormalAOSampler.Bind(Initializer.ParameterMap,TEXT("BentNormalAOSampler"));
 		IrradianceTexture.Bind(Initializer.ParameterMap,TEXT("IrradianceTexture"));
 		IrradianceSampler.Bind(Initializer.ParameterMap,TEXT("IrradianceSampler"));
+		SpecularOcclusionTexture.Bind(Initializer.ParameterMap,TEXT("SpecularOcclusionTexture"));
+		SpecularOcclusionSampler.Bind(Initializer.ParameterMap,TEXT("SpecularOcclusionSampler"));
+		MinIndirectDiffuseOcclusion.Bind(Initializer.ParameterMap,TEXT("MinIndirectDiffuseOcclusion"));
 	}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, TRefCountPtr<IPooledRenderTarget>& DistanceFieldAOBentNormal, IPooledRenderTarget* DistanceFieldIrradiance)
+	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, TRefCountPtr<IPooledRenderTarget>& DistanceFieldAOBentNormal, IPooledRenderTarget* DistanceFieldIrradiance, IPooledRenderTarget* DistanceFieldSpecularOcclusion)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
@@ -1009,6 +1048,15 @@ public:
 		{
 			SetTextureParameter(RHICmdList, ShaderRHI, IrradianceTexture, IrradianceSampler, TStaticSamplerState<SF_Bilinear>::GetRHI(), DistanceFieldIrradiance->GetRenderTargetItem().ShaderResourceTexture);
 		}
+
+		if (SpecularOcclusionTexture.IsBound())
+		{
+			SetTextureParameter(RHICmdList, ShaderRHI, SpecularOcclusionTexture, SpecularOcclusionSampler, TStaticSamplerState<SF_Bilinear>::GetRHI(), DistanceFieldSpecularOcclusion->GetRenderTargetItem().ShaderResourceTexture);
+		}
+
+		FScene* Scene = (FScene*)View.Family->Scene;
+		const float MinOcclusion = Scene->SkyLight ? Scene->SkyLight->MinOcclusion : 0;
+		SetShaderValue(RHICmdList, ShaderRHI, MinIndirectDiffuseOcclusion, MinOcclusion);
 	}
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar) override
@@ -1019,6 +1067,9 @@ public:
 		Ar << BentNormalAOSampler;
 		Ar << IrradianceTexture;
 		Ar << IrradianceSampler;
+		Ar << SpecularOcclusionTexture;
+		Ar << SpecularOcclusionSampler;
+		Ar << MinIndirectDiffuseOcclusion;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -1029,69 +1080,161 @@ private:
 	FShaderResourceParameter BentNormalAOSampler;
 	FShaderResourceParameter IrradianceTexture;
 	FShaderResourceParameter IrradianceSampler;
+	FShaderResourceParameter SpecularOcclusionTexture;
+	FShaderResourceParameter SpecularOcclusionSampler;
+	FShaderParameter MinIndirectDiffuseOcclusion;
 };
 
-#define IMPLEMENT_UPSAMPLE_PS_TYPE(UpsampleType) \
-	typedef TDistanceFieldAOUpsamplePS<UpsampleType> TDistanceFieldAOUpsamplePS##UpsampleType; \
-	IMPLEMENT_SHADER_TYPE(template<>,TDistanceFieldAOUpsamplePS##UpsampleType,TEXT("DistanceFieldLightingPost"),TEXT("AOUpsamplePS"),SF_Pixel);
+#define IMPLEMENT_UPSAMPLE_PS_TYPE(UpsampleType, bModulateToSceneColor, bSupportSpecularOcclusion) \
+	typedef TDistanceFieldAOUpsamplePS<UpsampleType, bModulateToSceneColor, bSupportSpecularOcclusion> TDistanceFieldAOUpsamplePS##UpsampleType##bModulateToSceneColor##bSupportSpecularOcclusion; \
+	IMPLEMENT_SHADER_TYPE(template<>,TDistanceFieldAOUpsamplePS##UpsampleType##bModulateToSceneColor##bSupportSpecularOcclusion,TEXT("DistanceFieldLightingPost"),TEXT("AOUpsamplePS"),SF_Pixel);
 
-IMPLEMENT_UPSAMPLE_PS_TYPE(AOUpsample_OutputBentNormal)
-IMPLEMENT_UPSAMPLE_PS_TYPE(AOUpsample_OutputAO)
-IMPLEMENT_UPSAMPLE_PS_TYPE(AOUpsample_OutputBentNormalAndIrradiance)
-IMPLEMENT_UPSAMPLE_PS_TYPE(AOUpsample_OutputIrradiance)
+IMPLEMENT_UPSAMPLE_PS_TYPE(AOUpsample_OutputBentNormal, true, true)
+IMPLEMENT_UPSAMPLE_PS_TYPE(AOUpsample_OutputAO, true, true)
+IMPLEMENT_UPSAMPLE_PS_TYPE(AOUpsample_OutputBentNormalAndIrradiance, true, true)
+IMPLEMENT_UPSAMPLE_PS_TYPE(AOUpsample_OutputIrradiance, true, true)
+IMPLEMENT_UPSAMPLE_PS_TYPE(AOUpsample_OutputBentNormal, false, true)
+IMPLEMENT_UPSAMPLE_PS_TYPE(AOUpsample_OutputAO, false, true)
+IMPLEMENT_UPSAMPLE_PS_TYPE(AOUpsample_OutputBentNormalAndIrradiance, false, true)
+IMPLEMENT_UPSAMPLE_PS_TYPE(AOUpsample_OutputIrradiance, false, true)
+
+IMPLEMENT_UPSAMPLE_PS_TYPE(AOUpsample_OutputBentNormal, true, false)
+IMPLEMENT_UPSAMPLE_PS_TYPE(AOUpsample_OutputAO, true, false)
+IMPLEMENT_UPSAMPLE_PS_TYPE(AOUpsample_OutputBentNormalAndIrradiance, true, false)
+IMPLEMENT_UPSAMPLE_PS_TYPE(AOUpsample_OutputIrradiance, true, false)
+IMPLEMENT_UPSAMPLE_PS_TYPE(AOUpsample_OutputBentNormal, false, false)
+IMPLEMENT_UPSAMPLE_PS_TYPE(AOUpsample_OutputAO, false, false)
+IMPLEMENT_UPSAMPLE_PS_TYPE(AOUpsample_OutputBentNormalAndIrradiance, false, false)
+IMPLEMENT_UPSAMPLE_PS_TYPE(AOUpsample_OutputIrradiance, false, false)
+
+template<bool bSupportSpecularOcclusion>
+void SetUpsampleShaders(
+	FRHICommandList& RHICmdList, 
+	const FViewInfo& View, 
+	TShaderMapRef<FPostProcessVS>& VertexShader,
+	TRefCountPtr<IPooledRenderTarget>& DistanceFieldAOBentNormal, 
+	TRefCountPtr<IPooledRenderTarget>& DistanceFieldIrradiance,
+	TRefCountPtr<IPooledRenderTarget>& DistanceFieldSpecularOcclusion,
+	bool bModulateSceneColor,
+	bool bVisualizeAmbientOcclusion,
+	bool bVisualizeGlobalIllumination)
+{
+	const bool bUseDistanceFieldGI = IsDistanceFieldGIAllowed(View);
+
+	if (bModulateSceneColor)
+	{
+		if (bVisualizeAmbientOcclusion)
+		{
+			TShaderMapRef<TDistanceFieldAOUpsamplePS<AOUpsample_OutputAO, true, bSupportSpecularOcclusion> > PixelShader(View.ShaderMap);
+			static FGlobalBoundShaderState BoundShaderState;
+			SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+			PixelShader->SetParameters(RHICmdList, View, DistanceFieldAOBentNormal, DistanceFieldIrradiance, DistanceFieldSpecularOcclusion);
+		}
+		else if (bVisualizeGlobalIllumination && bUseDistanceFieldGI)
+		{
+			TShaderMapRef<TDistanceFieldAOUpsamplePS<AOUpsample_OutputIrradiance, true, bSupportSpecularOcclusion> > PixelShader(View.ShaderMap);
+			static FGlobalBoundShaderState BoundShaderState;
+			SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+			PixelShader->SetParameters(RHICmdList, View, DistanceFieldAOBentNormal, DistanceFieldIrradiance, DistanceFieldSpecularOcclusion);
+		}
+		else
+		{
+			if (bUseDistanceFieldGI)
+			{
+				TShaderMapRef<TDistanceFieldAOUpsamplePS<AOUpsample_OutputBentNormalAndIrradiance, true, bSupportSpecularOcclusion> > PixelShader(View.ShaderMap);
+				static FGlobalBoundShaderState BoundShaderState;
+				SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+				PixelShader->SetParameters(RHICmdList, View, DistanceFieldAOBentNormal, DistanceFieldIrradiance, DistanceFieldSpecularOcclusion);
+			}
+			else
+			{
+				TShaderMapRef<TDistanceFieldAOUpsamplePS<AOUpsample_OutputBentNormal, true, bSupportSpecularOcclusion> > PixelShader(View.ShaderMap);
+				static FGlobalBoundShaderState BoundShaderState;
+				SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+				PixelShader->SetParameters(RHICmdList, View, DistanceFieldAOBentNormal, DistanceFieldIrradiance, DistanceFieldSpecularOcclusion);
+			}
+		}
+	}
+	else
+	{
+		if (bVisualizeAmbientOcclusion)
+		{
+			TShaderMapRef<TDistanceFieldAOUpsamplePS<AOUpsample_OutputAO, false, bSupportSpecularOcclusion> > PixelShader(View.ShaderMap);
+			static FGlobalBoundShaderState BoundShaderState;
+			SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+			PixelShader->SetParameters(RHICmdList, View, DistanceFieldAOBentNormal, DistanceFieldIrradiance, DistanceFieldSpecularOcclusion);
+		}
+		else if (bVisualizeGlobalIllumination && bUseDistanceFieldGI)
+		{
+			TShaderMapRef<TDistanceFieldAOUpsamplePS<AOUpsample_OutputIrradiance, false, bSupportSpecularOcclusion> > PixelShader(View.ShaderMap);
+			static FGlobalBoundShaderState BoundShaderState;
+			SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+			PixelShader->SetParameters(RHICmdList, View, DistanceFieldAOBentNormal, DistanceFieldIrradiance, DistanceFieldSpecularOcclusion);
+		}
+		else
+		{
+			if (bUseDistanceFieldGI)
+			{
+				TShaderMapRef<TDistanceFieldAOUpsamplePS<AOUpsample_OutputBentNormalAndIrradiance, false, bSupportSpecularOcclusion> > PixelShader(View.ShaderMap);
+				static FGlobalBoundShaderState BoundShaderState;
+				SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+				PixelShader->SetParameters(RHICmdList, View, DistanceFieldAOBentNormal, DistanceFieldIrradiance, DistanceFieldSpecularOcclusion);
+			}
+			else
+			{
+				TShaderMapRef<TDistanceFieldAOUpsamplePS<AOUpsample_OutputBentNormal, false, bSupportSpecularOcclusion> > PixelShader(View.ShaderMap);
+				static FGlobalBoundShaderState BoundShaderState;
+				SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+				PixelShader->SetParameters(RHICmdList, View, DistanceFieldAOBentNormal, DistanceFieldIrradiance, DistanceFieldSpecularOcclusion);
+			}
+		}
+	}
+}
 
 void UpsampleBentNormalAO(
 	FRHICommandList& RHICmdList, 
 	const TArray<FViewInfo>& Views, 
 	TRefCountPtr<IPooledRenderTarget>& DistanceFieldAOBentNormal, 
 	TRefCountPtr<IPooledRenderTarget>& DistanceFieldIrradiance,
+	TRefCountPtr<IPooledRenderTarget>& DistanceFieldSpecularOcclusion,
+	bool bModulateSceneColor,
 	bool bVisualizeAmbientOcclusion,
 	bool bVisualizeGlobalIllumination)
 {
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
 		const FViewInfo& View = Views[ViewIndex];
-		const bool bUseDistanceFieldGI = IsDistanceFieldGIAllowed(View);
 
 		SCOPED_DRAW_EVENT(RHICmdList, UpsampleAO);
 
 		RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 		RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
-		TShaderMapRef<FPostProcessVS> VertexShader(View.ShaderMap);
-
-		if (bVisualizeAmbientOcclusion)
+		if (bModulateSceneColor)
 		{
-			TShaderMapRef<TDistanceFieldAOUpsamplePS<AOUpsample_OutputAO> > PixelShader(View.ShaderMap);
-			static FGlobalBoundShaderState BoundShaderState;
-			SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-			PixelShader->SetParameters(RHICmdList, View, DistanceFieldAOBentNormal, DistanceFieldIrradiance);
-		}
-		else if (bVisualizeGlobalIllumination && bUseDistanceFieldGI)
-		{
-			TShaderMapRef<TDistanceFieldAOUpsamplePS<AOUpsample_OutputIrradiance> > PixelShader(View.ShaderMap);
-			static FGlobalBoundShaderState BoundShaderState;
-			SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-			PixelShader->SetParameters(RHICmdList, View, DistanceFieldAOBentNormal, DistanceFieldIrradiance);
+			RHICmdList.SetBlendState(TStaticBlendState<
+				// Opaque blending to DistanceFieldAOBentNormal
+				CW_RGBA, BO_Add, BF_One, BF_Zero, BO_Add, BF_One, BF_Zero,
+				// Modulate scene color target
+				CW_RGB, BO_Add, BF_DestColor, BF_Zero, BO_Add, BF_Zero, BF_One,
+				// Opaque blending to DistanceFieldIrradiance
+				CW_RGBA, BO_Add, BF_One, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI());
 		}
 		else
 		{
-			if (bUseDistanceFieldGI)
-			{
-				TShaderMapRef<TDistanceFieldAOUpsamplePS<AOUpsample_OutputBentNormalAndIrradiance> > PixelShader(View.ShaderMap);
-				static FGlobalBoundShaderState BoundShaderState;
-				SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-				PixelShader->SetParameters(RHICmdList, View, DistanceFieldAOBentNormal, DistanceFieldIrradiance);
-			}
-			else
-			{
-				TShaderMapRef<TDistanceFieldAOUpsamplePS<AOUpsample_OutputBentNormal> > PixelShader(View.ShaderMap);
-				static FGlobalBoundShaderState BoundShaderState;
-				SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-				PixelShader->SetParameters(RHICmdList, View, DistanceFieldAOBentNormal, DistanceFieldIrradiance);
-			}
+			RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+		}
+
+		TShaderMapRef<FPostProcessVS> VertexShader(View.ShaderMap);
+
+		if (DistanceFieldSpecularOcclusion)
+		{
+			SetUpsampleShaders<true>(RHICmdList, View, VertexShader, DistanceFieldAOBentNormal, DistanceFieldIrradiance, DistanceFieldSpecularOcclusion, bModulateSceneColor, bVisualizeAmbientOcclusion, bVisualizeGlobalIllumination);
+		}
+		else
+		{
+			SetUpsampleShaders<false>(RHICmdList, View, VertexShader, DistanceFieldAOBentNormal, DistanceFieldIrradiance, DistanceFieldSpecularOcclusion, bModulateSceneColor, bVisualizeAmbientOcclusion, bVisualizeGlobalIllumination);
 		}
 
 		DrawRectangle( 

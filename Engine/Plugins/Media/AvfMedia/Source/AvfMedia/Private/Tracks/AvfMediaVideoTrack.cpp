@@ -120,9 +120,7 @@ bool FAvfMediaVideoTrack::SeekToTime( const CMTime& SeekTime )
 		
 		[AVReader addOutput:AVVideoOutput];
 		bVideoTracksLoaded = [AVReader startReading];
-
-		SyncStatus = Default;
-
+		
 		ReadFrameAtTime( SeekTime, false );
 		
 		bSeekComplete = AVReader.status == AVAssetReaderStatusReading;

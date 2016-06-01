@@ -17,10 +17,13 @@ struct FTimerUnifiedDelegate
 	FTimerDelegate FuncDelegate;
 	/** Holds the dynamic delegate to call. */
 	FTimerDynamicDelegate FuncDynDelegate;
+	/** Holds the tfunction callback to call. */
+	TFunction<void(void)> FuncCallback;
 
 	FTimerUnifiedDelegate() {};
 	FTimerUnifiedDelegate(FTimerDelegate const& D) : FuncDelegate(D) {};
 	FTimerUnifiedDelegate(FTimerDynamicDelegate const& D) : FuncDynDelegate(D) {};
+	FTimerUnifiedDelegate(TFunction<void(void)>&& Callback) : FuncCallback(MoveTemp(Callback)) {}
 	
 	inline void Execute()
 	{
@@ -41,11 +44,15 @@ struct FTimerUnifiedDelegate
 		{
 			FuncDynDelegate.ProcessDelegate<UObject>(nullptr);
 		}
+		else if ( FuncCallback )
+		{
+			FuncCallback();
+		}
 	}
 
 	inline bool IsBound() const
 	{
-		return ( FuncDelegate.IsBound() || FuncDynDelegate.IsBound() );
+		return ( FuncDelegate.IsBound() || FuncDynDelegate.IsBound() || FuncCallback );
 	}
 
 	inline bool IsBoundToObject(void const* Object) const
@@ -66,6 +73,7 @@ struct FTimerUnifiedDelegate
 	{
 		FuncDelegate.Unbind();
 		FuncDynDelegate.Unbind();
+		FuncCallback = nullptr;
 	}
 
 	/** Utility to output info about delegate as a string. */
@@ -148,6 +156,7 @@ public:
 	FTimerManager()
 		: InternalTime(0.0)
 		, LastTickedFrame(static_cast<uint64>(-1))
+		, LastAssignedHandle(0)
 	{}
 
 
@@ -189,6 +198,11 @@ public:
 	{
 		InternalSetTimer(InOutHandle, FTimerUnifiedDelegate(), InRate, InbLoop, InFirstDelay);
 	}
+	/** Version that takes a TFunction */
+	FORCEINLINE void SetTimer(FTimerHandle& InOutHandle, TFunction<void(void)>&& Callback, float InRate, bool InbLoop, float InFirstDelay = -1.f )
+	{
+		InternalSetTimer(InOutHandle, FTimerUnifiedDelegate(MoveTemp(Callback)), InRate, InbLoop, InFirstDelay);
+	}
 
 	/**
 	 * Sets a timer to call the given native function on the next tick.
@@ -217,16 +231,33 @@ public:
 	{
 		InternalSetTimerForNextTick(FTimerUnifiedDelegate(InDynDelegate));
 	}
-
+	/** Version that takes a TFunction */
+	FORCEINLINE void SetTimerForNextTick(TFunction<void(void)>&& Callback)
+	{
+		InternalSetTimerForNextTick(FTimerUnifiedDelegate(MoveTemp(Callback)));
+	}
 
 	/**
-	 * Clears a previously set timer, identical to calling SetTimer() with a <= 0.f rate.
+	 * DEPRECATED: Clears a previously set timer, identical to calling SetTimer() with a <= 0.f rate.
 	 *
 	 * @param InHandle The handle of the timer to clear.
 	 */
-	FORCEINLINE void ClearTimer(FTimerHandle InHandle)
+	DEPRECATED(4.12, "This function is deprecated to ensure that timers that are no longer valid are not persisted. Please call this function with a non-const reference.")
+	FORCEINLINE void ClearTimer(const FTimerHandle& InHandle)
 	{
 		InternalClearTimer(InHandle);
+	}
+
+	/**
+	* Clears a previously set timer, identical to calling SetTimer() with a <= 0.f rate.
+	* Invalidates the timer handle as it should no longer be used.
+	*
+	* @param InHandle The handle of the timer to clear.
+	*/
+	FORCEINLINE void ClearTimer(FTimerHandle& InHandle)
+	{
+		InternalClearTimer(InHandle);
+		InHandle.Invalidate();
 	}
 
 	/** Clears all timers that are bound to functions on the given object. */
@@ -237,7 +268,6 @@ public:
 			InternalClearAllTimers( Object );
 		}
 	}
-
 
 	/**
 	 * Pauses a previously set timer.
@@ -360,8 +390,11 @@ public:
 	 */
 	FTimerHandle K2_FindDynamicTimerHandle(FTimerDynamicDelegate InDynamicDelegate) const;
 
-	/** Debug command to output info on all timers curently set to the log. */
+	/** Debug command to output info on all timers currently set to the log. */
 	void ListTimers() const;
+
+	/** Get the current last assigned handle */
+	void ValidateHandle(FTimerHandle& InOutHandle);
 
 private:
 	void InternalSetTimer( FTimerHandle& InOutHandle, FTimerUnifiedDelegate const& InDelegate, float InRate, bool InbLoop, float InFirstDelay );
@@ -399,5 +432,8 @@ private:
 
 	/** Set this to GFrameCounter when Timer is ticked. To figure out if Timer has been already ticked or not this frame. */
 	uint64 LastTickedFrame;
+
+	/** The last handle we assigned from this timer manager */
+	uint64 LastAssignedHandle;
 };
 

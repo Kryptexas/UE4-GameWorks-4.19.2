@@ -14,6 +14,8 @@ class AInstancedFoliageActor;
 class UFoliageType;
 struct FFoliageInstanceHash;
 
+DECLARE_LOG_CATEGORY_EXTERN(LogInstancedFoliage, Log, All);
+
 /**
  * Flags stored with each instance
  */

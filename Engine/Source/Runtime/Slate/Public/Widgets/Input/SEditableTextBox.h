@@ -100,6 +100,12 @@ public:
 		/** The type of virtual keyboard to use on mobile devices */
 		SLATE_ATTRIBUTE(EKeyboardType, VirtualKeyboardType)
 
+		/** Which text shaping method should we use? (unset to use the default returned by GetDefaultTextShapingMethod) */
+		SLATE_ARGUMENT(TOptional<ETextShapingMethod>, TextShapingMethod)
+
+		/** Which text flow direction should we use? (unset to use the default returned by GetDefaultTextFlowDirection) */
+		SLATE_ARGUMENT(TOptional<ETextFlowDirection>, TextFlowDirection)
+
 	SLATE_END_ARGS()
 	
 	/**
@@ -114,7 +120,7 @@ public:
 	 *
 	 * @return  Text string
 	 */
-	const FText& GetText() const
+	FText GetText() const
 	{
 		return EditableText->GetText();
 	}
@@ -225,11 +231,29 @@ public:
 	 */
 	void SetOnKeyDownHandler(FOnKeyDown InOnKeyDownHandler);
 
+	/** See TextShapingMethod attribute */
+	void SetTextShapingMethod(const TOptional<ETextShapingMethod>& InTextShapingMethod);
+
+	/** See TextFlowDirection attribute */
+	void SetTextFlowDirection(const TOptional<ETextFlowDirection>& InTextFlowDirection);
+
+	/** Query to see if any text is selected within the document */
+	bool AnyTextSelected() const;
+
+	/** Select all the text in the document */
+	void SelectAllText();
+
+	/** Clear the active text selection */
+	void ClearSelection();
+
+	/** Get the currently selected text */
+	FText GetSelectedText() const;
+
 	// SWidget overrides
 	virtual bool SupportsKeyboardFocus() const override;
 	virtual bool HasKeyboardFocus() const override;
 	virtual FReply OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent ) override;
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
+	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 
 protected:
 	const FEditableTextBoxStyle* Style;

@@ -26,6 +26,16 @@ namespace GameInstanceState
 class FOnlineSessionSearchResult;
 
 /**
+ * Notification that the client is about to travel to a new URL
+ *
+ * @param PendingURL the travel URL
+ * @param TravelType type of travel that will occur (absolute, relative, etc)
+ * @param bIsSeamlessTravel is traveling seamlessly
+ */
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnPreClientTravel, const FString& /*PendingURL*/, ETravelType /*TravelType*/, bool /*bIsSeamlessTravel*/);
+typedef FOnPreClientTravel::FDelegate FOnPreClientTravelDelegate;
+
+/**
  * GameInstance: high-level manager object for an instance of the running game.
  * Spawned at game creation and not destroyed until game instance is shut down.
  * Running as a standalone game, there will be one of these.
@@ -53,6 +63,9 @@ protected:
 	/** Class to manage online services */
 	UPROPERTY()
 	class UOnlineSession* OnlineSession;
+
+	/** Listeners to PreClientTravel call */
+	FOnPreClientTravel NotifyPreClientTravelDelegates;
 
 public:
 
@@ -234,4 +247,9 @@ public:
 
 	/** Returns true if this instance is for a dedicated server world */
 	bool IsDedicatedServerInstance() const;
+
+	/** Broadcast a notification that travel is occurring */
+	void NotifyPreClientTravel(const FString& PendingURL, ETravelType TravelType, bool bIsSeamlessTravel);
+	/** @return delegate fired when client travel occurs */
+	FOnPreClientTravel& OnNotifyPreClientTravel() { return NotifyPreClientTravelDelegates; }
 };

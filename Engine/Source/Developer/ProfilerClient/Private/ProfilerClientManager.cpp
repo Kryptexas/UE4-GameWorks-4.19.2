@@ -403,6 +403,11 @@ FServiceConnection::~FServiceConnection()
 		delete StatsReader;
 		StatsReader = nullptr;
 	}
+
+	for (const auto& It : ReceivedData)
+	{
+		delete It.Value;
+	}
 }
 
 void FServiceConnection::Initialize( const FProfilerServiceAuthorize& Message, const IMessageContextRef& Context )
@@ -574,13 +579,12 @@ bool FProfilerClientManager::HandleTicker( float DeltaTime )
 bool FProfilerClientManager::HandleMessagesTicker( float DeltaTime )
 {
 #if STATS
-	// #YRX_tag 2015-11-26 rework 
 	for (auto It = Connections.CreateIterator(); It; ++It)
 	{
 		FServiceConnection& Connection = It.Value();
 
 		TArray<int64> Frames;
-		Connection.PendingMessages.GenerateKeyArray( Frames );
+		Connection.ReceivedData.GenerateKeyArray( Frames );
 		Frames.Sort();
 
 		// MessageBus sends all data in out of order fashion.
@@ -589,40 +593,32 @@ bool FProfilerClientManager::HandleMessagesTicker( float DeltaTime )
 
 		for( int32 Index = 0; Index < Frames.Num(); Index++ )
 		{
-			if (Connection.PendingMessages.Num() < NUM_BUFFERED_FRAMES)
+			if (Connection.ReceivedData.Num() < NUM_BUFFERED_FRAMES)
 			{
 				break;
 			}
 
-			FScopeLogTime SLT( "HandleMessagesTicker" );
+			//FScopeLogTime SLT( "HandleMessagesTicker" );
 
-			int64 FrameNum = Frames[Index];
-			TArray<uint8>& Data = *Connection.PendingMessages.Find( FrameNum );
-
-			// Pass the data to the visualization code.
-			FMemoryReader MemoryReader( Data );
-
-			int64 Size = MemoryReader.TotalSize();
+			const int64 FrameNum = Frames[Index];
+			const TArray<uint8>* const Data = Connection.ReceivedData.FindChecked( FrameNum );
 			FStatsReadStream& Stream = Connection.Stream;
 
-			UE_LOG( LogProfilerClient, VeryVerbose, TEXT( "Frame=%i/%i, FNamesIndexMap=%i, CurrentMetadataSize=%i" ), FrameNum, Frames.Num(), Connection.Stream.FNamesIndexMap.Num(), Connection.CurrentThreadState.ShortNameToLongName.Num() );
 
-			// read in the data and post if we reach a 
+			// Read all messages from the uncompressed buffer.
+			FMemoryReader MemoryReader( *Data, true );
+			while (MemoryReader.Tell() < MemoryReader.TotalSize())
 			{
-				SCOPE_CYCLE_COUNTER(STAT_PC_ReadStatMessages);
-				while(MemoryReader.Tell() < Size)
-				{
-					// read the message
-					FStatMessage Message(Stream.ReadMessage(MemoryReader));
-
-					if (Message.NameAndInfo.GetField<EStatOperation>() == EStatOperation::AdvanceFrameEventGameThread)
-					{
-						Connection.AddCollectedStatMessages( Message );
-					}
-
-					new (Connection.PendingStatMessagesMessages) FStatMessage(Message);
-				}
+				// Read the message.
+				FStatMessage Message( Stream.ReadMessage( MemoryReader ) );
+				new (Connection.PendingStatMessagesMessages)FStatMessage( Message );
 			}
+
+			// Adds a new from from the pending messages, the pending messages will be removed after the call.
+			Connection.CurrentThreadState.ProcessMetaDataAndLeaveDataOnly( Connection.PendingStatMessagesMessages );
+			Connection.CurrentThreadState.AddFrameFromCondensedMessages( Connection.PendingStatMessagesMessages );
+
+			UE_LOG( LogProfilerClient, VeryVerbose, TEXT( "Frame=%i/%i, FNamesIndexMap=%i, CurrentMetadataSize=%i" ), FrameNum, Frames.Num(), Connection.Stream.FNamesIndexMap.Num(), Connection.CurrentThreadState.ShortNameToLongName.Num() );
 
 			// create an old format data frame from the data
 			Connection.GenerateProfilerDataFrame();
@@ -636,7 +632,8 @@ bool FProfilerClientManager::HandleMessagesTicker( float DeltaTime )
 			// send the data out
 			ProfilerDataDelegate.Broadcast( Connection.InstanceId, Connection.CurrentData );
 
-			Connection.PendingMessages.Remove( FrameNum );
+			delete Data;
+			Connection.ReceivedData.Remove( FrameNum );
 		}
 	}
 
@@ -733,13 +730,10 @@ void FProfilerClientManager::SendDataToGame( TArray<uint8>* DataToGame, int64 Fr
 
 		// Add the message to the connections queue.
 		UE_LOG( LogProfilerClient, VeryVerbose, TEXT( "Frame: %i, UncompressedSize: %i, InstanceId: %s" ), Frame, DataToGame->Num(), *InstanceId.ToString() );
-		Connection.PendingMessages.Add( Frame, MoveTemp( *DataToGame ) );
+		Connection.ReceivedData.Add( Frame, DataToGame );
 	}
-
-	delete DataToGame;
 }
 
-// #YRX_tag 2015-11-19 Convert to thread safe pointers?
 void FProfilerClientManager::SendProfilerDataFrameToGame( FProfilerDataFrame* NewData, FStatMetaData* MetaDataPtr )
 {
 	if (MetaDataPtr)
@@ -787,47 +781,6 @@ void FProfilerClientManager::FinalizeLoading()
 }
 
 #if STATS
-void FServiceConnection::UpdateMetaData_DISABLED()
-{
-// 	// loop through the stats meta data messages
-// 	for (auto It = CurrentThreadState.ShortNameToLongName.CreateConstIterator(); It; ++It)
-// 	{
-// 		FStatMessage const& LongName = It.Value();
-// 		const FName GroupName = LongName.NameAndInfo.GetGroupName();
-// 
-// 		uint32 StatType = STATTYPE_Error;
-// 		if (LongName.NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_int64)
-// 		{
-// 			if( LongName.NameAndInfo.GetFlag( EStatMetaFlags::IsCycle ) )
-// 			{
-// 				StatType = STATTYPE_CycleCounter;
-// 			}
-// 			else if( LongName.NameAndInfo.GetFlag( EStatMetaFlags::IsMemory ) )
-// 			{
-// 				StatType = STATTYPE_MemoryCounter;
-// 			}
-// 			else
-// 			{
-// 				StatType = STATTYPE_AccumulatorDWORD;
-// 			}
-// 		}
-// 		else if (LongName.NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_double)
-// 		{
-// 			StatType = STATTYPE_AccumulatorFLOAT;
-// 		}
-// 		if (StatType != STATTYPE_Error)
-// 		{
-// 			FindOrAddStat(LongName.NameAndInfo, StatType);
-// 		}
-// 
-// 		// Threads metadata.
-// 		const bool bIsThread = FStatConstants::NAME_ThreadGroup == GroupName;
-// 		if( bIsThread )
-// 		{
-// 			FindOrAddThread( LongName.NameAndInfo );
-// 		}	
-// 	}
-}
 
 int32 FServiceConnection::FindOrAddStat( const FStatNameAndInfo& StatNameAndInfo, uint32 StatType)
 {
@@ -1057,14 +1010,6 @@ void FServiceConnection::GenerateCycleGraphs(const FRawStatStackNode& Root, TMap
 		// add to the map
 		CycleGraphs.Add(Graph.ThreadId, Graph);
 	}
-}
-
-void FServiceConnection::AddCollectedStatMessages( FStatMessage Message )
-{
-	SCOPE_CYCLE_COUNTER( STAT_PC_AddStatMessages );
-	new (PendingStatMessagesMessages)FStatMessage( Message );
-	CurrentThreadState.AddCondensedMessages( PendingStatMessagesMessages );
-	PendingStatMessagesMessages.Reset();
 }
 
 void FServiceConnection::GenerateProfilerDataFrame()

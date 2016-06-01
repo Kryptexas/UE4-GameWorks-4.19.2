@@ -8,6 +8,7 @@
 #include "SColorGradientEditor.h"
 #include "GenericCommands.h"
 #include "SNumericEntryBox.h"
+#include "STextEntryPopup.h"
 #include "CurveEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "SCurveEditor"
@@ -43,7 +44,8 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 
 	InputSnap = InArgs._InputSnap;
 	OutputSnap = InArgs._OutputSnap;
-	bSnappingEnabled = InArgs._SnappingEnabled;
+	bInputSnappingEnabled = InArgs._InputSnappingEnabled;
+	bOutputSnappingEnabled = InArgs._OutputSnappingEnabled;
 
 	bZoomToFitVertical = InArgs._ZoomToFitVertical;
 	bZoomToFitHorizontal = InArgs._ZoomToFitHorizontal;
@@ -79,12 +81,9 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 
 	MovementAxisLock = EMovementAxisLock::None;
 
-	//Simple r/g/b for now
-	CurveColors.Add(FLinearColor(1.0f, 0.0f, 0.0f));
-	CurveColors.Add(FLinearColor(0.0f, 1.0f, 0.0f));
-	CurveColors.Add(FLinearColor(0.05f, 0.05f, 1.0f));
-
 	TransactionIndex = -1;
+
+	ReduceTolerance = 0.001;
 
 	Settings = GetMutableDefault<UCurveEditorSettings>();
 
@@ -106,10 +105,15 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 	Commands->MapAction(FRichCurveEditorCommands::Get().ZoomToFitAll,
 		FExecuteAction::CreateSP(this, &SCurveEditor::ZoomToFit, true));
 
-	Commands->MapAction(FRichCurveEditorCommands::Get().ToggleSnapping,
-		FExecuteAction::CreateSP(this, &SCurveEditor::ToggleSnapping),
+	Commands->MapAction(FRichCurveEditorCommands::Get().ToggleInputSnapping,
+		FExecuteAction::CreateSP(this, &SCurveEditor::ToggleInputSnapping),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SCurveEditor::IsSnappingEnabled));
+		FIsActionChecked::CreateSP(this, &SCurveEditor::IsInputSnappingEnabled));
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().ToggleOutputSnapping,
+		FExecuteAction::CreateSP(this, &SCurveEditor::ToggleOutputSnapping),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SCurveEditor::IsOutputSnappingEnabled));
 
 	// Interpolation
 	Commands->MapAction(FRichCurveEditorCommands::Get().InterpolationConstant,
@@ -143,6 +147,13 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 
 	Commands->MapAction(FRichCurveEditorCommands::Get().StraightenTangents,
 		FExecuteAction::CreateSP(this, &SCurveEditor::OnFlattenOrStraightenTangents, false));
+
+	// Bake and reduce
+	Commands->MapAction(FRichCurveEditorCommands::Get().BakeCurve,
+		FExecuteAction::CreateSP(this, &SCurveEditor::OnBakeCurve));
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().ReduceCurve,
+		FExecuteAction::CreateSP(this, &SCurveEditor::OnReduceCurve));
 
 	// Pre infinity extrapolation
 	Commands->MapAction(FRichCurveEditorCommands::Get().SetPreInfinityExtrapCycle,
@@ -345,7 +356,7 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 							.MaxValue(TOptional<float>())
 							.MaxSliderValue(TOptional<float>())
 							.MinSliderValue(TOptional<float>())
-							.Delta(0.001f)
+							.Delta(this, &SCurveEditor::GetInputNumericEntryBoxDelta)
 							.MinDesiredValueWidth(60.0f)
 							.Label()
 							[
@@ -377,7 +388,7 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 							.MaxValue(TOptional<float>())
 							.MaxSliderValue(TOptional<float>())
 							.MinSliderValue(TOptional<float>())
-							.Delta(.001f)
+							.Delta(this, &SCurveEditor::GetOutputNumericEntryBoxDelta)
 							.MinDesiredValueWidth(60.0f)
 							.Label()
 							[
@@ -1152,6 +1163,16 @@ void SCurveEditor::PaintMarquee(const FGeometry& AllottedGeometry, const FSlateR
 		);
 }
 
+float SCurveEditor::GetInputNumericEntryBoxDelta() const
+{
+	return bInputSnappingEnabled.Get() ? InputSnap.Get() : 0;
+}
+
+float SCurveEditor::GetOutputNumericEntryBoxDelta() const
+{
+	return bOutputSnappingEnabled.Get() ? OutputSnap.Get() : 0;
+}
+
 void SCurveEditor::SetCurveOwner(FCurveOwnerInterface* InCurveOwner, bool bCanEdit)
 {
 	if(InCurveOwner != CurveOwner)
@@ -1174,7 +1195,7 @@ void SCurveEditor::SetCurveOwner(FCurveOwnerInterface* InCurveOwner, bool bCanEd
 		int curveIndex = 0;
 		for (auto CurveInfo : CurveOwner->GetCurves())
 		{
-			CurveViewModels.Add(TSharedPtr<FCurveViewModel>(new FCurveViewModel(CurveInfo, CurveColors[curveIndex % CurveColors.Num()], !bCanEdit)));
+			CurveViewModels.Add(TSharedPtr<FCurveViewModel>(new FCurveViewModel(CurveInfo, CurveOwner->GetCurveColor(CurveInfo), !bCanEdit)));
 			curveIndex++;
 		}
 		CurveOwner->MakeTransactional();
@@ -2085,28 +2106,29 @@ SCurveEditor::FSelectedCurveKey SCurveEditor::HitTestKeys(const FGeometry& InMyG
 
 	if( AreCurvesVisible() )
 	{
+		bool bAnyCurveViewModelsSelected = AnyCurveViewModelsSelected();
+
 		FTrackScaleInfo ScaleInfo(ViewMinInput.Get(),  ViewMaxInput.Get(), ViewMinOutput.Get(), ViewMaxOutput.Get(), InMyGeometry.Size);
 
 		const FVector2D HitPosition = InMyGeometry.AbsoluteToLocal( HitScreenPosition );
 
-
 		for(auto CurveViewModel : CurveViewModels)
 		{
-			if (!CurveViewModel->bIsLocked && CurveViewModel->bIsVisible)
-		{
-				FRichCurve* Curve = CurveViewModel->CurveInfo.CurveToEdit;
-			if(Curve != NULL)
+			if (IsCurveSelectable(CurveViewModel))
 			{
-				for (auto It(Curve->GetKeyHandleIterator()); It; ++It)
+				FRichCurve* Curve = CurveViewModel->CurveInfo.CurveToEdit;
+				if(Curve != NULL)
 				{
-					float KeyScreenX = ScaleInfo.InputToLocalX(Curve->GetKeyTime(It.Key()));
-					float KeyScreenY = ScaleInfo.OutputToLocalY(Curve->GetKeyValue(It.Key()));
-
-					if(	HitPosition.X > (KeyScreenX - (0.5f * CONST_KeySize.X)) && 
-						HitPosition.X < (KeyScreenX + (0.5f * CONST_KeySize.X)) &&
-						HitPosition.Y > (KeyScreenY - (0.5f * CONST_KeySize.Y)) &&
-						HitPosition.Y < (KeyScreenY + (0.5f * CONST_KeySize.Y)) )
+					for (auto It(Curve->GetKeyHandleIterator()); It; ++It)
 					{
+						float KeyScreenX = ScaleInfo.InputToLocalX(Curve->GetKeyTime(It.Key()));
+						float KeyScreenY = ScaleInfo.OutputToLocalY(Curve->GetKeyValue(It.Key()));
+
+						if(	HitPosition.X > (KeyScreenX - (0.5f * CONST_KeySize.X)) && 
+							HitPosition.X < (KeyScreenX + (0.5f * CONST_KeySize.X)) &&
+							HitPosition.Y > (KeyScreenY - (0.5f * CONST_KeySize.Y)) &&
+							HitPosition.Y < (KeyScreenY + (0.5f * CONST_KeySize.Y)) )
+						{
 							return  FSelectedCurveKey(Curve, It.Key());
 						}
 					}
@@ -2499,17 +2521,30 @@ void SCurveEditor::ZoomToFit(const bool bZoomToFitAll)
 	ZoomToFitVertical(bZoomToFitAll);
 }
 
-void SCurveEditor::ToggleSnapping()
+void SCurveEditor::ToggleInputSnapping()
 {
-	if (bSnappingEnabled.IsBound() == false)
+	if (bInputSnappingEnabled.IsBound() == false)
 	{
-		bSnappingEnabled = !bSnappingEnabled.Get();
+		bInputSnappingEnabled = !bInputSnappingEnabled.Get();
 	}
 }
 
-bool SCurveEditor::IsSnappingEnabled()
+void SCurveEditor::ToggleOutputSnapping()
 {
-	return bSnappingEnabled.Get();
+	if (bOutputSnappingEnabled.IsBound() == false)
+	{
+		bOutputSnappingEnabled = !bOutputSnappingEnabled.Get();
+	}
+}
+
+bool SCurveEditor::IsInputSnappingEnabled()
+{
+	return bInputSnappingEnabled.Get();
+}
+
+bool SCurveEditor::IsOutputSnappingEnabled()
+{
+	return bOutputSnappingEnabled.Get();
 }
 
 void SCurveEditor::CreateContextMenu(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent)
@@ -2800,19 +2835,28 @@ TSharedPtr<FCurveViewModel> SCurveEditor::HitTestCurves(  const FGeometry& InMyG
 	return TSharedPtr<FCurveViewModel>();
 }
 
+bool SCurveEditor::IsCurveSelectable(TSharedPtr<FCurveViewModel> CurveViewModel) const
+{		
+	bool bAnyCurveViewModelsSelected = AnyCurveViewModelsSelected();
+	bool bDisabled = bAnyCurveViewModelsSelected && !CurveViewModel->bIsSelected;
+
+	return !CurveViewModel->bIsLocked && CurveViewModel->bIsVisible && !bDisabled;
+}
+
 SCurveEditor::FSelectedTangent SCurveEditor::HitTestCubicTangents( const FGeometry& InMyGeometry, const FVector2D& HitScreenPosition )
 {
 	FSelectedTangent Tangent;
 
 	if( AreCurvesVisible() )
 	{
+
 		FTrackScaleInfo ScaleInfo(ViewMinInput.Get(),  ViewMaxInput.Get(), ViewMinOutput.Get(), ViewMaxOutput.Get(), InMyGeometry.Size);
 
 		const FVector2D HitPosition = InMyGeometry.AbsoluteToLocal( HitScreenPosition);
 
 		for (auto CurveViewModel : CurveViewModels)
 		{
-			if (!CurveViewModel->bIsLocked && CurveViewModel->bIsVisible)
+			if (IsCurveSelectable(CurveViewModel))
 			{
 				FRichCurve* Curve = CurveViewModel->CurveInfo.CurveToEdit;
 				if (Curve != NULL)
@@ -2961,6 +3005,7 @@ void SCurveEditor::OnFlattenOrStraightenTangents(bool bFlattenTangents)
 
 			Key.Curve->GetKey(Key.KeyHandle).LeaveTangent = LeaveTangent;
 			Key.Curve->GetKey(Key.KeyHandle).ArriveTangent = ArriveTangent;
+			Key.Curve->GetKey(Key.KeyHandle).TangentMode = RCTM_User;
 		}
 				
 		for(auto It = SelectedTangents.CreateIterator();It;++It)
@@ -2984,6 +3029,7 @@ void SCurveEditor::OnFlattenOrStraightenTangents(bool bFlattenTangents)
 
 			Tangent.Key.Curve->GetKey(Tangent.Key.KeyHandle).LeaveTangent = LeaveTangent;
 			Tangent.Key.Curve->GetKey(Tangent.Key.KeyHandle).ArriveTangent = ArriveTangent;
+			Tangent.Key.Curve->GetKey(Tangent.Key.KeyHandle).TangentMode = RCTM_User;
 		}
 
 		TArray<FRichCurveEditInfo> ChangedCurveEditInfos;
@@ -2997,6 +3043,151 @@ void SCurveEditor::OnFlattenOrStraightenTangents(bool bFlattenTangents)
 		CurveOwner->OnCurveChanged(ChangedCurveEditInfos);
 	}
 }
+
+void SCurveEditor::OnBakeCurve()
+{
+	float BakeSampleRate = InputSnap.IsSet() ? InputSnap.Get() : 0.05f;
+
+	// Display dialog and let user enter sample rate.
+	GenericTextEntryModeless(
+		NSLOCTEXT("CurveEditor.Popups", "BakeSampleRate", "Sample Rate"),
+		FText::AsNumber( BakeSampleRate ),
+		FOnTextCommitted::CreateSP(this, &SCurveEditor::OnBakeCurveSampleRateCommitted)
+		);
+}
+
+void SCurveEditor::OnBakeCurveSampleRateCommitted(const FText& InText, ETextCommit::Type CommitInfo)
+{
+	CloseEntryPopupMenu();
+	if (CommitInfo == ETextCommit::OnEnter)
+	{
+		double NewBakeSampleRate = FCString::Atod(*InText.ToString());
+		const bool bIsNumber = InText.IsNumeric(); 
+		if(!bIsNumber)
+			return;
+
+		float BakeSampleRate = (float)NewBakeSampleRate;
+
+		const FScopedTransaction Transaction(LOCTEXT("CurveEditor_BakeCurve", "Bake Curve"));
+		CurveOwner->ModifyOwner();
+
+		bool bAnyCurveViewModelsSelected = AnyCurveViewModelsSelected();
+
+		TArray<FRichCurveEditInfo> ChangedCurveEditInfos;
+
+		// If keys are selected, bake between them
+		TMap<FRichCurve*, TInterval<float> > CurveRangeMap;
+		for (auto SelectedKey : SelectedKeys)
+		{
+			float SelectedTime = SelectedKey.Curve->GetKey(SelectedKey.KeyHandle).Time;
+			if (CurveRangeMap.Find(SelectedKey.Curve) != nullptr)
+			{
+				CurveRangeMap[SelectedKey.Curve].Include(SelectedTime);
+			}
+			else
+			{
+				CurveRangeMap.Add(SelectedKey.Curve, TInterval<float>(SelectedTime, SelectedTime));
+			}
+		}
+
+		if (CurveRangeMap.Num())
+		{
+			for (auto CurveToBake : CurveRangeMap)
+			{
+				CurveToBake.Key->BakeCurve(BakeSampleRate, CurveToBake.Value.Min, CurveToBake.Value.Max);
+				ChangedCurveEditInfos.Add(GetViewModelForCurve(CurveToBake.Key)->CurveInfo);
+			}
+		}
+		else
+		{
+			for (auto CurveViewModel : CurveViewModels)
+			{
+				if (!bAnyCurveViewModelsSelected || CurveViewModel->bIsSelected)
+				{
+					CurveViewModel->CurveInfo.CurveToEdit->BakeCurve(BakeSampleRate);
+					ChangedCurveEditInfos.Add(CurveViewModel->CurveInfo);
+				}
+			}
+		}
+
+		if (ChangedCurveEditInfos.Num())
+		{
+			CurveOwner->OnCurveChanged(ChangedCurveEditInfos);
+		}
+	}
+}
+
+void SCurveEditor::OnReduceCurve()
+{
+	// Display dialog and let user enter tolerance.
+	GenericTextEntryModeless(
+		NSLOCTEXT("CurveEditor.Popups", "ReduceCurveTolerance", "Tolerance"),
+		FText::AsNumber( ReduceTolerance ),
+		FOnTextCommitted::CreateSP(this, &SCurveEditor::OnReduceCurveToleranceCommitted)
+		);
+}
+
+void SCurveEditor::OnReduceCurveToleranceCommitted(const FText& InText, ETextCommit::Type CommitInfo)
+{
+	CloseEntryPopupMenu();
+	if (CommitInfo == ETextCommit::OnEnter)
+	{
+		double NewTolerance = FCString::Atod(*InText.ToString());
+		const bool bIsNumber = InText.IsNumeric(); 
+		if(!bIsNumber)
+			return;
+
+		ReduceTolerance = (float)NewTolerance;
+
+		const FScopedTransaction Transaction(LOCTEXT("CurveEditor_ReduceCurve", "Reduce Curve"));
+		CurveOwner->ModifyOwner();
+
+		bool bAnyCurveViewModelsSelected = AnyCurveViewModelsSelected();
+
+		TArray<FRichCurveEditInfo> ChangedCurveEditInfos;
+
+		// If keys are selected, bake between them
+		TMap<FRichCurve*, TInterval<float> > CurveRangeMap;
+		for (auto SelectedKey : SelectedKeys)
+		{
+			float SelectedTime = SelectedKey.Curve->GetKey(SelectedKey.KeyHandle).Time;
+			if (CurveRangeMap.Find(SelectedKey.Curve) != nullptr)
+			{
+				CurveRangeMap[SelectedKey.Curve].Include(SelectedTime);
+			}
+			else
+			{
+				CurveRangeMap.Add(SelectedKey.Curve, TInterval<float>(SelectedTime, SelectedTime));
+			}
+		}
+
+		if (CurveRangeMap.Num())
+		{
+			for (auto CurveToBake : CurveRangeMap)
+			{
+				CurveToBake.Key->RemoveRedundantKeys(ReduceTolerance, CurveToBake.Value.Min, CurveToBake.Value.Max);
+				ChangedCurveEditInfos.Add(GetViewModelForCurve(CurveToBake.Key)->CurveInfo);
+			}
+		}
+		else
+		{
+			for (auto CurveViewModel : CurveViewModels)
+			{
+				if (!bAnyCurveViewModelsSelected || CurveViewModel->bIsSelected)
+				{
+					CurveViewModel->CurveInfo.CurveToEdit->RemoveRedundantKeys(ReduceTolerance);
+					ChangedCurveEditInfos.Add(CurveViewModel->CurveInfo);
+				}
+			}
+		}
+
+		if (ChangedCurveEditInfos.Num())
+		{
+			CurveOwner->OnCurveChanged(ChangedCurveEditInfos);
+		}
+	}
+}
+
 
 void SCurveEditor::OnSelectPreInfinityExtrap(ERichCurveExtrapolation Extrapolation)
 {
@@ -3234,7 +3425,7 @@ TArray<SCurveEditor::FSelectedCurveKey> SCurveEditor::GetEditableKeysWithinMarqu
 		FTrackScaleInfo ScaleInfo(ViewMinInput.Get(), ViewMaxInput.Get(), ViewMinOutput.Get(), ViewMaxOutput.Get(), InMyGeometry.Size);
 		for (auto CurveViewModel : CurveViewModels)
 		{
-			if (!CurveViewModel->bIsLocked && CurveViewModel->bIsVisible)
+			if (IsCurveSelectable(CurveViewModel))
 			{
 				FRichCurve* Curve = CurveViewModel->CurveInfo.CurveToEdit;
 				if (Curve != NULL)
@@ -3272,7 +3463,7 @@ TArray<SCurveEditor::FSelectedTangent> SCurveEditor::GetEditableTangentsWithinMa
 		FTrackScaleInfo ScaleInfo(ViewMinInput.Get(), ViewMaxInput.Get(), ViewMinOutput.Get(), ViewMaxOutput.Get(), InMyGeometry.Size);
 		for (auto CurveViewModel : CurveViewModels)
 		{
-			if (!CurveViewModel->bIsLocked && CurveViewModel->bIsVisible)
+			if (IsCurveSelectable(CurveViewModel))
 			{
 				FRichCurve* Curve = CurveViewModel->CurveInfo.CurveToEdit;
 				if (Curve != NULL)
@@ -3361,12 +3552,17 @@ bool SCurveEditor::IsLinearColorCurve() const
 
 FVector2D SCurveEditor::SnapLocation(FVector2D InLocation)
 {
-	if (bSnappingEnabled.Get())
+	if (bInputSnappingEnabled.Get())
 	{
 		const float InputSnapNow = InputSnap.Get();
-		const float OutputSnapNow = OutputSnap.Get();
 
 		InLocation.X = InputSnapNow != 0 ? FMath::RoundToInt(InLocation.X / InputSnapNow) * InputSnapNow : InLocation.X;
+	}
+
+	if (bOutputSnappingEnabled.Get())
+	{
+		const float OutputSnapNow = OutputSnap.Get();
+
 		InLocation.Y = OutputSnapNow != 0 ? FMath::RoundToInt(InLocation.Y / OutputSnapNow) * OutputSnapNow : InLocation.Y;
 	}
 	return InLocation;
@@ -3382,6 +3578,35 @@ TSharedPtr<FCurveViewModel> SCurveEditor::GetViewModelForCurve(FRichCurve* InCur
 		}
 	}
 	return TSharedPtr<FCurveViewModel>();
+}
+
+void SCurveEditor::GenericTextEntryModeless(const FText& DialogText, const FText& DefaultText, FOnTextCommitted OnTextComitted)
+{
+	TSharedRef<STextEntryPopup> TextEntryPopup = 
+		SNew(STextEntryPopup)
+		.Label(DialogText)
+		.DefaultText(DefaultText)
+		.OnTextCommitted(OnTextComitted)
+		.ClearKeyboardFocusOnCommit(false)
+		.SelectAllTextWhenFocused(true)
+		.MaxWidth(1024.0f);
+
+	EntryPopupMenu = FSlateApplication::Get().PushMenu(
+		SharedThis(this),
+		FWidgetPath(),
+		TextEntryPopup,
+		FSlateApplication::Get().GetCursorPos(),
+		FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
+	);
+}
+
+
+void SCurveEditor::CloseEntryPopupMenu()
+{
+	if (EntryPopupMenu.IsValid())
+	{
+		EntryPopupMenu.Pin()->Dismiss();
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

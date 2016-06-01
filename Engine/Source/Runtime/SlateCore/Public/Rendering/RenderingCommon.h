@@ -528,6 +528,14 @@ public:
 	}
 
 	/**
+	 * Called when the viewports top level window is being closed
+	 */
+	virtual TWeakPtr<SWidget> GetWidget()
+	{
+		return nullptr;
+	}
+
+	/**
 	 * Called when the viewports top level window is being Activated
 	 */
 	virtual FReply OnViewportActivated(const FWindowActivateEvent& InActivateEvent)

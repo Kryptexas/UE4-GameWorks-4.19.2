@@ -76,6 +76,11 @@ public class PhysX : ModuleRules
 
 		// Determine which kind of libraries to link against
 		PhysXLibraryMode LibraryMode = GetPhysXLibraryMode(Target.Configuration);
+		// Quick Mac hack
+		if (Target.Platform == UnrealTargetPlatform.Mac && (LibraryMode == PhysXLibraryMode.Checked || LibraryMode == PhysXLibraryMode.Shipping))
+		{
+			LibraryMode = PhysXLibraryMode.Profile;
+		}
 		string LibrarySuffix = GetPhysXLibrarySuffix(LibraryMode);
 
 		Definitions.Add("WITH_PHYSX=1");
@@ -175,10 +180,10 @@ public class PhysX : ModuleRules
 			foreach(string DLL in RuntimeDependenciesX64)
 			{
 				string FileName = PhysXBinariesDir + String.Format(DLL, LibrarySuffix);
-				RuntimeDependencies.Add(new RuntimeDependency(FileName));
-				RuntimeDependencies.Add(new RuntimeDependency(Path.ChangeExtension(FileName, ".pdb"), true));
+				RuntimeDependencies.Add(FileName, StagedFileType.NonUFS);
+				RuntimeDependencies.Add(Path.ChangeExtension(FileName, ".pdb"), StagedFileType.DebugNonUFS);
 			}
-			RuntimeDependencies.Add(new RuntimeDependency(PhysXBinariesDir + "nvToolsExt64_1.dll"));
+			RuntimeDependencies.Add(PhysXBinariesDir + "nvToolsExt64_1.dll", StagedFileType.NonUFS);
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Win32 || (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32"))
 		{
@@ -225,10 +230,10 @@ public class PhysX : ModuleRules
 			foreach(string DLL in RuntimeDependenciesX86)
 			{
 				string FileName = PhysXBinariesDir + String.Format(DLL, LibrarySuffix);
-				RuntimeDependencies.Add(new RuntimeDependency(FileName));
-				RuntimeDependencies.Add(new RuntimeDependency(Path.ChangeExtension(FileName, ".pdb"), true));
+				RuntimeDependencies.Add(FileName, StagedFileType.NonUFS);
+				RuntimeDependencies.Add(Path.ChangeExtension(FileName, ".pdb"), StagedFileType.DebugNonUFS);
 			}
-			RuntimeDependencies.Add(new RuntimeDependency(PhysXBinariesDir + "nvToolsExt32_1.dll"));
+			RuntimeDependencies.Add(PhysXBinariesDir + "nvToolsExt32_1.dll", StagedFileType.NonUFS);
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
@@ -263,7 +268,7 @@ public class PhysX : ModuleRules
 			PublicSystemIncludePaths.Add(PhysXDir + "include/foundation/unix");
 			PublicLibraryPaths.Add(PhysXLibDir + "Android/ARMv7");
 			PublicLibraryPaths.Add(PhysXLibDir + "Android/x86");
-			PublicLibraryPaths.Add(PhysXLibDir + "Android/arm64");
+			PublicLibraryPaths.Add(PhysXLibDir + "Android/ARM64");
 			PublicLibraryPaths.Add(PhysXLibDir + "Android/x64");
 
 			string[] StaticLibrariesAndroid = new string[] {

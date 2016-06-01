@@ -75,6 +75,13 @@ public class APEX : ModuleRules
 
 		// Determine which kind of libraries to link against
 		APEXLibraryMode LibraryMode = GetAPEXLibraryMode(Target.Configuration);
+
+		// Quick Mac hack
+		if (Target.Platform == UnrealTargetPlatform.Mac && (LibraryMode == APEXLibraryMode.Checked || LibraryMode == APEXLibraryMode.Shipping))
+		{
+			LibraryMode = APEXLibraryMode.Profile;
+		}
+
 		string LibrarySuffix = GetAPEXLibrarySuffix(LibraryMode);
 
 		Definitions.Add("WITH_APEX=1");
@@ -129,8 +136,8 @@ public class APEX : ModuleRules
 			foreach(string RuntimeDependency in RuntimeDependenciesX64)
 			{
 				string FileName = ApexBinariesDir + String.Format(RuntimeDependency, LibrarySuffix);
-				RuntimeDependencies.Add(new RuntimeDependency(FileName));
-				RuntimeDependencies.Add(new RuntimeDependency(FileName + ".pdb", true));
+				RuntimeDependencies.Add(FileName, StagedFileType.NonUFS);
+				RuntimeDependencies.Add(FileName + ".pdb", StagedFileType.DebugNonUFS);
 			}
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Win32)
@@ -153,8 +160,8 @@ public class APEX : ModuleRules
 			foreach(string RuntimeDependency in RuntimeDependenciesX86)
 			{
 				string FileName = ApexBinariesDir + String.Format(RuntimeDependency, LibrarySuffix);
-				RuntimeDependencies.Add(new RuntimeDependency(FileName));
-				RuntimeDependencies.Add(new RuntimeDependency(FileName + ".pdb", true));
+				RuntimeDependencies.Add(FileName, StagedFileType.NonUFS);
+				RuntimeDependencies.Add(FileName + ".pdb", StagedFileType.DebugNonUFS);
 			}
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)

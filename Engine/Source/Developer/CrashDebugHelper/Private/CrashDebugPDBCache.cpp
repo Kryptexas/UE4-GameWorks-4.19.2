@@ -14,10 +14,10 @@ void FPDBCache::Init()
 {
 	// PDB Cache
 	// Default configuration
-	//PDBCachePath=F:/CrashReportPDBCache/
+	//PDBCachePath=G:/CrashReportPDBCache/
 	//DepotRoot=F:/depot
 	//DaysToDeleteUnusedFilesFromPDBCache=3
-	//PDBCacheSizeGB=128
+	//PDBCacheSizeGB=300
 	//MinDiskFreeSpaceGB=256
 
 	// Can be enabled only through the command line.

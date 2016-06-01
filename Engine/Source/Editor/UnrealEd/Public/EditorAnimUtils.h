@@ -58,17 +58,14 @@ namespace EditorAnimUtils
 
 	private:
 		/** Lists of assets to retarget. Populated from FAssetData supplied to constructor */
-		TArray<UAnimSequence*>		AnimSequencesToRetarget;
-		TArray<UAnimationAsset*>	ComplexAnimsToRetarget;
+		TArray<UAnimationAsset*>	AnimationAssetsToRetarget;
 		TArray<UAnimBlueprint*>		AnimBlueprintsToRetarget;
 
 		/** Lists of original assets map to duplicate assets */
-		TMap<UAnimSequence*, UAnimSequence*>		DuplicatedSequences;
-		TMap<UAnimationAsset*, UAnimationAsset*>	DuplicatedComplexAssets;
+		TMap<UAnimationAsset*, UAnimationAsset*>	DuplicatedAnimAssets;
 		TMap<UAnimBlueprint*, UAnimBlueprint*>		DuplicatedBlueprints;
 
-		TMap<UAnimSequence*, UAnimSequence*>		RemappedSequences;
-		TMap<UAnimationAsset*, UAnimationAsset*>	RemappedComplexAssets;
+		TMap<UAnimationAsset*, UAnimationAsset*>	RemappedAnimAssets;
 
 		/** If we only chose one object to retarget store it here */
 		UObject* SingleTargetObject;
@@ -114,10 +111,10 @@ namespace EditorAnimUtils
 	UNREALED_API UObject* RetargetAnimations(USkeleton* OldSkeleton, USkeleton* NewSkeleton, FAnimationRetargetContext& RetargetContext, bool bRetargetReferredAssets, const FNameDuplicationRule* NameRule);
 
 	// Populates the supplied TArrays with any animation assets that this blueprint refers too
-	void GetAllAnimationSequencesReferredInBlueprint(UAnimBlueprint* AnimBlueprint, TArray<UAnimationAsset*>& ComplexAnims, TArray<UAnimSequence*>& AnimSequences);
+	void GetAllAnimationSequencesReferredInBlueprint(UAnimBlueprint* AnimBlueprint, TArray<UAnimationAsset*>& AnimationAsset);
 
 	// Replaces references to any animations found with the match animation from the map
-	void ReplaceReferredAnimationsInBlueprint(UAnimBlueprint* AnimBlueprint, const TMap<UAnimationAsset*, UAnimationAsset*>& ComplexAnimMap, const TMap<UAnimSequence*, UAnimSequence*>& AnimSequenceMap);
+	void ReplaceReferredAnimationsInBlueprint(UAnimBlueprint* AnimBlueprint, const TMap<UAnimationAsset*, UAnimationAsset*>& AnimAssetReplacementMap);
 
 	/**
 	 * Duplicates the supplied AssetsToDuplicate and returns a map of original asset to duplicate
@@ -154,6 +151,59 @@ namespace EditorAnimUtils
 			ReturnMap.Add(Cast<AssetType>(Iter->Key), Cast<AssetType>(Iter->Value));
 		}
 		return ReturnMap;
+	}
+
+	void GetBlueprintAssetVariableProperties(UAnimBlueprint* InBlueprint, TArray<UProperty*>& OutSimpleProperties, TArray<UProperty*>& OutComplexProperties);
+
+	template<class AssetType>
+	void GetAssetsFromProperties(TArray<UProperty*> InProperties, UObject* Scope, TArray<AssetType*>& OutAssets)
+	{
+		check(Scope);
+
+		OutAssets.Empty();
+		for(UProperty* Prop : InProperties)
+		{
+			if(Prop)
+			{
+				if(UArrayProperty* ArrayProp = Cast<UArrayProperty>(Prop))
+				{
+					// Blueprint array
+					FScriptArrayHelper Helper(ArrayProp, Prop->ContainerPtrToValuePtr<uint8>(Scope));
+					const int32 ArrayNum = Helper.Num();
+					for(int32 Idx = 0; Idx < ArrayNum; ++Idx)
+					{
+						// These were gathered from UObject types so we know this should succeed
+						UObject** Object = (UObject**)Helper.GetRawPtr(Idx);
+						if(AssetType* Asset = Cast<AssetType>(*Object))
+						{
+							OutAssets.Add(Asset);
+						}
+					}
+				}
+				else if(Prop->ArrayDim > 1)
+				{
+					// Native array
+					for(int32 Idx = 0; Idx < Prop->ArrayDim; ++Idx)
+					{
+						if(UObject** ResolvedObject = Prop->ContainerPtrToValuePtr<UObject*>(Scope, Idx))
+						{
+							if(AssetType* Asset = Cast<AssetType>(*ResolvedObject))
+							{
+								OutAssets.Add(Asset);
+							}
+						}
+					}
+				}
+				else if(UObject** ResolvedObject = Prop->ContainerPtrToValuePtr<UObject*>(Scope))
+				{
+					// Normal property
+					if(AssetType* Asset = Cast<AssetType>(*ResolvedObject))
+					{
+						OutAssets.Add(Asset);
+					}
+				}
+			}
+		}
 	}
 
 	// utility functions

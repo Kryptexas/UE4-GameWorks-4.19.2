@@ -8,6 +8,7 @@
 #include "Runtime/Engine/Classes/Engine/Texture.h"
 #include "Runtime/Engine/Public/SceneTypes.h"
 #include "Runtime/Engine/Classes/Materials/Material.h"
+#include "Runtime/Engine/Classes/Engine/TextureStreamingTypes.h"
 #include "RawMesh.h"
 
 /** Structure used for storing intermediate baked down material data/samples*/
@@ -269,8 +270,8 @@ public:
 	 * @param OutGeneratedAssets	List of generated assets - material, textures
 	 * @return						Returns a pointer to the constructed UMaterial object.
 	 */
-	static UMaterial* CreateMaterial(const FFlattenMaterial& InFlattenMaterial, UPackage* InOuter, const FString& BaseName, EObjectFlags Flags, TArray<UObject*>& OutGeneratedAssets);
-
+	static UMaterial* CreateMaterial(const FFlattenMaterial& InFlattenMaterial, UPackage* InOuter, const FString& BaseName, EObjectFlags Flags, const struct FMaterialProxySettings& MaterialProxySettings, TArray<UObject*>& OutGeneratedAssets, const TextureGroup& InTextureGroup = TEXTUREGROUP_World);
+	
 	/**
 	* Creates bakes textures for a ULandscapeComponent
 	*
@@ -325,6 +326,18 @@ public:
 	* @param InFlattenMaterial				Flatten material to optimize
 	*/
 	static void ResizeFlattenMaterial(FFlattenMaterial& InFlattenMaterial, const struct FMeshProxySettings& InMeshProxySettings);
+
+	/**
+	* Get the material texcoord scales applied on each textures
+	*
+	* @param InMaterial			Target material
+	* @param QualityLevel		Quality level used for the shader profiling.
+	* @param FeatureLevel		Feature level used for the shader profiling.
+	* @param OutScales			TheOutput array of rendered samples	
+	* @return					Whether operation was successful
+	*/
+	static bool ExportMaterialTexCoordScales(UMaterialInterface* InMaterial, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, TArray<FMaterialTexCoordBuildInfo>& OutScales);
+
 private:
 	
 	/**
@@ -358,7 +371,7 @@ private:
 	* @param InTargetSize			Dimensions of the render target
 	* @return						Created render target
 	*/
-	static UTextureRenderTarget2D* CreateRenderTarget(bool bInForceLinearGamma, EPixelFormat InPixelFormat, FIntPoint& InTargetSize);
+	static UTextureRenderTarget2D* CreateRenderTarget(bool bInForceLinearGamma, bool bNormalMap, EPixelFormat InPixelFormat, FIntPoint& InTargetSize );
 	
 	/** Clears the pool with available render targets */
 	static void ClearRenderTargetPool();	

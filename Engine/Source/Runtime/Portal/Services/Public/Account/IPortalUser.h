@@ -87,7 +87,7 @@ struct FPortalUserIsEntitledToItemResult
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** The users epic games account email address */
+	/** The item id that was checked for an active entitlement */
 	UPROPERTY(EditAnywhere, Category = "Entitlement")
 	FString ItemId;
 
@@ -95,7 +95,7 @@ struct FPortalUserIsEntitledToItemResult
 	UPROPERTY(EditAnywhere, Category = "Entitlement")
 	bool IsEntitled;
 
-	/** The users real name attached to their epic games account */
+	/** How fresh this entitlement information is */
 	UPROPERTY(EditAnywhere, Category = "Entitlement")
 	EEntitlementCacheLevelRetrieved RetrievedFromCacheLevel;
 

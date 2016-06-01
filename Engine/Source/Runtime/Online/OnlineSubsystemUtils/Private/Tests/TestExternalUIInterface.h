@@ -5,6 +5,8 @@
 #include "Core.h"
 #include "OnlineExternalUIInterface.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 /** Enumeration of external UI tests */
 namespace ETestExternalUIInterfaceState
 {
@@ -107,3 +109,4 @@ namespace ETestExternalUIInterfaceState
 
  };
 
+#endif //WITH_DEV_AUTOMATION_TESTS

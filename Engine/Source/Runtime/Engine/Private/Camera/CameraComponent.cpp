@@ -78,7 +78,7 @@ void UCameraComponent::OnRegister()
 		if (ProxyMeshComponent == nullptr)
 		{
 			ProxyMeshComponent = NewObject<UStaticMeshComponent>(MyOwner, NAME_None, RF_Transactional | RF_TextExportTransient);
-			ProxyMeshComponent->AttachTo(this);
+			ProxyMeshComponent->SetupAttachment(this);
 			ProxyMeshComponent->AlwaysLoadOnClient = false;
 			ProxyMeshComponent->AlwaysLoadOnServer = false;
 			ProxyMeshComponent->StaticMesh = CameraMesh;
@@ -93,7 +93,7 @@ void UCameraComponent::OnRegister()
 		if (DrawFrustum == nullptr)
 		{
 			DrawFrustum = NewObject<UDrawFrustumComponent>(MyOwner, NAME_None, RF_Transactional | RF_TextExportTransient);
-			DrawFrustum->AttachTo(this);
+			DrawFrustum->SetupAttachment(this);
 			DrawFrustum->AlwaysLoadOnClient = false;
 			DrawFrustum->AlwaysLoadOnServer = false;
 			DrawFrustum->CreationMethod = CreationMethod;
@@ -139,6 +139,16 @@ void UCameraComponent::PostLoad()
 		 }
 	 }
  }
+
+void UCameraComponent::ResetProxyMeshTransform()
+{
+	if (ProxyMeshComponent != nullptr)
+	{
+		ProxyMeshComponent->ResetRelativeTransform();
+	}
+}
+
+
 void UCameraComponent::RefreshVisualRepresentation()
 {
 	if (DrawFrustum != nullptr)
@@ -159,6 +169,8 @@ void UCameraComponent::RefreshVisualRepresentation()
 		DrawFrustum->FrustumAspectRatio = AspectRatio;
 		DrawFrustum->MarkRenderStateDirty();
 	}
+
+	ResetProxyMeshTransform();
 }
 
 void UCameraComponent::OverrideFrustumColor(FColor OverrideColor)
@@ -231,10 +243,34 @@ void UCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredV
 		}
 	}
 
-	DesiredView.Location = GetComponentLocation();
-	DesiredView.Rotation = GetComponentRotation();
+	if (bUseAdditiveOffset)
+	{
+		FTransform OffsetCamToBaseCam = AdditiveOffset;
+		FTransform BaseCamToWorld = GetComponentToWorld();
+		FTransform OffsetCamToWorld = OffsetCamToBaseCam * BaseCamToWorld;
 
-	DesiredView.FOV = FieldOfView;
+		DesiredView.Location = OffsetCamToWorld.GetLocation();
+		DesiredView.Rotation = OffsetCamToWorld.Rotator();
+
+#if WITH_EDITORONLY_DATA
+		if (ProxyMeshComponent)
+		{
+			ResetProxyMeshTransform();
+
+			FTransform LocalTransform = ProxyMeshComponent->GetRelativeTransform();
+			FTransform WorldTransform = LocalTransform * OffsetCamToWorld;
+
+			ProxyMeshComponent->SetWorldTransform(WorldTransform);
+		}
+#endif
+	}
+	else
+	{
+		DesiredView.Location = GetComponentLocation();
+		DesiredView.Rotation = GetComponentRotation();
+	}
+
+	DesiredView.FOV = bUseAdditiveOffset ? (FieldOfView + AdditiveFOVOffset) : FieldOfView;
 	DesiredView.AspectRatio = AspectRatio;
 	DesiredView.bConstrainAspectRatio = bConstrainAspectRatio;
 	DesiredView.bUseFieldOfViewForLOD = bUseFieldOfViewForLOD;
@@ -249,6 +285,10 @@ void UCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredV
 	{
 		DesiredView.PostProcessSettings = PostProcessSettings;
 	}
+
+#if WITH_EDITOR
+	ResetProxyMeshTransform();
+#endif //WITH_EDITOR
 }
 
 #if WITH_EDITOR
@@ -272,6 +312,53 @@ void SetDeprecatedControllerViewRotation(UCameraComponent& Component, bool bValu
 	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	Component.bUseControllerViewRotation = bValue;
 	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+}
+
+void UCameraComponent::NotifyCameraCut()
+{
+	// if we are owned by a camera actor, notify it too
+	// note: many camera components are not part of camera actors, so notification should begin at the
+	// component level.
+	ACameraActor* const OwningCamera = Cast<ACameraActor>(GetOwner());
+	if (OwningCamera)
+	{
+		OwningCamera->NotifyCameraCut();
+	}
+};
+
+void UCameraComponent::AddAdditiveOffset(FTransform const& Transform, float FOV)
+{
+	bUseAdditiveOffset = true;
+	AdditiveOffset = AdditiveOffset * Transform;
+	AdditiveFOVOffset += FOV;
+}
+
+/** Removes any additive offset. */
+void UCameraComponent::ClearAdditiveOffset()
+{
+	bUseAdditiveOffset = false;
+	AdditiveOffset = FTransform::Identity;
+	AdditiveFOVOffset = 0.f;
+}
+
+
+void UCameraComponent::AddExtraPostProcessBlend(FPostProcessSettings const& PPSettings, float PPBlendWeight)
+{
+	checkSlow(ExtraPostProcessBlends.Num() == ExtraPostProcessBlendWeights.Num());
+	ExtraPostProcessBlends.Add(PPSettings);
+	ExtraPostProcessBlendWeights.Add(PPBlendWeight);
+}
+
+void UCameraComponent::ClearExtraPostProcessBlends()
+{
+	ExtraPostProcessBlends.Empty();
+	ExtraPostProcessBlendWeights.Empty();
+}
+
+void UCameraComponent::GetExtraPostProcessBlends(TArray<FPostProcessSettings>& OutSettings, TArray<float>& OutWeights) const
+{
+	OutSettings = ExtraPostProcessBlends;
+	OutWeights = ExtraPostProcessBlendWeights;
 }
 
 

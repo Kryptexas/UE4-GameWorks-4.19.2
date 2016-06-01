@@ -4,10 +4,12 @@
 
 #include "CameraAnim.generated.h"
 
+ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogCameraAnim, Log, All);
+
 /**
  * A predefined animation to be played on a camera
  */
-UCLASS(notplaceable, MinimalAPI)
+UCLASS(BlueprintType, notplaceable, MinimalAPI)
 class UCameraAnim : public UObject
 {
 	GENERATED_UCLASS_BODY()

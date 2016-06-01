@@ -332,7 +332,6 @@ void FCoreAudioSoundSource::Update( void )
 		}
 		
 		// apply global multiplier (ie to disable sound when not the foreground app)
-		Volume *= FApp::GetVolumeMultiplier();
 		Volume = FMath::Clamp<float>( Volume, 0.0f, MAX_VOLUME );
 		
 		// Convert to dB
@@ -370,7 +369,6 @@ void FCoreAudioSoundSource::Update( void )
 	else
 	{
 		// apply global multiplier (ie to disable sound when not the foreground app)
-		Volume *= FApp::GetVolumeMultiplier();
 		Volume = FMath::Clamp<float>( Volume, 0.0f, MAX_VOLUME );
 		
 		if( AudioDevice->GetMixDebugState() == DEBUGSTATE_IsolateReverb )
@@ -871,10 +869,7 @@ bool FCoreAudioSoundSource::AttachToAUGraph()
 
 	if( ErrorStatus == noErr )
 	{
-		AUGraph Graph = AudioDevice->GetAudioUnitGraph();
-		check(Graph);
-		SAFE_CA_CALL(AUGraphUpdate( Graph, NULL ));
-
+		AudioDevice->bNeedsUpdate = true;
 		AudioDevice->AudioChannels[AudioChannel] = this;
 	}
 	return ErrorStatus == noErr;
@@ -959,9 +954,9 @@ bool FCoreAudioSoundSource::DetachFromAUGraph()
 		SAFE_CA_CALL( AUGraphRemoveNode( AudioDevice->GetAudioUnitGraph(), SourceNode ) );
 	}
 
-	SAFE_CA_CALL( AUGraphUpdate( AudioDevice->GetAudioUnitGraph(), NULL ) );
-
-	AudioConverterDispose( CoreAudioConverter );
+	AudioDevice->CovertersToDispose.Add(CoreAudioConverter);
+	AudioDevice->bNeedsUpdate = true;
+	
 	CoreAudioConverter = NULL;
 
 	LowPassNode = 0;

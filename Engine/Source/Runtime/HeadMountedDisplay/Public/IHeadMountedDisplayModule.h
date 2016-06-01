@@ -20,9 +20,9 @@ public:
 
 	/** Returns the key into the HMDPluginPriority section of the config file for this module */
 	virtual FString GetModulePriorityKeyName() const = 0;
-
+	
 	/** Returns the priority of this module from INI file configuration */
-	float GetHMDPriority() const
+	float GetModulePriority() const
 	{
 		float ModulePriority = 0.f;
 		FString KeyName = GetModulePriorityKeyName();
@@ -35,21 +35,18 @@ public:
 	{
 		bool operator()(IHeadMountedDisplayModule& A, IHeadMountedDisplayModule& B) const
 		{
-			FHeadMountedDisplayModuleExt* AExt = FHeadMountedDisplayModuleExt::GetExtendedInterface(&A);
-			FHeadMountedDisplayModuleExt* BExt = FHeadMountedDisplayModuleExt::GetExtendedInterface(&B);
+			bool IsHMDConnectedA = A.IsHMDConnected();
+			bool IsHMDConnectedB = B.IsHMDConnected();
 
-			bool IsHMDConnectedA = AExt ? AExt->IsHMDConnected() : false;
-			bool IsHMDConnectedB = BExt ? BExt->IsHMDConnected() : false;
-
-			if (IsHMDConnectedA && !IsHMDConnectedB)
+			if(IsHMDConnectedA && !IsHMDConnectedB)
 				return true;
-			if (!IsHMDConnectedA && IsHMDConnectedB)
+			if(!IsHMDConnectedA && IsHMDConnectedB)
 				return false;
 
-			return A.GetHMDPriority() > B.GetHMDPriority();
+			return A.GetModulePriority() > B.GetModulePriority();
 		}
 	};
-	
+
 	/**
 	 * Singleton-like access to IHeadMountedDisplayModule
 	 *
@@ -83,7 +80,27 @@ public:
 	/**
 	* Optionally pre-initialize the HMD module.  Return false on failure.
 	*/
-	virtual void PreInit() {};
+	virtual bool PreInit() { return true; }
+
+	/**
+	 * Test to see whether HMD is connected.  Used to guide which plug-in to select.
+	 */
+	virtual bool IsHMDConnected() { return false; }
+
+	/**
+	 * Get index of graphics adapter where the HMD was last connected
+	 */
+	virtual int32 GetGraphicsAdapter() { return -1; }
+
+	/**
+	 * Get name of audio input device where the HMD was last connected
+	 */
+	virtual FString GetAudioInputDevice() { return FString(); }
+
+	/**
+	 * Get name of audio output device where the HMD was last connected
+	 */
+	virtual FString GetAudioOutputDevice() { return FString(); }
 
 	/**
 	 * Attempts to create a new head tracking device interface
@@ -91,16 +108,4 @@ public:
 	 * @return	Interface to the new head tracking device, if we were able to successfully create one
 	 */
 	virtual TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > CreateHeadMountedDisplay() = 0;
-};
-
-/** DEADCODE:  Binary compat for 4.11.  Sorting method for which plugin should be given priority */
-struct FHMDPluginSorter
-{
-	FHMDPluginSorter() {}
-
-	// Sort predicate operator
-	bool operator()(IHeadMountedDisplayModule& LHS, IHeadMountedDisplayModule& RHS) const
-	{
-		return LHS.GetHMDPriority() > RHS.GetHMDPriority();
-	}
 };

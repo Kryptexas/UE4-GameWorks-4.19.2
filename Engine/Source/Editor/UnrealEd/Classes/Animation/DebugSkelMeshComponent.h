@@ -82,6 +82,10 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 	UPROPERTY(transient)
 	uint32 bDrawBinormals:1;
 
+	/** CPU skinning rendering - only for previewing in Persona */
+	UPROPERTY(transient)
+	uint32 bCPUSkinning : 1;
+
 	/** Socket hit points viewing */
 	UPROPERTY(transient)
 	uint32 bDrawSockets:1;

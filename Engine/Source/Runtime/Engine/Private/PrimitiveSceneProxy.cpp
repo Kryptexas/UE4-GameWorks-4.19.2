@@ -35,7 +35,7 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 ,	bTreatAsBackgroundForOcclusion(InComponent->bTreatAsBackgroundForOcclusion)
 ,	bDisableStaticPath(false)
 ,	bNeedsUnbuiltPreviewLighting(InComponent->HasStaticLighting() && !InComponent->bHasCachedStaticLighting)
-,	bHasValidSettingsForStaticLighting(InComponent->HasValidSettingsForStaticLighting())
+,	bHasValidSettingsForStaticLighting(InComponent->HasValidSettingsForStaticLighting(false))
 ,	bWillEverBeLit(true)
 	// Disable dynamic shadow casting if the primitive only casts indirect shadows, since dynamic shadows are always shadowing direct lighting
 ,	bCastDynamicShadow(InComponent->bCastDynamicShadow && InComponent->CastShadow && !InComponent->GetShadowIndirectOnly())
@@ -60,11 +60,13 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 ,	bSupportsDistanceFieldRepresentation(false)
 ,	bSupportsHeightfieldRepresentation(false)
 ,	bNeedsLevelAddedToWorldNotification(false)
+,	bWantsSelectionOutline(true)
 ,	bUseAsOccluder(InComponent->bUseAsOccluder)
 ,	bAllowApproximateOcclusion(InComponent->Mobility != EComponentMobility::Movable)
 ,	bSelectable(InComponent->bSelectable)
 ,	bHasPerInstanceHitProxies(InComponent->bHasPerInstanceHitProxies)
 ,	bUseEditorCompositing(InComponent->bUseEditorCompositing)
+,	bReceiveCombinedCSMAndStaticShadowsFromStationaryLights(InComponent->bReceiveCombinedCSMAndStaticShadowsFromStationaryLights)
 ,	bRenderCustomDepth(InComponent->bRenderCustomDepth)
 ,	CustomDepthStencilValue((uint8)InComponent->CustomDepthStencilValue) 
 ,	LightingChannelMask(GetLightingChannelMaskForStruct(InComponent->LightingChannels))
@@ -199,8 +201,8 @@ void FPrimitiveSceneProxy::UpdateActorPosition(FVector InActorPosition)
 
 static TAutoConsoleVariable<int32> CVarDeferUniformBufferUpdatesUntilVisible(
 	TEXT("r.DeferUniformBufferUpdatesUntilVisible"),
-	0,
-	TEXT("If > 0, then don't update the primitive uniform buffer until it is visible. Experimental option."));
+	!WITH_EDITOR,
+	TEXT("If > 0, then don't update the primitive uniform buffer until it is visible."));
 
 void FPrimitiveSceneProxy::UpdateUniformBufferMaybeLazy()
 {
@@ -491,6 +493,11 @@ bool FPrimitiveSceneProxy::IsShadowCast(const FSceneView* View) const
 		}
 		
 		if (View->HiddenPrimitives.Contains(PrimitiveComponentId))
+		{
+			return false;
+		}
+
+		if (View->ShowOnlyPrimitives.Num() > 0 && !View->ShowOnlyPrimitives.Contains(PrimitiveComponentId))
 		{
 			return false;
 		}

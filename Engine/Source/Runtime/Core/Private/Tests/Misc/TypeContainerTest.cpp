@@ -10,6 +10,7 @@
 #include "TypeContainer.h"
 #include "AutomationTest.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTypeContainerTest, "System.Core.Misc.TypeContainer", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::EngineFilter)
 
@@ -248,5 +249,5 @@ bool FTypeContainerTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-
+#endif //WITH_DEV_AUTOMATION_TESTS
 #endif //PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES

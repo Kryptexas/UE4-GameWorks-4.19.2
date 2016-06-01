@@ -9,6 +9,7 @@
 
 FExrImageWrapper::FExrImageWrapper()
 	: FImageWrapperBase()
+	, bUseCompression(true)
 {
 }
 
@@ -309,15 +310,16 @@ void FExrImageWrapper::CompressRaw(const sourcetype* SrcData, bool bIgnoreAlpha)
 		NumWriteComponents = 3;
 	}
 
-	Imf::Header Header(Width, Height);
-
+	Imf::Compression Comp = bUseCompression ? Imf::Compression::ZIP_COMPRESSION : Imf::Compression::NO_COMPRESSION;
+	Imf::Header Header(Width, Height, 1, Imath::V2f(0, 0), 1, Imf::LineOrder::INCREASING_Y, Comp);
+	
 	for (uint32 Channel = 0; Channel < NumWriteComponents; Channel++)
 	{
 		Header.channels().insert(GetRawChannelName(Channel), Imf::Channel(OutputFormat));
 	}
 
 	FMemFileOut MemFile("");
-	const int32 OutputPixelSize = ((OutputFormat == Imf::HALF) ? 2 : 4);
+	const int32 OutputPixelSize = ((OutputFormat == Imf::HALF && bUseCompression) ? 2 : 4);
 	MemFile.Data.AddUninitialized(Width * Height * NumWriteComponents * OutputPixelSize);
 
 	Imf::FrameBuffer ImfFrameBuffer;
@@ -347,6 +349,8 @@ void FExrImageWrapper::Compress( int32 Quality )
 	check(RawBitDepth == 8 || RawBitDepth == 16 || RawBitDepth == 32);
 
 	const int32 MaxComponents = 4;
+
+	bUseCompression = (Quality != ImageCompression::CompressionQuality::Uncompressed);
 
 	switch (RawBitDepth)
 	{

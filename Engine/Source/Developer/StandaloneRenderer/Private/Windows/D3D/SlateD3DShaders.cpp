@@ -24,6 +24,10 @@ static void CompileShader( const FString& Filename, const FString& EntryPoint, c
 		{
 			checkf(0, ANSI_TO_TCHAR(ErrorBlob->GetBufferPointer()));
 		}
+		else
+		{
+			checkf(0, TEXT("D3DX11CompileFromFile failed, no error text provided"));
+		}
 	}
 }
 

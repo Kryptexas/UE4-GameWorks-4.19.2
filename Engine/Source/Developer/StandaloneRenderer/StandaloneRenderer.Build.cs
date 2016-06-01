@@ -18,13 +18,13 @@ public class StandaloneRenderer : ModuleRules
 			}
 			);
 
-		AddThirdPartyPrivateStaticDependencies(Target, "OpenGL");
+		AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenGL");
 
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32))
 		{
 			// @todo: This should be private? Not sure!!
-			AddThirdPartyPrivateStaticDependencies(Target, "DX11");
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "DX11");
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
@@ -32,7 +32,7 @@ public class StandaloneRenderer : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
-			AddThirdPartyPrivateStaticDependencies(Target, "SDL2");
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "SDL2");
 		}
 		else if (Target.Platform == UnrealTargetPlatform.IOS || Target.Platform == UnrealTargetPlatform.TVOS)
 		{
@@ -40,5 +40,7 @@ public class StandaloneRenderer : ModuleRules
 			// weak for IOS8 support since CAMetalLayer is in QuartzCore
 			PublicWeakFrameworks.AddRange(new string[] { "QuartzCore" });
 		}
+
+		RuntimeDependencies.Add("$(EngineDir)/Shaders/StandaloneRenderer/...", StagedFileType.NonUFS);
 	}
 }

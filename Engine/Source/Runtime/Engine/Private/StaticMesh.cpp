@@ -14,6 +14,7 @@
 #include "TargetPlatform.h"
 #include "SpeedTreeWind.h"
 #include "DistanceFieldAtlas.h"
+#include "UObject/DevObjectVersion.h"
 
 #if WITH_EDITOR
 #include "RawMesh.h"
@@ -49,7 +50,8 @@ FStaticMeshVertexBuffer::FStaticMeshVertexBuffer():
 	Data(NULL),
 	Stride(0),
 	NumVertices(0),
-	bUseFullPrecisionUVs(false)
+	bUseFullPrecisionUVs(false),
+	bUseHighPrecisionTangentBasis(false)
 {}
 
 FStaticMeshVertexBuffer::~FStaticMeshVertexBuffer()
@@ -86,14 +88,9 @@ void FStaticMeshVertexBuffer::Init(const TArray<FStaticMeshBuildVertex>& InVerti
 	{
 		const FStaticMeshBuildVertex& SourceVertex = InVertices[VertexIndex];
 		const uint32 DestVertexIndex = VertexIndex;
-		VertexTangentX(DestVertexIndex) = SourceVertex.TangentX;
-		VertexTangentZ(DestVertexIndex) = SourceVertex.TangentZ;
+		SetVertexTangents(DestVertexIndex, SourceVertex.TangentX, SourceVertex.TangentY, SourceVertex.TangentZ);
 
-		// store the sign of the determinant in TangentZ.W
-		VertexTangentZ(DestVertexIndex).Vector.W = GetBasisDeterminantSignByte( 
-			SourceVertex.TangentX, SourceVertex.TangentY, SourceVertex.TangentZ );
-
-		for(uint32 UVIndex = 0;UVIndex < NumTexCoords;UVIndex++)
+		for(uint32 UVIndex = 0; UVIndex < NumTexCoords; UVIndex++)
 		{
 			SetVertexUV(DestVertexIndex,UVIndex,SourceVertex.UVs[UVIndex]);
 		}
@@ -109,6 +106,8 @@ void FStaticMeshVertexBuffer::Init(const FStaticMeshVertexBuffer& InVertexBuffer
 	NumTexCoords = InVertexBuffer.GetNumTexCoords();
 	NumVertices = InVertexBuffer.GetNumVertices();
 	bUseFullPrecisionUVs = InVertexBuffer.GetUseFullPrecisionUVs();
+	bUseHighPrecisionTangentBasis = InVertexBuffer.GetUseHighPrecisionTangentBasis();
+
 	if ( NumVertices )
 	{
 		AllocateData();
@@ -134,40 +133,43 @@ void FStaticMeshVertexBuffer::RemoveLegacyShadowVolumeVertices(uint32 InNumVerti
 	Data = VertexData->GetDataPointer();
 }
 
-/**
-* Convert the existing data in this mesh from 16 bit to 32 bit UVs.
-* Without rebuilding the mesh (loss of precision)
-*/
-template<int32 NumTexCoordsT>
-void FStaticMeshVertexBuffer::ConvertToFullPrecisionUVs()
+template<typename SrcVertexTypeT, typename DstVertexTypeT>
+void FStaticMeshVertexBuffer::ConvertVertexFormat()
 {
-	if( !bUseFullPrecisionUVs )
+	if (SrcVertexTypeT::TangentBasisType == DstVertexTypeT::TangentBasisType &&
+		SrcVertexTypeT::UVType == DstVertexTypeT::UVType)
 	{
-		check(NumTexCoords == NumTexCoordsT);
-		// create temp array to store 32 bit values
-		TArray< TStaticMeshFullVertexFloat32UVs<NumTexCoordsT> > DestVertexData;
-		// source vertices
-		TStaticMeshVertexData< TStaticMeshFullVertexFloat16UVs<NumTexCoordsT> >& SrcVertexData = 
-			*(TStaticMeshVertexData< TStaticMeshFullVertexFloat16UVs<NumTexCoordsT> >*)VertexData;
-		// copy elements from source vertices to temp data
-		DestVertexData.AddUninitialized(SrcVertexData.Num());
-		for( int32 VertIdx=0; VertIdx < SrcVertexData.Num(); VertIdx++ )
-		{
-			TStaticMeshFullVertexFloat32UVs<NumTexCoordsT>& DestVert = DestVertexData[VertIdx];
-			TStaticMeshFullVertexFloat16UVs<NumTexCoordsT>& SrcVert = SrcVertexData[VertIdx];		
-			FMemory::Memcpy(&DestVert,&SrcVert,sizeof(FStaticMeshFullVertex));
-			for( int32 UVIdx=0; UVIdx < NumTexCoordsT; UVIdx++ )
-			{
-				DestVert.UVs[UVIdx] = FVector2D(SrcVert.UVs[UVIdx]);
-			}
-		}
-		// force 32 bit UVs
-		bUseFullPrecisionUVs = true;
-		AllocateData();
-		*(TStaticMeshVertexData< TStaticMeshFullVertexFloat32UVs<NumTexCoordsT> >*)VertexData = DestVertexData;
-		Data = VertexData->GetDataPointer();
-		Stride = VertexData->GetStride();
+		return;
 	}
+
+	check(SrcVertexTypeT::NumTexCoords == DstVertexTypeT::NumTexCoords);
+
+	auto& SrcVertexData = *static_cast<TStaticMeshVertexData<SrcVertexTypeT>*>(VertexData);
+
+	TArray<DstVertexTypeT> DstVertexData;
+	DstVertexData.AddUninitialized(SrcVertexData.Num());
+
+	for (int32 VertIdx = 0; VertIdx < SrcVertexData.Num(); VertIdx++)
+	{
+		SrcVertexTypeT& SrcVert = SrcVertexData[VertIdx];
+		DstVertexTypeT& DstVert = DstVertexData[VertIdx];
+
+		DstVert.SetTangents(SrcVert.GetTangentX(), SrcVert.GetTangentY(), SrcVert.GetTangentZ());
+
+		for (int32 UVIdx = 0; UVIdx < DstVertexTypeT::NumTexCoords; UVIdx++)
+		{
+			DstVert.SetUV(UVIdx, SrcVert.GetUV(UVIdx));
+		}
+	}
+
+	bUseHighPrecisionTangentBasis = DstVertexTypeT::TangentBasisType == EStaticMeshVertexTangentBasisType::HighPrecision;
+	bUseFullPrecisionUVs = DstVertexTypeT::UVType == EStaticMeshVertexUVType::HighPrecision;
+
+	AllocateData();
+	*static_cast<TStaticMeshVertexData<DstVertexTypeT>*>(VertexData) = DstVertexData;
+
+	Data = VertexData->GetDataPointer();
+	Stride = VertexData->GetStride();
 }
 
 /**
@@ -183,7 +185,8 @@ void FStaticMeshVertexBuffer::Serialize( FArchive& Ar, bool bNeedsCPUAccess )
 	FStripDataFlags StripFlags(Ar, 0, VER_UE4_STATIC_SKELETAL_MESH_SERIALIZATION_FIX);
 
 	Ar << NumTexCoords << Stride << NumVertices;
-	Ar << bUseFullPrecisionUVs;								
+	Ar << bUseFullPrecisionUVs;	
+	Ar << bUseHighPrecisionTangentBasis;
 
 	if( Ar.IsLoading() )
 	{
@@ -213,6 +216,7 @@ void FStaticMeshVertexBuffer::operator=(const FStaticMeshVertexBuffer &Other)
 	//VertexData doesn't need to be allocated here because Build will be called next,
 	VertexData = NULL;
 	bUseFullPrecisionUVs = Other.bUseFullPrecisionUVs;
+	bUseHighPrecisionTangentBasis = Other.bUseHighPrecisionTangentBasis;
 }
 
 void FStaticMeshVertexBuffer::InitRHI()
@@ -232,36 +236,12 @@ void FStaticMeshVertexBuffer::AllocateData( bool bNeedsCPUAccess /*= true*/ )
 	// Clear any old VertexData before allocating.
 	CleanUp();
 
-	if( !bUseFullPrecisionUVs )
-	{
-		switch(NumTexCoords)
-		{
-		case 1: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat16UVs<1> >(bNeedsCPUAccess); break;
-		case 2: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat16UVs<2> >(bNeedsCPUAccess); break;
-		case 3: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat16UVs<3> >(bNeedsCPUAccess); break;
-		case 4: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat16UVs<4> >(bNeedsCPUAccess); break;
-		case 5: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat16UVs<5> >(bNeedsCPUAccess); break;
-		case 6: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat16UVs<6> >(bNeedsCPUAccess); break;
-		case 7: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat16UVs<7> >(bNeedsCPUAccess); break;
-		case 8: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat16UVs<8> >(bNeedsCPUAccess); break;
-		default: UE_LOG(LogStaticMesh, Fatal,TEXT("Invalid number of texture coordinates"));
-		};		
-	}
-	else
-	{
-		switch(NumTexCoords)
-		{
-		case 1: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat32UVs<1> >(bNeedsCPUAccess); break;
-		case 2: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat32UVs<2> >(bNeedsCPUAccess); break;
-		case 3: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat32UVs<3> >(bNeedsCPUAccess); break;
-		case 4: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat32UVs<4> >(bNeedsCPUAccess); break;
-		case 5: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat32UVs<5> >(bNeedsCPUAccess); break;
-		case 6: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat32UVs<6> >(bNeedsCPUAccess); break;
-		case 7: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat32UVs<7> >(bNeedsCPUAccess); break;
-		case 8: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat32UVs<8> >(bNeedsCPUAccess); break;
-		default: UE_LOG(LogStaticMesh, Fatal,TEXT("Invalid number of texture coordinates"));
-		};		
-	}	
+	SELECT_STATIC_MESH_VERTEX_TYPE(
+		GetUseHighPrecisionTangentBasis(),
+		GetUseFullPrecisionUVs(),
+		GetNumTexCoords(),
+		VertexData = new TStaticMeshVertexData<VertexType>(bNeedsCPUAccess);
+		);
 
 	// Calculate the vertex stride.
 	Stride = VertexData->GetStride();
@@ -381,29 +361,52 @@ void FStaticMeshLODResources::InitVertexFactory(
 	Params.bOverrideColorVertexBuffer = bInOverrideColorVertexBuffer;
 	Params.Parent = InParentMesh;
 
-	// Initialize the static mesh's vertex factory.
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-		InitStaticMeshVertexFactory,
-		InitStaticMeshVertexFactoryParams,Params,Params,
+	uint32 TangentXOffset = 0;
+	uint32 TangetnZOffset = 0;
+	uint32 UVsBaseOffset = 0;
+
+	SELECT_STATIC_MESH_VERTEX_TYPE(
+		Params.LODResources->VertexBuffer.GetUseHighPrecisionTangentBasis(),
+		Params.LODResources->VertexBuffer.GetUseFullPrecisionUVs(),
+		Params.LODResources->VertexBuffer.GetNumTexCoords(),
 		{
-			FLocalVertexFactory::DataType Data;
+			TangentXOffset = STRUCT_OFFSET(VertexType, TangentX);
+			TangetnZOffset = STRUCT_OFFSET(VertexType, TangentZ);
+			UVsBaseOffset = STRUCT_OFFSET(VertexType, UVs);
+		});
+
+	// Initialize the static mesh's vertex factory.
+	ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
+		InitStaticMeshVertexFactory,
+		InitStaticMeshVertexFactoryParams, Params, Params,
+		uint32, TangentXOffset, TangentXOffset,
+		uint32, TangetnZOffset, TangetnZOffset,
+		uint32, UVsBaseOffset, UVsBaseOffset,
+		{
+			FLocalVertexFactory::FDataType Data;
 			Data.PositionComponent = FVertexStreamComponent(
 				&Params.LODResources->PositionVertexBuffer,
 				STRUCT_OFFSET(FPositionVertex,Position),
 				Params.LODResources->PositionVertexBuffer.GetStride(),
 				VET_Float3
 				);
+
 			Data.TangentBasisComponents[0] = FVertexStreamComponent(
 				&Params.LODResources->VertexBuffer,
-				STRUCT_OFFSET(FStaticMeshFullVertex,TangentX),
+				TangentXOffset,
 				Params.LODResources->VertexBuffer.GetStride(),
-				VET_PackedNormal
+				Params.LODResources->VertexBuffer.GetUseHighPrecisionTangentBasis() ? 
+					TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::HighPrecision>::VertexElementType : 
+					TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::Default>::VertexElementType
 				);
+
 			Data.TangentBasisComponents[1] = FVertexStreamComponent(
 				&Params.LODResources->VertexBuffer,
-				STRUCT_OFFSET(FStaticMeshFullVertex,TangentZ),
+				TangetnZOffset,
 				Params.LODResources->VertexBuffer.GetStride(),
-				VET_PackedNormal
+				Params.LODResources->VertexBuffer.GetUseHighPrecisionTangentBasis() ?
+					TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::HighPrecision>::VertexElementType : 
+					TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::Default>::VertexElementType
 				);
 
 			// Use the "override" color vertex buffer if one was supplied.  Otherwise, the color vertex stream
@@ -435,72 +438,46 @@ void FStaticMeshLODResources::InitVertexFactory(
 
 			Data.TextureCoordinates.Empty();
 
-			if( !Params.LODResources->VertexBuffer.GetUseFullPrecisionUVs() )
-			{
-				int32 UVIndex;
-				for (UVIndex = 0; UVIndex < (int32)Params.LODResources->VertexBuffer.GetNumTexCoords() - 1; UVIndex += 2)
-				{
-					Data.TextureCoordinates.Add(FVertexStreamComponent(
-						&Params.LODResources->VertexBuffer,
-						STRUCT_OFFSET(TStaticMeshFullVertexFloat16UVs<MAX_STATIC_TEXCOORDS>, UVs) + sizeof(FVector2DHalf)* UVIndex,
-						Params.LODResources->VertexBuffer.GetStride(),
-						VET_Half4
-						));
-				}
-				// possible last UV channel if we have an odd number
-				if (UVIndex < (int32)Params.LODResources->VertexBuffer.GetNumTexCoords())
-				{
-					Data.TextureCoordinates.Add(FVertexStreamComponent(
-						&Params.LODResources->VertexBuffer,
-						STRUCT_OFFSET(TStaticMeshFullVertexFloat16UVs<MAX_STATIC_TEXCOORDS>, UVs) + sizeof(FVector2DHalf)* UVIndex,
-						Params.LODResources->VertexBuffer.GetStride(),
-						VET_Half2
-						));
-				}
+			uint32 UVSizeInBytes = Params.LODResources->VertexBuffer.GetUseFullPrecisionUVs() ?
+				sizeof(TStaticMeshVertexUVsTypeSelector<EStaticMeshVertexUVType::HighPrecision>::UVsTypeT) : sizeof(TStaticMeshVertexUVsTypeSelector<EStaticMeshVertexUVType::Default>::UVsTypeT);
 
-				if(	Params.Parent->LightMapCoordinateIndex >= 0 && (uint32)Params.Parent->LightMapCoordinateIndex < Params.LODResources->VertexBuffer.GetNumTexCoords())
-				{
-					Data.LightMapCoordinateComponent = FVertexStreamComponent(
-						&Params.LODResources->VertexBuffer,
-						STRUCT_OFFSET(TStaticMeshFullVertexFloat16UVs<MAX_STATIC_TEXCOORDS>,UVs) + sizeof(FVector2DHalf) * Params.Parent->LightMapCoordinateIndex,
-						Params.LODResources->VertexBuffer.GetStride(),
-						VET_Half2
-						);
-				}
+			EVertexElementType UVDoubleWideVertexElementType = Params.LODResources->VertexBuffer.GetUseFullPrecisionUVs() ?
+				VET_Float4 : VET_Half4;
+
+			EVertexElementType UVVertexElementType = Params.LODResources->VertexBuffer.GetUseFullPrecisionUVs() ?
+				VET_Float2 : VET_Half2;
+
+			int32 UVIndex;
+			for (UVIndex = 0; UVIndex < (int32)Params.LODResources->VertexBuffer.GetNumTexCoords() - 1; UVIndex += 2)
+			{
+				Data.TextureCoordinates.Add(FVertexStreamComponent(
+					&Params.LODResources->VertexBuffer,
+					UVsBaseOffset + UVSizeInBytes * UVIndex,
+					Params.LODResources->VertexBuffer.GetStride(),
+					UVDoubleWideVertexElementType
+					));
 			}
-			else
-			{
-				int32 UVIndex;
-				for (UVIndex = 0; UVIndex < (int32)Params.LODResources->VertexBuffer.GetNumTexCoords() - 1; UVIndex += 2)
-				{
-					Data.TextureCoordinates.Add(FVertexStreamComponent(
-						&Params.LODResources->VertexBuffer,
-						STRUCT_OFFSET(TStaticMeshFullVertexFloat32UVs<MAX_STATIC_TEXCOORDS>, UVs) + sizeof(FVector2D)* UVIndex,
-						Params.LODResources->VertexBuffer.GetStride(),
-						VET_Float4
-						));
-				}
-				// possible last UV channel if we have an odd number
-				if (UVIndex < (int32)Params.LODResources->VertexBuffer.GetNumTexCoords())
-				{
-					Data.TextureCoordinates.Add(FVertexStreamComponent(
-						&Params.LODResources->VertexBuffer,
-						STRUCT_OFFSET(TStaticMeshFullVertexFloat32UVs<MAX_STATIC_TEXCOORDS>, UVs) + sizeof(FVector2D)* UVIndex,
-						Params.LODResources->VertexBuffer.GetStride(),
-						VET_Float2
-						));
-				}
 
-				if(	Params.Parent->LightMapCoordinateIndex >= 0 && (uint32)Params.Parent->LightMapCoordinateIndex < Params.LODResources->VertexBuffer.GetNumTexCoords())
-				{
-					Data.LightMapCoordinateComponent = FVertexStreamComponent(
-						&Params.LODResources->VertexBuffer,
-						STRUCT_OFFSET(TStaticMeshFullVertexFloat32UVs<MAX_STATIC_TEXCOORDS>,UVs) + sizeof(FVector2D) * Params.Parent->LightMapCoordinateIndex,
-						Params.LODResources->VertexBuffer.GetStride(),
-						VET_Float2
-						);
-				}
-			}	
+			// possible last UV channel if we have an odd number
+			if (UVIndex < (int32)Params.LODResources->VertexBuffer.GetNumTexCoords())
+			{
+				Data.TextureCoordinates.Add(FVertexStreamComponent(
+					&Params.LODResources->VertexBuffer,
+					UVsBaseOffset + UVSizeInBytes * UVIndex,
+					Params.LODResources->VertexBuffer.GetStride(),
+					UVVertexElementType
+					));
+			}
+
+			if(	Params.Parent->LightMapCoordinateIndex >= 0 && (uint32)Params.Parent->LightMapCoordinateIndex < Params.LODResources->VertexBuffer.GetNumTexCoords())
+			{
+				Data.LightMapCoordinateComponent = FVertexStreamComponent(
+					&Params.LODResources->VertexBuffer,
+					UVsBaseOffset + UVSizeInBytes * Params.Parent->LightMapCoordinateIndex,
+					Params.LODResources->VertexBuffer.GetStride(),
+					UVVertexElementType
+					);
+			}
 
 			Params.VertexFactory->SetData(Data);
 		});
@@ -514,11 +491,15 @@ FStaticMeshLODResources::FStaticMeshLODResources()
 	, bHasReversedIndices(false)
 	, bHasReversedDepthOnlyIndices(false)
 	, DepthOnlyNumTriangles(0)
+	, SplineVertexFactory(nullptr)
+	, SplineVertexFactoryOverrideColorVertexBuffer(nullptr)
 {
 }
 
 FStaticMeshLODResources::~FStaticMeshLODResources()
 {
+	delete (FRenderResource*)SplineVertexFactory;
+	delete (FRenderResource*)SplineVertexFactoryOverrideColorVertexBuffer;
 	delete DistanceFieldData;
 }
 
@@ -633,6 +614,15 @@ void FStaticMeshLODResources::ReleaseResources()
 	// Release the vertex factories.
 	BeginReleaseResource(&VertexFactory);
 	BeginReleaseResource(&VertexFactoryOverrideColorVertexBuffer);
+
+	if (SplineVertexFactory)
+	{
+		BeginReleaseResource((FRenderResource *)SplineVertexFactory);
+	}
+	if (SplineVertexFactoryOverrideColorVertexBuffer)
+	{
+		BeginReleaseResource((FRenderResource *)SplineVertexFactoryOverrideColorVertexBuffer);
+	}
 
 	if (DistanceFieldData)
 	{
@@ -858,11 +848,11 @@ void FStaticMeshLODSettings::Initialize(const FConfigFile& IniFile)
 	const FConfigSection* Section = IniFile.Find(IniSection);
 	if (Section)
 	{
-		for (TMultiMap<FName,FString>::TConstIterator It(*Section); It; ++It)
+		for (TMultiMap<FName,FConfigValue>::TConstIterator It(*Section); It; ++It)
 		{
 			FName GroupName = It.Key();
 			FStaticMeshLODGroup& Group = Groups.FindOrAdd(GroupName);
-			ReadEntry(Group, It.Value());
+			ReadEntry(Group, It.Value().GetValue());
 		};
 	}
 
@@ -1071,6 +1061,7 @@ FArchive& operator<<(FArchive& Ar, FMeshBuildSettings& BuildSettings)
 	Ar << BuildSettings.bRemoveDegenerates;
 	Ar << BuildSettings.bBuildAdjacencyBuffer;
 	Ar << BuildSettings.bBuildReversedIndexBuffer;
+	Ar << BuildSettings.bUseHighPrecisionTangentBasis;
 	Ar << BuildSettings.bUseFullPrecisionUVs;
 	Ar << BuildSettings.bGenerateLightmapUVs;
 
@@ -1104,8 +1095,8 @@ FArchive& operator<<(FArchive& Ar, FMeshBuildSettings& BuildSettings)
 // If static mesh derived data needs to be rebuilt (new format, serialization
 // differences, etc.) replace the version GUID below with a new one.
 // In case of merge conflicts with DDC versions, you MUST generate a new GUID
-// and set this new GUID as the version.
-#define STATICMESH_DERIVEDDATA_VER TEXT("37403C6FB9441A6992E4CB614156E6A")
+// and set this new GUID as the version.                                       
+#define STATICMESH_DERIVEDDATA_VER TEXT("6F4494992CB61A37E4B1403C6156E6A")
 
 static const FString& GetStaticMeshDerivedDataVersion()
 {
@@ -1195,9 +1186,17 @@ static FString BuildStaticMeshDerivedDataKey(UStaticMesh* Mesh, const FStaticMes
 
 static FString BuildDistanceFieldDerivedDataKey(const FString& InMeshKey)
 {
+	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DistanceFields.MaxPerMeshResolution"));
+	const int32 PerMeshMax = CVar->GetValueOnAnyThread();
+	const FString PerMeshMaxString = PerMeshMax == 128 ? TEXT("") : FString(TEXT("_%u"), PerMeshMax);
+
+	static const auto CVarDensity = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.DistanceFields.DefaultVoxelDensity"));
+	const float VoxelDensity = CVarDensity->GetValueOnAnyThread();
+	const FString VoxelDensityString = VoxelDensity == .1f ? TEXT("") : FString(TEXT("_%.3f"), VoxelDensity);
+
 	return FDerivedDataCacheInterface::BuildCacheKey(
 		TEXT("DIST"),
-		*FString::Printf(TEXT("%s_%s"), *InMeshKey, DISTANCEFIELD_DERIVEDDATA_VER),
+		*FString::Printf(TEXT("%s_%s%s%s"), *InMeshKey, DISTANCEFIELD_DERIVEDDATA_VER, *PerMeshMaxString, *VoxelDensityString),
 		TEXT(""));
 }
 
@@ -1440,7 +1439,7 @@ FBox UStaticMesh::GetBoundingBox() const
 	return ExtendedBounds.GetBox();
 }
 
-float UStaticMesh::GetStreamingTextureFactor(int32 RequestedUVIndex)
+float UStaticMesh::GetStreamingTextureFactor(int32 RequestedUVIndex) const
 {
 	check(RequestedUVIndex >= 0);
 	check(RequestedUVIndex < MAX_STATIC_TEXCOORDS);
@@ -1463,6 +1462,118 @@ float UStaticMesh::GetStreamingTextureFactor(int32 RequestedUVIndex)
 	}
 	return StreamingTextureFactor;
 }
+
+bool UStaticMesh::GetStreamingTextureFactor(float& OutTexelFactor, FBoxSphereBounds& OutBounds, int32 CoordinateIndex, int32 LODIndex, int32 ElementIndex, const FTransform& Transform) const 
+{
+#if WITH_EDITORONLY_DATA
+	if (!GIsEditor || !RenderData || !RenderData->LODResources.IsValidIndex(LODIndex))
+	{
+		return false;
+	}
+
+	const FStaticMeshLODResources& LODModel = RenderData->LODResources[LODIndex];
+
+	if (CoordinateIndex < 0 || CoordinateIndex >= LODModel.GetNumTexCoords())
+	{
+		return false;
+	}
+
+	if (!LODModel.Sections.IsValidIndex(ElementIndex))
+	{
+		return false;
+	}
+
+	struct FTriangleInfo
+	{
+		FTriangleInfo(float InAera, float InTexelRatio) : Aera(InAera), TexelRatio(InTexelRatio) {}
+		float Aera;
+		float TexelRatio;
+	};
+
+	struct FCompareAera
+	{
+		FORCEINLINE bool operator()(FTriangleInfo const& A, FTriangleInfo const& B) const { return A.Aera < B.Aera; }
+	};
+
+	struct FCompareTexelRatio
+	{
+		FORCEINLINE bool operator()(FTriangleInfo const& A, FTriangleInfo const& B) const { return A.TexelRatio < B.TexelRatio; }
+	};
+
+	TArray<FTriangleInfo> TriangleInfos;
+
+	const FStaticMeshSection& SectionInfo = LODModel.Sections[ElementIndex];
+	const int32 SectionIndexCount = SectionInfo.NumTriangles * 3;
+	FIndexArrayView IndexBuffer = LODModel.IndexBuffer.GetArrayView();
+	
+	FBox TransformedSectionBox(ForceInit);
+
+	for (uint32 TriangleIndex = 0; TriangleIndex < SectionInfo.NumTriangles; ++TriangleIndex)
+	{
+		const int32 Index0 = IndexBuffer[SectionInfo.FirstIndex + TriangleIndex * 3 + 0];
+		const int32 Index1 = IndexBuffer[SectionInfo.FirstIndex + TriangleIndex * 3 + 1];
+		const int32 Index2 = IndexBuffer[SectionInfo.FirstIndex + TriangleIndex * 3 + 2];
+
+		FVector Pos0 = Transform.TransformPosition(LODModel.PositionVertexBuffer.VertexPosition(Index0));
+		FVector Pos1 = Transform.TransformPosition(LODModel.PositionVertexBuffer.VertexPosition(Index1));
+		FVector Pos2 = Transform.TransformPosition(LODModel.PositionVertexBuffer.VertexPosition(Index2));
+
+		TransformedSectionBox += Pos0;
+		TransformedSectionBox += Pos1;
+		TransformedSectionBox += Pos2;
+
+		FVector2D UV0 = LODModel.VertexBuffer.GetVertexUV(Index0, CoordinateIndex);
+		FVector2D UV1 = LODModel.VertexBuffer.GetVertexUV(Index1, CoordinateIndex);
+		FVector2D UV2 = LODModel.VertexBuffer.GetVertexUV(Index2, CoordinateIndex);
+
+		FVector P01 = Pos1 - Pos0;
+		FVector P02 = Pos2 - Pos0;
+
+		float Aera = FVector::CrossProduct(P01, P02).Size();
+
+		if (Aera > SMALL_NUMBER)
+		{
+			float L1 = P01.Size();
+			float L2 = P02.Size();
+
+			float T1 = (UV1 - UV0).Size();
+			float T2 = (UV2 - UV0).Size();
+
+			if (T1 > SMALL_NUMBER && T2 > SMALL_NUMBER)
+			{
+				float TexelRatio = FMath::Max(L1 / T1, L2 / T2);
+				TriangleInfos.Push(FTriangleInfo(Aera, TexelRatio));
+			}
+		}
+	}
+
+	TriangleInfos.Sort(FCompareTexelRatio());
+
+	float WeightedTexelFactorSum = 0;
+	float AreaSum = 0;
+
+	// Remove 10% of higher and lower texel factors.
+	int32 Threshold = FMath::FloorToInt(.10f * (float)TriangleInfos.Num());
+	for (int32 Index = Threshold; Index < TriangleInfos.Num() - Threshold; ++Index)
+	{
+		WeightedTexelFactorSum += TriangleInfos[Index].TexelRatio * TriangleInfos[Index].Aera;
+		AreaSum += TriangleInfos[Index].Aera;
+	}
+
+	if (AreaSum == 0)
+	{
+		return false;
+	}
+
+	OutBounds = TransformedSectionBox;
+	OutTexelFactor = WeightedTexelFactorSum / AreaSum * FMath::Max(0.0f, StreamingDistanceMultiplier);
+	return true;
+
+#else
+	return false;
+#endif
+}	
+
 
 /**
  * Releases the static mesh's render resources.
@@ -1573,18 +1684,48 @@ bool UStaticMesh::IsReadyForFinishDestroy()
 	return ReleaseResourcesFence.IsFenceComplete();
 }
 
+int32 UStaticMesh::GetNumSectionsWithCollision() const
+{
+#if WITH_EDITORONLY_DATA
+	int32 NumSectionsWithCollision = 0;
+
+	if (RenderData && RenderData->LODResources.Num() > 0)
+	{
+		// Find how many sections have collision enabled
+		const int32 UseLODIndex = FMath::Clamp(LODForCollision, 0, RenderData->LODResources.Num() - 1);
+		const FStaticMeshLODResources& CollisionLOD = RenderData->LODResources[UseLODIndex];
+		for (int32 SectionIndex = 0; SectionIndex < CollisionLOD.Sections.Num(); ++SectionIndex)
+		{
+			if (SectionInfoMap.Get(UseLODIndex, SectionIndex).bEnableCollision)
+			{
+				NumSectionsWithCollision++;
+			}
+		}
+	}
+
+	return NumSectionsWithCollision;
+#else
+	return 0;
+#endif
+}
+
 void UStaticMesh::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
 	int32 NumTriangles = 0;
 	int32 NumVertices = 0;
 	int32 NumUVChannels = 0;
+	int32 NumLODs = 0;
+
 	if (RenderData && RenderData->LODResources.Num() > 0)
 	{
 		const FStaticMeshLODResources& LOD = RenderData->LODResources[0];
 		NumTriangles = LOD.IndexBuffer.GetNumIndices() / 3;
 		NumVertices = LOD.VertexBuffer.GetNumVertices();
 		NumUVChannels = LOD.VertexBuffer.GetNumTexCoords();
+		NumLODs = RenderData->LODResources.Num();
 	}
+
+	int32 NumSectionsWithCollision = GetNumSectionsWithCollision();
 
 	int32 NumCollisionPrims = 0;
 	if ( BodySetup != NULL )
@@ -1599,12 +1740,22 @@ void UStaticMesh::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 	}
 	const FString ApproxSizeStr = FString::Printf(TEXT("%dx%dx%d"), FMath::RoundToInt(Bounds.BoxExtent.X * 2.0f), FMath::RoundToInt(Bounds.BoxExtent.Y * 2.0f), FMath::RoundToInt(Bounds.BoxExtent.Z * 2.0f));
 
+	// Get name of default collision profile
+	FName DefaultCollisionName = NAME_None;
+	if(BodySetup != nullptr)
+	{
+		DefaultCollisionName = BodySetup->DefaultInstance.GetCollisionProfileName();
+	}
+
 	OutTags.Add( FAssetRegistryTag("Triangles", FString::FromInt(NumTriangles), FAssetRegistryTag::TT_Numerical) );
 	OutTags.Add( FAssetRegistryTag("Vertices", FString::FromInt(NumVertices), FAssetRegistryTag::TT_Numerical) );
 	OutTags.Add( FAssetRegistryTag("UVChannels", FString::FromInt(NumUVChannels), FAssetRegistryTag::TT_Numerical) );
 	OutTags.Add( FAssetRegistryTag("Materials", FString::FromInt(Materials.Num()), FAssetRegistryTag::TT_Numerical) );
 	OutTags.Add( FAssetRegistryTag("ApproxSize", ApproxSizeStr, FAssetRegistryTag::TT_Dimensional) );
-	OutTags.Add( FAssetRegistryTag("CollisionPrims", FString::FromInt(NumCollisionPrims), FAssetRegistryTag::TT_Numerical) );
+	OutTags.Add( FAssetRegistryTag("CollisionPrims", FString::FromInt(NumCollisionPrims), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add( FAssetRegistryTag("LODs", FString::FromInt(NumLODs), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add( FAssetRegistryTag("SectionsWithCollision", FString::FromInt(NumSectionsWithCollision), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add( FAssetRegistryTag("DefaultCollision", DefaultCollisionName.ToString(), FAssetRegistryTag::TT_Alphabetical));
 
 #if WITH_EDITORONLY_DATA
 	if (AssetImportData)
@@ -1826,6 +1977,8 @@ void UStaticMesh::CacheDerivedData()
 	}
 }
 
+#endif // #if WITH_EDITORONLY_DATA
+
 void UStaticMesh::CalculateExtendedBounds()
 {
 	FBoxSphereBounds Bounds(ForceInit);
@@ -1852,11 +2005,15 @@ void UStaticMesh::CalculateExtendedBounds()
 	ExtendedBounds = Bounds;
 }
 
-#endif // #if WITH_EDITORONLY_DATA
 
 #if WITH_EDITORONLY_DATA
 FUObjectAnnotationSparseBool GStaticMeshesThatNeedMaterialFixup;
 #endif // #if WITH_EDITORONLY_DATA
+
+#if WITH_EDITOR
+COREUOBJECT_API extern bool GOutputCookingWarnings;
+#endif
+
 
 /**
  *	UStaticMesh::Serialize
@@ -1886,6 +2043,30 @@ void UStaticMesh::Serialize(FArchive& Ar)
 	if (Ar.UE4Ver() >= VER_UE4_STATIC_MESH_STORE_NAV_COLLISION)
 	{
 		Ar << NavCollision;
+#if WITH_EDITOR
+		if ((BodySetup != nullptr) && 
+			bHasNavigationData && 
+			(NavCollision == nullptr))
+		{
+			if (Ar.IsPersistent() && Ar.IsLoading() && (Ar.GetDebugSerializationFlags() & DSF_EnableCookerWarnings))
+			{
+				UE_LOG(LogStaticMesh, Warning, TEXT("Serialized NavCollision but it was null (%s) NavCollision will be created dynamicaly at cook time.  Please resave package %s."), *GetName(), *GetOutermost()->GetPathName());
+			}
+		}
+#endif
+	}
+#if WITH_EDITOR
+	else if (bHasNavigationData && BodySetup && GOutputCookingWarnings)
+	{
+		UE_LOG(LogStaticMesh, Warning, TEXT("This StaticMeshes (%s) NavCollision will be created dynamicaly at cook time.  Please resave %s."), *GetName(), *GetOutermost()->GetPathName())
+	}
+#endif
+
+	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
+
+	if(Ar.IsLoading() && Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::UseBodySetupCollisionProfile && BodySetup)
+	{
+		BodySetup->DefaultInstance.SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 	}
 
 #if WITH_EDITORONLY_DATA
@@ -2002,7 +2183,6 @@ void UStaticMesh::Serialize(FArchive& Ar)
 //
 //	UStaticMesh::PostLoad
 //
-
 void UStaticMesh::PostLoad()
 {
 	Super::PostLoad();
@@ -2075,7 +2255,7 @@ void UStaticMesh::PostLoad()
 #endif // #if WITH_EDITOR
 
 	EnforceLightmapRestrictions();
-	
+
 	if (!GVertexElementTypeSupport.IsSupported(VET_Half2))
 	{
 		for (int32 LODIndex = 0; LODIndex < RenderData->LODResources.Num(); ++LODIndex)
@@ -2083,15 +2263,15 @@ void UStaticMesh::PostLoad()
 			if (RenderData->LODResources.IsValidIndex(LODIndex))
 			{
 				FStaticMeshLODResources& LOD = RenderData->LODResources[LODIndex];
-				// Determine the correct version of ConvertToFullPrecisionUVs based on the number of UVs in the vertex buffer
-				const uint32 NumTexCoords = LOD.VertexBuffer.GetNumTexCoords();
-				switch(NumTexCoords)
-				{
-				case 1: LOD.VertexBuffer.ConvertToFullPrecisionUVs<1>(); break;
-				case 2: LOD.VertexBuffer.ConvertToFullPrecisionUVs<2>(); break; 
-				case 3: LOD.VertexBuffer.ConvertToFullPrecisionUVs<3>(); break; 
-				case 4: LOD.VertexBuffer.ConvertToFullPrecisionUVs<4>(); break; 
-				}
+				
+				SELECT_STATIC_MESH_VERTEX_TYPE(
+					LOD.VertexBuffer.GetUseHighPrecisionTangentBasis(),
+					LOD.VertexBuffer.GetUseFullPrecisionUVs(),
+					LOD.VertexBuffer.GetNumTexCoords(),
+					{
+						typedef TStaticMeshFullVertex<VertexType::TangentBasisType, EStaticMeshVertexUVType::HighPrecision, VertexType::NumTexCoords> DstVertexType;
+						LOD.VertexBuffer.ConvertVertexFormat<VertexType, DstVertexType>();
+					});
 			}
 		}
 	}
@@ -2158,7 +2338,11 @@ bool UStaticMesh::GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionD
 #if WITH_EDITORONLY_DATA
 	check(HasValidRenderData());
 
-	FStaticMeshLODResources& LOD = RenderData->LODResources[0];
+	// Get the LOD level to use for collision
+	// Always use 0 if asking for 'all tri data'
+	const int32 UseLODIndex = bInUseAllTriData ? 0 : FMath::Clamp(LODForCollision, 0, RenderData->LODResources.Num()-1);
+
+	FStaticMeshLODResources& LOD = RenderData->LODResources[UseLODIndex];
 
 	// Scale all verts into temporary vertex buffer.
 	const uint32 NumVerts = LOD.PositionVertexBuffer.GetNumVertices();
@@ -2179,7 +2363,7 @@ bool UStaticMesh::GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionD
 	{
 		const FStaticMeshSection& Section = LOD.Sections[SectionIndex];
 
-		if (bInUseAllTriData || SectionInfoMap.Get(0,SectionIndex).bEnableCollision)
+		if (bInUseAllTriData || SectionInfoMap.Get(UseLODIndex,SectionIndex).bEnableCollision)
 		{
 			const uint32 OnePastLastIndex  = Section.FirstIndex + Section.NumTriangles*3;
 
@@ -2206,16 +2390,24 @@ bool UStaticMesh::GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionD
 
 bool UStaticMesh::ContainsPhysicsTriMeshData(bool bInUseAllTriData) const 
 {
-	if (RenderData
-		&& RenderData->LODResources.Num() > 0
-		&& RenderData->LODResources[0].PositionVertexBuffer.GetNumVertices() > 0)
+	if(RenderData == nullptr || RenderData->LODResources.Num() == 0)
+	{
+		return false;
+	}
+
+	// Get the LOD level to use for collision
+	// Always use 0 if asking for 'all tri data'
+	const int32 UseLODIndex = bInUseAllTriData ? 0 : FMath::Clamp(LODForCollision, 0, RenderData->LODResources.Num() - 1);
+
+	if (RenderData->LODResources[UseLODIndex].PositionVertexBuffer.GetNumVertices() > 0)
 	{
 		// In non-cooked builds we need to look at the section info map to get
 		// accurate per-section info.
 #if WITH_EDITORONLY_DATA
 		return bInUseAllTriData || SectionInfoMap.AnySectionHasCollision();
 #else
-		FStaticMeshLODResources& LOD = RenderData->LODResources[0];
+		// Get the LOD level to use for collision
+		FStaticMeshLODResources& LOD = RenderData->LODResources[UseLODIndex];
 		for (int32 SectionIndex = 0; SectionIndex < LOD.Sections.Num(); ++SectionIndex)
 		{
 			const FStaticMeshSection& Section = LOD.Sections[SectionIndex];
@@ -2291,6 +2483,7 @@ void UStaticMesh::CreateBodySetup()
 	if (BodySetup==NULL)
 	{
 		BodySetup = NewObject<UBodySetup>(this);
+		BodySetup->DefaultInstance.SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 	}
 }
 
@@ -2819,14 +3012,14 @@ UStaticMeshSocket::UStaticMeshSocket(const FObjectInitializer& ObjectInitializer
 bool UStaticMeshSocket::GetSocketMatrix(FMatrix& OutMatrix, UStaticMeshComponent const* MeshComp) const
 {
 	check( MeshComp );
-	OutMatrix = FRotationTranslationMatrix( RelativeRotation, RelativeLocation ) * MeshComp->ComponentToWorld.ToMatrixWithScale();
+	OutMatrix = FScaleRotationTranslationMatrix( RelativeScale, RelativeRotation, RelativeLocation ) * MeshComp->ComponentToWorld.ToMatrixWithScale();
 	return true;
 }
 
 bool UStaticMeshSocket::GetSocketTransform(FTransform& OutTransform, class UStaticMeshComponent const* MeshComp) const
 {
 	check( MeshComp );
-	OutTransform = FTransform(RelativeRotation, RelativeLocation) * MeshComp->ComponentToWorld;
+	OutTransform = FTransform(RelativeRotation, RelativeLocation, RelativeScale) * MeshComp->ComponentToWorld;
 	return true;
 }
 
@@ -2871,3 +3064,17 @@ void UStaticMeshSocket::PostEditChangeProperty( FPropertyChangedEvent& PropertyC
 	}
 }
 #endif
+
+void UStaticMeshSocket::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
+
+	if(Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::MeshSocketScaleUtilization)
+	{
+		// Set the relative scale to 1.0. As it was not used before this should allow existing data
+		// to work as expected.
+		RelativeScale = FVector(1.0f, 1.0f, 1.0f);
+	}
+}

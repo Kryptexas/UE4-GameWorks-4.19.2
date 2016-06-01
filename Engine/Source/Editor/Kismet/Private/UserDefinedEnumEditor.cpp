@@ -6,6 +6,7 @@
 
 #include "PropertyCustomizationHelpers.h"
 #include "SDockTab.h"
+#include "IDocumentation.h"
 #include "Engine/UserDefinedEnum.h"
 
 #define LOCTEXT_NAMESPACE "UserDefinedEnumEditor"
@@ -158,6 +159,8 @@ void FEnumDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 		TargetEnum = CastChecked<UUserDefinedEnum>(Objects[0].Get());
 		TSharedRef<IPropertyHandle> PropertyHandle = DetailLayout.GetProperty(FName("Names"), UEnum::StaticClass());
 
+		const FString DocLink = TEXT("Shared/Editors/BlueprintEditor/EnumDetails");
+
 		IDetailCategoryBuilder& InputsCategory = DetailLayout.EditCategory("Enumerators", LOCTEXT("EnumDetailsEnumerators", "Enumerators"));
 
 		InputsCategory.AddCustomRow( LOCTEXT("FunctionNewInputArg", "New") )
@@ -173,6 +176,23 @@ void FEnumDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 
 		Layout = MakeShareable( new FUserDefinedEnumLayout(TargetEnum.Get()) );
 		InputsCategory.AddCustomBuilder( Layout.ToSharedRef() );
+
+		TSharedPtr<SToolTip> BitmaskFlagsTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("BitmaskFlagsTooltip", "When enabled, this enumeration can be used as a set of explicitly-named bitmask flags. Each enumerator's value will correspond to the index of the bit (flag) in the mask."), nullptr, DocLink, TEXT("Bitmask Flags"));
+
+		InputsCategory.AddCustomRow(LOCTEXT("BitmaskFlagsAttributeLabel", "Bitmask Flags"), true)
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("BitmaskFlagsAttributeLabel", "Bitmask Flags"))
+			.ToolTip(BitmaskFlagsTooltip)
+		]
+		.ValueContent()
+		[
+			SNew(SCheckBox)
+			.IsChecked(this, &FEnumDetails::OnGetBitmaskFlagsAttributeState)
+			.OnCheckStateChanged(this, &FEnumDetails::OnBitmaskFlagsAttributeStateChanged)
+			.ToolTip(BitmaskFlagsTooltip)
+		];
 	}
 }
 
@@ -204,6 +224,16 @@ FReply FEnumDetails::OnAddNewEnumerator()
 {
 	FEnumEditorUtils::AddNewEnumeratorForUserDefinedEnum(TargetEnum.Get());
 	return FReply::Handled();
+}
+
+ECheckBoxState FEnumDetails::OnGetBitmaskFlagsAttributeState() const
+{
+	return FEnumEditorUtils::IsEnumeratorBitflagsType(TargetEnum.Get()) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
+void FEnumDetails::OnBitmaskFlagsAttributeStateChanged(ECheckBoxState InNewState)
+{
+	FEnumEditorUtils::SetEnumeratorBitflagsTypeState(TargetEnum.Get(), InNewState == ECheckBoxState::Checked);
 }
 
 bool FUserDefinedEnumLayout::CausedChange() const

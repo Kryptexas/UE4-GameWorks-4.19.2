@@ -101,20 +101,23 @@ public:
 	*/
 	void DrawAPrimitive(FRHICommandList& RHICmdList, const class FViewInfo& View, class FDeferredShadingSceneRenderer& Renderer, ETranslucencyPassType TranslucenyPassType, int32 Index) const;
 
-	/** Draw all the primitives in this set for the forward shading pipeline. */
-	void DrawPrimitivesForForwardShading(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, class FSceneRenderer& Renderer) const;
+	/** 
+	* Draw all the primitives in this set for the forward shading pipeline. 
+	* @param bRenderSeparateTranslucency - If false, only primitives with materials without mobile separate translucency enabled are rendered. Opposite if true.
+	*/
+	void DrawPrimitivesForForwardShading(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, const bool bRenderSeparateTranslucency) const;
 
 	/**
 	* Add a new primitive to the list of sorted prims
 	* @param PrimitiveSceneInfo - primitive info to add. Origin of bounds is used for sort.
 	* @param ViewInfo - used to transform bounds to view space
 	*/
-	void AddScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency);
+	void AddScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency, bool bUseMobileSeparateTranslucency);
 
 	/**
 	* Similar to AddScenePrimitive, but we are doing placement news and increasing counts when that happens
 	*/
-	static void PlaceScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency, void *NormalPlace, int32& NormalNum, void* SeparatePlace, int32& SeparateNum);
+	static void PlaceScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency, bool bUseMobileSeparateTranslucency, void *NormalPlace, int32& NormalNum, void* SeparatePlace, int32& SeparateNum);
 
 	/**
 	* Sort any primitives that were added to the set back-to-front
@@ -315,12 +318,15 @@ private:
 	uint32 ValidFrameNumber;
 };
 
+DECLARE_STATS_GROUP(TEXT("Parallel Command List Markers"), STATGROUP_ParallelCommandListMarkers, STATCAT_Advanced);
+
 class FParallelCommandListSet
 {
 public:
 	const FViewInfo& View;
 	FRHICommandListImmediate& ParentCmdList;
 	FSceneRenderTargets* Snapshot;
+	TStatId	ExecuteStat;
 	int32 Width;
 	int32 NumAlloc;
 	int32 MinDrawsPerCommandList;
@@ -337,12 +343,12 @@ public:
 protected:
 	//this must be called by deriving classes virtual destructor because it calls the virtual SetStateOnCommandList.
 	//C++ will not do dynamic dispatch of virtual calls from destructors so we can't call it in the base class.
-	void Dispatch();
+	void Dispatch(bool bHighPriority = false);
 	FRHICommandList* AllocCommandList();
 	bool bParallelExecute;
 	bool bCreateSceneContext;
 public:
-	FParallelCommandListSet(const FViewInfo& InView, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext);
+	FParallelCommandListSet(TStatId InExecuteStat, const FViewInfo& InView, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext);
 	virtual ~FParallelCommandListSet();
 	int32 NumParallelCommandLists() const
 	{
@@ -359,6 +365,9 @@ public:
 	{
 
 	}
+	static void WaitForTasks();
+private:
+	void WaitForTasksInternal();
 };
 
 class FVolumeUpdateRegion
@@ -622,13 +631,13 @@ public:
 	IPooledRenderTarget* GetLastEyeAdaptationRT(FRHICommandList& RHICmdList) const;
 
 	/**Swap the order of the two eye adaptation targets in the double buffer system */
-	void SwapEyeAdaptationRTs();
+	void SwapEyeAdaptationRTs() const;
 
 	/** Tells if the eyeadaptation texture exists without attempting to allocate it. */
 	bool HasValidEyeAdaptation() const;
 
 	/** Informs sceneinfo that eyedaptation has queued commands to compute it at least once */
-	void SetValidEyeAdaptation();
+	void SetValidEyeAdaptation() const;
 
 	/** Create acceleration data structure and information to do forward lighting with dynamic branching. */
 	void CreateLightGrid();
@@ -682,6 +691,8 @@ public:
 
 		return DrawRenderState;
 	}
+
+	inline FVector GetPrevViewDirection() const { return PrevViewMatrices.ViewMatrix.GetColumn(2); }
 
 	/** Create a snapshot of this view info on the scene allocator. */
 	FViewInfo* CreateSnapshot() const;
@@ -901,9 +912,6 @@ protected:
 	/** Initialized the fog constants for each view. */
 	void InitFogConstants();
 
-	/** Initialized the atmopshere constants for each view. */
-	void InitAtmosphereConstants();
-
 	/** Returns whether there are translucent primitives to be renderered. */
 	bool ShouldRenderTranslucency() const;
 
@@ -913,6 +921,7 @@ protected:
 	/** Updates state for the end of the frame. */
 	void RenderFinish(FRHICommandListImmediate& RHICmdList);
 
+	void RenderCustomDepthPassAtLocation(FRHICommandListImmediate& RHICmdList, int32 Location);
 	void RenderCustomDepthPass(FRHICommandListImmediate& RHICmdList);
 
 	void OnStartFrame();
@@ -926,6 +935,7 @@ protected:
 	void UpdatePrimitivePrecomputedLightingBuffers();
 	void ClearPrimitiveSingleFramePrecomputedLightingBuffers();
 
+	void RenderPlanarReflection(class FPlanarReflectionSceneProxy* ReflectionSceneProxy);
 };
 
 /**
@@ -992,3 +1002,6 @@ private:
 	bool bModulatedShadowsInUse;
 	bool bCSMShadowsInUse;
 };
+
+// The noise textures need to be set in Slate too.
+RENDERER_API void UpdateNoiseTextureParameters(FFrameUniformShaderParameters& FrameUniformShaderParameters);

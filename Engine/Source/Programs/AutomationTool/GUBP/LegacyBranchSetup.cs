@@ -15,7 +15,7 @@ partial class GUBP
 	public class GUBPBranchConfig
 	{
 		public List<UnrealTargetPlatform> HostPlatforms;
-        public string BranchName { get { return JobInfo.BranchName; } }
+        public string BranchName;
 		public BranchInfo Branch;
 		public GUBPBranchHacker.BranchOptions BranchOptions;
 		public bool bForceIncrementalCompile;
@@ -24,10 +24,11 @@ partial class GUBP
 		public Dictionary<string, GUBPNode> GUBPNodes = new Dictionary<string, GUBPNode>();
 		public Dictionary<string, GUBPAggregateNode> GUBPAggregates = new Dictionary<string, GUBPAggregateNode>();
 
-        public GUBPBranchConfig(IEnumerable<UnrealTargetPlatform> InHostPlatforms, BranchInfo InBranch, GUBPBranchHacker.BranchOptions InBranchOptions, bool bInForceIncrementalCompile, JobInfo JobInfo)
+        public GUBPBranchConfig(IEnumerable<UnrealTargetPlatform> InHostPlatforms, BranchInfo InBranch, string InBranchName, GUBPBranchHacker.BranchOptions InBranchOptions, bool bInForceIncrementalCompile, JobInfo JobInfo)
 		{
 			HostPlatforms = new List<UnrealTargetPlatform>(InHostPlatforms);
 			Branch = InBranch;
+			BranchName = InBranchName;
 			BranchOptions = InBranchOptions;
 			bForceIncrementalCompile = bInForceIncrementalCompile;
 			this.JobInfo = JobInfo;
@@ -141,6 +142,7 @@ partial class GUBP
         public class BranchOptions
         {            
             public List<UnrealTargetPlatform> PlatformsToRemove = new List<UnrealTargetPlatform>();
+			public List<TargetRules.TargetType> MonolithicsToRemove = new List<TargetRules.TargetType>();
 			public List<string> ExcludeNodes = new List<string>();
 			public List<UnrealTargetPlatform> ExcludePlatformsForEditor = new List<UnrealTargetPlatform>();
             public List<UnrealTargetPlatform> RemovePlatformFromPromotable = new List<UnrealTargetPlatform>();
@@ -153,7 +155,7 @@ partial class GUBP
 			/// </summary>
 			public bool bGameBuildsBehindTriggers = false;
             /// <summary>
-            /// This turns off ALL automatedtesting in ALL branches by default.
+            /// This turns off ALL automated testing in ALL branches by default.
             /// A branch hacker must set this value to false explicitly to use automated testing.
             /// </summary>
 			public bool bNoAutomatedTesting = true;
@@ -187,6 +189,10 @@ partial class GUBP
 			/// </summary>
 			public bool bBuildEngineLocalization = false;
 			public string EngineLocalizationBranchSuffix = "";
+            public string AdditionalCookArgs = "";
+			/// Whether to build all target platforms in parallel, or serialize them to avoid saturating the farm.
+			/// </summary>
+			public bool bTargetPlatformsInParallel = true;
         }
         public virtual void ModifyOptions(GUBP bp, ref BranchOptions Options, string Branch)
         {
@@ -372,7 +378,7 @@ partial class GUBP
         return AltHostPlatform;
     }
 
-    void AddNodesForBranch(List<UnrealTargetPlatform> InitialHostPlatforms, JobInfo JobInfo, GUBPBranchHacker.BranchOptions BranchOptions, out List<BuildNodeDefinition> AllNodeDefinitions, out List<AggregateNodeDefinition> AllAggregateDefinitions, ref int TimeQuantum)
+    void AddNodesForBranch(List<UnrealTargetPlatform> InitialHostPlatforms, string BranchName, JobInfo JobInfo, GUBPBranchHacker.BranchOptions BranchOptions, out List<BuildNodeDefinition> AllNodeDefinitions, out List<AggregateNodeDefinition> AllAggregateDefinitions, ref int TimeQuantum, bool bNewEC)
 	{
 		DateTime StartTime = DateTime.UtcNow;
 
@@ -467,7 +473,7 @@ partial class GUBP
             }
         }
 
-		GUBPBranchConfig BranchConfig = new GUBPBranchConfig(HostPlatforms, Branch, BranchOptions, bForceIncrementalCompile, JobInfo);
+		GUBPBranchConfig BranchConfig = new GUBPBranchConfig(HostPlatforms, Branch, BranchName, BranchOptions, bForceIncrementalCompile, JobInfo);
 
         BranchConfig.AddNode(new VersionFilesNode());
 
@@ -487,7 +493,7 @@ partial class GUBP
 			{
 				BranchConfig.AddNode(new InternalToolsNode(BranchConfig, HostPlatform));
 			
-				if (HostPlatform == UnrealTargetPlatform.Win64 && ActivePlatforms.Contains(UnrealTargetPlatform.Linux))
+				if (HostPlatform == UnrealTargetPlatform.Win64 && ActivePlatforms.Contains(UnrealTargetPlatform.Linux) && !BranchConfig.BranchOptions.ExcludeNodes.Contains("LinuxTools"))
 				{
 					BranchConfig.AddNode(new ToolsCrossCompileNode(BranchConfig, HostPlatform));
 				}
@@ -711,7 +717,7 @@ partial class GUBP
 										BranchConfig.AddNode(new GamePlatformMonolithicsNode(BranchConfig, HostPlatform, ActivePlatforms, Branch.BaseEngineProject, Plat, true));
 									}
 	                            }
-                            }
+							}
                         }
                     }
                 }
@@ -998,7 +1004,7 @@ partial class GUBP
 									}
                                     BranchConfig.AddNode(new GamePlatformMonolithicsNode(BranchConfig, HostPlatform, ActivePlatforms, CodeProj, Plat));
                                 }
-                                var FormalBuildConfigs = Target.Rules.GUBP_GetConfigsForFormalBuilds_MonolithicOnly(HostPlatform);
+								var FormalBuildConfigs = Target.Rules.GUBP_GetConfigsForFormalBuilds_MonolithicOnly(HostPlatform);
 								if (!AdditionalPlatforms.Contains(Plat) && (BranchOptions.ProjectsToCook.Contains(CodeProj.GameName) || BranchOptions.ProjectsToCook.Count == 0))
 								{
 									string CookedPlatform = Platform.Platforms[Plat].GetCookPlatform(Kind == TargetRules.TargetType.Server, Kind == TargetRules.TargetType.Client, "");
@@ -1134,7 +1140,17 @@ partial class GUBP
 		}
 
         BranchConfig.AddNode(new WaitForTestShared(this));
-		BranchConfig.AddNode(new WaitToPackageSamplesNode(BranchConfig.HostPlatforms));
+		List<UnrealTargetPlatform> HostPlatformsToWaitFor = BranchConfig.HostPlatforms;
+		HostPlatformsToWaitFor.RemoveAll(HostPlatform => BranchOptions.ExcludePlatformsForEditor.Contains(HostPlatform));
+
+		foreach(GUBPNode Node in BranchConfig.GUBPNodes.Values)
+		{
+			if(Node.FullNamesOfDependencies.Contains(WaitToPackageSamplesNode.StaticGetFullName()) || Node.FullNamesOfPseudodependencies.Contains(WaitToPackageSamplesNode.StaticGetFullName()))
+			{
+				BranchConfig.AddNode(new WaitToPackageSamplesNode(HostPlatformsToWaitFor));
+				break;
+			}
+		}
 
 		AddCustomNodes(BranchConfig, HostPlatforms, ActivePlatforms);
         
@@ -1150,11 +1166,27 @@ partial class GUBP
 				BranchConfig.AddNode(new RootEditorCrossCompileLinuxNode(BranchConfig, UnrealTargetPlatform.Win64));
 			}
             // Don't run clean on temp shared storage for preflight builds. They might have broken the clean, and it extends to storage beyond this job.
-            if (!BranchConfig.JobInfo.IsPreflight)
+            if (!BranchConfig.JobInfo.IsPreflight && !bNewEC)
             {
                 BranchConfig.AddNode(new CleanSharedTempStorageNode(this, BranchConfig));
             }
         }
+
+		// Add an aggregate for all the editors in this branch
+		List<GUBPNode> AllEditorNodes = new List<GUBPNode>(BranchConfig.GUBPNodes.Values.Where(x => (x is RootEditorNode) || (x is EditorGameNode)));
+		BranchConfig.AddNode(new GenericAggregateNode("AllEditors", AllEditorNodes.Select(x => x.GetFullName())));
+
+		// Add an aggregate for all the tools in the branch
+		List<GUBPNode> AllToolNodes = new List<GUBPNode>(BranchConfig.GUBPNodes.Values.Where(x => (x is ToolsNode) || (x is SingleToolsNode) || (x is InternalToolsNode) || (x is SingleInternalToolsNode)));
+		BranchConfig.AddNode(new GenericAggregateNode("AllTools", AllToolNodes.Select(x => x.GetFullName())));
+
+		// Add an aggregate for all the tools in the branch
+		List<GUBPNode> AllMonolithicNodes = new List<GUBPNode>(BranchConfig.GUBPNodes.Values.Where(x => (x is GamePlatformMonolithicsNode)));
+		BranchConfig.AddNode(new GenericAggregateNode("AllMonolithics", AllMonolithicNodes.Select(x => x.GetFullName())));
+
+		// Add an aggregate for all the nodes in the branch
+		BranchConfig.AddNode(new GenericAggregateNode("AllNodes", BranchConfig.GUBPNodes.Keys));
+
 #if false
         // this doesn't work for lots of reasons...we can't figure out what the dependencies are until far later
         if (bPreflightBuild)

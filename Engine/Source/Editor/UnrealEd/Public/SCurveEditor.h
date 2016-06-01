@@ -151,7 +151,8 @@ public:
 		, _ViewMaxOutput(1.0f)
 		, _InputSnap(0.1f)
 		, _OutputSnap(0.05f)
-		, _SnappingEnabled(false)
+		, _InputSnappingEnabled(false)
+		, _OutputSnappingEnabled(false)
 		, _TimelineLength(5.0f)
 		, _DesiredSize(FVector2D::ZeroVector)
 		, _DrawCurve(true)
@@ -177,7 +178,8 @@ public:
 		SLATE_ATTRIBUTE( float, ViewMaxOutput )
 		SLATE_ATTRIBUTE( float, InputSnap )
 		SLATE_ATTRIBUTE( float, OutputSnap )
-		SLATE_ATTRIBUTE( bool, SnappingEnabled )
+		SLATE_ATTRIBUTE( bool, InputSnappingEnabled )
+		SLATE_ATTRIBUTE( bool, OutputSnappingEnabled )
 		SLATE_ATTRIBUTE( float, TimelineLength )
 		SLATE_ATTRIBUTE( FVector2D, DesiredSize )
 		SLATE_ARGUMENT( bool, DrawCurve )
@@ -383,8 +385,10 @@ private:
 	FReply ZoomToFitHorizontalClicked();
 	FReply ZoomToFitVerticalClicked();
 
-	void ToggleSnapping();
-	bool IsSnappingEnabled();
+	void ToggleInputSnapping();
+	void ToggleOutputSnapping();
+	bool IsInputSnappingEnabled();
+	bool IsOutputSnappingEnabled();
 
 	TOptional<float> OnGetTime() const;
 	void OnTimeComitted(float NewValue, ETextCommit::Type CommitType);
@@ -439,6 +443,12 @@ private:
 
 	/** Paints the marquee for selection */
 	void PaintMarquee(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const;
+
+	/** Gets the delta value for the input value numeric entry box. */
+	float GetInputNumericEntryBoxDelta() const;
+
+	/** Gets the delta value for the output value numeric entry box. */
+	float GetOutputNumericEntryBoxDelta() const;
 
 protected:
 	//~ Begin SWidget Interface
@@ -498,6 +508,12 @@ private:
 	/** Flatten or straighten tangents */
 	void OnFlattenOrStraightenTangents(bool bFlattenTangents);
 
+	/** Called when user selects bake or reduce curve */
+	void OnBakeCurve();
+	void OnBakeCurveSampleRateCommitted(const FText& InText, ETextCommit::Type CommitInfo);
+	void OnReduceCurve();
+	void OnReduceCurveToleranceCommitted(const FText& InText, ETextCommit::Type CommitInfo);
+
 	/** Called when the user selects the extrapolation type */
 	void OnSelectPreInfinityExtrap(ERichCurveExtrapolation Extrapolation);
 	bool IsPreInfinityExtrapSelected(ERichCurveExtrapolation Extrapolation);
@@ -526,6 +542,8 @@ private:
 	bool AreCurvesVisible() const { return bAlwaysDisplayColorCurves || bAreCurvesVisible; }
 	bool IsGradientEditorVisible() const { return bIsGradientEditorVisible; }
 	bool IsLinearColorCurve() const;
+
+	bool IsCurveSelectable(TSharedPtr<FCurveViewModel> CurveViewModel) const;
 
 	FVector2D SnapLocation(FVector2D InLocation);
 
@@ -577,6 +595,12 @@ protected:
 	/** Ensure that selected keys and tangents are still valid */
 	UNREALED_API void ValidateSelection();
 
+	/** Modeless Version of the String Entry Box */
+	void GenericTextEntryModeless(const FText& DialogText, const FText& DefaultText, FOnTextCommitted OnTextComitted);
+	
+	/** Closes the popup created by GenericTextEntryModeless*/
+	void CloseEntryPopupMenu();
+
 private:
 
 	/** User-supplied object for this curve editor */
@@ -590,8 +614,6 @@ private:
 
 	/** Interface for curve supplier */
 	FCurveOwnerInterface*		CurveOwner;
-	/** Color for each curve */
-	TArray<FLinearColor>		CurveColors;
 
 	/** If we should draw the curve */
 	bool				bDrawCurve;
@@ -671,8 +693,11 @@ protected:
 	/** The snapping value for the output domain. */
 	TAttribute<float> OutputSnap;
 
-	/** Whether or not snapping is enabled. */
-	TAttribute<bool> bSnappingEnabled;
+	/** Whether or not input snapping is enabled. */
+	TAttribute<bool> bInputSnappingEnabled;
+
+	/** Whether or not output snapping is enabled. */
+	TAttribute<bool> bOutputSnappingEnabled;
 
 	/** True if you want the curve editor to fit to zoom **/
 	bool bZoomToFitVertical;
@@ -733,6 +758,12 @@ protected:
 
 	/** The color used to draw the grid lines. */
 	FLinearColor GridColor;
+
+	/** The tolerance to use when reducing curves */
+	float ReduceTolerance;
+
+	/** Generic Popup Entry */
+	TWeakPtr<IMenu> EntryPopupMenu;
 };
 
 #endif // __SCurveEditor_h__

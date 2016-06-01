@@ -2,7 +2,6 @@
 
 #include "SequencerWidgetsPrivatePCH.h"
 #include "STimeRangeSlider.h"
-#include "STimeRange.h"
 #include "SlateStyle.h"
 #include "EditorStyle.h"
 
@@ -13,11 +12,11 @@ namespace TimeRangeSliderConstants
 	const int32 HandleSize = 14;
 }
 
-void STimeRangeSlider::Construct( const FArguments& InArgs, TSharedRef<ITimeSliderController> InTimeSliderController, TSharedPtr<STimeRange> InTimeRange)
+void STimeRangeSlider::Construct( const FArguments& InArgs, TSharedRef<ITimeSliderController> InTimeSliderController)
 {
 	TimeSliderController = InTimeSliderController;
-	TimeRange = InTimeRange;
 	LastViewRange = TimeSliderController.Get()->GetViewRange();
+	TimeSnapInterval = InArgs._TimeSnapInterval;
 
 	ResetState();
 	ResetHoveredState();
@@ -60,6 +59,13 @@ void STimeRangeSlider::ComputeHandleOffsets(float& LeftHandleOffset, float& Hand
 	HandleOffset = LeftHandleOffset + TimeRangeSliderConstants::HandleSize;
 	RightHandleOffset = HandleOffset + (OutTime - InTime) * UnitsToPixel;
 }
+
+
+FVector2D STimeRangeSlider::ComputeDesiredSize(float) const
+{
+	return FVector2D(4.0f * TimeRangeSliderConstants::HandleSize, TimeRangeSliderConstants::HandleSize);
+}
+
 
 int32 STimeRangeSlider::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
@@ -154,14 +160,7 @@ FReply STimeRangeSlider::OnMouseMove( const FGeometry& MyGeometry, const FPointe
 	{
 		float DragDelta = ComputeDragDelta(MouseEvent, MyGeometry.Size.X);
 
-		float SnapInterval = KINDA_SMALL_NUMBER;
-		{
-			auto TimeRangePin = TimeRange.Pin();
-			if (TimeRangePin.IsValid())
-			{
-				SnapInterval = TimeRangePin->GetTimeSnapInterval();
-			}
-		}
+		const float SnapInterval = TimeSnapInterval.Get(1.f);
 
 		ITimeSliderController* TimeSliderControllerPtr = TimeSliderController.Get();
 		if (!TimeSliderControllerPtr)

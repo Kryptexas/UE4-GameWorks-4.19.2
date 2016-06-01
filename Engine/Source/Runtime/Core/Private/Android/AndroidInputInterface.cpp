@@ -918,7 +918,7 @@ void FAndroidInputInterface::SendControllerEvents()
 	}
 }
 
-void FAndroidInputInterface::QueueTouchInput(TArray<TouchInput> InTouchEvents)
+void FAndroidInputInterface::QueueTouchInput(const TArray<TouchInput>& InTouchEvents)
 {
 	FScopeLock Lock(&TouchInputCriticalSection);
 

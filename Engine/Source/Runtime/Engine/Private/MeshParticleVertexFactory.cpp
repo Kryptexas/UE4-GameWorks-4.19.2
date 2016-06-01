@@ -24,7 +24,11 @@ public:
 		ParticleDirection.Bind(ParameterMap, TEXT("ParticleDirection"));
 		RelativeTime.Bind(ParameterMap, TEXT("RelativeTime"));
 		DynamicParameter.Bind(ParameterMap, TEXT("DynamicParameter"));
-		ParticleColor.Bind(ParameterMap,TEXT("ParticleColor"));
+		ParticleColor.Bind(ParameterMap, TEXT("ParticleColor"));
+		PrevTransform0.Bind(ParameterMap, TEXT("PrevTransform0"));
+		PrevTransform1.Bind(ParameterMap, TEXT("PrevTransform1"));
+		PrevTransform2.Bind(ParameterMap, TEXT("PrevTransform2"));
+		PrevTransformBuffer.Bind(ParameterMap, TEXT("PrevTransformBuffer"));
 	}
 
 	virtual void Serialize(FArchive& Ar) override
@@ -38,6 +42,10 @@ public:
 		Ar << RelativeTime;
 		Ar << DynamicParameter;
 		Ar << ParticleColor;
+		Ar << PrevTransform0;
+		Ar << PrevTransform1;
+		Ar << PrevTransform2;
+		Ar << PrevTransformBuffer;
 	}
 
 	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const override
@@ -52,6 +60,7 @@ public:
 			const FMeshParticleVertexFactory::FBatchParametersCPU* BatchParameters = (const FMeshParticleVertexFactory::FBatchParametersCPU*)BatchElement.UserData;
 			const FMeshParticleInstanceVertex* Vertex = BatchParameters->InstanceBuffer + BatchElement.UserIndex;
 			const FMeshParticleInstanceVertexDynamicParameter* DynamicVertex = BatchParameters->DynamicParameterBuffer + BatchElement.UserIndex;
+			const FMeshParticleInstanceVertexPrevTransform* PrevTransformVertex = BatchParameters->PrevTransformBuffer + BatchElement.UserIndex;
 
 			SetShaderValue(RHICmdList, VertexShaderRHI, Transform1, Vertex->Transform[0]);
 			SetShaderValue(RHICmdList, VertexShaderRHI, Transform2, Vertex->Transform[1]);
@@ -60,11 +69,24 @@ public:
 			SetShaderValue(RHICmdList, VertexShaderRHI, SubUVLerp, Vertex->SubUVLerp);
 			SetShaderValue(RHICmdList, VertexShaderRHI, ParticleDirection, Vertex->Velocity);
 			SetShaderValue(RHICmdList, VertexShaderRHI, RelativeTime, Vertex->RelativeTime);
+
 			if (BatchParameters->DynamicParameterBuffer)
 			{
 				SetShaderValue(RHICmdList, VertexShaderRHI, DynamicParameter, FVector4(DynamicVertex->DynamicValue[0], DynamicVertex->DynamicValue[1], DynamicVertex->DynamicValue[2], DynamicVertex->DynamicValue[3]));
 			}
+
+			if (BatchParameters->PrevTransformBuffer && View.FeatureLevel >= ERHIFeatureLevel::SM4)
+			{
+				SetShaderValue(RHICmdList, VertexShaderRHI, PrevTransform0, PrevTransformVertex->PrevTransform0);
+				SetShaderValue(RHICmdList, VertexShaderRHI, PrevTransform1, PrevTransformVertex->PrevTransform1);
+				SetShaderValue(RHICmdList, VertexShaderRHI, PrevTransform2, PrevTransformVertex->PrevTransform2);
+			}
+
 			SetShaderValue(RHICmdList, VertexShaderRHI, ParticleColor, FVector4(Vertex->Color.Component(0), Vertex->Color.Component(1), Vertex->Color.Component(2), Vertex->Color.Component(3)));
+		}
+		else if (View.FeatureLevel >= ERHIFeatureLevel::SM4)
+		{
+			SetSRVParameter(RHICmdList, VertexShaderRHI, PrevTransformBuffer, MeshParticleVF->GetPreviousTransformBufferSRV());
 		}
 	}
 
@@ -79,6 +101,10 @@ private:
 	FShaderParameter RelativeTime;
 	FShaderParameter DynamicParameter;
 	FShaderParameter ParticleColor;
+	FShaderParameter PrevTransform0;
+	FShaderParameter PrevTransform1;
+	FShaderParameter PrevTransform2;
+	FShaderResourceParameter PrevTransformBuffer;
 };
 
 
@@ -177,7 +203,7 @@ void FMeshParticleVertexFactory::InitRHI()
 
 		if(Streams.Num() > 0)
 		{
-			InitDeclaration(Elements,Data);
+			InitDeclaration(Elements);
 			check(IsValidRef(GetDeclaration()));
 		}
 	}
@@ -206,12 +232,43 @@ void FMeshParticleVertexFactory::SetDynamicParameterBuffer(const FVertexBuffer* 
 	}
 }
 
+uint8* FMeshParticleVertexFactory::LockPreviousTransformBuffer(uint32 ParticleCount)
+{
+	const static uint32 ElementSize = sizeof(FVector4);
+	const static uint32 ParticleSize = ElementSize * 3;
+	const uint32 AllocationRequest = ParticleCount * ParticleSize;
+
+	check(!PrevTransformBuffer.MappedBuffer);
+
+	if (AllocationRequest > PrevTransformBuffer.NumBytes)
+	{
+		PrevTransformBuffer.Release();
+		PrevTransformBuffer.Initialize(ElementSize, ParticleCount * 3, PF_A32B32G32R32F, BUF_Dynamic);
+	}
+
+	PrevTransformBuffer.Lock();
+
+	return PrevTransformBuffer.MappedBuffer;
+}
+
+void FMeshParticleVertexFactory::UnlockPreviousTransformBuffer()
+{
+	check(PrevTransformBuffer.MappedBuffer);
+
+	PrevTransformBuffer.Unlock();
+}
+
+FShaderResourceViewRHIParamRef FMeshParticleVertexFactory::GetPreviousTransformBufferSRV() const
+{
+	return PrevTransformBuffer.SRV;
+}
+
 bool FMeshParticleVertexFactory::ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 {
 	return (Material->IsUsedWithMeshParticles() || Material->IsSpecialEngineMaterial());
 }
 
-void FMeshParticleVertexFactory::SetData(const DataType& InData)
+void FMeshParticleVertexFactory::SetData(const FDataType& InData)
 {
 	check(IsInRenderingThread());
 	Data = InData;

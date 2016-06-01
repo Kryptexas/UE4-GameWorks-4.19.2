@@ -1,8 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#ifndef __SLATE_VIEWPORT_H__
-#define __SLATE_VIEWPORT_H__
+#pragma once
 
 #include "SlateCore.h"
 
@@ -215,6 +214,7 @@ public:
 	virtual FReply OnFocusReceived( const FFocusEvent& InFocusEvent ) override;
 	virtual void OnFocusLost( const FFocusEvent& InFocusEvent ) override;
 	virtual void OnViewportClosed() override;
+	virtual TWeakPtr<SWidget> GetWidget() override;
 	virtual FReply OnViewportActivated(const FWindowActivateEvent& InActivateEvent) override;
 	virtual void OnViewportDeactivated(const FWindowActivateEvent& InActivateEvent) override;
 	virtual FIntPoint GetSize() const override { return GetSizeXY(); }
@@ -293,13 +293,20 @@ private:
 	 */
 	void ApplyModifierKeys( const FModifierKeysState& InKeysState );
 
-	/** Utility function to create an FReply that properly gets Focus and capture based on the settings*/
-	FReply AcquireFocusAndCapture(FIntPoint MousePosition);
-
 	/** Utility function to figure out if we are currently a game viewport */
 	bool IsCurrentlyGameViewport();
 
 	void WindowRenderTargetUpdate(FSlateRenderer* Renderer, SWindow* Window);
+
+	/** @return Returns true if we should always render to a separate render target (rather than rendering directly to the
+	    viewport backbuffer, taking into account any temporary requirements of head-mounted displays */
+	bool UseSeparateRenderTarget() const
+	{
+		return bUseSeparateRenderTarget || bForceSeparateRenderTarget;
+	}
+
+	/** Utility function to create an FReply that properly gets Focus and capture based on the settings */
+	FReply AcquireFocusAndCapture(FIntPoint MousePosition);
 
 private:
 	/** An intermediate reply state that is reset whenever an input event is generated */
@@ -334,6 +341,8 @@ private:
 	bool bRequiresVsync;
 	/** true if this viewport renders to a separate render target.  false to render directly to the windows back buffer */
 	bool bUseSeparateRenderTarget;
+	/** True if we should force use of a separate render target because the HMD needs it. */
+	bool bForceSeparateRenderTarget;
 	/** Whether or not we are currently resizing */
 	bool bIsResizing;
 	/** Delegate that is fired off in ResizeFrame after ResizeViewport */
@@ -362,6 +371,3 @@ private:
 	int32 CurrentBufferedTargetIndex;
 	int32 NextBufferedTargetIndex;
 };
-
-
-#endif

@@ -227,10 +227,16 @@ void UAnimInstance::UninitializeAnimation()
 
 	for(int32 Index = 0; Index < MontageInstances.Num(); ++Index)
 	{
-		delete MontageInstances[Index];
+		FAnimMontageInstance* MontageInstance = MontageInstances[Index];
+		if (ensure(MontageInstance != nullptr))
+		{
+			ClearMontageInstanceReferences(*MontageInstance);
+			delete MontageInstance;
+		}
 	}
 
 	MontageInstances.Empty();
+	ActiveMontagesMap.Empty();
 
 	USkeletalMeshComponent* SkelMeshComp = GetSkelMeshComponent();
 	if (SkelMeshComp)
@@ -320,6 +326,7 @@ void UAnimInstance::UpdateMontage(float DeltaSeconds)
 					SyncGroup->TestMontageTickRecordForLeadership();
 				}
 			}
+			MontageInstance->bDidUseMarkerSyncThisTick = false;
 		}
 	}
 
@@ -382,21 +389,11 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	// so that node knows where montage is
 	UpdateMontage(DeltaSeconds);
 
-	if(NeedsImmediateUpdate(DeltaSeconds))
+	if(bNeedsValidRootMotion || NeedsImmediateUpdate(DeltaSeconds))
 	{
 		// cant use parallel update, so just do the work here
 		Proxy.UpdateAnimation();
 		PostUpdateAnimation();
-	}
-	else if(bNeedsValidRootMotion && RootMotionMode == ERootMotionMode::RootMotionFromMontagesOnly)
-	{
-		// We may have just partially blended root motion, so make it up to 1 by
-		// blending in identity too
-		FRootMotionMovementParams& ExtractedRootMotion = Proxy.GetExtractedRootMotion();
-		if (ExtractedRootMotion.bHasRootMotion)
-		{
-			ExtractedRootMotion.MakeUpToFullWeight();
-		}
 	}
 }
 
@@ -477,13 +474,17 @@ void UAnimInstance::ParallelUpdateAnimation()
 
 bool UAnimInstance::NeedsImmediateUpdate(float DeltaSeconds) const
 {
-	const bool bUseParallelUpdateAnimation = bCanUseParallelUpdateAnimation || CVarForceUseParallelAnimUpdate.GetValueOnGameThread() != 0;
+	// If Evaluation Phase is skipped, PostUpdateAnimation() will not get called, so we can't use ParallelUpdateAnimation then.
+	USkeletalMeshComponent* SkelMeshComp = GetSkelMeshComponent();
+	const bool bEvaluationPhaseSkipped = SkelMeshComp && !SkelMeshComp->bRecentlyRendered && (SkelMeshComp->MeshComponentUpdateFlag > EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones);
+
+	const bool bUseParallelUpdateAnimation = bCanUseParallelUpdateAnimation || (CVarForceUseParallelAnimUpdate.GetValueOnGameThread() != 0);
 
 	return
 		GIntraFrameDebuggingGameThread ||
+		bEvaluationPhaseSkipped || 
 		CVarUseParallelAnimUpdate.GetValueOnGameThread() == 0 ||
 		CVarUseParallelAnimationEvaluation.GetValueOnGameThread() == 0 ||
-		GetWorld()->IsServer() ||
 		!bUseParallelUpdateAnimation ||
 		DeltaSeconds == 0.0f ||
 		RootMotionMode == ERootMotionMode::RootMotionFromEverything;
@@ -492,6 +493,11 @@ bool UAnimInstance::NeedsImmediateUpdate(float DeltaSeconds) const
 bool UAnimInstance::NeedsUpdate() const
 {
 	return bNeedsUpdate;
+}
+
+void UAnimInstance::PreEvaluateAnimation()
+{
+	GetProxyOnGameThread<FAnimInstanceProxy>().PreEvaluateAnimation(this);
 }
 
 void UAnimInstance::EvaluateAnimation(FPoseContext& Output)
@@ -505,8 +511,9 @@ bool UAnimInstance::ParallelCanEvaluate(const USkeletalMesh* InSkeletalMesh) con
 	return Proxy.GetRequiredBones().IsValid() && (Proxy.GetRequiredBones().GetAsset() == InSkeletalMesh);
 }
 
-void UAnimInstance::ParallelEvaluateAnimation(bool bForceRefPose, const USkeletalMesh* InSkeletalMesh, TArray<FTransform>& OutLocalAtoms, FBlendedCurve& OutCurve)
+void UAnimInstance::ParallelEvaluateAnimation(bool bForceRefPose, const USkeletalMesh* InSkeletalMesh, TArray<FTransform>& OutLocalAtoms, FBlendedHeapCurve& OutCurve)
 {
+	FMemMark Mark(FMemStack::Get());
 	FAnimInstanceProxy& Proxy = GetProxyOnAnyThread<FAnimInstanceProxy>();
 
 	if( !bForceRefPose )
@@ -518,7 +525,7 @@ void UAnimInstance::ParallelEvaluateAnimation(bool bForceRefPose, const USkeleta
 		// Run the anim blueprint
 		Proxy.EvaluateAnimation(EvaluationContext);
 		// Move the curves
-		OutCurve.MoveFrom(EvaluationContext.Curve);
+		OutCurve.CopyFrom(EvaluationContext.Curve);
 			
 		// can we avoid that copy?
 		if( EvaluationContext.Pose.GetNumBones() > 0 )
@@ -550,6 +557,8 @@ void UAnimInstance::PostEvaluateAnimation()
 		SCOPE_CYCLE_COUNTER(STAT_BlueprintPostEvaluateAnimation);
 		BlueprintPostEvaluateAnimation();
 	}
+
+	GetProxyOnGameThread<FAnimInstanceProxy>().ClearObjects();
 }
 
 void UAnimInstance::NativeInitializeAnimation()
@@ -927,6 +936,11 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 	}
 }
 
+void UAnimInstance::ResetDynamics()
+{
+	GetProxyOnGameThread<FAnimInstanceProxy>().ResetDynamics();
+}
+
 void UAnimInstance::RecalcRequiredBones()
 {
 	USkeletalMeshComponent* SkelMeshComp = GetSkelMeshComponent();
@@ -1084,7 +1098,7 @@ void UAnimInstance::RefreshCurves(USkeletalMeshComponent* Component)
 	GetProxyOnGameThread<FAnimInstanceProxy>().UpdateCurvesToComponents(Component);
 }
 
-void UAnimInstance::UpdateCurves(const FBlendedCurve& InCurve)
+void UAnimInstance::UpdateCurves(const FBlendedHeapCurve& InCurve)
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdateCurves);
 
@@ -1452,6 +1466,9 @@ void UAnimInstance::Montage_Advance(float DeltaSeconds)
 
 			if (!MontageInstance->IsValid())
 			{
+				// Make sure we've cleared our references before deleting memory
+				ClearMontageInstanceReferences(*MontageInstance);
+
 				delete MontageInstance;
 				MontageInstances.RemoveAt(InstanceIndex);
 				--InstanceIndex;
@@ -1556,6 +1573,12 @@ float UAnimInstance::PlaySlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeN
 		return 0.f;
 	}
 
+	if (!Asset->CanBeUsedInMontage())
+	{
+		UE_LOG(LogAnimMontage, Warning, TEXT("This animation isn't supported to play as montage"));
+		return 0.f;
+	}
+
 	// now play
 	UAnimMontage* NewMontage = NewObject<UAnimMontage>();
 	NewMontage->SetSkeleton(AssetSkeleton);
@@ -1594,21 +1617,27 @@ UAnimMontage* UAnimInstance::PlaySlotAnimationAsDynamicMontage(UAnimSequenceBase
 	{
 		// user warning
 		UE_LOG(LogAnimMontage, Warning, TEXT("Invalid Asset. If Montage, use Montage_Play"));
-		return NULL;
+		return nullptr;
 	}
 
 	if (SlotNodeName == NAME_None)
 	{
 		// user warning
 		UE_LOG(LogAnimMontage, Warning, TEXT("SlotNode Name is required. Make sure to add Slot Node in your anim graph and name it."));
-		return NULL;
+		return nullptr;
 	}
 
 	USkeleton* AssetSkeleton = Asset->GetSkeleton();
 	if (!CurrentSkeleton->IsCompatible(AssetSkeleton))
 	{
 		UE_LOG(LogAnimMontage, Warning, TEXT("The Skeleton isn't compatible"));
-		return NULL;
+		return nullptr;
+	}
+
+	if (!Asset->CanBeUsedInMontage())
+	{
+		UE_LOG(LogAnimMontage, Warning, TEXT("This animation isn't supported to play as montage"));
+		return nullptr;
 	}
 
 	// now play
@@ -1682,7 +1711,13 @@ void UAnimInstance::StopSlotAnimation(float InBlendOutTime, FName SlotNodeName)
 	}
 }
 
-bool UAnimInstance::IsPlayingSlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeName )
+bool UAnimInstance::IsPlayingSlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeName)
+{
+	UAnimMontage* Montage = nullptr;
+	return IsPlayingSlotAnimation(Asset, SlotNodeName, Montage);
+}
+
+bool UAnimInstance::IsPlayingSlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeName, UAnimMontage*& OutMontage)
 {
 	for (int32 InstanceIndex = 0; InstanceIndex < MontageInstances.Num(); InstanceIndex++)
 	{
@@ -1697,7 +1732,7 @@ bool UAnimInstance::IsPlayingSlotAnimation(UAnimSequenceBase* Asset, FName SlotN
 				const FAnimTrack* AnimTrack = CurMontage->GetAnimationData(SlotNodeName);
 				if (AnimTrack && AnimTrack->AnimSegments.Num() == 1)
 				{
-					// find if the 
+					OutMontage = CurMontage;
 					return (AnimTrack->AnimSegments[0].AnimReference == Asset);
 				}
 			}
@@ -1801,6 +1836,30 @@ void UAnimInstance::Montage_Pause(UAnimMontage* Montage)
 			if (MontageInstance && MontageInstance->IsActive())
 			{
 				MontageInstance->Pause();
+			}
+		}
+	}
+}
+
+void UAnimInstance::Montage_Resume(UAnimMontage* Montage)
+{
+	if (Montage)
+	{
+		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(*Montage);
+		if (MontageInstance && !MontageInstance->IsPlaying())
+		{
+			MontageInstance->SetPlaying(true);
+		}
+	}
+	else
+	{
+		// If no Montage reference, do it on all active ones.
+		for (int32 InstanceIndex = 0; InstanceIndex < MontageInstances.Num(); InstanceIndex++)
+		{
+			FAnimMontageInstance* MontageInstance = MontageInstances[InstanceIndex];
+			if (MontageInstance && MontageInstance->IsActive() && !MontageInstance->IsPlaying())
+			{
+				MontageInstance->SetPlaying(true);
 			}
 		}
 	}
@@ -2263,27 +2322,58 @@ void UAnimInstance::StopAllMontagesByGroupName(FName InGroupName, const FAlphaBl
 
 void UAnimInstance::OnMontageInstanceStopped(FAnimMontageInstance& StoppedMontageInstance)
 {
-	UAnimMontage* MontageStopped = StoppedMontageInstance.Montage;
-	ensure(MontageStopped != NULL);
+	ClearMontageInstanceReferences(StoppedMontageInstance);
+}
 
-	// Remove instance for Active List.
-	FAnimMontageInstance** AnimInstancePtr = ActiveMontagesMap.Find(MontageStopped);
-	if (AnimInstancePtr && (*AnimInstancePtr == &StoppedMontageInstance))
+void UAnimInstance::ClearMontageInstanceReferences(FAnimMontageInstance& InMontageInstance)
+{
+	if (UAnimMontage* MontageStopped = InMontageInstance.Montage)
 	{
-		ActiveMontagesMap.Remove(MontageStopped);
+		// Remove instance for Active List.
+		FAnimMontageInstance** AnimInstancePtr = ActiveMontagesMap.Find(MontageStopped);
+		if (AnimInstancePtr && (*AnimInstancePtr == &InMontageInstance))
+		{
+			ActiveMontagesMap.Remove(MontageStopped);
+		}
+	}
+	else
+	{
+		// If Montage ref is nullptr, it's possible the instance got terminated already and that is fine.
+		// Make sure it's been removed from our ActiveMap though
+		if (ActiveMontagesMap.FindKey(&InMontageInstance) != nullptr)
+		{
+			UE_LOG(LogAnimation, Warning, TEXT("%s: null montage found in the montage instance array!!"), *GetName());
+		}
 	}
 
 	// Clear RootMotionMontageInstance
-	if (RootMotionMontageInstance == &StoppedMontageInstance)
+	if (RootMotionMontageInstance == &InMontageInstance)
 	{
-		RootMotionMontageInstance = NULL;
+		RootMotionMontageInstance = nullptr;
 	}
+
+	// Clear any active synchronization
+	InMontageInstance.MontageSync_StopFollowing();
+	InMontageInstance.MontageSync_StopLeading();
 }
 
 FAnimMontageInstance* UAnimInstance::GetActiveInstanceForMontage(UAnimMontage const& Montage) const
 {
 	FAnimMontageInstance* const* FoundInstancePtr = ActiveMontagesMap.Find(&Montage);
-	return FoundInstancePtr ? *FoundInstancePtr : NULL;
+	return FoundInstancePtr ? *FoundInstancePtr : nullptr;
+}
+
+FAnimMontageInstance* UAnimInstance::GetMontageInstanceForID(int32 MontageInstanceID)
+{
+	for (FAnimMontageInstance* MontageInstance : MontageInstances)
+	{
+		if (MontageInstance && MontageInstance->GetInstanceID() == MontageInstanceID)
+		{
+			return MontageInstance;
+		}
+	}
+
+	return nullptr;
 }
 
 FAnimMontageInstance* UAnimInstance::GetRootMotionMontageInstance() const
@@ -2353,7 +2443,7 @@ float UAnimInstance::CalculateDirection(const FVector& Velocity, const FRotator&
 void UAnimInstance::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
 	UAnimInstance* This = CastChecked<UAnimInstance>(InThis);
-	if (This && !This->IsTemplate())
+	if (This)
 	{
 		// go through all montage instances, and update them
 		// and make sure their weight is updated properly
@@ -2363,11 +2453,6 @@ void UAnimInstance::AddReferencedObjects(UObject* InThis, FReferenceCollector& C
 			{
 				This->MontageInstances[I]->AddReferencedObjects(Collector);
 			}
-		}
-
-		if (This->AnimInstanceProxy)
-		{
-			This->AnimInstanceProxy->AddReferencedObjects(Collector);
 		}
 	}
 
@@ -2568,6 +2653,11 @@ FAnimInstanceProxy* UAnimInstance::CreateAnimInstanceProxy()
 void UAnimInstance::DestroyAnimInstanceProxy(FAnimInstanceProxy* InProxy)
 {
 	delete InProxy;
+}
+
+void UAnimInstance::RecordStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex, const float& InStateWeight)
+{
+	GetProxyOnAnyThread<FAnimInstanceProxy>().RecordStateWeight(InMachineClassIndex, InStateIndex, InStateWeight);
 }
 
 FBoneContainer& UAnimInstance::GetRequiredBones()

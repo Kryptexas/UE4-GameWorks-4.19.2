@@ -22,7 +22,7 @@ public class AudioFormatOgg : ModuleRules
             ((Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32"))
             )
 		{
-			AddThirdPartyPrivateStaticDependencies(Target, 
+			AddEngineThirdPartyPrivateStaticDependencies(Target, 
 				"UEOgg",
 				"Vorbis",
 				"VorbisFile"

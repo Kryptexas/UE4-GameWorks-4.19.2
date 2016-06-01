@@ -148,7 +148,7 @@ void FParticleTrailsEmitterInstance_Base::Tick(float DeltaTime, bool bSuppressSp
  *	@param	DeltaTime			The current time slice
  *	@param	CurrentLODLevel		The current LOD level for the instance
  */
-void FParticleTrailsEmitterInstance_Base::Tick_RecalculateTangents(float DeltaTime, UParticleLODLevel* CurrentLODLevel)
+void FParticleTrailsEmitterInstance_Base::Tick_RecalculateTangents(float DeltaTime, UParticleLODLevel* InCurrentLODLevel)
 {
 }
 
@@ -848,7 +848,7 @@ void TrailsBase_CalculateTangent(
  *	@param	DeltaTime			The current time slice
  *	@param	CurrentLODLevel		The current LOD level for the instance
  */
-void FParticleRibbonEmitterInstance::Tick_RecalculateTangents(float DeltaTime, UParticleLODLevel* CurrentLODLevel)
+void FParticleRibbonEmitterInstance::Tick_RecalculateTangents(float DeltaTime, UParticleLODLevel* InCurrentLODLevel)
 {
 	if (TrailTypeData->bTangentRecalculationEveryFrame == true)
 	{
@@ -2176,7 +2176,7 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 					ResolveSource();
 				}
 
-				if (SourceEmitter)
+				if (SourceEmitter && SourceEmitter->ParticleIndices)
 				{
 					if (SourceIndices[InTrailIdx] != -1)
 					{
@@ -2193,82 +2193,44 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 						int32 Index = 0;
 						switch (SourceModule->SelectionMethod)
 						{
-						case EPSSM_Random:
+							case EPSSM_Random:
 							{
 								Index = FMath::TruncToInt(FMath::FRand() * SourceEmitter->ActiveParticles);
 							}
-							break;
-						case EPSSM_Sequential:
+								break;
+							case EPSSM_Sequential:
 							{
 								bool bDone = false;
 
-								int32 CheckSelIndex = ++LastSelectedParticleIndex;
-								if (CheckSelIndex >= SourceEmitter->ActiveParticles)
+								if (++LastSelectedParticleIndex >= SourceEmitter->ActiveParticles)
 								{
-									CheckSelIndex = 0;
+									LastSelectedParticleIndex = 0;
 								}
-								int32 StartIdx = CheckSelIndex;
-								
-								Index = -1;
-								while (!bDone)
-								{
-									int32 CheckIndex = SourceEmitter->GetParticleDirectIndex(CheckSelIndex);
-									if (CheckIndex == -1)
-									{
-										bDone = true;
-									}
-									else
-									{
-										bool bFound = false;
-										for (int32 TrailCheckIdx = 0; TrailCheckIdx < MaxTrailCount; TrailCheckIdx++)
-										{
-											if (TrailCheckIdx != InTrailIdx)
-											{
-												if (SourceIndices[TrailCheckIdx] == CheckIndex)
-												{
-													bFound = true;
-												}
-											}
-										}
-
-										if (bFound == false)
-										{
-											bDone = true;
-											Index = CheckIndex;
-										}
-										else
-										{
-											CheckSelIndex++;
-											if (CheckSelIndex >= SourceEmitter->ActiveParticles)
-											{
-												CheckSelIndex = 0;
-											}
-										}
-									}
-
-									if (CheckSelIndex == StartIdx)
-									{
-										bDone = true;
-									}
-								}
-
-								if (Index != -1)
-								{
-									LastSelectedParticleIndex = CheckSelIndex;
-								}
+								Index = LastSelectedParticleIndex;
 							}
 							break;
 						}
 
-						SourceIndices[InTrailIdx] = Index;
+						for (int32 TrailCheckIdx = 0; TrailCheckIdx < MaxTrailCount; TrailCheckIdx++)
+						{
+							if (TrailCheckIdx != InTrailIdx)
+							{
+								if (SourceIndices[TrailCheckIdx] == SourceEmitter->ParticleIndices[Index])
+								{
+									Index = -1;
+								}
+							}
+						}
+
+						SourceIndices[InTrailIdx] = Index != -1 ? SourceEmitter->ParticleIndices[Index] : -1;
 					}
 
 					bool bEncounteredNaNError = false;
 
 					// Grab the particle
-					
+
 					const int32 SourceEmitterParticleIndex = SourceIndices[InTrailIdx];
-					FBaseParticle* SourceParticle = ((SourceEmitterParticleIndex >= 0) && (SourceEmitterParticleIndex < SourceEmitter->ActiveParticles)) ? SourceEmitter->GetParticle(SourceEmitterParticleIndex) : nullptr;
+					FBaseParticle* SourceParticle = ((SourceEmitterParticleIndex >= 0)) ? SourceEmitter->GetParticleDirect(SourceEmitterParticleIndex) : nullptr;
 					if (SourceParticle != nullptr)
 					{
 						const FVector WorldOrigin = SourceEmitter->SimulationToWorld.GetOrigin();
@@ -2551,9 +2513,9 @@ void FParticleRibbonEmitterInstance::DetermineVertexAndTriangleCount()
  *
  *	@return	bool		true if GetDynamicData should continue, false if it should return NULL
  */
-bool FParticleRibbonEmitterInstance::IsDynamicDataRequired(UParticleLODLevel* CurrentLODLevel)
+bool FParticleRibbonEmitterInstance::IsDynamicDataRequired(UParticleLODLevel* InCurrentLODLevel)
 {
-	if (FParticleEmitterInstance::IsDynamicDataRequired(CurrentLODLevel) == true)
+	if (FParticleEmitterInstance::IsDynamicDataRequired(InCurrentLODLevel) == true)
 	{
 		if (/*(TrailTypeData->bClipSourceSegement == true) &&*/ (ActiveParticles < 2))
 		{
@@ -2566,7 +2528,7 @@ bool FParticleRibbonEmitterInstance::IsDynamicDataRequired(UParticleLODLevel* Cu
 /**
  *	Retrieves the dynamic data for the emitter
  */
-FDynamicEmitterDataBase* FParticleRibbonEmitterInstance::GetDynamicData(bool bSelected)
+FDynamicEmitterDataBase* FParticleRibbonEmitterInstance::GetDynamicData(bool bSelected, ERHIFeatureLevel::Type InFeatureLevel)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleRibbonEmitterInstance_GetDynamicData);
 
@@ -2614,47 +2576,6 @@ FDynamicEmitterDataBase* FParticleRibbonEmitterInstance::GetDynamicData(bool bSe
 	NewEmitterData->Init(bSelected);
 
 	return NewEmitterData;
-}
-
-/**
- *	Updates the dynamic data for the instance
- *
- *	@param	DynamicData		The dynamic data to fill in
- *	@param	bSelected		true if the particle system component is selected
- */
-bool FParticleRibbonEmitterInstance::UpdateDynamicData(FDynamicEmitterDataBase* DynamicData, bool bSelected)
-{
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleRibbonEmitterInstance_UpdateDynamicData);
-
-	if (ActiveParticles <= 0 || !bEnabled)
-	{
-		return false;
-	}
-
-	if (DynamicData->GetSource().eEmitterType != DET_Ribbon)
-	{
-		UE_LOG(LogParticles, Warning, TEXT("UpdateDynamicData> NOT A TRAILS EMITTER!"));
-		return false;
-	}
-
-	FDynamicRibbonEmitterData* TrailDynamicData = (FDynamicRibbonEmitterData*)DynamicData;
-	// Now fill in the source data
-	if (!FillReplayData(TrailDynamicData->Source))
-	{
-		return false;
-	}
-
-	TrailDynamicData->bRenderGeometry = TrailTypeData->bRenderGeometry;
-	TrailDynamicData->bRenderParticles = TrailTypeData->bRenderSpawnPoints;
-	TrailDynamicData->bRenderTangents = TrailTypeData->bRenderTangents;
-	TrailDynamicData->bRenderTessellation = TrailTypeData->bRenderTessellation;
-	TrailDynamicData->DistanceTessellationStepSize = TrailTypeData->DistanceTessellationStepSize;
-	TrailDynamicData->TangentTessellationScalar = TrailTypeData->TangentTessellationScalar;
-
-	// Setup dynamic render data.  Only call this AFTER filling in source data for the emitter.
-	TrailDynamicData->Init(bSelected);
-
-	return true;
 }
 
 /**
@@ -2950,7 +2871,7 @@ void FParticleAnimTrailEmitterInstance::RecalculateTangentAndInterpolationParam(
  *	@param	DeltaTime			The current time slice
  *	@param	CurrentLODLevel		The current LOD level for the instance
  */
-void FParticleAnimTrailEmitterInstance::Tick_RecalculateTangents(float DeltaTime, UParticleLODLevel* CurrentLODLevel)
+void FParticleAnimTrailEmitterInstance::Tick_RecalculateTangents(float DeltaTime, UParticleLODLevel* InCurrentLODLevel)
 {
 	if (TrailTypeData->bTangentRecalculationEveryFrame == true)
 	{
@@ -3320,10 +3241,10 @@ float FParticleAnimTrailEmitterInstance::Spawn(float DeltaTime)
 	// Figure out spawn rate for this tick.
 	if (bProcessSpawnRate)
 	{
-		static IConsoleVariable* EffectsQuality = IConsoleManager::Get().FindConsoleVariable(TEXT("sg.EffectsQuality"));
+		static Scalability::FEffectsQualityCVarAccessor EffectsQuality;
 
 		float RateScale = LODLevel->SpawnModule->RateScale.GetValue(EmitterTime, Component) * LODLevel->SpawnModule->GetGlobalRateScale();
-		float QualityMult = 0.25f * (1 << EffectsQuality->GetInt());
+		float QualityMult = 0.25f * (1 << EffectsQuality.GetGameThreadValue());
 		RateScale *= SpriteTemplate->QualityLevelSpawnRateScale*QualityMult;
 		SpawnRate += LODLevel->SpawnModule->Rate.GetValue(EmitterTime, Component) * FMath::Clamp<float>(RateScale, 0.0f, RateScale);
 	}
@@ -3898,7 +3819,7 @@ bool FParticleAnimTrailEmitterInstance::HasCompleted()
 /**
  *	Retrieves the dynamic data for the emitter
  */
-FDynamicEmitterDataBase* FParticleAnimTrailEmitterInstance::GetDynamicData(bool bSelected)
+FDynamicEmitterDataBase* FParticleAnimTrailEmitterInstance::GetDynamicData(bool bSelected, ERHIFeatureLevel::Type InFeatureLevel)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleAnimTrailEmitterInstance_GetDynamicData);
 
@@ -3955,52 +3876,6 @@ FDynamicEmitterDataBase* FParticleAnimTrailEmitterInstance::GetDynamicData(bool 
 	NewEmitterData->Init(bSelected);
 
 	return NewEmitterData;
-}
-
-/**
- *	Updates the dynamic data for the instance
- *
- *	@param	DynamicData		The dynamic data to fill in
- *	@param	bSelected		true if the particle system component is selected
- */
-bool FParticleAnimTrailEmitterInstance::UpdateDynamicData(FDynamicEmitterDataBase* DynamicData, bool bSelected)
-{
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleAnimTrailEmitterInstance_UpdateDynamicData);
-
-	if (ActiveParticles <= 0 || !bEnabled)
-	{
-		return false;
-	}
-
-	if (DynamicData->GetSource().eEmitterType != DET_AnimTrail)
-	{
-		UE_LOG(LogParticles, Warning, TEXT("UpdateDynamicData> NOT A TRAILS EMITTER!"));
-		return false;
-	}
-
-	FDynamicAnimTrailEmitterData* TrailDynamicData = (FDynamicAnimTrailEmitterData*)DynamicData;
-	// Now fill in the source data
-	if (!FillReplayData(TrailDynamicData->Source))
-	{
-		return false;
-	}
-
-#if WITH_EDITORONLY_DATA
-	TrailDynamicData->bRenderGeometry = bRenderGeometry;
-	TrailDynamicData->bRenderParticles = bRenderSpawnPoints;
-	TrailDynamicData->bRenderTangents = bRenderTangents;
-	TrailDynamicData->bRenderTessellation = bRenderTessellation;
-#else
-	TrailDynamicData->bRenderGeometry = true;
-	TrailDynamicData->bRenderParticles = false;
-	TrailDynamicData->bRenderTangents = false;
-	TrailDynamicData->bRenderTessellation = false;
-#endif
-
-	// Setup dynamic render data.  Only call this AFTER filling in source data for the emitter.
-	TrailDynamicData->Init(bSelected);
-
-	return true;
 }
 
 /**

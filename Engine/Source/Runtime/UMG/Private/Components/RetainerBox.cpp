@@ -105,17 +105,23 @@ void URetainerBox::OnSlotRemoved(UPanelSlot* Slot)
 
 #if WITH_EDITOR
 
-const FSlateBrush* URetainerBox::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.MenuAnchor");
-}
-
 const FText URetainerBox::GetPaletteCategory()
 {
 	return LOCTEXT("Optimization", "Optimization");
 }
 
 #endif
+
+const FGeometry& URetainerBox::GetCachedAllottedGeometry() const
+{
+	if (MyRetainerWidget.IsValid())
+	{
+		return MyRetainerWidget->GetCachedAllottedGeometry();
+	}
+
+	static const FGeometry TempGeo;
+	return TempGeo;
+}
 
 /////////////////////////////////////////////////////
 

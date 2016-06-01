@@ -272,6 +272,19 @@ void UEdGraphNode::Serialize(FArchive& Ar)
 	}
 }
 
+void UEdGraphNode::PreSave()
+{
+	Super::PreSave();
+
+#if WITH_EDITORONLY_DATA
+	if (!NodeUpgradeMessage.IsEmpty())
+	{
+		// When saving, we clear any upgrade messages
+		NodeUpgradeMessage = FText::GetEmpty();
+	}
+#endif // WITH_EDITORONLY_DATA
+}
+
 void UEdGraphNode::PostLoad()
 {
 	Super::PostLoad();
@@ -417,6 +430,19 @@ FText UEdGraphNode::GetKeywords() const
 	return GetClass()->GetMetaDataText(TEXT("Keywords"), TEXT("UObjectKeywords"), GetClass()->GetFullGroupName(false));
 }
 
+void UEdGraphNode::AddNodeUpgradeNote(FText InUpgradeNote)
+{
+#if WITH_EDITORONLY_DATA
+	if (NodeUpgradeMessage.IsEmpty())
+	{
+		NodeUpgradeMessage = InUpgradeNote;
+	}
+	else
+	{
+		NodeUpgradeMessage = FText::Format(FText::FromString(TEXT("{0}\n{1}")), NodeUpgradeMessage, InUpgradeNote);
+	}
+#endif
+}
 #endif	//#if WITH_EDITOR
 
 bool UEdGraphNode::IsInDevelopmentMode() const

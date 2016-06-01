@@ -83,7 +83,7 @@ void FAnimNode_Base::Initialize(const FAnimationInitializeContext& Context)
 
 bool FAnimNode_Base::IsLODEnabled(FAnimInstanceProxy* AnimInstanceProxy, int32 InLODThreshold)
 {
-	return (InLODThreshold < 0 || AnimInstanceProxy->GetSkelMeshComponent()->PredictedLODLevel <= InLODThreshold);
+	return ((InLODThreshold == INDEX_NONE) || (AnimInstanceProxy->GetLODLevel() <= InLODThreshold));
 }
 
 /////////////////////////////////////////////////////
@@ -119,6 +119,9 @@ void FPoseLinkBase::Initialize(const FAnimationInitializeContext& Context)
 
 #if ENABLE_ANIMGRAPH_TRAVERSAL_DEBUG
 	InitializationCounter.SynchronizeWith(Context.AnimInstanceProxy->GetInitializationCounter());
+
+	// Initialization will require update to be called before an evaluate.
+	UpdateCounter.Reset();
 #endif
 
 	// Do standard initialization
@@ -177,7 +180,6 @@ void FPoseLinkBase::Update(const FAnimationUpdateContext& Context)
 
 #if ENABLE_ANIMGRAPH_TRAVERSAL_DEBUG
 	checkf(InitializationCounter.IsSynchronizedWith(Context.AnimInstanceProxy->GetInitializationCounter()), TEXT("Calling Update without initialization!"));
-	checkf(!UpdateCounter.IsSynchronizedWith(Context.AnimInstanceProxy->GetUpdateCounter()), TEXT("Already called Update for this node!"));
 	UpdateCounter.SynchronizeWith(Context.AnimInstanceProxy->GetUpdateCounter());
 #endif
 
@@ -216,9 +218,8 @@ void FPoseLink::Evaluate(FPoseContext& Output)
 
 #if ENABLE_ANIMGRAPH_TRAVERSAL_DEBUG
 	checkf(InitializationCounter.IsSynchronizedWith(Output.AnimInstanceProxy->GetInitializationCounter()), TEXT("Calling Evaluate without initialization!"));
-	checkf(CachedBonesCounter.IsSynchronizedWith(Output.AnimInstanceProxy->GetCachedBonesCounter()), TEXT("Calling Evaluate without CachedBones!"));
 	checkf(UpdateCounter.IsSynchronizedWith(Output.AnimInstanceProxy->GetUpdateCounter()), TEXT("Calling Evaluate without Update for this node!"));
-	checkf(!EvaluationCounter.IsSynchronizedWith(Output.AnimInstanceProxy->GetEvaluationCounter()), TEXT("Already called Evaluate for this node!"));
+	checkf(CachedBonesCounter.IsSynchronizedWith(Output.AnimInstanceProxy->GetCachedBonesCounter()), TEXT("Calling Evaluate without CachedBones!"));
 	EvaluationCounter.SynchronizeWith(Output.AnimInstanceProxy->GetEvaluationCounter());
 #endif
 
@@ -229,7 +230,7 @@ void FPoseLink::Evaluate(FPoseContext& Output)
 #endif
 		LinkedNode->Evaluate(Output);
 #if ENABLE_ANIMNODE_POSE_DEBUG
-		CurrentPose = Output.Pose;
+		CurrentPose.CopyBonesFrom(Output.Pose);
 #endif
 	}
 	else
@@ -239,8 +240,33 @@ void FPoseLink::Evaluate(FPoseContext& Output)
 	}
 
 	// Detect non valid output
-	checkSlow( !Output.ContainsNaN() );
-	checkSlow( Output.IsNormalized() );
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (Output.ContainsNaN())
+	{
+		// Show bone transform with some useful debug info
+		for (const FTransform& Bone : Output.Pose.GetBones())
+		{
+			if (Bone.ContainsNaN())
+			{
+				ensureMsgf(!Bone.ContainsNaN(), TEXT("Bone transform contains NaN from AnimInstance:[%s] Node:[%s] Value:[%s]")
+					, *Output.AnimInstanceProxy->GetAnimInstanceName(), LinkedNode ? *LinkedNode->StaticStruct()->GetName() : TEXT("NULL"), *Bone.ToString());
+			}
+		}
+	}
+
+	if (!Output.IsNormalized())
+	{
+		// Show bone transform with some useful debug info
+		for (const FTransform& Bone : Output.Pose.GetBones())
+		{
+			if (!Bone.IsRotationNormalized())
+			{
+				ensureMsgf(Bone.IsRotationNormalized(), TEXT("Bone Rotation not normalized from AnimInstance:[%s] Node:[%s] Rotation:[%s]")
+					, *Output.AnimInstanceProxy->GetAnimInstanceName(), LinkedNode ? *LinkedNode->StaticStruct()->GetName() : TEXT("NULL"), *Bone.GetRotation().ToString());
+			}
+		}
+	}
+#endif
 }
 
 /////////////////////////////////////////////////////
@@ -258,7 +284,6 @@ void FComponentSpacePoseLink::EvaluateComponentSpace(FComponentSpacePoseContext&
 	checkf(InitializationCounter.IsSynchronizedWith(Output.AnimInstanceProxy->GetInitializationCounter()), TEXT("Calling EvaluateComponentSpace without initialization!"));
 	checkf(CachedBonesCounter.IsSynchronizedWith(Output.AnimInstanceProxy->GetCachedBonesCounter()), TEXT("Calling EvaluateComponentSpace without CachedBones!"));
 	checkf(UpdateCounter.IsSynchronizedWith(Output.AnimInstanceProxy->GetUpdateCounter()), TEXT("Calling EvaluateComponentSpace without Update for this node!"));
-	checkf(!EvaluationCounter.IsSynchronizedWith(Output.AnimInstanceProxy->GetEvaluationCounter()), TEXT("Already called EvaluateComponentSpace for this node!"));
 	EvaluationCounter.SynchronizeWith(Output.AnimInstanceProxy->GetEvaluationCounter());
 #endif
 
@@ -273,8 +298,33 @@ void FComponentSpacePoseLink::EvaluateComponentSpace(FComponentSpacePoseContext&
 	}
 
 	// Detect non valid output
-	checkSlow( !Output.ContainsNaN() );
-	checkSlow( Output.IsNormalized() );
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (Output.ContainsNaN())
+	{
+		// Show bone transform with some useful debug info
+		for (const FTransform& Bone : Output.Pose.GetPose().GetBones())
+		{
+			if (Bone.ContainsNaN())
+			{
+				ensureMsgf(!Bone.ContainsNaN(), TEXT("Bone transform contains NaN from AnimInstance:[%s] Node:[%s] Value:[%s]")
+					, *Output.AnimInstanceProxy->GetAnimInstanceName(), LinkedNode ? *LinkedNode->StaticStruct()->GetName() : TEXT("NULL"), *Bone.ToString());
+			}
+		}
+	}
+
+	if (!Output.IsNormalized())
+	{
+		// Show bone transform with some useful debug info
+		for (const FTransform& Bone : Output.Pose.GetPose().GetBones())
+		{
+			if (!Bone.IsRotationNormalized())
+			{
+				ensureMsgf(Bone.IsRotationNormalized(), TEXT("Bone Rotation not normalized from AnimInstance:[%s] Node:[%s] Value:[%s]")
+					, *Output.AnimInstanceProxy->GetAnimInstanceName(), LinkedNode ? *LinkedNode->StaticStruct()->GetName() : TEXT("NULL"), *Bone.ToString());
+			}
+		}
+	}
+#endif
 }
 
 /////////////////////////////////////////////////////
@@ -359,8 +409,6 @@ void FExposedValueHandler::Initialize(FAnimNode_Base* AnimNode, UObject* AnimIns
 	// initialize copy records
 	for(auto& CopyRecord : CopyRecords)
 	{
-		CopyRecord.SourceProperty_DEPRECATED = nullptr;
-
 		UProperty* SourceProperty = AnimInstanceObject->GetClass()->FindPropertyByName(CopyRecord.SourcePropertyName);
 		check(SourceProperty);
 		if(UArrayProperty* SourceArrayProperty = Cast<UArrayProperty>(SourceProperty))
@@ -381,21 +429,15 @@ void FExposedValueHandler::Initialize(FAnimNode_Base* AnimNode, UObject* AnimIns
 				UProperty* SourceStructSubProperty = SourceStructProperty->Struct->FindPropertyByName(CopyRecord.SourceSubPropertyName);
 				CopyRecord.Source = SourceStructSubProperty->ContainerPtrToValuePtr<uint8>(Source, CopyRecord.SourceArrayIndex);
 				CopyRecord.Size = SourceStructSubProperty->GetSize();
-				CopyRecord.SourceProperty_DEPRECATED = Cast<UBoolProperty>(SourceStructSubProperty);
-				if (CopyRecord.SourceProperty_DEPRECATED)
-				{
-					CopyRecord.Source = Source;
-				}
+				CopyRecord.CachedBoolSourceProperty = Cast<UBoolProperty>(SourceStructSubProperty);
+				CopyRecord.CachedSourceContainer = Source;
 			}
 			else
 			{
 				CopyRecord.Source = SourceProperty->ContainerPtrToValuePtr<uint8>(AnimInstanceObject, CopyRecord.SourceArrayIndex);
 				CopyRecord.Size = SourceProperty->GetSize();
-				CopyRecord.SourceProperty_DEPRECATED = Cast<UBoolProperty>(SourceProperty);
-				if (CopyRecord.SourceProperty_DEPRECATED)
-				{
-					CopyRecord.Source = AnimInstanceObject;
-				}
+				CopyRecord.CachedBoolSourceProperty = Cast<UBoolProperty>(SourceProperty);
+				CopyRecord.CachedSourceContainer = AnimInstanceObject;
 			}
 		}
 
@@ -404,18 +446,14 @@ void FExposedValueHandler::Initialize(FAnimNode_Base* AnimNode, UObject* AnimIns
 			FScriptArrayHelper ArrayHelper(DestArrayProperty, CopyRecord.DestProperty->ContainerPtrToValuePtr<uint8>(AnimNode));
 			check(ArrayHelper.IsValidIndex(CopyRecord.DestArrayIndex));
 			CopyRecord.Dest = ArrayHelper.GetRawPtr(CopyRecord.DestArrayIndex);
-			if (CopyRecord.DestProperty->IsA<UBoolProperty>())
-			{
-				CopyRecord.Dest = AnimNode;
-			}
+			CopyRecord.CachedBoolDestProperty = Cast<UBoolProperty>(CopyRecord.DestProperty);
+			CopyRecord.CachedDestContainer = AnimNode;
 		}
 		else
 		{
 			CopyRecord.Dest = CopyRecord.DestProperty->ContainerPtrToValuePtr<uint8>(AnimNode, CopyRecord.DestArrayIndex);
-			if (CopyRecord.DestProperty->IsA<UBoolProperty>())
-			{
-				CopyRecord.Dest = AnimNode;
-			}
+			CopyRecord.CachedBoolDestProperty = Cast<UBoolProperty>(CopyRecord.DestProperty);
+			CopyRecord.CachedDestContainer = AnimNode;
 		}
 	}
 
@@ -441,12 +479,10 @@ void FExposedValueHandler::Execute(const FAnimationBaseContext& Context) const
 		{
 		case EPostCopyOperation::None:
 			{
-				
-				if (CopyRecord.SourceProperty_DEPRECATED != nullptr)
+				if (CopyRecord.CachedBoolSourceProperty != nullptr && CopyRecord.CachedBoolDestProperty != nullptr)
 				{
-					UBoolProperty* DestBoolProperty = CastChecked<UBoolProperty>(CopyRecord.DestProperty);
-					bool bValue = Cast<UBoolProperty>(CopyRecord.SourceProperty_DEPRECATED)->GetPropertyValue_InContainer(CopyRecord.Source);
-					Cast<UBoolProperty>(DestBoolProperty)->SetPropertyValue_InContainer(CopyRecord.Dest, bValue, CopyRecord.DestArrayIndex);
+					bool bValue = CopyRecord.CachedBoolSourceProperty->GetPropertyValue_InContainer(CopyRecord.CachedSourceContainer);
+					CopyRecord.CachedBoolDestProperty->SetPropertyValue_InContainer(CopyRecord.CachedDestContainer, bValue, CopyRecord.DestArrayIndex);
 				}
 				else
 				{
@@ -456,11 +492,10 @@ void FExposedValueHandler::Execute(const FAnimationBaseContext& Context) const
 			break;
 		case EPostCopyOperation::LogicalNegateBool:
 			{
-				UBoolProperty* DestBoolProperty = Cast<UBoolProperty>(CopyRecord.DestProperty);
-				check(CopyRecord.SourceProperty_DEPRECATED != nullptr && DestBoolProperty != nullptr);
+				check(CopyRecord.CachedBoolSourceProperty != nullptr && CopyRecord.CachedBoolDestProperty != nullptr);
 
-				bool bValue = Cast<UBoolProperty>(CopyRecord.SourceProperty_DEPRECATED)->GetPropertyValue_InContainer(CopyRecord.Source);
-				Cast<UBoolProperty>(DestBoolProperty)->SetPropertyValue_InContainer(CopyRecord.Dest, !bValue, CopyRecord.DestArrayIndex);
+				bool bValue = CopyRecord.CachedBoolSourceProperty->GetPropertyValue_InContainer(CopyRecord.CachedSourceContainer);
+				CopyRecord.CachedBoolDestProperty->SetPropertyValue_InContainer(CopyRecord.CachedDestContainer, !bValue, CopyRecord.DestArrayIndex);
 			}
 			break;
 		}

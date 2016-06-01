@@ -4,7 +4,6 @@
 
 #include "IHeadMountedDisplay.h"
 #include "SceneViewExtension.h"
-#include "IStereoLayers.h"
 
 class FHeadMountedDisplay;
 
@@ -38,9 +37,6 @@ public:
 
 			/** Whether stereo is currently on or off. */
 			uint64 bStereoEnabled : 1;
-
-			/** Whether game wants to be in stereo mode. (WindowMode != Windowed) */
-			uint64 bStereoDesired : 1;
 
 			/** Whether stereo was enforced by the console command. Doesn't make sense w/o bStereoEnabled == true. */
 			uint64 bStereoEnforced : 1;
@@ -108,9 +104,6 @@ public:
 
 			/** Is mirroring enabled or not (see 'HMD MIRROR' console cmd) */
 			uint64 bMirrorToWindow : 1;
-
-			/** Is mirror fullscreen or windowed (see 'HMD FULLSCREEN' console cmd) */
-			uint64 bFullscreenAllowed : 1;
 
 			/** Whether timewarp is enabled or not */
 			uint64 bTimeWarp : 1;
@@ -193,9 +186,6 @@ public:
 	/** Scale the positional movement */
 	FVector		PositionScale3D;
 
-	/** Size of mirror window; {0,0} if size is the default one */
-	FIntPoint	MirrorWindowSize;
-
 	/** HMD base values, specify forward orientation and zero pos offset */
 	FVector2D				NeckToEyeInMeters;  // neck-to-eye vector, in meters (X - horizontal, Y - vertical)
 	FVector					BaseOffset;			// base position, in meters, relatively to the sensor //@todo hmd: clients need to stop using oculus space
@@ -228,7 +218,6 @@ public:
 	TSharedPtr<FHMDSettings, ESPMode::ThreadSafe>	Settings;
 
 	/** World units (UU) to Meters scale.  Read from the level, and used to transform positional tracking data */
-	float					WorldToMetersScale;
 	FVector					CameraScale3D;
 
 	FRotator				CachedViewRotation[2]; // cached view rotations
@@ -277,6 +266,13 @@ public:
 	}
 
 	virtual TSharedPtr<FHMDGameFrame, ESPMode::ThreadSafe> Clone() const;
+
+	float GetWorldToMetersScale() const;
+	void SetWorldToMetersScale( const float NewWorldToMetersScale );
+
+private:
+	float WorldToMetersScaleWhileInFrame;
+
 };
 
 typedef TSharedPtr<FHMDGameFrame, ESPMode::ThreadSafe> FHMDGameFrameRef;
@@ -365,15 +361,18 @@ public:
 	FHMDLayerDesc(class FHMDLayerManager&, ELayerTypeMask InType, uint32 InPriority, uint32 InID);
 	~FHMDLayerDesc() {}
 
+	void SetFlags(uint32 InFlags) { Flags = InFlags; }
+	const uint32 GetFlags() const { return Flags; }
+
 	void SetTransform(const FTransform& InTransform);
 	const FTransform GetTransform() const { return Transform; }
 
 	void SetQuadSize(const FVector2D& InSize);
 	FVector2D GetQuadSize() const { return QuadSize; }
 
-	void SetTexture(UTexture* InTexture);
-	UTexture* GetTexture() const { return (HasTexture()) ? Texture : nullptr; }
-	bool HasTexture() const { return Texture && Texture->IsValidLowLevel(); }
+	void SetTexture(FTextureRHIRef InTexture);
+	FTextureRHIRef GetTexture() const { return (HasTexture()) ? Texture : nullptr; }
+	bool HasTexture() const { return Texture.IsValid(); }
 
 	void SetTextureSet(FTextureSetProxyParamRef InTextureSet);
 	FTextureSetProxyRef GetTextureSet() const { return TextureSet; }
@@ -382,8 +381,10 @@ public:
 	void SetTextureViewport(const FBox2D&);
 	FBox2D GetTextureViewport() const { return TextureUV; }
 
-	ELayerTypeMask GetType() const { return ELayerTypeMask(Id & TypeMask); }
+	void SetPriority(uint32);
 	uint32 GetPriority() const { return Priority; }
+
+	ELayerTypeMask GetType() const { return ELayerTypeMask(Id & TypeMask); }
 	uint32 GetId() const { return Id; }
 
 	void SetHighQuality(bool bHQ = true) { bHighQuality = bHQ; }
@@ -399,19 +400,19 @@ public:
 
 	FHMDLayerDesc& operator=(const FHMDLayerDesc&);
 
+	bool HasPendingTextureCopy() const { return bTextureCopyPending; }
+	void ClearPendingTextureCopy() const { bTextureCopyPending = false; }
 	bool IsTextureChanged() const { return bTextureHasChanged; }
-	void MarkTextureChanged() { bTextureHasChanged = true; }
+	void MarkTextureChanged() const { bTextureHasChanged = true; }
 	bool IsTransformChanged() const { return bTransformHasChanged; }
-	void ResetChangedFlags() { bTextureHasChanged = bTransformHasChanged = bNewLayer = bAlreadyAdded = false; }
-
-protected:
-	UTexture*& GetUTextureRef() const { return Texture; }
+	void ResetChangedFlags();
 
 protected:
 	class FHMDLayerManager& LayerManager;
 	uint32			Id;		// ELayerTypeMask | Id
-	mutable UTexture* Texture;// Source texture (for quads) (mutable for GC)
+	mutable FTextureRHIRef Texture;// Source texture (for quads) (mutable for GC)
 	FTextureSetProxyRef TextureSet;	// TextureSet (for eye buffers)
+	uint32			Flags;
 	FBox2D			TextureUV;
 	FTransform		Transform; // layer world or HMD transform (Rotation, Translation, Scale), see bHeadLocked.
 	FVector2D		QuadSize;  // size of the quad in UU
@@ -419,7 +420,8 @@ protected:
 	bool			bHighQuality : 1; // high quality flag
 	bool			bHeadLocked  : 1; // the layer is head-locked; Transform becomes relative to HMD
 	bool			bTorsoLocked : 1; // locked to torso (to player's orientation / location)
-	bool			bTextureHasChanged : 1;
+	mutable bool	bTextureHasChanged : 1;
+	mutable bool	bTextureCopyPending : 1;
 	bool			bTransformHasChanged : 1;
 	bool			bNewLayer : 1;
 	bool			bAlreadyAdded : 1; // internal flag indicating the layer is already added into render layers.
@@ -470,15 +472,11 @@ protected:
 /**
  * Base implementation for a layer manager.
  */
-class FHMDLayerManager : public TSharedFromThis<FHMDLayerManager>, public FGCObject
+class FHMDLayerManager : public TSharedFromThis<FHMDLayerManager>
 {
 public:
 	FHMDLayerManager();
 	virtual ~FHMDLayerManager();
-	
-	// FGCObject interface
-	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
-	// End of FGCObject interface
 
 	virtual void Startup();
 	virtual void Shutdown();
@@ -608,7 +606,6 @@ public:
 	virtual void GetFieldOfView(float& InOutHFOVInDegrees, float& InOutVFOVInDegrees) const override;
 
 	virtual bool IsChromaAbCorrectionEnabled() const override;
-	virtual void OnScreenModeChange(EWindowMode::Type WindowMode) override;
 
 	virtual bool IsPositionalTrackingEnabled() const override;
 	virtual bool EnablePositionalTracking(bool enable) override;
@@ -712,13 +709,14 @@ public:
 
 	virtual FHMDLayerManager* GetLayerManager() { return nullptr; }
 
-	virtual uint32 CreateLayerEx(UTexture2D* InTexture, int32 InPrioirity, FHMDLayerManager::LayerOriginType InLayerOriginType);
+	virtual IStereoLayers* GetStereoLayers() { return this; }
+
 	//** IStereoLayers implementation
-	virtual uint32 CreateLayer(UTexture2D* InTexture, int32 InPrioirity, bool bFixedToFace = false) override;
+	virtual uint32 CreateLayer(const IStereoLayers::FLayerDesc& InLayerDesc) override;
 	virtual void DestroyLayer(uint32 LayerId) override;
-	virtual void SetTransform(uint32 LayerId, const FTransform& InTransform) override;
-	virtual void SetQuadSize(uint32 LayerId, const FVector2D& InSize) override;
-	virtual void SetTextureViewport(uint32 LayerId, const FBox2D& UVRect) override;
+	virtual void SetLayerDesc(uint32 LayerId, const IStereoLayers::FLayerDesc& InLayerDesc) override;
+	virtual bool GetLayerDesc(uint32 LayerId, IStereoLayers::FLayerDesc& OutLayerDesc) override;
+	virtual void MarkTextureForUpdate(uint32 LayerId) override;
 
 	virtual class FAsyncLoadingSplash* GetAsyncLoadingSplash() const { return nullptr; }
 
@@ -727,8 +725,9 @@ public:
 protected:
 	virtual TSharedPtr<FHMDGameFrame, ESPMode::ThreadSafe> CreateNewGameFrame() const = 0;
 	virtual TSharedPtr<FHMDSettings, ESPMode::ThreadSafe> CreateNewSettings() const = 0;
+	void CreateAndInitNewGameFrame(const class AWorldSettings* WorldSettings);
 
-	virtual bool DoEnableStereo(bool bStereo, bool bApplyToHmd) = 0;
+	virtual bool DoEnableStereo(bool bStereo) = 0;
 	virtual void GetCurrentPose(FQuat& CurrentHmdOrientation, FVector& CurrentHmdPosition, bool bUseOrienationForPlayerCamera = false, bool bUsePositionForPlayerCamera = false) = 0;
 
 	virtual void ResetStereoRenderingParams();
@@ -772,7 +771,6 @@ protected:
 
 			/** Indicates if it is necessary to update stereo rendering params */
 			uint64	bNeedUpdateStereoRenderingParams : 1;
-			uint64  bEnableStereoToHmd : 1;
 			uint64	bApplySystemOverridesOnStereo : 1;
 
 			uint64	bNeedEnableStereo : 1;

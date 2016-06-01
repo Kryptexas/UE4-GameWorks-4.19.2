@@ -31,7 +31,7 @@ class FGearVRPlugin : public IGearVRPlugin
 	virtual TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > CreateHeadMountedDisplay() override;
 
 	// Pre-init the HMD module
-	virtual void PreInit() override;
+	virtual bool PreInit() override;
 
 	FString GetModulePriorityKeyName() const
 	{
@@ -83,17 +83,18 @@ TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > FGearVRPlugin::Crea
 	return NULL;
 }
 
-void FGearVRPlugin::PreInit()
+bool FGearVRPlugin::PreInit()
 {
 #if GEARVR_SUPPORTED_PLATFORMS
 	if (AndroidThunkCpp_IsGearVRApplication())
 	{
 		UE_LOG(LogHMD, Log, TEXT("GearVR: it is packaged for GearVR!"));
-		return;
+		return true;
 	}
 	UE_LOG(LogHMD, Log, TEXT("GearVR: not packaged for GearVR"));
 	// don't do anything if we aren't packaged for GearVR
 #endif//GEARVR_SUPPORTED_PLATFORMS
+	return false;
 }
 
 
@@ -317,6 +318,7 @@ void FGameFrame::PoseToOrientationAndPosition(const ovrPosef& InPose, FQuat& Out
 {
 	OutOrientation = ToFQuat(InPose.Orientation);
 
+	float WorldToMetersScale = GetWorldToMetersScale();
 	check(WorldToMetersScale >= 0);
 	// correct position according to BaseOrientation and BaseOffset. 
 	const FVector Pos = (ToFVector_M2U(OVR::Vector3f(InPose.Position), WorldToMetersScale) - (Settings->BaseOffset * WorldToMetersScale)) * CameraScale3D;
@@ -448,6 +450,87 @@ bool FGearVR::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 			SetLoadingIconTexture(nullptr);
 		}
 	}
+#if 0
+	else if (FParse::Command(&Cmd, TEXT("TESTL"))) 
+	{
+		static uint32 LID1 = 0, LID2 = 0, LID3 = 0;
+		IStereoLayers* StereoL = this;
+
+		FString ValueStr = FParse::Token(Cmd, 0);
+		int t = FCString::Atoi(*ValueStr);
+
+		if (!FCString::Stricmp(*ValueStr, TEXT("OFF")))
+		{
+			t = -1;
+		}
+
+		switch(t)
+		{
+			case 0:
+			{
+				const TCHAR* iconPath = TEXT("/Game/Tuscany_LoadScreen.Tuscany_LoadScreen");
+				UE_LOG(LogHMD, Log, TEXT("Loading texture for loading icon %s..."), iconPath);
+				UTexture2D* LoadingTexture = LoadObject<UTexture2D>(NULL, iconPath, NULL, LOAD_None, NULL);
+				UE_LOG(LogHMD, Log, TEXT("...EEE"));
+
+				if (LoadingTexture != nullptr) 
+				{
+					//LoadingTexture->SetFlags(RF_RootSet);
+					UE_LOG(LogHMD, Log, TEXT("...Success. "));
+
+					LID1 = StereoL->CreateLayer(LoadingTexture, 10);
+					FTransform tr(FVector(400, 30, 130));
+					StereoL->SetTransform(LID1, tr);
+					StereoL->SetQuadSize(LID1, FVector2D(200, 200));
+				}
+			} 
+			break;
+			case 1:
+			{
+				const TCHAR* iconPath = TEXT("/Game/Tuscany_OculusCube.Tuscany_OculusCube");
+				UE_LOG(LogHMD, Log, TEXT("Loading texture for loading icon %s..."), iconPath);
+				UTexture2D* LoadingTexture = LoadObject<UTexture2D>(NULL, iconPath, NULL, LOAD_None, NULL);
+				if (LoadingTexture != nullptr) 
+				{
+					LID2 = StereoL->CreateLayer(LoadingTexture, 9, true);
+					FTransform tr(FRotator(0, 30, 0), FVector(300, 0, 0));
+					StereoL->SetTransform(LID2, tr);
+					StereoL->SetQuadSize(LID2, FVector2D(200, 200));
+				}
+			} 
+			break;
+			case 2:
+			{
+				const TCHAR* iconPath = TEXT("/Game/Tuscany_OculusCube.Tuscany_OculusCube");
+				UE_LOG(LogHMD, Log, TEXT("Loading texture for loading icon %s..."), iconPath);
+				UTexture2D* LoadingTexture = LoadObject<UTexture2D>(NULL, iconPath, NULL, LOAD_None, NULL);
+				if (LoadingTexture != nullptr) 
+				{
+					LID3 = CreateLayerEx(LoadingTexture, 9, FHMDLayerManager::Layer_TorsoLocked);
+					FTransform tr(FRotator(0, 30, 0), FVector(300, 0, 0));
+					StereoL->SetTransform(LID3, tr);
+					StereoL->SetQuadSize(LID3, FVector2D(200, 200));
+				}
+			} 
+			break;
+			case 3: 
+			{
+				FTransform tr(FVector(400, 30, 130));
+				StereoL->SetTransform(LID2, tr);
+				StereoL->SetQuadSize(LID2, FVector2D(200, 200));
+
+			} 
+			break;
+			default: 
+			{
+				UE_LOG(LogHMD, Log, TEXT("Destroy layers %d %d %d"), LID1, LID2, LID3);
+				StereoL->DestroyLayer(LID1);
+				StereoL->DestroyLayer(LID2);
+				StereoL->DestroyLayer(LID3);
+			}
+		}
+	}
+#endif
 #endif
 	return false;
 }
@@ -473,12 +556,6 @@ void FGearVR::GetRawSensorData(SensorData& OutData)
 	OutData.AngularVelocity = ToFVector(frame->HeadPose.AngularVelocity);
 	OutData.LinearVelocity = ToFVector(frame->HeadPose.LinearVelocity);
 	OutData.TimeInSeconds = frame->HeadPose.TimeInSeconds;
-}
-
-void FGearVR::OnScreenModeChange(EWindowMode::Type WindowMode)
-{
-	//EnableStereo(WindowMode != EWindowMode::Windowed);
-	//UpdateStereoRenderingParams();
 }
 
 bool FGearVR::IsPositionalTrackingEnabled() const
@@ -511,7 +588,7 @@ bool FGearVR::EnableStereo(bool bStereo)
 	return Settings->Flags.bStereoEnabled;
 }
 
-bool FGearVR::DoEnableStereo(bool bStereo, bool bApplyToHmd)
+bool FGearVR::DoEnableStereo(bool bStereo)
 {
 	check(IsInGameThread());
 
@@ -617,6 +694,7 @@ void FGearVR::CalculateStereoViewOffset(const EStereoscopicPass StereoPassType, 
 			FVector CurEyePosition;
 			FQuat CurEyeOrient;
 			frame->PoseToOrientationAndPosition(frame->EyeRenderPose[idx], CurEyeOrient, CurEyePosition);
+			frame->PlayerLocation = ViewLocation;
 
 			FVector HeadPosition = FVector::ZeroVector;
 			// If we use PlayerController->bFollowHmd then we must apply full EyePosition (HeadPosition == 0).
@@ -845,6 +923,7 @@ void FGearVR::Startup()
 
 	Settings->Flags.InitStatus |= FSettings::eInitialized;
 
+	LoadFromIni();
 	UpdateHmdRenderInfo();
 	UpdateStereoRenderingParams();
 
@@ -852,7 +931,6 @@ void FGearVR::Startup()
 	pGearVRBridge = new FGearVRCustomPresent(GNativeAndroidApp->activity->clazz, MinimumVsyncs);
 #endif
 
-	LoadFromIni();
 	SaveSystemValues();
 
 	if(CVarGearVREnableMSAA.GetValueOnAnyThread())
@@ -935,8 +1013,8 @@ void FGearVR::UpdateStereoRenderingParams()
 		const int SuggestedEyeResolutionWidth  = vrapi_GetSystemPropertyInt(&JavaGT, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_WIDTH);
 		const int SuggestedEyeResolutionHeight = vrapi_GetSystemPropertyInt(&JavaGT, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_HEIGHT);
 
-		CurrentSettings->RenderTargetSize.X = SuggestedEyeResolutionWidth * 2;
-		CurrentSettings->RenderTargetSize.Y = SuggestedEyeResolutionHeight;
+		CurrentSettings->RenderTargetSize.X = SuggestedEyeResolutionWidth * 2 * CurrentSettings->ScreenPercentage / 100;
+		CurrentSettings->RenderTargetSize.Y = SuggestedEyeResolutionHeight * CurrentSettings->ScreenPercentage / 100;
 
 		const float SuggestedEyeFovDegreesX = vrapi_GetSystemPropertyFloat(&JavaGT, VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_X);
 		const float SuggestedEyeFovDegreesY = vrapi_GetSystemPropertyFloat(&JavaGT, VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_Y);
@@ -1102,7 +1180,7 @@ void FGearVR::DrawDebug(UCanvas* Canvas)
 #if !UE_BUILD_SHIPPING
 	check(IsInGameThread());
 	const auto frame = GetCurrentFrame();
-	if (frame)
+	if (frame && Canvas && Canvas->SceneView)
 	{
 		if (frame->Settings->Flags.bDrawSensorFrustum)
 		{

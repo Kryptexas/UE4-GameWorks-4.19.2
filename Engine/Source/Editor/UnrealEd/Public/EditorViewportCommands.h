@@ -65,8 +65,20 @@ public:
 	/** Changes the viewport to shader complexity mode */
 	TSharedPtr< FUICommandInfo > ShaderComplexityMode;
 
-	/** Changes the viewport to quad complexity mode */
-	TSharedPtr< FUICommandInfo > QuadComplexityMode;
+	/** Changes the viewport to quad overdraw mode */
+	TSharedPtr< FUICommandInfo > QuadOverdrawMode;
+
+	/** Changes the viewport to shader complexity with quad overdraw mode */
+	TSharedPtr< FUICommandInfo > ShaderComplexityWithQuadOverdrawMode;
+
+	/** Changes the viewport to primitive distance accuracy mode */
+	TSharedPtr< FUICommandInfo > TexStreamAccPrimitiveDistanceMode;
+
+	/** Changes the viewport to mesh texture coord size accuracy mode */
+	TSharedPtr< FUICommandInfo > TexStreamAccMeshTexCoordSizeMode;
+
+	/** Changes the viewport to material texture coordinate scales accuracy mode */
+	TSharedPtr< FUICommandInfo > TexStreamAccMaterialTexCoordScalesMode;
 
 	/** Changes the viewport to stationary light overlap mode */
 	TSharedPtr< FUICommandInfo > StationaryLightOverlapMode;
@@ -77,8 +89,14 @@ public:
 	/** Changes the viewport to vertex densities mode */
 	TSharedPtr< FUICommandInfo > VertexDensitiesMode;
 
+	/** Shows the group menu item for LOD and HLOD coloration modes */
+	TSharedPtr< FUICommandInfo > GroupLODColorationMode;
+
 	/** Changes the viewport to LOD index coloration mode */
 	TSharedPtr< FUICommandInfo > LODColorationMode;
+
+	/** Changes the viewport to HLOD index coloration mode */
+	TSharedPtr< FUICommandInfo > HLODColorationMode;
 
 	/** Changes the viewport to visualize the buffer content */
 	TSharedPtr< FUICommandInfo > VisualizeBufferMode;

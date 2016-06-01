@@ -1,21 +1,24 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	D3D12Device.cpp: D3D device RHI implementation.
+	WindowsD3D12Device.cpp: Windows D3D device RHI implementation.
 =============================================================================*/
 
 #include "D3D12RHIPrivate.h"
 #include "AllowWindowsPlatformTypes.h"
-#include <delayimp.h>
+	#include <delayimp.h>
 #include "HideWindowsPlatformTypes.h"
+
 #include "HardwareInfo.h"
 #include "Runtime/HeadMountedDisplay/Public/IHeadMountedDisplayModule.h"
+#include "GenericPlatformDriver.h"			// FGPUDriverInfo
 
 #pragma comment(lib, "d3d12.lib")
 
 extern bool D3D12RHI_ShouldCreateWithD3DDebug();
 extern bool D3D12RHI_ShouldCreateWithWarp();
 extern bool D3D12RHI_ShouldAllowAsyncResourceCreation();
+extern bool D3D12RHI_ShouldForceCompatibility();
 
 static TAutoConsoleVariable<int32> CVarGraphicsAdapter(
 	TEXT("r.D3D12GraphicsAdapter"),
@@ -31,7 +34,7 @@ namespace D3D12RHI
 {
 
 /**
- * Console variables used by the D3D11 RHI device.
+ * Console variables used by the D3D12 RHI device.
  */
 namespace RHIConsoleVariables
 {
@@ -68,13 +71,13 @@ static bool IsDelayLoadException(PEXCEPTION_POINTERS ExceptionPointers)
 	MSVC_PRAGMA(warning(disable:6322))
 #endif	// USING_CODE_ANALYSIS
 /**
- * Since CreateDXGIFactory is a delay loaded import from the D3D11 DLL, if the user
+ * Since CreateDXGIFactory is a delay loaded import from the DXGI DLL, if the user
  * doesn't have Vista/DX10, calling CreateDXGIFactory will throw an exception.
  * We use SEH to detect that case and fail gracefully.
  */
 static void SafeCreateDXGIFactory(IDXGIFactory4** DXGIFactory)
 {
-#if !D3D11_CUSTOM_VIEWPORT_CONSTRUCTOR
+#if !D3D12_CUSTOM_VIEWPORT_CONSTRUCTOR
 	__try
 	{
 		CreateDXGIFactory(__uuidof(IDXGIFactory4), (void**)DXGIFactory);
@@ -82,7 +85,7 @@ static void SafeCreateDXGIFactory(IDXGIFactory4** DXGIFactory)
 	__except (IsDelayLoadException(GetExceptionInformation()))
 	{
 	}
-#endif	//!D3D11_CUSTOM_VIEWPORT_CONSTRUCTOR
+#endif	//!D3D12_CUSTOM_VIEWPORT_CONSTRUCTOR
 }
 
 /**
@@ -91,7 +94,7 @@ static void SafeCreateDXGIFactory(IDXGIFactory4** DXGIFactory)
  */
 static D3D_FEATURE_LEVEL GetAllowedD3DFeatureLevel()
 {
-	// Default to D3D11 
+	// Default to feature level 11
 	D3D_FEATURE_LEVEL AllowedFeatureLevel = D3D_FEATURE_LEVEL_11_0;
 
 	// Use a feature level 10 if specified on the command line.
@@ -117,7 +120,7 @@ static bool SafeTestD3D12CreateDevice(IDXGIAdapter* Adapter, D3D_FEATURE_LEVEL M
 	if (D3D12RHI_ShouldCreateWithD3DDebug())
 	{
 		ID3D12Debug* DebugController = nullptr;
-		VERIFYD3D11RESULT(D3D12GetDebugInterface(IID_PPV_ARGS(&DebugController)));
+		VERIFYD3D12RESULT(D3D12GetDebugInterface(IID_PPV_ARGS(&DebugController)));
 		DebugController->EnableDebugLayer();
 		DebugController->Release();
 	}
@@ -248,13 +251,7 @@ void FD3D12DynamicRHIModule::FindAdapter()
 #endif
 
 	// Allow HMD to override which graphics adapter is chosen, so we pick the adapter where the HMD is connected
-	int32 HmdGraphicsAdapter = -1;
-	if (IHeadMountedDisplayModule::IsAvailable())
-	{
-		FHeadMountedDisplayModuleExt* const HmdEx = FHeadMountedDisplayModuleExt::GetExtendedInterface(&IHeadMountedDisplayModule::Get());
-		HmdGraphicsAdapter = HmdEx ? HmdEx->GetGraphicsAdapter() : -1;
-	}
-
+	int32 HmdGraphicsAdapter = IHeadMountedDisplayModule::IsAvailable() ? IHeadMountedDisplayModule::Get().GetGraphicsAdapter() : -1;
 	bool bUseHmdGraphicsAdapter = HmdGraphicsAdapter >= 0;
 	int32 CVarValue = bUseHmdGraphicsAdapter ? HmdGraphicsAdapter : CVarGraphicsAdapter.GetValueOnGameThread();
 
@@ -274,7 +271,7 @@ void FD3D12DynamicRHIModule::FindAdapter()
 	// Enumerate the DXGIFactory's adapters.
 	for (uint32 AdapterIndex = 0; DXGIFactory->EnumAdapters(AdapterIndex, TempAdapter.GetInitReference()) != DXGI_ERROR_NOT_FOUND; ++AdapterIndex)
 	{
-		// Check that if adapter supports D3D11.
+		// Check that if adapter supports D3D12.
 		if (TempAdapter)
 		{
 			D3D_FEATURE_LEVEL ActualFeatureLevel = (D3D_FEATURE_LEVEL)0;
@@ -282,7 +279,7 @@ void FD3D12DynamicRHIModule::FindAdapter()
 			{
 				// Log some information about the available D3D12 adapters.
 				DXGI_ADAPTER_DESC AdapterDesc;
-				VERIFYD3D11RESULT(TempAdapter->GetDesc(&AdapterDesc));
+				VERIFYD3D12RESULT(TempAdapter->GetDesc(&AdapterDesc));
 				uint32 OutputCount = CountAdapterOutputs(TempAdapter);
 
 				UE_LOG(LogD3D12RHI, Log,
@@ -416,16 +413,23 @@ void FD3D12DynamicRHI::PerRHISetup(FD3D12Device* MainDevice)
 
 	GRHIAdapterName = AdapterDesc->Description;
 	GRHIVendorId = AdapterDesc->VendorId;
+	GRHIDeviceId = AdapterDesc->DeviceId;
 
-	// Copied from the D3D11 RHI but disabled for now as this doesn't exist for UT.
-	//// get driver version (todo: share with other RHIs)
-	//{
-	//	FPlatformMisc::GetGPUDriverInfo(GRHIAdapterName, GRHIAdapterInternalDriverVersion, GRHIAdapterUserDriverVersion, GRHIAdapterDriverDate);
+	UE_LOG(LogD3D12RHI, Log, TEXT("    GPU DeviceId: 0x%x (for the marketing name, search the web for \"GPU Device Id\")"),
+		AdapterDesc->DeviceId);
 
-	//	UE_LOG(LogD3D12RHI, Log, TEXT("    Adapter Name: %s"), *GRHIAdapterName);
-	//	UE_LOG(LogD3D12RHI, Log, TEXT("  Driver Version: %s (internal %s)"), *GRHIAdapterUserDriverVersion, *GRHIAdapterInternalDriverVersion);
-	//	UE_LOG(LogD3D12RHI, Log, TEXT("     Driver Date: %s"), *GRHIAdapterDriverDate);
-	//}
+	// get driver version (todo: share with other RHIs)
+	{
+		FGPUDriverInfo GPUDriverInfo = FPlatformMisc::GetGPUDriverInfo(GRHIAdapterName);
+
+		GRHIAdapterUserDriverVersion = GPUDriverInfo.UserDriverVersion;
+		GRHIAdapterInternalDriverVersion = GPUDriverInfo.InternalDriverVersion;
+		GRHIAdapterDriverDate = GPUDriverInfo.DriverDate;
+
+		UE_LOG(LogD3D12RHI, Log, TEXT("    Adapter Name: %s"), *GRHIAdapterName);
+		UE_LOG(LogD3D12RHI, Log, TEXT("  Driver Version: %s (internal:%s, unified:%s)"), *GRHIAdapterUserDriverVersion, *GRHIAdapterInternalDriverVersion, *GPUDriverInfo.GetUnifiedDriverVersion());
+		UE_LOG(LogD3D12RHI, Log, TEXT("     Driver Date: %s"), *GRHIAdapterDriverDate);
+	}
 
 	// Issue: 32bit windows doesn't report 64bit value, we take what we get.
 	FD3D12GlobalStats::GDedicatedVideoMemory = int64(AdapterDesc->DedicatedVideoMemory);
@@ -440,7 +444,7 @@ void FD3D12DynamicRHI::PerRHISetup(FD3D12Device* MainDevice)
 
 	IDXGIAdapter3* DxgiAdapter3 = MainDevice->GetAdapter3();
 	DXGI_QUERY_VIDEO_MEMORY_INFO LocalVideoMemoryInfo;
-	VERIFYD3D11RESULT(DxgiAdapter3->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &LocalVideoMemoryInfo));
+	VERIFYD3D12RESULT(DxgiAdapter3->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &LocalVideoMemoryInfo));
 	const int64 TargetBudget = LocalVideoMemoryInfo.Budget * 0.90f;	// Target using 90% of our budget to account for some fragmentation.
 	FD3D12GlobalStats::GTotalGraphicsMemory = TargetBudget;
 
@@ -470,7 +474,7 @@ void FD3D12DynamicRHI::PerRHISetup(FD3D12Device* MainDevice)
 
 	RequestedTexturePoolSize = GTexturePoolSize;
 
-	VERIFYD3D11RESULT(DxgiAdapter3->SetVideoMemoryReservation(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, FMath::Min((int64)LocalVideoMemoryInfo.AvailableForReservation, FD3D12GlobalStats::GTotalGraphicsMemory)));
+	VERIFYD3D12RESULT(DxgiAdapter3->SetVideoMemoryReservation(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, FMath::Min((int64)LocalVideoMemoryInfo.AvailableForReservation, FD3D12GlobalStats::GTotalGraphicsMemory)));
 
 #if (UE_BUILD_SHIPPING && WITH_EDITOR) && PLATFORM_WINDOWS && !PLATFORM_64BITS
 	// Disable PIX for windows in the shipping editor builds
@@ -484,6 +488,9 @@ void FD3D12DynamicRHI::PerRHISetup(FD3D12Device* MainDevice)
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES3_1] = SP_PCD3D_ES3_1;
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM4] = SP_PCD3D_SM4;
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM5] = SP_PCD3D_SM5;
+
+	GSupportsEfficientAsyncCompute = GRHISupportsParallelRHIExecute && IsRHIDeviceAMD();
+	GSupportsDepthBoundsTest = false;
 
 	// Notify all initialized FRenderResources that there's a valid RHI device to create their RHI resources for now.
 	for (TLinkedList<FRenderResource*>::TIterator ResourceIt(FRenderResource::GetResourceList()); ResourceIt; ResourceIt.Next())
@@ -560,7 +567,7 @@ void FD3D12Device::InitD3DDevice()
 		if (bWithD3DDebug)
 		{
 			TRefCountPtr<ID3D12Debug> DebugController;
-			VERIFYD3D11RESULT(D3D12GetDebugInterface(IID_PPV_ARGS(DebugController.GetInitReference())));
+			VERIFYD3D12RESULT(D3D12GetDebugInterface(IID_PPV_ARGS(DebugController.GetInitReference())));
 			DebugController->EnableDebugLayer();
 
 			UE_LOG(LogD3D12RHI, Log, TEXT("InitD3DDevice: -D3DDebug = %s"), bWithD3DDebug ? TEXT("on") : TEXT("off"));
@@ -588,7 +595,7 @@ void FD3D12Device::InitD3DDevice()
 						DriverType = D3D_DRIVER_TYPE_REFERENCE;
 					}
 
-					VERIFYD3D11RESULT(EnumAdapter->QueryInterface(_uuidof(DxgiAdapter3), (void **)DxgiAdapter3.GetInitReference()));
+					VERIFYD3D12RESULT(EnumAdapter->QueryInterface(_uuidof(DxgiAdapter3), (void **)DxgiAdapter3.GetInitReference()));
 				}
 				else
 				{
@@ -602,11 +609,24 @@ void FD3D12Device::InitD3DDevice()
 		}
 
 		// Creating the Direct3D device.
-		VERIFYD3D11RESULT(D3D12CreateDevice(
+		VERIFYD3D12RESULT(D3D12CreateDevice(
 			Adapter,
 			GetFeatureLevel(),
 			IID_PPV_ARGS(Direct3DDevice.GetInitReference())
 			));
+
+		// See if we can get any newer device interfaces (to use newer D3D12 features).
+		if (D3D12RHI_ShouldForceCompatibility())
+		{
+			UE_LOG(LogD3D12RHI, Log, TEXT("Forcing D3D12 compatibility."));
+		}
+		else
+		{
+			if (SUCCEEDED(GetDevice()->QueryInterface(IID_PPV_ARGS(Direct3DDevice1.GetInitReference()))))
+			{
+				UE_LOG(LogD3D12RHI, Log, TEXT("The system supports ID3D12Device1."));
+			}
+		}
 
 #if UE_BUILD_DEBUG	
 		//break on debug
@@ -623,8 +643,10 @@ void FD3D12Device::InitD3DDevice()
 		}
 #endif
 
+		D3DX12Residency::InitializeResidencyManager(ResidencyManager, GetDevice(), 0, GetAdapter3(), RESIDENCY_PIPELINE_DEPTH);
+
 		D3D12_FEATURE_DATA_D3D12_OPTIONS D3D12Caps;
-		VERIFYD3D11RESULT(GetDevice()->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &D3D12Caps, sizeof(D3D12Caps)));
+		VERIFYD3D12RESULT(GetDevice()->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &D3D12Caps, sizeof(D3D12Caps)));
 		ResourceHeapTier = D3D12Caps.ResourceHeapTier;
 		ResourceBindingTier = D3D12Caps.ResourceBindingTier;
 
@@ -663,16 +685,16 @@ void FD3D12Device::InitD3DDevice()
 		OcclusionQueryHeap.Init();
 
 		// Create the main set of command lists used for rendering a frame
-		CommandListManager.Create();
-		CopyCommandListManager.Create();
-		AsyncCommandListManager.Create();
+		CommandListManager.Create(L"3D Queue");
+		CopyCommandListManager.Create(L"Copy Queue");
+		AsyncCommandListManager.Create(L"Async Compute Queue");
 
 #if !(UE_BUILD_SHIPPING && WITH_EDITOR)
 		// Add some filter outs for known debug spew messages (that we don't care about)
 		if (D3D12RHI_ShouldCreateWithD3DDebug())
 		{
 			ID3D12InfoQueue *pd3dInfoQueue = nullptr;
-			VERIFYD3D11RESULT(Direct3DDevice->QueryInterface(__uuidof(ID3D12InfoQueue), (void**)&pd3dInfoQueue));
+			VERIFYD3D12RESULT(Direct3DDevice->QueryInterface(__uuidof(ID3D12InfoQueue), (void**)&pd3dInfoQueue));
 			if (pd3dInfoQueue)
 			{
 				D3D12_INFO_QUEUE_FILTER NewFilter;
@@ -721,7 +743,12 @@ void FD3D12Device::InitD3DDevice()
 					//		if it contains a readback resource that still has mapped subresources when executing a command list that performs a copy operation to the resource.
 					//		This may be ok if any data read from the readback resources was flushed by calling Unmap() after the resourcecopy operation completed.
 					//		We intentionally keep the readback resources persistently mapped.
-					D3D12_MESSAGE_ID_EXECUTECOMMANDLISTS_GPU_WRITTEN_READBACK_RESOURCE_MAPPED
+					D3D12_MESSAGE_ID_EXECUTECOMMANDLISTS_GPU_WRITTEN_READBACK_RESOURCE_MAPPED,
+
+#if ENABLE_RESIDENCY_MANAGEMENT
+					// TODO: Remove this when the debug layers work for executions which are guarded by a fence
+					D3D12_MESSAGE_ID_INVALID_USE_OF_NON_RESIDENT_RESOURCE
+#endif
 				};
 
 				NewFilter.DenyList.NumIDs = sizeof(DenyIds) / sizeof(D3D12_MESSAGE_ID);
@@ -834,7 +861,7 @@ bool FD3D12DynamicRHI::RHIGetAvailableResolutions(FScreenResolutionArray& Resolu
 		checkf(NumModes > 0, TEXT("No display modes found for the standard format DXGI_FORMAT_R8G8B8A8_UNORM!"));
 
 		DXGI_MODE_DESC* ModeList = new DXGI_MODE_DESC[NumModes];
-		VERIFYD3D11RESULT(Output->GetDisplayModeList(Format, 0, &NumModes, ModeList));
+		VERIFYD3D12RESULT(Output->GetDisplayModeList(Format, 0, &NumModes, ModeList));
 
 		for (uint32 m = 0; m < NumModes; m++)
 		{

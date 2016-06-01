@@ -14,6 +14,8 @@
 #include "SceneUtils.h"
 #include "PostProcessUpscale.h"
 #include "PostProcessCompositeEditorPrimitives.h"
+#include "PostProcessHMD.h"
+#include "IHeadMountedDisplay.h"
 
 uint32 GetShadowQuality();
 
@@ -60,10 +62,10 @@ void FForwardShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLis
 		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>* DirectionalLightShadowInfo = nullptr;
 
 		FViewInfo& ViewInfo = Views[ViewIndex];
-		FScene* Scene = (FScene*)ViewInfo.Family->Scene;
-		if (bDynamicShadows && Scene->SimpleDirectionalLight)
+		FScene* ViewScene = (FScene*)ViewInfo.Family->Scene;
+		if (bDynamicShadows && ViewScene->SimpleDirectionalLight)
 		{
-			int32 LightId = Scene->SimpleDirectionalLight->Id;
+			int32 LightId = ViewScene->SimpleDirectionalLight->Id;
 			if (VisibleLightInfos.IsValidIndex(LightId))
 			{
 				const FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightId];
@@ -96,10 +98,10 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		return;
 	}
 
-	auto FeatureLevel = ViewFamily.GetFeatureLevel();
+	const ERHIFeatureLevel::Type ViewFeatureLevel = ViewFamily.GetFeatureLevel();
 
 	// Initialize global system textures (pass-through if already initialized).
-	GSystemTextures.InitializeTextures(RHICmdList, FeatureLevel);
+	GSystemTextures.InitializeTextures(RHICmdList, ViewFeatureLevel);
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
 	// Allocate the maximum scene render target space for the current view family.
@@ -112,7 +114,7 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	InitViews(RHICmdList);
 	
 	// Notify the FX system that the scene is about to be rendered.
-	if (Scene->FXSystem)
+	if (Scene->FXSystem && ViewFamily.EngineShowFlags.Particles)
 	{
 		Scene->FXSystem->PreRender(RHICmdList, NULL);
 	}
@@ -133,9 +135,10 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	const bool bRequiresUpscale = !ViewFamily.bUseSeparateRenderTarget && ((uint32)ViewFamily.RenderTarget->GetSizeXY().X > ViewFamily.FamilySizeX || (uint32)ViewFamily.RenderTarget->GetSizeXY().Y > ViewFamily.FamilySizeY);
 	// ES2 requires that the back buffer and depth match dimensions.
 	// For the most part this is not the case when using scene captures. Thus scene captures always render to scene color target.
-	const bool bRenderToScene = bRequiresUpscale || FSceneRenderer::ShouldCompositeEditorPrimitives(View) || View.bIsSceneCapture;
+	const bool bStereoRenderingAndHMD = View.Family->EngineShowFlags.StereoRendering && View.Family->EngineShowFlags.HMDDistortion;
+	const bool bRenderToSceneColor = bStereoRenderingAndHMD || bRequiresUpscale || FSceneRenderer::ShouldCompositeEditorPrimitives(View) || View.bIsSceneCapture;
 
-	if (bGammaSpace && !bRenderToScene)
+	if (bGammaSpace && !bRenderToSceneColor)
 	{
 		SetRenderTarget(RHICmdList, ViewFamily.RenderTarget->GetRenderTargetTexture(), SceneContext.GetSceneDepthTexture(), ESimpleRenderTargetMode::EClearColorAndDepth);
 	}
@@ -145,7 +148,7 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		SceneContext.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EClearColorAndDepth);
 	}
 
-	if (GIsEditor)
+	if (GIsEditor && !View.bIsSceneCapture)
 	{
 		RHICmdList.Clear(true, Views[0].BackgroundColor, false, (float)ERHIZBuffer::FarPlane, false, 0, FIntRect());
 	}
@@ -161,8 +164,9 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	}
 
 	// Notify the FX system that opaque primitives have been rendered.
-	if (Scene->FXSystem)
+	if (Scene->FXSystem && ViewFamily.EngineShowFlags.Particles)
 	{
+		//#todo-rco: This is switching to another RT!
 		Scene->FXSystem->PostRenderOpaque(RHICmdList);
 	}
 
@@ -173,7 +177,7 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_TranslucencyDrawTime);
 
-		// Note: Forward pass has no SeparateTranslucency, so refraction effect order with Transluency is different.
+		// Note: Forward pass has no SeparateTranslucency, so refraction effect order with Translucency is different.
 		// Having the distortion applied between two different translucency passes would make it consistent with the deferred pass.
 		// This is not done yet.
 
@@ -208,7 +212,7 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		CompositeContext.Process(PostProcessSunMask, TEXT("OnChipAlphaTransform"));
 	}
 
-	if (!bGammaSpace || bRenderToScene)
+	if (!bGammaSpace || bRenderToSceneColor)
 	{
 		// Resolve the scene color for post processing.
 		SceneContext.ResolveSceneColor(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
@@ -233,7 +237,7 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 			}
 		}
 	}
-	else if (bRenderToScene)
+	else if (bRenderToSceneColor)
 	{
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 		{
@@ -272,6 +276,24 @@ void FForwardShadingSceneRenderer::BasicPostProcess(FRHICommandListImmediate& RH
 		Context.FinalOutput = FRenderingCompositeOutputRef(EditorCompNode);
 	}
 #endif
+
+	bool bStereoRenderingAndHMD = View.Family->EngineShowFlags.StereoRendering && View.Family->EngineShowFlags.HMDDistortion;
+	if (bStereoRenderingAndHMD)
+	{
+		FRenderingCompositePass* Node = NULL;
+		const EHMDDeviceType::Type DeviceType = GEngine->HMDDevice->GetHMDDeviceType();
+		if (DeviceType == EHMDDeviceType::DT_ES2GenericStereoMesh ||
+			DeviceType == EHMDDeviceType::DT_OculusRift) // PC Preview
+		{
+			Node = Context.Graph.RegisterPass(new FRCPassPostProcessHMD());
+		}
+
+		if (Node)
+		{
+			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
+			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
+		}
+	}
 
 	// currently created on the heap each frame but View.Family->RenderTarget could keep this object and all would be cleaner
 	TRefCountPtr<IPooledRenderTarget> Temp;

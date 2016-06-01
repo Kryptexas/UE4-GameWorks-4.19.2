@@ -15,6 +15,9 @@
 
 #include "SourceCodeNavigation.h"
 
+#include "Developer/BlueprintProfiler/Public/BlueprintProfilerModule.h"
+#include "ScriptPerfData.h"
+
 #define LOCTEXT_NAMESPACE "SettingsClasses"
 
 /* UContentBrowserSettings interface
@@ -67,8 +70,9 @@ UEditorExperimentalSettings::UEditorExperimentalSettings( const FObjectInitializ
 	, bUnifiedBlueprintEditor(true)
 	, bBlueprintableComponents(true)
 	, bBlueprintPerformanceAnalysisTools(false)
-	, BlueprintProfilerAverageSampleCount(20)
+	, BlueprintProfilerRecentSampleBias(0.2f)
 	, bUseOpenCLForConvexHullDecomp(false)
+	, bAllowPotentiallyUnsafePropertyEditing(false)
 {
 }
 
@@ -91,6 +95,22 @@ void UEditorExperimentalSettings::PostEditChangeProperty( struct FPropertyChange
 			FModuleManager::Get().LoadModule(TEXT("EnvironmentQueryEditor"));
 		}
 	}
+	else if (Name == FName(TEXT("bBlueprintPerformanceAnalysisTools")))
+	{
+		if (!bBlueprintPerformanceAnalysisTools)
+		{
+			IBlueprintProfilerInterface* ProfilerInterface = FModuleManager::GetModulePtr<IBlueprintProfilerInterface>("BlueprintProfiler");
+			if (ProfilerInterface && ProfilerInterface->IsProfilerEnabled())
+			{
+				// Force Profiler off
+				ProfilerInterface->ToggleProfilingCapture();
+			}
+		}
+	}
+	else if (Name == FName(TEXT("BlueprintProfilerRecentSampleBias")))
+	{
+		FScriptPerfData::SetRecentSampleBias(BlueprintProfilerRecentSampleBias);
+	}
 
 	if (!FUnrealEdMisc::Get().IsDeletePreferences())
 	{
@@ -106,12 +126,11 @@ void UEditorExperimentalSettings::PostEditChangeProperty( struct FPropertyChange
 
 UEditorLoadingSavingSettings::UEditorLoadingSavingSettings( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
-	, bEnableSourceControlCompatabilityCheck(true)
 	, bMonitorContentDirectories(true)
 	, AutoReimportThreshold(3.f)
 	, bAutoCreateAssets(true)
 	, bAutoDeleteAssets(true)
-	, bDetectChangesOnRestart(true)
+	, bDetectChangesOnStartup(true)
 	, bDeleteSourceFilesWithAssets(false)
 {
 	TextDiffToolPath.FilePath = TEXT("P4Merge.exe");
@@ -119,6 +138,8 @@ UEditorLoadingSavingSettings::UEditorLoadingSavingSettings( const FObjectInitial
 	FAutoReimportDirectoryConfig Default;
 	Default.SourceDirectory = TEXT("/Game/");
 	AutoReimportDirectorySettings.Add(Default);
+
+	bPromptBeforeAutoImporting = true;
 }
 
 
@@ -163,64 +184,6 @@ void UEditorLoadingSavingSettings::PostInitProperties()
 		AutoReimportDirectories_DEPRECATED.Empty();
 	}
 	Super::PostInitProperties();
-}
-
-void UEditorLoadingSavingSettings::CheckSourceControlCompatability()
-{
-	if (!bEnableSourceControlCompatabilityCheck || !bMonitorContentDirectories)
-	{
-		return;
-	}
-
-	if (ISourceControlModule::Get().IsEnabled() && bDetectChangesOnRestart)
-	{
-		// Persistent shared payload captured by the lambdas below
-		struct FPersistentPayload { TSharedPtr<SNotificationItem> Notification; };
-		TSharedRef<FPersistentPayload> Payload = MakeShareable(new FPersistentPayload);
-
-		FNotificationInfo Info(LOCTEXT("AutoReimport_NotificationTitle", "We noticed that your auto-reimport settings are set up to detect source content changes on restart.\nThis might cause unexpected behavior when starting up after getting latest from source control.\n\nWe recommend disabling this specific behavior."));
-
- 		auto OnTurnOffClicked = [=]{
-			auto* Settings = GetMutableDefault<UEditorLoadingSavingSettings>();
-			Settings->bDetectChangesOnRestart = false;
-			Settings->SaveConfig();
-
-			Payload->Notification->SetEnabled(false);
-			Payload->Notification->Fadeout();
-		};
-		Info.ButtonDetails.Emplace(LOCTEXT("AutoReimport_TurnOff", "Don't detect changes on start-up"), FText(), FSimpleDelegate::CreateLambda(OnTurnOffClicked), SNotificationItem::ECompletionState::CS_None);
-
- 		auto OnIgnoreClicked = [=]{
-
-			Payload->Notification->SetEnabled(false);
- 			Payload->Notification->Fadeout();
-		};
-		Info.ButtonDetails.Emplace(LOCTEXT("AutoReimport_Ignore", "Ignore"), FText(), FSimpleDelegate::CreateLambda(OnIgnoreClicked), SNotificationItem::ECompletionState::CS_None);
-
-		Info.bUseLargeFont = false;
-		Info.bFireAndForget = false;
-
-		Info.CheckBoxStateChanged = FOnCheckStateChanged::CreateLambda([](ECheckBoxState State){
-			auto* Settings = GetMutableDefault<UEditorLoadingSavingSettings>();
-			Settings->bEnableSourceControlCompatabilityCheck = (State != ECheckBoxState::Checked);
-			Settings->SaveConfig();
-		});
-		Info.CheckBoxText = LOCTEXT("AutoReimport_DontShowAgain", "Don't show again");
-
-		Info.Hyperlink = FSimpleDelegate::CreateLambda([]{
-			// Open Settings
-			ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
-			if (SettingsModule != nullptr)
-			{
-				// Ensure that the advanced properties are visible
-				GConfig->SetBool(TEXT("DetailCategoriesAdvanced"), TEXT("EditorLoadingSavingSettings.AutoReimport"), true, GEditorPerProjectIni);
-				SettingsModule->ShowViewer("Editor", "General", "LoadingSaving");
-			}
-		});
-		Info.HyperlinkText = LOCTEXT("AutoReimport_OpenSettings", "Settings");
-
-		Payload->Notification = FSlateNotificationManager::Get().AddNotification(Info);
-	}
 }
 
 FAutoReimportDirectoryConfig::FParseContext::FParseContext(bool bInEnableLogging)

@@ -12,7 +12,7 @@ struct FVisualLoggerCanvasRenderer
 
 	struct FGraphData
 	{
-		FGraphData() : Min(FVector2D(FLT_MAX, FLT_MAX)), Max(FVector2D(FLT_MIN, FLT_MIN)) {}
+		FGraphData() : Min(FVector2D(FLT_MAX, FLT_MAX)), Max(FVector2D(-FLT_MAX, -FLT_MAX)) {}
 
 		FVector2D Min, Max;
 		TMap<FName, FGraphLineData> GraphLines;

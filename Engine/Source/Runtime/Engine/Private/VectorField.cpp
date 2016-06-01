@@ -192,7 +192,7 @@ public:
 	 */
 	virtual void InitRHI() override
 	{
-		if (VolumeData && GetFeatureLevel() >= ERHIFeatureLevel::ES3_1)
+		if (VolumeData && GSupportsTexture3D)
 		{
 			const uint32 DataSize = SizeX * SizeY * SizeZ * sizeof(FFloat16Color);
 			FVectorFieldStaticResourceBulkDataInterface BulkDataInterface(VolumeData, DataSize);
@@ -517,15 +517,19 @@ void UVectorFieldComponent::OnRegister()
 			Instance->UpdateTransforms(ComponentToWorld.ToMatrixWithScale());
 			VectorFieldInstance = Instance;
 		}
-		else if (World && World->Scene && World->Scene->GetFXSystem())
+		else
 		{
-			// Store the FX system for the world in which this component is registered.
-			check(FXSystem == NULL);
-			FXSystem = World->Scene->GetFXSystem();
-			check(FXSystem != NULL);
+			UWorld* World = GetWorld();
+			if (World && World->Scene && World->Scene->GetFXSystem())
+			{
+				// Store the FX system for the world in which this component is registered.
+				check(FXSystem == NULL);
+				FXSystem = World->Scene->GetFXSystem();
+				check(FXSystem != NULL);
 
-			// Add this component to the FX system.
-			FXSystem->AddVectorField(this);
+				// Add this component to the FX system.
+				FXSystem->AddVectorField(this);
+			}
 		}
 	}
 }
@@ -780,7 +784,7 @@ public:
 	 */
 	virtual void InitRHI() override
 	{
-		if (GetFeatureLevel() >= ERHIFeatureLevel::ES3_1)
+		if (GSupportsTexture3D)
 		{
 			check(SizeX > 0);
 			check(SizeY > 0);

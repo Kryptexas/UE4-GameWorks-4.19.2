@@ -246,11 +246,12 @@ public:
 				LocalCurrentActor = LocalSpawnedActorArray[LocalIndex - LocalObjectArray.Num()];
 			}
 			State->ConsideredCount++;
-
-			if ( LocalCurrentActor != NULL
+			
+			ULevel* ActorLevel = LocalCurrentActor ? LocalCurrentActor->GetLevel() : nullptr;
+			if ( ActorLevel
 				&& static_cast<const Derived*>(this)->IsActorSuitable(LocalCurrentActor)
-				&& static_cast<const Derived*>(this)->CanIterateLevel(LocalCurrentActor->GetLevel())
-				&& LocalCurrentActor->GetWorld() == LocalCurrentWorld)
+				&& static_cast<const Derived*>(this)->CanIterateLevel(ActorLevel)
+				&& ActorLevel->GetWorld() == LocalCurrentWorld)
 			{
 				// ignore non-persistent world settings
 				if (LocalCurrentActor->GetLevel() == LocalCurrentWorld->PersistentLevel || !LocalCurrentActor->IsA(AWorldSettings::StaticClass()))
@@ -397,7 +398,7 @@ private:
 	 */
 	static bool CanIterateLevel(ULevel* Level)
 	{
-		return Level->bIsVisible;
+		return Level->bIsVisible || Level->bIsAssociatingLevel;
 	}
 };
 
@@ -484,7 +485,7 @@ private:
 	 */
 	static bool CanIterateLevel(ULevel* Level)
 	{
-		return Level->bIsVisible;
+		return Level->bIsVisible || Level->bIsAssociatingLevel;
 	}
 };
 

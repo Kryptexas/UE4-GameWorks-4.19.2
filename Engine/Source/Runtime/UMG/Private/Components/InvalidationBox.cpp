@@ -86,11 +86,6 @@ void UInvalidationBox::SetCanCache(bool CanCache)
 
 #if WITH_EDITOR
 
-const FSlateBrush* UInvalidationBox::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.MenuAnchor");
-}
-
 const FText UInvalidationBox::GetPaletteCategory()
 {
 	return LOCTEXT("Optimization", "Optimization");

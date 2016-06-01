@@ -18,7 +18,7 @@ LandscapeEditInterface.cpp: Landscape editing interface
 #include "FixedSizeArrayView.h"
 
 // Channel remapping
-static const size_t ChannelOffsets[4] = {STRUCT_OFFSET(FColor,R), STRUCT_OFFSET(FColor,G), STRUCT_OFFSET(FColor,B), STRUCT_OFFSET(FColor,A)};
+extern const size_t ChannelOffsets[4] = {STRUCT_OFFSET(FColor,R), STRUCT_OFFSET(FColor,G), STRUCT_OFFSET(FColor,B), STRUCT_OFFSET(FColor,A)};
 
 //
 // FLandscapeEditDataInterface
@@ -417,7 +417,11 @@ void FLandscapeEditDataInterface::SetHeightData(int32 X1, int32 Y1, int32 X2, in
 			Component->GenerateHeightmapMips(MipData, ComponentX1, ComponentY1, ComponentX2, ComponentY2, TexDataInfo);
 
 			// Update collision
-			Component->UpdateCollisionHeightData(MipData[Component->CollisionMipLevel], ComponentX1, ComponentY1, ComponentX2, ComponentY2, bUpdateBoxSphereBounds, XYOffsetMipData);
+			Component->UpdateCollisionHeightData(
+				MipData[Component->CollisionMipLevel],
+				Component->SimpleCollisionMipLevel > Component->CollisionMipLevel ? MipData[Component->SimpleCollisionMipLevel] : nullptr,
+				ComponentX1, ComponentY1, ComponentX2, ComponentY2, bUpdateBoxSphereBounds,
+				XYOffsetMipData);
 
 			// Update GUID for Platform Data
 			FPlatformMisc::CreateGuid(Component->StateId);
@@ -1615,7 +1619,10 @@ void ULandscapeComponent::DeleteLayer(ULandscapeLayerInfoObject* LayerInfo, FLan
 	}
 
 	// Mark the channel as unallocated, so we can reuse it later
-	ALandscapeProxy* Proxy = GetLandscapeProxy();
+	ALandscapeProxy* Proxy = Component->GetLandscapeProxy();
+	Component->Modify();
+	Proxy->Modify();
+
 	FLandscapeWeightmapUsage* Usage = Proxy->WeightmapUsageMap.Find(Component->WeightmapTextures[DeleteLayerAllocation.WeightmapTextureIndex]);
 	if (Usage) // can be null if WeightmapUsageMap hasn't been built yet
 	{
@@ -1658,7 +1665,17 @@ void ULandscapeComponent::DeleteLayer(ULandscapeLayerInfoObject* LayerInfo, FLan
 	{
 		CollisionWeightmapMipData.Add((FColor*)LandscapeEdit->GetTextureDataInfo(Component->WeightmapTextures[WeightmapIdx])->GetMipData(Component->CollisionMipLevel));
 	}
-	Component->UpdateCollisionLayerData(CollisionWeightmapMipData);
+	TArray<FColor*> SimpleCollisionWeightmapMipData;
+	if (Component->SimpleCollisionMipLevel > Component->CollisionMipLevel)
+	{
+		for (int32 WeightmapIdx = 0; WeightmapIdx < Component->WeightmapTextures.Num(); WeightmapIdx++)
+		{
+			SimpleCollisionWeightmapMipData.Add((FColor*)LandscapeEdit->GetTextureDataInfo(Component->WeightmapTextures[WeightmapIdx])->GetMipData(Component->SimpleCollisionMipLevel));
+		}
+	}
+	Component->UpdateCollisionLayerData(
+		CollisionWeightmapMipData.GetData(),
+		Component->SimpleCollisionMipLevel > Component->CollisionMipLevel ? SimpleCollisionWeightmapMipData.GetData() : nullptr);
 }
 
 void FLandscapeEditDataInterface::DeleteLayer(ULandscapeLayerInfoObject* LayerInfo)
@@ -1866,9 +1883,19 @@ void FLandscapeEditDataInterface::ReplaceLayer(ULandscapeLayerInfoObject* FromLa
 		TArray<FColor*> CollisionWeightmapMipData;
 		for( int32 WeightmapIdx=0;WeightmapIdx < Component->WeightmapTextures.Num();WeightmapIdx++ )
 		{
-			CollisionWeightmapMipData.Add( (FColor*)GetTextureDataInfo(Component->WeightmapTextures[WeightmapIdx])->GetMipData(Component->CollisionMipLevel) );
+			CollisionWeightmapMipData.Add((FColor*)GetTextureDataInfo(Component->WeightmapTextures[WeightmapIdx])->GetMipData(Component->CollisionMipLevel));
 		}
-		Component->UpdateCollisionLayerData(CollisionWeightmapMipData);
+		TArray<FColor*> SimpleCollisionWeightmapMipData;
+		if (Component->SimpleCollisionMipLevel > Component->CollisionMipLevel)
+		{
+			for (int32 WeightmapIdx = 0; WeightmapIdx < Component->WeightmapTextures.Num(); WeightmapIdx++)
+			{
+				SimpleCollisionWeightmapMipData.Add((FColor*)GetTextureDataInfo(Component->WeightmapTextures[WeightmapIdx])->GetMipData(Component->SimpleCollisionMipLevel));
+			}
+		}
+		Component->UpdateCollisionLayerData(
+			CollisionWeightmapMipData.GetData(),
+			Component->SimpleCollisionMipLevel > Component->CollisionMipLevel ? SimpleCollisionWeightmapMipData.GetData() : nullptr);
 	}
 }
 
@@ -2035,11 +2062,13 @@ bool DeleteLayerIfAllZero(ULandscapeComponent* const Component, const uint8* con
 		}
 	}
 
+	ALandscapeProxy* Proxy = Component->GetLandscapeProxy();
 	Component->Modify();
+	Proxy->Modify();
 
 	// Mark the channel as unallocated, so we can reuse it later
 	const int32 DeleteLayerWeightmapTextureIndex = Component->WeightmapLayerAllocations[LayerIdx].WeightmapTextureIndex;
-	FLandscapeWeightmapUsage& Usage = Component->GetLandscapeProxy()->WeightmapUsageMap.FindChecked(Component->WeightmapTextures[DeleteLayerWeightmapTextureIndex]);
+	FLandscapeWeightmapUsage& Usage = Proxy->WeightmapUsageMap.FindChecked(Component->WeightmapTextures[DeleteLayerWeightmapTextureIndex]);
 	Usage.ChannelUsage[Component->WeightmapLayerAllocations[LayerIdx].WeightmapTextureChannel] = NULL;
 
 	// Remove the layer as it's totally painted away.
@@ -2318,6 +2347,7 @@ void FLandscapeEditDataInterface::SetAlphaData(ULandscapeLayerInfoObject* const 
 	TArray<bool, TInlineAllocator<8>> LayerNoWeightBlends;  // NoWeightBlend flags
 	TArray<bool, TInlineAllocator<8>> LayerEditDataAllZero; // Whether the data we are editing for this layer is all zero
 	TArray<FColor*> CollisionWeightmapMipData;
+	TArray<FColor*> SimpleCollisionWeightmapMipData;
 	TArray<FColor*> WeightmapTextureMipData;
 
 	TMap<FIntPoint, TMap<const ULandscapeLayerInfoObject*, uint32>> LayerInfluenceCache;
@@ -2627,9 +2657,21 @@ void FLandscapeEditDataInterface::SetAlphaData(ULandscapeLayerInfoObject* const 
 				WeightmapTextureMipData.Reset();
 			}
 
+			if (Component->SimpleCollisionMipLevel > Component->CollisionMipLevel)
+			{
+				for (int32 WeightmapIdx = 0; WeightmapIdx < Component->WeightmapTextures.Num(); WeightmapIdx++)
+				{
+					SimpleCollisionWeightmapMipData.Add((FColor*)TexDataInfos[WeightmapIdx]->GetMipData(Component->SimpleCollisionMipLevel));
+				}
+			}
+
 			// Update dominant layer info stored in collision component
-			Component->UpdateCollisionLayerData(CollisionWeightmapMipData, ComponentX1, ComponentY1, ComponentX2, ComponentY2);
+			Component->UpdateCollisionLayerData(
+				CollisionWeightmapMipData.GetData(),
+				Component->SimpleCollisionMipLevel > Component->CollisionMipLevel ? SimpleCollisionWeightmapMipData.GetData() : nullptr,
+				ComponentX1, ComponentY1, ComponentX2, ComponentY2);
 			CollisionWeightmapMipData.Reset();
+			SimpleCollisionWeightmapMipData.Reset();
 
 			// Check if we need to remove weightmap allocations for layers that were completely painted away
 			bool bRemovedLayer = false;
@@ -2703,6 +2745,7 @@ void FLandscapeEditDataInterface::SetAlphaData(const TSet<ULandscapeLayerInfoObj
 	TArray<FLayerDataInfo, TInlineAllocator<8>> LayerDataInfos;		// Pointers to all layers' data 
 	TArray<bool, TInlineAllocator<8>> LayerEditDataAllZero; // Whether the data we are editing for this layer is all zero 
 	TArray<FColor*> CollisionWeightmapMipData;
+	TArray<FColor*> SimpleCollisionWeightmapMipData;
 	TArray<FColor*> WeightmapTextureMipData;
 
 	for (int32 ComponentIndexY = ComponentIndexY1; ComponentIndexY <= ComponentIndexY2; ComponentIndexY++)
@@ -2891,9 +2934,21 @@ void FLandscapeEditDataInterface::SetAlphaData(const TSet<ULandscapeLayerInfoObj
 				WeightmapTextureMipData.Reset();
 			}
 
+			if (Component->SimpleCollisionMipLevel > Component->CollisionMipLevel)
+			{
+				for (int32 WeightmapIdx = 0; WeightmapIdx < Component->WeightmapTextures.Num(); WeightmapIdx++)
+				{
+					SimpleCollisionWeightmapMipData.Add((FColor*)TexDataInfos[WeightmapIdx]->GetMipData(Component->SimpleCollisionMipLevel));
+				}
+			}
+
 			// Update dominant layer info stored in collision component
-			Component->UpdateCollisionLayerData(CollisionWeightmapMipData, ComponentX1, ComponentY1, ComponentX2, ComponentY2);
+			Component->UpdateCollisionLayerData(
+				CollisionWeightmapMipData.GetData(),
+				Component->SimpleCollisionMipLevel > Component->CollisionMipLevel ? SimpleCollisionWeightmapMipData.GetData() : nullptr,
+				ComponentX1, ComponentY1, ComponentX2, ComponentY2);
 			CollisionWeightmapMipData.Reset();
+			SimpleCollisionWeightmapMipData.Reset();
 
 			// Check if we need to remove weightmap allocations for layers that were completely painted away
 			bool bRemovedLayer = false;

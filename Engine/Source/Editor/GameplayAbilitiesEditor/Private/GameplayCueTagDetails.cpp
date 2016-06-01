@@ -37,7 +37,7 @@ void FGameplayCueTagDetails::CustomizeHeader( TSharedRef<IPropertyHandle> Struct
 	GameplayTagProperty = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FGameplayCueTag,GameplayCueTag));
 
 	FSimpleDelegate OnTagChanged = FSimpleDelegate::CreateSP(this, &FGameplayCueTagDetails::OnPropertyValueChanged);
-	StructPropertyHandle->SetOnPropertyValueChanged(OnTagChanged);
+	GameplayTagProperty->SetOnPropertyValueChanged(OnTagChanged);
 
 	UGameplayCueManager* CueManager = UAbilitySystemGlobals::Get().GetGameplayCueManager();
 	if (CueManager)

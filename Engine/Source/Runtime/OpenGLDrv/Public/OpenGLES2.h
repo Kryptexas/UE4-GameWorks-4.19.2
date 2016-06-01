@@ -85,6 +85,7 @@ struct FOpenGLES2 : public FOpenGLBase
 	static FORCEINLINE bool SupportsDepthStencilRead()					{ return false; }
 	static FORCEINLINE bool SupportsFloatReadSurface()					{ return SupportsColorBufferHalfFloat(); }
 	static FORCEINLINE bool SupportsMultipleRenderTargets()				{ return false; }
+	static FORCEINLINE bool SupportsWideMRT()							{ return false; }
 	static FORCEINLINE bool SupportsMultisampledTextures()				{ return false; }
 	static FORCEINLINE bool SupportsFences()							{ return false; }
 	static FORCEINLINE bool SupportsPolygonMode()						{ return false; }
@@ -107,6 +108,7 @@ struct FOpenGLES2 : public FOpenGLBase
 	static FORCEINLINE bool SupportsVertexHalfFloat()					{ return bSupportsVertexHalfFloat; }
 	static FORCEINLINE bool SupportsTextureFloat()						{ return bSupportsTextureFloat; }
 	static FORCEINLINE bool SupportsTextureHalfFloat()					{ return bSupportsTextureHalfFloat; }
+	static FORCEINLINE bool SupportsColorBufferFloat()					{ return bSupportsColorBufferFloat; }
 	static FORCEINLINE bool SupportsColorBufferHalfFloat()				{ return bSupportsColorBufferHalfFloat; }
 	static FORCEINLINE bool	SupportsRG16UI()							{ return false; }
 	static FORCEINLINE bool SupportsR11G11B10F()						{ return false; }
@@ -115,6 +117,7 @@ struct FOpenGLES2 : public FOpenGLBase
 	static FORCEINLINE bool SupportsMultisampledRenderToTexture()		{ return bSupportsMultisampledRenderToTexture; }
 	static FORCEINLINE bool SupportsVertexArrayBGRA()					{ return false; }
 	static FORCEINLINE bool SupportsBGRA8888()							{ return bSupportsBGRA8888; }
+	static FORCEINLINE bool SupportsBGRA8888RenderTarget()				{ return bSupportsBGRA8888RenderTarget; }
 	static FORCEINLINE bool SupportsSRGB()								{ return bSupportsSGRB; }
 	static FORCEINLINE bool SupportsRGBA8()								{ return bSupportsRGBA8; }
 	static FORCEINLINE bool SupportsDXT()								{ return bSupportsDXT; }
@@ -131,6 +134,7 @@ struct FOpenGLES2 : public FOpenGLBase
 	static FORCEINLINE GLenum GetDepthFormat()							{ return GL_DEPTH_COMPONENT; }
 	static FORCEINLINE GLenum GetShadowDepthFormat()					{ return GL_DEPTH_COMPONENT; }
 	static FORCEINLINE bool SupportsFramebufferSRGBEnable()				{ return false; }
+	static FORCEINLINE bool SupportsRGB10A2()							{ return bSupportsRGB10A2; }
 
 
 	static FORCEINLINE bool RequiresDontEmitPrecisionForTextureSamplers() { return bRequiresDontEmitPrecisionForTextureSamplers; }
@@ -142,7 +146,7 @@ struct FOpenGLES2 : public FOpenGLBase
 	static FORCEINLINE bool RequiresARMShaderFramebufferFetchDepthStencilUndef() { return bRequiresARMShaderFramebufferFetchDepthStencilUndef; }
 	static FORCEINLINE bool IsCheckingShaderCompilerHacks()				{ return bIsCheckingShaderCompilerHacks; }
     static FORCEINLINE bool IsLimitingShaderCompileCount()              { return bIsLimitingShaderCompileCount; }
-        
+
 	static FORCEINLINE int32 GetReadHalfFloatPixelsEnum()				{ return GL_HALF_FLOAT_OES; }
 
 	static FORCEINLINE GLenum GetVertexHalfFloatFormat()				{ return GL_HALF_FLOAT_OES; }
@@ -227,14 +231,22 @@ struct FOpenGLES2 : public FOpenGLBase
 #endif
 		check(Type == GL_ARRAY_BUFFER || Type == GL_ELEMENT_ARRAY_BUFFER);
 
+#if PLATFORM_ANDROID
+		uint8* Data = (uint8*)glMapBufferOESa(Type, GL_WRITE_ONLY_OES);
+#else
 		uint8* Data = (uint8*) glMapBufferOES(Type, GL_WRITE_ONLY_OES);
+#endif
 		return Data ? Data + InOffset : NULL;
 	}
 
 	static FORCEINLINE void UnmapBuffer(GLenum Type)
 	{
 		check(Type == GL_ARRAY_BUFFER || Type == GL_ELEMENT_ARRAY_BUFFER);
+#if PLATFORM_ANDROID
+		glUnmapBufferOESa(Type);
+#else
 		glUnmapBufferOES(Type);
+#endif
 	}
 
 	static FORCEINLINE void UnmapBufferRange(GLenum Type, uint32 InOffset, uint32 InSize)
@@ -265,7 +277,7 @@ struct FOpenGLES2 : public FOpenGLBase
 
 	static FORCEINLINE void ColorMaskIndexed(GLuint Index, GLboolean Red, GLboolean Green, GLboolean Blue, GLboolean Alpha)
 	{
-		check(Index == 0);
+		check(Index == 0 || SupportsMultipleRenderTargets());
 		glColorMask(Red, Green, Blue, Alpha);
 	}
 
@@ -406,6 +418,9 @@ protected:
 	/** GL_APPLE_texture_format_BGRA8888 */
 	static bool bSupportsBGRA8888;
 
+	/** Whether BGRA supported as color attachment */
+	static bool bSupportsBGRA8888RenderTarget;
+
 	/** GL_OES_vertex_half_float */
 	static bool bSupportsVertexHalfFloat;
 
@@ -435,6 +450,9 @@ protected:
 
 	/** GL_OES_texture_half_float */
 	static bool bSupportsTextureHalfFloat;
+
+	/** GL_EXT_color_buffer_float */
+	static bool bSupportsColorBufferFloat;
 
 	/** GL_EXT_color_buffer_half_float */
 	static bool bSupportsColorBufferHalfFloat;
@@ -507,7 +525,10 @@ public:
 	
 	/* Indicates shader compiler hack checks are being tested */
 	static bool bIsCheckingShaderCompilerHacks;
-    
+
+	/** GL_OES_vertex_type_10_10_10_2 */
+	static bool bSupportsRGB10A2;
+
     /* Indicates shader compiler should be limited */
     static bool bIsLimitingShaderCompileCount;
 };
@@ -745,6 +766,9 @@ public:
 #endif
 #ifndef GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT
 #define GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT 0x8A34
+#endif
+#ifndef GL_UNSIGNED_INT_2_10_10_10_REV
+#define GL_UNSIGNED_INT_2_10_10_10_REV 0x8368
 #endif
 
 // Normalize debug macros due to naming differences across GL versions

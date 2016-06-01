@@ -21,6 +21,9 @@
 #include "TargetPlatform.h"
 #include "IIntroTutorials.h"
 #include "IProjectManager.h"
+#include "LevelViewportLayout.h"
+#include "LevelViewportLayoutEntity.h"
+#include "PixelInspectorModule.h"
 
 // @todo Editor: remove this circular dependency
 #include "Editor/MainFrame/Public/Interfaces/IMainFrameModule.h"
@@ -153,7 +156,8 @@ TSharedRef<SDockTab> FLevelEditorModule::SpawnLevelEditor( const FSpawnTabArgs& 
 		SetLevelEditorInstance(LevelEditorTmp);
 		LevelEditorTmp->Initialize( LevelEditorTab, OwnerWindow.ToSharedRef() );
 
-		GLevelEditorModeTools().SetDefaultMode( FBuiltinEditorModes::EM_Placement );
+		GLevelEditorModeTools().RemoveDefaultMode( FBuiltinEditorModes::EM_Default );
+		GLevelEditorModeTools().AddDefaultMode( FBuiltinEditorModes::EM_Placement );
 		GLevelEditorModeTools().DeactivateAllModes();
 	}
 
@@ -231,12 +235,17 @@ void FLevelEditorModule::StartupModule()
 	// Bind level editor commands shared across an instance
 	BindGlobalLevelEditorCommands();
 
+	FViewportTypeDefinition ViewportType = FViewportTypeDefinition::FromType<FLevelViewportLayoutEntity>(FLevelViewportCommands::Get().SetDefaultViewportType);
+	RegisterViewportType("Default", ViewportType);
+
 	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
 
 	FGlobalTabmanager::Get()->RegisterTabSpawner("LevelEditor", FOnSpawnTab::CreateRaw( this, &FLevelEditorModule::SpawnLevelEditor ) )
 		.SetDisplayName( NSLOCTEXT("LevelEditor", "LevelEditorTab", "Level Editor") );
 
 	FModuleManager::LoadModuleChecked<ISlateReflectorModule>("SlateReflector").RegisterTabSpawner(MenuStructure.GetDeveloperToolsMiscCategory());
+
+	FModuleManager::LoadModuleChecked<FPixelInspectorModule>("PixelInspectorModule").RegisterTabSpawner(MenuStructure.GetDeveloperToolsMiscCategory());
 
 	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
 	MessageLogModule.RegisterLogListing("BuildAndSubmitErrors", LOCTEXT("BuildAndSubmitErrors", "Build and Submit Errors"));
@@ -449,25 +458,60 @@ void FLevelEditorModule::SetLevelEditorTabManager( const TSharedPtr<SDockTab>& O
 	}
 }
 
-void FLevelEditorModule::StartImmersivePlayInEditorSession()
+void FLevelEditorModule::StartPlayInEditorSession()
 {
 	TSharedPtr<ILevelViewport> ActiveLevelViewport = GetFirstActiveViewport();
 
 	if( ActiveLevelViewport.IsValid() )
 	{
-		// Make sure we can find a patch to the viewport.  This will fail in cases where the viewport widget
+		const FVector* StartLocation = NULL;
+		const FRotator* StartRotation = NULL;
+
+		// We never want to play from the camera's location at startup, because the camera could have
+		// been abandoned in a strange location in the map
+		if( 0 )	// @todo immersive
+		{
+			// If this is a perspective viewport, then we'll Play From Here
+			const FLevelEditorViewportClient& LevelViewportClient = ActiveLevelViewport->GetLevelViewportClient();
+			if( LevelViewportClient.IsPerspective() )
+			{
+				// Start PIE from the camera's location and orientation!
+				StartLocation = &LevelViewportClient.GetViewLocation();
+				StartRotation = &LevelViewportClient.GetViewRotation();
+			}
+		}
+
+		// Queue up the PIE session
+		const bool bSimulateInEditor = false;
+		const bool bUseMobilePreview = false;
+		GUnrealEd->RequestPlaySession( true, ActiveLevelViewport, bSimulateInEditor, StartLocation, StartRotation, -1, bUseMobilePreview );
+		// Kick off the queued PIE session immediately.  This is so that at startup, we don't need to
+		// wait for the next engine tick.  We want to see PIE gameplay when the editor first appears!
+		GUnrealEd->StartQueuedPlayMapRequest();
+
+		// Special case for immersive pie startup, When in immersive pie at startup we use the player start but we want to move the camera where the player
+		// was at when pie ended.
+		GEditor->bHasPlayWorldPlacement = true;
+	}
+}
+
+void FLevelEditorModule::GoImmersiveWithActiveLevelViewport( const bool bForceGameView )
+{
+	TSharedPtr<ILevelViewport> ActiveLevelViewport = GetFirstActiveViewport();
+
+	if( ActiveLevelViewport.IsValid() )
+	{
+		// Make sure we can find a path to the viewport.  This will fail in cases where the viewport widget
 		// is in a backgrounded tab, etc.  We can't currently support starting PIE in a backgrounded tab
 		// due to how PIE manages focus and requires event forwarding from the application.
 		TSharedPtr<SWindow> Window = FSlateApplication::Get().FindWidgetWindow( ActiveLevelViewport->AsWidget() );
 		if(Window.IsValid() )
 		{
-			// When in immersive play in editor, toggle game view on the active viewport
-			if( !ActiveLevelViewport->IsInGameView() )
+			if( bForceGameView && !ActiveLevelViewport->IsInGameView() )
 			{
 				ActiveLevelViewport->ToggleGameView();
 			}
 
-			// Start level viewport initially in immersive mode
 			{
 				const bool bWantImmersive = true;
 				const bool bAllowAnimation = false;
@@ -475,38 +519,6 @@ void FLevelEditorModule::StartImmersivePlayInEditorSession()
 				FVector2D WindowSize = Window->GetSizeInScreen();
 				// Set the initial size of the viewport to be the size of the window. This must be done because Slate has not ticked yet so the viewport will have no initial size
 				ActiveLevelViewport->GetActiveViewport()->SetInitialSize( FIntPoint( FMath::TruncToInt( WindowSize.X ), FMath::TruncToInt( WindowSize.Y ) ) );
-			}
-
-			// Launch PIE
-			{
-				const FVector* StartLocation = NULL;
-				const FRotator* StartRotation = NULL;
-
-				// We never want to play from the camera's location at startup, because the camera could have
-				// been abandoned in a strange location in the map
-				if( 0 )	// @todo immersive
-				{
-					// If this is a perspective viewport, then we'll Play From Here
-					const FLevelEditorViewportClient& LevelViewportClient = ActiveLevelViewport->GetLevelViewportClient();
-					if( LevelViewportClient.IsPerspective() )
-					{
-						// Start PIE from the camera's location and orientation!
-						StartLocation = &LevelViewportClient.GetViewLocation();
-						StartRotation = &LevelViewportClient.GetViewRotation();
-					}
-				}
-
-				// Queue up the PIE session
-				const bool bSimulateInEditor = false;
-				const bool bUseMobilePreview = false;
-				GUnrealEd->RequestPlaySession( true, ActiveLevelViewport, bSimulateInEditor, StartLocation, StartRotation, -1, bUseMobilePreview );
-				// Kick off the queued PIE session immediately.  This is so that at startup, we don't need to
-				// wait for the next engine tick.  We want to see PIE gameplay when the editor first appears!
-				GUnrealEd->StartQueuedPlayMapRequest();
-
-				// Special case for immersive pie startup, When in immersive pie at startup we use the player start but we want to move the camera where the player
-				// was at when pie ended.
-				GEditor->bHasPlayWorldPlacement = true;
 			}
 		}
 	}
@@ -532,6 +544,17 @@ TSharedPtr<ILevelEditor> FLevelEditorModule::GetFirstLevelEditor()
 TSharedPtr<SDockTab> FLevelEditorModule::GetLevelEditorTab() const
 {
 	return LevelEditorInstanceTabPtr.Pin();
+}
+
+TSharedRef<IViewportLayoutEntity> FLevelEditorModule::FactoryViewport(FName InTypeName, const FViewportConstructionArgs& ConstructionArgs) const
+{
+	const FViewportTypeDefinition* Definition = CustomViewports.Find(InTypeName);
+	if (Definition)
+	{
+		return Definition->FactoryFunction(ConstructionArgs);
+	}
+
+	return MakeShareable(new FLevelViewportLayoutEntity(ConstructionArgs));
 }
 
 void FLevelEditorModule::BindGlobalLevelEditorCommands()
@@ -561,8 +584,11 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 		ActionList.MapAction( Commands.OpenRecentFileCommands[ CurRecentIndex ], FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::OpenRecentFile, CurRecentIndex ), DefaultExecuteAction );
 	}
 
-	ActionList.MapAction( Commands.Import,
-		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::Import_Clicked ) );
+	ActionList.MapAction( 
+		Commands.ToggleVR, 
+		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ToggleVR ), 
+		FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ToggleVR_CanExecute ),
+		FIsActionChecked::CreateStatic( &FLevelEditorActionCallbacks::ToggleVR_IsChecked ) );
 
 	ActionList.MapAction(Commands.ImportScene,
 		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::ImportScene_Clicked));
@@ -1384,6 +1410,9 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 	ActionList.MapAction(Commands.BuildLODsOnly,
 		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::BuildLODsOnly_Execute));
 	
+	ActionList.MapAction(Commands.BuildTextureStreamingOnly,
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::BuildTextureStreamingOnly_Execute));
+
 	ActionList.MapAction( 
 		Commands.LightingQuality_Production, 
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::SetLightingQuality, (ELightingBuildQuality)Quality_Production ),

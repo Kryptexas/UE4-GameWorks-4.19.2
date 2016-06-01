@@ -97,8 +97,6 @@ public:
 		DLLHandle = FPlatformProcess::GetDllHandle(TEXT("VSPerf140.dll"));	// Visual Studio 2015
 #elif _MSC_VER >= 1800
 		DLLHandle = FPlatformProcess::GetDllHandle(TEXT("VSPerf120.dll"));	// Visual Studio 2013
-#elif _MSC_VER >= 1700
-		DLLHandle = FPlatformProcess::GetDllHandle( TEXT( "VSPerf110.dll" ) );	// Visual Studio 2012
 #else
 		// Older versions of Visual Studio did not support profiling, or did not include the profiling tools with the professional edition
 #endif

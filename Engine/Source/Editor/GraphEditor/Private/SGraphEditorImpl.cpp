@@ -757,6 +757,11 @@ FSlateColor SGraphEditorImpl::InstructionBorderColor() const
 	return BorderColor;
 }
 
+void SGraphEditorImpl::CaptureKeyboard()
+{
+	FSlateApplication::Get().SetKeyboardFocus(GraphPanel);
+}
+
 /////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE 

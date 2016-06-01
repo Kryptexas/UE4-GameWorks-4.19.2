@@ -172,7 +172,7 @@ void FSplineComponentVisualizer::DrawVisualization(const UActorComponent* Compon
 		const USplineComponent* EditedSplineComp = GetEditedSplineComponent();
 
 		const USplineComponent* Archetype = CastChecked<USplineComponent>(SplineComp->GetArchetype());
-		const bool bIsSplineEditable = SplineComp->bSplineHasBeenEdited || SplineComp->SplineInfo.Points == Archetype->SplineInfo.Points;
+		const bool bIsSplineEditable = SplineComp->bSplineHasBeenEdited || SplineComp->SplineInfo.Points == Archetype->SplineInfo.Points || SplineComp->bInputSplinePointsToConstructionScript;
 
 		const FColor ReadOnlyColor = FColor(255, 0, 255, 255);
 		const FColor NormalColor = bIsSplineEditable ? FColor(SplineComp->EditorUnselectedSplineSegmentColor.ToFColor(true)) : ReadOnlyColor;
@@ -313,6 +313,12 @@ void FSplineComponentVisualizer::DrawVisualization(const UActorComponent* Compon
 						{
 							PDI->DrawLine(OldPos - OldRightVector * OldScale.Y, NewPos - NewRightVector * NewScale.Y, LineColor, SDPG_Foreground);
 							PDI->DrawLine(OldPos + OldRightVector * OldScale.Y, NewPos + NewRightVector * NewScale.Y, LineColor, SDPG_Foreground);
+
+							#if VISUALIZE_SPLINE_UPVECTORS
+							const FVector NewUpVector = SplineComp->GetUpVectorAtSplineInputKey(Key, ESplineCoordinateSpace::World);
+							PDI->DrawLine(NewPos, NewPos + NewUpVector * SplineComp->ScaleVisualizationWidth * 0.5f, LineColor, SDPG_Foreground);
+							PDI->DrawLine(NewPos, NewPos + NewRightVector * SplineComp->ScaleVisualizationWidth * 0.5f, LineColor, SDPG_Foreground);
+							#endif
 						}
 
 						OldPos = NewPos;

@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "DerivedDataCacheUsageStats.h"
 
 /** 
  * Thread safe set helper
@@ -56,16 +57,19 @@ public:
 	FThreadSet*							FilesInFlight;
 	/**If true, then do not attempt skip the put even if CachedDataProbablyExists returns true **/
 	bool								bPutEvenIfExists;
+	/** Usage stats to track thread times. */
+	FDerivedDataCacheUsageStats&        UsageStats;
 
 	/** Constructor
 	*/
-	FCachePutAsyncWorker(const TCHAR* InCacheKey, const TArray<uint8>* InData, FDerivedDataBackendInterface* InInnerBackend, bool InbPutEvenIfExists, FDerivedDataBackendInterface* InInflightCache, FThreadSet* InInFilesInFlight)
+	FCachePutAsyncWorker(const TCHAR* InCacheKey, const TArray<uint8>* InData, FDerivedDataBackendInterface* InInnerBackend, bool InbPutEvenIfExists, FDerivedDataBackendInterface* InInflightCache, FThreadSet* InInFilesInFlight, FDerivedDataCacheUsageStats& InUsageStats)
 		: CacheKey(InCacheKey)
 		, Data(*InData)
 		, InnerBackend(InInnerBackend)
 		, InflightCache(InInflightCache)
 		, FilesInFlight(InInFilesInFlight)
 		, bPutEvenIfExists(InbPutEvenIfExists)
+		, UsageStats(InUsageStats)
 	{
 		check(InnerBackend);
 	}
@@ -73,19 +77,23 @@ public:
 	/** Call the inner backend and when that completes, remove the memory cache */
 	void DoWork()
 	{
+		COOK_STAT(auto Timer = UsageStats.TimePut());
 		bool bOk = true;
-		InnerBackend->PutCachedData(*CacheKey, Data, bPutEvenIfExists);
-		if (InflightCache)
+		const bool bAlreadyExists = InnerBackend->CachedDataProbablyExists(*CacheKey);
+		if (!bAlreadyExists || bPutEvenIfExists)
 		{
+			InnerBackend->PutCachedData(*CacheKey, Data, bPutEvenIfExists);
+			COOK_STAT(Timer.AddHit(Data.Num()));
+		}
+		// if it already existed, don't bother checking if we need to retry. We don't.
+		if (InflightCache && !bAlreadyExists && !InnerBackend->CachedDataProbablyExists(*CacheKey))
+		{
+			// retry
+			InnerBackend->PutCachedData(*CacheKey, Data, false);
 			if (!InnerBackend->CachedDataProbablyExists(*CacheKey))
 			{
-				// retry
-				InnerBackend->PutCachedData(*CacheKey, Data, false);
-				if (!InnerBackend->CachedDataProbablyExists(*CacheKey))
-				{
-					UE_LOG(LogDerivedDataCache, Warning, TEXT("FDerivedDataBackendAsyncPutWrapper: Put failed, keeping in memory copy %s."),*CacheKey);
-					bOk = false;
-				}
+				UE_LOG(LogDerivedDataCache, Warning, TEXT("FDerivedDataBackendAsyncPutWrapper: Put failed, keeping in memory copy %s."),*CacheKey);
+				bOk = false;
 			}
 		}
 		if (bOk && InflightCache)
@@ -154,7 +162,10 @@ public:
 	 */
 	virtual bool CachedDataProbablyExists(const TCHAR* CacheKey) override
 	{
-		return (InflightCache && InflightCache->CachedDataProbablyExists(CacheKey)) || InnerBackend->CachedDataProbablyExists(CacheKey);
+		COOK_STAT(auto Timer = UsageStats.TimeProbablyExists());
+		bool Result = (InflightCache && InflightCache->CachedDataProbablyExists(CacheKey)) || InnerBackend->CachedDataProbablyExists(CacheKey);
+		COOK_STAT(if (Result) {	Timer.AddHit(0); });
+		return Result;
 	}
 	/**
 	 * Synchronous retrieve of a cache item
@@ -165,11 +176,17 @@ public:
 	 */
 	virtual bool GetCachedData(const TCHAR* CacheKey, TArray<uint8>& OutData) override
 	{
+		COOK_STAT(auto Timer = UsageStats.TimeGet());
 		if (InflightCache && InflightCache->GetCachedData(CacheKey, OutData))
 		{
+			COOK_STAT(Timer.AddHit(OutData.Num()));
 			return true;
 		}
 		bool bSuccess = InnerBackend->GetCachedData(CacheKey, OutData);
+		if (bSuccess)
+		{
+			COOK_STAT(Timer.AddHit(OutData.Num()));
+		}
 		return bSuccess;
 	}
 	/**
@@ -181,6 +198,7 @@ public:
 	 */
 	virtual void PutCachedData(const TCHAR* CacheKey, TArray<uint8>& InData, bool bPutEvenIfExists) override
 	{
+		COOK_STAT(auto Timer = PutSyncUsageStats.TimePut());
 		if (!InnerBackend->IsWritable())
 		{
 			return; // no point in continuing down the chain
@@ -197,9 +215,10 @@ public:
 				return; // if it is already on its way, we don't need to send it again
 			}
 			InflightCache->PutCachedData(CacheKey, InData, true); // temp copy stored in memory while the async task waits to complete
+			COOK_STAT(Timer.AddHit(InData.Num()));
 		}
 		FDerivedDataBackend::Get().AddToAsyncCompletionCounter(1);
-		(new FAutoDeleteAsyncTask<FCachePutAsyncWorker>(CacheKey, &InData, InnerBackend, bPutEvenIfExists, InflightCache.GetOwnedPointer(), &FilesInFlight))->StartBackgroundTask();
+		(new FAutoDeleteAsyncTask<FCachePutAsyncWorker>(CacheKey, &InData, InnerBackend, bPutEvenIfExists, InflightCache.GetOwnedPointer(), &FilesInFlight, UsageStats))->StartBackgroundTask();
 	}
 
 	virtual void RemoveCachedData(const TCHAR* CacheKey, bool bTransient) override
@@ -218,7 +237,27 @@ public:
 		}
 		InnerBackend->RemoveCachedData(CacheKey, bTransient);
 	}
+
+	virtual void GatherUsageStats(TMap<FString, FDerivedDataCacheUsageStats>& UsageStatsMap, FString&& GraphPath) override
+	{
+		COOK_STAT(
+			{
+			UsageStatsMap.Add(GraphPath + TEXT(": AsyncPut"), UsageStats);
+			UsageStatsMap.Add(GraphPath + TEXT(": AsyncPutSync"), PutSyncUsageStats);
+			if (InnerBackend)
+			{
+				InnerBackend->GatherUsageStats(UsageStatsMap, GraphPath + TEXT(". 0"));
+			}
+			if (InflightCache)
+			{
+				InflightCache->GatherUsageStats(UsageStatsMap, GraphPath + TEXT(". 1"));
+			}
+		});
+	}
+
 private:
+	FDerivedDataCacheUsageStats UsageStats;
+	FDerivedDataCacheUsageStats PutSyncUsageStats;
 
 	/** Backend to use for storage, my responsibilities are about async puts **/
 	FDerivedDataBackendInterface*					InnerBackend;

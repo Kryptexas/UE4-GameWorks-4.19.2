@@ -10,6 +10,7 @@
 #endif
 #include "ShaderCache.h"
 #include "MetalProfiler.h"
+#include "GenericPlatformDriver.h"
 
 /** Set to 1 to enable GPU events in Xcode frame debugger */
 #define ENABLE_METAL_GPUEVENTS	(UE_BUILD_DEBUG | UE_BUILD_DEVELOPMENT)
@@ -31,6 +32,7 @@ IMPLEMENT_MODULE(FMetalDynamicRHIModule, MetalRHI);
 
 FMetalDynamicRHI::FMetalDynamicRHI()
 : FMetalRHICommandContext(nullptr, FMetalDeviceContext::CreateDeviceContext())
+, AsyncComputeContext(nullptr)
 {
 	// This should be called once at the start 
 	check( IsInGameThread() );
@@ -64,11 +66,15 @@ FMetalDynamicRHI::FMetalDynamicRHI()
     {
         GMaxRHIFeatureLevel = ERHIFeatureLevel::SM4;
         GMaxRHIShaderPlatform = SP_METAL_MRT;
+		GSupportsMultipleRenderTargets = true;
     }
     else
     {
         GMaxRHIFeatureLevel = ERHIFeatureLevel::ES3_1;
         GMaxRHIShaderPlatform = SP_METAL;
+		// disable MRTs completely, because there is code in the engine that assumes the ability to use
+		// 32 bytes of pixel storage (like the 2 VERY WIDE ones in GPU particles)
+		GSupportsMultipleRenderTargets = false;
 	}
 	
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = SP_METAL;
@@ -101,7 +107,7 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 		GMaxRHIShaderPlatform = SP_METAL_SM4;
 	}
 	
-	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = SP_METAL_MACES3_1;
+	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = SP_METAL_MACES2;
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES3_1] = SP_METAL_MACES3_1;
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM4] = SP_METAL_SM4;
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM5] = (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5) ? GMaxRHIShaderPlatform : SP_NumPlatforms;
@@ -137,8 +143,9 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	// Make sure the vendors match - the assumption that order in IORegistry is the order in Metal may not hold up forever.
 	if(GPUDesc.GPUVendorId == GRHIVendorId)
 	{
-		MemoryStats.DedicatedVideoMemory = GPUDesc.GPUMemoryMB;
-		MemoryStats.TotalGraphicsMemory = GPUDesc.GPUMemoryMB;
+		GRHIDeviceId = GPUDesc.GPUDeviceId;
+		MemoryStats.DedicatedVideoMemory = GPUDesc.GPUMemoryMB * 1024 * 1024;
+		MemoryStats.TotalGraphicsMemory = GPUDesc.GPUMemoryMB * 1024 * 1024;
 		MemoryStats.DedicatedSystemMemory = 0;
 		MemoryStats.SharedSystemMemory = 0;
 	}
@@ -148,7 +155,7 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	GConfig->GetInt(TEXT("TextureStreaming"), TEXT("PoolSizeVRAMPercentage"), GPoolSizeVRAMPercentage, GEngineIni);
 	if ( GPoolSizeVRAMPercentage > 0 && MemoryStats.TotalGraphicsMemory > 0 )
 	{
-		float PoolSize = float(GPoolSizeVRAMPercentage) * 0.01f * (float(MemoryStats.TotalGraphicsMemory) * 1024.f * 1024.f);
+		float PoolSize = float(GPoolSizeVRAMPercentage) * 0.01f * float(MemoryStats.TotalGraphicsMemory);
 		
 		// Truncate GTexturePoolSize to MB (but still counted in bytes)
 		GTexturePoolSize = int64(FGenericPlatformMath::TruncToFloat(PoolSize / 1024.0f / 1024.0f)) * 1024 * 1024;
@@ -173,12 +180,26 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 		}
 	}
 	
-	// @todo Need to get this working properly for performance parity with OpenGL on many Macs.
-	GRHISupportsRHIThread = FParse::Param(FCommandLine::Get(),TEXT("rhithread"));
-	GSupportsParallelOcclusionQueries = GRHISupportsRHIThread;
+	GRHISupportsRHIThread = false;
+	if (GMaxRHIShaderPlatform == SP_METAL_SM5)
+	{
 #if METAL_SUPPORTS_PARALLEL_RHI_EXECUTE
-	GRHISupportsParallelRHIExecute = GRHISupportsRHIThread;
+#if WITH_EDITORONLY_DATA
+		GRHISupportsRHIThread = !GIsEditor;
+#else
+		GRHISupportsRHIThread = true;
 #endif
+		GRHISupportsParallelRHIExecute = GRHISupportsRHIThread;
+#endif
+		GSupportsEfficientAsyncCompute = GRHISupportsParallelRHIExecute && IsRHIDeviceAMD(); // Only AMD currently support async. compute and it requires parallel execution to be useful.
+		GSupportsParallelOcclusionQueries = GRHISupportsRHIThread;
+	}
+	else
+	{
+		GRHISupportsParallelRHIExecute = false;
+		GSupportsEfficientAsyncCompute = false;
+		GSupportsParallelOcclusionQueries = false;
+	}
 	
 #endif
 
@@ -199,6 +220,7 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	GSupportsRenderTargetFormat_PF_G8 = false;
 	GSupportsQuads = false;
 	GRHISupportsTextureStreaming = true;
+	GSupportsWideMRT = bCanUseWideMRTs;
 
 	GRHIRequiresEarlyBackBufferRenderTarget = false;
 	GSupportsSeparateRenderTargetBlendState = (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4);
@@ -344,12 +366,18 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	GPixelFormats[PF_R16_SINT			].PlatformFormat	= MTLPixelFormatR16Sint;
 	GPixelFormats[PF_R16_UINT			].PlatformFormat	= MTLPixelFormatR16Uint;
 	
+	// get driver version (todo: share with other RHIs)
 	{
-		FPlatformMisc::GetGPUDriverInfo(GRHIAdapterName, GRHIAdapterInternalDriverVersion, GRHIAdapterUserDriverVersion, GRHIAdapterDriverDate);
+		FGPUDriverInfo GPUDriverInfo = FPlatformMisc::GetGPUDriverInfo(GRHIAdapterName);
+		
+		GRHIAdapterUserDriverVersion = GPUDriverInfo.UserDriverVersion;
+		GRHIAdapterInternalDriverVersion = GPUDriverInfo.InternalDriverVersion;
+		GRHIAdapterDriverDate = GPUDriverInfo.DriverDate;
 		
 		UE_LOG(LogMetal, Display, TEXT("    Adapter Name: %s"), *GRHIAdapterName);
-		UE_LOG(LogMetal, Display, TEXT("  Driver Version: %s (internal:%s)"), *GRHIAdapterUserDriverVersion, *GRHIAdapterInternalDriverVersion);
+		UE_LOG(LogMetal, Display, TEXT("  Driver Version: %s (internal:%s, unified:%s)"), *GRHIAdapterUserDriverVersion, *GRHIAdapterInternalDriverVersion, *GPUDriverInfo.GetUnifiedDriverVersion());
 		UE_LOG(LogMetal, Display, TEXT("     Driver Date: %s"), *GRHIAdapterDriverDate);
+		UE_LOG(LogMetal, Display, TEXT("          Vendor: %s"), *GPUDriverInfo.ProviderName);
 #if PLATFORM_MAC
 		if(GPUDesc.GPUVendorId == GRHIVendorId)
 		{
@@ -394,6 +422,7 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 #if ENABLE_METAL_GPUPROFILE
 	Profiler = new FMetalGPUProfiler(Context);
 #endif
+	AsyncComputeContext = GSupportsEfficientAsyncCompute ? new FMetalRHIComputeContext(Profiler, new FMetalContext(Context->GetCommandQueue(), true)) : nullptr;
 }
 
 FMetalDynamicRHI::~FMetalDynamicRHI()
@@ -433,11 +462,6 @@ uint64 FMetalDynamicRHI::RHICalcTextureCubePlatformSize(uint32 Size, uint8 Forma
 void FMetalDynamicRHI::Init()
 {
 	GIsRHIInitialized = true;
-}
-
-void FMetalDynamicRHI::PostInit()
-{
-	SetupRecursiveResources();
 }
 
 void FMetalDynamicRHI::RHIBeginFrame()
@@ -488,11 +512,11 @@ void FMetalRHICommandContext::RHIEndScene()
 	check(false);
 }
 
-void FMetalRHICommandContext::RHIPushEvent(const TCHAR* Name)
+void FMetalRHICommandContext::RHIPushEvent(const TCHAR* Name, FColor Color)
 {
 #if ENABLE_METAL_GPUEVENTS
 #if ENABLE_METAL_GPUPROFILE
-	Profiler->PushEvent(Name);
+	Profiler->PushEvent(Name, Color);
 #endif
 	// @todo zebra : this was "[NSString stringWithTCHARString:Name]", an extension only on ios for some reason, it should be on Mac also
 	Context->GetCommandEncoder().PushDebugGroup([NSString stringWithCString:TCHAR_TO_UTF8(Name) encoding:NSUTF8StringEncoding]);
@@ -528,6 +552,7 @@ void FMetalDynamicRHI::RHIFlushResources()
 void FMetalDynamicRHI::RHIAcquireThreadOwnership()
 {
 	Context->CreateAutoreleasePool();
+	SetupRecursiveResources();
 }
 
 void FMetalDynamicRHI::RHIReleaseThreadOwnership()
@@ -540,17 +565,3 @@ void* FMetalDynamicRHI::RHIGetNativeDevice()
 	return (void*)Context->GetDevice();
 }
 
-void FMetalRHICommandContext::RHIBeginAsyncComputeJob_DrawThread(EAsyncComputePriority Priority)
-{
-	UE_LOG(LogRHI, Fatal, TEXT("%s not implemented yet"), ANSI_TO_TCHAR(__FUNCTION__));
-}
-
-void FMetalRHICommandContext::RHIEndAsyncComputeJob_DrawThread(uint32 FenceIndex)
-{
-	UE_LOG(LogRHI, Fatal, TEXT("%s not implemented yet"), ANSI_TO_TCHAR(__FUNCTION__));
-}
-
-void FMetalRHICommandContext::RHIGraphicsWaitOnAsyncComputeJob(uint32 FenceIndex)
-{
-	UE_LOG(LogRHI, Fatal, TEXT("%s not implemented yet"), ANSI_TO_TCHAR(__FUNCTION__));
-}

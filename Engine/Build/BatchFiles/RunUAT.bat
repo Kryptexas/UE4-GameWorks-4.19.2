@@ -55,17 +55,18 @@ call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
 goto ReadyToCompile
 
 
-rem ## Check for Visual Studio 2012
-:NoVisualStudio2013Environment
+
+rem ## Check for Visual Studio 2013
 
 pushd %~dp0
-call GetVSComnToolsPath 11
+call GetVSComnToolsPath 12
 popd
 
-if "%VsComnToolsPath%" == "" goto RunPrecompiled
+if "%VsComnToolsPath%" == "" goto NoVisualStudio2013Environment
 call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
 goto ReadyToCompile
 
+:NoVisualStudio2013Environment
 
 rem ## ok, well it doesn't look like visual studio is installed, let's try running the precompiled one.
 :RunPrecompiled
@@ -102,7 +103,7 @@ set RUNUAT_EXITCODE=1
 goto Exit_Failure
 
 :Error_NoVisualStudioEnvironment
-echo RunUAT.bat ERROR: A valid version of Visual Studio 2015 or Visual Studio 2013 or Visual Studio 2012 does not appear to be installed.
+echo RunUAT.bat ERROR: A valid version of Visual Studio 2015 does not appear to be installed.
 set RUNUAT_EXITCODE=1
 goto Exit_Failure
 

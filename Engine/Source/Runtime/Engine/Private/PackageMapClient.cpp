@@ -24,7 +24,7 @@ static const int GUID_PACKET_ACKED		= -1;
 static const int INTERNAL_LOAD_OBJECT_RECURSION_LIMIT = 16;
 
 static TAutoConsoleVariable<int32> CVarAllowAsyncLoading( TEXT( "net.AllowAsyncLoading" ), 0, TEXT( "Allow async loading" ) );
-static TAutoConsoleVariable<int32> CVarIgnorePackageMismatch( TEXT( "net.IgnorePackageMismatch" ), 0, TEXT( "Ignore when package versions are different" ) );
+static TAutoConsoleVariable<int32> CVarIgnoreNetworkCheckumMismatch( TEXT( "net.IgnoreNetworkCheckumMismatch" ), 0, TEXT( "" ) );
 
 /*-----------------------------------------------------------------------------
 	UPackageMapClient implementation.
@@ -33,13 +33,6 @@ UPackageMapClient::UPackageMapClient(const FObjectInitializer& ObjectInitializer
 	: Super(ObjectInitializer)
   , Connection(nullptr)
 {
-}
-
-static uint32 GetPackageChecksum( const UPackage* Package )
-{
-	const FGuid Guid = Package->GetGuid();
-
-	return FCrc::MemCrc32( &Guid, sizeof( FGuid ) );
 }
 
 /**
@@ -192,7 +185,7 @@ bool UPackageMapClient::WriteObject( FArchive& Ar, UObject* ObjOuter, FNetworkGU
  *		For static actors, this will just be a single call to SerializeObject, since they can be referenced by their path name.
  *		For dynamic actors, first the actor's reference is serialized but will not resolve on clients since they haven't spawned the actor yet.
  *		The actor archetype is then serialized along with the starting location, rotation, and velocity.
- *		After reading this information, the client spawns this actor via GWorld and assigns it the NetGUID it read at the top of the function.
+ *		After reading this information, the client spawns this actor in the NetDriver's World and assigns it the NetGUID it read at the top of the function.
  *
  *		returns true if a new actor was spawned. false means an existing actor was found for the netguid.
  */
@@ -477,13 +470,15 @@ void UPackageMapClient::InternalWriteObject( FArchive & Ar, FNetworkGUID NetGUID
 	//   note: Default NetGUID is implied to always send path
 	FExportFlags ExportFlags;
 
-	ExportFlags.bHasNetworkChecksum = GuidCache->ShouldUseNetworkChecksum() ? 1 : 0;
+	ExportFlags.bHasNetworkChecksum = ( GuidCache->NetworkChecksumMode != FNetGUIDCache::NETCHECKSUM_None ) ? 1 : 0;
 
 	if ( NetGUID.IsDefault() )
 	{
 		// Only the client sends default guids
 		check( !IsNetGUIDAuthority() );
 		ExportFlags.bHasPath = 1;
+
+		Ar << ExportFlags.Value;
 	}
 	else if ( GuidCache->IsExportingNetGUIDBunch )
 	{
@@ -536,19 +531,11 @@ void UPackageMapClient::InternalWriteObject( FArchive & Ar, FNetworkGUID NetGUID
 		Ar << ObjectPathName;
 
 		uint32 NetworkChecksum = 0;
-		uint32 PackageChecksum = 0;
 
 		if ( ExportFlags.bHasNetworkChecksum )
 		{
 			NetworkChecksum = GuidCache->GetNetworkChecksum( Object );
 			Ar << NetworkChecksum;
-		}
-
-		if ( bIsPackage )
-		{
-			PackageChecksum = GetPackageChecksum( CastChecked< const UPackage >( Object ) );
-			Ar << PackageChecksum;
-			UE_LOG( LogNetPackageMap, VeryVerbose, TEXT( "InternalWriteObject: Package: %s, GUID: %u" ), *ObjectPathName, PackageChecksum );
 		}
 
 		FNetGuidCacheObject* CacheObject = GuidCache->ObjectLookup.Find( NetGUID );
@@ -560,7 +547,6 @@ void UPackageMapClient::InternalWriteObject( FArchive & Ar, FNetworkGUID NetGUID
 			CacheObject->bNoLoad			= ExportFlags.bNoLoad;
 			CacheObject->bIgnoreWhenMissing = ExportFlags.bNoLoad;
 			CacheObject->NetworkChecksum	= NetworkChecksum;
-			CacheObject->PackageChecksum	= PackageChecksum;
 		}
 
 		if ( GuidCache->IsExportingNetGUIDBunch )
@@ -584,7 +570,6 @@ static void SanityCheckExport(
 	const UObject *			Object, 
 	const FNetworkGUID &	NetGUID, 
 	const FString &			ExpectedPathName, 
-	const uint32			ExpectedPackageChecksum,
 	const UObject *			ExpectedOuter, 
 	const FNetworkGUID &	ExpectedOuterGUID,
 	const FExportFlags &	ExportFlags )
@@ -600,11 +585,6 @@ static void SanityCheckExport(
 		if ( CacheObject->OuterGUID != ExpectedOuterGUID )
 		{
 			UE_LOG( LogNetPackageMap, Warning, TEXT( "SanityCheckExport: CacheObject->OuterGUID != ExpectedOuterGUID. NetGUID: %s, Object: %s, Expected: %s" ), *NetGUID.ToString(), *Object->GetPathName(), *ExpectedPathName );
-		}
-
-		if ( CacheObject->PackageChecksum != ExpectedPackageChecksum )
-		{
-			UE_LOG( LogNetPackageMap, Warning, TEXT( "SanityCheckExport: CacheObject->PackageChecksum != ExpectedPackageChecksum. NetGUID: %s, Object: %s, Expected: %s" ), *NetGUID.ToString(), *Object->GetPathName(), *ExpectedPathName );
 		}
 	}
 	else
@@ -678,11 +658,7 @@ FNetworkGUID UPackageMapClient::InternalLoadObject( FArchive & Ar, UObject *& Ob
 	// ----------------	
 	FExportFlags ExportFlags;
 
-	if ( NetGUID.IsDefault() )
-	{
-		ExportFlags.bHasPath = 1;
-	}
-	else if ( GuidCache->IsExportingNetGUIDBunch )
+	if ( NetGUID.IsDefault() || GuidCache->IsExportingNetGUIDBunch )
 	{
 		Ar << ExportFlags.Value;
 
@@ -701,7 +677,6 @@ FNetworkGUID UPackageMapClient::InternalLoadObject( FArchive & Ar, UObject *& Ob
 
 		FString PathName;
 		uint32	NetworkChecksum = 0;
-		uint32	PackageChecksum = 0;
 
 		Ar << PathName;
 
@@ -711,12 +686,6 @@ FNetworkGUID UPackageMapClient::InternalLoadObject( FArchive & Ar, UObject *& Ob
 		}
 
 		const bool bIsPackage = NetGUID.IsStatic() && !OuterGUID.IsValid();
-
-		if ( bIsPackage )
-		{
-			Ar << PackageChecksum;
-			UE_LOG( LogNetPackageMap, VeryVerbose, TEXT( "InternalLoadObject: Package: %s, GUID: %u" ), *PathName, PackageChecksum );
-		}
 
 		if ( Ar.IsError() )
 		{
@@ -731,7 +700,7 @@ FNetworkGUID UPackageMapClient::InternalLoadObject( FArchive & Ar, UObject *& Ob
 		if ( Object != NULL )
 		{
 			// If we already have the object, just do some sanity checking and return
-			SanityCheckExport( GuidCache.Get(), Object, NetGUID, PathName, PackageChecksum, ObjOuter, OuterGUID, ExportFlags );
+			SanityCheckExport( GuidCache.Get(), Object, NetGUID, PathName, ObjOuter, OuterGUID, ExportFlags );
 			return NetGUID;
 		}
 
@@ -763,6 +732,18 @@ FNetworkGUID UPackageMapClient::InternalLoadObject( FArchive & Ar, UObject *& Ob
 				return NetGUID;
 			}
 
+			if ( NetworkChecksum != 0 && GuidCache->NetworkChecksumMode == FNetGUIDCache::NETCHECKSUM_SaveAndUse && !CVarIgnoreNetworkCheckumMismatch.GetValueOnGameThread() )
+			{
+				const uint32 CompareNetworkChecksum = GuidCache->GetNetworkChecksum( Object );
+
+				if ( CompareNetworkChecksum != NetworkChecksum )
+				{
+					UE_LOG( LogNetPackageMap, Error, TEXT( "UPackageMapClient::InternalLoadObject: Default object package network checksum mismatch! PathName: %s, ObjOuter: %s, GUID1: %u, GUID2: %u " ), *PathName, ObjOuter != NULL ? *ObjOuter->GetPathName() : TEXT( "NULL" ), CompareNetworkChecksum, NetworkChecksum );
+					Object = NULL;
+					return NetGUID;
+				}
+			}
+
 			if ( bIsPackage )
 			{
 				UPackage * Package = Cast< UPackage >( Object );
@@ -770,13 +751,6 @@ FNetworkGUID UPackageMapClient::InternalLoadObject( FArchive & Ar, UObject *& Ob
 				if ( Package == NULL )
 				{
 					UE_LOG( LogNetPackageMap, Error, TEXT( "UPackageMapClient::InternalLoadObject: Default object not a package from client: PathName: %s, ObjOuter: %s " ), *PathName, ObjOuter != NULL ? *ObjOuter->GetPathName() : TEXT( "NULL" ) );
-					Object = NULL;
-					return NetGUID;
-				}
-
-				if ( !GuidCache->ShouldIgnorePackageMismatch() && GetPackageChecksum( Package ) != PackageChecksum )
-				{
-					UE_LOG( LogNetPackageMap, Error, TEXT( "UPackageMapClient::InternalLoadObject: Default object package guid mismatch! PathName: %s, ObjOuter: %s, GUID1: %u, GUID2: %u " ), *PathName, ObjOuter != NULL ? *ObjOuter->GetPathName() : TEXT( "NULL" ), GetPackageChecksum( Package ), PackageChecksum );
 					Object = NULL;
 					return NetGUID;
 				}
@@ -805,7 +779,7 @@ FNetworkGUID UPackageMapClient::InternalLoadObject( FArchive & Ar, UObject *& Ob
 		const bool bIgnoreWhenMissing = ExportFlags.bNoLoad;
 
 		// Register this path and outer guid combo with the net guid
-		GuidCache->RegisterNetGUIDFromPath_Client( NetGUID, PathName, OuterGUID, NetworkChecksum, PackageChecksum, ExportFlags.bNoLoad, bIgnoreWhenMissing );
+		GuidCache->RegisterNetGUIDFromPath_Client( NetGUID, PathName, OuterGUID, NetworkChecksum, ExportFlags.bNoLoad, bIgnoreWhenMissing );
 
 		// Try again now that we've registered the path
 		Object = GuidCache->GetObjectFromNetGUID( NetGUID, GuidCache->IsExportingNetGUIDBunch );
@@ -856,12 +830,13 @@ bool UPackageMapClient::ExportNetGUID( FNetworkGUID NetGUID, const UObject* Obje
 		{
 			check( ExportNetGUIDCount == 0 );
 
-			CurrentExportBunch = new FOutBunch(this, Connection->MaxPacket*8-MAX_BUNCH_HEADER_BITS-MAX_PACKET_TRAILER_BITS-MAX_PACKET_HEADER_BITS );
+			CurrentExportBunch = new FOutBunch(this, Connection->GetMaxSingleBunchSizeBits());
 			CurrentExportBunch->SetAllowResize(false);
-			CurrentExportBunch->bHasGUIDs = true;
+			CurrentExportBunch->bHasPackageMapExports = true;
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			CurrentExportBunch->DebugString = TEXT("NetGUIDs");
 #endif
+			CurrentExportBunch->WriteBit( 0 );		// To signify this is NOT a rep layout export
 
 			ExportNetGUIDCount = 0;
 			*CurrentExportBunch << ExportNetGUIDCount;
@@ -930,20 +905,25 @@ bool UPackageMapClient::ExportNetGUID( FNetworkGUID NetGUID, const UObject* Obje
 	return false;
 }
 
+static void PatchHeaderCount( FBitWriter& Writer, bool bHasRepLayoutExport, uint32 NewCount )
+{
+	FBitWriterMark Reset;
+	FBitWriterMark Restore( Writer );
+	Reset.PopWithoutClear( Writer );
+	Writer.WriteBit( bHasRepLayoutExport ? 1 : 0 );
+	Writer << NewCount;
+	Restore.PopWithoutClear( Writer );
+}
+
 /** Called when an export bunch is finished. It writes how many NetGUIDs are contained in the bunch and finalizes the book keeping so we know what NetGUIDs are in the bunch */
 void UPackageMapClient::ExportNetGUIDHeader()
 {
 	check(CurrentExportBunch);
-	FOutBunch& Out = *CurrentExportBunch;
 
 	UE_LOG(LogNetPackageMap, Log, TEXT("	UPackageMapClient::ExportNetGUID. Bytes: %d Bits: %d ExportNetGUIDCount: %d"), CurrentExportBunch->GetNumBytes(), CurrentExportBunch->GetNumBits(), ExportNetGUIDCount);
 
 	// Rewrite how many NetGUIDs were exported.
-	FBitWriterMark Reset;
-	FBitWriterMark Restore(Out);
-	Reset.PopWithoutClear(Out);
-	Out << ExportNetGUIDCount;
-	Restore.PopWithoutClear(Out);
+	PatchHeaderCount( *CurrentExportBunch, false, ExportNetGUIDCount );
 
 	// If we've written new NetGUIDs to the 'bunch' set (current+1)
 	if (UE_LOG_ACTIVE(LogNetPackageMap,Verbose))
@@ -971,8 +951,17 @@ void UPackageMapClient::ExportNetGUIDHeader()
 
 void UPackageMapClient::ReceiveNetGUIDBunch( FInBunch &InBunch )
 {
+	check( InBunch.bHasPackageMapExports );
+
+	const bool bHasRepLayoutExport = InBunch.ReadBit() == 1 ? true : false;
+
+	if ( bHasRepLayoutExport )
+	{
+		ReceiveCompatibleRepLayoutExports( InBunch );
+		return;
+	}
+
 	GuidCache->IsExportingNetGUIDBunch = true;
-	check(InBunch.bHasGUIDs);
 
 	int32 NumGUIDsInBunch = 0;
 	InBunch << NumGUIDsInBunch;
@@ -1010,8 +999,272 @@ void UPackageMapClient::ReceiveNetGUIDBunch( FInBunch &InBunch )
 	GuidCache->IsExportingNetGUIDBunch = false;
 }
 
-bool UPackageMapClient::AppendExportBunches(TArray<FOutBunch *>& OutgoingBunches)
+TSharedPtr< FCompatibleRepLayout > UPackageMapClient::TrackCompatibleRepLayout( const FRepLayout* RepLayout )
 {
+	TSharedPtr< FCompatibleRepLayout > CompatibleRepLayout = GuidCache->CompatibleRepLayoutMap.FindRef( RepLayout->Owner->GetPathName() );
+
+	if ( !CompatibleRepLayout.IsValid() )
+	{
+		CompatibleRepLayout = TSharedPtr< FCompatibleRepLayout >( new FCompatibleRepLayout() );
+		CompatibleRepLayout->PathName = RepLayout->Owner->GetPathName();
+
+		CompatibleRepLayout->PathNameIndex = ++GuidCache->UniqueCompatibleRepLayoutPathIndex;
+
+		check( !GuidCache->CompatibleRepLayoutPathToIndex.Contains( CompatibleRepLayout->PathName ) );
+		check( !GuidCache->CompatibleRepLayoutIndexToPath.Contains( CompatibleRepLayout->PathNameIndex ) );
+
+		GuidCache->CompatibleRepLayoutPathToIndex.Add( CompatibleRepLayout->PathName, CompatibleRepLayout->PathNameIndex );
+		GuidCache->CompatibleRepLayoutIndexToPath.Add( CompatibleRepLayout->PathNameIndex, CompatibleRepLayout->PathName );
+
+		CompatibleRepLayout->Cmds.SetNum( RepLayout->Cmds.Num() );
+
+		for ( int32 i = 0; i < RepLayout->Cmds.Num(); i++ )
+		{
+			FCompatibleRepLayoutCmd CompatibleCmd(
+				i,
+				RepLayout->Cmds[i].CompatibleChecksum,
+				RepLayout->Cmds[i].Property ? RepLayout->Cmds[i].Property->GetName() : TEXT( "" ),
+				RepLayout->Cmds[i].Property ? RepLayout->Cmds[i].Property->GetCPPType( nullptr, 0 ) : TEXT( "" ) );
+
+			CompatibleRepLayout->Cmds[i] = CompatibleCmd;
+		}
+
+		GuidCache->CompatibleRepLayoutMap.Add( CompatibleRepLayout->PathName, CompatibleRepLayout );
+	}
+
+	return CompatibleRepLayout;
+}
+
+void UPackageMapClient::TrackCompatibleRepLayoutCmd( const FRepLayout* RepLayout, FCompatibleRepLayout* CompatibleRepLayout, const int32 CmdIndex )
+{
+	CompatibleRepLayout->Cmds[CmdIndex].bExported = true;
+
+	const uint64 CmdHandle = ( ( uint64 )CompatibleRepLayout->PathNameIndex ) << 32 | ( uint64 )CmdIndex;
+
+	// If this cmd hasn't been confirmed as exported, we need to export it for this bunch
+	if ( !CompatibleRepLayoutCmdExported.Contains( CmdHandle ) )
+	{
+		CompatibleRepLayoutCmdExports.Add( CmdHandle );		// NOTE - This is a set, so it will only add once
+	}
+}
+
+TSharedPtr< FCompatibleRepLayout > UPackageMapClient::GetCompatibleRepLayoutChecked( UObject* Owner ) const
+{
+	return GuidCache->CompatibleRepLayoutMap.FindChecked( Owner->GetPathName() );
+}
+
+void UPackageMapClient::SerializeCompatibleReplayoutMap( FArchive& Ar )
+{
+	if ( Ar.IsSaving() )
+	{
+		// Save the number of layouts
+		uint32 NumLayouts = GuidCache->CompatibleRepLayoutMap.Num();
+		Ar << NumLayouts;
+
+		// Save each layout
+		for ( auto It = GuidCache->CompatibleRepLayoutMap.CreateIterator(); It; ++It )
+		{
+			// Save out the compatible replayout
+			Ar << *It.Value().Get();
+		}
+	}
+	else
+	{
+		// Clear all of our mappings, since we're starting over
+		GuidCache->CompatibleRepLayoutMap.Empty();
+		GuidCache->CompatibleRepLayoutPathToIndex.Empty();
+		GuidCache->CompatibleRepLayoutIndexToPath.Empty();
+
+		// Read the number of layouts
+		uint32 NumLayouts = 0;
+		Ar << NumLayouts;
+
+		// Read each compatible layout
+		for ( int32 i = 0; i < ( int32 )NumLayouts; i++ )
+		{
+			TSharedPtr< FCompatibleRepLayout > CompatibleRepLayout = TSharedPtr< FCompatibleRepLayout >( new FCompatibleRepLayout() );
+
+			// Read in the compatible layout
+			Ar << *CompatibleRepLayout.Get();
+
+			// Assign index to path name
+			GuidCache->CompatibleRepLayoutPathToIndex.Add( CompatibleRepLayout->PathName, CompatibleRepLayout->PathNameIndex );
+			GuidCache->CompatibleRepLayoutIndexToPath.Add( CompatibleRepLayout->PathNameIndex, CompatibleRepLayout->PathName );
+
+			// Add the compatible layout to the map
+			GuidCache->CompatibleRepLayoutMap.Add( CompatibleRepLayout->PathName, CompatibleRepLayout );
+		}
+	}
+}
+
+void UPackageMapClient::AppendCompatibleRepLayoutExports( TArray<FOutBunch *>& OutgoingBunches )
+{
+	if ( CompatibleRepLayoutCmdExports.Num() == 0 )
+	{
+		return;	// Nothing to do
+	}
+
+	FOutBunch* ExportBunch = nullptr;
+	TSet< uint32 > ExportedPathInThisBunchAlready;
+
+	uint32 CurrentRepLayoutCmdCount = 0;
+
+	// Go through each layout, and try to export to single bunch, using a new bunch each time we fragment (go past max bunch size)
+	for ( const uint64 CmdExport : CompatibleRepLayoutCmdExports )
+	{
+		// Parse the path name index and cmd index out of the uint64
+		uint32 PathNameIndex	= CmdExport >> 32;
+		uint32 CmdIndex			= CmdExport & ( ( (uint64)1 << 32 ) - 1 );
+
+		check( PathNameIndex != 0 );
+
+		FString PathName = GuidCache->CompatibleRepLayoutIndexToPath.FindChecked( PathNameIndex );
+		TSharedPtr< FCompatibleRepLayout > CompatibleRepLayout = GuidCache->CompatibleRepLayoutMap.FindChecked( PathName );
+
+		for ( int32 NumTries = 0; NumTries < 2; NumTries++ )
+		{
+			if ( ExportBunch == nullptr )
+			{
+				ExportBunch = new FOutBunch( this, Connection->GetMaxSingleBunchSizeBits() );
+				ExportBunch->SetAllowResize( false );
+				ExportBunch->bHasPackageMapExports = true;
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+				ExportBunch->DebugString = TEXT( "CompatibleRepLayoutCmdExports" );
+#endif
+
+				ExportBunch->WriteBit( 1 );		// To signify this is a rep layout export
+
+				// Write stub cmd amount, we'll replace it with the final number when this bunch fills up (or we're done)
+				uint32 NumFakeRepLayoutCmds = 0;
+				*ExportBunch << NumFakeRepLayoutCmds;
+			}
+
+			// Save our spot so we can undo if we don't have enough room
+			FBitWriterMark LastExportMark;
+			LastExportMark.Init( *ExportBunch );
+
+			// Write path index
+			ExportBunch->SerializeIntPacked( PathNameIndex );
+
+			// Export the path if we need to
+			if ( !CompatibleRepLayoutPathExported.Contains( PathNameIndex ) && !ExportedPathInThisBunchAlready.Contains( PathNameIndex ) )
+			{
+				ExportBunch->WriteBit( 1 );
+				*ExportBunch << PathName;
+			}
+			else
+			{
+				ExportBunch->WriteBit( 0 );
+			}
+
+			check( CmdIndex == CompatibleRepLayout->Cmds[CmdIndex].Handle );
+
+			*ExportBunch << CompatibleRepLayout->Cmds[CmdIndex];
+
+			if ( !ExportBunch->IsError() )
+			{
+				// We had enough room, continue on to the next one
+				ExportBunch->ExportRepLayoutCmds.Add( CmdExport );		// Add this cmd to this bunch so we know to handle it during NotifyBunchCommit
+				ExportedPathInThisBunchAlready.Add( PathNameIndex );
+				CurrentRepLayoutCmdCount++;
+				break;
+			}
+
+			//
+			// If we get here, we overflowed, wrap up the currently pending bunch, and start a new one
+			//
+
+			if ( CurrentRepLayoutCmdCount == 0 || NumTries == 1 )
+			{
+				// This means we couldn't serialize a single compatible rep layout cmd into a single bunch. This should never happen unless a single cmd takes way too much space
+				UE_LOG( LogNetPackageMap, Fatal, TEXT( "AppendExportBunches: Failed to serialize CompatibleRepLayout into single bunch: %s, %i" ), *CompatibleRepLayout->PathName, CmdIndex );
+				return;
+			}
+
+			LastExportMark.Pop( *ExportBunch );
+
+			PatchHeaderCount( *ExportBunch, true, CurrentRepLayoutCmdCount );
+
+			OutgoingBunches.Add( ExportBunch );
+
+			// Reset bunch
+			ExportBunch					= nullptr;
+			CurrentRepLayoutCmdCount	= 0;
+
+			ExportedPathInThisBunchAlready.Empty();
+		}
+	}
+
+	// Wrap up the last bunch if needed
+	if ( CurrentRepLayoutCmdCount > 0 )
+	{
+		PatchHeaderCount( *ExportBunch, true, CurrentRepLayoutCmdCount );
+		OutgoingBunches.Add( ExportBunch );
+	}
+
+	CompatibleRepLayoutCmdExports.Empty();
+}
+
+void UPackageMapClient::ReceiveCompatibleRepLayoutExports( FInBunch &InBunch )
+{
+	// Read number of rep layout cmds
+	uint32 NumLayoutCmdExports = 0;
+	InBunch << NumLayoutCmdExports;
+
+	for ( int32 i = 0; i < ( int32 )NumLayoutCmdExports; i++ )
+	{
+		// Read the index that represents the name in the CompatibleRepLayoutIndexToPath map
+		uint32 PathNameIndex;
+		InBunch.SerializeIntPacked( PathNameIndex );
+
+		// See if the path name was exported (we'll expect it if we haven't seen this index before)
+		if ( InBunch.ReadBit() == 1 )
+		{
+			FString PathName;
+			InBunch << PathName;
+
+			GuidCache->CompatibleRepLayoutPathToIndex.Add( PathName, PathNameIndex );
+			GuidCache->CompatibleRepLayoutIndexToPath.Add( PathNameIndex, PathName );
+		}
+
+		// At this point, we expect to be able to find the entry in CompatibleRepLayoutIndexToPath
+		const FString PathName = GuidCache->CompatibleRepLayoutIndexToPath.FindChecked( PathNameIndex );
+
+		TSharedPtr< FCompatibleRepLayout > CompatibleRepLayout = GuidCache->CompatibleRepLayoutMap.FindRef( PathName );
+
+		if ( !CompatibleRepLayout.IsValid() )
+		{
+			CompatibleRepLayout = TSharedPtr< FCompatibleRepLayout >( new FCompatibleRepLayout() );
+			CompatibleRepLayout->PathName = PathName;
+			CompatibleRepLayout->PathNameIndex = PathNameIndex;
+			GuidCache->CompatibleRepLayoutMap.Add( CompatibleRepLayout->PathName, CompatibleRepLayout );
+		}
+
+		FCompatibleRepLayoutCmd Cmd;
+
+		// Read the cmd
+		InBunch << Cmd;
+
+		// Make room for the cmd
+		if ( ( int32 )Cmd.Handle >= CompatibleRepLayout->Cmds.Num() )
+		{
+			CompatibleRepLayout->Cmds.AddDefaulted( Cmd.Handle - CompatibleRepLayout->Cmds.Num() + 1 );
+		}
+
+		// Assign it to the correct slot (Cmd.Handle is just the index into the array)
+		CompatibleRepLayout->Cmds[Cmd.Handle] = Cmd;
+	}
+}
+
+void UPackageMapClient::AppendExportBunches(TArray<FOutBunch *>& OutgoingBunches)
+{
+	// If we have rep layouts to export, handle those now
+	if ( CompatibleRepLayoutCmdExports.Num() > 0 )
+	{
+		AppendCompatibleRepLayoutExports( OutgoingBunches );
+	}
+
 	// Finish current in progress bunch if necessary
 	if (ExportNetGUIDCount > 0)
 	{
@@ -1041,10 +1294,14 @@ bool UPackageMapClient::AppendExportBunches(TArray<FOutBunch *>& OutgoingBunches
 
 		OutgoingBunches.Append(ExportBunches);
 		ExportBunches.Empty();
-		return true;
 	}
+}
 
-	return false;
+void UPackageMapClient::SyncPackageMapExportAckStatus( const UPackageMapClient* Source )
+{
+	NetGUIDAckStatus				= Source->NetGUIDAckStatus;
+	CompatibleRepLayoutCmdExported	= Source->CompatibleRepLayoutCmdExported;
+	CompatibleRepLayoutPathExported	= Source->CompatibleRepLayoutPathExported;
 }
 
 //--------------------------------------------------------------------
@@ -1057,10 +1314,25 @@ bool UPackageMapClient::AppendExportBunches(TArray<FOutBunch *>& OutgoingBunches
  *	Called when a bunch is committed to the connection's Out buffer.
  *	ExportNetGUIDs is the list of GUIDs stored on the bunch that we use to update the expected sequence for those exported GUIDs
  */
-void UPackageMapClient::NotifyBunchCommit( const int32 OutPacketId, const TArray< FNetworkGUID > & ExportNetGUIDs )
+void UPackageMapClient::NotifyBunchCommit( const int32 OutPacketId, const FOutBunch* OutBunch )
 {
+	// Mark all of the rep layout cmds in this bunch as exported
+	// NOTE - This only currently works with reliable connections (i.e. InternalAck)
+	// For this to work with normal connections, we'll need to do real ack logic here
+	for ( int32 i = 0; i < OutBunch->ExportRepLayoutCmds.Num(); i++ )
+	{
+		CompatibleRepLayoutPathExported.Add( OutBunch->ExportRepLayoutCmds[i] >> 32, true );
+		CompatibleRepLayoutCmdExported.Add( OutBunch->ExportRepLayoutCmds[i], true );
+	}
+
+	const TArray< FNetworkGUID >& ExportNetGUIDs = OutBunch->ExportNetGUIDs;
+
+	if ( ExportNetGUIDs.Num() == 0 )
+	{
+		return;		// Nothing to do
+	}
+
 	check( OutPacketId > GUID_PACKET_ACKED );	// Assumptions break if this isn't true ( We assume ( OutPacketId > GUID_PACKET_ACKED ) == PENDING )
-	check( ExportNetGUIDs.Num() > 0 );			// We should have never created this bunch if there are not exports
 
 	for ( int32 i = 0; i < ExportNetGUIDs.Num(); i++ )
 	{
@@ -1393,9 +1665,10 @@ FNetworkGUID UPackageMapClient::GetNetGUIDFromObject(const UObject* InObject) co
 //	FNetGUIDCache
 //----------------------------------------------------------------------------------------
 
-FNetGUIDCache::FNetGUIDCache( UNetDriver * InDriver ) : IsExportingNetGUIDBunch( false ), Driver( InDriver ), bUseNetworkChecksum( false ), bIgnorePackageMismatchOverride( false )
+FNetGUIDCache::FNetGUIDCache( UNetDriver * InDriver ) : IsExportingNetGUIDBunch( false ), Driver( InDriver ), NetworkChecksumMode( NETCHECKSUM_SaveAndUse )
 {
 	UniqueNetIDs[0] = UniqueNetIDs[1] = 0;
+	UniqueCompatibleRepLayoutPathIndex = 0;
 }
 
 class FArchiveCountMemGUID : public FArchive
@@ -1450,10 +1723,13 @@ void FNetGUIDCache::CleanReferences()
 		checkf( !It.Value().Object.IsValid() || NetGUIDLookup.FindRef( It.Value().Object ) == It.Key() || It.Value().ReadOnlyTimestamp != 0, TEXT( "Failed to validate ObjectLookup map in UPackageMap. Object '%s' was not in the NetGUIDLookup map with with value '%s'." ), *It.Value().Object.Get()->GetPathName(), *It.Key().ToString() );
 	}
 
-	for ( auto It = NetGUIDLookup.CreateIterator(); It; ++It )
+	if (!UE_BUILD_SHIPPING || !UE_BUILD_TEST)
 	{
-		check( It.Key().IsValid() );
-		checkf( ObjectLookup.FindRef( It.Value() ).Object == It.Key(), TEXT("Failed to validate NetGUIDLookup map in UPackageMap. GUID '%s' was not in the ObjectLookup map with with object '%s'."), *It.Value().ToString(), *It.Key().Get()->GetPathName());
+		for ( auto It = NetGUIDLookup.CreateIterator(); It; ++It )
+		{
+			check( It.Key().IsValid() );
+			checkf( ObjectLookup.FindRef( It.Value() ).Object == It.Key(), TEXT("Failed to validate NetGUIDLookup map in UPackageMap. GUID '%s' was not in the ObjectLookup map with with object '%s'."), *It.Value().ToString(), *It.Key().Get()->GetPathName());
+		}
 	}
 
 	FArchiveCountMemGUID CountBytesAr;
@@ -1712,7 +1988,7 @@ void FNetGUIDCache::RegisterNetGUID_Client( const FNetworkGUID& NetGUID, const U
  *	Associates a net guid with a path, that can be loaded or found later
  *  This function is only called on the client
  */
-void FNetGUIDCache::RegisterNetGUIDFromPath_Client( const FNetworkGUID& NetGUID, const FString& PathName, const FNetworkGUID& OuterGUID, const uint32 NetworkChecksum, const uint32 PackageChecksum, const bool bNoLoad, const bool bIgnoreWhenMissing )
+void FNetGUIDCache::RegisterNetGUIDFromPath_Client( const FNetworkGUID& NetGUID, const FString& PathName, const FNetworkGUID& OuterGUID, const uint32 NetworkChecksum, const bool bNoLoad, const bool bIgnoreWhenMissing )
 {
 	check( !IsNetGUIDAuthority() );		// Server never calls this locally
 	check( !NetGUID.IsDefault() );
@@ -1753,7 +2029,6 @@ void FNetGUIDCache::RegisterNetGUIDFromPath_Client( const FNetworkGUID& NetGUID,
 	CacheObject.PathName			= FName( *PathName );
 	CacheObject.OuterGUID			= OuterGUID;
 	CacheObject.NetworkChecksum		= NetworkChecksum;
-	CacheObject.PackageChecksum		= PackageChecksum;
 	CacheObject.bNoLoad				= bNoLoad;
 	CacheObject.bIgnoreWhenMissing	= bIgnoreWhenMissing;
 
@@ -1793,11 +2068,6 @@ void FNetGUIDCache::AsyncPackageCallback(const FName& PackageName, UPackage * Pa
 	{
 		CacheObject->bIsBroken = true;
 		UE_LOG( LogNetPackageMap, Error, TEXT( "AsyncPackageCallback: Package FAILED to load. Path: %s, NetGUID: %s" ), *PackageName.ToString(), *NetGUID.ToString() );
-	}
-	else if ( !ShouldIgnorePackageMismatch() && GetPackageChecksum( Package ) != CacheObject->PackageChecksum )
-	{
-		CacheObject->bIsBroken = true;
-		UE_LOG( LogNetPackageMap, Error, TEXT( "AsyncPackageCallback: Package GUID mismatch! Path: %s, NetGUID: %s, GUID1: %u, GUID2: %u" ), *PackageName.ToString(), *NetGUID.ToString(), GetPackageChecksum( Package ), CacheObject->PackageChecksum );
 	}
 }
 
@@ -2003,7 +2273,20 @@ UObject* FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const
 		{
 			if ( CVarAllowAsyncLoading.GetValueOnGameThread() > 0 )
 			{
-				// If this package isn't fully loaded (and we are async loading here), don't complain, assume it will fully load at some point
+				if (Package->HasAnyInternalFlags(EInternalObjectFlags::AsyncLoading))
+				{
+					// Something else is already async loading this package, calling load again will add our callback to the existing load request
+					PendingAsyncPackages.Add(CacheObjectPtr->PathName, NetGUID);
+					CacheObjectPtr->bIsPending = true;
+					LoadPackageAsync(CacheObjectPtr->PathName.ToString(), FLoadPackageAsyncDelegate::CreateRaw(this, &FNetGUIDCache::AsyncPackageCallback));
+
+					UE_LOG(LogNetPackageMap, Log, TEXT("GetObjectFromNetGUID: Listening to existing async load. Path: %s, NetGUID: %s"), *CacheObjectPtr->PathName.ToString(), *NetGUID.ToString());
+				}
+				else
+				{
+					UE_LOG(LogNetPackageMap, Error, TEXT("GetObjectFromNetGUID: Package is not fully loaded, but isn't async loading! Path: %s, NetGUID: %s"), *CacheObjectPtr->PathName.ToString(), *NetGUID.ToString());
+				}
+
 				return NULL;
 			}
 			else
@@ -2013,32 +2296,31 @@ UObject* FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const
 				check(Package->IsFullyLoaded());
 			}
 		}
-
-		if ( !ShouldIgnorePackageMismatch() && GetPackageChecksum( Package ) != CacheObjectPtr->PackageChecksum )
-		{
-			// If the package guid doesn't match, don't allow it to load
-			CacheObjectPtr->bIsBroken = true;
-			UE_LOG( LogNetPackageMap, Error, TEXT( "GetObjectFromNetGUID: Package GUID mismatch! Path: %s, NetGUID: %s, GUID1: %u, GUID2: %u" ), *CacheObjectPtr->PathName.ToString(), *NetGUID.ToString(), GetPackageChecksum( Package ), CacheObjectPtr->PackageChecksum );
-			return NULL;
-		}
 	}
 
-	if ( CacheObjectPtr->NetworkChecksum != 0 )
+	if ( CacheObjectPtr->NetworkChecksum != 0 && !CVarIgnoreNetworkCheckumMismatch.GetValueOnGameThread() )
 	{
 		const uint32 NetworkChecksum = GetNetworkChecksum( Object );
 
 		if ( CacheObjectPtr->NetworkChecksum != NetworkChecksum )
 		{
-			UE_LOG( LogNetPackageMap, Warning, TEXT( "GetObjectFromNetGUID: Network checksum mismatch. FullNetGUIDPath: %s, %u, %u" ), *FullNetGUIDPath( NetGUID ), CacheObjectPtr->NetworkChecksum, NetworkChecksum );
+			if ( NetworkChecksumMode == NETCHECKSUM_SaveAndUse )
+			{
+				UE_LOG( LogNetPackageMap, Warning, TEXT( "GetObjectFromNetGUID: Network checksum mismatch. FullNetGUIDPath: %s, %u, %u" ), *FullNetGUIDPath( NetGUID ), CacheObjectPtr->NetworkChecksum, NetworkChecksum );
 
-			CacheObjectPtr->bIsBroken = true;
-			return NULL;
+				CacheObjectPtr->bIsBroken = true;
+				return NULL;
+			}
+			else
+			{
+				UE_LOG( LogNetPackageMap, Verbose, TEXT( "GetObjectFromNetGUID: Network checksum mismatch. FullNetGUIDPath: %s, %u, %u" ), *FullNetGUIDPath( NetGUID ), CacheObjectPtr->NetworkChecksum, NetworkChecksum );
+			}
 		}
 	}
 
 	if ( Object && !ObjectLevelHasFinishedLoading( Object, Driver ) )
 	{
-		UE_LOG( LogNetPackageMap, Warning, TEXT( "GetObjectFromNetGUID: Forcing object to NULL since level is not loaded yet." ), *Object->GetFullName() );
+		UE_LOG( LogNetPackageMap, Log, TEXT( "GetObjectFromNetGUID: Forcing object to NULL since level is not loaded yet." ), *Object->GetFullName() );
 		return NULL;
 	}
 
@@ -2243,19 +2525,9 @@ uint32 FNetGUIDCache::GetNetworkChecksum( const UObject* Obj )
 	return ( Class != NULL ) ? GetClassNetworkChecksum( Class ) : GetClassNetworkChecksum( Obj->GetClass() );
 }
 
-bool FNetGUIDCache::ShouldIgnorePackageMismatch() const
+void FNetGUIDCache::SetNetworkChecksumMode( const ENetworkChecksumMode NewMode )
 {
-	return bIgnorePackageMismatchOverride || CVarIgnorePackageMismatch.GetValueOnGameThread();
-};
-
-void FNetGUIDCache::SetShouldUseNetworkChecksum( const bool bInUseNetworkChecksum )
-{
-	bUseNetworkChecksum = bInUseNetworkChecksum;
-}
-
-bool FNetGUIDCache::ShouldUseNetworkChecksum() const
-{
-	return bUseNetworkChecksum;
+	NetworkChecksumMode = NewMode;
 }
 
 //------------------------------------------------------

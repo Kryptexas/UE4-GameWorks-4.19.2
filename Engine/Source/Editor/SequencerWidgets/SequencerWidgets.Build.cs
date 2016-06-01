@@ -15,6 +15,7 @@ public class SequencerWidgets : ModuleRules
                 "EditorStyle",
 				"Engine",
                 "InputCore",
+                "MovieScene",
 				"Slate",
 				"SlateCore",
 				"UnrealEd"

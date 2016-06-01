@@ -154,8 +154,8 @@ public:
 	{
 		SvPositionToDecal.Bind(Initializer.ParameterMap,TEXT("SvPositionToDecal"));
 		DecalToWorld.Bind(Initializer.ParameterMap,TEXT("DecalToWorld"));
-		FadeAlpha.Bind(Initializer.ParameterMap, TEXT("FadeAlpha"));
 		WorldToDecal.Bind(Initializer.ParameterMap,TEXT("WorldToDecal"));
+		DecalParams.Bind(Initializer.ParameterMap, TEXT("DecalParams"));
 	}
 
 	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FMaterialRenderProxy* MaterialProxy, const FDeferredDecalProxy& DecalProxy, const float FadeAlphaValue=1.0f)
@@ -204,22 +204,24 @@ public:
 			SetShaderValue(RHICmdList, ShaderRHI, DecalToWorld, DecalToWorldValue);
 		}
 
-		SetShaderValue(RHICmdList, ShaderRHI, FadeAlpha, FadeAlphaValue);
 		SetShaderValue(RHICmdList, ShaderRHI, WorldToDecal, WorldToComponent);
+
+		float LifetimeAlpha = FMath::Clamp(View.Family->CurrentWorldTime * -DecalProxy.InvFadeDuration + DecalProxy.FadeStartDelayNormalized, 0.0f, 1.0f);
+		SetShaderValue(RHICmdList, ShaderRHI, DecalParams, FVector2D(FadeAlphaValue, LifetimeAlpha));
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FMaterialShader::Serialize(Ar);
-		Ar << SvPositionToDecal << DecalToWorld << WorldToDecal << FadeAlpha;
+		Ar << SvPositionToDecal << DecalToWorld << WorldToDecal << DecalParams;
 		return bShaderHasOutdatedParameters;
 	}
 
 private:
 	FShaderParameter SvPositionToDecal;
 	FShaderParameter DecalToWorld;
-	FShaderParameter FadeAlpha;
 	FShaderParameter WorldToDecal;
+	FShaderParameter DecalParams;
 };
 
 IMPLEMENT_MATERIAL_SHADER_TYPE(,FDeferredDecalPS,TEXT("DeferredDecal"),TEXT("MainPS"),SF_Pixel);
@@ -233,7 +235,9 @@ void FDecalRendering::BuildVisibleDecalList(const FScene& Scene, const FViewInfo
 
 	const float FadeMultiplier = CVarDecalFadeScreenSizeMultiplier.GetValueOnRenderThread();
 	const EShaderPlatform ShaderPlatform = View.GetShaderPlatform();
-	
+
+	const bool bIsPerspectiveProjection = View.IsPerspectiveProjection();
+
 	// Build a list of decals that need to be rendered for this view in SortedDecals
 	for (const FDeferredDecalProxy* DecalProxy : Scene.Decals)
 	{
@@ -271,7 +275,7 @@ void FDecalRendering::BuildVisibleDecalList(const FScene& Scene, const FViewInfo
 			// filter out decals with blend modes that are not supported on current platform
 			if (IsBlendModeSupported(ShaderPlatform, Data.DecalBlendMode))
 			{
-				if (Data.DecalProxy->Component->FadeScreenSize != 0.0f)
+				if (bIsPerspectiveProjection && Data.DecalProxy->Component->FadeScreenSize != 0.0f)
 				{
 					float Distance = (View.ViewMatrices.ViewOrigin - ComponentToWorldMatrix.GetOrigin()).Size();
 					float Radius = ComponentToWorldMatrix.GetMaximumAxisScale();
@@ -434,35 +438,33 @@ uint32 FDecalRendering::ComputeRenderTargetCount(EShaderPlatform Platform, ERend
 	return 0;
 }
 
-void FDecalRendering::SetShader(FRHICommandList& RHICmdList, const FViewInfo& View, bool bShaderComplexity, const FTransientDecalRenderData& DecalData, const FMatrix& FrustumComponentToClip)
+void FDecalRendering::SetShader(FRHICommandList& RHICmdList, const FViewInfo& View, const FTransientDecalRenderData& DecalData, const FMatrix& FrustumComponentToClip)
 {
 	const FMaterialShaderMap* MaterialShaderMap = DecalData.MaterialResource->GetRenderingThreadShaderMap();
 	auto PixelShader = MaterialShaderMap->GetShader<FDeferredDecalPS>();
 	TShaderMapRef<FDeferredDecalVS> VertexShader(View.ShaderMap);
 
-	if(bShaderComplexity)
+	const EDebugViewShaderMode DebugViewShaderMode = View.Family->GetDebugViewShaderMode();
+	if (DebugViewShaderMode != DVSM_None)
 	{
-		// Luckily, deferred decals PS have only SV_Position as interpolant and are consequently compatible with QuadComplexity and ShaderComplexity PS
-		const EQuadOverdrawMode QuadOverdrawMode = View.Family->GetQuadOverdrawMode();
-		FShader* VisualizePixelShader = FShaderComplexityAccumulatePS::GetPixelShader(View.ShaderMap, QuadOverdrawMode); 
+		// For this to work, decal VS must output compatible interpolants. Currently this requires to use FDebugPSInLean.
+		// Here we pass nullptr for the material interface because the use of a static bound shader state is only compatible with unique shaders.
+		IDebugViewModePSInterface* DebugPixelShader = FDebugViewMode::GetPSInterface(View.ShaderMap, nullptr, DebugViewShaderMode); 
 
 		const uint32 NumPixelShaderInstructions = PixelShader->GetNumInstructions();
 		const uint32 NumVertexShaderInstructions = VertexShader->GetNumInstructions();
 
-		static FGlobalBoundShaderState BoundShaderState[2];
+		static FGlobalBoundShaderState BoundShaderState[DVSM_MAX];
+		SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState[(uint32)DebugViewShaderMode], GetVertexDeclarationFVector4(), *VertexShader, DebugPixelShader->GetShader());
 
-		// QOM_QuadComplexity and QOM_ShaderComplexityBleeding use the QuadComplexity shader, while QOM_None and QOM_ShaderComplexityContained use the ShaderComplexity shader.
-		const uint32 BoundShaderStateIndex = (QuadOverdrawMode == QOM_QuadComplexity || QuadOverdrawMode == QOM_ShaderComplexityBleeding) ? 1 : 0;
-
-		SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState[BoundShaderStateIndex], GetVertexDeclarationFVector4(), *VertexShader, VisualizePixelShader);
-
-		FShaderComplexityAccumulatePS::SetParameters(View.ShaderMap, RHICmdList, NumVertexShaderInstructions, NumPixelShaderInstructions, QuadOverdrawMode, View.GetFeatureLevel());
+		DebugPixelShader->SetParameters(RHICmdList, *VertexShader, PixelShader, DecalData.MaterialProxy, *DecalData.MaterialResource, View);
+		DebugPixelShader->SetMesh(RHICmdList, View);
 	}
 	else
 	{
 		// first Bind, then SetParameters()
 		RHICmdList.SetLocalBoundShaderState(RHICmdList.BuildLocalBoundShaderState(GetVertexDeclarationFVector4(), VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), PixelShader->GetPixelShader(), FGeometryShaderRHIRef()));
-		
+
 		PixelShader->SetParameters(RHICmdList, View, DecalData.MaterialProxy, *DecalData.DecalProxy, DecalData.FadeAlpha);
 	}
 
@@ -479,7 +481,11 @@ void FDecalRendering::SetShader(FRHICommandList& RHICmdList, const FViewInfo& Vi
 
 		// to prevent potential shader error (UE-18852 ElementalDemo crashes due to nil constant buffer)
 		SetUniformBufferParameter(RHICmdList, VertexShader->GetVertexShader(), PrimitiveVS, GIdentityPrimitiveUniformBuffer);
-		SetUniformBufferParameter(RHICmdList, PixelShader->GetPixelShader(), PrimitivePS, GIdentityPrimitiveUniformBuffer);
+
+		if (DebugViewShaderMode == DVSM_None)
+		{
+			SetUniformBufferParameter(RHICmdList, PixelShader->GetPixelShader(), PrimitivePS, GIdentityPrimitiveUniformBuffer);
+		}
 	}
 
 	VertexShader->SetParameters(RHICmdList, View, FrustumComponentToClip);

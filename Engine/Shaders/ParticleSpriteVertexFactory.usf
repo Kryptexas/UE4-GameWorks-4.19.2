@@ -401,7 +401,9 @@ float3x3 CalcTangentBasis(FVertexFactoryIntermediates Intermediates)
 #endif
 }
 
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
+// Note: C++ geometry setup behavior has to match this define
+#define SUPPORTS_PARTICLE_CUTOUTS (FEATURE_LEVEL >= FEATURE_LEVEL_SM4)
+#if SUPPORTS_PARTICLE_CUTOUTS
 
 /** Number of vertices in each SubUV frame of CutoutGeometry. */
 uint NumCutoutVerticesPerFrame;
@@ -416,7 +418,7 @@ void ComputeBillboardUVs(FVertexFactoryInput Input, out float2 UVForPosition, ou
 	// Encoding the UV flip in the sign of the size data.
 	float2 UVFlip = sign(Input.SizeRotSubImage.xy);
 
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
+#if SUPPORTS_PARTICLE_CUTOUTS
 	BRANCH
 	if (NumCutoutVerticesPerFrame > 0)
 	{
@@ -551,6 +553,16 @@ float4 VertexFactoryGetRasterizedWorldPosition(FVertexFactoryInput Input, FVerte
 
 	float Radius = .5f * min(Input.SizeRotSubImage.x, Input.SizeRotSubImage.y);
 	return ReprojectPosition(TranslatedWorldPosition, Radius);
+#else
+	return TranslatedWorldPosition;
+#endif
+}
+
+float3 VertexFactoryGetPositionForVertexLighting(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates, float3 TranslatedWorldPosition)
+{
+#if SUPPORTS_PARTICLE_CUTOUTS && (TRANSLUCENCY_LIGHTING_VOLUMETRIC_PERVERTEX_DIRECTIONAL || TRANSLUCENCY_LIGHTING_VOLUMETRIC_PERVERTEX_NONDIRECTIONAL)
+	// Do per-vertex lighting with particle position instead of vertex position when we're using SubUV cutouts, since the vertex positions vary per-frame which would cause popping
+	return NumCutoutVerticesPerFrame > 0 ? (Intermediates.ParticleWorldPosition.xyz + ResolvedView.PreViewTranslation.xyz) : TranslatedWorldPosition;
 #else
 	return TranslatedWorldPosition;
 #endif

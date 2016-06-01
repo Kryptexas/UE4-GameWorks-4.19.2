@@ -31,7 +31,7 @@ ATP_PuzzleBlock::ATP_PuzzleBlock()
 	BlockMesh->SetRelativeScale3D(FVector(1.f,1.f,0.25f));
 	BlockMesh->SetRelativeLocation(FVector(0.f,0.f,25.f));
 	BlockMesh->SetMaterial(0, ConstructorStatics.BlueMaterial.Get());
-	BlockMesh->AttachTo(DummyRoot);
+	BlockMesh->SetupAttachment(DummyRoot);
 	BlockMesh->OnClicked.AddDynamic(this, &ATP_PuzzleBlock::BlockClicked);
 	BlockMesh->OnInputTouchBegin.AddDynamic(this, &ATP_PuzzleBlock::OnFingerPressedBlock);
 
@@ -39,7 +39,7 @@ ATP_PuzzleBlock::ATP_PuzzleBlock()
 	OrangeMaterial = ConstructorStatics.OrangeMaterial.Get();
 }
 
-void ATP_PuzzleBlock::BlockClicked(UPrimitiveComponent* ClickedComp)
+void ATP_PuzzleBlock::BlockClicked(UPrimitiveComponent* ClickedComp, FKey ButtonClicked)
 {
 	// Check we are not already active
 	if(!bIsActive)
@@ -60,5 +60,5 @@ void ATP_PuzzleBlock::BlockClicked(UPrimitiveComponent* ClickedComp)
 
 void ATP_PuzzleBlock::OnFingerPressedBlock(ETouchIndex::Type FingerIndex, UPrimitiveComponent* TouchedComponent)
 {
-	BlockClicked(TouchedComponent);
+	BlockClicked(TouchedComponent, EKeys::Invalid);
 }

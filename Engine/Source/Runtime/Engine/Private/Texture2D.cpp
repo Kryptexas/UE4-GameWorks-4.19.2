@@ -17,12 +17,14 @@
 
 #include "TargetPlatform.h"
 #include "ContentStreaming.h"
+#include "Streaming/StreamingManagerTexture.h"
 
 UTexture2D::UTexture2D(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	bHasCancelationPending = false;
-	StreamingIndex = -1;
+	StreamingIndex = INDEX_NONE;
+	LevelIndex = INDEX_NONE;
 	SRGB = true;
 }
 
@@ -35,7 +37,7 @@ static TAutoConsoleVariable<float> CVarSetMipMapLODBias(
 	TEXT("r.MipMapLODBias"),
 	0.0f,
 	TEXT("Apply additional mip map bias for all 2D textures, range of -15.0 to 15.0"),
-	ECVF_RenderThreadSafe);
+	ECVF_RenderThreadSafe | ECVF_Scalability);
 
 static TAutoConsoleVariable<int32> CVarVirtualTextureEnabled(
 	TEXT("r.VirtualTexture"),
@@ -1479,7 +1481,6 @@ void FTexture2DResource::BeginUpdateMipCount( bool bShouldPrioritizeAsyncIOReque
 	Owner->PendingMipChangeRequestStatus.Set( TexState_InProgress_Allocation );
 
 	bPrioritizedIORequest = bShouldPrioritizeAsyncIORequest;
-	GStreamMemoryTracker.GameThread_BeginUpdate( *Owner );
 
 	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 		UpdateMipCountCommand,
@@ -1599,9 +1600,6 @@ void FTexture2DResource::UpdateMipCount()
 				Owner->PendingMipChangeRequestStatus.Set( TexState_InProgress_Loading );
 				LoadMipData();
 
-				// Update the memory tracker.
-				GStreamMemoryTracker.RenderThread_Update( *Owner, true );
-
 				return;
 			}
 			// Transform from regular allocation to virtual allocation
@@ -1646,9 +1644,6 @@ void FTexture2DResource::UpdateMipCount()
 		// Set the state to TexState_InProgress_Loading and start loading right away.
 		Owner->PendingMipChangeRequestStatus.Set( TexState_InProgress_Loading );
 		LoadMipData();
-
-		// Update the memory tracker.
-		GStreamMemoryTracker.RenderThread_Update( *Owner, true );
 
 		return;
 	}
@@ -1725,9 +1720,6 @@ void FTexture2DResource::UpdateMipCount()
 		// Decrement the counter so that when async allocation finishes the game thread will see TexState_ReadyFor_Loading.
 		Owner->PendingMipChangeRequestStatus.Decrement();
 	}
-
-	// Update the memory tracker.
-	GStreamMemoryTracker.RenderThread_Update( *Owner, IsValidRef(IntermediateTextureRHI) || bUsingAsyncCreation );
 }
 
 /**
@@ -2076,6 +2068,21 @@ void FTexture2DResource::UploadMipData()
 }
 
 /**
+* Helper function for cleaning up bulk data files after streaming
+* @todo: make it smarter, close only when we know we won't be streaming anymore or at least for a while
+* @todo: What if each mip is in a different bulk data file? might need to loop over all
+*/
+inline void HintDoneWithStreamedTextureFiles(const UTexture2D* InTexture)
+{
+	if (FPlatformProperties::RequiresCookedData())
+	{
+		const TIndirectArray<FTexture2DMipMap>& OwnerMips = InTexture->GetPlatformMips();
+		const FTexture2DMipMap& MipMap = OwnerMips[0];
+		FIOSystem::Get().HintDoneWithFile(MipMap.BulkData.GetFilename());
+	}
+}
+
+/**
  * Called from the rendering thread to finalize a mip change.
  */
 void FTexture2DResource::FinalizeMipCount()
@@ -2110,10 +2117,10 @@ void FTexture2DResource::FinalizeMipCount()
 			MipBiasFade.SetNewMipCount( Owner->ResidentMips, Owner->ResidentMips, LastRenderTime, MipFadeSetting );
 		}
 
-		GStreamMemoryTracker.RenderThread_Finalize( *Owner, bSuccess );
-
 		// We're done.
 		Owner->PendingMipChangeRequestStatus.Decrement();
+
+		HintDoneWithStreamedTextureFiles(Owner);
 
 		return;
 	}
@@ -2180,7 +2187,7 @@ void FTexture2DResource::FinalizeMipCount()
 		}
 		IntermediateTextureRHI.SafeRelease();
 
-		GStreamMemoryTracker.RenderThread_Finalize( *Owner, bSuccess );
+		HintDoneWithStreamedTextureFiles(Owner);
 	}
 	else
 	{
@@ -2235,8 +2242,8 @@ bool FTexture2DResource::TryReallocate( int32 OldMipCount, int32 NewMipCount )
 	check(MipIndex>=0);
 	uint32 NewSizeX	= OwnerMips[MipIndex].SizeX;
 	uint32 NewSizeY	= OwnerMips[MipIndex].SizeY;
-
-	FThreadSafeCounter AsyncReallocateCounter;
+	
+	AsyncReallocateCounter.Reset();
 	FTexture2DRHIRef NewTextureRHI = RHIAsyncReallocateTexture2D( Texture2DRHI, NewMipCount, NewSizeX, NewSizeY, &AsyncReallocateCounter );
 	RHIFinalizeAsyncReallocateTexture2D(Texture2DRHI,true);
 

@@ -47,6 +47,7 @@ public class DetailCustomizations : ModuleRules
                 "MeshUtilities",
 				"ConfigEditor",
                 "Persona",
+                "CinematicCamera",
 			}
 		);
 
