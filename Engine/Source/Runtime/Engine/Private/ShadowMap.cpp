@@ -94,9 +94,14 @@ struct FShadowMapAllocation
 		{
 			UInstancedStaticMeshComponent* Component = CastChecked<UInstancedStaticMeshComponent>(Primitive);
 
-			// TODO: We currently only support one LOD of static lighting in foliage
-			// Need to create per-LOD instance data to fix that
-			Component->PerInstanceSMData[InstanceIndex].ShadowmapUVBias = ShadowMap->GetCoordinateBias();
+			// Instances may have been removed since LM allocation.
+			// Instances may have also been shuffled from removes. We do not handle this case.
+			if( InstanceIndex < Component->PerInstanceSMData.Num() )
+			{
+				// TODO: We currently only support one LOD of static lighting in foliage
+				// Need to create per-LOD instance data to fix that
+				Component->PerInstanceSMData[InstanceIndex].ShadowmapUVBias = ShadowMap->GetCoordinateBias();
+			}
 
 			Component->ReleasePerInstanceRenderData();
 			Component->MarkRenderStateDirty();
