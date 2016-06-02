@@ -5256,8 +5256,8 @@ bool FBlueprintEditorUtils::ValidateAllFunctionGraphs(UBlueprint* InBlueprint, U
 
 void FBlueprintEditorUtils::ValidateBlueprintVariableMetadata(FBPVariableDescription& VarDesc)
 {
-	// Remove bitflag enum type metadata if the enum type is no longer a bitflags type.
-	if (VarDesc.HasMetaData(FBlueprintMetadata::MD_Bitmask))
+	// Remove bitflag enum type metadata if the enum type name is missing or if the enum type is no longer a bitflags type.
+	if (VarDesc.HasMetaData(FBlueprintMetadata::MD_BitmaskEnum))
 	{
 		FString BitmaskEnumTypeName = VarDesc.GetMetaData(FBlueprintMetadata::MD_BitmaskEnum);
 		if (!BitmaskEnumTypeName.IsEmpty())
@@ -5267,6 +5267,10 @@ void FBlueprintEditorUtils::ValidateBlueprintVariableMetadata(FBPVariableDescrip
 			{
 				VarDesc.RemoveMetaData(FBlueprintMetadata::MD_BitmaskEnum);
 			}
+		}
+		else
+		{
+			VarDesc.RemoveMetaData(FBlueprintMetadata::MD_BitmaskEnum);
 		}
 	}
 }
