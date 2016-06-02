@@ -308,6 +308,17 @@ namespace ETranslucentSortPolicy
 	};
 }
 
+UENUM()
+enum ESceneCaptureSource 
+{ 
+	SCS_SceneColorHDR UMETA(DisplayName="SceneColor (HDR) in RGB, Opacity in A"),
+	SCS_FinalColorLDR UMETA(DisplayName="Final Color (LDR) in RGB"),
+	SCS_SceneColorSceneDepth UMETA(DisplayName="SceneColor (HDR) in RGB, SceneDepth in A"),
+	SCS_SceneDepth UMETA(DisplayName="SceneDepth in R"),
+	SCS_Normal UMETA(DisplayName="Normal in RGB"),
+	SCS_BaseColor UMETA(DisplayName="BaseColor in RGB")
+};
+
 USTRUCT()
 struct FLightingChannels
 {

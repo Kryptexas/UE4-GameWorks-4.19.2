@@ -35,7 +35,7 @@ TAutoConsoleVariable<int32> CVarEarlyZPass(
 	TEXT("  1: only if not masked, and only if large on the screen\n")
 	TEXT("  2: all opaque (including masked)\n")
 	TEXT("  x: use built in heuristic (default is 3)"),
-	ECVF_ReadOnly);
+	ECVF_Scalability);
 
 int32 GEarlyZPassMovable = 0;
 
@@ -45,7 +45,7 @@ static FAutoConsoleVariableRef CVarEarlyZPassMovable(
 	GEarlyZPassMovable,
 	TEXT("Whether to render movable objects into the depth only pass.  Movable objects are typically not good occluders so this defaults to off.\n")
 	TEXT("Note: also look at r.EarlyZPass"),
-	ECVF_RenderThreadSafe | ECVF_ReadOnly
+	ECVF_RenderThreadSafe | ECVF_Scalability
 	);
 
 TAutoConsoleVariable<int32> CVarCustomDepthOrder(
@@ -125,6 +125,7 @@ DECLARE_CYCLE_STAT(TEXT("OcclusionSubmittedFence Wait"), STAT_OcclusionSubmitted
 FDeferredShadingSceneRenderer::FDeferredShadingSceneRenderer(const FSceneViewFamily* InViewFamily,FHitProxyConsumer* HitProxyConsumer)
 	: FSceneRenderer(InViewFamily, HitProxyConsumer)
 	, EarlyZPassMode(DDM_NonMaskedOnly)
+	, bEarlyZPassMovable(false)
 	, TranslucentSelfShadowLayout(0, 0, 0, 0)
 	, CachedTranslucentSelfShadowLightId(INDEX_NONE)
 {
@@ -140,8 +141,7 @@ FDeferredShadingSceneRenderer::FDeferredShadingSceneRenderer(const FSceneViewFam
 
 	// developer override, good for profiling, can be useful as project setting
 	{
-		static const auto ICVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.EarlyZPass"));
-		const int32 CVarValue = ICVar->GetValueOnGameThread();
+		const int32 CVarValue = CVarEarlyZPass.GetValueOnGameThread();
 
 		switch(CVarValue)
 		{
@@ -158,11 +158,31 @@ FDeferredShadingSceneRenderer::FDeferredShadingSceneRenderer(const FSceneViewFam
 		EarlyZPassMode = DDM_AllOpaque;
 	}
 
+	// Warning: EarlyZPass logic is mirrored in FStaticMesh::AddToDrawLists
+
+	bEarlyZPassMovable = GEarlyZPassMovable != 0;
+
+	static IConsoleVariable* CDBufferVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DBuffer"));
+	bool bDBufferAllowed = CDBufferVar ? CDBufferVar->GetInt() != 0 : false;
+
+	if (bDBufferAllowed)
+	{
+		// DBuffer decals force a full prepass
+		EarlyZPassMode = DDM_AllOccluders;
+		bEarlyZPassMovable = true;
+	}
+
 	// When possible use a stencil optimization for dithering in pre-pass
 	bDitheredLODTransitionsUseStencil = (EarlyZPassMode == DDM_AllOccluders);
 }
 
 extern FGlobalBoundShaderState GClearMRTBoundShaderState[8];
+
+float GetSceneColorClearAlpha()
+{
+	// Scene color alpha is used during scene captures and planar reflections.  1 indicates background should be shown, 0 indicates foreground is fully present.
+	return 1.0f;
+}
 
 /** 
 * Clears view where Z is still at the maximum value (ie no geometry rendered)
@@ -174,9 +194,11 @@ void FDeferredShadingSceneRenderer::ClearGBufferAtMaxZ(FRHICommandList& RHICmdLi
 
 	// Clear the G Buffer render targets
 	const bool bClearBlack = Views[0].Family->EngineShowFlags.ShaderComplexity || Views[0].Family->EngineShowFlags.StationaryLightOverlap;
+	const float ClearAlpha = GetSceneColorClearAlpha();
+	const FLinearColor ClearColor = bClearBlack ? FLinearColor(0, 0, 0, ClearAlpha) : FLinearColor(Views[0].BackgroundColor.R, Views[0].BackgroundColor.G, Views[0].BackgroundColor.B, ClearAlpha);
 	// Same clear color from RHIClearMRT
 	FLinearColor ClearColors[MaxSimultaneousRenderTargets] = 
-		{bClearBlack ? FLinearColor(0,0,0,0) : Views[0].BackgroundColor, FLinearColor(0.5f,0.5f,0.5f,0), FLinearColor(0,0,0,1), FLinearColor(0,0,0,0), FLinearColor(0,1,1,1), FLinearColor(1,1,1,1), FLinearColor::Transparent, FLinearColor::Transparent};
+		{ClearColor, FLinearColor(0.5f,0.5f,0.5f,0), FLinearColor(0,0,0,1), FLinearColor(0,0,0,0), FLinearColor(0,1,1,1), FLinearColor(1,1,1,1), FLinearColor::Transparent, FLinearColor::Transparent};
 
 	uint32 NumActiveRenderTargets = FSceneRenderTargets::Get(RHICmdList).GetNumGBufferTargets();
 	
@@ -232,7 +254,7 @@ void FDeferredShadingSceneRenderer::ClearGBufferAtMaxZ(FRHICommandList& RHICmdLi
 		// Render quad
 		static const FVector4 ClearQuadVertices[4] = 
 		{
-			FVector4( -1.0f,	  1.0f, (float)ERHIZBuffer::FarPlane, 1.0f),
+			FVector4( -1.0f,  1.0f, (float)ERHIZBuffer::FarPlane, 1.0f),
 			FVector4(  1.0f,  1.0f, (float)ERHIZBuffer::FarPlane, 1.0f ),
 			FVector4( -1.0f, -1.0f, (float)ERHIZBuffer::FarPlane, 1.0f ),
 			FVector4(  1.0f, -1.0f, (float)ERHIZBuffer::FarPlane, 1.0f )
@@ -699,7 +721,7 @@ FGraphEventRef FDeferredShadingSceneRenderer::TranslucencyTimestampQuerySubmitte
 static FORCEINLINE bool NeedsPrePass(const FDeferredShadingSceneRenderer* Renderer)
 {
 	return (RHIHasTiledGPU(Renderer->ViewFamily.GetShaderPlatform()) == false) && 
-		(Renderer->EarlyZPassMode != DDM_None || GEarlyZPassMovable != 0);
+		(Renderer->EarlyZPassMode != DDM_None || Renderer->bEarlyZPassMovable != 0);
 }
 
 /**
@@ -721,7 +743,8 @@ static void SetAndClearViewGBuffer(FRHICommandListImmediate& RHICmdList, FViewIn
 	ERenderTargetLoadAction DepthLoadAction = bClearDepth ? ERenderTargetLoadAction::EClear : ERenderTargetLoadAction::ELoad;
 
 	const bool bClearBlack = View.Family->EngineShowFlags.ShaderComplexity || View.Family->EngineShowFlags.StationaryLightOverlap;
-	const FLinearColor ClearColor = (bClearBlack ? FLinearColor(0, 0, 0, 0) : View.BackgroundColor);
+	const float ClearAlpha = GetSceneColorClearAlpha();
+	const FLinearColor ClearColor = bClearBlack ? FLinearColor(0, 0, 0, ClearAlpha) : FLinearColor(View.BackgroundColor.R, View.BackgroundColor.G, View.BackgroundColor.B, ClearAlpha);
 
 	// clearing the GBuffer
 	FSceneRenderTargets::Get(RHICmdList).BeginRenderingGBuffer(RHICmdList, ERenderTargetLoadAction::EClear, DepthLoadAction, View.Family->EngineShowFlags.ShaderComplexity, ClearColor);
@@ -1223,8 +1246,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	// Pre-lighting composition lighting stage
 	// e.g. deferred decals, SSAO
-	if (FeatureLevel >= ERHIFeatureLevel::SM4
-		&& bUseGBuffer)
+	if (FeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_AfterBasePass);
 
@@ -1456,6 +1478,8 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	// Resolve the scene color for post processing.
 	SceneContext.ResolveSceneColor(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
 
+	CopySceneCaptureComponentToTarget(RHICmdList);
+
 	// Finish rendering for each view.
 	if (ViewFamily.bResolveScene)
 	{
@@ -1520,7 +1544,7 @@ bool FDeferredShadingSceneRenderer::RenderPrePassViewDynamic(FRHICommandList& RH
 				// Only render primitives marked as occluders
 				bShouldUseAsOccluder = PrimitiveSceneProxy->ShouldUseAsOccluder()
 					// Only render static objects unless movable are requested
-					&& (!PrimitiveSceneProxy->IsMovable() || GEarlyZPassMovable)
+					&& (!PrimitiveSceneProxy->IsMovable() || bEarlyZPassMovable)
 					&& (FMath::Square(PrimitiveSceneProxy->GetBounds().SphereRadius) > GMinScreenRadiusForDepthPrepass * GMinScreenRadiusForDepthPrepass * LODFactorDistanceSquared);
 			}
 
@@ -1848,7 +1872,10 @@ bool FDeferredShadingSceneRenderer::PreRenderPrePass(FRHICommandListImmediate& R
 bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHICmdList, TFunctionRef<void()> AfterTasksAreStarted)
 {
 	bool bDepthWasCleared = false;
-	SCOPED_DRAW_EVENT(RHICmdList, PrePass);
+
+	static IConsoleVariable* CDBufferVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DBuffer"));
+	bool bDBufferAllowed = CDBufferVar ? CDBufferVar->GetInt() != 0 : false;
+	SCOPED_DRAW_EVENTF(RHICmdList, PrePass, TEXT("PrePass %s %s"), GetDepthDrawingModeString(EarlyZPassMode), (bDBufferAllowed ? TEXT("(Forced by DBuffer)") : TEXT("")));
 	SCOPE_CYCLE_COUNTER(STAT_DepthDrawTime);
 
 	bool bDirty = false;

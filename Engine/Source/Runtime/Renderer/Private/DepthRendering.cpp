@@ -7,6 +7,25 @@
 #include "RendererPrivate.h"
 #include "ScenePrivate.h"
 
+const TCHAR* GetDepthDrawingModeString(EDepthDrawingMode Mode)
+{
+	switch (Mode)
+	{
+	case DDM_None:
+		return TEXT("DDM_None");
+	case DDM_NonMaskedOnly:
+		return TEXT("DDM_NonMaskedOnly");
+	case DDM_AllOccluders:
+		return TEXT("DDM_AllOccluders");
+	case DDM_AllOpaque:
+		return TEXT("DDM_AllOpaque");
+	default:
+		check(0);
+	}
+
+	return TEXT("");
+}
+
 /**
  * A vertex shader for rendering the depth of a mesh.
  */

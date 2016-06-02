@@ -22,16 +22,6 @@
 #include "BasePassRendering.h"
 #include "HeightfieldLighting.h"
 
-// Also have to set USE_CONE_TRACED_SPECULAR_OCCLUSION to 1
-// Prototype feature
-int32 GDistanceFieldSpecularOcclusion = 0;
-FAutoConsoleVariableRef CVarDistanceFieldSpecularOcclusion(
-	TEXT("r.DistanceFieldSpecularOcclusion"),
-	GDistanceFieldSpecularOcclusion,
-	TEXT("Whether the distance field specular occlusion feature is allowed, which is used to shadow reflection captures and skylight reflections more accurately."),
-	ECVF_Scalability | ECVF_RenderThreadSafe
-	);
-
 int32 GSpecularOcclusionDownsampleFactor = 1;
 
 FIntPoint GetBufferSizeForSpecularOcclusion()
@@ -189,7 +179,9 @@ void FDeferredShadingSceneRenderer::RenderDistanceFieldSpecularOcclusion(
 	const TRefCountPtr<IPooledRenderTarget>& DistanceFieldNormal, 
 	TRefCountPtr<IPooledRenderTarget>& OutSpecularOcclusion)
 {
-	if (GDistanceFieldSpecularOcclusion)
+	extern int32 GDistanceFieldAOSpecularOcclusionMode;
+
+	if (GDistanceFieldAOSpecularOcclusionMode == 2)
 	{
 		const FIntPoint ConeTraceBufferSize = GetBufferSizeForSpecularOcclusion();
 

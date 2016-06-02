@@ -47,12 +47,6 @@
 	#define USE_STENCIL_LOD_DITHER	USE_STENCIL_LOD_DITHER_DEFAULT
 #endif
 
-// scale factor for screen position, for cases where we may render certain things at lower resolutions (e.g. separate translucency)
-// any pass wanting to render at reduced resolution needs to simply set this constant to scale scene texture UVs to make scene texture accesses work
-#if PIXELSHADER && TRANSLUCENCY_RENDERING
-float2 ScreenPositionUVScale;
-#endif
-
 //Platforms that don't run the editor shouldn't need editor features in the shaders.
 #define PLATFORM_SUPPORTS_EDITOR_SHADERS (!PS4_PROFILE && !XBOXONE_PROFILE && !ES31_AEP_PROFILE)
 
@@ -61,6 +55,8 @@ float2 ScreenPositionUVScale;
 
 //Materials also have to opt in to these features.
 #define USE_EDITOR_COMPOSITING (USE_EDITOR_SHADERS && EDITOR_PRIMITIVE_MATERIAL)
+
+#define MATERIALBLENDING_ANY_TRANSLUCENT (MATERIALBLENDING_TRANSLUCENT || MATERIALBLENDING_ADDITIVE || MATERIALBLENDING_MODULATE)
 
 /**
  * Parameters used by vertex and pixel shaders to access particle properties.
@@ -1124,10 +1120,6 @@ float4 SceneTextureLookup(float2 UV, int SceneTextureIndex, bool bFiltered)
 	return float4(0.0f, 0.0f, 0.0f, 0.0f);
 #endif
 
-#if PIXELSHADER && TRANSLUCENCY_RENDERING
-	UV *= ScreenPositionUVScale;
-#endif
-
 	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UV, false);
 
 #if PS4_PROFILE
@@ -1790,9 +1782,6 @@ half3x3 AssembleTangentToWorld( half3 TangentToWorld0, half4 TangentToWorld2 )
 	#define OPTIONAL_OutDepthConservative
 	#define OPTIONAL_OutDepth
 #endif
-
-// Using SV_ClipDistance has overhead (15% slower base pass in triangle bound test scene on PS4) so projects have to opt-in
-#define USE_GLOBAL_CLIP_PLANE (SUPPORT_GLOBAL_CLIP_PLANE && PROJECT_ALLOW_GLOBAL_CLIP_PLANE)
 
 float ApplyPixelDepthOffsetToMaterialParameters(inout FMaterialPixelParameters MaterialParameters, FPixelMaterialInputs PixelMaterialInputs, out float OutDepth)
 {

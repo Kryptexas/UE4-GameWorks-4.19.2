@@ -8,6 +8,27 @@ AsyncTextureStreaming.h: Definitions of classes used for texture streaming async
 
 #include "StreamingManagerTexture.h"
 
+struct FTexturePriority
+{
+	FTexturePriority( bool InCanDropMips, int32 InRetentionPriority, int32 InLoadOrderPriority, int32 InTextureIndex, const UTexture2D* InTexture)
+	:	bCanDropMips( InCanDropMips )
+	,	RetentionPriority( InRetentionPriority )
+	,	LoadOrderPriority( InLoadOrderPriority )
+	,	TextureIndex( InTextureIndex )
+	,	Texture( InTexture )
+	{
+	}
+	/** True if we allows this texture to drop mips to fit in budget. */
+	bool bCanDropMips;
+	/** Texture retention priority, higher value means it should be kept in memory. */
+	int32 RetentionPriority;
+	/** Texture load order priority, higher value means it should load first. */
+	int32 LoadOrderPriority;
+	/** Index into the FStreamingManagerTexture::StreamingTextures array. */
+	int32 TextureIndex;
+	/** The texture to stream. Only used for validation. */
+	const UTexture2D* Texture;
+};
 
 /** Thread-safe helper struct for streaming information. */
 class FAsyncTextureStreamingData
@@ -15,7 +36,7 @@ class FAsyncTextureStreamingData
 public:
 
 	/** Set the data but do as little as possible, called from the game thread. */
-	void Init(TArray<FStreamingViewInfo> InViewInfos, TArray<FLevelTextureManager>& LevelTextureManagers, FDynamicComponentTextureManager& DynamicComponentManager);
+	void Init(TArray<FStreamingViewInfo> InViewInfos, float InWorldTime, TArray<FLevelTextureManager>& LevelTextureManagers, FDynamicComponentTextureManager& DynamicComponentManager);
 
 	/** Update everything internally so to allow calls to CalcWantedMips */
 	void Update_Async();
@@ -35,6 +56,8 @@ private:
 
 	/** Cached from each ULevel. */
 	TArray<FTextureInstanceAsyncView> StaticInstancesViews;
+
+	float LastUpdateTime;
 };
 
 
@@ -49,17 +72,17 @@ class FAsyncTextureStreamingTask : public FNonAbandonableTask
 public:
 	FAsyncTextureStreamingTask( FStreamingManagerTexture* InStreamingManager )
 	:	StreamingManager( *InStreamingManager )
-	,	ThreadContext( false, NULL, false )
+	,	ThreadContext( false, NULL )
 	,	bAbort( false )
 	{
-		Reset(false);
+		Reset();
 	}
 
 	/** Resets the state to start a new async job. */
-	void Reset( bool bCollectTextureStats )
+	void Reset()
 	{
 		bAbort = false;
-		ThreadContext.Reset( false, NULL, bCollectTextureStats );
+		ThreadContext.Reset( false, NULL );
 		ThreadStats.Reset();
 		PrioritizedTextures.Empty( StreamingManager.StreamingTextures.Num() );
 		PrioTexIndicesSortedByLoadOrder.Empty( StreamingManager.StreamingTextures.Num() );

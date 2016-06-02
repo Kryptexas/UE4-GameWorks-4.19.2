@@ -472,6 +472,8 @@ public:
 	UPROPERTY(transient)
 	float LastRenderTime;
 
+	UPROPERTY(transient)
+	float LastRenderTimeOnScreen;
 private:
 	UPROPERTY()
 	TEnumAsByte<enum ECanBeCharacterBase> CanBeCharacterBase_DEPRECATED;

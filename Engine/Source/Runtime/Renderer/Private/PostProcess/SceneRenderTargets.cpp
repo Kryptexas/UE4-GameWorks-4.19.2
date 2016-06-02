@@ -98,8 +98,6 @@ static TAutoConsoleVariable<int32> CVarGBufferFormat(
 	TEXT(" 5: high precision"),
 	ECVF_RenderThreadSafe);
 
-extern ENGINE_API TAutoConsoleVariable<int32> CVarReflectionCaptureSize;
-
 /** The global render targets used for scene rendering. */
 static TGlobalResource<FSceneRenderTargets> SceneRenderTargetsSingleton;
 
@@ -1533,7 +1531,6 @@ void FSceneRenderTargets::AllocateForwardShadingPathRenderTargets(FRHICommandLis
 	// on ES2 we don't do on demand allocation of SceneColor yet (in non ES2 it's released in the Tonemapper Process())
 	AllocSceneColor(RHICmdList);
 	AllocateCommonDepthTargets(RHICmdList);
-	AllocateReflectionTargets(RHICmdList, CVarReflectionCaptureSize.GetValueOnRenderThread());
 	AllocateDebugViewModeTargets(RHICmdList);
 
 	EPixelFormat Format = GetSceneColor()->GetDesc().Format;
@@ -1601,7 +1598,7 @@ static TCHAR* const GetTranslucencyShadowTransmissionName(uint32 Id)
 }
 
 void FSceneRenderTargets::AllocateReflectionTargets(FRHICommandList& RHICmdList, int32 TargetSize)
-{	
+{
 	if (GSupportsRenderTargetFormat_PF_FloatRGBA)
 	{
 		const int32 NumReflectionCaptureMips = FMath::CeilLogTwo(TargetSize) + 1;
@@ -1845,8 +1842,9 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets(FRHICommandLi
 		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, DirectionalOcclusion, TEXT("DirectionalOcclusion"));
 	}
 
+	if (CurrentFeatureLevel >= ERHIFeatureLevel::SM4) 
 	{
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, GetSceneColorFormat(), FClearValueBinding::Black, TexCreate_None, TexCreate_RenderTargetable, false));
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_FloatRGBA, FClearValueBinding::Black, TexCreate_None, TexCreate_RenderTargetable, false));
 		if (CurrentFeatureLevel >= ERHIFeatureLevel::SM5)
 		{
 			Desc.TargetableFlags |= TexCreate_UAV;
@@ -1854,7 +1852,6 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets(FRHICommandLi
 		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, LightAccumulation, TEXT("LightAccumulation"));
 	}
 
-	AllocateReflectionTargets(RHICmdList, CVarReflectionCaptureSize.GetValueOnRenderThread());
 	AllocateDebugViewModeTargets(RHICmdList);
 
 	if (CurrentFeatureLevel >= ERHIFeatureLevel::SM5)

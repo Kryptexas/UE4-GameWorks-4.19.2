@@ -37,8 +37,6 @@ float ReflectionCaptureRoughnessMipScale = 1.2f;
 
 int32 GDiffuseIrradianceCubemapSize = 32;
 
-extern ENGINE_API TAutoConsoleVariable<int32> CVarReflectionCaptureSize;
-
 void OnUpdateReflectionCaptures( UWorld* InWorld )
 {
 	InWorld->UpdateAllReflectionCaptures();
@@ -49,7 +47,6 @@ FAutoConsoleCommandWithWorld CaptureConsoleCommand(
 	TEXT("Updates all reflection captures"),
 	FConsoleCommandWithWorldDelegate::CreateStatic(OnUpdateReflectionCaptures)
 	);
-
 
 /** Encapsulates render target picking logic for cubemap mip generation. */
 FSceneRenderTargetItem& GetEffectiveRenderTarget(FSceneRenderTargets& SceneContext, bool bDownsamplePass, int32 TargetMipIndex)
@@ -720,6 +717,7 @@ void ClearScratchCubemaps(FRHICommandList& RHICmdList, int32 TargetSize)
 void CaptureSceneToScratchCubemap(FRHICommandListImmediate& RHICmdList, FSceneRenderer* SceneRenderer, ECubeFace CubeFace, int32 CubemapSize, bool bCapturingForSkyLight, bool bLowerHemisphereIsBlack, const FLinearColor& LowerHemisphereColor)
 {
 	FMemMark MemStackMark(FMemStack::Get());
+
 	// update any resources that needed a deferred update
 	FDeferredUpdateResource::UpdateResources(RHICmdList);
 
@@ -743,8 +741,10 @@ void CaptureSceneToScratchCubemap(FRHICommandListImmediate& RHICmdList, FSceneRe
 		TEMP_PostReflectionCaptureRender();
 #endif
 
-		auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
 		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+		SceneContext.AllocateReflectionTargets(RHICmdList, CubemapSize);
+
+		auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
 
 		const int32 EffectiveSize = CubemapSize;
 		FSceneRenderTargetItem& EffectiveColorRT =  SceneContext.ReflectionColorScratchCubemap[0]->GetRenderTargetItem();
@@ -872,7 +872,8 @@ void FScene::AllocateReflectionCaptures(const TArray<UReflectionCaptureComponent
 
 			DesiredMaxCubemaps = FMath::Min(DesiredMaxCubemaps, GMaxNumReflectionCaptures);
 
-			if (DesiredMaxCubemaps != ReflectionSceneData.MaxAllocatedReflectionCubemapsGameThread || CVarReflectionCaptureSize.GetValueOnGameThread() != ReflectionSceneData.CubemapArray.GetCubemapSize())
+			const int32 ReflectionCaptureSize = UReflectionCaptureComponent::GetReflectionCaptureSize_GameThread();
+			if (DesiredMaxCubemaps != ReflectionSceneData.MaxAllocatedReflectionCubemapsGameThread || ReflectionCaptureSize != ReflectionSceneData.CubemapArray.GetCubemapSize())
 			{
 				ReflectionSceneData.MaxAllocatedReflectionCubemapsGameThread = DesiredMaxCubemaps;
 
@@ -880,10 +881,10 @@ void FScene::AllocateReflectionCaptures(const TArray<UReflectionCaptureComponent
 					ResizeArrayCommand,
 					FScene*, Scene, this,
 					uint32, MaxSize, ReflectionSceneData.MaxAllocatedReflectionCubemapsGameThread,
-					int32, CubemapSize, CVarReflectionCaptureSize.GetValueOnGameThread(),
+					int32, ReflectionCaptureSize, ReflectionCaptureSize,
 				{
 					// Update the scene's cubemap array, which will reallocate it, so we no longer have the contents of existing entries
-					Scene->ReflectionSceneData.CubemapArray.UpdateMaxCubemaps(MaxSize, CubemapSize);
+					Scene->ReflectionSceneData.CubemapArray.UpdateMaxCubemaps(MaxSize, ReflectionCaptureSize);
 				});
 
 				// Recapture all reflection captures now that we have reallocated the cubemap array
@@ -1184,12 +1185,15 @@ void CaptureSceneIntoScratchCubemap(
 
 		GReflectionCaptureRenderTarget.SetSize(CubemapSize);
 
-		FSceneViewFamilyContext ViewFamily( FSceneViewFamily::ConstructionValues(
-			&GReflectionCaptureRenderTarget,
-			Scene,
-			FEngineShowFlags(ESFIM_Game))
+		FSceneViewFamilyContext ViewFamily( 
+			FSceneViewFamily::ConstructionValues(
+				&GReflectionCaptureRenderTarget,
+				Scene,
+				FEngineShowFlags(ESFIM_Game)
+				)
 			.SetWorldTimes( 0.0f, 0.0f, 0.0f )				
-			.SetResolveScene(false) );
+			.SetResolveScene(false) 
+			);
 
 		// Disable features that are not desired when capturing the scene
 		ViewFamily.EngineShowFlags.PostProcessing = 0;
@@ -1275,7 +1279,7 @@ void CaptureSceneIntoScratchCubemap(
 
 void CopyToSceneArray(FRHICommandListImmediate& RHICmdList, FScene* Scene, FReflectionCaptureProxy* ReflectionProxy)
 {
-	const int32 EffectiveTopMipSize = CVarReflectionCaptureSize.GetValueOnRenderThread();
+	const int32 EffectiveTopMipSize = UReflectionCaptureComponent::GetReflectionCaptureSize_RenderThread();
 	const int32 NumMips = FMath::CeilLogTwo(EffectiveTopMipSize) + 1;
 
 	const int32 CaptureIndex = FindOrAllocateCubemapIndex(Scene, ReflectionProxy->Component);
@@ -1298,7 +1302,8 @@ void CopyToSceneArray(FRHICommandListImmediate& RHICmdList, FScene* Scene, FRefl
 void CopyToComponentTexture(FRHICommandList& RHICmdList, FScene* Scene, FReflectionCaptureProxy* ReflectionProxy)
 {
 	check(ReflectionProxy->SM4FullHDRCubemap);
-	const int32 EffectiveTopMipSize = CVarReflectionCaptureSize.GetValueOnRenderThread();
+
+	const int32 EffectiveTopMipSize = UReflectionCaptureComponent::GetReflectionCaptureSize_RenderThread();
 	const int32 NumMips = FMath::CeilLogTwo(EffectiveTopMipSize) + 1;
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
@@ -1322,6 +1327,7 @@ void CopyToComponentTexture(FRHICommandList& RHICmdList, FScene* Scene, FReflect
 void FScene::UpdateReflectionCaptureContents(UReflectionCaptureComponent* CaptureComponent)
 {
 	const bool bCubemapSpecified = CaptureComponent->ReflectionSourceType == EReflectionSourceType::SpecifiedCubemap && CaptureComponent->Cubemap;
+	const int32 ReflectionCaptureSize = UReflectionCaptureComponent::GetReflectionCaptureSize_GameThread();
 
 	if (IsReflectionEnvironmentAvailable(GetFeatureLevel()) || bCubemapSpecified)
 	{
@@ -1352,25 +1358,25 @@ void FScene::UpdateReflectionCaptureContents(UReflectionCaptureComponent* Captur
 
 			ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER( 
 				ClearCommand,
-				int32, CubemapSize, CVarReflectionCaptureSize.GetValueOnGameThread(),
+				int32, ReflectionCaptureSize, ReflectionCaptureSize,
 			{
-				ClearScratchCubemaps(RHICmdList, CubemapSize);
+				ClearScratchCubemaps(RHICmdList, ReflectionCaptureSize);
 			});
 			
 			if (CaptureComponent->ReflectionSourceType == EReflectionSourceType::CapturedScene)
 			{
-				CaptureSceneIntoScratchCubemap(this, CaptureComponent->GetComponentLocation() + CaptureComponent->CaptureOffset, CVarReflectionCaptureSize.GetValueOnGameThread(), false, true, 0, false, false, FLinearColor());
+				CaptureSceneIntoScratchCubemap(this, CaptureComponent->GetComponentLocation() + CaptureComponent->CaptureOffset, ReflectionCaptureSize, false, true, 0, false, false, FLinearColor());
 			}
 			else if (CaptureComponent->ReflectionSourceType == EReflectionSourceType::SpecifiedCubemap)
 			{
 				ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
 					CopyCubemapCommand,
 					UTextureCube*, SourceTexture, CaptureComponent->Cubemap,
-					int32, CubemapSize, CVarReflectionCaptureSize.GetValueOnGameThread(),
+					int32, ReflectionCaptureSize, ReflectionCaptureSize,
 					float, SourceCubemapRotation, CaptureComponent->SourceCubemapAngle * (PI / 180.f),
 					ERHIFeatureLevel::Type, FeatureLevel, GetFeatureLevel(),
 					{
-						CopyCubemapToScratchCubemap(RHICmdList, FeatureLevel, SourceTexture, CubemapSize, false, false, SourceCubemapRotation, FLinearColor());
+						CopyCubemapToScratchCubemap(RHICmdList, FeatureLevel, SourceTexture, ReflectionCaptureSize, false, false, SourceCubemapRotation, FLinearColor());
 					});
 			}
 			else
@@ -1381,10 +1387,10 @@ void FScene::UpdateReflectionCaptureContents(UReflectionCaptureComponent* Captur
 			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER( 
 				FilterCommand,
 				ERHIFeatureLevel::Type, FeatureLevel, GetFeatureLevel(),
-				int32, CubemapSize, CVarReflectionCaptureSize.GetValueOnGameThread(),
+				int32, ReflectionCaptureSize, ReflectionCaptureSize,
 				{
 				bool bNormalize = true;
-				FilterReflectionEnvironment(RHICmdList, FeatureLevel, CubemapSize, NULL, bNormalize);
+				FilterReflectionEnvironment(RHICmdList, FeatureLevel, ReflectionCaptureSize, NULL, bNormalize);
 			});
 
 			// Create a proxy to represent the reflection capture to the rendering thread

@@ -90,6 +90,7 @@ public:
 	virtual enum EBlendMode GetBlendMode() const override;
 	virtual enum EMaterialShadingModel GetShadingModel() const override;
 	virtual float GetOpacityMaskClipValue() const override;
+	virtual void GatherCustomOutputExpressions(TArray<class UMaterialExpressionCustomOutput*>& OutCustomOutputs) const override;
 
 	virtual EMaterialShaderMapUsage::Type GetMaterialShaderMapUsage() const { return Usage; }
 

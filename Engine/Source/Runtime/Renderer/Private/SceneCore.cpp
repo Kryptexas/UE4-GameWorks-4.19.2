@@ -321,10 +321,24 @@ void FStaticMesh::AddToDrawLists(FRHICommandListImmediate& RHICmdList, FScene* S
 
 			extern int32 GEarlyZPassMovable;
 
+			EDepthDrawingMode EarlyZPassMode = (EDepthDrawingMode)EarlyZPass;
+			bool bEarlyZPassMovable = GEarlyZPassMovable != 0;
+
+			static IConsoleVariable* CDBufferVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DBuffer"));
+			bool bDBufferAllowed = CDBufferVar ? CDBufferVar->GetInt() != 0 : false;
+
+			if (bDBufferAllowed)
+			{
+				// DBuffer decals force a full prepass
+				EarlyZPassMode = DDM_AllOccluders;
+				bEarlyZPassMovable = true;
+			}
+
 			// WARNING : If you change this condition, also change the logic in FStaticMeshSceneProxy::DrawStaticElements.
+			// Warning: also mirrored in FDeferredShadingSceneRenderer::FDeferredShadingSceneRenderer
 			if (PrimitiveSceneInfo->Proxy->ShouldUseAsOccluder() 
-				&& (!IsMasked(FeatureLevel) || EarlyZPass == 2)
-				&& (!PrimitiveSceneInfo->Proxy->IsMovable() || GEarlyZPassMovable))
+				&& (!IsMasked(FeatureLevel) || EarlyZPassMode == DDM_AllOccluders)
+				&& (!PrimitiveSceneInfo->Proxy->IsMovable() || bEarlyZPassMovable))
 			{
 				FDepthDrawingPolicyFactory::AddStaticMesh(Scene,this);
 			}

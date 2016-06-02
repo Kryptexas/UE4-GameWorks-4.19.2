@@ -6135,7 +6135,7 @@ void UMaterialExpressionWorldPosition::GetCaption(TArray<FString>& OutCaptions) 
 	{
 	case WPT_Default:
 		{
-			OutCaptions.Add(NSLOCTEXT("MaterialExpressions", "WorldPositonText", "Absolute World Position (Including Material Offsets)").ToString());
+			OutCaptions.Add(NSLOCTEXT("MaterialExpressions", "WorldPositonText", "Absolute World Position").ToString());
 			break;
 		}
 
@@ -6147,7 +6147,7 @@ void UMaterialExpressionWorldPosition::GetCaption(TArray<FString>& OutCaptions) 
 
 	case WPT_CameraRelative:
 		{
-			OutCaptions.Add(NSLOCTEXT("MaterialExpressions", "CamRelativeWorldPositonText", "Camera Relative World Position (Including Material Offsets)").ToString());
+			OutCaptions.Add(NSLOCTEXT("MaterialExpressions", "CamRelativeWorldPositonText", "Camera Relative World Position").ToString());
 			break;
 		}
 

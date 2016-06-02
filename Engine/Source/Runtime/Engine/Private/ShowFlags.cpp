@@ -369,6 +369,14 @@ void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex V
 		}
 	}
 
+	{
+		static const auto ICVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ShadowQuality"));
+		if(ICVar->GetValueOnGameThread() <= 0)
+		{
+			EngineShowFlags.DynamicShadows = 0;
+		}
+	}
+
 	// some view modes want some features off or on (no state)
 	{
 		if( ViewModeIndex == VMI_BrushWireframe ||

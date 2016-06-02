@@ -23,15 +23,15 @@ FDeferredLightData SetupLightDataForStandardDeferred()
 	LightData.LightDirection = DeferredLightUniforms.NormalizedLightDirection;
 	LightData.SpotAnglesAndSourceRadius = float4(DeferredLightUniforms.SpotAngles, DeferredLightUniforms.SourceRadius, DeferredLightUniforms.SourceLength);
 	LightData.MinRoughness = DeferredLightUniforms.MinRoughness;
+	LightData.ContactShadowLength = DeferredLightUniforms.ContactShadowLength;
 	LightData.DistanceFadeMAD = DeferredLightUniforms.DistanceFadeMAD;
 	LightData.ShadowMapChannelMask = DeferredLightUniforms.ShadowMapChannelMask;
+	LightData.ShadowedBits = DeferredLightUniforms.ShadowedBits;
 
 	LightData.bInverseSquared = INVERSE_SQUARED_FALLOFF;
 	LightData.bRadialLight = RADIAL_ATTENUATION;
 	//@todo - permutation opportunity
 	LightData.bSpotLight = RADIAL_ATTENUATION;
-	//@todo - permutation opportunity
-	LightData.bShadowed = DeferredLightUniforms.bShadowed;
 
 	return LightData;
 }

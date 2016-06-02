@@ -1,0 +1,148 @@
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+PixelShaderOutputCommon.usf: To allow PS input/output passed int functions through a single struct, allowing for a more readable code (less #ifdefs, reducing the boolean hell)
+=============================================================================*/
+
+#ifndef PIXELSHADEROUTPUT_BASEPASS
+	#define PIXELSHADEROUTPUT_BASEPASS 0
+#endif
+#ifndef PIXELSHADEROUTPUT_MRT0
+	#define PIXELSHADEROUTPUT_MRT0 0
+#endif
+#ifndef PIXELSHADEROUTPUT_MRT1
+	#define PIXELSHADEROUTPUT_MRT1 0
+#endif
+#ifndef PIXELSHADEROUTPUT_MRT2
+	#define PIXELSHADEROUTPUT_MRT2 0
+#endif
+#ifndef PIXELSHADEROUTPUT_MRT3
+	#define PIXELSHADEROUTPUT_MRT3 0
+#endif
+#ifndef PIXELSHADEROUTPUT_MRT4
+	#define PIXELSHADEROUTPUT_MRT4 0
+#endif
+#ifndef PIXELSHADEROUTPUT_MRT5
+	#define PIXELSHADEROUTPUT_MRT5 0
+#endif
+#ifndef PIXELSHADEROUTPUT_MRT6
+	#define PIXELSHADEROUTPUT_MRT6 0
+#endif
+#ifndef PIXELSHADEROUTPUT_MRT7
+	#define PIXELSHADEROUTPUT_MRT7 0
+#endif
+
+
+// ---------------------------------------------------------------------------------
+
+void MainPS
+	(
+#if PIXELSHADEROUTPUT_BASEPASS
+		FVertexFactoryInterpolantsVSToPS Interpolants,
+		FBasePassInterpolantsVSToPS BasePassInterpolants,
+#endif
+
+		in INPUT_POSITION_QUALIFIERS float4 SvPosition : SV_Position		// after all interpolators
+
+		OPTIONAL_IsFrontFace
+
+#if PIXELSHADEROUTPUT_MRT0
+		, out float4 OutTarget0 : SV_Target0
+#endif
+
+#if PIXELSHADEROUTPUT_MRT1
+		, out float4 OutTarget1 : SV_Target1
+#endif
+
+#if PIXELSHADEROUTPUT_MRT2
+		, out float4 OutTarget2 : SV_Target2
+#endif
+
+#if PIXELSHADEROUTPUT_MRT3
+		, out float4 OutTarget3 : SV_Target3
+#endif
+
+#if PIXELSHADEROUTPUT_MRT4
+		, out float4 OutTarget4 : SV_Target4
+#endif
+
+#if PIXELSHADEROUTPUT_MRT5
+		, out float4 OutTarget5 : SV_Target5
+#endif
+
+#if PIXELSHADEROUTPUT_MRT6
+		, out float4 OutTarget6 : SV_Target6
+#endif
+
+#if PIXELSHADEROUTPUT_MRT7
+		, out float4 OutTarget7 : SV_Target7
+#endif
+
+		// todo: if we are not inside a volumetric decal we could use OPTIONAL_OutDepthConservative for better performance, this would require a shader permutation
+		OPTIONAL_OutDepthConservative
+
+#if PIXELSHADEROUTPUT_A2C
+		// alpha to coverage
+		, in uint InCoverage : SV_Coverage
+		, out uint OutCoverage : SV_Coverage
+#endif
+	)
+{
+	// ---------------------------------------------------------------------------------
+
+	FPixelShaderInOut PixelShaderInOut = (FPixelShaderInOut)0;
+
+#if PIXELSHADEROUTPUT_A2C
+	PixelShaderInOut.InCoverage = InCoverage;
+	PixelShaderInOut.OutCoverage = InCoverage;
+#endif 
+
+	PixelShaderInOut.SvPosition = SvPosition;
+	PixelShaderInOut.bIsFrontFace = bIsFrontFace;
+
+#if PIXELSHADEROUTPUT_BASEPASS
+	FPixelShaderInOut_MainPS(Interpolants, BasePassInterpolants, PixelShaderInOut);
+#else
+	FPixelShaderInOut_MainPS(PixelShaderInOut);
+#endif
+
+#if PIXELSHADEROUTPUT_MRT0
+	OutTarget0 = PixelShaderInOut.MRT[0];
+#endif
+
+#if PIXELSHADEROUTPUT_MRT1
+	OutTarget1 = PixelShaderInOut.MRT[1];
+#endif
+
+#if PIXELSHADEROUTPUT_MRT2
+	OutTarget2 = PixelShaderInOut.MRT[2];
+#endif
+
+#if PIXELSHADEROUTPUT_MRT3
+	OutTarget3 = PixelShaderInOut.MRT[3];
+#endif
+
+#if PIXELSHADEROUTPUT_MRT4
+	OutTarget4 = PixelShaderInOut.MRT[4];
+#endif
+
+#if PIXELSHADEROUTPUT_MRT5
+	OutTarget5 = PixelShaderInOut.MRT[5];
+#endif
+
+#if PIXELSHADEROUTPUT_MRT6
+	OutTarget6 = PixelShaderInOut.MRT[6];
+#endif
+
+#if PIXELSHADEROUTPUT_MRT7
+	OutTarget7 = PixelShaderInOut.MRT[7];
+#endif
+
+#if PIXELSHADEROUTPUT_A2C
+	OutCoverage = PixelShaderInOut.OutCoverage;
+#endif 
+
+#if OUTPUT_PIXEL_DEPTH_OFFSET
+	OutDepth = PixelShaderInOut.OutDepth;
+#endif 
+}

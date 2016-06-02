@@ -134,6 +134,9 @@ class UReflectionCaptureComponent : public USceneComponent
 		return FullHDRData;
 	}
 
+	ENGINE_API static int32 GetReflectionCaptureSize_GameThread();
+	ENGINE_API static int32 GetReflectionCaptureSize_RenderThread();
+
 	//~ Begin UActorComponent Interface
 	virtual void CreateRenderState_Concurrent() override;
 	virtual void DestroyRenderState_Concurrent() override;

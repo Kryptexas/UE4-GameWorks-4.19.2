@@ -7,7 +7,7 @@
 #include "BlueprintEditor.h"
 #include "BlueprintEditorUtils.h"
 #include "BlueprintUtilities.h"
-#include "BlueprintWarningsConfigurationPanel.h"
+//#include "BlueprintWarningsConfigurationPanel.h"
 #include "Toolkits/ToolkitManager.h"
 #include "Editor/UnrealEd/Public/Kismet2/DebuggerCommands.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
@@ -223,14 +223,6 @@ void FBlueprintEditorModule::StartupModule()
 
 	if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
 	{
-		ConfigurationPanel = SNew(SBlueprintWarningsConfigurationPanel);
-		SettingsModule->RegisterSettings(
-			"Project", 
-			"Engine", 
-			"Blueprints",
-			LOCTEXT("RuntimeSettingsName", "Blueprints"),
-			LOCTEXT("RuntimeSettingsDescription", "Configure Blueprints runtime behavior"),
-			ConfigurationPanel.ToSharedRef());
 	}
 
 }

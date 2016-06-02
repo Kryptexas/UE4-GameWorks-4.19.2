@@ -34,6 +34,8 @@ ActorFactory.cpp:
 #include "Engine/TriggerSphere.h"
 #include "Engine/TriggerCapsule.h"
 #include "Engine/TextRenderActor.h"
+#include "Engine/SubDSurfaceActor.h"
+#include "Components/SubDSurfaceComponent.h"
 
 #include "Engine/DestructibleMesh.h"
 #include "Engine/BlueprintGeneratedClass.h"
@@ -527,6 +529,47 @@ UActorFactoryTextRender::UActorFactoryTextRender(const FObjectInitializer& Objec
 	bUseSurfaceOrientation = true;
 }
 
+/*-----------------------------------------------------------------------------
+UActorFactorySubDSurface
+-----------------------------------------------------------------------------*/
+UActorFactorySubDSurface::UActorFactorySubDSurface(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Property initialization
+	DisplayName = LOCTEXT("SubDSurfaceDisplayName", "Subdivision Surface");
+	NewActorClass = ASubDSurfaceActor::GetPrivateStaticClass(L"...");
+	bUseSurfaceOrientation = true;
+}
+
+bool UActorFactorySubDSurface::CanCreateActorFrom( const FAssetData& AssetData, FText& OutErrorMsg )
+{
+	// We allow creating ASubDSurfaceActor without an existing asset
+	if ( UActorFactory::CanCreateActorFrom( AssetData, OutErrorMsg ) )
+	{
+		return true;
+	}
+
+	if ( !AssetData.IsValid() || !AssetData.GetClass()->IsChildOf( USubDSurface::StaticClass() ) )
+	{
+		OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoSubDSurface", "A valid SubDSurface must be specified.");
+		return false;
+	}
+
+	return true;
+}
+
+void UActorFactorySubDSurface::PostSpawnActor( UObject* Asset, AActor* NewActor )
+{
+	Super::PostSpawnActor(Asset, NewActor);
+
+	USubDSurface* SubDSurface = Cast<USubDSurface>(Asset);
+	ASubDSurfaceActor* SubDSurfaceActor = CastChecked<ASubDSurfaceActor>(NewActor);
+
+	if(SubDSurface && SubDSurfaceActor)
+	{
+		SubDSurfaceActor->SubDSurface->SetMesh(SubDSurface);
+	}
+}
 
 /*-----------------------------------------------------------------------------
 UActorFactoryEmitter

@@ -287,7 +287,7 @@ bool FCanvasTileRendererItem::Render_GameThread(const FCanvas* Canvas)
 	const FRenderTarget* CanvasRenderTarget = Canvas->GetRenderTarget();
 	FSceneViewFamily* ViewFamily = new FSceneViewFamily(FSceneViewFamily::ConstructionValues(
 		CanvasRenderTarget,
-		NULL,
+		Canvas->GetScene(),
 		FEngineShowFlags(ESFIM_Game))
 		.SetWorldTimes(CurrentWorldTime, DeltaWorldTime, CurrentRealTime)
 		.SetGammaCorrection(CanvasRenderTarget->GetDisplayGamma()));

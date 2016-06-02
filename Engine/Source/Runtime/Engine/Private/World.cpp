@@ -823,6 +823,16 @@ void UWorld::UpdateParameterCollectionInstances(bool bUpdateInstanceUniformBuffe
 	}
 }
 
+UCanvas* UWorld::GetCanvasForRenderingToTarget()
+{
+	if (!CanvasForRenderingToTarget)
+	{
+		CanvasForRenderingToTarget = NewObject<UCanvas>(GetTransientPackage(), NAME_None);
+	}
+
+	return CanvasForRenderingToTarget;
+}
+
 UAISystemBase* UWorld::CreateAISystem()
 {
 	// create navigation system for editor and server targets, but remove it from game clients

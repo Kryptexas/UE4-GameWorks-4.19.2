@@ -35,28 +35,36 @@ void GetDistanceFieldAOSpecularOcclusion(float2 ScreenUV, float3 ReflectionVecto
 		float3 BentNormalAO = TextureValue.xyz;
 		float BentNormalLength = length(BentNormalAO);
 
-#define USE_CONE_TRACED_SPECULAR_OCCLUSION 0
-#if USE_CONE_TRACED_SPECULAR_OCCLUSION
-		IndirectSpecularOcclusion = TextureValue.w;
-#else
 		BRANCH
-		if (bTwoSidedFoliage)
+		if (Frame.DistanceFieldAOSpecularOcclusionMode == 0)
 		{
-			IndirectSpecularOcclusion = BentNormalLength;
+			IndirectSpecularOcclusion = IndirectDiffuseOcclusion;
 		}
-		else
+		else if (Frame.DistanceFieldAOSpecularOcclusionMode == 1)
 		{
-			float ReflectionConeAngle = Roughness * PI;
-			float UnoccludedAngle = BentNormalLength * PI * InvSkySpecularOcclusionStrength;
-			float AngleBetween = acos(dot(BentNormalAO, ReflectionVector) / max(BentNormalLength, .001f));
-			IndirectSpecularOcclusion = ApproximateConeConeIntersection(ReflectionConeAngle, UnoccludedAngle, AngleBetween);
+			BRANCH
+			if (bTwoSidedFoliage)
+			{
+				IndirectSpecularOcclusion = BentNormalLength;
+			}
+			else
+			{
+				float ReflectionConeAngle = Roughness * PI;
+				float UnoccludedAngle = BentNormalLength * PI * InvSkySpecularOcclusionStrength;
+				float AngleBetween = acos(dot(BentNormalAO, ReflectionVector) / max(BentNormalLength, .001f));
+				IndirectSpecularOcclusion = ApproximateConeConeIntersection(ReflectionConeAngle, UnoccludedAngle, AngleBetween);
 
-			// Can't rely on the direction of the bent normal when close to fully occluded, lerp to shadowed
-			IndirectSpecularOcclusion = lerp(0, IndirectSpecularOcclusion, saturate((UnoccludedAngle - .1f) / .2f));
-			IndirectSpecularOcclusion = lerp(IndirectSpecularOcclusion, 1, MinSkySpecularOcclusion);
+				// Can't rely on the direction of the bent normal when close to fully occluded, lerp to shadowed
+				IndirectSpecularOcclusion = lerp(0, IndirectSpecularOcclusion, saturate((UnoccludedAngle - .1f) / .2f));
+			}
 		}
-#endif
+		else if (Frame.DistanceFieldAOSpecularOcclusionMode == 2)
+		{
+			// Cone traced specular occlusion in w
+			IndirectSpecularOcclusion = TextureValue.w;
+		}
 
+		IndirectSpecularOcclusion = lerp(IndirectSpecularOcclusion, 1, MinSkySpecularOcclusion);
 		IndirectDiffuseOcclusion = lerp(BentNormalLength, 1, MinSkySpecularOcclusion);
 	}
 }

@@ -100,6 +100,7 @@
 #include "GameFramework/ForceFeedbackEffect.h"
 #include "GameFramework/HapticFeedbackEffect.h"
 #include "Engine/SubsurfaceProfile.h"
+#include "Engine/SubDSurface.h"
 #include "Camera/CameraAnim.h"
 #include "GameFramework/TouchInterface.h"
 #include "Engine/DataTable.h"
@@ -3322,13 +3323,13 @@ UTextureFactory::UTextureFactory(const FObjectInitializer& ObjectInitializer)
 	Formats.Add( TEXT( "tga;Texture" ) );
 	Formats.Add( TEXT( "float;Texture" ) );
 	Formats.Add( TEXT( "psd;Texture" ) );
-	Formats.Add( TEXT( "dds;Texture" ) );
+	Formats.Add( TEXT( "dds;Texture (Cubemap or 2D)" ) );
 	Formats.Add( TEXT( "hdr;Cubemap Texture (LongLat unwrap)" ) );
 	Formats.Add( TEXT( "ies;IES Texture (Standard light profiles)" ) );
 	Formats.Add( TEXT( "png;Texture" ) );
 	Formats.Add( TEXT( "jpg;Texture" ) );
 	Formats.Add( TEXT( "jpeg;Texture" ) );
-	Formats.Add( TEXT( "exr;Texture" ) );
+	Formats.Add( TEXT( "exr;Texture (HDR)" ) );
 
 	bCreateNew = false;
 	bEditorImport = true;
@@ -4601,6 +4602,21 @@ UTextureExporterPCX::UTextureExporterPCX(const FObjectInitializer& ObjectInitial
 
 }
 
+bool UTextureExporterPCX::SupportsObject(UObject* Object) const
+{
+	bool bSupportsObject = false;
+	if (Super::SupportsObject(Object))
+	{
+		UTexture2D* Texture = Cast<UTexture2D>(Object);
+
+		if (Texture)
+		{
+			bSupportsObject = Texture->Source.GetFormat() == TSF_BGRA8;
+		}
+	}
+	return bSupportsObject;
+}
+
 bool UTextureExporterPCX::ExportBinary( UObject* Object, const TCHAR* Type, FArchive& Ar, FFeedbackContext* Warn, int32 FileIndex, uint32 PortFlags )
 {
 	UTexture2D* Texture = CastChecked<UTexture2D>( Object );
@@ -4667,6 +4683,21 @@ UTextureExporterBMP::UTextureExporterBMP(const FObjectInitializer& ObjectInitial
 	FormatExtension.Add(TEXT("BMP"));
 	FormatDescription.Add(TEXT("Windows Bitmap"));
 
+}
+
+bool UTextureExporterBMP::SupportsObject(UObject* Object) const
+{
+	bool bSupportsObject = false;
+	if (Super::SupportsObject(Object))
+	{
+		UTexture2D* Texture = Cast<UTexture2D>(Object);
+
+		if (Texture)
+		{
+			bSupportsObject = Texture->Source.GetFormat() == TSF_BGRA8 || Texture->Source.GetFormat() == TSF_RGBA16;
+		}
+	}
+	return bSupportsObject;
 }
 
 bool UTextureExporterBMP::ExportBinary( UObject* Object, const TCHAR* Type, FArchive& Ar, FFeedbackContext* Warn, int32 FileIndex, uint32 PortFlags )
@@ -4959,6 +4990,42 @@ public:
 
 	/**
 	* Writes HDR format image to an FArchive
+	* @param TexRT - A 2D source render target to read from.
+	* @param Ar - Archive object to write HDR data to.
+	* @return true on successful export.
+	*/
+	bool ExportHDR(UTexture2D* Texture, FArchive& Ar)
+	{
+		check(Texture != nullptr);
+
+		Size = FIntPoint(Texture->Source.GetSizeX(), Texture->Source.GetSizeY());
+
+		TArray<uint8> RawData;
+		bool bReadSuccess = Texture->Source.GetMipData(RawData, 0);
+
+		if (Texture->Source.GetFormat() == TSF_BGRA8)
+		{
+			Format = PF_B8G8R8A8;
+		}
+		else if (Texture->Source.GetFormat() == TSF_RGBA16F)
+		{
+			Format = PF_FloatRGBA;
+		}
+		else
+		{
+			bReadSuccess = false;
+		}
+
+		if (bReadSuccess)
+		{
+			WriteHDRImage(RawData, Ar);
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	* Writes HDR format image to an FArchive
 	* This function unwraps the cube image on to a 2D surface.
 	* @param TexCube - A cube source (render target or cube texture) to read from.
 	* @param Ar - Archive object to write HDR data to.
@@ -4985,10 +5052,10 @@ public:
 };
 
 /*------------------------------------------------------------------------------
-	UTextureExporterHDR implementation.
+	URenderTargetExporterHDR implementation.
 	Exports render targets.
 ------------------------------------------------------------------------------*/
-UTextureExporterHDR::UTextureExporterHDR(const FObjectInitializer& ObjectInitializer)
+URenderTargetExporterHDR::URenderTargetExporterHDR(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	SupportedClass = UTextureRenderTarget::StaticClass();
@@ -4997,7 +5064,7 @@ UTextureExporterHDR::UTextureExporterHDR(const FObjectInitializer& ObjectInitial
 	FormatDescription.Add(TEXT("HDR"));
 }
 
-bool UTextureExporterHDR::ExportBinary(UObject* Object, const TCHAR* Type, FArchive& Ar, FFeedbackContext* Warn, int32 FileIndex, uint32 PortFlags)
+bool URenderTargetExporterHDR::ExportBinary(UObject* Object, const TCHAR* Type, FArchive& Ar, FFeedbackContext* Warn, int32 FileIndex, uint32 PortFlags)
 {
 	UTextureRenderTarget2D* TexRT2D = Cast<UTextureRenderTarget2D>(Object);
 	UTextureRenderTargetCube* TexRTCube = Cast<UTextureRenderTargetCube>(Object);
@@ -5040,6 +5107,46 @@ bool UTextureCubeExporterHDR::ExportBinary(UObject* Object, const TCHAR* Type, F
 }
 
 /*------------------------------------------------------------------------------
+	UTextureExporterHDR implementation.
+	Export UTexture2D as .HDR
+------------------------------------------------------------------------------*/
+UTextureExporterHDR::UTextureExporterHDR(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	SupportedClass = UTexture2D::StaticClass();
+	PreferredFormatIndex = 0;
+	FormatExtension.Add(TEXT("HDR"));
+	FormatDescription.Add(TEXT("HDR"));
+}
+
+bool UTextureExporterHDR::SupportsObject(UObject* Object) const
+{
+	bool bSupportsObject = false;
+	if (Super::SupportsObject(Object))
+	{
+		UTexture2D* Texture = Cast<UTexture2D>(Object);
+
+		if (Texture)
+		{
+			bSupportsObject = Texture->Source.GetFormat() == TSF_BGRA8 || Texture->Source.GetFormat() == TSF_RGBA16F;
+		}
+	}
+	return bSupportsObject;
+}
+
+bool UTextureExporterHDR::ExportBinary(UObject* Object, const TCHAR* Type, FArchive& Ar, FFeedbackContext* Warn, int32 FileIndex, uint32 PortFlags)
+{
+	UTexture2D* Texture = Cast<UTexture2D>(Object);
+
+	FHDRExportHelper Exporter;
+	if (Texture != nullptr)
+	{
+		return Exporter.ExportHDR(Texture, Ar);
+	}
+	return false;
+}
+
+/*------------------------------------------------------------------------------
 	UTextureExporterTGA implementation.
 ------------------------------------------------------------------------------*/
 UTextureExporterTGA::UTextureExporterTGA(const FObjectInitializer& ObjectInitializer)
@@ -5050,6 +5157,21 @@ UTextureExporterTGA::UTextureExporterTGA(const FObjectInitializer& ObjectInitial
 	PreferredFormatIndex = 0;
 	FormatExtension.Add(TEXT("TGA"));
 	FormatDescription.Add(TEXT("Targa"));
+}
+
+bool UTextureExporterTGA::SupportsObject(UObject* Object) const
+{
+	bool bSupportsObject = false;
+	if (Super::SupportsObject(Object))
+	{
+		UTexture2D* Texture = Cast<UTexture2D>(Object);
+
+		if (Texture)
+		{
+			bSupportsObject = Texture->Source.GetFormat() == TSF_BGRA8 || Texture->Source.GetFormat() == TSF_RGBA16;
+		}
+	}
+	return bSupportsObject;
 }
 
 bool UTextureExporterTGA::ExportBinary( UObject* Object, const TCHAR* Type, FArchive& Ar, FFeedbackContext* Warn, int32 FileIndex, uint32 PortFlags )
@@ -7275,6 +7397,25 @@ USubsurfaceProfileFactory::USubsurfaceProfileFactory(const FObjectInitializer& O
 UObject* USubsurfaceProfileFactory::FactoryCreateNew(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
 {
 	return NewObject<USubsurfaceProfile>(InParent, InName, Flags);
+}
+
+
+/*-----------------------------------------------------------------------------
+USubDSurfaceFactory implementation.
+-----------------------------------------------------------------------------*/
+USubDSurfaceFactory::USubDSurfaceFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+
+	SupportedClass = USubDSurface::StaticClass();
+	bCreateNew = true;
+	bEditorImport = false;
+	bEditAfterNew = true;
+}
+
+UObject* USubDSurfaceFactory::FactoryCreateNew(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
+{
+	return NewObject<USubDSurface>(InParent, USubDSurface::StaticClass(), InName, Flags);
 }
 
 /*-----------------------------------------------------------------------------

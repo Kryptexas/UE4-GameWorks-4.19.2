@@ -45,6 +45,24 @@ ENGINE_API TAutoConsoleVariable<int32> CVarReflectionCaptureSize(
 	TEXT("Set the resolution for all reflection capture cubemaps. Should be set via project's Render Settings. Must be power of 2. Defaults to 128.\n")
 	);
 
+static int32 SanatizeReflectionCaptureSize(int32 ReflectionCaptureSize)
+{
+	static const int32 MaxReflectionCaptureSize = 1024;
+	static const int32 MinReflectionCaptureSize = 1;
+
+	return FMath::Clamp(ReflectionCaptureSize, MinReflectionCaptureSize, MaxReflectionCaptureSize);
+}
+
+int32 UReflectionCaptureComponent::GetReflectionCaptureSize_GameThread()
+{
+	return SanatizeReflectionCaptureSize(CVarReflectionCaptureSize.GetValueOnGameThread());
+}
+
+int32 UReflectionCaptureComponent::GetReflectionCaptureSize_RenderThread()
+{
+	return SanatizeReflectionCaptureSize(CVarReflectionCaptureSize.GetValueOnRenderThread());
+}
+
 void UWorld::UpdateAllReflectionCaptures()
 {
 	if ( FeatureLevel < ERHIFeatureLevel::SM4)
@@ -1054,11 +1072,12 @@ void UReflectionCaptureComponent::PostLoad()
 	bool bRetainAllFeatureLevelData = GIsEditor && GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4;
 	bool bEncodedDataRequired = bRetainAllFeatureLevelData || (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2 || GMaxRHIFeatureLevel == ERHIFeatureLevel::ES3_1);
 	bool bFullDataRequired = GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4;
+	const int32 ReflectionCaptureSize = UReflectionCaptureComponent::GetReflectionCaptureSize_GameThread();
 
 	// If we're loading on a platform that doesn't require cooked data, attempt to load missing data from the DDC
 	if (!FPlatformProperties::RequiresCookedData())
 	{
-		if (!FullHDRData || FullHDRData->CubemapSize != CVarReflectionCaptureSize.GetValueOnGameThread())
+		if (!FullHDRData || FullHDRData->CubemapSize != ReflectionCaptureSize)
 		{
 			bDerivedDataDirty = true;
 			delete FullHDRData;
@@ -1101,7 +1120,7 @@ void UReflectionCaptureComponent::PostLoad()
 			INC_MEMORY_STAT_BY(STAT_ReflectionCaptureMemory, EncodedHDRDerivedData->CapturedData.GetAllocatedSize());
 		}
 
-		int32 CubemapSize = CVarReflectionCaptureSize.GetValueOnGameThread();
+		int32 CubemapSize = ReflectionCaptureSize;
 		if (FullHDRData)
 		{
 			CubemapSize = FullHDRData->CubemapSize;
@@ -1420,9 +1439,11 @@ void UReflectionCaptureComponent::UpdateReflectionCaptureContents(UWorld* WorldT
 
 				if (!ReflectionComponent->SM4FullHDRCubemapTexture)
 				{
+					const int32 ReflectionCaptureSize = UReflectionCaptureComponent::GetReflectionCaptureSize_GameThread();
+
 					// Create the cubemap if it wasn't already - this happens when updating a reflection capture that doesn't have valid DDC
 					ReflectionComponent->SM4FullHDRCubemapTexture = new FReflectionTextureCubeResource();
-					ReflectionComponent->SM4FullHDRCubemapTexture->SetupParameters(CVarReflectionCaptureSize.GetValueOnGameThread(), FMath::CeilLogTwo(CVarReflectionCaptureSize.GetValueOnGameThread()) + 1, PF_FloatRGBA, nullptr);
+					ReflectionComponent->SM4FullHDRCubemapTexture->SetupParameters(ReflectionCaptureSize, FMath::CeilLogTwo(ReflectionCaptureSize) + 1, PF_FloatRGBA, nullptr);
 					BeginInitResource(ReflectionComponent->SM4FullHDRCubemapTexture);
 					ReflectionComponent->MarkRenderStateDirty();
 				}
@@ -1497,8 +1518,10 @@ void UReflectionCaptureComponent::PreFeatureLevelChange(ERHIFeatureLevel::Type P
 	{
 		if (SM4FullHDRCubemapTexture == nullptr)
 		{
+			const int32 ReflectionCaptureSize = UReflectionCaptureComponent::GetReflectionCaptureSize_GameThread();
+
 			SM4FullHDRCubemapTexture = new FReflectionTextureCubeResource();
-			SM4FullHDRCubemapTexture->SetupParameters(CVarReflectionCaptureSize.GetValueOnGameThread(), FMath::CeilLogTwo(CVarReflectionCaptureSize.GetValueOnGameThread()) + 1, PF_FloatRGBA, nullptr);
+			SM4FullHDRCubemapTexture->SetupParameters(ReflectionCaptureSize, FMath::CeilLogTwo(ReflectionCaptureSize) + 1, PF_FloatRGBA, nullptr);
 			BeginInitResource(SM4FullHDRCubemapTexture);
 		}
 	}

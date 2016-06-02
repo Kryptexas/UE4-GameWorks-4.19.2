@@ -209,7 +209,7 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ToolTip="When adaptive tessellation is enabled it will try to tessellate a mesh so that each triangle contains the specified number of pixels. The tessellation multiplier specified in the material can increase or decrease the amount of tessellation."))
 	float TessellationAdaptivePixelsPerTriangle;
 
-	UPROPERTY(config, EditAnywhere, Category=Postprocessing, meta=(
+	UPROPERTY(config, EditAnywhere, Category=Translucency, meta=(
 		ConsoleVariable="r.SeparateTranslucency",
 		ToolTip="Allow translucency to be rendered to a separate render targeted and composited after depth of field. Prevents translucency from appearing out of focus."))
 	uint32 bSeparateTranslucency:1;
@@ -302,7 +302,7 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ConfigRestartRequired=true))
 	uint32 bSelectiveBasePassOutputs:1;
 
-	UPROPERTY(config, EditAnywhere, Category = Optimizations, meta = (
+	UPROPERTY(config, EditAnywhere, Category = Lighting, meta = (
 		ConsoleVariable = "r.AllowGlobalClipPlane", DisplayName = "Support global clip plane for Planar Reflections",
 		ToolTip = "Whether to support the global clip plane needed for planar reflections.  Enabling this increases BasePass triangle cost by ~15% regardless of whether planar reflections are active. Changing this setting requires restarting the editor.",
 		ConfigRestartRequired = true))

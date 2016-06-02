@@ -90,6 +90,10 @@ class ENGINE_API ULightComponent : public ULightComponentBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, AdvancedDisplay, meta=(UIMin = "0.0", UIMax = "1.0", DisplayName = "Shadow Filter Sharpen"))
 	float ShadowSharpen;
 	
+	/** Length of screen space ray trace for sharp contact shadows. Zero is disabled. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Light, AdvancedDisplay, meta = (UIMin = "0.0", UIMax = "1.0"))
+	float ContactShadowLength;
+
 	UPROPERTY()
 	uint32 InverseSquaredFalloff_DEPRECATED:1;
 

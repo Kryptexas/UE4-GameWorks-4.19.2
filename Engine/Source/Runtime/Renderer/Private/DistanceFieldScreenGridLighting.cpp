@@ -793,8 +793,8 @@ void FDeferredShadingSceneRenderer::RenderDistanceFieldAOScreenGrid(
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, ConeTraceObjects);
 
-		const uint32 GroupSizeX = FMath::DivideAndRoundDown(View.ViewRect.Size().X / GAODownsampleFactor, GDistanceFieldAOTileSizeX / GConeTraceDownsampleFactor);
-		const uint32 GroupSizeY = FMath::DivideAndRoundDown(View.ViewRect.Size().Y / GAODownsampleFactor, GDistanceFieldAOTileSizeY / GConeTraceDownsampleFactor);
+		const uint32 GroupSizeX = FMath::DivideAndRoundUp(View.ViewRect.Size().X / GAODownsampleFactor, GDistanceFieldAOTileSizeX / GConeTraceDownsampleFactor);
+		const uint32 GroupSizeY = FMath::DivideAndRoundUp(View.ViewRect.Size().Y / GAODownsampleFactor, GDistanceFieldAOTileSizeY / GConeTraceDownsampleFactor);
 		
 		if (bUseGlobalDistanceField)
 		{
@@ -846,8 +846,8 @@ void FDeferredShadingSceneRenderer::RenderDistanceFieldAOScreenGrid(
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, ConeTraceGlobal);
 
-		const uint32 GroupSizeX = FMath::DivideAndRoundDown(View.ViewRect.Size().X / GAODownsampleFactor, GConeTraceGlobalDFTileSize);
-		const uint32 GroupSizeY = FMath::DivideAndRoundDown(View.ViewRect.Size().Y / GAODownsampleFactor, GConeTraceGlobalDFTileSize);
+		const uint32 GroupSizeX = FMath::DivideAndRoundUp(View.ViewRect.Size().X / GAODownsampleFactor, GConeTraceGlobalDFTileSize);
+		const uint32 GroupSizeY = FMath::DivideAndRoundUp(View.ViewRect.Size().Y / GAODownsampleFactor, GConeTraceGlobalDFTileSize);
 
 		check(View.GlobalDistanceFieldInfo.Clipmaps.Num() > 0);
 

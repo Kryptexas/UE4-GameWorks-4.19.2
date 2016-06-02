@@ -42,7 +42,7 @@ void FForwardShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLis
 	ComputeViewVisibility(RHICmdList);
 	PostVisibilityFrameSetup(ILCTaskData);
 
-	bool bDynamicShadows = ViewFamily.EngineShowFlags.DynamicShadows && GetShadowQuality() > 0;
+	bool bDynamicShadows = ViewFamily.EngineShowFlags.DynamicShadows;
 
 	if (bDynamicShadows && !IsSimpleForwardShadingEnabled(GetFeatureLevelShaderPlatform(FeatureLevel)))
 	{
@@ -336,7 +336,7 @@ void FForwardShadingSceneRenderer::ConditionalResolveSceneDepth(FRHICommandListI
 		{
 			// Only these features require depth texture
 			bool bDecals = ViewFamily.EngineShowFlags.Decals && Scene->Decals.Num();
-			bool bModulatedShadows = ViewFamily.EngineShowFlags.DynamicShadows && GetShadowQuality() > 0 && bModulatedShadowsInUse;
+			bool bModulatedShadows = ViewFamily.EngineShowFlags.DynamicShadows && bModulatedShadowsInUse;
 
 			if (bDecals || bModulatedShadows)
 			{

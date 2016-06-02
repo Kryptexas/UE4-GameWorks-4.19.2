@@ -83,6 +83,8 @@ static TAutoConsoleVariable<float> CVarGPUParticleFixDeltaSeconds(TEXT("r.GPUPar
 static TAutoConsoleVariable<float> CVarGPUParticleFixTolerance(TEXT("r.GPUParticle.FixTolerance"),.1f,TEXT("Delta second tolerance before switching to a fix delta seconds."));
 static TAutoConsoleVariable<int32> CVarGPUParticleMaxNumIterations(TEXT("r.GPUParticle.MaxNumIterations"),3,TEXT("Max number of iteration when using a fix delta seconds."));
 
+static TAutoConsoleVariable<int32> CVarSimulateGPUParticles(TEXT("r.GPUParticle.Simulate"), 1, TEXT("Enable or disable GPU particle simulation"));
+
 /*-----------------------------------------------------------------------------
 	Allocators used to manage GPU particle resources.
 -----------------------------------------------------------------------------*/
@@ -1382,6 +1384,11 @@ void ExecuteSimulationCommands(
 	FTexture2DRHIParamRef GBufferATexture,
 	bool bUseFixDT)
 {
+	if (!CVarSimulateGPUParticles.GetValueOnAnyThread())
+	{
+		return;
+	}
+
 	SCOPED_DRAW_EVENT(RHICmdList, ParticleSimulation);
 
 	const float FixDeltaSeconds = CVarGPUParticleFixDeltaSeconds.GetValueOnRenderThread();
@@ -1487,6 +1494,11 @@ void ExecuteSimulationCommands(
  */
 void ClearTiles(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, const TArray<uint32>& Tiles)
 {
+	if (!CVarSimulateGPUParticles.GetValueOnAnyThread())
+	{
+		return;
+	}
+
 	SCOPED_DRAW_EVENT(RHICmdList, ClearTiles);
 
 	const int32 MaxTilesPerDrawCallUnaligned = GParticleScratchVertexBufferSize / sizeof(FVector2D);
@@ -1739,7 +1751,7 @@ TGlobalResource<FParticleInjectionVertexDeclaration> GParticleInjectionVertexDec
  */
 void InjectNewParticles(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, const TArray<FNewParticle>& NewParticles)
 {
-	if (GIsRenderingThreadSuspended)
+	if (GIsRenderingThreadSuspended || !CVarSimulateGPUParticles.GetValueOnAnyThread())
 	{
 		return;
 	}

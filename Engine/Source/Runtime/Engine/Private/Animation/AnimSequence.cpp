@@ -480,6 +480,11 @@ void UAnimSequence::PostLoad()
 
 	USkeleton* CurrentSkeleton = GetSkeleton();
 
+	if (CurrentSkeleton)
+	{
+		VerifyCurveNames<FFloatCurve>(CurrentSkeleton, USkeleton::AnimCurveMappingName, CompressedCurveData.FloatCurves);
+	}
+
 #if WITH_EDITOR
 	if (CurrentSkeleton)
 	{
@@ -504,7 +509,7 @@ void UAnimSequence::PostLoad()
 		}
 	}
 
-	// Compressed curve flags are not authorative (they come from the DDC). Keep them up to date with
+	// Compressed curve flags are not authoritative (they come from the DDC). Keep them up to date with
 	// actual anim flags 
 	for (FFloatCurve& Curve : RawCurveData.FloatCurves)
 	{

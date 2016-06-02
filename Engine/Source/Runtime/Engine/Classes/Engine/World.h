@@ -660,6 +660,13 @@ private:
 	UPROPERTY(Transient)
 	TArray<class UMaterialParameterCollectionInstance*> ParameterCollectionInstances;
 
+	/** 
+	 * Canvas object used for drawing to render targets from blueprint functions eg DrawMaterialToRenderTarget.
+	 * This is cached as UCanvas creation takes >100ms.
+	 */
+	UPROPERTY(Transient)
+	UCanvas* CanvasForRenderingToTarget;
+
 public:
 	/** Set the pointer to the Navgation system. */
 	void SetNavigationSystem( UNavigationSystem* InNavigationSystem);
@@ -1996,6 +2003,9 @@ public:
 
 	/** Updates this world's scene with the list of instances, and optionally updates each instance's uniform buffer. */
 	void UpdateParameterCollectionInstances(bool bUpdateInstanceUniformBuffers);
+
+	/** Gets the canvas object for rendering to a render target.  Will allocate one if needed. */
+	UCanvas* GetCanvasForRenderingToTarget();
 
 	/** Struct containing a collection of optional parameters for initialization of a World. */
 	struct InitializationValues

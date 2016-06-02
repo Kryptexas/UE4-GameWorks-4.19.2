@@ -24,6 +24,7 @@ public:
 
 	/** Defines which objects we want to render in the EarlyZPass. */
 	EDepthDrawingMode EarlyZPassMode;
+	bool bEarlyZPassMovable;
 	bool bDitheredLODTransitionsUseStencil;
 
 	/** 
@@ -417,6 +418,8 @@ private:
 	void UpdateGlobalDistanceFieldObjectBuffers(FRHICommandListImmediate& RHICmdList);
 
 	void DrawAllTranslucencyPasses(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, ETranslucencyPass::Type TranslucenyPassType);
+
+	void CopySceneCaptureComponentToTarget(FRHICommandListImmediate& RHICmdList);
 
 	friend class FTranslucentPrimSet;
 };

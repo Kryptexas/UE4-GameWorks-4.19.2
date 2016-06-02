@@ -75,6 +75,8 @@ struct CORE_API FFbxErrors
 	static FName SkeletalMesh_RestoreSortingForSectionNumber;
 
 	static FName SkeletalMesh_NoMeshFoundOnRoot;
+	
+	static FName SkeletalMesh_ImportSubDSurface;
 
 	static FName SkeletalMesh_InvalidRoot;
 

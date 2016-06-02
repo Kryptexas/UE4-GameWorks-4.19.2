@@ -197,9 +197,8 @@ bool IsStreamingTexture( const UTexture2D* Texture2D )
 	return false;
 }
 
-void FStreamingContext::Reset( bool bProcessEverything, UTexture2D* IndividualStreamingTexture, bool bInCollectTextureStats )
+void FStreamingContext::Reset( bool bProcessEverything, UTexture2D* IndividualStreamingTexture )
 {
-	bCollectTextureStats							= bInCollectTextureStats;
 	ThisFrameTotalRequestSize						= 0;
 	ThisFrameTotalLightmapRequestSize				= 0;
 	ThisFrameNumStreamingTextures					= 0;
@@ -224,8 +223,6 @@ void FStreamingContext::Reset( bool bProcessEverything, UTexture2D* IndividualSt
 	AvailableNow = 0;
 	AvailableLater = 0;
 	AvailableTempMemory = 0;
-
-	STAT( TextureStats.Empty() );
 
 	AllocatedMemorySize	= INDEX_NONE;
 	PendingMemoryAdjustment = INDEX_NONE;
@@ -278,6 +275,4 @@ void FStreamingContext::AddStats( const FStreamingContext& Other )
 	ThisFrameTotalDynamicTextureHeuristicSize		+= Other.ThisFrameTotalDynamicTextureHeuristicSize;
 	ThisFrameTotalLastRenderHeuristicSize			+= Other.ThisFrameTotalLastRenderHeuristicSize;
 	ThisFrameTotalForcedHeuristicSize				+= Other.ThisFrameTotalForcedHeuristicSize;
-	bCollectTextureStats							= bCollectTextureStats || Other.bCollectTextureStats;
-	STAT( TextureStats.Append( Other.TextureStats ) );
 }

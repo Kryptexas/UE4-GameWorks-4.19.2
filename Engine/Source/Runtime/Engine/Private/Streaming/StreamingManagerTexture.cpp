@@ -49,7 +49,6 @@ FStreamingManagerTexture::FStreamingManagerTexture()
 :	CurrentUpdateStreamingTextureIndex(0)
 ,	bTriggerDumpTextureGroupStats( false )
 ,	bDetailedDumpTextureGroupStats( false )
-,	bTriggerInvestigateTexture( false )
 ,	MipBias(0)
 ,	AsyncWork( nullptr )
 ,	ProcessingStage( 0 )
@@ -84,9 +83,8 @@ FStreamingManagerTexture::FStreamingManagerTexture()
 ,	OriginalTexturePoolSize(0)
 ,	PreviousPoolSizeTimestamp(0.0)
 ,	PreviousPoolSizeSetting(-1)
-,	bCollectTextureStats(false)
-,	bReportTextureStats(false)
 ,	bPauseTextureStreaming(false)
+,	LastUpdateTime(GIsEditor ? -FLT_MAX : 0) // In editor, visibility is not taken into consideration.
 {
 	// Read settings from ini file.
 	int32 TempInt;
@@ -420,7 +418,23 @@ void FStreamingManagerTexture::UpdateThreadData()
 	IncrementalUpdate(1.f);
 	MipBias = FMath::Max(CVarStreamingMipBias.GetValueOnGameThread(), 0.0f);
 	// Update the thread data.
-	AsyncWork->GetTask().StreamingData.Init(CurrentViewInfos, LevelTextureManagers, DynamicComponentManager);
+
+	AsyncWork->GetTask().StreamingData.Init(CurrentViewInfos, GStreamWithTimeFactor ? LastUpdateTime : -FLT_MAX, LevelTextureManagers, DynamicComponentManager);
+
+	if (!GIsEditor)
+	{
+		float WorldTime = 0;
+		for (int32 LevelIndex = 0; LevelIndex < LevelTextureManagers.Num() && !WorldTime; ++LevelIndex)
+		{
+			WorldTime = LevelTextureManagers[LevelIndex].GetWorldTime();
+		}
+
+		// Update last update time only if there is a reasonable threshold to define visibility.
+		if (WorldTime - LastUpdateTime  > .5f)
+		{
+			LastUpdateTime = WorldTime;
+		}
+	}
 }
 
 /**
@@ -889,7 +903,7 @@ void FStreamingManagerTexture::StreamTextures( bool bProcessEverything )
 	const int64 MaxTempMemoryAllowed = CVarStreamingMaxTempMemoryAllowed.GetValueOnAnyThread() * 1024 * 1024;
 
 	// Setup a context for this run.
-	FStreamingContext Context( bProcessEverything, IndividualStreamingTexture, bCollectTextureStats );
+	FStreamingContext Context( bProcessEverything, IndividualStreamingTexture );
 
 	AsyncWork->GetTask().ClearRemovedTextureReferences();
 
@@ -900,86 +914,6 @@ void FStreamingManagerTexture::StreamTextures( bool bProcessEverything )
 	Context.AddStats( AsyncWork->GetTask().GetContext() );
 
 	FIOSystem::Get().FlushLog();
-
-#if STATS
-	// Did we collect texture stats? Triggered by the ListStreamingTextures exec command.
-	if ( Context.TextureStats.Num() > 0 )
-	{
-		// Reinitialize each time
-		TextureStatsReport.Empty();
-
-		// Sort textures by cost.
-		struct FCompareFTextureStreamingStats
-		{
-			FORCEINLINE bool operator()( const FTextureStreamingStats& A, const FTextureStreamingStats& B ) const
-			{
-				if ( A.Priority > B.Priority )
-				{
-					return true;
-				}
-				else if ( A.Priority == B.Priority )
-				{
-					return ( A.TextureIndex < B.TextureIndex );
-				}
-				else
-				{
-					return false;
-				}
-			}
-		};
-		Context.TextureStats.Sort( FCompareFTextureStreamingStats() );
-		int64 TotalCurrentSize	= 0;
-		int64 TotalWantedSize	= 0;
-		int64 TotalMaxSize		= 0;
-		TextureStatsReport.Add( FString( TEXT(",Priority,Current,Wanted,Max,Largest Resident,Current Size (KB),Wanted Size (KB),Max Size (KB),Largest Resident Size (KB),Streaming Type,Last Rendered,BoostFactor,Name") ) );
-		for( int32 TextureIndex=0; TextureIndex<Context.TextureStats.Num(); TextureIndex++ )
-		{
-			const FTextureStreamingStats& TextureStat = Context.TextureStats[TextureIndex];
-			int32 LODBias			= TextureStat.LODBias;
-			int32 CurrDroppedMips	= TextureStat.NumMips - TextureStat.ResidentMips;
-			int32 WantedDroppedMips	= TextureStat.NumMips - TextureStat.WantedMips;
-			int32 MostDroppedMips	= TextureStat.NumMips - TextureStat.MostResidentMips;
-			TextureStatsReport.Add( FString::Printf( TEXT(",%.3f,%ix%i,%ix%i,%ix%i,%ix%i,%i,%i,%i,%i,%3f sec,%.1f,%s"),
-				TextureStat.Priority,
-				FMath::Max(TextureStat.SizeX >> CurrDroppedMips, 1),
-				FMath::Max(TextureStat.SizeY >> CurrDroppedMips, 1),
-				FMath::Max(TextureStat.SizeX >> WantedDroppedMips, 1),
-				FMath::Max(TextureStat.SizeY >> WantedDroppedMips, 1),
-				FMath::Max(TextureStat.SizeX >> LODBias, 1),
-				FMath::Max(TextureStat.SizeY >> LODBias, 1),
-				FMath::Max(TextureStat.SizeX >> MostDroppedMips, 1),
-				FMath::Max(TextureStat.SizeY >> MostDroppedMips, 1),
-				TextureStat.ResidentSize/1024,
-				TextureStat.WantedSize/1024,
-				TextureStat.MaxSize/1024,
-				TextureStat.MostResidentSize/1024,
-				TextureStat.LastRenderTime,
-				TextureStat.BoostFactor,
-				*TextureStat.TextureName
-				) );
-			TotalCurrentSize	+= TextureStat.ResidentSize;
-			TotalWantedSize		+= TextureStat.WantedSize;
-			TotalMaxSize		+= TextureStat.MaxSize;
-		}
-		TextureStatsReport.Add( FString::Printf( TEXT("Total size: Current= %d  Wanted=%d  Max= %d"), TotalCurrentSize/1024, TotalWantedSize/1024, TotalMaxSize/1024 ) );
-		Context.TextureStats.Empty();
-
-		if( bReportTextureStats )
-		{
-			if( TextureStatsReport.Num() > 0 )
-			{
-				UE_LOG(LogContentStreaming, Log,  TEXT("Listing collected stats for all streaming textures") );
-				for( int32 ReportIndex = 0; ReportIndex < TextureStatsReport.Num(); ReportIndex++ )
-				{
-					UE_LOG(LogContentStreaming, Log, TEXT("%s"), *TextureStatsReport[ReportIndex]);
-				}
-				TextureStatsReport.Empty();
-			}
-			bReportTextureStats = false;
-		}
-		bCollectTextureStats = false;
-	}
-#endif
 
 	FTextureMemoryStats Stats;
 	RHIGetTextureMemoryStats(Stats);
@@ -1137,11 +1071,10 @@ void FStreamingManagerTexture::DropWantedMips( FStreamingContext& Context )
 		for (int32 TexPrioIndex = 0; TexPrioIndex < PrioritizedTextures.Num() && Context.AvailableLater < 0; ++TexPrioIndex)
 		{
 			const FTexturePriority& TexturePriority = PrioritizedTextures[ TexPrioIndex ];
-			const int32 TextureIndex = TexturePriority.TextureIndex;
 
 			// This will also account for invalid entries.
 			if (TexturePriority.TextureIndex == INDEX_NONE || !TexturePriority.bCanDropMips) continue;
-			FStreamingTexture& StreamingTexture = StreamingTextures[TextureIndex];
+			FStreamingTexture& StreamingTexture = StreamingTextures[TexturePriority.TextureIndex];
 
 			// Allow to drop all mips until min mips
 			if (StreamingTexture.WantedMips <= StreamingTexture.MinAllowedMips) continue;
@@ -1158,7 +1091,7 @@ void FStreamingManagerTexture::DropWantedMips( FStreamingContext& Context )
 				bMoreMemoryCouldBeFreed = true;
 			}
 		}
-	bIsDroppingFirstMip = false;
+		bIsDroppingFirstMip = false;
 	}
 }
 
@@ -1175,11 +1108,10 @@ void FStreamingManagerTexture::DropForcedMips( FStreamingContext& Context )
 		for (int32 TexPrioIndex = 0; TexPrioIndex < PrioritizedTextures.Num() && Context.AvailableLater < 0; ++TexPrioIndex)
 		{
 			const FTexturePriority& TexturePriority = PrioritizedTextures[ TexPrioIndex ];
-			const int32 TextureIndex = TexturePriority.TextureIndex;
 
 			// This will also account for invalid entries.
 			if (TexturePriority.TextureIndex == INDEX_NONE || TexturePriority.bCanDropMips) continue;
-			FStreamingTexture& StreamingTexture = StreamingTextures[TextureIndex];
+			FStreamingTexture& StreamingTexture = StreamingTextures[TexturePriority.TextureIndex];
 
 			// Allow to drop all mips until non resident mips.
 			if (StreamingTexture.WantedMips <= StreamingTexture.NumNonStreamingMips) continue;
@@ -1335,10 +1267,6 @@ void FStreamingManagerTexture::UpdateResourceStreaming( float DeltaTime, bool bP
 		{
 			DumpTextureGroupStats( bDetailedDumpTextureGroupStats );
 		}
-		if ( bTriggerInvestigateTexture )
-		{
-			InvestigateTexture( InvestigateTextureName );
-		}
 	}
 	else
 	{
@@ -1350,7 +1278,7 @@ void FStreamingManagerTexture::UpdateResourceStreaming( float DeltaTime, bool bP
 	if ( ProcessingStage < NumDataCollectionStages )
 	{
 		// Setup a context for this run. Note that we only (potentially) collect texture stats from the AsyncWork.
-		FStreamingContext Context( bProcessEverything, IndividualStreamingTexture, false );
+		FStreamingContext Context( bProcessEverything, IndividualStreamingTexture );
 		{
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_FStreamingManagerTexture_UpdateResourceStreaming_UpdateStreamingTextures);
 			UpdateStreamingTextures( Context, ProcessingStage, NumDataCollectionStages );
@@ -1371,7 +1299,7 @@ void FStreamingManagerTexture::UpdateResourceStreaming( float DeltaTime, bool bP
 			AsyncWork->EnsureCompletion();
 		}
 
-		AsyncWork->GetTask().Reset(bCollectTextureStats);
+		AsyncWork->GetTask().Reset();
 		if ( NumTextureProcessingStages > 1 )
 		{
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_FStreamingManagerTexture_UpdateResourceStreaming_StartBackgroundTask);
@@ -1558,14 +1486,6 @@ void FStreamingManagerTexture::UpdateFrameStats( FStreamingContext& Context, FSt
 #if STATS
 	int64 PotentialSize = StreamingTexture.GetSize(StreamingTexture.MaxAllowedMips);
 
-	if ( Context.bCollectTextureStats )
-	{
-		FString TextureName = StreamingTexture.Texture->GetFullName();
-		if ( CollectTextureStatsName.Len() == 0 || TextureName.Contains( CollectTextureStatsName) )
-		{
-			new (Context.TextureStats) FTextureStreamingStats( StreamingTexture.Texture, StreamingTexture.ResidentMips, PerfectWantedMips, StreamingTexture.MostResidentMips, ResidentSize, PerfectWantedSize, PotentialSize, MostResidentSize, StreamingTexture.BoostFactor, StreamingTexture.CalcLoadOrderPriority(), TextureIndex );
-		}
-	}
 	Context.ThisFrameNumStreamingTextures++;
 	Context.ThisFrameTotalStreamingTexturesMaxSize += PotentialSize;
 	Context.ThisFrameTotalLightmapMemorySize += StreamingTexture.bIsLightmap ? ResidentSize : 0;
@@ -1575,39 +1495,30 @@ void FStreamingManagerTexture::UpdateFrameStats( FStreamingContext& Context, FSt
 #endif
 }
 
-void FStreamingManagerTexture::LogHeuristic(bool bOutputToLog, bool bUseHeuristic, const TCHAR*& Heuristic, const TCHAR* NewHeuristic)
-{
-#if !UE_BUILD_SHIPPING
-	if (bUseHeuristic)
-	{
-		if (bOutputToLog)
-		{
-			UE_LOG(LogContentStreaming, Log,  TEXT("  %s Reference."), NewHeuristic);
-		}
-		Heuristic = NewHeuristic;
-	}
-#endif
-}
-
 /**
  * Calculates the number of mip-levels we would like to have in memory for a texture.
  */
-const TCHAR* FStreamingManagerTexture::CalcWantedMips(const FAsyncTextureStreamingData& StreamingData, FStreamingTexture& StreamingTexture, bool bGetHeuristic, bool bOutputToLog)
+void FStreamingManagerTexture::CalcWantedMips(const FAsyncTextureStreamingData& StreamingData, FStreamingTexture& StreamingTexture, bool bGetHeuristic, bool bOutputToLog)
 {
-	const TCHAR* Heuristic = nullptr; 
+#if UE_BUILD_SHIPPING
+	bOutputToLog = false;
+#endif
+
+	// Whether streaming scale should be ignored (used when selecting specific resolutions).
+	bool bIgnoreStreamingScale = false;
 
 	float MaxSize = 0;
 	float MaxSize_VisibleOnly = 0;
 
 	if ( StreamingTexture.bForceFullyLoad || StreamingTexture.MinAllowedMips == StreamingTexture.MaxAllowedMips )
 	{
-		LogHeuristic(bOutputToLog, bGetHeuristic, Heuristic, TEXT("Forced"));
+		if (bOutputToLog) UE_LOG(LogContentStreaming, Log,  TEXT("  Forced FullyLoad"));
+
 		MaxSize_VisibleOnly = FLT_MAX;
 	}
 	else
 	{
-		LogHeuristic(bOutputToLog, bGetHeuristic && StreamingData.GetDynamicInstancesView().HasTextureReferences(StreamingTexture.Texture), Heuristic, TEXT("Dynamic"));
-		StreamingData.GetDynamicInstancesView().GetTexelSize(StreamingTexture.Texture, MaxSize, MaxSize_VisibleOnly, bOutputToLog);
+		StreamingData.GetDynamicInstancesView().GetTexelSize(StreamingTexture.Texture, MaxSize, MaxSize_VisibleOnly, bOutputToLog ? TEXT("Dynamic") : nullptr);
 
 		for (const FTextureInstanceAsyncView& StaticInstancesView : StreamingData.GetStaticInstancesViews())
 		{
@@ -1617,8 +1528,7 @@ const TCHAR* FStreamingManagerTexture::CalcWantedMips(const FAsyncTextureStreami
 				break;
 			}
 
-			LogHeuristic(bOutputToLog, bGetHeuristic && StaticInstancesView.HasTextureReferences(StreamingTexture.Texture), Heuristic, TEXT("Static"));
-			StaticInstancesView.GetTexelSize(StreamingTexture.Texture, MaxSize, MaxSize_VisibleOnly, bOutputToLog);
+			StaticInstancesView.GetTexelSize(StreamingTexture.Texture, MaxSize, MaxSize_VisibleOnly, bOutputToLog ? TEXT("Static") : nullptr);
 		}
 
 		/**
@@ -1632,31 +1542,38 @@ const TCHAR* FStreamingManagerTexture::CalcWantedMips(const FAsyncTextureStreami
 		const float TimeSinceRemoved = (float)(FApp::GetCurrentTime() - StreamingTexture.InstanceRemovedTimestamp);
 		if (MaxSize == 0 && MaxSize_VisibleOnly == 0 && TimeSinceRemoved < 91.f && StreamingTexture.LastRenderTime > TimeSinceRemoved - 5.f)
 		{
-			LogHeuristic(bOutputToLog, true, Heuristic, TEXT("Orphaned"));
-			MaxSize = (float)(0x1 << (FMath::Min<int32>(StreamingTexture.MaxAllowedMips - 1, StreamingTexture.ResidentMips) - 1));
-			if (StreamingTexture.LastRenderTime < 5)
+			if (bOutputToLog) UE_LOG(LogContentStreaming, Log,  TEXT("  Orphaned"));
+
+			// Keep the current mip, unless the space is required.
+			MaxSize = (float)(0x1 << (StreamingTexture.ResidentMips - 1)); // Keep all mips.
+
+			if( StreamingTexture.LastRenderTime < 5.0f)
 			{
 				MaxSize_VisibleOnly = MaxSize;
 			}
+
+			bIgnoreStreamingScale = true;
 		}
 
 		const bool bUseLastRenderTime = (StreamingTexture.LastRenderTimeRefCount > 0 || FApp::GetCurrentTime() - StreamingTexture.LastRenderTimeRefCountTimestamp < 91.0);
-		if (((MaxSize == 0 && MaxSize_VisibleOnly == 0) || bUseLastRenderTime) && GStreamWithTimeFactor)
+		if (((MaxSize == 0 && MaxSize_VisibleOnly == 0) || bUseLastRenderTime) && GStreamWithTimeFactor && StreamingTexture.LastRenderTime < 90.0f)
 		{
-			LogHeuristic(bOutputToLog, bGetHeuristic, Heuristic, TEXT("LastRenderTime"));
+			if (bOutputToLog) UE_LOG(LogContentStreaming, Log,  TEXT("  Using Last RenderTime"));
+
+			// Get all mips. Using MaxSize=MaxTextureSize, and not FLT_MAX, will drop one mip if the texture is not used.
+			MaxSize = (float)(0x1 << (StreamingTexture.MaxAllowedMips - 1));
+
 			if( StreamingTexture.LastRenderTime < 5.0f)
 			{
-				MaxSize_VisibleOnly = FLT_MAX;
+				MaxSize_VisibleOnly = MaxSize;
 			}
-			else if( StreamingTexture.LastRenderTime < 90.0f)
-			{
-				MaxSize = FLT_MAX;
-			}
+
+			// Applying streaming scales like GLightmapStreamingFactor would break the mip selection here.
+			bIgnoreStreamingScale = true;
 		}
 	}
 
-	StreamingTexture.SetPerfectWantedMips(MaxSize, MaxSize_VisibleOnly, MipBias);
-	return Heuristic;
+	StreamingTexture.SetPerfectWantedMips(MaxSize, MaxSize_VisibleOnly, MipBias, bIgnoreStreamingScale);
 }
 
 /**
@@ -1781,49 +1698,50 @@ void FStreamingManagerTexture::UpdateLatencyStats( UTexture2D* Texture, int32 Wa
 
 bool FStreamingManagerTexture::HandleListStreamingTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
-	// Collect and report stats
-	CollectTextureStatsName = FParse::Token(Cmd, 0);
-	bCollectTextureStats = true;
-	bReportTextureStats = true;
-	return true;
-}
+	// Make sure the async task is idle (also implies Update_Async is finished and that the distances are valid).
+	AsyncWork->EnsureCompletion();
 
-bool FStreamingManagerTexture::HandleListStreamingTexturesCollectCommand( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	// Collect stats, but disable automatic reporting
-	CollectTextureStatsName = FParse::Token(Cmd, 0);
-	bCollectTextureStats = true;
-	bReportTextureStats = false;
-	return true;
-}
+	// Sort texture by names so that the state can be compared between runs.
+	TMap<FString, int32> SortedTextures;
+	for ( int32 TextureIndex=0; TextureIndex < StreamingTextures.Num(); ++TextureIndex )
+	{
+		const FStreamingTexture& StreamingTexture = StreamingTextures[TextureIndex];
+		if (!StreamingTexture.Texture) continue;
 
-bool FStreamingManagerTexture::HandleListStreamingTexturesReportReadyCommand( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	if( bCollectTextureStats )
-	{
-		if( TextureStatsReport.Num() > 0 )
-		{
-			return true;
-		}
-		return false;
+		SortedTextures.Add(StreamingTexture.Texture->GetFullName(), TextureIndex);
 	}
-	return true;
-}
-bool FStreamingManagerTexture::HandleListStreamingTexturesReportCommand( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	// TextureStatsReport is assumed to have been populated already via ListStreamingTexturesCollect
-	if( TextureStatsReport.Num() > 0 )
+
+	SortedTextures.KeySort(TLess<FString>());
+
+	for (TMap<FString, int32>::TConstIterator It(SortedTextures); It; ++It)
 	{
-		Ar.Logf( TEXT("Listing collected stats for all streaming textures") );
-		for( int32 ReportIndex = 0; ReportIndex < TextureStatsReport.Num(); ReportIndex++ )
+		const FStreamingTexture& StreamingTexture = StreamingTextures[It.Value()];
+		const UTexture2D* Texture2D = StreamingTexture.Texture;
+		UE_LOG(LogContentStreaming, Log,  TEXT("Texture [%d] : %s"), It.Value(), *Texture2D->GetFullName() );
+
+		int32 CurrentMipIndex = FMath::Max(Texture2D->GetNumMips() - StreamingTexture.ResidentMips, 0);
+		int32 WantedMipIndex = FMath::Max(Texture2D->GetNumMips() - StreamingTexture.PerfectWantedMips, 0);
+		int32 MaxMipIndex = FMath::Max(Texture2D->GetNumMips() - StreamingTexture.MaxAllowedMips, 0);
+		const TIndirectArray<struct FTexture2DMipMap>& Mips = Texture2D->PlatformData->Mips;
+
+		if (StreamingTexture.LastRenderTime != MAX_FLT)
 		{
-			Ar.Logf(*(TextureStatsReport[ReportIndex]));
+			UE_LOG(LogContentStreaming, Log,  TEXT("    Current=%dx%d Wanted=%dx%d Max=%dx%d LastRenderTime=%.3f Group=%s"), 
+				Mips[CurrentMipIndex].SizeX, Mips[CurrentMipIndex].SizeY, 
+				Mips[WantedMipIndex].SizeX, Mips[WantedMipIndex].SizeY, 
+				Mips[MaxMipIndex].SizeX, Mips[MaxMipIndex].SizeY, 
+				StreamingTexture.LastRenderTime,
+				UTexture::GetTextureGroupString(StreamingTexture.LODGroup));
 		}
-		TextureStatsReport.Empty();
-	}
-	else
-	{
-		Ar.Logf( TEXT("No stats have been collected for streaming textures. Use ListStreamingTexturesCollect to do so.") );
+		else
+		{
+			UE_LOG(LogContentStreaming, Log,  TEXT("    Current=%dx%d Wanted=%dx%d Max=%dx%d Group=%s"), 
+				Mips[CurrentMipIndex].SizeX, Mips[CurrentMipIndex].SizeY, 
+				Mips[WantedMipIndex].SizeX, Mips[WantedMipIndex].SizeY, 
+				Mips[MaxMipIndex].SizeX, Mips[MaxMipIndex].SizeY, 
+				UTexture::GetTextureGroupString(StreamingTexture.LODGroup));
+		}
+
 	}
 	return true;
 }
@@ -2078,13 +1996,76 @@ bool FStreamingManagerTexture::HandleTextureGroupsCommand( const TCHAR* Cmd, FOu
 	return true;
 }
 
-bool FStreamingManagerTexture::HandleInvestigateTextureCommand( const TCHAR* Cmd, FOutputDevice& Ar )
+bool FStreamingManagerTexture::HandleInvestigateTextureCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
 {
-	FString TextureName(FParse::Token(Cmd, 0));
-	if ( TextureName.Len() )
+	FString InvestigateTextureName(FParse::Token(Cmd, 0));
+	if ( InvestigateTextureName.Len() )
 	{
-		bTriggerInvestigateTexture = true;
-		InvestigateTextureName = TextureName;
+		// Make sure the async task is idle (also implies Update_Async is finished and that the distances are valid).
+		AsyncWork->EnsureCompletion();
+		FAsyncTextureStreamingData& StreamingData = AsyncWork->GetTask().StreamingData;
+		StreamingData.Update_Async();
+
+		for ( int32 TextureIndex=0; TextureIndex < StreamingTextures.Num(); ++TextureIndex )
+		{
+			FStreamingTexture& StreamingTexture = StreamingTextures[TextureIndex];
+			FString TextureName = StreamingTexture.Texture->GetFullName();
+			if (TextureName.Contains(InvestigateTextureName))
+			{
+				UTexture2D* Texture2D = StreamingTexture.Texture;
+				int32 CurrentMipIndex = FMath::Max(Texture2D->GetNumMips() - StreamingTexture.ResidentMips, 0);
+				int32 WantedMipIndex = FMath::Max(Texture2D->GetNumMips() - StreamingTexture.PerfectWantedMips, 0);
+				int32 MaxMipIndex = FMath::Max(Texture2D->GetNumMips() - StreamingTexture.MaxAllowedMips, 0);
+
+				UE_LOG(LogContentStreaming, Log,  TEXT("Texture: %s"), *TextureName );
+				UE_LOG(LogContentStreaming, Log,  TEXT("  Texture group:   %s"), UTexture::GetTextureGroupString(StreamingTexture.LODGroup) );
+
+				if ( StreamingTexture.bAsNeverStream )
+				{
+					UE_LOG(LogContentStreaming, Log,  TEXT("  Force all mips: bForceFullyLoad") );
+				}
+				else if ( Texture2D->bGlobalForceMipLevelsToBeResident )
+				{
+					UE_LOG(LogContentStreaming, Log,  TEXT("  Force all mips:  bGlobalForceMipLevelsToBeResident") );
+				}
+				else if ( Texture2D->bForceMiplevelsToBeResident )
+				{
+					UE_LOG(LogContentStreaming, Log,  TEXT("  Force all mips:  bForceMiplevelsToBeResident") );
+				}
+				else if ( Texture2D->ShouldMipLevelsBeForcedResident() )
+				{
+					float CurrentTime = float(FPlatformTime::Seconds() - GStartTime);
+					float TimeLeft = CurrentTime - Texture2D->ForceMipLevelsToBeResidentTimestamp;
+					UE_LOG(LogContentStreaming, Log,  TEXT("  Force all mips:  %.1f seconds left"), FMath::Max(TimeLeft,0.0f) );
+				}
+				else if ( StreamingTexture.MipCount == 1 )
+				{
+					UE_LOG(LogContentStreaming, Log,  TEXT("  Force all mips:  No mip-maps") );
+				}
+				UE_LOG(LogContentStreaming, Log,  TEXT("  Current size:    %dx%d"), Texture2D->PlatformData->Mips[CurrentMipIndex].SizeX, Texture2D->PlatformData->Mips[CurrentMipIndex].SizeY );
+				UE_LOG(LogContentStreaming, Log,  TEXT("  Wanted size:     %dx%d"), Texture2D->PlatformData->Mips[WantedMipIndex].SizeX, Texture2D->PlatformData->Mips[WantedMipIndex].SizeY );
+				UE_LOG(LogContentStreaming, Log,  TEXT("  Max size:        %dx%d"), Texture2D->PlatformData->Mips[MaxMipIndex].SizeX, Texture2D->PlatformData->Mips[MaxMipIndex].SizeY );
+				UE_LOG(LogContentStreaming, Log,  TEXT("  LoadOrder Priority: %d"), StreamingTexture.CalcLoadOrderPriority() );
+				UE_LOG(LogContentStreaming, Log,  TEXT("  Retention Priority: %d"), StreamingTexture.CalcRetentionPriority() );
+				UE_LOG(LogContentStreaming, Log,  TEXT("  Boost factor:    %.1f"), StreamingTexture.BoostFactor );
+				UE_LOG(LogContentStreaming, Log,  TEXT("  Allowed mips:    %d-%d"), StreamingTexture.MinAllowedMips, StreamingTexture.MaxAllowedMips );
+				UE_LOG(LogContentStreaming, Log,  TEXT("  Global mip bias: %.1f"), MipBias );
+
+				if (InWorld && !GIsEditor)
+				{
+					UE_LOG(LogContentStreaming, Log,  TEXT("  Time: World=%.3f LastUpdate=%.3f "), InWorld->GetTimeSeconds(), LastUpdateTime);
+				}
+
+				for( int32 ViewIndex=0; ViewIndex < StreamingData.GetViewInfos().Num(); ViewIndex++ )
+				{
+					// Calculate distance of viewer to bounding sphere.
+					const FStreamingViewInfo& ViewInfo = StreamingData.GetViewInfos()[ViewIndex];
+					UE_LOG(LogContentStreaming, Log,  TEXT("  View%d: Position=(%s) ScreenSize=%f Boost=%f"), ViewIndex, *ViewInfo.ViewOrigin.ToString(), ViewInfo.ScreenSize, ViewInfo.BoostFactor);
+				}
+
+				CalcWantedMips(StreamingData, StreamingTexture, true, true);
+			}
+		}
 	}
 	else
 	{
@@ -2112,18 +2093,6 @@ bool FStreamingManagerTexture::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputD
 	if (FParse::Command(&Cmd,TEXT("ListStreamingTextures")))
 	{
 		return HandleListStreamingTexturesCommand( Cmd, Ar );
-	}
-	else if (FParse::Command(&Cmd,TEXT("ListStreamingTexturesCollect")))
-	{
-		return HandleListStreamingTexturesCollectCommand( Cmd, Ar );
-	}
-	else if (FParse::Command(&Cmd,TEXT("ListStreamingTexturesReportReady")))
-	{
-		return HandleListStreamingTexturesReportReadyCommand( Cmd, Ar );
-	}
-	else if (FParse::Command(&Cmd,TEXT("ListStreamingTexturesReport")))
-	{
-		return HandleListStreamingTexturesReportCommand( Cmd, Ar );
 	}
 #endif
 #if !UE_BUILD_SHIPPING
@@ -2181,7 +2150,7 @@ bool FStreamingManagerTexture::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputD
 	}
 	else if (FParse::Command(&Cmd,TEXT("InvestigateTexture")))
 	{
-		return HandleInvestigateTextureCommand( Cmd, Ar );
+		return HandleInvestigateTextureCommand( Cmd, Ar, InWorld );
 	}
 #endif // !UE_BUILD_SHIPPING
 
@@ -2390,81 +2359,3 @@ void FStreamingManagerTexture::DumpTextureGroupStats( bool bDetailedStats )
 //	UE_LOG(LogContentStreaming, Log,  TEXT("%34s: NumTextures=%4d, Current=%7.1f KB"), TEXT("Non-streaming non-pool textures"), NumNonStreamingTextures, NonStreamingSize/1024.0f );
 #endif // !UE_BUILD_SHIPPING
 }
-
-/**
- * Prints out detailed information about streaming textures that has a name that contains the given string.
- * Triggered by the InvestigateTexture exec command.
- *
- * @param InvestigateTextureName	Partial name to match textures against
- */
-void FStreamingManagerTexture::InvestigateTexture( const FString& InInvestigateTextureName )
-{
-	bTriggerInvestigateTexture = false;
-#if !UE_BUILD_SHIPPING
-	for ( int32 TextureIndex=0; TextureIndex < StreamingTextures.Num(); ++TextureIndex )
-	{
-		FStreamingTexture& StreamingTexture = StreamingTextures[TextureIndex];
-		FString TextureName = StreamingTexture.Texture->GetFullName();
-		if (TextureName.Contains(InInvestigateTextureName))
-		{
-			UTexture2D* Texture2D = StreamingTexture.Texture;
-			int32 CurrentMipIndex = FMath::Max(Texture2D->GetNumMips() - StreamingTexture.ResidentMips, 0);
-			int32 WantedMipIndex = FMath::Max(Texture2D->GetNumMips() - StreamingTexture.WantedMips, 0);
-			int32 MaxMipIndex = FMath::Max(Texture2D->GetNumMips() - StreamingTexture.MaxAllowedMips, 0);
-			UE_LOG(LogContentStreaming, Log,  TEXT("Texture: %s"), *TextureName );
-			UE_LOG(LogContentStreaming, Log,  TEXT("  Texture group:   %s"), UTexture::GetTextureGroupString(StreamingTexture.LODGroup) );
-
-			if ( StreamingTexture.bAsNeverStream )
-			{
-				UE_LOG(LogContentStreaming, Log,  TEXT("  Force all mips: bForceFullyLoad") );
-			}
-			else if ( Texture2D->bGlobalForceMipLevelsToBeResident )
-			{
-				UE_LOG(LogContentStreaming, Log,  TEXT("  Force all mips:  bGlobalForceMipLevelsToBeResident") );
-			}
-			else if ( Texture2D->bForceMiplevelsToBeResident )
-			{
-				UE_LOG(LogContentStreaming, Log,  TEXT("  Force all mips:  bForceMiplevelsToBeResident") );
-			}
-			else if ( Texture2D->ShouldMipLevelsBeForcedResident() )
-			{
-				float CurrentTime = float(FPlatformTime::Seconds() - GStartTime);
-				float TimeLeft = CurrentTime - Texture2D->ForceMipLevelsToBeResidentTimestamp;
-				UE_LOG(LogContentStreaming, Log,  TEXT("  Force all mips:  %.1f seconds left"), FMath::Max(TimeLeft,0.0f) );
-			}
-			else if ( StreamingTexture.MipCount == 1 )
-			{
-				UE_LOG(LogContentStreaming, Log,  TEXT("  Force all mips:  No mip-maps") );
-			}
-			UE_LOG(LogContentStreaming, Log,  TEXT("  Current size:    %dx%d"), Texture2D->PlatformData->Mips[CurrentMipIndex].SizeX, Texture2D->PlatformData->Mips[CurrentMipIndex].SizeY );
-			UE_LOG(LogContentStreaming, Log,  TEXT("  Wanted size:     %dx%d"), Texture2D->PlatformData->Mips[WantedMipIndex].SizeX, Texture2D->PlatformData->Mips[WantedMipIndex].SizeY );
-			UE_LOG(LogContentStreaming, Log,  TEXT("  Max size:        %dx%d"), Texture2D->PlatformData->Mips[MaxMipIndex].SizeX, Texture2D->PlatformData->Mips[MaxMipIndex].SizeY );
-			UE_LOG(LogContentStreaming, Log,  TEXT("  LoadOrder Priority: %.3f"), StreamingTexture.CalcLoadOrderPriority() );
-			UE_LOG(LogContentStreaming, Log,  TEXT("  Retention Priority: %.3f"), StreamingTexture.CalcRetentionPriority() );
-			UE_LOG(LogContentStreaming, Log,  TEXT("  Boost factor:    %.1f"), StreamingTexture.BoostFactor );
-			UE_LOG(LogContentStreaming, Log,  TEXT("  Allowed mips:    %d-%d"), StreamingTexture.MinAllowedMips, StreamingTexture.MaxAllowedMips );
-			UE_LOG(LogContentStreaming, Log,  TEXT("  Global mip bias: %.1f"), MipBias );
-
-			// Make sure the async task is idle (also implies Update_Async is finished and that the distances are valid).
-			AsyncWork->EnsureCompletion();
-			FAsyncTextureStreamingData& StreamingData = AsyncWork->GetTask().StreamingData;
-			StreamingData.Update_Async();
-
-			float MaxSize = 0;
-			float MaxSize_VisibleOnly = 0;
-
-			for( int32 ViewIndex=0; ViewIndex < StreamingData.GetViewInfos().Num(); ViewIndex++ )
-			{
-				// Calculate distance of viewer to bounding sphere.
-				const FStreamingViewInfo& ViewInfo = StreamingData.GetViewInfos()[ViewIndex];
-				UE_LOG(LogContentStreaming, Log,  TEXT("  View%d: Position=(%d,%d,%d) ScreenSize=%f Boost=%f"), ViewIndex,
-					int32(ViewInfo.ViewOrigin.X), int32(ViewInfo.ViewOrigin.Y), int32(ViewInfo.ViewOrigin.Z),
-					ViewInfo.ScreenSize, ViewInfo.BoostFactor);
-			}
-
-			CalcWantedMips(StreamingData, StreamingTexture, true, true);
-		}
-	}
-#endif // !UE_BUILD_SHIPPING
-}
-

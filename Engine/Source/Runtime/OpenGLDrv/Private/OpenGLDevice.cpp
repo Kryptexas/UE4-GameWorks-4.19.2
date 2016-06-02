@@ -119,10 +119,18 @@ bool IsUniformBufferBound( GLuint Buffer )
 extern void BeginFrame_UniformBufferPoolCleanup();
 extern void BeginFrame_VertexBufferCleanup();
 
-FOpenGLContextState& FOpenGLDynamicRHI::GetContextStateForCurrentContext()
+FOpenGLContextState& FOpenGLDynamicRHI::GetContextStateForCurrentContext(bool bAssertIfInvalid)
 {
 	int32 ContextType = (int32)PlatformOpenGLCurrentContext(PlatformDevice);
-	check(ContextType >= 0);
+	if (bAssertIfInvalid)
+	{
+		check(ContextType >= 0);
+	}
+	else if (ContextType < 0)
+	{
+		return InvalidContextState;
+	}
+
 	if (ContextType == CONTEXT_Rendering)
 	{
 		return RenderingContextState;

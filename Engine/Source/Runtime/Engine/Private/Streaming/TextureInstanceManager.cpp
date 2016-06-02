@@ -122,44 +122,82 @@ FBoxSphereBounds FTextureInstanceState::FTextureLinkConstIterator::GetBounds() c
 	return Bounds;
 }
 
-void FTextureInstanceState::FTextureLinkConstIterator::OutputToLog(float MaxNormalizedSize, float MaxNormalizedSize_VisibleOnly) const
+void FTextureInstanceState::FTextureLinkConstIterator::OutputToLog(float MaxNormalizedSize, float MaxNormalizedSize_VisibleOnly, const TCHAR* Prefix) const
 {
+#if !UE_BUILD_SHIPPING
 	const UPrimitiveComponent* Component = GetComponent();
 	FBoxSphereBounds Bounds = GetBounds();
 	float TexelFactor = GetTexelFactor();
 
 	// Log the component reference.
-	FString ReferenceName(TEXT("Unkown Component"));
 	if (Component)
 	{
-		ReferenceName = Component->GetFullName();
-	}
-	UE_LOG(LogContentStreaming, Log, TEXT("    Reference= %s"), *ReferenceName);
-
-	// Log the wanted mips.
-	if (TexelFactor == FLT_MAX)
-	{
-		UE_LOG(LogContentStreaming, Log, TEXT("    Forcing all mips."), *ReferenceName);
-	}
-	else if (TexelFactor >= 0)
-	{
-		UE_LOG(LogContentStreaming, Log, TEXT("    TexelFactor=%f, MaxSize=%f, MaxVisibleSize=%f"), TexelFactor, TexelFactor * MaxNormalizedSize, TexelFactor * MaxNormalizedSize_VisibleOnly);
+		UE_LOG(LogContentStreaming, Log, TEXT("  %sReference= %s"), Prefix, *Component->GetFullName());
 	}
 	else
 	{
-		UE_LOG(LogContentStreaming, Log, TEXT("    Forced Size=%f"), -TexelFactor);
+		UE_LOG(LogContentStreaming, Log, TEXT("  %sReference"), Prefix);
+	}
+	
+	// Log the wanted mips.
+	if (TexelFactor == FLT_MAX)
+	{
+		UE_LOG(LogContentStreaming, Log, TEXT("    Forced FullyLoad"));
+	}
+	else if (TexelFactor >= 0)
+	{
+		if (GIsEditor)
+		{
+			UE_LOG(LogContentStreaming, Log, TEXT("    Size=%f"), TexelFactor * FMath::Max(MaxNormalizedSize, MaxNormalizedSize_VisibleOnly));
+		}
+		else if (MaxNormalizedSize_VisibleOnly > 0)
+		{
+			UE_LOG(LogContentStreaming, Log, TEXT("    OnScreenSize=%f"), TexelFactor * MaxNormalizedSize_VisibleOnly);
+		}
+		else
+		{
+			int32 BoundIndex = GetBoundsIndex();
+			if (!GIsEditor && State.Bounds4.IsValidIndex(BoundIndex / 4))
+			{
+				float LastRenderTime = State.Bounds4[BoundIndex / 4].LastRenderTime[BoundIndex % 4];
+				UE_LOG(LogContentStreaming, Log, TEXT("    OffScreenSize=%f, LastRenderTime= %.3f"), TexelFactor * MaxNormalizedSize, LastRenderTime);
+			}
+			else
+			{
+				UE_LOG(LogContentStreaming, Log, TEXT("    OffScreenSize=%f"), TexelFactor * MaxNormalizedSize);
+			}
+		}
+	}
+	else
+	{
+		UE_LOG(LogContentStreaming, Log, TEXT("    ForcedSize=%f"), -TexelFactor);
 	}
 
 	// Log the bounds
 	const bool bUseNewMetrics = CVarStreamingUseNewMetrics.GetValueOnAnyThread() != 0;
 	if (bUseNewMetrics)
 	{
-		UE_LOG(LogContentStreaming, Log, TEXT("    Origin=(%s), BoxExtent=(%s)"), *Bounds.Origin.ToString(), *Bounds.BoxExtent.ToString());
+		if (TexelFactor >= 0 && TexelFactor < FLT_MAX)
+		{
+			UE_LOG(LogContentStreaming, Log, TEXT("    Origin=(%s), BoxExtent=(%s), TexelSize=%f"), *Bounds.Origin.ToString(), *Bounds.BoxExtent.ToString(), TexelFactor);
+		}
+		else
+		{
+			UE_LOG(LogContentStreaming, Log, TEXT("    Origin=(%s), BoxExtent=(%s)"), *Bounds.Origin.ToString(), *Bounds.BoxExtent.ToString());
+		}
 	}
 	else
 	{
-		UE_LOG(LogContentStreaming, Log, TEXT("    Origin=(%s), SphereRadius=%f"),  *Bounds.Origin.ToString(), Bounds.SphereRadius);
+		if (TexelFactor >= 0 && TexelFactor < FLT_MAX)
+		{
+			UE_LOG(LogContentStreaming, Log, TEXT("    Origin=(%s), SphereRadius=%f, TexelSize=%f"),  *Bounds.Origin.ToString(), Bounds.SphereRadius, TexelFactor);
+		}
+		else
+		{
+			UE_LOG(LogContentStreaming, Log, TEXT("    Origin=(%s), SphereRadius=%f"),  *Bounds.Origin.ToString(), Bounds.SphereRadius);
+		}
 	}
+#endif // !UE_BUILD_SHIPPING
 }
 
 
@@ -395,15 +433,19 @@ void FTextureInstanceState::AddComponent(const UPrimitiveComponent* Component, F
 
 				if (BoundsIndex == INDEX_NONE)
 				{
-					// Take into account the offset between the bounds and the components.
-					float MinDistance = FMath::Min<float>(0, Component->MinDrawDistance - (Info.Bounds.Origin - Component->Bounds.Origin).Size());
+					// In the engine, the MinDistance is computed from the component bound center to the viewpoint.
+					// The streaming computes the distance as the distance from viewpoint to the edge of the texture bound box.
+					// The implementation also handles MinDistance by bounding the distance to it so that if the viewpoint gets closer the screen size will stop increasing at some point.
+					// The fact that the primitive will disappear is not so relevant as this will be handled by the visibility logic, normally streaming one less mip than requested.
+					// The important mather is to control the requested mip by limiting the distance, since at close up, the distance becomes very small and all mips are streamer (even after the 1 mip bias).
+					float MinDistance = FMath::Max<float>(0, Component->MinDrawDistance - (Info.Bounds.Origin - Component->Bounds.Origin).Size() - Info.Bounds.SphereRadius);
 					float MaxDistance = FLT_MAX;
 					if (LODParent)
 					{
 						// Max distance when HLOD becomes visible.
 						MaxDistance = LODParent->MinDrawDistance + (Info.Bounds.Origin - LODParent->Bounds.Origin).Size();
 					}
-					BoundsIndex = AddBounds(Info.Bounds, Component, Component->LastRenderTime, MinDistance, MaxDistance);
+					BoundsIndex = AddBounds(Info.Bounds, Component, Component->LastRenderTimeOnScreen, MinDistance, MaxDistance);
 				}
 				BoundsIndices.Push(BoundsIndex);
 			}
@@ -422,7 +464,7 @@ void FTextureInstanceState::AddComponent(const UPrimitiveComponent* Component)
 
 	if (TextureInstanceInfos.Num())
 	{
-		int32 BoundsIndex = AddBounds(Component->Bounds, Component, Component->LastRenderTime);
+		int32 BoundsIndex = AddBounds(Component->Bounds, Component, Component->LastRenderTimeOnScreen);
 		int32* ComponentLink = ComponentMap.Find(Component);
 		for (const FStreamingTexturePrimitiveInfo& Info : TextureInstanceInfos)
 		{
@@ -496,7 +538,7 @@ void FTextureInstanceState::UpdateBounds(const UPrimitiveComponent* Component)
 			const FElement& Element = Elements[ElementIndex];
 			if (Element.BoundsIndex != INDEX_NONE)
 			{
-				Bounds4[Element.BoundsIndex / 4].Update(Element.BoundsIndex % 4, Component->Bounds, Component->LastRenderTime);
+				Bounds4[Element.BoundsIndex / 4].Update(Element.BoundsIndex % 4, Component->Bounds, Component->LastRenderTimeOnScreen);
 			}
 			ElementIndex = Element.NextComponentLink;
 		}
@@ -508,7 +550,7 @@ void FTextureInstanceState::UpdateBounds(int32 BoundIndex)
 	const UPrimitiveComponent* Component = Bounds4Components[BoundIndex];
 	if (Component)
 	{
-		Bounds4[BoundIndex / 4].Update(BoundIndex % 4, Component->Bounds, Component->LastRenderTime);
+		Bounds4[BoundIndex / 4].Update(BoundIndex % 4, Component->Bounds, Component->LastRenderTimeOnScreen);
 	}
 }
 
@@ -517,7 +559,7 @@ void FTextureInstanceState::UpdateLastRenderTime(int32 BoundIndex)
 	const UPrimitiveComponent* Component = Bounds4Components[BoundIndex];
 	if (Component)
 	{
-		Bounds4[BoundIndex / 4].Update(BoundIndex % 4, Component->LastRenderTime);
+		Bounds4[BoundIndex / 4].Update(BoundIndex % 4, Component->LastRenderTimeOnScreen);
 	}
 }
 
@@ -642,18 +684,13 @@ TRefCountPtr<const FTextureInstanceState> FDynamicTextureInstanceManager::GetAsy
 	return TRefCountPtr<const FTextureInstanceState>(AsyncState);
 }
 
-void FTextureInstanceAsyncView::Update_Async(const TArray<FStreamingViewInfo>& ViewInfos, bool bUseAABB, float MaxEffectiveScreenSize)
+void FTextureInstanceAsyncView::Update_Async(const TArray<FStreamingViewInfo>& ViewInfos, float LastUpdateTime, bool bUseAABB, float MaxEffectiveScreenSize)
 {
 	if (!State.IsValid())  return;
 
 	const int32 NumViews = ViewInfos.Num();
 	const VectorRegister One4 = VectorSet(1.f, 1.f, 1.f, 1.f);
 	const int32 NumBounds4 = State->NumBounds4();
-
-	//@TODO : This should be the value since the last update (something will be visible if seen since last update, no matter how long).
-	// const float LastUpdateTime =  FApp::GetCurrentTime() - GStartTime - 5.f;
-	// const float LastUpdateTime =  World->GetTimeSeconds();
-	const float LastUpdateTime = -1005.f;
 
 	const VectorRegister LastUpdateTime4 = VectorSet(LastUpdateTime, LastUpdateTime, LastUpdateTime, LastUpdateTime);
 
@@ -691,23 +728,11 @@ void FTextureInstanceAsyncView::Update_Async(const TArray<FStreamingViewInfo>& V
 			const VectorRegister ViewOriginY = VectorLoadFloat1( &ViewInfo.ViewOrigin.Y );
 			const VectorRegister ViewOriginZ = VectorLoadFloat1( &ViewInfo.ViewOrigin.Z );
 
-			//const float DistSq = FVector::DistSquared( ViewInfo.ViewOrigin, TextureInstance.BoundingSphere.Center );
-			VectorRegister Temp = VectorSubtract( ViewOriginX, OriginX );
-			VectorRegister DistSq = VectorMultiply( Temp, Temp );
-			Temp = VectorSubtract( ViewOriginY, OriginY );
-			DistSq = VectorMultiplyAdd( Temp, Temp, DistSq );
-			Temp = VectorSubtract( ViewOriginZ, OriginZ );
-			DistSq = VectorMultiplyAdd( Temp, Temp, DistSq );
-
-			VectorRegister ClampedDistSq = VectorMax( MinDistanceSq, DistSq );
-			ClampedDistSq = VectorMin( MaxDistanceSq, ClampedDistSq );
-			const VectorRegister InRangeMask = VectorCompareEQ(DistSq, ClampedDistSq);
-
 			VectorRegister DistSqMinusRadiusSq = VectorZero();
 			if (bUseAABB)
 			{
 				// In this case DistSqMinusRadiusSq will contain the distance to the box^2
-				Temp = VectorSubtract( ViewOriginX, OriginX );
+				VectorRegister Temp = VectorSubtract( ViewOriginX, OriginX );
 				Temp = VectorAbs( Temp );
 				VectorRegister BoxRef = VectorMin( Temp, ExtentX );
 				Temp = VectorSubtract( Temp, BoxRef );
@@ -727,11 +752,25 @@ void FTextureInstanceAsyncView::Update_Async(const TArray<FStreamingViewInfo>& V
 			}
 			else
 			{
+				VectorRegister Temp = VectorSubtract( ViewOriginX, OriginX );
+				VectorRegister DistSq = VectorMultiply( Temp, Temp );
+				Temp = VectorSubtract( ViewOriginY, OriginY );
+				DistSq = VectorMultiplyAdd( Temp, Temp, DistSq );
+				Temp = VectorSubtract( ViewOriginZ, OriginZ );
+				DistSq = VectorMultiplyAdd( Temp, Temp, DistSq );
+
 				DistSqMinusRadiusSq = VectorMultiply( Radius, Radius );
 				DistSqMinusRadiusSq = VectorSubtract( DistSq, DistSqMinusRadiusSq );
 			}
-			DistSqMinusRadiusSq = VectorMax(DistSqMinusRadiusSq, One4); // Prevents / 0
-			VectorRegister ScreenSizeOverDistance = VectorReciprocalSqrt(DistSqMinusRadiusSq);
+
+			// Clamp Squared distance between range.
+			VectorRegister ClampedDistSq = VectorMax( MinDistanceSq, DistSqMinusRadiusSq );
+			ClampedDistSq = VectorMin( MaxDistanceSq, ClampedDistSq );
+			const VectorRegister InRangeMask = VectorCompareEQ(DistSqMinusRadiusSq, ClampedDistSq); // If the clamp dist is equal, then it was in range.
+
+
+			ClampedDistSq = VectorMax(ClampedDistSq, One4); // Prevents / 0
+			VectorRegister ScreenSizeOverDistance = VectorReciprocalSqrt(ClampedDistSq);
 			ScreenSizeOverDistance = VectorMultiply(ScreenSizeOverDistance, ScreenSize);
 
 			MaxNormalizedSize = VectorMax(ScreenSizeOverDistance, MaxNormalizedSize);
@@ -772,7 +811,7 @@ void FTextureInstanceAsyncView::ProcessElement(const FBoundsViewInfo& BoundsVieW
 	}
 }
 
-void FTextureInstanceAsyncView::GetTexelSize(const UTexture2D* InTexture, float& MaxSize, float& MaxSize_VisibleOnly, bool bOutputToLog) const
+void FTextureInstanceAsyncView::GetTexelSize(const UTexture2D* InTexture, float& MaxSize, float& MaxSize_VisibleOnly, const TCHAR* LogPrefix) const
 {
 	// No need to iterate more if texture is already at maximum resolution.
 
@@ -781,7 +820,7 @@ void FTextureInstanceAsyncView::GetTexelSize(const UTexture2D* InTexture, float&
 	if (State.IsValid())
 	{
 		// Use the fast path if available, about twice as fast when there are a lot of elements.
-		if (State->HasCompiledElements() && !bOutputToLog)
+		if (State->HasCompiledElements() && !LogPrefix)
 		{
 			const TArray<FTextureInstanceState::FCompiledElement>* CompiledElements = State->GetCompiledElements(InTexture);
 			if (CompiledElements)
@@ -807,13 +846,13 @@ void FTextureInstanceAsyncView::GetTexelSize(const UTexture2D* InTexture, float&
 		}
 		else
 		{
-			for (auto It = State->GetElementIterator(InTexture); It && (MaxSize_VisibleOnly < MAX_TEXTURE_SIZE || bOutputToLog); ++It)
+			for (auto It = State->GetElementIterator(InTexture); It && (MaxSize_VisibleOnly < MAX_TEXTURE_SIZE || LogPrefix); ++It)
 			{
 				const FBoundsViewInfo& BoundsVieWInfo = BoundsViewInfo[It.GetBoundsIndex()];
 				ProcessElement(BoundsVieWInfo, It.GetTexelFactor(), MaxSize, MaxSize_VisibleOnly);
-				if (bOutputToLog)
+				if (LogPrefix)
 				{
-					It.OutputToLog(BoundsVieWInfo.MaxNormalizedSize, BoundsVieWInfo.MaxNormalizedSize_VisibleOnly);
+					It.OutputToLog(BoundsVieWInfo.MaxNormalizedSize, BoundsVieWInfo.MaxNormalizedSize_VisibleOnly, LogPrefix);
 				}
 			}
 		}
@@ -946,6 +985,19 @@ void FLevelTextureManager::Remove(FDynamicComponentTextureManager& DynamicCompon
 	DynamicComponents.Empty();
 
 	bToDelete = true; 
+}
+
+float FLevelTextureManager::GetWorldTime() const
+{
+	if (!GIsEditor && Level)
+	{
+		UWorld* World = Level->GetWorld();
+		if (World)
+		{
+			return World->GetTimeSeconds();
+		}
+	}
+	return 0;
 }
 
 void FLevelTextureManager::IncrementalUpdate(FDynamicComponentTextureManager& DynamicComponentManager, FRemovedTextureArray& RemovedTextures, float Percentage, bool bUseDynamicStreaming) 

@@ -39,6 +39,17 @@ FAutoConsoleVariableRef CVarDistanceFieldAOApplyToStaticIndirect(
 	ECVF_Scalability | ECVF_RenderThreadSafe
 	);
 
+int32 GDistanceFieldAOSpecularOcclusionMode = 1;
+FAutoConsoleVariableRef CVarDistanceFieldAOSpecularOcclusionMode(
+	TEXT("r.AOSpecularOcclusionMode"),
+	GDistanceFieldAOSpecularOcclusionMode,
+	TEXT("Determines how specular should be occluded by DFAO\n")
+	TEXT("0: Apply non-directional AO to specular.\n")
+	TEXT("1: (default) Intersect the reflection cone with the unoccluded cone produced by DFAO.  This gives more accurate occlusion than 0, but can bring out DFAO sampling artifacts.\n")
+	TEXT("2: (experimental) Cone trace through distance fields along the reflection vector.  Costs about the same as DFAO again because more cone tracing is done, but produces more accurate occlusion."),
+	ECVF_Scalability | ECVF_RenderThreadSafe
+	);
+
 bool IsDistanceFieldGIAllowed(const FViewInfo& View)
 {
 	return DoesPlatformSupportDistanceFieldGI(View.GetShaderPlatform())

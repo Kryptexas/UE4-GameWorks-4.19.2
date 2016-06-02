@@ -215,6 +215,7 @@ FLightSceneProxy::FLightSceneProxy(const ULightComponent* InLightComponent)
 	, IndirectLightingScale(InLightComponent->IndirectLightingIntensity)
 	, ShadowBias(InLightComponent->ShadowBias)
 	, ShadowSharpen(InLightComponent->ShadowSharpen)
+	, ContactShadowLength(InLightComponent->ContactShadowLength)
 	, MinRoughness(InLightComponent->MinRoughness)
 	, LightGuid(InLightComponent->LightGuid)
 	, ShadowMapChannel(InLightComponent->ShadowMapChannel)
@@ -339,6 +340,7 @@ ULightComponent::ULightComponent(const FObjectInitializer& ObjectInitializer)
 	IndirectLightingIntensity = 1.0f;
 	ShadowBias = 0.5f;
 	ShadowSharpen = 0.0f;
+	ContactShadowLength = 0.0f;
 	bUseIESBrightness = false;
 	IESBrightnessScale = 1.0f;
 	IESTexture = NULL;
@@ -568,6 +570,7 @@ void ULightComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, DisabledBrightness) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, ShadowBias) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, ShadowSharpen) &&
+		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, ContactShadowLength) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, bEnableLightShaftBloom) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, BloomScale) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, BloomThreshold) &&

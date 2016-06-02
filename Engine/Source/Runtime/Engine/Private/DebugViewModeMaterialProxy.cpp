@@ -184,4 +184,12 @@ float FDebugViewModeMaterialProxy::GetOpacityMaskClipValue() const
 	return Material ? Material->GetOpacityMaskClipValue() : .5f;
 }
 
+void FDebugViewModeMaterialProxy::GatherCustomOutputExpressions(TArray<class UMaterialExpressionCustomOutput*>& OutCustomOutputs) const
+{
+	if (Material)
+	{
+		Material->GetAllCustomOutputExpressions(OutCustomOutputs);
+	}
+}
+
 #endif

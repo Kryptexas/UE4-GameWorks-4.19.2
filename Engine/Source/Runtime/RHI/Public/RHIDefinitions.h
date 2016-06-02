@@ -791,7 +791,7 @@ inline bool RHISupportsGeometryShaders(const EShaderPlatform Platform)
 
 inline bool RHIHasTiledGPU(const EShaderPlatform Platform)
 {
-	return (Platform == SP_METAL_MRT) || Platform == SP_METAL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_OPENGL_ES2_ANDROID || Platform == SP_OPENGL_ES2_ANDROID;
+	return (Platform == SP_METAL_MRT) || Platform == SP_METAL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_OPENGL_ES2_ANDROID;
 }
 
 inline bool RHISupportsVertexShaderLayer(const EShaderPlatform Platform)

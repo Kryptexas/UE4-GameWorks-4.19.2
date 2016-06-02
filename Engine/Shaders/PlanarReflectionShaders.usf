@@ -129,6 +129,6 @@ void PlanarReflectionPS(
 	BRANCH
 	if (ScreenSpaceData.GBuffer.ShadingModelID > 0)
 	{
-		OutColor = ComputePlanarReflections(WorldPosition, ScreenSpaceData.GBuffer.WorldNormal, PlanarReflectionSampler);
+		OutColor = ComputePlanarReflections(WorldPosition, ScreenSpaceData.GBuffer.WorldNormal, ScreenSpaceData.GBuffer.Roughness, PlanarReflectionSampler);
 	}
 }

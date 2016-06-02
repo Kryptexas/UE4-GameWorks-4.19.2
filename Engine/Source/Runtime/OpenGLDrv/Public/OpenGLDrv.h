@@ -493,7 +493,7 @@ public:
 	void CachedSetupTextureStage(FOpenGLContextState& ContextState, GLint TextureIndex, GLenum Target, GLuint Resource, GLint BaseMip, GLint NumMips);
 	void CachedSetupUAVStage(FOpenGLContextState& ContextState, GLint UAVIndex, GLenum Format, GLuint Resource);
 	void UpdateSRV(FOpenGLShaderResourceView* SRV);
-	FOpenGLContextState& GetContextStateForCurrentContext();
+	FOpenGLContextState& GetContextStateForCurrentContext(bool bAssertIfInvalid = true);
 
 	void CachedBindArrayBuffer( FOpenGLContextState& ContextState, GLuint Buffer )
 	{
@@ -581,6 +581,7 @@ private:
 	TGlobalResource< TBoundShaderStateHistory<10000> > BoundShaderStateHistory;
 
 	/** Per-context state caching */
+	FOpenGLContextState InvalidContextState;
 	FOpenGLContextState	SharedContextState;
 	FOpenGLContextState	RenderingContextState;
 	

@@ -766,14 +766,17 @@ void FOpenGLDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI,FIntRe
 	TArray<uint8> Temp;
 
 	FOpenGLContextState& ContextState = GetContextStateForCurrentContext();
-	ReadSurfaceDataRaw(ContextState, TextureRHI, Rect, Temp, InFlags);
-
-	uint32 Size = Rect.Width() * Rect.Height(); 
-
 	OutData.Empty();
-	OutData.AddUninitialized(Size);
+	if (&ContextState != &InvalidContextState)
+	{
+		ReadSurfaceDataRaw(ContextState, TextureRHI, Rect, Temp, InFlags);
 
-	FMemory::Memcpy(OutData.GetData(), Temp.GetData(), Size * sizeof(FColor));
+		uint32 Size = Rect.Width() * Rect.Height();
+
+		OutData.AddUninitialized(Size);
+
+		FMemory::Memcpy(OutData.GetData(), Temp.GetData(), Size * sizeof(FColor));
+	}
 }
 
 void FOpenGLDynamicRHI::RHIMapStagingSurface(FTextureRHIParamRef TextureRHI,void*& OutData,int32& OutWidth,int32& OutHeight)

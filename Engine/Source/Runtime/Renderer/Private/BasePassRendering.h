@@ -511,8 +511,6 @@ public:
 			const int32 VelocityIndex = (CVar && CVar->GetValueOnAnyThread() != 0) ? 6 : 5;
 			OutEnvironment.SetRenderTargetOutputFormat(VelocityIndex, PF_G16R16);
 		}
-
-		OutEnvironment.SetDefine(TEXT("TRANSLUCENCY_RENDERING"), 1);
 	}
 
 	/** Initialization constructor. */
@@ -524,7 +522,7 @@ public:
 		TranslucentLightingParameters.Bind(Initializer.ParameterMap);
 		EditorCompositeParams.Bind(Initializer.ParameterMap);
 		LightGrid.Bind(Initializer.ParameterMap,TEXT("LightGrid"));
-		ScreenTextureUVScale.Bind(Initializer.ParameterMap, TEXT("ScreenPositionUVScale"));
+		DownsampleFactorFromSceneBufferSize.Bind(Initializer.ParameterMap, TEXT("DownsampleFactorFromSceneBufferSize"));
 	}
 	TBasePassPixelShaderPolicyParamType() {}
 
@@ -536,7 +534,7 @@ public:
 		EBlendMode BlendMode, 
 		bool bEnableEditorPrimitveDepthTest,
 		ESceneRenderTargetsMode::Type TextureMode,
-		float ScreenTextureScaleFactor = 1.0f)
+		float DownsampleFactorFromSceneBufferSizeValue)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
@@ -548,7 +546,7 @@ public:
 
 			if (IsTranslucentBlendMode(BlendMode))
 			{
-				SetShaderValue(RHICmdList, ShaderRHI, ScreenTextureUVScale, FVector(ScreenTextureScaleFactor));
+				SetShaderValue(RHICmdList, ShaderRHI, DownsampleFactorFromSceneBufferSize, DownsampleFactorFromSceneBufferSizeValue);
 				TranslucentLightingParameters.Set(RHICmdList, ShaderRHI, View);
 
 				// Experimental dynamic forward lighting for translucency. Can be the base for opaque forward lighting which will allow more lighting models or rendering without a GBuffer
@@ -575,7 +573,7 @@ public:
 		Ar << TranslucentLightingParameters;
  		Ar << EditorCompositeParams;
 		Ar << LightGrid;
-		Ar << ScreenTextureUVScale;
+		Ar << DownsampleFactorFromSceneBufferSize;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -584,7 +582,7 @@ private:
 	FTranslucentLightingParameters TranslucentLightingParameters;
 	FEditorCompositingParameters EditorCompositeParams;
 	FShaderResourceParameter LightGrid;
-	FShaderParameter ScreenTextureUVScale;
+	FShaderParameter DownsampleFactorFromSceneBufferSize;
 };
 
 /**
@@ -806,7 +804,7 @@ public:
 		DRAWING_POLICY_MATCH_END
 	}
 
-	void SetSharedState(FRHICommandList& RHICmdList, const FViewInfo* View, const ContextDataType PolicyContext, float ScreenTextureScaleFactor = 1.0f) const
+	void SetSharedState(FRHICommandList& RHICmdList, const FViewInfo* View, const ContextDataType PolicyContext, float DownsampleFactorFromSceneBufferSize = 1.0f) const
 	{
 		// If the current debug view shader modes are allowed, different VS/DS/HS must be used (with only SV_POSITION as PS interpolant).
 		if (View->Family->UseDebugViewVSDSHS())
@@ -843,7 +841,7 @@ public:
 		}
 		else
 		{
-			PixelShader->SetParameters(RHICmdList, MaterialRenderProxy, *MaterialResource, View, BlendMode, bEnableEditorPrimitiveDepthTest, SceneTextureMode, ScreenTextureScaleFactor);
+			PixelShader->SetParameters(RHICmdList, MaterialRenderProxy, *MaterialResource, View, BlendMode, bEnableEditorPrimitiveDepthTest, SceneTextureMode, DownsampleFactorFromSceneBufferSize);
 
 			switch(BlendMode)
 			{
@@ -855,13 +853,14 @@ public:
 				// Masked materials are rendered together in the base pass, where the blend state is set at a higher level
 				break;
 			case BLEND_Translucent:
-				// Alpha channel is only needed for SeparateTranslucency, before this was preserving the alpha channel but we no longer store depth in the alpha channel so it's no problem
-
+				// Note: alpha channel used by separate translucency, storing how much of the background should be added when doing the final composite
+				// The Alpha channel is also used by non-separate translucency when rendering to scene captures, which store the final opacity
 				RHICmdList.SetBlendState( TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha>::GetRHI());
 				break;
 			case BLEND_Additive:
 				// Add to the existing scene color
-				// Alpha channel is only needed for SeparateTranslucency, before this was preserving the alpha channel but we no longer store depth in the alpha channel so it's no problem
+				// Note: alpha channel used by separate translucency, storing how much of the background should be added when doing the final composite
+				// The Alpha channel is also used by non-separate translucency when rendering to scene captures, which store the final opacity
 				RHICmdList.SetBlendState( TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_Zero, BF_InverseSourceAlpha>::GetRHI());
 				break;
 			case BLEND_Modulate:

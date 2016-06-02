@@ -45,6 +45,20 @@ static TAutoConsoleVariable<int32> CVarForceNvidiaToSM4(
 	TEXT("Forces Nvidia devices to use SM4.0/D3D10.0 feature level."),
 	ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CVarAMDUseMultiThreadedDevice(
+	TEXT("r.AMDD3D11MultiThreadedDevice"),
+	1,
+	TEXT("If true, creates a multithreaded D3D11 device on AMD hardware (workaround for driver bug)\n")
+	TEXT("Changes will only take effect in new game/editor instances - can't be changed at runtime.\n"),
+	ECVF_Default);
+
+static TAutoConsoleVariable<int32> CVarAMDDisableAsyncTextureCreation(
+	TEXT("r.AMDDisableAsyncTextureCreation"),
+	1,
+	TEXT("If true, uses synchronous texture creation on AMD hardware (workaround for driver bug)\n")
+	TEXT("Changes will only take effect in new game/editor instances - can't be changed at runtime.\n"),
+	ECVF_Default);
+
 /**
  * Console variables used by the D3D11 RHI device.
  */
@@ -631,7 +645,7 @@ void FD3D11DynamicRHI::InitD3DDevice()
 
 		D3D_FEATURE_LEVEL ActualFeatureLevel = (D3D_FEATURE_LEVEL)0;
 
-		if(IsRHIDeviceAMD())
+		if (IsRHIDeviceAMD() && CVarAMDUseMultiThreadedDevice.GetValueOnAnyThread())
 		{
 			DeviceFlags &= ~D3D11_CREATE_DEVICE_SINGLETHREADED;
 		}
@@ -671,7 +685,7 @@ void FD3D11DynamicRHI::InitD3DDevice()
 		GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM4] = SP_PCD3D_SM4;
 		GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM5] = SP_PCD3D_SM5;
 
-		if(IsRHIDeviceAMD())
+		if (IsRHIDeviceAMD() && CVarAMDDisableAsyncTextureCreation.GetValueOnAnyThread())
 		{
 			GRHISupportsAsyncTextureCreation = false;
 		}

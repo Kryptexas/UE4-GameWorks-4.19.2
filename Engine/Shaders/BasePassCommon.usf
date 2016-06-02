@@ -10,7 +10,7 @@
 // Translucent materials need to compute fogging in the forward shading pass
 // Materials that read from scene color skip getting fogged, because the contents of the scene color lookup have already been fogged
 // This is not foolproof, as any additional color the material adds will then not be fogged correctly
-#define NEEDS_BASEPASS_FOGGING			(ENABLE_TRANSLUCENCY_VERTEX_FOG && ((MATERIALBLENDING_TRANSLUCENT || MATERIALBLENDING_ADDITIVE || MATERIALBLENDING_MODULATE) && !MATERIAL_USES_SCENE_COLOR_COPY))
+#define NEEDS_BASEPASS_FOGGING			(ENABLE_TRANSLUCENCY_VERTEX_FOG && (MATERIALBLENDING_ANY_TRANSLUCENT && !MATERIAL_USES_SCENE_COLOR_COPY))
 #define NEEDS_LIGHTMAP					(NEEDS_LIGHTMAP_COORDINATE)
 
 #define USES_GBUFFER						(FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && (MATERIALBLENDING_SOLID || MATERIALBLENDING_MASKED) && !SIMPLE_FORWARD_SHADING)
@@ -20,7 +20,7 @@
 
 // Based on GetPrecomputedShadowMasks()
 // Note: WRITES_PRECSHADOWFACTOR_TO_GBUFFER is currently disabled because we use the precomputed shadow factor GBuffer outside of STATICLIGHTING_TEXTUREMASK to store UseSingleSampleShadowFromStationaryLights
-#define WRITES_PRECSHADOWFACTOR_TO_GBUFFER	(USES_GBUFFER && ALLOW_STATIC_LIGHTING && (!SELECTIVE_BASEPASS_OUTPUTS || (1)))
+#define WRITES_PRECSHADOWFACTOR_TO_GBUFFER	(USES_GBUFFER && ALLOW_STATIC_LIGHTING)
 #define WRITES_PRECSHADOWFACTOR_ZERO		(USES_GBUFFER && ALLOW_STATIC_LIGHTING && (!SELECTIVE_BASEPASS_OUTPUTS || HQ_TEXTURE_LIGHTMAP || LQ_TEXTURE_LIGHTMAP))
 
 // If a primitive has static lighting, we assume it is not moving. If it is, it will be rerendered in an extra renderpass.

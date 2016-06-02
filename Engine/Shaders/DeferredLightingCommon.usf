@@ -26,6 +26,7 @@ struct FDeferredLightData
 	float3 LightDirection;
 	float4 SpotAnglesAndSourceRadius;
 	float MinRoughness;
+	float ContactShadowLength;
 	float2 DistanceFadeMAD;
 	float4 ShadowMapChannelMask;
 	/** Whether to use inverse squared falloff. */
@@ -35,7 +36,7 @@ struct FDeferredLightData
 	/** Whether this light needs spotlight attenuation. */
 	bool bSpotLight;
 	/** Whether the light should apply shadowing. */
-	bool bShadowed;
+	uint ShadowedBits;
 };
 
 /** Data about a single light to be shaded with the simple shading model, designed for speed and limited feature set. */
@@ -276,6 +277,58 @@ void GetShadowTerms(FScreenSpaceData ScreenSpaceData, FDeferredLightData LightDa
 	}
 }
 
+float ShadowRayCast(
+	float3 RayOriginTranslatedWorld, float3 RayDirection, float RayLength,
+	int NumSteps, float StepOffset
+)
+{
+	float4 RayStartClip	= mul( float4( RayOriginTranslatedWorld, 1 ), View.TranslatedWorldToClip );
+	float4 RayDirClip	= mul( float4( RayDirection * RayLength, 0 ), View.TranslatedWorldToClip );
+	float4 RayEndClip	= RayStartClip + RayDirClip;
+
+	float3 RayStartScreen = RayStartClip.xyz / RayStartClip.w;
+	float3 RayEndScreen = RayEndClip.xyz / RayEndClip.w;
+	
+	float3 RayStepScreen = RayEndScreen - RayStartScreen;
+
+	float3 RayStartUVz = float3( RayStartScreen.xy * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz, RayStartScreen.z );
+	float3 RayStepUVz = float3( RayStepScreen.xy * View.ScreenPositionScaleBias.xy, RayStepScreen.z );
+
+	float4 RayDepthClip	= RayStartClip + mul( float4( 0, 0, RayLength, 0 ), View.ViewToClip );
+	float3 RayDepthScreen = RayDepthClip.xyz / RayDepthClip.w;
+
+	const float Step = 1.0 / NumSteps;
+
+	// *2 to get less morie pattern in extreme cases, larger values make object appear not grounded in reflections
+	const float CompareTolerance = abs( RayDepthScreen.z - RayStartScreen.z ) * Step * 2;
+
+	float SampleTime = StepOffset * Step + Step;
+	
+	float Coverage = 0;
+
+	UNROLL
+	for( int i = 0; i < NumSteps; i++ )
+	{
+		float3 SampleUVz = RayStartUVz + RayStepUVz * SampleTime;
+		float SampleDepth = SceneDepthTexture.SampleLevel( SceneDepthTextureSampler, SampleUVz.xy, 0 ).r;
+
+		float DepthDiff = SampleUVz.z - SampleDepth;
+		bool Hit = abs( DepthDiff + CompareTolerance ) < CompareTolerance;
+
+		Coverage += Hit ? 1.0 : 0.0;
+
+		SampleTime += Step;
+	}
+
+	float Shadow = Coverage > 0 ? 1 : 0;
+
+	// Off screen masking
+	float2 Vignette = saturate( abs( RayStartScreen.xy ) * 6 - 5 );
+	//Shadow *= saturate( 1.0 - dot( Vignette, Vignette ) );
+
+	return 1 - Shadow;
+}
+
 /** Calculates lighting for a given position, normal, etc with a fully featured lighting model designed for quality. */
 float4 GetDynamicLighting(float3 WorldPosition, float3 CameraVector, float2 InUV, FScreenSpaceData ScreenSpaceData, uint ShadingModelID, FDeferredLightData LightData, float4 LightAttenuation, uint2 Random)
 {
@@ -392,18 +445,47 @@ float4 GetDynamicLighting(float3 WorldPosition, float3 CameraVector, float2 InUV
 		float SubsurfaceShadow = 1;
 
 		BRANCH
-		if (LightData.bShadowed)
+		if (LightData.ShadowedBits)
 		{
 			GetShadowTerms(ScreenSpaceData, LightData, WorldPosition, LightAttenuation, SurfaceShadow, SubsurfaceShadow);
 
 			// greatly reduces shadow mapping artifacts
 			// Commented out because it reduces character shading quality.
 			//SurfaceShadow *= saturate(dot(N, L) * 6 - 0.2);
+
+#ifndef THREADGROUP_SIZEX
+			BRANCH
+			if( LightData.ShadowedBits > 1 && LightData.ContactShadowLength > 0 )
+			{
+				uint FrameRandom = (Frame.FrameNumber & 15) * 1551;
+
+				float StepOffset = float( Random.x & 0xffff ) / (1<<16);
+				StepOffset -= 0.5;
+
+				float Shadow = ShadowRayCast( WorldPosition + View.PreViewTranslation, L, LightData.ContactShadowLength * ScreenSpaceData.GBuffer.Depth, 8, StepOffset );
+				
+				SurfaceShadow *= Shadow;
+				//SubsurfaceShadow *= Shadow;
+			}
+#endif
 		}
 		else
 		{
 			SurfaceShadow = ScreenSpaceData.AmbientOcclusion;
 		}
+
+#ifndef THREADGROUP_SIZEX
+		BRANCH
+		if( LightData.ShadowedBits < 2 && ScreenSpaceData.GBuffer.ShadingModelID == SHADINGMODELID_HAIR )
+		{
+			uint FrameRandom = (Frame.FrameNumber & 15) * 1551;
+
+			float StepOffset = float( Random.x & 0xffff ) / (1<<16);
+			StepOffset -= 0.5;
+
+			SubsurfaceShadow = ShadowRayCast( WorldPosition + View.PreViewTranslation, L, 0.1 * ScreenSpaceData.GBuffer.Depth, 8, StepOffset );
+		}
+#endif
 
 		float SurfaceAttenuation	= (DistanceAttenuation * LightRadiusMask * SpotFalloff) * SurfaceShadow;
 		float SubsurfaceAttenuation	= (DistanceAttenuation * LightRadiusMask * SpotFalloff) * SubsurfaceShadow;

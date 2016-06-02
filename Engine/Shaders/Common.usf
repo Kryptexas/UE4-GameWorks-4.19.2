@@ -216,7 +216,10 @@
 
 // Whether the platform supports a global clip plane through SV_ClipDistance
 // Ideally this would just be enabled for all SM4 and above feature level platforms, but not tested everywhere yet
-#define SUPPORT_GLOBAL_CLIP_PLANE (PS4_PROFILE || SM5_PROFILE || SM4_PROFILE)
+#define PLATFORM_SUPPORTS_GLOBAL_CLIP_PLANE (PS4_PROFILE || SM5_PROFILE || SM4_PROFILE)
+
+// Using SV_ClipDistance has overhead (15% slower base pass in triangle bound test scene on PS4) so projects have to opt-in
+#define USE_GLOBAL_CLIP_PLANE (PLATFORM_SUPPORTS_GLOBAL_CLIP_PLANE && PROJECT_ALLOW_GLOBAL_CLIP_PLANE)
 
 // This would need to be a #define in GLSL to ignore the SamplerState, however, it is currently a function call in HLSL
 // for type checking of the parameters - ironically the type checking is really only needed in GLSL!
@@ -965,7 +968,7 @@ float2 CalcScreenUVFromOffsetFraction(float4 ScreenPosition, float2 OffsetFracti
 float3 DecodeSceneColorForMaterialNode(float2 ScreenUV)
 {
 #if HIT_PROXY_SHADER || SCENE_TEXTURES_DISABLED
-	// Hit proxies rendering pass doesn't have access to valide render buffers
+	// Hit proxies rendering pass doesn't have access to valid render buffers
 	return float3(0.0f, 0.0f, 0.0f);
 #else
 	float4 EncodedSceneColor = Texture2DSample(LightAttenuationTexture, LightAttenuationTextureSampler, ScreenUV);
@@ -980,7 +983,8 @@ float3 DecodeSceneColorForMaterialNode(float2 ScreenUV)
 // @return SceneDepth (linear in world units, W)
 float ConvertFromDeviceZ(float DeviceZ)
 {
-	return 1.f / (DeviceZ * View.InvDeviceZToWorldZTransform[2] - View.InvDeviceZToWorldZTransform[3]);	
+	// Supports ortho and perspective, see CreateInvDeviceZToWorldZTransform()
+	return DeviceZ * View.InvDeviceZToWorldZTransform[0] + View.InvDeviceZToWorldZTransform[1] + 1.0f / (DeviceZ * View.InvDeviceZToWorldZTransform[2] - View.InvDeviceZToWorldZTransform[3]);
 }
 
 // inverse operation of ConvertFromDeviceZ()
@@ -988,12 +992,21 @@ float ConvertFromDeviceZ(float DeviceZ)
 // @return DeviceZ (Z/W)
 float ConvertToDeviceZ(float SceneDepth)
 {
-	// todo: can change the ADD+MUL into a MAD for precision and performance
-	return 1.0f / ((SceneDepth + View.InvDeviceZToWorldZTransform[3]) * View.InvDeviceZToWorldZTransform[2]);
+	FLATTEN
+	if (View.ViewToClip[3][3] < 1.0f)
+	{
+		// Perspective
+		return 1.0f / ((SceneDepth + View.InvDeviceZToWorldZTransform[3]) * View.InvDeviceZToWorldZTransform[2]);
+	}
+	else
+	{
+		// Ortho
+		return SceneDepth * View.ViewToClip[2][2] + View.ViewToClip[3][2];
+	}
 }
 
 /** Returns clip space W, which is world space distance along the View Z axis. Note if you need DeviceZ LookupDeviceZ() is the faster option */
-float CalcSceneDepth( float2 ScreenUV )
+float CalcSceneDepth(float2 ScreenUV)
 {
 #if SCENE_TEXTURES_DISABLED
 	return 0.0f;
@@ -1021,7 +1034,7 @@ float CalcSceneDepth( float2 ScreenUV )
 #endif
 }
 
-/** Returns DeviceZ which is the z value storesd in the depth buffer. Perfer this over CalcSceneDepth() on most hardware. */
+/** Returns DeviceZ which is the z value stored in the depth buffer. */
 float LookupDeviceZ( float2 ScreenUV )
 {
 #if FEATURE_LEVEL > FEATURE_LEVEL_ES3_1
@@ -1630,3 +1643,21 @@ SamplerState GetTrilinearClampedSampler()
 	return BuiltinSamplers.TrilinearClamped;
 #endif
 }
+
+// see PixelShaderOutputCommon
+struct FPixelShaderInOut
+{
+	// read only
+	float4 SvPosition;
+	// [0..7], only usable if PIXELSHADEROUTPUT_MRT0, PIXELSHADEROUTPUT_MRT1, ... is 1
+	float4 MRT[8];
+
+	// only usable if PIXELSHADEROUTPUT_A2C is 1
+	uint InCoverage;
+	// only usable if PIXELSHADEROUTPUT_A2C is 1
+	uint OutCoverage;
+
+	bool bIsFrontFace;
+
+	float OutDepth;
+};

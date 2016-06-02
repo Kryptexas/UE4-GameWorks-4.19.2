@@ -21,6 +21,8 @@ enum EDepthDrawingMode
 	//		 Please keep in sync if changed to avoid compile environment mismatch.
 };
 
+extern const TCHAR* GetDepthDrawingModeString(EDepthDrawingMode Mode);
+
 template<bool>
 class TDepthOnlyVS;
 

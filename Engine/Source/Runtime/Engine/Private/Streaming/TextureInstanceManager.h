@@ -94,7 +94,7 @@ public:
 		FORCEINLINE operator bool() const { return CurrElementIndex != INDEX_NONE; }
 		FORCEINLINE void operator++() { CurrElementIndex = State.Elements[CurrElementIndex].NextTextureLink; }
 
-		void OutputToLog(float MaxNormalizedSize, float MaxNormalizedSize_VisibleOnly) const;
+		void OutputToLog(float MaxNormalizedSize, float MaxNormalizedSize_VisibleOnly, const TCHAR* Prefix) const;
 
 		FORCEINLINE int32 GetBoundsIndex() const { return State.Elements[CurrElementIndex].BoundsIndex; }
 		FORCEINLINE float GetTexelFactor() const { return State.Elements[CurrElementIndex].TexelFactor; }
@@ -287,11 +287,11 @@ public:
 
 	FTextureInstanceAsyncView(const TRefCountPtr<const FTextureInstanceState>& InState) : State(InState) {}
 
-	void Update_Async(const TArray<FStreamingViewInfo>& ViewInfos, bool bUseAABB, float MaxEffectiveScreenSize);
+	void Update_Async(const TArray<FStreamingViewInfo>& ViewInfos, float LastUpdateTime, bool bUseAABB, float MaxEffectiveScreenSize);
 
 	// MaxSize : Biggest texture size for all instances.
 	// MaxSize_VisibleOnly : Biggest texture size for visble instances only.
-	void GetTexelSize(const UTexture2D* InTexture, float& MaxSize, float& MaxSize_VisibleOnly, bool bOutputToLog) const;
+	void GetTexelSize(const UTexture2D* InTexture, float& MaxSize, float& MaxSize_VisibleOnly, const TCHAR* LogPrefix) const;
 
 	bool HasTextureReferences(const UTexture2D* InTexture) const;
 
@@ -396,6 +396,8 @@ public:
 	}
 
 	const FStaticTextureInstanceManager& GetStaticInstances() const { return StaticInstances; }
+
+	float GetWorldTime() const;
 
 	FORCEINLINE FTextureInstanceAsyncView GetAsyncView() { return FTextureInstanceAsyncView(StaticInstances.GetAsyncState()); }
 

@@ -141,8 +141,6 @@ static TAutoConsoleVariable<float> CVarTessellationAdaptivePixelsPerTriangle(
 	TEXT("Global tessellation factor multiplier"),
 	ECVF_RenderThreadSafe);
 
-extern ENGINE_API TAutoConsoleVariable<int32> CVarReflectionCaptureSize;
-
 static TAutoConsoleVariable<int32> CVarSupportSimpleForwardShading(
 	TEXT("r.SupportSimpleForwardShading"),
 	0,
@@ -438,6 +436,7 @@ void FViewInfo::Init()
 	ExponentialFogParameters = FVector4(0,1,1,0);
 	ExponentialFogColor = FVector::ZeroVector;
 	FogMaxOpacity = 1;
+	ExponentialFogParameters3 = FVector2D(0, 0);
 
 	bUseDirectionalInscattering = false;
 	DirectionalInscatteringExponent = 0;
@@ -1084,7 +1083,12 @@ void FViewInfo::CreateUniformBuffer(
 		FrameUniformShaderParameters.HMDEyePaddingOffset = 1.0f;
 	}
 
-	FrameUniformShaderParameters.ReflectionCubemapMaxMip = FMath::FloorLog2(CVarReflectionCaptureSize.GetValueOnRenderThread()) - 1;
+	FrameUniformShaderParameters.ReflectionCubemapMaxMip = FMath::FloorLog2(UReflectionCaptureComponent::GetReflectionCaptureSize_RenderThread()) - 1;
+
+	FrameUniformShaderParameters.ShowDecalsMask = Family->EngineShowFlags.Decals ? 1.0f : 0.0f;
+
+	extern int32 GDistanceFieldAOSpecularOcclusionMode;
+	FrameUniformShaderParameters.DistanceFieldAOSpecularOcclusionMode = GDistanceFieldAOSpecularOcclusionMode;
 
 	OutViewUniformBuffer = TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(ViewUniformShaderParameters, UniformBuffer_SingleFrame);
 	OutFrameUniformBuffer = TUniformBufferRef<FFrameUniformShaderParameters>::CreateUniformBufferImmediate(FrameUniformShaderParameters, UniformBuffer_SingleFrame);
@@ -2067,9 +2071,18 @@ void OnChangeSimpleForwardShading(IConsoleVariable* Var)
 	FGlobalComponentRecreateRenderStateContext Context;
 }
 
+void OnChangeCVarRequiringRecreateRenderState(IConsoleVariable* Var)
+{
+	// Propgate cvar change to static draw lists
+	FGlobalComponentRecreateRenderStateContext Context;
+}
+
 FRendererModule::FRendererModule()
 {
 	CVarSimpleForwardShading.AsVariable()->SetOnChangedCallback(FConsoleVariableDelegate::CreateStatic(&OnChangeSimpleForwardShading));
+
+	static auto CVarEarlyZPass = IConsoleManager::Get().FindConsoleVariable(TEXT("r.EarlyZPass"));
+	CVarEarlyZPass->SetOnChangedCallback(FConsoleVariableDelegate::CreateStatic(&OnChangeCVarRequiringRecreateRenderState));
 }
 
 void FRendererModule::CreateAndInitSingleView(FRHICommandListImmediate& RHICmdList, class FSceneViewFamily* ViewFamily, const struct FSceneViewInitOptions* ViewInitOptions)

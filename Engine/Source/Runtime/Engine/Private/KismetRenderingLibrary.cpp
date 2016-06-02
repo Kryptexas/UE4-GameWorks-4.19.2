@@ -16,8 +16,6 @@ UKismetRenderingLibrary::UKismetRenderingLibrary(const FObjectInitializer& Objec
 {
 }
 
-UCanvas* GCanvasForRenderingToTarget = NULL;
-
 void UKismetRenderingLibrary::DrawMaterialToRenderTarget(UObject* WorldContextObject, UTextureRenderTarget2D* TextureRenderTarget, UMaterialInterface* Material)
 {
 	check(WorldContextObject);
@@ -28,13 +26,7 @@ void UKismetRenderingLibrary::DrawMaterialToRenderTarget(UObject* WorldContextOb
 		&& World 
 		&& Material)
 	{
-		if (!GCanvasForRenderingToTarget)
-		{
-			GCanvasForRenderingToTarget = NewObject<UCanvas>(GetTransientPackage(), NAME_None);
-			GCanvasForRenderingToTarget->AddToRoot();
-		}
-
-		UCanvas* Canvas = GCanvasForRenderingToTarget;
+		UCanvas* Canvas = World->GetCanvasForRenderingToTarget();
 
 		Canvas->Init(TextureRenderTarget->SizeX, TextureRenderTarget->SizeY, nullptr);
 		Canvas->Update();
@@ -42,9 +34,7 @@ void UKismetRenderingLibrary::DrawMaterialToRenderTarget(UObject* WorldContextOb
 		FCanvas RenderCanvas(
 			TextureRenderTarget->GameThread_GetRenderTargetResource(), 
 			nullptr, 
-			FApp::GetCurrentTime() - GStartTime, 
-			FApp::GetDeltaTime(), 
-			FApp::GetCurrentTime() - GStartTime, 
+			World,
 			World->FeatureLevel);
 
 		Canvas->Canvas = &RenderCanvas;
@@ -103,13 +93,8 @@ void UKismetRenderingLibrary::BeginDrawCanvasToRenderTarget(UObject* WorldContex
 	{
 		Context.RenderTarget = TextureRenderTarget;
 
-		if (!GCanvasForRenderingToTarget)
-		{
-			GCanvasForRenderingToTarget = NewObject<UCanvas>(GetTransientPackage(), NAME_None);
-			GCanvasForRenderingToTarget->AddToRoot();
-		}
+		Canvas = World->GetCanvasForRenderingToTarget();
 
-		Canvas = GCanvasForRenderingToTarget;
 		Size = FVector2D(TextureRenderTarget->SizeX, TextureRenderTarget->SizeY);
 
 		Canvas->Init(TextureRenderTarget->SizeX, TextureRenderTarget->SizeY, nullptr);
@@ -118,9 +103,7 @@ void UKismetRenderingLibrary::BeginDrawCanvasToRenderTarget(UObject* WorldContex
 		Canvas->Canvas = new FCanvas(
 			TextureRenderTarget->GameThread_GetRenderTargetResource(), 
 			nullptr, 
-			FApp::GetCurrentTime() - GStartTime, 
-			FApp::GetDeltaTime(), 
-			FApp::GetCurrentTime() - GStartTime, 
+			World,
 			World->FeatureLevel, 
 			// Draw immediately so that interleaved SetVectorParameter (etc) function calls work as expected
 			FCanvas::CDM_ImmediateDrawing);
@@ -152,11 +135,13 @@ void UKismetRenderingLibrary::EndDrawCanvasToRenderTarget(UObject* WorldContextO
 
 	if (World)
 	{
-		if (GCanvasForRenderingToTarget && GCanvasForRenderingToTarget->Canvas)
+		UCanvas* WorldCanvas = World->GetCanvasForRenderingToTarget();
+
+		if (WorldCanvas->Canvas)
 		{
-			GCanvasForRenderingToTarget->Canvas->Flush_GameThread();
-			delete GCanvasForRenderingToTarget->Canvas;
-			GCanvasForRenderingToTarget->Canvas = nullptr;
+			WorldCanvas->Canvas->Flush_GameThread();
+			delete WorldCanvas->Canvas;
+			WorldCanvas->Canvas = nullptr;
 		}
 		
 		if (Context.RenderTarget)

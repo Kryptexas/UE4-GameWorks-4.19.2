@@ -6,8 +6,8 @@
 
 #include "Common.usf"
 #include "SHCommon.usf"
-#include "BasePassCommon.usf"
 #include "Material.usf"
+#include "BasePassCommon.usf"
 #include "VertexFactory.usf"
 #include "LightmapCommon.usf"  
 #include "ReflectionEnvironmentShared.usf"
@@ -30,6 +30,11 @@
 	float3 DirectionalLightDirection;
 	float4 DirectionalLightColor;
 	 
+#endif
+
+#if MATERIALBLENDING_ANY_TRANSLUCENT
+// Downsampled translucency scale (eg 2.0 for r.SeparateTranslucencyScreenPercentage=50)
+float DownsampleFactorFromSceneBufferSize;
 #endif
 
 #if MATERIAL_SHADINGMODEL_HAIR || SIMPLE_FORWARD_DIRECTIONAL_LIGHT
@@ -198,7 +203,7 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 	if (abs(dot(ReflectionPlane.xyz, 1)) > .0001f)
 	{
 		// Reuse ReflectionCubemapSampler to avoid reducing the sampler count available to artists
-		float4 PlanarReflection = ComputePlanarReflections(MaterialParameters.AbsoluteWorldPosition, MaterialParameters.WorldNormal, ReflectionCubemapSampler);
+		float4 PlanarReflection = ComputePlanarReflections(MaterialParameters.AbsoluteWorldPosition, MaterialParameters.WorldNormal, Roughness, ReflectionCubemapSampler);
 		// Planar reflections win over SSR and reflection environment
 		SpecularLighting = PlanarReflection.rgb + (1 - PlanarReflection.a) * SpecularLighting;
 	}
@@ -576,7 +581,7 @@ void GetPrecomputedIndirectLightingAndSkyLight(
 
 #if SIMPLE_FORWARD_DIRECTIONAL_LIGHT
 
-float3 GetSimpleForwardLightingDirectionalLight(float3 DiffuseColor, float3 SpecularColor, float Roughness, float3 WorldNormal, float3 CameraVector)
+float3 GetSimpleForwardLightingDirectionalLight(FGBufferData GBuffer, float3 DiffuseColor, float3 SpecularColor, float Roughness, float3 WorldNormal, float3 CameraVector)
 {
 	float3 V = CameraVector;
 	float3 N = WorldNormal;
@@ -584,9 +589,11 @@ float3 GetSimpleForwardLightingDirectionalLight(float3 DiffuseColor, float3 Spec
 	float NoL = saturate( dot( N, L ) );
 
 	float3 LightColor = Frame.DirectionalLightColor.rgb * PI;
-	
 	// Not computing specular, material was forced fully rough
-	return LightColor * NoL * StandardShading(DiffuseColor, SpecularColor, Roughness.xxx, 1.0f, L, V, N, float2(1, 0));
+	float3 DiffuseLighting = StandardShading(DiffuseColor, SpecularColor, Roughness.xxx, 1.0f, L, V, N, float2(1, 0));
+	float3 SubsurfaceLighting = SubsurfaceShading(GBuffer, L, V, N, 1.0f, uint2(0, 0));
+
+	return LightColor * NoL * (DiffuseLighting + SubsurfaceLighting);
 }
 
 #endif
@@ -692,48 +699,11 @@ uint GetSelectiveOutputMask()
 }
 #endif // USES_GBUFFER
 
-#if OUTPUT_GBUFFER_VELOCITY
-#define GBUFFER_D_TARGET SV_Target5
-#define GBUFFER_E_TARGET SV_Target6 // Only used with ALLOW_STATIC_LIGHTING
-#else
-#define GBUFFER_D_TARGET SV_Target4
-#define GBUFFER_E_TARGET SV_Target5
-#endif
-
-void Main(
+// is called in MainPS() from PixelShaderOutputCommon.usf
+void FPixelShaderInOut_MainPS(
 	FVertexFactoryInterpolantsVSToPS Interpolants,
 	FBasePassInterpolantsVSToPS BasePassInterpolants,
-	in INPUT_POSITION_QUALIFIERS float4 SvPosition : SV_Position
-	OPTIONAL_IsFrontFace
-	,out float4 OutColor		: SV_Target0
-
-// Two options control the render target bindings : OUTPUT_GBUFFER_VELOCITY and ALLOW_STATIC_LIGHTING
-#if USES_GBUFFER
-	,out float4 OutGBufferA : SV_Target1 
-	,out float4 OutGBufferB : SV_Target2
-	,out float4 OutGBufferC : SV_Target3
-
-// Big issue here on PC with AMD hardware : putting the velocity buffer after an optionnal RT fails!!!
-#if WRITES_VELOCITY_TO_GBUFFER
-	,out float4 OutGBufferVelocity : SV_Target4
-#endif
-
-#if WRITES_CUSTOMDATA_TO_GBUFFER
-	,out float4 OutGBufferD : GBUFFER_D_TARGET
-#endif
-
-#if WRITES_PRECSHADOWFACTOR_TO_GBUFFER
-	,out float4 OutGBufferE : GBUFFER_E_TARGET
-#endif
-#endif // USES_GBUFFER
-
-	OPTIONAL_OutDepthConservative
-
-#if EDITOR_ALPHA2COVERAGE != 0
-   ,in uint InCoverage : SV_Coverage
-   ,out uint OutCoverage : SV_Coverage
-#endif
-   )
+	inout FPixelShaderInOut InOut)
 {
 #if INSTANCED_STEREO
 	ResolvedView = ResolveView(GetEyeIndex(Interpolants.PackedEyeIndex));
@@ -741,21 +711,14 @@ void Main(
 	ResolvedView = ResolveView();
 #endif
 
-#if !WRITES_CUSTOMDATA_TO_GBUFFER
+	// Velocity
+	float4 OutVelocity = 0;
+	// CustomData
 	float4 OutGBufferD = 0;
-#endif
-#if !WRITES_PRECSHADOWFACTOR_TO_GBUFFER
+	// PreShadowFactor
 	float4 OutGBufferE = 0;
-#endif
-#if !WRITES_VELOCITY_TO_GBUFFER
-	float4 OutGBufferVelocity = 0;
-#endif
 
-#if EDITOR_ALPHA2COVERAGE != 0
-	OutCoverage = InCoverage;
-#endif
-
-	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants, SvPosition);
+	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants, InOut.SvPosition);
 	FPixelMaterialInputs PixelMaterialInputs;
 	
 #if HQ_TEXTURE_LIGHTMAP && USES_AO_MATERIAL_MASK && !MATERIAL_SHADINGMODEL_UNLIT
@@ -765,13 +728,25 @@ void Main(
 	MaterialParameters.AOMaterialMask = GetAOMaterialMask(LightmapUV0 * float2(1, 2));
 #endif
 
+	float4 SVPositionForComputingPositions = InOut.SvPosition;
+
+#if MATERIALBLENDING_ANY_TRANSLUCENT
+	// Modify SVPosition for passes that are rendering to a downsampled target so that ScreenPosition and WorldPosition will be computed correctly
+	//SVPositionForComputingPositions.xy *= DownsampleFactorFromSceneBufferSize;
+#endif
+
 	#if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
 		{
-			float4 ScreenPosition = SvPositionToScreenPosition(SvPosition);
-			CalcMaterialParametersEx(MaterialParameters, PixelMaterialInputs, SvPosition, ScreenPosition, bIsFrontFace, SvPositionToResolvedTranslatedWorld(SvPosition), BasePassInterpolants.PixelPositionExcludingWPO);
+			float4 ScreenPosition = SvPositionToScreenPosition(SVPositionForComputingPositions);
+			float3 TranslatedWorldPosition = SvPositionToResolvedTranslatedWorld(SVPositionForComputingPositions);
+			CalcMaterialParametersEx(MaterialParameters, PixelMaterialInputs, InOut.SvPosition, ScreenPosition, InOut.bIsFrontFace, TranslatedWorldPosition, BasePassInterpolants.PixelPositionExcludingWPO);
 		}
 	#else
-		CalcMaterialParameters(MaterialParameters, PixelMaterialInputs, SvPosition, bIsFrontFace);
+		{
+			float4 ScreenPosition = SvPositionToScreenPosition(SVPositionForComputingPositions);
+			float3 TranslatedWorldPosition = SvPositionToResolvedTranslatedWorld(SVPositionForComputingPositions);
+			CalcMaterialParametersEx(MaterialParameters, PixelMaterialInputs, InOut.SvPosition, ScreenPosition, InOut.bIsFrontFace, TranslatedWorldPosition, TranslatedWorldPosition);
+		}
 	#endif
 
 #if USE_EDITOR_COMPOSITING && (FEATURE_LEVEL >= FEATURE_LEVEL_SM4 || MOBILE_EMULATION)
@@ -781,7 +756,7 @@ void Main(
 #endif
 		
 #if OUTPUT_PIXEL_DEPTH_OFFSET
-	ApplyPixelDepthOffsetForBasePass(MaterialParameters, PixelMaterialInputs, BasePassInterpolants, OutDepth);
+	ApplyPixelDepthOffsetForBasePass(MaterialParameters, PixelMaterialInputs, BasePassInterpolants, InOut.OutDepth);
 #endif
 
 	//Clip if the blend mode requires it.
@@ -816,9 +791,9 @@ void Main(
 	}
 #endif
 
-#if USE_DBUFFER && MATERIALDECALRESPONSEMASK && !(MATERIALBLENDING_TRANSLUCENT || MATERIALBLENDING_ADDITIVE || MATERIALBLENDING_MODULATE)
+#if USE_DBUFFER && MATERIALDECALRESPONSEMASK && !MATERIALBLENDING_ANY_TRANSLUCENT
 	// apply decals from the DBuffer
-	BRANCH if(Primitive.DecalReceiverMask > 0)
+	BRANCH if(Primitive.DecalReceiverMask > 0 && Frame.ShowDecalsMask > 0)
 	{
 		float2 NDC = MaterialParameters.ScreenPosition.xy / MaterialParameters.ScreenPosition.w;
 		
@@ -840,7 +815,7 @@ void Main(
 	float3 LocalBaseColor = BaseColor;
 	float LocalSpecular = Specular;
 
-#if MATERIAL_SHADINGMODEL_SUBSURFACE_PROFILE
+#if MATERIAL_SHADINGMODEL_SUBSURFACE_PROFILE && !SIMPLE_FORWARD_SHADING
 	// SubsurfaceProfile applies the BaseColor in a later pass. Any lighting output in the base pass needs
 	// to separate specualar and diffuse lighting in a checkerboard pattern
 	{
@@ -994,16 +969,16 @@ void Main(
 	#if !MATERIAL_SHADINGMODEL_UNLIT
 
 		float3 DiffuseDir = MaterialParameters.WorldNormal;
-		float3 EffectiveDiffuseColor = DiffuseColor;
+		float3 DiffuseColorForIndirect = DiffuseColor;
 
 		#if MATERIAL_SHADINGMODEL_SUBSURFACE || MATERIAL_SHADINGMODEL_PREINTEGRATED_SKIN
 			// Add subsurface energy to diffuse
 			//@todo - better subsurface handling for these shading models with skylight and precomputed GI
-			EffectiveDiffuseColor += SubsurfaceColor;
+			DiffuseColorForIndirect += SubsurfaceColor;
 		#endif
 
 		#if MATERIAL_SHADINGMODEL_CLOTH
-			EffectiveDiffuseColor += SubsurfaceColor * saturate( GetMaterialCustomData0(MaterialParameters) );
+			DiffuseColorForIndirect += SubsurfaceColor * saturate( GetMaterialCustomData0(MaterialParameters) );
 		#endif
 
 		#if MATERIAL_SHADINGMODEL_HAIR
@@ -1012,7 +987,7 @@ void Main(
 			float3 V = MaterialParameters.CameraVector;
 			float3 L = normalize( V - N * dot(V,N) );
 			DiffuseDir = L;
-			EffectiveDiffuseColor = PI * HairShading( GBuffer, L, V, N, 1, 0, 0.2, uint2(0,0) );
+			DiffuseColorForIndirect = PI * HairShading( GBuffer, L, V, N, 1, 0, 0.2, uint2(0,0) );
 		}
 		#endif
 
@@ -1020,13 +995,14 @@ void Main(
 		float3 SubsurfaceIndirectLighting;
 		GetPrecomputedIndirectLightingAndSkyLight(MaterialParameters, Interpolants, BasePassInterpolants, DiffuseDir, DiffuseIndirectLighting, SubsurfaceIndirectLighting, IndirectIrradiance);
 		
-		Color += (DiffuseIndirectLighting * EffectiveDiffuseColor + SubsurfaceIndirectLighting * SubsurfaceColor) * MaterialAO;
+		Color += (DiffuseIndirectLighting * DiffuseColorForIndirect + SubsurfaceIndirectLighting * SubsurfaceColor) * MaterialAO;
 
 
 		#if SIMPLE_FORWARD_DIRECTIONAL_LIGHT
 
 			float3 DirectionalLighting = GetSimpleForwardLightingDirectionalLight(
-				EffectiveDiffuseColor,
+				GBuffer,
+				DiffuseColor,
 				SpecularColor,
 				Roughness,
 				MaterialParameters.WorldNormal, 
@@ -1080,23 +1056,26 @@ void Main(
 	Color += Emissive;
 
 	#if MATERIALBLENDING_TRANSLUCENT
-		OutColor = half4(Color * VertexFog.a + VertexFog.rgb, Opacity);
-		OutColor = RETURN_COLOR(OutColor);
+		InOut.MRT[0] = half4(Color * VertexFog.a + VertexFog.rgb, Opacity);
+		InOut.MRT[0] = RETURN_COLOR(InOut.MRT[0]);
 	#elif MATERIALBLENDING_ADDITIVE
-		OutColor = half4(Color * VertexFog.a * Opacity, 0.0f);
-		OutColor = RETURN_COLOR(OutColor);
+		InOut.MRT[0] = half4(Color * VertexFog.a * Opacity, 0.0f);
+		InOut.MRT[0] = RETURN_COLOR(InOut.MRT[0]);
 	#elif MATERIALBLENDING_MODULATE
 		// RETURN_COLOR not needed with modulative blending
 		half3 FoggedColor = lerp(float3(1, 1, 1), Color, VertexFog.aaa * VertexFog.aaa);
-		OutColor = half4(FoggedColor, Opacity);
+		InOut.MRT[0] = half4(FoggedColor, Opacity);
 	#else
 		{
 			FLightAccumulator LightAccumulator = (FLightAccumulator)0;
 
 			LightAccumulator_Add(LightAccumulator, Color, 0, 1.0f);
-			// Note: Scene color alpha used in scene captures and planar reflections to track which parts have been rendered
-			// A value of 0 means that pixel has been rendered, 1 is the clear default
-			OutColor = RETURN_COLOR(LightAccumulator_GetResult(LightAccumulator));
+			InOut.MRT[0] = RETURN_COLOR(LightAccumulator_GetResult(LightAccumulator));
+
+			#if SUBSURFACE_CHANNEL_MODE == 0
+				// Scene captures and planar reflections need opacity in destination alpha.
+				InOut.MRT[0].a = 0;
+			#endif
 		}
 	#endif
 
@@ -1108,34 +1087,76 @@ void Main(
 
 		// -0.5 .. 0.5, could be optimzed as lower quality noise would be sufficient
 		float QuantizationBias = PseudoRandom( MaterialParameters.SvPosition.xy ) - 0.5f;
-		EncodeGBuffer(GBuffer, OutGBufferA, OutGBufferB, OutGBufferC, OutGBufferD, OutGBufferE, OutGBufferVelocity, QuantizationBias);
+		EncodeGBuffer(GBuffer, InOut.MRT[1], InOut.MRT[2], InOut.MRT[3], OutGBufferD, OutGBufferE, OutVelocity, QuantizationBias);
 	#endif 
 
 	if(bEditorWeightedZBuffering)
 	{
-		OutColor.a = 1;
+		InOut.MRT[0].a = 1;
 
 #if MATERIALBLENDING_MASKED
 		// some material might have a opacity value
-		OutColor.a = GetMaterialMaskInputRaw(PixelMaterialInputs);
+		InOut.MRT[0].a = GetMaterialMaskInputRaw(PixelMaterialInputs);
 #endif
 		// we output premultiplied alpha to we have to darken all 4 channels
-		OutColor *= ClipForEditorPrimitives(MaterialParameters);
+		InOut.MRT[0] *= ClipForEditorPrimitives(MaterialParameters);
 
 		#if EDITOR_ALPHA2COVERAGE != 0
 			// per MSAA sample
 			if(MSAASampleCount > 1)
 			{
-				OutCoverage = InCoverage & CustomAlpha2Coverage(OutColor);
+				InOut.OutCoverage = InOut.InCoverage & CustomAlpha2Coverage(InOut.MRT[0]);
 			}
 			else
 			{
 				// no MSAA is handle like per pixel
-				clip(OutColor.a - GetMaterialOpacityMaskClipValue());
+				clip(InOut.MRT[0].a - GetMaterialOpacityMaskClipValue());
 			}
 		#else
 			// per pixel
-			clip(OutColor.a - GetMaterialOpacityMaskClipValue());
+			clip(InOut.MRT[0].a - GetMaterialOpacityMaskClipValue());
 		#endif
 	}
+
+#if USES_GBUFFER
+	// extra starts at MRT4 (see PIXELSHADEROUTPUT_MRT3)
+	int MRT_Write_Index = 4;
+
+	#if WRITES_VELOCITY_TO_GBUFFER
+		InOut.MRT[MRT_Write_Index++] = OutVelocity;
+	#endif
+
+	// we don't test for WRITES_CUSTOMDATA_TO_GBUFFER because GetGBufferRenderTargets() is not masking the MRT based on it, we mask by GetSelectiveOutputMask instead
+	InOut.MRT[MRT_Write_Index++] = OutGBufferD;
+
+	#if WRITES_PRECSHADOWFACTOR_TO_GBUFFER
+		InOut.MRT[MRT_Write_Index++] = OutGBufferE;
+	#endif
+
+#endif
 }
+
+
+// Two options control the render target bindings : OUTPUT_GBUFFER_VELOCITY and ALLOW_STATIC_LIGHTING
+// Big issue here on PC with AMD hardware : putting the velocity buffer after an optional RT fails!!!
+#define VELOCITY_OUTPUT ((USES_GBUFFER) && (WRITES_VELOCITY_TO_GBUFFER))
+// we don't test for WRITES_CUSTOMDATA_TO_GBUFFER because GetGBufferRenderTargets() is not masking the MRT based on it, we mask by GetSelectiveOutputMask instead
+#define CUSTOMDATA_OUTPUT (USES_GBUFFER)
+#define PRESHADOWFACTOR_OUTPUT ((USES_GBUFFER) && (WRITES_PRECSHADOWFACTOR_TO_GBUFFER))
+
+#define EXTRA_MRT_COUNT (VELOCITY_OUTPUT + CUSTOMDATA_OUTPUT + PRESHADOWFACTOR_OUTPUT)
+
+// the following needs to match to the code in FSceneRenderTargets::GetGBufferRenderTargets()
+
+#define PIXELSHADEROUTPUT_BASEPASS 1
+#define PIXELSHADEROUTPUT_MRT0 (1)
+#define PIXELSHADEROUTPUT_MRT1 (USES_GBUFFER)
+#define PIXELSHADEROUTPUT_MRT2 (USES_GBUFFER)
+#define PIXELSHADEROUTPUT_MRT3 (USES_GBUFFER)
+#define PIXELSHADEROUTPUT_MRT4 (EXTRA_MRT_COUNT > 0)
+#define PIXELSHADEROUTPUT_MRT5 (EXTRA_MRT_COUNT > 1)
+#define PIXELSHADEROUTPUT_MRT6 (EXTRA_MRT_COUNT > 2)
+#define PIXELSHADEROUTPUT_A2C ((EDITOR_ALPHA2COVERAGE) != 0)
+// all PIXELSHADEROUTPUT_ and "void FPixelShaderInOut_MainPS()" need to be setup before this include
+// this include generates the wrapper code to call MainPS(inout FPixelShaderOutput PixelShaderOutput)
+#include "PixelShaderOutputCommon.usf"

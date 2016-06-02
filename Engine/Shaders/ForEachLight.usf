@@ -35,7 +35,7 @@ float3 LightingForOneLight(FMaterialPixelParameters Parameters, uint LightIndex,
 	// Only radial lights supported with tiled deferred
 	LightData.bRadialLight = ForwardLightData.SpotAnglesAndSourceRadiusAndDir[LightIndex].w == 0;
 	// The only type of shadowing supported for lights using tiled is static shadowing, so the light should only compute shadowing if it has static shadowing
-	LightData.bShadowed = 0;
+	LightData.ShadowedBits = 0;
 	
 	float2 ScreenUV = Parameters.SvPosition.xy * Frame.BufferSizeAndInvSize.zw;
 

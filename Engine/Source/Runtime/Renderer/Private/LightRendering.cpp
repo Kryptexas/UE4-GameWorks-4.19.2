@@ -333,7 +333,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 	TArray<FSortedLightSceneInfo, SceneRenderingAllocator> SortedLights;
 	SortedLights.Empty(Scene->Lights.Num());
 
-	bool bDynamicShadows = ViewFamily.EngineShowFlags.DynamicShadows && GetShadowQuality() > 0;
+	bool bDynamicShadows = ViewFamily.EngineShowFlags.DynamicShadows;
 	
 	// Build a list of visible lights.
 	for (TSparseArray<FLightSceneInfoCompact>::TConstIterator LightIt(Scene->Lights); LightIt; ++LightIt)

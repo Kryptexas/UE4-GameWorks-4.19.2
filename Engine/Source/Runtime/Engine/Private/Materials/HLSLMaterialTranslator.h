@@ -476,6 +476,16 @@ public:
 				Errorf(TEXT("Only unlit materials can output negative emissive color."));
 			}
 
+			static IConsoleVariable* CDBufferVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DBuffer"));
+			bool bDBufferAllowed = CDBufferVar ? CDBufferVar->GetInt() != 0 : false;
+			bool bDBufferBlendMode = IsDBufferDecalBlendMode((EDecalBlendMode)Material->GetDecalBlendMode());
+
+			if (bDBufferBlendMode && !bDBufferAllowed)
+			{
+				// Error feedback for when the decal would not be displayed due to project settings
+				Errorf(TEXT("DBuffer decal blend modes are only supported when the 'DBuffer Decals' Rendering Project setting is enabled."));
+			}
+
 			if (MaterialCompilationOutput.bNeedsSceneTextures)
 			{
 				if (Domain != MD_DeferredDecal && Domain != MD_PostProcess)

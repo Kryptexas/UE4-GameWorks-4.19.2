@@ -153,6 +153,7 @@ UPrimitiveComponent::UPrimitiveComponent(const FObjectInitializer& ObjectInitial
 	PostPhysicsComponentTick.TickGroup = TG_PostPhysics;
 
 	LastRenderTime = -1000.0f;
+	LastRenderTimeOnScreen = -1000.0f;
 	BoundsScale = 1.0f;
 	MinDrawDistance = 0.0f;
 	DepthPriorityGroup = SDPG_World;

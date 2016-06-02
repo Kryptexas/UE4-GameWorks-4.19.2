@@ -98,6 +98,7 @@ public class Engine : ModuleRules
 				"Landscape",
                 "UMG",
 				"Projects",
+//                "RawMesh",          // causes WARNING: Non-editor build cannot depend on non-redistributable modules. Details:
 				"Niagara",
                 "Internationalization",
                 "MaterialShaderQualitySettings",
@@ -329,6 +330,7 @@ public class Engine : ModuleRules
 				"Vorbis",
 				"VorbisFile",
 				"libOpus"
+			   // "OpenSubdiv"
 				);
 
 			if (UEBuildConfiguration.bCompileLeanAndMeanUE == false)

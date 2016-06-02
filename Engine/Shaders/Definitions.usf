@@ -285,3 +285,8 @@
 #error "Missing COMPILER_HLSLCC define!"
 #endif
 #endif
+
+// Hlslcc platforms ignore the uniform keyword as it can't properly optimize flow
+#if COMPILER_HLSLCC
+#define uniform
+#endif

@@ -93,9 +93,6 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 #endif // STATS_FAST
 #if STATS
 	bool HandleListStreamingTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar );
-	bool HandleListStreamingTexturesCollectCommand( const TCHAR* Cmd, FOutputDevice& Ar );
-	bool HandleListStreamingTexturesReportReadyCommand( const TCHAR* Cmd, FOutputDevice& Ar );
-	bool HandleListStreamingTexturesReportCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 #endif // STATS
 #if !UE_BUILD_SHIPPING
 	bool HandleResetMaxEverRequiredTexturesCommand(const TCHAR* Cmd, FOutputDevice& Ar);
@@ -111,7 +108,7 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 	bool HandlePauseTextureStreamingCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleStreamingManagerMemoryCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );
 	bool HandleTextureGroupsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
-	bool HandleInvestigateTextureCommand( const TCHAR* Cmd, FOutputDevice& Ar );
+	bool HandleInvestigateTextureCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );
 #endif // !UE_BUILD_SHIPPING
 	/** Adds a new texture to the streaming manager. */
 	virtual void AddStreamingTexture( UTexture2D* Texture ) override;
@@ -220,11 +217,8 @@ protected:
 		/** Calculates the minimum and maximum number of mip-levels for a streaming texture. */
 		void CalcMinMaxMips( FStreamingTexture& StreamingTexture );
 
-
-		static FORCEINLINE void LogHeuristic(bool bOutputToLog, bool bUseHeuristic, const TCHAR*& Heuristic, const TCHAR* NewHeuristic);
-
 		/** Calculates the number of mip-levels we would like to have in memory for a texture. */
-		const TCHAR* CalcWantedMips( const FAsyncTextureStreamingData& StreamingData, FStreamingTexture& StreamingTexture, bool bGetHeuristic, bool bOutputToLog );
+		void CalcWantedMips( const FAsyncTextureStreamingData& StreamingData, FStreamingTexture& StreamingTexture, bool bGetHeuristic, bool bOutputToLog );
 
 		/** Updates this frame's STATs by one texture. */
 		void UpdateFrameStats( FStreamingContext& Context, FStreamingTexture& StreamingTexture, int32 TextureIndex );
@@ -298,25 +292,11 @@ protected:
 
 	void	IncrementalUpdate( float Percentage );
 
-	/**
-	 * Prints out detailed information about streaming textures that has a name that contains the given string.
-	 * Triggered by the InvestigateTexture exec command.
-	 *
-	 * @param InvestigateTextureName	Partial name to match textures against
-	 */
-	void	InvestigateTexture( const FString& InvestigateTextureName );
-
 	/** Next sync, dump texture group stats. */
 	bool	bTriggerDumpTextureGroupStats;
 
 	/** Whether to the dumped texture group stats should contain extra information. */
 	bool	bDetailedDumpTextureGroupStats;
-
-	/** Next sync, dump all information we have about a certain texture. */
-	bool	bTriggerInvestigateTexture;
-
-	/** Name of a texture to investigate. Can be partial name. */
-	FString	InvestigateTextureName;
 
 	/** Cached from the system settings. */
 	int32 NumStreamedMips[TEXTUREGROUP_MAX];
@@ -409,16 +389,11 @@ protected:
 	/** PoolSize CVar setting the last time we adjusted the pool size. */
 	int32 PreviousPoolSizeSetting;
 
-	/** Whether to collect, and optionally report, texture stats for the next run. */
-	bool   bCollectTextureStats;
-	bool   bReportTextureStats;
-	TArray<FString> TextureStatsReport;
-
-	/** Optional string to match against the texture names when collecting stats. */
-	FString CollectTextureStatsName;
-
 	/** Whether texture streaming is paused or not. When paused, it won't stream any textures in or out. */
 	bool bPauseTextureStreaming;
+
+	/** Last time all data were fully updated. Instances are considered visible if they were rendered between that last time and the current time. */
+	float LastUpdateTime;
 
 #if STATS
 	/**

@@ -4041,8 +4041,7 @@ void FForwardShadingSceneRenderer::RenderShadowDepthMaps(FRHICommandListImmediat
 {
 	SCOPED_DRAW_EVENT(RHICmdList, Lights);
 
-	bool bDynamicShadows = ViewFamily.EngineShowFlags.DynamicShadows && GetShadowQuality() > 0;
-	if (IsSimpleForwardShadingEnabled(GetFeatureLevelShaderPlatform(FeatureLevel)) || !bDynamicShadows)
+	if (IsSimpleForwardShadingEnabled(GetFeatureLevelShaderPlatform(FeatureLevel)) || !ViewFamily.EngineShowFlags.DynamicShadows)
 	{
 		return;
 	}	
@@ -4143,9 +4142,7 @@ void FForwardShadingSceneRenderer::RenderModulatedShadowDepthMaps(FRHICommandLis
 {
 	SCOPED_DRAW_EVENT(RHICmdList, Lights);
 	
-	bool bDynamicShadows = ViewFamily.EngineShowFlags.DynamicShadows && GetShadowQuality() > 0;
-	
-	if (IsSimpleForwardShadingEnabled(GetFeatureLevelShaderPlatform(FeatureLevel)) || !bDynamicShadows)
+	if (IsSimpleForwardShadingEnabled(GetFeatureLevelShaderPlatform(FeatureLevel)) || !ViewFamily.EngineShowFlags.DynamicShadows)
 	{
 		bModulatedShadowsInUse = false;
 	}
@@ -4247,9 +4244,7 @@ void FForwardShadingSceneRenderer::RenderAllocatedModulatedShadowProjections(FRH
 {
 	SCOPED_DRAW_EVENT(RHICmdList, Lights);
 
-	bool bDynamicShadows = ViewFamily.EngineShowFlags.DynamicShadows && GetShadowQuality() > 0;
-
-	if (IsSimpleForwardShadingEnabled(GetFeatureLevelShaderPlatform(FeatureLevel)) || !bDynamicShadows)
+	if (IsSimpleForwardShadingEnabled(GetFeatureLevelShaderPlatform(FeatureLevel)) || !ViewFamily.EngineShowFlags.DynamicShadows)
 	{
 		return;
 	}

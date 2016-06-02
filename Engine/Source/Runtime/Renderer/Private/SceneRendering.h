@@ -138,64 +138,6 @@ public:
 class FTranslucentPrimSet
 {
 public:
-	/** 
-	* Iterate over the sorted list of prims and draw them
-	* @param View - current view used to draw items
-	* @param PhaseSortedPrimitives - array with the primitives we want to draw
-	* @param TranslucenyPassType
-	*/
-	void DrawPrimitives(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, class FDeferredShadingSceneRenderer& Renderer, ETranslucencyPass::Type TranslucenyPassType) const;
-
-	/**
-	* Iterate over the sorted list of prims and draw them
-	* @param View - current view used to draw items
-	* @param PhaseSortedPrimitives - array with the primitives we want to draw
-	* @param TranslucenyPassType
-	* @param FirstPrimIdx, range of elements to render (included), index into SortedPrims[] after sorting
-	* @param LastPrimIdx, range of elements to render (included), index into SortedPrims[] after sorting
-	*/
-	void DrawPrimitivesParallel(FRHICommandList& RHICmdList, const class FViewInfo& View, class FDeferredShadingSceneRenderer& Renderer, ETranslucencyPass::Type TranslucenyPassType, int32 FirstPrimIdx, int32 LastPrimIdx) const;
-
-	/**
-	* Draw a single primitive...this is used when we are rendering in parallel and we need to handlke a translucent shadow
-	* @param View - current view used to draw items
-	* @param PhaseSortedPrimitives - array with the primitives we want to draw
-	* @param TranslucenyPassType
-	* @param PrimIdx in SortedPrims[]
-	*/
-	void DrawAPrimitive(FRHICommandList& RHICmdList, const class FViewInfo& View, class FDeferredShadingSceneRenderer& Renderer, ETranslucencyPass::Type TranslucenyPassType, int32 PrimIdx) const;
-
-	/** 
-	* Draw all the primitives in this set for the forward shading pipeline. 
-	* @param bRenderSeparateTranslucency - If false, only primitives with materials without mobile separate translucency enabled are rendered. Opposite if true.
-	*/
-	void DrawPrimitivesForForwardShading(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, const bool bRenderSeparateTranslucency) const;
-
-	/**
-	* Add a new primitive to the list of sorted prims
-	* @param PrimitiveSceneInfo - primitive info to add. Origin of bounds is used for sort.
-	* @param ViewInfo - used to transform bounds to view space
-	*/
-	void AddScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency, bool bUseMobileSeparateTranslucency);
-
-	/**
-	* Similar to AddScenePrimitive, but we are doing placement news and increasing counts when that happens
-	*/
-	static void PlaceScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency, bool bUseMobileSeparateTranslucency, void *InPlace, int32& InOutNum, FTranslucenyPrimCount& OutCount);
-
-	/**
-	* Sort any primitives that were added to the set back-to-front
-	*/
-	void SortPrimitives();
-
-	/** 
-	* @return number of prims to render
-	*/
-	int32 NumPrims() const
-	{
-		return SortedPrims.Num();
-	}
-
 	/** contains a scene prim and its sort key */
 	struct FSortedPrim
 	{
@@ -232,6 +174,59 @@ public:
 		// from UPrimitiveComponent::TranslucencySortPriority (then by this)
 		float SortKey;
 	};
+
+	/** 
+	* Iterate over the sorted list of prims and draw them
+	* @param View - current view used to draw items
+	* @param PhaseSortedPrimitives - array with the primitives we want to draw
+	* @param TranslucenyPassType
+	*/
+	void DrawPrimitives(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, class FDeferredShadingSceneRenderer& Renderer, ETranslucencyPass::Type TranslucenyPassType) const;
+
+	/**
+	* Iterate over the sorted list of prims and draw them
+	* @param View - current view used to draw items
+	* @param PhaseSortedPrimitives - array with the primitives we want to draw
+	* @param TranslucenyPassType
+	* @param FirstPrimIdx, range of elements to render (included), index into SortedPrims[] after sorting
+	* @param LastPrimIdx, range of elements to render (included), index into SortedPrims[] after sorting
+	*/
+	void DrawPrimitivesParallel(FRHICommandList& RHICmdList, const class FViewInfo& View, class FDeferredShadingSceneRenderer& Renderer, ETranslucencyPass::Type TranslucenyPassType, int32 FirstPrimIdx, int32 LastPrimIdx) const;
+
+	/**
+	* Draw a single primitive...this is used when we are rendering in parallel and we need to handlke a translucent shadow
+	* @param View - current view used to draw items
+	* @param PhaseSortedPrimitives - array with the primitives we want to draw
+	* @param TranslucenyPassType
+	* @param PrimIdx in SortedPrims[]
+	*/
+	void DrawAPrimitive(FRHICommandList& RHICmdList, const class FViewInfo& View, class FDeferredShadingSceneRenderer& Renderer, ETranslucencyPass::Type TranslucenyPassType, int32 PrimIdx) const;
+
+	/** 
+	* Draw all the primitives in this set for the forward shading pipeline. 
+	* @param bRenderSeparateTranslucency - If false, only primitives with materials without mobile separate translucency enabled are rendered. Opposite if true.
+	*/
+	void DrawPrimitivesForForwardShading(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, const bool bRenderSeparateTranslucency) const;
+
+	/**
+	* Insert a primitive to the translucency rendering list[s]
+	*/
+	
+	static void PlaceScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency, bool bUseMobileSeparateTranslucency,
+		FSortedPrim* InArrayStart, int32& InOutArrayNum, FTranslucenyPrimCount& OutCount);
+
+	/**
+	* Sort any primitives that were added to the set back-to-front
+	*/
+	void SortPrimitives();
+
+	/** 
+	* @return number of prims to render
+	*/
+	int32 NumPrims() const
+	{
+		return SortedPrims.Num();
+	}
 
 	/**
 	* Adds primitives originally created with PlaceScenePrimitive
@@ -551,6 +546,7 @@ public:
 	FVector4 ExponentialFogParameters;
 	FVector ExponentialFogColor;
 	float FogMaxOpacity;
+	FVector2D ExponentialFogParameters3;
 
 	/** Parameters for directional inscattering of exponential height fog. */
 	bool bUseDirectionalInscattering;

@@ -7,9 +7,10 @@ AsyncTextureStreaming.cpp: Definitions of classes used for texture streaming asy
 #include "EnginePrivate.h"
 #include "AsyncTextureStreaming.h"
 
-void FAsyncTextureStreamingData::Init(TArray<FStreamingViewInfo> InViewInfos, TArray<FLevelTextureManager>& LevelTextureManagers, FDynamicComponentTextureManager& DynamicComponentManager)
+void FAsyncTextureStreamingData::Init(TArray<FStreamingViewInfo> InViewInfos, float InLastUpdateTime, TArray<FLevelTextureManager>& LevelTextureManagers, FDynamicComponentTextureManager& DynamicComponentManager)
 {
 	ViewInfos = InViewInfos;
+	LastUpdateTime = InLastUpdateTime;
 
 	DynamicInstancesView = DynamicComponentManager.GetAsyncView();
 
@@ -27,9 +28,9 @@ void FAsyncTextureStreamingData::Update_Async()
 
 	for (FTextureInstanceAsyncView& StaticInstancesView : StaticInstancesViews)
 	{
-		StaticInstancesView.Update_Async(ViewInfos, bUseNewMetrics, MaxEffectiveScreenSize);
+		StaticInstancesView.Update_Async(ViewInfos, LastUpdateTime, bUseNewMetrics, MaxEffectiveScreenSize);
 	}
-	DynamicInstancesView.Update_Async(ViewInfos, bUseNewMetrics, MaxEffectiveScreenSize);
+	DynamicInstancesView.Update_Async(ViewInfos, LastUpdateTime, bUseNewMetrics, MaxEffectiveScreenSize);
 }
 
 void FAsyncTextureStreamingTask::ClearRemovedTextureReferences()
@@ -122,7 +123,7 @@ void FAsyncTextureStreamingTask::DoWork()
 			}
 		}
 
-		if (StreamingTexture.IsVisible() && StreamingTexture.GetWantedMipsForPriority() - StreamingTexture.ResidentMips > 1)
+		if (StreamingTexture.IsVisible() && StreamingTexture.GetWantedMipsForPriority() > StreamingTexture.ResidentMips)
 		{
 			++ThreadStats.NumVisibleTexturesWithLowResolutions;
 		}

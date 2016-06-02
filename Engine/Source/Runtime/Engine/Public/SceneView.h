@@ -519,6 +519,8 @@ BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FFrameUniformShaderParameters, ENGI
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, MobilePreviewMode)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, HMDEyePaddingOffset)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float, ReflectionCubemapMaxMip, EShaderPrecisionModifier::Half)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, ShowDecalsMask)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, DistanceFieldAOSpecularOcclusionMode)
 
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4, GlobalVolumeCenterAndExtent_UB, [GMaxGlobalDistanceFieldClipmaps])
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4, GlobalVolumeWorldToUVAddAndMul_UB, [GMaxGlobalDistanceFieldClipmaps])
@@ -1092,6 +1094,12 @@ public:
 
 	/** if true then results of scene rendering are copied/resolved to the RenderTarget. */
 	bool bResolveScene;
+
+	/** 
+	 * Which component of the scene rendering should be output to the final render target.
+	 * If SCS_FinalColorLDR this indicates do nothing.
+	 */
+	ESceneCaptureSource SceneCaptureSource;
 
 	/**
 	 * GetWorld->IsPaused() && !Simulate

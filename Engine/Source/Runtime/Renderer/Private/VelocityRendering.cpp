@@ -538,7 +538,7 @@ int32 GetMotionBlurQualityFromCVar()
 
 bool IsMotionBlurEnabled(const FViewInfo& View)
 {
-	if (!(View.GetFeatureLevel() >= ERHIFeatureLevel::SM4))
+	if (View.GetFeatureLevel() < ERHIFeatureLevel::SM5)
 	{
 		return false; 
 	}

@@ -5062,7 +5062,7 @@ void FSkeletalMeshSceneProxy::GetShadowShapes(TArray<FCapsuleShape>& CapsuleShap
 
 		NewCapsule.Center = ReferenceToWorld.TransformPosition(CapsuleData.Value.Center);
 		NewCapsule.Radius = CapsuleData.Value.Radius * MaxScale;
-		NewCapsule.Orientation = ReferenceToWorld.TransformVector(CapsuleData.Value.Orientation);
+		NewCapsule.Orientation = ReferenceToWorld.TransformVector(CapsuleData.Value.Orientation).GetSafeNormal();
 		NewCapsule.Length = CapsuleData.Value.Length * MaxScale;
 	}
 }

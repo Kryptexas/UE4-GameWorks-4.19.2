@@ -65,7 +65,7 @@ struct FStreamingTexture
 	 */
 	FORCEINLINE bool CanDropMips() const
 	{
-		return (LODGroup != TEXTUREGROUP_Terrain_Heightmap) && WantedMips > MinAllowedMips && !bAsNeverStream;
+		return LODGroup != TEXTUREGROUP_Terrain_Heightmap && LODGroup != TEXTUREGROUP_Terrain_Weightmap;
 	}
 
 
@@ -78,23 +78,15 @@ struct FStreamingTexture
 	{
 		if (bHasSplitRequest && !bIsLastSplitRequest)
 		{
-			return WantedMips + 1;
+			return PerfectWantedMips + 1;
 		}
 		else
 		{
-			return WantedMips;
+			return PerfectWantedMips;
 		}
 	}
 
-	FORCEINLINE float GetStreamingScale() const
-	{
-		if (LODGroup == TEXTUREGROUP_Lightmap)
-			return BoostFactor * GLightmapStreamingFactor;
-		else if (LODGroup == TEXTUREGROUP_Shadowmap)
-			return BoostFactor * GShadowmapStreamingFactor;
-		else 
-			return BoostFactor;
-	}
+	FORCEINLINE float GetStreamingScale(float GlobalBias) const;
 
 	/**
 	 * Calculates a retention priority value for the textures. Higher value means more important.
@@ -103,16 +95,16 @@ struct FStreamingTexture
 	 * Not doing so could make the streamer go into a loop where is never stops dropping and loading different textures when out of budget.
 	 * @return		Priority value
 	 */
-	float CalcRetentionPriority( );
+	int32 CalcRetentionPriority( );
 
 	/**
 	 * Calculates a load order priority value for the texture. Higher value means more important.
 	 * Load Order can depend on the current state of resident mips, because it will not affect the streamer stability.
 	 * @return		Priority value
 	 */
-	float CalcLoadOrderPriority();
+	int32 CalcLoadOrderPriority();
 
-	int32 GetWantedMipsFromSize(float Size, float Bias) const;
+	FORCEINLINE int32 GetWantedMipsFromSize(float Size) const;
 
 
 	/**
@@ -125,7 +117,7 @@ struct FStreamingTexture
 	}
 
 	/** Set the wanted mips from the async task data */
-	void SetPerfectWantedMips(float MaxSize, float MaxSize_VisibleOnly, float MipBias);
+	void SetPerfectWantedMips(float MaxSize, float MaxSize_VisibleOnly, float MipBias, bool bIgnoreStreamingScale);
 
 	/** Update texture streaming. Returns whether it did anything */
 	bool UpdateMipCount(  FStreamingManagerTexture& Manager, FStreamingContext& Context );
@@ -195,8 +187,6 @@ struct FStreamingTexture
 	uint32			bHasSplitRequest : 1;
 	/** Whether this is the second request to converge to the wanted mip. */
 	uint32			bIsLastSplitRequest : 1;
-	/** Can this texture be affected by mip bias? */
-	uint32			bCanBeAffectedByMipBias : 1;
 	/** Is the wanted mip for a visible wanted mips */
 	uint32			bIsVisibleWantedMips : 1;
 

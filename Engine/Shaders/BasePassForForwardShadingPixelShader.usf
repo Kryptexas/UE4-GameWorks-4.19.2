@@ -193,9 +193,9 @@ half3 BlendReflectionCaptures(FMaterialPixelParameters MaterialParameters, half 
 }
 #endif // HQ_REFLECTIONS
 
-float4 GetPlanarReflection(float3 WorldPosition, float3 WorldNormal)
+float4 GetPlanarReflection(float3 WorldPosition, float3 WorldNormal, float Roughness)
 {
-	return ComputePlanarReflections(WorldPosition, WorldNormal, PlanarReflectionSampler);
+	return ComputePlanarReflections(WorldPosition, WorldNormal, Roughness, PlanarReflectionSampler);
 }
 
 half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameters, half Roughness)
@@ -467,7 +467,7 @@ void Main(
 				BRANCH
 				if (abs(dot(ReflectionPlane.xyz, 1)) > .0001f)
 				{
-					half4 PlanarReflection = GetPlanarReflection(MaterialParameters.AbsoluteWorldPosition, MaterialParameters.WorldNormal);
+					half4 PlanarReflection = GetPlanarReflection(MaterialParameters.AbsoluteWorldPosition, MaterialParameters.WorldNormal, Roughness);
 					// Planar reflections win over reflection environment
 					SpecularIBL = lerp(SpecularIBL, PlanarReflection.rgb, PlanarReflection.a);
 				}

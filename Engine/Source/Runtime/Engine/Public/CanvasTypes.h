@@ -227,12 +227,12 @@ public:
 	/** 
 	* Constructor.
 	*/
-	ENGINE_API FCanvas(FRenderTarget* InRenderTarget,FHitProxyConsumer* InHitProxyConsumer, UWorld* InWorld, ERHIFeatureLevel::Type InFeatureLevel);
+	ENGINE_API FCanvas(FRenderTarget* InRenderTarget,FHitProxyConsumer* InHitProxyConsumer, UWorld* InWorld, ERHIFeatureLevel::Type InFeatureLevel, ECanvasDrawMode DrawMode = CDM_DeferDrawing);
 
 	/** 
 	* Constructor. For situations where a world is not available, but time information is
 	*/
-	ENGINE_API FCanvas(FRenderTarget* InRenderTarget, FHitProxyConsumer* InHitProxyConsumer, float InRealTime, float InWorldTime, float InWorldDeltaTime, ERHIFeatureLevel::Type InFeatureLevel, ECanvasDrawMode DrawMode = CDM_DeferDrawing);
+	ENGINE_API FCanvas(FRenderTarget* InRenderTarget, FHitProxyConsumer* InHitProxyConsumer, float InRealTime, float InWorldTime, float InWorldDeltaTime, ERHIFeatureLevel::Type InFeatureLevel);
 
 	/** 
 	* Destructor.
@@ -416,6 +416,8 @@ public:
 	FHitProxyConsumer* GetHitProxyConsumer() const { return HitProxyConsumer; }
 	bool IsHitTesting() const { return HitProxyConsumer != NULL; }
 	
+	FSceneInterface* GetScene() const { return Scene; }
+
 	/**
 	* Push sort key onto the stack. Rendering is done with the current sort key stack entry.
 	*
@@ -578,6 +580,8 @@ private:
 	FHitProxyConsumer* HitProxyConsumer;
 	/** Current hit proxy object */
 	TRefCountPtr<HHitProxy> CurrentHitProxy;
+	/* Optional scene for rendering. */
+	FSceneInterface* Scene;
 	/** Toggles for various canvas rendering functionality **/
 	uint32 AllowedModes;
 	/** true if the render target has been rendered to since last calling SetRenderTarget() */

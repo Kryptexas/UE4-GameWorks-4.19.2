@@ -337,9 +337,9 @@ TLinkedList<FSceneViewStateReference*>*& FSceneViewStateReference::GetSceneViewS
  * @param InvertZ - projection calc is affected by inverted device Z
  * @return vector containing the ratios needed to convert from device Z to world Z
  */
-FVector4 CreateInvDeviceZToWorldZTransform(FMatrix const & ProjMatrix)
+FVector4 CreateInvDeviceZToWorldZTransform(const FMatrix& ProjMatrix)
 {
-	// The depth projection comes from the the following projection matrix:
+	// The perspective depth projection comes from the the following projection matrix:
 	//
 	// | 1  0  0  0 |
 	// | 0  1  0  0 |
@@ -367,18 +367,53 @@ FVector4 CreateInvDeviceZToWorldZTransform(FMatrix const & ProjMatrix)
 		DepthAdd = 0.00000001f;
 	}
 
-	float SubtractValue = DepthMul / DepthAdd;
+	// perspective
+	// SceneDepth = 1.0f / (DeviceZ / ProjMatrix.M[3][2] - ProjMatrix.M[2][2] / ProjMatrix.M[3][2])
 
-	// Subtract a tiny number to avoid divide by 0 errors in the shader when a very far distance is decided from the depth buffer.
-	// This fixes fog not being applied to the black background in the editor.
-	SubtractValue -= 0.00000001f;
+	// ortho
+	// SceneDepth = DeviceZ / ProjMatrix.M[2][2] - ProjMatrix.M[3][2] / ProjMatrix.M[2][2];
 
-	return FVector4(
-		0.0f,			// Unused
-		0.0f,			// Unused
-		1.f / DepthAdd,	
-		SubtractValue
-		);
+	// combined equation in shader to handle either
+	// SceneDepth = DeviceZ * View.InvDeviceZToWorldZTransform[0] + View.InvDeviceZToWorldZTransform[1] + 1.0f / (DeviceZ * View.InvDeviceZToWorldZTransform[2] - View.InvDeviceZToWorldZTransform[3]);
+
+	// therefore perspective needs
+	// View.InvDeviceZToWorldZTransform[0] = 0.0f
+	// View.InvDeviceZToWorldZTransform[1] = 0.0f
+	// View.InvDeviceZToWorldZTransform[2] = 1.0f / ProjMatrix.M[3][2]
+	// View.InvDeviceZToWorldZTransform[3] = ProjMatrix.M[2][2] / ProjMatrix.M[3][2]
+
+	// and ortho needs
+	// View.InvDeviceZToWorldZTransform[0] = 1.0f / ProjMatrix.M[2][2]
+	// View.InvDeviceZToWorldZTransform[1] = -ProjMatrix.M[3][2] / ProjMatrix.M[2][2] + 1.0f
+	// View.InvDeviceZToWorldZTransform[2] = 0.0f
+	// View.InvDeviceZToWorldZTransform[3] = 1.0f
+
+	bool bIsPerspectiveProjection = ProjMatrix.M[3][3] < 1.0f;
+
+	if (bIsPerspectiveProjection)
+	{
+		float SubtractValue = DepthMul / DepthAdd;
+
+		// Subtract a tiny number to avoid divide by 0 errors in the shader when a very far distance is decided from the depth buffer.
+		// This fixes fog not being applied to the black background in the editor.
+		SubtractValue -= 0.00000001f;
+
+		return FVector4(
+			0.0f,			
+			0.0f,			
+			1.0f / DepthAdd,	
+			SubtractValue
+			);
+	}
+	else
+	{
+		return FVector4(
+			1.0f / ProjMatrix.M[2][2],
+			-ProjMatrix.M[3][2] / ProjMatrix.M[2][2] + 1.0f,
+			0.0f,
+			1.0f
+			);
+	}
 }
 
 FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
@@ -1862,6 +1897,7 @@ FSceneViewFamily::FSceneViewFamily( const ConstructionValues& CVS )
 	bRealtimeUpdate(CVS.bRealtimeUpdate),
 	bDeferClear(CVS.bDeferClear),
 	bResolveScene(CVS.bResolveScene),
+	SceneCaptureSource(SCS_FinalColorLDR),
 	bWorldIsPaused(false),
 	GammaCorrection(CVS.GammaCorrection)
 {

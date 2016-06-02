@@ -76,7 +76,7 @@ bool FRenderTarget::ReadPixels(TArray< FColor >& OutImageData, FReadSurfaceDataF
 	});
 	FlushRenderingCommands();
 
-	return true;
+	return OutImageData.Num() > 0;
 }
 
 

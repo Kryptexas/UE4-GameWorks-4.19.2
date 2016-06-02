@@ -370,7 +370,7 @@ public:
 	bool bBackFace;
 	FMeshDrawingRenderState DrawRenderState;
 	bool bUseTranslucentSelfShadowing;
-	float SeparateTranslucencyScreenTextureScaleFactor;
+	float DownsampleFactorFromSceneBufferSize;
 
 	/** Initialization constructor. */
 	FDrawTranslucentMeshAction(
@@ -380,7 +380,7 @@ public:
 		FHitProxyId InHitProxyId,
 		const FProjectedShadowInfo* InTranslucentSelfShadow,
 		bool bInUseTranslucentSelfShadowing,
-		float ScreenTextureUVScaleFactor
+		float InDownsampleFactorFromSceneBufferSize
 		) :
 		View(InView),
 		TranslucentSelfShadow(InTranslucentSelfShadow),
@@ -388,7 +388,7 @@ public:
 		bBackFace(bInBackFace),
 		DrawRenderState(InDrawRenderState),
 		bUseTranslucentSelfShadowing(bInUseTranslucentSelfShadowing),
-		SeparateTranslucencyScreenTextureScaleFactor(ScreenTextureUVScaleFactor)
+		DownsampleFactorFromSceneBufferSize(InDownsampleFactorFromSceneBufferSize)
 	{}
 
 	bool UseTranslucentSelfShadowing() const 
@@ -442,7 +442,7 @@ public:
 			false,
 			false);
 		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
-		DrawingPolicy.SetSharedState(RHICmdList, &View, typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType(), SeparateTranslucencyScreenTextureScaleFactor);
+		DrawingPolicy.SetSharedState(RHICmdList, &View, typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType(), DownsampleFactorFromSceneBufferSize);
 
 		int32 BatchElementIndex = 0;
 		uint64 BatchElementMask = Parameters.BatchElementMask;
@@ -613,7 +613,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 					HitProxyId,
 					DrawingContext.TranslucentSelfShadow,
 					PrimitiveSceneProxy && PrimitiveSceneProxy->CastsVolumetricTranslucentShadow(),
-					bCurrentlyRenderingSeparateTranslucency ? OutScale : 1.0f
+					bCurrentlyRenderingSeparateTranslucency ? 1.0f / OutScale : 1.0f
 				)
 			);
 
@@ -903,36 +903,14 @@ inline float CalculateTranslucentSortKey(FPrimitiveSceneInfo* PrimitiveSceneInfo
 	return SortKey;
 }
 
-void FTranslucentPrimSet::AddScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency, bool bUseMobileSeparateTranslucency)
-{
-	const float SortKey = CalculateTranslucentSortKey(PrimitiveSceneInfo, ViewInfo);
-
-	const auto FeatureLevel = ViewInfo.GetFeatureLevel();
-
-	const bool bIsSeparateTranslucency = (bUseSeparateTranslucency && FeatureLevel >= ERHIFeatureLevel::SM4) || (bUseMobileSeparateTranslucency && FeatureLevel < ERHIFeatureLevel::SM4);
-	// Force separate translucency to be rendered normally if the feature level does not support separate translucency
-	const bool bIsNormalTranslucency = bUseNormalTranslucency || (bUseSeparateTranslucency && !bUseMobileSeparateTranslucency && FeatureLevel < ERHIFeatureLevel::SM4);
-
-	// can be optimized
-	const bool bIsTranslucency = bIsSeparateTranslucency || bIsNormalTranslucency;
-
-	if (bIsTranslucency)
-	{
-		ETranslucencyPass::Type Pass = bIsSeparateTranslucency ? ETranslucencyPass::TPT_SeparateTransluceny : ETranslucencyPass::TPT_NonSeparateTransluceny;
-
-		// add to list of translucent prims that use scene color
-		new(SortedPrims) FSortedPrim(PrimitiveSceneInfo, Pass, PrimitiveSceneInfo->Proxy->GetTranslucencySortPriority(), SortKey);
-		SortedPrimsNum.Add(Pass);
-	}
-}
-
 void FTranslucentPrimSet::AppendScenePrimitives(FSortedPrim* Elements, int32 Num, const FTranslucenyPrimCount& TranslucentPrimitiveCountPerPass)
 {
 	SortedPrims.Append(Elements, Num);
 	SortedPrimsNum.Append(TranslucentPrimitiveCountPerPass);
 }
 
-void FTranslucentPrimSet::PlaceScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency, bool bUseMobileSeparateTranslucency, void *InPlace, int32& InOutNum, FTranslucenyPrimCount& OutCount)
+void FTranslucentPrimSet::PlaceScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency, bool bUseMobileSeparateTranslucency,
+	FTranslucentPrimSet::FSortedPrim *InArrayStart, int32& InOutArrayNum, FTranslucenyPrimCount& OutCount)
 {
 	const float SortKey = CalculateTranslucentSortKey(PrimitiveSceneInfo, ViewInfo);
 	const auto FeatureLevel = ViewInfo.GetFeatureLevel();
@@ -944,20 +922,21 @@ void FTranslucentPrimSet::PlaceScenePrimitive(FPrimitiveSceneInfo* PrimitiveScen
 		&& !ViewInfo.Family->EngineShowFlags.ShaderComplexity
 		&& ViewInfo.Family->EngineShowFlags.SeparateTranslucency;
 
-	bool bLocalSeparateTranslucency = bUseSeparateTranslucency && bCanBeSeparate;
-	bool bLocalNonSeparateTranslucency = bUseNormalTranslucency || !bCanBeSeparate;
+	bool bIsSeparateTranslucency = bUseSeparateTranslucency && bCanBeSeparate;
+	bool bIsNonSeparateTranslucency = bUseNormalTranslucency || !bCanBeSeparate;
 
-	// can be optimized
-	bool bLocalTranslucency = bLocalSeparateTranslucency || bLocalNonSeparateTranslucency;
-
-	// add to list of translucency prims, can be separate or non separate translucency
-	if (bLocalTranslucency)
+	if (bIsSeparateTranslucency)
 	{
-		ETranslucencyPass::Type TranslucencyPass = bLocalSeparateTranslucency ? ETranslucencyPass::TPT_SeparateTransluceny : ETranslucencyPass::TPT_NonSeparateTransluceny;
+		ETranslucencyPass::Type TranslucencyPass = ETranslucencyPass::TPT_SeparateTransluceny;
 
-		new (InPlace) FSortedPrim(PrimitiveSceneInfo, TranslucencyPass, PrimitiveSceneInfo->Proxy->GetTranslucencySortPriority(), SortKey);
-		InOutNum++;
+		new(&InArrayStart[InOutArrayNum++]) FSortedPrim(PrimitiveSceneInfo, TranslucencyPass, PrimitiveSceneInfo->Proxy->GetTranslucencySortPriority(), SortKey);
+		OutCount.Add(TranslucencyPass);
+	}
+	if (bIsNonSeparateTranslucency)
+	{
+		ETranslucencyPass::Type TranslucencyPass = ETranslucencyPass::TPT_NonSeparateTransluceny;
 
+		new(&InArrayStart[InOutArrayNum++]) FSortedPrim(PrimitiveSceneInfo, TranslucencyPass, PrimitiveSceneInfo->Proxy->GetTranslucencySortPriority(), SortKey);
 		OutCount.Add(TranslucencyPass);
 	}
 }

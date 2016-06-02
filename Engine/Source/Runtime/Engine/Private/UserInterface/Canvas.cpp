@@ -208,10 +208,11 @@ int32 FCanvasWordWrapper::FindEndOfLastWholeGraphemeCluster(const int32 InStartI
 	return BreakIndex;
 }
 
-FCanvas::FCanvas(FRenderTarget* InRenderTarget, FHitProxyConsumer* InHitProxyConsumer, UWorld* InWorld, ERHIFeatureLevel::Type InFeatureLevel)
+FCanvas::FCanvas(FRenderTarget* InRenderTarget, FHitProxyConsumer* InHitProxyConsumer, UWorld* InWorld, ERHIFeatureLevel::Type InFeatureLevel, ECanvasDrawMode InDrawMode)
 :	ViewRect(0,0,0,0)
 ,	RenderTarget(InRenderTarget)
 ,	HitProxyConsumer(InHitProxyConsumer)
+,	Scene(InWorld ? InWorld->Scene : NULL)
 ,	AllowedModes(0xFFFFFFFF)
 ,	bRenderTargetDirty(false)
 ,	CurrentRealTime(0)
@@ -219,7 +220,7 @@ FCanvas::FCanvas(FRenderTarget* InRenderTarget, FHitProxyConsumer* InHitProxyCon
 ,	CurrentDeltaWorldTime(0)
 ,	FeatureLevel(InFeatureLevel)
 ,	StereoDepth(150)
-,	DrawMode(CDM_DeferDrawing)
+,	DrawMode(InDrawMode)
 {
 	Construct();
 
@@ -231,10 +232,11 @@ FCanvas::FCanvas(FRenderTarget* InRenderTarget, FHitProxyConsumer* InHitProxyCon
 	}
 }
 
-FCanvas::FCanvas(FRenderTarget* InRenderTarget,FHitProxyConsumer* InHitProxyConsumer, float InRealTime, float InWorldTime, float InWorldDeltaTime, ERHIFeatureLevel::Type InFeatureLevel, ECanvasDrawMode InDrawMode)
+FCanvas::FCanvas(FRenderTarget* InRenderTarget,FHitProxyConsumer* InHitProxyConsumer, float InRealTime, float InWorldTime, float InWorldDeltaTime, ERHIFeatureLevel::Type InFeatureLevel)
 :	ViewRect(0,0,0,0)
 ,	RenderTarget(InRenderTarget)
 ,	HitProxyConsumer(InHitProxyConsumer)
+,	Scene(NULL)
 ,	AllowedModes(0xFFFFFFFF)
 ,	bRenderTargetDirty(false)
 ,	CurrentRealTime(InRealTime)
@@ -242,7 +244,7 @@ FCanvas::FCanvas(FRenderTarget* InRenderTarget,FHitProxyConsumer* InHitProxyCons
 ,	CurrentDeltaWorldTime(InWorldDeltaTime)
 ,	FeatureLevel(InFeatureLevel)
 ,	StereoDepth(150)
-,	DrawMode(InDrawMode)
+,	DrawMode(CDM_DeferDrawing)
 {
 	Construct();
 }

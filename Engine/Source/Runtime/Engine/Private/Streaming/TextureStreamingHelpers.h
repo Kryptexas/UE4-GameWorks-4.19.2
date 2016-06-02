@@ -156,104 +156,22 @@ struct FTextureSortElement
 	int32			NumRequiredResidentMips;
 };
 
-struct FTexturePriority
-{
-	FTexturePriority( bool InCanDropMips, float InRetentionPriority, float InLoadOrderPriority, int32 InTextureIndex, const UTexture2D* InTexture)
-	:	bCanDropMips( InCanDropMips )
-	,	RetentionPriority( InRetentionPriority )
-	,	LoadOrderPriority( InLoadOrderPriority )
-	,	TextureIndex( InTextureIndex )
-	,	Texture( InTexture )
-	{
-	}
-	/** True if we allows this texture to drop mips to fit in budget. */
-	bool bCanDropMips;
-	/** Texture retention priority, higher value means it should be kept in memory. */
-	float RetentionPriority;
-	/** Texture load order priority, higher value means it should load first. */
-	float LoadOrderPriority;
-	/** Index into the FStreamingManagerTexture::StreamingTextures array. */
-	int32 TextureIndex;
-	/** The texture to stream. Only used for validation. */
-	const UTexture2D* Texture;
-};
-
-
-
-#if STATS
-struct FTextureStreamingStats
-{
-	FTextureStreamingStats( UTexture2D* InTexture2D, int32 InResidentMips, int32 InWantedMips, int32 InMostResidentMips, int32 InResidentSize, int32 InWantedSize, int32 InMaxSize, int32 InMostResidentSize, float InBoostFactor, float InPriority, int32 InTextureIndex )
-	:	TextureName( InTexture2D->GetFullName() )
-	,	SizeX( InTexture2D->GetSizeX() )
-	,	SizeY( InTexture2D->GetSizeY() )
-	,	NumMips( InTexture2D->GetNumMips() )
-	,	LODBias( InTexture2D->GetCachedLODBias() )
-	,	LastRenderTime( FMath::Clamp( InTexture2D->Resource ? (FApp::GetCurrentTime() - InTexture2D->Resource->LastRenderTime) : 1000000.0, 0.0, 1000000.0) )
-	,	ResidentMips( InResidentMips )
-	,	WantedMips( InWantedMips )
-	,	MostResidentMips( InMostResidentMips )
-	,	ResidentSize( InResidentSize )
-	,	WantedSize( InWantedSize )
-	,	MaxSize( InMaxSize )
-	,	MostResidentSize( InMostResidentSize )
-	,	BoostFactor( InBoostFactor )
-	,	Priority( InPriority )
-	,	TextureIndex( InTextureIndex )
-	{
-	}
-	/** Mirror of UTexture2D::GetName() */
-	FString		TextureName;
-	/** Mirror of UTexture2D::SizeX */
-	int32		SizeX;
-	/** Mirror of UTexture2D::SizeY */
-	int32		SizeY;
-	/** Mirror of UTexture2D::Mips.Num() */
-	int32		NumMips;
-	/** Mirror of UTexture2D::GetCachedLODBias() */
-	int32		LODBias;
-	/** How many seconds since it was last rendered: FApp::GetCurrentTime() - UTexture2D::Resource->LastRenderTime */
-	float		LastRenderTime;
-	/** Number of resident mip levels. */
-	int32		ResidentMips;
-	/** Number of wanted mip levels. */
-	int32		WantedMips;
-	/** Most number of mip-levels this texture has ever had resident in memory. */
-	int32		MostResidentMips;
-	/** Number of bytes currently in memory. */
-	int32		ResidentSize;
-	/** Number of bytes we want in memory. */
-	int32		WantedSize;
-	/** Number of bytes we could potentially stream in. */
-	int32		MaxSize;
-	/** Most number of bytes this texture has ever had resident in memory. */
-	int32		MostResidentSize;
-	/** Temporary boost of the streaming distance factor. */
-	float		BoostFactor;
-	/** Texture priority */
-	float		Priority;
-	/** Index into the FStreamingManagerTexture::StreamingTextures array. */
-	int32		TextureIndex;
-};
-#endif
-
 /**
  * Helper struct for temporary information for one frame of processing texture streaming.
  */
 struct FStreamingContext
 {
-	FStreamingContext( bool bProcessEverything, UTexture2D* IndividualStreamingTexture, bool bInCollectTextureStats )
+	FStreamingContext( bool bProcessEverything, UTexture2D* IndividualStreamingTexture )
 	{
-		Reset( bProcessEverything, IndividualStreamingTexture, bInCollectTextureStats );
+		Reset( bProcessEverything, IndividualStreamingTexture );
 	}
 
 	/**
 	 * Initializes all variables for the one frame.
 	 * @param bProcessEverything			If true, process all resources with no throttling limits
 	 * @param IndividualStreamingTexture	A specific texture to be fully processed this frame, or NULL
-	 * @param bInCollectTextureStats		Whether to fill in the TextureStats array this frame
 	 */
-	void Reset( bool bProcessEverything, UTexture2D* IndividualStreamingTexture, bool bInCollectTextureStats );
+	void Reset( bool bProcessEverything, UTexture2D* IndividualStreamingTexture );
 
 	/**
 	 * Adds in the stats from another context.
@@ -268,12 +186,6 @@ struct FStreamingContext
 	int64 AllocatedMemorySize;
 	/** Pending Adjustments to allocated texture memory, due to async reallocations, etc. */
 	int64 PendingMemoryAdjustment;
-	/** Whether to fill in TextureStats this frame. */
-	bool bCollectTextureStats;
-#if STATS
-	/** Stats for all textures. */
-	TArray<FTextureStreamingStats>	TextureStats;
-#endif
 
 	// Stats for this frame.
 	uint64 ThisFrameTotalRequestSize;

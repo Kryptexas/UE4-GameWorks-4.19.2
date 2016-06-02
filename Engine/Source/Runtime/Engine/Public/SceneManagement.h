@@ -951,6 +951,7 @@ public:
 	inline float GetIndirectLightingScale() const { return IndirectLightingScale; }
 	inline FGuid GetLightGuid() const { return LightGuid; }
 	inline float GetShadowSharpen() const { return ShadowSharpen; }
+	inline float GetContactShadowLength() const { return ContactShadowLength; }
 	inline FVector GetLightFunctionScale() const { return LightFunctionScale; }
 	inline float GetLightFunctionFadeDistance() const { return LightFunctionFadeDistance; }
 	inline float GetLightFunctionDisabledBrightness() const { return LightFunctionDisabledBrightness; }
@@ -1022,6 +1023,9 @@ protected:
 
 	/** Sharpen shadow filtering */
 	float ShadowSharpen;
+
+	/** Length of screen space ray trace for sharp contact shadows. */
+	float ContactShadowLength;
 
 	/** Min roughness */
 	float MinRoughness;

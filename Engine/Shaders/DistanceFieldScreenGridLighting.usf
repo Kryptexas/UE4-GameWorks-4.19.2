@@ -232,7 +232,6 @@ void ConeTraceObjectOcclusionCS(
 	float3 TangentY;
 	FindBestAxisVectors2(WorldNormal, TangentX, TangentY);
 
-	if (all(DispatchThreadId < ScreenGridConeVisibilitySize))
 	{
 		float2 ScreenUV = GetScreenUVFromScreenGrid(OutputCoordinate);
 		float2 ScreenPosition = (ScreenUV.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy;

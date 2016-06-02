@@ -1284,28 +1284,31 @@ static int32 OcclusionCull(FRHICommandListImmediate& RHICmdList, const FScene* S
 	return NumOccludedPrimitives;
 }
 
-template<class T>
+template<class T, int TAmplifyFactor = 1>
 struct FRelevancePrimSet
 {
 	enum
 	{
-		MaxPrims = 127 //like 128, but we leave space for NumPrims
+		MaxInputPrims = 127, //like 128, but we leave space for NumPrims
+		MaxOutputPrims = MaxInputPrims * TAmplifyFactor
 	};
 	int32 NumPrims;
-	T Prims[MaxPrims];
+
+	T Prims[MaxOutputPrims];
+
 	FORCEINLINE FRelevancePrimSet()
 		: NumPrims(0)
 	{
-		//FMemory::Memzero(Prims, sizeof(T) * MaxPrims);
+		//FMemory::Memzero(Prims, sizeof(T) * GetMaxOutputPrim());
 	}
 	FORCEINLINE void AddPrim(T Prim)
 	{
-		checkSlow(NumPrims < MaxPrims);
+		checkSlow(NumPrims < MaxOutputPrims);
 		Prims[NumPrims++] = Prim;
 	}
 	FORCEINLINE bool IsFull() const
 	{
-		return NumPrims >= MaxPrims;
+		return NumPrims >= MaxOutputPrims;
 	}
 	template<class TARRAY>
 	FORCEINLINE void AppendTo(TARRAY& DestArray)
@@ -1376,7 +1379,7 @@ struct FRelevancePacket
 	FRelevancePrimSet<int32> RelevantStaticPrimitives;
 	FRelevancePrimSet<int32> NotDrawRelevant;
 	FRelevancePrimSet<FPrimitiveSceneInfo*> VisibleDynamicPrimitives;
-	FRelevancePrimSet<FTranslucentPrimSet::FSortedPrim> TranslucencyPrims;
+	FRelevancePrimSet<FTranslucentPrimSet::FSortedPrim, ETranslucencyPass::TPT_MAX> TranslucencyPrims;
 	// belongs to TranslucencyPrims
 	FTranslucenyPrimCount TranslucencyPrimCount;
 	FRelevancePrimSet<FPrimitiveSceneProxy*> DistortionPrimSet;
@@ -1475,7 +1478,7 @@ struct FRelevancePacket
 				// Add to set of dynamic translucent primitives
 				FTranslucentPrimSet::PlaceScenePrimitive(PrimitiveSceneInfo, View, 
 					ViewRelevance.bNormalTranslucencyRelevance, ViewRelevance.bSeparateTranslucencyRelevance, ViewRelevance.bMobileSeparateTranslucencyRelevance, 
-					&TranslucencyPrims.Prims[TranslucencyPrims.NumPrims], TranslucencyPrims.NumPrims, TranslucencyPrimCount);
+					&TranslucencyPrims.Prims[0], TranslucencyPrims.NumPrims, TranslucencyPrimCount);
 
 				if (ViewRelevance.bDistortionRelevance)
 				{
@@ -1527,6 +1530,7 @@ struct FRelevancePacket
 			{
 				// Update the PrimitiveComponent's LastRenderTime.
 				*(PrimitiveSceneInfo->ComponentLastRenderTime) = CurrentWorldTime;
+				*(PrimitiveSceneInfo->ComponentLastRenderTimeOnScreen) = CurrentWorldTime;
 			}
 
 			uint32 bHasClearCoat = ViewRelevance.ShadingModelMaskRelevance & (1 << MSM_ClearCoat);
@@ -1733,7 +1737,7 @@ static void ComputeAndMarkRelevanceForViewParallel(
 	uint8* RESTRICT MarkMasks = (uint8*)FMemStack::Get().Alloc(NumMesh + 31 , 8); // some padding to simplify the high speed transpose
 	FMemory::Memzero(MarkMasks, NumMesh + 31);
 
-	int32 EstimateOfNumPackets = NumMesh / (FRelevancePrimSet<int32>::MaxPrims * 4);
+	int32 EstimateOfNumPackets = NumMesh / (FRelevancePrimSet<int32>::MaxInputPrims * 4);
 
 	TArray<FRelevancePacket*,SceneRenderingAllocator> Packets;
 
@@ -2144,21 +2148,23 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 					SampleX = SamplesX[ Index ];
 					SampleY = SamplesY[ Index ];
 				}
-				else if( TemporalAASamples == 8 )
-				{
-					// This works better than various orderings of 8xMSAA.
-					ViewState->SetupTemporalAA(8, ViewFamily);
-					uint32 Index = ViewState->GetCurrentTemporalAASampleIndex();
-					SampleX = Halton( Index, 2 ) - 0.5f;
-					SampleY = Halton( Index, 3 ) - 0.5f;
-				}
 				else
 				{
+					static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.TemporalAASharpness"));
+					float Scale = ( 2.0f - CVar->GetFloat() ) * 0.3f;
+
 					// More than 8 samples can improve quality.
 					ViewState->SetupTemporalAA(TemporalAASamples, ViewFamily);
 					uint32 Index = ViewState->GetCurrentTemporalAASampleIndex();
-					SampleX = Halton( Index, 2 ) - 0.5f;
-					SampleY = Halton( Index, 3 ) - 0.5f;
+
+					float u1 = Halton( Index + 1, 2 );
+					float u2 = Halton( Index + 1, 3 );
+
+					// Gaussian sample
+					float phi = 2.0f * PI * u2;
+					float r = Scale * FMath::Sqrt( -2.0f * FMath::Loge( FMath::Max( u1, 1e-6f ) ) );
+					SampleX = r * FMath::Cos( phi );
+					SampleY = r * FMath::Sin( phi );
 				}
 
 				View.TemporalJitterPixelsX = SampleX;
@@ -2191,6 +2197,9 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 		{
 			// no TemporalAA
 			ViewState->SetupTemporalAA(1, ViewFamily);
+
+			ViewState->TemporalAAHistoryRT.SafeRelease();
+			ViewState->PendingTemporalAAHistoryRT.SafeRelease();
 		}
 
 		if ( ViewState )
@@ -2851,9 +2860,7 @@ void FDeferredShadingSceneRenderer::InitViewsPossiblyAfterPrepass(FRHICommandLis
 		FTaskGraphInterface::Get().WaitUntilTasksComplete(SortEvents, ENamedThreads::RenderThread);
 	}
 
-	bool bDynamicShadows = ViewFamily.EngineShowFlags.DynamicShadows && GetShadowQuality() > 0;
-
-	if (bDynamicShadows && !IsSimpleForwardShadingEnabled(GetFeatureLevelShaderPlatform(FeatureLevel)))
+	if (ViewFamily.EngineShowFlags.DynamicShadows && !IsSimpleForwardShadingEnabled(GetFeatureLevelShaderPlatform(FeatureLevel)))
 	{
 		// Setup dynamic shadows.
 		InitDynamicShadows(RHICmdList);

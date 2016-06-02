@@ -145,6 +145,8 @@ void PrefilterPlanarReflection(FRHICommandListImmediate& RHICmdList, FViewInfo& 
 	}
 }
 
+extern float GetSceneColorClearAlpha();
+
 static void UpdatePlanarReflectionContents_RenderThread(
 	FRHICommandListImmediate& RHICmdList, 
 	FSceneRenderer* MainSceneRenderer, 
@@ -210,6 +212,7 @@ static void UpdatePlanarReflectionContents_RenderThread(
 				SetRenderTarget(RHICmdList, Target->GetRenderTargetTexture(), NULL, true);
 
 				// Note: relying on GBuffer SceneColor alpha being cleared to 1 in the main scene rendering
+				check(GetSceneColorClearAlpha() == 1.0f);
 				RHICmdList.Clear(true, FLinearColor(0, 0, 0, 1), false, (float)ERHIZBuffer::FarPlane, false, 0, FIntRect());
 
 				// Render the scene normally
@@ -233,7 +236,7 @@ static void UpdatePlanarReflectionContents_RenderThread(
 	}
 }
 
-extern void BuildProjectionMatrix(FIntPoint RenderTargetSize, float FOV, FMatrix& ProjectionMatrix);
+extern void BuildProjectionMatrix(FIntPoint RenderTargetSize, ECameraProjectionMode::Type ProjectionType, float FOV, float OrthoWidth, FMatrix& ProjectionMatrix);
 
 extern FSceneRenderer* CreateSceneRendererForSceneCapture(
 	FScene* Scene,
@@ -309,7 +312,7 @@ void FScene::UpdatePlanarReflectionContents(UPlanarReflectionComponent* CaptureC
 		float FOV = FMath::Atan(1.0f / ParentView.ViewMatrices.ProjMatrix.M[0][0]);
 
 		FMatrix ProjectionMatrix;
-		BuildProjectionMatrix(DesiredPlanarReflectionTextureSize, FOV + CaptureComponent->ExtraFOV * (float)PI / 180.0f, ProjectionMatrix);
+		BuildProjectionMatrix(DesiredPlanarReflectionTextureSize, ECameraProjectionMode::Perspective, FOV + CaptureComponent->ExtraFOV * (float)PI / 180.0f, 1.0f, ProjectionMatrix);
 
 		FSceneRenderer* SceneRenderer = CreateSceneRendererForSceneCapture(this, CaptureComponent, CaptureComponent->RenderTarget, DesiredPlanarReflectionTextureSize, ViewRotationMatrix, ViewLocation, ProjectionMatrix, CaptureComponent->MaxViewDistanceOverride, true, true, &PostProcessSettings, 1.0f);
 

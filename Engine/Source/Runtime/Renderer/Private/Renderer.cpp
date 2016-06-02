@@ -55,8 +55,8 @@ void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, const F
 	{
 		GSystemTextures.InitializeTextures(RHICmdList, FeatureLevel);
 
-		// handle translucent material blend modes
-		if (IsTranslucentBlendMode(MaterialBlendMode))
+		// handle translucent material blend modes, not relevant in MaterialTexCoordScalesAnalysis since it outputs the scales.é
+		if (IsTranslucentBlendMode(MaterialBlendMode) && View.Family->GetDebugViewShaderMode() != DVSM_MaterialTexCoordScalesAnalysis)
 		{
 			if (FeatureLevel >= ERHIFeatureLevel::SM4)
 			{

@@ -359,7 +359,7 @@ void MainTemporalAAPS(
 		OutColor = float4(MinimalReprojectionForDebugging(UV, SvPosition), 0);
 	#else
 		float InExposureScale = InExposureScaleVignette.x;
-		#define AA_FILTERED 1
+		#define AA_FILTERED 0
 		#define AA_BORDER 1
 		#define AA_ALPHA 0
 		#define AA_CROSS 2
@@ -395,7 +395,7 @@ void MainFastTemporalAAPS(
 {
 #if ENABLE_TEMPORAL_AA
 	float InExposureScale = InExposureScaleVignette.x;
-	#define AA_FILTERED 1
+	#define AA_FILTERED 0
 	#define AA_BORDER 1
 	#define AA_ALPHA 0
 	#define AA_CROSS 2
