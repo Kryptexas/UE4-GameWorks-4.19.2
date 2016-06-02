@@ -3193,8 +3193,11 @@ void UAnimSequence::RemoveNaNTracks()
 		}
 	}
 
-	MarkRawDataAsModified();
-	OnRawDataChanged();
+	if(bRecompress)
+	{
+		MarkRawDataAsModified();
+		OnRawDataChanged();
+	}
 }
 
 
