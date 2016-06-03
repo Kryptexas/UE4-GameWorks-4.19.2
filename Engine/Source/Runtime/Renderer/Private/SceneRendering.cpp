@@ -1053,7 +1053,7 @@ void FViewInfo::CreateUniformBuffer(
 		FrameUniformShaderParameters.HMDEyePaddingOffset = 1.0f;
 	}
 
-	FrameUniformShaderParameters.ReflectionCubemapMaxMip = FMath::FloorLog2(CVarReflectionCaptureSize.GetValueOnRenderThread()) - 1;
+	FrameUniformShaderParameters.ReflectionCubemapMaxMip = FMath::FloorLog2(CVarReflectionCaptureSize.GetValueOnRenderThread());
 
 	OutViewUniformBuffer = TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(ViewUniformShaderParameters, UniformBuffer_SingleFrame);
 	OutFrameUniformBuffer = TUniformBufferRef<FFrameUniformShaderParameters>::CreateUniformBufferImmediate(FrameUniformShaderParameters, UniformBuffer_SingleFrame);
