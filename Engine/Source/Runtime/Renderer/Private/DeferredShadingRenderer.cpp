@@ -1464,13 +1464,16 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		SCOPE_CYCLE_COUNTER(STAT_FinishRenderViewTargetTime);
 
 		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_PostProcessing));
-		for(int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 		{
 			SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
 
 			GPostProcessing.Process(RHICmdList, Views[ ViewIndex ], VelocityRT);
-
 		}
+
+		// End of frame, we don't need it anymore
+		FSceneRenderTargets::Get(RHICmdList).FreeSeparateTranslucencyDepth();
+
 		// we rendered to it during the frame, seems we haven't made use of it, because it should be released
 		check(!FSceneRenderTargets::Get(RHICmdList).SeparateTranslucencyRT);
 	}
