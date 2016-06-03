@@ -1603,8 +1603,9 @@ public:
 	* @param ReferencingProperty Referencing property (if available).
 	*/
 	template<class UObjectType>
-	void AddReferencedObjects(TArray<UObjectType>& ObjectArray, const UObject* ReferencingObject = NULL, const UProperty* ReferencingProperty = NULL)
+	void AddReferencedObjects(TArray<UObjectType*>& ObjectArray, const UObject* ReferencingObject = NULL, const UProperty* ReferencingProperty = NULL)
 	{
+		static_assert(TPointerIsConvertibleFromTo<UObjectType, const UObject>::Value, "'UObjectType' template parameter to AddReferencedObjects must be derived from UObject");
 		HandleObjectReferences(reinterpret_cast<UObject**>(ObjectArray.GetData()), ObjectArray.Num(), ReferencingObject, ReferencingProperty);
 	}
 

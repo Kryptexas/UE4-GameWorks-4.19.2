@@ -293,7 +293,7 @@ void UBlueprintGeneratedClass::PostLoadDefaultObject(UObject* Object)
 	}
 }
 
-void UBlueprintGeneratedClass::BuildCustomPropertyListForPostConstruction(FCustomPropertyListNode*& InPropertyList, UStruct* InStruct, const uint8* DataPtr, const uint8* DefaultDataPtr)
+bool UBlueprintGeneratedClass::BuildCustomPropertyListForPostConstruction(FCustomPropertyListNode*& InPropertyList, UStruct* InStruct, const uint8* DataPtr, const uint8* DefaultDataPtr)
 {
 	const UClass* OwnerClass = Cast<UClass>(InStruct);
 	FCustomPropertyListNode** CurrentNodePtr = &InPropertyList;
@@ -318,10 +318,7 @@ void UBlueprintGeneratedClass::BuildCustomPropertyListForPostConstruction(FCusto
 					*CurrentNodePtr = new(CustomPropertyListForPostConstruction) FCustomPropertyListNode(Property, Idx);
 
 					// Recursively gather up all struct fields that differ and assign to the current node's sub property list.
-					BuildCustomPropertyListForPostConstruction((*CurrentNodePtr)->SubPropertyList, StructProperty->Struct, PropertyValue, DefaultPropertyValue);
-
-					// This will be non-NULL if the above found at least one struct field that differs from the native CDO.
-					if ((*CurrentNodePtr)->SubPropertyList)
+					if (BuildCustomPropertyListForPostConstruction((*CurrentNodePtr)->SubPropertyList, StructProperty->Struct, PropertyValue, DefaultPropertyValue))
 					{
 						// Advance to the next node in the list.
 						CurrentNodePtr = &(*CurrentNodePtr)->PropertyListNext;
@@ -341,10 +338,7 @@ void UBlueprintGeneratedClass::BuildCustomPropertyListForPostConstruction(FCusto
 					*CurrentNodePtr = new(CustomPropertyListForPostConstruction) FCustomPropertyListNode(Property, Idx);
 
 					// Recursively gather up all array item indices that differ and assign to the current node's sub property list.
-					BuildCustomArrayPropertyListForPostConstruction(ArrayProperty, (*CurrentNodePtr)->SubPropertyList, PropertyValue, DefaultPropertyValue);
-
-					// This will be non-NULL if the above found at least one array item index that differs from the native CDO.
-					if ((*CurrentNodePtr)->SubPropertyList)
+					if (BuildCustomArrayPropertyListForPostConstruction(ArrayProperty, (*CurrentNodePtr)->SubPropertyList, PropertyValue, DefaultPropertyValue))
 					{
 						// Advance to the next node in the list.
 						CurrentNodePtr = &(*CurrentNodePtr)->PropertyListNext;
@@ -369,9 +363,12 @@ void UBlueprintGeneratedClass::BuildCustomPropertyListForPostConstruction(FCusto
 			}
 		}
 	}
+
+	// This will be non-NULL if the above found at least one property value that differs from the native CDO.
+	return (InPropertyList != nullptr);
 }
 
-void UBlueprintGeneratedClass::BuildCustomArrayPropertyListForPostConstruction(UArrayProperty* ArrayProperty, FCustomPropertyListNode*& InPropertyList, const uint8* DataPtr, const uint8* DefaultDataPtr, int32 StartIndex)
+bool UBlueprintGeneratedClass::BuildCustomArrayPropertyListForPostConstruction(UArrayProperty* ArrayProperty, FCustomPropertyListNode*& InPropertyList, const uint8* DataPtr, const uint8* DefaultDataPtr, int32 StartIndex)
 {
 	FCustomPropertyListNode** CurrentArrayNodePtr = &InPropertyList;
 
@@ -392,10 +389,7 @@ void UBlueprintGeneratedClass::BuildCustomArrayPropertyListForPostConstruction(U
 				*CurrentArrayNodePtr = new(CustomPropertyListForPostConstruction) FCustomPropertyListNode(ArrayProperty, ArrayValueIndex);
 
 				// Recursively gather up all struct fields that differ and assign to the array item value node's sub property list.
-				BuildCustomPropertyListForPostConstruction((*CurrentArrayNodePtr)->SubPropertyList, InnerStructProperty->Struct, ArrayPropertyValue, DefaultArrayPropertyValue);
-
-				// This will be non-NULL if the above found at least one struct field that differs from the native CDO.
-				if ((*CurrentArrayNodePtr)->SubPropertyList)
+				if (BuildCustomPropertyListForPostConstruction((*CurrentArrayNodePtr)->SubPropertyList, InnerStructProperty->Struct, ArrayPropertyValue, DefaultArrayPropertyValue))
 				{
 					// Advance to the next node in the list.
 					CurrentArrayNodePtr = &(*CurrentArrayNodePtr)->PropertyListNext;
@@ -415,10 +409,7 @@ void UBlueprintGeneratedClass::BuildCustomArrayPropertyListForPostConstruction(U
 				*CurrentArrayNodePtr = new(CustomPropertyListForPostConstruction) FCustomPropertyListNode(ArrayProperty, ArrayValueIndex);
 
 				// Recursively gather up all array item indices that differ and assign to the array item value node's sub property list.
-				BuildCustomArrayPropertyListForPostConstruction(InnerArrayProperty, (*CurrentArrayNodePtr)->SubPropertyList, ArrayPropertyValue, DefaultArrayPropertyValue);
-
-				// This will be non-NULL if the above found at least one array item index that differs from the native CDO.
-				if ((*CurrentArrayNodePtr)->SubPropertyList)
+				if (BuildCustomArrayPropertyListForPostConstruction(InnerArrayProperty, (*CurrentArrayNodePtr)->SubPropertyList, ArrayPropertyValue, DefaultArrayPropertyValue))
 				{
 					// Advance to the next node in the list.
 					CurrentArrayNodePtr = &(*CurrentArrayNodePtr)->PropertyListNext;
@@ -467,6 +458,9 @@ void UBlueprintGeneratedClass::BuildCustomArrayPropertyListForPostConstruction(U
 			break;
 		}
 	}
+
+	// Return true if the above found at least one array element that differs from the native CDO, or otherwise if the array sizes are different.
+	return (InPropertyList != nullptr || ArrayValueHelper.Num() != DefaultArrayValueHelper.Num());
 }
 
 void UBlueprintGeneratedClass::UpdateCustomPropertyListForPostConstruction()

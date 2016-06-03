@@ -1727,9 +1727,9 @@ void UK2Node_CallFunction::PostDuplicate(bool bDuplicateForPIE)
 	}
 }
 
-void UK2Node_CallFunction::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const
+void UK2Node_CallFunction::ValidateNodeAfterPrune(class FCompilerResultsLog& MessageLog) const
 {
-	Super::ValidateNodeDuringCompilation(MessageLog);
+	Super::ValidateNodeAfterPrune(MessageLog);
 
 	const UBlueprint* Blueprint = GetBlueprint();
 	UFunction *Function = GetTargetFunction();

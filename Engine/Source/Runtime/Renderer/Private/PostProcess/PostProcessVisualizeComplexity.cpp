@@ -208,4 +208,3 @@ FPooledRenderTargetDesc FRCPassPostProcessVisualizeComplexity::ComputeOutputDesc
 
 	return Ret;
 }
-

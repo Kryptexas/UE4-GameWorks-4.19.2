@@ -174,6 +174,19 @@ void UMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 }
 
 
+void UMovementComponent::Serialize(FArchive& Ar)
+{
+	USceneComponent* CurrentUpdatedComponent = UpdatedComponent;
+	Super::Serialize(Ar);
+
+	if (Ar.IsLoading())
+	{
+		// This was marked Transient so it won't be saved out, but we need still to reject old saved values.
+		UpdatedComponent = CurrentUpdatedComponent;
+		UpdatedPrimitive = Cast<UPrimitiveComponent>(UpdatedComponent);
+	}
+}
+
 void UMovementComponent::PostLoad()
 {
 	Super::PostLoad();

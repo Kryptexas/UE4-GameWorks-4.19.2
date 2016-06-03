@@ -1800,6 +1800,35 @@ FName MakeObjectNameFromDisplayLabel(const FString& DisplayLabel, const FName Cu
    Duplicating Objects.
 -----------------------------------------------------------------------------*/
 
+struct FObjectDuplicationHelperMethods
+{
+	// Helper method intended to gather up all default subobjects that have already been created and prepare them for duplication.
+	static void GatherDefaultSubobjectsForDuplication(UObject* SrcObject, UObject* DstObject, FUObjectAnnotationSparse<FDuplicatedObject, false>& DuplicatedObjectAnnotation, FDuplicateDataWriter& Writer)
+	{
+		TArray<UObject*> SrcDefaultSubobjects;
+		SrcObject->GetDefaultSubobjects(SrcDefaultSubobjects);
+		
+		// Iterate over all default subobjects within the source object.
+		for (UObject* SrcDefaultSubobject : SrcDefaultSubobjects)
+		{
+			if (SrcDefaultSubobject)
+			{
+				// Attempt to find a default subobject with the same name within the destination object.
+				UObject* DupDefaultSubobject = DstObject->GetDefaultSubobjectByName(SrcDefaultSubobject->GetFName());
+				if (DupDefaultSubobject)
+				{
+					// Map the duplicated default subobject to the source and register it for serialization.
+					DuplicatedObjectAnnotation.AddAnnotation(SrcDefaultSubobject, FDuplicatedObject(DupDefaultSubobject));
+					Writer.UnserializedObjects.Add(SrcDefaultSubobject);
+
+					// Recursively gather any nested default subobjects that have already been constructed through CreateDefaultSubobject().
+					GatherDefaultSubobjectsForDuplication(SrcDefaultSubobject, DupDefaultSubobject, DuplicatedObjectAnnotation, Writer);
+				}
+			}
+		}
+	}
+};
+
 /**
  * Constructor - zero initializes all members
  */
@@ -1946,6 +1975,9 @@ UObject* StaticDuplicateObjectEx( FObjectDuplicationParameters& Parameters )
 	{
 		FBlueprintSupport::DuplicateAllFields(dynamic_cast<UStruct*>(Parameters.SourceObject), Writer);
 	}
+
+	// Add default subobjects to the DuplicatedObjects map so they don't get recreated during serialization.
+	FObjectDuplicationHelperMethods::GatherDefaultSubobjectsForDuplication(Parameters.SourceObject, DupRootObject, DuplicatedObjectAnnotation, Writer);
 
 	InstanceGraph.SetDestinationRoot( DupRootObject );
 	while(Writer.UnserializedObjects.Num())
@@ -2861,12 +2893,6 @@ void FObjectInitializer::InitProperties(UObject* Obj, UClass* DefaultsClass, UOb
 	}
 	else
 	{
-		// @TODO: temporarily disabling the PostConstructLink optimization here
-		//        since it is unknowingly causing issues in gameplay (see 
-		//        UE-30745) - we're still unclear on what specifically this is
-		//        doing wrong, but will investigate (UE-30852)
-		bCanUsePostConstructLink = false;
-
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_InitProperties_Blueprint);
 
 		UObject* ClassDefaults = bCopyTransientsFromClassDefaults ? DefaultsClass->GetDefaultObject() : NULL;		
@@ -2922,11 +2948,8 @@ void FObjectInitializer::InitPropertiesFromCustomList(const FCustomPropertyListN
 		}
 		else if (const UArrayProperty* ArrayProperty = Cast<UArrayProperty>(CustomPropertyListNode->Property))
 		{
-			// This should never be NULL; we should not be recording the ArrayProperty without at least one sub property, but we'll verify just to be sure.
-			if (ensure(CustomPropertyListNode->SubPropertyList != nullptr))
-			{
-				InitArrayPropertyFromCustomList(ArrayProperty, CustomPropertyListNode->SubPropertyList, PropertyValue, DefaultPropertyValue);
-			}
+			// Note: The sub-property list can be NULL here; in that case only the array size will differ from the default value, but the elements themselves will simply be initialized to defaults.
+			InitArrayPropertyFromCustomList(ArrayProperty, CustomPropertyListNode->SubPropertyList, PropertyValue, DefaultPropertyValue);
 		}
 		else
 		{
@@ -3041,7 +3064,7 @@ UObject* StaticConstructObject_Internal
 		(*InClass->ClassConstructor)( FObjectInitializer(Result, InTemplate, bCopyTransientsFromClassDefaults, true, InInstanceGraph) );
 	}
 	
-	if( GIsEditor && GUndo && (InFlags & RF_Transactional) && !(InFlags & RF_NeedLoad) && !InClass->IsChildOf(UField::StaticClass()) && !Result->HasAllFlags(RF_ArchetypeObject) )
+	if( GIsEditor && GUndo && (InFlags & RF_Transactional) && !(InFlags & RF_NeedLoad) && !InClass->IsChildOf(UField::StaticClass()) )
 	{
 		// Set RF_PendingKill and update the undo buffer so an undo operation will set RF_PendingKill on the newly constructed object.
 		Result->MarkPendingKill();

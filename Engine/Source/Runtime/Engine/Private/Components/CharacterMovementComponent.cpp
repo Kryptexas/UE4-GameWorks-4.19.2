@@ -401,6 +401,8 @@ void UCharacterMovementComponent::PostLoad()
 		MaxWalkSpeedCrouched = MaxWalkSpeed * CrouchedSpeedMultiplier_DEPRECATED;
 		MaxCustomMovementSpeed = MaxWalkSpeed;
 	}
+
+	CharacterOwner = Cast<ACharacter>(PawnOwner);
 }
 
 

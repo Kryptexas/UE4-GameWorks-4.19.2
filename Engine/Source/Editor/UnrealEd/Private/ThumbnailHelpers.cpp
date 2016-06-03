@@ -984,11 +984,14 @@ void FClassActorThumbnailScene::SpawnPreviewActor(UClass* InClass)
 		SpawnInfo.ObjectFlags = RF_Transient;
 		PreviewActor = GetWorld()->SpawnActor<AActor>(InClass, SpawnInfo);
 
-		const FBoxSphereBounds Bounds = GetPreviewActorBounds();
-		const float BoundsZOffset = GetBoundsZOffset(Bounds);
-		const FTransform Transform(-Bounds.Origin + FVector(0, 0, BoundsZOffset));
+		if (PreviewActor)
+		{
+			const FBoxSphereBounds Bounds = GetPreviewActorBounds();
+			const float BoundsZOffset = GetBoundsZOffset(Bounds);
+			const FTransform Transform(-Bounds.Origin + FVector(0, 0, BoundsZOffset));
 
-		PreviewActor->SetActorTransform(Transform);
+			PreviewActor->SetActorTransform(Transform);
+		}
 	}
 }
 

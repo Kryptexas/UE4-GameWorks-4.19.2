@@ -788,6 +788,27 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 	extern char ** environ;	// provided by libc
 	pid_t ChildPid = -1;
 
+	posix_spawnattr_t SpawnAttr;
+	posix_spawnattr_init(&SpawnAttr);
+	short int SpawnFlags = 0;
+
+	// unmask all signals and set realtime signals to default for children
+	// the latter is particularly important for mono, which otherwise will crash attempting to find usable signals
+	// (NOTE: setting all signals to default fails)
+	sigset_t EmptySignalSet;
+	sigemptyset(&EmptySignalSet);
+	posix_spawnattr_setsigmask(&SpawnAttr, &EmptySignalSet);
+	SpawnFlags |= POSIX_SPAWN_SETSIGMASK;
+
+	sigset_t SetToDefaultSignalSet;
+	sigemptyset(&SetToDefaultSignalSet);
+	for (int SigNum = SIGRTMIN; SigNum <= SIGRTMAX; ++SigNum)
+	{
+		sigaddset(&SetToDefaultSignalSet, SigNum);
+	}
+	posix_spawnattr_setsigdefault(&SpawnAttr, &SetToDefaultSignalSet);
+	SpawnFlags |= POSIX_SPAWN_SETSIGDEF;
+
 	int PosixSpawnErrNo = -1;
 	if (PipeWriteChild || PipeReadChild)
 	{
@@ -806,7 +827,8 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 			posix_spawn_file_actions_adddup2(&FileActions, PipeReadHandle->GetHandle(), STDIN_FILENO);
 		}
 
-		PosixSpawnErrNo = posix_spawn(&ChildPid, TCHAR_TO_UTF8(*ProcessPath), &FileActions, nullptr, Argv, environ);
+		posix_spawnattr_setflags(&SpawnAttr, SpawnFlags);
+		PosixSpawnErrNo = posix_spawn(&ChildPid, TCHAR_TO_UTF8(*ProcessPath), &FileActions, &SpawnAttr, Argv, environ);
 		posix_spawn_file_actions_destroy(&FileActions);
 	}
 	else
@@ -818,13 +840,12 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 		//		http://ewontfix.com/7/
 		//		https://sourceware.org/bugzilla/show_bug.cgi?id=14750
 		//		https://sourceware.org/bugzilla/show_bug.cgi?id=14749
-		posix_spawnattr_t SpawnAttr;
-		posix_spawnattr_init(&SpawnAttr);
-		posix_spawnattr_setflags(&SpawnAttr, POSIX_SPAWN_USEVFORK);
+		SpawnFlags |= POSIX_SPAWN_USEVFORK;
 
+		posix_spawnattr_setflags(&SpawnAttr, SpawnFlags);
 		PosixSpawnErrNo = posix_spawn(&ChildPid, TCHAR_TO_UTF8(*ProcessPath), nullptr, &SpawnAttr, Argv, environ);
-		posix_spawnattr_destroy(&SpawnAttr);
 	}
+	posix_spawnattr_destroy(&SpawnAttr);
 
 	if (PosixSpawnErrNo != 0)
 	{
@@ -1057,6 +1078,7 @@ void FProcState::Wait()
 			ReturnCode = (SignalInfo.si_code == CLD_EXITED) ? SignalInfo.si_status : -1;
 			bHasBeenWaitedFor = true;
 			bIsRunning = false;	// set in advance
+			UE_LOG(LogHAL, Log, TEXT("Child %d's return code is %d."), GetProcessId(), ReturnCode);
 			break;
 		}
 	}

@@ -699,7 +699,10 @@ public:
 	// Is DOFHistoryRT2 set from DepthOfField?
 	bool bDOFHistory2;
 
-	FTemporalLODState TemporalLODState;
+	// True when Sequencer has paused
+	bool bSequencerIsPaused;
+
+	FTemporalLODState TemporalLODState;	
 
 	// call after SetupTemporalAA()
 	virtual uint32 GetCurrentTemporalAASampleIndex() const
@@ -1057,6 +1060,15 @@ public:
 
 	virtual SIZE_T GetSizeBytes() const override;
 
+	virtual void SetSequencerState(const bool bIsPaused) override
+	{
+		bSequencerIsPaused = bIsPaused;
+	}
+
+	virtual bool GetSequencerState() override
+	{
+		return bSequencerIsPaused;
+	}
 
 	/** Information about visibility/occlusion states in past frames for individual primitives. */
 	TSet<FPrimitiveOcclusionHistory,FPrimitiveOcclusionHistoryKeyFuncs> PrimitiveOcclusionHistorySet;

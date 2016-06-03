@@ -79,11 +79,18 @@ namespace FbxMeshUtils
 		UnFbx::FFbxLoggerSetter Logger(FFbxImporter);
 
 		UnFbx::FBXImportOptions* ImportOptions = FFbxImporter->GetImportOptions();
-		UnFbx::FBXImportOptions::ResetOptions(ImportOptions);
 		
 		UFbxStaticMeshImportData* ImportData = Cast<UFbxStaticMeshImportData>(BaseStaticMesh->AssetImportData);
 		if (ImportData != nullptr)
 		{
+			
+			UFbxImportUI* ReimportUI = NewObject<UFbxImportUI>();
+			ReimportUI->MeshTypeToImport = FBXIT_StaticMesh;
+			UnFbx::FBXImportOptions::ResetOptions(ImportOptions);
+			// Import data already exists, apply it to the fbx import options
+			ReimportUI->StaticMeshImportData = ImportData;
+			ApplyImportUIToImportOptions(ReimportUI, *ImportOptions);
+
 			ImportOptions->bImportMaterials = ImportData->bImportMaterials;
 			ImportOptions->bImportTextures = ImportData->bImportMaterials;
 		}
@@ -192,11 +199,26 @@ namespace FbxMeshUtils
 			UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
 			// don't import material and animation
 			UnFbx::FBXImportOptions* ImportOptions = FFbxImporter->GetImportOptions();
-			UnFbx::FBXImportOptions::ResetOptions(ImportOptions);
 
 			UFbxAssetImportData *FbxAssetImportData = Cast<UFbxAssetImportData>(SelectedSkelMesh->AssetImportData);
 			if (FbxAssetImportData != nullptr)
 			{
+				UFbxSkeletalMeshImportData* ImportData = Cast<UFbxSkeletalMeshImportData>(FbxAssetImportData);
+				if (ImportData)
+				{
+					UnFbx::FBXImportOptions::ResetOptions(ImportOptions);
+					// Prepare the import options
+					UFbxImportUI* ReimportUI = NewObject<UFbxImportUI>();
+					ReimportUI->MeshTypeToImport = FBXIT_SkeletalMesh;
+					ReimportUI->Skeleton = SelectedSkelMesh->Skeleton;
+					ReimportUI->PhysicsAsset = SelectedSkelMesh->PhysicsAsset;
+					// Import data already exists, apply it to the fbx import options
+					ReimportUI->SkeletalMeshImportData = ImportData;
+					//Some options not supported with skeletal mesh
+					ReimportUI->SkeletalMeshImportData->bBakePivotInVertex = false;
+					ReimportUI->SkeletalMeshImportData->bTransformVertexToAbsolute = true;
+					ApplyImportUIToImportOptions(ReimportUI, *ImportOptions);
+				}
 				ImportOptions->bImportMaterials = FbxAssetImportData->bImportMaterials;
 				ImportOptions->bImportTextures = FbxAssetImportData->bImportMaterials;
 			}

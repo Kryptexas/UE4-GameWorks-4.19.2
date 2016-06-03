@@ -528,6 +528,12 @@ public:
 	/** Returns dimensions of RenderTarget texture. Can be called on a game thread. */
 	virtual FIntPoint GetRenderTargetTextureSizeXY() const { return GetSizeXY(); }
 
+	/** Causes this viewport to flush rendering commands once it has been drawn */
+	void IncrementFlushOnDraw() { ++FlushOnDrawCount; }
+	
+	/** Decrements a previously incremented count that caused this viewport to flush rendering commands when it was drawn */
+	void DecrementFlushOnDraw() { check(FlushOnDrawCount); --FlushOnDrawCount; }
+
 protected:
 
 	/** The viewport's client. */
@@ -628,6 +634,9 @@ protected:
 
 	/** If true this viewport is an FSlateSceneViewport */
 	uint32 bIsSlateViewport : 1;
+
+	/** The number of pending calls to IncrementFlushOnDraw. Non-zero implies this viewport will flush rendering commands when it is drawn. */
+	uint32 FlushOnDrawCount;
 
 	/** true if we should draw game viewports (has no effect on Editor viewports) */
 	ENGINE_API static bool bIsGameRenderingEnabled;

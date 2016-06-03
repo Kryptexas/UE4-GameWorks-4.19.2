@@ -379,8 +379,14 @@ private:
 	/** Called when the curve editor is shown or hidden */
 	void OnCurveEditorVisibilityChanged();
 
+	/** Called when the time snap interval is changed. */
+	void OnTimeSnapIntervalChanged();
+
 	/** Gets paint options for painting the playback range on sequencer */
 	FPaintPlaybackRangeArgs GetSectionPlaybackRangeArgs() const;
+
+	/** Called whenever the active sequence instance changes on the FSequencer */
+	void OnSequenceInstanceActivated( FMovieSceneSequenceInstance& ActiveInstance );
 
 public:
 

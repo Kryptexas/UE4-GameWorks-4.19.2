@@ -15,6 +15,7 @@ float SampleWeights[9];
 float LowpassWeights[9];
 float PlusWeights[5];
 float2 RandomOffset;
+float VelocityScaling;
 
 // TODO: This can be removed.
 float ClampFeebackMix;

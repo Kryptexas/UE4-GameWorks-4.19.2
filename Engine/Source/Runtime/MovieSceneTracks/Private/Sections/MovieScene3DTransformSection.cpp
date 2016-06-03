@@ -378,6 +378,95 @@ TSharedPtr<FStructOnScope> UMovieScene3DTransformSection::GetKeyStruct(const TAr
 }
 
 
+TOptional<float> UMovieScene3DTransformSection::GetKeyTime( FKeyHandle KeyHandle ) const
+{
+	// Translation
+	if ( Translation[0].IsKeyHandleValid( KeyHandle ) )
+	{
+		return TOptional<float>( Translation[0].GetKeyTime( KeyHandle ) );
+	}
+	if ( Translation[1].IsKeyHandleValid( KeyHandle ) )
+	{
+		return TOptional<float>( Translation[1].GetKeyTime( KeyHandle ) );
+	}
+	if ( Translation[2].IsKeyHandleValid( KeyHandle ) )
+	{
+		return TOptional<float>( Translation[2].GetKeyTime( KeyHandle ) );
+	}
+	// Rotation
+	if ( Rotation[0].IsKeyHandleValid( KeyHandle ) )
+	{
+		return TOptional<float>( Rotation[0].GetKeyTime( KeyHandle ) );
+	}
+	if ( Rotation[1].IsKeyHandleValid( KeyHandle ) )
+	{
+		return TOptional<float>( Rotation[1].GetKeyTime( KeyHandle ) );
+	}
+	if ( Rotation[2].IsKeyHandleValid( KeyHandle ) )
+	{
+		return TOptional<float>( Rotation[2].GetKeyTime( KeyHandle ) );
+	}
+	// Scale
+	if ( Scale[0].IsKeyHandleValid( KeyHandle ) )
+	{
+		return TOptional<float>( Scale[0].GetKeyTime( KeyHandle ) );
+	}
+	if ( Scale[1].IsKeyHandleValid( KeyHandle ) )
+	{
+		return TOptional<float>( Scale[1].GetKeyTime( KeyHandle ) );
+	}
+	if ( Scale[2].IsKeyHandleValid( KeyHandle ) )
+	{
+		return TOptional<float>( Scale[2].GetKeyTime( KeyHandle ) );
+	}
+	return TOptional<float>();
+}
+
+
+void UMovieScene3DTransformSection::SetKeyTime( FKeyHandle KeyHandle, float Time )
+{
+	// Translation
+	if ( Translation[0].IsKeyHandleValid( KeyHandle ) )
+	{
+		Translation[0].SetKeyTime( KeyHandle, Time );
+	}
+	else if ( Translation[1].IsKeyHandleValid( KeyHandle ) )
+	{
+		Translation[1].SetKeyTime( KeyHandle, Time );
+	}
+	else if ( Translation[2].IsKeyHandleValid( KeyHandle ) )
+	{
+		Translation[2].SetKeyTime( KeyHandle, Time );
+	}
+	// Rotation
+	else if ( Rotation[0].IsKeyHandleValid( KeyHandle ) )
+	{
+		Rotation[0].SetKeyTime( KeyHandle, Time );
+	}
+	else if ( Rotation[1].IsKeyHandleValid( KeyHandle ) )
+	{
+		Rotation[1].SetKeyTime( KeyHandle, Time );
+	}
+	else if ( Rotation[2].IsKeyHandleValid( KeyHandle ) )
+	{
+		Rotation[2].SetKeyTime( KeyHandle, Time );
+	}
+	// Scale
+	else if ( Scale[0].IsKeyHandleValid( KeyHandle ) )
+	{
+		Scale[0].SetKeyTime( KeyHandle, Time );
+	}
+	else if ( Scale[1].IsKeyHandleValid( KeyHandle ) )
+	{
+		Scale[1].SetKeyTime( KeyHandle, Time );
+	}
+	else if ( Scale[2].IsKeyHandleValid( KeyHandle ) )
+	{
+		Scale[2].SetKeyTime( KeyHandle, Time );
+	}
+}
+
+
 /* UMovieSceneSection interface
  *****************************************************************************/
 

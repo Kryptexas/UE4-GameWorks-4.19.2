@@ -64,10 +64,13 @@ class FSteamVRPlugin : public ISteamVRPlugin
 
 public:
 	FSteamVRPlugin::FSteamVRPlugin()
+#if STEAMVR_SUPPORTED_PLATFORMS
 		: VRSystem(nullptr)
+#endif // STEAMVR_SUPPORTED_PLATFORMS
 	{
 	}
 
+#if STEAMVR_SUPPORTED_PLATFORMS
 	virtual vr::IVRSystem* GetVRSystem() const override
 	{
 		return VRSystem;
@@ -114,6 +117,7 @@ public:
 
 private:
 	vr::IVRSystem* VRSystem;
+#endif // STEAMVR_SUPPORTED_PLATFORMS
 };
 
 IMPLEMENT_MODULE( FSteamVRPlugin, SteamVR )

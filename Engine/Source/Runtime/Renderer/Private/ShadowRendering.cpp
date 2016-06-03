@@ -2168,9 +2168,15 @@ static void SetShadowProjectionShaderTemplNew(FRHICommandList& RHICmdList, int32
 
 		// Get the Shadow Projection Pixel Shader
 		// This shader is the ordinary projection shader used by point/spot lights.		
-		FShadowProjectionPixelShaderInterface* ShadowProjPS = bForwardShading ?
-					View.ShaderMap->GetShader<TModulatedShadowProjection<Quality> >() :
-					View.ShaderMap->GetShader<TShadowProjectionPS<Quality, false> >();
+		FShadowProjectionPixelShaderInterface* ShadowProjPS;
+		if(bForwardShading)
+		{
+			ShadowProjPS = View.ShaderMap->GetShader<TModulatedShadowProjection<Quality> >();
+		}
+		else
+		{
+			ShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<Quality, false> >();
+		}
 
 		static FGlobalBoundShaderState BoundShaderState;
 		
@@ -2769,13 +2775,13 @@ void FProjectedShadowInfo::RenderFrustumWireframe(FPrimitiveDrawInterface* PDI) 
 		);
 }
 
-FMatrix FProjectedShadowInfo::GetScreenToShadowMatrix(const FSceneView& View) const
+FMatrix FProjectedShadowInfo::GetScreenToShadowMatrix(const FSceneView& View, uint32 TileOffsetX, uint32 TileOffsetY, uint32 TileResolutionX, uint32 TileResolutionY) const
 {
 	const FIntPoint ShadowBufferResolution = GetShadowBufferResolution();
 	const float InvBufferResolutionX = 1.0f / (float)ShadowBufferResolution.X;
-	const float ShadowResolutionFractionX = 0.5f * (float)ResolutionX * InvBufferResolutionX;
+	const float ShadowResolutionFractionX = 0.5f * (float)TileResolutionX * InvBufferResolutionX;
 	const float InvBufferResolutionY = 1.0f / (float)ShadowBufferResolution.Y;
-	const float ShadowResolutionFractionY = 0.5f * (float)ResolutionY * InvBufferResolutionY;
+	const float ShadowResolutionFractionY = 0.5f * (float)TileResolutionY * InvBufferResolutionY;
 	// Calculate the matrix to transform a screenspace position into shadow map space
 	FMatrix ScreenToShadow = 
 		// Z of the position being transformed is actually view space Z, 
@@ -2802,8 +2808,8 @@ FMatrix FProjectedShadowInfo::GetScreenToShadowMatrix(const FSceneView& View) co
 			FPlane(0,						 -ShadowResolutionFractionY,0,									0),
 			FPlane(0,						0,							InvMaxSubjectDepth,	0),
 			FPlane(
-				(X + SHADOW_BORDER) * InvBufferResolutionX + ShadowResolutionFractionX,
-				(Y + SHADOW_BORDER) * InvBufferResolutionY + ShadowResolutionFractionY,
+				(TileOffsetX + SHADOW_BORDER) * InvBufferResolutionX + ShadowResolutionFractionX,
+				(TileOffsetY + SHADOW_BORDER) * InvBufferResolutionY + ShadowResolutionFractionY,
 				0,
 				1
 			)

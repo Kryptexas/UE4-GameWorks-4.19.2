@@ -75,6 +75,10 @@ private:
 	/** Class pin name */
 	static FString ClassPinName;
 
+	/** Blueprint that we subscribed OnBlueprintChangedDelegate and OnBlueprintCompiledDelegate to */
+	UPROPERTY()
+	UBlueprint* BlueprintSubscribedTo;
+
 	/** Blueprint.OnChanged delegate handle */
 	FDelegateHandle OnBlueprintChangedDelegate;
 

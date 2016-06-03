@@ -50,9 +50,6 @@ public:
 
 	TSharedPtr< FUICommandInfo > ToggleFavorite;
 
-	/** Import */
-	TSharedPtr< FUICommandInfo > Import;
-	
 	/** Import Scene */
 	TSharedPtr< FUICommandInfo > ImportScene;
 
@@ -682,13 +679,8 @@ public:
 
 
 	/**
-	 * Called when import is selected
+	 * Called when import scene is selected
 	 */
-	static void Import_Clicked();
-
-	/**
-	* Called when import scene is selected
-	*/
 	static void ImportScene_Clicked();
 
 

@@ -114,6 +114,18 @@ namespace LevelEditorActionsHelpers
 
 		return Blueprint;
 	}
+
+	/** Check to see whether this world is a persistent world with a valid file on disk */
+	bool IsPersistentWorld(UWorld* InWorld)
+	{
+		UPackage* Pkg = InWorld ? InWorld->GetOutermost() : nullptr;
+		if (Pkg && FPackageName::IsValidLongPackageName(Pkg->GetName()))
+		{
+			FString FileName;
+			return FPackageName::DoesPackageExist(Pkg->GetName(), nullptr, &FileName);
+		}
+		return false;
+	}
 }
 
 bool FLevelEditorActionCallbacks::DefaultCanExecuteAction()
@@ -291,14 +303,10 @@ void FLevelEditorActionCallbacks::ToggleFavorite()
 	FMainMRUFavoritesList* MRUFavoritesList = MainFrameModule.GetMRUFavoritesList();
 	check( MRUFavoritesList );
 
-	const FString PackageName = GetWorld()->GetOutermost()->GetName();
-
-	FString MapFileName;
-	const bool bMapFileExists = FPackageName::DoesPackageExist(PackageName, NULL, &MapFileName);
-
-	// If the user clicked the toggle favorites button, the map file should exist, but double check to be safe.
-	if ( bMapFileExists )
+	if (LevelEditorActionsHelpers::IsPersistentWorld(GetWorld()))
 	{
+		const FString PackageName = GetWorld()->GetOutermost()->GetName();
+
 		// If the map was already favorited, remove it from the favorites
 		if ( MRUFavoritesList->ContainsFavoritesItem(PackageName) )
 		{
@@ -332,16 +340,8 @@ void FLevelEditorActionCallbacks::RemoveFavorite( int32 FavoriteFileIndex )
 
 bool FLevelEditorActionCallbacks::ToggleFavorite_CanExecute()
 {
-	if( GetWorld() && GetWorld()->GetOutermost() )
-	{
-		FString FileName;
-		const bool bMapFileExists = FPackageName::DoesPackageExist(GetWorld()->GetOutermost()->GetName(), NULL, &FileName);
-
-		// Disable the favorites button if the map isn't associated to a file yet (new map, never before saved, etc.)
-		return bMapFileExists;
-	}
-
-	return false;
+	// Disable the favorites button if the map isn't associated to a file yet (new map, never before saved, etc.)
+	return LevelEditorActionsHelpers::IsPersistentWorld(GetWorld());
 }
 
 
@@ -349,16 +349,11 @@ bool FLevelEditorActionCallbacks::ToggleFavorite_IsChecked()
 {
 	bool bIsChecked = false;
 
-	const FString PackageName = GetWorld()->GetOutermost()->GetName();
-
-	FString FileName;
-	const bool bMapFileExists = FPackageName::DoesPackageExist(PackageName, NULL, &FileName);
-	
-	// If the map exists, determine its state based on whether the map is already favorited or not
-	if ( bMapFileExists )
+	if (LevelEditorActionsHelpers::IsPersistentWorld(GetWorld()))
 	{
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>( "MainFrame" );
+		const FString PackageName = GetWorld()->GetOutermost()->GetName();
 
+		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>( "MainFrame" );
 		bIsChecked = MainFrameModule.GetMRUFavoritesList()->ContainsFavoritesItem(PackageName);
 	}
 
@@ -390,16 +385,9 @@ void FLevelEditorActionCallbacks::SaveAllLevels()
 }
 
 
-void FLevelEditorActionCallbacks::Import_Clicked()
-{
-	const bool bImportScene = false;
-	FEditorFileUtils::Import(bImportScene);
-}
-
 void FLevelEditorActionCallbacks::ImportScene_Clicked()
 {
-	const bool bImportScene = true;
-	FEditorFileUtils::Import(bImportScene);
+	FEditorFileUtils::Import();
 }
 
 
@@ -2910,8 +2898,7 @@ void FLevelEditorCommands::RegisterCommands()
 		OpenRecentFileCommands.Add( OpenRecentFile );
 	}
 
-	UI_COMMAND( Import, "Import...", "Imports objects and actors from a T3D format into the current level", EUserInterfaceActionType::Button, FInputChord() );
-	UI_COMMAND( ImportScene, "Import Scene...", "Imports an entire scene from a FBX format into the current level", EUserInterfaceActionType::Button, FInputChord());
+	UI_COMMAND( ImportScene, "Import Into Level...", "Imports a scene from a FBX or T3D format into the current level", EUserInterfaceActionType::Button, FInputChord());
 	UI_COMMAND( ExportAll, "Export All...", "Exports the entire level to a file on disk (multiple formats are supported.)", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( ExportSelected, "Export Selected...", "Exports currently-selected objects to a file on disk (multiple formats are supported.)", EUserInterfaceActionType::Button, FInputChord() );
 

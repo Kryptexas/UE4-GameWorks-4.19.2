@@ -768,7 +768,8 @@ void FCanvas::Flush_GameThread(bool bForce)
 
 		if (Parameters.bIsScaledToRenderTarget)
 		{
-			Parameters.ViewRect = FIntRect(0, 0, Parameters.CanvasRenderTarget->GetRenderTargetTexture()->GetSizeX(), Parameters.CanvasRenderTarget->GetRenderTargetTexture()->GetSizeY());
+			FIntPoint CanvasSize = Parameters.CanvasRenderTarget->GetSizeXY();
+			Parameters.ViewRect = FIntRect(0, 0, CanvasSize.X, CanvasSize.Y);
 		}
 
 		const FIntRect& ViewportRect = Parameters.ViewRect;

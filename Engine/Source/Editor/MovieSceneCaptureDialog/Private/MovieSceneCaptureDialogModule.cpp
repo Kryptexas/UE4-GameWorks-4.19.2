@@ -302,6 +302,25 @@ struct FInEditorCapture
 
 		bScreenMessagesWereEnabled = GAreScreenMessagesEnabled;
 		GAreScreenMessagesEnabled = false;
+
+		if (!InCaptureObject->Settings.bEnableTextureStreaming)
+		{
+			const int32 UndefinedTexturePoolSize = -1;
+			IConsoleVariable* CVarStreamingPoolSize = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Streaming.PoolSize"));
+			if (CVarStreamingPoolSize)
+			{
+				BackedUpStreamingPoolSize = CVarStreamingPoolSize->GetInt();
+				CVarStreamingPoolSize->Set(UndefinedTexturePoolSize, ECVF_SetByConsole);
+			}
+
+			IConsoleVariable* CVarUseFixedPoolSize = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Streaming.UseFixedPoolSize"));
+			if (CVarUseFixedPoolSize)
+			{
+				BackedUpUseFixedPoolSize = CVarUseFixedPoolSize->GetInt(); 
+				CVarUseFixedPoolSize->Set(0, ECVF_SetByConsole);
+			}
+		}
+
 		OnStarted = InOnStarted;
 		FObjectWriter(PlayInEditorSettings, BackedUpPlaySettings);
 		OverridePlaySettings(PlayInEditorSettings);
@@ -407,6 +426,21 @@ struct FInEditorCapture
 
 		GAreScreenMessagesEnabled = bScreenMessagesWereEnabled;
 
+		if (!CaptureObject->Settings.bEnableTextureStreaming)
+		{
+			IConsoleVariable* CVarStreamingPoolSize = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Streaming.PoolSize"));
+			if (CVarStreamingPoolSize)
+			{
+				CVarStreamingPoolSize->Set(BackedUpStreamingPoolSize, ECVF_SetByConsole);
+			}
+
+			IConsoleVariable* CVarUseFixedPoolSize = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Streaming.UseFixedPoolSize"));
+			if (CVarUseFixedPoolSize)
+			{
+				CVarUseFixedPoolSize->Set(BackedUpUseFixedPoolSize, ECVF_SetByConsole);
+			}
+		}
+
 		FObjectReader(GetMutableDefault<ULevelEditorPlaySettings>(), BackedUpPlaySettings);
 
 		CaptureObject->Close();
@@ -429,6 +463,8 @@ struct FInEditorCapture
 
 	TFunction<void()> OnStarted;
 	bool bScreenMessagesWereEnabled;
+	int32 BackedUpStreamingPoolSize;
+	int32 BackedUpUseFixedPoolSize;
 	TArray<uint8> BackedUpPlaySettings;
 	UMovieSceneCapture* CaptureObject;
 };

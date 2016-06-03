@@ -312,3 +312,35 @@ void UMovieSceneParameterSection::MoveSection(float DeltaPosition, TSet<FKeyHand
 		Curve->ShiftCurve(DeltaPosition, KeyHandles);
 	}
 }
+
+
+TOptional<float> UMovieSceneParameterSection::GetKeyTime( FKeyHandle KeyHandle ) const
+{
+	TArray<const FRichCurve*> AllCurves;
+	GatherCurves( AllCurves );
+
+	for ( auto Curve : AllCurves )
+	{
+		if ( Curve->IsKeyHandleValid( KeyHandle ) )
+		{
+			return TOptional<float>( Curve->GetKeyTime( KeyHandle ) );
+		}
+	}
+	return TOptional<float>();
+}
+
+
+void UMovieSceneParameterSection::SetKeyTime( FKeyHandle KeyHandle, float Time )
+{
+	TArray<FRichCurve*> AllCurves;
+	GatherCurves( AllCurves );
+
+	for ( auto Curve : AllCurves )
+	{
+		if ( Curve->IsKeyHandleValid( KeyHandle ) )
+		{
+			Curve->SetKeyTime( KeyHandle, Time );
+			break;
+		}
+	}
+}

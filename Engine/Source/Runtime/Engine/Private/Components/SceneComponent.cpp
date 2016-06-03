@@ -1483,7 +1483,6 @@ bool USceneComponent::AttachToComponent(USceneComponent* Parent, const FAttachme
 		return true;
 	}
 
-	FDetachmentTransformRules DetachmentRules(AttachmentRules, true);
 	if(Parent != nullptr)
 	{
 		const bool bSameAttachParentAndSocket = (Parent == GetAttachParent() && SocketName == GetAttachSocketName());
@@ -1496,6 +1495,16 @@ bool USceneComponent::AttachToComponent(USceneComponent* Parent, const FAttachme
 		if(Parent == this)
 		{
 			FMessageLog("PIE").Warning(FText::Format(LOCTEXT("AttachToSelfWarning", "AttachTo: '{0}' cannot be attached to itself. Aborting."), 
+				FText::FromString(GetPathName())));
+			return false;
+		}
+
+		AActor* MyActor = GetOwner();
+		AActor* TheirActor = Parent->GetOwner();
+
+		if (MyActor == TheirActor && MyActor && MyActor->GetRootComponent() == this)
+		{
+			FMessageLog("PIE").Warning(FText::Format(LOCTEXT("AttachToSelfWarning", "AttachTo: '{0}' root component cannot be attached to other components in the same actor. Aborting."),
 				FText::FromString(GetPathName())));
 			return false;
 		}
@@ -1554,6 +1563,8 @@ bool USceneComponent::AttachToComponent(USceneComponent* Parent, const FAttachme
 		// Find out if we're already attached, and save off our position in the array if we are
 		int32 LastAttachIndex = INDEX_NONE;
 		Parent->GetAttachChildren().Find(this, LastAttachIndex);
+
+		FDetachmentTransformRules DetachmentRules(AttachmentRules, true);
 
 		// Make sure we are detached
 		if (bSameAttachParentAndSocket && !IsRegistered() && AttachmentRules.LocationRule == EAttachmentRule::KeepRelative && AttachmentRules.RotationRule == EAttachmentRule::KeepRelative && AttachmentRules.ScaleRule == EAttachmentRule::KeepRelative && LastAttachIndex == INDEX_NONE)
@@ -1754,11 +1765,6 @@ bool USceneComponent::AttachToComponent(USceneComponent* Parent, const FAttachme
 		}
 
 		return true;
-	}
-	else
-	{
-		UE_LOG(LogSceneComponent, Warning, TEXT("AttachTo: '%s' attempted to attach to null. Detaching from parent."), *GetPathName());
-		DetachFromComponent(DetachmentRules);
 	}
 
 	return false;
@@ -2400,7 +2406,9 @@ void USceneComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps
 	
 	// SceneComponent has no physical representation, so no overlaps to test for/
 	// But, we need to test down the attachment chain since there might be PrimitiveComponents below.
-	for (USceneComponent* ChildComponent : GetAttachChildren())
+	TInlineComponentArray<USceneComponent*> AttachedChildren;
+	AttachedChildren.Append(GetAttachChildren());
+	for (USceneComponent* ChildComponent : AttachedChildren)
 	{
 		if (ChildComponent)
 		{

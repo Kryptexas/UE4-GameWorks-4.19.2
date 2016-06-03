@@ -236,10 +236,14 @@ public:
 		if (!Options.CodecName.IsEmpty())
 		{
 			EncodingFilter = FindEncodingFilter(Options.CodecName);
-			EncodingFilter->AddRef();
 			if (EncodingFilter)
 			{
+				EncodingFilter->AddRef();
 				Graph->AddFilter( EncodingFilter, TEXT("Encoder") );
+			}
+			else
+			{
+				UE_LOG(LogAVIWriter, Warning, TEXT( "WARNING - Codec %s not found"), *Options.CodecName);
 			}
 		}
 

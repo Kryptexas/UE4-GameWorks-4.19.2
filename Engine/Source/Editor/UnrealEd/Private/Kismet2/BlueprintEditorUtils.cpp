@@ -8507,8 +8507,8 @@ void FBlueprintEditorUtils::BuildComponentInstancingData(UActorComponent* Compon
 							}
 						}
 
-						// Prepend the array property as changed only if we also wrote out any of the inner value as changed.
-						if (NumChangedProperties < OutData.ChangedPropertyList.Num())
+						// Prepend the array property as changed only if the sizes differ and/or if we also wrote out any of the inner value as changed.
+						if (ArrayValueHelper.Num() != DefaultArrayValueHelper.Num() || NumChangedProperties < OutData.ChangedPropertyList.Num())
 						{
 							OutData.ChangedPropertyList.Insert(ChangedPropertyInfo, NumChangedProperties);
 						}

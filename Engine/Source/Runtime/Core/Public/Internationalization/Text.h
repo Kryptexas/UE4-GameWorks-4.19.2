@@ -551,9 +551,8 @@ struct FFormatArgumentData
 	{
 		if (Ar.IsLoading())
 		{
-			// ArgumentName was changed in 4.11 to be FString rather than FText, we need to convert on this boundry to
-			// ensure serialization stays happy outside of UStruct::SerializeTaggedProperties.
-			if (Ar.EngineVer().GetMajor() == 4U && Ar.EngineVer().GetMinor() > 10U)
+			// ArgumentName was changed to be FString rather than FText, so we need to convert older data to ensure serialization stays happy outside of UStruct::SerializeTaggedProperties.
+			if (Ar.UE4Ver() >= VER_UE4_K2NODE_VAR_REFERENCEGUIDS) // There was no version bump for this change, but VER_UE4_K2NODE_VAR_REFERENCEGUIDS was made at almost the same time.
 			{
 				Ar << Value.ArgumentName;
 			}

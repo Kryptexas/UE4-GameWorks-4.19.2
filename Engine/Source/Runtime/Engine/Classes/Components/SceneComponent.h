@@ -570,7 +570,8 @@ public:
 
 	/** 
 	* Initializes desired Attach Parent and SocketName to be attached to when the component is registered.
-	* Generally intended to be called from its Owning Actor's constructor
+	* Generally intended to be called from its Owning Actor's constructor and should be preferred over AttachToComponent when
+	* a component is not registered.
 	* @param  InParent				Parent to attach to.
 	* @param  InSocketName			Optional socket to attach to on the parent.
 	*/
@@ -602,7 +603,8 @@ public:
 	bool K2_AttachTo(USceneComponent* InParent, FName InSocketName = NAME_None, EAttachLocation::Type AttachType = EAttachLocation::KeepRelativeOffset, bool bWeldSimulatedBodies = true);
 
 	/**
-	* Attach this component to another scene component, optionally at a named socket. It is valid to call this on components whether or not they have been Registered.
+	* Attach this component to another scene component, optionally at a named socket. It is valid to call this on components whether or not they have been Registered, however from
+	* constructor or when not registered it is preferable to use SetupAttachment.
 	* @param  Parent				Parent to attach to.
 	* @param  AttachmentRules		How to handle transforms & welding when attaching.
 	* @param  SocketName			Optional socket to attach to on the parent.

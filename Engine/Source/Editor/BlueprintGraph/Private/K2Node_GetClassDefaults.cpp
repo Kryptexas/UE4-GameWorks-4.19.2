@@ -406,22 +406,50 @@ void UK2Node_GetClassDefaults::CreateOutputPins(UClass* InClass)
 	}
 
 	// Unbind OnChanged() delegate from a previous Blueprint, if valid.
-	if (OnBlueprintChangedDelegate.IsValid())
-	{
-		OnBlueprintChangedDelegate.Reset();
-	}
-
-	// Unbind OnCompiled() delegate from a previous Blueprint, if valid.
-	if (OnBlueprintCompiledDelegate.IsValid())
-	{
-		OnBlueprintCompiledDelegate.Reset();
-	}
 
 	// If the class was generated for a Blueprint, bind delegates to handle any OnChanged() & OnCompiled() events.
-	if (UBlueprint* Blueprint = Cast<UBlueprint>(InClass->ClassGeneratedBy))
+	bool bShouldClearDelegate = true;
+	if (InClass)
 	{
-		OnBlueprintChangedDelegate = Blueprint->OnChanged().AddLambda([this](UBlueprint* /* InBlueprint */) { ReconstructNode(); });
-		OnBlueprintCompiledDelegate = Blueprint->OnCompiled().AddLambda([this](UBlueprint* /* InBlueprint */) { ReconstructNode(); });
+		if (UBlueprint* Blueprint = Cast<UBlueprint>(InClass->ClassGeneratedBy))
+		{
+			// only clear the delegate if the pin has changed:
+			bShouldClearDelegate = BlueprintSubscribedTo != Blueprint;
+		}
+	}
+
+	if (bShouldClearDelegate)
+	{
+		if (OnBlueprintChangedDelegate.IsValid())
+		{
+			if (BlueprintSubscribedTo)
+			{
+				BlueprintSubscribedTo->OnChanged().Remove(OnBlueprintChangedDelegate);
+			}
+			OnBlueprintChangedDelegate.Reset();
+		}
+
+		// Unbind OnCompiled() delegate from a previous Blueprint, if valid.
+		if (OnBlueprintCompiledDelegate.IsValid())
+		{
+			if (BlueprintSubscribedTo)
+			{
+				BlueprintSubscribedTo->OnChanged().Remove(OnBlueprintCompiledDelegate);
+			}
+			OnBlueprintCompiledDelegate.Reset();
+		}
+		// Associated Blueprint changed, clear the BlueprintSubscribedTo:
+		BlueprintSubscribedTo = nullptr;
+	}
+
+	if (InClass && bShouldClearDelegate)
+	{
+		if (UBlueprint* Blueprint = Cast<UBlueprint>(InClass->ClassGeneratedBy))
+		{
+			BlueprintSubscribedTo = Blueprint;
+			OnBlueprintChangedDelegate = Blueprint->OnChanged().AddLambda([this](UBlueprint* /* InBlueprint */) { ReconstructNode(); });
+			OnBlueprintCompiledDelegate = Blueprint->OnCompiled().AddLambda([this](UBlueprint* /* InBlueprint */) { ReconstructNode(); });
+		}
 	}
 }
 

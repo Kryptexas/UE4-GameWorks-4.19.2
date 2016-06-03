@@ -445,6 +445,30 @@ public:
 	 */
 	void SetPlaybackRange(float Start, float End, bool bAlwaysMarkDirty = true);
 
+	/**
+	 * Gets whether or not playback should be forced to match the fixed frame interval.  When true all time values will be rounded to a fixed
+	 * frame value which will force editor and runtime playback to match exactly, but will result in duplicate frames if the runtime and editor
+	 * frame rates aren't exactly the same.
+	 */
+	bool GetForceFixedFrameIntervalPlayback() const;
+
+	/**
+	* Sets whether or not playback should be forced to match the fixed frame interval.  When true all time values will be rounded to a fixed
+	* frame value which will force editor and runtime playback to match exactly, but will result in duplicate frames if the runtime and editor
+	* frame rates aren't exactly the same.
+	*/
+	void SetForceFixedFrameIntervalPlayback( bool bInForceFixedFrameIntervalPlayback );
+
+	/**
+	* Gets the fixed frame interval to be used when "force fixed frame interval playback" is set.
+	*/
+	float GetFixedFrameInterval() const;
+
+	/**
+	* Gets the fixed frame interval to be used when "force fixed frame interval playback" is set.
+	*/
+	void SetFixedFrameInterval( float InFixedFrameInterval );
+
 public:
 	
 #if WITH_EDITORONLY_DATA
@@ -515,6 +539,12 @@ private:
 	/** User-defined playback range for this movie scene. Must be a finite range. Relative to this movie-scene's 0-time origin. */
 	UPROPERTY()
 	FFloatRange PlaybackRange;
+
+	UPROPERTY()
+	bool bForceFixedFrameIntervalPlayback;
+
+	UPROPERTY()
+	float FixedFrameInterval;
 
 #if WITH_EDITORONLY_DATA
 	/** Maps object GUIDs to user defined display names. */

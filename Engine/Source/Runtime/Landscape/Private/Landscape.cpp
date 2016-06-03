@@ -697,7 +697,7 @@ ULandscapeInfo* ALandscapeProxy::GetLandscapeInfo(bool bSpawnNewActor /*= true*/
 	if (GIsEditor)
 	{
 		UWorld* OwningWorld = GetWorld();
-		if (OwningWorld)
+		if (OwningWorld && !OwningWorld->IsGameWorld())
 		{
 			auto &LandscapeInfoMap = GetLandscapeInfoMap(OwningWorld);
 

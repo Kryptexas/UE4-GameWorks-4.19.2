@@ -483,23 +483,7 @@ void FD3D11DynamicRHI::InitD3DDevice()
 		UE_LOG(LogD3D11RHI, Log, TEXT("Init due to bDeviceRemoved"));
 		check(Direct3DDevice);
 
-		HRESULT hRes = Direct3DDevice->GetDeviceRemovedReason();
-
-		const TCHAR* Reason = TEXT("?");
-		switch(hRes)
-		{
-			case DXGI_ERROR_DEVICE_HUNG:			Reason = TEXT("HUNG"); break;
-			case DXGI_ERROR_DEVICE_REMOVED:			Reason = TEXT("REMOVED"); break;
-			case DXGI_ERROR_DEVICE_RESET:			Reason = TEXT("RESET"); break;
-			case DXGI_ERROR_DRIVER_INTERNAL_ERROR:	Reason = TEXT("INTERNAL_ERROR"); break;
-			case DXGI_ERROR_INVALID_CALL:			Reason = TEXT("INVALID_CALL"); break;
-		}
-
-		bDeviceRemoved = false;
-
-		// We currently don't support removed devices because FTexture2DResource can't recreate its RHI resources from scratch.
-		// We would also need to recreate the viewport swap chains from scratch.
-		UE_LOG(LogD3D11RHI, Fatal, TEXT("The Direct3D 11 device that was being used has been removed (Error: %d '%s').  Please restart the game."), hRes, Reason);
+		VERIFYD3D11RESULT_EX(DXGI_ERROR_DEVICE_REMOVED, Direct3DDevice);
 
 		// UE4 no longer supports clean-up and recovery.
 		//CleanupD3DDevice();

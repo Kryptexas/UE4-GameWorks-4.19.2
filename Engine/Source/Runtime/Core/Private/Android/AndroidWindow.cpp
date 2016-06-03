@@ -150,34 +150,35 @@ FPlatformRect FAndroidWindow::GetScreenRect()
 	static auto* MobileHDR32bppModeCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR32bppMode"));
 	
 	const bool bMobileHDR = (MobileHDRCvar && MobileHDRCvar->GetValueOnAnyThread() == 1);
-	const bool bMobileHDR32bpp = bMobileHDR	&& (!FAndroidMisc::SupportsFloatingPointRenderTargets() || (MobileHDR32bppModeCvar && MobileHDR32bppModeCvar->GetValueOnAnyThread() != 0));
-	const bool bRequiresMosaic = bMobileHDR32bpp && (!FAndroidMisc::SupportsShaderFramebufferFetch() || (MobileHDR32bppModeCvar && MobileHDR32bppModeCvar->GetValueOnAnyThread() == 1));
 	
 	UE_LOG(LogAndroid, Log, TEXT("Mobile HDR: %s"), bMobileHDR ? TEXT("YES") : TEXT("no"));
-	if (bMobileHDR)
+	if (bMobileHDR && !bIsGearVRApp)
 	{
+		const bool bMobileHDR32bpp = (!FAndroidMisc::SupportsFloatingPointRenderTargets() || (MobileHDR32bppModeCvar && MobileHDR32bppModeCvar->GetValueOnAnyThread() != 0));
+		const bool bRequiresMosaic = bMobileHDR32bpp && (!FAndroidMisc::SupportsShaderFramebufferFetch() || (MobileHDR32bppModeCvar && MobileHDR32bppModeCvar->GetValueOnAnyThread() == 1));
+
 		UE_LOG(LogAndroid, Log, TEXT("Requires 32BPP Encoding: %s"), bMobileHDR32bpp ? TEXT("YES") : TEXT("no"));
 		UE_LOG(LogAndroid, Log, TEXT("Requires Mosaic: %s"), bRequiresMosaic ? TEXT("YES") : TEXT("no"));
-	}
 
-	if (bRequiresMosaic)
-	{
-		const int32 OldMaxWidth = MaxWidth;
-		const int32 OldMaxHeight = MaxHeight;
-
-		if (GAndroidIsPortrait)
+		if (bRequiresMosaic)
 		{
-			MaxHeight = FPlatformMath::Min(MaxHeight,1024);
-			MaxWidth = MaxHeight * AspectRatio;
-		}
-		else
-		{
-			MaxWidth = FPlatformMath::Min(MaxWidth,1024);
-			MaxHeight = MaxWidth / AspectRatio;
-		}
+			const int32 OldMaxWidth = MaxWidth;
+			const int32 OldMaxHeight = MaxHeight;
 
-		UE_LOG(LogAndroid, Log, TEXT("Using mosaic rendering due to lack of Framebuffer Fetch support."));
-		UE_LOG(LogAndroid, Log, TEXT("Limiting MaxWidth=%d and MaxHeight=%d due to mosaic rendering (was %dx%d)"), MaxWidth, MaxHeight, OldMaxWidth, OldMaxHeight);
+			if (GAndroidIsPortrait)
+			{
+				MaxHeight = FPlatformMath::Min(MaxHeight, 1024);
+				MaxWidth = MaxHeight * AspectRatio;
+			}
+			else
+			{
+				MaxWidth = FPlatformMath::Min(MaxWidth, 1024);
+				MaxHeight = MaxWidth / AspectRatio;
+			}
+
+			UE_LOG(LogAndroid, Log, TEXT("Using mosaic rendering due to lack of Framebuffer Fetch support."));
+			UE_LOG(LogAndroid, Log, TEXT("Limiting MaxWidth=%d and MaxHeight=%d due to mosaic rendering (was %dx%d)"), MaxWidth, MaxHeight, OldMaxWidth, OldMaxHeight);
+		}
 	}
 
 	// 0 means to use native size

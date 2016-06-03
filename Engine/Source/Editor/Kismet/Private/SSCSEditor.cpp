@@ -4565,6 +4565,18 @@ bool SSCSEditor::IsEditingAllowed() const
 
 UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject* Asset  )
 {
+	if (NewComponentClass->ClassWithin && NewComponentClass->ClassWithin != UObject::StaticClass())
+	{
+		FNotificationInfo Info(LOCTEXT("AddComponentFailed", "Cannot add components that have \"Within\" markup"));
+		Info.Image = FEditorStyle::GetBrush(TEXT("Icons.Error"));
+		Info.bFireAndForget = true;
+		Info.bUseSuccessFailIcons = false;
+		Info.ExpireDuration = 5.0f;
+
+		FSlateNotificationManager::Get().AddNotification(Info);
+		return nullptr;
+	}
+
 	const FScopedTransaction Transaction( LOCTEXT("AddComponent", "Add Component") );
 
 	UActorComponent* NewComponent = nullptr;

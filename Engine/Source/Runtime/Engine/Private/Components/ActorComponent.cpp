@@ -670,8 +670,8 @@ void UActorComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	check(bHasBegunPlay);
 
-	// If we're already pending kill blueprints don't get to be notified
-	if (!HasAnyFlags(RF_BeginDestroyed))
+	// If we're in the process of being garbage collected it is unsafe to call out to blueprints
+	if (!HasAnyFlags(RF_BeginDestroyed) && !IsUnreachable())
 	{
 		ReceiveEndPlay(EndPlayReason);
 	}

@@ -60,7 +60,23 @@ void UArrayProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defau
 	Ar << n;
 	if( Ar.IsLoading() )
 	{
-		ArrayHelper.EmptyAndAddValues(n);
+		// If using a custom property list, don't empty the array on load. Not all indices may have been serialized, so we need to preserve existing values at those slots.
+		if (Ar.ArUseCustomPropertyList)
+		{
+			const int32 OldNum = ArrayHelper.Num();
+			if (n > OldNum)
+			{
+				ArrayHelper.AddValues(n - OldNum);
+			}
+			else if (n < OldNum)
+			{
+				ArrayHelper.RemoveValues(n, OldNum - n);
+			}
+		}
+		else
+		{
+			ArrayHelper.EmptyAndAddValues(n);
+		}
 	}
 	ArrayHelper.CountBytes( Ar );
 

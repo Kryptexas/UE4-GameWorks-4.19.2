@@ -223,11 +223,13 @@ TSharedRef<ITableRow> SMeshMergingDialog::MakeComponentListItemWidget(TSharedPtr
 
 	// Retrieve information about the mesh component
 	const FString OwningActorName = MeshComponentData->MeshComponent->GetOwner()->GetName();
-	const FString StaticMeshName = MeshComponentData->MeshComponent->StaticMesh->GetName();
+	const FString StaticMeshName = (MeshComponentData->MeshComponent->StaticMesh != nullptr) ? MeshComponentData->MeshComponent->StaticMesh->GetName() : TEXT("No Static Mesh Available");
+	// Only static mesh components with valid static mesh data should be incorporated	
+	MeshComponentData->bShouldIncorporate = (MeshComponentData->MeshComponent->StaticMesh != nullptr);
 	const FString ComponentName = MeshComponentData->MeshComponent->GetName();
 
 	// See if we stored a checkbox state for this mesh component, and set accordingly
-	ECheckBoxState State = ECheckBoxState::Checked;
+	ECheckBoxState State = (MeshComponentData->MeshComponent->StaticMesh != nullptr) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	auto StoredState = StoredCheckBoxStates.Find(MeshComponentData->MeshComponent.Get());
 	if (StoredState)
 	{
@@ -236,7 +238,7 @@ TSharedRef<ITableRow> SMeshMergingDialog::MakeComponentListItemWidget(TSharedPtr
 		
 		NumSelectedMeshComponents += (MeshComponentData->bShouldIncorporate) ? 1 : 0;
 	}
-	else
+	else if (MeshComponentData->bShouldIncorporate == true)
 	{
 		NumSelectedMeshComponents++;
 	}
@@ -245,13 +247,16 @@ TSharedRef<ITableRow> SMeshMergingDialog::MakeComponentListItemWidget(TSharedPtr
 		[
 			SNew(SBox)
 			[
-				SNew(SHorizontalBox)
+				// Disable UI element if this static mesh component has invalid static mesh data
+				SNew(SHorizontalBox)				
+				.IsEnabled((MeshComponentData->MeshComponent->StaticMesh != nullptr))
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(SCheckBox)
 					.IsChecked(State)
 					.ToolTipText(LOCTEXT("IncorporateCheckBoxToolTip", "When ticked the Mesh Component will be incorporated into the merge"))
+					
 					.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
 					{
 						MeshComponentData->bShouldIncorporate = (NewState == ECheckBoxState::Checked);

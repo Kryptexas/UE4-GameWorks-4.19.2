@@ -817,7 +817,7 @@ protected:
 
 	FCriticalSection NavDataRegistration;
 
-	TMap<FNavAgentProperties, ANavigationData*> AgentToNavDataMap;
+	TMap<FNavAgentProperties, TWeakObjectPtr<ANavigationData> > AgentToNavDataMap;
 	
 	TMap<const UObject*, FOctreeElementId> ObjectToOctreeId;
 

@@ -97,12 +97,6 @@ void FLandscapeStaticLightingTextureMapping::Apply(FQuantizedLightmapData* Quant
 
 	LandscapeComponent->bHasCachedStaticLighting = true;
 
-	// invalidate grass in case bUseLandscapeLightmap is being used
-	// we don't need to invalidate the textures used to place grass, only the instances
-	TSet<ULandscapeComponent*> Components;
-	Components.Add(LandscapeComponent);
-	LandscapeComponent->GetLandscapeProxy()->FlushGrassComponents(&Components, false);
-
 	// Mark the primitive's package as dirty.
 	LandscapeComponent->MarkPackageDirty();
 }
@@ -750,4 +744,10 @@ void ULandscapeComponent::InvalidateLightingCacheDetailed(bool bInvalidateBuildE
 		LightMap = NULL;
 		ShadowMap = NULL;
 	}
+
+	// invalidate grass in case bUseLandscapeLightmap is being used
+	// we don't need to invalidate the textures used to place grass, only the instances
+	TSet<ULandscapeComponent*> Components;
+	Components.Add(this);
+	GetLandscapeProxy()->FlushGrassComponents(&Components, false);
 }

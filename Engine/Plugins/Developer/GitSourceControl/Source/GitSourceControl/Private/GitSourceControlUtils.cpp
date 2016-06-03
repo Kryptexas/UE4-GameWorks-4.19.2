@@ -58,7 +58,7 @@ static bool RunCommandInternalRaw(const FString& InCommand, const FString& InPat
 		FString RepositoryRoot = InRepositoryRoot;
 
 		// Detect a "migrate asset" scenario (a "git add" command is applied to files outside the current project)
-		if ( (InFiles.Num() > 0) && (!InFiles[0].StartsWith(InRepositoryRoot)) )
+		if ( (InFiles.Num() > 0) && !FPaths::IsRelative(InFiles[0]) && !InFiles[0].StartsWith(InRepositoryRoot) )
 		{
 			// in this case, find the git repository (if any) of the destination Project
 			FindRootDirectory(FPaths::GetPath(InFiles[0]), RepositoryRoot);
@@ -90,9 +90,18 @@ static bool RunCommandInternalRaw(const FString& InCommand, const FString& InPat
 
 	FullCommand += LogableCommand;
 
-// @todo: temporary debug logs
-//	UE_LOG(LogSourceControl, Log, TEXT("RunCommandInternalRaw: 'git %s'"), *FullCommand);
+	// @todo: temporary debug logs
+	//UE_LOG(LogSourceControl, Log, TEXT("RunCommandInternalRaw: 'git %s'"), *FullCommand);
+	
 	FPlatformProcess::ExecProcess(*InPathToGitBinary, *FullCommand, &ReturnCode, &OutResults, &OutErrors);
+	
+	//// @todo: temporary debug logs
+	//UE_LOG(LogSourceControl, Log, TEXT("RunCommandInternalRaw: 'OutResults=\n%s'"), *OutResults);
+	//if (ReturnCode != 0)
+	//{
+	//	// @todo: temporary debug logs
+	//	UE_LOG(LogSourceControl, Warning, TEXT("RunCommandInternalRaw: 'OutErrors=\n%s'"), *OutErrors);
+	//}
 
 	return ReturnCode == 0;
 }

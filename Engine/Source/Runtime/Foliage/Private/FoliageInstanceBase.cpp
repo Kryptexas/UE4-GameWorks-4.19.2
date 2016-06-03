@@ -92,11 +92,23 @@ FFoliageInstanceBaseId FFoliageInstanceBaseCache::AddInstanceBaseId(UActorCompon
 		{
 			BaseId = NextBaseId++;
 
+			// more info for UE-30878
+			if (InstanceBaseMap.Num() != InstanceBaseInvMap.Num())
+			{
+				UE_LOG(LogInstancedFoliage, Fatal, TEXT("Instance base cache - integrity verification(1): Counter: %d Size: %d, InvSize: %d"), (int32)BaseId, InstanceBaseMap.Num(), InstanceBaseInvMap.Num());
+			}
+
 			FFoliageInstanceBaseInfo BaseInfo(InComponent);
 			InstanceBaseMap.Add(BaseId, BaseInfo);
 			InstanceBaseInvMap.Add(BaseInfo.BasePtr, BaseId);
 
-			check(InstanceBaseMap.Num() == InstanceBaseInvMap.Num());
+			// more info for UE-30878
+			//check(InstanceBaseMap.Num() == InstanceBaseInvMap.Num());
+			if (InstanceBaseMap.Num() != InstanceBaseInvMap.Num())
+			{
+				FUniqueObjectGuid BaseUID = BaseInfo.BasePtr.GetUniqueID();
+				UE_LOG(LogInstancedFoliage, Fatal, TEXT("Instance base cache - integrity verification(2): Counter: %d Size: %d, InvSize: %d, BaseUID: %s, BaseName: %s"), (int32)BaseId, InstanceBaseMap.Num(), InstanceBaseInvMap.Num(), *BaseUID.ToString(), *InComponent->GetFullName());
+			}
 
 			ULevel* ComponentLevel = InComponent->GetComponentLevel();
 			if (ComponentLevel)

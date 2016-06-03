@@ -165,6 +165,21 @@ FFrameGrabber::FFrameGrabber(TSharedRef<FSceneViewport> Viewport, FIntPoint Desi
 {
 	State = EFrameGrabberState::Inactive;
 
+	// cause the viewport to always flush on draw
+	Viewport->IncrementFlushOnDraw();
+
+	{
+		// Setup a functor to decrement the flag on destruction (this class isn't necessarily tied to scene viewports)
+		TWeakPtr<FSceneViewport> WeakViewport = Viewport;
+		OnShutdown = [WeakViewport]{
+			TSharedPtr<FSceneViewport> PinnedViewport = WeakViewport.Pin();
+			if (PinnedViewport.IsValid())
+			{
+				PinnedViewport->DecrementFlushOnDraw();
+			}
+		};
+	}
+
 	TargetSize = DesiredBufferSize;
 
 	CurrentFrameIndex = 0;
@@ -222,6 +237,11 @@ FFrameGrabber::~FFrameGrabber()
 	{
 		FSlateApplication::Get().GetRenderer()->OnSlateWindowRendered().Remove(OnWindowRendered);
 	}
+	
+	if (OnShutdown)
+	{
+		OnShutdown();
+	}
 }
 
 void FFrameGrabber::StartCapturingFrames()
@@ -244,15 +264,8 @@ void FFrameGrabber::CaptureThisFrame(FFramePayloadPtr Payload)
 
 	OutstandingFrameCount.Increment();
 
-	// Issue a rendering command to ensure we capture the frame that is currently being set up
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-		IssueCaptureFrameCommand,
-		FFrameGrabber* , This, this,
-		FFramePayloadPtr, Payload, Payload,
-	{
-		FScopeLock Lock(&This->PendingFramePayloadsMutex);
-		This->PendingFramePayloads.Add(Payload);
-	});
+	FScopeLock Lock(&PendingFramePayloadsMutex);
+	PendingFramePayloads.Add(Payload);
 }
 
 void FFrameGrabber::StopCapturingFrames()

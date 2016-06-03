@@ -902,6 +902,18 @@ void USkeletalMeshComponent::RecalcRequiredBones(int32 LODIndex)
 	FSkeletalMeshResource* SkelMeshResource = GetSkeletalMeshResource();
 	check(SkelMeshResource);
 
+	// Make sure we access a valid LOD
+	// @fixme jira UE-30028 Avoid crash when called with partially loaded asset
+	if (SkelMeshResource->LODModels.Num() == 0)
+	{
+		//No LODS?
+		RequiredBones.Reset();
+		FillSpaceBasesRequiredBones.Reset();
+		UE_LOG(LogAnimation, Warning, TEXT("Skeletal Mesh asset '%s' has no LODs"), *SkeletalMesh->GetName());
+		return;
+	}
+	LODIndex = FMath::Clamp(LODIndex, 0, SkelMeshResource->LODModels.Num()-1);
+
 	// The list of bones we want is taken from the predicted LOD level.
 	FStaticLODModel& LODModel = SkelMeshResource->LODModels[LODIndex];
 	RequiredBones = LODModel.RequiredBones;

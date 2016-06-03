@@ -155,7 +155,7 @@ template<> struct FPixelTypeTraits<FFloat16Color>
 	static FORCEINLINE bool IsWritingHDRImage(const bool bCaptureHDR)
 	{
 		static const auto CVarDumpFramesAsHDR = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BufferVisualizationDumpFramesAsHDR"));
-		return bCaptureHDR || CVarDumpFramesAsHDR->GetValueOnRenderThread();
+		return bCaptureHDR || CVarDumpFramesAsHDR->GetValueOnAnyThread();
 	}
 };
 
@@ -214,7 +214,7 @@ bool FHighResScreenshotConfig::SaveImage(const FString& File, const TArray<TPixe
 	{
 		ImageCompression::CompressionQuality LocalCompressionQuality = ImageCompression::Default;
 		
-		if(bIsWritingHDRImage && CVarSaveEXRCompressionQuality.GetValueOnGameThread() == 0)
+		if(bIsWritingHDRImage && CVarSaveEXRCompressionQuality.GetValueOnAnyThread() == 0)
 		{
 			LocalCompressionQuality = ImageCompression::Uncompressed;
 		}

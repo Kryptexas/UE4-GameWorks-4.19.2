@@ -35,6 +35,7 @@
 #include "GameplayDebuggingComponent.h"
 #include "GameplayDebuggingControllerComponent.h"
 #include "GameplayDebuggingReplicator.h"
+#include "GameplayDebuggerCategory.h"
 
 DEFINE_LOG_CATEGORY(LogGameplayDebugger);
 
@@ -1852,7 +1853,6 @@ void UGameplayDebuggingComponent::CollectPerceptionData()
 		return;
 	}
 
-#if 0
 	APawn* MyPawn = Cast<APawn>(GetSelectedActor());
 	if (MyPawn)
 	{
@@ -1866,9 +1866,43 @@ void UGameplayDebuggingComponent::CollectPerceptionData()
 			}
 			if (PerceptionComponent)
 			{
-				TArray<FString> PerceptionTexts;
+				FGameplayDebuggerCategory DummyCategory;
+				PerceptionComponent->DescribeSelfToGameplayDebugger(&DummyCategory);
+
+				TArray<FString> LoggedLines = DummyCategory.GetReplicatedLinesCopy();
+				TArray<FGameplayDebuggerShape> LoggedShapes = DummyCategory.GetReplicatedShapesCopy();
+
 				PerceptionShapeElements.Reset();
-				PerceptionComponent->GrabGameplayDebuggerData(PerceptionTexts, PerceptionShapeElements);
+				for (int32 Idx = 0; Idx < LoggedShapes.Num(); Idx++)
+				{
+					const FGameplayDebuggerShape& ShapeItem = LoggedShapes[Idx];
+					switch (LoggedShapes[Idx].Type)
+					{
+						case EGameplayDebuggerShape::Box:
+							PerceptionShapeElements.Add(FGameplayDebuggerShapeElement::MakeBox(ShapeItem.ShapeData[0], ShapeItem.ShapeData[1], ShapeItem.Color, ShapeItem.Description));
+							break;
+						case EGameplayDebuggerShape::Capsule:
+							PerceptionShapeElements.Add(FGameplayDebuggerShapeElement::MakeCapsule(ShapeItem.ShapeData[0], ShapeItem.ShapeData[1].X, ShapeItem.ShapeData[1].Z, ShapeItem.Color, ShapeItem.Description));
+							break;
+						case EGameplayDebuggerShape::Cone:
+							PerceptionShapeElements.Add(FGameplayDebuggerShapeElement::MakeCone(ShapeItem.ShapeData[0], ShapeItem.ShapeData[1], ShapeItem.ShapeData[2].X, ShapeItem.Color, ShapeItem.Description));
+							break;
+						case EGameplayDebuggerShape::Cylinder:
+							PerceptionShapeElements.Add(FGameplayDebuggerShapeElement::MakeCylinder(ShapeItem.ShapeData[0], ShapeItem.ShapeData[1].X, ShapeItem.ShapeData[1].Z, ShapeItem.Color, ShapeItem.Description));
+							break;
+						case EGameplayDebuggerShape::Point:
+							PerceptionShapeElements.Add(FGameplayDebuggerShapeElement::MakePoint(ShapeItem.ShapeData[0], ShapeItem.ShapeData[1].X, ShapeItem.Color, ShapeItem.Description));
+							break;
+						case EGameplayDebuggerShape::Polygon:
+							PerceptionShapeElements.Add(FGameplayDebuggerShapeElement::MakePolygon(ShapeItem.ShapeData, ShapeItem.Color, ShapeItem.Description));
+							break;
+						case EGameplayDebuggerShape::Segment:
+							PerceptionShapeElements.Add(FGameplayDebuggerShapeElement::MakeSegment(ShapeItem.ShapeData[0], ShapeItem.ShapeData[1], ShapeItem.ShapeData[2].X, ShapeItem.Color, ShapeItem.Description));
+							break;
+						default:
+							break;
+					}
+				}
 
 				DistanceFromPlayer = DistanceFromSensor = -1;
 
@@ -1881,16 +1915,16 @@ void UGameplayDebuggingComponent::CollectPerceptionData()
 					DistanceFromPlayer = (MyPawn->GetActorLocation() - MyPC->GetPawn()->GetActorLocation()).Size();
 					DistanceFromSensor = SensingComponentLocation != FVector::ZeroVector ? (SensingComponentLocation - MyPC->GetPawn()->GetActorLocation()).Size() : -1;
 				}
-			}
 
-			UAIPerceptionSystem* PerceptionSys = UAIPerceptionSystem::GetCurrent(MyPawn->GetWorld());
-			if (PerceptionSys)
-			{
-				PerceptionLegend = PerceptionSys->GetPerceptionDebugLegend();
+				PerceptionLegend = TEXT("\n");
+				for (int32 Idx = 0; Idx < LoggedLines.Num(); Idx++)
+				{
+					PerceptionLegend += LoggedLines[Idx];
+					PerceptionLegend += TEXT('\n');
+				}
 			}
 		}
 	}
 
-#endif
 #endif
 }

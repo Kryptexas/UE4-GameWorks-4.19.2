@@ -520,8 +520,7 @@ static void EdgeWalkSetup( bool ReverseDirection, int32 Edge, int32 MipSize, int
 
 void FReflectionCaptureEncodedHDRDerivedData::GenerateFromDerivedDataSource(const FReflectionCaptureFullHDR& FullHDRData, float Brightness)
 {
-	const int32 EffectiveTopMipSize = FullHDRData.CubemapSize;
-	const int32 NumMips = FMath::CeilLogTwo(EffectiveTopMipSize) + 1;
+	const int32 NumMips = FMath::CeilLogTwo(FullHDRData.CubemapSize) + 1;
 
 	TArray<uint8> CubemapData;
 	FullHDRData.GetUncompressedData(CubemapData);
@@ -647,11 +646,15 @@ void FReflectionCaptureEncodedHDRDerivedData::GenerateFromDerivedDataSource(cons
 }
 
 // Generate a new guid to force a recache of all encoded HDR derived data
-#define REFLECTIONCAPTURE_ENCODED_DERIVEDDATA_VER TEXT("96DFC022836B48889143E9DF484C3296")
+#define REFLECTIONCAPTURE_ENCODED_DERIVEDDATA_VER TEXT("6B6DFE9DF44888914934C082283C3296")
 
-FString FReflectionCaptureEncodedHDRDerivedData::GetDDCKeyString(const FGuid& StateId)
+FString FReflectionCaptureEncodedHDRDerivedData::GetDDCKeyString(const FGuid& StateId, int32 CubemapDimension)
 {
-	return FDerivedDataCacheInterface::BuildCacheKey(TEXT("REFL_ENC"), REFLECTIONCAPTURE_ENCODED_DERIVEDDATA_VER, *StateId.ToString());
+	return FDerivedDataCacheInterface::BuildCacheKey(
+		TEXT("REFL_ENC"), 
+		REFLECTIONCAPTURE_ENCODED_DERIVEDDATA_VER, 
+		*StateId.ToString().Append("_").Append(FString::FromInt(CubemapDimension))
+		);
 }
 
 FReflectionCaptureEncodedHDRDerivedData::~FReflectionCaptureEncodedHDRDerivedData()
@@ -662,7 +665,7 @@ FReflectionCaptureEncodedHDRDerivedData::~FReflectionCaptureEncodedHDRDerivedDat
 TRefCountPtr<FReflectionCaptureEncodedHDRDerivedData> FReflectionCaptureEncodedHDRDerivedData::GenerateEncodedHDRData(const FReflectionCaptureFullHDR& FullHDRData, const FGuid& StateId, float Brightness)
 {
 	TRefCountPtr<FReflectionCaptureEncodedHDRDerivedData> EncodedHDRData = new FReflectionCaptureEncodedHDRDerivedData();
-	const FString KeyString = GetDDCKeyString(StateId);
+	const FString KeyString = GetDDCKeyString(StateId, FullHDRData.CubemapSize);
 
 	COOK_STAT(auto Timer = ReflectionCaptureCookStats::UsageStats.TimeSyncWork());
 	bool DDCHit = GetDerivedDataCacheRef().GetSynchronous(*KeyString, EncodedHDRData->CapturedData);
@@ -1077,7 +1080,10 @@ void UReflectionCaptureComponent::PostLoad()
 	// If we're loading on a platform that doesn't require cooked data, attempt to load missing data from the DDC
 	if (!FPlatformProperties::RequiresCookedData())
 	{
-		if (!FullHDRData || FullHDRData->CubemapSize != ReflectionCaptureSize)
+		// if we don't have the FullHDRData then recapture it since we are on a platform that can capture it.
+		if (!FullHDRData || 
+			FullHDRData->CubemapSize != ReflectionCaptureSize || 
+			(EncodedHDRDerivedData && FullHDRData->CubemapSize != EncodedHDRDerivedData->CalculateCubemapDimension()))
 		{
 			bDerivedDataDirty = true;
 			delete FullHDRData;
@@ -1120,16 +1126,26 @@ void UReflectionCaptureComponent::PostLoad()
 			INC_MEMORY_STAT_BY(STAT_ReflectionCaptureMemory, EncodedHDRDerivedData->CapturedData.GetAllocatedSize());
 		}
 
-		int32 CubemapSize = ReflectionCaptureSize;
-		if (FullHDRData)
-		{
-			CubemapSize = FullHDRData->CubemapSize;
-		}
+		int32 EncodedCubemapSize = EncodedHDRDerivedData->CalculateCubemapDimension();
 
-		// Create a cubemap texture out of the encoded HDR data
-		EncodedHDRCubemapTexture = new FReflectionTextureCubeResource();
-		EncodedHDRCubemapTexture->SetupParameters(CubemapSize, FMath::CeilLogTwo(CubemapSize) + 1, PF_B8G8R8A8, &EncodedHDRDerivedData->CapturedData);
-		BeginInitResource(EncodedHDRCubemapTexture);
+		if (EncodedCubemapSize == ReflectionCaptureSize)
+		{
+			// Create a cubemap texture out of the encoded HDR data
+			EncodedHDRCubemapTexture = new FReflectionTextureCubeResource();
+			EncodedHDRCubemapTexture->SetupParameters(EncodedCubemapSize, FMath::CeilLogTwo(EncodedCubemapSize) + 1, PF_B8G8R8A8, &EncodedHDRDerivedData->CapturedData);
+			BeginInitResource(EncodedHDRCubemapTexture);
+		}
+		else
+		{
+			UE_LOG(
+				LogMaterial,
+				Error,
+				TEXT("Encoded reflection caputure resolution and project setting mismatch.\n(Project Setting: %d, Encoded Reflection Capture: %d.\nReflection cubemaps will be unavailable and cooking will fail."), 
+				CVarReflectionCaptureSize.GetValueOnGameThread(), 
+				EncodedCubemapSize
+				);
+		}
+		
 
 		// free up the full hdr data if we no longer need it.
 		if (FullHDRData && !bFullDataRequired)
@@ -1489,7 +1505,10 @@ void UReflectionCaptureComponent::PreFeatureLevelChange(ERHIFeatureLevel::Type P
 			{
 				EncodedHDRCubemapTexture = new FReflectionTextureCubeResource();
 			}
-			EncodedHDRCubemapTexture->SetupParameters(FullHDRData->CubemapSize, FMath::CeilLogTwo(FullHDRData->CubemapSize) + 1, PF_B8G8R8A8, &EncodedHDRDerivedData->CapturedData);
+
+			int32 EncodedCubemapSize = EncodedHDRDerivedData->CalculateCubemapDimension();
+
+			EncodedHDRCubemapTexture->SetupParameters(EncodedCubemapSize, FMath::CeilLogTwo(EncodedCubemapSize) + 1, PF_B8G8R8A8, &EncodedHDRDerivedData->CapturedData);
 			BeginInitResource(EncodedHDRCubemapTexture);
 		}
 	}

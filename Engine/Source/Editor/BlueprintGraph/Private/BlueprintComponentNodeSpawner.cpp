@@ -82,6 +82,13 @@ UBlueprintComponentNodeSpawner* UBlueprintComponentNodeSpawner::Create(const FCo
 		return nullptr;
 	}
 
+	if (ComponentClass->ClassWithin && ComponentClass->ClassWithin != UObject::StaticClass())
+	{
+		// we can't support 'Within' markup on components at this time (core needs to be aware of non-CDO archetypes
+		// that have within markup, and BP system needs to property use RF_ArchetypeObject on template objects)
+		return nullptr;
+	}
+
 	UClass* const AuthoritativeClass = ComponentClass->GetAuthoritativeClass();
 
 	UBlueprintComponentNodeSpawner* NodeSpawner = NewObject<UBlueprintComponentNodeSpawner>(GetTransientPackage());

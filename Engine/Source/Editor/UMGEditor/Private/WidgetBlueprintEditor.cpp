@@ -669,8 +669,7 @@ void FWidgetBlueprintEditor::UpdatePreview(UBlueprint* InBlueprint, bool bInForc
 
 		// Update the generated class'es widget tree to match the blueprint tree.  That way the preview can update
 		// without needing to do a full recompile.
-		Cast<UWidgetBlueprintGeneratedClass>(PreviewBlueprint->GeneratedClass)->DesignerWidgetTree = DuplicateObject<UWidgetTree>(PreviewBlueprint->WidgetTree, PreviewBlueprint->GeneratedClass);
-
+		Cast<UWidgetBlueprintGeneratedClass>(PreviewBlueprint->GeneratedClass)->DesignerWidgetTree = (UWidgetTree*)StaticDuplicateObject(PreviewBlueprint->WidgetTree, PreviewBlueprint->GeneratedClass, NAME_None, RF_Transactional); 
 		PreviewActor = CreateWidget<UUserWidget>(PreviewScene.GetWorld(), PreviewBlueprint->GeneratedClass);
 		PreviewActor->SetFlags(RF_Transactional);
 		

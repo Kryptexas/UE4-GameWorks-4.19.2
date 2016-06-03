@@ -924,6 +924,13 @@ static void ConvertRAWSurfaceDataToFColor(DXGI_FORMAT Format, uint32 Width, uint
 
 void FD3D11DynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI,FIntRect InRect,TArray<FColor>& OutData, FReadSurfaceDataFlags InFlags)
 {
+	if (!ensure(TextureRHI))
+	{
+		OutData.Empty();
+		OutData.AddZeroed(InRect.Width() * InRect.Height());
+		return;
+	}
+
 	TArray<uint8> OutDataRaw;
 
 	FD3D11TextureBase* Texture = GetD3D11TextureFromRHITexture(TextureRHI);

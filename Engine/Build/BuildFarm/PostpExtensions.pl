@@ -73,12 +73,12 @@ unshift @::gMatchers, (
     {
         id =>               "clErrorMultiline",
         pattern =>          q{([^(]+)(\([\d,]+\))? ?: (fatal )?error [a-zA-Z]+[\d]+},
-        action =>           q{incValue("errors"); my ($file_only) = ($1 =~ /([^\\\\]+)$/); diagnostic($file_only || $1, "error", 0, forwardWhile("^    "))},
+        action =>           q{incValue("errors"); my ($file_only) = ($1 =~ /([^\\\\]+)$/); diagnostic($file_only || $1, "error", 0, forwardWhile("^(    |^([^(]+)\\\\([\\\\d,]+\\\\) ?: note)"))},
     },
     {
         id =>               "clWarningMultiline",
         pattern =>          q{([^(]+)\([\d,]+\) ?: warning },
-        action =>           q{incValue("warnings"); my ($file_only) = ($1 =~ /([^\\\\]+)$/); diagnostic($file_only || $1, "warning", 0, forwardWhile("^    "))},
+        action =>           q{incValue("warnings"); my ($file_only) = ($1 =~ /([^\\\\]+)$/); diagnostic($file_only || $1, "warning", 0, forwardWhile("^(    |^([^(]+)\\\\([\\\\d,]+\\\\) ?: note)")) },
     },
     {
         id =>               "clangError",

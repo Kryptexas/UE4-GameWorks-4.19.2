@@ -22,7 +22,6 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bSnapPlayTimeToKeys = false;
 	bSnapPlayTimeToInterval = true;
 	bSnapPlayTimeToDraggedKey = false;
-	bFixedTimeStepPlayback = true;
 	CurveValueSnapInterval = 10.0f;
 	bSnapCurveValueToInterval = true;
 	bLabelBrowserVisible = false;
@@ -177,6 +176,7 @@ void USequencerSettings::SetTimeSnapInterval(float InTimeSnapInterval)
 	if ( TimeSnapInterval != InTimeSnapInterval )
 	{
 		TimeSnapInterval = InTimeSnapInterval;
+		OnTimeSnapIntervalChanged.Broadcast();
 		SaveConfig();
 	}
 }
@@ -275,20 +275,6 @@ void USequencerSettings::SetSnapPlayTimeToDraggedKey(bool InbSnapPlayTimeToDragg
 	if ( bSnapPlayTimeToDraggedKey != InbSnapPlayTimeToDraggedKey )
 	{
 		bSnapPlayTimeToDraggedKey = InbSnapPlayTimeToDraggedKey;
-		SaveConfig();
-	}
-}
-
-bool USequencerSettings::GetFixedTimeStepPlayback() const
-{
-	return bFixedTimeStepPlayback;
-}
-
-void USequencerSettings::SetFixedTimeStepPlayback(bool InbFixedTimeStepPlayback)
-{
-	if ( bFixedTimeStepPlayback != InbFixedTimeStepPlayback )
-	{
-		bFixedTimeStepPlayback = InbFixedTimeStepPlayback;
 		SaveConfig();
 	}
 }
@@ -533,4 +519,9 @@ float USequencerSettings::SnapTimeToInterval( float InTimeValue ) const
 USequencerSettings::FOnShowCurveEditorChanged& USequencerSettings::GetOnShowCurveEditorChanged()
 {
 	return OnShowCurveEditorChanged;
+}
+
+USequencerSettings::FOnTimeSnapIntervalChanged& USequencerSettings::GetOnTimeSnapIntervalChanged()
+{
+	return OnTimeSnapIntervalChanged;
 }

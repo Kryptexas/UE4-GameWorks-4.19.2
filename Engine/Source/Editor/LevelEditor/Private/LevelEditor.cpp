@@ -591,9 +591,6 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 		FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ToggleVR_CanExecute ),
 		FIsActionChecked::CreateStatic( &FLevelEditorActionCallbacks::ToggleVR_IsChecked ) );
 
-	ActionList.MapAction( Commands.Import,
-		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::Import_Clicked ) );
-
 	ActionList.MapAction(Commands.ImportScene,
 		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::ImportScene_Clicked));
 

@@ -225,7 +225,7 @@ void UAnimSingleNodeInstance::SetLooping(bool bIsLooping)
 
 	if (UAnimMontage* Montage = Cast<UAnimMontage>(CurrentAsset))
 	{
-		SetMontageLoop(Montage, Proxy.IsLooping(), Montage_GetCurrentSection());
+		SetMontageLoop(Montage, Proxy.IsLooping());
 	}
 }
 

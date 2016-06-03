@@ -5593,6 +5593,8 @@ UEdGraphNode* UEdGraphSchema_K2::CreateSubstituteNode(UEdGraphNode* Node, const 
 				}
 				else if (ensure(EventNode->FindEventSignatureFunction() != nullptr))
 				{
+					// EventNode::FindEventSignatureFunction will return null if it is deleted (for instance, someone declared a 
+					// BlueprintImplementableEvent, and some blueprint implements it, but then the declaration is deleted)
 					UClass* ClassOwner = EventNode->FindEventSignatureFunction()->GetOwnerClass()->GetAuthoritativeClass();
 
 					PreExistingNode = FBlueprintEditorUtils::FindOverrideForFunction(Blueprint, ClassOwner, EventNode->FindEventSignatureFunction()->GetFName());

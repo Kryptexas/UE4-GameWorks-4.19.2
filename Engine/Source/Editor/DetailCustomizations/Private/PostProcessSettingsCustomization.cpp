@@ -155,7 +155,7 @@ TSharedRef<SWidget> FWeightedBlendableCustomization::GenerateContentWidget(TShar
 							SupportedClass == UMaterial::StaticClass() ||
 							SupportedClass == UMaterialInstanceConstant::StaticClass()
 							))
-		{
+						{
 							FUIAction Direct2(FExecuteAction::CreateSP(this, &FWeightedBlendableCustomization::AddDirectAsset, StructPropertyHandle, Package, Weight, Value, SupportedClass));
 
 							FName ClassName = SupportedClass->GetFName();
@@ -172,7 +172,7 @@ TSharedRef<SWidget> FWeightedBlendableCustomization::GenerateContentWidget(TShar
 
 		if(bSeparatorIsNeeded)
 		{
-		MenuBuilder.AddMenuSeparator();
+			MenuBuilder.AddMenuSeparator();
 		}
 
 		FUIAction Indirect(FExecuteAction::CreateSP(this, &FWeightedBlendableCustomization::AddIndirectAsset, Weight));

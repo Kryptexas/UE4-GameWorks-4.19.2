@@ -66,6 +66,10 @@ void UPaperTileMapComponent::PostInitProperties()
 {
 	TileMap = NewObject<UPaperTileMap>(this);
 	TileMap->SetFlags(RF_Transactional);
+	if (HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject))
+	{
+		TileMap->SetFlags(GetMaskedFlags(RF_PropagateToSubObjects));
+	}
 	Super::PostInitProperties();
 }
 

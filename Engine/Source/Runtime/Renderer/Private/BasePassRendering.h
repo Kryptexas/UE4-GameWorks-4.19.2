@@ -506,9 +506,7 @@ public:
 		const bool bOutputVelocity = FVelocityRendering::OutputsToGBuffer();
 		if (bOutputVelocity)
 		{
-			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
-			// This needs to match FSceneRenderTargets::GetNumGBufferTargets()
-			const int32 VelocityIndex = (CVar && CVar->GetValueOnAnyThread() != 0) ? 6 : 5;
+			const int32 VelocityIndex = 4; // As defined in BasePassPixelShader.usf
 			OutEnvironment.SetRenderTargetOutputFormat(VelocityIndex, PF_G16R16);
 		}
 	}

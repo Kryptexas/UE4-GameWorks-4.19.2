@@ -1551,7 +1551,8 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 				{
 					PrevTransformBuffer = MeshVertexFactory->LockPreviousTransformBuffer(ParticleCount);
 				}
-								
+				
+				// todo: mobile Note hat if the allocation fails, PrevTransformBuffer SRV buffer wont be filled. Assuming this is ok since there is nothing to draw at that point.
 				if(Allocation.IsValid() && (!bUsesDynamicParameter || DynamicParameterAllocation.IsValid()))
 				{
 					// Fill instance buffer.

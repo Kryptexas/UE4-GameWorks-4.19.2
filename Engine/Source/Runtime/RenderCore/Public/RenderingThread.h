@@ -28,7 +28,7 @@ extern RENDERCORE_API bool GIsThreadedRendering;
 extern RENDERCORE_API bool GUseThreadedRendering;
 /**
  * Whether the RHI thread should be created or not, requires rendering thread
- * Currently set by command line parameter and by the ToggleRHIThread console command.
+ * Currently set by command line parameter and by the r.rhithread.enable cvar.
  */
 extern RENDERCORE_API bool GUseRHIThread;
 extern RENDERCORE_API void SetEnableRHIThread(bool bEnable);

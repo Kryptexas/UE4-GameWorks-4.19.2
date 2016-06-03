@@ -49,6 +49,25 @@ void UMovieSceneByteSection::GetKeyHandles(TSet<FKeyHandle>& OutKeyHandles, TRan
 }
 
 
+TOptional<float> UMovieSceneByteSection::GetKeyTime( FKeyHandle KeyHandle ) const
+{
+	if ( ByteCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		return TOptional<float>( ByteCurve.GetKeyTime( KeyHandle ) );
+	}
+	return TOptional<float>();
+}
+
+
+void UMovieSceneByteSection::SetKeyTime( FKeyHandle KeyHandle, float Time )
+{
+	if ( ByteCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		ByteCurve.SetKeyTime( KeyHandle, Time );
+	}
+}
+
+
 void UMovieSceneByteSection::AddKey( float Time, const uint8& Value, EMovieSceneKeyInterpolation KeyInterpolation )
 {
 	if (TryModify())

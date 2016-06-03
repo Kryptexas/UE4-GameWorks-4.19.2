@@ -790,6 +790,7 @@ FViewport::FViewport(FViewportClient* InViewportClient):
 	bHitProxiesCached(false),
 	bHasRequestedToggleFreeze(false),
 	bIsSlateViewport(false),
+	FlushOnDrawCount(0),
 	bTakeHighResScreenShot(false)
 {
 	//initialize the hit proxy kernel
@@ -1202,6 +1203,11 @@ void FViewport::Draw( bool bShouldPresent /*= true */)
 				// Enable game rendering again if it isn't already.
 				bIsGameRenderingEnabled = true;
 			}
+		}
+
+		if (FlushOnDrawCount != 0)
+		{
+			FlushRenderingCommands();
 		}
 
 		if(GCaptureCompositionNextFrame)

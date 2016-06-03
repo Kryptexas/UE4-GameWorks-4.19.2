@@ -114,6 +114,11 @@ void FKismet2CompilerModule::CompileBlueprintInner(class UBlueprint* Blueprint, 
 				{
 					Reinstancer->EnlistDependentBlueprintToRecompile(CurrentBP, !(CurrentBP->IsPossiblyDirty() || CurrentBP->Status == BS_Error) && CurrentBP->IsValidForBytecodeOnlyRecompile());
 				}
+
+				if(!Blueprint->ParentClass->HasAnyClassFlags(CLASS_Native))
+				{
+					Reinstancer->EnlistDependentBlueprintToRecompile(Blueprint, true);
+				}
 			}
 		}
 	}

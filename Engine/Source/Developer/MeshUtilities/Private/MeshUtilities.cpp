@@ -7162,19 +7162,19 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 	// Merge meshes into single mesh
 	for (int32 SourceMeshIdx = 0; SourceMeshIdx < SourceMeshes.Num(); ++SourceMeshIdx)
 	{	
-		const int32 LODIndex = SourceMeshes[SourceMeshIdx].ExportLODIndex;
+		const int32 ExportLODIndex = SourceMeshes[SourceMeshIdx].ExportLODIndex;
 		// Merge vertex data from source mesh list into single mesh
-		const FRawMesh& SourceRawMesh = SourceMeshes[SourceMeshIdx].MeshLODData[LODIndex].RawMesh;
+		const FRawMesh& SourceRawMesh = SourceMeshes[SourceMeshIdx].MeshLODData[ExportLODIndex].RawMesh;
 
 		if (SourceRawMesh.VertexPositions.Num() == 0)
 		{
 			continue;
 		}
 
-		const TArray<int32> MaterialIndices = MaterialMap[FMeshIdAndLOD(SourceMeshIdx, SourceMeshes[SourceMeshIdx].ExportLODIndex)];
+		const TArray<int32> MaterialIndices = MaterialMap[FMeshIdAndLOD(SourceMeshIdx, ExportLODIndex)];
 		check(MaterialIndices.Num() > 0);
 
-		FRawMesh& TargetRawMesh = MergedMesh.MeshLODData[LODIndex].RawMesh;
+		FRawMesh& TargetRawMesh = MergedMesh.MeshLODData[0].RawMesh;
 
 		TargetRawMesh.FaceSmoothingMasks.Append(SourceRawMesh.FaceSmoothingMasks);
 
@@ -7208,7 +7208,7 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 
 		// Deal with vertex colors
 		// Some meshes may have it, in this case merged mesh will be forced to have vertex colors as well
-		if (bWithVertexColors[LODIndex])
+		if (bWithVertexColors[ExportLODIndex])
 		{
 			if (SourceRawMesh.WedgeColors.Num())
 			{
@@ -7228,7 +7228,7 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 		for (int32 ChannelIdx = 0; ChannelIdx < MAX_MESH_TEXTURE_COORDS; ++ChannelIdx)
 		{
 			// Whether this channel has data
-			if (bOcuppiedUVChannels[LODIndex][ChannelIdx])
+			if (bOcuppiedUVChannels[ExportLODIndex][ChannelIdx])
 			{
 				const TArray<FVector2D>& SourceChannel = SourceRawMesh.WedgeTexCoords[ChannelIdx];
 				TArray<FVector2D>& TargetChannel = TargetRawMesh.WedgeTexCoords[ChannelIdx];

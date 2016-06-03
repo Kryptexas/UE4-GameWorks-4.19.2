@@ -11,7 +11,7 @@
 // Changing this causes a full shader recompile
 static TAutoConsoleVariable<int32> CVarSelectiveBasePassOutputs(
 	TEXT("r.SelectiveBasePassOutputs"),
-	1,
+	0,
 	TEXT("Enables shaders to only export to relevant rendertargets.\n") \
 	TEXT(" 0: Export in all rendertargets.\n") \
 	TEXT(" 1: Export only into relevant rendertarget.\n"),

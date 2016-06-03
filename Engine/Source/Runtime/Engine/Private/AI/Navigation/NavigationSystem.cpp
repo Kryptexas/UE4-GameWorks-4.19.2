@@ -1436,9 +1436,10 @@ const ANavigationData* UNavigationSystem::GetNavDataForProps(const FNavAgentProp
 		return MainNavData;
 	}
 	
-	const ANavigationData* const* NavDataForAgent = AgentToNavDataMap.Find(AgentProperties);
+	const TWeakObjectPtr<ANavigationData>* NavDataForAgent = AgentToNavDataMap.Find(AgentProperties);
+	const ANavigationData* NavDataInstance = NavDataForAgent ? NavDataForAgent->Get() : nullptr;
 
-	if (NavDataForAgent == NULL)
+	if (NavDataInstance == nullptr)
 	{
 		TArray<FNavAgentProperties> AgentPropertiesList;
 		int32 NumNavDatas = AgentToNavDataMap.GetKeys(AgentPropertiesList);
@@ -1491,10 +1492,11 @@ const ANavigationData* UNavigationSystem::GetNavDataForProps(const FNavAgentProp
 		if (BestFitNavAgent.IsValid())
 		{
 			NavDataForAgent = AgentToNavDataMap.Find(BestFitNavAgent);
+			NavDataInstance = NavDataForAgent ? NavDataForAgent->Get() : nullptr;
 		}
 	}
 
-	return NavDataForAgent != NULL && *NavDataForAgent != NULL ? *NavDataForAgent : MainNavData;
+	return NavDataInstance ? NavDataInstance : MainNavData;
 }
 
 ANavigationData* UNavigationSystem::GetMainNavData(FNavigationSystem::ECreateIfEmpty CreateNewIfNoneFound)
@@ -1803,8 +1805,10 @@ UNavigationSystem::ERegistrationResult UNavigationSystem::RegisterNavData(ANavig
 	if (NavConfig.IsValid() == true)
 	{
 		// check if this kind of agent has already its navigation implemented
-		ANavigationData** NavDataForAgent = AgentToNavDataMap.Find(NavConfig);
-		if (NavDataForAgent == nullptr || *NavDataForAgent == nullptr || ensure((*NavDataForAgent)->IsPendingKill() == true))
+		TWeakObjectPtr<ANavigationData>* NavDataForAgent = AgentToNavDataMap.Find(NavConfig);
+		ANavigationData* NavDataInstanceForAgent = NavDataForAgent ? NavDataForAgent->Get() : nullptr;
+
+		if (NavDataInstanceForAgent == nullptr)
 		{
 			if (NavData->IsA(AAbstractNavData::StaticClass()) == false)
 			{
@@ -1845,7 +1849,7 @@ UNavigationSystem::ERegistrationResult UNavigationSystem::RegisterNavData(ANavig
 				Result = RegistrationSuccessful;
 			}
 		}
-		else if (*NavDataForAgent == NavData)
+		else if (NavDataInstanceForAgent == NavData)
 		{
 			ensure(NavDataSet.Find(NavData) != INDEX_NONE);
 			// let's treat double registration of the same nav data with the same agent as a success
@@ -1900,10 +1904,13 @@ INavLinkCustomInterface* UNavigationSystem::GetCustomLink(uint32 UniqueLinkId) c
 
 void UNavigationSystem::UpdateCustomLink(const INavLinkCustomInterface* CustomLink)
 {
-	for (TMap<FNavAgentProperties, ANavigationData*>::TIterator It(AgentToNavDataMap); It; ++It)
+	for (TMap<FNavAgentProperties, TWeakObjectPtr<ANavigationData> >::TIterator It(AgentToNavDataMap); It; ++It)
 	{
-		ANavigationData* NavData = It.Value();
-		NavData->UpdateCustomLink(CustomLink);
+		ANavigationData* NavData = It.Value().Get();
+		if (NavData)
+		{
+			NavData->UpdateCustomLink(CustomLink);
+		}
 	}
 }
 

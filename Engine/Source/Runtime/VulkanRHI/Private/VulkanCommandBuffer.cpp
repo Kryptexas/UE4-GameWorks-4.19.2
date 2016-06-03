@@ -30,7 +30,17 @@ FVulkanCmdBuffer::FVulkanCmdBuffer(FVulkanDevice* InDevice, FVulkanCommandBuffer
 FVulkanCmdBuffer::~FVulkanCmdBuffer()
 {
 	auto& FenceManager = Device->GetFenceManager();
-	FenceManager.WaitAndReleaseFence(Fence, 0xffffffff);
+	if (State == EState::Submitted)
+	{
+		// Wait 60ms
+		uint64 WaitForCmdBufferInNanoSeconds = 60 * 1000 * 1000LL;
+		FenceManager.WaitAndReleaseFence(Fence, WaitForCmdBufferInNanoSeconds);
+	}
+	else
+	{
+		// Just free the fence, CmdBuffer was not submitted
+		FenceManager.ReleaseFence(Fence);
+	}
 
 	vkFreeCommandBuffers(Device->GetInstanceHandle(), CommandBufferManager->GetHandle(), 1, &CommandBufferHandle);
 	CommandBufferHandle = VK_NULL_HANDLE;

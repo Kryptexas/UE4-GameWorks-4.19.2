@@ -92,6 +92,10 @@ struct FMorphTargetLODModel
 	/** Get Resource Size */
 	SIZE_T GetResourceSize() const;
 
+	FMorphTargetLODModel()
+		: NumBaseMeshVerts(0)
+	{}
+
 	/** pipe operator */
 	friend FArchive& operator<<(FArchive& Ar, FMorphTargetLODModel& M)
 	{

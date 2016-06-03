@@ -203,6 +203,14 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = AdvancedAPKPackaging, Meta = (DisplayName = "Remove Oculus Signature Files from Distribution APK"))
 	bool bRemoveOSIG;
 
+	// Configure the Android to run in sustained performance with lower max speeds, but no FPS fluctuations due to temperature
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = AdvancedAPKPackaging, Meta = (DisplayName = "Configure GoogleVR for sustained-performance mode"))
+	bool bGoogleVRSustainedPerformance;
+
+	// Configure the Android to run in low-latency mode, not available on all hardware
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = AdvancedAPKPackaging, Meta = (DisplayName = "Configure GoogleVR for low-latency rendering mode (scanline racing)"))
+	bool bGoogleVRScanlineRacing;
+
 	// This is the file that keytool outputs, specified with the -keystore parameter (file should be in <Project>/Build/Android)
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = DistributionSigning, Meta = (DisplayName = "Key Store (output of keytool, placed in <Project>/Build/Android)"))
 	FString KeyStore;

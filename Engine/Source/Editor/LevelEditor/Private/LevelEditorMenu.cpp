@@ -153,10 +153,7 @@ TSharedRef< SWidget > FLevelEditorMenu::MakeLevelEditorMenu( const TSharedPtr<FU
 			{
 				MenuBuilder.BeginSection("FileActors", LOCTEXT("ImportExportHeading", "Actors") );
 				{
-					// Import
-					MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().Import );
-
-					// Import Scene
+					// Import Into Level
 					MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().ImportScene);
 
 					// Export All

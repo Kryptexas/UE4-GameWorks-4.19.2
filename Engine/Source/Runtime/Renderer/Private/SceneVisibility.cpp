@@ -2035,7 +2035,6 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 	{
 		FViewInfo& View = Views[ViewIndex];
 		FSceneViewState* ViewState = View.ViewState;
-		static bool bEnableTimeScale = true;
 
 		// Once per render increment the occlusion frame counter.
 		if (ViewState)
@@ -2270,7 +2269,10 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 				// Clamp DeltaWorldTime to reasonable values for the purposes of motion blur, things like TimeDilation can make it very small
 				if (!ViewFamily.bWorldIsPaused)
 				{
-					ViewState->MotionBlurTimeScale			= bEnableTimeScale ? (1.0f / (FMath::Max(View.Family->DeltaWorldTime, .00833f) * 30.0f)) : 1.0f;
+					const bool bEnableTimeScale = !ViewState->bSequencerIsPaused;
+					const float FixedBlurTimeScale = 2.0f;// 1 / (30 * 1 / 60)
+
+					ViewState->MotionBlurTimeScale = bEnableTimeScale ? (1.0f / (FMath::Max(View.Family->DeltaWorldTime, .00833f) * 30.0f)) : FixedBlurTimeScale;
 				}
 
 				View.PrevViewMatrices = ViewState->PrevViewMatrices;

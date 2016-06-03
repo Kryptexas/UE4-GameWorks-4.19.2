@@ -5,6 +5,7 @@
 #include "MovieSceneSubTrackInstance.h"
 #include "MovieSceneSequenceInstance.h"
 #include "MovieSceneSubSection.h"
+#include "MovieSceneSequence.h"
 #include "IMovieScenePlayer.h"
 
 
@@ -230,8 +231,20 @@ void FMovieSceneSubTrackInstance::UpdateSection( EMovieSceneUpdateData& UpdateDa
 
 	// calculate section's local time
 	const float InstanceOffset = SubSection->StartOffset + Instance->GetTimeRange().GetLowerBoundValue() - SubSection->PrerollTime;
-	const float InstanceLastPosition = InstanceOffset + (UpdateData.LastPosition - (SubSection->GetStartTime()- SubSection->PrerollTime)) / SubSection->TimeScale;
-	const float InstancePosition = InstanceOffset + (UpdateData.Position - (SubSection->GetStartTime()- SubSection->PrerollTime)) / SubSection->TimeScale;
+	float InstanceLastPosition = InstanceOffset + (UpdateData.LastPosition - (SubSection->GetStartTime()- SubSection->PrerollTime)) / SubSection->TimeScale;
+	float InstancePosition = InstanceOffset + (UpdateData.Position - (SubSection->GetStartTime()- SubSection->PrerollTime)) / SubSection->TimeScale;
+
+	UMovieSceneSequence* SubSequence = SubSection->GetSequence();
+	if (SubSequence)
+	{
+		UMovieScene* SubMovieScene = SubSequence->GetMovieScene();
+		if (SubMovieScene && SubMovieScene->GetForceFixedFrameIntervalPlayback() && SubMovieScene->GetFixedFrameInterval() > 0 )
+		{
+			float FixedFrameInterval = ( SubMovieScene->GetFixedFrameInterval() / SubSection->TimeScale );
+			InstancePosition = FMath::RoundToInt( InstancePosition / FixedFrameInterval ) * FixedFrameInterval;
+			InstanceLastPosition = FMath::RoundToInt( InstanceLastPosition / FixedFrameInterval ) * FixedFrameInterval;
+		}
+	}
 
 	EMovieSceneUpdateData SubUpdateData(InstancePosition, InstanceLastPosition);
 	SubUpdateData.bJumpCut = UpdateData.LastPosition < SubSection->GetStartTime() || UpdateData.LastPosition > SubSection->GetEndTime();

@@ -52,6 +52,25 @@ void UMovieSceneBoolSection::GetKeyHandles(TSet<FKeyHandle>& OutKeyHandles, TRan
 }
 
 
+TOptional<float> UMovieSceneBoolSection::GetKeyTime( FKeyHandle KeyHandle ) const
+{
+	if ( BoolCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		return TOptional<float>( BoolCurve.GetKeyTime( KeyHandle ) );
+	}
+	return TOptional<float>();
+}
+
+
+void UMovieSceneBoolSection::SetKeyTime( FKeyHandle KeyHandle, float Time )
+{
+	if ( BoolCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		BoolCurve.SetKeyTime( KeyHandle, Time );
+	}
+}
+
+
 void UMovieSceneBoolSection::AddKey( float Time, const bool& Value, EMovieSceneKeyInterpolation KeyInterpolation )
 {
 	if (TryModify())

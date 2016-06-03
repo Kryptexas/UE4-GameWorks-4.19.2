@@ -2694,7 +2694,7 @@ FIntRect ALandscapeProxy::GetBoundingRect() const
 
 bool ALandscape::HasAllComponent()
 {
-	ULandscapeInfo* Info = GetLandscapeInfo();
+	ULandscapeInfo* Info = GetLandscapeInfo(false);
 	if (Info && Info->XYtoComponentMap.Num() == LandscapeComponents.Num())
 	{
 		// all components are owned by this Landscape actor (no Landscape Proxies)

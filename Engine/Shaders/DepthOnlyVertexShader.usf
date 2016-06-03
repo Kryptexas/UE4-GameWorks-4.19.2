@@ -12,7 +12,7 @@
 bool bNeedsInstancedStereoBias;
 #endif
 
-#define IOSMETALZBIASWORKAROUND METAL_PROFILE && IOS && (ES2_PROFILE || ES3_1_PROFILE)
+#define IOSZBIASWORKAROUND IOS && (ES2_PROFILE || ES3_1_PROFILE)
 
 struct FDepthOnlyVSToPS
 {
@@ -139,11 +139,12 @@ void Main(
 		
 		// Bias the depth
 		Output.Position.z += InstancedStereoDepthBias * Output.Position.w * (float)bNeedsInstancedStereoBias;
-		#elif IOSMETALZBIASWORKAROUND
-			// Z bias is needed here for ios metal (UE-26765)
+		#elif IOSZBIASWORKAROUND
+			// Z bias is needed here for ios metal (UE-26765) and gles (UE-27530)
 			// with metal compiler we cannot guarantee the order of operations across different shaders.
 			// Access to a fused multiply add intrinsic would solve this. In the meantime we add a small bias.
 			// This can be done here as the forward renderer's only use of the depth only shader is for modulated shadows.
+			// Addendum: This issue can occur with gles on metal capable hardware too. We apply this for all iOS shaders.
 			Output.Position.z += 0.0001 * Output.Position.w;
 		#endif
 	}

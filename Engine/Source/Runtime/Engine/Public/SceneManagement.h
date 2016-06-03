@@ -18,6 +18,7 @@
 #include "MeshBatch.h"
 #include "RendererInterface.h"
 #include "SceneUtils.h"
+#include "TessellationRendering.h"
 
 // Forward declarations.
 class FLightSceneInfo;
@@ -171,6 +172,10 @@ public:
 
 	//
 	virtual uint32 GetCurrentTemporalAASampleIndex() const = 0;
+
+	virtual void SetSequencerState(const bool bIsPaused) = 0;
+
+	virtual bool GetSequencerState() = 0;
 
 	/** 
 	 * returns the occlusion frame counter 
@@ -2201,7 +2206,7 @@ extern ENGINE_API bool IsRichView(const FSceneViewFamily& ViewFamily);
 #if WANTS_DRAW_MESH_EVENTS
 	/**
 	 * true if we debug material names with SCOPED_DRAW_EVENT.
-	 * Toggle with "ShowMaterialDrawEvents" console command.
+	 * Toggle with "r.ShowMaterialDrawEvents" cvar.
 	 */
 	extern ENGINE_API int32 GShowMaterialDrawEvents;
 	extern ENGINE_API void BeginMeshDrawEvent_Inner(FRHICommandList& RHICmdList, const class FPrimitiveSceneProxy* PrimitiveSceneProxy, const struct FMeshBatch& Mesh, struct TDrawEvent<FRHICommandList>& DrawEvent);
@@ -2229,9 +2234,6 @@ extern ENGINE_API void ApplyViewModeOverrides(
 
 /** Draws the UV layout of the supplied asset (either StaticMeshRenderData OR SkeletalMeshRenderData, not both!) */
 extern ENGINE_API void DrawUVs(FViewport* InViewport, FCanvas* InCanvas, int32 InTextYPos, const int32 LODLevel, int32 UVChannel, TArray<FVector2D> SelectedEdgeTexCoords, class FStaticMeshRenderData* StaticMeshRenderData, class FStaticLODModel* SkeletalMeshRenderData );
-
-/** Returns true if the Material and Vertex Factory combination require adjacency information. */
-ENGINE_API bool RequiresAdjacencyInformation(class UMaterialInterface* Material, const class FVertexFactoryType* VertexFactoryType, ERHIFeatureLevel::Type InFeatureLevel);
 
 /**
  * Computes the screen size of a given sphere bounds in the given view

@@ -18,6 +18,8 @@ void ULevelSequence::Initialize()
 {
 	// @todo sequencer: gmp: fix me
 	MovieScene = NewObject<UMovieScene>(this, NAME_None, RF_Transactional);
+	MovieScene->SetForceFixedFrameIntervalPlayback( true );
+	MovieScene->SetFixedFrameInterval( 1 / 30.0f );
 }
 
 void ULevelSequence::PostLoad()
@@ -56,6 +58,11 @@ void ULevelSequence::PostLoad()
 		MovieScene->RemoveSpawnable(ID);
 	}
 #endif
+
+	if ( MovieScene->GetFixedFrameInterval() == 0 )
+	{
+		MovieScene->SetFixedFrameInterval( 1 / 30.0f );
+	}
 }
 
 void ULevelSequence::ConvertPersistentBindingsToDefault(UObject* FixupContext)

@@ -52,13 +52,23 @@ struct FReflectionCaptureEncodedHDRDerivedData : FRefCountedObject
 	/** Destructor. */
 	virtual ~FReflectionCaptureEncodedHDRDerivedData();
 
+	FORCEINLINE int32 CalculateCubemapDimension() const
+	{
+		// top mip size of the encoded data is given by the eq:
+		// Data / (6 cubemaps * sizeof(FColor)) = (1/4 + 1/4^2 + 1/4^3 ...) - fractional pixel of the last mip
+		// Data / (6 cubemaps * sizeof(FColor)) = (4*topMip - lastMip)/3
+		// when lastMip = 1 simplifies to the following:
+		// see https://en.wikipedia.org/wiki/1/4_%2B_1/16_%2B_1/64_%2B_1/256_%2B_%E2%8B%AF for maths
+		return (int32)sqrt((float)(2 * sizeof(FColor) + CapturedData.Num()) / (float)(8 * sizeof(FColor)));
+	}
+
 	/** Generates encoded HDR data from full HDR data and saves it in the DDC, or loads an already generated version from the DDC. */
 	static TRefCountPtr<FReflectionCaptureEncodedHDRDerivedData> GenerateEncodedHDRData(const FReflectionCaptureFullHDR& FullHDRData, const FGuid& StateId, float Brightness);
 
 private:
 
 	/** Constructs a key string for the DDC that uniquely identifies a FReflectionCaptureEncodedHDRDerivedData. */
-	static FString GetDDCKeyString(const FGuid& StateId);
+	static FString GetDDCKeyString(const FGuid& StateId, int32 CubemapDimension);
 
 	/** Encodes the full HDR data of FullHDRData. */
 	void GenerateFromDerivedDataSource(const FReflectionCaptureFullHDR& FullHDRData, float Brightness);

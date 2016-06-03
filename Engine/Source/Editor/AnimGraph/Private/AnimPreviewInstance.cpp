@@ -187,11 +187,12 @@ bool FAnimPreviewInstanceProxy::Evaluate(FPoseContext& Output)
 	return true;
 }
 
-void FAnimPreviewInstanceProxy::RefreshCurveBoneControllers()
+void FAnimPreviewInstanceProxy::RefreshCurveBoneControllers(UAnimationAsset* AssetToRefreshFrom)
 {
 	// go through all curves and see if it has Transform Curve
 	// if so, find what bone that belong to and create BoneMOdifier for them
-	UAnimSequence* CurrentSequence = Cast<UAnimSequence>(CurrentAsset);
+	check(!CurrentAsset || CurrentAsset == AssetToRefreshFrom);
+	UAnimSequence* CurrentSequence = Cast<UAnimSequence>(AssetToRefreshFrom);
 
 	CurveBoneControllers.Empty();
 
@@ -207,7 +208,9 @@ void FAnimPreviewInstanceProxy::RefreshCurveBoneControllers()
 		GetRequiredBones().SetUseSourceData(true);
 
 		TArray<FTransformCurve>& Curves = CurrentSequence->RawCurveData.TransformCurves;
-		const FSmartNameMapping* NameMapping = GetSkeleton()->GetSmartNameContainer(USkeleton::AnimTrackCurveMappingName);
+		USkeleton* LocalSkeleton = CurrentSequence->GetSkeleton();
+
+		const FSmartNameMapping* NameMapping = LocalSkeleton->GetSmartNameContainer(USkeleton::AnimTrackCurveMappingName);
 
 		for (auto& Curve : Curves)
 		{
@@ -225,14 +228,14 @@ void FAnimPreviewInstanceProxy::RefreshCurveBoneControllers()
  			if (CurveName == NAME_None)
  			{
 				FSmartNameMapping::UID NewUID;
-				GetSkeleton()->AddSmartNameAndModify(USkeleton::AnimTrackCurveMappingName, Curve.LastObservedName, NewUID);
+				LocalSkeleton->AddSmartNameAndModify(USkeleton::AnimTrackCurveMappingName, Curve.LastObservedName, NewUID);
 				Curve.CurveUid = NewUID;
 
 				CurveName = Curve.LastObservedName;
  			}
 
 			FName BoneName = CurveName;
-			if (BoneName != NAME_None && GetSkeleton()->GetReferenceSkeleton().FindBoneIndex(BoneName) != INDEX_NONE)
+			if (BoneName != NAME_None && LocalSkeleton->GetReferenceSkeleton().FindBoneIndex(BoneName) != INDEX_NONE)
 			{
 				ModifyBone(BoneName, true);
 			}
@@ -412,7 +415,7 @@ void UAnimPreviewInstance::NativeInitializeAnimation()
 
 	Proxy.SetPlaying(bCachedIsPlaying);
 
-	Proxy.RefreshCurveBoneControllers();
+	Proxy.RefreshCurveBoneControllers(CurrentAsset);
 }
 
 FAnimNode_ModifyBone* UAnimPreviewInstance::FindModifiedBone(const FName& InBoneName, bool bCurveController/*=false*/)
@@ -442,7 +445,7 @@ void UAnimPreviewInstance::SetKey(FSimpleDelegate InOnSetKeyCompleteDelegate)
 
 void UAnimPreviewInstance::RefreshCurveBoneControllers()
 {
-	GetProxyOnGameThread<FAnimPreviewInstanceProxy>().RefreshCurveBoneControllers();
+	GetProxyOnGameThread<FAnimPreviewInstanceProxy>().RefreshCurveBoneControllers(CurrentAsset);
 }
 
 /** Set SkeletalControl Alpha**/
@@ -486,7 +489,7 @@ void UAnimPreviewInstance::SetAnimationAsset(UAnimationAsset* NewAsset, bool bIs
 	RootMotionMode = Cast<UAnimMontage>(CurrentAsset) != nullptr ? ERootMotionMode::RootMotionFromMontagesOnly : ERootMotionMode::RootMotionFromEverything;
 
 	// should re sync up curve bone controllers from new asset
-	Proxy.RefreshCurveBoneControllers();
+	Proxy.RefreshCurveBoneControllers(CurrentAsset);
 }
 
 void UAnimPreviewInstance::MontagePreview_SetLooping(bool bIsLooping)

@@ -55,6 +55,8 @@ public:
 	virtual void DilateSection(float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles) override;
 	virtual void GetKeyHandles(TSet<FKeyHandle>& KeyHandles, TRange<float> TimeRange) const override;
 	virtual void MoveSection(float DeltaPosition, TSet<FKeyHandle>& KeyHandles) override;
+	virtual TOptional<float> GetKeyTime( FKeyHandle KeyHandle ) const override;
+	virtual void SetKeyTime( FKeyHandle KeyHandle, float Time ) override;
 
 protected:
 

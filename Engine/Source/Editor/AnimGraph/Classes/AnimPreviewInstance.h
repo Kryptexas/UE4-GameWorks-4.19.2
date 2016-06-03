@@ -85,7 +85,7 @@ public:
 #endif
 	}
 
-	void RefreshCurveBoneControllers();
+	void RefreshCurveBoneControllers(UAnimationAsset* AssetToRefreshFrom);
 
 	TArray<FAnimNode_ModifyBone>& GetBoneControllers()
 	{

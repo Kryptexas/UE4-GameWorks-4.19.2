@@ -1312,10 +1312,13 @@ void FAnimBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 
 void FAnimBlueprintCompiler::FinishCompilingClass(UClass* Class)
 {
+	const UAnimBlueprint* PossibleRoot = UAnimBlueprint::FindRootAnimBlueprint(AnimBlueprint);
+	const UAnimBlueprint* Src = PossibleRoot ? PossibleRoot : AnimBlueprint;
+
 	UAnimBlueprintGeneratedClass* AnimBlueprintGeneratedClass = CastChecked<UAnimBlueprintGeneratedClass>(Class);
 	AnimBlueprintGeneratedClass->SyncGroupNames.Reset();
-	AnimBlueprintGeneratedClass->SyncGroupNames.Reserve(AnimBlueprint->Groups.Num());
-	for (const FAnimGroupInfo& GroupInfo : AnimBlueprint->Groups)
+	AnimBlueprintGeneratedClass->SyncGroupNames.Reserve(Src->Groups.Num());
+	for (const FAnimGroupInfo& GroupInfo : Src->Groups)
 	{
 		AnimBlueprintGeneratedClass->SyncGroupNames.Add(GroupInfo.Name);
 	}

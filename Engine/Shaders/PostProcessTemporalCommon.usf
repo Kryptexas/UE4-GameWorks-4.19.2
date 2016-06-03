@@ -191,6 +191,7 @@ which can be configured via defines for various temporal AA passes.
 		#else
 			VelocityN = PostprocessInput3.SampleLevel(PostprocessInput3Sampler, UV, 0).xy;
 		#endif
+		VelocityN *= VelocityScaling.x;
 		bool DynamicN = VelocityN.x > 0.0;
 		if(DynamicN)
 		{
@@ -600,7 +601,12 @@ which can be configured via defines for various temporal AA passes.
 		OutColor.r = OutColor.a;
 	#endif
 
-
+	#if 0
+		// Test velocity scaling
+		OutColor.r *= VelocityScaling.x*.5+.5;
+		OutColor.g *= (1 - VelocityScaling.x)*.5+.5;
+		OutColor.b *= .5;
+	#endif
 
 #undef AA_AABB
 #undef AA_ALPHA

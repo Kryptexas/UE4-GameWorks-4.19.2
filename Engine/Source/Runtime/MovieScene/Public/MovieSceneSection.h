@@ -266,6 +266,12 @@ public:
 	void SetIsInfinite(bool bInIsInfinite) { bIsInfinite = bInIsInfinite; }
 	bool IsInfinite() const { return bIsInfinite; }
 
+	/** Gets the time for the key referenced by the supplied key handle. */
+	virtual TOptional<float> GetKeyTime( FKeyHandle KeyHandle ) const PURE_VIRTUAL( UAISenseEvent::GetKeyTime, return TOptional<float>(); );
+
+	/** Sets the time for the key referenced by the supplied key handle. */
+	virtual void SetKeyTime( FKeyHandle KeyHandle, float Time ) PURE_VIRTUAL( UAISenseEvent::SetKeyTime, );
+
 private:
 
 	/** The start time of the section */
