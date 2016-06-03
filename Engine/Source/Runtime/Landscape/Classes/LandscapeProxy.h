@@ -32,6 +32,7 @@ class ULandscapeComponent;
 class USplineComponent;
 struct FLandscapeInfoLayerSettings;
 struct FAsyncGrassBuilder;
+struct FRawMesh;
 
 /** Structure storing channel usage for weightmap textures */
 USTRUCT()
