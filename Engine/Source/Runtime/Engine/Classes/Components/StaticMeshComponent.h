@@ -290,7 +290,7 @@ public:
 	virtual void PreEditUndo() override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	virtual void PreSave() override;
+	virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
 	virtual void PostLoad() override;
 	virtual bool AreNativePropertiesIdenticalTo( UObject* Other ) const override;
 	virtual FString GetDetailedInfoInternal() const override;

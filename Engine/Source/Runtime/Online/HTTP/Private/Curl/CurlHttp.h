@@ -176,7 +176,7 @@ public:
 	/**
 	 * Constructor
 	 */
-	FCurlHttpRequest(CURLSH* InShareHandle);
+	FCurlHttpRequest();
 
 	/**
 	 * Destructor. Clean up any connection/request handles
@@ -334,10 +334,8 @@ private:
 	/** Elapsed time since the last received HTTP response. */
 	float TimeSinceLastResponse;
 
-	/** Used to lock access to bytes read/sent */
-	FCriticalSection ProgressLock;
 	/** Number of bytes sent already */
-	uint32 BytesSent;
+	FThreadSafeCounter BytesSent;
 	/** Last bytes read reported to progress delegate */
 	int32 LastReportedBytesRead;
 	/** Last bytes sent reported to progress delegate */
@@ -399,7 +397,7 @@ private:
 	/** BYTE array to fill in as the response is read via didReceiveData */
 	TArray<uint8> Payload;
 	/** Caches how many bytes of the response we've read so far */
-	int32 TotalBytesRead;
+	FThreadSafeCounter TotalBytesRead;
 	/** Cached key/value header pairs. Parsed once request completes */
 	TMap<FString, FString> Headers;
 	/** Cached code from completed response */

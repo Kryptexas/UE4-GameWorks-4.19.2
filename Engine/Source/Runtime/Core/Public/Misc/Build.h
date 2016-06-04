@@ -219,12 +219,6 @@
 	#error Exactly one of [UE_BUILD_DEBUG UE_BUILD_DEVELOPMENT UE_BUILD_TEST UE_BUILD_SHIPPING] should be defined to be 1
 #endif
 
-// ORION TEMP - turning on stats to judge perf
-#if UE_SERVER && UE_BUILD_TEST
-	#undef STATS
-	#define STATS 1
-#endif
-
 
 /**
  * This is a global setting which will turn on logging / checks for things which are

@@ -310,9 +310,9 @@ UBlueprint::UBlueprint(const FObjectInitializer& ObjectInitializer)
 }
 
 #if WITH_EDITORONLY_DATA
-void UBlueprint::PreSave()
+void UBlueprint::PreSave(const class ITargetPlatform* TargetPlatform)
 {
-	Super::PreSave();
+	Super::PreSave(TargetPlatform);
 
 	// Clear all upgrade notes, the user has saved and should not see them anymore
 	UpgradeNotesLog.Reset();

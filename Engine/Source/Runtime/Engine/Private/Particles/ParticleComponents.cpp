@@ -1701,10 +1701,9 @@ void UParticleEmitter::CacheEmitterModuleInfo()
 
 float UParticleEmitter::GetQualityLevelSpawnRateMult()
 {
-	static Scalability::FEffectsQualityCVarAccessor EffectsQuality;
-
+	int32 EffectsQuality = Scalability::GetEffectsQualityDirect(true);
 	float Q = 1;
-	float Level = (1 - EffectsQuality.GetGameThreadValue());
+	float Level = (1 - EffectsQuality);
 	for (int i = 0; i < Level + 1; i++)
 	{
 		Q = Q*QualityLevelSpawnRateScale;
@@ -2131,9 +2130,9 @@ void UParticleSystem::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 }
 #endif // WITH_EDITOR
 
-void UParticleSystem::PreSave()
+void UParticleSystem::PreSave(const class ITargetPlatform* TargetPlatform)
 {
-	Super::PreSave();
+	Super::PreSave(TargetPlatform);
 #if WITH_EDITORONLY_DATA
 	// Ensure that soloing is undone...
 	int32 NumEmitters = FMath::Min(Emitters.Num(),SoloTracking.Num());

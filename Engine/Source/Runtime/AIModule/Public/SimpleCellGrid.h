@@ -31,6 +31,7 @@ struct TSimpleCellGrid
 
 protected:
 	FCellType* Cells;
+	static FCellType InvalidCell;
 
 public:
 	TSimpleCellGrid()
@@ -154,6 +155,12 @@ public:
 	{
 		const uint32 CellIndex = WorldToCellIndex(WorldLocation);
 		return Cells[CellIndex];
+	}
+
+	const FCellType& GetCellAtWorldLocationSafe(const FVector& WorldLocation) const
+	{
+		const uint32 CellIndex = WorldToCellIndex(WorldLocation);
+		return CellIndex < (GridSize.Height * GridSize.Width) ? Cells[CellIndex] : InvalidCell;
 	}
 
 	void SetClosestObjectiveGraphNodeIndex(const int32 CellIndex, const int32 ClosestObjectiveGraphNodeIndex)

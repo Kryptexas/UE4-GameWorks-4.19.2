@@ -62,6 +62,7 @@ namespace BuildGraph.Tasks
 		[TaskParameter]
 		public string ToDir;
 
+
 		/// <summary>
 		/// Whether to overwrite existing files
 		/// </summary>

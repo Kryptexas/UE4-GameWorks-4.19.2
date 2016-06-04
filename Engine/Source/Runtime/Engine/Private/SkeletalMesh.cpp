@@ -2201,7 +2201,15 @@ static void GetStreamingTextureFactorForLOD(FStaticLODModel& LODModel, TArray<fl
 {
 	int32 NumTotalTriangles = LODModel.GetTotalFaces();
 
-	TArray<float> TexelRatios[MAX_TEXCOORDS];
+	struct FTriangleInfo
+	{
+		FTriangleInfo(float InAera, float InTexelRatio) : Aera(InAera), TexelRatio(InTexelRatio) {}
+		float Aera;
+		float TexelRatio;
+	};
+
+
+	TArray<FTriangleInfo> TexelRatios[MAX_TEXCOORDS];
 	float MaxTexelRatio = 0.0f;
 	for(int32 UVIndex = 0;UVIndex < MAX_TEXCOORDS;UVIndex++)
 	{
@@ -2230,52 +2238,82 @@ static void GetStreamingTextureFactorForLOD(FStaticLODModel& LODModel, TArray<fl
 				const FVector Pos0 = LODModel.VertexBufferGPUSkin.GetVertexPositionFast<bExtraBoneInfluencesT>(Index0);
 				const FVector Pos1 = LODModel.VertexBufferGPUSkin.GetVertexPositionFast<bExtraBoneInfluencesT>(Index1);
 				const FVector Pos2 = LODModel.VertexBufferGPUSkin.GetVertexPositionFast<bExtraBoneInfluencesT>(Index2);
-				float L1 = (Pos0 - Pos1).Size();
-				float L2 = (Pos0 - Pos2).Size();
 
-				int32 NumUVs = LODModel.NumTexCoords;
-				for(int32 UVIndex = 0;UVIndex < FMath::Min(NumUVs,(int32)MAX_TEXCOORDS);UVIndex++)
+				FVector P01 = Pos1 - Pos0;
+				FVector P02 = Pos2 - Pos0;
+
+				float Aera = FVector::CrossProduct(P01, P02).Size();
+
+				if (Aera > SMALL_NUMBER)
 				{
-					const FVector2D UV0 = LODModel.VertexBufferGPUSkin.GetVertexUVFast<bExtraBoneInfluencesT>(Index0, UVIndex);
-					const FVector2D UV1 = LODModel.VertexBufferGPUSkin.GetVertexUVFast<bExtraBoneInfluencesT>(Index1, UVIndex);
-					const FVector2D UV2 = LODModel.VertexBufferGPUSkin.GetVertexUVFast<bExtraBoneInfluencesT>(Index2, UVIndex);
+					float L1 = (Pos0 - Pos1).Size();
+					float L2 = (Pos0 - Pos2).Size();
 
-					float T1 = (UV0 - UV1).Size();
-					float T2 = (UV0 - UV2).Size();
-
-					if( FMath::Abs(T1 * T2) > FMath::Square(SMALL_NUMBER) )
+					int32 NumUVs = LODModel.NumTexCoords;
+					for(int32 UVIndex = 0;UVIndex < FMath::Min(NumUVs,(int32)MAX_TEXCOORDS);UVIndex++)
 					{
-						const float TexelRatio = FMath::Max( L1 / T1, L2 / T2 );
-						TexelRatios[UVIndex].Add( TexelRatio );
+						const FVector2D UV0 = LODModel.VertexBufferGPUSkin.GetVertexUVFast<bExtraBoneInfluencesT>(Index0, UVIndex);
+						const FVector2D UV1 = LODModel.VertexBufferGPUSkin.GetVertexUVFast<bExtraBoneInfluencesT>(Index1, UVIndex);
+						const FVector2D UV2 = LODModel.VertexBufferGPUSkin.GetVertexUVFast<bExtraBoneInfluencesT>(Index2, UVIndex);
 
-						// Update max texel ratio
-						if( TexelRatio > MaxTexelRatio )
+						float T1 = (UV0 - UV1).Size();
+						float T2 = (UV0 - UV2).Size();
+
+						if( FMath::Abs(T1 * T2) > FMath::Square(SMALL_NUMBER) )
 						{
-							MaxTexelRatio = TexelRatio;
+							const float TexelRatio = FMath::Max( L1 / T1, L2 / T2 );
+							TexelRatios[UVIndex].Add( FTriangleInfo(Aera, TexelRatio) );
+
+							// Update max texel ratio
+							if( TexelRatio > MaxTexelRatio )
+							{
+								MaxTexelRatio = TexelRatio;
+							}
 						}
 					}
-				}
-			}
-
-			for(int32 UVIndex = 0;UVIndex < MAX_TEXCOORDS;UVIndex++)
-			{
-				if( TexelRatios[UVIndex].Num() )
-				{
-					// Disregard upper 75% of texel ratios.
-					// This is to ignore backfacing surfaces or other non-visible surfaces that tend to map a small number of texels to a large surface.
-					TexelRatios[UVIndex].Sort( TGreater<float>() );
-					float TexelRatio = TexelRatios[UVIndex][ FMath::TruncToInt(TexelRatios[UVIndex].Num() * 0.75f) ];
-					if ( UVIndex == 0 )
-					{
-						TexelRatio *= InStreamingDistanceMultiplier;
-					}
-					CachedStreamingTextureFactors[UVIndex] = TexelRatio;
 				}
 			}
 		}
 		else
 		{
 			UE_LOG(LogSkeletalMesh,Warning,TEXT("GetStreamingTextureFactor called but section %d has no indices."),SectionIndex);
+		}
+	}
+
+	for(int32 UVIndex = 0;UVIndex < MAX_TEXCOORDS;UVIndex++)
+	{
+		TArray<FTriangleInfo>& TriangleInfos = TexelRatios[UVIndex];
+		float WeightedTexelFactorSum = 0;
+		float AreaSum = 0;
+
+		if( TriangleInfos.Num() )
+		{
+			struct FCompareTexelRatio
+			{
+				FORCEINLINE bool operator()(FTriangleInfo const& A, FTriangleInfo const& B) const { return A.TexelRatio < B.TexelRatio; }
+			};
+
+			TriangleInfos.Sort( FCompareTexelRatio() );
+
+			// Disregard upper 10% of texel ratios.
+			// This is to ignore backfacing surfaces or other non-visible surfaces that tend to map a small number of texels to a large surface.
+			int32 Threshold = FMath::FloorToInt(.10f * (float)TriangleInfos.Num());
+			for (int32 Index = Threshold; Index < TriangleInfos.Num() - Threshold; ++Index)
+			{
+				WeightedTexelFactorSum += TriangleInfos[Index].TexelRatio * TriangleInfos[Index].Aera;
+				AreaSum += TriangleInfos[Index].Aera;
+			}
+
+			if (AreaSum != 0)
+			{
+				CachedStreamingTextureFactors[UVIndex] = WeightedTexelFactorSum / AreaSum;
+
+				if ( UVIndex == 0 )
+				{
+					CachedStreamingTextureFactors[UVIndex] *= InStreamingDistanceMultiplier;
+				}
+			}
+
 		}
 	}
 }
@@ -2482,17 +2520,17 @@ void USkeletalMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 		}
 	}
 	
-	if (!bSkipRestartRenderState)
-	{
-		RestartRenderState();
-	}
-
 	if ( GIsEditor && PropertyThatChanged && PropertyThatChanged->GetName() == TEXT("StreamingDistanceMultiplier") )
 	{
 		// Allow recalculating the texture factor.
 		CachedStreamingTextureFactors.Empty();
 		// Recalculate in a few seconds.
 		GEngine->TriggerStreamingDataRebuild();
+	}
+
+	if (!bSkipRestartRenderState)
+	{
+		RestartRenderState();
 	}
 
 	if( GIsEditor &&
@@ -2821,12 +2859,12 @@ void USkeletalMesh::RestartRenderState()
 	RecreateRenderState_Internal(this);
 }
 
-void USkeletalMesh::PreSave()
+void USkeletalMesh::PreSave(const class ITargetPlatform* TargetPlatform)
 {
 	// check the parent index of the root bone is invalid
 	check((RefSkeleton.GetNum() == 0) || (RefSkeleton.GetRefBoneInfo()[0].ParentIndex == INDEX_NONE));
 
-	Super::PreSave();
+	Super::PreSave(TargetPlatform);
 	// Make sure streaming texture factors have been cached. Calling GetStreamingTextureFactor
 	// with editor-only data available will calculate it if it has not been cached.
 	GetStreamingTextureFactor(0);
@@ -4503,6 +4541,10 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 		,	bCanHighlightSelectedSections(Component->bCanHighlightSelectedSections)
 		,	MaterialRelevance(Component->GetMaterialRelevance(GetScene().GetFeatureLevel()))
 		,	bMaterialsNeedMorphUsage_GameThread(false)
+#if WITH_EDITORONLY_DATA
+		,	StreamingDistanceMultiplier(FMath::Max(0.0f, Component->StreamingDistanceMultiplier))
+		,	StreamingTexelFactor(Component->SkeletalMesh->GetStreamingTextureFactor(0) * Component->ComponentToWorld.GetMaximumAxisScale())
+#endif
 {
 	check(MeshObject);
 	check(SkelMeshResource);
@@ -5212,6 +5254,24 @@ void FSkeletalMeshSceneProxy::UpdateMorphMaterialUsage_GameThread(bool bNeedsMor
 		}
 	}
 }
+
+#if WITH_EDITORONLY_DATA
+const FStreamingSectionBuildInfo* FSkeletalMeshSceneProxy::GetStreamingSectionData(float& OutComponentExtraScale, float& OutMeshExtraScale, int32 LODIndex, int32 ElementIndex) const
+{
+	static FStreamingSectionBuildInfo Data;
+	
+	OutMeshExtraScale = 1.f; // No extra scale as this scale is already taken into account in StreamingTexelFactor
+	OutComponentExtraScale = StreamingDistanceMultiplier;
+
+	Data.BoxOrigin = GetBounds().Origin;
+	Data.BoxExtent = GetBounds().BoxExtent;
+	for (int32 TexCoordIndex = 0; TexCoordIndex < FMaterialTexCoordBuildInfo::MAX_NUM_TEX_COORD; ++TexCoordIndex)
+	{
+		Data.TexelFactors[TexCoordIndex] = StreamingTexelFactor;
+	}
+	return &Data;
+}
+#endif
 
 USkinnedMeshComponent::USkinnedMeshComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

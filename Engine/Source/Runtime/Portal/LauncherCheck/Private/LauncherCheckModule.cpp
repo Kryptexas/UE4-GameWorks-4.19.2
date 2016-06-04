@@ -1,14 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "LauncherCheckPrivatePCH.h"
-#include "GenericPlatformHttp.h"
 
 #if WITH_LAUNCHERCHECK
 
+#include "GenericPlatformHttp.h"
 #include "IDesktopPlatform.h"
 #include "DesktopPlatformModule.h"
-
-#endif
 
 /**
  * Log categories for LauncherCheck module
@@ -23,6 +21,15 @@ class FLauncherCheckModule
 {
 public:
 
+	/*
+	* Check to see if this module should perform any checks or not
+	* @return true, if it should
+	*/
+	bool IsEnabled() const
+	{
+		return FParse::Param(FCommandLine::Get(), TEXT("NoEpicPortal")) == false;
+	}
+
 	// ILauncherCheckModule interface
 
 	virtual bool WasRanFromLauncher() const override
@@ -34,7 +41,6 @@ public:
 
 	virtual bool RunLauncher(ELauncherAction Action) const override
 	{
-#if WITH_LAUNCHERCHECK
 		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 		if (DesktopPlatform != nullptr)
 		{
@@ -53,7 +59,6 @@ public:
 			};
 			return DesktopPlatform->OpenLauncher(LauncherOptions);
 		}
-#endif // WITH_LAUNCHERCHECK
 		return false;
 	}
 
@@ -67,21 +72,6 @@ public:
 
 	virtual void ShutdownModule() override
 	{
-	}
-
-	/*
-	 * Check to see if this module should perform any checks or not
-	 * @return true, if it should
-	 */
-	bool IsEnabled() const
-	{
-#if WITH_LAUNCHERCHECK
-		// Check for the presence of a specific param that's passed from the Launcher to the game
-		// when we want to disabled the module
-		return !FParse::Param(FCommandLine::Get(), TEXT("NoEpicPortal"));
-#else
-		return false;
-#endif
 	}
 
 private:
@@ -118,4 +108,22 @@ private:
 };
 
 
+#else
+
+class FLauncherCheckModule
+	: public ILauncherCheckModule
+{
+public:
+
+	virtual bool WasRanFromLauncher() const override { return true; }
+
+	virtual bool RunLauncher(ELauncherAction Action) const override { return false; }
+
+};
+
+
+#endif // WITH_LAUNCHERCHECK
+
 IMPLEMENT_MODULE(FLauncherCheckModule, LauncherCheck );
+
+

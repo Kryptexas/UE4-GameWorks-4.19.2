@@ -96,13 +96,13 @@ void UWidgetTree::GetChildWidgets(UWidget* Parent, TArray<UWidget*>& Widgets)
 	ForWidgetAndChildren(Parent, [&] (UWidget* Widget) { Widgets.Add(Widget); });
 }
 
-void UWidgetTree::PreSave()
+void UWidgetTree::PreSave(const class ITargetPlatform* TargetPlatform)
 {
 	AllWidgets.Empty();
 
 	GetAllWidgets(AllWidgets);
 
-	Super::PreSave();
+	Super::PreSave( TargetPlatform);
 }
 
 void UWidgetTree::PostLoad()

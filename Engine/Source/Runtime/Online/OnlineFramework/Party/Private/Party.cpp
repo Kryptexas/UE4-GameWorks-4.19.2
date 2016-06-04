@@ -1027,17 +1027,21 @@ void UParty::LeavePersistentParty(const FUniqueNetId& InUserId, const UPartyDele
 {
 	if (PersistentPartyId.IsValid())
 	{
-		UPartyDelegates::FOnLeaveUPartyComplete CompletionDelegate;
-		CompletionDelegate.BindUObject(this, &ThisClass::OnLeavePersistentPartyComplete, InCompletionDelegate);
-
 		if (!bLeavingPersistentParty)
 		{
+			UE_LOG(LogParty, Verbose, TEXT("LeavePersistentParty"));
+
+			UPartyDelegates::FOnLeaveUPartyComplete CompletionDelegate;
+			CompletionDelegate.BindUObject(this, &ThisClass::OnLeavePersistentPartyComplete, InCompletionDelegate);
+
 			bLeavingPersistentParty = true;
 			LeavePartyInternal(InUserId, IOnlinePartySystem::GetPrimaryPartyTypeId(), CompletionDelegate);
 		}
 		else
 		{
 			LeavePartyCompleteDelegates.Add(InCompletionDelegate);
+
+			UE_LOG(LogParty, Verbose, TEXT("LeavePersistentParty %d extra delegates"), LeavePartyCompleteDelegates.Num());
 		}
 	}
 	else

@@ -350,6 +350,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 		UpdateTagMap(Tag, -1);
 	}
 
+	/** Called for predictively added gameplay cue. Needs to remove tag count and possible invoke OnRemove event if misprediction */
+	void OnPredictiveGameplayCueCatchup(FGameplayTag Tag);
+
 	float GetGameplayEffectDuration(FActiveGameplayEffectHandle Handle) const;
 
 	void GetGameplayEffectStartTimeAndDuration(FActiveGameplayEffectHandle Handle, float& StartEffectTime, float& Duration) const;
@@ -652,24 +655,24 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 
 	/** Removes all active effects that contain any of the tags in Tags */
 	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
-	void RemoveActiveEffectsWithTags(FGameplayTagContainer Tags);
+	int32 RemoveActiveEffectsWithTags(FGameplayTagContainer Tags);
 
 	/** Removes all active effects with captured source tags that contain any of the tags in Tags */
 	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
-	void RemoveActiveEffectsWithSourceTags(FGameplayTagContainer Tags);
+	int32 RemoveActiveEffectsWithSourceTags(FGameplayTagContainer Tags);
 
 	/** Removes all active effects that apply any of the tags in Tags */
 	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
-	void RemoveActiveEffectsWithAppliedTags(FGameplayTagContainer Tags);
+	int32 RemoveActiveEffectsWithAppliedTags(FGameplayTagContainer Tags);
 
 	/** Removes all active effects that grant any of the tags in Tags */
 	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
-	void RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer Tags);
+	int32 RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer Tags);
 
 	/** Removes all active effects that match given query. StacksToRemove=-1 will remove all stacks. */
 	DEPRECATED(4.9, "FActiveGameplayEffectQuery is deprecated, use version that takes FGameplayEffectQuery")
-	void RemoveActiveEffects(const FActiveGameplayEffectQuery Query, int32 StacksToRemove=-1);
-	void RemoveActiveEffects(const FGameplayEffectQuery& Query, int32 StacksToRemove = -1);
+	int32 RemoveActiveEffects(const FActiveGameplayEffectQuery Query, int32 StacksToRemove=-1);
+	int32 RemoveActiveEffects(const FGameplayEffectQuery& Query, int32 StacksToRemove = -1);
 
 	void OnRestackGameplayEffects();	
 	
@@ -707,6 +710,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 
 	UFUNCTION(NetMulticast, unreliable)
 	void NetMulticast_InvokeGameplayCueAdded(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayEffectContextHandle EffectContext);
+
+	UFUNCTION(NetMulticast, unreliable)
+	void NetMulticast_InvokeGameplayCueAdded_WithParams(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayCueParameters Parameters);
 	
 	UFUNCTION(NetMulticast, unreliable)
 	void NetMulticast_InvokeGameplayCueAddedAndWhileActive_FromSpec(const FGameplayEffectSpecForRPC& Spec, FPredictionKey PredictionKey);

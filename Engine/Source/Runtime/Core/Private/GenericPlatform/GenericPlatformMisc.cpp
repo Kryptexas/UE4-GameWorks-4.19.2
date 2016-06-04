@@ -242,6 +242,11 @@ FString FGenericPlatformMisc::GetCPUBrand()
 	return FString( TEXT( "GenericCPUBrand" ) );
 }
 
+uint32 FGenericPlatformMisc::GetCPUInfo()
+{
+	// Not implemented cross-platform. Each platform may or may not choose to implement this.
+	return 0;
+}
 
 FString FGenericPlatformMisc::GetPrimaryGPUBrand()
 {

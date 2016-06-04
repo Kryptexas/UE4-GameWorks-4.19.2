@@ -818,9 +818,9 @@ void UUserWidget::RemoveObsoleteBindings(const TArray<FName>& NamedSlots)
 	}
 }
 
-void UUserWidget::PreSave()
+void UUserWidget::PreSave(const class ITargetPlatform* TargetPlatform)
 {
-	Super::PreSave();
+	Super::PreSave(TargetPlatform);
 
 	// Remove bindings that are no longer contained in the class.
 	if ( UWidgetBlueprintGeneratedClass* BGClass = Cast<UWidgetBlueprintGeneratedClass>(GetClass()) )

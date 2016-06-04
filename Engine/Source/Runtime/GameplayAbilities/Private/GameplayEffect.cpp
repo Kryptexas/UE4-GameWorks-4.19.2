@@ -3111,10 +3111,11 @@ bool FActiveGameplayEffectsContainer::NetDeltaSerialize(FNetDeltaSerializeInfo& 
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_ActiveGameplayEffectsContainer_NetDeltaSerialize_CheckRepGameplayCues);
 
-		for (const FActiveGameplayEffect& Effect : this)
+		if (!DeltaParms.bOutHasMoreUnmapped) // Do not invoke GCs when we have missing information (like AActor*s in EffectContext)
 		{
-			if (!DeltaParms.bOutHasMoreUnmapped) // Do not invoke GCs when we have missing information (like AActor*s in EffectContext)
+			for (const FActiveGameplayEffect& Effect : this)
 			{
+			
 				if (Effect.bIsInhibited == false)
 				{
 					if (Effect.bPendingRepOnActiveGC)
@@ -3527,10 +3528,11 @@ void FActiveGameplayEffectsContainer::ModifyActiveEffectStartTime(FActiveGamepla
 }
 
 // #deprecated, use FGameplayEffectQuery version
-void FActiveGameplayEffectsContainer::RemoveActiveEffects(const FActiveGameplayEffectQuery Query, int32 StacksToRemove)
+int32 FActiveGameplayEffectsContainer::RemoveActiveEffects(const FActiveGameplayEffectQuery Query, int32 StacksToRemove)
 {
 	// Force a lock because the removals could cause other removals earlier in the array, so iterating backwards is not safe all by itself
 	GAMEPLAYEFFECT_SCOPE_LOCK();
+	int32 NumRemoved = 0;
 
 	// Manually iterating through in reverse because this is a removal operation
 	for (int32 idx=GetNumGameplayEffects()-1; idx >= 0; --idx)
@@ -3538,14 +3540,18 @@ void FActiveGameplayEffectsContainer::RemoveActiveEffects(const FActiveGameplayE
 		const FActiveGameplayEffect& Effect = *GetActiveGameplayEffect(idx);
 		if (Effect.IsPendingRemove==false && Query.Matches(Effect))
 		{
-			InternalRemoveActiveGameplayEffect(idx, StacksToRemove, true);			
+			InternalRemoveActiveGameplayEffect(idx, StacksToRemove, true);		
+			++NumRemoved;
 		}
 	}
+	return NumRemoved;
 }
-void FActiveGameplayEffectsContainer::RemoveActiveEffects(const FGameplayEffectQuery& Query, int32 StacksToRemove)
+
+int32 FActiveGameplayEffectsContainer::RemoveActiveEffects(const FGameplayEffectQuery& Query, int32 StacksToRemove)
 {
 	// Force a lock because the removals could cause other removals earlier in the array, so iterating backwards is not safe all by itself
 	GAMEPLAYEFFECT_SCOPE_LOCK();
+	int32 NumRemoved = 0;
 
 	// Manually iterating through in reverse because this is a removal operation
 	for (int32 idx = GetNumGameplayEffects() - 1; idx >= 0; --idx)
@@ -3554,10 +3560,11 @@ void FActiveGameplayEffectsContainer::RemoveActiveEffects(const FGameplayEffectQ
 		if (Effect.IsPendingRemove == false && Query.Matches(Effect))
 		{
 			InternalRemoveActiveGameplayEffect(idx, StacksToRemove, true);
+			++NumRemoved;
 		}
 	}
+	return NumRemoved;
 }
-
 
 int32 FActiveGameplayEffectsContainer::GetActiveEffectCount(const FActiveGameplayEffectQuery Query, bool bEnforceOnGoingCheck) const
 {

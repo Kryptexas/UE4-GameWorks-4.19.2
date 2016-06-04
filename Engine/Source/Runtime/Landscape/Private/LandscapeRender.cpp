@@ -30,6 +30,14 @@ IMPLEMENT_UNIFORM_BUFFER_STRUCT(FLandscapeUniformShaderParameters, TEXT("Landsca
 #define LANDSCAPE_MAX_COMPONENT_SIZE 255
 #define LANDSCAPE_LOD_SQUARE_ROOT_FACTOR 1.5f
 
+int32 GLandscapeMeshLODBias = 0;
+FAutoConsoleVariableRef CVarLandscapeMeshLODBias(
+	TEXT("r.LandscapeLODBias"),
+	GLandscapeMeshLODBias,
+	TEXT("LOD bias for landscape/terrain meshes."),
+	ECVF_Scalability
+	);
+
 /*------------------------------------------------------------------------------
 	Forsyth algorithm for cache optimizing index buffers.
 ------------------------------------------------------------------------------*/
@@ -533,8 +541,10 @@ TMap<uint32, FLandscapeSharedBuffers*>FLandscapeComponentSceneProxy::SharedBuffe
 TMap<uint32, FLandscapeSharedAdjacencyIndexBuffer*>FLandscapeComponentSceneProxy::SharedAdjacencyIndexBufferMap;
 TMap<FLandscapeNeighborInfo::FLandscapeKey, TMap<FIntPoint, const FLandscapeNeighborInfo*> > FLandscapeNeighborInfo::SharedSceneProxyMap;
 
+const static FName NAME_LandscapeResourceNameForDebugging(TEXT("Landscape"));
+
 FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent* InComponent, FLandscapeEditToolRenderData* InEditToolRenderData)
-	: FPrimitiveSceneProxy(InComponent)
+	: FPrimitiveSceneProxy(InComponent, NAME_LandscapeResourceNameForDebugging)
 	, FLandscapeNeighborInfo(InComponent->GetWorld(), InComponent->GetLandscapeProxy()->GetLandscapeGuid(), InComponent->GetSectionBase() / InComponent->ComponentSizeQuads, InComponent->HeightmapTexture, InComponent->ForcedLOD, InComponent->LODBias)
 	, MaxLOD(FMath::CeilLogTwo(InComponent->SubsectionSizeQuads + 1) - 1)
 	, FirstLOD(0)
@@ -1299,6 +1309,8 @@ float FLandscapeComponentSceneProxy::CalcDesiredLOD(const class FSceneView& View
 		SubsectionForcedLOD = Neighbors[3] ? Neighbors[3]->ForcedLOD : -1;
 		SubsectionLODBias   = Neighbors[3] ? Neighbors[3]->LODBias : 0;
 	}
+
+	SubsectionLODBias = FMath::Clamp<int8>(SubsectionLODBias + GLandscapeMeshLODBias, FirstLOD, LastLOD);
 
 	const int32 MinStreamedLOD = SubsectionHeightmapTexture ? FMath::Min<int32>(((FTexture2DResource*)SubsectionHeightmapTexture->Resource)->GetCurrentFirstMip(), FMath::CeilLogTwo(SubsectionSizeVerts) - 1) : 0;
 

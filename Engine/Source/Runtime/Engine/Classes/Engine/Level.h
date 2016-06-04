@@ -552,7 +552,7 @@ public:
 	virtual void BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPlatform) override;
 #endif // WITH_EDITOR
 	virtual void PostLoad() override;
-	virtual void PreSave() override;
+	virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	//~ End UObject Interface.

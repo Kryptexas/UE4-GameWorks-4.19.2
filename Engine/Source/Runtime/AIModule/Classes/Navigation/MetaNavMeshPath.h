@@ -43,7 +43,7 @@ struct AIMODULE_API FMetaNavMeshPath : public FNavMeshPath
 	virtual void CopyFrom(const FMetaNavMeshPath& Other);
 
 	/** returns true if path at last waypoint */
-	bool IsLastSection() const { return TargetWaypointIdx == (Waypoints.Num() - 1); }
+	bool IsLastSection() const { return (TargetWaypointIdx == (Waypoints.Num() - 1)) && (Waypoints.Num() > 0); }
 
 	/** returns index of current target waypoint */
 	int32 GetTargetWaypointIndex() const { return TargetWaypointIdx; }

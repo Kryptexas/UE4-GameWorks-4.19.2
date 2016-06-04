@@ -384,6 +384,11 @@ void FBoneContainer::InitializeTo(const TArray<FBoneIndexType>& InRequiredBoneIn
 	Initialize();
 }
 
+struct FBoneContainerScratchArea : public TThreadSingleton<FBoneContainerScratchArea>
+{
+	TArray<int32> MeshIndexToCompactPoseIndex;
+};
+
 void FBoneContainer::Initialize()
 {
 	RefSkeleton = NULL;
@@ -429,7 +434,7 @@ void FBoneContainer::Initialize()
 	}
 
 	// Clear remapping table
-	SkeletonToPoseBoneIndexArray.Empty();
+	SkeletonToPoseBoneIndexArray.Reset();
 
 	// Cache our mapping tables
 	// Here we create look up tables between our target asset and its USkeleton's refpose.
@@ -447,38 +452,56 @@ void FBoneContainer::Initialize()
 
 	//Set up compact pose data
 	int32 NumReqBones = BoneIndicesArray.Num();
-	CompactPoseParentBones.Empty(NumReqBones);
-	
-	CompactPoseRefPoseBones.Empty(NumReqBones);
+	CompactPoseParentBones.Reset(NumReqBones);
+
+	CompactPoseRefPoseBones.Reset(NumReqBones);
 	CompactPoseRefPoseBones.AddUninitialized(NumReqBones);
-	
-	CompactPoseToSkeletonIndex.Empty(NumReqBones);
+
+	CompactPoseToSkeletonIndex.Reset(NumReqBones);
 	CompactPoseToSkeletonIndex.AddUninitialized(NumReqBones);
-	
-	SkeletonToCompactPose.Empty(SkeletonToPoseBoneIndexArray.Num());
+
+	SkeletonToCompactPose.Reset(SkeletonToPoseBoneIndexArray.Num());
 
 	const TArray<FTransform>& RefPoseArray = RefSkeleton->GetRefBonePose();
+	TArray<int32>& MeshIndexToCompactPoseIndex = FBoneContainerScratchArea::Get().MeshIndexToCompactPoseIndex;
+	MeshIndexToCompactPoseIndex.Reset(PoseToSkeletonBoneIndexArray.Num());
+	MeshIndexToCompactPoseIndex.AddUninitialized(PoseToSkeletonBoneIndexArray.Num());
+
+	for (int32& Item : MeshIndexToCompactPoseIndex)
+	{
+		Item = -1;
+	}
+		
+	for (int32 CompactBoneIndex = 0; CompactBoneIndex < NumReqBones; ++CompactBoneIndex)
+	{
+		FBoneIndexType MeshPoseIndex = BoneIndicesArray[CompactBoneIndex];
+		MeshIndexToCompactPoseIndex[MeshPoseIndex] = CompactBoneIndex;
+
+		//Parent Bone
+		const int32 ParentIndex = GetParentBoneIndex(MeshPoseIndex);
+		const int32 CompactParentIndex = ParentIndex == INDEX_NONE ? INDEX_NONE : MeshIndexToCompactPoseIndex[ParentIndex];
+
+		CompactPoseParentBones.Add(FCompactPoseBoneIndex(CompactParentIndex));
+	}
+
+	//Ref Pose
+	for (int32 CompactBoneIndex = 0; CompactBoneIndex < NumReqBones; ++CompactBoneIndex)
+	{
+		FBoneIndexType MeshPoseIndex = BoneIndicesArray[CompactBoneIndex];
+		CompactPoseRefPoseBones[CompactBoneIndex] = RefPoseArray[MeshPoseIndex];
+	}
 
 	for (int32 CompactBoneIndex = 0; CompactBoneIndex < NumReqBones; ++CompactBoneIndex)
 	{
 		FBoneIndexType MeshPoseIndex = BoneIndicesArray[CompactBoneIndex];
-
-		//Parent Bone
-		const int32 ParentIndex = GetParentBoneIndex(MeshPoseIndex);
-		const int32 CompactParentIndex = ParentIndex == INDEX_NONE ? INDEX_NONE : BoneIndicesArray.IndexOfByKey(ParentIndex);
-
-		CompactPoseParentBones.Add(FCompactPoseBoneIndex(CompactParentIndex));
-
-		//Ref Pose
-		CompactPoseRefPoseBones[CompactBoneIndex] = RefPoseArray[MeshPoseIndex];
-
 		CompactPoseToSkeletonIndex[CompactBoneIndex] = PoseToSkeletonBoneIndexArray[MeshPoseIndex];
 	}
+
 
 	for (int32 SkeletonBoneIndex = 0; SkeletonBoneIndex < SkeletonToPoseBoneIndexArray.Num(); ++SkeletonBoneIndex)
 	{
 		int32 PoseBoneIndex = SkeletonToPoseBoneIndexArray[SkeletonBoneIndex];
-		int32 CompactIndex  = (PoseBoneIndex != INDEX_NONE) ? (BoneIndicesArray.IndexOfByKey(PoseBoneIndex)) : INDEX_NONE;
+		int32 CompactIndex = (PoseBoneIndex != INDEX_NONE) ? MeshIndexToCompactPoseIndex[PoseBoneIndex] : INDEX_NONE;
 		SkeletonToCompactPose.Add(FCompactPoseBoneIndex(CompactIndex));
 	}
 }

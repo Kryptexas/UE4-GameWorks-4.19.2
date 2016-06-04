@@ -842,7 +842,7 @@ void UObject::ConditionalPostLoadSubobjects( FObjectInstancingGraph* OuterInstan
 	CheckDefaultSubobjects();
 }
 
-void UObject::PreSave()
+void UObject::PreSave(const class ITargetPlatform* TargetPlatform)
 {
 #if WITH_EDITOR
 	FCoreUObjectDelegates::OnObjectSaved.Broadcast(this);

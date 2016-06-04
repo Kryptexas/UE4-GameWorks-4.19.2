@@ -1606,9 +1606,9 @@ void ULandscapeHeightfieldCollisionComponent::PostLoad()
 #endif//WITH_EDITOR
 }
 
-void ULandscapeHeightfieldCollisionComponent::PreSave()
+void ULandscapeHeightfieldCollisionComponent::PreSave(const class ITargetPlatform* TargetPlatform)
 {
-	Super::PreSave();
+	Super::PreSave(TargetPlatform);
 
 	if (!IsRunningCommandlet())
 	{

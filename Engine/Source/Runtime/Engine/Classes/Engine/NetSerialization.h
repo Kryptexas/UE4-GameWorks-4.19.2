@@ -632,13 +632,8 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 			}
 		}
 
-		// return if nothing changed
-		if ( ChangedElements.Num() == 0 && DeletedElements.Num() == 0)
-		{
-			// Nothing changed
-			UE_LOG(LogNetFastTArray, Log, TEXT("   No Changed Elements in this array - skipping write"));
-			return false;
-		}
+		// Note: we used to early return false here if nothing had changed, but we still need to send
+		// a bunch with the array key / base key, so that clients can look for implicit deletes.
 
 		// The array replication key may have changed while adding new elemnts (in the call to MarkItemDirty above)
 		NewState->ArrayReplicationKey = ArraySerializer.ArrayReplicationKey;
@@ -657,7 +652,7 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 		ElemNum = ChangedElements.Num();
 		Writer << ElemNum;
 
-		UE_LOG(LogNetFastTArray, Log, TEXT("   Writing Bunch. NumChange: %d. NumDel: %d"), ChangedElements.Num(), DeletedElements.Num() );
+		UE_LOG(LogNetFastTArray, Log, TEXT("   Writing Bunch. NumChange: %d. NumDel: %d [%d/%d]"), ChangedElements.Num(), DeletedElements.Num(), ArrayReplicationKey, BaseReplicationKey );
 
 		// Serialize deleted items, just by their ID
 		for (auto It = DeletedElements.CreateIterator(); It; ++It)
@@ -754,6 +749,7 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 				{
 					int32 DeleteIndex = *ElementIndexPtr;
 					DeleteIndices.Add(DeleteIndex);
+					UE_LOG(LogNetFastTArray, Log, TEXT("   Adding ElementID: %d for deletion"), ElementID);
 				}
 				else
 				{
@@ -855,9 +851,14 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 			Type& Item = Items[idx];
 			if (Item.MostRecentArrayReplicationKey < ArrayReplicationKey && Item.MostRecentArrayReplicationKey > BaseReplicationKey)
 			{
-				// This will happen in normal conditions in network replays.
-				UE_LOG( LogNetFastTArray, Log, TEXT( "Adding implicit delete for ElementID: %d. MostRecentArrayReplicationKey: %d. Current Payload: [%d/%d]"), Item.ReplicationID, Item.MostRecentArrayReplicationKey, ArrayReplicationKey, BaseReplicationKey);
-				DeleteIndices.Add(idx);
+				// Make sure this wasn't an explicit delete in this bunch (otherwise we end up deleting an extra element!)
+				if (DeleteIndices.Contains(idx) == false)
+				{
+					// This will happen in normal conditions in network replays.
+					UE_LOG( LogNetFastTArray, Log, TEXT( "Adding implicit delete for ElementID: %d. MostRecentArrayReplicationKey: %d. Current Payload: [%d/%d]"), Item.ReplicationID, Item.MostRecentArrayReplicationKey, ArrayReplicationKey, BaseReplicationKey);
+					
+					DeleteIndices.Add(idx);
+				}
 			}
 		}
 
@@ -865,6 +866,7 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 		// Invoke all callbacks: removed -> added -> changed
 		// ---------------------------------------------------------
 
+		int32 PreRemoveSize = Items.Num();
 		for (int32 idx : DeleteIndices)
 		{
 			if (Items.IsValidIndex(idx))
@@ -872,6 +874,10 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 				// Call the delete callbacks now, actually remove them at the end
 				Items[idx].PreReplicatedRemove(ArraySerializer);
 			}
+		}
+		if (PreRemoveSize != Items.Num())
+		{
+			UE_LOG( LogNetFastTArray, Error, TEXT( "Item size changed after PreReplicatedRemove! PremoveSize: %d  Item.Num: %d"), PreRemoveSize, Items.Num() );
 		}
 
 		for (int32 idx : AddedIndices)
@@ -883,6 +889,11 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 		{
 			Items[idx].PostReplicatedChange(ArraySerializer);
 		}	
+
+		if (PreRemoveSize != Items.Num())
+		{
+			UE_LOG( LogNetFastTArray, Error, TEXT( "Item size changed after PostReplicatedAdd/PostReplicatedChange! PremoveSize: %d  Item.Num: %d"), PreRemoveSize, Items.Num() );
+		}
 
 		if (DeleteIndices.Num() > 0)
 		{

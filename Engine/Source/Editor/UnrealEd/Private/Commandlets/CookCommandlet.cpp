@@ -63,19 +63,19 @@ namespace DetailedCookStats
 		#define ADD_COOK_STAT_FLT(Path, Name) AddStat(StatName, FCookStatsManager::CreateKeyValueArray(TEXT("Path"), TEXT(Path), TEXT(#Name), Name))
 		ADD_COOK_STAT_FLT(" 0", CookWallTimeSec);
 		ADD_COOK_STAT_FLT(" 0. 0", StartupWallTimeSec);
-		ADD_COOK_STAT_FLT(" 0. 0. 0", NewCookTimeSec);
-		ADD_COOK_STAT_FLT(" 0. 0. 0. 0", StartCookByTheBookTimeSec);
-		ADD_COOK_STAT_FLT(" 0. 0. 0. 1", TickCookOnTheSideTimeSec);
-		ADD_COOK_STAT_FLT(" 0. 0. 0. 1. 0", TickCookOnTheSideLoadPackagesTimeSec);
-		ADD_COOK_STAT_FLT(" 0. 0. 0. 1. 1", TickCookOnTheSideSaveCookedPackageTimeSec);
-		ADD_COOK_STAT_FLT(" 0. 0. 0. 1. 1. 0", TickCookOnTheSideResolveRedirectorsTimeSec);
-		ADD_COOK_STAT_FLT(" 0. 0. 0. 1. 2", TickCookOnTheSideBeginPackageCacheForCookedPlatformDataTimeSec);
-		ADD_COOK_STAT_FLT(" 0. 0. 0. 1. 3", TickCookOnTheSideFinishPackageCacheForCookedPlatformDataTimeSec);
-		ADD_COOK_STAT_FLT(" 0. 0. 0. 2", TickLoopGCTimeSec);
-		ADD_COOK_STAT_FLT(" 0. 0. 0. 3", TickLoopRecompileShaderRequestsTimeSec);
-		ADD_COOK_STAT_FLT(" 0. 0. 0. 4", TickLoopShaderProcessAsyncResultsTimeSec);
-		ADD_COOK_STAT_FLT(" 0. 0. 0. 5", TickLoopProcessDeferredCommandsTimeSec);
-		ADD_COOK_STAT_FLT(" 0. 0. 0. 6", TickLoopTickCommandletStatsTimeSec);
+		ADD_COOK_STAT_FLT(" 0. 1", NewCookTimeSec);
+		ADD_COOK_STAT_FLT(" 0. 1. 0", StartCookByTheBookTimeSec);
+		ADD_COOK_STAT_FLT(" 0. 1. 1", TickCookOnTheSideTimeSec);
+		ADD_COOK_STAT_FLT(" 0. 1. 1. 0", TickCookOnTheSideLoadPackagesTimeSec);
+		ADD_COOK_STAT_FLT(" 0. 1. 1. 1", TickCookOnTheSideSaveCookedPackageTimeSec);
+		ADD_COOK_STAT_FLT(" 0. 1. 1. 1. 0", TickCookOnTheSideResolveRedirectorsTimeSec);
+		ADD_COOK_STAT_FLT(" 0. 1. 1. 2", TickCookOnTheSideBeginPackageCacheForCookedPlatformDataTimeSec);
+		ADD_COOK_STAT_FLT(" 0. 1. 1. 3", TickCookOnTheSideFinishPackageCacheForCookedPlatformDataTimeSec);
+		ADD_COOK_STAT_FLT(" 0. 1. 2", TickLoopGCTimeSec);
+		ADD_COOK_STAT_FLT(" 0. 1. 3", TickLoopRecompileShaderRequestsTimeSec);
+		ADD_COOK_STAT_FLT(" 0. 1. 4", TickLoopShaderProcessAsyncResultsTimeSec);
+		ADD_COOK_STAT_FLT(" 0. 1. 5", TickLoopProcessDeferredCommandsTimeSec);
+		ADD_COOK_STAT_FLT(" 0. 1. 6", TickLoopTickCommandletStatsTimeSec);
 		#undef ADD_COOK_STAT_FLT
 	});
 

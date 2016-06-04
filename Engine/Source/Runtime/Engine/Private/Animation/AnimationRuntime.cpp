@@ -782,6 +782,11 @@ void FAnimationRuntime::ConvertPoseToMeshSpace(const TArray<FTransform>& LocalTr
 	}
 }
 
+struct FEnsureParentsPresentScratchArea : public TThreadSingleton<FEnsureParentsPresentScratchArea>
+{
+	TArray<bool> BoneExists;
+};
+
 /** 
  *	Utility for taking an array of bone indices and ensuring that all parents are present 
  *	(ie. all bones between those in the array and the root are present). 
@@ -792,6 +797,11 @@ void FAnimationRuntime::EnsureParentsPresent(TArray<FBoneIndexType>& BoneIndices
 	const int32 NumBones = SkelMesh->RefSkeleton.GetNum();
 	// Iterate through existing array.
 	int32 i=0;
+
+	TArray<bool>& BoneExists = FEnsureParentsPresentScratchArea::Get().BoneExists;
+	BoneExists.Reset();
+	BoneExists.SetNumZeroed(NumBones);
+
 	while( i<BoneIndices.Num() )
 	{
 		const int32 BoneIndex = BoneIndices[i];
@@ -810,15 +820,18 @@ void FAnimationRuntime::EnsureParentsPresent(TArray<FBoneIndexType>& BoneIndices
 				continue;
 			}
 #endif
+			BoneExists[BoneIndex] = true;
+
 			const int32 ParentIndex = SkelMesh->RefSkeleton.GetParentIndex(BoneIndex);
 
 			// If we do not have this parent in the array, we add it in this location, and leave 'i' where it is.
 			// This can happen if somebody removes bones in the physics asset, then it will try add back in, and in the process, 
 			// parent can be missing
-			if( !BoneIndices.Contains(ParentIndex) )
+			if (!BoneExists[ParentIndex])
 			{
 				BoneIndices.InsertUninitialized(i);
 				BoneIndices[i] = ParentIndex;
+				BoneExists[ParentIndex] = true;
 			}
 			// If parent was in array, just move on.
 			else
@@ -828,6 +841,7 @@ void FAnimationRuntime::EnsureParentsPresent(TArray<FBoneIndexType>& BoneIndices
 		}
 		else
 		{
+			BoneExists[0] = true;
 			i++;
 		}
 	}

@@ -61,6 +61,14 @@ UCollisionProfile* UCollisionProfile::Get()
 	return CollisionProfile;
 }
 
+void UCollisionProfile::PostReloadConfig(UProperty* PropertyThatWasLoaded)
+{
+	if (HasAnyFlags(RF_ClassDefaultObject))
+	{
+		LoadProfileConfig();
+	}
+}
+
 void UCollisionProfile::GetProfileNames(TArray<TSharedPtr<FName>>& OutNameList)
 {
 	const UCollisionProfile* CollisionProfile = UCollisionProfile::Get();

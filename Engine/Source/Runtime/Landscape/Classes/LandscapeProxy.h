@@ -612,7 +612,7 @@ public:
 	//~ End AActor Interface
 
 	//~ Begin UObject Interface.
-	virtual void PreSave() override;
+	virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
 	virtual void Serialize(FArchive& Ar) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	virtual void PostLoad() override;

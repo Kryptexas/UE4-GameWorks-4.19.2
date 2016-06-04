@@ -708,6 +708,17 @@ void UEngine::TickFPSChart( float DeltaSeconds )
 		{
 			UE_LOG(LogChartCreation, Warning, TEXT("Idle time for this frame (%f) is larger than delta between FPSChart ticks (%f)"), ThisFrameIdleTime, DeltaSeconds);
 		}
+
+#if USE_SERVER_PERF_COUNTERS
+		if (LIKELY(PerfCounters))
+		{
+			FHistogram* NoSleepHistogram = PerfCounters->PerformanceHistograms().Find(IPerfCounters::Histograms::FrameTimeWithoutSleep);
+			if (LIKELY(NoSleepHistogram))
+			{
+				NoSleepHistogram->AddMeasurement(DeltaSeconds * 1000.0);
+			}
+		}
+#endif // USE_SERVER_PERF_COUNTERS
 	}
 
 	// now gather some stats on what this frame was bound by (game, render, gpu)
@@ -1019,6 +1030,7 @@ void UEngine::StartFPSChart(const FString& Label, bool bRecordPerFrameTimes)
 
 		PerfCounters->PerformanceHistograms().Add(IPerfCounters::Histograms::FrameTime, NewHitchTrackingHistogram);
 		PerfCounters->PerformanceHistograms().Add(IPerfCounters::Histograms::FrameTimePeriodic, NewHitchTrackingHistogram);		
+		PerfCounters->PerformanceHistograms().Add(IPerfCounters::Histograms::FrameTimeWithoutSleep, NewHitchTrackingHistogram);
 		PerfCounters->PerformanceHistograms().Add(IPerfCounters::Histograms::ServerReplicateActorsTime, NewHitchTrackingHistogram);
 		PerfCounters->PerformanceHistograms().Add(IPerfCounters::Histograms::SleepTime, NewHitchTrackingHistogram);
 	}
@@ -1031,15 +1043,6 @@ void UEngine::StopFPSChart()
 {
 	GFPSChartStopTime = FPlatformTime::Seconds();
 	GEnableDataCapture = false;
-
-#if USE_SERVER_PERF_COUNTERS
-	IPerfCounters* PerfCounters = IPerfCountersModule::Get().GetPerformanceCounters();
-	if (LIKELY(PerfCounters))
-	{
-		// remove existing histograms so the code doesn't keep updating them. If you need to use them, do that before calling StopFPSChart() (or copy)
-		PerfCounters->PerformanceHistograms().Reset();
-	}
-#endif // USE_SERVER_PERF_COUNTERS
 
 	UE_LOG(LogChartCreation, Log, TEXT("Stopped creating FPS charts at %f seconds"), GFPSChartStopTime);
 }

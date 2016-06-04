@@ -176,6 +176,10 @@ public:
 	/** Accessor and initializer **/
 	ENGINE_API static UCollisionProfile* Get();
 
+	/** Begin UObject interface */
+	virtual void PostReloadConfig(class UProperty* PropertyThatWasLoaded) override;
+	/** End UObject interface */
+
 	/** Fill up the array with the profile names **/
 	ENGINE_API static void GetProfileNames(TArray<TSharedPtr<FName>>& OutNameList);
 

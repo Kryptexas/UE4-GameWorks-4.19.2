@@ -438,19 +438,41 @@ void UGameplayCueManager::InitObjectLibraries(TArray<FString> Paths, UObjectLibr
 	StaticObjectLibrary->GetAssetDataList(StaticAssetDatas);
 
 	TArray<FGameplayCueReferencePair> CuesToAdd;
-	BuildCuesToAddToGlobalSet(ActorAssetDatas, GET_MEMBER_NAME_CHECKED(AGameplayCueNotify_Actor, GameplayCueName), bAsyncLoadAtStartup, CuesToAdd, OnLoadDelegate, ShouldLoadDelegate);
-	BuildCuesToAddToGlobalSet(StaticAssetDatas, GET_MEMBER_NAME_CHECKED(UGameplayCueNotify_Static, GameplayCueName), bAsyncLoadAtStartup, CuesToAdd, OnLoadDelegate, ShouldLoadDelegate);
+	TArray<FStringAssetReference> AssetsToLoad;
 
+	// Build Cue lists for loading. Determines what from the obj library needs to be loaded
+	BuildCuesToAddToGlobalSet(ActorAssetDatas, GET_MEMBER_NAME_CHECKED(AGameplayCueNotify_Actor, GameplayCueName), CuesToAdd, AssetsToLoad, ShouldLoadDelegate);
+	BuildCuesToAddToGlobalSet(StaticAssetDatas, GET_MEMBER_NAME_CHECKED(UGameplayCueNotify_Static, GameplayCueName), CuesToAdd, AssetsToLoad, ShouldLoadDelegate);
+
+	// Add these cues to the global set
 	check(GlobalCueSet);
 	GlobalCueSet->AddCues(CuesToAdd);
+
+	// Start loading them if necessary
+	if (bAsyncLoadAtStartup)
+	{
+		auto ForwardLambda = [](TArray<FStringAssetReference> AssetList, FOnGameplayCueNotifySetLoaded OnLoadedDelegate)
+		{
+			OnLoadedDelegate.ExecuteIfBound(AssetList);
+		};
+
+		if (AssetsToLoad.Num() > 0)
+		{			
+			StreamableManager.RequestAsyncLoad(AssetsToLoad, FStreamableDelegate::CreateStatic( ForwardLambda, AssetsToLoad, OnLoadDelegate));
+		}
+		else
+		{
+			// Still fire the delegate even if nothing was found to load
+			OnLoadDelegate.ExecuteIfBound(AssetsToLoad);
+		}
+	}
 }
 
-void UGameplayCueManager::BuildCuesToAddToGlobalSet(const TArray<FAssetData>& AssetDataList, FName TagPropertyName, bool bAsyncLoadAfterAdd, TArray<FGameplayCueReferencePair>& OutCuesToAdd, FOnGameplayCueNotifySetLoaded OnLoaded, FShouldLoadGCNotifyDelegate ShouldLoad)
+void UGameplayCueManager::BuildCuesToAddToGlobalSet(const TArray<FAssetData>& AssetDataList, FName TagPropertyName, TArray<FGameplayCueReferencePair>& OutCuesToAdd, TArray<FStringAssetReference>& OutAssetsToLoad, FShouldLoadGCNotifyDelegate ShouldLoad)
 {
 	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
 
-	TArray<FStringAssetReference> AssetsToLoad;
-	AssetsToLoad.Reserve(AssetDataList.Num());
+	OutAssetsToLoad.Reserve(OutAssetsToLoad.Num() + AssetDataList.Num());
 
 	for (FAssetData Data: AssetDataList)
 	{
@@ -481,30 +503,12 @@ void UGameplayCueManager::BuildCuesToAddToGlobalSet(const TArray<FAssetData>& As
 
 				OutCuesToAdd.Add(FGameplayCueReferencePair(GameplayCueTag, StringRef));
 
-				AssetsToLoad.Add(StringRef);
+				OutAssetsToLoad.Add(StringRef);
 			}
 			else
 			{
 				ABILITY_LOG(Warning, TEXT("Found GameplayCue tag %s in asset %s but there is no corresponding tag in the GameplayTagManager."), *FoundGameplayTag.ToString(), *Data.PackageName.ToString());
 			}
-		}
-	}
-
-	if (bAsyncLoadAfterAdd)
-	{
-		auto ForwardLambda = [](TArray<FStringAssetReference> AssetList, FOnGameplayCueNotifySetLoaded OnLoadedDelegate)
-		{
-			OnLoadedDelegate.ExecuteIfBound(AssetList);
-		};
-
-		if (AssetsToLoad.Num() > 0)
-		{			
-			StreamableManager.RequestAsyncLoad(AssetsToLoad, FStreamableDelegate::CreateStatic( ForwardLambda, AssetsToLoad, OnLoaded));
-		}
-		else
-		{
-			// Still fire the delegate even if nothing was found to load
-			OnLoaded.ExecuteIfBound(AssetsToLoad);
 		}
 	}
 }

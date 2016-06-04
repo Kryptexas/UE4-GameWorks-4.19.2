@@ -120,7 +120,7 @@ public:
 	}
 
 	// UObject interface
-	virtual void PreSave() override;
+	virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
 	virtual void PostLoad() override;
 	// End of UObject interface
 

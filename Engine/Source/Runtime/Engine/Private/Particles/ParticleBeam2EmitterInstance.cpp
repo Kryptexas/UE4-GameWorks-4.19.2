@@ -1121,18 +1121,17 @@ void FParticleBeam2EmitterInstance::DetermineVertexAndTriangleCount()
 		int32 LocalTriangles = 0;
 		if (BeamData->TriangleCount > 0)
 		{
+			if (VerticesToRender > 0)
+			{
+				LocalTriangles += 4;//Degenerate tris linking from previous beam.
+			}
+
 			// Stored triangle count is per sheet...
 			LocalTriangles	+= BeamData->TriangleCount * Sheets;
 			VerticesToRender += (BeamData->TriangleCount + 2) * Sheets;
 			// 4 Degenerates Per Sheet (except for last one)
 			LocalTriangles	+= (Sheets - 1) * 4;
 			EmitterTrianglesToRender += LocalTriangles;
-			// Multiple beams?
-			if (i < (ActiveParticles - 1))
-			{
-				// 4 Degenerates Per Beam (except for last one)
-				EmitterTrianglesToRender	+= 4;
-			}
 		}
 	}
 

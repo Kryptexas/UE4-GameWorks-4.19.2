@@ -483,9 +483,9 @@ void ULevel::ValidateLightGUIDs()
 }
 
 
-void ULevel::PreSave()
+void ULevel::PreSave(const class ITargetPlatform* TargetPlatform)
 {
-	Super::PreSave();
+	Super::PreSave(TargetPlatform);
 
 #if WITH_EDITOR
 	if( !IsTemplate() )

@@ -213,6 +213,8 @@ void AGameState::SetMatchState(FName NewState)
 {
 	if (Role == ROLE_Authority)
 	{
+		UE_LOG(LogGameState, Log, TEXT("Match State Changed from %s to %s"), *MatchState.ToString(), *NewState.ToString());
+
 		MatchState = NewState;
 
 		// Call the onrep to make sure the callbacks happen

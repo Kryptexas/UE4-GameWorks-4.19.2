@@ -573,9 +573,9 @@ void UMovieScene::PostLoad()
 }
 
 
-void UMovieScene::PreSave()
+void UMovieScene::PreSave(const class ITargetPlatform* TargetPlatform)
 {
-	Super::PreSave();
+	Super::PreSave(TargetPlatform);
 
 #if WITH_EDITORONLY_DATA
 	// compress meta data mappings prior to saving

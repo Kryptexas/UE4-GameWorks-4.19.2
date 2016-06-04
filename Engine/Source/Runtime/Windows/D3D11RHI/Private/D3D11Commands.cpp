@@ -59,6 +59,14 @@ static FAutoConsoleVariableRef CVarDX11TransitionChecks(
 	ECVF_Default
 	);
 
+int32 GUnbindResourcesBetweenDrawsInDX11 = 0;
+static FAutoConsoleVariableRef CVarUnbindResourcesBetweenDrawsInDX11(
+	TEXT("r.UnbindResourcesBetweenDrawsInDX11"),
+	GUnbindResourcesBetweenDrawsInDX11,
+	TEXT("Unbind resources between material changes in DX11."),
+	ECVF_Default
+	);
+
 void FD3D11BaseShaderResource::SetDirty(bool bInDirty, uint32 CurrentFrame)
 {
 	bDirty = bInDirty;
@@ -232,6 +240,11 @@ void FD3D11DynamicRHI::RHISetBoundShaderState( FBoundShaderStateRHIParamRef Boun
 		{
 			BoundUniformBuffers[Frequency][BindIndex].SafeRelease();
 		}
+	}
+
+	if (GUnbindResourcesBetweenDrawsInDX11)
+	{
+		ClearAllShaderResources();
 	}
 }
 

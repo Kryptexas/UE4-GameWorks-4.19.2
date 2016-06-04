@@ -1351,6 +1351,8 @@ void ACharacter::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTra
 
 		ChangedPropertyTracker.SetExternalData( Writer.GetData(), Writer.GetNumBits() );
 	}
+
+	bReplayHasRootMotionSources = CharacterMovement ? CharacterMovement->HasRootMotionSources() : false;
 }
 
 void ACharacter::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
@@ -1363,6 +1365,7 @@ void ACharacter::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLi
 	DOREPLIFETIME_CONDITION( ACharacter, ReplicatedMovementMode,			COND_SimulatedOnly );
 	DOREPLIFETIME_CONDITION( ACharacter, bIsCrouched,						COND_SimulatedOnly );
 	DOREPLIFETIME_CONDITION( ACharacter, AnimRootMotionTranslationScale,	COND_SimulatedOnly );
+	DOREPLIFETIME_CONDITION( ACharacter, bReplayHasRootMotionSources,		COND_ReplayOnly );
 
 	// Change the condition of the replicated movement property to not replicate in replays since we handle this specifically via saving this out in external replay data
 	DOREPLIFETIME_CHANGE_CONDITION( AActor, ReplicatedMovement,				COND_SimulatedOrPhysicsNoReplay );

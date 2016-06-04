@@ -1146,6 +1146,7 @@ bool FTexturePlatformData::TryLoadMips(int32 FirstMipToLoad, void** OutMipData)
 			if (OutMipData)
 			{
 				OutMipData[MipIndex - FirstMipToLoad] = FMemory::Malloc(Mip.BulkData.GetBulkDataSize());
+				checkSlow(!Mip.BulkData.GetFilename().EndsWith(TEXT(".ubulk"))); // We want to make sure that any non-streamed mips are coming from the texture asset file, and not from an external bulk file
 				Mip.BulkData.GetCopy(&OutMipData[MipIndex - FirstMipToLoad]);
 			}
 			NumMipsCached++;
@@ -1195,6 +1196,49 @@ bool FTexturePlatformData::TryLoadMips(int32 FirstMipToLoad, void** OutMipData)
 	}
 
 	return true;
+}
+
+int32 FTexturePlatformData::GetNumNonStreamingMips() const
+{
+	if (FPlatformProperties::RequiresCookedData())
+	{
+		// We're on a cooked platform so we should only be streaming mips that were not inlined in the texture by thecooker.
+		int32 NumNonStreamingMips = Mips.Num();
+
+		for (const FTexture2DMipMap& Mip : Mips)
+		{
+			uint32 BulkDataFlags = Mip.BulkData.GetBulkDataFlags();
+			if (BulkDataFlags & BULKDATA_PayloadInSeperateFile || BulkDataFlags & BULKDATA_PayloadAtEndOfFile)
+			{
+				--NumNonStreamingMips;
+			}
+			else
+			{
+				break;
+			}
+		}
+
+		return NumNonStreamingMips;
+	}
+	else
+	{
+		check(Mips.Num() > 0);
+		int32 MipCount = Mips.Num();
+		int32 NumNonStreamingMips = 1;
+
+		// Take in to account the min resident limit.
+		NumNonStreamingMips = FMath::Max(NumNonStreamingMips, UTexture2D::GetMinTextureResidentMipCount());
+		NumNonStreamingMips = FMath::Min(NumNonStreamingMips, MipCount);
+		int32 BlockSizeX = GPixelFormats[PixelFormat].BlockSizeX;
+		int32 BlockSizeY = GPixelFormats[PixelFormat].BlockSizeY;
+		if (BlockSizeX > 1 || BlockSizeY > 1)
+		{
+			NumNonStreamingMips = FMath::Max<int32>(NumNonStreamingMips, MipCount - FPlatformMath::FloorLog2(Mips[0].SizeX / BlockSizeX));
+			NumNonStreamingMips = FMath::Max<int32>(NumNonStreamingMips, MipCount - FPlatformMath::FloorLog2(Mips[0].SizeY / BlockSizeY));
+		}
+
+		return NumNonStreamingMips;
+	}
 }
 
 #if WITH_EDITOR
@@ -1275,8 +1319,13 @@ static void SerializePlatformData(
 	// Force resident mips inline
 	if (bCooked && Ar.IsSaving())
 	{
-		int32 MinMipToInline = bStreamable ? NumMips - UTexture2D::GetMinTextureResidentMipCount() : 0;
-		MinMipToInline = FMath::Max(MinMipToInline, 0);
+		int32 MinMipToInline = 0;
+			
+		if (bStreamable)
+		{
+			MinMipToInline = FMath::Max(0, NumMips - PlatformData->GetNumNonStreamingMips());
+		}
+
 		for (int32 MipIndex = MinMipToInline; MipIndex < NumMips; ++MipIndex)
 		{
 			PlatformData->Mips[MipIndex + FirstMipToSerialize].BulkData.SetBulkDataFlags(BULKDATA_ForceInlinePayload | BULKDATA_SingleUse);

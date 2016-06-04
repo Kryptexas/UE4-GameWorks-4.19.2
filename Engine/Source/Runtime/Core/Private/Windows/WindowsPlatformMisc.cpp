@@ -9,6 +9,7 @@
 
 #include "GenericPlatformChunkInstall.h"
 #include "GenericPlatformDriver.h"			// FGPUDriverInfo
+#include "HAL/ThreadHeartBeat.h"
 
 // Resource includes.
 #include "Runtime/Launch/Resources/Windows/Resource.h"
@@ -1415,6 +1416,8 @@ int MessageBoxExtInternal( EAppMsgType::Type MsgType, HWND HandleWnd, const TCHA
 
 EAppReturnType::Type FWindowsPlatformMisc::MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption )
 {
+	FSlowHeartBeatScope SuspendHeartBeat;
+
 	HWND ParentWindow = (HWND)NULL;
 	switch( MsgType )
 	{
@@ -2146,6 +2149,7 @@ void FWindowsPlatformMisc::PromptForRemoteDebugging(bool bIsEnsure)
 			TEXT("hit YES to allow him to debug the crash.\n")
 			TEXT("[Changelist = %d]"),
 			FEngineVersion::Current().GetChangelist());
+		FSlowHeartBeatScope SuspendHeartBeat;
 		if (MessageBox(0, GErrorRemoteDebugPromptMessage, TEXT("CRASHED"), MB_YESNO|MB_SYSTEMMODAL) == IDYES)
 		{
 			::DebugBreak();

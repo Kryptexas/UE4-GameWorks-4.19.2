@@ -24,7 +24,8 @@
 void FWindowsPlatformCrashContext::AddPlatformSpecificProperties()
 {
 	AddCrashProperty(TEXT("PlatformIsRunningWindows"), 1);
-	AddCrashProperty(TEXT("BuildIntegrityStatus"), GetImageIntegrityStatus());
+	// On windows track the crash type
+	AddCrashProperty(TEXT("PlatformCallbackResult"), GetCrashType());
 }
 
 namespace

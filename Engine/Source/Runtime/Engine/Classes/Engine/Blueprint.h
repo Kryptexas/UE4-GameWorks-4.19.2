@@ -623,7 +623,7 @@ public:
 
 	//~ Begin UObject Interface
 #if WITH_EDITORONLY_DATA
-	virtual void PreSave() override;
+	virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
 #endif // WITH_EDITORONLY_DATA
 	virtual void Serialize(FArchive& Ar) override;
 	virtual FString GetDesc(void) override;

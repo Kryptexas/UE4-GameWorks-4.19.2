@@ -1822,6 +1822,13 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 		// If the flag is inherited, this will keep the bool up-to-date
 		Blueprint->bDeprecate = (Class->ClassFlags & CLASS_Deprecated) == CLASS_Deprecated;
 
+		// Add the description to the tooltip
+		if (!Blueprint->BlueprintDescription.IsEmpty())
+		{
+			static const FName NAME_Tooltip(TEXT("Tooltip"));
+			Class->SetMetaData(NAME_Tooltip, *Blueprint->BlueprintDescription);
+		}
+
 		// Copy the category info from the parent class
 #if WITH_EDITORONLY_DATA
 		

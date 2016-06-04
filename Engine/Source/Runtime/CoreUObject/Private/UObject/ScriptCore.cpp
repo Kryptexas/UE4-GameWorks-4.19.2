@@ -363,6 +363,9 @@ void FFrame::KismetExecutionMessage(const TCHAR* Message, ELogVerbosity::Type Ve
 
 	FString ScriptStack;
 
+	// Tracking down some places that display warnings but no message..
+	ensure(Verbosity > ELogVerbosity::Warning || FCString::Strlen(Message) > 0);
+
 	// Show the stackfor fatal/error, and on warning if that option is enabled
 	if (Verbosity <= ELogVerbosity::Error || (ShowKismetScriptStackOnWarnings() && Verbosity == ELogVerbosity::Warning))
 	{
@@ -372,13 +375,14 @@ void FFrame::KismetExecutionMessage(const TCHAR* Message, ELogVerbosity::Type Ve
 
 	if (Verbosity == ELogVerbosity::Fatal)
 	{
-		UE_LOG(LogScriptCore, Fatal, TEXT("%s\n%s"), Message, *ScriptStack);
+		UE_LOG(LogScriptCore, Fatal, TEXT("Script Msg: %s\n%s"), Message, *ScriptStack);
 	}
 #if !NO_LOGGING
 	else if (!LogScriptCore.IsSuppressed(Verbosity))
 	{
 		// Call directly so we can pass verbosity through
-		FMsg::Logf_Internal(__FILE__, __LINE__, LogScriptCore.GetCategoryName(), Verbosity, TEXT("%s\n%s"), Message, *ScriptStack);
+		FMsg::Logf_Internal(__FILE__, __LINE__, LogScriptCore.GetCategoryName(), Verbosity, TEXT("Script Msg: %s"), Message);
+		FMsg::Logf_Internal(__FILE__, __LINE__, LogScriptCore.GetCategoryName(), Verbosity, TEXT("%s"), *ScriptStack);
 	}	
 #endif
 }

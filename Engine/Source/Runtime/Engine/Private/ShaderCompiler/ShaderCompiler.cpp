@@ -77,6 +77,16 @@ static TAutoConsoleVariable<int32> CVarShaderFastMath(
 	TEXT("Whether to use fast-math optimisations in shaders."),
 	ECVF_ReadOnly);
 
+static TAutoConsoleVariable<int32> CVarD3DRemoveUnusedInterpolators(
+	TEXT("r.D3D.RemoveUnusedInterpolators"),
+	0,
+	TEXT("Enables removing unused interpolators mode when compiling pipelines for D3D.\n")
+	TEXT(" -1: Do not actually remove, but make the app think it did (for debugging)\n")
+	TEXT(" 0: Disable (default)\n")
+	TEXT(" 1: Enable removing unused"),
+	ECVF_ReadOnly
+	);
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<FString> CVarD3DCompilerPath(TEXT("r.D3DCompilerPath"),
 	TEXT(""),	// default
@@ -2338,6 +2348,23 @@ void GlobalBeginCompileShader(
 		if (CVar->GetInt() != 0)
 		{
 			Input.Environment.CompilerFlags.Add(CFLAG_KeepDebugInfo);
+		}
+	}
+
+	{
+		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.FastMath"));
+		if (CVar && CVar->GetInt() == 0)
+		{
+			Input.Environment.CompilerFlags.Add(CFLAG_NoFastMath);
+		}
+	}
+
+	if (IsD3DPlatform((EShaderPlatform)Target.Platform, false))
+	{
+		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.D3D.RemoveUnusedInterpolators"));
+		if (CVar && CVar->GetInt() != 0)
+		{
+			Input.Environment.CompilerFlags.Add(CFLAG_ForceRemoveUnusedInterpolators);
 		}
 	}
 

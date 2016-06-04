@@ -52,6 +52,7 @@ void FHttpModule::StartupModule()
 		// platform does not provide specific HTTP manager, use generic one
 		HttpManager = new FHttpManager();
 	}
+	HttpManager->Initialize();
 }
 
 void FHttpModule::ShutdownModule()

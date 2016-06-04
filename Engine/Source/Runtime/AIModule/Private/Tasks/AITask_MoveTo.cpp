@@ -190,6 +190,11 @@ void UAITask_MoveTo::SetObservedPath(FNavPathSharedPtr InPath)
 
 void UAITask_MoveTo::ResetObservers()
 {
+	if (Path.IsValid())
+	{
+		Path->DisableGoalActorObservation();
+	}
+
 	if (PathFinishDelegateHandle.IsValid())
 	{
 		UPathFollowingComponent* PFComp = OwnerController ? OwnerController->GetPathFollowingComponent() : nullptr;
@@ -250,6 +255,10 @@ void UAITask_MoveTo::OnDestroy(bool bInOwnerFinished)
 			PFComp->AbortMove(*this, FPathFollowingResultFlags::OwnerFinished, MoveRequestID);
 		}
 	}
+
+	// clear the shared pointer now to make sure other systems
+	// don't think this path is still being used
+	Path = nullptr;
 }
 
 void UAITask_MoveTo::OnRequestFinished(FAIRequestID RequestID, const FPathFollowingResult& Result)
@@ -307,6 +316,7 @@ void UAITask_MoveTo::OnPathEvent(FNavigationPath* InPath, ENavPathEvent::Type Ev
 		FinishMoveTask(EPathFollowingResult::Aborted);
 		break;
 
+	case ENavPathEvent::MetaPathUpdate:
 	default:
 		break;
 	}
@@ -314,6 +324,14 @@ void UAITask_MoveTo::OnPathEvent(FNavigationPath* InPath, ENavPathEvent::Type Ev
 
 void UAITask_MoveTo::ConditionalUpdatePath()
 {
+	// mark this path as waiting for repath so that PathFollowingComponent doesn't abort the move while we 
+	// micro manage repathing moment
+	// note that this flag fill get cleared upon repathing end
+	if (Path.IsValid())
+	{
+		Path->SetManualRepathWaiting(true);
+	}
+
 	if (MoveRequest.IsUsingPathfinding() && OwnerController && OwnerController->ShouldPostponePathUpdates())
 	{
 		UE_VLOG(GetGameplayTasksComponent(), LogGameplayTasks, Log, TEXT("%s> can't path right now, waiting..."), *GetName());

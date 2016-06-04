@@ -433,6 +433,9 @@ public:
 	/** Creates a backup copy of a log file if it already exists */
 	static void CreateBackupCopy(const TCHAR* Filename);
 
+	/** Checks if the filename represents a backup copy of a log file */
+	static bool IsBackupCopy(const TCHAR* Filename);
+
 private:
 
 	/** Writes to a file on a separate thread */

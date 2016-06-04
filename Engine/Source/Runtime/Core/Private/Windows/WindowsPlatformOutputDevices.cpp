@@ -5,6 +5,7 @@
 #include "FeedbackContextAnsi.h"
 #include "../Private/Windows/WindowsPlatformOutputDevicesPrivate.h"
 #include "../Private/Windows/WindowsPlatformFeedbackContextPrivate.h"
+#include "HAL/ThreadHeartBeat.h"
 
 #include "AllowWindowsPlatformTypes.h"
 
@@ -403,3 +404,15 @@ bool FOutputDeviceConsoleWindows::IsAttached()
 	return false;
 }
 
+bool FFeedbackContextWindows::YesNof(const FText& Question)
+{
+	if ((GIsClient || GIsEditor) && ((GIsSilent != true) && (FApp::IsUnattended() != true)))
+	{
+		FSlowHeartBeatScope SuspendHeartBeat;
+		return(::MessageBox(NULL, Question.ToString().GetCharArray().GetData(), *NSLOCTEXT("Core", "Question", "Question").ToString(), MB_YESNO | MB_TASKMODAL) == IDYES);
+	}
+	else
+	{
+		return false;
+	}
+}

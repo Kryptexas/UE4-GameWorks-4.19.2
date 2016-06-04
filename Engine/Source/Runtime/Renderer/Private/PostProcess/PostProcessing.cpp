@@ -134,13 +134,24 @@ static TAutoConsoleVariable<float> CVarBloomCross(
 	TEXT(">0 for a cross look (X and Y)"),
 	ECVF_RenderThreadSafe);
 
-static TAutoConsoleVariable<int32> CVarTonemapperScreenPercentage(
-	TEXT("r.Tonemapper.ScreenPercentage"),
+static TAutoConsoleVariable<int32> CVarTonemapperMergeMode(
+	TEXT("r.Tonemapper.MergeWithUpscale.Mode"),
 	0,
-	TEXT("Experimental ScreenPercentage upscale integrated into tonemapper pass (if certain conditions apply e.g. no FXAA)\n")
+	TEXT("ScreenPercentage upscale integrated into tonemapper pass (if certain conditions apply, e.g., no FXAA)\n")
 	TEXT(" if enabled both features are done in one pass (faster, affects post process passes after the tonemapper including material post process e.g. sharpen)\n")
-	TEXT(" 0: off, the features run in separate passes (default)\n")
-	TEXT(" 1: enabled if nothing prevents it which is safe but it might do the two pass method"),
+	TEXT("  0: off, the features run in separate passes (default)\n")
+	TEXT("  1: always enabled, try to merge the passes unless something makes it impossible\n")
+	TEXT("  2: merge when the ratio of areas is above the r.Tonemapper.MergeWithUpscale.Threshold and it is otherwise possible"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<float> CVarTonemapperMergeThreshold(
+	TEXT("r.Tonemapper.MergeWithUpscale.Threshold"),
+	0.49f,
+	TEXT("If r.Tonemapper.MergeWithUpscale.Mode is 2, the ratio of the area before upscale/downscale to the area afterwards\n")
+	TEXT("is compared to this threshold when deciding whether or not to merge the passes.  The reasoning is that if the ratio\n")
+	TEXT("is too low, running the tonemapper on the higher number of pixels is more expensive than doing two passes\n")
+	TEXT("\n")
+	TEXT("Defauls to 0.49 (e.g., if r.ScreenPercentage is 70 or higher, try to merge)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<int32> CVarMotionBlurScatter(
@@ -1837,11 +1848,23 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 			// Check if we can save the Upscale pass and do it in the Tonemapper to save performance
 			if(Tonemapper && !PaniniConfig.IsEnabled() && !Tonemapper->bDoGammaOnly)
 			{
-				int32 TonemapperScreenPercentage = CVarTonemapperScreenPercentage.GetValueOnRenderThread();
-
-				if(TonemapperScreenPercentage != 0)
+				if (Context.FinalOutput.GetPass() == Tonemapper)
 				{
-					if(Context.FinalOutput.GetPass() == Tonemapper)
+					const int32 TonemapperMergeMode = CVarTonemapperMergeMode.GetValueOnRenderThread();
+					bool bCombineTonemapperAndUpsample = false;
+
+					if (TonemapperMergeMode == 1)
+					{
+						bCombineTonemapperAndUpsample = true;
+					}
+					else if (TonemapperMergeMode == 2)
+					{
+						const float TonemapperMergeThreshold = CVarTonemapperMergeThreshold.GetValueOnRenderThread();
+						const float AreaRatio = View.ViewRect.Area() / (float)View.UnscaledViewRect.Area();
+						bCombineTonemapperAndUpsample = AreaRatio > TonemapperMergeThreshold;
+					}
+
+					if (bCombineTonemapperAndUpsample)
 					{
 						Tonemapper->bDoScreenPercentageInTonemapper = true;
 						// the following pass is no longer needed

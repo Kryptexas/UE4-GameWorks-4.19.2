@@ -9,7 +9,7 @@
 
 // FCurlHttpRequest
 
-FCurlHttpRequest::FCurlHttpRequest(CURLSH* InShareHandle)
+FCurlHttpRequest::FCurlHttpRequest()
 	:	EasyHandle(NULL)
 	,	HeaderList(NULL)
 	,	bCanceled(false)
@@ -34,7 +34,7 @@ FCurlHttpRequest::FCurlHttpRequest(CURLSH* InShareHandle)
 
 #endif // !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 
-	curl_easy_setopt(EasyHandle, CURLOPT_SHARE, InShareHandle);
+	curl_easy_setopt(EasyHandle, CURLOPT_SHARE, FCurlHttpManager::GShareHandle);
 
 	// set certificate verification (disable to allow self-signed certificates)
 	if (FCurlHttpManager::CurlRequestOptions.bVerifyPeer)
@@ -328,21 +328,12 @@ size_t FCurlHttpRequest::ReceiveResponseBodyCallback(void* Ptr, size_t SizeInBlo
 	{
 		TimeSinceLastResponse = 0.0f;
 
-		int32 OldTotalBytesRead = 0;
 		uint32 SizeToDownload = SizeInBlocks * BlockSizeInBytes;
-		{
-			FScopeLock ScopeLock(&ProgressLock);
-			// Note that we are incrementing the number of total bytes read before we actually perform the memcpy, and this progress could be
-			// reported via the progress delegate but we are expecting the progress delegate to not expose access to the raw bytes so this
-			// would be a benign race condition
-			OldTotalBytesRead = Response->TotalBytesRead;
-			Response->TotalBytesRead += SizeToDownload;
-		}
 
 		UE_LOG(LogHttp, Verbose, TEXT("%p: ReceiveResponseBodyCallback: %d bytes out of %d received. (SizeInBlocks=%d, BlockSizeInBytes=%d, Response->TotalBytesRead=%d, Response->GetContentLength()=%d, SizeToDownload=%d (<-this will get returned from the callback))"),
 			this,
-			static_cast<int32>(OldTotalBytesRead + SizeToDownload), Response->GetContentLength(),
-			static_cast<int32>(SizeInBlocks), static_cast<int32>(BlockSizeInBytes), OldTotalBytesRead, Response->GetContentLength(), static_cast<int32>(SizeToDownload)
+			static_cast<int32>(Response->TotalBytesRead.GetValue() + SizeToDownload), Response->GetContentLength(),
+			static_cast<int32>(SizeInBlocks), static_cast<int32>(BlockSizeInBytes), Response->TotalBytesRead.GetValue(), Response->GetContentLength(), static_cast<int32>(SizeToDownload)
 			);
 
 		// note that we can be passed 0 bytes if file transmitted has 0 length
@@ -351,7 +342,8 @@ size_t FCurlHttpRequest::ReceiveResponseBodyCallback(void* Ptr, size_t SizeInBlo
 			Response->Payload.AddUninitialized(SizeToDownload);
 
 			// save
-			FMemory::Memcpy(static_cast<uint8*>(Response->Payload.GetData()) + OldTotalBytesRead, Ptr, SizeToDownload);
+			FMemory::Memcpy(static_cast< uint8* >(Response->Payload.GetData()) + Response->TotalBytesRead.GetValue(), Ptr, SizeToDownload);
+			Response->TotalBytesRead.Add(SizeToDownload);
 
 			return SizeToDownload;
 		}
@@ -368,38 +360,25 @@ size_t FCurlHttpRequest::UploadCallback(void* Ptr, size_t SizeInBlocks, size_t B
 {
 	TimeSinceLastResponse = 0.0f;
 
-	int32 OldBytesSent = 0;
-	size_t SizeToSend = 0;
+	size_t SizeToSend = RequestPayload.Num() - BytesSent.GetValue();
 	size_t SizeToSendThisTime = 0;
 
+	if (SizeToSend != 0)
 	{
-		FScopeLock ScopeLock(&ProgressLock);
-		OldBytesSent = BytesSent;
-		SizeToSend = RequestPayload.Num() - BytesSent;
-		if (SizeToSend != 0)
+		SizeToSendThisTime = FMath::Min(SizeToSend, SizeInBlocks * BlockSizeInBytes);
+		if (SizeToSendThisTime != 0)
 		{
-			SizeToSendThisTime = FMath::Min(SizeToSend, SizeInBlocks * BlockSizeInBytes);
-			if (SizeToSendThisTime != 0)
-			{
-				// Note that we are incrementing the number of total bytes sent before we actually perform the memcpy, and this progress could be
-				// reported via the progress delegate but we are expecting the progress delegate to not expose access to the raw bytes so this
-				// would be a benign race condition
-				BytesSent += SizeToSendThisTime;
-			}
+			// static cast just ensures that this is uint8* in fact
+			FMemory::Memcpy(Ptr, static_cast< uint8* >(RequestPayload.GetData()) + BytesSent.GetValue(), SizeToSendThisTime);
+			BytesSent.Add(SizeToSendThisTime);
 		}
-	}
-
-	if (SizeToSendThisTime != 0)
-	{
-		// static cast just ensures that this is uint8* in fact
-		FMemory::Memcpy(Ptr, static_cast<uint8*>(RequestPayload.GetData()) + OldBytesSent, SizeToSendThisTime);
 	}
 
 	UE_LOG(LogHttp, Verbose, TEXT("%p: UploadCallback: %d bytes out of %d sent. (SizeInBlocks=%d, BlockSizeInBytes=%d, RequestPayload.Num()=%d, BytesSent=%d, SizeToSend=%d, SizeToSendThisTime=%d (<-this will get returned from the callback))"),
 		this,
-		static_cast<int32>(OldBytesSent + SizeToSendThisTime), RequestPayload.Num(),
-		static_cast<int32>(SizeInBlocks), static_cast<int32>(BlockSizeInBytes), RequestPayload.Num(), static_cast<int32>(OldBytesSent + SizeToSendThisTime), static_cast<int32>(SizeToSend),
-		static_cast<int32>(SizeToSendThisTime)
+		static_cast< int32 >(BytesSent.GetValue()), RequestPayload.Num(),
+		static_cast< int32 >(SizeInBlocks), static_cast< int32 >(BlockSizeInBytes), RequestPayload.Num(), static_cast< int32 >(BytesSent.GetValue()), static_cast< int32 >(SizeToSend),
+		static_cast< int32 >(SizeToSendThisTime)
 		);
 
 	return SizeToSendThisTime;
@@ -554,7 +533,7 @@ bool FCurlHttpRequest::SetupRequest()
 		curl_easy_setopt(EasyHandle, CURLOPT_INFILESIZE, RequestPayload.Num());
 
 		// reset the counter
-		BytesSent = 0;
+		BytesSent.Reset();
 	}
 	else if (Verb == TEXT("GET"))
 	{
@@ -727,19 +706,11 @@ void FCurlHttpRequest::Tick(float DeltaSeconds)
 void FCurlHttpRequest::CheckProgressDelegate()
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FCurlHttpRequest_CheckProgressDelegate);
-	int32 CurrentBytesRead = 0;
-	int32 CurrentBytesSent = 0;
-	{
-		FScopeLock ScopeLock(&ProgressLock);
-		if (Response.IsValid())
-		{
-			CurrentBytesRead = Response->TotalBytesRead;
-		}
-		CurrentBytesSent = BytesSent;
-	}
+	int32 CurrentBytesRead = Response.IsValid() ? Response->TotalBytesRead.GetValue() : 0;
+	int32 CurrentBytesSent = BytesSent.GetValue();
 
-	bool bProcessing = CompletionStatus == EHttpRequestStatus::Processing;
-	bool bProgessChanged = (CurrentBytesSent != LastReportedBytesSent) ||
+	const bool bProcessing = CompletionStatus == EHttpRequestStatus::Processing;
+	const bool bProgessChanged = (CurrentBytesSent != LastReportedBytesSent) ||
 		(Response.IsValid() && CurrentBytesRead != LastReportedBytesRead);
 	if (bProcessing && bProgessChanged)
 	{

@@ -1906,6 +1906,11 @@ public:
 	*/
 	void UpdateMorphMaterialUsage_GameThread(bool bNeedsMorphUsage);
 
+
+#if WITH_EDITORONLY_DATA
+	virtual const FStreamingSectionBuildInfo* GetStreamingSectionData(float& OutComponentExtraScale, float& OutMeshExtraScale, int32 LODIndex, int32 ElementIndex) const override;
+#endif
+
 	friend class FSkeletalMeshSectionIter;
 
 protected:
@@ -1969,6 +1974,13 @@ protected:
 	TSet<UMaterialInterface*> MaterialsInUse_GameThread;
 	bool bMaterialsNeedMorphUsage_GameThread;
 	
+#if WITH_EDITORONLY_DATA
+	/** The component streaming distance multiplier */
+	float StreamingDistanceMultiplier;
+	/** The mesh streaming texel factor (fallback) */
+	float StreamingTexelFactor;
+#endif
+
 	void GetDynamicElementsSection(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, 
 		const FStaticLODModel& LODModel, const int32 LODIndex, const FSkelMeshSection& Section, const FSkelMeshChunk& Chunk, 
 		const FSectionElementInfo& SectionElementInfo, const FTwoVectors& CustomLeftRightVectors, bool bInSelectable, FMeshElementCollector& Collector ) const;

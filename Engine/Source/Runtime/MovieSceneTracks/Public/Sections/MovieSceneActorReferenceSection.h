@@ -44,7 +44,7 @@ public:
 	 */
 	FIntegralCurve& GetActorReferenceCurve() { return ActorGuidIndexCurve; }
 
-	virtual void PreSave() override;
+	virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
 	virtual void PostLoad() override;
 
 private:

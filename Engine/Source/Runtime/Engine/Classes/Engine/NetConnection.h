@@ -678,6 +678,8 @@ public:
 	/** Removes a channel from the ticking list directly */
 	void StopTickingChannel(UChannel* Channel) { ChannelsToTick.Remove(Channel); }
 
+	FORCEINLINE FHistogram GetNetHistogram() const { return NetConnectionHistogram; }
+
 protected:
 
 	void CleanupDormantActorState();
@@ -691,6 +693,9 @@ private:
 	 */
 	UPROPERTY()
 	TArray<UChannel*> ChannelsToTick;
+
+	/** Histogram of the received packet time */
+	FHistogram NetConnectionHistogram;
 };
 
 

@@ -68,7 +68,7 @@ void FPrimitiveDistanceAccuracyPS::SetMesh(
 		}
 
 		const float OneOverDistanceMultiplier = 1.f / FMath::Max<float>(SMALL_NUMBER, ComponentExtraScale);
-		CPULogDistance =  FMath::Log2(OneOverDistanceMultiplier * FMath::Sqrt(FMath::Max<float>(1.f, DistSqMinusRadiusSq)));
+		CPULogDistance =  FMath::Max<float>(0.f, FMath::Log2(OneOverDistanceMultiplier * FMath::Sqrt(FMath::Max<float>(1.f, DistSqMinusRadiusSq))));
 	}
 #endif
 	// Because the streamer use FMath::FloorToFloat, here we need to use -1 to have a useful result.

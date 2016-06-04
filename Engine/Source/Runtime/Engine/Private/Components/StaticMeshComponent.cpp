@@ -325,9 +325,9 @@ bool UStaticMeshComponent::AreNativePropertiesIdenticalTo( UObject* Other ) cons
 	return bNativePropertiesAreIdentical;
 }
 
-void UStaticMeshComponent::PreSave()
+void UStaticMeshComponent::PreSave(const class ITargetPlatform* TargetPlatform)
 {
-	Super::PreSave();
+	Super::PreSave(TargetPlatform);
 #if WITH_EDITORONLY_DATA
 	CachePaintedDataIfNecessary();
 #endif // WITH_EDITORONLY_DATA

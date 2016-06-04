@@ -371,11 +371,11 @@ void UTexture::FinishDestroy()
 #endif
 }
 
-void UTexture::PreSave()
+void UTexture::PreSave(const class ITargetPlatform* TargetPlatform)
 {
 	PreSaveEvent.Broadcast(this);
 
-	Super::PreSave();
+	Super::PreSave(TargetPlatform);
 
 #if WITH_EDITOR
 	if (DeferCompression)
@@ -385,7 +385,8 @@ void UTexture::PreSave()
 		UpdateResource();
 	}
 
-	if( !GEngine->IsAutosaving() )
+	bool bIsCooking = TargetPlatform != nullptr;
+	if (!GEngine->IsAutosaving() && (!bIsCooking))
 	{
 		GWarn->StatusUpdate(0, 0, FText::Format(NSLOCTEXT("UnrealEd", "SavingPackage_CompressingSourceArt", "Compressing source art for texture:  {0}"), FText::FromString(GetName())));
 		Source.Compress();

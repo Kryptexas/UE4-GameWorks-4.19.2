@@ -1038,9 +1038,9 @@ void ALandscape::CheckForErrors()
 }
 #endif
 
-void ALandscapeProxy::PreSave()
+void ALandscapeProxy::PreSave(const class ITargetPlatform* TargetPlatform)
 {
-	Super::PreSave();
+	Super::PreSave(TargetPlatform);
 
 #if WITH_EDITOR
 	// Work out whether we have grass or not for the next game run
@@ -1656,9 +1656,9 @@ UMaterialInterface* ALandscape::GetLandscapeHoleMaterial() const
 	return nullptr;
 }
 
-void ALandscape::PreSave()
+void ALandscape::PreSave(const class ITargetPlatform* TargetPlatform)
 {
-	Super::PreSave();
+	Super::PreSave(TargetPlatform);
 	//ULandscapeInfo* Info = GetLandscapeInfo();
 	//if (GIsEditor && Info && !IsRunningCommandlet())
 	//{

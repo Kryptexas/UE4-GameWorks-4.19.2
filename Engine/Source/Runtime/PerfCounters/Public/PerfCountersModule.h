@@ -28,71 +28,6 @@ DECLARE_DELEGATE_OneParam(FProduceJsonCounterValue, const FPrettyJsonWriter& /* 
  */
 DECLARE_DELEGATE_RetVal_TwoParams(bool, FPerfCounterExecCommandCallback, const FString& /*ExecCmd*/, FOutputDevice& /*Output*/);
 
-/** Fairly generic histogram for values that have natural lower bound and possibly no upper bound, e.g. frame time */
-struct PERFCOUNTERS_API FHistogram
-{
-	/** Inits histogram with linear, equally sized bins */
-	void InitLinear(double MinTime, double MaxTime, double BinSize);
-
-	/** Inits histogram to mimic our existing hitch buckets */
-	void InitHitchTracking();
-
-	/** Resets measurements, without resetting the configured bins. */
-	void Reset();
-
-	/** Adds an observed measurement. */
-	void AddMeasurement(double Value);
-
-	/** Prints histogram contents to the log. */
-	void DumpToLog(const FString& HistogramName);
-
-	/** Populates array commonly used in analytics events, adding two pairs per bin (count and sum). */
-	void DumpToAnalytics(const FString& ParamNamePrefix, TArray<TPair<FString, double>>& OutParamArray);
-
-protected:
-
-	/** Bin */
-	struct FBin
-	{
-		/** MinValue to be stored in the bin, inclusive. */
-		double				MinValue;
-
-		/** First value NOT to be stored in the bin. */
-		double				UpperBound;
-
-		/** Sum of all values that were put into this bin. */
-		double				Sum;
-
-		/** How many elements are in this bin. */
-		int32				Count;
-
-		FBin()
-		{
-		}
-
-		/** Constructor for any bin */
-		FBin(double MinInclusive, double MaxExclusive)
-			: MinValue(MinInclusive)
-			, UpperBound(MaxExclusive)
-			, Sum(0)
-			, Count(0)
-		{
-		}
-
-		/** Constructor for the last bin. */
-		FBin(double MinInclusive)
-			: MinValue(MinInclusive)
-			, UpperBound(FLT_MAX)
-			, Sum(0)
-			, Count(0)
-		{
-		}
-	};
-
-	/** Bins themselves, should be continous in terms of [MinValue; UpperBound) and sorted ascending by MinValue. Last bin's UpperBound doesn't matter */
-	TArray<FBin>			Bins;
-};
-
 /**
  * A programming interface for setting/updating performance counters
  */
@@ -124,6 +59,8 @@ public:
 		static const FName FrameTime;
 		/** Frame time histogram for shorter intervals. */
 		static const FName FrameTimePeriodic;
+		/** Frame time histogram (without sleep) for the duration of the match. */
+		static const FName FrameTimeWithoutSleep;
 		/** ServerReplicateActors time histogram for the duration of the match. */
 		static const FName ServerReplicateActorsTime;
 		/** Sleep time histogram for the duration of the match. */

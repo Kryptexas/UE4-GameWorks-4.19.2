@@ -862,7 +862,7 @@ public:
 	//~ End UMaterialInterface Interface.
 
 	//~ Begin UObject Interface
-	ENGINE_API virtual void PreSave() override;
+	ENGINE_API virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
 	ENGINE_API virtual void PostInitProperties() override;
 	ENGINE_API virtual void Serialize(FArchive& Ar) override;
 	ENGINE_API virtual void PostDuplicate(bool bDuplicateForPIE) override;

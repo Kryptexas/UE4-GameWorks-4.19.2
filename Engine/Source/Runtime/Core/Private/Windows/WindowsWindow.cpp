@@ -3,6 +3,7 @@
 #include "CorePrivatePCH.h"
 #include "WindowsWindow.h"
 #include "WindowsApplication.h"
+#include "HAL/ThreadHeartBeat.h"
 
 #include "AllowWindowsPlatformTypes.h"
 #if WINVER > 0x502	// Windows Vista or better required for DWM
@@ -176,6 +177,8 @@ void FWindowsWindow::Initialize( FWindowsApplication* const Application, const T
 
 	if( HWnd == NULL )
 	{
+		FSlowHeartBeatScope SuspendHeartBeat;
+
 		// @todo Error message should be localized!
 		MessageBox(NULL, TEXT("Window Creation Failed!"), TEXT("Error!"), MB_ICONEXCLAMATION | MB_OK);
 		checkf(0, TEXT("Window Creation Failed (%d)"), ::GetLastError() );

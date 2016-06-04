@@ -788,12 +788,29 @@ public:
 
 	static FORCEINLINE bool ShouldUpdateNavOctreeOnComponentChange()
 	{
-		return bUpdateNavOctreeOnComponentChange
+		return (bUpdateNavOctreeOnComponentChange && !bStaticRuntimeNavigation)
 #if WITH_EDITOR
 			|| (GIsEditor && !GIsPlayInEditorWorld)
 #endif
 			;
 	}
+
+	static FORCEINLINE bool IsNavigationSystemStatic()
+	{
+		return bStaticRuntimeNavigation
+#if WITH_EDITOR
+			&& !(GIsEditor && !GIsPlayInEditorWorld)
+#endif
+			;
+	}
+
+	/** Use this function to signal the NavigationSystem it doesn't need to store
+	 *	any navigation-generation-related data at game runtime, because 
+	 *	nothing is going to use it anyway. This will short-circuit all code related 
+	 *	to navmesh rebuilding, so use it only if you have fully static navigation in 
+	 *	your game.
+	 *	Note: this is not a runtime switch. Call it before any actual game starts. */
+	static void ConfigureAsStatic();
 
 	/** 
 	 * Exec command handlers
@@ -864,8 +881,8 @@ protected:
 	
 	/** whether seamless navigation building is enabled */
 	static bool bNavigationAutoUpdateEnabled;
-
 	static bool bUpdateNavOctreeOnComponentChange;
+	static bool bStaticRuntimeNavigation;
 
 	static TMap<INavLinkCustomInterface*, FWeakObjectPtr> PendingCustomLinkRegistration;
 	TSet<const UClass*> NavAreaClasses;

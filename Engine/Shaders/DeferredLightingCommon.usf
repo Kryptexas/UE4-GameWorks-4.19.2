@@ -368,7 +368,7 @@ float4 GetDynamicLighting(float3 WorldPosition, float3 CameraVector, float2 InUV
 				float rLength0 = rsqrt( LengthSqr0 );
 				float rLength1 = rsqrt( LengthSqr1 );
 				float Length0 = LengthSqr0 * rLength0;
-				float Length1 = LengthSqr0 * rLength0;
+				float Length1 = LengthSqr1 * rLength1;
 
 				DistanceAttenuation = rcp( ( Length0 * Length1 + dot( ToLight0, ToLight1 ) ) * 0.5 + 1 );
 				NoL = saturate( 0.5 * ( dot(N, ToLight0) * rLength0 + dot(N, ToLight1) * rLength1 ) );

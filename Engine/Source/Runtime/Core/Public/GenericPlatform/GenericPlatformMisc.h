@@ -308,6 +308,22 @@ struct CORE_API FGenericPlatformMisc
 	*/
 	static FString GetCPUVendor();
 
+	/**
+	 * On x86(-64) platforms, uses cpuid instruction to get the CPU signature
+	 *
+	 * @return	CPU info bitfield
+	 *
+	 *			Bits 0-3	Stepping ID
+	 *			Bits 4-7	Model
+	 *			Bits 8-11	Family
+	 *			Bits 12-13	Processor type (Intel) / Reserved (AMD)
+	 *			Bits 14-15	Reserved
+	 *			Bits 16-19	Extended model
+	 *			Bits 20-27	Extended family
+	 *			Bits 28-31	Reserved
+	 */
+	static uint32 GetCPUInfo();
+
 	/** 
 	 * Uses cpuid instruction to get the CPU brand string
 	 *

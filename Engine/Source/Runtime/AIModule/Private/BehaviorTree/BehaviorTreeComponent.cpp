@@ -2039,10 +2039,13 @@ bool SetDynamicSubtreeHelper(const UBTCompositeNode* TestComposite,
 				UBTTask_RunBehaviorDynamic* InstancedNode = Cast<UBTTask_RunBehaviorDynamic>(SubtreeTask->GetNodeInstance(*OwnerComp, (uint8*)NodeMemory));
 				if (InstancedNode)
 				{
-					InstancedNode->SetBehaviorAsset(BehaviorAsset);
-					UE_VLOG(OwnerComp->GetOwner(), LogBehaviorTree, Log, TEXT("Replaced subtree in %s with %s (tag: %s)"),
-						*UBehaviorTreeTypes::DescribeNodeHelper(SubtreeTask), *GetNameSafe(BehaviorAsset), *InjectTag.ToString());
-					bInjected = true;
+					const bool bAssetChanged = InstancedNode->SetBehaviorAsset(BehaviorAsset);
+					if (bAssetChanged)
+					{
+						UE_VLOG(OwnerComp->GetOwner(), LogBehaviorTree, Log, TEXT("Replaced subtree in %s with %s (tag: %s)"),
+							*UBehaviorTreeTypes::DescribeNodeHelper(SubtreeTask), *GetNameSafe(BehaviorAsset), *InjectTag.ToString());
+						bInjected = true;
+					}
 				}
 			}
 		}
@@ -2083,7 +2086,7 @@ void UBehaviorTreeComponent::SetDynamicSubtree(FGameplayTag InjectTag, UBehavior
 	}
 	else
 	{
-		UE_VLOG(GetOwner(), LogBehaviorTree, Warning, TEXT("Failed to inject subtree %s at tag %s"), *GetNameSafe(BehaviorAsset), *InjectTag.ToString());
+		UE_VLOG(GetOwner(), LogBehaviorTree, Log, TEXT("Failed to inject subtree %s at tag %s"), *GetNameSafe(BehaviorAsset), *InjectTag.ToString());
 	}
 }
 

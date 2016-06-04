@@ -3127,15 +3127,19 @@ void FDynamicBeam2EmitterData::GetIndexAllocInfo(int32& OutNumIndices, int32& Ou
 		}
 		else
 		{
-			if (TempIndexCount == 0)
+			if (Triangles > 0)
 			{
-				TempIndexCount = 2;
-			}
-			TempIndexCount += Triangles * Source.Sheets;
-			TempIndexCount += 4 * (Source.Sheets - 1);	// Degenerate indices between sheets
-			if ((ii + 1) < Source.TrianglesPerSheet.Num())
-			{
-				TempIndexCount += 4;	// Degenerate indices between beams
+				if (TempIndexCount == 0)
+				{
+					TempIndexCount = 2;     // First Beam
+				}
+				else
+				{
+					TempIndexCount += 4;	// Degenerate indices between beams
+				}
+
+				TempIndexCount += Triangles * Source.Sheets;
+				TempIndexCount += 4 * (Source.Sheets - 1);	// Degenerate indices between sheets
 			}
 		}
 	}
@@ -3164,10 +3168,19 @@ static int32 CreateDynamicBeam2EmitterIndices(TIndexType* OutIndex, const FDynam
 			continue;
 		}
 
-		if (Beam == 0)
+		if (VertexIndex == 0)//First Beam
 		{
 			*(OutIndex++) = VertexIndex++;	// SheetIndex + 0
 			*(OutIndex++) = VertexIndex++;	// SheetIndex + 1
+		}
+		else//Degenerate tris between beams
+		{
+			*(OutIndex++) = VertexIndex - 1;	// Last vertex of the previous sheet
+			*(OutIndex++) = VertexIndex;		// First vertex of the next sheet
+			*(OutIndex++) = VertexIndex++;		// First vertex of the next sheet
+			*(OutIndex++) = VertexIndex++;		// Second vertex of the next sheet
+
+			TrianglesToRender += 4;
 		}
 
 		for (int32 SheetIndex = 0; SheetIndex < Source.Sheets; SheetIndex++)
@@ -3191,15 +3204,6 @@ static int32 CreateDynamicBeam2EmitterIndices(TIndexType* OutIndex, const FDynam
 
 				TrianglesToRender += 4;
 			}
-		}
-		if ((Beam + 1) < Source.ActiveParticleCount)
-		{
-			*(OutIndex++) = VertexIndex - 1;	// Last vertex of the previous sheet
-			*(OutIndex++) = VertexIndex;		// First vertex of the next sheet
-			*(OutIndex++) = VertexIndex++;		// First vertex of the next sheet
-			*(OutIndex++) = VertexIndex++;		// Second vertex of the next sheet
-
-			TrianglesToRender += 4;
 		}
 	}
 

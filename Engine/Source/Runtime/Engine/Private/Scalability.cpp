@@ -500,15 +500,6 @@ void SetQualityLevels(const FQualityLevels& QualityLevels)
 	CVarFoliageQuality.AsVariable()->Set(NewFoliageQuality, ECVF_SetByCode);
 }
 
-/** Helper accessor objects */
-FResolutionQualityCVarAccessor::FResolutionQualityCVarAccessor() : FCVarAccessorFloat(CVarResolutionQuality.AsVariable()){}
-FViewDistanceQualityCVarAccessor::FViewDistanceQualityCVarAccessor() : FCVarAccessorInt(CVarViewDistanceQuality.AsVariable()){}
-FAntiAliasingQualityCVarAccessor::FAntiAliasingQualityCVarAccessor() : FCVarAccessorInt(CVarAntiAliasingQuality.AsVariable()){}
-FShadowQualityCVarAccessor::FShadowQualityCVarAccessor() : FCVarAccessorInt(CVarShadowQuality.AsVariable()){}
-FPostProcessQualityCVarAccessor::FPostProcessQualityCVarAccessor() : FCVarAccessorInt(CVarPostProcessQuality.AsVariable()){}
-FTextureQualityCVarAccessor::FTextureQualityCVarAccessor() : FCVarAccessorInt(CVarTextureQuality.AsVariable()){}
-FEffectsQualityCVarAccessor::FEffectsQualityCVarAccessor() : FCVarAccessorInt(CVarEffectsQuality.AsVariable()){}
-
 FQualityLevels GetQualityLevels()
 {
 	FQualityLevels Ret;
@@ -524,6 +515,18 @@ FQualityLevels GetQualityLevels()
 	Ret.FoliageQuality = CVarFoliageQuality.GetValueOnGameThread();
 
 	return Ret;
+}
+
+int32 GetEffectsQualityDirect(bool bGameThread)
+{
+	if (bGameThread)
+	{
+		return CVarEffectsQuality.GetValueOnAnyThread(true);
+	}
+	else
+	{
+		return CVarEffectsQuality.GetValueOnRenderThread();
+	}
 }
 
 void FQualityLevels::SetBenchmarkFallback()

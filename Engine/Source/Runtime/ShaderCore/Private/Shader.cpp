@@ -1638,13 +1638,18 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 	}
 	
 	{
+		// Always default to fast math unless specified
 		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.FastMath"));
-		KeyString += (CVar && CVar->GetInt() != 0) ? TEXT("") : TEXT("_NoFastMath");
+		KeyString += (CVar && CVar->GetInt() == 0) ? TEXT("_NoFastMath") : TEXT("");
 	}
-	
+
+	if (IsD3DPlatform(Platform, false))
 	{
-		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.AvoidFlowControl"));
-		KeyString += (CVar && CVar->GetInt() != 0) ? TEXT("_Unroll") : TEXT("_Flow");
+		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.D3D.RemoveUnusedInterpolators"));
+		if (CVar && CVar->GetInt() != 0)
+		{
+			KeyString += TEXT("_UnInt");
+		}
 	}
 
 	if (Platform == SP_PS4)

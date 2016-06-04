@@ -501,7 +501,7 @@ protected:
 	virtual void PostLoad() override;
 
 	/** Called before this object is being deserialized. */
-	virtual void PreSave() override;
+	virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
 
 	/** Perform legacy upgrade of time ranges */
 	void UpgradeTimeRanges();

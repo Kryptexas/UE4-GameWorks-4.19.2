@@ -1209,6 +1209,8 @@ void UCharacterMovementComponent::SimulatedTick(float DeltaSeconds)
 		bJustTeleported = false;
 
 		CharacterOwner->RootMotionRepMoves.Empty();
+		CurrentRootMotion.Clear();
+		CharacterOwner->SavedRootMotion.Clear();
 
 		// Note: we do not call the Super implementation, that runs prediction.
 		// We do still need to call these though
@@ -8725,6 +8727,11 @@ void UCharacterMovementComponent::TickCharacterPose(float DeltaTime)
 
 bool UCharacterMovementComponent::HasRootMotionSources() const
 {
+	if ( NetworkSmoothingMode == ENetworkSmoothingMode::Replay && CharacterOwner && CharacterOwner->Role == ROLE_SimulatedProxy && CharacterOwner->bReplayHasRootMotionSources )
+	{
+		return true;
+	}
+
 	return CurrentRootMotion.HasActiveRootMotionSources() || (CharacterOwner && CharacterOwner->IsPlayingRootMotion() && CharacterOwner->GetMesh());
 }
 

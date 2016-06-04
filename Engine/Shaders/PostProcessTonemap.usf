@@ -371,6 +371,9 @@ void MainPS(
 		// RETURN_COLOR not needed unless writing to SceneColor
 		OutColor = float4(OutDeviceColor, saturate(LuminanceForPostProcessAA));
 
+		//experimental HDR support
+		//quite expensive, will need to be on a switch or optimized.
+#if 0
 		// Tonemapped color in the output gamut
 		half3 OutColorInGamut = OutColor.rgb;
 
@@ -379,6 +382,7 @@ void MainPS(
 
 		// Choose between output device or 'pseudo linear' color
 		OutColor.rgb = lerp(OutColorInGamut, PseudoLinearColor, InvertTonemapping);
+#endif
 
 	#endif
 }

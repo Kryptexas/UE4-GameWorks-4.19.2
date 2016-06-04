@@ -210,6 +210,7 @@ void UPathFollowingComponent::OnPathEvent(FNavigationPath* InPath, ENavPathEvent
 		{
 		case ENavPathEvent::UpdatedDueToGoalMoved:
 		case ENavPathEvent::UpdatedDueToNavigationChanged:
+		case ENavPathEvent::MetaPathUpdate:
 			{
 				const bool bIsPathAccepted = HandlePathUpdateEvent();
 				if (!bIsPathAccepted)
@@ -738,8 +739,9 @@ int32 UPathFollowingComponent::DetermineCurrentTargetPathPoint(int32 StartIndex)
 
 void UPathFollowingComponent::UpdatePathSegment()
 {
-	if (!Path.IsValid() || MovementComp == NULL)
+	if ((Path.IsValid() == false) || (MovementComp == nullptr))
 	{
+		UE_CVLOG(Path.IsValid() == false, this, LogPathFollowing, Log, TEXT("Aborting move due to not having a valid path object"));
 		OnPathFinished(EPathFollowingResult::Aborted, FPathFollowingResultFlags::InvalidPath);
 		return;
 	}
@@ -748,6 +750,7 @@ void UPathFollowingComponent::UpdatePathSegment()
 	{
 		if (!Path->IsWaitingForRepath())
 		{
+			UE_VLOG(this, LogPathFollowing, Log, TEXT("Aborting move due to path being invelid and not waiting for repath"));
 			OnPathFinished(EPathFollowingResult::Aborted, FPathFollowingResultFlags::InvalidPath);
 		}
 

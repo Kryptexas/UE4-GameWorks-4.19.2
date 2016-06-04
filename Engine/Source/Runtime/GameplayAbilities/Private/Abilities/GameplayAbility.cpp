@@ -1257,6 +1257,13 @@ void UGameplayAbility::K2_ExecuteGameplayCueWithParams(FGameplayTag GameplayCueT
 void UGameplayAbility::K2_AddGameplayCue(FGameplayTag GameplayCueTag, FGameplayEffectContextHandle Context, bool bRemoveOnAbilityEnd)
 {
 	check(CurrentActorInfo);
+
+	// Make default context if nothing is passed in
+	if (Context.IsValid() == false)
+	{
+		Context = MakeEffectContext(CurrentSpecHandle, CurrentActorInfo);
+	}
+
 	Context.SetAbility(this);
 
 	CurrentActorInfo->AbilitySystemComponent->AddGameplayCue(GameplayCueTag, Context);

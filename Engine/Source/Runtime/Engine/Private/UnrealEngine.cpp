@@ -5898,7 +5898,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 #if !UE_BUILD_SHIPPING
 	if (FParse::Command(&Cmd, TEXT("RENDERCRASH")))
 	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND(CauseRenderThreadCrash, { UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.")); SetImageIntegrityStatus(-1); UE_LOG(LogEngine, Fatal, TEXT("Crashing the renderthread at your request")); });
+		ENQUEUE_UNIQUE_RENDER_COMMAND(CauseRenderThreadCrash, { UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.")); SetCrashType(ECrashType::Debug); UE_LOG(LogEngine, Fatal, TEXT("Crashing the renderthread at your request")); });
 		return true;
 	}
 	if (FParse::Command(&Cmd, TEXT("RENDERCHECK")))
@@ -5908,7 +5908,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 			static void Check()
 			{				
 				UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
-				SetImageIntegrityStatus(-1);
+				SetCrashType(ECrashType::Debug);
 				check(!"Crashing the renderthread via check(0) at your request");
 			}
 		};
@@ -5917,7 +5917,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 	}
 	if (FParse::Command(&Cmd, TEXT("RENDERGPF")))
 	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND(CauseRenderThreadCrash, { UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.")); SetImageIntegrityStatus(-1); *(int32 *)3 = 123; });
+		ENQUEUE_UNIQUE_RENDER_COMMAND(CauseRenderThreadCrash, { UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.")); SetCrashType(ECrashType::Debug); *(int32 *)3 = 123; });
 		return true;
 	}
 	if (FParse::Command(&Cmd, TEXT("RENDERFATAL")))
@@ -5925,7 +5925,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 		ENQUEUE_UNIQUE_RENDER_COMMAND(CauseRenderThreadCrash,
 		{
 			UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
-			SetImageIntegrityStatus(-1);
+			SetCrashType(ECrashType::Debug);
 			LowLevelFatalError(TEXT("FError::LowLevelFatal test"));
 		});
 		return true;
@@ -5949,7 +5949,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 			static void Crash(ENamedThreads::Type, const  FGraphEventRef&)
 			{
 				UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
-				SetImageIntegrityStatus(-1);
+				SetCrashType(ECrashType::Debug);
 				UE_LOG(LogEngine, Fatal, TEXT("Crashing the worker thread at your request"));
 			}
 		};
@@ -5974,7 +5974,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 			static void Check(ENamedThreads::Type, const FGraphEventRef&)
 			{
 				UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
-				SetImageIntegrityStatus(-1);
+				SetCrashType(ECrashType::Debug);
 				check(!"Crashing a worker thread via check(0) at your request");
 			}
 		};
@@ -5999,7 +5999,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 			static void GPF(ENamedThreads::Type, const FGraphEventRef&)
 			{
 				UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
-				SetImageIntegrityStatus(-1);
+				SetCrashType(ECrashType::Debug);
 				*(int32 *)3 = 123;
 			}
 		};
@@ -6047,7 +6047,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 			static void Fatal(ENamedThreads::Type, const FGraphEventRef&)
 			{
 				UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
-				SetImageIntegrityStatus(-1);
+				SetCrashType(ECrashType::Debug);
 				LowLevelFatalError(TEXT("FError::LowLevelFatal test"));
 			}
 		};
@@ -6067,14 +6067,14 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 	else if (FParse::Command(&Cmd, TEXT("CRASH")))
 	{
 		UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
-		SetImageIntegrityStatus(-1);
+		SetCrashType(ECrashType::Debug);
 		UE_LOG(LogEngine, Fatal, TEXT("%s"), TEXT("Crashing the gamethread at your request"));
 		return true;
 	}
 	else if (FParse::Command(&Cmd, TEXT("CHECK")))
 	{
 		UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
-		SetImageIntegrityStatus(-1);
+		SetCrashType(ECrashType::Debug);
 		check(!"Crashing the game thread via check(0) at your request");
 		return true;
 	}
@@ -6082,7 +6082,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 	{
 		UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
 		Ar.Log(TEXT("Crashing with voluntary GPF"));
-		SetImageIntegrityStatus(-1);
+		SetCrashType(ECrashType::Debug);
 		// changed to 3 from NULL because clang noticed writing to NULL and warned about it
 		*(int32 *)3 = 123;
 		return true;
@@ -6106,7 +6106,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 	else if (FParse::Command(&Cmd, TEXT("FATAL")))
 	{
 		UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
-		SetImageIntegrityStatus(-1);
+		SetCrashType(ECrashType::Debug);
 		LowLevelFatalError(TEXT("FError::LowLevelFatal test"));
 		return true;
 	}
@@ -6114,13 +6114,13 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 	{
 		// stack overflow test - this case should be caught by /GS (Buffer Overflow Check) compile option
 		ANSICHAR SrcBuffer[] = "12345678901234567890123456789012345678901234567890";
-		SetImageIntegrityStatus(-1);
+		SetCrashType(ECrashType::Debug);
 		BufferOverflowFunction(ARRAY_COUNT(SrcBuffer), SrcBuffer);
 		return true;
 	}
 	else if (FParse::Command(&Cmd, TEXT("CRTINVALID")))
 	{
-		SetImageIntegrityStatus(-1);
+		SetCrashType(ECrashType::Debug);
 		FString::Printf(NULL);
 		return true;
 	}
@@ -6143,7 +6143,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 	{
 		Ar.Logf(TEXT("Recursing to create a very deep callstack."));
 		GLog->Flush();
-		SetImageIntegrityStatus(-1);
+		SetCrashType(ECrashType::Debug);
 		InfiniteRecursionFunction(1);
 		Ar.Logf(TEXT("You will never see this log line."));
 		return true;
@@ -6155,7 +6155,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 		{
 			static void InfiniteRecursion(ENamedThreads::Type, const FGraphEventRef&)
 			{
-				SetImageIntegrityStatus(-1);
+				SetCrashType(ECrashType::Debug);
 				InfiniteRecursionFunction(1);
 			}
 		};
@@ -6175,7 +6175,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 	else if (FParse::Command(&Cmd, TEXT("EATMEM")))
 	{
 		Ar.Log(TEXT("Eating up all available memory"));
-		SetImageIntegrityStatus(-1);
+		SetCrashType(ECrashType::Debug);
 		while (1)
 		{
 			void* Eat = FMemory::Malloc(65536);
@@ -6192,7 +6192,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 	else if (FParse::Command(&Cmd, TEXT("STACKOVERFLOW")))
 	{
 		Ar.Log(TEXT("Infinite recursion to cause stack overflow"));
-		SetImageIntegrityStatus(-1);
+		SetCrashType(ECrashType::Debug);
 		StackOverflowFunction(nullptr);
 		return true;
 	}
@@ -6203,7 +6203,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 		{
 			static void StackOverflow(ENamedThreads::Type, const FGraphEventRef&)
 			{
-				SetImageIntegrityStatus(-1);
+				SetCrashType(ECrashType::Debug);
 				StackOverflowFunction(nullptr);
 			}
 		};
@@ -6223,7 +6223,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 	else if (FParse::Command(&Cmd, TEXT("SOFTLOCK")))
 	{
 		Ar.Log(TEXT("Hanging the current thread"));
-		SetImageIntegrityStatus(-1);
+		SetCrashType(ECrashType::Debug);
 		while (1)
 		{
 			FPlatformProcess::Sleep(1.0f);
@@ -6233,7 +6233,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 	else if (FParse::Command(&Cmd, TEXT("INFINITELOOP")))
 	{
 		Ar.Log(TEXT("Hanging the current thread (CPU-intensive)"));
-		SetImageIntegrityStatus(-1);
+		SetCrashType(ECrashType::Debug);
 		for(;;)
 		{
 		}

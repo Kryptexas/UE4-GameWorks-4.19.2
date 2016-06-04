@@ -22,6 +22,7 @@
 #include <net/if_arp.h>
 
 #include "ModuleManager.h"
+#include "HAL/ThreadHeartBeat.h"
 
 // define for glibc 2.12.2 and lower (which is shipped with CentOS 6.x and which we target by default)
 #define __secure_getenv getenv
@@ -581,6 +582,8 @@ EAppReturnType::Type FLinuxPlatformMisc::MessageBoxExt(EAppMsgType::Type MsgType
 	};
 
 	int ButtonPressed = -1;
+
+	FSlowHeartBeatScope SuspendHeartBeat;
 	if (SDL_ShowMessageBox(&MessageBoxData, &ButtonPressed) == -1) 
 	{
 		UE_LOG(LogInit, Fatal, TEXT("Error Presenting MessageBox: %s\n"), ANSI_TO_TCHAR(SDL_GetError()));

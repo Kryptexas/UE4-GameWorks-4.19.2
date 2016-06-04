@@ -109,7 +109,7 @@ public:
 	{
 		TArray<FCookStatsManager::StringKeyValue> Attrs;
 		Attrs.Empty(sizeof...(Args) / 2);
-		ImplCreateKeyValueArray(Attrs, Args...);
+		ImplCreateKeyValueArray(Attrs, Forward<ArgTypes>(Args)...);
 		return Attrs;
 	}
 

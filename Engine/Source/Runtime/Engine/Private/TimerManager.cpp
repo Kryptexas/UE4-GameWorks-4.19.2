@@ -9,6 +9,67 @@
 DECLARE_CYCLE_STAT(TEXT("SetTimer"), STAT_SetTimer, STATGROUP_Engine);
 DECLARE_CYCLE_STAT(TEXT("ClearTimer"), STAT_ClearTimer, STATGROUP_Engine);
 
+namespace
+{
+	void DescribeFTImerDataSafely(const FTimerData& Data)
+	{
+		UE_LOG(LogEngine, Log, TEXT("TimerData %p : bLoop=%s, bRequiresDelegate=%s, Status=%d, Rate=%f, ExpireTime=%f"),
+			&Data,
+			Data.bLoop ? TEXT("true") : TEXT("false"),
+			Data.bRequiresDelegate ? TEXT("true") : TEXT("false"),
+			static_cast<int32>(Data.Status),
+			Data.Rate,
+			Data.ExpireTime
+			)
+	}
+}
+
+FTimerManager::FTimerManager()
+	: InternalTime(0.0)
+	, LastTickedFrame(static_cast<uint64>(-1))
+	, LastAssignedHandle(0)
+{
+	if (IsRunningDedicatedServer())
+	{
+		FCoreDelegates::OnHandleSystemError.AddRaw(this, &FTimerManager::OnCrash);
+	}
+}
+
+FTimerManager::~FTimerManager()
+{
+	if (IsRunningDedicatedServer())
+	{
+		FCoreDelegates::OnHandleSystemError.RemoveAll(this);
+	}
+}
+
+void FTimerManager::OnCrash()
+{
+	UE_LOG(LogEngine, Warning, TEXT("TimerManager %p on crashing delegate called, dumping extra information"), this);
+
+	UE_LOG(LogEngine, Log, TEXT("------- %d Active Timers -------"), ActiveTimerHeap.Num());
+	for(const FTimerData& Data : ActiveTimerHeap)
+	{
+		DescribeFTImerDataSafely(Data);
+	}
+
+	UE_LOG(LogEngine, Log, TEXT("------- %d Paused Timers -------"), PausedTimerList.Num());
+	for (const FTimerData& Data : PausedTimerList)
+	{
+		DescribeFTImerDataSafely(Data);
+	}
+
+	UE_LOG(LogEngine, Log, TEXT("------- %d Pending Timers -------"), PendingTimerList.Num());
+	for (const FTimerData& Data : PendingTimerList)
+	{
+		DescribeFTImerDataSafely(Data);
+	}
+
+	UE_LOG(LogEngine, Log, TEXT("------- %d Total Timers -------"), PendingTimerList.Num() + PausedTimerList.Num() + ActiveTimerHeap.Num());
+
+	UE_LOG(LogEngine, Warning, TEXT("TimerManager %p dump ended"), this);
+}
+
 void FTimerHandle::MakeValid()
 {
 	if (GWorld)

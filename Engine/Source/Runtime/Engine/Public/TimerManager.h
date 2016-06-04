@@ -153,12 +153,13 @@ public:
 	// ----------------------------------
 	// Timer API
 
-	FTimerManager()
-		: InternalTime(0.0)
-		, LastTickedFrame(static_cast<uint64>(-1))
-		, LastAssignedHandle(0)
-	{}
+	FTimerManager();
+	virtual ~FTimerManager();
 
+	/**
+	 * Called from crash handler to provide more debug information.
+	 */
+	virtual void OnCrash();
 
 	/**
 	 * Sets a timer to call the given native function at a set interval.  If a timer is already set

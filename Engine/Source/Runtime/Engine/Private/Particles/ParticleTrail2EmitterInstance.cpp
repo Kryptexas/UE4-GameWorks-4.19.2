@@ -3241,10 +3241,9 @@ float FParticleAnimTrailEmitterInstance::Spawn(float DeltaTime)
 	// Figure out spawn rate for this tick.
 	if (bProcessSpawnRate)
 	{
-		static Scalability::FEffectsQualityCVarAccessor EffectsQuality;
-
+		int32 EffectsQuality = Scalability::GetEffectsQualityDirect(true);
 		float RateScale = LODLevel->SpawnModule->RateScale.GetValue(EmitterTime, Component) * LODLevel->SpawnModule->GetGlobalRateScale();
-		float QualityMult = 0.25f * (1 << EffectsQuality.GetGameThreadValue());
+		float QualityMult = 0.25f * (1 << EffectsQuality);
 		RateScale *= SpriteTemplate->QualityLevelSpawnRateScale*QualityMult;
 		SpawnRate += LODLevel->SpawnModule->Rate.GetValue(EmitterTime, Component) * FMath::Clamp<float>(RateScale, 0.0f, RateScale);
 	}

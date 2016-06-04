@@ -187,12 +187,9 @@ double GStreamingDynamicPrimitivesTime = 0.0;
  */
 bool IsStreamingTexture( const UTexture2D* Texture2D )
 {
-	if (Texture2D && Texture2D->bIsStreamable && !Texture2D->NeverStream && Texture2D->GetNumMips() > UTexture2D::GetMinTextureResidentMipCount())
+	if (Texture2D && Texture2D->bIsStreamable && !Texture2D->NeverStream && Texture2D->GetNumMips() > Texture2D->GetNumNonStreamingMips())
 	{
-		const UShadowMapTexture2D* ShadowMap2D = Cast<const UShadowMapTexture2D>(Texture2D);
-		const ULightMapTexture2D* Lightmap2D = Cast<const ULightMapTexture2D>(Texture2D);
-
-		return !(Lightmap2D && (Lightmap2D->LightmapFlags & LMF_Streamed) == 0) && !(ShadowMap2D && (ShadowMap2D->ShadowmapFlags & SMF_Streamed) == 0);
+		return true;
 	}
 	return false;
 }

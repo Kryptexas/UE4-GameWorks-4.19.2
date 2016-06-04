@@ -602,7 +602,7 @@ bool UDemoNetDriver::InitConnectInternal( FString& Error )
 
 		// Set up the pending net game so that the engine can call LoadMap on the next tick.
 		NewPendingNetGame->DemoNetDriver = this;
-		NewPendingNetGame->URL = DemoURL;
+		NewPendingNetGame->URL = LocalDemoURL;
 		NewPendingNetGame->bSuccessfullyConnected = true;
 
 		WorldContext->PendingNetGame = NewPendingNetGame;
@@ -1451,9 +1451,9 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 
 			TSharedPtr<FRepChangedPropertyTracker> PropertyTracker = FindOrCreateRepChangedPropertyTracker( Actor );
 
-			if (!bDidReplicateActor)
+			if ( !GuidCache->NetGUIDLookup.Contains( Actor ) )
 			{
-				// Clear external data if the actor didn't replicate for some reason
+				// Clear external data if the actor has never replicated yet (and doesn't have a net guid)
 				PropertyTracker->ExternalData.Empty();
 				PropertyTracker->ExternalDataNumBits = 0;
 			}

@@ -287,9 +287,9 @@ void UEdGraphNode::Serialize(FArchive& Ar)
 	}
 }
 
-void UEdGraphNode::PreSave()
+void UEdGraphNode::PreSave(const class ITargetPlatform* TargetPlatform)
 {
-	Super::PreSave();
+	Super::PreSave(TargetPlatform);
 
 #if WITH_EDITORONLY_DATA
 	if (!NodeUpgradeMessage.IsEmpty())

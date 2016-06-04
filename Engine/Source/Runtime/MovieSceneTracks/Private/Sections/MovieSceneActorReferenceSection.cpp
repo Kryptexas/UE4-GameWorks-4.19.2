@@ -96,14 +96,14 @@ void UMovieSceneActorReferenceSection::SetDefault( const FGuid& Value )
 }
 
 
-void UMovieSceneActorReferenceSection::PreSave()
+void UMovieSceneActorReferenceSection::PreSave(const class ITargetPlatform* TargetPlatform)
 {
 	ActorGuidStrings.Empty();
 	for ( const FGuid& ActorGuid : ActorGuids )
 	{
 		ActorGuidStrings.Add( ActorGuid.ToString() );
 	}
-	Super::PreSave();
+	Super::PreSave(TargetPlatform);
 }
 
 

@@ -119,6 +119,8 @@ void UNetConnection::InitBase(UNetDriver* InDriver,class FSocket* InSocket, cons
 	LastRecvAckTime			= Driver->Time;
 	ConnectTime				= Driver->Time;
 
+	NetConnectionHistogram.InitHitchTracking();
+
 	// Current state
 	State = InState;
 	// Copy the URL
@@ -768,6 +770,10 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 	}
 
 	ValidateSendBuffer();
+
+	//Record the packet time to the histogram
+	double LastPacketTimeDiffInMs = (FPlatformTime::Seconds() - LastReceiveRealtime) * 1000.0;
+	NetConnectionHistogram.AddMeasurement(LastPacketTimeDiffInMs);
 
 	// Update receive time to avoid timeout.
 	LastReceiveTime		= Driver->Time;
@@ -1922,7 +1928,7 @@ void UNetConnection::CleanupDormantActorState()
 	DormantReplicatorMap.Empty();
 }
 
-void UNetConnection::FlushDormancy( class AActor* Actor )
+void UNetConnection::FlushDormancy(class AActor* Actor)
 {
 	UE_LOG( LogNetDormancy, Verbose, TEXT( "FlushDormancy: %s. Connection: %s" ), *Actor->GetName(), *GetName() );
 	

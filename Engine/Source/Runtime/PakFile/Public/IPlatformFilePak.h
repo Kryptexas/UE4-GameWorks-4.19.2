@@ -1040,7 +1040,7 @@ public:
 			return FileEntry->CompressionMethod != COMPRESS_None ? FileEntry->UncompressedSize : FileEntry->Size;
 		}
 		// First look for the file in the user dir.
-		int64 Result = 0;
+		int64 Result = INDEX_NONE;
 		if (IsNonPakFilenameAllowed(Filename))
 		{
 			Result = LowerLevel->FileSize(Filename);

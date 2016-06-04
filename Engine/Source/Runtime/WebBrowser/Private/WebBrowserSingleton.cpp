@@ -191,7 +191,8 @@ FWebBrowserSingleton::FWebBrowserSingleton()
 	// Specify path to sub process exe
 	FString SubProcessPath(FPaths::Combine(*FPaths::EngineDir(), CEF3_SUBPROCES_EXE));
 	SubProcessPath = FPaths::ConvertRelativePathToFull(SubProcessPath);
-	if (!FPaths::FileExists(SubProcessPath))
+
+	if (!IPlatformFile::GetPlatformPhysical().FileExists(*SubProcessPath))
 	{
 		UE_LOG(LogWebBrowser, Error, TEXT("UnrealCEFSubProcess.exe not found, check that this program has been built and is placed in: %s."), *SubProcessPath);
 	}

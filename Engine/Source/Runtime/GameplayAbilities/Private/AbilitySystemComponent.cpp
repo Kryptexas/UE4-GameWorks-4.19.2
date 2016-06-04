@@ -632,7 +632,9 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 	bool bTreatAsInfiniteDuration = GetOwnerRole() != ROLE_Authority && PredictionKey.IsLocalClientKey() && Spec.Def->DurationPolicy == EGameplayEffectDurationType::Instant;
 
 	// Make sure we create our copy of the spec in the right place
-	FActiveGameplayEffectHandle	MyHandle;
+	// We initialize the FActiveGameplayEffectHandle here with INDEX_NONE to handle the case of instant GE
+	// Initializing it like this will set the bPassedFiltersAndWasExecuted on the FActiveGameplayEffectHandle to true so we can know that we applied a GE
+	FActiveGameplayEffectHandle	MyHandle(INDEX_NONE);
 	bool bInvokeGameplayCueApplied = Spec.Def->DurationPolicy != EGameplayEffectDurationType::Instant; // Cache this now before possibly modifying predictive instant effect to infinite duration effect.
 
 	FActiveGameplayEffect* AppliedEffect = nullptr;
@@ -1024,18 +1026,20 @@ void UAbilitySystemComponent::ExecuteGameplayCue(const FGameplayTag GameplayCueT
 
 void UAbilitySystemComponent::AddGameplayCue_Internal(const FGameplayTag GameplayCueTag, const FGameplayEffectContextHandle& EffectContext, FActiveGameplayCueContainer& GameplayCueContainer)
 {
+	FGameplayCueParameters Parameters(EffectContext);
+
 	if (IsOwnerActorAuthoritative())
 	{
 		bool bWasInList = HasMatchingGameplayTag(GameplayCueTag);
 
 		ForceReplication();
-		GameplayCueContainer.AddCue(GameplayCueTag, ScopedPredictionKey);
-		NetMulticast_InvokeGameplayCueAdded(GameplayCueTag, ScopedPredictionKey, EffectContext);
+		GameplayCueContainer.AddCue(GameplayCueTag, ScopedPredictionKey, Parameters);
+		NetMulticast_InvokeGameplayCueAdded_WithParams(GameplayCueTag, ScopedPredictionKey, Parameters);
 
 		if (!bWasInList)
 		{
 			// Call on server here, clients get it from repnotify
-			InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::WhileActive);
+			InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::WhileActive, Parameters);
 		}
 	}
 	else if (ScopedPredictionKey.IsLocalClientKey())
@@ -1043,8 +1047,8 @@ void UAbilitySystemComponent::AddGameplayCue_Internal(const FGameplayTag Gamepla
 		GameplayCueContainer.PredictiveAdd(GameplayCueTag, ScopedPredictionKey);
 
 		// Allow for predictive gameplaycue events? Needs more thought
-		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::OnActive, EffectContext);
-		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::WhileActive);
+		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::OnActive, Parameters);
+		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::WhileActive, Parameters);
 	}
 }
 
@@ -1137,6 +1141,14 @@ void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueAdded_Implementation
 	}
 }
 
+void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueAdded_WithParams_Implementation(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayCueParameters Parameters)
+{
+	if (IsOwnerActorAuthoritative() || PredictionKey.IsLocalClientKey() == false)
+	{
+		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::OnActive, Parameters);
+	}
+}
+
 // -----------
 
 void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueAddedAndWhileActive_FromSpec_Implementation(const FGameplayEffectSpecForRPC& Spec, FPredictionKey PredictionKey)
@@ -1214,54 +1226,62 @@ TArray<FActiveGameplayEffectHandle> UAbilitySystemComponent::GetActiveEffects(co
 	return ActiveGameplayEffects.GetActiveEffects(Query);
 }
 
-void UAbilitySystemComponent::RemoveActiveEffectsWithTags(const FGameplayTagContainer Tags)
+int32 UAbilitySystemComponent::RemoveActiveEffectsWithTags(const FGameplayTagContainer Tags)
 {
 	if (IsOwnerActorAuthoritative())
 	{
-		RemoveActiveEffects(FGameplayEffectQuery::MakeQuery_MatchAnyEffectTags(Tags));
+		return RemoveActiveEffects(FGameplayEffectQuery::MakeQuery_MatchAnyEffectTags(Tags));
 	}
+	return 0;
 }
 
-void UAbilitySystemComponent::RemoveActiveEffectsWithSourceTags(FGameplayTagContainer Tags)
+int32 UAbilitySystemComponent::RemoveActiveEffectsWithSourceTags(FGameplayTagContainer Tags)
 {
 	if (IsOwnerActorAuthoritative())
 	{
-		RemoveActiveEffects(FGameplayEffectQuery::MakeQuery_MatchAnySourceTags(Tags));
+		return RemoveActiveEffects(FGameplayEffectQuery::MakeQuery_MatchAnySourceTags(Tags));
 	}
+	return 0;
 }
 
-void UAbilitySystemComponent::RemoveActiveEffectsWithAppliedTags(FGameplayTagContainer Tags)
+int32 UAbilitySystemComponent::RemoveActiveEffectsWithAppliedTags(FGameplayTagContainer Tags)
 {
 	if (IsOwnerActorAuthoritative())
 	{
-		RemoveActiveEffects(FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(Tags));
+		return RemoveActiveEffects(FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(Tags));
 	}
+	return 0;
 }
 
-void UAbilitySystemComponent::RemoveActiveEffectsWithGrantedTags(const FGameplayTagContainer Tags)
+int32 UAbilitySystemComponent::RemoveActiveEffectsWithGrantedTags(const FGameplayTagContainer Tags)
 {
 	if (IsOwnerActorAuthoritative())
 	{
-		RemoveActiveEffects(FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(Tags));
+		return RemoveActiveEffects(FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(Tags));
 	}
+	return 0;
 }
 
 // #deprecated, use FGameplayEffectQuery version
-void UAbilitySystemComponent::RemoveActiveEffects(const FActiveGameplayEffectQuery Query, int32 StacksToRemove)
+int32 UAbilitySystemComponent::RemoveActiveEffects(const FActiveGameplayEffectQuery Query, int32 StacksToRemove)
 {
 	if (IsOwnerActorAuthoritative())
 	{
 		PRAGMA_DISABLE_DEPRECATION_WARNINGS
-		ActiveGameplayEffects.RemoveActiveEffects(Query, StacksToRemove);
+		return ActiveGameplayEffects.RemoveActiveEffects(Query, StacksToRemove);
 		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	}
+
+	return 0;
 }
-void UAbilitySystemComponent::RemoveActiveEffects(const FGameplayEffectQuery& Query, int32 StacksToRemove)
+int32 UAbilitySystemComponent::RemoveActiveEffects(const FGameplayEffectQuery& Query, int32 StacksToRemove)
 {
 	if (IsOwnerActorAuthoritative())
 	{
-		ActiveGameplayEffects.RemoveActiveEffects(Query, StacksToRemove);
+		return ActiveGameplayEffects.RemoveActiveEffects(Query, StacksToRemove);
 	}
+
+	return 0;
 }
 
 // ---------------------------------------------------------------------------------------
@@ -1362,6 +1382,18 @@ bool UAbilitySystemComponent::HasAuthorityOrPredictionKey(const FGameplayAbility
 void UAbilitySystemComponent::SetReplicationMode(EReplicationMode NewReplicationMode)
 {
 	ReplicationMode = NewReplicationMode;
+}
+
+void UAbilitySystemComponent::OnPredictiveGameplayCueCatchup(FGameplayTag Tag)
+{
+	// Remove it
+	RemoveOneTagCount_NoReturn(Tag);
+
+	if (HasMatchingGameplayTag(Tag) == 0)
+	{
+		// Invoke Removed event if we no longer have this tag (probably a mispredict)
+		InvokeGameplayCueEvent(Tag, EGameplayCueEvent::Removed);
+	}
 }
 
 // ---------------------------------------------------------------------------------------

@@ -1228,6 +1228,11 @@ void FOutputDeviceFile::CreateBackupCopy(const TCHAR* Filename)
 	}
 }
 
+bool FOutputDeviceFile::IsBackupCopy(const TCHAR* Filename)
+{
+	return Filename != nullptr && FCString::Stristr(const_cast<TCHAR*>(Filename), BACKUP_LOG_FILENAME_POSTFIX) != nullptr;
+}
+
 void FOutputDeviceFile::WriteByteOrderMarkToArchive(EByteOrderMark ByteOrderMark)
 {
 	switch (ByteOrderMark)

@@ -259,7 +259,10 @@ FVector UInterpToMovementComponent::ComputeMoveDelta(float InTime) const
 	}
 
 	FVector CurrentPosition = UpdatedComponent->GetComponentLocation();
-	MoveDelta = NewPosition - CurrentPosition;
+	if (CurrentPosition != NewPosition)
+	{
+		MoveDelta = NewPosition - CurrentPosition;
+	}
 	return MoveDelta;
 }
 
@@ -463,14 +466,23 @@ void UInterpToMovementComponent::UpdateControlPoints(bool InForceUpdate)
 					TotalDistance += ControlPoints[ControlPoint].DistanceToNext;
 					CurrentPos = NextPosition;
 				}
+				else
+				{
+					ControlPoints[ControlPoint].DistanceToNext = 0.0f;
+					ControlPoints[ControlPoint].Percentage = 1.0f;
+					ControlPoints[ControlPoint].StartTime = 1.0f;
+				}
 			}
 			float Percent = 0.0f;
 			// Use the distance to determine what % of time to spend going from each point
 			for (int32 ControlPoint = 0; ControlPoint < ControlPoints.Num(); ControlPoint++)
 			{
 				ControlPoints[ControlPoint].StartTime = Percent;
-				ControlPoints[ControlPoint].Percentage = ControlPoints[ControlPoint].DistanceToNext / TotalDistance;
-				Percent += ControlPoints[ControlPoint].Percentage;
+				if(ControlPoints[ControlPoint].DistanceToNext != 0.0f)
+				{
+					ControlPoints[ControlPoint].Percentage = ControlPoints[ControlPoint].DistanceToNext / TotalDistance;
+					Percent += ControlPoints[ControlPoint].Percentage;
+				}
 			}
 		}
 	}

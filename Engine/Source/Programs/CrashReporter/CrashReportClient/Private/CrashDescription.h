@@ -334,7 +334,7 @@ struct FPrimaryCrashProperties
 	/**
 	 *	Windows only. Non-zero integrity values are to be discounted as "genuine" crashes.
 	 */
-	FCrashProperty BuildIntegrity;
+	FCrashProperty PlatformCallbackResult;
 
 	/**
 	 * Whether this crash has a minidump file.

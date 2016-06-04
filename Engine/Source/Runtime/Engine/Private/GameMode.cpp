@@ -726,6 +726,8 @@ void AGameMode::SetMatchState(FName NewState)
 		return;
 	}
 
+	UE_LOG(LogGameMode, Display, TEXT("Match State Changed from %s to %s"), *MatchState.ToString(), *NewState.ToString());
+
 	MatchState = NewState;
 
 	OnMatchStateSet();
@@ -772,6 +774,7 @@ void AGameMode::Tick(float DeltaSeconds)
 		// Check to see if we should start the match
 		if (ReadyToStartMatch())
 		{
+			UE_LOG(LogGameMode, Log, TEXT("GameMode returned ReadyToStartMatch"));
 			StartMatch();
 		}
 	}
@@ -780,6 +783,7 @@ void AGameMode::Tick(float DeltaSeconds)
 		// Check to see if we should start the match
 		if (ReadyToEndMatch())
 		{
+			UE_LOG(LogGameMode, Log, TEXT("GameMode returned ReadyToEndMatch"));
 			EndMatch();
 		}
 	}

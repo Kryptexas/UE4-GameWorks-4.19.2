@@ -19,6 +19,7 @@
 #include "MacPlatformCrashContext.h"
 #include "PLCrashReporter.h"
 #include "GenericPlatformDriver.h"
+#include "HAL/ThreadHeartBeat.h"
 
 #include <dlfcn.h>
 #include <IOKit/IOKitLib.h>
@@ -821,6 +822,8 @@ void FMacPlatformMisc::CreateGuid(FGuid& Result)
 
 EAppReturnType::Type FMacPlatformMisc::MessageBoxExt(EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption)
 {
+	FSlowHeartBeatScope SuspendHeartBeat;
+
 	SCOPED_AUTORELEASE_POOL;
 
 	EAppReturnType::Type ReturnValue = MainThreadReturn(^{

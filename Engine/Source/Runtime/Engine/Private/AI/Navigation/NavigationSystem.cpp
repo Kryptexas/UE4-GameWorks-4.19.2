@@ -262,6 +262,7 @@ FNavigationSystemExec UNavigationSystem::ExecHandler;
 UNavigationSystem::FOnNavigationDirty UNavigationSystem::NavigationDirtyEvent;
 
 bool UNavigationSystem::bUpdateNavOctreeOnComponentChange = true;
+bool UNavigationSystem::bStaticRuntimeNavigation = false;
 //----------------------------------------------------------------------//
 // life cycle stuff                                                                
 //----------------------------------------------------------------------//
@@ -324,6 +325,11 @@ UNavigationSystem::~UNavigationSystem()
 		GLevelEditorModeTools().OnEditorModeChanged().RemoveAll(this);
 	}
 #endif // WITH_EDITOR
+}
+
+void UNavigationSystem::ConfigureAsStatic()
+{
+	bStaticRuntimeNavigation = true;
 }
 
 void UNavigationSystem::DoInitialSetup()
@@ -2473,6 +2479,10 @@ const FNavigationRelevantData* UNavigationSystem::GetDataForObject(const UObject
 
 void UNavigationSystem::UpdateActorInNavOctree(AActor& Actor)
 {
+	if (IsNavigationSystemStatic())
+	{
+		return;
+	}
 	SCOPE_CYCLE_COUNTER(STAT_DebugNavOctree);
 
 	INavRelevantInterface* NavElement = Cast<INavRelevantInterface>(&Actor);
@@ -2725,6 +2735,11 @@ bool UNavigationSystem::UpdateNavOctreeElementBounds(UActorComponent* Comp, cons
 
 void UNavigationSystem::OnComponentRegistered(UActorComponent* Comp)
 {
+	if (IsNavigationSystemStatic())
+	{
+		return;
+	}
+
 	SCOPE_CYCLE_COUNTER(STAT_DebugNavOctree);
 	INavRelevantInterface* NavInterface = Cast<INavRelevantInterface>(Comp);
 	if (NavInterface)
@@ -2743,6 +2758,11 @@ void UNavigationSystem::OnComponentRegistered(UActorComponent* Comp)
 
 void UNavigationSystem::OnComponentUnregistered(UActorComponent* Comp)
 {
+	if (IsNavigationSystemStatic())
+	{
+		return;
+	}
+
 	SCOPE_CYCLE_COUNTER(STAT_DebugNavOctree);
 	INavRelevantInterface* NavInterface = Cast<INavRelevantInterface>(Comp);
 	if (NavInterface)
@@ -2763,6 +2783,11 @@ void UNavigationSystem::OnComponentUnregistered(UActorComponent* Comp)
 
 void UNavigationSystem::OnActorRegistered(AActor* Actor)
 {
+	if (IsNavigationSystemStatic())
+	{
+		return;
+	}
+
 	SCOPE_CYCLE_COUNTER(STAT_DebugNavOctree);
 	INavRelevantInterface* NavInterface = Cast<INavRelevantInterface>(Actor);
 	if (NavInterface)
@@ -2777,6 +2802,11 @@ void UNavigationSystem::OnActorRegistered(AActor* Actor)
 
 void UNavigationSystem::OnActorUnregistered(AActor* Actor)
 {
+	if (IsNavigationSystemStatic())
+	{
+		return;
+	}
+
 	SCOPE_CYCLE_COUNTER(STAT_DebugNavOctree);
 	INavRelevantInterface* NavInterface = Cast<INavRelevantInterface>(Actor);
 	if (NavInterface)
@@ -2814,6 +2844,12 @@ void UNavigationSystem::ReleaseInitialBuildingLock()
 
 void UNavigationSystem::InitializeLevelCollisions()
 {
+	if (IsNavigationSystemStatic())
+	{
+		bInitialLevelsAdded = true;
+		return;
+	}
+
 	UWorld* World = GetWorld();
 	if (!bInitialLevelsAdded && UNavigationSystem::GetCurrent(World) == this)
 	{
@@ -2867,7 +2903,7 @@ void UNavigationSystem::OnEditorModeChanged(FEdMode* Mode, bool IsEntering)
 
 void UNavigationSystem::OnNavigationBoundsUpdated(ANavMeshBoundsVolume* NavVolume)
 {
-	if (NavVolume == NULL)
+	if (NavVolume == nullptr || IsNavigationSystemStatic())
 	{
 		return;
 	}
@@ -2884,7 +2920,7 @@ void UNavigationSystem::OnNavigationBoundsUpdated(ANavMeshBoundsVolume* NavVolum
 
 void UNavigationSystem::OnNavigationBoundsAdded(ANavMeshBoundsVolume* NavVolume)
 {
-	if (NavVolume == NULL)
+	if (NavVolume == nullptr || IsNavigationSystemStatic())
 	{
 		return;
 	}
@@ -2901,7 +2937,7 @@ void UNavigationSystem::OnNavigationBoundsAdded(ANavMeshBoundsVolume* NavVolume)
 
 void UNavigationSystem::OnNavigationBoundsRemoved(ANavMeshBoundsVolume* NavVolume)
 {
-	if (NavVolume == NULL)
+	if (NavVolume == nullptr || IsNavigationSystemStatic())
 	{
 		return;
 	}
@@ -3335,7 +3371,7 @@ int32 UNavigationSystem::GetNumRunningBuildTasks() const
 
 void UNavigationSystem::OnLevelAddedToWorld(ULevel* InLevel, UWorld* InWorld)
 {
-	if (InWorld == GetWorld())
+	if ((IsNavigationSystemStatic() == false) && (InWorld == GetWorld()))
 	{
 		AddLevelCollisionToOctree(InLevel);
 
@@ -3354,7 +3390,7 @@ void UNavigationSystem::OnLevelAddedToWorld(ULevel* InLevel, UWorld* InWorld)
 
 void UNavigationSystem::OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorld)
 {
-	if (InWorld == GetWorld())
+	if ((IsNavigationSystemStatic() == false) && (InWorld == GetWorld()))
 	{
 		RemoveLevelCollisionFromOctree(InLevel);
 
@@ -3715,7 +3751,7 @@ bool UNavigationSystem::IsNavigationBeingBuilt(UObject* WorldContextObject)
 //----------------------------------------------------------------------//
 bool UNavigationSystem::ShouldGeneratorRun(const FNavDataGenerator* Generator) const
 {
-	if (Generator != NULL)
+	if (Generator != NULL && (IsNavigationSystemStatic() == false))
 	{
 		for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
 		{

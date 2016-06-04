@@ -567,6 +567,7 @@ bool FGameplayCueParameters::NetSerialize(FArchive& Ar, class UPackageMap* Map, 
 		REP_Instigator,
 		REP_EffectCauser,
 		REP_SourceObject,
+		REP_TargetAttachComponent,
 		REP_PhysMaterial,
 		REP_GELevel,
 		REP_AbilityLevel,
@@ -608,6 +609,10 @@ bool FGameplayCueParameters::NetSerialize(FArchive& Ar, class UPackageMap* Map, 
 		if (SourceObject.IsValid())
 		{
 			RepBits |= (1 << REP_SourceObject);
+		}
+		if (TargetAttachComponent.IsValid())
+		{
+			RepBits |= (1 << REP_TargetAttachComponent);
 		}
 		if (PhysicalMaterial.IsValid())
 		{
@@ -661,7 +666,11 @@ bool FGameplayCueParameters::NetSerialize(FArchive& Ar, class UPackageMap* Map, 
 	{
 		Ar << SourceObject;
 	}
-	if (RepBits & (1 << REP_SourceObject))
+	if (RepBits & (1 << REP_TargetAttachComponent))
+	{
+		Ar << TargetAttachComponent;
+	}
+	if (RepBits & (1 << REP_PhysMaterial))
 	{
 		Ar << PhysicalMaterial;
 	}

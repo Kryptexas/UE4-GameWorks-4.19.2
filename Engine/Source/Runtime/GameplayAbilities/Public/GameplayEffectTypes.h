@@ -109,13 +109,15 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectHandle
 	GENERATED_USTRUCT_BODY()
 
 	FActiveGameplayEffectHandle()
-		: Handle(INDEX_NONE)
+		: Handle(INDEX_NONE),
+		bPassedFiltersAndWasExecuted(false)
 	{
 
 	}
 
 	FActiveGameplayEffectHandle(int32 InHandle)
-		: Handle(InHandle)
+		: Handle(InHandle),
+		bPassedFiltersAndWasExecuted(true)
 	{
 
 	}
@@ -123,6 +125,11 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectHandle
 	bool IsValid() const
 	{
 		return Handle != INDEX_NONE;
+	}
+
+	bool WasSuccessfullyApplied() const
+	{
+		return bPassedFiltersAndWasExecuted;
 	}
 
 	static FActiveGameplayEffectHandle GenerateNewHandle(UAbilitySystemComponent* OwningComponent);
@@ -163,6 +170,9 @@ private:
 
 	UPROPERTY()
 	int32 Handle;
+
+	UPROPERTY()
+	bool bPassedFiltersAndWasExecuted;
 };
 
 USTRUCT()
@@ -832,6 +842,10 @@ struct GAMEPLAYABILITIES_API FGameplayCueParameters
 	/** If originating from an ability, this will be the level of that ability */
 	UPROPERTY(BlueprintReadWrite, Category = GameplayCue)
 	int32 AbilityLevel;
+
+	/** Could be used to say "attach FX to this component always" */
+	UPROPERTY(BlueprintReadWrite, Category = GameplayCue)
+	TWeakObjectPtr<USceneComponent> TargetAttachComponent;
 
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 

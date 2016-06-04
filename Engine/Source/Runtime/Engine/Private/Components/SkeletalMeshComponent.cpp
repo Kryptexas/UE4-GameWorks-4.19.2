@@ -1033,21 +1033,14 @@ void USkeletalMeshComponent::RecalcRequiredBones(int32 LODIndex)
 	// Ensure that we have a complete hierarchy down to those bones.
 	FAnimationRuntime::EnsureParentsPresent(RequiredBones, SkeletalMesh);
 
-	FillSpaceBasesRequiredBones.Empty(RequiredBones.Num() + NeededBonesForFillSpaceBases.Num());
+	FillSpaceBasesRequiredBones.Reset(RequiredBones.Num() + NeededBonesForFillSpaceBases.Num());
 	FillSpaceBasesRequiredBones = RequiredBones;
 	
 	NeededBonesForFillSpaceBases.Sort();
 	MergeInBoneIndexArrays(FillSpaceBasesRequiredBones, NeededBonesForFillSpaceBases);
 	FAnimationRuntime::EnsureParentsPresent(FillSpaceBasesRequiredBones, SkeletalMesh);
 
-	// Sanitise bones that we aren't going to be updating
-	for (int32 BoneIndex = 0; BoneIndex < LocalAtoms.Num(); ++BoneIndex)
-	{
-		if (!RequiredBones.Contains(BoneIndex))
-		{
-			LocalAtoms[BoneIndex] = SkeletalMesh->RefSkeleton.GetRefBonePose()[BoneIndex];
-		}
-	}
+	LocalAtoms = SkeletalMesh->RefSkeleton.GetRefBonePose();
 
 	// make sure animation requiredBone to mark as dirty
 	if (AnimScriptInstance)

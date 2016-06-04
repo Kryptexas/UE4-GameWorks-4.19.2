@@ -63,7 +63,7 @@ class ALandscape : public ALandscapeProxy
 	static void SplitHeightmap(ULandscapeComponent* Comp, bool bMoveToCurrentLevel = false);
 	
 	//~ Begin UObject Interface.
-	virtual void PreSave() override;
+	virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostEditMove(bool bFinished) override;
 #endif

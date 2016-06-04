@@ -926,6 +926,11 @@ void FBodyInstance::UpdatePhysicsShapeFilterData(uint32 ComponentID, bool bUseCo
 
 void FBodyInstance::SetMaskFilter(FMaskFilter InMaskFilter)
 {
+	if (MaskFilter == InMaskFilter)
+	{
+		return;
+	}
+
 #if WITH_PHYSX
 
 	ExecuteOnPhysicsReadWrite([&]

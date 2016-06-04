@@ -288,6 +288,8 @@ void UQosRegionManager::TrySetDefaultRegion()
 		if (!SetSelectedRegion(BestRegionId))
 		{
 			UE_LOG(LogQos, Warning, TEXT("Unable to set a good region!"));
+			UE_LOG(LogQos, Warning, TEXT("Wanted to set %s, failed to fall back to %s"), *GetRegionId(), *BestRegionId);
+			DumpRegionStats();
 		}
 	}
 }

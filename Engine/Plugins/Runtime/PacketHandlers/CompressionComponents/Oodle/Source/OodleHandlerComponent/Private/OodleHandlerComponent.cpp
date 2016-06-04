@@ -65,7 +65,7 @@ static FDictionaryMap DictionaryMap;
 /** Whether or not Oodle is presently force-enabled */
 static bool bOodleForceEnable = false;
 
-#if !UE_BUILD_SHIPPING
+#if !UE_BUILD_SHIPPING || OODLE_DEV_SHIPPING
 /** Whether or not compression is presently force-disabled (does not affect decompression i.e. incoming packets, only outgoing) */
 static bool bOodleCompressionDisabled = false;
 
@@ -269,7 +269,7 @@ OodleHandlerComponent::OodleHandlerComponent()
 {
 	SetActive(true);
 
-#if !UE_BUILD_SHIPPING
+#if !UE_BUILD_SHIPPING || OODLE_DEV_SHIPPING
 	OodleComponentList.Add(this);
 #endif
 }

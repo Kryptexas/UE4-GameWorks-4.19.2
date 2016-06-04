@@ -195,7 +195,7 @@ void UMeshComponent::SetScalarParameterValueOnMaterials(const FName ParameterNam
 	}
 	else
 	{
-		UE_LOG(LogMaterialParameter, Log, TEXT("%s material parameter hasn't found on the component %s"), *ParameterName.ToString(), *GetName());
+		UE_LOG(LogMaterialParameter, Log, TEXT("%s material parameter hasn't found on the component %s"), *ParameterName.ToString(), *GetPathName());
 	}
 
 	// CreateAndSetMaterialInstanceDynamic should not flag the cached data as dirty, since only the type of material changes not the contents (UMaterialInstanceDynamic)

@@ -92,6 +92,10 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 	{
 		return bWaitingForRepath;
 	}
+	FORCEINLINE void SetManualRepathWaiting(const bool bInWaitingForRepath)
+	{
+		bWaitingForRepath = bInWaitingForRepath;
+	}
 	FORCEINLINE bool ShouldUpdateStartPointOnRepath() const
 	{
 		return bUpdateStartPointOnRepath;
@@ -181,6 +185,13 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 
 	FORCEINLINE void DoneUpdating(ENavPathUpdateType::Type UpdateType)
 	{
+		static const ENavPathEvent::Type PathUpdateTypeToPathEvent[] = {
+			ENavPathEvent::UpdatedDueToGoalMoved // GoalMoved,
+			, ENavPathEvent::UpdatedDueToNavigationChanged // NavigationChanged,
+			, ENavPathEvent::MetaPathUpdate // MetaPathUpdate,
+			, ENavPathEvent::Custom // Custom,
+		};
+
 		bUpToDate = true;
 		bWaitingForRepath = false;
 
@@ -189,8 +200,8 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 			// notify path before observers
 			OnPathUpdated(UpdateType);
 		}
-
-		ObserverDelegate.Broadcast(this, UpdateType == ENavPathUpdateType::GoalMoved ? ENavPathEvent::UpdatedDueToGoalMoved : ENavPathEvent::UpdatedDueToNavigationChanged);
+		
+		ObserverDelegate.Broadcast(this, PathUpdateTypeToPathEvent[uint8(UpdateType)]);
 	}
 
 	FORCEINLINE float GetTimeStamp() const { return LastUpdateTimeStamp; }

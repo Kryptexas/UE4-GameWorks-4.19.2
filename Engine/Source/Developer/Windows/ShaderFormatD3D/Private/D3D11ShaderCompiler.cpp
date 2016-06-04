@@ -29,15 +29,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogD3D11ShaderCompiler, Log, All);
 #pragma warning(pop)
 
 static int32 GD3DAllowRemoveUnused = 0;
-static FAutoConsoleVariableRef CVarD3DUseExternalShaderCompiler(
-	TEXT("r.D3DRemoveUnusedInterpolators"),
-	GD3DAllowRemoveUnused,
-	TEXT("Enables removing unused interpolators mode when compiling pipelines for D3D.\n")
-	TEXT(" -1: Do not actually remove, but make the app think it did (for debugging)\n")
-	TEXT(" 0: Disable (default)\n")
-	TEXT(" 1: Enable removing unused"),
-	ECVF_Default
-	);
+
 
 static int32 GD3DCheckForDoubles = 1;
 static FAutoConsoleVariableRef CVarD3DCheckForDoubles(
@@ -876,6 +868,8 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 			return;
 		}
 	}
+
+	GD3DAllowRemoveUnused = Input.Environment.CompilerFlags.Contains(CFLAG_ForceRemoveUnusedInterpolators) ? 1 : 0;
 
 	FString EntryPointName = Input.EntryPointName;
 

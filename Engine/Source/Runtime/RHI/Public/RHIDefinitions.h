@@ -656,6 +656,24 @@ inline bool IsVulkanMobilePlatform(const EShaderPlatform Platform)
 	return Platform == SP_VULKAN_PCES3_1 || Platform == SP_VULKAN_ES3_1_ANDROID;
 }
 
+inline bool IsD3DPlatform(const EShaderPlatform Platform, bool bIncludeXboxOne)
+{
+	switch (Platform)
+	{
+	case SP_PCD3D_SM5:
+	case SP_PCD3D_SM4:
+	case SP_PCD3D_ES3_1:
+	case SP_PCD3D_ES2:
+		return true;
+	case SP_XBOXONE:
+		return bIncludeXboxOne;
+	default:
+		break;
+	}
+
+	return false;
+}
+
 inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShaderPlatform)
 {
 	switch (InShaderPlatform)

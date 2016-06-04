@@ -2,6 +2,7 @@
 
 #include "DesktopPlatformPrivatePCH.h"
 #include "WindowsNativeFeedbackContext.h"
+#include "HAL/ThreadHeartBeat.h"
 
 #include "AllowWindowsPlatformTypes.h"
 
@@ -85,6 +86,7 @@ VARARG_BODY( bool, FWindowsNativeFeedbackContext::YesNof, const TCHAR*, VARARG_N
 	GET_VARARGS( TempStr, ARRAY_COUNT(TempStr), ARRAY_COUNT(TempStr)-1, Fmt, Fmt );
 	if( ( GIsClient || GIsEditor ) && ( ( GIsSilent != true ) && ( FApp::IsUnattended() != true ) ) )
 	{
+		FSlowHeartBeatScope SuspendHeartBeat;
 		return( ::MessageBox( NULL, TempStr, *NSLOCTEXT("Core", "Question", "Question").ToString(), MB_YESNO|MB_TASKMODAL ) == IDYES);
 	}
 	else

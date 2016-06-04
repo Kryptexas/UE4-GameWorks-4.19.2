@@ -634,9 +634,9 @@ UMaterial::UMaterial(const FObjectInitializer& ObjectInitializer)
 #endif //WITH_EDITORONLY_DATA
 }
 
-void UMaterial::PreSave()
+void UMaterial::PreSave(const class ITargetPlatform* TargetPlatform)
 {
-	Super::PreSave();
+	Super::PreSave(TargetPlatform);
 #if WITH_EDITOR
 	GMaterialsWithDirtyUsageFlags.RemoveAnnotation(this);
 #endif

@@ -306,7 +306,7 @@ void UAnimSequence::SortSyncMarkers()
 	RefreshSyncMarkerDataFromAuthored();
 }
 
-void UAnimSequence::PreSave()
+void UAnimSequence::PreSave(const class ITargetPlatform* TargetPlatform)
 {
 #if WITH_EDITOR
 	// we have to bake it if it's not baked
@@ -327,7 +327,7 @@ void UAnimSequence::PreSave()
 	}
 #endif
 
-	Super::PreSave();
+	Super::PreSave(TargetPlatform);
 }
 
 void UAnimSequence::PostLoad()

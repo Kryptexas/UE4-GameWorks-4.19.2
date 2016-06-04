@@ -23,30 +23,41 @@ static const FName WorldClassName = FName("World");
 // Uncomment this code to measure UObject::Serialize time taken per UClass type during save.
 // This code tracks each type in a hash, so is too heavyweight to leave on in general,
 // but can be really useful for telling what classes are causing the most save time.
-//#define ENABLE_PACKAGE_CLASS_SERIALIZATION_TIMES 1
+#define ENABLE_PACKAGE_CLASS_SERIALIZATION_TIMES 0
+// uncomment this code to measure UObject::PreSave time taken per uclass type during save
+#define ENABLE_TAGEXPORTS_CLASS_PRESAVE_TIMES 0
 #include "ScopedTimers.h"
 
 namespace SavePackageStats
 {
 	static int32 NumPackagesSaved = 0;
 	static double SavePackageTimeSec = 0.0;
+	static double TagPackageExportsPresaveTimeSec = 0.0;
 	static double TagPackageExportsTimeSec = 0.0;
+	static double ResetLoadersForSaveTimeSec = 0.0;
+	static double TagPackageExportsGetObjectsWithOuter = 0.0;
+	static double TagPackageExportsGetObjectsWithMarks = 0.0;
 	static double SerializeImportsTimeSec = 0.0;
 	static double SortExportsSeekfreeInnerTimeSec = 0.0;
 	static double SerializeExportsTimeSec = 0.0;
 	static double SerializeBulkDataTimeSec = 0.0;
 	static double AsyncWriteTimeSec = 0.0;
 	static TMap<FName, FCookStatsManager::TKeyValuePair<double, uint32>> PackageClassSerializeTimes;
-
+	static TMap<FName, FCookStatsManager::TKeyValuePair<double, uint32>> TagExportSerializeTimes;
+	static TMap<FName, FCookStatsManager::TKeyValuePair<double, uint32>> ClassPreSaveTimes;
 	static FCookStatsManager::FAutoRegisterCallback RegisterCookStats([](FCookStatsManager::AddStatFuncRef AddStat)
 	{
 		// Don't use FCookStatsManager::CreateKeyValueArray because there's just too many arguments. Don't need to overburden the compiler here.
 		TArray<FCookStatsManager::StringKeyValue> StatsList;
-		StatsList.Empty(10);
+		StatsList.Empty(15);
 		#define ADD_COOK_STAT(Name) StatsList.Emplace(TEXT(#Name), FCookStatsManager::ToString(Name))
 		ADD_COOK_STAT(NumPackagesSaved);
 		ADD_COOK_STAT(SavePackageTimeSec);
+		ADD_COOK_STAT(TagPackageExportsPresaveTimeSec);
 		ADD_COOK_STAT(TagPackageExportsTimeSec);
+		ADD_COOK_STAT(ResetLoadersForSaveTimeSec);
+		ADD_COOK_STAT(TagPackageExportsGetObjectsWithOuter);
+		ADD_COOK_STAT(TagPackageExportsGetObjectsWithMarks);
 		ADD_COOK_STAT(SerializeImportsTimeSec);
 		ADD_COOK_STAT(SortExportsSeekfreeInnerTimeSec);
 		ADD_COOK_STAT(SerializeExportsTimeSec);
@@ -55,6 +66,8 @@ namespace SavePackageStats
 		#undef ADD_COOK_STAT
 
 		AddStat(TEXT("Package.Save"), StatsList);
+		
+		const FString TotalString = TEXT("Total");
 
 		if (PackageClassSerializeTimes.Num() > 0)
 		{
@@ -87,6 +100,94 @@ namespace SavePackageStats
 					TEXT("Calls"), KV.Value.Value));
 				ClassesLogged++;
 			}
+		}
+
+		if (TagExportSerializeTimes.Num() > 0)
+		{
+			// Sort the class serialize times in reverse order.
+			typedef FCookStatsManager::TKeyValuePair<FName, FCookStatsManager::TKeyValuePair<double, uint32>> ClassSerializeTimeData;
+			TArray<ClassSerializeTimeData> SerializeTimesArray;
+			SerializeTimesArray.Empty(TagExportSerializeTimes.Num());
+			for (const auto& KV : TagExportSerializeTimes)
+			{
+				SerializeTimesArray.Emplace(FCookStatsManager::MakePair(KV.Key, FCookStatsManager::MakePair(KV.Value.Key, KV.Value.Value)));
+			}
+			SerializeTimesArray.Sort([](const ClassSerializeTimeData& LHS, const ClassSerializeTimeData& RHS)
+			{
+				return LHS.Value.Key > RHS.Value.Key;
+			});
+
+			double TotalSerializeTime = 0.0;
+			int TotalSerializeCalls = 0;
+
+			// always print at least the top n, but not anything < 0.1% of total save time.
+			int ClassesLogged = 0;
+			for (const auto& KV : SerializeTimesArray)
+			{
+				TotalSerializeTime += KV.Value.Key;
+				TotalSerializeCalls += KV.Value.Value;
+
+				// since we're sorted on size already. Just find the first one below the threshold and stop there
+				if (ClassesLogged >= 10 && KV.Value.Key < 0.001 * SavePackageTimeSec)
+				{
+					break;
+				}
+				const FString ClassName = KV.Key.ToString();
+				AddStat(TEXT("Package.TagExportSerialize"), FCookStatsManager::CreateKeyValueArray(
+					TEXT("Class"), ClassName,
+					TEXT("TimeSec"), KV.Value.Key,
+					TEXT("Calls"), KV.Value.Value));
+				ClassesLogged++;
+			}
+
+			AddStat(TEXT("Package.TagExportSerialize"), FCookStatsManager::CreateKeyValueArray(
+				TEXT("Class"), TotalString,
+				TEXT("TimeSec"), TotalSerializeTime,
+				TEXT("Calls"), TotalSerializeCalls));
+		}
+
+		if (ClassPreSaveTimes.Num() > 0)
+		{
+			// Sort the class serialize times in reverse order.
+			typedef FCookStatsManager::TKeyValuePair<FName, FCookStatsManager::TKeyValuePair<double, uint32>> ClassSerializeTimeData;
+			TArray<ClassSerializeTimeData> SerializeTimesArray;
+			SerializeTimesArray.Empty(ClassPreSaveTimes.Num());
+			for (const auto& KV : ClassPreSaveTimes)
+			{
+				SerializeTimesArray.Emplace(FCookStatsManager::MakePair(KV.Key, FCookStatsManager::MakePair(KV.Value.Key, KV.Value.Value)));
+			}
+			SerializeTimesArray.Sort([](const ClassSerializeTimeData& LHS, const ClassSerializeTimeData& RHS)
+			{
+				return LHS.Value.Key > RHS.Value.Key;
+			});
+
+			// always print at least the top n, but not anything < 0.1% of total save time.
+			// even if we don't print them then add up the time spent inside presave so we can at least account for it
+			double TotalPreSaveTime = 0.0;
+			int TotalPreSaveCalls = 0;
+			int ClassesLogged = 0;
+			for (const auto& KV : SerializeTimesArray)
+			{
+				TotalPreSaveTime += KV.Value.Key;
+				TotalPreSaveCalls += KV.Value.Value;
+
+				// since we're sorted on size already. Just find the first one below the threshold and stop there
+				if (ClassesLogged >= 10 && KV.Value.Key < 0.001 * SavePackageTimeSec)
+				{
+					break;
+				}
+				const FString ClassName = KV.Key.ToString();
+				AddStat(TEXT("Package.PreSave"), FCookStatsManager::CreateKeyValueArray(
+					TEXT("Class"), ClassName,
+					TEXT("TimeSec"), KV.Value.Key,
+					TEXT("Calls"), KV.Value.Value));
+				ClassesLogged++;
+			}
+			
+			AddStat(TEXT("Package.PreSave"), FCookStatsManager::CreateKeyValueArray(
+				TEXT("Class"), TotalString,
+				TEXT("TimeSec"), TotalPreSaveTime,
+				TEXT("Calls"), TotalPreSaveCalls));
 		}
 	});
 }
@@ -698,7 +799,7 @@ void FArchiveSaveTagExports::ProcessTaggedObjects()
 			// In the CDO case the above would serialize most of the references, including transient properties
 			// but we still want to serialize the object using the normal path to collect all custom versions it might be using.
 #if ENABLE_PACKAGE_CLASS_SERIALIZATION_TIMES
-			auto& TimingInfo = SavePackageStats::PackageClassSerializeTimes.FindOrAdd(Obj->GetClass()->GetFName());
+			auto& TimingInfo = SavePackageStats::TagExportSerializeTimes.FindOrAdd(Obj->GetClass()->GetFName());
 			TimingInfo.Value++;
 			FScopedDurationTimer SerializeTimer(TimingInfo.Key);
 #endif
@@ -2805,11 +2906,13 @@ struct FPackageExportTagger
 	UObject*		Base;
 	EObjectFlags	TopLevelFlags;
 	UObject*		Outer;
+	const class ITargetPlatform* TargetPlatform;
 
-	FPackageExportTagger( UObject* CurrentBase, EObjectFlags CurrentFlags, UObject* InOuter )
+	FPackageExportTagger(UObject* CurrentBase, EObjectFlags CurrentFlags, UObject* InOuter, const class ITargetPlatform* InTargetPlatform)
 	:	Base(CurrentBase)
 	,	TopLevelFlags(CurrentFlags)
 	,	Outer(InOuter)
+	,	TargetPlatform(InTargetPlatform)
 	{}
 
 	void TagPackageExports( FArchiveSaveTagExports& ExportTagger, bool bRoutePresave )
@@ -2819,13 +2922,21 @@ struct FPackageExportTagger
 		{
 			if ( bRoutePresave )
 			{
-				Base->PreSave();
+#if ENABLE_TAGEXPORTS_CLASS_PRESAVE_TIMES
+				auto& TimingInfo = SavePackageStats::ClassPreSaveTimes.FindOrAdd(Base->GetClass()->GetFName());
+				TimingInfo.Value++;
+				FScopedDurationTimer SerializeTimer(TimingInfo.Key);
+#endif
+				Base->PreSave(TargetPlatform);
 			}
 
 			ExportTagger.ProcessBaseObject(Base);
 		}
 		TArray<UObject *> ObjectsInOuter;
-		GetObjectsWithOuter(Outer, ObjectsInOuter);
+		{
+			COOK_STAT(FScopedDurationTimer SerializeTimer(SavePackageStats::TagPackageExportsGetObjectsWithOuter));
+			GetObjectsWithOuter(Outer, ObjectsInOuter);
+		}
 		// Serialize objects to tag them as OBJECTMARK_TagExp.
 		for( int32 Index = 0; Index < ObjectsInOuter.Num(); Index++ )
 		{
@@ -2840,13 +2951,21 @@ struct FPackageExportTagger
 			// Route PreSave.
 			{
 				TArray<UObject*> TagExpObjects;
-				GetObjectsWithAnyMarks(TagExpObjects, OBJECTMARK_TagExp);
+				{
+					COOK_STAT(FScopedDurationTimer SerializeTimer(SavePackageStats::TagPackageExportsGetObjectsWithMarks));
+					GetObjectsWithAnyMarks(TagExpObjects, OBJECTMARK_TagExp);
+				}
 				for(int32 Index = 0; Index < TagExpObjects.Num(); Index++)
 				{
 					UObject* Obj = TagExpObjects[Index];
+#if ENABLE_TAGEXPORTS_CLASS_PRESAVE_TIMES
+					auto& TimingInfo = SavePackageStats::ClassPreSaveTimes.FindOrAdd(Obj->GetClass()->GetFName());
+					TimingInfo.Value++;
+					FScopedDurationTimer SerializeTimer(TimingInfo.Key);
+#endif
 					check(Obj->HasAnyMarks(OBJECTMARK_TagExp));
 					//@warning: Objects created from within PreSave will NOT have PreSave called on them!!!
-					Obj->PreSave();
+					Obj->PreSave(TargetPlatform);
 				}
 			}
 		}
@@ -3210,7 +3329,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 
 			// Don't save packages marked as editor-only.
 			if (CanSkipEditorReferencedPackagesWhenCooking && InOuter->IsLoadedByEditorPropertiesOnly())
-			{				
+			{
 				UE_CLOG(!(SaveFlags & SAVE_NoError), LogSavePackage, Display, TEXT("Package loaded by editor-only properties: %s. Package will not be saved."), *InOuter->GetName());
 				return ESavePackageResult::ReferencedOnlyByEditorOnlyData;
 			}
@@ -3223,9 +3342,9 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 #endif
 		// if we are cooking we should be doing it in the editor
 		// otherwise some other assumptions are bad
-		check( !bIsCooking || WITH_EDITOR );
-	#if WITH_EDITOR
-		if ( !bIsCooking )
+		check(!bIsCooking || WITH_EDITOR);
+#if WITH_EDITOR
+		if (!bIsCooking)
 		{
 			// Attempt to create a backup of this package before it is saved, if applicable
 			if (FCoreUObjectDelegates::AutoPackageBackupDelegate.IsBound())
@@ -3233,8 +3352,8 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 				FCoreUObjectDelegates::AutoPackageBackupDelegate.Execute(*InOuter);
 			}
 		}
-		
-	#endif	// #if WITH_EDITOR
+
+#endif	// #if WITH_EDITOR
 
 		// do any path replacements on the source DestFile
 		const FString NewPath = FString(Filename);
@@ -3251,26 +3370,26 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 		(*GFlushStreamingFunc)();
 		FIOSystem::Get().BlockTillAllRequestsFinishedAndFlushHandles();
 
-		uint32 Time=0; CLOCK_CYCLES(Time);
+		uint32 Time = 0; CLOCK_CYCLES(Time);
 
 		// Make sure package is fully loaded before saving. 
-		if( !Base && !InOuter->IsFullyLoaded() )
+		if (!Base && !InOuter->IsFullyLoaded())
 		{
 			if (!(SaveFlags & SAVE_NoError))
 			{
 				// We cannot save packages that aren't fully loaded as it would clobber existing not loaded content.
 				FText ErrorText;
-				if( InOuter->ContainsMap() )
+				if (InOuter->ContainsMap())
 				{
 					FFormatNamedArguments Arguments;
-					Arguments.Add(TEXT("Name"), FText::FromString( NewPath ));
-					ErrorText = FText::Format( NSLOCTEXT( "SavePackage", "CannotSaveMapPartiallyLoaded", "Map '{Name}' cannot be saved as it has only been partially loaded" ), Arguments );
+					Arguments.Add(TEXT("Name"), FText::FromString(NewPath));
+					ErrorText = FText::Format(NSLOCTEXT("SavePackage", "CannotSaveMapPartiallyLoaded", "Map '{Name}' cannot be saved as it has only been partially loaded"), Arguments);
 				}
 				else
 				{
 					FFormatNamedArguments Arguments;
-					Arguments.Add(TEXT("Name"), FText::FromString( NewPath ));
-					ErrorText = FText::Format( NSLOCTEXT( "SavePackage", "CannotSaveAssetPartiallyLoaded", "Asset '{Name}' cannot be saved as it has only been partially loaded" ), Arguments );
+					Arguments.Add(TEXT("Name"), FText::FromString(NewPath));
+					ErrorText = FText::Format(NSLOCTEXT("SavePackage", "CannotSaveAssetPartiallyLoaded", "Asset '{Name}' cannot be saved as it has only been partially loaded"), Arguments);
 				}
 				Error->Logf(ELogVerbosity::Warning, *ErrorText.ToString());
 			}
@@ -3278,7 +3397,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 		}
 
 		// Make sure package is allowed to be saved.
-		if( !TargetPlatform && FCoreUObjectDelegates::IsPackageOKToSaveDelegate.IsBound() )
+		if (!TargetPlatform && FCoreUObjectDelegates::IsPackageOKToSaveDelegate.IsBound())
 		{
 			bool bIsOKToSave = FCoreUObjectDelegates::IsPackageOKToSaveDelegate.Execute(InOuter, Filename, Error);
 			if (!bIsOKToSave)
@@ -3286,17 +3405,17 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 				if (!(SaveFlags & SAVE_NoError))
 				{
 					FText ErrorText;
-					if( InOuter->ContainsMap() )
+					if (InOuter->ContainsMap())
 					{
 						FFormatNamedArguments Arguments;
-						Arguments.Add(TEXT("Name"), FText::FromString( NewPath ));
-						ErrorText = FText::Format( NSLOCTEXT( "SavePackage", "MapSaveNotAllowed", "Map '{Name}' is not allowed to save (see log for reason)" ), Arguments );
+						Arguments.Add(TEXT("Name"), FText::FromString(NewPath));
+						ErrorText = FText::Format(NSLOCTEXT("SavePackage", "MapSaveNotAllowed", "Map '{Name}' is not allowed to save (see log for reason)"), Arguments);
 					}
 					else
 					{
 						FFormatNamedArguments Arguments;
-						Arguments.Add(TEXT("Name"), FText::FromString( NewPath ));
-						ErrorText = FText::Format( NSLOCTEXT( "SavePackage", "AssetSaveNotAllowed", "Asset '{Name}' is not allowed to save (see log for reason)" ), Arguments );
+						Arguments.Add(TEXT("Name"), FText::FromString(NewPath));
+						ErrorText = FText::Format(NSLOCTEXT("SavePackage", "AssetSaveNotAllowed", "Asset '{Name}' is not allowed to save (see log for reason)"), Arguments);
 					}
 					Error->Logf(ELogVerbosity::Warning, *ErrorText.ToString());
 				}
@@ -3310,17 +3429,17 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 			if (!(SaveFlags & SAVE_NoError))
 			{
 				FText ErrorText;
-				if( InOuter->ContainsMap() )
+				if (InOuter->ContainsMap())
 				{
 					FFormatNamedArguments Arguments;
-					Arguments.Add(TEXT("Name"), FText::FromString( NewPath ));
-					ErrorText = FText::Format( NSLOCTEXT( "SavePackage", "CannotSaveMapConformIncompatibility", "Conformed Map '{Name}' cannot be saved as it is incompatible with the original" ), Arguments );
+					Arguments.Add(TEXT("Name"), FText::FromString(NewPath));
+					ErrorText = FText::Format(NSLOCTEXT("SavePackage", "CannotSaveMapConformIncompatibility", "Conformed Map '{Name}' cannot be saved as it is incompatible with the original"), Arguments);
 				}
 				else
 				{
 					FFormatNamedArguments Arguments;
-					Arguments.Add(TEXT("Name"), FText::FromString( NewPath ));
-					ErrorText = FText::Format( NSLOCTEXT( "SavePackage", "CannotSaveAssetConformIncompatibility", "Conformed Asset '{Name}' cannot be saved as it is incompatible with the original" ), Arguments );
+					Arguments.Add(TEXT("Name"), FText::FromString(NewPath));
+					ErrorText = FText::Format(NSLOCTEXT("SavePackage", "CannotSaveAssetConformIncompatibility", "Conformed Asset '{Name}' cannot be saved as it is incompatible with the original"), Arguments);
 				}
 				Error->Logf(ELogVerbosity::Error, *ErrorText.ToString());
 			}
@@ -3331,27 +3450,27 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 		// store a list of additional packages to cook when this is cooked (ie streaming levels)
 		TArray<FString> AdditionalPackagesToCook;
 
-	
+
 		// Route PreSaveRoot to allow e.g. the world to attach components for the persistent level.
 		bool bCleanupIsRequired = false;
-		if( Base )
+		if (Base)
 		{
 			bCleanupIsRequired = Base->PreSaveRoot(Filename, AdditionalPackagesToCook);
 		}
 
-		const FString BaseFilename = FPaths::GetBaseFilename( Filename );
+		const FString BaseFilename = FPaths::GetBaseFilename(Filename);
 		// Make temp file. CreateTempFilename guarantees unique, non-existing filename.
 		// The temp file will be saved in the game save folder to not have to deal with potentially too long paths.
-		FString TempFilename;	
+		FString TempFilename;
 		TempFilename = FPaths::CreateTempFilename(*FPaths::GameSavedDir(), *BaseFilename);
 
 		// Init.
-		FString CleanFilename = FPaths::GetCleanFilename( Filename );
+		FString CleanFilename = FPaths::GetCleanFilename(Filename);
 
 		FFormatNamedArguments Args;
-		Args.Add( TEXT("CleanFilename"), FText::FromString( CleanFilename ) );
+		Args.Add(TEXT("CleanFilename"), FText::FromString(CleanFilename));
 
-		FText StatusMessage = FText::Format( NSLOCTEXT("Core", "SavingFile", "Saving file: {CleanFilename}..."), Args );
+		FText StatusMessage = FText::Format(NSLOCTEXT("Core", "SavingFile", "Saving file: {CleanFilename}..."), Args);
 
 		const int32 TotalSaveSteps = 33;
 		FScopedSlowTask SlowTask(TotalSaveSteps, StatusMessage, bSlowTask);
@@ -3361,9 +3480,10 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 
 		bool Success = true;
 		bool bRequestStub = false;
-
-		ResetLoadersForSave(InOuter,Filename);
-
+		{
+			COOK_STAT(FScopedDurationTimer SaveTimer(SavePackageStats::ResetLoadersForSaveTimeSec));
+			ResetLoadersForSave(InOuter, Filename);
+		}
 		SlowTask.EnterProgressFrame();
 
 	
@@ -3387,9 +3507,9 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 			check( ExportTaggerArchive.IsCooking() == bIsCooking );
 
 			// Tag exports and route presave.
-			FPackageExportTagger PackageExportTagger(Base, TopLevelFlags, InOuter);
+			FPackageExportTagger PackageExportTagger(Base, TopLevelFlags, InOuter, TargetPlatform);
 			{
-				COOK_STAT(FScopedDurationTimer SaveTimer(SavePackageStats::TagPackageExportsTimeSec));
+				COOK_STAT(FScopedDurationTimer SaveTimer(SavePackageStats::TagPackageExportsPresaveTimeSec));
 				PackageExportTagger.TagPackageExports(ExportTaggerArchive, true);
 				ExportTaggerArchive.SetFilterEditorOnly(FilterEditorOnly);
 			}

@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "HttpNetworkReplayStreaming.h"
+#include "ScopedTimers.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogHttpReplay, Log, All );
 
@@ -822,43 +823,52 @@ void FHttpNetworkReplayStreamer::FlushCheckpointInternal( uint32 TimeInMS )
 		return;
 	}
 
-	// Upload any new streamed data to the http server
-	UE_LOG( LogHttpReplay, Log, TEXT( "FHttpNetworkReplayStreamer::FlushCheckpointInternal. Size: %i, StreamChunkIndex: %i" ), CheckpointArchive.Buffer.Num(), StreamChunkIndex );
+	double Duration = 0;
 
-	// Create the Http request and add to pending request list
-	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
-
-	HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpUploadCheckpointFinished );
-
-	HttpRequest->SetURL( FString::Printf( TEXT( "%sreplay/%s/event?group=checkpoint&time1=%i&time2=%i&meta=%i&incrementSize=false" ), *ServerURL, *SessionName, TimeInMS, TimeInMS, StreamChunkIndex ) );
-	HttpRequest->SetVerb( TEXT( "POST" ) );
-	HttpRequest->SetHeader( TEXT( "Content-Type" ), TEXT( "application/octet-stream" ) );
-
-	if ( SupportsCompression() )
 	{
-		SCOPE_CYCLE_COUNTER( STAT_HttpReplay_CompressTime );
+		FScopedDurationTimer Timer(Duration);
 
-		const double StartTime = FPlatformTime::Seconds();
-		FHttpStreamFArchive Compressed;
-		if ( !CompressBuffer( CheckpointArchive.Buffer, Compressed ) )
+		// Create the Http request and add to pending request list
+		TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+
+		HttpRequest->OnProcessRequestComplete().BindRaw(this, &FHttpNetworkReplayStreamer::HttpUploadCheckpointFinished);
+
+		HttpRequest->SetURL(FString::Printf(TEXT("%sreplay/%s/event?group=checkpoint&time1=%i&time2=%i&meta=%i&incrementSize=false"), *ServerURL, *SessionName, TimeInMS, TimeInMS, StreamChunkIndex));
+		HttpRequest->SetVerb(TEXT("POST"));
+		HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/octet-stream"));
+
+		if (SupportsCompression())
 		{
-			SetLastError( ENetworkReplayError::ServiceUnavailable );
-			return;
-		}
-		const double EndTime = FPlatformTime::Seconds();
-		HttpRequest->SetContent( Compressed.Buffer );
+			SCOPE_CYCLE_COUNTER(STAT_HttpReplay_CompressTime);
 
-		UE_LOG( LogHttpReplay, VeryVerbose, TEXT( "Compressed checkpoint. Original: %i, Compressed: %i, Time: %2.2f MS" ), CheckpointArchive.Buffer.Num(), Compressed.Buffer.Num(), ( EndTime - StartTime ) * 1000.0f );
+			const double StartTime = FPlatformTime::Seconds();
+			FHttpStreamFArchive Compressed;
+			if (!CompressBuffer(CheckpointArchive.Buffer, Compressed))
+			{
+				SetLastError(ENetworkReplayError::ServiceUnavailable);
+				return;
+			}
+			const double EndTime = FPlatformTime::Seconds();
+			HttpRequest->SetContent(Compressed.Buffer);
+
+			UE_LOG(LogHttpReplay, VeryVerbose, TEXT("Compressed checkpoint. Original: %i, Compressed: %i, Time: %2.2f MS"), CheckpointArchive.Buffer.Num(), Compressed.Buffer.Num(), (EndTime - StartTime) * 1000.0f);
+		}
+		else
+		{
+			HttpRequest->SetContent(CheckpointArchive.Buffer);
+		}
+
+		AddRequestToQueue(EQueuedHttpRequestType::UploadingCheckpoint, HttpRequest, 2, 2.0f);
 	}
-	else
-	{
-		HttpRequest->SetContent( CheckpointArchive.Buffer );
-	}
+
+	// Upload any new streamed data to the http server
+	UE_LOG(LogHttpReplay, Log, TEXT("FHttpNetworkReplayStreamer::FlushCheckpointInternal. Size: %i, StreamChunkIndex: %i, Time: %2.2f MS"), 
+		CheckpointArchive.Buffer.Num(), 
+		StreamChunkIndex,
+		Duration * 1000.0f);
 
 	CheckpointArchive.Buffer.Empty();
-	CheckpointArchive.Pos = 0;
-
-	AddRequestToQueue( EQueuedHttpRequestType::UploadingCheckpoint, HttpRequest, 2, 2.0f );
+	CheckpointArchive.Pos = 0;	
 }
 
 FQueuedHttpRequestAddEvent::FQueuedHttpRequestAddEvent( const FString& InName, const uint32 InTimeInMS, const FString& InGroup, const FString& InMeta, const TArray<uint8>& InData, TSharedRef< class IHttpRequest > InHttpRequest ) : FQueuedHttpRequest( EQueuedHttpRequestType::UploadingCustomEvent, InHttpRequest )
@@ -1717,9 +1727,26 @@ void FHttpNetworkReplayStreamer::HttpDownloadFinished( FHttpRequestPtr HttpReque
 			return;
 		}
 
-		NumTotalStreamChunks = FCString::Atoi( *HttpResponse->GetHeader( TEXT( "NumChunks" ) ) );
-		TotalDemoTimeInMS = FCString::Atoi( *HttpResponse->GetHeader( TEXT( "Time" ) ) );
-		bStreamIsLive = HttpResponse->GetHeader( TEXT( "State" ) ) == TEXT( "Live" );
+		const int32 NewNumTotalStreamChunks = FCString::Atoi( *HttpResponse->GetHeader( TEXT( "NumChunks" ) ) );
+		const uint32 NewTotalDemoTimeInMS = FCString::Atoi( *HttpResponse->GetHeader( TEXT( "Time" ) ) );
+
+		// Cached http calls can make time go backwards, so protect against that
+		if ( NewNumTotalStreamChunks > NumTotalStreamChunks )
+		{
+			NumTotalStreamChunks = NewNumTotalStreamChunks;
+		}
+
+		if ( NewTotalDemoTimeInMS > TotalDemoTimeInMS )
+		{
+			TotalDemoTimeInMS = NewTotalDemoTimeInMS;
+		}
+
+		const bool bNewStreamIsLive = HttpResponse->GetHeader( TEXT( "State" ) ) == TEXT( "Live" );
+
+		if ( bStreamIsLive && !bNewStreamIsLive )
+		{
+			bStreamIsLive = bNewStreamIsLive;
+		}
 
 		if ( StreamArchive.Buffer.Num() == 0 )
 		{

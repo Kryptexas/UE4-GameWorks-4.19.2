@@ -9,6 +9,7 @@
 #include "IInputDeviceModule.h"
 #include "IInputDevice.h"
 #include "IHapticDevice.h"
+#include "HAL/ThreadHeartBeat.h"
 
 #if WITH_EDITOR
 #include "ModuleManager.h"
@@ -224,6 +225,7 @@ bool FWindowsApplication::RegisterClass( const HINSTANCE HInstance, const HICON 
 		//ShowLastError();
 
 		// @todo Slate: Error message should be localized!
+		FSlowHeartBeatScope SuspendHeartBeat;
 		MessageBox(NULL, TEXT("Window Registration Failed!"), TEXT("Error!"), MB_ICONEXCLAMATION | MB_OK);
 
 		return false;

@@ -36,6 +36,12 @@ bool FAggregatorMod::Qualifies(const FAggregatorEvaluateParameters& Parameters) 
 	return bSourceMet && bTargetMet && bSourceFilterMet && bTargetFilterMet;
 }
 
+FAggregator::~FAggregator()
+{
+	int32 NumRemoved = FScopedAggregatorOnDirtyBatch::DirtyAggregators.Remove(this);
+	ensure(NumRemoved == 0);
+}
+
 float FAggregator::Evaluate(const FAggregatorEvaluateParameters& Parameters) const
 {
 	return EvaluateWithBase(BaseValue, Parameters);

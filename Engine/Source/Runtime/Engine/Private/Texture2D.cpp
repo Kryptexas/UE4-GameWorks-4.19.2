@@ -365,9 +365,9 @@ void UTexture2D::PostLoad()
 	Super::PostLoad();
 }
 
-void UTexture2D::PreSave()
+void UTexture2D::PreSave(const class ITargetPlatform* TargetPlatform)
 {
-	Super::PreSave();
+	Super::PreSave(TargetPlatform);
 #if WITH_EDITOR
 	if( bTemporarilyDisableStreaming )
 	{
@@ -724,25 +724,20 @@ bool UTexture2D::HasAlphaChannel() const
 
 int32 UTexture2D::GetNumNonStreamingMips() const
 {
-	// Take in to account the mip tail.
-	int32 MipCount = GetNumMips();
-	int32 NumNonStreamingMips = FMath::Max(0, MipCount - GetMipTailBaseIndex());
+	int32 NumNonStreamingMips = 0;
 
-	// Take in to account the min resident limit.
-	NumNonStreamingMips = FMath::Max(NumNonStreamingMips, UTexture2D::GetMinTextureResidentMipCount());
-	NumNonStreamingMips = FMath::Min(NumNonStreamingMips, MipCount);
-
-	// Take in to account restrictions due to block size.
-	if (PlatformData && PlatformData->Mips.Num() > 0)
+	if (PlatformData)
 	{
-		EPixelFormat PixelFormat = PlatformData->PixelFormat;
-		int32 BlockSizeX = GPixelFormats[PixelFormat].BlockSizeX;
-		int32 BlockSizeY = GPixelFormats[PixelFormat].BlockSizeY;
-		if (BlockSizeX > 1 || BlockSizeY > 1)
-		{
-			NumNonStreamingMips = FMath::Max<int32>(NumNonStreamingMips, MipCount - FPlatformMath::FloorLog2(PlatformData->Mips[0].SizeX / BlockSizeX));
-			NumNonStreamingMips = FMath::Max<int32>(NumNonStreamingMips, MipCount - FPlatformMath::FloorLog2(PlatformData->Mips[0].SizeY / BlockSizeY));
-		}
+		NumNonStreamingMips = PlatformData->GetNumNonStreamingMips();
+	}
+	else
+	{
+		int32 MipCount = GetNumMips();
+		NumNonStreamingMips = FMath::Max(0, MipCount - GetMipTailBaseIndex());
+
+		// Take in to account the min resident limit.
+		NumNonStreamingMips = FMath::Max(NumNonStreamingMips, UTexture2D::GetMinTextureResidentMipCount());
+		NumNonStreamingMips = FMath::Min(NumNonStreamingMips, MipCount);
 	}
 
 	return NumNonStreamingMips;

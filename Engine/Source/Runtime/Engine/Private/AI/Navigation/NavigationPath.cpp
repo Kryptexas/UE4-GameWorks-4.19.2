@@ -103,14 +103,17 @@ void FNavigationPath::SetGoalActorObservation(const AActor& ActorToObserve, floa
 	}
 
 	// register for path observing only if we weren't registered already
-	const bool RegisterForPathUpdates = GoalActor.IsValid() == false;	
+	const bool RegisterForPathUpdates = (GoalActor.IsValid() == false);
 	GoalActor = &ActorToObserve;
 	checkSlow(GoalActor.IsValid());
 	GoalActorAsNavAgent = Cast<INavAgentInterface>(&ActorToObserve);
 	GoalActorLocationTetherDistanceSq = FMath::Square(TetherDistance);
 	UpdateLastRepathGoalLocation();
 
-	NavigationDataUsed->RegisterObservedPath(AsShared());
+	if (RegisterForPathUpdates)
+	{
+		NavigationDataUsed->RegisterObservedPath(AsShared());
+	}
 }
 
 void FNavigationPath::SetSourceActor(const AActor& InSourceActor)
