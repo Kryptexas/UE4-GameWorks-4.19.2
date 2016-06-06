@@ -5,12 +5,12 @@
 
 UFontBulkData::UFontBulkData()
 {
-	BulkData.SetBulkDataFlags(BULKDATA_SerializeCompressed);
+	BulkData.SetBulkDataFlags(BULKDATA_SerializeCompressed|BULKDATA_SerializeCompressedBitWindow);
 }
 
 void UFontBulkData::Initialize(const FString& InFontFilename)
 {
-	BulkData.SetBulkDataFlags(BULKDATA_SerializeCompressed);
+	BulkData.SetBulkDataFlags(BULKDATA_SerializeCompressed|BULKDATA_SerializeCompressedBitWindow);
 
 	TUniquePtr<FArchive> Reader(IFileManager::Get().CreateFileReader(*InFontFilename, 0));
 	if(Reader)
@@ -30,7 +30,7 @@ void UFontBulkData::Initialize(const FString& InFontFilename)
 
 void UFontBulkData::Initialize(const void* const InFontData, const int32 InFontDataSizeBytes)
 {
-	BulkData.SetBulkDataFlags(BULKDATA_SerializeCompressed);
+	BulkData.SetBulkDataFlags(BULKDATA_SerializeCompressed|BULKDATA_SerializeCompressedBitWindow);
 
 	BulkData.Lock(LOCK_READ_WRITE);
 	void* const LockedFontData = BulkData.Realloc(InFontDataSizeBytes);
