@@ -355,9 +355,8 @@ public:
  * @param	Length	Length of source data if we're saving, unused otherwise
  * @param	Flags	Flags to control what method to use for [de]compression and optionally control memory vs speed when compressing
  * @param	bTreatBufferAsFileReader true if V is actually an FArchive, which is used when saving to read data - helps to avoid single huge allocations of source data
- * @param	bUsePlatformBitWindow use a platform specific bitwindow setting
  */
-void FArchive::SerializeCompressed( void* V, int64 Length, ECompressionFlags Flags, bool bTreatBufferAsFileReader, bool bUsePlatformBitWindow )
+void FArchive::SerializeCompressed( void* V, int64 Length, ECompressionFlags Flags, bool bTreatBufferAsFileReader )
 {
 	if( IsLoading() )
 	{
@@ -409,7 +408,6 @@ void FArchive::SerializeCompressed( void* V, int64 Length, ECompressionFlags Fla
 		}
 
 		int64 Padding = 0;
-		const int32 CompressionBitWindow = bUsePlatformBitWindow ? FPlatformMisc::GetPlatformCompression()->GetCompressionBitWindow() : DEFAULT_ZLIB_BIT_WINDOW;
 
 		// Set up destination pointer and allocate memory for compressed chunk[s] (one at a time).
 		uint8*	Dest				= (uint8*) V;
@@ -422,7 +420,7 @@ void FArchive::SerializeCompressed( void* V, int64 Length, ECompressionFlags Fla
 			// Read compressed data.
 			Serialize( CompressedBuffer, Chunk.CompressedSize );
 			// Decompress into dest pointer directly.
-			verify( FCompression::UncompressMemory( Flags, Dest, Chunk.UncompressedSize, CompressedBuffer, Chunk.CompressedSize, (Padding > 0) ? true : false, CompressionBitWindow ) );
+			verify( FCompression::UncompressMemory( Flags, Dest, Chunk.UncompressedSize, CompressedBuffer, Chunk.CompressedSize, (Padding > 0) ? true : false, FPlatformMisc::GetPlatformCompression()->GetCompressionBitWindow() ) );
 			// And advance it by read amount.
 			Dest += Chunk.UncompressedSize;
 		}
@@ -563,11 +561,7 @@ void FArchive::SerializeCompressed( void* V, int64 Length, ECompressionFlags Fla
 						SrcBuffer += NewChunk.UncompressedSize;
 					}
 
-					if (!bUsePlatformBitWindow)
-					{
-						NewChunk.BitWindow = DEFAULT_ZLIB_BIT_WINDOW;
-					}
-					else if (CookingTargetPlatform)
+					if (CookingTargetPlatform)
 					{
 						NewChunk.BitWindow = CookingTargetPlatform->GetCompressionBitWindow();
 					}
@@ -693,11 +687,7 @@ void FArchive::SerializeCompressed( void* V, int64 Length, ECompressionFlags Fla
 			int32 CompressedSizeInt = (int32)CompressedSize;
 			
 			int32 BitWindow = 0;
-			if (!bUsePlatformBitWindow)
-			{
-				BitWindow = DEFAULT_ZLIB_BIT_WINDOW;
-			}
-			else if (CookingTargetPlatform)
+			if (CookingTargetPlatform)
 			{
 				BitWindow = CookingTargetPlatform->GetCompressionBitWindow();
 			}

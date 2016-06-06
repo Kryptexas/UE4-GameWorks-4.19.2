@@ -985,7 +985,7 @@ public:
 			// Keep track of offset.
 			Chunk.CompressedOffset = FileWriter->Tell();
 			// Serialize compressed. This is compatible with async LoadCompressedData.
-			FileWriter->SerializeCompressed(SrcBuffer, Chunk.UncompressedSize, (ECompressionFlags)FileSummary.CompressionFlags, false, true);
+			FileWriter->SerializeCompressed(SrcBuffer, Chunk.UncompressedSize, (ECompressionFlags)FileSummary.CompressionFlags);
 			// Keep track of compressed size.
 			Chunk.CompressedSize = FileWriter->Tell() - Chunk.CompressedOffset;
 		}
@@ -1099,7 +1099,7 @@ public:
 			// Keep track of offset.
 			Chunk.CompressedOffset	= FileWriter->Tell();
 			// Serialize compressed. This is compatible with async LoadCompressedData.
-			FileWriter->SerializeCompressed( SrcBuffer, Chunk.UncompressedSize, (ECompressionFlags) FileSummary.CompressionFlags, false, true );
+			FileWriter->SerializeCompressed( SrcBuffer, Chunk.UncompressedSize, (ECompressionFlags) FileSummary.CompressionFlags );
 			// Keep track of compressed size.
 			Chunk.CompressedSize	= FileWriter->Tell() - Chunk.CompressedOffset;		
 		}
@@ -1168,7 +1168,7 @@ public:
 		
 		// write it out compressed (passing in the FileReader so that the writer can read in small chunks to avoid 
 		// single huge allocation of the entire source package size)
-		FileWriter->SerializeCompressed(FileReader, FileSize, COMPRESS_Default, true, true);
+		FileWriter->SerializeCompressed(FileReader, FileSize, COMPRESS_Default, true);
 		
 		delete FileReader;
 		delete FileWriter;
