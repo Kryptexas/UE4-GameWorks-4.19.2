@@ -64,7 +64,7 @@ public:
 			FFormatNamedArguments Args;
 			Args.Add( TEXT( "AssetCount" ), FText::AsNumber( Item->RemainingDiskReferences ) );
 
-			FText OnDiskCountText = Item->RemainingDiskReferences > 1 ? FText::Format( LOCTEXT( "OnDiskAssetReferences", "{AssetCount} References" ), Args ) : FText::Format( LOCTEXT( "OnDiskReference", "{AssetCount} Reference" ), Args );
+			FText OnDiskCountText = Item->RemainingDiskReferences > 1 ? FText::Format( LOCTEXT( "OnDiskAssetReferences", "{AssetCount} References" ), Args ) : FText::Format( LOCTEXT( "OnDiskAssetReference", "{AssetCount} Reference" ), Args );
 
 			return SNew( STextBlock )
 				.Text( OnDiskCountText )

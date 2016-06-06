@@ -3004,7 +3004,7 @@ void FPersona::RemoveUnusedBones()
 		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 		AssetRegistryModule.Get().GetAssets(Filter, SkeletalMeshes);
 
-		FText TimeTakenMessage = FText::Format( LOCTEXT("TimeTakenWarning", "In order to verify bone use all Skeletal Meshes that use this skeleton will be loaded, this may take some time.\n\nProceed?\n\nNumber of Meshes: {0}"), FText::AsNumber(SkeletalMeshes.Num()) );
+		FText TimeTakenMessage = FText::Format( LOCTEXT("RemoveUnusedBones_TimeTakenWarning", "In order to verify bone use all Skeletal Meshes that use this skeleton will be loaded, this may take some time.\n\nProceed?\n\nNumber of Meshes: {0}"), FText::AsNumber(SkeletalMeshes.Num()) );
 		
 		if(FMessageDialog::Open( EAppMsgType::YesNo, TimeTakenMessage ) == EAppReturnType::Yes)
 		{
@@ -3341,7 +3341,7 @@ void FPersona::TestSkeletonCurveNamesForUse() const
 			TArray<FAssetData> Animations;
 			PopulateWithAssets(UAnimSequence::StaticClass()->GetFName(), FName("Skeleton"), SkeletonString, Animations);
 
-			FText TimeTakenMessage = FText::Format(LOCTEXT("TimeTakenWarning", "In order to verify curve usage all Skeletal Meshes and Animations that use this skeleton will be loaded, this may take some time.\n\nProceed?\n\nNumber of Meshes: {0}\nNumber of Animations: {1}"), FText::AsNumber(SkeletalMeshes.Num()), FText::AsNumber(Animations.Num()));
+			FText TimeTakenMessage = FText::Format(LOCTEXT("VerifyCurves_TimeTakenWarning", "In order to verify curve usage all Skeletal Meshes and Animations that use this skeleton will be loaded, this may take some time.\n\nProceed?\n\nNumber of Meshes: {0}\nNumber of Animations: {1}"), FText::AsNumber(SkeletalMeshes.Num()), FText::AsNumber(Animations.Num()));
 
 			if (FMessageDialog::Open(EAppMsgType::YesNo, TimeTakenMessage) == EAppReturnType::Yes)
 			{
@@ -3411,7 +3411,7 @@ void FPersona::TestSkeletonCurveNamesForUse() const
 
 				bool bFoundIssue = false;
 
-				const FText ProcessingAnimStatusUpdate = FText::Format(LOCTEXT("VerifyCurves_ProcessingSkeletalMeshes", "Finding animations that reference unused curves on skeleton '{0}'"), FText::FromString(TargetSkeleton->GetName()));
+				const FText ProcessingAnimStatusUpdate = FText::Format(LOCTEXT("VerifyCurves_FindAnimationsWithUnusedCurves", "Finding animations that reference unused curves on skeleton '{0}'"), FText::FromString(TargetSkeleton->GetName()));
 				{
 					FScopedSlowTask ProcessingAnimationsSlowTask(Animations.Num(), ProcessingAnimStatusUpdate);
 					ProcessingAnimationsSlowTask.MakeDialog();
