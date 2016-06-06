@@ -4,7 +4,7 @@
 #include "PersonaPrivatePCH.h"
 #include "PersonaCommands.h"
 
-#define LOCTEXT_NAMESPACE ""
+#define LOCTEXT_NAMESPACE "PersonaCommands"
 
 void FPersonaCommands::RegisterCommands()
 {

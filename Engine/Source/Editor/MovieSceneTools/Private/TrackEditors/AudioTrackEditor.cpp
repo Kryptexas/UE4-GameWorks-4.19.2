@@ -809,7 +809,7 @@ void FAudioTrackEditor::BuildTrackContextMenu( FMenuBuilder& MenuBuilder, UMovie
 	}
 	UMovieSceneAudioTrack* AudioTrack = Cast<UMovieSceneAudioTrack>( Track );
 	MenuBuilder.AddMenuEntry(
-		NSLOCTEXT( "Sequencer", "PasteMatineeSoundTrack", "Paste Matinee sound track" ),
+		NSLOCTEXT( "Sequencer", "PasteMatineeSoundTrack", "Paste Matinee Sound Track" ),
 		NSLOCTEXT( "Sequencer", "PasteMatineeSoundTrackTooltip", "Pastes keys from a Matinee sound track into this track." ),
 		FSlateIcon(),
 		FUIAction(

@@ -4,7 +4,7 @@
 #include "CascadeActions.h"
 #include "Cascade.h"
 
-#define LOCTEXT_NAMESPACE ""
+#define LOCTEXT_NAMESPACE "CascadeCommands"
 
 /** UI_COMMAND takes long for the compile to optimize */
 PRAGMA_DISABLE_OPTIMIZATION

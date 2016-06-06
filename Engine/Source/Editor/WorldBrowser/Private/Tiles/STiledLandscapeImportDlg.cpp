@@ -627,7 +627,7 @@ FReply STiledLandcapeImportDlg::OnClickedSelectWeighmapTiles(TSharedPtr<FTiledLa
 			const FString ImportFileTypes = TEXT("All Weightmap tiles|*.png;*.raw;*.r8|Weightmap png tiles|*.png|Weightmap .raw/.r8 files|*.raw;*.r8|All files (*.*)|*.*");
 			bool bOpened = DesktopPlatform->OpenFileDialog(
 								ParentWindowWindowHandle,
-								LOCTEXT("SelectHeightmapTiles", "Select weightmap tiles").ToString(),
+								LOCTEXT("SelectWeightmapTiles", "Select weightmap tiles").ToString(),
 								*FEditorDirectories::Get().GetLastDirectory(ELastDirectory::UNR),
 								TEXT(""),
 								*ImportFileTypes,
@@ -826,7 +826,7 @@ FText STiledLandcapeImportDlg::GenerateConfigurationText(int32 NumComponents, in
 	const FString QuadsStr = FString::Printf(TEXT("%dx%d"), NumQuadsPerSection, NumQuadsPerSection);
 	
 	return FText::Format(
-		LOCTEXT("TiledLandscapeImport_ConfigurationText", "Components: {0} Sections: {1} Quads: {2}"), 
+		LOCTEXT("TiledLandscapeImport_ConfigurationDescFmt", "Components: {0} Sections: {1} Quads: {2}"), 
 		FText::FromString(ComponentsStr),
 		FText::FromString(SectionsStr),
 		FText::FromString(QuadsStr)
