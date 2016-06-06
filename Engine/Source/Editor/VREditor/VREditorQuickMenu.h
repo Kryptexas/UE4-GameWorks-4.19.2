@@ -43,97 +43,97 @@ public:
 	void OnPasteButtonClicked();
 
 	UFUNCTION( BlueprintCallable, Category = "Default" )
-	void OnTranslationSnapButtonClicked( const bool bIsChecked );
+	bool OnTranslationSnapButtonClicked( const bool bIsChecked );
 
 	UFUNCTION( BlueprintPure, Category = "Default" )
 	bool IsTranslationSnapEnabled() const;
 
 	UFUNCTION( BlueprintCallable, Category = "Default" )
-	void OnTranslationSnapSizeButtonClicked();
+	FText OnTranslationSnapSizeButtonClicked();
 
 	UFUNCTION( BlueprintPure, Category = "Default" )
 	FText GetTranslationSnapSizeText() const;
 
 	UFUNCTION( BlueprintCallable, Category = "Default" )
-	void OnRotationSnapButtonClicked( const bool bIsChecked );
+	bool OnRotationSnapButtonClicked( const bool bIsChecked );
 
 	UFUNCTION( BlueprintPure, Category = "Default" )
 	bool IsRotationSnapEnabled() const;
 
 	UFUNCTION( BlueprintCallable, Category = "Default" )
-	void OnRotationSnapSizeButtonClicked();
+	FText OnRotationSnapSizeButtonClicked();
 
 	UFUNCTION( BlueprintPure, Category = "Default" )
 	FText GetRotationSnapSizeText() const;
 
 	UFUNCTION( BlueprintCallable, Category = "Default" )
-	void OnScaleSnapButtonClicked( const bool bIsChecked );
+	bool OnScaleSnapButtonClicked( const bool bIsChecked );
 
 	UFUNCTION( BlueprintPure, Category = "Default" )
 	bool IsScaleSnapEnabled() const;
 
 	UFUNCTION( BlueprintCallable, Category = "Default" )
-	void OnScaleSnapSizeButtonClicked();
+	FText OnScaleSnapSizeButtonClicked();
 
 	UFUNCTION( BlueprintPure, Category = "Default" )
 	FText GetScaleSnapSizeText() const;
 
 	UFUNCTION( BlueprintCallable, Category = "Default" )
-	void OnGizmoCoordinateSystemButtonClicked();
+	FText OnGizmoCoordinateSystemButtonClicked();
 
 	UFUNCTION( BlueprintPure, Category = "Default" )
 	FText GetGizmoCoordinateSystemText() const;
 
 	UFUNCTION( BlueprintCallable, Category = "Default" )
-	void OnGizmoModeButtonClicked();
+	FText OnGizmoModeButtonClicked();
 
 	UFUNCTION( BlueprintPure, Category = "Default" )
 	FText GetGizmoModeText() const;
 
 	UFUNCTION( BlueprintCallable, Category = "Default" )
-	void OnSimulateButtonClicked( const bool bIsChecked );
+	bool OnSimulateButtonClicked( const bool bIsChecked );
 
 	UFUNCTION( BlueprintPure, Category = "Default" )
 	bool IsSimulatingEnabled() const;
 
 	UFUNCTION( BlueprintCallable, Category = "Default" )
-	void OnContentBrowserButtonClicked( const bool bIsChecked );
+	bool OnContentBrowserButtonClicked( const bool bIsChecked );
 
 	UFUNCTION( BlueprintPure, Category = "Default" )
 	bool IsContentBrowserVisible() const;
 
 	UFUNCTION( BlueprintCallable, Category = "Default" )
-	void OnWorldOutlinerButtonClicked( const bool bIsChecked );
+	bool OnWorldOutlinerButtonClicked( const bool bIsChecked );
 
 	UFUNCTION( BlueprintPure, Category = "Default" )
 	bool IsWorldOutlinerVisible() const;
 
 	UFUNCTION( BlueprintCallable, Category = "Default" )
-	void OnActorDetailsButtonClicked( const bool bIsChecked );
+	bool OnActorDetailsButtonClicked( const bool bIsChecked );
 
 	UFUNCTION( BlueprintPure, Category = "Default" )
 	bool IsActorDetailsVisible() const;
 
 	UFUNCTION( BlueprintCallable, Category = "Default" )
-	void OnModesButtonClicked( const bool bIsChecked );
+	bool OnModesButtonClicked( const bool bIsChecked );
 
 	UFUNCTION( BlueprintPure, Category = "Default" )
 	bool IsModesVisible() const;
 
 	UFUNCTION( BlueprintCallable, Category = "Default" )
-	void OnGameModeButtonClicked( const bool bIsChecked );
+	bool OnGameModeButtonClicked( const bool bIsChecked );
 
 	UFUNCTION( BlueprintPure, Category = "Default" )
 	bool IsGameModeEnabled() const;
 
 	UFUNCTION( BlueprintCallable, Category = "Default" )
-	void OnTutorialButtonClicked( const bool bIsChecked );
+	bool OnTutorialButtonClicked( const bool bIsChecked );
 
 	UFUNCTION( BlueprintPure, Category = "Default" )
 	bool IsTutorialVisible() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Default")
-	void OnLightButtonClicked(const bool bIsChecked);
+	bool OnLightButtonClicked(const bool bIsChecked);
 
 	UFUNCTION(BlueprintPure, Category = "Default")
 	bool IsLightVisible() const;
@@ -142,13 +142,13 @@ public:
 	void OnScreenshotButtonClicked();
 
 	UFUNCTION( BlueprintCallable, Category = "Default" )
-	void OnAssetEditorButtonClicked( const bool bIsChecked );
+	bool OnAssetEditorButtonClicked( const bool bIsChecked );
 
 	UFUNCTION( BlueprintPure, Category = "Default" )
 	bool IsAssetEditorVisible() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Default")
-	void OnWorldSettingsButtonClicked(const bool bIsChecked);
+	bool OnWorldSettingsButtonClicked(const bool bIsChecked);
 
 	UFUNCTION(BlueprintPure, Category = "Default")
 	bool IsWorldSettingsVisible() const;
