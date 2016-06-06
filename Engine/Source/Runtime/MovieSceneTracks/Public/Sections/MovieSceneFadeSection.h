@@ -21,7 +21,7 @@ class UMovieSceneFadeSection
 public:
 
 	/** Fade color */
-	UPROPERTY(EditAnywhere, Category="Fade")
+	UPROPERTY(EditAnywhere, Category="Fade", meta=(InlineColorPicker))
 	FLinearColor FadeColor;
 
 	/** Fade audio */
