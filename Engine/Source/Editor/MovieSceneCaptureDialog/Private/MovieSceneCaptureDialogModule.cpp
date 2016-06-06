@@ -8,6 +8,7 @@
 #include "SlateBasics.h"
 #include "SlateExtras.h"
 #include "SceneViewport.h"
+#include "AudioDevice.h"
 
 #include "SDockTab.h"
 #include "JsonObjectConverter.h"
@@ -331,6 +332,13 @@ struct FInEditorCapture
 		UGameViewportClient::OnViewportCreated().AddRaw(this, &FInEditorCapture::OnStart);
 		FEditorDelegates::EndPIE.AddRaw(this, &FInEditorCapture::OnEndPIE);
 		
+		FAudioDevice* AudioDevice = GWorld->GetAudioDevice();
+		if (AudioDevice != nullptr)
+		{
+			TransientMasterVolume = AudioDevice->TransientMasterVolume;
+			AudioDevice->TransientMasterVolume = 0.0f;
+		}
+
 		GEditor->RequestPlaySession(true, nullptr, false);
 	}
 
@@ -443,6 +451,12 @@ struct FInEditorCapture
 
 		FObjectReader(GetMutableDefault<ULevelEditorPlaySettings>(), BackedUpPlaySettings);
 
+		FAudioDevice* AudioDevice = GWorld->GetAudioDevice();
+		if (AudioDevice != nullptr)
+		{
+			AudioDevice->TransientMasterVolume = TransientMasterVolume;
+		}
+
 		CaptureObject->Close();
 		CaptureObject->RemoveFromRoot();
 
@@ -463,6 +477,7 @@ struct FInEditorCapture
 
 	TFunction<void()> OnStarted;
 	bool bScreenMessagesWereEnabled;
+	float TransientMasterVolume;
 	int32 BackedUpStreamingPoolSize;
 	int32 BackedUpUseFixedPoolSize;
 	TArray<uint8> BackedUpPlaySettings;
