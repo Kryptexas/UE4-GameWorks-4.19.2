@@ -83,11 +83,7 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 	float3 RV =  RayDirection;
 	half NoV = saturate(dot(N, V));
 
-	float RoughnessSq = Roughness * Roughness;
-	float AO = 0.0f;
-	float SpecularOcclusion = GetSpecularOcclusion(NoV, RoughnessSq, AO);
-
-	float4 SpecularIBL = float4(0,0,0,SpecularOcclusion);
+	float4 SpecularIBL = float4(0,0,0,0.0);
 	float3 CaptureVector = MaterialParameters.AbsoluteWorldPosition - ReflectionPositionAndRadius.xyz;
 	float CaptureVectorLength = length(CaptureVector);
 	
@@ -115,13 +111,9 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 		float4 Sample = TextureCubeArraySampleLevel(ReflectionCubemap, ReflectionCubemapSampler, ProjectedCaptureVector, CubemapArrayIndex, AbsoluteSpecularMip);
 #else
 		float4 Sample = TextureCubeSampleLevel(ReflectionCubemap, ReflectionCubemapSampler, ProjectedCaptureVector, AbsoluteSpecularMip);
-#endif
+#endif		
 		Sample *= DistanceAlpha;
-
-		// Under operator (back to front)
-		float IndirectSpecularOcclusion = 1.0f;
-		SpecularIBL.rgb += Sample.rgb * SpecularIBL.a * IndirectSpecularOcclusion;
-		SpecularIBL.a *= 1 - Sample.a;		
+		SpecularIBL.rgb = Sample.rgb;
 	}	
 
 #if ALLOW_STATIC_LIGHTING
