@@ -264,10 +264,22 @@ void FVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, const
 									FReply Reply = FReply::Unhandled();
 									if( Event == IE_Pressed )
 									{
-										Reply = FSlateApplication::Get().RoutePointerDownEvent( WidgetPathUnderFinger, PointerEvent );
+										const double CurrentTime = FPlatformTime::Seconds();
+										if (CurrentTime - Hand.LastClickPressTime <= VREd::DoubleClickTime->GetFloat())
+										{
+											// Trigger a double click event!
+											Reply = FSlateApplication::Get().RoutePointerDoubleClickEvent(WidgetPathUnderFinger, PointerEvent);
+										}
+										else
+										{
+											Reply = FSlateApplication::Get().RoutePointerDownEvent(WidgetPathUnderFinger, PointerEvent);
+										}
+										
 										Hand.bIsClickingOnUI = true;
 										Hand.bIsRightClickingOnUI = bIsRightClicking;
 										bIsInputCaptured = true;
+
+										Hand.LastClickPressTime = CurrentTime;
 
 										// Play a haptic effect on press
 										const float Strength = VREd::UIPressHapticFeedbackStrength->GetFloat();
@@ -278,15 +290,6 @@ void FVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, const
 									else if( Event == IE_Released )
 									{
 										Reply = FSlateApplication::Get().RoutePointerUpEvent( WidgetPathUnderFinger, PointerEvent );
-
-										const double CurrentTime = FPlatformTime::Seconds();
-										if( CurrentTime - Hand.LastClickReleaseTime <= VREd::DoubleClickTime->GetFloat() )
-										{
-											// Trigger a double click event!
-											Reply = FSlateApplication::Get().RoutePointerDoubleClickEvent( WidgetPathUnderFinger, PointerEvent );
-										}
-
-										Hand.LastClickReleaseTime = CurrentTime;
 									}
 								}
 							}
