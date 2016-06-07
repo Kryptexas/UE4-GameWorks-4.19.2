@@ -18,9 +18,9 @@ class UMovieSceneBoolSection
 
 public:
 
-	/** The default value to use when no keys are present */
-	UPROPERTY(EditAnywhere, Category="Curve")
-	bool DefaultValue;
+	/** The default value to use when no keys are present - use GetCurve().SetDefaultValue() */
+	UPROPERTY()
+	bool DefaultValue_DEPRECATED;
 
 public:
 
@@ -48,6 +48,8 @@ public:
 
 	/** Gets all the keys of this boolean section */
 	FIntegralCurve& GetCurve() { return BoolCurve; }
+
+	virtual void PostLoad() override;
 
 private:
 	/** Ordered curve data */

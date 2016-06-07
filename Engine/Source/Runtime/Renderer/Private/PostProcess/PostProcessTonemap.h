@@ -41,7 +41,7 @@ class FRCPassPostProcessTonemap : public TRenderingCompositePassBase<4, 1>
 {
 public:
 	// constructor
-	FRCPassPostProcessTonemap(const FViewInfo& InView, bool bInDoGammaOnly, bool bDoEyeAdaptation);
+	FRCPassPostProcessTonemap(const FViewInfo& InView, bool bInDoGammaOnly, bool bDoEyeAdaptation, bool bHDROutput);
 
 	// interface FRenderingCompositePass ---------
 
@@ -53,6 +53,7 @@ public:
 	bool bDoScreenPercentageInTonemapper;
 private:
 	bool bDoEyeAdaptation;
+	bool bHDROutput;
 	uint32 ConfigIndexPC;
 
 	const FViewInfo& View;

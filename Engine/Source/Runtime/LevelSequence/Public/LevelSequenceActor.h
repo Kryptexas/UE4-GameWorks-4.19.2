@@ -5,6 +5,42 @@
 #include "LevelSequencePlayer.h"
 #include "LevelSequenceActor.generated.h"
 
+class ULevelSequenceBurnIn;
+
+UCLASS(Blueprintable)
+class LEVELSEQUENCE_API ULevelSequenceBurnInInitSettings : public UObject
+{
+	GENERATED_BODY()
+};
+
+UCLASS()
+class LEVELSEQUENCE_API ULevelSequenceBurnInOptions : public UObject
+{
+public:
+
+	GENERATED_BODY()
+	ULevelSequenceBurnInOptions(const FObjectInitializer& Init);
+
+	/** Ensure the settings object is up-to-date */
+	void ResetSettings();
+
+public:
+
+	UPROPERTY(EditAnywhere, Category="General")
+	bool bUseBurnIn;
+
+	UPROPERTY(EditAnywhere, Category="General", meta=(EditCondition=bUseBurnIn, MetaClass="LevelSequenceBurnIn"))
+	FStringClassReference BurnInClass;
+
+	UPROPERTY(EditAnywhere, Category="General", meta=(EditCondition=bUseBurnIn, EditInline))
+	ULevelSequenceBurnInInitSettings* Settings;
+
+protected:
+
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif //WITH_EDITOR
+};
 
 /**
  * Actor responsible for controlling a specific level sequence in the world.
@@ -34,10 +70,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="General", meta=(AllowedClasses="LevelSequence"))
 	FStringAssetReference LevelSequence;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category="General", meta=(EditInline))
+	ULevelSequenceBurnInOptions* BurnInOptions;
+
 public:
 
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
 	void SetSequence(ULevelSequence* InSequence);
+
+	/** Refresh this actor's burn in */
+	void RefreshBurnIn();
 
 public:
 
@@ -49,4 +91,9 @@ public:
 #endif //WITH_EDITOR
 
 	void InitializePlayer();
+
+private:
+	/** Burn-in widget */
+	UPROPERTY()
+	ULevelSequenceBurnIn* BurnInInstance;
 };

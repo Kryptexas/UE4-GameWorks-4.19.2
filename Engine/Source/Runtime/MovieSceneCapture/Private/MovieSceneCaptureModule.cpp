@@ -162,23 +162,10 @@ private:
 						return nullptr;
 					}
 
-					// Now deserialize the protocol data
-					auto ProtocolTypeField = RootObject->TryGetField(TEXT("ProtocolType"));
-					if (ProtocolTypeField.IsValid())
+					TSharedPtr<FJsonValue> AdditionalDataField = RootObject->TryGetField(TEXT("AdditionalData"));
+					if (AdditionalDataField.IsValid())
 					{
-						UClass* ProtocolTypeClass = FindObject<UClass>(nullptr, *ProtocolTypeField->AsString());
-						if (ProtocolTypeClass)
-						{
-							Capture->ProtocolSettings = NewObject<UMovieSceneCaptureProtocolSettings>(Capture, ProtocolTypeClass);
-							if (Capture->ProtocolSettings)
-							{
-								auto ProtocolDataField = RootObject->TryGetField(TEXT("ProtocolData"));
-								if (ProtocolDataField.IsValid())
-								{
-									FJsonObjectConverter::JsonAttributesToUStruct(ProtocolDataField->AsObject()->Values, ProtocolTypeClass, Capture->ProtocolSettings, 0, 0);
-								}
-							}
-						}
+						Capture->DeserializeJson(*AdditionalDataField->AsObject());
 					}
 				}
 			}

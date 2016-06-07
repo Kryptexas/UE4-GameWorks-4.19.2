@@ -1062,7 +1062,7 @@ TSharedRef<SWidget> SSequencer::MakeTimeRange(const TSharedRef<SWidget>& InnerCo
 	FTimeRangeArgs Args(
 		ShowRange,
 		TimeSliderController.ToSharedRef(),
-		TAttribute<EVisibility>(this, &SSequencer::GetTimeRangeVisibility),
+		EVisibility::Visible,
 		TAttribute<bool>(this, &SSequencer::ShowFrameNumbers),
 		GetZeroPadNumericTypeInterface()
 		);
@@ -1760,10 +1760,13 @@ void SSequencer::OnTimeSnapIntervalChanged()
 	TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
 	if ( Sequencer.IsValid() )
 	{
-		FScopedTransaction SetFixedFrameIntervalTransaction( NSLOCTEXT( "Sequencer", "SetFixedFrameInterval", "Set scene fixed frame interval" ) );
 		UMovieScene* MovieScene = Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene();
-		MovieScene->Modify();
-		MovieScene->SetFixedFrameInterval( Settings->GetTimeSnapInterval() );
+		if (!FMath::IsNearlyEqual(MovieScene->GetFixedFrameInterval(), Settings->GetTimeSnapInterval()))
+		{
+			FScopedTransaction SetFixedFrameIntervalTransaction( NSLOCTEXT( "Sequencer", "SetFixedFrameInterval", "Set scene fixed frame interval" ) );
+			MovieScene->Modify();
+			MovieScene->SetFixedFrameInterval( Settings->GetTimeSnapInterval() );
+		}
 	}
 }
 

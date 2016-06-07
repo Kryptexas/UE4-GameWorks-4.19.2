@@ -949,9 +949,6 @@ void FMatinee::InitMatinee(const EToolkitMode::Type Mode, const TSharedPtr< clas
 				//Ensure Realtime is turned on and store the original setting so we can restore it later.
 				LevelVC->SetRealtime(true, true);
 			}
-
-			// Turn on 'show camera frustums' flag
-			LevelVC->EngineShowFlags.SetCameraFrustums(true);
 		}
 	}
 
@@ -2066,9 +2063,6 @@ void FMatinee::OnClose()
 				//Specify true so RestoreRealtime will allow us to disable Realtime if it was original disabled
 				LevelVC->RestoreRealtime(true);
 			}
-
-			// Turn off 'show camera frustums' flag.
-			LevelVC->EngineShowFlags.SetCameraFrustums(false);
 		}
 	}
 
@@ -2978,7 +2972,7 @@ void FMatinee::OnMenuCreateMovie()
 
 	// Create a new movie scene capture object for a generic level capture
 	ULevelCapture* MovieSceneCapture = NewObject<ULevelCapture>(GetTransientPackage(), ULevelCapture::StaticClass(), NAME_None, RF_Transient);
-	MovieSceneCapture->LoadConfig();
+	MovieSceneCapture->LoadFromConfig();
 
 	// Ensure that this matinee is up and running before we start capturing
 	MovieSceneCapture->SetPrerequisiteActor(MatineeActor);

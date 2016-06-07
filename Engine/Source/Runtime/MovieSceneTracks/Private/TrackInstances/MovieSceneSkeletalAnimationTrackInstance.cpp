@@ -14,8 +14,6 @@ float MapTimeToAnimation(float ThisPosition, UMovieSceneSkeletalAnimationSection
 {
 	ThisPosition = FMath::Clamp(ThisPosition, AnimSection->GetStartTime(), AnimSection->GetEndTime());
 
-	ThisPosition -= 1 / 1000.0f;
-
 	float AnimPlayRate = FMath::IsNearlyZero(AnimSection->GetPlayRate()) ? 1.0f : AnimSection->GetPlayRate();
 	float SeqLength = AnimSection->GetSequenceLength() - (AnimSection->GetStartOffset() + AnimSection->GetEndOffset());
 
@@ -114,79 +112,107 @@ void FMovieSceneSkeletalAnimationTrackInstance::RestoreState(const TArray<TWeakO
 	}
 }
 
-void FMovieSceneSkeletalAnimationTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) 
+USkeletalMeshComponent* GetSkeletalMeshComponentFromRuntimeObjectPtr( TWeakObjectPtr<UObject> RuntimeObjectPtr )
+{
+	USkeletalMeshComponent* SkeletalMeshComponent = nullptr;
+	UObject* RuntimeObject = RuntimeObjectPtr.Get();
+	if ( RuntimeObject != nullptr )
+	{
+		// first try to control the component directly
+		SkeletalMeshComponent = Cast<USkeletalMeshComponent>( RuntimeObject );
+		if ( SkeletalMeshComponent == nullptr )
+		{
+			// then check to see if we are controlling an actor & if so use its first USkeletalMeshComponent 
+			AActor* Actor = Cast<AActor>( RuntimeObject );
+			if ( Actor != nullptr )
+			{
+				SkeletalMeshComponent = Actor->FindComponentByClass<USkeletalMeshComponent>();
+			}
+		}
+	}
+	return SkeletalMeshComponent;
+}
+
+void FMovieSceneSkeletalAnimationTrackInstance::Update( EMovieSceneUpdateData& UpdateData, const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance )
 {
 	// @todo Sequencer gameplay update has a different code path than editor update for animation
-
-	for (int32 i = 0; i < RuntimeObjects.Num(); ++i)
+	for ( TWeakObjectPtr<UObject> RuntimeObjectPtr : RuntimeObjects )
 	{
-		// get the skeletal mesh component we want to control
-		USkeletalMeshComponent* Component = nullptr;
-		UObject* RuntimeObject = RuntimeObjects[i].Get();
-
-		if (RuntimeObject != nullptr)
+		USkeletalMeshComponent* SkeletalMeshComponent = GetSkeletalMeshComponentFromRuntimeObjectPtr( RuntimeObjectPtr );
+		if ( SkeletalMeshComponent )
 		{
-			// first try to control the component directly
-			USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(RuntimeObject);
-			if (SkeletalMeshComponent == nullptr)
+			UMovieSceneSkeletalAnimationSection* AnimSection = Cast<UMovieSceneSkeletalAnimationSection>( AnimationTrack->GetAnimSectionAtTime( UpdateData.Position ) );
+
+			// cbb: If there is no overlapping section, evaluate the closest section only if the current time is before it.
+			if ( AnimSection == nullptr )
 			{
-				// then check to see if we are controlling an actor & if so use its first USkeletalMeshComponent 
-				AActor* Actor = Cast<AActor>(RuntimeObject);
-				if(Actor != nullptr)
-				{
-					SkeletalMeshComponent = Actor->FindComponentByClass<USkeletalMeshComponent>();
-				}
+				AnimSection = Cast<UMovieSceneSkeletalAnimationSection>( MovieSceneHelpers::FindNearestSectionAtTime( AnimationTrack->GetAllSections(), UpdateData.Position ) );
 			}
 
-			if (SkeletalMeshComponent)
+			if ( AnimSection && AnimSection->IsActive() )
 			{
-				UMovieSceneSkeletalAnimationSection* AnimSection = Cast<UMovieSceneSkeletalAnimationSection>(AnimationTrack->GetAnimSectionAtTime(UpdateData.Position));
-			
-				// cbb: If there is no overlapping section, evaluate the closest section only if the current time is before it.
-				if (AnimSection == nullptr)
-				{
-					AnimSection = Cast<UMovieSceneSkeletalAnimationSection>(MovieSceneHelpers::FindNearestSectionAtTime(AnimationTrack->GetAllSections(), UpdateData.Position));
-				}
+				UAnimSequence* AnimSequence = AnimSection->GetAnimSequence();
 
-				if (AnimSection && AnimSection->IsActive())
+				if ( AnimSequence )
 				{
-					UAnimSequence* AnimSequence = AnimSection->GetAnimSequence();
+					float EvalTime = MapTimeToAnimation( UpdateData.Position, AnimSection );
 
-					if (AnimSequence)
+					int32 ChannelIndex = 0;
+
+					const bool bLooping = false;
+
+					if ( ShouldUsePreviewPlayback( Player, SkeletalMeshComponent ) )
 					{
-						float EvalTime = MapTimeToAnimation(UpdateData.Position, AnimSection);
+						// If the playback status is jumping, ie. one such occurrence is setting the time for thumbnail generation, disable anim notifies updates because it could fire audio
+						const bool bFireNotifies = Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Jumping || Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Stopped ? false : true;
 
-						int32 ChannelIndex = 0;
+						float DeltaTime = UpdateData.Position > UpdateData.LastPosition ? UpdateData.Position - UpdateData.LastPosition : 0.f;
 
-						const bool bLooping = false;
-
-						if (ShouldUsePreviewPlayback(Player, RuntimeObject))
+						// When jumping from one cut to another cut, the delta time should be 0 so that anim notifies before the current position are not evaluated. Note, anim notifies at the current time should still be evaluated.
+						if ( UpdateData.bJumpCut )
 						{
-							// If the playback status is jumping, ie. one such occurrence is setting the time for thumbnail generation, disable anim notifies updates because it could fire audio
-							const bool bFireNotifies = Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Jumping || Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Stopped ? false : true;
-
-							float DeltaTime = UpdateData.Position > UpdateData.LastPosition ? UpdateData.Position - UpdateData.LastPosition : 0.f;
-
-							// When jumping from one cut to another cut, the delta time should be 0 so that anim notifies before the current position are not evaluated. Note, anim notifies at the current time should still be evaluated.
-							if (UpdateData.bJumpCut)
-							{
-								DeltaTime = 0.f;
-							}
-
-							const bool bResetDynamics = Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Stepping || 
-														Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Jumping || 
-														Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Scrubbing || 
-														(DeltaTime == 0.0f && Player.GetPlaybackStatus() != EMovieScenePlayerStatus::Stopped); 
-						
-							PreviewSetAnimPosition(SkeletalMeshComponent, AnimSection->GetSlotName(), ChannelIndex, AnimSequence, EvalTime, bLooping, bFireNotifies, DeltaTime, Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Playing, bResetDynamics);
+							DeltaTime = 0.f;
 						}
-						else
-						{
-							// Don't fire notifies at runtime since they will be fired through the standard animation tick path.
-							const bool bFireNotifies = false;
-							SetAnimPosition(SkeletalMeshComponent, AnimSection->GetSlotName(), ChannelIndex, AnimSequence, EvalTime, bLooping, bFireNotifies);
-						}
+
+						const bool bResetDynamics = Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Stepping ||
+							Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Jumping ||
+							Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Scrubbing ||
+							( DeltaTime == 0.0f && Player.GetPlaybackStatus() != EMovieScenePlayerStatus::Stopped );
+
+						PreviewSetAnimPosition( SkeletalMeshComponent, AnimSection->GetSlotName(), ChannelIndex, AnimSequence, EvalTime, bLooping, bFireNotifies, DeltaTime, Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Playing, bResetDynamics );
 					}
+					else
+					{
+						// Don't fire notifies at runtime since they will be fired through the standard animation tick path.
+						const bool bFireNotifies = false;
+						SetAnimPosition( SkeletalMeshComponent, AnimSection->GetSlotName(), ChannelIndex, AnimSequence, EvalTime, bLooping, bFireNotifies );
+					}
+				}
+			}
+		}
+	}
+}
+
+void FMovieSceneSkeletalAnimationTrackInstance::RefreshInstance( const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance )
+{
+	// When not in preview playback we need to stop any running animations to prevent the animations from being advanced a frame when
+	// they are ticked by the engine.
+	for ( TWeakObjectPtr<UObject> RuntimeObjectPtr : RuntimeObjects )
+	{
+		if ( ShouldUsePreviewPlayback( Player, RuntimeObjectPtr.Get() ) == false )
+		{
+			USkeletalMeshComponent* SkeletalMeshComponent = GetSkeletalMeshComponentFromRuntimeObjectPtr( RuntimeObjectPtr );
+			if ( SkeletalMeshComponent != nullptr )
+			{
+				UAnimInstance* AnimInstance = SkeletalMeshComponent->GetAnimInstance();
+				if ( AnimInstance )
+				{
+					UAnimSingleNodeInstance * SingleNodeInstance = SkeletalMeshComponent->GetSingleNodeInstance();
+					if ( SingleNodeInstance )
+					{
+						SingleNodeInstance->SetPlaying( false );
+					}
+					// TODO: Anim montage?
 				}
 			}
 		}

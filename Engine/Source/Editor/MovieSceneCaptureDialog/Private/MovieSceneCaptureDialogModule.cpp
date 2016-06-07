@@ -8,6 +8,7 @@
 #include "SlateBasics.h"
 #include "SlateExtras.h"
 #include "SceneViewport.h"
+#include "AudioDevice.h"
 
 #include "SDockTab.h"
 #include "JsonObjectConverter.h"
@@ -331,6 +332,13 @@ struct FInEditorCapture
 		UGameViewportClient::OnViewportCreated().AddRaw(this, &FInEditorCapture::OnStart);
 		FEditorDelegates::EndPIE.AddRaw(this, &FInEditorCapture::OnEndPIE);
 		
+		FAudioDevice* AudioDevice = GWorld->GetAudioDevice();
+		if (AudioDevice != nullptr)
+		{
+			TransientMasterVolume = AudioDevice->TransientMasterVolume;
+			AudioDevice->TransientMasterVolume = 0.0f;
+		}
+
 		GEditor->RequestPlaySession(true, nullptr, false);
 	}
 
@@ -443,6 +451,12 @@ struct FInEditorCapture
 
 		FObjectReader(GetMutableDefault<ULevelEditorPlaySettings>(), BackedUpPlaySettings);
 
+		FAudioDevice* AudioDevice = GWorld->GetAudioDevice();
+		if (AudioDevice != nullptr)
+		{
+			AudioDevice->TransientMasterVolume = TransientMasterVolume;
+		}
+
 		CaptureObject->Close();
 		CaptureObject->RemoveFromRoot();
 
@@ -463,6 +477,7 @@ struct FInEditorCapture
 
 	TFunction<void()> OnStarted;
 	bool bScreenMessagesWereEnabled;
+	float TransientMasterVolume;
 	int32 BackedUpStreamingPoolSize;
 	int32 BackedUpUseFixedPoolSize;
 	TArray<uint8> BackedUpPlaySettings;
@@ -569,11 +584,7 @@ class FMovieSceneCaptureDialogModule : public IMovieSceneCaptureDialogModule
 			return LOCTEXT("AlreadyCapturing", "There is already a movie scene capture process open. Please close it and try again.");
 		}
 
-		CaptureObject->SaveConfig();
-		if (CaptureObject->ProtocolSettings)
-		{
-			CaptureObject->ProtocolSettings->SaveConfig();
-		}
+		CaptureObject->SaveToConfig();
 
 		return CaptureObject->bUseSeparateProcess ? CaptureInNewProcess(CaptureObject, MapNameToLoad) : CaptureInEditor(CaptureObject, MapNameToLoad);
 	}
@@ -627,15 +638,9 @@ class FMovieSceneCaptureDialogModule : public IMovieSceneCaptureDialogModule
 			RootObject->SetField(TEXT("Type"), MakeShareable(new FJsonValueString(CaptureObject->GetClass()->GetPathName())));
 			RootObject->SetField(TEXT("Data"), MakeShareable(new FJsonValueObject(Object)));
 
-			if (CaptureObject->ProtocolSettings)
-			{
-				RootObject->SetField(TEXT("ProtocolType"), MakeShareable(new FJsonValueString(CaptureObject->ProtocolSettings->GetClass()->GetPathName())));
-				TSharedRef<FJsonObject> ProtocolDataObject = MakeShareable(new FJsonObject);
-				if (FJsonObjectConverter::UStructToJsonObject(CaptureObject->ProtocolSettings->GetClass(), CaptureObject->ProtocolSettings, ProtocolDataObject, 0, 0))
-				{
-					RootObject->SetField(TEXT("ProtocolData"), MakeShareable(new FJsonValueObject(ProtocolDataObject)));
-				}
-			}
+			TSharedRef<FJsonObject> AdditionalJson = MakeShareable(new FJsonObject);
+			CaptureObject->SerializeJson(*AdditionalJson);
+			RootObject->SetField(TEXT("AdditionalData"), MakeShareable(new FJsonValueObject(AdditionalJson)));
 
 			FString Json;
 			TSharedRef<TJsonWriter<> > JsonWriter = TJsonWriterFactory<>::Create(&Json, 0);

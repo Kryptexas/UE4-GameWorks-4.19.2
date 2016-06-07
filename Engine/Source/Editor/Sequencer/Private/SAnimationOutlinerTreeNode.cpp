@@ -179,6 +179,7 @@ void SAnimationOutlinerTreeNode::Construct( const FArguments& InArgs, TSharedRef
 								[
 									SNew(SImage)
 									.Image(InArgs._IconBrush)
+									.ColorAndOpacity(InArgs._IconColor)
 								]
 
 								+ SOverlay::Slot()

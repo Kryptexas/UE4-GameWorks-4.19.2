@@ -246,6 +246,13 @@ public:
 	virtual bool IsPerspectiveViewportCameraCutEnabled() const { return true; }
 
 	/*
+	 * Render movie for a section.
+	 * 
+	 * @param InSection The given section to render.
+	 */
+	virtual void RenderMovie(UMovieSceneSection* InSection) const = 0;
+
+	/*
 	 * Puts sequencer in a silent state (whereby it will not redraw viewports, or attempt to update external state besides the sequence itself)
 	 */
 	virtual void EnterSilentMode() = 0;

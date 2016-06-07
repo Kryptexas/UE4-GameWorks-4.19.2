@@ -154,6 +154,13 @@ static TAutoConsoleVariable<float> CVarTonemapperMergeThreshold(
 	TEXT("Defauls to 0.49 (e.g., if r.ScreenPercentage is 70 or higher, try to merge)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CVarMotionBlurNew(
+	TEXT("r.MotionBlurNew"),
+	1,
+	TEXT(""),
+	ECVF_RenderThreadSafe
+);
+
 static TAutoConsoleVariable<int32> CVarMotionBlurScatter(
 	TEXT("r.MotionBlurScatter"),
 	0,
@@ -324,13 +331,14 @@ static FRCPassPostProcessTonemap* AddTonemapper(
 	const FRenderingCompositeOutputRef& BloomOutputCombined,
 	const FRenderingCompositeOutputRef& EyeAdaptation,
 	const EAutoExposureMethod& EyeAdapationMethodId,
-	const bool bDoGammaOnly)
+	const bool bDoGammaOnly,
+	const bool bHDRTonemapperOutput)
 {
 	const FEngineShowFlags& EngineShowFlags = Context.View.Family->EngineShowFlags;
 
 	FRenderingCompositePass* CombinedLUT = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCombineLUTs(Context.View.GetShaderPlatform()));
 	const bool bDoEyeAdaptation = IsAutoExposureMethodSupported(Context.View.GetFeatureLevel(), EyeAdapationMethodId);
-	FRCPassPostProcessTonemap* PostProcessTonemap =	Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessTonemap(Context.View, bDoGammaOnly, bDoEyeAdaptation));
+	FRCPassPostProcessTonemap* PostProcessTonemap =	Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessTonemap(Context.View, bDoGammaOnly, bDoEyeAdaptation, bHDRTonemapperOutput));
 
 	PostProcessTonemap->SetInput(ePId_Input0, Context.FinalOutput);
 	PostProcessTonemap->SetInput(ePId_Input1, BloomOutputCombined);
@@ -358,7 +366,7 @@ static void AddSelectionOutline(FPostprocessContext& Context)
 
 static void AddGammaOnlyTonemapper(FPostprocessContext& Context)
 {
-	FRenderingCompositePass* PostProcessTonemap = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessTonemap(Context.View, true, false/*eye*/));
+	FRenderingCompositePass* PostProcessTonemap = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessTonemap(Context.View, true, false/*eye*/, false));
 
 	PostProcessTonemap->SetInput(ePId_Input0, Context.FinalOutput);
 
@@ -893,7 +901,7 @@ static bool HasPostProcessMaterial(FPostprocessContext& Context, EBlendableLocat
 	return false;
 }
 
-static void AddPostProcessMaterial(FPostprocessContext& Context, EBlendableLocation InLocation, FRenderingCompositeOutputRef SeparateTranslucency, FRenderingCompositeOutputRef HDRColor = FRenderingCompositeOutputRef())
+static void AddPostProcessMaterial(FPostprocessContext& Context, EBlendableLocation InLocation, FRenderingCompositeOutputRef SeparateTranslucency, FRenderingCompositeOutputRef PostTonemapHDRColor = FRenderingCompositeOutputRef())
 {
 	if( !Context.View.Family->EngineShowFlags.PostProcessing ||
 		!Context.View.Family->EngineShowFlags.PostProcessMaterial ||
@@ -968,7 +976,7 @@ static void AddPostProcessMaterial(FPostprocessContext& Context, EBlendableLocat
 		// This input is only needed for visualization and frame dumping
 		if (bVisualizingBuffer)
 		{
-			Node->SetInput(ePId_Input2, HDRColor);
+			Node->SetInput(ePId_Input2, PostTonemapHDRColor);
 		}
 
 		Context.FinalOutput = FRenderingCompositeOutputRef(Node);
@@ -1019,7 +1027,7 @@ static void AddHighResScreenshotMask(FPostprocessContext& Context, FRenderingCom
 	}
 }
 
-static void AddGBufferVisualizationOverview(FPostprocessContext& Context, FRenderingCompositeOutputRef& SeparateTranslucencyInput, FRenderingCompositeOutputRef& HDRColorInput)
+static void AddGBufferVisualizationOverview(FPostprocessContext& Context, FRenderingCompositeOutputRef& SeparateTranslucencyInput, FRenderingCompositeOutputRef& PostTonemapHDRColorInput)
 {
 	static const auto CVarDumpFrames = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BufferVisualizationDumpFrames"));
 	static const auto CVarDumpFramesAsHDR = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BufferVisualizationDumpFramesAsHDR"));
@@ -1057,7 +1065,7 @@ static void AddGBufferVisualizationOverview(FPostprocessContext& Context, FRende
 					FRenderingCompositePass* MaterialPass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessMaterial(*It, Context.View.GetFeatureLevel(), OutputFormat));
 					MaterialPass->SetInput(ePId_Input0, FRenderingCompositeOutputRef(IncomingStage));
 					MaterialPass->SetInput(ePId_Input1, FRenderingCompositeOutputRef(SeparateTranslucencyInput));
-					MaterialPass->SetInput(ePId_Input2, FRenderingCompositeOutputRef(HDRColorInput));
+					MaterialPass->SetInput(ePId_Input2, FRenderingCompositeOutputRef(PostTonemapHDRColorInput));
 
 					auto Proxy = MaterialInterface->GetRenderProxy(false);
 					const FMaterial* Material = Proxy->GetMaterial(Context.View.GetFeatureLevel());
@@ -1176,6 +1184,8 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 		FRenderingCompositeOutputRef HistogramOverScreen;
 		// not always valid
 		FRenderingCompositeOutputRef Histogram;
+		// not always valid
+		FRenderingCompositeOutputRef PostTonemapHDRColor;
 
 		class FAutoExposure
 		{
@@ -1241,7 +1251,10 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 		{
 			bAllowTonemapper = false;
 		}
-	
+
+		static const auto CVarDumpFramesAsHDR = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BufferVisualizationDumpFramesAsHDR"));
+		const bool bHDRTonemapperOutput = bAllowTonemapper && (GetHighResScreenshotConfig().bCaptureHDR || CVarDumpFramesAsHDR->GetValueOnRenderThread());
+
 		FRCPassPostProcessTonemap* Tonemapper = 0;
 
 		// add the passes we want to add to the graph (commenting a line means the pass is not inserted into the graph) ---------
@@ -1644,7 +1657,17 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 				}
 				else
 				{
-					Tonemapper = AddTonemapper(Context, BloomOutputCombined, AutoExposure.EyeAdaptation, AutoExposure.MethodId, false);
+					Tonemapper = AddTonemapper(Context, BloomOutputCombined, AutoExposure.EyeAdaptation, AutoExposure.MethodId, false, bHDRTonemapperOutput);
+				}
+
+				PostTonemapHDRColor = Context.FinalOutput;
+
+				// Add a pass-through as tonemapper will be forced LDR if final pass in chain 
+				if (bHDRTonemapperOutput)
+				{
+					FRenderingCompositePass* PassthroughNode = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessPassThrough(nullptr));
+					PassthroughNode->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
+					Context.FinalOutput = FRenderingCompositeOutputRef(PassthroughNode);
 				}
 			}
 
@@ -1765,7 +1788,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
 		}
 		
-		AddPostProcessMaterial(Context, BL_AfterTonemapping, SeparateTranslucency, HDRColor);
+		AddPostProcessMaterial(Context, BL_AfterTonemapping, SeparateTranslucency, PostTonemapHDRColor);
 
 #if WITH_EDITOR
 		//Inspect the Final color, GBuffer and HDR
@@ -1795,7 +1818,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 			Context.FinalOutput = FRenderingCompositeOutputRef(PassVisualize);
 		}
 
-		AddGBufferVisualizationOverview(Context, SeparateTranslucency, HDRColor);
+		AddGBufferVisualizationOverview(Context, SeparateTranslucency, PostTonemapHDRColor);
 
 		if (bStereoRenderingAndHMD)
 		{
@@ -2273,7 +2296,7 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 		if ( bUseTonemapperFilm)
 		{
 			//@todo Ronin Set to EAutoExposureMethod::AEM_Basic for PC vk crash.
-			AddTonemapper(Context, BloomOutput, nullptr, EAutoExposureMethod::AEM_Histogram, false);
+			AddTonemapper(Context, BloomOutput, nullptr, EAutoExposureMethod::AEM_Histogram, false, false);
 		}
 		else
 		{

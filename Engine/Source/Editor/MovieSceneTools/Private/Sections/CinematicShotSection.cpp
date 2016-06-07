@@ -177,6 +177,13 @@ void FCinematicShotSection::BuildSectionContextMenu(FMenuBuilder& MenuBuilder, c
 				FUIAction(FExecuteAction::CreateSP(CinematicShotTrackEditor.Pin().ToSharedRef(), &FCinematicShotTrackEditor::DuplicateShot, &SectionObject))
 			);
 
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("RenderShot", "Render Shot"),
+				FText::Format(LOCTEXT("RenderShotTooltip", "Render shot movie"), SectionObject.GetShotDisplayName()),
+				FSlateIcon(),
+				FUIAction(FExecuteAction::CreateSP(CinematicShotTrackEditor.Pin().ToSharedRef(), &FCinematicShotTrackEditor::RenderShot, &SectionObject))
+			);
+
 			/*
 			//@todo
 			MenuBuilder.AddMenuEntry(

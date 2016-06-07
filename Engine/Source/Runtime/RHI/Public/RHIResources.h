@@ -630,7 +630,6 @@ public:
 	virtual FRHITextureReference* GetTextureReference() override { return this; }
 	inline FRHITexture* GetReferencedTexture() const { return ReferencedTexture.GetReference(); }
 
-protected:
 	void SetReferencedTexture(FRHITexture* InTexture)
 	{
 		ReferencedTexture = InTexture;

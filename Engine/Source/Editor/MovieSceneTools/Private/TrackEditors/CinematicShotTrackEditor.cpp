@@ -17,7 +17,10 @@
 #include "CinematicShotSection.h"
 #include "SequencerUtilities.h"
 #include "ContentBrowserModule.h"
-#include "MovieSceneToolHelpers.h"
+#include "MovieSceneCaptureSettings.h"
+#include "MovieSceneCapture.h"
+#include "AutomatedLevelSequenceCapture.h"
+#include "MovieSceneCaptureModule.h"
 #include "LevelSequence.h"
 #include "AssetToolsModule.h"
 
@@ -177,6 +180,23 @@ void FCinematicShotTrackEditor::Tick(float DeltaTime)
 	}
 }
 
+void FCinematicShotTrackEditor::BuildTrackContextMenu( FMenuBuilder& MenuBuilder, UMovieSceneTrack* Track )
+{
+	MenuBuilder.AddMenuEntry(
+		NSLOCTEXT( "Sequencer", "ImportEDL", "Import EDL..." ),
+		NSLOCTEXT( "Sequencer", "ImportEDLTooltip", "Import Edit Decision List (EDL) for non-linear editors." ),
+		FSlateIcon(),
+		FUIAction(
+		FExecuteAction::CreateRaw(this, &FCinematicShotTrackEditor::ImportEDL )));
+
+	MenuBuilder.AddMenuEntry(
+		NSLOCTEXT( "Sequencer", "ExportEDL", "Export EDL" ),
+		NSLOCTEXT( "Sequencer", "ExportEDLTooltip", "Export Edit Decision List (EDL) for non-linear editors." ),
+		FSlateIcon(),
+		FUIAction(
+		FExecuteAction::CreateRaw(this, &FCinematicShotTrackEditor::ExportEDL )));
+}
+
 const FSlateBrush* FCinematicShotTrackEditor::GetIconBrush() const
 {
 	return FEditorStyle::GetBrush("Sequencer.Tracks.CinematicShot");
@@ -320,6 +340,12 @@ void FCinematicShotTrackEditor::DuplicateShot(UMovieSceneCinematicShotSection* S
 	}
 
 	GetSequencer()->NotifyMovieSceneDataChanged();
+}
+
+void FCinematicShotTrackEditor::RenderShot(UMovieSceneCinematicShotSection* Section)
+{
+	GetSequencer()->RenderMovie(Section);
+
 }
 
 
@@ -620,6 +646,75 @@ bool FCinematicShotTrackEditor::HandleSequenceAdded(float KeyTime, UMovieSceneSe
 
 	GetSequencer()->NotifyMovieSceneDataChanged();
 	return true;
+}
+
+void FCinematicShotTrackEditor::ImportEDL()
+{
+	UMovieSceneSequence* FocusedSequence = GetSequencer()->GetFocusedMovieSceneSequence();
+	if (!FocusedSequence)
+	{
+		return;
+	}
+
+	UMovieScene* MovieScene = FocusedSequence->GetMovieScene();
+	if (!MovieScene)
+	{
+		return;
+	}
+
+	UAutomatedLevelSequenceCapture* MovieSceneCapture = Cast<UAutomatedLevelSequenceCapture>(IMovieSceneCaptureModule::Get().GetFirstActiveMovieSceneCapture());
+	if (!MovieSceneCapture)
+	{
+		MovieSceneCapture = NewObject<UAutomatedLevelSequenceCapture>(GetTransientPackage(), UAutomatedLevelSequenceCapture::StaticClass(), NAME_None, RF_Transient);
+		MovieSceneCapture->LoadFromConfig();
+	}
+
+	if (!MovieSceneCapture)
+	{
+		return;
+	}
+
+	const FMovieSceneCaptureSettings& Settings = MovieSceneCapture->GetSettings();
+	FString SaveDirectory = FPaths::ConvertRelativePathToFull(Settings.OutputDirectory.Path);
+	float FrameRate = Settings.FrameRate;
+
+	if (MovieSceneToolHelpers::ShowImportEDLDialog(MovieScene, FrameRate, SaveDirectory))
+	{
+		GetSequencer()->NotifyMovieSceneDataChanged();
+	}
+}
+
+void FCinematicShotTrackEditor::ExportEDL()
+{
+	UMovieSceneSequence* FocusedSequence = GetSequencer()->GetFocusedMovieSceneSequence();
+	if (!FocusedSequence)
+	{
+		return;
+	}
+
+	UMovieScene* MovieScene = FocusedSequence->GetMovieScene();
+	if (!MovieScene)
+	{
+		return;
+	}
+		
+	UAutomatedLevelSequenceCapture* MovieSceneCapture = Cast<UAutomatedLevelSequenceCapture>(IMovieSceneCaptureModule::Get().GetFirstActiveMovieSceneCapture());
+	if (!MovieSceneCapture)
+	{
+		MovieSceneCapture = NewObject<UAutomatedLevelSequenceCapture>(GetTransientPackage(), UAutomatedLevelSequenceCapture::StaticClass(), NAME_None, RF_Transient);
+		MovieSceneCapture->LoadFromConfig();
+	}
+
+	if (!MovieSceneCapture)
+	{
+		return;
+	}
+
+	const FMovieSceneCaptureSettings& Settings = MovieSceneCapture->GetSettings();
+	FString SaveDirectory = FPaths::ConvertRelativePathToFull(Settings.OutputDirectory.Path);
+	float FrameRate = Settings.FrameRate;
+
+	MovieSceneToolHelpers::ShowExportEDLDialog(MovieScene, FrameRate, SaveDirectory);
 }
 
 #undef LOCTEXT_NAMESPACE

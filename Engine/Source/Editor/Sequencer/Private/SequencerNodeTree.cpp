@@ -509,26 +509,23 @@ static bool FilterNodesRecursive( FSequencer& Sequencer, const TSharedRef<FSeque
 	bool bObjectHasLabels = false;
 	for (const FString& String : FilterStrings)
 	{
-		if (String.StartsWith(TEXT("label:")))
-		{				
-			if (!StartNode->GetParent().IsValid() && (String.Len() > 6))
+		if (String.StartsWith(TEXT("label:")) && String.Len() > 6)
+		{
+			if (StartNode->GetType() == ESequencerNode::Object)
 			{
-				if (StartNode->GetType() == ESequencerNode::Object)
-				{
-					bObjectHasLabels = true;
-					auto ObjectBindingNode = StaticCastSharedRef<FSequencerObjectBindingNode>(StartNode);
-					auto Labels = Sequencer.GetLabelManager().GetObjectLabels(ObjectBindingNode->GetObjectBinding());
+				bObjectHasLabels = true;
+				auto ObjectBindingNode = StaticCastSharedRef<FSequencerObjectBindingNode>(StartNode);
+				auto Labels = Sequencer.GetLabelManager().GetObjectLabels(ObjectBindingNode->GetObjectBinding());
 
-					if (Labels != nullptr && Labels->Strings.Contains(String.RightChop(6)))
-					{
-						bMatchedLabel = true;
-						break;
-					}
-				}
-				else
+				if (Labels != nullptr && Labels->Strings.Contains(String.RightChop(6)))
 				{
-					return false;
+					bMatchedLabel = true;
+					break;
 				}
+			}
+			else if (!StartNode->GetParent().IsValid())
+			{
+				return false;
 			}
 		}
 	}
@@ -562,18 +559,21 @@ static bool FilterNodesRecursive( FSequencer& Sequencer, const TSharedRef<FSeque
 	}
 
 	// check each child node to determine if it is filtered
-	const TArray<TSharedRef<FSequencerDisplayNode>>& ChildNodes = StartNode->GetChildNodes();
-
-	for (const auto& Node : ChildNodes)
+	if (StartNode->GetType() != ESequencerNode::Folder)
 	{
-		// Mark the parent as filtered if any child node was filtered
-		bPassedTextFilter |= FilterNodesRecursive(Sequencer, Node, FilterStrings, OutFilteredNodes);
+		const TArray<TSharedRef<FSequencerDisplayNode>>& ChildNodes = StartNode->GetChildNodes();
 
-		if (bPassedTextFilter && !bInFilter)
+		for (const auto& Node : ChildNodes)
 		{
-			AddFilteredNode(StartNode, OutFilteredNodes);
+			// Mark the parent as filtered if any child node was filtered
+			bPassedTextFilter |= FilterNodesRecursive(Sequencer, Node, FilterStrings, OutFilteredNodes);
 
-			bInFilter = true;
+			if (bPassedTextFilter && !bInFilter)
+			{
+				AddFilteredNode(StartNode, OutFilteredNodes);
+
+				bInFilter = true;
+			}
 		}
 	}
 

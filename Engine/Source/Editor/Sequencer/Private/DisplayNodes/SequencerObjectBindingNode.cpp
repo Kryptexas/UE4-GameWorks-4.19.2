@@ -119,6 +119,16 @@ void FSequencerObjectBindingNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 			MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ConvertToSpawnable );
 		}
 
+		/*
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("Import FBX", "Import FBX..."),
+			LOCTEXT("ImportFBXTooltip", "Import FBX animation to this object"),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateLambda([=]{ GetSequencer().ImportFBX(ObjectBinding); })
+			));
+			*/
+
 		MenuBuilder.BeginSection("Organize", LOCTEXT("OrganizeContextMenuSectionName", "Organize"));
 		{
 			MenuBuilder.AddSubMenu(

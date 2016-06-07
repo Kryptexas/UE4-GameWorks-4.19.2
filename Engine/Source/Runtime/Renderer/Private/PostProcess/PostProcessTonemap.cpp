@@ -27,9 +27,10 @@ static TAutoConsoleVariable<int32> CVarTonemapperGamut(
 	TEXT("r.TonemapperOutputGamut"),
 	0,
 	TEXT("0: use Rec.709/sRGB, D65\n")
-	TEXT("1: use P3 (DCI), D65\n")
+	TEXT("1: use P3, D65\n")
 	TEXT("2: use Rec.2020, D65\n")
-	TEXT("3: use ACES, D60"),
+	TEXT("3: use ACES, D60\n")
+	TEXT("4: use ACEScg, D60"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<int32> CVarTonemapper2084(
@@ -992,13 +993,6 @@ public:
 		// The gamut for output
 		static TConsoleVariableData<int32>* CVarOutputGamut = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TonemapperOutputGamut"));
 		int32 OutputGamutValue = CVarOutputGamut->GetValueOnRenderThread();
-
-		// Write ACES data when storing HDR frames
-		if (DumpFramesAsHDRValue)
-		{
-			OutputGamutValue = 3;
-		}
-
 		SetShaderValue(Context.RHICmdList, ShaderRHI, OutputGamut, OutputGamutValue);
 
 		SetShaderValue(Context.RHICmdList, ShaderRHI, OverlayColor, Context.View.OverlayColor);
@@ -1161,11 +1155,12 @@ IMPLEMENT_SHADER_TYPE(template<>, TPostProcessTonemapVS<true>, TEXT("PostProcess
 IMPLEMENT_SHADER_TYPE(template<>, TPostProcessTonemapVS<false>, TEXT("PostProcessTonemap"), TEXT("MainVS"), SF_Vertex);
 
 
-FRCPassPostProcessTonemap::FRCPassPostProcessTonemap(const FViewInfo& InView, bool bInDoGammaOnly, bool bInDoEyeAdaptation)
+FRCPassPostProcessTonemap::FRCPassPostProcessTonemap(const FViewInfo& InView, bool bInDoGammaOnly, bool bInDoEyeAdaptation, bool bInHDROutput)
 	: bDoGammaOnly(bInDoGammaOnly)
 	, bDoScreenPercentageInTonemapper(false)
 	, bDoEyeAdaptation(bInDoEyeAdaptation)
-	, View(InView)	
+	, bHDROutput(bInHDROutput)
+	, View(InView)
 {
 	uint32 ConfigBitmask = TonemapperGenerateBitmaskPC(&InView, bDoGammaOnly);
 	ConfigIndexPC = TonemapperFindLeastExpensive(TonemapperConfBitmaskPC, sizeof(TonemapperConfBitmaskPC)/4, TonemapperCostTab, ConfigBitmask);;
@@ -1334,7 +1329,7 @@ FPooledRenderTargetDesc FRCPassPostProcessTonemap::ComputeOutputDesc(EPassOutput
 
 	Ret.Reset();
 	// RGB is the color in LDR, A is the luminance for PostprocessAA
-	Ret.Format = PF_B8G8R8A8;
+	Ret.Format = bHDROutput ? PF_FloatRGBA : PF_B8G8R8A8;
 	Ret.DebugName = TEXT("Tonemap");
 	Ret.ClearValue = FClearValueBinding(FLinearColor(0, 0, 0, 0));
 

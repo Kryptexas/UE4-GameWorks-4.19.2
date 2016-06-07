@@ -46,6 +46,7 @@ struct FMovieSceneColorKeyStruct
 	FLinearColor Color;
 
 	FRichCurveKey* Keys[4];
+	FRichCurve* Curves[4];
 
 	virtual void PropagateChanges(const FPropertyChangedEvent& ChangeEvent) override;
 };

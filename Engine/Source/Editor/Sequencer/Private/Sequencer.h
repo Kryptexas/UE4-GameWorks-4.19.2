@@ -367,6 +367,9 @@ public:
 	void AssignActor(FMenuBuilder& MenuBuilder, FGuid ObjectBinding);
 	void DoAssignActor(AActor*const* InActors, int32 NumActors, FGuid ObjectBinding);
 
+	/** Called when a user executes the import fbx to track menu item */
+	void ImportFBX(FGuid ObjectBinding);	
+
 	/** Called when a user executes the delete node menu item */
 	void DeleteNode(TSharedRef<FSequencerDisplayNode> NodeToBeDeleted);
 	void DeleteSelectedNodes();
@@ -499,6 +502,7 @@ public:
 	virtual void SetGlobalTimeDirectly(float Time, ESnapTimeMode SnapTimeMode = ESnapTimeMode::STM_None, bool bLooped = false) override;
 	virtual void SetPerspectiveViewportPossessionEnabled(bool bEnabled) override;
 	virtual void SetPerspectiveViewportCameraCutEnabled(bool bEnabled) override;
+	virtual void RenderMovie(UMovieSceneSection* InSection) const override;
 	virtual void EnterSilentMode() override { ++SilentModeCount; }
 	virtual void ExitSilentMode() override { --SilentModeCount; ensure(SilentModeCount >= 0); }
 	virtual bool IsInSilentMode() const override { return SilentModeCount != 0; }
@@ -754,6 +758,9 @@ protected:
 
 	/** Internal conversion function that doesn't perform expensive reset/update tasks */
 	FMovieSceneSpawnable* ConvertToSpawnableInternal(FGuid PossessableGuid);
+
+	/** Internal function to render movie for a given start/end time */
+	void RenderMovieInternal(float InStartTime, float InEndTime) const;
 
 	/** Handles adding a new folder to the outliner tree. */
 	void OnAddFolder();

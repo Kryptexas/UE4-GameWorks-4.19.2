@@ -61,6 +61,10 @@ struct MOVIESCENECAPTURE_API FMovieSceneCaptureSettings
 	UPROPERTY(config, EditAnywhere, Category=General, AdvancedDisplay)
 	bool bUseRelativeFrameNumbers;
 
+	/** How much to zero-pad frame numbers on filenames */
+	UPROPERTY(config)
+	uint8 ZeroPadFrameNumbers;
+
 	/** The frame rate at which to capture */
 	UPROPERTY(config, EditAnywhere, Category=CaptureSettings)
 	int32 FrameRate;

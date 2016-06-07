@@ -450,7 +450,8 @@ void FSequencer::PostTickRenderStateFixup()
 				{
 					for (UMovieSceneSection* Section : SubTrack->GetAllSections())
 					{
-						if (Section->IsInfinite() || Section->IsTimeWithinSection(Time))
+						// Subsections are inclusive start and exclusive end
+						if (Section->IsInfinite() || (Time >= Section->GetStartTime() && Time < Section->GetEndTime()))
 						{
 							UMovieSceneSubSection* SubSection = CastChecked<UMovieSceneSubSection>(Section);
 
@@ -539,6 +540,11 @@ TSharedRef<FMovieSceneSequenceInstance> FSequencer::GetFocusedMovieSceneSequence
 
 void FSequencer::FocusSequenceInstance(UMovieSceneSubSection& InSubSection)
 {
+	if (RootMovieSceneSequenceInstance.IsValid())
+	{
+		RootMovieSceneSequenceInstance->RestoreState(*this);
+	}
+
 	TSharedRef<FMovieSceneSequenceInstance> SequenceInstance = GetSequenceInstanceForSection(InSubSection);
 
 	// Check for infinite recursion
@@ -1314,6 +1320,13 @@ void FSequencer::SetGlobalTimeDirectly( float NewTime, ESnapTimeMode SnapTimeMod
 	// Update the position
 	ScrubPosition = NewTime;
 
+	UMovieScene* MovieScene = SequenceInstanceStack.Top()->GetSequence()->GetMovieScene();
+	if ( MovieScene->GetForceFixedFrameIntervalPlayback() && MovieScene->GetFixedFrameInterval() > 0 )
+	{
+		NewTime = UMovieScene::CalculateFixedFrameTime( NewTime, MovieScene->GetFixedFrameInterval() );
+		LastTime = UMovieScene::CalculateFixedFrameTime( LastTime, MovieScene->GetFixedFrameInterval() );
+	}
+
 	EMovieSceneUpdateData UpdateData(NewTime, LastTime);
 	UpdateData.bLooped = bLooped;
 	SequenceInstanceStack.Top()->Update(UpdateData, *this);
@@ -1415,6 +1428,37 @@ void FSequencer::SetPerspectiveViewportPossessionEnabled(bool bEnabled)
 void FSequencer::SetPerspectiveViewportCameraCutEnabled(bool bEnabled)
 {
 	bPerspectiveViewportCameraCutEnabled = bEnabled;
+}
+
+void FSequencer::RenderMovie(UMovieSceneSection* InSection) const
+{
+	RenderMovieInternal(InSection->GetStartTime(), InSection->GetEndTime());
+}
+
+void FSequencer::RenderMovieInternal(float InStartTime, float InEndTime) const
+{
+	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+
+	// Create a new movie scene capture object for an automated level sequence, and open the tab
+	UAutomatedLevelSequenceCapture* MovieSceneCapture = NewObject<UAutomatedLevelSequenceCapture>(GetTransientPackage(), UAutomatedLevelSequenceCapture::StaticClass(), NAME_None, RF_Transient);
+	MovieSceneCapture->LoadFromConfig();
+
+	MovieSceneCapture->SetLevelSequenceAsset(GetCurrentAsset()->GetPathName());
+
+	if (CanShowFrameNumbers())
+	{
+		MovieSceneCapture->Settings.FrameRate = FMath::RoundToInt(1.f / Settings->GetTimeSnapInterval());
+		MovieSceneCapture->Settings.ZeroPadFrameNumbers = Settings->GetZeroPadFrames();
+		MovieSceneCapture->Settings.bUseRelativeFrameNumbers = false;
+
+		const int32 SequenceStartFrame = FMath::RoundToInt( InStartTime * MovieSceneCapture->Settings.FrameRate );
+		const int32 SequenceEndFrame = FMath::Max( SequenceStartFrame, FMath::RoundToInt( InEndTime * MovieSceneCapture->Settings.FrameRate ) );
+
+		MovieSceneCapture->StartFrame = SequenceStartFrame;
+		MovieSceneCapture->EndFrame = SequenceEndFrame;
+	}
+
+	IMovieSceneCaptureDialogModule::Get().OpenDialog(LevelEditorModule.GetLevelEditorTabManager().ToSharedRef(), MovieSceneCapture);
 }
 
 ISequencer::FOnActorAddedToSequencer& FSequencer::OnActorAddedToSequencer()
@@ -3974,6 +4018,14 @@ void FSequencer::DoAssignActor(AActor*const* InActors, int32 NumActors, FGuid In
 	UpdateRuntimeInstances();
 }
 
+void FSequencer::ImportFBX(FGuid InObjectBinding)
+{
+	UMovieScene* MovieScene = GetFocusedMovieSceneSequence()->GetMovieScene();
+	if (MovieSceneToolHelpers::ImportFBX(MovieScene, InObjectBinding))
+	{
+		NotifyMovieSceneDataChanged();
+	}
+}
 
 void FSequencer::DeleteNode(TSharedRef<FSequencerDisplayNode> NodeToBeDeleted)
 {
@@ -5404,29 +5456,7 @@ void FSequencer::BindCommands()
 
 	SequencerCommandBindings->MapAction(
 		Commands.RenderMovie,
-		FExecuteAction::CreateLambda([this]{
-			FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
-
-			// Create a new movie scene capture object for an automated level sequence, and open the tab
-			UAutomatedLevelSequenceCapture* MovieSceneCapture = NewObject<UAutomatedLevelSequenceCapture>(GetTransientPackage(), UAutomatedLevelSequenceCapture::StaticClass(), NAME_None, RF_Transient);
-			MovieSceneCapture->LoadConfig();
-
-			MovieSceneCapture->SetLevelSequenceAsset(GetCurrentAsset()->GetPathName());
-
-			if (CanShowFrameNumbers())
-			{
-				MovieSceneCapture->Settings.FrameRate = FMath::RoundToInt(1.f / Settings->GetTimeSnapInterval());
-				MovieSceneCapture->Settings.bUseRelativeFrameNumbers = false;
-
-				const int32 SequenceStartFrame = FMath::RoundToInt( GetPlaybackRange().GetLowerBoundValue() * MovieSceneCapture->Settings.FrameRate );
-				const int32 SequenceEndFrame = FMath::Max( SequenceStartFrame, FMath::RoundToInt( GetPlaybackRange().GetUpperBoundValue() * MovieSceneCapture->Settings.FrameRate ) );
-
-				MovieSceneCapture->StartFrame = SequenceStartFrame;
-				MovieSceneCapture->EndFrame = SequenceEndFrame;
-			}
-
-			IMovieSceneCaptureDialogModule::Get().OpenDialog(LevelEditorModule.GetLevelEditorTabManager().ToSharedRef(), MovieSceneCapture);
-		})
+		FExecuteAction::CreateLambda([this]{ RenderMovieInternal(GetPlaybackRange().GetLowerBoundValue(), GetPlaybackRange().GetUpperBoundValue()); })
 	);
 
 	SequencerCommandBindings->MapAction(

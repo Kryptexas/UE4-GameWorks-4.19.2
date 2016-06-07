@@ -65,4 +65,8 @@ public:
 	/** Component classes we record by default. If an actor does not contain one of these classes it will be ignored. */
 	UPROPERTY(Config, EditAnywhere, AdvancedDisplay, Category = "Sequence Recording")
 	TArray<TSubclassOf<USceneComponent>> ComponentClassesToRecord;
+
+	/** Whether to record actors that are spawned by sequencer itself (this is usually disabled as results can be unexpected) */
+	UPROPERTY(Config, EditAnywhere, AdvancedDisplay, Category = "Sequence Recording")
+	bool bRecordSequencerSpawnedActors;
 };

@@ -41,15 +41,15 @@ UActorRecording::UActorRecording(const FObjectInitializer& ObjectInitializer)
 
 bool UActorRecording::IsRelevantForRecording(AActor* Actor)
 {
+	const USequenceRecorderSettings* Settings = GetDefault<USequenceRecorderSettings>();
+
 	// don't record actors that sequencer has spawned itself!
-	if(Actor->ActorHasTag(SequencerActorTag))
+	if(!Settings->bRecordSequencerSpawnedActors && Actor->ActorHasTag(SequencerActorTag))
 	{
 		return false;
 	}
 
 	TInlineComponentArray<USceneComponent*> SceneComponents(Actor);
-	const USequenceRecorderSettings* Settings = GetDefault<USequenceRecorderSettings>();
-
 	for(USceneComponent* SceneComponent : SceneComponents)
 	{
 		for (TSubclassOf<USceneComponent> ComponentClass : Settings->ComponentClassesToRecord)

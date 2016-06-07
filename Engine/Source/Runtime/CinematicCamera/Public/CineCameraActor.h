@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CineCameraComponent.h"
+
 #include "CineCameraActor.generated.h"
 
 /** Settings to control the camera's lookat feature */
@@ -64,4 +66,10 @@ protected:
 	FVector GetLookatLocation() const;
 
 	virtual void NotifyCameraCut() override;
+
+	bool ShouldTickForTracking() const;
+
+private:
+	/** Returns CineCameraComponent subobject **/
+	class UCineCameraComponent* CineCameraComponent;
 };

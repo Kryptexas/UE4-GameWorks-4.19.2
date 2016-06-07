@@ -7,6 +7,9 @@
 #include "MovieSceneSequence.h"
 #include "SequencerDisplayNodeDragDropOp.h"
 #include "ScopedTransaction.h"
+#include "SColorPicker.h"
+
+#define LOCTEXT_NAMESPACE "SequencerFolderNode"
 
 FSequencerFolderNode::FSequencerFolderNode( UMovieSceneFolder& InMovieSceneFolder, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree )
 	: FSequencerDisplayNode( InMovieSceneFolder.GetFolderName(), InParentNode, InParentTree )
@@ -81,6 +84,11 @@ const FSlateBrush* FSequencerFolderNode::GetIconBrush() const
 		: FolderClosedBrush;
 }
 
+
+FSlateColor FSequencerFolderNode::GetIconColor() const
+{
+	return FSlateColor(MovieSceneFolder.GetFolderColor());
+}
 
 bool FSequencerFolderNode::CanDrag() const
 {
@@ -256,6 +264,68 @@ void FSequencerFolderNode::Drop( const TArray<TSharedRef<FSequencerDisplayNode>>
 	ParentTree.GetSequencer().NotifyMovieSceneDataChanged();
 }
 
+void FSequencerFolderNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
+{
+	FSequencerDisplayNode::BuildContextMenu(MenuBuilder);
+
+	TSharedRef<FSequencerFolderNode> ThisNode = SharedThis(this);
+
+	MenuBuilder.BeginSection("Folder", LOCTEXT("FolderContextMenuSectionName", "Folder"));
+	{
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("SetColor", "Set Color"),
+			LOCTEXT("SetColorTooltip", "Set the folder color"),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP(this, &FSequencerFolderNode::SetFolderColor))
+		);
+	}
+	MenuBuilder.EndSection();
+}
+
+FColor InitialFolderColor;
+bool bFolderPickerWasCancelled;
+
+void FSequencerFolderNode::SetFolderColor()
+{
+	InitialFolderColor = MovieSceneFolder.GetFolderColor();
+	bFolderPickerWasCancelled = false;
+
+	FColorPickerArgs PickerArgs;
+	PickerArgs.bUseAlpha = false;
+	PickerArgs.DisplayGamma = TAttribute<float>::Create( TAttribute<float>::FGetter::CreateUObject(GEngine, &UEngine::GetDisplayGamma) );
+	PickerArgs.InitialColorOverride = InitialFolderColor.ReinterpretAsLinear();
+	PickerArgs.OnColorCommitted = FOnLinearColorValueChanged::CreateSP( this, &FSequencerFolderNode::OnColorPickerPicked);
+	PickerArgs.OnColorPickerWindowClosed = FOnWindowClosed::CreateSP( this, &FSequencerFolderNode::OnColorPickerClosed);
+	PickerArgs.OnColorPickerCancelled  = FOnColorPickerCancelled::CreateSP( this, &FSequencerFolderNode::OnColorPickerCancelled );
+
+	OpenColorPicker(PickerArgs);
+}
+
+void FSequencerFolderNode::OnColorPickerPicked(FLinearColor NewFolderColor)
+{			
+	MovieSceneFolder.SetFolderColor(NewFolderColor.ToFColor(false));
+}
+
+void FSequencerFolderNode::OnColorPickerClosed(const TSharedRef<SWindow>& Window)
+{	
+	if (!bFolderPickerWasCancelled)
+	{
+		const FScopedTransaction Transaction( NSLOCTEXT( "SequencerFolderNode", "SetFolderColor", "Set Folder Color" ) );
+		
+		FColor CurrentColor = MovieSceneFolder.GetFolderColor();
+		MovieSceneFolder.SetFolderColor(InitialFolderColor);
+		MovieSceneFolder.Modify();
+		MovieSceneFolder.SetFolderColor(CurrentColor);
+	}
+}
+
+void FSequencerFolderNode::OnColorPickerCancelled(FLinearColor NewFolderColor)
+{
+	bFolderPickerWasCancelled = true;
+
+	MovieSceneFolder.SetFolderColor(InitialFolderColor);
+}
 
 void FSequencerFolderNode::AddChildNode( TSharedRef<FSequencerDisplayNode> ChildNode )
 {
@@ -268,3 +338,4 @@ UMovieSceneFolder& FSequencerFolderNode::GetFolder() const
 	return MovieSceneFolder;
 }
 
+#undef LOCTEXT_NAMESPACE

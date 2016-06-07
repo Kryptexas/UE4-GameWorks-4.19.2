@@ -9,7 +9,8 @@
 #include "MovieSceneTrack.h"
 #include "LevelSequenceSpawnRegister.h"
 #include "Engine/LevelStreaming.h"
-
+#include "Tracks/MovieSceneCinematicShotTrack.h"
+#include "Sections/MovieSceneCinematicShotSection.h"
 
 struct FTickAnimationPlayers : public FTickableGameObject
 {
@@ -216,16 +217,15 @@ void ULevelSequencePlayer::SetTickPrerequisites(bool bAddTickPrerequisites)
 
 		for (AActor* ControlledActor : ControlledActors)
 		{
-			USceneComponent* RootComponent = ControlledActor->GetRootComponent();
-			if (RootComponent)
+			for( UActorComponent* Component : ControlledActor->GetComponents() )
 			{
 				if (bAddTickPrerequisites)
 				{
-					RootComponent->PrimaryComponentTick.AddPrerequisite(LevelSequenceActor, LevelSequenceActor->PrimaryActorTick);
+					Component->PrimaryComponentTick.AddPrerequisite(LevelSequenceActor, LevelSequenceActor->PrimaryActorTick);
 				}
 				else
 				{
-					RootComponent->PrimaryComponentTick.RemovePrerequisite(LevelSequenceActor, LevelSequenceActor->PrimaryActorTick);
+					Component->PrimaryComponentTick.RemovePrerequisite(LevelSequenceActor, LevelSequenceActor->PrimaryActorTick);
 				}
 			}
 
@@ -522,14 +522,51 @@ void ULevelSequencePlayer::UpdateMovieSceneInstance(float CurrentPosition, float
 			MovieSceneSequence->GetMovieScene()->GetFixedFrameInterval() > 0 )
 		{
 			float FixedFrameInterval = MovieSceneSequence->GetMovieScene()->GetFixedFrameInterval();
-			Position = FMath::RoundToInt( Position / FixedFrameInterval ) * FixedFrameInterval;
-			LastPosition = FMath::RoundToInt( LastPosition / FixedFrameInterval ) * FixedFrameInterval;
+			Position = UMovieScene::CalculateFixedFrameTime( Position, FixedFrameInterval );
+			LastPosition = UMovieScene::CalculateFixedFrameTime( LastPosition, FixedFrameInterval );
 		}
 		EMovieSceneUpdateData UpdateData(Position, LastPosition);
 		RootMovieSceneInstance->Update(UpdateData, *this);
+
 #if WITH_EDITOR
 		OnLevelSequencePlayerUpdate.Broadcast(*this, CurrentPosition, PreviousPosition);
 #endif
+	}
+}
+
+void ULevelSequencePlayer::TakeFrameSnapshot(FLevelSequencePlayerSnapshot& OutSnapshot) const
+{
+	const float CurrentTime = StartTime + TimeCursorPosition;
+
+	OutSnapshot.Settings = SnapshotSettings;
+
+	OutSnapshot.MasterTime = CurrentTime;
+	OutSnapshot.MasterName = FText::FromString(LevelSequence->GetName());
+
+	OutSnapshot.CurrentShotName = OutSnapshot.MasterName;
+	OutSnapshot.CurrentShotLocalTime = CurrentTime;
+
+	UMovieSceneCinematicShotTrack* ShotTrack = LevelSequence->GetMovieScene()->FindMasterTrack<UMovieSceneCinematicShotTrack>();
+	if (ShotTrack)
+	{
+		int32 HighestRow = TNumericLimits<int32>::Max();
+		UMovieSceneCinematicShotSection* ActiveShot = nullptr;
+		for (UMovieSceneSection* Section : ShotTrack->GetAllSections())
+		{
+			if (Section->GetRange().Contains(CurrentTime) && (!ActiveShot || Section->GetRowIndex() < ActiveShot->GetRowIndex()))
+			{
+				ActiveShot = Cast<UMovieSceneCinematicShotSection>(Section);
+			}
+		}
+
+		if (ActiveShot)
+		{
+			const float ShotOffset = ActiveShot->StartOffset + ActiveShot->GetSequence()->GetMovieScene()->GetPlaybackRange().GetLowerBoundValue() - ActiveShot->PrerollTime;
+			const float ShotPosition = ShotOffset + (CurrentTime - (ActiveShot->GetStartTime() - ActiveShot->PrerollTime)) / ActiveShot->TimeScale;
+
+			OutSnapshot.CurrentShotName = ActiveShot->GetShotDisplayName();
+			OutSnapshot.CurrentShotLocalTime = ShotPosition;
+		}
 	}
 }
 
