@@ -30,7 +30,7 @@ void UWidgetBlueprintGeneratedClass::InitializeWidgetStatic(UUserWidget* UserWid
 	UserWidget->bCanEverPaint = InCanEverPaint;
 
 #if WITH_EDITORONLY_DATA
-	UWidgetTree* ClonedTree = (UWidgetTree*)StaticDuplicateObject(InDesignerWidgetTree, UserWidget, NAME_None, RF_Transactional);
+	UWidgetTree* ClonedTree = (UWidgetTree*)StaticDuplicateObject(InDesignerWidgetTree ? InDesignerWidgetTree : InWidgetTree, UserWidget, NAME_None, RF_Transactional);
 #else
 	UWidgetTree* ClonedTree = DuplicateObject<UWidgetTree>(InWidgetTree, UserWidget);
 #endif

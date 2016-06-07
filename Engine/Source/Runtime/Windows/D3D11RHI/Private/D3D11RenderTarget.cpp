@@ -337,7 +337,23 @@ void FD3D11DynamicRHI::RHICopyToResolveTarget(FTextureRHIParamRef SourceTextureR
 			}
 			else
 			{
-				Direct3DDeviceIMContext->CopySubresourceRegion(DestTextureCube->GetResource(),DestSubresource,0,0,0,SourceTextureCube->GetResource(),SourceSubresource,NULL);
+				if (ResolveParams.Rect.IsValid())
+				{
+					D3D11_BOX SrcBox;
+
+					SrcBox.left = ResolveParams.Rect.X1;
+					SrcBox.top = ResolveParams.Rect.Y1;
+					SrcBox.front = 0;
+					SrcBox.right = ResolveParams.Rect.X2;
+					SrcBox.bottom = ResolveParams.Rect.Y2;
+					SrcBox.back = 1;
+
+					Direct3DDeviceIMContext->CopySubresourceRegion(DestTextureCube->GetResource(), DestSubresource, 0, 0, 0, SourceTextureCube->GetResource(), SourceSubresource, &SrcBox);
+				}
+				else
+				{
+					Direct3DDeviceIMContext->CopySubresourceRegion(DestTextureCube->GetResource(), DestSubresource, 0, 0, 0, SourceTextureCube->GetResource(), SourceSubresource, NULL);
+				}
 			}
 		}
 	}

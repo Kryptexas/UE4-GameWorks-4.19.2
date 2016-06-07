@@ -85,10 +85,10 @@ public:
 	FOnlineInAppPurchaseRestoreReadPtr CachedPurchaseRestoreObject;
 
 
-private:
 	/** Flags which determine the state of our transaction buffer, only one action at a time */
-	bool bIsPurchasing, bIsProductRequestInFlight;
+	bool bIsPurchasing, bIsProductRequestInFlight, bIsRestoringPurchases;
 
+private:
 	/** Access to the IOS Store kit interface */
 	FStoreKitHelper* StoreHelper;
 

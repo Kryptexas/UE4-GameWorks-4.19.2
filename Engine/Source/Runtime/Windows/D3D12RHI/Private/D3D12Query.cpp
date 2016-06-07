@@ -62,6 +62,7 @@ FRenderQueryRHIRef FD3D12DynamicRHI::RHICreateRenderQuery(ERenderQueryType Query
 
 bool FD3D12DynamicRHI::RHIGetRenderQueryResult(FRenderQueryRHIParamRef QueryRHI, uint64& OutResult, bool bWait)
 {
+	check(IsInRenderingThread());
 	FD3D12OcclusionQuery* Query = FD3D12DynamicRHI::ResourceCast(QueryRHI);
 
 	bool bSuccess = true;
@@ -89,9 +90,8 @@ bool FD3D12DynamicRHI::RHIGetRenderQueryResult(FRenderQueryRHIParamRef QueryRHI,
 
 bool FD3D12Device::GetQueryData(FD3D12OcclusionQuery& Query, bool bWait)
 {
-	FD3D12CommandContext& CmdContext = (Query.Type == RQT_Occlusion) ? OcclusionQueryHeap.GetOwningContext() : *Query.OwningContext;
-	const FD3D12CLSyncPoint SyncPoint = (Query.Type == RQT_Occlusion) ? OcclusionQueryHeap.GetSyncPoint() : Query.OwningCommandList;
-
+	// Wait for the query result to be ready (if requested).
+	const FD3D12CLSyncPoint& SyncPoint = Query.CLSyncPoint;
 	if (!SyncPoint.IsComplete())
 	{
 		if (!bWait)
@@ -99,14 +99,8 @@ bool FD3D12Device::GetQueryData(FD3D12OcclusionQuery& Query, bool bWait)
 			return false;
 		}
 
-		if (SyncPoint.IsOpen())
-		{
-			CmdContext.FlushCommands(true);
-		}
-		else
-		{
-			SyncPoint.WaitForCompletion();
-		}
+		check(!SyncPoint.IsOpen());
+		SyncPoint.WaitForCompletion();
 	}
 
 	// Read the data from the query's buffer.
@@ -169,7 +163,6 @@ FD3D12QueryHeap::FD3D12QueryHeap(FD3D12Device* InParent, const D3D12_QUERY_HEAP_
 	, ActiveAllocatedElementCount(0)
 	, LastAllocatedElement(InQueryHeapCount - 1)
 	, ResultSize(8)
-	, OwningContext(nullptr)
 	, pResultData(nullptr)
 	, FD3D12DeviceChild(InParent)
 	, LastBatch(MAX_ACTIVE_BATCHES - 1)
@@ -325,9 +318,6 @@ void FD3D12QueryHeap::StartQueryBatch(FD3D12CommandContext& CmdContext)
 	check(&CmdContext == &GetParentDevice()->GetDefaultCommandContext());
 	check(!CurrentQueryBatch.bOpen);
 
-	OwningContext = &CmdContext;
-	SyncPoint = CmdContext.CommandListHandle;
-
 	// Clear the current batch
 	CurrentQueryBatch.Clear();
 
@@ -339,8 +329,7 @@ void FD3D12QueryHeap::StartQueryBatch(FD3D12CommandContext& CmdContext)
 void FD3D12QueryHeap::EndQueryBatchAndResolveQueryData(FD3D12CommandContext& CmdContext, D3D12_QUERY_TYPE InQueryType)
 {
 	check(CurrentQueryBatch.bOpen);
-	check(&CmdContext == OwningContext);
-	//check(CommandListHandle == CmdContext.CommandListHandle);
+	check(&CmdContext == &GetParentDevice()->GetDefaultCommandContext());
 
 	// Close the current batch
 	CurrentQueryBatch.bOpen = false;

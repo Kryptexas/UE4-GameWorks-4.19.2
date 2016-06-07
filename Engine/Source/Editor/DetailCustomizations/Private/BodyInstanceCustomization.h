@@ -100,7 +100,7 @@ private:
 
 	TArray<FBodyInstance*> BodyInstances;
 	TArray<UPrimitiveComponent*>		PrimComponents;
-	TMap<FBodyInstance*, UPrimitiveComponent*> BodyInstanceToPrimComponent;
+	TMap<FBodyInstance*, TWeakObjectPtr<UPrimitiveComponent>> BodyInstanceToPrimComponent;
 
 	TArray<FCollisionChannelInfo>	ValidCollisionChannels;
 

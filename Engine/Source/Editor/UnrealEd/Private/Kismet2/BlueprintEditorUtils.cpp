@@ -569,8 +569,16 @@ void FBlueprintEditorUtils::RefreshExternalBlueprintDependencyNodes(UBlueprint* 
 					if (!bShouldRefresh)
 					{
 						UClass* OwnerClass = Struct->GetOwnerClass();
-						bShouldRefresh |= OwnerClass && 
-							(OwnerClass->IsChildOf(RefreshOnlyChild) || OwnerClass->GetAuthoritativeClass()->IsChildOf(RefreshOnlyChild));
+						if (ensureMsgf(!OwnerClass->GetClass()->IsChildOf<UBlueprintGeneratedClass>() || OwnerClass->ClassGeneratedBy
+							, TEXT("Malformed Blueprint class (%s) - bad node dependency, unable to determine if the %s node (%s) should be refreshed or not. Currently compiling: %s")
+							, *OwnerClass->GetName()
+							, *Node->GetClass()->GetName()
+							, *Node->GetPathName()
+							, *Blueprint->GetName()) )
+						{
+							bShouldRefresh |= OwnerClass &&
+								(OwnerClass->IsChildOf(RefreshOnlyChild) || OwnerClass->GetAuthoritativeClass()->IsChildOf(RefreshOnlyChild));
+						}						
 					}
 					if (bShouldRefresh)
 					{
@@ -5256,8 +5264,8 @@ bool FBlueprintEditorUtils::ValidateAllFunctionGraphs(UBlueprint* InBlueprint, U
 
 void FBlueprintEditorUtils::ValidateBlueprintVariableMetadata(FBPVariableDescription& VarDesc)
 {
-	// Remove bitflag enum type metadata if the enum type is no longer a bitflags type.
-	if (VarDesc.HasMetaData(FBlueprintMetadata::MD_Bitmask))
+	// Remove bitflag enum type metadata if the enum type name is missing or if the enum type is no longer a bitflags type.
+	if (VarDesc.HasMetaData(FBlueprintMetadata::MD_BitmaskEnum))
 	{
 		FString BitmaskEnumTypeName = VarDesc.GetMetaData(FBlueprintMetadata::MD_BitmaskEnum);
 		if (!BitmaskEnumTypeName.IsEmpty())
@@ -5267,6 +5275,10 @@ void FBlueprintEditorUtils::ValidateBlueprintVariableMetadata(FBPVariableDescrip
 			{
 				VarDesc.RemoveMetaData(FBlueprintMetadata::MD_BitmaskEnum);
 			}
+		}
+		else
+		{
+			VarDesc.RemoveMetaData(FBlueprintMetadata::MD_BitmaskEnum);
 		}
 	}
 }
