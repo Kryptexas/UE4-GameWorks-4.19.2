@@ -832,6 +832,7 @@ bool UPackageMapClient::ExportNetGUID( FNetworkGUID NetGUID, const UObject* Obje
 
 			CurrentExportBunch = new FOutBunch(this, Connection->GetMaxSingleBunchSizeBits());
 			CurrentExportBunch->SetAllowResize(false);
+			CurrentExportBunch->SetAllowOverflow(true);
 			CurrentExportBunch->bHasPackageMapExports = true;
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			CurrentExportBunch->DebugString = TEXT("NetGUIDs");
@@ -1127,6 +1128,7 @@ void UPackageMapClient::AppendCompatibleRepLayoutExports( TArray<FOutBunch *>& O
 			{
 				ExportBunch = new FOutBunch( this, Connection->GetMaxSingleBunchSizeBits() );
 				ExportBunch->SetAllowResize( false );
+				ExportBunch->SetAllowOverflow(true);
 				ExportBunch->bHasPackageMapExports = true;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -2319,7 +2321,7 @@ UObject* FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const
 
 	if ( Object && !ObjectLevelHasFinishedLoading( Object, Driver ) )
 	{
-		UE_LOG( LogNetPackageMap, Log, TEXT( "GetObjectFromNetGUID: Forcing object to NULL since level is not loaded yet." ), *Object->GetFullName() );
+		UE_LOG( LogNetPackageMap, Verbose, TEXT( "GetObjectFromNetGUID: Forcing object to NULL since level is not loaded yet. Object: %s" ), *Object->GetFullName() );
 		return NULL;
 	}
 

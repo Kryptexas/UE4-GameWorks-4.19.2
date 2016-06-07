@@ -2863,7 +2863,7 @@ void AActor::PostActorConstruction()
 
 void AActor::SetReplicates(bool bInReplicates)
 { 
-	if (Role == ROLE_Authority || bInReplicates == false)
+	if (Role == ROLE_Authority)
 	{
 		if (bReplicates == false && bInReplicates == true)
 		{

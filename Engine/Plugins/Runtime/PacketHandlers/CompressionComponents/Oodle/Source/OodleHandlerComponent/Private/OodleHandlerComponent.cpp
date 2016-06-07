@@ -342,7 +342,13 @@ void OodleHandlerComponent::Initialize()
 		{
 			UE_LOG(OodleHandlerComponentLog, Log, TEXT("Enabling Oodle capture mode."));
 
-			InitializePacketLogs();
+			int32 CapturePercentage = 100;
+			FParse::Value(FCommandLine::Get(), TEXT("CapturePercentage="), CapturePercentage);
+			
+			if (FMath::RandRange(0, 100) <= CapturePercentage)
+			{
+				InitializePacketLogs();
+			}
 		}
 #endif
 

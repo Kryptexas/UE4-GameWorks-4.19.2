@@ -15,13 +15,15 @@ class FOutBunch;
 class COREUOBJECT_API FFieldNetCache
 {
 public:
-	UField* Field;
-	int32	FieldNetIndex;
-	uint32	FieldChecksum;
+	UField*			Field;
+	int32			FieldNetIndex;
+	uint32			FieldChecksum;
+	mutable bool	bIncompatible;
+
 	FFieldNetCache()
 	{}
 	FFieldNetCache( UField* InField, int32 InFieldNetIndex, uint32 InFieldChecksum )
-		: Field(InField), FieldNetIndex(InFieldNetIndex), FieldChecksum(InFieldChecksum)
+		: Field(InField), FieldNetIndex(InFieldNetIndex), FieldChecksum(InFieldChecksum), bIncompatible(false)
 	{}
 };
 
@@ -104,7 +106,7 @@ public:
 
 	void				SortProperties( TArray< UProperty* >& Properties ) const;
 	uint32				SortedStructFieldsChecksum( const UStruct* Struct, uint32 Checksum ) const;
-	uint32				GetPropertyChecksum( const UProperty* Property, uint32 Checksum ) const;
+	uint32				GetPropertyChecksum( const UProperty* Property, uint32 Checksum, const bool bIncludeChildren ) const;
 	uint32				GetFunctionChecksum( const UFunction* Function, uint32 Checksum ) const;
 	uint32				GetFieldChecksum( const UField* Field, uint32 Checksum ) const;
 

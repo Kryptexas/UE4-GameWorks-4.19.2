@@ -19,6 +19,8 @@
 #include "UObject/DevObjectVersion.h"
 #include "HAL/ThreadHeartBeat.h"
 
+#include "NetworkVersion.h"
+
 #if WITH_COREUOBJECT
 	#include "Internationalization/PackageLocalizationManager.h"
 #endif
@@ -3241,7 +3243,7 @@ bool FEngineLoop::AppInit( )
 	UE_LOG(LogInit, Log, TEXT("Build: %s"), FApp::GetBuildVersion());
 	UE_LOG(LogInit, Log, TEXT("Engine Version: %s"), *FEngineVersion::Current().ToString());
 	UE_LOG(LogInit, Log, TEXT("Compatible Engine Version: %s"), *FEngineVersion::CompatibleWith().ToString());
-	UE_LOG(LogInit, Log, TEXT("Net Version: %u"), GEngineNetVersion);
+	UE_LOG(LogInit, Log, TEXT("Net CL: %u"), FNetworkVersion::GetNetworkCompatibleChangelist());
 	FDevVersionRegistration::DumpVersionsToLog();
 
 #if PLATFORM_64BITS
@@ -3331,7 +3333,6 @@ bool FEngineLoop::AppInit( )
 	check(sizeof(bool) == 1);
 	check(sizeof(float) == 4);
 	check(sizeof(double) == 8);
-	check(GEngineNetVersion == 0 || GEngineNetVersion >= GEngineMinNetVersion || FEngineVersion::Current().IsLicenseeVersion());
 
 	// Init list of common colors.
 	GColorList.CreateColorMap();

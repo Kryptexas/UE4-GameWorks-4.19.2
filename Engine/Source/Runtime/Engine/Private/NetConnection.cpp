@@ -52,7 +52,7 @@ UNetConnection::UNetConnection(const FObjectInitializer& ObjectInitializer)
 ,	PacketOverhead		( 0 )
 ,	ResponseId			( 0 )
 
-,	QueuedBytes			( 0 )
+,	QueuedBits			( 0 )
 ,	TickCount			( 0 )
 ,	ConnectTime			( 0.0 )
 
@@ -86,6 +86,8 @@ UNetConnection::UNetConnection(const FObjectInitializer& ObjectInitializer)
 ,	OutPacketId			( 0 ) // must be initialized as OutAckPacketId + 1 so loss of first packet can be detected
 ,	OutAckPacketId		( -1 )
 ,	bLastHasServerFrameTime( false )
+,	EngineNetworkProtocolVersion( FNetworkVersion::GetEngineNetworkProtocolVersion() )
+,	GameNetworkProtocolVersion( FNetworkVersion::GetGameNetworkProtocolVersion() )
 ,	ClientWorldPackageName( NAME_None )
 {
 }
@@ -517,8 +519,11 @@ void UNetConnection::ValidateSendBuffer()
 void UNetConnection::InitSendBuffer()
 {
 	check(MaxPacket > 0);
+
+	int32 FinalBufferSize = (MaxPacket * 8) - MaxPacketHandlerBits;
+
 	// Initialize the one outgoing buffer.
-	if (MaxPacket * 8 == SendBuffer.GetMaxBits())
+	if (FinalBufferSize == SendBuffer.GetMaxBits())
 	{
 		// Reset all of our values to their initial state without a malloc/free
 		SendBuffer.Reset();
@@ -526,7 +531,7 @@ void UNetConnection::InitSendBuffer()
 	else
 	{
 		// First time initialization needs to allocate the buffer
-		SendBuffer = FBitWriter((MaxPacket * 8) - MaxPacketHandlerBits);
+		SendBuffer = FBitWriter(FinalBufferSize);
 	}
 
 	ResetPacketBitCounts();
@@ -581,6 +586,10 @@ void UNetConnection::ReceivedRawPacket( void* InData, int32 Count )
 
 
 			FBitReader Reader(Data, BitSize);
+
+			// Set the network version on the reader
+			Reader.SetEngineNetVer( EngineNetworkProtocolVersion );
+			Reader.SetGameNetVer( GameNetworkProtocolVersion );
 
 			if (Handler.IsValid())
 			{
@@ -717,8 +726,11 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 		++OutPackets;
 		Driver->OutPackets++;
 		LastSendTime = Driver->Time;
+
 		const int32 PacketBytes = SendBuffer.GetNumBytes() + PacketOverhead;
-		QueuedBytes += PacketBytes;
+
+		QueuedBits += (PacketBytes * 8);
+
 		OutBytes += PacketBytes;
 		Driver->OutBytes += PacketBytes;
 		InitSendBuffer();
@@ -735,9 +747,12 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 int32 UNetConnection::IsNetReady( bool Saturate )
 {
 	// Return whether we can send more data without saturation the connection.
-	if( Saturate )
-		QueuedBytes = -SendBuffer.GetNumBytes();
-	return QueuedBytes+SendBuffer.GetNumBytes() <= 0;
+	if (Saturate)
+	{
+		QueuedBits = -SendBuffer.GetNumBits();
+	}
+
+	return QueuedBits + SendBuffer.GetNumBits() <= 0;
 }
 
 void UNetConnection::ReadInput( float DeltaSeconds )
@@ -1699,12 +1714,12 @@ void UNetConnection::Tick()
 
 	// Update queued byte count.
 	// this should be at the end so that the cap is applied *after* sending (and adjusting QueuedBytes for) any remaining data for this tick
-	float DeltaBytes = CurrentNetSpeed * DeltaTime;
-	QueuedBytes -= FMath::TruncToInt(DeltaBytes);
-	float AllowedLag = 2.f * DeltaBytes;
-	if (QueuedBytes < -AllowedLag)
+	float DeltaBits = CurrentNetSpeed * DeltaTime * 8.f;
+	QueuedBits -= FMath::TruncToInt(DeltaBits);
+	float AllowedLag = 2.f * DeltaBits;
+	if (QueuedBits < -AllowedLag)
 	{
-		QueuedBytes = FMath::TruncToInt(-AllowedLag);
+		QueuedBits = FMath::TruncToInt(-AllowedLag);
 	}
 }
 

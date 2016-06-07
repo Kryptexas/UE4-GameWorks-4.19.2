@@ -6671,6 +6671,8 @@ void UCharacterMovementComponent::SmoothClientPosition_Interpolate(float DeltaSe
 				ExternalReplayData->Empty();
 			}
 
+			bool bFoundSample = false;
+
 			for ( int i = 0; i < ClientData->ReplaySamples.Num() - 1; i++ )
 			{
 				if ( CurrentTime >= ClientData->ReplaySamples[i].Time && CurrentTime <= ClientData->ReplaySamples[i + 1].Time )
@@ -6723,7 +6725,47 @@ void UCharacterMovementComponent::SmoothClientPosition_Interpolate(float DeltaSe
 						DrawDebugDirectionalArrow( GetWorld(), DebugLocation, DebugLocation + Velocity, 20.0f, FColor( 255, 0, 0, 255 ) );
 					}
 #endif
+					bFoundSample = true;
 					break;
+				}
+			}
+
+			if ( !bFoundSample )
+			{
+				int32 BestSample = -1;
+				float BestTime = 0.0f;
+
+				for ( int i = 0; i < ClientData->ReplaySamples.Num(); i++ )
+				{
+					const FCharacterReplaySample& ReplaySample = ClientData->ReplaySamples[i];
+
+					if ( BestSample == -1 || FMath::Abs( BestTime - ReplaySample.Time ) < BestTime )
+					{
+						BestTime = ReplaySample.Time;
+						BestSample = i;
+					}
+				}
+
+				if ( BestSample != -1 )
+				{
+					const FCharacterReplaySample& ReplaySample = ClientData->ReplaySamples[BestSample];
+
+					Velocity						= ReplaySample.Velocity;
+					Acceleration					= ReplaySample.Acceleration;
+					CharacterOwner->RemoteViewPitch = ReplaySample.RemoteViewPitch;
+
+					UpdateComponentVelocity();
+
+					USkeletalMeshComponent* Mesh = CharacterOwner->GetMesh();
+
+					if ( Mesh )
+					{
+						Mesh->RelativeLocation = CharacterOwner->GetBaseTranslationOffset();
+						Mesh->RelativeRotation = CharacterOwner->GetBaseRotationOffset().Rotator();
+					}
+
+					ClientData->MeshTranslationOffset	= ReplaySample.Location;
+					ClientData->MeshRotationOffset		= ReplaySample.Rotation.Quaternion();
 				}
 			}
 

@@ -1340,8 +1340,25 @@ void ACharacter::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTra
 		// We'll be able to look ahead in the replay to have these ahead of time for smoother playback
 		FCharacterReplaySample ReplaySample;
 
-		ReplaySample.Location			= GetActorLocation();
-		ReplaySample.Rotation			= GetActorRotation();
+		// If this is a client-recorded replay, use the mesh location and rotation, since these will always
+		// be smoothed - unlike the actor position and rotation.
+		const USkeletalMeshComponent* const MeshComponent = GetMesh();
+		if (MeshComponent && GetWorld()->IsRecordingClientReplay())
+		{
+			// Remove the base transform from the mesh's transform, since on playback the base transform
+			// will be stored in the mesh's RelativeLocation and RelativeRotation.
+			const FTransform BaseTransform(GetBaseRotationOffset(), GetBaseTranslationOffset());
+			const FTransform MeshRootTransform = BaseTransform.Inverse() * MeshComponent->GetComponentTransform();
+
+			ReplaySample.Location		= MeshRootTransform.GetLocation();
+			ReplaySample.Rotation		= MeshRootTransform.GetRotation().Rotator();
+		}
+		else
+		{
+			ReplaySample.Location		= GetActorLocation();
+			ReplaySample.Rotation		= GetActorRotation();
+		}
+
 		ReplaySample.Velocity			= GetVelocity();
 		ReplaySample.Acceleration		= CharacterMovement->GetCurrentAcceleration();
 		ReplaySample.RemoteViewPitch	= RemoteViewPitch;

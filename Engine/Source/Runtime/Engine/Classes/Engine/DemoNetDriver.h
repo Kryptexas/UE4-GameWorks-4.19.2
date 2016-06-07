@@ -55,6 +55,77 @@ struct FPlaybackPacket
 	float			TimeSeconds;
 };
 
+enum ENetworkVersionHistory
+{
+	HISTORY_INITIAL				= 1,
+	HISTORY_SAVE_ABS_TIME_MS	= 2,			// We now save the abs demo time in ms for each frame (solves accumulation errors)
+	HISTORY_INCREASE_BUFFER		= 3,			// Increased buffer size of packets, which invalidates old replays
+	HISTORY_SAVE_ENGINE_VERSION	= 4,			// Now saving engine net version + InternalProtocolVersion
+	HISTORY_EXTRA_VERSION		= 5				// We now save engine/game protocol version, checksum, and changelist
+};
+
+static const uint32 NETWORK_DEMO_MAGIC				= 0x2CF5A13D;
+static const uint32 NETWORK_DEMO_VERSION			= HISTORY_EXTRA_VERSION;
+
+static const uint32 NETWORK_DEMO_METADATA_MAGIC		= 0x3D06B24E;
+static const uint32 NETWORK_DEMO_METADATA_VERSION	= 0;
+
+struct FNetworkDemoHeader
+{
+	uint32	Magic;							// Magic to ensure we're opening the right file.
+	uint32	Version;						// Version number to detect version mismatches.
+	uint32	NetworkChecksum;				// Network checksum
+	uint32	EngineNetworkProtocolVersion;	// Version of the engine internal network format
+	uint32	GameNetworkProtocolVersion;		// Version of the game internal network format
+	uint32	Changelist;						// Engine changelist built from
+	FString LevelName;						// Name of level loaded for demo
+	TArray<FString> GameSpecificData;		// Area for subclasses to write stuff
+
+	FNetworkDemoHeader() :
+		Magic( NETWORK_DEMO_MAGIC ),
+		Version( NETWORK_DEMO_VERSION ),
+		NetworkChecksum( FNetworkVersion::GetLocalNetworkVersion() ),
+		EngineNetworkProtocolVersion( FNetworkVersion::GetEngineNetworkProtocolVersion() ),
+		GameNetworkProtocolVersion( FNetworkVersion::GetGameNetworkProtocolVersion() ),
+		Changelist( FEngineVersion::Current().GetChangelist() )
+	{
+	}
+
+	friend FArchive& operator << ( FArchive& Ar, FNetworkDemoHeader& Header )
+	{
+		Ar << Header.Magic;
+
+		// Check magic value
+		if ( Header.Magic != NETWORK_DEMO_MAGIC )
+		{
+			UE_LOG( LogDemo, Error, TEXT( "Header.Magic != NETWORK_DEMO_MAGIC" ) );
+			Ar.SetError();
+			return Ar;
+		}
+
+		Ar << Header.Version;
+
+		// Check version
+		if ( Header.Version != NETWORK_DEMO_VERSION )
+		{
+			UE_LOG( LogDemo, Error, TEXT( "Header.Version != NETWORK_DEMO_VERSION" ) );
+			Ar.SetError();
+			return Ar;
+		}
+
+		Ar << Header.NetworkChecksum;
+		Ar << Header.EngineNetworkProtocolVersion;
+		Ar << Header.GameNetworkProtocolVersion;
+		Ar << Header.Changelist;
+
+		Ar << Header.LevelName;
+
+		Ar << Header.GameSpecificData;
+
+		return Ar;
+	}
+};
+
 /**
  * Simulated network driver for recording and playing back game sessions.
  */
@@ -118,6 +189,12 @@ class ENGINE_API UDemoNetDriver : public UNetDriver
 	/** PlaybackPackets are used to buffer packets up when we read a demo frame, which we can then process when the time is right */
 	TArray< FPlaybackPacket > PlaybackPackets;
 
+	/** All unique streaming levels since recording started */
+	TSet< TWeakObjectPtr< UObject > >	UniqueStreamingLevels;
+
+	/** Streaming levels waiting to be saved next frame */
+	TArray< UObject* >					NewStreamingLevelsThisFrame;
+
 private:
 	bool		bIsFastForwarding;
 	bool		bIsFastForwardingForCheckpoint;
@@ -142,6 +219,21 @@ private:
 
 	/** Cached replay URL, so that the driver can access the map name and any options later */
 	FURL DemoURL;
+
+	/** This header is valid during playback (so we know what version to pass into serializers, etc */
+	FNetworkDemoHeader PlaybackDemoHeader;
+
+	/** Optional time quota for actor replication during recording. Going over this limit effectively lowers the net update frequency of the remaining actors. Negative values are considered unlimited. */
+	float MaxDesiredRecordTimeMS;
+
+	/** A player controller that this driver should consider its viewpoint for actor prioritization purposes. */
+	APlayerController* ViewerOverride;
+
+	/** Array of prioritized actors, used in TickDemoRecord. Stored as a member so that its storage doesn't have to be re-allocated each frame. */
+	TArray<FActorPriority> PrioritizedActors;
+
+	/** If true, recording will prioritize replicating actors based on the value that AActor::GetReplayPriority returns. */
+	bool bPrioritizeActors;
 
 public:
 
@@ -178,6 +270,15 @@ public:
 	bool IsPlaying() const;
 
 	FString GetDemoURL() { return DemoURL.ToString(); }
+
+	/** Sets the desired maximum recording time in milliseconds. */
+	void SetMaxDesiredRecordTimeMS(const float InMaxDesiredRecordTimeMS) { MaxDesiredRecordTimeMS = InMaxDesiredRecordTimeMS; }
+
+	/** Sets the controller to use as the viewpoint for recording prioritization purposes. */
+	void SetViewerOverride(APlayerController* const InViewerOverride ) { ViewerOverride = InViewerOverride; }
+
+	/** Enable or disable prioritization of actors for recording. */
+	void SetActorPrioritizationEnabled(const bool bInPrioritizeActors) { bPrioritizeActors = bInPrioritizeActors; }
 
 public:
 

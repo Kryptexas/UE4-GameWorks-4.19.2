@@ -129,7 +129,8 @@ void UIpConnection::LowLevelSend(void* Data, int32 CountBytes, int32 CountBits)
 			ResolveInfo = NULL;
 		}
 	}
-	 
+
+
 	// Process any packet modifiers
 	if (Handler.IsValid() && !Handler->GetRawSend())
 	{
@@ -149,7 +150,11 @@ void UIpConnection::LowLevelSend(void* Data, int32 CountBytes, int32 CountBits)
 		UE_LOG( LogNet, Warning, TEXT( "UIpConnection::LowLevelSend: CountBytes > MaxPacketSize! Count: %i, MaxPacket: %i %s" ), CountBytes, MaxPacket, *Describe() );
 	}
 
-	Socket->SendTo(DataToSend, CountBytes, BytesSent, *RemoteAddr);
+	if (CountBytes > 0)
+	{
+		Socket->SendTo(DataToSend, CountBytes, BytesSent, *RemoteAddr);
+	}
+
 	UNCLOCK_CYCLES(Driver->SendCycles);
 	NETWORK_PROFILER(GNetworkProfiler.FlushOutgoingBunches(this));
 	NETWORK_PROFILER(GNetworkProfiler.TrackSocketSendTo(Socket->GetDescription(),DataToSend,BytesSent,NumPacketIdBits,NumBunchBits,NumAckBits,NumPaddingBits,this));

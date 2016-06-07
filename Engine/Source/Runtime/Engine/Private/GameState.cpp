@@ -109,11 +109,12 @@ void AGameState::ReceivedGameModeClass()
 void AGameState::ReceivedSpectatorClass()
 {
 	// Tell each PlayerController that the Spectator class is here
-	for (FLocalPlayerIterator It(GEngine, GetWorld()); It; ++It)
+	for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
 	{
-		if (It->PlayerController)
+		APlayerController* const PlayerController = *Iterator;
+		if (PlayerController && PlayerController->IsLocalController())
 		{
-			It->PlayerController->ReceivedSpectatorClass(SpectatorClass);
+			PlayerController->ReceivedSpectatorClass(SpectatorClass);
 		}
 	}
 }

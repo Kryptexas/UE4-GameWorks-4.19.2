@@ -6,6 +6,7 @@
 #include "Net/DataChannel.h"
 #include "OnlineBeaconClient.h"
 #include "OnlineBeaconHostObject.h"
+#include "NetworkVersion.h"
 
 AOnlineBeaconHost::AOnlineBeaconHost(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer)

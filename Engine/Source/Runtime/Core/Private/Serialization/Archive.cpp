@@ -7,6 +7,7 @@
 #include "Serialization/Archive.h"
 #include "Serialization/CustomVersion.h"
 #include "EngineVersion.h"
+#include "NetworkVersion.h"
 #include "TargetPlatform.h"
 #include "GenericPlatformCompression.h"
 
@@ -62,10 +63,11 @@ FArchive::~FArchive()
 // Resets all of the base archive members
 void FArchive::Reset()
 {
-	ArNetVer							= GEngineNegotiationVersion;
 	ArUE4Ver							= GPackageFileUE4Version;
 	ArLicenseeUE4Ver					= GPackageFileLicenseeUE4Version;
 	ArEngineVer							= FEngineVersion::Current();
+	ArEngineNetVer						= FNetworkVersion::GetEngineNetworkProtocolVersion();
+	ArGameNetVer						= FNetworkVersion::GetGameNetworkProtocolVersion();
 	ArIsLoading							= false;
 	ArIsSaving							= false;
 	ArIsTransacting						= false;
@@ -109,10 +111,11 @@ void FArchive::Reset()
 
 void FArchive::CopyTrivialFArchiveStatusMembers(const FArchive& ArchiveToCopy)
 {
-	ArNetVer                             = ArchiveToCopy.ArNetVer;
 	ArUE4Ver                             = ArchiveToCopy.ArUE4Ver;
 	ArLicenseeUE4Ver                     = ArchiveToCopy.ArLicenseeUE4Ver;
 	ArEngineVer                          = ArchiveToCopy.ArEngineVer;
+	ArEngineNetVer						 = ArchiveToCopy.ArEngineNetVer;
+	ArGameNetVer						 = ArchiveToCopy.ArGameNetVer;
 	ArIsLoading                          = ArchiveToCopy.ArIsLoading;
 	ArIsSaving                           = ArchiveToCopy.ArIsSaving;
 	ArIsTransacting                      = ArchiveToCopy.ArIsTransacting;

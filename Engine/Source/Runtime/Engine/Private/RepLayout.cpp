@@ -760,7 +760,7 @@ bool FRepLayout::ReplicateProperties(
 		// Send the final merged change list
 		if ( OwningChannel->Connection->InternalAck )
 		{
-			SendProperties_BackwardsCompatible( RepState, Data, ObjectClass, OwningChannel, Writer, Changed );
+			SendProperties_BackwardsCompatible( RepState, Data, OwningChannel->Connection, Writer, Changed );
 		}
 		else
 		{
@@ -1148,7 +1148,7 @@ static FORCEINLINE void WritePropertyHandle_BackwardsCompatible( FNetBitWriter &
 
 static bool ShouldSendProperty_BackwardsCompatible( FRepWriterState & WriterState, FNetBitWriter & Writer, const uint16 Handle, const uint32 CompatibleCmdHandle )
 {
-	if ( Handle == WriterState.Changed[WriterState.CurrentChanged] )
+	if ( WriterState.Changed.Num() == 0 || Handle == WriterState.Changed[WriterState.CurrentChanged] )
 	{
 		// Write out the handle
 		WritePropertyHandle_BackwardsCompatible( Writer, CompatibleCmdHandle, WriterState.bDoChecksum );
@@ -1182,18 +1182,21 @@ void FRepLayout::SendProperties_BackwardsCompatible_DynamicArray_r(
 	Writer.SerializeIntPacked( ArrayNum );
 
 	// Make the shadow state match the actual state at the time of send
-	FScriptArrayHelper StoredArrayHelper( ( UArrayProperty * )Cmd.Property, StoredData );
-	StoredArrayHelper.Resize( ArrayNum );
+	if ( StoredData != nullptr )
+	{
+		FScriptArrayHelper StoredArrayHelper( ( UArrayProperty * )Cmd.Property, StoredData );
+		StoredArrayHelper.Resize( ArrayNum );
+	}
 
 	// Read the jump offset
 	// We won't need to actually jump over anything because we expect the change list to be pruned once we get here
 	// But we can use it to verify we read the correct amount.
-	const int32 ArrayChangedCount = WriterState.Changed[WriterState.CurrentChanged++];
+	const int32 ArrayChangedCount = WriterState.Changed.Num() > 0 ? WriterState.Changed[WriterState.CurrentChanged++] : -1;
 
 	const int32 OldChangedIndex = WriterState.CurrentChanged;
 
 	Data = ( uint8* )Array->GetData();
-	StoredData = ( uint8* )StoredArray->GetData();
+	StoredData = StoredArray != nullptr ? ( uint8* )StoredArray->GetData() : nullptr;
 
 	uint16 LocalHandle = 0;
 
@@ -1202,14 +1205,14 @@ void FRepLayout::SendProperties_BackwardsCompatible_DynamicArray_r(
 		uint32 Index = i + 1;
 		Writer.SerializeIntPacked( Index );
 		const int32 ElementOffset = i * Cmd.ElementSize;
-		LocalHandle = SendProperties_BackwardsCompatible_r( RepState, WriterState, Writer, PackageMapClient, CompatibleRepLayout, CmdIndex + 1, Cmd.EndCmd - 1, StoredData + ElementOffset, Data + ElementOffset, LocalHandle );
+		LocalHandle = SendProperties_BackwardsCompatible_r( RepState, WriterState, Writer, PackageMapClient, CompatibleRepLayout, CmdIndex + 1, Cmd.EndCmd - 1, StoredData ? StoredData + ElementOffset : nullptr, Data + ElementOffset, LocalHandle );
 	}
 
 	uint32 Index = 0;
 	Writer.SerializeIntPacked( Index );
 
-	check( WriterState.CurrentChanged - OldChangedIndex == ArrayChangedCount );	// Make sure we read correct amount
-	check( WriterState.Changed[WriterState.CurrentChanged] == 0 );				// Make sure we are at the end
+	check( WriterState.Changed.Num() == 0 || WriterState.CurrentChanged - OldChangedIndex == ArrayChangedCount );							// Make sure we read correct amount
+	check( WriterState.Changed.Num() == 0 || WriterState.Changed[WriterState.CurrentChanged] == 0 );	// Make sure we are at the end
 
 	WriterState.CurrentChanged++;
 }
@@ -1241,7 +1244,7 @@ uint16 FRepLayout::SendProperties_BackwardsCompatible_r(
 				PackageMapClient->TrackCompatibleRepLayoutCmd( this, CompatibleRepLayout, CmdIndex );
 
 				FNetBitWriter TempWriter( Writer.PackageMap, 0 );
-				SendProperties_BackwardsCompatible_DynamicArray_r( RepState, WriterState, TempWriter, PackageMapClient, CompatibleRepLayout, CmdIndex, StoredData + Cmd.Offset, Data + Cmd.Offset );
+				SendProperties_BackwardsCompatible_DynamicArray_r( RepState, WriterState, TempWriter, PackageMapClient, CompatibleRepLayout, CmdIndex, StoredData ? StoredData + Cmd.Offset : nullptr, Data + Cmd.Offset );
 
 				uint32 NumBits = TempWriter.GetNumBits();
 				Writer.SerializeIntPacked( NumBits );
@@ -1279,7 +1282,10 @@ uint16 FRepLayout::SendProperties_BackwardsCompatible_r(
 			NETWORK_PROFILER( GNetworkProfiler.TrackReplicateProperty( ParentCmd.Property, NumEndBits - NumStartBits, nullptr ) );
 
 			// Make the shadow state match the actual state at the time of send
-			StoreProperty( Cmd, ( void* )( StoredData + Cmd.Offset ), ( const void* )( Data + Cmd.Offset ) );
+			if ( StoredData != nullptr )
+			{
+				StoreProperty( Cmd, ( void* )( StoredData + Cmd.Offset ), ( const void* )( Data + Cmd.Offset ) );
+			}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			if ( CVarDoReplicationContextString->GetInt() > 0 )
@@ -1303,12 +1309,11 @@ uint16 FRepLayout::SendProperties_BackwardsCompatible_r(
 }
 
 void FRepLayout::SendProperties_BackwardsCompatible(
-	FRepState *	RESTRICT		RepState,
+	FRepState* RESTRICT			RepState,
 	const uint8* RESTRICT		Data,
-	UClass *					ObjectClass,
-	UActorChannel	*			OwningChannel,
+	UNetConnection*				Connection,
 	FNetBitWriter&				Writer,
-	TArray< uint16 > &			Changed ) const
+	TArray< uint16 >&			Changed ) const
 {
 #ifdef ENABLE_PROPERTY_CHECKSUMS
 	const bool bDoChecksum = CVarDoPropertyChecksum.GetValueOnGameThread() == 1;
@@ -1317,12 +1322,12 @@ void FRepLayout::SendProperties_BackwardsCompatible(
 	const bool bDoChecksum = false;
 #endif
 
-	UPackageMapClient* PackageMapClient = ( UPackageMapClient* )OwningChannel->Connection->PackageMap;
+	UPackageMapClient* PackageMapClient = ( UPackageMapClient* )Connection->PackageMap;
 	FCompatibleRepLayout* CompatibleRepLayout = PackageMapClient->TrackCompatibleRepLayout( this ).Get();
 
 	FRepWriterState WriterState( Writer, Changed, bDoChecksum );
 
-	SendProperties_BackwardsCompatible_r( RepState, WriterState, Writer, PackageMapClient, CompatibleRepLayout, 0, Cmds.Num() - 1, RepState->StaticBuffer.GetData(), Data, 0 );
+	SendProperties_BackwardsCompatible_r( RepState, WriterState, Writer, PackageMapClient, CompatibleRepLayout, 0, Cmds.Num() - 1, RepState ? RepState->StaticBuffer.GetData() : nullptr, Data, 0 );
 }
 
 class FReceivedPropertiesStackState : public FCmdIteratorBaseStackState
@@ -1390,38 +1395,43 @@ static bool ReceivePropertyHelper(
 	}
 #endif
 
-	const int32 AbsOffset = ElementOffset + SwappedCmd.Offset;
-
-	const TArray< FNetworkGUID > & TrackedUnmappedGuids = Bunch.PackageMap->GetTrackedUnmappedGuids();
-
-	bool bHasUnmapped = false;
-
-	if ( TrackedUnmappedGuids.Num() > 0 )
+	if ( UnmappedGuids )
 	{
-		// If we have an unmapped guid, we need to remember it, so we can fix up this object pointer when it finally arrives at a other time
-		// Note - If we already have an existing entry for this offset, we will replace it with this most recent data
-		UnmappedGuids->Map.Add( AbsOffset, FUnmappedGuidMgrElement( Bunch, Mark, TrackedUnmappedGuids, Cmd.ParentIndex, CmdIndex ) );
+		const int32 AbsOffset = ElementOffset + SwappedCmd.Offset;
 
-		UE_LOG( LogRep, Verbose, TEXT( "ADDED unmapped property: Offset: %i, Name: %s" ), AbsOffset, *Cmd.Property->GetName() );
+		const TArray< FNetworkGUID > & TrackedUnmappedGuids = Bunch.PackageMap->GetTrackedUnmappedGuids();
 
-		// List all the guids that were unmapped
-		for ( int32 i = 0; i < TrackedUnmappedGuids.Num(); i++ )
+		bool bHasUnmapped = false;
+
+		if ( TrackedUnmappedGuids.Num() > 0 )
 		{
-			UE_LOG( LogRep, Verbose, TEXT( "  Guid: %s" ), *TrackedUnmappedGuids[i].ToString() );
+			// If we have an unmapped guid, we need to remember it, so we can fix up this object pointer when it finally arrives at a other time
+			// Note - If we already have an existing entry for this offset, we will replace it with this most recent data
+			UnmappedGuids->Map.Add( AbsOffset, FUnmappedGuidMgrElement( Bunch, Mark, TrackedUnmappedGuids, Cmd.ParentIndex, CmdIndex ) );
+
+			UE_LOG( LogRep, Verbose, TEXT( "ADDED unmapped property: Offset: %i, Name: %s" ), AbsOffset, *Cmd.Property->GetName() );
+
+			// List all the guids that were unmapped
+			for ( int32 i = 0; i < TrackedUnmappedGuids.Num(); i++ )
+			{
+				UE_LOG( LogRep, Verbose, TEXT( "  Guid: %s" ), *TrackedUnmappedGuids[i].ToString() );
+			}
+
+			bHasUnmapped = true;
+		}
+		else
+		{
+			// If we don't have any unmapped guids, then make sure to remove the entry so we don't serialize old data when we update unmapped objects
+			UnmappedGuids->Map.Remove( AbsOffset );
 		}
 
-		bHasUnmapped = true;
-	}
-	else
-	{
-		// If we don't have any unmapped guids, then make sure to remove the entry so we don't serialize old data when we update unmapped objects
-		UnmappedGuids->Map.Remove( AbsOffset );
+		// Stop tracking unmapped objects
+		Bunch.PackageMap->ResetTrackedUnmappedGuids( false );
+
+		return bHasUnmapped;
 	}
 
-	// Stop tracking unmapped objects
-	Bunch.PackageMap->ResetTrackedUnmappedGuids( false );
-
-	return bHasUnmapped;
+	return false;
 }
 
 static FUnmappedGuidMgr* PrepReceivedArray(
@@ -1437,29 +1447,37 @@ static FUnmappedGuidMgr* PrepReceivedArray(
 	uint8* RESTRICT*		OutBaseData,
 	TArray< UProperty * >*	RepNotifies )
 {
-	// Since we don't know yet if something under us could be unmapped, go ahead and allocate an array container now
-	FUnmappedGuidMgrElement * NewArrayElement = ParentUnmappedGuids->Map.Find( AbsOffset );
+	FUnmappedGuidMgrElement * NewArrayElement = nullptr;
 
-	if ( NewArrayElement == NULL )
+	if ( ParentUnmappedGuids != nullptr )
 	{
-		NewArrayElement = &ParentUnmappedGuids->Map.FindOrAdd( AbsOffset );
+		// Since we don't know yet if something under us could be unmapped, go ahead and allocate an array container now
+		NewArrayElement = ParentUnmappedGuids->Map.Find( AbsOffset );
 
-		NewArrayElement->Array			= new FUnmappedGuidMgr;
-		NewArrayElement->ParentIndex	= Cmd.ParentIndex;
-		NewArrayElement->CmdIndex		= CmdIndex;
+		if ( NewArrayElement == NULL )
+		{
+			NewArrayElement = &ParentUnmappedGuids->Map.FindOrAdd( AbsOffset );
+
+			NewArrayElement->Array			= new FUnmappedGuidMgr;
+			NewArrayElement->ParentIndex	= Cmd.ParentIndex;
+			NewArrayElement->CmdIndex		= CmdIndex;
+		}
+
+		check( NewArrayElement != NULL );
+		check( NewArrayElement->ParentIndex == Cmd.ParentIndex );
+		check( NewArrayElement->CmdIndex == CmdIndex );
 	}
 
-	check( NewArrayElement != NULL );
-	check( NewArrayElement->ParentIndex == Cmd.ParentIndex );
-	check( NewArrayElement->CmdIndex == CmdIndex );
-
-	if ( RepNotifies != nullptr && ( DataArray->Num() != ArrayNum || Parent.RepNotifyCondition == REPNOTIFY_Always ) && Parent.Property->HasAnyPropertyFlags( CPF_RepNotify ) )
+	if ( RepNotifies != nullptr )
 	{
-		(*RepNotifies).AddUnique( Parent.Property );
-	}
-	else
-	{
-		UE_CLOG( LogSkippedRepNotifies > 0, LogRep, Display, TEXT( "1 FReceivedPropertiesStackState Skipping RepNotify for propery %s because local value has not changed." ), *Cmd.Property->GetName() );
+		if ( ( DataArray->Num() != ArrayNum || Parent.RepNotifyCondition == REPNOTIFY_Always ) && Parent.Property->HasAnyPropertyFlags( CPF_RepNotify ) )
+		{
+			( *RepNotifies ).AddUnique( Parent.Property );
+		}
+		else
+		{
+			UE_CLOG( LogSkippedRepNotifies > 0, LogRep, Display, TEXT( "1 FReceivedPropertiesStackState Skipping RepNotify for propery %s because local value has not changed." ), *Cmd.Property->GetName() );
+		}
 	}
 
 	check( CastChecked< UArrayProperty >( Cmd.Property ) != NULL );
@@ -1483,7 +1501,7 @@ static FUnmappedGuidMgr* PrepReceivedArray(
 		*OutShadowBaseData = ( uint8* )ShadowArray->GetData();
 	}
 
-	return NewArrayElement->Array;
+	return NewArrayElement ? NewArrayElement->Array : nullptr;
 }
 
 class FReceivePropertiesImpl : public FRepLayoutCmdIterator< FReceivePropertiesImpl, FReceivedPropertiesStackState >
@@ -1641,6 +1659,21 @@ bool FRepLayout::ReceiveProperties( UActorChannel* OwningChannel, UClass * InObj
 	bOutHasUnmapped = ReceivePropertiesImpl.bHasUnmapped;
 
 	return true;
+}
+
+bool FRepLayout::ReceiveProperties_BackwardsCompatible( UNetConnection* Connection, FRepState * RESTRICT RepState, void* RESTRICT Data, FNetBitReader & InBunch, bool & bOutHasUnmapped, const bool bEnableRepNotifies ) const
+{
+#ifdef ENABLE_PROPERTY_CHECKSUMS
+	const bool bDoChecksum = InBunch.ReadBit() ? true : false;
+#else
+	const bool bDoChecksum = false;
+#endif
+
+	bOutHasUnmapped = false;
+
+	TSharedPtr< FCompatibleRepLayout > CompatibleRepLayout = ( ( UPackageMapClient* )Connection->PackageMap )->GetCompatibleRepLayoutChecked( Owner );
+
+	return ReceiveProperties_BackwardsCompatible_r( RepState, CompatibleRepLayout.Get(), InBunch, 0, Cmds.Num() - 1, bEnableRepNotifies ? RepState->StaticBuffer.GetData() : nullptr, ( uint8* )Data, ( uint8* )Data, RepState ? &RepState->UnmappedGuids : nullptr, bOutHasUnmapped );
 }
 
 int32 FRepLayout::FindCompatibleProperty( const int32 CmdStart, const int32 CmdEnd, const uint32 Checksum ) const
@@ -2422,7 +2455,7 @@ uint32 FRepLayout::AddPropertyCmd( UProperty * Property, int32 Offset, int32 Rel
 	Cmd.ParentIndex			= ParentIndex;
 
 	Cmd.CompatibleChecksum	= FCrc::StrCrc32( *Property->GetName().ToLower(), ParentChecksum );								// Evolve checksum on name
-	Cmd.CompatibleChecksum	= FCrc::StrCrc32( *Property->GetCPPType( nullptr, 0 ), Cmd.CompatibleChecksum );				// Evolve by property type
+	Cmd.CompatibleChecksum	= FCrc::StrCrc32( *Property->GetCPPType( nullptr, 0 ).ToLower(), Cmd.CompatibleChecksum );		// Evolve by property type
 	Cmd.CompatibleChecksum	= FCrc::StrCrc32( *FString::Printf( TEXT( "%i" ), StaticArrayIndex ), Cmd.CompatibleChecksum );	// Evolve by StaticArrayIndex (to make all unrolled static array elements unique)
 
 	// Try to special case to custom types we know about
@@ -2528,8 +2561,8 @@ uint32 FRepLayout::AddArrayCmd( UArrayProperty * Property, int32 Offset, int32 R
 	Cmd.RelativeHandle		= RelativeHandle;
 	Cmd.ParentIndex			= ParentIndex;
 	
-	Cmd.CompatibleChecksum	= FCrc::StrCrc32( *Property->GetName().ToLower(), ParentChecksum );					// Evolve checksum on name
-	Cmd.CompatibleChecksum	= FCrc::StrCrc32( *Property->GetCPPType( nullptr, 0 ), Cmd.CompatibleChecksum );	// Evolve by property type
+	Cmd.CompatibleChecksum	= FCrc::StrCrc32( *Property->GetName().ToLower(), ParentChecksum );								// Evolve checksum on name
+	Cmd.CompatibleChecksum	= FCrc::StrCrc32( *Property->GetCPPType( nullptr, 0 ).ToLower(), Cmd.CompatibleChecksum );		// Evolve by property type
 	Cmd.CompatibleChecksum	= FCrc::StrCrc32( *FString::Printf( TEXT( "%i" ), StaticArrayIndex ), Cmd.CompatibleChecksum );	// Evolve by StaticArrayIndex (to make all unrolled static array elements unique)
 
 	return Cmd.CompatibleChecksum;
@@ -2617,7 +2650,7 @@ int32 FRepLayout::InitFromProperty_r( UProperty * Property, int32 Offset, int32 
 		uint32 StructChecksum = FCrc::StrCrc32( *Property->GetName().ToLower(), ParentChecksum );
 
 		// Evolve by property type
-		StructChecksum = FCrc::StrCrc32( *Property->GetCPPType( nullptr, 0 ), StructChecksum );
+		StructChecksum = FCrc::StrCrc32( *Property->GetCPPType( nullptr, 0 ).ToLower(), StructChecksum );
 
 		// Evolve by StaticArrayIndex (to make all unrolled static array elements unique)
 		StructChecksum = FCrc::StrCrc32( *FString::Printf( TEXT( "%i" ), StaticArrayIndex ), StructChecksum );
@@ -2816,6 +2849,8 @@ void FRepLayout::InitFromStruct( UStruct * InStruct )
 			Parents[ParentHandle].CmdEnd = Cmds.Num();
 		}
 	}
+
+	AddReturnCmd();
 
 	Owner = InStruct;
 }

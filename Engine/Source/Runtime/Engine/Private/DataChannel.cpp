@@ -1331,8 +1331,12 @@ void UControlChannel::QueueMessage(const FOutBunch* Bunch)
 	else
 	{
 		int32 Index = QueuedMessages.AddZeroed();
-		QueuedMessages[Index].AddUninitialized(Bunch->GetNumBytes());
-		FMemory::Memcpy(QueuedMessages[Index].GetData(), Bunch->GetData(), Bunch->GetNumBytes());
+		FQueuedControlMessage& CurMessage = QueuedMessages[Index];
+
+		CurMessage.Data.AddUninitialized(Bunch->GetNumBytes());
+		FMemory::Memcpy(CurMessage.Data.GetData(), Bunch->GetData(), Bunch->GetNumBytes());
+
+		CurMessage.CountBits = Bunch->GetNumBits();
 	}
 }
 
@@ -1403,7 +1407,8 @@ void UControlChannel::Tick()
 			else
 			{
 				Bunch.bReliable = 1;
-				Bunch.Serialize(QueuedMessages[0].GetData(), QueuedMessages[0].Num());
+				Bunch.SerializeBits(QueuedMessages[0].Data.GetData(), QueuedMessages[0].CountBits);
+
 				if (!Bunch.IsError())
 				{
 					Super::SendBunch(&Bunch, 1);
@@ -1721,11 +1726,18 @@ void UActorChannel::SetChannelActor( AActor* InActor )
 			// UE_LOG(LogNetTraffic, Log, TEXT("%i SYNCHRONIZING by sending %i"), ChIndex, Connection->PendingOutRec[ChIndex]);
 
 			FOutBunch Bunch( this, 0 );
-			if( !Bunch.IsError() )	// FIXME: This will be an infinite loop if this happens!!!
+
+			if (!Bunch.IsError())
 			{
 				Bunch.bReliable = true;
 				SendBunch( &Bunch, 0 );
 				Connection->PendingOutRec[ChIndex]++;
+			}
+			else
+			{
+				// While loop will be infinite without either fatal or break.
+				UE_LOG(LogNetTraffic, Fatal, TEXT("SetChannelActor failed. Overflow while sending reliable bunch synchronization."));
+				break;
 			}
 		}
 
@@ -2072,7 +2084,7 @@ void UActorChannel::ProcessBunch( FInBunch & Bunch )
 		{
 			if ( Connection->InternalAck )
 			{
-				UE_LOG( LogNet, Warning, TEXT( "UActorChannel::ProcessBunch: Replicator.ReceivedBunch failed (InternalAck) Breaking actor.  Closing connection. RepObj: %s, Channel: %i" ), RepObj ? *RepObj->GetFullName() : TEXT( "NULL" ), ChIndex );
+				UE_LOG( LogNet, Warning, TEXT( "UActorChannel::ProcessBunch: Replicator.ReceivedBunch failed (Ignoring because of InternalAck). RepObj: %s, Channel: %i" ), RepObj ? *RepObj->GetFullName() : TEXT( "NULL" ), ChIndex );
 				continue;		// Don't consider this catastrophic in replays
 			}
 

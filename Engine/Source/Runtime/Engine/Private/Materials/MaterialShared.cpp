@@ -1938,7 +1938,8 @@ FMaterialRenderProxy::FMaterialRenderProxy(bool bInSelected, bool bInHovered)
 
 FMaterialRenderProxy::~FMaterialRenderProxy()
 {
-	check(!IsReferencedInDrawList());
+	// Removed for now to work around UE-31636. Re-enable when the underlying bug is fixed!
+	//check(!IsReferencedInDrawList());
 
 	if(IsInitialized())
 	{

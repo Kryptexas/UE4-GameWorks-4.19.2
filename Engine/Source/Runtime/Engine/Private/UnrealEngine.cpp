@@ -136,6 +136,8 @@
 #include "HAL/ExceptionHandling.h"
 #endif	// UE_BUILD_SHIPPING
 
+#include "GeneralProjectSettings.h"
+
 DEFINE_LOG_CATEGORY(LogEngine);
 IMPLEMENT_MODULE( FEngineModule, Engine );
 
@@ -873,6 +875,11 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 	{
 		bUseConsoleInput = true;
 	}
+
+	// Make sure networking checksum has access to project version
+	const UGeneralProjectSettings& ProjectSettings = *GetDefault<UGeneralProjectSettings>();
+	FNetworkVersion::bHasCachedNetworkChecksum = false;
+	FNetworkVersion::ProjectVersion = ProjectSettings.ProjectVersion;
 
 #if !(UE_BUILD_SHIPPING)
 	// Optionally Exec an exec file
@@ -2216,7 +2223,10 @@ void UEngine::GetAllLocalPlayerControllers(TArray<APlayerController*> & PlayerLi
 		for (auto PlayerIt = It->OwningGameInstance->GetLocalPlayerIterator(); PlayerIt; ++PlayerIt)
 		{
 			ULocalPlayer *Player = *PlayerIt;
-			PlayerList.Add( Player->PlayerController );
+			if (Player->PlayerController)
+			{
+				PlayerList.Add( Player->PlayerController );
+			}
 		}
 	}
 }

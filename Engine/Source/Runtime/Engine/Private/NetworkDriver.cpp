@@ -457,10 +457,7 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 
 				if (World)
 				{
-					for (FActorIterator It(World); It; ++It)
-					{
-						NumActors++;
-					}
+					NumActors = World->GetActorCount();
 				}
 
 				Connection->PackageMap->GetNetGUIDStats(AckCount, UnAckCount, PendingCount);
@@ -512,6 +509,7 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 		SET_DWORD_STAT(STAT_NumActorChannels, NumActorChannels);
 		SET_DWORD_STAT(STAT_NumDormantActors, NumDormantActors);
 		SET_DWORD_STAT(STAT_NumActors, NumActors);
+		SET_DWORD_STAT(STAT_NumNetActors, GetNetworkObjectList().GetObjects().Num());
 		SET_DWORD_STAT(STAT_NumActorChannelsReadyDormant, NumActorChannelsReadyDormant);
 		SET_DWORD_STAT(STAT_NumNetGUIDsAckd, AckCount);
 		SET_DWORD_STAT(STAT_NumNetGUIDsPending, UnAckCount);
@@ -2339,8 +2337,6 @@ void UNetDriver::ServerReplicateActors_BuildConsiderList( TArray<FNetworkObjectI
 
 	UE_LOG( LogNetTraffic, Log, TEXT( "ServerReplicateActors_BuildConsiderList, Building ConsiderList %4.2f" ), World->GetTimeSeconds() );
 
-	SET_DWORD_STAT( STAT_NumNetActors, GetNetworkObjectList().GetObjects().Num() );
-
 	int32 NumInitiallyDormant = 0;
 
 	const bool bUseAdapativeNetFrequency = IsAdaptiveNetUpdateFrequencyEnabled();
@@ -2680,14 +2676,6 @@ int32 UNetDriver::ServerReplicateActors_PrioritizeActors( UNetConnection* Connec
 		}
 
 		// Sort by priority
-		struct FCompareFActorPriority
-		{
-			FORCEINLINE bool operator()( const FActorPriority& A, const FActorPriority& B ) const
-			{
-				return B.Priority < A.Priority;
-			}
-		};
-
 		Sort( OutPriorityActors, FinalSortedCount, FCompareFActorPriority() );
 	}
 

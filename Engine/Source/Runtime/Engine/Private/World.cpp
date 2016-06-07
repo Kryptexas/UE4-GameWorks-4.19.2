@@ -42,6 +42,7 @@
 #include "GameFramework/GameState.h"
 #include "GameFramework/PlayerState.h"
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
+#include "NetworkVersion.h"
 
 #include "Materials/MaterialParameterCollectionInstance.h"
 #include "LoadTimeTracker.h"
@@ -3716,7 +3717,7 @@ EAcceptConnection::Type UWorld::NotifyAcceptingConnection()
 	else
 	{
 		// Server is up and running.
-		UE_LOG(LogNet, Log, TEXT("NotifyAcceptingConnection: Server %s accept"), *GetName() );
+		UE_LOG(LogNet, Verbose, TEXT("NotifyAcceptingConnection: Server %s accept"), *GetName() );
 		return EAcceptConnection::Accept;
 	}
 }
@@ -3804,7 +3805,7 @@ void UWorld::WelcomePlayer(UNetConnection* Connection)
 	Connection->FlushNet();
 	// don't count initial join data for netspeed throttling
 	// as it's unnecessary, since connection won't be fully open until it all gets received, and this prevents later gameplay data from being delayed to "catch up"
-	Connection->QueuedBytes = 0;
+	Connection->QueuedBits = 0;
 	Connection->SetClientLoginState( EClientLoginState::Welcomed );		// Client is fully logged in
 }
 
@@ -3927,6 +3928,7 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 				FNetControlMessage<NMT_Netspeed>::Receive(Bunch, Rate);
 				Connection->CurrentNetSpeed = FMath::Clamp(Rate, 1800, NetDriver->MaxClientRate);
 				UE_LOG(LogNet, Log, TEXT("Client netspeed is %i"), Connection->CurrentNetSpeed);
+
 				break;
 			}
 			case NMT_Abort:
@@ -4051,7 +4053,7 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 						}
 
 						// @TODO FIXME - TEMP HACK? - clear queue on join
-						Connection->QueuedBytes = 0;
+						Connection->QueuedBits = 0;
 					}
 				}
 				break;
@@ -4882,24 +4884,22 @@ UWorld* FSeamlessTravelHandler::Tick()
 			for (FActorIterator It(CurrentWorld); It; ++It)
 			{
 				AActor* TheActor = *It;
-				bool bSameLevel = TheActor->GetLevel() == CurrentWorld->PersistentLevel;
-				bool bShouldKeep = KeepAnnotation.Get(TheActor);
-				bool bDormant = false;
 
-				if (NetDriver && NetDriver->ServerConnection)
-				{
-					bDormant = NetDriver->ServerConnection->DormantActors.Contains(TheActor);
-				}
+				const bool bIsInCurrentLevel	= TheActor->GetLevel() == CurrentWorld->PersistentLevel;
+				const bool bManuallyMarkedKeep	= KeepAnnotation.Get(TheActor);
+				const bool bDormant				= NetDriver && NetDriver->ServerConnection && NetDriver->ServerConnection->DormantActors.Contains(TheActor);
+				const bool bKeepNonOwnedActor	= TheActor->Role < ROLE_Authority && !bDormant && !TheActor->IsNetStartupActor();
+				const bool bForceExcludeActor	= TheActor->IsA(ALevelScriptActor::StaticClass());
 
-				// keep if it's dynamic and has been marked or we don't control it
-				if (bSameLevel && (bShouldKeep || (TheActor->Role < ROLE_Authority && !bDormant && !TheActor->IsNetStartupActor())) && !TheActor->IsA(ALevelScriptActor::StaticClass()))
+				// Keep if it's in the current level AND it isn't specifically excluded AND it was either marked as should keep OR we don't own this actor
+				if (bIsInCurrentLevel && !bForceExcludeActor && (bManuallyMarkedKeep || bKeepNonOwnedActor))
 				{
 					It.ClearCurrent(); //@warning: invalidates *It until next iteration
 					ActuallyKeptActors.Add(TheActor);
 				}
 				else
 				{
-					if (bShouldKeep)
+					if (bManuallyMarkedKeep)
 					{
 						UE_LOG(LogWorld, Warning, TEXT("Actor '%s' was indicated to be kept but exists in level '%s', not the persistent level.  Actor will not travel."), *TheActor->GetName(), *TheActor->GetLevel()->GetOutermost()->GetName());
 					}

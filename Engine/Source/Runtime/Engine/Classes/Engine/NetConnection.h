@@ -25,7 +25,7 @@ enum { RELIABLE_BUFFER = 256 }; // Power of 2 >= 1.
 enum { MAX_PACKETID = 16384 };  // Power of 2 >= 1, covering guaranteed loss/misorder time.
 enum { MAX_CHSEQUENCE = 1024 }; // Power of 2 >RELIABLE_BUFFER, covering loss/misorder time.
 enum { MAX_BUNCH_HEADER_BITS = 64 };
-enum { MAX_PACKET_HEADER_BITS = 16 };
+enum { MAX_PACKET_HEADER_BITS = 15 }; // = FMath::CeilLogTwo(MAX_PACKETID) + 1 (IsAck)
 enum { MAX_PACKET_TRAILER_BITS = 1 };
 
 class UNetDriver;
@@ -254,7 +254,7 @@ public:
 	double			LastGoodPacketRealtime;	// Last real time a packet was considered valid
 	double			LastSendTime;			// Last time a packet was sent, for keepalives.
 	double			LastTickTime;			// Last time of polling.
-	int32			QueuedBytes;			// Bytes assumed to be queued up.
+	int32			QueuedBits;			// Bits assumed to be queued up.
 	int32			TickCount;				// Count of ticks.
 	/** The last time an ack was received */
 	float			LastRecvAckTime;
@@ -313,6 +313,10 @@ public:
 	int32				InReliable		[ MAX_CHANNELS ];
 	int32				PendingOutRec	[ MAX_CHANNELS ];	// Outgoing reliable unacked data from previous (now destroyed) channel in this slot.  This contains the first chsequence not acked
 	TArray<int32> QueuedAcks, ResendAcks;
+
+	// Network version
+	uint32				EngineNetworkProtocolVersion;
+	uint32				GameNetworkProtocolVersion;
 
 	// Log tracking
 	double			LogCallLastTime;

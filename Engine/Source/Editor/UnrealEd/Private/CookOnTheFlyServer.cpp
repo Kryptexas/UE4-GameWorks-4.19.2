@@ -43,6 +43,8 @@
 #include "Engine/TextureLODSettings.h"
 #include "CookStats.h"
 
+#include "NetworkVersion.h"
+
 #define LOCTEXT_NAMESPACE "Cooker"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCook, Log, All);
@@ -3026,7 +3028,7 @@ bool UCookOnTheFlyServer::GetCurrentIniVersionStrings( const ITargetPlatform* Ta
 
 	FString UE4Ver = FString::Printf(TEXT("PackageFileVersions:%d:%d"), GPackageFileUE4Version, GPackageFileLicenseeUE4Version);
 	IniVersionStrings.Emplace(MoveTemp(UE4Ver));
-	FString UE4NetVer = FString::Printf(TEXT("NetFileVersions:%d:%d"), GEngineNetVersion, GEngineNegotiationVersion);
+	FString UE4NetVer = FString::Printf(TEXT("NetworkCompatibleCL:%u"), FNetworkVersion::GetNetworkCompatibleChangelist());
 	IniVersionStrings.Emplace(MoveTemp(UE4NetVer));
 
 	FString MaterialShaderMapDDCVersion = FString::Printf(TEXT("MaterialShaderMapDDCVersion:%s"), *GetMaterialShaderMapDDCKey());

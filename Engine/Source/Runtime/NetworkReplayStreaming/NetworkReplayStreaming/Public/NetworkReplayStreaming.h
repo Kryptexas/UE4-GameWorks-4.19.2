@@ -6,6 +6,7 @@
 #include "ModuleManager.h"
 #include "Core.h"
 #include "OnlineJsonSerializer.h"
+#include "NetworkVersion.h"
 
 class FReplayEventListItem : public FOnlineJsonSerializable
 {
@@ -146,17 +147,6 @@ DECLARE_DELEGATE_TwoParams(FEnumerateEventsCompleteDelegate, const FReplayEventL
 */
 DECLARE_DELEGATE_TwoParams(FOnRequestEventDataComplete, const TArray<uint8>&, bool)
 
-class FNetworkReplayVersion
-{
-public:
-	FNetworkReplayVersion() : NetworkVersion( 0 ), Changelist( 0 ) {}
-	FNetworkReplayVersion( const FString& InAppString, const uint32 InNetworkVersion, const uint32 InChangelist ) : AppString( InAppString ), NetworkVersion( InNetworkVersion ), Changelist( InChangelist ) {}
-
-	FString		AppString;
-	uint32		NetworkVersion;
-	uint32		Changelist;
-};
-
 /** Generic interface for network replay streaming */
 class INetworkReplayStreamer 
 {
@@ -171,7 +161,6 @@ public:
 	virtual void FlushCheckpoint( const uint32 TimeInMS ) = 0;
 	virtual void GotoCheckpointIndex( const int32 CheckpointIndex, const FOnCheckpointReadyDelegate& Delegate ) = 0;
 	virtual void GotoTimeInMS( const uint32 TimeInMS, const FOnCheckpointReadyDelegate& Delegate ) = 0;
-	virtual FArchive* GetMetadataArchive() = 0;
 	virtual void UpdateTotalDemoTime( uint32 TimeInMS ) = 0;
 	virtual uint32 GetTotalDemoTime() const = 0;
 	virtual bool IsDataAvailable() const = 0;

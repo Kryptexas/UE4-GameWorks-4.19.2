@@ -96,6 +96,14 @@ struct FActorPriority
 	FActorPriority(class UNetConnection* InConnection, struct FActorDestructionInfo * DestructInfo, const TArray<struct FNetViewer>& Viewers );
 };
 
+struct FCompareFActorPriority
+{
+	FORCEINLINE bool operator()( const FActorPriority& A, const FActorPriority& B ) const
+	{
+		return B.Priority < A.Priority;
+	}
+};
+
 struct FActorDestructionInfo
 {
 	TWeakObjectPtr<UObject>		ObjOuter;

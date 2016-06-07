@@ -5,6 +5,7 @@
 #include "EngineServiceMessages.h"
 #include "MessageEndpoint.h"
 #include "MessageEndpointBuilder.h"
+#include "NetworkVersion.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngineService, Log, All)
@@ -52,7 +53,7 @@ void FEngineService::SendPong( const IMessageContextRef& Context )
 	{
 		FEngineServicePong* Message = new FEngineServicePong();
 
-		Message->EngineVersion = GEngineNetVersion;
+		Message->EngineVersion = FNetworkVersion::GetNetworkCompatibleChangelist();
 		Message->InstanceId = FApp::GetInstanceId();
 		Message->SessionId = FApp::GetSessionId();
 

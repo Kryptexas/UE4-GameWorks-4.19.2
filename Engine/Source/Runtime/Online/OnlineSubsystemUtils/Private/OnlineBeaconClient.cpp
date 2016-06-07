@@ -6,6 +6,7 @@
 #include "OnlineBeaconHostObject.h"
 #include "Net/DataChannel.h"
 #include "Net/UnrealNetwork.h"
+#include "NetworkVersion.h"
 
 #define BEACON_RPC_TIMEOUT 15.0f
 

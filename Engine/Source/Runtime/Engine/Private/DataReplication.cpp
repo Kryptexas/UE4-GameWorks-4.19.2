@@ -11,6 +11,7 @@
 #include "Net/DataReplication.h"
 #include "Engine/ActorChannel.h"
 #include "Engine/PackageMapClient.h"
+#include "Engine/DemoNetDriver.h"
 
 static TAutoConsoleVariable<int32> CVarMaxRPCPerNetUpdate( TEXT( "net.MaxRPCPerNetUpdate" ), 2, TEXT( "Maximum number of RPCs allowed per net update" ) );
 
@@ -42,7 +43,25 @@ public:
 		else
 		{
 			TSharedPtr<FRepLayout> RepLayout = Driver->GetStructRepLayout(Struct);
-			RepLayout->SerializePropertiesForStruct(Struct, Ar, Map, Data, bHasUnmapped);
+
+			UPackageMapClient* PackageMapClient = ( ( UPackageMapClient* )Map );
+
+			if ( PackageMapClient && PackageMapClient->GetConnection()->InternalAck )
+			{
+				if ( Ar.IsSaving() )
+				{
+					TArray< uint16 > Changed;
+					RepLayout->SendProperties_BackwardsCompatible( nullptr, (uint8*)Data, PackageMapClient->GetConnection(), static_cast< FNetBitWriter& >( Ar ), Changed );
+				}
+				else
+				{
+					RepLayout->ReceiveProperties_BackwardsCompatible( PackageMapClient->GetConnection(), nullptr, Data, static_cast< FNetBitReader& >( Ar ), bHasUnmapped, false );
+				}
+			}
+			else
+			{
+				RepLayout->SerializePropertiesForStruct( Struct, Ar, Map, Data, bHasUnmapped );
+			}
 		}
 	}
 
@@ -400,6 +419,14 @@ void FObjectReplicator::ReceivedNak( int32 NakPacketId )
 	}
 }
 
+#define HANDLE_INCOMPATIBLE_PROP		\
+	if ( bIsServer )					\
+	{									\
+		return false;					\
+	}									\
+	FieldCache->bIncompatible = true;	\
+	continue;							\
+
 bool FObjectReplicator::ReceivedBunch( FNetBitReader& Bunch, const FReplicationFlags& RepFlags, const bool bHasRepLayout, bool& bOutHasUnmapped )
 {
 	UObject* Object = GetObject();
@@ -474,10 +501,15 @@ bool FObjectReplicator::ReceivedBunch( FNetBitReader& Bunch, const FReplicationF
 			continue;
 		}
 
-		UProperty* ReplicatedProp = NULL;
+		if ( FieldCache->bIncompatible )
+		{
+			// We've already warned about this property once, so no need to continue to do so
+			UE_LOG( LogNet, Verbose, TEXT( "ReceivedBunch: FieldCache->bIncompatible == true. Object: %s, Field: %s" ), *Object->GetFullName(), *FieldCache->Field->GetFName().ToString() );
+			continue;
+		}
 
 		// Handle property
-		if ( ( ReplicatedProp = Cast< UProperty >( FieldCache->Field ) ) != NULL )
+		if ( UProperty* ReplicatedProp = Cast< UProperty >( FieldCache->Field ) )
 		{
 			// Server shouldn't receive properties.
 			if ( bIsServer )
@@ -569,8 +601,14 @@ bool FObjectReplicator::ReceivedBunch( FNetBitReader& Bunch, const FReplicationF
 
 			if ( Reader.IsError() )
 			{
-				UE_LOG(LogNet, Error, TEXT("ReceivedBunch: NetDeltaSerialize - Reader.IsError() == true: %s"), *Object->GetFullName());
-				return false;
+				UE_LOG(LogNet, Error, TEXT("ReceivedBunch: NetDeltaSerialize - Reader.IsError() == true. Property: %s, Object: %s"), *StructProperty->GetName(), *Object->GetFullName());
+				HANDLE_INCOMPATIBLE_PROP
+			}
+
+			if ( Reader.GetBitsLeft() != 0 )
+			{
+				UE_LOG( LogNet, Error, TEXT( "ReceivedBunch: NetDeltaSerialize - Mismatch read. Property: %s, Object: %s" ), *StructProperty->GetName(), *Object->GetFullName() );
+				HANDLE_INCOMPATIBLE_PROP
 			}
 
 			if ( Parms.bOutHasMoreUnmapped )
@@ -594,19 +632,19 @@ bool FObjectReplicator::ReceivedBunch( FNetBitReader& Bunch, const FReplicationF
 			if ( Function == NULL )
 			{
 				UE_LOG( LogNet, Error, TEXT( "ReceivedBunch: Function not found. Object: %s, Function: %s" ), *Object->GetFullName(), *FunctionName.ToString() );
-				return false;
+				HANDLE_INCOMPATIBLE_PROP
 			}
 
 			if ( ( Function->FunctionFlags & FUNC_Net ) == 0 )
 			{
 				UE_LOG( LogRep, Error, TEXT( "Rejected non RPC function. Object: %s, Function: %s" ), *Object->GetFullName(), *FunctionName.ToString() );
-				return false;
+				HANDLE_INCOMPATIBLE_PROP
 			}
 
 			if ( ( Function->FunctionFlags & ( bIsServer ? FUNC_NetServer : ( FUNC_NetClient | FUNC_NetMulticast ) ) ) == 0 )
 			{
 				UE_LOG( LogRep, Error, TEXT( "Rejected RPC function due to access rights. Object: %s, Function: %s" ), *Object->GetFullName(), *FunctionName.ToString() );
-				return false;
+				HANDLE_INCOMPATIBLE_PROP
 			}
 
 			UE_LOG( LogRepTraffic, Log, TEXT( "      Received RPC: %s" ), *FunctionName.ToString() );
@@ -628,13 +666,28 @@ bool FObjectReplicator::ReceivedBunch( FNetBitReader& Bunch, const FReplicationF
 				if ( Reader.IsError() )
 				{
 					UE_LOG( LogRep, Error, TEXT( "ReceivedBunch: ReceivePropertiesForRPC - Reader.IsError() == true: Function: %s, Object: %s" ), *FunctionName.ToString(), *Object->GetFullName() );
-					return false;
+					HANDLE_INCOMPATIBLE_PROP
+				}
+
+				if ( Reader.GetBitsLeft() != 0 )
+				{
+					UE_LOG( LogNet, Error, TEXT( "ReceivedBunch: ReceivePropertiesForRPC - Mismatch read. Function: %s, Object: %s" ), *FunctionName.ToString(), *Object->GetFullName() );
+					HANDLE_INCOMPATIBLE_PROP
 				}
 
 				// Call the function.
 				RPC_ResetLastFailedReason();
 
 				Object->ProcessEvent( Function, Parms );
+
+				// Forward the RPC to a client recorded replay, if needed.
+				const UWorld* const OwningDriverWorld = OwningChannel->Connection->Driver->World;
+				if (OwningDriverWorld && OwningDriverWorld->IsRecordingClientReplay())
+				{
+					// If Object is not the channel actor, assume the target of the RPC is a subobject.
+					UObject* const SubObject = Object != OwningChannel->Actor ? Object : nullptr;
+					OwningDriverWorld->DemoNetDriver->ProcessRemoteFunction(OwningChannel->Actor, Function, Parms, nullptr, nullptr, SubObject);
+				}
 
 				// Destroy the parameters.
 				// warning: highly dependent on UObject::ProcessEvent freeing of parms!

@@ -52,7 +52,6 @@ public:
 	virtual void FlushCheckpoint( const uint32 TimeInMS ) override;
 	virtual void GotoCheckpointIndex( const int32 CheckpointIndex, const FOnCheckpointReadyDelegate& Delegate ) override;
 	virtual void GotoTimeInMS( const uint32 TimeInMS, const FOnCheckpointReadyDelegate& Delegate ) override;
-	virtual FArchive* GetMetadataArchive() override;
 	virtual void UpdateTotalDemoTime( uint32 TimeInMS ) override;
 	virtual uint32 GetTotalDemoTime() const override { return ReplayInfo.LengthInMS; }
 	virtual bool IsDataAvailable() const override;
@@ -100,9 +99,6 @@ private:
 
 	/** Handle to the archive that will read/write network packets */
 	TUniquePtr<FArchive> FileAr;
-
-	/* Handle to the archive that will read/write metadata */
-	TUniquePtr<FArchive> MetadataFileAr;
 
 	/* Handle to the archive that will read/write checkpoint files */
 	TUniquePtr<FArchive> CheckpointAr;

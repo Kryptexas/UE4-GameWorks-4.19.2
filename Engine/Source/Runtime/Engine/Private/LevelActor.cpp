@@ -604,11 +604,21 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 	{
 		ThisActor->SetOwner(NULL);
 	}
-	// Notify net players that this guy has been destroyed.
-	UNetDriver* ActorNetDriver = GEngine->FindNamedNetDriver(this, ThisActor->GetNetDriverName());
-	if (ActorNetDriver)
+
+	// Notify net drivers that this guy has been destroyed.
+	if (GEngine->GetWorldContextFromWorld(this))
 	{
-		ActorNetDriver->NotifyActorDestroyed(ThisActor);
+		UNetDriver* ActorNetDriver = GEngine->FindNamedNetDriver(this,ThisActor->GetNetDriverName());
+		if (ActorNetDriver)
+		{
+			ActorNetDriver->NotifyActorDestroyed(ThisActor);
+		}
+	}
+	else
+	{
+		// Only worlds in the middle of seamless travel should have no context, and in that case, we shouldn't be destroying actors on them until
+		// they have become the current world (i.e. CopyWorldData has been called)
+		UE_LOG(LogSpawn, Warning, TEXT("UWorld::DestroyActor: World has no context! World: %s, Actor: %s"), *GetName(), *ThisActor->GetPathName());
 	}
 
 	if ( DemoNetDriver )
