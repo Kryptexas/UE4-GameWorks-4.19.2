@@ -94,7 +94,11 @@ public:
 
 	FReply OnAssetThumbnailDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent)
 	{
-		GEditor->EditObject(Texture.Get());
+		UTexture2D* Texture2D = Texture.Get();
+		if (Texture2D)
+		{
+			GEditor->EditObject(Texture2D);
+		}
 
 		return FReply::Handled();
 	}
@@ -102,7 +106,8 @@ public:
 	FText OnGetToolTip() const
 	{
 		// Display the package name which is a valid path to the object without redundant information
-		return FText::FromString(Texture.Get()->GetOutermost()->GetName());
+		UTexture2D* Texture2D = Texture.Get();
+		return Texture2D ? FText::FromString(Texture2D->GetOutermost()->GetName()) : FText();
 	}
 
 	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
