@@ -701,7 +701,8 @@ uint GetSelectiveOutputMask()
 void FPixelShaderInOut_MainPS(
 	FVertexFactoryInterpolantsVSToPS Interpolants,
 	FBasePassInterpolantsVSToPS BasePassInterpolants,
-	inout FPixelShaderInOut InOut)
+	in FPixelShaderIn In, 
+	inout FPixelShaderOut Out)
 {
 #if INSTANCED_STEREO
 	ResolvedView = ResolveView(GetEyeIndex(Interpolants.PackedEyeIndex));
@@ -716,7 +717,7 @@ void FPixelShaderInOut_MainPS(
 	// PreShadowFactor
 	float4 OutGBufferE = 0;
 
-	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants, InOut.SvPosition);
+	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants, In.SvPosition);
 	FPixelMaterialInputs PixelMaterialInputs;
 	
 #if HQ_TEXTURE_LIGHTMAP && USES_AO_MATERIAL_MASK && !MATERIAL_SHADINGMODEL_UNLIT
@@ -726,7 +727,7 @@ void FPixelShaderInOut_MainPS(
 	MaterialParameters.AOMaterialMask = GetAOMaterialMask(LightmapUV0 * float2(1, 2));
 #endif
 
-	float4 SVPositionForComputingPositions = InOut.SvPosition;
+	float4 SVPositionForComputingPositions = In.SvPosition;
 
 #if MATERIALBLENDING_ANY_TRANSLUCENT
 	// Modify SVPosition for passes that are rendering to a downsampled target so that ScreenPosition and WorldPosition will be computed correctly
@@ -737,13 +738,13 @@ void FPixelShaderInOut_MainPS(
 		{
 			float4 ScreenPosition = SvPositionToScreenPosition(SVPositionForComputingPositions);
 			float3 TranslatedWorldPosition = SvPositionToResolvedTranslatedWorld(SVPositionForComputingPositions);
-			CalcMaterialParametersEx(MaterialParameters, PixelMaterialInputs, InOut.SvPosition, ScreenPosition, InOut.bIsFrontFace, TranslatedWorldPosition, BasePassInterpolants.PixelPositionExcludingWPO);
+			CalcMaterialParametersEx(MaterialParameters, PixelMaterialInputs, In.SvPosition, ScreenPosition, In.bIsFrontFace, TranslatedWorldPosition, BasePassInterpolants.PixelPositionExcludingWPO);
 		}
 	#else
 		{
 			float4 ScreenPosition = SvPositionToScreenPosition(SVPositionForComputingPositions);
 			float3 TranslatedWorldPosition = SvPositionToResolvedTranslatedWorld(SVPositionForComputingPositions);
-			CalcMaterialParametersEx(MaterialParameters, PixelMaterialInputs, InOut.SvPosition, ScreenPosition, InOut.bIsFrontFace, TranslatedWorldPosition, TranslatedWorldPosition);
+			CalcMaterialParametersEx(MaterialParameters, PixelMaterialInputs, In.SvPosition, ScreenPosition, In.bIsFrontFace, TranslatedWorldPosition, TranslatedWorldPosition);
 		}
 	#endif
 
@@ -754,7 +755,7 @@ void FPixelShaderInOut_MainPS(
 #endif
 		
 #if OUTPUT_PIXEL_DEPTH_OFFSET
-	ApplyPixelDepthOffsetForBasePass(MaterialParameters, PixelMaterialInputs, BasePassInterpolants, InOut.OutDepth);
+	ApplyPixelDepthOffsetForBasePass(MaterialParameters, PixelMaterialInputs, BasePassInterpolants, Out.Depth);
 #endif
 
 	//Clip if the blend mode requires it.
@@ -1054,25 +1055,25 @@ void FPixelShaderInOut_MainPS(
 	Color += Emissive;
 
 	#if MATERIALBLENDING_TRANSLUCENT
-		InOut.MRT[0] = half4(Color * VertexFog.a + VertexFog.rgb, Opacity);
-		InOut.MRT[0] = RETURN_COLOR(InOut.MRT[0]);
+		Out.MRT[0] = half4(Color * VertexFog.a + VertexFog.rgb, Opacity);
+		Out.MRT[0] = RETURN_COLOR(Out.MRT[0]);
 	#elif MATERIALBLENDING_ADDITIVE
-		InOut.MRT[0] = half4(Color * VertexFog.a * Opacity, 0.0f);
-		InOut.MRT[0] = RETURN_COLOR(InOut.MRT[0]);
+		Out.MRT[0] = half4(Color * VertexFog.a * Opacity, 0.0f);
+		Out.MRT[0] = RETURN_COLOR(Out.MRT[0]);
 	#elif MATERIALBLENDING_MODULATE
 		// RETURN_COLOR not needed with modulative blending
 		half3 FoggedColor = lerp(float3(1, 1, 1), Color, VertexFog.aaa * VertexFog.aaa);
-		InOut.MRT[0] = half4(FoggedColor, Opacity);
+		Out.MRT[0] = half4(FoggedColor, Opacity);
 	#else
 		{
 			FLightAccumulator LightAccumulator = (FLightAccumulator)0;
 
 			LightAccumulator_Add(LightAccumulator, Color, 0, 1.0f);
-			InOut.MRT[0] = RETURN_COLOR(LightAccumulator_GetResult(LightAccumulator));
+			Out.MRT[0] = RETURN_COLOR(LightAccumulator_GetResult(LightAccumulator));
 
 			#if SUBSURFACE_CHANNEL_MODE == 0
 				// Scene captures and planar reflections need opacity in destination alpha.
-				InOut.MRT[0].a = 0;
+				Out.MRT[0].a = 0;
 			#endif
 		}
 	#endif
@@ -1085,34 +1086,34 @@ void FPixelShaderInOut_MainPS(
 
 		// -0.5 .. 0.5, could be optimzed as lower quality noise would be sufficient
 		float QuantizationBias = PseudoRandom( MaterialParameters.SvPosition.xy ) - 0.5f;
-		EncodeGBuffer(GBuffer, InOut.MRT[1], InOut.MRT[2], InOut.MRT[3], OutGBufferD, OutGBufferE, OutVelocity, QuantizationBias);
+		EncodeGBuffer(GBuffer, Out.MRT[1], Out.MRT[2], Out.MRT[3], OutGBufferD, OutGBufferE, OutVelocity, QuantizationBias);
 	#endif 
 
 	if(bEditorWeightedZBuffering)
 	{
-		InOut.MRT[0].a = 1;
+		Out.MRT[0].a = 1;
 
 #if MATERIALBLENDING_MASKED
 		// some material might have a opacity value
-		InOut.MRT[0].a = GetMaterialMaskInputRaw(PixelMaterialInputs);
+		Out.MRT[0].a = GetMaterialMaskInputRaw(PixelMaterialInputs);
 #endif
 		// we output premultiplied alpha to we have to darken all 4 channels
-		InOut.MRT[0] *= ClipForEditorPrimitives(MaterialParameters);
+		Out.MRT[0] *= ClipForEditorPrimitives(MaterialParameters);
 
 		#if EDITOR_ALPHA2COVERAGE != 0
 			// per MSAA sample
 			if(MSAASampleCount > 1)
 			{
-				InOut.OutCoverage = InOut.InCoverage & CustomAlpha2Coverage(InOut.MRT[0]);
+				Out.Coverage = In.Coverage & CustomAlpha2Coverage(Out.MRT[0]);
 			}
 			else
 			{
 				// no MSAA is handle like per pixel
-				clip(InOut.MRT[0].a - GetMaterialOpacityMaskClipValue());
+				clip(Out.MRT[0].a - GetMaterialOpacityMaskClipValue());
 			}
 		#else
 			// per pixel
-			clip(InOut.MRT[0].a - GetMaterialOpacityMaskClipValue());
+			clip(Out.MRT[0].a - GetMaterialOpacityMaskClipValue());
 		#endif
 	}
 
@@ -1121,14 +1122,14 @@ void FPixelShaderInOut_MainPS(
 	int MRT_Write_Index = 4;
 
 	#if WRITES_VELOCITY_TO_GBUFFER
-		InOut.MRT[MRT_Write_Index++] = OutVelocity;
+		Out.MRT[MRT_Write_Index++] = OutVelocity;
 	#endif
 
 	// we don't test for WRITES_CUSTOMDATA_TO_GBUFFER because GetGBufferRenderTargets() is not masking the MRT based on it, we mask by GetSelectiveOutputMask instead
-	InOut.MRT[MRT_Write_Index++] = OutGBufferD;
+	Out.MRT[MRT_Write_Index++] = OutGBufferD;
 
 	#if WRITES_PRECSHADOWFACTOR_TO_GBUFFER
-		InOut.MRT[MRT_Write_Index++] = OutGBufferE;
+		Out.MRT[MRT_Write_Index++] = OutGBufferE;
 	#endif
 
 #endif

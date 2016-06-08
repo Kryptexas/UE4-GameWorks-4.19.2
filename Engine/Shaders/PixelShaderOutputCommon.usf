@@ -90,59 +90,60 @@ void MainPS
 {
 	// ---------------------------------------------------------------------------------
 
-	FPixelShaderInOut PixelShaderInOut = (FPixelShaderInOut)0;
+	FPixelShaderIn PixelShaderIn = (FPixelShaderIn)0;
+	FPixelShaderOut PixelShaderOut = (FPixelShaderOut)0;
 
 #if PIXELSHADEROUTPUT_A2C
-	PixelShaderInOut.InCoverage = InCoverage;
-	PixelShaderInOut.OutCoverage = InCoverage;
+	PixelShaderIn.Coverage = InCoverage;
+	PixelShaderOut.Coverage = InCoverage;
 #endif 
 
-	PixelShaderInOut.SvPosition = SvPosition;
-	PixelShaderInOut.bIsFrontFace = bIsFrontFace;
+	PixelShaderIn.SvPosition = SvPosition;
+	PixelShaderIn.bIsFrontFace = bIsFrontFace;
 
 #if PIXELSHADEROUTPUT_BASEPASS
-	FPixelShaderInOut_MainPS(Interpolants, BasePassInterpolants, PixelShaderInOut);
+	FPixelShaderInOut_MainPS(Interpolants, BasePassInterpolants, PixelShaderIn, PixelShaderOut);
 #else
-	FPixelShaderInOut_MainPS(PixelShaderInOut);
+	FPixelShaderInOut_MainPS(PixelShaderIn, PixelShaderOut);
 #endif
 
 #if PIXELSHADEROUTPUT_MRT0
-	OutTarget0 = PixelShaderInOut.MRT[0];
+	OutTarget0 = PixelShaderOut.MRT[0];
 #endif
 
 #if PIXELSHADEROUTPUT_MRT1
-	OutTarget1 = PixelShaderInOut.MRT[1];
+	OutTarget1 = PixelShaderOut.MRT[1];
 #endif
 
 #if PIXELSHADEROUTPUT_MRT2
-	OutTarget2 = PixelShaderInOut.MRT[2];
+	OutTarget2 = PixelShaderOut.MRT[2];
 #endif
 
 #if PIXELSHADEROUTPUT_MRT3
-	OutTarget3 = PixelShaderInOut.MRT[3];
+	OutTarget3 = PixelShaderOut.MRT[3];
 #endif
 
 #if PIXELSHADEROUTPUT_MRT4
-	OutTarget4 = PixelShaderInOut.MRT[4];
+	OutTarget4 = PixelShaderOut.MRT[4];
 #endif
 
 #if PIXELSHADEROUTPUT_MRT5
-	OutTarget5 = PixelShaderInOut.MRT[5];
+	OutTarget5 = PixelShaderOut.MRT[5];
 #endif
 
 #if PIXELSHADEROUTPUT_MRT6
-	OutTarget6 = PixelShaderInOut.MRT[6];
+	OutTarget6 = PixelShaderOut.MRT[6];
 #endif
 
 #if PIXELSHADEROUTPUT_MRT7
-	OutTarget7 = PixelShaderInOut.MRT[7];
+	OutTarget7 = PixelShaderOut.MRT[7];
 #endif
 
 #if PIXELSHADEROUTPUT_A2C
-	OutCoverage = PixelShaderInOut.OutCoverage;
+	OutCoverage = PixelShaderOut.Coverage;
 #endif 
 
 #if OUTPUT_PIXEL_DEPTH_OFFSET
-	OutDepth = PixelShaderInOut.OutDepth;
+	OutDepth = PixelShaderOut.Depth;
 #endif 
 }

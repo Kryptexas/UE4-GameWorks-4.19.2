@@ -98,7 +98,6 @@ public class Engine : ModuleRules
 				"Landscape",
                 "UMG",
 				"Projects",
-//                "RawMesh",          // causes WARNING: Non-editor build cannot depend on non-redistributable modules. Details:
 				"Niagara",
                 "Internationalization",
                 "MaterialShaderQualitySettings",
@@ -108,7 +107,14 @@ public class Engine : ModuleRules
             }
 		);
 
-		bool bVariadicTemplatesSupported = true;
+        // to prevent "causes WARNING: Non-editor build cannot depend on non-redistributable modules."
+        if (Target.Type == TargetRules.TargetType.Editor)
+        {
+            // for now we depend on this 
+            PrivateDependencyModuleNames.Add("RawMesh");
+        }
+
+        bool bVariadicTemplatesSupported = true;
 		if (Target.Platform == UnrealTargetPlatform.XboxOne)
 		{
 			// Use reflection to allow type not to exist if console code is not present
@@ -329,8 +335,8 @@ public class Engine : ModuleRules
 				"UEOgg",
 				"Vorbis",
 				"VorbisFile",
-				"libOpus"
-			   // "OpenSubdiv"
+				"libOpus",
+			    "OpenSubdiv"
 				);
 
 			if (UEBuildConfiguration.bCompileLeanAndMeanUE == false)

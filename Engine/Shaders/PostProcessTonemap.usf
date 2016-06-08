@@ -10,6 +10,9 @@
 #include "GammaCorrectionCommon.usf"
 #include "EyeAdaptationCommon.usf"
 
+// 0 / 1(slower, visualize multiple internals side by side for the same image portion, see DebugTile)
+#define DEBUG_TONEMAPPER 0
+
 // 64x64 tiling noise texture, optimized to have mostly high frequency content
 Texture2D NoiseTexture;
 SamplerState NoiseTextureSampler;
@@ -22,7 +25,7 @@ float4 ColorScale1;
 // to scale UV (with border) to NormaizedUV (without border)
 float2 TexScale;
 
-// from the postprocess settings, x:VignetteIntensity, y:Sharpen
+// from the postprocess settings, x:VignetteIntensity, y:SharpenDiv6
 float2 TonemapperParams;
 
 // Fine film grain
@@ -245,6 +248,45 @@ float3 InvertACESTonemapping( float3 OutColorAP1 )
 	return lerp(Approach0, Approach1, ACESInversion);
 }
 
+float max4(float4 x)
+{
+	return max(max(x.r, x.g), max(x.b, x.a));
+}
+
+// useful debug helper (not optimized), could be moved into a more common place
+// @param DebugTile 0,0 is center, -1,0 is left, 1,0 is right, ...
+float2 ComputeCounterStepForTileDebugging(float4 SvPosition, int2 TileSize, out int2 DebugTile, out int2 LocalDebugTilePosition)
+{
+	// ViewportRect is defined for postprocessing passes
+	float2 CenterPos = (ViewportRect.xy + ViewportRect.zw) / 2.0f;
+	float2 LeftTopPos = CenterPos - TileSize / 2;
+
+	float2 LocalPos = SvPosition.xy - LeftTopPos;
+
+	DebugTile = floor(LocalPos / TileSize);
+
+	LocalDebugTilePosition = LocalPos - DebugTile * TileSize;
+
+	float2 CounterStep = -DebugTile * TileSize;
+
+	return CounterStep;
+}
+// useful debug helper (works with ComputeCounterStepForTileDebugging()), could be moved into a more common place
+#define OffsetInterpolator(CounterStep, InterpolatorName) \
+		InterpolatorName += ddx(InterpolatorName) * CounterStep.x + ddy(InterpolatorName) * CounterStep.y;
+
+half3 LookupSceneColor(float2 SceneUV, int2 PixelOffset)
+{
+#if ES2_PROFILE && COMPILER_GLSL_ES2
+	// slower but always works
+	// to prevent "error: Texture offset not supported on GLSL ES"
+	return Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, SceneUV + PixelOffset * PostprocessInput0Size.zw).rgb;
+#else
+	// faster
+	return PostprocessInput0.SampleLevel(PostprocessInput0Sampler, SceneUV, 0, PixelOffset).rgb;
+#endif
+}
+
 // pixel shader entry point
 void MainPS(
 	in noperspective float2 UV : TEXCOORD0,
@@ -257,6 +299,30 @@ void MainPS(
 	)
 {
 	OutColor = 0;
+
+#if DEBUG_TONEMAPPER
+	// @param DebugTile 0,0 is center, -1,0 is left, 1,0 is right, ...
+	int2 DebugTile;
+	int2 LocalDebugTilePosition;
+	bool bOutputDebugTile = false;
+	{
+		// split the screen in a 3x3 layout and add some border (0.3)
+		int2 TileSize = floor(ViewportSize.xy / float2(3.3f, 3.3f));
+		bool bBorder;
+
+		float2 CounterStep = ComputeCounterStepForTileDebugging(SvPosition, TileSize, DebugTile, LocalDebugTilePosition);
+
+		OffsetInterpolator(CounterStep, UV);
+		OffsetInterpolator(CounterStep, GrainUV);
+		OffsetInterpolator(CounterStep, FringeUV);
+		OffsetInterpolator(CounterStep, FullViewUV);
+	}
+	if (all(DebugTile == int2(0, 0)))
+	{
+		// center is unaltered tonemapper output
+		bOutputDebugTile = true;
+	}
+#endif
 
 	#if USE_GRAIN_JITTER || USE_GRAIN_INTENSITY || USE_GRAIN_QUANTIZATION
 		half Grain = GrainFromUV(GrainUV.zw);
@@ -282,42 +348,76 @@ void MainPS(
 
 	float ExposureScale = InExposureScaleVignette.x;
 
+#if DEBUG_TONEMAPPER
+	if (all(DebugTile == int2(-1, 1)))
+	{
+		// left below to the center is: no ExposureScale
+		ExposureScale = 1.0f;
+		bOutputDebugTile = true;
+	}
+#endif
+
+	// 0..x, 0:no effect .. 1:strong, from r.Tonemapper.Sharpen
+	// Div6 is to save one instruction
+	float SharpenMultiplierDiv6 = TonemapperParams.y;
+
+#if DEBUG_TONEMAPPER
+	if (all(DebugTile == int2(0, -1)) || all(DebugTile == int2(-1, -1)))
+	{
+		// top row: no sharpen
+		SharpenMultiplierDiv6 = 0;
+		bOutputDebugTile = true;
+	}
+#endif //DEBUG_TONEMAPPER
+
 #if USE_SHARPEN
 	{
-		// can be optimized a bit further, is combined with othr features so with more shader permutations we can save more performance
-		half3 SurroundingSceneColor = (
-			Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, SceneUV + float2(-1, 0) * PostprocessInput0Size.zw).rgb +
-			Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, SceneUV + float2( 1, 0) * PostprocessInput0Size.zw).rgb +
-			Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, SceneUV + float2( 0,-1) * PostprocessInput0Size.zw).rgb + 
-			Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, SceneUV + float2( 0, 1) * PostprocessInput0Size.zw).rgb) * 0.25f;
+		half3 C1 = LookupSceneColor(SceneUV, int2(-1,  0));
+		half3 C2 = LookupSceneColor(SceneUV, int2( 1,  0));
+		half3 C3 = LookupSceneColor(SceneUV, int2(-1, -1));
+		half3 C4 = LookupSceneColor(SceneUV, int2(-1,  1));
 
-		// 0..x, 0:no effect .. 1:strong from r.Tonemapper.Sharpen
-		float SharpenMultiplier = TonemapperParams.y;
-		// can be replaced by View.GeneralPurposeTweak for tweaking, 1.0 to avoid the multiplication (faster), 0.0f to be off (fastest)
-		const float BleedTweak = 1.0f;
+		// reference solution
+//		half A0 = max3(SceneColor);
+//		half4 LuminanceNeightbors = half4(max3(C1), max3(C2), max3(C3), max3(C4));
+		// 5 instructiopns less than reference
+//		half A0 = Luminance(SceneColor);
+//		half4 LuminanceNeightbors = half4(Luminance(C1), Luminance(C2), Luminance(C3), Luminance(C4));
+		// 9 instructions less than reference (green is often a good approximation for the luminance)
+		half A0 = SceneColor.g;
+		half4 LuminanceNeightbors = half4(C1.g, C2.g, C3.g, C4.g);
 
-		// -1:full sharpen, 0:no effect, 1: full blur
-		float LerpFactor;
+		// compute mask to not sharpen near very bright HDR content
+		// Note: using max instead of summming up saves 1 instruction
+		// Note: We could multiply this to tweak the edge weight but it might instroduce a cost
+//		half HDREdge = ExposureScale * max4(abs(A0 - LuminanceNeightbors));
+		// 3 instructions less but less accurate (faint black dots near bright edges)
+		half HDREdge = ExposureScale * max(abs(A0 * 2 - (LuminanceNeightbors.r + LuminanceNeightbors.g)), abs(A0 * 2 - (LuminanceNeightbors.b + LuminanceNeightbors.a)));
+
+		// 0..1
+		half EdgeMask = saturate(1.0f - HDREdge);
+
+#if DEBUG_TONEMAPPER
+		if (all(DebugTile == int2(1, 0)))
 		{
-			float NeighborHDRLum = max3(SurroundingSceneColor) * ExposureScale;
-			float CenterHDRLum = max3(SceneColor) * ExposureScale;
-			half SurroundingLDRLum = SimpleToneMap(NeighborHDRLum).r;
-			half LDRLum = SimpleToneMap(CenterHDRLum).r;
-
-			// cheaper
-			float Sharpen = (saturate(max(SurroundingLDRLum, LDRLum)) - 1) * SharpenMultiplier;
-
-			// 0:no effect, 1:full bleed
-			float Bleed = saturate(NeighborHDRLum * NeighborHDRLum * BleedTweak);
-
-			// bloom out highlights, clamped to be less than 1 to avoid a flat colored star shape (+) from a single bright pixel source
-			LerpFactor = lerp(Sharpen, 0.75f, Bleed);
+			// right to the center is: Sharpen EdgeMask
+			OutColor = EdgeMask; return;
 		}
+#endif //DEBUG_TONEMAPPER
 
-		// uncomment to visualize/debug the LerpFactor (red is sharpen, green is blur, black is untouched)
-//		OutColor = saturate(float4(-LerpFactor, LerpFactor, 0, 0)); return;
 
-		SceneColor = lerp(SceneColor, SurroundingSceneColor, LerpFactor);
+		// -1:sharpen, 0:no effect, 1:blur
+		float LerpFactor = -EdgeMask * SharpenMultiplierDiv6;
+
+
+
+		// reference
+		// same instruction count as if the center weight is 1.0
+//		half3 BlurredSceneColor = ((C1 + C2 + C3 + C4) + SceneColor * 2) / 6;
+//		SceneColor = lerp(SceneColor, BlurredSceneColor, LerpFactor);
+		// optimized, Div6 went into the C++ code
+		half3 DeltaColor = (C1 + C2 + C3 + C4) - SceneColor * 4;
+		SceneColor += DeltaColor * LerpFactor;
 	}
 #endif
 
@@ -336,6 +436,22 @@ void MainPS(
 			#endif
 			float4 CombinedBloom = Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, BloomUV);
 			float3 BloomDirtMaskColor = Texture2DSample(BloomDirtMask.Mask, BloomDirtMask.MaskSampler, SvPositionToViewportUV(SvPosition)).rgb * BloomDirtMask.Tint.rgb;
+
+#if DEBUG_TONEMAPPER
+			if (all(DebugTile == int2(-1, -1)))
+			{
+				// left to the center is: no bloom
+				CombinedBloom = 0;
+				bOutputDebugTile = true;
+			}
+			if (all(DebugTile == int2(1, -1)))
+			{
+				// right to the center is: bloom only
+				LinearColor = 0;
+				bOutputDebugTile = true;
+			}
+#endif //DEBUG_TONEMAPPER
+
 			LinearColor += CombinedBloom.rgb * (ColorScale1.rgb + BloomDirtMaskColor); 
 		#endif
 
@@ -371,9 +487,6 @@ void MainPS(
 		// RETURN_COLOR not needed unless writing to SceneColor
 		OutColor = float4(OutDeviceColor, saturate(LuminanceForPostProcessAA));
 
-		//experimental HDR support
-		//quite expensive, will need to be on a switch or optimized.
-#if 0
 		// Tonemapped color in the output gamut
 		half3 OutColorInGamut = OutColor.rgb;
 
@@ -381,10 +494,30 @@ void MainPS(
 		half3 PseudoLinearColor = InvertACESTonemapping( OutColor );
 
 		// Choose between output device or 'pseudo linear' color
-		OutColor.rgb = lerp(OutColorInGamut, PseudoLinearColor, InvertTonemapping);
-#endif
+//		OutColor.rgb = lerp(OutColorInGamut, PseudoLinearColor, InvertTonemapping);
+		OutColor.rgb = OutColorInGamut;
 
 	#endif
+
+
+#if DEBUG_TONEMAPPER
+	if (!bOutputDebugTile)
+	{
+		// the original tonemapped color is only in the center
+		// other tiles can output like this:
+		//  if(all(DebugTile == int2(1, 0)))
+		//    { OutColor = ..; return; }
+		// or
+		//  if(all(DebugTile == int2(1, 0)))
+		//    { ..; bOutputDebugTile = true; }
+		OutColor = 0;
+	}
+	if (any(LocalDebugTilePosition == int2(0, 0)))
+	{
+		// border grid
+		OutColor = 1;
+	}
+#endif //DEBUG_TONEMAPPER
 }
 
 

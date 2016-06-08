@@ -5448,7 +5448,7 @@ public:
 		if (lhs->type->is_matrix() && assign->write_mask != 0)
 		{
 			check(lhs->type->base_type == assign->rhs->type->base_type);
-			check(assign->rhs->type->is_vector());
+			check(assign->rhs->type->is_scalar() || assign->rhs->type->is_vector());
 
 			void* ctx = ralloc_parent(assign);
 			ir_variable* dest_var = lhs->variable_referenced();
@@ -5466,16 +5466,14 @@ public:
 			{
 				if (write_mask & 0x1)
 				{
-					this->base_ir->insert_before(new(ctx)ir_assignment(
-						new(ctx)ir_dereference_array(
-						new(ctx)ir_dereference_array(
-						dest_var,
-						new(ctx)ir_constant(dest_index / dest_var->type->vector_elements)
-						),
-						new(ctx)ir_constant(dest_index % dest_var->type->vector_elements)
-						),
-						new(ctx)ir_dereference_array(tmp_vec, new(ctx)ir_constant(src_index))
-						));
+					ir_dereference_array* Row = new(ctx) ir_dereference_array(dest_var, new(ctx) ir_constant(dest_index / dest_var->type->vector_elements));
+					ir_dereference_array* LHS =  new(ctx) ir_dereference_array(
+									Row,
+									new(ctx) ir_constant(dest_index % dest_var->type->vector_elements));
+					ir_dereference* RHS = assign->rhs->type->is_vector()
+						? (ir_dereference*)(new(ctx) ir_dereference_array(tmp_vec, new(ctx)ir_constant(src_index)))
+						: (ir_dereference*)(new(ctx) ir_dereference_variable(tmp_vec));
+					this->base_ir->insert_before(new(ctx)ir_assignment(LHS, RHS));
 					src_index++;
 				}
 				dest_index++;

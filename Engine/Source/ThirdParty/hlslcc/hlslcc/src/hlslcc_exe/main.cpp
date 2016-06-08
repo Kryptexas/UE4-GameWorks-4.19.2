@@ -3,12 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#if WIN32
 #include <Windows.h>
-#else
-#include <stdarg.h>
-#include <syslog.h>
-#endif
 #include "ShaderCompilerCommon.h"
 #include "hlslcc.h"
 #include "LanguageSpec.h"
@@ -48,7 +43,7 @@ static void dprintf(const char* Format, ...)
 	}
 	
 #if WIN32
-	OutputDebugString(DebugBuffer);
+	OutputDebugStringA(DebugBuffer);
 #elif __APPLE__
 	syslog(LOG_DEBUG, "%s", DebugBuffer);
 #endif

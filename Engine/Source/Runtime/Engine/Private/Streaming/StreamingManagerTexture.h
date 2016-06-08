@@ -91,10 +91,8 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 #if STATS_FAST
 	bool HandleDumpTextureStreamingStatsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 #endif // STATS_FAST
-#if STATS
-	bool HandleListStreamingTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar );
-#endif // STATS
 #if !UE_BUILD_SHIPPING
+	bool HandleListStreamingTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleResetMaxEverRequiredTexturesCommand(const TCHAR* Cmd, FOutputDevice& Ar);
 	bool HandleLightmapStreamingFactorCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleCancelTextureStreamingCommand( const TCHAR* Cmd, FOutputDevice& Ar );
@@ -167,9 +165,6 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 	/** Returns the corresponding FStreamingTexture for a UTexture2D. */
 	FStreamingTexture* GetStreamingTexture( const UTexture2D* Texture2D );
 
-	/** Updates the I/O state of a texture (allowing it to progress to the next stage) and some stats. */
-	void UpdateTextureStatus( FStreamingTexture& StreamingTexture, FStreamingContext& Context );
-
 	/**
 	 * Cancels the current streaming request for the specified texture.
 	 *
@@ -177,32 +172,6 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 	 * @return						true if a streaming request was canceled
 	 */
 	bool CancelStreamingRequest( FStreamingTexture& StreamingTexture );
-
-	/** Resets the streaming statistics to zero. */
-	void ResetStreamingStats();
-
-	/**
-	 * Updates the streaming statistics with current frame's worth of stats.
-	 *
-	 * @param Context					Context for the current frame
-	 * @param bAllTexturesProcessed		Whether all processing is complete
-	 */
-	void UpdateStreamingStats( const FStreamingContext& Context, bool bAllTexturesProcessed );
-
-#if STATS
-	/** Ringbuffer of bandwidth samples for streaming in mip-levels (MB/sec). */
-	static float BandwidthSamples[NUM_BANDWIDTHSAMPLES];
-	/** Number of bandwidth samples that have been filled in. Will stop counting when it reaches NUM_BANDWIDTHSAMPLES. */
-	static int32 NumBandwidthSamples;
-	/** Current sample index in the ring buffer. */
-	static int32 BandwidthSampleIndex;
-	/** Average of all bandwidth samples in the ring buffer, in MB/sec. */
-	static float BandwidthAverage;
-	/** Maximum bandwidth measured since the start of the game.  */
-	static float BandwidthMaximum;
-	/** Minimum bandwidth measured since the start of the game.  */
-	static float BandwidthMinimum;
-#endif
 
 	/** Set current pause state for texture streaming */
 	virtual void PauseTextureStreaming(bool bInShouldPause) override
@@ -214,27 +183,21 @@ protected:
 //BEGIN: Thread-safe functions and data
 		friend class FAsyncTextureStreamingTask;
 
-		/** Calculates the minimum and maximum number of mip-levels for a streaming texture. */
-		void CalcMinMaxMips( FStreamingTexture& StreamingTexture );
-
-		/** Calculates the number of mip-levels we would like to have in memory for a texture. */
-		void CalcWantedMips( const FAsyncTextureStreamingData& StreamingData, FStreamingTexture& StreamingTexture, bool bGetHeuristic, bool bOutputToLog );
-
-		/** Updates this frame's STATs by one texture. */
-		void UpdateFrameStats( FStreamingContext& Context, FStreamingTexture& StreamingTexture, int32 TextureIndex );
-
 		/**
 		 * Not thread-safe: Updates a portion (as indicated by 'StageIndex') of all streaming textures,
 		 * allowing their streaming state to progress.
 		 *
-		 * @param Context			Context for the current stage (frame)
 		 * @param StageIndex		Current stage index
 		 * @param NumUpdateStages	Number of texture update stages
 		 */
-		void UpdateStreamingTextures( FStreamingContext& Context, int32 StageIndex, int32 NumStages );
+		void UpdateStreamingTextures( int32 StageIndex, int32 NumStages );
+
+		void ProcessRemovedTextures();
+		void ProcessAddedTextures();
+		void ConditionalUpdateStaticData();
 
 		/** Adds new textures and level data on the gamethread (while the worker thread isn't active). */
-		void UpdateThreadData();
+		void UpdateThreadData( bool bProcessEverything );
 
 		/** Checks for updates in the user settings (CVars, etc). */
 		void CheckUserSettings();
@@ -252,27 +215,6 @@ protected:
 		 */
 		void StreamTextures( bool bProcessEverything );
 
-		/**
-		 * Keep as many unnecessary mips as possible.
-		 *
-		 * @param Context				Context for the current stage
-		 */
-		void KeepUnwantedMips( FStreamingContext& Context );
-
-		/**
-		 * Drop as many mips required to fit in budget.
-		 *
-		 * @param Context				Context for the current stage
-		 */
-		void DropWantedMips( FStreamingContext& Context );
-
-		/**
-		 * Drop as many forced required to fit in budget.
-		 *
-		 * @param Context				Context for the current stage
-		 */
-		void DropForcedMips( FStreamingContext& Context );
-
 		/** All streaming UTexture2D objects. */
 		TArray<FStreamingTexture> StreamingTextures;
 
@@ -289,6 +231,10 @@ protected:
 	void	SetTexturesRemovedTimestamp(const FRemovedTextureArray& RemovedTextures);
 
 	void	DumpTextureGroupStats( bool bDetailedStats );
+
+	void	SetLastUpdateTime();
+	void	UpdateStats();
+	void	LogViewLocationChange();
 
 	void	IncrementalUpdate( float Percentage );
 
@@ -312,6 +258,9 @@ protected:
 	/** New textures, before they've been added to the thread-safe container. */
 	TArray<UTexture2D*>	PendingStreamingTextures;
 
+	/** The list of indices with null texture in StreamingTextures. */
+	TArray<int32>	RemovedTextureIndices;
+
 	/** Level data */
 	TArray<FLevelTextureManager> LevelTextureManagers;
 
@@ -326,9 +275,6 @@ protected:
 
 	float					BoostPlayerTextures;
 
-	/** Extra distance added to the range test, to start streaming the texture before they are actually used. */
-	float					RangePrefetchDistance;
-
 	/** Amount of memory to leave free in the texture pool. */
 	int64					MemoryMargin;
 
@@ -338,47 +284,8 @@ protected:
 	/** The actual memory pool size available to stream textures, excludes non-streaming texture, temp memory (for streaming mips), memory margin (allocator overhead). */
 	int64					EffectiveStreamingPoolSize;
 
-	/** If set, UpdateResourceStreaming() will only process this texture. */
-	UTexture2D*				IndividualStreamingTexture;
-
 	// Stats we need to keep across frames as we only iterate over a subset of textures.
 
-	/** Number of streaming textures */
-	uint32 NumStreamingTextures;
-	/** Number of requests in cancelation phase. */
-	uint32 NumRequestsInCancelationPhase;
-	/** Number of requests in mip update phase. */
-	uint32 NumRequestsInUpdatePhase;
-	/** Number of requests in mip finalization phase. */
-	uint32 NumRequestsInFinalizePhase;
-	/** Size ot all intermerdiate textures in flight. */
-	uint32 TotalIntermediateTexturesSize;
-	/** Number of intermediate textures in flight. */
-	uint32 NumIntermediateTextures;
-	/** Size of all streaming testures. */
-	uint64 TotalStreamingTexturesSize;
-	/** Maximum size of all streaming textures. */
-	uint64 TotalStreamingTexturesMaxSize;
-	/** Total number of bytes in memory, for all streaming lightmap textures. */
-	uint64 TotalLightmapMemorySize;
-	/** Total number of bytes on disk, for all streaming lightmap textures. */
-	uint64 TotalLightmapDiskSize;
-	/** Total number of bytes in memory, for all HLOD textures. */
-	uint64 TotalHLODMemorySize;
-	/** Total number of bytes on disk, for all HLOD textures. */
-	uint64 TotalHLODDiskSize;
-	/** Number of mip count increase requests in flight. */
-	uint32 TotalMipCountIncreaseRequestsInFlight;
-	/** Total number of bytes in memory, if all textures were streamed perfectly with a 1.0 fudge factor. */
-	uint64 TotalOptimalWantedSize;
-	/** Total number of bytes using StaticTexture heuristics, currently in memory. */
-	uint64 TotalStaticTextureHeuristicSize;
-	/** Total number of bytes using DynmicTexture heuristics, currently in memory. */
-	uint64 TotalDynamicTextureHeuristicSize;
-	/** Total number of bytes using LastRenderTime heuristics, currently in memory. */
-	uint64 TotalLastRenderHeuristicSize;
-	/** Total number of bytes using ForcedIntoMemory heuristics, currently in memory. */
-	uint64 TotalForcedHeuristicSize;
 	int64 MemoryOverBudget;
 	int64 MaxEverRequired;
 
@@ -395,33 +302,10 @@ protected:
 	/** Last time all data were fully updated. Instances are considered visible if they were rendered between that last time and the current time. */
 	float LastUpdateTime;
 
-#if STATS
-	/**
-	 * Ring buffer containing all latency samples we keep track of, as measured in seconds from the time the streaming system
-	 * detects that a change is required until the data has been streamed in and the new texture is ready to be used.
-	 */
-	float LatencySamples[NUM_LATENCYSAMPLES];
-	/** Number of latency samples that have been filled in. Will stop counting when it reaches NUM_LATENCYSAMPLES. */
-	int32 NumLatencySamples;
-	/** Current sample index in the ring buffer. */
-	int32 LatencySampleIndex;
-	/** Average of all latency samples in the ring buffer, in seconds. */
-	float LatencyAverage;
-	/** Maximum latency measured since the start of the game.  */
-	float LatencyMaximum;
+	FTextureStreamingStats DisplayedStats;
+	FTextureStreamingStats GatheredStats;
 
-	/**
-	 * Updates the streaming latency STAT for a texture.
-	 *
-	 * @param Texture		Texture to update for
-	 * @param WantedMips	Number of desired mip-levels for the texture
-	 * @param bInFlight		Whether the texture is currently being streamed
-	 */
-	void UpdateLatencyStats( UTexture2D* Texture, int32 WantedMips, bool bInFlight );
-
-	/** Total time taken for each processing stage. */
-	TArray<double> StreamingTimes;
-#endif
+	TArray<int32> InflightTextures;
 
 #if STATS_FAST
 	uint64 MaxStreamingTexturesSize;

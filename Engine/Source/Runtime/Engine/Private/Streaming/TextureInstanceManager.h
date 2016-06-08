@@ -30,6 +30,13 @@ public:
 		/** Z coordinates for the bounds origin of 4 texture instances */
 		FVector4 OriginZ;
 
+		/** X coordinates for used to compute the distance condition between min and max */
+		FVector4 RangeOriginX;
+		/** Y coordinates for used to compute the distance condition between min and max */
+		FVector4 RangeOriginY;
+		/** Z coordinates for used to compute the distance condition between min and max */
+		FVector4 RangeOriginZ;
+
 		/** X size of the bounds box extent of 4 texture instances */
 		FVector4 ExtentX;
 		/** Y size of the bounds box extent of 4 texture instances */
@@ -39,16 +46,19 @@ public:
 
 		/** Sphere radii for the bounding sphere of 4 texture instances */
 		FVector4 Radius;
+
 		/** Minimal distance (between the bounding sphere origin and the view origin) for which this entry is valid */
 		FVector4 MinDistanceSq;
-		/** Maximal distance (between the bounding sphere origin and the view origin) for which this entry is valid */
-		FVector4 MaxDistanceSq;
+		/** Minimal range distance (between the bounding sphere origin and the view origin) for which this entry is valid */
+		FVector4 MinRangeSq;
+		/** Maximal range distance (between the bounding sphere origin and the view origin) for which this entry is valid */
+		FVector4 MaxRangeSq;
 
 		/** Last visibility time for this bound, used for priority */
 		FVector4 LastRenderTime; //(FApp::GetCurrentTime() - Component->LastRenderTime);
 
 
-		FORCEINLINE_DEBUGGABLE void Set(int32 Index, const FBoxSphereBounds& Bounds, float LastRenderTime, float MinDistance, float MaxDistance);
+		FORCEINLINE_DEBUGGABLE void Set(int32 Index, const FBoxSphereBounds& Bounds, float LastRenderTime, const FVector& RangeOrigin, float MinDistance, float MinRange, float MaxRange);
 		FORCEINLINE_DEBUGGABLE void Update(int32 Index, const FBoxSphereBounds& Bounds, float LastRenderTime);
 		FORCEINLINE_DEBUGGABLE void Update(int32 Index, float LastRenderTime);
 
@@ -178,7 +188,13 @@ private:
 	// Returns the next elements using the same component.
 	void RemoveElement(int32 ElementIndex, int32& NextComponentLink, int32& BoundsIndex, const UTexture2D*& Texture);
 
-	int32 AddBounds(const FBoxSphereBounds& Bounds, const UPrimitiveComponent* Component, float LastRenderTime, float MinDistance = 0 , float MaxDistance = FLT_MAX);
+	int32 AddBounds(const FBoxSphereBounds& Bounds, const UPrimitiveComponent* Component, float LastRenderTime, const FVector4& RangeOrigin, float MinDistance, float MinRange, float MaxRange);
+
+	FORCEINLINE int32 AddBounds(const FBoxSphereBounds& Bounds, const UPrimitiveComponent* Component, float LastRenderTime)
+	{
+		return AddBounds(Bounds, Component, LastRenderTime, Bounds.Origin, 0, 0, FLT_MAX);
+	}
+
 	void RemoveBounds(int32 Index);
 
 private:
@@ -287,7 +303,7 @@ public:
 
 	FTextureInstanceAsyncView(const TRefCountPtr<const FTextureInstanceState>& InState) : State(InState) {}
 
-	void Update_Async(const TArray<FStreamingViewInfo>& ViewInfos, float LastUpdateTime, bool bUseAABB, float MaxEffectiveScreenSize);
+	void UpdateBoundSizes_Async(const TArray<FStreamingViewInfo>& ViewInfos, float LastUpdateTime, bool bUseApproxDistance, float MaxEffectiveScreenSize);
 
 	// MaxSize : Biggest texture size for all instances.
 	// MaxSize_VisibleOnly : Biggest texture size for visble instances only.

@@ -35,12 +35,6 @@ public:
 
 	void WaitUntilIdle();
 
-	inline FVulkanPendingState& GetPendingState()
-	{
-		check(PendingState);
-		return *PendingState;
-	}
-
 	inline FVulkanQueue* GetQueue()
 	{
 		check(Queue);
@@ -98,8 +92,6 @@ public:
 	{
 		return FormatProperties;
 	}
-
-	void BindSRV(FVulkanShaderResourceView* SRV, uint32 TextureIndex, EShaderFrequency Stage);
 
 	VulkanRHI::FDeviceMemoryManager& GetMemoryManager()
 	{
@@ -181,13 +173,14 @@ private:
 
 	TArray<VkQueueFamilyProperties> QueueFamilyProps;
 	VkFormatProperties FormatProperties[VK_FORMAT_RANGE_SIZE];
+	// Info for formats that are not in the core Vulkan spec (i.e. extensions)
+	mutable TMap<VkFormat, VkFormatProperties> ExtensionFormatProperties;
 
 	// Nullptr if not supported
 	FVulkanTimestampQueryPool* TimestampQueryPool[NumTimestampPools];
 
 	FVulkanQueue* Queue;
 
-	FVulkanPendingState* PendingState;
 	VkComponentMapping PixelFormatComponentMapping[PF_MAX];
 
 	FVulkanCommandListContext* ImmediateContext;

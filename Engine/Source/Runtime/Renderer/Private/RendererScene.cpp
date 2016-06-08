@@ -86,6 +86,7 @@ FSceneViewState::FSceneViewState()
 	MIDUsedCount = 0;
 	TemporalAASampleIndex = 0;
 	TemporalAASampleCount = 1;
+	FrameIndexMod8 = 0;
 	DistanceFieldTemporalSampleIndex = 0;
 	AOTileIntersectionResources = NULL;
 	AOScreenGridResources = NULL;
@@ -974,8 +975,8 @@ void FScene::AddLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 	{
 		SimpleDirectionalLight = LightSceneInfo;
 
-		// if we are forward rendered and this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy:
-		bool bForwardRendererRequiresLightPolicyChange = !ShouldUseDeferredRenderer() &&
+		// if we are mobile rendered and this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy:
+		bool bMobileRendererRequiresLightPolicyChange = !ShouldUseDeferredRenderer() &&
 			(
 			// this light is a dynamic shadowcast 
 			!SimpleDirectionalLight->Proxy->HasStaticShadowing() || 
@@ -983,7 +984,7 @@ void FScene::AddLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 			SimpleDirectionalLight->Proxy->UseCSMForDynamicObjects()
 			);
 
-		bScenesPrimitivesNeedStaticMeshElementUpdate = bScenesPrimitivesNeedStaticMeshElementUpdate || (bForwardRendererRequiresLightPolicyChange);
+		bScenesPrimitivesNeedStaticMeshElementUpdate = bScenesPrimitivesNeedStaticMeshElementUpdate || (bMobileRendererRequiresLightPolicyChange);
 	}
 
 	if (LightSceneInfo->Proxy->IsUsedAsAtmosphereSunLight() &&
@@ -1531,7 +1532,7 @@ void FScene::UpdateLightColorAndBrightness(ULightComponent* Light)
 			{
 				if( LightSceneInfo && LightSceneInfo->bVisible )
 				{
-					// Forward renderer:
+					// Mobile renderer:
 					// a light with no color/intensity can cause the light to be ignored when rendering.
 					// thus, lights that change state in this way must update the draw lists.
 					Scene->bScenesPrimitivesNeedStaticMeshElementUpdate =
@@ -2079,7 +2080,7 @@ void FScene::UpdateStaticDrawListsForMaterials_RenderThread(FRHICommandListImmed
 	{
 		for (int32 DrawType = 0; DrawType < EBasePass_MAX; DrawType++)
 		{
-			BasePassForForwardShadingUniformLightMapPolicyDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
+			MobileBasePassUniformLightMapPolicyDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
 		}
 	}
 
@@ -2301,8 +2302,8 @@ void FScene::DumpStaticMeshDrawListStats() const
 	DUMP_DRAW_LIST(BasePassSelfShadowedCachedPointIndirectTranslucencyDrawList[EBasePass_Masked]);
 	DUMP_DRAW_LIST(BasePassUniformLightMapPolicyDrawList[EBasePass_Default]);
 	DUMP_DRAW_LIST(BasePassUniformLightMapPolicyDrawList[EBasePass_Masked]);
-	DUMP_DRAW_LIST(BasePassForForwardShadingUniformLightMapPolicyDrawList[EBasePass_Default]);
-	DUMP_DRAW_LIST(BasePassForForwardShadingUniformLightMapPolicyDrawList[EBasePass_Masked]);
+	DUMP_DRAW_LIST(MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Default]);
+	DUMP_DRAW_LIST(MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Masked]);
 	DUMP_DRAW_LIST(HitProxyDrawList);
 	DUMP_DRAW_LIST(HitProxyDrawList_OpaqueOnly);
 	DUMP_DRAW_LIST(VelocityDrawList);
@@ -2459,7 +2460,7 @@ void FScene::ApplyWorldOffset_RenderThread(FVector InOffset)
 	StaticMeshDrawListApplyWorldOffset(HitProxyDrawList_OpaqueOnly, InOffset);
 	StaticMeshDrawListApplyWorldOffset(VelocityDrawList, InOffset);
 	StaticMeshDrawListApplyWorldOffset(WholeSceneShadowDepthDrawList, InOffset);
-	StaticMeshDrawListApplyWorldOffset(BasePassForForwardShadingUniformLightMapPolicyDrawList, InOffset);
+	StaticMeshDrawListApplyWorldOffset(MobileBasePassUniformLightMapPolicyDrawList, InOffset);
 
 	// Motion blur 
 	MotionBlurInfoData.ApplyOffset(InOffset);
@@ -2688,9 +2689,9 @@ TStaticMeshDrawList<TBasePassDrawingPolicy<FUniformLightMapPolicy> >& FScene::Ge
 }
 
 template<>
-TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FUniformLightMapPolicy, 0> >& FScene::GetForwardShadingBasePassDrawList<FUniformLightMapPolicy>(EBasePassDrawListType DrawType)
+TStaticMeshDrawList<TMobileBasePassDrawingPolicy<FUniformLightMapPolicy, 0> >& FScene::GetMobileBasePassDrawList<FUniformLightMapPolicy>(EBasePassDrawListType DrawType)
 {
-	return BasePassForForwardShadingUniformLightMapPolicyDrawList[DrawType];
+	return MobileBasePassUniformLightMapPolicyDrawList[DrawType];
 }
 
 /*-----------------------------------------------------------------------------

@@ -978,7 +978,7 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 				}
 				else
 				{
-					const FText Message = FText::Format( LOCTEXT("ImportFailed_Generic", "Failed to import '{0}'. Failed to create asset '{1}'"), FText::FromString( Filename ), FText::FromString( PackageName ) );
+					const FText Message = FText::Format( LOCTEXT("ImportFailed_Generic", "Failed to import '{0}'. Failed to create asset '{1}'.\nPlease see Output Log for details."), FText::FromString( Filename ), FText::FromString( PackageName ) );
 					FMessageDialog::Open( EAppMsgType::Ok, Message );
 					UE_LOG(LogAssetTools, Warning, TEXT("%s"), *Message.ToString());
 				}

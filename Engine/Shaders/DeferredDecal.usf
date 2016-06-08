@@ -168,15 +168,15 @@ float4 SvPositionToScreenPosition2(float4 SvPosition)
 // EARLYDEPTHSTENCIL for volumetric decals could work here, but only if we are ouside of the decal
 
 // is called in MainPS() from PixelShaderOutputCommon.usf
-void FPixelShaderInOut_MainPS(inout FPixelShaderInOut InOut)
+void FPixelShaderInOut_MainPS(inout FPixelShaderIn In, inout FPixelShaderOut Out)
 {
-	float2 ScreenUV = SvPositionToBufferUV(InOut.SvPosition);
+	float2 ScreenUV = SvPositionToBufferUV(In.SvPosition);
 
 	// make SvPosition appear to be rasterized with the depth from the depth buffer
-	InOut.SvPosition.z = LookupDeviceZ(ScreenUV);
+	In.SvPosition.z = LookupDeviceZ(ScreenUV);
 
 	// default to no shadows, good for volumetric decals
-	InOut.MRT[4] = 1;
+	Out.MRT[4] = 1;
 
 	bool bVolumetric = DECAL_BLEND_MODE == DECALBLENDMODEID_VOLUMETRIC;
 
@@ -189,7 +189,7 @@ void FPixelShaderInOut_MainPS(inout FPixelShaderInOut InOut)
 		// LineBoxIntersect want's to clip a long ray so we provide one, this could be done differently as it limites the draw distance and reduces precision 
 		float SceneW = 100000000;
 
-		float4 SvPositionInDistance = float4(InOut.SvPosition.xy, ConvertToDeviceZ(SceneW), 1);
+		float4 SvPositionInDistance = float4(In.SvPosition.xy, ConvertToDeviceZ(SceneW), 1);
 
 		float3 WSStartRay = View.WorldCameraOrigin;
 		float3 WSEndRay = SvPositionToWorld(SvPositionInDistance);
@@ -206,7 +206,7 @@ void FPixelShaderInOut_MainPS(inout FPixelShaderInOut InOut)
 		float3 OSBoxStartRay = OSStartRay + OSBoxMinMax.x * (OSEndRay - OSStartRay);
 		float3 OSBoxEndRay = OSStartRay + OSBoxMinMax.y * (OSEndRay - OSStartRay);
 
-		HitT = Raycast(InOut.SvPosition, OSBoxStartRay, OSBoxEndRay);
+		HitT = Raycast(In.SvPosition, OSBoxStartRay, OSBoxEndRay);
 
 		clip(HitT);
 
@@ -220,7 +220,7 @@ void FPixelShaderInOut_MainPS(inout FPixelShaderInOut InOut)
 	}
 	else
 	{
-		float4 DecalVectorHom = mul(float4(InOut.SvPosition.xyz,1), SvPositionToDecal);
+		float4 DecalVectorHom = mul(float4(In.SvPosition.xyz,1), SvPositionToDecal);
 		OSPosition = DecalVectorHom.xyz / DecalVectorHom.w;
 
 		// clip content outside the decal
@@ -229,7 +229,7 @@ void FPixelShaderInOut_MainPS(inout FPixelShaderInOut InOut)
 		clip(1.0f - OSPosition.xyz);
 
 		// todo: TranslatedWorld would be better for quality
-		WSPosition = SvPositionToWorld(InOut.SvPosition);
+		WSPosition = SvPositionToWorld(In.SvPosition);
 	}
 
 	float3 CameraVector = normalize(View.WorldCameraOrigin - WSPosition);
@@ -252,8 +252,8 @@ void FPixelShaderInOut_MainPS(inout FPixelShaderInOut InOut)
 #endif
 	MaterialParameters.VertexColor = 1;
 	MaterialParameters.CameraVector = CameraVector;
-	MaterialParameters.SvPosition = InOut.SvPosition;
-	MaterialParameters.ScreenPosition = SvPositionToScreenPosition(InOut.SvPosition);
+	MaterialParameters.SvPosition = In.SvPosition;
+	MaterialParameters.ScreenPosition = SvPositionToScreenPosition(In.SvPosition);
 	MaterialParameters.LightVector = SwizzlePos;
 	MaterialParameters.AbsoluteWorldPosition = 
 		MaterialParameters.WorldPosition_CamRelative = 
@@ -265,7 +265,7 @@ void FPixelShaderInOut_MainPS(inout FPixelShaderInOut InOut)
 		if(bVolumetric)
 		{
 			// not normalized
-			float3 OSNormal = GradientNotNormalized(InOut.SvPosition, OSPosition, HitT);
+			float3 OSNormal = GradientNotNormalized(In.SvPosition, OSPosition, HitT);
 			
 			// To transform the normals use tranpose(Inverse(DecalToWorld)) = transpose(WorldToDecal)
 			// But we want to only rotate the normals (we don't want to non-uniformaly scale them).
@@ -349,17 +349,17 @@ void FPixelShaderInOut_MainPS(inout FPixelShaderInOut InOut)
 	Opacity *= DecalParams.x;
 
 	// RETURN_COLOR not needed unless writing to SceneColor
-	InOut.MRT[0] = float4(Color, Opacity);
+	Out.MRT[0] = float4(Color, Opacity);
 
 #if (ES2_PROFILE || ES3_1_PROFILE)
 #if (COMPILER_GLSL_ES2) || (MOBILE_EMULATION)
 	// Do decal blending if encoding requires it.
 	if (GetHDR32bppEncodeMode() == HDR_ENCODE_RGBA)
 	{
-		InOut.MRT[0].rgb = FrameBufferDecalBlendOp(InOut.MRT[0]);
+		Out.MRT[0].rgb = FrameBufferDecalBlendOp(Out.MRT[0]);
 	}
  	// do 32bpp hdr encoding for mobile if required.
-	InOut.MRT[0] = Encode32BPPHDR(InOut.MRT[0], InOut.SvPosition.xy);
+	Out.MRT[0] = Encode32BPPHDR(Out.MRT[0], In.SvPosition.xy);
 #endif
 #endif
 
@@ -388,7 +388,7 @@ void FPixelShaderInOut_MainPS(inout FPixelShaderInOut InOut)
 		// @param MultiOpacity .x: Color, .y:Normal, .z:Roughness
 		float3 MultiOpacity = Opacity;
 
-		EncodeDBufferData(Data, MultiOpacity, InOut.MRT[0], InOut.MRT[1], InOut.MRT[2]);
+		EncodeDBufferData(Data, MultiOpacity, Out.MRT[0], Out.MRT[1], Out.MRT[2]);
 	}
 	#elif DECAL_RENDERSTAGE == 1
 	{
@@ -399,7 +399,7 @@ void FPixelShaderInOut_MainPS(inout FPixelShaderInOut InOut)
 		float4 OutTarget5 = 0;
 		float4 OutTarget6 = 0;
 
-		EncodeGBuffer(Data, InOut.MRT[1], InOut.MRT[2], InOut.MRT[3], OutTarget4, OutTarget5, OutTarget6);
+		EncodeGBuffer(Data, Out.MRT[1], Out.MRT[2], Out.MRT[3], OutTarget4, OutTarget5, OutTarget6);
 	}
 	#elif DECAL_RENDERSTAGE == 2
 	{
@@ -410,22 +410,22 @@ void FPixelShaderInOut_MainPS(inout FPixelShaderInOut InOut)
 		float4 OutTarget5 = 0;
 		float4 OutTarget6 = 0;
 
-		EncodeGBuffer(Data, InOut.MRT[1], InOut.MRT[2], InOut.MRT[3], OutTarget4, OutTarget5, OutTarget6);
+		EncodeGBuffer(Data, Out.MRT[1], Out.MRT[2], Out.MRT[3], OutTarget4, OutTarget5, OutTarget6);
 
 		#if DECAL_BLEND_MODE == DECALBLENDMODEID_STAIN
-		InOut.MRT[3].rgb *= Opacity;
+		Out.MRT[3].rgb *= Opacity;
 		#endif
 
-		InOut.MRT[0].a = Opacity;	// Emissive
-		InOut.MRT[1].a = Opacity;	// Normal
-		InOut.MRT[2].a = Opacity;	// Metallic, Specular, Roughness
-		InOut.MRT[3].a = Opacity;	// BaseColor
+		Out.MRT[0].a = Opacity;	// Emissive
+		Out.MRT[1].a = Opacity;	// Normal
+		Out.MRT[2].a = Opacity;	// Metallic, Specular, Roughness
+		Out.MRT[3].a = Opacity;	// BaseColor
 	}
 	#endif // DECAL_RENDERSTAGE
 #endif //DECAL_RENDERTARGET_COUNT > 1
 
 #if DECAL_RENDERTARGET_COUNT > 1 && !BIND_RENDERTARGET1 && COMPILER_METAL
-	InOut.MRT[1] = 0;
+	Out.MRT[1] = 0;
 #endif
 }
 

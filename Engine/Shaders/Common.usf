@@ -493,6 +493,7 @@ float4 DDY(float4 Input)
 #endif
 }
 
+#include "FastMath.usf"
 #include "Random.usf"	// used by MaterialExpressionNoise
   
 /** 
@@ -1645,19 +1646,26 @@ SamplerState GetTrilinearClampedSampler()
 }
 
 // see PixelShaderOutputCommon
-struct FPixelShaderInOut
+struct FPixelShaderIn
 {
 	// read only
 	float4 SvPosition;
+
+	// Pixel Shader InCoverage, only usable if PIXELSHADEROUTPUT_A2C is 1
+	uint Coverage;
+
+	//
+	bool bIsFrontFace;
+};
+// see PixelShaderOutputCommon
+struct FPixelShaderOut
+{
 	// [0..7], only usable if PIXELSHADEROUTPUT_MRT0, PIXELSHADEROUTPUT_MRT1, ... is 1
 	float4 MRT[8];
 
-	// only usable if PIXELSHADEROUTPUT_A2C is 1
-	uint InCoverage;
-	// only usable if PIXELSHADEROUTPUT_A2C is 1
-	uint OutCoverage;
+	// Pixel Shader OutCoverage, only usable if PIXELSHADEROUTPUT_A2C is 1
+	uint Coverage;
 
-	bool bIsFrontFace;
-
-	float OutDepth;
+	// Pixel Shader OutDepth
+	float Depth;
 };

@@ -902,6 +902,8 @@ namespace VulkanRHI
 
 		// Returns true if signaled
 		bool CheckFenceState(FFence* Fence);
+
+		void DestroyFence(FFence* Fence);
 	};
 
 	class FDeferredDeletionQueue : public FDeviceChild

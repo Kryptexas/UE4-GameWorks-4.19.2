@@ -44,19 +44,18 @@ void FVulkanDynamicRHI::RHIDiscardRenderTargets(bool Depth, bool Stencil, uint32
 
 void FVulkanCommandListContext::RHISetRenderTargetsAndClear(const FRHISetRenderTargetsInfo& RenderTargetsInfo)
 {
-	FVulkanPendingState& PendingState = Device->GetPendingState();
-	PendingState.SetRenderTargetsInfo(RenderTargetsInfo);
+	PendingState->SetRenderTargetsInfo(RenderTargetsInfo);
 
 #if 0//VULKAN_USE_NEW_RESOURCE_MANAGEMENT
-	auto* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+	FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
 	if (CmdBuffer->IsInsideRenderPass())
 	{
 		if (
 			(RenderTargetsInfo.NumColorRenderTargets == 0 || (RenderTargetsInfo.NumColorRenderTargets == 1 && !RenderTargetsInfo.ColorRenderTarget[0].Texture)) &&
 			!RenderTargetsInfo.DepthStencilRenderTarget.Texture)
 		{
-			PendingState.RenderPassEnd(CmdBuffer);
-			PendingState.PrevRenderTargetsInfo = FRHISetRenderTargetsInfo();
+			PendingState->RenderPassEnd(CmdBuffer);
+			PendingState->PrevRenderTargetsInfo = FRHISetRenderTargetsInfo();
 		}
 	}
 #endif
@@ -64,23 +63,21 @@ void FVulkanCommandListContext::RHISetRenderTargetsAndClear(const FRHISetRenderT
 
 void FVulkanCommandListContext::RHICopyToResolveTarget(FTextureRHIParamRef SourceTextureRHI, FTextureRHIParamRef DestTextureRHI, bool bKeepOriginalSurface, const FResolveParams& ResolveParams)
 {
-	FVulkanPendingState& State = Device->GetPendingState();
-
 #if 1//VULKAN_USE_NEW_COMMAND_BUFFERS
-	auto* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+	FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
 	// Verify if we need to do some work (for the case of SetRT(), CopyToResolve() with no draw calls in between)
-	State.UpdateRenderPass(CmdBuffer);
+	PendingState->UpdateRenderPass(CmdBuffer);
 
-	const bool bRenderPassIsActive = State.IsRenderPassActive();
+	const bool bRenderPassIsActive = PendingState->IsRenderPassActive();
 
 	if (bRenderPassIsActive)
 	{
-		State.RenderPassEnd(CmdBuffer);
+		PendingState->RenderPassEnd(CmdBuffer);
 	}
 
 	check(!SourceTextureRHI || SourceTextureRHI->GetNumSamples() < 2);
 
-	FVulkanFramebuffer* Framebuffer = State.GetFrameBuffer();
+	FVulkanFramebuffer* Framebuffer = PendingState->GetFrameBuffer();
 	if (Framebuffer)
 	{
 		Framebuffer->InsertWriteBarriers(GetCommandBufferManager()->GetActiveCmdBuffer());
@@ -105,18 +102,18 @@ void FVulkanCommandListContext::RHICopyToResolveTarget(FTextureRHIParamRef Sourc
 		return;
 	}
 
-	const bool bRenderPassIsActive = State.IsRenderPassActive();
+	const bool bRenderPassIsActive = PendingState->IsRenderPassActive();
 
 	if (bRenderPassIsActive)
 	{
-		State.RenderPassEnd();
+		PendingState->RenderPassEnd();
 	}
 
-	VulkanResolveImage(State.GetCommandBuffer(), SourceTextureRHI, DestTextureRHI);
+	VulkanResolveImage(PendingState->GetCommandBuffer(), SourceTextureRHI, DestTextureRHI);
 
 	if (bRenderPassIsActive)
 	{
-		State.RenderPassBegin();
+		PendingState->RenderPassBegin();
 	}
 #endif
 #endif
@@ -189,7 +186,7 @@ void FVulkanCommandListContext::RHITransitionResources(EResourceTransitionAccess
 					check(0);
 #else
 					check(Texture->Surface.GetAspectMask() == VK_IMAGE_ASPECT_COLOR_BIT);
-					VulkanSetImageLayoutSimple(Device->GetPendingState().GetCommandBuffer(), Texture->Surface.Image, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+					VulkanSetImageLayoutSimple(PendingState->GetCommandBuffer(), Texture->Surface.Image, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 #endif
 				}
 			}

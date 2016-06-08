@@ -25,11 +25,12 @@ FVulkanCmdBuffer::FVulkanCmdBuffer(FVulkanDevice* InDevice, FVulkanCommandBuffer
 
 	VERIFYVULKANRESULT(vkAllocateCommandBuffers(Device->GetInstanceHandle(), &CreateCmdBufInfo, &CommandBufferHandle));
 	Fence = Device->GetFenceManager().AllocateFence();
+	//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("*** Create CmdBuffer %p Fence %p\n"), (void*)CommandBufferHandle, (void*)Fence->GetHandle());
 }
 
 FVulkanCmdBuffer::~FVulkanCmdBuffer()
 {
-	auto& FenceManager = Device->GetFenceManager();
+	VulkanRHI::FFenceManager& FenceManager = Device->GetFenceManager();
 	if (State == EState::Submitted)
 	{
 		// Wait 60ms
@@ -84,11 +85,19 @@ void FVulkanCmdBuffer::RefreshFenceStatus()
 {
 	if (State == EState::Submitted)
 	{
-		if (Fence->GetOwner()->IsFenceSignaled(Fence))
+		VulkanRHI::FFenceManager* FenceMgr = Fence->GetOwner();
+		if (FenceMgr->IsFenceSignaled(Fence))
 		{
 			State = EState::ReadyForBegin;
+			//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("vkResetCommandBuffer %p\n"), (void*)CommandBufferHandle);
 			vkResetCommandBuffer(CommandBufferHandle, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+#if VULKAN_REUSE_FENCES
 			Fence->GetOwner()->ResetFence(Fence);
+#else
+			VulkanRHI::FFence* PrevFence = Fence;
+			Fence = FenceMgr->AllocateFence();
+			FenceMgr->ReleaseFence(PrevFence);
+#endif
 			++FenceSignaledCounter;
 		}
 	}

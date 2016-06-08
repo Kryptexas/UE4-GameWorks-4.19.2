@@ -16,9 +16,6 @@ enum EDepthDrawingMode
 	DDM_AllOccluders	= 2,
 	//
 	DDM_AllOpaque		= 3,
-
-	// Note: Values used in MaterialShared.cpp to set USE_STENCIL_LOD_DITHER_DEFAULT.
-	//		 Please keep in sync if changed to avoid compile environment mismatch.
 };
 
 extern const TCHAR* GetDepthDrawingModeString(EDepthDrawingMode Mode);

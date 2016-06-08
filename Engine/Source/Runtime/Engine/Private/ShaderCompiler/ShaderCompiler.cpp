@@ -19,7 +19,7 @@
 DEFINE_LOG_CATEGORY(LogShaderCompilers);
 
 // this is for the protocol, not the data, bump if FShaderCompilerInput or ProcessInputFromArchive changes (also search for the second one with the same name, todo: put into one header file)
-const int32 ShaderCompileWorkerInputVersion = 6;
+const int32 ShaderCompileWorkerInputVersion = 7;
 // this is for the protocol, not the data, bump if FShaderCompilerOutput or WriteToOutputArchive changes (also search for the second one with the same name, todo: put into one header file)
 const int32 ShaderCompileWorkerOutputVersion = 3;
 // this is for the protocol, not the data, bump if FShaderCompilerOutput or WriteToOutputArchive changes (also search for the second one with the same name, todo: put into one header file)
@@ -35,7 +35,7 @@ const int32 ShaderCompileWorkerPipelineJobHeader = 'P';
 // For example if there are a lot of content shader compile errors you want to skip over without relaunching
 bool GRetryShaderCompilation = false;
 
-int32 GDumpShaderDebugInfo = 0;
+static int32 GDumpShaderDebugInfo = 0;
 static FAutoConsoleVariableRef CVarDumpShaderDebugInfo(
 	TEXT("r.DumpShaderDebugInfo"),
 	GDumpShaderDebugInfo,
@@ -44,12 +44,20 @@ static FAutoConsoleVariableRef CVarDumpShaderDebugInfo(
 	TEXT("On iOS, if the PowerVR graphics SDK is installed to the default path, the PowerVR shader compiler will be called and errors will be reported during the cook.")
 	);
 
-int32 GDumpShaderDebugInfoShort = 0;
+static int32 GDumpShaderDebugInfoShort = 0;
 static FAutoConsoleVariableRef CVarDumpShaderDebugShortNames(
 	TEXT("r.DumpShaderDebugShortNames"),
 	GDumpShaderDebugInfoShort,
 	TEXT("Only valid when r.DumpShaderDebugInfo=1.\n")
 	TEXT("When set to 1, will shorten names factory and shader type folder names to avoid issues with long paths.")
+	);
+
+static int32 GDumpShaderDebugInfoSCWCommandLine = 0;
+static FAutoConsoleVariableRef CVarDumpShaderDebugSCWCommandLine(
+	TEXT("r.DumpShaderDebugWorkerCommandLine"),
+	GDumpShaderDebugInfoSCWCommandLine,
+	TEXT("Only valid when r.DumpShaderDebugInfo=1.\n")
+	TEXT("When set to 1, it will generate a file that can be used with ShaderCompileWorker's -directcompile.")
 	);
 
 static int32 GShowShaderWarnings = 0;
@@ -86,18 +94,6 @@ static TAutoConsoleVariable<int32> CVarD3DRemoveUnusedInterpolators(
 	TEXT(" 1: Enable removing unused"),
 	ECVF_ReadOnly
 	);
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-static TAutoConsoleVariable<FString> CVarD3DCompilerPath(TEXT("r.D3DCompilerPath"),
-	TEXT(""),	// default
-	TEXT("Allows to specify a HLSL compiler version that is different from the one the code was compiled.\n")
-	TEXT("No path (\"\") means the default one is used.\n")
-	TEXT("If the compiler cannot be found an error is reported and it will compile further with the default one.\n")
-	TEXT("This console variable works with ShaderCompileWorker (with multi threading) and without multi threading.\n")
-	TEXT("This variable can be set in ConsoleVariables.ini to be defined at startup.\n")
-	TEXT("e.g. c:/temp/d3dcompiler_44.dll or \"\""),
-	ECVF_Cheat);
-#endif
 
 extern bool CompileShaderPipeline(const IShaderFormat* Compiler, FName Format, FShaderPipelineCompileJob* PipelineJob, const FString& Dir);
 
@@ -2192,6 +2188,7 @@ void GlobalBeginCompileShader(
 	Input.EntryPointName = FunctionName;
 	Input.bCompilingForShaderPipeline = false;
 	Input.bIncludeUsedOutputs = false;
+	Input.bGenerateDirectCompileFile = (GDumpShaderDebugInfoSCWCommandLine != 0);
 	Input.DumpDebugInfoRootPath = GShaderCompilingManager->GetAbsoluteShaderDebugInfoDirectory() / Input.ShaderFormat.ToString();
 	// asset material name or "Global"
 	Input.DebugGroupName = DebugGroupName;
@@ -2322,16 +2319,6 @@ void GlobalBeginCompileShader(
 	{
 		VFType->AddReferencedUniformBufferIncludes(Input.Environment, Input.SourceFilePrefix, (EShaderPlatform)Target.Platform);
 	}
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	{
-		FString Path = CVarD3DCompilerPath.GetValueOnAnyThread();
-		if(!Path.IsEmpty())
-		{
-			Input.Environment.SetDefine(TEXT("D3DCOMPILER_PATH"), *Path);
-		}
-	}
-#endif
 
 	{
 		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.Optimize"));

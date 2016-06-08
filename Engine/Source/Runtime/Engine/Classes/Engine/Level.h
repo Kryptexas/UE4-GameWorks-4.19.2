@@ -485,6 +485,9 @@ public:
 	 */
 	UPROPERTY()
 	FLinearColor LevelColor;
+
+	float FixupOverrideVertexColorsTime;
+	int32 FixupOverrideVertexColorsCount;
 #endif //WITH_EDITORONLY_DATA
 
 	/** Actor which defines level logical bounding box				*/

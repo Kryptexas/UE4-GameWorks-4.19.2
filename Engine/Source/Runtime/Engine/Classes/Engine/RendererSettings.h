@@ -269,10 +269,15 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ToolTip = "What anti-aliasing mode is used by default (postprocess volume/camera/game setting can still override and enable or disable it independently)"))
 	TEnumAsByte<EAntiAliasingMethodUI::Type> DefaultFeatureAntiAliasing;
 
+	UPROPERTY(config, EditAnywhere, Category=Optimizations, meta=(
+		ConsoleVariable="r.StencilForLODDither",DisplayName="Use Stencil for LOD Dither Fading",
+		ToolTip="Whether to use stencil for LOD dither fading.  This saves GPU time in the base pass for materials with dither fading enabled, but forces a full prepass. Changing this setting requires restarting the editor.",
+		ConfigRestartRequired=true))
+	uint32 bStencilForLODDither:1;
+
 	UPROPERTY(config, EditAnywhere, Category = Optimizations, meta = (
 		ConsoleVariable="r.EarlyZPass",DisplayName="Early Z-pass",
-		ToolTip="Whether to use a depth only pass to initialize Z culling for the base pass. Requires a restart!",
-		ConfigRestartRequired=true))
+		ToolTip="Whether to use a depth only pass to initialize Z culling for the base pass."))
 	TEnumAsByte<EEarlyZPass::Type> EarlyZPass;
 
 	UPROPERTY(config, EditAnywhere, Category=Optimizations, meta=(

@@ -21,16 +21,16 @@
 #define NUMBITS_DEPTH_TEST_ENABLED		1 //(x1=1) = 56 ++
 #define NUMBITS_DEPTH_WRITE_ENABLED		1 //(x1=1) = 57 ++
 #define NUMBITS_DEPTH_COMPARE_OP		3 //(x1=3) = 60 ++
-#define NUMBITS_STENCIL_TEST_ENABLED	1 //(x1=1) = 61 ++
-#define NUMBITS_FRONT_STENCIL_OP		3 //(x1=3) = 64 ++
+#define NUMBITS_FRONT_STENCIL_OP		4 //(x1=4) = 64 ++
 
 // RTs 4-7
-//#define NUMBITS_BLEND_STATE				4 //(x4=16) = 16 ++
+//#define NUMBITS_BLEND_STATE			4 //(x4=16) = 16 ++
 //#define NUMBITS_RENDER_TARGET_FORMAT	3 //(x4=16) = 32 ++
-//#define NUMBITS_LOAD_OP					2 //(x4=8) = 40 ++
+//#define NUMBITS_LOAD_OP				2 //(x4=8) = 40 ++
 //#define NUMBITS_STORE_OP				2 //(x4=8) = 48 ++
-#define NUMBITS_BACK_STENCIL_OP			3 //(x1=3) = 51 ++
-#define NUMBITS_MSAA_ENABLED			1 //(x1=1) = 52 ++
+#define NUMBITS_BACK_STENCIL_OP			4 //(x1=4) = 52 ++
+#define NUMBITS_STENCIL_TEST_ENABLED	1 //(x1=1) = 53 ++
+#define NUMBITS_MSAA_ENABLED			1 //(x1=1) = 54 ++
 
 
 #define OFFSET_BLEND_STATE0				(0)
@@ -56,8 +56,7 @@
 #define OFFSET_DEPTH_TEST_ENABLED		(OFFSET_DEPTH_BIAS_ENABLED		+ NUMBITS_DEPTH_BIAS_ENABLED)
 #define OFFSET_DEPTH_WRITE_ENABLED		(OFFSET_DEPTH_TEST_ENABLED		+ NUMBITS_DEPTH_TEST_ENABLED)
 #define OFFSET_DEPTH_COMPARE_OP			(OFFSET_DEPTH_WRITE_ENABLED		+ NUMBITS_DEPTH_WRITE_ENABLED)
-#define OFFSET_STENCIL_TEST_ENABLED		(OFFSET_DEPTH_COMPARE_OP		+ NUMBITS_DEPTH_COMPARE_OP)
-#define OFFSET_FRONT_STENCIL_OP			(OFFSET_STENCIL_TEST_ENABLED	+ NUMBITS_STENCIL_TEST_ENABLED)
+#define OFFSET_FRONT_STENCIL_OP			(OFFSET_DEPTH_COMPARE_OP		+ NUMBITS_DEPTH_COMPARE_OP)
 static_assert(OFFSET_FRONT_STENCIL_OP + NUMBITS_FRONT_STENCIL_OP <= 64, "Out of bits!");
 
 #define OFFSET_BLEND_STATE4				(0x8000)
@@ -77,7 +76,8 @@ static_assert(OFFSET_FRONT_STENCIL_OP + NUMBITS_FRONT_STENCIL_OP <= 64, "Out of 
 #define OFFSET_RENDER_TARGET_STORE6		(OFFSET_RENDER_TARGET_STORE5	+ NUMBITS_STORE_OP)
 #define OFFSET_RENDER_TARGET_STORE7		(OFFSET_RENDER_TARGET_STORE6	+ NUMBITS_STORE_OP)
 #define OFFSET_BACK_STENCIL_OP			(OFFSET_RENDER_TARGET_STORE7	+ NUMBITS_STORE_OP)
-#define OFFSET_MSAA_ENABLED				(OFFSET_BACK_STENCIL_OP			+ NUMBITS_BACK_STENCIL_OP)
+#define OFFSET_STENCIL_TEST_ENABLED		(OFFSET_BACK_STENCIL_OP			+ NUMBITS_BACK_STENCIL_OP)
+#define OFFSET_MSAA_ENABLED				(OFFSET_STENCIL_TEST_ENABLED	+ NUMBITS_STENCIL_TEST_ENABLED)
 static_assert(((OFFSET_MSAA_ENABLED + NUMBITS_MSAA_ENABLED) & ~0x8000) <= 64, "Out of bits!");
 
 static const uint32 BlendBitOffsets[MaxSimultaneousRenderTargets] =
@@ -167,7 +167,6 @@ struct FDebugPipelineKey
 			uint64 DepthTestEnabled		: NUMBITS_DEPTH_TEST_ENABLED;
 			uint64 DepthWriteEnabled	: NUMBITS_DEPTH_WRITE_ENABLED;
 			uint64 DepthCompareOp		: NUMBITS_DEPTH_COMPARE_OP;
-			uint64 StencilTestEnabled	: NUMBITS_STENCIL_TEST_ENABLED;
 			uint64 FrontStencilOp		: NUMBITS_FRONT_STENCIL_OP;
 			uint64						: 0;
 
@@ -188,6 +187,7 @@ struct FDebugPipelineKey
 			uint64 RenderTargetStore6	: NUMBITS_STORE_OP;
 			uint64 RenderTargetStore7	: NUMBITS_STORE_OP;
 			uint64 BackStencilOp		: NUMBITS_BACK_STENCIL_OP;
+			uint64 StencilTestEnabled	: NUMBITS_STENCIL_TEST_ENABLED;
 			uint64 MSAAEnabled			: NUMBITS_MSAA_ENABLED;
 			uint64: 0;
 		};
@@ -196,7 +196,7 @@ struct FDebugPipelineKey
 
 	FDebugPipelineKey()
 	{
-		static_assert(sizeof(*this) == sizeof(FVulkanPipelineGraphicsKey), "size mismatch");
+		static_assert(sizeof(*this) == sizeof(FVulkanPipelineGraphicsKey), "size mismatch!");
 		{
 			// Sanity check that bits match
 			FVulkanPipelineGraphicsKey CurrentKeys;
@@ -292,7 +292,7 @@ FVulkanPendingState::~FVulkanPendingState()
 	for (auto& Pair : FrameBufferMap)
 	{
 		TArray<FVulkanFramebuffer*>& Entries = Pair.Value;
-		for (auto* Entry : Entries)
+		for (FVulkanFramebuffer* Entry : Entries)
 		{
 			Entry->Destroy(*Device);
 			delete Entry;
@@ -447,7 +447,7 @@ FVulkanDescriptorPool::FVulkanDescriptorPool(FVulkanDevice* InDevice)
 #endif
 
 	TArray<VkDescriptorPoolSize> Types;
-	auto* Type = new(Types) VkDescriptorPoolSize;
+	VkDescriptorPoolSize* Type = new(Types) VkDescriptorPoolSize;
 	FMemory::Memzero(*Type);
 	Type->type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	Type->descriptorCount = LimitMaxUniformBuffers;
@@ -602,27 +602,6 @@ void FVulkanPendingState::PrepareDraw(FVulkanCommandListContext* CmdListContext,
 	}
 }
 
-void FVulkanPendingState::SubmitPendingCommandBuffers(FVulkanPendingState::TCallback* Callback, void* CallbackUserData)
-{
-#if 1//VULKAN_USE_NEW_COMMAND_BUFFERS
-	check(0);
-#else
-	if (IsRenderPassActive())
-	{
-		RenderPassEnd();
-	}
-
-	if (Callback)
-	{
-		(*Callback)(CallbackUserData);
-	}
-
-	check(Device);
-	//#todo-rco: FIX ME!
-	Device->GetImmediateContext().GetCommandBufferManager()->Submit(&GetCurrentCommandBuffer());
-#endif
-}
-
 void FVulkanPendingState::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& InRTInfo)
 {
 	//#todo-rco: Check perf
@@ -732,14 +711,14 @@ void FVulkanPendingState::InitFrame()
 FVulkanRenderPass* FVulkanPendingState::GetOrCreateRenderPass(const FVulkanRenderTargetLayout& RTLayout)
 {
 	uint32 Hash = RTLayout.GetHash();
-	auto** RenderPassFound = RenderPassMap.Find(Hash);
+	FVulkanRenderPass** RenderPassFound = RenderPassMap.Find(Hash);
 	if (RenderPassFound)
 	{
 		return *RenderPassFound;
 	}
 
 	check(Device);
-	auto* OutRenderPass = new FVulkanRenderPass(*Device, RTLayout);
+	FVulkanRenderPass* OutRenderPass = new FVulkanRenderPass(*Device, RTLayout);
 	RenderPassMap.Add(Hash, OutRenderPass);
 	return OutRenderPass;
 }
@@ -747,8 +726,8 @@ FVulkanRenderPass* FVulkanPendingState::GetOrCreateRenderPass(const FVulkanRende
 FVulkanFramebuffer* FVulkanPendingState::GetOrCreateFramebuffer(const FRHISetRenderTargetsInfo& RHIRTInfo, const FVulkanRenderTargetLayout& InRTInfo, const FVulkanRenderPass& inRenderPass)
 {
 	uint32 Hash = InRTInfo.GetHash();
-	auto& FramebufferList = FrameBufferMap.FindOrAdd(Hash);
-	for (auto* Framebuffer : FramebufferList)
+	TArray<FVulkanFramebuffer*>& FramebufferList = FrameBufferMap.FindOrAdd(Hash);
+	for (FVulkanFramebuffer* Framebuffer : FramebufferList)
 	{
 		if (Framebuffer->Matches(RHIRTInfo))
 		{
@@ -757,7 +736,7 @@ FVulkanFramebuffer* FVulkanPendingState::GetOrCreateFramebuffer(const FRHISetRen
 	}
 
 	check(Device);
-	auto* OutFramebuffer = new FVulkanFramebuffer(*Device, RHIRTInfo, InRTInfo, inRenderPass);
+	FVulkanFramebuffer* OutFramebuffer = new FVulkanFramebuffer(*Device, RHIRTInfo, InRTInfo, inRenderPass);
 	FramebufferList.Add(OutFramebuffer);
 	return OutFramebuffer;
 }

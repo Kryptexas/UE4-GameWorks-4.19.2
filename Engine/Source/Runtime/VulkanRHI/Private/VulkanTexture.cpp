@@ -39,7 +39,7 @@ VkImage FVulkanSurface::CreateImage(
 	VkMemoryRequirements* OutMemoryRequirements,
 	bool bForceLinearTexture)
 {
-	auto& DeviceProperties = InDevice.GetDeviceProperties();
+	const VkPhysicalDeviceProperties& DeviceProperties = InDevice.GetDeviceProperties();
 
 	checkf(GPixelFormats[InFormat].Supported, TEXT("Format %d"), InFormat);
 
@@ -123,6 +123,11 @@ VkImage FVulkanSurface::CreateImage(
 	else if (UEFlags & (TexCreate_RenderTargetable | TexCreate_DepthStencilTargetable))
 	{
 		ImageCreateInfo.usage |= (UEFlags & TexCreate_RenderTargetable) ? VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT : VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+		ImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+	}
+	else if (UEFlags & (TexCreate_DepthStencilResolveTarget))
+	{
+		ImageCreateInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 		ImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 	}
 	else if (UEFlags & TexCreate_ResolveTargetable)
@@ -482,7 +487,7 @@ void FVulkanSurface::Unlock(uint32 MipIndex, uint32 ArrayIndex)
 
 	if(Tiling == VK_IMAGE_TILING_LINEAR)
 	{
-		auto& Data = MipMapMapping.FindOrAdd(MipIndex);
+		void*& Data = MipMapMapping.FindOrAdd(MipIndex);
 		checkf(Data != nullptr, TEXT("The buffer needs to be mapped, before it can be unmapped"));
 
 		Allocation->Unmap();
@@ -864,12 +869,12 @@ void FVulkanDynamicRHI::RHIUpdateTexture3D(FTexture3DRHIParamRef TextureRHI, uin
 	check(UpdateRegion.SrcY == 0);
 	check(UpdateRegion.SrcZ == 0);
 
-	auto& Context = Device->GetImmediateContext();
-	const auto& Limits = Device->GetLimits();
+	FVulkanCommandListContext& Context = Device->GetImmediateContext();
+	const VkPhysicalDeviceLimits& Limits = Device->GetLimits();
 	const uint32 AlignedSourcePitch = Align(SourceRowPitch, Limits.optimalBufferCopyRowPitchAlignment);
 	const uint32 BufferSize = Align(UpdateRegion.Height * UpdateRegion.Depth * AlignedSourcePitch, Limits.minMemoryMapAlignment);
 
-	auto* StagingBuffer = Device->GetStagingManager().AcquireBuffer(BufferSize);
+	VulkanRHI::FStagingBuffer* StagingBuffer = Device->GetStagingManager().AcquireBuffer(BufferSize);
 	void* Memory = StagingBuffer->GetMappedPointer();
 
 	uint32 Size = UpdateRegion.Height * UpdateRegion.Depth * SourceRowPitch;
@@ -988,18 +993,10 @@ FVulkanTextureBase::FVulkanTextureBase(FVulkanDevice& Device, VkImageViewType Re
 	}
 #endif
 
-	// For now only 3D textures can have bulk-data parsed on creation time.
 	if (!CreateInfo.BulkData)
 	{
 		return;
 	}
-
-	if (Surface.GetTiling() != VK_IMAGE_TILING_OPTIMAL)
-	{
-		return;
-	}
-
-	check(Surface.GetViewType() == VK_IMAGE_VIEW_TYPE_3D);
 
 	// Transfer bulk data
 	VulkanRHI::FStagingBuffer* StagingBuffer = Device.GetStagingManager().AcquireBuffer(CreateInfo.BulkData->GetResourceBulkDataSize());

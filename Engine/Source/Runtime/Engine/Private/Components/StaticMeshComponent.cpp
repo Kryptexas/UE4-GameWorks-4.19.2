@@ -1478,16 +1478,26 @@ void UStaticMeshComponent::PostLoad()
 	if ( StaticMesh )
 	{
 		CachePaintedDataIfNecessary();
-		if ( FixupOverrideColorsIfNecessary() )
+
+		double StartFixupTime = FPlatformTime::Seconds();
+
+		if (FixupOverrideColorsIfNecessary())
 		{
 #if WITH_EDITORONLY_DATA
-			FFormatNamedArguments Arguments;
-			Arguments.Add(TEXT("MeshName"), FText::FromString(GetName()));
-			Arguments.Add(TEXT("LevelName"), FText::FromString(GetOutermost()->GetName()));
-			FMessageLog("MapCheck").Info()
-				->AddToken(FUObjectToken::Create(GetOuter()))
-				->AddToken(FTextToken::Create(FText::Format( LOCTEXT( "MapCheck_Message_RepairedPaintedVertexColors", "{MeshName} : Repaired painted vertex colors (slow loading, can be fixed by saving {LevelName})" ), Arguments ) ))
-				->AddToken(FMapErrorToken::Create(FMapErrors::RepairedPaintedVertexColors));
+
+			AActor* Owner = GetOwner();
+
+			if (Owner)
+			{
+				ULevel* Level = Owner->GetLevel();
+
+				if (Level)
+				{
+					// Accumulate stats about the fixup so we don't spam log messages
+					Level->FixupOverrideVertexColorsTime += (float)(FPlatformTime::Seconds() - StartFixupTime);
+					Level->FixupOverrideVertexColorsCount++;
+				}
+			}
 #endif
 		}
 	}

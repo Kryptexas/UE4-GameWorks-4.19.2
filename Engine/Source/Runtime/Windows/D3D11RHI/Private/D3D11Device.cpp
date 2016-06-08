@@ -398,6 +398,19 @@ void FD3D11DynamicRHI::UpdateMSAASettings()
 	AvailableMSAAQualities[8] = 0;
 }
 
+#if !PLATFORM_SEH_EXCEPTIONS_DISABLED
+static int32 ReportDiedDuringDeviceShutdown(LPEXCEPTION_POINTERS ExceptionInfo)
+{
+	UE_LOG(LogD3D11RHI, Error, TEXT("Crashed freeing up the D3D11 device."));
+	if (GDynamicRHI)
+	{
+		GDynamicRHI->FlushPendingLogs();
+	}
+
+	return EXCEPTION_EXECUTE_HANDLER;
+}
+#endif
+
 void FD3D11DynamicRHI::CleanupD3DDevice()
 {
 	UE_LOG(LogD3D11RHI, Log, TEXT("CleanupD3DDevice"));
@@ -457,9 +470,26 @@ void FD3D11DynamicRHI::CleanupD3DDevice()
 			Direct3DDeviceIMContext->Flush();
 		}
 
-		Direct3DDeviceIMContext = NULL;
+		Direct3DDeviceIMContext = nullptr;
 
-		Direct3DDevice = NULL;
+#if !PLATFORM_SEH_EXCEPTIONS_DISABLED
+		if (IsRHIDeviceNVIDIA())
+		{
+			//UE-18906: Workaround to trap crash in NV driver
+			__try
+			{
+				Direct3DDevice = nullptr;
+			}
+			__except (ReportDiedDuringDeviceShutdown(GetExceptionInformation()))
+			{
+				FPlatformMisc::MemoryBarrier();
+			}
+		}
+		else
+#endif
+		{
+			Direct3DDevice = nullptr;
+		}
 	}
 }
 

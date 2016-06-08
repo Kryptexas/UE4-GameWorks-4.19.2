@@ -566,6 +566,18 @@ uint8 ComputeOpacityValue(const uint8* RGBA, EOpacitySourceMode OpacitySourceMod
 	{
 		return *(RGBA + 3);
 	}
+	else if (OpacitySourceMode == OSM_RedChannel)
+	{
+		return *(RGBA + 0);
+	}
+	else if (OpacitySourceMode == OSM_GreenChannel)
+	{
+		return *(RGBA + 1);
+	}
+	else if (OpacitySourceMode == OSM_BlueChannel)
+	{
+		return *(RGBA + 2);
+	}
 	else
 	{
 		uint32 R = *RGBA;

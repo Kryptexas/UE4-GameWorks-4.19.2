@@ -128,8 +128,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		//#todo-rco: Glslang issue
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::ES2) && !IsVulkanPlatform(Platform);
+		return true;
 	}
 
 	FLUTBlenderPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)

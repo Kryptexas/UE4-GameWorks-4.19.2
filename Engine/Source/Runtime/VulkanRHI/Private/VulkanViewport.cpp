@@ -293,13 +293,13 @@ void FVulkanDynamicRHI::RHITick( float DeltaTime )
 
 void FVulkanDynamicRHI::WriteEndFrameTimestamp(void* Data)
 {
-	auto* This = (FVulkanDynamicRHI*)Data;
+	FVulkanDynamicRHI* This = (FVulkanDynamicRHI*)Data;
 	if (This && This->Device)
 	{
-		auto* TimestampQueryPool = This->Device->GetTimestampQueryPool(This->PresentCount % (uint32)FVulkanDevice::NumTimestampPools);
+		FVulkanTimestampQueryPool* TimestampQueryPool = This->Device->GetTimestampQueryPool(This->PresentCount % (uint32)FVulkanDevice::NumTimestampPools);
 		if (TimestampQueryPool)
 		{
-			auto* CmdBuffer = This->Device->GetImmediateContext().GetCommandBufferManager()->GetActiveCmdBuffer();
+			FVulkanCmdBuffer* CmdBuffer = This->Device->GetImmediateContext().GetCommandBufferManager()->GetActiveCmdBuffer();
 			TimestampQueryPool->WriteEndFrame(CmdBuffer->GetHandle());
 		}
 	}
@@ -311,15 +311,14 @@ void FVulkanDynamicRHI::Present()
 {
 	check(DrawingViewport);
 
-	FVulkanPendingState& PendingState = Device->GetPendingState();
-
 	check(Device);
 
-	auto* CmdBufferManager = Device->GetImmediateContext().GetCommandBufferManager();
-	auto* CmdBuffer = CmdBufferManager->GetActiveCmdBuffer();
-	if (PendingState.IsRenderPassActive())
+	FVulkanPendingState* PendingState = &Device->GetImmediateContext().GetPendingState();
+	FVulkanCommandBufferManager* CmdBufferManager = Device->GetImmediateContext().GetCommandBufferManager();
+	FVulkanCmdBuffer* CmdBuffer = CmdBufferManager->GetActiveCmdBuffer();
+	if (PendingState->IsRenderPassActive())
 	{
-		PendingState.RenderPassEnd(CmdBuffer);
+		PendingState->RenderPassEnd(CmdBuffer);
 	}
 	FVulkanBackBuffer* BackBuffer = DrawingViewport->PrepareBackBufferForPresent(CmdBuffer);
 	WriteEndFrameTimestamp(this);
@@ -333,7 +332,7 @@ void FVulkanDynamicRHI::Present()
 	bool bNativelyPresented = true;
 	if (bNativelyPresented)
 	{
-		static const auto CFinishFrameVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FinishCurrentFrame"));
+		static const TConsoleVariableData<int32>* CFinishFrameVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FinishCurrentFrame"));
 		if (!CFinishFrameVar->GetValueOnRenderThread())
 		{
 			// Wait for the GPU to finish rendering the previous frame before finishing this frame.
@@ -368,13 +367,13 @@ void FVulkanDynamicRHI::Present()
 
 	DrawingViewport->CurrentBackBuffer = -1;
 	DrawingViewport = nullptr;
-	PendingState.Reset();
+	PendingState->Reset();
 
 	const uint32 QueryCurrFrameIndex = PresentCount % FVulkanDevice::NumTimestampPools;
 	const uint32 QueryPrevFrameIndex = (QueryCurrFrameIndex + FVulkanDevice::NumTimestampPools - 1) % FVulkanDevice::NumTimestampPools;
 	const uint32 QueryNextFrameIndex = (QueryCurrFrameIndex + 1) % FVulkanDevice::NumTimestampPools;
 
-	auto* TimestampQueryPool = Device->GetTimestampQueryPool(QueryPrevFrameIndex);
+	FVulkanTimestampQueryPool* TimestampQueryPool = Device->GetTimestampQueryPool(QueryPrevFrameIndex);
 	if (TimestampQueryPool)
 	{
 		if(PresentCount > FVulkanDevice::NumTimestampPools)
@@ -406,8 +405,7 @@ void FVulkanDynamicRHI::RHIAdvanceFrameForGetViewportBackBuffer()
 void FVulkanCommandListContext::RHISetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ)
 {
 	check(Device);
-	FVulkanPendingState& state = Device->GetPendingState();
-	state.SetViewport(MinX, MinY, MinZ, MaxX, MaxY, MaxZ);
+	PendingState->SetViewport(MinX, MinY, MinZ, MaxX, MaxY, MaxZ);
 }
 
 void FVulkanCommandListContext::RHISetMultipleViewports(uint32 Count, const FViewportBounds* Data)
@@ -418,6 +416,5 @@ void FVulkanCommandListContext::RHISetMultipleViewports(uint32 Count, const FVie
 void FVulkanCommandListContext::RHISetScissorRect(bool bEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY)
 {
 	check(Device);
-	FVulkanPendingState& state = Device->GetPendingState();
-	state.SetScissor(bEnable, MinX, MinY, MaxX, MaxY);
+	PendingState->SetScissor(bEnable, MinX, MinY, MaxX, MaxY);
 }

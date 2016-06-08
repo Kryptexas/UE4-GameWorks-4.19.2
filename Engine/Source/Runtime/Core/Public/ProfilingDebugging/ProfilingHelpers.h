@@ -153,6 +153,13 @@ enum EStreamingStatus
 CORE_API int32 GetChangeListNumberForPerfTesting();
 
 /**
+ * This will return
+ *   the name specified with -BuildName=SomeName (needs to be a valid c++ name a-z A-Z _ 0-9 so we don't run into issues when we pass it around) or if not specified
+ *   "CL%d" where %d is coming from GetChangeListNumberForPerfTesting()
+ **/
+CORE_API FString GetBuildNameForPerfTesting();
+
+/**
  * This makes it so UnrealConsole will open up the memory profiler for us
  *
  * @param NotifyType has the <namespace>:<type> (e.g. UE_PROFILER!UE3STATS:)

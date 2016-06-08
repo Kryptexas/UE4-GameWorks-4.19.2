@@ -42,8 +42,9 @@ void Main(
 	// X = IOR, Y = Refraction Bias
 	float2 Refraction = GetMaterialRefraction(PixelMaterialInputs);
 	 	
-#if REFRACTION_USE_PIXEL_NORMAL_OFFSET && MATERIAL_TANGENTSPACENORMAL
+#if REFRACTION_USE_PIXEL_NORMAL_OFFSET
 	half3 ViewVertexNormal = TransformTangentVectorToView(MaterialParameters, float3(0, 0, 1));
+	// Treat Refraction of 1 as no refraction, to be consistent with IOR mode
 	float2 Distortion = (ViewVertexNormal.xy - ViewNormal.xy) * (Refraction.x - 1);
 #else
 	// we assume the camera is in air

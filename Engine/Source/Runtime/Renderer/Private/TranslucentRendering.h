@@ -92,7 +92,7 @@ private:
 * Translucent draw policy factory.
 * Creates the policies needed for rendering a mesh based on its material
 */
-class FTranslucencyForwardShadingDrawingPolicyFactory
+class FMobileTranslucencyDrawingPolicyFactory
 {
 public:
 	enum { bAllowSimpleElements = true };

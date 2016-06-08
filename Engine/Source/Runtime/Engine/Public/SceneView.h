@@ -346,7 +346,7 @@ END_UNIFORM_BUFFER_STRUCT(FForwardLightData)
 
 //////////////////////////////////////////////////////////////////////////
 
-static const int MAX_FORWARD_SHADOWCASCADES = 2;
+static const int MAX_MOBILE_SHADOWCASCADES = 2;
 
 /** 
  * Enumeration for currently used translucent lighting volume cascades 
@@ -469,6 +469,7 @@ BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FFrameUniformShaderParameters, ENGI
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, RealTime)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, Random)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, FrameNumber)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, StateFrameIndexMod8)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float, CameraCut, EShaderPrecisionModifier::Half)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float, UseLightmaps, EShaderPrecisionModifier::Half)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float, UnlitViewmodeMask, EShaderPrecisionModifier::Half)
@@ -476,7 +477,7 @@ BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FFrameUniformShaderParameters, ENGI
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector, DirectionalLightDirection, EShaderPrecisionModifier::Half)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float, DirectionalLightShadowTransition, EShaderPrecisionModifier::Half)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4, DirectionalLightShadowSize, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FMatrix, DirectionalLightScreenToShadow, [MAX_FORWARD_SHADOWCASCADES])
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FMatrix, DirectionalLightScreenToShadow, [MAX_MOBILE_SHADOWCASCADES])
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4, DirectionalLightShadowDistances, EShaderPrecisionModifier::Half)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4, TranslucencyLightingVolumeMin, [TVC_MAX])
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4, TranslucencyLightingVolumeInvSize, [TVC_MAX])

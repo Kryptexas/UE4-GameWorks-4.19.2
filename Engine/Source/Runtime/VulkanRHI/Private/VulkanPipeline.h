@@ -124,13 +124,13 @@ class FVulkanPipelineStateCache
 public:
 	FVulkanPipeline* Find(const FVulkanPipelineStateKey& CreateInfo)
 	{
-		auto** Found = KeyToPipelineMap.Find(CreateInfo);
+		FVulkanPipeline** Found = KeyToPipelineMap.Find(CreateInfo);
 #if 0
 		if (Found)
 		{
 			for (int i = 0; i < DiskEntries.Num(); ++i)
 			{
-				auto* Entry = &DiskEntries[i];
+				FDiskEntry* Entry = &DiskEntries[i];
 				if (Entry->PipelineKey == CreateInfo.PipelineKey)
 				{
 					if (!FMemory::Memcmp(Entry->ShaderHashes, CreateInfo.ShaderHashes, sizeof(CreateInfo.ShaderHashes)))

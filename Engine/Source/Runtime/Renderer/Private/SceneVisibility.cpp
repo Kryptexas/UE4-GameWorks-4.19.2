@@ -1537,7 +1537,7 @@ struct FRelevancePacket
 
 			// Cache the nearest reflection proxy if needed
 			if (PrimitiveSceneInfo->bNeedsCachedReflectionCaptureUpdate
-				// During Forward Shading, the per-object reflection is used for everything
+				// For mobile, the per-object reflection is used for everything
 				&& (!Scene->ShouldUseDeferredRenderer() || bTranslucentRelevance || bHasClearCoat))
 			{
 				PrimitiveSceneInfo->CachedReflectionCaptureProxy = Scene->FindClosestReflectionCapture(Scene->PrimitiveBounds[BitIndex].Origin);
@@ -1545,7 +1545,7 @@ struct FRelevancePacket
 
 				if (!Scene->ShouldUseDeferredRenderer())
 				{
-					// forward HQ reflections
+					// mobile HQ reflections
 					Scene->FindClosestReflectionCaptures(Scene->PrimitiveBounds[BitIndex].Origin, PrimitiveSceneInfo->CachedReflectionCaptureProxies);
 				}
 
@@ -2097,7 +2097,7 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 						float SamplesX[] = { -8.0f/16.0f, 0.0/16.0f };
 						float SamplesY[] = { /* - */ 0.0f/16.0f, 8.0/16.0f };
 					#endif
-					ViewState->SetupTemporalAA(ARRAY_COUNT(SamplesX), ViewFamily);
+					ViewState->OnFrameRenderingSetup(ARRAY_COUNT(SamplesX), ViewFamily);
 					uint32 Index = ViewState->GetCurrentTemporalAASampleIndex();
 					SampleX = SamplesX[ Index ];
 					SampleY = SamplesY[ Index ];
@@ -2111,7 +2111,7 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 					// Rolling circle pattern (A,B,C).
 					float SamplesX[] = { -2.0f/3.0f,  2.0/3.0f,  0.0/3.0f };
 					float SamplesY[] = { -2.0f/3.0f,  0.0/3.0f,  2.0/3.0f };
-					ViewState->SetupTemporalAA(ARRAY_COUNT(SamplesX), ViewFamily);
+					ViewState->OnFrameRenderingSetup(ARRAY_COUNT(SamplesX), ViewFamily);
 					uint32 Index = ViewState->GetCurrentTemporalAASampleIndex();
 					SampleX = SamplesX[ Index ];
 					SampleY = SamplesY[ Index ];
@@ -2127,7 +2127,7 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 					// Rolling circle pattern (N,E,S,W).
 					float SamplesX[] = { -2.0f/16.0f,  6.0/16.0f, 2.0/16.0f, -6.0/16.0f };
 					float SamplesY[] = { -6.0f/16.0f, -2.0/16.0f, 6.0/16.0f,  2.0/16.0f };
-					ViewState->SetupTemporalAA(ARRAY_COUNT(SamplesX), ViewFamily);
+					ViewState->OnFrameRenderingSetup(ARRAY_COUNT(SamplesX), ViewFamily);
 					uint32 Index = ViewState->GetCurrentTemporalAASampleIndex();
 					SampleX = SamplesX[ Index ];
 					SampleY = SamplesY[ Index ];
@@ -2142,7 +2142,7 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 					// Rolling circle pattern (N,E,S,W).
 					float SamplesX[] = {  0.0f/2.0f,  1.0/2.0f,  0.0/2.0f, -1.0/2.0f };
 					float SamplesY[] = { -1.0f/2.0f,  0.0/2.0f,  1.0/2.0f,  0.0/2.0f };
-					ViewState->SetupTemporalAA(ARRAY_COUNT(SamplesX), ViewFamily);
+					ViewState->OnFrameRenderingSetup(ARRAY_COUNT(SamplesX), ViewFamily);
 					uint32 Index = ViewState->GetCurrentTemporalAASampleIndex();
 					SampleX = SamplesX[ Index ];
 					SampleY = SamplesY[ Index ];
@@ -2153,7 +2153,7 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 					float Scale = ( 2.0f - CVar->GetFloat() ) * 0.3f;
 
 					// More than 8 samples can improve quality.
-					ViewState->SetupTemporalAA(TemporalAASamples, ViewFamily);
+					ViewState->OnFrameRenderingSetup(TemporalAASamples, ViewFamily);
 					uint32 Index = ViewState->GetCurrentTemporalAASampleIndex();
 
 					float u1 = Halton( Index + 1, 2 );
@@ -2195,7 +2195,7 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 		else if(ViewState)
 		{
 			// no TemporalAA
-			ViewState->SetupTemporalAA(1, ViewFamily);
+			ViewState->OnFrameRenderingSetup(1, ViewFamily);
 
 			ViewState->TemporalAAHistoryRT.SafeRelease();
 			ViewState->PendingTemporalAAHistoryRT.SafeRelease();
@@ -2780,8 +2780,6 @@ uint32 GetShadowQuality();
  */
 bool FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdList, struct FILCUpdatePrimTaskData& ILCTaskData, FGraphEventArray& SortEvents)
 {	
-	SCOPED_DRAW_EVENT(RHICmdList, InitViews);
-
 	SCOPE_CYCLE_COUNTER(STAT_InitViewsTime);
 
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
@@ -2851,8 +2849,6 @@ bool FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLi
 
 void FDeferredShadingSceneRenderer::InitViewsPossiblyAfterPrepass(FRHICommandListImmediate& RHICmdList, struct FILCUpdatePrimTaskData& ILCTaskData, FGraphEventArray& SortEvents)
 {
-	SCOPED_DRAW_EVENT(RHICmdList, InitViewsPossiblyAfterPrepass);
-
 	SCOPE_CYCLE_COUNTER(STAT_InitViewsPossiblyAfterPrepass);
 
 	// this cannot be moved later because of static mesh updates for stuff that is only visible in shadows

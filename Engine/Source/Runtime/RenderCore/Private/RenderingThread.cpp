@@ -466,6 +466,7 @@ public:
  */
 volatile bool GRunRenderingThreadHeartbeat = false;
 
+FThreadSafeCounter OutstandingHeartbeats;
 /** The rendering thread heartbeat runnable object. */
 class FRenderingThreadTickHeartbeat : public FRunnable
 {
@@ -474,6 +475,7 @@ public:
 	// FRunnable interface.
 	virtual bool Init(void) 
 	{ 
+		OutstandingHeartbeats.Reset();
 		return true; 
 	}
 
@@ -490,11 +492,13 @@ public:
 		while(GRunRenderingThreadHeartbeat)
 		{
 			FPlatformProcess::Sleep(1.f/(4.0f * GRenderingThreadMaxIdleTickFrequency));
-			if (!GIsRenderingThreadSuspended)
+			if (!GIsRenderingThreadSuspended && OutstandingHeartbeats.GetValue() < 4)
 			{
+				OutstandingHeartbeats.Increment();
 				ENQUEUE_UNIQUE_RENDER_COMMAND(
 					HeartbeatTickTickables,
 				{
+					OutstandingHeartbeats.Decrement();
 					// make sure that rendering thread tickables get a chance to tick, even if the render thread is starving
 					if (!GIsRenderingThreadSuspended)
 					{

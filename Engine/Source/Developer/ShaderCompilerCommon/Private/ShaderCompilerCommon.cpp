@@ -323,6 +323,57 @@ bool RemoveUniformBuffersFromSource(FString& SourceCode)
 }
 
 
+FString CreateShaderCompilerWorkerDirectCommandLine(const FShaderCompilerInput& Input)
+{
+	FString Text(TEXT("-directcompile -format="));
+	Text += Input.ShaderFormat.GetPlainNameString();
+	Text += TEXT(" -entry=");
+	Text += Input.EntryPointName;
+	switch (Input.Target.Frequency)
+	{
+	case SF_Vertex:		Text += TEXT(" -vs"); break;
+	case SF_Hull:		Text += TEXT(" -hs"); break;
+	case SF_Domain:		Text += TEXT(" -ds"); break;
+	case SF_Geometry:	Text += TEXT(" -gs"); break;
+	case SF_Pixel:		Text += TEXT(" -ps"); break;
+	case SF_Compute:	Text += TEXT(" -cs"); break;
+	default: ensure(0); break;
+	}
+	if (Input.bCompilingForShaderPipeline)
+	{
+		Text += TEXT(" -pipeline");
+	}
+	if (Input.bIncludeUsedOutputs)
+	{
+		Text += TEXT(" -usedoutputs=");
+		for (int32 Index = 0; Index < Input.UsedOutputs.Num(); ++Index)
+		{
+			if (Index != 0)
+			{
+				Text += TEXT("+");
+			}
+			Text += Input.UsedOutputs[Index];
+		}
+	}
+
+	Text += TEXT(" ");
+	Text += Input.DumpDebugInfoPath / Input.SourceFilename + TEXT(".usf");
+
+	uint64 CFlags = 0;
+	for (int32 Index = 0; Index < Input.Environment.CompilerFlags.Num(); ++Index)
+	{
+		CFlags = CFlags | ((uint64)1 << (uint64)Input.Environment.CompilerFlags[Index]);
+	}
+	if (CFlags)
+	{
+		Text += TEXT(" -cflags=");
+		Text += FString::Printf(TEXT("%llu"), CFlags);
+	}
+	
+	return Text;
+}
+
+
 namespace CrossCompiler
 {
 	FString CreateBatchFileContents(const FString& ShaderFile, const FString& OutputFile, uint32 Frequency, const FString& EntryPoint, const FString& VersionSwitch, uint32 CCFlags, const FString& ExtraArguments)

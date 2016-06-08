@@ -88,7 +88,7 @@ public:
 #include "DeferredShadingRenderer.h"
 #include "FogRendering.h"
 #include "BasePassRendering.h"
-#include "ForwardBasePassRendering.h"
+#include "MobileBasePassRendering.h"
 #include "DynamicPrimitiveDrawing.h"
 #include "TranslucentRendering.h"
 #include "VelocityRendering.h"
@@ -626,11 +626,15 @@ private:
 	TArray<UMaterialInstanceDynamic*> MIDPool;
 	uint32 MIDUsedCount;
 
-	// if TemporalAA is on this cycles through 0..TemporalAASampleCount-1
+	// if TemporalAA is on this cycles through 0..TemporalAASampleCount-1, ResetViewState() puts it back to 0
 	uint8 TemporalAASampleIndex;
 	// >= 1, 1 means there is no TemporalAA
 	uint8 TemporalAASampleCount;
 
+	// counts up by one each frame, warped in 0..7 range, ResetViewState() puts it back to 0
+	uint32 FrameIndexMod8;
+	
+	// counts up by one each frame, warped in 0..3 range, ResetViewState() puts it back to 0
 	int32 DistanceFieldTemporalSampleIndex;
 
 	// light propagation volume used in this view
@@ -702,22 +706,37 @@ public:
 	// True when Sequencer has paused
 	bool bSequencerIsPaused;
 
-	FTemporalLODState TemporalLODState;	
+	FTemporalLODState TemporalLODState;
 
-	// call after SetupTemporalAA()
+	// call after OnFrameRenderingSetup()
 	virtual uint32 GetCurrentTemporalAASampleIndex() const
 	{
 		return TemporalAASampleIndex;
 	}
 
-	// call after SetupTemporalAA()
+	// call after OnFrameRenderingSetup()
 	uint32 GetCurrentTemporalAASampleCount() const
 	{
 		return TemporalAASampleCount;
 	}
 
+	virtual uint32 GetFrameIndexMod8() const
+	{
+		return FrameIndexMod8;
+	}
+
+	// to make rendering more deterministic
+	virtual void ResetViewState()
+	{
+		TemporalAASampleIndex = 0;
+		FrameIndexMod8 = 0;
+		DistanceFieldTemporalSampleIndex = 0;
+
+		ReleaseDynamicRHI();
+	}
+
 	// @param SampleCount 0 or 1 for no TemporalAA 
-	void SetupTemporalAA(uint32 SampleCount, const FSceneViewFamily& Family)
+	void OnFrameRenderingSetup(uint32 SampleCount, const FSceneViewFamily& Family)
 	{
 		if(!SampleCount)
 		{
@@ -729,6 +748,8 @@ public:
 		if (!Family.bWorldIsPaused)
 		{
 			TemporalAASampleIndex++;
+
+			FrameIndexMod8 = (FrameIndexMod8 + 1) % 8;
 		}
 
 		if(TemporalAASampleIndex >= TemporalAASampleCount)
@@ -1399,7 +1420,7 @@ public:
 
 	FIndirectLightingCacheAllocation* FindPrimitiveAllocation(FPrimitiveComponentId PrimitiveId);	
 
-	/** Updates indirect lighting in the cache based on visibility syncronously. */
+	/** Updates indirect lighting in the cache based on visibility synchronously. */
 	void UpdateCache(FScene* Scene, FSceneRenderer& Renderer, bool bAllowUnbuiltPreview);
 
 	/** Starts a task to update the cache primitives.  Results and task ref returned in the FILCUpdatePrimTaskData structure */
@@ -1745,12 +1766,12 @@ public:
 	template<typename LightMapPolicyType>
 	TStaticMeshDrawList<TBasePassDrawingPolicy<LightMapPolicyType> >& GetBasePassDrawList(EBasePassDrawListType DrawType);
 
-	/** Forward shading base pass draw lists */
-	TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FUniformLightMapPolicy,0> > BasePassForForwardShadingUniformLightMapPolicyDrawList[EBasePass_MAX];
+	/** Mobile base pass draw lists */
+	TStaticMeshDrawList<TMobileBasePassDrawingPolicy<FUniformLightMapPolicy,0> > MobileBasePassUniformLightMapPolicyDrawList[EBasePass_MAX];
 
 	/** Maps a light-map type to the appropriate base pass draw list. */
 	template<typename LightMapPolicyType>
-	TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<LightMapPolicyType,0> >& GetForwardShadingBasePassDrawList(EBasePassDrawListType DrawType);
+	TStaticMeshDrawList<TMobileBasePassDrawingPolicy<LightMapPolicyType,0> >& GetMobileBasePassDrawList(EBasePassDrawListType DrawType);
 
 	/**
 	 * The following arrays are densely packed primitive data needed by various

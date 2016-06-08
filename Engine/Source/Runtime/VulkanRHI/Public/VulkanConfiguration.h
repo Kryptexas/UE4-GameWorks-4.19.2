@@ -91,6 +91,9 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 
 #define VULKAN_IGNORE_EXTENSIONS								(PLATFORM_ANDROID && 1)
 
+//#todo-rco: While validation is not fixed...
+#define VULKAN_REUSE_FENCES										0
+
 #if PLATFORM_ANDROID
 	#define VULKAN_SIGNAL_UNIMPLEMENTED()
 #else

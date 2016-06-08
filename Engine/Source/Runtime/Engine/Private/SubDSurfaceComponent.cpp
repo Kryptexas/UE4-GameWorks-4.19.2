@@ -7,16 +7,25 @@
 #include "Engine/Font.h"
 #include "Engine/SubDSurfaceActor.h"
 #include "LocalVertexFactory.h"
-//#include "RawMesh.h"	//  fatal error C1083: Cannot open include file: 'RawMesh.h': No such file or directory  (when RawMesh is not part of PrivateDependencyModuleNames in Engine.Build.cs)
 
-// 0/1 - currently disabled as the .lib files are not yet compiled form VS2013
-#define USE_OPENSUBDIV 0
+#define VS2013OR2015 (_MSC_VER == 1800 || _MSC_VER == 1900)
+
+// 0/1 - we have libs pre compiled for VS2013 and V2015 in 64bit - later we can add more or remove the dependency to OpenSubDiv
+// RawMesh is only available when using editor builds - later we want to remove this dependency (useful at the moment to compare to vertex cache optimized meshes)
+#define USE_OPENSUBDIV (VS2013OR2015 && _WIN64 && WITH_EDITORONLY_DATA)
 
 #if USE_OPENSUBDIV
+
+#include "RawMesh.h"	//  fatal error C1083: Cannot open include file: 'RawMesh.h': No such file or directory  (when RawMesh is not part of PrivateDependencyModuleNames in Engine.Build.cs)
 
 // Disable warning C4191: 'type cast' : unsafe conversion
 #pragma warning(push)
 #pragma warning(disable:4191)
+
+#define M_PI PI
+#define or ||
+#define and &&
+#define not !
 
 //	#include "osd/cpuComputeContext.h"
 //	#include "osd/cpuComputeController.h"
@@ -35,6 +44,10 @@
 // for non manifold
 	#include <hbr/mesh.h>
 	#include <hbr/catmark.h>
+
+#undef and
+#undef not
+#undef M_PI
 
 // Restore warning C4191.
 #pragma warning(pop)
@@ -730,6 +743,8 @@ void USubDSurfaceComponent::RecreateMeshData()
 	
     // Create a Far::PtexIndices to help find indices of ptex faces.
 
+#if 1	// RAWMESH
+
     Far::PtexIndices ptexIndices(*refiner);
 	FRawMesh RawMesh;
 
@@ -933,6 +948,10 @@ void USubDSurfaceComponent::RecreateMeshData()
 
 	DisplayMeshComponent->SetStaticMesh(GeneratedMesh);
 	DisplayMeshComponent->MarkRenderStateDirty();
+
+
+#endif // RAWMESH
+
 #endif // USE_OPENSUBDIV
 }
 

@@ -32,7 +32,7 @@ TAutoConsoleVariable<int32> CVarEarlyZPass(
 	TEXT("Whether to use a depth only pass to initialize Z culling for the base pass. Cannot be changed at runtime.\n")
 	TEXT("Note: also look at r.EarlyZPassMovable\n")
 	TEXT("  0: off\n")
-	TEXT("  1: only if not masked, and only if large on the screen\n")
+	TEXT("  1: good occluders only: not masked, and large on screen\n")
 	TEXT("  2: all opaque (including masked)\n")
 	TEXT("  x: use built in heuristic (default is 3)"),
 	ECVF_Scalability);
@@ -47,6 +47,14 @@ static FAutoConsoleVariableRef CVarEarlyZPassMovable(
 	TEXT("Note: also look at r.EarlyZPass"),
 	ECVF_RenderThreadSafe | ECVF_Scalability
 	);
+
+static TAutoConsoleVariable<int32> CVarStencilForLODDither(
+	TEXT("r.StencilForLODDither"),
+	0,
+	TEXT("Whether to use stencil tests in the prepass, and depth-equal tests in the base pass to implement LOD dithering.\n")
+	TEXT("If disabled, LOD dithering will be done through clip() instructions in the prepass and base pass, which disables EarlyZ.\n")
+	TEXT("Forces a full prepass when enabled."),
+	ECVF_RenderThreadSafe | ECVF_ReadOnly);
 
 TAutoConsoleVariable<int32> CVarCustomDepthOrder(
 	TEXT("r.CustomDepth.Order"),
@@ -165,15 +173,15 @@ FDeferredShadingSceneRenderer::FDeferredShadingSceneRenderer(const FSceneViewFam
 	static IConsoleVariable* CDBufferVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DBuffer"));
 	bool bDBufferAllowed = CDBufferVar ? CDBufferVar->GetInt() != 0 : false;
 
-	if (bDBufferAllowed)
+	static const auto StencilLODDitherCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.StencilForLODDither"));
+	bDitheredLODTransitionsUseStencil = StencilLODDitherCVar->GetValueOnAnyThread() != 0;
+
+	if (bDBufferAllowed || bDitheredLODTransitionsUseStencil)
 	{
-		// DBuffer decals force a full prepass
+		// DBuffer decals and stencil LOD dithering force a full prepass
 		EarlyZPassMode = DDM_AllOccluders;
 		bEarlyZPassMovable = true;
 	}
-
-	// When possible use a stencil optimization for dithering in pre-pass
-	bDitheredLODTransitionsUseStencil = (EarlyZPassMode == DDM_AllOccluders);
 }
 
 extern FGlobalBoundShaderState GClearMRTBoundShaderState[8];
@@ -1873,9 +1881,13 @@ bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHIC
 {
 	bool bDepthWasCleared = false;
 
+#if WANTS_DRAW_MESH_EVENTS
 	static IConsoleVariable* CDBufferVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DBuffer"));
 	bool bDBufferAllowed = CDBufferVar ? CDBufferVar->GetInt() != 0 : false;
-	SCOPED_DRAW_EVENTF(RHICmdList, PrePass, TEXT("PrePass %s %s"), GetDepthDrawingModeString(EarlyZPassMode), (bDBufferAllowed ? TEXT("(Forced by DBuffer)") : TEXT("")));
+
+	SCOPED_DRAW_EVENTF(RHICmdList, PrePass, TEXT("PrePass %s %s"), GetDepthDrawingModeString(EarlyZPassMode), (bDBufferAllowed ? TEXT("(Forced by DBuffer)") : (bDitheredLODTransitionsUseStencil ? TEXT("(Forced by StencilLODDither)") : TEXT(""))));
+#endif
+
 	SCOPE_CYCLE_COUNTER(STAT_DepthDrawTime);
 
 	bool bDirty = false;
@@ -2055,28 +2067,46 @@ bool FDeferredShadingSceneRenderer::RenderBasePass(FRHICommandListImmediate& RHI
 
 void FDeferredShadingSceneRenderer::ClearLPVs(FRHICommandListImmediate& RHICmdList)
 {
-	SCOPED_DRAW_EVENT(RHICmdList, ClearLPVs);
 	SCOPE_CYCLE_COUNTER(STAT_UpdateLPVs);
+	bool bAnyViewHasLPVs = false;
 
-	// clear light propagation volumes
-
-	for(int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
-		SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
-
 		FViewInfo& View = Views[ViewIndex];
-
 		FSceneViewState* ViewState = (FSceneViewState*)Views[ViewIndex].State;
-		if(ViewState)
+
+		if (ViewState)
 		{
 			FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume(View.GetFeatureLevel());
 
-			if(LightPropagationVolume)
+			if (LightPropagationVolume)
 			{
-//				SCOPED_DRAW_EVENT(RHICmdList, ClearLPVs);
-//				SCOPE_CYCLE_COUNTER(STAT_UpdateLPVs);
-				LightPropagationVolume->InitSettings(RHICmdList, Views[ViewIndex]);
-				LightPropagationVolume->Clear(RHICmdList, View);
+				bAnyViewHasLPVs = true;
+				break;
+			}
+		}
+	}
+
+	if (bAnyViewHasLPVs)
+	{
+		SCOPED_DRAW_EVENT(RHICmdList, ClearLPVs);
+
+		for(int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+		{
+			SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
+
+			FViewInfo& View = Views[ViewIndex];
+
+			FSceneViewState* ViewState = (FSceneViewState*)Views[ViewIndex].State;
+			if(ViewState)
+			{
+				FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume(View.GetFeatureLevel());
+
+				if(LightPropagationVolume)
+				{
+					LightPropagationVolume->InitSettings(RHICmdList, Views[ViewIndex]);
+					LightPropagationVolume->Clear(RHICmdList, View);
+				}
 			}
 		}
 	}

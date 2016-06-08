@@ -2146,6 +2146,8 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 		return;
 	}
 
+	World->IssueEditorLoadWarnings();
+
 	ResetLevelFilenames();
 
 	//only register the file if the name wasn't changed as a result of loading

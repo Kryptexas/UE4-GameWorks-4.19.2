@@ -199,6 +199,60 @@ int32 GetChangeListNumberForPerfTesting()
 	return Retval;
 }
 
+// can be optimized or moved to a more central spot
+bool IsValidCPPIdentifier(const FString& In)
+{
+	bool bFirstChar = true;
+
+	for (auto& Char : In)
+	{
+		if (!bFirstChar && Char >= TCHAR('0') && Char <= TCHAR('9'))
+		{
+			// 0..9 is allowed unless on first character
+			continue;
+		}
+
+		bFirstChar = false;
+
+		if (Char == TCHAR('_')
+			|| (Char >= TCHAR('a') && Char <= TCHAR('z'))
+			|| (Char >= TCHAR('A') && Char <= TCHAR('Z')))
+		{
+			continue;
+		}
+
+		return false;
+	}
+
+	return true;
+}
+
+FString GetBuildNameForPerfTesting()
+{
+	FString BuildName;
+
+	if (FParse::Value(FCommandLine::Get(), TEXT("-BuildName="), BuildName))
+	{
+		// we take the specified name
+		if (!IsValidCPPIdentifier(BuildName))
+		{
+			UE_LOG(LogInit, Error, TEXT("The name specified by -BuildName=<name> is not valid (needs to follow C++ identifier rules)"));
+			BuildName.Empty();
+		}
+	}
+	
+	if(BuildName.IsEmpty())
+	{
+		// we generate a build name from the change list number
+		int32 ChangeListNumber = GetChangeListNumberForPerfTesting();
+
+		BuildName = FString::Printf(TEXT("CL%d"), ChangeListNumber);
+	}
+
+	return BuildName;
+}
+
+
 /**
  * This makes it so UnrealConsole will open up the memory profiler for us
  *

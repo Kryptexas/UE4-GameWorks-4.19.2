@@ -4071,11 +4071,19 @@ UTexture* UTextureFactory::ImportTexture(UClass* Class, UObject* InParent, FName
 		// DDS 2d texture
 		if(!IsImportResolutionValid(DDSLoadHelper.DDSHeader->dwWidth, DDSLoadHelper.DDSHeader->dwHeight, bAllowNonPowerOfTwo, Warn))
 		{
-			Warn->Logf(ELogVerbosity::Error, TEXT("DDS uses an unsupported format"));
+			Warn->Logf(ELogVerbosity::Error, TEXT("DDS has invalid dimensions."));
 			return nullptr;
 		}
 		
 		ETextureSourceFormat SourceFormat = DDSLoadHelper.ComputeSourceFormat();
+
+		// Invalid DDS format
+		if (SourceFormat == TSF_Invalid)
+		{
+			Warn->Logf(ELogVerbosity::Error, TEXT("DDS uses an unsupported format."));
+			return nullptr;
+		}
+
 		uint32 MipMapCount = DDSLoadHelper.ComputeMipMapCount();
 		if (SourceFormat != TSF_Invalid && MipMapCount > 0)
 		{

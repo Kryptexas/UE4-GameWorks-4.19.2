@@ -41,9 +41,6 @@ public:
 	UPROPERTY()
 	int32 FirstResourceMemMip;
 
-	/** Used for various timing measurements, e.g. streaming latency. */
-	float Timer;
-
 private:
 	/**
 	 * The imported size of the texture. Only valid on cooked builds when texture source is not

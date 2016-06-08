@@ -11,12 +11,16 @@ FTextureInstanceState::FBounds4::FBounds4()
 :	OriginX( 0, 0, 0, 0 )
 ,	OriginY( 0, 0, 0, 0 )
 ,	OriginZ( 0, 0, 0, 0 )
+,	RangeOriginX( 0, 0, 0, 0 )
+,	RangeOriginY( 0, 0, 0, 0 )
+,	RangeOriginZ( 0, 0, 0, 0 )
 ,	ExtentX( 0, 0, 0, 0 )
 ,	ExtentY( 0, 0, 0, 0 )
 ,	ExtentZ( 0, 0, 0, 0 )
 ,	Radius( 0, 0, 0, 0 )
 ,	MinDistanceSq( 0, 0, 0, 0 )
-,	MaxDistanceSq( FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX )
+,	MinRangeSq( 0, 0, 0, 0 )
+,	MaxRangeSq( FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX )
 ,	LastRenderTime( -FLT_MAX, -FLT_MAX, -FLT_MAX, -FLT_MAX)
 {
 }
@@ -29,28 +33,36 @@ void FTextureInstanceState::FBounds4::Clear(int32 Index)
 	OriginX.Component(Index) = 0;
 	OriginY.Component(Index) = 0;
 	OriginZ.Component(Index) = 0;
+	RangeOriginX.Component(Index) = 0;
+	RangeOriginY.Component(Index) = 0;
+	RangeOriginZ.Component(Index) = 0;
 	ExtentX.Component(Index) = 0;
 	ExtentY.Component(Index) = 0;
 	ExtentZ.Component(Index) = 0;
 	Radius.Component(Index) = 0;
 	MinDistanceSq.Component(Index) = 0;
-	MaxDistanceSq.Component(Index) = FLT_MAX;
+	MinRangeSq.Component(Index) = 0;
+	MaxRangeSq.Component(Index) = FLT_MAX;
 	LastRenderTime.Component(Index) = -FLT_MAX;
 }
 
-void FTextureInstanceState::FBounds4::Set(int32 Index, const FBoxSphereBounds& Bounds, float InLastRenderTime, float InMinDistance, float InMaxDistance)
+void FTextureInstanceState::FBounds4::Set(int32 Index, const FBoxSphereBounds& Bounds, float InLastRenderTime, const FVector& RangeOrigin, float InMinDistance, float InMinRange, float InMaxRange)
 {
 	check(Index >= 0 && Index < 4);
 
 	OriginX.Component(Index) = Bounds.Origin.X;
 	OriginY.Component(Index) = Bounds.Origin.Y;
 	OriginZ.Component(Index) = Bounds.Origin.Z;
+	RangeOriginX.Component(Index) = RangeOrigin.X;
+	RangeOriginY.Component(Index) = RangeOrigin.Y;
+	RangeOriginZ.Component(Index) = RangeOrigin.Z;
 	ExtentX.Component(Index) = Bounds.BoxExtent.X;
 	ExtentY.Component(Index) = Bounds.BoxExtent.Y;
 	ExtentZ.Component(Index) = Bounds.BoxExtent.Z;
 	Radius.Component(Index) = Bounds.SphereRadius;
 	MinDistanceSq.Component(Index) = InMinDistance * InMinDistance;
-	MaxDistanceSq.Component(Index) = InMaxDistance != FLT_MAX ? (InMaxDistance * InMaxDistance) : FLT_MAX;
+	MinRangeSq.Component(Index) = InMinRange * InMinRange;
+	MaxRangeSq.Component(Index) = InMaxRange != FLT_MAX ? (InMaxRange * InMaxRange) : FLT_MAX;
 	LastRenderTime.Component(Index) = InLastRenderTime;
 }
 
@@ -61,12 +73,16 @@ void FTextureInstanceState::FBounds4::Update(int32 Index, const FBoxSphereBounds
 	OriginX.Component(Index) = Bounds.Origin.X;
 	OriginY.Component(Index) = Bounds.Origin.Y;
 	OriginZ.Component(Index) = Bounds.Origin.Z;
+	RangeOriginX.Component(Index) = Bounds.Origin.X;
+	RangeOriginY.Component(Index) = Bounds.Origin.Y;
+	RangeOriginZ.Component(Index) = Bounds.Origin.Z;
 	ExtentX.Component(Index) = Bounds.BoxExtent.X;
 	ExtentY.Component(Index) = Bounds.BoxExtent.Y;
 	ExtentZ.Component(Index) = Bounds.BoxExtent.Z;
 	Radius.Component(Index) = Bounds.SphereRadius;
 	MinDistanceSq.Component(Index) = 0;
-	MaxDistanceSq.Component(Index) = FLT_MAX;
+	MinRangeSq.Component(Index) = 0;
+	MaxRangeSq.Component(Index) = FLT_MAX;
 	LastRenderTime.Component(Index) = InLastRenderTime;
 }
 
@@ -201,7 +217,7 @@ void FTextureInstanceState::FTextureLinkConstIterator::OutputToLog(float MaxNorm
 }
 
 
-int32 FTextureInstanceState::AddBounds(const FBoxSphereBounds& Bounds, const UPrimitiveComponent* InComponent, float LastRenderTime, float MinDistance, float MaxDistance)
+int32 FTextureInstanceState::AddBounds(const FBoxSphereBounds& Bounds, const UPrimitiveComponent* InComponent, float LastRenderTime, const FVector4& RangeOrigin, float MinDistance, float MinRange, float MaxRange)
 {
 	check(InComponent);
 
@@ -227,7 +243,7 @@ int32 FTextureInstanceState::AddBounds(const FBoxSphereBounds& Bounds, const UPr
 		FreeBoundIndices.Push(BoundsIndex + 1);
 	}
 
-	Bounds4[BoundsIndex / 4].Set(BoundsIndex % 4, Bounds, LastRenderTime, MinDistance, MaxDistance);
+	Bounds4[BoundsIndex / 4].Set(BoundsIndex % 4, Bounds, LastRenderTime, RangeOrigin, MinDistance, MinRange, MaxRange);
 	Bounds4Components[BoundsIndex] = InComponent;
 
 	return BoundsIndex;
@@ -438,14 +454,16 @@ void FTextureInstanceState::AddComponent(const UPrimitiveComponent* Component, F
 					// The implementation also handles MinDistance by bounding the distance to it so that if the viewpoint gets closer the screen size will stop increasing at some point.
 					// The fact that the primitive will disappear is not so relevant as this will be handled by the visibility logic, normally streaming one less mip than requested.
 					// The important mather is to control the requested mip by limiting the distance, since at close up, the distance becomes very small and all mips are streamer (even after the 1 mip bias).
+
 					float MinDistance = FMath::Max<float>(0, Component->MinDrawDistance - (Info.Bounds.Origin - Component->Bounds.Origin).Size() - Info.Bounds.SphereRadius);
-					float MaxDistance = FLT_MAX;
+					float MinRange = FMath::Max<float>(0, Component->MinDrawDistance);
+					float MaxRange = FLT_MAX;
 					if (LODParent)
 					{
 						// Max distance when HLOD becomes visible.
-						MaxDistance = LODParent->MinDrawDistance + (Info.Bounds.Origin - LODParent->Bounds.Origin).Size();
+						MaxRange = LODParent->MinDrawDistance + (Component->Bounds.Origin - LODParent->Bounds.Origin).Size();
 					}
-					BoundsIndex = AddBounds(Info.Bounds, Component, Component->LastRenderTimeOnScreen, MinDistance, MaxDistance);
+					BoundsIndex = AddBounds(Info.Bounds, Component, Component->LastRenderTimeOnScreen, Component->Bounds.Origin, MinDistance, MinRange, MaxRange);
 				}
 				BoundsIndices.Push(BoundsIndex);
 			}
@@ -684,7 +702,7 @@ TRefCountPtr<const FTextureInstanceState> FDynamicTextureInstanceManager::GetAsy
 	return TRefCountPtr<const FTextureInstanceState>(AsyncState);
 }
 
-void FTextureInstanceAsyncView::Update_Async(const TArray<FStreamingViewInfo>& ViewInfos, float LastUpdateTime, bool bUseAABB, float MaxEffectiveScreenSize)
+void FTextureInstanceAsyncView::UpdateBoundSizes_Async(const TArray<FStreamingViewInfo>& ViewInfos, float LastUpdateTime, bool bUseApproxDistance, float MaxEffectiveScreenSize)
 {
 	if (!State.IsValid())  return;
 
@@ -705,12 +723,16 @@ void FTextureInstanceAsyncView::Update_Async(const TArray<FStreamingViewInfo>& V
 		const VectorRegister OriginX = VectorLoadAligned( &CurrentBounds4.OriginX );
 		const VectorRegister OriginY = VectorLoadAligned( &CurrentBounds4.OriginY );
 		const VectorRegister OriginZ = VectorLoadAligned( &CurrentBounds4.OriginZ );
+		const VectorRegister RangeOriginX = VectorLoadAligned( &CurrentBounds4.RangeOriginX );
+		const VectorRegister RangeOriginY = VectorLoadAligned( &CurrentBounds4.RangeOriginY );
+		const VectorRegister RangeOriginZ = VectorLoadAligned( &CurrentBounds4.RangeOriginZ );
 		const VectorRegister ExtentX = VectorLoadAligned( &CurrentBounds4.ExtentX );
 		const VectorRegister ExtentY = VectorLoadAligned( &CurrentBounds4.ExtentY );
 		const VectorRegister ExtentZ = VectorLoadAligned( &CurrentBounds4.ExtentZ );
 		const VectorRegister Radius = VectorLoadAligned( &CurrentBounds4.Radius );
 		const VectorRegister MinDistanceSq = VectorLoadAligned( &CurrentBounds4.MinDistanceSq );
-		const VectorRegister MaxDistanceSq = VectorLoadAligned(&CurrentBounds4.MaxDistanceSq);
+		const VectorRegister MinRangeSq = VectorLoadAligned( &CurrentBounds4.MinRangeSq );
+		const VectorRegister MaxRangeSq = VectorLoadAligned(&CurrentBounds4.MaxRangeSq);
 		const VectorRegister LastRenderTime = VectorLoadAligned(&CurrentBounds4.LastRenderTime);
 		
 		VectorRegister MaxNormalizedSize = VectorZero();
@@ -729,7 +751,7 @@ void FTextureInstanceAsyncView::Update_Async(const TArray<FStreamingViewInfo>& V
 			const VectorRegister ViewOriginZ = VectorLoadFloat1( &ViewInfo.ViewOrigin.Z );
 
 			VectorRegister DistSqMinusRadiusSq = VectorZero();
-			if (bUseAABB)
+			if (!bUseApproxDistance)
 			{
 				// In this case DistSqMinusRadiusSq will contain the distance to the box^2
 				VectorRegister Temp = VectorSubtract( ViewOriginX, OriginX );
@@ -761,13 +783,26 @@ void FTextureInstanceAsyncView::Update_Async(const TArray<FStreamingViewInfo>& V
 
 				DistSqMinusRadiusSq = VectorMultiply( Radius, Radius );
 				DistSqMinusRadiusSq = VectorSubtract( DistSq, DistSqMinusRadiusSq );
+				// This can be negative here!!!
 			}
 
-			// Clamp Squared distance between range.
+			// If the bound is not visible up close, limit the distance to it's minimal possible range.
 			VectorRegister ClampedDistSq = VectorMax( MinDistanceSq, DistSqMinusRadiusSq );
-			ClampedDistSq = VectorMin( MaxDistanceSq, ClampedDistSq );
-			const VectorRegister InRangeMask = VectorCompareEQ(DistSqMinusRadiusSq, ClampedDistSq); // If the clamp dist is equal, then it was in range.
 
+			// Compute in range  Squared distance between range.
+			VectorRegister InRangeMask;
+			{
+				VectorRegister Temp = VectorSubtract( ViewOriginX, RangeOriginX );
+				VectorRegister RangeDistSq = VectorMultiply( Temp, Temp );
+				Temp = VectorSubtract( ViewOriginY, RangeOriginY );
+				RangeDistSq = VectorMultiplyAdd( Temp, Temp, RangeDistSq );
+				Temp = VectorSubtract( ViewOriginZ, RangeOriginZ );
+				RangeDistSq = VectorMultiplyAdd( Temp, Temp, RangeDistSq );
+
+				VectorRegister ClampedRangeDistSq = VectorMax( MinRangeSq, RangeDistSq );
+				ClampedRangeDistSq = VectorMin( MaxRangeSq, ClampedRangeDistSq );
+				InRangeMask = VectorCompareEQ( RangeDistSq, ClampedRangeDistSq); // If the clamp dist is equal, then it was in range.
+			}
 
 			ClampedDistSq = VectorMax(ClampedDistSq, One4); // Prevents / 0
 			VectorRegister ScreenSizeOverDistance = VectorReciprocalSqrt(ClampedDistSq);
@@ -992,7 +1027,9 @@ float FLevelTextureManager::GetWorldTime() const
 	if (!GIsEditor && Level)
 	{
 		UWorld* World = Level->GetWorld();
-		if (World)
+
+		// When paused, updating the world time sometimes break visibility logic.
+		if (World && !World->IsPaused())
 		{
 			return World->GetTimeSeconds();
 		}

@@ -67,10 +67,10 @@ void FVulkanGPUTiming::StartTiming()
 	{
 		if (StartTimestamp >= 0 && EndTimestamp >= 0)
 		{
-			auto& State = GTimestampQueryPool->Device->GetPendingState();
 #if 1//VULKAN_USE_NEW_COMMAND_BUFFERS
 			check(0);
 #else
+			//FVulkanPendingState& State = GTimestampQueryPool->Device->GetPendingState();
 			GTimestampQueryPool->WriteTimestamp(State.GetCommandBuffer(), StartTimestamp, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 #endif
 		}
@@ -89,10 +89,10 @@ void FVulkanGPUTiming::EndTiming()
 	{
 		if (StartTimestamp >= 0 && EndTimestamp >= 0)
 		{
-			auto& State = GTimestampQueryPool->Device->GetPendingState();
 #if 1//VULKAN_USE_NEW_COMMAND_BUFFERS
 			check(0);
 #else
+			//FVulkanPendingState& State = GTimestampQueryPool->Device->GetPendingState();
 			GTimestampQueryPool->WriteTimestamp(State.GetCommandBuffer(), EndTimestamp, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 #endif
 		}
@@ -346,7 +346,7 @@ void FVulkanDynamicRHI::IssueLongGPUTask()
 	{
 		FVulkanViewport* Viewport = Viewports[LargestViewportIndex];
 
-		const auto FeatureLevel = GMaxRHIFeatureLevel;
+		const ERHIFeatureLevel::Type FeatureLevel = GMaxRHIFeatureLevel;
 
 		FRHICommandList_RecursiveHazardous RHICmdList(&Device->GetImmediateContext());
 		SetRenderTarget(RHICmdList, Viewport->GetBackBuffer(), FTextureRHIRef());
@@ -354,7 +354,7 @@ void FVulkanDynamicRHI::IssueLongGPUTask()
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI(), 0);
 		RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 
-		auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
+		TShaderMap<FGlobalShaderType>* ShaderMap = GetGlobalShaderMap(FeatureLevel);
 		TShaderMapRef<TOneColorVS<true> > VertexShader(ShaderMap);
 		TShaderMapRef<FLongGPUTaskPS> PixelShader(ShaderMap);
 

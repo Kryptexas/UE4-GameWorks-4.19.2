@@ -2111,7 +2111,7 @@ void StencilingGeometry::DrawCone(FRHICommandList& RHICmdList)
 static FGlobalBoundShaderState MaskBoundShaderState[2];
 
 template <uint32 Quality>
-static void SetShadowProjectionShaderTemplNew(FRHICommandList& RHICmdList, int32 ViewIndex, const FViewInfo& View, const FProjectedShadowInfo* ShadowInfo, bool bForwardShading)
+static void SetShadowProjectionShaderTemplNew(FRHICommandList& RHICmdList, int32 ViewIndex, const FViewInfo& View, const FProjectedShadowInfo* ShadowInfo, bool bMobile)
 {
 	if (ShadowInfo->bTranslucentShadow)
 	{
@@ -2169,7 +2169,7 @@ static void SetShadowProjectionShaderTemplNew(FRHICommandList& RHICmdList, int32
 		// Get the Shadow Projection Pixel Shader
 		// This shader is the ordinary projection shader used by point/spot lights.		
 		FShadowProjectionPixelShaderInterface* ShadowProjPS;
-		if(bForwardShading)
+		if(bMobile)
 		{
 			ShadowProjPS = View.ShaderMap->GetShader<TModulatedShadowProjection<Quality> >();
 		}
@@ -2187,7 +2187,7 @@ static void SetShadowProjectionShaderTemplNew(FRHICommandList& RHICmdList, int32
 	}
 }
 
-void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList, int32 ViewIndex, const FViewInfo* View, bool bForwardShading) const
+void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList, int32 ViewIndex, const FViewInfo* View, bool bMobile) const
 {
 #if WANTS_DRAW_MESH_EVENTS
 	FString EventName;
@@ -2493,7 +2493,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 		DrawIndexedPrimitiveUP(RHICmdList, PT_TriangleList, 0, 8, 12, GCubeIndices, sizeof(uint16), FrustumVertices, sizeof(FVector4));
 
 		// if rendering modulated shadows mask out subject mesh elements to prevent self shadowing.
-		if (bForwardShading && !CVarEnableModulatedSelfShadow.GetValueOnRenderThread())
+		if (bMobile && !CVarEnableModulatedSelfShadow.GetValueOnRenderThread())
 		{
 			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
 				false, CF_DepthNearOrEqual,
@@ -2562,7 +2562,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 	}
 	else
 	{
-		if (bForwardShading)
+		if (bMobile)
 		{
 			bool bEncodedHDR = IsMobileHDR32bpp() && !IsMobileHDRMosaic();
 			if (bEncodedHDR)
@@ -2618,11 +2618,11 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 
 		switch(LocalQuality)
 		{
-			case 1: SetShadowProjectionShaderTemplNew<1>(RHICmdList, ViewIndex, *View, this, bForwardShading); break;
-			case 2: SetShadowProjectionShaderTemplNew<2>(RHICmdList, ViewIndex, *View, this, bForwardShading); break;
-			case 3: SetShadowProjectionShaderTemplNew<3>(RHICmdList, ViewIndex, *View, this, bForwardShading); break;
-			case 4: SetShadowProjectionShaderTemplNew<4>(RHICmdList, ViewIndex, *View, this, bForwardShading); break;
-			case 5: SetShadowProjectionShaderTemplNew<5>(RHICmdList, ViewIndex, *View, this, bForwardShading); break;
+			case 1: SetShadowProjectionShaderTemplNew<1>(RHICmdList, ViewIndex, *View, this, bMobile); break;
+			case 2: SetShadowProjectionShaderTemplNew<2>(RHICmdList, ViewIndex, *View, this, bMobile); break;
+			case 3: SetShadowProjectionShaderTemplNew<3>(RHICmdList, ViewIndex, *View, this, bMobile); break;
+			case 4: SetShadowProjectionShaderTemplNew<4>(RHICmdList, ViewIndex, *View, this, bMobile); break;
+			case 5: SetShadowProjectionShaderTemplNew<5>(RHICmdList, ViewIndex, *View, this, bMobile); break;
 			default:
 				check(0);
 		}
@@ -2868,7 +2868,7 @@ FIntPoint FProjectedShadowInfo::GetShadowBufferResolution() const
 
 	const FTexture2DRHIRef& ShadowTexture = SceneContext_ConstantsOnly.GetShadowDepthZTexture(bAllocatedInPreshadowCache);
 
-	//prefer to return the actual size of the allocated texture if possible.  It may be larger than the size of a single shadowmap due to atlasing (see forward renderer CSM handling in InitDynamicShadows).
+	//prefer to return the actual size of the allocated texture if possible.  It may be larger than the size of a single shadowmap due to atlasing (see mobile renderer CSM handling in InitDynamicShadows).
 	if (ShadowTexture)
 	{
 		return FIntPoint(ShadowTexture->GetSizeX(), ShadowTexture->GetSizeY());
@@ -3153,12 +3153,12 @@ void FSceneRenderer::RenderProjections(
 	FRHICommandListImmediate& RHICmdList,
 	const FLightSceneInfo* LightSceneInfo, 
 	const TArray<FProjectedShadowInfo*,SceneRenderingAllocator>& Shadows,
-	bool bForwardShading
+	bool bMobile
 	)
 {
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 	
-	if (bForwardShading)
+	if (bMobile)
 	{
 		SceneContext.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
 	}
@@ -3189,8 +3189,8 @@ void FSceneRenderer::RenderProjections(
 				// Only project the shadow if it's large enough in this particular view (split screen, etc... may have shadows that are large in one view but irrelevantly small in others)
 				if (ProjectedShadowInfo->FadeAlphas[ViewIndex] > 1.0f / 256.0f)
 				{
-					ProjectedShadowInfo->RenderProjection(RHICmdList, ViewIndex, &View, bForwardShading);
-					if (!bForwardShading)
+					ProjectedShadowInfo->RenderProjection(RHICmdList, ViewIndex, &View, bMobile);
+					if (!bMobile)
 					{
 						GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, SceneContext.GetLightAttenuation());
 					}
@@ -3928,7 +3928,7 @@ bool FDeferredShadingSceneRenderer::RenderCachedPreshadows(FRHICommandListImmedi
 }
 
 /** Helper function to determine if a shadow should be cast **/
-static bool IsProjectedForwardShadowPotentiallyVisible(const FProjectedShadowInfo* ProjectedShadowInfo)
+static bool IsProjectedMobileShadowPotentiallyVisible(const FProjectedShadowInfo* ProjectedShadowInfo)
 {
 	// Check that the shadow is visible in at least one view before rendering it.
 	const FLightSceneInfo& LightSceneInfo = ProjectedShadowInfo->GetLightSceneInfo();
@@ -3963,7 +3963,7 @@ static bool IsProjectedForwardShadowPotentiallyVisible(const FProjectedShadowInf
  * @param LightSceneInfo Represents the current light
  * @return true if anything got rendered
  */
-bool FForwardShadingSceneRenderer::RenderShadowDepthMap(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo)
+bool FMobileSceneRenderer::RenderShadowDepthMap(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo)
 {
 	SCOPE_CYCLE_COUNTER(STAT_ProjectedShadowDrawTime);	
 
@@ -3991,7 +3991,7 @@ bool FForwardShadingSceneRenderer::RenderShadowDepthMap(FRHICommandListImmediate
 				&& VisibleLightViewInfo.ProjectedShadowVisibilityMap[ShadowIndex];
 		}
 
-		if (IsProjectedForwardShadowPotentiallyVisible(ProjectedShadowInfo) && (ProjectedShadowInfo->bWholeSceneShadow || ProjectedShadowInfo->bPreShadow))
+		if (IsProjectedMobileShadowPotentiallyVisible(ProjectedShadowInfo) && (ProjectedShadowInfo->bWholeSceneShadow || ProjectedShadowInfo->bPreShadow))
 		{
 			// Add the shadow to the list of visible shadows cast by this light.
 			if (ProjectedShadowInfo->bWholeSceneShadow)
@@ -4012,7 +4012,7 @@ bool FForwardShadingSceneRenderer::RenderShadowDepthMap(FRHICommandListImmediate
 	{
 		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 		// Render the shadow depths.
-		SCOPED_DRAW_EVENT(RHICmdList, ShadowDepthsFromOpaqueForward);
+		SCOPED_DRAW_EVENT(RHICmdList, ShadowDepthsFromOpaque);
 
 		bool bFirst = true;
 		auto SetShadowRenderTargets = [&bFirst, &SceneContext](FRHICommandList& InRHICmdList)
@@ -4043,7 +4043,7 @@ bool FForwardShadingSceneRenderer::RenderShadowDepthMap(FRHICommandListImmediate
 	return bAttenuationBufferDirty;
 }
 
-void FForwardShadingSceneRenderer::RenderShadowDepthMaps(FRHICommandListImmediate& RHICmdList)
+void FMobileSceneRenderer::RenderShadowDepthMaps(FRHICommandListImmediate& RHICmdList)
 {
 	SCOPED_DRAW_EVENT(RHICmdList, Lights);
 
@@ -4128,9 +4128,9 @@ static void GatherModulatedShadowProjections(FLightSceneInfo* LightSceneInfo, TA
 				&& VisibleLightViewInfo.ProjectedShadowVisibilityMap[ShadowIndex];
 		}
 
-		bShadowIsVisible &= IsProjectedForwardShadowPotentiallyVisible(ProjectedShadowInfo);
+		bShadowIsVisible &= IsProjectedMobileShadowPotentiallyVisible(ProjectedShadowInfo);
 
-		// skip shadows that are used with forward basepass (whole scene shadows)
+		// skip shadows that are used with mobile basepass (whole scene shadows)
 		if (ProjectedShadowInfo->bWholeSceneShadow)
 		{
 			bShadowIsVisible = false;
@@ -4144,7 +4144,7 @@ static void GatherModulatedShadowProjections(FLightSceneInfo* LightSceneInfo, TA
 }
 
 
-void FForwardShadingSceneRenderer::RenderModulatedShadowDepthMaps(FRHICommandListImmediate& RHICmdList)
+void FMobileSceneRenderer::RenderModulatedShadowDepthMaps(FRHICommandListImmediate& RHICmdList)
 {
 	SCOPED_DRAW_EVENT(RHICmdList, Lights);
 	
@@ -4162,7 +4162,7 @@ void FForwardShadingSceneRenderer::RenderModulatedShadowDepthMaps(FRHICommandLis
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 	TArray<FProjectedShadowInfo*, SceneRenderingAllocator> Shadows;
 	const FIntPoint ShadowBufferResolution = SceneContext.GetShadowDepthTextureResolution();
-	SceneContext.AllocateForwardShadingShadowDepthTarget(RHICmdList, ShadowBufferResolution);
+	SceneContext.AllocateMobileShadowDepthTarget(RHICmdList, ShadowBufferResolution);
 	FTextureLayout ShadowLayout(1, 1, ShadowBufferResolution.X, ShadowBufferResolution.Y, false, false);
 	
 	// render shadowmaps for relevant lights.
@@ -4228,7 +4228,7 @@ void FForwardShadingSceneRenderer::RenderModulatedShadowDepthMaps(FRHICommandLis
 	bModulatedShadowsInUse &= bShadowsDepthsAllocated;
 }
 
-void FForwardShadingSceneRenderer::RenderModulatedShadowProjections(FRHICommandListImmediate& RHICmdList)
+void FMobileSceneRenderer::RenderModulatedShadowProjections(FRHICommandListImmediate& RHICmdList)
 {
 	if (IsMobileHDR() && bModulatedShadowsInUse)
 	{
@@ -4246,7 +4246,7 @@ void FForwardShadingSceneRenderer::RenderModulatedShadowProjections(FRHICommandL
 	}
 }
 
-void FForwardShadingSceneRenderer::RenderAllocatedModulatedShadowProjections(FRHICommandListImmediate& RHICmdList)
+void FMobileSceneRenderer::RenderAllocatedModulatedShadowProjections(FRHICommandListImmediate& RHICmdList)
 {
 	SCOPED_DRAW_EVENT(RHICmdList, Lights);
 

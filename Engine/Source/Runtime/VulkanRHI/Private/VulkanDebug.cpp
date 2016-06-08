@@ -105,7 +105,7 @@ static VkBool32 VKAPI_PTR DebugReportFunction(
 void FVulkanDynamicRHI::SetupDebugLayerCallback()
 {
 #if !VULKAN_DISABLE_DEBUG_CALLBACK
-	auto CreateMsgCallback = (PFN_vkCreateDebugReportCallbackEXT)(void*)vkGetInstanceProcAddr(Instance, CREATE_MSG_CALLBACK);
+	PFN_vkCreateDebugReportCallbackEXT CreateMsgCallback = (PFN_vkCreateDebugReportCallbackEXT)(void*)vkGetInstanceProcAddr(Instance, CREATE_MSG_CALLBACK);
 	if (CreateMsgCallback)
 	{
 		VkDebugReportCallbackCreateInfoEXT CreateInfo;
@@ -119,7 +119,7 @@ void FVulkanDynamicRHI::SetupDebugLayerCallback()
 		CreateInfo.flags |= VK_DEBUG_REPORT_DEBUG_BIT_EXT;
 #endif
 #endif
-		auto Result = CreateMsgCallback(Instance, &CreateInfo, nullptr, &MsgCallback);
+		VkResult Result = CreateMsgCallback(Instance, &CreateInfo, nullptr, &MsgCallback);
 		switch (Result)
 		{
 		case VK_SUCCESS:
@@ -144,7 +144,7 @@ void FVulkanDynamicRHI::RemoveDebugLayerCallback()
 #if !VULKAN_DISABLE_DEBUG_CALLBACK
 	if (MsgCallback != VK_NULL_HANDLE)
 	{
-		auto DestroyMsgCallback = (PFN_vkDestroyDebugReportCallbackEXT)(void*)vkGetInstanceProcAddr(Instance, DESTROY_MSG_CALLBACK);
+		PFN_vkDestroyDebugReportCallbackEXT DestroyMsgCallback = (PFN_vkDestroyDebugReportCallbackEXT)(void*)vkGetInstanceProcAddr(Instance, DESTROY_MSG_CALLBACK);
 		checkf(DestroyMsgCallback, TEXT("GetProcAddr: Unable to find vkDbgCreateMsgCallback\vkGetInstanceProcAddr Failure"));
 		DestroyMsgCallback(Instance, MsgCallback, nullptr);
 	}

@@ -2174,6 +2174,7 @@ static void DisplayInternals(FRHICommandListImmediate& RHICmdList, FSceneView& I
 	// if r.DisplayInternals != 0
 	if(Family->EngineShowFlags.OnScreenDebug && Family->DisplayInternalsData.IsValid())
 	{
+		// could be 0
 		auto State = InView.State;
 
 		FCanvas Canvas((FRenderTarget*)Family->RenderTarget, NULL, Family->CurrentRealTime, Family->CurrentWorldTime, Family->DeltaWorldTime, InView.GetFeatureLevel());
@@ -2219,7 +2220,7 @@ static void DisplayInternals(FRHICommandListImmediate& RHICmdList, FSceneView& I
 
 		CANVAS_HEADER(TEXT("command line options:"))
 		{
-			bool bHighlight = FApp::UseFixedTimeStep() && FApp::bUseFixedSeed;
+			bool bHighlight = !(FApp::UseFixedTimeStep() && FApp::bUseFixedSeed);
 			CANVAS_LINE(bHighlight, TEXT("  -UseFixedTimeStep: %u"), FApp::UseFixedTimeStep())
 			CANVAS_LINE(bHighlight, TEXT("  -FixedSeed: %u"), FApp::bUseFixedSeed)
 			CANVAS_LINE(false, TEXT("  -gABC= (changelist): %d"), GetChangeListNumberForPerfTesting())
@@ -2228,17 +2229,27 @@ static void DisplayInternals(FRHICommandListImmediate& RHICmdList, FSceneView& I
 		CANVAS_HEADER(TEXT("Global:"))
 		CANVAS_LINE(false, TEXT("  FrameNumberRT: %u"), GFrameNumberRenderThread)
 		CANVAS_LINE(false, TEXT("  Scalability CVar Hash: %x (use console command \"Scalability\")"), ComputeScalabilityCVarHash())
-		CANVAS_LINE(false, TEXT("  FrameNumberRT: %u"), GFrameNumberRenderThread)
+		//not really useful as it is non deterministic and should not be used for rendering features:  CANVAS_LINE(false, TEXT("  FrameNumberRT: %u"), GFrameNumberRenderThread)
 		CANVAS_LINE(false, TEXT("  FrameCounter: %u"), GFrameCounter)
 		CANVAS_LINE(false, TEXT("  rand()/SRand: %x/%x"), FMath::Rand(), FMath::GetRandSeed())
 		{
 			bool bHighlight = Family->DisplayInternalsData.NumPendingStreamingRequests != 0;
 			CANVAS_LINE(bHighlight, TEXT("  FStreamAllResourcesLatentCommand: %d"), bHighlight)
 		}
+		{
+			static auto* Var = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Streaming.FramesForFullUpdate"));
+			int32 Value = Var->GetValueOnRenderThread();
+			bool bHighlight = Value != 0;
+			CANVAS_LINE(bHighlight, TEXT("  r.Streaming.FramesForFullUpdate: %u%s"), Value, bHighlight ? TEXT(" (should be 0)") : TEXT(""));
+		}
 
-		CANVAS_HEADER(TEXT("State:"))
-		CANVAS_LINE(false, TEXT("  TemporalAASample: %u"), State->GetCurrentTemporalAASampleIndex())
-		CANVAS_LINE(false, TEXT("  LODTransition: %.2f"), State->GetTemporalLODTransition())
+		if(State)
+		{
+			CANVAS_HEADER(TEXT("State:"))
+				CANVAS_LINE(false, TEXT("  TemporalAASample: %u"), State->GetCurrentTemporalAASampleIndex())
+				CANVAS_LINE(false, TEXT("  FrameIndexMod8: %u"), State->GetFrameIndexMod8())
+				CANVAS_LINE(false, TEXT("  LODTransition: %.2f"), State->GetTemporalLODTransition())
+		}
 
 		CANVAS_HEADER(TEXT("Family:"))
 		CANVAS_LINE(false, TEXT("  Time (Real/World/DeltaWorld): %.2f/%.2f/%.2f"), Family->CurrentRealTime, Family->CurrentWorldTime, Family->DeltaWorldTime)

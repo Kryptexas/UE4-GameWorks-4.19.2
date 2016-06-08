@@ -12,11 +12,6 @@
 #include "Engine/ShadowMapTexture2D.h"
 
 /*-----------------------------------------------------------------------------
-	Stats.
------------------------------------------------------------------------------*/
-
-
-/*-----------------------------------------------------------------------------
 	Globals.
 -----------------------------------------------------------------------------*/
 
@@ -686,6 +681,7 @@ void FStreamingManagerCollection::Tick( float DeltaTime, bool bProcessEverything
  * @param DeltaTime				Time since last call in seconds
  * @param bProcessEverything	[opt] If true, process all resources with no throttling limits
  */
+
 void FStreamingManagerCollection::UpdateResourceStreaming( float DeltaTime, bool bProcessEverything/*=false*/ )
 {
 	SetupViewInfos( DeltaTime );
@@ -955,29 +951,23 @@ void FStreamingManagerCollection::RemoveLevel( ULevel* Level )
 /** Called when an actor is spawned. */
 void FStreamingManagerCollection::NotifyActorSpawned( AActor* Actor )
 {
-	STAT( double StartTime = FPlatformTime::Seconds() );
-
 	// Route to streaming managers.
 	for( int32 ManagerIndex=0; ManagerIndex<StreamingManagers.Num(); ManagerIndex++ )
 	{
 		IStreamingManager* StreamingManager = StreamingManagers[ManagerIndex];
 		StreamingManager->NotifyActorSpawned( Actor );
 	}
-	STAT( GStreamingDynamicPrimitivesTime += FPlatformTime::Seconds() - StartTime );
 }
 
 /** Called when a spawned actor is destroyed. */
 void FStreamingManagerCollection::NotifyActorDestroyed( AActor* Actor )
 {
-	STAT( double StartTime = FPlatformTime::Seconds() );
-
 	// Route to streaming managers.
 	for( int32 ManagerIndex=0; ManagerIndex<StreamingManagers.Num(); ManagerIndex++ )
 	{
 		IStreamingManager* StreamingManager = StreamingManagers[ManagerIndex];
 		StreamingManager->NotifyActorDestroyed( Actor );
 	}
-	STAT( GStreamingDynamicPrimitivesTime += FPlatformTime::Seconds() - StartTime );
 }
 
 /**
@@ -988,8 +978,6 @@ void FStreamingManagerCollection::NotifyActorDestroyed( AActor* Actor )
  */
 void FStreamingManagerCollection::NotifyPrimitiveAttached( const UPrimitiveComponent* Primitive, EDynamicPrimitiveType DynamicType )
 {
-	STAT( double StartTime = FPlatformTime::Seconds() );
-
 	// Distance-based heuristics only handle mesh components
 	if ( Primitive->IsA( UMeshComponent::StaticClass() ) )
 	{
@@ -999,14 +987,11 @@ void FStreamingManagerCollection::NotifyPrimitiveAttached( const UPrimitiveCompo
 			StreamingManager->NotifyPrimitiveAttached( Primitive, DynamicType );
 		}
 	}
-	STAT( GStreamingDynamicPrimitivesTime += FPlatformTime::Seconds() - StartTime );
 }
 
 /** Called when a primitive is detached from an actor or another component. */
 void FStreamingManagerCollection::NotifyPrimitiveDetached( const UPrimitiveComponent* Primitive )
 {
-	STAT( double StartTime = FPlatformTime::Seconds() );
-
 	// Distance-based heuristics only handle mesh components
 	if ( Primitive->IsA( UMeshComponent::StaticClass() ) )
 	{
@@ -1017,7 +1002,6 @@ void FStreamingManagerCollection::NotifyPrimitiveDetached( const UPrimitiveCompo
 			StreamingManager->NotifyPrimitiveDetached( Primitive );
 		}
 	}
-	STAT( GStreamingDynamicPrimitivesTime += FPlatformTime::Seconds() - StartTime );
 }
 
 /**
@@ -1027,8 +1011,6 @@ void FStreamingManagerCollection::NotifyPrimitiveDetached( const UPrimitiveCompo
  */
 void FStreamingManagerCollection::NotifyPrimitiveUpdated( const UPrimitiveComponent* Primitive )
 {
-	STAT( double StartTime = FPlatformTime::Seconds() );
-
 	if ( Primitive->IsA( UMeshComponent::StaticClass() ) )
 	{
 		// Route to streaming managers.
@@ -1038,7 +1020,6 @@ void FStreamingManagerCollection::NotifyPrimitiveUpdated( const UPrimitiveCompon
 			StreamingManager->NotifyPrimitiveUpdated( Primitive );
 		}
 	}
-	STAT( GStreamingDynamicPrimitivesTime += FPlatformTime::Seconds() - StartTime );
 }
 
 void FStreamingManagerCollection::AddOrRemoveTextureStreamingManagerIfNeeded(bool bIsInit)
@@ -1138,9 +1119,6 @@ struct FTextureStreamingCompare
 void Renderthread_StreamOutTextureData(FRHICommandListImmediate& RHICmdList, TArray<FTextureSortElement>* InCandidateTextures, int64 RequiredMemorySize, volatile bool* bSucceeded)
 {
 	*bSucceeded = false;
-	// only for debugging?
-	FTextureMemoryStats OldStats;
-	RHICmdList.GetTextureMemoryStats(OldStats);
 
 	// Makes sure that texture memory can get freed up right away.
 	RHICmdList.BlockUntilGPUIdle();
@@ -1190,10 +1168,6 @@ void Renderthread_StreamOutTextureData(FRHICommandListImmediate& RHICmdList, TAr
 		// Start shrinking character textures as well, if we have to.
 		bShrinkCharacterTextures = true;
 	}
-
-	// only for debugging?
-	FTextureMemoryStats NewStats;
-	RHIGetTextureMemoryStats(NewStats);
 
 	UE_LOG(LogContentStreaming, Log, TEXT("Streaming out texture memory! Saved %.2f MB."), float(SavedMemory)/1024.0f/1024.0f);
 

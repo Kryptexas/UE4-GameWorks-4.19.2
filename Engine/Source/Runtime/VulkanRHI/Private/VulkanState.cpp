@@ -277,24 +277,22 @@ FVulkanSamplerState::~FVulkanSamplerState()
 
 FVulkanRasterizerState::FVulkanRasterizerState(const FRasterizerStateInitializerRHI& Initializer)
 {
-	FMemory::Memzero(RasterizerState);
-	RasterizerState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+	FVulkanRasterizerState::ResetCreateInfo(RasterizerState);
 
 	// @todo vulkan: I'm assuming that Solid and Wireframe wouldn't ever be mixed within the same BoundShaderState, so we are ignoring the fill mode as a unique identifier
 	//checkf(Initializer.FillMode == FM_Solid, TEXT("PIPELINE KEY: Only FM_Solid is supported fill mode [got %d]"), (int32)Initializer.FillMode);
 
 	RasterizerState.polygonMode = RasterizerFillModeToVulkan(Initializer.FillMode);
 	RasterizerState.cullMode = RasterizerCullModeToVulkan(Initializer.CullMode);
-	RasterizerState.frontFace = VK_FRONT_FACE_CLOCKWISE;
 
-	RasterizerState.depthClampEnable = VK_FALSE;
+	//RasterizerState.depthClampEnable = VK_FALSE;
 	RasterizerState.depthBiasEnable = Initializer.DepthBias != 0.0f ? VK_TRUE : VK_FALSE;
-	RasterizerState.rasterizerDiscardEnable = VK_FALSE;
+	//RasterizerState.rasterizerDiscardEnable = VK_FALSE;
 
 	RasterizerState.depthBiasSlopeFactor = Initializer.SlopeScaleDepthBias;
 	RasterizerState.depthBiasConstantFactor = Initializer.DepthBias;
 
-	RasterizerState.lineWidth = 1.0f;
+	//RasterizerState.lineWidth = 1.0f;
 }
 
 FVulkanDepthStencilState::FVulkanDepthStencilState(const FDepthStencilStateInitializerRHI& Initializer) :
@@ -352,7 +350,7 @@ uint8 FVulkanDepthStencilState::StencilStateToKey(const VkStencilOpState& State)
 	{
 		Key = &StencilSettingsToUniqueKeyMap.Add(StencilBitMask, NextKey++);
 
-		checkf(NextKey < 8, TEXT("Too many unique stencil states to fit into the PipelineStateHash"));
+		checkf(NextKey < 16, TEXT("Too many unique stencil states to fit into the PipelineStateHash"));
 	}
 
 	return *Key;

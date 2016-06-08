@@ -382,7 +382,7 @@ EDecalRenderStage FDecalRendering::ComputeRenderStage(EShaderPlatform Platform, 
 {
 	if (IsMobilePlatform(Platform))
 	{
-		return DRS_ForwardShading;
+		return DRS_Mobile;
 	}
 		
 	switch(DecalBlendMode)

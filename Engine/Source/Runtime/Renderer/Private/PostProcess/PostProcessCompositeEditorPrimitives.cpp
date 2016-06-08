@@ -237,7 +237,7 @@ void FRCPassPostProcessCompositeEditorPrimitives::Process(FRenderingCompositePas
 		}
 		else
 		{
-			RenderPrimitivesToComposite<FBasePassForwardOpaqueDrawingPolicyFactory>(Context.RHICmdList, View);
+			RenderPrimitivesToComposite<FMobileBasePassOpaqueDrawingPolicyFactory>(Context.RHICmdList, View);
 		}
 
 		GRenderTargetPool.VisualizeTexture.SetCheckPoint(Context.RHICmdList, SceneContext.EditorPrimitivesColor);

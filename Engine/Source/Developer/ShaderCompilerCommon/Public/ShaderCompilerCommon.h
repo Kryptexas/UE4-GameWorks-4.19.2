@@ -73,6 +73,9 @@ extern SHADERCOMPILERCOMMON_API bool RemoveUnusedInputs(FString& InOutSourceCode
 */
 extern SHADERCOMPILERCOMMON_API void StripInstancedStereo(FString& ShaderSource);
 
+extern SHADERCOMPILERCOMMON_API FString CreateShaderCompilerWorkerDirectCommandLine(const struct FShaderCompilerInput& Input);
+
+
 // Cross compiler support/common functionality
 namespace CrossCompiler
 {

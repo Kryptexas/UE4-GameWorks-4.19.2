@@ -1161,6 +1161,13 @@ namespace VulkanRHI
 		check(UsedFences.Num() == 0);
 	}
 
+	inline void FFenceManager::DestroyFence(FFence* Fence)
+	{
+		vkDestroyFence(Device->GetInstanceHandle(), Fence->GetHandle(), nullptr);
+		Fence->Handle = VK_NULL_HANDLE;
+		delete Fence;
+	}
+
 	void FFenceManager::Init(FVulkanDevice* InDevice)
 	{
 		Device = InDevice;
@@ -1173,9 +1180,7 @@ namespace VulkanRHI
 		VkDevice DeviceHandle = Device->GetInstanceHandle();
 		for (FFence* Fence : FreeFences)
 		{
-			vkDestroyFence(DeviceHandle, Fence->GetHandle(), nullptr);
-			Fence->Handle = VK_NULL_HANDLE;
-			delete Fence;
+			DestroyFence(Fence);
 		}
 	}
 
@@ -1201,7 +1206,11 @@ namespace VulkanRHI
 		FScopeLock Lock(&GFenceLock);
 		ResetFence(Fence);
 		UsedFences.RemoveSingleSwap(Fence);
+#if VULKAN_REUSE_FENCES
 		FreeFences.Add(Fence);
+#else
+		DestroyFence(Fence);
+#endif
 		Fence = nullptr;
 	}
 
@@ -1224,6 +1233,7 @@ namespace VulkanRHI
 		check(UsedFences.Contains(Fence));
 		check(Fence->State == FFence::EState::NotReady);
 		VkResult Result = vkGetFenceStatus(Device->GetInstanceHandle(), Fence->Handle);
+		//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("vkGetFenceStatus Fence %p Result %d\n"), Fence->Handle, Result);
 		switch (Result)
 		{
 		case VK_SUCCESS:
@@ -1246,6 +1256,7 @@ namespace VulkanRHI
 		check(UsedFences.Contains(Fence));
 		check(Fence->State == FFence::EState::NotReady);
 		VkResult Result = vkWaitForFences(Device->GetInstanceHandle(), 1, &Fence->Handle, true, TimeInNanoseconds);
+		//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("vkWaitForFences Fence %p\n"), Fence->Handle);
 		switch (Result)
 		{
 		case VK_SUCCESS:
@@ -1265,10 +1276,12 @@ namespace VulkanRHI
 	{
 		if (Fence->State != FFence::EState::NotReady)
 		{
+			//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("vkResetFences Fence %p\n"), Fence->Handle);
 			VERIFYVULKANRESULT(vkResetFences(Device->GetInstanceHandle(), 1, &Fence->Handle));
 			Fence->State = FFence::EState::NotReady;
 		}
 	}
+
 
 	FDeferredDeletionQueue::FDeferredDeletionQueue(FVulkanDevice* InDevice)
 		: FDeviceChild(InDevice)

@@ -2716,6 +2716,8 @@ public:
 	 */
 	void RefreshStreamingLevels( const TArray<class ULevelStreaming*>& InLevelsToRefresh );
 
+	void IssueEditorLoadWarnings();
+
 #endif
 
 	/**

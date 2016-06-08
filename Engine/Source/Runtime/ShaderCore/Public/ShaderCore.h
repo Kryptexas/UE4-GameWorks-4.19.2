@@ -417,6 +417,8 @@ struct FShaderCompilerInput
 	// Skips the preprocessor and instead loads the usf file directly
 	bool bSkipPreprocessedCache;
 
+	bool bGenerateDirectCompileFile;
+
 	// Shader pipeline information
 	bool bCompilingForShaderPipeline;
 	bool bIncludeUsedOutputs;
@@ -435,6 +437,7 @@ struct FShaderCompilerInput
 
 	FShaderCompilerInput() :
 		bSkipPreprocessedCache(false),
+		bGenerateDirectCompileFile(false),
 		bCompilingForShaderPipeline(false),
 		bIncludeUsedOutputs(false)
 	{
@@ -472,6 +475,7 @@ struct FShaderCompilerInput
 		Ar << Input.EntryPointName;
 		Ar << Input.bSkipPreprocessedCache;
 		Ar << Input.bCompilingForShaderPipeline;
+		Ar << Input.bGenerateDirectCompileFile;
 		Ar << Input.bIncludeUsedOutputs;
 		Ar << Input.UsedOutputs;
 		Ar << Input.DumpDebugInfoRootPath;

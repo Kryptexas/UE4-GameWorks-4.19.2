@@ -67,11 +67,6 @@ public:
 		State = EState::HasEnded;
 	}
 
-	inline VulkanRHI::FFence* GetFence()
-	{
-		return Fence;
-	}
-
 	inline uint64 GetFenceSignaledCounter() const
 	{
 		return FenceSignaledCounter;
@@ -92,7 +87,10 @@ private:
 	FVulkanDevice* Device;
 	VkCommandBuffer CommandBufferHandle;
 	EState State;
+
+	// Do not cache this pointer as it might change depending on VULKAN_REUSE_FENCES
 	VulkanRHI::FFence* Fence;
+
 	uint64 FenceSignaledCounter;
 
 	void RefreshFenceStatus();

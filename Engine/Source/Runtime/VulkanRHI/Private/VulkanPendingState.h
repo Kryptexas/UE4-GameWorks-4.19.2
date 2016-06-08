@@ -39,10 +39,6 @@ public:
 	
 	void SetBoundShaderState(TRefCountPtr<FVulkanBoundShaderState> InBoundShaderState);
 
-	//#todo-rco: Temp hack...
-	typedef void (TCallback)(void*);
-	void SubmitPendingCommandBuffers(TCallback* Callback, void* CallbackUserData);
-
 	// Pipeline states
 	void SetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ);
 	void SetScissor(bool bEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY);
@@ -82,11 +78,6 @@ public:
 			RenderPassBegin(CmdBuffer);
 			bChangeRenderTarget = false;
 		}
-	}
-
-	inline const FVulkanPipelineGraphicsKey& GetCurrentKey() const
-	{
-		return CurrentKey;
 	}
 
 	void SetStreamSource(uint32 StreamIndex, FVulkanBuffer* VertexBuffer, uint32 Stride, uint32 Offset)

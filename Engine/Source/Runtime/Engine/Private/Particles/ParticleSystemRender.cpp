@@ -7000,7 +7000,7 @@ void FParticleSystemSceneProxy::UpdateWorldSpacePrimitiveUniformBuffer() const
 			ReceivesDecals(),
 			false,
 			false,
-			false,
+			UseSingleSampleShadowFromStationaryLights(),
 			UseEditorDepthTest(),
 			1.0f			// LPV bias
 			);

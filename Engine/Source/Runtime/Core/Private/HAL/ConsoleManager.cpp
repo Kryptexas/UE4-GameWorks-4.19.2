@@ -1665,6 +1665,7 @@ void CreateConsoleVariables()
 	IConsoleManager::Get().RegisterConsoleCommand(TEXT("VisRT"),	TEXT("GUI for visualizetexture"), ECVF_Cheat);
 	IConsoleManager::Get().RegisterConsoleCommand(TEXT("HighResShot"),	TEXT("High resolution screenshots [Magnification = 2..]"), ECVF_Cheat);
 	IConsoleManager::Get().RegisterConsoleCommand(TEXT("DumpUnbuiltLightInteractions"),	TEXT("Logs all lights and primitives that have an unbuilt interaction."), ECVF_Cheat);
+	IConsoleManager::Get().RegisterConsoleCommand(TEXT("r.ResetViewState"), TEXT("Reset some state (e.g. TemporalAA index) to make rendering more deterministic (for automated screenshot verification)"), ECVF_Cheat);
 
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
@@ -2245,14 +2246,6 @@ static TAutoConsoleVariable<float> CVarSkeletalMeshLODRadiusScale(
 	1.0f,
 	TEXT("Scale factor for the screen radius used in computing discrete LOD for skeletal meshes. (0.25-1)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
-
-
-
-static TAutoConsoleVariable<int32> CVarOnlyStreamInTextures(
-	TEXT("r.OnlyStreamInTextures"),
-	0,
-	TEXT("If set to 1, texture will only be streamed in, not out"),
-	ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<int32> CVarPreTileTextures(
 	TEXT("r.PreTileTextures"),

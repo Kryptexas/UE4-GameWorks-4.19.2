@@ -117,6 +117,12 @@ public:
 		return TempFrameAllocationBuffer;
 	}
 
+	inline FVulkanPendingState& GetPendingState()
+	{
+		check(PendingState);
+		return *PendingState;
+	}
+
 protected:
 	FVulkanDynamicRHI* RHI;
 	FVulkanDevice* Device;
@@ -141,6 +147,9 @@ protected:
 	TArray<FString> EventStack;
 
 	FVulkanCommandBufferManager* CommandBufferManager;
+
+	//#todo-rco: Temp!
+	FVulkanPendingState* PendingState;
 
 	void SubmitCurrentCommands();
 };

@@ -1680,10 +1680,10 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 	}
 
 	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.EarlyZPass"));
-		if (CVar)
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.StencilForLODDither"));
+		if (CVar && CVar->GetValueOnAnyThread() > 0)
 		{
-			KeyString += FString::Printf(TEXT("_EARLYZ%d"), CVar->GetValueOnAnyThread());
+			KeyString += TEXT("_SD");
 		}
 	}
 }

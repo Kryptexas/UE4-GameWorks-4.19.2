@@ -4,6 +4,7 @@
 #include "SlateBasics.h"
 #include "AutomationCommon.h"
 #include "ImageUtils.h"
+#include "ShaderCompiler.h"		// GShaderCompilingManager
 
 #if WITH_EDITOR
 #include "FileHelpers.h"
@@ -279,4 +280,15 @@ bool FExecWorldStringLatentCommand::Update()
 	return true;
 }
 
+
+/**
+* This will cause the test to wait for the shaders to finish compiling before moving on.
+*/
+bool FWaitForShadersToFinishCompilingInGame::Update()
+{
+	UE_LOG(LogEditorAutomationTests, Log, TEXT("Waiting for %i shaders to finish."), GShaderCompilingManager->GetNumRemainingJobs());
+	GShaderCompilingManager->FinishAllCompilation();
+	UE_LOG(LogEditorAutomationTests, Log, TEXT("Done waiting for shaders to finish."));
+	return true;
+}
 #endif //WITH_DEV_AUTOMATION_TESTS

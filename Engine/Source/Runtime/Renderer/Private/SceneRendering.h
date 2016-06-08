@@ -203,10 +203,10 @@ public:
 	void DrawAPrimitive(FRHICommandList& RHICmdList, const class FViewInfo& View, class FDeferredShadingSceneRenderer& Renderer, ETranslucencyPass::Type TranslucenyPassType, int32 PrimIdx) const;
 
 	/** 
-	* Draw all the primitives in this set for the forward shading pipeline. 
+	* Draw all the primitives in this set for the mobile pipeline. 
 	* @param bRenderSeparateTranslucency - If false, only primitives with materials without mobile separate translucency enabled are rendered. Opposite if true.
 	*/
-	void DrawPrimitivesForForwardShading(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, const bool bRenderSeparateTranslucency) const;
+	void DrawPrimitivesForMobile(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, const bool bRenderSeparateTranslucency) const;
 
 	/**
 	* Insert a primitive to the translucency rendering list[s]
@@ -574,7 +574,7 @@ public:
 	uint32 bUsesGlobalDistanceField : 1;
 	uint32 bUsesLightingChannels : 1;
 	/** 
-	 * true if the scene has at least one decal. Used to disable stencil operations in the forward base pass when the scene has no decals.
+	 * true if the scene has at least one decal. Used to disable stencil operations in the mobile base pass when the scene has no decals.
 	 * TODO: Right now decal visibility is computed right before rendering them. Ideally it should be done in InitViews and this flag should be replaced with list of visible decals  
 	 */
 	uint32 bSceneHasDecals : 1;
@@ -857,7 +857,7 @@ protected:
 		FRHICommandListImmediate& RHICmdList,
 		const FLightSceneInfo* LightSceneInfo,
 		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& Shadows,
-		bool bForwardShading
+		bool bMobile
 		);
 
 	/** Finds a matching cached preshadow, if one exists. */
@@ -982,11 +982,11 @@ protected:
 /**
  * Renderer that implements simple forward shading and associated features.
  */
-class FForwardShadingSceneRenderer : public FSceneRenderer
+class FMobileSceneRenderer : public FSceneRenderer
 {
 public:
 
-	FForwardShadingSceneRenderer(const FSceneViewFamily* InViewFamily,FHitProxyConsumer* HitProxyConsumer);
+	FMobileSceneRenderer(const FSceneViewFamily* InViewFamily,FHitProxyConsumer* HitProxyConsumer);
 
 	// FSceneRenderer interface
 
@@ -1001,8 +1001,8 @@ protected:
 	/** Finds the visible dynamic shadows for each view. */
 	void InitDynamicShadows(FRHICommandListImmediate& RHICmdList);
 
-	/** Renders the opaque base pass for forward shading. */
-	void RenderForwardShadingBasePass(FRHICommandListImmediate& RHICmdList);
+	/** Renders the opaque base pass for mobile. */
+	void RenderMobileBasePass(FRHICommandListImmediate& RHICmdList);
 
 	/** Render modulated shadow projections in to the scene, loops over any unrendered shadows until all are processed.*/
 	void RenderModulatedShadowProjections(FRHICommandListImmediate& RHICmdList);

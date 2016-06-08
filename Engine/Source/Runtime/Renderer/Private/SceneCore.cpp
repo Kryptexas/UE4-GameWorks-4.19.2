@@ -327,7 +327,10 @@ void FStaticMesh::AddToDrawLists(FRHICommandListImmediate& RHICmdList, FScene* S
 			static IConsoleVariable* CDBufferVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DBuffer"));
 			bool bDBufferAllowed = CDBufferVar ? CDBufferVar->GetInt() != 0 : false;
 
-			if (bDBufferAllowed)
+			static const auto StencilLODDitherCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.StencilForLODDither"));
+			bool bStencilLODDither = StencilLODDitherCVar->GetValueOnAnyThread() != 0;
+
+			if (bDBufferAllowed || bStencilLODDither)
 			{
 				// DBuffer decals force a full prepass
 				EarlyZPassMode = DDM_AllOccluders;
@@ -356,7 +359,7 @@ void FStaticMesh::AddToDrawLists(FRHICommandListImmediate& RHICmdList, FScene* S
 		if (bUseForMaterial)
 		{
 			// Add the static mesh to the DPG's base pass draw list.
-			FBasePassForwardOpaqueDrawingPolicyFactory::AddStaticMesh(RHICmdList, Scene, this);
+			FMobileBasePassOpaqueDrawingPolicyFactory::AddStaticMesh(RHICmdList, Scene, this);
 		}
 	}
 }

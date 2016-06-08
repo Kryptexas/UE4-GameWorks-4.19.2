@@ -7,6 +7,8 @@
 #include "Collision.h"
 #include "Engine/DemoNetDriver.h"
 #include "AudioDeviceManager.h"
+#include "MessageLog.h"
+#include "MapErrors.h"
 
 #if WITH_PHYSX
 	#include "PhysicsEngine/PhysXSupport.h"
@@ -17,6 +19,8 @@
 #include "Components/BoxComponent.h"
 #include "GameFramework/MovementComponent.h"
 #include "GameFramework/GameMode.h"
+
+#define LOCTEXT_NAMESPACE "LevelActor"
 
 // CVars
 static TAutoConsoleVariable<float> CVarEncroachEpsilon(
@@ -1225,6 +1229,40 @@ void UWorld::RefreshStreamingLevels()
 {
 	RefreshStreamingLevels( StreamingLevels );
 }
+
+void UWorld::IssueEditorLoadWarnings()
+{
+	float TotalLoadTimeFromFixups = 0;
+
+	for (int32 LevelIndex = 0; LevelIndex < Levels.Num(); LevelIndex++)
+	{
+		ULevel* Level = Levels[LevelIndex];
+
+		if (Level->FixupOverrideVertexColorsCount > 0)
+		{
+			TotalLoadTimeFromFixups += Level->FixupOverrideVertexColorsTime;
+			FFormatNamedArguments Arguments;
+			Arguments.Add(TEXT("LoadTime"), FText::FromString(FString::Printf(TEXT("%.1fs"), Level->FixupOverrideVertexColorsTime)));
+			Arguments.Add(TEXT("NumComponents"), FText::FromString(FString::Printf(TEXT("%u"), Level->FixupOverrideVertexColorsCount)));
+			Arguments.Add(TEXT("LevelName"), FText::FromString(Level->GetOutermost()->GetName()));
+			
+			FMessageLog("MapCheck").Info()
+				->AddToken(FTextToken::Create(FText::Format( LOCTEXT( "MapCheck_Message_RepairedPaintedVertexColors", "Repaired painted vertex colors in {LoadTime} for {NumComponents} components in {LevelName}.  Resave map to fix." ), Arguments ) ))
+				->AddToken(FMapErrorToken::Create(FMapErrors::RepairedPaintedVertexColors));
+		}
+	}
+
+	if (TotalLoadTimeFromFixups > 0)
+	{
+		FFormatNamedArguments Arguments;
+		Arguments.Add(TEXT("LoadTime"), FText::FromString(FString::Printf(TEXT("%.1fs"), TotalLoadTimeFromFixups)));
+			
+		FMessageLog("MapCheck").Warning()
+			->AddToken(FTextToken::Create(FText::Format( LOCTEXT( "MapCheck_Message_RepairedPaintedVertexColors", "Spent {LoadTime} repairing painted vertex colors due to static mesh re-imports!  This will happen every load until the maps are resaved." ), Arguments ) ))
+			->AddToken(FMapErrorToken::Create(FMapErrors::RepairedPaintedVertexColors));
+	}
+}
+
 #endif // WITH_EDITOR
 
 
@@ -1331,3 +1369,5 @@ void UWorld::SetMapNeedsLightingFullyRebuilt(int32 InNumLightingUnbuiltObjects)
 		}
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

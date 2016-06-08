@@ -14,7 +14,7 @@ static TGlobalResource< TBoundShaderStateHistory<10000, false> > GBoundShaderSta
 
 static inline bool UseRealUBs()
 {
-	static auto* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Vulkan.UseRealUBs"));
+	static TConsoleVariableData<int32>* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Vulkan.UseRealUBs"));
 	return (CVar && CVar->GetValueOnAnyThread() != 0);
 }
 
@@ -36,11 +36,10 @@ static inline VkPrimitiveTopology UEToVulkanType(EPrimitiveType PrimitiveType)
 
 void FVulkanCommandListContext::RHISetStreamSource(uint32 StreamIndex,FVertexBufferRHIParamRef VertexBufferRHI, uint32 Stride, uint32 Offset)
 {
-	FVulkanPendingState& State = Device->GetPendingState();
 	FVulkanVertexBuffer* VertexBuffer = ResourceCast(VertexBufferRHI);
 	if (VertexBuffer != NULL)
 	{
-		State.SetStreamSource(StreamIndex, VertexBuffer, Stride, Offset + VertexBuffer->GetOffset());
+		PendingState->SetStreamSource(StreamIndex, VertexBuffer, Stride, Offset + VertexBuffer->GetOffset());
 	}
 }
 
@@ -54,8 +53,7 @@ void FVulkanCommandListContext::RHISetRasterizerState(FRasterizerStateRHIParamRe
 	FVulkanRasterizerState* NewState = ResourceCast(NewStateRHI);
 	check(NewState);
 
-	FVulkanPendingState& state = Device->GetPendingState();
-	state.SetRasterizerState(NewState);
+	PendingState->SetRasterizerState(NewState);
 }
 
 void FVulkanCommandListContext::RHISetComputeShader(FComputeShaderRHIParamRef ComputeShaderRHI)
@@ -97,8 +95,7 @@ void FVulkanCommandListContext::RHISetBoundShaderState(FBoundShaderStateRHIParam
 	GBoundShaderStateHistory.Add(BoundShaderState);
 
 	check(Device);
-	FVulkanPendingState& State = Device->GetPendingState();
-	State.SetBoundShaderState(BoundShaderState);
+	PendingState->SetBoundShaderState(BoundShaderState);
 }
 
 
@@ -124,8 +121,7 @@ void FVulkanCommandListContext::RHISetUAVParameter(FComputeShaderRHIParamRef Com
 void FVulkanCommandListContext::RHISetShaderTexture(FVertexShaderRHIParamRef VertexShaderRHI, uint32 TextureIndex, FTextureRHIParamRef NewTextureRHI)
 {
 	check(Device);
-	FVulkanPendingState& PendingState = Device->GetPendingState();
-	FVulkanBoundShaderState& BSS = PendingState.GetBoundShaderState();
+	FVulkanBoundShaderState& BSS = PendingState->GetBoundShaderState();
 
 	// Verify presence of a vertex shader and it has to be the same shader
 	check(ResourceCast(VertexShaderRHI) == &BSS.GetShader(SF_Vertex));
@@ -152,8 +148,7 @@ void FVulkanCommandListContext::RHISetShaderTexture(FGeometryShaderRHIParamRef G
 void FVulkanCommandListContext::RHISetShaderTexture(FPixelShaderRHIParamRef PixelShaderRHI, uint32 TextureIndex, FTextureRHIParamRef NewTextureRHI)
 {
 	check(Device);
-	FVulkanPendingState& PendingState = Device->GetPendingState();
-	FVulkanBoundShaderState& BSS = PendingState.GetBoundShaderState();
+	FVulkanBoundShaderState& BSS = PendingState->GetBoundShaderState();
 
 	// Verify presence of a pixel shader and it has to be the same shader
 	check(ResourceCast(PixelShaderRHI) == &BSS.GetShader(SF_Pixel));
@@ -170,8 +165,8 @@ void FVulkanCommandListContext::RHISetShaderTexture(FComputeShaderRHIParamRef Co
 
 void FVulkanCommandListContext::RHISetShaderResourceViewParameter(FVertexShaderRHIParamRef VertexShaderRHI, uint32 TextureIndex, FShaderResourceViewRHIParamRef SRVRHI)
 {
-	check(Device);
-	Device->BindSRV(ResourceCast(SRVRHI), TextureIndex, SF_Vertex);
+	FVulkanBoundShaderState& ShaderState = PendingState->GetBoundShaderState();
+	ShaderState.SetSRV(SF_Vertex, TextureIndex, ResourceCast(SRVRHI));
 }
 
 void FVulkanCommandListContext::RHISetShaderResourceViewParameter(FHullShaderRHIParamRef HullShaderRHI,uint32 TextureIndex,FShaderResourceViewRHIParamRef SRVRHI)
@@ -191,8 +186,8 @@ void FVulkanCommandListContext::RHISetShaderResourceViewParameter(FGeometryShade
 
 void FVulkanCommandListContext::RHISetShaderResourceViewParameter(FPixelShaderRHIParamRef PixelShaderRHI,uint32 TextureIndex,FShaderResourceViewRHIParamRef SRVRHI)
 {
-	check(Device);
-	Device->BindSRV(ResourceCast(SRVRHI), TextureIndex, SF_Pixel);
+	FVulkanBoundShaderState& ShaderState = PendingState->GetBoundShaderState();
+	ShaderState.SetSRV(SF_Pixel, TextureIndex, ResourceCast(SRVRHI));
 }
 
 void FVulkanCommandListContext::RHISetShaderResourceViewParameter(FComputeShaderRHIParamRef ComputeShaderRHI,uint32 TextureIndex,FShaderResourceViewRHIParamRef SRVRHI)
@@ -204,8 +199,7 @@ void FVulkanCommandListContext::RHISetShaderResourceViewParameter(FComputeShader
 void FVulkanCommandListContext::RHISetShaderSampler(FVertexShaderRHIParamRef VertexShaderRHI, uint32 SamplerIndex, FSamplerStateRHIParamRef NewStateRHI)
 {
 	check(Device);
-	FVulkanPendingState& state = Device->GetPendingState();
-	FVulkanBoundShaderState& ShaderState = state.GetBoundShaderState();
+	FVulkanBoundShaderState& ShaderState = PendingState->GetBoundShaderState();
 
 	check(&ShaderState.GetShader(SF_Vertex) == ResourceCast(VertexShaderRHI));
 	FVulkanSamplerState* Sampler = ResourceCast(NewStateRHI);
@@ -230,8 +224,7 @@ void FVulkanCommandListContext::RHISetShaderSampler(FGeometryShaderRHIParamRef G
 void FVulkanCommandListContext::RHISetShaderSampler(FPixelShaderRHIParamRef PixelShaderRHI, uint32 SamplerIndex, FSamplerStateRHIParamRef NewStateRHI)
 {
 	check(Device);
-	FVulkanPendingState& state = Device->GetPendingState();
-	FVulkanBoundShaderState& ShaderState = state.GetBoundShaderState();
+	FVulkanBoundShaderState& ShaderState = PendingState->GetBoundShaderState();
 
 	check(&ShaderState.GetShader(SF_Pixel) == ResourceCast(PixelShaderRHI));
 	FVulkanSamplerState* Sampler = ResourceCast(NewStateRHI);
@@ -246,8 +239,7 @@ void FVulkanCommandListContext::RHISetShaderSampler(FComputeShaderRHIParamRef Co
 void FVulkanCommandListContext::RHISetShaderParameter(FVertexShaderRHIParamRef VertexShaderRHI, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue)
 {
 	check(Device);
-	FVulkanPendingState& state = Device->GetPendingState();
-	FVulkanBoundShaderState& ShaderState = state.GetBoundShaderState();
+	FVulkanBoundShaderState& ShaderState = PendingState->GetBoundShaderState();
 
 	// Verify shader
 	check(&ShaderState.GetShader(SF_Vertex) == ResourceCast(VertexShaderRHI));
@@ -272,8 +264,7 @@ void FVulkanCommandListContext::RHISetShaderParameter(FGeometryShaderRHIParamRef
 void FVulkanCommandListContext::RHISetShaderParameter(FPixelShaderRHIParamRef PixelShaderRHI, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue)
 {
 	check(Device);
-	FVulkanPendingState& state = Device->GetPendingState();
-	FVulkanBoundShaderState& ShaderState = state.GetBoundShaderState();
+	FVulkanBoundShaderState& ShaderState = PendingState->GetBoundShaderState();
 
 	// Verify shader
 	check(&ShaderState.GetShader(SF_Pixel) == ResourceCast(PixelShaderRHI));
@@ -353,8 +344,7 @@ inline void FVulkanCommandListContext::SetShaderUniformBuffer(EShaderFrequency S
 	SCOPE_CYCLE_COUNTER(STAT_VulkanSetUniformBufferTime);
 #endif
 
-	FVulkanPendingState& PendingState = Device->GetPendingState();
-	FVulkanBoundShaderState& ShaderState = PendingState.GetBoundShaderState();
+	FVulkanBoundShaderState& ShaderState = PendingState->GetBoundShaderState();
 
 	// Walk through all resources to set all appropriate states
 	const FVulkanShader& Shader = ShaderState.GetShader(Stage);
@@ -362,13 +352,13 @@ inline void FVulkanCommandListContext::SetShaderUniformBuffer(EShaderFrequency S
 	// Uniform Buffers
 	if (UseRealUBs())
 	{
-		ShaderState.SetUniformBuffer(PendingState, Stage,
+		ShaderState.SetUniformBuffer(*PendingState, Stage,
 			BindingIndex,
 			UniformBuffer);
 	}
 	else
 	{
-		ShaderState.SetUniformBufferConstantData(PendingState, Stage,
+		ShaderState.SetUniformBufferConstantData(*PendingState, Stage,
 			BindingIndex,
 			UniformBuffer->ConstantData);
 	}
@@ -433,7 +423,7 @@ inline void FVulkanCommandListContext::SetShaderUniformBuffer(EShaderFrequency S
 void FVulkanCommandListContext::RHISetShaderUniformBuffer(FVertexShaderRHIParamRef VertexShaderRHI, uint32 BufferIndex, FUniformBufferRHIParamRef BufferRHI)
 {
 	// Validate if the shader which we are setting is the same as we expect
-	check(&Device->GetPendingState().GetBoundShaderState().GetShader(SF_Vertex) == ResourceCast(VertexShaderRHI));
+	check(&PendingState->GetBoundShaderState().GetShader(SF_Vertex) == ResourceCast(VertexShaderRHI));
 
 	FVulkanUniformBuffer* UniformBuffer = ResourceCast(BufferRHI);
 
@@ -458,7 +448,7 @@ void FVulkanCommandListContext::RHISetShaderUniformBuffer(FGeometryShaderRHIPara
 void FVulkanCommandListContext::RHISetShaderUniformBuffer(FPixelShaderRHIParamRef PixelShader, uint32 BufferIndex, FUniformBufferRHIParamRef BufferRHI)
 {
 	// Validate if the shader which we are setting is the same as we expect
-	check(&Device->GetPendingState().GetBoundShaderState().GetShader(SF_Pixel) == ResourceCast(PixelShader));
+	check(&PendingState->GetBoundShaderState().GetShader(SF_Pixel) == ResourceCast(PixelShader));
 
 	FVulkanUniformBuffer* UniformBuffer = ResourceCast(BufferRHI);
 
@@ -476,7 +466,7 @@ void FVulkanCommandListContext::RHISetDepthStencilState(FDepthStencilStateRHIPar
 	check(NewState);
 
 	check(Device);
-	Device->GetPendingState().SetDepthStencilState(NewState);
+	PendingState->SetDepthStencilState(NewState);
 }
 
 void FVulkanCommandListContext::RHISetBlendState(FBlendStateRHIParamRef NewStateRHI, const FLinearColor& BlendFactor)
@@ -485,7 +475,7 @@ void FVulkanCommandListContext::RHISetBlendState(FBlendStateRHIParamRef NewState
 	check(NewState);
 
 	check(Device);
-	Device->GetPendingState().SetBlendState(NewState);
+	PendingState->SetBlendState(NewState);
 }
 
 
@@ -515,8 +505,7 @@ void FVulkanCommandListContext::RHIDrawPrimitive(uint32 PrimitiveType, uint32 Ba
 
 	SCOPE_CYCLE_COUNTER(STAT_VulkanDrawCallTime);
 
-	FVulkanPendingState& State = Device->GetPendingState();
-	FVulkanBoundShaderState& BSS = State.GetBoundShaderState();
+	FVulkanBoundShaderState& BSS = PendingState->GetBoundShaderState();
 
 	uint32 NumVertices = GetVertexCountForPrimitiveCount(NumPrimitives, PrimitiveType);
 
@@ -524,8 +513,8 @@ void FVulkanCommandListContext::RHIDrawPrimitive(uint32 PrimitiveType, uint32 Ba
 	if (!BSS.HasError())
 #endif
 	{
-		auto* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
-		State.PrepareDraw(this, CmdBuffer, UEToVulkanType((EPrimitiveType)PrimitiveType));
+		FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+		PendingState->PrepareDraw(this, CmdBuffer, UEToVulkanType((EPrimitiveType)PrimitiveType));
 		vkCmdDraw(CmdBuffer->GetHandle(), NumVertices, NumInstances, BaseVertexIndex, 0);
 	}
 
@@ -543,7 +532,7 @@ void FVulkanCommandListContext::RHIDrawPrimitiveIndirect(uint32 PrimitiveType, F
 
 	//@NOTE: don't prepare draw without actually drawing
 #if 0//!PLATFORM_ANDROID
-	Device->GetPendingState().PrepareDraw(UEToVulkanType((EPrimitiveType)PrimitiveType));
+	PendingState->PrepareDraw(UEToVulkanType((EPrimitiveType)PrimitiveType));
 	FVulkanVertexBuffer* ArgumentBuffer = ResourceCast(ArgumentBufferRHI);
 #endif
 	
@@ -561,8 +550,7 @@ void FVulkanCommandListContext::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef 
 	check(Device);
 	SCOPE_CYCLE_COUNTER(STAT_VulkanDrawCallTime);
 
-	FVulkanPendingState& State = Device->GetPendingState();
-	FVulkanBoundShaderState& BSS = State.GetBoundShaderState();
+	FVulkanBoundShaderState& BSS = PendingState->GetBoundShaderState();
 
 	#if VULKAN_HAS_DEBUGGING_ENABLED
 		if(!BSS.HasError())
@@ -571,7 +559,7 @@ void FVulkanCommandListContext::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef 
 		FVulkanIndexBuffer* IndexBuffer = ResourceCast(IndexBufferRHI);
 		FVulkanCmdBuffer* Cmd = CommandBufferManager->GetActiveCmdBuffer();
 		VkCommandBuffer CmdBuffer = Cmd->GetHandle();
-		State.PrepareDraw(this, Cmd, UEToVulkanType((EPrimitiveType)PrimitiveType));
+		PendingState->PrepareDraw(this, Cmd, UEToVulkanType((EPrimitiveType)PrimitiveType));
 
 		vkCmdBindIndexBuffer(CmdBuffer, IndexBuffer->GetHandle(), IndexBuffer->GetOffset(), IndexBuffer->GetIndexType());
 
@@ -594,7 +582,7 @@ void FVulkanCommandListContext::RHIDrawIndexedIndirect(FIndexBufferRHIParamRef I
 #if 0
 	//@NOTE: don't prepare draw without actually drawing
 #if !PLATFORM_ANDROID
-	Device->GetPendingState().PrepareDraw(UEToVulkanType((EPrimitiveType)PrimitiveType));
+	PendingState->PrepareDraw(UEToVulkanType((EPrimitiveType)PrimitiveType));
 	FVulkanIndexBuffer* IndexBuffer = ResourceCast(IndexBufferRHI);
 #if 0
 	FVulkanStructuredBuffer* ArgumentsBuffer = ResourceCast(ArgumentsBufferRHI);
@@ -617,7 +605,7 @@ void FVulkanCommandListContext::RHIDrawIndexedPrimitiveIndirect(uint32 Primitive
 #if 0
 	//@NOTE: don't prepare draw without actually drawing
 #if !PLATFORM_ANDROID
-	Device->GetPendingState().PrepareDraw(UEToVulkanType((EPrimitiveType)PrimitiveType));
+	PendingState->PrepareDraw(UEToVulkanType((EPrimitiveType)PrimitiveType));
 	FVulkanIndexBuffer* IndexBuffer = ResourceCast(IndexBufferRHI);
 #if 0
 	FVulkanVertexBuffer* ArgumentBuffer = ResourceCast(ArgumentBufferRHI);
@@ -655,17 +643,16 @@ void FVulkanCommandListContext::RHIEndDrawPrimitiveUP()
 
 	SCOPE_CYCLE_COUNTER(STAT_VulkanDrawCallTime);
 
-	FVulkanPendingState& State = Device->GetPendingState();
-	FVulkanBoundShaderState& Shader = State.GetBoundShaderState();
+	FVulkanBoundShaderState& Shader = PendingState->GetBoundShaderState();
 
-	State.SetStreamSource(0, PendingDrawPrimUPVertexAllocInfo.GetHandle(), PendingVertexDataStride, PendingDrawPrimUPVertexAllocInfo.GetBindOffset());
+	PendingState->SetStreamSource(0, PendingDrawPrimUPVertexAllocInfo.GetHandle(), PendingVertexDataStride, PendingDrawPrimUPVertexAllocInfo.GetBindOffset());
 	
 	#if VULKAN_HAS_DEBUGGING_ENABLED
 		if(!Shader.HasError())
 	#endif
 	{
-		auto* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
-		State.PrepareDraw(this, CmdBuffer, UEToVulkanType((EPrimitiveType)PendingPrimitiveType));
+		FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+		PendingState->PrepareDraw(this, CmdBuffer, UEToVulkanType((EPrimitiveType)PendingPrimitiveType));
 		vkCmdDraw(CmdBuffer->GetHandle(), PendingNumVertices, 1, PendingMinVertexIndex, 0);
 	}
 
@@ -703,10 +690,9 @@ void FVulkanCommandListContext::RHIEndDrawIndexedPrimitiveUP()
 {
 	SCOPE_CYCLE_COUNTER(STAT_VulkanDrawCallTime);
 
-	FVulkanPendingState& State = Device->GetPendingState();
-	FVulkanBoundShaderState& Shader = State.GetBoundShaderState();
+	FVulkanBoundShaderState& Shader = PendingState->GetBoundShaderState();
 
-	State.SetStreamSource(0, PendingDrawPrimUPVertexAllocInfo.GetHandle(), PendingVertexDataStride, PendingDrawPrimUPVertexAllocInfo.GetBindOffset());
+	PendingState->SetStreamSource(0, PendingDrawPrimUPVertexAllocInfo.GetHandle(), PendingVertexDataStride, PendingDrawPrimUPVertexAllocInfo.GetBindOffset());
 
 	#if VULKAN_HAS_DEBUGGING_ENABLED
 		if(!Shader.HasError())
@@ -714,7 +700,7 @@ void FVulkanCommandListContext::RHIEndDrawIndexedPrimitiveUP()
 	{
 		FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
 		VkCommandBuffer Cmd = CmdBuffer->GetHandle();
-		State.PrepareDraw(this, CmdBuffer, UEToVulkanType((EPrimitiveType)PendingPrimitiveType));
+		PendingState->PrepareDraw(this, CmdBuffer, UEToVulkanType((EPrimitiveType)PendingPrimitiveType));
 		uint32 NumIndices = GetVertexCountForPrimitiveCount(PendingNumPrimitives, PendingPrimitiveType);
 		vkCmdBindIndexBuffer(Cmd, PendingDrawPrimUPIndexAllocInfo.GetHandle(), PendingDrawPrimUPIndexAllocInfo.GetBindOffset(), PendingPrimitiveIndexType);
 		vkCmdDrawIndexed(Cmd, NumIndices, 1, PendingMinVertexIndex, 0, 0);
@@ -729,8 +715,7 @@ void FVulkanCommandListContext::RHIEndDrawIndexedPrimitiveUP()
 void FVulkanCommandListContext::RHIClear(bool bClearColor,const FLinearColor& Color, bool bClearDepth,float Depth, bool bClearStencil,uint32 Stencil, FIntRect ExcludeRect)
 {
 	check(Device);
-	FVulkanPendingState& state = Device->GetPendingState();
-	const uint32 NumColorAttachments = state.GetFrameBuffer()->GetNumColorAttachments();
+	const uint32 NumColorAttachments = PendingState->GetFrameBuffer()->GetNumColorAttachments();
 	FVulkanCommandListContext::RHIClearMRT(bClearColor, NumColorAttachments, &Color, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
 }
 
@@ -745,15 +730,14 @@ void FVulkanCommandListContext::RHIClearMRT(bool bClearColor, int32 NumClearColo
 
 	check(bClearColor ? NumClearColors > 0 : true);
 
-	FVulkanPendingState& State = Device->GetPendingState();
-	State.UpdateRenderPass(CommandBufferManager->GetActiveCmdBuffer());
+	PendingState->UpdateRenderPass(CommandBufferManager->GetActiveCmdBuffer());
 	
 #if VULKAN_ALLOW_MIDPASS_CLEAR
 	VkClearRect Rect;
 	FMemory::Memzero(Rect);
 	Rect.rect.offset.x = 0;
 	Rect.rect.offset.y = 0;
-	Rect.rect.extent = State.GetRenderPass().GetLayout().GetExtent2D();
+	Rect.rect.extent = PendingState->GetRenderPass().GetLayout().GetExtent2D();
 
 	VkClearAttachment Attachement;
 	FMemory::Memzero(Attachement);
@@ -768,7 +752,7 @@ void FVulkanCommandListContext::RHIClearMRT(bool bClearColor, int32 NumClearColo
 			Attachement.clearValue.color.float32[1] = ClearColorArray[i].G;
 			Attachement.clearValue.color.float32[2] = ClearColorArray[i].B;
 			Attachement.clearValue.color.float32[3] = ClearColorArray[i].A;
-			vkCmdClearAttachments(State.GetCommandBuffer(), 1, &Attachement, 1, &Rect);
+			vkCmdClearAttachments(PendingState->GetCommandBuffer(), 1, &Attachement, 1, &Rect);
 		}
 	}
 
@@ -780,7 +764,7 @@ void FVulkanCommandListContext::RHIClearMRT(bool bClearColor, int32 NumClearColo
 		Attachement.colorAttachment = NumClearColors;	// Depth attachment is always stored after the color attachment
 		Attachement.clearValue.depthStencil.depth = Depth;
 		Attachement.clearValue.depthStencil.stencil = Stencil;
-		vkCmdClearAttachments(State.GetCommandBuffer(), 1, &Attachement, 1, &Rect);
+		vkCmdClearAttachments(PendingState->GetCommandBuffer(), 1, &Attachement, 1, &Rect);
 	}
 #endif
 }

@@ -10,6 +10,7 @@
 #include "TargetPlatform.h"
 #include "ImageWrapper.h"
 #include "ContentStreaming.h"
+#include "Streaming/TextureStreamingHelpers.h"
 
 #if WITH_EDITORONLY_DATA
 #include "DDSLoader.h"
@@ -470,7 +471,6 @@ bool UTexture::ForceUpdateTextureStreaming()
 	if (!IStreamingManager::HasShutdown())
 	{
 		// Make sure textures can be streamed out so that we can unload current mips.
-		static auto CVarOnlyStreamInTextures = IConsoleManager::Get().FindConsoleVariable(TEXT("r.OnlyStreamInTextures"));
 		const bool bOldOnlyStreamInTextures = CVarOnlyStreamInTextures->GetInt() != 0;
 		CVarOnlyStreamInTextures->Set(false, ECVF_SetByCode);
 

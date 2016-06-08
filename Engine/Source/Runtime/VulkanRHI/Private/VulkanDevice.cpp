@@ -18,7 +18,6 @@ FVulkanDevice::FVulkanDevice(VkPhysicalDevice InGpu)
 	, DescriptorPool(nullptr)
 	, DefaultSampler(VK_NULL_HANDLE)
 	, Queue(nullptr)
-	, PendingState(nullptr)
 	, ImmediateContext(nullptr)
 	, UBRingBuffer(nullptr)
 #if VULKAN_ENABLE_DRAW_MARKERS
@@ -134,6 +133,8 @@ void FVulkanDevice::CreateDevice()
 
 	DeviceInfo.queueCreateInfoCount = QueueFamilyProps.Num();
 	DeviceInfo.pQueueCreateInfos = QueueFamilyInfos.GetData();
+
+	DeviceInfo.pEnabledFeatures = &Features;
 
 	// Create the device
 	VERIFYVULKANRESULT(vkCreateDevice(Gpu, &DeviceInfo, nullptr, &Device));
@@ -272,6 +273,12 @@ void FVulkanDevice::SetupFormats()
 
 	MapFormatSupport(PF_BC5, VK_FORMAT_BC5_UNORM_BLOCK);
 	SetComponentMapping(PF_BC5, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
+
+	MapFormatSupport(PF_BC6H, VK_FORMAT_BC6H_UFLOAT_BLOCK);
+	SetComponentMapping(PF_BC6H, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
+
+	MapFormatSupport(PF_BC7, VK_FORMAT_BC7_UNORM_BLOCK);
+	SetComponentMapping(PF_BC7, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
 #elif PLATFORM_ANDROID
 	MapFormatSupport(PF_ASTC_4x4, VK_FORMAT_ASTC_4x4_UNORM_BLOCK);
 	SetComponentMapping(PF_ASTC_4x4, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
@@ -427,9 +434,6 @@ void FVulkanDevice::InitGPU(int32 DeviceIndex)
 
 	ImmediateContext = new FVulkanCommandListContext((FVulkanDynamicRHI*)GDynamicRHI, this, true);
 
-	// Create Pending state, contains pipeline states such as current shader and etc..
-	PendingState = new FVulkanPendingState(this);
-
 	// Setup default resource
 	{
 		FSamplerStateInitializerRHI Default(SF_Point);
@@ -440,13 +444,13 @@ void FVulkanDevice::InitGPU(int32 DeviceIndex)
 void FVulkanDevice::PrepareForDestroy()
 {
 	WaitUntilIdle();
-
-	delete ImmediateContext;
-	ImmediateContext = nullptr;
 }
 
 void FVulkanDevice::Destroy()
 {
+	delete ImmediateContext;
+	ImmediateContext = nullptr;
+
 	if (TimestampQueryPool[0])
 	{
 		for (int32 Index = 0; Index < NumTimestampPools; ++Index)
@@ -456,8 +460,6 @@ void FVulkanDevice::Destroy()
 			TimestampQueryPool[Index] = nullptr;
 		}
 	}
-
-	delete PendingState;
 
 	delete UBRingBuffer;
 
@@ -491,8 +493,31 @@ void FVulkanDevice::WaitUntilIdle()
 
 bool FVulkanDevice::IsFormatSupported(VkFormat Format) const
 {
-	const VkFormatProperties& Prop = FormatProperties[Format];
-	return (Prop.bufferFeatures != 0) || (Prop.linearTilingFeatures != 0) || (Prop.optimalTilingFeatures != 0);
+	auto ArePropertiesSupported = [](const VkFormatProperties& Prop) -> bool
+	{
+		return (Prop.bufferFeatures != 0) || (Prop.linearTilingFeatures != 0) || (Prop.optimalTilingFeatures != 0);
+	};
+
+	//#todo-rco: Once we get extensions, we'll need to expand this
+	if (Format >= 0 && Format < VK_FORMAT_RANGE_SIZE)
+	{
+		const VkFormatProperties& Prop = FormatProperties[Format];
+		return ArePropertiesSupported(Prop);
+	}
+
+	// Check for extension formats
+	const VkFormatProperties* FoundProperties = ExtensionFormatProperties.Find(Format);
+	if (FoundProperties)
+	{
+		return ArePropertiesSupported(*FoundProperties);
+	}
+
+	// Add it for faster caching next time
+	VkFormatProperties& NewProperties = ExtensionFormatProperties.Add(Format);
+	FMemory::Memzero(NewProperties);
+	vkGetPhysicalDeviceFormatProperties(Gpu, Format, &NewProperties);
+
+	return ArePropertiesSupported(NewProperties);
 }
 
 const VkComponentMapping& FVulkanDevice::GetFormatComponentMapping(EPixelFormat UEFormat) const
@@ -501,29 +526,8 @@ const VkComponentMapping& FVulkanDevice::GetFormatComponentMapping(EPixelFormat 
 	return PixelFormatComponentMapping[UEFormat];
 }
 
-void FVulkanDevice::BindSRV(FVulkanShaderResourceView* SRV, uint32 TextureIndex, EShaderFrequency Stage)
-{
-	FVulkanPendingState& State = GetPendingState();
-	FVulkanBoundShaderState& ShaderState = State.GetBoundShaderState();
-
-	// @todo vulkan: Is this actually important to test? Other RHIs haven't checked this, we'd have to add the shader param to handle this
-	// check(&ShaderState.GetShader(SF_Vertex) == ResourceCast(VertexShaderRHI));
-
-	if (SRV)
-	{
-		// make sure any dynamically backed SRV points to current memory
-		SRV->UpdateView(this);
-		checkf(SRV->BufferView != VK_NULL_HANDLE, TEXT("Empty SRV"));
-		ShaderState.SetBufferViewState(Stage, TextureIndex, SRV->BufferView);
-	}
-	else
-	{
-		ShaderState.SetBufferViewState(Stage, TextureIndex, nullptr);
-	}
-}
-
 void FVulkanDevice::NotifyDeletedRenderTarget(const FVulkanTextureBase* Texture)
 {
 	//#todo-rco: Loop through all contexts!
-	GetPendingState().NotifyDeletedRenderTarget(Texture);
+	GetImmediateContext().GetPendingState().NotifyDeletedRenderTarget(Texture);
 }

@@ -471,22 +471,23 @@ bool UTexture2D::IsReadyForStreaming()
 
 void UTexture2D::WaitForStreaming()
 {
-	if (IStreamingManager::Get().IsTextureStreamingEnabled())
-	{
-		IStreamingManager::Get().GetTextureStreamingManager().UpdateIndividualTexture( this );
-	}
-
-	int32 RequestStatus = PendingMipChangeRequestStatus.GetValue();
-
-	// Make sure there are no pending requests in flight.
-	while (	(UpdateStreamingStatus() == true) || 
-			(RequestStatus == TexState_InProgress_Initialization) || 
-			(RequestStatus >= TexState_ReadyFor_Loading))
+	// Make sure there are no pending requests in flight otherwise calling UpdateIndividualTexture could be prevented to defined a new requested mip.
+	while (	!IsReadyForStreaming() || UpdateStreamingStatus() ) 
 	{
 		// Give up timeslice.
 		FPlatformProcess::Sleep(0);
+	}
 
-		RequestStatus = PendingMipChangeRequestStatus.GetValue();
+	// Update the wanted mip and stream in..		
+	if (IStreamingManager::Get().IsTextureStreamingEnabled())
+	{
+		IStreamingManager::Get().GetTextureStreamingManager().UpdateIndividualTexture( this );
+
+		while (	UpdateStreamingStatus() ) 
+		{
+			// Give up timeslice.
+			FPlatformProcess::Sleep(0);
+		}
 	}
 }
 
@@ -535,13 +536,6 @@ bool UTexture2D::UpdateStreamingStatus( bool bWaitForMipFading /*= false*/ )
 
 			if ( bFinalizeNow || GIsRequestingExit || bHasCancelationPending )
 			{
-#if STATS
-				// Are we measuring streaming latency? (Contains negative timestamp based off GStartTime.)
-				if ( Timer < 0.0f )
-				{
-					Timer = float(FPlatformTime::Seconds() - GStartTime) + Timer;
-				}
-#endif
 				// Finalize mip request, aka unlock textures involved, perform switcheroo and free original one.
 				Texture2DResource->BeginFinalizeMipCount();
 			}
@@ -2151,22 +2145,6 @@ void FTexture2DResource::FinalizeMipCount()
 			EMipFadeSettings MipFadeSetting = (Owner->LODGroup == TEXTUREGROUP_Lightmap || Owner->LODGroup == TEXTUREGROUP_Shadowmap) ? MipFade_Slow : MipFade_Normal;
 			MipBiasFade.SetNewMipCount( Owner->RequestedMips, Owner->RequestedMips, LastRenderTime, MipFadeSetting );
 
-#if STATS
-			// Update bandwidth measurements if we've streamed in mip-levels.
-			if ( Owner->Timer > 0.0f && IntermediateTextureSize > TextureSize )
-			{
-				double BandwidthSample = double(IntermediateTextureSize - TextureSize) / double(Owner->Timer);
-				double TotalBandwidth = FStreamingManagerTexture::BandwidthAverage*FStreamingManagerTexture::NumBandwidthSamples;
-				TotalBandwidth -= FStreamingManagerTexture::BandwidthSamples[FStreamingManagerTexture::BandwidthSampleIndex];
-				TotalBandwidth += BandwidthSample;
-				FStreamingManagerTexture::BandwidthSamples[FStreamingManagerTexture::BandwidthSampleIndex] = BandwidthSample;
-				FStreamingManagerTexture::BandwidthSampleIndex = (FStreamingManagerTexture::BandwidthSampleIndex + 1) % NUM_BANDWIDTHSAMPLES;
-				FStreamingManagerTexture::NumBandwidthSamples = ( FStreamingManagerTexture::NumBandwidthSamples == NUM_BANDWIDTHSAMPLES ) ? FStreamingManagerTexture::NumBandwidthSamples : (FStreamingManagerTexture::NumBandwidthSamples+1);
-				FStreamingManagerTexture::BandwidthAverage = TotalBandwidth / FStreamingManagerTexture::NumBandwidthSamples;
-				FStreamingManagerTexture::BandwidthMaximum = FMath::Max<float>(FStreamingManagerTexture::BandwidthMaximum, BandwidthSample);
-				FStreamingManagerTexture::BandwidthMinimum = FMath::IsNearlyZero(FStreamingManagerTexture::BandwidthMinimum) ? BandwidthSample : FMath::Min<float>(FStreamingManagerTexture::BandwidthMinimum, BandwidthSample);
-			}
-#endif
 			DEC_DWORD_STAT_BY( STAT_TextureMemory, TextureSize );
 			DEC_DWORD_STAT_FNAME_BY( LODGroupStatName, TextureSize );
 			STAT( TextureSize = IntermediateTextureSize );

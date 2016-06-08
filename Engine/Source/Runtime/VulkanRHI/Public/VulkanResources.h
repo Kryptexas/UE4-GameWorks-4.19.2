@@ -910,6 +910,8 @@ public:
 	void SetUniformBufferConstantData(FVulkanPendingState& PendingState, EShaderFrequency Stage, uint32 BindPoint, const TArray<uint8>& ConstantData);
 	void SetUniformBuffer(FVulkanPendingState& PendingState, EShaderFrequency Stage, uint32 BindPoint, const FVulkanUniformBuffer* UniformBuffer);
 
+	void SetSRV(EShaderFrequency Stage, uint32 TextureIndex, FVulkanShaderResourceView* SRV);
+
 	inline const FVulkanShader* GetShaderPtr(EShaderFrequency Stage) const
 	{
 		switch (Stage)

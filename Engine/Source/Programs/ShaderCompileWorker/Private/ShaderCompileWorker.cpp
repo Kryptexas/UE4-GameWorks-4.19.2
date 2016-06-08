@@ -14,7 +14,7 @@
 #define DEBUG_USING_CONSOLE	0
 
 // this is for the protocol, not the data, bump if FShaderCompilerInput or ProcessInputFromArchive changes (also search for the second one with the same name, todo: put into one header file)
-const int32 ShaderCompileWorkerInputVersion = 6;
+const int32 ShaderCompileWorkerInputVersion = 7;
 // this is for the protocol, not the data, bump if FShaderCompilerOutput or WriteToOutputArchive changes (also search for the second one with the same name, todo: put into one header file)
 const int32 ShaderCompileWorkerOutputVersion = 3;
 // this is for the protocol, not the data, bump if FShaderCompilerOutput or WriteToOutputArchive changes (also search for the second one with the same name, todo: put into one header file)
@@ -599,6 +599,9 @@ static void CompileDirect(const TArray<const class IShaderFormat*>& ShaderFormat
 	FString Entry = TEXT("Main");
 	bool bPipeline = false;
 	EShaderFrequency Frequency = SF_Pixel;
+	TArray<FString> UsedOutputs;
+	bool bIncludeUsedOutputs = false;
+	uint64 CFlags = 0;
 	for (const FString& Token : Tokens)
 	{
 		if (Switches.Contains(Token))
@@ -610,6 +613,10 @@ static void CompileDirect(const TArray<const class IShaderFormat*>& ShaderFormat
 			else if (Token.StartsWith(TEXT("entry=")))
 			{
 				Entry = Token.RightChop(6);
+			}
+			else if (Token.StartsWith(TEXT("cflags=")))
+			{
+				CFlags = FCString::Atoi64(*Token.RightChop(7));
 			}
 			else if (!FCString::Strcmp(*Token, TEXT("ps")))
 			{
@@ -639,6 +646,18 @@ static void CompileDirect(const TArray<const class IShaderFormat*>& ShaderFormat
 			{
 				bPipeline = true;
 			}
+			else if (Token.StartsWith(TEXT("usedoutputs=")))
+			{
+				FString Outputs = Token.RightChop(12);
+				bIncludeUsedOutputs = true;
+				FString LHS, RHS;
+				while (Outputs.Split(TEXT("+"), &LHS, &RHS))
+				{
+					Outputs = RHS;
+					UsedOutputs.Add(LHS);
+				}
+				UsedOutputs.Add(Outputs);
+			}
 		}
 		else
 		{
@@ -659,7 +678,20 @@ static void CompileDirect(const TArray<const class IShaderFormat*>& ShaderFormat
 	Input.Target.Frequency = Frequency;
 	Input.bSkipPreprocessedCache = true;
 
+	uint32 CFlag = 0;
+	while (CFlags != 0)
+	{
+		if ((CFlags & 1) != 0)
+		{
+			Input.Environment.CompilerFlags.Add(CFlag);
+		}
+		CFlags = (CFlags >> (uint64)1);
+		++CFlag;
+	}
+
 	Input.bCompilingForShaderPipeline = bPipeline;
+	Input.bIncludeUsedOutputs = bIncludeUsedOutputs;
+	Input.UsedOutputs = UsedOutputs;
 
 	FShaderCompilerOutput Output;
 

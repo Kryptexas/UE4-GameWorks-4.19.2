@@ -1422,19 +1422,22 @@ void FScene::UpdateReflectionCaptureContents(UReflectionCaptureComponent* Captur
 
 void CopyToSkyTexture(FRHICommandList& RHICmdList, FScene* Scene, FTexture* ProcessedTexture)
 {
-	const int32 EffectiveTopMipSize = ProcessedTexture->GetSizeX();
-	const int32 NumMips = FMath::CeilLogTwo(EffectiveTopMipSize) + 1;
-	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
-
-	// GPU copy back to the skylight's texture, which is not a render target
-	for (int32 MipIndex = 0; MipIndex < NumMips; MipIndex++)
+	if (ProcessedTexture->TextureRHI)
 	{
-		// The source for this copy is the dest from the filtering pass
-		FSceneRenderTargetItem& EffectiveSource = GetEffectiveRenderTarget(SceneContext, false, MipIndex);
+		const int32 EffectiveTopMipSize = ProcessedTexture->GetSizeX();
+		const int32 NumMips = FMath::CeilLogTwo(EffectiveTopMipSize) + 1;
+		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
-		for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
+		// GPU copy back to the skylight's texture, which is not a render target
+		for (int32 MipIndex = 0; MipIndex < NumMips; MipIndex++)
 		{
-			RHICmdList.CopyToResolveTarget(EffectiveSource.ShaderResourceTexture, ProcessedTexture->TextureRHI, true, FResolveParams(FResolveRect(), (ECubeFace)CubeFace, MipIndex, 0, 0));
+			// The source for this copy is the dest from the filtering pass
+			FSceneRenderTargetItem& EffectiveSource = GetEffectiveRenderTarget(SceneContext, false, MipIndex);
+
+			for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
+			{
+				RHICmdList.CopyToResolveTarget(EffectiveSource.ShaderResourceTexture, ProcessedTexture->TextureRHI, true, FResolveParams(FResolveRect(), (ECubeFace)CubeFace, MipIndex, 0, 0));
+			}
 		}
 	}
 }

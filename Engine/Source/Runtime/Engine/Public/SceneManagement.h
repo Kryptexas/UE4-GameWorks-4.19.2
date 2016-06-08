@@ -155,6 +155,8 @@ public:
 	/** If frozen view matrices were set, restore the previous view matrices */
 	virtual void RestoreUnfrozenViewMatrices(FSceneView& SceneView) = 0;
 #endif
+	// rest some state (e.g. FrameIndexMod8, TemporalAASampleIndex) to make the rendering [more] deterministic
+	virtual void ResetViewState() = 0;
 
 	/** Returns the temporal LOD struct from the viewstate */
 	virtual FTemporalLODState& GetTemporalLODState() = 0;
@@ -176,6 +178,9 @@ public:
 	virtual void SetSequencerState(const bool bIsPaused) = 0;
 
 	virtual bool GetSequencerState() = 0;
+
+	//
+	virtual uint32 GetFrameIndexMod8() const = 0;
 
 	/** 
 	 * returns the occlusion frame counter 

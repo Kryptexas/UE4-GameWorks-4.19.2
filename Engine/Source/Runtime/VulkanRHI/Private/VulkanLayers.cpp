@@ -192,7 +192,7 @@ void FVulkanDynamicRHI::GetInstanceLayersAndExtensions(TArray<const ANSICHAR*>& 
 
 	for (int32 Index = 0; Index < GlobalLayerProperties.Num(); ++Index)
 	{
-		auto* Layer = new(GlobalLayers) FLayerExtension;
+		FLayerExtension* Layer = new(GlobalLayers) FLayerExtension;
 		Layer->LayerProps = GlobalLayerProperties[Index];
 		GetInstanceLayerExtensions(GlobalLayerProperties[Index].layerName, *Layer);
 		UE_LOG(LogVulkanRHI, Display, TEXT("- Found Global Layer %s"), ANSI_TO_TCHAR(GlobalLayerProperties[Index].layerName));
@@ -242,7 +242,7 @@ void FVulkanDynamicRHI::GetInstanceLayersAndExtensions(TArray<const ANSICHAR*>& 
 	if (OutInstanceExtensions.Num() > 0)
 	{
 		UE_LOG(LogVulkanRHI, Display, TEXT("Using instance extensions"));
-		for (auto* Extension : OutInstanceExtensions)
+		for (const ANSICHAR* Extension : OutInstanceExtensions)
 		{
 			UE_LOG(LogVulkanRHI, Display, TEXT("* %s"), ANSI_TO_TCHAR(Extension));
 		}
@@ -251,7 +251,7 @@ void FVulkanDynamicRHI::GetInstanceLayersAndExtensions(TArray<const ANSICHAR*>& 
 	if (OutInstanceLayers.Num() > 0)
 	{
 		UE_LOG(LogVulkanRHI, Display, TEXT("Using instance layers"));
-		for (auto* Layer : OutInstanceLayers)
+		for (const ANSICHAR* Layer : OutInstanceLayers)
 		{
 			UE_LOG(LogVulkanRHI, Display, TEXT("* %s"), ANSI_TO_TCHAR(Layer));
 		}
@@ -351,7 +351,7 @@ void FVulkanDevice::GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtens
 	if (OutDeviceExtensions.Num() > 0)
 	{
 		UE_LOG(LogVulkanRHI, Display, TEXT("Using device extensions"));
-		for (auto* Extension : OutDeviceExtensions)
+		for (const ANSICHAR* Extension : OutDeviceExtensions)
 		{
 			UE_LOG(LogVulkanRHI, Display, TEXT("* %s"), ANSI_TO_TCHAR(Extension));
 		}
@@ -360,7 +360,7 @@ void FVulkanDevice::GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtens
 	if (OutDeviceLayers.Num() > 0)
 	{
 		UE_LOG(LogVulkanRHI, Display, TEXT("Using device layers"));
-		for (auto* Layer : OutDeviceLayers)
+		for (const ANSICHAR* Layer : OutDeviceLayers)
 		{
 			UE_LOG(LogVulkanRHI, Display, TEXT("* %s"), ANSI_TO_TCHAR(Layer));
 		}

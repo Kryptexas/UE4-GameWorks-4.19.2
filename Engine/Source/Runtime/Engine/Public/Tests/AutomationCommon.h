@@ -170,7 +170,6 @@ DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FEngineWaitLatentCommand, float, 
 */
 DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FStreamAllResourcesLatentCommand, float, Duration);
 
-
 /**
 * Enqueue performance capture commands after a map has been loaded
 */
@@ -186,5 +185,11 @@ DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FMatineePerformanceCaptureCommand
 * Latent command to run an exec command that also requires a UWorld.
 */
 DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FExecWorldStringLatentCommand, FString, ExecCommand);
+
+
+/**
+* Waits for shaders to finish compiling before moving on to the next thing.
+*/
+DEFINE_LATENT_AUTOMATION_COMMAND(FWaitForShadersToFinishCompilingInGame);
 
 #endif

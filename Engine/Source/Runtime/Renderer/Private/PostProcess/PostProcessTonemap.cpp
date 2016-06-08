@@ -1027,7 +1027,8 @@ public:
 		{
 			float Sharpen = FMath::Clamp(CVarTonemapperSharpen.GetValueOnRenderThread(), 0.0f, 10.0f);
 
-			FVector2D Value(Settings.VignetteIntensity, Sharpen);
+			// /6.0 is to save one shader instruction
+			FVector2D Value(Settings.VignetteIntensity, Sharpen / 6.0f);
 
 			SetShaderValue(Context.RHICmdList, ShaderRHI, TonemapperParams, Value);
 		}

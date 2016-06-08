@@ -23,7 +23,10 @@ UENUM()
 enum EOpacitySourceMode
 {
 	OSM_Alpha,
-	OSM_ColorBrightness
+	OSM_ColorBrightness,
+	OSM_RedChannel,
+	OSM_GreenChannel,
+	OSM_BlueChannel
 };
 
 class FSubUVDerivedData

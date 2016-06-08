@@ -380,6 +380,11 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 			const FString BatchFileContents2 = CreateAMDCodeXLCommandLine((Input.SourceFilename + TEXT(".usf")), *EntryPointName, ShaderProfile, CompileFlags);
 			FFileHelper::SaveStringToFile(BatchFileContents2, *(Input.DumpDebugInfoPath / TEXT("CompileAMD.bat")));
 		}
+
+		if (Input.bGenerateDirectCompileFile)
+		{
+			FFileHelper::SaveStringToFile(CreateShaderCompilerWorkerDirectCommandLine(Input), *(Input.DumpDebugInfoPath / TEXT("DirectCompile.txt")));
+		}
 	}
 
 	TRefCountPtr<ID3DBlob> Shader;
@@ -905,18 +910,13 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 		return;
 	}
 
-	// Search definitions for a custom D3D compiler path.
-	for(TMap<FString,FString>::TConstIterator DefinitionIt(Input.Environment.GetDefinitions());DefinitionIt;++DefinitionIt)
-	{
-		const FString& Name = DefinitionIt.Key();
-		const FString& Definition = DefinitionIt.Value();
-
-		if(Name == TEXT("D3DCOMPILER_PATH"))
-		{
-			CompilerPath = Definition;
-			break;
-		}
-	}
+	// Override default compiler path to newer dll
+	CompilerPath = FPaths::EngineDir();
+#if !PLATFORM_64BITS
+	CompilerPath.Append(TEXT("Binaries/ThirdParty/Windows/DirectX/x86/d3dcompiler_47.dll"));
+#else
+	CompilerPath.Append(TEXT("Binaries/ThirdParty/Windows/DirectX/x64/d3dcompiler_47.dll"));
+#endif
 
 	// @TODO - currently d3d11 uses d3d10 shader compiler flags... update when this changes in DXSDK
 	// @TODO - implement different material path to allow us to remove backwards compat flag on sm5 shaders

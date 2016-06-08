@@ -6962,9 +6962,14 @@ void UEngine::ClearOnScreenDebugMessages()
 #if !UE_BUILD_SHIPPING
 void UEngine::PerformanceCapture(UWorld* World, const FString& MapName, const FString& MatineeName, float EventTime)
 {
+	// todo
+	uint32 t = IStreamingManager::Get().StreamAllResources(5.0f);
+	ensure(!t);
+
 	LogPerformanceCapture(World, MapName, MatineeName, EventTime);
 
-	FString ClNumberOrGivenName = FString::Printf(TEXT("CL%d"), GetChangeListNumberForPerfTesting());
+	// can be define by command line -BuildName="ByCustomBuildName" or "CL<changelist>"
+	FString BuildName = GetBuildNameForPerfTesting();
 
 	// e.g. XboxOne, AllDesktop, Android_.., PS4, HTML5, WinRT, 
 	FString PlatformName = FPlatformProperties::PlatformName();
@@ -6982,10 +6987,17 @@ void UEngine::PerformanceCapture(UWorld* World, const FString& MapName, const FS
 		}
 	}
 
-	FString CaptureName = FString::Printf(TEXT("Map(%s) Actor(%s) Time(%4.2fs)"), *MapName, *GetName(), EventTime);
+	FString CaptureName = FString::Printf(TEXT("Map(%s) Actor(%s) Time(%4.2f)"), *MapName, *GetName(), EventTime);
 
-	FString ScreenshotName = FPaths::AutomationDir() / TEXT("RenderOutputValidation") / ClNumberOrGivenName / PlatformName + TEXT("_") + RHIName / CaptureName + TEXT(".png");
-	
+	FString ScreenshotName = FPaths::AutomationDir() / TEXT("RenderOutputValidation") / BuildName / PlatformName + TEXT("_") + RHIName / CaptureName + TEXT(".png");
+
+	{
+		UConsole* ViewportConsole = (GEngine->GameViewport != nullptr) ? GEngine->GameViewport->ViewportConsole : nullptr;
+		FConsoleOutputDevice StrOut(ViewportConsole);
+
+		StrOut.Logf(TEXT("FrameCounter:%d PerformanceCapture triggers RequestScreenshot Name='%s'"), GFrameCounter, *ScreenshotName);
+	}
+
 	const bool bShowUI = false;
 	const bool bAddFilenameSuffix = false;
 	FScreenshotRequest::RequestScreenshot( ScreenshotName, bShowUI, bAddFilenameSuffix );

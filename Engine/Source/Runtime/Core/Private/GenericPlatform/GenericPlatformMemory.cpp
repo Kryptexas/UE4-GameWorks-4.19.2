@@ -11,6 +11,8 @@
 DEFINE_STAT(MCR_Physical);
 DEFINE_STAT(MCR_GPU);
 DEFINE_STAT(MCR_TexturePool);
+DEFINE_STAT(MCR_StreamingPool);
+DEFINE_STAT(MCR_UsedStreamingPool);
 
 DEFINE_STAT(STAT_TotalPhysical);
 DEFINE_STAT(STAT_TotalVirtual);
@@ -88,6 +90,8 @@ void FGenericPlatformMemory::SetupMemoryPools()
 	SET_MEMORY_STAT(MCR_Physical, 0); // "unlimited" physical memory, we still need to make this call to set the short name, etc
 	SET_MEMORY_STAT(MCR_GPU, 0); // "unlimited" GPU memory, we still need to make this call to set the short name, etc
 	SET_MEMORY_STAT(MCR_TexturePool, 0); // "unlimited" Texture memory, we still need to make this call to set the short name, etc
+	SET_MEMORY_STAT(MCR_StreamingPool, 0);
+	SET_MEMORY_STAT(MCR_UsedStreamingPool, 0);
 
 	BackupOOMMemoryPool = FPlatformMemory::BinnedAllocFromOS(BackupOOMMemoryPoolSize);
 }

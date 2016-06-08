@@ -1166,6 +1166,17 @@ bool FRenderOutputValidation::RunTest(const FString& Parameters)
 	// 5 sec should be enough, if more is needed - we should investigate
 	ADD_LATENT_AUTOMATION_COMMAND(FStreamAllResourcesLatentCommand(5.0f));
 
+//later	ADD_LATENT_AUTOMATION_COMMAND(FBuildLightingCommand);
+
+	// streaming should not be distributing it's work over multiple frames - to be more deterministic
+	ADD_LATENT_AUTOMATION_COMMAND(FExecWorldStringLatentCommand(TEXT("r.Streaming.FramesForFullUpdate 0")));
+
+	// reset all data in the ViewState e.g. TemporalAA, SSR cyclic counter, TemporalAA images
+	ADD_LATENT_AUTOMATION_COMMAND(FExecWorldStringLatentCommand(TEXT("r.ResetViewState")));
+
+	// this needs to be improved: better thank hanging would be to render frames (showing the user that it waits on something)
+	ADD_LATENT_AUTOMATION_COMMAND(FWaitForShadersToFinishCompilingInGame);
+
 	if( FAutomationTestFramework::GetInstance().IsScreenshotAllowed() )
 	{
 		for (TObjectIterator<AMatineeActor> It; It; ++It)

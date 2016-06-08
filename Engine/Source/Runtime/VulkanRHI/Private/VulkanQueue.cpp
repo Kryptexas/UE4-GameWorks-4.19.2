@@ -37,7 +37,7 @@ void FVulkanQueue::Submit(FVulkanCmdBuffer* CmdBuffer, FVulkanSemaphore* WaitSem
 {
 	check(CmdBuffer->HasEnded());
 
-	auto* Fence = CmdBuffer->GetFence();
+	VulkanRHI::FFence* Fence = CmdBuffer->Fence;
 	check(!Fence->IsSignaled());
 
 	const VkCommandBuffer CmdBuffers[] = { CmdBuffer->GetHandle() };
@@ -62,6 +62,7 @@ void FVulkanQueue::Submit(FVulkanCmdBuffer* CmdBuffer, FVulkanSemaphore* WaitSem
 		SubmitInfo.pWaitSemaphores = &Semaphores[1];
 		SubmitInfo.pWaitDstStageMask = &WaitStageFlags;
 	}
+	//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("*** VkQueueSubmit CmdBuffer %p Fence %p\n"), (void*)CmdBuffer->GetHandle(), (void*)Fence->GetHandle());
 	VERIFYVULKANRESULT(vkQueueSubmit(Queue, 1, &SubmitInfo, Fence->GetHandle()));
 
 	if (GWaitForIdleOnSubmit != 0)

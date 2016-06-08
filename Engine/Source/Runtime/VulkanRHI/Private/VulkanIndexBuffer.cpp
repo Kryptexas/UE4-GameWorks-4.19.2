@@ -102,7 +102,7 @@ void* FVulkanResourceMultiBuffer::Lock(EResourceLockMode LockMode, uint32 Size, 
 			check(LockMode == RLM_WriteOnly);
 			DynamicBufferIndex = (DynamicBufferIndex + 1) % NumBuffers;
 
-			auto* StagingBuffer = Device->GetStagingManager().AcquireBuffer(Size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+			VulkanRHI::FStagingBuffer* StagingBuffer = Device->GetStagingManager().AcquireBuffer(Size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 
 			PendingLock.StagingBuffer = StagingBuffer;
 

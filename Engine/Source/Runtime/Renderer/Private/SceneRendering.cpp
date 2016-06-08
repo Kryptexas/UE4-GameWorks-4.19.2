@@ -80,7 +80,7 @@ static TAutoConsoleVariable<float> CVarGeneralPurposeTweak(
 	TEXT("r.GeneralPurposeTweak"),
 	1.0f,
 	TEXT("Useful for low level shader development to get quick iteration time without having to change any c++ code.\n")
-	TEXT("Value maps to View.GeneralPurposeTweak inside the shaders.\n")
+	TEXT("Value maps to Frame.GeneralPurposeTweak inside the shaders.\n")
 	TEXT("Example usage: Multiplier on some value to tweak, toggle to switch between different algorithms (Default: 1.0)\n")
 	TEXT("DON'T USE THIS FOR ANYTHING THAT IS CHECKED IN. Compiled out in SHIPPING to make cheating a bit harder."),
 	ECVF_RenderThreadSafe);
@@ -155,32 +155,6 @@ static TAutoConsoleVariable<int32> CVarSimpleForwardShading(
 	TEXT("0:off, 1:on"),
 	ECVF_RenderThreadSafe | ECVF_Scalability);
 
-/*-----------------------------------------------------------------------------
-BitCounting
------------------------------------------------------------------------------*/
-
-MS_ALIGN(64) uint8 CountBitsTable[64] GCC_ALIGN(64) = { 0 };
-
-static struct FInitBitCounts
-{
-	FInitBitCounts()
-	{
-		for (uint32 Index = 0; Index < 64; Index++)
-		{
-			uint32 LocalIndex = Index;
-			uint8 Result = 0;
-			while (LocalIndex)
-			{
-				if (LocalIndex & 1)
-				{
-					Result++;
-				}
-				LocalIndex >>= 1;
-			}
-			CountBitsTable[Index] = Result;
-		}
-	}
-} GInitBitCounts;
 
 /*-----------------------------------------------------------------------------
 	FParallelCommandListSet
@@ -791,7 +765,7 @@ void FViewInfo::CreateUniformBuffer(
 			FrameUniformShaderParameters.DirectionalLightColor = Scene->SimpleDirectionalLight->Proxy->GetColor() / PI;
 			FrameUniformShaderParameters.DirectionalLightDirection = -Scene->SimpleDirectionalLight->Proxy->GetDirection();
 
-			static_assert(MAX_FORWARD_SHADOWCASCADES <= 4, "more than 4 cascades not supported by the shader and uniform buffer");
+			static_assert(MAX_MOBILE_SHADOWCASCADES <= 4, "more than 4 cascades not supported by the shader and uniform buffer");
 			if (DirectionalLightShadowInfo)
 			{
 				{
@@ -804,7 +778,7 @@ void FViewInfo::CreateUniformBuffer(
 					FrameUniformShaderParameters.DirectionalLightShadowSize = ShadowBufferSizeValue;
 				}
 
-				int32 NumShadowsToCopy = FMath::Min(DirectionalLightShadowInfo->Num(), MAX_FORWARD_SHADOWCASCADES);				
+				int32 NumShadowsToCopy = FMath::Min(DirectionalLightShadowInfo->Num(), MAX_MOBILE_SHADOWCASCADES);				
 				for (int32 i = 0; i < NumShadowsToCopy; ++i)
 				{
 					const FProjectedShadowInfo& ShadowInfo = *(*DirectionalLightShadowInfo)[i];
@@ -812,7 +786,7 @@ void FViewInfo::CreateUniformBuffer(
 					FrameUniformShaderParameters.DirectionalLightShadowDistances[i] = ShadowInfo.CascadeSettings.SplitFar;
 				}
 
-				for (int32 i = NumShadowsToCopy; i < MAX_FORWARD_SHADOWCASCADES; ++i)
+				for (int32 i = NumShadowsToCopy; i < MAX_MOBILE_SHADOWCASCADES; ++i)
 				{
 					FrameUniformShaderParameters.DirectionalLightScreenToShadow[i].SetIdentity();
 					FrameUniformShaderParameters.DirectionalLightShadowDistances[i] = 0.0f;
@@ -822,7 +796,7 @@ void FViewInfo::CreateUniformBuffer(
 			{
 				FrameUniformShaderParameters.DirectionalLightShadowTransition = 0.0f;
 				FrameUniformShaderParameters.DirectionalLightShadowSize = FVector::ZeroVector;
-				for (int32 i = 0; i < MAX_FORWARD_SHADOWCASCADES; ++i)
+				for (int32 i = 0; i < MAX_MOBILE_SHADOWCASCADES; ++i)
 				{
 					FrameUniformShaderParameters.DirectionalLightScreenToShadow[i].SetIdentity();
 					FrameUniformShaderParameters.DirectionalLightShadowDistances[i] = 0.0f;
@@ -942,19 +916,24 @@ void FViewInfo::CreateUniformBuffer(
 	FrameUniformShaderParameters.CameraCut = bCameraCut ? 1 : 0;
 	FrameUniformShaderParameters.UseLightmaps = bUseLightmaps ? 1 : 0;
 
+	uint32 StateFrameIndexMod8 = 0;
+
 	if(State)
 	{
-		// safe to cast on the renderer side
 		FrameUniformShaderParameters.TemporalAAParams = FVector4(
 			ViewState->GetCurrentTemporalAASampleIndex(), 
 			ViewState->GetCurrentTemporalAASampleCount(),
 			TemporalJitterPixelsX,
 			TemporalJitterPixelsY);
+
+		StateFrameIndexMod8 = ViewState->GetFrameIndexMod8();
 	}
 	else
 	{
 		FrameUniformShaderParameters.TemporalAAParams = FVector4(0, 1, 0, 0);
 	}
+
+	FrameUniformShaderParameters.StateFrameIndexMod8 = StateFrameIndexMod8;
 
 	{
 		// If rendering in stereo, the right eye uses the left eye's translucency lighting volume.
@@ -1768,7 +1747,7 @@ FSceneRenderer* FSceneRenderer::CreateSceneRenderer(const FSceneViewFamily* InVi
 	}
 	else
 	{
-		return new FForwardShadingSceneRenderer(InViewFamily, HitProxyConsumer);
+		return new FMobileSceneRenderer(InViewFamily, HitProxyConsumer);
 	}
 }
 
@@ -2083,6 +2062,9 @@ FRendererModule::FRendererModule()
 
 	static auto CVarEarlyZPass = IConsoleManager::Get().FindConsoleVariable(TEXT("r.EarlyZPass"));
 	CVarEarlyZPass->SetOnChangedCallback(FConsoleVariableDelegate::CreateStatic(&OnChangeCVarRequiringRecreateRenderState));
+
+	static auto CVarEarlyZPassMovable = IConsoleManager::Get().FindConsoleVariable(TEXT("r.EarlyZPassMovable"));
+	CVarEarlyZPassMovable->SetOnChangedCallback(FConsoleVariableDelegate::CreateStatic(&OnChangeCVarRequiringRecreateRenderState));
 }
 
 void FRendererModule::CreateAndInitSingleView(FRHICommandListImmediate& RHICmdList, class FSceneViewFamily* ViewFamily, const struct FSceneViewInitOptions* ViewInitOptions)

@@ -98,7 +98,7 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance Instance, FVulkanDevice& InDevice,
 		}
 		else
 		{
-			auto PlatformFormat = (VkFormat)GPixelFormats[InOutPixelFormat].PlatformFormat;
+			VkFormat PlatformFormat = (VkFormat)GPixelFormats[InOutPixelFormat].PlatformFormat;
 			bool bSupported = false;
 			for (int32 Index = 0; Index < Formats.Num(); ++Index)
 			{
@@ -114,7 +114,7 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance Instance, FVulkanDevice& InDevice,
 		}
 	}
 
-	auto PlatformFormat = (VkFormat)GPixelFormats[InOutPixelFormat].PlatformFormat;
+	VkFormat PlatformFormat = (VkFormat)GPixelFormats[InOutPixelFormat].PlatformFormat;
 
 	//#todo-rco: Check multiple Gfx Queues?
 	VkBool32 bSupportsPresent = VK_FALSE;

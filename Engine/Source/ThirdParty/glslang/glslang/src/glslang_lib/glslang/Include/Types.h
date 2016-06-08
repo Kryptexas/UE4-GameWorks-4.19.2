@@ -182,6 +182,8 @@ struct TSampler {   // misnomer now; includes images, textures without sampler, 
         case EbtFloat:               break;
         case EbtInt:  s.append("i"); break;
         case EbtUint: s.append("u"); break;
+        case EbtInt64:  s.append("i64"); break;
+        case EbtUint64: s.append("u64"); break;
         default:  break;  // some compilers want this
         }
         if (image) {
@@ -388,6 +390,7 @@ public:
     {
         precision = EpqNone;
         invariant = false;
+        noContraction = false;
         makeTemporary();
     }
 
@@ -427,7 +430,8 @@ public:
     TStorageQualifier   storage   : 6;
     TBuiltInVariable    builtIn   : 8;
     TPrecisionQualifier precision : 3;
-    bool invariant    : 1;
+    bool invariant    : 1; // require canonical treatment for cross-shader invariance
+    bool noContraction: 1; // prevent contraction and reassociation, e.g., for 'precise' keyword, and expressions it affects
     bool centroid     : 1;
     bool smooth       : 1;
     bool flat         : 1;
@@ -999,9 +1003,9 @@ public:
             qualifier.storage = EvqGlobal;
     }
 
-    void init(const TSourceLoc& loc, bool global = false)
+    void init(const TSourceLoc& l, bool global = false)
     {
-        initType(loc);
+        initType(l);
         sampler.clear();
         initQualifiers(global);
         shaderQualifiers.init();
@@ -1319,6 +1323,8 @@ public:
         case EbtDouble:
         case EbtInt:
         case EbtUint:
+        case EbtInt64:
+        case EbtUint64:
         case EbtBool:
             return true;
         default:
@@ -1383,7 +1389,7 @@ public:
             arraySizes->addOuterSizes(s);
     }
     void changeOuterArraySize(int s) { arraySizes->changeOuterSize(s); }
-    void setImplicitArraySize (int s) { arraySizes->setImplicitSize(s); }
+    void setImplicitArraySize(int s) { arraySizes->setImplicitSize(s); }
 
     // Recursively make the implicit array size the explicit array size, through the type tree.
     void adoptImplicitArraySizes()
@@ -1409,6 +1415,8 @@ public:
         case EbtDouble:            return "double";
         case EbtInt:               return "int";
         case EbtUint:              return "uint";
+        case EbtInt64:             return "int64_t";
+        case EbtUint64:            return "uint64_t";
         case EbtBool:              return "bool";
         case EbtAtomicUint:        return "atomic_uint";
         case EbtSampler:           return "sampler/image";
@@ -1473,6 +1481,8 @@ public:
 
         if (qualifier.invariant)
             p += snprintf(p, end - p, "invariant ");
+        if (qualifier.noContraction)
+            p += snprintf(p, end - p, "noContraction ");
         if (qualifier.centroid)
             p += snprintf(p, end - p, "centroid ");
         if (qualifier.smooth)

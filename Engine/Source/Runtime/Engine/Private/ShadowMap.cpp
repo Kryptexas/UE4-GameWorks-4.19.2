@@ -94,9 +94,12 @@ struct FShadowMapAllocation
 		{
 			UInstancedStaticMeshComponent* Component = CastChecked<UInstancedStaticMeshComponent>(Primitive);
 
-			// TODO: We currently only support one LOD of static lighting in foliage
-			// Need to create per-LOD instance data to fix that
-			Component->PerInstanceSMData[InstanceIndex].ShadowmapUVBias = ShadowMap->GetCoordinateBias();
+			if( InstanceIndex < Component->PerInstanceSMData.Num() )
+			{
+				// TODO: We currently only support one LOD of static lighting in foliage
+				// Need to create per-LOD instance data to fix that
+				Component->PerInstanceSMData[InstanceIndex].ShadowmapUVBias = ShadowMap->GetCoordinateBias();
+			}
 
 			Component->ReleasePerInstanceRenderData();
 			Component->MarkRenderStateDirty();

@@ -2886,9 +2886,9 @@ class vulkan_ir_gen_glsl_visitor : public ir_visitor
 	{
 		if (bUsesES2TextureLODExtension)
 		{
-			ralloc_asprintf_append(buffer, "#ifndef DONTEMITEXTENSIONSHADERTEXTURELODENABLE\n");
-			ralloc_asprintf_append(buffer, "#extension GL_EXT_shader_texture_lod : enable\n");
-			ralloc_asprintf_append(buffer, "#endif\n");
+			//ralloc_asprintf_append(buffer, "#ifndef DONTEMITEXTENSIONSHADERTEXTURELODENABLE\n");
+			//ralloc_asprintf_append(buffer, "#extension GL_EXT_shader_texture_lod : enable\n");
+			//ralloc_asprintf_append(buffer, "#endif\n");
 		}
 
 		if (state->bSeparateShaderObjects && !state->bGenerateES &&
@@ -2995,26 +2995,14 @@ public:
 			const char* DefaultPrecision = GDefaultPrecisionIsHalf ? "mediump" : "highp";
 			ralloc_asprintf_append(buffer, "precision %s float;\n", DefaultPrecision);
 			ralloc_asprintf_append(buffer, "precision %s int;\n", DefaultPrecision);
-			ralloc_asprintf_append(buffer, "\n#ifndef DONTEMITSAMPLERDEFAULTPRECISION\n");
+			//ralloc_asprintf_append(buffer, "\n#ifndef DONTEMITSAMPLERDEFAULTPRECISION\n");
 			ralloc_asprintf_append(buffer, "precision %s sampler2D;\n", DefaultPrecision);
-			ralloc_asprintf_append(buffer, "precision %s samplerCube;\n\n", DefaultPrecision);
-			ralloc_asprintf_append(buffer, "#endif\n");
-
-			// SGX540 compiler can get upset with some operations that mix highp and mediump.
-			// this results in a shader compile fail with output "compile failed."
-			// Although the actual cause of the failure hasnt been determined this code appears to prevent
-			// compile failure for cases so far seen.
-			ralloc_asprintf_append(buffer, "\n#ifdef TEXCOORDPRECISIONWORKAROUND\n");
-			ralloc_asprintf_append(buffer, "vec4 texture2DTexCoordPrecisionWorkaround(sampler2D p, vec2 tcoord)\n");
-			ralloc_asprintf_append(buffer, "{\n");
-			ralloc_asprintf_append(buffer, "	return texture2D(p, tcoord);\n");
-			ralloc_asprintf_append(buffer, "}\n");
-			ralloc_asprintf_append(buffer, "#define texture2D texture2DTexCoordPrecisionWorkaround\n");
-			ralloc_asprintf_append(buffer, "#endif\n");
+			ralloc_asprintf_append(buffer, "precision %s samplerCube;\n", DefaultPrecision);
+			//ralloc_asprintf_append(buffer, "#endif\n");
 		}
-
 		// FramebufferFetchES2 'intrinsic'
-		bool bUsesFramebufferFetchES2 = UsesUEIntrinsic(ir, FRAMEBUFFER_FETCH_ES2);
+		bool bUsesFramebufferFetchES2 = false;//UsesUEIntrinsic(ir, FRAMEBUFFER_FETCH_ES2);
+		/*
 		if (bUsesFramebufferFetchES2)
 		{
 			ralloc_asprintf_append(buffer, "\n#ifdef GL_EXT_shader_framebuffer_fetch\n");
@@ -3027,8 +3015,9 @@ public:
 			ralloc_asprintf_append(buffer, "	#endif\n");
 			ralloc_asprintf_append(buffer, "#endif\n\n");
 		}
-
-		bool bUsesDepthbufferFetchES2 = UsesUEIntrinsic(ir, DEPTHBUFFER_FETCH_ES2);
+		*/
+		bool bUsesDepthbufferFetchES2 = false;//UsesUEIntrinsic(ir, DEPTHBUFFER_FETCH_ES2);
+		/*
 		if (bUsesDepthbufferFetchES2)
 		{
 			ralloc_asprintf_append(buffer, "\n#ifdef GL_ARM_shader_framebuffer_fetch_depth_stencil\n");
@@ -3037,7 +3026,7 @@ public:
 			ralloc_asprintf_append(buffer, "float DepthbufferFetchES2(float OptionalDepth, float C1, float C2) { return OptionalDepth; }\n");
 			ralloc_asprintf_append(buffer, "#endif\n\n");
 		}
-		
+		*/
 		foreach_iter(exec_list_iterator, iter, *ir)
 		{
 			ir_instruction *inst = (ir_instruction *)iter.get();

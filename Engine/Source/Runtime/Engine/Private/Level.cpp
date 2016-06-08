@@ -263,6 +263,8 @@ ULevel::ULevel( const FObjectInitializer& ObjectInitializer )
 {
 #if WITH_EDITORONLY_DATA
 	LevelColor = FLinearColor::White;
+	FixupOverrideVertexColorsTime = 0;
+	FixupOverrideVertexColorsCount = 0;
 #endif
 }
 

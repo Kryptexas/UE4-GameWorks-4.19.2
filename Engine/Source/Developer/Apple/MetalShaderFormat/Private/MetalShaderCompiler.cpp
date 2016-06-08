@@ -658,6 +658,11 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 				FileWriter->Close();
 				delete FileWriter;
 			}
+
+			if (Input.bGenerateDirectCompileFile)
+			{
+				FFileHelper::SaveStringToFile(CreateShaderCompilerWorkerDirectCommandLine(Input), *(Input.DumpDebugInfoPath / TEXT("DirectCompile.txt")));
+			}
 		}
 
 		uint32 CCFlags = HLSLCC_NoPreprocess | HLSLCC_PackUniforms;

@@ -1,5 +1,5 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-// ...
+// ..
 
 #include "ShaderFormatOpenGL.h"
 #include "Core.h"
@@ -1326,6 +1326,11 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 				FileWriter->Serialize((ANSICHAR*)AnsiSourceFile.Get(), AnsiSourceFile.Length());
 				FileWriter->Close();
 				delete FileWriter;
+			}
+
+			if (Input.bGenerateDirectCompileFile)
+			{
+				FFileHelper::SaveStringToFile(CreateShaderCompilerWorkerDirectCommandLine(Input), *(Input.DumpDebugInfoPath / TEXT("DirectCompile.txt")));
 			}
 		}
 

@@ -1427,6 +1427,15 @@ void CompileShader_Windows_Vulkan(const FShaderCompilerInput& Input, FShaderComp
 		return;
 	}
 
+	{
+		// Tiny helper when debugging issues on glslang
+		static bool bRemoveHashLine = false;
+		if (bRemoveHashLine)
+		{
+			PreprocessedShaderSource = PreprocessedShaderSource.Replace(TEXT("#line"), TEXT("///#line"), ESearchCase::CaseSensitive);
+		}
+	}
+
 	FCompilerInfo CompilerInfo(Input, WorkingDirectory, Frequency);
 
 	CompilerInfo.CCFlags |= HLSLCC_PackUniforms;
@@ -1460,6 +1469,11 @@ void CompileShader_Windows_Vulkan(const FShaderCompilerInput& Input, FShaderComp
 
 		const FString BatchFileContents = CreateShaderCompileCommandLine(CompilerInfo, HlslCompilerTarget);
 		FFileHelper::SaveStringToFile(BatchFileContents, *(CompilerInfo.Input.DumpDebugInfoPath / TEXT("CompileSPIRV.bat")));
+
+		if (Input.bGenerateDirectCompileFile)
+		{
+			FFileHelper::SaveStringToFile(CreateShaderCompilerWorkerDirectCommandLine(Input), *(Input.DumpDebugInfoPath / TEXT("DirectCompile.txt")));
+		}
 	}
 
 	TArray<ANSICHAR> GeneratedGlslSource;

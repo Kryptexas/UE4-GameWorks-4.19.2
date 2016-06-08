@@ -64,7 +64,7 @@ void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, const F
 			}
 			else
 			{
-				FTranslucencyForwardShadingDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FTranslucencyForwardShadingDrawingPolicyFactory::ContextType(false), Mesh, false, false, NULL, HitProxyId);
+				FMobileTranslucencyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FMobileTranslucencyDrawingPolicyFactory::ContextType(false), Mesh, false, false, NULL, HitProxyId);
 			}
 		}
 		// handle opaque materials
@@ -86,7 +86,7 @@ void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, const F
 				}
 				else
 				{
-					FBasePassForwardOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FBasePassForwardOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::DontSet), Mesh, false, false, NULL, HitProxyId);
+					FMobileBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FMobileBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::DontSet), Mesh, false, false, NULL, HitProxyId);
 				}
 			}
 		}	

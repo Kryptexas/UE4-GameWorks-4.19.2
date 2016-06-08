@@ -274,7 +274,7 @@ inline const TCHAR* GetSceneColorTargetName(FSceneRenderTargets::EShadingPath Sh
 {
 	const TCHAR* SceneColorNames[(uint32)FSceneRenderTargets::EShadingPath::Num] =
 	{ 
-		TEXT("SceneColorForward"), 
+		TEXT("SceneColorMobile"), 
 		TEXT("SceneColorDeferred") 
 	};
 	check((uint32)ShadingPath < ARRAY_COUNT(SceneColorNames));
@@ -381,7 +381,7 @@ void FSceneRenderTargets::Allocate(FRHICommandList& RHICmdList, const FSceneView
 
 	// If feature level has changed, release all previously allocated targets to the pool. If feature level has changed but
 	const auto NewFeatureLevel = ViewFamily.Scene->GetFeatureLevel();
-	CurrentShadingPath = ViewFamily.Scene->ShouldUseDeferredRenderer() ? EShadingPath::Deferred : EShadingPath::Forward;
+	CurrentShadingPath = ViewFamily.Scene->ShouldUseDeferredRenderer() ? EShadingPath::Deferred : EShadingPath::Mobile;
 
 	FIntPoint DesiredBufferSize = ComputeDesiredSize(ViewFamily);
 	check(DesiredBufferSize.X > 0 && DesiredBufferSize.Y > 0);
@@ -409,9 +409,9 @@ void FSceneRenderTargets::Allocate(FRHICommandList& RHICmdList, const FSceneView
 
 	int32 RSMResolution = FMath::Clamp(CVarRSMResolution.GetValueOnRenderThread(), 1, 2048);
 
-	if (ViewFamily.Scene->ShouldUseDeferredRenderer() == false)
+	if (!ViewFamily.Scene->ShouldUseDeferredRenderer())
 	{
-		// ensure there is always enough space for forward renderer's tiled shadow maps
+		// ensure there is always enough space for mobile renderer's tiled shadow maps
 		// by reducing the shadow map resolution.
 		int32 MaxShadowDepthBufferDim = FMath::Max(GMaxShadowDepthBufferSizeX, GMaxShadowDepthBufferSizeY);
 		if (MaxShadowResolution * 2 >  MaxShadowDepthBufferDim)
@@ -1526,7 +1526,7 @@ void FSceneRenderTargets::SetSeparateTranslucencyBufferSize(bool bAnyViewWantsDo
 	SeparateTranslucencyScale = EffectiveScale;
 }
 
-void FSceneRenderTargets::AllocateForwardShadingPathRenderTargets(FRHICommandList& RHICmdList)
+void FSceneRenderTargets::AllocateMobileRenderTargets(FRHICommandList& RHICmdList)
 {
 	// on ES2 we don't do on demand allocation of SceneColor yet (in non ES2 it's released in the Tonemapper Process())
 	AllocSceneColor(RHICmdList);
@@ -1551,7 +1551,7 @@ void FSceneRenderTargets::AllocateForwardShadingPathRenderTargets(FRHICommandLis
 	}
 }
 
-void FSceneRenderTargets::AllocateForwardShadingShadowDepthTarget(FRHICommandListImmediate& RHICmdList, const FIntPoint& ShadowBufferResolution)
+void FSceneRenderTargets::AllocateMobileShadowDepthTarget(FRHICommandListImmediate& RHICmdList, const FIntPoint& ShadowBufferResolution)
 {
 	{
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(ShadowBufferResolution, PF_ShadowDepth, FClearValueBinding::DepthOne, TexCreate_None, TexCreate_DepthStencilTargetable, false));
@@ -1609,7 +1609,7 @@ void FSceneRenderTargets::AllocateReflectionTargets(FRHICommandList& RHICmdList,
 			ReflectionColorScratchCubemap[1].SafeRelease();
 		}
 
-		// Reflection targets are shared between both forward and deferred shading paths. If we have already allocated for one and are now allocating for the other,
+		// Reflection targets are shared between both mobile and deferred shading paths. If we have already allocated for one and are now allocating for the other,
 		// we can skip these targets.
 		bool bSharedReflectionTargetsAllocated = ReflectionColorScratchCubemap[0] != nullptr;
 
@@ -1933,9 +1933,9 @@ void FSceneRenderTargets::AllocateRenderTargets(FRHICommandList& RHICmdList)
 {
 	if (BufferSize.X > 0 && BufferSize.Y > 0 && !AreShadingPathRenderTargetsAllocated(CurrentShadingPath))
 	{
-		if ((EShadingPath)CurrentShadingPath == EShadingPath::Forward)
+		if ((EShadingPath)CurrentShadingPath == EShadingPath::Mobile)
 		{
-			AllocateForwardShadingPathRenderTargets(RHICmdList);
+			AllocateMobileRenderTargets(RHICmdList);
 		}
 		else
 		{
@@ -2220,9 +2220,9 @@ bool FSceneRenderTargets::AreShadingPathRenderTargetsAllocated(EShadingPath InSh
 {
 	switch (InShadingPath)
 	{
-	case EShadingPath::Forward:
+	case EShadingPath::Mobile:
 		{
-			return (SceneColor[(int32)EShadingPath::Forward] != nullptr);
+			return (SceneColor[(int32)EShadingPath::Mobile] != nullptr);
 		}
 	case EShadingPath::Deferred:
 		{
@@ -2466,7 +2466,7 @@ FArchive& operator<<(FArchive& Ar,FSceneTextureShaderParameters& Parameters)
 	return Ar;
 }
 
-// Note this is not just for Deferred rendering, it also applies to mobile forward rendering.
+// Note this is not just for Deferred rendering, it also applies to mobile rendering.
 void FDeferredPixelShaderParameters::Bind(const FShaderParameterMap& ParameterMap)
 {
 	SceneTextureParameters.Bind(ParameterMap);

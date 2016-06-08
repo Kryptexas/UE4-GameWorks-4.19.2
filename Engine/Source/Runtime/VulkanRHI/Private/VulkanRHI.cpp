@@ -61,7 +61,7 @@ struct FVulkanMemManager
 		size_t                                      alignment,
 		VkSystemAllocationScope                           allocScope)
 	{
-		auto* This = (FVulkanMemManager*)pUserData;
+		FVulkanMemManager* This = (FVulkanMemManager*)pUserData;
 		This->MaxAllocSize = FMath::Max(This->MaxAllocSize, size);
 		This->UsedMemory += size;
 		void* Data = FMemory::Malloc(size, alignment);
@@ -73,8 +73,8 @@ struct FVulkanMemManager
 		void*                                       pUserData,
 		void*                                       pMem)
 	{
-		auto* This = (FVulkanMemManager*)pUserData;
-		auto Size = This->Allocs.FindAndRemoveChecked(pMem);
+		FVulkanMemManager* This = (FVulkanMemManager*)pUserData;
+		size_t Size = This->Allocs.FindAndRemoveChecked(pMem);
 		This->UsedMemory -= Size;
 		FMemory::Free(pMem);
 	}
@@ -86,8 +86,8 @@ struct FVulkanMemManager
 		size_t										alignment,
 		VkSystemAllocationScope						allocScope)
 	{
-		auto* This = (FVulkanMemManager*)pUserData;
-		auto Size = This->Allocs.FindAndRemoveChecked(pOriginal);
+		FVulkanMemManager* This = (FVulkanMemManager*)pUserData;
+		size_t Size = This->Allocs.FindAndRemoveChecked(pOriginal);
 		This->UsedMemory -= Size;
 		void* Data = FMemory::Realloc(pOriginal, size, alignment);
 		This->Allocs.Add(Data, size);
@@ -319,9 +319,13 @@ FVulkanCommandListContext::FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, F
 	, PendingIndexDataStride(0)
 	, TempFrameAllocationBuffer(InDevice, VULKAN_TEMP_FRAME_ALLOCATOR_SIZE)
 	, CommandBufferManager(nullptr)
+	, PendingState(nullptr)
 {
 	// Create CommandBufferManager, contain all active buffers
 	CommandBufferManager = new FVulkanCommandBufferManager(InDevice);
+
+	// Create Pending state, contains pipeline states such as current shader and etc..
+	PendingState = new FVulkanPendingState(InDevice);
 }
 
 FVulkanCommandListContext::~FVulkanCommandListContext()
@@ -329,6 +333,8 @@ FVulkanCommandListContext::~FVulkanCommandListContext()
 	check(CommandBufferManager != nullptr);
 	delete CommandBufferManager;
 	CommandBufferManager = nullptr;
+
+	delete PendingState;
 
 	TempFrameAllocationBuffer.Destroy();
 }
@@ -561,7 +567,7 @@ void FVulkanDynamicRHI::InitInstance()
 			UE_LOG(LogVulkanRHI, Display, TEXT("Found %d device(s)"), GpuCount);
 			for (uint32 Index = 0; Index < GpuCount; ++Index)
 			{
-				auto* NewDevice = new FVulkanDevice(PhysicalDevices[Index]);
+				FVulkanDevice* NewDevice = new FVulkanDevice(PhysicalDevices[Index]);
 				Devices.Add(NewDevice);
 
 				bool bCouldBeMainDevice = NewDevice->QueryGPU(Index);
@@ -658,7 +664,7 @@ void FVulkanDynamicRHI::InitInstance()
 
 void FVulkanCommandListContext::RHIBeginFrame()
 {
-    Device->GetPendingState().GetGlobalUniformPool().BeginFrame();
+	PendingState->GetGlobalUniformPool().BeginFrame();
 
 	VulkanRHI::GManager.GPUProfilingData.BeginFrame(this, Device->GetTimestampQueryPool(RHI->GetPresentCount() % FVulkanDevice::NumTimestampPools));
 }
@@ -670,11 +676,10 @@ void FVulkanCommandListContext::RHIBeginScene()
 
 void FVulkanCommandListContext::RHIEndScene()
 {
-	auto* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
-	auto& PendingState = Device->GetPendingState();
-	if (PendingState.IsRenderPassActive())
+	FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+	if (PendingState->IsRenderPassActive())
 	{
-		PendingState.RenderPassEnd(CmdBuffer);
+		PendingState->RenderPassEnd(CmdBuffer);
 	}
 }
 
@@ -705,9 +710,6 @@ void FVulkanCommandListContext::RHIBeginDrawingViewport(FViewportRHIParamRef Vie
 	}
 
 	RHISetRenderTargets(1, &RTView, nullptr, 0, nullptr);
-
-	check(Device);
-	FVulkanPendingState& state = Device->GetPendingState();
 }
 
 void FVulkanCommandListContext::RHIEndDrawingViewport(FViewportRHIParamRef ViewportRHI, bool bPresent, bool bLockToVsync)
@@ -717,8 +719,7 @@ void FVulkanCommandListContext::RHIEndDrawingViewport(FViewportRHIParamRef Viewp
 
 	RHI->Present();
 
-	FVulkanPendingState& State = Device->GetPendingState();
-	State.InitFrame();
+	PendingState->InitFrame();
 }
 
 void FVulkanCommandListContext::RHIEndFrame()
@@ -758,7 +759,6 @@ void FVulkanCommandListContext::RHIPopEvent()
 #if VULKAN_ENABLE_DRAW_MARKERS
 		if (auto VkCmdDbgMarkerEnd = Device->GetCmdDbgMarkerEnd())
 		{
-			FVulkanPendingState& State = Device->GetPendingState();
 			VkCmdDbgMarkerEnd(GetCommandBufferManager()->GetActiveCmdBuffer()->GetHandle());
 		}
 #endif
@@ -898,7 +898,7 @@ FVulkanDescriptorSetsLayout::FVulkanDescriptorSetsLayout(FVulkanDevice* InDevice
 FVulkanDescriptorSetsLayout::~FVulkanDescriptorSetsLayout()
 {
 	check(Device);
-	for (auto Handle : LayoutHandles)
+	for (VkDescriptorSetLayout Handle : LayoutHandles)
 	{
 		vkDestroyDescriptorSetLayout(Device->GetInstanceHandle(), Handle, nullptr);
 	}
@@ -928,7 +928,7 @@ void FVulkanDescriptorSetsLayout::AddDescriptor(int32 DescriptorSetIndex, const 
 		DescSetLayout->DescriptorSetIndex = DescriptorSetIndex;
 	}
 
-	auto* Binding = new(DescSetLayout->LayoutBindings) VkDescriptorSetLayoutBinding;
+	VkDescriptorSetLayoutBinding* Binding = new(DescSetLayout->LayoutBindings) VkDescriptorSetLayoutBinding;
 	FMemory::Memzero(*Binding);
 	*Binding = Descriptor;
 }
@@ -986,7 +986,7 @@ void FVulkanDescriptorSetsLayout::Compile()
 		DescriptorLayoutInfo.bindingCount = Layout.LayoutBindings.Num();
 		DescriptorLayoutInfo.pBindings = Layout.LayoutBindings.GetData();
 
-		auto* LayoutHandle = new(LayoutHandles) VkDescriptorSetLayout;
+		VkDescriptorSetLayout* LayoutHandle = new(LayoutHandles) VkDescriptorSetLayout;
 		VERIFYVULKANRESULT(vkCreateDescriptorSetLayout(Device->GetInstanceHandle(), &DescriptorLayoutInfo, nullptr, LayoutHandle));
 	}
 }
@@ -999,7 +999,7 @@ FVulkanDescriptorSets::FVulkanDescriptorSets(FVulkanDevice* InDevice, const FVul
 {
 	Pool->TrackAddUsage(Layout);
 
-	auto& LayoutHandles = Layout.GetHandles();
+	const TArray<VkDescriptorSetLayout>& LayoutHandles = Layout.GetHandles();
 
 	VkDescriptorSetAllocateInfo DescriptorSetAllocateInfo;
 	FMemory::Memzero(DescriptorSetAllocateInfo);
@@ -1060,8 +1060,6 @@ void FVulkanBufferView::Create(FVulkanResourceMultiBuffer* Buffer, EPixelFormat 
 	ViewInfo.range = Size;
 	Flags = Buffer->GetBufferUsageFlags() & VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
 	check(Flags);
-
-	ViewInfo.flags = Flags;
 
 	VERIFYVULKANRESULT(vkCreateBufferView(GetParent()->GetInstanceHandle(), &ViewInfo, nullptr, &View));
 }
@@ -1430,13 +1428,13 @@ void FVulkanDynamicRHI::SavePipelineCache()
 {
 	FString CacheFile = FPaths::GameSavedDir() / TEXT("VulkanPSO.cache");
 
-	auto* RHI = (FVulkanDynamicRHI*)GDynamicRHI;
+	FVulkanDynamicRHI* RHI = (FVulkanDynamicRHI*)GDynamicRHI;
 	RHI->Device->PipelineStateCache->Save(CacheFile);
 }
 
 void FVulkanDynamicRHI::RebuildPipelineCache()
 {
-	auto* RHI = (FVulkanDynamicRHI*)GDynamicRHI;
+	FVulkanDynamicRHI* RHI = (FVulkanDynamicRHI*)GDynamicRHI;
 	RHI->Device->PipelineStateCache->RebuildCache();
 }
 #endif
@@ -1444,7 +1442,7 @@ void FVulkanDynamicRHI::RebuildPipelineCache()
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 void FVulkanDynamicRHI::DumpMemory()
 {
-	auto* RHI = (FVulkanDynamicRHI*)GDynamicRHI;
+	FVulkanDynamicRHI* RHI = (FVulkanDynamicRHI*)GDynamicRHI;
 	RHI->Device->GetMemoryManager().DumpMemory();
 	RHI->Device->GetResourceHeapManager().DumpMemory();
 	RHI->Device->GetStagingManager().DumpMemory();

@@ -433,7 +433,7 @@ void AMatineeActor::NotifyEventTriggered(FName EventName, float EventTime, bool 
 		FString FolderName;
 		PackageName.Split(TEXT("/"), &FolderName, &MapName, ESearchCase::CaseSensitive, ESearchDir::FromEnd);
 
-		GEngine->PerformanceCapture(GetWorld(), *MapName, *GetName(), EventTime);
+		GEngine->PerformanceCapture(GetWorld(), MapName, GetName(), EventTime);
 	}
 #endif	// UE_BUILD_SHIPPING
 }

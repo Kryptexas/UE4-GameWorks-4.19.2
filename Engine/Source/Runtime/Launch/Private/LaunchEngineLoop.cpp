@@ -1092,9 +1092,12 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	FApp::SetBenchmarking(false);
 #endif // !UE_BUILD_SHIPPING
 
-	FApp::SetUseFixedTimeStep(FParse::Param(FCommandLine::Get(), TEXT("UseFixedTimeStep")));
+	// "-Deterministic" is a shortcut for "-UseFixedTimeStep -FixedSeed"
+	bool bDeterministic = FParse::Param(FCommandLine::Get(), TEXT("Deterministic"));
 
-	FApp::bUseFixedSeed = FApp::IsBenchmarking() || FParse::Param(FCommandLine::Get(),TEXT("FIXEDSEED"));
+	FApp::SetUseFixedTimeStep(bDeterministic || FParse::Param(FCommandLine::Get(), TEXT("UseFixedTimeStep")));
+
+	FApp::bUseFixedSeed = bDeterministic || FApp::IsBenchmarking() || FParse::Param(FCommandLine::Get(),TEXT("FixedSeed"));
 
 	// Initialize random number generator.
 	{
@@ -1213,7 +1216,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			{
 				NumThreadsInThreadPool = 1;
 			}
-			verify(GThreadPool->Create(NumThreadsInThreadPool));
+			verify(GThreadPool->Create(NumThreadsInThreadPool, 128 * 1024));
 		}
 #if USE_NEW_ASYNC_IO
 		{
@@ -1233,7 +1236,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		GLargeThreadPool = FQueuedThreadPool::Allocate();
 		int32 NumThreadsInLargeThreadPool = FMath::Max(FPlatformMisc::NumberOfCoresIncludingHyperthreads() - 2, 2);
 		
-		verify(GLargeThreadPool->Create(NumThreadsInLargeThreadPool));
+		verify(GLargeThreadPool->Create(NumThreadsInLargeThreadPool, 128 * 1024));
 #endif
 	}
 
