@@ -366,12 +366,17 @@ UClass* UK2Node_GetClassDefaults::GetInputClass(const UEdGraphPin* FromPin) cons
 		}
 	}
 
-	// Switch Blueprint Class types to use the generated skeleton class.
+	// Switch Blueprint Class types to use the generated skeleton class (if valid).
 	if (InputClass)
 	{
 		if (UBlueprint* Blueprint = Cast<UBlueprint>(InputClass->ClassGeneratedBy))
 		{
-			InputClass = Blueprint->SkeletonGeneratedClass;
+			// Stick with the original (serialized) class if the skeleton class is not valid for some reason (e.g. the Blueprint hasn't been compiled on load yet).
+			// Note: There's not a need to force it to be preloaded here in that case, because once it is loaded, we'll end up reconstructing this node again anyway.
+			if (Blueprint->SkeletonGeneratedClass)
+			{
+				InputClass = Blueprint->SkeletonGeneratedClass;
+			}
 		}
 	}
 
