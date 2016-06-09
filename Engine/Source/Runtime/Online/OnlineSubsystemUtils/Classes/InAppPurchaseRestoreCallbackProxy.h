@@ -21,7 +21,7 @@ class UInAppPurchaseRestoreCallbackProxy : public UObject
 
 	// Kicks off a transaction for the provided product identifier
 	UFUNCTION(BlueprintCallable, meta = (DisplayName="Restore In-App Purchases"), Category="Online|InAppPurchase")
-	static UInAppPurchaseRestoreCallbackProxy* CreateProxyObjectForInAppPurchaseRestore(class APlayerController* PlayerController);
+	static UInAppPurchaseRestoreCallbackProxy* CreateProxyObjectForInAppPurchaseRestore(const TArray<FInAppPurchaseProductRequest>& ConsumableProductFlags, class APlayerController* PlayerController);
 
 public:
 
@@ -39,7 +39,7 @@ private:
 	void RemoveDelegate();
 
 	/** Triggers the In-App Purchase Restore Transaction for the specifed user */
-	void Trigger(class APlayerController* PlayerController);
+	void Trigger(const TArray<FInAppPurchaseProductRequest>& ConsumableProductFlags, class APlayerController* PlayerController);
 
 private:
 

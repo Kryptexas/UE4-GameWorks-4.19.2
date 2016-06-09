@@ -208,7 +208,7 @@ float2 JitterOffset;
 
 uint2 ComputeTileCoordinateFromScreenGrid(uint2 OutputCoordinate)
 {
-	uint2 TileCoordinate = (OutputCoordinate * TRACE_DOWNSAMPLE_FACTOR) / CULLED_TILE_SIZEX;
+	uint2 TileCoordinate = OutputCoordinate * TRACE_DOWNSAMPLE_FACTOR / CULLED_TILE_SIZEX;
 	return TileCoordinate;
 }
 

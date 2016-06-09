@@ -155,11 +155,7 @@ void FMetalRHICommandContext::RHISetBoundShaderState( FBoundShaderStateRHIParamR
 void FMetalRHICommandContext::RHISetUAVParameter(FComputeShaderRHIParamRef ComputeShaderRHI, uint32 UAVIndex, FUnorderedAccessViewRHIParamRef UAVRHI)
 {
 	FMetalUnorderedAccessView* UAV = ResourceCast(UAVRHI);
-
-	if (UAV)
-	{
-		UAV->Set(Context, UAVIndex);
-	}
+	Context->SetShaderUnorderedAccessView(SF_Compute, UAVIndex, UAV);
 }
 
 void FMetalRHICommandContext::RHISetUAVParameter(FComputeShaderRHIParamRef ComputeShaderRHI,uint32 UAVIndex,FUnorderedAccessViewRHIParamRef UAVRHI, uint32 InitialCount)

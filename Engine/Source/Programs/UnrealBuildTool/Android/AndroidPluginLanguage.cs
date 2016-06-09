@@ -746,7 +746,7 @@ namespace UnrealBuildTool
 			if (!ConfigCache.TryGetValue(baseIniName, out config))
 			{
 				// note: use our own ConfigCacheIni since EngineConfiguration.cs only parses RequiredSections!
-				config = ConfigCacheIni_APL.CreateConfigCacheIni_APL(UnrealTargetPlatform.Android, "Engine", DirectoryReference.FromFile(ProjectFile));
+				config = ConfigCacheIni_APL.CreateConfigCacheIni_APL(UnrealTargetPlatform.Android, baseIniName, DirectoryReference.FromFile(ProjectFile));
 				ConfigCache.Add(baseIniName, config);
 			}
 			return config;

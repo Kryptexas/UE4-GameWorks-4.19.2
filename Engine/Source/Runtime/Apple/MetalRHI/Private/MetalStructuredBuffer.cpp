@@ -22,12 +22,14 @@ FMetalStructuredBuffer::FMetalStructuredBuffer(uint32 Stride, uint32 Size, FReso
  		FMemory::Memcpy(LockedMemory, ResourceArray->GetResourceData(), Size);
 		ResourceArray->Discard();
 	}
+	INC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buffer.length - GetSize());
 
 	TRACK_OBJECT(STAT_MetalBufferCount, Buffer);
 }
 
 FMetalStructuredBuffer::~FMetalStructuredBuffer()
 {
+	DEC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buffer.length - GetSize());
 	SafeReleasePooledBuffer(Buffer);
 	[Buffer release];
 }

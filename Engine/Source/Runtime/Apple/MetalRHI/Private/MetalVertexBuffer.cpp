@@ -15,21 +15,36 @@ FMetalVertexBuffer::FMetalVertexBuffer(uint32 InSize, uint32 InUsage)
 	, ZeroStrideElementSize((InUsage & BUF_ZeroStride) ? InSize : 0)
 {
 	checkf(InSize <= 256 * 1024 * 1024, TEXT("Metal doesn't support buffers > 256 MB"));
+	
 	// Zero-stride buffers must be separate in order to wrap appropriately
 	if(!(InUsage & BUF_ZeroStride))
 	{
-		FMetalPooledBuffer Buf = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), InSize, BUFFER_STORAGE_MODE));
+		FMetalPooledBufferArgs Args(GetMetalDeviceContext().GetDevice(), InSize, BUFFER_STORAGE_MODE);
+		if (InUsage & BUF_UnorderedAccess)
+		{
+			FMetalBufferPoolPolicyData Policy;
+			uint32 BufferSize = Policy.GetPoolBucketSize(Policy.GetPoolBucketIndex(Args));
+			if (InUsage + 512 > BufferSize)
+			{
+				Args.Size = InUsage + 512;
+			}
+		}
+		
+		FMetalPooledBuffer Buf = GetMetalDeviceContext().CreatePooledBuffer(Args);
 		Buffer = [Buf.Buffer retain];
 	}
 	else
 	{
+		check(!(InUsage & BUF_UnorderedAccess));
 		Buffer = [GetMetalDeviceContext().GetDevice() newBufferWithLength:InSize options:BUFFER_CACHE_MODE|BUFFER_MANAGED_MEM];
 		TRACK_OBJECT(STAT_MetalBufferCount, Buffer);
 	}
+	INC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buffer.length - GetSize());
 }
 
 FMetalVertexBuffer::~FMetalVertexBuffer()
 {
+	DEC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buffer.length - GetSize());
 	if(!(GetUsage() & BUF_ZeroStride))
 	{
 		SafeReleasePooledBuffer(Buffer);
@@ -53,7 +68,7 @@ void* FMetalVertexBuffer::Lock(EResourceLockMode LockMode, uint32 Offset, uint32
 		if(!(GetUsage() & BUF_ZeroStride))
 		{
 			MTLStorageMode Mode = BUFFER_STORAGE_MODE;
-			FMetalPooledBuffer Buf = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), GetSize(), Mode));
+			FMetalPooledBuffer Buf = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), OldBuffer.length, Mode));
 			Buffer = [Buf.Buffer retain];
 			GetMetalDeviceContext().ReleasePooledBuffer(OldBuffer);
 			[OldBuffer release];

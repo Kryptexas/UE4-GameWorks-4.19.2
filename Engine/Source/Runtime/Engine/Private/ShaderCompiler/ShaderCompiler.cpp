@@ -85,6 +85,18 @@ static TAutoConsoleVariable<int32> CVarShaderFastMath(
 	TEXT("Whether to use fast-math optimisations in shaders."),
 	ECVF_ReadOnly);
 
+static TAutoConsoleVariable<int32> CVarShaderZeroInitialise(
+	TEXT("r.Shaders.ZeroInitialise"),
+	0,
+	TEXT("Whether to explicitly zero initialise local variables of primitive type in shaders. Defaults to 0 (disabled - maintains previous behaviour). Not all shader languages can omit zero initialisation."),
+	ECVF_ReadOnly);
+
+static TAutoConsoleVariable<int32> CVarShaderBoundsChecking(
+	TEXT("r.Shaders.BoundsChecking"),
+	0,
+	TEXT("Whether to explicitly enforce bounds-checking & flush-to-zero/ignore for buffer reads & writes in shaders. Defaults to 0 (disabled - maintains previous behaviour). Not all shader languages can omit bounds checking."),
+	ECVF_ReadOnly);
+
 static TAutoConsoleVariable<int32> CVarD3DRemoveUnusedInterpolators(
 	TEXT("r.D3D.RemoveUnusedInterpolators"),
 	0,
@@ -2335,23 +2347,6 @@ void GlobalBeginCompileShader(
 		if (CVar->GetInt() != 0)
 		{
 			Input.Environment.CompilerFlags.Add(CFLAG_KeepDebugInfo);
-		}
-	}
-
-	{
-		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.FastMath"));
-		if (CVar && CVar->GetInt() == 0)
-		{
-			Input.Environment.CompilerFlags.Add(CFLAG_NoFastMath);
-		}
-	}
-
-	if (IsD3DPlatform((EShaderPlatform)Target.Platform, false))
-	{
-		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.D3D.RemoveUnusedInterpolators"));
-		if (CVar && CVar->GetInt() != 0)
-		{
-			Input.Environment.CompilerFlags.Add(CFLAG_ForceRemoveUnusedInterpolators);
 		}
 	}
 

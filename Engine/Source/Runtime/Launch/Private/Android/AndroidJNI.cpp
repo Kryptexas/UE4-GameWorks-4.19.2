@@ -93,7 +93,7 @@ void FJavaWrapper::FindClassesAndMethods(JNIEnv* Env)
 	AndroidThunkJava_IapQueryInAppPurchases = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_IapQueryInAppPurchases", "([Ljava/lang/String;[Z)Z", bIsOptional);
 	AndroidThunkJava_IapBeginPurchase = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_IapBeginPurchase", "(Ljava/lang/String;Z)Z", bIsOptional);
 	AndroidThunkJava_IapIsAllowedToMakePurchases = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_IapIsAllowedToMakePurchases", "()Z", bIsOptional);
-	AndroidThunkJava_IapRestorePurchases = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_IapRestorePurchases", "()Z", bIsOptional);
+	AndroidThunkJava_IapRestorePurchases = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_IapRestorePurchases", "([Ljava/lang/String;[Z)Z", bIsOptional);
 
 	// SurfaceView functionality for view scaling on some devices
 	AndroidThunkJava_UseSurfaceViewWorkaround = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_UseSurfaceViewWorkaround", "()V", bIsOptional);
@@ -661,14 +661,36 @@ bool AndroidThunkCpp_Iap_IsAllowedToMakePurchases()
 	return bResult;
 }
 
-bool AndroidThunkCpp_Iap_RestorePurchases()
+bool AndroidThunkCpp_Iap_RestorePurchases(const TArray<FString>& ProductIDs, const TArray<bool>& bConsumable)
 {
 	FPlatformMisc::LowLevelOutputDebugString(L"[JNI] - AndroidThunkCpp_Iap_RestorePurchases");
 	bool bResult = false;
+
 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
 	{
-		bResult = FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GoogleServicesThis, FJavaWrapper::AndroidThunkJava_IapRestorePurchases);
+		// Populate some java types with the provided product information
+		jobjectArray ProductIDArray = (jobjectArray)Env->NewObjectArray(ProductIDs.Num(), FJavaWrapper::JavaStringClass, NULL);
+		jbooleanArray ConsumeArray = (jbooleanArray)Env->NewBooleanArray(ProductIDs.Num());
+
+		jboolean* ConsumeArrayValues = Env->GetBooleanArrayElements(ConsumeArray, 0);
+		for (uint32 Param = 0; Param < ProductIDs.Num(); Param++)
+		{
+			jstring StringValue = Env->NewStringUTF(TCHAR_TO_UTF8(*ProductIDs[Param]));
+			Env->SetObjectArrayElement(ProductIDArray, Param, StringValue);
+			Env->DeleteLocalRef(StringValue);
+
+			ConsumeArrayValues[Param] = bConsumable[Param];
+		}
+		Env->ReleaseBooleanArrayElements(ConsumeArray, ConsumeArrayValues, 0);
+
+		// Execute the java code for this operation
+		bResult = FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GoogleServicesThis, FJavaWrapper::AndroidThunkJava_IapRestorePurchases, ProductIDArray, ConsumeArray);
+
+		// clean up references
+		Env->DeleteLocalRef(ProductIDArray);
+		Env->DeleteLocalRef(ConsumeArray);
 	}
+
 	return bResult;
 }
 

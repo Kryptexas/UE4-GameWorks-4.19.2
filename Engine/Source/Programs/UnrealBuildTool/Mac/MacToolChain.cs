@@ -918,7 +918,11 @@ namespace UnrealBuildTool
 				}
 			}
 
-			LinkAction.CommandArguments = "-c '" + LinkCommand + "'";
+			string ReadyFilePath = LinkEnvironment.Config.IntermediateDirectory + "/" + LinkEnvironment.Config.OutputFilePath.GetFileName() + ".ready";
+			FileItem DylibReadyOutputFile = FileItem.GetItemByPath(ReadyFilePath);
+			FileItem RemoteDylibReadyOutputFile = LocalToRemoteFileItem(DylibReadyOutputFile, false);
+
+			LinkAction.CommandArguments = "-c '" + LinkCommand + "; echo \"-\" >> \"" + RemoteDylibReadyOutputFile.AbsolutePath + "\"'";
 
 			// Only execute linking on the local Mac.
 			LinkAction.bCanExecuteRemotely = false;
@@ -927,6 +931,7 @@ namespace UnrealBuildTool
 			LinkAction.OutputEventHandler = new DataReceivedEventHandler(RemoteOutputReceivedEventHandler);
 
 			LinkAction.ProducedItems.Add(RemoteOutputFile);
+			LinkAction.ProducedItems.Add(RemoteDylibReadyOutputFile);
 
 			if (!LinkEnvironment.Config.IntermediateDirectory.Exists())
 			{
@@ -1186,7 +1191,7 @@ namespace UnrealBuildTool
 		/// Generates debug info for a given executable
 		/// </summary>
 		/// <param name="MachOBinary">FileItem describing the executable or dylib to generate debug info for</param>
-		public FileItem GenerateDebugInfo(FileItem MachOBinary, FileItem FixDylibOutputFile)
+		public FileItem GenerateDebugInfo(FileItem MachOBinary, LinkEnvironment LinkEnvironment)
 		{
 			string BinaryPath = MachOBinary.AbsolutePath;
 			if (BinaryPath.Contains(".app"))
@@ -1201,6 +1206,9 @@ namespace UnrealBuildTool
 			{
 				BinaryPath = Path.ChangeExtension(BinaryPath, ".dSYM");
 			}
+
+			string ReadyFilePath = LinkEnvironment.Config.IntermediateDirectory + "/" + Path.GetFileName(MachOBinary.AbsolutePath) + ".ready";
+			FileItem ReadyFile = FileItem.GetItemByPath(ReadyFilePath);
 
 			FileItem OutputFile = FileItem.GetItemByPath(BinaryPath);
 			FileItem DestFile = LocalToRemoteFileItem(OutputFile, false);
@@ -1228,7 +1236,7 @@ namespace UnrealBuildTool
 				ToolchainDir,
 				InputFile.AbsolutePath,
 				DestFile.AbsolutePath);
-			GenDebugAction.PrerequisiteItems.Add(FixDylibOutputFile);
+			GenDebugAction.PrerequisiteItems.Add(LocalToRemoteFileItem(ReadyFile, false));
 			GenDebugAction.ProducedItems.Add(DestFile);
 			GenDebugAction.CommandDescription = "";
 			GenDebugAction.StatusDescription = "Generating " + Path.GetFileName(BinaryPath);
@@ -1522,6 +1530,7 @@ namespace UnrealBuildTool
 				foreach (UEBuildBinary Binary in InTarget.AppBinaries)
 				{
 					BuiltBinaries.Add(Path.GetFullPath(Binary.ToString()));
+					BuiltBinaries.Add(Path.GetFullPath(Binary.ToString() + ".ready"));
 
 					string DebugExtension = UEBuildPlatform.GetBuildPlatform(Binary.Target.Platform).GetDebugInfoExtension(Binary.Config.Type);
 					if (DebugExtension == ".dSYM")
@@ -1705,7 +1714,7 @@ namespace UnrealBuildTool
 				// We want dsyms to be created after all dylib dependencies are fixed. If FixDylibDependencies action was not created yet, save the info for later.
 				if (FixDylibOutputFile != null)
 				{
-					OutputFiles.Add(GenerateDebugInfo(Executable, FixDylibOutputFile));
+					OutputFiles.Add(GenerateDebugInfo(Executable, BinaryLinkEnvironment));
 				}
 				else
 				{
@@ -1734,7 +1743,7 @@ namespace UnrealBuildTool
 			// Add dsyms that we couldn't add before FixDylibDependencies action was created
 			foreach (FileItem Exe in ExecutablesThatNeedDsyms)
 			{
-				OutputFiles.Add(GenerateDebugInfo(Exe, FixDylibOutputFile));
+				OutputFiles.Add(GenerateDebugInfo(Exe, BinaryLinkEnvironment));
 			}
 			ExecutablesThatNeedDsyms.Clear();
 

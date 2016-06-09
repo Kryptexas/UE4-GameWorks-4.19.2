@@ -178,6 +178,7 @@ public class Launch : ModuleRules
 			PrivateDependencyModuleNames.Add("OpenGLDrv");
 			PrivateDependencyModuleNames.Add("IOSAudio");
 			DynamicallyLoadedModuleNames.Add("IOSRuntimeSettings");
+			DynamicallyLoadedModuleNames.Add("IOSLocalNotification");
 			PublicFrameworks.Add("OpenGLES");
 			// this is weak for IOS8 support for CAMetalLayer that is in QuartzCore
 			PublicWeakFrameworks.Add("QuartzCore");

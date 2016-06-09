@@ -32,6 +32,10 @@ namespace FAppEntry
 	void Shutdown();
     void Suspend();
     void Resume();
+	
+	extern bool	gAppLaunchedWithLocalNotification;
+	extern FString	gLaunchLocalNotificationActivationEvent;
+	extern int32	gLaunchLocalNotificationFireDate;
 }
 
 @interface IOSAppDelegate : UIResponder <UIApplicationDelegate,

@@ -59,7 +59,7 @@ bool FOnlineStoreGooglePlay::QueryForAvailablePurchases(const TArray<FString>& P
 }
 
 
-extern "C" void Java_com_epicgames_ue4_GooglePlayStoreHelper_nativeQueryComplete(JNIEnv* jenv, jobject thiz, jboolean bSuccess, jobjectArray productIDs, jobjectArray titles, jobjectArray descriptions, jobjectArray prices)
+extern "C" void Java_com_epicgames_ue4_GooglePlayStoreHelper_nativeQueryComplete(JNIEnv* jenv, jobject thiz, jboolean bSuccess, jobjectArray productIDs, jobjectArray titles, jobjectArray descriptions, jobjectArray prices, jfloatArray pricesRaw, jobjectArray currencyCodes)
 {
 	TArray<FInAppPurchaseProductInfo> ProvidedProductInformation;
 
@@ -69,8 +69,12 @@ extern "C" void Java_com_epicgames_ue4_GooglePlayStoreHelper_nativeQueryComplete
 		jsize NumTitles = jenv->GetArrayLength(titles);
 		jsize NumDescriptions = jenv->GetArrayLength(descriptions);
 		jsize NumPrices = jenv->GetArrayLength(prices);
+		jsize NumPricesRaw = jenv->GetArrayLength(pricesRaw);
+		jsize NumCurrencyCodes = jenv->GetArrayLength(currencyCodes);
 
-		ensure((NumProducts == NumTitles) && (NumProducts == NumDescriptions) && (NumProducts == NumPrices));
+		ensure((NumProducts == NumTitles) && (NumProducts == NumDescriptions) && (NumProducts == NumPrices) && (NumProducts == NumPricesRaw) && (NumProducts == NumCurrencyCodes));
+
+		jfloat *PricesRaw = jenv->GetFloatArrayElements(pricesRaw, 0);
 
 		for (jsize Idx = 0; Idx < NumProducts; Idx++)
 		{
@@ -102,13 +106,23 @@ extern "C" void Java_com_epicgames_ue4_GooglePlayStoreHelper_nativeQueryComplete
 			jenv->ReleaseStringUTFChars(NextPrice, charsPrice);
 			jenv->DeleteLocalRef(NextPrice);
 
+			NewProductInfo.RawPrice = PricesRaw[Idx];
+
+			jstring NextCurrencyCode = (jstring)jenv->GetObjectArrayElement(currencyCodes, Idx);
+			const char* charsCurrencyCodes = jenv->GetStringUTFChars(NextCurrencyCode, 0);
+			NewProductInfo.CurrencyCode = FString(UTF8_TO_TCHAR(charsCurrencyCodes));
+			jenv->ReleaseStringUTFChars(NextCurrencyCode, charsCurrencyCodes);
+			jenv->DeleteLocalRef(NextCurrencyCode);
+
 			ProvidedProductInformation.Add(NewProductInfo);
 
-			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("\nProduct Identifier: %s, Name: %s, Description: %s, Price: %s\n"),
+			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("\nProduct Identifier: %s, Name: %s, Description: %s, Price: %s, Price Raw: %f, Currency Code: %s\n"),
 				*NewProductInfo.Identifier,
 				*NewProductInfo.DisplayName,
 				*NewProductInfo.DisplayDescription,
-				*NewProductInfo.DisplayPrice);
+				*NewProductInfo.DisplayPrice,
+				NewProductInfo.RawPrice,
+				*NewProductInfo.CurrencyCode);
 		}
 	}
 
@@ -188,9 +202,9 @@ bool FOnlineStoreGooglePlay::BeginPurchase(const FInAppPurchaseProductRequest& P
 }
 
 
-extern "C" void Java_com_epicgames_ue4_GooglePlayStoreHelper_nativePurchaseComplete(JNIEnv* jenv, jobject thiz, jboolean bSuccess, jstring productId, jstring receiptData)
+extern "C" void Java_com_epicgames_ue4_GooglePlayStoreHelper_nativePurchaseComplete(JNIEnv* jenv, jobject thiz, jboolean bSuccess, jstring productId, jstring receiptData, jstring signature)
 {
-	FString ProductId, ReceiptData;
+	FString ProductId, ReceiptData, Signature;
 	if (bSuccess)
 	{
 		const char* charsId = jenv->GetStringUTFChars(productId, 0);
@@ -200,8 +214,12 @@ extern "C" void Java_com_epicgames_ue4_GooglePlayStoreHelper_nativePurchaseCompl
 		const char* charsReceipt = jenv->GetStringUTFChars(receiptData, 0);
 		ReceiptData = FString(UTF8_TO_TCHAR(charsReceipt));
 		jenv->ReleaseStringUTFChars(receiptData, charsReceipt);
+
+		const char* charsSignature = jenv->GetStringUTFChars(signature, 0);
+		Signature = FString(UTF8_TO_TCHAR(charsSignature));
+		jenv->ReleaseStringUTFChars(signature, charsSignature);
 	}
-	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("1... ProductId: %s, ReceiptData: %s\n"), *ProductId, *ReceiptData );
+	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("1... ProductId: %s, ReceiptData: %s, Signature: %s\n"), *ProductId, *ReceiptData, *Signature );
 
 	DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.ProcessIapResult"), STAT_FSimpleDelegateGraphTask_ProcessIapResult, STATGROUP_TaskGraphTasks);
 
@@ -210,11 +228,11 @@ extern "C" void Java_com_epicgames_ue4_GooglePlayStoreHelper_nativePurchaseCompl
 			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("In-App Purchase was completed  %s\n"), bSuccess ? TEXT("successfully") : TEXT("unsuccessfully"));
 			if (IOnlineSubsystem* const OnlineSub = IOnlineSubsystem::Get())
 			{
-				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("2... ProductId: %s, ReceiptData: %s\n"), *ProductId, *ReceiptData);
+				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("2... ProductId: %s, ReceiptData: %s, Signature: %s\n"), *ProductId, *ReceiptData, *Signature);
 				// call store implementation to process query results.
 				if (FOnlineStoreGooglePlay* StoreInterface = (FOnlineStoreGooglePlay*)OnlineSub->GetStoreInterface().Get())
 				{
-					StoreInterface->ProcessPurchaseResult(bSuccess, ProductId, ReceiptData);
+					StoreInterface->ProcessPurchaseResult(bSuccess, ProductId, ReceiptData, Signature);
 				}
 			}
 		}),
@@ -226,10 +244,10 @@ extern "C" void Java_com_epicgames_ue4_GooglePlayStoreHelper_nativePurchaseCompl
 }
 
 
-void FOnlineStoreGooglePlay::ProcessPurchaseResult(bool bInSuccessful, const FString& ProductId, const FString& InReceiptData)
+void FOnlineStoreGooglePlay::ProcessPurchaseResult(bool bInSuccessful, const FString& ProductId, const FString& InReceiptData, const FString& Signature)
 {
 	UE_LOG(LogOnline, Display, TEXT("FOnlineStoreGooglePlay::ProcessPurchaseResult"));
-	UE_LOG(LogOnline, Display, TEXT("3... ProductId: %s, ReceiptData: %s\n"), *ProductId, *InReceiptData);
+	UE_LOG(LogOnline, Display, TEXT("3... ProductId: %s, ReceiptData: %s, Signature: %s\n"), *ProductId, *InReceiptData, *Signature);
 
 
 	if (CachedPurchaseStateObject.IsValid())
@@ -240,6 +258,7 @@ void FOnlineStoreGooglePlay::ProcessPurchaseResult(bool bInSuccessful, const FSt
 		ProductInfo.DisplayDescription = TEXT("n/a");
 		ProductInfo.DisplayPrice = TEXT("n/a");
 		ProductInfo.ReceiptData = InReceiptData;
+		ProductInfo.TransactionIdentifier = Signature;
 
 		CachedPurchaseStateObject->ReadState = EOnlineAsyncTaskState::Done;
 	}
@@ -248,16 +267,25 @@ void FOnlineStoreGooglePlay::ProcessPurchaseResult(bool bInSuccessful, const FSt
 }
 
 
-bool FOnlineStoreGooglePlay::RestorePurchases(FOnlineInAppPurchaseRestoreReadRef& InReadObject)
+bool FOnlineStoreGooglePlay::RestorePurchases(const TArray<FInAppPurchaseProductRequest>& ConsumableProductFlags, FOnlineInAppPurchaseRestoreReadRef& InReadObject)
 {
 	bool bSentAQueryRequest = false;
 	CachedPurchaseRestoreObject = InReadObject;
 
 	if (IsAllowedToMakePurchases())
 	{
+		TArray<FString> ProductIds;
+		TArray<bool> IsConsumableFlags;
+
+		for (int i = 0; i < ConsumableProductFlags.Num(); i++)
+		{
+			ProductIds.Add(ConsumableProductFlags[i].ProductIdentifier);
+			IsConsumableFlags.Add(ConsumableProductFlags[i].bIsConsumable);
+		}
+
 		// Send JNI request
-		extern bool AndroidThunkCpp_Iap_RestorePurchases();
-		bSentAQueryRequest = AndroidThunkCpp_Iap_RestorePurchases();
+		extern bool AndroidThunkCpp_Iap_RestorePurchases(const TArray<FString>&, const TArray<bool>&);
+		bSentAQueryRequest = AndroidThunkCpp_Iap_RestorePurchases(ProductIds, IsConsumableFlags);
 	}
 	else
 	{
@@ -268,7 +296,7 @@ bool FOnlineStoreGooglePlay::RestorePurchases(FOnlineInAppPurchaseRestoreReadRef
 	return bSentAQueryRequest;
 }
 
-extern "C" void Java_com_epicgames_ue4_GooglePlayStoreHelper_nativeRestorePurchasesComplete(JNIEnv* jenv, jobject thiz, jboolean bSuccess, jobjectArray ProductIDs, jobjectArray ReceiptsData)
+extern "C" void Java_com_epicgames_ue4_GooglePlayStoreHelper_nativeRestorePurchasesComplete(JNIEnv* jenv, jobject thiz, jboolean bSuccess, jobjectArray ProductIDs, jobjectArray ReceiptsData, jobjectArray Signatures)
 {
 	TArray<FInAppPurchaseRestoreInfo> RestoredPurchaseInfo;
 
@@ -276,8 +304,9 @@ extern "C" void Java_com_epicgames_ue4_GooglePlayStoreHelper_nativeRestorePurcha
 	{
 		jsize NumProducts = jenv->GetArrayLength(ProductIDs);
 		jsize NumReceipts = jenv->GetArrayLength(ReceiptsData);
+		jsize NumSignatures = jenv->GetArrayLength(Signatures);
 
-		ensure((NumProducts == NumReceipts));
+		ensure((NumProducts == NumReceipts) && (NumProducts == NumSignatures));
 
 		for (jsize Idx = 0; Idx < NumProducts; Idx++)
 		{
@@ -295,6 +324,12 @@ extern "C" void Java_com_epicgames_ue4_GooglePlayStoreHelper_nativeRestorePurcha
 			RestoreInfo.ReceiptData = FString(UTF8_TO_TCHAR(charsReceipt));
 			jenv->ReleaseStringUTFChars(NextReceipt, charsReceipt);
 			jenv->DeleteLocalRef(NextReceipt);
+
+			jstring NextSignature = (jstring)jenv->GetObjectArrayElement(Signatures, Idx);
+			const char* charsSignature = jenv->GetStringUTFChars(NextSignature, 0);
+			RestoreInfo.TransactionIdentifier = FString(UTF8_TO_TCHAR(charsSignature));
+			jenv->ReleaseStringUTFChars(NextSignature, charsSignature);
+			jenv->DeleteLocalRef(NextSignature);
 
 			RestoredPurchaseInfo.Add(RestoreInfo);
 

@@ -529,6 +529,7 @@ void FMetalDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI, FIntRe
 		const uint32 AlignedStride = ((Stride - 1) & ~(Alignment - 1)) + Alignment;
 		const uint32 BytesPerImage = AlignedStride * SizeY;
 		FMetalPooledBuffer Buffer = ((FMetalDeviceContext*)Context)->CreatePooledBuffer(FMetalPooledBufferArgs(Context->GetDevice(), BytesPerImage, MTLStorageModeShared));
+		INC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buffer.Buffer.length - BytesPerImage);
 		{
 			// Synchronise the texture with the CPU
 			SCOPE_CYCLE_COUNTER(STAT_MetalTexturePageOffTime);
@@ -562,6 +563,7 @@ void FMetalDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI, FIntRe
 			
 			ConvertSurfaceDataToFColor(Surface->PixelFormat, SizeX, SizeY, (uint8*)[Buffer.Buffer contents], AlignedStride, OutDataPtr, InFlags);
 		}
+		DEC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buffer.Buffer.length - BytesPerImage);
 		((FMetalDeviceContext*)Context)->ReleasePooledBuffer(Buffer);
 	}
 }
@@ -627,6 +629,7 @@ void FMetalDynamicRHI::RHIReadSurfaceFloatData(FTextureRHIParamRef TextureRHI, F
 	const uint32 BytesPerImage = AlignedStride  * SizeY;
 	int32 FloatBGRADataSize = BytesPerImage;
 	FMetalPooledBuffer Buffer = ((FMetalDeviceContext*)Context)->CreatePooledBuffer(FMetalPooledBufferArgs(Context->GetDevice(), FloatBGRADataSize, MTLStorageModeShared));
+	INC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buffer.Buffer.length - BytesPerImage);
 	{
 		// Synchronise the texture with the CPU
 		SCOPE_CYCLE_COUNTER(STAT_MetalTexturePageOffTime);
@@ -656,6 +659,7 @@ void FMetalDynamicRHI::RHIReadSurfaceFloatData(FTextureRHIParamRef TextureRHI, F
 		FMemory::Memcpy(OutDataPtr, FloatBGRAData, FloatBGRADataSize);
 	}
 	
+	DEC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buffer.Buffer.length - BytesPerImage);
 	((FMetalDeviceContext*)Context)->ReleasePooledBuffer(Buffer);
 }
 
@@ -692,6 +696,7 @@ void FMetalDynamicRHI::RHIRead3DSurfaceFloatData(FTextureRHIParamRef TextureRHI,
 	const uint32 BytesPerImage = AlignedStride  * SizeY;
 	int32 FloatBGRADataSize = BytesPerImage * SizeZ;
 	FMetalPooledBuffer Buffer = ((FMetalDeviceContext*)Context)->CreatePooledBuffer(FMetalPooledBufferArgs(Context->GetDevice(), FloatBGRADataSize, MTLStorageModeShared));
+	INC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buffer.Buffer.length - BytesPerImage);
 	{
 		// Synchronise the texture with the CPU
 		SCOPE_CYCLE_COUNTER(STAT_MetalTexturePageOffTime);
@@ -724,5 +729,6 @@ void FMetalDynamicRHI::RHIRead3DSurfaceFloatData(FTextureRHIParamRef TextureRHI,
 		FMemory::Memcpy(OutDataPtr, FloatBGRAData, FloatBGRADataSize);
 	}
 	
+	DEC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buffer.Buffer.length - BytesPerImage);
 	((FMetalDeviceContext*)Context)->ReleasePooledBuffer(Buffer);
 }

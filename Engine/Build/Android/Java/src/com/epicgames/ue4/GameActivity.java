@@ -1360,14 +1360,14 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		return bIsAllowedToMakePurchase;
 	}
 
-	public boolean AndroidThunkJava_IapRestorePurchases()
+	public boolean AndroidThunkJava_IapRestorePurchases(String[] InProductIDs, boolean[] bConsumable)
 	{
 		Log.debug("[JAVA] - AndroidThunkJava_IapRestorePurchases");
 		boolean bTriggeredRestore = false;
 		if( IapStoreHelper != null )
 		{
 			Log.debug("[JAVA] - AndroidThunkJava_IapRestorePurchases - Kick off logic here!");
-			bTriggeredRestore = IapStoreHelper.RestorePurchases();
+			bTriggeredRestore = IapStoreHelper.RestorePurchases(InProductIDs, bConsumable);
 		}
 		else
 		{

@@ -37,6 +37,16 @@ static inline uint32 ParseNumber(const TCHAR* Str)
 	return Num;
 }
 
+static inline uint32 ParseNumber(const ANSICHAR* Str)
+{
+	uint32 Num = 0;
+	while (*Str && *Str >= '0' && *Str <= '9')
+	{
+		Num = Num * 10 + *Str++ - '0';
+	}
+	return Num;
+}
+
 /**
  * Construct the final microcode from the compiled and verified shader source.
  * @param ShaderOutput - Where to store the microcode and parameter map.
@@ -59,8 +69,38 @@ static void BuildMetalShaderOutput(
 		UE_LOG(LogMetalShaderCompiler, Fatal, TEXT("Bad hlslcc header found"));
 	}
 	
+	const ANSICHAR* SideTableString = FCStringAnsi::Strstr(USFSource, "@SideTable: ");
+
 	FMetalCodeHeader Header = {0};
 	Header.bFastMath = !ShaderInput.Environment.CompilerFlags.Contains(CFLAG_NoFastMath);
+	Header.SideTable = -1;
+	if (SideTableString)
+	{
+		int32 SideTableLoc = -1;
+		while (*SideTableString && *SideTableString != '\n')
+		{
+			if (*SideTableString == '(')
+			{
+				SideTableString++;
+				if (*SideTableString && *SideTableString != '\n')
+				{
+					SideTableLoc = (int32)ParseNumber(SideTableString);
+				}
+			}
+			else
+			{
+				SideTableString++;
+			}
+		}
+		if (SideTableLoc >= 0)
+		{
+			Header.SideTable = SideTableLoc;
+		}
+		else
+		{
+			UE_LOG(LogMetalShaderCompiler, Fatal, TEXT("Couldn't parse the SideTable buffer index for bounds checking"));
+		}
+	}
 	
 	FShaderParameterMap& ParameterMap = ShaderOutput.ParameterMap;
 	EShaderFrequency Frequency = (EShaderFrequency)ShaderOutput.Target.Frequency;
@@ -686,7 +726,10 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 		// Required as we added the RemoveUniformBuffersFromSource() function (the cross-compiler won't be able to interpret comments w/o a preprocessor)
 		CCFlags &= ~HLSLCC_NoPreprocess;
 
-		FMetalCodeBackend MetalBackEnd(CCFlags, MetalCompilerTarget, bIsDesktop);
+		bool const bZeroInitialise = Input.Environment.CompilerFlags.Contains(CFLAG_ZeroInitialise);
+		bool const bBoundsChecks = Input.Environment.CompilerFlags.Contains(CFLAG_BoundsChecking);
+		
+		FMetalCodeBackend MetalBackEnd(CCFlags, MetalCompilerTarget, bIsDesktop, bZeroInitialise, bBoundsChecks);
 		FMetalLanguageSpec MetalLanguageSpec;
 
 		int32 Result = 0;

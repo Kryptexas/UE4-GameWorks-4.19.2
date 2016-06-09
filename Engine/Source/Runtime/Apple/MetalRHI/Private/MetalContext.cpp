@@ -228,7 +228,7 @@ FMetalDeviceContext::~FMetalDeviceContext()
 {
 	if (CurrentCommandBuffer)
 	{
-		SubmitCommandsHint(false, true);
+		SubmitCommandsHint(EMetalSubmitFlagsWaitOnCommandBuffer);
 	}
 	delete &(GetCommandQueue());
 }
@@ -420,7 +420,7 @@ void FMetalDeviceContext::EndDrawingViewport(FMetalViewport* Viewport, bool bPre
 		FrameReadyEvent->Wait();
 	}
 	
-	SubmitCommandsHint(false);
+	SubmitCommandsHint(EMetalSubmitFlagsNone);
 	
 #if SHOULD_TRACK_OBJECTS
 	// print out outstanding objects
@@ -482,7 +482,14 @@ FMetalPooledBuffer FMetalDeviceContext::CreatePooledBuffer(FMetalPooledBufferArg
 						 ];
 		TRACK_OBJECT(STAT_MetalBufferCount, Buffer.Buffer);
 		INC_DWORD_STAT(STAT_MetalPooledBufferCount);
+		INC_MEMORY_STAT_BY(STAT_MetalPooledBufferMem, BufferSize);
+		INC_MEMORY_STAT_BY(STAT_MetalFreePooledBufferMem, BufferSize);
 	}
+	INC_MEMORY_STAT_BY(STAT_MetalUsedPooledBufferMem, Buffer.Buffer.length);
+	INC_DWORD_STAT(STAT_MetalBufferAlloctations);
+	INC_DWORD_STAT_BY(STAT_MetalBufferMemAlloc, Buffer.Buffer.length);
+	DEC_MEMORY_STAT_BY(STAT_MetalFreePooledBufferMem, Buffer.Buffer.length);
+	
 	return Buffer;
 }
 
@@ -494,6 +501,10 @@ void FMetalDeviceContext::ReleasePooledBuffer(FMetalPooledBuffer Buf)
 		{
 			CommandEncoder.UnbindObject(Buf.Buffer);
 		}
+		DEC_MEMORY_STAT_BY(STAT_MetalUsedPooledBufferMem, Buf.Buffer.length);
+		INC_DWORD_STAT(STAT_MetalBufferFreed);
+		INC_DWORD_STAT_BY(STAT_MetalBufferMemFreed, Buf.Buffer.length);
+		INC_MEMORY_STAT_BY(STAT_MetalFreePooledBufferMem, Buf.Buffer.length);
 		
 		FScopeLock Lock(&PoolMutex);
 		//[Buf.Buffer setPurgeableState:MTLPurgeableStateVolatile];
@@ -555,6 +566,8 @@ FMetalContext::FMetalContext(FMetalCommandQueue& Queue, bool const bIsImmediate)
 	// create a semaphore for multi-buffering the command buffer
 	CommandBufferSemaphore = dispatch_semaphore_create(FParse::Param(FCommandLine::Get(),TEXT("gpulockstep")) ? 1 : 3);
 	
+	FMemory::Memzero(BufferSideTable);
+	
 	bValidationEnabled = false;
 }
 
@@ -562,7 +575,7 @@ FMetalContext::~FMetalContext()
 {
 	if (CurrentCommandBuffer)
 	{
-		SubmitCommandsHint(false, true);
+		SubmitCommandsHint(EMetalSubmitFlagsWaitOnCommandBuffer);
 	}
 }
 
@@ -649,6 +662,9 @@ void FMetalContext::InitFrame(bool const bImmediateContext)
 	
 	// make sure first SetRenderTarget goes through
 	StateCache.SetHasValidRenderTarget(false);
+	
+	// Zero the side table
+	FMemory::Memzero(BufferSideTable);
 }
 
 void FMetalContext::FinishFrame()
@@ -656,7 +672,7 @@ void FMetalContext::FinishFrame()
 	// Issue any outstanding commands.
 	if (CurrentCommandBuffer)
 	{
-		SubmitCommandsHint(false);
+		SubmitCommandsHint(EMetalSubmitFlagsNone);
 	}
 	
 	// make sure first SetRenderTarget goes through
@@ -681,8 +697,10 @@ void FMetalContext::CreateCurrentCommandBuffer(bool bWait)
 	CommandEncoder.StartCommandBuffer(CurrentCommandBuffer);
 }
 
-void FMetalContext::SubmitCommandsHint(bool const bCreateNew, bool const bWait)
+void FMetalContext::SubmitCommandsHint(uint32 const bFlags)
 {
+	bool const bCreateNew = (bFlags & EMetalSubmitFlagsCreateCommandBuffer);
+	bool const bWait = (bFlags & EMetalSubmitFlagsWaitOnCommandBuffer);
 	uint32 RingBufferOffset = RingBuffer->GetOffset();
 	id<MTLBuffer> CurrentRingBuffer = RingBuffer->Buffer;
 	TWeakPtr<FRingBuffer, ESPMode::ThreadSafe>* WeakRingBufferRef = new TWeakPtr<FRingBuffer, ESPMode::ThreadSafe>(RingBuffer.ToSharedRef());
@@ -727,11 +745,7 @@ void FMetalContext::SubmitCommandBufferAndWait()
 	// kick the whole buffer
 	// Commit to hand the commandbuffer off to the gpu
 	// Wait for completion as requested.
-	SubmitCommandsHint(true, true);
-}
-
-void FMetalContext::SubmitComputeCommandBufferAndWait()
-{
+	SubmitCommandsHint((EMetalSubmitFlagsCreateCommandBuffer | EMetalSubmitFlagsWaitOnCommandBuffer));
 }
 
 void FMetalContext::ResetRenderCommandEncoder()
@@ -859,6 +873,27 @@ void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 		else if (bRestoreState)
 		{
 			CommandEncoder.RestoreRenderCommandEncodingState();
+		}
+		
+		check(CommandEncoder.IsRenderCommandEncoderActive());
+		if (CurrentBoundShaderState->VertexShader->SideTableBinding >= 0)
+		{
+			uint32 Offset = AllocateFromRingBuffer((sizeof(BufferSideTable) / SF_NumFrequencies));
+			id<MTLBuffer> Buffer = GetRingBuffer();
+			
+			FMemory::Memcpy(((uint8*)[Buffer contents]) + Offset, BufferSideTable[SF_Vertex], (sizeof(BufferSideTable) / SF_NumFrequencies));
+			
+			CommandEncoder.SetShaderBuffer(SF_Vertex, Buffer, Offset, CurrentBoundShaderState->VertexShader->SideTableBinding);
+		}
+		
+		if (IsValidRef(CurrentBoundShaderState->PixelShader) && CurrentBoundShaderState->PixelShader->SideTableBinding >= 0)
+		{
+			uint32 Offset = AllocateFromRingBuffer((sizeof(BufferSideTable) / SF_NumFrequencies));
+			id<MTLBuffer> Buffer = GetRingBuffer();
+			
+			FMemory::Memcpy(((uint8*)[Buffer contents]) + Offset, BufferSideTable[SF_Pixel], (sizeof(BufferSideTable) / SF_NumFrequencies));
+			
+			CommandEncoder.SetShaderBuffer(SF_Pixel, Buffer, Offset, CurrentBoundShaderState->PixelShader->SideTableBinding);
 		}
 		
 		OutstandingOpCount++;
@@ -1000,10 +1035,12 @@ void FMetalContext::SetShaderResourceView(EShaderFrequency ShaderStage, uint32 B
 		}
 		else if (VB)
 		{
+			BufferSideTable[ShaderStage][BindIndex] = VB->GetSize();
 			GetCommandEncoder().SetShaderBuffer(ShaderStage, VB->Buffer, 0, BindIndex);
 		}
 		else if (IB)
 		{
+			BufferSideTable[ShaderStage][BindIndex] = IB->GetSize();
 			GetCommandEncoder().SetShaderBuffer(ShaderStage, IB->Buffer, 0, BindIndex);
 		}
 	}
@@ -1012,6 +1049,39 @@ void FMetalContext::SetShaderResourceView(EShaderFrequency ShaderStage, uint32 B
 		GetCommandEncoder().SetShaderTexture(ShaderStage, nil, BindIndex);
 	}
 	FShaderCache::SetSRV(ShaderStage, BindIndex, SRV);
+}
+
+void FMetalContext::SetShaderUnorderedAccessView(EShaderFrequency ShaderStage, uint32 BindIndex, FMetalUnorderedAccessView* RESTRICT UAV)
+{
+	if (UAV)
+	{
+		// figure out which one of the resources we need to set
+		FMetalStructuredBuffer* StructuredBuffer = UAV->SourceStructuredBuffer.GetReference();
+		FMetalVertexBuffer* VertexBuffer = UAV->SourceVertexBuffer.GetReference();
+		FRHITexture* Texture = UAV->SourceTexture.GetReference();
+		if (StructuredBuffer)
+		{
+			BufferSideTable[ShaderStage][BindIndex] = StructuredBuffer->GetSize();
+			GetCommandEncoder().SetShaderBuffer(ShaderStage, StructuredBuffer->Buffer, 0, BindIndex);
+		}
+		else if (VertexBuffer)
+		{
+			BufferSideTable[ShaderStage][BindIndex] = VertexBuffer->GetSize();
+			GetCommandEncoder().SetShaderBuffer(ShaderStage, VertexBuffer->Buffer, 0, BindIndex);
+		}
+		else if (Texture)
+		{
+			FMetalSurface* Surface = GetMetalSurfaceFromRHITexture(Texture);
+			if (Surface != nullptr)
+			{
+				GetCommandEncoder().SetShaderTexture(ShaderStage, Surface->Texture, BindIndex);
+			}
+			else
+			{
+				GetCommandEncoder().SetShaderTexture(ShaderStage, nil, BindIndex);
+			}
+		}
+	}
 }
 
 void FMetalContext::SetResource(uint32 ShaderStage, uint32 BindIndex, FMetalShaderResourceView* RESTRICT SRV, float CurrentTime)
@@ -1248,6 +1318,16 @@ void FMetalContext::Dispatch(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY,
 	
 	StateCache.GetShaderParameters(CrossCompiler::SHADER_STAGE_COMPUTE).CommitPackedUniformBuffers(CurrentBoundShaderState, ComputeShader, CrossCompiler::SHADER_STAGE_COMPUTE, StateCache.GetBoundUniformBuffers(SF_Compute), ComputeShader->UniformBuffersCopyInfo);
 	StateCache.GetShaderParameters(CrossCompiler::SHADER_STAGE_COMPUTE).CommitPackedGlobals(this, CrossCompiler::SHADER_STAGE_COMPUTE, ComputeShader->Bindings);
+	
+	if (ComputeShader->SideTableBinding >= 0)
+	{
+		uint32 Offset = AllocateFromRingBuffer((sizeof(BufferSideTable) / SF_NumFrequencies));
+		id<MTLBuffer> Buffer = GetRingBuffer();
+		
+		FMemory::Memcpy(((uint8*)[Buffer contents]) + Offset, BufferSideTable[SF_Compute], (sizeof(BufferSideTable) / SF_NumFrequencies));
+		
+		CommandEncoder.SetShaderBuffer(SF_Compute, Buffer, Offset, ComputeShader->SideTableBinding);
+	}
 	
 	MTLSize ThreadgroupCounts = MTLSizeMake(ComputeShader->NumThreadsX, ComputeShader->NumThreadsY, ComputeShader->NumThreadsZ);
 	check(ComputeShader->NumThreadsX > 0 && ComputeShader->NumThreadsY > 0 && ComputeShader->NumThreadsZ > 0);

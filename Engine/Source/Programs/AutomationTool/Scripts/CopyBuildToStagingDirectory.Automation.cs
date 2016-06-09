@@ -1404,7 +1404,7 @@ public partial class Project : CommandUtils
 			}
 			File.WriteAllText(IntermediateCmdLineFile, CommandLine);
 		}
-		else if (!Params.IsCodeBasedProject)
+		else
 		{
 			String ProjectFile = String.Format("{0} ", SC.ProjectArgForCommandLines);
 			if (SC.StageTargetPlatform.PlatformType == UnrealTargetPlatform.Mac || SC.StageTargetPlatform.PlatformType == UnrealTargetPlatform.Win64 || SC.StageTargetPlatform.PlatformType == UnrealTargetPlatform.Win32 || SC.StageTargetPlatform.PlatformType == UnrealTargetPlatform.Linux)

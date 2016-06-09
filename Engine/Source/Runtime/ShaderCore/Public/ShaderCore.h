@@ -113,6 +113,10 @@ enum ECompilerFlags
 	CFLAG_OnChip,
 	CFLAG_KeepDebugInfo,
 	CFLAG_NoFastMath,
+	/** Explicitly enforce zero initialisation on shader platforms that may omit it. */
+	CFLAG_ZeroInitialise,
+	/** Explicitly enforce bounds checking on shader platforms that may omit it. */
+	CFLAG_BoundsChecking,
 	// Compile ES2 with ES3.1 features
 	CFLAG_FeatureLevelES31,
 	// Force removing unused interpolators for platforms that can opt out

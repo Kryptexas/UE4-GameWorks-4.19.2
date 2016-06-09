@@ -48,7 +48,10 @@ var UE_JavaScriptLibary = {
     Module.HEAP32[outdataptr >> 2] = outdata;
   },
 
-  UE_SaveGame: function (name, userIndex, indata, insize){
+  // ================================================================================
+  // ================================================================================
+
+  UE_SaveGame: function (name, userIndex, indata, insize) {
     // user index is not used.
     var _name = Pointer_stringify(name);
     var gamedata = Module.HEAPU8.subarray(indata, indata + insize);
@@ -58,7 +61,7 @@ var UE_JavaScriptLibary = {
     return true;
   },
 
-  UE_LoadGame: function (name, userIndex, outdataptr, outsizeptr){
+  UE_LoadGame: function (name, userIndex, outdataptr, outsizeptr) {
     var _name = Pointer_stringify(name);
     // local storage only takes strings, we need to convert string to base64 before storing.
     var b64encoded = $.jStorage.get(_name);
@@ -81,40 +84,41 @@ var UE_JavaScriptLibary = {
   UE_DoesSaveGameExist: function (name, userIndex){
     var _name = Pointer_stringify(name);
     var b64encoded = $.jStorage.get(_name);
-    if (b64encoded === null)
-      return false;
-    return true;
+    return !!b64encoded;
   },
+
+  // ================================================================================
+  // ================================================================================
 
   UE_MessageBox: function (type, message, caption ) {
     // type maps to EAppMsgType::Type
-    var text;
-    if ( type === 0 ) {
-      text = Pointer_stringify(message);
-      if (!confirm(text))
-        return 0;
-    } else {
-      text = Pointer_stringify(message);
-      alert(text);
-    }
+    var text = Pointer_stringify(message);
+    if (!type) return confirm(text);
+    alert(text);
     return 1;
   },
+
+  // ================================================================================
+  // ================================================================================
 
   UE_GetCurrentCultureName: function (address, outsize) {
     var culture_name = navigator.language || navigator.browserLanguage;
     if (culture_name.lenght >= outsize)
-    	return 0;
+      return 0;
     Module.writeAsciiToMemory(culture_name, address);
     return 1;
   },
 
-  UE_MakeHTTPDataRequest: function (ctx, url, verb, payload, payloadsize, headers, freeBuffer, onload, onerror, onprogress) {
+  // ================================================================================
+  // ================================================================================
+
+  UE_MakeHTTPDataRequest: function (ctx, url, verb, payload, payloadsize, headers, async, freeBuffer, onload, onerror, onprogress) {
     var _url = Pointer_stringify(url);
     var _verb = Pointer_stringify(verb);
     var _headers = Pointer_stringify(headers);
 
     var xhr = new XMLHttpRequest();
-    xhr.open(_verb, _url, true);
+    xhr.open(_verb, _url, !!async);
     xhr.responseType = 'arraybuffer';
 
     // set all headers.
@@ -123,18 +127,27 @@ var UE_JavaScriptLibary = {
       var header = _headerArray[headerArrayidx].split(":");
       // NOTE: as of Safari 9.0 -- no leading whitespace is allowed on setRequestHeader's 2nd parameter: "value"
       xhr.setRequestHeader(header[0], header[1].trim());
-  }
+    }
 
     // Onload event handler
     xhr.addEventListener('load', function (e) {
       if (xhr.status === 200 || _url.substr(0, 4).toLowerCase() !== "http") {
+        // headers
+        var headers = xhr.getAllResponseHeaders();
+        var header_byteArray = new TextEncoder('utf-8').encode(headers);
+        var header_buffer = _malloc(header_byteArray.length);
+        HEAPU8.set(header_byteArray, header_buffer);
+
+        // response
         var byteArray = new Uint8Array(xhr.response);
         var buffer = _malloc(byteArray.length);
         HEAPU8.set(byteArray, buffer);
+
         if (onload)
-          Runtime.dynCall('viii', onload, [ctx, buffer, byteArray.length]);
-        if (freeBuffer)
+          Runtime.dynCall('viiii', onload, [ctx, buffer, byteArray.length, header_buffer]);
+        if (freeBuffer) // seems POST reqeusts keeps the buffer
           _free(buffer);
+        _free(header_buffer);
       } else {
         if (onerror)
           Runtime.dynCall('viii', onerror, [ctx, xhr.status, xhr.statusText]);
@@ -143,6 +156,8 @@ var UE_JavaScriptLibary = {
 
     // Onerror event handler
     xhr.addEventListener('error', function (e) {
+      if ( xhr.responseURL == "" )
+        console.log('ERROR: Cross-Origin Resource Sharing [CORS] check FAILED'); // common error that's not quite so clear during onerror callbacks
       if (onerror)
         Runtime.dynCall('viii', onerror, [ctx, xhr.status, xhr.statusText]);
     });
@@ -161,12 +176,111 @@ var UE_JavaScriptLibary = {
 
     if (_verb === "POST") {
       var postData = Module.HEAP8.subarray(payload, payload + payloadsize);
-//    xhr.setRequestHeader("Connection", "close"); // NOTE: this now errors as of chrome 47.0.2526.80
       xhr.send(postData);
     } else {
       xhr.send(null);
     }
-  }
+  },
+
+  // ================================================================================
+  // ================================================================================
+
+  $UE_JSlib: {
+    onBeforeUnload_callbacks:[], // ARRAY of {callback:c++function, ctx:[c++objects]}
+    // ........................................
+    onBeforeUnload_debug_helper: function(dummyfile) {
+      // this function will basically fetch a dummy file to see if onbeforeunload
+      // events are working properly -- look for the http request in your web logs
+      var debug_xhr = new XMLHttpRequest();
+      debug_xhr.open("GET", dummyfile, false);
+      // ----------------------------------------
+      debug_xhr.addEventListener('load', function (e) {
+        if (debug_xhr.status === 200 || _url.substr(0, 4).toLowerCase() !== "http")
+          console.log("debug_xhr.response: " + debug_xhr.response);
+        else
+          console.log("debug_xhr.response: FAILED");
+      });
+      // ----------------------------------------
+      debug_xhr.addEventListener('error', function (e) {
+        console.log("debug_xhr.onerror: FAILED");
+      });
+      // ----------------------------------------
+      debug_xhr.send(null);
+    },
+    // ........................................
+    onBeforeUnload: function (e) {
+ //   UE_JSlib.onBeforeUnload_debug_helper("START_of_onBeforeUnload_test.js"); // disable for shipping
+
+      // to trap window closing or back button pressed, use 'msg' code
+//    var msg = 'trap window closing -- i.e. by accident';
+//    (e||window.event).returnValue = msg; // Gecko + IE
+
+      window.removeEventListener("beforeunload", UE_JSlib.onBeforeUnload, false);
+      var callbacks = UE_JSlib.onBeforeUnload_callbacks;
+      UE_JSlib.onBeforeUnload_callbacks=[]; // make unregister calls do nothing
+      for ( var x in callbacks ) {
+        var contexts = callbacks[0].ctx;
+        for ( var y in contexts ) {
+          try { // jic
+            Runtime.dynCall('vi', callbacks[x].callback, [contexts[y]]);
+          } catch (e) {}
+        }
+      }
+
+//    UE_JSlib.onBeforeUnload_debug_helper("END_of_onBeforeUnload_test.js"); // disable for shipping
+
+//    return msg; // Gecko + Webkit, Safari, Chrome etc.
+    },
+    // ........................................
+    onBeforeUnload_setup: function() {
+      window.addEventListener("beforeunload", UE_JSlib.onBeforeUnload);
+    },
+  },
+
+  // --------------------------------------------------------------------------------
+
+  UE_Reset_OnBeforeUnload: function () {
+    UE_JSlib.onBeforeUnload_callbacks=[];
+  },
+  // ........................................
+  UE_Register_OnBeforeUnload: function (ctx, callback) {
+    // check for existing
+    for ( var x in UE_JSlib.onBeforeUnload_callbacks ) {
+      if ( UE_JSlib.onBeforeUnload_callbacks[x].callback != callback )
+        continue;
+      var contexts = UE_JSlib.onBeforeUnload_callbacks[x].ctx;
+      for ( var y in contexts ) {
+        if ( contexts[y] == ctx )
+          return; // already registered
+      }
+      UE_JSlib.onBeforeUnload_callbacks[x].ctx[contexts.length] = ctx; // new ctx
+      return;
+    }
+    // add new callback
+    UE_JSlib.onBeforeUnload_callbacks[UE_JSlib.onBeforeUnload_callbacks.length] = { callback:callback, ctx:[ctx] };
+
+    // fire up the onbeforeunload listener
+    UE_JSlib.onBeforeUnload_setup();
+    UE_JSlib.onBeforeUnload_setup = function() {}; // noop
+  },
+  // ........................................
+  UE_UnRegister_OnBeforeUnload: function (ctx, callback) {
+    for ( var x in UE_JSlib.onBeforeUnload_callbacks ) {
+      if ( UE_JSlib.onBeforeUnload_callbacks[x].callback != callback )
+        continue;
+      var contexts = UE_JSlib.onBeforeUnload_callbacks[x].ctx;
+      for ( var y in contexts ) {
+        if ( contexts[i] != ctx )
+          continue;
+        UE_JSlib.onBeforeUnload_callbacks[x].ctx.splice(y,1);
+        if (!UE_JSlib.onBeforeUnload_callbacks[x].ctx.length)
+          UE_JSlib.onBeforeUnload_callbacks.splice(x,1);
+        return;
+      }
+    }
+  },
+
 };
 
+autoAddDeps(UE_JavaScriptLibary,'$UE_JSlib');
 mergeInto(LibraryManager.library, UE_JavaScriptLibary);

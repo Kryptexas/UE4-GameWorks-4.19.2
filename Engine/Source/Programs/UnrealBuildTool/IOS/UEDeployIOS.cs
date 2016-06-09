@@ -155,6 +155,18 @@ namespace UnrealBuildTool
 			return "IOS";
 		}
 
+		public static string EncodeBundleName(string PlistValue, string ProjectName)
+		{
+			string result = PlistValue.Replace("[PROJECT_NAME]", ProjectName).Replace("_", "");
+			result = result.Replace("&", "&amp;");
+			result = result.Replace("\"", "&quot;");
+			result = result.Replace("\'", "&apos;");
+			result = result.Replace("<", "&lt;");
+			result = result.Replace(">", "&gt;");
+
+			return result;
+		}
+
 		public static bool GenerateIOSPList(string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory)
 		{
 			// generate the Info.plist for future use
@@ -258,14 +270,6 @@ namespace UnrealBuildTool
 			string ExtraData = "";
 			Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "AdditionalPlistData", out ExtraData);
 
-			// create the final display name, including converting all entities for XML use
-			string FinalDisplayName = BundleDisplayName.Replace("[PROJECT_NAME]", ProjectName).Replace("_", "");
-			FinalDisplayName = FinalDisplayName.Replace("&", "&amp;");
-			FinalDisplayName = FinalDisplayName.Replace("\"", "&quot;");
-			FinalDisplayName = FinalDisplayName.Replace("\'", "&apos;");
-			FinalDisplayName = FinalDisplayName.Replace("<", "&lt;");
-			FinalDisplayName = FinalDisplayName.Replace(">", "&gt;");
-
 			// generate the plist file
 			StringBuilder Text = new StringBuilder();
 			Text.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
@@ -291,7 +295,7 @@ namespace UnrealBuildTool
 			Text.AppendLine("\t<key>CFBundleDevelopmentRegion</key>");
 			Text.AppendLine("\t<string>English</string>");
 			Text.AppendLine("\t<key>CFBundleDisplayName</key>");
-			Text.AppendLine(string.Format("\t<string>{0}</string>",FinalDisplayName));
+			Text.AppendLine(string.Format("\t<string>{0}</string>", EncodeBundleName(BundleDisplayName, ProjectName)));
 			Text.AppendLine("\t<key>CFBundleExecutable</key>");
 			Text.AppendLine(string.Format("\t<string>{0}</string>", bIsUE4Game ? "UE4Game" : GameName));
 			Text.AppendLine("\t<key>CFBundleIdentifier</key>");
@@ -299,7 +303,7 @@ namespace UnrealBuildTool
 			Text.AppendLine("\t<key>CFBundleInfoDictionaryVersion</key>");
 			Text.AppendLine("\t<string>6.0</string>");
 			Text.AppendLine("\t<key>CFBundleName</key>");
-			Text.AppendLine(string.Format("\t<string>{0}</string>", BundleName.Replace("[PROJECT_NAME]", ProjectName).Replace("_", "")));
+			Text.AppendLine(string.Format("\t<string>{0}</string>", EncodeBundleName(BundleName, ProjectName)));
 			Text.AppendLine("\t<key>CFBundlePackageType</key>");
 			Text.AppendLine("\t<string>APPL</string>");
 			Text.AppendLine("\t<key>CFBundleSignature</key>");

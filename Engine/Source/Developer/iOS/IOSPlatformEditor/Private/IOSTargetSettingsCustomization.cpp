@@ -31,6 +31,8 @@
 bool SProvisionListRow::bInitialized = false;
 FCheckBoxStyle SProvisionListRow::ProvisionCheckBoxStyle;
 
+const FString gProjectNameText("[PROJECT_NAME]");
+
 //////////////////////////////////////////////////////////////////////////
 // FIOSTargetSettingsCustomization
 namespace FIOSTargetSettingsCustomizationConstants
@@ -402,7 +404,7 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 							.AutoWidth()
 							[
 								SNew(SRichTextBlock)
-								.Text(LOCTEXT("ProvisionMessage", "<RichTextBlock.TextHighlight>Note</>: The provision in green will be used to provision the IPA."))
+								.Text(LOCTEXT("ProvisionMessage", "<RichTextBlock.TextHighlight>Note</>: If no provision is selected the one in green will be used to provision the IPA."))
 								.TextStyle(FEditorStyle::Get(), "MessageLog")
 								.DecoratorStyleSet(&FEditorStyle::Get())
 								.AutoWrapText(true)
@@ -561,7 +563,7 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 								.AutoWidth()
 								[
 									SNew(SRichTextBlock)
-									.Text(LOCTEXT("CertificateMessage", "<RichTextBlock.TextHighlight>Note</>: The certificate in green will be used to sign the IPA."))
+									.Text(LOCTEXT("CertificateMessage", "<RichTextBlock.TextHighlight>Note</>: If no certificate is selected then the one in green will be used to sign the IPA."))
 									.TextStyle(FEditorStyle::Get(), "MessageLog")
 									.DecoratorStyleSet(&FEditorStyle::Get())
 									.AutoWrapText(true)
@@ -683,7 +685,7 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 			.FillWidth(1.0f) \
 			.HAlign(HAlign_Fill) \
 			[ \
-				SNew(SEditableTextBox) \
+				SAssignNew(BundleIdTextBox, SEditableTextBox) \
 				.IsEnabled(this, &FIOSTargetSettingsCustomization::IsImportEnabled) \
 				.Text(this, &FIOSTargetSettingsCustomization::GetBundleText, PropertyHandle) \
 				.Font(DetailLayout.GetDetailFont()) \
@@ -692,6 +694,7 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 				.ClearKeyboardFocusOnCommit(false) \
 				.ToolTipText(PropertyHandle->GetToolTipText()) \
 				.OnTextCommitted(this, &FIOSTargetSettingsCustomization::OnBundleIdentifierChanged, PropertyHandle) \
+				.OnTextChanged(this, &FIOSTargetSettingsCustomization::OnBundleIdentifierTextChanged, ETextCommit::Default, PropertyHandle) \
 			] \
 		]; \
 	}
@@ -973,7 +976,7 @@ void FIOSTargetSettingsCustomization::BuildImageRow(IDetailLayoutBuilder& Detail
 void FIOSTargetSettingsCustomization::FindRequiredFiles()
 {
 	const UIOSRuntimeSettings& Settings = *GetDefault<UIOSRuntimeSettings>();
-	FString BundleIdentifier = Settings.BundleIdentifier.Replace(TEXT("[PROJECT_NAME]"), FApp::GetGameName());
+	FString BundleIdentifier = Settings.BundleIdentifier.Replace(*gProjectNameText, FApp::GetGameName());
 #if PLATFORM_MAC
 	FString CmdExe = TEXT("/bin/sh");
 	FString ScriptPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Build/BatchFiles/Mac/RunMono.sh"));
@@ -1399,13 +1402,57 @@ bool FIOSTargetSettingsCustomization::IsImportEnabled() const
 
 void FIOSTargetSettingsCustomization::OnBundleIdentifierChanged(const FText& NewText, ETextCommit::Type CommitType, TSharedRef<IPropertyHandle> InPropertyHandle)
 {
-	FText OutText;
-	InPropertyHandle->GetValueAsFormattedText(OutText);
-	if (OutText.ToString() != NewText.ToString())
+	if(!IsBundleIdentifierValid(NewText.ToString()))
 	{
-		InPropertyHandle->SetValueFromFormattedString( NewText.ToString() );
-		FindRequiredFiles();
+		BundleIdTextBox->SetError( LOCTEXT("NameContainsInvalidCharacters", "Identifier may only contain the characters 0-9, A-Z, a-z, period, hyphen, or [PROJECT_NAME]") );
 	}
+	else
+	{
+		BundleIdTextBox->SetError(FText::GetEmpty());
+
+		FText OutText;
+		InPropertyHandle->GetValueAsFormattedText(OutText);
+		if (OutText.ToString() != NewText.ToString())
+		{
+			InPropertyHandle->SetValueFromFormattedString( NewText.ToString() );
+			FindRequiredFiles();
+		}
+	}
+}
+
+void FIOSTargetSettingsCustomization::OnBundleIdentifierTextChanged(const FText& NewText, ETextCommit::Type CommitType, TSharedRef<IPropertyHandle> InPropertyHandle)
+{
+	if(!IsBundleIdentifierValid(NewText.ToString()))
+	{
+		BundleIdTextBox->SetError( LOCTEXT("NameContainsInvalidCharacters", "Identifier may only contain the characters 0-9, A-Z, a-z, period, hyphen, or [PROJECT_NAME]") );
+	}
+	else
+	{
+		BundleIdTextBox->SetError(FText::GetEmpty());
+	}
+}
+
+bool FIOSTargetSettingsCustomization::IsBundleIdentifierValid(const FString& inIdentifier)
+{
+	for(int32 i = 0; i < inIdentifier.Len(); ++i)
+	{
+		TCHAR	c = inIdentifier[i];
+		
+		if(c == '[')
+		{
+			if(inIdentifier.Find(gProjectNameText, ESearchCase::CaseSensitive, ESearchDir::FromStart, i) != i)
+			{
+				return false;
+			}
+			i += gProjectNameText.Len();
+		}
+		else if((c < '0' || c > '9') && (c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && c != '.' && c != '-')
+		{
+			return false;
+		}
+	}
+
+	return true;
 }
 
 void FIOSTargetSettingsCustomization::OnRemoteServerChanged(const FText& NewText, ETextCommit::Type CommitType, TSharedRef<IPropertyHandle> InPropertyHandle)

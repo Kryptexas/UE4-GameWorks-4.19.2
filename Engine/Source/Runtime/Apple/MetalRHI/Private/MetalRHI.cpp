@@ -117,12 +117,14 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	GRHIAdapterName = FString(Device.name);
 	
 	bool bSupportsPointLights = false;
+	bool bSupportsTiledReflections = false;
 	if(GRHIAdapterName.Contains("Nvidia"))
 	{
 		// Nvidia support layer indexing.
 		GSupportsVolumeTextureRendering = true;
 		bSupportsPointLights = true;
 		GRHIVendorId = 0x10DE;
+		bSupportsTiledReflections = true;
 	}
 	else if(GRHIAdapterName.Contains("ATi") || GRHIAdapterName.Contains("AMD"))
 	{
@@ -134,6 +136,7 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 		{
 			GRHIAdapterName = FString(GPUDesc.GPUName);
 		}
+		bSupportsTiledReflections = true;
 	}
 	else if(GRHIAdapterName.Contains("Intel"))
 	{
@@ -179,6 +182,16 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 		if(CVarCubemapShadows && CVarCubemapShadows->GetInt() != 0)
 		{
 			CVarCubemapShadows->Set(0);
+		}
+	}
+	
+	// Disable tiled reflections on Mac Metal for some GPU drivers that ignore the lod-level and so render incorrectly.
+	if (!bSupportsTiledReflections && !FParse::Param(FCommandLine::Get(),TEXT("metaltiledreflections")))
+	{
+		static auto CVarDoTiledReflections = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DoTiledReflections"));
+		if(CVarDoTiledReflections && CVarDoTiledReflections->GetInt() != 0)
+		{
+			CVarDoTiledReflections->Set(0);
 		}
 	}
 	

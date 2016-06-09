@@ -803,7 +803,7 @@ namespace UnrealBuildTool
 		{
             // Make a file item for the source and destination files
             FileItem LocalExecutable = RemoteToLocalFileItem(Executable);
-            string FullDestPathRoot = Path.GetDirectoryName(LocalExecutable.AbsolutePath) + "\\" + Path.GetFileName(LocalExecutable.AbsolutePath) + ".dSYM";
+			string FullDestPathRoot = Path.Combine(Path.GetDirectoryName(LocalExecutable.AbsolutePath), Path.GetFileName(LocalExecutable.AbsolutePath) + ".dSYM");
 			string FullDestPath = FullDestPathRoot;
 
             FileItem OutputFile;

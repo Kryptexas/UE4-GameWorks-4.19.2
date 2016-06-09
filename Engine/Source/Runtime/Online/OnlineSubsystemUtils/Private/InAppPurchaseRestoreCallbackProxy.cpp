@@ -13,7 +13,7 @@ UInAppPurchaseRestoreCallbackProxy::UInAppPurchaseRestoreCallbackProxy(const FOb
 }
 
 
-void UInAppPurchaseRestoreCallbackProxy::Trigger(APlayerController* PlayerController)
+void UInAppPurchaseRestoreCallbackProxy::Trigger(const TArray<FInAppPurchaseProductRequest>& ConsumableProductFlags, APlayerController* PlayerController)
 {
 	bFailedToEvenSubmit = true;
 
@@ -34,7 +34,7 @@ void UInAppPurchaseRestoreCallbackProxy::Trigger(APlayerController* PlayerContro
 				// Set-up, and trigger the transaction through the store interface
 				ReadObject = MakeShareable(new FOnlineInAppPurchaseRestoreRead());
 				FOnlineInAppPurchaseRestoreReadRef ReadObjectRef = ReadObject.ToSharedRef();
-				StoreInterface->RestorePurchases(ReadObjectRef);
+				StoreInterface->RestorePurchases(ConsumableProductFlags, ReadObjectRef);
 			}
 			else
 			{
@@ -125,10 +125,10 @@ void UInAppPurchaseRestoreCallbackProxy::BeginDestroy()
 }
 
 
-UInAppPurchaseRestoreCallbackProxy* UInAppPurchaseRestoreCallbackProxy::CreateProxyObjectForInAppPurchaseRestore(class APlayerController* PlayerController)
+UInAppPurchaseRestoreCallbackProxy* UInAppPurchaseRestoreCallbackProxy::CreateProxyObjectForInAppPurchaseRestore(const TArray<FInAppPurchaseProductRequest>& ConsumableProductFlags, class APlayerController* PlayerController)
 {
 	UInAppPurchaseRestoreCallbackProxy* Proxy = NewObject<UInAppPurchaseRestoreCallbackProxy>();
 	Proxy->SetFlags(RF_StrongRefOnFrame);
-	Proxy->Trigger(PlayerController);
+	Proxy->Trigger(ConsumableProductFlags, PlayerController);
 	return Proxy;
 }

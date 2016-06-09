@@ -1027,9 +1027,17 @@ void FMetalCodeBackend::MovePackedUniformsToMain(exec_list* ir, _mesa_glsl_parse
 		if (Var)
 		{
 			check(Var->mode == ir_var_uniform || Var->mode == ir_var_out || Var->mode == ir_var_in || Var->mode == ir_var_shared);
-			OutBuffers.Buffers.Add(Var);
+			if (!Var->type->is_sampler() || Var->type->sampler_buffer)
+            {
+                OutBuffers.Buffers.Add(Var);
+            }
+            else
+            {
+                OutBuffers.Textures.Add(Var);
+            }
 		}
 	}
+    
 	OutBuffers.SortBuffers();
 
 	// And move them to main
@@ -1041,7 +1049,18 @@ void FMetalCodeBackend::MovePackedUniformsToMain(exec_list* ir, _mesa_glsl_parse
 			Var->remove();
 			MainSig->parameters.push_tail(Var);
 		}
-	}
+    }
+    
+    // And move them to main
+    for (auto Iter : OutBuffers.Textures)
+    {
+        auto* Var = (ir_variable*)Iter;
+        if (Var)
+        {
+            Var->remove();
+            MainSig->parameters.push_tail(Var);
+        }
+    }
 	//IRDump(ir, state);
 }
 

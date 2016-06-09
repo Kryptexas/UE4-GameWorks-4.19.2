@@ -258,7 +258,7 @@ void MainPS(noperspective float4 InUV : TEXCOORD0, out float4 OutColor : SV_Targ
 	FilmColor = lerp( FilmColor * ColorScale, OverlayColor.rgb, OverlayColor.a );
 
 	// Apply "gamma" curve adjustment.
-	FilmColor = pow( FilmColor, InverseGamma.y );
+	FilmColor = pow( max(0, FilmColor), InverseGamma.y );
 		
 	half3 OutDeviceColor = 0;
 	BRANCH

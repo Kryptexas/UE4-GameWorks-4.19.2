@@ -89,6 +89,22 @@ public class HarfBuzz : ModuleRules
 			PublicAdditionalLibraries.Add("harfbuzz"); // Automatically transforms to libharfbuzz.a
 		}
 
+		else if (Target.Platform == UnrealTargetPlatform.Android)
+		{
+			Definitions.Add("WITH_HARFBUZZ=1");
+
+			string BuildTypeFolderName = (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+				? "Debug/"
+				: "Release/";
+
+			PublicLibraryPaths.Add(HarfBuzzRootPath + "Android/ARMv7/" + BuildTypeFolderName);
+			PublicLibraryPaths.Add(HarfBuzzRootPath + "Android/ARM64/" + BuildTypeFolderName);
+			PublicLibraryPaths.Add(HarfBuzzRootPath + "Android/x86/" + BuildTypeFolderName);
+			PublicLibraryPaths.Add(HarfBuzzRootPath + "Android/x64/" + BuildTypeFolderName);
+
+			PublicAdditionalLibraries.Add("harfbuzz");
+		}
+
 		else
 		{
 			Definitions.Add("WITH_HARFBUZZ=0");

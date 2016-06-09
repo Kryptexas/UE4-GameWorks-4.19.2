@@ -71,13 +71,14 @@ id<MTLCommandBuffer> FMetalCommandQueue::CreateRetainedCommandBuffer(void)
 
 id<MTLCommandBuffer> FMetalCommandQueue::CreateUnretainedCommandBuffer(void)
 {
+	static bool bUnretainedRefs = !FParse::Param(FCommandLine::Get(),TEXT("metalretainrefs"));
+	id<MTLCommandBuffer> CmdBuffer = nil;
 	@autoreleasepool
 	{
-		static bool bUnretainedRefs = !FParse::Param(FCommandLine::Get(),TEXT("metalretainrefs"));
-		id<MTLCommandBuffer> CmdBuffer = bUnretainedRefs ? [[CommandQueue commandBufferWithUnretainedReferences] retain] : [[CommandQueue commandBuffer] retain];
-		TRACK_OBJECT(STAT_MetalCommandBufferCount, CmdBuffer);
-		return CmdBuffer;
+		CmdBuffer = bUnretainedRefs ? [[CommandQueue commandBufferWithUnretainedReferences] retain] : [[CommandQueue commandBuffer] retain];
 	}
+	TRACK_OBJECT(STAT_MetalCommandBufferCount, CmdBuffer);
+	return CmdBuffer;
 }
 
 void FMetalCommandQueue::CommitCommandBuffer(id<MTLCommandBuffer> const CommandBuffer)
@@ -101,7 +102,7 @@ void FMetalCommandQueue::SubmitCommandBuffers(NSArray<id<MTLCommandBuffer>>* Buf
 	}
 	if (bComplete)
 	{
-		GetMetalDeviceContext().SubmitCommandsHint(true);
+		GetMetalDeviceContext().SubmitCommandsHint();
 		
 		for (uint32 i = 0; i < Count; i++)
 		{

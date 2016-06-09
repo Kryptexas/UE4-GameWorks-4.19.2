@@ -1200,6 +1200,21 @@ namespace UnrealBuildTool
 			bool bShowLaunchImage = false;
 			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bShowLaunchImage", out bShowLaunchImage);
 
+			string InstallLocation;
+			Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "InstallLocation", out InstallLocation);
+			switch(InstallLocation.ToLower())
+			{
+				case "preferexternal":
+					InstallLocation = "preferExternal";
+					break;
+				case "auto":
+					InstallLocation = "auto";
+					break;
+				default:
+					InstallLocation = "internalOnly";
+					break;
+			}
+
 			// fix up the MinSdkVersion
 			if (NDKLevelInt > 19)
 			{
@@ -1241,6 +1256,7 @@ namespace UnrealBuildTool
 					Text.AppendLine("          " + Line);
 				}
 			}
+			Text.AppendLine(string.Format("          android:installLocation=\"{0}\"", InstallLocation));
 			Text.AppendLine(string.Format("          android:versionCode=\"{0}\"", StoreVersion));
 			Text.AppendLine(string.Format("          android:versionName=\"{0}\">", VersionDisplayName));
 

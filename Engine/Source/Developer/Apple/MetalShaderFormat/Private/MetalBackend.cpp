@@ -679,6 +679,7 @@ protected:
 				check(BufferIndex >= 0);
 				if (var->type->sampler_buffer)
 				{
+                    check(BufferIndex <= 30);
 					ralloc_asprintf_append(
 						buffer,
 						"device "
@@ -740,7 +741,7 @@ protected:
 						{
 							// Buffer
 							int BufferIndex = Buffers.GetIndex(var, Backend->bIsDesktop);
-							check(BufferIndex >= 0);
+							check(BufferIndex >= 0 && BufferIndex <= 30);
 							ralloc_asprintf_append(
 								buffer,
 								"const device "
@@ -816,7 +817,7 @@ protected:
 					{
 						int BufferIndex = Buffers.GetIndex(var, Backend->bIsDesktop);
 						bool bNeedsPointer = (var->semantic && (strlen(var->semantic) == 1));
-						check(BufferIndex >= 0);
+						check(BufferIndex >= 0 && BufferIndex <= 30);
 						ralloc_asprintf_append(
 							buffer,
 							"constant "
@@ -921,7 +922,15 @@ protected:
 				var->constant_value->accept(this);
 			}
 		}
-
+		else if ((Backend && Backend->bZeroInitialise) && (var->type->base_type != GLSL_TYPE_STRUCT && var->type->base_type != GLSL_TYPE_ARRAY) && (var->mode == ir_var_auto || var->mode == ir_var_temporary))
+		{
+			ir_constant* zero = ir_constant::zero(mem_ctx, var->type);
+			if (zero)
+			{
+				ralloc_asprintf_append(buffer, " = ");
+				zero->accept(this);
+			}
+		}
 	}
 
 	virtual void visit(ir_function_signature *sig) override
@@ -934,6 +943,23 @@ protected:
 
 		print_type_full(sig->return_type);
 		ralloc_asprintf_append(buffer, " %s(", sig->function_name());
+		
+        if (sig->is_main && Backend && Backend->bBoundsChecks)
+		{
+            bool bInsertSideTable = false;
+            foreach_iter(exec_list_iterator, iter, sig->parameters)
+            {
+                ir_variable *const inst = (ir_variable *) iter.get();
+                bInsertSideTable |= ((inst->type->is_image() || inst->type->sampler_buffer) && inst->used);
+            }
+            if (bInsertSideTable)
+            {
+                ir_variable* BufferSizes = new(ParseState)ir_variable(glsl_type::uint_type, "BufferSizes", ir_var_uniform);
+                BufferSizes->semantic = "u";
+                Buffers.Buffers.Add(BufferSizes);
+                sig->parameters.push_head(BufferSizes);
+            }
+		}
 
 		foreach_iter(exec_list_iterator, iter, sig->parameters)
 		{
@@ -1158,7 +1184,10 @@ protected:
 			ralloc_asprintf_append(buffer, "int2((int)");
 		}
 
-		tex->sampler->accept(this);
+		if (tex->op != ir_txf)
+		{
+			tex->sampler->accept(this);
+		}
 		switch (tex->op)
 		{
 		case ir_tex:
@@ -1288,13 +1317,46 @@ protected:
 			check(tex->sampler->type);
 			if (tex->sampler->type->is_sampler() && tex->sampler->type->sampler_buffer)
 			{
-				ralloc_asprintf_append(buffer, "[");
-				tex->coordinate->accept(this);
-				ralloc_asprintf_append(buffer, "]");
+				auto* Texture = tex->sampler->variable_referenced();
+				int Index = Buffers.GetIndex(Texture, Backend->bIsDesktop);
+				check(Index >= 0 && Index <= 30);
+				
+				ralloc_asprintf_append(buffer, "(");
+				tex->sampler->accept(this);
+				if (Backend && Backend->bBoundsChecks)
+				{
+					ralloc_asprintf_append(buffer, "[");
+					ralloc_asprintf_append(buffer, "min(");
+					tex->coordinate->accept(this);
+					ralloc_asprintf_append(buffer, ",");
+					
+					ralloc_asprintf_append(buffer, "((BufferSizes[%d] / sizeof(", Index);
+					print_type_pre(Texture->type->inner_type);
+					ralloc_asprintf_append(buffer, ")) - 1))]");
+					
+					if (Buffers.AtomicVariables.find(Texture) == Buffers.AtomicVariables.end())
+					{
+						ralloc_asprintf_append(buffer, " * (");
+						tex->coordinate->accept(this);
+						ralloc_asprintf_append(buffer, " < (BufferSizes[%d] / sizeof(", Index);
+						print_type_pre(Texture->type->inner_type);
+						ralloc_asprintf_append(buffer, ")))");
+					}
+				}
+				else
+				{
+					ralloc_asprintf_append(buffer, "[");
+					tex->coordinate->accept(this);
+					ralloc_asprintf_append(buffer, "]");
+				}
+				
+				ralloc_asprintf_append(buffer, ")");
+				
 				bNeedsClosingParenthesis = false;
 			}
 			else
 			{
+				tex->sampler->accept(this);
 				ralloc_asprintf_append(buffer, ".read(");
 				tex->coordinate->accept(this);
 				
@@ -1535,18 +1597,51 @@ protected:
 			bool bIsRWTexture = !deref->image->type->sampler_buffer;
 			if (src == nullptr)
 			{
-				deref->image->accept(this);
 				if (bIsRWTexture)
 				{
+					deref->image->accept(this);
 					ralloc_asprintf_append(buffer, ".read(");
 					deref->image_index->accept(this);
 					ralloc_asprintf_append(buffer, ")");
 				}
 				else
 				{
-					ralloc_asprintf_append(buffer, "[");
-					deref->image_index->accept(this);
-					ralloc_asprintf_append(buffer, "]"/*.%s, swizzle[dst_elements - 1]*/);
+					auto* Texture = deref->image->variable_referenced();
+					int Index = Buffers.GetIndex(Texture, Backend->bIsDesktop);
+					check(Index >= 0 && Index <= 30);
+					
+					ralloc_asprintf_append(buffer, "(");
+					deref->image->accept(this);
+					
+					if (Backend && Backend->bBoundsChecks)
+					{
+						ralloc_asprintf_append(buffer, "[");
+						ralloc_asprintf_append(buffer, "min(");
+						deref->image_index->accept(this);
+						ralloc_asprintf_append(buffer, ",");
+						
+						ralloc_asprintf_append(buffer, "((BufferSizes[%d] / sizeof(", Index);
+						print_type_pre(Texture->type->inner_type);
+						ralloc_asprintf_append(buffer, ")) - 1))]"/*.%s, swizzle[dst_elements - 1]*/);
+						
+						// Can't flush to zero for a structured buffer...
+						if (!Texture->type->inner_type->is_record() && Buffers.AtomicVariables.find(Texture) == Buffers.AtomicVariables.end())
+						{
+							ralloc_asprintf_append(buffer, " * (");
+							deref->image_index->accept(this);
+							ralloc_asprintf_append(buffer, " < (BufferSizes[%d] / sizeof(", Index);
+							print_type_pre(Texture->type->inner_type);
+							ralloc_asprintf_append(buffer, ")))");
+						}
+					}
+					else
+					{
+						ralloc_asprintf_append(buffer, "[");
+						deref->image_index->accept(this);
+						ralloc_asprintf_append(buffer, "]"/*.%s, swizzle[dst_elements - 1]*/);
+					}
+					
+					ralloc_asprintf_append(buffer, ")");
 				}
 			}
 			else
@@ -1629,9 +1724,27 @@ protected:
 				}
 				else
 				{
-					ralloc_asprintf_append( buffer, "[" );
-					deref->image_index->accept(this);
-					ralloc_asprintf_append( buffer, "] = " );
+					if (Backend && Backend->bBoundsChecks)
+					{
+						ralloc_asprintf_append(buffer, "[");
+						ralloc_asprintf_append(buffer, "min(");
+						deref->image_index->accept(this);
+						ralloc_asprintf_append(buffer, ",");
+						
+						auto* Texture = deref->image->variable_referenced();
+						int Index = Buffers.GetIndex(Texture, Backend->bIsDesktop);
+						check(Index >= 0 && Index <= 30);
+						
+						ralloc_asprintf_append(buffer, "(BufferSizes[%d] / sizeof(", Index);
+						print_type_pre(Texture->type->inner_type);
+						ralloc_asprintf_append(buffer, ")))] = ");
+					}
+					else
+					{
+						ralloc_asprintf_append(buffer, "[");
+						deref->image_index->accept(this);
+						ralloc_asprintf_append(buffer, "] = ");
+					}
 					src->accept(this);
 					ralloc_asprintf_append(buffer, ""/*".%s", expand[src_elements - 1]*/);
 				}
@@ -2491,7 +2604,7 @@ protected:
 			ANSICHAR Name[32];
 			FCStringAnsi::Sprintf(Name, "%si%u", glsl_variable_tag_from_parser_target(Frequency), Uniform.offset);
 			int32 Offset = Buffers.GetIndex(Name, Backend->bIsDesktop);
-			check(Offset != -1);
+            check(Offset >= 0);
 			ralloc_asprintf_append(
 				buffer,
 				"%s%s(%u:%u)",
@@ -2834,6 +2947,18 @@ protected:
 		if (Frequency == compute_shader)
 		{
 			ralloc_asprintf_append(buffer, "// @NumThreads: %d, %d, %d\n", this->NumThreadsX, this->NumThreadsY, this->NumThreadsZ);
+		}
+		
+		for (int i = 0; i < Buffers.Buffers.Num(); ++i)
+		{
+			if (Buffers.Buffers[i])
+			{
+				auto* Var = Buffers.Buffers[i]->as_variable();
+				if (!Var->type->is_sampler() && !Var->type->is_image() && Var->semantic && !strcmp(Var->semantic, "u") && Var->mode == ir_var_uniform && Var->name && !strcmp(Var->name, "BufferSizes"))
+				{
+					ralloc_asprintf_append(buffer, "// @SideTable: %s(%d)", Var->name, i);
+				}
+			}
 		}
 	}
 
@@ -3186,10 +3311,12 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 	return true;
 }
 
-FMetalCodeBackend::FMetalCodeBackend(unsigned int InHlslCompileFlags, EHlslCompileTarget InTarget, bool bInDesktop) :
+FMetalCodeBackend::FMetalCodeBackend(unsigned int InHlslCompileFlags, EHlslCompileTarget InTarget, bool bInDesktop, bool bInZeroInitialise, bool bInBoundsChecks) :
 	FCodeBackend(InHlslCompileFlags, HCT_FeatureLevelES3_1)
 {
 	bIsDesktop = bInDesktop;
+	bZeroInitialise = bInZeroInitialise;
+	bBoundsChecks = bInBoundsChecks;
 }
 
 void FMetalLanguageSpec::SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, exec_list* ir)

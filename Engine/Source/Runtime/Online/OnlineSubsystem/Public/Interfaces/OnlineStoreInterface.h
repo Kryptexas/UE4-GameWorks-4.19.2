@@ -105,6 +105,10 @@ struct FInAppPurchaseProductInfo
 	UPROPERTY(BlueprintReadOnly, Category = ProductInfo)
 	FString DisplayPrice;
 
+	// Raw price without currency code and symbol
+	UPROPERTY(BlueprintReadOnly, Category = ProductInfo)
+	float RawPrice;
+
 	// The localized currency code of the price
 	UPROPERTY(BlueprintReadOnly, Category = ProductInfo)
 	FString CurrencyCode;
@@ -142,6 +146,10 @@ struct FInAppPurchaseRestoreInfo
 	// The localized display price name
 	UPROPERTY(BlueprintReadOnly, Category = ProductInfo)
 		FString ReceiptData;
+
+	// the unique transaction identifier
+	UPROPERTY(BlueprintReadOnly, Category = ProductInfo)
+	FString TransactionIdentifier;
 };
 
 
@@ -250,7 +258,7 @@ public:
 	/**
 	* Restore any purchases previously made
 	*/
-	virtual bool RestorePurchases(FOnlineInAppPurchaseRestoreReadRef& InReadObject) = 0;
+	virtual bool RestorePurchases(const TArray<FInAppPurchaseProductRequest>& ConsumableProductFlags, FOnlineInAppPurchaseRestoreReadRef& InReadObject) = 0;
 
 	/**
 	* Delegate which is executed when a Purchase completes

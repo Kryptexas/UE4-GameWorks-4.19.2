@@ -169,22 +169,6 @@ struct FAndroid_ASTCPlatformProperties : public FAndroidPlatformProperties
 	}
 };
 
-struct FAndroid_GL4PlatformProperties : public FAndroidPlatformProperties
-{
-	static FORCEINLINE const char* PlatformName()
-	{
-		return "Android_GL4";
-	}
-};
-
-struct FAndroid_ES31PlatformProperties : public FAndroidPlatformProperties
-{
-	static FORCEINLINE const char* PlatformName()
-	{
-		return "Android_ES31";
-	}
-};
-
 struct FAndroid_MultiPlatformProperties : public FAndroidPlatformProperties
 {
 	static FORCEINLINE const char* PlatformName()

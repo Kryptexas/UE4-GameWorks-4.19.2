@@ -45,13 +45,6 @@ FMetalCommandEncoder::FMetalCommandEncoder(FMetalCommandList& CmdList)
 	FMemory::Memzero(ShaderBuffers);
 	FMemory::Memzero(ShaderTextures);
 	FMemory::Memzero(ShaderSamplers);
-	for(int32 i = 0; i < SF_NumFrequencies; i++)
-	{
-		for(int32 j = 0; j < ML_MaxSamplers; j++)
-		{
-			ShaderSamplers[i].MaxLods[j] = FLT_MAX;
-		}
-	}
 }
 
 FMetalCommandEncoder::~FMetalCommandEncoder(void)
@@ -150,8 +143,6 @@ void FMetalCommandEncoder::Reset(void)
 				[ShaderSamplers[i].Samplers[j] release];
 			}
 			ShaderSamplers[i].Samplers[j] = nil;
-			ShaderSamplers[i].MaxLods[j] = FLT_MAX;
-			ShaderSamplers[i].MinLods[j] = 0.0;
 		}
 		ShaderSamplers[i].Bound = 0;
 	}
@@ -384,11 +375,11 @@ void FMetalCommandEncoder::RestoreRenderCommandEncodingState(void)
 	{
 		if(ShaderSamplers[SF_Vertex].Samplers[i] != nil && (ShaderSamplers[SF_Vertex].Bound & (1 << i)))
 		{
-			[RenderCommandEncoder setVertexSamplerState:ShaderSamplers[SF_Vertex].Samplers[i] lodMinClamp:ShaderSamplers[SF_Vertex].MinLods[i] lodMaxClamp:ShaderSamplers[SF_Vertex].MaxLods[i] atIndex:i];
+			[RenderCommandEncoder setVertexSamplerState:ShaderSamplers[SF_Vertex].Samplers[i]  atIndex:i];
 		}
 		if(ShaderSamplers[SF_Pixel].Samplers[i] != nil && (ShaderSamplers[SF_Pixel].Bound & (1 << i)))
 		{
-			[RenderCommandEncoder setFragmentSamplerState:ShaderSamplers[SF_Pixel].Samplers[i] lodMinClamp:ShaderSamplers[SF_Pixel].MinLods[i] lodMaxClamp:ShaderSamplers[SF_Pixel].MaxLods[i] atIndex:i];
+			[RenderCommandEncoder setFragmentSamplerState:ShaderSamplers[SF_Pixel].Samplers[i] atIndex:i];
 		}
 	}
 	
@@ -455,7 +446,7 @@ void FMetalCommandEncoder::RestoreComputeCommandEncodingState(void)
 		if(ShaderSamplers[SF_Compute].Samplers[i] != nil)
 		{
 			ShaderSamplers[SF_Compute].Bound |= (1 << i);
-			[ComputeCommandEncoder setSamplerState:ShaderSamplers[SF_Compute].Samplers[i] lodMinClamp:ShaderSamplers[SF_Compute].MinLods[i] lodMaxClamp:ShaderSamplers[SF_Compute].MaxLods[i] atIndex:i];
+			[ComputeCommandEncoder setSamplerState:ShaderSamplers[SF_Compute].Samplers[i] atIndex:i];
 		}
 	}
 	
@@ -966,8 +957,6 @@ void FMetalCommandEncoder::SetShaderSamplerState(EShaderFrequency Frequency, id<
 	}
 	
 	ShaderSamplers[Frequency].Samplers[index] = Sampler;
-	ShaderSamplers[Frequency].MinLods[index] = 0;
-	ShaderSamplers[Frequency].MaxLods[index] = FLT_MAX;
 	
 	switch (Frequency)
 	{
@@ -1013,8 +1002,6 @@ void FMetalCommandEncoder::SetShaderSamplerStates(EShaderFrequency Frequency, co
 		}
 		
 		ShaderSamplers[Frequency].Samplers[i] = Samplers[i];
-		ShaderSamplers[Frequency].MinLods[i] = 0;
-		ShaderSamplers[Frequency].MaxLods[i] = FLT_MAX;
 	}
 	
 	switch (Frequency)
@@ -1035,98 +1022,6 @@ void FMetalCommandEncoder::SetShaderSamplerStates(EShaderFrequency Frequency, co
 			if (ComputeCommandEncoder)
 			{
 				[ComputeCommandEncoder setSamplerStates:Samplers withRange:Range];
-			}
-			break;
-		default:
-			check(false);
-			break;
-	}
-}
-
-void FMetalCommandEncoder::SetShaderSamplerState(EShaderFrequency Frequency, id<MTLSamplerState> Sampler, float lodMinClamp, float lodMaxClamp, NSUInteger index)
-{
-	check(index < ML_MaxSamplers);
-	[Sampler retain];
-	[ShaderSamplers[Frequency].Samplers[index] release];
-
-	if(Sampler)
-	{
-		ShaderSamplers[Frequency].Bound |= (1 << index);
-	}
-	else
-	{
-		ShaderSamplers[Frequency].Bound &= ~(1 << index);
-	}
-	
-	ShaderSamplers[Frequency].Samplers[index] = Sampler;
-	ShaderSamplers[Frequency].MinLods[index] = lodMinClamp;
-	ShaderSamplers[Frequency].MaxLods[index] = lodMaxClamp;
-	
-	switch (Frequency)
-	{
-		case SF_Vertex:
-			if (RenderCommandEncoder)
-			{
-				[RenderCommandEncoder setVertexSamplerState:Sampler lodMinClamp:lodMinClamp lodMaxClamp:lodMaxClamp atIndex:index];
-			}
-			break;
-		case SF_Pixel:
-			if (RenderCommandEncoder)
-			{
-				[RenderCommandEncoder setFragmentSamplerState:Sampler lodMinClamp:lodMinClamp lodMaxClamp:lodMaxClamp atIndex:index];
-			}
-			break;
-		case SF_Compute:
-			if (ComputeCommandEncoder)
-			{
-				[ComputeCommandEncoder setSamplerState:Sampler lodMinClamp:lodMinClamp lodMaxClamp:lodMaxClamp atIndex:index];
-			}
-			break;
-		default:
-			check(false);
-			break;
-	}
-}
-
-void FMetalCommandEncoder::SetShaderSamplerStates(EShaderFrequency Frequency, const id<MTLSamplerState> Samplers[], const float LodMinClamps[], const float LodMaxClamps[], NSRange const& Range)
-{
-	for (NSUInteger i = (NSUInteger)Range.location; i < (NSUInteger)Range.length; i++)
-	{
-		check(i < ML_MaxSamplers);
-		[Samplers[i] retain];
-		
-		if(Samplers[i])
-		{
-			ShaderSamplers[Frequency].Bound |= (1 << i);
-		}
-		else
-		{
-			ShaderSamplers[Frequency].Bound &= ~(1 << i);
-		}
-		
-		[ShaderSamplers[Frequency].Samplers[i] release];
-		ShaderSamplers[Frequency].Samplers[i] = Samplers[i];
-		ShaderSamplers[Frequency].MinLods[i] = LodMinClamps[i];
-		ShaderSamplers[Frequency].MaxLods[i] = LodMaxClamps[i];
-	}
-	switch (Frequency)
-	{
-		case SF_Vertex:
-			if (RenderCommandEncoder)
-			{
-				[RenderCommandEncoder setVertexSamplerStates:Samplers lodMinClamps:LodMinClamps lodMaxClamps:LodMaxClamps withRange:Range];
-			}
-			break;
-		case SF_Pixel:
-			if (RenderCommandEncoder)
-			{
-				[RenderCommandEncoder setFragmentSamplerStates:Samplers lodMinClamps:LodMinClamps lodMaxClamps:LodMaxClamps withRange:Range];
-			}
-			break;
-		case SF_Compute:
-			if (ComputeCommandEncoder)
-			{
-				[ComputeCommandEncoder setSamplerStates:Samplers lodMinClamps:LodMinClamps lodMaxClamps:LodMaxClamps withRange:Range];
 			}
 			break;
 		default:

@@ -35,6 +35,19 @@ enum EMetalFeatures
 	EMetalFeaturesDepthStencilBlitOptions = 1 << 4
 };
 
+/**
+ * Enumeration for submission hints to avoid unclear bool values.
+ */
+enum EMetalSubmitFlags
+{
+	/** No submission flags. */
+	EMetalSubmitFlagsNone = 0,
+	/** Create the next command buffer. */
+	EMetalSubmitFlagsCreateCommandBuffer = 1 << 0,
+	/** Wait on the submitted command buffer. */
+	EMetalSubmitFlagsWaitOnCommandBuffer = 1 << 1
+};
+
 class FMetalRHICommandContext;
 
 class FMetalContext
@@ -95,12 +108,12 @@ public:
 	/** @returns True if the Metal validation layer is enabled else false. */
 	bool IsValidationLayerEnabled() const { return bValidationEnabled; }
 
-    void SubmitCommandsHint(bool const bCreateNew = true, bool const bWait = false);
+    void SubmitCommandsHint(uint32 const bFlags = EMetalSubmitFlagsCreateCommandBuffer);
 	void SubmitCommandBufferAndWait();
-	void SubmitComputeCommandBufferAndWait();
 	void ResetRenderCommandEncoder();
 	
 	void SetShaderResourceView(EShaderFrequency ShaderStage, uint32 BindIndex, FMetalShaderResourceView* RESTRICT SRV);
+	void SetShaderUnorderedAccessView(EShaderFrequency ShaderStage, uint32 BindIndex, FMetalUnorderedAccessView* RESTRICT UAV);
 
 	void Dispatch(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ);
 #if PLATFORM_MAC
@@ -190,6 +203,9 @@ protected:
 	
 	/** the slot to store a per-thread context ref */
 	static uint32 CurrentContextTLSSlot;
+	
+	/** The side table for runtiem validation of buffer access */
+	uint32 BufferSideTable[SF_NumFrequencies][MaxMetalStreams];
 	
 	/** The number of outstanding draw & dispatch commands in the current command buffer, used to commit command buffers at encoder boundaries when sufficiently large. */
 	uint32 OutstandingOpCount;

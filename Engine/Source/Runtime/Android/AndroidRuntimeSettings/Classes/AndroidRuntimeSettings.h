@@ -68,6 +68,21 @@ namespace EAndroidDepthBufferPreference
 	};
 }
 
+/** The default install location for the application */
+UENUM()
+namespace EAndroidInstallLocation
+{
+	enum Type
+	{
+		/** Install your app only on internal device storage */
+		InternalOnly,
+		/** Install your app on external storage when available */
+		PreferExternal,
+		/** Internal storage is preferred over external, unless the interal storage is low on space */
+		Auto
+	};
+}
+
 /**
  * Holds the game-specific achievement name and corresponding ID from Google Play services.
  */
@@ -145,6 +160,10 @@ public:
 	// What OS version the app is expected to run on (do not set this lower than 9, set to 19 for GearVR)
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Target SDK Version (9=Gingerbread, 14=Ice Cream Sandwich, 21=Lollipop)"))
 	int32 TargetSDKVersion;
+
+	// Preferred install location for the application
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging)
+	TEnumAsByte<EAndroidInstallLocation::Type> InstallLocation;
 
 	// Should the data be placed into the .apk file instead of a separate .obb file. Amazon requires this to be enabled, but Google Play Store will not allow .apk files larger than 50MB, so only small games will work with this enabled.
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Package game data inside .apk?"))

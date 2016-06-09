@@ -50,7 +50,7 @@ public:
 	{
 		NumSafeFrames = 2, /** Number of frames to leave buffers before reclaiming/reusing */
 		NumPoolBucketSizes = 22, /** Number of pool bucket sizes */
-		NumPoolBuckets = NumPoolBucketSizes * 2, /** Number of pool bucket sizes * 2 for Shared vs. Managed storage */
+		NumPoolBuckets = NumPoolBucketSizes * 3, /** Number of pool bucket sizes * 2 for Shared/Managed/Private storage */
 		NumToDrainPerFrame = 65536, /** Max. number of resources to cull in a single frame */
 		CullAfterFramesNum = 30 * 60 /** Resources are culled if unused for more frames than this */
 	};
