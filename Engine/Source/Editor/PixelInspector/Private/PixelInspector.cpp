@@ -340,7 +340,7 @@ namespace PixelInspector
 			return LOCTEXT("PixelInspector_EnableCheckbox_ESC", "Inspecting (ESC to stop)");
 		}
 
-		return LOCTEXT("PixelInspectorMouseHover_EnableCheckbox", "Start Pixel Inspection");
+		return LOCTEXT("PixelInspectorMouseHover_EnableCheckbox", "Start Pixel Inspector");
 	}
 
 	const FSlateBrush* SPixelInspector::GetPixelInspectorEnableButtonBrush() const

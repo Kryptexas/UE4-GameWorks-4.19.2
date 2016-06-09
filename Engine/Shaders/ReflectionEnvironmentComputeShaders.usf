@@ -619,6 +619,7 @@ void ReflectionEnvironmentTiledDeferredMain(
 		float AO = ScreenSpaceData.AmbientOcclusion;
 		float RoughnessSq = GBuffer.Roughness * GBuffer.Roughness;
 		float SpecularOcclusion = GetSpecularOcclusion(NoV, RoughnessSq, AO);
+		Color.a *= SpecularOcclusion;
 
 		R = GetOffSpecularPeakReflectionDir(N, R, GBuffer.Roughness);
 		//bottom for clearcoat or the only reflection.

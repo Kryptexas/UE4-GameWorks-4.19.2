@@ -39,7 +39,6 @@ public class DetailCustomizations : ModuleRules
                 "InternationalizationSettings",
 				"SourceCodeAccess",
 				"RHI",
-                "MediaAssets",
                 "HardwareTargeting",
 				"SharedSettingsWidgets",
                 "LightPropagationVolumeRuntime",

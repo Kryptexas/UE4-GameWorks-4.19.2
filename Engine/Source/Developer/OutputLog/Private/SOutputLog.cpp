@@ -1138,3 +1138,5 @@ bool FLogFilter::IsMessageAllowed(const TSharedPtr<FLogMessage>& Message)
 
 	return true;
 }
+
+#undef LOCTEXT_NAMESPACE

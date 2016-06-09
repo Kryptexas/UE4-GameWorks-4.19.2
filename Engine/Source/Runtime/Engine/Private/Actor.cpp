@@ -2760,7 +2760,7 @@ void AActor::PostActorConstruction()
 	}
 
 	// If this is dynamically spawned replicted actor, defer calls to BeginPlay and UpdateOverlaps until replicated properties are deserialized
-	bool deferBeginPlayAndUpdateOverlaps = (bExchangedRoles && RemoteRole == ROLE_Authority);
+	const bool bDeferBeginPlayAndUpdateOverlaps = (bExchangedRoles && RemoteRole == ROLE_Authority);
 
 	if (bActorsInitialized)
 	{
@@ -2825,7 +2825,14 @@ void AActor::PostActorConstruction()
 					UE_LOG(LogActor, Fatal, TEXT("%s failed to route PostInitializeComponents.  Please call Super::PostInitializeComponents() in your <className>::PostInitializeComponents() function. "), *GetFullName());
 				}
 
-				if (World->HasBegunPlay() && !deferBeginPlayAndUpdateOverlaps)
+				bool bRunBeginPlay = !bDeferBeginPlayAndUpdateOverlaps && World->HasBegunPlay();
+				if (bRunBeginPlay && IsChildActor())
+				{
+					// Child Actors cannot run begin play until their parent has run
+					bRunBeginPlay = GetParentComponent()->GetOwner()->HasActorBegunPlay();
+				}
+
+				if (bRunBeginPlay)
 				{
 					SCOPE_CYCLE_COUNTER(STAT_ActorBeginPlay);
 					BeginPlay();
@@ -2846,7 +2853,7 @@ void AActor::PostActorConstruction()
 	if (!IsPendingKill())
 	{
 		// Components are all there and we've begun play, init overlapping state
-		if (!deferBeginPlayAndUpdateOverlaps)
+		if (!bDeferBeginPlayAndUpdateOverlaps)
 		{
 			UpdateOverlaps();
 		}
@@ -2968,6 +2975,17 @@ void AActor::BeginPlay()
 		{
 			// When an Actor begins play we expect only the not bAutoRegister false components to not be registered
 			//check(!Component->bAutoRegister);
+		}
+
+		if (UChildActorComponent* CAC = Cast<UChildActorComponent>(Component))
+		{
+			if (AActor* ChildActor = CAC->GetChildActor())
+			{
+				if (!ChildActor->HasActorBegunPlay())
+				{
+					ChildActor->BeginPlay();
+				}
+			}
 		}
 	}
 

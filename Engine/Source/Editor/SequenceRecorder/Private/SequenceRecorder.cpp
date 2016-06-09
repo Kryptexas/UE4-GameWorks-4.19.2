@@ -340,7 +340,7 @@ void FSequenceRecorder::DrawDebug(UCanvas* InCanvas, APlayerController* InPlayer
 		}
 		else
 		{
-			Text = LOCTEXT("RecordingIndicator", "Sequence Recording Pending");
+			Text = LOCTEXT("RecordingIndicatorPending", "Sequence Recording Pending");
 		}
 
 		const FVector2D IconSize(32.0f, 32.0f);

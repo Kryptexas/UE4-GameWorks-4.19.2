@@ -746,10 +746,16 @@ FGatherTextSCC::~FGatherTextSCC()
 
 bool FGatherTextSCC::CheckOutFile(const FString& InFile, FText& OutError)
 {
-	if ( InFile.IsEmpty() || InFile.StartsWith(TEXT("\\\\")) )
+	if ( InFile.IsEmpty() )
 	{
 		OutError = NSLOCTEXT("GatherTextCmdlet", "InvalidFileSpecified", "Could not checkout file at invalid path.");
 		return false;
+	}
+
+	if ( InFile.StartsWith(TEXT("\\\\")) )
+	{
+		// We can't check out a UNC path, but don't say we failed
+		return true;
 	}
 
 	FText SCCError;

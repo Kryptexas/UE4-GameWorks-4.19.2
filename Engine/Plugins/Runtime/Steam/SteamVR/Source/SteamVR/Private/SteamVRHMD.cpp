@@ -535,6 +535,7 @@ void FSteamVRHMD::ApplyHmdRotation(APlayerController* PC, FRotator& ViewRotation
 
 	GetCurrentPose(CurHmdOrientation, CurHmdPosition);
 	LastHmdOrientation = CurHmdOrientation;
+	LastHmdPosition = CurHmdPosition;
 
 	const FRotator DeltaRot = ViewRotation - PC->GetControlRotation();
 	DeltaControlRotation = (DeltaControlRotation + DeltaRot).GetNormalized();
@@ -550,8 +551,9 @@ void FSteamVRHMD::ApplyHmdRotation(APlayerController* PC, FRotator& ViewRotation
 
 bool FSteamVRHMD::UpdatePlayerCamera(FQuat& CurrentOrientation, FVector& CurrentPosition)
 {
-	GetCurrentPose(CurHmdOrientation, CurHmdPosition);
+	GetCurrentPose(CurHmdOrientation, CurHmdPosition, vr::k_unTrackedDeviceIndex_Hmd, EPoseRefreshMode::GameRefresh, GWorld->GetWorldSettings()->WorldToMeters);
 	LastHmdOrientation = CurHmdOrientation;
+	LastHmdPosition = CurHmdPosition;
 
 	if( !bImplicitHmdPosition && GEnableVREditorHacks )
 	{
@@ -930,6 +932,13 @@ void FSteamVRHMD::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdLis
 	// cameras that rely on game objects (e.g. other components) for their positions don't need to be updated on the render thread.
 	const FQuat DeltaOrient = View.BaseHmdOrientation.Inverse() * TrackingFrame.DeviceOrientation[vr::k_unTrackedDeviceIndex_Hmd];
 	View.ViewRotation = FRotator(View.ViewRotation.Quaternion() * DeltaOrient);
+
+	if (bImplicitHmdPosition)
+	{
+		const FVector DeltaPosition = TrackingFrame.DevicePosition[vr::k_unTrackedDeviceIndex_Hmd] - View.BaseHmdLocation;
+		View.ViewLocation += DeltaPosition;
+	}
+
  	View.UpdateViewMatrix();
 }
 

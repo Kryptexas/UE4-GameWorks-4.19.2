@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#define LOCTEXT_NAMESPACE ""
+#define LOCTEXT_NAMESPACE "LevelCollectionCommands"
 
 /** The set of commands supported by the WorldView */
 class FLevelCollectionCommands 

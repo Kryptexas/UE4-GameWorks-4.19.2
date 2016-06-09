@@ -3315,6 +3315,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 		// Untag all objects and names.
 		UnMarkAllObjects();
 
+		TArray<UObject*> CachedObjects;
 
 		UE_LOG_COOK_TIME(TEXT("ResetLoadersForSaveUnMarkAllObjects"));
 
@@ -3373,8 +3374,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 
 				// Kick off any Precaching required for the target platform to save these objects
 				// only need to do this if we are cooking a different platform then the one which is currently running
-				// TODO: if save package is cancelled then call ClearCache on each object
-				TArray<UObject*> CachedObjects;
+				// TODO: if save package is canceled then call ClearCache on each object
 
 #if WITH_EDITOR
 				if ( bIsCooking )
@@ -4841,23 +4841,23 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 
 
 				SlowTask.EnterProgressFrame();
+			}
 
-				// Route PostSaveRoot to allow e.g. the world to detach components for the persistent level that where
-				// attached in PreSaveRoot.
-				if( Base )
-				{
-					Base->PostSaveRoot( bCleanupIsRequired );
-				}
+			// Route PostSaveRoot to allow e.g. the world to detach components for the persistent level that were
+			// attached in PreSaveRoot.
+			if( Base )
+			{
+				Base->PostSaveRoot( bCleanupIsRequired );
+			}
 
-				SlowTask.EnterProgressFrame();
+			SlowTask.EnterProgressFrame();
 			
 #if WITH_EDITOR
-				for ( int CachedObjectIndex = 0; CachedObjectIndex < CachedObjects.Num(); ++CachedObjectIndex )
-				{
-					CachedObjects[CachedObjectIndex]->ClearCachedCookedPlatformData(TargetPlatform);
-				}
-#endif
+			for ( int CachedObjectIndex = 0; CachedObjectIndex < CachedObjects.Num(); ++CachedObjectIndex )
+			{
+				CachedObjects[CachedObjectIndex]->ClearCachedCookedPlatformData(TargetPlatform);
 			}
+#endif
 
 		}
 		if( Success == true )

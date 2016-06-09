@@ -3,7 +3,7 @@
 #include "GraphEditorCommon.h"
 #include "GraphEditorActions.h"
 
-#define LOCTEXT_NAMESPACE ""
+#define LOCTEXT_NAMESPACE "GraphEditorCommands"
 
 void FGraphEditorCommandsImpl::RegisterCommands()
 {

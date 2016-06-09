@@ -3,7 +3,7 @@
 #include "VREditorModule.h"
 #include "VREditorActions.h"
 
-#define LOCTEXT_NAMESPACE ""
+#define LOCTEXT_NAMESPACE "VREditorActions"
 
 void FVREditorActions::RegisterCommands()
 {

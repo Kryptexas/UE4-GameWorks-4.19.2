@@ -199,7 +199,7 @@ void FDirectoryWatchRequestWindows::ProcessChange(uint32 Error, uint32 NumBytes)
 
 	if ( !bValidNotification )
 	{
-		UE_LOG(LogDirectoryWatcher, Warning, TEXT("A directory notification failed for '%s' because it was aborted or there was a buffer overflow."), *Directory);
+		UE_LOG(LogDirectoryWatcher, Log, TEXT("A directory notification failed for '%s' because it was aborted or there was a buffer overflow."), *Directory);
 		return;
 	}
 

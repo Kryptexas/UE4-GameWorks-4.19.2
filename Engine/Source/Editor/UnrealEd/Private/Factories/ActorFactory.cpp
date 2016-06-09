@@ -611,7 +611,7 @@ UActorFactoryNiagara
 UActorFactoryNiagara::UActorFactoryNiagara(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
-	DisplayName = LOCTEXT("EmitterDisplayName", "NiagaraEffect");
+	DisplayName = LOCTEXT("NiagaraEffectDisplayName", "NiagaraEffect");
 	NewActorClass = ANiagaraActor::StaticClass();
 }
 
@@ -1026,14 +1026,14 @@ bool UActorFactorySkeletalMesh::CanCreateActorFrom( const FAssetData& AssetData,
 		const FString* TargetSkeletonPath = AssetData.TagsAndValues.Find( TEXT("TargetSkeleton") );
 		if ( TargetSkeletonPath == NULL || TargetSkeletonPath->IsEmpty() )
 		{
-			OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoTargetSkeleton", "UAnimBlueprints must have a valid Target Skeleton.");
+			OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoAnimBPTargetSkeleton", "UAnimBlueprints must have a valid Target Skeleton.");
 			return false;
 		}
 
 		FAssetData TargetSkeleton = AssetRegistry.GetAssetByObjectPath( **TargetSkeletonPath );
 		if ( !TargetSkeleton.IsValid() )
 		{
-			OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoTargetSkeleton", "UAnimBlueprints must have a valid Target Skeleton.");
+			OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoAnimBPTargetSkeleton", "UAnimBlueprints must have a valid Target Skeleton.");
 			return false;
 		}
 
@@ -1055,7 +1055,7 @@ bool UActorFactorySkeletalMesh::CanCreateActorFrom( const FAssetData& AssetData,
 		}
 		else
 		{
-			OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoTargetSkeleton", "UAnimBlueprints must have a valid Target Skeleton.");
+			OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoAnimBPTargetSkeleton", "UAnimBlueprints must have a valid Target Skeleton.");
 		}
 	}
 

@@ -2,7 +2,7 @@
 
 #include "MediaPlayerEditorPrivatePCH.h"
 
-#define LOCTEXT_NAMESPACE ""
+#define LOCTEXT_NAMESPACE "MediaPlayerEditorCommands"
 
 void FMediaPlayerEditorCommands::RegisterCommands()
 {
