@@ -633,12 +633,11 @@ bool RunDumpToFile(const FString& InPathToGitBinary, const FString& InRepository
 	if(!InRepositoryRoot.IsEmpty())
 	{
 		// Specify the working copy (the root) of the git repository (before the command itself)
-		FullCommand = TEXT("--work-tree=\"");
+		FullCommand  = TEXT("--work-tree=\"");
 		FullCommand += InRepositoryRoot;
 		// and the ".git" subdirectory in it (before the command itself)
 		FullCommand += TEXT("\" --git-dir=\"");
-		FullCommand += InRepositoryRoot;
-		FullCommand += TEXT(".git\" ");
+		FullCommand += FPaths::Combine(*InRepositoryRoot, TEXT(".git\" "));
 	}
 	// then the git command itself
 	FullCommand += TEXT("show ");
