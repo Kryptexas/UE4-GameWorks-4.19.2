@@ -675,21 +675,35 @@ public:
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
 
 		SetShaderValue(RHICmdList, ShaderRHI, TexelSize, 1.0f / GTranslucencyLightingVolumeDim);
-		SetTextureParameter(
-			RHICmdList,
-			ShaderRHI, 
-			TranslucencyLightingVolumeAmbient, 
-			TranslucencyLightingVolumeAmbientSampler, 
-			TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
-			SceneContext.TranslucencyLightingVolumeAmbient[VolumeCascadeIndex]->GetRenderTargetItem().ShaderResourceTexture);
 
-		SetTextureParameter(
-			RHICmdList,
-			ShaderRHI, 
-			TranslucencyLightingVolumeDirectional, 
-			TranslucencyLightingVolumeDirectionalSampler, 
-			TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
-			SceneContext.TranslucencyLightingVolumeDirectional[VolumeCascadeIndex]->GetRenderTargetItem().ShaderResourceTexture);
+		const IPooledRenderTarget* RT0 = SceneContext.TranslucencyLightingVolumeAmbient[VolumeCascadeIndex];
+		const IPooledRenderTarget* RT1 = SceneContext.TranslucencyLightingVolumeDirectional[VolumeCascadeIndex];
+
+		//Checks to detect/prevent UE-31578
+		ensure(RT0);
+		ensure(RT1);
+
+		if (RT0)
+		{
+			SetTextureParameter(
+				RHICmdList,
+				ShaderRHI,
+				TranslucencyLightingVolumeAmbient,
+				TranslucencyLightingVolumeAmbientSampler,
+				TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(),
+				RT0->GetRenderTargetItem().ShaderResourceTexture);
+		}
+
+		if (RT1)
+		{
+			SetTextureParameter(
+				RHICmdList,
+				ShaderRHI,
+				TranslucencyLightingVolumeDirectional,
+				TranslucencyLightingVolumeDirectionalSampler,
+				TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(),
+				RT1->GetRenderTargetItem().ShaderResourceTexture);
+		}
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -1240,8 +1254,17 @@ void FDeferredShadingSceneRenderer::InjectAmbientCubemapTranslucentVolumeLightin
 		
 		for (int32 VolumeCascadeIndex = 0; VolumeCascadeIndex < TVC_MAX; VolumeCascadeIndex++)
 		{
+			//Checks to detect/prevent UE-31578
+			const IPooledRenderTarget* RT0 = SceneContext.TranslucencyLightingVolumeAmbient[VolumeCascadeIndex];
+			ensure(RT0);
+
+			if (!RT0)
+			{
+				continue;
+			}
+
 			// we don't update the directional volume (could be a HQ option)
-			SetRenderTarget(RHICmdList, SceneContext.TranslucencyLightingVolumeAmbient[VolumeCascadeIndex]->GetRenderTargetItem().TargetableTexture, FTextureRHIRef(), true);
+			SetRenderTarget(RHICmdList, RT0->GetRenderTargetItem().TargetableTexture, FTextureRHIRef(), true);
 
 			RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
@@ -1271,8 +1294,8 @@ void FDeferredShadingSceneRenderer::InjectAmbientCubemapTranslucentVolumeLightin
 				RasterizeToVolumeTexture(RHICmdList, VolumeBounds);
 			}
 
-			RHICmdList.CopyToResolveTarget(SceneContext.TranslucencyLightingVolumeAmbient[VolumeCascadeIndex]->GetRenderTargetItem().TargetableTexture,
-			SceneContext.TranslucencyLightingVolumeAmbient[VolumeCascadeIndex]->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
+			RHICmdList.CopyToResolveTarget(RT0->GetRenderTargetItem().TargetableTexture,
+			RT0->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
 		}
 	}
 }
@@ -1571,6 +1594,15 @@ static void InjectTranslucentLightArray(FRHICommandListImmediate& RHICmdList, co
 		const IPooledRenderTarget* RT0 = SceneContext.TranslucencyLightingVolumeAmbient[VolumeCascadeIndex];
 		const IPooledRenderTarget* RT1 = SceneContext.TranslucencyLightingVolumeDirectional[VolumeCascadeIndex];
 
+		//Checks to detect/prevent UE-31578
+		ensure(RT0);
+		ensure(RT1);
+
+		if (!RT0 || !RT1)
+		{
+			continue;
+		}
+
 		GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, RT0);
 		GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, RT1);
 
@@ -1785,6 +1817,15 @@ void FDeferredShadingSceneRenderer::InjectSimpleTranslucentVolumeLightingArray(F
 			const IPooledRenderTarget* RT0 = SceneContext.TranslucencyLightingVolumeAmbient[VolumeCascadeIndex];
 			const IPooledRenderTarget* RT1 = SceneContext.TranslucencyLightingVolumeDirectional[VolumeCascadeIndex];
 
+			//Checks to detect/prevent UE-31578
+			ensure(RT0);
+			ensure(RT1);
+
+			if (!RT0 || !RT1)
+			{
+				continue;
+			}
+
 			GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, RT0);
 			GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, RT1);
 
@@ -1873,7 +1914,18 @@ void FDeferredShadingSceneRenderer::FilterTranslucentVolumeLighting(FRHICommandL
 				const IPooledRenderTarget* RT1 = SceneContext.GetTranslucencyVolumeDirectional((ETranslucencyVolumeCascade)VolumeCascadeIndex);
 
 				const IPooledRenderTarget* Input0 = SceneContext.TranslucencyLightingVolumeAmbient[VolumeCascadeIndex];
-				const IPooledRenderTarget* Input1 = SceneContext.TranslucencyLightingVolumeDirectional[VolumeCascadeIndex];								
+				const IPooledRenderTarget* Input1 = SceneContext.TranslucencyLightingVolumeDirectional[VolumeCascadeIndex];	
+
+				//Checks to detect/prevent UE-31578
+				ensure(RT0);
+				ensure(RT1);
+				ensure(Input0);
+				ensure(Input1);
+
+				if (!RT0 || !RT1 || !Input0 || !Input1)
+				{
+					continue;
+				}
 
 				GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, RT0);
 				GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, RT1);
