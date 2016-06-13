@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2632132
+﻿INTSourceChangelist:2748611
 Availability:Public
 Title:Paper2D 스프라이트
 Crumbs: %ROOT%, Engine, Engine/Paper2D
@@ -9,6 +9,8 @@ Related: Engine\Paper2D\Sprites\RenderGeometry
 Related: Engine\Paper2D\Flipbooks
 Related: Engine/Rendering/Materials
 Related: Engine/Content/Types/Textures
+Version: 4.9
+SkillLevel: Intermediate
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -73,9 +75,9 @@ Related: Engine/Content/Types/Textures
 
 **빈 스프라이트 애셋을 새로 만들려면:**
 
-1. **콘텐츠 브라우저** 에서 ![Create](button_cb_new.png)(h:24) 버튼을 누른 다음, _기타_ 아래 **스프라이트** 를 선택합니다.
+1. **콘텐츠 브라우저** 에서 **신규 추가** 버튼을 누른 다음, _기타_ 아래 **스프라이트** 를 선택합니다.
 	
-	![](sprite_new_menu.png)
+	![](SpriteCB.jpg)
 
 	[REGION:tip]
 	**콘텐츠 브라우저** 에 **우클릭** 을 해도 똑같은 맥락 메뉴를 띄울 수 있습니다.
@@ -83,19 +85,19 @@ Related: Engine/Content/Types/Textures
 
 1. 새로운 스프라이트 애셋 이름을 짓습니다.
 
-	![](sprite_new_name.png)
+	![](MySpriteCB.jpg)
 
 1. 스프라이트 생성은 되었지만 아직 저장되지는 않았습니다 (좌상단 구석의 별표를 통해 알 수 있습니다).
 
-	![](sprite_new_saveall.png)
+	![](SpriteSaveAll.jpg)
 
-	![Save All](save_all_button.png)(h:24) 버튼을 클릭하여 스프라이트를 저장합니다.
+	**모두 저장** 버튼을 클릭하여 스프라이트를 저장합니다.
 
 1. 새로운 스프라이트 애셋을 **더블클릭** 하여 **스프라이트 에디터** 에서 엽니다.
 
 1. **디테일** 패널에서 **Source Texture** 프로퍼티를 사용하여 스프라이트 애셋에 텍스처를 할당할 수 있습니다.
 	
-	![](sprite_new_details_texture.png)
+	![](DetailsSprite.jpg)
 
 [REGION:note]
 **스프라이트 에디터** 에서 스프라이트 작업 방법 관련 상세 정보는 [](Engine\Paper2D\Sprites\Editor) 문서를 참고하세요.
@@ -108,7 +110,7 @@ Related: Engine/Content/Types/Textures
 
 1. **콘텐츠 브라우저** 에서 텍스처 애셋에 **우클릭** 한 다음 _스프라이트 액션_ 아래 **스프라이트 생성** 을 선택합니다.
 
-	![](sprite_create_menu.png)
+	![](ChooseSprite.jpg)
 
 1. 새로운 스프라이트 애셋 이름을 짓습니다.
 

@@ -1,13 +1,15 @@
-INTSourceChangelist:2068551
+﻿INTSourceChangelist:2697139
 Availability: Licensee
 Title:Simplygon 컴파일하기
 Crumbs:%ROOT%, Engine, Engine/UI/Tools/Simplygon
 Description:언리얼 엔진 4 에 통합된 Simplygon 컴파일 방법 및 사용 조건에 대한 안내입니다.
+Version: 4.9
+SkillLevel: Advanced
 
 [TOC(start:2)]
 
 
-## 개요
+
 
 Simplygon 은 에디터와 함께 발매되기는 하지만, 이 기능을 사용하려면 먼저 Donya Labs (http://simplygon.com/) 의 라이선스를 얻어야 합니다. 라이선스와 SDK 관련 상세 정보는 직접 연락해 주시기 바랍니다.
 

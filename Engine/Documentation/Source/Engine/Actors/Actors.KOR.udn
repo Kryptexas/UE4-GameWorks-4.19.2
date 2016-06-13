@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title: 액터 & 지오메트리
 Crumbs:%ROOT%, Engine
 Description:Actor, 액터에 대한 정의, 레벨에서의 사용법, 배치 및 조작 기법에 대한 문서입니다.
 Navigation:topic
+parent:Engine/Editor
+order:5
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]

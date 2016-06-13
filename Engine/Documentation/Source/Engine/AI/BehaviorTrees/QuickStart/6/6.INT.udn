@@ -2,6 +2,7 @@ Availability:Public
 Title: 6. Setup the AI Controller Blueprint
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 6. Setup the AI Controller Blueprint
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

@@ -1,7 +1,12 @@
-﻿Availability:NoPublish
+﻿INTSourceChangelist:1
+Availability:Public
 Title:从GitHub下载虚幻引擎
 Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine
 Description:从GitHub现在虚幻引擎源码。
+Prereq: GettingStarted/DownloadingUnrealEngine
+Related: Programming/Development/BuildingUnrealEngine
+Version: 4.8
+SkillLevel: Advanced
 
 从Github获得虚幻引擎源码有两种方式：
 

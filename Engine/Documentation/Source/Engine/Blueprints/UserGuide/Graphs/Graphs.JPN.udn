@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:2694967
+﻿INTSourceChangelist:2968923
 Availability:Public
 Title:グラフ
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:ブループリントに関連付けられたイベントに反応してアクションを実行するためにイベントと関数呼び出しを利用するノードグラフ
 version:4.9
+Parent:Engine/Blueprints/Anatomy
+Tags:Graphs
 
 [VAR:Topic]
 [OBJECT:Topic]

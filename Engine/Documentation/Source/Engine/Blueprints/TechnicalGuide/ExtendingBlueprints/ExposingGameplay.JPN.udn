@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2686427
+﻿INTSourceChangelist:2823302
 Availability:Public
 Title:ゲームプレイ要素をブループリントに公開する
 Crumbs: %ROOT%, Programming, Engine/Blueprints/TechnicalGuide
@@ -73,6 +73,26 @@ C++ クラスで定義した変数を、当該クラスから拡張するブル�
 	UFUNCTION(BlueprintCallable, Category="Weapon")
 	void Fire();
 
+関数シグネチャを作成する場合、リファレンスでパラメータ パスを作成すると、それがブループリント ノード上の出力ピンになることに注目してください。リファレンスでパラメータ パスを作成するには、
+`UPARAM()` マクロを使います。
+
+![](UParam.png)
+
+	UFUNCTION(BlueprintCallable, Category = "Example Nodes")
+	static void HandleTargets(UPARAM(ref) TArray<FVector>& InputLocations, TArray<FVector>& OutputLocations);
+
+`UPARAM()` を使ってもピンの表示名を変更することができます。例えば、KismetMathLibrary の MakeRotator 関数は `UPARAM()` と `DisplayName` をキーワードとして使って ロール (進行軸回転)、ピッチ (上下動)、ヨー (左右回転) パラメータのブループリントでの表示を変更します。
+
+![](UParam2.png)
+
+	/** Makes a rotator {Roll, Pitch, Yaw} from rotation values supplied in degrees */
+	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="construct build rotation rotate rotator makerotator", NativeMakeFunc))
+	static FRotator MakeRotator(
+	UPARAM(DisplayName="X (Roll)") float Roll,	
+	UPARAM(DisplayName="Y (Pitch)") float Pitch,
+	UPARAM(DisplayName="Z (Yaw)") float Yaw);
+
+
 
 | キーワード | 説明 |
 | -- | -- |
@@ -81,7 +101,7 @@ C++ クラスで定義した変数を、当該クラスから拡張するブル�
 | **BlueprintPure** | ブループリントから呼び出し可能なネイティブ関数です。呼び出し先のオブジェクト、あるいは他のグローバル ステートを何も変更しないネイティブ コードを実行します。つまりこのノードを呼び出しでは何も変更されず、単に入力を受け入れ、出力を示します。これらは、数学のノード (+、 - 、 * など) のようなものです。または変数の getter または永久に何も変更しない変数のようなものです。こうしたものをスケジューリングする必要はありません。また、白色の実行ラインと接続しません。こうしたノードが作成したデータをどの BlueprintCallable ノードが必要としているかに合わせて、コンパイラはこれらを自動的に認識します。 |
 | [REGION:tablesection]ネイティブからブループリントへのコミュニケーション[/REGION] ||
 | **BlueprintImplementableEvent** | ネイティブ関数をブループリントに呼び出す時に使う代表的な方法です。これはブループリント自体に実装する仮想関数のようなものです。実装がなければ、この関数呼び出しは無視されます。BlueprintImplementableEvent が戻り値または出力パラメータを持たない場合、イベントとして表示され、 **右クリック** してブループリントのイベント グラフで選択して利用できるということを覚えておいてください。戻り値または出力パラメータがあれば、**[My Blueprints]** タブにリスト表示され、**右クリック** して "implement" 関数を選択することでオーバーライドすることができます。 BlueprintImplementableEvents は関数のネイティブな実装を持たないことにご注意ください。 |
-| **BlueprintNativeEvent** | 上記と同じです。ただし、この関数にはネイティブのデフォルト実装があり、ブループリントがその関数をオーバーライドしなければ呼び出されます。ブループリントが実装しないデフォルトのビヘイビアを、必要に応じてブループリントにその機能をオーバーライドできるようにしたい場合に便利です。これらは、負荷がより多くかかるため、そうした機能が必要な場合に限り使用します。BlueprintNativeEvent をオーバーライドしても、必要に応じてネイティブ実装を呼び出すことができます。イベントまたは関数エントリを **右クリック** し、 [Add call to parent (親に呼び出しを追加)] を選択して行います。 |
+| **BlueprintNativeEvent** | 上記と同じです。ただし、この関数にはネイティブのデフォルト実装があり、ブループリントがその関数をオーバーライドしなければ呼び出されます。ブループリントが実装しないデフォルトのビヘイビアを、必要に応じてブループリントにその機能をオーバーライドできるようにしたい場合に便利です。これらは、負荷がより多くかかるため、そうした機能が必要な場合に限り使用します。BlueprintNativeEvent をオーバーライドしても、必要に応じてネイティブ実装を呼び出すことができます。イベントまたは関数エントリを **右クリック** し、[Add call to parent (親に呼び出しを追加)] を選択して行います。 |
 
 
 

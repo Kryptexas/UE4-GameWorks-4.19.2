@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2714898
 Availability: Public
-Title:Edit a Physical Material
+Title:피지컬 머티리얼 편집
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
 Description:
 Version: 4.9
@@ -45,19 +45,19 @@ SkillLevel: Intermediate
 [/OBJECT]
 [/VAR]
 
-The following steps detail how to edit an already existing Physical Material.
+다음은 기존에 이미 있는 피지컬 머티리얼을 편집하는 방법입니다.
 
-1. **Double click** the new Physical Material to edit its properties.
+1. 피지컬 머티리얼을 **더블클릭** 하여 프로퍼티를 편집합니다.
 
 	![](Engine\Physics\PhysicalMaterials\HowTo\PhysMatProperties.jpg)(w:250)
 
-1. **Adjust Properties**.
+1. 프로퍼티를 조정합니다.
 
 	![](Engine\Physics\PhysicalMaterials\HowTo\AdjustProperties.jpg)
 
-1. **Click Save** ![](Shared\Icons\icon_SaveAsset_40x.png)
+1. ![](Shared\Icons\icon_SaveAsset_40x.png) 저장을 클릭합니다.
 
-See the **[](Engine/Physics/PhysicalMaterials/Reference)** for information on the properties in the Physical Material.
+피지컬 머티리얼 관련 상세 정보는 [](Engine/Physics/PhysicalMaterials/Reference) 문서를 참고하세요.
 
 
 

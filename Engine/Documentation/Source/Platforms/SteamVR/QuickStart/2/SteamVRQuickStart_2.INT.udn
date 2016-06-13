@@ -22,85 +22,77 @@ Platform:SteamVR
 
 %Steps%
 
-Now that we have established the SteamVR is setup and working correctly, it is now time to get it working with UE4. 
-In the following section we will go over how to setup a project to work with Steam VR.
+In the following section we will go over how to setup a new Unreal Engine 4 (UE4) project to work with SteamVR.
 
-1. First create a new Blueprint base project with the following settings.
+[region:note]
+If you have not done so already make sure to run the SteamVR **Room Setup**  to establish and calibrate the tracking area. 
+Failing to do this could result in SteamVR and UE4 not working correctly together.
+[/region]
+
+1. Create a new blank Blueprint base project with hardware set to **Mobile / Tablet**, graphics set to **Scalable 3D or 2D** and **No Starter Content**.
 
 	![](T_CreateNewProject.png)
 
-1. Once the project loads check to see if your VR Headset is working by clicking on the small triangle next to the **Play** button and then from the menu that is displayed select the **VR Preview** option. 
-	If your VR Headset is properly set up you should now see the basic level being display and have the ability to rotate your head left or right.
+1. Once the project loads click on the small triangle next to the **Play** button and then from the menu that is displayed, select the **VR Preview** option. 
+	If your VR Headset is properly set up you should now see the basic level being display and have the ability to rotate your head around in any direction when you put the HMD on.
 	
 	![](Check_VR_Working_00.png)
 
 	[region:tip]
-	If your can not get the Vive HMD to work check the Plugins section to make sure that the Steam VR plug-in is enabled and if not click on the checkmark box next to **Enable** to enable it.
+	If your can not get the HTC Vive HMD to work check the Plugins section to make sure that the Steam VR plug-in is enabled and if not click on the checkmark box next to **Enable** to enable it.
 	 ![](T_Enable_Steam_VR.png)
 	 If that still does not get your VR Headset to work with the VR Preview make sure to check out the [VR Documents](Platforms/VR) to ensure that nothing was missed during setup.
 	[/region]
 
-1. Right - Click inside of the **Content Browser** and select the create a new Blueprint.
-	From the **Pick Parent Class** window that is displayed select the **Game Mode** option and call it **VR_Gamemode**. 
+1. With verification that the Head Mounted Display (HMD) is working, right - click inside of the **Content Browser** and select the **Blueprint Class** option from the **Create Basic Asset** section.
+
+	![](Create_New_BP.png)
+
+1. From the **Pick Parent Class** window that is displayed search for, create and name the following Blueprint nodes.
+
+	![](Pick_Parent_Class_Window.png)
+
+	|Blueprint Node|Name to use|
+	|--------------|------|
+	|Game Mode|VR_GameMode|
+	|Pawn|VR_Pawn|
+
+	When completed you should have the following Blueprints in your Content Browser.
+
+	![](Creating_Required_BP_Nodes.png)
+
+1. Open **VR_GameMode** Blueprint and then under the **Classes** section change the **Default Pawn Class** to point to the **VR_Pawn** that was created.
 	
-	![](Create_New_Game_Mode.png)
-
-1. Right - Click inside of the **Content Browser** and select the create a new Blueprint.
-	From the **Pick Parent Class** window that is displayed use the search box at the bottom and search for **PlayerCameraManager**. 
-	Once PlayerCameraManager is located click on it to create it and name it **VR_PlayerCameraManager**.
-
-	![](Creat_New_PCM.png)
-
-1. Open up the **VR_PlayerCameraManager** and then in the **Class Defaults** section under **Player Camera Manger** enable the  **Follow Hmd Orientation** option.
-
-	![](Setting_Up_PCM.png)
-
-1. Create a new Blueprint from the Content Browser and select the **Player Controller** option. 
-	Name the newly created Player Controller, **VR_PlayerController** and open it up.
-
-	![](Creat_New_PlayerController.png)
-
-1. Once opened in the **Class Defaults** section under **Player Controller** set the **Player Camera Manager Class** to the **VR_PlayerController** that was created previously by clicking on the white box that says **None** and selecting **VR_PlayerController** from the list.
-
-	![](Setting_UP_PC.png)
-
-1. Create another Blueprint in the Content Browser this time selecting **Pawn** from the **Pick Parent Class** window and name the pawn **VR_Pawn**.
-	
-	![](Create_New_Pawn.png)
-
-1. Open up the newly created **VR_Pawn** and navigate to the **Class Defaults** section.
-	From there in the **Details** panel under the **Camera** section set the **Base Eye Height** to **0.0**.
-	
-	[region:note]
-	This only applies to Steam VR other VR setups can skip this step.
-	[/region]
-
-	![](Setting_Up_PC_Defaults.png)
-
-1. Click on the **Event Graph** tab and then Right - Click in the graph to expose the search function. Search for the **Set Tracking Space** node add at it to the graph.
-	 Wire the output of the **Event Begin Play** to the input on the Set Tracking Space node.
-
-	[region:note]
-	This only applies to Steam VR other VR setups can skip this step.
-	[/region]
-
-	![](Set_Tracking_Space.png)
-
-	[region:tip]
-	You might notice that the **New Space** input on the Set Tracking Space was set to a variable. 
-	This was done purely to make adjusting this value easier as you can then adjust this value from the default properties of the Blueprint. 
-	[/region]
-
-1. Open up the **World Settings** of your project and make sure that under the **Game Mode** section the following data is filled in with what was created in the previous steps.
-
 	![](Setting_Up_Game_Mode.png)
 
+1. Under **World Settings** in the **Game Mode** section, change the **GameMode Override** to the **VR_GameMode**.
+
+	![](Adding_New_GameMode.png)
+
+1. Now open up the **VR_Pawn** Blueprint then click on the **Class Defaults** and in the **Details** panel under the **Camera** section set the **Base Eye Height** to **0.0**.
+
+	![](Set_Base_Eye_Height.png)
+
+1. In the **Components** tab, add a **SteamVRChaperone** and **Camera** component makeing sure that the camera's **Transform Location** is set to **0,0,0**.
+
+	![](Adding_A_Camera.png)
+
+1. Inside of the level, select the Static Mesh used for the floor and set the X, Y and Z location to **0,0,0**.
+
+	![](Move_Floor_Down.png)
+
+1. Select the **Player Start** and position it so that the center of the Player Start is just above the Static Mesh used for the ground. 
+In this example we used a **Z** height of **1.0 CM** for the Player Start.
+
+	![](Move_Player_Start.png)
+
 	[region:note]
-	Make sure that once you have input the Game Mode options you created you save your level so that when your project is re-opened what you input will be loaded.
+	Normally you do not want to have your **Player Start** intersecting with any type of geometry in your level. 
+	However because SteamVR reads your HMD's origin as 0,0,0, or sitting on the floor, moving the Player Start to a normal height will cause there to be an offset applied to the VR camera making it appear that your player is floating above the ground.  
 	[/region]
 
-1. Use the VR Preview mode to check to make sure that everything is working. 
-	If everything has been setup correctly you should now only be able to rotate your head left or right and up or down.
+1. Launch the level using the **VR Preview** button, put your HMD on and then stand up.
+You should now feel as though the virtual floor that you are standing on matches up to the real world floor.
 
 
 %Steps%

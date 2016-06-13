@@ -147,7 +147,7 @@ When creating any game, you will need the ability to set a default level for the
 
 
 ## Level World Settings
-Each level can have unique settings applied to it via the **World Settings** options. The **World Settings** options allow you to do everything from making sure the right **Game Mode** is activated when you play the level too allowing you to adjust how the Global Illumination will look for that level. To activate the **World Settings** options, you need to do the following.
+Each level can have unique settings applied to it via the **World Settings** options. The **World Settings** options allow you to do everything from making sure the right **Game Mode** is activated when you play the level to allowing you to adjust how the Global Illumination will look for that level. To activate the **World Settings** options, you need to do the following.
 
 1. On the **Toolbar** that is across the top of the editor, click on the **Settings** option. 
 	![](Level_Settings_Menu.jpg)

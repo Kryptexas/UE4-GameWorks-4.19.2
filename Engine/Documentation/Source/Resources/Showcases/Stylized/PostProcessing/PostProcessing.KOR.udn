@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2726451
 Availability: Public
 Title:Stylized Rendering 포스트 프로세싱
 Crumbs:%ROOT%, Resources, Resources/Showcases/Stylized
@@ -6,6 +6,7 @@ Description:UE4 에 포함된 Stylized Rendering 쇼케이스에 사용된 포�
 Related: Engine/Rendering/PostProcessEffects
 Related: Engine/Rendering/PostProcessEffects/PostProcessMaterials
 Related: Resources/ContentExamples/PostProcessing
+Version: 4.9
 
 
 [TOC(start:2 end:3)]
@@ -66,13 +67,20 @@ Related: Resources/ContentExamples/PostProcessing
 
 씬의 오브젝트 주변 외곽선은 SceneTexture 표현식을 통한 씬 깊이를 샘플링하여 처리합니다. 여기다가 UV 좌표를 가로 세로 모두 음양 방향으로 약간 동요시켜 오프셋을 줍니다. 그런 다음 그 결과를 합쳐 외곽선 위치를 결정하는 데 사용합니다.
 
-그러나 선을 실제로 렌더링하기 전, 앰비언트 오클루전에서 두 번째 SceneTexture 를 계산합니다. 이것을 외곽선 마스킹에 사용하는데요. 그 목적은 일부 와이어프레임 가장자리에 내부의 선이 보이는 것을 방지하기 위해서입니다. 이 모습은 아래와같이 볼 수 있습니다:
+그러나 선을 실제로 렌더링하기 전, 앰비언트 오클루전에서 두 번째 SceneTexture 를 계산합니다. 이것을 외곽선 마스킹에 사용하는데요. 그 목적은 일부 와이어프레임 가장자리에 내부의 선이 보이는 것을 방지하기 위해서입니다. 이 모습은 아래와 같이 볼 수 있습니다:
 
-[REGION:imagetable]
-|![](PostProcessLines_2.png)(w:450) | ![](PostProcessLines_1.png)(w:450)|
-|:---:|:---:|
-| AO 마스킹 전 | AO 마스킹 후 |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Before AO Masking](PostProcessLines_2.png)(%Dither%)
+	[/PARAM]
+	[PARAM:after]
+	![After AO Masking](PostProcessLines_1.png)(%Dither%)
+	[/PARAM]
+[/OBJECT]
+
+[VAR:Dither]
+w:450
+[/VAR]
 
 ### 종이 이펙트
 

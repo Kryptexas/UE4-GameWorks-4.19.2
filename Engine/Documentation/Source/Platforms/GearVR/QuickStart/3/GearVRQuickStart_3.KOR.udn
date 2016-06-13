@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2639013
+﻿INTSourceChangelist:2743354
 Availability:Public
 Title:3. 기어 VR 프로젝트 패키징 & 디플로이
 Crumbs:%ROOT%, Platforms/GearVR
@@ -9,7 +9,7 @@ Related: Platforms\GearVR\Prerequisites
 Related: Platforms\GearVR\BestPractices
 Related: Platforms\GearVR\Debugging
 Skilllevel: Intermediate
-Version: 4.8
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2620109
+﻿INTSourceChangelist:2727266
 Availability:Public
-Title:1.カメラをワールドに配置する
+Title:1.ワールドにカメラを配置する
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/AutoCamera
-Description:複数のカメラがあるワールドを設定
-バージョン：4.9
+Description:複数のカメラをワールドに設定します。
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -12,10 +12,10 @@ Description:複数のカメラがあるワールドを設定
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[ゲーム制御のカメラ](Programming\Tutorials\AutoCamera)
+		[](Programming\Tutorials\AutoCamera)
 	[/PARAM]
 	[PARAM:next]
-		[前の手順](Programming\Tutorials\AutoCamera\2 "%Programming\Tutorials\AutoCamera\2:title%")
+		[次のステップ](Programming\Tutorials\AutoCamera\2 "%Programming\Tutorials\AutoCamera\2:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -24,27 +24,27 @@ Description:複数のカメラがあるワールドを設定
 
 [REGION:tip] **アンリアルエンジン 4** 初心者の人は、最初に [%Programming\QuickStart:title% tutorial](Programming\QuickStart) をお読みください。このチュートリアルの対象者は、プロジェクトの作成、プロジェクトへの C++ コードの追加、コードのコンパイル、UE4 の **Actors** への **コンポーネント** の追加が可能な方を想定しています。[/REGION]
 
-1. まず「HowTo_AutoCamera」という名前のスターターコンテンツを使用して、Basic Code （基本的なコード）プロジェクトを作成します。最初にワールドにカメラを 2 つ作成します。さまざまなカメラの設定方法がありますが、ここでは最も一般的な 2 つの方法を紹介します。最初のカメラは **プレースメントブラウザ** の **[Modes]** タブへ移動して **[Place (配置)]** をクリックするか **Shift-1** を押します。**[All Classes (すべてのクラス)]** セクションに **Camera** アクタが表示されます。このアクタを **レベルエディタ** へドラッグして、シーンを良く見渡すことができる位置に置きます。
+1. まず「HowTo_AutoCamera」という名前のスターターコンテンツを使用して、Basic Code （基本的なコード）プロジェクトを作成します。最初にワールドにカメラを 2 つ作成します。さまざまなカメラの設定方法がありますが、ここでは最も一般的な 2 つの方法を紹介します。最初のカメラは **プレースメントブラウザ** の **[Modes]** タブへ移動して **[Place (配置)]** をクリックするか **Shift + 1** を押します。**[All Classes (すべてのクラス)]** セクションに **Camera** アクタが表示されます。このアクタを **レベルエディタ** へドラッグして、シーンを良く見渡すことができる位置に置きます。
 
-	 [![](PlaceCameraActor.png)](PlaceCameraActor.png)
+	![](PlaceCameraActor.png)
 
-	この操作が終了すると、 **Camera アクタ** が選択されている限り **レベルエディタ** ウィンドウに 新規作成した **Camera アクタ** から見えるピクチャインピクチャビューが表示されます。 
+	この操作が終了すると、 **Camera アクタ** が選択されている限り **レベルエディタ** ウィンドウに新規作成した **Camera アクタ** から見えるピクチャインピクチャビューが表示されます。 
 
-	[![](CameraOnePlacement.png)](CameraOnePlacement.png)
+	![](CameraOnePlacement.png)
 
 1. 2 つ目のカメラは、もう少し難解な部分まで踏み込んだ、より正確なコントロールが出来る方法で作成します。 **プレースメントブラウザ** の **[Mode (モード)]** タブで **[Basic (基本)]** をクリックして **キューブ** を **[レベルエディタ]** ウィンドウへドラッグします。 
 
-	[![](PlaceCube.png)](PlaceCube.png)
+	![](PlaceCube.png)
 
-	[REGION:note]この手順はほぼすべてのアクタ クラスを使用できます。QuickStart チュートリアルで作成した MyActor クラスを Cube の代わりに使用すると面白いかもしれません。[/REGION]
+	[REGION:note]この手順ではほぼすべてのアクタ クラスを使用できます。QuickStart チュートリアルで作成した MyActor クラスを Cube の代わりに使用すると面白いかもしれません。[/REGION]
 
-1. **Cube** アクタを配置したら、これに **CameraComponent** を追加して、先に配置した **CameraActor** と異なるビューを得るためにこの **CameraComponent** の位置と回転を設定しなくてはいけません。
+1. **Cube** アクタを配置する場合、**Camera コンポーネント** を追加します。これは、 **Cube** の **[Details]** パネルで **+ Add Component (コンポーネント追加)** をクリックして行います。先に配置した **Camera アクタ** と異なるビューを得るためにこの **Camera コンポーネント** の位置と回転を設定します。
 
-	[![](CameraTwoPlacement.png)](CameraTwoPlacement.png)
+	![](CameraTwoPlacement.png)
 
-1.  **Constrain Aspect Ratio** をオンにして **CameraActor** の設定と一致するように **CameraComponent** をカスタマイズしなくてはいけません。この設定によりカメラビューの遷移がスムーズになりますが、必須ではありません。
+1.  **Constrain Aspect Ratio** をオンにして **Camera アクタ** の設定と一致するように **Camera コンポーネント** をカスタマイズしなくてはいけません。この設定によりカメラビュー間の遷移がスムーズになりますが、必須ではありません。
 
-	[![](CameraAspect.png)](CameraAspect.png)
+	![](CameraAspect.png)
 
 
 ----

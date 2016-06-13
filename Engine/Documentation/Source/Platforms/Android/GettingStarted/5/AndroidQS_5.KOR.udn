@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2691540
+﻿INTSourceChangelist:2708281
 Availability:Public
 Title:5. 게임 패키징
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
@@ -102,7 +102,7 @@ Skilllevel:Intermediate
 
 1.	.BAT 파일 작업이 완료되면 안드로이드 디바이스에서 프로젝트를 사용할 준비가 된 것이 보일 것입니다.
 
-	![](Game_On_Phone.png)
+	![](Game_On_Phone.png)(w:320)
 
 [/EXCERPT:WindowsSetup]
 
@@ -144,7 +144,7 @@ Skilllevel:Intermediate
 
 1.	.command 파일 작업이 완료되면 안드로이드 디바이스에서 프로젝트를 사용할 준비가 된 것이 보일 것입니다.
 
-	![](Game_On_Phone.png)
+	![](Game_On_Phone.png)(w:320)
 
 [/EXCERPT:MacOSSetup]
 -->

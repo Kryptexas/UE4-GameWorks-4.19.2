@@ -2,6 +2,7 @@ Availability: Public
 Title:Ribbon Type Data
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:Reference for the Ribbon Type Data module, which allows for the creation of particles with streaming tails.
+Version: 4.9
 
 
 
@@ -11,7 +12,7 @@ Description:Reference for the Ribbon Type Data module, which allows for the crea
 The **Ribbon** type data module indicates that the emitter should output trails - connecting particles to form ribbons. Particles are connected in the order of their birth. Therefore, the more erratic the initial velocity pattern of the particles, the more chaotic the ribbon.
 [/EXCERPT:Intro]
 
-The Ribbon type data module has the following properties:
+The **Ribbon** type data module has the following properties:
 
 |Property|Description|
 |---|---|

@@ -3,7 +3,7 @@ Title: 4.5 - Associating Animation & Character Blueprints
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4
 Description: Learn how to associate the Animation Blueprint with the Character Blueprint for your First Person Shooter project.
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -22,23 +22,31 @@ Version: 4.9
 
 %Steps%
 
-During this final section of the tutorial, you're going to associat the animation blueprint you created with your character blueprint.
+During this final section of the tutorial, we're going to associate the animation blueprint that we created with our character blueprint.
 
 1.	Compile and save the **Arms_AnimBP** Animation Blueprint before closing it.
 
 1.	Navigate to the **Blueprints** folder in the **Content Browser** and open the **BP_FPSCharacter** Blueprint.
 
-1.	In **Defaults** mode, locate the **FirstPersonMesh** subsection inside the **Animation** section.
+1.	Select **FPSMesh** in the **Components** tab.
 
-1.	Set the **AnimationBlueprint** for the **FirstPersonMesh** to the **Arms_AnimBP** Animation Blueprint you just created.
+	![](LocateFPSMesh.png)
 
-1.	While you're in the **Defaults** mode, change the **FirstPersonMesh** transform to {0, 0, -150} for **Location** and {0, 0, 0} for **Rotation**.
+1.	Set the **AnimationBlueprint** for the **FPSMesh** to the **Arms_AnimBP** Animation Blueprint you just created.
+
+1.	While you're in the **Defaults** mode, change the **FPSMesh** transform to {50, -15, -150} for **Location** and {0, 25, 350} for **Rotation**.
+
+	[REGION:lightbox]
+	[![](NewArmTransform.png)(w:750)](NewArmTransform.png)
+	[/REGION]
 
 1.	Compile and save the Blueprint before closing it.
 
-1.	**Click** the **Play In** button in the **Level Editor Toolbar**. Your arms will be animated as they transition through the animations that you hooked together in the Animation State Machine.
+1.	Click the **Play** button in the **Level Editor Toolbar**.
 
 	![](FinalShot.png)
+
+	_Your arms will be animated as they transition through the animations that you hooked together in the Animation State Machine._
 
 Congratulations! You've learned how to:
 

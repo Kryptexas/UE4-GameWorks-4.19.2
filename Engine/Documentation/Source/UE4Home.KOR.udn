@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2738359
+﻿INTSourceChangelist:2986723
 Availability:Public
 Title: 언리얼 엔진 4 문서
 Crumbs:
 Description: 언리얼 엔진 4 사용법 학습용 자료 전집입니다.
 Navigation:home
-
+social-image:home_social.png
 
 [PUBLISH:Rocket]
 ## 검색
@@ -15,7 +15,7 @@ Navigation:home
 		[RELATIVE:Search]
 		[/PARAM]
 		[PARAMLITERAL:placeholder]
-		도움이 필요하신가요? 여기서 문서를 검색해 보세요.
+		도움이 필요하신가요? 여기서 검색해 보세요.
 		[/PARAMLITERAL]
 		[PARAM:message]
 		[/PARAM]
@@ -80,4 +80,5 @@ Navigation:home
 	%Platforms:role%
 	%Support/Builds:role%
 	[/REGION]
-[/REGION]-->
+[/REGION]
+-->

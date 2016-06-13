@@ -1,38 +1,41 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Material Editor - How To Make Material Functions
-Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
-Description:A How To Guide for using Creating and using Material functions in your materials 
-Related: Engine/Rendering/Materials/Functions
-Related: Engine/Rendering/Materials/Functions/Creating
-Related: Engine/Rendering/Materials/Functions/Editing
-Related: Engine/Rendering/Materials/Functions/Using
-Related: Engine/Rendering/Materials/ExpressionReference
-Related: Engine/Rendering/Materials
+﻿INTSourceChangelist:2707725
+Availability:Public
+Title:材质编辑器 - 如何构造材质函数
+Crumbs:%ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
+Description:有关在材质中创建和使用材质函数的操作指南 
+Related:Engine/Rendering/Materials/Functions
+Related:Engine/Rendering/Materials/Functions/Creating
+Related:Engine/Rendering/Materials/Functions/Editing
+Related:Engine/Rendering/Materials/Functions/Using
+Related:Engine/Rendering/Materials/ExpressionReference
+Related:Engine/Rendering/Materials
+Version:4.9
+SkillLevel:Intermediate
+
 
 [TOC(start:2)]
 
 
-The ability to reuse part of one Material Graph inside another Material Graph can greatly speed up both Material creation time and Material workflow. 
-Unreal Engine 4 (UE4) offers users the ability to do this using what is known as a Material Function.
-In this How To example, we will be re-creating the Fresnel style shading effect that you often see inside of Video Games using a Material Function. 
-The Fresnel style effect is most commonly used for highlighting the edges of object to give them a fake rim light and also helps to make the object's silhouette better visible in the dark. 
+在一个材质图中复用另一个材质图的部分内容，可以节省材质创建时间，并加快材质工作流程的速度。 
+在虚幻引擎 4 (UE4) 中，用户可使用 **材质函数** 来实现此功能。
+在这个操作指南示例中，我们将使用材质函数重新创建电子游戏中常见的菲涅耳风格阴影效果。 
+菲涅耳风格效果常用于强调显示对象的边缘，为对象提供伪边缘光，使对象轮廓在黑暗中更加清晰。 
 
 [region:tip]
-Do not forget to check out the [Creating Material Functions]( Engine/Rendering/Materials/Functions/Creating) document as it also contains a lot of valuable information about how to create and use Material Functions.
+务请参阅 [创建材质函数]( Engine/Rendering/Materials/Functions/Creating) 文档，其中也包含有关如何创建和使用材质函数的大量有价值信息。
 [/region]
 
-## Material Functions
+## 材质函数
 
 [INCLUDE:Engine/Rendering/Materials/Functions#functionsintro] 
 
 
-## Creating Material Functions
+## 创建材质函数
 
-Creating Material Functions can be accomplished in the few following steps. 
+以下是创建材质函数的步骤。 
 
-1. The first thing that we are going to need to do is to create a Material Function. 
-	This can be done within the **Content Browser** by **Right-Clicking** and choosing **New** > **Materials & Textures** > **Material Function**.
+1. 首先，我们需要创建一个材质函数。 
+	相应的操作是，在 **内容浏览器** 中，**右键单击**并选择 **新建（New）**> **材质与纹理（Materials & Textures）**> **材质函数（Material Function）**。
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -46,10 +49,10 @@ Creating Material Functions can be accomplished in the few following steps.
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-1. Once the Material Function has been created it needs to be named. 
-	Your name should be as descriptive as possible so that when someone goes to look at your Material Function they can easily understand what it does. 
-	For this example, we are going to call our node Custom_Fresnel. 
-	You can re-name your Material Function by selecting it in the **Content Browser**, pressing **F2** on the keyboard, and then typing in the name that you want. 
+1. 创建材质函数后，需要进行命名。 
+	名称应该尽可能具有描述性，这样，当他人查看您的材质函数时，可以轻松了解这个函数的作用。 
+	对于本示例，我们将把节点命名为 Custom_Fresnel。 
+	您可以在 **内容浏览器** 中选中您的材质函数，按键盘上的 **F2** 键，然后输入您喜欢的名称，如此即可重命名材质函数。 
 	
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -63,58 +66,58 @@ Creating Material Functions can be accomplished in the few following steps.
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-## Building the Material Function
+## 构建材质函数
 
-1. Now that the Material Function has been created and re-named, let us open it up by using your **Left Mouse Button** to **Double-Click** on it in the **Content Browser**.
-	 When you do this, you should have something that looks like the following. 
+1. 现在，材质函数已创建并重命名，请在 **内容浏览器** 中使用 **鼠标左键双击** 将其打开。
+	 这时，您应该会看到类似下图的内容。 
 
 	![](Material_Function_Editor.png)
 
 	[region:tip]
-	The Material Function editor works in a very similar manner to how the Material Editor works, 
-	the two biggest differences between being what the **Details** panel does and how the Final Material node works. 
-	You can read more about how the Material Function editor works but checking out the [Material Functions Overview](Engine/Rendering/Materials/Functions/Overview)
+	材质函数编辑器的操作非常类似于材质编辑器， 
+	它们之间的最大差异在于 **细节（Details）**面板的作用以及最终材质节点的工作方式。 
+	您可参阅 [材质函数概述](Engine/Rendering/Materials/Functions/Overview)，进一步了解材质函数编辑器的工作方式。
 	[/region]
 
-1. Now with the Material Function Editor open, let us begin to create our Fresnel effect. 
-	Since the Fresnel Effect works based on glancing angles, we are going to need to compare the current surface angle with our camera angle and then use that to determine our **Fresnel Value**. 
-	To do this inside of our shader, we use the [Dot Product]( Engine/Rendering/Materials/ExpressionReference/VectorOps#dotproduct) node to compare our current camera angle with the angle of the surface currently being viewed. 
-	To perform this type of calculation with Material nodes, we are going to need to make use of the following nodes. 
-	* [Constant 3 Vector Node](Engine/Rendering/Materials/ExpressionReference/Constant#constant3vector) x 1
-	* [Transform Node](Engine/Rendering/Materials/ExpressionReference/VectorOps#transform) x 1
-	* [Dot Product Node](Engine/Rendering/Materials/ExpressionReference/VectorOps#dotproduct) x 1
-	* [Camera Vector WS Node](Engine/Rendering/Materials/ExpressionReference/Vector#cameravectorws) x 1
+1. 材质函数编辑器现已打开，让我们开始创建菲涅耳效果。 
+	因为菲涅耳效果的原理基于掠射角，所以我们需要将当前表面角度与摄像机角度进行比较，以此确定我们的 **菲涅耳值**。 
+	为此，在着色器内部，我们使用 [点乘积]( Engine/Rendering/Materials/ExpressionReference/VectorOps#dotproduct) 节点将当前摄像机角度与当前查看表面的角度作比较。 
+	要对材质节点执行此类计算，我们需要使用下列节点。 
+	* [“常量 3 矢量”节点](Engine/Rendering/Materials/ExpressionReference/Constant#constant3vector) x 1
+	* [“转换”节点](Engine/Rendering/Materials/ExpressionReference/VectorOps#transform) x 1
+	* [“点乘积”节点](Engine/Rendering/Materials/ExpressionReference/VectorOps#dotproduct) x 1
+	* [“摄像机矢量 WS”节点](Engine/Rendering/Materials/ExpressionReference/Vector#cameravectorws) x 1
 
-	You can add the above nodes to the Material Function graph a number of ways, but the easiest is to search for each node in the **Palette** menu and then select the node with the **Left Mouse Button** and Drag it into the Material Graph. When completed, you should have something that looks like this:   
+	可通过多种方法将上述节点添加到材质函数图，但是最简单的方法是，在 **选用板** 菜单中搜索每个节点，然后使用 **鼠标左键** 选中该节点并将它拖到材质图中。完成后，您应该会看到类似下图的内容：   
 	
 	![](Material_Function_Needed_Nodes.png)
 
 	[region:note]
-	The Fresnel Effect is the term used to describe how the light you see reflects at different intensities based off of the angle you are viewing it from. For example, if you are standing over a pool looking straight down at the pool, you will not see a lot of reflections in the water. As you start to move your head so that the water in the pool becomes more and more parallel to your eye level, you will begin to notice more and more reflections in the water and this is the type of behavior that we are trying to re-create in our shader, the ability to add or remove visual information based on viewing angle. 
+	“菲涅耳效果”术语用来描述您所看到的光线如何根据您的查看角度以不同强度反射。例如，如果您站在一个池子旁边直视池底，那么将看不到水中的大量反光。当您开始移动头部，以使池水与您的视平线越来越平行，您会注意到水中的反光越来越多，这就是我们尝试在着色器中重现的行为类型，即，根据观看角度增加或移除视觉信息。 
 	[/region]
 	
-1. With the nodes now placed down, it is now time to set them up and wire them together. First, set the Blue Channel of the Constant 3 Vector to **1.0** as this will represent the Z value in our Fresnel term. Then take the output of the Constant 3 Vector node and wire that into the Input of the Vector Transform node. Also make sure that the Transform Node is setup so that we are transforming from Tangent Space into World Space. Then take the output of the Vector Transform node and wire that into the A input of the Dot Product node. Once that has been completed, take the output of the Camera Vector node and wire that into the B input of the Dot Product node. When completed, you should have something that looks like this.
+1. 放置节点之后，需要对它们进行设置并将它们连接在一起。首先，将“常量 3 矢量”的蓝色通道设置为 **1.0**，它表示菲涅耳术语中的 Z 值。然后，将“常量 3 矢量”节点的输出连接到“矢量转换”节点的输入。此外，请确保设置“转换”节点，从切面空间转换为世界空间。然后，将“矢量转换”节点的输出连接到“点乘积”节点的 A 输入。完成后，将“摄像机矢量”节点的输出连接到“点乘积”节点的 B 输入。完成后，您应该看到类似下图的内容。
 
 	![](Material_Function_Nodes_Setup.png)
 
-1. The next thing that we want to do is add a [Clamp Node](Engine/Rendering/Materials/ExpressionReference/Math#clamp) to clamp our results to the 0 to 1 range to make sure that we do not get any errors that might cause rendering artifacts. You can find the **Clamp** node by searching for it in the **Palette** menu and the Drag it into the Material Graph. When completed, you should have something that looks like this. 
+1. 接下来，我们希望添加一个 [“限制”节点](Engine/Rendering/Materials/ExpressionReference/Math#clamp)，以将结果限制在 0 到 1 范围，确保不会产生任何可能会导致渲染伪影的错误。您可以在 **选用板** 菜单中搜索 **限制** 节点，然后将它拖到材质图中。完成后，您应该看到类似下图的内容。 
 	
 	![](Material_Function_Adding_Clamp_Node.png)
 
-1. After the Clamp node, we need to add a [One-Minus node](Engine/Rendering/Materials/ExpressionReference/Math#oneminus) to invert our effect so that only the edges are effected. You can find the One-Minus node by searching for OneMinus in the Palette. When completed, you should have something that looks like the following. 
+1. 在“限制”节点之后，我们需要添加 [“一减”节点](Engine/Rendering/Materials/ExpressionReference/Math#oneminus) 来反转效果，使效果仅作用于边缘。您可以通过在 **选用板** 中搜索 **OneMinus** 找到“一减”节点。完成后，您应该看到类似下图的内容。 
 	
 	![](Material_Function_Adding_OneMinus.png)
 
-1. Next, we need to add two [Function Input]( Engine/Rendering/Materials/Functions/Overview #functioninputnodes) nodes. Function Input nodes are how we supply our Material Function with values or textures when placed inside of another Material.  To add a Function Input to our material search for **Function Input** in the **Palette** and then drag it into the Material Graph. Once you have one placed, you can duplicate it by first selecting the node and then pressing **Ctrl+W** on the keyboard. When completed, you should have something that looks like this. 
+1. 现在，我们需要添加两个 [函数输入]( Engine/Rendering/Materials/Functions/Overview#functioninputnodes) 节点。“函数输入”节点就是我们将材质函数放入另一个材质后，为其提供值或纹理的方式。要将“函数输入”添加到材质，请在 **选用板** 中搜索 **Function Input**，然后将它拖到材质图中。放置“函数输入”之后，您可以选中该节点并按键盘上的 **Ctrl+W** 进行复制。完成后，您应该看到类似下图的内容。 
 	
 	![](Material_Function_Adding_Input_Nodes.png)
 
 	[region:note]
-	When deleting Function Input nodes, you will get the following error. This error is warning you that if you delete this, then all other uses of this Material Function will have this input erased. This means that you could end up effecting lots and lots of other materials if this Material Function is used a lot in your project because a missing input could cause your Material to no longer compile correctly and then not work during game play. 
+	删除“函数输入”节点时，将发生下列错误。此错误警告您，如果删除此节点，那么在此材质函数的所有其他使用中都将删除此输入。这意味着，如果项目中大量使用此材质函数，那么最终可能会影响大量其他材质，因为缺少输入可能会导致材质不再能够正确编译，从而导致在游戏中不起作用。 
 	![](Material_Function_Delete_Function.png)
 	[/region]
 
-1. Now we need to setup the two Function Input nodes that were created so that this Material Function can be used in Materials. If you select one of the Function Input nodes and then look at the **Details** panel, you will notice that there are quite a few options to fill in. For this example, we will only be filling in **Input Name**, **Description**, **Input Type**, and **Preview Value**. When completed, your Function Input nodes should look like the following.
+1. 现在，我们需要对两个已创建的“函数输入”节点进行设置，以使此材质函数可在材质中使用。如果您选中其中一个“函数输入”节点，然后查看 **细节（Details）**选用板，您将注意到可以填入不少选项。在本示例中，我们只需要填写 **输入名称（Input Name）**、**说明（Description）**、**输入类型（Input Type）**和 **预览值（Preview Value）**。完成后，您的“函数输入”节点应该如下所示。
 
 	* **Exponent Input**
 	![](Material_Function_Input_Node_Exp.png)
@@ -123,18 +126,18 @@ Creating Material Functions can be accomplished in the few following steps.
 	![](Material_Function_Input_Node_Pow.png)
 	
 	[region:tip]
-	For more information about what each option of the Function node does, check out the [Function Input node documentation](Engine/Rendering/Materials/Functions/Overview#functioninputnodes). 
+	有关“函数输入”节点中每个选项的作用的更多信息，请参阅 [“函数输入”节点文档](Engine/Rendering/Materials/Functions/Overview#functioninputnodes)。 
 	[/region]
 
-1. With the Function Input nodes now setup, we now need to add a Power Node to the Material Graph. We are using a Power Node so that we can either increase or decrease the falloff of our Fresnel effect. This will help to push the Fresnel effect either closer or further from the edges of the mesh that it is on. To add a Power Node search for it in the **Palette** and then Drag and Drop it into the Material Graph. When completed, you should have something that looks like this. 
+1. 设置“函数输入”节点后，我们现在需要将一个“幂”节点添加到材质图中。使用“幂”节点可以增强或减弱菲涅耳效果的衰减。这有助于使菲涅耳效果更接近或远离网格边缘。要添加“幂”节点，请在 **选用板** 中搜索 Power，然后将它拖放到材质图中。完成后，您应该看到类似下图的内容。 
 	
 	![](Material_Function_Adding_Power.png)
 
-1. Next, we are going to add a Multiply Node so that we can control the intensity of the Fresnel effect.  To add a Multiply Node search for it in the **Palette** and then Drag and Drop it into the Material Graph. When completed, you should have something that looks like this. 
+1. 接着，我们要添加“乘法”节点，用于控制菲涅耳效果的强度。要添加 **乘法** 节点，请在 **选用板** 中搜索 Multiply，然后将它拖放到材质图中。完成后，您应该看到类似下图的内容。 
 	
 	![](Material_Function_Adding_Multiply.png)
 
-1. Now with all the nodes we need added to the Material Graph, it is now time to wire everything together. First, we need to wire the output of the OneMinus node to the Base input of the Power node. Then we need to connect our first Function Input node, Fresnel Exponent, into the Exp input of the Power node. Once that has been completed, we need to then connect the output of the Power node to the A input of the Multiply node and then connect our second Function Input, Fresnel Intensity, into the B input of the Multiply node. Finally we need to take the output of the Multiply node and connect that to the input of the Output Results node.  
+1. 需要的所有节点现在都已添加到材质图，接下来，我们将所有节点连接到一起。首先，我们要将“一减”节点的输出连接到“幂”节点的“底数”（Base）输入。然后，我们要将第一个“函数输入”节点（即 Fresnel Exponent）连接到“幂”节点的“指数”（Exp）输入。完成后，我们需要将“幂”节点的输出连接到“乘法”节点的 A 输入，然后将第二个“函数输入”节点（即 Fresnel Intensity）连接到“乘法”节点的 B 输入。最后，我们要将“乘法”节点的输出连接到“输出结果”节点的输入。  
 	
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -148,14 +151,14 @@ Creating Material Functions can be accomplished in the few following steps.
 	[/PARAMLITERAL]
 	[/OBJECT]                                                                                                                                                                                                     
 
-1. Once the Material nodes have all been connected, we need to now compile the Material Function by pressing the **Apply** button on the main tool bar. If the Material Function compiled correctly, the **Apply** button will be grayed out. When completed, you should have something that looks like the following image.
+1. 所有材质节点都连接完成后，需要按主工具栏中的 **应用（Apply）**按钮，编译材质函数。如果材质函数正确通过编译，那么 **应用（Apply）**按钮将变成灰色。完成后，您应该看到类似下图的内容。
 
 	![](Material_Function_Completed_Material.png)
 
 	
-## Using Material Functions 
+## 使用材质函数 
 
-1. With our Material Function now finished, close the Material Function Editor and create a new Material in the **Content Browser**. To create a new Material, **Right-Click** in the **Content Browser** and then select **Material** from **Basic Assets List** and name your newly created Material, **Fresnel_Material**.
+1. 完成材质函数之后，请关闭材质函数编辑器，并在 **内容浏览器** 中创建新材质。要创建新材质，请在 **内容浏览器** 中 **右键单击**，从 **基本资产列表（Basic Assets List）**中选择 **材质（Material）**，并将新创建的材质命名为 **Fresnel_Material**。
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -169,7 +172,7 @@ Creating Material Functions can be accomplished in the few following steps.
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-1. Now with the **Fresnel_Material** created, open it up by **Double Clicking** on it with the **Left Mouse Button** in the **Content Browser**. With the Material now open, let us first add our newly created **Material Function** by dragging it from the **Content Browser** into our material.  
+1. 创建 **Fresnel_Material** 后，在 **内容浏览器** 中使用 **鼠标左键双击** 它，将其打开。打开材质之后，我们首先将新创建的 **材质函数** 从 **内容浏览器** 拖到材质中，来添加该函数。  
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -183,15 +186,16 @@ Creating Material Functions can be accomplished in the few following steps.
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-1. For this example, we are going to add the following nodes to our Material so that we have a bit better looking preview. Remember to find the nodes listed below search for the nodes' name in the **Palette** menu and then Drag and Drop the node from the **Palette** menu right into the Material Graph. When completed, you should have something that looks like this. 
+1. 在本示例中，我们要将下列节点添加到材质中，以改善预览。请记得在 **选用板** 菜单中按节点名称进行搜索来查找下列节点，然后将这些节点从选用板菜单中直接拖放到材质图中。完成后，您应该看到类似下图的内容。 
 	
-	* **[Constant 3 Vector Node](Engine/Rendering/Materials/ExpressionReference/Constant#constant3vector)** x 1 
+	* **[“常量 3 矢量”（Constant3Vector）节点](Engine/Rendering/Materials/ExpressionReference/Constant#constant3vector)** x 1 
 
-	* **[Scalar Parameter](Engine/Rendering/Materials/ExpressionReference/Parameters#scalarparameter)** x 4
+	* **[标量参数](Engine/Rendering/Materials/ExpressionReference/Parameters#scalarparameter)** x 4
 
 	![](Material_Function_Adding_Nodes.png)
 
-1. Now that all the nodes have been added, it is now time to connect to the proper inputs and outputs. First, connect the Constant 3 Vector to the Base Color input on the Main Shader node. Then, connect one of the Constant One to the Metallic input on the Main Shader node. Then connect another of the Constant One to the Roughness input on the Main Shader node. Finally we are going to want to connect the final two Constant One nodes to the Fresnel Intensity and the Fresnel Exponent and then connect the output of the Custom_Fresnel node to the Emissive Color input on the Main Shader node. When completed, you should have something that looks like this.
+1. 所有节点现已添加完成，接下来，请连接相应的输入和输出。首先，将“常量 3 矢量”连接到“主要着色器”节点的“基本颜色”（Base Color）输入。然后，将其中一个“常量一”连接到“主要着色器”节点的“金属色”（Metallic）输入。然后，将另一个“常量一”连接到“主要着色器”节点的“粗糙度
+”（Roughness）输入。最后，将剩余的两个“常量一”节点连接到 Fresnel Intensity 和 Fresnel Exponent，然后将 Custom_Fresnel 节点的输出连接到“主要着色器”节点的“自发光颜色”（Emissive Color）输入。完成后，您应该看到类似下图的内容。
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -205,25 +209,25 @@ Creating Material Functions can be accomplished in the few following steps.
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-1. With the nodes now connected to the Main Material input, it is time to start adding values to the nodes. Fill each of the corresponding nodes in with the following values and when completed, make sure to **Compile your material**. When completed, you should have something that looks like this.
+1. 节点现已连接到“主要材质”（Main Material）输入，您可以开始向节点添加值。在各个相应节点中填写下列值，完成后，请务必 **编译材质**。完成后，您应该看到类似下图的内容。
 
-	* **Base Color:** R:1.0 G:0 B:0
-	* **Metallic:**  1.0
-	* **Roughness:** 0.5
-	* **Fresnel Intensity:**  1.0
-	* **Fresnel Exponent:** 5.0
+	* **基色（Base Color）：**R:1.0 G:0 B:0
+	* **金属色（Metallic）：**1.0
+	* **粗糙度（Roughness）：**0.5
+	* **Fresnel Intensity：**1.0
+	* **Fresnel Exponent：**5.0
 
 	![](Material_Function_Complted_Material.png)
 
-1. Now the Material is ready to be compiled and used in your level. Here is an example of what it looks like applied with some random mesh in the default level.
+1. 现在，此材质已准备就绪，可编译并在关卡中使用。以下是在默认关卡应用一些随机网格后的效果。
 	![](Material_Function_Final_Results.png)
 
 
-## Conclusion
+## 结论
 
-Material Functions are a very powerful tool that can really help to speed up and unify Material creation and iteration. 
-However like with every powerful tool, care must be taken to make sure that this power is kept in check. 
-Keep in mind that any changes made to any existing Material Functions that are currently being used in Materials could break the Materials they are used in if the Material Function has errors or some functionality was removed while being edited.
+材质函数是功能非常强大的工具，可以帮助您加快并统一材质的创建与重复使用。 
+但是，就像所有其他功能强大的工具一样，您必须十分谨慎，确保这种强大的功能在您的掌控之下。 
+请注意，更改任何当前在材质中使用的现有材质函数时，如果更改后的材质函数有错误，或者在编辑时移除了一些功能，那么可能会导致那些材质损坏。
 
 
 

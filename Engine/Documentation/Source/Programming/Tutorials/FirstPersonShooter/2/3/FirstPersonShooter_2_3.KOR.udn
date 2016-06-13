@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2672917
+﻿INTSourceChangelist:2938862
 Availability: Docs
 Title: 2.3 - 캐릭터 동작 함수 구현
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
 Description: 일인칭 슈팅 캐릭터에 대한 동작 함수 구현법을 배워봅니다.
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -29,9 +29,9 @@ Version: 4.9
 *	`MoveForward`
 *	`MoveRight`
 
-`FPSCharacter` 축 매핑을 구성했으니, 이제 Visual Studio 에서 프로젝트로 전환할 수 있습니다.
-
 ## 무브먼트 함수 인터페이스
+
+`FPSCharacter` 축 매핑을 구성했으니, 이제 Visual Studio 에서 프로젝트로 전환할 수 있습니다.
 
 1.	`FPSCharacter.h` 에서 다음 함수 선언을 `SetupPlayerInputComponent` 아래 추가합니다.
 
@@ -43,9 +43,7 @@ Version: 4.9
 		UFUNCTION()
 		void MoveRight(float Value);
 
-	[REGION:note]
-	`UFUNCTION` 매크로는 위에서 이 함수 각각에 사용됩니다. 그 자체로 `UFUNCTION` 매크로는 엔진에게 이 함수들을 인식시켜 시리얼라이제이션, 최적화, 기타 엔진 함수성에 포함될 수 있도록 합니다.
-	[/REGION]
+	(이 함수들 각각의 상단에 위치한) `UFUNCTION` 매크로는 엔진에게 이 함수들을 인식시켜 시리얼라이제이션, 최적화, 기타 엔진 함수성에 포함될 수 있도록 합니다.
 
 1.	`FPSCharacter.h` 는 다음과 같아 보일 것입니다:
 
@@ -108,41 +106,29 @@ Version: 4.9
 
 		void AFPSCharacter::MoveForward(float Value)
 		{
-			if (Controller != nullptr && Value != 0.f)
-			{
-				//어디가 전방인지 알아냅니다.
-				FRotator Rotation = Controller->GetControlRotation();
-				//걸을 때 낙하를 위한 핏치를 제한시킵니다.
-				if (GetCharacterMovement()->IsMovingOnGround() || GetCharacterMovement()->IsFalling())
-				{
-					Rotation.Pitch = 0.f;
-				}
-				//그 방향으로 동작을 더합니다.
-				const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
-				AddMovementInput(Direction, Value);
-			}
+			// 어느 쪽이 전방인지 알아냅니다.
+			FRotator Rotation = Controller->GetControlRotation();
+			// 그 방향으로 무브먼트를 더합니다.
+			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
+			AddMovementInput(Direction, Value);
 		}
 
 1.	`FPSCharacter.cpp`에 다음 `MoveRight` 함수 정의를 추가합니다.
 
-		//우측 이동 함수 정의입니다.
 		void AFPSCharacter::MoveRight(float Value)
 		{
-			if (Controller != nullptr && Value != 0.f)
-			{
-				//어디가 우측인지 알아냅니다.
-				const FRotator Rotation = Controller->GetControlRotation();
-				const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
-				//그 방향으로 동작을 더합니다.
-				AddMovementInput(Direction, Value);
-			}
+			// 어느 쪽이 오른쪽인지 알아냅니다.
+			FRotator Rotation = Controller->GetControlRotation();
+			// 그 방향으로 무브먼트를 더합니다.
+			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
+			AddMovementInput(Direction, Value);
 		}
 
 1.	`FPSCharacter.cpp` 는 다음과 같은 모습일 것입니다:
 
-		// 프로젝트 세팅의 설명 페이지에 저작권 문구를 채우세요.
-		
-		#include "FPSProject.h"
+// 프로젝트 세팅의 설명 페이지에 저작권 문구를 채우세요.
+
+#include "FPSProject.h"
 		#include "FPSCharacter.h"
 		
 		// Sets default values
@@ -158,9 +144,15 @@ Version: 4.9
 		{
 			Super::BeginPlay();
 			
+			const int32 Key = -1;
+			static const FString DebugMessage = TEXT("We are using FPSCharacter.");
+			FColor DisplayColor = FColor::Red;
+			float TimeToDisplay = 5.0f; //seconds
+		
 			if (GEngine != nullptr)
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::White, TEXT("We are using FPSCharacter."));
+				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
+		
 			}
 		}
 		
@@ -175,48 +167,35 @@ Version: 4.9
 		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 		{
 			Super::SetupPlayerInputComponent(InputComponent);
-			
+		
 			// 게임플레이 키 바인딩을 구성합니다.
 			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
 			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
 		}
 		
-		// 전방 이동 함수 정의입니다.
 		void AFPSCharacter::MoveForward(float Value)
 		{
-			if (Controller != nullptr && Value != 0.f)
-			{
-				//어디가 전방인지 알아냅니다.
-				FRotator Rotation = Controller->GetControlRotation();
-				//걸을 때 낙하를 위한 핏치를 제한시킵니다.
-				if (GetCharacterMovement()->IsMovingOnGround() || GetCharacterMovement()->IsFalling())
-				{
-					Rotation.Pitch = 0.f;
-				}
-				//그 방향으로 동작을 더합니다.
-				const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
-				AddMovementInput(Direction, Value);
-			}
+			// 어느 쪽이 전방인지 알아냅니다.
+			FRotator Rotation = Controller->GetControlRotation();
+			// 그 방향으로 무브먼트를 더합니다.
+			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
+			AddMovementInput(Direction, Value);
 		}
 		
-		//우측 이동 함수 정의입니다.
 		void AFPSCharacter::MoveRight(float Value)
 		{
-			if (Controller != nullptr && Value != 0.f)
-			{
-				//어디가 우측인지 알아냅니다.
-				const FRotator Rotation = Controller->GetControlRotation();
-				const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
-				//그 방향으로 동작을 더합니다.
-				AddMovementInput(Direction, Value);
-			}
+			// 어느 쪽이 오른쪽인지 알아냅니다.
+			FRotator Rotation = Controller->GetControlRotation();
+			// 그 방향으로 무브먼트를 더합니다.
+			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
+			AddMovementInput(Direction, Value);
 		}
 
 ## 캐릭터 동작 테스트하기
 
 새로 구현된 캐릭터 동작 함수를 컴파일하고 테스트할 차례입니다.
 
-1.	Visual Studio 에서 `FPSCharacter` 인터페이스 (\*.h) 와 구현 (\*.cpp) 파일을 저장합니다.
+1.	Visual Studio 에서 `FPSCharacter` 헤더 (\*.h) 와 CPP (\*.cpp) 파일을 저장합니다.
 
 1.	**Solution Explorer** 에서 **FPSProject** 를 찾습니다.
 
@@ -226,8 +205,8 @@ Version: 4.9
 
 1.	빌드가 끝난 후, 언리얼 에디터에서 **FPSProject** 를 엽니다.
 
-1.	레벨 에디터 툴바에서 **플레이** 버튼을 **클릭** 합니다. (카메라가 한 곳에 고정되어 있기는 하지만) 맵 이동 및 게걸음이 가능할 것입니다.
+1.	레벨 에디터 툴바에서 **플레이** 버튼을 **클릭** 합니다. 이제 전후좌우 이동이 가능할 것입니다.
 
-1.	레벨 에디터의 **중지** 버튼을 클릭하여 에디터에서 플레이 (PIE) 모드를 빠져나옵니다.
+1.	Esc 키를 누르거나 레벨 에디터의 **중지** 버튼을 클릭하여 에디터에서 플레이 (PIE) 모드를 빠져나옵니다.
 
 %Steps%

@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:2472961
+﻿INTSourceChangelist:2713438
 Availability:Public
 Title:アクタの関連性とプライオリティ
 Crumbs:%ROOT%, Gameplay, Gameplay/Networking, Gameplay/Networking/Actors
 Description:アクタの関連性とプライオリティに関する情報
 Related:Gameplay/Networking/Actors
 Related:Gameplay/Networking/Actors/ReplicationPerformance
+version:4.9
 
 [TOC (start:2 end:3)]
 

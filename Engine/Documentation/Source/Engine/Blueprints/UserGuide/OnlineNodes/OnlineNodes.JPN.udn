@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2692327
+﻿INTSourceChangelist:2968923
 Availability:Public
-Title:オンライン セッション ノード
+Title:Online Session ノード
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:各種オンラインとエラー関連のブループリント ノードの説明
 Related:Engine/Blueprints
@@ -8,7 +8,8 @@ Related:Programming/Online
 Related:Gameplay/Networking/Actors
 Related:Resources/ContentExamples/Networking
 version:4.9
-
+Parent:Engine/Blueprints
+Type:guide
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -56,7 +57,7 @@ version:4.9
 
 ## オンライン セッション ノード
 
-以下は、 **Blueprints** 経由でマルチプレイヤー ゲームのホスト、検索、参加、退出を処理するノードです。 
+以下は、 **ブループリント** 経由でマルチプレイヤー ゲームのホスト、検索、参加、退出を処理するノードです。 
 
 それぞれのノード操作はレイテンシ、つまりバックグラウンドで操作を行い (多くの場合、ネットワーク上での通信が必要な操作であるため)、その後どこかで終了します。ノードの右上端の時計アイコンで表示されます。
 
@@ -96,7 +97,7 @@ version:4.9
 
 残念ながら、ネットワーク操作の処理中は常にエラーが起こる可能性がありますので、ゲームはエラーを適格に処理する必要があります。参加するつもりだったセッションのホストが直前にやめてしまったり、インターネット サービスが一時的にダウンするなど、様々な問題が発生する可能性があります。ブループリントを使えば、こうしたネットワーク関連のエラーに対して、ゲームが臨機応変に対応することができます。 
 
-エラーの原因が上記のようなセッション操作の場合は **OnFailure** 実行ピンにより報告されるので、どのように処理するかをゲームに設定することができます。ただし、ゲームプレイ中に発生するエラーや所定のエラーについては、**GameInstance** ブループリント、 **Network Error** 、 **Travel Error** 内でエラー イベントを呼び出すことができます。 
+エラーの原因が上記のようなセッション操作の場合は **OnFailure** 実行ピンにより報告されるので、どのように処理するかをゲームに設定することができます。ただし、ゲームプレイ中に発生するエラーや所定のエラーについては、**GameInstance** ブループリント、**Network Error**、**Travel Error** 内でエラー イベントを呼び出すことができます。 
 
 ### Event Network Error
 

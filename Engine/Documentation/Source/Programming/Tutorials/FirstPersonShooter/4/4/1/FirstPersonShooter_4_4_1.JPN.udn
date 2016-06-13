@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2672915
+﻿INTSourceChangelist:2953540
 Availability:Docs
 Title:4.4.1 - Idle と Run の間の遷移を追加する
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4, Programming/Tutorials/FirstPersonShooter/4/4
-Description:First Person Shooter キャラクターのアニメーション ステートマシンに idle と run の間のステート遷移を追加する方法を学びます。
-SkillLevel:初心者向け
-Version:4.9
+Description:FPS キャラクターのアニメーション ステートマシンに idle と run の間のステート遷移を追加する方法を学びます。
+SkillLevel:Beginner
+Version:4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -30,9 +30,9 @@ Version:4.9
 
 	![](WireIdletoRun.png)
 
-1.	遷移を **ダブルクリック** して編集します。
+1.	遷移をダブルクリックして編集します。
 
-1.	**[My Blueprint]** タブで **IsRunning** を **コントロール キーを押しながらクリック** してグラフにドラッグして、 **Get Is Running** ノードを作成します。
+1.	**[My Blueprint]** タブで **IsRunning** をコントロール キーを押しながらクリックしてグラフにドラッグして、 **Get Is Running** ノードを作成します。
 
 1.	**Get Is Running** ノードの出力ピンを、**Result** ノードの **Can Enter Transition** 入力ピンに接続します。
 
@@ -46,9 +46,9 @@ Version:4.9
 
 	![](WireRuntoIdle.png)
 
-1.	遷移を **ダブルクリック** して編集します。
+1.	遷移をダブルクリックして編集します。
 
-1.	**[My Blueprint]** タブで **IsRunning** を **コントロール キーを押しながらクリック** してグラフにドラッグして、 **Get Is Running** ノードを作成します。
+1.	**[My Blueprint]** タブで **IsRunning** をコントロール キーを押しながらクリックしてグラフにドラッグして、 **Get Is Running** ノードを作成します。
 
 1.	**Get Is Running** ノードの出力 Boolean ピンを引き出して、 **Not Boolean** ノードを作成します。
 

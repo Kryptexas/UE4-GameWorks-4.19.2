@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2099361
+﻿INTSourceChangelist:2711067
 Availability:Public
-Title:ポーン
+Title:Pawn
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
-Description: **Pawn** とはプレイヤーのワールド内の物理表現です。
+Description:ワールド内でプレイヤーを物理的に表現したものが **ポーン** です。
+Version:4.9
 
 [OBJECT:Redirect]
 [PARAM:link]

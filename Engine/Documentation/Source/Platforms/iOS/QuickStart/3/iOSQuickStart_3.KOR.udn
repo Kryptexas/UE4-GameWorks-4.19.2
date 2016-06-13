@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2565265
+﻿INTSourceChangelist:2744682
 Title:3. iOS Provisioning - Signing Certifcate 생성
 Crumbs:%ROOT%, Platforms, Platforms/iOS, Platforms/iOS/QuickStart
 Description:iOS 개발 Signing Certificate 준비 작업입니다.
 Availability:Public
-
+Version: 4.9
+SkillLevel: Intermediate
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -72,7 +73,7 @@ Availability:Public
 
 1. `Engine\Binaries\DotNET\IOS\` 디렉토리로 이동한 다음 `iPhonePackager.exe` 를 실행합니다.
 
-1. Provisioning 는 프로젝트별 입니다. 확인창이 뜨면, 그 프로젝트에 대한 .uproject 파일을 선택하여 iPhonePackager 어플리케이션과 연동시켜 준 다음 **Open** 을 클릭합니다.
+1. Provisioning 는 프로젝트 별 입니다. 확인창이 뜨면, 그 프로젝트에 대한 .uproject 파일을 선택하여 iPhonePackager 어플리케이션과 연동시켜 준 다음 **Open** 을 클릭합니다.
 
 	![](select_uproject.png)
 
@@ -104,7 +105,7 @@ Availability:Public
 
 1. 애플 iOS 개발자 사이트의 [iOS Certificates](https://developer.apple.com/account/ios/certificate/certificateList.action) 페이지로 이동합니다.
 
-1. ![Add](button_add.png) 버튼을 클릭하여 Certificate 를 새로 생성합니다.
+1. 추가 (더하기 부호) 버튼을 클릭하여 Certificate 를 새로 생성합니다.
 
 1. **iOS App Development** 를 선택하고 **Continue** 를 클릭합니다.
 

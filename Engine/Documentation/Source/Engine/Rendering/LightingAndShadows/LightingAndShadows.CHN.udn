@@ -1,9 +1,11 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2683483
+Availability:Public
 Title: 照亮环境
 Crumbs: %ROOT%, Engine
 Description:使用光照和阴影几何体、使用全局光照，并设置反射。
 Navigation:topic
 Related:Engine/Rendering/ParticleSystems/ParticleLights
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]

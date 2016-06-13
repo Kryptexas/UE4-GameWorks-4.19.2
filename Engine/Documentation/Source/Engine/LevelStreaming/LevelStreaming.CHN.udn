@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2735870
 Availability: Public
-Title:Level Streaming
+Title:流关卡（Level Streaming）
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
-Description:Asynchronously loading and unloading levels during play to decrease memory usage and create seamless worlds.
+Description:在游戏过程中对关卡数据的异步加载与卸载，来减少内存的使用并创建无缝的世界。
+parent:Engine
+order:10
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -44,7 +46,8 @@ Description:Asynchronously loading and unloading levels during play to decrease 
 [/VAR]
 
 [EXCERPT:Intro]
-The Level Streaming feature makes it possible to load and unload map files into memory as well as toggle their visibility all during play. This makes it possible to have worlds broken up into smaller chunks so that only the relevant parts of the world are taking up resources and being rendered at any point. If done properly, this allows for the creation of very large, seamless levels that can make the player feel as if they are playing within a world that dwarfs them in size.
+流关卡的功能使得在游戏过程中加载或卸载关卡成为可能，并能控制关卡是否可见。这样便能将整个游戏世界分拆成一个个小的区块，在特定时刻，只有那些相关的区块才需要占据资源，并得到渲染显示。
+如果制作的恰当，能够做到一个非常大的，无缝的管卡之间的切换，这能使玩家觉得仿佛置身在一个庞大的世界中。
 [/EXCERPT:Intro]
 
 [OBJECT:TopicButtonList]
@@ -52,7 +55,7 @@ The Level Streaming feature makes it possible to load and unload map files into 
 	![](%ROOT%/editor_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-	Level Streaming Topics
+	流关卡的话题
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

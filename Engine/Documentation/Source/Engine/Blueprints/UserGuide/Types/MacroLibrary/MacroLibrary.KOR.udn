@@ -1,8 +1,11 @@
-﻿INTSourceChangelist:2683138
+﻿INTSourceChangelist:2968923
 Availability:Public
 Title:블루프린트 매크로 라이브러리
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types
 Description:다른 블루프린트에서 재사용할 매크로를 선언하고 정의하는 블루프린트 입니다.
+version: 4.9
+Parent:Engine/Blueprints
+Type:guide
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -61,7 +64,7 @@ _블루프린트 매크로 라이브러리_ 는 다른 애셋들처럼 패키지
 
 1. 콘텐츠 브라우저에서 ![New Asset button](button_new_asset_blueprint.png) 버튼을 클릭합니다.
 
-1. 나타나는 메뉴에서 **새 애셋** 아래 **기타 > 블루프린트 매크로 라이브러리** 를 선택합니다.
+1. 나타나는 메뉴에서 **고급 애셋 생성** 아래 **블루프린트 > 블루프린트 매크로 라이브러리** 를 선택합니다.
 
 	![](new_asset_macrolib.png)
 
@@ -93,7 +96,7 @@ _블루프린트 매크로 라이브러리_ 는 다른 애셋들처럼 패키지
 
 1. 콘텐츠 브라우저의 (오른쪽) 애셋 뷰 패널, 또는 **콘텐츠 브라우저** 의 (왼편) 애셋 트리 패널에서 폴더에 우클릭합니다.
 
-1. 뜨는 메뉴에서 **새 애셋** 아래 **기타 > 블루프린트 매크로 라이브러리** 를 선택합니다.
+1. 뜨는 메뉴에서 **고급 애셋 생성** 아래 **블루프린트 > 블루프린트 매크로 라이브러리** 를 선택합니다.
 
 	![](rt_click_content_browser_macrolib.png)
 

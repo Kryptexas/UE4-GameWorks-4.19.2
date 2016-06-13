@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653104
+﻿INTSourceChangelist:2714455
 Availability: Public
 Title:1.4 - GPU 파티클과 점중력
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/EffectsGallery
@@ -9,6 +9,7 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/ParticleLights
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+Version: 4.9 
 
 [VAR:Steps]
 [OBJECT:Navigation]

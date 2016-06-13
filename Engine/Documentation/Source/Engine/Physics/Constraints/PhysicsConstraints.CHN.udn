@@ -1,20 +1,23 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Physics Constraints
+﻿INTSourceChangelist:2678576
+Availability:Public
+Title:物理约束
 Crumbs: %ROOT%, Engine, Engine/Physics
-Description:Constraining physics objects together and to the world.
+Description:在物理对象相互之间和世界场景之间设置约束
+Version:4.9
 
-[OBJECT:TopicList]
+
+[OBJECT:TopicButtonList]
 	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
+		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Constraint Topics
+		概要
 	[/PARAM]
 	[PARAM:links]
-		* [Physics Constraints User Guide](Engine/Physics/Constraints/ConstraintsUserGuide) - A guide to constraining the joints between bones.
-		* [](Engine/Physics/Constraints/ConstraintsBlueprints) - A user guide on using the Physics Constraint Component in Blueprints.
-		* [](Engine/Physics/Constraints/ConstraintsReference) - A reference for all the properties available on Physics Constraints in Unreal Editor.
-		* [Damping and friction](Engine/Physics/Constraints/DampingAndFriction) - Explanation of the damping and friction attributes in Unreal Engine 4.
+		* [Physics Constraints User Guide](Engine/Physics/Constraints/ConstraintsUserGuide "%Engine/Physics/Constraints/ConstraintsUserGuide:description%")
+		* [](Engine/Physics/Constraints/ConstraintsBlueprints "%Engine/Physics/Constraints/ConstraintsBlueprints:description%")
+		* [](Engine/Physics/Constraints/ConstraintsReference "%Engine/Physics/Constraints/ConstraintsReference:description%")
+		* [](Engine/Physics/FrictionRestitutionAndDamping "%Engine/Physics/FrictionRestitutionAndDamping:description%")
 	[/PARAM]
 [/OBJECT]
+

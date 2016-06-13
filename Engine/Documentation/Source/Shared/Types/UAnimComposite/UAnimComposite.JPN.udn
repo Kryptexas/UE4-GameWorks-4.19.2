@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2284735
+﻿INTSourceChangelist:2591123
 Availability:NoPublish
 Title:UAnimComposite
 Crumbs:
@@ -6,7 +6,7 @@ Description:AnimComposite クラスの概要
 
 [EXCERPT:UAnimComposite]
 
-アニメーション合成は複数のアニメーションを結合し、単一ユニットとして扱えるように設計されたアニメーション アセットです。しかし、合成はアニメーションを単につなげるだけで、ブレンド機能はないことに注意してください。 
+アニメーション合成は複数のアニメーションを結合し、単一ユニットとして扱えるように設計されたアニメーション アセットです。ただし、合成はアニメーションを単につなげるだけで、ブレンド機能はないことに注意してください。 
 
 [VAR:ToolTipFullLink]
 Engine/Animation/AnimationComposite

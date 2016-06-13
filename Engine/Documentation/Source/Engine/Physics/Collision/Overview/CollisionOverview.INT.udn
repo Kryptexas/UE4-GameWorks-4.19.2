@@ -117,12 +117,18 @@ Or:
 
 Unlike collisions that can fire every frame, the overlap events are **ReceiveBeginOverlap** and **ReceiveEndOverlap**, which only fire in those specific cases.
 
+[REGION:note]
+For an overlap to occur, both Actors need to enable **Generate Overlap Events**. This is for performance. In the case where both the Sphere and the Box want overlaps when we move either the Sphere or the Box, we do an overlap query to see if we need to fire any events.
+
+If the Box doesn't want overlaps then when it moves we will not do an overlap query. But now we could be overlapping with the Sphere, and so the Sphere would need to tick and check for overlaps each frame in case someone moved into them.
+[/REGION]
+
 ![](COL_overlapEvent.png)(w:940 convert:false)
 
 | Sphere Collision Setup| Wall Collision Setup |
 | --- | ---- |
-| ![](COL_OverlapEvent_Sphere.png)(convert:false) | ![](COL_collideNoEvent_Box.png)(convert:false) |
-| Here the sphere is set to `overlap` **WorldDynamic** Actors (like our wall), and it will generate an event for itself when it does overlap something. | The wall is a **WorldDynamic** and is set to `block` **PhysicsBody** Actors (which is what the sphere is). As stated above, both Actors need to be set to block each other's respective object types. If they do not, they will not collide. But, an **Overlap** does occur here, and an event for the sphere is fired. |
+| ![](COL_OverlapEvent_Sphere.png)(convert:false) | ![](COL_collideOverLapEvent_Box.png)(convert:false) |
+| Here the sphere is set to `overlap` **WorldDynamic** Actors (like our wall), and it will generate an event for itself when it does overlap something. | The wall is a **WorldDynamic** and is set to `block` **PhysicsBody** Actors (which is what the sphere is). As stated above, both Actors need to be set to block each other's respective object types. If they do not, they will not collide. But, an **Overlap** does occur here, and events for the sphere and box are fired. |
 
  
 

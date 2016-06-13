@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2609228
+﻿INTSourceChangelist:2746137
 Availability:Public
 Title:ランドスケープの編集
 Crumbs: %ROOT%, Engine, Engine/Landscape
 Description:ランドスケープのテレイン編集に使用するツールのガイド
+Version:4.9
 
 [VAR:Topic]
 [OBJECT:Topiccompact]
@@ -24,24 +25,23 @@ Description:ランドスケープのテレイン編集に使用するツール�
 [/OBJECT]
 [/VAR]
 
-[TOC(start:2 end:2)]
 
 ランドスケープを作成すると、以下の操作が可能になります。
 
-* 形状を **[Sculpt](Engine/Landscape\Editing\SculptMode)** モードで修正します。
-* 外観を**[Paint](Engine/Landscape\Editing\PaintMode)** モードで修正します。
-* 使用する **[ブラシ](Engine/Landscape\Editing\Brushes)** のサイズ、形状、タイプを変更し、ランドスケープの形状と外観を修正します。
-* コンポーネントのサイズ、形状を **[Manage](Engine/Landscape\Editing\ManageMode)** モードで修正します。
-* ランドスケープの高さマップの部分を、 **[ランドスケープ ギズモ](Engine/Landscape\Editing\Gizmos)** を使用してコピー、ペースト、インポート、エクスポートします。
-* ランドスケープの **[マテリアル](Engine/Landscape\Materials)** を修正します。
-* ランドスケープで使用したい線形機能に対する **[スプライン](Engine/Landscape\Editing\Splines)** を作成します。
-* 洞窟などの機能に対してランドスケープに **[穴](Engine/Landscape\Materials)** をつくります。
+* 形状を [Sculpt](Engine/Landscape\Editing\SculptMode) モードで修正します。
+* 外観を[Paint](Engine/Landscape\Editing\PaintMode) モードで修正します。
+* 使用する [ブラシ](Engine/Landscape\Editing\Brushes) のサイズ、形状、タイプを変更し、ランドスケープの形状と外観を修正します。
+* コンポーネントのサイズ、形状を [Manage](Engine/Landscape\Editing\ManageMode) モードで修正します。
+* ランドスケープの高さマップの部分を、 [ランドスケープ ギズモ](Engine/Landscape\Editing\Gizmos) を使用してコピー、ペースト、インポート、エクスポートします。
+* ランドスケープの [ランドスケープ マテリアル](Engine/Landscape\Materials) を修正します。
+* ランドスケープで使用したい線形の地物用に [スプライン](Engine/Landscape\Editing\Splines) を作成します。
+* 洞窟などの機能に対してランドスケープに [穴](Engine/Landscape\Materials) をつくります。
 
-ランドスケープの作成に関する詳細は、 **[](Engine/Landscape\Creation)** を参照してください。
+ランドスケープの作成に関する詳細は、 [](Engine/Landscape\Creation) を参照してください。
 
-様々なランドスケープ ツールのモードやオプションに対するクイック リファレンスについては、**[](Engine/Landscape/UI)** を参照してください。
+様々なランドスケープ ツールのモードやオプションに対するクイック リファレンスについては、[](Engine/Landscape/UI) を参照してください。
 
-動作中のランドスケープのサンプルは、 **[](Resources\ContentExamples\Landscapes)** を参照してください。
+動作中のランドスケープのサンプルは、 [](Resources\ContentExamples\Landscapes) を参照してください。
 
 
 [REGION:topics third]

@@ -54,11 +54,6 @@ Version: 4.9
 [EXCERPT:Intro]
 The **Directional Light** simulates light that is being emitted from a source that is infinitely far away. This means that all shadows cast by this light will be parallel, making this the ideal choice for simulating sunlight. The Directional Light when placed can be set to one of three **Mobility** settings:
 
-
-[REGION:raw]
-![](spacer.png)
-[/REGION]
-
 [OBJECT:topiclistnotitle]
 	[PARAM:icon]
 		![](Directional_LightStationary.png)(w:150 convert:false)
@@ -71,11 +66,6 @@ The **Directional Light** simulates light that is being emitted from a source th
 [/OBJECT]
 [/EXCERPT:Intro]
 
-[REGION:raw]
-![](spacer.png)
-[/REGION]
-
-
 [OBJECT:topiclistnotitle]
 	[PARAM:icon]
 		![](Directional_LightMove.png)(w:150 convert:false)
@@ -85,16 +75,7 @@ The **Directional Light** simulates light that is being emitted from a source th
 	[/PARAM]
 [/OBJECT]
 
-[REGION:raw]
-![](spacer.png)
-[/REGION]
-
 Below you will see a representation of sunlight being cast through an opening in a roof. 
-
-[REGION:raw]
-![](spacer.png)
-[/REGION]
-
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]

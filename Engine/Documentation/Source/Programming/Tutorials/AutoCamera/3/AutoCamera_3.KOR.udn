@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2620109
+﻿INTSourceChangelist:2727270
 Availability: Public
 Title:3. 월드에 카메라 디렉터 배치
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/AutoCamera
@@ -25,23 +25,23 @@ version:4.9
 
 1. 코드 컴파일이 완료되면, **콘텐츠 브라우저** 에서 새로운 클래스를 끌어 **레벨 에디터** 에 놓으면 인스턴스가 생성됩니다.
 
-	[![](CameraDirectorInContentBrowser.png)](CameraDirectorInContentBrowser.png)
+	![](CameraDirectorInContentBrowser.png)
 
 1. 다음으로 CameraOne & CameraTwo 변수를 설정해 줘야 합니다. **월드 아웃라이너** 에서 CameraDirector 를 찾은 다음 **디테일 패널** 에서 편집합니다.
 
-	[![](CameraDirectorDetails.png)](CameraDirectorDetails.png)
+	![](CameraDirectorDetails.png)
 
 	**None** (없음)이란 드롭다운 박스를 클릭한 다음 변수를 앞서 만든 **Cube** 와 **CameraActor** 로 설정합니다.
 
-	[![](CameraDirectorDetails2.png)](CameraDirectorDetails2.png)
+	![](CameraDirectorDetails2.png)
 
 1. **플레이** 를 누르면 카메라가 이 뷰에 달라붙습니다:
 
-	[![](CameraOneView.png)](CameraOneView.png)
+	![](CameraOneView.png)
 
 	그런 다음 이 뷰로 부드럽게 전환됩니다:
 
-	[![](CameraTwoView.png)](CameraTwoView.png)
+	![](CameraTwoView.png)
 
 	몇 초간 기다리다가 다시 달라 붙습니다.
 

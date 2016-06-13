@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:2690714
+﻿INTSourceChangelist:2968923
 Availability:Public
 Title:Math Expression ノード
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:Math expression ノードにより、数学式に入力し、その表現式を作成するために適切なサブグラフをビルドすることが可能になります。
 version:4.9
+Parent:Engine/Blueprints
+Type:guide
 
 [VAR:Topic]
 [OBJECT:Topic]

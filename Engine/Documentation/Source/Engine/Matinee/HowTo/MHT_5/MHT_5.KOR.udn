@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2663119
+﻿INTSourceChangelist:2732056
 Availability: Public
 Title:라이트 조정
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
 Description:이 씬에서 라이트 컬러, 밝기, 기타 라이트 세팅을 조정합니다.
+Version: 4.9
+SkillLevel: Intermediate
 
 
 ---

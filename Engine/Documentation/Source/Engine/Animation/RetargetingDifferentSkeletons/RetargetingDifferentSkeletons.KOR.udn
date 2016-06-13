@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2647851
+﻿INTSourceChangelist:2667949
 Availability:Public
 Title: 애니메이션 리타게팅 (다른 스켈레톤)
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:스켈레톤이 다른 경우에 사용하는 애니메이션 리타게팅 입니다.
-Version: 4.5
+Version: 4.9
 
 [REGION:fullwidth]
 ![](Retarget1_1.jpg)
@@ -15,7 +15,7 @@ Version: 4.5
 이 기능은 언리얼 엔진 4.5 미만 버전에서는 사용할 수 없습니다.
 [/REGION]
 
-## 개요
+
 **애니메이션 리타게팅 (다른 스켈레톤)** 은 같은 스켈레톤을 공유하지 **않는** 캐릭터 사이에 애니메이션을 재사용할 수 있도록 하는 기능으로, 같은 스켈레톤 애셋을 공유하는 캐릭터 사이의 애니메이션 리타게팅이 관여되는 [](Engine\Animation\AnimationRetargeting) 와는 다릅니다.
 
 다른 스켈레톤을 가진 캐릭터 사이의 애니메이션 리타게팅 처리는, 한 스켈레톤에서 다른 스켈레톤으로 본 정보를 전달할 때 **Rig** (릭)이라는 애셋을 사용합니다. 릭을 선택한 이후에는, 소스 스켈레톤과 (애니메이션을 리타게팅하고자 하는) 타겟 스켈레톤 사이에 릭을 공유합니다. 그 작업을 한 이후에는, 타겟 스켈레톤의 **본** 을 릭에 저장된 **노드** 에 일치시킵니다.
@@ -33,7 +33,7 @@ Version: 4.5
 [REGION:note]
 이 예제에서 사용된 다음 애셋은 **마켓플레이스** 를 통해 다운로드할 수 있습니다.
 
-* 소스 스켈레톤 **HeroTPP_Skeleton** 은 **Animation Starter Pack** 에 포함되어 있습니다. 
+* 소스 스켈레톤 **UE4_Mannequin_Skeleton** 은 **Animation Starter Pack** 에 포함되어 있습니다. 
 * 타겟 스켈레톤 **SWAT_Skeleton** 은 **Mixamo Character Pack** 에 포함되어 있습니다.
 
 위 팩을 설치한 이후에는, 언리얼 런처의 **프로젝트에 추가** 버튼을 눌러 프로젝트에 추가할 수 있습니다.
@@ -45,11 +45,11 @@ Animation Starter Pack 에는 Mixamo Character Pack 의 캐릭터에 리타게�
 또, 언리얼 엔진 4 버전이 위 그림과 다를 수 있습니다.
 [/REGION]
 
-아래 단계는 기본 릭와 리타겟 애니메이션을 접근하는 방법을 보여줍니다:
+아래 단계는 기본 릭과 리타겟 애니메이션을 접근하는 방법을 보여줍니다:
 
-1.	**콘텐츠 브라우저** 에서 **Game/AnimStarterPack/Character** 폴더 아래 **HeroTPP_Skeleton** 애셋을 엽니다.
+1.	**콘텐츠 브라우저** 에서 **Game/AnimStarterPack/UE4_Mannequin/Mesh** 폴더 아래 **UE4_Mannequin_Skeleton** 애셋을 엽니다.
 
-1.	**Retarget Manager** 버튼을 클릭한 다음 **Set up Rig** 아래 **Pick Asset** 아이콘을 클릭한 다음 **Humanoid** 릭을 선택합니다.
+1.	**Retarget Manager** 버튼을 클릭한 다음 **Set up Rig** 아래 **Select Rig** 드롭다운을 클릭한 다음 **Select Humanoid Rig** 을 선택합니다.
 
 	[REGION:lightbox]
 	[![](RT_Manager.jpg)(w:720)](RT_Manager.jpg)
@@ -61,7 +61,7 @@ Animation Starter Pack 에는 Mixamo Character Pack 의 캐릭터에 리타게�
 
 1.	**콘텐츠 브라우저** 에서 **Game/MixamoAnimPack/Mixamo_SWAT/Anims** 폴더 아래 **SWAT_Skeleton** 애셋을 엽니다.
 
-1.	**리타겟 매니저** 버튼을 클릭한 다음, **Set up Rig** 아래 **Pick Asset** 아이콘을 클릭하고 **Humanoid** 릭을 선택합니다.
+1.	**리타겟 매니저** 버튼을 클릭한 다음, **Set up Rig** 아래 **Select Rig** 드롭다운을 클릭하고 **Select Humanoid Rig** 을 선택합니다.
 
 	[REGION:lightbox]
 	[![](RetargetAdd3.png)(w:720)](RetargetAdd3.png)
@@ -87,7 +87,7 @@ Animation Starter Pack 에는 Mixamo Character Pack 의 캐릭터에 리타게�
 
 1.	계속해서 타겟 스켈레톤의 각 본을 그에 맞는 릭의 노드에 지정합니다.
 
-	아래 표는 **HeroTPP_Skeleton** 와 **SWAT_Skeleton** 에 대한 구성을 나타냅니다.
+	아래 표는 **UE4_Mannequin_Skeleton** 와 **SWAT_Skeleton** 에 대한 구성을 나타냅니다.
 
 	| 노드 (릭) | 본 (스켈레톤) |
 	| ------- | ------------ |
@@ -174,7 +174,7 @@ Animation Starter Pack 에는 Mixamo Character Pack 의 캐릭터에 리타게�
 
 1.	**콘텐츠 브라우저** 에서 **Game/AnimStarterPack** 아래 새 스켈레톤으로 리타게팅하고자 하는 애니메이션을 선택합니다.
 
-1.	애니메이션에 **우클릭** 한 다음 **애니메이션 애셋 리타겟 -> 애님 애셋 복제 및 리타게팅** 을 선택합니다.
+1.	애니메이션에 **우클릭** 한 다음 **애님 애셋 리타겟 -> 애님 애셋 복제 및 리타게팅** 을 선택합니다.
 
 	![](RT_DuplicateAnim.jpg)
 
@@ -249,7 +249,7 @@ Animation Starter Pack 에는 Mixamo Character Pack 의 캐릭터에 리타게�
 
 ![](Retarget21.png)
 
-위 그림에서, 오른팔은 조절하고 왼팔은 (회전 위젯을 사용하여 조절할 수 있는) 기본 포즈를 사용하고 있습니다. 포즈를 조절하고나면, **포즈 저장** 옵션을 클릭하여 리타게팅된 베이스 포즈를 저장할 수 있습니다. 스켈레톤끼리 비슷한 포즈가 생겼으니 이제 애니메이션을 리타게팅할 수 있으며, 스켈레톤 선택 창이 뜨면 타겟 스켈레톤이 이제 리타게팅된 베이스 포즈를 사용중임을 볼 수 있습니다.
+위 그림에서, 오른팔은 조절하고 왼팔은 (회전 위젯을 사용하여 조절할 수 있는) 기본 포즈를 사용하고 있습니다. 포즈를 조절하고 나면, **포즈 저장** 옵션을 클릭하여 리타게팅된 베이스 포즈를 저장할 수 있습니다. 스켈레톤끼리 비슷한 포즈가 생겼으니 이제 애니메이션을 리타게팅할 수 있으며, 스켈레톤 선택 창이 뜨면 타겟 스켈레톤이 이제 리타게팅된 베이스 포즈를 사용중임을 볼 수 있습니다.
 
 ![](Retarget2_2.jpg)(w:820)
 

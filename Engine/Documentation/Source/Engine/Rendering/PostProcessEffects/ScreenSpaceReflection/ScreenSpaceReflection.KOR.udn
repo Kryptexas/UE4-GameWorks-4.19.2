@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2537723
+﻿INTSourceChangelist:2686770
 Availability:Public
 Title:스크린 스페이스 리플렉션
 Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
 Description:머티리얼 표면에 나타나는 리플렉션을 변경하는 이펙트입니다.
+Version: 4.9
 
 [REGION:fullwidth]
 ![](GlossyScreenSpaceReflection.png)

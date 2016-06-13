@@ -1,0 +1,96 @@
+﻿INTSourceChangelist:2903159
+Availability:Public
+Title:シーケンサーのビューポートを有効にする
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:シーケンサーでプロジェクトをセットアップし、シネマティックスをリアルタイムでプレビューできるようにする方法を説明します。
+Version:4.11
+SkillLevel:Beginner
+parent:Engine/Sequencer/HowTo
+order:1
+checkpoint: editorqs
+Related:Engine/Sequencer/Overview
+Related:Engine\Sequencer\ReferenceEditor\
+
+[REGION:warning]
+これは現在開発中の機能であり、期待どおりに機能しなかったり、将来のリビジョンで変更される可能性があります。
+[/REGION]
+
+[シーケンサーを有効にする](Engine\Sequencer\HowTo\EnableSequencer) の手順を行った後、利用できるいくつかの特殊なビューポートがあります。こうしたビューポートを使うと、シネマティックスをリアルタイムでプレビューすることができます。
+このガイドでは、こうしたビューポートをどこから使えるようにするか、またビューポートの再生コントロールとビューポートのオプション メニューを有効にする方法を説明します。 
+
+## ステップ
+
+[REGION:note]
+ここでは **Blueprint Third Person Template** プロジェクトを使います。ただし、必要に応じて他のプロジェクトを使用することもできます。 
+[/REGION]
+
+1.	[シーケンサー](Engine\Sequencer\HowTo\EnableSequencer) を有効にした状態で、任意のビューポートで **[View Mode]** ボタンをクリックし、次に **[Cinematic Viewport]** を選択します。 
+
+	![](Viewports_01.png)
+
+	これで、選択したビューポートがシネマティックス ビューポートになります。 
+
+	![](Viewports_02.png)
+
+1.	**[Viewport Options (ビューポート オプション)]** ボタンをクリックし、**[Game View]** オプションにチェックを入れます。
+
+	![](Viewports_03.png)
+
+	その結果、ビューポートは、 [ゲーム ビュー](Engine/UI/LevelEditor/Viewports/Basics) になり、ゲーム内で表示されるのと同じ様にシーンがビューポートに表示されます。 
+
+1.	**[Viewport オプション]** 内で、**[Show Toolbar]** オプションのチェックを外します。 
+
+	![](Viewports_04.png)
+
+	これでツールバーが非表示になり、シネマティックスのプレビュー体験が向上します。 
+
+1.	オーバーレイやフレームにアクセスするには、シネマティックス ビューポートのオプション ボタンをクリックします。 
+
+	![](Viewports_06.png)
+
+	ここでは、コンテンツをプレビューするために、様々なオーバーレイ エフェクトを加えることができます。 	
+
+1.	メイン ツールバーから、**[Cinematics]** ボタンをクリックします。次に、**[Add Level Sequence]** を選択します。 
+
+	![](Viewports_07.png)
+
+	レベル シーケンス用に任意のファイル名と保存場所を選ぶと、ビューポートに再生コントロールが表示されます。 
+
+	![](Viewports_08.png)
+
+	[REGION:note]
+	再生コントロールの詳細な内容については、[](Engine\Sequencer\ReferenceEditor\) のページをご覧ください。 
+	[/REGION]
+
+
+## 最終結果
+
+シーケンサーのプレビュー ウィンドウが開いた状態で、編集しながらシネマティック シーケンスの結果を迅速に確認することができます。 
+
+![](EndResult.png)
+
+上の画面では、 [ビューポートのレイアウト](Engine/UI/LevelEditor/Viewports/Basics) を調整し、 2 つのパネルのレイアウトにしました。ひとつは、シネマティックスのプレビューを使っています。これにより、シネマティックス ビューポートで最終結果に近いものをプレビューしながら、コンテンツをレイアウトするためにエディタのパースペクティブ モードで作業することができます。 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

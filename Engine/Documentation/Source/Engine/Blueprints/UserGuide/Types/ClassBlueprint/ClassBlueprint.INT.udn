@@ -1,9 +1,12 @@
 Availability:Public
 Title:Blueprint Class
-Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types
+Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Anatomy
 Description:These define a new class or type of Actor which can then be placed as instances that behave like any other type of Actor.
 Version: 4.9
 SkillLevel: Beginner
+Parent:Engine/Blueprints/Anatomy
+Tags:Class Blueprints
+order:1
 
 [VAR:Topic]
 [OBJECT:Topic]

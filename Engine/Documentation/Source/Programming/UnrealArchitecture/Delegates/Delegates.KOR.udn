@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2614239
+﻿INTSourceChangelist:2728710
 Availability:Public
 Title: 델리게이트 (Delegate)
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Functions
 Description:C++ 오브젝트 상의 멤버 함수를 가리키고 실행시키는 데이터 유형입니다.
-Version: 4.5
+Version: 4.9
 
 [TOC(start:2)]
 

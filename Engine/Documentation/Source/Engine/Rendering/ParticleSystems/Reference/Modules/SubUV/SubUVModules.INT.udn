@@ -2,6 +2,7 @@ Availability: Public
 Title:SubUV Modules
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:SubUV modules allow particles to utilize subUV multi-frame textures.
+Version: 4.9
 
 [TOC(start:2 end:3)]
 
@@ -13,7 +14,7 @@ SubUV modules should only be applied to an emitter when the InterpolationMethod 
 
 ## SubImage Index
 
-The SubImage Index module selects the sub-image to use based on a float distribution. Currently, sub-images are ordered from left-to-right, top-to-bottom. It contains the following member(s):
+The **SubImage Index** module selects the sub-image to use based on a float distribution. Currently, sub-images are ordered from left-to-right, top-to-bottom. It contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |
@@ -26,7 +27,7 @@ The SubImage Index module selects the sub-image to use based on a float distribu
 
 ## SubUV Movie
 
-The SubUV Movie module cycles through the sub-images of the texture in sequential order at a specified frame rate, similar to how a flipbook texture behaves. It contains the following properties:
+The **SubUV Movie** module cycles through the sub-images of the texture in sequential order at a specified frame rate, similar to how a flipbook texture behaves. It contains the following properties:
 
 | Property | Description |
 | ---- | ---- |

@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2653197
+﻿INTSourceChangelist:2738663
 Availability: Public
 Title:마티네로 블루프린트 프로퍼티 변경하기
 Crumbs:%ROOT%, Engine, Engine/Matinee, Engine/Matinee/UserGuide
 Description:블루프린트 컴포넌트 제어법에 대한 개요입니다.
+Version: 4.9
+SkillLevel: Intermediate
 
 [TOC(start:2 end:2)]
 
@@ -76,7 +78,7 @@ Description:블루프린트 컴포넌트 제어법에 대한 개요입니다.
 
 1. 변수의 값을 변경합니다:
 
-	* 플로트, 벡터, 리니어 컬러의 경우 트랙 이름 옆의 (![](Engine/Matinee/UI/curve_send_button.jpg)) 토글 아이콘을 클릭하면 커브 애디터에서 애니메이션 커브를 표시할 수 있습니다. 
+	* 플로트, 벡터, 리니어 컬러의 경우 트랙 이름 옆의 (![](Engine/Matinee/UI/curve_send_button.jpg)) 토글 아이콘을 클릭하면 커브 에디터에서 애니메이션 커브를 표시할 수 있습니다. 
 	커브 에디터에서 커브를 변경합니다.
 
 		![](Matinee_CurveEditorIcon.png)

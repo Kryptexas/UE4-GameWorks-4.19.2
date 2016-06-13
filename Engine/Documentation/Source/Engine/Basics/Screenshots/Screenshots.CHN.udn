@@ -1,12 +1,12 @@
+﻿INTSourceChangelist:0
 Availability: Public
-Title:获取屏幕截图
-Crumbs:%ROOT%, Engine, Engine/Basics
+Title: 获取屏幕截图
+Crumbs:%ROOT%, Engine
 Description:关于获取游戏中的场景及游戏可玩性截图的指南。
+version: 4.9
 
 [TOC (start:2 end:3)]
 
-
-## 概述
 
 有很多方法来从您的虚幻引擎游戏项目中获取屏幕截图。本文档中说明了其中的几种方法及其它们的应用。
 

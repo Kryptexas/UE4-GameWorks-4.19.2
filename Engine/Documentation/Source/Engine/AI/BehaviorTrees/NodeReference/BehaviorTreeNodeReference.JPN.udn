@@ -1,11 +1,12 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2755875
 Availability:Public
 Title:Behavior Tree ノードのリファレンス
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
 Description:Behavior Tree ノードのリファレンス
+version:4.9
 
 
-ビヘイビアツリー エディタで利用可能なデフォルト ノードについて説明します。(Shooter Game など) 作業するプロジェクトによって異なります。Behavior Tree ノードは 5 種類です。
+**ビヘイビアツリー エディタ** で利用可能なデフォルト ノードについて説明します。(Shooter Game など) 作業するプロジェクトによって異なります。Behavior Tree ノードは 5 種類です。
 
 | ノードタイプ | 説明 |
 | --- | --- |
@@ -36,7 +37,7 @@ Description:Behavior Tree ノードのリファレンス
 
 <!--
 [EXCERPT:rootNode]
-Root ノードはビヘイビアツリーにおいて一意であり、ビヘイビアツリーの開始ポイントです。接続は 1 つだけで、 Decorators または Services をアタッチすることはできません。Root ノードそれ自体にはプロパティはありませんが、選択すると [Behavior Tree] パネルに Behavior Tree プロパティが表示され、ビヘイビア ツリーの Blackboard アセットを設定することができます。
+Root ノードはビヘイビアツリーにおいて一意であり、ビヘイビアツリーの開始ポイントです。接続は 1 つだけで、 Decorators または Services をアタッチすることはできません。Root ノードそれ自体にはプロパティはありませんが、選択すると [詳細] パネルに Behavior Tree のプロパティが表示され、ビヘイビア ツリーの Blackboard アセットを設定することができます。
 
 ![](Root.png)
 [/EXCERPT]

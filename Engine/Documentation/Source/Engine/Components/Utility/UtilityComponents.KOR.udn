@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2659215
 Availability:Public
 Title:유틸리티 컴포넌트
 Crumbs:%ROOT%, Engine, Engine/Components
 Description:유틸리티 기반 컴포넌트에 대한 설명 및 그 사용법입니다.
 Related: Engine/Blueprints/UserGuide/Components
+SkillLevel: Beginner
+Version: 4.9
 
 
 ## 어플리케이션 수명 컴포넌트
@@ -17,4 +19,8 @@ Related: Engine/Blueprints/UserGuide/Components
 ## 씬 컴포넌트
 
 **SceneComponent** 에는 트랜스폼이 있고 어태치를 지원하지만, 렌더링이나 콜리전 능력은 없습니다. 계층구조 내 다른 것들에 대한 오프셋 적용을 위한 "더미" 컴포넌트로 유용합니다.
+
+
+
+
 

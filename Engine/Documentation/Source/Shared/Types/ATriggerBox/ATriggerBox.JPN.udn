@@ -1,12 +1,12 @@
-﻿INTSourceChangelist:2573090
+﻿INTSourceChangelist:2591123
 Availability:NoPublish
 Title:ATriggerBox
 Crumbs:
-Description:ATriggerBox クラスの概要
+Description:TriggerBox クラスの概要
 
 [EXCERPT:ATriggerBox]
 
-トリガー は、レベル内の他のオブジェクトとインタラクトする時に、イベントを発生させるために使われるアクタです。
+トリガーは、レベル内の他のオブジェクトとインタラクションする時に、イベントを発生させるアクタです。
 
 [VAR:ToolTipFullLink]
 Engine/Actors/Triggers

@@ -58,8 +58,6 @@ order:14
 	* [](Engine/Deployment/Cooking "%Engine/Deployment/Cooking:description%")
 	* [](Engine/Deployment/Releasing "/Engine/Deployment/Releasing:description%")
 	* [](Engine/Deployment/Patching "Engine/Deployment/Patching:description%")
-	* [](Engine/Deployment/Releasing "%Engine/Deployment/Releasing:description%")
-	* [](Engine/Deployment/Patching "%Engine/Deployment/Patching:description%")
 	* [](Engine/Deployment/UnrealFrontend "%Engine/Deployment/UnrealFrontend:description%")
 	[/PARAM]
 [/OBJECT]

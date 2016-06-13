@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653187
+﻿INTSourceChangelist:2716609
 Availability: Public
 Title:1 - 프로토타입 패스
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/LevelDesign
@@ -7,6 +7,7 @@ Related: Engine/Actors/Brushes
 Related:Engine/UI/LevelEditor
 Related: Engine/UI/LevelEditor/Modes
 Related: Engine/Actors/Volumes
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

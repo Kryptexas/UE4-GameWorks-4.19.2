@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2099361
+﻿INTSourceChangelist:2711050
 Availability:Public
 Title: ゲームプレイ フレームワーク
 Crumbs:%ROOT%, Programming
-Description: ゲームルール、プレーヤー入力や制御、カメラ、ユーザーインターフェースなどのコアシステム
+Description: ゲームルール、プレーヤー入力や制御、カメラ、ユーザー インターフェースなどのコア システム
+Version:4.9
 
 
 [OBJECT:Redirect]

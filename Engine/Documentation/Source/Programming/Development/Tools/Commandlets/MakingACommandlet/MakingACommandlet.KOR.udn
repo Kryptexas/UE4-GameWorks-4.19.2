@@ -80,7 +80,7 @@ Native 코드에서는 대부분의 커맨드렛이 본질적인 클래스로서
 
     
     BEGIN_COMMANDLET(Name,Package)
-      // 추가 메써드 선언.
+      // 추가 메소드 선언.
     END_COMMANDLET
     
 

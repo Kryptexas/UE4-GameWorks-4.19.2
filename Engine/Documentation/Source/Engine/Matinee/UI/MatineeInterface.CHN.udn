@@ -41,7 +41,7 @@ Description:关于Matinee用户界面的介绍。
 | **Connect to Source Control（连接到源码控制）** | 如果您的项目正在使用源码控制系统，那么则连接到那个源码控制系统。|
 
 
-请参照[导出及导入Matinee元数据](Engine/Matinee/UserGuide#ExportingandImportingMatineeData)页面获得关于这些主题的更多信息。
+请参照[导出及导入Matinee元数据](Engine/Matinee/UserGuide)页面获得关于这些主题的更多信息。
 
 
 ### 编辑
@@ -58,7 +58,7 @@ Description:关于Matinee用户界面的介绍。
 | **Stretch Selected Key Frames（拉伸选中的关键帧）** | 拉伸由选中的关键帧定义的时间段部分，使其和指定的时间量相匹配。|
 | **Delete Section（删除部分）** | 删除循环区中包含的序列部分。|
 | **Select In Section（选择循环区中的关键帧）** | 选择循环区中包含的所有关键帧。|
-| **Reduce Keys（减少关键帧）** | 减少当前选中轨迹中的关键帧的数量。这对于在外部应用程序中编辑的轨迹，以及对于获得期望动画来说有少量冗余帧的轨迹，是有用的。请参照[关键帧简化](Engine/Matinee\UserGuide#KeyReduction)页面获得更多详细信息。|
+| **Reduce Keys（减少关键帧）** | 减少当前选中轨迹中的关键帧的数量。这对于在外部应用程序中编辑的轨迹，以及对于获得期望动画来说有少量冗余帧的轨迹，是有用的。请参照[关键帧简化](Engine/Matinee\UserGuide)页面获得更多详细信息。|
 | **Save Path Time（保存路径时间）** | 保存在构建路径时要使用的移动 actor的当前时间和位置。|
 | **Jump To Path Time（跳转到路径时间）** | 将时间光标移动到保存的路径构建位置处。|
 | **Editor Preferences（编辑器偏好设置）** | 允许您配置虚幻编辑器的行为及功能。注意，这里提供的选项和虚幻编辑器的 **Edit(编辑)** 菜单中的 **Editor Preferences（编辑器偏好设置）** 选项一样。|
@@ -151,10 +151,10 @@ Description:关于Matinee用户界面的介绍。
 ![Timeline Pane](Matinee_TimelinePanel_Callouts.png)
 
 
-1. [组选卡](#GroupTabs)
-1. [组和轨迹列表](#GroupandTrackList)
-1. [时间轴信息](#TimelineInfo)
-1. [时间轴](#Timeline)
+1. [组选卡](#组选卡)
+1. [组和轨迹列表](#组和轨迹列表)
+1. [时间轴信息](#时间轴信息)
+1. [时间轴](#时间轴)
 
 
 

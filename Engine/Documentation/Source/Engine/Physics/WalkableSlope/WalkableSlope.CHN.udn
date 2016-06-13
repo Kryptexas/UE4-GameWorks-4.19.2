@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Walkable Slope
+﻿INTSourceChangelist:2728300
+Availability:Public
+Title:可行走斜面
 Crumbs: %ROOT%, Engine, Engine/Physics
-Description:
+Description:解释 Walkable Slope Override，以及在何种情况下会使用到它。
+Version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -43,48 +44,53 @@ Description:
 [/OBJECT]
 [/VAR]
 
+[TOC(start:2)]
 
+利用 **物理形体** 上的 **可行走斜面重写（Walkable Slope Override）** 可对 **角色** 能行走的表面进行调整。楼梯可能过于陡峭，或需要设置“禁止践踏青草”标示时，以下设置将助您实现功能。
 
-The **Walkable Slope Override** on **Physics Bodies** enable you to tweak what surfaces **Characters** can walk up. Perhaps a stair case is too steep or maybe you want to enforce the "no walking on the grass" signs, these settings will enable you to do so.
+## 用法
 
-## Usage
+**Character Movement 组件** 拥有一个名为 **Walkable Floor Angle** 的属性。它默认约 45 度。因此当角色尝试向大于此角度的表面移动时，角色将无法爬上斜坡，或将失足滑落。
 
-The **Character Movement Component** has a property called **Walkable Floor Angle**. It defaults to around 45 degrees. So, when the Character attempts to move across a surface that is angled higher than this, the Character will not be able to climb the incline or will lose their footing and slide down it.
-
-Depending on the editor you are in, or if you are looking at an Actor in the level, you will find a property, or expandable grouping of properties, prefixed with **Override Walkable Slope**. Here you can set the **Walkable Slope Behavior** and **Walkable Slope Angle**.
+基于所在的编辑器（或者在查看关卡中的一个 Actor），将找到一个以 **Override Walkable Slope** 为前缀的属性或可扩展属性组。在此可对 **Walkable Slope Behavior** 和 **Walkable Slope Angle** 进行设置。
 
 [REGION:raw]
 ![](walkableProps.png)(convert:false)
 [/REGION]
 
 
-### Increase Walkable Slope
+### 增加可行走斜面
 
-This setting will increase the walkable slope of a **Physics Body** up to the value listed in the **Walkable Slope Angle** property. If **Walkable Slope Angle** is set to 75, and the angle of the surface of the **Physics Body** is 65, the Character will be able to walk up it, regardless of the Character's **Walkable Floor Angle**:
+此设置将把 **物理形体** 的可行走斜面增加到 **Walkable Slope Angle** 属性中列出的数值。如 **Walkable Slope Angle** 设为 75，则 **物理形体** 的表面角度为 65，角色将可以走上这个斜面（无视 **Walkable Floor Angle**）。
 
-![](increased.png)
+**Walkable Slope Behavior** 被设为 “Increase Walkable Slope”时：
 
-_The blue angle is the default **Character Movement Component Walkable Floor Angle**, while the green represents the new **Increased Walkable Slope** angle._
+* **Walkable Slope Angle** 的 0.0 数值和 **Walkable Slope Behavior** 属性中的 **No Change** 本质相同。
+* 如 **Walkable Slope Angle** 的数值为 90.0，角色可以走过物理形体上小于 90 度的任何角度（不包括 90 度）。
 
-While **Walkable Slope Behavior** is set to "Increase Walkable Slope":
+### 减小可行走斜面
 
-* A value of 0.0 in the **Walkable Slope Angle** is essentially the same as **No Change** in the **Walkable Slope Behavior** property.
-* A value of 90.0 in the **Walkable Slope Angle** will allow the character to traverse any angle on the Physics Body up to (but not including) 90 degrees.
-
-### Decrease Walkable Slope
-
-This setting will "cap" the walkable slope of a **Physics Body** to the value listed in the **Walkable Slope Angle** property. If **Walkable Slope Angle** is set to 25, and the angle of the surface of the **Physics Body** is 35 degrees, the Character will be unable to walk up it regardless of the Character's **Walkable Floor Angle**:
-
-![](Decreased.png)
-
-_The blue angle is the default **Character Movement Component Walkable Floor Angle**, while the red represents the new **Decreased Walkable Slope** angle._
-
-While **Walkable Slope Behavior** is set to "Decrease Walkable Slope":
-
-* A value of 0.0 in the **Walkable Slope Angle** will result in the Character being unable to walk across the **Physics Body** surface. This can result in some odd behavior for mostly flat surfaces, as the character will skate across them but will not be able to change direction.
-* A value of 90.0 in the **Walkable Slope Angle** is essentially the same as **No Change** in the **Walkable Slope Behavior** property.
+此设置将把 **物理形体** 的可行走斜面“限定”到 **Walkable Slope Angle** 属性中列出的数值。如 **Walkable Slope Angle** 设为 25，则 **物理形体** 的表面角度为 35，角色将无法走上这个斜面（无视 **Walkable Floor Angle**）。
 
 
+**Walkable Slope Behavior** 被设为 “Decrease Walkable Slope”时：
+
+* 如 **Walkable Slope Angle** 的数值为 0.0，角色将无法走过 **物理形体** 表面。此设置可能会在接近于平面的表面上形成一些奇怪的行为，角色将滑过这些表面但无法改变方向。
+* **Walkable Slope Angle** 的 90.0 数值和 **Walkable Slope Behavior** 属性中的 **No Change** 本质相同。
+
+## 范例
+
+[REGION:imagetable]
+| %inc% | %dec% |
+| --- | --- |
+| 蓝色角度为默认 **Character Movement 组件可行走地面角度**，而绿色代表新 **增加的可行走斜面** 角度。| 蓝色角度为默认 **Character Movement 组件可行走地面角度**，而红色代表新 **减小的可行走斜面** 角度。|
+[/REGION]
 
 
+[VAR:inc]
+[REGION:lightbox][![](increased1.png)(h:340)](increased.png)[/REGION]
+[/VAR]
 
+[VAR:dec]
+[REGION:lightbox][![](Decreased1.png)(h:340)](Decreased.png)[/REGION]
+[/VAR]

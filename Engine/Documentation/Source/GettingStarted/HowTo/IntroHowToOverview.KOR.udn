@@ -1,8 +1,11 @@
-﻿INTSourceChangelist:2612766
+﻿INTSourceChangelist:2735872
 Availability: Public
 Title:기본 비법
 Crumbs: %ROOT%, GettingStarted
-Description: 언리얼 엔진 4 작업에 있어 필요한 지식을 단계별로 안내해 드리는 짧막한 비법 안내입니다.
+Description: 언리얼 엔진 4 작업에 있어 필요한 지식을 단계별로 안내해 드리는 짤막한 비법 안내입니다.
+version: 4.9
+parent:Engine/Editor
+order:2
 
 [VAR:Topic]
 [OBJECT:Topic]

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2652825
+﻿INTSourceChangelist:2712692
 Availability: Public
 Title:1.1 - Hello World
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
@@ -10,6 +10,7 @@ Related: Engine/Blueprints/UserGuide/Types/MacroLibrary
 Related: Engine/Animation/AnimBlueprints/EventGraph
 Related: Engine/Blueprints/UserGuide/UserConstructionScript
 Related: Gameplay/HowTo/SetUpInput/Blueprints
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -53,10 +54,8 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 [REGION:tip]
 이 예제는 '에디터에서 플레이' 또는 '에디터에서 시뮬레이트' 에서 보는 것이 가장 좋습니다. '에디터에서 시뮬레이트'는 화면 상단 에디터 툴바에 있는 **시뮬레이트** 버튼 또는 **Alt-S** 키를 누르면 됩니다. '에디터에서 플레이'는 마찬가지로 툴바에 있는 **플레이:** 버튼 또는 **Alt-P** 키를 누르면 됩니다.
 
-![Simulate](button_Simulate.png)(h:60) ![Play In Editor](button_PlayIn.png)(h:60)
+![Simulate](button_Simulate.png)(h:150) ![Play In Editor](button_PlayIn.png)(h:150)
 [/REGION]
-
-
 
 
 

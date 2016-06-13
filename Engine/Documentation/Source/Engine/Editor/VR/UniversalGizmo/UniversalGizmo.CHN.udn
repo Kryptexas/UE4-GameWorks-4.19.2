@@ -1,0 +1,57 @@
+﻿INTSourceChangelist:0
+Title: Universal Gizmo
+Description: Transform widget designed for moving, rotating, and scaling Actors in VR.
+Crumbs:
+Availability: docs
+parent: Engine/Editor/VR
+type: reference
+order: 4
+tags: VR
+version: 4.11
+skilllevel: intermediate
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Editor/VR/UniversalGizmo:title%](Engine/Editor/VR/UniversalGizmo/universalgizmo_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/UniversalGizmo:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/UniversalGizmo]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/UniversalGizmo:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Editor/VR/UniversalGizmo:title%](Engine/Editor/VR/UniversalGizmo/universalgizmo_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/UniversalGizmo:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/UniversalGizmo]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/UniversalGizmo:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+The **Universal Gizmo** is a transform widget designed for moving, rotating, and scaling Actors when working in VR mode. 
+
+![](universalgizmo.png)(w:400)
+
+The elements of the Universal Gizmo are colored Red, Green, and Blue representing the X, Y, and Z axes, respectively.
+
+| Action | Manipulator | Usage |
+| --- | --- | --- |
+| Translate | ![](universalgizmo_move.png)(w:64) | Aim the controller at one of the translation manipulators and squeeze the Trigger to grab it. Move the controller to move the selected Actor(s) along an axis. |
+| Rotate | ![](universalgizmo_rotate.png)(w:64) | Aim the controller at one of the rotation manipulators and squeeze the Trigger to grab it. Move the controller to rotate the selected Actor(s) around an axis. |
+| Scale | ![](universalgizmo_scale.png)(w:64) | Aim the controller at one of the scale manipulators and squeeze the Trigger to grab it. Move the controller to scale the selected Actor(s) along an axis. |

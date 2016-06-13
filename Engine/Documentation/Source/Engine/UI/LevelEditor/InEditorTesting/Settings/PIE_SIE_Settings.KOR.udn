@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2693435
 Availability:Public
 Title:에디터에서 플레이 세팅
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor, Engine/UI/LevelEditor/InEditorTesting
-Description:'플레이:' 창의 크기와 기타 옵션 셋업입니다.
+Description:플레이 창의 크기와 기타 옵션 셋업입니다.
+Version: 4.9
 
 [TOC(start:2)]
 **플레이** 세팅 패널은 두 가지 방법으로 열 수 있습니다:
@@ -99,7 +100,7 @@ Description:'플레이:' 창의 크기와 기타 옵션 셋업입니다.
 
 ## 멀티플레이어 옵션
 
-[네트웍 _에디터에서 플레이_ 테스트](Engine/UI/LevelEditor/InEditorTesting\NetworkedPlayInEditor) 에 쓰이는 기본 및 고급 옵션입니다. **플레이:** 드롭다운 메뉴의 
+[네트워크 _에디터에서 플레이_ 테스트](Engine/UI/LevelEditor/InEditorTesting\NetworkedPlayInEditor) 에 쓰이는 기본 및 고급 옵션입니다. **플레이:** 드롭다운 메뉴의 
 플레이어 수나 데디케이티드 서버 옵션 외에 URL 파라미터, 게임패드 경유, 멀티-프로세스 테스팅 방법으로의 복원 등에 대한 옵션이 있습니다.
 
 [EXCERPT:NetworkPIESettings]

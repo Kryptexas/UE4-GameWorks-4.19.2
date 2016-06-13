@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2726463
 Availability: Public
 Title:템플릿
 Crumbs:%ROOT%
 Description:템플릿은 게임 시작을 위한 핵심 클래스 몇 가지와 레벨이 제공되는 시작점입니다.
 Navigation:topic
+Version: 4.9
 
 [VAR:Params]
 [PARAM:image]

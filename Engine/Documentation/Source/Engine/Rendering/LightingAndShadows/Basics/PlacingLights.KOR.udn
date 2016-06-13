@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2602324
+﻿INTSourceChangelist:2668529
 Availability: Public
 Title:라이팅 기초
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:레벨에 라이트를 배치하고 셋업하는 법에 대한 기초입니다.
+SkillLevel: Beginner
+Version: 4.9
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]
@@ -103,7 +105,7 @@ Description:레벨에 라이트를 배치하고 셋업하는 법에 대한 기�
 
 ![](MoveRotateLights.png)
 	
-라이트는 에디터이 이와 같은 스프라이트로 나타납니다. 왼쪽에서부터 오른쪽으로: **포인트 라이트**, **스포트 라이트**, **디렉셔널 라이트** 입니다.
+라이트는 에디터에 이와 같은 스프라이트로 나타납니다. 왼쪽에서부터 오른쪽으로: **포인트 라이트**, **스포트 라이트**, **디렉셔널 라이트** 입니다.
 
 ![](LI_Sprites.png)
 

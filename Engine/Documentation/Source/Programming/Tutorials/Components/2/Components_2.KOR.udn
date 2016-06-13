@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2620109
+﻿INTSourceChangelist:2727334
 Availability: Public
 Title:2. 입력 환경설정 및 폰 무브먼트 컴포넌트 생성
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
@@ -25,7 +25,7 @@ version:4.9
 
 1. **언리얼 에디터** 로 돌아와서, 프로젝트의 입력 세팅을 구성해 줄 차례입니다. 이 세팅은 **편집** 드롭다운 메뉴의 **프로젝트 세팅** 에서 찾을 수 있습니다.
 
-	[![](EditProjectSettings.png)](EditProjectSettings.png)
+	![](EditProjectSettings.png)
 
 	거기서 왼쪽 패널의 **엔진** 섹션에서 **입력** 을 선택합니다. 파티클 시스템 토글 구성을 위한 **액션 매핑**, **폰** 이동을 위한 **축 매핑** 둘, **폰** 회전을 위한 **축 매핑** 이 하나 더 필요합니다.
 
@@ -41,25 +41,25 @@ version:4.9
 	|  | D | 1.0 |
 	| Turn | Mouse X | 1.0 |
 
-	[![](InputSettings.png)](InputSettings.png)
+	![](InputSettings.png)
 
 1. **Pawn** 클래스에서 모든 이동 처리를 직접 하는 대신, **Movement** 컴포넌트를 만들어 대신 관리를 시키겠습니다. 이 튜토리얼에서는 **Pawn Movement Component** 클래스를 확장하겠습니다. **파일** 드롭다운 메뉴의 **프로젝트에 코드 추가** 명령을 선택하는 것으로 시작합니다.
 
-	[![](AddCPPCode.png)](AddCPPCode.png)
+	![](AddCPPCode.png)
 
 	**Pawn** 클래스와는 달리 **Pawn Movement Component** 는 기본적으로 보이지 않습니다. 찾으려면 **모든 클래스 표시** 옵션을 체크해야 합니다.
 
-	[![](ShowAllClasses.png)](ShowAllClasses.png)
+	![](ShowAllClasses.png)
 
 	검색창에 "movement" 라 치면 리스트를 빠르게 좁혀볼 수 있습니다.
 
-	[![](ChooseParentClass.png)](ChooseParentClass.png)
+	![](ChooseParentClass.png)
 
 	[REGION:tip]**Pawn Movement Component** 에는 흔한 물리 함수성에 도움이 되는 강력한 내장 기능이 몇 가지 들어있어, 여러가지 **폰** 유형에 무브먼트 코드를 공유하기가 좋습니다. **컴포넌트** 를 사용하여 함수성을 분리시켜 놓는 것은 매우 좋은 습관인데, 프로젝트의 덩치가 커 지면서 **폰** 도 복잡해 지기 때문입니다.[/REGION]
 
 	**Pawn** 클래스를 "CollidingPawn" 이라 했으니, 얘 이름은 "CollidingPawnMovementComponent" 라 합시다.
 
-	[![](NameComponent.png)](NameComponent.png)
+	![](NameComponent.png)
 
 ----
 

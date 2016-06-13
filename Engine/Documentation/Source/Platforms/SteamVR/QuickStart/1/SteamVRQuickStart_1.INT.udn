@@ -22,44 +22,44 @@ Platform:SteamVR
 
 %Steps%
 
-Making sure that the SteamVR hardware is properly setup and that the correct software is installed on your development PC is of vital importance to ensuring that the SteamVR hardware will work correctly with Unreal Engine 4. 
-In the following section we will take a look at any special considerations that you might need to make when setting up SteamVR software and hardware to work with UE4.
+In the following section we will take a look at how to get SteamVR setup so that it will work with Unreal Engine 4 (UE4).
 
 [region:note]
 With each SteamVR development kit Valve has provide [detailed instructions](http://media.steampowered.com/apps/steamvr/vr_setup.pdf ) that will show you how to correctly set everything up. 
 If you have not read this document please do so before going any further as the following information is not a substitute for the information contained in the document created by Valve.
 [/region]
 
-1. Make sure to clear a 12 x 9ft / 4 x 3M area of all objects that you could trip over or hit while you are using SteamVR.
+1. Make sure to clear a 12ft x 9ft / 4m x 3m area of all objects that you could trip over or hit while you are using SteamVR.
 
-1. Inside of the Steam Client in the **Library** section under the **Tools** option, download and install both **SteamVR** and **VRMonitor**.
+1. Ensure that the Vive Head Mounted Display (HMD), Steam Controllers, Breakout Box, and Lighthouse Base stations are all unpacked, powered on, connected and setup according the the [instruction](http://media.steampowered.com/apps/steamvr/vr_setup.pdf) provide by Valve.
+
+1. If you have not done so already, download and install the [Steam Client](http://store.steampowered.com/about/) on your development PC.
+
+1. To install the **SteamVR** tools, use your mouse to hover over the Steam **Library** option and from the menu that is displayed, select the **Tools** option. 
+
+	![](T_Launch_SteamVR_Tools.png)
+
+1. Once you are in the Tools section, search for **SteamVR** using the search bar at the top. Once SteamVR is located, double click on it to download and install it.
 
 	![](T_SteamTools_Software.png)
 
-1. Ensure that the Vive Head Mounted Display (HMD), Steam Controllers, Breakout box, and Lighthouse Base stations are all unpacked, powered on, connected and setup according the the [instruction](http://media.steampowered.com/apps/steamvr/vr_setup.pdf) provide by Valve.
-
-1. Once everything is connected and turned on, pick up the Vive HMD so that the lenses are facing you.
-On the **Left Hand Side** of the Vive HMD there is a small **Black Button** with a small light above it. 
-Currently the light should be **red** meaning that the Vive HMD is in standby mode. 
-Press and hold the **Black Button** in for **5 Seconds** and the red light should change to **green**, meaning the Vive HMD is now ready to be used.
-
-	![](T_Vive_Standby_Mode.png)
-
 	[region:note]
-	Keep in mind that in order for the Vive HMD to work correctly you will need to have a **[USB 3.0](http://en.wikipedia.org/wiki/USB_3.0)** port available to use on your development PC. 
+	You can also install SteamVR by clicking on the **VR** icon that is located on the upper right hand corner of the Steam Client and follow the instructions on the screen.
+	![](T_SteamVR_Icon_Install.png)
 	[/region]
 
-1. From the Steam client launch the **Steam VR** application and the following window will be displayed.
+1. Double-clicking on the **SteamVR** option in the Tools menu will launch the SteamVR tools as shown in the image below.
+
+	![](T_Steam_VR_Ready.png)
+	[region:note]
+	When SteamVR shows all devices in green like in the image above that means everything is working correctly. 
+	If a device that shows up in grey then there  is a problem with that device.
+	SteamVR will tell you what is wrong with a greyed out device and possible fixes if you hover your mouse over the greyed out device.
+	[/region]
+
+1. Before you can use SteamVR with UE4 you must setup the SteamVR interaction area. 
+To do this, **Right - click** on the SteamVR window and select the **Run Room Setup** and follow the provided directions to setup the SteamVR interaction area.
 
 	![](T_Steam_VR_App.png)
-
-1. Make sure to read and complete the first 3 steps in the **Setting up** section and once everything has been completed click on the **Run your first VR app!** then put your HMD on. 
-   If everything has been setup correctly you should now see something that looks like the following image in the HMD.
-
-	![](T_FirstVRApp.png)
-
-
-
-
 
 %Steps%

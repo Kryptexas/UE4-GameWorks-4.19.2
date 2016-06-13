@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2611558
+﻿INTSourceChangelist:2740691
 Availability: Public
 Title:4. 블렌드 스페이스 만들기
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:이번 단계에서는 다양한 방향 이동시의 애니메이션 블렌딩이 가능하도록 이동 상태에 대한 블렌드 스페이스 구성을 해 보도록 하겠습니다.
+Version: 4.9
+SkillLevel: Advanced 
 
 [VAR:Steps]
 [OBJECT:Navigation]

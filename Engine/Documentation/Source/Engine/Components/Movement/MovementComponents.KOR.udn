@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2696085
 Availability:Public
 Title:무브먼트 컴포넌트
 Crumbs:%ROOT%, Engine, Engine/Components
@@ -6,6 +6,7 @@ Description:캐릭터든 프로젝타일이든, 이동에 관련된 모든 것�
 Related: Gameplay/Framework/Pawn/Character
 Related: Engine/Animation
 Related: Engine/Blueprints/UserGuide/Components
+version: 4.9
 
 **Movement Component** 는 자신이 서브 오브젝트로 달린 액터 (또는 캐릭터)에 일정한 형태의 이동을 제공합니다.
 
@@ -23,10 +24,10 @@ Related: Engine/Blueprints/UserGuide/Components
 ## 프로젝타일 무브먼트 컴포넌트
 
 **ProjectileMovementComponent** 는 다른 컴포넌트의 틱 도중 그 위치를 업데이트합니다. 충격 이후의 탄성이라든가 목표물에 대한 유도같은 것이 이러한 컴포넌트 유형에 지원됩니다.
-보통 소유 액터의 루트 컴포넌트가 이동되지만, 다른 컴포넌트를 선택할 수도 있습니다 ([`SetUpdatedComponent`](https://docs.unrealengine.com/latest/INT/API/Runtime/Engine/GameFramework/UMovementComponent/SetUpdatedComponent/index.html) 참고). 
+보통 소유 액터의 루트 컴포넌트가 이동되지만, 다른 컴포넌트를 선택할 수도 있습니다 ([SetUpdatedComponent](https://docs.unrealengine.com/latest/INT/API/Runtime/Engine/GameFramework/UMovementComponent/SetUpdatedComponent/index.html) 참고). 
 업데이트된 컴포넌트가 물리 시뮬레이션을 하는 경우, (초기 속도가 0 이 아닐 때) 초기 시작 파라미터만 프로젝타일에 영향을 끼치고, 그 이후는 물리 시뮬레이션이 이어받습니다.
 
-**ProjectileMovementComponent** 를 사용하는 **블루프린트** 예제는 아래와 같습니다 (클릭하면 원래 크기로).
+**ProjectileMovementComponent** 를 사용하는 **블루프린트** 예제는 아래와 같습니다 (클릭하면 원래 크기 이미지가 표시됩니다).
 
 [REGION:lightbox]
 [![](projectile.png)(w:820)](projectile.png)
@@ -39,5 +40,9 @@ Related: Engine/Blueprints/UserGuide/Components
 **RotatingMovementComponent** 사용 예제로는 비행기의 프로펠러나 풍차, 심지어 태양을 공전하는 일련의 행성들을 들 수 있습니다.
 
 이 컴포넌트 활용 예제는 [Blueprint Rotating Movement Component](https://wiki.unrealengine.com/Blueprint_Rotating_Movement_Component) 문서를 참고하세요.
+
+
+
+
 
 

@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2342809
+﻿INTSourceChangelist:2713285
 Availability:Public
 Title:ローカリゼーション
 Crumbs:%ROOT%, Gameplay
 Description:プロジェクトのローカリゼーション方法に関する情報
 Related:Programming/UnrealArchitecture/StringHandling/FText
+version:4.9
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]

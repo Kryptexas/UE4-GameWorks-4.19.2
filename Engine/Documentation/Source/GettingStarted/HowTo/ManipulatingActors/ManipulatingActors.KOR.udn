@@ -1,11 +1,13 @@
-﻿INTSourceChangelist:2637543
+﻿INTSourceChangelist:2796819
 Availability:Public
 Title:액터 조작하기
 Crumbs: %ROOT%, Gameplay, GettingStarted\HowTo
 Description:레벨의 액터를 이동, 회전, 스케일 조절하는 법 예제입니다.
 Related: Engine/Actors/Transform
 Related: Engine/UI/LevelEditor/Viewports/ViewportControls
-Related: GettingStarted\HowTo\PlacingActors
+Related: Engine/Actors/Placement
+Version: 4.9
+SkillLevel: Beginner
 
 언리얼 엔진 4 에서의 액터 조작 (또는 **액터 트랜스폼**) 작업은 이동, 회전, 스케일 조절 작업을 말하며, 레벨 편집 및 생성 과정에서 중요한 부분을 차지합니다. 이 글에서는 그 각각에 대한 구체적인 여러가지 방법을 배워보겠습니다. 액터 작업시 흔히 사용되는 키보드 단축키도 몇 가지 익혀 두면 작업속도 향상에 도움이 될 수 있습니다.
 
@@ -21,11 +23,11 @@ Related: GettingStarted\HowTo\PlacingActors
 
 1. 프로젝트를 열고서, **콘텐츠 브라우저** 안에서, **Starter Content** - **Props** 폴더를 엽니다.
 
-	![](Move1.png)
+	![](Move1.png)(w:400)
 
 1. **SM_Chair** 를 좌클릭하여 선택한 다음 레벨 에디터 뷰포트 아무데나 끌어 놓습니다.
 
-	![](Move2.png)
+	![](Move2.png)(w:700)
 
 1. 의자가 배치되면, 자동으로 선택되어 빨강/파랑/초록 화살표 위젯이 나타나는 것이 보일 것입니다.
 
@@ -37,7 +39,7 @@ Related: GettingStarted\HowTo\PlacingActors
 
 	![](Move8.png)(w:400)
 
-	또 이 섹션은 그리드 스냅 옵션으로, 액터 이동시 일정양만큼 고정적으로 움직이도록 설정할 수 있으며, 레벨에 오브젝트를 정교하게 배치하는 데 좋습니다.
+	또 이 섹션은 그리드 스냅 옵션으로, 액터 이동시 일정량만큼 고정적으로 움직이도록 설정할 수 있으며, 레벨에 오브젝트를 정교하게 배치하는 데 좋습니다.
 
 	![](Move9.png)(w:400)
 

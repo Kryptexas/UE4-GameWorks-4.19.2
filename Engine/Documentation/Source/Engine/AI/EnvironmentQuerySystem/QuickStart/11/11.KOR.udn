@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2605611
+﻿INTSourceChangelist:2654592
 Availability:Public
 Title: 11. FindPlayer EQS 생성
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
 Description: 레벨에 플레이어의 TopDownCharacter 모든 인스턴스를 찾는 인바이언먼트 쿼리를 만듭니다.
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

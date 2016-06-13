@@ -1,18 +1,84 @@
-﻿INTSourceChangelist:2374181
+﻿INTSourceChangelist:2669538
 Availability:Public
 Title:インターフェース
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference
 Description:インターフェースの作成および実装に関する参照ページ
-Version:4.5
+Version:4.9
 
 [TOC(start:2)]
 
 
-インターフェース クラスの宣言は普通のクラスの宣言と似ています。記法における大きな違いは、内容を `UCLASS` マクロではなく `UINTERFACE` マクロへ渡すことです。
+インターフェース クラスの宣言は普通のクラスの宣言と似ています。記法における唯一の大きな違いは、記述子が `UCLASS` マクロではなく `UINTERFACE` マクロへ渡されることです。
 
 	UINTERFACE([specifier, specifier, ...], [meta(key=value, key=value, ...)])
 	class ClassName :ParentName
 
-## Interface 指定子
+## インターフェースの宣言
+
+h file (例、 `ItemInterface.h`) で以下のようにします。
+
+    #pragma once
+
+    #include "ItemInterface.generated.h"
+
+    UINTERFACE(Blueprintable)
+    class UItemInterface : public UInterface
+    {
+        GENERATED_UINTERFACE_BODY()
+    };
+
+    class IItemInterface
+    {    GENERATED_IINTERFACE_BODY()
+
+    public:
+
+        UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Item")
+        FItemStruct GetItem() const;
+    };
+
+.cpp ファイル (例、 `ItemInterface.cpp`) で以下のようにします。
+
+    #include "ItemInterface.h"
+
+    UItemInterface::UItemInterface(const FObjectInitializer& ObjectInitializer) :Super(ObjectInitializer)
+    {
+    }
+
+宣言は、クラス用の標準の C++ クラス宣言で構成されています。標準の宣言の上で、クラス指定子やメタデータなどの記述子が UINTERFACE マクロへ渡されます。これらは宣言されているインターフェースに対して UInterface を作成するために使用され、エンジンの特別なクラス表現とみなされます。GENERATED_UINTERFACE_BODY() マクロはクラス本体の冒頭に配置しなくてはいけません。
+
+エンジンにインターフェースを認識させるためには、2 つのクラスを作成しなければなりません。ひとつは、UInterface から継承する UINTERFACE クラスで、もうひとつは純粋なインターフェースです。
+
+UINTERFACE クラスには、UObject から拡張すると U のプレフィックスが付きます。Interface には、I のプレフィックスが付きます。
+
+ブループリントにこのインターフェースを実装させたい場合は、`Blueprintable` の指定子が必要です。
+
+### Interface 指定子
 
 [INCLUDE:Programming/UnrealArchitecture/Reference/Interfaces/Specifiers#main(offset:1)]
+
+## C++ で Interface を実装する
+
+C++ でクラスを宣言する場合、単にインターフェースから継承します (ただし、UInterface クラスではありません)。
+
+    class AItem : public AActor, public IItemInterface
+    {
+        GENERATED_BODY()
+
+    public:
+
+        FItemStruct GetItem_Implementation() const;
+    };
+
+## 任意のアクタがインターフェースを実装するかを判断する
+
+インターフェースを実装する C++ と Blueprint クラスの両方で互換性を得るためには、以下のコードを使用します。
+
+    obj->GetClass()->ImplementsInterface(UItemInterface::StaticClass());
+
+[REGION:note]
+クラスの UInterface バージョンを使用して、インターフェースが実装されているかをチェックしなければなりません。
+[/REGION]
+
+## Blueprint Implementable クラス
+
+ブループリントにこのインターフェースを実装させたい場合は、`Blueprintable` のメタデータの指定子を使用しなければなりません。また、インターフェース内の各関数は、 `BlueprintNativeEvent` または `BlueprintImplementableEvent` でなければなりません。そうでなければ、インターフェースを実装する Blueprint クラスは、インターフェースのすべてのメソッドを実装できません。

@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:2627798
+﻿INTSourceChangelist:2712997
 Availability: Public
 Title:지오메트리 편집 콘텐츠 예제
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
 Description:Geometry Editing 콘텐츠 예제 맵에 대한 개요입니다.
 Related: Engine/Actors/Brushes
 Related: Engine/UI/LevelEditor/Modes
+Version: 4.9
 
 
 [VAR:Topic]
@@ -53,7 +54,7 @@ Related: Engine/UI/LevelEditor/Modes
 ![](BSP_Header.png)
 [/REGION]
 
-[TOC(start:2 end:2)]
+<!---[TOC(start:2 end:2)]--->
 
 
 

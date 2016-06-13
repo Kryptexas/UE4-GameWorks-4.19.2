@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2605728
+﻿INTSourceChangelist:2707846
 Availability:Public
 Title:플립북 컴포넌트
 Crumbs: %ROOT%, Engine, Engine/Paper2D, Engine/Paper2D/Flipbooks
 Description:블루프린트나 C++ 로 플립북 컴포넌트 작업을 하는 데 관련된 정보입니다.
+Version: 4.9
 
-##개요
 
 **Flipbook Component**, 플립북 컴포넌트는 정규 프리미티브 컴포넌트로, 다른 컴포넌트에 붙여 3D 로 임의의 포즈가 가능하거나, 다른 컴포넌트를 거기에 붙일 수도 있습니다. 각 클립북 컴포넌트 인스턴스는 플립북 머티리얼에 버텍스 컬러로 전해 내려지는 커스텀 컬러를 지정할 수 있습니다. 커스텀 머티리얼을 지정할 수도 있는데, 이는 플립북에 지정된 디폴트 머티리얼을 덮어쓰게 됩니다.
 

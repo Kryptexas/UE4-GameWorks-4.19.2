@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2613941
+﻿INTSourceChangelist:2723454
 Availability: Public
 Title:나비
 Crumbs:%ROOT%, Resources, Resources/Showcases/BlueprintExamples
@@ -9,6 +9,7 @@ Related: Engine/Animation/AnimBlueprints/EventGraph
 Related: Engine/Blueprints/UserGuide/UserConstructionScript
 Related: Engine/Animation/AnimBlueprints/EventGraph
 Related: Gameplay/AI
+Version: 4.9
 
 [REGION:fullwidth]
 ![](ButterflyHeader.png)
@@ -18,7 +19,7 @@ Related: Gameplay/AI
 레벨 중앙에 있는 두 개의 기계 나비는 블루프린트를 이용해서 기본적인 AI 를 만드는 법을 보여주는 예제입니다. 나비는 지정된 중심점 주변을 날아다니면서, 잠깐동안 방향을 임의로 바꾸다가 중심점으로 돌아와서 쉬려고 합니다. 장애물을 만나면 부드럽게 그쪽으로 날아가 착지한 다음, 일정 기간 이후 다시 날아오릅니다. 나비의 비행 시간이 길 수록 쉬는 시간도 길어집니다.
 [/EXCERPT:Overview]
 
-레벨을 돌아다니는 것은 나비 블루프린트 액터 그 자체가 아니라 그 컴포넌트들입니다. 나비는 하나의 바디 메시를 부모로 갖는 두 개의 날개 메시로 이루어져 있습니다. 각 메시는 타임라인 노드를 통해 애니메이션이 적용, 나비가 위아래로 둥실거릴 때 날갯짓을 하도록 합니다. _이벤트 그래프_ 는 나비 컴포넌트를 앞으로 이동시키되 반경 내 임의의 지점을 향하도록 방향 전환을 하여, 수 초마다 새로운 지점을 향해 날아가도록 합니다.
+레벨을 돌아다니는 것은 나비 블루프린트 액터 그 자체가 아니라 그 컴포넌트들입니다. 나비는 하나의 바디 메시를 부모로 갖는 두 개의 날개 메시로 이루어져 있습니다. 각 메시는 타임라인 노드를 통해 애니메이션이 적용, 나비가 위아래로 나부끼며 날갯짓을 하도록 합니다. _이벤트 그래프_ 는 나비 컴포넌트를 앞으로 이동시키되 반경 내 임의의 지점을 향하도록 방향 전환을 하여, 수 초마다 새로운 지점을 향해 날아가도록 합니다.
 
 _Attracter Location_ 이라는 벡터 변수는 _Editable_ (편집가능) 변수로, 사용자에게 노출되는 변수라는 뜻입니다. 이 변수는 3D 위젯으로도 표시되어, 이를 활용하여 나비의 비행 반경 중심지를 결정할 수 있습니다. 어느정도 거리를 비행한 이후 스크립트는 이 지점으로 나비를 되돌려서 너무 멀어지지 않도록 합니다.
 

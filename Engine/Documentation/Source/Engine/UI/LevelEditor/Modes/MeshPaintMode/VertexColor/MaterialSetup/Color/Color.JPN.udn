@@ -1,38 +1,41 @@
-﻿INTSourceChangelist:2117133
+﻿INTSourceChangelist:2693494
 Availability:Public
 Title:頂点カラー マテリアル
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor, Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor/MaterialSetup
 Description:メッシュ ペイント モードでカラーをペイントするために頂点カラーを利用するマテリアルの設定方法
+Version:4.9
+SkillLevel:Intermediate
 
-
-頂点カラーマテリアル表現式を用いて、様々な方法でカラーを使用することができます。ここでは、比較的シンプルな設定にとどめ、カラーの既存マテリアルへの乗算処理のみ説明します。これによりオリジナル テクスチャが配置されますが、メッシュ ペイント ツールで色合いを付けることが出来ます。
+頂点カラーマテリアル表現で色を用いる方法は数限りなくあります。ここでは、比較的シンプルな設定にとどめ、カラーの既存マテリアルへの乗算処理のみ説明します。これによりオリジナル テクスチャが配置されますが、Mesh Paint ツールで色合いを付けることが出来ます。
 
 まず、メッシュの例を見てみましょう。
 
 ![](Statue.png)(w:400)
 
-これにペイントを施すには、頂点カラー マテリアル表現式をネットワークへ組み込む必要があります。ベース マテリアルのネットワークは以下の様に開始します。
+これにペイントするには、頂点カラー マテリアル表現式をネットワークへ組み込む必要があります。ベース マテリアルのネットワークは以下の様に開始します。 
 
-**クリックして画像を振るサイズで表示**
+**クリックして画像をフルサイズで表示**
 
- [![](OriginalColorMaterial.png)(w:720)](OriginalColorMaterial.png)
-
+[REGION:lightbox]
+[![](OriginalColorMaterial.png)(w:720)](OriginalColorMaterial.png)
+[/REGION]
 
 [REGION:note]
-このマテリアルの彩度は、メッシュ ペイント ツールを使用してカラーを追加するため多少減じています。
+このマテリアルは、 Mesh Paint ツールを使用してカラーを追加するため、彩度を多少落としています。
 [/REGION]
 
 
  頂点カラーをマテリアルへ組み込むために、ベースカラー接続を切断して、頂点カラー表現式の RGB 値で以下の様に乗算処理をします。
 
- **クリックして画像を振るサイズで表示**
-
+ **クリックして画像をフルサイズで表示**
+ 
+[REGION:lightbox]
 [![](VertexColorAdded.png)(w:720)](VertexColorAdded.png)
+[/REGION]
 
+コメントエリア内に、追加した Multiply ノードと対応する頂点カラー ノードが表示されています。 
 
-コメントエリア内に、追加した Multiply ノードと対応する頂点カラー ノードが表示されています。
-
-メッシュ ペイント モードへ切り替えた際に、ツールがカラー モードに設定されていることを確認してください。
+Mesh Paint モードへ切り替えた際に、ツールがカラー モードに設定されていることを確認してください。 
 
 ![](ColorPaint_Settings.png)
 

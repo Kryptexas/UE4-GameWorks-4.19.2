@@ -1,58 +1,58 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2591944
 Availability:Public
-Title:Texture Guidelines for Mobile Platforms
+Title:移动平台纹理指导准则
 Crumbs:%ROOT%, Platforms, Platforms/Mobile
 Description:Texture creation and properties for mobile games.
 Platform:Mobile
 
 [TOC(start:2)]
 
-## Overview
+## 概述
 
-Since mobile platforms use OpenGL ES2, there are restrictions imposed on textures. Some of the restrictions come into play 
-when creating textures:
+由于移动平台采用了 OpenGL ES2，因此对纹理的使用有所限制。在创建纹理时， 
+某些限制将起作用：
 
-* A maximum size of 2048 in either dimension. This is the largest size allowed by the PVR compressor.
-* Dimensions must both be a power of 2 (i.e. 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, or 2048).
-* You should use square textures whenever possible as they make more efficient use of memory. <!-- Non-square textures are padded out to be square. (?)  -->
+* 任一尺寸的最大大小为 2048。这是 PVR 压缩器允许使用的最大尺寸。
+* 尺寸必须是 2 的次方（即，2、4、8、16、32、64、128、256、512、1024 或 2048）。
+* 应尽量使用正方形纹理，因此它们可以更有效利用内存。<!-- 非正方形纹理将被填充成正方形。 (?)  -->
 
-In addition, texture settings need to be set up properly to work on mobile platforms:
+此外，需要正确设置纹理设置，才能在移动平台上正常使用：
 
-* It is recommended that you only use  **TC_Default** or **TC_NormalMap** in the **Compression Settings** as any other setting could cause your Texture to take up more memory than expected on your target device.
-* The **sRGB** property should be enabled.
+* 建议您只使用 **Compression Settings** 中的  **TC_Default** 或 **TC_NormalMap**，因为任何其他设置都可能造成纹理在您的目标设备上占用过多内存。
+* 应启用 **sRGB** 属性。
  
-## Texture Usage in Materials
+## 在材料中使用纹理
 
-Most opaque Materials should only need BaseColor, Roughness, and Normal to come from textures. Specular should not be specified 
-and Metallic can be a constant. Given that base set of Material properties, most Materials that only have one layer should use 
-the following setup which only requires two textures:
+大多数不透明材料只需要使用纹理中的基本颜色、粗糙度和普通设置。不应指定镜面反射， 
+金属色可以作为常量。如果采用的是材料属性的基本设置，则大多数单层材料应使用 
+以下设置，该设置只需要两种纹理：
 
 * **Texture 1**
-	* BaseColor in RGB
-	* Roughness in alpha
-	* TC_Default compression
+	* RGB 中的基本颜色
+	* 透明度中的粗糙度
+	* TC_Default 压缩
 * **Texture 2**
-	* Normal map in RGB
-	* TC_NormalMap compression
+	* 采用 RGB 的普通贴图
+	* TC_NormalMap 压缩
 
-Additional layers will need to use more textures, with the option of only layering in BaseColor + Roughness to avoid multiple normal map texture fetches.
+其他层需要使用更多纹理，使用只层叠基本颜色 + 粗糙度的选项以避免多次普通贴图纹理提取。
 
-## Per-Device Texture LOD
+## 每台设备的纹理 LOD
 
-With the release of Unreal Engine 4.8 you can now specify Texture LOD settings on a per-device basis as opposed to per-platform. 
-To set the Texture LOD settings per-device you will need to do the following.
+虚幻引擎 4.8 问世之后，您现在可对每台设备指定纹理 LOD 设置，而不是对每个平台指定。 
+若要对每台设备设置纹理 LOD，您需要执行以下操作。
 
-1. From the main Tool Bar open the **Devices Profiles** manager by going to **Windows** > **Developer Tools** and then clicking on **Device Profiles**.
+1.在主工具栏中，进入 **Windows** > **Developer Tools**，然后点击 **Device Profiles** 打开 **Devices Profiles** 管理器。
 
 	![](T_Device_Profiles_Manager.png)
 
-1. After clicking on the **Device Profiles** option the following menu will be displayed.
+1.点击 **Device Profiles** 选项之后，将显示以下菜单。
 
 	![](T_DPM.png)
 
-1. From this menu select the device you want to edit and then click on the three dots that are to the left of the device name to open that devices profile.
+1.从此菜单选择想要编辑的设备，然后点击设备名称左侧的三个点，以打开该设备的系统配置文件。
 
-1. To make a change just click on the property you want to adjust and then input what you want the setting to be.
+1.若要进行变更，只需点击想要调节的属性，然后输入所需的设置。
 
 	![](T_Selecting_Editing_Profile.gif)(convert:false)
 

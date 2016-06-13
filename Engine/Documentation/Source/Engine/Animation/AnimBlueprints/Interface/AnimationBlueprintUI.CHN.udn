@@ -3,10 +3,10 @@ Availability:Public
 Title:动画蓝图用户界面
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimBlueprints
 Description:动画蓝图用户界面的概述。
+version: 4.9
 
 [TOC(start:2 end:2)]
 
-## 概述
 
 以下部分介绍了动画蓝图用户界面的各个区域。
 
@@ -89,13 +89,13 @@ Description:动画蓝图用户界面的概述。
 | 项目| 描述|
 | ---- | ----------- |
 | ![Compile Successful Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_compile_successful.png) | 编译该蓝图。| 
-| ![Save Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_save.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions/#Save] |
-| ![Find in Content Browser Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_find_in_cb.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions/#FindInCB] | 
-| ![Search Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_search.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions/#Search] | 
-| ![Blueprint Properties Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_properties.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions/#BlueprintProps] | 
+| ![Save Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_save.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#Save] |
+| ![Find in Content Browser Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_find_in_cb.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#FindInCB] | 
+| ![Search Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_search.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#Search] | 
+| ![Blueprint Properties Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_properties.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#BlueprintProps] | 
 | ![Simulate Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_simulate.png) | 在模拟模式中启动游戏。|
 | ![Play In Editor Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_play_in.png) | 在关卡编辑器中已正常播放模式启动游戏。点击该箭头将会显示 **Launch Options（启动选项）** 菜单。| 
-| ![Debug Dropdown](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_debug_dropdown.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions/#DebugObject]  | 
+| ![Debug Dropdown](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_debug_dropdown.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#DebugObject]  | 
 [/EXCERPT:Toolbar]
 
 关于蓝图工具栏的更多信息，请参照[](Engine/Blueprints\Editor/UIComponents\Toolbar)。

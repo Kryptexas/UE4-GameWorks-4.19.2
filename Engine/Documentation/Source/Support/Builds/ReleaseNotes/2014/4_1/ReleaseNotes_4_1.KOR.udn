@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2618157
+﻿INTSourceChangelist:2735872
 Title: Unreal Engine 4.1 Release Notes
 Crumbs:%ROOT%, Support/Builds
 Description: ###DO NOT TRANSLATE###
 Availability:Public
-
+version: 4.1
+order:1
 
 [TOC(start:2 end:2)]
 
@@ -339,7 +340,7 @@ We'd like to thank all of the amazing developers who contributed code in this re
 
 * New: Install multiple versions of Unreal Engine side-by-side.
 * Use the Launcher's new Version Selector drop-down to choose which version you want to install and run!
-* New: You can now uninstall the engine versions right through the launcher using a new �Uninstall' button on the main UI.
+* New: You can now uninstall the engine versions right through the launcher using a new 'Uninstall' button on the main UI.
 * New: Launcher Marketplace pages now show download size.
 * New: The Marketplace now supports different versions of items.
 * New: The EULA is now shown and accepted through the launcher.

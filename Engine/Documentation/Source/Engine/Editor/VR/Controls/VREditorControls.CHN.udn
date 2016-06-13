@@ -1,0 +1,73 @@
+﻿INTSourceChangelist:0
+Title: VR Editor Controls
+Description: Learn about the various control schemes and interactions used when creating worlds in VR mode.
+Crumbs:
+Availability: docs
+parent: Engine/Editor/VR
+type: reference
+order: 1
+tags: VR
+version: 4.11
+skilllevel: intermediate
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Editor/VR/Controls:title%](Engine/Editor/VR/Controls/vreditor_controls.png)(fill:#919293)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/Controls:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/Controls]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/Controls:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Editor/VR/Controls:title%](Engine/Editor/VR/Controls/vreditor_controls.png)(fill:#919293)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/Controls:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/Controls]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/Controls:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+## Laser Pointer
+
+Each Controller emits a beam called the laser pointer which is used to determine which Actor you will interact with.  The color of the beam indicates the interaction mode the controller is in.
+
+| Color | Appearance | Meaning |
+| ----- | ---------- | ------- |
+| Red |![](standardmode.png)(w:192) | The controller is in the standard interaction mode. This is the default state for the controller. |
+| Green |![](selectionmode.png)(w:192) | The controller is in selection mode, meaning it currently has an Actor selected.  |
+| Yellow |![](movementmode.png)(w:192) | The controller is in movement mode, meaning it is being used to navigate the world. |
+
+## Navigation Controls
+
+| Control | Depiction | Description |
+| ------- | --------- | ----------- |
+| Trigger + Move |  | |
+
+## Selection Controls
+
+| Control | Depiction | Description |
+| ------- | --------- | ----------- |
+| | | |
+
+## Transform Controls
+
+| Control | Depiction | Description |
+| ------- | --------- | ----------- |
+| | | |

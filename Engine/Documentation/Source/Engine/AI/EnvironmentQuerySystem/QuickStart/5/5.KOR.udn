@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2604193
+﻿INTSourceChangelist:2654723
 Availability:Public
 Title: 5. 캐릭터 블루프린트
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
 Description: AI 의 캐릭터 블루프린트를 구성합니다.
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -42,7 +43,7 @@ Description: AI 의 캐릭터 블루프린트를 구성합니다.
 
 1. **Mesh** 컴포넌트가 파랑 **Arrow** 컴포넌트가 가리키는 쪽을 향하도록 회전시킵니다.
 
-1. **디테일** 패널에서 **Animation** 카테고리를 찾아 **Animation Blueprint Generated Class** (애니메이션 블루프린트 생성 클래스) 프로퍼티에 TopDown_AnimBlueprint 를 할당합니다.
+1. **디테일** 패널에서 **Animation** 카테고리를 찾아 **Animation Blueprint Generated Class** (애니메이션 블루프린트 생성 클래스) 프로퍼티에 ThirdPerson_AnimBP 를 할당합니다.
 
 	![](Engine\AI\BehaviorTrees\QuickStart\4\assignAnimBP.png)
 
@@ -54,13 +55,13 @@ Description: AI 의 캐릭터 블루프린트를 구성합니다.
 
 	![](Engine\AI\BehaviorTrees\QuickStart\4\charmve.png)
 
-1. **디테일** 패널의 **Movement Capabilities** 카테고리에서 Agent Radius 및 Agent Height 값을 조절합니다.
+1. **디테일** 패널의 **Movement Capabilities** 카테고리에서 **Nav Agent Radius** 및 **Nav Agent Height** 값을 조절합니다.
 
 	![](Engine\AI\BehaviorTrees\QuickStart\4\agentProps.png)
 
-	_Agent Radius 을 최소 캡슐의 반경으로 설정하고, Agent Height 를 캡슐의 절반 높이보다 최소 두 배로 설정합니다.
+	**Nav Agent Radius** 을 최소 **Capsule Radius** 로 설정하고, **Nav Agent Height** 를 **Capsult Half Height** 보다 최소 두 배로 설정합니다.
 
-1. Character Movement 컴포넌트를 선택한 채로, **Character Movement: Walking** 카테고리의 **Max Walk Speed** 프로퍼티를 `400` 으로 설정합니다.
+1. Character Movement 컴포넌트를 선택한 채로, **Character Movement: Walking** 카테고리의 **Max Walk Speed** 프로퍼티를 400 으로 설정합니다.
 	
 	![](Engine\AI\BehaviorTrees\QuickStart\4\maxWalk.png)
 

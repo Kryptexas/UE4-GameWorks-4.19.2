@@ -1,8 +1,11 @@
-﻿Availability:Public
-Title: Actors & 几何体
+﻿INTSourceChangelist:2735872
+Availability:Public
+Title: Actors 和 几何体
 Crumbs:%ROOT%, Engine
-Description: Actor的定义，及如何在关卡设计中应用它们，包括actor的放置及操作技术。
+Description: Actor 的定义，及如何在关卡设计中应用它们，包括 Actor 的放置及操作技术。
 Navigation:topic
+parent:Engine/Editor
+order:5
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]
@@ -83,11 +86,11 @@ Navigation:topic
 
 [INCLUDE:Shared/Glossary/A#glossary_actor]
 
-无论您在关卡中使用何种类型的Actor - 光照，静态网格物体，粒子系统发射器Actor或任意其它对象 - 您都需要了解如何在您的场景中创建并操作它们的一些基础知识。
+无论在关卡中使用何种类型的 Actor - 一个灯光，或静态网格物体，或粒子系统发射器，或任意其它 Actor - 都需要了解如何在场景中创建并编辑的一些基础知识。
 
-这涉及到几部分操作： 放置Actor、选择Actor、调整Actor位置、修改Actor。 换句话说，要想创建关卡，就需要把Actors放到地图中、到处移动它来创建环境、然后要修改它们的属性，以便使它们的外观和行为是正确的。
+这涉及到几部分操作：放置 Actor、选择 Actor、调整 Actor 位置、修改 Actor。换句话说，要创建关卡，就需要把 Actor 放到地图中并各处摆放来创建环境，并按需要修改它们的属性。
 
-## 应用Actor
+## 和 Actor 一起工作
 
 [REGION:topics half]
 %Engine/Actors/Placement:topiccompact%
@@ -105,9 +108,9 @@ Navigation:topic
 	[](Engine/Actors/Types "%Engine/Actors/Types:description%")
 	[/PARAM]
 	[PARAM:links]	
-	* [静态网格物体Actors](Engine/Actors/StaticMeshActor "%Engine/Actors/StaticMeshActor:description%")
+	* [静态网格物体](Engine/Actors/StaticMeshActor "%Engine/Actors/StaticMeshActor:description%")
 	* [](Engine/Actors/SkeletalMeshActors "%Engine/Actors/SkeletalMeshActors:description%")
-	* [几何体画刷 Actors](Engine/Actors/Brushes "%Engine/Actors/Brushes:description%")
+	* [几何体画刷](Engine/Actors/Brushes "%Engine/Actors/Brushes:description%")
 	* [](Engine/Actors/Volumes "%Engine/Actors/Volumes:description%")
 	* [](Engine/Actors/Triggers "%Engine/Actors/Triggers:description%")
 	* [](Engine/Actors/DecalActor "%Engine/Actors/DecalActor:description%")

@@ -8,7 +8,6 @@ Description:A set of Blueprint nodes provided to allow you to communicate with a
 [Flurry](http://www.flurry.com) is a widely used free analytics service. Because it is so widely used, it can compare your app's data to other applications in the same category. This lets you quickly get a feeling of 
 how your game is doing and areas you might need to do some work. To use their service, you must register at their site, get an application key that uniquely identifies your app, and 
 download the libraries which get compiled into the Flurry plugin. See the plugin's corresponding `<PlatformAndName>.Build.cs` file to see where the libraries and headers are expected to be placed. 
-To get started, go to .
 
 ## Configuration
 

@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2615187
+﻿INTSourceChangelist:2683818
 Availability: Public
 Title:2. 애트머스페릭 & 디렉셔널 라이팅
 Crumbs:%ROOT%, GettingStarted, Engine\Rendering\LightingAndShadows\QuickStart
 Description:이번 단계에서는 애트머스페릭 포그와 디렉셔널 라이트를 사용하여 기본적인 레벨 라이팅 작업을 해주겠습니다.
+Version: 4.9
+SkillLevel: Beginner
 
 
 [VAR:Steps]

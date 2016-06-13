@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2573952
+﻿INTSourceChangelist:2591123
 Availability:NoPublish
 Title:Animation ノードの参照
 Crumbs:
-Description:Animation ブループリントに使用できる各種アニメーション ノードの説明
+Description:Animation ブループリントで使用できるさまざまなアニメーション ノードの説明
 
 [EXCERPT:DummyExcerpt]
 
@@ -17,7 +17,7 @@ Description:Animation ブループリントに使用できる各種アニメー�
 
 [EXCERPT:UAnimGraphNode_BlendListByBool]
 
-このノードは入力 Boolean 値に基づいて2つの入力ポーズのどちらかを効率的に選択するブランチです。
+このノードは入力 Boolean 値に基づいて 2 つの入力ポーズのどちらかを選択する実質上ブランチです。
 
 [VAR:ToolTipFullLink]
 Engine/Animation/NodeReference/Blend#blendposesbybool
@@ -44,15 +44,15 @@ Engine/Animation/NodeReference/Blend#blendposesbyint
 [EXCERPT:UAnimGraphNode_TwoWayBlend]
 
 
-一般的な **Blend** ノードはアルファ入力値に基づいて 2 つの入力ポーズを正しく混ぜ合わせます。
+一般的な **Blend** ノードは、アルファ入力値に基づいて 2 つの入力ポーズを正しく混ぜ合わせます。
 
 ---
 
 **入力ピン**
 
-A - ブレンドされる最初のポーズ 
-B - ブレンドされる 2 番目のポーズ 
-アルファ - 2つのポーズの重み付けを設定する際にアルファ値として使用する **[0.0, 1.0]** の範囲の「float」値です。値 **0.0** は、 **A** の入力ポーズに対して最大限の重み付けをしますが、値 **1.0** は、**B** の入力ポーズに対して最大限の重み付けをします。 
+A - ブレンドされる最初のポーズ。 
+B - ブレンドされる 2 番目のポーズ。 
+アルファ - 2 つのポーズの重み付けを設定する際にアルファ値として使用する **[0.0, 1.0]** の範囲の「浮動小数点」値です。値 **0.0** は、 **A** の入力ポーズに対して最大限の重み付けをしますが、値 **1.0** は、 **B** の入力ポーズに対して最大限の重み付けをします。 
 
 ---
 
@@ -110,7 +110,7 @@ Root ボーンを回転させて、アニメーション データの外側の�
 
 [EXCERPT:UAnimGraphNode_SaveCachedPose]
 
-与えられたポーズを保存して、アクセスとその後の使用を可能にします。
+与えられたポーズを保存して、後でアクセスして使用できるようにします。
 
 [/EXCERPT:UAnimGraphNode_SaveCachedPose]
 
@@ -128,7 +128,7 @@ Root ボーンを回転させて、アニメーション データの外側の�
 
 [EXCERPT:UAnimGraphNode_Slot]
 
-スロットノードは再生中のアニメーションモンタージュの指定スロットからポーズへアニメーションデータをブレンドします。
+スロットノードは再生中のアニメーション モンタージュの指定スロットからポーズへアニメーション データをブレンドします。
 
 [/EXCERPT:UAnimGraphNode_Slot]
 
@@ -165,13 +165,13 @@ Spring Controller は、ボーンが参照ポーズ位置から伸ばすこと�
 
 [EXCERPT:UAnimGraphNode_TwoBoneIK]
 
-Two Bone IK 制御はキャラクターの手足など、 3 つの関節チェーンへ IK (Inverse kinematic) ソルバを適用します。
+[Two Bone IK] 制御は、キャラクターの手足など 3D ジョイントチェーンにインバース キネマティクス (IK) ソルバを適用します
 
 [/EXCERPT:UAnimGraphNode_TwoBoneIK]
 
 [EXCERPT:UAnimGraphNode_BlendSpacePlayer]
 
-指定された BlendSpace を再生します。
+指定されたブレンドスペースを再生します。
 
 [/EXCERPT:UAnimGraphNode_BlendSpacePlayer]
 
@@ -183,7 +183,7 @@ Two Bone IK 制御はキャラクターの手足など、 3 つの関節チェ�
 
 [EXCERPT:UAnimGraphNode_RotationOffsetBlendSpace]
 
-回転オフセット BlendSpace を適用します。
+回転オフセット ブレンドスペースを適用します。
 
 [/EXCERPT:UAnimGraphNode_RotationOffsetBlendSpace]
 
@@ -195,7 +195,7 @@ FaBRIK (前方後方到達インバース キネマティクス) アルゴリズ
 
 [EXCERPT:UAnimGraphNode_BoneDrivenController]
 
-他のトランスフォーム (変換) コンポーネントに基づいて、ボーンのトランスフォーム (変換) コンポーネントを操作トランスフォーム (変換) と回転のコンポーネントはそれぞれ、このノードのソースおよびターゲットのソースとして、あるいはスケールそのものとして使用することができます。別のボーンの X 軸の回転から Z 軸のトランスレーション (変換) を操作する場合などです。最終的な出力は乗数で変更することができます。
+他のトランスフォーム (変換) コンポーネントに基づいて、ボーンのトランスフォーム (変換) コンポーネントを操作トランスフォーム (変換) と回転の各コンポーネントは、このノードのソースおよびターゲットとして、あるいは全体としてそのスケールとして使用できます。別のボーンの X 軸の回転から Z 軸のトランスレーション (変換) を操作する場合などです。最終的な出力は乗数で変更することができます。
 
 [/EXCERPT:UAnimGraphNode_BoneDrivenController]
 
@@ -207,6 +207,6 @@ FaBRIK (前方後方到達インバース キネマティクス) アルゴリズ
 
 [EXCERPT:UAnimGraphNode_HandIKRetargeting]
 
-IKボーンチェーンのリターゲティングを処理します。HandFKWeight (両サイドを支持) に基いて IK ボーンチェーンが FK ハンドボーンと交わるように移動させます。(0 = 左手を支持、 1 = 右手を支持、 0.5 = 同等のウェイト)
+IK ボーンチェーンのリターゲティングを処理します。HandFKWeight (両サイドを支持) に基いて IK ボーンチェーンが FK ハンドボーンと交わるように移動させます。(0 = 左手を支持、 1 = 右手を支持、 0.5 = 同等のウェイト)
 
 [/EXCERPT:UAnimGraphNode_HandIKRetargeting]

@@ -3,7 +3,7 @@ Title: 3.1 - Adding Projectiles to your Game
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/3
 Description: Learn how to add projectiles to your First Person Shooter project.
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -22,19 +22,19 @@ Version: 4.9
 
 %Steps%
 
-Now that you've set-up your character, it's time to implement a projectile weapon so that when you fire, a simple grenade-like projectile will shoot from the center of the screen and fly until it collides with the world. During this step, you're going to add input and create a new code class for your projectile.
+Now that we've set-up our character, it's time to implement a projectile weapon so that when we fire, a simple grenade-like projectile will shoot from the center of the screen and fly until it collides with the world. During this step, we're going to add input and create a new code class for our projectile.
 
 ## Adding Fire Action Mapping
 
-1.	In the **Edit** menu, **click** on **Project Settings**.
+1.	In the **Edit** menu, click on **Project Settings**.
 
-1.	Under the **Engine** heading on the left side of the **Project Settings** tab, **click** on **Input**.
+1.	Under the **Engine** heading on the left side of the **Project Settings** tab, click on **Input**.
 
-1.	Under **Bindings**, **click** on the plus sign next to **Action Mappings**.
+1.	Under **Bindings**, click on the plus sign next to **Action Mappings**.
 
-1.	**Click** on the arrow to the left of **Action Mappings**.
+1.	Click on the arrow to the left of **Action Mappings**.
 
-1.	Type "Fire" into the text field that appears, then **click** on the arrow to the left of the text box to expand the action binding options.
+1.	Type "Fire" into the text field that appears, then click on the arrow to the left of the text box to expand the action binding options.
 
 1.	In the dropdown menu, select **Left Mouse Button** from the **Mouse** dropdown list.
 
@@ -48,7 +48,7 @@ Now that you've set-up your character, it's time to implement a projectile weapo
 
 1.	In the File menu, select **New C++ Class...** to choose your new parent class.
 
-1.	The **Choose Parent Class** menu will open. Scroll down, select **Actor** as the parent class and **click Next**.
+1.	The **Choose Parent Class** menu will open. Scroll down, select **Actor** as the parent class and click **Next**.
 
 	![](AddProjectileClass.png)
 
@@ -58,18 +58,13 @@ Now that you've set-up your character, it's time to implement a projectile weapo
 
 ## Adding a USphere Component
 
-1.	Locate the `FPSProjectile` class declaration in the **Solution Explorer** and open `FPSProjectile.h`.
+1.	Locate the `FPSProjectile` class header in the **Solution Explorer** and open `FPSProjectile.h`.
 
 1.	Add a reference to a `USphereComponent` in the `FPSProjectile` interface.
 
 		// Sphere collision component
 		UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
 		USphereComponent* CollisionComp;
-
-1.	Add the following constructor to `FPSProjectile.h`:
-
-		// Constructor for adding a sphere as a simple collision representation
-		AFPSProjectile(const FObjectInitializer& ObjectInitializer);
 
 1.	`FPSProjectile.h` should now look like the following:
 
@@ -89,9 +84,6 @@ Now that you've set-up your character, it's time to implement a projectile weapo
 			// Sets default values for this actor's properties
 			AFPSProjectile();
 		
-			// Constructor for adding a sphere as a simple collision representation
-			AFPSProjectile(const FObjectInitializer& ObjectInitializer);
-		
 			// Called when the game starts or when spawned
 			virtual void BeginPlay() override;
 			
@@ -100,29 +92,24 @@ Now that you've set-up your character, it's time to implement a projectile weapo
 		
 			// Sphere collision component
 			UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
-			USphereComponent* CollisionComp;
+			USphereComponent* CollisionComponent;
+			
 		};
 
 1.	Locate the `FPSProjectile` class implementation file in the **Solution Explorer** and open `FPSProjectile.cpp`.
 
-1.	Add the following code to `FPSProjectile.cpp`:
+1.	Add the following code to the `AFPSProjectile` constructor in `FPSProjectile.cpp`:
 
-		// Constructor
-		AFPSProjectile::AFPSProjectile(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
-		{
-			// Use a sphere as a simple collision representation
-			CollisionComp = ObjectInitializer.CreateDefaultSubobject<USphereComponent>(this, TEXT("SphereComp"));
-		
-			if (CollisionComp != NULL)
-			{
-				CollisionComp->InitSphereRadius(15.f);
-				RootComponent = CollisionComp;
-			}
-		}
+		// use a sphere as a simple collision representation
+		CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
+		// set the sphere's collision radius
+		CollisionComponent->InitSphereRadius(15.0f);
+		// set the root component to be the collision component
+		RootComponent = CollisionComponent;
 
-	[REGION:note]
-	You're making `CollisionComponent` a `RootComponent` since the simulation will drive it.
-	[/REGION]
+		[REGION:note]
+		You're making `CollisionComponent` a `RootComponent` since the simulation will drive it.
+		[/REGION]
 
 1. `FPSProjectile.cpp` should now look like the following:
 
@@ -137,19 +124,12 @@ Now that you've set-up your character, it's time to implement a projectile weapo
 		 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 			PrimaryActorTick.bCanEverTick = true;
 		
-		}
-		
-		// Constructor
-		AFPSProjectile::AFPSProjectile(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
-		{
-			// Use a sphere as a simple collision representation
-			CollisionComp = ObjectInitializer.CreateDefaultSubobject<USphereComponent>(this, TEXT("SphereComp"));
-		
-			if (CollisionComp != NULL)
-			{
-				CollisionComp->InitSphereRadius(15.f);
-				RootComponent = CollisionComp;
-			}
+			// use a sphere as a simple collision representation
+			CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
+			// set the sphere's collision radius
+			CollisionComponent->InitSphereRadius(15.0f);
+			// set the root component to be the collision component
+			RootComponent = CollisionComponent;
 		}
 		
 		// Called when the game starts or when spawned
@@ -168,18 +148,18 @@ Now that you've set-up your character, it's time to implement a projectile weapo
 
 ## Adding a Projectile Movement Component
 
-1.	Locate the `FPSProjectile` class interface file in the **Solution Explorer** and open `FPSProjectile.h`.
+1.	Locate the `FPSProjectile` class header file in the **Solution Explorer** and open `FPSProjectile.h`.
 
-1.	Add the following public reference to `FPSProjectile.h`:
+1.	Add the following code to `FPSProjectile.h`:
 
-		// Projectile Movement Component
-		UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement)
-		UProjectileMovementComponent* ProjectileMovement;
+		// Projectile movement component
+		UPROPERTY(VisibleAnywhere, Category = Movement)
+		UProjectileMovementComponent* ProjectileMovementComponent;
 
 1.	`FPSProjectile.h` should now look like the following:
 
 		// Fill out your copyright notice in the Description page of Project Settings.
-		
+
 		#pragma once
 		
 		#include "GameFramework/Actor.h"
@@ -194,9 +174,6 @@ Now that you've set-up your character, it's time to implement a projectile weapo
 			// Sets default values for this actor's properties
 			AFPSProjectile();
 		
-			// Constructor for adding a sphere as a simple collision representation
-			AFPSProjectile(const FObjectInitializer& ObjectInitializer);
-		
 			// Called when the game starts or when spawned
 			virtual void BeginPlay() override;
 			
@@ -205,14 +182,14 @@ Now that you've set-up your character, it's time to implement a projectile weapo
 		
 			// Sphere collision component
 			UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
-			USphereComponent* CollisionComp;
-		
-			// Projectile Movement Component
-			UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement)
-			UProjectileMovementComponent* ProjectileMovement;
+			USphereComponent* CollisionComponent;
+			
+			// Projectile movement component
+			UPROPERTY(VisibleAnywhere, Category = Movement)
+			UProjectileMovementComponent* ProjectileMovementComponent;
 		};
 
-1.	Locate the `FPSProjectile` class implementation file in the **Solution Explorer** and open `FPSProjectile.cpp`.
+1.	Locate the `FPSProjectile` CPP file in the **Solution Explorer** and open `FPSProjectile.cpp`.
 
 1.	Add the following lines of code to the `FPSProjectile` constructor in `FPSProjectile.cpp`:
 
@@ -242,32 +219,21 @@ Now that you've set-up your character, it's time to implement a projectile weapo
 		 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 			PrimaryActorTick.bCanEverTick = true;
 		
-		}
+			// use a sphere as a simple collision representation
+			CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
+			// set the sphere's collision radius
+			CollisionComponent->InitSphereRadius(15.0f);
+			// set the root component to be the collision component
+			RootComponent = CollisionComponent;
 		
-		// Constructor
-		AFPSProjectile::AFPSProjectile(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
-		{
-			// Use a sphere as a simple collision representation
-			CollisionComp = ObjectInitializer.CreateDefaultSubobject<USphereComponent>(this, TEXT("SphereComp"));
-		
-			if (CollisionComp != NULL)
-			{
-				CollisionComp->InitSphereRadius(15.f);
-				RootComponent = CollisionComp;
-		
-				// Use a ProjectileMovementComponent to govern this projectile's movement
-				ProjectileMovement = ObjectInitializer.CreateDefaultSubobject<UProjectileMovementComponent>(this, TEXT("ProjectileComp"));
-		
-				if (ProjectileMovement != NULL)
-				{
-					ProjectileMovement->UpdatedComponent = CollisionComp;
-					ProjectileMovement->InitialSpeed = 3000.f;
-					ProjectileMovement->MaxSpeed = 3000.f;
-					ProjectileMovement->bRotationFollowsVelocity = true;
-					ProjectileMovement->bShouldBounce = true;
-					ProjectileMovement->Bounciness = 0.3f;
-				}
-			}
+			// use this component to drive this projectile's movement
+			ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
+			ProjectileMovementComponent->SetUpdatedComponent(CollisionComponent);
+			ProjectileMovementComponent->InitialSpeed = 3000.0f;
+			ProjectileMovementComponent->MaxSpeed = 3000.0f;
+			ProjectileMovementComponent->bRotationFollowsVelocity = true;
+			ProjectileMovementComponent->bShouldBounce = true;
+			ProjectileMovementComponent->Bounciness = 0.3f;
 		}
 		
 		// Called when the game starts or when spawned
@@ -286,16 +252,14 @@ Now that you've set-up your character, it's time to implement a projectile weapo
 
 ## Setting the Projectile's Initial Velocity
 
-1.	Locate the `FPSProjectile` class interface file in the **Solution Explorer** and open `FPSProjectile.h`.
+1.	Locate the `FPSProjectile` class header file in the **Solution Explorer** and open `FPSProjectile.h`.
 
 1.	Add the following function declaration in `FPSProjectile.h`:
 
 		// Initiallizes velocity of the projectile in the shoot direction
 		void InitVelocity(const FVector& ShootDirection);
 
-	[REGION:note]
-	The aforementioned code is the declaration for a function that will launch the projectile.
-	[/REGION]
+	This function will be responsible for launching the projectile.
 
 1.	`FPSProjectile.h` should now look like the following:
 
@@ -315,43 +279,36 @@ Now that you've set-up your character, it's time to implement a projectile weapo
 			// Sets default values for this actor's properties
 			AFPSProjectile();
 		
-			// Constructor for adding a sphere as a simple collision representation
-			AFPSProjectile(const FObjectInitializer& ObjectInitializer);
-		
 			// Called when the game starts or when spawned
 			virtual void BeginPlay() override;
 			
 			// Called every frame
 			virtual void Tick( float DeltaSeconds ) override;
 		
-			// Initiallizes velocity of the projectile in the shoot direction
-			void InitVelocity(const FVector& ShootDirection);
-		
 			// Sphere collision component
 			UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
-			USphereComponent* CollisionComp;
+			USphereComponent* CollisionComponent;
+			
+			// Projectile movement component
+			UPROPERTY(VisibleAnywhere, Category = Movement)
+			UProjectileMovementComponent* ProjectileMovementComponent;
 		
-			// Projectile Movement Component
-			UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement)
-			UProjectileMovementComponent* ProjectileMovement;
+			// Function that initializes the projectile's velocity in the shoot direction
+			void InitVelocity(const FVector& ShootDirection);
 		};
 
-1.	Locate the `FPSProjectile` class implementation file in the **Solution Explorer** and open `FPSProjectile.cpp`.
+1.	Locate the `FPSProjectile` CPP file in the **Solution Explorer** and open `FPSProjectile.cpp`.
 
-1.	Add the following lines of code to the `FPSProjectile` constructor in `FPSProjectile.cpp`:
+1.	Add the following function definition to `FPSProjectile.cpp`:
 
-		// Initiallizes velocity of the projectile in the shoot direction
+		// Function that initializes the projectile's velocity in the shoot direction
 		void AFPSProjectile::InitVelocity(const FVector& ShootDirection)
 		{
-			if (ProjectileMovement != NULL)
-			{
-				// set the projectile's velocity to the desired direction
-				ProjectileMovement->Velocity = ShootDirection * ProjectileMovement->InitialSpeed;
-			}
+			ProjectileMovementComponent->Velocity = ShootDirection * ProjectileMovementComponent->InitialSpeed;
 		}
 
 	[REGION:note]
-	Note that you only needed to supply a launch direction because the projectile's speed is defined by the `ProjectileMovementComponent`.
+	You only needed to supply a launch direction because the projectile's speed is defined by `ProjectileMovementComponent`.
 	[/REGION]
 
 1.	`FPSProjectile.cpp` should now look like the following:
@@ -367,32 +324,21 @@ Now that you've set-up your character, it's time to implement a projectile weapo
 		 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 			PrimaryActorTick.bCanEverTick = true;
 		
-		}
+			// use a sphere as a simple collision representation
+			CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
+			// set the sphere's collision radius
+			CollisionComponent->InitSphereRadius(15.0f);
+			// set the root component to be the collision component
+			RootComponent = CollisionComponent;
 		
-		// Constructor
-		AFPSProjectile::AFPSProjectile(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
-		{
-			// Use a sphere as a simple collision representation
-			CollisionComp = ObjectInitializer.CreateDefaultSubobject<USphereComponent>(this, TEXT("SphereComp"));
-		
-			if (CollisionComp != NULL)
-			{
-				CollisionComp->InitSphereRadius(15.f);
-				RootComponent = CollisionComp;
-		
-				// Use a ProjectileMovementComponent to govern this projectile's movement
-				ProjectileMovement = ObjectInitializer.CreateDefaultSubobject<UProjectileMovementComponent>(this, TEXT("ProjectileComp"));
-		
-				if (ProjectileMovement != NULL)
-				{
-					ProjectileMovement->UpdatedComponent = CollisionComp;
-					ProjectileMovement->InitialSpeed = 3000.f;
-					ProjectileMovement->MaxSpeed = 3000.f;
-					ProjectileMovement->bRotationFollowsVelocity = true;
-					ProjectileMovement->bShouldBounce = true;
-					ProjectileMovement->Bounciness = 0.3f;
-				}
-			}
+			// use this component to drive this projectile's movement
+			ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
+			ProjectileMovementComponent->SetUpdatedComponent(CollisionComponent);
+			ProjectileMovementComponent->InitialSpeed = 3000.0f;
+			ProjectileMovementComponent->MaxSpeed = 3000.0f;
+			ProjectileMovementComponent->bRotationFollowsVelocity = true;
+			ProjectileMovementComponent->bShouldBounce = true;
+			ProjectileMovementComponent->Bounciness = 0.3f;
 		}
 		
 		// Called when the game starts or when spawned
@@ -409,19 +355,15 @@ Now that you've set-up your character, it's time to implement a projectile weapo
 		
 		}
 		
-		// Initiallizes velocity of the projectile in the shoot direction
+		// Function that initializes the projectile's velocity in the shoot direction
 		void AFPSProjectile::InitVelocity(const FVector& ShootDirection)
 		{
-			if (ProjectileMovement != NULL)
-			{
-				// set the projectile's velocity to the desired direction
-				ProjectileMovement->Velocity = ShootDirection * ProjectileMovement->InitialSpeed;
-			}
+			ProjectileMovementComponent->Velocity = ShootDirection * ProjectileMovementComponent->InitialSpeed;
 		}
 
 ## Binding the Fire Input Action
 
-1.	Locate the `FPSCharacter` class interface file in the **Solution Explorer** and open `FPSCharacter.h`.
+1.	Locate the `FPSCharacter` class header file in the **Solution Explorer** and open `FPSCharacter.h`.
 
 1.	Add the following function declaration in `FPSCharacter.h`:
 
@@ -447,9 +389,6 @@ Now that you've set-up your character, it's time to implement a projectile weapo
 			// Sets default values for this character's properties
 			AFPSCharacter();
 		
-			// Constructor for the AFPSCharacter
-			AFPSCharacter(const FObjectInitializer& ObjectInitializer);
-		
 			// Called when the game starts or when spawned
 			virtual void BeginPlay() override;
 			
@@ -470,30 +409,36 @@ Now that you've set-up your character, it's time to implement a projectile weapo
 			// sets jump flag when key is pressed
 			UFUNCTION()
 			void OnStartJump();
-			
+		
 			// clears jump flag when key is released
 			UFUNCTION()
 			void OnStopJump();
 		
-			// handles firing
+			// Function that handles firing projectiles
 			UFUNCTION()
 			void OnFire();
 		
 			// FPS camera
-			UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
-			UCameraComponent* FirstPersonCameraComponent;
+			UPROPERTY(VisibleAnywhere)
+			UCameraComponent* FPSCameraComponent;
 		
-			// Pawn Mesh: First person view (arms that are only seen by self)
+			// pawn mesh: FPS view (arms are only seen by self)
 			UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-			USkeletalMeshComponent* FirstPersonMesh;
+			USkeletalMeshComponent* FPSMesh;
 		};
 
-1.	Locate the `FPSCharacter` class implementation file in the **Solution Explorer** and open `FPSCharacter.cpp`.
+1.	Locate the `FPSCharacter` CPP file in the **Solution Explorer** and open `FPSCharacter.cpp`.
 
-1.	In `FPSCharacter.cpp`, add the following to `SetupPlayerInputComponent` to bind the `OnFire` function:
+1.	In `FPSCharacter.cpp`, add the following code to `SetupPlayerInputComponent` to bind the `OnFire` function:
 
-		// set-up gun firing action binding
+		// set up projectile fire action binding
 		InputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::OnFire);
+
+1.	Now, add the following function definition to `FPSCharacter.cpp`:
+
+		void AFPSCharacter::OnFire()
+		{
+		}	
 
 1.	`FPSCharacter.cpp` should now look like the following:
 
@@ -508,35 +453,26 @@ Now that you've set-up your character, it's time to implement a projectile weapo
 		 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 			PrimaryActorTick.bCanEverTick = true;
 		
-		}
+			// create a first person camera component
+			FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
+			// attach the camera component to our capsule component
+			FPSCameraComponent->AttachTo(GetCapsuleComponent());
+			// position the camera slightly above the eyes
+			FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
+			// allow the pawn to control rotation
+			FPSCameraComponent->bUsePawnControlRotation = true;
 		
-		// Constructor that creates the camera component
-		AFPSCharacter::AFPSCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
-		{
-			// Create a camera Component
-			FirstPersonCameraComponent = ObjectInitializer.CreateDefaultSubobject<UCameraComponent>(this, TEXT("FirstPersonCamera"));
-		
-			if (FirstPersonCameraComponent != NULL)
-			{
-				FirstPersonCameraComponent->SetupAttachment(GetCapsuleComponent());
-				// Position the camera a bit above the eyes
-				FirstPersonCameraComponent->RelativeLocation = FVector(0.f, 0.f, 50.f + BaseEyeHeight);
-				// Allow the pawn to control rotation
-				FirstPersonCameraComponent->bUsePawnControlRotation = true;
-			}
-		
-			// Create a mesh component that will be used when being viewed from a first person view when controlling this pawn
-			FirstPersonMesh = ObjectInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("FirstPersonMesh"));
-		
-			if (FirstPersonMesh != NULL)
-			{
-				FirstPersonMesh->SetOnlyOwnerSee(true);  // only the owning player will see this mesh
-				FirstPersonMesh->SetupAttachment(FirstPersonCameraComponent);
-				FirstPersonMesh->bCastDynamicShadow = false;
-				FirstPersonMesh->CastShadow = false;
-			}
-		
-			// everyone but the owner can see the regular body mesh
+			// create a first person mesh component
+			FPSMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
+			// only the owning player sees this mesh
+			FPSMesh->SetOnlyOwnerSee(true);
+			// attach the FPS mesh to the FPS camera
+			FPSMesh->AttachTo(FPSCameraComponent);
+			// disable some environmental shadowing to preserve the illusion of having a single mesh
+			FPSMesh->bCastDynamicShadow = false;
+			FPSMesh->CastShadow = false;
+			
+			// everyone but you can see the regular body mesh
 			GetMesh()->SetOwnerNoSee(true);
 		}
 		
@@ -545,9 +481,15 @@ Now that you've set-up your character, it's time to implement a projectile weapo
 		{
 			Super::BeginPlay();
 			
+			const int32 Key = -1;
+			static const FString DebugMessage = TEXT("We are using FPSCharacter.");
+			FColor DisplayColor = FColor::Red;
+			float TimeToDisplay = 5.0f; //seconds
+		
 			if (GEngine != nullptr)
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::White, TEXT("We are using FPSCharacter."));
+				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
+		
 			}
 		}
 		
@@ -562,61 +504,53 @@ Now that you've set-up your character, it's time to implement a projectile weapo
 		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 		{
 			Super::SetupPlayerInputComponent(InputComponent);
-			
-			// set-up gameplay key bindings
+		
+			// set up gameplay key bindings
 			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
 			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
-			// set-up gameplay mouse bindings
+		
+			// set up gameplay mouse bindings
 			InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
 			InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
-			// set-up jump action bindings
+		
+			// set up jump action bindings
 			InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::OnStartJump);
 			InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::OnStopJump);
-			// set-up gun firing action binding
+		
+			// set up projectile fire action binding
 			InputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::OnFire);
 		}
 		
-		// Forward movement function definition
 		void AFPSCharacter::MoveForward(float Value)
 		{
-			if (Controller != nullptr && Value != 0.f)
-			{
-				//find out which way is forward
-				FRotator Rotation = Controller->GetControlRotation();
-				//limit pitch when walking for falling
-				if (GetCharacterMovement()->IsMovingOnGround() || GetCharacterMovement()->IsFalling())
-				{
-					Rotation.Pitch = 0.f;
-				}
-				//add movement in that direction
-				const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
-				AddMovementInput(Direction, Value);
-			}
+			// find out which way is forward
+			FRotator Rotation = Controller->GetControlRotation();
+			// add movement in that direction
+			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
+			AddMovementInput(Direction, Value);
 		}
 		
-		//Right movement function definition
 		void AFPSCharacter::MoveRight(float Value)
 		{
-			if (Controller != nullptr && Value != 0.f)
-			{
-				//find our which way is right
-				const FRotator Rotation = Controller->GetControlRotation();
-				const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
-				//add movement in that direction
-				AddMovementInput(Direction, Value);
-			}
+			// find out which way is right
+			FRotator Rotation = Controller->GetControlRotation();
+			// add movement in that direction
+			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
+			AddMovementInput(Direction, Value);
 		}
 		
-		//Function setting the jump flag
 		void AFPSCharacter::OnStartJump()
 		{
 			bPressedJump = true;
 		}
 		
-		//Function clearning the jump flag
 		void AFPSCharacter::OnStopJump()
 		{
 			bPressedJump = false;
+		}
+		
+		void AFPSCharacter::OnFire()
+		{
 		}
 
 ## Defining the Projectile's Spawn Location
@@ -627,10 +561,12 @@ Now that you've set-up your character, it's time to implement a projectile weapo
 *	The projectile class (this is so the `FPSCharacter` and its derived Blueprint know what projectile to spawn)
 
 [REGION:note]
-You'll use a camera-space offset vector to determine a spawn location. You're going to make this parameter editable so that you can set and tweak it in your BP_FPSCharacter Blueprint. You'll then be able to calculate an initial location for the projectile based on this data.
+You're going to use a camera-space offset vector to determine the projectile's spawn location.
+You'll make this parameter editable so that you can set and tweak it in your BP_FPSCharacter Blueprint.
+Ultimately, you'll be able to calculate an initial location for the projectile based on this data.
 [/REGION]
 
-1.	Locate the `FPSCharacter` class interface file in the **Solution Explorer** and open `FPSCharacter.h`.
+1.	Locate the `FPSCharacter` class header file in the **Solution Explorer** and open `FPSCharacter.h`.
 
 1.	Add the following code to `FPSCharacter.h`:
 
@@ -639,7 +575,8 @@ You'll use a camera-space offset vector to determine a spawn location. You're go
 		FVector MuzzleOffset;
 
 	[REGION:note]
-	The EditAnywhere specifier allow you to change the value of the muzzle offset within the Defaults mode of the Blueprint Editor or within the Details tab for any instance of the character. The BlueprintReadWrite specifier allows you to get and set the value of the muzzle offset within a Blueprint.
+	The EditAnywhere specifier allow you to change the value of the muzzle offset within the Defaults mode of the Blueprint Editor or within the Details tab for any instance of the character. 
+	The BlueprintReadWrite specifier allows you to get and set the value of the muzzle offset within a Blueprint.
 	[/REGION]
 
 1.	Add the following code to `FPSCharacter.h`:
@@ -670,9 +607,6 @@ You'll use a camera-space offset vector to determine a spawn location. You're go
 			// Sets default values for this character's properties
 			AFPSCharacter();
 		
-			// Constructor for the AFPSCharacter
-			AFPSCharacter(const FObjectInitializer& ObjectInitializer);
-		
 			// Called when the game starts or when spawned
 			virtual void BeginPlay() override;
 			
@@ -693,22 +627,22 @@ You'll use a camera-space offset vector to determine a spawn location. You're go
 			// sets jump flag when key is pressed
 			UFUNCTION()
 			void OnStartJump();
-			
+		
 			// clears jump flag when key is released
 			UFUNCTION()
 			void OnStopJump();
 		
-			// handles firing
+			// Function that handles firing projectiles
 			UFUNCTION()
 			void OnFire();
 		
 			// FPS camera
-			UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
-			UCameraComponent* FirstPersonCameraComponent;
+			UPROPERTY(VisibleAnywhere)
+			UCameraComponent* FPSCameraComponent;
 		
-			// Pawn Mesh: First person view (arms that are only seen by self)
+			// pawn mesh: FPS view (arms are only seen by self)
 			UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-			USkeletalMeshComponent* FirstPersonMesh;
+			USkeletalMeshComponent* FPSMesh;
 		
 			// Gun muzzle's offset from the camera location
 			UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
@@ -717,6 +651,7 @@ You'll use a camera-space offset vector to determine a spawn location. You're go
 			// Projectile class to spawn
 			UPROPERTY(EditDefaultsOnly, Category = Projectile)
 			TSubclassOf<class AFPSProjectile> ProjectileClass;
+		
 		};
 
 ## Compiling and Checking Your Code
@@ -727,11 +662,11 @@ It's now time to compile and check your newly implemented projectile code.
 
 1.	Locate **FPSProject** in the **Solution Explorer**.
 
-1.	**Right-click** on **FPSProject** and select **Build** to compile your project.
+1.	Right-click on **FPSProject** and select **Build** to compile your project.
 
 	![](BuildFPSProject.png)
 
-	[REGION:note]
+	[REGION:tip]
 	The purpose of this step is to catch any build errors before moving onto the next step.
 	[/REGION]
 

@@ -1,7 +1,11 @@
-﻿Title: 游戏性指南
+﻿INTSourceChangelist:0
+Title: 游戏性指南
 Crumbs:%ROOT%
 Description:供程序员和可视化脚本设计师使用的游戏功能概述和示例。
 Availability:Public
+version: 4.9
+parent:%ROOT%
+order:6
 
 [VAR:Params]
 [PARAM:image]

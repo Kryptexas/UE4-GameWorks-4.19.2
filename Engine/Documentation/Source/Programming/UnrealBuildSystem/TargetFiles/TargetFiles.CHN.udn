@@ -1,43 +1,41 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2711147
 Availability:Public
-Title: Unreal Build System Target Files
+Title: 虚幻引擎编译系统的目标文件
 Crumbs: %ROOT%, Programming, Programming\UnrealBuildSystem
-Description:Reference for the target files used by Unreal Build System when building modules.
-Version: 4.5
+Description: 虚幻引擎编译系统在编译模块时使用的目标文件（Target File）的参考。
+Version: 4.9
 
 [TOC (start:2 end:3)]
 
-## Overview
+虚幻引擎编译系统使用 **Target** 文件给 UnrealBuildTool 用于编译生成每个应用模块，制作动态规则模块。这些文件替换了以前较早时的 `UEBuild*.cs` 这样的文件，当时这些文件直接被编译在 UnrealBuildTool 的工具内。现在，每个目标文件定义了一个类，以供 UnrealBuildTool 来在编译的时候确认该模块是个游戏模块，还是一个应用工具模块。
 
-The Unreal Build System makes use of **Target** files for each application UnrealBuildTool builds that get compiled into the dynamic Rules module. These files replace the old `UEBuild*.cs` files that were originally compiled directly into UnrealBuildTool. Each target file defines a class used by UnrealBuildtool to determine how a game or program is built.
+UnrealBuildTool 现在是从 RulesModule.dll 中获取需要编译生成项目的正确的目标信息。
 
-UnrealBuildTool now retrieves the proper target for the project being built from the RulesModule.dll.
+有两种目标类型：
 
-There are 2 types of target:
-
-* **Game** - This is a target that utilizes the 'shared' UE4 executable.
-* **Program** - This is a target that is a stand-alone executable. ShaderCompileWorker, SlateViewer, and UnrealHeaderTool are this type of target.
+* **Game** - 这种类型的目标会利用“共享”的UE4 来执行。
+* **Program** - 这种类型的目标具有独立的可执行能力。ShaderCompileWorker，SlateViewer，以及 UnrealHeaderTool 就是这种类型。
 
 
-## Target File Naming and Location
+## 目标文件的命名和路径
 
-The Target file must be located in the root directory of a program or `Source` directory of a game and be named using the convention: `[APPNAME].Target.cs`
+目标文件必须存在于一个程序的根目录或者游戏的 “Source” 目录的根目录中，并且必须被命名为 `[APPNAME].Target.cs`。
 
-As an example, the ShaderCompileWorker program directory at `\UE4\Engine\Source\Programs\ShaderCompileWorker` contains the `ShaderCompileWorker.Target.cs` file.
+举个例子，ShaderCompileWorker 这个程序位于 \UE4\Engine\Source\Programs\ShaderCompileWorker，该路径下有文件 ShaderCompileWorker.Target.cs。
 
-Similarly, the ExampleGame `Source` directory located at `UE4\ExampleGame|Source` contains the `ExampleGame.Target.cs` file.
+类似的，ExampleGame 的 Source 目录位于 UE4\ExampleGame\Source，其中应有文件 ExampleGame.Target.cs。
 
-## Target File Contents
+## 目标文件的内容
 
-The class defined in the Target file for each game or program is derived from `TargetRules` (found in `RulesCompiler.cs`). 
+目标文件中，为每个游戏模块或者功能模块定义的类，都继承自 TargetRules（可以在 RulesCompiler.cs 文件中查到声明）。
 
-The name of the class is constructed by adding the name of the tool or game followed by `target`. For instance, the class defined in the target file for the ShaderCompileWorker tool would be `ShaderCompileWorkerTarget`. The `Target` at the end is **REQUIRED**. It was added to avoid name collisions with the existing `*.Build.cs` module rules classes, since they all get compiled into the same DLL.
+该类的名字由当前这个游戏模块或者功能模块自身的名字加上 target 字样组合而成。比如，ShaderCompileWorker 的目标文件中的类名应该是 ShaderCompileWorkerTarget。这里必须要用 Target 作为结尾。这么做是为了避免和 *.Build.cs 文件中的那些类似规则的类名冲突，因为它们将会编译进同一个 DLL 文件中。
 
-UnrealBuildTool takes `[APPNAME]` and appends `Target` when requesting the build target from the Rules DLL. So, using the same example as above, when UnrealBuildTool is passed `ShaderCompileWorker Win64 Development` it will request `ShaderCompileWorkerTarget` as the `TargetRules` class name of interest.
+当需要从 Rules DLL 中编译某个目标时，UnrealBuildTool 会用 [APPNAME] 并附加 Target 的组合。继续用先前的例子，当 UnrealBuildTool 在处理 ShaderCompileWorker Win64 Development 传入的时候，会以 ShaderCompileWorkerTarget 作为 TargetRules 的类名来请求。
 
-### Constructor
+### 构造函数
 
-The constructor sets the name of the application and the type of target to generate. Here is the constructor for ExampleGameTarget for comparison:
+构造函数中设定了该应用模块的名称以及类型。下面以 ExampleGameTarget 的构造函数来举例：
 	
 	public ExampleGameTarget(TargetInfo Target)
 	{
@@ -45,21 +43,21 @@ The constructor sets the name of the application and the type of target to gener
 		Name = "ExampleGame";
 	}
 
-### Setup Binaries
+### 设置二进制
 
-`TargetRules::SetupBinaries()` is used to generate a list of `UEBuildBinaryConfiguration` instances which UnrealBuildTool will use to fill in the AppBinaries array (these are what it will generate).
+使用 **TargetRules::SetupBinaries()** 这个函数来生成 UEBuildBinaryConfiguration 的实例列表，UnrealBuildTool 将用该列表来填充 AppBinaries 数组（这是会生成的东西）。
 
-### Setup Global Environment
+### 设置全局环境
 
-`TargetRules::SetupGlobalEnvironment()` is used to set various build configuration settings for UnrealBuildTool for the target as well as setup the global Compile and Link environments.
+**TargetRules::SetupGlobalEnvironment()** 用于为 UnrealBuildTool 生成目标设置各种配置选项，也用于设置编译和链接使用的环境变量。
 
 [REGION:note]
-**Note:** The current games do not contain this function, as the UEBuildGame class takes care of their needs by default. However, if a game needed to override these settings, it certainly can do so.
+如果当前游戏并不包含这个函数的话，那就意味着是采用 UEBuildGame 类里面的默认实现。必要的话游戏可以通过实现这个函数来重载覆盖默认的设置。
 [/REGION]
 
-## Example Target File
+## 目标文件示例
 
-Here is the ShaderCompileWorker.Target.cs file as a complete example:
+以下是 ShaderCompileWorker.Target.cs 的完整示例：
 
 	// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 

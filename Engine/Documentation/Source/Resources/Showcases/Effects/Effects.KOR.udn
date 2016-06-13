@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2614107
+﻿INTSourceChangelist:2723628
 Availability: Public
 Title:파티클 이펙트
 Crumbs:%ROOT%, Resources,
@@ -8,6 +8,7 @@ Related: Engine/Rendering/ParticleSystems
 Related: Engine/Rendering/ParticleSystems\Cascade
 Related: Engine/Rendering/ParticleSystems\Reference\TypeData\GPUSprites
 Related: Engine/Rendering/ParticleSystems/Reference
+Version: 4.9
 
 
 
@@ -64,7 +65,7 @@ Related: Engine/Rendering/ParticleSystems/Reference
 
 ## 씬 분석
 
-파티클 이펙트 예제는 동굴 레벨을 나타내며, 꼭대기는 눈덮인 산악 지역으로 되어 있습니다. 동굴 안에는 이끼 덮인 바위 층을 가로질러 바닥에 풍성하게 흐르고 있는 웅덩이로 흘러갑니다. 신비로운 듯 어찌 보면 마법 불꽃 같아 보이기도 하는 것이 으스스한 불빛을 냅니다. 밖에는 매서운 눈보라가 험준한 바위 벼랑을 통과하고 있습니다.
+이 예제는 동굴 레벨을 나타내며, 꼭대기는 눈덮인 산악 지역으로 되어 있습니다. 동굴 안에는 이끼 덮인 바위 층을 가로질러 바닥에 풍성하게 흐르고 있는 웅덩이로 흘러갑니다. 신비로운 듯 어찌 보면 마법 불꽃 같아 보이기도 하는 것이 으스스한 불빛을 냅니다. 밖에는 매서운 눈보라가 험준한 바위 벼랑을 통과하고 있습니다.
 
 
 ## 파티클 시스템 예제

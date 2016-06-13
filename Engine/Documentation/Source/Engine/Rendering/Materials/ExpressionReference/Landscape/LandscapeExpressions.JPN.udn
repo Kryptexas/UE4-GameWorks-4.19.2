@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2266078
+﻿INTSourceChangelist:2690150
 Availability:Public
-Title:ランドスケープ表現式
+Title:Landscape 表現式
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
 Description:ランドスケープ テレインに適用されるマテリアルを作成する表現式
+Version:4.9
 
 [EXCERPT:TOC]
 [TOC(start:2)]

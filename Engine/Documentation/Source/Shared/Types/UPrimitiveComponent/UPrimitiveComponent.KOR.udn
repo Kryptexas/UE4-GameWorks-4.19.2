@@ -63,7 +63,7 @@ Engine/Physics/Collision#properties
 <!-- If true, component sweeps with this component should trace against complex collision during movement. -->
 [EXCERPT:bTraceComplexOnMove]
 
-이 옵션은 어디에나 나타나지만 무브먼트 컴포넌트에 연관된 캡셜, 이를테면 캐릭터 블루프린트 생성시 딸려오는 것에만 작동합니다.
+이 옵션은 어디에나 나타나지만 무브먼트 컴포넌트에 연관된 캡슐, 이를테면 캐릭터 블루프린트 생성시 딸려오는 것에만 작동합니다.
 
 복합 콜리전은 면 단위 콜리전으로, 캐릭터가 오목한 모양이나 좀 더 복잡한 액터와 상호작용할 수 있습니다. 그러나 계산 비용이 더 들기 때문에 필요한 경우에만 사용해야 합니다.
 [VAR:ToolTipFullLink]

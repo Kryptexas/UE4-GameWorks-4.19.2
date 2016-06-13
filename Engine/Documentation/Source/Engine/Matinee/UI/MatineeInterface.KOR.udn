@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2606388
+﻿INTSourceChangelist:2738642
 Availability: Public
 Title:마티네 에디터 참고서
 Crumbs:%ROOT%, Engine, Engine/Matinee
 Description:마티네의 유저 인터페이스에 대한 설명입니다.
+Version: 4.9
+SkillLevel: Beginner
 
 [TOC(start:2 end:2)]
 

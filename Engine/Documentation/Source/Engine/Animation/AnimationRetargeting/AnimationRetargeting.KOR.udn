@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2519819
+﻿INTSourceChangelist:2658350
 Availability:Public
 Title: 애니메이션 리타게팅 (동일 스켈레톤)
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:리타게팅은 비율이 크게 다른 캐릭터간에 애니메이션을 재사용할 수 있도록 하는 작업을 말합니다.
+version:4.9
 
 [REGION:fullwidth]
 ![](RetargetingHeader.png)
@@ -11,7 +12,7 @@ Description:리타게팅은 비율이 크게 다른 캐릭터간에 애니메이
 [TOC(start:2 end:2)]
 
 
-## 개요
+
 **애니메이션 리타게팅 (동일 스켈레톤)** 은 같은 스켈레톤 애셋을 공유하나 비율이 크게 다른 캐릭터간에 애니메이션을 재사용할 수 있도록 해 주는 기능입니다. 리타게팅을 통해 애니메이션이 적용될 스켈레톤에 모양이 다른 캐릭터의 애니메이션을 사용할 경우, 일부분이 손실되거나 불필요하게 변형되지 않도록 할 수 있습니다.
 
 [REGION:warning]

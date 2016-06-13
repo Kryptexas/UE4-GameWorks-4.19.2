@@ -1,99 +1,101 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Making Macros
+﻿INTSourceChangelist:2680777
+Availability:Public
+Title:创建宏
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
-Description:A Macro is used to check if a player has enough energy to jump. 
-Related: Engine/Blueprints/UserGuide/Macros
-Related: Engine/Blueprints/UserGuide/Types/MacroLibrary
-Related: Engine/Blueprints
+Description:宏用于检查确定玩家是否拥有足够的能量执行跳跃。 
+Related:Engine/Blueprints/UserGuide/Macros
+Related:Engine/Blueprints/UserGuide/Types/MacroLibrary
+Related:Engine/Blueprints
+version:4.9
+skilllevel:Advanced
 
-**Macros** are essentially the same as collapsed graphs of nodes. They have an entry point and exit point designated by tunnel nodes. Each tunnel can have any number of execution or data pins which are visible on the macro node when used in other Blueprints and graphs.
+本质上来说，**宏** 和节点的重叠图表原理相同。他们都有通道节点设计的进入点和离开点。每个通道可拥有任意数量的执行或数据引脚。在其他蓝图和图表上使用时，这些引脚在宏节点上均为可见。
 
-## Creating Macros
+## 创建宏
 
-In this example, we will create a **Macro** that will be used to check if a player character has enough energy to jump or not. If they have enough energy to jump, we will remove some energy from the player and print their current value to the screen then allow them to jump. If they do not have enough energy, we will print to the screen that they are out of energy and not allow them to jump. 
+在本例中，我们将创建一个 **宏**，用于检查确定玩家角色是否拥有足够能量执行跳跃。如能量足够，将扣除相应能量值，显示当前数值到屏幕上，然后允许玩家执行跳跃。如能量不足，屏幕上将显示玩家能量不足，无法跳跃。 
 
 [REGION:note]
-_For this example, we are using the **Blueprint Third Person Project** with **Starter Content** enabled._
+在此实例中，我们使用的是启用了 **新手内容** 的 **Blueprint Third Person 项目**。
 [/REGION]
 
-1.  Inside the **Content/ThirdPersonBP/Blueprints** folder, open the **ThirdPersonCharacter** Blueprint. 
+1. 在 **Content/ThirdPersonBP/Blueprints** 文件夹中，打开 **ThirdPersonCharacter** 蓝图。 
 
-1.	Under the **My Blueprint** window, click the **Add Macro** button. 
+1.	在 **我的蓝图** 窗口中点击 **Add Macro** 按钮。 
 
 	![](MacroHT1.png)
 
-1.	A new Macro will be created, select it and press **F2** to rename it to **EnergyCheck**. 
+1.	将创建一个新的宏，选中后按 **F2** 键将其重命名为 **EnergyCheck**。 
 
 	![](MacroHT2.png)
 
-1.	With the macro selected, in the **Details** panel, click the **New** buttons to create 1 Input and 2 Outputs. 
+1.	选中宏后，在 **Details** 面板中点击 **New** 按钮创建 1 输入和 2 输出。 
 
 	![](MacroHT3.png)
 
-	This will create Input/Output nodes on the Macro Node itself that can be used to pass data to/from the Macro. 
+	此操作将在宏节点上创建输入/输出节点，可用于向宏传输数据（或从宏传输数据）。 
 
-1.	For the **Input**, in the text box enter the name **BeginCheck** and change the type to an **Exec** (Executable pin). 
+1.	在文本框中为 **输入** 节点设置名称 **BeginCheck**，然后将类型改为 **Exec**（可执行引脚）。 
 
-1.	For the **Outputs**, make them both **Exec** types and name one **HasEnergy** and the other **NoEnergy**. 
+1.	将两个 **输出** 节点类型设为 **Exec**，并将一个命名为 **HasEnergy**，另一个命名为 **NoEnergy**。 
 
 	![](MacroHT4.png)
 
-	For the Input, we are using an Exec pin called **BeginCheck** to start the Macro. We will create script that checks if the player has enough energy to jump (and if so, will wire it to the **HasEnergy** pin). If they do not have enough energy, we will wire it to the **NoEnergy** pin. When we implement that Macro, the **HasEnergy** pin will be fed into the **Jump** command while the **NoEnergy** pin will not. 
+	在输入节点上，使用一个名为 **BeginCheck** 的执行引脚开始宏。将创建脚本，用以检查玩家是否拥有足够能量执行跳跃（如是，则将其与 **HasEnergy** 引脚连接起来）。如玩家无足够能量，则将其与 **NoEnergy** 引脚连接起来。执行宏时，**HasEnergy** 引脚将填充 **Jump** 指令，而 **NoEnergy** 引脚则不会。 
 
-1.	Inside the **My Blueprint** window, click the **Add Variable** button.
+1.	在 **My Blueprint** 窗口中点击 **Add Variable** 按钮。
 
 	 ![](AddVariableButton.png)
 
-1.	Name the variable **Energy** and change it to the **Float** type, click **Compile** from the Toolbar, then set its value to **100**. 
+1.	将变量命名为 **Energy** 并将其类型改为 **Float**，点击工具栏上的 **Compile**，将值设为 **100**。 
 
 	![](MacroHT5.png)
 
-	We now have a variable for the player's energy which has been initialized to 100. 
+	现在便为玩家的能量（初始值为 100）设置了一个变量。 
 
-1.	In the graph next to **Inputs**, hold the **B** key and **Left-click** to create a **Branch** node. 
+1.	在 **Inputs** 旁的图表中，按住 **B** 键并 **单击左键** 创建一个 **Branch** 节点。 
 
-1.	While holding **Ctrl** drag **Energy** from the **My Blueprint** window into the graph and connect it to a **>** node, then connect it to the **Branch**. 
+1.	按住 **Ctrl** 键从 **My Blueprint** 窗口将 **Energy** 拖入图表并连接到一个 **>** 节点，然后再连接到 **Branch**。 
 
 	![](MacroHT6.png)
 
-	Here we are using a Branch to determine If Energy is > 0, and if so **True** is executed; if not **False** is executed. 
+	在此我们使用 Branch 确定是否能量大于零。如是，执行 **True**；如否，执行 **False**。 
 
-1.	While holding **Alt**, drag in the **Energy** variable to add a **Set** node. 
+1.	按住 **Alt** 键拖入 **Energy** 变量添加一个 **Set** 节点。 
 
-1.	**Ctrl** drag in **Energy** again and connect it to a **-** node, set to **10** and plug into the **Set** node. 
+1.	在此按住 **Ctrl** 键拖入 **Energy** 并连接到一个 **-** 节点，将值设为 **10**，然后插入 **Set** 节点。 
 
 	![](MacroHT7.png)
 
-	With this script we are saying if Energy is > 0, subtract 10 from the current Energy value. 
+	该脚本意味着能量大于零时，将从当前能量值中减去 10。 
 
-1.	**Right-click** in the graph and add a **Print String** node, then connect the **Energy** to the **In String** pin. 
+1.	在图表中 **单击右键** 添加一个 **Print String** 节点，然后将 **Energy** 和 **In String** 引脚连接起来。 
 
 	![](MacroHT8.png)
 
-	A **Conversion** node will be added which will convert the value of Energy into a string that is printed to the screen, displaying its value. 
+	将添加一个 **转换** 节点，它将把能量值转换为数值显示在屏幕上。 
 
-1.	Off the **False** pin of the **Branch**, add a **Print String** and enter the text **Out of Energy!** in the box. 
+1.	关闭 **Branch** 节点的 **False** 引脚，添加一个 **Print String** 并在框中输入文本 **Out of Energy!**。
 
-1.	Connect both **Print String** nodes to the **HasEnergy** and **NoEnergy** pins. 
+1.	将两个 **Print String** 节点与 **HasEnergy** 和 **NoEnergy** 引脚连接起来。 
 
 	![](MacroHT9.png)
 
-	The Macro is now set up to check (and if applicable, subtract from) the **Energy** variable and spit out if the player has enough energy or not which will be used to determine if the player can jump or now. Now we need to implement the Macro after pressing the "Jump" key before Jump is executed. 
+	现在宏的设置为检查 **Energy** 变量（如适用，则从该变量减去数值），确定玩家是否拥有足够能量，进而决定玩家是否可以执行跳跃。现在，我们需要在按下“跳跃”键后，跳跃动作被执行之前应用宏。 
 
-1.	On the **EventGraph**, drag off the **Pressed** pin of **InputAction Jump** node and search for **EnergyCheck**. 
+1.	在 **事件图表** 上，拖动 **InputAction Jump** 节点的 **Pressed** 引脚并搜索 **EnergyCheck**。 
 
 	![](MacroHT10.png)
 
-	You should see that the Macro we created is listed under **Utilities** and has the Macro icon next to its name. 
+	可以看到创建的宏列于 **Utilities** 下，宏图标旁是它的名称。 
 
-1.	When the Macro is added, the Jump script should look similar to below. 
+1.	宏被添加后，Jump 脚本的外观与下图相似。 
 
 	![](MacroHT11.png)
 
-1.	Click the **Compile** and **Save** buttons, then close the Blueprint. 
+1.	点击 **Compile** 和 **Save** 按钮，然后关闭蓝图。 
 
-1.	Click the **Play** button from the Main Toolbar to play in the Editor. 
+1.	在主工具栏中点击 **Play** 按钮即可在编辑器中进行游戏。 
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -107,9 +109,9 @@ _For this example, we are using the **Blueprint Third Person Project** with **St
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-	When you press the **Spacebar** to jump, in the upper left corner of the screen the value of **Energy** is printed to the screen. When **Energy** is 0, you should no longer be able to jump. 
+	按下 **空格键** 执行跳跃时，在屏幕左上角可看到 **Energy** 的值。当 **Energy** 为零时，无法执行跳跃。 
 	
-	This is basic example of using a Macro to execute and consolidate script into a single node, improving the readability of our Event Graph and main character script. Additionally, you could call this Macro in other instances - say you have some other action that reduces the player's energy and you want to check if they have enough energy to perform the action (attacking for example). You could run this Macro to check if the player has enough energy to Attack after pressing your Attack key then execute an attack off the **HasEnergy** exec pin. 
+	这是使用宏将脚本执行并合并为一个单独节点、改善事件图表和主要角色脚本易读性的基本范例。除此之外还可在其他情况下调用这个宏：存在其他消耗玩家能量的动作，需要确定玩家是否有能量执行此操作（如攻击）。按下攻击键，然后在 **HasEnergy** 执行引脚后执行攻击操作，再运行这个宏确认玩家是否有足够的能量执行攻击。 
 
 
 

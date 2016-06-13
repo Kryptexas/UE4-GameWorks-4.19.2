@@ -1,0 +1,55 @@
+﻿INTSourceChangelist:0
+Title: Using Editor Windows in VR Mode
+Description: Learn how to summon and manipulate editor panels and windows when working in VR mode.
+Crumbs:
+Availability: docs
+parent: Engine/Editor/VR/QuickStart
+type: howto
+order: 5
+tags: VR
+version: 4.11
+skilllevel: intermediate
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Editor/VR/QuickStart/EditorUI:title%](Engine/Editor/VR/QuickStart/EditorUI/editorui_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/QuickStart/EditorUI:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/QuickStart/EditorUI]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/QuickStart/EditorUI:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Editor/VR/QuickStart/EditorUI:title%](Engine/Editor/VR/QuickStart/EditorUI/editorui_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/QuickStart/EditorUI:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/QuickStart/EditorUI]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/QuickStart/EditorUI:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[NAV]
+
+[EXCERPT:main]
+
+
+
+[/EXCERPT:main]
+
+[NAV]

@@ -1,0 +1,67 @@
+﻿INTSourceChangelist:2911160
+Title: 원형 메뉴
+Description: Radial menu, 원형 메뉴는 VR 모드에서 복사/붙여넣기, 되돌리기처럼 자주 사용되는 기능을 쉽게 접할 수 있도록 해줍니다.
+Crumbs:
+Availability: public
+parent: Engine/Editor/VR
+type: reference
+order: 3
+tags: VR
+version: 4.11
+skilllevel: intermediate
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Editor/VR/RadialMenu:title%](Engine/Editor/VR/RadialMenu/radialmenu.png)(fill:#919293)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/RadialMenu:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/RadialMenu]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/RadialMenu:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Editor/VR/RadialMenu:title%](Engine/Editor/VR/RadialMenu/radialmenu.png)(fill:#919293)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/RadialMenu:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/RadialMenu]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/RadialMenu:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+**Radial Menu** (원형 메뉴)에서는 되돌리기, 다시하기, 붙여넣기 등 자주 쓰는 기능을 접할 수 있습니다.
+
+![%Engine/Editor/VR/RadialMenu:title%](Engine/Editor/VR/RadialMenu/radialmenu_world.png)(w:640)
+
+## 래디얼 메뉴
+
+1. 트랙 패드를 엄지로 가볍게 터치하여 원형 메뉴를 띄웁니다.
+1. 트랙 패드 위로 엄지를 움직여 옵션을 강조합니다.
+1. 트랙 패드를 눌러 강조된 옵션을 선택합니다.
+
+## 원형 메뉴 옵션
+
+| 옵션 | 설명 |
+| ------ | ----------- |
+| 유니버설 기즈모 | 유니버설 기즈모를 켜고 끄는 토글입니다. |
+| 삭제 | 선택된 액터를 삭제합니다. |
+| 복제 | 선택된 액터의 사본을 만듭니다. |
+| 복사하기 | 선택된 액터를 클립보드로 복사합니다. |
+| 붙여넣기 | 클립보드 내용을 월드에 붙여넣습니다. |
+| 되돌리기 | 지난 번 수행한 동작을 되돌립니다. |
+| 다시하기 | 지난 번 되돌린 동작을 다시합니다. |
+| 바닥으로 스냅 | 선택된 액터가 다른 지오메트리에 닿을 때까지 아래로 끌어내립니다. |

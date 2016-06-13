@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2495706
+﻿INTSourceChangelist:2664641
 Availability:Public
 Title:Blend 노드
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference
 Description:일정 조건에 따라 여러 애니메이션을 블렌딩하는 애니메이션 노드입니다.
+version: 4.9
 
 [REGION:banner]
 ![Blend Nodes](blend_banner.png)(convert:false)
@@ -40,14 +41,14 @@ Blend 노드는 여러 애니메이션을 블렌딩하는 데 쓰입니다. 이 
 | [REGION:tablesection]**입력 핀**[/REGION] ||
 | A | 블렌딩할 첫째 포즈입니다. |
 | B | 블렌딩할 둘째 포즈입니다. |
-| Alpha | 두 포즈의 웨이팅 결정을 위한 알파 값으로 사용할 **[0.0, 1.0]** 범위의 `float` 값입니다. **0.0** 은 **A**, **1.0** 은 **B** 입력 포즈에 풀 웨이팅을 줍니다. |
+| Alpha | 두 포즈의 가중치 결정을 위한 알파 값으로 사용할 **[0.0, 1.0]** 범위의 `float` 값입니다. **0.0** 은 **A**, **1.0** 은 **B** 입력 포즈에 풀 웨이팅을 줍니다. |
 | [REGION:tablesection]**출력 핀**[/REGION] ||
 | Pose | 블렌딩 적용 이후의 최종 포즈입니다. |
 
 
-## Blend Poses by Bool
+## Blend Poses by bool
 
-**Blend Poses by Bool** 노드는 불리언 값을 키로 사용하여 두 포즈를 시간에 따라 블렌딩하는 노드입니다. 불리언 값이 _True_ 인 경우 True 입력에 연결된 포즈가, _False_ 인 경우 False 입력에 연결된 포즈가 사용됩니다. 각 포즈에는 플로트 값 Blend Time 이 있어, 해당 포즈로 블렌딩하는 데 걸리는 기간을 조절할 수 있습니다.
+**Blend Poses by bool** 노드는 불리언 값을 키로 사용하여 두 포즈를 시간에 따라 블렌딩하는 노드입니다. 불리언 값이 _True_ 인 경우 True 입력에 연결된 포즈가, _False_ 인 경우 False 입력에 연결된 포즈가 사용됩니다. 각 포즈에는 플로트 값 Blend Time 이 있어, 해당 포즈로 블렌딩하는 데 걸리는 기간을 조절할 수 있습니다.
 
 ![](BlendPosesByBool.png)
 
@@ -62,9 +63,9 @@ Blend 노드는 여러 애니메이션을 블렌딩하는 데 쓰입니다. 이 
 | [REGION:tablesection]**출력 핀**[/REGION] ||
 | Pose | 블렌딩이 적용된 이후의 최종 포즈입니다. |
 
-## Blend Poses by Int
+## Blend Poses by int
 
-**Blend Poses by Int** 노드는 정수 값을 키로 사용하여 몇 개의 포즈를 블렌딩하는 노드입니다. 각 입력 정수 값에 대해, 해당 값의 입력 핀에 연관된 포즈가 사용됩니다. 예를 들어 정수가 0 으로 설정된 경우, _Blend Pose 0_ 에 연결된 포즈가 사용됩니다. 각 포즈에는 실수값 Blend Time 이 있어 해당 포즈로 블렌딩해 들어가는 데 걸리는 시간을 조절합니다.
+**Blend Poses by int** 노드는 정수 값을 키로 사용하여 몇 개의 포즈를 블렌딩하는 노드입니다. 각 입력 정수 값에 대해, 해당 값의 입력 핀에 연관된 포즈가 사용됩니다. 예를 들어 정수가 0 으로 설정된 경우, _Blend Pose 0_ 에 연결된 포즈가 사용됩니다. 각 포즈에는 실수값 Blend Time 이 있어 해당 포즈로 블렌딩해 들어가는 데 걸리는 시간을 조절합니다.
 
 ![](BlendPosesByInt.png)
 
@@ -86,9 +87,9 @@ Blend Pose 입력을 추가하려면, 노드에 우클릭한 다음 맥락 메�
 
 
 
-## Layered Blend Per Bone
+## Layered blend per bone
 
-**Layered Blend Per Bone** (본별로 레이어 블렌드) 노드는 스켈레톤의 특정 본 부분집합에만 영향을 끼치는 마스크 블렌딩을 합니다. 예를 들어 캐릭터의 허리 윗부분에만 애니메이션을 적용하려 한다면, **Blend Per Bone** (본별로 블렌딩)을 사용하면 됩니다.
+**Layered blend per bone** (본 별 레이어 블렌드) 노드는 스켈레톤의 특정 본 부분집합에만 영향을 끼치는 마스크 블렌딩을 합니다. 예를 들어 캐릭터의 허리 윗부분에만 애니메이션을 적용하려 한다면, **Blend Per Bone** (본별로 블렌딩)을 사용하면 됩니다.
 
 ![Blend Nodes - Blend Per Bone](CE_nodes_blend_per_bone.png)
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2680849
+﻿INTSourceChangelist:2968923
 Availability: Public
 Title:배열 작업
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -7,6 +7,9 @@ Related: Engine/Blueprints/UserGuide/Arrays
 Related: Engine/Blueprints/UserGuide/Arrays/ArrayNodes
 version:4.9
 skilllevel:Intermediate
+parent:Engine/Blueprints/Scripting
+tags:배열과 구조체
+order:3
 
 [TOC(start:2)]
 
@@ -53,7 +56,7 @@ skilllevel:Intermediate
 
 ## 배열 만들기
 
-배열 변수를 만들 때, 변수의 Default Value 세팅을 통해 배열에 나타나도록 항목을 정의합니다. 하지만 레벨에 존재하는 액터들로 배열을 채우는 경우처럼, 실행시칸에 배열을 채우는 경우도 있을 수 있습니다. 이러한 경우, **배열 만들기** 노드를 사용하면 배열 변수를 만들고 기본값을 할당하는 방식이 아닌, 일련의 항목들로부터 배열을 만드는 것이 가능합니다.
+배열 변수를 만들 때, 변수의 Default Value 세팅을 통해 배열에 나타나도록 항목을 정의합니다. 하지만 레벨에 존재하는 액터들로 배열을 채우는 경우처럼, 실행시간에 배열을 채우는 경우도 있을 수 있습니다. 이러한 경우, **배열 만들기** 노드를 사용하면 배열 변수를 만들고 기본값을 할당하는 방식이 아닌, 일련의 항목들로부터 배열을 만드는 것이 가능합니다.
 
 이 예제에서는 레벨에 순서대로 전환할 수 있는 카메라 여러대로 배열을 만든다 칩시다.
 
@@ -146,7 +149,7 @@ skilllevel:Intermediate
 
 	![](HT21.png)
 
-1.	**Ctrl** ㅋ티를 누르고 **ActorClassArray** 변수를 끌어 놓은 다음, 거기서 끌어 놓아 **Get** 노드를 추가합니다.
+1.	**Ctrl** 키를 누르고 **ActorClassArray** 변수를 끌어 놓은 다음, 거기서 끌어 놓아 **Get** 노드를 추가합니다.
 
 1.	**Index** 핀을 끌어 놓은 다음, **Random Integer in Range** 노드를 검색 추가합니다.
 

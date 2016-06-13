@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653552
+﻿INTSourceChangelist:2718289
 Availability: Public
 Title:1.9 - 오파시티 마스크 클립 값
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
@@ -14,6 +14,7 @@ Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Rendering/Materials/MaterialInstances
 Related: Engine/Actors/DecalActor
 Related: Engine/Rendering/Materials/MaterialProperties
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

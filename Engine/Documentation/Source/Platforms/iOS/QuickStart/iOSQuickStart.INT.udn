@@ -3,6 +3,11 @@ Crumbs:%ROOT%, Platforms, Platforms/iOS
 Description:Instructions on setting up and launching games on iOS devices.
 Availability:Public
 Version:4.9
+tags:iOS
+tags:mobile
+parent:Platforms/iOS
+order:1
+type:quickstart
 
 [VAR:Topic]
 [OBJECT:Topic]

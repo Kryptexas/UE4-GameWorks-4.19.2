@@ -73,7 +73,7 @@ Generally, when creating Material Layers, it is common to create the layers as M
 
 For our first Material Layer, we will create a fairly simple chrome with a little bit of corrosion or imperfections in the surface. To help show some editability, we will also create some inputs to control the overall look.
 
-1. In the **Content Browser**, click the ![New Asset](CB_button_NewAsset.png) button and choose **Materials & Textures > Material Function**.
+1. In the **Content Browser**, click the **Add New** button and choose **Materials & Textures** > **Material Function**.
 
 	![](NewFunction.png)
 
@@ -127,7 +127,7 @@ Be sure to save your Material Layer Function when done.
 
 We will now create the Material Layer for our snow effect:
 
-1. In the **Content Browser**, click the ![New Asset](CB_button_NewAsset.png) button and choose **Materials & Textures > Material Function**.
+1. In the **Content Browser**, click the **Add New** button and choose **Materials & Textures > Material Function**.
 
 	![](NewFunction.png)
 
@@ -175,7 +175,7 @@ Save your result when finished!
 
 We can now create our Layered Material using the layers we have generated so far. We will set this up with a little bit of room for instance customization and so that the snow always appears on the top of the surface.
 
-1. In the **Content Browser**, click the ![New Asset](CB_button_NewAsset.png) button and choose Material from the context menu.
+1. In the **Content Browser**, click the **Add New** button and choose Material from the context menu.
 
 	![](NewMaterialContextMenu.png)
 

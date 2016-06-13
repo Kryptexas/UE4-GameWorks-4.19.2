@@ -3,13 +3,14 @@ Title:Nodes
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:Node graph that uses events and function calls to perform actions in response to gameplay events associated with the Blueprint.
 version: 4.9
+parent:Engine/Blueprints/Scripting
+tags:Execution Flow
+order:4
 
 
 **Nodes** are objects such as events, function calls, flow control operations, variables, etc. 
 that can be used in graphs to define the functionality of the particular graph and Blueprint that 
-contains it. The various types of nodes available are described below.
-
-[INCLUDE:Engine/Blueprints/UserGuide#Nodes]
+contains it.
 
 
 
@@ -149,7 +150,7 @@ Collections of nodes in the graph can be collapsed into sub-graphs for organizat
 [![](k2_collapsed_node.png)](k2_collapsed_node.png "Blueprint Collapse Node")
 [/REGION]
 
-Unlike [](Engine/Blueprints\UserGuide\Macros), a set of collapsed nodes is not shared, even within a single Level Blueprint or Blueprint Class. If you copy the collapsed node, it duplicates the internal graph. This can be handy if you want to make several variants of the same approximate behavior, but it also means that any bug fixes would have to be applied to each copy. The feature is really more intended to 'tidy up' a graph, hiding complexity inside, rather than any sort of sharing or reuse.
+Unlike macros, a set of collapsed nodes is not shared, even within a single Level Blueprint or Blueprint Class. If you copy the collapsed node, it duplicates the internal graph. This can be handy if you want to make several variants of the same approximate behavior, but it also means that any bug fixes would have to be applied to each copy. The feature is really more intended to 'tidy up' a graph, hiding complexity inside, rather than any sort of sharing or reuse.
 
 #### Tunnels
 

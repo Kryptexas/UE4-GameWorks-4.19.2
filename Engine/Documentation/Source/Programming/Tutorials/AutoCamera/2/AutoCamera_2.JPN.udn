@@ -1,19 +1,19 @@
-﻿INTSourceChangelist:2620109
+﻿INTSourceChangelist:2727264
 Availability:Public
 Title:2.C++ コードで行うカメラビューのコントロール
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/AutoCamera
 Description:カメラビューを変更するクラスのコーディング
-バージョン：4.9
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		* [前の手順](Programming\Tutorials\AutoCamera\1 "%Programming\Tutorials\AutoCamera\1:title%")
+		[前のステップ](Programming\Tutorials\AutoCamera\1 "%Programming\Tutorials\AutoCamera\1:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[ゲーム制御のカメラ](Programming\Tutorials\AutoCamera)
+		[](Programming\Tutorials\AutoCamera)
 	[/PARAM]
 	[PARAM:next]
 		[次の手順](Programming\Tutorials\AutoCamera\3 "%Programming\Tutorials\AutoCamera\3:title%")
@@ -23,11 +23,11 @@ Description:カメラビューを変更するクラスのコーディング
 
 %Steps%
 
-1. カメラビューをコントロールする C++ クラスの作成準備が整いました。このチュートリアルでは、**アクタ** を CameraDirector を呼び出す新規クラスに拡張します。
+1. カメラビューをコントロールする C++ クラスの作成準備が整いました。このチュートリアルでは、**アクタ** を CameraDirector という新規クラスに拡張します。
 
-	[![](NameActorClass.png)](NameActorClass.png)
+	![](NameActorClass.png)
 
-1. 「 `CameraDirector.h` 」ファイル内の ACameraDirector クラス定義の下部に次のコードを追加します：
+1. 「 CameraDirector.h 」ファイル内の ACameraDirector クラス定義の下部に次のコードを追加します。
 
 		UPROPERTY(EditAnywhere)
 		AActor* CameraOne;
@@ -43,7 +43,7 @@ Description:カメラビューを変更するクラスのコーディング
 
 		#include "Kismet/GameplayStatics.h"
 
-	「GameplayStatics」ヘッダファイルで、いくつかの汎用関数にアクセスすることができます。そのうちの1つはこのチュートリアルに必要な関数です。終了後、以下のコードを **ACameraDirector::Tick** の下部に追加します：
+	「GameplayStatics」ヘッダファイルで、いくつかの汎用関数にアクセスすることができます。そのうちの 1 つはこのチュートリアルに必要な関数です。終了後、以下のコードを **ACameraDirector::Tick** の下部に追加します：
 
 		const float TimeBetweenCameraChanges = 2.0f;
 		const float SmoothBlendTime = 0.75f;
@@ -51,19 +51,19 @@ Description:カメラビューを変更するクラスのコーディング
 		if (TimeToNextCameraChange <= 0.0f)
 		{
 			TimeToNextCameraChange += TimeBetweenCameraChanges;
-	
-			// Find the actor that handles control for the local player (ローカルプレイヤーをコントロールするアクタを検索)
+
+			//ローカルプレイヤーをコントロールするアクタを検索
 			APlayerController* OurPlayerController = UGameplayStatics::GetPlayerController(this, 0);
 			if (OurPlayerController)
 			{
 				if ((OurPlayerController->GetViewTarget() != CameraOne) && (CameraOne != nullptr))
 				{
-					// Cut instantly to camera one. (カメラ 1 画面に瞬時に切り替え)
+					// カメラ 1 に瞬時に切り替え
 					OurPlayerController->SetViewTarget(CameraOne);
 				}
 				else if ((OurPlayerController->GetViewTarget() != CameraTwo) && (CameraTwo != nullptr))
 				{
-					// Blend smoothly to camera two. (カメラ 2 にスムーズにブレンド)
+					// カメラ 2 にスムーズにブレンド
 					OurPlayerController->SetViewTargetWithBlend(CameraTwo, SmoothBlendTime);
 				}
 			}
@@ -71,15 +71,15 @@ Description:カメラビューを変更するクラスのコーディング
 
 	このコードは 3 秒ごとに 2 つのカメラ間でデフォルトプレイヤーのビューを切り替えます。
 
-1. コードのコンパイル準備ができたので、**アンリアルエディタ** に戻って **Compile (コンパイル)** ボタンを押します。
+1. コードのコンパイル準備ができたので、**エディタ** に戻って **Compile (コンパイル)** ボタンを押します。
 
 ----
 
-追加のコードは不要です。これで CameraDirector をウィンドウに設定出来ます。
+追加のコードは不要です。これで CameraDirector をワールドに設定出来ます。
 
 [OBJECT:Section]
     [PARAMLITERAL:id]
-    コード
+    code
     [/PARAMLITERAL]
     [PARAM:heading]
 	    完成コード
@@ -99,13 +99,13 @@ Description:カメラビューを変更するクラスのコーディング
 				GENERATED_BODY()
 
 	public:
-				// Sets default values for this actor's properties (このアクタのプロパティにデフォルト値を設定します)
+				// このアクタのプロパティのデフォルト値を設定します。
 				ACameraDirector();
 
-				// Called when the game starts or when spawned (ゲーム開始またはスポーン時に呼ばれます)
+				// ゲーム開始時またはスポーン時に呼ばれます。
 				virtual void BeginPlay() override;
 
-				// Called every frame (フレームごとに呼ばれます)
+				// フレーム毎に呼ばれます。
 				virtual void Tick( float DeltaSeconds ) override;
 
 				UPROPERTY(EditAnywhere)
@@ -124,22 +124,21 @@ Description:カメラビューを変更するクラスのコーディング
 			#include "CameraDirector.h"
 			#include "Kismet/GameplayStatics.h"
 
-			// Sets default values (デフォルト値を設定)
+			// デフォルト値を設定
 			ACameraDirector::ACameraDirector()
 			{
- 				// Set this actor to call Tick() every frame. (フレーム毎に Tick() を呼び出すためにこのアクタを設定します)必要なければパフォーマンスを向上させるためにオフにできます。
+ 				// フレーム毎に Tick() を呼び出すようにこのアクタを設定。必要がなければパフォーマンスを向上させるためにオフにすることができます。
 				PrimaryActorTick.bCanEverTick = true;
 
 			}
 
-			// Called when the game starts or when spawned (ゲーム開始またはスポーン時に呼ばれます)
+			// ゲーム開始時またはスポーン時に呼ばれます。
 			void ACameraDirector::BeginPlay()
 			{
 				Super::BeginPlay();
-
 	}
 
-			// Called every frame (フレームごとに呼ばれます)
+			// フレーム毎に呼ばれます。
 			void ACameraDirector::Tick( float DeltaTime )
 			{
 				Super::Tick( DeltaTime );
@@ -151,18 +150,18 @@ Description:カメラビューを変更するクラスのコーディング
 				{
 					TimeToNextCameraChange += TimeBetweenCameraChanges;
 
-					//Find the actor that handles control for the local player.(ローカルプレイヤーをコントロールするアクタを検索)
+					//ローカルプレイヤーをコントロールするアクタを検索
 					APlayerController* OurPlayerController = UGameplayStatics::GetPlayerController(this, 0);
 					if (OurPlayerController)
 					{
 						if ((OurPlayerController->GetViewTarget() != CameraOne) && (CameraOne != nullptr))
 						{
-							//Cut instantly to camera one.(カメラ 1 画面に瞬時に切り替え)
+							//カメラ 1 に瞬時に切り替え
 							OurPlayerController->SetViewTarget(CameraOne);
 						}
 						else if ((OurPlayerController->GetViewTarget() != CameraTwo) && (CameraTwo != nullptr))
 						{
-							//Blend smoothly to camera two (カメラ 2 へスムーズにブレンド)
+							//カメラ 2 へスムーズにブレンド
 							OurPlayerController->SetViewTargetWithBlend(CameraTwo, SmoothBlendTime);
 						}
 					}

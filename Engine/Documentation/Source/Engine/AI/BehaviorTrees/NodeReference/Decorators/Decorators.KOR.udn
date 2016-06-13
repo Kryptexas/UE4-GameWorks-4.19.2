@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2623581
+﻿INTSourceChangelist:2755881
 Availability:Public
 Title: 비헤이비어 트리 노드 참고서 - 데코레이터
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
 Description:비헤이비어 트리의 Decorator, 데코레이터 노드에 대한 참고서입니다.
+version: 4.9
 
 [TOC(start:2 end:2)]
 
@@ -249,3 +250,7 @@ Time Limit, 시간 제한 데코레이터는 분기나 노드 완료시까지 �
 | **Time Limit** | 시간 제한 - 이 기간 이후 노드를 빠져나갑니다. 초 단위입니다. |
 | **Observer Aborts** | 관찰자 중단 - [INCLUDE:#subprop3] |
 | **Node Name** | 노드 이름 - 비헤이비어 트리 그래프에 표시할 노드 이름입니다. |
+
+
+
+

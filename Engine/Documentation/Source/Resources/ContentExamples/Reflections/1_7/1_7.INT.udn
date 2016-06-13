@@ -1,4 +1,4 @@
-Availability: Public
+﻿Availability: Public
 Title:1.7 - Scene Capture 2D
 Crumbs: %ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Reflections
 Description:An overview of the Reflections example level, example 1.7: Scene Capture 2D
@@ -70,7 +70,6 @@ Version: 4.9
 [REGION:fullwidth]
 
 ![](Reflections_1_7_Header.png)
-## Overview
 
 Much like the [Scene Capture Cube](Resources\ContentExamples\Reflections\1_6), a **Scene Capture 2D** makes an image of the scene _on every frame_. In fact, Scene Capture 2D Actors do not work like real reflections; they work more like a TV screen receiving an image from a camera. The Scene Capture 2D captures the scene from its view frustum, stores that view as an image, which is then used within a Material. In fact, the Scene Capture 2D representation in Unreal Editor is a camera. As such, they are most commonly used for security camera effects in game. 
 

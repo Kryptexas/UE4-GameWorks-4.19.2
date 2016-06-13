@@ -1,12 +1,13 @@
-﻿INTSourceChangelist:2610045
+﻿INTSourceChangelist:2735872
 Availability: Public
 Title:3 - 새 레벨 생성
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
 Description:이번 단계에서는 새 레벨을 만들어 샘플 영역을 만들도록 하겠습니다.
 SkillLevel:Beginner
-Version:4.8
+Version:4.9
 Related:Engine/Levels
 Related:Engine/Content/Browser
+checkpoint: editorqs
 
 [VAR:Steps]
 [OBJECT:Navigation]

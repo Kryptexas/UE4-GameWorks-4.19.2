@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2620588
+﻿INTSourceChangelist:2718372
 Availability: Public
 Title:마우스 인터페이스
 Crumbs:%ROOT%, Resources
@@ -8,6 +8,7 @@ Related: Engine/Blueprints\Editor
 Related: Engine/Blueprints\Editor\Modes\Components
 Related: Engine/Blueprints\Editor\Modes\Defaults
 Related: Engine/Blueprints\Editor\Modes\GraphPanel
+Version: 4.9
 
 
 [VAR:Topic]
@@ -55,8 +56,6 @@ Related: Engine/Blueprints\Editor\Modes\GraphPanel
 [REGION:fullwidth]
 ![](MouseInterfaceTitle.png)
 [/REGION]
-
-[TOC(start:2 end:2)]
 
 
 

@@ -1,13 +1,12 @@
-﻿INTSourceChangelist:2693543
+﻿INTSourceChangelist:2858962
 Availability:Public
 Title:하드웨어 & 소프트웨어 사양
 SEO-Title:하드웨어 & 소프트웨어 사양
 Crumbs: %ROOT%, GettingStarted
 Description:언리얼 엔진으로 개발하는 데 있어 최소/추천 하드웨어 사양과 필수 소프트웨어 입니다.
+version: 4.9
 
-[PUBLISH:Rocket]
 %Globals:OSSelect_Linux%
-[/PUBLISH:Rocket]
 
 [TOC(start:2)]
 
@@ -18,10 +17,6 @@ Description:언리얼 엔진으로 개발하는 데 있어 최소/추천 하드�
 
 ## 추천 하드웨어 사양
 
-[PUBLISH:Licensee]
-[INCLUDE:#windowsminhardware]
-[/PUBLISH:Licensee]
-[PUBLISH:Rocket]
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
 	OS
@@ -62,7 +57,6 @@ Description:언리얼 엔진으로 개발하는 데 있어 최소/추천 하드�
 	[INCLUDE:#linuxminhardware]
 	[/PARAM]
 [/OBJECT]
-[/PUBLISH:Rocket]
 
 <!--
 [EXCERPT:WindowsMinHardware]
@@ -79,7 +73,7 @@ Description:언리얼 엔진으로 개발하는 데 있어 최소/추천 하드�
 | **운영 체제** | Mac OS X 10.9.2  |
 | **프로세서** | 쿼드코어 인텔 2.5 GHz 이상|
 | **메모리** | 8 GB 램 |
-| **비디오 카드** | DirectX 11 호환 그래픽 카드 |
+| **비디오 카드** | OpenGL 4.1 호환 그래픽 카드 |
 [/EXCERPT:MacOSMinHardware]
 [EXCERPT:LinuxMinHardware]
 |||
@@ -91,38 +85,6 @@ Description:언리얼 엔진으로 개발하는 데 있어 최소/추천 하드�
 [/EXCERPT:LinuxMinHardware]
 -->
 
-[PUBLISH:Licensee]
-## 추천 하드웨어 사양
-
-[INCLUDE:#windowsrechardware]
-[/PUBLISH:Licensee]
-
-<!--
-[EXCERPT:WindowsRecHardware]
-| 엔진으로 개발 ||
-| -------- | --- |
-| **프로세서** | 2.5 GHz 이상 쿼드코어 |
-| **메모리** | 8 GB 이상 램 |
-| **비디오 카드** | DirectX 11 호환 그래픽 카드에 GDDR5 메모리 2GB 이상 |
-| **모니터** | 1680x1050 이상 듀얼 모니터 |
-[/EXCERPT:WindowsRecHardware]
-[EXCERPT:MacOSRecHardware]
-| 엔진으로 개발 ||
-| -------- | --- |
-| **프로세서** | 2.5 GHz 이상 쿼드코어 |
-| **메모리** | 8 GB 이상 램 |
-| **비디오 카드** | GDDR5 메모리 2GB 이상 DirectX 11 호환 그래픽 카드 |
-| **모니터** | 1680x1050 이상 듀얼 모니터 |
-[/EXCERPT:MacOSRecHardware]
-[EXCERPT:LinuxRecHardware]
-| 엔진으로 개발 ||
-| -------- | --- |
-| **프로세서** | 2.5 GHz 이상 쿼드코어 |
-| **메모리** | 8+ GB 램 |
-| **비디오 카드** | GDDR5 메모리 2GB 이상 DirectX 11 호환 그래픽 카드 |
-| **모니터** | 1680x1050 이상 듀얼 모니터 |
-[/EXCERPT:LinuxRecHardware]
--->
 
 [PUBLISH:Licensee]
 [REGION:note]
@@ -135,20 +97,6 @@ Description:언리얼 엔진으로 개발하는 데 있어 최소/추천 하드�
 엔진이나 에디터 실행에 필요한 소프트웨어는 아래와 같습니다.
 
 (#MinSoftwareReqs)
-
-[PUBLISH:Licensee]
-| 엔진 실행 ||
-| -------- | --- |
-| **운영체제** | Microsoft Windows Vista/7 64-bit |
-| **DirectX 버전** | [DirectX End-User Runtimes (June 2010)](http://www.microsoft.com/download/en/details.aspx?id=8109) |
-| **Visual C++ 런타임** | [Microsoft Visual C++ 2013 재배포 가능 패키지](http://www.microsoft.com/ko-kr/download/details.aspx?id=40784) |
-
-[REGION:note]
-**주:** `//depot/UE4/Engine/Extras/Redist/en-us` 에 있는 `UE4PrereqSetup.msi` 를 실행시키면 위에 언급된 DirectX 나 VC++ 런타임처럼 언리얼 엔진을 실행시키는 데 필요한 소프트웨어가 설치됩니다.
-[/REGION]
-[/PUBLISH:Licensee]
-
-[PUBLISH:Rocket]
 
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
@@ -191,6 +139,12 @@ Description:언리얼 엔진으로 개발하는 데 있어 최소/추천 하드�
 	[/PARAM]
 [/OBJECT]
 
+[PUBLISH:Licensee]
+[REGION:note]
+**주:** `//depot/UE4/Engine/Extras/Redist/en-us` 에 있는 `UE4PrereqSetup.msi` 를 실행시키면 언리얼 엔진에 필요한 소프트웨어, 이를테면 앞서 언급한 DirectX 나 VC++ 런타임같은 것을 설치합니다.
+[/REGION]
+[/PUBLISH:Licensee]
+
 <!--
 [EXCERPT:WindowsMinSoftware]
 | 엔진 실행 ||
@@ -221,38 +175,14 @@ UE4 의 크래시 리포트 기능은 원래 기본으로 켜있는 **Windows Er
 [/EXCERPT:WER]
 
 [EXCERPT:VCRuntime]
-[Visual Studio C++ 2013 재배포 가능 패키지](http://www.microsoft.com/ko-kr/download/details.aspx?id=40784)
+[Visual Studio C++ 2015 Redist](https://www.microsoft.com/en-us/download/details.aspx?id=48145)
 [/EXCERPT:VCRuntime]
 
 -->
 
-[/PUBLISH:Rocket]
 
 엔진으로 개발하는 프로그래머용 필수 소프트웨어는 아래와 같습니다.
 
-[PUBLISH:Licensee]
-
-(#DirectX)
-
-| 엔진으로 개발 ||
-| -------- | --- |
-| **운영체제** | Microsoft Windows Vista/7 64-bit |
-| **Visual Studio Version** | [Microsoft Visual Studio 2013 Professional](http://www.microsoft.com/en-us/download/details.aspx?id=43730) or [Microsoft Visual Studio 2013 Express for Windows Desktop](http://www.microsoft.com/en-us/download/details.aspx?id=43733)|
-| **Visual C++ 런타임** | [INCLUDE:#VCRuntimeLicensee] |
-
-<!--
-[EXCERPT:VCRuntimeLicensee]
-[Visual Studio C++ 2010 SP1 Redist x64](http://www.microsoft.com/en-us/download/details.aspx?id=13523)  
-
-[Visual Studio C++ 2012 Redist](http://www.microsoft.com/en-us/download/details.aspx?id=30679) 
- 
-[Visual Studio C++ 2013 Redist](http://www.microsoft.com/en-us/download/details.aspx?id=40784)
-[/EXCERPT:VCRuntimeLicensee]
--->
-
-
-[/PUBLISH:Licensee]
-[PUBLISH:Rocket]
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
 	OS
@@ -299,7 +229,7 @@ UE4 의 크래시 리포트 기능은 원래 기본으로 켜있는 **Windows Er
 | 엔진으로 개발 ||
 | -------- | --- |
 | **엔진 실행에 필요한 것들 전부 (자동 설치됨)** ||
-| **Visual Studio 버전** | [INCLUDE:#VS2013] |
+| **Visual Studio 버전** | [INCLUDE:#VS] |
 | [REGION:tablesection]iOS 개발[/REGION] ||
 | **iTunes 버전** | [iTunes 11 이상](http://www.apple.com/itunes/) |
 [/EXCERPT:WindowsMinDevelopment]
@@ -317,17 +247,17 @@ UE4 의 크래시 리포트 기능은 원래 기본으로 켜있는 **Windows Er
 | **IDE** | QtCreator 3.1 또는 KDevelop 4.6|
 | **빌드 시스템** | CMake 2.8 |
 [/EXCERPT:LinuxMinDevelopment]
-[EXCERPT:VS2013]
-Visual Studio 2013 Professional 또는 Visual Studio 2013 Community:
+-->
 
-* [Pro](http://www.microsoft.com/en-us/download/details.aspx?id=43730)
+<!--
+[EXCERPT:VS]
+Visual Studio 2015 Professional 또는 Visual Studio 2015 Community:
+
+* [Pro](https://www.visualstudio.com/downloads/download-visual-studio-vs)
 * [Community](https://www.visualstudio.com/en-us/products/visual-studio-community-vs.aspx)
 
-[/EXCERPT:VS2013]
+[/EXCERPT:VS]
 -->
-[/PUBLISH:Rocket]
-
-
 
 [PUBLISH:Licensee]
 ## 그래픽 카드 드라이버

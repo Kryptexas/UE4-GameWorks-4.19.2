@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653104
+﻿INTSourceChangelist:2714556
 Availability: Public
 Title:2.7 - CPU 파티클에서의 동적인 빛 방출
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/EffectsGallery
@@ -10,6 +10,7 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/ParticleLights
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2634596
+﻿INTSourceChangelist:2651175
 Availability: Public
 Title:익스포넨셜 하이트 포그 사용 안내서
 Crumbs: %ROOT%, Engine, Engine/Actors, Engine/Actors/FogEffects
@@ -65,14 +65,14 @@ Description:Exponential Height Fog Actor, 익스포넨셜 하이트 포그 액�
 
 ## 익스포넨셜 하이트 포그 사용하기
 
-클래스 뷰어에서 _Fog_ 아래 있는 **Exponential Height Fog** (익스포넨셜 하이트 포그) 액터를 선택합니다. 월드에 우클릭한 다음 _Add ExponentialHeightFog Here_ (여기에 익스포넨셜 하이트 포그 추가)를 선택합니다. 
+**모드** 패널에서 **비주얼 이펙트** 아래 있는 **Exponential Height Fog** (익스포넨셜 하이트 포그) 액터를 선택합니다. 좌클릭한 뒤 월드에 끌어놓으면 됩니다.
 
 Exponential Height Fog Actor 위치를 움직여 포그의 고도를 결정합니다.
 
 
 ### 익스포넨셜 하이트 포그 프로퍼티
 
-_Height Fog_ (하이트 포그) 섹션에서 컴포넌트와 연관된 다음 프로퍼티를 편집할 수 있습니다.
+Height Fog (하이트 포그) 섹션에서 컴포넌트와 연관된 다음 프로퍼티를 편집할 수 있습니다.
 
 |**프로퍼티** | **설명** |
 |---|---|

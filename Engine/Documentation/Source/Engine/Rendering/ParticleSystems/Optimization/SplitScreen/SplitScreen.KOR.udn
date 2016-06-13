@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2603882
+﻿INTSourceChangelist:2743168
 Availability: Public
 Title:분할 화면
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Optimization
 Description:디테일 모드와 프로파일링 명령을 사용하여 분할 화면용으로 이펙트를 최적화시키는 방법입니다.
+Version: 4.9
 
 [TOC]
 
@@ -36,9 +37,10 @@ Medium Detail Spawn Rate Scale 은 배수로, 0-1 범위면 적절한 값을 설
 
 주어진 영역에 대한 드로 콜을 보는 명령은 **`DumpParticleFrameRenderingStats`** 입니다. 이 명령은 액션이 일어난 곳의 스크린샷과 스프레드시트를 덤프합니다. 이 스크린샷은 데이터가 덤프된 이후 찍힌 것이니 추정치일 뿐이며, 시각적인 참고자료에 가깝습니다.
 
-스프레트시트로 통계를 보면 간편하며, 이와 같은 모습일 것입니다:
+스프레드 시트로 통계를 보면 간편하며, 이와 같은 모습일 것입니다:
 
-![particlestats.jpg](particlestats.jpg)(w:624 h:176)
+![particlestats.jpg](particlestats.jpg)(w:960)
+
 
 이 경우 픽스는 꽤나 간단합니다. 메시를 한 다발 호출함에 틀림없는 이펙트가 하나 있으며, 게다가 반복 스폰까지 하는 것 같습니다. 그 이펙트 하나가 유력한 용의자기는 한데 그 이펙트의 비주얼은 그대로 유지하고 싶다, 그런 경우엔 조금 까다롭기는 하지만 딱 한가지 방법이 있습니다. 메시를 스프라이트로 바꾸는 것입니다.
 

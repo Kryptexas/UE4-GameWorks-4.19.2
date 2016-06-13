@@ -1,13 +1,14 @@
-﻿INTSourceChangelist:2610045
+﻿INTSourceChangelist:2735872
 Availability: Public
 Title:1. 필수 구성
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
 Description:프로젝트 브라우저를 사용하여 새 프로젝트를 만듭니다.
 SkillLevel:Beginner
-Version:4.8
+Version:4.9
 Related:Engine/Basics/Projects
 Related:Engine/Basics/Projects/Browser
 Related:GettingStarted/Installation
+checkpoint: editorqs
  
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -27,7 +28,7 @@ Related:GettingStarted/Installation
 %Steps%
 
 시작하기에 앞서, 먼저 이 안내서에서 사용할 [프로젝트](Engine/Basics/Projects) 를 만들어 줘야 합니다. 다음 부분에서는 언리얼 엔진 4 의 [프로젝트 브라우저](Engine/Basics/Projects/Browser) 를 사용하여 프로젝트를 만듭니다.
-이 단계를 완료하면 프로젝트 준비가 완료됩니다. 프로젝트 생성 절차를 거쳐 템플릿을 사용하여 앞으로 제작할 프로젝트에 직접 사용할 수도 있습니다.
+이 단계를 완료하고 나면 앞으로 만들 프로젝트의 기반이 되는 템플릿이 생길 것입니다.
 
 ## 단계
 

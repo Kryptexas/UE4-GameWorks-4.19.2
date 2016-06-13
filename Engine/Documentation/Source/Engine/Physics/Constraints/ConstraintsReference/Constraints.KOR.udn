@@ -1,42 +1,320 @@
-﻿INTSourceChangelist:2608399
+﻿INTSourceChangelist:2714898
 Availability: Public
 Title:피직스 컨스트레인트 참고서
 Crumbs: %ROOT%, Engine, Engine/Physics
 Description:언리얼 에디터의 피직스 컨스트레인트에서 볼 수 있는 모든 프로퍼티에 대한 참고서입니다.
+Version: 4.9
 
-[TOC(start:2)]
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Physics/Constraints/ConstraintsReference:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/Constraints/ConstraintsReference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/Constraints/ConstraintsReference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/Constraints/ConstraintsReference]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Physics/Constraints/ConstraintsReference:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/Constraints/ConstraintsReference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/Constraints/ConstraintsReference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/Constraints/ConstraintsReference]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
-[EXCERPT:PhysXConstraints_001]
-Constraint(제약, 컨스트레인트)란 기본적으로 Joint(관절, 조인트)의 한 종류입니다. 두 액터를 (하나는 물리적으로 시뮬레이팅한다 가정하고) 서로 연결시키거나, 
-제약 또는 포스를 가하는 것이 가능합니다. 언리얼 엔진 4 는 매우 유연한 데이터-주도형 컨스트레인트 시스템을 통해, 디자이너도 다양한 유형의 조인트를 옵션 변경만을 통해 
-쉽게 만들어 낼 수 있습니다. 엔진에 다양한 조인트 유형이 (볼-앤-소켓, 힌지(경첩), 프리즈매틱(직선축)) 내장되어 있기는 합니다만, 근본적인 차이점은 세팅 뿐입니다. 
-고로 아무 조인트 유형으로든 시작해서 자체 환경설정을 통해 만들어 가면 됩니다.
-[/EXCERPT:PhysXConstraints_001]
 
-## 프로퍼티 참고서
 
-피직스 컨스트레인트를 만드는 방법은 세 가지: **블루프린트**, **액터**, 그리고 **피직스 애셋 툴** (**PhAT**) 에서 입니다.
+이 문서에는 피직스 컨스트레인트의 프로퍼티 참고 목록이 들어있습니다.
 
-### 액터 컨스트레인트
+## 프로퍼티
 
-| 프로퍼티 | 설명 |
-| -------- | ----------- |
-|[REGION:tablesection]Constraint[/REGION]||
-| **Constraint Actor 1** | %doxygen:UPhysicsConstraintComponent::ConstraintActor1% |
-| **Component Name 1** | %doxygen:UPhysicsConstraintComponent::ComponentName1% |
-| **Constraint Actor 2** | %doxygen:UPhysicsConstraintComponent::ConstraintActor2% |
-| **Component Name 2** | %doxygen:UPhysicsConstraintComponent::ComponentName2%  |
-| **Joint Name** | %doxygen:FConstraintInstance::JointName% |
-| **Constraint Bone 1** | %doxygen:FConstraintInstance::ConstraintBone1% |
-| **Constraint Bone 2** | %doxygen:FConstraintInstance::ConstraintBone2% |
-| **Disable Collision** | %doxygen:FConstraintInstance::bDisableCollision% |
+아래는 피직스 컨스트레인트에 대한 프로퍼티를 주요 카테고리별로 구분한 것입니다.
 
+[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
+
+[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		cons
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Constraint (컨스트레인트)
+	[/PARAM]
+	[PARAM:content]
+		%p1%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p1]
+
+![](propConstraint.png)
+
+[REGION:raw]
+| 프로퍼티 | %spacer% | 설명 |
+| --- | :---: | :--- |
+| **Constraint Actor 1** || %doxygen:UPhysicsConstraintComponent::ConstraintActor1% |
+| **Component Name 1** || %doxygen:UPhysicsConstraintComponent::ComponentName1% |
+| **Constraint Actor 2** || %doxygen:UPhysicsConstraintComponent::ConstraintActor2% |
+| **Component Name 2** || %doxygen:UPhysicsConstraintComponent::ComponentName2%  |
+| **Joint Name** || %doxygen:FConstraintInstance::JointName% |
+| **Constraint Bone 1** || %doxygen:FConstraintInstance::ConstraintBone1% |
+| **Constraint Bone 2** || %doxygen:FConstraintInstance::ConstraintBone2% |
+| **Disable Collision** || %doxygen:FConstraintInstance::bDisableCollision% |
+[/REGION]
+
+[/VAR]
+
+
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		proj
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Projection (투사)
+	[/PARAM]
+	[PARAM:content]
+		%p2%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p2]
+
+![](propProjection.png)
+
+[REGION:raw]
+| 프로퍼티 | %spacer% | 설명 |
+| --- | :---: | :--- |
+| **Enable Projection** || %doxygen:FConstraintInstance::bEnableProjection% |
+| **Projection Linear Tolerance** || %doxygen:FConstraintInstance::ProjectionLinearTolerance% |
+| **Projection Angular Tolerance** || %doxygen:FConstraintInstance::ProjectionAngularTolerance% |
+[/REGION]
+
+[/VAR]
+
+
+
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		join
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Joint Presets (조인트 프리셋)
+	[/PARAM]
+	[PARAM:content]
+		%p3%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p3]
+
+![](propJointPresets.png)
+
+[REGION:raw]
+| 프로퍼티 | %spacer% | 설명 |
+| --- | :---: | :--- |
+| **Hinge** || 힌지(경첩) - 조인트를 힌지로 구성합니다. 힌지 조인트는 한 면으로의 운동만 가능합니다. |
+| **Prismatic** || 프리즈매틱(직선축) - 조인트를 프리즈매틱으로 구성합니다. 프리즈매틱 조인트는 직선 슬라이딩 운동만 가능합니다. |
+| **Ball and Socket** || 볼 앤 소켓 - 조인트를 볼 앤 소켓으로 구성합니다. 볼 앤 소켓 조인트는 중심 축을 공통으로 갖는 무한대 축을 중심으로 한 운동이 가능합니다. |
+[/REGION]
+
+[/VAR]
+
+
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		linlim
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Linear Limits (선형 제한)
+	[/PARAM]
+	[PARAM:content]
+		%p4%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p4]
+
+![](propLinearLimits.png)
+
+[REGION:raw]
+| 프로퍼티 | %spacer% | 설명 |
+| --- | :---: | :--- |
+| **Linear XMotion** || %doxygen:FConstraintInstance::LinearXMotion% |
+| **Linear YMotion** || %doxygen:FConstraintInstance::LinearYMotion% |
+| **Linear ZMotion** || %doxygen:FConstraintInstance::LinearZMotion% |
+| **Linear Limit Size** || %doxygen:FConstraintInstance::LinearLimitSize% |
+[/REGION]
+
+### 고급
+
+![](propLinearLimitsADV.png)
+
+[REGION:raw]
+| 프로퍼티 | %spacer% | 설명 |
+| --- | :---: | :--- |
+| **Linear Limit Soft** || %doxygen:FConstraintInstance::bLinearLimitSoft% |
+| **Linear Limit Stiffness** || %doxygen:FConstraintInstance::LinearLimitStiffness% |
+| **Linear Limit Damping** || %doxygen:FConstraintInstance::LinearLimitDamping% |
+| **Linear Breakable** || %doxygen:FConstraintInstance::bLinearBreakable% |
+| **Linear Break Threshold** || %doxygen:FConstraintInstance::LinearBreakThreshold% |
+[/REGION]
+
+[/VAR]
+
+
+
+
+
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		anglim
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		각형 제한
+	[/PARAM]
+	[PARAM:content]
+		%p5%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p5]
+
+![](propsAngularLimits.png)
+
+[REGION:raw]
+| 프로퍼티 | %spacer% | 설명 |
+| --- | :---: | :--- |
+| **Angular Swing 1Motion** || %doxygen:FConstraintInstance::AngularSwing1Motion% |
+| **Angular Twist Motion** || %doxygen:FConstraintInstance::AngularTwistMotion% |
+| **Angular Swing 2Motion** || %doxygen:FConstraintInstance::AngularSwing2Motion% |
+| **Swing 1Limit Angle** || %doxygen:FConstraintInstance::Swing1LimitAngle% |
+| **Twist Limit Angle** || %doxygen:FConstraintInstance::TwistLimitAngle% |
+| **Swing 2Limit Angle** || %doxygen:FConstraintInstance::Swing2LimitAngle% |
+| **Angular Rotation Offset** || %doxygen:FConstraintInstance::AngularRotationOffset% |
+[/REGION]
+
+### 고급
+
+![](propsAngularLimitsADV.png)
+
+[REGION:raw]
+| 프로퍼티 | %spacer% | 설명 |
+| --- | :---: | :--- |
+| **Swing Limit Soft** || %doxygen:FConstraintInstance::bSwingLimitSoft% |
+| **Swing Limit Stiffness** || %doxygen:FConstraintInstance::SwingLimitStiffness% |
+| **Swing Limit Damping** || %doxygen:FConstraintInstance::SwingLimitDamping% |
+| **Twist Limit Soft** || %doxygen:FConstraintInstance::bTwistLimitSoft% |
+| **Twist Limit Stiffness** || %doxygen:FConstraintInstance::TwistLimitStiffness% |
+| **Twist Limit Damping** || %doxygen:FConstraintInstance::TwistLimitDamping% |
+| **Angular Breakable** || %doxygen:FConstraintInstance::bAngularBreakable% |
+| **Angular Break Threshold** || %doxygen:FConstraintInstance::AngularBreakThreshold% |
+[/REGION]
+
+[/VAR]
+
+
+
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		linmot
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		선형 모터
+	[/PARAM]
+	[PARAM:content]
+		%p6%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p6]
+
+![](propLinearMotor.png)
+
+[REGION:raw]
+| 프로퍼티 | %spacer% | 설명 |
+| --- | :---: | :--- |
+| **Linear Position Drive** || %doxygen:FConstraintInstance::bLinearPositionDrive% |
+| **Linear Position Target** || %doxygen:FConstraintInstance::LinearPositionTarget% |
+| **Linear Position Strength** || %doxygen:FConstraintInstance::LinearDriveSpring% |
+| **Linear Velocity Drive** || %doxygen:FConstraintInstance::bLinearVelocityDrive% |
+| **Linear Velocity Target** || %doxygen:FConstraintInstance::LinearVelocityTarget% |
+| **Linear Velocity Strength** || %doxygen:FConstraintInstance::LinearDriveDamping% |
+| **Max Linear Force** || %doxygen:FConstraintInstance::LinearDriveForceLimit% |
+[/REGION]
+
+[/VAR]
+
+
+
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		angmot
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		각형 모터
+	[/PARAM]
+	[PARAM:content]
+		%p7%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p7]
+
+![](propsAngularMotor.png)
+
+[REGION:raw]
+| 프로퍼티 | %spacer% | 설명 |
+| --- | :---: | :--- |
+| **Angular Orientation Drive** || %doxygen:FConstraintInstance::bAngularOrientationDrive% |
+| **Angular Orientation Target** || %doxygen:FConstraintInstance::AngularOrientationTarget% |
+| **Angular Orientation Strength** || %doxygen:FConstraintInstance::AngularDriveSpring% |
+| **Angular Velocity Drive** || %doxygen:FConstraintInstance::bAngularVelocityDrive% |
+| **Angular Velocity Target** || %doxygen:FConstraintInstance::AngularVelocityTarget% |
+| **Angular Velocity Strength** || %doxygen:FConstraintInstance::AngularDriveDamping% |
+| **Max Angular Force** || %doxygen:FConstraintInstance::AngularDriveForceLimit% |
+| **Angular Drive Mode** || %doxygen:FConstraintInstance::AngularDriveMode% |
+[/REGION]
+
+[/VAR]
+
+
+
+<!--
 ![](PhysCon_JointPresets.png)(convert:false) 
 
 [INCLUDE:#presetTable]
 
 * **피직스 컨스트레인트 액터** 관련 정보: [**%Engine/Physics\Constraints\ConstraintsUserGuide:title%**](Engine/Physics\Constraints\ConstraintsUserGuide)
-<!--
+
 [EXCERPT:presetTable]
 | 조인트 프리셋 | 설명 |
 | --- | ---- |
@@ -44,7 +322,7 @@ Constraint(제약, 컨스트레인트)란 기본적으로 Joint(관절, 조인�
 | **Prismatic** | 프리즈매틱(직선축) **Swing Motions** (스윙 모션), **Angular Twist Motion** (각형 트위스트 모션), **Linear Y/Z Motion** (선형 Y/Z 모션) 고정, **Linear Z Motion** (선형 Z 모션)만 자유. 예: 유압식 피스톤. |
 | **Ball and Socket** | 볼 앤 소켓 - 모든 **Linear Motion** (선형 모션) 고정, **Swing Motions** (스윙 모션)과 **Twist Motions** (트위스트 모션) 자유. 회전은 완전히 자유. 예: 펀치 백, 철거용 쇠공 |
 [/EXCERPT:presetTable]
--->
+
 
 ### 블루프린트 컨스트레인트
 
@@ -117,19 +395,20 @@ Constraint(제약, 컨스트레인트)란 기본적으로 Joint(관절, 조인�
 | **Linear YPosition Drive** | %doxygen:FConstraintInstance::bLinearYPositionDrive% |
 | **Linear ZPosition Drive** | %doxygen:FConstraintInstance::bLinearZPositionDrive% |
 | **Linear Position Target** | %doxygen:FConstraintInstance::LinearPositionTarget% |
+| **Linear Position Strength** | 선형 드라이브에 적용할 스프링입니다. |
 | **Linear Velocity Drive** | %doxygen:FConstraintInstance::bLinearVelocityDrive% |
 | **Linear Velocity Target** | %doxygen:FConstraintInstance::LinearVelocityTarget% |
-| **Linear Drive Spring** | %doxygen:FConstraintInstance::LinearDriveSpring% |
-| **Linear Drive Damping** | %doxygen:FConstraintInstance::LinearDriveDamping% |
-| **Linear Drive Force Limit** | %doxygen:FConstraintInstance::LinearDriveForceLimit% |
+| **Linear Velocity Strength** | 선형 드라이브에 적용할 제동입니다. |
+| **Max Linear Force** | 선형 드라이브가 적용할 수 있는 포스의 한계입니다. |
 |[REGION:tablesection]Angular Motor[/REGION]||
 | **Angular Orientation Drive** | %doxygen:FConstraintInstance::bAngularOrientationDrive% |
 | **Angular Orientation Target** | %doxygen:FConstraintInstance::AngularOrientationTarget% |
+| **Angular Position Strength** | 각형 드라이브에 적용할 제동 값입니다. |
 | **Angular Velocity Drive** | %doxygen:FConstraintInstance::bAngularVelocityDrive% |
 | **Angular Velocity Target** | %doxygen:FConstraintInstance::AngularVelocityTarget% |
-| **Angular Drive Force Limit** | %doxygen:FConstraintInstance::AngularDriveForceLimit% |
-| **Angular Drive Spring** | %doxygen:FConstraintInstance::AngularDriveSpring% |
-| **Angular Drive Damping** | %doxygen:FConstraintInstance::AngularDriveDamping% |
+| **Angular Velocity Strength** | 각형 드라이브에 적용할 제동 값입니다. |
+| **Max Angular Force ** | 각형 드라이브가 적용할 수 있는 포스의 한계입니다. |
+
 
 <!--
 
@@ -251,7 +530,7 @@ prismatic joint(직선축, 프리즈매틱 조인트)는 선형 부분의 2/3 �
 펀치백(쳐서 넘어뜨릴 수 있는 수직 막대 위에 달린 공 모양)같은 것을 흉내낼 수도 있습니다. 먼저 볼-앤-소켓 조인트를 만듭니다. 흔들기 위치 드라이브를 켜고서 쳐서 넘어뜨렸을 때 멋지게 튀어올라올 때까지 AngularDriveSpring (각형 드라이브 스프링) 및 AngularDriveDamping (각형 드라이브 제동)를 조절합니다. 흔들기 제한을 켜서 너무 크게 굽어지지 않게 할 수도 있겠습니다.
 
 -->
- 
+-->
 
 
 

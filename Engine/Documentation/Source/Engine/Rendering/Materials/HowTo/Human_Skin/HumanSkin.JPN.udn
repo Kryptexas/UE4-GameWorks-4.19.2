@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2533903
+﻿INTSourceChangelist:2707641
 Availability:Public
 Title:マテリアル エディタ - 人間の皮膚の設定方法 
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -9,17 +9,30 @@ Related:Engine/Rendering/Materials/HowTo/Subsurface_Scattering
 Related:Engine/Rendering/Materials/LightingModels/SubSurfaceProfile
 Related:Engine/Rendering/Materials/LightingModels/SubSurface
 Related:Resources/ContentExamples/MaterialNodes/1_7
+Version:4.9
+SkillLevel:Advanced
 
 [TOC(start:2)]
 
-## 概要
 
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	[![Not using SubsurfaceProfile](Engine\Rendering\Materials\LightingModels\SubSurfaceProfile\Results_1.png)(w:700 convert:false)](Engine\Rendering\Materials\LightingModels\SubSurfaceProfile\Results_1.png)
+	[/PARAM]
+	[PARAM:after]
+	[![Using SubsurfaceProfile](Engine\Rendering\Materials\LightingModels\SubSurfaceProfile\Results_2.png)(w:700 convert:false)](Engine\Rendering\Materials\LightingModels\SubSurfaceProfile\Results_2.png)
+	[/PARAM]
+[/OBJECT]
+
+<!---
 [REGION:lightbox]
 [![](Engine\Rendering\Materials\LightingModels\SubSurfaceProfile\Results.png)(w:920 convert:false)](Engine\Rendering\Materials\LightingModels\SubSurfaceProfile\Results.png)
 [/REGION]
+--->
+
 
 レンダリングされた人間の皮膚を本物のように見せることは非常に難しいトピックで、これなら実現できるという方法はありません。 
-本物らしく見せるためには沢山のステップが必要になります。まずは次の情報を作業の _**始めの一歩**_ と考えてみてください。 
+本物らしく見せるためには沢山のステップが必要になります。まずは次の情報を作業の _始めの一歩_ と考えてみてください。 
 人間の目は、顔のわずかな詳細を感じるように十分に訓練されているためです。 
 適切に行うのは難しいですが、ツールを習得すると、いろいろなものへの応用が可能です。
 
@@ -27,7 +40,7 @@ Related:Resources/ContentExamples/MaterialNodes/1_7
 マテリアルを作成する前に、リファレンスを収集します。 
 光源処理環境を複数含む写真を数枚参照すると、異なるライティング状況でのマテリアルの見え方を検証できるので、通常うまく行くことが多いからです。 
 可能であれば、ソースデータをスキャンしキャリブレーションしておくと、確認しながら可能な限り本物に近づくように作業しやすくなります。 
-エディタ内のコンテンツを表示する際は、環境をより制御するために [明暗順応](Engine/Rendering/PostProcessEffects/AutomaticExposure) を必ず無効にしてください。
+エディタ内のコンテンツを表示する際は、環境をより制御するために、以下の操作で **[Editor Eye Adaptation (明暗順応)]** を必ず無効にしてください： _[Edit Menu (編集メニュー)] > [Project Settings (プロジェクト設定)] > [Rendering (レンダリング)] > [Default Post Processing Settings (デフォルト ポストプロセス設定)] > [Auto Exposure (自動露光)]_
 
 [region:tip]
  環境をキャリブレーションしておくと色が正しいか確認できるので便利ですが、必須ではありません。
@@ -47,18 +60,18 @@ Related:Resources/ContentExamples/MaterialNodes/1_7
 * テクスチャの作成は、解像度がかなり高いテクスチャから始めるのが理想的です。ベストな結果が得られます。 
 * イタレーションを速くするには、マテリアル インスタンスを作成し、スカラー パラメータとベクター パラメータをエクスポーズするのが最適です。 
 * アセットは、正しいことを確認するため複数のライティング条件で検証します。 
-  明暗順応を有効にしても、最終的には物の見え方には大きな違いが生じます。 
+  Post Process Volume で明暗順応を有効にしても、最終的には物の見え方には大きな違いが生じます。 
 * シャドウ アーティファクトを回避するためには、シャドウ バイアスなどを調整する必要があったり、よりフォーカスされたスポットライト コーンを使ってライティングの解像度を改善したりするので、作業工数が余分にかかります。
 * ジオメトリではクリッピングがなく歪みも少ないので、エディタの FOV を調整してズームインして調整すると便利です。 
-* エディタ FOV は、 **Perspective** と表示されているアイコンの隣の **ドロップダウンの矢印** をクリックし、マウスで FOV 値を変えて調整することができます。 
+* エディタ FOV は、Perspective と表示されているアイコンの隣のドロップダウンの矢印をクリックし、マウスで FOV 値を変えて調整することができます。 
 
 	![](HS_Change_FOV.png)
 
-* 作業を表示する場合、ストリーミング システムはズームを考慮しないので、望まない場所でテクスチャがぼやけてしまう可能性があります。これは 3D ゲームに対して国際的に決定された設計ですが、今後変更される可能性があります。こうしたことが起こらないように、メッシュ インスタンス上でテクスチャ **Streaming Distance Multiplier** を変更することができます。
+* 作業を表示する場合、ストリーミング システムはズームを考慮しないので、望まない場所でテクスチャがぼやけてしまう可能性があります。これは 3D ゲームに対して国際的に決定された設計ですが、今後変更される可能性があります。こうしたことが起こらないように、メッシュ インスタンス上でテクスチャ Streaming Distance Multiplier を変更することができます。
 
 ## マテリアル 
 
-以下は、 Content Example マップのマテリアル全体の画像になります。 
+以下は、Content Example マップのマテリアル全体の画像になります。 
 このマテリアルは複雑に見えますが、次のセクションでマテリアルの各セクションが行っていることを細かく見ていきます。 
 
 [REGION:lightbox]
@@ -101,7 +114,7 @@ Related:Resources/ContentExamples/MaterialNodes/1_7
 
 法線マップが皮膚に合った動作をするように、法線マップが次の基準を満たしていることを確認してください。 
 * 顔に使う法線マップは、皺に関する情報のみを含みます。この方法でうまくいった場合に、タイリング テクスチャで毛穴の詳細を処理します。
-* オブジェクトの法線マップをディテール法線マップと組み合わせる場合、良い結果を出すためにマテリアル関数 **BlendAngleCorrectedNormals** を必ず使用してください。 
+* オブジェクトの法線マップをディテール法線マップと組み合わせる場合、良い結果を出すためにマテリアル関数 BlendAngleCorrectedNormals を必ず使用してください。 
    法線マップの調和を調整するためにパラメータをエクスポーズすると非常に便利です。ディテール法線マップ値でいくつかのスカラー値を z コンポーネントに追加し、ノーマライズします。 
    この方法で、通常のものからフラットなディテール法線マップに移行できます。 
 皮膚は様々なエリアで異なるシェーディング プロパティを持つため、オブジェクトがマッピングされた (タイリングなしの) テクスチャにラフネスを結合するのが最適です。 
@@ -142,11 +155,11 @@ Opacity 入力は、サブサーフェス スキャタリングの発生量を�
 マテリアル内でサブサーフェス プロファイルを使用するために必要なことは、マテリアルまたはマテリアル インスタンスに使用したいサブサーフェス プロファイルを設定することです。 
 
 
-マテリアル内で変更するには、マテリアル エディタの **[Details]** パネルで使いたいサブサーフェス プロファイルを設定します。
+マテリアル内で変更するには、マテリアル エディタの **[Details (詳細)]** パネルで使いたいサブサーフェス プロファイルを設定します。
 
 ![](Engine\Rendering\Materials\HowTo\Subsurface_Profile\SSP_Apply_SSP.png)
 
-マテリアル インスタンス内でサブサーフェス プロファイルの使用対象を変更するには、まず **Override Subsurface Profile** にチェックを入れて、マテリアル インスタンスの **Subsurface Profile** セクションで使用したいサブサーフェス プロファイルを設定します。 
+マテリアル インスタンス内でサブサーフェス プロファイルの使用対象を変更するには、まず **[Override Subsurface Profile (サブサーフェス プロファイルをオーバーライド)]** にチェックを入れて、マテリアル インスタンスの **[Subsurface Profile]** セクションで使用したいサブサーフェス プロファイルを設定します。 
 
 [REGION:lightbox]
 [![](Engine\Rendering\Materials\HowTo\Subsurface_Profile\SSP_SSP_In_Material_Instance.png)(w:920 convert:false)](Engine\Rendering\Materials\HowTo\Subsurface_Profile\SSP_SSP_In_Material_Instance.png)
@@ -164,6 +177,10 @@ Opacity 入力は、サブサーフェス スキャタリングの発生量を�
 本ガイドは、皮膚の設定の正しい方向性を示す補助であることを覚えておいてください。 
 結果が求めていたものであれば、ここで紹介した設定方法と若干異っても構いません。 
 繰り返しますが、ここで紹介した情報はガイドラインです。皮膚の設定を行う際に絶対に従うべき情報ではありません。 
+
+
+
+
 
 
 

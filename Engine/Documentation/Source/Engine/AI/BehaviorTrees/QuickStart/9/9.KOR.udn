@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2774060
 Availability:Public
 Title: 9. 캐릭터 배치
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:9 단계. 캐릭터 배치
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -31,8 +32,12 @@ Description:9 단계. 캐릭터 배치
 * **콘텐츠 브라우저** 에서 아까 만든 `AI_Character` 를 레벨에 끌어 놓습니다.
 
 [REGION:lightbox]
-[![](placeCharacter.png)(w:940 convert:false)](placeCharacter.png)
+[![](AIDragIntoLevel.jpg)(w:920)
 [/REGION]
 [/EXCERPT:s9]
 
 %Steps%
+
+
+
+

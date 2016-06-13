@@ -1,180 +1,183 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2796819
 Availability:Public
-Title:Manipulating Actors
+Title: 控制 Actor
 Crumbs: %ROOT%, Gameplay, GettingStarted\HowTo
-Description:Examples of how to move, rotate, or scale Actors in your levels. 
+Description: 在关卡中移动、旋转、缩放 Actor 的范例。 
 Related: Engine/Actors/Transform
 Related: Engine/UI/LevelEditor/Viewports/ViewportControls
-Related: GettingStarted\HowTo\PlacingActors
+Related: Engine/Actors/Placement
+Version: 4.9
+SkillLevel: Beginner
 
-Manipulating Actors in Unreal Engine 4 (or **Transforming Actors**) refers to the process of moving, rotating, or scaling them and is an important part of the level-editing and creation process. On this page, you will learn how to perform each as well as the different ways you can perform each action. You will also learn some of the commonly used keyboard shortcuts when working with Actors which may improve your workflow. 
+在虚幻引擎 4 中控制 Actor（或者叫做 **Transforming Actors**）是指移动、旋转、缩放 Actor 的过程，这是一个关卡创作过程中重要的一个部分。
+在本页上，能够了解到每一种操作的方式以及每个操作可以用的不同操作途径。还能了解到一些基本操作的快捷键，这会很大程度的改善工作。
 
 [TOC(start:2 end:2)]
 
 [REGION:note]
-For this How To guide, we have created a new project using the **Blueprint Third Person** template with **Starter Content** enabled. If you have not created a project based off a template before or are not sure how to enable Starter Content, refer to the [](Engine/Basics/Projects/Browser) page for information on creating/opening projects, templates, and project settings. 
+为这个基础指导，需要先创建 **第三人称蓝图** 的模板，并启用 **初始内容**。如果您尚未使用这个模板创建项目，或者尚不清楚如何启用初始内容，
+请参考 [](Engine/Basics/Projects/Browser) 页面来了解如何创建/打开项目，以及模板、项目设置等信息。
 [/REGION]
 
-## Moving Actors
+## Actor 的平移
 
-This section will show you how to move Actors inside the Level Editor Viewport. 
+这个章节将展示如何在关卡编辑器的窗口中移动 Actor。
 
-1. With your project open, inside the **Content Browser**, open the **Starter Content** then **Props** folder. 
+1. 打开项目后，在 **内容浏览器（Content Browser）** 内，打开 **Starter Content** 并打开 **Props** 目录。 
 
-	![](Move1.png)
+	![](Move1.png)(w:400)
 
-1. **Left-click** on to select the **SM_Chair**, then **drag-and-drop** it into the Level Editor Viewport anywhere you would like. 
+1. **点击** 并选择 **SM_Chair**，然后将它 **拖拽** 到关卡编辑器窗口你喜好的地方。
 
-	![](Move2.png)
+	![](Move2.png)(w:700)
 
-1. When the chair is placed, you will notice it is automatically selected and a Red/Blue/Green arrow widget will appear. 
+1. 当椅子放置后，可以注意到它自动的称为当前被选中的状态，并有一个红/蓝/绿的箭头控件显示在它之上。
 
 	![](Move3.png)(w:420)
 
-	This is the **Move Tool** and is defaulted to when you place an Actor in your level (or accessed by pressing **W** with an Actor selected). 
+	这个就是 **移动工具**，并默认就会显示（或在物体选中的状态点击 **W** 按键） 
 	
-	The currently active Transform Widget is also shown in the Level Editor Viewport in the upper-right corner of the viewport (below). 
+	当前激活状态的移动控件也在关卡编辑器窗口的右上角显示（如下）。
 
 	![](Move8.png)(w:400)
 
-	Also in this section are grid-snapping options which can be set to determine if the Actor (when moved) will have its movement values snap to certain increments and can be useful for precision placement of objects in your levels. 
+	在这个部分，还有网格对齐的选项，能够设置 Actor 移动时是否要对齐网格，在需要关卡中精确摆放物体时非常有用。
 
 	![](Move9.png)(w:400)
 
-1. Move the mouse cursor over an arrow on the **Move Tool**, notice that a new icon appears and the arrow turns yellow. 
+1. 将鼠标移动到 **移动工具** 的一个轴上，可以看到会显示一个新的图标，并且该轴会显示为亮黄色。
 
 	![](Move4.png)(w:420)
 
-1. **Left-click** on and drag one of the arrows in the direction (or reverse direction) the arrow is pointing. 
+1. **点击** 并顺着箭头的方向拖拽（或反向）
 
 	![](Move5.png)(w:640)
 
-	You will notice the icon changes to a closed "grab" icon and you can move the object along the given axis. Movement is restricted to the **X** (Red Arrow), **Y** (Green Arrow), and **Z** (Blue Arrow) Axis when clicking on their respective arrows, this gives you the ability to move an object in one given direction and keep its position in the other directions. 
+	可以注意到图标变成了一个握紧的“抓取”图标，这时可以沿着坐标轴移动物体。移动的方向会被限定在当前选择的坐标轴上。这样能够在保持该物体方向和另外两个坐标轴不变的情况下移动物体。
 	
-1. **Left-click** on the white ball at the center of the **Move Tool** (where the arrows are connected). 
+1. **点击** **移动工具** 中间的白球（三个箭头连接的地方）。
 
 	![](Move6.png)(w:640)
 
-	This allows you to freely move the Actor along each axis and does not restrict you to a specific axis only. 
+	这样能够自由的移动物体，不受特定轴的约束。
 
-1. With the Actor still selected, in the **Details** panel in the lower-right corner of the Editor, you will see the **Transform** and **Location** value. 
+1. 当物体选中时，在编辑器右下角的 **明细（Details）** 面板中，可以看到 **Transform** 和 **Location** 的数值。
 
 	![](Move7.png)(w:640)
 
-	Here you can manually specify a value for **X**, **Y**, or **Z** for the Actor to use. 
-	
+	这里还可以手动的指定 **X**， **Y**， 或 **Z** 的各个数值。
 
-## Rotating Actors
+## Actor 的旋转
 
-This section will show you how to rotate Actors inside the Level Editor Viewport. 
+这一章节说明了如何在关卡编辑窗口中旋转 Actor.
 
-1.	Continuing from the **Move Actors** section above, select the **SM_Chair** inside the Level Editor Viewport. 
+1.	继续上面的 **Actor 的平移** 的章节，在关卡编辑窗口中选择 **SM_Chair** 。
 
-1.	Press the **E** key to switch to the **Rotate Tool**.
+1.	按 **E** 键切换到 **旋转工具 Rotate Tool**。
 
 	![](Rotate1.png)(w:420)
 
-	The widget changes to a set of three color-coded arcs, each associated with one axis that you can rotate the Actor along. 
+	这时控件变为三个颜色的弧度，每个弧度都都可以用来旋转该 Actor。
 
-	Also notice that your Transform Mode changes to **Rotate Mode** in the upper-right corner of the Level Editor Viewport. 
+	同时可以看到，在关卡编辑窗口的右上角，Transform 模式变成了 **旋转模式 Rotate Mode**。 
 
 	![](Rotate2.png)(w:400)
 
-	You can also apply grid snapping to rotation to define incremental values at which to rotate the Actor. 
+	同时也可以使用网格吸附来控制在旋转 Actor 时每次增加量为固定常量。
 
 	![](Rotate3.png)(w:400)
 
-1.	Move the mouse cursor over one of the arcs and notice that the cursor changes and the arc becomes highlighted yellow. 
+1.	将鼠标移动到其中某个弧线上，可以看到光标的样子会改变，并且该弧线也显示为亮黄。
 
 	![](Rotate4.png)(w:640)
 
-	This indicates that the Actor will be rotated along the highlighted axis. 
+	这表示该 Actor 会沿着这个高亮的轴旋转。
 
-1.	**Left-click** and **Hold** on the arc and notice that the widget changes to reflect only the axis around which the Actor will be rotated. 
+1.	**点击左键** 并 **按住** 可以看到当前控件会变成只显示该旋转坐标轴的状态。
 
 	![](Rotate5.png)(w:640)
 
-1.	Drag left or right to rotate around the arch, rotating the Actor. 
+1.	沿着该弧线向左或向右 **拖拽**，以旋转该 Actor。
 
 	![](Rotate6.png)(w:640)
 
-	The amount in which you are rotating the Actor is also displayed for precision rotation. 
+	旋转 Actor 的程度也会量化精确显示。
 
-1.	With the chair still selected, inside the **Details** panel you can manually enter values for **Rotation** under the **Transform** section. 
+1.	在该椅子仍然选中的状态下，在 **明细 Details** 面板中，可以在 **Transform** 区块下的 **旋转 Rotation** 中手动填入需要的数值。
 
 	![](Rotate7.png)(w:640)
 	
 
-## Scaling Actors
+## Actor 的缩放
 
-This section will show you how to scale Actors inside the Level Editor Viewport. 
+这一章节展示如何在关卡编辑窗口中缩放 Actor。
 
-1.	Continuing from the **Move Actors** section above, select the **SM_Chair** inside the Level Editor Viewport. 
+1.	继续接着上面的 **Actor 的平移** 的内容，在关卡编辑窗口中选择 **SM_Chair**。
 
-1.	Press the **R** key to switch to the **Scale Tool**.
+1.	点按 **R** 切换到 **缩放工具**。
 
 	![](Scale1.png)(w:420)
 
-	You will notice that the widget changes to a set of three color-coded handles that end in cubes. 
+	可以看到控件变成了一组末端带有三种颜色句柄的形式。
 
-	Also notice that your Transform Mode changes to **Scale Mode** in the upper-right corner of the Level Editor Viewport. 
+	同时还能看到关卡编辑窗口右上角的 Transform Mode 变成了 **缩放模式 Scale Mode**。
 
 	![](Scale2.png)(w:400)
 
-	You can also apply grid snapping to scale to define incremental values at which to scale the Actor. 
+	还可以使用网格吸附功能来定义缩放 Actor 是每次的增量为常量。
 
 	![](Scale3.png)(w:400)
 
-1.	Move the mouse cursor over one of the handles and notice that the cursor changes and the handle becomes highlighted yellow. 
+1.	将鼠标移动到句柄上，光标的形状会改变，并且该句柄也会显示为亮黄色。
 
 	![](Scale4.png)(w:420)
 
-	This indicates that the Actor will be scaled along the highlighted axis. 
+	这表示该 Actor 将会沿着高亮的轴方向进行缩放。
 
-1. **Left-click** on and drag one of the handles in the direction (or reverse direction) it is pointing to scale the Actor. 
+1.	沿着句柄朝着 Actor 的方向（或反向） **左键点击** 并拖拽。
 
 	![](Scale5.png)
 
-	Above you can see that we have scaled the Actor along the Y axis only. 
+	上图可以看到该 Actor 仅沿着 Y 轴进行了缩放。
 
-	You can scale the Actor on multiple axis by clicking on the line connecting two axis, then dragging in a direction to scale. 
+	你还可以通过选择两个方向之间的连线处，来同时对两个轴向进行缩放。
 
 	![](Scale6.png)(w:420)
 
-	Typically when scaling things like **Static Mesh** Actors, you will want to scale uniformly so that it maintains its shape in all directions. 
+	通常来说，当需要对 **Static Mesh** 类的 Actor 进行缩放操作时，都会希望在每个方向上统一缩放，以便于保证原本的形状。
 
 	 ![](Scale8.png)(w:420)
 
-	You can do so by clicking and dragging the white box in the center of the widget (notice how all three handles are highlighted yellow).
+	可以点击并拖拽这个控件中间的白盒处（请留意这时三个句柄都显示为亮黄色）
 	
 	 ![](Scale7.png)(w:420)
 
-1.	With the chair still selected, inside the **Details** panel you can manually enter values for **Scale** under the **Transform** section. 
+1.	当这个椅子还在选中的状态下，在 **明细 Details** 面板中的 **Transform** 区块内的 **Scale** 中可以手动的输入各个值。
 
 	![](Scale9.png)
 
-	You can also click the lock icon to scale the Actor uniformly when scaling manually as well. 
+	还可以点击锁定按钮，在手动输入数值缩放时也能保证该 Actor 的统一比例。
 
 	![](Scale10.png)
 
-	This will automatically change the other axis values when one is changed to so that they are equal. 
+	这时在一个值改变的时候，另外两个数值也会自动的修改为对应值。
 
 
-## Keyboard Shortcuts
+## 键盘快捷键
 
-Below are some of the commonly used Keyboard Shortcus when working with Actors. 
+下面罗列了一些处理 Actor 时常用的键盘快捷键。
 
-| Control | Action |
+| 操作 | 行为 |
 | ------- | ------ |
-| **LMB + Drag (on Transform Tool)** | Moves, rotates, or scales the currently selected Actors, depending on the active transform gizmo. |
-| **W** | Selects the Move Tool. |
-| **E** | Selects the Rotate Tool. |
-| **R** | Selects the Scale Tool. |
-| **V** | Toggles vertex snapping which allows you to snap to the vertices of other geometry in the world. |
-| **MMB + Drag (on Pivot)** | Moves the pivot of the selection temporarily to offset transformations. |
-| **Ctrl + W (on an Actor)** | Duplicates the selected Actor. |
-| **H (on an Actor)** | Hides the currently selected Actor. |
-| **Ctrl + H** | Un-hides all Actors. |
-| **Shift + E (on an Actor)** | Selects all matching Actors in the level of the same type as the selected Actor. |
-| **Ctrl + LMB (on an Actor)** | Adds the Actor to a selected Actors pool. |
+| **鼠标左键 + 拖拽 （在 Transform Tool 上）** | 根据当前激活的 transform 形态，对选中 Actor 进行移动、旋转、缩放。 |
+| **W** | 选择移动工具 Move Tool。 |
+| **E** | 选择旋转工具 Rotate Tool。 |
+| **R** | 选择缩放工具 Scale Tool。 |
+| **V** | 开启/关闭位置吸附，这能直接吸附关卡中其他物件上。 |
+| **鼠标中键 + 拖拽（在 Pivot 点处）** | 临时移动物体的 Pivot 位置以便于做进一步的旋转缩放调整。 |
+| **Ctrl + W （对一个 Actor）** | 复制当前选中的 Actor。 |
+| **H （对一个 Actor）** | 隐藏当前选中的 Actor。 |
+| **Ctrl + H** | 取消隐藏所有的 Actor |
+| **Shift + E （对一个 Actor）** | 依照当前选中的 Actor，选择关卡中所有同类型的其他 Actor。 |
+| **Ctrl + 鼠标左键 （对一个 Actor）** | 将该 Actor 添加到当前选中 Actor 的集合中。 |
 

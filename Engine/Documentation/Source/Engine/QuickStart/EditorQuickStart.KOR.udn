@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2632887
+﻿INTSourceChangelist:2744014
 Availability:Public
 Title: 레벨 디자이너 퀵스타트 가이드
 Crumbs: %ROOT%, GettingStarted
@@ -6,7 +6,10 @@ Description: 언리얼 에디터의 기본적인 준비를 돕는 문서입니�
 prereq:GettingStarted/Installation
 prereq:Engine/Basics/Projects/Browser
 SkillLevel: Beginner
-Version: 4.8
+Version: 4.9
+parent:Engine/Editor
+order:1
+checkpoint: editorqs
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -59,7 +62,7 @@ _이 가이드를 마칠 즈음엔 위 그림과 같은 방이 생겨있을 것�
 *	레벨에 액터 배치 및 편집 방법
 *	레벨 빌드 및 실행 방법
 
-[OBJECT:TopicButtonList]
+[OBJECT:TopicList]
 	[PARAM:icon]
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
@@ -69,15 +72,10 @@ _이 가이드를 마칠 즈음엔 위 그림과 같은 방이 생겨있을 것�
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
-	* [](Engine/QuickStart/1 "%Engine/QuickStart/1:description%")
-	* [](Engine/QuickStart/2 "%Engine/QuickStart/2:description%")
-	* [](Engine/QuickStart/3 "%Engine/QuickStart/3:description%")
-	* [](Engine/QuickStart/4 "%Engine/QuickStart/4:description%")
-	* [](Engine/QuickStart/5 "%Engine/QuickStart/5:description%")
-	* [](Engine/QuickStart/6 "%Engine/QuickStart/6:description%")
-	* [](Engine/QuickStart/7 "%Engine/QuickStart/7:description%")
+	[DIR(output:"checkpoint" parent:"Engine/QuickStart" org:"hierarchy")]
 	[/PARAM]
 [/OBJECT]
 
-
-
+[REGION:call_to_action]
+	[클릭하면 시작합니다.](Engine/QuickStart/1 "%Engine/QuickStart/1:title%")
+[/REGION]

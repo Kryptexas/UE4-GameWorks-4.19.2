@@ -1,0 +1,137 @@
+﻿INTSourceChangelist:2890438
+Availability:Public
+Title:キャラクターをアニメートする
+Crumbs: %ROOT%, Engine
+Description:シーケンサーで Skeletal Mesh アクタにアニメーションを適用する方法を説明します。
+Version:4.11
+SkillLevel:Intermediate
+parent:Engine/Sequencer/HowTo
+order:1
+checkpoint: editorqs
+Related:Engine/Sequencer/Overview
+Related:Engine\Sequencer\ReferenceEditor\
+
+[REGION:warning]
+これは現在開発中の機能であり、期待どおりに機能しなかったり、将来のリビジョンで変更される可能性があります。
+[/REGION]
+
+シネマティック シーケンスを作る場合、シーン内でキャラクターを動くようにしたり、何らかのアニメーションを実行させたいことがあるでしょう。 
+**シーケンサー** では、Skeletal Mesh アクタをレベル シーケンスに追加してから、アニメーションのサブトラックを追加し、アクタに行わせたいアニメーションを指定することでこれを行うことができます。 
+上記のプロセスを繰り返し、アクタに行わせたい様々なアニメーションを追加することでシネマティック シーケンスでキャラクターが生き生きとしたものになります。 
+
+このガイドでは、様々なアニメーションを適用してキャラクターを上下にジャンプさせる小さなシーンを作ります。 
+
+## ステップ
+
+[REGION:note]
+ここでは **Starter Content Enabled (スターター コンテンツを有効にした状態)** で **Blueprint Third Person Template** プロジェクトを使います。 
+[/REGION]
+
+1.	プロジェクトを開いた状態で、レベルで **ThirdPersonCharacter** を選択し、**[Delete]** を押して削除します。 
+
+	![](CharacterAnim_01.png)
+
+	これはこのテンプレートに入っているゲームをプレイするときに使用する **Character ブループリント** ですが不要です。 
+
+1.	**コンテンツ ブラウザ** の **Content/Mannequin/Character/Mesh** で **SK_Mannequin** アセットをレベル ビューポートにドラッグします。 
+
+	![](CharacterAnim_02.png)
+
+1.	**ツールバー** で **[Cinematics]** ドロップダウン オプションをクリックして、**[Add Level Sequence]** を選択します。 
+
+	![](CharacterAnim_03.png)
+
+	プロンプト表示が出たら、この新しいレベル シーケンスを保存する名前と場所を入力します。 
+
+1.	レベル内で **[SK_Mannequin]** を選択します。
+
+1.	**[Sequencer]** ウィンドウで **[Add]** ボタンをクリックし、**[Add Actor to Sequencer]** と **[Add SK_Mannequin]** を選択します。 
+
+	![](CharacterAnim_04.png)
+
+	これで SK_Mannequin から シーケンサーのトラックが追加されます。これを使ってシーン内のアクタを操作することができます。 
+
+	![](CharacterAnim_04b.png)
+
+1.	この **アニメーション** のサブトラック上で **+** 記号をクリックして、メニューを呼び出して **[ThirdPersonIdle]** を選択します。  
+
+	![](CharacterAnim_05.png)
+
+	選択するとこのアクタは、アイドル位置になり、アニメーションがアニメーション トラックに追加されます。 
+
+	![](CharacterAnim_05b.png)
+
+1.	**Animation** トラックを選択し、タイムライン マーカーを **左クリック** しながらアイドル アニメーションの終わりまでドラッグし、 **Enter** を押します。 
+
+	![](CharacterAnim_06.png)
+
+	これにより、シーケンス内のポイントに新規 **キーフレーム** が追加されて、別のアニメーションを選択できる場所にコンテキスト メニューが表示されます。 
+
+1.	**ThirdPersonJump_Start** アニメーションを追加します。 
+
+	![](CharacterAnim_07.png)
+
+	現在のセットアップで、アイドル アニメーションのプレイ後、ジャンプを開始するアニメーションに進みます。タイムライン マーカーをタイムラインに沿って前後にドラッグすることでプレビューできます。または、ビューポートで **[Play]** ボタンを押して現在のシーンをプレイします。 
+
+1.	ジャンプ開始のアニメーションの最後で (アニメーションのトラックを選択した状態で)、**Enter** を押して **ThirdPersonJump_End** を追加します。 
+
+	![](CharacterAnim_08.png)
+
+1.	ジャンプ終了のアニメーションの最後で (アニメーションのトラックを選択した状態で)、**Enter** を押して **ThirdPersonIdle** アニメーションを追加します。
+
+	![](CharacterAnim_09.png)
+
+
+## 最終結果
+
+ビューポートで **[Play]** ボタンを押すと、キャラクターが上下にジャンプするのがわかります。 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+TYJYT2e7fdA
+[/PARAMLITERAL]
+[/OBJECT]
+
+上の図では、エディタ内でシネマティック シーケンスがどのように見えるかを表しています。ゲームをプレイする場合、レベル シーケンス自体にプレイを開始するコマンドを発行したわけではないため何も見えません。 
+**Matinee** アクタと同様に、レベル内でレベル シーケンスを選択し、**[Details (詳細)]** パネルで **[Auto Play]** チェックボックスにチェックを入れて、レベル読み込み時にシーケンスをプレイします。 
+
+![](CharacterAnim_10.png)
+
+この動画ではシーケンサーで再生がどのように処理されるかも示されています。**Section Bounds** に入っているものだけが再生されます (緑と赤のマーカーの間)。 
+これらをドラッグしてシーケンスの境界を増加、減少させることができます。または、**[Sequencer]** オプションを使って、**[Keep Playback Range in Section Bounds]** オプション (以下で図示) を有効にして再生範囲にすべてのコンテンツを含むようにします。 
+
+![](CharacterAnim_11.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

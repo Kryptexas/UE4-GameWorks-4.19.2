@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2604060
+﻿INTSourceChangelist:2685380
 Availability:Public
 Title:렌즈 플레어
 Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
 Description:카메라 렌즈 결함으로 인해 밝은 오브젝트에서 빛이 산란되어 보이는 효과의 시뮬레이션 입니다.
+Version: 4.9
 
 [REGION:fullwidth]
 ![Lens Flare](lens_flare.png)(w:1182)
@@ -21,36 +22,51 @@ Description:카메라 렌즈 결함으로 인해 밝은 오브젝트에서 빛�
 | **Lens Flare Tints 1/2/3/4/5/6/7/8** | 렌즈 플레어 색조 - 각각의 렌즈 플레어에 색을 입힙니다. |
 | **Intensity** | 강도 - 이미지 케이스된 렌즈 플레어의 밝기 스케일입니다 (선형).|
 
+
+
 <!--
+
 [EXCERPT:Tint]
-[REGION:imagetable]
-| ![Lens Flare Tint - (1.0, 1.0, 1.0)](lens_flare_tint_off_small.png)(w:350) | ![Lens Flare Tint - (0.25, 1.0, 1.0)](lens_flare_tint_on_small.png)(w:350)
-| ------ | ------ |
-| (1.0, 1.0, 1.0) | (0.25, 1.0, 1.0) |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Lens Flare Tint (1.0, 1.0, 1.0)](lens_flare_tint_off_small.png)(w:500)
+	[/PARAM]
+	[PARAM:after]
+	![Lens Flare Tint (0.25, 1.0, 1.0)](lens_flare_tint_on_small.png)(w:500)
+	[/PARAM]
+[/OBJECT]
 [/EXCERPT:Tint]
 
 [EXCERPT:Threshold]
-[REGION:imagetable]
-| ![Lens Flare Threshold - 0.1](lens_flare_threshold_0_small.png)(w:350) | ![Lens Flare Threshold - 8](lens_flare_threshold_8_small.png)(w:350) |
-| ------ | ------ |
-| 0.1 | 8.0 |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Lens Flare Threshold - 0.1](lens_flare_threshold_0_small.png)(w:500)
+	[/PARAM]
+	[PARAM:after]
+	![Lens Flare Threshold - 8](lens_flare_threshold_8_small.png)(w:500)
+	[/PARAM]
+[/OBJECT]
 [/EXCERPT:Threshold]
 
 [EXCERPT:BokehSize]
-[REGION:imagetable]
-| ![Lens Flare Size - 1](lens_flare_bokehsize_1_small.png)(w:350) | ![Lens Flare Size - 8](lens_flare_bokehsize_8_small.png)(w:350) |
-| ------ | ------ |
-| 1.0 | 8.0 |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Lens Flare Size - 1](lens_flare_bokehsize_1_small.png)(w:500)
+	[/PARAM]
+	[PARAM:after]
+	![Lens Flare Size - 8](lens_flare_bokehsize_8_small.png)(w:500)
+	[/PARAM]
+[/OBJECT]
 [/EXCERPT:BokehSize]
 
 [EXCERPT:BokehShape]
-[REGION:imagetable]
-| ![Lens Flare Shape - Default](lens_flare_bokehshape_default_small.png)(w:350) | ![Lens Flare Shape - Square](lens_flare_bokehshape_square_small.png)(w:350) |
-| ------ | ------ |
-| Bokeh Shape - Default | Bokeh Shape - Square |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Lens Flare Shape - Default](lens_flare_bokehshape_default_small.png)(w:500)
+	[/PARAM]
+	[PARAM:after]
+	![Lens Flare Shape - Square](lens_flare_bokehshape_square_small.png)(w:500)
+	[/PARAM]
+[/OBJECT]
 [/EXCERPT:BokehShape]
 -->

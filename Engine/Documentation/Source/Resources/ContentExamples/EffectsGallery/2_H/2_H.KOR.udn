@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653104
+﻿INTSourceChangelist:2714563
 Availability: Public
 Title:2.8 - 빔 이미터와 노이즈 모듈
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/EffectsGallery
@@ -10,6 +10,7 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/ParticleLights
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+Version: 4.9
 
 
 [VAR:Steps]
@@ -73,7 +74,7 @@ Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 [/REGION]
 
 
-Beam TypeData 로는 두 점을 연결하는 이펙트를 만들 수 있는데, Source 와 Target 지점을 지정해도 되고, 액터나 다른 이미터로 지정해도 됩니다. 보통 FPS 게임에서 총탄이 지나간 길을 나타내는 효과로 사용됩니다. 여기서는 빔 그룹 안의 Noise 모듈의 도움을 받아서 전기 아아크로 사용해 보겠습니다. 
+Beam TypeData 로는 두 점을 연결하는 이펙트를 만들 수 있는데, Source 와 Target 지점을 지정해도 되고, 액터나 다른 이미터로 지정해도 됩니다. 보통 FPS 게임에서 총탄이 지나간 길을 나타내는 효과로 사용됩니다. 여기서는 빔 그룹 안의 Noise 모듈의 도움을 받아서 전기 스파크로 사용해 보겠습니다. 
  
  
  ![](image080.png)

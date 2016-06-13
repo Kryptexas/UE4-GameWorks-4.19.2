@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2672558
+﻿INTSourceChangelist:2924864
 Availability:Docs
 Title:1.1 - プロジェクトの設定
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
 Description:First Person Shooter プロジェクトの設定方法を学びます。
-スキルレベル:初心者向け
-バージョン：4.9
+SkillLevel:Beginner
+Version:4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,37 +23,35 @@ Description:First Person Shooter プロジェクトの設定方法を学びま�
 
 %Steps%
 
-[REGION:note]
-このチュートリアルを開始する前に、**Visual Studio 2013** for Desktop (可能であれば Community Edition またはProfessional Editions) をインストールしてください。
-[/REGION]
+このステップでは、アンリアル エンジン 4 の [プロジェクト ブラウザ] を使用して、FPS ゲームの開始点を作成します。
 
-このステップでは、アンリアル・エンジン 4 の [プロジェクトブラウザ] を使用して、FPSゲームの開始点を作成します。
+1.	エピックのランチャーから、**アンリアル エンジン** を開くと、[](Engine/Basics/Projects/Browser) が表示されます。
 
-1.	ランチャーから **アンリアル エンジン** を開きます。[](Engine/Basics/Projects/Browser) が表示されます。
+1.	**[New Project (新規プロジェクト)]** タブをクリックして、**[C++]** タブを選択します。
 
-1.	**[New Project]** タブをクリックして、 **[Blueprint (ブループリント)]** タブを選択します。
+1.	**Basic Code** プロジェクトを選択します。
 
-1.	**Blank (ブランク)** プロジェクトを選択します。
+1.	プロジェクトに "FPSProject" と名前を付けます。**No Starter Content** に設定するようにしてください。
 
-1.	プロジェクトに 「_FPSProject_」 と名前を付けます。**No Starter Content** を設定するようにしてください。
-
-	![](UnrealPrjBrowser.png)
+	![](UnrealPrjBrowser_Cpp.png)
 
 	[REGION:warning]
 	このチュートリアルの一部のコードサンプルは、プロジェクトに別の名前を付けた場合は更新する必要があります。
 	[/REGION]
 
-1.	**[Create Project (プロジェクト新規作成)]** ボタンをクリックします。
+1.	プロジェクトに名前を付けたら、**[Create Project (プロジェクト作成)]** ボタンをクリックしてください。
 
-1.	プロジェクトがアンリアルエディタで開きます。レベルエディタで、**[Play (再生)]** ボタンをクリックしてレベル内を移動します。WASD キーを使用して移動し、マウスを使用してカメラの照準を合わせます。
+1.	この時点では、プロジェクトはエディタで開いています。**[Play (プレイ)]** ボタンをクリックして、[Play in Editor (PIE) (エディタでプレイする(PIE)) ] モードに入ります。
 
 	![](ClickPlayButton.png)
 
-1.	[PIE (Play In Editor)] モードを終了するには、レベル エディタで **[Stop]** ボタンを押します。
+	_マウスを使ってカメラを向けながら、WASD キーを使ってレベルを移動します。_
+
+1.	[PIE (Play In Editor)] モードを終了するには、レベル エディタで Escape キーを押すか、**[Stop]** ボタンをクリックします。
 
 	![](ClickStopButton.png)
 
-1.	コンテンツ フォルダ内に「Maps」フォルダを作成します。
+1.	レベルの操作が終わったので、「Content」 フォルダ内に 「Maps」 フォルダを作成します。
 
 	![](MapsFolder.png)
 
@@ -61,18 +59,20 @@ Description:First Person Shooter プロジェクトの設定方法を学びま�
 
 	![](SaveLevelAs.png)
 
-1.	**[Edit (編集)]** メニューで、**[Project Settings (プロジェクト設定)]** をクリックします。
+1.	**[Edit (編集)]** メニューで、[Project Settings (プロジェクト設定)] を **クリック** します。
+
+	![](EditProjectSettings.png)
 
 1.	**[Project Settings]** タブの左側にある **[Project]** の見出しで、**[Maps & Modes]** をクリックします。
+
+	![](ProjectMaps_Modes.png)
 
 1.	ドロップダウン メニューを使用して、**[FPSMap]** を **Editor Startup Map (エディタ起動マップ)** として選択します。
 
 	![](EditorDefaultMap.png)
 
-	[REGION:note]
-	以後、エディタでは FPSMap がデフォルトマップとして自動的にロードされます。
-	[/REGION]
+	_以後、エディタでは FPSMap がデフォルトマップとして自動的にロードされます。_
 
-1.	**[Project Settings]** メニューを閉じます。
+1.	最後に **[Project Settings]** メニューを閉じて、プロジェクトを保存してから次のステップに進みます。
 
 %Steps%

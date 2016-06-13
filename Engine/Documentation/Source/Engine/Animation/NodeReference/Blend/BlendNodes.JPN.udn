@@ -2,8 +2,8 @@
 Availability:Public
 Title:Blend ノード
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference
-Description:複数のアニメーションを決まりに基づき、まとめてブレンドするアニメーション ノード。
-バージョン：4.9
+Description:複数のアニメーションを一定の基準によって、まとめてブレンドするアニメーション ノード。
+version: 4.9
 
 [REGION:banner]
 ![Blend Nodes](blend_banner.png)(convert:false)

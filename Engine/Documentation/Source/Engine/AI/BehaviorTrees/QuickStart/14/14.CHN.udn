@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2774060
 Availability:Public
-Title: 14. Build the Behavior Tree
+Title:14.构建行为树
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
-Description:Step 14. Build the Behavior Tree
+Description:第十四步。构建行为树
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,134 +24,144 @@ Description:Step 14. Build the Behavior Tree
 %Steps%
 
 
-You should now have all the pieces needed to build this Behavior Tree:
+现在构建行为树的所有部件都已准备就绪：
 
-![](fullTree.png)
+![](DoneBehaviorTree.jpg)
 
-Let's break down what's going on.
+我们来看看存在哪些逻辑。
 
-* The AI will just stand around if it hasn't detected a Pawn that isn't an AI Character.
-* The AgroCheck Service is constantly looking for a suitable target.
-* Once it finds one, the left most branch is open, and the AI runs towards the targeted Pawn.
-* Once it gets in range of that Pawn the branch is prevented from executing, thusly returning it to the top of the graph
-* If the desired Pawn hides, then the right most branch will be able to run, which causes the AI to move to the last know location of the desired Pawn.
-* Once there, it waits, then returns home.
-* At any time, if a suitable target is found, the right most branch will be forced to stop executing, and the left most branch will be opened.
+* 检测到 Pawn 是 AI 角色时，AI 不会开始行动。
+* AgroCheck Service 将不断寻找符合条件的目标。
+* 发现目标后，最左边的分支打开，AI 开始追赶目标 Pawn。
+* 和 Pawn 之间的距离足够近之后，分支将阻止行动继续执行，而将其返回至图表顶端。
+* 如目标 Pawn 隐藏，将运行最右边的分支，使 AI 向目标 Pawn 的最后已知位置前进。
+* 到达此位置后，AI 将等待，然后返回出发地。
+* 在任何时候，一旦发现符合条件的目标，最右边的分支将强制停止执行，最左边的分支将被打开。
 
-Let us step through the creation of this tree.
+一起来看看如何创建行为树。
 
-## Steps
+## 步骤
 
-### Basic Setup
+### 基础设置
 
-You may have already done this back in part 8 of this guide, but just in case you did not save those changes, here are the steps for creating the basic structure of the Behavior Tree:
+该指南第八部分中应该已经执行过此操作，以防您未保存，再次梳理一遍创建行为树基础架构的步骤。
 
-1. If the Behavior Tree is not open for editing, **Double-click** it in the **Content Browser** to open it for editing.
-1. Switch to Behavior Tree Mode
+1. 如行为树未开放编辑，在 **内容浏览器** 中 **双击** 打开进行编辑。
+1. 切换至行为树模式
 
 	![](btMode.png)
 
-1. When you first edit a Behavior Tree, it will only have the Root Node:
+1. 在最初编辑行为树时，它只有 Root 节点：
 
 	![](Engine/AI/BehaviorTrees/QuickStart/10/root.png)
 
-1. You can **Right-click** in the Graph Editor to create nodes
-	1. Add a **Composites** -> **Sequence** Node.
+1. 可在图表编辑器中 **单击右键** 创建节点
+	1. 添加一个 **Composites** -> **Sequence** 节点。
 
-		![](Engine/AI/BehaviorTrees/QuickStart/10/sequence.png)
+		![](sequence.jpg)
 
-	1. Add two (2) **Composites** -> **Selector** Nodes.
+	1. 添加两个 **Composites** -> **Selector** 节点。
 
-		![](Engine/AI/BehaviorTrees/QuickStart/10/selector.png)
+		![](selector.jpg)
 
-1. Connect the Root Node to one of the Selector Nodes
+1. 将 Root 节点和 Selector 节点之一连接起来。
 
-	![](connectNodes.png)
+	![](connectNodes.jpg)
 
-1. Connect the newly connected Sequence Node to the Selector Node and the other Sequence Node. Then arrange them like so:
+1. 将新连接的 Sequence 节点和 Selector 节点，以及其他 Sequence 节点连接起来。按此方法进行整理：
 
-	![](connectNodes2.png)
+	![](connectNodes2.jpg)
 
-	_2nd Selector Node on the left, Sequence Node on the right._
+	_第二个 Selector 节点在左边，Sequence 节点在右边。_
 
-### Add the Service
+### 添加 Service 节点
 
-1. Using the **Right-click** context menu on the top selector node, add a **Services** -> **Agro Check** Node.
+1. 使用最上方 selector 节点上的 **右键单击** 快捷菜单，添加一个 **Services** -> **Agro Check** 节点。
 
 	![](addAgro.png)
 
-1. Select the **Agro Check** box on the **Selector** Node, and using the **Details** panel, set the **Target to Follow** property to `TargetToFollow`, set **Target Location** to `TargetLocation`, adjust the **Interval** to `0.5` and the **Random Deviation** to `0.0`
+1. 选择 **Selector** 节点上的 **Agro Check** 框，然后使用 **Details** 面板将 **Target to Follow** 属性设为 **TargetToFollow**、**Target Location** 设为 **TargetLocation**、将 **Interval** 调至 0.5、**Random Deviation** 调至 0.0。
 
 	[REGION:raw]
-	![](setAgroCheck.png)
+	![](setAgroCheck1.jpg)
 	[/REGION]
 
-### Add the Tasks
+### 添加 Tasks
 
-1. **Right-click** in the Graph area to bring up the context menu, and add the 4 **Tasks**: 1 **Rapid Move To** Node, 1 **Wait** Node, and 2 Move To Nodes:
+1. 在图表区域中 **单击右键** 打开快捷菜单，然后添加 4 个 **Tasks**：1 个 **Rapid Move To** 节点、1 个 **Wait** 节点、2 个 **Move To** 节点。
 
 	![](addTaskNodes.png)
 
-1. Connect the lower Selector Node to the **Rapid Move To** Node.
-1. Connect the Sequence node to the Move To Nodes, and the Wait Node.
-1. Arrange the nodes like so:
+1. 将偏下方的 Selector 和 **Rapid Move To** 节点连接起来。
+1. 将 Sequence 节点和两个 Move To 节点，以及 Wait 节点连接起来。
+1. 按以下方式排列节点：
 
 	![](connectedTasks.png)
 
-	_From left to right: **Rapid Move To**, **Move To**, **Wait**, **Move To**._
+	_从左至右：**Rapid Move To**、**Move To**、**Wait**、**Move To**。_
 
-1. Select the left-most **Move To** Node, and using the **Details** Panel, set the **Blackboard Key** property on the to `TargetLocation`
-1. Set the **Blackboard Key** property on the right-most **Move To** Node to `HomeLocation`
-
-	[REGION:raw]
-	![](adjustMoveTo.png)
-	[/REGION]
-
-1. Select the **Wait** Node, and using the **Details** panel, set its **Wait Time** property to `2.5`
+1. 选择最左边的 **Move To** 节点，然后使用 **Details** 面板将其 **Blackboard Key** 属性设为 **TargetLocation**
+1. 将最右边 **Move To** 节点上的 **Blackboard Key** 属性设为 **HomeLocation**
 
 	[REGION:raw]
-	![](adjustWait.png)
+	![](adjustMoveTo.jpg)
 	[/REGION]
 
-1. Select the **RapidMoveTo** node, and using the **Details** panel, set its **Target to Follow** property to `TargetToFollow`.
-
-### Add the Decorators
-
-1. **Right-click** the lower **Selector** node and select **Add Decorators..** -> **Blackboard** .
-1. **Right-click** the lower **Selector** node and select **Add Decorators..** -> **Close Enough**.
+1. 选择 **Wait** 节点，然后使用 **Details** 面板将 **Wait Time** 属性设为 `2.5`
 
 	[REGION:raw]
-	![](addDecorator1.png)
+	![](adjustWait.jpg)
 	[/REGION]
 
-1. Set the **Observer Aborts** property on the **Blackboard** decorator to `Both`, **Key Query** to `Is Set`, and the **Blackboard Key** to `TargetToFollow`
-1. Set the **Acceptable Distance** property on the **Close Enough** decorator to `100.0`, and **Target to Follow** property to `TargetToFollow`.
+1. 选择 **RapidMoveTo** 节点，然后使用 **Details** 面板将 **Target to Follow** 属性设为 **TargetToFollow**。
+
+### 添加 Decorators 节点
+
+1. 在偏下方的 **Selector** 节点上 **单击右键**，选择 **Add Decorators..**-> **Blackboard**。
+1. 在偏下方的 **Selector** 节点上 **单击右键**，选择 **Add Decorators..**-> **Close Enough**。
 
 	[REGION:raw]
-	![](setBB1.png)
+	![](addDecorator1.jpg)
 	[/REGION]
 
-1. **Right-click** the **Sequence** node and select **Add Decorators..** -> **Blackboard**.
-1. **Right-click** the **Sequence** node and select **Add Decorators..** -> **Reached Move Goal**.
-1. **Right-click** the **Sequence** node and select **Add Decorators..** -> **Blackboard**.
+1. 将 **黑板** decorator 上的 **Observer Aborts** 属性设为 **Both**、**Key Query** 设为 **Is Set**、**Blackboard Key** 设为 **TargetToFollow**
+1. 将 **Close Enough** decorator 上的 **Acceptable Distance** 属性设为 100.0、**Target to Follow** 属性设为 **TargetToFollow**。
 
-	After adding all those decorators, the full node block should look like this:
+	[REGION:raw]
+	![](setBB1.jpg)
+	[/REGION]
+
+1. 在 **Sequence** 节点上 **单击右键**，选择 **Add Decorators..**-> **Blackboard**。
+1. 在 **Sequence** 节点上 **单击右键**，选择 **Add Decorators..**-> **Is At Location**。
+1. 在 **Sequence** 节点上 **单击右键**，选择 **Add Decorators..**-> **Blackboard**。
+
+	添加全部 decorators 后，整个节点块的外观如下：
 
 	![](addToSeqNode.png)
 
-1. On the first **Blackboard** decorator, set the **Key Query** to `Is Not Set`, and the **Blackboard Key** to `TargetToFollow`
-1. On the second **Blackboard** decorator, set the **Key Query** to `Is Set`, and the **Blackboard Key** to `TargetLocation`
-1. On the **Reached Move Goal** decorator, enable the **Inverse Condition** property.
+1. 在第一个 **黑板** decorator 上，将 **Key Query** 设为 **Is Not Set**、**Blackboard Key** 设为 **TargetToFollow**
+1. 在第二个 **黑板** decorator 上，将 **Key Query** 设为 **Is Set**、**Blackboard Key** 设为 **TargetLocation**
+1. 在 **Is At Location** decorator 上，启用 **Inverse Condition** 属性并将 **Blackboard Key** 设为 **HomeLocation**。
 
-	After setting those properties, the full node block should look like this:
+	对这些属性进行设置后，整个节点块的外观如下：
 
 	![](propsSet.png)
 
 
-And that is it! Leave the **Behavior Tree** editor open while using **Play in Editor** and you will be able to see how the tree is operating. If you get close enough to the AI and it has line of sight to you, it will begin to chase you. If you are able to break line of sight, he will go to your last known location, wait, then return to where he started.
+大功告成！使用 **Play in Editor** 时打开 **行为树** 编辑器可以看到树的运行方式。玩家进入判定区域中 AI 的视线时，它将开始追赶玩家。如 AI 视线受阻，它将前往玩家的最后已知位置、等待、然后回到出发点。
 
 
-![](BTFinal.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+q6vTg2roI6k
+[/PARAMLITERAL]
+[/OBJECT]
 
 %Steps%
 

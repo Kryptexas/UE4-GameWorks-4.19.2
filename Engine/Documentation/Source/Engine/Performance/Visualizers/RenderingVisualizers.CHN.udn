@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2704594
 Availability:Public
-Title: Rendering Visualizers
+Title:渲染可视器
 Crumbs: %ROOT%, Engine, Engine/Performance
-Description:Display options and view modes to check on the results of various rendering features.
+Description:显示在各种渲染功能结果上进行检查的选项和查看模式。
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -49,7 +49,7 @@ Description:Display options and view modes to check on the results of various re
 
 
 
-Unreal Engine 4 (UE4) has a number of visualizers to enable you to debug or simply view what UE4 is doing behind the scenes. These can be rendering steps, such as viewing the depth pass, or specialized views, such as the motion blur vector visualizer.
+虚幻引擎 4（UE4）拥有多个可视器，便于对 UE4 后台工作情况进行调试或查看。内容包括渲染步骤（如查看深度通道），或特定视图（如动态模糊矢量可视器）。
 
 [REGION:topics third]
 %Engine/Performance/Visualizers/OutOfBoundsPixels:topiccompact%

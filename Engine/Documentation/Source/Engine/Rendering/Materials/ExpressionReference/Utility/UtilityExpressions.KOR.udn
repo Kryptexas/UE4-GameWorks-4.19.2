@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2875940
 Availability:Public
 Title:Utility 표현식
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
 Description:하나 이상의 입력에 여러가지 유용한 연산을 하는 표현식입니다.
+Version: 4.9
 
 [EXCERPT:TOC]
 [TOC(start:2)]
@@ -67,19 +68,21 @@ DDY 표현식은 픽셀 셰이더 계산에 사용되는 GPU 하드웨어 기능
 
 Depth of Field Function (뎁스오브필드 함수)는 머티리얼에 뎁스 오브 필드로 인한 블러링이 적용될 때 아티스트가 머티리얼에 적용되는 효과를 조절할 수 있도록 하기 위한 표현식입니다. 0-1 사이의 값을 출력하며, 0 은 "초점잡힌" 상태, 1 은 "완전히 흐려진" 상태를 나타냅니다. 이는 텍스처의 선명한 버전과 흐린 버전을 보간하기에 좋습니다. _뎁스_ 입력은 씬의 뎁스 오브 필드 계산의 기존 결과를 다른 계산으로 덮어쓰는 것이 가능합니다.
 
-[REGION:imagetable]
-| ![](DepthOfFieldFunction_Color.png)(w:305) |![](DepthOfFieldFunction_Texture.png)(w:305)  | [INCLUDE:#DOFF] |
-| :--: | :--: | :--: |
-| 블렌딩된 컬러 | 보통 / 블러링된 텍스처 블렌딩 | 망 샘플 (클릭하면 확대) |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![블렌딩된 컬러](DepthOfFieldFunction_Color.png)(w:350)
+	[/PARAM]
+	[PARAM:after]
+	![보통 / 블러링된 텍스처 블렌딩](DepthOfFieldFunction_Texture.png)(w:350)
+	[/PARAM]
+[/OBJECT]
 
-<!--
-[EXCERPT:DOFF]
 [REGION:lightbox]
 [![](DepthOfFieldFunctionNetwork.png)(w:300)](DepthOfFieldFunctionNetwork.png)
 [/REGION]
-[/EXCERPT:DOFF]
--->
+[REGION:caption]
+네트워크 샘플 (클릭하면 원래 크기로 보입니다).
+[/REGION]
 
 [EXCERPT:Desaturation]
 ## Desaturation
@@ -334,9 +337,66 @@ AntialiasedTextureMask 로는 부드러운 (안티 앨리어싱이 적용된) �
 
 [/EXCERPT:AntialiasedTextureMask]
 
+## DistanceToNearestSurface
+
+**Distance To Nearest Surface** 머티리얼 표현식 노드로 레벨의 글로벌 디스턴스 필드 내 아무 지점이나 샘플링하는 것이 가능합니다.
+이 머티리얼 표현식은 디스턴스 필드에서 씬의 최단 오클루더까지의 거리를 부호가 있는 월드 스페이스 유닛 단위로 출력하는 식으로 작동합니다.
+
+[region:note]
+**Generate Mesh Distance Fields** (메시 디스턴스 필드 생성)은 **프로젝트 세팅** 의 **렌더링** 카테고리 아래 **메시 디스턴스 필드** 옵션이 켜져있어야 정상 작동합니다.
+[/region]
+
+| 항목 | 설명 |
+| -------- | ----------- |
+| **Position**  | 위치 - 입력이 없으면 현재 월드 포지션이 기본값입니다. |
+
+**Distance To Nearest Surface** 머티리얼 표현식 실전 사용 예제입니다.
 
 
+[Region:lightbox]
+[![](DistanceNearSurface_01.png)(w:960)](DistanceNearSurface_01.png)
+[/Region]
 
+![](DistanceNearSurface_02.png)(w:550)
 
+이 예제에서는 Distance To Nearest Surface 를 머티리얼의 오파시티 입력에 연결하고, 그 머티리얼을 레벨 바닥 바로 위에 배치한 스태틱 메시 평면에 적용하였습니다.
+Distance To Nearest Surface 의 역할은 머티리얼더러 스태틱 메시 평면이 씬에 배치된 다른 스태틱 메시와 교차되기 시작하면 그 부분을 빨갛게 만들라 합니다.
 
+## DistanceFieldGradient
 
+**DistanceFieldGradient** 머티리얼 표현식은, 정규화되면, 오브젝트의 디스턴스 필드 내 X,Y,Z 이동 방향을 출력합니다.
+그러면 Distance Field Gradient 머티리얼 표현식 노드가 액체 흐름 시뮬레이션에 잘 맞습니다.
+
+[region:note]
+**Generate Mesh Distance Fields** (메시 디스턴스 필드 생성)은 **프로젝트 세팅** 의 **렌더링** 카테고리 아래 **메시 디스턴스 필드** 옵션이 켜져있어야 정상 작동합니다.
+[/region]
+
+| 항목 | 설명 |
+| -------- | ----------- |
+| **Position**  | 위치 - 입력이 없으면 현재 월드 포지션이 기본값입니다. |
+
+머티리얼에서 **DistanceFieldGradient** 머티리얼 표현식을 사용하는 방법 예제입니다.
+아래 예제에서 DistanceFieldGradient 를 먼저 정규화한 다음 Mask Channel 노드로 입력한 것을 볼 수 있습니다.
+그 이유는 DistanceFieldGradient 를 먼저 정규화시키지 않으면 방향 데이터를 얻을 수 없기 때문입니다.
+Mask Channel Parameter 를 추가한 것은 머티리얼 인스턴스 내 RGB 채널 전환을 쉽게 하기 위해서입니다.
+
+[Region:lightbox]
+[![](DistanceFieldGradient_Material.png)](DistanceFieldGradient_Material.png)
+[/Region]
+
+실제 DistanceFieldGradient 활용 예제입니다.
+아래 그림은 다양한 RGB 옵션을 켰을 때 DistanceFieldGradient 가 어떤 데이터를 사용할 것인지 보여줍니다.
+
+[Region:lightbox]
+[![](DistanceFieldGradient_Example.png)(w:960)](DistanceFieldGradient_Example.png)
+[/Region]
+
+<!---
+![](DistanceFieldGradient_Example.png)
+--->
+
+| 번호 | 설명 |
+| -------- | ----------- |
+| **1**  | R 채널을 켜고 다른 모든 채널을 끕니다. |
+| **2**  | G 채널을 켜고 다른 모든 채널을 끕니다. |
+| **3**  | B 채널을 켜고 다른 모든 채널을 끕니다. |

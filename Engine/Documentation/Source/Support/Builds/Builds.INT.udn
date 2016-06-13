@@ -73,7 +73,7 @@ engine
 [/VAR]
 
 [PUBLISH:Rocket]
-[DIR(end:"1" order:"descend")]
+[DIR(end:"1" output:"listbutton" order:"descend" parent:"Support/Builds" org:"hierarchy")]
 [/PUBLISH:Rocket]
 
 [PUBLISH:Licensee]
@@ -86,6 +86,9 @@ engine
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
+	* [](Support/Builds/ReleaseNotes/2016/4_12)
+	* [](Support/Builds/ReleaseNotes/2016/4_11)
+	* [](Support/Builds/ReleaseNotes/2015/4_10)
 	* [](Support/Builds/ReleaseNotes/2015/4_9)
 	* [](Support/Builds/ReleaseNotes/2015/4_8)
 	* [](Support/Builds/ReleaseNotes/2015/4_7)

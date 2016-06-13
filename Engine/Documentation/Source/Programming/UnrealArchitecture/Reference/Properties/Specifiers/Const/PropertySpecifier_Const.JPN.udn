@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2374181
+﻿INTSourceChangelist:2669538
 Title:Const
 Crumbs: %ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Properties, Programming/UnrealArchitecture/Reference/Properties/Specifiers
-Description: 
+Description:
 Availability:Public
-Version:4.5
+Version:4.9
 
-この変数は const です。 const としてエクスポートされなければなりません。
+この変数は `const` なので `const` としてエクスポートされなければなりません。`const` プロパティはエディタでは変更はできません。

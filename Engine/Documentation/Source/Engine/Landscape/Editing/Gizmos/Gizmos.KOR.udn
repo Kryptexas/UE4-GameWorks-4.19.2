@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2613450
+﻿INTSourceChangelist:2697549
 Availability: Public
 Title:랜드스케이프 기즈모
 Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Editing
 Description:랜드스케이프 편집시 사용가능한 기즈모 사용 안내서입니다.
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topiccompact]
@@ -56,7 +57,7 @@ IdzHGD7iWdg
 
 기즈모 브러시를 선택하면 임시 기즈모 액터가 생성됩니다. 트랜스폼 툴을 사용해서 이 액터를 다른 액터처럼 조작, 복사하고자 하는 랜드스케이프 영역을 정의할 수 있습니다.
 
-[region:tip]
+[region:note]
 트랜스폼 툴 관련 상세 정보는 [](Engine/Actors/Transform) 문서를 참고하세요.
 [/region]
 
@@ -79,7 +80,7 @@ IdzHGD7iWdg
 
 ### 기즈모로 복사하기
 
-랜드스케이프 일부분을 복사하기 위해서는, 그 영역에 대한 데이터를 기즈모로 복사해야 합니다. 그런 다음 그 데이터를 나중에 다른 위치로 [붙여넣기](#PastingData) 하면 됩니다.
+랜드스케이프 일부분을 복사하기 위해서는, 그 영역에 대한 데이터를 기즈모로 복사해야 합니다. 그런 다음 그 데이터를 나중에 다른 위치로 붙여넣으면 됩니다.
 
 
 
@@ -193,7 +194,7 @@ Layer Name 이 랜드스케이프 상에 존재하는 레이어 이름에 일치
 (#ExportingGizmo)
 **기즈모 데이터를 익스포트하려면:**
 
-1. 기즈모에 데이터를 채운 상태로 ([기즈모로 데이터 복사하기](#CopyingData) 참고), **Export Gizmo Data** (기즈모 데이터 익스포트) 버튼을 누르면 기즈모 데이터를 파일로 익스포트할 수 있습니다. **Export Layers** 체크박스를 켜면 레이어 웨이트 데이터도 파일로 익스포트합니다.  
+1. 기즈모에 데이터를 채운 상태로 ([기즈모로 데이터 복사하기](#CopyingData) 참고), **Export Gizmo Data** (기즈모 데이터 익스포트) 버튼을 누르면 기즈모 데이터를 파일로 익스포트할 수 있습니다. **Gizmo copy/paste all layers** 체크박스를 켜면 레이어 웨이트 데이터도 파일로 익스포트합니다.  
 1. 하이트맵 파일 위치와 이름을 선택합니다.  
     ![export_file.jpg](export_file.jpg)(w:625 h:436)  
 1. 레이어를 익스포트한다면 각 레이어에 대한 위치와 파일명을 선택합니다.  

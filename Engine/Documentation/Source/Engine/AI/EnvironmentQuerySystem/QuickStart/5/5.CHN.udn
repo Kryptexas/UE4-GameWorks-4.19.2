@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2654723
 Availability:Public
-Title: 5. Character Blueprint
+Title:5.角色蓝图
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
-Description: Setup the AI's Character Blueprint.
+Description:设置 AI 的角色蓝图
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -22,53 +23,53 @@ Description: Setup the AI's Character Blueprint.
 
 %Steps%
 
-As we have created a project with a **Character** already in it, we have access to a humanoid **Skeletal Mesh** and its **Animation Blueprint**. We will use these in the tutorial, but feel free to use your own if you have them available.
+创建已包含一个角色的项目之后，即可访问人形骨骼网格物体及其动画蓝图。我们将在教程中使用这些资源，您可自由使用自己的资源。
 
-This Character will become our new AI Character. The reason we use a Character, over say a Pawn, is to gain access to the Character Movement Component's functionality.
+该角色将成为新的 AI 角色。使角色成为 Pawn 的目的是便于访问角色运动组件的功能。
 
-## Steps
+## 步骤
 
-1. **Double-click** the `AI_Character` Blueprint in the **Content Browser** to open it for editing.
+1. 在 **内容浏览器中** **双击** 打开 AI_Character 蓝图进行编辑。
 
-1. Select the **Mesh** component in the **Components** panel.
+1. 选择 **Components** 面板中的 **Mesh** 组件。
 
 	![](Engine\AI\BehaviorTrees\QuickStart\4\meshComp.png)
 
-1. In the **Details** panel, find the **Mesh** category and assign the **SK_Mannequin** (or your own) **Skeletal Mesh**.
+1. 在 **Details** 面板中找到 **Mesh** 类目并指派 **SK_Mannequin**（或您自己的）骨骼网格体。
 
 	![](Engine\AI\BehaviorTrees\QuickStart\4\assignSkelMesh.png)
 
-1. Move the **Mesh** Component to center it up inside in the capsule.
+1. 移动 **网格体** 组件，使其在胶囊体中居中。
 
-1. Rotate the **Mesh** Component so it faces the direction the blue **Arrow Component** is pointing.
+1. 旋转 **网格体** 组件，使其面朝蓝色 **箭头组件** 所指的方向。
 
-1. In the **Details** panel, find the **Animation** category and assign the `TopDown_AnimBlueprint` to the **Animation Blueprint Generated Class** property.
+1. 在 **Details** 面板中找到 **Animation** 类目并将 ThirdPerson_AnimBP 指派给 **Animation Blueprint Generated Class** 属性。
 
 	![](Engine\AI\BehaviorTrees\QuickStart\4\assignAnimBP.png)
 
-1. Select the **CapsuleComponent** from the **Components** panel, then in the **Details** panel, adjust the **Capsule Half Height** and **Capsule Radius** so they encompass the **Skeletal Mesh**.
+1. 从 **Components** 面板中选择 **CapsuleComponent**，然后在 **Details** 面板中调整 **Capsule Half Height** 和 **Capsule Radius**，使其包围该骨骼网格体。
 
 	![](Engine\AI\BehaviorTrees\QuickStart\4\shapeCat.png)
 
-1. Select the **Character Movement** Component.
+1. 选择 **Character Movement** 组件。
 
 	![](Engine\AI\BehaviorTrees\QuickStart\4\charmve.png)
 
-1. In the **Details** panel, in the **Movement Capabilities** category, adjust the Agent Radius and Agent Height values.
+1. 在 **Details** 面板的 **Movement Capabilities** 类目中调整 **Nav Agent Radius** 和 **Nav Agent Height** 数值。
 
 	![](Engine\AI\BehaviorTrees\QuickStart\4\agentProps.png)
 
-	_Set the Agent Radius to at least the Capsule's radius, and the Agent Height to at least twice the Capsule's "half height."_
+	**Nav Agent Radius** 最低设为 **胶囊体半径**，**Nav Agent Height** 最低设为 **胶囊体半高** 的两倍。
 
-1. With the Character Movement Component still selected, change the **Max Walk Speed** property, in the **Character Movement: Walking** category to `400`.
+1. 仍选中角色运动组件的情况下，在 **Character Movement:Walking** 类目中将 **Max Walk Speed** 属性改为 400。
 	
 	![](Engine\AI\BehaviorTrees\QuickStart\4\maxWalk.png)
 
-1. Click the **Class Defaults** ![](Engine\Blueprints\UserGuide\Variables\defaultsButton.png) button and assign the new AI Controller (`Runner_AI_CON`) to the **AIController Class** property in the **Pawn** category.
+1. 点击 **Class Defaults** ![](Engine\Blueprints\UserGuide\Variables\defaultsButton.png) 按钮并将新 AI 控制器（Runner_AI_CON）指派到 **Pawn** 类目下的 **AIController Class** 属性。
 
 	![](AI_con.png)
 
-1. Compile ![](Engine\AI\BehaviorTrees\QuickStart\4\compile_button.png) and Save ![](Engine\AI\BehaviorTrees\QuickStart\4\save_button.png)
+1. **编译** ![](Engine\AI\BehaviorTrees\QuickStart\4\compile_button.png) 并 **保存**。![](Engine\AI\BehaviorTrees\QuickStart\4\save_button.png)
 
 
 %Steps%

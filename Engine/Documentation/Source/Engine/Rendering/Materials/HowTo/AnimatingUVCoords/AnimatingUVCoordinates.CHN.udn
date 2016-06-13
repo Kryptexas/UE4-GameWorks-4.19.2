@@ -1,26 +1,28 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Material Editor - How To animate UV Coordinates
-Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
-Description:A How To Guide for animating UV Coordinates
-Related: Engine/Rendering/Materials/ExpressionReference/Coordinates
-Related: Engine/Rendering/Materials/CustomizedUVs
-Related: Engine/Rendering/LightingAndShadows/LightFunctions
+﻿INTSourceChangelist:2691614
+Availability:Public
+Title:材质编辑器 - 如何产生 UV 坐标动画
+Crumbs:%ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
+Description:有关产生 UV 坐标动画的操作指南
+Related:Engine/Rendering/Materials/ExpressionReference/Coordinates
+Related:Engine/Rendering/Materials/CustomizedUVs
+Related:Engine/Rendering/LightingAndShadows/LightFunctions
+Version:4.9
+SkillLevel:Intermediate
 
 
 [TOC(start:2 end:3)]
 
 
 
-The ability to add motion to your Materials is a must, especially when you try to recreate effects such as fire, water, or smoke. 
-A very cheap and effective way to do this inside Unreal Engine 4 (UE4) is to use the **Panner Material Expression** node. 
-The Panner Material Expression node allows you to move the UV coordinates of your Texture in either the U or V direction or in a combination of both. 
+为材质添加运动的能力不可或缺，当您尝试重新创建诸如火焰、流水或烟雾之类的效果时尤其如此。 
+在虚幻引擎 4 (UE4) 中，实现此功能的一种低成本、有效方法是使用 **平移（Panner）材质表达式** 节点。 
+“平移”（Panner）材质表达式节点允许沿 U 或 V 方向或者同时沿这两个方向移动纹理的 UV 坐标。 
 
 
-## What is Animating UV Coordinates
+## 什么是 UV 坐标动画
 
-Animating UV Coordinates or UV Panning means to move a Texture's UV coordinates either horizontally(U), vertically(V), or a combination of both to give the illusion that complex animation is taking place. 
-In the following example, the Fire Texture is being panned in the U (horizontally) direction, making the fire look like it is moving. 
+UV 坐标动画或 UV 平移的含义是，水平 (U) 和/或垂直 (V) 移动纹理的 UV 坐标，以产生复杂动画的错觉。 
+在以下示例中，火焰纹理沿着 U（水平）方向平移，使火焰看起来像是在移动一样。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -34,45 +36,45 @@ dNmE36WNQos
 [/PARAMLITERAL]
 [/OBJECT]
 
-## Panner Node Breakdown
+## “平移”（Panner）节点明细
 
-Below is what the Panner node looks like after it has been added to the Material Graph.
-The Panner node takes in two inputs, Coordinates and Time, and outputs the result. 
-You can add Panner Material Expression node to the Material Graph by searching for **Panner** in the **Palette** or by pressing the **P** key on the keyboard when the mouse is inside of the Material Graph window.
+下图是“平移”（Panner）节点添加到材质图之后的外观。
+“平移”（Panner）节点有两个输入，即“坐标”（Coordinates）和“时间”（Time），并输出结果。 
+您可以通过在 **选用板** 中搜索 **Panner**，或者在鼠标位于材质图窗口内时按键盘上的 **P** 键，将“平移材质表达式”（Panner Material Expression）节点添加到材质图。
 
 ![](AU_Node_Breakdown.png)
-| Property | Description|
+| 属性 | 说明|
 |--------- | ---------- |
-| **Coordinate** | Takes in base UV texture coordinates the expression can then modify. |
-| **Time** | Takes in a value used to determine the current panning position. This is usually a Time expression to provide a constant panning effect, but a Constant or Scalar Parameter can be used as well to set a specific offset or to control the panning through Matinee or Blueprints. |
+| **坐标（Coordinate）**| 接收可以通过表达式来修改的基本 UV 纹理坐标。|
+| **时间（Time）**| 接收用来确定当前平移位置的值。这通常是用来提供常量平移效果的时间表达式，但是，也可以使用常量或标量参数来设置特定偏移，或者通过 Matinee 或蓝图来控制平移。|
 
 ![](AU_Node_Options_Breakdown.png)
-| Property | Description|
+| 属性 | 说明|
 |--------- | ---------- |
-| **Speed X** | Speed to move in the texture coordinates in the horizontal or X direction. |
-| **Speed Y** | Speed to move in the texture coordinates in the vertical or Y direction. |
-| **Const Coordinate** | Only used if Coordinate is not hooked up.|
-| **Fractional Part** | Output only the fractional part of the pan calculation for greater precision. Output is greater than or equal to 0 and less than 1.|
+| **速度 X（Speed X）**| 纹理坐标沿水平或 X 轴方向移动的速度。|
+| **速度 Y（Speed Y）**| 纹理坐标沿垂直或 Y 轴方向移动的速度。|
+| **常量坐标（Const Coordinate）**| 仅在未连接坐标的情况下使用。|
+| **小数部分（Fractional Part）**| 仅输出平移计算结果的小数部分，以提高精度。输出将大于或等于 0 并且小于 1。|
 
-## How to Use Animated UV Coordinates in your Material 
+## 如何在材质中使用动画 UV 坐标 
 
-Setting up a Texture to use UV Panning is something that can be accomplished in the few following steps. 
+设置纹理以使用 UV 平移功能的步骤如下。 
 
 [region:note]
-This tutorial will make use of content that can be found if you included the **Starter Content** with your project. If you have not included the Starter Content in your project, you can look into the [Migrating](Engine/Content/Browser/UserGuide/Migrate) 
-content page for information about how to move content between projects. This way you can add the Starter Content to your project and not have to make a new one.  
+本教程将使用项目中包含 **起步内容** 时可以找到的内容。如果您的项目未包含起步内容，请参阅 [迁移](Engine/Content/Browser/UserGuide/Migrate) 
+内容页面，以了解有关如何在项目之间移动内容的信息。通过这种方法，您可以将起步内容添加到项目中，而不必建立新项目。  
 [/region]
 
-1. First create a New Material in the **Content Browser**. To do this, use the mouse to **Right-Click** in the **Content Browser** and then select **Material** from the **Create Basic Asset** menu and then name it **Panner_Material**. 
-	When completed, you should have something that looks like this in the **Content Browser**.
+1. 首先，在 **内容浏览器** 中创建新材质。为此，请在 **内容浏览器** 中 **右键单击**，从 **创建基本资产（Create Basic Asset）**菜单中选择 ** 材质（Material）**，然后将它命名为 **Panner_Material**。 
+	完成后，**内容浏览器** 中应该会显示类似下图的内容。
 
 	![](AU_Creat_New_Material.png)
 
-1. With the Material now created, open it up by **Double-Clicking** on it with the **Left Mouse Button** inside the **Content Browser**. Once the Material is opened, go back to the **Content Browser** and click on the **Game** folder and then use the following search term, **T_Fire_Tiled_D**, to find the Fire Texture. 
+1. 材质现已创建完毕，请在 **内容浏览器** 中通过 **双击鼠标左键** 将其打开。打开材质之后，返回到 **内容浏览器** 并单击 **Game** 文件夹，然后搜索 **T_Fire_Tiled_D** 一词以查找火焰纹理。 
 	
 	![](AU_Find_Fire_Texture.png)
 
-1. Once the Fire Texture has been located, drag it from the **Content Browser** into the Material by first selecting it with the **Left Mouse Button** and then with the **Left Mouse Button** still held down, drag it into the Material. Once over the Material, release the  **Left Mouse Button** to place the Texture in Material Graph. 
+1. 找到火焰纹理后，通过以下方法将它从 **内容浏览器** 拖到材质中：使用 **鼠标左键** 将它选中，然后按住 **鼠标左键** 将它拖到材质中。当鼠标指针位于材质上时，释放 **鼠标左键** 即可将纹理放入材质图。 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
 	640
@@ -85,7 +87,7 @@ content page for information about how to move content between projects. This wa
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-1. With the texture now placed in the Material Graph, go to the **Palette** and search for **Panner**. Once you find the **Panner** Material Expression, select it with the **Left Mouse Button** and then drag it into the Material Graph. Once over the Material Graph, release the  **Left Mouse Button**  to place the **Panner** Material Expression in the Material Graph. Once completed, your Material Graph should look like this. 
+1. 纹理现在已放入材质图，请转到 **选用板** 并搜索 **Panner**。找到 **平移（Panner）**材质表达式后，请使用 **鼠标左键** 将其选中，然后将它拖到材质图中。当鼠标指针位于材质图上方时，释放 **鼠标左键** 即可将 **平移（Panner）**材质表达式放入材质图。完成之后，您的材质图应该类似于下图。 
 	
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -99,14 +101,14 @@ content page for information about how to move content between projects. This wa
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-1. Now with all the required nodes added, it is now time to start connecting everything together. First plug the **White** Output of the Fire Texture into the **Base Color**  input. Then connect the Output of the **Panner** to the **UVs** input on the Fire Texture. When completed, you should have something that looks like this. 
+1. 现在，您已添加了所需的所有节点，可以开始将它们连接到一起。首先，将火焰纹理的 **白色** 输出连接到 **底色（Base Color）**输入。然后，将 **平移（Panner）**的输出连接到火焰纹理的 **UV** 输入。完成后，您应该看到类似下图的内容。 
 
 	![](AU_Making_Connections.png)
 
-1. With everything hooked up, it is now time to make the Fire Texture pan. To do this, first select the **Panner** Material Expression and then in the **Details** panel, set the **Speed X** parameter to **0.1**. 
+1. 所有内容现已连接完毕，可以开始让火焰纹理平移。为此，请先选择 **平移（Panner）**材质表达式，然后在 **细节（Details）**面板中，将 **速度 X（Speed X）**参数设置为 **0.1**。 
 	![](AU_Set_Panning_Speed.png)
 
-1. As soon as you set **Speed X** to **0.1**, you should see the Fire Texture begin to move horizontally in the preview window. 
+1. 将 **速度 X（Speed X）**设置为 **0.1** 时，在预览窗口中，您应该会立即看到火焰纹理开始水平移动。 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
 	640
@@ -119,23 +121,23 @@ content page for information about how to move content between projects. This wa
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-1. Now the Material is ready to be complied, saved, and used. 
+1. 现在，可以编译、保存和使用此材质。 
 
 
-## Tip & Tricks
+## 提示与技巧
 
-Using panning in combination with other Material Expressions is a great way to add some extra control to how the panning will work. 
-In the example below, the Material that was created above was taken one step further by adding controls to help control the speed but also the titling.
-By increasing the numbers that **TexCoord** and **Time** Material Expression are multiplied by, you can adjust the speed and titling of the Fire Texture. 
+将平移功能与其他材质表达式结合使用是一种很不错的方法，这样可以添加一些额外的控制来确定平移的工作方式。 
+在以下示例中，将对上文创建的材质进行进一步处理，即，添加控制项以帮助控制速度及平铺。
+通过增大 **材质坐标（TexCoord）**和 **时间（Time）**材质表达式的乘数，您可以调整火焰纹理的速度及平铺。 
 
 ![](AU_Adding_More_Controal.png)
 
 
-You can also stack **Panner** Material Expression to make the illusion of movement even more complex. 
-In this example, a copy of the all the original Material Expression nodes was created by first selecting all the Material Expression nodes and pressing **CTRL + W** on the keyboard. 
-Then the Panning direction on the newly created nodes was changed from **Speed X = 0.1** to **Speed Y = 0.1** to make the image move vertically instead of horizontally. 
-Next the values that were being multiplied by the **Time** and **TexCoord** where increased from **1** to **2**. 
-Finally both Textures where **Multiplied** together to give the end result below.
+您也可以叠加 **平移（Panner）** 材质表达式，以产生更加复杂的移动错觉。 
+在本示例中，通过先选中所有材质表达式节点再按键盘上的 **CTRL + W**，创建所有原始材质表达式节点的副本。 
+然后，将新建节点的平移方向从 **速度 X（Speed X）= 0.1** 更改为 **速度 Y（Speed Y）= 0.1** 以使图像垂直移动，而不是水平移动。 
+接着，将与 **时间（Time）** 和 **纹理坐标（TexCoord）**相乘的值从 **1** 增大为 **2**。 
+最后，这两个纹理 **相乘** 以产生以下最终结果。
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -149,12 +151,12 @@ Onrimjeh5z4
 [/PARAMLITERAL]
 [/OBJECT]
 
-## Conclusion 
+## 结论 
 
-Animating UV Coordinates is a great way to introduce motion into your Materials. 
-It is also extremely useful for visual effects that require complex motion like smoke or fire. 
-However keep in mind that Animating UV Coordinates works best on objects that have contiguous UV setups. 
-Any deviation in a meshes UV coordinates will show up when the UV Coordinates are animating. 
+UV 坐标动画是一种可以为材质引入运动效果的出色方法。 
+对于需要复杂运动的视觉效果（如烟雾或火焰），这种方法也极为有用。 
+但是，请记住，UV 坐标动画最适合于具有连续 UV 设置的对象。 
+网格 UV 坐标中的任何偏差在 UV 坐标动画时都会显现。 
 
 
 

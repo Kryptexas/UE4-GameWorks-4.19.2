@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2714898
 Availability: Public
-Title:Add a Surface Type
+Title:표면 유형 추가
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
 Description:
 Version: 4.9
@@ -45,16 +45,14 @@ SkillLevel: Intermediate
 [/OBJECT]
 [/VAR]
 
-The follwing steps detail how to add a Physical Surface Type to your project.
+여기서는 프로젝트에 Physical Surface Type, 물리적 표면 유형을 추가하는 법을 자세히 설명합니다.
 
-1. Edit -> Project Settings... -> Physics -> Physical Surface Category
-1. Change the "None" in the Name field next to a "SurfaceType#" to a name descriptive of what you'd like the Surface Type to represent (concrete, flesh, wood, etc...)
+1. 편집 -> 프로젝트 세팅... -> 피직스 -> Physical Surface 카테고리
+1. "SurfaceType#" 옆의 Name (이름) 칸의 "None" (없음)을 표면 유형이 나타내는 것에 대한 설명이 되는 이름으로 변경합니다 (콘크리트, 살, 나무 등...)
 
 [REGION:raw]
 ![](addSurfaceTop.png)(convert:false)
 [/REGION]
-
-
 
 
 

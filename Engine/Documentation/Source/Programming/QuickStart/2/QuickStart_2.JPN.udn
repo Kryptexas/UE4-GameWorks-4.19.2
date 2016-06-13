@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2558633
+﻿INTSourceChangelist:2725386
 Availability:Public
-Title:2.C++ クラスを作成する
+Title:2 - C++ クラスを作成する
 Crumbs:%ROOT%, Programming, Programming/QuickStart
 Description:C++ クラスを作成する
-Version:4.7
+SkillLevel:Beginner
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,20 +24,18 @@ Version:4.7
 
 %Steps%
 
- 1. **Unreal Editor** では、 **[File]** ドロップダウン メニューの **Add Code to Project** コマンドを使って C++ クラスを作成することができます。
+ 1. **アンリアル エディタ** では、**[File]** ドロップダウン メニューの **Add Code to Project** コマンドを使って C++ クラスを作成することができます。
  
-	[![](AddCPPCode.png)](AddCPPCode.png)
+	[![](AddCPPClass.png)](AddCPPClass.png)
 
- 2. **[Choose Parent Class]** メニューが開きます。**Actor** は **Unreal Engine** レベルに存在可能な最も基本的なクラスなので、 **Actor** クラスをベースとして使用します。
+ 2. **[Choose Parent Class (親クラスを選択)]** メニューが開きます。**Actor** は **Unreal Engine** レベルに存在可能な最も基本的なクラスなので、 **Actor** クラスをベースとして使用します。
  
 	[![](ChooseParentClass.png)](ChooseParentClass.png)
 
- 3. **[Name Your New Actor]** メニューが開きます。ここでは名前を「FloatingActor」と入力して、 **[Create Class]** をクリックします。
+ 3. **[Name Your New Actor (新規アクタに名前を付ける)]** メニューが開きます。ここでは名前を「FloatingActor」と入力して、 **[Create Class (クラスを作成)]** をクリックします。
  
 	[![](NameActorClass.png)](NameActorClass.png)
 
-----
-
-C++ クラスが作成されたので、プログラミングを行うために **Visual Studio** へ切り替えることができます。 `FloatingActor.cpp` が自動的に開き、 **Unreal Engine** が自動的に新規クラスをコンパイルおよびリロードしてくれます。
+C++ クラスが作成されたので、プログラミングを行うために **Visual Studio** へ切り替えることができます。`FloatingActor.cpp` が自動的に開き、**アンリアル エンジン** が自動的に新規クラスをコンパイルおよびリロードしてくれます。
 
 %Steps%

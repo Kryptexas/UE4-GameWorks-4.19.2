@@ -1,11 +1,12 @@
-﻿INTSourceChangelist:2615757
+﻿INTSourceChangelist:2701304
 Availability: Public
 Title:블루프린트에서 함수 리플리케이트
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\Networking\ReplicateFunction
 Description:블루프린트로 멀티플레이 게임에서 함수를 리플리케이트시키는 방법 안내입니다.
 Related: Engine/Blueprints
 Related: Resources/ContentExamples/Networking
-
+Version: 4.9
+SkillLevel: Advanced
 
 [TOC (start:2 end:2)]
 
@@ -45,7 +46,7 @@ Related: Resources/ContentExamples/Networking
 		
 	![](HowTo4.png)
 	
-	서버 창에서만 화염 이펙트가 스폰되고 다른 플레이어게는 그 이펙트 스폰이 안보이는 것이 보일 것입니다.
+	서버 창에서만 화염 이펙트가 스폰되고 다른 플레이어에게는 그 이펙트 스폰이 안보이는 것이 보일 것입니다.
 	다른 플레이어를 가지고 점프 시도를 하면, 마찬가지로 로컬에서는 화염 이펙트가 스폰되지만 다른 플레이어들은 그 이펙트 스폰 여부를 알지 못합니다.
 	추가로, **Space Bar** 가 눌렸을 때만 캐릭터 위치에 스폰되도록 하기 위해서, 화염 이펙트를 캐릭터에 붙이지는 않았습니다.
 

@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2757172
 Availability:Public
 Title: 5. 블랙보드 애셋 셋업
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:5 단계. 블랙보드 애셋 셋업
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -30,7 +31,7 @@ Description:5 단계. 블랙보드 애셋 셋업
 ![](BBAsset.png)
 
 1. **콘텐츠 브라우저** 에서 블랙보드 애셋을 **더블클릭** 합니다.
-1. ![](newKey_button.png) **새 키** 버튼을 사용하여 **TargetToFollow** 라는 이름의 **Object** 값을 추가합니다.
+1. **새 키** 버튼을 사용하여 **TargetToFollow** 라는 이름의 **Object** 값을 추가합니다.
 1. **HomeLocation** 라는 이름의 **Vector** 값을 추가합니다.
 1. **TargetLocation** 라는 이름의 **Vector** 값을 추가합니다.
 
@@ -40,3 +41,7 @@ Description:5 단계. 블랙보드 애셋 셋업
 
 
 %Steps%
+
+
+
+

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2728286
 Availability:Public
 Title: 애니메이션 블루프린트
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -10,6 +10,7 @@ Related: Engine/Animation/PhysicallyDrivenAnimation
 Related: Engine/Animation/StateMachines
 Related: Gameplay/AI
 Related: Engine/Content/Tools/MayaRiggingTool
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -33,7 +34,6 @@ Related: Engine/Content/Tools/MayaRiggingTool
 
 [TOC(start:2 end:2)]
 
-## 개요
 
 [EXCERPT:Intro]
 **Animation Blueprint** (애니메이션 블루프린트)는 본질적으로 그 그래프가 스켈레탈 메시의 애니메이션을 
@@ -84,4 +84,17 @@ _SkeletalControl_ (스켈레탈 콘트롤)에서 _Skeleton_ (스켈레톤)의 �
 		[INCLUDE:Engine/Animation/AnimBlueprints/AnimGraph#Intro]
 	[/PARAM]
 [/OBJECT]
+
+## 자손 블루프린트 작업
+
+캐릭터와 애니메이션 블루프린트를 만들어 구성할 때, 캐릭터가 여럿 있는데 기본은 비슷하지만 각기 다른 상태마다 각기 다른 애니메이션이 필요한 경우가 있습니다. 그럴 때 각 캐릭터마다 애니메이션 블루프린트를 만들기 보다는, 기존 애니메이션 블루프린트의 **자손 애니메이션 블루프린트** 를 사용하여 대체하고자 하는 애니메이션을 덮어쓸 수 있으면 좋을 것입니다. 자손 애니메이션 블루프린트는 부모에서 모든 것을 상속받으나, **애셋 오버라이드 에디터** 를 통해 덮어쓸 애니메이션을 지정할 수도 있습니다.
+
+예를 들어, 인간형 캐릭터가 둘 있는 데, 하나는 인간이고 하나는 늑대인간이라 칩시다. 둘 다 걷기, 달리기, 점프, 웅크리기 등은 가능할 테지만 그 동작은 완전히 다를 것입니다. 그러한 동작 사이의 이동 로직은 동일하지만, 동작 자체는 다릅니다. 물론 별개의 애니메이션 블루프린트를 두 개 만들어도 괜찮습니다만, 시간 절약을 위해 자손 애니메이션 블루프린트를 만들고 덮어쓸 애니메이션을 선택하면 됩니다.
+
+[REGION:note]
+자손이 있는 애니메이션 블루프린트 생성 및 덮어쓰기 관련 예제 안내는 [](Engine/Animation/AnimHowTo/AnimBPOverride) 문서를 참고하세요.
+[/REGION]
+
+
+
 

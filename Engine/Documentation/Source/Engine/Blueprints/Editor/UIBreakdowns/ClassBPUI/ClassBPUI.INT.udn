@@ -38,7 +38,7 @@ The **Blueprint Class Editor** contains several tabs by default:
 <!----------
 [EXCERPT:Visible]
 1. [Menu](Engine/Blueprints/Editor\UIComponents\Menu)
-1. [Toolbar](Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions)
+1. [Toolbar](Engine/Blueprints/Editor/UIComponents/Toolbar)
 1. [Components](Engine/Blueprints/UserGuide/Components)
 1. [My Blueprint](Engine/Blueprints/Editor/UIComponents/MyBlueprint)
 1. [Graph Editor](Engine/Blueprints/Editor/UIComponents/GraphEditor)

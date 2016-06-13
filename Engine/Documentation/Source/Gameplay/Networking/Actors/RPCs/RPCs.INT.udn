@@ -21,18 +21,18 @@ To declare a function as an RPC, you simply need to add `Server`, `Client`, or `
 
 For example, to declare a function as an RPC that will be called on the server, but executed on the client, you would do this:
 
-	UFUNCTION( Client );
+	UFUNCTION( Client )
 	void ClientRPCFunction();
 
 To declare a function as an RPC that will be called on the client, but executed on the server is very similar but uses the `Server` keyword:
 
-	UFUNCTION( Server );
+	UFUNCTION( Server )
 	void ServerRPCFunction();
 
 There is another special type of RPC function type called Multicast. Multicast RPCs are designed to be called from the server, and then executed on the server as well as all currently connected clients. 
 To declare a multicast function, you simply use the `NetMulticast` keyword:
 
-	UFUNCTION( NetMulticast );
+	UFUNCTION( NetMulticast )
 	void MulticastRPCFunction();
 
 Multicast RPCs can also be called from clients but will only execute locally in this case.
@@ -79,7 +79,7 @@ The following tables summarize where a given type of RPC will execute, depending
 
 By default, RPCs are unreliable. To ensure that an RPC call is executed on the remote machine, you can specify the `Reliable` keyword:
 
-	UFUNCTION( Client, Reliable );
+	UFUNCTION( Client, Reliable )
 	void ClientRPCFunction();
 
 ## Blueprints
@@ -100,21 +100,21 @@ parameters were bad, it could notify the system to disconnect the client/server 
 
 To declare a validation function for an RPC, simply add the `WithValidation` keyword to the `UFUNCTION` declaration statement:
 
-	UFUNCTION( Server, WithValidation );
+	UFUNCTION( Server, WithValidation )
 	void SomeRPCFunction( int32 AddHealth );
 
 Then, somewhere next to the Implementation function, put the Validate function:
 
-	bool SomeRPCFunction _Validate( int32 AddHealth )
+	bool SomeRPCFunction_Validate( int32 AddHealth )
 	{
-		If ( AddHealth > MAX_ADD_HEALTH )
+		if ( AddHealth > MAX_ADD_HEALTH )
 		{
 			return false;                       // This will disconnect the caller
 		}
-	return true;                              // This will allow the RPC to be called
+		return true;                              // This will allow the RPC to be called
 	}
 
-	void SomeRPCFunction _Implementation( int32 AddHealth )
+	void SomeRPCFunction_Implementation( int32 AddHealth )
 	{
 		Health += AddHealth;
 	}

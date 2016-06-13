@@ -1,197 +1,196 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2697179
 Availability: Public
-Title:Referencing Actors in Blueprints
+Title:在蓝图中引用 Actor
 Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/ReferenceAssets
-Description:A How To Guide for referencing Actors in Blueprints. 
+Description:关于如何在蓝图中引用 Actor 的操作指南。
+Version: 4.9
+SkillLevel: Advanced 
 
 [TOC (start:2)]
 
-On this page, you will learn multiple ways you can **Reference Actors** in Blueprints. Referencing Actors properly is important if you want to change aspects of the Actor during gameplay through Blueprints or pass the reference from one Blueprint to another so that you may access and modify it. 
+在本页中，您将了解在蓝图中 **Reference Actors** 的多种方法。如果您想在玩游戏期间通过蓝图更改 Actor 的要素，
+或将引用从一个蓝图传递到另一个蓝图以便您访问和修改它，正确引用 Actor 则十分重要。 
  
-## Level Blueprint Reference
+## 关卡蓝图引用
 
-The most common method of creating a reference is by referencing an Actor that is placed in your level inside the **Level Blueprint**. To do this, simply follow the steps below. 
+创建引用的最常见方法是在 **Level Blueprint** 中引用放置在您的关卡中的 Actor。要执行此操作，只需遵循以下步骤。 
 
-1.	Inside your project, place an Actor or Blueprint Actor in your level.
+1.	在您的项目中，将一个 Actor 或蓝图 Actor 放置到您的关卡中。
 
 	![](GHT5B_1.png)
 
-	Here we dragged in a **Box Trigger** Actor. 
+	在这里，我们拖入了一个 **Box Trigger** Actor。 
 
 	[REGION:note]
-	Please see the [](Engine/Actors/Types) documentation for more on Actor Types.
+	请参见 [](Engine/Actors/Types) 文档以了解有关 Actor 类型的更多信息。
 	[/REGION]
 
-1.	With the Actor in the level selected, click the **Blueprints** button from the Main Toolbar, then click **Open Level Blueprint**. 
+1.	在关卡中选定 Actor 后，单击主工具栏上的 **Blueprints** 按钮，然后单击 **Open Level Blueprint**。 
 
 	![](GHT5B_2.png)
 
-1.	With the **Blueprint Editor** window open, **Right-click** in the graph window and select **Create a Reference to TriggerBox**. 
+1.	打开 **Blueprint Editor** 窗口后，在图表窗口中 **右键** 并选择 **Create a Reference to TriggerBox**。 
 
 	![](GHT5B_3.png)
 
-	In our example, we are adding reference to the **TriggerBox**, however your Actor will appear here.
+	在本例中，我们将添加对 **TriggerBox** 的引用，但您的 Actor 也将在此出现。
 
-1.	A new node will be added to the Blueprint which you can drag off to access/set its properties, or Call Events or Functions from it. 
+1.	新节点将会添加到蓝图中，您可以拖出该节点以访问/设置其属性或从中调用事件或函数。 
 
 	![](GHT5B_4.png)
 
-	Here we are printing to the screen when the player overlaps the trigger. When they exit the trigger, we are disabling its collision so it cannot be triggered again (unless we re-enable collision on it). While we used a TriggerBox, you could have a Blueprint Actor in your level which has its own Variables, Events, or Functions within it that you could access or call by using this method of getting reference. 
+	在这里，我们将在玩家重叠触发器时输出至屏幕。当他们退出触发器时，
+	我们将禁用其碰撞以便其不再被触发（除非我们重新启用其碰撞）。
+	尽管我们使用了 TriggerBox，但您可以在关卡中使用本身具有可通过此引用获取方法访问或调用的变量、
+	事件或函数的蓝图 Actor。 
 
 
 
-## Spawn Actor Reference
+## 生成 Actor 引用
 
-Another method of getting reference to an Actor can be done when spawning an Actor in your levels. Take a look at the example below. 
+获取 Actor 引用的另一种方法可在关卡中生成 Actor 时执行。请参阅以下示例。 
 
-1.	Inside your project, open your player character's Blueprint (we are using **ThirdPersonCharacter**). 
+1.	在您的项目中，打开您的玩家人物蓝图（我们使用的是 **ThirdPersonCharacter**）。 
 
-1.	Inside the graph, **Right-click** and add an **Event Begin Play** node and connect it to a **Spawn Actor from Class** node. 
+1.	在图表中，**右键** 并添加 **Event Begin Play** 节点，然后将其连接到 **Spawn Actor from Class** 节点。 
 
-1.	For the **Class** drop-down menu on the **Spawn Actor** node, select the Actor Class you want to spawn when the game starts. 
+1.	在 **Spawn Actor** 节点的 **Class** 下拉菜单中，选择游戏启动时您要生成的 Actor 类。 
 
 	![](GHT5B_5.png)
 
-	Here we are spawning the **Blueprint_Effect_Fire** Actor at the player's Transform (denoted by the **Get Actor Transform** node). 
+	我们将在玩家变换（由 **Get Actor Transform** 节点表示）中生成 **Blueprint_Effect_Fire** Actor。 
 
-1.	Drag off the **Return Value** pin of the **Spawn Actor** node and select **Promote to variable**. 
+1.	拖出 **Spawn Actor** 节点的 **Return Value** 针并选择 **Promote to variable**。 
 
 	![](GHT5B_6.png)
 
-	This will create a variable out of the spawned Actor (which we named **SpawnedActor**). You could also drag off the Return Value to directly access the Variables, Events, or Functions inside your selected Actor that you are spawning, but we are making it a variable so that we may access it later. 
+	此操作将在生成的 Actor（命名为 **SpawnedActor**）外创建一个变量。您也可以拖出 Return Value 以直接访问
+	您所选且将要生成的 Actor 中的变量、事件或函数，但我们使其成为变量以便以后访问。 
 
-1.	You can now hold **Control** and drag the variable into the graph, then drag off it to access the properties inside it. 
+1.	现在，您可以按住 **Control** 并将变量拖入图表中，然后将其拖出以访问其属性。 
 
 	![](GHT5B_7.png)
 
-	Here we are accessing the Particle Effect Component (**P_Fire** denoted in the yellow box above) from the Spawned Actor and **Deactivating** it from our **ThirdPersonCharacter** Blueprint when the player presses the **F** key.
+	在这里，我们将在生成的 Actor 中访问 Particle Effect 组件（以上黄色方框中指示的 **P_Fire**），
+	并在玩家按下 **F** 键时在 **ThirdPersonCharacter** 蓝图中 **Deactivating** 它。
 
 
-## Direct Blueprint Communication Referencing
+## 管理蓝图通信引用
 
-There may be times when you have several Blueprint Actors in your level and you want to modify one of them from inside another Blueprint. Referred to as **Direct Blueprint Communication**, the typical steps used to do so are outlined below. 
+有时，您的关卡中具有若干个蓝图 Actor，而您想在另一个蓝图中修改其中一个 Actor。
+这称为 **Direct Blueprint Communication**，用于执行此操作的典型步骤如下所列。 
 
-1.	Place two Blueprint Actors in your level. 
+1.	将两个蓝图 Actor 放置到您的关卡中。 
 
 	![](GHT5B_8.png)
 
-	Here we are using the **Blueprint_Effect_Fire** and **Blueprint_Effect_Sparks** Actors included with Starter Content. 
+	在这里，我们将使用 **Blueprint_Effect_Fire** 和入门资源包中包含的 **Blueprint_Effect_Sparks** Actor。 
 
-	Say we want the fire effect to deactivate the spark effect after a few seconds when the game starts. 
+	假设我们想在游戏启动几秒钟后让喷火效果停用火花效果。 
 
-1.	Inside the **Blueprint_Effect_Fire** Blueprint, we create an **Event Begin Play** connected to a **Delay** node (set to 2 seconds). 
+1.	在 **Blueprint_Effect_Fire** 蓝图中，创建连接到 **Delay** 节点（设置为 2 秒）的 **Event Begin Play**。 
 
-1.	We are at the point where we want to reference the sparks effect so we create a new variable using **Blueprint_Effect_Sparks_C**. 
+1.	此时，我们想要应用火花效果，所以我们使用 **Blueprint_Effect_Sparks_C** 创建一个新变量。 
 
 	![](GHT5B_9.png)
 
-	Reference Blueprint Actors are denoted with a **_C** following their name as seen above. 
+	引用蓝图 Actor 由其名称后面加 **_C**（如上所示）表示。 
 
-1.	Hold **Control** and drag the new variable into the graph, then drag off it to access the Blueprint's properties. 
+1.	按住 **Control** 并将新变量拖入图表中，然后将其拖出以访问该蓝图的属性。 
 
 	![](GHT5B_10.png)
 
-	We named our variable **Target Blueprint** and you can see here that we can access the Blueprint's properties as we attempt to get the spark effect to deactivate it. 
+	我们将变量命名为 **Target Blueprint**，您可以看到当我们试图获得火花效果以停用它时，我们可以访问该蓝图的属性。 
 
-1.	We then hook up our graph to deactivate the spark effect 2 seconds after the game starts. 
+1.	然后，连接表格以在游戏启动 2 秒后停用火花效果。 
 
 	![](GHT5B_11.png)
 
-1.	We **Compile** and **Play** in the editor and see that it does not work and are presented with an error message. 
+1.	**编译** 并在编辑器中 **运行**，然后发现该操作不起作用且屏幕显示错误信息。 
 
 	![](GHT5B_12.png)
 
-	Expanded...
+	已展开...
 
 	![](GHT5B_13.png)
 
-	The error states that we have Accessed None and is a common error that occurs when trying to communicate between Blueprints and get reference to Actors for the first time. 
+	错误信息表示“访问内容为空”，这是一个常见错误，会在尝试在蓝图之间通信且首次获取 Actor 的引用时发生。 
 
-	In the Blueprint_Effect_Fire Blueprint, we identified our target Blueprint and created a variable for it and deactivated the sparks, however we need to specify the actual Instance of that Blueprint that we want to apply the change to. 
+	在 Blueprint_Effect_Fire 蓝图中，我们确定了目标蓝图并为其创建变量，而且停用了火花效果，但是，
+	我们需要指定要应用更改的蓝图的实际实例。 
 
-	We can do that by making the variable Public which will allow us to access it inside the Main Editor window where we can select which Instance should be affected. 
+	我们可以通过将变量公开来实现此目标，这将允许我们在主编辑器中访问该变量，
+	而且我们可以在主编辑器中选择应受影响的实例。 
 
-1.	In the **Blueprint_Effect_Fire** Blueprint, click the eye icon next to the **TargetBlueprint** variable. 
+1.	在 **Blueprint_Effect_Fire** 蓝图中，单击 **TargetBlueprint** 变量旁的眼睛图标。 
 
 	![](GHT5B_14.png)
 
-	This will set the variable to **Public** which will allow us to set it inside the Editor.
+	此操作会将变量设置为 **Public**，该设置将允许我们在编辑器中设置变量。
 
-1.	Click the **Compile** button then return to the Main Editor window and select the **Blueprint_Effect_Fire** Actor in the level. 
+1.	单击 **编译** 按钮，然后返回主编辑器窗口并在关卡中选择 **Blueprint_Effect_Fire** Actor。 
 
-1.	In the **Details** panel, you will now see that there is a **Target Blueprint** option where we can select the targeted Blueprint Actor. 
+1.	在 **Details** 面板中，您将看到 **Target Blueprint** 选项，我们可以通过此选项选择目标蓝图 Actor。 
 
 	![](GHT5B_16.png)
 
-	You can use the drop-down menu to select the target Actor, or you can use the Eye Dropper and select the target Actor in the scene. 
+	您可以使用下拉菜单选择目标 Actor，或使用滴管并在场景中选择目标 Actor。 
 
 	![](GHT5B_17.png)
 
-1.	With the target Actor set, if you **Play** in the editor now, the spark effect will deactivate after two seconds. 
+1.	设置目标 Actor 后，如果您即刻在编辑器中 **运行**，则火花效果将在两秒种后停用。 
 
 	[REGION:note]
-	You can refer to [](Engine/Blueprints/UserGuide/BlueprintComms) and [](Engine\Blueprints\UserGuide\BlueprintCommsUsage) for more information on using Direct Blueprint Communication.
+	您可以参阅 [](Engine/Blueprints/UserGuide/BlueprintComms) 和 [](Engine\Blueprints\UserGuide\BlueprintCommsUsage) 以了解有关使用管理蓝图通信的更多信息。
 	[/REGION]
 
 
-## Cast To Referencing
+## 转换引用
 
-While the Direct Blueprint Communication method works for getting reference between Actors that exist in your level, there may be instances when you want to get a reference to an Actor in your level and pass it to a Blueprint Actor that is not in the level yet, for example the player character (or other Actor) that does not exist in the level until the game starts. In this case, you can use a Cast To node to send the reference to your Target Blueprint. 
+尽管直接蓝图通信方法可用于获取存在于关卡中的 Actor 之间的引用，但您有时会想在关卡中获取 Actor 引用并将该引用传递到关卡中尚未包含的蓝图 Actor，例如，直到游戏启动才存在于关卡中的玩家人物（或其他 Actor）。在这种情况下，您可以使用 Cast To 节点向您的目标蓝图发送引用。 
 
-1.	Place an Actor in your level that you want to reference. 
+1.	将您要引用的 Actor 放置在关卡中。 
 
 	![](GHT5B_18.png)
 
-1.	With the Actor in the level selected, click the **Blueprints** button from the Main Toolbar, then click **Open Level Blueprint**. 
+1.	在关卡中选定 Actor 后，单击主工具栏上的 **Blueprints** 按钮，然后单击 **Open Level Blueprint**。 
 
 	![](GHT5B_2.png)
 
-1.	**Right-click** and select the **Create a Reference to...** option. 
+1.	**右键** 并选择 **Create a Reference to...** 选项。 
 
 	![](GHT5B_19.png)
 
-1.	**Right-click** and add an **Event Begin Play** and **Get Player Character** node. 
+1.	**右键** 并添加 **Event Begin Play** 和 **Get Player Character** 节点。 
 
-1.	In your Character Blueprint, create a new variable of the type you want to reference. 
+1.	在您的人物蓝图中，创建您想引用类型的新变量。 
 
 	![](GHT5B_21.png)
 
-	Here we created a variable of the Blueprint_Effect_Fire_C type called TargetBlueprint (as the fire effect is what we want to reference) inside the ThirdPersonCharacter Blueprint. When the game is started the Level Blueprint will get the reference to the Actor in the level then pass it to the ThirdPersonCharacter Blueprint so that we may access its properties. 
+	我们在 ThirdPersonCharacter 蓝图中创建了名为 TargetBlueprint 的 Blueprint_Effect_Fire_C 类型的变量
+	（因为我们想引用喷火效果）。游戏启动后，关卡蓝图将在关卡中获取 Actor 的引用，
+	然后将其传递到 ThirdPersonCharacter 蓝图以便我们访问其属性。 
 
-1.	**Control** drag the variable into the graph, then drag off it to access its properties. 
+1.	**Control**，将变量拖入图表中，然后拖出变量以访问其属性。 
 
 	![](GHT5B_22.png)
 
-	Here we are deactivating the **P_Fire** effect when the player presses the **F** key. 
+	此时，当玩家按下 **F** 键时我们将停用 **P_Fire** 效果。 
 
-	Now that we have created a variable to hold the reference, we still need to pass the reference from the **Level Blueprint**. 
+	尽管我们创建了保存引用的变量，我们仍需要从 **Level Blueprint** 传递引用。 
 
-1.	**Compile** the Character Blueprint when your script is complete, then open the **Level Blueprint** again. 
+1.	您的脚本完成后，**编译** 人物蓝图，然后再次打开 **Level Blueprint**。 
 
-1.	Drag off the **As My Character C** pin of the **Cast To** node and add the **Set Target Blueprint** node. 
+1.	拖出 **Cast To** 节点的 **As My Character C** 针并添加 **Set Target Blueprint** 节点。 
 
 	![](GHT5B_23.png)
 
-	Plug in the reference node to the in pin of your **Set Target Blueprint** (or whatever you called your variable). 
+	将引用节点插入 **Set Target Blueprint**（或您变量的任何名称）的内针。 
 
-1.	**Compile** then **Play** in the editor. 
+1.	**编译**，然后在编辑器中 **Play**。 
 
-	If you followed this example, you should be able to deactivate the fire effect by pressing the **F** key. 
+	如果您按本示例操作，您应可以通过按下 **F** 键停用喷火效果。 
 
 	[REGION:note]
-	You can refer to [Casting to Blueprint Types](Engine/Blueprints/UserGuide/BlueprintComms) and [](Engine\Blueprints\UserGuide\BlueprintCommsUsage) for more information on Actor Casting.
+	您可以参阅 [转换至蓝图类型](Engine/Blueprints/UserGuide/BlueprintComms) 和 [](Engine\Blueprints\UserGuide\BlueprintCommsUsage) 以了解有关 Actor 转换的更多信息。
 	[/REGION]
-
-
-
-
-
-
-
-
-
-
-
-
-
-

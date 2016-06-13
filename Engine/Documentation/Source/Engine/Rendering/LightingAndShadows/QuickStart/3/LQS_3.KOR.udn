@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2438964
+﻿INTSourceChangelist:2683826
 Availability: Public
 Title:3. 포인트 라이트 추가하기
 Crumbs:%ROOT%, GettingStarted, Engine\Rendering\LightingAndShadows\QuickStart
 Description:이번 단계에서는 포인트 라이트로 작은 화장실을 밝혀보겠습니다.
+SkillLevel: Beginner
+Version: 4.9
 
 
 [VAR:Steps]

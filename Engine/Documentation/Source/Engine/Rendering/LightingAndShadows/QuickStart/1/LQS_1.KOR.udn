@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2527310
+﻿INTSourceChangelist:2683792
 Availability: Public
 Title:1. 필수 구성
 Crumbs:%ROOT%, GettingStarted, Engine\Rendering\LightingAndShadows\QuickStart
 Description:여기서는 나중에 라이팅 작업을 할 작은 방을 몇 개 만들겠습니다.
+SkillLevel: Beginner
+Version: 4.9
 
 
 [VAR:Steps]
@@ -34,7 +36,7 @@ Description:여기서는 나중에 라이팅 작업을 할 작은 방을 몇 개
 
 	![](setup1.png)
 
-1.	**아웃라이너** 안에서 바닥을 선택한 다음 **Ctrl+W** 를 여섯 번 눌러 아래와 같은 바닥을 만듭니다.
+1.	**월드 아웃라이너** 안에서 바닥을 선택한 다음 **Ctrl+W** 를 여섯 번 눌러 아래와 같은 바닥을 만듭니다.
 
 	![](floors.png)
 
@@ -65,7 +67,7 @@ Description:여기서는 나중에 라이팅 작업을 할 작은 방을 몇 개
 
 	![](setup11.png)
 
-1.	**아웃라이너** 안에서 벽을 선택한 다음 **Ctrl+W** 를 11 번 눌러 아래와 같은 벽을 만듭니다.
+1.	**월드 아웃라이너** 안에서 벽을 선택한 다음 **Ctrl+W** 를 11 번 눌러 아래와 같은 벽을 만듭니다.
 
 	![](wallsOutliner.png)
 
@@ -97,7 +99,7 @@ Description:여기서는 나중에 라이팅 작업을 할 작은 방을 몇 개
 
 	![](setup25.png)
 
-1.	**아웃라이너** 안에서 기둥을 선택한 다음 **Ctrl+W** 를 다섯 번 눌러 아래와 같이 기둥을 만듭니다.
+1.	**월드 아웃라이너** 안에서 기둥을 선택한 다음 **Ctrl+W** 를 다섯 번 눌러 아래와 같이 기둥을 만듭니다.
 
 	![](pillarsAdded.png)
 
@@ -115,11 +117,11 @@ Description:여기서는 나중에 라이팅 작업을 할 작은 방을 몇 개
 	| **50x504** | ![](setup30.png) |
 	| **50x505** | ![](setup31.png) |
 
-	모든 기둥을 (아래 강조된 것처럼) 추가하고나면, 아래와 같아 보이는 구조물이 생길 것입니다.
+	모든 기둥을 (아래 강조된 것처럼) 추가하고 나면, 아래와 같아 보이는 구조물이 생길 것입니다.
 
 	![](setup32.png)
 	
-1.	**아웃라이너** 에서 **Wall_400x407** 벽 조각을 선택합니다.
+1.	**월드 아웃라이너** 에서 **Wall_400x407** 벽 조각을 선택합니다.
 
 	![](setup33.png)
 

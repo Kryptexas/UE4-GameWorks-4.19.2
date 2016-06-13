@@ -73,11 +73,11 @@ These buttons allow you to quickly filter down the asset type that you need.
 
 | **Name** | **Description** |
 | --- | --- |
-| Recently Places | Contains a rolling history of up to the last 20 types placed. |
-| Geometry | Contains all Brush primitive types. |
-| Lights | Contains all Light types. |
-| Visual | Contains common _visual_, or rendering-related, types such as fog, decals, etc. |
+| Recently Placed | Contains a rolling history of up to the last 20 types placed. |
 | Basic | Contains general common types such as triggers, cameras, etc. |
+| Lights | Contains all Light types. |
+| Visual Effects | Contains common _visual_, or rendering-related, types such as fog, decals, etc. |
+| BSP | Contains all Brush primitive types. |
 | Volumes | Contains all placeable Volume types. |
 | All Classes | Contains all placeable Actor types. |
 

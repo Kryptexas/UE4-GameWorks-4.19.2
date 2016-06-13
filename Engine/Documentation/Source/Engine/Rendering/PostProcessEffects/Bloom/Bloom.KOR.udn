@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2536292
+﻿INTSourceChangelist:2685464
 Availability:Public
 Title:블룸
 Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
 Description:광륜을 통해 라이트처럼 밝은 오브젝트를 밝게 빛나게 만드는 글로우 이펙트입니다.
+Version: 4.9
 
 [EXCERPT:Bloom_Desc]
 **Bloom** (블룸)이란 중간 정도의 렌더링 퍼포먼스 비용으로 이미지 렌더링에 사실감을 크게 더해줄 수 있는, 현실에서도 볼 수 있는 광학 현상입니다. 블룸 현상은 훨씬 어두운 배경에 있는 매우 밝은 물체를 맨눈으로 바라볼 때 목격할 수 있습니다. 그보다 밝아지면 (빛줄기나 렌즈 플레어같은) 다른 현상도 생길 수 있지만, 고전적인 블룸 효과에서는 다루지 않습니다. 보통 쓰는 (TV, TFT 등의) 디스플레이에서는 HDR(High Dynamic Range)이 지원되지 않기에, 너무 밝은 오브젝트는 렌더링할 수가 없습니다. 대신 빛이 필름에 내리쬐거나(필름 피하산란) 카메라 앞에 내리쬘 때(유윳빛 유리 필터) 눈에서 벌어지는 (망막 피하산란) 현상을 흉내냅니다. 그 효과가 물리적으로야 항상 옳지는 않겠지만, 오브젝트의 상대적 밝기를 살려주거나 화면에 표시되는 LDR(Low Dynamic Range) 이미지에 사실감을 더하는 데 도움이 될 수는 있습니다.
@@ -33,11 +34,14 @@ Description:광륜을 통해 라이트처럼 밝은 오브젝트를 밝게 빛�
 [/EXCERPT:Intensity]
 
 [EXCERPT:Threshold]
-[REGION:imagetable]
-| ![Bloom Threshold - 0](bloom_threshold_0_small.png)(w:380) | ![Bloom Threshold - 10](bloom_threshold_10_small.png)(w:380) |
-| ------ | ------ |
-| 0.0 | 10.0 |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Threshold - 0.0](bloom_threshold_0_small.png)
+	[/PARAM]
+	[PARAM:after]
+	![Threshold - 10.0](bloom_threshold_10_small.png)
+	[/PARAM]
+[/OBJECT]
 [/EXCERPT:Threshold]
 
 [EXCERPT:Size]

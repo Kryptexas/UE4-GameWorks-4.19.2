@@ -1,8 +1,9 @@
-INTSourceChangelist:2004247
+﻿INTSourceChangelist:2664756
 Availability:Public
 Title:Convert Spaces 노드
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference
 Description:포즈의 로컬 / 컴포넌트 스페이스를 변환하는 애니메이션 노드입니다.
+version: 4.9
 
 [REGION:banner]
 ![Space Conversion](spaceconversion_banner.png)(convert:false)
@@ -10,7 +11,7 @@ Description:포즈의 로컬 / 컴포넌트 스페이스를 변환하는 애니�
 
 [TOC(start:2 end:3)]
 
-## 개요
+
 
 [EXCERPT:Intro]
 포즈는 _로컬 스페이스_ 나 _컴포넌트 스페이스_ 에 있을 수 있습니다. _Animation Blueprint_ (애니메이션 블루프린트)의 **AnimGraph** 
@@ -23,7 +24,7 @@ Description:포즈의 로컬 / 컴포넌트 스페이스를 변환하는 애니�
 인풋 포즈를 변환해 줘야 한다는 뜻입니다. 인풋 포즈가 로컬 스페이스 포즈를 출력하는 노드에서 오는 경우, 
 그 포즈를 올바른 스페이스로 변환해 줘야 _스켈레탈 콘트롤_ 이 그에 맞는 작업을 할 수가 있습니다.
 그 후 _스켈레탈 콘트롤_ 이 작업을 하고 난 결과 포즈를 다시 로컬 스페이스로 변환해 줘야 
-추가적인 블렌드나 **Result** 노드에 쓸 수 있습니다.
+추가적인 블렌드나 **Result** 핀에 쓸 수 있습니다.
 [/EXCERPT:Intro]
 
 [REGION:fullwidth]

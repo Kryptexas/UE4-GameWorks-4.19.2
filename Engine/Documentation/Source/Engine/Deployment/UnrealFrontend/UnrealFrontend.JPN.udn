@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2602746
+﻿INTSourceChangelist:2955961
 Availability:Public
 Title:Unreal Frontend
 Crumbs:%ROOT%, Engine, Engine/Deployment
@@ -59,7 +59,7 @@ UFE のシングルユーザー エクスペリエンスへ完全に異なるこ
 [EXCERPT:DeviceManagement]
 開発キット、モバイルデバイス、その他のテスト用コンピューターを管理してください。UFE の前バージョンで利用可能だった簡易なデバイス検出は、 
 UE4 では格段にパワフルなバージョンを提供いたします。ターゲットデバイスが、物理的またはデバイスの SDK を通じて 
-ローカル PC に接続していなくてはいけない制限をなくしました。ローカルで接続されているデバイスやネットワークでつながっているデバイスを検知することが可能となり、 
+ローカル PC への接続が必要な制限をなくしました。ローカルで接続されているデバイスやネットワークでつながっているデバイスを検知することが可能となり、 
 他の開発者とこれらを共有することができます。Windows や Mac コンピューターも、 
 デプロイメント、起動、自動化のためにターゲットデバイスとして扱えるようになりました。
 [/EXCERPT:DeviceManagement]
@@ -74,9 +74,13 @@ Unreal Frontend はアンリアル エディタのタブまたはスタンドア
 
 ![](workspace_menu.png)
 
-スタンドアローン アプリケーションは、「/Engine/Binaries/Win64」ディレクトリに格納されています。
+スタンドアローン アプリケーションは、「/Engine/Binaries/Win64」ディレクトリおよび「/Engine/Binaries/Mac」に格納されています。
 
 ![](explorer.png)
+
+[REGION:note]
+エンジンのソースビルドを使用する場合、Visual Studio または XCode からまず UnrealFrontend をビルドする必要があります。ご注意ください。 
+[/REGION]
 
 ## インターフェース
 

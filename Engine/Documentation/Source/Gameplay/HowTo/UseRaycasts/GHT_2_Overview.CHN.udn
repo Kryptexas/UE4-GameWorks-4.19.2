@@ -1,18 +1,28 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2735882
 Availability: Public
-Title:Using Raycasts (Tracing)
+Title:使用 Raycasts（Tracing）
 Crumbs: %ROOT%, Gameplay
-Description:A How To Guide for using Raycasts (Tracing) for gameplay purposes. 
+Description:关于如何使用 Raycasts（Tracing）实现游戏性目的的操作指南。 
+version: 4.9
+Parent:Gameplay
+type:how-to
+order:4
 
-There may be instances in your game where you want to determine if the player character is looking at something, and if so, alter the game state in some way (for example, highlight something when a player looks at it). Or maybe you want to determine if an enemy can see the player character, and if so, start shooting or engaging them in some way. You can accomplish both scenarios by using Raycasts (or Tracing) to "shoot" out an invisible ray which will detect geometry between two points and if geometry is hit, return what was hit so that you may then do something with it. 
+在您的游戏中，您可能需要确定玩家人物是否在注视某些东西，如果是的话，您就要设法改变游戏状态（例如，对玩家注视的对象进行突出显示）。
+您也可能要确定敌人是否能看到玩家人物，如果是这样，就要开始射击或以某种方式接触它们。
+您可以借助 Raycasts（或Tracing）实现这两种情形：“射出”一条不可见的射线来检测两点之间的几何体，如果几何体被射中，则返回被击中的对象，
+让您可以对其采取相应的处理。 
 
-There are several different options available when running a Trace. You can run a Trace to check for collision with any Objects where any Objects hit are returned, or you can run a Trace by Trace Channel where any Objects hit will return hit information only if the Object is set to specifically respond to a specified Trace Channel (which can be set via Collision Settings). 
+执行跟踪时，有几种不同的选项可以使用。您可以执行一次跟踪来检测是否与任何对象发生碰撞，同时返回被击中的对象，
+您也可以通过跟踪通道（Trace Channel）来执行跟踪，如果对象被设置为专门响应指定的跟踪通道（可通过碰撞设置（Collision Settings）进行设定），
+则任何被击中的对象都将只返回击中信息。 
 
-In addition to running traces by Objects or Trace Channel, you can run your Trace to detect Single hits or Multi hits, where a Single Trace returns only one a singular hit result and a Multi Trace returns multiple hits resulting from the Trace. With Traces, you can also specify the type of ray that is used: a straight line, a box, a capsule, or sphere. 
+除了以对象或跟踪通道执行跟踪外，您也可以执行跟踪来检测单一打击或多重打击，前者仅返回一个单独的击中结果，后者则在执行跟踪后返回多个击中结果。
+利用跟踪功能，您还可以指定所用的射线类型，包括直线、方形、胶囊或球形。 
 
-## Setup
+## 设置
 
-To learn more about Raycasts using Blueprints , follow the link below:
+关于使用蓝图运行 Raycasts 的详细信息，请访问以下链接：
 
 [REGION:buttonlist]
 * [](Gameplay\HowTo\UseRaycasts\Blueprints)

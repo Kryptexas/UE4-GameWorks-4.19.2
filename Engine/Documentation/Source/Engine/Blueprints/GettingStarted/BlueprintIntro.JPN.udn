@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2735872
+﻿INTSourceChangelist:2968923
 Availability:Public
 Title:ブループリント入門
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -6,7 +6,7 @@ Description:ブループリント入門者向けに機能の概要を説明し�
 version:4.9
 parent:Engine/Blueprints
 order:1
-type:reference
+
 
 [VAR:Topic]
 [OBJECT:Topic]

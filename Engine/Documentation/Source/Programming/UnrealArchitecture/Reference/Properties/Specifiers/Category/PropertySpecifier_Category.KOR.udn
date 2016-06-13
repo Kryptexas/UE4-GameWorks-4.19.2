@@ -16,7 +16,7 @@ Version: 4.9
     UPROPERTY(Category="CategoryName|SubCategoryName")
     Type VariableName;
 
-## 얘재
+## 예재
 
     UPROPERTY(Category="Player")
     float Health;

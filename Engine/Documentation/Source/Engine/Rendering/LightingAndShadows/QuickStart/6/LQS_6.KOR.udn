@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2527351
+﻿INTSourceChangelist:2685194
 Availability: Public
 Title:6. 라이트 프로파일 사용하기
 Crumbs:%ROOT%, GettingStarted, Engine\Rendering\LightingAndShadows\QuickStart
 Description:이번 단계에서는 라이트 프로파일을 사용하여 좀 더 고급 라이트를 만들어 보겠습니다.
-
+SkillLevel: Beginner
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

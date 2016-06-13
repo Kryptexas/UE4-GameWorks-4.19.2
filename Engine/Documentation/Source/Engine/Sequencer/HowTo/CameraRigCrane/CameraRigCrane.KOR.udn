@@ -1,0 +1,167 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Shooting from a Camera Rig Crane
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:Here we use a Camera Rig Crane to shoot a scene with sweeping movement. 
+Version: 4.12
+SkillLevel: Intermediate
+parent:Engine/Sequencer/HowTo
+order:1
+checkpoint: editorqs
+Related: Engine/Sequencer/Overview
+Related: Engine\Sequencer\ReferenceEditor\
+
+One of the tools real-world filmmakers use to produce smooth sweeping shots is by attaching a camera to a crane and controlling the shot through the crane's movement.
+You can create similar shots in Sequencer with the use of the **Camera Rig Crane** Actor and an attached **Camera**. 
+
+In this how-to we will add a Camera Rig Crane, attach a Camera and create a sample Crane Shot. 
+
+
+## Steps
+
+[REGION:note]
+For this how-to, we are using the **Blueprint Third Person Template** project with **Starter Content** enabled. 
+[/REGION]
+
+1.	In your project on the **Modes** panel under **Cinematic**, drag a **Camera Rig Crane** asset into the level. 
+
+	![](Crane01.png)
+
+1.	Also under **Cinematic**, drag a **Cine Camera Actor** into the level. 
+
+	![](Crane02.png)
+
+1.	In the **World Outliner** window, drag-and-drop the **CineCameraActor** onto the **CameraRig_Crane**. 
+
+	![](Crane03.png)
+
+	This will attach the camera to the crane so that it will follow the crane's movement. 
+
+1.	Select the **CineCameraActor**, then in the **Details** panel under **Transform** enter **0's** for **Location** and **Rotation** values. 
+
+	![](Crane04.png)
+
+	This will zero out the camera's transform and attach it correctly to the crane. 
+
+1.	From the Main Toolbar, click **Cinematics** then select **Add Level Sequence**. 
+
+	![](Crane05.png)
+
+1.	Hold **Ctrl** and select both the **CameraRigCrane** and **CineCameraActor**, then add both to **Sequencer**. 
+
+	![](Crane06.png)
+
+1.	Click **Add** then select the **Camera Cut Track**. 
+
+	![](Crane07.png)
+
+	This will allow us to define which camera to shoot this Level Sequence from. 
+
+1.	On the **Camera Cuts** track, click the **+ Camera** button then select the **CineCameraActor**. 
+
+	![](Crane08.png)
+
+	We are now ready to shoot our scene using our Camera Rig Crane and Cine Camera Actor. 
+	You can preview what the scene will look like through the perspective of the camera we added by clicking the **Lock Viewport to Camera** button on the **Camera Cuts Track**. 
+
+	![](Crane09.png)
+
+	Clicking the **Lock Viewport to Camera** again will unlock the camera. 	
+
+1.	Using the **Translate** tool (**W** key) and **Rotation** tool (**E** key), rotate the crane/camera as shown below. 
+
+	![](Crane10.png)
+
+	We are going to raise the crane and push it out to focus and reveal the character standing in the level for this particular shot. 
+
+1.	Add a key for the **Transform** location of the **Cine Camera Actor** by clicking the **Add Key** button on the **Transform Track**. 
+
+	![](Crane11.png)
+
+1.	Click the **+ Track** button on the **CameraRig_Crane** and add the **Crane Arm Length**, **Crane Pitch** and **Crane Yaw** tracks. 
+
+	![](Crane12.png)
+
+1.	Scrub the Timeline Marker ahead to **50** then set **Crane Arm Length** to **1000** and **Crane Pitch** to **20** and add keys for both. 
+
+	![](Crane13.png)
+
+	If you scrub back-and-forth between the start and frame 50 you should see the crane movement in the viewport.
+
+1.	Scrub the Timeline Marker to the end of the Sequence (**150**).
+
+1.	In the **Details** panel for the **CameraRig_Crane**, set **Crane Yaw** to **-25** and add a key. 
+
+	![](Crane14.png)
+
+	You can set the **Crane Pitch**, **Crane Yaw** and **Crane Arm Length** from the **Details** panel by clicking the **Add Key** button next to each property. 
+
+1.	In the **Details** panel for the **CineCameraActor**, set the **XYZ** values for **Rotation** to **0, -25, -50**. 
+
+	![](Crane16.png)
+
+	The values may not be exact and might be auto adjusted which is fine. 
+
+1.	With the **Cine Camera Actor** still selected, press **Shift + E** to add a key for the rotational values. 
+
+	![](Crane17.png)
+
+1.	Lock the viewport to the **Camera Cuts** track then click the **Preview Play** button. 
+
+	
+## End Result
+
+You should have something similar to below where the camera pans up along with the crane and pushes in towards the character. 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+RAsfP5G0Shk
+[/PARAMLITERAL]
+[/OBJECT]
+
+You can adjust the keys by dragging them to new values in the keyframe window. Above we slowed the cranes upward movement by moving the **Crane Arm Length** and **Crane Pitch** keyframes we added at frame **50** and moved them to frame **100**. 
+
+[REGION:tip]
+There is an advanced method you can use to work with the **Camera Rig Crane** asset in Sequencer that will automate several of the steps from this how-to. Please see the [**Workflow Shortcuts**](Engine\Sequencer\Workflow\CheatSheet) section for more information. 
+[/REGION]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2281696
+﻿INTSourceChangelist:2690235
 Availability:Public
 Title:Texture 表現式
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
 Description:テクスチャをサンプリングおよび出力する表現式
+Version:4.9
 
 [EXCERPT:TOC]
 [TOC(start:2)]
@@ -15,7 +16,7 @@ Description:テクスチャをサンプリングおよび出力する表現式
 
 ## SceneColor
 
-SceneColor 表現式は、既存シーンの色を出力します。
+**SceneColor** 表現式は、既存シーンの色を出力します。
 
 | アイテム | 説明 |
 | -------- | ----------- |
@@ -37,7 +38,7 @@ SceneColor 表現式は、既存シーンの色を出力します。
 | アイテム | 説明 |
 | -------- | ----------- |
 | [REGION:tablesection]プロパティ[/REGION] ||
-| **Texture** | 表現式によってサンプル化されたテクスチャを指定します。テクスチャの設定は、最初に **コンテンツ ブラウザ** でテクスチャを選択します。次に、表現式のプロパティウィンドウから Texture プロパティを選択して、 [Use Current Selection] ボタンをクリックします。|
+| **Texture** | 表現式によってサンプル化されたテクスチャを指定します。テクスチャの設定は、最初に **コンテンツ ブラウザ** でテクスチャを選択します。次に、表現式のプロパティウィンドウから Texture プロパティを選択して、[Use Current Selection (現在の選択項目)] ボタンをクリックします。|
 | **Sampler Type** | サンプル化されてノードから出力されるデータ タイプです。 |
 | **MipValueMode** | 外観と動作に影響するテクスチャへノイズ値を適用します。 |
 | [REGION:tablesection]入力値[/REGION] ||
@@ -64,16 +65,18 @@ SceneColor 表現式は、既存シーンの色を出力します。
 
 ## TextureSample
 
-TextureSample 表現式は、テクスチャからカラー値を出力します。テキスチャは、通常の Texture2D (法線マップを含む) 、キューブマップまたはムービーテクスチャとなります。
+**TextureSample** 表現式は、テクスチャからカラー値を出力します。テキスチャは、通常の Texture2D (法線マップを含む) 、キューブマップまたはムービーテクスチャとなります。
 
 | アイテム | 説明 |
 | -------- | ----------- |
 | [REGION:tablesection]プロパティ[/REGION] ||
-| **Texture** | 表現式によってサンプル化されたテクスチャを指定します。テクスチャの設定は、最初に **コンテンツ ブラウザ** でテクスチャを選択します。次に、表現式のプロパティウィンドウから Texture プロパティを選択して、 [Use Current Selection] ボタンをクリックします。|
+| **Texture** | 表現式によってサンプル化されたテクスチャを指定します。テクスチャの設定は、最初に **コンテンツ ブラウザ** でテクスチャを選択します。次に、表現式のプロパティウィンドウから Texture プロパティを選択して、[Use Current Selection (現在の選択項目)] ボタンをクリックします。|
 | **Sampler Type** | サンプル化されてノードから出力されるデータ タイプです。 |
-| **MipValueMode** | 外観と動作に影響するテクスチャへノイズ値を適用します。 |
+| **MipValueMode** | サンプルのミップレベルもしくはデフォルト ハードウェアで計算された微分係数をカスタマイズする方法を選択します。外観とパフォーマンスの調整に影響します。 |
 | [REGION:tablesection]入力値[/REGION] ||
 | **UVs** | テキスチャに使用する UV テクスチャ座標を受け取ります。UV に値が入力されなかった場合、マテリアルが適用されているメッシュのテクスチャ座標が使用されます。TextureSample はキューブマップを表現します。 UV 座標は単に 2 チャンネル値ではなく、 3 チャンネル値でなくてはいけません。 |
+| **DDX(UVs)** | 異方性フィルタリング用に UV 入力の DDX を受け取ります。この処理は、ハードウェアがデフォルトで自動的にしかも早く行います。ただし、ディファード デカールの 2X2 ピクセル ブロックのようなアーティファクトが発生しないように、DDX マテリアル表現式を避けるように明確に設定する必要がある場合もあります。**MipValueMode** = **Derivative** の場合のみ使用できます。 |
+| **DDY(UVs)** | DDX(UVs) が UV 入力の DDX を受け取るのと同様に、異方性フィルタリング用に UV 入力の DDY を受け取ります。
 | [REGION:tablesection]出力値[/REGION] ||
 | **RGB** | カラーの 3 チャンネルの RGB ベクター値を出力します。 |
 | **R** | カラーの赤チャンネルを出力します。 |
@@ -84,6 +87,15 @@ TextureSample 表現式は、テクスチャからカラー値を出力します
 
 ![TextureSampleExample.png](TextureSampleExample.png)
 
+DDX(UVs) と DDY(UVs) 入力をさらに理解するために、このようなこともできます。ただし、**MipValueMode** = **None** を使った場合と全く同じ出力ですが遅いということに留意してください。これらの値は DDX/DDY マテリアル表現式とは異なる計算方法を使うため、DDX(UVs) と DDY(UVs) は、デフォルトのハードウェア計算を実際オーバーラードする必要がある場合いのみ使用してください。
+
+![SampleTextureDerivative.png](SampleTextureDerivative.png)
+
+## TextureProperty
+
+**TextureProperty** はテクスチャのサイズやテクセル サイズなど選択したテクスチャのプロパティを公開します。
+
+![TextureProperty.png](TextureProperty.png)
 
 [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Particles#ParticleSubUV]
 

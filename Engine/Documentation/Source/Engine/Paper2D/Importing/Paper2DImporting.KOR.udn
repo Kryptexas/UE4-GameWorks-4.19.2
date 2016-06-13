@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2707893
 Title:페이퍼 2D 임포트 옵션
 Crumbs: %ROOT%, Engine, Engine/Paper2D
 Description:페이퍼 2D 에서 사용할 써드 파티 어플리케이션 제작 애셋 임포트하기 입니다.
@@ -6,11 +6,12 @@ Availability:Public
 Related: Engine\Paper2D\Sprites
 Related: Engine\Paper2D\Flipbooks
 Related: Engine\Paper2D\TileMaps
+Version: 4.9
+SkillLevel: Beginner
 
 
 [TOC (start:2 end:2)]
 
-## 개요
 
 언리얼 엔진 4 의 **Paper 2D** (페이퍼 2D)는 외부 제작 콘텐츠 임포트를 위한 옵션이 여러가지 지원됩니다. 아래는 흔히 사용되는 콘텐츠 제작 어플리케이션 중 일부에서의 애셋 임포트 옵션 예제입니다.
 

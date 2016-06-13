@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2602658
+﻿INTSourceChangelist:2707751
 Availability: Public
 Title:머티리얼 에디터 - 텍스처 마스킹 사용 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
@@ -9,6 +9,8 @@ Related: Engine/Content/Types/Textures/Properties/Interface
 Related: Engine/Rendering/Materials/ExpressionReference/Textures
 Related: Engine/Rendering/Materials/HowTo/EmissiveGlow
 Related: Engine/Rendering/Materials/HowTo/Instancing
+Version: 4.9
+SkillLevel: Intermediate
 
 
 [TOC(start:2 end:3)]

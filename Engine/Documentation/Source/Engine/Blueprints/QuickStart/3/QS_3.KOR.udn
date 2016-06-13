@@ -1,14 +1,17 @@
-﻿INTSourceChangelist:2615876
+﻿INTSourceChangelist:2735872
 Availability: Public
 Title:3. 액터를 블루프린트 클래스로 변환하기
 Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
 Description:발구름판을 블루프린트 클래스로 변환하여 재사용 및 스크립팅이 가능하도록 만듭니다.
-
+version: 4.9
+parent:Engine/Blueprints/QuickStart
+order:3
+type:multi-step
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Engine/Blueprints/QuickStart/2 "%Engine/Blueprints/QuickStart/2:title%")
+		[예전 단계](Engine/Blueprints/QuickStart/2 "%Engine/Blueprints/QuickStart/2:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
@@ -16,7 +19,7 @@ Description:발구름판을 블루프린트 클래스로 변환하여 재사용 
 		[Quick Start Home](Engine/Blueprints/QuickStart)
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Engine/Blueprints/QuickStart/4 "%Engine/Blueprints/QuickStart/4:title%")
+		[다음 단계](Engine/Blueprints/QuickStart/4 "%Engine/Blueprints/QuickStart/4:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]

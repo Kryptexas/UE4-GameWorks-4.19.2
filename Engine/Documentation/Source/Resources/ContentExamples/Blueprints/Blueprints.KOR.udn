@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2626084
+﻿INTSourceChangelist:2712673
 Availability: Public
 Title:블루프린트 콘텐츠 예제
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -10,6 +10,8 @@ Related: Engine/Blueprints/UserGuide/Types/MacroLibrary
 Related: Engine/Animation/AnimBlueprints/EventGraph
 Related: Engine/Blueprints/UserGuide/UserConstructionScript
 Related: Gameplay/HowTo/SetUpInput/Blueprints
+Version: 4.9
+
 
 
 [REGION:banner]
@@ -100,7 +102,7 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 
 | 예제 | 데모 내용 |
 | ------- | ------------ |
-| **[2.1 Timeline Animation Example](Resources\ContentExamples\Blueprints_Advanced\2_1)** | 타임라인 애니메이션 예제 - **타임라인** 을 사용하여 **이벤트 트랙** 을 가진 스태틱 메시 애니메이션을 통해 지정된 지점에서 이미터를 스폰시키는 방법입니다 (예: 튕기는 공 애니미메이션을 만듭니다). |
+| **[2.1 Timeline Animation Example](Resources\ContentExamples\Blueprints_Advanced\2_1)** | 타임라인 애니메이션 예제 - **타임라인** 을 사용하여 **이벤트 트랙** 을 가진 스태틱 메시 애니메이션을 통해 지정된 지점에서 이미터를 스폰시키는 방법입니다 (예: 튕기는 공 애니메이션을 만듭니다). |
 | **[2.2 Actor Tracking Example](Resources\ContentExamples\Blueprints_Advanced\2_2)** | 액터 추적 예제 - 액터가 일정 반경 안에 들어온 플레이어를 향해 회전하도록 만드는 법입니다 (예: 스포트라이트가 플레이어에 반응하여 따라다닙니다). |
 | **[2.3 Button Trigger (Blueprint Interface) Example](Resources\ContentExamples\Blueprints_Advanced\2_3)** | 버튼 트리거 - **블루프린트 인터페이스** 를 사용하여 한 **블루프린트** 에서 다른 블루프린트로 변수를 전달하는 방법입니다 (예: 버튼으로부터 켜짐/꺼짐 변수가 애니메이션이 적용된 기어 세트에 전달됩니다). |
 | **[2.4 Opening Door (Trigger) Example](Resources\ContentExamples\Blueprints_Advanced\2_4)** | 문 열기 (트리거) 예제 - **트리거** 와 **타임라인** 으로 문을 자동으로 여닫는 방법입니다. |
@@ -131,7 +133,7 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 
 | 예제 | 데모 내용 |
 | ------- | ------------ |
-| **2.1 Using Event Dispatchers** | 이벤트 디스패처 사용하기 - **레벨 블루프린트** 안에서 **이벤트 이스패처** 를 사용하여 이벤트를 호출하는 방법입니다 (예: **이벤트 디스패처** 를 사용하여 라이트를 켜고 끕니다). |
+| **2.1 Using Event Dispatchers** | 이벤트 디스패처 사용하기 - **레벨 블루프린트** 안에서 **이벤트 디스패처** 를 사용하여 이벤트를 호출하는 방법입니다 (예: **이벤트 디스패처** 를 사용하여 라이트를 켜고 끕니다). |
 | **2.2 Binding Event Dispatchers to A Custom Event** | 커스텀 이벤트에 이벤트 디스패처 바인딩하기 - **레벨 블루프린트** 안에서 커스텀 이벤트에 **이벤트 디스패처** 를 바인딩하는 방법을 보여줍니다 (예: 시간에 따라 오브젝트를 회전시키는 버튼 토글입니다). |
 | **2.3 Binding Event Dispatchers to A Custom Event on Spawn** | 스폰된 액터가 소멸되면 호출되는 **이벤트 디스패처** 로 트리거를 활성화/비활성화시키는 방법을 보여줍니다 (예: 버튼을 누르면 폭탄이 스폰되며, 스폰된 것이 터지기 전까지는 다른 폭탄이 스폰되지 않습니다). |
 
@@ -169,8 +171,11 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 
 이 맵에 대한 좀 더 자세한 정보:
 
-* [1.1 블루프린트 마우스 상호작용](Resources\ContentExamples\MouseInterface)
+<!---* [1.1 Blueprint Mouse Interaction](Resources\ContentExamples\MouseInterface)--->
 
+| 예제 | 데모 내용|
+| ------- | ------------ |
+| **[1.1 블루프린트 마우스 상호작용](Resources\ContentExamples\MouseInterface)** | 게임에서의 마우스와 터치 입력 활용 방법에 대한 데모입니다. |
 
 ## Blueprint_HUD 맵
 
@@ -180,11 +185,49 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 
 이 맵에 대한 상세 정보는 여기서 찾을 수 있습니다:
 
-* [1.1 블루프린트 HUD 예제](Resources\ContentExamples\Blueprints_HUD\1_1)
+<!---* [1.1 Blueprints HUD Example](Resources\ContentExamples\Blueprints_HUD\1_1)--->
+
+| 예제 | 데모 내용 |
+| ------- | ------------ |
+| **[1.1 블루프린트 HUD 예제](Resources\ContentExamples\Blueprints_HUD\1_1)** | 기본 일시정지 메뉴 형태로 클릭가능 버튼이 포함된 간단한 게임내 HUD 데모입니다. |
+
+## 블루프린트 스플라인 맵
+
+![](blueprintSplines_ce_header.png)(convert:false)
+
+콘텐츠 예제 중 **블루프린트 스플라인** 맵은 **스플라인 컴포넌트** 와 **블루프린트** 를 사용해서 여러가지 다양한 방식으로 사용할 수 있는 경로를 만드는 법을 보여줍니다. 단순히 스플라인 컴포넌트를 블루프린트에 추가한 뒤 그 블루프린트 인스턴스를 선택하는 것으로, 레벨 내 스플라인 편집이 가능합니다. 그런 다음 뷰포트 안에서 스플라인 키를 선택한 다음 다른 액터처럼 이동, 회전, 스케일 위젯으로 조정할 수 있습니다.
+
+제공된 콘텐츠 예제는 **블루프린트 스플라인** 을 컨스트럭션 스크립트에서 사용해서 스태틱 메시 오브젝터로 된 길을 만드는 법 또는 게임플레이 도중 스플라인 경로나 스플라인 메시를 동적으로 변경하여 콘텐츠나 애니메이션을 만드는 법을 보여드립니다.
+
+ 
+### 컨스트럭션 스크립트 예제
+
+아래 예제에서는 스플라인 컴포넌트를 블루프린트의 컨스트럭션 스크립트에서 사용하여 뷰포트에서 실시간으로 길이나 크기 조정이 가능한 스태틱 메시를 만드는 법을 보여드립니다.
+
+| 예제 | 데모 내용 |
+| ------- | ------------ |
+| **1.1 블루프린트 스플라인 컴포넌트** | 뷰포트에서 스플라인 컴포넌트를 쉽게 편집하는 법을 보여줍니다 (뷰포트 안에서 스플라인 컴포넌트의 네 스플라인 지점을 이동합니다). |
+| **1.2 스플라인을 따라 컴포넌트 배치** | 블루프린트가 스플라인 컴포넌트에서 다양한 정보를 획득하는 법을 보여드립니다 (스플라인 길이를 따라 스태틱 메시 컴포넌트를 배치하면서 그 방향은 배치한 방향을 보도록 합니다). |
+| **1.3 스플라인 메시 컴포넌트** | 또다른 유형의 스플라인 컴포넌트인 스플라인 메시는 스태틱 메시 애셋을 늘이고 구부리는 데 사용됩니다 (예로 뷰포트에서 위젯을 사용하여 늘이고 회전시킬 수 있는 파이프를 들 수 있습니다). |
+
+
+### 동적인 예제
+
+**Dynamic Examples** (동적인 예제)에는 게임플레이 도중 스플라인 컴포넌트를 동적으로 업데이트하여 배경 오브젝트의 움직임이나 심지어 플레이 가능 캐릭터 애니메이션까지도 가능한 방법을 보여드립니다.
+
+| 예제 | 데모 내용 |
+| ------- | ------------ |
+| **2.1 스플라인을 경로로 사용** | 파티클 이펙트가 따라가는 데 사용할 수 있는 스플라인 컴포넌트 예제입니다. |
+| **2.2 시뮬레이션 도중 스플라인 변경** | 스플라인 컴포넌트를 게임플레이 도중 동적으로 생성하는 법을 보여줍니다 (플레이나 시뮬레이트시 줄에 걸린 랜턴들의 애니메이션). |
+| **2.3 스플라인 메시 애니메이션** | 스플라인 컴포넌트는 스플라인 메시가 따라가는 경로로 사용할 수도 있습니다 (땅에서 스플라인 경로를 따라 자라나는 덩굴). |
+| **2.4 폰 애니메이션용 스플라인 메시** | 스플라인 메시를 사용한 폰 애니메이션을 보여줍니다 (플레이 가능한 헤엄치는 물고기 애니메이션에 스플라인 메시가 사용). |
+
+
+
 
 <!--
 [EXCERPT:BlueprintsCEInstructions]
-콘텐츠 예제 프로젝트의 [블루프린트을 열어](Engine/Blueprints/UserGuide/Types/ClassBlueprint/Opening) 보면 각 블루프린트를 만드는 데 대한 [디폴트](Engine/Blueprints/Editor\Modes\Defaults), [컴포넌트](Engine/Blueprints/UserGuide\Components), [그래프](Engine/Blueprints/Editor\Modes\GraphPanel) 셋업 방식을 확인할 수 있습니다.
+콘텐츠 예제 프로젝트의 [블루프린트를 열어](Engine/Blueprints/UserGuide/Types/ClassBlueprint/Opening) 보면 각 블루프린트를 만드는 데 대한 [디폴트](Engine/Blueprints/Editor\Modes\Defaults), [컴포넌트](Engine/Blueprints/UserGuide\Components), [그래프](Engine/Blueprints/Editor\Modes\GraphPanel) 셋업 방식을 확인할 수 있습니다.
 [/EXCERPT:BlueprintsCEInstructions]
 
 -->

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2613461
+﻿INTSourceChangelist:2725276
 Availability:Public
 Title: 온라인 서브시스템 유형
 Crumbs:%ROOT%, Programming
@@ -58,8 +58,7 @@ Version: 4.9
 
 **FUniqueNetId** 에는 프로파일 서비스 온라인 ID 가 들어있으며, 개별 플레이어나 친구나 세션의 무언가를 나타낼 수 있습니다.
 
-<!--See:
- * [](Programming/Online/Interfaces/Profile)-->
+<!--See: [](Programming/Online/Interfaces/Profile)-->
 
 
 ### FSharedContentHandle
@@ -75,8 +74,7 @@ Version: 4.9
 
 **FSessionInfo** 에는 세션의 플랫폼 전용 정보가 들어있습니다. 그 정보는 대부분 세션 식별자, 호스트 주소, 생성된 세션을 식별하고 접속하기 위한 기타 수단 등입니다.
 
-참고:
- * [](Programming/Online/Interfaces/Session)
+참고: [](Programming/Online/Interfaces/Session)
 
 
 ### FEmsFile

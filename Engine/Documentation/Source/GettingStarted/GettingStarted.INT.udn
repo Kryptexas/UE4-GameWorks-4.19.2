@@ -6,6 +6,7 @@ Navigation:start
 version: 4.9
 parent:%ROOT%
 order:1
+tags:Getting Started
 
 [VAR:Params]
 [PARAM:image]
@@ -260,7 +261,7 @@ gettingstarted
 		[REGION:normaltitle]
 		Related Videos
 		[/REGION]
-		[VideoLink(videoid:"cRhWc2kAhqI" playlistid:"PLZlv_N0_O1gY35ezlSQn1sWOGfh4C7ewO" width:"180")]
+		[VideoLink(videoid:"EFXMW_UEDco" playlistid:"PLZlv_N0_O1gY35ezlSQn1sWOGfh4C7ewO" width:"180")]
 		[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -287,7 +288,7 @@ gettingstarted
 		[REGION:normaltitle]
 		Related Videos
 		[/REGION]
-		[VideoLink(videoid:"vtcWrcscXos" playlistid:"PLZlv_N0_O1gb5xvsc7VM7pfoRAKLuIcFi" width:"180")]
+		[VideoLink(videoid:"mSRov77hNR4" playlistid:"PLZlv_N0_O1gYup-gvJtMsgJqnEB_dGiM4" width:"180")]
 		[/REGION]
 	[/PARAM]
 [/OBJECT]

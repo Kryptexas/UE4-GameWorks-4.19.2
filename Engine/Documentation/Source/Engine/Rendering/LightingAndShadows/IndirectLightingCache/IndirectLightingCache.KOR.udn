@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2521522
+﻿INTSourceChangelist:2666790
 Availability:Public
 Title:간접광 캐시
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:빌드되지 않은 씬 미리보기와 다이내믹 오브젝트의 글로벌 일루미네이션에 간접광 샘플 캐시를 사용하는 법에 대한 글입니다.
+Versinon: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]

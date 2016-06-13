@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2607789
+﻿INTSourceChangelist:2713380
 Availability:Public
 Title: 컴포넌트 리플리케이션
 Crumbs:Gameplay, Gameplay/Networking, Gameplay/Networking/Actors
@@ -6,6 +6,7 @@ Description:네트워크 리플리케이션에 대한 컴포넌트 셋업하기 
 Related: Gameplay/Networking/Actors
 Related: Gameplay/Networking/Actors/Properties
 Related: Gameplay/Networking/Actors/ReplicationPerformance
+version: 4.9
 
 [TOC (start:2 end:3)]
 
@@ -31,12 +32,11 @@ Related: Gameplay/Networking/Actors/ReplicationPerformance
 컴포넌트를 리플리케이트시키려면 단순히 `AActorComponent::SetIsReplicated(true)` 호출을 해 주면 됩니다. 컴포넌트가 디폴트 서브오브젝트인 경우, 컴포넌트 생성 이후 클래스 생성자에서 처리될 것입니다.
 
 예:
-	ACharacter::ACharacter(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+	ACharacter::ACharacter()
 	{
-		// Etc...
+		// 기타...
 
-		CharacterMovement = ObjectInitializer.CreateDefaultSubobject<UMovementComp_Character>(this, TEXT("CharMoveComp"));
+		CharacterMovement = CreateDefaultSubobject<UMovementComp_Character>(TEXT("CharMoveComp"));
 		if (CharacterMovement)
 		{
 			CharacterMovement->UpdatedComponent = CapsuleComponent;

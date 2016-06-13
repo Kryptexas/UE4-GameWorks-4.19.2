@@ -1,24 +1,28 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2735882
 Availability: Public
-Title:Possessing Pawns
+Title:支配 Pawn
 Crumbs: %ROOT%, Gameplay
-Description:A How To Guide for possessing different pawns in Unreal Engine 4. 
+Description:关于如何在虚幻引擎 4 中支配不同的 Pawn 的操作指南。 
+Version: 4.9
+Parent:Gameplay
+type:how-to
+order:3
 
-If you want to switch between multiple Playable Characters in your game or you have a situation where you want a Character to enter and control a Vehicle (car, plane, tank, etc.) or other Pawn that has unique controls (like a mounted machine gun a player can control), you will want to take Possession of the Character or Pawn in order to pass input information to it. 
+如果您想在游戏中在多个可玩人物之间切换或想让人物进入并控制某个载具（汽车、飞机、坦克等）或具有特殊的控制方式的 Pawn（如玩家可控制的机载机关枪），
+您需要支配该人物或 Pawn 以向其传送输入信息。 
 
-The Player Controller is what is responsible for directing a Pawn and Possession of a Pawn requires a Player Controller to be specified. Pawns themselves do not need to be a humanoid character and can be anything that you want to apply basic movement to and allow a player to control. Characters on the other hand are a form of Pawn that includes Collision and a CharacterMovementComponent by default which allows it to do basic human-like movement. 
+***玩家控制器*** 负责控制 Pawn，支配 Pawn 需要指定玩家控制器。Pawn 自身无须是人形人物，而可以是您想向其应用基本移动并允许玩家控制的任何东西。
+人物则是 Pawn 的一种形式，在默认情况下，包括碰撞和允许其执行类似人类基本动作的 CharacterMovementComponent。 
 
-The link below in the Setup section will give you examples on Pawn Possession using Blueprints.
+以下“设置”部分的链接将通过示例介绍如何使用蓝图支配 Pawn。
 
-## Setup
+## 设置
 
-To learn more about Possessing Pawns using Blueprints, follow the link below:
+关于使用蓝图支配 Pawn 的详细信息，请访问以下链接：
 
 [REGION:buttonlist]
 * [](Gameplay\HowTo\PossessPawns\Blueprints)
-[PUBLISH:Docs]
-* [](Gameplay\HowTo\PossessPawns\Code)
-[/PUBLISH:Docs]
+
 [/REGION]
 
 

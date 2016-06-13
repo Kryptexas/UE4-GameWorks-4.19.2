@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2611424
+﻿INTSourceChangelist:2713167
 Availability: Public
 Title:피지컬 머티리얼 사용 안내서
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
 Description:피지컬 머티리얼 생성 및 응용 방법 안내서입니다.
+Version: 4.9
+SkillLevel: Intermediate
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -53,15 +55,15 @@ Description:피지컬 머티리얼 생성 및 응용 방법 안내서입니다.
 
 1. **콘텐츠 브라우저** 에서 ![](Engine/Audio\SoundCues\Editor\button_CB_NewAsset.png) **추가** -> **피직스** -> **피지컬 머티리얼** 을 클릭하거나, **콘텐츠 브라우저** 우클릭 맥락메뉴 -> **새 애셋** -> **피직스** -> **피지컬 머티리얼** 을 선택합니다.
 
-	![](PhysMat_Creation_01.png)
+	![](PhysMatCreate.jpg)
 
 1. 새로운 **피지컬 머티리얼** 을 더블클릭하여 프로퍼티를 편집합니다.
 
-	![](PhysMat_Creation_02.png)
+	![](PhysMatProperties.jpg)(w:250)
 
 1. 프로퍼티를 조정합니다.
 
-	![](PhysMat_Creation_03.png)
+	![](AdjustProperties.jpg)
 
 1. 저장 ![](Shared\Icons\icon_SaveAsset_40x.png) 합니다.
 
@@ -84,11 +86,11 @@ Description:피지컬 머티리얼 생성 및 응용 방법 안내서입니다.
 
 1. 메인 머티리얼 노드를 선택합니다.
 
-	![](PhysMat_Material_02.png)
+	![](PhysMatNone.jpg)
 
 1. 피지컬 머티리얼을 바꿉니다.
 
-	![](PhysMat_Material_03.png)
+	![](PhysMatGlass2.jpg)
 
 
 
@@ -100,7 +102,7 @@ Description:피지컬 머티리얼 생성 및 응용 방법 안내서입니다.
 
 1. 피지컬 머티리얼을 바꿉니다.
 
-	![](PhysMat_MaterialInst_02.png)
+	![](StoneMat.jpg)
 
 
 
@@ -111,20 +113,20 @@ Description:피지컬 머티리얼 생성 및 응용 방법 안내서입니다.
 [EXCERPT:PhysMatSkelMesh1]
 1. 피직스 애셋 툴에서 피직스 애셋을 엽니다.
 
-	![](PhysMat_PhAT_02.png)
+	![](PhysicsAsset1.jpg)
 
 1. 콘텐츠 브라우저에서 피지컬 머티리얼을 선택합니다.
 
-	![](PhysMat_PhAT_03.png)
+	![](M_Glass.jpg)
 
-1. 피직스 애셋 툴에서, Apply PhysMat (피지컬 머티리얼 적용) ![](Shared\Icons\icon_PhAT_PhysMat_40x.png) 버튼을 클릭합니다.
+1. 피직스 애셋 툴의 툴바 **애셋** 드롭다운에서 **Apply PhysMat** (피지컬 머티리얼 적용) 버튼을 클릭합니다: ![](AssetButton.jpg)
 	[REGION:raw]
-	![](PhysMat_PhAT_01.png)(w:860)
+	![](ApplyPhysMat.jpg)
 	[/REGION]
 [/EXCERPT:PhysMatSkelMesh1]
 
 
-피직스 바디가 다른 피지컬 퍼티리얼을 필요로 하는 경우, 개별적으로 조정해 주면 됩니다.
+피직스 바디가 다른 피지컬 머티리얼을 필요로 하는 경우, 개별적으로 조정해 주면 됩니다.
 
 1. 피직스 애셋 툴에서 바디 편집 모드를 켭니다.
 1. 피직스 바디를 선택합니다.
@@ -132,7 +134,7 @@ Description:피지컬 머티리얼 생성 및 응용 방법 안내서입니다.
 
 
 [REGION:raw]
-![](PhysMat_PhAT_04.png)(w:920)
+![](SimpleCollision.png)(w:700)
 [/REGION]
 
 스켈레탈 메시와의 물리 상호작용에 대한 기본 동작은 연관된 피직스 애셋하고만 상호작용하는 것이므로, 스켈레탈 메시의 머티리얼에 있는 피지컬 머티리얼은 

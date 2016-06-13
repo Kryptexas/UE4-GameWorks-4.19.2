@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2661361
+﻿INTSourceChangelist:2754441
 Availability:Public
 Title:데칼 액터 사용 안내서
 Crumbs:%ROOT%, Engine, Engine/Actors
 Description:Deferred Decal, 디퍼드 데칼 액터 사용 안내서입니다.
+Version: 4.9
+
 
 [VAR:Topic]
 [OBJECT:Topic]

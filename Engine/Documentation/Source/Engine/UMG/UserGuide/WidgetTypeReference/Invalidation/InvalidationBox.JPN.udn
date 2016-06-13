@@ -1,75 +1,75 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2828862
 Availability:Public
-Title: Invalidiation Box
+Title:Invalidiation Box
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide, Engine/UMG/UserGuide/WidgetTypeReference
-Description:Overview of using the Invalidation Box for optimizing UI Widgets. 
-version: 4.9
+Description:UI ウィジェットを最適化するための Invalidation Box 使用についての概要。 
+version:4.9
 
 
 [REGION:warning]
-This feature is still in development and is considered **Experimental**. As such, some features may or may not work as expected. 
+この機能はまだ開発途中であり、**実験的なものです。**そのため、一部の機能は期待通りの動作をしない場合があります。 
 [/REGION]
 
 [TOC(start:2 end:2)]
 
 
-## Widget Description
+##説明
 
 [EXCERPT:desc]
-Allows widget geometry to be cached to speed up Slate rendering. Widgets that are cached by an Invalidation Box are not Prepassed, Ticked or Painted. 
+Invalidation Box (無効化ボックス) でラップされているウィジェットでは、子ウィジェットのジオメトリをキャッシュして、スレートのレンダリングをスピードアップすることができます。Invalidation Box によってキャッシュされるウィジェットでは、Prepassed、 Ticked、または Painted が行われません。 
 [/EXCERPT:desc]
 
-In general if you are looking to optimize your project, wrapping certain widgets with Invalidation Boxes may boost your performance (particularly for mobile projects or complicated UI displays). For widgets that do not change constantly, they can be placed inside an Invalidation Box and cached instead of considered during paint, tick or prepass. 
+一般的にプロジェクトを最適化する方法を考える場合、特定のウィジェットを Invalidation Box でラップすると、パフォーマンスが向上する場合があります (特に、モバイル プロジェクトや複雑な UI 表示)。あまり変化しないウィジェットは、ペイント、ティック、プリパス中に考慮する代わりに Invalidation Box 内に入れてキャッシュすることができます。 
 
-If the widget changes however, it will become invalid and you will need to manually invalidate the cache which will throw it away essentially and force it to redraw on the next paint pass. Anything that changes the visual appearance of the widget requires it to be invalidated. The only exception to this is changes to appearance that are not stored in the vertex buffer for those widget (for example Materials, as changing a Material Parameter does not require invalidating the widget). 
+しかし、ウィジェットが変化すると、ボックスは無効になり、キャッシュを手動で無効化する必要があります。これは、実質的にボックスを破棄し、次のペイント パスで再描画を強制します。ウィジェットの外観を変えるものは何でも無効化する必要があります。この唯一の例外は、こうしたウィジェットの頂点バッファーに保存されない外観に対する変更です (例、マテリアル。マテリアル パラメーターの変更は、ウィジェットの無効化を必要としないからです)。 
 
 
-## Widget Details
+##詳細
 
-In the **Details** panel for a placed **Invalidation Box**, there are a couple of specific options that can be set that pertain to the Widget: 
+配置した **Invalidation Box** の **[Details (詳細)]** パネルには、ウィジェットに関連して設定可能な以下のようなオプションがあります。 
 
 ![](InvalidationBox.png)
 
-| Option | Description |
+| オプション| 説明 |
 | -------- | ----------- |
-| **Cache Relative Transforms** | Caches the locations for child draw elements relative to the invalidation box which adds extra overhead to drawing them every frame. However, in cases where the position of the invalidation boxes changes every frame, this can be a big savings. |
-| **Is Volatile** | If true, prevents the widget or its child's geometry or layout information from being cached. If this widget changes every frame, but you want it to still be in an invalidation panel you should make it as volatile instead of invalidating it every frame, which would prevent the invalidation panel from actually ever caching anything.  |
+| **Cache Relative Transforms** | Invalidation box に相対的に子の描画エレメントの位置をキャッシュし、フレーム毎にそれらを描画する余分なオーバーヘッドを加えます。ただし、Invalidation box の位置がフレーム毎に変化する場合は、このオプションを使用すると大きな節約につながります。 |
+| **Is Volatile** | true の場合は、ウィジェットやその子のジオメトリまたはレイアウトの情報がキャッシュされないようにします。このウィジェットがフレーム毎に変化するが、それでも Invalidation panel に入れたい場合は、フレーム毎に無効化する代わりに volatile にします。これにより、Invalidation panel が実際に何かをキャッシュするのを防ぎます。  |
 
-Regarding the **IsVolatile** check box, any widget can be set to be Volatile. Volatile widgets act like normal Slate widgets pre-invalidation. They're redrawn every frame, including all their children. When combined with the invalidation panel, it allows you to only need to care about redrawing only the most dynamic bits of the UI, as invalidating a whole panel could be far more costly.
+**IsVolatile** のチェック ボックスに関しては、どのウィジェットでも Volatile に設定することができます。Volatile ウィジェットは、通常のスレート ウィジェットの pre-invalidation のように機能します。これらはすべての子を含めてフレーム毎に再描画されます。Invalidation panel と組み合わせると、UI の非常に動的な部分だけを再描画することだけを配慮すればよくなります。パネル全体を無効化するほうがはるかに負荷が高くなるからです。
 
-## Widget Functions
+##関数
 
-When using an **Invalidation Box**, it's up to the user to call [`Invalidate`](https://docs.unrealengine.com/latest/INT/API/Runtime/SlateCore/Widgets/SWidget/Invalidate/index.html) through C++ or the **Invalidate Layout And Volatility** node (pictured below) on a child widget to force invalidation. 
+**Invalidation Box** を使用する場合、C++ で [`Invalidate`](https://docs.unrealengine.com/latest/INT/API/Runtime/SlateCore/Widgets/SWidget/Invalidate/index.html) を呼び出すか、子ウィジェットで **Invalidate Layout And Volatility** ノード (以下の図) を呼び出して無効化を強制するかはユーザー次第です。 
 
 ![](BPInvalidateNode.png)
 
 [REGION:note]
-Currently some core widgets do this automatically when certain properties are changed, however more will do it over time.
+現在、特定のプロパティが変更された場合に、一部の中心的ウィジェットはこれを自動的に行います。将来的には、もっと多くのものがこれを行うようになるでしょう。
 [/REGION]
 
 
-## Debugging Invalidation Boxes
+##デバッグ
 
-You can debug your Invalidation Boxes using the Widget Reflector (**CTRL+Shift+W**) and clicking the **Invalidation Debugging** toggle. 
+ウィジェット リフレクタ (**CTRL+Shift+W**) を使用して、**Invalidation Debugging** トグルをクリックして Invalidation Box をデバッグすることができます。 
 
 [REGION:lightbox]
 [![](WidgetReflector.png)(w:640)](WidgetReflector.png)
 [/REGION]
 
 [REGION:caption]
-_Click image for full view._
+_画像をクリックしてフルサイズで表示_
 [/REGION]
 
-With the Widget Reflector up and Invalidation Debugging on, you will see the following: 
+ウィジェット リフレクタをアップし、Invalidation Debugging をオンにすると、以下が表示されます。 
 
-* White/Red Flash - This is the widget response for invalidation. 
-* Green Boarder - This is for Invalidation Panels (Cached This Frame). 
-* Red Boarder - This is for Invalidation Panels (Cache Invalidated This Frame). 
-* Dashed Yellow Border - These identify volatile widgets. 
+* 白/赤点滅 - 無効化に対するウィジェットの反応です。 
+* 緑色の枠 (ボーダー) - これは Invalidation Panel 用です(このフレームをキャッシュ)。 
+* 赤色の枠 (ボーダー) - Invalidation Panel 用です (このフレームはキャッシュを無効化)。 
+* 黄色の破線 - volatile ウィジェットを特定します。 
 
 ![](ExampleDebugging.png)
 
-Above we have an image that is marked as Volatile inside of a Border which is wrapped with an Invalidation Box. Since the image is marked as Volatile, it can be updated dynamically during gameplay while the Border (or any other art assets that we wanted to appear around the image that do not change) is cached. 
+上の図は、Invalidation Box でラップされた枠内に Volatile とマークされた画像です。画像は Volatile とマークされているため、ゲームプレイ中に動的に更新することができます。これに対して Border (またはこの画像周囲に表示させたい変化しない他のアート アセット) はキャッシュされます。 
 
 
 

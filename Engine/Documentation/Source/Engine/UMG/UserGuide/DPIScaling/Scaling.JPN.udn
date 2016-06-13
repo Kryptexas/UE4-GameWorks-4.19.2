@@ -1,25 +1,26 @@
-﻿INTSourceChangelist:2338434
+﻿INTSourceChangelist:2708373
 Availability:Public
 Title:DPI スケーリング
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
 Description:DPI スケーリング ルールへのアクセスと調整の方法 
+version:4.9
 
 [REGION:banner]
 ![](DPIscaling.png)(convert:false)
 [/REGION]
 
-**UMG** では、解像度に依存しない UI の自動スケーリングをサポートしています。**[Project Settings]** メニューの **[レンダリング]** セクション内で適切になるように構成された、プロジェクト毎に適用されるデフォルトの DPI スケーリング ルールがあります。 
+**UMG** では、解像度に依存する UI に対して自動スケーリングをサポートしています。**[Project Settings]** メニューの **User Interface** セクションに適切に見えるように構成された、プロジェクト毎に適用されるデフォルトの DPI スケーリング ルールがあります。 
 
 ![](ProjectSettings.png)(w:820)
 
 **DPI Scale Rule** は、以下の 4 つのオプションのいずれかに設定できます。 
 
-* **Shortest Side** - ビューポートの最短の辺に基づきスケール カーブを判断します (最も一般的な設定)。 
-* **Longest Side** - ビューポートの最長の辺に基づいてスケールカーブを判断します。 
-* **Horizontal** - ビューポートのX 軸に基づいてスケールカーブを判断します。 
-* **Vertical** - ビューポートのY 軸に基づいてスケールカーブを判断します。 
+* **Shortest Side** - ビューポートの最短の辺に基づきスケール カーブを評価します (最も一般的な設定)。 
+* **Longest Side** - ビューポートの最長の辺に基づいてスケールカーブを評価します。 
+* **Horizontal** - ビューポートのX 軸に基づいてスケールカーブを評価します。 
+* **Vertical** - ビューポートのY 軸に基づいてスケールカーブを評価します。 
 
-カーブにポイントを追加するには、**右クリック** して **[Add Key]** オプションを選択します。カーブ上でキーをクリックすると、入力ボックスで解像度と、対応するスケール値を設定できます。さらにカーブで外部の **Float Curve** を利用するか、**DPI Curve** オプションを展開して現在適用されている設定に基づき Float Curve を作成します。 
+カーブにポイントを追加するには、**右クリック** して **[Add Key]** オプションを選択します。カーブ上でキーをクリックすると、入力ボックスで解像度と、対応するスケール値を設定できます。さらにカーブに対して、外部の **Float Curve** を利用するか、**DPI Curve** オプションを展開して現在適用されている設定に基づき Float Curve を作成します。 
 
 ![](ExternalCurve.png)
 

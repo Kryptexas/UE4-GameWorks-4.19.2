@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2615245
+﻿INTSourceChangelist:2677237
 Availability:Public
 Title:슬레이트 아키텍처
 Crumbs:%ROOT%, Programming, Programming/Slate
@@ -9,7 +9,7 @@ Version:4.9
 
 ## 이 페이지를 읽는 방법
 Slate (슬레이트) 디자인을 이끄는 핵심 개념에 대해 알아보실 수 있는 페이지로, 정해진 순서는 없습니다.
-확고한 구조나 장대한 이론같은 것은 여기 없으며, 그져 UI 를 빚어가는 경험에서 우러나온 
+확고한 구조나 장대한 이론같은 것은 여기 없으며, 그저 UI 를 빚어가는 경험에서 우러나온 
 원칙을 모아둔 것일 뿐입니다.
 
 [REGION:note]
@@ -21,7 +21,7 @@ Slate 경험이 쌓여감에 따라 이 페이지를 때때로 다시 읽어보�
 Slate 를 만들게 된 동기는, 현재 나와있는 UI 솔루션에 대해 관찰하다 보니 생기게 되었습니다.
 몇가지는 이렇습니다:
 
-* 위젯에서 UI 를 만드는 것은 이미 대부분의 툴킷에서 쉽게 할 수 있는 작업입니다. 어려운 것은:
+* 위젯에서 UI 를 만드는 것은 이미 대부분의 툴키트에서 쉽게 할 수 있는 작업입니다. 어려운 것은:
 	* UI 디자인과 반복작업(iteration).
 	* 데이터 흐름 제어: 흔히 위젯(뷰)과 내재된 데이터(모델)끼리 묶어주는 것으로 생각해 볼 수 있습니다.
 	* UI 기술(description)을 위한 외국어 습득.
@@ -82,9 +82,9 @@ UI 는 Model 을 시각화시키고 조작합니다. Slate 는 Model 의 데이�
 +------------+                                               
 ~~~
 
-	[REGION:caption]
-		STextBlock 는 framerate 를 문자열(string)로 읽어옵니다.
-	[/REGION]
+[REGION:caption]
+	STextBlock 는 framerate 를 문자열(string)로 읽어옵니다.
+[/REGION]
 [/REGION]
 
 위의 예에서 Text 는 문자열인 반면, `framerate` 는 거의 `float` 나 `integer` 로 저장된다는 것도 고려해 봅시다. 델리게이트를 사용하면 값을 읽을 때마다 유연하게 변환할 수 있습니다.
@@ -206,9 +206,9 @@ ComputeDesiredSize() 를 구현할 때만 각 위젯 유형이 필요하다는 �
 
 ~~~
 
-	[REGION:caption]
+[REGION:caption]
 	두 자손, 텍스트와 이미지가 배치되어 있는 Horizontal Box
-	[/REGION]
+[/REGION]
 [/REGION]
 
 STextBlock 위젯은 표시중인 문자열을 축정하여 원하는 크기를 계산할 것입니다. SImage 위젯은 
@@ -241,9 +241,9 @@ ArrangeChildren 은 하향식(top-down) 패스입니다. Slate 는 최상위 창
 .     |<---14--->|<-----11----->|
 ~~~
 
-	[REGION:caption]
+[REGION:caption]
 	가로 패널은 두 자손, 텍스트 블록과 이미지를 배치합니다.
-	[/REGION]
+[/REGION]
 
 위 예제에서 패널은 부모에 의해 25 유닛이 할당되었습니다.
 첫 슬롯은 자손의 Desired Size 를 사용하고 싶다는 것을 나타내며, 14 유닛 공간이 할당됩니다.

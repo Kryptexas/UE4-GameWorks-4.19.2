@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2611007
+﻿INTSourceChangelist:2709967
 Availability:Public
 Title:블루프린트 전용
 Crumbs: %ROOT%, Gameplay, Gameplay/ClassCreation
 Description:언리얼 엔진 작업을 시작하는 게임플레이 프로그래머를 위한 입문 정보입니다.
+version: 4.9
 
 [블루프린트 클래스](Engine/Blueprints/UserGuide/Types/ClassBlueprint) 는 [](Engine/Blueprints) 비주얼 스크립팅 시스템을 사용해서 새로운 클래스를 구성할 수 있습니다. [새 블루프린트 클래스 생성](Engine/Blueprints/UserGuide/Types/ClassBlueprint/Creation) 이후에는,
 컴포넌트를 추가하고, 비주얼 스크립팅으로 함수나 기타 게임플레이 또는 디자인 방식을 구성하고, 클래스 변수의 기본값을 설정합니다. LightSwitch 클래스는 **LightSwitch_BPOnly** 라는 이름의 
@@ -10,14 +11,13 @@ Description:언리얼 엔진 작업을 시작하는 게임플레이 프로그래
 
 ## 클래스 셋업
 
-**LightSwitch_BPOnly** 클래스는 **콘텐츠 브라우저** 에 [생성](Engine/Blueprints/UserGuide/Types/ClassBlueprint/Creation) 되었고, **액터** 가 부모 클래스로 선택되었습니다.
+**LightSwitch_BPOnly** 클래스는 **콘텐츠 브라우저** 에 생성되었고, **액터** 가 부모 클래스로 선택되었습니다.
 
-컴포넌트를 블루프린트에 추가하는 방식은, **블루프린트 에디터** 의 [컴포넌트 창](Engine/Blueprints/UserGuide/Components) 에서 정적으로, 또는 [그래프 에디터](Engine/Blueprints/Editor/UIComponents/GraphEditor) 의 비주얼 스크립팅을 통해 동적으로 이루어집니다.
-LightSwitch 클래스는 항상 PointLightComponent 와 SphereComponent 를 갖고있기 때문에, 이 경우 컴포넌트는 [컴포넌트 창](Engine/Blueprints/UserGuide/Components) 에서 정적으로 추가해 주었습니다.
+컴포넌트를 블루프린트에 추가하는 방식은, **블루프린트 에디터** 의 [컴포넌트](Engine/Blueprints/UserGuide/Components) 탭에서 정적으로, 또는 [그래프 에디터](Engine/Blueprints/Editor/UIComponents/GraphEditor) 의 비주얼 스크립팅을 통해 동적으로 이루어집니다.
+LightSwitch 클래스는 항상 PointLightComponent 와 SphereComponent 를 갖고있기 때문에, 이 경우 컴포넌트는 컴포넌트 탭에서 정적으로 추가해 주었습니다.
 
 **컴포넌트** 탭을 사용해서 **PointLight1** 이란 이름의 PointLightComponent 를 루트 컴포넌트로 추가하고, **Sphere1** 란 이름의 SphereComponent 를 PointLightComponent 에 붙였습니다.
-**블루프린트 에디터** 에서 클래스에 추가된 컴포넌트의 아이콘은 연파랑색인 반면, 부모 클래스에서 상속된 컴포넌트의 아이콘은 진파랑색입니다. **컴포넌트** 탭을 사용해서 컴포넌트를 
-추가하고 배치하는 법에 대한 상세 내용은 [](Engine/Blueprints/UserGuide/Components) 탭 문서를 참고해 주시기 바랍니다.
+**블루프린트 에디터** 에서 클래스에 추가된 컴포넌트의 아이콘은 연파랑색인 반면, 부모 클래스에서 상속된 컴포넌트의 아이콘은 진파랑색입니다.
 
 ![](BP_Only_ComponentList.png)  
 
@@ -27,13 +27,12 @@ LightSwitch 클래스는 항상 PointLightComponent 와 SphereComponent 를 갖�
 연결하여 클래스 변수, 게임플레이 이벤트, 심지어 액터의 주변 정보로 구동 가능한 게임플레이 기능 및 디자인 방식을 만들어 냅니다.
 
 **내 블루프린트** 탭을 사용하여 **LightSwitch_BPOnly** 클래스에 플로트 변수 **DesiredBrightness** 가 추가되었습니다. **내 블루프린트** 탭에는 **컴포넌트 창** 에서 추가된 컴포넌트도 표시되어, 
-원한다면 그래프에서 접근해 볼 수 있습니다. **내 블루프린트** 탭을 사용하여 변수를 추가하는 방법에 대한 상세 내용은 [변수](Engine/Blueprints/UserGuide/Variables) 문서, 또는 일반적인 사용법 관련 
-정보는 [](Engine/Blueprints/Editor/UIComponents/MyBlueprint) 문서를 참고해 주시기 바랍니다.
+원한다면 그래프에서 접근해 볼 수 있습니다.
 
 ![](BP_Only_MyBlueprint.png)
 
-**LightSwitch_BPOnly** 클래스 행위 구성에 사용된 그래프는 둘입니다. 첫째는 [](Engine/Blueprints/UserGuide/UserConstructionScript) 함수 그래프로, **컨스트럭션 스크립트** 합수 입구 노드가 들어있는 것입니다.
-이 이벤트는 액터가 레벨에 추가될 때, 또는 기존 액터가 레벨 안에서 움직일 때 실행됩니다. **LightSwitch_BPOnly** 클래스에서 **컨스트럭션 스크립트** 이벤트는 **Set Brightness** 노드에 연결되어,
+**LightSwitch_BPOnly** 클래스 행위 구성에 사용된 그래프는 둘입니다. 첫째는 [](Engine/Blueprints/UserGuide/UserConstructionScript) 함수 그래프로, **컨스트럭션 스크립트** 함수 입구 노드가 들어있는 것입니다.
+이 이벤트는 액터가 레벨에 추가될 때, 또는 기존 액터가 레벨 안에서 움직일 때 실행됩니다. **LightSwitch_BPOnly** 클래스에서 **컨스트럭션 스크립트** 이벤트는 **Set Intensity** 노드에 연결되어,
 액터가 레벨에 추가되거나 그 안에서 움직일 때 **Point Light 1** (PointLightComponent)의 밝기가 **Desired Brightness** 값으로 설정됩니다.
 
 ![](BP_Only_ConstructionScript.png)

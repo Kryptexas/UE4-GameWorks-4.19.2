@@ -1,33 +1,34 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2696099
 Availability:Public
-Title: Navigation Components
+Title: 寻路组件
 Crumbs:%ROOT%, Engine, Engine/Components
-Description:Allows applying selected AreaClass to navmesh, using Volume's shape.
+Description:允许使用 Volumn 的形状对 navmesh 应用选定的 AreaClass。
 Related: Resources/ContentExamples/NavMesh
 Related: Gameplay/AI
 Related: Gameplay/Framework/Controller
 Related: Engine/Blueprints/UserGuide/Components
+version: 4.9
 
 
-Navigation Components are a type of component that modifies or extends the functionality of the **NavMesh** (Pathfinding) system in Unreal Engine 4.
+寻路组件是一种可在虚幻引擎 4 中修改或扩展 **NavMesh**(Pathfinding) 系统功能的组件。
 
-## Nav Modifier Component
+## Nav Modifier Component （导航修改器组件）
 
-The **Nav Modifier Component** does nothing by itself, however, if you have a basic shape component as the root of an Actor, the volume of that Root Component will modify the NavMesh generation within it according to the Nav Modifier Component's **Area Class** property. You should only have one Nav Modifier Component per Actor as multiples of this Component have no effect. Also, these will appear outside the hierarchy in the Components Tab, and cannot be parented to another component or have anything parented to them.
+**Nav Modifier Component** 本身没有任何功能，但是，如果您有一个基本形状组件作为 Actor 的根，该根组件的音量将根据导航修改器组件的 **Area Class** 属性来修改 Actor 内的 NavMesh 生成。每个 Actor 只能带有一个导航修改器组件，因为多个导航修改器组件无效。此外，这些组件将出现在“组件”选项卡的层级结构之外，不能作为其他组件的父组件，也不能包含任何子组件。
 
-These **Area Classes** can define basic things like **cost** to enter an area or more advanced things such as areas where a crouched character should be able to navigate.
+这些区域类可定义基本设置（如 **Cost**）以输入一个区域，或更加高级的设置，如蹲伏角色可移动的区域。
 
-**Cost** is an important idea for the NavMesh system. Briefly, the total cost to move from one point to another using NavMesh is the sum of all the area costs the path moves through (a single area's size is defined in the Project's Preferences). But, the solver will always try to find the cheapest path, so you can have it avoid areas (like slippery oil or rough terrain) by increasing the cost to pass through that area. Just remember the solver will still path through high cost areas if it is the cheapest path.
+成本是 NavMesh 系统的重要概念。简单地来说，使用 NavMesh 从一个点移动到另一个点的总成本等于所有移动路径的区域成本总和（单个区域的大小在项目首选项中定义）。但是，求解器将始终寻找成本最低的路径，因此，您可通过增加通过该区域的成本来让它避免某些区域（如湿滑的油腻地区或崎岖不平的地区）。要记住，如果在成本最低的路径上，求解器仍然会设置通过高成本地区的路径。
 
-For example, the red area has a very high cost to move through, but the Pawn has no other choice but to move through it.:
+例如，通过红色区域的成本非常高，但是 Pawn 没有其他选择，只能从中通过。：
 
-![](throughRed.png)(convert:false)
+![](AroundTheRed.jpg)
 
- But, if you remove a wall:
+ 但是，如果您移除了墙壁：
 
-![](aroundRed.png)(convert:false)
+![](ThroughTheRed.jpg)
 
-Then the pawn will avoid the red area even though it means taking a much longer route.
+Pawn 将避免经过红色区域，即使它要绕更长的路线。
 
 ---
 

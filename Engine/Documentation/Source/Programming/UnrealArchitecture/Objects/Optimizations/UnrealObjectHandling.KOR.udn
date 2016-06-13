@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2615615
+﻿INTSourceChangelist:2728788
 Availability:Public
 Title: 언리얼 오브젝트 처리
 Crumbs: %ROOT%
 Description:UObject 시스템의 기능에 대한 개요입니다.
-Version: 4.5
+Version: 4.9
 
 [TOC (start:2 end:2)]
 
@@ -53,7 +53,7 @@ Enemy_3 의 Health 는 500 으로 남아있습니다.
  
 ## 자동 프로퍼티 초기화
 
-UObject 는 생성자 호출 전 초기화시 자동으로 0 으로 채워집니다. 클래스, UProperty, 네이티브 멤버 할거없이 전체적으로 벌어지는 일입니다. 그 이후 멤버는 클래스 생성자의 커스텀 값으로 
+UObject 는 생성자 호출 전 초기화시 자동으로 0 으로 채워집니다. 클래스, UProperty, 네이티브 멤버 모두에게 전체적으로 벌어지는 일입니다. 그 이후 멤버는 클래스 생성자의 커스텀 값으로 
 초기화 가능합니다.
 
 ## 에디터 인테그레이션

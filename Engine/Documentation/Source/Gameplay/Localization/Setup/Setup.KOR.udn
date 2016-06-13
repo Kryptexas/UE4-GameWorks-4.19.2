@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2607771
+﻿INTSourceChangelist:2713325
 Availability:Public
 Title: 셋업
 Crumbs:%ROOT%, Gameplay, Gameplay/Localization
 Description:프로젝트의 현지화 셋업 방법입니다.
+version: 4.9
 
 [TOC (start:2)]
 
@@ -17,9 +18,9 @@ Description:프로젝트의 현지화 셋업 방법입니다.
 ![](SetupFlowchart.png)
 [/REGION:raw]
 
-[REGION:tip]
-주: 현지화 셋업 및 반복처리 작업은 현재 수동 프로세스이지만, 현지화 관리를 위한 대시보드 UI 제작중이니 곧 이 작업방식이 크게 간소화될 것입니다.
-[/REGION:tip]
+[REGION:note]
+현지화 셋업 및 반복처리 작업은 현재 수동 프로세스이지만, 현지화 관리를 위한 대시보드 UI 제작중이니 곧 이 작업방식이 크게 간소화될 것입니다.
+[/REGION]
 
 
 

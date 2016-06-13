@@ -1,9 +1,13 @@
-﻿INTSourceChangelist:2699715
+﻿INTSourceChangelist:2735872
 Availability:Public
-Title:GameMode
+Title:GameMode 游戏模式
 Crumbs:%ROOT%, Gameplay/Framework
 Description:GameMode 负责制定游戏规则。
-版本: 4.9
+Version: 4.9
+type:reference
+parent:Gameplay/Framework
+order:5
+tags:Gameplay Framework
 
 即使是最没有限制的游戏也以规则为基础，而这些规则构成一个游戏类型。在最基本的层面上，这些规则包括：
 
@@ -19,10 +23,10 @@ Description:GameMode 负责制定游戏规则。
 ## GameMode
 
 
-“AGameMode”类定义所玩的游戏，并执行游戏规则。“AGameMode”中的一些默认功能包括： 
+“AGameMode” 类定义所玩的游戏，并执行游戏规则。“AGameMode” 中的一些默认功能包括： 
 
 
-任何设定游戏规则的新函数或变量都应添加在“AGameMode”类的子类中。从玩家以什么库存道具开始，或有多少条命，到时间限制，以及结束游戏所需的分数都属于 GameMode。可以为游戏应包括的每个游戏类型创建“AGameMode”类的子类。一个游戏可以有任何数量的游戏类型，因此有任何数量的“AGameMode”类的子类；然而，在任何特定时间只可以使用一种游戏类型。每次通过“UGameEngine::LoadMap()”函数初始化一个游戏等级时都会实例化一个 GameMode Actor。该 Actor 定义的游戏类型将被用于该等级所持续的时间。
+任何设定游戏规则的新函数或变量都应添加在 “AGameMode” 类的子类中。从玩家以什么库存道具开始，或有多少条命，到时间限制，以及结束游戏所需的分数都属于 GameMode。可以为游戏应包括的每个游戏类型创建 “AGameMode” 类的子类。一个游戏可以有任何数量的游戏类型，因此有任何数量的 “AGameMode” 类的子类；然而，在任何特定时间只可以使用一种游戏类型。每次通过 “UGameEngine::LoadMap()” 函数初始化一个游戏等级时都会实例化一个 GameMode Actor。该 Actor 定义的游戏类型将被用于该等级所持续的时间。
 
 <!--
 	[/Script/Engine.GameMode]
@@ -34,51 +38,51 @@ Description:GameMode 负责制定游戏规则。
 GameMode 包含监测比赛状态或整体游戏流程的状态机。要查询当前状态，你可以使用 GetMatchState，或诸如 HasMatchStarted、IsMatchInProgress 和 HasMatchEnded 的包装器。以下是可能的比赛状态：
 
 * EnteringMap 是初始状态。Actors 尚未开始计数，并且世界尚未完全初始化。当一切都完全加载后会过渡到下个状态。
-* WaitingToStart是下个状态，进入时调用 HandleMatchIsWaitingToStart。Actors开始计数，但尚未生成玩家。如果 ReadyToStartMatch 返回_true_，或如果有人调用 StartMatch，则过渡到下个状态。
-* InProgress 是下个状态，进入时调用 HandleMatchHasStarted，进而调用所有 Actors的 BeginPlay。普通游戏正在进行中。如果 ReadyToEndMatch 返回_true_，或如果有人调用 EndMatch，则过渡到下个状态。
-* WaitingPostMatch 是下个状态，进入时调用 HandleMatchHasEnded。Actors仍在计数，但不接受新玩家。当地图转换开始时过渡到下个状态。
-* LeavingMap是最后的状态，进入时调用HandleLeavingMap。在转至新地图时比赛停留在该状态。
+* WaitingToStart 是下个状态，进入时调用 HandleMatchIsWaitingToStart。Actors 开始计数，但尚未生成玩家。如果 ReadyToStartMatch 返回_true_，或如果有人调用 StartMatch，则过渡到下个状态。
+* InProgress 是下个状态，进入时调用 HandleMatchHasStarted，进而调用所有 Actors的 BeginPlay。普通游戏正在进行中。如果 ReadyToEndMatch 返回 _true_，或如果有人调用 EndMatch，则过渡到下个状态。
+* WaitingPostMatch 是下个状态，进入时调用 HandleMatchHasEnded。Actors 仍在计数，但不接受新玩家。当地图转换开始时过渡到下个状态。
+* LeavingMap 是最后的状态，进入时调用 HandleLeavingMap。在转至新地图时比赛停留在该状态。
 * Aborted 是故障状态，从 AbortMatch 开始。当存在不可恢复的错误时设置成该状态。
 
 默认情况下，比赛状态几乎总为 InProgress。但个别游戏可以覆盖该行为，以构建有更复杂规则的多人游戏。
 
-### GameMode派生Blueprints
+### GameMode 派生 Blueprints
 
-GameMode是可制定蓝图的类。可以创建GameMode派生的_Blueprints_，并用其作为项目或等级的默认游戏模式。
+GameMode 是可制定蓝图的类。可以创建 GameMode 派生的 _Blueprints_，并用其作为项目或等级的默认游戏模式。
 
-GameMode派生blueprints可以设置以下默认值：
-*默认Pawn类
-*HUD类
-*玩家控制器类
-*观众类
-*游戏状态类
-*玩家状态类 
+GameMode 派生 Blueprints 可以设置以下默认值：
+* 默认Pawn类
+* HUD类
+* 玩家控制器类
+* 观众类
+* 游戏状态类
+* 玩家状态类 
 
 
-### 设置GameMode
+### 设置 GameMode
 
-有几种方法来设置某一等级的GameMode，以下按照从最低优先级到最高优先级的顺序： 
+有几种方法来设置某一等级的 GameMode，以下按照从最低优先级到最高优先级的顺序： 
 
-* 在“DefaultGame.ini”文件中的“/Script/Engine.WorldSettings/”部分设置“GlobalDefaultGameMode”项`将为项目中的所有地图设置默认游戏模式。 
+* 在 “DefaultGame.ini” 文件中的 “/Script/Engine.WorldSettings/” 部分设置 “GlobalDefaultGameMode” 项将为项目中的所有地图设置默认游戏模式。 
 
 		[/Script/Engine.WorldSettings]
 		GlobalDefaultGameMode="/Script/MyGame.MyGameGameMode"
 		GlobalDefaultServerGameMode="/Script/MyGame.MyGameGameMode"
 
-* 要覆盖一个地图的项目设置，在编辑器的**World Settings**选项卡中设置**GameMode Override**。 
+* 要覆盖一个地图的项目设置，在编辑器的 **World Settings** 选项卡中设置 **GameMode Override**。 
 		
 	![](WorldSettings_GameMode.png)
 
-* 网址可以被传递给可执行文件，以强制游戏加载特定选项。使用“game”选项来设置游戏模式。查看 [](Programming/Basics/CommandLineArguments) 更多信息。
+* 符合一定规则的地址可以被传递给可执行文件，以强制游戏加载特定选项。使用“game”选项来设置游戏模式。查看 [](Programming/Basics/CommandLineArguments) 更多信息。
 
 		UE4Editor.exe /Game/Maps/MyMap?game=MyGameMode -game
 
-* 最后，可以在“DefaultGame.ini”文件的“/Script/Engine.WorldSettings/”部分设置地图前缀。这些前缀为有特定前缀的所有地图设置默认游戏模式。 
+* 最后，可以在 “DefaultGame.ini” 文件的 “/Script/Engine.WorldSettings/” 部分设置地图前缀。这些前缀为有特定前缀的所有地图设置默认游戏模式。 
 
 		[/Script/Engine.WorldSettings]
 		+DefaultMapPrefixes=(Prefix="DM",GameMode="UTGame.UTDeathmatch")
 
 
 [REGION:note]
-关于设置**Game Mode**的例子，请参阅[设置游戏模式](Gameplay\HowTo\SettingUpAGameMode)文档。
+关于设置 **Game Mode** 的例子，请参阅 [设置游戏模式](Gameplay\HowTo\SettingUpAGameMode) 文档。
 [/REGION]

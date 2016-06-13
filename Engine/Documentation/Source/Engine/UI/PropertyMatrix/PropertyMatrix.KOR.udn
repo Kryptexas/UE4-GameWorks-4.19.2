@@ -1,22 +1,23 @@
-﻿INTSourceChangelist:2606496
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:프로퍼티 매트릭스
 Crumbs:%ROOT%, Engine, Engine/UI
 Description:동시에 여러 액터의 프로퍼티 다수를 확인하고 편집하는 툴입니다.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Editor/PropertyMatrix:title%](Engine/UI/PropertyMatrix_topic.png)
+		![%Engine/UI/PropertyMatrix:title%](Engine/UI/PropertyMatrix_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/editor_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Editor/PropertyMatrix:title%
+		%Engine/UI/PropertyMatrix:title%
 	[/PARAM]
 	[PARAM:description]
-		%Editor/PropertyMatrix:description%
+		%Engine/UI/PropertyMatrix:description%
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/UI/PropertyMatrix]
@@ -26,16 +27,16 @@ Description:동시에 여러 액터의 프로퍼티 다수를 확인하고 편�
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Editor/PropertyMatrix:title%](Engine/UI/PropertyMatrix_topic.png)
+		![%Engine/UI/PropertyMatrix:title%](Engine/UI/PropertyMatrix_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/editor_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Editor/PropertyMatrix:title%
+		%Engine/UI/PropertyMatrix:title%
 	[/PARAM]
 	[PARAM:description]
-		%Editor/PropertyMatrix:description%
+		%Engine/UI/PropertyMatrix:description%
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/UI/PropertyMatrix]
@@ -95,8 +96,8 @@ Description:동시에 여러 액터의 프로퍼티 다수를 확인하고 편�
 
 	![](open_matrix_details.png)
 
-* [](Engine/Content/Browser) 에서 애셋을 선택하고 우클릭, 맥락 메뉴에서 **프로퍼티 매트릭스** 를 
-선택합니다.
+* [](Engine/Content/Browser) 에서 애셋을 선택하고 우클릭, **애셋 액션** 에서 **프로퍼티 매트릭스를 통한 대량 편집** 
+을 선택합니다.
 
 	![](open_matrix_browser.png)
 

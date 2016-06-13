@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2614123
+﻿INTSourceChangelist:2726407
 Availability: Public
 Title:물 예제
 Crumbs:%ROOT%, Resources, Resources/Showcases/Effects
@@ -6,6 +6,7 @@ Description:UE4 에 포함된 이펙트 예제 중 물 이펙트에 대한 개�
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Resources/ContentExamples/EffectsGallery/1_E
 Related: Engine/Rendering/ParticleSystems/Optimization
+Version: 4.9
 
 [REGION:fullwidth]
 ![](title_Water.png)

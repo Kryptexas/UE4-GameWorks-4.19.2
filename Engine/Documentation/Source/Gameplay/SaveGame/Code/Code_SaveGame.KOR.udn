@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2379638
+﻿INTSourceChangelist:2716250
 Availability:Public
 Title: C++ 로 게임 저장하기
 Crumbs:%ROOT%, Gameplay, Gameplay/SaveGame
 Description:C++ 코드로 게임 저장 및 로드하는 방법입니다.
-Version: 4.6
+Version: 4.9
 
 [TOC (start:2 end:2)]
 
@@ -58,7 +58,7 @@ MySaveGame.h
 		UPROPERTY(VisibleAnywhere, Category = Basic)
 		uint32 UserIndex;
 
-		UMySaveGame(const FObjectInitializer& ObjectInitializer);
+		UMySaveGame();
 	};
 
 ### 소스
@@ -76,8 +76,7 @@ MySaveGame.cpp
 	#include "[ProjectName].h"
 	#include "MySaveGame.h"
 
-	UMySaveGame::UMySaveGame(const FObjectInitializer& ObjectInitializer)
-		: Super(ObjectInitializer)
+	UMySaveGame::UMySaveGame()
 	{
 		SaveSlotName = TEXT("TestSaveSlot");
 		UserIndex = 0;
@@ -86,19 +85,22 @@ MySaveGame.cpp
 ### 모듈 헤더 파일
 
 `SaveGame` 오브젝트 접근 및 `GameplayStatics` 에서 함수의 생성, 저장, 로드를 쉽게 하기 위해서는, 게임 모듈의 헤더 파일의 다른 `#include` 문 아래 다음과 같은 줄을 
-추가해 줘야 합니다.
+추가해 줘야 합니다. 모듈 헤더 파일 이름은 [ProjectName].h 가 됩니다.
 
 [REGION:codetitlebar]
 MyProject.h
 [/REGION:codetitlebar]
 	#include "MySaveGame.h"
 	#include "Kismet/GameplayStatics.h"
+[REGION:warning]
+#include 구문이 `#include "Engine.h"` 구문 뒤에 오도록 하지 않으면 컴파일이 실패합니다.
+[/REGION]
 
 ## 변수 저장하기
 
 `SaveGame` 오브젝트에 변수를 저장하려 할 때마다 `SaveGame` 오브젝트의 인스턴스를 생성한 다음 그 안에 변수를 설정해 줘야 합니다.
 
-	MyPlayerName = TEXT("PlayerOne");
+	PlayerName = TEXT("PlayerOne");
 	UMySaveGame* SaveGameInstance = Cast<UMySaveGame>(UGameplayStatics::CreateSaveGameObject(UMySaveGame::StaticClass()));
 	SaveGameInstance->PlayerName = MyPlayerName;
 	UGameplayStatics::SaveGameToSlot(SaveGameInstance, SaveGameInstance->SaveSlotName, SaveGameInstance->UserIndex);

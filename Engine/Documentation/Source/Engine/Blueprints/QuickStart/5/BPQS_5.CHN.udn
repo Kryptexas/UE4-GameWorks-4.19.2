@@ -1,8 +1,12 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:5. Test the Overlapping Actor
+﻿INTSourceChangelist:2735872
+Availability:Public
+Title:5.测试重叠 Actor
 Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
-Description:Make sure it is your Character overlapping the launchpad, so you only launch the Character.
+Description:角色必须重叠在 launchpad 之上，这样才能确保角色被发射。
+version:4.9
+parent:Engine/Blueprints/QuickStart
+order:5
+type:multi-step
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -24,50 +28,50 @@ Description:Make sure it is your Character overlapping the launchpad, so you onl
 
 ---
 
-Right now, that **OnComponentBeginOverlap** event will execute when anything overlaps the Box trigger. We only want to actually execute our launching behavior, though, if the overlapping
-thing is our avatar, or Pawn. Think of it as asking "Is the Actor overlapping the Box trigger the same Actor as our Pawn?" 
+现在，如有资源重叠在方块触发器上，**OnComponentBeginOverlap** 事件便会执行。我们只需要在重叠的资源为替身或者 Pawn时
+实际执行发射行为。以提出问题的方式来看待：“重叠方块触发器的是和 Pawn 相同的 Actor 吗？” 
 
-We will do that by working with the Other Actor output from the **OnComponentBeginOverlap** event. 
+通过对 **OnComponentBeginOverlap** 事件输出的 “Other Actor” 的使用达成这一点。 
 
-1. Click on the **Other Actor** pin on the **OnComponentBeginOverlap** event, and drag into an empty spot on the graph and release to pull up the context menu.
+1. 在 **OnComponentBeginOverlap** 事件上点击 **Other Actor** 引脚，将其拖入图表中空白处并释放，以打开快捷菜单。
 
 	![](OtherActorContext.png)
 
 	[REGION:tip]
-	The context menu is adaptive, filtering by the pin you are currently working with to show you only nodes that are compatible.  
+	快捷菜单具有自适应性，对当前使用引脚进行过滤，仅显示兼容的节点。  
 	[/REGION]
-1. Type "=" into the search box to filter the available nodes, then select **Equals (Object)**.
+1. 在搜索框中输入 “=” 对可用节点进行过滤，然后选择 **Equals（物体）**。
 
 	![](EqualsOtherActor.png)
 
-	We could set **Side Scroller Char** as the other input to the **Equals** node, but then if we changed the Character we were using, we would need to re-open this Blueprint and manually update that. 
-	Instead, lets get a reference to the current Pawn we are using.
+	我们可将 **Side Scroller Char** 设作对 **Equals** 节点的其他输入，但如果使用的角色发生变化，需要重新打开该蓝图并进行手动更新。 
+	取而代之的是，我们将为当前使用的 Pawn 设置一个引用。
 
-1. **Right-click** in an empty part of the graph to bring up the context menu.
-1. Type "Pawn" in the menu's search box, then select **Get Player Pawn** (under **Game**).
+1. 在图表的空白处 **单击右键**，呼出快捷菜单。
+1. 在菜单的搜索框中输入 “Pawn”，然后选择 **Get Player Pawn** （在 **游戏** 下）。
 
 	![](GetPlayerPawnMenu.png)
-1. Connect the **Return Value** output on **Get Player Pawn** to the second input on the **Equals** node.
+1. 将 **Get Player Pawn** 上的 **Return Value** 输出和 **Equals** 节点上第二个输入连接起来。
 
 	![](EqualsComplete.png)
 
-	Now that we have got a node that will tell us if the Other Actor is the Pawn our player controls, we will use the answer to change the execution flow of our graph. That is, we will direct the execution flow
-	as it leaves the On Component Begin Overlap node.
+	现在便拥有了一个节点，它能分辨“其他 Actor”是否即为玩家所控制的 Pawn，将根据这个答案改变图表的执行流程。即意味着我们将指引离开 OnComponentBeginOverlap 节点后
+	的执行流程。
 
-	For that, we want to use a Flow Control node, specifically the **Branch** node. 
+	为此需要使用一个“流程控制”节点。具体而言，需要使用 **Branch** 节点。 
 
-1. Drag off of the execution pin on the **OnComponentBeginOverlap** node and release in an empty part of the graph.
+1. 拖动 **OnComponentBeginOverlap** 节点上的执行引脚，然后在图表空白处释放。
 
 	 ![](ExecutionMenu.png)
-1. Type "Branch" in the search, then select **Branch** from the context menu.
+1. 在搜索框中输入“Branch”，然后从快捷菜单中选择 **Branch**。
 
 	![](BranchAdded.png)
-1. Connect the output pin of the **Equals** node to the input Boolean pin on the **Branch** node.
+1. 将 **Equals** 节点的输出引脚与 **Condition** 节点上的输入布尔型引脚相连。
 
 	![](BranchComplete.png)
 
-The graph is now ready for you to set up different behavior to execute depending on whether the overlapping Actor is your Pawn or not. In the next step, we will do just that, and set up Blueprint nodes 
-to launch our Character if the result of the **Equals** comparison is **True**.
+现在便可使用图表设置不同行为进行执行，行为取决于重叠的 Actor 是否为 Pawn。下一步中我们便会进行该操作，并设置蓝图节点 
+发射角色（如 **Equals** 对比的结果为 **True**。）
 
 
 ---

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2728238
+﻿INTSourceChangelist:2899638
 Availability:Public
 Title:アニメーション シーケンス
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -138,7 +138,7 @@ Animation Sequence アセットを、**ペルソナ** で開くと、アセッ�
 
 |---|---|
 |**Description**| アセットに対して使用された圧縮スキーム名|
-|**Do Not Override Compression**| CompressAnimations コマンドレットの実行時に圧縮スキームを上書きしません。使用頻度の高い一部のアニメーションは非常に影響を受けやすいため変更しないでください。 |
+|**Do Not Override Compression**| CompressAnimations コマンドレットの実行時に圧縮スキームを上書きしません。一部の高周波のアニメーションは非常に影響を受けやすいため変更しないでください。 |
 
 ### 加算設定
 

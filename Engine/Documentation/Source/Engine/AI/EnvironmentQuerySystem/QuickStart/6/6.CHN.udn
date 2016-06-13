@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2654517
 Availability:Public
-Title: 6. Blackboard Setup
+Title:6.黑板设置
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
-Description: Adding the needed Key Values to the Runner Blackboard.
+Description:为 Runner Blackboard 添加所需的键值。
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -22,17 +23,17 @@ Description: Adding the needed Key Values to the Runner Blackboard.
 
 %Steps%
 
-The **Blackboard** is the memory of the **Behavior Tree**. Here we will store a reference to the Actor we should flee from and a location to flee to.
+**黑板** 是 **行为树** 的存储器。在此我们将把一个引用保存至逃离的 Actor 和逃往的位置。
 
-## Steps
+## 步骤
 
-1. **Double-click** the Blackboard asset in the **Content Browser**.
-1. Using the **New Key** button ![](Engine/AI/BehaviorTrees/QuickStart/5/newKey_button.png),  add a **Vector** key named **FleeToLocation**.
-1. Add an **Object** key named **ActorToFleeFrom**.
+1. 在 **内容浏览器** 中 **双击** 黑板资源。
+1. 使用 **New Key** 按钮 ![](Engine/AI/BehaviorTrees/QuickStart/5/newKey_button.png) 添加一个名为 **FleeToLocation** 的 **矢量** 键。
+1. 添加一个名为 **ActorToFleeFrom** 的 **对象** 键。
 
 	![](finalBB.png)
 
-1. Save your **Blackboard** asset.
+1. 保存黑板资源。
 
 
 %Steps%

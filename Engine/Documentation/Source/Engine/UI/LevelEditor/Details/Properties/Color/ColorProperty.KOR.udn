@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2033304
+﻿INTSourceChangelist:2691868
 Availability:Public
 Title: 컬러 콘트롤
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor, Engine/UI/LevelEditor/Details
 Description:바이트 및 선형 컬러값을 담는 프로퍼티입니다.
+Version: 4.9
 
 Color 와 LinearColor 프로퍼티는 색을 이루는 각각의 개별 컴포넌트에 대한 수치 값과 아울러 
 _색상표_ 형태로 색을 시각적으로 표시해 줍니다.

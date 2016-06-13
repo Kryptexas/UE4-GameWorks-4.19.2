@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2523023
+﻿INTSourceChangelist:2685206
 Availability: Public
 Title:7. 직접 해 보기!
 Crumbs:%ROOT%, GettingStarted, Engine\Rendering\LightingAndShadows\QuickStart
 Description:이번 최종 단계에서는 자신만의 프로젝트로 만들어 볼 수 있는 몇 가지 예제를 들어보고, 라이팅 및 라이팅 기법 관련 링크를 제공해 드리겠습니다.
-
+SkillLevel: Beginner
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

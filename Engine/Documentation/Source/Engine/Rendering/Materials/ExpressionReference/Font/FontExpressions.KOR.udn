@@ -1,8 +1,10 @@
-INTSourceChangelist:2090013
+﻿INTSourceChangelist:2690134
 Availability:Public
 Title:Font 표현식
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
 Description:폰트 애셋 샘플을 뽑고 출력하는 표현식입니다.
+Version: 4.9
+SkillLevel:
 
 [EXCERPT:TOC]
 [TOC(start:2)]

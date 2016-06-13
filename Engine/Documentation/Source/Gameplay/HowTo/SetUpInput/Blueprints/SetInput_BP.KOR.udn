@@ -1,14 +1,16 @@
-﻿INTSourceChangelist:2646701
+﻿INTSourceChangelist:2747903
 Availability: Public
 Title:블루프린트 입력 구성 비법
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\SetUpInput
 Description:블루프린트에 입력을 구성하는 비법 안내입니다.
+Version: 4.9
+SkillLevel: Intermediate
 
 [TOC (start:2 end:2)]
 
 
 
-여기서는 간단한 캐릭터를 만들고 입력을 받도록 구성한 다음, **GameMode** 에 캐릭터를 할당하여 게임플레이 도중 기본 폰이 되도록 해 주겠습니다. 캐릭터 구성에 익숙하거나 입력받도록 하고픈 캐릭터가 있(고, **GameMode** 에 그 캐릭터를 사용하고록 구성되어 있)는 경우, 캐릭터 생성 부분은 건너뛰고 바로 새 입력 생성 및 구현 부분으로 넘어가셔도 됩니다.
+여기서는 간단한 캐릭터를 만들고 입력을 받도록 구성한 다음, **GameMode** 에 캐릭터를 할당하여 게임플레이 도중 기본 폰이 되도록 해 주겠습니다. 캐릭터 구성에 익숙하거나 입력받도록 하고픈 캐릭터가 있(고, **GameMode** 에 그 캐릭터를 사용하도록 구성되어 있)는 경우, 캐릭터 생성 부분은 건너뛰고 바로 새 입력 생성 및 구현 부분으로 넘어가셔도 됩니다.
 
 ## 간단한 캐릭터 만들기
 

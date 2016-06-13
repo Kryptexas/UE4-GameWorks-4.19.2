@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2690607
+﻿INTSourceChangelist:2959633
 Title: 2. UE4 에서 SteamVR 작업을 위한 구성
 Crumbs:%ROOT%, Platforms
 Description: UE4 에서 SteamVR 작업이 가능하도록 구성하는 방법입니다.
@@ -23,80 +23,77 @@ Platform:SteamVR
 
 %Steps%
 
-SteamVR 구성이 완료되어 정상 작동하고 있으니, 이제 UE4 에서 작동하도록 만들 차례입니다.
-이번 섹션에서는 Steam VR 작업이 가능한 프로젝트 구성법에 대해 알아보겠습니다.
+이번 섹션에서는 Steam VR 작업이 가능한 언리얼 엔진 4 (UE4) 새 프로젝트 구성법에 대해 알아보겠습니다.
 
-1. 먼저 다음과 같은 세팅으로 블루프린트 기반 프로젝트를 새로 만듭니다.
+[region:note]
+기존에 하지 않은 경우, SteamVR **Room Setup** 을 실행시켜 트래킹 영역을 설정하고 조정합니다.
+그러지 않으면 SteamVR 이 UE4 와 정상 작동하지 않습니다.
+[/region]
+
+1. 하드웨어를 **모바일 / 타블렛**, 그래픽을 **스케일가능 3D 또는 2D**, **시작용 콘텐츠 없음** 으로 공백 블루프린트 기반 프로젝트를 새로 생성합니다.
 
 	![](T_CreateNewProject.png)
 
-1. 프로젝트가 로드되면 **플레이** 버튼 옆의 작은 삼각형을 클릭하고 뜨는 메뉴에서 **VR 프리뷰** 옵션을 선택하여 VR 헤드셋이 작동하는지 확인합니다.
-	VR 헤드셋 구성이 제대로 되었다면 기본 레벨이 표시되어 고개를 좌우로 돌리는 것이 가능할 것입니다.
+1. 프로젝트가 로드되면 **플레이** 버튼 옆의 작은 삼각형을 클릭하고 뜨는 메뉴에서 **VR 프리뷰** 옵션을 선택합니다.
+	VR 헤드셋 구성이 제대로 되었다면 기본 레벨이 표시되어 HMD 를 쓰고 아무 방향이나 고개를 돌리는 것이 가능할 것입니다.
 	
 	![](Check_VR_Working_00.png)
 
 	[region:tip]
-	Vive HMD 가 정상 작동하지 않는 경우, 플러그인 섹션에 Steam VR 플러그인이 켜져있는지, 그렇지 않다면 **활성화** 옆의 체크박스를 클릭하여 켜줍니다.
+	HTC Vive HMD 가 정상 작동하지 않는 경우, 플러그인 섹션에 Steam VR 플러그인이 켜져있는지, 그렇지 않다면 **활성화** 옆의 체크박스를 클릭하여 켜줍니다.
 	 ![](T_Enable_Steam_VR.png)
 	 그래도 VR 헤드셋에 VR 프리뷰 모드에서 정상 작동하지 않는다면, [VR 문서](Platforms/VR) 를 통해 구성 단계에서 빠진 것은 없는지 확인하시기 바랍니다.
 	[/region]
 
-1. **콘텐츠 브라우저** 안에 우클릭한 다음 새 블루프린트 생성을 선택합니다.
-	뜨는 **부모 클래스 선택** 창에서 하단의 검색창을 통해 **PlayerCameraManager** 를 검색합니다. 
-	PlayerCameraManager 를 찾았으면 클릭하여 생성한 뒤 이름을 **VR_PlayerCameraManager** 라 합니다.
+1. 머리 장착 디스플레이 (HMD) 정상 작동을 확인했으면, **콘텐츠 브라우저** 안에 우클릭하고 **기본 애셋 생성** 부분의 **블루프린트 클래스** 옵션을 선택합니다.
 
-	![](Creat_New_PCM.png)
+	![](Create_New_BP.png)
 
-1. **VR_PlayerCameraManager** 를 열고서 **클래스 디폴트** 섹션 내 **Player Camera Manger** 아래에서 **Follow Hmd Orientation** (HMD 방향 따라가기) 옵션을 켜줍니다.
+1. **부모 클래스 선택** 창이 표시되면 다음 블루프린트 노드를 검색, 생성한 뒤 이름을 짓습니다.
 
-	![](Setting_Up_PCM.png)
+	![](Pick_Parent_Class_Window.png)
 
-1. Create a new Blueprint from the Content Browser and select the **Player Controller** option. 
-	Name the newly created Player Controller, **VR_PlayerController** and open it up.
+	|블루프린트 노드|사용할 이름|
+	|--------------|------|
+	|Game Mode|VR_GameMode|
+	|Pawn|VR_Pawn|
 
-	![](Creat_New_PlayerController.png)
+	완료되면 콘텐츠 브라우저에 다음과 같은 블루프린트가 생길 것입니다.
 
-1. **클래스 디폴트** 섹션을 열고서 **Player Controller** 아래 **Player Camera Manager Class** 를 전에 만든 **VR_PlayerController** 로 설정합니다. **없음** 이라 되어있는 흰색 박스를 클릭하고 목록에서 **VR_PlayerController** 를 선택해 주면 됩니다.
+	![](Creating_Required_BP_Nodes.png)
 
-	![](Setting_UP_PC.png)
-
-1. 이번에는 콘텐츠 브라우저에서 블루프린트를 또 하나 만듭니다. **부모 클래스 선택** 창에서 **Pawn** 을 선택하고 폰 이름을 **VR_Pawn** 이라 합니다.
+1. **VR_GameMode** 블루프린트를 열고 **Classes** 섹션 아래 **Default Pawn Class** 가 생성된 **VR_Pawn** 을 가리키도록 변경합니다.
 	
-	![](Create_New_Pawn.png)
-
-1. 새로 만든 **VR_Pawn** 을 열고 **클래스 디폴트** 섹션으로 이동합니다.
-	거기 **디테일** 패널 내 **Camera** 섹션 아래에서 **Base Eye Height** (기본 눈높이)를 **0.0** 으로 설정합니다.
-	
-	[region:note]
-	이 부분은 Steam VR 에만 적용되므로, 다른 VR 구성시에는 건너뛰어도 됩니다.
-	[/region]
-
-	![](Setting_Up_PC_Defaults.png)
-
-1. **이벤트 그래프** 탭을 클릭하고서 그래프에 우클릭하여 검색 기능을 띄웁니다. **Set Tracking Space** 노드를 검색하여 그래프에 추가합니다.
-	 **Event Begin Play** 의 출력에서 Set Tracking Space 노드의 입력에 연결합니다.
-
-	[region:note]
-	이 부분은 Steam VR 에만 적용되므로, 다른 VR 구성시에는 건너뛰어도 됩니다.
-	[/region]
-
-	![](Set_Tracking_Space.png)
-
-	[region:tip]
-	Set Tracking Space 의 **New Space** 입력이 다른 값으로 설정되는 것을 보셨을 것입니다. 
-	이는 순전히 값 조정을 편하게 하기 위해서인데, 블루프린트 기본 프로퍼티에서 값 조정이 가능하기 때문입니다.
-	[/region]
-
-1. 프로젝트의 **월드 세팅** 을 연 다음 **게임 모드** 섹션 아래 다음 데이터를 예전 단계에서 만든 것으로 채우도록 합니다.
-
 	![](Setting_Up_Game_Mode.png)
 
+1. **월드 세팅** 의 **게임 모드** 섹션 아래, **GameMode Override** 를 **VR_GameMode** 로 변경합니다.
+
+	![](Adding_New_GameMode.png)
+
+1. 이제 **VR_Pawn** 블루프린트를 열고 **디테일** 패널에서 **Camera** 섹션 아래 **Class Defaults** 를 클릭한 다음 **Base Eye Height** 를 **0.0** 으로 설정합니다.
+
+	![](Set_Base_Eye_Height.png)
+
+1. **컴포넌트** 탭에서, **SteamVRChaperone** 와 **Camera** 컴포넌트를 추가하고 카메라의 **트랜스폼 위치** 가 **0,0,0** 으로 되어있는지 확인합니다.
+
+	![](Adding_A_Camera.png)
+
+1. 레벨 안에서 바닥에 사용된 스태틱 메시를 선택하고 X, Y, Z 위치를 **0,0,0** 으로 설정합니다.
+
+	![](Move_Floor_Down.png)
+
+1. **Player Start** 를 선택하고 그 중앙이 바닥에 사용된 스태틱 메시 바로 위로 오도록 위치를 조정합니다.
+이 예제에서는 **Player Start** 의 **Z** 높이를 **1.0 CM** 으로 설정했습니다.
+
+	![](Move_Player_Start.png)
+
 	[region:note]
-	만든 게임 모드 옵션을 입력하고나면 프로젝트를 다시 열었을 때 입력된 것이 로드되도록 레벨을 저장합니다.
+	보통은 **Player Start** 가 레벨의 다른 지오메트리 유형과 겹치지 않도록 하는 것이 좋습니다.
+	하지만 SteamVR 이 HMD 의 원점을 0,0,0 즉 바닥에 앉은 상태로 읽기에, Player Start 를 보통 높이로 움직이면 VR 카메라에 오프셋이 적용되어 플레이어가 바닥에 떠있는 것처럼 보이게 만들 것입니다.
 	[/region]
 
-1. VR 프리뷰 모드를 사용하여 모든 것이 정상 작동하는지 확인합니다.
-	모든 것이 정상적으로 구성된 경우 이제 고개를 상하좌우로 돌릴 수 있을 것입니다.
+1. **VR 프리뷰** 버튼으로 레벨을 실행시키고, HMD 를 장착한 다음 일어섭니다.
+이제 가상의 바닥이 서 있는 현실의 바닥과 일치하는 것처럼 느껴질 것입니다.
 
 
 %Steps%

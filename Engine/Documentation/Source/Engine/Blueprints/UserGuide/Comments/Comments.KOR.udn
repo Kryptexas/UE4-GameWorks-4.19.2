@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:2688023
+﻿INTSourceChangelist:2968923
 Availability:Public
 Title:코멘트
-Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide
+Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Workflow
 Description: 관련이 있는 노드를 그룹으로 묶고 그 기능에 대한 설명을 달 수 있는 그릇입니다.
 version: 4.9
+Parent:Engine/Blueprints/Workflow
+
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -92,7 +94,7 @@ _블루프린트_ 에서 노드에 바로 코멘트를 추가하려면:
 	![](type_box_comment.png)
 
 1. 코멘트 박스 크기는 우하단 드래그로 조정할 수 있습니다. 참고로 코멘트 박스를 이동하려는 경우,
-박스 범위 안에 있는 노드둘도 같이 이동됩니다. 정리된 노드 그룹을 
+박스 범위 안에 있는 노드들도 같이 이동됩니다. 정리된 노드 그룹을 
 재배치하기에 매우 좋습니다. 이러한 코멘트 박스 작동방식은 **디테일** 탭에서 코멘트 별로 바꿀 수 있습니다.
 
 

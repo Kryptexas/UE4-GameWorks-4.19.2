@@ -1,61 +1,65 @@
-﻿INTSourceChangelist:0
-Title: SteamVR Best Practices
+﻿INTSourceChangelist:2940199
+Title:SteamVR のベストプラクティス
 Crumbs:%ROOT%, Platforms
-Description:An introduction to getting started with SteamVR
+Description:SteamVR 入門
 Availability:Public
 Navigation:platform
 Platform:SteamVR
+type:overview
+parent:Platforms/SteamVR
+tags:VR
+tags:SteamVR
 
 ![](Platforms\SteamVR\T_Vive_HMD.png)
 
 
-Virtual Reality or VR for short is quickly becoming the next big thing in digital entertainment. 
-Because of this industry wide push to VR, Unreal Engine 4 (UE4) supports a wide variety of VR headsets and controllers without developers having to do anything else besides just opening the Unreal Editor and making sure their VR device is connected to their development PC. 
-One of the newer VR integrations UE4 now fully supports is SteamVR. 
-Unlike other VR integrations the SteamVR integration not only includes code for the new Vive VR headset, 
-it also includes code that helps to power the new Steam Controllers as well as the Steam Lighthouse Base stations. 
-In the following sections we will cover all you need to know about how to get UE4 working with the SteamVR integration.
+仮想現実 (略して VR) は、デジタル エンターテイメントの今後の主役です。 
+VR を大々的に推進している業界全体の流れを受けて、アンリアル エンジン 4 (UE4) も VR ヘッドセットとコントローラを幅広くサポートしています。デベロッパーは、アンリアル エディタを開いた後、VR デバイスの開発用 PC への接続を確認すれば後は何もする必要はありません。 
+UE4 が新たにフル サポートの対象とした VR インテグレーションのひとつが StreamVR です。 
+StreamVR インテグレーションは他の VR インテグレーションとは異なり、新しい Vivi VR ヘッドセット用コードだけでなく、 
+Steam Lighthouse ベース ステーションに加えて、新しい Steam コントローラ用の電源コードも付いています。 
+以下のセクションでは、SteamVR インテグレーションで UE4 を使用する上で知っておくべきことを説明します。
 
 [region:note]
-Currently the SteamVR headset and controllers are not publicly available for purchase. 
-The only way to receive a development kit is to sign up as a SteamVR developer on the [Valve](http://store.steampowered.com/universe/vr) website. 
-Also keep in mind that because SteamVR is still currently prototype hardware, images or information contained within this document could abruptly change or be slightly different than what you might have received or are currently using.
-As things like this happen this document will be updated so make sure to check back from time to time to familiarize yourself with anything new or any changes that might have happened.
+現段階では、SteamVR ヘッドセットとコントローラは正式販売はされていません。 
+開発キットを唯一入手する方法は、[Valve](http://store.steampowered.com/universe/vr) のウェブサイトの SteamVR デベロッパーに登録することです。 
+SteamVR は現時点ではまだプロトタイプ ハードウェアなので、本ドキュメントに含まれる画像や情報は突然変更されたり、若干異なる場合があります。
+そのような場合には、本ドキュメントに変更が反映されます。新規追加や変更を時々確認するようにしてください。
 [/region]
 
 
-## Prerequisites
+## 前提条件
 
-Before we can start developing content to use with SteamVR there are a few things that need to be setup first. 
-In the following section we will go over what needs to be setup before you can begin to develop content for SteamVR.
-
-
-* Make sure to turn off [Windows Aero](http://windows.microsoft.com/en-us/windows-vista/what-is-windows-aero) to ensure that all of your development PC's power is available to use with VR.
-* From the Steam client make sure to download and install the **SteamVR** tools. You can find and install the tools by doing the following.
- 1. From the Steam client go to **Library** > **Tools** then in the list of tools look for **SteamVR**.
- 1. **Double - Click** on the **SteamVR** entry to start the tools install process and then follow the directions provide by Steam.
-
-* Make sure to download and install Unreal Engine version 4.8 or later from the Unreal Engine launcher.
-* Have all the required cords and power supplies for both the Vive Head Mounted Display(HMD) and the Lighthouse Base stations unpacked and plugged in.
-* Make sure you have a 15' x 15' (4.5 M x 4.5 M) area cleared of all objects that you could trip over while you have the Vive HMD on. 
-* While not required, having a wireless mouse and keyboard will make entering commands easier as you will not have to take off the HMD and then move over to where the development PC is located then input the commands.
+SteamVR で使うコンテンツの開発を始める前に、まず設定が必要な項目があります。 
+その項目について、次のセクションで説明します。
 
 
-## What is SteamVR
+* 開発用 PC の電力を VR に使用できるように、[Windows Aero](http://windows.microsoft.com/en-us/windows-vista/what-is-windows-aero) を必ず無効にするようにしてください。
+* Steam Client から、**SteamVR** ツールをダウンロードしインストールしてください。操作は以下の通りになります。
+ 1. Steam Client から、**[Library]** > **[Tools]** を選択し、リストで **SteamVR** を探します。
+ 1. **[SteamVR]** エントリを **ダブルクリック** してツール インストール プロセスを開始したら、あとは Steam の指示に従います。
 
-SteamVR or Steam Virtual Reality is fully featured, 360 degree, room scale VR experience that allows users to experience, interact, and even move around in virtual worlds. 
-SteamVR can be utilized in either an active, moving around the room, or passive, sitting in a chair, setting allowing developers to choose which setting will give the best experience to users. 
-SteamVR also makes use of two wireless single handed controllers whose real world  movement, position, and rotation can be precisely tracked and then translated in to VR allowing users the ability to precisely interact with object in VR like never before. 
-If that was not enough, SteamVR makes use of the Lighthouse tracking system which utilizes room scanning lasers to precisely track the real world position, rotation, and movement of the user and then translates that data so that what the user is doing in the real world will match up to the VR world they are experiencing. 
+* アンリアル エンジン ランチャーから、必ずアンリアル エンジン 4.8 以降をダウンロードしインストールしてください。
+* Vive ヘッドマウント ディスプレイ (HMD) と Lighthouse ベース ステーションの両方とも、必要なコードと電源を開封して挿し込んでおいてください。
+* Vive HMD の装着中に移動可能な 15' x 15' (4.5 M x 4.5 M) の空間には、いっさい物を置かないで空けておいてください。 
+* 必須ではありませんが、ワイヤレスのマウスとキーボードを使えば、HMD を取り外して開発用 PC まで行かずに、コマンドの入力が簡単に行えます。
 
-## How is SteamVR different than other VR devices
 
-While there are a quite a few similarities between SteamVR and other VR implementations, there are also quite a few differences.
-One of the main differences between SteamVR and other VR systems is that instead of using a camera to track the user's location in the real world and then translate that into the virtual one, Steam VR makes use of laser driven tracking stations to track the users real world movement. 
-These stations, called Lighthouse trackers or Base stations, can more accurately track the position and orientation of the headset and controllers and are optimized for accuracy with low latency. 
-In fact the Lighthouse trackers are so precise you can simultaneously track multiple input devices with sub millimeter precision in just milliseconds.
-SteamVR is also built around the SteamVR Controllers which are specifically designed to make it easier to interact with objects in VR. 
-Finally, and probably the biggest difference, is that with the SteamVR setup you can physically move around in the room you are using SteamVR in and have that movement translated into the VR world allowing the user to explore or view parts of the world that other VR systems would not be able to achieve due to you not being able to physically move around. 
+## SteamVR について
+
+360 度部屋スケールの VR 体験、フル機能の SteamVR (または Steam Virtual Reality) により、ユーザーは仮想世界の中での体験、インタラクト、移動が可能になります。 
+SteamVR は、部屋の中を動き回る動的な状態、あるいは椅子に座っている静的な状態のいずれかから、デベロッパーが自分の体験に一番合う設定を選んで使用することができます。 
+2 組の片手用無線コントローラにより、現実世界での動き、位置、回転を細かく追跡し、それを VR に変換することで、VR でのオブジェクトとのインタラクトは驚くほど緻密になりました。 
+これで物足りなければ、 Lighthouse 追跡システムも装備しています。ルーム スキャニング レーザーが現実世界でのユーザーの位置、回転、移動を正確に追跡し、現実世界でのユーザーの行動がの VR ワールドでの体験と一致するようにそのデータを変換します。 
+
+## 他の VR デバイスと異なる点
+
+SteamVR は他の VR デバイスと似ている点もありますが、異なる点も多くあります。
+その中でも大きく異なる点の一つは、現実世界のユーザーの動きの追跡方法です。SteamVR は、カメラで追跡した現実世界のユーザー位置データを仮想世界に変換するのではなく、レーザーベースの追跡ステーションを使います。 
+これらのステーションは、Lighthouse トラッカーあるいはベースステーションと呼ばれ、ヘッドセットとコントローラの位置と向きをより正確にトラックし、低いレイテンシーで精度を最適化します。 
+実際、Lighthouseトラッカーの精度は非常に高く、ミリセカンドでミリメートル未満の精度で、複数の入力デバイスの同時追跡が可能です。
+SteamVR は、VR でのオブジェクトとのインタラクトがしやすいように特別な構造をしている SteamVR コントローラにも組み込まれています。 
+最後に、SteamVR 設定により SteamVR を使っている部屋の中を物理的に移動することができ、その動きを VR ワールドへ変換することでユーザーはワールド内の探索が可能になるという点です。物理的な移動ができない他の VR システムでは実現不可能なことです。おそらくこれが一番大きな違いでしょう。 
 
 
 

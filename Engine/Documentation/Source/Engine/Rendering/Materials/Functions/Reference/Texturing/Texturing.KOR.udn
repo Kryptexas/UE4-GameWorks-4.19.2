@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2643533
+﻿INTSourceChangelist:2730073
 Availability: Public
 title:텍스처링
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:Texturing, 텍스처링 카테고리 아래 있는 머티리얼 함수에 대한 설명과 예제입니다.
+Version: 4.9
 
 [TOC (start:2 end:3)]
 
@@ -277,7 +278,7 @@ SubUV_Function 은 여러 프레임에 걸친 스프라이트 시트나 텍스�
 
 ### TwoSidedTexturing
 
-TwoSidedTexturing (양면 텍스처링) 함수는 양면 머티리얼의 두 면 모두에 대한 개별 텍스처 입력을 제공합니다. 이 함수는 머티리얼의 **Two Sided** 프로퍼티가 켜지있지 않은 경우 아무것도 하지 않습니다.
+TwoSidedTexturing (양면 텍스처링) 함수는 양면 머티리얼의 두 면 모두에 대한 개별 텍스처 입력을 제공합니다. 이 함수는 머티리얼의 **Two Sided** 프로퍼티가 켜져있지 않은 경우 아무것도 하지 않습니다.
 
 | 항목 | 설명 |
 | ---- | ---- |

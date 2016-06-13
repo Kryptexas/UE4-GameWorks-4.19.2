@@ -1,23 +1,25 @@
-﻿INTSourceChangelist:2520588
+﻿INTSourceChangelist:2940199
 Availability:Public
-Title:Samsung Gear VR のクイックスタート
+Title:Samsung Gear VR UE 4 のクイックスタート
 Crumbs:%ROOT%, Platforms/GearVR
 Description:Samsung Gear VR ヘッドセットと使用する UE4 プロジェクトの簡単設定およびデプロイ方法
 Navigation:platform
 Platform:Gear VR
-
+Skilllevel:Intermediate
+Version:4.9
+type:quickstart
+parent:Platforms/GearVR
+tags:VR
+tags:GearVR
 
 このページは、開発 PC と Sammsung Galaxy Note 4 スマートフォン を Samsung Gear VR ヘッドセットと連携させる設定ガイドです。
-
-![](GVR_Headset_00.png)
-
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		手順
+		ステップ
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

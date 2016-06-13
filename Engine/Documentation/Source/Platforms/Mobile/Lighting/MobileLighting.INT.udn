@@ -3,7 +3,20 @@ Title:Lighting for Mobile Platforms
 Crumbs:%ROOT%, Platforms, Platforms/Mobile
 Description:Setting up lighting for mobile games.
 Platform:Mobile
-version: 4.9
+Related: Platforms/Mobile/Performance
+Related: Platforms/Mobile/Textures
+Related: Engine/Rendering/Materials/CustomizedUVs
+Related: Engine/Rendering/Materials/MaterialProperties/BlendModes
+Related: Engine/Rendering/Materials/ExpressionReference/Utility
+version: 4.12
+parent:Platforms/Mobile
+order:3
+type:overview
+tags:mobile
+
+[TOC(start:2 end:3)]
+
+When using lights on mobile platforms in UE4, there are certain caveats and restrictions that must be adhered to in order to make sure that your UE4 project will run, at frame, on a number of different mobile devices. In the following document we will go over what these caveats and restrictions are and how you can avoid or work around them.
 
 ## Supported Features
 
@@ -28,10 +41,199 @@ Mobile platforms only support a subset of the light types available in Unreal En
 
 
 ## Reflections
+While reflections can really help to breath life and believability into your mobile projects, there are a few caveats you need to be aware of when using them on mobile devices. Below you will find a list of some of things you will need to do in order to ensure that reflections will work on your target mobile device.
 
-1. Disable any ambient cubemaps you have in your post process volumes (set intensity to 0).
-2. Place SphereReflectionCaptures in the areas that you want to capture lighting.  You do not need a lot of these, just where there are unique surrounding lighting situations.
-3. Make sure your materials are setup for reflections: interesting normalmap, varying roughness, nothing plugged into specular, and metallic of 1 or 0.
+*  Disable any Ambient Cubemaps you have in your post process volumes by setting the **Intensity** to **0**.
+* Place **SphereReflectionCaptures** Actors in the areas that you want to capture lighting for reflections. 
+* Make sure your materials are setup to work well with reflections by having the following.
+	* Interesting Normal map
+	* Varying roughness
+	* Nothing plugged into the Specular input
+	* Depending on the surface type the Metallic input should be a 1 or 0.
 
 
 Right now, each mesh component gets assigned to the closest reflection capture.  That means there will be seams in reflections between objects, and sometimes a large mesh will use an undesirable reflection capture that happened to be close to the mesh's center. 
+
+## Modulated Shadowing
+
+Having fully Dynamic shadows really helps to add life and realism to your Unreal Engine 4(UE4) mobile projects. 
+However on some mobile devices, fully Dynamic shadowing is not an option due to hardware restrictions and the high resource demands Dynamic shadows require to render. 
+To get around this a new, cheaper type of Dynamic shadowing was introduced to UE4 called **Modulated Shadows**. 
+In the following section, we will go over what Modulated Shadows are and how you can use in your UE4 mobile.
+
+### Enabling Modulated Shadows
+
+Enabling Modulated shadows in your UE4 project can be accomplished by doing the following. 
+
+1. Make sure that you have a **Directional Light** placed in your level and that it's **Mobility** has been set to **Stationary**. Modulated shadows will only work with Directional lights that have their Mobility set to Stationary.  
+	
+	![](Mod_Setup_01.png)
+
+1. Select the Directional Light and in the **Details** panel under the **Light** section, click on the small white triangle to expand the **Advanced** options to expose the Modulated shadows options.
+
+	![](Mod_Setup_02.png)
+
+1. Enable Modulated shadows by clicking on the box next to **Cast Modulated Shadows**. 
+
+	![](Mod_Setup_03.png)
+
+1. To change the color of the Modulated shadows click on the **Modulated Shadow Color** and then using the color picker select the color you want the Modulated Shadows to be. 
+
+	![](Mod_Setup_05.png)
+
+1. In order to see what the Modulated shadows will look like you will need to run the game using either the **Mobile Previewer** or by deploying the project to a mobile device.
+	As you can see in this example, the color of the Modulated shadow as changed from the default grey color to red to show off the effect better.
+
+	![](Mod_Setup_04.png)
+### Modulated Shadowing VS Dynamic Shadowing
+
+While Modulated and Dynamic shadowing look and act very similar to one another, they are actually quite different. 
+This is because Modulated shadows have a number of restrictions and hard limits that Dynamic shadows do not have that allows them to be more performant on mobile devices with limited hardware capabilities.
+In the image below you can see a comparison between Dynamic shadows and Modulated shadows.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Dynamic Shadows](Dynamic_Shadows.png)
+	[/PARAM]
+	[PARAM:after]
+	![Modulated Shadows](Modulated_Shadows.png)
+	[/PARAM]
+[/OBJECT]
+
+
+The following list highlights some of the features and restrictions Modulated shadows can provide if used in your UE4 project.
+
+* **Changing Shadow Color:** You can change the color of the shadow that Modulated shadows cast by adjusting the **Modulated Shadow Color** option in the **Light** section of the Directional Light. 
+
+	[region:lightbox]
+	[![](Change_Mod_Shadow_Color.png)(w)](Change_Mod_Shadow_Color.png)
+	[/region]
+
+* **Shadow Blending:** Unlike Dynamic shadows, Modulated shadows can not blend with other shadows, either baked or dynamic, that you see in your projects. This means that when a Modulated shadow is on top of another shadow both shadows will show instead of a single shadow the blends together. 
+
+	[OBJECT:ComparisonSlider]
+		[PARAM:before]
+		![Dynamic Shadows](Dyn_Shadow_Stacking.png)
+		[/PARAM]
+		[PARAM:after]
+		![Modulated Shadows](Mod_Shadow_Stacking.png)
+		[/PARAM]
+	[/OBJECT]
+
+### Working with Modulated Shadows
+
+When working with Modulated shadows, there are a few console and .INI settings that can be used to adjust the look and performance of the Modulated shadows. 
+In the following section, we will go over what these settings are and how you can use them in your UE4 projects to ensure that your UE4 projects Modulated shadows are not costing too much to render.
+
+[region:note]
+As much as possible, Modulated shadows share code with the existing shadow tech. 
+This means many of the shadow cvars and .INI settings that can be used with other shadowing methods will also work with Modulated shadows.
+[/region]
+
+* **Shadow Quality:** When you first view Modulated shadows on a mobile device, the sharpness and quality of the Modulated shadows could be a bit lower than expected. 
+To address this, you can adjust the shadow quality by opening up the Unreal console, using the backtick ` key, and enter the following command, **r.shadowquality** followed by a number. 
+The higher number you input, the better the Modulated shadow will look at the expense of FPS. 
+In the following image, r.shadowquality was set to values of **1**, **2**, **3** and **4** to show what effect this has on the Modulated shadow quality.
+
+	[region:lightbox]
+	[![](Mod_Shadow_Quality.png)](Mod_Shadow_Quality.png)
+	[/region]
+
+	[region:note]
+	Be extremely careful when setting the r.shadowquality to values over 3.
+	While testing this feature using a Samsung Galaxy Note 4 setting r.shadowquality to 4 halved the frame rate on the device from 60 FPS to 30 FPS.
+	[/region]
+
+* **Self Shadowing:** Modulated shadows will provide self-shadowing on dynamic objects, like characters or pickups, however by default this feature was disabled to ensure that Modulated shadows could be as performant as possible. 
+If your project can afford the extra cost self-shadowing requires, you can enable it by inputting **r.Shadow.EnableModulatedSelfShadow 1** into the UE4 console.
+To disable self shadowing, input **r.Shadow.EnableModulatedSelfShadow 0** into the UE4 console.
+
+	[OBJECT:ComparisonSlider]
+		[PARAM:before]
+		![Self Shadow On](SS_On.png)(h:600)
+		[/PARAM]
+		[PARAM:after]
+		![Self Shadow Off](SS_Off.png)
+		[/PARAM]
+	[/OBJECT]
+
+* **Shadow Depth:** Using the command **r.Shadow.CSMDepthBias** you can offset the position at which the shadow starts to be rendered. 
+In the image below you can see what happens to the Modulated shadows when r.Shadow.CSMDepthBias is left at the default value of **0** and then set to values of **10**, **100**, **500** and **1000**. 
+Adjusting the Shadow Depth is a great way to fix issues like shadow penetration were the shadow that is being cast is intersecting with the object that is supposed to be casting shadows.
+
+	[region:lightbox]
+	[![](Shadow_Depth_Settings.png)](Shadow_Depth_Settings.png)
+	[/region]
+
+## Dynamic Cascaded Shadow Maps
+Stationary Directional lights can be used to cast Whole-scene Dynamic Cascade Shadow Maps (CSM) shadows for just the dynamic objects in your scene. One of the benefits to using CSM shadows is that CSM shadows will blend correctly with precomputed shadows cast by the static objects in the scene. CSM shadows also do not exhibit the double shadowing you see with Modulated shadows and this technique is also faster when casting dynamic shadows for multiple objects. 
+
+### Enabeling Dynamic Cascaded Shadow Maps
+To use CSM in your UE4 mobile project you will need perform the following steps.
+
+1. Open up the **Project Settings** and then go to the **Engine** > **Rendering** >  **Mobile** section and make sure that **Enable Combined Static and CSM Shadowing** is enabled. 
+	
+	[region:lightbox]
+	[![](CSM_Setup_00.png)(w:500 h:400)](CSM_Setup_00.png)
+	[/region]
+
+1. CSM will only work if you have a **Directional Light** in your scene. If you do not have one, add one now and make sure it is selected. Then under the **Transform** section make sure that the **Mobility** setting has been set to **Stationary**.
+	
+	[region:lightbox]
+	[![](CSM_Setup_01.png)(w:300 h:400)](CSM_Setup_01.png)
+	[/region]
+
+1. With the Directional Light still selected, go to the **Details** panel and locate the **Cascaded Shadows Maps** section and adjust the following properties on your Directional Light.
+	
+	[region:lightbox]
+	[![](CSM_Setup_02.png)(w:300 h:400)](CSM_Setup_02.png)
+	[/region]
+
+	* **Dynamic Shadow Distance Stationary Light:** 2,000
+	* **Num Dynamic Shadows Cascades:** 1
+	* **Insert Shadows For Movable Objects:** False
+	[region:note]
+	Make sure to use only the settings above as adjusting anything else might cause the CSM to not work.
+	[/region]
+
+1. Inside of you projects level select any Static Meshes you want to receive CSM and in the **Details** panel under the **Mobile** section, enable the **Receive Combined Static and CSM Shadows from Stationary Lights** option.
+	
+	[region:lightbox]
+	[![](CSM_Setup_03.png)(w:300 h:400)](CSM_Setup_03.png)
+	[/region]
+
+	[region:note]
+	Failing to enable the Receive Combined Static and CSM Shadows from Stationary Lights option will result in dynamic objects not casting dynamic shadows on Static Meshes. In the images below we can see what happens when the Receive Combined Static and CSM Shadows from Stationary Lights option is turned on and off on the Static Mesh that makes up the floor.
+	[OBJECT:ComparisonSlider]
+		[PARAM:before]
+		![Combined Static Off](CMS_SM_Combo_Off.png)(w:300 h:400)
+		[/PARAM]
+		[PARAM:after]
+		![Combined Static On](CMS_SM_Combo_On.png)(w:300 h:400)
+		[/PARAM]
+	[/OBJECT]
+	[/region]
+
+1. From the **Main Toolbar**, change the **Play Mode** to **Mobile Preview** and press the **Play** button to launch the level.
+
+	[region:lightbox]
+	[![](CSM_Setup_04.png)(w:800 h:400)](CSM_Setup_04.png)
+	[/region]
+
+	[region:tip]
+	If you do not see the Mobile Preview window being displayed, make sure to check that it did not launch behind the Unreal Editor window. 
+	[/region]
+
+1. Once your level successfully launches, position your character in a location that has static shadows and  when you go in and out of the shadow, your character's Dynamic Shadows should now blend seamlessly with any baked shadows in the level like in the image below.
+	
+	![](CSM_Final_Result.png)
+
+
+
+
+
+
+
+
+
+

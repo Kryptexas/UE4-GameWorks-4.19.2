@@ -1,0 +1,108 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Record Gameplay as a Sequence
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:Record your gameplay actions with the Sequence Recorder and use that data inside Sequencer.
+Version: 4.11
+SkillLevel: Advanced
+parent:Engine/Sequencer/HowTo
+order:1
+checkpoint: editorqs
+Related: Engine/Sequencer/Overview
+Related: Engine\Sequencer\ReferenceEditor\
+
+[REGION:warning]
+This is a feature that is currently undergoing development and may not work as expected or may change in future revisions.
+[/REGION]
+
+The **Sequence Recorder** allows you to capture specified Actors during gameplay which are then saved as a new **Level Sequence** which can be edited inside **Sequencer**. 
+This is useful for quickly capturing content for scenes as you can take a playable character, perform some actions during gameplay while recording with the Sequence Recorder then take that data into Sequencer and create a cinematic around it. 
+
+In this example, we will use the **Sequence Recorder** to record our playable character movement which we can then edit. 
+
+
+## Steps
+
+[REGION:note]
+For this how-to, we are using the **Blueprint Third Person Template** project with **Starter Content Enabled**. 
+[/REGION]
+
+1.	With [**Sequencer & Sequence Recorder**](Engine\Sequencer\HowTo\EnableSequencer) enabled, from the **Menu Bar** under **Window** select **Sequence Recorder**. 
+
+	[REGION:raw]
+	![](RecorderStep1.png)
+	[/REGION]
+
+	The Sequence Recorder window will automatically open. There are some options under **Sequence Recording** which you can mouse over to get an idea of what each will do (for example, setting the name of the recorded sequence as well as the save location, the duration and others). For this example we will leave these all as default. 
+
+1.	From the Main Editor Toolbar, click the **Play** button to start a Play in Editor session. 
+
+1.	Press **Shift+F1** to gain mouse control once inside game. 
+
+1.	On the **Sequence Recorder** window, click the **Add** button. 
+	
+	![](SequenceRecorderAdd.png)
+
+1.	Click on the new item labeled **None**, then under **Actor Recording** click the drop-down and select **ThirderPersonCharacter**. 
+
+	![](ActorToRecord.png)
+
+	This is where we specify which Actor(s) you want to record before starting the recording process. There are some additional settings here that you can explore, but for this example we will leave them as default. 
+
+1.	Click the **Record** button. 
+
+	![](RecordStart.png)
+
+	After 4 seconds (which is the **Record Delay** option under the Sequence Recording section), the record process will start. 
+
+1.	Use the **WASD** and **Spacebar** keys to move the character around and (or) jump and press **ESC** when done.
+
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	M_mptcDeAtA
+	[/PARAMLITERAL]
+	[/OBJECT]
+
+	Above is the sequence we recorded, however if you have a character that can attack or perform other actions, feel free to use that. 
+
+1.	Inside the **Content Browser** a new folder will be created containing assets related to the recorded sequence. 
+
+	![](RecordedAssets.png)
+
+	A **Level Sequence** as well as a folder containing an **Animation Sequence** based on the actions you performed. 
+
+
+## End Result
+
+You can now open the **RecordedSequence** asset and begin editing it as you would a normal Level Sequence (adding cameras, lights, effects, other characters and more). Below we created a sample scene with some cameras, a **Camera Cuts** track to cycle between the different camera angles, and a **Fade** Track to fade the scene in/out. 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+O3RrRKpwCnI
+[/PARAMLITERAL]
+[/OBJECT]
+
+
+
+
+
+
+
+
+
+
+
+
+	

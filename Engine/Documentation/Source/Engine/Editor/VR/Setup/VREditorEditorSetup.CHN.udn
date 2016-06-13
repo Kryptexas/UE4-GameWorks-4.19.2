@@ -1,0 +1,90 @@
+﻿INTSourceChangelist:0
+Title: Setting Up the VR Editor from GitHub
+Description: Download and configure the Unreal Engine VR Editor Preview from GitHub.
+Crumbs:
+Availability: docs
+parent: Engine/Editor/VR/QuickStart
+type: howto
+order: 1
+tags: VR
+version: 4.11
+skilllevel: intermediate
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Editor/VR/QuickStart/Setup:title%](Engine/Editor/VR/QuickStart/Setup/worldinteraction.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/QuickStart/Setup:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/QuickStart/Setup]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/QuickStart/Setup:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Editor/VR/QuickStart/Setup:title%](Engine/Editor/VR/QuickStart/Setup/worldinteraction.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/QuickStart/Setup:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/QuickStart/Setup]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/QuickStart/Setup:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[NAV]
+
+[EXCERPT:main]
+
+VR Editor is a preview feature for an upcoming release of Unreal Engine.  We've put the source code online early so you can try it out and give us feedback!
+
+If you'd like, you can visit the Unreal Engine forums and send us feedback in the [Unreal Editor in VR](https://forums.unrealengine.com/showthread.php?99776-Unreal-Editor-in-VR-Official-megathread) thread.
+
+It's easy to download the source code and get the VR Editor up and running, but there are a few steps that you'll need to perform first.
+
+## Get the VR Editor Source Code
+
+1. Login to GitHub and make sure your account is linked to your Epic Games account.  You can find information about that on the [Unreal Engine 4 GitHub Page](https://www.unrealengine.com/ue4-on-github).
+1. Navigate to the [Unreal Engine source repository](https://github.com/EpicGames/UnrealEngine) on GitHub
+1. Switch to the "dev-vr-Editor" branch using the drop down.
+1. Follow the instructions about [Getting Up and Running](https://github.com/EpicGames/UnrealEngine/tree/dev-vr-editor#getting-up-and-running).  You'll be downloading the Unreal Engine source for the VR Editor, along with installing prerequisites.  You'll also need to have the free version of [Visual Studio 2015](https://www.visualstudio.com/products/visual-studio-community-vs) installed.
+
+[REGION:section]
+**Setting Up Unreal Engine VR Editor with Oculus Rift**
+
+1. **Acquire the latest SDK, runtime, and VR Editor UE4 plugins for Oculus Rift from your developer contacts at Oculus.**
+	
+	[REGION:note]
+	Epic is not permitted to distribute unreleased Oculus SDK files or plugin code.
+	[/REGION]
+
+1. Install the plugin, runtimes, and SDK files to the Unreal Engine directory, which will allow you to compile the engine with support for Oculus Rift and Touch controllers. 
+[/REGION]
+
+## Compile Unreal Engine with VR Editor
+
+1. Compile the engine normally as per the [setup instructions](https://github.com/EpicGames/UnrealEngine/tree/dev-vr-editor#getting-up-and-running) on GitHub.
+1. Run the editor!
+1. Execute the following file to start the editor:
+
+	[UE4]\Engine\Binaries\Win64\UE4Editor.exe
+
+[REGION:note]
+If VR Mode fails to activate, check the Output Log window and look for "HMD" diagnostic messages.
+[/REGION]
+
+[/EXCERPT:main]
+
+[NAV]

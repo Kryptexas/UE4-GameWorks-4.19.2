@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2607700
+﻿INTSourceChangelist:2752314
 Availability:Public
 Title: 자세한 액터 리플리케이션 흐름
 Crumbs:%ROOT%, Gameplay, Gameplay/Networking, Gameplay/Networking/Actors
@@ -7,6 +7,7 @@ Related: Gameplay/Networking/Actors
 Related: Gameplay/Networking/Actors/Properties
 Related: Gameplay/Networking/Actors/RPCs
 Related: Gameplay/Networking/Actors/ReplicationPerformance
+Version: 4.9
 
 액터 리플리케이션 대부분은 `UNetDriver::ServerReplicateActors` 안에서 일어납니다. 서버가 각 클라이언트에 연관성이 있다고 결정내린 액터 전부를 수집하고, 접속된 각 클라이언트가 지난 번 업데이트된 이후 변경된 프로퍼티가 있으면 전송하는 곳입니다.
 

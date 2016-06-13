@@ -3,7 +3,7 @@ Title: 2.8 - Add a First Person Mesh to your Character
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
 Description: Learn how to add a first person mesh to your First Person Shooter character.
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,15 +23,18 @@ Version: 4.9
 
 %Steps%
 
-A common approach for building FPS games is to use two separate character meshes where one is the full-body mesh and the other is the "weapon and hands" mesh. The full-body mesh is used to see the character from a third-person perspective; however, it is hidden when the player is viewing the game in first-person perspective. The "weapon and hands" mesh is typically attached to the camera and it is visible only to the player when the player is viewing the map in first-person perspective.
+A common approach for building FPS games is to use two separate character meshes where one is the full-body mesh and the other is the "weapon and hands" mesh. 
+The full-body mesh is used to see the character from a third-person perspective; however, it's hidden when the player is viewing the game in first-person perspective. 
+The "weapon and hands" mesh is typically attached to the camera and is only visible to the player when they're viewing the map in first-person perspective.
+During this step, we're going to add a first person mesh to our character.
 
 ## Adding the First Person Character Mesh
 
-1.	Switch back to Visual Studio and open `FPSCharacter.h` and add the following public property:
+1.	Switch back to Visual Studio and open `FPSCharacter.h` to add the following code:
 
-		// Pawn Mesh: First person view (arms that are only seen by self)
+		// pawn mesh: FPS view (arms are only seen by self)
 		UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-		USkeletalMeshComponent* FirstPersonMesh;
+		USkeletalMeshComponent* FPSMesh;
 
 1.	`FPSCharacter.h` should now look like the following:
 
@@ -50,9 +53,6 @@ A common approach for building FPS games is to use two separate character meshes
 		public:
 			// Sets default values for this character's properties
 			AFPSCharacter();
-		
-			// Constructor for the AFPSCharacter
-			AFPSCharacter(const FObjectInitializer& ObjectInitializer);
 		
 			// Called when the game starts or when spawned
 			virtual void BeginPlay() override;
@@ -74,40 +74,39 @@ A common approach for building FPS games is to use two separate character meshes
 			// sets jump flag when key is pressed
 			UFUNCTION()
 			void OnStartJump();
-			
+		
 			// clears jump flag when key is released
 			UFUNCTION()
 			void OnStopJump();
 		
 			// FPS camera
-			UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
-			UCameraComponent* FirstPersonCameraComponent;
+			UPROPERTY(VisibleAnywhere)
+			UCameraComponent* FPSCameraComponent;
 		
-			// Pawn Mesh: First person view (arms that are only seen by self)
+			// pawn mesh: FPS view (arms are only seen by self)
 			UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-			USkeletalMeshComponent* FirstPersonMesh;
+			USkeletalMeshComponent* FPSMesh;
 		};
 
 1.	Open `FPSCharacter.cpp` and add the following code to create and configure the first person mesh:
 
-		// Create a mesh component that will be used when being viewed from a first person view when controlling this pawn
-		FirstPersonMesh = ObjectInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("FirstPersonMesh"));
+		// create a first person mesh component
+		FPSMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
+		// only the owning player sees this mesh
+		FPSMesh->SetOnlyOwnerSee(true);
+		// attach the FPS mesh to the FPS camera
+		FPSMesh->AttachTo(FPSCameraComponent);
+		// disable some environmental shadowing to preserve the illusion of having a single mesh
+		FPSMesh->bCastDynamicShadow = false;
+		FPSMesh->CastShadow = false;
 
-		if (FirstPersonMesh != NULL)
-		{
-			FirstPersonMesh->SetOnlyOwnerSee(true);  // only the owning player will see this mesh
-			FirstPersonMesh->SetupAttachment(FirstPersonCameraComponent);
-			FirstPersonMesh->bCastDynamicShadow = false;
-			FirstPersonMesh->CastShadow = false;
-		}
+	`SetOnlyOwnerSee` indicates that this mesh is only visible to the `PlayerController` that has possessed this `Character`. 
+	This code is also attaching the mesh to the camera and disabling some environmental shadowing.
+	Allowing the the camera-attahed arms to cast shadows would destroy the illusion of having a single mesh for the first person character.
 
-	[REGION:note]
-	`SetOnlyOwnerSee` indicates that this mesh is only visible to the `PlayerController` that has possessed this `Character`. The aforementioned code is also attaching the mesh to the camera and disabling some environmental shadowing. Allowing the the camera-attahed arms to cast shadows would destroy the illusion of having a single mesh for the first person character.
-	[/REGION]
+1.	Add the following code to `FPSCharacter.cpp` to hide the existing third-person mesh from the owning character:
 
-1.	Add the following code to `FPSCharacter.cpp` to hide the existing third person-mesh from the owning character:
-
-		// everyone but the owner can see the regular body mesh
+		// everyone but you can see the regular body mesh
 		GetMesh()->SetOwnerNoSee(true);
 
 1.	`FPSCharacter.cpp` should now look like the following:
@@ -117,42 +116,32 @@ A common approach for building FPS games is to use two separate character meshes
 		#include "FPSProject.h"
 		#include "FPSCharacter.h"
 		
-		
 		// Sets default values
 		AFPSCharacter::AFPSCharacter()
 		{
 		 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 			PrimaryActorTick.bCanEverTick = true;
 		
-		}
+			// create a first person camera component
+			FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
+			// attach the camera component to our capsule component
+			FPSCameraComponent->AttachTo(GetCapsuleComponent());
+			// position the camera slightly above the eyes
+			FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
+			// allow the pawn to control rotation
+			FPSCameraComponent->bUsePawnControlRotation = true;
 		
-		// Constructor that creates the camera component
-		AFPSCharacter::AFPSCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
-		{
-			// Create a camera Component
-			FirstPersonCameraComponent = ObjectInitializer.CreateDefaultSubobject<UCameraComponent>(this, TEXT("FirstPersonCamera"));
-		
-			if (FirstPersonCameraComponent != NULL)
-			{
-				FirstPersonCameraComponent->SetupAttachment(GetCapsuleComponent());
-				// Position the camera a bit above the eyes
-				FirstPersonCameraComponent->RelativeLocation = FVector(0.f, 0.f, 50.f + BaseEyeHeight);
-				// Allow the pawn to control rotation
-				FirstPersonCameraComponent->bUsePawnControlRotation = true;
-			}
-		
-			// Create a mesh component that will be used when being viewed from a first person view when controlling this pawn
-			FirstPersonMesh = ObjectInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("FirstPersonMesh"));
-		
-			if (FirstPersonMesh != NULL)
-			{
-				FirstPersonMesh->SetOnlyOwnerSee(true);  // only the owning player will see this mesh
-				FirstPersonMesh->SetupAttachment(FirstPersonCameraComponent);
-				FirstPersonMesh->bCastDynamicShadow = false;
-				FirstPersonMesh->CastShadow = false;
-			}
-		
-			// everyone but the owner can see the regular body mesh
+			// create a first person mesh component
+			FPSMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
+			// only the owning player sees this mesh
+			FPSMesh->SetOnlyOwnerSee(true);
+			// attach the FPS mesh to the FPS camera
+			FPSMesh->AttachTo(FPSCameraComponent);
+			// disable some environmental shadowing to preserve the illusion of having a single mesh
+			FPSMesh->bCastDynamicShadow = false;
+			FPSMesh->CastShadow = false;
+			
+			// everyone but you can see the regular body mesh
 			GetMesh()->SetOwnerNoSee(true);
 		}
 		
@@ -161,9 +150,15 @@ A common approach for building FPS games is to use two separate character meshes
 		{
 			Super::BeginPlay();
 			
+			const int32 Key = -1;
+			static const FString DebugMessage = TEXT("We are using FPSCharacter.");
+			FColor DisplayColor = FColor::Red;
+			float TimeToDisplay = 5.0f; //seconds
+		
 			if (GEngine != nullptr)
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::White, TEXT("We are using FPSCharacter."));
+				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
+		
 			}
 		}
 		
@@ -178,62 +173,49 @@ A common approach for building FPS games is to use two separate character meshes
 		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 		{
 			Super::SetupPlayerInputComponent(InputComponent);
-			
-			// set-up gameplay key bindings
+		
+			// set up gameplay key bindings
 			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
 			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
-			// set-up gameplay mouse bindings
+		
+			// set up gameplay mouse bindings
 			InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
 			InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
-			// set-up jump action bindings
+		
+			// set up jump action bindings
 			InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::OnStartJump);
 			InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::OnStopJump);
 		}
 		
-		// Forward movement function definition
 		void AFPSCharacter::MoveForward(float Value)
 		{
-			if (Controller != nullptr && Value != 0.f)
-			{
-				//find out which way is forward
-				FRotator Rotation = Controller->GetControlRotation();
-				//limit pitch when walking for falling
-				if (GetCharacterMovement()->IsMovingOnGround() || GetCharacterMovement()->IsFalling())
-				{
-					Rotation.Pitch = 0.f;
-				}
-				//add movement in that direction
-				const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
-				AddMovementInput(Direction, Value);
-			}
+			// find out which way is forward
+			FRotator Rotation = Controller->GetControlRotation();
+			// add movement in that direction
+			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
+			AddMovementInput(Direction, Value);
 		}
 		
-		//Right movement function definition
 		void AFPSCharacter::MoveRight(float Value)
 		{
-			if (Controller != nullptr && Value != 0.f)
-			{
-				//find our which way is right
-				const FRotator Rotation = Controller->GetControlRotation();
-				const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
-				//add movement in that direction
-				AddMovementInput(Direction, Value);
-			}
+			// find out which way is right
+			FRotator Rotation = Controller->GetControlRotation();
+			// add movement in that direction
+			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
+			AddMovementInput(Direction, Value);
 		}
 		
-		//Function setting the jump flag
 		void AFPSCharacter::OnStartJump()
 		{
 			bPressedJump = true;
 		}
 		
-		//Function clearning the jump flag
 		void AFPSCharacter::OnStopJump()
 		{
 			bPressedJump = false;
 		}
 
-1.	Save the `FPSCharacter` interface (\*.h) and implementation (\*.cpp) files in Visual Studio.
+1.	Save the `FPSCharacter` header (\*.h) and CPP (\*.cpp) files in Visual Studio.
 
 1.	Locate **FPSProject** in the **Solution Explorer**.
 
@@ -241,7 +223,7 @@ A common approach for building FPS games is to use two separate character meshes
 
 	![](BuildProject.png)
 
-1.	After the build finishes, open your **FPSProject** in Unreal Editor.
+1.	After the build finishes, open your **FPSProject** in Unreal Editor. At this point, your character mesh should not be visible inside the editor.
 
 ## Building the Mesh Blueprint
 
@@ -250,17 +232,17 @@ Before continuing, download and extract our sample mesh from the following link:
 ["First Person Skeletal Mesh"](HeroFPP.zip "First Person Skeletal Mesh")
 [/REGION]
 
-1.	**Right-click** inside the Content Browser's file box to open the **Import Asset** dialog box
+1.	Right-click inside the Content Browser's file box to open the **Import Asset** dialog box
 
-1.	**Click 'Import to /Game...'** to open the **Import** dialog box.
+1.	Click **'Import to /Game...'** to open the **Import** dialog box.
 
 	![](RightClickImport.png)
 
 1.	Locate and select the **HeroFPP.fbx** mesh file.
 
-1.	**Click Open** to begin importing the mesh to your project.
+1.	Click **Open** to begin importing the mesh to your project.
 
-1.	In the **Content Browser**, the **FBX Import Options** dialog box appears. **Clicking Import** adds your mesh to the Project.
+1.	In the **Content Browser**, the **FBX Import Options** dialog box appears. Clicking **Import** adds your mesh to the Project.
 
 	[REGION:warning]
 	Disregard the following error regarding smoothing groups:
@@ -268,27 +250,24 @@ Before continuing, download and extract our sample mesh from the following link:
 	This mesh still illustrates the first person mesh set-up and it will work with the animations you'll set-up in a later section.
 	[/REGION]
 
-1.	**Click** the **Save** button to save your imported mesh.
+1.	Click the **Save** button to save your imported mesh.
 
 1.	Navigate back to the **Blueprints** folder in the **Content Browser**.
 
-1.	 **Double-click** the **BP_FPSCharacter** icon to open it in the **Blueprint Editor**.
+1.	Double-click the **BP_FPSCharacter** icon to open it in the **Blueprint Editor**.
 
-1.	Locate the new **FirstPersonMesh** component in the **Components** tab.
+1.	Locate the new **FPSMesh** component in the **Components** tab.
 
 	![](LocateFPSMeshComponent.png)
 
-	[REGION:note]
 	The **FirstPersonMesh** component is a child of the **FirstPersonCameraComponent**, which means that it will always be attached to the camera.
-	[/REGION]
 
-1.	**Click** on the **FirstPersonMesh** in the **Components** menu.
+1.	Click on the **FirstPersonMesh** in the **Components** menu.
 
-1.	Scroll down to the **Mesh** section of the **Details** tab and **click** on the dropdown menu that says "None".
+1.	Scroll down to the **Mesh** section of the **Details** tab and click on the dropdown menu that says "None". 
+	Now, select the **HeroFPP** skeletal mesh to add the arms to the **Viewport**.
 
 	![](SelectHeroFPPSkeletalMesh.png)
-
-1.	Select the **HeroFPP** skeletal mesh to add the arms to the **Viewport**.
 
 1.	The newly added **HeroFPP** skeletal mesh should look like the following inside the **Viewport**.
 
@@ -305,14 +284,11 @@ Before continuing, download and extract our sample mesh from the following link:
 
 ## Viewing the New Mesh In-Game
 
-1.	**Click** the **Play In** button in the **Level Editor Toolbar** to view the new mesh in-game.
+1.	Click the **Play In** button in the **Level Editor Toolbar** to view the new mesh in-game.
 
-	[REGION:note]
-	To freely move the camera to see your character's mesh, press F1 to regain control of your mouse cursor, then click the **Eject** button in the toolbar.
-	![](FreeMovingCamera.png)
-	[/REGION]
+	![](NewMeshInGame.png)
 
-1.	**Click** the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
+1.	Press the Escape key or click the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
 
 Congratulations! You've learned how to:
 

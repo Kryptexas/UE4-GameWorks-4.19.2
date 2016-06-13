@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2635791
+﻿INTSourceChangelist:2774060
 Availability:Public
 Title: 3. 기본 애셋 생성
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:3 단계. 기본 애셋 생성
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -26,7 +27,7 @@ Description:3 단계. 기본 애셋 생성
 우선 **콘텐츠 브라우저** 에서 애셋을 네 개 만들어야 합니다: AI 콘트롤러 블루프린트, 캐릭터 블루프린트, 비헤이비어 트리 애셋, 블랙 보드 애셋 입니다.
 
 [REGION:raw]
-![](Assets.png)
+![](ContentBrowser.jpg)
 [/REGION]
 
 ## 단계

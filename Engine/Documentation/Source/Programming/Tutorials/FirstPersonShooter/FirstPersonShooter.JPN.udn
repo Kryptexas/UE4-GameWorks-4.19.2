@@ -1,17 +1,20 @@
-﻿INTSourceChangelist:2672552
+﻿INTSourceChangelist:2923486
 Availability:Docs
 Title:C++ FPS チュートリアル
 Crumbs: %ROOT%, GettingStarted, Programming/Tutorials
-Description:ファーストパーソン シューティング ゲームの開発方法。
-スキルレベル:初心者向け
-バージョン：4.9
+Description:FPS の構築方法について説明します。
+prereq:Programming/Development/VisualStudioSetup
+SkillLevel:Beginner
+Version:4.11
 
 ![](FPS_CoverImage.png)
 _このチュートリアルの最後まで終了すると、この画面のようになります。_
 
+アンリアル エンジン 4 (UE4) を初めてお使いになる場合は、[](Programming/QuickStart) ガイドをお読みになって UE4 の C++ について学習してください。このチュートリアルでは、プロジェクトを作成する、プロジェクトに C++ コードを追加する、およびアンリアル エディタで入力を設定する方法について既に理解していることを前提にしています。UE4 で C++ の作業をしたことがあるが、Pawn クラスや入力設定の方法に慣れていない場合は、[](Programming/Tutorials/PlayerInput) のチュートリアルを参照して、このチュートリアルを開始するために必要な C++ のコンセプトとスキルを学ぶとよいでしょう。
+
 ## 目標
 
-このチュートリアルでは、C++ とブループリントを使用した基本的なファーストパーソン シューティング ゲーム (FPS) の構築方法について説明します。
+このチュートリアルでは、C++ を使用した基本的なファーストパーソン シューティング ゲーム (FPS) の構築方法について説明します。
 
 ## 目的
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2606008
+﻿INTSourceChangelist:2707888
 Availability:Public
 Title:플립북 에디터 참고서
 Crumbs: %ROOT%, Engine, Engine/Paper2D, Engine/Paper2D/Flipbooks
@@ -8,6 +8,8 @@ Related: Engine/Paper2D/Flipbooks
 Related: Engine/Paper2D/Sprites
 Related: Engine/Rendering/Materials
 Related: Engine/Content/Types/Textures 
+Version: 4.9
+SkillLevel: Beginner
 
 [TOC (start:2 end:2)]
 
@@ -74,7 +76,7 @@ Related: Engine/Content/Types/Textures
 
 ![](Timeline3.png)
 
-사용중인 **스플아이트** 이름 위에, 그 **인덱스** (시퀀스 내 위치)와 **기간** 이 프레임으로 표시됩니다.
+사용중인 **스프라이트** 이름 위에, 그 **인덱스** (시퀀스 내 위치)와 **기간** 이 프레임으로 표시됩니다.
 
 키 프레임에 **우클릭** 을 해도 부가 키 프레임 동작이 가능한 맥락 메뉴가 뜹니다.
 

@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Essential Material Concepts
-Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
-Description:An introductory document on UE4 Materials and how they work.
+﻿INTSourceChangelist:2691797
+Availability:Public
+Title:基本材质概念
+Crumbs:%ROOT%, Engine, Engine/Rendering/Materials
+Description:有关 UE4 材质及其工作方式的介绍文档。
+Version:4.9
+SkillLevel:Beginner
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]
@@ -66,124 +68,124 @@ Description:An introductory document on UE4 Materials and how they work.
 [TOC(start:2 end:3)]
 
  
-Materials are one of the most critical aspects for achieving the look you want for your objects and levels. This document serves as a quick and high-level way to get started creating your own Materials. 
+材质是让您的对象和关卡具有您想要的外观的关键因素之一。本文档介绍一种快速且高级别的方法来创建您自己的材质。 
 
-If you are already familiar with Material creation from previous iterations of the Unreal Engine, then you may be interested in the Quick Start Guide, which quickly shows off the key properties you need to know to make the most of our physically-based Material system!
+如果您已经从前面的虚幻引擎使用过程中熟悉材质创建，那么您可能会对《快速入门指南》感兴趣，该指南会指出为了充分利用我们基于物理的材质系统而需了解的关键属性。
 
 
-## Material Expression Nodes and Networks
+## 材质表达式节点与网络
 
-The first and most important thing to know about Materials is that they are constructed not through code, but via a network of visual scripting nodes (called Material Expressions) within the Material Editor. Each node contains a snippet of [HLSL code](http://en.wikipedia.org/wiki/High_Level_Shader_Language), designated to perform a specific task. This means that as you construct a Material, you are creating HLSL code through visual scripting.
+关于材质，您需要知道的第一件也是最重要的事情就是，它们并非通过代码，而是通过材质编辑器中的可视脚本节点（称为材质表达式）所组成的网络来构建。每一个节点都包含 [HLSL 代码](http://en.wikipedia.org/wiki/High_Level_Shader_Language) 片段，并用于执行特定的任务。这意味着当您构建材质时，您是在通过可视化脚本编程来创建 HLSL 代码。
 
 [REGION:fullwidth]
 ![](WoodFloor.png)
 [/REGION]
 
-In this case, we have a very simple network defining a hardwood floor. However, Material Expression networks need not be so simple. It is common to have some materials that have many dozens of Material Expression nodes within them.
+在这个例子中，我们有一个非常简单的网络，它用来定义硬木地板。然而，材质表达式网络并非如此简单。有些材质经常会包含数十个材质表达式节点。
 
-You can find documentation on all of the available Material Expressions in the [](Engine/Rendering/Materials/ExpressionReference).
+您可以在 [](Engine/Rendering/Materials/ExpressionReference) 中找到有关所有可用材质表达式的文档。
 
-## Working with Colors and Numbers
+## 使用颜色和数字
 
-As you may know, color - in terms of digital imagery - is broken in to 4 primary channels. These are:
+正如您所知，颜色在数字成像方面，由 4 个主通道构成。它们是：
 	
 [REGION:simpletable]
 ||
 | --- |
-| [REGION:red]**R - Red**[/REGION] |
-| [REGION:green]**G - Green**[/REGION] |
-| [REGION:blue]**B - Blue**[/REGION] |
-| **A - Alpha** |
+| [REGION:red]**R - 红色**[/REGION] |
+| [REGION:green]**G - 绿色**[/REGION] |
+| [REGION:blue]**B - 蓝色**[/REGION] |
+| **A - 阿尔法** |
 [/REGION]
 
 
-As with all digital images, for each pixel, the value of any of these channels can be represented by a number. Much of the work of a Material is simply manipulating these numbers based on a series of circumstances and mathematical expressions. 
+对所有数字图像中的每一个像素而言，其中任何通道的值都可以由一个数字表示。关于材质的许多工作无非是根据一系列的情况和数学表达式来处理这些数字。 
 
-Materials use floating point values to store color data. This generally means that values for each channel will range from 0.0 to 1.0, instead of 0 to 255 as they do in some image editing applications. It is important to note that you can always overdrive values, which will in some cases result in special behaviors. For instance, if sending color into the Emissive input of a Material, which causes a glow, then values greater than 1.0 will increase the glow brightness.
+材质使用浮点值来储存颜色信息。这通常意味着每个通道的值范围都是 0.0 到 1.0，而不像是某些图像编辑应用程序那样使用 0 到 255。需要注意的是，您在任何时候都可以使用超过此范围的值，这在某些情况下会产生特殊的行为。例如，将颜色发送到材质的“自发光”（Emissive）输入时（这将使材质发光），大于 1.0 的值会增加发光强度。
 
 
-When thinking about Materials in UE4, keep in mind that many expressions operate independently on each color channel.  For example, the [Add](Engine/Rendering/Materials/ExpressionReference/Math#Add) node takes two inputs and adds them together per channel.  If you add together two RGB colors (3-channel vector values), then the output color will be: (Red1+Red2, Green1+Green2, Blue1+Blue2).  
+在 UE4 中考虑材质时，请记住，许多表达式的运作与各个颜色通道无关。例如，对于每个通道，[“加法”（Add）](Engine/Rendering/Materials/ExpressionReference/Math#Add) 节点使用两个输入并将它们相加。如果您将两个 RGB 颜色（3 通道矢量值）相加，那么输出颜色将是：(红色 1+红色 2, 绿色 1+绿色 2, 蓝色 1+蓝色 2)。  
 	
 [REGION:simpletable]
 ||
 | --- |
-| [REGION:red]**Red 1 + Red 2 = Red 3**[/REGION] |
-| [REGION:green]**Green 1 + Green 2 = Green 3**[/REGION] |
-| [REGION:blue]**Blue 1 + Blue 2 = Blue 3**[/REGION] |
+| [REGION:red]**红色 1 + 红色 2 = 红色 3**[/REGION] |
+| [REGION:green]**绿色 1 + 绿色 2 = 绿色 3**[/REGION] |
+| [REGION:blue]**蓝色 1 + 蓝色 2 = 蓝色 3**[/REGION] |
 [/REGION]
 
-Nodes that perform per-channel operations generally need inputs that have the same number of channels.  For example, you can [Add](Engine/Rendering/Materials/ExpressionReference/Math#Add) an RGB color to another RGB color, but you cannot add an RGBA (4-channel) color to a RGB (3-channel) color, because the RGB color does not have an alpha channel. This causes an error and the Material will not compile.  The exception to this rule is when one of the inputs is a single-channel (scalar) value. When this happens, the value of the scalar is simply applied to all of the other channels.  For example:
+执行单通道操作的节点一般需要具有相同通道数目的输入。例如，可以将一个 RGB 颜色与另一个 RGB 颜色相 [加（Add）](Engine/Rendering/Materials/ExpressionReference/Math#Add)，但不能将 RGBA（4 通道）颜色与 RGB（3 通道）颜色相加，这是因为 RGB 颜色没有阿尔法通道。这会产生错误，并导致材质无法编译。此规则有一个例外情况，即，其中一个输入是单通道（标量）值。在这种情况下，该标量的值将直接应用于所有其他通道。例如：
 
-* **If adding the RGB value (0.35, 0.28, 0.77) to the scalar value 1.0, the result would be:**
+* **如果将 RGB 值 (0.35, 0.28, 0.77) 与标量值 1.0 相加，那么结果将是：**
 	
 	[REGION:simpletable]
 	||
 	| --- |
 	| [REGION:red]**0.35 + 1.0 = 1.35**[/REGION] |
-	| [REGION:green]**0.28  + 1.0 = 1.28**[/REGION] |
-	| [REGION:blue]**0.77  + 1.0 = 1.77**[/REGION] |
+	| [REGION:green]**0.28 + 1.0 = 1.28**[/REGION] |
+	| [REGION:blue]**0.77 + 1.0 = 1.77**[/REGION] |
 	[/REGION]
 
 
 
-## Textures
+## 纹理
 
-In the case of Materials, textures are simply images that provide some sort of pixel-based data. This data may be the color of an object, how shiny it is, its transparency, and a variety of other aspects. There is an old-school mode of thought that "texturing" is how you apply color to your game models. While the process of creating textures is still critical, it is important to think of textures as a _component_ of Materials, and not as the end result themselves.
+对于材质，纹理只是用于提供某种基于像素的数据的图像。这些数据可能是对象的颜色、光泽度、透明度以及各种其他方面。有一种过时的想法，认为“添加纹理”是给游戏模型上色的过程。虽然创建纹理的过程仍然很关键，但我们应该将纹理看作材质的“元件”，而不是将它们本身视为最终成品，这一点很重要。
 
 [INCLUDE:Engine/Content/Types/Textures#Overview]
 
-Once created and imported into Unreal Editor, textures are brought into a Material by way of special Material Expression nodes, such as _Texture Sample_ nodes. You can see these in the hardwood floor example above. These nodes make a reference to the texture asset, which exists outside the Material and can be found separately in the **Content Browser**. Unlike some 3D applications, there is no way for a Material to contain its textures.
+纹理一旦创建并导入虚幻引擎，就会通过特殊的材质表达式节点（ 例如 _纹理取样（Texture Sample）_ 节点）引入到材质中。您可以在上文的硬木地板示例中看到这些内容。这些节点引用纹理资产，该资产存在于材质外部，可以在 **内容浏览器** 中单独找到。与某些 3D 应用程序不同，材质无法包含它自己的纹理。
 
-For more information on textures and texture creation, please see the [Textures documentation.](Engine/Content/Types/Textures)
+有关纹理和创建纹理的更多信息，请参阅 [纹理文档](Engine/Content/Types/Textures)。
 
-## Properties and Inputs
+## 属性与输入
 
-Much of what you can do with Materials is driven by the various properties you set on the Material itself, as well as how you create and connect the Material Expression node network that defines it. Before you can truly unleash the power of the Unreal Engine's Materials system, it would be a tremendous benefit to look over the properties and inputs available. These can be found below:
+您可以对材质执行的许多操作是由您对材质本身设置的各种属性，以及您建立并连接定义材质的材质表达式节点网络的方式来驱动的。为了能够全面运用虚幻引擎材质系统的强大功能，检视可用的属性和输入十分有益。您可以在下列位置找到它们：
 
 [](Engine/Rendering/Materials/MaterialProperties)
 [](Engine/Rendering/Materials/MaterialInputs)
 
-## Applying Materials to Surfaces
+## 将材质应用于表面
 
-The way in which you apply Materials varies a bit with the type of surface.
+应用材质的方式随表面类型不同而有少许变化。
 
-### Meshes
+### 网格体
 
-Applying a Material to a Mesh (Static, Dynamic, or Skeletal) can be handled in many ways. Simply use the Materials element slot located in the properties for the mesh. These can be found in the **Details** panel when a mesh is selected in the level, or by **right-clicking** on a mesh and choosing Properties from the context menu. You will also find them within various editors, such as the Static Mesh Editor or the Persona Skeletal Mesh Editor.
+对网格网格体（静态、动态或骨骼）应用材质有许多种不同方法。您可以直接使用网格属性中的材质元素槽。在关卡中选中网格时，您可以在 **细节（Details）**面板中找到这些槽，也可以通过 **右键单击** 网格并从快捷菜单中选择“属性”（Properties）找到这些槽。您也可以在各种编辑器（例如静态网格编辑器或者人物骨骼网格编辑器）中找到这些槽。
 
-1. Select the Mesh to which you want to apply the Material.
+1. 选择要应用材质的网格。
 
 	![](BoxSelected.png)
 
-1. In the **Details** panel, click the arrow on the Material Element dropdown. This will show all of the available Materials in your project, and is searchable using the search bar.
+1. 在 **细节（Details）**面板中，单击材质元素下拉菜单的箭头。这会显示项目中所有的可用材质，您也可以使用搜索栏进行搜索。
 
 	![](MaterialDetails.png)(h:365) ![](MaterialDropdown.png)(h:365) ![](GreenBox.png)(h:365)
 
-1. Alternatively, you may choose the desired Material in the **Content Browser** and then click the arrow button to apply it.
+1. 或者，您可以在 **内容浏览器** 中选择所需材质，然后单击箭头按钮应用该材质。
 
 	![](UseInContentBrowser.png)
 
 [REGION:note]
-	If you want a material to become the default for a given Mesh, be sure to set the Material in that Mesh's properties, either by **right-clicking** and choosing _Properties_ from within the **Content Browser** or by **double-clicking** the Mesh in the **Content Browser** and setting the Material using the asset editor (such as the Static Mesh Editor or Persona) that appears.
+	如果您希望某个材质成为给定网格的默认材质，请确保在该网格的属性中设置材质，操作如下：在 **内容浏览器** 中 **右键单击** 并选择“属性”（Properties），或者在 **内容浏览器** 中 **双击** 网格，然后使用出现的资产编辑器（例如静态网格编辑器或人物骨骼网格编辑器）来设置材质。
 
-	Remember, if you change a Material from an asset editor or from the **Content Browser**, that change affects the asset itself. If you change it using the details of a Mesh already placed in the scene, then it only affects the placed copy of the Mesh.
+	请记住，如果您在资产编辑器或 **内容浏览器** 中更改材质，那么该更改会影响资产本身。如果您使用已放入场景的网格的细节来更改材质，那么将只影响这个网格副本。
 [/REGION]
 
-### Brush Surfaces
+### 刷表面
 
-Applying a Material to a Brush surface is a simple process:
+将材质应用于刷表面的过程非常简单：
 
-1. Select a Material from the **Content Browser**.
+1. 在 **内容浏览器** 中选中一个材质。
 
-	![](MaterialSelectedInCB.png)
+	![](MaterialSelected.png)
 
-1. Click on the Brush surface to which you wish to assign the Material.
+1. 单击要将该材质指派到的刷表面。
 
-	![](SurfaceSelected.png)
+	![](BoxPanelSelected.png)(w:700)
 
-1. In the **Details** panel, click the ![](button_ApplyMaterials.png) button. Select the desired material from the dropdown that appears.
+1. 在 **细节（Details）**面板中，单击 ![](ArrowButton.png) 按钮。单击这个按钮会将该材质应用于刷表面。
 
-	![](ApplyMaterial.png)![](MaterialApplied.png)
+	![](AddingMaterialToBox.png)![](RedOnBox.png)(w:700)
 
 
 %playlistnav%

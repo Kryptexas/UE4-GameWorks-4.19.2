@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2633855
+﻿INTSourceChangelist:2697650
 Availability: Public
 Title:조각 모드
 Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Editing
 Description:랜드스케이프 툴의 Sculpt, 조각 모드 사용 안내서입니다.
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topiccompact]
@@ -266,7 +267,7 @@ Visibility (표시여부) 툴은 랜드스케이프에 동굴 등 구멍을 만�
 
 	이제 랜드스케이프의 구멍에 스태틱 메시 액터를 맞춰 동굴을 만들 수 있습니다.
 
-	[REGION:tip]
+	[REGION:note]
 	PIE 모드로 새로 만든 구멍의 콜리전을 테스트하기 위해서는, 랜드스케이프 모드를 배치 모드로 전환해야 합니다.
 	[/REGION]
 

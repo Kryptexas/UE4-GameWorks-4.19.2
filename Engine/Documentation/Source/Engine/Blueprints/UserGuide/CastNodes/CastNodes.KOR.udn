@@ -1,11 +1,14 @@
-﻿INTSourceChangelist:2687969
+﻿INTSourceChangelist:2968923
 Availability:Public
-Title:형변환 (Cast)
+Title:블루프린트의 형변환
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:다양한 Cast, 형변환 노드 사용법과 예제입니다.
 Related: Engine/Blueprints/UserGuide/BlueprintCommsUsage
 Related: Engine/Blueprints/HowTo
 version: 4.9
+Parent:Engine/Blueprints/Scripting
+tags:오브젝트와 액터 처리
+order:2
 
 [VAR:Topic]
 [OBJECT:Topic]

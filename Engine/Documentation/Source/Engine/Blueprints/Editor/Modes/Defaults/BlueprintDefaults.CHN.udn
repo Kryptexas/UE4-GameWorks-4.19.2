@@ -1,7 +1,50 @@
 ﻿Availability:Public
-Title: 蓝图编辑器默认模式
+Title: Defaults Mode
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
-Description:
+Description:The Defaults Mode allows you to edit all the default values of the properties inside your Blueprint. 
+
+[INCLUDE:Globals#bpmodesremoved]
+
+<!--
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine\Blueprints\Editor\Modes\Defaults:title%](Engine\Blueprints\UserGuide\defaults_mode_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Blueprints\Editor\Modes\Defaults:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Blueprints\Editor\Modes\Defaults:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Blueprints\Editor\Modes\Defaults]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine\Blueprints\Editor\Modes\Defaults:title%](Engine\Blueprints\UserGuide\defaults_mode_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Blueprints\Editor\Modes\Defaults:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Blueprints\Editor\Modes\Defaults:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Blueprints\Editor\Modes\Defaults]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
 
 [EXCERPT:Intro]
 
@@ -12,8 +55,12 @@ Description:
 [EXCERPT:Main]
 ![](bp_empty_defaults.png)(w:700)
 
+[REGION:note]
+See the [](Engine\Blueprints\Editor\Modes\Defaults\DefaultsTab) documentation for information on editing the default values in this mode. 
+[/REGION]
 
-|默认可见的用户界面组件| 窗口菜单中可用的组件|
+
+|Default Visible UI Components| Available in the Window Menu|
 |-----------------------------|-----------------------------|
 |[INCLUDE:#visible]			  |[INCLUDE:#invisible]			|
 
@@ -21,20 +68,20 @@ Description:
 
 <!----------
 [EXCERPT:Visible]
-1. [菜单](Engine/Blueprints/Editor\UIComponents\Menu)
-1. [工具栏](Engine/Blueprints/Editor\UIComponents\Toolbar\ToolbarOptions)
-1. [蓝图编辑器默认值选卡](Engine/Blueprints/Editor\Modes\Defaults\DefaultsTab)
+1. [Menu](Engine/Blueprints/Editor\UIComponents\Menu)
+1. [Toolbar](Engine/Blueprints/Editor\UIComponents\Toolbar\ToolbarOptions)
+1. [Class Defaults](Engine/Blueprints/Editor\Modes\Defaults\DefaultsTab)
 
 [/EXCERPT:Visible]
 
 [EXCERPT:Invisible]
-* [查找结果](Engine/Blueprints/Editor\UIComponents\FindResults)
+* [Find Results](Engine/Blueprints/Editor\UIComponents\FindResults)
 [/EXCERPT:Invisible]
 ------------->
 
 [REGION:note]
-**Defaults** （默认）选项卡也可通过打开 **Window** （窗口）菜单并选择 **Blueprint Defaults** （蓝图默认值），从 **Components** （组件）模式或 **Graph** （图表）模式中打开。或者，您也可以在 **内容浏览器** 中 **右击** 一个 **蓝图**并选择 **Edit Defaults（编辑默认值）** 
-访问 **Blueprint Defaults* （蓝图默认值选卡）。
+**Defaults** can also be accessed from the **Components** mode or the **Graph** mode, by opening the **Window** menu and selecting **Class Defaults**. Alternatively, you can access **Class Defaults**
+from the **Content Browser** by **right-clicking** on a **Blueprint** and selecting **Edit Defaults**.
 
 
 ![](Edit_Defaults1.png)
@@ -43,4 +90,5 @@ Description:
 [/EXCERPT:Main]
 
 
-[INCLUDE:Engine/Blueprints/Editor/Modes#modes]
+
+-->

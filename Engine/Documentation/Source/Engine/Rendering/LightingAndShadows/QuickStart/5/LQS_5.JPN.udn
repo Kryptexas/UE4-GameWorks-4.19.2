@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2526977
+﻿INTSourceChangelist:2685187
 Availability:Public
 Title:5.ライトの品質とリフレクション
 Crumbs:%ROOT%, GettingStarted, Engine\Rendering\LightingAndShadows\QuickStart
-Description: このステップでは、ライト クオリティの最適化および改善方法を説明します。 
-
+Description: このステップでは、ライトの品質の最適化および改善方法を説明します。 
+SkillLevel:Beginner
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,19 +24,19 @@ Description: このステップでは、ライト クオリティの最適化お
 
 %Steps%
 
-アパートに照明が付きましたが、この照明の品質は改善することができます。まず **[Build]** オプションから始めましょう。 
+アパートに照明が付きました。この品質を改善するために、**[Build]** オプションを始めとするいくつかの機能があります。 
 
 1. **メイン ツールバー** の **[Build]** の隣の下矢印をクリックしてオプションを展開します。 
 
 	![](BuildOptions.png)
 
-1. **Lighting Quality** から、Quality Level の **[Production]** を選択します。 
+1. **[Lighting Quality (ライティング品質)]** から、Quality Level (品質レベル) に **[Production (プロダクション)]** を選択します。 
 
 	![](productionLighting.png)
 
 1. **[Build]** アイコンをクリックしてゲームをビルドします。 
 
-	ライトの品質が上がると、ビルド時間が長くなることが分かります。イタレーションを速く行うために、 **[Preview]** 設定でも大丈夫ですが、プロジェクトが完了に近づいたら **[Production]** に切り替えて、プロジェクトの最終段階もしくはほぼ最終のプロジェクトをビルドすることができます。 
+	ライトの品質が上がると、ビルド時間が長くなることが分かります。イタレーションを速く行うために **[Preview]** 設定でも問題ありませんが、プロジェクトが完了に近づいたら **[Production]** に切り替えて、プロジェクトの最終段階もしくはほぼ最終のプロジェクトをビルドすることができます。 
 
 また、ライトにとって重要な箇所に **Lightmass Importance Volume** を加えて集中することです。 
 
@@ -43,7 +44,7 @@ Description: このステップでは、ライト クオリティの最適化お
 
 	![](lightmass.png)
 
-1. Lightmass Importance Volume の **[Details]** パネルで **Transform** を以下のように設定します。 
+1. Lightmass Importance Volume の **[Details (詳細)]** パネルで **Transform** を以下のように設定します。 
 
 	![](LightmassSettings.png)
 
@@ -52,14 +53,14 @@ Description: このステップでは、ライト クオリティの最適化お
 	![](LightMassVolumeSet.png)
 
 	[REGION:note]
-	Lightmass の使用方法については [](Engine/Rendering/LightingAndShadows/Lightmass/Basics) ドキュメントをご覧ください。 
+	ライトマスの使用方法については [](Engine/Rendering/LightingAndShadows/Lightmass/Basics) ドキュメントをご覧ください。 
 	[/REGION]
 
 外見をより本物に近づけるために、 **Reflection Capture** アクタを使ってサーフェスでライトを反射させます。 
 
 まずは、デフォルトを使わずに、アパートにマテリアルを幾つか追加しましょう。 
 
-1.	**Content/StarterContent/Materials** の **コンテンツ ブラウザ** から、中庭寄りのフロアへ **M_Concrete_Tiles** をドラッグします。 
+1.	**コンテンツ ブラウザ** の **Content/StarterContent/Materials** で、中庭寄りのフロアへ **M_Concrete_Tiles** をドラッグします。 
 
 1.	同じマテリアルを小さな浴室へドラッグします。 
 
@@ -71,11 +72,11 @@ Description: このステップでは、ライト クオリティの最適化お
 
 	このマテリアルは好きなものに変更することができます。今はこの状態で開始することにします。 
 
-1.	**Visual Effects** の **[Modes]** メニューから **Box Reflection Capture** をレベル ビューポートにドラッグします。 
+1.	**[Modes]** メニューの **Visual Effects** の **Box Reflection Capture** をレベル ビューポートにドラッグします。 
 
 	![](boxReflection.png)
 
-1.	**[Details]** パネルで Box Reflection Capture の **Transform** を以下のように設定します。 
+1.	**[Details (詳細)]** パネルで Box Reflection Capture の **Transform** を以下のように設定します。 
 
 	![](boxSettings1.png)
 
@@ -87,11 +88,11 @@ Description: このステップでは、ライト クオリティの最適化お
 
 	![](boxPlaced1.png)(w:520)
 
-	現在の Transform は、シーンが受ける影響を説明するためだけに使ったので、室内の線がきつくなってしまい、理想的ではありません。Box Reflection Capture を上下左右に動かして、室内でライトがサーフェス上に与える影響を確認することができます。独自の設定または以下の設定を使うこともできます。 
+	現在の Transform は、シーンが受ける影響を描くために使っただけなので、室内の線がきつくなってしまい、理想的ではありません。Box Reflection Capture を上下左右に動かして、室内でライトがサーフェス上に与える影響を確認することができます。独自の設定または以下の設定を使うこともできます。 
 
 	![](finalBoxSettings.png)
 
-1.	 **Build** アイコンをクリックしてライトをビルドします (ビルド時間を短縮したい場合は **[Preview]** モードに戻ることもできます)。 
+1.	 **[Build]** アイコンをクリックしてライトをビルドします (ビルド時間を短縮したい場合は **[Preview]** モードに戻ることもできます)。 
 
 	![](bathroomBuilt.png)(w:520)
 

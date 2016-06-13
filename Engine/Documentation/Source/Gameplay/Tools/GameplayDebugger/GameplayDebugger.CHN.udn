@@ -1,52 +1,58 @@
-﻿INTSourceChangelist:0
-Title:Gameplay Debugger
+﻿INTSourceChangelist:2610380
+Title:游戏性的调试
 Availability:Public
 Crumbs:
-Description: Tool that enables analyzing realtime gameplay data at runtime.
+Description: 该工具可在运行时分析实时游戏数据。
 
-The Gameplay Debugger is useful for watching real-time data at runtime, even on clients in networked games using replication. It works in Play In Editor, Simulate In Editor, and standalone game sessions, and all of the data is displayed overlaid on the game viewport. The system provides a framework that can be extended to enable debugging of game-specific data.
+游戏调试工具对于在运行时（甚至在使用复制的联网游戏中的客户端上）查看实时数据，都非常有用。在编辑器中进行游戏、在编辑器中进行模拟以及在单独的游戏会话中，都可使用游戏调试工具，且所有数据都重叠显示在游戏视区中。该系统提供了一个框架，该框架可扩展，以便对游戏特定数据进行调试。
 
-Engine implementation can show:
+引擎实现了以下这些可显示的功能：
 
-* Basic data from Pawn
-* Basic data from AIController
-* Information about Behavior Tree and Blackboard data
-* Information about executed Environment Queries (EQS)
-* Information from perception system
-* Navmesh around player or selected Pawn with all details like links or areas
+* Pawn 的基本数据
+* AIController 的基本数据
+* 行为树和黑板数据的相关信息
+* 执行环境查询 (EQS) 的相关信息
+* 感知系统的信息
+* 玩家周围的导航网格或带有所有细节（如链接或区域）的选定 Pawn
 
-Usually there is a lot of data so GDT use categories to limit amount of information on screen. Data from only enabled categories is replicated which saves replication channel's bandwidth. There are 5 default categories and 5 categories to use by projects:
+通常数据量较大，因此 GDT 使用类别来限制屏幕上的信息量。系统只会复制已启用类别的数据，该数据可保存复制通道的带宽。共有以下 5 种默认类别和 5 种项目中使用的类别：
 
 ![image alt text](image_1.png)
 
-* Navmesh
-* Basic
-* Behavior Tree
+* 导航网格
+* 基本数据
+* 行为树
 * EQS
-* Perception
-* and 5 categories to use by projects
+* 感知
+* 以及 5 种项目中使用的类别
 
 
-Existing categories can be extended to show more game specific data too.
+也可对现有类别进行扩展，以显示更多游戏特定数据。
 
-Below we have screen-shots captured on client with enabled few categories: Basic, EQS, NavMesh and Behavior Tree:
+以下是我们在客户端上获取的屏幕截屏，该客户端上只启用了几个类别：基本数据、EQS、导航网格和行为树：
 
 ![image alt text](image_2.png)
 
-Gameplay Debugger can be activated with ' (Apostrophe) key by default or with *EnableGDT* cheat. Key binding is set in file and can be easily changed. To select enemy for debugging press ' key while pointing that enemy on screen. Numeric keyboard is used to switch between visible categories. GameplayDebugger module has to be added to project's dependency modules to be activated and usable. 
+使用 '（单引号）键（默认设置）或 *EnableGDT* 作弊工具可启用游戏调试工具。键盘按键设置在文件中设置，可方便地更改该设置。
+若要选定要调试的敌人，请在屏幕上正对着该敌人时按 ' 键。数字键盘用于在可见类别之间进行切换。
+必须将游戏调试模块添加到项目的依赖关系模块，才能启用和使用游戏调试模块。 
 
-## Editor - Working with Gameplay Debugger 
+## 编辑器-与游戏调试工具组合使用 
 
-While working in editor GDT can be used in PIE or in Simulate. Binded key or *EnableGDT *cheat can be used to activate GDT in PIE. Simulate mode is little different from PIE so to activate this debug tool it's needed to enable "*Debug AI*" show flag. There is an option to change visible categories in Simulate too. *GameplayDebuggingReplicator *actor is used for that. This actor can be find in Scene Outliner and his properties are used to control GDT:
+在编辑器中工作时，可在 PIE 或模拟模式中使用 GDT。已设置的键或 *EnableGDT* 作弊工具可用于在 PIE 模式中启用 GDT。
+模拟模式与 PIE 模式稍有不同，所以启用本调试工具需要启用 “Debug AI” 显示标志。软件还提供了一个选项，可在模拟模式中更改可见的类别。
+*GameplayDebuggingReplicator* actor 就用于该选项。该 actor 位于场景大纲视图中，其属性可用于控制 GDT：
 
 ![image alt text](image_3.jpg)
 
 
-## Basic extension
+## 基本扩展
 
-Gameplay Debugger can be only extended with C++ code. For Blueprint projects it can only be used as is - to display basic debug information for now. It's quite easy to extend Gameplay Debugger, to collect and display game specific data. Custom classes inherited from *UGameplayDebuggingComponent *class and *AGameplayDebuggingHUDComponent *class are needed for that. First class is used to collect and eventually replicate the data and second class is used to display all collected data on screen.
+游戏调试工具只能使用 C++ 代码进行扩展。在蓝图项目中，游戏调试程序只能按原样使用，即显示当前的基本调试信息。对游戏调试程序进行扩展是一件容易的事情，
+收集并显示游戏特定数据即可。为此，需要使用继承自 *UGameplayDebuggingComponent* 类和 *AGameplayDebuggingHUDComponent* 类的定制类。
+第一个类用于收集数据，并最终复制数据，而第二个类用于在屏幕上显示所有已收集的数据。
 
-Below is a simple class which collects game specific data:
+以下是一种用于收集游戏特定数据的简单类：
 
 
 GDTComponent.h
@@ -74,7 +80,7 @@ GDTComponent.cpp
 	#include "GameplayDebuggingComponent.h"
 	#include "GDTComponent.h"
 
-	UGDTComponent::UGDTComponent(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP) { }
+	UGDTComponent::UGDTComponent(const class FPostConstructInitializeProperties& PCIP) :Super(PCIP) { }
 
 	void UGDTComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty> &OutLifetimeProps) const
 	{
@@ -92,7 +98,7 @@ GDTComponent.cpp
 	#endif
 	}
 
-Next class is used to display new data on screen:
+下个类用于在屏幕上显示新数据：
 
 
 GDTHUDComponent.h
@@ -119,7 +125,7 @@ GDTHUDComponent.cpp
 	#include "GDTHUDComponent.h"
 
 	AGDTHUDComponent::AGDTHUDComponent(const class FPostConstructInitializeProperties& PCIP)
-		: Super(PCIP)
+		:Super(PCIP)
 	{
 	}
 	void AGDTHUDComponent::DrawBasicData(APlayerController* PC, class UGameplayDebuggingComponent *DebugComponent)
@@ -134,7 +140,7 @@ GDTHUDComponent.cpp
 	#endif
 	}
 
-Gameplay Debugger needs to know about new classes and that information can be set in DefaultEngine.ini configuration file:
+游戏调试工具需要理解新的类，且该信息可在 DefaultEngine.ini 配置文件中设置：
 
 
 DefaultEngine.ini
@@ -143,11 +149,11 @@ DefaultEngine.ini
 	DebugComponentClassName="/Script/MyGameProject.GDTComponent"
 	DebugComponentHUDClassName="/Script/MyGameProject.GDTHUDComponent" |
 
-## Custom categories
+## 定制类别
 
-Few more steps are needed to add project specific category to Gameplay Debugger. 
+需几步即可在游戏调试程序中添加项目特定类别。 
 
-Let's extend GDTComponent class:
+让我们扩展 GDTComponent 类：
 
 
 GDTComponent.h
@@ -177,7 +183,7 @@ GDTComponent.cpp
 	#include "GameplayDebuggingComponent.h"
 	#include "GDTComponent.h"
 
-	UGDTComponent::UGDTComponent(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP) { }
+	UGDTComponent::UGDTComponent(const class FPostConstructInitializeProperties& PCIP) :Super(PCIP) { }
 
 	void UGDTComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty> &OutLifetimeProps) const
 	{
@@ -210,7 +216,7 @@ GDTComponent.cpp
 	#endif
 	}
 
-Extended HUD component, to display data in new view:
+HUD 组件已被扩展，以便在新视图中显示数据：
 
 
 GDTHUDComponent.h
@@ -239,7 +245,7 @@ GDTHUDComponent.cpp
 	#include "GDTHUDComponent.h"
 
 	AGDTHUDComponent::AGDTHUDComponent(const class FPostConstructInitializeProperties& PCIP)
-		: Super(PCIP)
+		:Super(PCIP)
 	{
 	}
 	void AGDTHUDComponent::DrawCustomData(APlayerController* PC, class UGameplayDebuggingComponent *DebugComponent)
@@ -271,18 +277,18 @@ GDTHUDComponent.cpp
 	#endif
 	}
 
-New category is ready and can be used to debug project specific data:
+新类别已准备就绪，可用于对项目特定数据进行调试：
 
 ![image alt text](image_4.jpg)
 
-To draw debug information in colors *PrintString *function can use tags in string, to change active color. It makes easier to draw string with different colors:
+若要用颜色标出调试信息，*PrintString* 函数可在字符串中使用标记来改变当前使用的颜色。使用不同颜色描绘字符串变得更加方便：
 
 	void PrintString(FPrintContext& Context, const FString& InString );
 	void PrintString(FPrintContext& Context, const FColor& InColor, const FString& InString );
 	PrintString(DefaultContext, FColor::Green, TEXT("Whole text in green"));
 	PrintString(DefaultContext, TEXT("String {green}in green, {red}in red {white}or {R=0,G=0,B=255,A=255}in blue"));
 
-Last PrintString function generates string with 4 different colors:
+最后的 PrintString 函数可生成具有 4 种不同颜色的字符串：
 
 ![image alt text](image_5.jpg)
 

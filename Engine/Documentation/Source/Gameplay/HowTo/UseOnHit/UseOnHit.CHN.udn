@@ -1,15 +1,19 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2735882
 Availability: Public
-Title:Using the OnHit Event
+Title:使用 OnHit 事件
 Crumbs: %ROOT%, Gameplay
-Description:A How To Guide to for using the OnHit Event in Blueprints or Code. 
+Description:关于如何在蓝图或代码中使用 OnHit 事件的操作指南。 
+version: 4.9
+Parent:Gameplay
+type:how-to
+order:14
 
-If you are creating a game that involves any kind of damage to a player, enemy, or object, chances are you will run into the situation where you need to determine if they were hit by something and if so, who hit them, where the impact point was, or other information regarding the hit detected. The Event Hit Event will provide this information and much more when the collision occurs in which you can use the data to drive changes in your game be it affecting health, destroying an object, or other gameplay related actions. 
+如果您创建的游戏要对玩家、敌人或物件造成某一类型的伤害，您可能需要确定它们是否被某些东西击中，如果击中，还要确定谁是打击者，撞击点在哪里，或是其他与检测到的攻击有关的信息。击中事件（Event Hit）事件将提供此类信息，如果发生碰撞则提供更多信息，这时您可以用数据来驱动游戏中的变化，无论是要影响生命值、摧毁物件还是其他与游戏性相关的动作。 
 
 
-## Setup
+## 设置
 
-To learn more about using the OnHit Event using Blueprints, follow the link below:
+关于在蓝图中使用 OnHit 事件的详细信息，请访问以下链接：
 
 [REGION:buttonlist]
 * [](Gameplay\HowTo\UseOnHit\Blueprints)

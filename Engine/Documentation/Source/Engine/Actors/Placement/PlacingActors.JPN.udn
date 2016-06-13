@@ -5,7 +5,7 @@ Crumbs: %ROOT%, Engine, Engine/Actors
 Description:プロップ、ライト、カメラなどのアクタをレベルに配置する方法を説明します。 
 Related:Engine/UI/ClassViewer
 Related:GettingStarted\HowTo
-バージョン：4.9
+version: 4.9
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]

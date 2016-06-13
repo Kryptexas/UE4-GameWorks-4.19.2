@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2590789
+﻿INTSourceChangelist:2929391
 Availability:Public
 Title:Math 표현식
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
 Description:하나 이상의 입력에 수학적 연산을 하는 표현식입니다.
+Version: 4.9
 
 [EXCERPT:TOC]
 [TOC(start:2)]
@@ -77,7 +78,7 @@ Clamp (제한) 표현식은 값을 받아 최소치와 최대치로 정의된 �
 
 ## Cosine
 
-Cosine (코사인) 표현식은 (라디안) 입력값의 코사인 곡선을 출력합니다. 가장 흔하게는, [Time](Engine/Rendering/Materials/ExpressionReference/Constant#Time) 표현식의 입력에 연결하여 지속적으로 진동하는 파형을 출력할 때 쓰입니다. 출력값은 -1 과 1 사이를 순환하게 됩니다. 파형을 시각적으로 나타내 보자면 아래와 같습니다:
+Cosine (코사인) 표현식은 [0, 1] 범위의 코사인 곡선 값을 출력하는 반복해서 출력하는 표현식입니다. 가장 흔하게는, [Time](Engine/Rendering/Materials/ExpressionReference/Constant#Time) 표현식의 입력에 연결하여 지속적으로 진동하는 파형을 출력할 때 쓰입니다. 출력값은 -1 과 1 사이를 순환하게 됩니다. 파형을 시각적으로 나타내 보자면 아래와 같습니다:
 
 ![CosineWave.png](CosineWave.png)
 
@@ -185,9 +186,9 @@ Frac 표현식은 값을 받아 그 소수점 부분을 출력합니다. [Ceil](
 | [REGION:tablesection]입력[/REGION] ||
 | **A** | single float 값을 받습니다. |
 | **B** | single float 값을 받습니다. |
-| **A &lt; B** | A 값이 B 값보다 클 때 출력할 값을 받습니다. |
+| **A > B** | A 값이 B 값보다 클 때 출력할 값을 받습니다. |
 | **A = B** | A 값이 B 값과 같을 때 출력할 값을 받습니다. |
-| **A &gt; B** | A 값이 B 값보다 작을 때 출력할 값을 받습니다. |
+| **A &lt; B** | A 값이 B 값보다 작을 때 출력할 값을 받습니다. |
 
 
 ![IfExample.png](IfExample.png)(w:900)
@@ -311,7 +312,7 @@ Power (거듭제곱) 표현식은 입력 둘을 받아서, Base(밑)을  Exp(지
 
 ## Sine
 
-Sine (사인) 표현식은 (라디안) 입력값의 사인 곡선을 출력합니다. 가장 흔하게는 [Time](Engine/Rendering/Materials/ExpressionReference/Constant#Time) 표현식의 입력에 연결하여 지속적으로 진동하는 파형을 출력할 때 쓰입니다. 출력값은 -1 에서 1 까지 순환합니다. Cosine 표현식과의 차이점은, 파형이 절반만큼 오프셋되어 있다는 점입니다. 그 파형을 시각적으로 나타내 보자면 아래와 같습니다:
+Sine (사인) 표현식은 [0, 1] 범위의 사인 곡선 값을 반복해서 출력합니다. 가장 흔하게는 [Time](Engine/Rendering/Materials/ExpressionReference/Constant#Time) 표현식의 입력에 연결하여 지속적으로 진동하는 파형을 출력할 때 쓰입니다. 출력값은 -1 에서 1 까지 순환합니다. Cosine 표현식과의 차이점은, 파형이 절반만큼 오프셋되어 있다는 점입니다. 그 파형을 시각적으로 나타내 보자면 아래와 같습니다:
 
 ![SineWave.png](SineWave.png)
 

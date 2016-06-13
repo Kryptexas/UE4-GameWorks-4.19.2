@@ -2,6 +2,7 @@ Availability: Public
 Title:Collision Modules
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:These modules handle how particles will deal with actor collisions.
+Version: 4.9
 
 [TOC(start:2 end:3)]
 
@@ -45,7 +46,7 @@ Parameters for having the emitter handle collisions of particles. It contains th
 | **Max Collision Distance** | Max distance at which particle collision will occur.|
 
 
-This module will add two vectors (UsedDampingFactor and UsedDampingFactorRotation) and an integer (UsedMaxCollisions) to the particle payload data. These values are used to track the collision information per particle.
+The **Collision** module will add two vectors (UsedDampingFactor and UsedDampingFactorRotation) and an integer (UsedMaxCollisions) to the particle payload data. These values are used to track the collision information per particle.
 
 The following pseudo-code explains the update process for collision particles.
     
@@ -72,17 +73,24 @@ The following pseudo-code explains the update process for collision particles.
     }
 
 
-### Collision on iOS mobile devices
+### Particle Collision On iOS Mobile Devices
 
-When using the particle Collision Modules on VFX's that are for **iOS** devices you need to adjust the **Min Desired Frame Rate** to something lower than 30 FPS or your Particle Collisions will have a high probability of not colliding with objects in the world. 
-This is because when the frame rate of any Unreal Engine(UE) project drops below 30 FPS UE will disable Particle Collisions in an attempt to keep the frame at above 30 FPS.
+When using the Particle Collision module with VFX's that are for **iOS** mobile devices you will need to adjust the **Min Desired Frame Rate** to something lower than 30 FPS or your particle collisions will have a high probability of not colliding with objects in the world. 
+This is because when the frame rate of any Unreal Engine 4(UE4) project drops below 30 FPS UE4 will disable particle collisions in an attempt to keep the frame rate above 30 FPS.
 By default iOS projects are locked to 30FPS which means that by design particle collisions will be disabled from the start. 
 To ensure that this does not happen to your UE4 iOS project you need to first go to **Project Settings** > **General Settings** > **Framerate**.
 
-![](Min_Desired_Frame_Rate.png)
+[REGION:lightbox]
+[![](Min_Desired_Frame_Rate.png)](Min_Desired_Frame_Rate.png)
+[/REGION]
 
-Once the Framerate section is opened set the Min Desired Frame Rate to something under 30 FPS like 25 FPS for example.
-After the Min Desired Frame Rate has been changed, re-cook or re-deploy your project to your iOS device and check to see if the particle collisions are happening. 
+Once the Framerate section is opened, set the **Min Desired Frame Rate** to something under **30** FPS like 25 FPS for example.
+Then under the **Performacne** section in your particel effect Collision module, uncheck the **Drop Detail** option.
+
+![](Drop_Detail_CM_Box.png)
+
+After the Min Desired Frame Rate has been changed and the Drop Detail box unchecked, 
+re-cook or re-deploy your project to your iOS mobiel device and check to see if the particle collisions are working. 
 
 <!-----------
 

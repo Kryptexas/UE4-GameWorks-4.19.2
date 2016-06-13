@@ -1,18 +1,23 @@
-﻿INTSourceChangelist:2588639
-Title:Samsung Gear VR ヘッドセットの必要条件
+﻿INTSourceChangelist:2940199
+Title:Samsung Gear VR ヘッドセットの前提条件
 Description:Gear VR ヘッドセットで必要な初期セットアップ
 Availability:Public
 Crumbs:
 Navigation:platform
 Platform:Gear VR
+Skilllevel:Intermediate
+Version:4.8
+prereq:Engine\Blueprints\GettingStarted
+type:overview
+parent:Platforms/GearVR
+tags:VR
+tags:GearVR
 
 ![](Platforms\GearVR\QuickStart\GVR_Headset_00.png)
 
 [REGION:warning]
 Gear VR Headset の開発には **Unreal Engine 4.7.4** 以降が必要です。
 [/REGION]
-
-## 概要 
 
 アンリアル エンジン (UE4) 4.7 のリリースにより、Samsung Gear VR ヘッドセット用仮想現実 (VR) プロジェクトのビルドが可能になりました。Samsung Galaxy Note 4、Galaxy S6、Galaxy S6 Edge のスマートフォンをイマーシブな (没入型) VR デバイスに変えてしまうことができます。 
 次のセクションでは、Samsung Galaxy Note 4 スマートフォンが Samsung Gear VR ヘッドセットと問題なく動作するための正しい設定方法について説明します。
@@ -26,9 +31,9 @@ Gear VR SDK がどのように機能するか、または Oculus Mobile VR の�
 
 
 
-## Gear VR ヘッドセットの必要条件 
+## Gear VR ヘッドセットの前提条件 
 
-UE4 での Gear VR 開発を開始する前に、以下の必要条件を満たしていることを確認する必要があります。満たしていない場合、Gear VR プロジェクトが Gear VR ヘッドセットで動作しないリスクが発生します。 
+UE4 での Gear VR 開発を開始する前に、以下の前提条件を満たしていることを確認する必要があります。満たしていない場合、Gear VR プロジェクトが Gear VR ヘッドセットで動作しないリスクが発生します。 
 
 * Samsung Galaxy Note 4 スマートフォンの充電用 USB ケーブルが開発用 PC の USB ポートに差し込まれていることを確認してください。 
 USB コードは、開発用 PC とスマートフォン間のデータ転送の手段であり、非常に重要です。
@@ -46,19 +51,19 @@ USB コードは、開発用 PC とスマートフォン間のデータ転送の
 * Samsung Galaxy Note 4 スマートフォンで **[Developer Mode](https://docs.unrealengine.com/latest/INT/Platforms/Android/GettingStarted/2/index.html )** が有効になっているか確認してください。なっていない場合は、有効にしてください。 
 
 * PC からスマートフォンにデータをロードできるように、[USB Debugging] が有効になっていることを確認してください。
+
 	![](Platforms\GearVR\GVR_Dev_Options_Enabled.png)
 
-
-* スマートフォンを USB で開発用 PC に差し込んで、PC から RSA フィンガープリント キーを承諾してください。
+* スマートフォンを USB で開発用 PC に挿し込んで、PC から RSA フィンガープリント キーを承諾してください。
 こうすることで、開発用 PC とスマートフォン間でデータの受け渡しができるようになります。
-このスマートフォンが挿し込まれている時は開発用 PC と常にインタラクションしていることを確認するために、 **[Always allow this computer]** を有効にしてください。 
+スマートフォンを差し込んでいる間に **[Always allow this computer (常にこのコンピュータを許可する)]** を有効にして、開発用 PC と常にインタラクションするようにしてください。 
 
 	![](Platforms\GearVR\GVR_USB_Debuging.png)
 
 * スマートフォンのデバイス ID と **[Oculus](https://developer.oculus.com/tools/osig/)** のウェブサイトを使って、Samsung スマートフォン用に **OSIG File** を生成 / ダウンロードします。
 スマートフォンの **デバイス ID** の取得方法が分からない場合は、**[Oculus のウェブサイト](https://developer.oculus.com/tools/osig/)** に詳しい方法が記載されています。
-	![](Platforms\GearVR\GVR_OSIG_Website.png)
 
+	![](Platforms\GearVR\GVR_OSIG_Website.png)
 
 * OSIG ファイルをダウンロードしたら、「 **assets** 」というフォルダを作成し、その中に「 **OSIG** 」というファイルを置きます。 
 そしてそのフォルダを **Engine/Build/Android/Java** に置きます。 
@@ -66,11 +71,11 @@ USB コードは、開発用 PC とスマートフォン間のデータ転送の
 	[region:warning]
 	**この操作を行わないと、プロジェクトが Galaxy スマートフォン上で動作できなくなります。**
 	[/region]
+
 	![](Platforms\GearVR\GVR_OSIG_File_Location.png)
 
-
-次のセクションに進む前に、[Gear VR の必要条件] セクションでリストされているすべての項目が完了しているか、しっかり確認してください。とても重要なことです。 
-手順を抜かしていると、プロジェクトが Gear VR ヘッドセットで動作しなくなります。 
+次のセクションに進む前に、[Gear VR の前提条件] セクションでリストされているすべての項目が完了しているか、しっかり確認してください。とても重要なことです。 
+どこか手順が抜けていると、プロジェクトが Gear VR ヘッドセットで動作しなくなります。 
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]

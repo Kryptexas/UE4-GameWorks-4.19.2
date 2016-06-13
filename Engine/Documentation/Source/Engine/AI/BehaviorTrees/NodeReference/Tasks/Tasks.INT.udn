@@ -2,10 +2,11 @@ Availability:Public
 Title: Behavior Tree Node Reference: Tasks
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
 Description:Reference for the Behavior Tree Task nodes.
+version: 4.9
 
 [TOC(start:2 end:2)]
 
-This document is a reference page for the **Task Nodes** available in the Behavior Tree Editor. Tasks are nodes that "do" things, like move an AI, or adjust Blackboard values. They can have [**Decorators**](Engine/AI/BehaviorTrees/NodeReference/Decorators) attached to them.
+This document is a reference page for the **Task Nodes** available in the Behavior Tree Editor. Tasks are nodes that "do" things, like move an AI, or adjust Blackboard values. They can have [Decorators](Engine/AI/BehaviorTrees/NodeReference/Decorators) attached to them.
 
 ## Make Noise
 	
@@ -22,7 +23,7 @@ If the controlled pawn has the **PawnNoiseEmitter** Component, the Make Noise ta
 
 ![](MoveTo.png)
 
-The Move To node will cause a Pawn with a Character Movement component to move using the NavMesh to the Vector Blackboard key.
+The **Move To** node will cause a Pawn with a Character Movement component to move using the NavMesh to the Vector Blackboard key.
 
 | Property | Description |
 | -------- | ----------- |
@@ -36,7 +37,7 @@ The Move To node will cause a Pawn with a Character Movement component to move u
 
 ![](PlaySound.png)
 
-The Play Sound node will play the sound given in the **Sound to Play** property.
+The **Play Sound** node will play the sound given in the Sound to Play property.
 
 | Property | Description |
 | -------- | ----------- |
@@ -47,7 +48,7 @@ The Play Sound node will play the sound given in the **Sound to Play** property.
 
 ![](RunBehavior.png)
 
-The Run Behavior node enables you to run another Behavior Tree. 
+The **Run Behavior** node enables you to run another Behavior Tree. 
 
 | Property | Description |
 | -------- | ----------- |
@@ -59,7 +60,7 @@ The Run Behavior node enables you to run another Behavior Tree.
 
 ![](RunEQSQuery.png)
 
-The Run EQS Query node
+The **Run EQS Query** node
 
 | Property | Description |
 | -------- | ----------- |

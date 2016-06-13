@@ -1,4 +1,4 @@
-INTSourceChangelist:2033300
+﻿INTSourceChangelist:2944240
 Availability:Docs
 Title: 언리얼 엔진 시작하기
 Crumbs:
@@ -27,6 +27,11 @@ Template:PDF.html
 
 [INCLUDE:GettingStarted/DownloadingUnrealEngine#Main(offset:1)]
 
+## 소스에서 언리얼 엔진 빌드
+
+[INCLUDE:Programming/Development/BuildingUnrealEngine#windowscompile]
+
+윈도우 이외 다른 플랫폼에서 엔진을 빌드하고 실행파일을 만드는 법에 대해서는, [](Programming/Development/BuildingUnrealEngine) 문서를 참고하시기 바랍니다.
 
 ## 에디터 실행하기
 

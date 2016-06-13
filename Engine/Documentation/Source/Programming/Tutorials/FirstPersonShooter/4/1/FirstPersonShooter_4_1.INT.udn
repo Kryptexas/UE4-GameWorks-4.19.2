@@ -3,7 +3,7 @@ Title: 4.1 - Animating your Character
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4
 Description: Learn how to animate your First Person Shooter character.
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -22,22 +22,24 @@ Version: 4.9
 
 %Steps%
 
+During this step, we're going to get some animations into our game.
+
+## Importing Animations
+
 [REGION:note]
-Before getting started, download and extract our sample animations from the following link:
+Before getting started, download and extract the provided animations from the following link:
 *	[Sample Animations](FPP_Animations.zip "Sample Animations")
 [/REGION]
 
-During this step, you're going to get some animations into your game.
-
-1.	**Right-click** in the **Content Browser** and select **New Folder**. 
+1.	Right-click in the **Content Browser** and select **New Folder**. 
 
 	![](RightClickImport.png)
 
 1.	Name this new folder "Animations".
 
-1.	**Double-click** on the folder to open it.
+1.	Double-click on the folder to open it.
 
-1.	Locate and select the five animation files, namely:
+1.	Locate the five animation files, namely:
 
 	*	FPP_Idle.FBX
 	*	FPP_JumpEnd.FBX
@@ -45,9 +47,11 @@ During this step, you're going to get some animations into your game.
 	*	FPP_JumpStart.FBX
 	*	FPP_Run.FBX
 
-1.	**Click Open** to begin importing the animations to your project.
+1.	Right-click in the "Animations" folder and click **Import to /Game/Animations/...** to begin importing the animations.
 
-1.	Select **HeroFPP_Skeleton** under the **Select Skeleton** heading, then **click Import All** to import all of the animations.
+	![](ImportAnimations.png)
+
+1.	Select **HeroFPP_Skeleton** under the **Select Skeleton** heading, then click **Import All** to import all of the animations.
 
 	![](SelectHeroFPP_Skeleton.png)
 
@@ -55,11 +59,11 @@ During this step, you're going to get some animations into your game.
 
 	![](ImportedAnimations.png)
 
-1.	**Click** the **Save** button to save your imported mesh.
+1.	Click the **Save** button to save your imported files.
 
 ## Creating the Animation Blueprint
 
-1.	**Click** the **Add New** button and select **Animation Blueprint**.
+1.	Click the **Add New** button and select **Animation Blueprint**.
 
 	![](AddNewAnimBP.png)
 
@@ -69,23 +73,23 @@ During this step, you're going to get some animations into your game.
 
 1.	Name the new animation blueprint "Arms_AnimBP".
 
-1.	**Double-click Arms_AnimBP** to open the **Blueprint Editor**.
+1.	Double-click **Arms_AnimBP** to open the **Blueprint Editor**.
 
 	![](DoubleClickAnimBP.png)
 
 ## Adding State Machine Transition Variables
 
-1.	In the **My Blueprint** tab, **click** on the **Add New** button and select **Variable**.
+1.	In the **My Blueprint** tab, click on the **Add New** button and select **Variable**.
 
 	![](AddingNewVariable.png)
 
 1.	Make the variable a **Boolean**  and name it "IsRunning".
 
-1.	In the **My Blueprint** tab, **click** on the **Add New** button and select **Variable**.
+1.	In the **My Blueprint** tab, click on the **Add New** button and select **Variable**.
 
 1.	Make the variable a **Boolean**  and name it "IsFalling".
 
-1.	You should now have two animation transition variables that will drive the animation state machine.
+1.	You should now have two animation transition variables that will drive the animation's state machine.
 
 	![](NewBooleans.png)
 

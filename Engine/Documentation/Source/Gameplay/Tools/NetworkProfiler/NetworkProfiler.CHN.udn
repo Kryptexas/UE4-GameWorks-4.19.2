@@ -1,79 +1,80 @@
-﻿INTSourceChangelist:0
-Title:Network Profiler
+﻿INTSourceChangelist:2610417
+Title:网络分析器（Network Profiler）
 Availability:Public
 Crumbs:
-Description:Tool for displaying network traffic and performance information captured at runtime.
+Description:该工具用于显示网络流量以及在运行时中捕捉到的性能信息。
 
-The Network Profiler is a standalone tool that can be used to display network traffic and performance information that can be recorded by the engine as a game runs. This is a good way to identify areas of a multiplayer game that use unusually high bandwidth, since you can see how much bandwidth individual actors, RPCs, and properties contribute to the total.
+Network Profiler 是一款独立工具，可用于显示网络流量和性能信息，上述信息可在游戏运行时由引擎捕捉。它是一种极其有效的方式，可识别多人游戏中占用极高带宽的区域，因为您可以查看各个 actor、PRC 和属性在总带宽中的占比。
 
-## Recording a profiling session
+## 录制分析会话
 
-Before you can use the network profiler, you must record some data for it to analyze. To do this, you need to use a version of the engine with stat tracking enabled - usually this means either a debug build, or for non-debug configurations, an editor build (specifically, the engine should have been compiled with the STATS macro defined to a nonzero value).
+在使用 network profiler 之前，您必须录制相同的数据才能进行分析。为此，您需要使用启用了进程状态跟踪功能的引擎，通常这说明是个调试 build、用于非调试配置或编辑器 build（更具体地来说，对引擎进行编译时，STATS 宏已定义为非零值）。
 
-You can pass the "networkprofiler=true" command-line argument to record as soon as the engine starts up, but you can also use the following console commands at runtime to control the recording of network profiler data:
+还可以在引擎启动的时候增加 "networkprofiler=true" 命令行参数，以便于引擎已启动就能够开始记录，也可以用以下这些命令行指令在运行时控制是否要记录网络数据：
 
-* netprofile: toggles recording on and off
+* netprofile：切换录制的开启和关闭
 
-* netprofile enable: start recording if not already recording
+* netprofile enable：如果尚未录制，则开始录制
 
-* netprofile disable: stop recording if currently recording
+* netprofile disable：如果当前在录制，则停止录制
 
-The data file will be saved to <project directory>/Saved/Profiling/<project name>-<timestamp>.nprof. If you see a file named NetworkProfiling.tmp in the same folder, this is just the temporary file the engine uses while collecting data. When the current profiling session is stopped, this file will be renamed according to the scheme above and is then ready to be opened in the standalone tool.
+数据将被保存至 <project directory>/Saved/Profiling/<project name>-<timestamp>.nprof。如果您在相同文件夹中看到一个名为 NetworkProfiling.tmp 的文件，
+这只是引擎在收集数据时使用的临时文件。当前分析会话停止时，该文件将根据以上方案进行重命名，然后即可在独立工具中打开它。
 
-## Viewing a profile session in the Network Profiler application
+## 在 Network Profiler 应用程序中查看分析会话
 
-The network profiler is a standalone application located at <UE install directory>/Engine/Binaries/DotNET/NetworkProfiler.exe.
+Network Profiler 是一款独立应用程序，其位于 <UE install directory>/Engine/Binaries/DotNET/NetworkProfiler.exe。
 
-At the top of the window, click the "Open File" button to select a .nprof file and view the data contained within.
+在窗口顶部，单击 “Open File（打开文件）” 按钮选择 .nprof 文件，并查看其中包含的数据。
 
 ![image alt text](image_0.png)
 
-### Chart, Filters, Details tab
+### “Chart, Filters, Details”选项卡
 
-By default, the "Chart, Filters, Details" tab is selected. The different areas of this tab are described in the following sections.
+默认条件下，选定的是 “Chart, Filters, Details（图表、筛选器和详细信息）” 选项卡。下文将对此选项卡的不同区域进行介绍。
 
 ![image alt text](image_1.png)
 
-1. [Chart View](#chartview)
-1. [Stats List](#statslist)
-1. [Summary view](#summaryview)
-1. [Frame details](#framedetails)
-1. [Filters](#filters)
-1. [Performance view](#performanceview)
+1. [图表视图](#图表视图)
+1. [统计数据列表](#统计数据列表)
+1. [汇总视图](#汇总视图)
+1. [帧详细信息](#帧详细信息)
+1. [筛选器](#筛选器)
+1. [性能视图](#性能视图)
 
-#### Chart View
+#### 图表视图
 
-This is the main chart view. Similar to charts in other profiling applications, it shows a graph of the enabled stats over time. You can click on a particular frame to populate the other views with the data associated with that frame, or click and drag across the graph to zoom in to that area and view a summary for that time span.
+这是主图表视图。它类似于其他分析应用程序中的图表，可显示随时间推移已启用统计数据的图表。单击特定帧可使用该帧相关数据填充其他视图，也可在图表上点击并拖动以放大相应区域，并查看该时间范围内的汇总情况。
 
-#### Stats List
+#### 统计数据列表
 
-This is a list of all the stats tracked by the network profiler. Toggling the checkboxes will show or hide that particular stat in the graph. For most stats, you can choose to show the raw count, the count per second, the number of bytes, or the number of bytes per second.
+该列表中包含了 network profiler 所跟踪的所有统计数据。切换复选框将显示或隐藏图表中的特定统计数据。对于大多数统计数据，您可选择原始计数、每秒计数、字节数或每秒字节数。
 
-#### Summary View
+#### 汇总视图
 
-This is a summary of the data for the time span that has been selected in the chart. It shows raw totals as well as per-second information. Note that the "Outgoing bandwidth" will be greater than the "Game socket send size" because "Outgoing bandwidth" includes an approximation of the IP and UDP header sizes as well.
+该视图中显示图表中所选时间范围内的数据汇总。其中显示了原始总数以及每秒信息。请注意，“Outgoing bandwidth（输出带宽）” 将大于 “Game socket send size（游戏套接字发送大小）”，因为 “Outgoing bandwidth（输出带宽）” 也包括了 IP 和 UDP 标头大小的近似值。
 
-#### Frame Details
+#### 帧详细信息
 
-This view breaks down the data that was sent on the currently selected frame. You can see which actors, properties, and remote functions were sent, as well as how many bytes each one contributed. Note that replicated actors and RPCs are both included in bunches, so the "NumBytes" field in "SEND BUNCH" sections includes the bytes from "SEND RPC" and "REPLICATE ACTOR" sections. Ultimately, the "SOCKET SEND TO" entries will tell you exactly how many bytes the engine sent to the outgoing socket. Also note that the standard UDP packet overhead is not included here.
+该视图对当前选定帧所发送的数据进行了分类统计。您可以查看发送了哪些 actor、属性和远程函数，以及各项分别占到多少字节。请注意，数据组中包括了 actor 和 PRC，因此 “SEND BUNCH” 部分中的 “NumBytes” 字段中包含了 “SEND RPC” 和 “REPLICATE ACTOR” 部分的字节。最后，“SOCKET SEND TO” 条目将精确显示引擎发送到输出套接字的字节数。另请注意，此处不包含标准 UDP 数据包资源消耗。
 
-#### Filters
+#### 筛选器
 
-You can enter a filter for actors, properties, and RPCs, and after clicking the "Apply Filters" button, the graph will update to only show data that is relevant for actors, properties, and RPCs that contain the text entered in the filter fields. Selecting a frame or range of frames in the graph after a filter has been applied will also filter the data in the summary and frame details views accordingly.
+您可为 actor、属性和 RPC 输入筛选器，在单击 “Apply Filters（应用筛选器）” 按钮后，图表将更新为只显示包含筛选器字段中输入文本的相关 actor、属性和 RPC。在应用了筛选器之后，选择图表中的单个帧或一系列帧也将相应地筛选汇总和帧详细信息视图中的数据。
 
-#### Performance View
+#### 性能视图
 
-While a single frame is selected in the graph, this view will show a list of actor types that were replicated during that frame, sorted by the CPU time it took to replicate them. If an actor has associated replicated properties, expanding the tree view for the actor will show each property. For actors, the first column of numbers is the CPU replication time for that actor, in milliseconds. The second column is the number of bytes used to represent the actor in the bunch, and the third column is the number of actors of the given type that were replicated during the current frame. For property rows, the first column is the number of bytes used for the property, and the second column shows how many properties with the given name were replicated for the actor.
+选择了图表中的单个帧时，该视图将显示该帧内复制的 actor 类型列表，并按照 CPU 复制它们所需的时间排序。如果某个 actor 具有相关的复制属性，则展开该 actor 的树形视图将显示各属性。在 actor 选项卡中，第一栏数值表示 CPU 复制该 actor 所花费的时间（以毫秒计）。第二栏是用于表示数据包中 actor 的字节数，第三栏是当前帧中复制的指定类型的 actor 数。在属性行中，第一列是用于属性的字节数，第二列表示为 actor 复制了多少具有指定名称的属性。
 
-### Actors tab, Properties tab, and RPCs tab
+### “Actors” 选项卡、“Properties（属性）” 选项卡和 “RPCs” 选项卡
 
 ![image alt text](image_2.png)
 
-Each of these tabs show a summary of the respective replication data for the entire profiling session. Note that the data displayed in these tabs is not affected by the current frame or time span selected in the chart on the "Chart, Filters, Details" tab.
+每个选项卡都显示了整个分析会话中各复制数据的汇总情况。请注意，这些选项卡中显示的数据不受 “Chart, Filters, Details” 选项卡的图表中选定的当前帧或时间范围的影响。
 
-The tabs show a list of actors, properties, or RPCs, respectively. The "Total Size" and "Average Size" columns show how much bandwidth was needed for a particular item, and the "Count" column represents how many times a particular item was replicated during the profiling session. You can toggle between sorting by a column in ascending or descending order by clicking on the column heading.
+选项卡上分别显示了 actor、属性或 PRC 的列表。“Total Size（总体大小）” 和 “Average Size（平均大小）” 列显示了特定项需要多少带宽，“Count（计数）” 列表示在分析会话期间复制了多少次特定项。单击各列的表头，可在升序或降序之间切换。
 
-## Server and client considerations
+## 服务器和客户端
 
-You can record profiling data from both clients and servers. However, be aware that since only servers replicate actors and their properties, when viewing a profile recorded on a client, you will only see detailed data for RPCs that were sent from that client.
+从客户端和服务器都可录制分析数据。但是，请注意，由于只有服务器复制 actor 及其属性，因此在查看客户端上录制的分析数据时，只能看到从该客户端发送的 RPC 的详细数据。
 

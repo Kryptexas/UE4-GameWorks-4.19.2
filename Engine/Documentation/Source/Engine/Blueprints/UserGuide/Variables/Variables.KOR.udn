@@ -1,8 +1,12 @@
-﻿INTSourceChangelist:2600539
+﻿INTSourceChangelist:2968923
 Availability:Public
-Title:블루프린트 사용 안내서: 변수
-Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
+Title:블루프린트 변수
+Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/Scripting
 Description: 월드의 오브젝트나 액터에 대한 값 또는 레퍼런스를 담는 프로퍼티입니다.
+version: 4.9
+skilllevel:Intermediate
+Parent:Engine/Blueprints/Scripting
+tags:Data Types
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -276,9 +280,9 @@ Variable (변수)는 변수 이름이 들어간 둥근 박스로 표시됩니다
 
 ## 변수 편집하기
 
-변수 값의 설정은 블루프린트 노드 네트웍의 일부에서도 실행 전 기본값으로도 가능합니다. 변수 기본값을 설정하려면:
+변수 값의 설정은 블루프린트 노드 네트워크의 일부에서도 실행 전 기본값으로도 가능합니다. 변수 기본값을 설정하려면:
 
-1. 블루프린트 툴바에 있는 ![](classDefaults_button.png) **클래스 디폴트** 버튼을 클릭하여 디테일 패널에 디폴트를 엽니다.
+1. 블루프린트 툴바에 있는 **클래스 디폴트** 버튼을 클릭하여 디테일 패널에 디폴트를 엽니다.
 
 1. **디테일** 패널에서 변수 이름 오른쪽에 원하는 기본값을 입력합니다.
 
@@ -287,7 +291,7 @@ Variable (변수)는 변수 이름이 들어간 둥근 박스로 표시됩니다
 	위에서 _Color_ 변수를 선택하여 기본 색을 설정할 수 있습니다.
 
 [REGION:note]
-디폴트 창에 변수가 보이지 않는 경우, ![Compile Needed Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_needs_compile.png) 버튼을 클릭하세요.
+디폴트 창에 변수가 보이지 않는 경우, **컴파일** 버튼을 클릭하세요.
 [/REGION]
 
 
@@ -319,7 +323,7 @@ Variable (변수)는 변수 이름이 들어간 둥근 박스로 표시됩니다
 
 ### 변수 값 구하고 설정하기
 
-변수의 편집은 블루프린트 네트웍에서 Get / Set 노드를 통한 방법으로도 가능합니다. 가장 쉬운 방법은 **변수** 탭에서 Event Graph 에 바로 변수를 끌어 놓는 것입니다. Get / Set 어느 노드를 만들 것인지 묻는 작은 창이 뜹니다.
+변수의 편집은 블루프린트 네트워크에서 Get / Set 노드를 통한 방법으로도 가능합니다. 가장 쉬운 방법은 **변수** 탭에서 Event Graph 에 바로 변수를 끌어 놓는 것입니다. Get / Set 어느 노드를 만들 것인지 묻는 작은 창이 뜹니다.
 
 
 ![](VariableGetSet.png)(w:600)
@@ -327,7 +331,7 @@ Variable (변수)는 변수 이름이 들어간 둥근 박스로 표시됩니다
 
 #### Get 노드
 
-Get 노드는 네트웍에 변수 값을 줍니다. 이 노드는 생성 이후 적합한 유형을 받는 어느 노드에나 연결할 수 있습니다.
+Get 노드는 네트워크에 변수 값을 줍니다. 이 노드는 생성 이후 적합한 유형을 받는 어느 노드에나 연결할 수 있습니다.
 
 ![](GetVariable.png)
 

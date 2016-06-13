@@ -159,7 +159,7 @@ Most of the time you will want to look up elements without knowing whether or no
 
 If called on a const map, the returned pointer will also be const.
 
-The **FindOrAdd** function will search for a given key and return a reference to the associated value; if the key doesn't exist, it will add it with a default constructed value before returning a reference to that.  Because it may need to add, this function cannot be called on a non-const map:
+The **FindOrAdd** function will search for a given key and return a reference to the associated value; if the key doesn't exist, it will add it with a default constructed value before returning a reference to that.  Because it may need to add, this function cannot be called on a const map:
 
 	FString& Ref7 = FruitMap.FindOrAdd(7);
 	// Ref7     == "Pineapple"

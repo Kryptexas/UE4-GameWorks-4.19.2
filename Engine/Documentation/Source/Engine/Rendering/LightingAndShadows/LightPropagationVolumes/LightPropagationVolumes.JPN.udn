@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2522250
+﻿INTSourceChangelist:2735504
 Availability:Public
 Title:Light Propagation Volume
 Crumbs:%ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:グローバル イルミネーションを動的に生成するシステム
+Version:4.9
+SkillLevel:Advanced
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -50,7 +52,7 @@ Light Propagation Volume は、開発段階の機能であり、本番環境で�
 
 [TOC]
 
-## 概要
+
 
 [REGION:fullwidth]
 ![](lpv_scene.png)
@@ -72,7 +74,7 @@ Light Propagation Volume は、開発段階の機能であり、本番環境で�
 * 平行光源で **[Affect Dynamic Indirect Lighting]** を有効にします。
 * 表示フラグにある Light Propagation モードのビューモードが有効になり、Light Propagation Volume がカバーするエリアが視覚化されます。[以下を参照](#グローバルイルミネーションを表示する)。
 * ポスト プロセス ボリューム (unbound であること) を追加 / 変更し、必要な詳細度と距離 (トレードオフ) でエリアをカバーするように[LightPropagationVolume] 設定でサイズを微調整します。
-* GI を有効化 / 無効化するには、GlobalIllumination 表示フラグを使用します。
+* GI を有効化 / 無効化するには、Global Illumination 表示フラグを使用します。
                 
 
 ## Light Propagation Volume の設定
@@ -127,11 +129,14 @@ unbound にし、適切な優先度を持たせるようにします)。
 表示フラグで LPV を無効にすることができます  
 (これは、ライトマスによって計算されたベークされたグローバル イルミネーションも無効にすることに注意してください)。
 
-[REGION:imagetable]
-| ![](LPV_show_flag.png)(w:460) | ![](LPV_show_flag_enabled.png)(w:460) |
-| --- | --- |
-| グローバル イルミネーション無効 | グローバル イルミネーション有効 |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Global Illumination Disabled](LPV_show_flag.png)(w:460)
+	[/PARAM]
+	[PARAM:after]
+	![Global Illumination Enabled](LPV_show_flag_enabled.png)(w:460)
+	[/PARAM]
+[/OBJECT]
 
 ## Light Propagation Volume を視覚化する
 
@@ -212,3 +217,7 @@ unbound にし、適切な優先度を持たせるようにします)。
 [/OBJECT]
 [/EXCERPT:VisualizeSlider]
 -->
+
+
+
+

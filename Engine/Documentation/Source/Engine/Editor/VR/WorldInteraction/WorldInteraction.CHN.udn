@@ -1,0 +1,45 @@
+﻿INTSourceChangelist:0
+Title: Navigating the World in VR Mode
+Description: Learn how to navigate the world when working in VR mode.
+Crumbs:
+Availability: docs
+parent: Engine/Editor/VR
+type: howto
+order: 1
+tags: VR
+version: 4.11
+skilllevel: intermediate
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Editor/VR/WorldInteraction:title%](Engine/Editor/VR/WorldInteraction/worldinteraction.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/WorldInteraction:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/WorldInteraction]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/WorldInteraction:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Editor/VR/WorldInteraction:title%](Engine/Editor/VR/WorldInteraction/worldinteraction.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/WorldInteraction:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/WorldInteraction]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/WorldInteraction:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]

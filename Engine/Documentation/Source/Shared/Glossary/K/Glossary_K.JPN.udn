@@ -1,43 +1,49 @@
-﻿Title:K
+﻿INTSourceChangelist:2620017
+Title:K
 Crumbs:Shared/Glossary
 Description:
-Availability:Public
+Availability:NoPublish
 
 [EXCERPT:Glossary_K]
 
 [OBJECT:GlossaryItem]
 	[PARAM:Term]
-key、 keyframe（キー、キーフレーム）
+キー、キーフレーム
 	[/PARAM]
 	[PARAM:Definition]
-スケルタルメッシュのボーンまたはある時間の特定点にあるオブジェクトの位置、回転、またはスケーリングを意味するアニメーション用語です。アニメーションはキーフレーム間の動作を補間して作成します。
+
+[EXCERPT:Glossary_Key]
+アニメーションでは、**キー** あるいは **キーフレーム** は指定時間での任意の値 (複数可) の記録です。そして、これらのキーフレーム間を補正するためにカーブを使って、時間経過と共にアニメーションが変化するようにします。
+[/EXCERPT:Glossary_Key]
+
 	[/PARAM]
 [/OBJECT]
 
 [OBJECT:GlossaryItem]
 	[PARAM:Term]
-keybind、 keybindings（キーバインド、キーバインディング）
+キー バインディング
 	[/PARAM]
 	[PARAM:Definition]
-ユーザー定義のキーボードのショートカットです。アンリアルエンジンは、特有のコマンドや動作を実行するために特定のキーやキーの組み合わせを割り当てることができます。
+
+[EXCERPT:Glossary_keybindings]
+**キー バインディング** は、ユーザー定義のキーボードのショートカットです。アンリアル エンジンでは、特定のキーまたはキーの組み合わせをバインドして、特定のコマンドあるいはアクションを実行することができます。
+[/EXCERPT:Glossary_keybindings]
+
 	[/PARAM]
 [/OBJECT]
 
-[OBJECT:GlossaryItem]
-	[PARAM:Term]
-Keyboard Shortcuts（キーボードショートカット）
-	[/PARAM]
-	[PARAM:Definition]
-特定のコマンドまたは動作を実行するキーとキーの組み合わせです。
-	[/PARAM]
-[/OBJECT]
+
 
 [OBJECT:GlossaryItem]
 	[PARAM:Term]
 	Kill Z
 	[/PARAM]
 	[PARAM:Definition]
-プレイヤーキャラクターが自動的に死んでしまう前にどの位まで落下するかを定めるZ軸に平行した距離または座標です。Kill Zを設定することにより、プレイヤーキャラクターが身動きが取れなくなったり、端から落下した時にリスポーンが出来ない状況を防ぎます。
+
+[EXCERPT:Glossary_Kill_Z]
+**Kill Z** は、アクタが自動的に破壊されたりプレイヤーが殺されたりする Z 軸に沿った座標です。Kill Z を設定することにより、プレイヤーキャラクターが身動きが取れなくなったり、端から落下した時にリスポーンが出来ない状況を防ぎます。
+[/EXCERPT:Glossary_Kill_Z]
+
 	[/PARAM]
 [/OBJECT]
 

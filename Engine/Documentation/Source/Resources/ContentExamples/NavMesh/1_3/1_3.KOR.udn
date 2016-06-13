@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653552
+﻿INTSourceChangelist:2719800
 Availability: Public
 Title:1.3 - 리빌드
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/NavMesh
@@ -7,6 +7,7 @@ Related: Engine/AI/BehaviorTrees/QuickStart
 Related: Gameplay/AI
 Related: Engine/AI/BehaviorTrees/NodeReference
 Related: Engine/Actors/Volumes
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -69,6 +70,7 @@ Related: Engine/Actors/Volumes
 [/REGION]
 
 **NavMesh** 는 에디터에 **스태틱 메시** 같은 것이 이동되면 자동으로 업데이트됩니다. 이 예제에서 블록 **스태틱 메시** 를 이동하여 경사로 사이의 간극을 메꾸도록 위치를 조절해 줍니다. 그러면 **NavMesh** 는 자동으로 업데이트되어 새로 만들어진 다리를 건너도록 빌드, **플레이** 또는 **시뮬레이트** 하면 폰이 다리를 건너 이동할 수 있게 됩니다.
+
 
 [REGION:lightbox]
 [![](NavMesh_1_3_001.png)(w:225)](NavMesh_1_3_001.png)

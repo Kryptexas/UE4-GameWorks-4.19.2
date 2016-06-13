@@ -1,8 +1,10 @@
 Availability:Public
 Title:Events
-Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
+Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/Scripting
 Description: Nodes that are called from gameplay code to begin execution of an individual network within the EventGraph.
 version: 4.9
+Parent:Engine/Blueprints/Scripting
+tags:Execution Flow
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -146,7 +148,11 @@ _When this Blueprint Actor stops overlapping any other Actor except the Actor st
 
 ![](EventHit.png)
 
-This event will only execute if the collision settings on both Actors involved in a collision have **Simulation Generates Hit Events** set to true.
+This event will execute as long as the collision settings on one of the Actors involved have **Simulation Generates Hit Events** set to true. 
+
+[REGION:note]
+If you are creating movement using Sweeps, you will get this event even if you don't have the flag selected. This occurs as long as the Sweep stops you from moving past the blocking object.
+[/REGION]
 
 | Item | Description |
 | -------- | ----------- |

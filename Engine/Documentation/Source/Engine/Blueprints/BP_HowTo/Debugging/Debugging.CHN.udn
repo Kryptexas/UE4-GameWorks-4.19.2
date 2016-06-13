@@ -1,37 +1,42 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Blueprint Debugging
+﻿INTSourceChangelist:2679355
+Availability:Public
+Title:蓝图调试
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
-Description:Illustrates the methods on how to Debug your Blueprints. 
-Related: Engine/Blueprints/UserGuide/Debugging
-Related: Engine/Blueprints
+Description:讲述对蓝图进行调试的方法。 
+Related:Engine/Blueprints/UserGuide/Debugging
+Related:Engine/Blueprints
+version:4.9
+skilllevel:Beginner
+parent:Engine/Blueprints/BP_HowTo
+order:5
+type:howto
 
 
 [TOC(start:2)]
 
-When working with Blueprints, there may be instances where something is not working the way you had planned it to. To diagnose these problems, the Blueprint Visual Scripting Tool comes with its own debugger and one of the most powerful aspects of it is the ability to add **Breakpoints** to nodes in your graph. By adding Breakpoints to nodes in your graph, you can play (or simulate) the game normally in the editor, then when reaching the node you have added a Breakpoint to, the game will pause and jump to that node in your graph so that you can step through your script to see where issues are occurring. 
+在使用蓝图时，可能出现预料之外的状况。为诊断这些问题，蓝图可视化脚本工具除自带调试器外，还拥有最强大的功能之一：在图表中为节点添加 **断点（Breakpoints）**。在图表中为节点添加断点后，可在编辑器中正常进行（或模拟）游戏。到达存在断点的节点后，游戏将暂停并跳至图表中的节点，以便对脚本进行检查，确认问题出于何处。 
 
-Another useful debugging feature is **Watch Values**, which allows you to mark a variable in your Blueprint (or multiple variables) to **Watch** which will allow you to see their values inside your Blueprint while the game is running. This is essential for debugging incorrect calculations or values for your variables as you can visually see where the error is coming from as your variables change in real time. 
+另一个实用调试功能是 **Watch Values**，它可将蓝图中一个（或多个）变量标记到 **观察（Watch）**，以便在游戏运行时在蓝图中看到变量数值。这对调试变量错误计算或数值十分重要，因为可以在变量实时变化时发现错误的源头。 
 
-On this page, you will learn how to set up a Blueprint for debugging as well as other methods used for diagnosing problems.
+在本页中，您将学习如何为蓝图设置调试，以及用于诊断问题的其他方法。
 
 [REGION:note]
-For more information on debugging with Blueprints, see the [](Engine/Blueprints/UserGuide/Debugging) documentation. 
+如需了解蓝图调试的更多内容，请查阅 [](Engine/Blueprints/UserGuide/Debugging) 文档。 
 [/REGION]
 
-## Enable Debugging
+## 启用调试
 
-To Enable Debugging of a Blueprint, you must first specify the instance of the Blueprint you wish to debug that is in your level. 
+如需启用蓝图调试，首先必须规定需要进行调试的蓝图实例位于关卡中。 
 
-Inside your Blueprint, click the **Debug Object** drop-down menu, then select the instance you wish to see in the debugger. 
+在蓝图中，点击 **Debug Object** 下拉菜单，然后选择调试器中的实例。 
 
 ![](DebugHowTo1.png)
 
-Once you have an object selected, you can jump to that object in your level by clicking the magnifying glass icon. 
+选定对象后，点击放大镜图标可在关卡中跳至该对象。 
 
 ![](DebugHowTo2.png)
 
-When you play in the editor, with your Blueprint up in another window, you should see the pulsating "Active Wires" as your script executes. 
+在编辑器中进行游戏时，将蓝图放置于另一个窗口中，则可看到脚本执行时跳动的“活性线条”。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -45,115 +50,116 @@ UtS3wgltYgg
 [/PARAMLITERAL]
 [/OBJECT]
 
-In the example above, there are two fire effect Blueprints in the level each set to different times to deactivate themselves. On **Event Begin Play** (when the game is launched), a **Delay** node is used to **Deactivate** the fire and its associated sound effect after a variable specified time. 
+在上例的关卡中有两个火焰效果蓝图，各自拥有不同的停止时间。在 **Event Begin Play** 节点上（游戏启动后），**Delay** 节点用于在变量指定的时间结束后 **停止** 火焰和相关音效。 
 
-You can see in the left window that the script executes when the game is launched (as the pulsating wire leaves the red Event Begin Play node and enters the Delay node). After the specified time, the pulse is shown entering the third node which is used for deactivating one of the fire effects. 
+游戏启动后（当跳动线条离开 Event Begin Play 节点，进入 Delay 节点时）可在左边窗口中看到脚本的执行。在指定时间后，跳动线条进入第三个节点，而该节点用于停止其中一个火焰效果。 
 
-## Breakpoints
+## 断点
 
-To add a **Breakpoint** to your Blueprint script, **Right-click** on any execution node choose **Add Breakpoint**. 
+在任意执行节点上 **单击右键** 选择 **Add Breakpoint**，可添加一个 **断点** 至蓝图脚本。 
 
 ![](DebugHowTo3.png)
 
 [REGION:tip]
-Instead of the **Right-click** method, you can press **F9** on a selected node to toggle a Breakpoint on or off. 
+除 **单击右键** 的方法外，还可在选定的节点上按 **F9** 键切换断点的开关。 
 [/REGION]
 
-When a Breakpoint has been added to a node, a red circle will appear in the upper left hand corner of the node. 
+断点被添加至节点后，节点的左上角将出现一个红圈。 
 
 ![](DebugHowTo4.png)
 
-During gameplay, when the script gets to this point, the game will pause and focus on this node. 
+游戏进程中脚本到达此点时，游戏将暂停并聚焦于此节点。 
 
 ![](DebugHowTo7.png)
 
-You can also temporarily disable a Breakpoint to keep track of which node(s) previously had Breakpoints assigned. 
+也可临时禁用断点，记录之前哪些节点指派了断点。 
 
 ![](DebugHowTo6.png)
 
-A node that has a Breakpoint set to disabled will ignore the command to break when reaching the node. 
+断点被禁用后，到达节点时将忽略断开指令。 
 
-There is also an option from the **Debug** menu option to **Disable/Enable** or **Delete All Breakpoints**. 
+**Debug** 菜单中的选项可用于 **禁用/启用** 或 **删除全部断点**。 
 
 ![](DebugHowTo18.png)
 
-## Debugging Controls
+(#bookmarkdebuggingcontrols)
+## 调试控制
 
-When a Blueprint has reached a Breakpoint, additional control options become available for navigating your Blueprint script. 
+当蓝图到达断点时，可选额外控制选项，便于进行蓝图脚本导航。 
 
 ![](DebugHowTo9.png)
 
-From left-to-right above, **Resume** allows you to resume gameplay inside the editor and exit debugging mode. **Frame Skip** allows you to advance gameplay ahead by a single frame, while **Stop** stops the play in editor session completely. The **Find Node** option allows you to jump to the currently active node from the gameplay session while **Step** advances to the next node in the current execution flow. 
+顶部从左至右，**Resume** 用于在编辑器中继续游戏和退出调试模式。**Frame Skip** 用于以单帧前进游戏进程；**Stop** 用于编辑器会话中完全停止游戏。**Find Node** 选项用于从游戏会话跳至当前活动的节点；**Step** 用于在当前执行流中前进至下个节点。 
 
 [REGION:note]
-When you place a Breakpoint on a node then start the process of stepping forward through your script, when you reach the end of your current execution flow, you will automatically be returned to gameplay. 
+在节点上放置一个断点后开始脚本进程，然后到达当前执行流的终点时，将自动返回游戏。 
 [/REGION]
 
-General workflow for debugging consists of adding a Breakpoint to a node, then using **Step** to progress through your script to identify where things are going wrong. You cannot step backwards, so keep this in mind when placing your Breakpoints and try to place them before your issue occurs so that you can see what is leading up to and after your issue arises. 
+调试的常规工作流是为节点添加一个断点，然后使用 **Step** 在脚本中前进，找到问题源头。放置断点需要注意的是在脚本中无法后退，需将其放置在问题发生之前，才能完整地看到问题的前后全貌。 
 
-## Watching Values
+## 观察数值
 
-To watch a variable's value, **Right-click** on a variable and select the **Watch this value** option. 
+在变量上 **单击右键** 并选择 **Watch this value** 选项即可观察变量值。 
 
 ![](DebugHowTo11.png)
 
-When you have selected to watch a variable, anywhere that variable is accessed the magnifying glass icon will appear. 
+选择观察变量后，变量访问之处将出现放大镜图标。 
 
 ![](DebugHowTo12.png)
 
-You will also see floating text bubble appear above the variable which shows the variables current value. When you play in the editor, if this variable should change, it will be reflected in the text bubble as well, allowing you to see it change and its current value. The option to watch a variable is not limited to numerical based variables, any variable can be set as watched allowing you to see its value (as seen below where a Boolean variable is also set to watch so that we may see its current state). 
+变量上方的浮动文本框显示变量的当前数值。在编辑器中进行游戏时，如变量发生变化，它也将反映在文本框中，以便查看其变化和当前数值。观察变量的选项不限于数值式变量，任意变量均可被观察，以便了解数值（下图中的 Boolean 正被观察，我们可以了解其当前状态）。 
 
 ![](DebugHowTo10.png)
 
-You can also **Delete All Watches**, removing the Watch notation from all variables from the **Debug** menu. 
+可通过 **Debug** 菜单中的 **Delete All Watches** 选项从所有变量上移除观察符号。 
 
 ![](DebugHowTo18.png)
 
 
-## Blueprint Debugger Tab
+## 蓝图调试器标签
 
-You can also debug your Blueprints through the **Blueprint Debugger** which you can open from the **Window** / **Developer Tools** section.
+也可通过 **Blueprint Debugger** 对蓝图进行调试，该选项位于 **Window** / **Developer Tools** 部分。
 
 ![](DebugHowTo13.png)
 
-When you are not playing in the editor, the Blueprint Debugger displays any Watched variables or Breakpoints assigned (yellow box below).
+不在编辑器中进行游戏时，Blueprint Debugger 显示所有被观察的变量或指派的断点（下图黄色框中的内容）。
 
 ![](DebugHowTo14.png)
 
-You can add multiple Blueprints to the Blueprint Debugger tab, by holding **Shift** and clicking on Actors in your scene. 
+按住 **Shift** 键点击关卡中的 Actors 可将多个蓝图添加至 Blueprint Debugger 标签。 
 
-When you play (or simulate) in the editor, the lower section of the debugger becomes populated, this section is the **Execution Trace**. 
+在编辑器中进行（或模拟）游戏时，调试器的下部将被填入内容。这部分为 **执行追踪（Execution Trace）**。 
 
 ![](DebugHowTo15.png)
 
-This is a log of all executed commands in the order in which they were issued (with the top being most recent). 
+它是所有被执行指令的日志记录，以生成时间排序（上方为最近生成）。 
 
-When hitting a Breakpoint, the [Debugging Controls](#debuggingcontrols) mentioned on this page, can be accessed directly inside the Blueprint Debugger tab. 
+到达断点时，可在蓝图调试器标签中直接访问本页中提及的 [调试控制](#bookmarkdebuggingcontrols)。 
 
 
-## Compile Errors
+## 编译错误
 
-There could any number of reasons as to why you may see a **Compile Error** (yellow box below) when trying to compile your Blueprint.  
+编译蓝图时出现 **编译错误** （下图黄色框所示）存在多种原因。  
 
 ![](DebugHowTo19.png)
 
-In the event that this does occur, if you try to play your game, you will see a message similar to below. 
+出现这种情况后，进行游戏时将出现类似于下图的提示信息。 
 
 ![](DebugHowTo23.png)
 
-The Blueprint that has the error will also be reflected in the Level Editor viewport as well. 
+存在错误的蓝图将同样被反映在关卡编辑器视口中。 
 
 ![](DebugHowTo24.png)
 
-In this instance, you may not be able to successfully use the debugging methods to determine what is occurring. Inside the Blueprint that you compiled that is giving you the error, the nodes that are causing the error will be denoted for you to help identify where the issue is occurring. 
+在这种情况下，可能无法通过调试方法成功确定错误。在编译报错的蓝图中，引起错误的节点将被标记，以便确定问题所在之处。 
 
 ![](DebugHowTo20.png)
 
-You can however refer to the **Compiler Results** window for additional information as to why you are having an error. 
+可在 **Compiler Results** 窗口中查看关于报错的更多信息。 
 
 ![](DebugHowTo21.png)
 
-The Compiler Results window should pop up automatically when you encounter an error. You can click on the magnifying class to jump to the location of the error and the node in question. To help solve the issue, a text description of the error is also displayed. 
+出现错误时 Compiler Results 窗口将自动弹出。可点击放大镜跳至错误所在位置和问题节点。为帮助解决问题，将显示错误的文本描述。 
 
 
 

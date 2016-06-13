@@ -5,6 +5,8 @@ Description:Blueprints used for scripting level-specific events within maps.
 Related: Engine/Blueprints/UserGuide/Types
 Related: Engine/Blueprints
 version: 4.9
+Parent:Engine/Blueprints
+Type:guide
 
 [VAR:Topic]
 [OBJECT:Topic]

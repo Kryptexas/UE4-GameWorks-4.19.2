@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2609228
+﻿INTSourceChangelist:2697432
 Availability: Public
 Title:커스텀 하이트맵 및 레이어 제작 및 사용
 Crumbs: %ROOT%, Engine, Engine/Landscape
 Description:랜드스케이프에 쓸 커스텀 하이트맵 및 레이어를 만들고 사용하는 법입니다.
+version: 4.9
 
 
 [TOC(start:2 end:3)]
@@ -55,17 +56,24 @@ If your layers are not output at the correct size you will receive the following
 외부 어플리케이션에서 만든 레이어 임포트는 간단한 프로세스이지만, 매끄러운 진행을 위해서는 몇 가지 미리 셋업해 두어야 할 것이 있습니다.
 
 1. 먼저 작업할 랜드스케이프가 있는지 확인해야 합니다. 지금 없다면 먼저 하나 만드세요.
-1. 랜드스케이프가 생성되었다면, 거기에 쓸 머티리얼을 만들어야 합니다. 이 예제에서는 매우 간단한 머티리얼을 만들것이지만, 필요에 따라 쉽게 확장 가능할 것입니다. 셋업해 줘야 하는 머티리얼은 이와 같을 것입니다.
-![](Landscape_Simple_Shader.png)
+1. 랜드스케이프가 생성되었다면, 거기에 쓸 머티리얼을 만들어야 합니다. 이 예제에서는 매우 간단한 머티리얼을 만들 것이지만, 필요에 따라 쉽게 확장 가능할 것입니다. 셋업해 줘야 하는 머티리얼은 이와 같을 것입니다.
+
+	![](Landscape_Simple_Shader.png)
 1. 머티리얼이 생성되면, 이와 같도록 랜드스케이프 액터에 적용해 줍니다.
-![](Landscape_Applied_Material.png)
-1. 이제 머티리얼이 적용되었으니, 랜드스케이프 액터에 **레이어 인포** 를 추가해 줄 차례입니다. 각 레이어에 **레이어 인포** 오브젝트를 추가해 줍니다.
-이 예제에서는 레이어를 세 개 만들 것입니다. **레이어 인포** 오브젝트 관련 상세 정보는 [](Engine/Landscape/Editing/PaintMode) 문서를 참고하시기 바랍니다. 완료되면 **타겟 레이어** 섹션이 이와 같을 것입니다.
-![](Landscape_Target_Layers.png)
+
+	![](Landscape_Applied_Material.png)
+1. 이제 머티리얼이 적용되었으니, 랜드스케이프 액터에 **레이어 인포** 를 추가해 줄 차례입니다. 각 레이어에 **레이어 인포** 오브젝트를 추가해 줍니다. 이 예제에서는 레이어를 세 개 만들 것입니다. **레이어 인포** 오브젝트 관련 상세 정보는 [](Engine/Landscape/Editing/PaintMode) 문서를 참고하시기 바랍니다. 
+
+	![](Landscape_Create_Layer.png)
+1. 완료되면 **타겟 레이어** 섹션이 이와 같을 것입니다.
+
+	![](Landscape_Target_Layers.png)
 1. 레이어를 임포트할 차례입니다. 그러기 위해서는 레이어를 임포트하고자 하는 **타겟 레이어** 에 **우클릭** 하여 뜨는 대화상자에서 임포트해 오고자 하는 레이어를 선택하면 됩니다.
-![](Landscape_Import_Layer_Option.png)
+
+	![](Landscape_Import_Layer_Option.png)
 1. 레이어가 올바른 크기로 출력되지 않는 경우, 다음과 같은 경고가 뜹니다.
-![](Landscape_Layer_Import_Error.png)
+
+	![](Landscape_Layer_Import_Error.png)
  
 	 이 문제를 고치려면 임포트해 덮으려는 랜드스케이프 레이어의 크기가 얼마나 될지 결정해야 합니다. 알아내려면 살펴보고자 하는 **타겟 레이어** 에 **우클릭** 하여 뜨는 대화상자에서 **익스포트** 를 선택하여 레이어를 익스포트하면 됩니다.
 	 그러면 레이어 파일을 PC 어딘가에 저장하겠냐고 물어옵니다. 파일 저장 이후 열어보면 레이어 크기가 어떻게 되는지 알 수 있습니다.
@@ -103,13 +111,13 @@ If your layers are not output at the correct size you will receive the following
 
 ![](Engine\Landscape\Creation\Landscape_Import_Section_Button.png)
 
-이제 커스텀 하이트맵 임포트를 시도해 봅시다. 이 예제에서는 아래 이미지를 사용할테니, 로드했는지 확인하시기 바랍니다.
+이제 커스텀 하이트맵 임포트를 시도해 봅시다. 이 예제에서는 아래 이미지를 사용할 테니, 로드했는지 확인하시기 바랍니다.
 
 [REGION:caption]
 이미지에 우클릭 - 다른 이름으로 저장하여 PC 에 다운로드하세요.
 [/REGION]
 
-![](Engine\Landscape\Creation\Landscape_Test_HM.png)
+![](Engine\Landscape\Creation\Landscape_Test_HM.png)(convert:false)
 
 하이트맵을 PC 에 저장했으면 이제 랜드스케이프 툴에서 사용할 차례입니다.
 1. 랜드스케이프 툴을 열고 [**관리 모드**](Engine/Landscape/Editing/ManageMode) 로 갑니다.

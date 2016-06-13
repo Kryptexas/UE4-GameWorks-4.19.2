@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:APEX Types
+﻿INTSourceChangelist:2713167
+Availability:Public
+Title:APEX 类型
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/Apex
-Description:Nvidia APEX Physics Lab APX and APB files.
+Description:Nvidia APEX Physics Lab APX 和 APB 文件
+Version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -52,27 +53,40 @@ Description:Nvidia APEX Physics Lab APX and APB files.
 		![](APEXtopicIcon.png)(w:150 convert:false)
 	[/PARAM]
 	[PARAM:description]
-	Nvidia PhysX APEX has two file types that Unreal Editor 4 can import, .APX and .APB. Both cloth and destructible meshes can be exported as these file types, and imported into Unreal Engine 4 via the **Content Browser**.
+	虚幻编辑器 4 可导入两种 Nvidia PhysX APEX 文件格式：.APX 和 .APB。 
+	布料和可破坏网格体均可导出这两种文件类型，但 **Content Browser** 只能导入可破坏网格体。布料资源须通过 **Persona** 导入。
 	[/PARAM]
 [/OBJECT]
 
-## Creation
+## 创建
 
-See the [APEX Physics Lab](Engine/Physics/Apex) documentation on creating and exporting of APEX assets.
+如需了解 APEX 资源的创建和导出，请查阅 [**APEX Physics Lab**](Engine/Physics/Apex) 文档。
 
-## Import
+## 导入
 
-In the **Content Browser**:
+### 可破坏资源
 
-1. Click the ![New Asset](CB_button_NewAsset.png) button.
-1. Select the .APX or .APB file(s) you wish to import.
+打开 **Content Browser**：
 
-Or
+1. 点击 ![New Asset](CB_button_NewAsset.png) 按钮。
+1. 选择需要导入的 .APX 或 .APB 文件。
 
-1. Select your .APX or .APB file(s) file in a Windows File Explorer window.
-1. Click and drag it (them) into the Content Browser in Unreal Editor 4.
+或者
 
-## Related
+1. 在 Windows 文件浏览器窗口中选择 **.APX** 或 **.APB** 文件。
+1. 点击并将其拖入虚幻编辑器 4 中的 **Content Browser**。
+
+###布料资源
+
+1. 点击 ![New Asset](CB_button_NewAsset.png) 按钮。
+1. 选择使用布料资源的骨骼网格体。
+1. 在 **Content Browser** 双击打开 **骨骼网格体**。
+1. 点击 **Mesh Details** 面板中 **Clothing** 标签下的 ![New Asset](CB_Button_AddAPEX.png) 按钮。
+1. 选择需要导入的 **.APX** 或 **.APB** 文件。 
+1. 在每个 **Material Element** 下的 ![New Asset](CB_Button_clothingElement.png) 下拉菜单中选择对应的布料资源，指定到材质。
+
+
+## 相关页面
 
 [REGION:topics half]
 %Engine/Physics/Apex:topic%

@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2590541
+﻿INTSourceChangelist:2823027
 Availability:Public
 Title:Constant 표현식
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
 Description:값이 에디터에서 한 번 설정되거나 플레이가 시작되면 일반적으로 출력의 값이 변하지 않는 표현식입니다.
+Version: 4.9
 
 [EXCERPT:TOC]
 [TOC(start:2)]
@@ -218,3 +219,26 @@ ViewProperty 표현식은 필드 오브 뷰나 렌더 타겟 사이즈같은 뷰
 [REGION:fullwidth]
 ![ViewPropertyExampleFOV90.png](ViewPropertyExampleFOV90.png)
 [/REGION]
+## Precomputed AO Mask
+
+**PrecomputedAOMask** (미리계산된 AO 마스크) 노드는 머티리얼에서 라이트매스 계산된 앰비언트 오클루전(AO)에 접근할 수 있도록 해 주어,
+ 자동 텍스처링이나 영역 내 시간에 따라 서서히 쌓여가는 먼지 및 노화 이펙트를 추가하는 데 좋습니다.
+
+[region:note]
+미리계산된 AO 마스크 결과 확인을 위해서는, 라이트매스를 사용하여 작업중인 레벨의 라이팅을 빌드해 줘야 합니다.
+[/region]
+
+![](PrecompitedAOMas_00.png)
+
+위 스크린샷은 AO 마스크를 사용하여 먼지 레이어를 배경 구석에 자동으로 블렌딩해 줍니다.
+AO 마스크를 사용하려면, **월드 세팅 -> 라이트매스 세팅** 아래 **Use Ambient Occlusion** 과 **Generate Ambient Occlusion Material Mask** 옵션을 둘 다 켜준 뒤 라이팅을 빌드해야 합니다.
+**Max Occlusion Distance** 같은 다른 AO 콘트롤은 AO 모습 트윅 작업에 좋습니다.
+또 한 가지 **Direct** / **Indirect Occlusion Fraction** 둘 다 **0** 으로 설정하여, 이 AO 가 실제 레벨 라이팅에 영향을 끼치지 않도록 해 주십시오.
+
+![](PrecompitedAOSettings_00.png)
+
+**PrecomputedAOMask** 머티리얼 표현식 노드를 사용하면 어떤 머티리얼의 AO 든 접근할 수 있습니다.
+PrecomputedAOMask 는 0-1 범위 마스크처럼 작동하는데, AO 에 영향받은 영역은 1, 받지 않은 영역은 0 입니다.
+아래 그림에서 Precomputed AO Mask 를 사용하는 머티리얼 구성법을 살펴볼 수 있습니다.
+
+![](PrecomputedAO_Material_00.png)

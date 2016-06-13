@@ -38,7 +38,7 @@ Version: 4.8
 
 	![](T_Find&Select_HUD.png)
 
-1. 생성되고나면 HUD 에 이름을 짓습니다. 이 예제에서는 블루프린트 HUD 이름을 **GearVR_GlobalMenu** 라 하겠습니다.
+1. 생성되고 나면 HUD 에 이름을 짓습니다. 이 예제에서는 블루프린트 HUD 이름을 **GearVR_GlobalMenu** 라 하겠습니다.
 
 	![](T_Named_HUD.png)
 

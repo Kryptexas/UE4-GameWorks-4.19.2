@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2607775
+﻿INTSourceChangelist:2704578
 Availability: Public
 Title:시스템 세팅
 Crumbs: %ROOT%, Engine
 Description:하드웨어 사양에 따라 게임과 엔진의 특정한 면을 제어하는 플랫폼 전용 세팅 모음입니다.
+version: 4.9
 
 
 [TOC (start:2 end:3)]
@@ -12,9 +13,9 @@ Description:하드웨어 사양에 따라 게임과 엔진의 특정한 면을 �
 
 
 
-Unreal Engine 4는 다양한 성능 관련 기능을 `Engine.ini` 의 `[SystemSettings]` 섹션에서 초기화되는 `FSystemSettings` 클래스를 통해 제어할 수 있게 합니다. 
+Unreal Engine 4는 다양한 성능 관련 기능을 Engine.ini 의 [SystemSettings] 섹션에서 초기화되는 FSystemSettings 클래스를 통해 제어할 수 있게 합니다. 
 
-다음 섹션은 `[SystemSettings]` 를 통해 제어 가능한 다양한 설정에 대해 자세히 설명합니다. INI 설정은 변수의 문자열 이름이고 변수의 유형이 지원되는 값을 결정합니다. 예로 EngineIni[SystemSettings] 를 참조하십시오.
+다음 섹션은 [SystemSettings] 를 통해 제어 가능한 다양한 설정에 대해 자세히 설명합니다. INI 설정은 변수의 문자열 이름이고 변수의 유형이 지원되는 값을 결정합니다. 예로 EngineIni[SystemSettings] 를 참조하십시오.
 
 
 
@@ -61,7 +62,7 @@ $ **ParticleLODBias**: (int32) 파티클 시스템에 대한 LOD 편향치입니
 $ **bAllowFracturedDamage**: (bool) 프랙처드 메시가 대미지를 받을지 여부를 설정합니다.
 $ **NumFracturedPartsScale**: (float) 게임 고유의 프랙처드 피직스 오브젝트의 수를 스케일 조절합니다.
 $ **FractureDirectSpawnChanceScale**: (float) 프랙처드 스태틱 메시가 직접 대미지를 받은 후, 리짓 바디를 스폰시킬 확률을 %로 표시합니다.  [0-1] 
-$ **FractureRadialSpawnChanceScale**: (float) 프랙처드 스태틱 메시가 광선 폭팔(radial blast) 데미지를 받은 후에, 리짓 바디를 스폰시킬 확률을 %로 표시합니다.  [0-1] 
+$ **FractureRadialSpawnChanceScale**: (float) 프랙처드 스태틱 메시가 광선 폭발(radial blast) 대미지를 받은 후에, 리짓 바디를 스폰시킬 확률을 %로 표시합니다.  [0-1] 
 $ **FractureCullDistanceScale**: (float) 프랙처드 스태틱 메시가 대미지를 받을 때 실제로 균열시킬지에 대한 거리 스케일입니다.
 
 

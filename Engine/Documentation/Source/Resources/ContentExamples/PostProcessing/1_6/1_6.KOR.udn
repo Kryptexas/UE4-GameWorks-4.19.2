@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653552
+﻿INTSourceChangelist:2721898
 Availability: Public
 Title:1.6 - 눈 순응
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/PostProcessing
@@ -7,6 +7,7 @@ Related: Engine/Rendering/PostProcessEffects/AutomaticExposure
 Related: Engine/Rendering/Overview
 Related: Engine/Rendering/PostProcessEffects
 Related: Engine/Rendering/PostProcessEffects/PostProcessMaterials
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

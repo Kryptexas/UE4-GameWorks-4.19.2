@@ -1,4 +1,4 @@
-Availability: Public
+﻿Availability: Public
 Title:Playing Animations and Sounds
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
 Description:How to animate a Skeletal Mesh jumping onto a platform and applying sounds in Matinee. 
@@ -104,7 +104,7 @@ In the following steps, we will have a character jump up onto a platform by appl
 
 	![](MHT7_MovementKeysAdded.png)
 
-1.  Click on the second keyframe of the Movement track, minimize Matinee, then in the Details panel for HeroTPP set the **Location** of **Z** to **135**. 
+1.  Click on the second keyframe of the Movement track, minimize Matinee, then in the Details panel for SK_Mannequin set the **Location** of **Z** to **135**. 
 
 	![](MHT7_MoveDetailsKey2.png)
 
@@ -134,7 +134,7 @@ In the following steps, we will have a character jump up onto a platform by appl
 
 	![](MHT7_AnimKey1.png)
 
-	_If you look in the level viewport, the **HeroTPP** Actor will now be in an **Idle** pose since we have specified the animation to use to start the **Matinee**._ 
+	_If you look in the level viewport, the **SK_Mannequin** Actor will now be in an **Idle** pose since we have specified the animation to use to start the **Matinee**._ 
 
 1.  Move the **Time Bar** to **2.50** and press **Enter**, then select **Jump_Start** from the menu. 
 

@@ -1,56 +1,56 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Using Spring Arm Components
+﻿INTSourceChangelist:2617899
+Availability:Public
+Title:Spring Arm コンポーネントを使用する
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\UsingCameras
-Description:The Spring Arm component is used to automatically control how the camera handles situations where the it becomes obstructed. 
-Related: Gameplay\HowTo\UsingCameras
-Related: Gameplay\Framework\Camera
-Related: Engine/Matinee
-Related: Engine/Blueprints
-SkillLevel: Beginner
-Version: 4.8
+Description:Spring Arm コンポーネントを使用して、妨害されるときにカメラが状況をどのように扱うかを自動的に制御します。 
+Related:Gameplay\HowTo\UsingCameras
+Related:Gameplay\Framework\Camera
+Related:Engine/Matinee
+Related:Engine/Blueprints
+SkillLevel:Beginner
+Version:4.8
 
 [REGION:warning]
-You can use your own character for this tutorial provided it has a **Camera** component assigned to it. If you do not have a character, it is recommended that you complete the [](Gameplay\HowTo\UsingCameras\CameraComponents) tutorial in order to create the basic character being used in this guide first. 
+このチュートリアルでは **Camera** コンポーネントが割り当てられていることを前提に、皆さんの独自のキャラクターをご利用いただけます。キャラクターの用意がない場合は、まずこのガイドで使われている基本的なキャラクターを作成するために [](Gameplay\HowTo\UsingCameras\CameraComponents) チュートリアルを終わらせることをお勧めします。 
 [/REGION]
 
-In this How-to, we add a **Spring Arm** component and parent a **Camera** component to it so that our camera can expand/retract based on gameplay situations. Typically when you add a Camera component to a character for the purposes of creating a third person perspective, you will also want to include a Spring Arm to automatically control how the camera handles situations where the it becomes obstructed by level geometry or other objects in the level. 
+この操作ガイドでは、**Spring Arm** コンポーネントを追加し、それに **Camera** コンポーネントを親子付けし、カメラがゲームプレイの状況に応じて伸縮できるするようにします。通常、サードパーソン視点を作るために Camera コンポーネントをキャラクターに追加する場合も、Spring Arm を含めるようにし、レベルのジオメトリや他の物体によって邪魔される場合に、カメラがどのように状況を処理するかを自動的に制御したいでしょう。 
 
 ![](springArm1.png)
 
-While it may not eliminate instances of the camera penetrating objects in your level, depending on your Spring Arm's settings, it will help reduce them by moving the camera's position when it becomes obstructed automatically and then returning to its default position when it is free from obstruction. 
+レベル内の物体をカメラが貫通することを防がないことがあるかもしれませんが、Spring Arm の設定に応じて、邪魔されるようになったらカメラの位置を自動的に動かすことでその可能性を減らし、邪魔がなくなったらデフォルトの位置に戻ります。 
 
-1.	Continuing from the [](Gameplay\HowTo\UsingCameras\CameraComponents) How-to, open your **Character Blueprint**. 
+1.	[](Gameplay\HowTo\UsingCameras\CameraComponents) の操作から引き続き、 **Character ブループリント** を開きます。 
 
-1.	In the **Components** window, click the **Add Component** button then select the **Spring Arm** Component. 
+1.	**[Components]** ウィンドウで、 **[Add Component]** ボタンをクリックして **Spring Arm** コンポーネントを選択します。 
 
 	![](Spring1.png)
 
-1.	Inside the **Components** window, drag your **Camera** Component onto the **Spring Arm** Component to attach it to the Spring Arm. 
+1.	**[Components]** ウィンドウで、 **Camera** コンポーネントを **Spring Arm** コンポーネントへドラッグして Spring Arm に適用します。 
 
 	![](Spring2.png)
 
-1.	There are multiple settings that can be used with the **Spring Arm** which are outlined below. 
+1.	以下は、**Spring Arm** を使った設定の概要です。 
 
 	![](Spring4.png)
 
-	| Section | Description |
+	| セクション | 説明 |
 	| ------- | ------------ |
-	| **Sockets** | This allows you to parent the Spring Arm to a Bone on a Skeletal Mesh or a Socket. |
-	| **Camera** | Here you can set the length of the Spring Arm when there are no collisions as well as set Offsets. |
-	| **Camera Collision** | Set whether or not to check for collisions and define how big the query probe is to check for collisions. |
-	| **Camera Settings** | Whether or not to inherit Pitch, Yaw, or Roll from the Parent or Use Pawn Control Rotation. |
-	| **Lag** | Set whether or not the camera should lag behind the target position and settings associated with lag. |
-	
-1.	We set the **Target Arm Length** to **100** and **Enabled Camera lag**. 
+	| **Sockets** | スプリング アームをスケルタルメッシュまたはソケット上のボーンの親にします。 |
+	| **Camera** | コリジョンがない場合のスプリングアームの長さ、およびオフセットも設定できます。 |
+	| **Camera Collision** | コリジョンをチェックするかどうかを設定し、コリジョンをチェックするためのクエリー プローブの大きさを定義します。 |
+	| **Camera Settings** | ピッチ (上下動)、ヨー (左右回転)、ロール (進行軸回転) を親から継承するか、 Pawn Control Rotation を使用するかを設定します |
+	| **Lag** | カメラがターゲット位置に遅れるかどうか、およびラグに関連づいた設定です。 |
+
+1.	**Target Arm Length** を **100** に設定し、**Enabled Camera lag (カメラ ラグを有効)** にしました。 
 
 	![](spring3.png)
 
-	This gives us a shorter length than the default settings and also adds a bit of lag to the camera when moving around. 
+	これでデフォルト設定よりも短くなり、移動するときにカメラに若干のラグを加えます。 
 
-1.	Click **Compile** and **Play** to play in the editor. 
+1.	**Compile** をクリックし、エディタで再生するには **Play** をクリックします。 
 
-## End Result
+## 最終結果
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -64,7 +64,7 @@ jjf9P6u052E
 [/PARAMLITERAL]
 [/OBJECT]
 
-When moving the character, you will notice that the camera now lags slightly behind the characters movement. Also, when we move near a wall and rotate the camera, it attempts to reposition itself and moves in closer. When we are free from obstruction, it returns to its default length that we have specified in the settings. 
+キャラクターを動かす場合、カメラがキャラクターの動きから若干遅れるのがわかります。壁の近くに移動し、カメラを回転させると、再配置しようとし、近くに移動します。障害物がないと、設定で指定したデフォルトの長さに戻ります。 
 
 
 

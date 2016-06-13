@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653283
+﻿INTSourceChangelist:2716883
 Availability: Public
 Title:1.10 - 월드 포지션 오프셋
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
@@ -10,6 +10,7 @@ Related: Engine/Rendering/Materials/MaterialInputs
 Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Rendering/Materials/MaterialInstances
 Related: Engine/Actors/DecalActor
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

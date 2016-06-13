@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2415526
+﻿INTSourceChangelist:2994597
 Availability:Public
-Title:スタティックメッシュ コリジョン リファレンス
+Title:コリジョン反応の参照
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/Collision
-Description:コリジョン ジオメトリの作成および設定のコンテンツ ガイド
+Description:Collision Property カテゴリの Collision Presets セクションで、多数のプロパティを分類して明確にしました。
+Version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -24,117 +25,156 @@ Description:コリジョン ジオメトリの作成および設定のコンテ�
 [/OBJECT]
 [/VAR]
 
-[TOC(start:2 end:2)]
+Collision Properties カテゴリの Collision Presets/Collision Response には非常に多くのプロパティがありますので、分かりやすいように分類しました。
 
-## 概要
+##プロパティ
 
-グラフィックの詳細が増えてきたため、ゲームにおけるコリジョンが必ずシンプルになるようにすることが重要です。これには理由が 2 つあります。いくつかのポリゴンの計算が大幅に早くなり、プレイヤーは格段にスムーズな体験をします。そして、プレイヤーは小さなジオメトリの構成要素につまづかなくなります。 
+以下は、物理ボディ (BodyInstances) の Collision プロパティのサブ カテゴリの Collision Presets のプロパティです。
 
-[REGION:tip]
-**スタティック メッシュ エディタ** で作成されるすべてのコリジョン形状は、作成された後、移動、回転、スケールが可能です。1 つのスタティックメッシュにつき コリジョン形状を 2 つ以上作成することもできるので、スタティックメッシュのコリジョンにおいて必要な忠実度を守ることができます。
+![](collProp.png)(convert:false)
 
-これはシンプルなコリジョン形状 (ボックス、球体、カプセル) に最も便利ですが、 凸包ジェネレーターと K-DOP モデルで作成できます。
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		coll
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Collision Presets
+	[/PARAM]
+	[PARAM:content]
+		%p2%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p2]
+
+[REGION:raw]
+| プロパティ | %spacer% | 説明 |
+| --- | :---: | :--- |
+| **Collision Presets** || [INCLUDE:#colpre] |
+| **Collision Enabled** || [INCLUDE:#colen] |
+| **Object Type** || [INCLUDE:#objtype] |
+| **Collision Responses** || [INCLUDE:#colrep] |
+| **Trace Responses** || [INCLUDE:#deftrace] |
+| **Object Responses** || [INCLUDE:#objtrace] |
 [/REGION]
 
-## スケルタルメッシュ コリジョン モデルの作成
+[/VAR]
 
-スケルタルメッシュが使用するコリジョン モデルの作成方法については、 [PhAT ユーザーガイド](Engine/Physics/PhAT) を参照してください。
 
-## スタティックメッシュ エディタでスタティックメッシュ コリジョン モデルを作成する
+[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
 
-![](COLREF_collisionMenu.png)
+[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
 
-### K-DOP
+
+<!--
+[EXCERPT:colrep]
+
+これらのプロパティによって、この物理ボディのトレース タイプとオブジェクト タイプの他のすべてのタイプとインタラクト方法が定義されます。結果となるアクションを定義する物理ボディ間のインタラクションなので、両方の物理ボディのオブジェクト タイプとコリジョン反応が重要になることを覚えておいてください。
+
+![](iob.png)
+
+[REGION:raw]
+| 反応 | %spacer2% | 説明 |
+| --- | :---: | :--- |
+| **Ignore** || もう 1 つの物理ボディのコリジョン反応に関係なく、この物理ボディはインタラクションを無視します。  |
+| **Overlap** || もう 1 つの物理ボディが [Overlap] または [Block this Physics Body's Object Type] に設定されていると、Overlap Event を発生させることができます。 |
+| **Block** || もう 1 つの物理ボディが [Block this Physics Body's Object Type] に設定されていると、Hit Event を発生させることができます。 |
+[/REGION]
+
+[/EXCERPT]
+
+
+
+[EXCERPT:defTrace]
+
+トレース反応は、ブループリント ノード **Line Trace by Channel** などのトレース (レイキャスト) で使用されます。
+
+[REGION:raw]
+| プロパティ | %spacer2% | 説明 |
+| --- | :---: | :--- |
+| **Visibility** || 可視性全般をテストするチャンネルです。 |
+| **Camera** || カメラから何かをトラックする場合に通常使います。 |
+[/REGION]
+
+[/EXCERPT]
+
+[EXCERPT:objTrace]
 
 
 
 [REGION:raw]
-![](COLREF_collisionMenu_KDOP.png)
+| プロパティ | %spacer2% | 説明 |
+| --- | :---: | :--- |
+| **WorldStatic** || WorldStatic 物理ボディ オブジェクト タイプとのインタラクション時に、この物理ボディがどのように反応するかを設定します。 |
+| **WorldDynamic** || WorldDynamic 物理ボディ オブジェクト タイプとのインタラクション時に、この物理ボディがどのように反応するかを設定します。 |
+| **Pawn** || Pawn 物理ボディ オブジェクト タイプとのインタラクション時に、この物理ボディがどのように反応するかを設定します。 |
+| **PhysicsBody** || PhysicsBody 物理ボディ オブジェクト タイプとのインタラクション時に、この物理ボディがどのように反応するかを設定します。 |
+| **Vehicle** || Vehicle 物理ボディ オブジェクト タイプとのインタラクション時に、この物理ボディがどのように反応するかを設定します。 |
+| **Destructible** || Destructible 物理ボディ オブジェクト タイプとのインタラクション時に、この物理ボディがどのように反応するかを設定します。 |
 [/REGION]
+[/EXCERPT]
 
-**[コリジョン]** メニュー項目にある **スタティックメッシュ エディタ** には様々はメニュー オプションがあります。名前に _##DOP_ と付くものの中に、 **K-DOP** というシンプルなコリジョン用のジェネレーターがあります。 **K-DOP** はバウンディング ボリュームの一種で、 _K discrete oriented polytope_ の略語です (K は軸方向に並べられた平面の数です)。基本的に **K-DOP** は、K 座標軸に平行なプレーンをメッシュにできる限り近づけます。結果として出来上がった形状は、コリジョン ハルとして使用されます。**スタティックメッシュ エディタ** で K は次の値を取ることができます。
+[EXCERPT:colPre]
 
-
-* **10** -  4 つのエッジで面取りされたボックス。エッジを並べる軸を X、Y、Z から選ぶことができます。
-* **18** - すべてのエッジが面取りされたボックス。
-* **26** - すべてのエッジと角で面取りされたボックス。
-
-以下の例を見てください。このツールは、パイプ、柱、レールの数がかなり多いパッケージに非常に便利です。
-
-![kdop_sizes.jpg](kdop_sizes.jpg)
-
-
-### 自動凸型コリジョン ツールを使ってコリジョン モデルを作成する
+デフォルトのコリジョン プロファイル、および [Project **Settings (プロジェクト設定)]** -> **[Engine]** -> **[Collision]** -> **[Preset]** (カスタム コリジョン プロファイルは []() を参照) で作成したものがすべてここに表示されます。
 
 [REGION:raw]
-![](COLREF_collisionMenu_Auto.png)
+| プロパティ | %spacer2% | 説明 |
+| --- | :---: | :--- |
+| **Default** || スタティックメッシュ エディタのスタティックメッシュに適用される設定値を使用します。 |
+| **Custom...** || このインスタンスに対してすべてのカスタム コリジョンの設定値を設定します。 |
+| **NoCollision** || コリジョンはありません。 |
+| **BlockAll** || デフォルトですべてのアクタをブロックする WorldStatic オブジェクトです。すべての新規カスタム チャネルは独自のデフォルト反応を使います。  |
+| **OverlapAll** || デフォルトですべてのアクタをブロックする WorldStatic オブジェクトです。すべての新規カスタム チャネルは独自のデフォルト反応を使います。  |
+| **BlockAllDynamic** || デフォルトですべてのアクタをブロックする WorldDynamic オブジェクトです。すべての新規カスタム チャネルは独自のデフォルト反応を使います。  |
+| **OverlapAllDynamic** || デフォルトですべてのアクタをブロックする WorldDynamic オブジェクトです。すべての新規カスタム チャネルは独自のデフォルト反応を使います。  |
+| **IngoreOnlyPawn** || ポーンとビークルを無視する WorldDynamic オブジェクトです。他のすべてのチャネルはデフォルトに設定されます。 |
+| **OverlapOnlyPawn** || ポーン、カメラ、ビークルにオーバーラップする WorldDynamic オブジェクトです。他のすべてのチャネルはデフォルトに設定されます。 |
+| **Pawn** || ポーン オブジェクトです。すべてのプレイ可能なキャラクタや AI のカプセルに使用することができます。  |
+| **Spectator** || WorldStatic 以外のすべてのアクタを無視する Pawn オブジェクトです。 |
+| **CharacterMesh** || キャラクター メッシュに使用する Pawn オブジェクトです。他のすべてのチャネルはデフォルトに設定されます。 |
+| **PhysicsActor** || シミュレーション中のアクタです。 |
+| **Destructible** || 被破壊アクタです。  |
+| **InvisibleWall** || 目に見えない WorldStatic オブジェクトです。 |
+| **InvisibleWallDynamic** || 目に見える WorldDynamic オブジェクトです。 |
+| **Trigger** || トリガに使われる WorldDynamic オブジェクトです。他のすべてのチャネルはデフォルトに設定されます。 |
+| **Ragdoll** || シミュレーション中の Skeletal Mesh コンポーネントです。他のすべてのチャネルはデフォルトに設定されます。 |
+| **Vehicle** || Vehicle、WorldStatic、WorldDynamic をブロックするVehicle オブジェクトです。他のすべてのチャネルはデフォルトに設定されます。 |
+| **UI** || デフォルトですべてのアクタとオーバーラップする WorldStatic オブジェクトです。すべての新規カスタム チャネルは独自のデフォルト反応を使います。  |
 [/REGION]
+[/EXCERPT]
 
-**スタティックメッシュ エディタ** は、多数の凸型ハルを使ってコリジョンを生成する機能があります。
 
-![Collision_CreateCollisionHullWithAutoConvex_0.jpg](Collision_CreateCollisionHullWithAutoConvex_0.png)(convert:false)
 
-丸みを帯びたこのキューブは、 **6DOP Simplified Collision** で問題なく動作すると思われますが、それ以上が必要だと仮定します。
+[EXCERPT:colEn]
 
-**[Collision] メニュー -> [Auto Convex Collision]** を選択すると、右下にこのようなパネルが表示されます。
-
-![Collision_CreateCollisionHullWithAutoConvex_1.jpg](Collision_CreateCollisionHullWithAutoConvex_1.png)(convert:false)
-
-* **Max Hulls** - オブジェクトの形状に最も一致するハルの作成数を判断します。
-* **Max Hull Verts** - コリジョン モデル 頂点の最大数。この値が高くなると、とコリジョン モデルの許容複雑度が増します。
-* **Apply** - 上記の設定に基いてコリジョンをオブジェクトに追加します。
-* **Defaults** - **Max Hulls** と **Max Hull Verts** の値を上の画像で表示された値にリセットします。
-
-![Collision_CreateCollisionHullWithAutoConvex_2.jpg](Collision_CreateCollisionHullWithAutoConvex_2.png)(convert:false)
-
-ご覧の通り、自動凸型コリジョンはかなり正確です。
-
-### シンプルな形状を使ってコリジョンを作成する
+[Collision Enabled (コリジョンを有効にする)] と、以下の 4 種類のステータスになります。
 
 [REGION:raw]
-![](COLREF_collisionMenu_BuildYourOwn.png)
+| プロパティ | %spacer2% | 説明 |
+| --- | :---: | :--- |
+| **No Collision** || このボディは物理エンジンでは表示されません。空間クエリ (レイキャスト、スウィープ、オーバーラップ) やシミュレーション (剛体ボディ、コンストレイント) には使用できません。移動オブジェクトの場合は特に最高のパフォーマンスが得られる設定です。  |
+| **Query Only** || このボディは空間クエリ (レイキャスト、スウィープ、オーバーラップ) のみに使用されます。シミュレーション (剛体ボディ、コンストレイント) には使用できません。キャラクターの移動と物理シミュレーションの必要のないオブジェクトに使うと便利な設定です。物理シミュレーション ツリー内のデータを減らすとパフォーマンスが良くな場合もあります。 |
+| **Physics Only** || このボディは物理シミュレーション (剛体ボディ、コンストレイント) のみに使用されます。空間クエリ (レイキャスト、スウィープ、オーバーラップ) には使用できません。ボーンの検出ごとに必要ではないキャラクター上の副次的な動きのシミュレーションに使うと便利な設定です。クエリ ツリー内のデータを減らすとパフォーマンスが良くな場合もあります。 |
+| **Collision Enabled** || 空間クエリ (レイキャスト、スウィープ、オーバーラップ) にもシミュレーション (剛体ボディ、コンストレイント) にも使用できません。 |
 [/REGION]
+[/EXCERPT]
 
-これらのオプションで基本的なコリジョン形状が作成されます。
+
+
+[EXCERPT:objType]
+
+%doxygen:FBodyInstance::ObjectType% これらは任意ですが、物理ボディの動作に合わせて設定されなければなりません。
 
 [REGION:raw]
-![](COLREF_BuildYourOwn_01.png)(convert:false)
+| プロパティ | %spacer2% | 説明 |
+| --- | :---: | :--- |
+| **WorldStatic** || 移動しないすべてのアクタに使用します。Static Mesh アクタは、おそらく WorldStatic タイプを持っているであろうアクタの代表例です。 |
+| **WorldDynamic** || WorldDynamic は、アニメーション、コード、キネマティクスの影響を受けて移動するアクタ タイプに使用します。WorldDynamic アクタの代表例は、エレベータとドアです。 |
+| **Pawn** || エンティティを制御するすべてのプレイヤーには Pawn タイプがあります。プレイヤーのキャラクターは、Pawn オブジェクトのタイプを受け取るアクタの代表例です。 |
+| **PhysicsBody** || 物理シミュレーションによって移動するアクタです。 |
+| **Vehicle** || ビークルはこのタイプをデフォルトで受け取ります。 |
+| **Destructible** || 被破壊メッシュはデフォルトでこのタイプを受け取ります。 |
 [/REGION]
-
-シンプルなコリジョン形状が作成されたら、それを好きな位置に移動、回転、スケーリングしていくことができます。複雑なスタティックメッシュの場合は、コリジョン形状を 2 つ以上作成することも可能です。
-
-| **制御** | **アクション** |
-| --- | --- |
-| **W, E, R** | 平行移動、回転、スケーリング ツールを切り替えます。 |
-| **Delete** | 現在選択中の物理ボディまたはボディを削除します。 |
-| **F** | 現在選択中の物理ボディまたはボディをフォーカスします。 |
-| **Ctrl + Left Click** | 物理ボディを選択内容に追加します。 |
-| **Alt + Left Drag (操作ウェジェット上で)** | 物理ボディを複製します。 |
-
-
-### 3D コンテンツ作成パッケージを使ってコリジョン モデルを作成する
-
-3D コンテンツ作成パッケージ内でのスタティックメッシュ コリジョン モデルの作成方法については [FBX スタティックメッシュ パイプライン](Engine/Content/FBX/StaticMeshes#コリジョン) を参照してください。
-
-
-## コリジョン反応
-
-アンリアル エンジン 4 は、コリジョン オブジェクトをお互いに相互作用させる方法という点で劇的に異なります。オブジェクトはそれぞれ任意のオブジェクト タイプ (例えば **スタティックメッシュ** は **WorldDynamic** コリジョン反応グループに入れることができます) で、別の反応グループからのオブジェクトに対して、 **無視する** 、 **ブロックする** 、 **オーバーラップする** ことを選択できます。
-
-要は、「衝突すると設定されたすべてのものと衝突する」ようになっているオブジェクトを、「_ポーン_ であるオブジェクトのみと衝突し、 _WorldDynamic_ とだけオーバーラップしてその他を全て無視する」ように設定することができます。さらに、 _ポーン_ とだけ衝突するオブジェクトと _ポーン_ 反応グループのオブジェクトを使えば、ポーンと衝突するものが存在するグループを **無視する** ことができます。
-
-かなり複雑になりますが、ツールを自由に使いこなせるようになれば対処が楽になります。詳しい情報については、 [コリジョン反応](Engine/Physics\Collision) ドキュメントを参照してください。
-
-
-## コリジョンをインゲームでレビューする
-
-コリジョン設定のレビューをするためにインゲームで使用できるコンソール コマンドがあります。いくつか例を紹介します。これらの入力で、オンオフが切り替わります。
-
-* **show COLLISION** - レベルで使用するコリジョン モデルおよびブロック ボリュームを描画します。 
-
-![](COLREF_showCollision.png)(w:900)
-
-* **stat game** - 受け取っているコリジョンのタイプと時間に関する様々な便利な情報を表示します。
-
-![](Collision_StatGame.png)(w:900)
-
+[/EXCERPT]
+-->

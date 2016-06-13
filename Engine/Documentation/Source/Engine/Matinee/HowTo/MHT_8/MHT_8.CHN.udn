@@ -1,220 +1,231 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Trigger Events and Toggle Visibility
+﻿INTSourceChangelist:2738171
+Availability:Public
+Title:触发事件并切换可视性
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
-Description:Using Events and Visibility, how to create a rock that explodes after a countdown. 
-
+Description:使用事件和可视性创建一个倒计时结束后爆炸的石块。 
+Version:4.9
+SkillLevel:Intermediate
 
 ---
-In the following steps, we will create a rock that explodes after a timer count down and spawn effects using **Matinee Events** and **Visibility** tracks.
+在以下步骤中，我们将使用 **Matinee 事件（Matinee Events）** 和 **可视性（Visibility）** 轨迹创建在倒计时结束后爆炸的岩石和破碎效果。
 
 [INCLUDE:Engine/Matinee/HowTo/MHT_1#projectstart]
 
 [OBJECT:TopicList]
 	[PARAM:title]
-		Add the Matinee Actor and Props
+		添加 Matinee Actor 和道具
 	[/PARAM]
 	[PARAM:description]
-	In this step, we will add our **Matinee Actor** and assets that we will use in the scene.
+	在这步中，我们将添加用于此场景的 **Matinee Actor** 和资源。
 	[/PARAM]
 [/OBJECT]
 
-1. From the **Toolbar** menu, select **Matinee** and click the **Add Matinee** button. 
+1. 在 **工具栏** 菜单中选择 **Matinee** 并点击 **Add Matinee** 按钮。 
 
 	![](Engine\Matinee\HowTo\MHT_1\MHT1_AddMatinee.png)(w:720)
 
-1. If the Matinee undo warning message appears, **click** the **Continue** button. 
+1. 如出现 Matinee 撤销警告提示，**点击** **继续** 按钮。 
 
 	![](Engine\Matinee\HowTo\MHT_1\MHT1_MatineeWarning.png)
 	
-1. The **Matinee Editor** window will open. 
+1. **Matinee Editor** 窗口将打开。 
 
 	[REGION:lightbox]
 	[![](Engine\Matinee\HowTo\MHT_1\MHT1_MatineeOpen.png)(w:640)](Engine\Matinee\HowTo\MHT_1\MHT1_MatineeOpen.png)
 	[/REGION]
 
-	_Click for Full View._
+	_点击查看全图。_
 
-1.  **Minimize** the Matinee and in the **Content Browser** under the **Game/Props** folder, **Right-click** on the **SM_Rock** and **select Create Destructible Mesh**. 
+1. 最小化 Matinee，在 **Content Browser** 的 **Game/Props** 文件夹中，**右键单击** **SM_Rock** 并选择 **Create Destructible Mesh**。 
 
 	![](MHT8_CreateDM.png)
 
-1.  The **Destructible Mesh** window will open, **click** the **Fracture Mesh** button from the tool bar. 
+1. **Destructible Mesh** 窗口将打开，点击工具栏中的 **Fracture Mesh** 按钮。 
 
 	![](MHT8_FractureMesh.png)(w:720)
 
-1.  Under **Destructible Settings**, **expand Fracture Effects** and **0**, then under **Particle System** click the drop-down menu and **select P_Explosion**. 
+1. 在 **Destructible Settings** 中，打开 **Fracture Effects** 和 **0**，然后在 **Particle System** 下点击下拉菜单选择 **P_Explosion**。 
 
 	![](MHT8_AssignParticleEffct.png)
 
-1.  In the same section, **click** the **Sound** drop-down menu and **select** the **Explosion01** asset. 
+1. 在相同部分点击 **Sound** 下拉菜单并选择 **Explosion01** 资源。 
 
 	![](MHT8_AssignSound.png)
 
-1.  **Click** the **Save** button from the tool bar then close the window. 
+1. 从工具栏点击 **Save** 按钮然后关闭窗口。 
 
-1.  In the Content Browser, **drag** the **SM_Rock_DM** asset into the level. 
+1. 在 **Content Browser** 中，将 **SM_Rock_DM** 拖入关卡。 
 
 	![](MHT8_DragRockIn.png)
 
-1.  In the Content Browser under **Game/Particles**, **drag-and-drop** the **P_Fire** effect into the level, inside the rock. 
+1. 在 **Content Browser** 的 **Game/Particles** 文件夹中，将 **P_Fire** 效果拖放进关卡里的岩石中。 
 
 	![](MHT8_AddFire.png)
 
-1.  In the Details panel for P_Fire, scroll down and find the **Activation** section and **un-check Auto Activate**. 
+1. 在 **P_Fire** 的 **Details** 面板中，向下滚动，找到 **Activation** 部分并 **取消勾选 Auto Activate**。 
 
 	![](MHT8_UncheckAutoActivate.png)
 
-	_This will keep the asset in the level, but not activate it until we tell it to which we will do through **Matinee**._
+	_此操作将使资源处于关卡内但不会启动，直到我们通过 **Matinee** 发出指令。_
 
-1.	**Select** the **TextRenderActor** text and move it to the little box as shown below (press the **E** key to enter rotation mode and rotate it forward). 
+1.	选择 **TextRenderActor** 文本并将其移至下图所示的小方块处（按 **E** 键进入旋转模式使其朝前）。 
 
 	![](MHT8_MoveTemplateText.png)
 
-1.	In the Details panel for the TextRenderActor, under the **Text** section, in the Text field replace the text with **3**. 
+1.	在 TextRenderActor **Details** 面板中的 **Text** 部分下，将文本框中的文本替换为 **3**。 
 
 	![](MHT8_3.png)
 
-	_This is going to serve as our timer and countdown to the explosion we will trigger._
+	_它将作为引发爆炸的倒数计时器。_
 
-1.	Also, inside the Details panel make a note of what the **Location** values are under **Transform** for the text as we will need them in a moment. 
+1.	在 **Details** 面板中，记录 **Transform** 下的文本 **Location** 数值，稍后将会用到。 
 
 	![](MHT8_TextLocation.png)
 
-1.	In the level viewport with the text still selected, **press Control+W** to duplicate the Text Render Actor. 
+1.	在关卡视口中选中文本，按下 **Control+W** 复制 **Text Render** Actor。 
 
-1.	Inside the Details panel for the new Text Render Actor, **set Location** to the same as the other Text Render Actor and set the **Text** to **2**. 
+1.	在新 Text Render Actor 的 **Details** 面板中，将 **Location** 数值设为和其他的 Text Render Actor 相同，将 **Text** 设为 **2**。 
 
 	![](MHT8_2.png)
 
-1.	**Repeat the previous two steps** to create another Text Render Actor. Set it in the same location as the others and set the text to **1**. 
+1.	**重复以上两个步骤** 创建另一个 Text Render Actor。在和其他相同的位置进行设置，将文本设为 **1**。 
 
-1.	For each of the Text Render Actors in the Details panel under **Rendering**, **check** the box for **Actor Hidden In Game**. 
+1.	为 Details 面板中 **Rendering** 下每个 Text Render Actors 勾选 **Actor Hidden In Game**。 
 
 	![](MHT8_ActorHiddenInGame.png)
 
-	_We will control the visibility of the Actors through Matinee and what them hidden by default._
+	_我们将通过 Matinee 控制 Actors 的可视性以及其默认隐藏的属性。_
 
 [OBJECT:TopicList]
 	[PARAM:title]
-		Adding the Assets to Matinee and Setting the Tracks
+		向 Matinee 添加资源并设置轨迹
 	[/PARAM]
 	[PARAM:description]
-	In this step, we will add all of our assets to our **Matinee** and define the tracks that will be used to drive the sequence. 
+	在这步中，我们将把所有资源添加到 **Matinee**，并定义用于驱动序列的轨迹。 
 	[/PARAM]
 [/OBJECT]
 
-1.  **Select** the Matinee in the **World Outliner** or viewport, then in the Details panel **select Open Matinee** and minimize it when it opens. 
+1. 在 **World Outliner** 或视口中 **选择** Matinee，然后在 Details 面板中选择 **Open Matinee**，打开后将其最小化。 
 
-1.  **Select** the rock in the viewport, then back in Matinee in the **Tracks Window**, **Right-click** and **select Add New Empty Group**. 
+1. **选择** 视口中的石块，然后返回 Matinee 的 **Tracks 窗口**，**单击右键** 并选择 **Add New Empty Group**。 
 
 	![](MHT8_AddEmptyGroup.png)
 
-	_Give the new group a name when prompted, in this example we are simply calling it the **Rock** group._
+	_在弹出菜单中为新群组命名，在此例中我们将其简单命名为 **Rock**。_
 
-1.  **Right-click** on the group and **select Add New Event Track** from the context menu. 
+1. 在群组上 **单击右键**，从快捷菜单中选择 **Add New Event Track**。 
 
 	![](MHT8_AddEventTrack.png)
 
-1.  With the Event Track selected, **move** the **Time Bar** to **4.00** and **press Enter** to add a keyframe, then name the event **Explode**.
+1. 选中事件轨迹，将 **时间条** 移至 **4.00** 处，按下 **Enter** 键添加一个关键帧，然后将事件命名为 **Explode**。
 
 	![](MHT8_EventTrackComplete.png)
 
-1.  **Right-click** on the red ending marker at **5.00** and **choose Move To Longest Track Endpoint** to shorten the sequence to **4.00**. 
+1. 在 **5.00** 处的红色结束标记上 **单击右键** 并选择 **Move To Longest Track Endpoint**，将序列缩短至 **4.00**。 
 
 	![](MHT8_SetLength.png)
 
-1.  **Minimize** Matinee and **select** the Text Render Actor who is set to **3** in the World Outliner. 
+1. 最小化 Matinee 并选择在 World Outliner 中设为 **3** 的 **Text Render** Actor。 
 
-1.	Back in Matinee in the Tracks Window, **Right-click** and **select** **Add New Empty Group** and name the group something like **Text-3**. 
+1.	返回 Matinee 的 Tracks 窗口，**单击右键** 并选择 **Add New Empty Group**，将群组赋予 **Text-3** 之类的命名。 
 
 	![](MHT8_Text3Added.png)
 
-1.	**Right-click** on the group and **select** **Add New Visibility Track**. 
+1.	在群组上 **单击右键** 并选择 **Add New Visibility Track**。 
 
 	![](MHT8_AddNewVisTrack.png)
 
-1.	**Repeat the previous two steps** and create two new groups (**Text-2** and **Text-1**), both with **Visibility** tracks. 
+1.	**重复以上两步** 创建两个新群组（**Text-2** 和 **Text-1**），使两者均拥有 **可视性** 轨迹。 
 
 	![](MHT8_MatineeSetupComplete.png)
 
-1.	**Click** on the Visibility track for **Track-3**, move the Time Bar to **1.00** and **press** **Enter**, then **select** Show from the pop-up menu to add a keyframe. 
+1.	点击 **Track-3** 的可视性轨迹，将时间条移至 **1.00** 处并按下 **Enter** 键，然后从弹出菜单中选择 Show 添加一个关键帧。 
 
 	![](MHT8_Show3.png)
 
-1.	**Move** the Time Bar to **2.00** and **press** **Enter** and **select** Hide from the pop-up menu. 
+1.	将时间条移至 **2.00** 处并按下 **Enter** 键，然后从弹出菜单中选择 **Hide**。 
 
 	![](MHT8_Hide3.png)
 
-	_A bar will be created between **1.00** and **2.00** which indicates when the text **3** will be shown, which is for 1 second._
+	_**1.00** 和 **2.00** 之间将创建一个条，表明 text **3** 将显示 1 秒钟。_
 
-1.	Repeat the previous two steps to Show/Hide the text **2** from **2.00** to **3.00** and the text **1** from **3.00** to **4.00**, then close the Matinee. 
+1.	重复之前两步展示/隐藏 **2.00** 至 **3.00** 的文本 **2**，以及 **3.00** 至 **4.00** 的文本 **1**，然后关闭 Matinee。 
 
 	![](MHT8_MatineeFinished.png)
 
 
 [OBJECT:TopicList]
 	[PARAM:title]
-		Using the Matinee Actor in Blueprints
+		在蓝图中使用 Matinee Actor
 	[/PARAM]
 	[PARAM:description]
-	In this step, we wll trigger an event when the **Explode** event is called in our **Matinee** sequence and activate the particle effect when the **Matinee** is complete.
+	在这步中，**爆炸** 事件在 **Matinee** 序列中被调用时将触发事件，**Matinee** 结束后开启粒子效果。
 	[/PARAM]
 [/OBJECT]
 
-1.	**Select** the **MatineeActor** in the level viewport or World Outliner then **click** the **Blueprints** button from the main tool bar and select **Open Level Blueprint**. 
+1.	在关卡视口或 World Outliner 中选择 **MatineeActor**，然后在主工具栏点击 **Blueprints** 按钮并选择 **Open Level Blueprint**。 
 
 	![](MHT8_OpenLevelBlueprint.png)
 
-1.	**Right-click** in the graph window and **select** the **Add MatineeController** option. 
+1.	在图表窗口中 **单击右键** 并选择 **Add MatineeController** 选项。 
 
 	![](MHT8_AddMatineeController.png)
 
-1.	**Minimize** the **Level Blueprint** and **select** the rock in the level, then back in the Level Blueprint, **Right-click** in the graph and choose **Add Reference to SM_Rock_DM**. 
+1.	最小化 **关卡蓝图** 并选择关卡中的石块，然后返回关卡蓝图，在图表中 **单击右键** 并选择 **Add Reference to SM_Rock_DM**。 
 
 	![](MHT8_AddReferenceToRock.png)
 
-1.	**Minimize** the Level Blueprint again and **select** the **P_Fire** asset, then back in the Level Blueprint, **Right-click** and choose **Add Reference to P_Fire**.
+1.	再次最小化关卡蓝图并选择 **P_Fire** 资源，然后返回关卡蓝图，**单击右键** 并选择 **Add Reference to P_Fire**。
 
 	![](MHT8_ReferencesAdded.png)
 
-1.	**Left-click** on and **drag off** the out pin of the **SM_Rock_DM** node and in the window that appears, **enter** the text **Apply** then **click** **Apply Radius Damage**. 
+1.	左键单击并拖动 **SM_Rock_DM** 节点的输出引脚，在出现的窗口中输入文本 **Apply**，然后点击 **Apply Radius Damage**。 
 
 	![](MHT8_ApplyRadiusDamage.png)
 
-1.	**Left-click** on and **drag off** the **Explode** out pin for the **MatineeActor** and connect it to the in pin of the Apply Radius Damage node, then **set** each of the float values to **12000**. 
+1.	左键单击并拖动 **MatineeActor** 的 **Explode** 输出引脚，将其连接至 Apply Radius Damage 节点的输入引脚，然后将各自的 float 值设为 **12000**。 
 
 	![](MHT8_ExplodeComplete.png)
 
-1.	**Left-click** on and **drag off** the out pin of the SM_Rock_DM node and in the window that appears, **enter** the text **Location** and choose **Get Actor Location**. 
+1.	左键单击并拖动 **SM_Rock_DM** 节点的输出引脚，在出现的窗口中输入文本 **Location**，然后选择 **Get Actor Location**。 
 
 	![](MHT8_GetActorLocation.png)
 
-1.	**Left-click** on and **drag off** the out pin of the Get Actor Location node and **connect it** to the **Hurt Origin** in pin of the Apply Radius Damage node. 
+1.	左键单击并拖动 Get Actor Location 节点的输出引脚，将其和 Apply Radius Damage 节点的 **Hurt Origin** 输入引脚连接起来。 
 
 	![](MHT8_HurtOrigin.png)
 
-1.	**Left-click** on and **drag off** the out pin of the **P_Fire** node and in the window that appears, **enter** the text **Activate** and choose the **Activate** option. 
+1.	左键单击并拖动 **P_Fire** 节点的输出引脚，在出现的窗口中输入文本 Activate，然后选择 **Activate** 选项。 
 
 	![](MHT8_ActivateNode.png)
 
-1.	**Left-click** on and **drag off** the **Finished** out pin for the **MatineeActor** and connect it to the in pin of the Activate node. 
+1.	左键单击并拖动 **MatineeActor** 的 **Finished** 输出引脚，将其和 Activate 节点的输入引脚连接起来。 
 
 	![](MHT8_BlueprintFinished.png)
 
-1.	**Click** the **Compile** button on the tool bar and **close** the Level Blueprint. 
+1.	点击工具栏上的 **Compile** 按钮并关闭关卡蓝图。 
 
 	![](MHT8_Compile.png)
 
-1.	In the World Outliner, click the **MatineeActor**, then in the Details panel **click** the **Play on Level Load** option. 
+1.	在 World Outliner 中点击 **MatineeActor**，然后在 Details 面板中点击 **Play on Level Load** 选项。 
 
 	![](MHT8_PlayOnLoad.png)
 
-1.	**Click** the **Play** button from the main tool bar to play in the editor. 
+1.	在主工具栏中点击 **Play** 按钮即可在编辑器中进行游戏。 
 
-	![](MHT8_Gif.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	E2MHE2vQGDk
+	[/PARAMLITERAL]
+	[/OBJECT]
 
-	_You should see the text countdown and the rock explode with a particle and sound effect, after which fire can be seen in the location where the rock was._
+	_可以在场景中看到倒计时开始，石块爆炸，出现粒子效果和音效，之后石块位置上将出现火焰。_
 
 
 

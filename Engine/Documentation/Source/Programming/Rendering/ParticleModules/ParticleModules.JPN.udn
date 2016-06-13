@@ -1,21 +1,21 @@
-﻿INTSourceChangelist:2374181
-Availability:Public
+﻿INTSourceChangelist:2872097
+Availability:Docs
 Title:パーティクル モジュール テクニカル ガイド
 Crumbs:%ROOT%, Programming, Programming/Rendering
 Description:パーティクル システムのビヘイビアをカスタマイズするために新規エミッタ タイプを追加するためのプログラマー向けガイド
-バージョン：4.5
+Version:4.9
 
 [TOC (start:2 end:3)]
 
 
 
-## 概要
+
 
 UE4 のパーティクル システムは、多数のパーティクル エミッタより構成され、それぞれが、パーティクルの動作の仕方に影響するモジュールを含みます。カスタム モジュールとエミッタ タイプを使用してシステムを拡張することは、非常に簡単です。本ページではその方法を紹介します。
 
 ## ParticleModule 基本クラス 
 
-すべての ParticleModule は、同じ基本クラス、ParticleModule (`//depot/UE4/Engine/Source/Runtime/Engine/Classes/Particles/Modules/ParticleModule.h` で定義) から派生します。 
+すべての ParticleModule は、同じ基本クラス、`ParticleModule` (UE4/Engine/Source/Runtime/Engine/Classes/Particles/Modules/ParticleModule.h で定義) から派生します。 
 
 
 ### メンバ変数
@@ -29,18 +29,18 @@ ParticleModule クラスには、次のメンバ変数が含まれます。
 | `bCurvesAsColor` | モジュールのディストリビューション (カーブ) プロパティが、カラー データを含むかどうかを示すブール変数。true である場合、カーブ エディタで描いたカーブは、割り当てられた`ModuleEditorColor`ではなく、現在のカラーを表示します。デフォルト値は `false` です。|
 | `b3DDrawMode` | モジュールが、 3D ビジュアライゼーション ヘルパーをレンダリングする必要があることを示すブール変数。デフォルト値は `false` です。|
 | `bSupported3DDrawMode` | モジュールが、3D ビジュアライゼーション ヘルパーのレンダリングをサポートすることを示すブール変数 (`Render3DPreview()` 関数が何かをするなど)。デフォルト値は `false` です。|
-| `bEnabled` | モジュールが有効であるかどうかを示すブール変数。デフォルト値は、 true です。|
-| `bEditable` | モジュールがデザイナーによって有効にされたことを示すブール変数。低い LOD レベルが修正されたかどうかを判断するために LOD レベルで使用されます。デフォルト値は、 true です。|
+| `bEnabled` | モジュールが有効であるかどうかを示すブール変数。デフォルト値は、`true` です。|
+| `bEditable` | モジュールがデザイナーによって有効にされたことを示すブール変数。低い LOD レベルが修正されたかどうかを判断するために LOD レベルで使用されます。デフォルト値は、`true` です。|
 | `ModuleEditorColor` | モジュールに関連付けられたカラーです。カーブ エディタで描かれたモジュールのカーブは、このカラーを使用して表示します。[REGION:note] `bCurvesAsColor` が有効である場合、カーブは、カーブが示す実際のカラー値で描かれます。 [/REGION] |
 
 `ModuleType` エミュレーションも、このクラスで定義します。このタイプにより、どのタイプのエミッタがモジュールを使用できるかが示されます。次の表に、利用可能なタイプの説明が示されています。
 
 | タイプ (EPMT) | 説明 |
 | ------------ | ----------- |
-| _General_ | すべてのエミッタ タイプによって使用可能な一般のモジュール。 |
-| _TypeData_ | このモジュールは TypeData モジュールで、インスタンス化されるエミッタ クラスに命令。 |
-| _Beam_ | モジュールは、ビーム エミッタによってのみ使用可能。 |
-| _Trail_ | モジュールは、トレール エミッタによってのみ使用可能。 |
+| General | すべてのエミッタ タイプによって使用可能な一般のモジュール。 |
+| TypeData | このモジュールは TypeData モジュールで、インスタンス化されるエミッタ クラスに命令。 |
+| Beam | モジュールは、ビーム エミッタによってのみ使用可能。 |
+| Trail | モジュールは、トレール エミッタによってのみ使用可能。 |
 
 
 ### メンバ関数
@@ -59,7 +59,7 @@ ParticleModule クラスには、次のメンバ変数が含まれます。
 
 カスタム モジュールを作成するには、上記の関数をオーバーライドし、必要な処理を実装するだけです。例として、『パーティクル カラー』 = 『ベース カラー』 X 『ディストリビューション生成要素により計測された速度』 設定を実装するモジュールが作成されます。
 
-モジュールの基本クラスは、「ヘッディング」 を定義します。これは、Cascade の [モジュール] メニューを **右クリック** することで表示されます。この例では、モジュールが **カラー** サブメニューで表示されることを確認するため、ParticleModuleColorBase クラスから派生させるようにします。
+モジュールの基本クラスは、ヘッディングを定義します。これは、Cascade の [Module (モジュール)] メニューを **右クリック** することで表示されます。この例では、モジュールが **カラー** サブメニューで表示されることを確認するため、`ParticleModuleColorBase` クラスから派生させるようにします。
 
 ### モジュールの宣言
 
@@ -87,12 +87,12 @@ ParticleModule クラスには、次のメンバ変数が含まれます。
 
 注目すべき点：
 
-1. モジュールは、スポーンおよび更新の両段階でパーティクル上で動作するようにマークされます (`bSpawnModule` および `bUpdateModule` は、両方とも true に設定されます)。
-1. 弊社のモジュールは、パーティクル単位またはインスタンス単位のデータを必要としません。したがって、 `RequiredBytes*()` 関数をオーバライドする必要はありません。
+1. モジュールは、スポーンおよび更新の両段階でパーティクル上で動作するようにマークされます (`bSpawnModule` および `bUpdateModule` は、両方とも `true` に設定されます)。
+1. 弊社のモジュールは、パーティクル単位またはインスタンス単位のデータを必要としません。したがって、`RequiredBytes*()` 関数をオーバライドする必要はありません。
 
 [REGION:warning]
-この例は、 **ColorByVelocity** モジュールがエミッタ モジュール スタックにある前に **InitialColor** モジュールを持つエミッタが必要になります。
-操作されているパーティクルの色を表示するのため、 **VertexColor** 表現式を利用するマテリアルを使うパーティクルエミッタが必要です。
+この例では、 **ColorByVelocity** モジュールがエミッタ モジュール スタックの前に **InitialColor** モジュールのあるエミッタが必要になります。
+操作されているパーティクルの色を表示するのため、**VertexColor** 表現式を利用するマテリアルを使うパーティクル エミッタが必要です。
 [/REGION]
 
 #### モジュールの実装
@@ -110,7 +110,7 @@ ParticleModule クラスには、次のメンバ変数が含まれます。
 		ScaleVelocity.Distribution = DistributionScaleVelocity;
 	}
 
-`Spawn()` 関数では、コードがパーティクル上に持つあらゆる初期効果を設定します。モジュールが全て `Spawn()` の呼び出しが必要なわけではありませんが、この例では必要です。
+**Spawn()** 関数では、コードがパーティクル上に持つあらゆる初期効果を設定します。モジュールが全て `Spawn()` の呼び出しが必要なわけではありませんが、この例では必要です。
 
 	void UParticleModuleColorByVelocity::Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime)
 	{
@@ -124,15 +124,15 @@ ParticleModule クラスには、次のメンバ変数が含まれます。
 	   }
 	}
 
-Spawn 関数は、Particle.RelativeTime を使用するディストリビューションからの `ScaleVelocity` 値を取得します。スケールした速度値は、速度をこのスケール値に乗算することで求められます。このスケールされた速度値を乗算した BaseColor に Particle.Color が設定されます。 
+`Spawn()` 関数は、`Particle.RelativeTime` を使用するディストリビューションからの `ScaleVelocity` 値を取得します。この値に速度をかけると、スケーリングされた速度がでます。そして、`Particle.Color` はこのスケール速度の結果をかけた `BaseColor` として設定されます。 
 
-SPAWN_INIT は、パーティクル データにアクセス時 (例えば、パーティクル ペイロードへのオフセット トラッキングなど) 、一般的に使用される値と同様、スポーンされるパーティクルに FBaseParticle 参照を設定するマクロです。詳細については `//depot/UE4/Engine/Source/Runtime/Engine/Public/ParticleHelper.h` を参照してください。
+`SPAWN_INIT` は、パーティクル データにアクセス時に一般的に使用される値 (例えば、パーティクル ペイロードへのオフセット トラッキングなど) と同様、スポーンされるパーティクルに `FBaseParticle` 参照を設定するマクロです。詳細については `//depot/UE4/Engine/Source/Runtime/Engine/Public/ParticleHelper.h` を参照してください。
 
 [REGION:note]
 	これは、`Particle.Color` を直接設定する有害なモジュールであることに注意してください。`Particle.Color` を変更したのみの先行したモジュールは、全て (この時点で) 意味を成さなくなります。ただし、 **Initial Color** モジュールのように `BaseColor` も同様に変更した場合、その値に依然効力があることになります。
 [/REGION]
 
-`Update()` 関数は、多かれ少なかれ `Spawn()` と同じです。異なる点は、それぞれのアクティブなパーティクルは、シングル ループで更新されるということです。 
+**Update()** 関数は、多かれ少なかれ `Spawn()` と同じです。異なる点は、それぞれのアクティブなパーティクルは、シングル ループで更新されるということです。 
 
 	void UParticleModuleColorByVelocity::Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime)
 	{
@@ -149,7 +149,7 @@ SPAWN_INIT は、パーティクル データにアクセス時 (例えば、パ
 
 `BEGIN_UPDATE_LOOP`/`END_UPDATE_LOOP` は、全てのアクティブなパーティクルをループし、両マクロ間のコードを各パーティクル上で実行するためのコードブロックを展開するマクロです。詳細は `UnParticleHelper.h` を参照してください。
 
-次のスクリーン ショットには、アクション中の **ColorByVelocity** モジュールが表示れています。パーティクルの **InitialVelocity** は、ランダムに **(0,0,0)..(200,200,0)** に設定されています。各パーティクルの **InitialColor** は白に設定されています。**ColorByVelocity** の **VelocityScale** 値は、 **(0.005, 0.005, 0)** の定数に設定されています。この結果、各パーティクルは、 Velocity * VelocityScale に設定されたカラーを含みます。   
+次のスクリーン ショットには、アクション中の **ColorByVelocity** モジュールが表示れています。パーティクルの **InitialVelocity** は、ランダムに **[(0,0,0)、(200,200,0)]** に設定されています。各パーティクルの **InitialColor** は白に設定されています。**ColorByVelocity** の VelocityScale 値は、 **(0.005, 0.005, 0)** の定数に設定されています。この結果、各パーティクルは、以下に設定されたカラーを含みます:   
     
 	Velocity * VelocityScale
 

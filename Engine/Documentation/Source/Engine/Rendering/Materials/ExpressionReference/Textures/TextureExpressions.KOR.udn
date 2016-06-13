@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2617143
+﻿INTSourceChangelist:2690235
 Availability:Public
 Title:Texture 표현식
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
 Description:텍스처 샘플을 뽑아 출력하는 표현식입니다.
+Version: 4.9
 
 [EXCERPT:TOC]
 [TOC(start:2)]
@@ -89,6 +90,12 @@ TextureSample 표현식은 텍스처에서 색 값을 출력합니다. 이 텍�
 DDX(UVs) 와 DDY(UVs) 입력의 이해를 돕기 위해, 이렇게 해 보면 됩니다. 참고로 이렇게 하면 **MipValueMode** = **None** 일 때와 결과물은 같지만 더 느립니다. DDX(UVs) 와 DDY(UVs) 는 DDX/DDY 머티리얼 표현식을 사용할 때와는 다른 방식으로 계산을 하기에, 기본 하드웨어 계산을 덮어쓸 필요가 있을 때만 사용해야 할 것입니다.
 
 ![SampleTextureDerivative.png](SampleTextureDerivative.png)
+
+## TextureProperty
+
+**TextureProperty** (텍스처 프로퍼티)는 선택한 텍스처의 프로퍼티, 이를테면 텍스처의 크기나 텍셀 크기같은 것을 노출시킵니다.
+
+![TextureProperty.png](TextureProperty.png)
 
 [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Particles#ParticleSubUV]
 

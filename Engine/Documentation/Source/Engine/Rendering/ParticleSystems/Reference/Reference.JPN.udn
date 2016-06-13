@@ -1,13 +1,13 @@
-﻿INTSourceChangelist:2074246
+﻿INTSourceChangelist:2738595
 Availability:Public
 Title:パーティクル システムのリファレンス
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
-Description:パーティクル　システムのタイプデータおよびモジュール用リファレンスの完全版
+Description:パーティクル システムのタイプデータおよびモジュール用リファレンスの完全版
+Version:4.9
 
 
 
-
-## ベースクラス
+## 基本クラス
 
 パーティクル システムを構成するベースクラスに関する参照マテリアルです。例えば、ParticleSystem クラスや ParticleEmitter クラスがあります。
 
@@ -366,7 +366,7 @@ ParticleSystem への追加時のエミッタのデフォルト タイプはス�
 
 [EXCERPT:RandomSeedInfo]
 [REGION:simpletable]
-|**プロパティ**|**説明**|
+| **プロパティ** | **説明** |
 | --- | --- |
 |_Get Seed From Instance_| _true_ の場合、モジュールはオーナー インスタンスからシードを取得しようとします。失敗すると、 _Random Seeds_ 配列からシードを取得するためにフォールバックします。
 |_Instance Seed Is Index_| _true_ の場合、インスタンスから抽出したシード値は _Random Seeds_ 配列のインデックスとなります。|

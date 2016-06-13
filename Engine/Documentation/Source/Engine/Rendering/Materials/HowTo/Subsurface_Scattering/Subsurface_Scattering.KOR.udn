@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2615081
+﻿INTSourceChangelist:2738838
 Availability:Public
 Title: 머티리얼 에디터 - 머티리얼에서 서브서피스 스캐터링 사용법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -7,6 +7,8 @@ Related: Engine/Rendering/Materials/LightingModels/SubSurfaceProfile
 Related: Engine/Rendering/Materials/LightingModels/SubSurface
 Related: Resources/ContentExamples/MaterialNodes/1_13
 Related: Resources/ContentExamples/MaterialNodes/1_7
+Version:4.9
+SkillLevel:Intermediate
 
 [TOC(start:2)]
 
@@ -19,7 +21,7 @@ Related: Resources/ContentExamples/MaterialNodes/1_7
 머티리얼에 서브서피스 셰이딩 모델을 사용할 수 있도록 하는 방법은 다음과 같습니다.
 
 1. 먼저 **콘텐츠 브라우저** 에서 **우클릭** 한 다음 **기본 애셋 생성** 목록에서 머티리얼을 선택하여 머티리얼을 새로 만듭니다.
-생성되고나면 머티리얼 이름을 짓습니다. 이 예제에서는, 머티리얼 이름을 **MAT_Subsurface_00** 로 합니다. 
+생성되고 나면 머티리얼 이름을 짓습니다. 이 예제에서는, 머티리얼 이름을 **MAT_Subsurface_00** 로 합니다. 
 완료되면 **콘텐츠 브라우저** 는 다음과 같은 모습입니다.
 
 	![](SSM_Create_New_Material.png)
@@ -91,7 +93,7 @@ Related: Resources/ContentExamples/MaterialNodes/1_7
 1. 모든 노드가 연결되었으니, **적용** 버튼을 눌러 머티리얼이 컴파일되도록 합니다. 컴파일이 완료된 모습은 이와 같습니다.
 	![](SSM_Finshed_Material.png)
 
-1. 머티리얼이 컴파일되고나면, 머티리얼 창을 닫아도 됩니다. **콘텐츠 브라우저** 안에서 머티리얼을 선택한 다음 **우클릭** 하고 메뉴에서 **머티리얼 인스턴스 생성** 을 선택합니다.
+1. 머티리얼이 컴파일되고 나면, 머티리얼 창을 닫아도 됩니다. **콘텐츠 브라우저** 안에서 머티리얼을 선택한 다음 **우클릭** 하고 메뉴에서 **머티리얼 인스턴스 생성** 을 선택합니다.
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
 	640
@@ -136,7 +138,9 @@ Related: Resources/ContentExamples/MaterialNodes/1_7
 
 	완료되면, 다음과 같은 모습입니다.
 
-	![](SSM_Light_Settings.png)
+	[REGION:lightbox]
+	[![](SSM_Light_Settings.png)(w:960)](SSM_Light_Settings.png)
+	[/REGION]
 
 1. 라이트를 전부 추가했으니, 이제 테스트할 스태틱 메시를 추가하면 됩니다. 이 예제에서는 다음 메시를 사용하겠습니다.
 

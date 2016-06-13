@@ -1,10 +1,13 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2728054
 Availability:Licensee
 Title: 통합 파트너 프로그램
 Crumbs:%ROOT%, Support/BusinessAndLegal
 Description:언리얼 엔진 4 에 제품을 통합시킨 회사를 위한 프로그램입니다. 현재 이 프로그램에 가입된 멤버도 포함됩니다.
+Version: 4.9
 
+[Region:raw]
 ![Integrated Partners Program](IPP.png)
+[/Region]
 
 에픽 게임스는 언리얼 엔진 4 에 통합되어 상보적인 관계의 크로스 플랫폼 테크놀로지를 개발한 엄선된 회사들과 공식적인 업무 제휴관계를 맺을 목적으로 통합 파트너 프로그램(IPP, Integrated Partners Program)을 수립했습니다. IPP 하에서 에픽은 IPP 회원사에게 지속적인 언리얼 엔진 4 소스 코드 접근 권한과 최대의 기술 지원을 제공합니다. 아울러 IPP 에 합류하는 회사는 에픽이 수립한 지원 창구를 통해 UE4 라이선시께 높은 수준의 기술 지원을 제공하며 UE4 최신 버전에 맞춰 자사의 구현 내용을 최신으로 유지함은 물론, 에픽과 가능한 모든 홍보나 공동 마케팅 노력을 함께할 것임에 동의합니다. IPP 는 언리얼 엔진 4 라이선시께서 해당 회사의 게임에 IPP 벤더의 써드 파티 미들웨어 솔루션을 통합시키는 작업을 수월하게 만들어 줄 것입니다.
 

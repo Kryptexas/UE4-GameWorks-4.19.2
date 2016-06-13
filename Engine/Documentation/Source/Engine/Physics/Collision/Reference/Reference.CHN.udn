@@ -1,4 +1,4 @@
-Availability: Public
+﻿Availability: Public
 Title:静态网格物体碰撞参考指南
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/Collision
 Description:关于创建及设置碰撞几何体的内容指南。
@@ -114,7 +114,7 @@ Description:关于创建及设置碰撞几何体的内容指南。
 
 ### 使用您的3D内容创建包创建一个碰撞外壳
 
-请参照[FBX静态网格物体通道](Engine/Content/FBX/StaticMeshes#Collision)了解如何在 3D 内容创建包中创建静态网格物体碰撞外壳。
+请参照 [FBX静态网格物体通道](Engine/Content/FBX/StaticMeshes) 了解如何在 3D 内容创建包中创建静态网格物体碰撞外壳。
 
 
 ## 碰撞响应

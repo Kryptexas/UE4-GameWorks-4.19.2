@@ -2,7 +2,9 @@
 Availability: Public
 Title:5.动画蓝图 - 闲置和行走状态
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
-Description:在本步中，我们将在动画蓝图中为人物创建闲置和行走状态的逻辑。 
+Description:在本步中，我们将在动画蓝图中为人物创建闲置和行走状态的逻辑。
+Version: 4.9
+SkillLevel:Advanced 
 
 [VAR:Steps]
 [OBJECT:Navigation]

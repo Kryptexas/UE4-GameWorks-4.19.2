@@ -3,7 +3,8 @@ Title:EventGraph
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:Uses events and function calls to perform actions in response to Blueprint events.
 version: 4.9
-
+Parent:Engine/Blueprints/Anatomy
+Tags:Graphs
 
 [VAR:Topic]
 [OBJECT:Topic]

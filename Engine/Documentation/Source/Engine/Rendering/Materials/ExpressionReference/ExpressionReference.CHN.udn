@@ -1,1782 +1,493 @@
-Availability: Public
-title:材质概要
-Crumbs: %ROOT%, Engine, Engine/Rendering, Engine/Rendering/Materials
+﻿INTSourceChangelist:2688589
+Availability:Public
+Title:材质表达式参考资料
+Crumbs:%ROOT%, Engine, Engine/Rendering/Materials
+Description:材质编辑器中可用于创建基于节点的复杂着色器网络的所有材质表达式的参考资料。
+Version:4.9
 
-[TOC(start:2)]
+[REGION:banner]
+![材质纲要](compendium.png)
+[/REGION]
 
-
-
-## 概述
-
-这个页面是材质编辑器中所有可用的材质表达式节点的参考。材质表达式是用于在虚幻引擎 3 中创建完全作用的材质的构建块。每个材质表达式都是一个自包含的黑盒，可以输出一组一个或多个特定值，或者在一个或多个输出上执行单独操作然后输出操作结果。
-
-其他您可能感兴趣的页面包括[材质教程](Engine/Rendering/Materials/Tutorial)和[材质示例](Engine/Rendering/Materials/Examples)页面，其中包含有关如何结合节点实现各种材质效果的示例和教程。 要获得关于如何使用材质编辑器本身的信息，请参照[材质编辑器用户指南](Engine/Rendering/Materials/MaterialEditor)。 如果您是一个程序员，请查看[创建材质表达式](Engine/Rendering/Materials/CreatingMaterialExpressions)页面了解关于如何创建新的材质表达式的详细信息。
-
-[PUBLISH:Licensee]
-
-这是其中包含这个页面上所有材质的包，可以在 Perforce 库中以下位置找到：
+[TOC (start:2 end:3)]
 
 
-    
-    //depot/UnrealEngine3/UDKGame/Content/TestPackages/UDNExamples/MaterialCompendiumContent.upk
-    
-
-
-
-[/PUBLISH:Licensee]
-
-
+此页面提供材质编辑器中所有可用材质表达式节点的参考资料。材质表达式是虚幻引擎 4 中的构建块，用来创建功能完整的材质。每一个材质表达式都是独立的黑匣，它输出一个或多个特定值的集合，或者对一个或多个输入执行单一操作，然后输出该操作的结果。
 
 ## 参数
 
-特定材质表达式为参数，也就是说可以在包含参数的基础材质的 MaterialInstance 中修改它们的值（有时会在运行过程中动态进行修改）。应该通过 **Parameter Name（属性名称）** 属性为这些表达式赋予唯一的名称，当识别 MaterialInstance 中的特定参数时使用。如果同一类型的两个参数在同一个材质中具有相同的名称，那么将会认为它们是同一个参数。更改 MaterialInstance 中的参数值将会同时更改这个材质中的这两个参数表达式的值。这个参数的默认值也会在基础材质中进行设置。它将会是 MaterialInstance 中的参数值，除非这里的值被覆盖修改。
-
-请参阅[实例化材质](Engine/Rendering/Materials/InstancedMaterials)和[材质实例常量](Engine/Rendering/Materials/MaterialInstanceConstants)页面。
-
-
-
-## 当创建材质时如何考虑颜色
-
-在 UE4 中考虑材质时，请记住许多表达式是 **在每个通道上是独立操作的** 。 比如[Add（加）](#Add)节点有两个输入，在每个通道上把它们加在一起。 如果您使两个 RGB 颜色（3 个通道向量值）相加，那么输出的颜色将会是： (Red1+Red2, Green1+Green2, Blue1+Blue2)。 把基于每个通道的操作当成在一个灰度化值上的操作看待。
-
-执行基于每个通道操作的节点通常需要输入端有相同数量的通道。 比如，您可以将一个 RGB 颜色[加](#Add)到另一个 RGB 颜色，但是您不能把一个 RGBA 颜色和一个 RGB 颜色相加，因为 RGB 颜色没有 alpha 通道。 这个规则有一个例外是当其中的一个输入端是单通道（灰度）值时，我们可以把它应用于任何东西。 所以，您可以把 0.1 和 RGB 颜色 (0.2,0.3,0.5) 相加获得 (0.3,0.4,0.6)。
-
-另一个需要记住的事情是虚幻引擎中的颜色是 **floating point(浮点型)** -- 换句话说，颜色不再使它的 RGB 值在 [0,255] 范围内。 相反，RGB值可以是任何值-- 0.4, -1.2, 3.4 --，在这里 0.0 意味着黑色/没有颜色（指在旧机制中的 0），1.0 意味着全彩色（是指旧机制中的 255）。 那也就是说，使值大于 1.0 是完全有效的—值越大颜色越亮！  过去 (255,0,0) 代表红色，在虚幻引擎中，红色是 (1.0,0.0,0.0)，更亮的红色是 (3.0,0.0,0.0)。
-
-颜色也可以是负值！  您可以把负值的颜色作为 **removing(移除)** 颜色的一种方式。 比如，您可以把 (-0.5,0.0,0.0) 加到一个贴图上来把贴图中所有的红色降低 0.5。
-
-中间表达式是以浮点型进行计算的，但是材质的最终输出颜色的每个通道将在[0.1]区间内，这里的 0 没有贡献，1 有全部贡献。 任何大于 1 的值将会产生同样的颜色，但是颜色是根据通过的光溢出亮度进行选取，而且然后通道的数量直接影响光溢出的贡献。
-
-
+某些材质表达式是参数，这意味着它们的值可在包含该参数的基本材质的材质实例中修改（在某些情况下，可在运行时进行动态修改）。您应通过 **参数名称（Parameter Name）**属性对这些表达式指定唯一的名称，以便在材质实例中识别特定参数时使用。如果类型相同的两个参数在同一材质中具有相同的名称，那么系统会假定它们是同一个参数。在材质实例中更改此参数的值时，将在材质中同时更改这两个参数表达式的值。在基本材质中，还将设置此参数的默认值。这将是此参数在材质实例中具有的值，除非它在该材质实例中被覆盖并修改。
 
 ## 材质表达式
 
-![materialexpression.jpg](materialexpression.jpg)
-
-
-1. **Description** - 所有材质表达式都有一个通用的 **Desc（描述）** 属性。在这个属性中输入的文本将会在工作区内的表达式上方的材质编辑器里面显示。可以出于任何目的使用它，但是通常最好对使用意图或表达式的函数进行简短说明。
-1. **Title bar** - 可以显示名称和/或有关材质表达式的属性的相关信息。
-1. **Outputs** - 连接输出材质表达式操作的结果。
-1. **Preview** - 可以显示材质表达式输出的值的预览。在启动实时更新的情况下自动进行更新。可以使用 Spacebar（空格键）进行手动更新。
-1. **Inputs** - 连接选取要供材质表达式使用的值。
-
-
-
-### Abs(求绝对值)
-
-Abs 是数学术语"绝对值"的缩写。 Abs 表达式可以输出这个绝对值，或者它接收到的输出端的不带符号的值。基本上，这就意味着它会通过去掉减号将负数变为正数，而正数和零保持不变。
-
-**示例：** -0.7 的绝对值是 0.7； -1.0 的绝对值是 1.0；1.0 的绝对值是 1.0
-
-**示例使用：** 求绝对值运算通常与[点积](#DotProduct)结合使用。 点积的范围是从 -1..0..1，点积的绝对值的范围是 1..0..1。
-
-![Abs.jpg](Abs.jpg)
-
-
-###添加
-
-Add（加法）表达式会选取两个输入，将它们相加，然后输出这个结果。 这个加操作基于每个通道进行执行，也就是说输入端' R 通道要被加进去，G 通道要被加进去，B 通道加进去等等。这两个输入必须有相同数量的通道，除非它们其中有一个是单独的常量值。可以将常量与一个具有任意个输入的向量相加。
-
-**输入**
-
-
-* *A* - 选取要进行加法运算的值。
-* *B* - 选取被加数。
-
-
-**示例：** 0.2 与 0.4 相加的结果是 0.6；(0.2,-0.4,0.6) 与 (0.1,0.5,1.0) 相加的结果是 (0.3,0.1,1.6)；(0.2,-0.4,0.6) 与 1.0 相加的结果是 (1.2,0.6,1.6)
-
-**示例使用：** 加法运算通常用于 加强/减弱 颜色或偏移 UV 贴图坐标。
-
-![AddExample.jpg](AddExample.jpg)
-
-
-### AntialiasedTextureMask
-
-AntialiasedTextureMask 表达式允许您使用一个软（抗锯齿）过渡蒙板创建材质。可以使用蒙板在两个复杂的材质属性之间混合，或者淡出一个 alpha 混合的材质（使用 SoftMasked 可以正常工作）。只需指定已经在一个通道（红、绿、蓝或 alpha）中指定蒙板的贴图，在表达式中设置使用的通道，然后指定比较值。假设通道可以在 0=黑色到 1=白色的范围内存储灰度值，比较函数可以定义最终蒙板应该是 0 还是 1。这个表达式是一个参数，允许 **Texture（贴图）** 属性被子项 MaterialInstance 覆盖。
-
-**属性**
-
-
-* **Threshold** - 指定在像素覆盖中作为截断点使用的值。像素覆盖值小于这个值将会变黑；大于这个值的话将会变白。
-* **Channel** - 可以指定要作为蒙板使用的贴图的通道。
-* **Texture** - 指定要使用的蒙板贴图。
-
-
-**输入**
-
-
-* **UVs** - 选取要应用到贴图蒙板上的贴图坐标。
-
-
-伪代码：             
-
-
-    
-    Result = 1
-    if TextureLookup < Threshold then Result = 0
-    
-
-
-
-实际的执行函数稍微有点复杂，因为它会尝试根据实际像素覆盖返回 0 和 1 之间的值来避免出现锯齿现象。
-
-示例（这个 128x128 的小贴图，为了保证质量最好未进行压缩）： 
-
-![ULogoLowBlurred.bmp](ULogoLowBlurred.bmp)
-
-作为一个法线贴图（左上角），与描述的材质表达式（右下角）结合使用：
-
-![AAMaskExample.jpg](AAMaskExample.jpg)
-
-这项技术在放大以及与模糊的输入内容结合使用的时候非常有效。压缩会大大影响质量，所以尝试使用未压缩的低分辨率贴图。
-
-![exp_aatm.jpg](exp_aatm.jpg)
-
-请参阅[使用抗锯齿改进 Alpha 测试](Engine/Rendering/Materials/AlphaTestingWithAA)了解执行过程详细信息。
-
-
-### AppendVector(向量合并)
-
-AppendVector 允许您把通道结合在一起来创建一个比原始向量具有更多通道的向量。 例如，您可以取两个单独的[常量](#Constant)值，然后可以将它们合并生成一个具有两个通道 [Constant2Vector(二维常量向量)](#Constant2Vector) 值。它可以用于记录单独贴图中的通道，或者将多个灰度贴图合并为一个 RGB 颜色贴图。
-
-**输入**
-
-
-* *A* - 选取要进行合并运算的值。
-* *B* - 选取被合并的值。
-
-
-**示例：** 0.2 和 0.4 相合并的结果是 (0.2,0.4)；(0.2,0.4) 和 (1.6) 相合并的结果是 (0.2,0.4,1.6)。
-
-![AppendVectorExample.jpg](AppendVectorExample.jpg)
-
-![exp_append_tex.jpg](exp_append_tex.jpg)
-
-
-### BumpOffset(凸凹偏移)
-
-BumpOffset 是虚幻引擎 3 的一个术语，它对应着通常所熟知的'parallax mapping(位移贴图)'。 BumpOffset(凸凹偏移)表达式在不需要增加额外几何体的情况下便可以产生深度错觉。 BumpOffset(凸凹偏移)材质使用一个灰度 <i>heightmap(高度贴图)</i> 来给出深度信息。 高度贴图中越亮的值，在材质中的凸凹越明显；这些区域在相机移动过表面时将会产生位移（变换）。 在高度贴图中越黑的地方是越远，并且产生的位移越小。
-
-**属性**
-
-
-* **HeightRatio** - 从 _高度贴图_ 中选取的深度的乘数。 这个值越大，深度变化越极端。 一般这个值的范围是 .02 到 0.1。
-* **ReferencePlane** - 指出了要应用效果的贴图空间的大致高度。 值0将会使得贴图变形得完全脱离表面，而值 0.5（默认值）意味着表面的某些地方将凸起某些地方将凹陷。
-
-
-**输入**
-
-
-* **Coordinate** - 允许基础坐标通过表达式进行修改。
-* **Height** - 允许将贴图（或一个值）作为高度贴图使用。
-
-
-![BumpOffsetExample.jpg](BumpOffsetExample.jpg)
-
-
-### CameraVector（相机位置向量）
-
-CameraVector（相机位置向量）表达式输出是一个具有 3 个通道的值，代表着相机相对于表面的方向，换句话说，就是说由像素到相机的方向。
-
-**实例应用：** CameraVector（相机位置向量）通常用于伪造环境贴图。可以通过把 CameraVector（相机位置向量）和 ComponentMask（分量蒙板）相连接，并使用 CameraVector（相机位置向量）的 X 和 Y 通道作为贴图坐标来实现。
-
-<span style="font:italic 10px arial;">(鼠标悬停在图片上查看动画效果)</span>
-<div style="width:800px;" onmouseover="toggleAnimImage('camvec');" onmouseout="toggleAnimImage('camvec');">
-    <div id="camvec_still" style="display:block;">
-        ![exp_cameravector_still.jpg](exp_cameravector_still.jpg)
-    [/REGION]
-    <div id="camvec_anim" style="display:none;">
-        ![exp_cameravector.gif](exp_cameravector.gif)
-    [/REGION]
+![](materialexpression.png)
+
+
+1. **说明** - 所有材质表达式都具有公共的 **说明（Desc）**属性。在此属性中输入的文本将显示在材质编辑器中，它位于工作空间中表达式的正上方。它可用于任何用途，但通常是一种保留关于表达式用途或功能的简短备注的好方法。
+1. **标题栏** - 显示材质表达式名称或材质表达式属性的相关信息。
+1. **输入** - 这些链接用于接收材质表达式所要使用的值。
+1. **预览** - 显示材质表达式的输出值的预览。启用实时更新后，预览将自动更新。您可使用空格进行手动更新。
+1. **输出** - 这些链接用于输出材质表达式操作的结果。
+
+
+### 表达式类型
+
+
+[REGION:topics fourth]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/ExpressionReference/Math:title%](TempMaterials.png)
+	[/PARAM]
+	[PARAM:title]
+		大气
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials/ExpressionReference/Atmosphere]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/ExpressionReference/Color:title%](exp_color.png)
+	[/PARAM]
+	[PARAM:title]
+		颜色
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials/ExpressionReference/Color]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/ExpressionReference/Constant:title%](exp_constant.png)
+	[/PARAM]
+	[PARAM:title]
+		常量
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials/ExpressionReference/Constant]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/ExpressionReference/Coordinates:title%](exp_coordinate.png)
+	[/PARAM]
+	[PARAM:title]
+		坐标
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials/ExpressionReference/Coordinates]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/ExpressionReference/Custom:title%](exp_custom.png)
+	[/PARAM]
+	[PARAM:title]
+		定制
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials/ExpressionReference/Custom]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/ExpressionReference/Depth:title%](exp_depth.png)
+	[/PARAM]
+	[PARAM:title]
+		深度
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials/ExpressionReference/Depth]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/ExpressionReference/Font:title%](exp_font.png)
+	[/PARAM]
+	[PARAM:title]
+		字体
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials/ExpressionReference/Font]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/ExpressionReference/Functions:title%](exp_functions.png)
+	[/PARAM]
+	[PARAM:title]
+		函数
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials/ExpressionReference/Functions]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/ExpressionReference/Parameters:title%](exp_attributes.png)
+	[/PARAM]
+	[PARAM:title]
+		材质属性
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials/ExpressionReference/MaterialAttributes]
+	[/PARAM]
+[/OBJECT]
+
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/ExpressionReference/Math:title%](exp_math.png)
+	[/PARAM]
+	[PARAM:title]
+		数学
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials/ExpressionReference/Math]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/ExpressionReference/Parameters:title%](exp_parameter.png)
+	[/PARAM]
+	[PARAM:title]
+		参数
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials/ExpressionReference/Parameters]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/ExpressionReference/Particles:title%](exp_particles.png)
+	[/PARAM]
+	[PARAM:title]
+		粒子
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials/ExpressionReference/Particles]
+	[/PARAM]
+[/OBJECT]
+<!---
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/ExpressionReference/Parameters:title%](exp_parameter.png)
+	[/PARAM]
+	[PARAM:title]
+		速度树
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials/ExpressionReference/SpeedTree]
+	[/PARAM]
+[/OBJECT]
+--->
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/ExpressionReference/Landscape:title%](exp_landscape.png)
+	[/PARAM]
+	[PARAM:title]
+		景观
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials/ExpressionReference/Landscape]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/ExpressionReference/Textures:title%](exp_texture.png)
+	[/PARAM]
+	[PARAM:title]
+		纹理
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials/ExpressionReference/Textures]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/ExpressionReference/Utility:title%](exp_utility.png)
+	[/PARAM]
+	[PARAM:title]
+		实用程序
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials/ExpressionReference/Utility]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/ExpressionReference/VectorOps:title%](exp_vectorops.png)
+	[/PARAM]
+	[PARAM:title]
+		矢量操作
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials/ExpressionReference/VectorOps]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/ExpressionReference/Vector:title%](exp_vector.png)
+	[/PARAM]
+	[PARAM:title]
+		矢量
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials/ExpressionReference/Vector]
+	[/PARAM]
+[/OBJECT]
+
+
+[/REGION]
+
+## 表达式索引
+
+此列表只是为了向希望将此页面加入书签的读者提供方便。按 **Ctrl+F** 可找到您所需的表达式节点并通过链接转到相应的说明。 
+
+[**大气**](Engine/Rendering/Materials\ExpressionReference\Atmosphere)
+[REGION:indentedlist]
+* [AtmosphericFogColor（大气雾颜色）](Engine/Rendering/Materials\ExpressionReference\Atmosphere#AtmosphericFogColor)
 [/REGION]
 
 
-### CameraWorldPosition（相机的世界位置）
 
-CameraWorldPosition 表达式输出是一个具有三个通道的向量值，这个值代表的是世界空间中的相机位置。
-
-预览球体随着相机旋转改变颜色。
-
-![CameraWorldPosition.jpg](CameraWorldPosition.jpg)
-
-
-### Ceil(值上限取整)
-
-Ceil 表达式会选取值，然后将它们 **向上** 近似为下一个整数，然后输出这个结果。 还可以参阅[Floor(值下限取整)](#Floor)和[Frac(取小数值)](#Frac)。
-
-**示例：** 0.2 的向上取整值为 1.0；(0.2,1.6) 的向上取整值为 (1.0,2.0)。
-
-![CeilExample.jpg](CeilExample.jpg)
-
-
-### Clamp(区间值限定)
-
-Clamp(区间值限定)表达式可以选取值并将它们限制在一个指定的范围内，该范围由一个最小值 (Min) 和最大值 (Max) 定义。 最小值 0.0 和最大值 0.5 意味着最后的结果将永远不会小于 0.0，也永远不会大于 0.5。
-
-**输入**
-
-
-* **Min** - 在限定范围的时候选取这个值作为最小值。
-* **Min** - 在限定范围的时候选取这个值作为最大值。
-
-
-**示例：** 在 Min 0.0 和 Max 1.0 内对 0.3 进行区间限定得到的值为 0.3；在 Min 0.0 和 Max 1.0 内对 1.3 进行区间限定得到的值为 1.0。
-
-![ClampExample.jpg](ClampExample.jpg)
-
-
-### ComponentMask(分量蒙板)
-
-ComponentMask 表达式允许您从输入中选择通道 (R、G、B 和/或 A) 的特定子集传递给输出。尝试传递一个在输入中不存在的通道将会引发错误，除非这个输入是一个单独的常量值。在这种情况下，将单独的值传递给每个通道。当前选择要传递的通道显示在表达式的标题栏中。
-
-**属性**
-
-
-* *R* - 如果勾选该项，输入值的红色或者第一个通道将会被传递到输出。
-* *G* - 如果勾选该项，输入值的绿色或者第二个通道将会被传递到输出。
-* *B* - 如果勾选该项，输入值的蓝色或者第三个通道将会被传递到输出。
-* *A* - 如果勾选该项，输入值的 alpha 或者第四个通道将会被传递到输出。
-
-
-**示例：** ComponentMask(分量蒙板)的输入为(0.2,0.8,1.4)，如果选中R和B通道，则输出为(0.2,1.4)。
-
-![ComponentMaskExample.jpg](ComponentMaskExample.jpg)
-
-
-### Constant(常量)
-
-Constant 表达式会输出一个单独的浮点值。它是最常用的表达式之一，可以将其连接到任意输入端，不需要考虑输入预计的通道数。
-
-**属性**
-
-
-* *R* - 指定表达式输出的浮点值。
-
-
-**示例：** 0.7、-0.24、1.1
-
-![ConstantExample.jpg](ConstantExample.jpg)
-
-
-### Constant2Vector(二维常数向量)
-
-Constant2Vector 表达式可以输出一个具有两个通道的向量值，换句话说，也可以是两个常量值。
-
-**属性**
-
-
-* *R* - 制定表达式输出的向量的红色或第一个通道的浮点值。
-* *G* - 指定表达式输出的向量的绿色或第二个通道的浮点值。
-
-
-**示例：** (0.4, 0.6)、(1.05, -0.3)
-
-**实例应用：** Constant2Vector 可以用于修改贴图坐标，因为它们也是两个通道值。
-
-![Constant2Example.jpg](Constant2Example.jpg)
-
-
-### Constant3Vector(三维常数向量)
-
-Constant3Vector 表达式可以输出一个具有三个通道的向量值，换句话说，也可以是三个常量值。 一个 RGB 颜色可以被认为是一个 Constant3Vector(三维常数向量)，在该向量上每个通道被分配一个颜色(红、绿、蓝)。
-
-**属性**
-
-
-* *R* - 制定表达式输出的向量的红色或第一个通道的浮点值。
-* *G* - 指定表达式输出的向量的绿色或第二个通道的浮点值。
-* *B* - 指定表达式输出的向量的蓝色或第三个通道的浮点值。
-
-
-**示例：** (0.4, 0.6, 0.0)、(1.05, -0.3, 0.3)
-
-![Constant3Example.jpg](Constant3Example.jpg)
-
-
-### Constant4Vector(四维常数向量)
-
-Constant4Vector 表达式可以输出一个具有四个通道的向量值，换句话说，也可以是四个常量值。 一个 RGBA 颜色可以被认为是一个 Constant4Vector(四维常数向量)，在那里每个通道被分配一个颜色(红、绿、蓝、alpha)。
-
-**属性**
-
-
-* *R* - 制定表达式输出的向量的红色或第一个通道的浮点值。
-* *G* - 指定表达式输出的向量的绿色或第二个通道的浮点值。
-* *B* - 指定表达式输出的向量的蓝色或第三个通道的浮点值。
-* *A* - 指定表达式输出的向量的 alpha 或第四个通道的浮点值。
-
-
-**示例：** (0.4, 0.6, 0.0, 1.0)、(1.05, -0.3, 0.3, 0.5)
-
-![Constant4Example.jpg](Constant4Example.jpg)
-
-
-### ConstantBiasScale(常数偏移比例)
-
-ConstantBiasScale 表达式选取一个输入值，将一个偏移值累加给它，然后乘以一个可以输出这个结果的缩放系数。 举个例子，要将输入数据从 [-1,1] 转换为 [0,1]，您将要使用一个为 1.0 的偏移和一个 0.5 缩放系数。
-
-**属性**
-
-
-* **Bias** - 指定要被累加到输入上的值。
-* **Scale** - 指定偏移结果的乘数。
-
-
-![exp_constantbiasscale.jpg](exp_constantbiasscale.jpg)
-
-
-### ConstantClamp(常数区间)
-
-ConstantClamp 表达式与 [Clamp](#Clamp) 执行功能相同，但是它使用在节点本身包含的固定的输入来进行简单方便的应用。当您最大和最小区间值（比如把一个输入值在 0 到 1 区间范围内进行限定）不需要随时间变化时，这个表达式非常有用的。
-
-**属性**
-
-
-* **Min** - 指定在限定范围的时候作为最小值使用的值。
-* **Max** - 指定在限定范围的时候作为最大值使用的值。
-
-
-![exp_constantclamp.jpg](exp_constantclamp.jpg)
-
-
-### Cosine(余弦)
-
-Cosine 表达式可以输出输入值（以弧度为单位）的余弦函数。最普遍的是，通过将一个 [Time](#Time) 表达式连接到它的输入端可以输出一个连续震荡的波形。输出值将在 -1 和 1 之间来回循环。这个波的视觉表现如下所示：
-
-![cosine_wave.jpg](cosine_wave.jpg)
-
-**属性**
-
-
-* **Period** - 指定合成波的周期。换句话说，这就是发生一次震荡的时间长度。
-
-
-**实例应用：** 每当需要正当效果的时候可以使用这个表达式。正当的速度和振幅可以通过乘以时间输入（速度）或输出（振幅）轻松地进行动态控制。
-
-<span style="font:italic 10px arial;">(鼠标悬停在图片上查看动画效果)</span>
-<div style="width:800px;" onmouseover="toggleAnimImage('cosine');" onmouseout="toggleAnimImage('cosine');">
-    <div id="cosine_still" style="display:block;">
-        ![exp_cosine_still.jpg](exp_cosine_still.jpg)
-    [/REGION]
-    <div id="cosine_anim" style="display:none;">
-        ![exp_cosine.gif](exp_cosine.gif)
-    [/REGION]
+[**颜色**](Engine/Rendering/Materials\ExpressionReference\Utility)
+[REGION:indentedlist]
+* [Desaturation（去饱和度）](Engine/Rendering/Materials\ExpressionReference\Utility#Desaturation)
 [/REGION]
 
 
-### CrossProduct(叉积)
 
-CrossProduct(叉积)表达式可以计算两个输入的具有三个通道的向量值的叉积，然后输出最终的具有三个通道的向量值。假设��间中有两条线（或者向量），叉积是一条与这两个输入向量互相垂直的线（或向量）。
-
-**输入**
-
-
-* *A* - 选取一个三维向量值。
-* *B* - 选取一个三维向量值。
-
-
-**实例应用：** CrossProduct(叉积)通常用于计算和其它两个方向垂直的方向。
-
-![CrossProductExample.jpg](CrossProductExample.jpg)
-
-
-### Custom(自定义)
-
-Custom 表达式允许您编写在任意数量输入上操作并输出操作结果的自定义 HLSL 着色器代码。
-
-**警告！使用自定义节点将阻止常数合并，并且可能会比具有等同版本功能的内置点使用的指令要多很多！** Constant folding(常数合并)是UE4所采用的一种优化处理，它是通过在需要时降低着色器指令的数量来实现。 比如，表达式链'Time->Sin->Mul 和参数parameter(参数)相乘然后再和某数相加'，UE4将会把它压缩为一个单独指令，最终的加法。这是可能的，因为那个表达式所有的输入(Time(时间)、parameter(参数))对于整个调用函数来说是常数，它们不基于每一个像素改变。 UE4 不能在 custom(自定义)节点中压缩任何东西，那样将会产生比现有节点的等同版本产生更加低效的着色器。所以，最好只有在现有节点不能提供您所需要的功能时才使用自定义节点。
-
-**另一个警告：对于目标平台来说，在自定义节点中所书写的着色器代码是以'按原样'的方式来编译的。** 这意味着如果着色器是为 PC 平台编译的，它被假定为有效的 HLSL。如果为 PS3 平台编译，它将被假定为有效地 Cg。
-
-**属性**
-
-
-* **Code** - 包含表达式将会执行的 HLSL 代码。
-* **Output Type** - 指定由表达式输出的值的类型。
-* **Description** - 指定要在材质编辑器中的表达式的标题栏中显示的文本。
-* **Inputs** - 供表达式使用的输入数列。
-    * **Input Name** - 指定输入的名称。这个名字将会显示在材质编辑器中的表达式上，同时会在 HLSL 代码中使用这个名字引用输入值。
-
-
-在您的输入数组中尽可能多地增加您需要的输入，并命名它们。然后您可以在 Code(代码)属性中书写代码。您可以像例子中所展示的那样，输入一个完整的具有返回语句的函数体，或则输入一个简单的类似于"Input.bgr"的表达式。您也必须在 OutputType(输出类型)中指定输出数据类型。
-
-![Custom.jpg](Custom.jpg)
-
-
-### CustomTexture(自定义贴图)
-
-CustomTexture(自定义贴图)表达式允许您指向来自 Custom(自定义)节点内部的 HLSL 代码的贴图，一般用于在 HLSL 中对其进行采样。
-
-使用正常的 TextureSample(贴图样本)作为 Custom(自定义)节点的输入是可以的，但是在那种情况下，样本在Custom(自定义)节点的外面进行计算，结果被作为一个 4 为的浮点数值传入。当您想在一个循环中对同一个贴图进行多次采样或者当您想使用其它的采样指令例如ex2Dbias, tex2Dlod, tex2Dproj（要获得关于这些的说明请查看 HLSL文档）时，这个方法便不是非常的灵活。
-
-![customtex.jpg](customtex.jpg)
-
-
-### DepthBiasBlend(深度偏移混合)
-
-DepthBiasBlend(深度偏移混合)表达式通常用于平面粒子的材质中，来删除平面粒子和其它的几何体相交时产生的尖锐边缘。 深度偏移混合比较源像素和目标像素的深度差异，并使用一个偏移量来决定在描画时要使用的 alpha 值。 请查看[深度偏移混合应用](Engine/Rendering/Materials/DepthBiasBlendUsage)页面获得更多信息。
-
-DepthBiasBlend(深度偏移混合)表达式和其它的深度偏移混合节点相比速度比较慢而且也不那么的灵活；请使用[深度偏移Alpha](#DepthBiasAlpha)作为替换。
-
-**程序员：** DepthBiasBlend(深度偏移混合)是深度偏移混合节点中最不应该作为首选的节点。因为 1)它从最近的 帧/深度缓存 中进行颜色和深度采样，处理速度很慢；2)混合是在着色器代码中执行的而不是通过硬件，混合速度很慢；3) DepthBiasBlend(深度偏移混合)的输入是通过贴图属性输入的而不是任意表达式的输入端。
-
-
-### DepthBiasAlpha(深度偏移Alpha)
-
-DepthBiasAlpha 表达式通常用于平面粒子的材质中，来删除平面粒子和其它的几何体相交时产生的尖锐边缘。 深度偏移混合比较源像素和目标像素的深度差异，并使用一个偏移量来决定在描画时要使用的 alpha 值。 请查看[深度偏移混合应用](Engine/Rendering/Materials/DepthBiasBlendUsage)页面获得更多信息。
-
-DepthBiasAlpha 表达式是进行深度偏移混合时的首选节点。
-
-![exp_depthbiasalpha.jpg](exp_depthbiasalpha.jpg)
-
-**编程人员：** DepthBiasAlpha(深度偏移Alpha)是进行深度偏移混合的首选方法，因为混合在硬件中执行而不是在着色器中执行。
-
-
-### DepthBiasedBlend(深度偏移混合)
-
-DepthBiasedBlend 表达式通常用于平面粒子的材质中，来删除平面粒子和其它的几何体相交时产生的尖锐边缘。 深度偏移混合比较源像素和目标像素的深度差异，并使用一个偏移量来决定在描画时要使用的 alpha 值。 请查看[深度偏移混合应用](Engine/Rendering/Materials/DepthBiasBlendUsage)页面获得更多信息。
-
-DepthBiasedBlend(深度偏移混合)表达式比[DepthBiasAlpha(深度偏移Alpha)](#DepthBiasAlpha)的速度慢；所以使用 DepthBiasAlpha(深度偏移Alpha)作为替换。
-
-**编程人员：** DepthBiasedBlend(深度偏移混合)是深度偏移混合节点中最不应该作为首选地节点之一。因为1)它从最近的 帧/深度缓存 中进行颜色和深度采样，处理速度很慢；2)混合是在着色器代码中执行的而不是通过硬件，混合速度很慢。
-
-
-### DeriveNormalZ(计算法线向量Z)
-
-DeriveNormalZ 表达式可以得到一个切线空间法线的 Z 分量，X 和 Y 分量已经给出，然后输出最终的三维切线空间法线。Z 按照 Z = sqrt(1 - (x * x + y * y)) 进行计算。
-
-**输入**
-
-
-* **InXY** - 以二维向量值的形式选取切线空间法线的 X 和 Y 分量。
-
-
-![exp_derivenormalz.jpg](exp_derivenormalz.jpg)
-
-
-### Desaturation(冲淡颜色)
-
-Desaturation 表达式可以冲淡它的输入的颜色，或将输入的颜色转换为灰色调，基于特定的百分比。
-
-**属性**
-
-
-* **Luminance Factors** - 指定每个通道可以帮助冲淡颜色的量。这样可以在冲淡的时候进行控制使绿色比红色亮，红色比蓝色亮。
-
-
-**输入**
-
-
-* **Percent** - 指定应用到输入上冲淡颜色的量。Percent(百分比)的范围可以从 0.0（完全地不饱和）到 1.0（完全的原始颜色，没有颜色冲淡）。
-
-
-![DesaturationExample.jpg](DesaturationExample.jpg)
-
-**编程人员：** 定义不饱和颜色D，输入颜色I和亮度因素L，输出将是O = (1-Percent)*(D.dot(I)) + Percent*I
-
-
-### DestColor(目标色)
-
-DestColor 表达式会在当前描画像素的后面输出渲染场景的现有颜色的当前状态。
-
-**实例应用：** 一个水材质可以使用 DestColor(目标色)来对水下面的岩石的颜色进行采样。
-
-![exp_destcolor.jpg](exp_destcolor.jpg)
-
-
-### DestDepth(目标深度)
-
-DestDepth 表达式会在当前描画像素的后面输出渲染场景的现有深度的当前状态。
-
-**实例应用：** 水材质可以使用 DestDepth(目标深度)来赋予水一定的 "thickness(厚度)" 或雾颜色，水的深度越深（深度越大），水会使它下面的岩石变得越模糊。
-
-![exp_destdepth.jpg](exp_destdepth.jpg)
-
-*编程人员：* DestDepth(目标深度)返回一个粗略的深度值（0 到 2^24-1 之间的整数）。 这个非倾斜化的深度可以根据以下进行法线化：
-
-      
-         MaxZ = 16777215
-         NormalizedDepth = 1 - MaxZ / (DestDepth + MaxZ)
-      
-
-最终的单位化后的深度是 0.0 到 1.0 范围内的线性值。
-
-
-### Distance(距离)
-
-Distance 表达式可以计算两个点/颜色/位置/向量之间的 (Euclidian) 距离，然后输出结果值。它可以在一个、两个、三个和四个分向量上使用，但是表达式的所有输入都必须具有相同的通道数。
-
-**输入**
-
-
-* *A* - 选取一个值或任意长度的向量。
-* *B* - 选取一个值或任意长度的向量。
-
-
-![exp_distance.jpg](exp_distance.jpg)
-
-伪代码： Result = length(A - B)
-
-Low level HLSL code: float Result = sqrt(dot(A-B, A-B))
-
-
-### Divide(除法)
-
-Divide（除法）表达式会选取两个输入，然后输出第一个输入除以第二个输入的结果。 除法运算会根据通道进行，也就是说用第一个输入的 R 通道除以第二个输入的 R 通道，用第二个输入的 G 通道除以第二个输入的 G 通道等等。这两个输入必须有相同数量的值，除非除数是一个单独的浮点值。
-
-**输入**
-
-
-* *A* - 选取要进行除法运算的值，即被除数。
-* *B* - 选取要进行除法运算的值，即除数。
-
-
-**示例：** Divide(除法)的 A=(1.0,0.5,-0.4) 和 B=(2.0,2.0,4.0)，那么最终的结果是(0.5,0.25,-0.1)。
-
-![DivideExample.jpg](DivideExample.jpg)
-
-
-### DotProduct(点积)
-
-DotProduct 表达式可以计算点积或者一个向量投射到另一个向量上的长度。这个计算方法被很多技术用来计算衰减。 DotProduct 表达式要求两个向量输入具有同样数量的通道。
-
-**输入**
-
-
-* *A* - 选取一个值或任意长度的向量。
-* *B* - 选取一个值或任意长度的向量。
-
-
-![DotProductExample.jpg](DotProductExample.jpg)
-
-
-### DynamicParameter(动态参数)
-
-DynamicParameter 表达式可以为粒子发射器提供一个可以最多将四个值传递给材质以任何方式使用的管道。这些值通过Cascade中的发射器上的 ParameterDynamic(参数动态)模块进行设置。
-
-**属性**
-
-
-* **Param Names** - 参数名称数列。这里的值将会确定在材质编辑器中显示在表达式输出上的文本，然后将会使用这个名字引用 Cascade 中的 ParameterDynamic 模块内的参数。
-
-
-**输出**
-
-
-* **Param1** - 输出 Param 名称属性中的第一个参数的值。这个输出的名称可以根据参数名称属性中的值进行更改。
-* **Param2** - 输出 Param 名称属性中的第二个参数的值。这个输出的名称可以根据参数名称属性中的值进行更改。
-* **Param3** - 输出 Param 名称属性中的第三个参数的值。这个输出的名称可以根据参数名称属性中的值进行更改。
-* **Param4** - 输出 Param 名称属性中的第四个参数的值。这个输出的名称可以根据参数名称属性中的值进行更改。
-
- 
-
-
-
-### FlipBookSample(翻书采样)
-
-FlipBookSample 表达式可以启用一个动画翻书贴图在材质中使用。它与[TextureSample（贴图样本）](#TextureSample)非常相似，但是作为翻书贴图导入的贴图需要使用一个 FlipBookSample 表达式作为底层，FlipBookSample 会执行必需的 UV 操作渲染翻书贴图的子图像，基于翻书贴图的 HorizontalImage、VerticalImages 和 FrameRate 属性。
-
-**属性**
-
-
-* **Texture** - 指定要使用的翻书贴图。
-
-
-**输入**
-
-
-* **UVs** - 选取要应用到贴图上的贴图坐标。
-
-
-<span style="font:italic 10px arial;">(鼠标悬停在图片上查看动画效果)</span>
-<div style="width:800px;" onmouseover="toggleAnimImage('flip');" onmouseout="toggleAnimImage('flip');">
-    <div id="flip_still" style="display:block;">
-        ![exp_flipbooksample_still.jpg](exp_flipbooksample_still.jpg)
-    [/REGION]
-    <div id="flip_anim" style="display:none;">
-        ![exp_flipbooksample.gif](exp_flipbooksample.gif)
-    [/REGION]
+[**常量**](Engine/Rendering/Materials\ExpressionReference\Constant)
+[REGION:indentedlist]
+* [Constant（常量）](Engine/Rendering/Materials\ExpressionReference\Constant#Constant)
+* [Constant2Vector（常量 2 矢量）](Engine/Rendering/Materials\ExpressionReference\Constant#Constant2Vector)
+* [Constant3Vector（常量 3 矢量）](Engine/Rendering/Materials\ExpressionReference\Constant#Constant3Vector)
+* [Constant4Vector（常量 4 矢量）](Engine/Rendering/Materials\ExpressionReference\Constant#Constant4Vector)
+* [DistanceCullFade（距离剔除消退）](Engine/Rendering/Materials\ExpressionReference\Constant#DistanceCullFade)
+* [ParticleColor（粒子颜色）](Engine/Rendering/Materials\ExpressionReference\Constant#ParticleColor)
+* [ParticleDirection（粒子方向）](Engine/Rendering/Materials\ExpressionReference\Constant#ParticleDirection)
+* [ParticleMotionBlurFade（粒子运动模糊消退）](Engine/Rendering/Materials\ExpressionReference\Constant#ParticleMotionBlurFade)
+* [ParticleRadius（粒子半径）](Engine/Rendering/Materials\ExpressionReference\Constant#ParticleRadius)
+* [ParticleRelativeTime（粒子相对时间）](Engine/Rendering/Materials\ExpressionReference\Constant#ParticleRelativeTime)
+* [ParticleSize（粒子大小）](Engine/Rendering/Materials\ExpressionReference\Constant#ParticleSize)
+* [ParticleSpeed（粒子速度）](Engine/Rendering/Materials\ExpressionReference\Constant#ParticleSpeed)
+* [PerInstanceFadeAmount（按实例消退量）](Engine/Rendering/Materials\ExpressionReference\Constant#PerInstanceFadeAmount)
+* [PerInstanceRandom（按实例随机）](Engine/Rendering/Materials\ExpressionReference\Constant#PerInstanceRandom)
+* [Time（时间）](Engine/Rendering/Materials\ExpressionReference\Constant#Time)
+* [TwoSidedSign（双面符号）](Engine/Rendering/Materials\ExpressionReference\Constant#TwoSidedSign)
+* [VertexColor（顶点颜色）](Engine/Rendering/Materials\ExpressionReference\Constant#VertexColor)
 [/REGION]
 
 
-### Floor(值下限取整)
-
-Floor 表达式会选取值，然后将它们 **向下** 近似为上一个整数，然后输出这个结果。 还可以参阅[Ceil(值上限取整)](#Ceil)和[Frac(取小数值)](#Frac)。
-
-**示例：** 0.2 向下取整后的值为 0.0；(0.2,1.6) 向下取整后的值为 (0.0, 1.0)。
-
-![FloorExample.jpg](FloorExample.jpg)
 
 
-### FluidNormal
-
-FluidNormal 表达式会提供对 FluidSurfaceActor 生成的法线贴图的访问权限，其中包括由于对象与流体表面之间的动态交互而产生的波纹。它可以与其他法线贴图结合使用创建环境气流以及通过流体表面计算的交互性气流。
-
-![exp_fluidnormal.jpg](exp_fluidnormal.jpg)
-
-
-### FMod
-
-FMod 表达式可以返回这两个输入进行除法运算后的浮点余数。
-
-<span style="font:italic 10px arial;">(鼠标悬停在图片上查看动画效果)</span>
-<div style="width:800px;" onmouseover="toggleAnimImage('fmod');" onmouseout="toggleAnimImage('fmod');">
-    <div id="fmod_still" style="display:block;">
-        ![exp_fmod_still.jpg](exp_fmod_still.jpg)
-    [/REGION]
-    <div id="fmod_anim" style="display:none;">
-        ![exp_fmod.gif](exp_fmod.gif)
-    [/REGION]
+[**坐标**](Engine/Rendering/Materials\ExpressionReference\Coordinates)
+[REGION:indentedlist]
+* [ActorPositionWS（Actor 全局空间位置）](Engine/Rendering/Materials\ExpressionReference\Coordinates#ActorPositionWS)
+* [CameraPositionWS（摄像机全局空间位置）](Engine/Rendering/Materials\ExpressionReference\Coordinates#CameraPositionWS)
+* [LightmapUVs（光照贴图 UV）](Engine/Rendering/Materials\ExpressionReference\Coordinates#LightmapUVs)
+* [ObjectOrientation（对象方向）](Engine/Rendering/Materials\ExpressionReference\Coordinates#ObjectOrientation)
+* [ObjectPositionWS（对象全局空间位置）](Engine/Rendering/Materials\ExpressionReference\Coordinates#ObjectPositionWS)
+* [ObjectRadius（对象半径）](Engine/Rendering/Materials\ExpressionReference\Coordinates#ObjectRadius)
+* [Panner（平移）](Engine/Rendering/Materials\ExpressionReference\Coordinates#Panner)
+* [ParticlePositionWS（粒子全局空间位置）](Engine/Rendering/Materials\ExpressionReference\Coordinates#ParticlePositionWS)
+* [PixelNormalWS（像素全局空间法线）](Engine/Rendering/Materials\ExpressionReference\Coordinates#PixelNormalWS)
+* [Rotator（旋转）](Engine/Rendering/Materials\ExpressionReference\Coordinates#Rotator)
+* [SceneTexelSize（场景纹素大小）](Engine/Rendering/Materials\ExpressionReference\Coordinates#SceneTexelSize)
+* [ScreenPosition（屏幕位置）](Engine/Rendering/Materials\ExpressionReference\Coordinates#ScreenPosition)
+* [TextureCoordinate（纹理坐标）](Engine/Rendering/Materials\ExpressionReference\Coordinates#TextureCoordinate)
+* [VertexNormalWS（顶点全局空间法线）](Engine/Rendering/Materials\ExpressionReference\Coordinates#VertexNormalWS)
+* [ViewSize（视图大小）](Engine/Rendering/Materials\ExpressionReference\Coordinates#ViewSize)
+* [WorldPosition（全局位置）](Engine/Rendering/Materials\ExpressionReference\Coordinates#WorldPosition)
 [/REGION]
 
 
-### FoliageNormalizedRotationAxisAndAngle
 
-FoliageNormalizedRotationAxisAndAngle 表达式是为了和[围绕坐标轴旋转](Engine/Rendering/Materials/Compendium#RotateAboutAxis)节点结合使用而设计 ，当材质被应用到一个 InteractiveFoliageActor(交互的植被Actor)时，那个值是通过代码自动进行设置的。 为了应用弹簧偏置式，RGB 包含了要围绕其进行旋转的法线坐标轴。 Alpha 包含了应用弹簧偏置式所需要的旋转地角度和弧度。 请参阅[InteractiveFoliageActor](StaticMeshes/InteractiveFoliageActor)获取示例。
-
-![exp_foliagenraaa.jpg](exp_foliagenraaa.jpg)
-
-
-### FoliageImpulseDirection(植被冲力的方向)
-
-FoliageImpulseDirection 表达式的输出值是当应用材质到一个 InteractiveFoliageActor(交互的植被Actor)时通过代码自动设置的，它提供了对 InteractiveFoliageActor(交互的植被Actor)弹簧偏置式的原始访问权限。 请参阅[InteractiveFoliageActor](StaticMeshes/InteractiveFoliageActor)获取示例。
-
-![exp_foliageimpulsedir.jpg](exp_foliageimpulsedir.jpg)
-
-
-### FontSampler(字体取样器)
-
-FontSampler 表达式允许您从字体资源中采样出贴图页面作为正常的 2D 贴图。字体的 alpha 通道将包含字体的轮廓值。 仅允许指定有效的字体页面。
-
-![FontSampler.jpg](FontSampler.jpg)
-
-
-### Frac(取小数值)
-
-Frac 表达式可以选取值，然后输出这些值的小数部分。 还可以参阅[Ceil（值上限取整）](#Ceil)和[Floor（值下限取整）](#Floor).
-
-**示例：** 0.2 的取小数值为 0.2；(0.0,1.6) 取小数值为 (0.0, 0.6)。
-
-![FracExample.jpg](FracExample.jpg)
-
-
-### Fresnel(菲涅尔)
-
-Fresnel 表达式可以根据表面法线的点积和相对相机的方向计算衰减。在表面法线直接指在相机上时，会输出一个为 0 的值。在表面法线与相机互相垂直的时候，会输出一个为 1 的值。最终的结果将会被限制为 [0,1]，这样在中心不会有任何彩色负片。
-
-**属性**
-
-
-* **Exponent** - 指定输出值的衰减速度。值越大，衰减越紧凑越快。
-
-
-**输入**
-
-
-* **Normal** - 选取代表表面法线的三维向量，通常是一个法线贴图。如果没有指定法线，那么会使用网格物体的切线法线。
-
-
-![Fresnel.jpg](Fresnel.jpg)
-
-
-### FunctionInput
-
-FunctionInput 表达式只可以放置在材质函数中，在这里它定义了其中一个函数输入。
-
-**属性**
-
-
-* **Input Name** - 输入的名称，将会显示在使用包含这个输入的材质函数的 MaterialFunctionCall 表达式上。
-* **Description** - 有关这个输入的描述，当鼠标悬浮在 MaterialFunction Call 表达式上的这个输入的接口时显示为工具提示栏。
-* **Input Type** - 这个输入预计的数据类型。传递给这个输入的数据将会被转换为这个类型，如果因为数据不兼容而导致转换失败那么将会报出编译器错误。
-* **Preview Value** - 编辑包含这个输入的材质函数时要作为这个输入的预览使用的值。
-* **Use Preview Value As Default** - 如果启用该项，那么在没有传递数据的情况下会将 **Preview Value** 作为这个输入的默认值使用。
-* **Sort Priority** - 可以指定要在确定这些输入显示在 MaterialFunctionCall 表达式上的顺序时使用的输入优先级。
-
-
-这个节点可以与[材质函数](Engine/Rendering/Materials/Functions)结合在一起使用。
-
-
-### FunctionOutput
-
-FunctionInput 表达式只可以放置在材质函数中，在这里它定义了其中一个函数输出。
-
-**属性**
-
-
-* **Input Name** - 输出的名称，将会显示在使用包含这个输出的材质函数的 MaterialFunctionCall 表达式上。
-* **Description** - 有关这个输出的描述，当鼠标悬浮在 MaterialFunction Call 表达式上的这个输出的接口时显示为工具提示栏。
-* **Sort Priority** - 可以指定要在确定这些输出显示在 MaterialFunctionCall 表达式上的顺序时使用的输出优先级。
-
-
-这个节点可以与[材质函数](Engine/Rendering/Materials/Functions)结合在一起使用。
-
-
-### If
-
-If 表达式可以比较两个输入，然后根据比较结果传递这三个其他输入值中的一个。要进行比较的两个输入必须是单浮点值。
-
-**输入**
-
-
-* *A* - 选取一个单浮点值。
-* *B* - 选取一个单浮点值。
-* **A>B** - 选取这两个值，然后输出 A 的值是否大于 B 的值。
-* **A=B** - 选取这两个值，然后输出 A 的值是否等于 B 的值。
-* **A<B** - 选取这两个值，然后输出 A 的值是否小于 B 的值。
-
-
-![IfExample.jpg](IfExample.jpg)
-
-
-### LensFlareIntensity(镜头眩光亮度)
-
-LensFlareIntensity 表达式提供了正在渲染的镜头眩光的 'ConeStrength(椎体力度)'。这个椎体力度的提供可以决定关于和眩光的源相关的视点位置的眩光亮度。如果眩光的源放置在镜头眩光半径的外面，则锥角力度为 0.0。（如果镜头眩光的半径设置为 0.0f，那么它被认为永远处于打开状态）。如果眩光的源在半径里面，则锥角力度将设置为 1.0f。如果镜头眩光设置为定向锥角，如果视点放置在内锥角，并向眩光的方向看，则 ConeStrength(锥角力度)为 1.0f。当她移动到外锥角时，ConeStrength(锥角力度)将衰减为 0.0f。
-
-
-### LensFlareOcclusion(镜头眩光遮挡)
-
-LensFlareOcclusion 表达式提供了正在渲染的镜头眩光的遮挡值。这个值由图元覆盖百分比决定，这个百分比可以作为镜头眩光的 ScreenPercentageMap(屏幕覆盖百分比映射)的查找值。
-
-
-### LensFlareRadialDistance(镜头眩光半径距离)
-
-LensFlareRadialDistance 表达式提供了从屏幕中心渲染的元素的半径距离。这个值可以使用镜头眩光元素的 bNormalizeRadialDistance(正规化半径距离)属性使其正规化为 0.0f (中心) 到 1.0f (边缘)范围内的值。否则，这个值一般会在 0.0f (中心)到 1.0f (垂直或水平边缘) 到 1.4f (屏幕的角落)之内。1.4f 将是屏幕宽和高的比值。
-
-
-### LensFlareRayDistance(镜头眩光光线距离)
-
-LensFlareRayDistance 表达式提供了为正在渲染的眩光元素设置的光线距离。
-
-
-### LensFlareSourceDistance(镜头眩光源距离)
-
-LensFlareSourceDistance 表达式提供了正在被渲染的元素和在屏幕空间中的源的距离。
-
-
-### LightmapUV（光照贴图 UV）
-
-LightmapUV 表达式以二维向量值的形式输出了光照贴图 UV 贴图坐标。如果光照贴图 UV 不可用，那么它会输出一个二维向量值 (0,0)。
-
-
-### LightmassReplace（Lightmass 替换）
-
-当为了达到正常渲染目的而编译材质时，LightmassReplace 表达式只是简单地通过 Realtime(实时)节点的输入端，当到处材质到 Lightmass 来获得全局渲染时，该节点则通过 Lightmass 的输入端。 这对于解决那些导出版本不能正确地进行处理的材质表达式是有用的，比如 WorldPosition。
-
-**输入**
-
-
-* **Realtime** - 选取要传递进行法线渲染的值。
-* **Lightmass** - 选取在将材质导出到 Lightmass 时要传递的值。
-
-
-
-### LightVector(光照向量)
-
-LightVector 表达式是一个具有3个通道的向量值，代表着光照相对于表面的方向。
-
-**示例应用：** LightVector 可以用于计算自定义光照算法，例如，一个简单的 Lambert 光照模型。
-
-![LightVectorExample.jpg](LightVectorExample.jpg)
-
-%X%注意： 当计算 Emissive(自发光)输出时，LightVector(光照向量)表达式无效。
-
-
-### LinearInterpolate(线性插值)
-
-LinearInterpolate 表达式可以在将第三个值作为一个蒙板的基础上在两个输入值之间进行混合。LinearInterpolate(线性插值)可以被认为是一个用于定义在两个贴图间过渡的蒙板，和 Photoshop 中的层蒙板类似。 蒙板 Alpha 的亮度决定了从这两个输入值中取得颜色的比率。 如果 Alpha 是 1.0/白色，那么使用第一个输入值。 如果 Alpha 是 0.0/黑色，那么使用第二个输入值。 如果 Alpha 是灰色的(值在 0 和 1 之间)， 则输出会在这两个输入值之间混合。请记住混合是基于每个通道进行的。 所以，如果 Alpha 通道是一个RGB颜色，Alpha 的红色通道值定义了 A 和 B 的红色通道的混合，它和 Alpha 的绿色通道是 **独立的** ，绿色通道定义了 A 和 B 通道间的绿色通道的混合。
-
-**输入**
-
-
-* *A* - 选取映射为白色的值。
-* *A* - 选取映射为黑色的值。
-* **Alpha** - 选取这个值作为蒙板 alpha。
-
-
-**编程人员：** LinearInterpolate(线性插值)基于参数值 Alpha 在 A 和 B 之间对每个通道进行线性插值。
-
-![LinInterpExample.jpg](LinInterpExample.jpg)
-
-
-### MaterialFunctionCall
-
-MaterialFuntionCall 表达式允许您通过其他材质或函数使用外部 [材质函数](Engine/Rendering/Materials/Functions)。外部函数的输入和输出节点会变为这个函数调用节点的输入和输出。如果在放置其中某一个表达式时在内容浏览器中选中了一个 MaterialFunction，那么会自动对它进行赋值。
-
-**快捷方式：** _F + 鼠标左键点击_
-
-**属性**
-
-
-* **Material Function** - 指定要使用的[材质函数](Engine/Rendering/Materials/Functions)。
-
-
-这个节点可以与[材质函数](Engine/Rendering/Materials/Functions)结合在一起使用。
-
-
-### MeshEmitterDynamicParameter
-
-MeshEmitterDynamicParameter 表达式与标准[动态参数](#DynamicParameter)一样，只是在材质与 Cascade 中的网格物体发射器结合使用时必须使用它。它可以同样提供四个输出将值由 Cascade 传递到材质。
-
-
-### MeshEmitterVertexColor(网格物体发射器顶点颜色)
-
-MeshEmitterVertexColor 表达式是影响网格物体粒子发射器的颜色模块输出结果的材质的入口点。 每个由网格物体发射器发射的作为粒子渲染的网格物体都有相应的颜色—这就是那个颜色。
-
-**输出**
-
-
-* **RGB** - 输出颜色的三维 RGB 向量值。
-* *R* - 输出颜色的红色通道。
-* *G* - 输出颜色的绿色通道。
-* *B* - 输出颜色的蓝色通道。
-* *A* - 输出颜色的 alpha 通道。
-
-
-%X% 用于网格物体粒子的材质必须使用这个节点！
-
-**编程人员：** 这个颜色作为一个常量和着色器进行通信，并且它不是网格物体粒子的每个顶点的颜色。
-
-![MeshEmitterVColor.jpg](MeshEmitterVColor.jpg)
-
-
-### MeshSubUV(网格物体子UV)
-
-MeshSubUV 表达式与标准[粒子子 UV](#ParticleSubUV)一样，只是在材质与 Cascade 中的网格物体发射器结合使用时必须使用它。它提供了相同的功能，可以显示应用到这个表达式的贴图中的子图像，但是它不具有在子图像之间进行混合的功能。需要使用这个表达式代替标准的 ParticleSubUV，这样可以避免在每一帧为网格物体的贴图坐标重新打包贴图。
-
-**属性**
-
-
-* **Texture** - 指定要使用的贴图。
-
-
-**输入**
-
-
-* **UVs** - 被忽略的 UV 输入，不起任何作用。
-
-
-![MeshSubUV.jpg](MeshSubUV.jpg)
-
-
-### MeshSubUVBlend
-
-MeshSubUVBlend 表达式与[MeshSubUV](#MeshSubUV)一样，只是它在 Cascade 中使用线性混合或随机混合模式的时候提供了在子图像之间进行混合的功能。
-
-**属性**
-
-
-* **Texture** - 指定要使用的贴图。
-
-
-**输入**
-
-
-* **UVs** - 被忽略的 UV 输入，不起任何作用。
-
-
-
-### Multiply(乘法)
-
-Multiply 表达式会选取两个输入，将它们相乘，然后输出这个结果。于 Photoshop 的乘法图层混合相似。 乘法运算会根据通道进行，也就是说用第一个输入的 R 通道乘以第二个输入的 R 通道，用第二个输入的 G 通道乘以第二个输入的 G 通道等等。这两个输入必须有相同数量的值，除非其中一个值是一个单浮点值。
-
-**输入**
-
-
-* *A* - 选取要进行乘法运算的第一个值。
-* *B* - 选取第二个要进行乘法运算的值。
-
-
-请不要忘记在 UE4 中材质不限于 [0,1]！  如果 颜色/值 大于 1，实施上 Multiply(乘法)表达式将会使颜色变亮。
-
-**示例：** 0.4 和 0.5 相乘结果是 0.2；(0.2,-0.4,0.6) 和 (0.0,2.0,1.0) 相乘结果是 (0.0,-0.8,0.6)；(0.2,-0.4,0.6) 和 0.5 相乘结果是 (0.1,-0.20.00.3)。
-
-**实例应用：** Multiply(乘法)表达式通常用于使颜色/贴图变亮或变暗。
-
-![MultiplyExample.jpg](MultiplyExample.jpg)
-
-
-### Normalize(单位化)
-
-Normalize 表达式可以计算并输出它的输入的单位化值。也就是说这个输入的每个分量都会除以向量的 L-2 单位化（长度）。
-
-![NormalizeExample.jpg](NormalizeExample.jpg)
-
-%T%注意： 没有必要单位化一个插入到 Normal(法线)材质输出端的表达式。
-
-
-### ObjectOrientation（物体朝向）
-
-ObjectOrientation 表达式可以输出物体的世界空间向上向量。换句话说，，它是应用材质的物体的本地 Z 轴正方向所指向的方向。
-
-![exp_objectorientation.jpg](exp_objectorientation.jpg)
-
-
-### ObjectRadius(物体半径)
-
-ObjectRadius 表达式输出了物体边界框的世界空间半径。 您可以通过启用活动视口中的 'show bounds(显示边界框)' 视图模式来预览任何对象的包围框（在视口顶部的向下的按钮下面），然后选择一个对象。 请参照 ObjectWorldPosition 作为示例。
-
-
-### ObjectWorldPosition(物体在世界空间中的位置)
-
-ObjectWorldPosition 表达式输出了物体边界框的世界空间中心位置。 这对于为植被创建球状光照诸如此类是有用的。
-
-下面的节点设置使用物体位置、世界空间位置和物体半径来制作一个梯度，这个梯度物体位置的值为 1，物体半径值为 0。
-
-![exp_objectradius.jpg](exp_objectradius.jpg)
-
-
-### OcclusionPercentage（遮挡百分比）
-
-OcclusionPercentage 表达式输出了所渲染的物体的遮挡百分比。
-
-仅供 ParticleSystem（它具有 OcclusionBoundMethod 而不是 None）和 LensFlares 使用。
-
-
-### OneMinus(一减去)
-
-OneMinus 表达式选取一个输入值，然后输出结果为 1 减去那个输入值。该运算按照每个通道进行。
-
-**示例：** OneMinus(一减去) 0.4 的结果为 0.6；OneMinus(一减去) (0.2,0.5,1.0) 的结果为 (0.8,0.5,0.0)。
-
-**实例应用：** 当输入颜色在范围 [0,1] 内时，OneMinus(一减去)表达式的效果和一般所称的"invert(反相)"类似--那也就是，OneMinus(一减去)返回互补色，即返回的颜色和输入端的颜色相加将产生白色。
-
-![OneMinus.jpg](OneMinus.jpg)
-
-
-### Panner(平移器)
-
-Panner 表达式输出了可以用于创建平移或运动贴图的 UV 贴图坐标。
-
-**属性**
-
-
-* **SpeedX** - 指定要平移 U 方向坐标的速度。
-* **SpeedX** - 指定要平移 U 方向坐标的速度。
-
-
-**输入**
-
-
-* **Coordinate** - 选取表达式以后可以修改的基础 UV 贴图坐标。
-* **Time** - 选取可以用于确定当前平移位置的值。它通常是一个[Time（时间）](#Time)表达式，可以提供一个常量平移效果，但是也可以使用[Constant（常量）](#Constant)或[ScalarParameter（标量参数）](#ScalarParameter)设置一个特定的偏移或通过 Matinee 或 UnrealScript 控制平移。
-
-
-平移器产生可以根据 Time(时间)输入端变化的 UV。 Coordinate 输入可以用于操作（比如偏移）Panner(平移)节点产生的 UV。
-
-<span style="font:italic 10px arial;">(鼠标悬停在图片上查看动画效果)</span>
-<div style="width:400px;" onmouseover="toggleAnimImage('panner');" onmouseout="toggleAnimImage('panner');">
-    <div id="panner_still" style="display:block;">
-        ![exp_panner_still.jpg](exp_panner_still.jpg)
-    [/REGION]
-    <div id="panner_anim" style="display:none;">
-        ![exp_panner.gif](exp_panner.gif)
-    [/REGION]
+[**定制**](Engine/Rendering/Materials\ExpressionReference\Custom)
+[REGION:indentedlist]
+* [Custom（定制）](Engine/Rendering/Materials\ExpressionReference\Custom#Custom)
 [/REGION]
 
 
-### ParticleMacroUV(粒子的巨大UV)
 
-ParticleMacroUV 表达式可以输出一个用于以连续的方式映射任何 2d 贴图到整个粒子系统中的 UV 贴图坐标，意味着贴图在所有粒子上无缝地平铺。 UV 将以 MacroUVPosition（在粒子系统中的 Cascade 内制定，在 MacroUV 类别下）为中心，MacroUVRadius 决定了 UV 平铺时的世界空间半径。 ParticleMacroUV 节点对于在粒子上映射连续的噪音来打断通过使用法线坐标来影射贴图到每个粒子上所产生的模式是有用的。
-
-**属性**
-
-
-* **Use View Space** - 如果该项为 true，它可以有效地基于每个平面例子的深度来偏移坐标，并创建一种位移效果，这对赋予爆炸一个模糊地放射光线外观是有用的。
-
-
-![exp_macrouv.jpg](exp_macrouv.jpg)
-
-<span style="font:italic 10px arial;">(鼠标悬停在图片上查看动画效果)</span>
-<div style="width:400px;" onmouseover="toggleAnimImage('macro');" onmouseout="toggleAnimImage('macro');">
-    <div id="macro_still" style="display:block;">
-        ![macrouv_still.jpg](macrouv_still.jpg)
-    [/REGION]
-    <div id="macro_anim" style="display:none;">
-        ![macrouv_anim.gif](macrouv_anim.gif)
-    [/REGION]
+[**深度**](Engine/Rendering/Materials\ExpressionReference\Depth)
+[REGION:indentedlist]
+* [DepthFade（深度消退）](Engine/Rendering/Materials\ExpressionReference\Depth#DepthFade)
+* [PixelDepth（像素深度）](Engine/Rendering/Materials\ExpressionReference\Depth#PixelDepth)
+* [SceneDepth（场景深度）](Engine/Rendering/Materials\ExpressionReference\Depth#SceneDepth)
 [/REGION]
 
-启用 Use View Space（使用视图空间）选项：
-
-<span style="font:italic 10px arial;">(鼠标悬停在图片上查看动画效果)</span>
-<div style="width:400px;" onmouseover="toggleAnimImage('macroview');" onmouseout="toggleAnimImage('macroview');">
-    <div id="macroview_still" style="display:block;">
-        ![macrouv_view_still.jpg](macrouv_view_still.jpg)
-    [/REGION]
-    <div id="macroview_anim" style="display:none;">
-        ![macrouv_view_anim.gif](macrouv_view_anim.gif)
-    [/REGION]
+[**字体**](Engine/Rendering/Materials\ExpressionReference\Font)
+[REGION:indentedlist]
+* [FontSample（字体取样）](Engine/Rendering/Materials\ExpressionReference\Font#FontSample)
+* [FontSampleParameter（字体取样参数）](Engine/Rendering/Materials\ExpressionReference\Font#FontSampleParameter)
 [/REGION]
 
-
-### ParticleSubUV(粒子子 UV)
-
-ParticleSubUV 表达式可以用于渲染贴图的子图像到粒子上。 ParticleSubUV(粒子子UV) 和 flipbook (翻书) 类似，除了 ParticleSubUV(粒子子UV) 允许在[Cascade](ParticlesAndEffects/ParticleSystems/CascadeEditor)中操作贴图动画。
-
-**属性**
-
-
-* **Texture** - 指定要使用的贴图。
-
-
-**输入**
-
-
-* **UVs** - 被忽略的 UV 输入，不起任何作用。
-
-
-![ParticleSubUV.jpg](ParticleSubUV.jpg)
-
-
-### PerInstanceRandom
-
-PerInstanceRandom 表达式可以根据静态网格物体实例将不同的随机浮点值输出给应用这个材质的物体。InstancedStaticMeshComponent 可以为实例设置一个随机的浮点值，这个值是公开的，这样就可以在您需要的时候使用它（例如，在窗户后面的随机光源级别）。它是个常量，但是对于每个网格物体实例而言有所不同。
-
-输出值将会是一个在 0 和目标平台的 RAND_MAX 之间的整数。
-
-**注意：** 它只在应用到 InstancedStaticMesh Actor 或其他采用 InstancedStaticMeshComponents 的 Actor 的时候起作用，例如，ProcBuilding。
-
-
-### PixelDepth(像素深度)
-
-PixelDepth 表达式输出了当前进行渲染的像素的深度或者与相机之间的距离。 关于使用这个值的更多详情，请查看[DestDepth(目标深度)](#DestDepth)。
-
-![exp_pixeldepth.jpg](exp_pixeldepth.jpg)
-
-
-### Power(求幂值)
-
-Power 表达式会选取两个输入值，将 Base（基值）增加到 Exp 幂值，然后输出这个结果；换句话说，Base（基值）乘以它自己的 Exp 倍数。
-
-**输入**
-
-
-* **Base** - 选取基值。
-* **Exp** - 选取指数幂值。
-
-
-**示例：** 基数为 0.5，指数为 2.0，则它的幂值为 0.25。
-
-**实例应用：** 如果您传给 Power 的颜色值在 [0,1] 之间，Power 表达式可以作为对比度调整，可以仅留下较亮的值。
-
-![Power.jpg](Power.jpg)
-
-
-### ReflectionVector(反射向量)
-
-ReflectionVector 表达式实质上与[CameraVector（相机向量）](#CameraVector)的原理相似，但是它会输出代表通过表面法线反射的相机方向的三维向量值。
-
-**实例应用：** ReflectionVector(反射向量)一般用于环境贴图，在那里反射向量的 x/y 分量被用作为立方体贴图的 UV 坐标。
-
-![ReflectionVectorExample.jpg](ReflectionVectorExample.jpg)
-
-
-### Rotator(旋转器)
-
-Rotator 表达式以二维向量值的形式输出了 UV 贴图坐标，它可以用于创建旋转的贴图。
-
-**属性**
-
-
-* **CenterX** - 指定要作为旋转的中心使用的 U 坐标。
-* **CenterY** - 指定要作为旋转的中心使用的 V 坐标。
-* **Speed** - 指定顺时针旋转坐标的速度。
-
-
-**输入**
-
-
-* **Coordinate** - 选取表达式以后可以修改的基础 UV 贴图坐标。
-* **Time** - 选取可以用于确定当前旋转位置的值。它通常是一个[Time（时间）](#Time)表达式，可以提供一个常量旋转效果，但是也可以使用[Constant（常量）](#Constant)或[ScalarParameter（标量参数）](#ScalarParameter)设置一个特定的偏移或通过 Matinee 或 UnrealScript 控制旋转。
-
-
-![RotatorExample.jpg](RotatorExample.jpg)
-
-
-### RotateAboutAxis(围绕坐标轴旋转)
-
-RotateAboutAxis 表达式在已知旋转坐标轴、坐标轴上的一个点、及旋转角度的情况下旋转一个三维向量输入值。 它对于比简单的剪辑产生更好质量的使用[WorldPositionOffset(世界位置偏移)](Engine/Rendering/Materials/WorldPositionOffset)的动画是有用的。 请参阅[InteractiveFoliageActor](StaticMeshes/InteractiveFoliageActor)获取示例。
-
-**输入**
-
-
-* **NormalizedRotationAxisAndAngle** - 选取[FoliageNormalizedRotationAxisAndAngle（植被的法线旋转轴及角度）](#FoliageNormalizedRotationAxisAndAngle)表达式的输出值。
-* **PositionOnAxis** - 选取代表要发生旋转的轴上的位置的三维向量。
-* **Position** - 选取代表对象的位置的三维向量。
-
-
-![exp_foliagenraaa.jpg](exp_foliagenraaa.jpg)
-
-
-### ScalarParameter(标量参数)
-
-ScalarParameter 表达式输出了一个单浮点值（[Constant（常量）](#Constant)），可以在材质的实例中或快速通过代码进行访问和更改。 
-
-**属性**
-
-
-* **Default Value** - 指定常量可以接受的初始值。
-* **Param Name** - 指定用于识别材质实例中的参数或通过代码识别参数的名称。
-
-
-![ScalarExample.jpg](ScalarExample.jpg)
-
-
-### SceneDepth(场景深度)
-
-SceneDepth 表达式可以输出现有场景深度。 它与[DestDepth（目标深度）](#DestDepth)相似，只是 DestDepth 只可以在当前描画的像素上对深度进行取样，而 SceneDepth 可以在 **任何位置** 对深度取样。
-
-**属性**
-
-
-* **Normalize** - 如果该项为 true，那么规定深度输出的范围为 [0,1]。 
-
-
-**输入**
-
-
-* **UVs** - 选取用于确定如何取样深度"贴图"的 UV 贴图坐标。
-
-
-![exp_scenedepth.jpg](exp_scenedepth.jpg)
-
-![scenedepth_effect.jpg](scenedepth_effect.jpg)
-
-*编程人员：* SceneDepth 返回一个粗略的深度值（0 到 2^24-1 之间的整数）。 这非线性的深度可以按照以下方式进行单位化处理：
-
-      
-         MaxZ = 16777215
-         NormalizedDepth = 1 - MaxZ / (SceneDepth + MaxZ)
-      
-
-最终的单位化后的深度是 0.0 到 1.0 范围内的线性值。
-
-
-### SceneTexture(场景贴图)
-
-SceneTexture 表达式可以输出现有场景颜色。 它与[DestColor（目标颜色）](#DestColor)相似，只是 DestColor 只可以在当前描画的像素上对颜色进行取样，而 SceneTexture 可以在 **任何位置** 对颜色取样。
-
-**属性**
-
-
-* **Scene Texture Type（场景贴图类型）** - 
-* **Screen Align** - 如果该项为 true，那么将 [0,1] UV 贴图坐标映射为返回缓冲的当前大小；换句话说，将场景贴图一对一地映射到场景。
-
-
-**输入**
-
-
-* **UVs** - 选取用于确定如何取样场景贴图的 UV 贴图坐标。
-
-
-![SceneTexture.jpg](SceneTexture.jpg)
-
-
-### ScreenPosition(屏幕位置)
-
-ScreenPosition 表达式可以输出当前进行渲染的像素的屏幕空间位置。 
-
-**属性**
-
-
-* **Screen Align** - 如果该项为 true，那么为了进行屏幕对齐，ScreenPosition(屏幕位置)使用均匀的坐标来划分位置，并把位置映射到范围 [0.0,-1]-[1,1]。
-
-
-![ScreenPosition.jpg](ScreenPosition.jpg)
-
-
-### Sine(正弦)
-
-Sine 表达式可以输出输入值（以弧度为单位）的正弦函数。最普遍的是，通过将一个 [Time](#Time) 表达式连接到它的输入端可以输出一个连续震荡的波形。输出值将在 -1 到 1 之间来回循环。它与[Cosine](#Cosine)表达式的输出不同之处在于它的输出波形偏移了半个周期。这个波的视觉表现如下所示：
-
-![sine_wave.jpg](sine_wave.jpg)
-
-**属性**
-
-
-* **Period** - 指定合成波的周期。换句话说，这就是发生一次震荡的时间长度。
-
-
-**实例应用：** 每当需要正当效果的时候可以使用这个表达式。正当的速度和振幅可以通过乘以时间输入（速度）或输出（振幅）轻松地进行动态控制。
-
-<span style="font:italic 10px arial;">(鼠标悬停在图片上查看动画效果)</span>
-<div style="width:400px;" onmouseover="toggleAnimImage('sine');" onmouseout="toggleAnimImage('sine');">
-    <div id="sine_still" style="display:block;">
-        ![exp_sine_still.jpg](exp_sine_still.jpg)
-    [/REGION]
-    <div id="sine_anim" style="display:none;">
-        ![exp_sine.gif](exp_sine.gif)
-    [/REGION]
+[**函数**](Engine/Rendering/Materials\ExpressionReference\Functions)
+[REGION:indentedlist]
+* [FunctionInput（函数输入）](Engine/Rendering/Materials\ExpressionReference\Functions#FunctionInput)
+* [FunctionOutput（函数输出）](Engine/Rendering/Materials\ExpressionReference\Functions#FunctionOutput)
+* [MaterialFunctionCall（材质函数调用）](Engine/Rendering/Materials\ExpressionReference\Functions#MaterialFunctionCall)
+* [StaticBool（静态布尔值）](Engine/Rendering/Materials\ExpressionReference\Functions#StaticBool)
+* [StaticSwitch（静态开关）](Engine/Rendering/Materials\ExpressionReference\Functions#StaticSwitch)
+* [TextureObject（纹理对象）](Engine/Rendering/Materials\ExpressionReference\Functions#TextureObject)
 [/REGION]
 
-
-### SphereMask（球形蒙板）
-
-SphereMask 表达式输出了一个根据距离计算的蒙板值。如果一个输入时一个点的位置，而另一个输入时半径为某个值的球体的中心，那么外部的蒙板值为 0 而内部蒙板值为 1，其中包括一些过渡区域。它在一个、两个、三个和四个分向量上都起作用。
-
-**属性**
-
-
-* **Attenuation Radius** - 指定要用于距离计算的半径。
-* **Hardness Percent** - 指定过渡区域大小。它的工作原理与 Photoshop 画刷硬度值类似。0 代表这个过渡是硬的，100 代表过渡区域最大（软）。
-
-
-**输入**
-
-
-* *A* - 选取代表要检查的点的位置的值。
-* *B* - 选取代表球体中心的值。
-
-
-![exp_spheremask.jpg](exp_spheremask.jpg)
-
-
-### SquareRoot(平方根)
-
-SquareRoot 表达式可以输出输入值的平方值。 SquareRoot(平方根)仅能在一个单浮点输入值上使用。
-
-![exp_sqrt.jpg](exp_sqrt.jpg)
-
-
-###挖空
-
-Subtract 节点会选取两个输入，然后从第一个输入中将第二个输入挖除，然后输出剩下的部分。 减法运算会根据通道进行，也就是说用第一个输入的 R 通道减去第二个输入的 R 通道，用第二个输入的 G 通道减去第二个输入的 G 通道等等。这两个输入必须有相同数量的通道，除非第二个输入是一个单独的常量值。可以从一个具有任意个输入的向量中减去常量。
-
-**输入**
-
-
-* *A* - 选取要进行减法运算的值。
-* *B* - 选取被减的值。
-
-
-**示例：** 如果Subtract(减法)的输入端为 0.5 和 0.2，则输出结果为 0.3; 如果Subtract(减法)的输入端为 (0.2,-0.4,0.6) 和 (0.1,0.1,1.0)，则输出结果为 (0.1,-0.5,-0.4); 如果Subtract(减法)的输入端为 (0.2,0.4,1.0) 和 0.2，则输出结果为 (0.0,0.2,0.8)。
-
-**实例应用：** Subtract(减法)节点可以用于使颜色变深及偏移 UV。
-
-![SubtractExample.jpg](SubtractExample.jpg)
-
-
-### StaticBool
-
-使用 StaticBool 表达式为函数中的静态布尔变量函数输入提供一个默认布尔变量值。该节点不会在任何输入之间切换，所以必须将它与一个 StaticSwitch 节点结合起来使用。
-
-**属性**
-
-
-* **Value** - 这个布尔变量的值，true（勾选）或 False。
-
-
-这个节点可以与[材质函数](Engine/Rendering/Materials/Functions)结合在一起使用。
-
-
-### StaticBoolParameter
-
-StaticBoolParameter 的工作方式与 StaticSwitchParameter 十分相似，只是它只会创建一个布尔变量而不会进行开关切换。
-
-**属性**
-
-
-* **Default Value** - 这个参数的默认布尔值，true（勾选）或 False。
-
-
-这个节点可以与[材质函数](Engine/Rendering/Materials/Functions)结合在一起使用。
-
-
-### StaticComponentMaskParameter(静态分量蒙板参数)
-
-StaticComponentMaskParameter 和普通的 Component Mask(分量蒙板)的表现行为类似，除了蒙板的值可以通过实例进行设置。 它是静态的，因为它在运行的时候无法更改，它只可以在[Material Instance Editor（材质实例编辑器）](Engine/Rendering/Materials/MaterialInstanceEditor)中进行设置。 Static Component Masks(静态分量蒙板)是在编译时应用的，而不是在运行时。 对于每个 **使用了** 静态参数的材质都必须编译出一个新版本的材质，如果乱用，这将会导致着色器爆炸。 请尝试最小化材质中静态参数及真正使用的这些静态参数排列的数量。
-
-**属性**
-
-
-* **Default R** - 如果勾选该项，输入值的红色或者第一个通道将会被传递到输出。
-* **Default G** - 如果勾选该项，输入值的绿色或者第二个通道将会被传递到输出。
-* **Default B** - 如果勾���该项，输入值的蓝色或者第三个通道将会被传递到输出。
-* **Default A** - 如果勾选该项，输入值的 alpha 或者第四个通道将会被传递到输出。
-* **Parameter Name** - 指定用于识别材质实例中的参数和通过代码识别参数的名称。
-
-
-**实例应用：** Static Component Masks(静态分量蒙板)可以使材质实例选择使用蒙板贴图的哪个通道。 如果蒙板是静态的(在运行时不需要改变)，那么应该总是使用这个方法，而不使用把贴图查找和一个向量参数相乘来隐藏通道，因为这样浪费贴图的带宽和着色器指令。
-
-![StaticComponentMask.jpg](StaticComponentMask.jpg)
-
-
-### StaticSwitchParameter（静态开关参数）
-
-StaticSwitchParameter 表达式可以选取两个输入，然后在第一个参数值为 true 的情况下输出第一个参数，否则输出第二个参数。 这个参数被命名为静态的，因为它在运行的时候无法更改，它只可以在[Material Instance Editor（材质实例编辑器）](Engine/Rendering/Materials/MaterialInstanceEditor)中进行设置。 Static Switches(静态开关)是在编译时应用的，而不是运行时应用。 这意味着无论材质的哪个分支丢失都不会被执行，所以 Static Switches(静态开关)在运行时是完全释放的。 另一方面，对于每个 **使用了** 静态参数的材质都必须编译出一个新版本的材质，如果乱用，这将会导致着色器爆炸。 请尝试最小化材质中静态参数及真正使用的这些静态参数排列的数量。
-
-**属性**
-
-
-* **Default Value** - 如果该项为 true，会输出第一个输入。否则，输出第二个输入。
-* **Extended Caption Display** - 如果该项为 true，那么该表达式的标题栏会显示这个表达式的值。
-* **Parameter Name** - 指定用于识别材质实例中的参数和通过代码识别参数的名称。
-
-
-**输入**
-
-
-* *A* - 选取任意一个通道数值。
-* *B* - 选取任意一个通道数值。
-
-
-**实例应用：** Static Switch(静态开关)可以用于在没有任何运行时消耗的情况下移除材质的整个分支。 实例可以有不同的值，使在没有任何性能消耗的情况下设立一个模板着色器成为可能。
-
-![exp_staticswitch_A.jpg](exp_staticswitch_A.jpg)
-
-![exp_staticswitch_B.jpg](exp_staticswitch_B.jpg)
-
-
-### StaticSwitch
-
-StaticSwitch 表达式的工作方式与 StaticSwitchParameter 十分相似，只是它只进行开关切换而不会创建一个参数。
-
-**属性**
-
-
-* **Default Value** - 这个可以确定激活哪一个输入的参数的默认布尔值，True（勾选）或 False。
-
-
-**输入**
-
-
-* **True** - 当开关的 **Value** 为 True 时使用的输入。
-* **False** - 当开关的 **Value** 为 False 时使用的输入。
-* **Value** - 可以引入一个确定哪一个输入处于激活状态的布尔变量值。
-
-
-这个节点可以与[材质函数](Engine/Rendering/Materials/Functions)结合在一起使用。
-
-
-### TextureCoordinate(贴图坐标)
-
-TextureCoordinate 表达式会以二维向量值的形式输出 UV 贴图坐标，允许材质使用不同的 UV 通道，指定平铺显示，然后使用其他方法在网格物体的 UV 上进行操作。
-
-**属性**
-
-
-* **Coordinate Index** - 指定要使用的 UV 通道。
-* **UTiling** - 指定在 U 方向平铺显示的量。
-* **VTiling** - 指定在 V 方向平铺显示的量。
-* **Un Mirror U** - 如果该项为 true，那么取消在 U 方向的所有镜像。
-* **Un Mirror V** - 如果该项为 true，那么取消在 V 方向的所有镜像。
-
-
-**实例应用：** 为了访问网格物体的第二个 UV 通道，创建一个 TextureCoordinate(贴图坐标)节点，设置它的 CoordinateIndex(坐标索引)为1 (0 - 第一个通道、1 - 第二个通道等等)，并且把它连接到 TextureSample(贴图样本)节点 UV 输入端。
-
-![TextureCoordinateExample.jpg](TextureCoordinateExample.jpg)
-
-
-### TextureSample(贴图样本)
-
-TextureSample 表达式会输出贴图中的颜色值。这个贴图可以是一个规则的 Texture2D（其中包括法线贴图），或者一个动画贴图。
-
-**属性**
-
-
-* **Texture** - 指定供表达式取样的贴图。要设置这个贴图，首先在内容浏览器中选择一个贴图。 然后，在表达式的属性窗口中选择 Texture(贴图)属性并点击 '应用当前选项' 按钮。
-
-
-**输入**
-
-
-* **UVs** - 选取要用于贴图上的 UV 贴图坐标。如果没有向 UV 输入值，那么使用应用了这个材质的网格物体的贴图坐标。如果 TextureSample(贴图样本)代表一个立方体贴图，则 UV 坐标必须是一个具有三个通道的值，而不是两个通道的值。
-
-
-**输出**
-
-
-* **RGB** - 输出颜色的三维 RGB 向量值。
-* *R* - 输出颜色的红色通道。
-* *G* - 输出颜色的绿色通道。
-* *B* - 输出颜色的蓝色通道。
-* *A* - 输出颜色的 alpha 通道。如果贴图不包含 alpha 通道时，把 'alpha' 通道连接到一些东西，这在技术上是允许的，但是这将总会导致 0(黑色)。
-
-
-![TextureSampleExample.jpg](TextureSampleExample.jpg)
-
-
-### TextureSampleParameter2D(贴图样本参数：2D)
-
-TextureSampleParameter2D 表达式与 TextureSample 一样，只是它是一个可以在材质实例中通过代码修改的参数。
-
-**属性**
-
-
-* **Parameter Name** - 指定用于识别材质实例中的参数和通过代码识别参数的名称。
-* **Texture** - 指定供表达式取样的贴图。
-
-
-**输入**
-
-
-* **UVs** - 选取要用于贴图上的 UV 贴图坐标。如果没有向 UV 输入值，那么使用应用了这个材质的网格物体的贴图坐标。
-
-
-**输出**
-
-
-* **RGB** - 输出颜色的三维 RGB 向量值。
-* *R* - 输出颜色的红色通道。
-* *G* - 输出颜色的绿色通道。
-* *B* - 输出颜色的蓝色通道。
-* *A* - 输出颜色的 alpha 通道。如果贴图不包含 alpha 通道时，把 'alpha' 通道连接到一些东西，这在技术上是允许的，但是这将总会导致 0(黑色)。
-
-
-
-### TextureSampleParameterCube(贴图样本参数:立方体)
-
-TextureSampleParameterCube 表达式与 TextureSample 一样，只是它只接受立方体贴图，同时它也是一个可以在材质实例中通过代码修改的参数。
-
-**属性**
-
-
-* **Parameter Name** - 指定用于识别材质实例中的参数和通过代码识别参数的名称。
-* **Texture** - 指定供表达式取样的立方体贴图。
-
-
-**输入**
-
-
-* **UVs** - 选取要用于贴图上的 UV 贴图坐标。如果没有向 UV 输入值，那么使用应用了这个材质的网格物体的贴图坐标。它必须是一个三维向量值。
-
-
-**输出**
-
-
-* **RGB** - 输出颜色的三维 RGB 向量值。
-* *R* - 输出颜色的红色通道。
-* *G* - 输出颜色的绿色通道。
-* *B* - 输出颜色的蓝色通道。
-* *A* - 输出颜色的 alpha 通道。如果贴图不包含 alpha 通道时，把 'alpha' 通道连接到一些东西，这在技术上是允许的，但是这将总会导致 0(黑色)。
-
-
-
-### TextureObject
-
-TextureObject 表达式可以为函数内的贴图函数输入提供一个默认贴图。该节点实际上没有对这个贴图进行采样，所以必须将它与一个 TextureSample 节点结合在一起使用。
-
-
-### TextureObjectParameter（贴图对象参数）
-
-TextureObjectParameter 表达式可以定义一个贴图参数并输出这个贴图对象，在调用一个其中含有贴图输入的函数的材质中使用。该节点实际上没有对这个贴图进行采样，所以必须将它与一个 TextureSample 节点结合在一起使用。
-
-
-这个节点可以与[材质函数](Engine/Rendering/Materials/Functions)结合在一起使用。
-
-
-### TextureSampleParameterMeshSubUV（贴图样本参数网格物体子 UV）
-
-TextureSampleParameterMeshSubUV 表达式与 [MeshSubUV](#MeshSubUV) 一样，只是它是一个可以在材质实例中通过代码修改的参数。
-
-**属性**
-
-
-* **Parameter Name** - 指定用于识别材质实例中的参数和通过代码识别参数的名称。
-* **Texture** - 指定供表达式取样的贴图。
-
-
-**输入**
-
-
-* **UVs** - 被忽略的 UV 输入，不起任何作用。
-
-
-**输出**
-
-
-* **RGB** - 输出颜色的三维 RGB 向量值。
-* *R* - 输出颜色的红色通道。
-* *G* - 输出颜色的绿色通道。
-* *B* - 输出颜色的蓝色通道。
-* *A* - 输出颜色的 alpha 通道。如果贴图不包含 alpha 通道时，把 'alpha' 通道连接到一些东西，这在技术上是允许的，但是这将总会导致 0(黑色)。
-
-
-
-### TextureSampleParameterMeshSubUVBlend（贴图样本参数网格物体子 UV 混合）
-
-TextureSampleParameterMeshSubUVBlend 表达式与[TextureSampleParameterMeshSubUV](#TextureSampleParameterMeshSubUV)一样，只是它在 Cascade 中使用线性混合或随机混合模式的时候提供了在子图像之间进行混合的功能。
-
-**属性**
-
-
-* **Parameter Name** - 指定用于识别材质实例中的参数和通过代码识别参数的名称。
-* **Texture** - 指定供表达式取样的贴图。
-
-
-**输入**
-
-
-* **UVs** - 被忽略的 UV 输入，不起任何作用。
-
-
-**输出**
-
-
-* **RGB** - 输出颜色的三维 RGB 向量值。
-* *R* - 输出颜色的红色通道。
-* *G* - 输出颜色的绿色通道。
-* *B* - 输出颜色的蓝色通道。
-* *A* - 输出颜色的 alpha 通道。如果贴图不包含 alpha 通道时，把 'alpha' 通道连接到一些东西，这在技术上是允许的，但是这将总会导致 0(黑色)。
-
-
-
-### TextureSampleParameterMovie(贴图样本参数：影片)
-
-TextureSampleParameterMovie 表达式与 TextureSample 一样，只是它只接受视频贴图（Bink 视频），同时它也是一个可以在材质实例中通过代码修改的参数。
-
-**属性**
-
-
-* **Parameter Name** - 指定用于识别材质实例中的参数和通过代码识别参数的名称。
-* **Texture** - 指定供表达式取样的视频贴图。
-
-
-**输入**
-
-
-* **UVs** - 选取要用于贴图上的 UV 贴图坐标。如果没有向 UV 输入值，那么使用应用了这个材质的网格物体的贴图坐标。
-
-
-**输出**
-
-
-* **RGB** - 输出颜色的三维 RGB 向量值。
-* *R* - 输出颜色的红色通道。
-* *G* - 输出颜色的绿色通道。
-* *B* - 输出颜色的蓝色通道。
-* *A* - 输出颜色的 alpha 通道。如果贴图不包含 alpha 通道时，把 'alpha' 通道连接到一些东西，这在技术上是允许的，但是这将总会导致 0(黑色)。
-
-
-
-### TextureSampleParameterNormal（贴图样本参数：法线）
-
-TextureSampleParameterNormal 表达式与 TextureSample 一样，但是特别适合与法线贴图结合使用，而且它是一个可以在材质实例中通过代码进行修改的参数。请参阅[法线贴图格式](Engine/Content/Types/Textures/NormalMaps/Formats)文档了解有关为什么在指定一个用于法线贴图的参数时这个代码更适用于 TextureSampleParameter2D 的说明。
-
-**属性**
-
-
-* **Parameter Name** - 指定用于识别材质实例中的参数和通过代码识别参数的名称。
-* **Texture** - 指定供表达式取样的法线贴图。
-
-
-**输入**
-
-
-* **UVs** - 选取要用于贴图上的 UV 贴图坐标。如果没有向 UV 输入值，那么使用应用了这个材质的网格物体的贴图坐标。
-
-
-**输出**
-
-
-* **RGB** - 输出颜色的三维 RGB 向量值。
-* *R* - 输出颜色的红色通道。
-* *G* - 输出颜色的绿色通道。
-* *B* - 输出颜色的蓝色通道。
-* *A* - 输出颜色的 alpha 通道。如果贴图不包含 alpha 通道时，把 'alpha' 通道连接到一些东西，这在技术上是允许的，但是这将总会导致 0(黑色)。
-
-
-
-### TextureSampleParameterSubUV（贴图样本参数：子 UV）
-
-TextureSampleParameterSubUV 表达式与 [MeshSubUV](#MeshSubUV) 一样，只是它是一个可以在材质实例中通过代码修改的参数。
-
-**属性**
-
-
-* **Parameter Name** - 指定用于识别材质实例中的参数和通过代码识别参数的名称。
-* **Texture** - 指定供表达式取样的贴图。
-
-
-**输入**
-
-
-* **UVs** - 被忽略的 UV 输入，不起任何作用。
-
-
-**输出**
-
-
-* **RGB** - 输出颜色的三维 RGB 向量值。
-* *R* - 输出颜色的红色通道。
-* *G* - 输出颜色的绿色通道。
-* *B* - 输出颜色的蓝色通道。
-* *A* - 输出颜色的 alpha 通道。如果贴图不包含 alpha 通道时，把 'alpha' 通道连接到一些东西，这在技术上是允许的，但是这将总会导致 0(黑色)。
-
-
-
-### Time(时间)
-
-Time(时间)节点用于为材质添加时间过程，比如一个[平移器](#Panner)、[[#Cosine][Cosine](余弦)]或其它的依赖于时间的旋转操作。
-
-**属性**
-
-
-* **Ignore Pause** - 如果该项为 true，那么即使游戏被暂停，时间还是会继续运行。
-
-
-<span style="font:italic 10px arial;">(鼠标悬停在图片上查看动画效果)</span>
-<div style="width:400px;" onmouseover="toggleAnimImage('time');" onmouseout="toggleAnimImage('time');">
-    <div id="time_still" style="display:block;">
-        ![exp_time_still.jpg](exp_time_still.jpg)
-    [/REGION]
-    <div id="time_anim" style="display:none;">
-        ![exp_time.gif](exp_time.gif)
-    [/REGION]
+[**材质属性**](Engine/Rendering/Materials\ExpressionReference\MaterialAttributes)
+[REGION:indentedlist]
+* [BreakMaterialAttributes（中断材质属性）](Engine/Rendering/Materials\ExpressionReference\MaterialAttributes#BreakMaterialAttributes)
+* [MakeMaterialAttributes（建立材质属性）](Engine/Rendering/Materials\ExpressionReference\MaterialAttributes#MakeMaterialAttributes)
 [/REGION]
 
-
-### Transform(变换)
-
-Transform 表达式可以将一个三维向量值从一个引用坐标系统变换为另一个。
-
-默认情况下，材质中所有的着色器的计算都是在切线空间进行的。 向量常数、相机向量、光照向量等等在被应用到材质之前都会被变换为切线空间。Transform 表达式允许这些向量从切线空间变换为世界空间、本地空间或视图空间坐标系统。此外，它还允许将世界空间和本地空间向量变换为任意其他引用坐标系统。
-
-**属性**
-
-
-* **Transform Source Type** - 指定要变换为这个向量的当前坐标系统。它可以是： 世界、本地或切线。
-* **Transform Type** - 指定向量要变换为的切线坐标系统。它可以是： 世界、视图、本地或切线。
-
-
-Transform(变换)节点说明了镜像 UV，比如允许突出显示仅影响人物右侧边缘的部分。
-
-Transform(变换)节点对于产生世界空间法线来采样一个立方体贴图是有用的。一个法线贴图可以被转换到世界空间。 以下是为了对立方体贴图进行采样把法线转换到世界空间的例子：
-
-![TransformExample1.jpg](TransformExample1.jpg)
-
-把法线转换到视图空间可以用于创建基于边缘的效果。 这可以通过使用网格物体法线产生贴图坐标来获得（一般是指"Sphere Mapping(球体映射)"）。使用这个方法，直接面向相机的发现将映射到贴图坐标的中心，和相机垂直的法线将会映射到贴图坐标的边缘。这里是一个 Sphere Mapping（球体映射）实例：
-
-![CT_SphereMap01.jpg](CT_SphereMap01.jpg)
-
-在设置坐标空间为 TRANSFORM_View 情况下，把一个值为 (0,0,1) 的constant3vector(三维常数向量)输入到 Transform(变换)节点，然后它通过一个 ComponentMask(分量蒙板)（尽管通过 R 和 G 通道）。由于 Transform(变换)节点的输出值的范围是 -1 到 1，所以我们必须偏移数值，使它在 0 到 1 范围内。这可以通过把这个数值和 0.5 相乘，然后再加上 0.5。然后简单地把它插入到贴图的 Coordinates(坐标)中。任何贴图都会生效；我制作了一个带有 3 个圆环的贴图，以便效果更加明显。
-
-![CT_SphereMap_Texture01.jpg](CT_SphereMap_Texture01.jpg)
-
-为了在法线贴图上使用这种效果，简单地使用法线贴图来替换 Constant3Vector(3维常数向量)即可。
-
-这里是一个应用到像水滴样的岩石网格物体上的球体贴图材质的例子：
-
-![CT_BlobMesh01.jpg](CT_BlobMesh01.jpg)
-
-%X% **警告：由于有限的插值，VertexColor (顶点颜色)和 Transform (变换)节点是互斥的。 如果您同时使用 Transform (变换)节点和 VertexColor (顶点颜色)，那么 VertexColor(顶点颜色)将呈现为白色。**
-
-
-%X% **警告：Transform(变换)节点当前还不能正确地处理非统一缩放。**
-
-
-### TransformPosition(变换位置)
-
-**当这个节点用于使世界坐标从原点远离时会出现的精度问题，所以不建议使用这个节点！请使用 WorldPosition 作为替换。**
-
-TransformPosition(变换位置)节点可以把任何位置从屏幕空间转换为在表达式的 TransformType(变换类型)变量中所指定的目标空间。 目前仅支持转换为世界空间。 这个表达式可以用于获得材质的世界空间坐标。 为了可视化世界位置，您可以把它直接插入到自发光中：
-
-![TransformPosition1.jpg](TransformPosition1.jpg)
-
-您也可以使用世界位置作为平面的贴图坐标：
-
-![TransformPosition2.jpg](TransformPosition2.jpg)
-
-
-### TwoSidedSign（双面符号）
-
-TwoSidedSign 表达式可以用于翻动双面自定义光照材质的反面上的法线，使其可以与 Phong 的功能匹配。+1 代表双面材质的正面，-1 代表双面材质的反面。
-
-![exp_twosidedsign.jpg](exp_twosidedsign.jpg)
-
-
-### WorldPosition(世界位置)
-
-WorldPosition(世界位置)表达式可以输出当前像素在世界空间中的位置。为了可视化它，可以简单地把它的输出连接到 Emissive(自发光)端：
-
-![WorldPosition.jpg](WorldPosition.jpg)
-
-一般应用是查找从相机到像素间的径向距离（与来自 PixelDepth(像素深度)的正交距离相对）。WorldPosition(世界位置)对于用作为贴图坐标并使无关的使用贴图坐标的网格物体在彼此相互靠近时进行调和是有用的。 这里是把 WorldPosition.xy 应用到平面贴图的一个基本实例：
-
-![WorldPosPlanarMap.jpg](WorldPosPlanarMap.jpg)
-
-
-### WorldNormal(世界法线)
-
-WorldNormal 表达式会输出世界空间顶点法线。它只用于在顶点着色器中执行的材质输出端，和[[WorldPositionOffset] [WorldPositionOffset(世界位置偏移)]]类似。 这对于是一个网格物体增高或者收缩是有用的。 注意沿着法线的偏移位置将会导致几何体沿着 UV 接缝分离开。
-
-<span style="font:italic 10px arial;">(鼠标悬停在图片上查看动画效果)</span>
-<div style="width:400px;" onmouseover="toggleAnimImage('worldnorm');" onmouseout="toggleAnimImage('worldnorm');">
-    <div id="worldnorm_still" style="display:block;">
-        ![exp_worldnormal_still.jpg](exp_worldnormal_still.jpg)
-    [/REGION]
-    <div id="worldnorm_anim" style="display:none;">
-        ![exp_worldnormal.gif](exp_worldnormal.gif)
-    [/REGION]
+[**数学**](Engine/Rendering/Materials\ExpressionReference\Math)
+[REGION:indentedlist]
+* [Abs（绝对值）](Engine/Rendering/Materials\ExpressionReference\Math#Abs)
+* [Add（加）](Engine/Rendering/Materials\ExpressionReference\Math#Add)
+* [AppendVector（追加矢量）](Engine/Rendering/Materials\ExpressionReference\Math#AppendVector)
+* [Ceil（加一取整）](Engine/Rendering/Materials\ExpressionReference\Math#Ceil)
+* [Clamp（限制）](Engine/Rendering/Materials\ExpressionReference\Math#Clamp)
+* [ComponentMask（分量蒙版）](Engine/Rendering/Materials\ExpressionReference\Math#ComponentMask)
+* [Cosine（余弦）](Engine/Rendering/Materials\ExpressionReference\Math#Cosine)
+* [CrossProduct（矢量积）](Engine/Rendering/Materials\ExpressionReference\Math#CrossProduct)
+* [Divide（除）](Engine/Rendering/Materials\ExpressionReference\Math#Divide)
+* [DotProduct（标量积）](Engine/Rendering/Materials\ExpressionReference\Math#DotProduct)
+* [Floor（减一取整）](Engine/Rendering/Materials\ExpressionReference\Math#Floor)
+* [Fmod（浮点余数）](Engine/Rendering/Materials\ExpressionReference\Math#FMod)
+* [Frac（小数）](Engine/Rendering/Materials\ExpressionReference\Math#Frac)
+* [If（如果）](Engine/Rendering/Materials\ExpressionReference\Math#If)
+* [LinearInterpolate（线性插值）](Engine/Rendering/Materials\ExpressionReference\Math#LinearInterpolate)
+* [Multiply（乘）](Engine/Rendering/Materials\ExpressionReference\Math#Multiply)
+* [Normalize（规范化）](Engine/Rendering/Materials\ExpressionReference\Math#Normalize)
+* [OneMinus（一减）](Engine/Rendering/Materials\ExpressionReference\Math#OneMinus)
+* [Power（幂）](Engine/Rendering/Materials\ExpressionReference\Math#Power)
+* [Sine（正弦）](Engine/Rendering/Materials\ExpressionReference\Math#Sine)
+* [SquareRoot（平方根）](Engine/Rendering/Materials\ExpressionReference\Math#SquareRoot)
+* [Subtract（减）](Engine/Rendering/Materials\ExpressionReference\Math#Subtract)
 [/REGION]
 
+[**参数**](Engine/Rendering/Materials\ExpressionReference\Parameters)
+[REGION:indentedlist]
+* [CollectionParameters（集合参数）](Engine/Rendering/Materials\ExpressionReference\Parameters#CollectionParameters)
+* [DynamicParameter（动态参数）](Engine/Rendering/Materials\ExpressionReference\Parameters#DynamicParameter)
+* [FontSampleParameter（字体取样参数）](Engine/Rendering/Materials\ExpressionReference\Parameters#FontSampleParameter)
+* [ScalarParameter（标量参数）](Engine/Rendering/Materials\ExpressionReference\Parameters#ScalarParameter)
+* [StaticBoolParameter（静态布尔值参数）](Engine/Rendering/Materials\ExpressionReference\Parameters#StaticBoolParameter)
+* [StaticSwitchParameter（静态开关参数）](Engine/Rendering/Materials\ExpressionReference\Parameters#StaticSwitchParameter)
+* [StaticComponentMaskParameter（静态分量蒙版参数）](Engine/Rendering/Materials\ExpressionReference\Parameters#StaticComponentMaskParameter)
+* [VectorParameter（矢量参数）](Engine/Rendering/Materials\ExpressionReference\Parameters#VectorParameter)
+* [TextureObjectParameter（纹理对象参数）](Engine/Rendering/Materials\ExpressionReference\Parameters#TextureObjectParameter)
+* [TextureSampleParameter2D（纹理取样参数 2D）](Engine/Rendering/Materials\ExpressionReference\Parameters#TextureSampleParameter2D)
+* [TextureSampleParameterSubUV（纹理取样参数子 UV）](Engine/Rendering/Materials\ExpressionReference\Parameters#TextureSampleParameterSubUV)
+* [TextureSampleParameterCube（纹理取样参数立方体）](Engine/Rendering/Materials\ExpressionReference\Parameters#TextureSampleParameterCube)
+* [TextureSampleParameterMovie（纹理取样参数电影）](Engine/Rendering/Materials\ExpressionReference\Parameters#TextureSampleParameterMovie)
+[/REGION]
 
-### VectorParameter(向量参数)
+[**粒子**](Engine/Rendering/Materials\ExpressionReference\Particles)
+[REGION:indentedlist]
+* [DynamicParameter（动态参数）](Engine/Rendering/Materials\ExpressionReference\Particles#DynamicParameter)
+* [ParticleColor（粒子颜色）](Engine/Rendering/Materials\ExpressionReference\Particles#ParticleColor)
+* [ParticleDirection（粒子方向）](Engine/Rendering/Materials\ExpressionReference\Particles#ParticleDirection)
+* [ParticleMacroUV（粒子宏 UV）](Engine/Rendering/Materials\ExpressionReference\Particles#ParticleMacroUV)
+* [ParticleMotionBlurFade（粒子运动模糊消退）](Engine/Rendering/Materials\ExpressionReference\Particles#ParticleMotionBlurFade)
+* [ParticlePositionWS（粒子全局空间位置）](Engine/Rendering/Materials\ExpressionReference\Particles#ParticlePositionWS)
+* [ParticleRadius（粒子半径）](Engine/Rendering/Materials\ExpressionReference\Particles#ParticleRadius)
+* [ParticleRelativeTime（粒子相对时间）](Engine/Rendering/Materials\ExpressionReference\Particles#ParticleRelativeTime)
+* [ParticleSize（粒子大小）](Engine/Rendering/Materials\ExpressionReference\Particles#ParticleSize)
+* [ParticleSpeed（粒子速度）](Engine/Rendering/Materials\ExpressionReference\Particles#ParticleSpeed)
+* [SphericalParticleOpacity（球形粒子不透明度）](Engine/Rendering/Materials\ExpressionReference\Particles#SphericalParticleOpacity)
+* [ParticleSubUV（粒子子 UV）](Engine/Rendering/Materials\ExpressionReference\Particles#ParticleSubUV)
+* [TextureSampleParameterSubUV（纹理取样参数子 UV）](Engine/Rendering/Materials\ExpressionReference\Particles#TextureSampleParameterSubUV)
+[/REGION]
+<!---
+[**速度树**](Engine/Rendering/Materials\ExpressionReference\SpeedTree)
+[REGION:indentedlist]
+* [SpeedTree（速度树）](Engine/Rendering/Materials\ExpressionReference\SpeedTree#SpeedTree)
+[/REGION]
+--->
+[**地形**](Engine/Rendering/Materials\ExpressionReference\Landscape)
+[REGION:indentedlist]
+* [LanscapeLayerBlend（景观层混合）](Engine/Rendering/Materials\ExpressionReference\Landscape#LandscapeLayerBlend)
+* [LandscapeLayerCoords（景观层坐标）](Engine/Rendering/Materials\ExpressionReference\Landscape#LandscapeLayerCoords)
+* [LandscapeLayerSwitch（景观层开关）](Engine/Rendering/Materials\ExpressionReference\Landscape#LandscapeLayerSwitch)
+[/REGION]
 
-VectorParameter 表达式与 [Constant4Vector](#Constant4Vector) 一样，只是它是一个可以在材质实例中通过代码修改的参数。VectorParameter 一个微妙的好处是它的值可以使用[Color picker（颜色拾取器）](Engine/UI/ColorPicker)进行设置。
+[**纹理**](Engine/Rendering/Materials\ExpressionReference\Textures)
+[REGION:indentedlist]
+* [FontSample（字体取样）](Engine/Rendering/Materials\ExpressionReference\Textures#FontSample)
+* [FontSampleParameter（字体取样参数）](Engine/Rendering/Materials\ExpressionReference\Textures#FontSampleParameter)
+* [SceneColor（场景颜色）](Engine/Rendering/Materials\ExpressionReference\Textures#SceneColor)
+<!--* [SceneTexture（场景纹理）](Engine/Rendering/Materials\ExpressionReference\Textures#SceneTexture)-->
+* [TextureObject（纹理对象）](Engine/Rendering/Materials\ExpressionReference\Textures#TextureObject)
+* [TextureSample（纹理取样）](Engine/Rendering/Materials\ExpressionReference\Textures#TextureSample)
+[/REGION]
 
-**属性**
+[**实用程序**](Engine/Rendering/Materials\ExpressionReference\Utility)
+[REGION:indentedlist]
+* [BlackBody（黑体）](Engine/Rendering/Materials\ExpressionReference\Utility#BlackBody)
+* [BumpOffset（凹凸贴图偏移）](Engine/Rendering/Materials\ExpressionReference\Utility#BumpOffset)
+* [ConstantBiasScale（常量偏差比例）](Engine/Rendering/Materials\ExpressionReference\Utility#ConstantBiasScale)
+* [DDX](Engine/Rendering/Materials\ExpressionReference\Utility#DDX)
+* [DDY](Engine/Rendering/Materials\ExpressionReference\Utility#DDY)
+* [DepthFade（深度消退）](Engine/Rendering/Materials\ExpressionReference\Utility#DepthFade)
+* [DepthOfFieldFunction（视野深度函数）](Engine/Rendering/Materials\ExpressionReference\Utility#DepthOfFieldFunction)
+* [Desaturation（去饱和度）](Engine/Rendering/Materials\ExpressionReference\Utility#Desaturation)
+* [Distance（距离）](Engine/Rendering/Materials\ExpressionReference\Utility#Distance)
+<!--* [FeatureLevelSwitch（功能级别开关）](Engine/Rendering/Materials\ExpressionReference\Utility#FeatureLevelSwitch)-->
+* [Fresnel（菲涅尔）](Engine/Rendering/Materials\ExpressionReference\Utility#Fresnel)
+* [LightmassReplace（光照系统替换）](Engine/Rendering/Materials\ExpressionReference\Utility#LightmassReplace)
+* [LinearInterpolate（线性插值）](Engine/Rendering/Materials\ExpressionReference\Utility#LinearInterpolate)
+* [Noise（噪声）](Engine/Rendering/Materials\ExpressionReference\Utility#Noise)
+* [QualitySwitch（质量开关）](Engine/Rendering/Materials\ExpressionReference\Utility#QualitySwitch)
+* [RotateAboutAxis（绕轴旋转）](Engine/Rendering/Materials\ExpressionReference\Utility#RotateAboutAxis)
+* [SphereMask（球体蒙版）](Engine/Rendering/Materials\ExpressionReference\Utility#SphereMask)
+* [AntialiasedTextureMask（抗锯齿纹理蒙版）](Engine/Rendering/Materials\ExpressionReference\Utility#AntialiasedTextureMask)
+[/REGION]
 
+[**矢量操作**](Engine/Rendering/Materials\ExpressionReference\VectorOps)
+[REGION:indentedlist]
+* [AppendVector（追加矢量）](Engine/Rendering/Materials\ExpressionReference\VectorOps#AppendVector)
+* [ComponentMask（分量蒙版）](Engine/Rendering/Materials\ExpressionReference\VectorOps#ComponentMask)
+* [CrossProduct（矢量积）](Engine/Rendering/Materials\ExpressionReference\VectorOps#CrossProduct)
+* [DeriveNormalZ（派生法线 Z）](Engine/Rendering/Materials\ExpressionReference\VectorOps#DeriveNormalZ)
+* [DotProduct（标量积）](Engine/Rendering/Materials\ExpressionReference\VectorOps#DotProduct)
+* [Normalize（规范化）](Engine/Rendering/Materials\ExpressionReference\VectorOps#Normalize)
+* [Transform（转换）](Engine/Rendering/Materials\ExpressionReference\VectorOps#Transform)
+* [TransformPosition（转换位置）](Engine/Rendering/Materials\ExpressionReference\VectorOps#TransformPosition)
+[/REGION]
 
-* **默认值**
-    * *R* - 制定表达式输出的向量的红色或第一个通道的浮点值。
-    * *G* - 指定表达式输出的向量的绿色或第二个通道的浮点值。
-    * *B* - 指定表达式输出的向量的蓝色或第三个通道的浮点值。
-    * *A* - 指定表达式输出的向量的 alpha 或第四个通道的浮点值。
-* **Parameter Name** - 指定用于识别材质实例中的参数和通过代码识别参数的名称。
-
-
-![VectorParameterExample.jpg](VectorParameterExample.jpg)
-
-
-### VertexColor(顶点颜色)
-
-VertexColor 表达式是影响平面实例粒子发射器的颜色模块输出结果的材质的入口点。
-
-**输出**
-
-
-* **RGB** - 输出颜色的三维 RGB 向量值。
-* *R* - 输出颜色的红色通道。
-* *G* - 输出颜色的绿色通道。
-* *B* - 输出颜色的蓝色通道。
-* *A* - 输出颜色的 alpha 通道。
-
-
-**警告： 由于有限的插值，VertexColor (顶点颜色)和 Transform (变换)节点是互斥的。 如果您同时使用 Transform (变换)节点和 VertexColor (顶点颜色)，那么 VertexColor(顶点颜色)将呈现为白色。**
-
-**编程人员：** 对于平面粒子，颜色是基于每个顶点来和着色器进行通信的，然而网格物体粒子的颜色设置为着色器常数。
-
-
-### WindDirectionAndSpeed(风的方向和速度)
-
-WindDirectionAndSpeed 表达式会将风的方向（其中包含风力级数的 RGB 通道）和风的速度（一个通道）输出为一个四维向量值。 这些值通过影响每个对象的风 actor 获得。
-
-这个节点是基于任何影响风的 actors(WindDirectionalSource 或 WindPointSource's)来通过代码进行设置的。如果有多个风 actor 同时受到影响，那么它们的属性可以基于权重混合到一起。 对于 WindPointSource，这意味着使用具有这个节点的材质的物体离源越近，受到源在 WindDirectionAndSpeed 上的影响越强。 这个节点对于在使用[WorldPositionOffset(世界位置偏移)](Engine/Rendering/Materials/WorldPositionOffset)时，创建性能消耗较低的风动画是有用的。
-
- 
-
-<script type="text/javascript">
-    function toggleAnimImage(exp)
-    {
-        var still = document.getElementById(exp + "_still");
-        var anim = document.getElementById(exp + "_anim");
-
-        if(anim.style.display == "none")
-        {
-            still.style.display = "none";
-            anim.style.display = "block";
-        }
-        else
-        {
-            still.style.display = "block";
-            anim.style.display = "none";
-        }
-    }
-</script>
-
+[**矢量**](Engine/Rendering/Materials\ExpressionReference\Vector)
+[REGION:indentedlist]
+* [ActorPositionWS（Actor 全局空间位置）](Engine/Rendering/Materials\ExpressionReference\Vector#ActorPositionWS)
+* [CameraPositionWS（摄像机全局空间位置）](Engine/Rendering/Materials\ExpressionReference\Vector#CameraPositionWS)
+* [CameraVectorWS（摄像机全局空间矢量）](Engine/Rendering/Materials\ExpressionReference\Vector#CameraVectorWS)
+* [Constant2Vector（常量 2 矢量）](Engine/Rendering/Materials\ExpressionReference\Vector#Constant2Vector)
+* [Constant3Vector（常量 3 矢量）](Engine/Rendering/Materials\ExpressionReference\Vector#Constant3Vector)
+* [Constant4Vector（常量 4 矢量）](Engine/Rendering/Materials\ExpressionReference\Vector#Constant4Vector)
+* [LightVector（光线矢量）](Engine/Rendering/Materials\ExpressionReference\Vector#LightVector)
+* [ObjectBounds（对象界限）](Engine/Rendering/Materials\ExpressionReference\Vector#ObjectBounds)
+* [ObjectOrientation（对象方向）](Engine/Rendering/Materials\ExpressionReference\Vector#ObjectOrientation)
+* [ObjectPositionWS（对象全局空间位置）](Engine/Rendering/Materials\ExpressionReference\Vector#ObjectPositionWS)
+* [ParticlePositionWS（粒子全局空间位置）](Engine/Rendering/Materials\ExpressionReference\Vector#ParticlePositionWS)
+* [PixelNormalWS（像素全局空间法线）](Engine/Rendering/Materials\ExpressionReference\Vector#PixelNormalWS)
+* [ReflectionVectorWS（反射全局空间矢量）](Engine/Rendering/Materials\ExpressionReference\Vector#ReflectionVectorWS)
+* [VertexNormalWS（顶点全局空间法线）](Engine/Rendering/Materials\ExpressionReference\Vector#VertexNormalWS)
+[/REGION]
 
 
 

@@ -2,10 +2,9 @@ Availability:Public
 Title: Behavior Tree Node Reference: Services
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
 Description:Reference for the Behavior Tree Service nodes.
+version: 4.9
 
-[TOC(start:2 end:2)]
-
-**Services** attach to [**Composite**](Engine/AI/BehaviorTrees/NodeReference/Composites) nodes, and will execute at their defined frequency as long as their branch is being executed. These are often used to make checks and to update the Blackboard. These take the place of traditional Parallel nodes in other Behavior Tree systems
+**Services** attach to [Composite](Engine/AI/BehaviorTrees/NodeReference/Composites) nodes, and will execute at their defined frequency as long as their branch is being executed. These are often used to make checks and to update the Blackboard. These take the place of traditional Parallel nodes in other Behavior Tree systems
 
 
 ## Default Focus

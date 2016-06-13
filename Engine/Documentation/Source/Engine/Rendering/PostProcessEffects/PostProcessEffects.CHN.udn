@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2685386
 Availability:Public
-Title: Post Process Effects
+Title: 后处理效果
 Crumbs: %ROOT%, Engine
-Description:Effects applied to the whole rendered scene prior to being rendered.
+Description: 在最终渲染前对当前已渲染的场景添加整体特效
 Navigation:topic
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -50,36 +51,37 @@ Navigation:topic
 [/REGION]
 
 [EXCERPT:Intro]
-Unreal Engine provides Post Process Effects to allow artists and designers to tweak the overall look and feel of the scene. Examples of elements and effects include bloom (HDR blooming effect on bright objects), ambient occlusion, and tone mapping.
+虚幻引擎提供了后处理特效的功能，美术人员和设计人员能够调整整个场景的视觉体验。这些元素和效果包括 Bloom（在明亮物体上的 HDR Bloom），环境光遮挡，以及色调映射。
 [/EXCERPT:Intro]
 
-## Post Process Volume
+## 后处理体积
 
-The **PostProcessVolume** is a special type of volume that can be added to a level and, because Unreal Engine 4 does not make use of post processing chains, these volumes are currently the only way to manipulate post processing parameters. The new system is not complete and we will expose some programmability, but we want the common cases to be handled very well by the system. This makes it easier for artists/designers to use the system and for programmers to optimize it.
+**PostProcessVolume** 是一种特殊的体积，用于放置在场景关卡中。由于虚幻引擎 4 不再使用后处理链，这些体积目前是用于控制后处理参数的唯一手段。这套新系统目前尚未完全完成，我们将会更多的开放可编程能力，但我们希望大部分情况都能被这套系统妥善的处理。这将让美术/策划人员更容易的使用，并让程序员更容易来优化。
 
-In Unreal Engine 4, each PostProcessVolume is essentially only a type of blend layer. Other blend layers might come from game code (e.g. hit effects), UI code (e.g. pause menu), the camera (e.g. vignette), or matinee (old film effect). Each layer can have a weight so it will be easy to blend effects.
+在虚幻引擎 4 中，每个 PostProcessVolume 实质上是一个类型的混合层。其他混合层可以来自游戏代码（比如命中特效），UI 代码（比如暂停菜单），摄像机（比如暗角效果），或者 Matinee（旧胶片效果）。每个混合层都能有自己的权重值，这样混合效果能容易控制。
 
-Blending is always done with a lerp (linear interpolation) and only Enabled volumes are getting blended. A PostProcessVolume will only be applied when the camera is within the bounds of the volume unless the **Unbound** property is checked.
+混合的做法始终是 Lerp（线性插值），当前启用的体积将会参与混合。一个 PostProcessVolume 尽在 Camera 在该体积内才会参与混合，除非体积的 **Unbound** 选项被勾选，这时该体积作用于整个场景。
 
-The properties found in the PostProcessVolume are explained below:
+在 PostProcessVolume 中的属性说明如下：
 
-| Property | Description |
+| 属性 | 描述 |
 | -------- | ----------- |
-| **Settings** | The [Post Process Settings](#PostProcessSettings) for the volume. The checkbox in front of most properties defines if the line in the volume is blended using the **Blend Weight** of the volume.
-| **Priority** | Defines the order in which multiple volumes are blended together. The volume with the highest priority takes precedence over all other overlapping volumes.
-| **Blend Radius** | Distance in Unreal units around the volume at which blending with the volume's settings occurs.
-| **Blend Weight** | The amount of influence the volume's properties have. 0 is no effect; 1 is full effect.
-| **Enabled** | Whether the volume affects the post processing or not. If _true_, the volume's settings will be used for blending.
-| **Unbound** | Whether the bounds of the volume are taken into account. If _true_, the volume affects the entire world, regardless of its bounds. If _false_, the volume only has effect within its bounds.
+| **Settings** | 体积的 [后处理设置](#BookmarkPostProcessSettings)，大部分属性前的勾选框定义了该行的属性是否使用该体积的 **Blend Weight** 参与混合。
+| **Priority** | 当多个体积重叠时定义它们参与混合的次序。高优先级的体积会被当前重叠的其他体积更早计算。
+| **Blend Radius** | 体积周围基于虚幻单位的距离，用于该体积开始参与混合的起始位置。
+| **Blend Weight** | 该体积的影响因素。0 代表没有效果，1代表完全的效果。
+| **Enabled** | 定义该体积是否参与后处理效果。如果勾选的话，该体积则参与混合计算。
+| **Unbound** | 定义该体积是否考虑边界，如果勾选的话，该体积将作用于整个场景而无视边界。如果没有勾选，该体积只在它的边界内起效。
 
+(#BookmarkPostProcessSettings)
 
-### Post Process Settings
+### 后处理设置
 
-The post process settings are all of the properties of the various post process effects that can be controlled or overridden. These properties are declared in the `UScene` class. The **PostProcessVolume** contains a `FPostProcessSettings` struct as its `Settings` property that contains all of these properties and allows them to be overridden by the volume.
+后处理设置都是一些用于后处理效果的属性，控制这些属性或者覆盖这些属性。这些属性在 `UScene` 类中定义。**PostProcessVolume** 包含了一个 `FPostProcessSettings` 的结构体作为 `Settings` 属性，其中包含了每个属性定义，并能够在体积中对他们进行覆写。
 
-For descriptions of each of the available settings, see the page for the corresponding effect below.
+对于每个可用设置的描述，查看以下这些相关特效的页面来了解详情。
 
-## Effects
+## 特效
 
 [REGION:topics fourth]
 [OBJECT:TopicCompact]
@@ -215,7 +217,6 @@ For descriptions of each of the available settings, see the page for the corresp
 	[/PARAM]
 [/OBJECT]
 [/REGION]
-
 
 
 

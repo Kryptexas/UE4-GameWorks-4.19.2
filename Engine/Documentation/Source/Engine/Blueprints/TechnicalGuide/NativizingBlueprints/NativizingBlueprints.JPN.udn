@@ -1,0 +1,51 @@
+﻿INTSourceChangelist:3007724
+Availability:Docs
+Title:ブループリントのネイティブ化
+Crumbs: %ROOT%, Programming, Engine/Blueprints/TechnicalGuide
+Description:ゲームプレイ要素をブループリントに公開するゲームプレイ プログラマのためのテクニカル ガイド
+Version:4.12
+Parent:Engine/Blueprints/TechnicalGuide
+type:overview
+
+[REGION:warning]
+これは実験的なベータ機能です。アンリアル エンジン 4 のサンプル ゲームと中規模のデモは正常にネイティブ化されますが、大規模プロジェクトでこの機能が使えるように調整しています。
+[/REGION]
+
+
+新なブループリント ネイティブ化ツールにより、プロジェクトのブループリントからネイティブ C++ コードの生成を可能にします。エディタ外あるいはリリース用のテスティングのためにプロジェクトをクックすると、
+生成されたコードでプロジェクトをコンパイルします。そして、すべてのブループリント クラスは新規生成されたネイティブ クラスに変更されます。ブループリントのネイティブ化の主な目的は、 
+プロジェクトのランタイム版での仮想マシン (VM) オーバーヘッドの削減です。結果として、生成されたコードは「使いやすくする」または「再利用可能にする」ために必ずしも必要ではありません。 
+
+このページで、プロジェクトのブループリントのネイティブ化を始めましょう。ブループリント専用プロジェクトの場合、大部分は透明なプロセスになります。プロジェクトで C++ を使う、または
+ネイティブ化されたコードをデバッグしたい場合は、[](Engine/Blueprints/TechnicalGuide/NativizingBlueprints/Advanced) で詳細をご覧ください。
+
+
+## ブループリントのネイティブ化を有効にする
+
+ブループリントのネイティブ化を有効にするには、**[Edit Menu (編集メニュー)]** から **[Project Settings (プロジェクト設定)]** を開きます。**[Packaging (パッケージング)]** の **[Nativize Blueprint Assets]** チェックボックスを有効にします。
+
+![](BlueprintNativizeCheckbox.png)
+
+プロジェクトをパッケージ化する時に、以下のブループリント アセットがネイティブ化されます。 
+
+* Blueprint クラス
+* ブループリント関数ライブラリ
+* ブループリント インターフェース
+* Anim ブループリント 
+* Widget ブループリント
+* ユーザー定義の構造体
+* ユーザー定義の Enum
+
+現在、_レベル ブループリント_ は変換されません。ネイティブ コードは `[ProjectDirectory]\Intermediate\[Platform That Was Cooked For]\NativizedAssets\Source\NativizedAssets\` に格納されます。
+
+## ブループリントを変換から除外する
+
+所定の _ブループリント_ を変換から除外することも可能です。プロジェクトの `DefaultEditor.ini` ファイルの中に `[BlueprintNativizationSettings]` 見出しを作成します。
+
+* 所定のアセット タイプを除外するには、`ExcludedBlueprintTypes` を設定します。例えば、`+ExcludedBlueprintTypes=/Script/UMGEditor.WidgetBlueprint` だと、_Widget ブループリント_ は変換されません。
+* 個別にアセットを除外するには `ExcludedAssets` を設定します。例えば、`+ExcludedAssets=/Engine/Tutorial/SubEditors/TutorialAssets/Character/TutorialCharacter` だと **Tutorial Character** は変換されません。
+
+クックされている場合、アセットはネイティブ化されます。クッカがクック対象にアセット / マップを何も指定していない場合、 
+プロジェクトの **Content** ディレクトリの中をすべてクックします。未使用のブループリントがネイティブ化されていたら、パッケージするマップのリストを使ってもアセットを省略することができます。 
+
+![](AdditionalMaps.png)

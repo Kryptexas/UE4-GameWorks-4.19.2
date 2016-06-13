@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:2690804
+﻿INTSourceChangelist:2968923
 Availability:Public
 Title:랜덤 스트림
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:Random Stream 이란 무엇인가, 블루프린트에서 어떻게 사용되는가에 대한 설명입니다.
 version: 4.9
+Parent:Engine/Blueprints
+Type:guide
 
 [VAR:Topic]
 [OBJECT:Topic]

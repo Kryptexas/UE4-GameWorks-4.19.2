@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2635854
+﻿INTSourceChangelist:2757177
 Availability:Public
 Title: 6. AI 콘트롤러 블루프린트 셋업
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:6 단계. AI 콘트롤러 블루프린트 셋업
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

@@ -1,6 +1,6 @@
 Availability:Public
 Title: Scalability Reference
-Crumbs: %ROOT%, Engine, Engine/Performance/Scalability
+Crumbs: %ROOT%, Engine, Engine/Performance, Engine/Performance/Scalability
 Description:Scalability options, properties, and console variables.
 version: 4.9
 
@@ -54,7 +54,7 @@ The Scalability settings allow you to adjust the quality of various features in 
 
 ## Scalability Settings
 
-Accessing the Scalability settings in the editor is done through the **Settings** menu in the toolbar. The **Engine Scalability Settings** contains short cuts to the most commonly used setting defined in the BaseScalability.ini file, while **Material Quality Level** sets the global material quality setting.
+Accessing the Scalability settings in the editor is done through the **Settings** menu in the toolbar. The **Engine Scalability Settings** contains shortcuts to the most commonly used setting defined in the BaseScalability.ini file, while **Material Quality Level** sets the global material quality setting.
 
 [REGION:lightbox]
 [![](ScaleR_ViewQual.png)(h:490)](ScaleR_ViewQual.png) [![](ScaleR_ViewMatQual.png)(h:490)](ScaleR_ViewMatQual.png)
@@ -63,7 +63,7 @@ Accessing the Scalability settings in the editor is done through the **Settings*
 
 ## Resolution Scale
 
-Unreal Engine 4 can render a scene in lower resolution and scale the image up to the target resolution. As 2D User interfaces usually costs less performance and suffers more from lower resolution, Unreal Engine 4 does not apply this technique to UI. There is a minor cost for the up-sampling pass, but usually it is worth the effort.
+Unreal Engine 4 can render a scene in lower resolution and scale the image up to the target resolution. As 2D User interfaces usually costs less performance and suffers more from lower resolution, Unreal Engine 4 does not apply this technique to UI. There is a minor cost for the up-sampling pass, but usually, it is worth the effort.
 
 
 ![](SC_00007.png)(w:920)
@@ -75,7 +75,7 @@ Left: 50% no AA, Middle: 50% with AA, Right: 100% (no resolution scale) with AA
 Having a softer input image helps the up-sampling step. This means this scalability options benefits from another scalability option: the anti-aliasing quality.
 [/REGION]
 
-This setting can be access with the **_r.ScreenPercentage_** console variable. It takes in a value from 10-100 with -1 also equaling 100%.
+This setting can be accessed with the **_r.ScreenPercentage_** console variable. It takes in a value from 10-100 with -1 also equaling 100%.
 
 
 ## View Distance
@@ -96,7 +96,7 @@ left: r.ViewDistanceScale 0.4, middle: r.ViewDistanceScale 0.7, right: r.ViewDis
 [REGION:caption]
 From the left: r.PostProcessAAQuality 0 to 6. The first 3 equal the **Low**, **Medium**, **High**, **Epic** settings in the **View -> Scalability Options -> AA** settings.
 [/REGION]
-Adjusting the Anti-Aliasing quality level using the **_r.PostProcessAAQuality_** console command will adjust the quality of which ever Anti-Aliasing method you are using (FXAA or Temporal AA). For either Anti-Aliasing method, a value of 0 used with _r.PostProcessAAQuality_ will disable the effect. For FXAA, the effect of values 2, 4, and 6, can be seen in the above image; the smoothing of jagged edges becomes better and better. Values above 6 have no effect.
+Adjusting the Anti-Aliasing quality level using the **_r.PostProcessAAQuality_** console command will adjust the quality of whichever Anti-Aliasing method you are using (FXAA or Temporal AA). For either Anti-Aliasing method, a value of 0 used with _r.PostProcessAAQuality_ will disable the effect. For FXAA, the effect of values 2, 4, and 6, can be seen in the above image; the smoothing of jagged edges becomes better and better. Values above 6 have no effect.
 
 For Temporal AA, there is a trade off between fill speed of the effect and quality, the higher the value you use. _r.PostProcessAAQuality_ 2 with Temporal AA is fast to settle but jitter caused by the effect will be more pronounced. _r.PostProcessAAQuality_ 4 will settle slower but will not jitter.
 
@@ -382,19 +382,19 @@ With _r.DetailMode_ 0 = low, _r.DetailMode_ 1 = medium and, _r.DetailMode_ 2 = h
 
 ![](SC_00005.png)
 
-It is easy to use this to disable decals, detail objects, lights or individual particle effects. Make sure to only use this on objects that have no effect on gameplay, otherwise you will run into problems with network gameplay, save games, or consistency.
+It is easy to use this to disable decals, detail objects, lights or individual particle effects. Make sure to only use this on objects that have no effect on gameplay, otherwise, you will run into problems with network gameplay, save games, or consistency.
 
 ## Material Quality Level
 
 ![](ScaleR_ViewMatQual.png)
 
-Material can use the Quality Switch material expression to disable some expensive material parts that have minor effect on the final look. To see the effect of this, you need to toggle to the low quality mode.
+Materials can use the **Quality Switch** Material Expression node to disable some expensive Material parts that have a minor effect on the final look. To see the effect of this, you need to toggle to the **Low Quality** mode.
 
 [REGION:lightbox]
-[![](SC_SwitchNode.png)(w:900)](SC_SwitchNode.png)
+[![](SC_SwitchNode.png)(w:555 h:391)](SC_SwitchNode.png)
 [/REGION]
 
-Whatever the **Material Quality Level** is set to, low or high, will determine which expressions get evaluated for this material (the low or high pin). The default pin will fill in either high or low (or both) if they have no inputs. This material contains 2 reasonably high cost Perlin noise operations when set to high:
+Whatever the **Material Quality Level** is set to, low or high, will determine which expressions get evaluated for this material (the low or high pin). The default pin will fill in either high or low (or both) if they have no inputs. This material contains 2 reasonably high-cost Perlin noise operations when set to high:
 
 [REGION:note]
 This example is to simply show off the **Material Switch Node**. The **Noise** nodes are really expensive making them really good for this example, but they should be used sparingly as there are cheaper ways to get this effect.
@@ -407,9 +407,13 @@ This example is to simply show off the **Material Switch Node**. The **Noise** n
 **Material Quality Level** -> **High**
 [/REGION]
 
-![](SC_Closeup.png)
+[REGION:lightbox]
+[![](SC_Closeup.png)(w:681 h:164)](SC_Closeup.png)
+[/REGION]
 
-![](SC_MirrorComplexity.png)
+[REGION:lightbox]
+[![](SC_MirrorComplexity.png)(w:450 h:681)](SC_MirrorComplexity.png)
+[/REGION]
 
 _Above, **Shader Complexity** mode shows us that our high quality material is more costly than other shaders, with darker greens meaning more costly shaders._
 
@@ -422,7 +426,7 @@ This feature is not for distance LOD as you cannot have two quality levels at th
 * Shader computations (e.g. disable fuzz layer).
 	* Use **Shader Complexity** (**Alt+8** in the editor) mode and instruction count to verify your optimization.
 * Texture lookups (e.g. no detail bump map).
-* Memory bandwidth (e.g. using less textures).
+* Memory bandwidth (e.g. using fewer textures).
 	* You would need to profile on actual hardware to verify this.
 
 
@@ -436,3 +440,105 @@ Most material editor outputs only affect the pixel shader. World position offset
 Skeletal meshes can have static Level of Details models. With the console variable **_r.SkeletalMeshLODBias_**, it is possible to globally bias the LOD level. Depending on the quality of your first or second LOD, it might be a good idea to have this option in the scalability settings. Here you can see the scalability setting on top of the distance dependent LOD.
 
 
+## Grass and Foliage Scalability
+
+Both the Grass and Foliage systems can use the **Scalability System** to help reduce the impact those systems have on performance. To enable this functionality in your project you will need to do the following: 
+
+1. Go to your projects **Config** folder and create a new **.INI** file called **DefaultScalability.ini**.
+
+	![](FGC_Config_Location.png)
+
+1. Open up the newly created **DefaultScalability.ini** file and add the following lines of code to it. 
+
+		[FoliageQuality@0]
+		foliage.DensityScale=0
+		grass.DensityScale=0
+
+		[FoliageQuality@1]
+		foliage.DensityScale=0.4
+		grass.DensityScale=0.4
+
+		[FoliageQuality@2]
+		foliage.DensityScale=0.8
+		grass.DensityScale=0.8
+
+		[FoliageQuality@3]
+		foliage.DensityScale=1.0
+		grass.DensityScale=1.0
+
+	When completed the information inside of the DefaultScalability.ini file should match the following image.
+
+	![](FGC_Config_Info.png)
+
+1. Now when the Scalability settings for **Foliage** are changed, the amount of Foliage and Landscape Grass Static Meshes that are spawned will be reduced or increased based on which setting was picked.
+
+	[REGION:fullwidth]
+	[INCLUDE:Engine\Performance\Scalability\ScalabilityReference\#FGS]
+	[/REGION]
+
+[region:note]
+For Foliage Static Meshes to work with the  Scalability settings you must enable the **Enable Density Scaling** option. You can read more about how to set this up in the [Foliage Instanced Meshes](Engine\Foliage) documentation.
+[/region]
+
+<!-----
+[EXCERPT:FGS]
+[OBJECT:SliderSequence]
+	[PARAMLITERAL:max]
+	4
+	[/PARAMLITERAL]
+	[PARAMLITERAL:ext]
+	jpg
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	FGS
+	[/PARAMLITERAL]
+	[PARAM:caption]
+	**Dragging the slider will show what happens to the amount of Foliage rendered when the Scalability Setting for Foliage is set to Low, Medium, High and **Epic**.**
+	[/PARAM]
+	[PARAM:image_list]
+	![](FGS_1.png)
+	![](FGS_2.png)
+	![](FGS_3.png)
+	![](FGS_4.png)
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:FGS]
+-->
+
+<!--
+
+	[REGION:simpletable]
+	|FoliageQuality 0|FoliageQuality 1|
+	| --- | --- |
+	|[INCLUDE:#FoliageQuality@0]|[INCLUDE:#FoliageQuality@1]|
+
+	|FoliageQuality 2|FoliageQuality 3|
+	| --- | --- |
+	|[INCLUDE:#FoliageQuality@2]|[INCLUDE:#FoliageQuality@3]|
+	[/REGION]
+
+[EXCERPT:FoliageQuality@0]
+	[FoliageQuality@0]
+	foliage.DensityScale=0
+	grass.DensityScale=0
+[/EXCERPT:FoliageQuality@0]
+
+[EXCERPT:FoliageQuality@1]
+	[FoliageQuality@1]
+	foliage.DensityScale=0.4
+	grass.DensityScale=0.4
+[/EXCERPT:FoliageQuality@1]
+
+[EXCERPT:FoliageQuality@2]
+	[FoliageQuality@2]
+	foliage.DensityScale=0.8
+	grass.DensityScale=0.8
+[/EXCERPT:FoliageQuality@2]
+
+[EXCERPT:FoliageQuality@3]
+	[FoliageQuality@3]
+	foliage.DensityScale=1.0
+	grass.DensityScale=1.0
+[/EXCERPT:FoliageQuality@3]
+
+-->

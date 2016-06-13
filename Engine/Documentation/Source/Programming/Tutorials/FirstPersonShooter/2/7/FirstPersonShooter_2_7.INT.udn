@@ -3,7 +3,7 @@ Title: 2.7 - Changing the Camera View
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
 Description: Learn how to change the camera view for your First Person Shooter character.
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,20 +23,15 @@ Version: 4.9
 
 %Steps%
 
-At the end of the previous step, the default camera was positioned inside the mesh's neck. During this step, you're going to set-up with a proper FPS camera that you can use to adjust the camera's properties (such as location and field of view).
+At the end of the previous step, the default camera was positioned inside the mesh's neck. During this step, we're going to set-up an FPS camera that we can use to adjust the camera's properties (such as location and field of view).
 
 ## Attaching a Camera Component
 
-1.	Switch back to Visual Studio and open `FPSCharacter.h` and add the following public property:
+1.	Switch back to Visual Studio and open `FPSCharacter.h` to add the following code:
 
 		// FPS camera
-		UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
-		UCameraComponent* FirstPersonCameraComponent;
-
-1.	Add the following constructor to your `FPSCharacter.h` file:
-
-		// Constructor for the AFPSCharacter
-		AFPSCharacter(const FObjectInitializer& ObjectInitializer);
+		UPROPERTY(VisibleAnywhere)
+		UCameraComponent* FPSCameraComponent;
 
 1.	`FPSCharacter.h` should now look like the following:
 
@@ -55,9 +50,6 @@ At the end of the previous step, the default camera was positioned inside the me
 		public:
 			// Sets default values for this character's properties
 			AFPSCharacter();
-		
-			// Constructor for the AFPSCharacter
-			AFPSCharacter(const FObjectInitializer& ObjectInitializer);
 		
 			// Called when the game starts or when spawned
 			virtual void BeginPlay() override;
@@ -79,44 +71,33 @@ At the end of the previous step, the default camera was positioned inside the me
 			// sets jump flag when key is pressed
 			UFUNCTION()
 			void OnStartJump();
-			
+		
 			// clears jump flag when key is released
 			UFUNCTION()
 			void OnStopJump();
 		
 			// FPS camera
-			UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
-			UCameraComponent* FirstPersonCameraComponent;
+			UPROPERTY(VisibleAnywhere)
+			UCameraComponent* FPSCameraComponent;
 		};
 
-1.	Open `FPSCharacter.cpp` and add the following code:
+1.	Open `FPSCharacter.cpp` and add the following code to the constructor:
 
-		// Constructor that creates the camera component
-		AFPSCharacter::AFPSCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
-		{
-			// Create a camera Component
-			FirstPersonCameraComponent = ObjectInitializer.CreateDefaultSubobject<UCameraComponent>(this, TEXT("FirstPersonCamera"));
-		
-			if (FirstPersonCameraComponent != NULL)
-			{
-				FirstPersonCameraComponent->SetupAttachment(GetCapsuleComponent());
-			}
-		}
+		// create a first person camera component
+		FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
+		// attach the camera component to our capsule component
+		FPSCameraComponent->AttachTo(GetCapsuleComponent());
 
-	[REGION:note]
-	The aforementioned code creates a `CameraComponent` and attaches it to the `CapsuleComponent`.
-	[/REGION]
+	This code creates a `UCameraComponent` and attaches it to the character's `CapsuleComponent`.
 
-1.	Add the following code to `AFPSCharacter::AFPSCharacter(const FObjectInitializer& ObjectInitializer)`:
+1.	Now, add the following code underneath the block that you just wrote in the constructor:
 
-		// Position the camera a bit above the eyes
-		FirstPersonCameraComponent->RelativeLocation = FVector(0.f, 0.f, 50.f + BaseEyeHeight);
-		// Allow the pawn to control rotation
+		// position the camera slightly above the eyes
+		FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
+		// allow the pawn to control rotation
 		FirstPersonCameraComponent->bUsePawnControlRotation = true;
 
-	[REGION:note]
-	The aforementioned code adjusts the camera's position to be slightly above the character's eye position.
-	[/REGION]
+	This code adjusts the camera's position to be slightly above the character's eye position while allowing the pawn to control the camera's rotation.
 
 1.	`FPSCharacter.cpp` should now look like the following:
 
@@ -125,29 +106,20 @@ At the end of the previous step, the default camera was positioned inside the me
 		#include "FPSProject.h"
 		#include "FPSCharacter.h"
 		
-		
 		// Sets default values
 		AFPSCharacter::AFPSCharacter()
 		{
 		 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 			PrimaryActorTick.bCanEverTick = true;
 		
-		}
-		
-		// Constructor that creates the camera component
-		AFPSCharacter::AFPSCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
-		{
-			// Create a camera Component
-			FirstPersonCameraComponent = ObjectInitializer.CreateDefaultSubobject<UCameraComponent>(this, TEXT("FirstPersonCamera"));
-		
-			if (FirstPersonCameraComponent != NULL)
-			{
-				FirstPersonCameraComponent->SetupAttachment(GetCapsuleComponent());
-				// Position the camera a bit above the eyes
-				FirstPersonCameraComponent->RelativeLocation = FVector(0.f, 0.f, 50.f + BaseEyeHeight);
-				// Allow the pawn to control rotation
-				FirstPersonCameraComponent->bUsePawnControlRotation = true;
-			}
+			// create a first person camera component
+			FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
+			// attach the camera component to our capsule component
+			FPSCameraComponent->AttachTo(GetCapsuleComponent());
+			// position the camera slightly above the eyes
+			FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
+			// allow the pawn to control rotation
+			FPSCameraComponent->bUsePawnControlRotation = true;
 		}
 		
 		// Called when the game starts or when spawned
@@ -155,9 +127,15 @@ At the end of the previous step, the default camera was positioned inside the me
 		{
 			Super::BeginPlay();
 			
+			const int32 Key = -1;
+			static const FString DebugMessage = TEXT("We are using FPSCharacter.");
+			FColor DisplayColor = FColor::Red;
+			float TimeToDisplay = 5.0f; //seconds
+		
 			if (GEngine != nullptr)
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::White, TEXT("We are using FPSCharacter."));
+				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
+		
 			}
 		}
 		
@@ -172,56 +150,43 @@ At the end of the previous step, the default camera was positioned inside the me
 		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 		{
 			Super::SetupPlayerInputComponent(InputComponent);
-			
-			// set-up gameplay key bindings
+		
+			// set up gameplay key bindings
 			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
 			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
-			// set-up gameplay mouse bindings
+		
+			// set up gameplay mouse bindings
 			InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
 			InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
-			// set-up jump action bindings
+		
+			// set up jump action bindings
 			InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::OnStartJump);
 			InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::OnStopJump);
 		}
 		
-		// Forward movement function definition
 		void AFPSCharacter::MoveForward(float Value)
 		{
-			if (Controller != nullptr && Value != 0.f)
-			{
-				//find out which way is forward
-				FRotator Rotation = Controller->GetControlRotation();
-				//limit pitch when walking for falling
-				if (GetCharacterMovement()->IsMovingOnGround() || GetCharacterMovement()->IsFalling())
-				{
-					Rotation.Pitch = 0.f;
-				}
-				//add movement in that direction
-				const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
-				AddMovementInput(Direction, Value);
-			}
+			// find out which way is forward
+			FRotator Rotation = Controller->GetControlRotation();
+			// add movement in that direction
+			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
+			AddMovementInput(Direction, Value);
 		}
 		
-		//Right movement function definition
 		void AFPSCharacter::MoveRight(float Value)
 		{
-			if (Controller != nullptr && Value != 0.f)
-			{
-				//find our which way is right
-				const FRotator Rotation = Controller->GetControlRotation();
-				const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
-				//add movement in that direction
-				AddMovementInput(Direction, Value);
-			}
+			// find out which way is right
+			FRotator Rotation = Controller->GetControlRotation();
+			// add movement in that direction
+			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
+			AddMovementInput(Direction, Value);
 		}
 		
-		//Function setting the jump flag
 		void AFPSCharacter::OnStartJump()
 		{
 			bPressedJump = true;
 		}
 		
-		//Function clearning the jump flag
 		void AFPSCharacter::OnStopJump()
 		{
 			bPressedJump = false;
@@ -231,20 +196,22 @@ At the end of the previous step, the default camera was positioned inside the me
 
 It's now time to compile and test your newly implemented camera code.
 
-1.	Save the `FPSCharacter` interface (\*.h) and implementation (\*.cpp) files in Visual Studio.
+1.	Save the `FPSCharacter` header (\*.h) and CPP (\*.cpp) files in Visual Studio.
 
 1.	Locate **FPSProject** in the **Solution Explorer**.
 
-1.	**Right-click** on **FPSProject** and select **Build** to compile your project.
+1.	Right-click on **FPSProject** and select **Build** to compile your project.
 
 	![](BuildProject.png)
 
 1.	After the build finishes, open your **FPSProject** in Unreal Editor.
 
-1.	**Click** the **Play** button in the Level Editor Toolbar. Your camera should be above the character's head and if you look down, you should be able to see the top of your character's head.
+1.	**Click** the **Play** button in the Level Editor Toolbar.
 
 	![](NewCameraComponent.png)
 
-1.	**Click** the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
+	The camera should now be slightly above the top of your character's head.
+
+1.	Press the Escape key or click the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
 
 %Steps%

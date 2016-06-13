@@ -1,15 +1,18 @@
-﻿INTSourceChangelist:2438592
+﻿INTSourceChangelist:2740173
 Availability: Public
 TItle:레이어 패널 사용 안내서
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
 Description:레벨에 있는 액터를 빠르게 선택하고 표시여부를 조절할 수 있도록 레이어 별로 정리해 넣는 툴입니다.
+Version: 4.9
+SkillLevel: Beginner
+
 
 [TOC(start:2)]
 
 [EXCERPT:Overview]
 **레이어** (Layers) 패널에서 레벨에 있는 액터를 체계적으로 정리할 수 있습니다.
 
-![Layers Panel](layers.png)
+![](LayerInfra.jpg)
 
 레이어는 관련된 액터 그룹을 빠르게 선택하는 기능은 물론, 표시여부를 조절할 수 있는 기능도 제공합니다.
 레이어를 사용하면 현재 작업중인 액터나 지오메트리만 남기는 식으로 씬을 빠르게 정리할 수 있습니다.
@@ -38,7 +41,7 @@ Description:레벨에 있는 액터를 빠르게 선택하고 표시여부를 �
 
 1. 새 레이어가 목록에 표시됩니다.
 
-	![New empty layer](layer_new_list.png)(quality:100)
+	![](LayerLayer1.jpg)(quality:100)
 
 
 **선택한 것으로 레이어를 만들려면:**
@@ -53,7 +56,7 @@ Description:레벨에 있는 액터를 빠르게 선택하고 표시여부를 �
 
 1. 액터가 포함된 새 레이어가 목록에 표시됩니다.
 
-	![New empty layer](layer_new_list.png)(quality:100)
+	![](LayerLayer1.jpg)(quality:100)
 
 
 **드래그 앤 드롭으로 레이어를 만들려면:**
@@ -62,11 +65,11 @@ Description:레벨에 있는 액터를 빠르게 선택하고 표시여부를 �
 
 1. **월드 아웃라이너** 에서 액터를 끌어 **레이어** 패널의 빈 곳에 놓습니다.
 
-	![Drag Actors to Layers panel](layer_new_drag.png)
+	![](LayerDragDrop.jpg)
 
 1. 액터가 포함된 새 레이어가 목록에 표시됩니다.
 
-	![New empty layer](layer_new_list.png)(quality:100)
+	![](LayerLayer1.jpg)(quality:100)
 
 
 ## 레이어 이름
@@ -89,11 +92,11 @@ Description:레벨에 있는 액터를 빠르게 선택하고 표시여부를 �
 
 1. 현재 이름이 들어있는 글상자에 이름을 입력합니다.
 
-	![Rename layer](layer_rename.png)
+	![](LayerNewName.jpg)
 
 1. 레이어에 새로운 이름이 표시됩니다.
 
-	![Renamed layer](layer_renamed.png)
+	![](LayerNewName2.jpg)(quality:100)
 
 
 ## 레이어 검색
@@ -103,19 +106,19 @@ Description:레벨에 있는 액터를 빠르게 선택하고 표시여부를 �
 입력한 내용에 일치되는 이름의 레이어만 표시됩니다.
 
 [REGION:imagetable]
-| ![Layers Unfiltered](layer_search_unfiltered.png) | ![Layers Filtered](layer_search_filtered.png) |
+| ![](LayerNewName2.jpg)(w:452) | ![](LayersFilter.jpg)(w:460) |
 | ------ | ------ |
 | 필터링 미적용 레이어 목록 | 필터링 적용 레이어 목록 |
 [/REGION]
 
-![Clear Search](button_search_clear.png) 버튼을 누르면 검색어가 지워집니다.
+'X' 버튼을 누르면 검색어가 지워집니다.
 
 ## 레이어 콘텐츠
 
 레이어의 콘텐츠는 **레이어** 패널에서 바로 확인할 수 있습니다. 레이어 콘텐츠 뷰에는 레이어 이름, 
 그 레이어에 들어있는 모든 액터 목록, 레이어의 콘텐츠에 대한 정보가 표시됩니다.
 레이어 콘텐츠 뷰에 들어가려면 보고자 하는 레이어를 선택한 상태에서 
-**레이어** 패널 하단의 ![See Contents](button_contents.png) 버튼을 누르세요.
+**레이어** 패널 하단의 **콘텐츠 확인** 버튼을 누르세요.
 
 ![Layer Contents view](layer_contents.png)
 
@@ -125,7 +128,7 @@ Description:레벨에 있는 액터를 빠르게 선택하고 표시여부를 �
 ![Layer Contents View Title Bar](layer_title_bar.png)
 
 레이어 이름 오른쪽의 여러가지 버튼으로 레이어에 얼마나 다양한 유형의 액터가 있는지 알 수 있습니다.
-예를 들어 ![Layer Type Select](button_select_type.png) 버튼을 보면 레이어 안에 StaticMeshActor 가 
+예를 들어 레이어 패널 우하단의 버튼을 보면 레이어 안에 StaticMeshActor 가 
 139 개 있다는 것을 알 수 있습니다.
 
 [REGION:tip]
@@ -160,7 +163,7 @@ Description:레벨에 있는 액터를 빠르게 선택하고 표시여부를 �
 	수도 있습니다.
 	[/REGION]
 
-	![Drag Actors to layer](layer_add_drag.png)
+	![](LayersDragandDrop.jpg)
 
 	[REGION:note]
 	드래그 앤 드롭할 때 액터가 이미 할당되어 있는 레이어는 회색으로 탈색됩니다. 
@@ -177,7 +180,7 @@ Description:레벨에 있는 액터를 빠르게 선택하고 표시여부를 �
 
 **개별 액터를 제거하려면:**
 
-1. 레이어 콘텐츠 뷰에서 액터 옆의 ![Remove Actor](button_remove_layer.png) 버튼을 누릅니다.
+1. 레이어 콘텐츠 뷰에서 액터 옆의 'X' 버튼을 누릅니다.
 
 	![Remove Actor button](layer_remove_actor.png)(quality:100)
 
@@ -211,11 +214,11 @@ Description:레벨에 있는 액터를 빠르게 선택하고 표시여부를 �
 | 필터링 미적용 레이어 목록 | 필터링 적용 레이어 목록 |
 [/REGION]
 
-![Clear Search](button_search_clear.png) 버튼을 누르면 검색어가 지워집니다.
+'X' 버튼을 누르면 검색어가 지워집니다.
 
 ## 표시여부
 
-어느 레이어의 콘텐츠든 레이어 목록에서 레이어에 대한 ![Visibility](button_layer_visibility.png) 버튼을 
+어느 레이어의 콘텐츠든 레이어 목록에서 레이어에 대한 비저빌리티 (눈) 버튼을 
 토글하여 표시하고 숨길 수 있습니다.
 
 [REGION:imagetable]
@@ -279,7 +282,7 @@ Description:레벨에 있는 액터를 빠르게 선택하고 표시여부를 �
 | 레이어 리스트 콘텐츠 바 | 레이어 콘텐츠 뷰 제목줄 |
 [/REGION]
 
-![Layer Type Select](button_select_type.png) 버튼을 누르면 레이어에 있는 모든 StaticMeshActor 가 선택됩니다.
+인스턴스 버튼을 누르면 레이어에 있는 모든 StaticMeshActor 가 선택됩니다.
 
 ![Selected StaticMeshActors](layer_select_type.png)
 

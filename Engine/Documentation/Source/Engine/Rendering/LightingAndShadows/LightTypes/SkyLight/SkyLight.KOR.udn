@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2602348
+﻿INTSourceChangelist:2683713
 Availability: Public
 Title:스카이 라이트
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows, Engine/Rendering/LightingAndShadows/LightTypes
 Description:스카이 라이트 기본입니다.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -77,6 +78,16 @@ Description:스카이 라이트 기본입니다.
 
 아래 그림은 **스카이 라이트** 를 활용하는 씬에서의 이미지 예제입니다.
 
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Sky Light](Skylight.png)(w:800)
+	[/PARAM]
+	[PARAM:after]
+	![No Sky Light](NoSkylight.png)(w:800)
+	[/PARAM]
+[/OBJECT]
+
+<!--
 [REGION:lightbox]
 
 [![](skyLightEx_01.png)(w:884)](skyLightEx_01.png) [![](skyLightEx_02.png)(w:884)](skyLightEx_02.png)
@@ -84,6 +95,7 @@ Description:스카이 라이트 기본입니다.
 [/REGION]
 
 _스테이셔너리 스카이 라이트로만 라이팅된 씬으로, 각기 다른 HDR 스카이박스 큐브맵을 지정한 것입니다._
+-->
 
 ## 스태틱 스카이 라이트
 
@@ -93,22 +105,42 @@ _스테이셔너리 스카이 라이트로만 라이팅된 씬으로, 각기 다
 
 ## 스테이셔너리 스카이라이트
 
-**모빌리티** 가 **스테이셔너리** 인 **스카이 라이트** 는 **라이트매스** 에서 그림자를 굽습니다. 레벨에 **스테이셔너리 스카이 라이트** 를 배치하고나면, 라이트를 리빌드해야 구은 그림자를 얻을 수 있습니다. 그 이후에는 리빌드 없이 스카이 라이트를 변경할 수 있습니다.
+**모빌리티** 가 **스테이셔너리** 인 **스카이 라이트** 는 **라이트매스** 에서 그림자를 굽습니다. 레벨에 **스테이셔너리 스카이 라이트** 를 배치하고 나면, 라이트를 리빌드해야 구은 그림자를 얻을 수 있습니다. 그 이후에는 리빌드 없이 스카이 라이트를 변경할 수 있습니다.
 
-**라이트매스** 가 굽는 **스카이 라이트** 섀도우는, **Bent Normal** (굽은 노멀)이라 불리는 방향성 차폐 정보를 저장합니다. 텍셀에서 차폐가 가장 덜한 방향을 나타냅니다. 차폐가 가장 심한 곳에는 표면 노멀 대신 이 방향을 스카이 라이팅에 사용하여, 균열이 있는 곳의 퀄리티를 꽤나 향상시켜 줍니다.
+**라이트매스** 가 굽는 **스카이 라이트** 섀도는, **Bent Normal** (굽은 노멀)이라 불리는 방향성 차폐 정보를 저장합니다. 텍셀에서 차폐가 가장 덜한 방향을 나타냅니다. 차폐가 가장 심한 곳에는 표면 노멀 대신 이 방향을 스카이 라이팅에 사용하여, 균열이 있는 곳의 퀄리티를 꽤나 향상시켜 줍니다.
 
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Sky Light with AO only](skyLightEx_03.png)(w:500)
+	[/PARAM]
+	[PARAM:after]
+	![Sky Light with bent normal occlusion](skyLightEx_04.png)(w:500)
+	[/PARAM]
+[/OBJECT]
+
+<!--
 [REGION:lightbox]
 
 [![](skyLightEx_03.png)(w:462)](skyLightEx_03.png) [![](skyLightEx_04.png)(w:462)](skyLightEx_04.png)
 
 [/REGION]
-
+-->
 _첫 그림은 AO 만 있는 스카이 라이트입니다. 둘째 그림은 굽은 노멀 차폐로 된 스카이 라이트입니다. 빛이 들어오는 부분에 있는 균열 표면이 절충된 것을 볼 수 있습니다.
 
 주: **모빌리티** 가 **스태틱** 또는 **스테이셔너리** 인 컴포넌트와 라이트만 **스테이셔너리 스카이 라이트** 에 캡처되어 사용됩니다.
 
 모든 **스테이셔너리 라이트** 유형과 마찬가지로, 직사광 색은 **블루프린트** 나 **마티네** 를 통해 실행시간 변경이 가능합니다. 하지만 간접광은 라이트맵에 구워지므로 실행시간 변경이 불가능합니다. 간접광 양은 `IndirectLightingIntensity` 로 제어 가능합니다.
 
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Direct Lighting Only](0Original.jpg)(w:800)
+	[/PARAM]
+	[PARAM:after]
+	![Direct Lighting and Diffuse GI computed for a Stationary Sky Light](0SkyLightGI.jpg)(w:800)
+	[/PARAM]
+[/OBJECT]
+
+<!--
 [REGION:lightbox]
 
 [![](0Original.jpg)(w:884)](0Original.jpg) [![](0SkyLightGI.jpg)(w:884)](0SkyLightGI.jpg)
@@ -116,6 +148,7 @@ _첫 그림은 AO 만 있는 스카이 라이트입니다. 둘째 그림은 굽�
 [/REGION]
 
 _위: 직사광만, 아래: 스테이셔너리 스카이라이트에 대해 라이트매스로 계산된 디퓨즈 GI 와 직사광_
+-->
 
 ## 무버블 스카이라이트
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2612601
+﻿INTSourceChangelist:2725217
 Availability:Public
 Title: 세션 및 대전검색
 Crumbs:%ROOT%, Programming, Programming/Online
@@ -14,7 +14,7 @@ Matchmaking, 대전검색은 _플레이어_ 와 _세션_ 을 성사시켜 주는
 개인 세션이 있습니다.
 
 현재 플레이중인 모든 게임이 나열된 온라인 게임 로비를 그려봅시다. 목록의 각 게임은 세션, 또는 개별 온라인 
-경기입니다. 플레이어는 검색이나 기타 수단을 통해 세션을 알게되고, 
+경기입니다. 플레이어는 검색이나 기타 수단을 통해 세션을 알게 되고, 
 그 세션에 참가하여 경기를 플레이합니다.
 
 세션의 기본적인 수명은:
@@ -144,7 +144,7 @@ Online Subsystem 은 활성 세션에서 플레이어 대전표를 짜는 데 �
 
 친구 따라 세션으로 가는 것은 `IOnlineSession:FindFriendSession()` 를 호출하여 세션에 참가하고자 하는 
 로컬 플레이어 수 및 세션에 이미 있는 친구의 ID 를 전달합니다. 
-세션을 찼았고, 참가에 사용할 수 있는 검색 결과가 들어있는 경우 `OnFindFriendSessionComplete` 
+세션을 찾았고, 참가에 사용할 수 있는 검색 결과가 들어있는 경우 `OnFindFriendSessionComplete` 
 델리게이트가 발동됩니다.
 
 플레이어는 `IOnlineSession:SendSessionInviteToFriend()` 또는 `IOnlineSession::SendSessionInviteToFriends()` 를 

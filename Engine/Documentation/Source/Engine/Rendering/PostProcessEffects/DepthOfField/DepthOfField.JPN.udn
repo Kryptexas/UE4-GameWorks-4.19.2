@@ -1,43 +1,56 @@
-﻿INTSourceChangelist:2536392
+﻿INTSourceChangelist:2832095
 Availability:Public
 Title: 被写界深度
 Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
 Description: 深度に応じてシーンをブラーして、焦点をシミュレーションする
+Version:4.9
 
 [REGION:fullwidth]
 ![Depth of Field](dof.png)
 [/REGION]
 
 [EXCERPT:DepthOfField_Desc]
-被写界深度 (DoF) は、焦点の前後の距離に応じてブラーをシーンに適用します。現実の世界のカメラで起こることをシミュレーションします。エフェクトを使用すると、見る側の注意を引き付け、
+**被写界深度** (DoF) は、焦点の前後の距離に応じてブラーをシーンに適用します。現実の世界のカメラで起こることをシミュレーションします。エフェクトを使用すると、見る側の注意を引き付け、
 レンダリングを写真や映画にさらに近づけることができます。
 [/EXCERPT:DepthOfField_Desc]
 
-##被写界深度のタイプ
+## DoF のタイプ
 
-アンリアル エンジン 4 で被写界深度エフェクトを実施する方法は 2 種類あります。Bokeh (ボケ) と Gaussian (ガウス) です。
+アンリアル エンジン 4 で被写界深度エフェクトを実施する方法は 3 種類あります。Bokeh、Gaussian、Circle です。
 
 [REGION:imagetable]
-| ![Bokeh DoF](bokeh.png)(w:455) | ![Gaussian DoF](gaussian.png)(w:455) |
-| :----: | :----: |
-| ボケ被写界深度 | ガウス被写界深度 |
+| ![Bokeh DoF](bokeh.png)(w:300) | ![Gaussian DoF](gaussian.png)(w:300) | ![Circle DoF](Circle.png)(w:300) |
+| :----: | :----: | :----: |
+| Bokeh DoF | Gaussian DoF | Circle DoF |
 [/REGION]
 
 
-### ガウス被写界深度
+### Gaussian DoF
 
 [EXCERPT:DepthOfField_Gaussian]
-ガウス被写界深度は、標準のガウスブラーでシーンをぼかします。この方法は処理が速いので、パフォーマンスが非常に重要なインゲームでの使用に一般的に適しています。
+Gaussian DoF は、標準のガウスブラーでシーンをぼかします。この方法は処理が速いので、パフォーマンスが非常に重要なインゲームでの使用に一般的に適しています。
 [/EXCERPT:DepthOfField_Gaussian]
 
-### Bokeh (ボケ)
+### Bokeh DoF
 
 [EXCERPT:DepthOfField_Bokeh]
-ボケとは、オブジェクトがフォーカスされていない時に写真や映画で見られる形状名です。ボケ被写界深度は、カメラレンズで生成されたエフェクトを再現する形状を定義するために、テクスチャを使用してテクスチャー化されたクワッドを各ピクセルにレンダリングする方法です。映画的な表現をシーンに提供します。 
+Bokeh (ボケ) とは、オブジェクトがフォーカスされていない時に写真や映画で見られる形状名です。Bokeh DoF は、カメラレンズで生成されたエフェクトを再現する形状を定義するために、テクスチャを使用してテクスチャー化されたクワッドを各ピクセルにレンダリングする方法です。映画的な表現をシーンに提供します。 
 実際に実装すると、このパフォーマンスは半分の解像度で実施されます。また、レンダリング パフォーマンスをあまり目に付かない場所へ保存しようともします。詳細は [補正適応被写界深度](#補正適応被写界深度) を参照してください。
 
-これらの状況ではパフォーマンスよりも外見が重要視されるので、シネマティクスとショーケースをボケ手法の最有力候補にします。そのため、ボケ手法はパフォーマンス全体の中でもかなりの負荷がかかります。
+これらの状況ではパフォーマンスよりも外見が重要視されるので、シネマティクスとショーケースをボケ手法の最有力候補にします。そのため、Bokeh 手法はパフォーマンス全体の中でもかなりの負荷がかかります。
 [/EXCERPT:DepthOfField_Bokeh]
+
+### Circle DoF
+
+[EXCERPT:DepthOfField_Circle]
+Circle DoF は一番最近追加され、現実世界のカメラにより近づきました。Bokeh DoF と同じように、シャープな HDR コンテンツで円形のボケを確認できます。Bokeh が非常に大きい点が、このアルゴリズムの弱点です。
+ノイズが発生し、Bokeh DoF ほどクリアではありません。
+パフォーマンスは非常によく (Bokeh DoFより遥かに) 品質、特に遷移の品質が優れています。
+
+Circle DoF のデフォルトは、かなり貧弱な設定になっています。最大のエフェクトを得るために、設定を調整することができます。大きなボケに対しては絞り値を低くして、オブジェクトに近づいて、視野角を低い設定にします。
+いろいろな焦点距離を試してみてください。
+
+[/EXCERPT:DepthOfField_Circle]
 
 ## 実装
 
@@ -48,29 +61,45 @@ Description: 深度に応じてシーンをブラーして、焦点をシミュ�
 * 遷移領域内のオブジェクトは、遷移領域内の位置に基づき、ブラーしていないシーンとブラーしているレイヤとの間で線形にブレンドされます。
 
 
-これらのレイヤは、遷移領域を含めて、 **Depth of Field Layers** 表示フラグを使って可視化することができます (**[Show] > [Visualize]** の下) 。近距離レイヤは緑、遠距離レイヤは青、焦点領域は黒で示されます。
+これらのレイヤは、遷移領域を含めて、(**[Show (表示)] > [Visualize (可視化)]** の配下の) **Depth of Field Layers** 表示フラグを使って可視化することができます 。近距離レイヤは緑、遠距離レイヤは青、焦点領域は黒で示されます。
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Scene](dof_layers.png)(w:700)
+	[/PARAM]
+	[PARAM:after]
+	![Layer Visualization](dof_layers_visualize.png)(w:700)
+	[/PARAM]
+[/OBJECT]
+
+このビジュアル化をさらに改善して、耳よりな情報もいろいろ入れるようにします。
 
 [REGION:imagetable]
-| ![Scene](dof_layers.png)(w:455) | ![Layer Visualization](dof_layers_visualize.png)(w:455) |
-| :----: | :----: |
-| 被写界深度のシーン | 被写界深度レイヤを可視化 |
+| ![Scene](NewVisualize.png) |
+| :----: |
+| VisualizeDOF |
 [/REGION]
+
+CircleDOF を使用する際は、深度とピクセルサイズと合わせて計算された複雑度の円 (BokehSize) を表す照準 (クロスヘア) がマウス カーソルに付いていることが確認できます。
+大きい Bokeh の形状にあまり合わないですし、大きいボケの形状用ではないので、円のサイズは実際のエフェクトと常に一致するとは限りません。この点を今後改善していきたいと思います。
 
 ## プロパティ
 
 | プロパティ | 説明 |
 | -------- | ----------- |
-| **Method** | シーンをぼかす手法をボケまたはガウスから選択します。 |
+| **Method** | シーンをぼかす手法をBokeh、Gaussian、Circle から選択します。 |
+| **Depth Blur km for 50%** | todo |
+| **Depth Blur Radius** | 1920x ピクセルでの深度半径 |
+| **Aperture** | todo |
 | **Focal Distance** | シーンが完全にフォーカスされブラーが一切発生していない領域の中心のカメラからのアンリアル単位の距離 [INCLUDE:#FocalDistance] |
 | **Focal Region** | シーンが完全にフォーカスされブラーが一切発生していない焦点距離より奥のアンリアル単位の距離 [INCLUDE:#FocalRegion] |
-| **Near Transition Range** | ガウス被写界深度の場合、 フォーカス状態からブラー状態へシーンが遷移するカメラに近い側の焦点領域からのアンリアル 単位の距離 [INCLUDE:#NearTransitionRange] |
-| **Far Transition Range** | ガウス被写界深度の場合、 フォーカス状態からブラーへシーンが遷移していくカメラから遠い側の焦点領域からのアンリアル 単位の距離 [INCLUDE:#FarTransitionRange] |
-| **Scale** | ボケ手法のブラー用の全体的なスケーリング ファクター [INCLUDE:#Scale] |
-| **Max Bokeh Size** | ボケ被写界深度のブラーの最大サイズ (ビューの幅に対する割合) (**注:** パフォーマンス コストは サイズ*サイズに応じて増減します)。任意の距離でのボケサイズ算出に使用する関数はざっと以下の通り: [INCLUDE:#MaxBokehSize] |
-| **Near Blur Size** | ガウス被写界深度の近距離ブラーの最大サイズ (ビューの幅に対する割合) (**注**: パフォーマンス コストは大きさに応じて増減します) [INCLUDE:#NearBlurSize] |
-| **Far Blur Size** | ガウス被写界深度の遠距離ブラーの最大サイズ (ビューの幅に対する割合) (**注**: パフォーマンス コストは大きさに応じて増減します) [INCLUDE:#FarBlurSize] |
+| **Near Transition Range** | Gaussian DoF の場合、 フォーカス状態からブラー状態へシーンが遷移するカメラに近い側の焦点領域からのアンリアル 単位の距離 [INCLUDE:#NearTransitionRange] |
+| **Far Transition Range** | Gaussian DoF の場合、 フォーカス状態からブラーへシーンが遷移していくカメラから遠い側の焦点領域からのアンリアル 単位の距離 [INCLUDE:#FarTransitionRange] |
+| **Scale** | Bokeh DoF のブラーに対する全体的なスケーリング ファクター [INCLUDE:#Scale] |
+| **Max Bokeh Size** | Bokeh DoF のブラーの最大サイズ (ビューの幅に対する割合) (**注:** パフォーマンス コストはサイズ*サイズに応じて増減します)。任意の距離でのボケサイズ算出に使用する関数はざっと以下の通り: [INCLUDE:#MaxBokehSize] |
+| **Near Blur Size** | Gaussian DoF の近距離ブラーの最大サイズ (ビューの幅に対する割合) (**注**: パフォーマンス コストは大きさに応じて増減します) [INCLUDE:#NearBlurSize] |
+| **Far Blur Size** | Gaussian DoF の遠距離ブラーの最大サイズ (ビューの幅に対する割合) (**注**: パフォーマンス コストは大きさに応じて増減します) [INCLUDE:#FarBlurSize] |
 | **Shape** | オブジェクトのフォーカスが外れた時にボケの形状を定義するテクスチャ (ブレンド不可能) <!--TODO: 実例の画像を数枚表示する--> |
-| **Occlusion** | ブラーされたジオメトリを通常のシルエットとオパシティよりもどの程度多く拡張するかを制御します。 0.18 でかなり自然なオクルージョン結果が得られます。レイヤの色漏れ問題の解決には 0.4 は必要でしょう。値が非常に小さくなると (0.18 以下) 、オブジェクトはカメラに非常に近くても十分機能しますが、エフェクトは無効になります。 [INCLUDE:#Occlusion] |
+| **Occlusion** | ブラーされたジオメトリを通常のシルエットとオパシティよりもどの程度多く拡張するかを制御します。0.18 でかなり自然なオクルージョン結果が得られます。レイヤーの色漏れ問題の解決には 0.4 は必要でしょう。値が非常に小さくなると (0.18 以下) 、オブジェクトはカメラに非常に近くても十分機能しますが、エフェクトは無効になります。 [INCLUDE:#Occlusion] |
 | **Color Threshold** | 色に応じて適用被写界深度からフル解像度の使用に切り替える閾値を制御します。値が小さいほどシーンでフル解像度のプロセスを使用することが多くなります。 |
 | **Size Threshold** | サイズに応じて適用被写界深度からフル解像度の使用に切り替える閾値を制御します。値が大きいほどシーンでフル解像度のプロセスを使用することが多くなります。 |
 | **Sky Distance** | スカイボックスにフォーカスできる人工的な距離 (例えば 200000) です。 <=0 で機能オフ、 ガウス被写界深度のみの場合、パフォーマンスに負荷がかかります。 |
@@ -80,7 +109,7 @@ Description: 深度に応じてシーンをブラーして、焦点をシミュ�
 [REGION:imagetable]
 | ![DoF Focal Distance - Near](dof_focaldist_0.png)(w:240) | ![DoF Focal Distance - Mid](dof_focaldist_1.png)(w:240) | ![DoF Focal Distance - Far](dof_focaldist_2.png)(w:240) |
 | --- | --- | --- |
-| Focal Distance = 400.0 | Focal Distance = 1000.0 | Focal Distance = 2500.0 |
+| 焦点距離 = 400.0 | 焦点距離 = 1000.0 | 焦点距離 = 2500.0 |
 [/REGION]
 [/EXCERPT:FocalDistance]
 
@@ -107,7 +136,7 @@ Description: 深度に応じてシーンをブラーして、焦点をシミュ�
 ![Bokeh CoC](dof_bokeh_coc.png) 
 | ![DoF Bokeh Size - 2.5](dof_size_0.png)(w:240) | ![DoF Bokeh Size - 5.0](dof_size_1.png)(w:240) | ![DoF Bokeh Size - 10.0](dof_size_2.png)(w:240) |
 | --- | --- | --- |
-| Size = 2.5 | Size = 7.5 | Size = 15.0 |
+| サイズ = 2.5 | サイズ = 7.5 | サイズ = 15.0 |
 [/REGION]
 [/EXCERPT:MaxBokehSize]
 
@@ -115,7 +144,7 @@ Description: 深度に応じてシーンをブラーして、焦点をシミュ�
 [REGION:imagetable]
 | ![DoF Near Blur Size - 2.5](dof_nearsize_0.png)(w:240) | ![DoF Near Blur Size - 5.0](dof_nearsize_1.png)(w:240) | ![DoF Near Blur Size - 10.0](dof_nearsize_2.png)(w:240) |
 | --- | --- | --- |
-| Size = 0.0 | Size = 0.25 | Size = 2.5 |
+| サイズ = 0.0 | サイズ = 0.25 | サイズ = 2.5 |
 [/REGION]
 [/EXCERPT:NearBlurSize]
 
@@ -123,7 +152,7 @@ Description: 深度に応じてシーンをブラーして、焦点をシミュ�
 [REGION:imagetable]
 | ![DoF Far Blur Size - 2.5](dof_farsize_0.png)(w:240) | ![DoF Far Blur Size - 5.0](dof_farsize_1.png)(w:240) | ![DoF Far Blur Size - 10.0](dof_farsize_2.png)(w:240) |
 | --- | --- | --- |
-| Size = 0.0 | Size = 0.25 | Size = 2.5 |
+| サイズ = 0.0 | サイズ = 0.25 | サイズ = 2.5 |
 [/REGION]
 [/EXCERPT:FarBlurSize]
 
@@ -131,7 +160,7 @@ Description: 深度に応じてシーンをブラーして、焦点をシミュ�
 [REGION:imagetable]
 | ![DoF Occlusion - 0.05](dof_occlusion_0.png)(w:240) | ![DoF Occlusion - 0.18](dof_occlusion_1.png)(w:240) | ![DoF Occlusion - 0.4](dof_occlusion_2.png)(w:240)
 | --- | --- | --- |
-| Occlusion = 0.05 | Occlusion = 0.18 | Occlusion = 0.4 |
+| オクルージョン = 0.05 | オクルージョン = 0.18 | オクルージョン = 0.4 |
 [/REGION]
 [/EXCERPT:Occlusion]
 
@@ -139,24 +168,28 @@ Description: 深度に応じてシーンをブラーして、焦点をシミュ�
 [REGION:imagetable]
 | ![DoF Scale - 0.0](dof_scale_0.png)(w:240) | ![DoF Scale - 0.375](dof_scale_1.png)(w:240) | ![DoF Scale - 1.0](dof_scale_2.png)(w:240) |
 | --- | --- | --- |
-| Scale = 0.0 | Scale = 0.375 | Scale = 1.0 |
+| スケール = 0.0 | スケール = 0.375 | スケール = 1.0 |
 [/REGION] 
 [/EXCERPT:Scale]
 -->
 
 ## 補正適応被写界深度
 
-ボケ被写界深度はパフォーマンス向上のため、デフォルトで通常は4分の1の解像度 (各方向に半分の解像度) でレンダリングされます。ほとんどの場合、このダウンサンプルは気づかず、質も全く問題ないのですが、アーティファクトが発生したり期待通りの結果がでない場合もあります。
+ボケ被写界深度はパフォーマンス向上のため、デフォルトで通常は 4 分の 1 の解像度 (各方向に半分の解像度) でレンダリングされます。ほとんどの場合、このダウンサンプルは気づかず、質も全く問題ないのですが、アーティファクトが発生したり期待通りの結果がでない場合もあります。
 
-[REGION:imagetable]
-| ![Adaptive Reoslution - Off](dof_adaptive_0.png)(w:455) | ![Adaptive Reoslution - On](dof_adaptive_1.png)(w:455) |
-| :----: | :----: |
-| ダウンサンプル |適応アルゴリズム |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Adaptive Resolution - Off](dof_adaptive_0.png)(w:700)
+	[/PARAM]
+	[PARAM:after]
+	![Adaptive Reoslution - On](dof_adaptive_1.png)(w:700)
+	[/PARAM]
+[/OBJECT]
 
-ダウンサンプルの被写界深度テクニックのみを使用すると、バックグラウンドでブラーされているキャラクターにムラが生じていることが分かります。フォアグランドのキャラクターの角の周辺にもアーティファクトが生じています。アーティファクトは適応被写界深度を使用して取り除くと、バックグラウンドのキャラクターの外観がだいぶ滑らかになります。
 
-適応被写界深度は、 **Adaptive Depth of Field** 表示フラグ (**[Show] > [Visualize]**) で表示できます。有効にすると、ダウンサンプルしたエフェクト (緑) と元の解像度のエフェクト (赤) が使用されている場所がオーバーレイに表示されます。通常のシーンカラーは、ブラーが適用されていない箇所に表示されます。
+ダウンサンプルした被写界深度テクニックのみを使用すると、バックグラウンドでブラーされているキャラクターにムラが生じていることが分かります。フォアグランドのキャラクターの角の周辺にもアーティファクトが生じています。アーティファクトは適応被写界深度を使用して取り除くと、バックグラウンドのキャラクターの外観がだいぶ滑らかになります。
+
+適応被写界深度は、**Adaptive Depth of Field** 表示フラグ (**[Show (表示)] > [Visualize (可視化)]**) で表示できます。有効にすると、ダウンサンプルしたエフェクト (緑) と元の解像度のエフェクト (赤) が使用されている場所がオーバーレイに表示されます。通常のシーンカラーは、ブラーが適用されていない箇所に表示されます。
 
 [REGION:fullwidth]
 ![Adaptive DoF Visualization](dof_adaptive_visualize.png)
@@ -164,8 +197,12 @@ Description: 深度に応じてシーンをブラーして、焦点をシミュ�
 
 通常、ここは全て緑にします。表示中に赤が多ければ多いほど、そのシーンの各フレームのレンダリングコストは高くなります。
 
-[REGION:imagetable]
-| ![Adaptive Reoslution - Optimized](dof_adaptive_good.png)(w:455) | ![Adaptive Reoslution - Expensive](dof_adaptive_bad.png)(w:455) |
-| :----: | :----: |
-| 最適化された状態 | 負荷が高い状態 |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Adaptive Resolution - Optimized](dof_adaptive_good.png)(w:700)
+	[/PARAM]
+	[PARAM:after]
+	![Adaptive Resolution - Expensive](dof_adaptive_bad.png)(w:700)
+	[/PARAM]
+[/OBJECT]
+

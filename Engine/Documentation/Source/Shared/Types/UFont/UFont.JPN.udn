@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2284846
+﻿INTSourceChangelist:2591123
 Availability:NoPublish
 Title:UFont
 Crumbs:
@@ -6,9 +6,9 @@ Description:Font クラスの概要
 
 [EXCERPT:UFont]
 
-グリフに関する情報を含むフォント オブジェクトフォント データベースには個別のグリフの座標のみしか含まれないのに対し、グリフ ビットマップは含まれているテクスチャに格納されています。
+グリフ (glyph) のセット関する情報を含むフォント オブジェクトです。フォントのデータベースには、個々のグリフの座標しか入っていませんが、グリフのビットマップは、そのテクスチャに保存されています。
 
 [VAR:ToolTipFullLink]
-Engine/Rendering/Materials/ExpressionReference/Font
+Engine/Rendering/Materials/ExpressionReference/Fontfontsampleparameter
 [/VAR]
 [/EXCERPT:UFont]

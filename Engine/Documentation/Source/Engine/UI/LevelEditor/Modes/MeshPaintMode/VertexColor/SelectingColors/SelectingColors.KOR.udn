@@ -1,8 +1,9 @@
-INTSourceChangelist:2094776
+﻿INTSourceChangelist:2693538
 Availability: Public
 Title:색 선택하기
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor
 Description:메시 페인트 모드에서 색을 선택하는 법입니다.
+Version: 4.9
 
 
 [EXCERPT:Intro]

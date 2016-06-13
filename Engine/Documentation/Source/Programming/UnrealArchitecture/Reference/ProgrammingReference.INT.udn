@@ -20,6 +20,8 @@ be garbage collected by the engine, and can be displayed and edited within Unrea
 to specify the [class](Programming\UnrealArchitecture\Reference\Classes\Specifiers)'s, [function](Programming\UnrealArchitecture\Reference\Functions\Specifiers)'s, [property](Programming\UnrealArchitecture\Reference\Properties\Specifiers)'s,
  [interface](Programming\UnrealArchitecture\Reference\Interfaces\Specifiers)'s, or [struct](Programming\UnrealArchitecture\Reference\Structs\Specifiers)'s behavior within Unreal Engine and Unreal Editor.
 
+ In addition to the above macros, there is a UPARAM() macro that is primarily used when exposing C++ code to Blueprints. To see examples of UPARAM() being used, see the [](Engine/Blueprints/TechnicalGuide/ExtendingBlueprints) documentation.
+
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/prog_icon.png)(convert:false)

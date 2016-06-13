@@ -1,13 +1,13 @@
-﻿INTSourceChangelist:2573957
+﻿INTSourceChangelist:2621989
 Availability:NoPublish
 Title:ブループリント エディタ
 Crumbs:
 Description:ブループリント ノードの概要
 
 [EXCERPT:UK2Node_ExecutionSequence]
-Sequence ノードは単一実行パルスで一連のイベントを順番にトリガーすることを可能にします。
+Sequence ノードは単一実行パルスで、一連のイベントを順番にトリガーすることを可能にします。
 
-ノード には好きなだけ出力をつけることができ、Sequence ノードが入力を受け取ると全ての出力が呼び出されます。出力は常に順番に、しかも遅延なく呼び出されます。
+ノードには好きなだけ出力をつけることができ、Sequence ノードが入力を受け取ると全ての出力が呼び出されます。出力は常に順番に、しかも遅延なく呼び出されます。
 [/EXCERPT:UK2Node_ExecutionSequence]
 
 [EXCERPT:UK2Node_IfThenElse]
@@ -43,7 +43,7 @@ False - 入力条件が *false* の場合、実行パルスを出力します。
 
 
 "Switch on ..." ノードで、単一の列挙型変数値に基いて実行パスを選択できます。"Switch on ..." ノードは各列挙型変数に対して使用可能で、様々な出力ピンがあります (使用可能な列挙型変数値につき 1 つずつ)。
-実行されると、 このノードはアタッチされた Boolean の入力値に基づいて、 
+実行されると、このノードはアタッチされた Boolean の入力値に基づいて、 
 適切な出力へ実行パルスを送り込みます。
 
 ---
@@ -56,7 +56,7 @@ Selection - トリガーされる出力ピンを表示する Enum 値を受け�
 
 **出力ピン**
 
-Variable Number of Execution Pins -  それぞれの列挙型変数に対して出力ピンがあります。ただし、実行信号は対応する [Selection] 入力から出力されます。 
+Variable Number of Execution Pins -  それぞれの列挙型変数に対して出力ピンがあります。ただし、実行信号は対応する "Selection" 入力から出力されます。 
 
 [/EXCERPT:UK2Node_SwitchEnum]
 
@@ -68,7 +68,7 @@ Variable Number of Execution Pins -  それぞれの列挙型変数に対して�
 
 Spawn Actor from Blueprint Node ノードはブループリント テンプレート (Blueprint 入力経由で指定) を受け取り、ワールドでそのインスタンスのスポーンを試みます。
 
-Spawn Transform 入力はアクタのスポーン位置 (および最初の方向) の定義に使用されます。その位置が衝突物によってブロックされている場合、 Spawn Even if Colliding 入力を _True_ に設定しない限り、アクタはスポーンに失敗します。
+Spawn Transform 入力はアクタのスポーン位置 (および最初の方向) の定義に使用されます。その位置が衝突物によってブロックされている場合、Spawn Even if Colliding 入力を _True_ に設定しない限り、アクタはスポーンに失敗します。
 
 ---
 
@@ -95,7 +95,7 @@ Return Value - スポーンされた新規のアクタ インスタンスを出�
 
 Spawn Actor from Class Node ノードはアクタ クラス (Class 入力経由で指定) を受け取り、ワールドでそのインスタンスのスポーンを試みます。
 
-Spawn Transform 入力はアクタのスポーン位置 (および最初の方向) の定義に使用されます。その位置が衝突物によってブロックされている場合、 Spawn Even if Colliding 入力を _True_ に設定しない限り、アクタはスポーンに失敗します。
+Spawn Transform 入力はアクタのスポーン位置 (および最初の方向) の定義に使用されます。
 
 ---
 
@@ -104,7 +104,7 @@ Spawn Transform 入力はアクタのスポーン位置 (および最初の方�
 Unlabeled Execution Pin - この実行入力はスポーン処理をトリガーします。 
 Class - スポーンしたいブループリント アクタを示します (必須)。 
 Spawn Transform - ワールドにアクタを配置と方向づけに使う Transform を受け取ります。 
-Spawn Even if Colliding - スポーン位置が何かにブロックされている場合アクタをスポーンすべきか判断するための Boolean 値を受け取ります。  
+Collision Handling Override - スポーン位置が何かによってブロックされている状況の対処方法に対するアクタ クラス設定をオーバーライドします。[Default] を選択すると、アクタ クラスの SpawnCollisionHandlingMethod が使用されます。
 
 ---
 
@@ -120,7 +120,7 @@ Return Value - スポーンされた新規のアクタ インスタンスを出�
 
 [EXCERPT:UK2Node_FormatText]
 
-Format Text Node はパワフルな Blueprint ノードの 1 つです。リテラル値や入力が別のノードからのものかどうかにより変化します。最初は 入力が 1 つ、出力が 1 つで非常に簡素に見えますが、Format 入力にテキストを追加し、{ } (「指定子」と呼びます) でカプセル化したセクションを追加すると、{ } で囲まれたテキストの名前が付いた入力ピンが増えていきます。このような感じです。
+Format Text Node はパワフルな Blueprint ノードの 1 つです。リテラル値や入力が別のノードからのものかどうかにより変化します。最初は入力が 1 つ、出力が 1 つで非常に簡素に見えますが、Format 入力にテキストを追加し、{ } (「指定子」と呼びます) でカプセル化したセクションを追加すると、{ } で囲まれたテキストの名前が付いた入力ピンが増えていきます。このような感じです。
 
 ![](FText_02.png)
 
@@ -130,11 +130,11 @@ Format Text Node はパワフルな Blueprint ノードの 1 つです。リテ�
 
 ![](FText_04.png)
 
-Format Text ノードを選択しどのピンを探しているのか定義し、Format Text ノードに探してもらいたい「指定子」で [Details] ペインの [Arguments] を編集します。
+Format Text ノードを選択しどのピンを探しているのか定義し、Format Text ノードに探してもらいたい「指定子」で [Details (詳細)] ペインの [Arguments (引数)] を編集します。
 
 ![](FText_03.5.png)
 
-因数はすべて見つからないといけないわけではないので、できるだけ多くのアイテムでFormat Text ノードをロードして探すと Format 入力で見つけたものを提供します。
+因数はすべて見つからないといけないわけではないので、できるだけ多くのアイテムで Format Text ノードをロードして探すと Format 入力で見つけたものを提供します。
 
 
 [VAR:ToolTipFullLink]
@@ -179,13 +179,13 @@ Custom Event は、ユーザーが作成し名前と出力ピンも自分で付�
 
 [EXCERPT:UEdGraphNode_Documentation]
 Documentation ノードによって、ブループリントのグラフ内で UDN からの抜粋を表示できるようになります。 
-ユーザーは、[Details] ビューの /Engine/Documentation/Source に相対するリンクとして
+ユーザーは、[Details (詳細)] ビューの /Engine/Documentation/Source に相対するリンクとして
 ドキュメントページへの UDN パスを入力しなければなりません。
 [/EXCERPT:UEdGraphNode_Documentation]
 
 
 [EXCERPT:UK2Node_MathExpression]
-Math Expression ノードは折りたたまれたグラフのように動きます。ダブルクリック して、機能を構成しているサブグラフを開く単一のノードです。名前 / 表現式は最初はブランクです。ノード名を変更すると、新規の表現式がパースされ、新規のサブグラフが生成されます。 
+Math Expression ノードは折りたたまれたグラフのように動きます。ダブルクリックして、機能を構成しているサブグラフを開く単一のノードです。名前 / 表現式は最初はブランクです。ノード名を変更すると、新規の表現式がパースされ、新規のサブグラフが生成されます。 
 [VAR:ToolTipFullLink]
 Engine/Blueprints/UserGuide/MathNode
 [/VAR]

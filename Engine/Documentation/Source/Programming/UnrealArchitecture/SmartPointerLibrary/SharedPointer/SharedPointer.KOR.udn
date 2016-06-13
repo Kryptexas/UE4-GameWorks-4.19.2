@@ -35,7 +35,7 @@ Version: 4.9
 	// Create a shared pointer to a new object  새 오브젝트로의 공유 포인터 생성
 	TSharedPtr<FTreeNode> Node( new FTreeNode() );
 
-두 번째 예제에서 새로운 FTreeNode 오브젝트는 사실상 그것을 가리키는 공유 포인터에 소유되어 있습니다. 공유 포인터가 영역을 볏어나면, 그 오브젝트는 소멸됩니다.
+두 번째 예제에서 새로운 FTreeNode 오브젝트는 사실상 그것을 가리키는 공유 포인터에 소유되어 있습니다. 공유 포인터가 영역을 벗어나면, 그 오브젝트는 소멸됩니다.
 
 공유 포인터를 복사할 때, 가리키고 있는 오브젝트로의 레퍼런스가 추가됩니다.
 

@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2647048
-Availability:NoPublish
+﻿Availability:NoPublish
 Title:ソースコードのブランチのリファレンス
 Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine
 Description:ソースコードのブランチの概要のリファレンス
@@ -8,7 +7,7 @@ Related:GettingStarted/DownloadingUnrealEngine
 Related:Programming/Development/BuildingUnrealEngine
 Related:Programming/Development/CompilingProjects
 Related:Support/Builds
-バージョン：4.8
+Version:4.8
 
 ## ソースコードのブランチ
 

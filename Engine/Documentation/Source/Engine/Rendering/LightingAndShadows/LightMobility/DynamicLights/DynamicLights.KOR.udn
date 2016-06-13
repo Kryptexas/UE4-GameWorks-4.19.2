@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2602324
+﻿INTSourceChangelist:2677195
 Availability:Public
 Title:무버블 라이트
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows,Engine/Rendering/LightingAndShadows/LightMobility
 Description:무버블, 이동가능한 라이트에 대한 일반적인 정보입니다.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -59,7 +60,7 @@ Description:무버블, 이동가능한 라이트에 대한 일반적인 정보�
 
 ## 섀도잉
 
-그림자를 드리우도록 설정된 무버블 라이트는 전체 씬 다이내믹 섀도우를 사용하기에 퍼포먼스 비용이 엄청납니다. 퍼포먼스에 가장 큰 영향을 끼치는 부분은 라이트에 영향받는 메시의 갯수와, 해당 메시의 트라이앵글 수 입니다. 즉 커다란 반경에 그림자를 드리우는 무버블 라이트는 반경이 작은 무버블 라이트보다 비용이 몇 배가 될 수 있다는 뜻입니다.
+그림자를 드리우도록 설정된 무버블 라이트는 전체 씬 다이내믹 섀도를 사용하기에 퍼포먼스 비용이 엄청납니다. 퍼포먼스에 가장 큰 영향을 끼치는 부분은 라이트에 영향받는 메시의 갯수와, 해당 메시의 트라이앵글 수 입니다. 즉 커다란 반경에 그림자를 드리우는 무버블 라이트는 반경이 작은 무버블 라이트보다 비용이 몇 배가 될 수 있다는 뜻입니다.
 
 ## 사용법
 

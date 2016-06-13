@@ -1,17 +1,17 @@
-﻿INTSourceChangelist:2374931
+﻿INTSourceChangelist:2674592
 Availability: Public
-Title:디스턴스 모델 감쇠
+Title:사운드 감쇠
 Crumbs: %ROOT%, Engine, Engine/Audio
 Description:언리얼 엔진 4 에서 소리의 attenuation, 감쇠 제어에 쓰이는 여러가지 디스턴스 모델에 대한 참고서입니다.
-
+Crumbs: %ROOT%, Engine, Engine/Audio
+version: 4.9
 [TOC (start:2 end:2)]
 
 
 
-## 개요
 
-감쇠(Attenuation)란 플레이어가 사운드에서 멀어져감에 따라 그 볼륨이 낮아지는 기능입니다. 감쇠는 MinRadius와 MaxRadius의 두 반경을 통해 작동합니다. 사운드의 원점으로부터 MinRadius를 통해 움직일 때 사운드의 볼륨은 100%입니다. 
-MinRadius와 MaxRadius 사이를 통과하면 볼륨은 100%와 정적 사이를 선형으로 감쇠합니다. 
+**Sound Attenuation** (사운드 감쇠)란 플레이어가 사운드에서 멀어져감에 따라 그 볼륨이 낮아지는 기능입니다. 감쇠는 MinRadius와 MaxRadius의 두 반경을 통해 작동합니다. 사운드의 원점으로부터 MinRadius를 통해 움직일 때 사운드의 볼륨은 100%입니다. 
+MinRadius와 MaxRadius 사이를 통과할 때 볼륨이 100% 에서 고요해질 때까지 선형으로 감쇠됩니다. 
 이 감쇠가 발생하는 비율은 두 반경간의 볼륨을 조절하는 폴오프 곡선의 여러 유형을 제공하는 DistanceModel 프로퍼티와 **Distance Algorithm** (거리 알고리즘) 세팅에 따릅니다. 
 MaxRadius 밖으로 나가게 되면 사운드의 한계 밖에 있게 되므로 아무 소리도 들리지 않게 됩니다.
 
@@ -124,5 +124,5 @@ Min 900/Max 1000:
 
 ![Attnenuation Cone](AttenuationCone.png)(w:480)
 
-용례: 원뿔 내 원점 앞에 플레이어가 있을 때는 최대 소리로, 원점 바로 뒤에 있을때는 침묵하도록 사운드를 투사시키는 데 좋습니다 (위 예제는 플레이어를 쫓아다니는 보안 카메라를 나타낼 수도 있습니다).
+용례: 원뿔 내 원점 앞에 플레이어가 있을 때는 최대 소리로, 원점 바로 뒤에 있을 때는 침묵하도록 사운드를 투사시키는 데 좋습니다 (위 예제는 플레이어를 쫓아다니는 보안 카메라를 나타낼 수도 있습니다).
 

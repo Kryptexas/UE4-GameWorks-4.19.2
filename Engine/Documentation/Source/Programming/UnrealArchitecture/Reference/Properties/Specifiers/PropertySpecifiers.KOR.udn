@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2704985
 Title: 프로퍼티 지정자
 Crumbs:%ROOT%, Programming/UnrealArchitecture/Reference,  Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Properties
 Description: Property (프로퍼티)가 엔진과 에디터의 다양한 면과 어떻게 작동하는지를 나타내는 게임플레이 프로퍼티 선언시 사용되는 키워드입니다.
 Availability:Public
+Version: 4.9
 
 [EXCERPT:main]
 프로퍼티 선언시, 지정자를 붙여 프로퍼티가 엔진과 에디터의 다양한 부분과 어떻게 작동하는지를 

@@ -42,7 +42,7 @@ Description:提供了快速访问常用工具和操作的命令集。
 
 <!--
 [EXCERPT:simulate]
-以模拟模式启动游戏。去参照[在编辑器中模拟](Engine/UI/LevelEditor/InEditorTesting#SimulateInEditor) 部分获得更多信息。
+以模拟模式启动游戏。去参照[在编辑器中模拟](Engine/UI/LevelEditor/InEditorTesting#在编辑器中模拟) 部分获得更多信息。
 [/EXCERPT:simulate]
 [EXCERPT:playin]
 以播放模式启动游戏。点击该箭头将会显示 **Play Options（运行选项）** 菜单。去参照[在编辑器中运行](Engine/UI/LevelEditor/InEditorTesting#在编辑器中运行) 部分获得更多信息。

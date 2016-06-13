@@ -1,11 +1,13 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Material - How To Use Fresnel in your Materials
-Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
-Description:A How To Guide for using the Fresnel Material node. 
-Related: Engine/Rendering/Materials/Functions/Reference/VectorOps
-Related: Engine/Rendering/Materials/Editor/Interface
-Related: Engine/Rendering/Materials/ExpressionReference/Utility
+﻿INTSourceChangelist:2747812
+Availability:Public
+Title:材质 - 在材质中使用菲涅耳效果
+Crumbs:%ROOT%, Engine, Engine/Rendering/Materials
+Description:有关使用“菲涅耳效果”（Fresnel）材质节点的操作指南。 
+Related:Engine/Rendering/Materials/Functions/Reference/VectorOps
+Related:Engine/Rendering/Materials/Editor/Interface
+Related:Engine/Rendering/Materials/ExpressionReference/Utility
+Version:4.9
+SkillLevel:Advanced
 
 
 [TOC(start:2 end:3)]
@@ -14,132 +16,132 @@ Related: Engine/Rendering/Materials/ExpressionReference/Utility
 
 
 
-Often times when creating a film or cinematic, you need a way to better highlight the silhouette of a character. This lighting technique is often referred to as rim lighting, or edge lighting, and 
-involves adding additional lights to help better distinguish the Characters silhouette from the background. While this works quite nicely for film, adding additional lights to any 3D scene adds 
-extra complexity that can quickly become hard to manage. Unreal Engine 4 (UE4) offers a solution to this by allowing artist to simulate the same basic effect using the Material of the Character. 
-This way, the artist has more control over the look and feel of the effect and can even use it for things like adding lighting to an unlit object to save on performance. 
+创建电影时，您常常需要更好地凸显人物的轮廓。这种照明技术通常称为“边缘照明”，它 
+涉及添加额外的光线，以帮助更好地区分人物边缘与背景。虽然这种技术对于电影来说效果相当不错，但是，向任何 3D 场景添加额外的光线也意味着 
+额外增加复杂性，这种复杂性有可能会迅速变得难以管理。虚幻引擎 4 (UE4) 提供了一种解决方案，即，允许美工使用人物的材质模拟相同的基本效果。 
+如此一来，美工就会对该效果的外观拥有更大的控制权，甚至可以使用这种效果向不照亮对象添加照明以提高性能，等等。 
 
 
-## Fresnel 
+## 菲涅耳效果 
 
-Fresnel is the term used to describe how the light you see reflects at different intensities based off of the angle you are viewing it from. 
-For example, if you are standing over a pool looking straight down at the pool, you will not see a lot of reflections in the water. 
-As you start to move your head so that the water in the pool becomes more and more parallel to your eye level, you will begin to notice more and more reflections in the water. 
+**菲涅耳效果** 术语用来描述您所看到的光线如何根据您的查看角度以不同强度反射。 
+例如，如果您站在一个池子旁边直视池底，那么将看不到水中的大量反光。 
+当您开始移动头部，使得池水水面与您的视平线越来越平行时，您会开始注意到水中的反光越来越多。 
 
-In UE4, the Fresnel Material Expression node calculates a falloff based on the dot product of the surface normal and the direction to the camera. 
-When the surface normal points directly at the camera, a value of 0 is output meaning there should be no Fresnel effect happening. 
-When the surface normal is perpendicular to the camera, a value of 1 is output meaning the full effect of the Fresnel should be taking place. 
-The result is then clamped to [0,1] so you do not have any negative color in the center. The following image demonstrates this concept. 
+在 UE4 中，“菲涅耳效果”（Fresnel）材质表达式节点会根据表面法线与摄像机方向的点乘积来计算衰减。 
+当表面法线正对着摄像机时，输出值为 0，这表示不应产生菲涅耳效果。 
+当表面法线与摄像机垂直时，输出值为 1，这表示应产生完全的菲涅耳效果。 
+然后，将结果限制在 [0,1] 范围内，以确保不会在中央产生任何负颜色。下图说明这一概念。 
 
 ![](FN_Caculation_Example.png)
 
-In the middle of the Sphere, where the 0 is, you will see that there is no Fresnel effect. This is because the camera is pointing directly at the surface normal. 
-As the surface normal becomes more and more perpendicular to the camera, or getting closer and closer to the number 1, the Fresnel effect becomes more and more visible 
-and this is the type of behavior we want. 
+在球体中央（0 所处的位置），您可以看到这里没有任何菲涅耳效果。这是因为，摄像机正对着表面法线。 
+当表面法线变得与摄像机越来越垂直时，即，越来越接近数字 1 时，菲涅耳效果变得越来越明显， 
+而这正是我们所期望的行为类型。 
 
 
-## Fresnel Node Breakdowns
+## “菲涅耳效果”（Fresnel）节点明细
 
-When searching for the Fresnel Material Expression, you will find that there is a Fresnel under **Utility** and one under **Vector Ops**. 
-While these two Material Expressions have the same name and do the same thing, they do differ in how you set them up for use.
+搜索“菲涅耳效果”（Fresnel）材质表达式时，您会发现在 **实用程序（Utility）**和 **矢量操作（Vector Ops）**下各有一个“菲涅耳效果”（Fresnel）。 
+虽然这两个材质表达式的名称及作用都相同，但它们在进行设置以备使用方面的确有差别。
 
-### Fresnel Utility
+### “菲涅耳效果”（Fresnel）实用程序
 
-The Fresnel that is found under **Utility** is the one that is used in this How - To and is the simplest one out of the two to setup and use. 
-It is **highly recommended** that you use this version to begin with and then move on to the other once you better understand how the node functions.
+本操作指南使用 **实用程序（Utility）**下的“菲涅耳效果”（Fresnel），这是两种设置及使用方法中较为简单的一种。 
+**强烈建议** 您先使用这个版本，在对这个节点的功能有较好的理解之后再使用另一版本。
 
 ![](FN_Fresnel_Node.png)
 
-| Property | Description|
+| 属性 | 说明|
 |--------- | ---------- |
-| **ExponentIn** | This controls the fall off of the Fresnel Effect. |
-| **BaseReflectFrctionIn** | This specifies the fraction of specular reflection when the surface is viewed from straight on. Setting this to a value of 1 effectively disables Fresnel |
-| **Normal** | Here you can input a Normal to effect the way the Fresnel effect is rendered. This property cannot be set by supplying either a Normal map or a Vector 3 input.|
+| **ExponentIn** | 此属性控制菲涅耳效果的衰减。|
+| **BaseReflectFrctionIn** | 此属性指定从正对表面的方向查看表面时，镜面反射的小数。将此属性设置为值 1 会有效禁用菲涅耳效果 |
+| **法线（Normal）**| 在这里，您可输入法线，以影响菲涅耳效果的渲染方式。此属性无法通过提供法线贴图或矢量 3 输入来设置。|
 
-You have two options for adjusting the values for the Fresnel Material Expression.
-* Select the Fresnel Material Expression in the Material Graph and then input values via the **Details** Panel.
+您可使用两个选项来调整“菲涅耳效果”（Fresnel）材质表达式的值。
+* 在材质图中选择“菲涅耳效果”（Fresnel）材质表达式，然后通过 **细节（Details）**面板来输入值。
 	![](FN_Change_Via_Details.png)
-* Add Constant or Scalar nodes to the Material Graph and then hook them up the respective inputs. 
+* 在材质图中添加“常量”（Constant）或“标量”（Scalar）节点，然后将它们连接到各自的输入。 
 	![](FN_Change_In_Graph.png)
 
 [region:tip]
-When using a Normal map, make sure to add a **Transform** Expression node. This will transform the Normal map from Tangent Space into World Space. If this transform is not performed, your Normal map might not influence the Fresnel the way you intend. 
+使用法线贴图时，请确保添加 **转换（Transform）**表达式节点。这会将该法线贴图从切面空间转换到世界空间。如果未执行此转换，那么您的法线贴图可能无法以您期望的方式来影响菲涅耳效果。 
 [/region] 
 
 
-### Fresnel Vector Ops
+### “菲涅耳效果”（Fresnel）矢量操作
 
-The Fresnel that is found under **Vector Ops** is a highly customizable version of Fresnel that allows you to affect many different aspects of how the Fresnel is rendered. 
-However this added functionality has its drawbacks as incorrect settings or setup could lead to artifacts or errors in how the Fresnel effect is rendered.
-This node should only be used if the Fresnel that is under **Utility** does not yield the results you are looking for. 
+**矢量操作（Vector Ops）**下的“菲涅耳效果”（Fresnel）是菲涅耳效果的高度可定制版本，它使您能够影响菲涅耳效果渲染方式的许多不同方面。 
+但是，这项附加功能有其缺点，即，不正确的设置可能会导致渲染菲涅耳效果时出现伪影或错误。
+仅当 **实用程序（Utility）**下的“菲涅耳效果”（Fresnel）无法产生您所需的结果时，才应使用这个节点。 
 
 ![](FN_Fresnel_Node_VO.png)
 
-| Property | Description|
+| 属性 | 说明|
 |--------- | ---------- |
-| **Normal Vector (V3)** |  Here you can input a Normal to effect the way the Fresnel effect is rendered. This property cannot be set by supplying either a Normal map or a Vector 3 input. |
-| **Camera Vector(V3)** |This allows you to effect the Camera that is used to determine the Dot Product between the Camera and the surface normal. |
-| **Invert Fresnel(B)** | This will allow you to invert the effect of the Fresnel. This is useful if you want the Fresnel to only be applied in the center or at the edges. |
-| **Power(S)** | This allows you to control the power of the Fresnel effect. Entering bigger numbers will tighten up the areas affected. Smaller numbers will allow more areas to be affected by the Fresnel.  |
-| **Use Cheap Contrast(B)** | This will allow the Fresnel to use a cheaper method for calculating contrast between lights and darks. |
-| **Cheap Contrast Dark (S)** | This controls how dark the Fresnel will be. This will only have an effect if **Use Cheap Contrast** is enabled.  |
-| **Cheap Contrast Bright (S)** | This controls how bright the Fresnel effect will be. This will only have an effect if **Use Cheap Contrast** is enabled.|
+| **法线矢量（Normal Vector）(V3)** |  在这里，您可输入法线，以影响菲涅耳效果的渲染方式。此属性无法通过提供法线贴图或矢量 3 输入来设置。|
+| **摄像机矢量（Camera Vector）(V3)** |此属性使您能够影响用来确定摄像机与表面法线之间的点乘积的摄像机。|
+| **反转菲涅耳效果（Invert Fresnel）(B)** | 此属性用来反转菲涅耳效果。此属性在您希望仅在中央或边缘处应用菲涅耳效果时非常有用。|
+| **强度（Power）(S)** | 此属性用来控制菲涅耳效果的强度。输入较大的数值将减小所影响的区域。较小的数值将使菲涅耳效果影响较大的区域。|
+| **使用低成本对比（Use Cheap Contrast）(B)** | 此属性允许菲涅耳效果使用成本较低的方法来计算明暗对比。|
+| **低成本对比黑暗（Cheap Contrast Dark）(S)** | 此属性用于控制菲涅耳效果的黑暗程度。此属性只有在 **使用低成本对比（Use Cheap Contrast）**启用后才有效。|
+| **低成本对比明亮（Cheap Contrast Bright）(S)** | 此属性用于控制菲涅耳效果的明亮程度。此属性只有在 **使用低成本对比（Use Cheap Contrast）**启用后才有效。|
 
 
-## How to Use Fresnel in your Material 
+## 如何在材质中使用菲涅耳效果 
 
-Creating a Material that uses Fresnel can be accomplished in the following steps. 
+以下是创建使用菲涅耳效果的材质的步骤。 
 
-1. For this example, we are going to create a new Material however you can still apply the concepts learned here to any existing Material you want. 
-	To create a new Material, use the mouse and **Right-Click** in the **Content Browser** and then select Material from the Create Basic Asset list. 
-	Once the Material is created, name it **Fresnel_Material**. 
+1. 在本示例中，我们将创建一个新材质，但您仍可将此处学习的概念应用于您所需的任何现有材质。 
+	要创建新材质，请在 **内容浏览器** 中 **右键单击**，然后从“创建基本资产”（Create Basic Asset）列表中选择“材质”（Material）。 
+	创建材质后，将其命名为 **Fresnel_Material**。 
 
 	![](FN_Creat_New_Material.png)
 
-1. Open up the new Material by **Double-Clicking** on it with the **Left Mouse Button** in the **Content Browser. ** 
-	Once the Material is opened, locate the needed Material Expression nodes by searching for them in the **Palette** search menu.
-	To place Material Expression nodes into the Material Graph, first select the node you want to place with the **Left Mouse Button** and with the **Left Mouse Button** still held down, drag the node into the Material Graph. 
-	For this Material, the following type and amount of nodes are needed. 
+1. 在 **内容浏览器** 中，使用 **鼠标左键** **双击** 该新材质以将其打开。 
+	打开材质后，通过在 **选用板** 搜索菜单中进行搜索，找到所需的材质表达式节点。
+	要将材质表达式节点放入材质图，请先使用 **鼠标左键** 选中您想要放置的节点，然后按住 **鼠标左键** 将该节点拖到材质图中。 
+	在本教程中，需要下列类型及数量的节点。 
 
-	| Node Name | Amount|
+	| 节点名称 | 数量|
 	| -------| --------|
-	| **Vector Parameter Node**| 2|
-	| **Scalar Node** | 2|
-	| **Fresnel Node**| 1|
+	| **矢量参数（Vector Parameter）节点**| 2|
+	| **标量（Scalar）节点** | 2|
+	| **菲涅耳效果（Fresnel）节点**| 1|
 
-	When completed, your Material Graph should look like this. 
+	完成之后，您的材质图应该类似于下图。 
 
 	![](FN_Adding_Nodes.png)
 
 	[region:note]
-	When you search for the Fresnel Material Expression, you will find two different types that you can choose from. For this How - To, we will only be using the Fresnel that can be found under **Utility**.
+	当您搜索“菲涅耳效果”（Fresnel）材质表达式时，您会找到可供您选择的两种不同类型。在本操作指南中，我们仅使用 **实用程序（Utility）**下的“菲涅耳效果”（Fresnel）。
 	[/region]
 
-1. Now that the required Material Expression nodes have been added to the Material Graph, it is now time to start connecting everything together and giving the parameters base values. 
-	For this example, we are going to be using the following Parameter names and default values. 
-	|Name | Value |
+1. 需要的材质表达式节点现已添加到材质图中，您可以开始将它们连接到一起并指定参数基本值。 
+	在此示例中，我们将使用下列参数名称和默认值。 
+	|名称 | 值 |
 	|-----| ------|
 	| **Base_Color**| 0.5, 0.5, 0.5|
 	| **Roughness**|0.5|
 	| **Fresnel_Color**|1.0, 0.0, 0.0|
 	| **Fresnel_Exp**|0.8|
 
-	When completed, your Material graph should look like this. 
+	完成之后，您的材质图应该类似于下图。 
 
 	![](FN_Completed_Materail.png)
 
-1. Once you have everything hooked up, make sure to **Apply** and **Save** your Material. After saving the Material, you can then close down the Material editor.
+1. 将所有内容连接到一起之后，务必 **应用（Apply）**并 **保存（Save）**材质。保存材质后，您可关闭材质编辑器。
 
 	![](FN_Apply_Save.png)
 
-1. With the Material now compiled, saved, and closed, locate the Material in the **Content Browser**, and **Right-Click** on it with the mouse. 
-	From the menu that pops up, select the **Create Material Instance** option. Once you do this, a new Material Instance will be created. 
-	When completed, your **Content Browser** should look like this. 	
+1. 材质现已编译、保存和关闭，请在 **内容浏览器** 中找到该材质，并 **右键单击** 它。 
+	从弹出菜单中选择 **创建材质实例（Create Material Instance）**选项。选择此选项将创建新的材质实例。 
+	完成后，您的 **内容浏览器** 应该如下所示。 	
 	![](FN_Create_New_Material_Instance.png)
 
-1. Open up the newly created Material Instance by **Double-Clicking** on it in the **Content Browser** with the **Left Mouse Button**. 
-	Once the Material Instance is open, you can begin to adjust the Material Instance parameters by first, enabling the parameter you want to edit by clicking on the grayed out box that is next to parameter name. 
-	Once this has been done, the parameter can then be edited. For example, if you enable the **Fresnel_Exp** parameter, you can increase or decrease the effect the Fresnel has on the surface. 
+1. 在 **内容浏览器** 中，使用 **鼠标左键双击** 新创建的材质实例将其打开。 
+	打开材质实例后，您可以开始调整材质实例参数，但首先必须通过单击参数名称旁边的灰色框启用要编辑的参数。 
+	执行此操作后，该参数即可编辑。例如，如果启用 **Fresnel_Exp** 参数，那么您可增强或减弱表面上的菲涅耳效果。 
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -154,82 +156,86 @@ Creating a Material that uses Fresnel can be accomplished in the following steps
 	[/OBJECT]
 
 [region:tip]
-Remember that inputting bigger numbers into **Fresnel_Exp** will push the Fresnel effect closer and closer to the edges and lower numbers will bring the effect closer to the center. 
-Here is an example of what happens to the Fresnel when the **Fresnel_Exp** value is to different values. 
-Notice how as the number increases, the Fresnel effect is pushed closer and closer to the edges of the mesh like in the following example.
+请记住，对 **Fresnel_Exp** 输入的数值越大，将使菲涅耳效果离边缘越近，而数值越小则该效果越接近中心。 
+以下是不同 **Fresnel_Exp** 值对菲涅耳效果的影响示例。 
+请注意，随着数值增大，菲涅耳效果会离网格边缘越来越近，如以下示例所示。
 ![](FN_Different_Fresnel_Exp_Values.png)
 [/region]
 
 
-## Fresnel & Normal Maps
+## “菲涅耳效果”（Fresnel）与法线贴图
 
-If you input a Normal Map into the Normal input of the Fresnel, you will see that you can affect the surface in a number of very interesting ways. 
-This is because of the Normal maps influence over the surface normal. As we learned before, the Fresnel works by checking to see if the surface normal is perpendicular to the camera or not. 
-If it is perpendicular to the camera, then the Fresnel effect will take place. On a smooth sphere, this means that the Fresnel will only take place at the edges of object. 
-However when a Normal map is introduced, we change the surface normal to no longer be smooth, allowing the Fresnel effect to take happen in places that it normally would not if the 
-surface Normal had been smooth. 
+如果您输入法线贴图到“菲涅耳效果”（Fresnel）的“法线”（Normal）输入，您会看到，可以通过多种非常有趣的方式来影响表面。 
+这是因为，法线贴图会影响表面法线。正如我们以前所了解到的那样，“菲涅耳效果”（Fresnel）会检查表面法线是否与摄像机垂直。 
+如果它与摄像机垂直，那么将出现菲涅耳效果。在平滑的球体上，这意味着只会在对象边缘产生菲涅耳效果。 
+但是，引入法线贴图时，我们将表面法线更改为不再平滑，从而使菲涅耳效果可在表面法线平滑时正常情况下 
+不会出现该效果的位置出现。 
 
-For a visual example at what is going on, take a look at the following image showing the effect the surface normal has on the Fresnel. 
-On the left (image 1) is what the Fresnel node will output with a flat surface normal. Now take a look at the right hand side (image 2.)
-In this image, a Normal map was input which drastically changes the surface normal. 
-Because the surface normal is no longer flat everywhere, you get more of the Fresnel being displayed. 
+如需这种情况的可视示例，请查看下图，此图显示表面法线对菲涅耳效果的影响。 
+左侧（图 1）是使用平面表面法线时“菲涅耳效果”（Fresnel）节点的输出。现在，让我们看看右侧的图 2。
+在此图中，已输入法线贴图，这使表面法线产生大幅变化。 
+因为表面法线不再始终平坦，所以显示了更多菲涅耳效果。 
 
 ![](FN_Effect_On_Surface_Normal.png)
 
-In the image below, we can see how different Normal maps can affect the Fresnel in different ways. 
+在下图中，我们可以看到不同法线贴图如何以不同方式影响菲涅耳效果。 
 
 ![](FN_Fresnel_&_Normal_Map.png)
 
-The Material that was used to create the images above was the same Material that was created before but with the following modifications made. 
+用来创建上述各图的材质就是我们以前创建的材质，但进行了下列修改。 
 
-* The Materials **Blend Mode** was changed from **Default** to **Translucent**
-* The final output for the Fresnel that was plugged into the **Emissive Color** input was also plugged into the **Opacity** input.
-* A new 2D Texture Sampler was added and plugged into the **Normal** input. **Tech_Hex_Tile_N** from the Starter Content was used as the Normal texture.
-* A new Scalar Parameter was added that is multiplied by a **Texture Coordinates** expression to implement some basic uniform titling on the Normal map. 
+* 材质的 **混合模式（Blend Mode）**已从**不透明（Opaque）**更改为 **半透明（Translucent）**
+* 连接到 **自发光颜色（Emissive Color）**输入的“菲涅耳效果”（Fresnel）最终输出也连接到 **半透明（Opacity）**输入中。
+* 添加了新的“2D 纹理样本”（2D Texture Sampler），并将其连接到 **法线（Normal）**输入。使用起步内容中的 **Tech_Hex_Tile_N** 作为法线纹理。
+* 已添加新的标量参数，此参数与 **纹理坐标** 表达式相乘，以便在法线贴图上实现一些基本的统一平铺。 
 
 ![](FN_Adding_Normal_Map.png)
 
 
-The Fresnel Material Expression can also be supplied with a Normal map that can affect the way the Fresnel is rendered. 
-This is particularly useful if you want to use the Fresnel to display something like an energy shield on a Material but still have that Material look normal when the shield is not active. 
-To achieve this using the Material above, the following things need to be done.
+“菲涅耳效果”（Fresnel）材质表达式也可以通过法线贴图来提供，该贴图可影响菲涅耳效果的渲染方式。 
+如果您想要使用菲涅耳效果在材质上显示能量护盾等效果，但希望材质在护盾激活前仍正常显示，那么法线贴图特别有用。 
+要使用以上材质来实现此目标，需完成下列操作。
 
-1. First change the **Base Color** and **Roughness** to use the **T_Brick_Clay_New_D** texture from the Starter Content. 
+1. 首先，更新 **半透明照明模式（Translucency Lighting Mode）**，将其从 **体积无方向（Volumetric Non Directional）**更改为 **表面半透明体积（Surface Translucency Volume）**。
 
-1. Next change the Normal input so that it uses T_Brick_Clay_New_N, which can also be found in the Starter Content. 
+1. 将 **底色（Base Color）**和 **粗糙度（Roughness）**更改为使用起步内容
+中的 **T_Brick_Clay_New_D** 纹理。 
 
-1. Next search for a **Transform** Expression node in the Palette and add it to the Material graph. Make sure that it is set to transform from Tangent to World space. 
+1. 接着，更改“法线”（Normal）输入，使其使用同样可在起步内容中找到的 T_Brick_Clay_New_N。 
 
-1. Connect the old Normal map texture node into the input of the Transform node and connect its output into the Normal input on the Fresnel node and when completed, your Material should look something like this. 
+1. 接着，在选用板中搜索 **转换（Transform）**表达式节点，并将其添加到材质图中。确保将其设置为从切面空间转换到世界空间。 
+
+1. 将旧的法线贴图纹理节点连接到“转换”（Transform）节点的输入，并将其输出连接到“菲涅耳效果”（Fresnel）节点的“法线”（Normal）输入，完成后，您的材质应该如下所示。 
 
 ![](FN_Fresnel_Normal_Input.png)	
 
-Notice how the bricks look like they have nothing to do with the Fresnel. 
-You can even take this one step by adding a **Multiply** and **Constant** Expression node and then using that to control the intensity of Fresnel effect. 
-Here is how that would look when added to the Material from above. 
+请注意，砖块看起来丝毫没有菲涅耳效果。 
+您甚至可以更进一步，添加 **乘法（Multiply）**和 **常量（Constant）**表达式节点，然后使用这些节点来控制菲涅耳效果的强度。 
+以下是将这些节点添加到上文所述材质后的情况。 
 
 ![](FN_Controal_Fresnel_Effect.png)
 
-By adjusting the **Constant** that was added, you can control how the Fresnel affects the surface. 
-Setting the number to 0 turns off the effect and setting it to anything else will gradually reveal the effect like in the example below.
+通过调整已添加的 **常量（Constant）**，您可控制“菲涅耳效果”（Fresnel）对表面的影响。 
+将数值设置为 0 会关闭此效果，将其设置为任何其他值会使此效果逐步显现，如以下示例所示。
 
 ![](FN_Effect_Amount.png)
 
 
-## Other Uses for Fresnel 
+## “菲涅耳效果”（Fresnel）的其他用途 
 
-Due to the way Fresnel works, it can be used to do other things besides just rim lighting. 
-Here are some examples of using the Fresnel node to do other things than just rim lighting. 
+“菲涅耳效果”（Fresnel）的工作方式决定了它不仅可实现边缘照明，还可完成其他任务。 
+以下是使用“菲涅耳效果”（Fresnel）节点来完成除边缘照明以外的其他任务的一些示例。 
 
-* **Input Blending** You can use the Fresnel as the alpha for a LERP  to control how inputs to the LERP are combined together. 
+* **输入混合**
+您可使用“菲涅耳效果”（Fresnel）作为“插值”（LERP）的阿尔法输入，来控制“插值”（LERP）的各个输入如何组合到一起。 
 	![](FN_Lerp_Blending.png)
 
 
-## Conclusion 
+## 结论 
 
-Adding Fresnel to a Material is a great way to help better illuminate a character's silhouette or to help show an energy shield special effect. 
-Remember that Fresnel works based off of viewing angle and surface normal's, so if you want to add some interesting detail to the Fresnel try using a Normal map that has a little random noise in it. 
-Also do not forget that you can use Fresnel Material Expression to help blend between two different inputs which is very handy for visual effects like fire or smoke.
+向材质添加菲涅耳效果是一种很不错的方法，这有助于更好地凸显人物轮廓，或帮助显示能量护盾特效。 
+请记住，菲涅耳效果的实现以查看角度和表面法线为基础，因此，如果您想为菲涅耳效果增加一些有趣的细节，请尝试使用其中有少许随机噪声的法线贴图。 
+并且，请不要忘记，您可使用“菲涅耳效果”（Fresnel）材质表达式来帮助在两个不同输入之间进行混合，这样很容易实现火焰或烟雾等视觉效果。
 
 
 

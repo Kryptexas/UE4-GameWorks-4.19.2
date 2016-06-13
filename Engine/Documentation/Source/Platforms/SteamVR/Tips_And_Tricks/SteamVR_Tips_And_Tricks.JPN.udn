@@ -1,30 +1,34 @@
-﻿INTSourceChangelist:0
-Title: SteamVR Tips & Tricks
+﻿INTSourceChangelist:2940199
+Title:SteamVR のヒントとコツ
 Crumbs:%ROOT%, Platforms
-Description: A collection of tips & tricks to help you unlock the full power of SteamVR
+Description:StreamVR のフルパワーを全開にするヒントとコツ
 Availability:Public
 Navigation:platform
 Platform:SteamVR
+type:overview
+parent:Platforms/SteamVR
+tags:VR
+tags:SteamVR
 
-## Overview 
+## 概要 
 
-In the following section we will cover some tips and tricks that you can use to help unlock the full potential of UE4 and SteamVR.
+以下のセクションでは UE4 と StreamVR を最大限活用するために利用可能なヒントとコツを説明します。
 
 
-### Avoiding Display Flickering
+### ディスプレイのちらつき問題
 
-Each time the editor is launched the display will flicker when the SteamVR compositor takes over. 
-To stop this from happening you can do the following to keep the compositor running in the background at all times.
+エディタを起動させると、StreamVR コンポジタへの切り替え時に画面のちらつきが発生します。 
+コンポジタが常時バックグラウンドで実行するように以下の操作を行うことにより、画面のちらつきの発生を防ぐことができます。
 
-1. Locate the **vrcompositor.exe** file that should be in **C:\ProgramFiles(x86)\Steam\steamapps\common\SteamVR\bin\win64**.
-	
+1. **C:\ProgramFiles(x86)\Steam\steamapps\common\SteamVR\bin\win64** で **vrcompositor.exe** を探します。
+
 	![](T_Comp_EXE.png)
 
-1. Create a shortcut to vrcompositor.exe and then send that shortcut to your desktop.
-1. Right click on the shortcut that was placed on your desktop and then click on **Properties**.
-1. Inside of the **Shortcut** menu in the **Target** input add **-keepalive** after the .exe and press the **OK** button when done.  
+1. vrcompositor.exe のショートカットを作成して、それをデスクトップに送ります。
+1. デスクトップ上のショートカットを右クリックして、**[Properties]** をクリックします。
+1. **[Shortcut]** メニューの **Target** 入力の .exe の後に **-keepalive** を追加したら **[OK]** ボタンを押します。  
 	![](T_KeepAlive_CLA.png)
-1. Now when opening up the UE4 editor you should no longer have a flickering problem.
+1. これで、UE4 を開いた時に画面がちらつくことがなくなるはずです。
 
 
 

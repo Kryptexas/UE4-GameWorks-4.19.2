@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2635791
+﻿INTSourceChangelist:2755911
 Availability: Public
 Title: 1. 필수 구성
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 1. 필수 구성
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -24,7 +25,7 @@ Description:Step 1. 필수 구성
 
 %Steps%
 
-이 퀵스타트는 프로젝트 관련 배경지식이 있는 분들을 대상으로 하므로, 서브스테이션 제작이 힘들거나 즉석 문제 해결이 어려운 경우, 다음과 같이 프로젝트를 구성해야 합니다.
+이 퀵스타트는 프로젝트 관련 배경지식이 있는 분들을 대상으로 하므로, 대체 제작이 힘들거나 즉석 문제 해결이 어려운 경우, 다음과 같이 프로젝트를 구성해야 합니다.
 
 ## 단계
 
@@ -41,6 +42,7 @@ Description:Step 1. 필수 구성
 
 [/EXCERPT:AIProjectStart]
 %Steps%
+
 
 
 

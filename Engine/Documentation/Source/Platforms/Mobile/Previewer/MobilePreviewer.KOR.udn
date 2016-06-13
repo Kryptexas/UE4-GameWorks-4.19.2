@@ -1,9 +1,14 @@
-﻿INTSourceChangelist:2595813
+﻿INTSourceChangelist:2940199
 Availability:Public
 Title:모바일 프리뷰어
 Crumbs:%ROOT%, Platforms, Platforms/Mobile
 Description: 모바일 플랫폼에서의 게임에 어때 보이는지 UE4 에디터에서 미리보기 입니다.
 Platform:Mobile
+version: 4.9
+parent:Platforms/Mobile
+order:7
+type:overview
+tags:mobile
 
 ![](T_Rendering_Level_Examples.png)
 
@@ -18,7 +23,7 @@ Platform:Mobile
 UE4 안에서 에디터를 재시작하지 않고도 렌더링 레벨을 왔다갔다 부드럽게 전환할 수도 있습니다.
 현재 UE4 에디터 세션에 사용되는 렌더링 레벨을 변경하는 방법은 다음과 같습니다.
 
-[region:tip]
+[region:note]
 변화 적용을 위해 에디터 재시작을 할 필요는 없지만, 프리뷰 렌더링 레벨을 처음 변경할 때는 에디터의 셰이더 리컴파일 시간이 조금 필요할 것입니다.
 [/region]
 
@@ -37,7 +42,7 @@ UE4 안에서 에디터를 재시작하지 않고도 렌더링 레벨을 왔다�
 [/region]
 
 UE4 4.8 이전까지는 에디터 뷰포트 렌더링 메소드를 바꿔 모바일 렌더링 시뮬레이션을 하는 기능이 없었습니다.
-프로젝트가 모바일에서 어때보이는지를 확인하려면, **Enable Mobile Preview** (모바일 프리뷰 활성화) 옵션을 사용하여 독립형 게임을 실행해야 합니다.
+프로젝트가 모바일에서 어떻게 보이는지를 확인하려면, **Enable Mobile Preview** (모바일 프리뷰 활성화) 옵션을 사용하여 독립형 게임을 실행해야 합니다.
 모바일 프리뷰 모드를 활성화시키는 방법은 다음과 같습니다.
 
 1. **메인 툴바** 의 **플레이** 버튼 오른쪽 삼각형을 클릭하면 여러가지 플레이 모드가 뜹니다.

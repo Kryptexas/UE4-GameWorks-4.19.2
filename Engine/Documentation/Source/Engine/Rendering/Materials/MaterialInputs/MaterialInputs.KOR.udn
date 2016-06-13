@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2604081
+﻿INTSourceChangelist:2699495
 Availability:Public
 Title:머티리얼 입력
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/IntroductionToMaterials
 Description:머티리얼에 사용가능한 여러가지 입력과 그 사용방법에 대한 심도있는 설명서입니다.
+Version: 4.9
 
 여기서는 머티리얼 제작시 사용가능한 입력에 대해 살펴보겠습니다. 이러한 입력에 (상수, 파라미터, 텍스처 등의) 값을 물려주는 것으로 상상속의 어떤 물리적 표면도 정의해 낼 수 있습니다.
 
@@ -77,7 +78,7 @@ HDR 라이팅이 지원되므로 1 보다 큰 값이 허용됩니다.
 * 0.0 은 완벽히 투명함을,
 * 1.0 은 완벽히 불투명함을 나타냅니다.
 
-불투명 및 마스크드 블렌드 모드는 서브서피스 셰이딩 모델 중 하나를 사용할 떄도 오파시티를 사용합니다.
+불투명 및 마스크드 블렌드 모드는 서브서피스 셰이딩 모델 중 하나를 사용할 때도 오파시티를 사용합니다.
 
 [EXCERPT:lightbox]
 **클릭하면 원래 크기로 볼 수 있습니다.**

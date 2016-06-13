@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Physics Asset Properties Reference
+﻿INTSourceChangelist:2714898
+Availability:Public
+Title:物理资源属性参考
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhAT
-Description:A listing of properties and descriptions for Physics Bodies, Physics Constraints, and Physics Assets accessible in the Physics Asset Tool.
-Version: 4.9
+Description:Physics Asset 工具中可用物理形体、物理约束和物理资源的属性和描述列表。
+Version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -49,18 +49,18 @@ Version: 4.9
 
 [VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
 
-This page contains a reference listing of properties you will find while working in the Physics Asset Tool.
+本页中包含 Physics Asset 工具使用属性的参考列表。
 
-## Properties
+## 属性
 
-Below are the properties for Physics Asset Tool, separated into 3 expandable sections based on what is selected in the viewport.
+以下为 Physics Asset 工具的属性，基于视口中选择的内容划分为三个可扩展的部分。
 
 [OBJECT:modulesection]
 	[PARAMLITERAL:id]
 		PhatP
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Physics Asset Tool Properties
+		Physics Asset 工具属性
 	[/PARAM]
 	[PARAM:content]
 		%c1%
@@ -69,7 +69,7 @@ Below are the properties for Physics Asset Tool, separated into 3 expandable sec
 
 [VAR:c1]
 
-When no Physics Body or Physics Constraint is selected (regardless of mode), the properties for the Physics Asset Tool are show in the Details panel.
+未选中物理形体或物理约束时（无论哪个模式），Physics Asset 工具的属性显示在 Details 面板中。
 
 [OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
@@ -88,7 +88,7 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 		Sim1
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Simulation
+		模拟
 	[/PARAM]
 	[PARAM:content]
 		%p12%
@@ -100,7 +100,7 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 		MousS
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Mouse Spring
+		鼠标弹力
 	[/PARAM]
 	[PARAM:content]
 		%p13%
@@ -112,7 +112,7 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 		Poke
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Poking
+		存数
 	[/PARAM]
 	[PARAM:content]
 		%p14%
@@ -124,7 +124,7 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 		Adv
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Advanced
+		高级
 	[/PARAM]
 	[PARAM:content]
 		%p15%
@@ -136,7 +136,7 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 		Draw
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Drawing
+		绘图
 	[/PARAM]
 	[PARAM:content]
 		%p16%
@@ -150,8 +150,8 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 ![](PhATDef1.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
+| 属性 | %spacer% | 描述 |
+| --- | :---:| :--- |
 | **Physics Blend** || %doxygen:UPhATSimOptions::PhysicsBlend% |
 | **Update Joints from Animation** || |
 | **Poke Pause Time** || %doxygen:UPhATSimOptions::PokePauseTime% |
@@ -165,12 +165,12 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 ![](PhATDef2.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
+| 属性 | %spacer% | 描述 |
+| --- | :---:| :--- |
 |**Floor Gap** || %doxygen:UPhATSimOptions::FloorGap% |
 |**Grav Scale** || %doxygen:UPhATSimOptions::GravScale% |
-|**Max FPS** || Max FPS for simulation in PhAT. This is helpful for targeting the same FPS as your game. -1 means this is disabled.  |
-|**Time Dilation** || This will dilate the time by scale.  |
+|**Max FPS** || PhAT 中模拟的最高 FPS。为游戏设定目标 FPS 时十分实用。数值 -1 将禁用此功能。|
+|**Time Dilation** || 该属性将按比例膨胀时间。|
 [/REGION]
 
 [/VAR]
@@ -180,8 +180,8 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 ![](PhATDef3.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
+| 属性 | %spacer% | 描述 |
+| --- | :---:| :--- |
 |**Handle Linear Damping** || %doxygen:UPhATSimOptions::HandleLinearDamping% |
 |**Handle Linear Stiffness** || %doxygen:UPhATSimOptions::HandleLinearStiffness% |
 |**Handle Angular Damping** || %doxygen:UPhATSimOptions::HandleAngularDamping% |
@@ -196,8 +196,8 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 ![](PhATDef4.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
+| 属性 | %spacer% | 描述 |
+| --- | :---:| :--- |
 | **Poke Strength** || %doxygen:UPhATSimOptions::PokeStrength% |
 [/REGION]
 
@@ -208,8 +208,8 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 ![](PhATDef5.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
+| 属性 | %spacer% | 描述 |
+| --- | :---:| :--- |
 | **Show Constraints as Points** || %doxygen:UPhATSimOptions::bShowConstraintsAsPoints% |
 | **Show Names in Hierarchy** || %doxygen:UPhATSimOptions::bShowNamesInHierarchy% |
 [/REGION]
@@ -221,8 +221,8 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 ![](PhATDef6.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
+| 属性 | %spacer% | 描述 |
+| --- | :---:| :--- |
 | **Constraint Draw Size** || %doxygen:UPhATSimOptions::ConstraintDrawSize% |
 [/REGION]
 
@@ -235,7 +235,7 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 		BodyM
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Body Mode
+		形体模式
 	[/PARAM]
 	[PARAM:content]
 		%c2%
@@ -244,14 +244,14 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 
 [VAR:c2]
 
-When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the Details panel will display the properties for that Physics Body.
+当 Physics Asset 工具在形体模式中且一个物理形体已被选中时，Details 面板将显示此物理形体的属性。
 
 [OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
 		Body1
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Body Setup
+		形体设置
 	[/PARAM]
 	[PARAM:content]
 		%p21%
@@ -263,7 +263,7 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 		Phys1
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Physics
+		物理
 	[/PARAM]
 	[PARAM:content]
 		%p22%
@@ -275,7 +275,7 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 		Coll
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Collision
+		碰撞
 	[/PARAM]
 	[PARAM:content]
 		%p23%
@@ -289,8 +289,8 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 ![](PhATBody1.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
+| 属性 | %spacer% | 描述 |
+| --- | :---:| :--- |
 | **Bone Name** || %doxygen:UBodySetup::BoneName% |
 | **Consider for Bounds** || %doxygen:UBodySetup::bConsiderForBounds% |
 [/REGION]
@@ -302,33 +302,33 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 ![](PhATBody2.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
-| **Mass in KG** || Mass of the body in KG. |
+| 属性 | %spacer% | 描述 |
+| --- | :---:| :--- |
+| **Mass in KG** || 形体的质量按千克计。|
 | **Linear Damping** || %doxygen:FBodyInstance::LinearDamping% |
 | **Angular Damping** || %doxygen:FBodyInstance::AngularDamping% |
 | **Enable Gravity** || %doxygen:FBodyInstance::bEnableGravity% |
 | **Physics Type** || %doxygen:UBodySetup::PhysicsType% |
-| **Double Sided Geometry** || If true, the physics triangle mesh will use double sided faces when doing scene queries. Thsi is useful for planes and single sided meshes that need traces to work on both sides. |
+| **Double Sided Geometry** || 如为 true，物理三角网格体在进行场景查询时将使用双面。它对需要追踪来执行双面操作的平面和单面网格体十分有用。|
 | **Simple Collision Physical Material** || %doxygen:UBodySetup::PhysMaterial% |
 [/REGION]
 
-### Advanced
+### 高级
 
 ![](PhATBody2_adv.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
+| 属性 | %spacer% | 描述 |
+| --- | :---:| :--- |
 | **Start Awake** || %doxygen:FBodyInstance::bStartAwake% |
 | **Center of Mass Offset** || %doxygen:FBodyInstance::COMNudge% |
 | **Mass Scale** || %doxygen:FBodyInstance::MassScale% |
-| **Max Angular Velocity** || The maximum angular velocity for this instance. |
+| **Max Angular Velocity** || 此例的最大角速度。|
 | **Use Async Scene** || %doxygen:FBodyInstance::bUseAsyncScene% |
 | **Generate Wake Events** ||  |
-| **Max Depenetration Velocity** || The maximum velocity used to depenetrate this object.  |
+| **Max Depenetration Velocity** || 反穿透此物体的最大速度。|
 | **Walkable Slope Override** || %doxygen:UBodySetup::WalkableSlopeOverride% |
-| **Walkable Slope Behavior** || Behavior of this surface (whether we affect the walkable slope). Determines how the Walkable Slope Angle operates on the existing walkable angle, whether it increases or decreases it. |
+| **Walkable Slope Behavior** || 该表面的行为（是否影响可行走斜面）。确定可行走斜面角度增加或减小现有可行走角度。|
 | **Walkable Slope Angle** || %doxygen:FWalkableSlopeOverride::WalkableSlopeAngle% |
 | **Custom Sleep Threshold Multiplier** || |
 | **Position Solver Iteration Count** || %doxygen:FBodyInstance::PositionSolverIterationCount% |
@@ -343,20 +343,20 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 ![](PhATBody3.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
+| 属性 | %spacer% | 描述 |
+| --- | :---:| :--- |
 | **Simulation Generates Hit Events** || %doxygen:FBodyInstance::bNotifyRigidBodyCollision% |
 | **Phys Material Override** || %doxygen:FBodyInstance::PhysMaterialOverride% |
 | **Collision Response** || %doxygen:UBodySetup::CollisionReponse% |
 
 [/REGION]
-### Advanced
+### 高级
 
 ![](PhATBody3_adv.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
+| 属性 | %spacer% | 描述 |
+| --- | :---:| :--- |
 | **Use CCD** || %doxygen:FBodyInstance::bUseCCD% |
 [/REGION]
 
@@ -370,7 +370,7 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 		ConsM
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Constraint Mode
+		约束模式
 	[/PARAM]
 	[PARAM:content]
 		%c3%
@@ -379,14 +379,14 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 
 [VAR:c3]
 
-When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the Details panel will display the properties for that Physics Body.
+当 Physics Asset 工具在形体模式中且一个物理形体已被选中时，Details 面板将显示此物理形体的属性。
 
 [OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
 		Cons2
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Constraint
+		约束
 	[/PARAM]
 	[PARAM:content]
 		%p31%
@@ -398,7 +398,7 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 		Line1
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Linear Limits
+		线型限度
 	[/PARAM]
 	[PARAM:content]
 		%Engine/Physics/Constraints/ConstraintsReference:p2%
@@ -410,7 +410,7 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 		Proj2
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Projection
+		投射
 	[/PARAM]
 	[PARAM:content]
 		%Engine/Physics/Constraints/ConstraintsReference:p3%
@@ -422,7 +422,7 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 		Angu2
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Angular Limits
+		角限度
 	[/PARAM]
 	[PARAM:content]
 		%Engine/Physics/Constraints/ConstraintsReference:p4%
@@ -434,7 +434,7 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 		Lmoto
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Linear Motor
+		线型马达
 	[/PARAM]
 	[PARAM:content]
 		%Engine/Physics/Constraints/ConstraintsReference:p5%
@@ -446,7 +446,7 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 		Amoto
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Angular Motor
+		角马达
 	[/PARAM]
 	[PARAM:content]
 		%Engine/Physics/Constraints/ConstraintsReference:p6%
@@ -460,12 +460,12 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 ![](PhATCon1.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
+| 属性 | %spacer% | 描述 |
+| --- | :---:| :--- |
 | **Joint Name** || %doxygen:FConstraintInstance::JointName% |
 | **Constraint Bone 1** || %doxygen:FConstraintInstance::ConstraintBone1% |
 | **Constraint Bone 2** || %doxygen:FConstraintInstance::ConstraintBone2% |
-| **Disable Collision** || Disable collision between bodies joined by this constraint. |
+| **Disable Collision** || 禁用此约束连接的形体之间的碰撞。|
 [/REGION]
 [/VAR]
 

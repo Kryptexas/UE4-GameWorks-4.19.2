@@ -1,14 +1,14 @@
-﻿INTSourceChangelist:2610045
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:5 - 配置したアクタの編集
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
 Description:配置したアクタを使ってプロパティを編集し、レベルの外見をさらにカスタマイズしていきます。 
-SkillLevel:初心者
-Version:4.8
+SkillLevel:Beginner
+version:4.9
 Related:Engine/Rendering/Materials
 Related:Engine/Rendering/LightingAndShadows/LightTypes
 Related:Engine/Content/FBX/ImportOptions
-Related:
+checkpoint: editorqs
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -28,8 +28,8 @@ Related:
 
 %Steps%
 
-異なる **アクタ** を幾つかレベル内に配置したら、次のステップは [**アクタのプロパティの編集**](GettingStarted/HowTo/DetailsPanel) です。レベル内でのアクタの見かけや機能を変更することで、レベルを自分の好みに近づけることができます。 
-まず最初に **Directional Light アクタ** の編集方法から説明し、次に [**Materials**](Engine/Rendering/Materials) をレベル内に配置した [**Static Mesh アクタ**](Engine/Actors/StaticMeshActor) の幾つかへ適用する方法へ進みます。 
+異なる **アクタ** を幾つかレベル内に配置したら、次のステップは [アクタのプロパティの編集](GettingStarted/HowTo/DetailsPanel) です。レベル内でのアクタの見かけや機能を変更することで、レベルを自分の好みに近づけることができます。 
+まず最初に **Directional Light アクタ** の編集方法から説明し、次に [マテリアル](Engine/Rendering/Materials) をレベル内に配置した [Static Mesh アクタ](Engine/Actors/StaticMeshActor) の幾つかへ適用する方法へ進みます。 
 
 このステップを完了すると、アクタのプロパティのアクセスおよび修正方法を理解するので、レベル内のいろいろな設定で編集したり試してみることができます。 
 
@@ -39,16 +39,16 @@ Related:
 
 	![](selectDL.png)
 
-1. **Light** カテゴリの **[Details] パネル** で、 **[Used as Atmosphere Sun Light]** を有効にします。
+1. **Light** カテゴリの **[Details (詳細)] パネル** で、 **[Used as Atmosphere Sun Light]** を有効にします。
 
 	![](enableSun.png)
 
-	**Directional Light アクタ** の回転に応じて空の色が変わります。ビューポートを回転させると太陽が Directional Light アクタ の位置に合わせされるのがわかります。 
+	Directional Light アクタの回転に応じて空の色が変わります。ビューポートを回転させると太陽が Directional Light アクタの位置と一致するのが分かります。 
 	これはリアルタイム プロセスです。そのため、(E を押して **Rotation モード** に切り替えて) **Directional Light アクタ** を回転させると、空の色が夜、日の出、日中、日没と変化するのがわかります。
 
 では次に、配置した **Static Mesh アクタ** のどれかの上にある **マテリアル** を最初に選択して、変えてみましょう。  
 
-1. レベル内でアクタを選択し、**[Materials]** の **[Details]** パネルで **Element 0** の下にあるドロップダウン ボックスをクリックします。 
+1. レベル内でアクタを選択し、**[Materials (マテリアル)]** の **[Details (詳細)]** パネルで **Element 0** の下にあるドロップダウン ボックスをクリックします。 
 
 	![](material_1.png)(w:900)
 
@@ -56,7 +56,7 @@ Related:
 
 	![](material_2.png)(w:900)
 
-1.	レベル内のすべての **アクタ** には、調整可能なプロパティが数多く **[Details]** パネルに付いています。設定をいろいろ変更してみてください！
+1.	レベル内のすべての **アクタ** には、調整可能なプロパティが数多く **[Details (詳細)]** パネルに付いています。設定をいろいろ変更してみてください！
 
 	![](beforeBake.png)(w:900)
 

@@ -1,22 +1,23 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:글로벌 애셋 선택기
 Crumbs:%ROOT%, Engine, Engine/UI
 Description:애셋 트리의 어느 폴더에 있는 애셋도 빠르게 찾을 수 있는 글로벌 애셋 선택기 입니다.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Editor/GlobalAssetPicker:title%](Engine/Content/content_topic.png)
+		![%Engine/UI/GlobalAssetPicker:title%](Engine/Content/content_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/content_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Editor/GlobalAssetPicker:title%
+		%Engine/UI/GlobalAssetPicker:title%
 	[/PARAM]
 	[PARAM:description]
-		%Editor/GlobalAssetPicker:description%
+		%Engine/UI/GlobalAssetPicker:description%
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/UI/GlobalAssetPicker]
@@ -26,16 +27,16 @@ Description:애셋 트리의 어느 폴더에 있는 애셋도 빠르게 찾을 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Editor/GlobalAssetPicker:title%](Engine/Content/content_topic.png)
+		![%Engine/UI/GlobalAssetPicker:title%](Engine/Content/content_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/content_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Editor/GlobalAssetPicker:title%
+		%Engine/UI/GlobalAssetPicker:title%
 	[/PARAM]
 	[PARAM:description]
-		%Editor/GlobalAssetPicker:description%
+		%Engine/UI/GlobalAssetPicker:description%
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/UI/GlobalAssetPicker]

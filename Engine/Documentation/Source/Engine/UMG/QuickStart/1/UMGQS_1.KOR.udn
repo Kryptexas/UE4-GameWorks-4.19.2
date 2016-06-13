@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2608226
+﻿INTSourceChangelist:2706343
 Availability: Public
 Title:1. 필수 프로젝트 구성
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
 Description:여기서는 HUD 에 쓸 위젯 블루프린트를 만들고 HUD 에 정보를 전달할 캐릭터를 구성하도록 하겠습니다.
-
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

@@ -3,6 +3,8 @@ Title:Blueprint Macro Library
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types
 Description:Blueprints that declare and define macros for reuse in other Blueprints.
 version: 4.9
+Parent:Engine/Blueprints
+Type:guide
 
 [VAR:Topic]
 [OBJECT:Topic]

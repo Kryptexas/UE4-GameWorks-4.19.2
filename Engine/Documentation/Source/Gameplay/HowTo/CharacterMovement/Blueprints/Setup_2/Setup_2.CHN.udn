@@ -3,6 +3,9 @@ Availability: Public
 Title:3.完成人物设置
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:在这里，我们将在人物蓝图中执行脚本来响应输入映射，以使人物运动。 
+Version: 4.9
+SkillLevel: Advanced
+
 
 [VAR:Steps]
 [OBJECT:Navigation]

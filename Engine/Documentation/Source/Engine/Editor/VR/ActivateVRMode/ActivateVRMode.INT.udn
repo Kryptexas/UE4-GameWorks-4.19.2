@@ -1,0 +1,66 @@
+Title: Activating VR Mode
+Description: Learn how to enable VR mode in Unreal Editor
+Crumbs:
+Availability: public
+parent: Engine/Editor/VR
+type: howto
+order: 2
+tags: VR
+tags: Getting Started
+version: 4.11
+skilllevel: intermediate
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Editor/VR/ActivateVRMode:title%](Engine/Editor/VR/ActivateVRMode/activate_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/ActivateVRMode:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/ActivateVRMode]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/ActivateVRMode:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Editor/VR/ActivateVRMode:title%](Engine/Editor/VR/ActivateVRMode/activate_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/ActivateVRMode:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/ActivateVRMode]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/ActivateVRMode:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[EXCERPT:main]
+
+1. After the editor loads, click **File > New** and open up our new "VR-Basic" level.  This environment is a good playground for you to learn the controls.
+
+	![](vr_map_template.png)
+
+1. In the Editor Preferences (**Edit > Editor Preferences**), select the **Experimental** category and choose **Enable VR Editing**.
+
+1. To get into VR, click the **VR** button on the editor's main tool bar to activate VR Mode. Assuming your tracking space is properly calibrated, you should see a Tutorial window floating in front of you with some help.
+
+	![](vrmode_toolbar.png)
+	
+	[REGION:tip]
+	You can start directly into VR Mode by passing `-VREditor` on the command-line to UE4Editor.exe.
+	[/REGION]
+1. To use the tutorial, position the Controller over the section you want to read then squeeze the Controller trigger to open that section. 
+
+At any time you can press the Home button to return to this menu and then select another help section.
+
+[/EXCERPT:main]

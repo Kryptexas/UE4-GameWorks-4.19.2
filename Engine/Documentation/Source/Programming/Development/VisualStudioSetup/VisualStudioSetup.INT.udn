@@ -6,16 +6,27 @@ Version: 4.9
 
 [TOC(start:2)]
 
-
-
 [EXCERPT:Intro]
 
-Unreal Engine 4 (UE4) is designed to integrate smoothly with Visual Studio 2013 (VS2013). This allows you to quickly and easily make code changes in your projects and see the results immediately upon compilation. 
-Setting up Visual Studio to work with UE4 can help to improve efficiency and the overall user experience for developers using UE4.
+Unreal Engine 4 (UE4) is designed to integrate smoothly with Visual Studio, allowing you to quickly and easily make code changes in your projects to immediately see results upon compilation. 
+Setting up Visual Studio to work with UE4 can help improve efficiency and the overall user experience for developers using UE4.
+
+In this document, we'll cover the basics for setting up your UE4-to-VS2013 workflow.
 [/EXCERPT:Intro]
 
-In this document, we will cover the basics for setting up your UE4-to-VS2013 workflow.
+## Before Setting-up your UE4-to-VS Workflow
 
+It's important to note that Visual Studio 2015 (VS2015) doesn't install C++ tooling support by default. When installing VS2015, choose **Custom** installation and then choose the C++ components that you'll need for your workflow.
+If you've already installed Visual Studio 2015, choose **File > New > Project > C++** to install C++.
+
+The following table lists which versions of Visual Studio are integrated with the binary version of UE4.
+
+| Unreal Engine Version     | Visual Studio Version |
+| ------------------------- | --------------------- |
+| **4.10 or Later**         | VS2015                |
+| **4.2 to 4.9**            | VS2013                |
+
+Open source versions of UE4 (available via GitHub and P4) are integrated with VS2013. Also, earlier versions of UE4 integrated with older versions of Visual Studio aren't covered in this document.
 
 ## Recommended Settings
 
@@ -23,27 +34,51 @@ The following are recommended settings for developers using Visual Studio with U
 
 [EXCERPT:BasicVSFormat]
 
-1. **Increase the width of the Solution Configurations dropdown menu:**
-	1. **Right-click** on the toolbar and select **Customize** at the bottom of the menu that appears.
+1. Increase the width of the Solution Configurations dropdown menu by performing the following steps:
+	1. Right-click on the toolbar and select **Customize** at the bottom of the menu that appears.
+		
+		![](SelectingCustomize.png)
 	1. Click on the **Commands** tab.
+		
+		![](ClickCommandsTab.png)
 	1. Select the **Toolbar** radio button.
+		
+		![](SelectToolbarRadioButton.png)
 	1. In the dropdown next to **Toolbar**, choose **Standard**.
+		
+		![](SelectStandard.png)
 	1. In the **Controls** list at the bottom, select the **Solution Configurations** control.
-	1. Click **Modify Selection** on the right.  Set the **Width** to "200".
+		
+		![](SelectSolutionConfigControl.png)
+	1. Click **Modify Selection** on the right.
+		
+		![](ClickModifySelection.png)
+	1. Set the **Width** to '200'.
+		
+		![](SetWidth_200.png)
 	1. Click **Close**.  Your toolbar should update immediately.
-1. **Add the Solution Platforms dropdown:**
+		
+		![](ClickClosetoUpdateToolbar.png)
+1. Add the Solution Platforms dropdown by performing the following steps.
 	1. Find the right-most button on the Standard toolbar, which opens a dropdown menu that will allow you to add and remove buttons from the toolbar.
-	
-		![](menu_dropdown.png)
+		
+		![](SelectDropDownButton.png)
 	1. Click the dropdown button, hover over **Add or Remove Buttons**, and then click on **Solution Platforms** to add the menu to the toolbar.
-1. Turn off the **Error List** window. If enabled, the **Error List** window pops up automatically when you get a legitimate error in your code. However, when working with Unreal Engine, the **Error List** can display false error information. It is best to disable this window and use the **Output** window to see your code errors instead. This window will only show your real errors. 
+
+		![](SelectSolutionPlatforms.png)
+1. We recommend that you turn off the **Error List** window. Typically, the **Error List** window pops up automatically when you have an error in your code. However, when working with Unreal Engine, the **Error List** window can display false error information. It's best to disable the **Error List** window and use the **Output** window to see real code errors when working with Unreal Engine. The following steps show you how to turn off the **Error List** window:
 	1. Close the **Error List** window if it is open. 
 	1. From the **Tools** menu, open the **Options** dialog.
-	1. Select **Projects and Solutions** and uncheck **Always show error list if build finishes with error**.
+		
+		![](OpenOptionsDialog.png)
+	1. Select **Projects and Solutions** and uncheck **Always show Error List if build finishes with error**.
+		
+		![](UncheckErrorsListOption.png)
 	1. Click **OK**.
-
+		
 [/EXCERPT:BasicVSFormat]
 
+[REGION:tip]
 Other configuration steps you may find useful are:
 
 * Turn off **Show Inactive Blocks**.  If you do not, many chunks of code may appear grayed out in the text editor.  (**Tools > Options > Text Editor > C/C++ > View**).
@@ -51,10 +86,11 @@ Other configuration steps you may find useful are:
 * Turn off **Edit & Continue** features, you do not need them.  (**Tools > Options > Debugging > Edit and Continue**)
 
 * Turn on IntelliSense. (See [Intellisense, Live Errors, and Squiggles](#Intellisense))
+[/REGION]
 
-**If you have Visual Assist X installed:**
-* Turn off **Format After Paste**.  It does weird things sometimes.  (**VAssistX > Visual Assist X Options > Advanced > Corrections**)
-
+###Recommendation for Visual Assist X Users
+If you have Visual Assist X installed:
+* Turn off **Format After Paste** (**VAssistX > Visual Assist X Options > Advanced > Corrections**). If you don't disable this option, Visual Assist X automatically formats your source code, potentially resulting in poorly formatted documents.
 
 (#Intellisense)
 ## Intellisense, Live Errors, and Squiggles
@@ -69,7 +105,7 @@ speed up your workflow!
 ![VC++ Intellisense Squiggles](squiggle.png)
 
 Along with squiggles, you will also see IntelliSense errors in the Error List for any file you are looking at. 
-You can turn this on or off in the **right-click** menu in the Error List.
+You can turn this on or off in the **right-click menu** in the Error List.
 
 ![Error List](error_list.png)
 
@@ -116,24 +152,25 @@ and using the extension.
 Visual Studio has support for extending the debugger with visualizers that allow easy inspection of common Unreal types such as FNames and dynamic arrays.
 
 
-### Visualizer Setup for Visual Studio 2013
+### Installing the UE4 Visualizer for Visual Studio 2013
+Installing the UE4 Visualizer is a two-step process.
 
 [PUBLISH:Licensee]
-You can find the file that contains the visualizer logic as part of the UE4 distribution:
+1. Locate the file containing the visualizer logic as part of the UE4 distribution:
 
-	//depot/UE4/Engine/Extras/VisualStudioDebugging/UE4.natvis
+	* //depot/UE4/Engine/Extras/VisualStudioDebugging/UE4.natvis
 [/PUBLISH:Licensee]
 
 [PUBLISH:Rocket]
-You can find the file that contains the visualizer logic as part of your installation:
+1. Locate the file containing the visualizer logic as part of your installation:
 
-	[UE4Root]/Engine/Extras/VisualStudioDebugging/UE4.natvis
+    * [UE4Root]/Engine/Extras/VisualStudioDebugging/UE4.natvis
 [/PUBLISH:Rocket]
 
-Copy this file to one of the following locations:
+1. Copy `UE4.natvis` to either of the following locations:
 
-	[VSINSTALLDIR]/Common7/Packages/Debugger/Visualizers/UE4.natvis
-	[USERPROFILE]/My Documents/Visual Studio 2013/Visualizers/UE4.natvis
+    * [VisualStudioInstallPath]/Common7/Packages/Debugger/Visualizers/UE4.natvis
+    * [UserProfile]/My Documents/Visual Studio 2013/Visualizers/UE4.natvis
 
 [REGION:warning]
 Copying the file to your Visual Studio install directory may require administrator permissions.

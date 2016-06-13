@@ -1,20 +1,20 @@
-﻿INTSourceChangelist:2390401
-Availability:Public
+﻿Availability:Public
 Title:動的デリゲート
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture, Programming/UnrealArchitecture/Delegates
 Description:リフレクションをシリアル化およびサポートするデリゲート
-Version:4.5
+Version:4.9
 
 動的なデリゲートはシリアル化することができます。デリゲートの関数は名前で検索され、通常のデリゲートよりも動作が遅くなります。
 
 ## 動的デリゲートの宣言
 
-動的デリゲートは、動的デリゲート固有の可変長マクロを使用する点を除いて [通常のデリゲートの宣言](Programming/UnrealArchitecture/Delegates#デリゲートの宣言) と同じ方法で宣言します。
+動的デリゲートは、動的デリゲート固有の可変長マクロを使用する点を除いて [通常のデリゲートの宣言](Programming/UnrealArchitecture/Delegates#デリゲートの宣言) と同じ方法で 
+宣言します。
 
 | マクロ宣言 | 説明 |
 | --- | --- |
-| `DECLARE_DYNAMIC_DELEGATE[_Const, _RetVal, etc.]( DelegateName )` | 動的なデリゲートを作成します。 |
-| `DECLARE_DYNAMIC_MULTICAST_DELEGATE[_Const, _RetVal, etc.]( DelegateName )` | 動的なマルチキャストのデリゲートを作成します。 |
+| `DECLARE_DYNAMIC_DELEGATE[_RetVal, etc.]( DelegateName )` | 動的なデリゲートを作成します。 |
+| `DECLARE_DYNAMIC_MULTICAST_DELEGATE[_RetVal, etc.]( DelegateName )` | 動的なマルチキャスト デリゲートを作成します。 |
 
 ## 動的デリゲートのバインディング
 
@@ -34,5 +34,5 @@ Version:4.5
 
 | マクロ宣言 | 説明 |
 | --- | --- |
-| `DECLARE_DYNAMIC_DELEGATE[_Const, _RetVal, etc.]( DelegateName )` | ラップされた動的なデリゲートを作成します。 |
-| `DECLARE_DYNAMIC_MULTICAST_DELEGATE[_Const, _RetVal, etc.]( DelegateName )` | ラップされた動的なマルチキャストのデリゲートを作成します。 |
+| `DECLARE_DYNAMIC_DELEGATE[_RetVal, etc.]( DelegateName )` | ラップされた動的なデリゲートを作成します。 |
+| `DECLARE_DYNAMIC_MULTICAST_DELEGATE [_Const, _RetVal, etc.]( DelegateName )` | ラップされた動的なマルチキャスト デリゲートを作成します。 |

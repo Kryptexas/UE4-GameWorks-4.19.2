@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2617256
+﻿INTSourceChangelist:2654644
 Availability:Public
 Title: 13. 에디터에서 플레이 및 테스팅
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
 Description: 마지막으로 에디터에서 플레이를 통해 러너 AI 를 테스트합니다.
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

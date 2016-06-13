@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2612705
+﻿INTSourceChangelist:2707774
 Title: 클래스 지정자
 Crumbs:%ROOT%, Programming/UnrealArchitecture/Reference,  Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Classes
 Description: 클래스가 엔진과 에디터의 다양한 부분과 어떻게 작동하는지를 지정하기 위해 게임플레이 클래스 선언시 사용되는 키워드입니다.
 Availability:Public
+Version: 4.9
 
 [EXCERPT:main]
 클래스를 선언할 때, 선언부에 지정자를 붙이면 클래스가 엔진과 에디터의 다양한 부분과 어떻게 작동하는지를 

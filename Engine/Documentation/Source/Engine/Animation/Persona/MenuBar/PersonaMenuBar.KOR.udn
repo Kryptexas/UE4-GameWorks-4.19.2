@@ -1,11 +1,10 @@
-﻿INTSourceChangelist:2615776
+﻿INTSourceChangelist:2665993
 Availability:NoPublish
 Title:페르소나 메뉴 바
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
 Description:페르소나 애니메이션 에디터의 메뉴 바 사용 안내서입니다.
+version: 4.9
 
-
-## 개요
 
 ![](PersonaMenuBar.png)
 
@@ -128,8 +127,12 @@ _스켈레탈 메시_ 나 _애니메이션 시퀀스_ 같은 애니메이션 애
 | 명령 | 설명 |
 | ------- | ----------- |
 | [REGION:tablesection]**둘러보기**[/REGION] ||
-| **문서** | 언리얼 엔진 4 문서를 열람합니다. |
+| **페르소나 문서 열람** | 언리얼 엔진 4 문서를 열람합니다. |
 | [REGION:tablesection]**온라인**[/REGION] ||
-| 에픽 게임스와 언리얼 엔진 기술지원 사이트 링크입니다. ||
-| [REGION:tablesection]**Application**[/REGION] ||
+| **Forums...** | 언리얼 엔진 Forum 으로의 링크입니다. ||
+| **Answerhub...** | 언리얼 엔진 Answerhub 로의 링크입니다. ||
+| **Wiki...** | 언리얼 엔진 Wiki 로의 링크입니다. ||
+| **UnrealEngine.com 방문...** | UnrealEngine.com 으로의 링크입니다. ||
+| **크레딧** | 제작진 목록 창을 표시합니다. ||
+| [REGION:tablesection]**어플리케이션**[/REGION] ||
 | **언리얼 에디터에 대하여** | 엔진 버전 관련 정보가 표시되는 대화창을 엽니다. |

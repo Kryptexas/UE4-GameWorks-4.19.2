@@ -46,7 +46,7 @@ Description:关于类蓝图编辑器界面的概述。
 <!----------
 [EXCERPT:Visible]
 1. [菜单](Engine/Blueprints/Editor\UIComponents\Menu)
-1. [工具栏](Engine/Blueprints/Editor\UIComponents\Toolbar\ToolbarOptions)
+1. [工具栏](Engine/Blueprints/Editor\UIComponents\Toolbar)
 1. [我的蓝图](Engine/Blueprints/Editor\UIComponents\MyBlueprint)
 1. [详细信息](Engine/Blueprints/Editor\UIComponents\Details)
 [/EXCERPT:Visible]
@@ -71,28 +71,3 @@ Description:关于类蓝图编辑器界面的概述。
 [/REGION]
 
 
-|默认可见的用户界面组件| 窗口菜单中可用的组件|
-|-----------------------------|-----------------------------|
-|[INCLUDE:#visible2]			  |[INCLUDE:#invisible2]			|
-
-
-<!----------
-[EXCERPT:Visible2]
-1. [菜单](Engine/Blueprints/Editor\UIComponents\Menu)
-1. [工具栏](Engine/Blueprints/Editor\UIComponents\Toolbar\ToolbarOptions)
-1. [我的蓝图](Engine/Blueprints/Editor\UIComponents\MyBlueprint)
-1. [详细信息](Engine/Blueprints/Editor\UIComponents\Details)
-1. 图表视图
-[/EXCERPT:Visible2]
-
-[EXCERPT:Invisible2]
-* [调试](Engine/Blueprints/Editor\UIComponents\Debug)
-* [编译器结果](Engine/Blueprints/Editor\UIComponents\CompilerResults)
-* [查找结果](Engine/Blueprints/Editor\UIComponents\FindResults)
-[/EXCERPT:Invisible2]
-------------->
-
-
-需要注意的很重要的一点是：在这种情况中，图表视图和蓝图编辑器中通常呈现的图表编辑器是有点不同的。您可能注意到它是灰掉的，而且您不能导航它，也不能向它添加任何节点。这是因为与其说它是一种编辑蓝图的方法，倒不如说它更像是一种可视化工具。请记住接口内部及其本身没有任何功能，所以在这种情况下没有必要创建真正运作的网络。您可以把这个视图当做您的输入和输出的预览效果。
-
-关于创建及应用蓝图接口的更多信息，请参照 [](Engine/Blueprints/UserGuide\Types\Interface)。

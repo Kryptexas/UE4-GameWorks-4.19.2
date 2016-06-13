@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2593646
+﻿INTSourceChangelist:2669445
 Availability:Public
 Title:애니메이션 시퀀스 편집하기
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Sequences
 Description:페르소나로 애니메이션 시퀀스를 편집하고 애니메이션 Notify (노티파이) 이벤트를 추가하는 방법 안내서입니다.
+version: 4.9
 
 [REGION:banner]
 ![](persona_sequence_banner.png)(convert:false)
@@ -20,8 +21,10 @@ Description:페르소나로 애니메이션 시퀀스를 편집하고 애니메�
 
 ![](AnimationSequenceEditor.png)
 
-1. **툴바** - 현재 편집중인 _애니메이션 시퀀스_ 의 이름을 표시합니다.
-1. **트랙 리스트** - 노티파이 생성/편집용 편집가능 트랙 리스트입니다. 트랙의 생성이나 삭제는 물론 노티파이 생성 및 작업 관련 안내는 아래를 참고하시기 바랍니다.
+1. **이름** - 현재 편집중인 _애니메이션 시퀀스_ 의 이름을 표시합니다.
+1. **노티파이** - 노티파이 생성/편집용 편집가능 트랙 리스트입니다. 트랙의 생성이나 삭제는 물론 노티파이 생성 및 작업 관련 안내는 아래를 참고하시기 바랍니다.
+1. **커브** - 애니메이션 커브 추가 편집을 위한 그래프같은 영역입니다.
+1. **트랙** - 애니메이션 레이어 편집용으로 사용되는 칸입니다. 자세한 정보는 [](Engine/Animation/AnimHowTo/LayerEditing) 페이지를 참고하세요.
 1. **타임라인** - **페르소나** 의 **뷰포트** 패널에 재생되는 미리보기에 대한 콘트롤과 그에 대한 정보를 표시합니다.
 
 
@@ -38,9 +41,7 @@ Description:페르소나로 애니메이션 시퀀스를 편집하고 애니메�
 
 모든 _AnimationSequence_ 에는 기본적으로 하나의 트랙이 있으나, 트랙 오른쪽의 콘트롤을 사용하여 트랙을 추가시키고 기존 트랙을 삭제하는 것도 가능합니다.
 
-**새 트랙 추가하기**
-
-**트랙 리스트** 에서 기존 트랙 옆의 ![](button_track_add.png) 버튼을 클릭합니다:
+새 트랙을 추가하려면, **트랙 리스트** 에서 기존 트랙 옆의 ![](button_track_add.png) 버튼을 클릭합니다:
 
 ![](AddTrack.png)
 
@@ -48,9 +49,7 @@ Description:페르소나로 애니메이션 시퀀스를 편집하고 애니메�
 
 ![](TrackAdded.png)
 
-**기존 트랙 제거하기**
-
-**트랙 리스트** 에서 제거하고자 하는 트랙 옆의 ![](button_track_remove.png) 버튼을 클릭합니다:
+기존 트랙을 제거하려면, **트랙 리스트** 에서 제거하고자 하는 트랙 옆의 ![](button_track_remove.png) 버튼을 클릭합니다:
 
 ![](RemoveTrack.png)
 

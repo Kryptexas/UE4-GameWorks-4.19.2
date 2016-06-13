@@ -9,10 +9,10 @@ version: 4.9
 
 [TOC(start:2 end:2)]
 
-## Widget Description
+## Description
 
 [EXCERPT:desc]
-Allows you to expose an external slot for your User Widget. When implementing the User Widget, you can put whatever other widgets you want inside the named slot.
+This widget allows you to expose an external slot for your User Widget that can be populated with any other widgets and is useful for creating custom widget functionality.
 [/EXCERPT:desc]
 
 ## Usage Example

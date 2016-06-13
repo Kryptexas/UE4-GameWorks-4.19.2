@@ -2,6 +2,8 @@ Availability: Public
 Title:Acceleration Modules
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:These modules provide the ability to apply a change in velocity over time to particles.
+Version: 4.9
+
 
 [TOC(start:2 end:3)]
 
@@ -22,7 +24,7 @@ o3TuesKDJ_A
 [/PARAMLITERAL]
 [/OBJECT]
 
-The Acceleration module sets the initial acceleration of the particle. This value is stored per-particle, and is applied each frame during the Update call. It contains the following member(s):
+The **Acceleration** module sets the initial acceleration of the particle. This value is stored per-particle, and is applied each frame during the Update call. It contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |
@@ -51,7 +53,7 @@ o3TuesKDJ_A
 [/PARAMLITERAL]
 [/OBJECT]
 
-The Const Acceleration module is very similar to the Acceleration module, in that it applies an initial acceleration to the particle. The key difference, however, is that the Const Acceleration module does _not_ accept a Distribution property. 
+The **Const Acceleration** module is very similar to the Acceleration module, in that it applies an initial acceleration to the particle. The key difference, however, is that the Const Acceleration module does _not_ accept a Distribution property. 
 
 [REGION:warning]
 	Const Acceleration is the only type of acceleration available to **GPU Sprite** particles.
@@ -80,7 +82,7 @@ inAil0AgElQ
 [/PARAMLITERAL]
 [/OBJECT]
 
-Drag applies a constant resistance to motion to each particle. The coefficient value is calculated at spawn time and applied to the particle at each frame.
+**Drag** applies a constant resistance to motion to each particle. The coefficient value is calculated at spawn time and applied to the particle at each frame.
 
 | Property | Description |
 | ---- | ---- |
@@ -89,7 +91,7 @@ Drag applies a constant resistance to motion to each particle. The coefficient v
 
 ## Drag Scale/Life
 
-Drag Scale/Life is a multiplier value that works with an existing Drag module, allowing, for example, for the drag to be scaled via a curve across the life of the particle.
+**Drag Scale/Life** is a multiplier value that works with an existing Drag module, allowing, for example, for the drag to be scaled via a curve across the life of the particle.
 
 [REGION:warning]
 	Drag Scale/Life only works on **GPU Sprite** particles.
@@ -102,7 +104,7 @@ Drag Scale/Life is a multiplier value that works with an existing Drag module, a
 
 ## AccelerationOverLife
 
-Sets the acceleration of the particle over its lifetime. It contains the following member(s):
+**Acceleration Over Life** sets the acceleration of the particle over its lifetime. It contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |

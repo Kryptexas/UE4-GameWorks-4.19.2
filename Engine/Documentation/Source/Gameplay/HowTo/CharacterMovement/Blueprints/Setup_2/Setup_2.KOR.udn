@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2625808
+﻿INTSourceChangelist:2740691
 Availability: Public
 Title:3. 캐릭터 셋업 마무리
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:여기서는 캐릭터 이동이 가능하도록 입력 매핑에 대한 반응을 캐릭터 블루프린트의 스크립트로 구현합니다.
+Version: 4.9
+SkillLevel: Advanced
 
 [VAR:Steps]
 [OBJECT:Navigation]

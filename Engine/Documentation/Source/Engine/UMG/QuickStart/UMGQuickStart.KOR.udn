@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2608185
+﻿INTSourceChangelist:2706216
 Availability: Public
 Title:UMG UI 디자이너 퀵스타트 가이드
 Crumbs:%ROOT%, Engine, Engine/UMG
 Description:언리얼 엔진 4 에서 언리얼 모션 그래픽 사용 시작하기 입니다.
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]

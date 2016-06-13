@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2267459
+﻿INTSourceChangelist:2615072
 Title:2013 年 8 月リリースノート
 Crumbs:%ROOT%, Support/Builds
 Description:
@@ -23,7 +23,7 @@ Template:ReleaseNotes.html
 
  * 現時点のエンジン開発ロードマップ: [UE4 Roadmaps](https://udn.unrealengine.com/questions/topics/roadmap.html)
  * 修正されたバグ： [UE4 Fixed Bugs August 2013](UE4_Fixed_2013_August.xlsx)
- * 周知のバグ： [UE4 Outstanding Bugs August 2013](UE4_Bugs_2013_August.xlsx)
+ * 既知の問題: [UE4 Outstanding Bugs August 2013](UE4_Bugs_2013_August.xlsx)
  
 
 ## 主な新機能
@@ -39,12 +39,12 @@ Template:ReleaseNotes.html
 		* プレイモードでも機能します。
 
 * **ツールバーのカスタマイズが、EpicLabs Preference にあります**
-	* **ツールバーのカスタマイズは EpicLabs でオンにできます。
+	* ツールバーのカスタマイズは EpicLabs でオンにできます。
 	![](CustomTools_Final.png)
 	* **Edit > Edit Toolbars** の順序で選択し、**Keyboard Shortcuts** ウィンドウからコマンドを互換性のあるツールバーにドラッグできます。
 
 * **テクスチャ インポート中の法線マップ検知**
-	* エンジンは、テクスチャ マップが法線マップであるかを判断するためにインポート時にテクスチャを発見的 (ヒューリスティック) に調べるようになりました。	
+	* エンジンは、テクスチャ マップが法線マップであるかを判断するためにインポート時にテクスチャをヒューリスティックに調べるようになりました。	
 		![](NormMapDet1.png)
 		* LOD、圧縮、その他のデフォルトはインポート時に自動的に設定されます。
 		![](NormMapDet2.png)
@@ -107,9 +107,9 @@ Template:ReleaseNotes.html
 ## 新機能の追加
 
 ####エディタ ツール
-* **シミュレーション変更を継続**
+* **シミュレーション変更を維持**
 	シミュレーション モードでアクタのプロパティを変更後、こうした変更を選択的に永続的なものにできるようになりました! 
-	* シミュレーション モードでアクタを右クリックしシミュレーション変更を継続、 Keep Simulation Changes (または 'K' キーを押します) を選択します。 
+	* シミュレーション モードでアクタを右クリックしシミュレーション変更を維持、 Keep Simulation Changes (または 'K' キーを押します) を選択します。 
 * ヒューリスティック機能を追加して、インポート時に法線マップを特定し、適宜様々な設定を割り当てるようにしました。
 * レベル エディタのツールバーに保存ボタンを追加しました。
 * **ツールバーのカスタマイズ** -EpicLabs 機能
@@ -233,7 +233,7 @@ Template:ReleaseNotes.html
 	* ソース コントロールは、エディタの右上隅の色付きのインジケータ ボタンからログインできるようになりました。エディタ全体で様々なメニューにジャストインタイムでアクセスすることもできます。
 
 ####ブループリント
-* ACharacter はデフォルトの移動入力のバインディングがなくなりました。
+*ACharacter はデフォルトの移動入力のバインディングがなくなりました。
 	* Character ブループリントが古いデフォルトのネイティブ キーのバインディングを入力に使用するか否かを決める bool、`bAddDefaultMovementBindingsForBlueprint` があります。デフォルトは true です。そのため、カスタム バインディングが必要な場合は、コンテンツはそれを false に設定すべきです。コンテンツを移行する機会があった後には、おそらくこれを取り除きます。
 	* 入力軸イベントも移動関数もブループリントにエクスポーズされました。SideScrollerTemplate と ThirdPersonTemplate は例として更新されました。
 * テンプレート デフォルト マップ : テクスチャ データを減らすために Atmospheric fog の高度の数を 32 から 2 に減らしました。
@@ -261,6 +261,7 @@ Template:ReleaseNotes.html
 * `PlayerController.GetInputAnalogStickState` は、未加工のハードウェア値の代わりにゲーム値 (反転とデッドゾーンの適用後) を戻すようになりました。
 * `BIND_` マクロから ConsumeInput を取り除きました。マクロのバインド後にコードから `InputAction`/`InputAxis` を設定するには、以下のような方法で行うことができます。
 		BIND_ACTION(InputComponent, "Fire", IE_Pressed, &AQAPlayerController::OnTriggerPressed);
+
 		InputComponent->ActionBindings.Last().bConsumeInput = false;
 
 * `MaxDrawDistanceScale` システム設定は新しい `r.ViewDistanceScale` コンソール変数に置き換えられました。
@@ -272,6 +273,7 @@ Template:ReleaseNotes.html
 	* サブレベルでストリーミングし、その配置したアクタは  ReceiveBeginPlay 呼び出しを受けます。
 * 多くのカメラ関連の関数のシグネチャは、緩やかな location/rotation/FOV の値の代わりに、フルビュー ステートを含む `FMinimalViewInfo` を取るように変更されました。
 * プロジェクトの最初のバッチ、エンジンとエディタの設定は、新しい Settings UI フレームワークを使用するようにリファクタリングされました。
+
 
 ####レンダリング
 * StaticSwitchParameter マテリアル式はいずれかの入力が接続されない場合にエラーを出力するようになりました。これにより、既存のマテリアルがコンパイルされなくなることがあります。

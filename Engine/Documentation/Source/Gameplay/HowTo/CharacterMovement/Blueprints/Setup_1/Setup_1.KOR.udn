@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2611530
+﻿INTSourceChangelist:2740691
 Availability: Public
 Title:1. 캐릭터 셋업
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:여기서는 캐릭터를 셋업한 다음 가이드 후반에 필요해질 애셋을 만들어 주겠습니다.
+Version: 4.9
+SkillLevel: Advanced
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -49,7 +51,7 @@ Description:여기서는 캐릭터를 셋업한 다음 가이드 후반에 필�
 
 	![](ClickMesh.png)
 
-1.	**디테일** 패널에서 **스켈레탈 메시** 옆 **None** 박스를 클릭한 다음 **UE4_Mannequin_Skeleton** 스켈레탈 메시를 할당합니다.
+1.	**디테일** 패널에서 **스켈레탈 메시** 옆 **None** 박스를 클릭한 다음 **SK_Mannequin_Skeleton** 스켈레탈 메시를 할당합니다.
 
 	![](Characters_2.png)
 

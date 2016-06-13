@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2281649
+﻿INTSourceChangelist:2688735
 Availability:Public
 Title:Coordinates 표현식
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:텍스처 좌표나 텍스처 좌표를 수정 또는 그 자체로 사용할 수 있는 출력값에 어떠한 작업을 하는 표현식입니다.
+Version:4.9
 
 [EXCERPT:TOC]
 [TOC(start:2)]

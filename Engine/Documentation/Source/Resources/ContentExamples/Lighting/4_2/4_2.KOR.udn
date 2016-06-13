@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653227
+﻿INTSourceChangelist:2716735
 Availability: Public
 Title:4.2 - 역제곱 감쇠
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
@@ -12,6 +12,7 @@ Related: Engine/Rendering/LightingAndShadows/Lightmass
 Related: Engine/Rendering/LightingAndShadows/Shadows
 Related: Engine/Rendering/LightingAndShadows/IndirectLightingCache
 Related: Engine/Rendering/LightingAndShadows/LightMobility
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

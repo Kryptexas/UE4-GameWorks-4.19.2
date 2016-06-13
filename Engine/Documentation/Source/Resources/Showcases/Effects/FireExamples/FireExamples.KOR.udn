@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2726357
 Availability: Public
 Title:불 예제
 Crumbs:%ROOT%, Resources, Resources/Showcases/Effects
@@ -6,6 +6,7 @@ Description:UE4 에 포함된 이펙트 예제 중 화염 이펙트에 대한 �
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 Related: Engine/Rendering/ParticleSystems/Optimization
+Version: 4.9
 
 [REGION:fullwidth]
 ![](title_Fire.png)
@@ -17,7 +18,7 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 
 
 
-다음 파티클 시스템은 이 예제용으로 만들어진 화염 이펙트입니다. 캐스케이드에서 열어 에픽트가 어떻게 조립되었는지 확인해 보시기 바랍니다.
+다음 파티클 시스템은 이 예제용으로 만들어진 화염 이펙트입니다. 캐스케이드에서 열어 이펙트가 어떻게 조립되었는지 확인해 보시기 바랍니다.
 
 캐스케이드 및 파티클 시스템 관련 상세 정보는, [파티클 시스템 문서](Engine/Rendering/ParticleSystems) 를 참고해 주시기 바랍니다.
 
@@ -35,7 +36,7 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 
 위의 이미지에서 보면 파티클 라이트의 반경이 보이는데, 캐스케이드에서 _Preview Light Radius_ 옵션을 체크하면 볼 수 있습니다.
 
-이 이펙트에는 화염에서 떨어져나오는 불똥 파티클도 있으며, 그럴싸한 난기류를 타고 이동하기도 합니다. 이러한 움직임은 GPU 스프라이트 파티클에 사용가능한 기능인 _로컬 벡터 필드_ 를 통해 얻어내고 있습니다. 벡터 필드란 플루이드 시뮬레이션 데이터에서 생성된 벡터의 3차원 볼륨으로, 나중에 이것을 GPU 파티클 모션을 돌리는 데 사용합니다. 파티클이 볼륨을 통과할 때, 각 위치의 벡터는 자신의 속도에 영향을 끼칠 수 있습니다. 벡터 필드는 캐스케이드의 뷰포트의 뷰 메뉴에서 (뷰 > 벡터 필드 를 선택하여) 시각화시켜 볼 수 있습니다.
+이 이펙트에는 화염에서 떨어져 나오는 불똥 파티클도 있으며, 그럴싸한 난기류를 타고 이동하기도 합니다. 이러한 움직임은 GPU 스프라이트 파티클에 사용가능한 기능인 _로컬 벡터 필드_ 를 통해 얻어내고 있습니다. 벡터 필드란 플루이드 시뮬레이션 데이터에서 생성된 벡터의 3차원 볼륨으로, 나중에 이것을 GPU 파티클 모션을 돌리는 데 사용합니다. 파티클이 볼륨을 통과할 때, 각 위치의 벡터는 자신의 속도에 영향을 끼칠 수 있습니다. 벡터 필드는 캐스케이드의 뷰포트의 뷰 메뉴에서 (뷰 > 벡터 필드 를 선택하여) 시각화시켜 볼 수 있습니다.
 
 ![](VectorFieldVisible.png)
 
@@ -51,7 +52,7 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 
 **콘텐츠 브라우저 위치:**  _/Game/Effects/Particles/Fire/P_OrbGlowLights_
 
-이 이펙트는 화염 효과와 함께 구체 표면을 따라 움직이는 마법 불똥을 흉내냅니다. 화염은 본질적으로 위에 설명한 횃불 예제와 똑같습니다. 불똥은 로컬 벡터 필드로 모션을 돌려주는 GPU 스프라이트 파티클 시스템으로 이루어져 있습니다. 이 벡터 필드가 파티클을 소용돌이 모양으로 이동시킵니다. 그 후 VF Rotation Rate 모듈을 벡터 필드에 사용하여 다수의 축을 기준으로 회전하는 소용돌이를 만들어 냅니다. 이 회전하는 벡터 필드를 파티클이 통과할 때, 이펙트에서 보이는 소용돌이 패턴속으로 밀려들어갑니다.
+이 이펙트는 화염 효과와 함께 구체 표면을 따라 움직이는 마법 불똥을 흉내냅니다. 화염은 본질적으로 위에 설명한 횃불 예제와 똑같습니다. 불똥은 로컬 벡터 필드로 모션을 돌려주는 GPU 스프라이트 파티클 시스템으로 이루어져 있습니다. 이 벡터 필드가 파티클을 소용돌이 모양으로 이동시킵니다. 그 후 VF Rotation Rate 모듈을 벡터 필드에 사용하여 다수의 축을 기준으로 회전하는 소용돌이를 만들어 냅니다. 이 회전하는 벡터 필드를 파티클이 통과할 때, 이펙트에서 보이는 소용돌이 패턴 속으로 밀려들어갑니다.
 
 
 

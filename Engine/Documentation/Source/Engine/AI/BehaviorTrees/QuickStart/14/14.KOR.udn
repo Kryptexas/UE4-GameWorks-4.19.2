@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2637071
+﻿INTSourceChangelist:2774060
 Availability:Public
 Title: 14. 비헤이비어 트리 제작
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:14 단계. 비헤이비어 트리 제작
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -25,9 +26,9 @@ Description:14 단계. 비헤이비어 트리 제작
 
 이제 비헤이비어 트리를 제작하는 데 필요한 모든 조각이 갖춰졌을 것입니다:
 
-![](fullTree.png)
+![](DoneBehaviorTree.jpg)
 
-무슨 소린지 분석해 봅시다.
+뭐가 어떻게 돌아가는지 분석해 봅시다.
 
 * AI 가 AI 캐릭터 아닌 폰을 감지하지 못한 경우, 그냥 서있습니다.
 * AgroCheck Service 가 계속해서 적당한 타겟을 찾습니다.
@@ -82,7 +83,7 @@ Description:14 단계. 비헤이비어 트리 제작
 1. **Selector** 노드에서 **Agro Check** 박스를 선택한 다음 **디테일** 패널을 사용해서 **Target to Follow** 프로퍼티를 `TargetToFollow` 로, **Target Location** 을 `TargetLocation` 으로 설정하고, **Interval** 을 `0.5` 로, **Random Deviation** 을 `0.0` 으로 조정합니다.
 
 	[REGION:raw]
-	![](setAgroCheck.jpg)
+	![](setAgroCheck1.jpg)
 	[/REGION]
 
 ### 태스크 추가
@@ -131,7 +132,7 @@ Description:14 단계. 비헤이비어 트리 제작
 	[/REGION]
 
 1. **Sequence** 노드에 **우클릭** 한 다음 **데코레이터 추가..** -> **Blackboard** 를 선택합니다.
-1. **Sequence** 노드에 **우클릭** 한 다음 **데코레이터 추가..** -> **Reached Move Goal** 을 선택합니다.
+1. **Sequence** 노드에 **우클릭** 한 다음 **데코레이터 추가..** -> **Is At Location** 을 선택합니다.
 1. **Sequence** 노드에 **우클릭** 한 다음 **데코레이터 추가..** -> **Blackboard** 를 선택합니다.
 
 	데코레이터를 전부 추가한 이후의 전체 노드 블록은 이런 모습입니다:
@@ -140,7 +141,7 @@ Description:14 단계. 비헤이비어 트리 제작
 
 1. 첫 번째 **Blackboard** 데코레이터에서, **Key Query** 를 `Is Not Set` 로, **Blackboard Key** 를 `TargetToFollow` 로 설정합니다.
 1. 두 번째 **Blackboard** 데코레이터에서, **Key Query** 를 `Is Set` 으로, **Blackboard Key** 를 `TargetLocation` 로 설정합니다.
-1. **Reached Move Goal** 데코레이터에서, **Inverse Condition** 프로퍼티를 켭니다.
+1. **Reached Move Goal** 데코레이터에서, **Inverse Condition** 프로퍼티를 켜고 **Blackboard Key** 를 **HomeLocation** 으로 설정합니다.
 
 	이렇게 프로퍼티를 설정한 이후 전체 노드 블록 모습은 이렇습니다:
 
@@ -158,7 +159,7 @@ Description:14 단계. 비헤이비어 트리 제작
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-1td5wSD3PPU
+q6vTg2roI6k
 [/PARAMLITERAL]
 [/OBJECT]
 

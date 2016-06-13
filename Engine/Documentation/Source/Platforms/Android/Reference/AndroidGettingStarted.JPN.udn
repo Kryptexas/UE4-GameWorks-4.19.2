@@ -1,13 +1,20 @@
-﻿INTSourceChangelist:2289467
+﻿INTSourceChangelist:2945303
 Availability:Public
 Title:Android ゲームの開発のリファレンス
 Crumbs:%ROOT%, Platforms, Platforms/Android
 Description:異なる Android SDK のインストール方法、環境変数の設定方法、テクスチャ フォーマットの扱い方
+Version:4.9
+SkillLevel:Intermediate
+Parent:Platforms/Android
+tags:Mobile
+tags:Android
+type:reference
 
 [TOC(start:2 end:3)]
 
+%Globals:OSSelect%
 
-## 概要 
+
 
 現在 Android ゲーム開発では以下が必要となります。
 
@@ -46,8 +53,39 @@ Description:異なる Android SDK のインストール方法、環境変数の�
 コンポーネントを取得する方法は何通りかあります。コンポーネントのうち既に幾つかをインストール済みの場合、対応するセクションで追加用件をご確認ください。
 
 ### TADP (Tegra Android Development Pack)
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#TADPWindowsSetup]
+	[/PARAM]
+[/OBJECT]
 
-TADP は Nvidia 社製の Tegra Android Development Pack のことです。Android 開発用のワンストップ ショップです。TADP をインストールする場合、全ての用件を満たします。
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#TADPMacOSSetup]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:TADPWindowsSetup]
+
+TADP は Nvidia 社製の Tegra Android Development Pack のことです。Android 開発用のワンストップ ショップです。TADP をインストールする場合、すべての用件を満たします。
 
 TADP 用インストーラーは、 Windows 用にアンリアル エンジン 4 でインクルードされます。場所はこちらです。 
 
@@ -59,28 +97,53 @@ TADP 用インストーラーは、 Windows 用にアンリアル エンジン 4
 * JDK
 * Ant 
 * Nsight 
-	デフォルトのインストール セットを使用する場合、最低限のコンポーネントがインストールされます。インストールをカスタマイズすれば、さらに多くのアイテムを追加できます (プロファイラなど)。インストール中は、サブインストーラが 1 つか 2 つ表示されたままになる場合がありますが、やがて完了します。 
 
-インストールは 30 分から 45 分ほどかかります。コードを書く予定がないのであれば、 **Customize** を選択すると良いでしょう。 
+デフォルトのインストール セットを使用する場合、最低限のコンポーネントがインストールされます。インストールをカスタマイズすれば、さらに多くのアイテムを追加できます (プロファイラなど)。インストール中は、 
+サブインストーラが 1 つか 2 つ表示されたままになる場合がありますが、やがて完了します。インストールは 30 分から 45 分ほどかかります。コードを書く予定がないのであれば、**[Customize (カスタマイズ)]** を選択すると良いでしょう。 
 そうすれば、 SDK 、 Ant 、 と Java のみ (NDK と Nsight デバッガを飛ばして) をインストールするので、インストールが非常に早くなります。TADP の Nsight の部分は、デバイス上で Android ゲームをデバッグするために使用されます。 
 C++ コードのコンパイルは必要ありません。
 
-
-
 ![](TADPSetup.png)
+
+[/EXCERPT:TADPWindowsSetup]
+
+[EXCERPT:TADPMacOSSetup]
+TADP は Nvidia 社製の Tegra Android Development Pack のことです。Android 開発用のワンストップ ショップです。TADP をインストールする場合、すべての用件を満たします。
+
+TADP 用インストーラーは、Mac 用にアンリアル エンジン 4 でインクルードされます。場所はこちらです。 
+
+	[ENGINE INSTALL LOCATION]/Engine/Extras/Android/tadp-3.0r4-osx.dmg
+
+以下が重要な構成要素になります。
+
+* SDK
+* NDK
+* Ant 
+
+デフォルトのインストール セットを使用する場合、最低限のコンポーネントがインストールされます。 
+インストールをカスタマイズすれば、さらに多くのアイテムを追加できます (プロファイラなど)。サブインストーラが 1 つか 2 つ表示されたままになる場合がありますが、やがて完了します。 
+PC によっては、インストールに 30 分から 45 分ほどかかります。 
+コードの記述をする予定がなければ **[Customize (カスタマイズ)]** を選択する方法もあります。(NDK と Nsight デバッガを飛ばして) SDK、 Ant と Java のみ をインストールするので、インストールが非常に早くなります。
+TADP の Nsight の部分は、デバイス上で Android ゲームをデバッグするためのものなので、C++ コードのコンパイルは必要ありません。
+
+![](TADP_Mac_OS.png)
+
+[/EXCERPT:TADPMacOSSetup]
+
+-->
 
 ### ADT (Android Development Tools)
 
-Google が推奨する開発環境になります。SDK 、 Ant 、 Eclipse が含まれます (自分のツール用に使いたいと思われるかもしれませんが、アンリアル エンジン 4 で Eclipse はサポートしていません)。
- 簡素化のため、全てを C:\Android にインストールすることを推奨します。
+Google が推奨する開発環境になります。SDK、Ant、Eclipse が含まれます (自分のツール用に使いたいと思われるかもしれませんが、アンリアル エンジン 4 は Eclipse をサポートしていません)。
+ 簡素化のため、すべてを C:\Android にインストールすることを推奨します。
 
 * [ここからダウンロード](http://developer.android.com/sdk/installing/bundle.html)
 
-その他に、 JDK 6 以上のインストールが必要になります。
+その他に、JDK 6 以上のインストールが必要になります。
 
 * [ここからダウンロード](http://www.oracle.com/technetwork/java/javase/downloads/index.html)
 
-コード プロジェクトのみの場合、 NHK をインストールする必要があります。
+コード プロジェクトの場合のみ、NHK をインストールする必要があります。
 * [ここからダウンロード](http://developer.android.com/tools/sdk/ndk/index.html)
 
 ### Android SDK (Software Development Kit)
@@ -88,100 +151,230 @@ Google が推奨する開発環境になります。SDK 、 Ant 、 Eclipse が�
 SDK のさらに必要最低限のインストールになります (Eclipse や Ant は含まれません)。
 * [ここからダウンロード](http://developer.android.com/sdk/index.htm)
 
-その他に、 JDK 6 以上のインストールが必要になります。
+その他に、JDK 6 以上のインストールが必要になります。
 * [ここからダウンロード](http://www.oracle.com/technetwork/java/javase/downloads/index.html)
 
 その他に、 Ant ツールのインストールが必要になります (バージョン 1.8 以上)。
 * [ここからダウンロード](http://ant.apache.org/) して、.zip ファイルを解凍します。
 
-コード プロジェクトのみの場合、 NHK をインストールする必要があります。
+コード プロジェクトの場合のみ、NHK をインストールする必要があります。
 * [ここからダウンロード](http://developer.android.com/tools/sdk/ndk/index.html)
 
 
 ## 環境変数
 
-TADP をインストールしていない場合、正しく設定されているかどうか確認する必要のある間編集もあります。 
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#ENVWindowsSetup]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#ENVMacOSSetup]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:ENVWindowsSetup]
+
+TADP をインストールしていない場合、環境変数が正しく設定されているか確認する必要があります。 
 
 [REGION:note]
-(System Control パネルでの環境変数の設定、または TADP をインストールにより) インストールが完了したら、エディタとランチャーの両方のアプリケーションを再起動が必要になります。 
-Windows アプリケーションによる環境変数の格納方法および開始したアプリケーションに合わせて古いバージョンをパスするためです。 
+(System Control パネルでの環境変数の設定、または TADP をインストールにより) インストールが完了したら、 
+エディタとランチャーの両方のアプリケーションを再起動が必要になります。Windows アプリケーションによる環境変数の格納方法および開始したアプリケーションに合わせて古いバージョンをパスするためです。 
 
-Android SDK が正しくインストールされていませんというメッセージが継続して表示される場合は、端末の再起動を推奨します。
+Android SDK が正しくインストールされていないことを示すメッセージが表示され続ける場合は、端末の再起動を推奨します。
 
 [/REGION:note]
 
 環境変数の設定は以下の方法で行います。
 
 * **Computer** アイコン上を **右クリック** するか、キーボードの **[Windows] - [Break]** を押します。
-* 左側の **Advanced system settings** を選択します。
-* **Environment Variables...** をクリックします。
+* 左側の **[Advanced system settings (詳細システム設定)]** を選択します。
+* **[Environment Variables...(環境変数)]** をクリックします。
 * それぞれに変数に対して (以下を行います)。
-	* (以下から) 環境変数を探して両方のリスト (System または User) のいずれかに既に設定されていることを確認します。
+	* (以下から) 環境変数を検索して、このリスト (System または User) のいずれかに既に設定されていることを確認します。
 	* 見つからない場合、[System] セクションの隣にある **[New...]** をクリックします。
 	* 名前と値を入力します。
 	* **[OK]** をクリックします。
-* **[OK]** をクリックして **[Environment Variables]** ウィンドウを閉じます。
+* **[OK]** をクリックして **[Environment Variables (環境変数)]** ウィンドウを閉じます。
 
 以下は、依存する変数と、それが示す場所です。
 
 **ANDROID_HOME**
-* ADT をインストールしている場合は、 Android SDK または 「sdk」ディレクトリをインストールしたディレクトリに設定します。 
-* 「platform-tools」と呼ばれるディレクトリを含まなければなりません。
+* ADT をインストールしている場合は、このディレクトリを Android SDK または 「sdk」ディレクトリをインストールしたディレクトリに設定します。 
+* 「platform-tools」というディレクトリを含まなければなりません。
 
 **JAVA_HOME**
-* JDK がインストールされている場所に設定します。「jdk1.6.0_24」などと呼ばれることがあるかもしれません。
-* その中に「javac.exe」のある「bin」と呼ばれるディレクトリを含まなければなりません。
+* JDK がインストールされている場所に設定します。ファイル名は「jdk1.6.0_24」のような感じになっています。
+* その中に「javac.exe」がついた「bin」というディレクトリを含まなければなりません。
 
 **ANT_HOME** [ADT をインストールしている場合は不要]
 * ANT を解凍した場所に設定します。
-* その中に「ant.bat」のある「bin」と呼ばれるディレクトリを含まなければなりません。
+* その中に「ant.bat」がついている「bin」という名前のディレクトリを含まなければなりません。
 
 * **NDKROOT**[C++ コードのコンパイルが必要ない場合は不要]
-* NDK を解凍した場所に設定します。「android-ndk-r9c」などと呼ばれることがあるかもしれません。
-* 「ndk-build.cmd」と呼ばれるファイルを含まなければなりません。
+* NDK を解凍した場所に設定します。「android-ndk-r9c」に似たファイル名が付いています。
+* 「ndk-build.cmd」というファイルを含まなければなりません。
+
+[/EXCERPT:ENVWindowsSetup]
+
+[EXCERPT:ENVMacOSSetup]
+TADP をインストールしていない場合、環境変数が正しく設定されているか確認する必要があります。 
+
+[region:note]
+(.bash_profile ファイルの編集、または TADP をインストールにより) インストールが完了したら、エディタもしくはランチャー アプリケーションを再起動する必要があります。
+[/region]
+
+環境変数を設定するには、ホーム ディレクトリで **.bash_profile** ファイルを編集しなければなりません。 
+ファイルは [Finder (ファインダー)] の中に隠れているので、編集用に開くにはターミナルを使用します。 
+Unix ターミナル コマンドがよく分からない場合は、以下の操作をしてください。
+
+1. /Applications/Utilities から **[Terminal app]** を開きます。
+1. ファイルが存在しない場合は、**「touch .bash_profile」** とタイプして作成します。
+1. 「open **.bash_profile」** とタイプして、テキスト エディタでファイルを開きます。
+1. 以下の行をファイルにコピーして (SDK とツールをインストールした場所を示すパスを置き換えて) 保存します。
+
+	* export ANDROID_HOME="/Users/epicgames/Devel/NVPACK/android-sdk-macosx"
+	* export NDKROOT="/Users/epicgames/Devel/NVPACK/android-ndk-r10c"
+	* export ANT_HOME="/Users/epicgames/Devel/NVPACK/apache-ant-1.8.2"
+
+以下は、依存する変数名と、それが示す場所です。
+
+* **ANDROID_HOME**
+	* ADT をインストールしている場合は、Android SDK または SDK ディレクトリをインストールしたディレクトリに設定します。 
+	* 「platform-tools」というディレクトリを含まなければなりません。
+* **ANT_HOME** [ADT をインストール済みの場合は不要]
+	* ANT を解凍した場所に設定します。
+	* その中に ANT という名前のファイルが入っている「bin」というディレクトリが含まれなければなりません。
+* **NDKROOT**[C++ コードをコンパイルしない場合は不要]
+	* NDK を解凍した場所に設定し、**android-ndk-r9c** に似た名前がついたものを探します。
+	* **「ndk-build」** というファイルを含まなければなりません。
+
+[/EXCERPT:ENVMacOSSetup]
+
+-->
 
 ## Android のヒントとトリック 
 
-**Launch** メニューに自分のデバイスがリストされない場合は、以下を試してみてください。 
-- 数秒おいてから最後確認する。接続デバイスに対するバックグラウンド スキャンはほとんど時間がかかりません。 
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#ATTWindowsSetup]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#ATTMacOSSetup]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:ATTWindowsSetup]
+**[Launch]** メニューに自分のデバイスが表示されない場合は、以下を試してみてください。 
+- 数秒間待って再度確認する。接続デバイスに対するバックグラウンド スキャンはほとんど時間がかかりません。 
 - USB デバッグ接続がすべて動作していることを確認する。 
-- コマンド プロンプトを開く (**[Windows] + [R]** を押して「cmd.exe」を実行します)。 
+- コマンド プロンプトを開く (**[Windows] + [R]** を押して「cmd.exe」を実行)。 
 	- 次のコマンドをタイプする：adb devices
 	- 何もデバイスがリストされない場合は、 USB ドライバーが正しくインストールされていません。ドライバーのインストール方法はお持ちの Android デバイスのモデルにより異なります。お持ちのデバイス モデルと「USB ドライバ」をオンライン検索して、 
 	ドライバーをインストールしてください。 
 	- さらに、お持ちのデバイスｎ Developer モードが有効にされていること、そして USB デバッグがオンになっていることを確認する必要があります。詳細は [ハードウェア デバイスを使う Android デベロッパーのためのガイド](http://www.wholetomato.com/forum/topic.asp?TOPIC_ID=8204&SearchTerms=alt,right,arrow) を参照してください。  
 	- その後で、「adb devices」コマンドが機能することを確認します。これを行わないと、エンジンがお持ちの Android デバイスと機能することができなくなってしまいます。 
-	お持ちのデバイスが Launch メニューに表示されてはいても、デバイスに展開できない場合は、デバイスが PC に承認されていないため通信ができていない場合が多いです。プログレスバーの **Show Log** をクリックすると、最後のラインが「adb uninstall」を呼び出していることを示しています。 
+	お持ちのデバイスが Launch メニューに表示されてはいても、デバイスに展開できない場合は、デバイスが PC に承認されていないため通信ができていない場合が多いです。プログレスバーの **[Show Log (ログを表示)]** をクリックすると、 
 
- 
+最後のラインが「adb uninstall」を呼び出していることを示しています。 
 - 上記の通り、「cmd.exe」を使って「adb devices」コマンドを実行します。 
 - デバイスが表示されてはいても権限がないことが表示される場合は、デバイスに PC に認証させるかどうかを尋ねさせる必要があります。 
 - デバイスを表示させるためには、デバイスをアンプラグし再接続する必要のある場合があります。 
-- **Always allow** チェックボックスにチェックを入れておくことを推奨します。 
+- **[Always allow (常に許可)]** チェックボックスにチェックを入れておくことを推奨します。 
+[/EXCERPT:ATTWindowsSetup]
+
+[EXCERPT:ATTMacOSSetup]
+[Launch] メニューに自分のデバイスがリストされない場合は、以下を試してみてください。 
+- 数秒おいてから再度確認する。接続デバイスに対するバックグラウンド スキャンはデバイスの登録にほとんど時間がかかりません。 
+* USB デバッグ接続がすべて動作していることを確認する。 
+* ターミナル アプリケーションを開いて、以下を試してみる。
+	* 次のコマンドをターミナル **adb devices** にタイプする。
+	* USB ドライバーが正しくインストールされていないと、デバイスが何も表示されません。ドライバーのインストール方法はお持ちの Android デバイスのモデルにより異なります。お持ちのデバイス モデルと **USB ドライバ** をオンライン検索して、必要なドライバーをインストールします。 
+	* さらに、お持ちのデバイスの Developer モードが有効にされていること、そして USB デバッグがオンになっていることを確認する必要があります。詳細は [ハードウェア デバイスを使う Android デベロッパーのためのガイド](http://developer.android.com/tools/device.html)** (特に 2 項と 3 項) を参照してください。
+	* その後で、**adb devices** コマンドが機能することを確認します。これを行わないと、エンジンがお持ちの Android デバイスと機能することができなくなってしまいます。
+
+お持ちのデバイスが **[Launch] メニュー** に表示されてはいても、デバイスに展開できない場合は、デバイスが Mac に承認されていないため通信ができていない場合が多いです。 
+進捗バーの **Show Log** 行をクリックして、最後のラインが「adb uninstall」を呼び出していることを示していたら、以下の操作をしてください。
+* ターミナル アプリケーションを開いて、adb devices コマンドを実行する 
+* デバイスが表示されても権限がない場合は、認証させるかどうかをデバイスが Mac に確認する必要があります。 
+* **[Always allow (常に許可)]** チェックボックスにチェックを入れて、常に Mac とデバイスが通信できる状態にしておくことを推奨します。
+
+[/EXCERPT:ATTMacOSSetup]
+
+-->
 
 ## Android テクスチャ フォーマット
-全ての Android デバイスが同じ構成というわけではありません。特に、レンダリングハードウェアは 4 種類あります。それぞれのハードウェアは、異なるフォーマットの圧縮テクスチャをサポートしています。 
+Android デバイスはすべて同じ構成をしているわけではありません。特に、レンダリングハードウェアは 4 種類あります。それぞれが異なるフォーマットの圧縮テクスチャをサポートしています。 
 
 [EXCERPT:AndroidFormats]
 | フォーマット | 説明 |
 |-------|------------|
-|DXT |(ユーザーのデスクトップ PC で使用、そして Tegra ベースのデバイスによって使用されます）|
+|DXT |(ユーザーのデスクトップ PC で使用、そして Tegra ベースのデバイスによって使用されます)|
 |ATC |(Qualcomm の Snapdragon ベースのデバイスで使用します)。|
 |PVR |(ImgTec PowerVR ベースのデバイスで使用します)|
-|ETC1 |(全デバイスでサポートされていますが、アルファチャンネルを持つテクスチャはサポートしません。そのためテクスチャは非圧縮となり、ゲームのダウンロードサイズが大きくなり、ランタイムメモリの使用量が増加します）|
+|ETC1 |(全デバイスでサポートされていますが、アルファ チャンネルを持つテクスチャはサポートしません。そのためテクスチャは非圧縮となり、ゲームのダウンロードサイズが大きくなり、ランタイム時のメモリ使用量が増加します)|
 |ETC2 |(MALI ベースのデバイスや、その他のいくつかのデバイスで使用されます)|
 [/EXCERPT:AndroidFormats]
 
-Android プラットフォーム向けにゲームをデプロイまたはパッケージ処理を行った場合、データは Android デバイスで利用可能なフォーマットへ変換されます (このプロセスを「クック」と呼びます) 。異なるデバイスは、それぞれが異なる圧縮フォーマットをサポートしているため、 
-クックするフォーマットの選択はユーザーが決定します。サブメニューの **Launch** または **Package** を選択後、 **Android** を筆頭に利用可能なフォーマットが表示されます。
+Android プラットフォーム向けにゲームをデプロイまたはパッケージ処理を行った場合、データは Android デバイスで利用可能なフォーマットへ変換されます (このプロセスを「クック」と呼びます)。各デバイスがサポートする圧縮フォーマットはそれぞれ異なるので、 
+クックするフォーマットの選択はユーザーが決定します。サブメニューの **[Launch]** または **[Package]** を選択すると、**Android** から利用可能なフォーマットが表示されます。
 
 最初に表示される (**Android**) は実際に全フォーマットを取り込んで、これらをクックしたパッケージへまとめます。処理時間は多少長くなり、大きめのパッケージを作成しますが、ランタイム時に最良のフォーマットを選択することで、 
-最低限のメモリ使用量が保証されます。全てのデバイスに機能します (**Android (ETC1)**のように)。
+最低限のメモリの使用が保証されます。すべてのデバイスに機能します (**Android (ETC1)**のように)。
+
+[region:note]
+アンリアル エンジン 4.8 以降のバージョンは **ES31** および **AEP** レンダリングを Tegra K1 デバイス上で使用できるようになりました。 
+デバイス数が限られているため、現在サポートしている ES31 と AEP レンダリングはパフォーマンスが低く、互換性テストは今現在完了していることに留意してください。
+これらのデバイスのどれかを使用する場合、拡張パフォーマンスと互換テストを行って、プロジェクトの中でデバイスが期待する動きをするようにしてください。 
+[/region]
 
 ### フォーマットの選択
 ユーザーのみなさんは、おそらく使用デバイスに対して最適化フォーマットを選択されるでしょう。デバイスに搭載されている GPU のタイプがわかる場合、上記の表を参照してフォーマットを選択してください。
 
-タイプがわからない場合、 **Android** または **Android (ETC1)** を選択します。ゲームの実行時にスクリーンを指 4 本で一度にタップすると、ダイアログが表示されます。このダイアログは通常、コンソール コマンド (例えば「stat fps」) の入力に使用しますが、 
-ユーザーのデバイスがサポートするフォーマットも表示します。リストが表示されたら、これを活用してデプロイ/パッケージング適した最良のタイプを選択します。
+タイプがわからない場合、**[Android]** または **[Android (ETC1)]** を選択します。ゲームの実行時にスクリーンを指 4 本で一度にタップすると、ダイアログが表示されます。このダイアログは通常、コンソール コマンド (例えば「stat fps」) の入力に使用しますが、 
+ユーザーのデバイスがサポートするフォーマットも表示します。リストが表示されたら、これを活用してデプロイおよびパッケージングに最も適したタイプを選択します。
 
 対象デバイスでサポートしていないフォーマットが選択された場合、読み込みが失敗します。 
+

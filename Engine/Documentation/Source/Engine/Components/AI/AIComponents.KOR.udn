@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2696027
 Availability:Public
 Title:AI 컴포넌트
 Crumbs:%ROOT%, Engine, Engine/Components
@@ -7,6 +7,7 @@ Related: Gameplay/AI
 Related: Gameplay/Framework/Pawn
 Related: Gameplay/Framework/Controller
 Related: Engine/Blueprints/UserGuide/Components
+version: 4.9
 
 AI 컴포넌트는 소리가 어디에서 나는지, 폰이 무언가를 볼 수 있는지와 같은 배경에서의 지각 데이터를 폰이 받을 수 있도록 해 주는 컴포넌트 유형입니다.
 
@@ -21,6 +22,10 @@ AI 컴포넌트는 소리가 어디에서 나는지, 폰이 무언가를 볼 수
 ## 폰 센싱 컴포넌트
 
 폰 **SensingComponent** 는 액터의 (시각, 청각 등의) 감각 세팅 및 함수성을 캡슐화한 것으로, 액터가 월드의 폰을 보고/들을 수 있도록 합니다. 네트워크 클라이언트에서는 아무것도 하지 않습니다.
+
+
+
+
 
 
 

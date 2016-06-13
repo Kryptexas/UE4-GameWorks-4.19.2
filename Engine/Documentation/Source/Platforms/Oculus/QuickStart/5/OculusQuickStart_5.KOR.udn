@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:2318890
-Title:5. VR 콘텐츠 테스트
+﻿INTSourceChangelist:2975673
+Title:5. 리프트와 UE4 테스트
 Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
 Description:언리얼 엔진 4 를 사용하여 오큘러스 리프트용으로 디자인된 콘텐츠를 로드하고 플레이합니다.
 Availability:Public
+Version: 4.11
+SkillLevel: Intermediate
 
+여기서는 언리얼 엔진 안에서 리프트가 정상 작동하는지 확인하는 방법을 다뤄보겠습니다.
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,31 +26,19 @@ Availability:Public
 
 %Steps%
 
-1. 없다면 [](Resources\ContentExamples) 프로젝트를 다운로드합니다.
-1. **Content Examples** 프로젝트를 엽니다.
-	
-	![](CE_Start.png)(w:500)
-1. **파일 > 레벨 열기** 를 클릭합니다.
-1. `VR.umap` 을 선택한 다음 **열기** 를 클릭합니다.
+1. 오큘러스 드라이버가 설치되고 오큘러스 리프트 셋업이 완료되었으니, 언리얼 프로젝트 브라우저를 열고 **새 프로젝트** 탭에서 다음 세팅으로 프로젝트를 새로 만듭니다.
 
-	![](VRmap.png)
-1. **레벨 에디터 툴바** 의 **플레이** 버튼 옆 화살표를 클릭한 다음 **에디터에서 플레이** 옵션을 엽니다.
+	![](Rift_New_Project_00.png)
 
-	![](PlayDropdown.png)
-1. **독립형 게임** 을 선택하여 게임을 실행합니다. **독립형 게임** 은 오큘러스와 호환되는 유일한 **에디터에서 플레이** 게임 테스트 모드입니다.
+1. UE4 가 실행되면 메인 메뉴로 가 플레이 옵션 기본값을 **선택 뷰포트** 에서 **VR 프리뷰** 로 바꾸고 리프트를 장착합니다.
 
-	![](StandAloneGame.png)
+	![](Rift_VR_Preview_00.png)
 
-	[REGION:tip]
-	프로젝트에 **독립형 게임** 을 선택하고나면, 다른 것을 선택하기 전까지 그 모드에 남아있게됩니다. 즉 **플레이** 버튼만 눌러도 계속 테스트를 할 수 있다는 뜻입니다.
-	[/REGION]
+1. 리프트 HMD 를 머리에 장착하면 다음과 같은 이미지가 보일 것입니다.
 
-1. **Alt+Enter** 키를 눌러 VR 모드로 들어갑니다. 그러면 게임의 디스플레이가 오큘러스로 전송될 뿐만 아니라, 화면상의 뷰가 스테레오 뷰로 변경됩니다.
-
-	![](VRMode.png)(w:800)
-1. 이쯤에서 오큘러스를 차고 레벨을 돌아다닐 수 있습니다. 게임플레이를 끝내려면:
-	* **~** 키를 친 다음 콘솔에 `quit` 라 입력하거나,
-	* **Shift+F1** 키를 쳐 마우스 콘트롤을 회복한 다음 창을 닫습니다.
-
+	![](Rift_Preview_Window_00.png)
+	[region:note]
+	VR 프리뷰 옵션과 리프트 사용시, VR 프리뷰 창은 검정으로 표시되어, VR 프리뷰 창을 실행 또는 재실행시켜도 아무것도 변하지 않는 것처럼 보입니다. 이것은 리프트 디스플레이 수명 연장을 위해 장착하지 않았을 때는 출력을 비활성화시키기 때문입니다. 리프트를 머리에 장착하면 VR 프리뷰 창으로의 출력이 활성화되어 VR 프리뷰 창에도 리프트에서 보이는 것이 표시됩니다.
+	[/region]
 
 %Steps%

@@ -1,13 +1,12 @@
-﻿INTSourceChangelist:2625805
+﻿INTSourceChangelist:2657979
 Availability:Public
 Title:버텍스 애니메이션 툴 - 타임라인 메시
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description: 3Ds Max 버텍스 애니메이션 툴세트 사용 안내서입니다.
-Version: 4.8
+Version: 4.9
 
 [TOC(start:2 end:3)]
 
-## 개요
 여기서는 3Ds Max 애니메이션 타임라인과 함께 버텍스 애니메이션 툴을 사용하여 주어진 3D 메시의 버텍스 위치를 저장하는 2D 텍스처를 만드는 법에 대해 다뤄보도록 하겠습니다.
 
 ## 3Ds Max 콘텐츠 제작 & 타임라인 애니메이티드 메시 구성

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2629322
+﻿INTSourceChangelist:2714421
 Availability: Public
 Title:이펙트 콘텐츠 예제
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -9,6 +9,7 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/ParticleLights
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+Version: 4.9
 
 
 [REGION:banner]
@@ -46,7 +47,7 @@ Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 [/OBJECT]
 [/VAR]
 
-[TOC(start:2 end:2)]
+<!---[TOC(start:2 end:2)]--->
 
 
 
@@ -79,9 +80,9 @@ Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 | **[1.7 Particle emission from bone](Resources\ContentExamples\EffectsGallery\1_G)** | 본에서 방출되는 파티클 - **스켈레탈 메시** 의 본에 붙은 파티클 이펙트를 스폰하는 법을 보여줍니다 (예: 캐릭터의 사지 중 불이 붙은 부분을 지정합니다). |
 | **[1.8 Particle Shadow Casting](Resources\ContentExamples\EffectsGallery\1_H)** | 파티클 그림자 드리우기 - 배경에 그림자를 드리우는 파티클을 만드는 법입니다 (예: 그림자를 드리우는 뭉게구름입니다). |
 | **[2.1 Local Vector Field](Resources\ContentExamples\EffectsGallery\2_A)** | 로컬 벡터 필드 - 이미터 자체 안에 포함된 모듈을 사용하여 **벡터 필드** 를 통해 GPU 스프라이트의 운동, 가속도, 속도를 제어하는 방법을 보여주는 예제입니다. |
-| **[2.2 Global Vector Field](Resources\ContentExamples\EffectsGallery\2_B)** | 글로벌 벡터 필드 - **로컬 벡터 필드** 와 비슷하지만, 이미터 안의 모듈이 아닌 레벨에 배치된 **액터** 를 원하는 대로 편집할 수 있습니다. GPU 파티클이 벡터 필드의 포스에 영향을 받는 때는 오직 필드의 볼륨 안에 있을때만입니다. |
+| **[2.2 Global Vector Field](Resources\ContentExamples\EffectsGallery\2_B)** | 글로벌 벡터 필드 - **로컬 벡터 필드** 와 비슷하지만, 이미터 안의 모듈이 아닌 레벨에 배치된 **액터** 를 원하는 대로 편집할 수 있습니다. GPU 파티클이 벡터 필드의 포스에 영향을 받는 때는 오직 필드의 볼륨 안에 있을 때만입니다. |
 | **[2.3 Black body node (dynamic parameter control)](Resources\ContentExamples\EffectsGallery\2_C)** | 블랙 바디 노드 - **다이내믹 파라미터** 콘트롤을 사용하여 이펙트에 사실적인 색을 내는 방법입니다 (예: 검은색 자욱한 연기가 블렌딩되어 피어오르는 화염 이펙트). |
-| **[2.4 Event-driven spawn](Resources\ContentExamples\EffectsGallery\2_D)** | 이벤트 주도형 스폰 - 파티클의 수명동안 호출되는 이벤트를 사용하여 다양한 파티클을 스폰합니다 (예: 파티클이 사망하면 파티클 폭발이 추가적으로 스폰되는 폭죽). |
+| **[2.4 Event-driven spawn](Resources\ContentExamples\EffectsGallery\2_D)** | 이벤트 주도형 스폰 - 파티클의 수명 동안 호출되는 이벤트를 사용하여 다양한 파티클을 스폰합니다 (예: 파티클이 사망하면 파티클 폭발이 추가적으로 스폰되는 폭죽). |
 | **[2.5 Ribbon trails](Resources\ContentExamples\EffectsGallery\2_E)** | 리본 트레일 - 한 위치에서 다른 위치로 이동하면서 자취를 남기는 파티클을 만드는 법입니다 (예: 공중으로 쏘아올린 섬광탄). |
 | **[2.6 Lit particle reacting to lights](Resources\ContentExamples\EffectsGallery\2_F)** | 라이트에 반응하는 릿 파티클 - 연기같은 파티클에 사실적인 라이팅 이펙트를 내는 법을 보여줍니다 (예: 경찰차의 경광등이 연기에 영향을 끼칩니다). |
 | **[2.7 CPU particles emitting light](Resources\ContentExamples\EffectsGallery\2_G)** | 빛을 내뿜는 CPU 파티클 - 이미터에 **라이트 모듈** 을 추가하여 파티클 이펙트에서 다이내믹 라이트를 스폰시킵니다. |

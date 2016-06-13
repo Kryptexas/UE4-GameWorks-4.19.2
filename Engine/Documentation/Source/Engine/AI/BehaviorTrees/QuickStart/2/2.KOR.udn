@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2635791
+﻿INTSourceChangelist:2755926
 Availability:Public
 Title: 2. Nav Mesh Bounds Volume 생성
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:2 단계. Nav Mesh Bounds Volume 생성
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -51,4 +52,10 @@ Description:2 단계. Nav Mesh Bounds Volume 생성
 
 [/EXCERPT:AICreateNav]
 %Steps%
+
 [VAR:arrow]![](Engine\AI\EnvironmentQuerySystem\QuickStart\arrow_button.png)[/VAR]
+
+
+
+
+

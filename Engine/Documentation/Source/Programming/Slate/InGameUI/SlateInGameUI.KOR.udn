@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2615366
+﻿INTSourceChangelist:2661707
 Availability:Public
 Title: 게임내 슬레이트 사용하기
 Crumbs:%ROOT%, Programming, Programming/Slate
@@ -78,7 +78,7 @@ UEngine 멤버인 `GameViewport` 를 통해 가능하며, 이것은 게임에 �
 혹은 `SAssignNew()` 로 생성, `TSharedPtr` 멤버에 할당한 다음 전달해 줍니다:
 
 	GEngine->GameViewport->AddViewportWidgetContent(
-		SAssingNew(MyWidgetPtr, SWeakWidget)
+		SAssignNew(MyWidgetPtr, SWeakWidget)
 		.PossiblyNullContent(MyWidgetClass)
 	);
 

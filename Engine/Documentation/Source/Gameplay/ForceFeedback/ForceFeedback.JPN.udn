@@ -1,0 +1,122 @@
+﻿INTSourceChangelist:2862698
+Availability:Public
+Title:フォースフィードバック
+Crumbs:
+Description:モバイル デバイスとコントローラーのバイブレーション機能を使用して、ゲーム内で起こる力をプレイヤーに伝えます。
+Parent:Gameplay
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Gameplay/ForceFeedback:title%](Gameplay/ForceFeedback/force_feedback_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Gameplay/ForceFeedback:title%
+	[/PARAM]
+	[PARAM:description]
+		%Gameplay/ForceFeedback:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Gameplay/ForceFeedback]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Gameplay/ForceFeedback:title%](Gameplay/ForceFeedback/force_feedback_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Gameplay/ForceFeedback:title%
+	[/PARAM]
+	[PARAM:description]
+		%Gameplay/ForceFeedback:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Gameplay/ForceFeedback]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC]
+
+**フォースフィードバック** (触覚フィードバックまたはハプティック フィードバックともいう) とは、ゲーム内で起こる力をプレイヤーに伝えるためにゲームで使用されるデバイスやコントローラーの振動のことをいいます。単純な例としては、ゲーム内で爆発が起きた場合にフォース フィードバックを使って衝撃波をシミュレートすることで、没入感に新たな奥行きを与えます。
+
+一度実装すると、フォースフィードバックはサポートされる全プラットフォームで機能します。これには、 iOS (4.10 時点)、Android、およびコントローラーが含まれます。
+
+## Force Feedback Effect アセット
+
+**Force Feedback Effect (フォースフィードバック エフェクト) アセット** には、特定のフォースフィードバック エフェクトを定義するために使用するプロパティが含まれます。これにより、デザイナーは、使用される各状況に対してフォースフィードバックをカスタマイズすることができます。
+
+![image alt text](image_0.png)(w:640 convert:false)
+
+各フォースフィードバック エフェクトには、複数のチャンネルがあり、それぞれが異なるエフェクトを再生することができます。例えば、あるチャンネルではコントローラーの右側でひとつの大きな長い振動を再生します。一方、もうひとつのチャンネルでは、小さな短いバーストを左側で再生します。各チャンネルのエフェクトのパターンは、カーブによって制御されます。
+
+フォースフィードバック エフェクトの持続時間は、すべてのチャンネルのカーブの最後のキーの位置に基づき自動的に計算されます。例えば、3 つのチャンネルがあり、それぞれの最後のキーが 1.25、 1.5、 および 1.75 にあるとします。この場合、全体的なエフェクトの持続時間は 1.75 になります。
+
+### チャンネルのプロパティ
+
+各チャンネルには、チャンネルに対するエフェクトがどのように再生されるかを制御する以下のプロパティがあります。
+
+| アイテム | 説明 |
+| ---- | ----------- |
+| **Affects Left Large** | true の場合、左側の大きなモーターを使用してエフェクトを再生します。 |
+| **Affects Left Small** | true の場合、左側の小さなモーターを使用してエフェクトを再生します。 |
+| **Affects Right Large** | true の場合、右側の大きなモーターを使用してエフェクトを再生します。 |
+| **Affects Right Large** | true の場合、右側の小さなモーターを使用してエフェクトを再生します。 |
+| **Curve** | 時間経過に伴いエフェクトの強度を制御するカーブです。つまり、振動のパターンを定義します。0.5 より大きいと振動し、0.5 より小さいと振動しません。 |
+
+## Force Feedback Effect アセットの作成
+
+Force Feedback Effect アセットは、以下のように **コンテンツ ブラウザ** を使用して作成します。
+
+1. **コンテンツ ブラウザ** で **[Add New (新規追加)]** をクリックして **Miscellaneous > Force Feedback Effect** を選択します。デフォルトでは、このアセットはひとつのチャンネルを持ちますが、さらに追加することができます。
+
+1. フォースフィードバックがデバイスの左および/または右に影響を及ぼすかを選択するとともに、いずれかの側で大きくなるか、または小さくなるかを選択します。
+
+1. **Shift** キーを押しながら、カーブ上で **左クリック** し、ひとつ以上のキーを追加します。
+
+	![](curve.png)(convert:false)
+
+1. カーブ エディタに直接値を入力するか、値をドラッグすることによりキーを操作します。
+
+	[REGION:note]
+	他のカーブ エディタとは異なり、キーは直線でのみ接続することができます。 
+	[/REGION]
+
+## フォースフィードバックの再生
+
+フォースフィードバックは、基本クラスの PlayerController で実装します。ターゲット デバイスやコントローラーでフォースフィードバックを再生するには、ローカルのプレイヤー コントローラーにアクセスする必要があります。
+
+**ブループリントでフォースフィードバックを再生する手順は以下の通りです。**
+
+1. プレイヤー コントローラーへの参照を、**Get Player Controller** ノードまたは保存した参照を用いて取得 (get) します。
+
+	![](effect_controller.png)(w:640)
+
+1. 参照の出力ピンをドラッグして、コンテキスト メニューに _Play Force Feedback_ と入力して **Client Play Force Feedback** を選択します。
+
+	![](effect_play.png)(w:640)
+
+	[REGION:note]
+	サーバー上で呼び出されると、フォースフィードバックは所有するクライアントに複製されます。
+	[/REGION]
+
+1. ノード上で直接使用するフォースフィードバック エフェクトを指定するか、接続された変数を使って指定します。
+
+	![](effect_select.png)(w:640)
+
+1. エフェクトをループさせたければ **Looping** を選択します。
+
+	![](effect_looping.png)(w:640)
+
+1. オプションで、このエフェクトにタグを設定します。タグを使用するとエフェクトを停止できます。同じタグを持つエフェクトが既に再生中であれば、停止させ、代わりに新しいエフェクトが再生されます。
+
+	![](effect_tag.png)(w:640)
+
+**C++ でフォースフィードバックを再生する手順は以下の通りです。**
+
+ローカルのプレイヤー コントローラー上で [](API:APlayerController::ClientPlayForceFeedback) を呼び出し、使用のためにそれにフォースフィードバック エフェクトを渡し、エフェクトがループすべきかどうか、およびオプションのタグがあるかも渡します。タグを使用するとエフェクトを停止できます。同じタグを持つエフェクトが既に再生中であれば、停止させ、代わりに新しいエフェクトが再生されます。
+
+

@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:2604022
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title: 언리얼 에디터 인터페이스
 Crumbs:%ROOT%, Engine
 Description:언리얼 에디터 유저 인터페이스에 대한 분석과 아울러, 에디터 작동방식에 있어서의 핵심 원리입니다.
 Navigation:topic
+Version: 4.9
+parent:Engine/Editor
+order:1
 
 [EXCERPT:LevelEditor]
 
@@ -149,22 +152,7 @@ Navigation:topic
 	[/PARAM]
 	[PARAM:description]
 		[REGION:simplegallery]
-		[OBJECT:VideoLink]
-			[PARAMLITERAL:videoid]
-			w4XlBKeE46E
-			[/PARAMLITERAL]
-			[PARAMLITERAL:playlistid]
-			PLZlv_N0_O1gasd4IcOe9Cx9wHoBB7rxFl
-			[/PARAMLITERAL]
-			[PARAMLITERAL:width]
-			275
-			[/PARAMLITERAL]
-			[PARAMLITERAL:image]
-			[/PARAMLITERAL]
-			[PARAMLITERAL:playerurl]
-				https://wiki.unrealengine.com/Videos/Player
-			[/PARAMLITERAL]
-		[/OBJECT]
+		[VideoLink(videoid:"w4XlBKeE46E" playlistid:"PLZlv_N0_O1gasd4IcOe9Cx9wHoBB7rxFl" width:"275")]
 		[/REGION]
 	[/PARAM]
 [/OBJECT]

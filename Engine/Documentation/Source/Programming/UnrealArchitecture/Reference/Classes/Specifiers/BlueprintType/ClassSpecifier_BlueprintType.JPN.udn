@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2374181
+﻿INTSourceChangelist:2707791
 Title:BlueprintType
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Classes, Programming/UnrealArchitecture/Reference/Classes/Specifiers
 Description:
 Availability:Public
-バージョン：4.5
+Version:4.9
 
-このクラスをブループリントの変数に使用するタイプとして展開します。
+このクラスをブループリントの変数に使用する型として公開します。

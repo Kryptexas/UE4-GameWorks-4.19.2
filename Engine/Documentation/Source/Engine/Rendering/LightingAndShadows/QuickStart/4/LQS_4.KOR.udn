@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2441509
+﻿INTSourceChangelist:2685169
 Availability: Public
 Title:4. 스포트 라이트 추가하기
 Crumbs:%ROOT%, GettingStarted, Engine\Rendering\LightingAndShadows\QuickStart
 Description:여기서는 스포트 라이트를 사용해서 스타일이 살아있는 라이트를 만들겠습니다.
+SkillLevel: Beginner
+Version: 4.9
 
 
 [VAR:Steps]
@@ -79,18 +81,23 @@ Description:여기서는 스포트 라이트를 사용해서 스타일이 살아
 
 	그렇게 하면 레벨 라이팅에 대비 효과를 주어 방의 라이팅이 좀 더 자연스러워 보입니다.
 
-[REGION:imagetable]
-| 스포트 라이트 배경조명 비교 ||
-| --- | --- |
-| ![](withSpotLights.png)(w:455) | ![](withoutSpotLights.png)(w:455) |
-| **스포트 라이트 배경조명 있음** | **스포트 라이트 배경조명 없음** |
-[/REGION]
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![스포트 라이트 배경조명 있음](withSpotLights.png)(w:700)
+	[/PARAM]
+	[PARAM:after]
+	![스포트 라이트 배경조명 없음](withoutSpotLights.png)(w:700)
+	[/PARAM]
+[/OBJECT]
+
 
 부가적인 배경조명에는 **스포트 라이트** 대신 [](Engine/Rendering/LightingAndShadows/LightTypes/SkyLight) 를 사용할 수도 있습니다. 스케일이 큰 영역에는 조금 더 적합할 수는 있지만, 우리 작은 아파트에는 보다 효율적인 라이팅 제어를 위해서라도 **스포트 라이트** 배경조명을 사용했습니다.
 
 **다음 단계** 에서는 라이트의 퀄리티를 향상시키고 아파트에 반사광을 추가해 보겠습니다.
 
 %Steps%
+
 
 
 

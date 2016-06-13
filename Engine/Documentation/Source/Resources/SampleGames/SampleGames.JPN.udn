@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2742417
+﻿INTSourceChangelist:2803975
 Availability:Public
 Title:Example Game Projects（サンプル ゲーム プロジェクト）
 Crumbs:%ROOT%, Resources
@@ -54,6 +54,7 @@ Example Game Projects (サンプル ゲーム プロジェクト) は、Epic の
 [/Excerpt:SampleGames]
 
 [REGION:topics third]
+%Resources/SampleGames/UnrealMatch3:TopicCompact%
 %Resources/SampleGames/PlatformerGame:TopicCompact%
 %Resources/SampleGames/ShooterGame:TopicCompact%
 %Resources/SampleGames/StrategyGame:TopicCompact%

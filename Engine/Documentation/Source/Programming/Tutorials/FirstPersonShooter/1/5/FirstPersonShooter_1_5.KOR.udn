@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2672918
+﻿INTSourceChangelist:2924867
 Availability: Docs
 Title: 1.5 - 디폴트 게임 모드 설정
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
 Description: 일인칭 슈팅 게임 프로젝트의 기본 게임 모드 설정 방법을 배워봅니다.
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -24,28 +24,28 @@ Version: 4.9
 
 %Steps%
 
-새로 추가한 게임 모드 컴파일에 성공했으니, 이번 단계에서는 **FPSProject** 가 **FPSGameMode** 를 기본 게임 모드로 사용하도록 설정해 줘야 합니다.
+새로 변경된 게임 모드 컴파일에 성공했으니, 이번 단계에서는 프로젝트가 `FPSProjectGameMode` 를 기본 게임 모드로 사용하도록 설정해 줘야 합니다.
 
 1.	**편집** 메뉴에서 **프로젝트 세팅** 을 클릭합니다.
 
 1.	**프로젝트 세팅** 탭 왼편의 **프로젝트** 제목 아래 **맵 & 모드** 를 클릭합니다.
 
-1.	디폴트 게임모드 드롭다운에서 **FPSGameMode** 를 선택합니다.
+1.	**Default GameMode** 드롭다운에서 **FPSGameMode** 를 선택합니다.
 
 	![](SettingFPSGameMode.png)
 
 1.	**프로젝트 세팅** 메뉴를 닫습니다.
 
-1.	레벨 에디터 툴바의 **플레이** 버튼을 클릭합니다. 뷰포트 좌상단 구석에 "We are using FPSGameMode." 라고 표시될 것입니다.
+1.	레벨 에디터 툴바의 **플레이** 버튼을 클릭합니다. 뷰포트 좌상단 구석에 Hello World, this is FPSGameMode! 라는 문구가 노랑색으로 5 초간 표시될 것입니다.
 
 	![](SectionResult.png)
 
-1.	레벨 에디터에서 **중지** 버튼을 클릭하여 에디터에서 플레이(PIE) 모드를 종료합니다.
+1.	Esc 키를 누르거나 레벨 에디터에서 **중지** 버튼을 클릭하여 에디터에서 플레이(PIE) 모드를 종료합니다.
 
 축하합니다! 지금까지 배운 내용은 다음과 같습니다:
 
 &#x2713; 새 프로젝트 구성
-&#x2713; C++ 클래스 마법사 사용
+&#x2713; Visual Studio 에서 프로젝트 열기
 &#x2713; 프로젝트에 로그 메시지 추가
 &#x2713; 첫 C++ 클래스 컴파일
 &#x2713; 기본 게임 모드 설정

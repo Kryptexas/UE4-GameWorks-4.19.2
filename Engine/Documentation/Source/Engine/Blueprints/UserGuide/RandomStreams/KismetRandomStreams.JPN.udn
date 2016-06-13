@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:2690804
+﻿INTSourceChangelist:2968923
 Availability:Public
 Title:ランダム ストリーム
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:ランダム ストリームの説明とブループリントにおける使用方法
 version:4.9
+Parent:Engine/Blueprints
+Type:guide
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -61,11 +63,11 @@ RandomStreams は、ブループリント の構造体変数の特殊タイプ�
 
 ![RandomStream Variable](variable.png)
 
-新しい変数をブループリント クラスや Level ブループリント内に追加する方法の詳細手順については、[変数の作成](Engine/Blueprints/UserGuide\Variables#変数の作成) をご覧ください。
+新しい変数をブループリント クラスや Level ブループリント内に追加する方法の詳細手順については、[変数の作成手順](Engine/Blueprints/UserGuide\Variables#変数の作成手順) をご覧ください。
 
 ## RandomStream 関数
 
-RandomStream 変数を利用するために、RandomStream を入力としてとり、関数に応じて様々なタイプのランダム値を出力する関数一式があります。
+RandomStream を入力として受けとり、関数に合わせた様々なタイプのランダム値を出力する関数群を利用して、RandomStream 変数を使います。
 
 ![Random Stream Context Menu](context_functions.png)
 
@@ -89,15 +91,15 @@ RandomStream 変数を利用するために、RandomStream を入力としてと
 ![Random Stream Functions Example](functions_example.png)
 [/REGION]
 
-ご覧になってわかるように、ランダムな Booleans、 Floats、 Integers、Vectors、Rotators は、すべて同じストリームから引き出すことができます。
+上図を見ると、ランダムな Booleans、 Floats、 Integers、Vectors、Rotators は、すべて同じストリームから引き出せることが分かります。
 
-## 初期シード値
+## Initial Seed
 
-**Initial Seed** プロパティを使用して、ランダム値のストリームを計算します。単一のシード値から生成されたランダム値のシーケンスは、計算されるたびに常に同じになり、 
-前述のような一貫性を実現します。シードが異なると、異なる値のシーケンスが生成されます。
+**Initial Seed** プロパティは、ランダム値のストリーム計算に使用します。単一のシード値から生成されたランダム値のシーケンスは、計算されるたびに常に同じになり、 
+一貫性が実現されるというわけです。異なるシードからは異なる値のシーケンスが生成されます。
 
-そのため、RandomStream の初期シード値を修正すると、生成される値が変化します。これを使用して、ニーズに合ったシーケンスや分布が得られるまで、ランダム エフェクトを 
-微調整することができます。ブループリントのインスタンス毎に新規の初期シード値が生成されます。ブループリントのインスタンスがワールドに配置された時や既存のインスタンスの複製が作られたときに、 
+そのため、RandomStream の初期シード値を修正すると、生成される値も変化します。これを使用して、ニーズに合ったシーケンスや分布が得られるまで、 
+ランダム エフェクトを微調整することができます。ブループリントのインスタンス毎に、新たに初期シード値が生成されます。ブループリントのインスタンスがワールドに配置された時や既存のインスタンスの複製が作られたときに、 
 毎回、ブループリントに属する各 RandomStream 変数に、新しい初期シード値が与えられます。そのため、各インスタンスは異なり、ちょうど必要な結果を得るために微調整することができます。
 
 <!--

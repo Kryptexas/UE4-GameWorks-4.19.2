@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2620739
+﻿INTSourceChangelist:2719809
 Availability: Public
 Title:네트워킹 콘텐츠 예제
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -8,6 +8,7 @@ Related: Gameplay/Networking/Actors/Components
 Related: Gameplay/Networking/Actors
 Related: Gameplay/Networking/Actors/RPCs
 Related: Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
+Version: 4.9
 
 [REGION:banner]
 ![](NetworkFeatures_Header.png)(convert:false)
@@ -73,7 +74,7 @@ Related: Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 ### 연관성
 **Relevancy** (연관성) 섹션에 표시된 예제는 상자를 여는 데 대한 **Network Relevancy** (네트워크 연관성) 처리 방법 및 서버와 클라이언트 사이의 상태 통신 방법 데모입니다. 한 액터가 연관성이 없다가 생기는 경우를 처리하는 매우 흔한 문제를 해결합니다. 기존에 진행중인 게임에 참가하는 플레이어 처리 문제 해결과도 매우 유사합니다.
 
-아래 예제는 위에 언급된 문제에 대해 가능한 해법과 작동 이유 또는 하지않는 이유를 알려줍니다. 최종 예제는 여러가지 기법을 사용한 하이브리스 솔루션을 사용하여 문제를 해결합니다.
+아래 예제는 위에 언급된 문제에 대해 가능한 해법과 작동 이유 또는 하지 않는 이유를 알려줍니다. 최종 예제는 여러가지 기법을 사용한 하이브리드 솔루션을 사용하여 문제를 해결합니다.
 
 | 예제 | 데모 내용 |
 | ------- | ------------ |

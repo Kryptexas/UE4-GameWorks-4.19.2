@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2625743
+﻿INTSourceChangelist:2774060
 Availability:Public
 Title: 비헤이비어 트리 퀵스타트 가이드
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
 Description:AI 개요 및 예제입니다.
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -46,7 +47,7 @@ Description:AI 개요 및 예제입니다.
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-1td5wSD3PPU
+q6vTg2roI6k
 [/PARAMLITERAL]
 [/OBJECT]
 

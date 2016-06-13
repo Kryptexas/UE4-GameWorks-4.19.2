@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2614102
+﻿INTSourceChangelist:2723610
 Availability: Public
 Title:멀티플레이어 슈팅
 Crumbs:%ROOT%, Resources, Resources/Showcases
@@ -9,6 +9,7 @@ Related: Programming/Online
 Related: Programming/Online/Steam
 Related: Gameplay/Networking/Actors
 Related: Resources/ContentExamples/Networking
+Version: 4.9
 
 
 [VAR:Topic]
@@ -166,11 +167,11 @@ Related: Resources/ContentExamples/Networking
 
 | 이름 | 설명 |
 |---|---|
-| **MyGameInstance** | (인스턴스 블루프린트) - 메인 메뉴 및 하위 하면과 게임플레이를 오가는 모든 전환 상태는 물론 오류 이벤트를 처리합니다. |
+| **MyGameInstance** | (인스턴스 블루프린트) - 메인 메뉴 및 하위 화면과 게임플레이를 오가는 모든 전환 상태는 물론 오류 이벤트를 처리합니다. |
 | **MyGameMode** | (게임 모드 블루프린트) - 모든 디폴트 클래스(Pawn, HUD, PlayerController, ...)를 담습니다. 또한 플레이어 리스폰 및 플레이어가 게임플레이 세션에 처음 참가했을 때 벌어지는 일도 처리합니다. |
 | **MyPlayerController** | (플레이어콘트롤러 블루프린트) 게임내 UI 를 구성하고 플레이어가 게임내 일시정지 메뉴를 열 수 있도록 합니다.|
 | **MyPlayerState** | (플레이어스테이트 블루프린트) 각 플레이어의 점수를 처리합니다. |
-| **ProjectileBP** | (액터 블루프린트) 플레이어끼리 서로 발사할 수 있는 프로젝타일이 대미지를 입힐것인가 입니다. |
+| **ProjectileBP** | (액터 블루프린트) 플레이어끼리 서로 발사할 수 있는 프로젝타일이 대미지를 입힐 것인가 입니다. |
 | **State** | (열거형) 게임이 처해있을 수 있는 모든 상태 목록입니다. |
 
 **Game/Gunslinger**
@@ -239,7 +240,7 @@ Steam 을 사용한다면, [부가 SDK 및 INI 구성](Programming/Online/Steam)
 
 여기서는 게임의 사양한 상태 각각을 안내해 드리면서, 그것을 구동하는 블루프린트를 살펴보겠습니다.
 
-먼저 **Startup** 시퀸스를 살펴봅시다.
+먼저 **Startup** 시퀀스를 살펴봅시다.
 
 ### Startup
 
@@ -436,7 +437,7 @@ Loading Screen 이 표시된 이후, 스크립트는 **HostGameEvent** 와 **Cre
 이 시점에서, "login" 프로세스가 완료되어 캐릭터 자체의 셋업이 **Character Animation Blueprint** 를 통해 일어납니다. 각각의 캐릭터 이동 상태를 정의하고 애니메이션을 설정하였으나, 그 부분은 여기서 다루지 않겠습니다. **애니메이션 블루프린트** 관련 상세 내용은 [](Engine/Animation/AnimBlueprints) 문서를 참고하세요.
 [/REGION]
 
-**Character Animation Blueprint** 셋입이 완료된 이후, **Level_01** 맵이 열립니다. 이 맵의 **레벨 블루프린트** 에서, 플레이어가 실제 레벨에 스폰되기 전 다음 스크립트가 호출됩니다.
+**Character Animation Blueprint** 구성이 완료된 이후, **Level_01** 맵이 열립니다. 이 맵의 **레벨 블루프린트** 에서, 플레이어가 실제 레벨에 스폰되기 전 다음 스크립트가 호출됩니다.
 
 ![](level1LevelBlueprint.png)
 
@@ -452,7 +453,7 @@ Loading Screen 이 표시된 이후, 스크립트는 **HostGameEvent** 와 **Cre
 
 게임에서 접속을 끊는 프로세스는 꽤나 간단하여, 일부 UMG 위젯 표시를 켜고/끄는 작업과, 처음 게임을 로드할 때 메인 메뉴로 돌아가는 동일한 시작 프로세스를 활성화시키는 작업이 포함됩니다.
 
-게임플레이 도중 **Q** 가 눌려 게임내 일시정지 메뉴가 표시되고, **Leave Game** 옵션을 클릭하다마자 **InGameMenu** 위젯 블루프린트 안에서 다음과 같은 프로세스가 발생합니다:
+게임플레이 도중 **Q** 가 눌려 게임내 일시정지 메뉴가 표시되고, **Leave Game** 옵션을 클릭하자마자 **InGameMenu** 위젯 블루프린트 안에서 다음과 같은 프로세스가 발생합니다:
 
 ![](disconnectingGraph.png)
 
@@ -462,7 +463,7 @@ Loading Screen 이 표시된 이후, 스크립트는 **HostGameEvent** 와 **Cre
 
 이 스크립트 부분은 (앞서 만들어 레퍼런스로 저장한) **In Game Menu Widget** 변수를 구한 다음, **Remove from Parent** 노드로 화면에서 제거합니다. 그 후 **Set Input Mode Game Only** 를 사용하여 UI 입력이 가능하도록 입력 모드를 다시 변경할 때까지 플레이어의 다른 UI 관련 입력 동작을 막도록 합니다.
 
-그런 다음 스크립트는 **InGameMenu** 위젯 블루프린트와 **Cast to MyGameInstance** 노드(4)로 돌아와 현재 게임 인스턴스를 구하고 그 안에서 **Show Main Menu Event** 함수를 호출하는데, 거기서 함수가 처음 하는 일은 [IsCurrentState 매크로](#iscurrentstate매크로) 와 게입 첫 로드시 [Startup](#startup) 섹션에서 그 뒤에 따르는 섹션을 실행하는 것입니다.
+그런 다음 스크립트는 **InGameMenu** 위젯 블루프린트와 **Cast to MyGameInstance** 노드(4)로 돌아와 현재 게임 인스턴스를 구하고 그 안에서 **Show Main Menu Event** 함수를 호출하는데, 거기서 함수가 처음 하는 일은 [IsCurrentState 매크로](#iscurrentstate매크로) 와 게임 첫 로드시 [Startup](#startup) 섹션에서 그 뒤에 따르는 섹션을 실행하는 것입니다.
 
 ![](disconnectingGraph.png)
 

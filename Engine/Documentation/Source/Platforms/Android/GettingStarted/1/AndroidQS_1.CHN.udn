@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2708278
 Availability:Public
-Title:1. Install the Android SDK
+Title: 1. 安装安卓软件开发工具包（SDK）
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
-Description: Install the TADP Android SDK.
-
-
+Description: 安装 Android SDK。
+Version:4.9
+Skilllevel:Intermediate
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -13,15 +13,18 @@ Description: Install the TADP Android SDK.
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Quick Start Home](Platforms/Android/GettingStarted)
+		[快速入门主页](Platforms/Android/GettingStarted)
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Platforms/Android/GettingStarted/2 "%Platforms/Android/GettingStarted/2:title%")
+		[下一步](Platforms/Android/GettingStarted/2 "%Platforms/Android/GettingStarted/2:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
+
 %Steps%
+
+在为 Android 开发前，我们首先要安装 Android SDK，该 SDK 为发布到 android 提供开发所需的程序和代码，下面来介绍如何安装该软件。
 
 %Globals:OSSelect%
 
@@ -57,166 +60,165 @@ Description: Install the TADP Android SDK.
 <!--
 [EXCERPT:WindowsSetup]
 
-[REGION:tip]
-If you already have the Android SDK installed, but your environment variables have been lost, you can skip all of this and simply point the editor to the install locations using the **Edit Menu** -> **Project Settings** -> **Android SDK** properties in the Editor.
+[REGION:note]
+如果已经安装安卓 SDK，但丢失了环境变量，则可跳过以下所有步骤，只需使用编辑器中的 **Edit Menu** -> **Project Settings** -> **Android SDK** 属性指向安装位置。
 [/REGION]
 
-1. Navigate to the TADP installation folder:
-| Install Type | Location |
-| ------------ | ---------|
-| Binary | [EngineInstallLocation]\Unreal Engine\[EngineVersion]\Engine\Extras\Android |
-| GitHub | [EngineSyncLocation\UE4\Engine\Extras\Android |
+[region:warning]
+强烈推荐在安装 Android Works 时应当先关闭虚幻编辑器和启动器，以免安装过程产生错误。
+[/region]
 
-1. **Double-click** on `tadp-2.0r8-windows.exe`.
+1. 导航到 TADP 安装文件夹：
+	| 安装类型 | 位置 |
+	| ------------ | ---------|
+	| 二进制 | [EngineInstallLocation]\Unreal Engine\[EngineVersion]\Engine\Extras\Android |
+	| GitHub | [EngineSyncLocation\UE4\Engine\Extras\Android |
 
-1. Click **Next**.
+	[region:note]
+	如果您是从 **GitHub** 下载的虚幻 4，那再运行 Android Works 的安装文件前您需要先完成以下步骤。
+	并且以下步骤对下载虚幻 4 的源码版本，无论是 Windows 还是 Mac 的电脑，都是适用的。
+	如果您是通过启动器下载的预编译版本，那么久可以跳过这个步骤，直接开始安装 Android Works。
+
+	1. 当虚幻 4 从 Github 上下载并解压后，运行文件 **Setup.bat** 来下载其他所需要的文件，其中包含 **Android Works** 的安装文件。
+
+	1. 在 **Setup.bat** 运行完成后，找到 Android Works 的安装文件，并跟随下面的说明。
+
+	[/region]
+
+1. **Double-click** **AndroidWorks-1R1-windows.exe**。
+
+	![](AndroidWorks_11.png)
+
+1. 单击 **Next**。
     
-	![](tadpinstaller_1.png)(w:450)
+	![](AndroidWorks_00.png)
 
-1.	Select **I accept the agreement**, then click **Next**.
+1.	然后单击 **Next**。
 
-	![](tadpinstaller_2.png)(w:450)
+	![](AndroidWorks_01.png)
 
-1.	Click **Next**.
+1.	选择一个文件夹来下载并安装 Android Works，并在完成后单击 **Next** 按钮。
 
-	![](tadpinstaller_3.png)(w:450)
+	![](AndroidWorks_02.png)
 
-1.	Select the **Express** install, then click **Next**.
+	[region:note]
+	直接使用默认的文件夹完全没问题。
+	[/region]
+
+1.	确认您要安装的是 **AndroidWorks1R1** 并点击 **Next**。
 	
-	![](tadpinstaller_4.png)(w:450)
+	![](AndroidWorks_03.png)
 
-1.	Make sure that the install location is `C:\NVPACK`.
+1.	点击单选框，对授权协议没有异议的话选择 **Accept All**，并单击 **Accept** 按钮。
 	
-	![](tadpinstaller_5.png)(w:450) 
+	![](AndroidWorks_04.png)
 
-1.	Verify that the list of components to install matches this list:
+1.	会弹出一个新窗口，显示 Android Works 工具下载和安装的进度。
+	[region:note]
+	完成这个步骤时需要互联网的接入。根据网速不同，可能需要几分钟到几小时不等的时间。
+	[/region]
 	
-	![](tadpinstaller_6.png)(w:450)
+	![](AndroidWorks_06.png)
 
-1.	Enter a proxy if needed:
+1.	当所有的工具都下载安装完成后，在接下来的窗口中点击 **OK** 继续安装进程。
 	
-	![](tadpinstaller_7.png)(w:450)
+	![](AndroidWorks_08.png)
 
-1.	Click **Next**. You will need an internet connection and this step may take a few minutes.
+1.	这时可以点击 **Finish** 来完成 Android Works 的安装。
 	
-	![](tadpinstaller_8.png)(w:450)
+	![](AndroidWorks_09.png)
 
-1.	Click **Next**.
+1.	最后，点击 **Yes** 重启电脑。
 	
-	![](tadpinstaller_9.png)(w:450)
-
-1.	The installer should run, and this will take some time.
-	
-	![](tadpinstaller_10.png)(w:450)
-
-1.	If you are prompted with a warning about the software publisher, select **Install this driver software anyway**.
-	
-	![](tadpinstaller_11.png)
-
-1.	When prompted about saving files after the install, you can select either **Yes** or **No**.
-	
-	![](tadpinstaller_12.png)
-
-1.	Click **Next**.
-	
-	![](tadpinstaller_13.png)(w:450)
-
-1.	Verify that all the components have been installed correctly.
-	
-	![](tadpinstaller_14.png)(w:450)
-1.	Uncheck View Readme File, then click Finish.
-	
-	![](tadpinstaller_15.png)(w:450)
-
+	![](AndroidWorks_10.png)
+	[region:note]
+	如果您是从 Github 上下载虚幻 4 的话，在 Android Works 完成安装，重启电脑后，再次运行 **Setup.bat** 文件来下载 Android 开发所需要的其他文件。
+	[/region]
 [/EXCERPT:WindowsSetup]
 
 [EXCERPT:MacOSSetup]
 
-[region:tip]
-It is best to do this step while the editor and launcher are both closed. If you are installing the SDK with them open, you will need to restart both the editor and the launcher before you can work with an Android device.
+[REGION:note]
+如果您已经安装了 Android Works，但环境变量丢失的话，这里的步骤都可以跳过，只需要将编辑器设定到安装位置，具体方法是在编辑器中找到这条路径 **Edit Menu** > **Project Settings** > **Android SDK** 并修改。
+[/REGION]
+
+[region:warning]
+最好在关闭编辑器和启动程序后执行此步骤。如果在编辑器和启动程序打开时安装 SDK，则在使用安卓设备之前需要重新启动编辑器和启动程序。
 [/region]
 
-TADP installer and Android SDK tools require that both Java 6 and Java 7 are installed on your Mac. 
+对于 TADP 安装程序和安卓 SDK 工具，需要在 Mac 系统上安装 Java 6 和 Java 7。 
 
-* **Java 6** can be downloaded from [here](http://support.apple.com/kb/DL1572).
-* **Java 7** can be downloaded from [here](http://www.oracle.com/technetwork/java/javase/downloads/jre7-downloads-1880261.html).
+* 要下载 **Java 6**，请单击 [此处](http://support.apple.com/kb/DL1572).
+* 要下载 **Java 7**，请单击 [此处](http://www.oracle.com/technetwork/java/javase/downloads/jre7-downloads-1880261.html).
 
-1. Navigate to the TADP installation folder:
-| Install Type  | Location  |
-| --- | --- |
-| Binary | [EngineInstallLocation]\Unreal Engine[EngineVersion]\Engine\Extras\Android |
-| GitHub | [EngineSyncLocation\UE4\Engine\Extras\Android |
+1. 要安装 Android Works 的话，定位到 **Engine** > **Extras** > **Android** 目录。
+	| 安装类型  | 位置  |
+	| --- | --- |
+	| 二进制 | [EngineInstallLocation]\Unreal Engine[EngineVersion]\Engine\Extras\Android |
+	| GitHub | [EngineSyncLocation\UE4\Engine\Extras\Android |
 
-1. **Double-click** on tadp-3.0r4-osx.dmg. This should mount TADP installer disk image and open its window.
-
-1. **Double-click** TADP installer icon.
-
-	![](Tadp_Mac_Setup-00.png)
-
-1. Click **Next**.
-
-	![](Tadp_Mac_Setup-01.png)
-
-1. Select the **I accept the agreement** option and then click **Next**.
-
-	![](Tadp_Mac_Setup-02.png)
-
-1. Click **Next**.
-
-	![](Tadp_Mac_Setup-03.png)
-
-1. Select the **Express** install, then click **Next**.
-
-	![](Tadp_Mac_Setup-04.png)
-
-1. Select the install location. 
 	[region:note]
-	It is perfectly fine to leave this set to the default location.
+	如果您是从 **GitHub** 下载的虚幻 4，那再运行 Android Works 的安装文件前您需要先完成以下步骤。
+	并且以下步骤对下载虚幻 4 的源码版本，无论是 Windows 还是 Mac 的电脑，都是适用的。
+	如果您是通过启动器下载的预编译版本，那么久可以跳过这个步骤，直接开始安装 Android Works。
+
+	1. 当虚幻 4 从 Github 上下载并解压后，运行文件 **Setup.bat** 来下载其他所需要的文件，其中包含 **Android Works** 的安装文件。
+
+	1. 在 **Setup.bat** 运行完成后，找到 Android Works 的安装文件，并跟随下面的说明。
+
 	[/region]
 
-	![](Tadp_Mac_Setup-05.png)
+1. **Double-click** **AndroidWorks-1R1-osx.dmg** 来加载 Android Works 安装包。
+	
+	![](AndroidWorks_Mac_00.png)
 
-1. Verify that the list of components to install matches what is in the image below.
+1. **Double-click** Android Works 安装图标开始安装过程。
 
-	![](Tadp_Mac_Setup-06.png)
+	![](AndroidWorks_Mac_01.png)
 
-1. Enter a proxy if needed.
+1. 点击 **Next**.
 
-	![](Tadp_Mac_Setup-07.png)
+	![](AndroidWorks_Mac_02.png)
 
-1. Click **Next**. 
+1. 点击 **Next**.
+
+	![](AndroidWorks_Mac_03.png)
+
+1. 确定 Android Works 的安装目录，并点击 **Next** 按钮。
+
 	[region:note]
-	For this part of the setup will take a few minutes to completed and you will need an internet connection to complete it.
+	直接使用默认的文件夹完全没问题。
 	[/region]
 
-	![](Tadp_Mac_Setup-08.png)
+	![](AndroidWorks_Mac_04.png)
 
-1. Click **Next**.
+1. 当 Android Works Component Manager 弹出后，点击 **Next** 按钮开始下载并安装。
 
-	![](Tadp_Mac_Setup-09.png)
+	![](AndroidWorks_Mac_05.png)
 
-1. The installer will now run and it will take some time for it complete it's install.
+1. 点击单选框，对授权协议没有异议的话选择 **Accept All**，并单击 **Accept** 按钮。
 
-	![](Tadp_Mac_Setup-10.png)
+	![](AndroidWorks_Mac_06.png)
 
-1. Click **Next**.
+1. Android Works Component Manager 会显示下载和安装的进度。
+	[region:note]
+	完成这个步骤根据网速不同，可能需要几分钟到几小时不等的时间。
+	[/region]
+	![](AndroidWorks_Mac_07.png)
 
-	![](Tadp_Mac_Setup-11.png)
+1. 当所有的工具都下载安装完成后，在接下来的窗口中点击 **OK** 继续安装进程。
 
-1. Click **Next**.
+	![](AndroidWorks_Mac_08.png)
 
-	![](Tadp_Mac_Setup-12.png)
+1. 这时可以点击 **Finish** 来完成 Android Works 的安装。
 
-1. Verify that all the components have been installed correctly.
+	![](AndroidWorks_Mac_09.png)
 
-	![](Tadp_Mac_Setup-13.png)
-
-1. Uncheck both **View Readme File** and **Browse Documentation**, then click **Finish**.
-
-	![](Tadp_Mac_Setup-14.png)
+	[region:note]
+	如果您是从 Github 上下载虚幻 4 的话，在 Android Works 完成安装，重启电脑或 Mac 来更新一下环境变量 ，并再次运行 **Setup.bat** 文件来下载 Android 开发所需要的其他文件。
+	[/region]
 
 [/EXCERPT:MacOSSetup]
-
 -->
-%Steps%
 
+%Steps%

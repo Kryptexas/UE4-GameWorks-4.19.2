@@ -4,7 +4,9 @@ Crumbs: %ROOT%, Gameplay, GettingStarted\HowTo
 Description:Examples of how to move, rotate, or scale Actors in your levels. 
 Related: Engine/Actors/Transform
 Related: Engine/UI/LevelEditor/Viewports/ViewportControls
-Related: GettingStarted\HowTo\PlacingActors
+Related: Engine/Actors/Placement
+Version: 4.9
+SkillLevel: Beginner
 
 Manipulating Actors in Unreal Engine 4 (or **Transforming Actors**) refers to the process of moving, rotating, or scaling them and is an important part of the level-editing and creation process. On this page, you will learn how to perform each as well as the different ways you can perform each action. You will also learn some of the commonly used keyboard shortcuts when working with Actors which may improve your workflow. 
 
@@ -20,11 +22,11 @@ This section will show you how to move Actors inside the Level Editor Viewport.
 
 1. With your project open, inside the **Content Browser**, open the **Starter Content** then **Props** folder. 
 
-	![](Move1.png)
+	![](Move1.png)(w:400)
 
 1. **Left-click** on to select the **SM_Chair**, then **drag-and-drop** it into the Level Editor Viewport anywhere you would like. 
 
-	![](Move2.png)
+	![](Move2.png)(w:700)
 
 1. When the chair is placed, you will notice it is automatically selected and a Red/Blue/Green arrow widget will appear. 
 

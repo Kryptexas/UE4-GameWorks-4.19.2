@@ -1,2616 +1,381 @@
-Availability: Public
-Title:粒子系统参考指南
-Crumbs: %ROOT%, Engine, Engine/Rendering, Engine/Rendering/ParticleSystems
-
-[TOC]
-
-## 概述
-
-在虚幻引擎3中，我们通过使用粒子系统来创建类似于火焰、爆炸、能量光束等的粒子特效。
-
-<span style="font:italic 10px arial;">(鼠标悬停在图片上查看动画效果)</span>
-<div style="width:400px;" onmouseover="toggleAnimImage('explosion');" onmouseout="toggleAnimImage('explosion');">
-    <div id="explosion_still" style="display:block;">
-        ![psys_explosion.jpg](psys_explosion.jpg)
-    </div>
-    <div id="explosion_anim" style="display:none;">
-        ![psys_explosion.gif](psys_explosion.gif)
-    </div>
-</div>
-
-粒子系统是由很多发射器组成的内容资源。每个发射器可以由一个单独的TypeData（类型数据）模块，该模块决定了发射器产生的粒子的类型： 平面粒子、光束、条带、网格物体、PhysX等。除了TypeData模块外，每个发射器可以包含任意多个影响其粒子行为(比如位置、速度、大小、颜色等)的模块。
-
-粒子系统是通过[内容浏览器](Engine/Content/Browser)创建的，并且使用[Cascade](Engine/Rendering/ParticleSystems/CascadeEditor)粒子编辑器进行构造。本文档将解释粒子系统、发射器和它所提供的每个模块。
-
-如果想获得关于使用Cascade说明，请参考[粒子编辑器用户指南](Engine/Rendering/ParticleSystems/CascadeEditor)页面。
-
-如果您要获得关于某些粒子应用的详细描述，请查看[粒子举例](Engine/Rendering/ParticleSystems/Examples)页面。
+﻿INTSourceChangelist:2738595
+Availability:Public
+Title:粒子系统参考
+Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
+Description:粒子系统类型数据和模块的完整参考。
+Version:4.9
 
 
 
-##ParticleSystem(粒子系统)类
+## 基础类
 
-粒子系统(ParticleSystem)是一个包含着许多粒子发射器(ParticleEmitters)的完整的粒子特效。通过在一个系统中使用多个发射器，设计人员可以创建存放在一个粒子系统中的精心设计的粒子特效。一旦使用Cascade创建了一个粒子系统，便可以把它插入关卡中或者在脚本中创建它。
+组成粒子系统的基础类的参考资料，如粒子系统（ParticleSystem）类和粒子发射器（ParticleEmitter）类。
 
-ParticleSystem(粒子系统)类包括以下公有变量： 
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]边界
-[/REGION]
-[REGION:regioncontent_visible]
-**FixedRelativeBoundingBox(固定的相对边界盒)** -允许用户为粒子系统设定边界盒。这移除了每帧中执行边界框更新所带来的性能消耗，但这以当特效不可见时的潜在 渲染/更新 的性能消耗或者相反当特效可见时却没有 渲染/更新 的性能消耗为代价。除非您的发射器有非常广的尺寸范围，否则由于性能原因，您一般都应该使用一个固定的边界盒。
-
-注意： 右击cascade工具条上的'Show Bounds(显示边界框)'将会在这个对话框中填写了当前在cascade中使用的动态边界盒的值，您可以从这个基础值开始将其调节为您需要的值。
-
-**bUseFixedRelativeBoundingBox(是否使用固定的相对边界盒)** -如果为真，代码将使用FixedRelativeBoundingBox(固定相对边界盒)的设定值作为粒子系统的边界盒。
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]延迟
-[/REGION]
-[REGION:regioncontent_visible]
-**Delay(延迟)** - 当执行ActivateSystem() 时，粒子系统在激活之前应该等待多久，以秒为单位。同时，当 _Use Delay Range(使用延迟范围)_ 为true时，这个值作为用于随机选择延迟值的范围上限。
-
-**Delay Low(下限延迟)** - 当 _Use Delay Range(使用延迟范围)_ 为true时，这个值作为用于随机选择延迟值的范围下限。
-
-**Use Delay Range(使用延迟范围)** - 如果该项为true，将从 _Delay Low_ 和 _Delay_ 之间选择一个随机值作为实际的延迟值。
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]LOD
-[/REGION]
-[REGION:regioncontent_visible]
-**LODDistanceCheckTime(LOD距离检测时间)** - 这项是系统将每隔多长时间执行一次距离检查来决定要使用的LOD层次级别。(仅当LODMethod设置为Automatic时使用。)
-
-**LODDistances(LOD距离)** -一个距离的数组，用来决定要使用哪个LOD层次。(仅当LODMethod设置为Automatic时使用。) 这些数值推荐了选择某个LOD层次界别的最小距离。比如，想象有一个具有3个LOD的粒子系统：
-
-|**LODDistanceIndex (LOD距离索引)**|**值*|*范围**|**选择的LOD层次**|
-| --- | --- | --- | --- |
-|0|0.0|0.0 - 2499.9|0 (最高LOD)|
-|1|2500.0|2500.0 - 4999.9|1|
-|2|5000.0|5000.0 - 无穷大|2|
-
-**LODMethod(LOD方法)** - 这个枚举变量说明了系统在选择适当的LOD时应使用的方法。有两种方法：
-|**方法**|**描述**|
-| --- | --- |
-|Automatic(自动)|基于LOD距离和检测时间来自动设置LOD。|
-|DirectSet(直接设置)|游戏将直接设置粒子系统要使用的LOD。|
-
-**LODSettings(LOD设置)** - 一个结构体数组，用于决定每个单独的LOD应使用的特定设置。目前，仅有一个设置 _Lit(带光照)_ ，用于控制当正在使用给定的LOD时粒子系统是否接受光照。
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]巨大的UV
-[/REGION]
-[REGION:regioncontent_visible]
-**Macro UV Position(大的UV位置)** - 作为生成ParticleMacroUV 材质的UV贴图坐标的中心点的相对于粒子系统的局部空间位置。
-
-**Macro UV Radius(大的UV半径)** -  决定了到 _Macro UV Position_ 位置处距离的世界空间半径， 在 _Macro UV Position_ 处，为ParticleMacroUV 材质表达式生成的UV贴图坐标将会开始平铺。
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]移动设备
-[/REGION]
-[REGION:regioncontent_visible]
-**Use Mobile Point Sprites(使用移动设备点状平面粒子)** -  如果该项为true，那么当在移动设备平台上时，粒子系统将会使用点状平面粒子进行渲染，以加快粒子渲染速度。
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]碰撞
-[/REGION]
-[REGION:regioncontent_visible]
-**Custom Occlusion Bounds(自定义遮挡边界)** - 当使用  _EPSOBM_CUstomBounds_ _Occlusion Bounds Method_ 时，使用该边界来计算遮挡。
-
-**Occlusion Bounds Method(遮挡边界方法)** - 当计算粒子系统遮挡时所使用的方法。
-
-|**方法**|**描述**|
-| --- | --- |
-|_EPSOBM_None_|不会计算粒子系统的遮挡。|
-|_EPSOBM_ParticleBounds_|用于计算粒子系统遮挡的ParticleSystemComponent(粒子系统组件)的边界。|
-|_EPSOBM_CUsomtBounds_|使用 _Custom Occlusion Bounds(自定义遮挡边界)_ 值来计算粒子系统的遮挡。|
-
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]粒子系统
-[/REGION]
-[REGION:regioncontent_visible]
-**Orient ZAxis Toward Camera(使Z轴朝向相机)** - 如果该项为true，那么粒子系统的局部Z轴将总是面向相机。
-
-**SecondsBeforeInactive(变为不活动状态所需的时间)** - 如果这段时间内(以秒为单位)没有渲染粒子系统，那么它将会变为不活动状态，停止更新。输入0可以使系统永远不会变为不活动状态。
-
-**Skip Spawn Count Check(跳过粒子产生数量检测)** - 如果该项为true，那么引擎将不执行粒子生成数量限制检测。这个检测基于引擎的MaxParticleVertexMemory属性(在BaseEngine.ini中指定)限制允许产生的粒子的数量。这项仅用于在预渲染过场动画中使用的特效，因为它会在一般的游戏情形中产生性能影响。
-
-**SystemUpdateMode(系统更新方式)** - 这个枚举型变量说明了粒子系统更新它的发射器时应该使用的方式。有两种模式：
-
-|**方式**|**描述**|
-| --- | --- |
-|EPSUM_RealTime|实时地更新粒子发射器。|
-|EPSUM_FixedTime|以固定时间步长更新粒子发射器。这锁定了系统的更新时间为游戏的更新时间，并且是性能依赖的，所以较低的帧频率会降低系统的更新时间(是更新时间减慢)，而较高的帧频率加速系统的更新时间。通常该项仅在特殊情况下使用。|
-
-EPSUM_FixedTime将不管当前的刷新频率是多少，粒子系统都会刷新在UpdateTime_FPS中给定的次数。这个模式仅用于响应时机对于另一个系统不是关键因素的情况 - 比如将发射器绑定到一个动画上。
-
-**UpdateTime_FPS(更新时间_每秒钟更新的帧数)** -当使用EPSUM_FixedTime进行操作时，所使用的时间步长。
-
-**WarmupTime(准备时间)** - 粒子系统在启动时所需的准备时间。这允许使发射器以全面发射的方式启动。这会降低性能，所以要保守地使用它尤其在粒子数量值较高的情况下。这对您在关卡最初加载时便想启动的粒子系统是有好处的，像冒烟的柱子或环境效果。
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]缩略图
-[/REGION]
-[REGION:regioncontent_visible]
-**ThumbnailWarmup(缩略图准备时间)** - 如果勾选了bUseRealtimeThumbnail(使用实时系统缩略图)，该项表示在捕获缩略图渲染之前粒子系统所需的准备时间。
-
-**Use Realtime Thumbnail(使用实时缩略图)** - 如果该项为true，那么将会使用默认相机位置自动地捕获粒子系统资源在内容浏览器中显示的缩略图，并反映粒子系统的当前设置和外观，而不是使用以保存的缩略图。
-
-%X% **注意:** 使用实时缩略图渲染会降低内容浏览器的性能。
-[/REGION]
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/reference_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		基础类技术参考
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	*  [](Engine/Rendering/ParticleSystems/Reference/BaseClasses/ParticleSystemClass) - %Engine/Rendering/ParticleSystems/Reference/BaseClasses/ParticleSystemClass:Description%
+	*  [](Engine/Rendering/ParticleSystems/Reference/BaseClasses/ParticleEmitterClass) - %Engine/Rendering/ParticleSystems/Reference/BaseClasses/ParticleEmitterClass:Description%
+	*  [](Engine/Rendering/ParticleSystems/Reference/BaseClasses/ParticleModule) - %Engine/Rendering/ParticleSystems/Reference/BaseClasses/ParticleModule:Description%
+	[/PARAM]
+[/OBJECT]
 
 
+## TypeData 模块
 
-##ParticleEmitter(粒子发射器) 类
+添加发射器至 ParticleSystem 时，其默认类型为 sprite 发射器。TypeData 模块可用于创建其他类型的发射器。这些模块提供发射其他类型粒子的特定功能，如光束、网格体和条带。
 
-ParticleEmitter(粒子发射器)是可以放在粒子系统中的一个单独的粒子特效。ParticleEmitter(粒子发射器)类包含以下公有变量： 
+[EXCERPT:Types]
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![](Engine/Rendering/ParticleSystems/Reference/TypeData/Beam/psys_beam.gif)(w:256 convert:false)](Engine/Rendering/ParticleSystems/Reference/TypeData/Beam)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Rendering/ParticleSystems/Reference/TypeData/Beam)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Rendering/ParticleSystems/Reference/TypeData/Beam#Intro]
+	[/PARAM]
+[/OBJECT]
 
-[REGION:regioncontent_static]
-**Collapsed(合并)** - 如果该项为true，那么粒子发射器在Cascade的发射器列表中将呈现为合并状态。双击ParticleEmitter(粒子发射器) 块可以切换该属性。
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![](Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites/GPUSprites.png)(w:256)](Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites#Intro]
+	[/PARAM]
+[/OBJECT]
 
-**Emitter Editor Color(粒子发射器颜色)** - 当粒子发射器合并到一起时及它曲线编辑器和调试渲染模式时ParticleEmitter所呈现的颜色。
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![](Engine/Rendering/ParticleSystems/Reference/TypeData/Mesh/LootBucket.png)(w:256)](Engine/Rendering/ParticleSystems/Reference/TypeData/Mesh)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Rendering/ParticleSystems/Reference/TypeData/Mesh)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Rendering/ParticleSystems/Reference/TypeData/Mesh#Intro]
+	[/PARAM]
+[/OBJECT]
 
-**EmitterName(发射器名称)** - 发射器的名称。
-
-**Emitter Render Mode(反射器渲染模式)** - 当渲染发射器的粒子时所使用的方法。
-
-|**方式**|**描述**|
-| --- | --- |
-|_ERM_Normal_|正常渲染发射器的粒子，比如粒子作为平面粒子、网格物体等渲染。|
-|_ERM_Point_|将发射器的粒子作为 2x2的像素块进行渲染，没有缩放，使用 _Emitter Editor Color(粒子发射器颜色)_ 。|
-|_ERM_Cross_|将发射器的粒子系统渲染为可以根据任何尺寸模块进行缩放的十字交叉线，使用 _Emitter Editor Color(发射器编辑器颜色)_ 。|
-|_ERM_None_|不渲染发射器的粒子。|
-
-**InitialAllocationCount(初始分配数量)** - 这个值允许用户来声明在粒子发射器初始化时应该分配的粒子的数量。如果为0，则使用计算出的最大数量。(因为计算出的最大数量会比所需要的数量高，这个参数可以用于更严格地进行内存控制。)
-[/REGION]
-
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![](Engine/Rendering/ParticleSystems/Reference/TypeData/Ribbon/RibbonSmoke.png)(w:256)](Engine/Rendering/ParticleSystems/Reference/TypeData/Ribbon)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Rendering/ParticleSystems/Reference/TypeData/Ribbon)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Rendering/ParticleSystems/Reference/TypeData/Ribbon#Intro]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:Types]
 
 
 ## 模块
 
-模块用于对发射器释放的粒子应用不同的特效。它们可以在粒子产生、更新或者两种情况过程中对粒子产生影响。模块根据它们在发射器中的顺序(它们在Cascade中的模块堆栈的位置)进行相互影响。应用两个速度模块到一个发射器上将会导致在粒子上产生累积效果。
-
-如果那样设置，一个模块可能潜在地使前面的人和模块都无效。这些情况在文档中将会指出。
+利用模块可对发射器释放粒子的多个方面进行控制。它们可在粒子产生、更新或者两者过程中对其产生影响。模块根据其在发射器的排序（其在级联中模块叠列上的位置）进行互动。例如，在一个发射器上应用两个速度模块，将在粒子上形成累积效应。
 
 
-### 粒子模块 
 
-所有模块的基类。这个类中包含了以下公有成员：
+[REGION:topics fourth]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![Engine/Rendering/ParticleSystems/Reference/Modules/Required:Title%](Required.png)
+	[/PARAM]
+	[PARAM:title]
+		Required & Spawn
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/ParticleSystems/Reference/Modules/Required]
+	[/PARAM]
+[/OBJECT]
 
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]Cascade
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![Engine/Rendering/ParticleSystems/Reference/Modules/Acceleration:Title%](Acceleration.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/ParticleSystems/Reference/Modules/Acceleration:Title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/ParticleSystems/Reference/Modules/Acceleration]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![Engine/Rendering/ParticleSystems/Reference/Modules/Attractor:Title%](Attractor.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/ParticleSystems/Reference/Modules/Attractor:Title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/ParticleSystems/Reference/Modules/Attractor]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![Engine/Rendering/ParticleSystems/Reference/Modules/Beam:Title%](Beam.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/ParticleSystems/Reference/Modules/Beam:Title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/ParticleSystems/Reference/Modules/Beam]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![Engine/Rendering/ParticleSystems/Reference/Modules/Camera:Title%](Camera.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/ParticleSystems/Reference/Modules/Camera:Title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/ParticleSystems/Reference/Modules/Camera]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![Engine/Rendering/ParticleSystems/Reference/Modules/Collision:Title%](Collision.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/ParticleSystems/Reference/Modules/Collision:Title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/ParticleSystems/Reference/Modules/Collision]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![Engine/Rendering/ParticleSystems/Reference/Modules/Color:Title%](Color.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/ParticleSystems/Reference/Modules/Color:Title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/ParticleSystems/Reference/Modules/Color]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![Engine/Rendering/ParticleSystems/Reference/Modules/Event:Title%](Event.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/ParticleSystems/Reference/Modules/Event:Title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/ParticleSystems/Reference/Modules/Event]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![Engine/Rendering/ParticleSystems/Reference/Modules/Kill:Title%](Kill.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/ParticleSystems/Reference/Modules/Kill:Title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/ParticleSystems/Reference/Modules/Kill]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![Engine/Rendering/ParticleSystems/Reference/Modules/Lifetime:Title%](Lifetime.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/ParticleSystems/Reference/Modules/Lifetime:Title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/ParticleSystems/Reference/Modules/Lifetime]
+	[/PARAM]
+[/OBJECT]
+
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![Engine/Rendering/ParticleSystems/ParticleLights:Title%](ParticleLights.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/ParticleSystems/ParticleLights:Title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/ParticleSystems/ParticleLights]
+	[/PARAM]
+[/OBJECT]
+
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![Engine/Rendering/ParticleSystems/Reference/Modules/Location:Title%](Location.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/ParticleSystems/Reference/Modules/Location:Title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/ParticleSystems/Reference/Modules/Location]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![Engine/Rendering/ParticleSystems/Reference/Modules/Orbit:Title%](Orbit.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/ParticleSystems/Reference/Modules/Orbit:Title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/ParticleSystems/Reference/Modules/Orbit]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![Engine/Rendering/ParticleSystems/Reference/Modules/Orientation:Title%](Orientation.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/ParticleSystems/Reference/Modules/Orientation:Title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/ParticleSystems/Reference/Modules/Orientation]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![Engine/Rendering/ParticleSystems/Reference/Modules/Parameter:Title%](Parameter.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/ParticleSystems/Reference/Modules/Parameter:Title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/ParticleSystems/Reference/Modules/Parameter]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![Engine/Rendering/ParticleSystems/Reference/Modules/Rotation:Title%](Rotation.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/ParticleSystems/Reference/Modules/Rotation:Title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/ParticleSystems/Reference/Modules/Rotation]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![Engine/Rendering/ParticleSystems/Reference/Modules/RotationRate:Title%](RotationRate.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/ParticleSystems/Reference/Modules/RotationRate:Title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/ParticleSystems/Reference/Modules/RotationRate]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![Engine/Rendering/ParticleSystems/Reference/Modules/Size:Title%](Size.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/ParticleSystems/Reference/Modules/Size:Title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/ParticleSystems/Reference/Modules/Size]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![Engine/Rendering/ParticleSystems/Reference/Modules/Spawn:Title%](Spawn.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/ParticleSystems/Reference/Modules/Spawn:Title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/ParticleSystems/Reference/Modules/Spawn]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![Engine/Rendering/ParticleSystems/Reference/Modules/SubUV:Title%](SubUV.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/ParticleSystems/Reference/Modules/SubUV:Title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/ParticleSystems/Reference/Modules/SubUV]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![Engine/Rendering/ParticleSystems/Reference/Modules/VectorField:Title%](VectorFields.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/ParticleSystems/Reference/Modules/VectorField:Title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/ParticleSystems/Reference/Modules/VectorField]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![Engine/Rendering/ParticleSystems/Reference/Modules/Velocity:Title%](Velocity.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/ParticleSystems/Reference/Modules/Velocity:Title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/ParticleSystems/Reference/Modules/Velocity]
+	[/PARAM]
+[/OBJECT]
 [/REGION]
-[REGION:regioncontent_visible]
-**3DDraw Mode(3D描画模式)** - 如果该项为true，那么将会为该模块显示任何可见的助手，比如预示初始位置模块的范围的线框几何体。
-
-**ModuleEditorColor(模块编辑器颜色)** - 这是模块在Cascade的曲线编辑器中将使用的颜色。
-[/REGION]
 
 
-### Required Module(需要的模块)
 
-每个粒子发射器都包含这个模块，该模块包换了粒子发射器所需要的所有的属性。包括以下：
 
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]发射器
-[/REGION]
-[REGION:regioncontent_visible]
-**Material(材质)** - 应用于粒子的材质.
 
-**ScreenAlignment(屏幕对齐)** - 粒子相对于照相机的朝向。允许以下方式： 
 
-|**方式**|**描述**|
+
+<!-------------Random Seed Includes----------------
+#### Includes
+
+[EXCERPT:RandomSeedInfo]
+[REGION:simpletable]
+|**属性** | **描述** |
 | --- | --- |
-|Square(正方形)|统一缩放(强制使用X的设定值)，面向相机|
-|Rectangle(长方形)|非统一缩放，面向相机|
-|Velocity(速度)|使粒子朝向相机和粒子运动方向。允许非统一缩放。|
-|TypeSpecific(特定类型)|使用在类型数据模块中所用的对齐方法(仅限于网格物体)|
-
-**bUseLocalSpace(是否使用本地空间)** - 说明粒子发射器是应用它父项的世界坐标变换(false)还是不应用(true)。当为true时，粒子发射器将在局部空间中执行所有操作。
-
-**bKillOnDeactivate(非活动状态时销毁)** -说明当粒子发射器在非活动状态下是否要销毁所有粒子。如果为false，任何存在的粒子在发射器为非活动状态时都将完成它们的生命周期后再销毁。
-
-**bKillOnCompleted(完成时销毁)** - 说明粒子系统组件在它的持续时间结束时是否要毁掉这个发射器实例。
-
-**Sort mode(排序模式)** - 粒子发射器使用的排序模式。
-
-|**方式**|**描述**|
-| --- | --- |
-|_PSORTMODE_None_|不执行排序。|
-|_PSORTMODE_ViewProjDepth_|根据视图映射按照深度排序列子。|
-|_PSORTMODE_DistanceToView_|按照世界控件中粒子到相机的距离来排序粒子。|
-|_PSORTMODE_Age_OldestFirst_|按照粒子存在的先后顺序来描画粒子，先描画最旧的粒子。|
-|_PSORTMODE_Age_OldestFirst_|按照粒子存在的先后顺序来描画粒子，先描画最新的粒子。|
-
-**Use Legacy Emitter Time(使用遗留的发射器时间)** - 如果该项为true，那么将会通过使用EmitterDuration调制SecondsSinceCreation来计算发射器的EmitterTime 。因为这会导致循环和变化的时间范围的相关问题，所以已经实现了一种新方法。如果该项为false，那么将使用这个新方法，EmitterTime每次更新时简单地增加DeltaTime时间长度。当发射器循环时，它将通过当前的EmitterDuration调整EmitterTime，这将产生正确的 循环/延迟 行为。
-
-**Orbit Module Affects Velocity Alignment(环绕模块影响速度对齐)** - 如果该项为true，那么环绕模块所称成的运动将被应用到对齐到速度的粒子上。
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]延迟
-[/REGION]
-[REGION:regioncontent_visible]
-**bDelayFirstLoopOnly(仅延迟首次循环)** - 当该项为true，如果发射器的EmitterDelay(发射器延迟)值比0大且EmitterLoops(发射器循环次数)的值比1大，则发射器仅在第一次循环时执行延迟。
-
-**EmitterDelay(发射器延迟)** -启动发射器时的延迟时间。这可以错开一个的粒子系统中多个发射器的启动时间。当使用延迟范围时这也用于用于选择随机延迟值的上限。
-
-当使用延迟范围时这也用于用于选择随机延迟值的下限。
-
-**Emitter Delay Use Range(编辑器延迟应用的范围)** - 如果该项为true，那么发射器的有效延迟值是从范围[Emitter Delay Low, Emitter Delay]中选择的随机值。
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]时间间隔
-[/REGION]
-[REGION:regioncontent_visible]
-**bDurationRecalcEachLoop** -当该项true，发射器将在每次循环时从[EmitterDurationLow(持续时间的下限值)..EmitterDuration(持续时间)]范围内选择一个新的时间段。
-
-**EmitterDuration(发射器持续时间)** - 说明了发射器在进行循环前需要运行多长时间(以秒为单位)。如果设置为0，则发射器将永远不循环。
-
-**EmitterDurationLow(发射器持续时间下限值)** -给出了发射器持续时间进行变化范围的下限值。
-
-**bEmitterDurationUseRange(发射器持续时间使用范围)** - 当为true时，发射器在启动时将会从[EmitterDurationLow(持续时间的下限值)..EmitterDuration(持续时间)]范围内选择一个持续时间。
-
-**EmitterLoops(发射器循环)** - 发射器在变为非活动状态前所循环的次数。如果设置为0，发射器将持续运行，永远循环。
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]子UV
-[/REGION]
-[REGION:regioncontent_visible]
-SubUV(子UV)数据指出发射器应该使用所应用的贴图的子图像。这对于在粒子上实现简单的动画是有用的。它包括以下成员：
-
-**InterpolationMethod(插值方法)** - 一个枚举类型变量，说明了在子图像间进行插值将使用的方法。可以是以下其中之一：
-
-|**方法**|**描述**|
-| --- | --- |
-|None |不在此发射器上应用SubUV 模块。|
-|Linear(线性) |子图像之间按照给定的顺序平滑地进行过渡，在当前子图像和下一个子图像之间没有混合。|
-|Linear_Blend (线性_混合)|图像之间按照给定的顺序平滑地进行过渡，在当前子图像和下一个子图像之间混合。|
-|Random(随机) |随机地选择下一张子图像，在当前子图像和下一个子图像之间没有混合。|
-|Random_Blend(随机_混合) |随机地选择下一个子图像，在当前子图像和下一个子图像之间没有混合。|
-
-**RandomImageChanges(随机图像改变)** - 当InterpolationMethod设置为Random(随机)时，在整个粒子的生命周期内改变图像的次数。
-
-**Sub Images_Horizontal(子图像_水平)** - 在贴图水平(X)坐标轴上的子图像数量。
-
-**Sub Images_Horizontal(子图像_水平)** - 在贴图水平(X)坐标轴上的子图像数量。
-
-**bScaleUV(是否缩放UV)** -预示着将缩放UV值来适当地符合子图像的大小。这仅用于网格物体发射器。
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]渲染
-[/REGION]
-[REGION:regioncontent_visible]
-**Downsample Threshold Screen Fraction（向下采样预制屏幕部分）** -  粒子系统的边界必须大于该屏幕部分，以便可以向下采样来渲染发射器。默认值为0，意味着不允许向下采样。值.5意味着在以较低的分辨率渲染发射器之前，粒子系统的编辑必须占屏幕的一般或者以便以上。
-
-向下采样的半透明对象的渲染速度比以全分辨率渲染时快，但是向下采样的每个发射器有较大的恒定性能消耗。由于这个原因，最好仅在已经确定填充频率性能消耗比该恒定性能消耗大的发射器上使用向下采样。当需要进行向下采样时，值.5通常是很好的这种处理。向下采样的半透明对象的质量也会受到影响，高频率细节会丢失，半透明对象前面的不透明边缘会呈现更明显的锯齿效果。
-
-注意： 这个功能使用了边界半径，所以粒子系统变得的精确性是很重要的，如果需要请使用bUseFixedRelativeBoundingBox 项。
-
-**bUseMaxDrawCount(是否使用最大描画数量)** -当为true，发射器描画的粒子数量将永远不会超过MaxDrawCount。但所有的粒子将仍然存在并进行更新。
-
-**MaxDrawCount(最大描画数量)** -限定了进行渲染的最大粒子数量。
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]法线
-[/REGION]
-[REGION:regioncontent_visible]
-**Emitter Normals Mode(反射器发现模式)** - 这个模式用于为这个反射器LOD声称法线。
-
-|**方式**|**描述**|
-| --- | --- |
-|_ENM_CameraFacing_|默认模式，基于面向几何体的相机来生成法线。|
-|_ENM_Spherical_|从位于NormalsSphereCenter中心的球体生成法线。|
-|_ENM_Cylindrical_|从穿过NormalsSphereCenter的圆柱体生成法线，以NormalsCylinderDirection为方向。|
-
-**Normals Cylinder Direction(法线圆柱体方向)** - 当 _Emitter Normals Mode(发射器法线模式)_ 是 _ENM_Cylindrical_ 时，所创建的法线背离穿过 _Normals Sphere Center_  的圆柱体，以 _Normals Cylinder Direction_ 为方向。这个值在局部空间中。
-
-**Normals Sphere Center(法线球体中心)** - 当_Emitter Normals Mode_ 是 _ENM_Spherical_ 时，所创建的粒子法线将背离 _Normals Sphere Center_ 。这个值在局部空间中。
-[/REGION]
-
-
-### Spawn Module(产生模块)
-
-每个粒子发射器都包含这个模块，该模块包换了粒子发射器所需要的所有的属性。包括以下：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]爆发
-[/REGION]
-[REGION:regioncontent_visible]
-Burst(爆发)数据意味着发射器应该在规定时间内强制发射给定数量的粒子。它涉及以下成员：
-
-**BurstList(爆发列表)** -是一个包含整型Count 、CountLow及浮点型Time值的数组，用于标识您想得到的粒子爆发。Time的范围是[0..1]，和发射器的整个生命周期相对应。如果CountLow设置为-1，发射器将在给定时间内爆发Count个粒子。反之，发射器将在给定时间内爆发在[CountLow..Count]范围内的一个随机数量的粒子。
-
-**ParticleBurstMethod(粒子爆炸方法)** - 当以爆炸方式发射粒子时所使用的方法。目前忽略该项。
-
-**Process Burst list(处理爆发列表)** - 如果该项为true，将处理 _Burst List(爆发列表)_ 。如果发射器中'堆叠'了多个Spawn Modules，那么如果任何一个模块禁用了该项，那么都将不会为该粒子发射器处理 _Burst Lists(爆发列表)_ 。
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]粒子产生
-[/REGION]
-[REGION:regioncontent_visible]
-**Process Spawn Rate(处理产生速率)** - 如果该项为true，将会处理 _Rate(速率)_ 。如果发射器中'堆叠'了多个Spawn Modules，那么如果任何一个模块禁用了该项，那么都将不会为该粒子发射器处理 _Rates(速率)_ 。
-
-**Rate(速率)** - 这个浮点分布提供了粒子发射器的粒子在给定时间处的生成速率(每秒钟产生的粒子数)。
-
-**Rate Scale(速率缩放比例)** - 应用到发射器的 _Rate（速率）_ 上的缩放因数。
-[/REGION]
-
-
-### TypeData Modules (类型数据模块)
-
-当添加发射器到粒子系统时它的默认类型是平面粒子发射器。但是通过使用TypeData模块也可以创建其他类型的发射器。这些模块提供了针对发射其他类型的粒子的功能，比如光束、网格物体、条带或者甚至是通过利用PhysX来使用物理仿真来控制粒子行为的发射器。
-
-提供了以下类型的TypeData模块：
-
-
-#### AnimTrail TypeData(动画尾迹类型数据)
-
-AnimTrail(动画尾迹)类型数据模块用于创建和 AnimNotify_Trails动画通知结合使用的发射器，这可以创建骨架网格物体几何体后面的尾迹或条纹，可以给运动添加可视化的动画效果。这个类型数据的一个示例是当挥动剑时在剑的后面看到的尾迹。
-
-AnimTrail类型数据有以下属性： 
-
-[REGION:regionhead_open]
-[REGION:regionimage][/REGION]动画
-[/REGION]
-[REGION:regioncontent_visible]
-**Control Edge Name(控制边缘名称)** - 在为该发射器提供控制边缘的骨架网格物体上指定了插槽的名称。这个值应该和动画序列的AnimNotify_Trails通知的 _Control Point Socket Name(控制点插槽名称)_  相匹配。
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]渲染
-[/REGION]
-[REGION:regioncontent_visible]
-*Distance Tessellation Step Size(距离细分步长大小)* - 尾迹细分点之间的距离。这用于决定尾迹具有多少个细分点以及尾迹的光滑度。精确的计算是： 
-
-      
-      TessellationPoints = Trunc((Distance Between Spawned Particles) / (DistanceTessellationStepSize))
-      
-
-**Render Geometry(渲染几何体)** - 如果该项为true，将渲染尾迹几何体。一般会启用这项，否则将不能看到光束。
-
-**Render Spawn Points(渲染产生点)** -如果该项为true，那么在沿着尾迹产生的每个粒子点处渲染星型。用于在Cascade中进行调试。
-
-**Render Tangents(渲染切线)** - 如果该项为true，那么尾迹上每个产生粒子点的地方将会使用一条直线来渲染切线。用于在Cascade中进行调试。
-
-**Render Tessellation(渲染多边形细分)** - 如果该项为true，那么将渲染每个产生的粒子之间的细分后的路径。用于在Cascade中进行调试。
-
-**Tangent Tessellation Scalar(切线多边形细分标量)** - 用于多边形细分的切线标量。切线A和切线B之间的角度映射为[0.0f .. 1.0f]。。然后，这个值和TangentTessellationScalar相乘，从而得出要写份的点的数量。
-
-**Tiling Distance(平铺距离)** - 用于平铺第二个UV集合的预计覆盖距离。如果该值为0.0，那么将不会传入第二个UV。
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]尾迹
-[/REGION]
-[REGION:regioncontent_visible]
-**Clip Source Segment(剪辑源片段）** - 如果该项为true，那么尾迹将不会和源位置相连接。
-
-**Dead Trails On Deactivate(当粒子系统变为非激活状态时尾迹死亡)** - 当粒子系统是非激活状态时，尾迹标记为死亡状态。这意味这仍然渲染尾迹，但是不会再产生新的粒子，即时重新激活粒子系统也不产生新的粒子。
-
-**Enable Previous Tangent Recalculation(启用前面切线的重新计算)** - 如果该项为true，那么每次产生新的粒子时将会重新计算前面的切线。
-
-**Sheets Per Trail(每个尾迹的面片数量)** - 要为尾迹渲染的围绕尾迹旋转的面片的数量。
-
-**Tangent Recalculation Every Frame(每帧重新计算切线)** - 如果该项为true，那么将会每帧都重新计算切线以应用 速度/加速度。
-[/REGION]
-
-关于如何设置AnimTrails的更多信息，请参照 [动画尾迹](Engine/Rendering/ParticleSystems/AnimTrails)指南文档。
-
-
-#### Beam TypeData(光束类型数据)
-
-Beam(光束)类型数据模块是指发射器将产生光束- 相互连接的粒子在源点(比如发射器)和目标点(比如一个粒子或actor)间形成一个流。
-
-<span style="font:italic 10px arial;">(鼠标悬停在图片上查看动画效果)</span>
-<div style="width:400px;" onmouseover="toggleAnimImage('beam');" onmouseout="toggleAnimImage('beam');">
-    <div id="beam_still" style="display:block;">
-        ![psys_beam.jpg](psys_beam.jpg)
-    </div>
-    <div id="beam_anim" style="display:none;">
-        ![psys_beam.gif](psys_beam.gif)
-    </div>
-</div>
-
-Beam(光束)类型数据有以下属性： 
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]光束
-[/REGION]
-[REGION:regioncontent_visible]
-**Always On** - 如果该项为true，那么发射器将确保总是有存活的粒子。
-
-**Beam Method（光束方法）** - 这个枚举值允许您设置生成光束的方法。可以是以下情况之一：
-
-|**方法**|**描述**|
-| --- | --- |
-|PEB2M_Distance|使用距离属性沿着发射器的X-轴发射一个光束。|
-|PEB2M_Target|从发射器的源到提供的目标处发射一个光束。|
-|PEB2M_Branch|目前无用。|
-
-**Interpolation Points(插值点)** - 指出了光束是否应该使用原核目标切线来插值沿着光束的曲线。如果这个值小于等于零，那么光束在源和目标之间将是一条直线(也就是，没有插值)。如果该值大于零，那么光束将通过使用源和目标各自的切线值来在源和目标之间插值从而决定二者之间的路径。这个过程中所使用的步骤的数量就是这个属性中所设置的值。
-
-**Max Beam Count(最大光束数量)** - 发射器可以具有的存活的光束的最大数量。
-
-**Sheets(面片)** - 沿着光束所渲染的面片的数量。光束将均匀地沿着光束路径分布。比如，如果有两个面片，那么当您从上向下看光束穿行所沿着的坐标轴时将会看到一个十字叉。
-
-**Speed(速度)** - 当光束启动时，她从源移动到目标的速度。如果将这个值设置为0，那么光束将从源立即跳跃到目标处。
-
-**Texture Tile(贴图平铺)** - 沿着光束平铺贴图的次数。目前，这个功能还没有实现。
-
-**Texture Tile Distance(贴图平铺距离)** - 沿着光束代表源贴图一次平铺的距离。
-
-**Up Vector Step Size(向上向量的步长)** - 决定光束的Up（向上）的方法。
-
-|**值*|*方法**|
-| --- | --- |
-|_0_|在光束的每个点出计算Up（向上）向量。|
-|_1_|在光束的开始出计算Up（向上）向量，然后在每个点出使用该向量。|
-|_N_|每隔N个点来计算Up（向上）分量，并且在点之间进行插值。**注意:** 目前不支持该方法。|
-
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]分支
-[/REGION]
-[REGION:regioncontent_visible]
-**Branch Parent Name** - 目前无用。
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]距离
-[/REGION]
-[REGION:regioncontent_visible]
-**Distance(距离)** - 当BeamMethod(光束方法)设置为PEB2M_Distance时，该浮点分布提供了光束 应该沿着X-轴穿行的距离。
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]渲染
-[/REGION]
-[REGION:regioncontent_visible]
-**Render Geometry(渲染几何体)** - 如果该项为true，将渲染光束的真实几何体。一般会启用这项，否则将不能看到光束。
-
-**Render Direct Line(渲染直达线)** - 如果该项为true，那么将会在光束的源和目标之间渲染一条直达线。用于在Cascade中进行调试。
-
-**Render Lines(渲染线)** - 如果该项为true，将会沿着光束的每段渲染直线。用于在Cascade中进行调试。
-
-**Render Tessellation(渲染多边形细分)** - 如果该项为true，那么将渲染源和目标之间经过细分的路径。用于在Cascade中进行调试。
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]光束变少
-[/REGION]
-[REGION:regioncontent_visible]
-**Taper Method(变少的方法)** - 是光束随着它的长度越来越少的方法。可以是以下其中之一:
-
-|**方法**|**描述**|
-| --- | --- |
-|PEBTM_None|光束不会变少。|
-|PEBTM_Full|无论光束的当前长度是多少，都相对于向目标移动的源来使得光束变少。|
-|PEBTM_Partial|目前无用。|
-
-**Taper Factor(光束变少因数)** - 一个提供了光束要变少的量的分布。当使用常量曲线时，时间值0.0代表从光束的源头开始使它变少；当时间值为1.0时代表从目标处开始变少。
-
-**Taper Scale(光束变少的缩放比例)** -用于缩放光束变少的量的数值。最终的光束变少量的值是  Taper = (TaperFactor * TaperScale)。这样做的目的主要是使它作为一个粒子参数分布，允许您根据它的应用来在代码中设置光束变少相关的缩放因数。
-[/REGION]
-
-
-#### Mesh TypeData(网格物体数据类型)
-
-Mesh(网格物体)类型数据模块是指发射器应该使用StaticMesh(静态网格物体)实例而不是平面粒子。
-
-网格物体类型数据有以下属性： 
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]相机朝向
-[/REGION]
-[REGION:regioncontent_visible]
-**Apply Particle Rotation As Spin** - 如果该项为true，那么平面粒子的旋转量将会应用到围绕方向坐标轴的网格物体上。否则，平面粒子旋转值将应用到围绕相机所面向的坐标轴的网格物体上。
-
-**Camera Facing** - 如果该项为true，那么网格物体的X-轴将总是指向相机。当设置该项时，将会忽略 _Axis Lock Option(坐标轴锁定)_  和其他的 锁定坐标轴/屏幕对齐 设置。
-
-**Camera Facing Option** - 决定了当启用  _Camera Facing_ 时，网格物体所朝向的方向。提供了以下选项：
-
-|**选项**|**描述**|
-| --- | --- |
-|_XAxisFacing_NoUp_|网格物体的局部X-轴面向相机，不会尝试使得其他坐标轴朝上或朝下。|
-|_XAxisFacing_ZUp_|网格物体的局部X-轴面向相机，但网格物体的局部Z-轴不会尝试面向上面(面向世界空间中的Z-轴的正方向)。|
-| _XAxisFacing_NegativeZUp_ |网格物体的局部X-轴面向相机，但网格物体的局部Z-轴尝试朝向下面(面向世界空间中的Z-轴的负方向)。|
-| _XAxisFacing_YUp_ |网格物体的局部X-轴面向相机，但网格物体的局部Y-轴不会尝试面向上面(朝向世界空间中的Z-轴的正方向)。|
-| _XAxisFacing_NegativeYUp_ |网格物体的局部X-轴面向相机，但网格物体的局部Y-轴尝试朝向下面(面向世界空间中的Z-轴的负方向)。|
-|_LockedAxis_ZAxisFacing_| 网格物体的局部X-轴锁定在 _Axis Lock Option(坐标轴锁定选项)_ 坐标轴上，但网格物体的局部Z-轴会旋转面向相机。|
-|_LockedAxis_NegativeZAxisFacing_| 网格物体的局部X-轴锁定在 _Axis Lock Option(坐标轴锁定选项)_ 坐标轴上，但网格物体的局部Z-轴会旋转背离相机。|
-|_LockedAxis_YAxisFacing_| 网格物体的局部X-轴锁定在 _Axis Lock Option(坐标轴锁定选项)_ 坐标轴上，但网格物体的局部Y-轴会旋转面向相机。|
-|_LockedAxis_NegativeYAxisFacing_| 网格物体的局部X-轴锁定在 _Axis Lock Option(坐标轴锁定选项)_ 坐标轴上，但网格物体的局部Y-轴会旋转背离相机。|
-|_VelocityAligned_ZAxisFacing_| 网格物体的X-轴沿着速度对齐，但网格物体的局部Z-轴会旋转面向相机。|
-|_VelocityAligned_NegativeZAxisFacing_| 网格物体的X-轴沿着速度对齐，但网格物体的局部Z-轴会旋转背离相机。|
-|_VelocityAligned_YAxisFacing_| 网格物体的局部X-轴沿着速度对齐，但网格物体的局部Y-轴会旋转面向相机。|
-|_VelocityAligned_NegativeYAxisFacing_| 网格物体的局部X-轴沿着速度对齐，但网格物体的局部Z-轴会旋转背离相机。|
-
-**注意:** 所有相机朝向的锁定坐标轴选项，都假设设置了AxisLockOption项。EPAL_NONE将会作为EPAL_X对待。
-
-**注意:** 所有沿着速度对齐选项都不需要将ScreenAlignment设置为 PSA_Velocity。这样做将会导致执行额外的工作。。。(它将会将网格物体朝向调整两次)。
-
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]网格物体
-[/REGION]
-[REGION:regioncontent_visible]
-**Allow Motion Blur(允许运动模糊)** - 如果该项为true，那么从这个发射器发射出的网格物体将进行运动模糊处理。这添加了一遍速度渲染。
-
-**Mesh(网格物体)** -在发射器的粒子位置处所渲染的静态网格物体。
-
-**Mesh Alignment(网格物体对齐)** - 渲染网格物体时所使用的对齐方式。Required Module的 _Screen Alignment(屏幕对齐)_ 属性必须设置为 _PSA_TypeSpecific_ ，这个属性才有效。提供了以下选项：
-
-|**选项**|**描述**|
-| --- | --- |
-| _PSMA_MeshFaceCameraWithRoll_ |面向相机，并可以绕着网格物体到相机间的向量进行旋转(旋转量由标准平面粒子旋转量提供)。|
-| _PSMA_MeshFaceCameraWithSpin_ |面向相机并允许绕着切线轴旋转。|
-| _PSMA_MeshFaceCameraWithLockedAxis_ |面向相机并保持向上的向量作为锁定的方向。|
-
-Override Materia(覆盖材质)l* -如果为true，网格物体将使用发射器中的材质(在requiredmodule(必须模块)分配的材质)而不是使用这些应用到网格物体上的材质进行渲染。除非您的网格物体上有多个需要分配材质的UV通道，才使用这项来覆盖MeshMaterial(网格物体材质)，否则您需要在代码中用参数进行材质分配。
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]方位
-[/REGION]
-[REGION:regioncontent_visible]
-**Axis Lock Option(坐标轴锁定选项)** - 将网格物体锁定到其上面的坐标轴。这覆盖了TypeSpecific网格物体对齐方式和LockAxis模块。提供了以下选项：
-
-|**选项**|**描述**|
-| --- | --- |
-|_EPAL_NONE_|不锁定到坐标轴上。|
-|_EPAL_X_|锁定网格物体的X-轴朝向+X。|
-|_EPAL_Y_|锁定网格物体的X-轴朝向+Y。|
-|_EPAL_Z_|锁定网格物体的X-轴朝向+Z。|
-|_EPAL_NEGATIVE_X_|锁定网格物体的X-轴朝向 -X。|
-| _EPAL_NEGATIVE_Y_ |锁定网格物体的X-轴朝向-Y。|
-| _EPAL_NEGATIVE_Z_ |锁定网格物体的X-轴朝向-Z。|
-|_EPAL_ROTATE_X_|网格物体发生器忽略该项。作为EPAL_NONE对待。|
-|_EPAL_ROTATE_Y_|网格物体发生器忽略该项。作为EPAL_NONE对待。|
-|_EPAL_ROTATE_Z_|网格物体发生器忽略该项。作为EPAL_NONE对待。|
-
-**Pitch（倾斜）** - 应用到所使用的静态网格物体上的要旋转的'预设'倾斜度(以度数为单位)。
-
-**Roll（旋转）** - 应用到所使用的静态网格物体上的要旋转的'预设'旋转度(以度数为单位)。
-
-**Yaw(偏转)** - 应用到所使用的静态网格物体上的要旋转的'预设'偏转度(以度为单位)。
-[/REGION]
-
-
-#### Ribbon TypeData(条带类型数据)
-
-Ribbon (条带)类型数据模块是指发射器将产生尾迹 - 相连接的粒子形成的带状物。
-
-Ribbon(条带)类型数据有以下属性： 
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]渲染
-[/REGION]
-[REGION:regioncontent_visible]
-*Distance Tessellation Step Size(距离细分步长大小)* - 尾迹细分点之间的距离。这用于决定尾迹具有多少个细分点以及尾迹的光滑度。精确的计算是：
-
-      
-      TessellationPoints = Trunc((Distance Between Spawned Particles) / (DistanceTessellationStepSize))
-      
-
-**Render Geometry(渲染几何体)** - 如果该项为true，将渲染尾迹几何体。一般会启用这项，否则将不能看到光束。
-
-**Render Spawn Points(渲染产生点)** -如果该项为true，那么在沿着尾迹产生的每个粒子点处渲染星型。用于在Cascade中进行调试。
-
-**Render Tangents(渲染切线)** - 如果该项为true，那么尾迹上每个产生粒子点的地方将会使用一条直线来渲染切线。用于在Cascade中进行调试。
-
-**Render Tessellation(渲染多边形细分)** - 如果该项为true，那么将渲染每个产生的粒子之间的细分后的路径。用于在Cascade中进行调试。
-
-**Tangent Tessellation Scalar(切线多边形细分标量)** - 用于多边形细分的切线标量。切线A和切线B之间的角度映射为[0.0f .. 1.0f]。。然后，这个值和TangentTessellationScalar相乘，从而得出要写份的点的数量。
-
-**Tiling Distance(平铺距离)** - 用于平铺第二个UV集合的预计覆盖距离。如果该值为0.0，那么将不会传入第二个UV。
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]粒子产生
-[/REGION]
-[REGION:regioncontent_visible]
-**Tangent Tessellation Scalar(切线生成标量)** - 用于切线产生的标量。切线A和切线B之间的角度映射为[0.0f .. 1.0f]。。这个值然后和 _Tangent Spawning Scalar_  相乘来指出要产生的粒子的数量。
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]尾迹
-[/REGION]
-[REGION:regioncontent_visible]
-**Clip Source Segment(剪辑源片段）** - 如果该项为true，那么尾迹将不会和源位置相连接。
-
-**Dead Trails On Deactivate(当粒子系统变为非激活状态时尾迹死亡)** - 当粒子系统是非激活状态时，尾迹标记为死亡状态。这意味这仍然渲染尾迹，但是不会再产生新的粒子，即时重新激活粒子系统也不产生新的粒子。
-
-**Dead Trails On Source Loss(尾迹源消失时尾迹死亡)** -如果该项为true，那么当尾迹的源头'消失'时将该尾迹标记为死亡状态，也就是源粒子死亡。
-
-**Enable Previous Tangent Recalculation(启用前面切线的重新计算)** - 如果该项为true，那么每次产生新的粒子时将会重新计算前面的切线。
-
-**Max Particle In Trail Count(尾迹中的最大粒子数量)** - 尾迹可以同时包含的最大粒子数数量。
-
-**Max Trail Count(最大尾迹数量)** - 允许的存活尾迹数量。
-
-**Render Axis(渲染坐标轴)** - 尾迹的'渲染'坐标轴 (尾迹从其上面向外伸出的坐标轴)。提供了以下选项：
-
-| --- | --- |
-|_Trails_CameraUp_|传统的面向相机的尾迹。|
-|_Trails_SourceUp_|使用源的向上轴作为每个生成粒子的方向。|
-|_Trails_WorldUp_|使用世界空间中的向上轴。|
-
-**Sheets Per Trail(每个尾迹的面片数量)** - 要为尾迹渲染的围绕尾迹旋转的面片的数量。
-
-**Tangent Recalculation Every Frame(每帧重新计算切线)** - 如果该项为true，那么将会每帧都重新计算切线以应用 速度/加速度。
-[/REGION]
-
-
-### 模块类型
-
-模块类型可以根据它们的基本功能进行分类。
-
-
-#### Acceleration Modules(加速度模块) 
-
-这个模块提供了给粒子应用加速度或者随着时间改变粒子速度的功能。
-
-
-##### Acceleration(加速度)
-
-<span style="font:italic 10px arial;">(鼠标悬停在图片上查看动画效果)</span>
-<div style="width:400px;" onmouseover="toggleAnimImage('accel');" onmouseout="toggleAnimImage('accel');">
-    <div id="accel_still" style="display:block;">
-        ![psys_acceleration.jpg](psys_acceleration.jpg)
-    </div>
-    <div id="accel_anim" style="display:none;">
-        ![psys_acceleration.gif](psys_acceleration.gif)
-    </div>
-</div>
-
-Acceleration（加速度）模块设置粒子的初始加速度。这个值存储在每个粒子中，并且在每一帧粒子调用Update(更新)函数时都会应用该值。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]加速度
-[/REGION]
-[REGION:regioncontent_visible]
-**Acceleration(加速度)** -一个向量分布，说明了粒子要使用的加速度。这个值是基于粒子产生时的EmitterTime获得的。
-
-**Apply Owner Scale(应用拥有者比例)** - 如果该项为true，那么加速度将需要和ParticleSystemComponent的比例相乘。
-[/REGION]
-
-这个模块将一个向量参数加到粒子负载数据上， **UsedAcceleration** 。这个值用于保持每个粒子在整个生命周期中的加速度。
-
-每一帧，粒子的当前速度和基础速度的值将使用公式(velocity(速度) += acceleration(加速度)* DeltaTime(时间间隔))进行更新，这里的DeltaTime是指自从上一帧到这一帧所经过的时间间隔。
-
-
-##### AccelerationOverLife(随着生命周期的加速度)
-
-设置了粒子随着生命周期的加速度。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]加速度
-[/REGION]
-[REGION:regioncontent_visible]
-**Accel Over Life(随着生命周期的加速度)** -一个向量分布，说明了粒子要使用的加速度。加速度的值是基于粒子更新时的RelativeTime(相对时间)来计算获得的。
-
-**Always In World Space(总是在世界空间中)** - 如果该项为true，那么则假设加速度向量位于世界空间坐标系中。否则，则假设加速度向量位于相对于ParticleSystemComponent的局部空间中。
-
-[/REGION]
-
-加速度通过使用Particle.RelativeTime从Acceleration(加速度)分布中获得。粒子的当前速度和基础速度值通过使用函数(velocity += acceleration* DeltaTime)进行更新，这里的DeltaTime是指自从上一帧到这一帧所经过的时间间隔。
-
-
-#### Attractor Modules(引力模块)
-
-这些模块实现了使得粒子受到空间中某个特定位置吸引而朝向该位置运动的方法，该特定位置可以按一个点、一条直线或者另一个粒子位置的形式来定义。它们共同组合到一起可以创建更加复杂的特效。
-
-这个效果是通过使用一个点引力器和一个其强度随着粒子生命周期不断变化的线引力器创建的漩涡效果。
-
-<span style="font:italic 10px arial;">(鼠标悬停在图片上查看动画效果)</span>
-<div style="width:400px;" onmouseover="toggleAnimImage('attractor');" onmouseout="toggleAnimImage('attractor');">
-    <div id="attractor_still" style="display:block;">
-        ![psys_attractor.jpg](psys_attractor.jpg)
-    </div>
-    <div id="attractor_anim" style="display:none;">
-        ![psys_attractor.gif](psys_attractor.gif)
-    </div>
-</div>
-
-
-##### Attractor Line(直线引力器)
-
-直线引力器使得粒子描画到3D空间中的一条直线上。
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]引力器
-[/REGION]
-[REGION:regioncontent_visible]
-**End Point 0** - 指出了用于吸引粒子的直线的其中一个终点。
-
-**End Point 1** - 指出了用于吸引粒子的直线的另外一个终点。
-
-**Range(范围)** -一个浮点分布，直线周围的引力的半径范围。相对于粒子生命周期。
-
-**Strength(强度)** -引力的强度(如果为负值则为推力的强度)。相对于粒子生命周期。
-[/REGION]
-
-
-##### Attractor Particle(粒子引力器)
-
-<span style="font:italic 10px arial;">(鼠标悬停在图片上查看动画效果)</span>
-<div style="width:400px;" onmouseover="toggleAnimImage('attractor_particle');" onmouseout="toggleAnimImage('attractor_particle');">
-    <div id="attractor_particle_still" style="display:block;">
-        ![psys_attractor_particle.jpg](psys_attractor_particle.jpg)
-    </div>
-    <div id="attractor_particle_anim" style="display:none;">
-        ![psys_attractor_particle.gif](psys_attractor_particle.gif)
-    </div>
-</div>
-
-粒子引力器可以使一个粒子发射器的粒子被同一个系统中的另一个发射器释放的粒子所吸引。它包括以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]引力器
-[/REGION]
-[REGION:regioncontent_visible]
-**Affect Base Velocity(是否影响基本速度)** -如果为true，基本速度将会进行速度调整。
-
-**EmitterName(发射器名称)** -有引力的源发射器的名称。
-
-**Inherit Source Vel(是否继承源速度)** - 如果该项为true， 那么当粒子生命周期结束，它将继承源粒子的速度。
-
-**Range(范围)** -一个浮点分布，它给出了源粒子周围的引力的半径范围。相对于粒子生命周期。
-
-**Renew Source(更新源)** -如果为true，当源粒子生命周期结束后，将选择一个新的源粒子。否则，那个被吸引的粒子将不会再被吸引。
-
-**Strength(强度)** -引力的强度(如果为负值则为推力的强度)。如果 _StrengthByDistance_ 为false，则粒子的强度和生命周期成比例关系。
-
-**Strength By Distance(是否距离决定强度)** - 如果该项为true，在强度曲线上的值通过使用以下公式来获得： (AttractorRange-DistanceToParticle)/AttractorRange。否则，强度通过使用源粒子的 RelativeTime来获得。
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]位置
-[/REGION]
-[REGION:regioncontent_visible]
-**SelectionMethod(选择方法)** - 当从发射器中选择一个引力器的目标粒子时所使用的方法。可以是以下其中之一:
-
-|**方法**|**描述**|
-| --- | --- |
-| _EAPSM_Random_ |随机地从源发射器选择一个粒子。|
-|_EAPSM_Sequential_| 选择一个使用连续顺序的粒子。|
-
-[/REGION]
-
-
-##### Attractor Point(点引力器)
-
-<span style="font:italic 10px arial;">(鼠标悬停在图片上查看动画效果)</span>
-<div style="width:400px;" onmouseover="toggleAnimImage('attractor_point');" onmouseout="toggleAnimImage('attractor_point');">
-    <div id="attractor_point_still" style="display:block;">
-        ![psys_attractor_point.jpg](psys_attractor_point.jpg)
-    </div>
-    <div id="attractor_point_anim" style="display:none;">
-        ![psys_attractor_point.gif](psys_attractor_point.gif)
-    </div>
-</div>
-
-点引力器定义了一个能吸引粒子的点和它的影响半径。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]引力器
-[/REGION]
-[REGION:regioncontent_visible]
-**Affect Base Velocity(影响基本速度)** -如果该项为true，粒子的基本速度将会进行调整来保持引力器的牵引力。
-
-**Override Velocity(覆盖速度)** - 没有用途。
-
-**Position(位置)** - 一个向量分布，它定义了相对于粒子发射器的点的位置。这个值通过使用EmitterTime获得。
-
-**Range(范围)** - 一个浮点分布，它给出了点的影响半径。这个值通过使用EmitterTime获得。
-
-**Strength(强度)** - 点引力器的强度。这个值通过使用EmitterTime获得。
-
-**Strength By Distance(距离决定强度)** - 如果为true，强度会沿着半径均匀地分布。
-
-**Use World Space Position(使用世界空间位置)** - 如果该项为true，则假设该位置在世界空间坐标系中。
-[/REGION]
-
-
-#### Beam Modules(光束模块)
-
-这些模块用于使用Beam TypeData模块来配置或修改发射器的行为。
-
-
-##### Beam Modifier(光束修改器)
-
-Beam Modifier(光束修改器)允许您修改光束的源或目标。它提供了以下属性:
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]修改器
-[/REGION]
-[REGION:regioncontent_visible]
-**Modifier Type(修改器类型)** - 指出了正在修改的模块。
-
-|**类型**|**描述**|
-| --- | --- |
-|_PEB2MT_Source_|该模块修改光束的源。|
-|_PEB2MT_Target_|该模块修改光束的目标。|
-
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]位置
-[/REGION]
-[REGION:regioncontent_visible]
-**Position** - 用于修改Source/Target(源/目标)的位置所使用的位置值。
-
-**Position Options(位置选项)** - 和 _Position(位置)_ 属性相关的选项。
-
-|**选项**|**描述**|
-| --- | --- |
-|_Lock(锁定)_|如果该项为true，那么在粒子的整个生命周期中锁定 Source/Target(源/目标)的位置。|
-|_Modify(修改)_|如果该项为true，那么将会修改Source/Target(源/目标)的位置。否则，则不影响该位置。|
-|_Scale(缩放比例)_|如果该项为突然true，那么修改器模块的 _Position(位置)_ 值将会缩放 Source/Target(源/目标)的位置。否则，将覆盖Source/Target(源/目标)的位置。|
-
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]强度
-[/REGION]
-[REGION:regioncontent_visible]
-**Strength（强度）** -用于修改Source/Target(源/目标)的强度所使用的强度值。
-
-**Strength Options(强度选项)** - 和 _Strength(强度)_ 属性相关的选项。
-
-|**选项**|**描述**|
-| --- | --- |
-|_Lock(锁定)_|如果该项为true，那么在粒子的整个生命周期中锁定 Source/Target(源/目标)的强度。|
-|_Modify(修改)_|如果该项为true，那么将会修改Source/Target(源/目标)的强度。否则，则不影响该位置。|
-|_Scale(缩放比例)_|如果该项为突然true，那么修改器模块的 _Strength(强度)_ 值将会缩放 Source/Target(源/目标)的强度。否则，将覆盖Source/Target(源/目标)的强度。|
-
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]切线
-[/REGION]
-[REGION:regioncontent_visible]
-**Tangent(切线)** - 用于修改Source/Target(源/目标)所使用的切线值。
-
-**Tangent Options(切线选项)** - 和 _Tangent_ 属性相关的选项。
-
-|**选项**|**描述**|
-| --- | --- |
-|_Lock(锁定)_|如果该项为true，那么在粒子的整个生命周期中锁定 Source/Target(源/目标)的切线。|
-|_Modify(修改)_|如果该项为true，那么将会修改Source/Target(源/目标)的切线。否则，则不影响切线。|
-|_Scale(缩放比例)_|如果该项为突然true，那么修改器模块的 _Tangent(切线)_ 值将会缩放 Source/Target(源/目标)的位置。否则，将覆盖Source/Target(源/目标)的切线。|
-
-[/REGION]
-
-
-##### Beam Noise(光束噪音)
-
-<span style="font:italic 10px arial;">(鼠标悬停在图片上查看动画效果)</span>
-<div style="width:400px;" onmouseover="toggleAnimImage('beam_noise');" onmouseout="toggleAnimImage('beam_noise');">
-    <div id="beam_noise_still" style="display:block;">
-        ![psys_beam_noise.jpg](psys_beam_noise.jpg)
-    </div>
-    <div id="beam_noise_anim" style="display:none;">
-        ![psys_beam_noise.gif](psys_beam_noise.gif)
-    </div>
-</div>
-
-Beam Noise(光束噪音)模块允许沿着光束注入噪声。它提供了以下属性:
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]低频率
-[/REGION]
-[REGION:regioncontent_visible]
-**Apply Noise Scale(应用噪音比例)** - 如果该项为true，则给光束应用该NoiseScale(噪音比例)。
-
-**频率** - 光束上的噪点的频率。
-
-**FrequencyDistance(频率距离)** - 距离多远放置一个噪点。如果这个值是0.0,那么使用标准的Frequency/Frequency_LowRange对决定噪点的频率。如果该值不是0.0，那么噪点则根据静态的Frequency值所决定的距离进行分布。这使得在较短的光束上有较少的噪点，随着光束的增长会自动地添加噪点。
-
-**Frequency_Low Range** - 如果该项的值大于0，那么这个值给出了频率范围的下限。当粒子生成时，它的频率将会设定在[Frequency_LowRange..Frequency]范围之内。
-
-**Low Freq_Enabled** - 如果该项为true,则意味着启用了低频率噪音。
-
-%X% **注意:** 目前，仅支持低频率噪音。
-
-**Noise Lock Radius(噪音锁定半径)** - 噪点周围球体的半径，该半径意味着噪点锁定。
-
-**Noise Lock Time(噪音锁定时间)** - 在选择新的噪点之前将该早点锁定多长时间。
-
-**Noise Range(噪音范围)** - 提供了噪点位置范围的分布。如果使用常量曲线，那么时间 0.0对应着第一个频率点，时间1.0对应着目标点。剩余的点通过使用公式(CurrentFrequencyPoint * (1.0/TotalFrequencyPoints))计算查找。
-
-**Noise Range Scale(噪点范围缩放比例)** - 这个分布提供了随着发射器时间缩放噪音范围的方法。
-
-**Noise Scale(噪音缩放比例)** - 这是当bApplyNoiseScale为true时应用到噪音范围上的缩放因数。这个分布的查找值是由现有噪点数量除以最大噪点数量(也就是Frequency)来获得。
-
-**Noise Speed(噪音速度)** - 一个向量分布，提供了噪点的移动速度。
-
-**Noise Tangent Strength(噪音切线强度)** - 沿着光束插值的过程中应用到噪点切线上的强度。
-
-**Noise Tension** - 应用到细分的噪音线上的张力。
-
-**Noise Tessellation(噪音细分)** - 要在噪音点之间插值的点的数量。
-
-**NRScale Emitter Time** - 如果该项为true，那么将使用发射器时间计算获得NoiseRangeScale的结果。如果该项为false，那么将使用粒子时间计算获得NoiseRangeScale的结果。
-
-**Oscillate(遮挡)** - 如果该项为true，那么噪点将会在光束直线上前后震动。
-
-**Smooth(平滑度)** - 如果该项为true，那么将尝试在噪点之间平滑移动。
-
-**Target Noise(目标点噪音)** - 如果该项为true，则在目标点应用噪音。
-
-**Use Noise Tangents(使用噪音切线)** - 如果该项为true，则计算每个噪声点的切线。尚未使用。
-[/REGION]
-
-
-##### Beam Source（光束源）
-
-Beam Source(光束源)模块实现了光束发射器的一个源。(如果光束发射器中没有光束源模块，那么则使用发射器本身的位置作为源点。) 它提供了以下属性:
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]源
-[/REGION]
-[REGION:regioncontent_visible]
-**Lock Source(锁定源)** - 如果该项为true，那么则仅在粒子生成时设置源的位置。
-
-**Lock Source Strength(锁定源的强度)** - 如果该项为true，那么仅在粒子产生时设置源的强度。
-
-**Lock Source Tangent(锁定源的切线)** - 如果该项为true，那么则仅在粒子生成时设置源的切线。
-
-**Source(源)** - 一个向量分布，允许您设置源的位置。当方法设置为Default时或者当其他方法不能确定源点时使用该项。这个值通过使用当前的发射器时间从分布中查找获得。
-
-**Source Absolute(绝对位置源)** - 如果该项为true，那么则把该源作为世界空间中的一个绝对位置(也就是，不变换它)。
-
-**Source Method(源方法)** - 这个枚举值允许您设置获得光束源的位置的方法。可以是以下情况之一：
-
-|**方法**|**描述**|
-| --- | --- |
-|_PEB2STM_Default_|使用Source(源)分布。|
-|_PEB2STM_UserSet_|使用用户设置的值。|
-|_PEB2STM_Emitter_|使用发射器位置作为源。|
-|_PEB2STM_Particle_|目前没有使用。|
-|_PEB2STM_Actor_|使用具有给定名称的actor的位置作为源。|
-
-**Source Name(源名称)** -用作为源的actor的名称。仅当SourceMethod 设置为PEB2STM_Actor时使用。如果没有找到该actor ，那么将会回滚回来使用Source(源)分布。
-
-**Source Strength（源强度）** - 一个浮点分布，提供了每个光束源点的切线强度。这个值使用当前的发射器时间计算获得。无论获得 Source/SourceTangent 所使用的方法是什么，都会使用这个强度。
-
-**Source Tangent(源切线)** - 一个向量分布，允许设置源的切线。当SourceTangentMethod设置为PEB2STTM_Distribution使用该项。这个值使用当前的发射器时间计算获得。
-
-**Source Tangent Method(源切线方法)** - 这个枚举值允许您设置获得光束源的切线的方法。可以是以下情况之一：
-
-|**方法**|**描述**|
-| --- | --- |
-|_PEB2STTM_Direct_|使用源和目标之间的直线。|
-|_PEB2STM_UserSet_|使用用户设置的值。|
-|_PEB2STTM_Distribution_|使用SourceTangent分布中的值。|
-|_PEB2STTM_Emitter_|使用发射器面向的方向。|
-
-[/REGION]
-
-
-##### Beam Target(光束目标)
-
-Beam Target(光束目标)模块实现了光束的一个单独目标。(如果光束发射器中没有光束目标模块，那么发射器将假设定向地使用光束。) 它提供了以下属性:
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]目标
-[/REGION]
-[REGION:regioncontent_visible]
-**Lock Radius(锁定半径)** - 当前光束末端位于该球体半径内时，认为已经锁定了目标点。当使用设置了Speed中的光束时使用该项。
-
-**Lock Target(锁定目标)** - 如果该项为true，那么仅在粒子产生时设置目标位置。
-
-**Lock Target Strength(锁定目标强度)** - 如果该项为true，那么仅在粒子产生时设置目标强度。
-
-**Lock Target Tangent(锁定目标切线)** - 如果该项为true，那么仅在粒子产生时设置目标切线。
-
-**Target(目标)** - 一个向量分布，允许您设置目标位置。当方法设置为Default时或者当其他方法不能确定目标点时使用该项。这个值通过使用当前的发射器时间从分布中查找获得。
-
-**Target Absolute(绝对目标点)** - 如果该项为true，那么将把目标当做世界空间中的绝对位置对待(也就是，不变换它)。
-
-**Target Method(目标方法)** - 这个枚举值允许您设置获得光束目标位置的方法。可以是以下情况之一：
-
-|**方法**|**描述**|
-| --- | --- |
-|_PEB2STM_Default_|使用Target 分布。|
-|_PEB2STM_UserSet_|使用用户设置的值。|
-|_PEB2STM_Emitter_|目前不支持。|
-|_PEB2STM_Particle_|目前不支持。|
-|_PEB2STM_Actor_|使用具有给定名称的actor的位置作为源。|
-
-注意： 如果将目标点设置为发射器或粒子，那么目标将会使用分布中的值。
-
-**Target Name(目标名称)** - 用作为目标的actor的名称。仅当TargetMethod 设置为PEB2STM_Actor时使用。如果没有找到该actor ，那么将会回滚回来使用Target分布。
-
-**Target Strength(目标强度)** - 一个浮点型分布，提供了每个光束的目标点出的切线的强度。这个值使用当前的发射器时间计算获得。无论获得Target/TargetTangent所使用的方法是什么，都会使用这个强度。
-
-**Target Tangent(目标切线)** - 一个向量分布，允许您设置目标点的切线。当TargetTangentMethod设置为PEB2STTM_Distribution使用该项。这个值使用当前的发射器时间计算获得。
-
-**Target Tangent Method(目标切线方法)** - 这个枚举值允许您设置获得光束目标点切线所使用的方法。可以是以下情况之一：
-
-|**方法**|**描述**|
-| --- | --- |
-|_PEB2STTM_Direct_|使用源和目标之间的直线。|
-|_PEB2STM_UserSet_|使用用户设置的值。|
-|_PEB2STTM_Distribution_|使用TargetTangent分布上的值。|
-|_PEB2STTM_Emitter_|使用发射器面向的方向。|
-
-[/REGION]
-
-
-#### Camera Modules(相机模块)
-
-这个模块针对相机修改发射器行为。
-
-
-##### Camera Offset(相机偏移量)
-
-Camera Offset(相机偏移量)模块允许相对于相机偏移平面粒子的位置。它提供了以下属性:
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]相机
-[/REGION]
-[REGION:regioncontent_visible]
-**Camera Offset(相机偏移量)** - 应用到平面粒子位置处的相对于相机的偏移量。
-
-**Spawn Time Only(仅粒子产生时)** - 如果该项为true，那么这个模块的偏移量仅在粒子最初产生时进行处理。
-
-**Update Method(更新方法)** - 指出了更新这个模块的偏移量时所使用的方法。
-
-|**方法**|**描述**|
-| --- | --- |
-|_EPCOUM_Direct_|S使用 _Camera Offset_ 的值直接设置偏移量，覆盖之前的任何偏移量。|
-|_EPCOUM_Additive_|将这个模块中的  _Camera Offset_ 的值添加之前的任何偏移量上。|
-|_EPCOUM_Scalar_|通过 _Camera Offset_ 的值缩放任何现有偏移量。|
-
-[/REGION]
-
-(#CollisionModules)
-
-
-#### Collision Modules(碰撞模块)
-
-
-##### Collision(碰撞)
-
-<span style="font:italic 10px arial;">(鼠标悬停在图片上查看动画效果)</span>
-<div style="width:400px;" onmouseover="toggleAnimImage('collision');" onmouseout="toggleAnimImage('collision');">
-    <div id="collision_still" style="display:block;">
-        ![psys_collision.jpg](psys_collision.jpg)
-    </div>
-    <div id="collision_anim" style="display:none;">
-        ![psys_collision.gif](psys_collision.gif)
-    </div>
-</div>
-
-一些使发射器处理碰撞的参数。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]碰撞
-[/REGION]
-[REGION:regioncontent_visible]
-**Apply Physics(应用物理)** - 一个布尔值，指出了是否在粒子及其和它碰撞的对象上应用物理。[注意： 目前这是一个单向的应用方式-从粒子 --> 物体。粒子没有将物理应用到碰撞的物体上 - 它仅是产生一个应用到它碰撞的物体上的一个冲力。
-
-**Collision Completion Option(碰撞完成时选项)** -一个枚举变量，它预示了一旦粒子达到了MaxCollisions(最大碰撞次数)时将会发生什么。可以是以下情况之一：
-
-|**选项**|**描述**|
-| --- | --- |
-| _EPCC_Kill_ |当达到MaxCollisions(最大碰撞次数)时，销毁粒子。(这是默认行为)|
-|_EPCC_Freeze_|原位冻结粒子。|
-|_EPCC_HaltCollisions_|停止碰撞检测，但是继续保持更新。这很可能会导致粒子'穿过'物体。|
-|_EPCC_FreezeTranslation_|停止平移粒子，但其它所有都保持更新。|
-|_EPCC_FreeRotation_|停止旋转粒子，但其它所有都保持更新。|
-|_EPCC_FreeMovement_|停止 平移/旋转 粒子，但其它所有都保持更新。|
-
-**Damping Factor(衰减因数)** - 一个向量分布，它说明了粒子在一次碰撞后速度将减慢多少。这个值可以根据在粒子产生时的EmitterTime来获得，并且该值存储在每个粒子中。
-
-**Damping Factor Rotation(旋转衰减因数)** -一个向量分布，它说明了粒子在一次碰撞后它的旋转会减慢多少。这个值可以根据在粒子产生时的EmitterTime来获得，并且该值存储在每个粒子中。
-
-**Delay Amount(延迟量)** - 在检查粒子碰撞之前要延迟多长时间。这个值可以通过使用EmitterTime(发射器时间)来获得。在更新期间直到粒子RelativeTime (相对时间)超过 _Delay Amount(延迟量)_ 之前都会设置IgnoreCollisions 粒子标志。
-
-**Dir Scalr(方向标量)** - 一个浮点型值，用于缩放粒子的边界框从而有助于避免穿透或较大的间隙。
-
-**Max Collisions(最大的碰撞次数)** -一个浮点分布，它说明了一个粒子可以进行的最大碰撞次数。这个值可以根据在粒子产生时的EmitterTime来获得。
-
-**Only Vertical Normals Decrement Count(仅垂直法线减少碰撞次数)** - 如果为true，不和碰撞平面的法线垂直的碰撞仍然可以起作用，但该碰撞不会被计入到粒子的MaxCollisions(最大碰撞次数)内。这可以使粒子从墙上弹回并落到地面上。
-
-**Particle Mass(粒子质量)** -一个说明了粒子质量的浮点型分布-当bApplyPhysics为真时可以使用。这个值可以根据在粒子产生时的EmitterTime来获得。
-
-**Pawns Do Not Decrement Count(与Pawn碰撞不减少碰撞次数)** -如果为真，粒子和Pawn的碰撞仍然起作用，但是这次碰撞不会被计入到粒子的MaxCollisions(最大碰撞次数)内。这可以使粒子从pawn上弹回，但不会使粒子在半空中冻结。
-
-**Vertical Fudge Factor(垂直偏差因数)** - 一个浮点值，用于决定达到什么程度算是垂直。绝对的垂直将是Hit.Normal.Z == 1.0f。这允许在[1.0-VerticalFudgeFactor..1.0]范围内的Z向量都被认为是垂直碰撞。
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]性能
-[/REGION]
-[REGION:regioncontent_visible]
-**Drop Detail(丢失细节)** - 如果该项为true，那么当WorldInfo的 _Drop Detail_ 属性也为true时将忽略这个模块。
-[/REGION]
-
-这个模块将增加两个向量(UsedDampingFactor(使用的衰减因数) 和 UsedDampingFactorRotation(使用的旋转衰减因数))和一个整型变量(UsedMaxCollisions(最大的碰撞次数))到粒子有效负载数据。这些值用于跟踪每个粒子的碰撞信息。
-
-以下的伪代码解释了碰撞粒子的更新过程。
-
-<div style="margin:0px 10px;background:#e0e0e0;font:12px Courier;padding:5px;">
-
-    
-    决定了粒子的位置。因为直到调用Update之前都不会计算真实的位置所以这是需要的
-    。
-    决定了在线性检测时所使用的大致范围。
-    if (SingleLineCheck indicates collision)
-    {
-        if (UsedMaxCollisions-- > 0)  //  如果仍然有碰撞存在
-        {
-            根据碰撞调整粒子的速度和旋转
-            if (Applying physics)// 应用物理
-            {
-                给碰撞物体施加一个适当的推力
-                (质量可以从相对于粒子时间的分布获得。)
-                    。
-            }
-        }
-        else
-        {
-            已经没有碰撞存在
-            根据CollisionCompletionOption(碰撞完成选项)采取是相应的行动。
-        }
-    }
-    
-
-
-[/REGION]
-
-
-#### Color Modules (颜色模块)
-
-Color(颜色)模块可以影响发射出的粒子的颜色。
-
-%X% **注意:** 颜色模块要求发射器所使用的材质通过使用VertexColor表达式来将颜色从模块传入到材质中。
-
-%X% **Note:** 以前颜色的范围是[0..255] -即8-位彩色。现在粒子支持全浮点(32位)彩色。
-
-
-##### Initial Color(初始颜色)
-
-<span style="font:italic 10px arial;">(鼠标悬停在图片上查看动画效果)</span>
-<div style="width:400px;" onmouseover="toggleAnimImage('initial_color');" onmouseout="toggleAnimImage('initial_color');">
-    <div id="initial_color_still" style="display:block;">
-        ![psys_initial_color.jpg](psys_initial_color.jpg)
-    </div>
-    <div id="initial_color_anim" style="display:none;">
-        ![psys_initial_color.gif](psys_initial_color.gif)
-    </div>
-</div>
-
-Initial Color(初始颜色)模块设置粒子在产生时的颜色。粒子将会在它的整个生命周期中保持这个颜色，除非另一个颜色模块覆盖了该设置。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]颜色
-[/REGION]
-[REGION:regioncontent_visible]
-**Clamp Alpha(Alpha区间)** -如果为true，alpha值的范围将在[0.0 .. 1.0f]之间。。
-
-**Start Alpha(初始透明度)** -一个向量分布，说明了粒子的alpha向量。这个值可以基于粒子产生时的EmitterTime来获得。
-
-**Start Color(初始颜色)** -.一个向量分布，说明了粒子的颜色。这个值可以基于粒子产生时的EmitterTime来获得。
-[/REGION]
-
-在Spawn中，该模块通过使用发射时间来从分布中获得适当的值，并将Particle.Color 和 Particle.BaseColor的值直接设置给它。
-
-
-#####Init Color (Seeded) (初始模块 (种子))
-
- Init Color (Seeded)模块和 [Initial Color](#InitialColor)模块一样，因为它在粒子产生时设置了粒子的初始颜色；但是，这个模块允许您在选择分布值时指定的随机种子信息，从而使得每次使用发射器时模块产生更加一致的效果。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]颜色
-[/REGION]
-[REGION:regioncontent_visible]
-**Clamp Alpha(Alpha区间)** -如果为true，alpha值的范围将在[0.0 .. 1.0f]之间。。
-
-**Start Alpha(初始透明度)** -一个向量分布，说明了粒子的alpha向量。这个值可以基于粒子产生时的EmitterTime来获得。
-
-**Start Color(初始颜色)** -.一个向量分布，说明了粒子的颜色。这个值可以基于粒子产生时的EmitterTime来获得。
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]随机种子
-[/REGION]
-[REGION:regioncontent_visible]
-**Random Seed Info(随机种子信息)** -  这个模块的属性选择"随机"值时所使用的随机种子。
-
-|**属性**|**描述**|
-| --- | --- |
-|_Get Seed From Instance(从实例中获得种子)_|如果该项为true，那么模块将会尝试从拥有者实例中获得种子。如果没有获得随机种子，那么它将回滚回从使用  _Random Seeds(随机种子)_ 数组中获得随机种子。|
-|_Instance Seed Is Index（实例种子是索引值）_|如果该项为true，那么从实例中获得的种子值将代表 _Random Seeds_ 数组中的额索引。|
-|_Parameter Name(参数名称)_|为设置这个种子所放置的实例而暴露的名称。|
-|_Random Seeds(随机种子)_|这个模块使用的随机种子值。如果指定了多个值，那么实例将会实际地选择一个值。|
-|_Reset Seed On Emitter Looping(在每次发射器循环时重新设置种子)_|如果该项为true, 那么每次发射器循环时将会重新设置这个种子。|
-
-[/REGION]
-
-在Spawn中，该模块通过使用发射时间来从分布中获得适当的值，并将Particle.Color 和 Particle.BaseColor的值直接设置给它。
-
-
-##### Parameter Color(参数颜色)
-
-Parameter Color(参数颜色)模块用于根据粒子发射器实例参数来设置粒子产生时的颜色。它允许同一个发射器在一个关卡中进行实例化，但是产生不同的颜色。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]颜色
-[/REGION]
-[REGION:regioncontent_visible]
-**Color Param(颜色参数)** -这是在MaterialInstanceConstant(材质实例常量)中参数的名称，用于获取颜色。
-
-**Default Color(默认颜色)** -如果没有在发射器中设置颜色，则使用默认颜色。
-[/REGION]
-
-在Spawn中，模块从实例参数中计算出适当的值，并将其设置为颜色值。如果没有找到，则使用 _Default Color(默认颜色)_ 。
-
-**设置:** 通过这个模块设置颜色。意味着在此之前的任何颜色模块都将会被覆盖。
-
-**注意:** 这个模块和在[Initial Color](#InitialColor) 模块中使用ParticleParameter 分布是等价的。(它是在现有的ParticleParameter(粒子参数)之前写的。)
-
-
-##### Color Over Life(随生命周期变换颜色)
-
-<span style="font:italic 10px arial;">(鼠标悬停在图片上查看动画效果)</span>
-<div style="width:400px;" onmouseover="toggleAnimImage('color_life');" onmouseout="toggleAnimImage('color_life');">
-    <div id="color_life_still" style="display:block;">
-        ![psys_color_life.jpg](psys_color_life.jpg)
-    </div>
-    <div id="color_life_anim" style="display:none;">
-        ![psys_color_life.gif](psys_color_life.gif)
-    </div>
-</div>
-
-Color Over Life(随生命周期变换颜色)模块用于设置粒子整个生命周期中粒子的颜色。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]颜色
-[/REGION]
-[REGION:regioncontent_visible]
-**Alpha Over Life(随生命周期变换透明度)** -一个向量分布，说明了应用到粒子上的透明度分量。这个值可以通过使用粒子在更新过程中的RelativeTime(相对时间)来计算获得。
-
-**Clamp Alpha(Alpha区间)** -如果为true，alpha值的范围将在[0.0 .. 1.0f]之间。。
-
-**Color Over Life(随声明周期改变颜色)** -一个向量分布，说明了要应用到粒子的颜色。这个值可以通过使用粒子在更新过程中的RelativeTime(相对时间)来计算获得。
-[/REGION]
-
-在Spawn中，这个模块通过使用粒子时间从分布中获得相应的值，并将Particle Color 和 BaseColor值设置给它。
-
-**设置:** 通过这个模块设置颜色。意味着在此之前的任何颜色模块都将会被覆盖。
-
-在Update中，这个模块通过使用粒子时间及从分布中获得相应的值，并将Particle.Color的值设置给它。
-
-
-##### Scale Color/Life(随着粒子生命周期缩放粒子颜色)
-
-Scale Color/Life模块用于随着粒子生命周期缩放粒子的颜色。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]颜色
-[/REGION]
-[REGION:regioncontent_visible]
-**Alpha Scale Over Life(随生命周期变化的不透明度缩放比例)** -一个向量分布，说明了应用到粒子上的透明度分量。这个值可以通过使用粒子在更新过程中的RelativeTime(相对时间)来计算获得。
-
-**Color Scale Over Life(随声明周期变换的颜色缩放比例)** -一个向量分布，说明了要应用到粒子的颜色。这个值可以通过使用粒子在更新过程中的RelativeTime(相对时间)来计算获得。
-
-**Emitter Time(发射时间)** - 一个布尔型变量，说明了特效是基于发射器的时间还是粒子的实际时间。
-[/REGION]
-
-在Spawn 和 Update函数中，这个模块通过使用选定的时间从分布中获取适当的值，并使用这些值来按比例改变粒子的颜色。
-
-
-#### Event Modules (事件模块) 
-
-Event(事件)模块允许您基于粒子自身间、不同粒子之间、或者粒子和世界之间的相互作用来产生事件，然后监听这些事件并在一个交互的粒子系统关卡中导致一系列的反应。一个较好的例子是当一个粒子和世界中其它物体产生碰撞时发生了碰撞事件，然后在这些碰撞发生的地方产生一些粒子。
-
-
-##### Event Generator(事件产生器)
-
-这个模块将根据您指定的条件产生一个(或多个)事件。这个模块有一个单独的 **Events** 数组，它包含了您想让发射器生成的所有时间。_Events_ 数组中的每项都有以下属性:
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]事件
-[/REGION]
-[REGION:regioncontent_visible]
-**Type** - 事件类型。可能的类型包括：
-
-|**类型**|**描述**|
-| --- | --- |
-| EPT_Any |从任何可能发生的事件中产生指定的事件。|
-| EPT_Spawn |当粒子发射器产生一个粒子，产生指定的事件。|
-| EPT_Death |当这个发射器中的粒子死亡时，产生指定的事件。|
-| EPT_Collision |当这个发射器的粒子和某物发生碰撞时，产生指定的事件。|
-| EPT_Kismet |产生一个和Kismet 进行交互的事件，允许您执行Kismet 脚本或者允许Kismet 脚本来执行粒子的命令。|
-
-**Frequency(频率)** -多长时间触发一次事件。比如说<=1意味着每次都触发事件。也可以每隔一次碰撞触发一次事件。
-
-**Low Freq(低频率)** - 允许在频率范围内随机选择频率。-1意味着使用不在该范围内的频率。
-
-**Particle Frequency(粒子频率)** - 每个粒子可以触发事件的次数。
-
-**First Time Only(仅第一次时)** - 是否仅在当某种情况第一次发生时触发事件。
-
-**Last Time Only(仅最后一次时)** - 是否仅当某种情况最后一次发生时触发事件。
-
-**Use Reflected Impact Vector(使用反射的冲力向量)** -布尔型变量，决定了碰撞事件的方向是否是冲力向量的方向而不是碰撞平面的法线方向。
-
-**Custom Name(自定义名称)** -  这是您的事件的名称，它使您可以建立一个监听器来监听这个事件名然后执行相应的动作。所有的事件都需要命名。
-
-**Particle Module Events To Send To Game(要发送给游戏的粒子模块事件)** - 当生成这个事件时我们就像将其触发的事件。需要您的游戏实现ParticleModuleEventSendToGame 的新的子类，ParticleModuleEventSendToGame 代表了粒子事件可以出发的游戏时间的类型。
-[/REGION]
-
-
-##### Event Receiver Kill All(事件接收器销毁所有)
-
-监听命名事件，然后销毁发射器的所有粒子。
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]ParticleModuleEventReceiverKillParticles
-[/REGION]
-[REGION:regioncontent_visible]
-**Stop Spawning(停止生成粒子)** - 如果该项为true，那么除了销毁所有现有粒子外发射器将停止产生新的粒子。
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]事件
-[/REGION]
-[REGION:regioncontent_visible]
-**Event Generator Type(事件生成器类型)** -所监听的事件的类型。
-
-|**类型**|**描述**|
-| --- | --- |
-|_EPT_Any_| 监听具有 _Event Name(事件名称)_ 属性中指定的名称的任何事件类型。|
-|_EPT_Spawn_| 监听生成粒子事件。|
-|_EPT_Death_| 监听粒子死亡事件。|
-|_EPT_Collision_| 监听碰撞事件。|
-|_EPT_Kismet_| 监听通过Particle Event Generator(粒子事件生成器)动作在Kismet中生成的事件。|
-
-**Event Name** - 要监听的事件的名称。
-[/REGION]
-
-
-##### Event Receiver Spawn(事件接收器Spawn)
-
-监听指定名称的事件，然后根据所触发的事件来生成粒子。
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]位置
-[/REGION]
-[REGION:regioncontent_visible]
-**Use PSys Location** -布尔型变量，决定spawn（粒子生成）事件是在触发该事件的粒子处发生还是在粒子系统的原点发生。
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]源
-[/REGION]
-[REGION:regioncontent_visible]
-**Event Generator Type(事件生成器类型)** -所监听的事件的类型。
-
-|**类型**|**描述**|
-| --- | --- |
-|_EPT_Any_| 监听具有 _Event Name(事件名称)_ 属性中指定的名称的任何事件类型。|
-|_EPT_Spawn_| 监听生成粒子事件。|
-|_EPT_Death_| 监听粒子死亡事件。|
-|_EPT_Collision_| 监听碰撞事件。|
-|_EPT_Kismet_| 监听通过Particle Event Generator(粒子事件生成器)动作在Kismet中生成的事件。|
-
-**Event Name** - 要监听的事件的名称。
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]粒子产生
-[/REGION]
-[REGION:regioncontent_visible]
-**Spawn Count** - 决定了当触发一个事件时生成粒子的个数。
-
-**Use Particle Time(使用粒子时间)** - 对于基于死亡的事件接收，如果这项为true，那么因为这是用事件的ParticleTime(粒子时间)来查找SpawnCount(生成数量)。否则(在接受到所有的其他事件中)使用事件的发射器时间。
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]速度
-[/REGION]
-[REGION:regioncontent_visible]
-**Inherit Velocity(继承速度)** - 如果该项为true，那么将会使用触发事件的粒子的速度作为生成粒子的起始速度。
-
-**Inherit Velocity Scale(继承速度的比例因数)** - 如果 _Inherit Velocity(继承速度)_ 为true，该项作为缩放该速度的比例因数。
-[/REGION]
-
-
-#### Kill Modules(销毁模块) 
-
-如果某个给定粒子满足了特定实现所定义的规则，那么Kill Modules(销毁模块)将销毁给定的粒子。
-
-
-##### Kill Box(销毁盒)
-
-Kill Box(销毁盒)模块用于当粒子移动到所定义的销毁盒外面时销毁该粒子。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]销毁
-[/REGION]
-[REGION:regioncontent_visible]
-**Lower Left Corner(左下角)** - 一个确定了边界盒的左下角的向量分布。
-
-**Upper Right Corner(右上角)** - 一个确定了边界盒的右上角的向量分布。
-
-**Absolute(绝对位置)** -如果为true，边界盒边角的设置将认为是世界坐标空间的值并且在测试时保持不变。如果为false，边界盒将被转换为发射器的世界坐标空间。
-
-**Kill Inside(销毁边界盒内粒子)** -如果为true，落在边界盒内的粒子将会被销毁。如果为false(默认)，边界盒外面的粒子将会被销毁。
-[/REGION]
-
-如果启用了3D预览模式，在Cascade的预览窗口中将会描画线框。
-
-
-##### Kill Height(销毁高度)
-
-Kill height (销毁高度)模块用于当粒子移动到所定义的高度上面时销毁该粒子。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]销毁
-[/REGION]
-[REGION:regioncontent_visible]
-**Height(高度)** -一个浮点分布，定义了一个高度，当粒子在此高度或者高于某个高度时将被销毁。
-
-**Absolute(绝对位置)** - 如果为true，高度值将被认为是世界坐标空间的值并且在测试时保持不变。如果为false，高度值将被转换为发射器的世界坐标空间。
-
-**Floor(值下限)** -如果为true，当粒子下降到低于高度值的位置时销毁粒子。如果为false(默认)，当粒子上升到高于高度值的位置时销毁粒子。
-[/REGION]
-
-如果启用了3D预览模式，在销毁粒子的高度值处将渲染一个平面。
-
-
-#### Lifetime Modules (生命周期模块) 
-
-
-##### Lifetime(生命周期)
-
-<span style="font:italic 10px arial;">(鼠标悬停在图片上查看动画效果)</span>
-<div style="width:400px;" onmouseover="toggleAnimImage('lifetime');" onmouseout="toggleAnimImage('lifetime');">
-    <div id="lifetime_still" style="display:block;">
-        ![psys_lifetime.jpg](psys_lifetime.jpg)
-    </div>
-    <div id="lifetime_anim" style="display:none;">
-        ![psys_lifetime.gif](psys_lifetime.gif)
-    </div>
-</div>
-
-Lifetime（生命周期）模块用于在粒子产生时设置它的初始生命周期。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]生命周期
-[/REGION]
-[REGION:regioncontent_visible]
-**Lifetime(生命周期)** -一个浮点分布，说明了粒子的生命周期,以秒为单位。这个值可以基于粒子产生时的EmitterTime来获得。
-[/REGION]
-
-在Spawn中，模块通过使用粒子的当前发射时间来从分布中获取适当的值。这个值会被增加到Particle.OneOverMaxLifetime文本域中，从而允许应用多个生命周期模块。
-
-
-##### Lifetime(Seeded)(生命周期(种子))
-
-Lifetime (Seeded)模块和 [生命周期](#Lifetime)模块一样，因为它也在粒子产生时设置了粒子的生命周期；但是，这个模块允许您在选择分布值时指定的随机种子信息，从而使得每次使用发射器时模块产生更加一致的效果。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]生命周期
-[/REGION]
-[REGION:regioncontent_visible]
-**Lifetime(生命周期)** -一个浮点分布，说明了粒子的生命周期,以秒为单位。这个值可以基于粒子产生时的EmitterTime来获得。
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]随机种子
-[/REGION]
-[REGION:regioncontent_visible]
-**Random Seed Info(随机种子信息)** -  这个模块的属性选择"随机"值时所使用的随机种子。
-
-|**属性**|**描述**|
-| --- | --- |
-|_Get Seed From Instance(从实例中获得种子)_|如果该项为true，那么模块将会尝试从拥有者实例中获得种子。如果没有获得随机种子，那么它将回滚回从使用  _Random Seeds(随机种子)_ 数组中获得随机种子。|
-|_Instance Seed Is Index（实例种子是索引值）_|如果该项为true，那么从实例中获得的种子值将代表 _Random Seeds_ 数组中的额索引。|
-|_Parameter Name(参数名称)_|为设置这个种子所放置的实例而暴露的名称。|
-|_Random Seeds(随机种子)_|这个模块使用的随机种子值。如果指定了多个值，那么实例将会实际地选择一个值。|
-|_Reset Seed On Emitter Looping(在每次发射器循环时重新设置种子)_|如果该项为true, 那么每次发射器循环时将会重新设置这个种子。|
-
-[/REGION]
-
-在Spawn中，模块通过使用粒子的当前发射时间来从分布中获取适当的值。这个值会被增加到Particle.OneOverMaxLifetime文本域中，从而允许应用多个生命周期模块。
-
-
-#### Location Modules (位置模块) 
-
-
-##### Location(位置)
-
-<span style="font:italic 10px arial;">(鼠标悬停在图片上查看动画效果)</span>
-<div style="width:400px;" onmouseover="toggleAnimImage('initial_location');" onmouseout="toggleAnimImage('initial_location');">
-    <div id="initial_location_still" style="display:block;">
-        ![psys_initial_location.jpg](psys_initial_location.jpg)
-    </div>
-    <div id="initial_location_anim" style="display:none;">
-        ![psys_initial_location.gif](psys_initial_location.gif)
-    </div>
-</div>
-
-Initial Location（初始位置）模块用于在粒子产生时设置它的初始位置。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]位置
-[/REGION]
-[REGION:regioncontent_visible]
-**StartLocation(初始位置)** -一个向量分布，它说明了发射粒子时粒子相对于发射器的位置。这个值可以基于粒子产生时的EmitterTime来获得。
-[/REGION]
-
-在Spawn中，模块通过使用粒子的当前发射时间来从分布中获取适当的值。如果粒子发生器没有 _Use Local Space(使用本地空间)_ 标志，这个值将会被转换为世界坐标空间中的值。然后这个值会增加到Particle.Location文本域中。
-
-
-##### Initial Loc (Seeded)(初始位置(种子))
-
-Initial Loc (Seeded)模块和 [初始位置](#InitialLocation)模块一样，因为它也在粒子产生时设置了粒子的初始位置；但是，这个模块允许您在选择分布值时指定的随机种子信息，从而使得每次使用发射器时模块产生更加一致的效果。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]位置
-[/REGION]
-[REGION:regioncontent_visible]
-**StartLocation(初始位置)** -一个向量分布，它说明了发射粒子时粒子相对于发射器的位置。这个值可以基于粒子产生时的EmitterTime来获得。
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]随机种子
-[/REGION]
-[REGION:regioncontent_visible]
-**Random Seed Info(随机种子信息)** -  这个模块的属性选择"随机"值时所使用的随机种子。
-
-|**属性**|**描述**|
-| --- | --- |
-|_Get Seed From Instance(从实例中获得种子)_|如果该项为true，那么模块将会尝试从拥有者实例中获得种子。如果没有获得随机种子，那么它将回滚回从使用  _Random Seeds(随机种子)_ 数组中获得随机种子。|
-|_Instance Seed Is Index（实例种子是索引值）_|如果该项为true，那么从实例中获得的种子值将代表 _Random Seeds_ 数组中的额索引。|
-|_Parameter Name(参数名称)_|为设置这个种子所放置的实例而暴露的名称。|
-|_Random Seeds(随机种子)_|这个模块使用的随机种子值。如果指定了多个值，那么实例将会实际地选择一个值。|
-|_Reset Seed On Emitter Looping(在每次发射器循环时重新设置种子)_|如果该项为true, 那么每次发射器循环时将会重新设置这个种子。|
-
-[/REGION]
-
-在Spawn中，模块通过使用粒子的当前发射时间来从分布中获取适当的值。如果粒子发生器没有 _Use Local Space(使用本地空间)_ 标志，这个值将会被转换为世界坐标空间中的值。然后这个值会增加到Particle.Location文本域中。
-
-
-##### World Offset（世界偏移）
-
-  World Offset (世界偏移)用于偏移粒子的初始位置。在粒子的整个生命周期中，该偏移位于世界空间中，但是遵循 _Use Local Space(使用局部空间)_ 标志。这意味着无论发射器的方位怎样，粒子将总是在世界空间中产生偏移，但是在粒子的整个生命周期中该偏移将总是相对于该发射器。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]位置
-[/REGION]
-[REGION:regioncontent_visible]
-**Start Location(起始位置)** - 一个向量分布，指出了粒子应该使用的世界空间偏移量。这个值可以基于粒子产生时的EmitterTime来获得。
-[/REGION]
-
-
-##### Bone/Socket Location(骨骼/插槽 位置)
-
-Bone/Socket Location(骨骼/插槽 位置)模块允许粒子直接在一个骨架网格物体的骨骼或插槽位置处产生。它提供了以下属性:
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]骨骼插槽
-[/REGION]
-[REGION:regioncontent_visible]
-**Editor Skel Mesh(编辑器中的骨架网格物体)** - 指定编辑器中要使用的用于预览的网格物体。
-
-**Orient Mesh Emitters(调整网格物体发射器的方位)** - 如果该项为true，网格物体发射器发出的网格物体粒子将会朝向骨骼或者插槽源。
-
-**Selection Method(选择方法)** - 从 _Source Locations(源位置)_ 数组中选择骨骼或插槽的方法。
-
-|**方法**|**描述**|
-| --- | --- |
-|_BONESOCKETSEL_Sequential_|按照顺序选择 _Source Locations(源位置)_ 数组中的项。|
-|_BONESOCKETSEL_Random_|随机选择_Source Locations(源位置)_ 数组中的项。|
-|_BONESOCKETSEL_RandomExhaustive_|随机选择_Source Locations(源位置)_ 数组中的项，但直到将所有源都是用过为止不会重复选择两次选择同一项。|
-
-**Skel Mesh Actor Param Name(骨架网格物体对象参数名称)** - 实例化参数的名称，用于指定一个SkeletalMeshActor ，以提供游戏中使用的SkeletalMeshComponent 。
-
-**Source Locations(源位置)** - 骨架网格物体上用于产生粒子的一组源骨骼或插槽。
-
-|**属性**|**描述**|
-| --- | --- |
-|_Bone Socket Name_|指定了骨架网格物体上用作为粒子的源的骨骼或插槽的名称。|
-|_Offset(偏移量)_|除了  _Universal Offset_ 外，这个单独骨骼或插槽要应用的偏移量。|
-
-**Source Type(源类型)** - 指定源的位置是骨骼还是插槽。
-
-|**类型**|**描述**|
-| --- | --- |
-|_BONESOCKETSOURCE_Sockets_| 用于生成粒子的 _Source Locations（源位置）_ 是插槽。|
-|_BONESOCKETSOURCE_Bones_|用于生成粒子的 _Source Locations（源位置）_ 是骨骼。|
-
-**Universal Offset（全局偏移量）** - 应用到每个骨骼源或插槽源上的偏移量。
-
-**Update Position Each Frame(每帧中更新位置)** - 如果该项为true，那么每帧都会把粒子的位置更新为骨骼或插槽的位置。
-[/REGION]
-
-
-##### Direct Location(直接位置)
-
- Direct Location(直接位置)模块用于直接设置粒子的位置。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]位置
-[/REGION]
-[REGION:regioncontent_visible]
-**Direction(方向)** -目前尚未使用。
-
-**Location(位置)** -一个向量分布，给出了粒子在特定时间的位置。这个值可以基于粒子的RelativeTime(相对时间)获得。注意在这里设置的粒子位置的值将会覆盖任何前面模块产生的效果。
-
-**Location Offset(位置偏移)** -一个向量分布，给出从Location计算获得的位置处应用的偏移量。这个偏移量可以通过使用EmitterTime获得。这对于使用通过脚本代码给一个Actor或其它物体设定Location(位置)域和通过在该物体附近设定随机的偏移量LocationOffset来使该位置偏移是有用的。该偏移量在粒子的整个生命周期中将保持恒定不变。
-
-**Scale Factor(比例因子)** -一个向量分布，允许在时间轴的给定的某个点来缩放物体的速度。这允许使粒子发生变形来适应它们所遵循的轨道。
-[/REGION]
-
-
-##### Emitter Init Loc(发射器初始位置)
-
-Emitter InitLoc(发射器初始位置)模块用于将同一粒子系统中的另一个发生器的粒子的当前位置设定为当前发射器的一个粒子的初始位置。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]位置
-[/REGION]
-[REGION:regioncontent_visible]
-**Emitter Name(发射器名称)** -用于作为确定初始位置的粒子的源的发射器名称。
-
-**Inherit Source Rotation(继承源的旋转值)** - 一个布尔型变量，说明了产生的粒子是否应该继承源粒子的旋转值。
-
-**Inherit Source Rotation Scale(继承源点旋转值的缩放比例)** - 当继承源粒子的旋转值时所对其应用的缩放比例值。
-
-**Inherit Source Velocity(继承源的速度)** - 一个布尔型变量，说明了产生的粒子是否应该继承源粒子的速度。
-
-**Inherit Source Velocity Scale(继承源粒子的速度)** - 当继承源粒子的速度时所对其应用的缩放比例值。
-
-**SelectionMethod(选择方法)** - 一个枚举型变量，指出了如何选择源发射器中发出的粒子。可以是以下值中的其中之一：
-
-|**方法**|**描述**|
-| --- | --- |
-| _EAPSM_Random_ |随机地从源发射器选择一个粒子。|
-| _ELESM_Sequential_  |按顺序逐个选择从源发射器发出每个粒子。
-[/REGION]
-
-
-##### Emitter Direct Loc(发射器直接位置)
-
-Emitter DirectLoc(发射器直接位置)模块将一个粒子的在其整个生命周期中的位置设置为同一粒子系统中另一个发射器发射出的一个粒子的位置。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]位置
-[/REGION]
-[REGION:regioncontent_visible]
-**EmitterName(发射器名称)** -用于作为确定位置的粒子的源的发射器名称。
-[/REGION]
-
-所使用的粒子将和被设定位置的粒子具有相同的索引。
-
-
-##### 圆柱体
-
-<span style="font:italic 10px arial;">(鼠标悬停在图片上查看动画效果)</span>
-<div style="width:400px;" onmouseover="toggleAnimImage('cylinder');" onmouseout="toggleAnimImage('cylinder');">
-    <div id="cylinder_still" style="display:block;">
-        ![psys_cylinder.jpg](psys_cylinder.jpg)
-    </div>
-    <div id="cylinder_anim" style="display:none;">
-        ![psys_cylinder.gif](psys_cylinder.gif)
-    </div>
-</div>
-
- Cylinder(圆柱体)模块用于在一个圆柱体形状内部设置粒子的初始位置。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]位置
-[/REGION]
-[REGION:regioncontent_visible]
-**HeightAxis(高度坐标轴)** -一个枚举型变量，它指出哪个粒子系统坐标轴应该代表圆柱体的高度轴。可以是以下其中之一:
-
-|**坐标轴**|**描述**|
-| --- | --- |
-|_PMLPC_HEIGHTAXIS_X_|使圆柱体的高度方向朝沿着粒子系统的X-轴。|
-|_PMLPC_HEIGHTAXIS_Y_|使圆柱体的高度方向朝沿着粒子系统的Y-轴。|
-|_PMLPC_HEIGHTAXIS_Z_|使圆柱体的高度方向朝沿着粒子系统的Z-轴。|
-
-**Positive_X, Positive_Y, Positive_Z, Negative_X, Negative_Y, Negative_Z** - 指出了用于粒子生成的有效坐标轴。
-
-**RadialVelocity(径向速度)** - 一个布尔型变量，仅将粒子速度应用到圆柱体的'圆形'平面中。
-
-**StartHeight(初始高度)** -一个浮点分布，给出了圆柱体的高度 - 以当前位置居中。
-
-**StartLocation(初始位置)** -一个向量分布，边界图元的位置，该图元相对于发射器的位置计算。
-
-**StartRadius(初始半径)** -一个浮点型分布，给出了圆柱体的半径。
-
-**SurfaceOnly(仅表面)** - 一个布尔型值，说明了粒子仅在图元的表面产生。
-
-**Velocity(速度)** -一个布尔型值，说明了粒子从图元内部的位置开始获得速度。
-
-**VelocityScale(速度比例)** -一个浮点型分布，说明了应用到速度的比例因数。仅当Velocity值为选中状态(true)时使用。
-[/REGION]
-
-
-##### Cylinder (Seeded)(圆柱体(种子))
-
-Cylinder (Seeded)模块和 [Cylinder](#Cylinder)模块一样，因为它也是在圆柱体形状中设置粒子的初始位置；但是，这个模块允许您在选择分布值时指定的随机种子信息，从而使得每次使用发射器时模块产生更加一致的效果。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]位置
-[/REGION]
-[REGION:regioncontent_visible]
-**HeightAxis(高度坐标轴)** -一个枚举型变量，它指出哪个粒子系统坐标轴应该代表圆柱体的高度轴。可以是以下其中之一:
-
-|**坐标轴**|**描述**|
-| --- | --- |
-|_PMLPC_HEIGHTAXIS_X_|使圆柱体的高度方向朝沿着粒子系统的X-轴。|
-|_PMLPC_HEIGHTAXIS_Y_|使圆柱体的高度方向朝沿着粒子系统的Y-轴。|
-|_PMLPC_HEIGHTAXIS_Z_|使圆柱体的高度方向朝沿着粒子系统的Z-轴。|
-
-**Positive_X, Positive_Y, Positive_Z, Negative_X, Negative_Y, Negative_Z** - 指出了用于粒子生成的有效坐标轴。
-
-**RadialVelocity(径向速度)** - 一个布尔型变量，仅将粒子速度应用到圆柱体的'圆形'平面中。
-
-**StartHeight(初始高度)** -一个浮点分布，给出了圆柱体的高度 - 以当前位置居中。
-
-**StartLocation(初始位置)** -一个向量分布，边界图元的位置，该图元相对于发射器的位置计算。
-
-**StartRadius(初始半径)** -一个浮点型分布，给出了圆柱体的半径。
-
-**SurfaceOnly(仅表面)** - 一个布尔型值，说明了粒子仅在图元的表面产生。
-
-**Velocity(速度)** -一个布尔型值，说明了粒子从图元内部的位置开始获得速度。
-
-**VelocityScale(速度比例)** -一个浮点型分布，说明了应用到速度的比例因数。仅当Velocity值为选中状态(true)时使用。
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]随机种子
-[/REGION]
-[REGION:regioncontent_visible]
-**Random Seed Info(随机种子信息)** -  这个模块的属性选择"随机"值时所使用的随机种子。
-
-|**属性**|**描述**|
-| --- | --- |
-|_Get Seed From Instance(从实例中获得种子)_|如果该项为true，那么模块将会尝试从拥有者实例中获得种子。如果没有获得随机种子，那么它将回滚回从使用  _Random Seeds(随机种子)_ 数组中获得随机种子。|
-|_Instance Seed Is Index（实例种子是索引值）_|如果该项为true，那么从实例中获得的种子值将代表 _Random Seeds_ 数组中的额索引。|
-|_Parameter Name(参数名称)_|为设置这个种子所放置的实例而暴露的名称。|
-|_Random Seeds(随机种子)_|这个模块使用的随机种子值。如果指定了多个值，那么实例将会实际地选择一个值。|
-|_Reset Seed On Emitter Looping(在每次发射器循环时重新设置种子)_|如果该项为true, 那么每次发射器循环时将会重新设置这个种子。|
-
-[/REGION]
-
-
-##### Sphere(球体)
-
-<span style="font:italic 10px arial;">(鼠标悬停在图片上查看动画效果)</span>
-<div style="width:400px;" onmouseover="toggleAnimImage('sphere');" onmouseout="toggleAnimImage('sphere');">
-    <div id="sphere_still" style="display:block;">
-        ![psys_sphere.jpg](psys_sphere.jpg)
-    </div>
-    <div id="sphere_anim" style="display:none;">
-        ![psys_sphere.gif](psys_sphere.gif)
-    </div>
-</div>
-
-Sphere (球体)模块用于在球体形状内部设置粒子的初始位置。这个类包含了以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]位置
-[/REGION]
-[REGION:regioncontent_visible]
-**Positive_X, Positive_Y, Positive_Z, Negative_X, Negative_Y, Negative_Z** - 指出了用于粒子生成的有效坐标轴。
-
-**StartLocation(初始位置)** -一个向量分布，边界图元的位置，该图元相对于发射器的位置计算。
-
-**StartRadius(初始半径)** -一个浮点型分布，给出了球体的半径。
-
-**SurfaceOnly(仅表面)** - 一个布尔型值，说明了粒子仅在图元的表面产生。
-
-**Velocity(速度)** -一个布尔型值，说明了粒子从图元内部的位置开始获得速度。
-
-**VelocityScale(速度比例)** -一个浮点型分布，说明了应用到速度的比例因数。仅当Velocity值为选中状态(true)时使用。
-[/REGION]
-
-
-##### Sphere (Seeded)(球体(种子))
-
-Sphere (Seeded) 模块和[球体](#Sphere)模块一样，因为它也在球体形状内部设置粒子的初始位置；但是，这个模块允许您在选择分布值时指定的随机种子信息，从而使得每次使用发射器时模块产生更加一致的效果。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]位置
-[/REGION]
-[REGION:regioncontent_visible]
-**Positive_X, Positive_Y, Positive_Z, Negative_X, Negative_Y, Negative_Z** - 指出了用于粒子生成的有效坐标轴。
-
-**StartLocation(初始位置)** -一个向量分布，边界图元的位置，该图元相对于发射器的位置计算。
-
-**StartRadius(初始半径)** -一个浮点型分布，给出了球体的半径。
-
-**SurfaceOnly(仅表面)** - 一个布尔型值，说明了粒子仅在图元的表面产生。
-
-**Velocity(速度)** -一个布尔型值，说明了粒子从图元内部的位置开始获得速度。
-
-**VelocityScale(速度比例)** -一个浮点型分布，说明了应用到速度的比例因数。仅当Velocity值为选中状态(true)时使用。
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]随机种子
-[/REGION]
-[REGION:regioncontent_visible]
-**Random Seed Info(随机种子信息)** -  这个模块的属性选择"随机"值时所使用的随机种子。
-
-|**属性**|**描述**|
-| --- | --- |
-|_Get Seed From Instance(从实例中获得种子)_|如果该项为true，那么模块将会尝试从拥有者实例中获得种子。如果没有获得随机种子，那么它将回滚回从使用  _Random Seeds(随机种子)_ 数组中获得随机种子。|
-|_Instance Seed Is Index（实例种子是索引值）_|如果该项为true，那么从实例中获得的种子值将代表 _Random Seeds_ 数组中的额索引。|
-|_Parameter Name(参数名称)_|为设置这个种子所放置的实例而暴露的名称。|
-|_Random Seeds(随机种子)_|这个模块使用的随机种子值。如果指定了多个值，那么实例将会实际地选择一个值。|
-|_Reset Seed On Emitter Looping(在每次发射器循环时重新设置种子)_|如果该项为true, 那么每次发射器循环时将会重新设置这个种子。|
-
-[/REGION]
-
-
-##### Source Movement(源运动)
-
-Source Movement模块用于基于粒子源(发射器)的运动偏移粒子的位置。它提供了以下属性:
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]粒子源运动
-[/REGION]
-[REGION:regioncontent_visible]
-**Source Movement(源运动)** - 一个向量分布，指出了在将粒子源运动添加到粒子位置之前所应用的缩放因数。这个值使用粒子相对时间计算获得。
-[/REGION]
-
-
-#### Material Modules(材质模块)
-
-Material(材质)模块对应用到粒子发射器上的材质进行操作处理。
-
-
-##### Parameter Material(参数材质)
-
-Parameter Material(参数材质)模块允许您覆盖应用到平面粒子发射器或者网格物体发生其中使用的静态网格物体部分。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]ParticleModuleMaterialByParameter
-[/REGION]
-[REGION:regioncontent_visible]
-**Default Materials(默认材质)** - 当没有找到和 _Material Parameters_ 匹配的参数时要尝试使用的材质数组。
-
-**Material Parameters(材质参数)** - 用于指定覆盖当前材质的实例参数名称的数组。对于平面粒子发射器而言，仅数组中的第一个元素有效。对于网格物体发射器而言，数组中的元素和静态网格物体的材质插槽相映射。
-[/REGION]
-
-如果没有通过实例参数提供材质，并且数组项是 _Default Materials_ 数组，并且该数组为空(设置为None)，将使用平面粒子发射器的发射器材质和网格物体发射器的静态网格物体元素的材质，可以选择性地覆盖静态网格物体特定部分的材质。
-
-
-#### Orbit Modules(旋转模块)
-
-Orbit(旋转)模块允许渲染 偏移/旋转 远离实际粒子中心的平面粒子。
-
-
-##### Orbit(环绕)
-
-<span style="font:italic 10px arial;">(鼠标悬停在图片上查看动画效果)</span>
-<div style="width:400px;" onmouseover="toggleAnimImage('orbit');" onmouseout="toggleAnimImage('orbit');">
-    <div id="orbit_still" style="display:block;">
-        ![psys_orbit.jpg](psys_orbit.jpg)
-    </div>
-    <div id="orbit_anim" style="display:none;">
-        ![psys_orbit.gif](psys_orbit.gif)
-    </div>
-</div>
-
-这是所实现的唯一Orbit(环绕)模块。它允许平面例子从粒子的实际位置进行偏移和旋转。多个环绕模块可以按各种方式链接在一起。
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]链接
-[/REGION]
-[REGION:regioncontent_visible]
-**ChainMode(链式模式)** -一个枚举型变量，描述了这个模块是如何和发射器中的其它模块链接到一起的。一个模块和它前面的那个模块的组合是通过设定这个数值来确定的。可以是以下情况之一：
-
-|**方式**|**描述**|
-| --- | --- |
-|EOChainMode_Add|将当前模块的值和前一个模块的结果相加。|
-|EOChainMode_Scale|将当前模块的值和前一个模块的结果相乘。|
-|EOChainMode_Link|断开链接并应用前一个模块的结果。|
-
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]偏移
-[/REGION]
-[REGION:regioncontent_visible]
-**OffsetAmount(偏移量)** -一个向量分布，给出了平面例子相对其粒子'中心'的偏移量。
-
-**Offset Options(偏移选项)** - 和 _Offset Amount(偏移量)_ 相关的选项。
-
-| --- | --- |
-|_Process During Spawn_|如果该项为true，那么将会在粒子生成过程中处理相关的数据片段。|
-|_Process During Update_|如果该项为true，那么将会在粒子更新过程中处理相关的数据片段。|
-|_Use Emitter Time_|如果该项为true，那么计算获得相关数据片段时将使用EmitterTime 。如果为false，则使用粒子RelativeTime(相对时间)。|
-
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]旋转
-[/REGION]
-[REGION:regioncontent_visible]
-**RotationAmount(旋转量)** -一个向量分布，给出了相对于粒子位置的旋转偏移量。它以旋转的方式，意思是0=不旋转、0.5=180度、1.0=360度。
-
-**Rotation Options(偏移选项)** - 和 _Rotation Amount(偏移量)_ 相关的选项。
-
-| --- | --- |
-|_Process During Spawn_|如果该项为true，那么将会在粒子生成过程中处理相关的数据片段。|
-|_Process During Update_|如果该项为true，那么将会在粒子更新过程中处理相关的数据片段。|
-|_Use Emitter Time_|如果该项为true，那么计算获得相关数据片段时将使用EmitterTime 。如果为false，则使用粒子RelativeTime(相对时间)。|
-
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]旋转速率
-[/REGION]
-[REGION:regioncontent_visible]
-**RotationRateAmount(旋转速度大小)** -一个向量分布，给出了相对于粒子位置的旋转偏移的速度。按圈计算。
-
-
-**Rotation Rate Options(旋转速率选项)** - 和 _Rotation Rate Amount(旋转速率)_ 相关的选项。
-
-| --- | --- |
-|_Process During Spawn_|如果该项为true，那么将会在粒子生成过程中处理相关的数据片段。|
-|_Process During Update_|如果该项为true，那么将会在粒子更新过程中处理相关的数据片段。|
-|_Use Emitter Time_|如果该项为true，那么计算获得相关数据片段时将使用EmitterTime 。如果为false，则使用粒子RelativeTime(相对时间)。|
-
-[/REGION]
-
-
-#### Orientation Modules(朝向模块)
-
-
-##### Axis Lock(坐标轴锁定)
-
-Axis Lock模块用于锁定粒子朝向给定的坐标轴。目前，它仅是一个基于平面粒子的模块。它包含以下成员： 
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]方位
-[/REGION]
-[REGION:regioncontent_visible]
-**Lock Axis Flags(锁定坐标轴标记)** -说明了粒子将锁定到的坐标轴。它可以是以下值中的一个： 
-
-|**方式**|**描述**|
-| --- | --- |
-|_EPAL_NONE_|不锁定到坐标轴上。|
-|_EPAL_X_|锁定平面粒子朝向+X。|
-|_EPAL_Y_|锁定平面粒子朝向+Y。|
-|_EPAL_Z_|锁定平面粒子朝向+Z。|
-|_EPAL_NEGATIVE_X_|锁定平面粒子朝向-X。|
-|_EPAL_NEGATIVE_Y_|锁定平面粒子朝向-Y。|
-|_EPAL_NEGATIVE_Z_|锁定平面粒子朝向 -Z。|
-|_EPAL_ROTATE_X_|锁定平面粒子围绕X-轴旋转。|
-|_EPAL_ROTATE_Y_|锁定平面粒子围绕Y-轴旋转。|
-|_EPAL_ROTATE_Z_|锁定平面粒子围绕Z-轴旋转。|
-
-[/REGION]
-
-
-#### Parameter Modules（参数模块）
-
-
-##### Dynamic Parameter(动态参数)
-
-Dynamic Parameter(动态参数)模块用于向发射器所使用的材质传入四个标量值，从而允许发射器控制材质效果。
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]ParticleModuleParameterDynamic(粒子模块动态参数)
-[/REGION]
-[REGION:regioncontent_visible]
-**Dynamic Params(动态参数)** - 该模块的动态参数数组。
-
- _Dynamic Params(动态参数)_ 数组的每个元素有以下属性:
-
-**Param Name(参数名称)** - 材质的DynamicParameter表达式中相关的参数名称。这个属性是只读的，并且是自动填充的。
-
-**Use Emitter Time(使用发射器时间)** - 如果该项为true，那么使用发射器时间来获得计算参数的分布值。否则，使用粒子相对时间计算。
-
-**Spawn Time Only** - 如果该项为true，那么仅在粒子生成时设置参数的值。否则，每帧都要更新该值。
-
-**Value Method** - 指出了获得参数值所使用的方法。
-
-|**方法**|**描述**|
-| --- | --- |
-|_EDPV_UserSet_| _Param Value_ 属性中设置的值被传入到材质中作为该参数的值。|
-|_EDPV_VelocityX_|沿着X-轴的粒子速度被传入到材质中作为参数的值。|
-|_EDPV_VelocityY_|沿着Y-轴的粒子速度被传入到材质中作为参数的值。|
-|_EDPV_VelocityZ_|沿着Z-轴的粒子速度被传入到材质中作为参数的值。|
-|_EDPV_VelocityMag_|将粒子速度的大小传入到材质中作为参数的值。|
-
-**Scale Velocity By Param Value** - 如果该项为true,那么将会使用 _Param Value_ 分布中设置的值来缩放传入到材质中的速度值。
-
-**Param Value** - 用于设置和 _EDPV_UserSet_ 方法结合使用的参数值的浮点分布。
-[/REGION]
-
-
-##### Dynamic Parameter (Seeded)(动态参数(种子))
-
-Dynamic Parameter (Seeded)模块和<A href="#Dynamic Parameter">Dynamic Parameter</a> 模块一样，因为它也允许发射器给材质传递值；但是，这个模块允许您在选择分布值时指定的随机种子信息，从而使得每次使用发射器时模块产生更加一致的效果。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]ParticleModuleParameterDynamic(粒子模块动态参数)
-[/REGION]
-[REGION:regioncontent_visible]
-**Dynamic Params(动态参数)** - 该模块的动态参数数组。
-
- _Dynamic Params(动态参数)_ 数组的每个元素有以下属性:
-
-**Param Name(参数名称)** - 材质的DynamicParameter表达式中相关的参数名称。这个属性是只读的，并且是自动填充的。
-
-**Use Emitter Time(使用发射器时间)** - 如果该项为true，那么使用发射器时间来获得计算参数的分布值。否则，使用粒子相对时间计算。
-
-**Spawn Time Only** - 如果该项为true，那么仅在粒子生成时设置参数的值。否则，每帧都要更新该值。
-
-**Value Method** - 指出了获得参数值所使用的方法。
-
-|**方法**|**描述**|
-| --- | --- |
-|_EDPV_UserSet_| _Param Value_ 属性中设置的值被传入到材质中作为该参数的值。|
-|_EDPV_VelocityX_|沿着X-轴的粒子速度被传入到材质中作为参数的值。|
-|_EDPV_VelocityY_|沿着Y-轴的粒子速度被传入到材质中作为参数的值。|
-|_EDPV_VelocityZ_|沿着Z-轴的粒子速度被传入到材质中作为参数的值。|
-|_EDPV_VelocityMag_|将粒子速度的大小传入到材质中作为参数的值。|
-
-**Scale Velocity By Param Value** - 如果该项为true,那么将会使用 _Param Value_ 分布中设置的值来缩放传入到材质中的速度值。
-
-**Param Value** - 用于设置和 _EDPV_UserSet_ 方法结合使用的参数值的浮点分布。
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]随机种子
-[/REGION]
-[REGION:regioncontent_visible]
-**Random Seed Info(随机种子信息)** -  这个模块的属性选择"随机"值时所使用的随机种子。
-
-|**属性**|**描述**|
-| --- | --- |
-|_Get Seed From Instance(从实例中获得种子)_|如果该项为true，那么模块将会尝试从拥有者实例中获得种子。如果没有获得随机种子，那么它将回滚回从使用  _Random Seeds(随机种子)_ 数组中获得随机种子。|
-|_Instance Seed Is Index（实例种子是索引值）_|如果该项为true，那么从实例中获得的种子值将代表 _Random Seeds_ 数组中的额索引。|
-|_Parameter Name(参数名称)_|为设置这个种子所放置的实例而暴露的名称。|
-|_Random Seeds(随机种子)_|这个模块使用的随机种子值。如果指定了多个值，那么实例将会实际地选择一个值。|
-|_Reset Seed On Emitter Looping(在每次发射器循环时重新设置种子)_|如果该项为true, 那么每次发射器循环时将会重新设置这个种子。|
-
-[/REGION]
-
-
-#### Rotation Modules(旋转模块) 
-
-
-##### Initial Rotation(初始旋转值)
-
-<span style="font:italic 10px arial;">(鼠标悬停在图片上查看动画效果)</span>
-<div style="width:400px;" onmouseover="toggleAnimImage('initial_rotation');" onmouseout="toggleAnimImage('initial_rotation');">
-    <div id="initial_rotation_still" style="display:block;">
-        ![psys_initial_rotation.jpg](psys_initial_rotation.jpg)
-    </div>
-    <div id="initial_rotation_anim" style="display:none;">
-        ![psys_initial_rotation.gif](psys_initial_rotation.gif)
-    </div>
-</div>
-
-Initial Rotation（初始旋转值）模块用于在粒子产生时设置它的初始旋转值。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]旋转
-[/REGION]
-[REGION:regioncontent_visible]
-**Start Rotation(初始旋转值)** - 一个浮点分布，指出了发射粒子时应该遵循的旋转量(1.0=360度)。这个值可以基于粒子产生时的EmitterTime来获得。
-[/REGION]
-
-
-##### Init Rotation (Seeded)(初始旋转值(种子))
-
-Init Rotation (Seeded) 模块和 [Initial Rotation](#InitialRotation)模块一样，因为它也会粒子的初始旋转值；但是，这个模块允许您在选择分布值时指定的随机种子信息，从而使得每次使用发射器时模块产生更加一致的效果。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]旋转
-[/REGION]
-[REGION:regioncontent_visible]
-**Start Rotation(初始旋转值)** - 一个浮点分布，指出了发射粒子时应该遵循的旋转量(1.0=360度)。这个值可以基于粒子产生时的EmitterTime来获得。
-[/REGION]
-
-
-##### Rotation/Life(随生命周期改变旋转值)
-
-<span style="font:italic 10px arial;">(鼠标悬停在图片上查看动画效果)</span>
-<div style="width:400px;" onmouseover="toggleAnimImage('rotation_life');" onmouseout="toggleAnimImage('rotation_life');">
-    <div id="rotation_life_still" style="display:block;">
-        ![psys_rotation_life.jpg](psys_rotation_life.jpg)
-    </div>
-    <div id="rotation_life_anim" style="display:none;">
-        ![psys_rotation_life.gif](psys_rotation_life.gif)
-    </div>
-</div>
-
-Rotation/Life用于随着粒子的生命周期设置粒子的旋转度。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]旋转
-[/REGION]
-[REGION:regioncontent_visible]
-**Rotation Over Life(随着生命周期变化的旋转度)** - 一个浮点分布，指出了粒子应该具有的旋转度(1.0 = 360度) 加速度的值是基于粒子更新时的RelativeTime(相对时间)来计算获得的。
-
-**Scale(比例因数)** - 一个布尔型变量，说明了现有的粒子旋转度应该通过从RotationOverLife分布中获得的值进行缩放。如果为false，则粒子旋转速度加上从RotationOverLife分布所获得的值。
-[/REGION]
-
-
-#### Rotation Modules(旋转模块)
-
-
-##### Mesh Rot Rate Over Life(随着时间变化的网格物体旋转速率)
-
- Mesh Rot Rate Over Life模块用于随着生命周期设置基于网格物体的粒子的旋转速率。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]旋转
-[/REGION]
-[REGION:regioncontent_visible]
-**Rot Rate** - 一个向量分布，指出了粒子应该具有的旋转速率，以每秒钟旋转的多少度计算。这个值使用粒子相对时间计算获得。
-
-**Scale Rot Rate** - 如果该项为true，那么将会使用 _Rot Rate_ 分布的值缩放粒子的当前旋转速率。
-[/REGION]
-
-
-##### Initial Rot Rate(初始旋转速率)
-
-<span style="font:italic 10px arial;">(鼠标悬停在图片上查看动画效果)</span>
-<div style="width:400px;" onmouseover="toggleAnimImage('initial_rotrate');" onmouseout="toggleAnimImage('initial_rotrate');">
-    <div id="initial_rotrate_still" style="display:block;">
-        ![psys_initial_rotrate.jpg](psys_initial_rotrate.jpg)
-    </div>
-    <div id="initial_rotrate_anim" style="display:none;">
-        ![psys_initial_rotrate.gif](psys_initial_rotrate.gif)
-    </div>
-</div>
-
-Initial RotRate模块用于设置在发射器粒子时粒子所具有的旋转速率。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]旋转
-[/REGION]
-[REGION:regioncontent_visible]
-**Start Rotation Rate** - 一个浮点分布，指出了粒子应该具有的旋转速率，以每秒钟旋转多少度计算。该值通过粒子产生时的EmitterTime计算，然后会加上粒子Particle RotationRate和Base RotationRate的值。
-[/REGION]
-
-
-##### Init Rot Rate (Seeded)(初始旋转速率(种子))
-
-Initial RotRate (Seeded) 模块和<A href="#Initial Rot Rate">Initial Rot Rate</a>模块一样，因为它也在粒子产生时设置了粒子的初始旋转速率；但是，这个模块允许您在选择分布值时指定的随机种子信息，从而使得每次使用发射器时模块产生更加一致的效果。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]随机种子
-[/REGION]
-[REGION:regioncontent_visible]
-**Random Seed Info(随机种子信息)** -  这个模块的属性选择"随机"值时所使用的随机种子。
-
-|**属性**|**描述**|
-| --- | --- |
-|_Get Seed From Instance(从实例中获得种子)_|如果该项为true，那么模块将会尝试从拥有者实例中获得种子。如果没有获得随机种子，那么它将回滚回从使用  _Random Seeds(随机种子)_ 数组中获得随机种子。|
-|_Instance Seed Is Index（实例种子是索引值）_|如果该项为true，那么从实例中获得的种子值将代表 _Random Seeds_ 数组中的额索引。|
-|_Parameter Name(参数名称)_|为设置这个种子所放置的实例而暴露的名称。|
-|_Random Seeds(随机种子)_|这个模块使用的随机种子值。如果指定了多个值，那么实例将会实际地选择一个值。|
-|_Reset Seed On Emitter Looping(在每次发射器循环时重新设置种子)_|如果该项为true, 那么每次发射器循环时将会重新设置这个种子。|
-
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]旋转
-[/REGION]
-[REGION:regioncontent_visible]
-**Start Rotation Rate** - 一个浮点分布，指出了粒子应该具有的旋转速率，以每秒钟旋转多少度计算。该值通过粒子产生时的EmitterTime计算，然后会加上粒子Particle RotationRate和Base RotationRate的值。
-[/REGION]
-
-
-##### Rot Rate/Life(随生命周期变化的旋转速率)
-
-<span style="font:italic 10px arial;">(鼠标悬停在图片上查看动画效果)</span>
-<div style="width:400px;" onmouseover="toggleAnimImage('rotrate_life');" onmouseout="toggleAnimImage('rotrate_life');">
-    <div id="rotrate_life_still" style="display:block;">
-        ![psys_rotrate_life.jpg](psys_rotrate_life.jpg)
-    </div>
-    <div id="rotrate_life_anim" style="display:none;">
-        ![psys_rotrate_life.gif](psys_rotrate_life.gif)
-    </div>
-</div>
-
-Rot Rate/Life 模块用于随着粒子生命周期缩放粒子的旋转速率。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]旋转
-[/REGION]
-[REGION:regioncontent_visible]
-**Life Multiplier(生命周期乘数)** -一个浮点型分布，指出了应该应用到粒子旋转速率的比例因子。这个值在粒子产生和更新时基于RelativeTime来获得，然后Particle.RotationRate与此值相乘。
-[/REGION]
-
-
-#### Size Modules (尺寸模块) 
-
-
-##### Initial Size(初始尺寸)
-
-<span style="font:italic 10px arial;">(鼠标悬停在图片上查看动画效果)</span>
-<div style="width:400px;" onmouseover="toggleAnimImage('initial_size');" onmouseout="toggleAnimImage('initial_size');">
-    <div id="initial_size_still" style="display:block;">
-        ![psys_initial_size.jpg](psys_initial_size.jpg)
-    </div>
-    <div id="initial_size_anim" style="display:none;">
-        ![psys_initial_size.gif](psys_initial_size.gif)
-    </div>
-</div>
-
- Initial Size（初始尺寸）模块用于在粒子产生时设置它的初始尺寸。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]尺寸
-[/REGION]
-[REGION:regioncontent_visible]
-**StartSize(初始尺寸)** - 一个向量分布，指出了粒子应使用的初始尺寸。此值可以在粒子产生时基于EmitterTime(发射器时间)来获得，并且此值会和产生的粒子的Size和BaseSize相加。
-[/REGION]
-
-
-##### Initial Size (Seeded)(初始尺寸(种子))
-
-Initial Size (Seeded) 模块和 [Initial Size](#InitialSize) 模块一样，因为它也在粒子产生时设置了粒子的初始尺寸；但是，这个模块允许您在选择分布值时指定的随机种子信息，从而使得每次使用发射器时模块产生更加一致的效果。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]随机种子
-[/REGION]
-[REGION:regioncontent_visible]
-**Random Seed Info(随机种子信息)** -  这个模块的属性选择"随机"值时所使用的随机种子。
-
-|**属性**|**描述**|
-| --- | --- |
-|_Get Seed From Instance(从实例中获得种子)_|如果该项为true，那么模块将会尝试从拥有者实例中获得种子。如果没有获得随机种子，那么它将回滚回从使用  _Random Seeds(随机种子)_ 数组中获得随机种子。|
-|_Instance Seed Is Index（实例种子是索引值）_|如果该项为true，那么从实例中获得的种子值将代表 _Random Seeds_ 数组中的额索引。|
-|_Parameter Name(参数名称)_|为设置这个种子所放置的实例而暴露的名称。|
-|_Random Seeds(随机种子)_|这个模块使用的随机种子值。如果指定了多个值，那么实例将会实际地选择一个值。|
-|_Reset Seed On Emitter Looping(在每次发射器循环时重新设置种子)_|如果该项为true, 那么每次发射器循环时将会重新设置这个种子。|
-
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]尺寸
-[/REGION]
-[REGION:regioncontent_visible]
-**StartSize(初始尺寸)** - 一个向量分布，指出了粒子应使用的初始尺寸。此值可以在粒子产生时基于EmitterTime(发射器时间)来获得，并且此值会和产生的粒子的Size和BaseSize相加。
-[/REGION]
-
-
-##### Size By Life(随生命周期变换的尺寸)
-
-Size By Life模块随着它生命周期中给定的值来缩放粒子的尺寸。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]尺寸
-[/REGION]
-[REGION:regioncontent_visible]
-**LifeMultiplier(生命周期乘数)** -一个向量分布，指出了用于粒子尺寸的比例因子。这个值可以在粒子更新时基于RelativeTime(相对时间)来获得。
-
-**Multiply X, Multiply Y, Multiply Z** -如果为真，相应的比例因子将会应用到粒子尺寸上。如果为false，相应的分量将保持不变。
-[/REGION]
-
-无论是粒子在Spawn(产生)还是在Update(更新)期间，Particle.Size(粒子尺寸)的值都会与所获得的比例因子的值相乘。
-
-
-##### Size By Velocity(随速度变化尺寸)
-
-通过粒子的一部分速度来缩放粒子尺寸。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]尺寸
-[/REGION]
-[REGION:regioncontent_visible]
-**VelocityMultiplier(速度乘数)** -一个向量分布，说明了在缩放粒子尺寸前粒子的速度如何进行缩放。这个值可以通过使用粒子在更新过程中的RelativeTime(相对时间)来计算获得。
-
-**Multiply X, Multiply Y, Multiply Z** -如果为真，相应的比例因子将会应用到粒子尺寸上。如果为false，相应的分量将保持不变。
-[/REGION]
-
-无论在粒子Spawn(产生)还是在Update(更新)时，Particle.Size(粒子尺寸)值将与所获得缩放比例值及那个时刻的粒子速度相乘。
-
-
-##### Size Scale(尺寸缩放比例)
-
-Size Scale模块将粒子尺寸设置为BaseSize乘以给定的比例因子的结果。注意，这个模块将覆盖在此帧中的此模块之前所做的任何的尺寸调整。它包含以下成员： 
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]ParticleModuleSizeScale(粒子模块尺寸缩放比例)
-[/REGION]
-[REGION:regioncontent_visible]
-**Size Scale(尺寸缩放比例)** -一个向量分布，说明了在将BaseSize作为粒子的尺寸之前应该如何对其进行缩放。这个值可以通过使用粒子在更新过程中的RelativeTime(相对时间)来计算获得。
-
-**Enable X, Enable Y, Enable Z** - 忽略。
-[/REGION]
-
-
-##### Size Scale By Time(随时间变换尺寸缩放比例)
-
-Size Scale By Time模块通过它生命周期中给定的值来缩放粒子的尺寸。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]ParticleModuleSizeScaleByTime
-[/REGION]
-[REGION:regioncontent_visible]
-**Size Scale By Time** - 一个向量分布，指出了应该给粒子应用的尺寸缩放比例因数。这个值可以基于粒子更新过程中粒子的AbsoluteTime (绝对时间)来获得。
-
-**Enable X, Enable Y, Enable Z** - 如果该项为true，那么将会在粒子尺寸上应用相应的缩放比例因数。如果为false，相应的分量将保持不变。
-[/REGION]
-
-无论是粒子在Spawn(产生)还是在Update(更新)期间，Particle.Size(粒子尺寸)的值都会与所获得的比例因子的值相乘。
-
-%X% **注意:** 这个模块使用了粒子的 *绝对*生命周期, 它的范围是[0.0, Lifetime] 而不是[0.0, 1.0]。
-
-
-#### Spawn Modules（产生模块）
-
-Spawn(产生)模块将影响粒子发射器发射出粒子的  数量/速率。
-
-
-##### Spawn Per Unit(基于每个单位生成粒子)
-
-允许基于发射器运行的距离来产生粒子。对于基于平面粒子的烟雾尾迹是有用的，因为那时不管尾迹的速度是快还是慢，它都需要保持结合性，并且它一直需要产生相对数量的粒子来填充空隙。它包含以下成员： 
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]爆发
-[/REGION]
-[REGION:regioncontent_visible]
-**Process Burst List** - 如果该项为true，将会处理发射器的SpawnModule的BurstList 。如果在发射器中堆叠了多个Spawn模块，当其中任何模块都设置该项为false时，它将不处理SpawnModule BurstList。
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]粒子产生
-[/REGION]
-[REGION:regioncontent_visible]
-**Ignore Movement Along X(忽略沿着X轴的运动)** - 如果该项为true，那么将忽略沿着X-分量的运动。
-
-**Ignore Movement Along Y(忽略沿着Y轴的运动)** -  如果该项为true，那么将忽略沿着Y-分量的运动。
-
-**Ignore Movement Along Z(忽略沿着Z轴的运动)** -  如果该项为true，那么将忽略沿着Z-分量的运动。
-
-**Ignore Spawn Rate When Moving(当移动时忽略产生速率)** -如果为true，在发射器不移动时处理默认产生速率。当发射器移动时，跳过处理默认的产生速率。如果该项为false，那么返回 _Process Spawn Rate_ 设置。
-
-**Movement Tolerance(运动公差)** - 一个浮点值给出了当设置了 _Ignore Spawn Rate When Moving(当发射器移动式忽略产生速率)_ 标志时判断发射器是否移动所允许的公差, 也就是，如果 (DistanceMoved < (UnitScalar * MovementTolerance)) 那么则认为发射器没有移动。
-
-**ProcessSpawnRate(处理产生速率)** - 一个布尔型变量，说明了是否需要处理RequiredModule中的SpawnRate。如果有堆叠的spawn(产生)模块(在同一个粒子发射器中的多个spawn模块)，那么如果其中的任何一个模块指出不处理'默认'的spawn(产生)速率，则所有模块的产生速率将不会进行处理。
-
-**Spawn Per Unit(每个单位产生的粒子数量)** - 一个浮点型分布，给出了每个单位要产生的粒子的数量。这个值可以通过使用EmitterTime(发射器时间)来获得。
-
-**UnitScalar(单位标量)** - 一个浮点型值，给出了应用到穿行距离的单位标量。SpawnPerUnit中的值除以这个标量可以得出每个单位的粒子的实际数量。
-[/REGION]
-
-当从多个发射器中产生粒子使用该模块时产生的行为，可能看上去和所期望的从一个单独的粒子发射器中产生粒子时使用该模块的行为不一致。
-
-SpawnPerUnit实际上是使用粒子系统本身的移动时间间隔，同时它不知道当它附属于粒子系统中的子系统时该如何操作。尽管他的父项在空间中到处移动，但是实际上整个系统仍然是相对静止的，所以SpawnPerUnit模块不产生任何效果。
-
-
-#### Store Spawn Time Modules(存储产生时间模块)
-
-
-##### Store Spawn Time(存储产生时间)
-
-Store Spawn Time模块将会存储粒子产生时的精确时间。这对于那些基于父项特效的粒子产生时机的附加特效是有用的。您需要这个产生时间，因为RelativeTime是用于指出特定粒子系统什么时候销毁的时间。由于使用随机时间段，所以您不能保证那个值代表单独粒子的生成顺序。
-
-
-#### SubUV Modules (子UV模块) 
-
-注意： 仅当InterpolationMethod(插值方法)的设置不是PSUVIM_None时发射器才应用SubUV(子UV)模块。
-
-
-##### SubImage Index(子图像索引)
-
- SubImage Index 模块基于浮点型分布来选择并使用子图像。目前，子图像按照从左到右、从上到下的顺序排列。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]子UV
-[/REGION]
-[REGION:regioncontent_visible]
-**SubImageIndex(子图像索引)** - 一个浮点型分布，它说明了要应用到粒子的子图像的索引。这个值可以通过使用粒子在更新过程中的RelativeTime(相对时间)来计算获得。[注意： [注意：由于实际值是浮点型，所以应用的值应该稍微高一点。比如，如果第二张想使用的图像是-1-那么它的值应该设置为1.01。
-[/REGION]
-
-
-##### SubUV Movie(子UV 动画)
-
- SubUV Movie模块以特定的帧频率按照顺序的顺序循环忒图的子图像，和翻书贴图的行为类似。它提供了以下属性:
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]FlipBook(翻书子图像)
-[/REGION]
-[REGION:regioncontent_visible]
-**Frame Rate(帧频率)** - 一个浮点分布，指定了子图像翻过时的帧频率。
-
-**Starting Frame(初始帧)** - SubUV的初始图像索引 (1 = 第一帧)。假设顺序是从 左->由，从 上->下。  如果该值大于最后一帧，那么将会区间限定作为最后一帧。如果该值是0，那么则随机地选择一个初始帧。
-
-**Use Emitter Time(使用发射器时间)** - 如果该项为true，那么使用发射器时间来获得计算 _FrameRate(帧频率)_ 的分布值。否则，使用相对粒子时间进行计算。
-[/REGION]
-
-
-##### SubUV Direct(SubUV直接设置坐标)
-
-SubUV Direct模块直接设置SubUV粒子要使用的贴图坐标。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]子UV
-[/REGION]
-[REGION:regioncontent_visible]
-**SubUVPosition(子UV位置)** - 一个向量分布，说明了所要使用的贴图的左上角坐标。
-
-**SubUVSize(子UV尺寸)** - 一个向量分布，指出了想使用的贴图样本的尺寸。
-[/REGION]
-
-
-##### SubUV Select(子UV选择)
-
-基于向量分布选择要使用的子UV图像。分布的X(红色)和y(绿色)参数用于分别指出子图像的水平方向(U)和垂直方向(V)，它包含以下参数： 它包含以下成员： 
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]子UV
-[/REGION]
-[REGION:regioncontent_visible]
-**Sub Image Select(子图像选择)** - 一个向量分布，指出了要现实的子图像的水平和垂直索引。这个值可以通过使用粒子在更新过程中的RelativeTime(相对时间)来计算获得。
-[/REGION]
-
-
-#### Velocity Modules (速度模块)
-
-
-##### Initial Velocity(初始速度)
-
-<span style="font:italic 10px arial;">(鼠标悬停在图片上查看动画效果)</span>
-<div style="width:400px;" onmouseover="toggleAnimImage('initial_velocity');" onmouseout="toggleAnimImage('initial_velocity');">
-    <div id="initial_velocity_still" style="display:block;">
-        ![psys_initial_velocity.jpg](psys_initial_velocity.jpg)
-    </div>
-    <div id="initial_velocity_anim" style="display:none;">
-        ![psys_initial_velocity.gif](psys_initial_velocity.gif)
-    </div>
-</div>
-
- Initial Velocity模块设置粒子的初始速度。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]速度
-[/REGION]
-[REGION:regioncontent_visible]
-**Apply Owner Scale(应用拥有者的比例因数)** - 如果该项为true，那么则使用ParticleSystemComponent的比例因数来缩放该速度值。
-
-**In World Space(在世界空间中)** - 如果该项为true，则假设速度在世界空间中。
-
-**Start Velocity(初始速度)** -一个向量分布，它提供了当粒子产生时粒子所应用的速度。这个值可以通过使用该粒子的发射器的EmitterTime(发射器时间)来计算获得。
-
-**Start Velocity Radial(初始径向速度)** - 一个浮点型分布，提供了粒子在径向方向上的速度。这个方向由粒子产生时的位置减去发射器的位置来决定。这个值可以通过使用该粒子的发射器的EmitterTime(发射器时间)来计算获得。
-[/REGION]
-
-
-##### Initial Vel (Seeded)(初始速度(种子))
-
-Initial vel (Seeded)模块和[Initial Velocity](#InitialVelocity) 模块一样，因为它也在粒子产生时设置了粒子的速度；但是，这个模块允许您在选择分布值时指定的随机种子信息，从而使得每次使用发射器时模块产生更加一致的效果。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]随机种子
-[/REGION]
-[REGION:regioncontent_visible]
-**Random Seed Info(随机种子信息)** -  这个模块的属性选择"随机"值时所使用的随机种子。
-
-|**属性**|**描述**|
-| --- | --- |
-|_Get Seed From Instance(从实例中获得种子)_|如果该项为true，那么模块将会尝试从拥有者实例中获得种子。如果没有获得随机种子，那么它将回滚回从使用  _Random Seeds(随机种子)_ 数组中获得随机种子。|
-|_Instance Seed Is Index（实例种子是索引值）_|如果该项为true，那么从实例中获得的种子值将代表 _Random Seeds_ 数组中的额索引。|
-|_Parameter Name(参数名称)_|为设置这个种子所放置的实例而暴露的名称。|
-|_Random Seeds(随机种子)_|这个模块使用的随机种子值。如果指定了多个值，那么实例将会实际地选择一个值。|
-|_Reset Seed On Emitter Looping(在每次发射器循环时重新设置种子)_|如果该项为true, 那么每次发射器循环时将会重新设置这个种子。|
-
-[/REGION]
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]速度
-[/REGION]
-[REGION:regioncontent_visible]
-**Apply Owner Scale(应用拥有者的比例因数)** - 如果该项为true，那么则使用ParticleSystemComponent的比例因数来缩放该速度值。
-
-**In World Space(在世界空间中)** - 如果该项为true，则假设速度在世界空间中。
-
-**Start Velocity(初始速度)** -一个向量分布，它提供了当粒子产生时粒子所应用的速度。这个值可以通过使用该粒子的发射器的EmitterTime(发射器时间)来计算获得。
-
-**Start Velocity Radial(初始径向速度)** - 一个浮点型分布，提供了粒子在径向方向上的速度。这个方向由粒子产生时的位置减去发射器的位置来决定。这个值可以通过使用该粒子的发射器的EmitterTime(发射器时间)来计算获得。
-[/REGION]
-
-
-##### Inherit Parent Vel(继承父项速度)
-
-当产生粒子时，将粒子的父项(粒子发射器本身)的速度传递给产生的粒子。它包含以下成员： 
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]速度
-[/REGION]
-[REGION:regioncontent_visible]
-**Apply Owner Scale(应用拥有者的比例因数)** - 如果该项为true，那么则使用ParticleSystemComponent的比例因数来缩放该速度值。
-
-**In World Space(在世界空间中)** - 如果该项为true，则假设速度在世界空间中。
-
-**ParentScale(父项比例因数)** -一个向量分布，确定了当粒子产生期间在将父项速度添加到粒子速度上之前应用于父项速度的比例因数。这个值可以通过使用粒子的RelativeTime(相对时间)获得。
+|_Get Seed From Instance_|如为 _ture_，则模块将尝试从实例所有者处获得种子（Seed）。如获取失败，将返回从 _Random Seeds_ 阵列中获得种子。|
+|_Instance Seed Is Index_|如为 _ture_，从实例中恢复的种子值即为 _Random Seeds_ 阵列中的索引。|
+|_Parameter Name_|设置种子所放置实例显示的名称。|
+|_Random Seeds_|本模块应用的随机种子值。如多个值被指定，实例将随机选取一个值。|
+|_Reset Seed On Emitter Looping_|如为 _ture_，每次发射器循环时将重新设置该种子。|
 [/REGION]
-
-
-##### Velocity/Life(随生命周期变换速度)
-
-<span style="font:italic 10px arial;">(鼠标悬停在图片上查看动画效果)</span>
-<div style="width:400px;" onmouseover="toggleAnimImage('velocity_life');" onmouseout="toggleAnimImage('velocity_life');">
-    <div id="velocity_life_still" style="display:block;">
-        ![psys_velocity_life.jpg](psys_velocity_life.jpg)
-    </div>
-    <div id="velocity_life_anim" style="display:none;">
-        ![psys_velocity_life.gif](psys_velocity_life.gif)
-    </div>
-</div>
-
-Velcoty/Life模块随着粒子生命周期通过使用特定的值来缩放粒子的速度。它包含以下成员：
-
-[REGION:regionhead_open]
-    [REGION:regionimage][/REGION]速度
-[/REGION]
-[REGION:regioncontent_visible]
-**Absolute** - 如果该项为true，速度将会设置为分布中的值。这允许在生命周期的给定点上直接设置粒子的速度。请注意这个设置将覆盖用于影响速度的先前的模块。它也会阻止"Initial Velocity(初始速度)"模块提供的粒子的初始速度。如果该项为false，那么将使用分布的值来缩放速度。
-
-**Apply Owner Scale(应用拥有者的比例因数)** - 如果该项为true，那么则使用ParticleSystemComponent的比例因数来缩放该速度值。
-
-**In World Space(在世界空间中)** - 如果该项为true，则假设速度在世界空间中。
-
-%X% **注意:** 没有移动的本地空间发射器将会看到奇怪的结果。
-
-**VelOverLife(随生命周期改变速度)** -一个向量分布，用于作为应用到速度上的比例因子值。这个值可以通过使用粒子的RelativeTime(相对时间)获得。
-[/REGION]
-
-
-
-## 带光照的粒子
-
-要想设置带光照的粒子：
-
-
-1. 材质使用带光照模式而不是不带光照模式(非定向光照对于创建和世界相辉映的整体效果来说非常好，并且性能消耗很低；或者使用phong方式来给法线贴图提供方向等)。
-1. 在Cascade的LOD距离设置中， 每个独立的LOD有了一个新的标志bLit。请确保选中该项。
-
-
-遵循这些步骤设置，您的粒子在游戏中将显示为带光照状态。它们从发射器原点处开始照亮，所以请确保在世界中到处移动原点来看一下光照的更新效果；或者它们也可以在发射器附近生成动态光照。
-
-
-
-## 性能
-
-当提到性能时，在粒子系统中的整个设计中，粒子数量确实起着微乎其微的作用。不管是否分隔屏幕，当涉及到一个指定系统的所有开销时，材质复杂性和屏幕覆盖率(透支-全景渲染造成的浪费)是您的真正敌人。一个简单的自发光的火花可以没有任何东西除了一个和顶点颜色相乘的并以无光贴图模式连接到自发光输入端的贴图，它仅需要几个指令便可以完成。那么您可以一直连续地产生多个粒子，并且它对您的整体的性能影响可能会很小。平面粒子小意味着屏幕覆盖率低，材质复杂性低可以使这些粒子在渲染时耗费性能更小并且速度更快。从长远来讲，顶点数量实际上不是您需要担心的事情，除非顶点数量真正地达到了一个极端的数量(成百或成千或更大的数量)。
-
-
-对于总体性能的更有影响的因素是您的材质上的指令数量。像火和烟雾这样的材质，基本上您有两种方法。第一种方法是为火焰创建一个更复杂的材质(以火焰为例)，然后产生较少的平面粒子，让材质的随机性和复杂性来为您完成发射器的逼真效果。另一个选择是使用一个耗费性能较少的材质并且产生较多的粒子，保持总体的性能消耗相似，但是使用较高的粒子数量来获得粒子随意的效果而不是使用比较复杂的材质。请记住的是材质花销随着距离的减少可以成指数次地下降。(如果一个在屏幕上描画的方格离屏幕的照相机的距离变为原来的二倍，那么它的性能消耗将会降低4倍，这是因为总像素面积随着距离成指数倍地下降，从而降低了透支的像素的数量。)
-
-您在实际操作中应该分析您的材质开销、您要产生多少粒子、您要使这些特效距离屏幕多近。这三个属性是您在发射器复杂性方面的主要决策者并且它们需要相互平衡。您也应该明智地使用可以根据移动到粒子系统距离的远近来调整粒子数量、材质复杂性及其它因素的LOD系统。
-
-总的来说，当您使用发射器进行工作时，请您集中于通过降低材质的复杂性作为降低性能消耗的方法，并在您需要总是能知道潜在的性能透支。请不要担心粒子的数量问题，除非您正在产生极端数量的粒子或者您正在使用网格物体发射器产生具有极端数量顶点的网格物体。
-
- 
-
-<script type="text/javascript">
-function toggleRegion(id)
-{
-    var content = document.getElementById("region_" + id + "_content");
-    var icon= document.getElementById("region_" + id + "_image");
-    var head = document.getElementById("region_" + id + "_head");
-
-    //var plusImage = "url(/pub/images/expand_plus.png)";
-    //var minusImage = "url(/pub/images/expand_minus.png)";
-
-    if(content.style.display == "block")
-    {
-         //head.style.backgroundImage = plusImage;
-         icon.innerHTML = "+";
-         content.style.display = "none";
-         head.setAttribute("class", "regionhead_closed");
-    }
-    else
-    {
-         //head.style.backgroundImage = minusImage;
-         icon.innerHTML = "-";
-         content.style.display = "block";
-         head.setAttribute("class", "regionhead_open");
-    }
-}
-function toggleAnimImage(exp)
-{
-    var still = document.getElementById(exp + "_still");
-    var anim = document.getElementById(exp + "_anim");
-
-    if(anim.style.display == "none")
-    {
-        still.style.display = "none";
-        anim.style.display = "block";
-    }
-    else
-    {
-        still.style.display = "block";
-        anim.style.display = "none";
-    }
-}
-</script>
-
+[/EXCERPT:RandomSeedInfo]
 
 
+-------------Random Seed Includes--------------->
 

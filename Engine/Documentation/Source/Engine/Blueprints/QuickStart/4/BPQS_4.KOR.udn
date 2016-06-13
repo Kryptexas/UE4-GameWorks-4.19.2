@@ -1,8 +1,12 @@
-﻿INTSourceChangelist:2615876
+﻿INTSourceChangelist:2735872
 Availability: Public
 Title:4. 시작점 만들기
 Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
 Description:발구름판은 캐릭터가 겹치면 도약시키는 것이므로, Begin Overlap 생성부터 시작합니다.
+version: 4.9
+parent:Engine/Blueprints/QuickStart
+order:4
+type:multi-step
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -30,7 +34,7 @@ Description:발구름판은 캐릭터가 겹치면 도약시키는 것이므로,
 
 1. 블루프린트 에디터가 열리고, 뷰포트에 **Cube** 와 **Box** 컴포넌트가 보입니다.
 
-	[REGION:tip]
+	[REGION:note]
 	여기서 **Box** 컴포넌트의 위치를 조정하면, 이 블루프린트 클래스로 만들어진 모든 발구름판에 적용됩니다. 발구름판 액터에서 컴포넌트 작업을 할 때와 마찬가지로,
 	**컴포넌트** 리스트의 **Box** 컴포넌트를 선택하고 위치를 수정할 수 있습니다. **위치** 를 (0.0, 0.0, 500.0)로 입력 해 보시기 바랍니다.
 
@@ -49,7 +53,7 @@ Description:발구름판은 캐릭터가 겹치면 도약시키는 것이므로,
 
 1. 그래프의 빈 곳에 우클릭을 하여 맥락 메뉴를 띄우면 맥락에 맞게 그래프에 추가할 수 있는 맥락 메뉴가 뜹니다.
 
-	[REGION:tip]
+	[REGION:note]
 	그래프에서 화면을 이동하려면, 우클릭 드래그를 하면 됩니다. 여기에서, 그래프를 왼쪽으로 드래그 하면, 이미 만들어진 이벤트 노드들이 왼쪽으로 밀리면서 발구름판 로직을 
 	추가할 빈 공간이 더 나타납니다.
 	[/REGION]

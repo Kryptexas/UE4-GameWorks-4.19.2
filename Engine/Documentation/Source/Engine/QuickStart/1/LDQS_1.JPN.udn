@@ -1,13 +1,14 @@
-﻿INTSourceChangelist:2610045
+﻿INTSourceChangelist:2735872
 Availability:Public
-Title:1 - プロジェクトの開始時設定
+Title:1 - 必要な設定
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
-Description:プロジェクトブラウザを使って新規プロジェクトを作成してみましょう。 
-SkillLevel:初級
-Version:4.8
+Description:プロジェクト ブラウザを使って新規プロジェクトを作成してみましょう。 
+SkillLevel:Beginner
+version:4.9
 Related:Engine/Basics/Projects
 Related:Engine/Basics/Projects/Browser
 Related:GettingStarted/Installation
+checkpoint: editorqs
  
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -26,18 +27,18 @@ Related:GettingStarted/Installation
 
 %Steps%
 
-まず最初に、このガイドで作業する [**プロジェクト**](Engine/Basics/Projects) を作成する必要があります。以降のステップでは、アンリアル エンジン 4 の [**プロジェクト ブラウザ**](Engine/Basics/Projects/Browser) を使ってプロジェクトを作成していきます。 
-全ての手順を完了するとプロジェクトが用意でき、プロジェクトの作成とテンプレートの使用プロセスを学習し、今後の自身のプロジェクトに役立てることができます。 
+まず最初に、このガイドで作業する [プロジェクト](Engine/Basics/Projects) を作成する必要があります。以降のステップでは、アンリアル エンジン 4 の [プロジェクト ブラウザ](Engine/Basics/Projects/Browser) を使ってプロジェクトを作成していきます。 
+このステップを終えると、プロジェクトをさらにビルドできるテンプレートができあがります。  
 
 ## ステップ
 
-1. [**アンリアル エンジンのインストール**](GettingStarted/Installation) およびアンリアル エディタの起動後、まず最初に **プロジェクト ブラウザ** が表示されます。 
+1. [アンリアル エンジンのインストール](GettingStarted/Installation) およびアンリアル エディタを起動すると、まず最初に **プロジェクト ブラウザ** が表示されます。 
 
-1. **[New Project]** (新規プロジェクト) タブをクリックして **Blank** のブループリント テンプレートを選択したら、保存先と保存名を入力して **[Create Project]** (プロジェクトを作成) をクリックします。 
+1. **[New Project (新規プロジェクト)]** タブをクリックして **Blank** のブループリント テンプレートを選択したら、保存先と保存名を入力して **[Create Project (プロジェクトを作成)]** をクリックします。 
 
 	![](ProjectBrowser1.png)(w:720)
 
-	**[New Project]** タブは異なる数種類のテンプレートで作成したプロジェクトを保存し、**Projects** タブには、既に作成されたものをダウンロードしたプロジェクトやサンプルが入っています。 
+	**[New Project (新規プロジェクト)]** タブは異なる数種類のテンプレートで作成したプロジェクトを保存し、**[Projects (プロジェクト)]** タブには、既に作成されたものをダウンロードしたプロジェクトやサンプルが入っています。 
 
 
 ## 結果

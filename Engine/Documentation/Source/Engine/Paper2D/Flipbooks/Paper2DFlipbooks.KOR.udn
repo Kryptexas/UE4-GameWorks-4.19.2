@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2723269
 Title:Paper 2D Flipbooks
 Crumbs: %ROOT%, Engine, Engine/Paper2D
 Description:페이퍼 2D 플립북에 대한 설명과 제작법입니다.
@@ -8,6 +8,8 @@ Related: Engine\Paper2D\Flipbooks\Components
 Related: Engine/Paper2D/Sprites
 Related: Engine/Rendering/Materials
 Related: Engine/Content/Types/Textures
+Version: 4.9
+SkillLevel: Beginner
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -55,7 +57,6 @@ Related: Engine/Content/Types/Textures
 
 [TOC (start:2 end:3)]
 
-## 개요
 
 [EXCERPT:intro]
 **Paper 2D Flipbook** (페이퍼 2D 플립북, 또는 줄여서 **Flipbook** 플립북)은 책 옆의 공백에 조금씩 달라지는 그림을 그린 뒤 뒤집어 넘겨 움직이는 것처럼 보이게 만드는 형태의 수동 애니메이션을 생각해 보면 됩니다. 언리얼 엔진 4 에서, 플립북은 키 프레임 시리즈로 구성되어 있으며, 그 각각에는 표시할 [스프라이트](Engine\Paper2D\Sprites) 와 (프레임 단위) 기간이 들어있습니다.

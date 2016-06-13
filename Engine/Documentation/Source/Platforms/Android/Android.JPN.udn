@@ -1,24 +1,56 @@
-﻿INTSourceChangelist:2298956
+﻿INTSourceChangelist:2945303
 Availability:Public
 Title: Android ゲームの開発
 Crumbs:%ROOT%, Platforms
 Description:Android プラットフォーム向けゲームの開発
 Platform:Android
 Navigation:platform
-
+version:4.9
+tags:Android
+tags:Mobile
+parent:Platforms/Mobile
+type:landing
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Android の必須情報
+		はじめよう
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
-		* [](Platforms/Android/GettingStarted "%Platforms/Android/GettingStarted:description%")
-		* [](Platforms/Android/Reference "%Platforms/Android/Reference:description%")
-		* [](Platforms/Android/DeviceCompatibility "%Platforms/Android/DeviceCompatibility:description%")
+		[DIR(output:"topiccompact" parent:"Platforms/Android" type:"quickstart")]
 	[/PARAM]
 [/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/platform_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		アンドロイドの操作方法
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		[DIR(end:"1" output:"listbutton" type:"howto" parent:"Platforms/Android")]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/platform_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Android ゲームの開発全般
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		[DIR(end:"1" output:"listbutton" type:"overview" parent:"Platforms/Android")]
+		[DIR(end:"1" output:"listbutton" type:"reference" parent:"Platforms/Android")]
+	[/PARAM]
+[/OBJECT]
+

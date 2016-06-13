@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Physics Bodies Reference
+﻿INTSourceChangelist:2897467
+Availability:Public
+Title:物理形体参考
 Crumbs: %ROOT%
-Description:Physics Body, or Body Instance, property reference.
+Description:物理形体、或形体实例、属性参考。
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -43,12 +43,12 @@ Description:Physics Body, or Body Instance, property reference.
 [/OBJECT]
 [/VAR]
 
-This page contains a reference listing of properties in the Physics and Collision categories of properties. If you are looking for reference on Collision Responses or Collision Presets please see: [](Engine/Physics/Collision/Reference).
+本页参考列出了属性下 Physics and Collision 类目中的所有属性。如需了解碰撞响应或碰撞预设的参考，请查阅[](Engine/Physics/Collision/Reference)。
 
 
-## Properties
+## 属性
 
-Below are the properties for Physics Bodies (Body Instances) separated by major category.
+以下是按主要类目区分的物理形体（形体实例）属性。
 
 
 [OBJECT:modulesectionexpanded]
@@ -56,7 +56,7 @@ Below are the properties for Physics Bodies (Body Instances) separated by major 
 		phys
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Physics
+		物理
 	[/PARAM]
 	[PARAM:content]
 		%p1%
@@ -68,26 +68,26 @@ Below are the properties for Physics Bodies (Body Instances) separated by major 
 ![](physicsProps.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
+| 属性 | %spacer% | 描述 |
+| --- | :---:| :--- |
 | **Simulate Physics** || %doxygen:FBodyInstance::bSimulatePhysics% |
-| **Mass in KG** || Mass of the body in KG. |
+| **Mass in KG** || 形体的质量按千克计。|
 | **Angular Damping** || %doxygen:FBodyInstance::AngularDamping% |
 | **Linear Damping** || %doxygen:FBodyInstance::LinearDamping% |
 | **Enable Gravity** || %doxygen:FBodyInstance::bEnableGravity% |
-|[REGION:tablesection]**Constraints**[/REGION]|||
+|[REGION:tablesection]**约束**[/REGION]|||
 | **Lock Position** || [INCLUDE:#lockpos] |
 | **Lock Rotation** || [INCLUDE:#lockrot] |
-| **Mode** || [INCLUDE:#mode] |
+| **模式** || [INCLUDE:#mode] |
 [/REGION]
 
-### Advanced
+### 高级
 
 ![](physicsPropsAdv.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
+| 属性 | %spacer% | 描述 |
+| --- | :---:| :--- |
 | **Auto Weld** || %doxygen:FBodyInstance::bAutoWeld% |
 | **Start Awake** || %doxygen:FBodyInstance::bStartAwake% |
 | **Center Of Mass Offset** || %doxygen:FBodyInstance::COMNudge% |
@@ -97,7 +97,7 @@ Below are the properties for Physics Bodies (Body Instances) separated by major 
 | **Override Max Depenetration Velocity** || %doxygen:FBodyInstance::bOverrideMaxDepenetrationVelocity% |
 | **Max Depenetration Velocity** || %doxygen:FBodyInstance::MaxDepenetrationVelocity% |
 | **Override Walkable Slope on Instance** || %doxygen:FBodyInstance::bOverrideWalkableSlopeOnInstance% |
-| **Walkable Slope Override** || %doxygen:UBodySetup::WalkableSlopeOverride% See the **[](Engine/Physics/WalkableSlope)** documentation for usage information. |
+| **Walkable Slope Override** || %doxygen:UBodySetup::WalkableSlopeOverride% See the **[](Engine/Physics/WalkableSlope)** documentation for usage information.|
 | **Walkable Slope Behavior** || %doxygen:FWalkableSlopeOverride::WalkableSlopeBehavior% |
 | **Walkable Slope Angle** || %doxygen:FWalkableSlopeOverride::WalkableSlopeAngle% 
 | **Sleep Family** || %doxygen:FBodyInstance::SleepFamily% |
@@ -115,7 +115,7 @@ Below are the properties for Physics Bodies (Body Instances) separated by major 
 		coll
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Collision
+		碰撞
 	[/PARAM]
 	[PARAM:content]
 		%p2%
@@ -127,28 +127,28 @@ Below are the properties for Physics Bodies (Body Instances) separated by major 
 ![](collisionProps.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
+| 属性 | %spacer% | 描述 |
+| --- | :---:| :--- |
 | **Simulation Generates Hit Events** || %doxygen:FBodyInstance::bNotifyRigidBodyCollision% |
 | **Phys Material Override** || %doxygen:FBodyInstance::PhysMaterialOverride% |
 | **Generate Overlap Events** || %doxygen:UPrimitiveComponent::bGenerateOverlapEvents% |
-| **Collision Responses** || See the **[](Engine/Physics/Collision/Reference)** documentation for more information. |
+| **Collision Responses** || 查阅 **[](Engine/Physics/Collision/Reference)** 文档中的详细内容。|
 [/REGION]
 
-### Advanced
+### 高级
 
 ![](collisionPropsAdv.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
+| 属性 | %spacer% | 描述 |
+| --- | :---:| :--- |
 | **Use CCD** || %doxygen:FBodyInstance::bUseCCD% |
 | **Always Create Physics State** || %doxygen:UPrimitiveComponent::bAlwaysCreatePhysicsState% |
 | **Multi Body Overlap** || %doxygen:UPrimitiveComponent::bMultiBodyOverlap% | 
 | **Check Async Scene On Move** || %doxygen:UPrimitiveComponent::bCheckAsyncSceneOnMove% |
 | **Trace Complex On Move** || %doxygen:UPrimitiveComponent::bTraceComplexOnMove% |
 | **Return Material On Move** || %doxygen:UPrimitiveComponent::bReturnMaterialOnMove% |
-| **Can Ever Affect Navigation** || %doxygen:UPrimitiveComponent::bCanEverAffectNavigation% |
+| **Can Ever Affect Navigation** || 确定该组件是否对导航存在潜在影响 |
 
 [/REGION]
 
@@ -164,8 +164,8 @@ Below are the properties for Physics Bodies (Body Instances) separated by major 
 %doxygen:FBodyInstance::bLockTranslation%
 
 [REGION:raw]
-| Property | %spacer2% | Description |
-| --- | :---: | :--- |
+| 属性 | %spacer2% | 描述 |
+| --- | :---:| :--- |
 | **Lock X Translation** || %doxygen:FBodyInstance::bLockXTranslation% |
 | **Lock Y Translation** || %doxygen:FBodyInstance::bLockYTranslation% |
 | **Lock Z Translation** || %doxygen:FBodyInstance::bLockZTranslation% |
@@ -177,8 +177,8 @@ Below are the properties for Physics Bodies (Body Instances) separated by major 
 %doxygen:FBodyInstance::bLockRotation%
 
 [REGION:raw]
-| Property | %spacer2% | Description |
-| --- | :---: | :--- |
+| 属性 | %spacer2% | 描述 |
+| --- | :---:| :--- |
 | **Lock X Rotation** || %doxygen:FBodyInstance::bLockXRotation% |
 | **Lock Y Rotation** || %doxygen:FBodyInstance::bLockYRotation% |
 | **Lock Z Rotation** || %doxygen:FBodyInstance::bLockZRotation% |
@@ -190,15 +190,15 @@ Below are the properties for Physics Bodies (Body Instances) separated by major 
 %doxygen:FBodyInstance::DOFMode%
 
 [REGION:raw]
-| Property | %spacer2% | Description |
-| --- | :---: | :--- |
-| **Default** || Inherits the degrees of freedom from the project settings. |
-| **Six DOF** || Specifies which axis to freeze rotation and movement along. |
-| **YZPlane** || Allows 2D movement along the Y-Z plane. |
-| **XZPlane** || Allows 2D movement along the X-Z plane. |
-| **XYPlane** || Allows 2D movement along the X-Y plane. |
-| **Custom Plane** || Allows 2D movement along the plane of a given normal. |
-| **None** || No constraints. |
+| 属性 | %spacer2% | 描述 |
+| --- | :---:| :--- |
+| **Default** || 从项目设置继承自由度。|
+| **Six DOF** || 指定冻结旋转和运动所沿的轴。|
+| **YZPlane** || 允许沿 Y-Z 面的 2D 运动。|
+| **XZPlane** || 允许沿 X-Z 面的 2D 运动。|
+| **XYPlane** || 允许沿 X-Y 面的 2D 运动。|
+| **Custom Plane** || 允许沿特定法线面的 2D 运动。|
+| **None** || 无约束。|
 [/REGION]
 [/EXCERPT]
 -->

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2602520
+﻿INTSourceChangelist:2690368
 Availability: Public
 Title:머티리얼 - 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -8,6 +8,7 @@ Related: Engine/Rendering/Materials/MaterialInputs
 Related: Engine/Rendering/Materials/Editor
 Related: Engine/Rendering/Materials/IntroductionToMaterials
 Related: Engine/Rendering/Materials/MaterialProperties
+Version: 4.9
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -60,7 +61,7 @@ Related: Engine/Rendering/Materials/MaterialProperties
 
 ## 머티리얼 비법
 
-아래는 머티리얼 관련 다향한 주제를 다루은 비법 안내서들입니다.
+아래는 머티리얼 관련 다양한 주제를 다루는 비법 안내서들입니다.
 설명을 통해 각 비법의 소개를 확인한 뒤, 클릭하면 그 비법을 열어봅니다.
 
 
@@ -84,3 +85,9 @@ Related: Engine/Rendering/Materials/MaterialProperties
 | **[레이어드 머티리얼 사용](Engine/Rendering/Materials/HowTo/CreatingLayeredMaterials)** | %Engine/Rendering/Materials/HowTo/CreatingLayeredMaterials:description% |
 | **[머티리얼 광택 내기](Engine/Rendering/Materials/HowTo/ShinyMaterials)** | 반짝이는 머티리얼은 마우스 클릭 몇 번이면 만들 수 있습니다. 이번 비법에서는 어떤 머티리얼이든 반짝이는 것으로 변환하는 법에 대해 다룹니다. |
 | **[유색 반투명 그림자](Engine/Rendering/Materials/HowTo/ColoredTransluscentShadows)** |월드에 색이 있는 듯한 그림자를 드리우도록 만드는 것은, Colored Translucent Shadows (유색 반투명 그림자)를 사용하면 됩니다. 이번 비법에서는 유색 반투명 그림자를 활용하는 머티리얼 제작법을 다뤄보도록 하겠습니다. |
+| **[머티리얼에서 서브서피스 프로파일 사용](Engine/Rendering/Materials/HowTo/Subsurface_Profile)** |실제같은 사람 피부 렌더링 능력은 최신 비디오 게임 엔진이라면 필수입니다. 이번 비법에서는 서브서피스 프로파일이란 무엇인가, 그리고 그 사용법을 살펴보도록 하겠습니다. |
+| **[머티리얼에서 서브서피스 스캐터링 사용](Engine/Rendering/Materials/HowTo/Subsurface_Scattering)** |빛이 반투명 / 준 반투명 표면을 통과할 때 퍼지는 현상을 말하는 용어입니다. 이번 비법에서는 머티리얼에서 서브서피스 스캐터링을 사용하는 데 있어서 알아야 할 것들에 대해 살펴봅니다. |
+
+
+
+

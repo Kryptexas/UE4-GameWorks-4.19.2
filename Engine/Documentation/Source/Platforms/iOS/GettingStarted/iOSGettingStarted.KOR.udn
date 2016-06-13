@@ -1,15 +1,20 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2940199
 Availability: Public
 Title: 고급 iOS PC/Mac 작업방식
 Crumbs:%ROOT%, Platforms, Platforms/iOS
 Description:iOS 플랫폼용 개발을 위한 셋업하기 입니다.
 prereq:Platforms/iOS/QuickStart
+Version: 4.9
+SkillLevel: Intermediate
+parent:Platforms/iOS
+order:0
+type:overview
 
 [TOC(start:2 end:2)]
 
 %Globals:OSSelect%
 
-## 개요
+
 
 iOS 디바이스용 컴파일 개발 환경 셋업은 물론, iOS 플랫폼을 대상으로 언리얼 프로젝트를 디플로이(deploy, 설치)하기 위한 일반적인 작업방식을 다룬 설명서입니다.
 
@@ -219,7 +224,7 @@ Certificate 설치시, 마법사의 기본 옵션으로 대부분의 경우 통�
     * 참고로 Mountain Lion 에서는, Terminal 이 작업 디렉토리와 명령 히스토리를 기억하므로, 리부팅한 경우 위 화살표를 누르면 기억된 명령이 나타날 것입니다.
 
 ### 윈도우에서 컴파일하기
-위의 윈도우 및 맥 시스템 셋업 단계를 마치고나면, 컴파일은 UnrealBuildTool 이 활용되니 간단해 질 것입니다:
+위의 윈도우 및 맥 시스템 셋업 단계를 마치고 나면, 컴파일은 UnrealBuildTool 이 활용되니 간단해 질 것입니다:
 * //depot/UE4/GenerateProjectFiles_AllPlatforms.bat 를 실행합니다.
 * 거기서 생성되는 UE4.sln 을 엽니다.
 * 게임의 솔루션 폴더를 엽니다.
@@ -232,7 +237,7 @@ Certificate 설치시, 마법사의 기본 옵션으로 대부분의 경우 통�
 * 쿠커를 시작합니다.
     * (cmd.exe 의) UE4/Engine/Binaries/Win64 디렉토리에서 이렇게 (QAGame 을 자신의 게임 이름으로 바꾸고) 실행합니다:
 	    * ue4editor-cmd QAGame -run=cook -targetplatform=ios -cookonthefly
-	* 그러면 IOS 디바이스가 쿠킹된 파일을 받기 위해 통신하는 네트웍 상의 쿠킹 서버가 시작됩니다.
+	* 그러면 IOS 디바이스가 쿠킹된 파일을 받기 위해 통신하는 네트워크 상의 쿠킹 서버가 시작됩니다.
 
 맥 드라이브의 /UE4/Builds 디렉토리를 살펴보면 자신의 PC 컴퓨터 이름으로 된 디렉토리를 발견할 수 있습니다. 그 디렉토리 구조는 자신의 PC 디렉토리 구조와 똑같이 미리렁된 구조입니다. 컴파일이 완료되면 실행파일은 게임의 Binaries (또는 게임 없이 UE4 프로젝트를 컴파일한 경우 Engine/Binaries) 디렉토리에 생기게 됩니다.
 

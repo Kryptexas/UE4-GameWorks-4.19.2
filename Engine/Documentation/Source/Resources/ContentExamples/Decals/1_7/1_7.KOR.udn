@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653049
+﻿INTSourceChangelist:2714399
 Availability: Public
 Title:1.7 - 애니메이션 데칼 머티리얼
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Decals
@@ -11,6 +11,7 @@ Related: Engine/Rendering/Materials/ExpressionReference
 Related: Engine/Rendering/Materials/MaterialInputs
 Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Rendering/Materials/MaterialInstances
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -76,7 +77,7 @@ Related: Engine/Rendering/Materials/MaterialInstances
 
 
 
-이 예제에서는 데칼 머티리얼 안의 '로테이터' 머티리얼 표현식을 사용해서 데칼을 애니메니트 시키고 있습니다. 표준 머티리얼에 할 수 있는 모든 것은, 애니메이션까지도 포함해서 데칼 머티리얼에도 할 수 있습니다.
+이 예제에서는 데칼 머티리얼 안의 '로테이터' 머티리얼 표현식을 사용해서 데칼을 애니메이트 시키고 있습니다. 표준 머티리얼에 할 수 있는 모든 것은, 애니메이션까지도 포함해서 데칼 머티리얼에도 할 수 있습니다.
 
 
 [/REGION]

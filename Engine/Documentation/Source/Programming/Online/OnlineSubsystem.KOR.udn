@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2612568
+﻿INTSourceChangelist:2725215
 Availability:Public
 Title: 온라인 서브시스템 개요
 Crumbs:%ROOT%, Programming
@@ -120,13 +120,13 @@ OnlineSubsystem 베이스 모듈은 플랫폼 전용 모듈을 엔진에 정의�
 
 #### 음성
 
-게임상에서 네트워크를 통한 음성 채팅 인터페이스를 제공하니다. (아직 미구현)
+게임상에서 네트워크를 통한 음성 채팅 인터페이스를 제공합니다.
 
 <!--Details can be found on the [](Programming/Online/Interfaces/Voice) page.-->
 
 #### 업적
 
-업적(acheivement) 읽기/쓰기/풀기 (read/write/unlock) 인터페이스를 제공합니다. (아직 미구현)
+업적(acheivement) 읽기/쓰기/풀기 (read/write/unlock) 인터페이스를 제공합니다.
 
 <!--Details can be found on the [](Programming/Online/Interfaces/Achievements) page.-->
 

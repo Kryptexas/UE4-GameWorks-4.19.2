@@ -1,13 +1,11 @@
-﻿INTSourceChangelist:2481343
+﻿INTSourceChangelist:2646570
 Availability:Docs
-Title:Math 表現式の技術ガイド
+Title:マテリアル表現式の技術ガイド
 Crumbs:%ROOT%, Programming, Programming/Rendering
 Description:マテリアル エディタで使用するマテリアル式の新規作成ガイド
-バージョン：4.5
+バージョン：4.9
 
 [TOC (start:2 end:3)]
-
-## 概要
 
 UE4 でマテリアル式を新規作成する方法は単純です。例として、MaterialExpressionSquare を 2 乗するマテリアル式を新規作成します。UE4 では、マテリアル式はすべて `MaterialExpressions.cpp` で実装されることに注意してください。
 
@@ -15,9 +13,9 @@ UE4 でマテリアル式を新規作成する方法は単純です。例とし�
 
 ## 宣言
 
-まず、 MaterialExpression から抽出した新しいタイプで、エンジン スクリプト ファイルを追加します。表現式の入力と仮想関数を宣言します。例えば:<br>  
+まず、 MaterialExpression から抽出した新しいタイプで、エンジン スクリプト ファイルを追加します。表現式の入力と仮想関数を宣言します。例えば:<br> 
 
-`MaterialExpressionSquare.h`
+	MaterialExpressionSquare.h
 
 	UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
 	public class UMaterialExpressionSquare : public UMaterialExpression
@@ -92,5 +90,5 @@ UE4 でマテリアル式を新規作成する方法は単純です。例とし�
 新しいマテリアル式がマテリアル エディタのリストに追加されました。実際の Square 表現式がこちらになります。  
 
 [REGION:todo]
-![SquareMaterialExpression.jpg](SquareMaterialExpression.jpg)
+![](MaterialExpression.png)
 [/REGION]

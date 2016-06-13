@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2604568
+﻿INTSourceChangelist:2695186
 Availability:Public
 Title:월드 아웃라이너 UI
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor, Engine/UI/LevelEditor/SceneOutliner
 Description:현재 레벨 내 모든 액터를 계층구조식 트리 뷰로 보여주는 인터페이스로, 선택, 붙이기 등이 가능합니다.
+Version: 4.9
 
 [TOC(start:2)]
 

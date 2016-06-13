@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653104
+﻿INTSourceChangelist:2714445
 Availability: Public
 Title:1.2 - GPU 파티클과 Velocity Cone 모듈
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/EffectsGallery
@@ -9,6 +9,7 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/ParticleLights
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -86,7 +87,7 @@ Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 
 처음의 이미터 두 개는 GPU 스프라이트 이미터입니다. 이 이펙트에서 가장 중요한 모듈은 _Velocity Cone_ (속도 원뿔) 모듈로, 방출되는 모양에 대한 처리를 합니다. 그 각각에는 _Constant Acceleration_ (상수 가속) 모듈로 중력의 느낌을 내고 있고, _Collision (Scene Depth)_ (콜리전 (씬 깊이)) 모듈로 Z-버퍼 정보를 사용하여 충돌 시뮬레이션도 가능합니다.
 
-세 번째 이미터는 Mesh TypeData 모듈을 사용하여 스태틱 메시 인스턴스, 이경우 단순한 구체를 파티클 시스템으로 방출합니다. 이미터의 Lifetime (수명)은 0 으로 설정되어 있어, 사실상 파티클의 수명은 무한입니다.
+세 번째 이미터는 Mesh TypeData 모듈을 사용하여 스태틱 메시 인스턴스, 이 경우 단순한 구체를 파티클 시스템으로 방출합니다. 이미터의 Lifetime (수명)은 0 으로 설정되어 있어, 사실상 파티클의 수명은 무한입니다.
 
 파티클 이펙트를 생성할 목적으로, 전체 파티클 이펙트를 여러가지 서브시스템 시리즈로 생각해 보는 것이 좋을 때가 많습니다. 여기서는 가운데에 메시가 있는 두 개의 분수로 이펙트를 나눴습니다. 캠프 파이어와 같은 다른 이펙트의 경우, 불꽃 중심부, 외부 화염, 불똥, 연기, 열기로 인한 굴절과 같은 요소들을 하나의 파티클 시스템 내 독립된 이미터로 나누는 것이 좋을 것입니다.
   

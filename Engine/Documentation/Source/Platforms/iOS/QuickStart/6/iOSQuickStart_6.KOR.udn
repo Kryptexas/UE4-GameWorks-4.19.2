@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2565283
+﻿INTSourceChangelist:2744695
 Title:6. iOS Provisioning - Provisioning 생성 및 임포트
 Crumbs:%ROOT%, Platforms, Platforms/iOS, Platforms/iOS/QuickStart
 Description:provisioning 프로파일 생성 및 언리얼 엔진에 임포트합니다.
 Availability:Public
+Version: 4.9
+SkillLevel:Intermediate
 
 
 [VAR:Steps]
@@ -77,7 +79,7 @@ to use with the Unreal Engine.
 
 1. 애플 iOS 개발자 사이트의 [iOS Provisioning Profiles](https://developer.apple.com/account/ios/profile/profileList.action) 페이지로 이동합니다.
 
-1. ![Add](button_add.png) 버튼을 추가하여 프로파일을 새로 추가합니다.
+1. **추가** (더하기 부호) 버튼을 추가하여 프로파일을 새로 추가합니다.
 
 1. Development 아래 iOS App Development 를 선택한 다음 **Continue** 를 클릭합니다.
 

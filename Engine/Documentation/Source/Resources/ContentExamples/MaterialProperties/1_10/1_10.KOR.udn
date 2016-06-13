@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653552
+﻿INTSourceChangelist:2717049
 Availability: Public
 Title:1.10 - 반투명 그림자를 마스크드로 드리우기
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
@@ -12,6 +12,7 @@ Related: Engine/Rendering/Materials/MaterialInputs
 Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Rendering/Materials/MaterialInstances
 Related: Engine/Actors/DecalActor
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -74,5 +75,5 @@ Related: Engine/Actors/DecalActor
 ![](MP_1_10_001.png)
 [/REGION]
 
-현재 **반투명 머티리얼** 에는 그림자 드리우기가 지원되지 않습니다. 그러나 (라이트매스를 사용한) 라이팅 리빌드시 **마스크드 머티리얼** 로 간주하도록 하는 옵션이 있습니다. 다이내믹 섀도우에는 영향이 없습니다.
+현재 **반투명 머티리얼** 에는 그림자 드리우기가 지원되지 않습니다. 그러나 (라이트매스를 사용한) 라이팅 리빌드시 **마스크드 머티리얼** 로 간주하도록 하는 옵션이 있습니다. 다이내믹 섀도에는 영향이 없습니다.
 

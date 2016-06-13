@@ -6,7 +6,11 @@ Description:Pawn 是玩家在世界中的物理象征。
 Related: Gameplay/Framework\Pawn\Character
 Related: Gameplay/Framework/Controller
 Related: Gameplay/Framework/GameMode
-版本: 4.9
+Version: 4.9
+type:reference
+parent:Gameplay/Framework
+order:3
+tags:Gameplay Framework
 
 ![](pawn_ball.png)(w:300)
 

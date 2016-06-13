@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:2662759
+﻿INTSourceChangelist:2735872
 Availability: Public
 Title:샘플 & 튜토리얼
 Crumbs:%ROOT%
 Description:다양한 예제 씬, 샘플 게임, 튜토리얼에 대한 링크입니다.
 Navigation:topic
+Version: 4.9
+parent:%ROOT%
+order:7
 
 [VAR:Params]
 [PARAM:image]

@@ -2,6 +2,8 @@ Availability:Public
 Title:Decal Actor User Guide
 Crumbs:%ROOT%, Engine, Engine/Actors
 Description:A guide to using the Deferred Decal actor.
+Version: 4.9
+
 
 [VAR:Topic]
 [OBJECT:Topic]

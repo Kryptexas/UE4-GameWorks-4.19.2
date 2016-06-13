@@ -6,6 +6,8 @@ Related: Engine\Animation\AimOffset
 Related: Engine/Animation/AnimBlueprints
 Related: Engine\Content\Types\SkeletalMeshes\Sockets
 Related: Engine\Animation\AnimHowTo\AdditiveAnimations
+Version: 4.9
+SkillLevel: Advanced
 
 In this guide, we will create an [**Aim Offset**](Engine/Animation/AimOffset), which is an asset that stores a blendable series of poses to help a character aim a weapon. We will take an animation sequence and chop it up into usable poses for an Aim Offset, get the player's pitch/yaw location of the mouse and use that to determine which blended pose to use so that the character moves and aims in the location of the mouse (with some restrictions) as seen in the example below. 
 

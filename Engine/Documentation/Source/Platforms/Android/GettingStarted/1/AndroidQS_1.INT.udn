@@ -74,6 +74,10 @@ It is highly recommended that you install Android Works while the editor and lau
 
 1. To install Android Works navigate to the **Engine** > **Extras** > **Android** folder. 
 
+	[region:note]
+	The Android Works installer requires an installation of Visual Studio to complete successfully. Supported versions are 2010, 2012 or 2013 (not 2015).
+	[/region]
+
 	| Install Type | Location |
 	| ------------ | ---------|
 	| Binary | [EngineInstallLocation]\Unreal Engine\[EngineVersion]\Engine\Extras\Android |

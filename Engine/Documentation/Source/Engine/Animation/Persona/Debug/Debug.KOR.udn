@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2033304
+﻿INTSourceChangelist:2666533
 Availability:Public
 Title:페르소나 디버그
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
 Description:페르소나 애니메이션 에디터의 애셋 브라우저 사용 안내서입니다.
+Version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -24,4 +25,6 @@ Description:페르소나 애니메이션 에디터의 애셋 브라우저 사용
 [/OBJECT]
 [/VAR]
 
-[INCLUDE:Engine/Blueprints/UserGuide/Debugging#debugtab]
+**디버그** 패널에는 디자이너가 중단점과 감시값 형태로 중요하다 지정한 정보가 표시됩니다. 그 뿐만 아니라 블루프린트에 속한 여지껏 실행된 모든 노드 스택을 추적하기도 합니다. 이 창에는 중단점 사용시 게임 실행 제어를 위한 콘트롤도 표시됩니다.
+
+페르소나의 디버그 패널은 블루프린트 에디터의 것과 같은 패널입니다. 이 패널 사용법 관련 자세한 정보는 [](Engine/Blueprints/UserGuide/Debugging) 문서를 참고하세요.

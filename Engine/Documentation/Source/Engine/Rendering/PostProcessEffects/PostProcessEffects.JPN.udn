@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2424314
+﻿INTSourceChangelist:2685386
 Availability:Public
-Title:ポストプロセスのエフェクト
+Title:ポストプロセス エフェクト
 Crumbs: %ROOT%, Engine
 Description:レンダリングの前にレンダリングシーン全体に適用するエフェクト
 Navigation:topic
+Version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -75,7 +76,7 @@ Navigation:topic
 
 ### ポストプロセス設定
 
-ポストプロセス設定は、制御またはオーバーライドするさまざまなポストプロセス エフェクトの全プロパティです。これらのプロパティは UScene クラスで宣言します。**PostProcessVolume** は、 `Settings` プロパティに `FPostProcessSettings` 構造体を格納しています。このプロパティには全プロパティが格納され、ボリュームによってオーバーライドされます。
+ポストプロセス設定は、制御またはオーバーライドするさまざまなポストプロセス エフェクトの全プロパティです。これらのプロパティは UScene クラスで宣言します。**PostProcessVolume** は、 Settings プロパティに `FPostProcessSettings` の構造体を格納しています。このプロパティには全プロパティが格納され、ボリュームによってオーバーライドされます。
 
 有効設定のそれぞれの説明は、以下のエフェクトの対応ページを参照してください。
 
@@ -168,6 +169,18 @@ Navigation:topic
 
 [OBJECT:TopicCompact]
 	[PARAM:image]
+		![%Engine/Rendering/PostProcessEffects/Blendables:title%](Blendables.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/PostProcessEffects/Blendables:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/PostProcessEffects/Blendables]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
 		![%Engine/Rendering/PostProcessEffects/SceneFringe:title%](fringe.png)
 	[/PARAM]
 	[PARAM:title]
@@ -203,3 +216,7 @@ Navigation:topic
 	[/PARAM]
 [/OBJECT]
 [/REGION]
+
+
+
+

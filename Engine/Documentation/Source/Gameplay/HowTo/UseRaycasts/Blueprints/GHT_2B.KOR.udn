@@ -1,20 +1,21 @@
-﻿INTSourceChangelist:2607491
+﻿INTSourceChangelist:2711856
 Availability: Public
 Title:블루프린트에서 레이캐스트 (트레이싱) 사용법
 Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/UseRaycasts
 Description:블루프린트에서 레이캐스트, 다른 말로 트레이싱 사용 비법 안내입니다.
+version: 4.9
 
 [TOC (start:2 end:2)]
 
 여기서는 **싱글** 및 **멀티** 레이캐스트 사이의 차이점은 물론, 콜리전 정보 수집을 위한 각각의 구성 방법을 배워보도록 하겠습니다.
 
-## 싱글 라인 트레이스
+## 한줄 트레이스
 
-### 채널별 싱글 라인 트레이스
+### LineTraceByChannel
 
-**Single Line Trace by Channel** 는 주어진 선을 따라 콜리전 트레이스를 하여, 걸리는 (트레이스 채널에 반응하는) 첫 오브젝트를 반환합니다.
+**LineTraceByChannel** 는 주어진 선을 따라 콜리전 트레이스를 하여, 걸리는 (트레이스 채널에 반응하는) 첫 오브젝트를 반환합니다.
 
-**Single Line Trace by Channel** 구성 방법은 다음과 같습니다.
+구성 방법은 다음과 같습니다.
 
 1.  **블루프린트 일인칭** 템플릿에 **시작용 콘텐츠 포함** 시켜 새 프로젝트를 만들고 프로젝트를 엽니다.
 
@@ -26,15 +27,15 @@ Description:블루프린트에서 레이캐스트, 다른 말로 트레이싱 �
 
 	그러면 트레이스가 매 프레임마다 실행됩니다.
 	
-1.  실행 핀을 끌어놓은 다음, **Single Line** 을 검색하여 **Single Line Trace by Channel** 노드를 추가합니다.
+1.  실행 핀을 끌어놓은 다음, **LineTraceByChannel** 노드를 검색합니다.
 
 	![](GHT2B_2.png)
 
-1.  **Control** 키를 누른 채 **FirstPersonCamera** 컴포넌트를 끌어 놓습니다.
+1.  **Ctrl** 키를 누른 채 **FirstPersonCamera** 컴포넌트를 끌어 놓습니다.
 
 	![](GHT2B_3.png)
 
-	트레이스 시작 지점으로, 바로 카메라 입니다.
+	트레이스 시작 지점, 즉 카메라 입니다.
 
 1.  **FirstPersonCamera** 노드를 끌어놓고 **Get World Location** 노드를 추가한 다음 트레이스의 **Start** 에 연결합니다.
 
@@ -42,7 +43,7 @@ Description:블루프린트에서 레이캐스트, 다른 말로 트레이싱 �
 
 	![](GHT2B_4.png)(w:800)
 
-	여기서는 **FirstPersonCamera** 위치에서 트레이스를 시작한 다음, **FirstPersonCamera** 의 회전을 구하고 있습니다.
+	여기서는 **FirstPersonCamera** 위치에서 트레이스를 시작한 다음, **FirstPersonCamera** 의 로테이션을 구하고 있습니다.
 
 1.	**Get World Rotation** 를 끌어놓고 **Get Forward Vector** 를 추가한 다음, 거기서 다시 끌어놓고 **Vector * Float** 노드를 추가한 뒤 **1500** 으로 설정합니다. 
 
@@ -90,17 +91,17 @@ Description:블루프린트에서 레이캐스트, 다른 말로 트레이싱 �
 
 위 예제는 제공된 트레이스 채널에 반응하도록 설정된 모든 오브젝트를 반환하지만, 특정 오브젝트에만 반응하도록 하고픈 경우가 있을 수 있습니다. 위 예제에서는 **Actors to Ignore** 핀을 사용하여 트레이스에 무시하도록 만들 액터 **배열** 을 받도록 할 수 있지만, 무시할 액터를 일일히 지정해야 한다는 뜻이기도 합니다.
 
-지정된 **오브젝트 유형** 만 반환하도록 하는 **Single Line Trace by Object** 도 가능합니다. 그러면 지정된 오브젝트 세트만을 대상으로 트레이스에 포함시킬 수 있습니다.
+지정된 **오브젝트 유형** 만 반환하도록 하는 **LineTraceByObject** 도 가능합니다. 그러면 지정된 오브젝트 세트만을 대상으로 트레이스에 포함시킬 수 있습니다.
 
-### 오브젝트별 싱글 라인 트레이스
+### LineTraceForObjects
 
-**Single Line Trace by Object** 는 주어진 선을 따라 콜리전 트레이스를 하여 걸리는 (오브젝트 유형에 반응하는) 첫 오브젝트를 반환합니다.
+**LineTraceForObjects** 는 주어진 선을 따라 콜리전 트레이스를 하여 걸리는 (오브젝트 유형에 반응하는) 첫 오브젝트를 반환합니다.
 
-**Single Line Trace by Object** 트레이스 구성 방법은 다음과 같습니다:
+**LineTraceForObjects** 트레이스 구성 방법은 다음과 같습니다:
 
-1.  **Single Line Trace by Channel** 예제에 사용된 방법대로 트레이스를 구성합니다.
+1.  **LineTraceByChannel** 예제에 사용된 방법대로 트레이스를 구성합니다.
 
-1.  **Single Line Trace by Channel** 노드를 **Single Line Trace by Object** 노드로 대체합니다.
+1.  **LineTraceByChannel** 노드를 **LineTraceForObjects** 노드로 대체합니다.
 
 1.  **Object Types** 핀을 끌어놓고 **Make Array** 노드를 추가합니다.
 
@@ -112,7 +113,7 @@ Description:블루프린트에서 레이캐스트, 다른 말로 트레이싱 �
 
 	여기서는 **WorldDyanmic** 오브젝트에 트레이스를 합니다. **Add Pin** 버튼을 클릭하여 핀을 추가할 수 있습니다.
 
-1.  나머지 트레이스도 **Single Line Trace by Channel** 구성 방식과 똑같이 구성하면 됩니다.
+1.  나머지 트레이스도 **LineTraceByChannel** 구성 방식과 똑같이 구성하면 됩니다.
 
 	[REGION:lightbox]
 	[![](GHT2B_15.png)(w:800)](GHT2B_15.png)
@@ -129,15 +130,15 @@ Description:블루프린트에서 레이캐스트, 다른 말로 트레이싱 �
 
 ## 멀티 라인 트레이스
 
-### 채널별 멀티 라인 트레이스
+### MultiLineTraceByChannel
 
-**Multi Line Trace by Channel** 는 주어진 선을 따라 콜리전 트레이스를 하여 처음 걸린 것을 포함한 모든 것을 반환하며, 지정된 트레이스 채널에 반응하는 오브젝트만 반환합니다.
+**MultiLineTraceByChannel** 은 주어진 선을 따라 콜리전 트레이스를 하여 처음 걸린 것을 포함한 모든 것을 반환하며, 지정된 트레이스 채널에 반응하는 오브젝트만 반환합니다.
 
-**Multi Line Trace by Channel** 구성 방법은 다음과 같습니다.
+**MultiLineTraceByChannel** 구성 방법은 다음과 같습니다.
 
-1.  **Single Line Trace by Channel** 예제에 사용된 방법대로 트레이스를 구성합니다.
+1.  **LineTraceByChannel** 예제에 사용된 방법대로 트레이스를 구성합니다.
 
-1.  **Single Line Trace by Channel** 노드를 **Multi Line Trace by Channel** 노드로 대체합니다.
+1.  **LineTraceByChannel** 노드를 **MultiLineTraceByChannel** 노드로 대체합니다.
 
 1.  **Out Hits** 핀을 끌어놓고 **ForEachLoop** 노드를 추가합니다.
 
@@ -163,15 +164,15 @@ Description:블루프린트에서 레이캐스트, 다른 말로 트레이싱 �
 
 	오브젝트를 관통하여 (부수면서) 플레이어나 적도 맞출 수 있도록 하는 상황에 쓸 수 있습니다.
 
-### 오브젝트별 멀티 라인 트레이스
+### MultiLineTraceForObjects
 
-**Multi Line Trace by Object** 는 주어진 선을 따라 콜리전 트레이스를 한 다음, 걸리는 모든 것을 반환하되, 지정된 오브젝트 유형에 반응하는 오브젝트만 반환합니다.
+**MultiLineTraceForObjects** 는 주어진 선을 따라 콜리전 트레이스를 한 다음, 걸리는 모든 것을 반환하되, 지정된 오브젝트 유형에 반응하는 오브젝트만 반환합니다.
 
-**Multi Line Trace by Object** 구성 방법은 다음과 같습니다.
+**MultiLineTraceForObjects** 구성 방법은 다음과 같습니다.
 
-1.  **Single Line Trace by Channel** 예제에 사용된 방법대로 트레이스를 구성합니다.
+1.  **LineTraceByChannel** 예제에 사용된 방법대로 트레이스를 구성합니다.
 
-1.  **Single Line Trace by Channel** 노드를 **Multi Line Trace by Object** 노드로 대체합니다.
+1.  **LineTraceByChannel** 노드를 **MultiLineTraceForObjects** 노드로 대체합니다.
 
 1.  **Object Types** 핀을 끌어놓고 **Make Array** 노드를 추가한 다음, 드롭다운 메뉴를 사용하여 배열에 오브젝트를 추가합니다.
 

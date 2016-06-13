@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2220735
+﻿INTSourceChangelist:2666103
 Availability:Public
 Title:그래프 모드
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona, Engine/Animation/Persona/Modes
 Description:페르소나 애니메이션 에디터의 그래프 모드 사용 안내서입니다.
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -24,13 +25,13 @@ Description:페르소나 애니메이션 에디터의 그래프 모드 사용 �
 [/OBJECT]
 [/VAR]
 
-##개요
+
 
 [REGION:fullwidth]
 ![](AnimationGraph.png)
 [/REGION]
 
-**페르소나** 의 **그래프 모드** 는 배후의 로직을 지정하고, **애님 그래프** 와 **이벤트 그래프** 안에 설정된 변수와 조건에 따라 애니메이션과 애니메이션 스테이트를 연결해 주는 곳입니다. 그래프 작업은 **블루프린트** 그래프 작업과 비슷하지만, **애니메이션 블루프린트** 에는 아래와 같은 몇 가지 핵심적인 디테일이 다릅니다.
+**페르소나** 의 **그래프** 모드는 배후의 로직을 지정하고, **애님 그래프** 와 **이벤트 그래프** 안에 설정된 변수와 조건에 따라 애니메이션과 애니메이션 스테이트를 연결해 주는 곳입니다. 그래프 작업은 **블루프린트** 그래프 작업과 비슷하지만, **애니메이션 블루프린트** 에는 아래와 같은 몇 가지 핵심적인 디테일이 다릅니다.
 
 ##애니메이션 블루프린트 
 

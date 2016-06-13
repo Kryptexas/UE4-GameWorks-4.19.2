@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2661487
+﻿INTSourceChangelist:2713167
 Availability:Public
 Title:物理マテリアルのユーザーガイド
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
-Description:物理マテリアルのユーザーガイド - 物理マテリアルの作成および利用
+Description:物理マテリアルのユーザーガイド - 物理マテリアルの作成および使用方法
+Version:4.9
+SkillLevel:Intermediate
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -47,11 +49,11 @@ Description:物理マテリアルのユーザーガイド - 物理マテリア�
 [TOC(start:2)]
 
 
-このガイドは、 **物理マテリアル** の作成および利用方法に加えて、ユーザーのプロジェクトの **SurfaceTypes** を有効にする方法や編集方法について説明します。
+このガイドは、 **物理マテリアル** の作成および利用方法に加えて、ユーザーのプロジェクトの **サーフェス タイプ** を有効にする方法や編集方法について説明します。
 
 ## 作成
 
-1. **コンテンツ ブラウザ** から、 ![](Engine/Audio\SoundCues\Editor\button_CB_NewAsset.png) を **クリック** して **[New Asset (新規アセット)]** -> **[Physics (物理)]** -> **[Physical Material (物理マテリアル)]** の順に選択するか、**コンテンツ ブラウザ** を **右クリック** して **[Physics (物理)]** -> **[Physical Material (物理マテリアル)]** の順で選択します。
+1. コンテンツ ブラウザ** から、 ![](Engine/Audio\SoundCues\Editor\button_CB_NewAsset.png) を **クリック** して **[New Asset (新規アセット)]** -> **[Physics (物理)]** -> **[Physical Material (物理マテリアル)]** の順に選択するか、**コンテンツ ブラウザ** を **右クリック** して **[Physics (物理)]** -> **[Physical Material (物理マテリアル)]** の順で選択します。
 
 	![](PhysMatCreate.jpg)
 
@@ -63,13 +65,13 @@ Description:物理マテリアルのユーザーガイド - 物理マテリア�
 
 	![](AdjustProperties.jpg)
 
-1. **保存** ![](Shared\Icons\icon_SaveAsset_40x.png) をクリックします
+1. **保存** ![](Shared\Icons\icon_SaveAsset_40x.png) をクリックします。
 
-物理マテリアルのプロパティに関する情報は、 [物理マテリアルのリファレンス](Engine/Physics\PhysicalMaterials\Reference) を参照してください。
+物理マテリアルのプロパティに関する情報は、 [**物理マテリアルのリファレンス**](Engine/Physics\PhysicalMaterials\Reference) を参照してください。
 
-### サーフェイスの種類
+### サーフェス タイプ
 
-アンリアル エンジン 4 はデフォルトで 30 種類のサーフェスをサポートしています。サーフェスの種類はユーザーが名前を付けて設定することが可能で、プロジェクトの「DefaultEngine.ini」ファイルに格納されます。ファイルの場所は「YourProjectRoot\Config\DefaultEngine.ini」です。 
+アンリアル エンジン 4 はデフォルトで 30 種類のサーフェスをサポートしています。ユーザーはサーフェスタイプに名前を付けてプロジェクトの「DefaultEngine.ini」ファイルに格納することができます。ファイルの場所は「YourProjectRoot\Config\DefaultEngine.ini」です。 
 
 
 
@@ -78,15 +80,15 @@ Description:物理マテリアルのユーザーガイド - 物理マテリア�
 
 ###マテリアル
 
-1. マテリアルを **開く**、もしくは **新規に作成** します。
+1. マテリアルを **開く**、もしくは **新規作成** します。
 
 	![](PhysMat_Material_01.png)
 
-1. メインとなるマテリアルノードを **選択します**。
+1. メインとなるマテリアル ノードを **選択します**。
 
 	![](PhysMatNone.jpg)
 
-1. [Phys Material (物理マテリアル)] を **変更します**。
+1. [Physical Material (物理マテリアル)] を **変更します**。
 
 	![](PhysMatGlass2.jpg)
 
@@ -98,7 +100,7 @@ Description:物理マテリアルのユーザーガイド - 物理マテリア�
 
 	![](PhysMat_MaterialInst_01.png)
 
-1. 物理マテリアルを **変更します**。
+1. [Physical Material (物理マテリアル)] を **変更します**。
 
 	![](StoneMat.jpg)
 
@@ -113,11 +115,11 @@ Description:物理マテリアルのユーザーガイド - 物理マテリア�
 
 	![](PhysicsAsset1.jpg)
 
-1. コンテンツ ブラウザ から物理マテリアルを **選択します**。
+1. コンテンツ ブラウザから物理マテリアルを **選択します**。
 
 	![](M_Glass.jpg)
 
-1. 物理アセットツールのツールバーの **Asset** ドロップダウンから **[Apply PhysMat (PhysMat を適用)]**  ![](AssetButton.jpg) を **クリック** します。
+1. 物理アセットツールのツールバーの **[Asset]** ドロップダウンから **[Apply PhysMat (PhysMat を適用)]**  ![](AssetButton.jpg)を **クリック** します。
 	[REGION:raw]
 	![](ApplyPhysMat.jpg)
 	[/REGION]
@@ -128,29 +130,29 @@ Description:物理マテリアルのユーザーガイド - 物理マテリア�
 
 1. 物理アセットツールの **[Body Edit] モードを有効にします**。
 1. 物理ボディを **選択します**。
-1. [Details (詳細)] ペインの [Physics (物理)] カテゴリで **Simple Collision Physical Material** を変更します。
+1. [Details (詳細)] ペインの [Physics (物理)] カテゴリで **[Simple Collision Physical Material]** を変更します。
 
 
 [REGION:raw]
-![](SimpleCollision.jpg)(w:920)
+![](SimpleCollision.png)(w:700)
 [/REGION]
 
-スケルタルメッシュを割り当てた物理的インタラクションは、デフォルト動作では関連する物理アセットのみと相互作用します。 
+スケルタルメッシュを割り当てた物理のインタラクションは、デフォルト動作では関連する物理アセット間のみになります。 
 そのため、スケルタルメッシュのマテリアルの物理マテリアルは使用しません。
 
 [REGION:note]
-物理アセットを Simple Collision Physical Material 設定で使用するかもしれませんが、物理アセットをトレースする場合、 
-ヒットした物理ボディの Simple Collision Physical Material プロパティにリスト表示される物理マテリアルを返す複雑なトレースにしなくてはいけません。
+物理アセットについては [Simple Collision Physical Material] を設定しても、複雑なトレースが必要になります。 
+物理アセットのトレース中に物理ボディにヒットした場合、その Simple Collision Physical Material プロパティにリスト表示された物理マテリアルを返すようにします。
 [/REGION]
 
 ### スタティックメッシュ
 
-スタティックメッシュには Simple コリジョン (3D アートパッケージまたはスタティックメッシュ エディタで作成する物理ボディ) と Complex コリジョン (ポリゴンごとのコリジョン) があります。コリジョンは、独自の異なる物理マテリアルを持つさまざまなマテリアルから構成されています。 
+スタティックメッシュには Simple コリジョン (3D アートパッケージまたはスタティックメッシュ エディタで作成する物理ボディ) と Complex コリジョン (ポリゴンごとのコリジョン) があります。コリジョンは、独自の異なる物理マテリアルを持つ様々なマテリアルから構成されています。 
 
 | コリジョン | 物理マテリアルの順序 |
 | ----- | ----- |
 | **Simple** | コリジョンまたはトレースで Simple Collision を使用すると、スタティックメッシュ エディタで設定されたスタティックメッシュの物理マテリアルを参照します。あるいは、StaticMesh アクタ の _Phys Material Override_ が「None」以外に設定された場合、プロパティにリスト表示されたマテリアルを使用します。|
-| **Complex** | コリジョンまたはトレースで Complex Collision を使用すると、StaticMesh アクタ に適用したマテリアル、またはマテリアル インスタンスを参照します。あるいは、StaticMesh アクタの [Phys Material Override] が「None」以外に設定された場合、プロパティにリスト表示されたマテリアルを使用します。|
+| **Complex** | コリジョンまたはトレースで Complex Collision を使用すると、StaticMesh アクタに適用したマテリアル、またはマテリアル インスタンスを参照します。あるいは、StaticMesh アクタの [Phys Material Override] が「None」以外に設定された場合、プロパティにリスト表示されたマテリアルを使用します。|
 
 スタティック メッシュに Simple Collision Physical Material を設定するには、以下の操作を行います。
 

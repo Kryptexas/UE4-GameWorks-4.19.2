@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2918212
 Availability:Public
-Title:環境のライティング効果
+Title:背景のライティング
 Crumbs: %ROOT%, Engine
 Description:ライティングとシャドウイング ジオメトリの使用、グローバル イルミネーションの使用、リフレクションの設定
 Navigation:topic
 Related:Engine/Rendering/ParticleSystems/ParticleLights
+Version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -67,7 +68,7 @@ Related:Engine/Rendering/ParticleSystems/ParticleLights
 [/REGION]
 
 
-## 動的ライティング機能
+##動的ライティング機能
 
 [REGION:topics third]
 %Engine/Rendering/LightingAndShadows/LightMobility/DynamicLights:Topic%
@@ -77,7 +78,7 @@ Related:Engine/Rendering/ParticleSystems/ParticleLights
 %Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing:Topic%
 [/REGION]
 
-## 全般
+##全般
 
 [REGION:topics third]
 

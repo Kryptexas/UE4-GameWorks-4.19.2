@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2682992
+﻿INTSourceChangelist:2953341
 Availability:Public
 Title:데이터 전용 블루프린트 UI
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
-Description:블루프린트 클래스 에디터 인터페이스 개요입니다.
+Description:블루프린트 클래스 작업시 클래스 디폴트가 부모에서 변경된 경우에만의 블루프린트 에디터 UI 요소에 대한 분석입니다.
 version: 4.9
 
 [VAR:Topic]

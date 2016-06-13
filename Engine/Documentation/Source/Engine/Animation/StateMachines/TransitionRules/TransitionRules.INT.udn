@@ -1,4 +1,4 @@
-Availability:Public
+﻿Availability:Public
 Title: Transition Rules
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/StateMachines
 Description:Guide to rules that govern State Machine Transitions
@@ -12,9 +12,9 @@ Related: Engine/Blueprints/GettingStarted
 
 ## Creating Transition Rules
 
-**Transition Rules** are method of controlling flow inside a [State Machine](Engine/Animation/StateMachines) and are automatically created along the wires that connect **States** and **Conduits**. These Transition Rules can perform any number of checks and tests against variable values, all with the purpose of outputting a true or false value which then determines whether the animation can move through the transition or not.
+**Transition Rules** are methods of controlling flow inside a [State Machine](Engine/Animation/StateMachines) and are automatically created along the wires that connect **States** and **Conduits**. These Transition Rules can perform any number of checks and tests against variable values, all with the purpose of outputting a true or false value which then determines whether the animation can move through the transition or not.
 
-Connecting States or Conduits together can be performed by **Left-clicking** and dragging from one State (or Conduit) to another: 
+Connecting States or Conduits together can be performed by **left-clicking** and dragging from one State (or Conduit) to another: 
 
 ![](ConnectStates.png)(w:540)
 
@@ -55,7 +55,7 @@ When **Left-clicking** on the Transition Rule, the **Details** panel will update
 
 | **Property** | **Description** |
 | --- | --- |
-| **Transition Priority Order** | The priority order of the transition. If multiple transitions out of a state are _true_ at the same time, the one with the smallest priority order will take precedent. |
+| **Transition Priority Order** | The priority order of the transition. If multiple transitions out of a state are _true_ at the same time, the one with the lowest number for priority order will take precedent. |
 | **Bidirectional** | Determines if the transition can go both directions. |
 | **Blend Logic** | Specifies what transition logic to use: Standard Blend or [Custom Blend](#customblendnodes). Selecting Custom will enable you to enter the Blend Graph to set a custom Blend Transition. |
 | **Transition Rule Sharing** | This option allows you to set whether or not the rule can be shared with other transitions or to use rule from another transition.  |
@@ -73,9 +73,9 @@ When **Left-clicking** on the Transition Rule, the **Details** panel will update
 
 ## Additional Considerations
 
-When working with child [Anmation Blueprints](Engine/Animation/AnimBlueprints) and overriding animations in a State Machine, animations referenced by transition rules do not have to be the same length in every child Animation Blueprint. When using nodes like the **Time Remaining** node (which can be used to determine how much time is remaining in an animation and can be used as part of a Transition Rule), these type of nodes correctly respond to changes in animation length when animations are overridden in child Animation Blueprints. 
+When working with child [Animation Blueprints](Engine/Animation/AnimBlueprints) and overriding animations in a State Machine, animations referenced by transition rules do not have to be the same length in every child Animation Blueprint. When using nodes like the **Time Remaining** node (which can be used to determine how much time is remaining in an animation and can be used as part of a Transition Rule), these type of nodes correctly respond to changes in animation length when animations are overridden in child Animation Blueprints. 
 
-Also, rather than targeting a specific animation as part of your Transition Rule that might change or may be overridden, you can use several class based getter nodes that always picks the highest weighted animation from the source state (pictured below).
+Also, rather than targeting a specific animation as part of your Transition Rule that might change or may be overridden, you can use several class based get nodes that always pick the highest weighted animation from the source state (pictured below).
 
 ![](GetRelevantNodes.png)
 
@@ -100,7 +100,13 @@ In addition to the nodes cited above, there is also information exposed inside C
 | 3 | **Get Transition Time Elapsed (ratio)**| Gets the elapsed time as a fraction of the crossfade duration of a specified transition. |
 | 4 | **Get Transition Crossfade Duration**| Gets the crossfade duration of a specified transition. |
 
-You can also use getter methods that reference the asset players, just like a Transition Rule. 
+You can also use get nodes that reference the asset players, just like a Transition Rule. 
+
+[REGION:note]
+If you have an understanding of Animation Programming in Unreal, [**Native Getters**](Programming/Animation/AnimNodes) can also be used to improve performance.
+[/REGION]
+
+
 
 
 

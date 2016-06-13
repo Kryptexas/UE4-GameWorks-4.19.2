@@ -1,8 +1,14 @@
-﻿INTSourceChangelist:2300073
-Title:Oculus Rift クイックスタート
+﻿INTSourceChangelist:2940199
+Title:Oculus Rift クイック スタート
 Crumbs:%ROOT%, Platforms, Platforms/Oculus
 Description:Oculus Rift 上でのゲーム設定と起動に関するインストラクション
 Availability:Public
+Version:4.9
+SkillLevel:Intermediate
+parent:Platforms/Oculus
+type:quickstart
+tags:VR
+tags:Oculus Rift
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -39,7 +45,7 @@ Availability:Public
 [/VAR]
 
 
-Oculus クイックスタートでは、アンリアル エンジン用にコンピュータおよび Oculus Rift の設定方法を紹介する他、バーチャル リアリティ向けに提供されているサンプル事例を幾つか再生します。
+Oculus クイック スタートでは、アンリアル エンジンが使えるようにコンピューターと Oculus Rift を設定し、仮想現実向けサンプル コンテンツをいくつかプレイします。
 
 
 

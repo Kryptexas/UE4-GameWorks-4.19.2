@@ -1,8 +1,14 @@
-﻿INTSourceChangelist:2609153
+﻿INTSourceChangelist:2721480
 Availability:Public
 Title:언리얼 엔진 프로그래밍 기본
 Crumbs: %ROOT%, Programming
 Description:언리얼 엔진으로 개발하는 프로그래머를 위한 정보입니다.
+related: Programming\UnrealArchitecture\Reference\Classes
+related: Programming\UnrealArchitecture\Reference\Functions
+related: Programming\UnrealArchitecture\Reference\Properties
+related: Programming\UnrealArchitecture\Reference\Structs
+related: Programming\UnrealArchitecture\Reference\Interfaces
+version: 4.9
 
 
 각각의 게임은 그에 속하는 코드, 콘텐츠, 세팅이 전부 들어있는 게임 프로젝트로 정의됩니다. 게임플레이 코드는 하나 이상의 게임플레이 모듈에 들어있으며,
@@ -59,27 +65,8 @@ Character 같은 다른 액터에 포함되어 해당 오브젝트에도 똑같�
 각 액터나 오브젝트는 어느 한 클래스의 인스턴스 하나입니다. 클래스는 액터나 오브젝트에 대한 템플릿을 구성합니다. 해당 액터나 오브젝트에 대해 설정 가능한 프로퍼티를, 그리고 
 해당 액터나 오브젝트 안에서 실행 가능한 함수를 정의합니다. 새 클리스, 또는 새 오브젝트나 액터 유형을 C++ 코드로 만들 수 있습니다. _블루프린트 클래스_ 는 주로 새 액터를 구성하는 클래스를 만드는 데 
 사용되나, 약간의 오브젝트를 확장시킬 수도 있기는 합니다. C++ 클래스를 새로 만든 다음 그 C++ 클래스에서 _블루프린트 클래스_ 를 파생시키는 방법으로 그 둘을 합칠 수도 있습니다.
-새로운 유형의 액터나 오브젝트를 만들 수 있도록 클래스를 생성하는 법에 대해서는 [](Programming\Basics\ClassCreation) 문서를 참고하세요.
+새로운 유형의 액터나 오브젝트를 만들 수 있도록 클래스를 생성하는 법에 대해서는 [](Gameplay\ClassCreation) 문서를 참고하세요.
 
 오브젝트, 액터, 컴포넌트 관련 상세 내용은 [](Programming/UnrealArchitecture) 문서를 참고하시기 바랍니다.
-
-
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/reference_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		관련 페이지
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Programming\UnrealArchitecture\Reference\Classes)
-	* [](Programming\UnrealArchitecture\Reference\Functions)
-	* [](Programming\UnrealArchitecture\Reference\Properties)
-	* [](Programming\UnrealArchitecture\Reference\Structs)
-	* [](Programming\UnrealArchitecture\Reference\Interfaces)
-	[/PARAM]
-[/OBJECT]
 
 

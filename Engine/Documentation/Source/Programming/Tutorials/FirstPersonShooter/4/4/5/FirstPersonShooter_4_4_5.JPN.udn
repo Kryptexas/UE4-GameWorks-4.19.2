@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2672915
+﻿INTSourceChangelist:2953540
 Availability:Docs
 Title:4.4.5 - Jump Loop から Jump End への遷移を追加
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4, Programming/Tutorials/FirstPersonShooter/4/4
-Description:First Person Shooter キャラクターのアニメーション ステートマシンに Jump Loop から Jump End へのステート遷移を追加する方法を学びます。
-SkillLevel:初心者向け
-Version:4.9
+Description:FPS キャラクターのアニメーション ステートマシンに Jump Loop から Jump End へのステート遷移を追加する方法を学びます。
+SkillLevel:Beginner
+Version:4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -24,15 +24,15 @@ Version:4.9
 
 %Steps%
 
-このステップでは、ジャンプ ループから、ジャンプ エンドの遷移を設定します。
+このステップでは、Jump Loop から Jump End の遷移を設定します。
 
 1.	**[Arms State Machine]** グラフへ戻って、 **JumpLoop** ステートから **JumpEnd** ステートへワイヤーをドラッグします。
 
 	![](JumpLooptoJumpEnd.png)
 
-1.	遷移を **ダブルクリック** して編集します。
+1.	遷移をダブルクリックして編集します。
 
-1.	**[My Blueprint]** タブで **[IsFalling]** を **コントロールキーを押しながらクリック** してグラフにドラッグして、 **Get Is Falling** ノードを作成します。
+1.	**[My Blueprint]** タブで **[IsFalling]** をコントロールキーを押しながらクリックしてグラフにドラッグして、 **Get Is Falling** ノードを作成します。
 
 1.	**Get Is Falling** ノードの出力 Boolean ピンを引き出して、 **Not Boolean** ノードを作成します。
 

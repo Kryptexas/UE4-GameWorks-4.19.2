@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2612560
+﻿INTSourceChangelist:2717563
 Availability: Licensee
 Title:언리얼 엔진 4용 P4V 셋업하기
 Crumbs:%ROOT%, Engine, Programming, Programming/Basics, GettingStarted/DownloadingUnrealEngine/Perforce
 Description:언리얼 엔진 4 에 사용되는 퍼포스 P4V 윈도우 클라이언트로 빌드 설치, 셋업, 동기화 하는 방법 안내서입니다.
+version: 4.9
 
 [TOC(start:2)]
 
@@ -24,7 +25,7 @@ Description:언리얼 엔진 4 에 사용되는 퍼포스 P4V 윈도우 클라�
 
 	![install_features.jpg](install_features.jpg)(w:514 h:392)
 
-	![install_next_button.jpg](install_next_button.jpg) 버튼을 눌러 계속합니다.
+	**다음 > ** 버튼을 눌러 계속합니다.
 
 	P4Win 사용자였다면, SCC 플러그인이 대체된다는 창이 뜰 수도 있습니다.
 
@@ -33,12 +34,15 @@ Description:언리얼 엔진 4 에 사용되는 퍼포스 P4V 윈도우 클라�
 1. _Perforce Client Configuration_ 페이지에서 다음 정보를 입력하십시오:
 
 	* **Server Port** - `p4-licensee-proxy.epicgames.net:1667` (US 및 동아시아 VPN을 통해 사용가능) 또는 `p4-licensee-proxy-asia.epicgames.net:1667` (동아시아 VPN을 통해 연결된 경우에 일차적)
-	* **Username** - 원본 UDN 환영 이메일에 제공된, 보통 귀하의 팀명 (*주*: UDN 로그인 정보와는 다릅니다)
+	* **Username** - 원본 UDN 환영 이메일에 제공된, 보통 귀하의 팀명
+	[REGION:note]
+	UDN 로그인 정보와는 다릅니다.
+	[/REGION]
 
 	![install_client_config.jpg](install_client_config.jpg)(w:514 h:392)
 
-	![install_next_button.jpg](install_next_button.jpg) 버튼을 눌러 계속합니다.
-1. 설치를 시작할 준비가 됐습니다. ![install_start_button.jpg](install_start_button.jpg) 버튼을 눌러 시작합니다.
+	**다음 >** 버튼을 눌러 계속합니다.
+1. 설치를 시작할 준비가 됐습니다. **시작** 버튼을 눌러 시작합니다.
 
 	![install_complete.jpg](install_complete.jpg)(w:514 h:392)
 
@@ -61,16 +65,16 @@ P4Win 의 ClientSpecs 은 P4V 에서 Workspaces 라고 합니다.
 ![connect_dialog.jpg](connect_dialog.jpg)(w:512 h:265)
 
 _Server_ 및 _User_ 필드에 입력한 정보가 맞는지 확인합니다.
-1. 클라이언트 Workspace 의 경우, 기존에 P4Win 을 사용했었거나 P4V 를 재설치한 경우, ![connect_browse_button.jpg](connect_browse_button.jpg) 버튼을 눌러 쓰던 사용자에 연결된 Workspace 를 찾아보면 됩니다.
+1. 클라이언트 Workspace 의 경우, 기존에 P4Win 을 사용했었거나 P4V 를 재설치한 경우, **Browse...** 버튼을 눌러 쓰던 사용자에 연결된 Workspace 를 찾아보면 됩니다.
 
-Workspace 가 없는 경우 ![connect_new_button.jpg](connect_new_button.jpg) 버튼을 눌러 새 Workspace 를 만듭니다. 열리는 대화창에 다음 정보를 안내삼아 Workspace 이름을 입력하십시오:
+Workspace 가 없는 경우 **New** 버튼을 눌러 새 Workspace 를 만듭니다. 열리는 대화창에 다음 정보를 안내삼아 Workspace 이름을 입력하십시오:
 
 	* **라이선시인 경우** _Client Name_: **UE4_Licensee_[TEAMNAME]** (또는 UDN 유저명 또는 팀명으로 마무리)
 	* **계약자인 경우** _Client Name_: **UE4_Contractor_[USERNAME]** (또는 UDN 유저명 또는 팀명으로 마무리)
 
 	![connect_workspace.jpg](connect_workspace.jpg)(w:219 h:131)
 
-	![connect_ok_button.jpg](connect_ok_button.jpg) 버튼을 눌러 새 Workspace 를 만듭니다.
+	**Ok** 버튼을 눌러 새 Workspace 를 만듭니다.
 1. 이제 Workspace 가 _Open Connection_ 대화창에 표시됩니다.
 
 	![connect_complete.jpg](connect_complete.jpg)(w:512 h:265)
@@ -79,10 +83,10 @@ Workspace 가 없는 경우 ![connect_new_button.jpg](connect_new_button.jpg) �
 
 	![connect_startup.jpg](connect_startup.jpg)(w:140 h:26)
 
-![connect_ok_button.jpg](connect_ok_button.jpg) 버튼을 눌러 P4V 클라이언트를 열고 접속합니다.
-1. 티켓 소멸을 알리는 창이 뜰 수 있습니다. 그냥 앞으로 메시지를 다시 보지 않겠다고 해 두고, ![connect_ok_button.jpg](connect_ok_button.jpg)버튼을 클릭하십시오.
+**Ok** 버튼을 눌러 P4V 클라이언트를 열고 접속합니다.
+1. 티켓 소멸을 알리는 창이 뜰 수 있습니다. 그냥 앞으로 메시지를 다시 보지 않겠다고 해 두고, **Ok**버튼을 클릭하십시오.
 
-	방금-만든 workspace 를 채워넣겠다는 창이 뜨면, 거절합니다. 곧 대체될 데이터가 수 기가바이트나 필요하지는 않을 것입니다.
+	방금-만든 workspace 를 채워넣겠다는 창이 뜨면, 거절합니다. 그러면 곧 대체될 데이터를 수 기가바이트씩이나 받지 않을 수 있습니다.
 
 
 workspece는 머신별로 생성됩니다. 왜냐면 선택된 디렉토리에 있는 해당 기기의 하드 드라이브에 저장된 각 파일의 리비전 기록을 정확히 유지하기 때문입니다. 고로 다른 PC에서 동기화를 할 필요가 생기는 경우, 해당 기기에서 이 과정을 반복하여 workspace를 새로 만들어야 하겠습니다.
@@ -155,15 +159,15 @@ QA-승인 빌드로 동기화하려면 다음 단계를 따르십시오:
 
 	![p4v_revision_label.jpg](p4v_revision_label.jpg)(w:100 h:103)
 
-	![p4v_browse_button.jpg](p4v_browse_button.jpg)버튼을 눌러 _Select Label_ 창을 엽니다.
+	**Browse....** 버튼을 눌러 _Select Label_ 창을 엽니다.
 
 	![p4v_select_label.jpg](p4v_select_label.jpg)(w:800 h:526)
 1. 싱크를 하려는 라벨을 선택합니다. 보통 이는 최신 QA-승인 빌드이며, _QA_APPROVED_BUILD_[Month]_[Year]_ 의 형태로 라벨을 지정합니다. 모든 라벨을 로드시키려면 목록을 약간 아래로 스크롤해야 할 수도 있습니다.
 
 	![p4v_label_build.jpg](p4v_label_build.jpg)(w:800 h:526)
 
-	![p4v_ok_button.jpg](p4v_ok_button.jpg) 버튼을 눌러 라벨을 선택하고 창을 닫습니다.
-1. ![p4v_get_revision_button.jpg](p4v_get_revision_button.jpg) 버튼을 눌러 _Get Revision_ 창을 닫고 동기화를 시작합니다. 로그에 동기화 진행상황이 표시됩니다.
+	**Ok** 버튼을 눌러 라벨을 선택하고 창을 닫습니다.
+1. **Get Revision** 버튼을 눌러 _Get Revision_ 창을 닫고 동기화를 시작합니다. 로그에 동기화 진행상황이 표시됩니다.
 
 	![p4v_sync_progress.jpg](p4v_sync_progress.jpg)(w:800 h:117)
 

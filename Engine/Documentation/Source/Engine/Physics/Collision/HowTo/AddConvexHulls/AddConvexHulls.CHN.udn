@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Add a Collision Hull to a Static Mesh Using the Auto Convex Collision Tool
+﻿INTSourceChangelist:2714891
+Availability:Public
+Title:使用 Auto Convex Collision 工具将碰撞凸包添加至静态网格体。
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/Collision
 Description:
 
@@ -27,27 +27,27 @@ Description:
 
 
 
-## Steps
+## 步骤
 
 [REGION:raw]
 ![](Engine/Physics/Collision/HowTo/COLREF_collisionMenu_Auto.png)
 [/REGION]
 
-The **Static Mesh Editor** has the capability to generate collision using a number of convex hulls.
+**Static Mesh Editor**　可利用多个凸包产生碰撞。
 
 ![](Engine/Physics/Collision/HowTo/Collision_CreateCollisionHullWithAutoConvex_0.png)
 
-This rounded cube would probably work just fine with **6DOP Simplified Collision** but let us assume it needs more than that.
+这个圆形的方块只需　**6DOP Simplified Collision**　即可正常工作，但我们依然假设它需要更多调试。
 
-Selecting **Collision Menu -> Auto Convex Collision** will bring up this panel in the lower right hand side:
+选择　**Collision 菜单 -> Auto Convex Collision**，在窗口右下方呼出该面板：
 
 ![](Engine/Physics/Collision/HowTo/Collision_CreateCollisionHullWithAutoConvex_1.png)
 
-* **Max Hulls** - Determines the number of hulls to create to best match the shape of the object.
-* **Max Hull Verts** - Maximum number of collision hull vertices. Increasing this value increase how complex the collision hulls are allowed to be.
-* **Apply** - Adds collision to the object based on the settings above.
-* **Defaults** - Resets the values of **Max Hulls** and **Max Hull Verts** to the values seen in the image above.
+* **Max Hulls** - 确定建立物体外形最佳匹配所需的凸包数量。
+* **Max Hull Verts** - 碰撞凸包顶点的最大数量。增加此数值将增加允许的碰撞凸包复杂程度。
+* **Apply** - 基于以上设置为物体添加碰撞。
+* **Defaults** - 将　**Max Hulls** 和 **Max Hull Verts**　重设为上图中的数值。
 
 ![](Engine/Physics/Collision/HowTo/Collision_CreateCollisionHullWithAutoConvex_2.png)
 
-As you can see, the auto convex collision is reasonably accurate.
+如上图所示，自动凸面碰撞（auto convex collision）较为准确。

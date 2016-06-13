@@ -1,6 +1,6 @@
 ﻿INTSourceChangelist:0
 Availability: Public
-Title: Android Quick Start
+Title:安卓快速入门
 Crumbs:%ROOT%, Platforms, Platforms/Android
 Description:Setting up for development for the Android platform.
 
@@ -38,8 +38,8 @@ Description:Setting up for development for the Android platform.
 [/OBJECT]
 [/VAR]
 
-The Android Quick Start will walk you through setting up your computer and your Android device for deployment, and putting a template game on your device using both the launching and packaging features.
-This guide uses TADP as the Android SDK, but if you would like to know how to set up another SDK for use with Unreal Engine, see the [](Platforms\Android\Reference) page.
+“安卓快速入门”将指导您设置计算机和安卓设备以便进行部署，以及使用启动和打包功能将模板游戏放入您的设备。
+本指南使用 TADP 作为安卓 SDK，但如果您想了解如何设置用于虚幻引擎的其它 SDK，请参阅 [] (Platforms\Android\Reference) 页。
 
 
 [OBJECT:TopicButtonList]
@@ -47,7 +47,7 @@ This guide uses TADP as the Android SDK, but if you would like to know how to se
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		步骤
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

@@ -1,22 +1,44 @@
-﻿INTSourceChangelist:2615611
+﻿INTSourceChangelist:2968923
 Availability:Public
 Title:블루프린트 에디터 참고서
 Crumbs: %ROOT%, Engine, Engine/Blueprints
 Description:블루프린트 에디터의 인터페이스 요소와 그 기본적인 사용법을 개괄적으로 안내해 드리는 참고서입니다.
+version: 4.9
+parent:Engine/Blueprints
+
 
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Engine/Blueprints:title%](Engine/Blueprints/kismet_topic.png)
+		![%Engine/Blueprints/Editor:title%](Engine/Blueprints/editor_topic.png)
 	[/PARAM]
 	[PARAM:icon]
-		![](%ROOT%/blueprint_icon.png)(convert:false)
+		![](%ROOT%/editor_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		블루프린트 에디터
+		%Engine/Blueprints/Editor:title%
 	[/PARAM]
 	[PARAM:description]
-		블루프린트 에디터 인터페이스와 기본적인 사용법 개요입니다.
+		%Engine/Blueprints/Editor:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/Editor]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints/Editor:title%](Engine/Blueprints/editor_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/Editor:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/Editor:description%
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/Blueprints/Editor]
@@ -30,7 +52,6 @@ Description:블루프린트 에디터의 인터페이스 요소와 그 기본적
 
 [TOC (start:2)] 
 
-## 개요
 
 Blueprint (블루프린트) 비주얼 스크립팅 시스템은 UE4 전반에 걸쳐 여러가지 방식으로 사용되는 시스템입니다. 블루프린트는 레벨 기반 이벤트를 구동시키거나, 게임내 액터에 대해 내부적으로 스크립팅된 동작을 제어하거나, 심지어 매우 현실적인 게임 캐릭터 시스템 전반에 걸친 복잡한 애니메이션을 제어하거나 하는 데 사용할 수 있습니다. 이와 같은 블루프린트 적용 사례에 있어서, 해당 블루프린트 스크립트를 편집하는 위치는 물론 사용할 수 있는 툴도 필요에 따라 조금씩 바뀝니다. 즉 UE4 안에서 블루프린트 에디터가 나타날 수 있는 위치와 방법은 사실상 여러가지라는 뜻입니다. 그러나 그 차이점과는 무관하게, 블루프린트 에디터는 항상 동일한 핵심 동작을 수행합니다: 게임의 여러 부분에 구동되는 강력한 비주얼 스크립트를 만들고 편집할 수 있도록 해 주는 것입니다.
 

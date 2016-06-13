@@ -3,6 +3,7 @@ Title: 属性修饰符
 Crumbs:%ROOT%, Programming/UnrealArchitecture/Reference,  Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Properties
 Description: 在声明游戏属性时使用的关键字，以指定引擎和编辑器的不同方面的属性表现。
 Availability:Public
+Version: 4.9
 
 [EXCERPT:main]
 在声明属性时，声明上可添加修饰符以控制引擎和编辑器的不同方面的属性表现。

@@ -2,6 +2,7 @@ Availability: Docs
 Title:Advanced Blueprint Examples
 Crumbs:%ROOT%, Resources
 Description:An overview of the Advanced Blueprints example level
+Version: 4.9
 
 [REGION:banner]
 ![](advanced_bp_header.png)(convert:false)

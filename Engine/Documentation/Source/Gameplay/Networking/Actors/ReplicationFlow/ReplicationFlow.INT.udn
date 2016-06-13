@@ -6,6 +6,7 @@ Related: Gameplay/Networking/Actors
 Related: Gameplay/Networking/Actors/Properties
 Related: Gameplay/Networking/Actors/RPCs
 Related: Gameplay/Networking/Actors/ReplicationPerformance
+Version: 4.9
 
 The bulk of actor replication happens inside `UNetDriver::ServerReplicateActors`. This is where the server will gather all of the actors that it has determined to be relevant for each client, and send any properties that have changed since the last time each connected client was updated.
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2347453
+﻿INTSourceChangelist:2726448
 Availability: Public
 Title:Stylized Rendering 머티리얼
 Crumbs:%ROOT%, Resources, Resources/Showcases/Stylized
@@ -6,6 +6,7 @@ Description:UE4 에 포함된 Stylized Rendering 쇼케이스에 사용된 특�
 Related: Engine/Rendering/Materials
 Related: Engine/Rendering/Materials/MaterialInstances
 Related: Engine/Rendering/PostProcessEffects
+Version: 4.9
 
 한 폭의 미술 작품에 생동감을 불어넣었다는 느낌을 내기 위해서 씬의 머티리얼에 특수한 기술이 몇 가지 적용되었습니다. 두 가지 주요 예제는 나무꼭대기 근처에 보이는 "부유필법" 효과와, 다른 한 가지는 항상 플레이어쪽을 향하는 2D 스타일의 폴리지입니다.
 
@@ -34,14 +35,18 @@ Related: Engine/Rendering/PostProcessEffects
 
 DitherTemporalAA 노드를 사용하지 않은 나무의 모습은 이렇습니다:
 
-[REGION:imagetable]
-|![](DitheredStrokes.png)(%Dither%)|![](NonDitheredStrokes.png)(%Dither%)|
-|:---:|:---:|
-|DitherTemporalAA 켜짐|Without DitherTemporalAA 꺼짐|
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![With DitherTemporalAA](DitheredStrokes.png)(%Dither%)
+	[/PARAM]
+	[PARAM:after]
+	![Without DitherTemporalAA](NonDitheredStrokes.png)(%Dither%)
+	[/PARAM]
+[/OBJECT]
+
 
 [VAR:Dither]
-w:450
+w:600
 [/VAR]
 
 그러나 여기서 유념해야 할 것은, 이 기법은 엔진에 _기본적으로 활성화_ 되어있는 엔진 기능 **TemporalAA** 를 사용해야 한다는 점입니다. 포스트 프로세스 볼륨 안에서 _Misc_ 카테고리 아래 찾을 수 있는 **AA Method** 프로퍼티를 통해 덮어쓸 수 있습니다.

@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2612791
+﻿INTSourceChangelist:2651255
 Availability: Public
 Title:플레이어 스타트
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:Player Start, 플레이어 스타트 사용 안내서입니다.
+version: 4.9
 
 ![](Player_Start_Actor.png)
 
@@ -21,13 +22,13 @@ Description:Player Start, 플레이어 스타트 사용 안내서입니다.
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-DeMIl0BgRtw
+fXX07XG5qW8
 [/PARAMLITERAL]
 [/OBJECT]
 
 ## 플레이어 스타트 액터 사용하기
 
-플레이어 스타트 사용은 **모드** 패널에서 선택한 다음 월드에 끌어 놓기만 하면 됩니다. 월드에 플레이어 스타트를 배치하고나면, 블루프린트와 조합해 사용하여 플레이어를 월드 내 원하는 곳 어디에든 스폰시킬 수 있습니다.
+플레이어 스타트 사용은 **모드** 패널에서 선택한 다음 월드에 끌어 놓기만 하면 됩니다. 월드에 플레이어 스타트를 배치하고 나면, 블루프린트와 조합해 사용하여 플레이어를 월드 내 원하는 곳 어디에든 스폰시킬 수 있습니다.
 
 [region:tip]
 플레이어 스타트를 사용하여 플레이어를 스폰할 때, 플레이어 스타트의 위치와 방향이 고려됩니다. 플레이어가 스폰될 때 어떠한 것을 바라보도록 하고자 한다면, 플레이어를 스폰시킬 때 사용하는 플레이어 스타트가 플레이어가 바라봤으면 하는 방향을 가리키도록 하시기 바랍니다.
@@ -43,7 +44,7 @@ DeMIl0BgRtw
 
 ![](Right_Click_Play.png)
 
-**잘못된 크기:** 가끔 플레이어 스타트가 콘트롤러 아이콘에서 잘못된 크기라는 아이콘으로 바뀔 때가 있습니다. 그러한 일이 발생하면, 플레이어 스타트가 씬의 다른 것에 교차되지 않을 때까지 월드에서 이동시켜보면 됩니다.
+**잘못된 크기:** 가끔 플레이어 스타트가 콘트롤러 아이콘에서 BADSize, 잘못된 크기라는 아이콘으로 바뀔 때가 있습니다. 그러한 일이 발생하면, 플레이어 스타트가 씬의 다른 것에 교차되지 않을 때까지 월드에서 이동시켜보면 됩니다.
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]

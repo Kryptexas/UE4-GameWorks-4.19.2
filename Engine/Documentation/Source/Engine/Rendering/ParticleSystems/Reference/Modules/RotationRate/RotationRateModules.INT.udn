@@ -2,6 +2,7 @@ Availability: Public
 Title:Rotation Rate Modules
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:These modules apply a constant rate of rotation - or "spin" - to the particles.
+Version: 4.9
 
 [TOC(start:2 end:3)]
 
@@ -10,7 +11,7 @@ These modules apply a constant rate of rotation - or "spin" - to the particles.
 ## Init Mesh RotRate
 
 
-The Initial RotRate module is used to set the rotation rate of a mesh particle when it is emitted. It contains the following member(s):
+The **Initial RotRate** module is used to set the rotation rate of a mesh particle when it is emitted. It contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |
@@ -19,7 +20,7 @@ The Initial RotRate module is used to set the rotation rate of a mesh particle w
 
 ## Init Mesh RotRate (Seed)
 
-The Initial RotRate (Seeded) module is identical to the [Init Mesh RotRate](#InitMeshRotRate) module in that it sets the rotation rate of a mesh particle when it is emitted; however, this module allows you to specify seed information to be used when choosing distribution values in order to provide a more consistent effect from the module each time the emitter is used. It contains the following member(s):
+The **Initial RotRate (Seeded)** module is identical to the [Init Mesh RotRate](#InitMeshRotRate) module in that it sets the rotation rate of a mesh particle when it is emitted; however, this module allows you to specify seed information to be used when choosing distribution values in order to provide a more consistent effect from the module each time the emitter is used. It contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |
@@ -32,7 +33,7 @@ The Initial RotRate (Seeded) module is identical to the [Init Mesh RotRate](#Ini
 ## Mesh RotRate*Life
 
 
-The Mesh RotRate*Life module is used to scale the rotation rate of a mesh particle over its lifetime. It contains the following member(s):
+The **Mesh RotRate Life** module is used to scale the rotation rate of a mesh particle over its lifetime. It contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |
@@ -43,7 +44,7 @@ The Mesh RotRate*Life module is used to scale the rotation rate of a mesh partic
 
 ## Mesh Rot Rate Over Life
 
-The Mesh Rot Rate Over Life module is used to set the rotation rate of a mesh-based particle over its lifetime. It contains the following member(s):
+The **Mesh Rot Rate Over Life** module is used to set the rotation rate of a mesh-based particle over its lifetime. It contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |
@@ -67,7 +68,7 @@ mLSdoDCyx4Q
 [/PARAMLITERAL]
 [/OBJECT]
 
-The Initial RotRate module is used to set the rotation rate of a particle when it is emitted. It contains the following member(s):
+The **Initial RotRate** module is used to set the rotation rate of a particle when it is emitted. It contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |
@@ -77,7 +78,7 @@ The Initial RotRate module is used to set the rotation rate of a particle when i
 
 ## Init Rot Rate (Seeded)
 
-The Initial RotRate (Seeded) module is identical to the [Initial Rot Rate](#InitialRotRate) module in that it sets the rotation rate of a particle when it is emitted; however, this module allows you to specify seed information to be used when choosing distribution values in order to provide a more consistent effect from the module each time the emitter is used. It contains the following member(s):
+The **Initial RotRate (Seeded)** module is identical to the [Initial Rot Rate](#InitialRotRate) module in that it sets the rotation rate of a particle when it is emitted; however, this module allows you to specify seed information to be used when choosing distribution values in order to provide a more consistent effect from the module each time the emitter is used. It contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |
@@ -102,7 +103,7 @@ ELwP3O46I_k
 [/PARAMLITERAL]
 [/OBJECT]
 
-The Rot Rate/Life module is used to scale the rotation rate of a particle over its lifetime. It contains the following member(s):
+The **Rot Rate/Life** module is used to scale the rotation rate of a particle over its lifetime. It contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |

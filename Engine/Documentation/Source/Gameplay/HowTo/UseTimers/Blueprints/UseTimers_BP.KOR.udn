@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2607599
+﻿INTSourceChangelist:2713187
 Availability: Public
 Title:블루프린트에서 타이머 사용법
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\UseTimers
 Description:블루프린트에서 타이머를 사용하는 비법 안내입니다.
+version: 4.9
 
 [TOC (start:2 end:2)]
 
@@ -26,19 +27,21 @@ _이 예제에서는 **블루프린트 삼인칭 템플릿** 을 사용하여, �
 
 	이 함수는 **Timer** 에 의해 때때로 호출되어 대미지가 적용됩니다.
 
-1.	**PlayerInFire** 이벤트를 끌어놓은 다음 **Set Timer** 노드를 추가합니다.
+1.	**PlayerInFire** 이벤트를 끌어놓은 다음 **Set Timer by Function Name** 노드를 추가합니다.
 
-1.	**PlayerNotInFire** 이벤트를 끌어놓고, **Clear Timer** 노드를 추가합니다.
+1.	**PlayerNotInFire** 이벤트를 끌어놓고, **Clear Timer by Handle** 노드를 추가합니다.
 
-1.	**Set Timer** 와 **Clear Timer** 둘 다에 대해, **Function Name** 을 **FireDamage** 로 설정합니다. 
+1.	**Set Timer by Function Name** 에서 **Function Name** 을 **FireDamage** 로 설정합니다. 
 
-1.	**Set Timer** 에서 **Time** 을 **0.75** 로, **Looping** 박스를 체크합니다.
+1.	** Set Timer by Function Name** 에서 **Time** 을 **0.75** 로, **Looping** 박스를 체크합니다.
+
+1. **Set Timer by Function Name** 노드의 **Return Value** 핀을 **Clear Timer by Handle** 노드의 **Handle** 핀에 연결합니다.
 
 	![](GHT6B_3.png)
 
 	입력된 **Time** 간격(, 즉 0.75 초)마다 **Function Name** 함수가 호출됩니다.
 
-1.	**PlayerHealth** 라는 **Int** 변수를 새로 만들고, **컴파일** 을 클릭한 다음 **Default Value** 를 **100** 으로 설정합니다.
+1.	**PlayerHealth** 라는 **Integer** 변수를 새로 만들고, **컴파일** 을 클릭한 다음 **Default Value** 를 **100** 으로 설정합니다.
 
 	![](GHT6B_4.png)
 
@@ -58,7 +61,7 @@ _이 예제에서는 **블루프린트 삼인칭 템플릿** 을 사용하여, �
 
 	이 예제에서는 헬쓰 바를 표시하지 않고 있지만, 이를 통해 헬쓰 값이 줄어드는 것을 확인할 수 있습니다.
 
-1.	**Blueprint_Effect_Fire** 블루프린트를 연 다음 **컴포넌트** 탭을 클릭합니다.
+1.	Content/StarterContent/Blueprints 폴더에 위치한 **Blueprint_Effect_Fire** 블루프린트를 엽니다.
 
 1.	**컴포넌트 추가** 버튼을 클릭한 다음 **박스** 모양을 추가하고 **Trigger** 라 부릅니다. 
 
@@ -66,7 +69,7 @@ _이 예제에서는 **블루프린트 삼인칭 템플릿** 을 사용하여, �
 
 	플레이어가 이 트리거에 들어서고/나가면, **ThirdPersonCharacter** 블루프린트에서 이벤트를 호출합니다.
 
-1.	**그래프** 탭으로 돌아가 **Trigger** 에 **우클릭** 한 다음 **OnComponentBegin** / **OnComponentEnd** Overlap 이벤트를 추가합니다.
+1.	**내 블루프린트** 탭에서 **Trigger** 에 **우클릭** 한 다음 **OnComponentBegin** / **OnComponentEnd** Overlap 이벤트를 추가합니다.
 
 	![](GHT6B_8.png)
 
@@ -89,28 +92,28 @@ _이 예제에서는 **블루프린트 삼인칭 템플릿** 을 사용하여, �
 
 ## 추가적인 타이머 관련 노드
 
-**Set Timer** 및 **Clear Timer** 노드가 타이머의 시작/중지에 사용되기는 하지만, 필요에 따라 아래 노드를 사용할 수도 있습니다.
+**Set Timer by Function Name** 및 **Clear Timer by Handle** 노드가 타이머의 시작/중지에 사용되기는 하지만, 필요에 따라 아래 노드를 사용할 수도 있습니다.
 
 ### 타이머 경과시간 구하기 / 타이머 남은시간 구하기
 
 ![](GHT6B_10.png)
 
-**Get Timer Elapsed** / **Get Timer Remaining** 노드는 (**FunctionName** 으로) 지정된 타이머가 시작된 이후 경과된 시간과 남아있는 시간을 구합니다. **Float** 로 값을 반환하며, 여러가지 다른 용도로 사용할 수도 있습니다. 이를테면 시간에 따라 이펙트를 변경한다든가, 이펙트가 소멸하려 할 때 메시지를 출력한다든가 하는 것입니다.
+**Get Timer Elapsed by Handle** / **Get Timer Remaining by Handle** 노드는 (**Handle** 로) 지정된 타이머가 시작된 이후 경과된 시간과 남아있는 시간을 구합니다. **Float** 로 값을 반환하며, 여러가지 다른 용도로 사용할 수도 있습니다. 이를테면 시간에 따라 이펙트를 변경한다든가, 이펙트가 소멸하려 할 때 메시지를 출력한다든가 하는 것입니다.
 
 ### 타이머 일시정지 / 해제
 
 ![](GHT6B_11.png)
 
-이름에서 알 수 있듯이 **Pause Timer** 는 타이머를 현재 시간에서 일시정지시키는 반면, **Clear Timer** 는 완전히 정지 및 리셋시킵니다. **Un Pause Timer** 노드는 일시정지된 타이머를 멈춘 곳에서 다시 시작되도록 재개시키는 데 사용됩니다. 플레이어에게 타이머로 실행되는 이펙트가 적용되어 있는 경우, 메뉴나 인벤토리 화면에 들어가면 이펙트를 일시정지시키고 게임플레이로 돌아오면 재개시키는 경우를 예로 들 수 있겠습니다.
+이름에서 알 수 있듯이 **Pause Timer by Handle** 는 타이머를 현재 시간에서 일시정지시키는 반면, **Clear Timer by Handle** 는 완전히 정지 및 리셋시킵니다. **Unpause Timer by Handle** 노드는 일시정지된 타이머를 멈춘 곳에서 다시 시작되도록 재개시키는 데 사용됩니다. 플레이어에게 타이머로 실행되는 이펙트가 적용되어 있는 경우, 메뉴나 인벤토리 화면에 들어가면 이펙트를 일시정지시키고 게임플레이로 돌아오면 재개시키는 경우를 예로 들 수 있겠습니다.
 
 ### 타이머 존재 / 활성화 / 일시정지 여부
 
 ![](GHT6B_12.png)
 
-**Timer Exists**, **Is Timer Active**, **Is Timer Paused** 노드 전부 **True** 또는 **False** 값을 반환하며, 각각 타이머가 존재하는지, 타이머가 현재 활성 상태인지, 타이머가 현재 일시정지되어 있는지를 확인하는 데 쓰입니다.
+**Does Timer Exist by Handle**, **Is Timer Active by Handle**, **Is Timer Paused by Handle** 노드 전부 **True** 또는 **False** 값을 반환하며, 각각 타이머가 존재하는지, 타이머가 현재 활성 상태인지, 타이머가 현재 일시정지되어 있는지를 확인하는 데 쓰입니다.
 
-### 타이머 델리게이트 설정
+### 이벤트로 타이머 설정
 
 ![](GHT6B_13.png)
 
-**Set Timer Delegate** 노드는 **Set Timer** 노드와 비슷하나 **Function Name** 을 지정하는 대신 **Custom Event** 를 연결하여 발동시킬 수 있다는 점이 다릅니다. 여기에도 **Set Timer** 노드와 마찬가지로 루핑 설정이 가능합니다. 소거시키려면 **Clear Timer** 노드를 사용하여 **Function Name** 에 **Custom Event** 이름을 입력하면 됩니다.
+**Set Timer by Event** 노드는 ** Set Timer by Function Name** 노드와 비슷하나 **Function Name** 을 지정하는 대신 **Custom Event** 를 연결하여 발동시킬 수 있다는 점이 다릅니다. 여기에도 ** Set Timer by Function Name** 노드와 마찬가지로 루핑 설정이 가능합니다.

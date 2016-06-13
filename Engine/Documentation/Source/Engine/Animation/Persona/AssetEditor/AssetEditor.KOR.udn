@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2187667
+﻿INTSourceChangelist:2664815
 Availability:Public
 Title:애셋 에디터
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
 Description:페르소나 애니메이션 에디터에 있는 애셋 에디터 사용 안내서입니다.
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -37,5 +38,5 @@ Description:페르소나 애니메이션 에디터에 있는 애셋 에디터 �
 
 ![](AssetEditor_AddNotify.png)
 
-애니메이션 노티파이 관련 상세 정보는, [](Engine/Animation\Sequences\Notifies) 문서를 참고하세요.
+애니메이션 노티파이 관련 상세 정보는, [](Engine/Animation/Sequences\Notifies) 문서를 참고하세요.
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653552
+﻿INTSourceChangelist:2758677
 Availability: Public
 Title:1.7 - 씬 캡처 2D
 Crumbs: %ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Reflections
@@ -9,6 +9,7 @@ Related: Engine/Rendering/LightingAndShadows/LightTypes/SkyLight\
 Related: Engine/Rendering/Materials/PhysicallyBased
 Related: Resources/Showcases/RealisticRendering
 Related: Engine/Rendering/PostProcessEffects
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -70,7 +71,6 @@ Related: Engine/Rendering/PostProcessEffects
 [REGION:fullwidth]
 
 ![](Reflections_1_7_Header.png)
-## 개요
 
 [**씬 캡처 큐브**](Resources\ContentExamples\Reflections\1_6) 와 매우 비슷하게, **Scene Capture 2D** (씬 캡처 2D) 는 _매 프레임마다_ 씬의 이미지를 만듭니다. 사실 씬 캡처 2D 액터는 실제 리플렉션을 반영하는 식으로 작동한다기 보다는, 카메라의 이미지를 받는 TV 화면처럼 작동합니다. 씬 캡처 2D 는 그 뷰 프러스텀에서 찍은 시야를 이미지로 저장한 다음, 그것을 머티리얼 안에서 사용합니다. 사실 언리얼 에디터의 **Scene Capture 2D** (씬 캡처 2D) 표현은 카메라입니다. 그렇기에 게임에서 보안 카메라 효과를 내는 데 흔히 사용됩니다. 
 

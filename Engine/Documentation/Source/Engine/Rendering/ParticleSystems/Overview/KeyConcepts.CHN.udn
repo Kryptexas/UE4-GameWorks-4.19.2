@@ -1,26 +1,26 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2743189
 Availability:Public
-Title: Key Particle Concepts
+Title: 粒子系统的关键概念
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
-Description:Critical concepts for working with particles in Unreal and the Cascade particle editor.
+Description: 在虚幻中使用粒子以及级联粒子编辑器时的一些关键概念
+Version: 4.9
 
 [TOC(start:2 end:3)]
 
-**ParticleSystems** and **Cascade**, the _Particle System_ editor, are extremely flexible and powerful. However, before you jump in and get your hands dirty, there are some important concepts that you will need to fully grasp. The purpose of this document is to introduce you to these key concepts, giving you a more solid feel for how these aspects of the particle system work, while avoiding the nuances of the user interface or the specifics of particle effect creation.
+**粒子系统** 和 **级联** 粒子系统编辑器都是灵活并强大的。然后，在开始真正动手干活前，有一些重要的概念需要预先了解。这篇文章的目的就是要介绍这些重要概念，为粒子系统如何工作提供扎实的原理基础，但并不讨论界面使用上的细节，也不对特定粒子效果如何制作进行说明。
 
-## A Modular Approach to Particle Effects
+## 粒子特效的模块化做法
 
-The primary and overreaching concept of Cascade is that of modularly designed particle systems. In some 3D effects packages, such as Maya, a particle system is created with most of the necessary properties for behavior already in place. The user then alters those properties in order to achieve the desired result.
+关于级联的主要的概念就是对粒子系统进行模块化的设计。在一些其他软件的特效功能中，比如 Maya，一个粒子效果要创建的话需要先定义大部分行为的属性，然后用户再对这些属性进行修改来获得希望中的效果。
 
-In Cascade, on the other hand, a particle system begins with only a few _bare bones_ properties and a few behavioral modules.
+在级联中，则是另外一种做法，一个粒子系统创建后只有很少的 _最基础_ 的属性，以及一些行为模块。
 
-Each module represents a specific aspect of particle behavior, and contains only the properties that control that behavior, such as color, position at birth, movement, scaling, and many others. The user may then add or remove modules as they see fit, thereby further defining particle behavior. Since only the modules for necessary behavior are added, there is no extraneous calculation of unnecessary properties.
+每个模块代表了粒子行为的一个特定方面，并只对行为的该方面提供属性参数，比如颜色、生成的位置、移动行为、缩放行为，及其他等。用户可以在需要的时候添加或者删除一个模块，来进一步定义粒子的整体行为。由于这里的结果中只有必要的模块才会被添加进来，因此并没有额外的计算，也没有不需要的属性变量的参与。
 
-Best of all, modules can be easily added, removed, copied, and even instanced from the emitters within a particle system, making intricate setups very easy to achieve once the user is familiarized with the modules available.
+最棒的是，模块可以很容易的被添加、删除、拷贝，甚至在一个粒子系统中从其他发射器实例化过来，一旦用户熟悉了有哪些可用的模块和它们的功能后，制作一个复杂的粒子系统也会变得非常容易。
 
 
-
-### Default Modules
+### 默认模块
 
 [OBJECT:topiclistnotitlealt]
 	[PARAM:icon]
@@ -39,169 +39,167 @@ Best of all, modules can be easily added, removed, copied, and even instanced fr
 
 <!--
 [EXCERPT:Modules]
-Some modules exist on a particle emitter by default. Whenever a new Sprite Emitter - the key component of any particle system - is added to a particle system, it is always created with the following **default** modules:
+有些模块在粒子发射器默认存在。在一个新的面片发射器 - 粒子系统的关键组件 - 被添加到粒子系统中，一下这几个 **默认** 模块都会随之创建：
 
-* **Required** - This contains a variety of properties that are absolutely necessary for a particle system, such as the material applied to the particles, how long the emitter should emit particles, and many others.
-* **Spawn** - This module controls how quickly particles will spawn from the emitter, whether they will spawn in bursts, and any properties related to the timing of particle birth.
-* **Lifetime** - This governs how long each particle will live once it is born. Without this module, the particles will live indefinitely.
-* **Initial Size** - This controls the scale of a particle at the moment of its birth.
-* **Initial Velocity** - This controls the movement of a particle at the moment of its birth.
-* **Color Over Life** - This module controls how the color of each particle will shift throughout its lifespan.
+* **Required** - 这里包含了一些属性，都是对粒子系统绝对需要用到的属性，比如粒子使用的材质，发射器发射粒子的时间，以及其他。
+* **Spawn** - 这个模块控制粒子从发射器生成的速度，它们是否以 Burst 生成，以及其他和粒子发生时机有关的属性。
+* **Lifetime** - 这里定义了每个粒子在生成后存在的时间，如果没有这个模块，粒子则会一直持续下去。
+* **Initial Size** - 这里对粒子生成时的缩放比例进行控制。
+* **Initial Velocity** - 这里对粒子生成时的移动进行控制。
+* **Color Over Life** - 这个模块用于控制每个粒子的颜色在过程中如何改变。
 [/EXCERPT:Modules]
 -->
 
 [REGION:note]
-	The *Required* and *Spawn* modules are permanent, and cannot be removed from the emitter. However, all other modules can be removed at will.
+	*Required* 和 *Spawn* 这两个模块是永久模块，无法从发射器内移除。其他一些模块都可以按需删除。
 [/REGION]
 
 
-### Module Categories
+### 模块分类
 
-There are many modules that can be added to your particle emitters. To help avoid confusion, these modules are broken up into various categories. These categories are:
+有很多模块可用于粒子发射器上。为了避免混淆，这些模块分为以下几种类别：
 
-| Category | Description |
+| 类别 | 描述 |
 | --- | --- |
-| **Acceleration** | Modules governing how particle acceleration may be affected, such as by drag forces. |
-| **Attraction** | Modules which control particle movement by attracting particles to various points in space. |
-| **Camera** | Modules controlling how to move particles in camera space, allowing the user to make them seem closer or farther away from the camera. |
-| **Collision** | Modules controlling how collisions between particles and geometry are handled. |
-| **Color** | Modules which affect the color of particles. |
-| **Event** | Modules which control the triggering of particle events, which can in turn cause a variety of in-game responses. |
-| **Kill** | Modules governing particle deletion. |
-| **Lifetime** | Modules which control how long particles should live. |
-| **Light** | Modules governing particle lights. |
-| **Location** | Modules controlling where particles will be born relative to the location of the emitter Actor. |
-| **Material** | Modules which control the material applied to the particles themselves. |
-| **Orbit** | Modules which allow for screen-space orbital behavior, to add extra motion to effects. |
-| **Orientation** | Modules that allow for a rotational axis of the particles to be locked. |
-| **Parameter** | Modules which can be parameterized, or controlled via external sources such as Blueprints and Matinee. |
-| **Rotation** | Modules that control the rotation of particles. |
-| **RotationRate** | Modules governing changes in rotation speed, such as spin. |
-| **Size** | Modules controlling the scale of particles. |
-| **Spawn** | Modules for adding specialized particle spawn rates, such as spawning particles based on distance moved. |
-| **SubUV** | Modules which allow for animated sprite sheets to be displayed on a particle. |
-| **Velocity** | Modules which control the velocity of each particle. |
+| **Acceleration** | 用于处理粒子加速行为的模块，比如通过定义阻力等。 |
+| **Attraction** | 通过不同位置放置引力点来控制粒子移动的模块。 |
+| **Camera** | 用于管理如何在摄像机空间来移动粒子的模块，能够处理粒子是靠近还是远离摄像机。 |
+| **Collision** | 用于管理粒子如何和其他几何体碰撞的模块。 |
+| **Color** | 该分类模块用于改变粒子的颜色。 |
+| **Event** | 该分类模块控制粒子的事件触发，这可以用来在游戏中做各种响应。 |
+| **Kill** | 该分类模块用于处理单个粒子的删除行为。 |
+| **Lifetime** | 该分类模块用于处理粒子存在的时间。 |
+| **Light** | 这些模块管理粒子的光照特性。 |
+| **Location** | 这些模块定义了相对于发射器位置的粒子生成位置的信息。 |
+| **Material** | 这些模块定义了粒子上应用的材质信息。 |
+| **Orbit** | 这些模块能够定义屏幕空间的行为轨迹，为效果添加额外的运动特性。 |
+| **Orientation** | 这些模块能够锁定粒子的旋转轴。 |
+| **Parameter** | 这些模块能够被参数化，可以使用外部系统来对粒子进行控制，比如蓝图和 Matinee。 |
+| **Rotation** | 这些模块用于控制粒子的旋转。 |
+| **RotationRate** | 这些模块管理旋转速度的变化。 |
+| **Size** | 这些模块控制粒子的缩放行为。 |
+| **Spawn** | 这些模块用来给粒子生成速率添加额外定义，比如根据距离的改变来调整粒子的生成。 |
+| **SubUV** | 这些模块能够让粒子使用序列帧动画贴图数据。 |
+| **Velocity** | 这些模块处理每个粒子的移动速度。 |
 
 
-For more information on individual particle modules, be sure to check out the [Particle Module Reference](Engine/Rendering/ParticleSystems/Reference/).
+要查阅更多关于每个粒子模块的信息，请查看这个 [](Engine/Rendering/ParticleSystems/Reference/) 页面及其下的其他页面。
 
-### Initial vs. Over Life
+### 初始状态 vs. 生命周期
 
-Two important concepts to keep in mind when working with particle modules are *initial* and *over life* or *per life* properties.
+在使用粒子模块工作的时候要对两个概念有所了解，他们是 *初始状态* 和 *生命周期* 或者叫 *每次生命* 属性。
 
-* **Initial** modules are used to control some aspect of particles the moment they are spawned into the world.
-* **Over Life** or **Per Life** modules exist to allow some aspect of a particle to change throughout its life.
+* **初始状态** 的模块一般用于管理粒子被生成那一刻的各方面属性。
+* **生命周期** 或者 **每次生命** 的模块是为了对粒子的生命过程中对它们的属性进行修改的方面。
 
-For example, an *Initial Color* module will allow you to set the color of a module at the moment a particle is born, while a *Color Over Life* property allows the particle color to gradually change between the moment of birth and the moment of death.
+比如，*初始颜色* 的模块能够为粒子生成那一刻指定颜色属性，而 *生命周期颜色* 的属性则是用于在粒子生成后，直到被消亡前的这段过程中逐渐修改颜色的行为。
 
-### Module Time Calculation
+### 模块时间计算
 
-If you change a property to a distribution type that changes over time, some modules use 'relative time' and some use 'absolute time' (more on distributions below).
+如果将一个属性设置为 distribution 的类型，那么它就会在时间过程上发生变化，有些模块使用“相对时间”而有些模块使用“绝对时间”（下面的 distribution 部分有更多说明）。
 
+* 绝对时间基本上就是外部发射器的计时。如果发射器的设置是每个循环 2 秒，一个三次循环，那么在这个发射器内的模块的绝对时间将是从 0 到 2，会运行 3 遍。
 
-* Absolute time is basically the containing emitter time. If you have an emitter set up for 3 loops of 2 seconds, Absolute time for modules in that emitter will run from 0 to 2 seconds three times.
-
-* Relative time is between 0 and 1, indicating the lifetime of each particle.
-
-
-Descriptions of the currently available modules can be found at [ParticleSystemReference](Engine/Rendering/ParticleSystems/Reference).
+* 相对时间在 0 到 1 之间，表示每个粒子在生命周期中的时间。
 
 
-
-## Emitters, Particle Systems, and Emitter Actors
-
-As you work with Cascade to create your own particle effects, it is important to keep in mind how each one of the objects relates to one another. In this document, we have already discussed the concept of modules, but they only make up one component of a complete particle effect. All told, the components of a particle system are modules, emitters, particle systems, and emitter Actors. A solid way to remember how they relate is like so:
-
-* **Modules**, which define particle behavior and are placed within...
-* **Emitters**, which are used to emit a specific type of particle for an effect, and any number of which can be placed within a...
-* **Particle System**, which is an asset available in the **Content Browser**, and which can then in turn be referenced by an...
-* **Emitter Actor**, which is a placeable object that exists within your level, controlling where and how the particles are used in your scene.
+对当前可用模块的描述可以在 [](Engine/Rendering/ParticleSystems/Reference) 页面内的模块类型页面。
 
 
-## Particle Calculation
+## 发射器，粒子系统，以及发射器 Actor
 
-It is important to be aware of calculation order when working with particle systems. Each column in the Cascade emitter list area represents another emitter, and each block in the column represents another module. Calculation order runs like so:
+在使用级联制作粒子效果的时候，需要始终记住每个对象之间的互相作用关系。在这篇文档中我们已经讨论了模块的概念，但模块只是粒子特效中的一个组件。总的来说，粒子系统的组件包括模块、发射器、粒子系统，以及发射器 Actor。可以用以下描述来记住这些概念之间的关系：
 
-* Emitters are calculated from left to right in the emitter list.
-* Modules are calculated from top to bottom in the stack.
-
-
-
-## Emitter Types
-
-Just as there exists a wide variety of effect types that you will want to create with your particles, there is also a variety of emitter types available to help you create exactly what you need. Below is a list of the available emitter types:
-
-It should be noted that all emitters, regardless of type, are sprite emitters at the start. Various emitter *Type Data* modules are then added to the emitter to change its type to something else. 
-
-* **Sprite Emitters** - These are the most basic types of emitter and the most frequently used. Particles are emitted as polygonal sprites (2-polygon cards) which always face the camera. Useful for smoke, fire, and a wide variety of other effects.
-
-* **AnimTrail Data** - Used to create trails from the sockets of animated skeletons.
-
-* **Beam Data** - Used to create beams such as lasers, streaks of lightning, and similar effects.
-
-* **GPU Sprites** - These are special types of particles in which the bulk of runtime calculation is passed off to the GPU. This boosts the number of possible particles from the several thousand possible with CPU particles to several *hundred thousand*, depending on the type of GPU in the target system.
-
-* **Mesh Data** - Instead of emitting a series of sprites, this type of emitter will instead emit polygonal meshes. Great for rock slides, debris, and similar effects.
-
-* **Ribbon Data** - This produces a string of particles that are attached end to end to form a ribbon which trails behind a moving emitter.
+* **模块**，定义粒子的行为，并且被放置在一个发射器中。
+* **发射器**，为展示效果发射特定行为的粒子，任意个发射器可以被同时放置在一个粒子系统内。
+* **粒子系统**，作为 **内容浏览器** 中的一个资源，可以被一个发射器 Actor 来引用。
+* **发射器 Actor**，是一个放置在关卡中的东西，用于定义粒子在场景中如何使用。
 
 
-For more information on the different types of emitter available, please see the [Emitter Types page](Engine/Rendering/ParticleSystems/Reference).
+## 粒子的运算
+
+当使用粒子系统时，了解运算的次序也是很重要的。在级联编辑器中，列表区域的每列都代表了一个发射器，一列中的每个块代表一个模块。运算时的次序如下：
+
+* 发射器的运算是根据发射器的列表从左往右的。
+* 模块的计算按照堆栈列表从上到下的。
 
 
-## Parameters
+## 发射器类型
 
-Not all aspects of a particle system can be defined in advance. Sometimes, certain parts of a particle system's behavior will need to be controlled or changed at runtime. For example, you may be creating a magic effect that changes color based on the amount of magical energy consumed when the spell is cast. In such cases, parameters will need to be added to the particle system.
+正如特效本身有各种不同的类型一样，发射器也分为不同的类型来制作各种特效。下面是目前可用的发射器类型：
 
-A *parameter* is a type of property that can send or receive data to/from other systems such as Blueprints, Matinee, a material, or many other sources. In Cascade, just about any given property can be assigned to a parameter, which means that the property can then be controlled from outside the particle system.
+需要注意的是，无论什么类型，发射器默认都是面片发射器。可以添加不同的发射器 *类型数据* 模块，改变发射器的类型。
 
-For instance, setting up a parameter to control spawn rate for a fire effect could allow for the player to have the ability to increase or decrease the amount of flame being emitted at runtime.
+* **Sprite Emitters** - 这是发射器的基本类型，也是用的最广泛的类型。使用始终朝向摄像机的多边形化的面片（2 个多变形组成）作为单个粒子发射。可以用来做烟雾、火焰特效，以及其他各种种类的效果。
 
-Conversely, there are parameter modules which can be added to a particle system that can, in turn, drive other things in the level such as a color used in a given material.
+* **AnimTrail Data** - 用于创建动画的拖尾效果。
 
-In Cascade, parameters are generally established by way of Distributions, which are ways to handle data within a property. You can find a general overview of distributions [below](#Distributions), or you may read more detailed information about them on the [Distributions page](Engine/Basics/Distributions).
+* **Beam Data** - 用于创建光束效果，比如镭射光、闪电等类似的效果。
 
-## Lit Particles
+* **GPU Sprites** - 这是特殊类型的粒子，在运行时大量计算交给 GPU 执行。这将 CPU 的粒子特效计算从几千的数量级提高到 GPU 计算特效的几十万的数量级，取决于具体的目标系统上 GPU 的类型。
 
-Particle systems can be set up to receive light, but require a special setting.
+* **Mesh Data** - 不再发射一系列的面片，这个类型的发射器将会发射多边形模型。用于创建岩石块，废墟等类似的效果。
 
-To set up lit particles:
-
-
-1. Make sure the material is using a shading model other than unlit. Using DefaultLit will allow you access to normal mapping, specularity, etc.
-1. In the LODSettings in Cascade (found under the LOD properties, which you can see when all modules and emitters are deselected), there is a flag for each separate LOD called bLit. Make sure that is selected. This flag can only be updated in Cascade.
+* **Ribbon Data** - 这个会产生一串粒子附属到一个点上，能在一个移动的发射器后形成一个色带。
 
 
-Following those steps should allow your particles to show up in game as lit. They are lit from the emitter origin so be sure to move the origin around in the world to see the lighting update; or spawn dynamic lights nearby.
+更多关于发射器类型的信息，请参考 [](Engine/Rendering/ParticleSystems/Reference) 页面内的发射器类型页面。
 
 
-## Levels of Detail (LODs)
+## 参数
 
-Particle systems can easily become very expensive to calculate. Even when using GPU particles, which offload a great deal of the particle calculation to the GPU, it is important to consider the value of calculating particles from which the player is too far away to see or adequately appreciate.
+特效系统中并不是每个部分都可以被预先定义下来。有时候，特效系统中一部分需要在运行时被控制及变化才能做到好的效果。比如，想要做一个魔法效果，该效果会随着能量的消耗而有变化，而能量消耗是基于施法行为的。在这种情形下，就需要向特效系统中添加参数。
 
-For instance, consider a particle system of a camp fire. When viewed up close, one might see embers and sparks drifting up into the smoke. However, if viewed from several hundred meters away, those embers would be so small that a monitor or screen would not even be able to render them. So why calculate them?
+一个 *参数* 是指一种能够将数据发送给其他系统，并从其他系统接受数据的属性，其他系统包括蓝图、Matinee、一个材质，或者其他来源。在级联中，几乎任何一个给定的属性都能够被设定到一个参数上，也就意味着属性能够从粒子系统外部来控制。
 
-This is where Levels of Detail (LODs) come into play. The LOD system allows you to set up custom distance ranges at which your particle system will automatically simplify. Each range constitutes another LOD. Simplification takes place in the form of lowered property values, deactivated modules, or possibly even deactivated emitters. For instance, in the campfire example given above, it would be ideal to completely deactivate the emitter that was adding sparks to the overall effect once the player was too far away to see them.
+举个例子，将一个火焰特效的 Spawn Rate 设置成参数并在游戏中实时的根据玩家情况来增加或减小该数值，就能让玩家控制火焰特效的强度。
 
-Your particle system can have as many LODs as you need, and you can manually control the ranges for each one.
+相反，在粒子系统中添加到模块中的参数，也能用来驱动其他系统。比如驱动一个在关卡中放置的给定材质的颜色。
+
+在级联中，参数通常是通过 Distributions 的方式来建立的，这也是处理一个属性上数据的方式。可以在下文中找到 [Distributions](#BookmarkDistributions) 处看到概述，或者可以在 [](Engine/Basics/Distributions) 页面了解更多信息。
+
+## 粒子的光照
+
+粒子系统可以被设置为接受光照，这需要特别去设置。
+
+要设置光照粒子的话：
+
+1. 材质要使用除 unlit 以外的 shading model。使用 DefaultLit 将能够处理法线贴图、高光等。
+1. 在级联的 LODSettings 中（在 LOD 属性中，可以看到这是所有模块和发射器都会处于非选中状态），每个 LOD 中有一个标记叫做 bLit。该标记需要被勾选。这个标记只能在级联中更新。
+
+
+遵循这些过程将使粒子在游戏中以光照模式显示。它们从发射器的位置接受光照，因此要移动原始的位置观察一下光照效果，或者在附近放置动态光源。
+
+
+## 细节级别（LODs）
+
+粒子系统很轻易的变得非常消耗性能。即使是使用 GPU 粒子时，虽然已经将大量的粒子运算转移到 GPU 上，但仍然需要考虑不同的粒子离玩家的远近以及它们产生的实际效果。
+
+比如，假设有一堆营火，如果靠近看的话，可能会看见火焰的余烬和火花在烟雾中显现。然后，如果观察点在几百米远处，余烬的效果会小到比任何显示器一个像素的尺寸还小，那何必还在这上面进行运算？
+
+这时就需要细节级别（LODs）的介入。LOD 系统能够自定义距离范围，超过一定距离后粒子系统则会自动简化。每个距离范围对应一个 LOD。简化的介入就是使用较低的数值，禁用一些模块，甚至禁用一些发射器。比如上面举的营火的例子中，最好就是一旦玩家远离了一定的距离后就彻底的禁用那些创建火花的发射器。
+
+粒子系统可以有任意数量的 LODs，并且可以为每个 LOD 设定距离范围。
+
+(#BookmarkDistributions)
 
 ## Distributions
 
-Distributions are a set of data types for handling data in specialized ways, such as using a range for a value, or interpolating a value along a curve. Any time your particle system requires randomization or the ability for some particle aspect to change over time, you will use a distribution to control that property.
+Distribution 是一组数据类型，以特殊的方式处理数据，比如为一个数值应用一个范围，或者使用曲线来对数值做插值操作。如果粒子系统需要任何随机属性，或者粒子需要随着时间进行变化时，就需要使用一个 distribution 来控制属性。
 
-Many of the properties found within modules in Cascade can have different distributions applied to them. The actual value for that property is then set within the distribution.
+在级联中的很多模块的属性中都可以看到使用了各种不同的 distribution。属性的实际数值就是通过 distribution 来设置的。
 
-There are 5 primary distribution types:
+有 5 种主要的 distribution 类型：
 
-* Constant - This designates a single static value that does not change in any way.
-* Uniform - A uniform distribution provides a min and max value, outputting a random selection from between (and including) the two values.
-* Constant Curve - A constant curve provides a single curve over which a value interpolates over time. In this case, time generally refers to the duration between birth and death of a particle, or the start and stop times for particle emission.
-* Uniform Curve - A uniform curve distribution provides a min and max curve. The final value is chosen from the point along a graph that sits between these two curves.
-* Parameter - This is a type of distribution that allows a property to be parameterized so that it can be manipulated externally via Blueprints, Matinee, or other means.
+* **Constant** - 这表示一个静态不变的常量。
+* **Uniform** - 一个 Uniform Distribution 提供了一个最小值和一个最大值，输出这两个值之间（包含这两个值）的随机数值。
+* **Constant Curve** - Constant Curve 提供了一个数值的简单曲线。在这个类型下，时间通常是指一个粒子从生成的消失的过程，或者说是粒子的起始时间和结束时间。
+* **Uniform Curve** - Uniform Curve Distribution 提供了最小曲线和最大曲线，最终数值在这两个曲线中间来选取。
+* **Parameter** - 这种类型的 Distribution 使得该属性参数化，以便于它能够被外部系统，诸如蓝图、Matinee 或者其他系统读取或改写。
 
 [REGION:note]
-	Each of these distribution types exist separately for float and vector data type values. For instance, there exist both Float Uniform Curve and Vector Uniform Curve distributions. However, whether you use a float or a vector version of each distribution is governed by the type of property being controlled; the user has no choice. As an example, you would control color (a vector value for RGB) via a Vector Uniform distribution, but Lifespan (a single float value) via a Float Uniform.
+	这些 Distribution 的每种类型对浮点型和 Vector 型都单独存在。比如，这里有 Float Uniform Curve 和 Vector Uniform Curve 两种 Deistribution。然而无论是使用 Float 型还是 Vector 型的版本，Distribution 是由类型来决定，用户并没有选择。比如对于 Color（这是一个包含了 RGB 的 Vector）只能使用 Vector Uniform Distrution，但 Lifespan（单个 Float 变量）只能使用 Float Uniform Distrution。
 [/REGION]
 
 
-For more information on distributions and how they work, please see the [Distributions page](Engine/Basics/Distributions).
+关于 Distribution 更多信息以及这是如何工作的，可以查看 [](Engine/Basics/Distributions) 页面。

@@ -110,9 +110,9 @@ bStatic 플래그가 True 로 설정된 액터가 있는데 그 Physics 는 PHYS
 
 (#ShadowCasterUsingBoundsScale)
 [EXCERPT:ShadowCasterUsingBoundsScale]
-**액터가 다이내믹 섀도우를 드리우면서 BoundsScale 이 1 보다 큽니다! 퍼포먼스에 엄청난 영향을 끼칠 것입니다.**
+**액터가 다이내믹 섀도를 드리우면서 BoundsScale 이 1 보다 큽니다! 퍼포먼스에 엄청난 영향을 끼칠 것입니다.**
 
-심각한 퍼포먼스 경고입니다. BoundScale 을 1 이하로 줄이거나 다이내믹 섀도우를 없애세요...
+심각한 퍼포먼스 경고입니다. BoundScale 을 1 이하로 줄이거나 다이내믹 섀도를 없애세요...
 [/EXCERPT:ShadowCasterUsingBoundsScale]
 
 (#InvalidTrace)
@@ -244,7 +244,7 @@ NEEDS DESCRIPTION
 [EXCERPT:LightComponentNull]
 **[액터] &#58; 라이트 액터에 NULL LightComponent 프로퍼티가 있습니다. 지워 주세요.**
 
-"None" LightComponent 가 포함된 라이트 액터가 있을때 발생하는 경고입니다. 액터를 복제해서 만들던 구형 맵에서 보통 발생하던 것으로, 경고를 유발하는 액터를 지운 다음 새로 만들어 주면 해결됩니다.
+"None" LightComponent 가 포함된 라이트 액터가 있을 때 발생하는 경고입니다. 액터를 복제해서 만들던 구형 맵에서 보통 발생하던 것으로, 경고를 유발하는 액터를 지운 다음 새로 만들어 주면 해결됩니다.
 [/EXCERPT:LightComponentNull]
 
 (#RebuildLighting)

@@ -4,6 +4,10 @@ Description: A How To guide for setting up SteamVR to work with UE4
 Availability:public
 Navigation:platform
 Platform:SteamVR
+type:quickstart
+parent:Platforms/SteamVR
+tags:VR
+tags:SteamVR
 
 ![](Platforms\SteamVR\T_Vive_HMD.png)
 

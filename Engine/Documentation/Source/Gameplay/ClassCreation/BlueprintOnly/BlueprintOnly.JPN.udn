@@ -1,47 +1,44 @@
-﻿INTSourceChangelist:2541616
+﻿INTSourceChangelist:2709967
 Availability:Public
 Title:Blueprints Only
 Crumbs: %ROOT%, Gameplay, Gameplay/ClassCreation
-Description:ゲームプレイ プログラマ向けのアンリアルエンジン入門書
+Description:ゲームプレイ プログラマ向けのアンリアル エンジン入門書
+version:4.9
 
-## 概要
-
-[ブループリント クラス](Engine/Blueprints/UserGuide/Types/ClassBlueprint) では、[](Engine/Blueprints) システムを使用して新規クラスをセットアップできます。[新規ブループリント クラス作成](Engine/Blueprints/UserGuide/Types/ClassBlueprint/Creation) 後、
-ビジュアル スクリプティングでコンポーネントを追加、関数やその他のゲームプレイのセットアップ、動作を設計し、クラスの変数に対してデフォルト値を設定することができます。LightSwitch クラスは、以下のように only Blueprints を名前に使用してセットアップされます。
-**LightSwitch_BPOnly** のようになります。以下で説明します。
+[Blueprint クラス](Engine/Blueprints/UserGuide/Types/ClassBlueprint) では、[](Engine/Blueprints) システムを使用して新規クラスをセットアップできます。[新規ブループリント クラス作成](Engine/Blueprints/UserGuide/Types/ClassBlueprint/Creation) 後、
+ビジュアル スクリプティングでコンポーネントを追加、関数やその他のゲームプレイのセットアップ、動作を設計し、クラスの変数に対してデフォルト値を設定することができます。ブループリントだけを使用してセットアップされた LightSwitch クラスは、
+**LightSwitch_BPOnly** のように名前付けされます。これについては以下で説明します。
 
 ## クラス設定
 
-**LightSwitch_BPOnly** クラスは、**コンテンツ ブラウザ** の [作成](Engine/Blueprints/UserGuide/Types/ClassBlueprint/Creation) にあり、 **Actor** が親クラスとして選択されました。 
+LightSwitch_BPOnly クラスは、**コンテンツ ブラウザ** で作成され、 **Actor** が親クラスとして選択されました。 
 
-コンポーネントは以下のいずれかによってブループリントに追加されます。すなわち **ブループリント エディタ** の [コンポーネント ウィンドウ](Engine/Blueprints/UserGuide/Components) に静的に追加、またはビジュアル スクリプティングを介して [グラフ エディタ](Engine/Blueprints/Editor/UIComponents/GraphEditor) に動的に追加されます。
-LightSwitch クラスは PointLightComponent と SphereComponent を常に持つため、この場合、コンポーネントは静的に [コンポーネント ウィンドウ](Engine/Blueprints/UserGuide/Components) に追加されます。
+コンポーネントは以下のいずれかによってブループリントに追加されます。すなわち **ブループリント エディタ** の [コンポーネント](Engine/Blueprints/UserGuide/Components) タブに静的に追加、または [グラフ エディタ](Engine/Blueprints/Editor/UIComponents/GraphEditor) のビジュアル スクリプティングを介して動的に追加されます。
+LightSwitch クラスは PointLight コンポーネントと Sphere コンポーネントを常に持つため、この場合、コンポーネントは静的に **[コンポーネント]** タブに追加されます。
 
-**[コンポーネント]** タブを使用して **PointLight1** という名前のPointLightComponent をルート コンポーネントとして、PointLightComponent にアタッチされた **Sphere1** という名前の SphereComponent を追加します。 
-**ブループリント エディタ** でクラスに追加されたコンポーネントはライトブルーのアイコンを持ち、親クラスから継承されたコンポーネントは濃い青色のアイコンを持ちます。**[コンポーネント]** タブを使用した
-コンポーネントの追加と配置についての詳しい情報は、 [](Engine/Blueprints/UserGuide/Components) タブのドキュメントを参照してください。
+**[コンポーネント]** タブを使用して PointLight1 という名前の PointLight コンポーネントをルート コンポーネントとして、 Sphere1 という名前の Sphere コンポーネントをその PointLight コンポーネントにアタッチします。 
+**ブループリント エディタ** でクラスに追加されたコンポーネントはライトブルーのアイコンを持ち、親クラスから継承されたコンポーネントは濃い青色のアイコンを持ちます。
 
 ![](BP_Only_ComponentList.png)  
 
 **ブループリント エディタ** では、新しい [変数](Engine/Blueprints/UserGuide/Variables)、 
-[関数](Engine/Blueprints\UserGuide\Functions) と [マクロ](Engine/Blueprints\UserGuide\Macros) を [](Engine/Blueprints\Editor/UIComponents\MyBlueprint) タブに追加することができます。ブループリント クラスに含まれている全ての [グラフ](Engine/Blueprints/UserGuide/Graphs) にも 
-アクセスできます。グラフには、デザイン タイムとゲームプレイ機能を作成する [ノード](Engine/Blueprints/UserGuide/Nodes) が接続されており、クラス変数、ゲームプレイ イベント、
-さらにアクタの周囲にあるものなどでも操作されます。 
+[関数](Engine/Blueprints\UserGuide\Functions)、および [マクロ](Engine/Blueprints\UserGuide\Macros) を [](Engine/Blueprints\Editor/UIComponents\MyBlueprint) タブに追加することができます。ブループリント クラスに含まれている全ての [グラフ](Engine/Blueprints/UserGuide/Graphs) にも 
+アクセスできます。グラフには、デザイン タイムとゲームプレイ機能を作成する [ノード](Engine/Blueprints/UserGuide/Nodes) がまとめて接続されており、クラス変数、ゲームプレイ イベント、
+さらにアクタの周囲にあるものなどでも操作することができます。 
 
-float 変数、**DesiredIntensity** が **[マイブループリント]** タブを使用して **LightSwitch_BPOnly** クラスに追加されました。**[マイブループリント]** タブには**[コンポーネント ウィンドウ]** に追加されたコンポーネントも表示されるため、
-必要に応じてグラフでアクセスできます。**[マイブループリント]** タブを使用した変数の追加については、[変数](Engine/Blueprints/UserGuide/Variables) のドキュメントをご覧ください。 
-または使用に関する一般情報については [](Engine/Blueprints\Editor/UIComponents\MyBlueprint) の ドキュメントを参照してください。
+float 変数、**DesiredIntensity** が [マイブループリント] タブを使用して **LightSwitch_BPOnly** クラスに追加されました。**[マイブループリント]** タブには**[コンポーネント ウィンドウ]** に追加されたコンポーネントも表示されるため、
+必要に応じてグラフでアクセスできます。
 
 ![](BP_Only_MyBlueprint.png)
 
-**LightSwitch_BPOnly** クラスの挙動をセットアップするために使用するグラフが 2 つあります。1 つめのグラフは、 [](Engine/Blueprints/UserGuide/UserConstructionScript) 関数グラフで、**Construction Script** 関数エントリ ノードを含みます。
-このイベントはアクタがレベルに追加されたとき、または既存のアクタがレベル内で移動したときに実行します。**LightSwitch_BPOnly** クラスで、**Construction Script** イベントは **Set Brightness** ノードと接続しています。 
-これは、アクタがレベル内に追加またはレベル内で移動する場合に、**Point Light 1** (PointLightComponent) の明るさが、**DesiredIntensity** の値になるようにするためです。 
+LightSwitch_BPOnly クラスの挙動をセットアップするために使用するグラフが 2 つあります。1 つめのグラフは、 [](Engine/Blueprints/UserGuide/UserConstructionScript) 関数グラフで、**Construction Script** 関数エントリ ノードを含みます。
+このイベントはアクタがレベルに追加されたとき、または既存のアクタがレベル内で移動したときに実行します。LightSwitch_BPOnly クラスで、**Construction Script** event は **Set Intensity** ノードと接続しています。 
+これは、アクタがレベル内に追加またはレベル内で移動する場合に、**Point Light 1** (PointLight コンポーネント) の明るさが、**DesiredIntensity** の値になるようにするためです。 
 
 ![](BP_Only_ConstructionScript.png)
 
-**LightSwitch_BPOnly** クラスでセットアップされたもうひとつのグラフは、 [](Engine/Blueprints/UserGuide/EventGraph) です。イベントグラフでの実行は、**OnComponentBeginOverlap** や 
-**OnComponentEndOverlap** イベントから始まります。こうしたイベントはレベル内の他のアクタがオーバーラップするか、SphereComponent を離れると実行します。両方のイベントが **Toggle Visibility** ノードに接続されているため、
+LightSwitch_BPOnly クラスでセットアップされたもうひとつのグラフは、 [](Engine/Blueprints/UserGuide/EventGraph) です。イベントグラフでの実行は、**OnComponentBeginOverlap** や 
+**OnComponentEndOverlap** イベントから始まります。こうしたイベントはレベル内の他のアクタがオーバーラップするか、Sphere コンポーネントを離れると実行します。両方のイベントが **Toggle Visibility** ノードに接続されているため、
 こうしたイベントが実行すると、PointLightComponent の可視性は切り替えられます。イベントおよびグラフでの作業に関する詳しい情報は [](Engine/Blueprints/UserGuide/Events), [](Engine/Blueprints/UserGuide/EventGraph),
 および [グラフ エディタ](Engine/Blueprints/Editor/UIComponents/GraphEditor) のドキュメントをご覧ください。
 
@@ -62,8 +59,8 @@ Sphere1 の OnComponentEndOverlap が見つからない場合、Sphere 変数を
 
 ![](BP_Only_Defaults.png)(convert:false)
 
-ブループリントに作成したクラスは、別のブループリント クラスへ拡張することができます。新規ブループリントを作成するには **クラスビューア** のクラスの横にあるドロップダウンボタンをクリックするか、
+ブループリントに作成したクラスは、別の Blueprint クラスへ拡張することができます。これには、**クラスビューア** のクラスの横にあるドロップダウンボタンをクリックして、新規ブループリントを作成するか、
 ブループリントを **右クリック** して、**Create New Blueprint Based on This** を選択します。
 
-ブループリント クラス、**LightSwitchBPOnly** は[](Engine/Content/Browser) にあり、そこからレベルにドラッグできます。[](Engine/UI/ClassViewer) にもあります。
-**コンテンツ ブラウザ** または **クラスビューア** を使用したレベルでのアクタの配置については、[](Engine/Actors/Placement) のドキュメントを参照してください。
+Blueprint  クラス、LightSwitchBPOnly は[](Engine/Content/Browser) にあり、そこからレベルにドラッグできます。[](Engine/UI/ClassViewer) にもあります。
+**コンテンツ ブラウザ** または **クラスビューア** を使用したレベルへのアクタの配置については、[](Engine/Actors/Placement) のドキュメントを参照してください。

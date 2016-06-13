@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2622517
+﻿INTSourceChangelist:2720118
 Availability: Public
 Title:피벗 페인터 콘텐츠 예제
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -7,6 +7,7 @@ Related: Engine/Rendering/Materials
 Related: Engine/Rendering/Materials/ExpressionReference
 Related: Engine/Rendering/Materials/Functions/Reference/PivotPainter
 Related: Engine/Rendering/Materials/Functions/Creating
+Version: 4.9
 
 [REGION:banner]
 ![](PivotPainter_Header.png)(convert:false)
@@ -42,8 +43,6 @@ Related: Engine/Rendering/Materials/Functions/Creating
 	[/PARAM]
 [/OBJECT]
 [/VAR]
-
-[TOC(start:2 end:2)]
 
 
 

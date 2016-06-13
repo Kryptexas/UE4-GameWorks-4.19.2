@@ -3,6 +3,8 @@ Availability: Public
 Title:1.人物设置
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:在这里，我们将设置人物，并创建一些稍后将在本指南中需要的资源。 
+Version: 4.9
+SkillLevel: Advanced
 
 [VAR:Steps]
 [OBJECT:Navigation]

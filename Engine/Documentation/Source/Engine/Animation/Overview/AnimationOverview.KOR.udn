@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2600873
+﻿INTSourceChangelist:2769883
 Availability:Public
 Title:애니메이션 시스템 개요
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -6,7 +6,6 @@ Description:애니메이션 블루프린트, 블렌드 스페이스, 애니메�
 
 [TOC(start:2 end:2)]
 
-## 개요
 
 [EXCERPT:Intro]
 언리얼 엔진 4 의 애니메이션 시스템은 캐릭터와 스켈레탈 메시에 대해 심오한 수준의 제어가 가능합니다. 이 문서에서는 UE4 에선의 애니메이션 작동 원리와 그 바탕 개념을 하이 레벨에서 개괄적으로 살펴보도록 하겠습니다.
@@ -71,7 +70,7 @@ _스켈레탈 콘트롤_ 을 사용하여 본의 트랜스폼을 직접 제어�
 		**애디티브 애니메이션**
 		
 		애니메이션은 언제고 절대식(absolute)으로도 더하기식(additive)으로도 사용 가능합니다. 데이터를 변환시킬 때 필요한 오프셋 
-		계산은 시스템에서 알아서 해 줍니다. 이 애니메이션은 애디티브로 해 줘야 겠다 미리사 지정할 필요가 없으니
+		계산은 시스템에서 알아서 해 줍니다. 이 애니메이션은 애디티브로 해 줘야 겠다 미리 지정할 필요가 없으니
 		예전 버전 엔진보다 시스템이 훨씬 유연해 졌습니다.
 		
 		**애니메이션 블렌딩**
@@ -221,15 +220,23 @@ _스켈레탈 콘트롤_ 을 사용하여 본의 트랜스폼을 직접 제어�
 
 ### 스켈레탈 메시 본 렌더링
 
-![](ShowDebugBones.png)(h:320)
+![](AnimationShowDebugBones.jpg)(h:320)
 
 **스켈레탈 메시 본** 을 표시하려면, 콘솔에 `ShowDebug Bones` 명령을 입력합니다. 위 그림에서 보듯이 본은 개별적인 흰 선으로 나타납니다.
 
+`ShowDebug Bones` 명령은 플레이 세션 도중 플레이 가능한 캐릭터 관련 정보를 표시해 줍니다. (플레이어 캐릭터 이외) 다른 캐릭터의 디버그 애니메이션을 보려면, `viewactor ExampleCharacterID` 명령을 사용하면 되며, _ExampleCharacterID_ 는 보고자 하는 캐릭터에 할당된 Character ID 를 말합니다. 이 ID 는 [월드 아웃라이너](Engine/UI/LevelEditor/SceneOutliner) 에서 캐릭터 위에 커서를 올리면 그 ID 이름이 표시됩니다.
+
+[REGION:note]
+현재 `viewactor` 명령을 사용하면, 카메라가 현재 보고 있는 액터로 이동하여 고정됩니다. 디버깅 도중 카메라를 조작할 필요가 있다면, 이에 대한 우회법은 드롭다운 메뉴에서 [에디터에서 플레이](Engine/UI/LevelEditor/InEditorTesting) 세션을 플레이어 둘 이상으로 실행하여 창 하나는 디버깅 용으로 쓰고 다른 하나는 플레이어 캐릭터 제어용으로 쓰면 됩니다.
+[/REGION]
+
 콘솔에 `ShowDebugToggleSubCategory 3DBones` 를 입력하면 **페르소나** 에 표시되는 본과 일치하는 다른 모양을 켤 수 있습니다.
+
+
 
 ### 애니메이션 디버그 출력
 
-![](ShowDebugAnimation.png)
+![](AnimationShowDebugToggle.jpg)
 
 **애니메이션 디버그 출력** 정보는 `ShowDebug Animation` 콘솔 명령으로 켤 수 있습니다.
 

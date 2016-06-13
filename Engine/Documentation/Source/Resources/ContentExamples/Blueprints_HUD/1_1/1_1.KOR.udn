@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2652989
+﻿INTSourceChangelist:2712962
 Availability: Public
 Title:1.1 - HUD 예제
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
@@ -10,6 +10,7 @@ Related: Engine/Blueprints/UserGuide/Types/MacroLibrary
 Related: Engine/Animation/AnimBlueprints/EventGraph
 Related: Engine/Blueprints/UserGuide/UserConstructionScript
 Related: Gameplay/HowTo/SetUpInput/Blueprints
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -77,7 +78,7 @@ HUD 의 각 엘리먼트를 그리는 데 사용되는 **ReceiveDrawHUD** 이벤
 레벨 블루프린트에 **Objective** 변수로 설정되어 있습니다.
 
 HUD 블루프린트에서, **Current Objective** 가 NULL 이 아니면:
--	목표물 마커는 **Project** 함수를 사용하여 (목표뮬의 위치를 나타내는) 3D 위치 벡터를 2D 화면 좌표로 변환, 
+-	목표물 마커는 **Project** 함수를 사용하여 (목표물의 위치를 나타내는) 3D 위치 벡터를 2D 화면 좌표로 변환, 
 해당 좌표에 그려진 목표물 라벨과 아이콘이 화면상에 있을 때는 항상 목표물 액터 위에 떠있을 수 있도록 합니다.
 -	**Get Text Size** 노드를 사용하여 텍스트는 목표물 중앙에 위치시킵니다. 이 노드는 스트링을 HUD 상에 그렸을 때의 높이와 폭을 측정하는데, 텍스트에 사용된 폰트와 스케일도 고려합니다.
 기본적으로 텍스트는 왼쪽 정렬되기에, 그 좌표는 좌상단이 될 것이고, 텍스트 좌표에 오프셋을 더해 중앙을 맞추기에는 이 노드가 딱입니다.

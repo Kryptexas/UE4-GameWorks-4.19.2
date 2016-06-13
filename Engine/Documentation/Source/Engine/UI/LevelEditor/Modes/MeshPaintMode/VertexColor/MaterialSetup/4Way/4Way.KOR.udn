@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2620332
+﻿INTSourceChangelist:2693476
 Availability: Public
 Title:4 방향 블렌드 머티리얼
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor, Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor/MaterialSetup
 Description:4 방향, ARGB 텍스처 블렌딩용 머티리얼 셋업 안내입니다.
+Version: 4.9
+SkillLevel: Intermediate
 
 
 

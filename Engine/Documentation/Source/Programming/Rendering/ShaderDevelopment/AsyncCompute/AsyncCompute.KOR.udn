@@ -1,11 +1,9 @@
-﻿INTSourceChangelist:2615069
+﻿INTSourceChangelist:2726964
 Availability:Public
 Title:AsyncCompute
 Crumbs:%ROOT%, Programming, Programming/Rendering, Programming/Rendering/ShaderDevelopment
 Description:다양한 GPU 작업을 인터리브 방식으로 끼워넣어 효율을 향상시키는 하드웨어 기능인 AsyncCompute, 비동기 계산에 대한 글입니다.
 Version: 4.9
-
-## 소개
 
 이제 Rendering Hardware Interface (RHI)는 엑스박스 원에 비동기 계산 (**AsyncCompute**) 을 지원합니다. 미사용 GPU 리소스(컴퓨트 유닛, 레지스터, 대역폭)를 활용하기 좋은 방식으로,
 렌더링과 함께 dispatch() 호출을 비동기 실행하는 것입니다. 비동기 계산은 별도의 맥락을 사용하며, 맥락 계산 및 렌더링 동기화를 위한 

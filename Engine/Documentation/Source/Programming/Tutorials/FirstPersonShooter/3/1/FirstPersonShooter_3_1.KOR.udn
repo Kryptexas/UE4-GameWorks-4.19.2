@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2672916
+﻿INTSourceChangelist:2939925
 Availability: Docs
 Title: 3.1 - 게임에 발사체 추가
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/3
 Description: 일인칭 슈팅 프로젝트에 발사체를 추가하는 법을 배워봅니다.
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -59,18 +59,13 @@ Version: 4.9
 
 ## USphere Component 추가
 
-1.	**Solution Explorer** 에서 `FPSProjectile.h` 를 열고 `FPSProjectile` 클래스 선언을 찾습니다.
+1.	**Solution Explorer** 에서 `FPSProjectile.h` 를 열고 `FPSProjectile` 클래스 헤더를 찾습니다.
 
 1.	`FPSProjectile` 인터페이스에 `USphereComponent` 로의 레퍼런스를 추가합니다.
 
 		// 구체 콜리전 컴포넌트
 		UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
 		USphereComponent* CollisionComp;
-
-1.	`FPSProjectile.h` 에 다음 생성자를 추가합니다:
-
-		// 구체를 단순 콜리전 표현으로 추가하기 위한 생성자입니다.
-		AFPSProjectile(const FObjectInitializer& ObjectInitializer);
 
 1.	`FPSProjectile.h` 는 이제 다음과 같을 것입니다:
 
@@ -90,9 +85,6 @@ Version: 4.9
 			// 이 액터 프로퍼티의 기본값을 설정합니다.
 			AFPSProjectile();
 		
-			// 구체를 단순 콜리전 표현으로 추가하기 위한 생성자입니다.
-			AFPSProjectile(const FObjectInitializer& ObjectInitializer);
-		
 			// 게임 시작시 또는 스폰시 호출됩니다.
 			virtual void BeginPlay() override;
 			
@@ -101,29 +93,24 @@ Version: 4.9
 		
 			// 구체 콜리전 컴포넌트입니다.
 			UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
-			USphereComponent* CollisionComp;
+			USphereComponent* CollisionComponent;
+			
 		};
 
 1.	**Solution Explorer** 에서 `FPSProjectile` 클래스 구현 파일을 찾아 `FPSProjectile.cpp` 를 엽니다.
 
-1.	`FPSProjectile.cpp` 에 다음 코드를 추가합니다:
+1.	`FPSProjectile.cpp` 의 `AFPSProjectile` 생성자에 다음 코드를 추가합니다:
 
-		// 생성자
-		AFPSProjectile::AFPSProjectile(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
-		{
-			// 구체를 단순 콜리전 표현으로 사용합니다.
-			CollisionComp = ObjectInitializer.CreateDefaultSubobject<USphereComponent>(this, TEXT("SphereComp"));
-		
-			if (CollisionComp != NULL)
-			{
-				CollisionComp->InitSphereRadius(15.f);
-				RootComponent = CollisionComp;
-			}
-		}
+		// 구체를 단순 콜리전 표현으로 사용합니다.
+		CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
+		// 구체의 콜리전 반경을 설정합니다.
+		CollisionComponent->InitSphereRadius(15.0f);
+		// 루트 컴포넌트를 콜리전 컴포넌트로 설정합니다.
+		RootComponent = CollisionComponent;
 
-	[REGION:note]
-	시뮬레이션으로 구동시켜줄 것이므로 `CollisionComponent` 를 `RootComponent` 로 만듭니다.
-	[/REGION]
+		[REGION:note]
+		시뮬레이션으로 구동시켜줄 것이므로 `CollisionComponent` 를 `RootComponent` 로 만듭니다.
+		[/REGION]
 
 1. `FPSProjectile.cpp` 는 이제 다음과 같을 것입니다:
 
@@ -138,19 +125,12 @@ Version: 4.9
 		 	// 이 액터가 매 프레임 Tick() 을 호출하도록 설정합니다. 필요치 않은 경우 끄면 퍼포먼스가 향상됩니다.
 			PrimaryActorTick.bCanEverTick = true;
 		
-		}
-		
-		// 생성자
-		AFPSProjectile::AFPSProjectile(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
-		{
 			// 구체를 단순 콜리전 표현으로 사용합니다.
-			CollisionComp = ObjectInitializer.CreateDefaultSubobject<USphereComponent>(this, TEXT("SphereComp"));
-		
-			if (CollisionComp != NULL)
-			{
-				CollisionComp->InitSphereRadius(15.f);
-				RootComponent = CollisionComp;
-			}
+			CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
+			// 구체의 콜리전 반경을 설정합니다.
+			CollisionComponent->InitSphereRadius(15.0f);
+			// 루트 컴포넌트를 콜리전 컴포넌트로 설정합니다.
+			RootComponent = CollisionComponent;
 		}
 		
 		// 게임 시작시 또는 스폰시 호출됩니다.
@@ -169,18 +149,18 @@ Version: 4.9
 
 ## 프로젝타일 무브먼트 컴포넌트 추가
 
-1.	**Solution Explorer** 에서 `FPSProjectile` 클래스 인터페이스 파일을 찾아 `FPSProjectile.h` 를 엽니다.
+1.	**Solution Explorer** 에서 `FPSProjectile` 클래스 헤더 파일을 찾아 `FPSProjectile.h` 를 엽니다.
 
-1.	`FPSProjectile.h` 에 다음의 공용 레퍼런스를 추가합니다:
+1.	`FPSProjectile.h` 에 다음 코드를 추가합니다:
 
 		// 프로젝타일 무브먼트 컴포넌트
-		UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement)
-		UProjectileMovementComponent* ProjectileMovement;
+		UPROPERTY(VisibleAnywhere, Category = Movement)
+		UProjectileMovementComponent* ProjectileMovementComponent;
 
 1.	`FPSProjectile.h` 는 이제 다음과 같을 것입니다:
 
 		// 프로젝트 세팅의 설명 페이지에 저작권 문구를 채우세요.
-		
+
 		#pragma once
 		
 		#include "GameFramework/Actor.h"
@@ -195,9 +175,6 @@ Version: 4.9
 			// 이 액터 프로퍼티의 기본값을 설정합니다.
 			AFPSProjectile();
 		
-			// 구체를 단순 콜리전 표현으로 추가하기 위한 생성자입니다.
-			AFPSProjectile(const FObjectInitializer& ObjectInitializer);
-		
 			// 게임 시작시 또는 스폰시 호출됩니다.
 			virtual void BeginPlay() override;
 			
@@ -206,14 +183,14 @@ Version: 4.9
 		
 			// 구체 콜리전 컴포넌트입니다.
 			UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
-			USphereComponent* CollisionComp;
-		
+			USphereComponent* CollisionComponent;
+			
 			// 프로젝타일 무브먼트 컴포넌트
-			UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement)
-			UProjectileMovementComponent* ProjectileMovement;
+			UPROPERTY(VisibleAnywhere, Category = Movement)
+			UProjectileMovementComponent* ProjectileMovementComponent;
 		};
 
-1.	**Solution Explorer** 에서 `FPSProjectile` 클래스 구현 파일을 찾아 `FPSProjectile.cpp` 파일을 엽니다.
+1.	**Solution Explorer** 에서 `FPSProjectile` CPP 파일을 찾아 `FPSProjectile.cpp` 파일을 엽니다.
 
 1.	`FPSProjectile.cpp` 의 `FPSProjectile` 생성자에 다음 코드 줄을 추가합니다:
 
@@ -243,32 +220,21 @@ Version: 4.9
 		 	// 이 액터가 매 프레임 Tick() 을 호출하도록 설정합니다. 필요치 않은 경우 끄면 퍼포먼스가 향상됩니다.
 			PrimaryActorTick.bCanEverTick = true;
 		
-		}
-		
-		// 생성자
-		AFPSProjectile::AFPSProjectile(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
-		{
 			// 구체를 단순 콜리전 표현으로 사용합니다.
-			CollisionComp = ObjectInitializer.CreateDefaultSubobject<USphereComponent>(this, TEXT("SphereComp"));
+			CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
+			// 구체의 콜리전 반경을 설정합니다.
+			CollisionComponent->InitSphereRadius(15.0f);
+			// 루트 컴포넌트를 콜리전 컴포넌트로 설정합니다.
+			RootComponent = CollisionComponent;
 		
-			if (CollisionComp != NULL)
-			{
-				CollisionComp->InitSphereRadius(15.f);
-				RootComponent = CollisionComp;
-		
-				// ProjectileMovementComponent 를 사용하여 이 발사체의 운동을 관장합니다.
-				ProjectileMovement = ObjectInitializer.CreateDefaultSubobject<UProjectileMovementComponent>(this, TEXT("ProjectileComp"));
-		
-				if (ProjectileMovement != NULL)
-				{
-					ProjectileMovement->UpdatedComponent = CollisionComp;
-					ProjectileMovement->InitialSpeed = 3000.f;
-					ProjectileMovement->MaxSpeed = 3000.f;
-					ProjectileMovement->bRotationFollowsVelocity = true;
-					ProjectileMovement->bShouldBounce = true;
-					ProjectileMovement->Bounciness = 0.3f;
-				}
-			}
+			// 이 컴포넌트를 사용하여 이 프로젝타일의 무브먼트를 구동시킵니다.
+			ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
+			ProjectileMovementComponent->SetUpdatedComponent(CollisionComponent);
+			ProjectileMovementComponent->InitialSpeed = 3000.0f;
+			ProjectileMovementComponent->MaxSpeed = 3000.0f;
+			ProjectileMovementComponent->bRotationFollowsVelocity = true;
+			ProjectileMovementComponent->bShouldBounce = true;
+			ProjectileMovementComponent->Bounciness = 0.3f;
 		}
 		
 		// 게임 시작시 또는 스폰시 호출됩니다.
@@ -287,16 +253,14 @@ Version: 4.9
 
 ## 발사체 초기 속도 설정
 
-1.	**Solution Explorer** 에서 `FPSProjectile` 클래스 인터페이스 파일을 찾아 `FPSProjectile.h` 를 엽니다.
+1.	**Solution Explorer** 에서 `FPSProjectile` 클래스 헤더 파일을 찾아 `FPSProjectile.h` 를 엽니다.
 
 1.	`FPSProjectile.h` 에 다음 함수 선언을 추가합니다:
 
 		// 발사체의 속도를 발사 방향으로 초기화시킵니다.
 		void InitVelocity(const FVector& ShootDirection);
 
-	[REGION:note]
-	앞서 말한 코드는 발사체를 발사하는 함수에 대한 선언입니다.
-	[/REGION]
+	이 함수가 발사체의 발사를 담당합니다.
 
 1.	`FPSProjectile.h` 는 이제 다음과 같은 모습일 것입니다:
 
@@ -316,39 +280,32 @@ Version: 4.9
 			// 이 액터 프로퍼티의 기본값을 설정합니다.
 			AFPSProjectile();
 		
-			// 구체를 단순 콜리전 표현으로 추가하기 위한 생성자입니다.
-			AFPSProjectile(const FObjectInitializer& ObjectInitializer);
-		
 			// 게임 시작시 또는 스폰시 호출됩니다.
 			virtual void BeginPlay() override;
 			
 			// 매 프레임 호출됩니다.
 			virtual void Tick( float DeltaSeconds ) override;
 		
-			// 발사체의 속도를 발사 방향으로 초기화시킵니다.
-			void InitVelocity(const FVector& ShootDirection);
-		
 			// 구체 콜리전 컴포넌트입니다.
 			UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
-			USphereComponent* CollisionComp;
+			USphereComponent* CollisionComponent;
+			
+			// 프로젝타일 무브먼트 컴포넌트입니다.
+			UPROPERTY(VisibleAnywhere, Category = Movement)
+			UProjectileMovementComponent* ProjectileMovementComponent;
 		
-			// 프로젝타일 무브먼트 컴포넌트
-			UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement)
-			UProjectileMovementComponent* ProjectileMovement;
+			// 프로젝타일의 속도를 발사 방향으로 초기화시키는 함수입니다.
+			void InitVelocity(const FVector& ShootDirection);
 		};
 
-1.	**Solution Explorer** 에서 `FPSProjectile` 클래스 구현 파일을 찾아 `FPSProjectile.cpp` 를 엽니다.
+1.	**Solution Explorer** 에서 `FPSProjectile` CPP 파일을 찾아 `FPSProjectile.cpp` 를 엽니다.
 
-1.	`FPSProjectile.cpp` 의 `FPSProjectile` 생성자에 다음 코드줄을 추가합니다:
+1.	`FPSProjectile.cpp` 에 다음 함수 정의부를 추가합니다:
 
-		// 발사체의 속도를 발사 방향으로 초기화시킵니다.
+		// 프로젝타일의 속도를 발사 방향으로 초기화시키는 함수입니다.
 		void AFPSProjectile::InitVelocity(const FVector& ShootDirection)
 		{
-			if (ProjectileMovement != NULL)
-			{
-				// 발사체의 속도를 원하는 방향으로 설정합니다.
-				ProjectileMovement->Velocity = ShootDirection * ProjectileMovement->InitialSpeed;
-			}
+			ProjectileMovementComponent->Velocity = ShootDirection * ProjectileMovementComponent->InitialSpeed;
 		}
 
 	[REGION:note]
@@ -368,32 +325,21 @@ Version: 4.9
 		 	// 이 액터가 매 프레임 Tick() 을 호출하도록 설정합니다. 필요치 않은 경우 끄면 퍼포먼스가 향상됩니다.
 			PrimaryActorTick.bCanEverTick = true;
 		
-		}
-		
-		// 생성자
-		AFPSProjectile::AFPSProjectile(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
-		{
 			// 구체를 단순 콜리전 표현으로 사용합니다.
-			CollisionComp = ObjectInitializer.CreateDefaultSubobject<USphereComponent>(this, TEXT("SphereComp"));
+			CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
+			// 구체의 콜리전 반경을 설정합니다.
+			CollisionComponent->InitSphereRadius(15.0f);
+			// 루트 컴포넌트를 콜리전 컴포넌트로 설정합니다.
+			RootComponent = CollisionComponent;
 		
-			if (CollisionComp != NULL)
-			{
-				CollisionComp->InitSphereRadius(15.f);
-				RootComponent = CollisionComp;
-		
-				// ProjectileMovementComponent 를 사용하여 이 발사체의 운동을 관장합니다.
-				ProjectileMovement = ObjectInitializer.CreateDefaultSubobject<UProjectileMovementComponent>(this, TEXT("ProjectileComp"));
-		
-				if (ProjectileMovement != NULL)
-				{
-					ProjectileMovement->UpdatedComponent = CollisionComp;
-					ProjectileMovement->InitialSpeed = 3000.f;
-					ProjectileMovement->MaxSpeed = 3000.f;
-					ProjectileMovement->bRotationFollowsVelocity = true;
-					ProjectileMovement->bShouldBounce = true;
-					ProjectileMovement->Bounciness = 0.3f;
-				}
-			}
+			// 이 컴포넌트를 사용하여 프로젝타일의 무브먼트를 구동시킵니다.
+			ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
+			ProjectileMovementComponent->SetUpdatedComponent(CollisionComponent);
+			ProjectileMovementComponent->InitialSpeed = 3000.0f;
+			ProjectileMovementComponent->MaxSpeed = 3000.0f;
+			ProjectileMovementComponent->bRotationFollowsVelocity = true;
+			ProjectileMovementComponent->bShouldBounce = true;
+			ProjectileMovementComponent->Bounciness = 0.3f;
 		}
 		
 		// 게임 시작시 또는 스폰시 호출됩니다.
@@ -410,19 +356,15 @@ Version: 4.9
 		
 		}
 		
-		// 발사체의 속도를 발사 방향으로 초기화시킵니다.
+		// 프로젝타일의 속도를 발사 방향으로 초기화시키는 함수입니다.
 		void AFPSProjectile::InitVelocity(const FVector& ShootDirection)
 		{
-			if (ProjectileMovement != NULL)
-			{
-				// 발사체의 속도를 원하는 방향으로 설정합니다.
-				ProjectileMovement->Velocity = ShootDirection * ProjectileMovement->InitialSpeed;
-			}
+			ProjectileMovementComponent->Velocity = ShootDirection * ProjectileMovementComponent->InitialSpeed;
 		}
 
 ## 발사 입력 액션 바인딩
 
-1.	**Solution Explorer** 에서 `FPSCharacter` 클래스 인터페이스 파일을 찾아 `FPSCharacter.h` 를 엽니다.
+1.	**Solution Explorer** 에서 `FPSCharacter` 클래스 헤더 파일을 찾아 `FPSCharacter.h` 를 엽니다.
 
 1.	`FPSCharacter.h` 에 다음 함수 선언을 추가합니다:
 
@@ -448,9 +390,6 @@ Version: 4.9
 			// 이 캐릭터 프로퍼티에 대한 기본값을 설정합니다.
 			AFPSCharacter();
 		
-			// AFPSCharacter 에 대한 생성자입니다.
-			AFPSCharacter(const FObjectInitializer& ObjectInitializer);
-		
 			// 게임 시작시 또는 스폰시 호출됩니다.
 			virtual void BeginPlay() override;
 			
@@ -471,30 +410,36 @@ Version: 4.9
 			// 키를 누르면 점프 플래그를 설정합니다.
 			UFUNCTION()
 			void OnStartJump();
-			
+		
 			// 키를 떼면 점프 플래그를 지웁니다.
 			UFUNCTION()
 			void OnStopJump();
 		
-			// 발사 처리
+			// 프로젝타일 발사를 처리하는 함수입니다.
 			UFUNCTION()
 			void OnFire();
 		
-			// FPS 카메라
-			UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
-			UCameraComponent* FirstPersonCameraComponent;
+			// FPS 카메라입니다.
+			UPROPERTY(VisibleAnywhere)
+			UCameraComponent* FPSCameraComponent;
 		
 			// 폰 메시: 일인칭 시점 (자신에게만 보이는 팔)
 			UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-			USkeletalMeshComponent* FirstPersonMesh;
+			USkeletalMeshComponent* FPSMesh;
 		};
 
-1.	**Solution Explorer** 에서 `FPSCharacter` 클래스 구현 파일을 찾고 `FPSCharacter.cpp` 를 엽니다.
+1.	**Solution Explorer** 에서 `FPSCharacter` CPP 파일을 찾고 `FPSCharacter.cpp` 를 엽니다.
 
-1.	`FPSCharacter.cpp` 에서 `OnFire` 함수 바인딩을 위해 `SetupPlayerInputComponent` 에 다음을 추가합니다:
+1.	`FPSCharacter.cpp` 에서, `OnFire` 함수 바인딩을 위해 `SetupPlayerInputComponent` 에 다음 코드를 추가합니다:
 
-		// 총 발사 액션 바인딩을 구성합니다.
+		// 프로젝타일 발사 동작을 구성합니다.
 		InputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::OnFire);
+
+1.	이제, `FPSCharacter.cpp` 에 다음 함수 정의부를 추가합니다:
+
+		void AFPSCharacter::OnFire()
+		{
+		}	
 
 1.	`FPSCharacter.cpp` 는 이제 다음과 같아 보일 것입니다:
 
@@ -503,42 +448,32 @@ Version: 4.9
 		#include "FPSProject.h"
 		#include "FPSCharacter.h"
 		
-		
 		// 기본값을 설정합니다.
 		AFPSCharacter::AFPSCharacter()
 		{
 		 	// 이 캐릭터가 TIck() 을 매 프레임 호출하도록 설정합니다. 필요치 않은 경우 끄면 퍼포먼스가 향상됩니다.
 			PrimaryActorTick.bCanEverTick = true;
 		
-		}
+			// 일인칭 카메라 컴포넌트를 생성합니다.
+			FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
+			// 카메라 컴포넌트를 캡슐 컴포넌트에 붙입니다.
+			FPSCameraComponent->AttachTo(GetCapsuleComponent());
+			// 카메라 위치를 잡습니다.
+			FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
+			// 폰의 제어를 가능케 합니다.
+			FPSCameraComponent->bUsePawnControlRotation = true;
 		
-		// 카메라 컴포넌트를 생성하는 생성자입니다.
-		AFPSCharacter::AFPSCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
-		{
-			// 카메라 컴포넌트를 생성합니다.
-			FirstPersonCameraComponent = ObjectInitializer.CreateDefaultSubobject<UCameraComponent>(this, TEXT("FirstPersonCamera"));
-		
-			if (FirstPersonCameraComponent != NULL)
-			{
-				FirstPersonCameraComponent->AttachParent = GetCapsuleComponent();
-				// 카메라를 눈 약간 위쪽으로 위치시킵니다.
-				FirstPersonCameraComponent->RelativeLocation = FVector(0.f, 0.f, 50.f + BaseEyeHeight);
-				// 폰이 회전 제어를 가능하도록 합니다.
-				FirstPersonCameraComponent->bUsePawnControlRotation = true;
-			}
-		
-			// 이 폰을 제어할 때 일인칭 뷰에서 봤을 때 사용할 메시 컴포넌트를 생성합니다.
-			FirstPersonMesh = ObjectInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("FirstPersonMesh"));
-		
-			if (FirstPersonMesh != NULL)
-			{
-				FirstPersonMesh->SetOnlyOwnerSee(true);  // 소유 플레이어만 이 메시를 보게됩니다.
-				FirstPersonMesh->AttachParent = FirstPersonCameraComponent;
-				FirstPersonMesh->bCastDynamicShadow = false;
-				FirstPersonMesh->CastShadow = false;
-			}
-		
-			// 오너를 제외한 모두가 일반 바디 메시를 볼 수 있습니다.
+			// 일인칭 메시 컴포넌트를 생성합니다.
+			FPSMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
+			// 소유 플레이어에게만 이 메시가 보입니다.
+			FPSMesh->SetOnlyOwnerSee(true);
+			// FPS 메시를 FPS 카메라에 붙입니다.
+			FPSMesh->AttachTo(FPSCameraComponent);
+			// 일부 환경 그림자를 꺼서 하나의 메시로 보이는 것을 방지합니다.
+			FPSMesh->bCastDynamicShadow = false;
+			FPSMesh->CastShadow = false;
+			
+			// 자신을 제외한 모든 이는 일반 바디 메시를 볼 수 있습니다.
 			GetMesh()->SetOwnerNoSee(true);
 		}
 		
@@ -547,9 +482,15 @@ Version: 4.9
 		{
 			Super::BeginPlay();
 			
+			const int32 Key = -1;
+			static const FString DebugMessage = TEXT("We are using FPSCharacter.");
+			FColor DisplayColor = FColor::Red;
+			float TimeToDisplay = 5.0f; //seconds
+		
 			if (GEngine != nullptr)
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::White, TEXT("We are using FPSCharacter."));
+				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
+		
 			}
 		}
 		
@@ -564,61 +505,53 @@ Version: 4.9
 		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 		{
 			Super::SetupPlayerInputComponent(InputComponent);
-			
+		
 			// 게임플레이 키 바인딩을 구성합니다.
 			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
 			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
+		
 			// 게임플레이 마우스 바인딩을 구성합니다.
 			InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
 			InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
+		
 			// 점프 동작 바인딩을 구성합니다.
 			InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::OnStartJump);
 			InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::OnStopJump);
-			// 총 발사 액션 바인딩을 구성합니다.
+		
+			// 프로젝타일 발사 액션 바인딩을 구성합니다.
 			InputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::OnFire);
 		}
 		
-		// 전방 이동 함수 정의입니다.
 		void AFPSCharacter::MoveForward(float Value)
 		{
-			if (Controller != nullptr && Value != 0.f)
-			{
-				//어디가 전방인지 알아냅니다.
-				FRotator Rotation = Controller->GetControlRotation();
-				//걸을 때 낙하를 대비해 핏치를 제한시킵니다.
-				if (GetCharacterMovement()->IsMovingOnGround() || GetCharacterMovement()->IsFalling())
-				{
-					Rotation.Pitch = 0.f;
-				}
-				//그 방향으로 동작을 더합니다.
-				const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
-				AddMovementInput(Direction, Value);
-			}
+			// 어디가 전방인지 알아냅니다.
+			FRotator Rotation = Controller->GetControlRotation();
+			// 그 방향으로 동작을 더합니다.
+			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
+			AddMovementInput(Direction, Value);
 		}
 		
-		//우측 이동 함수 정의입니다.
 		void AFPSCharacter::MoveRight(float Value)
 		{
-			if (Controller != nullptr && Value != 0.f)
-			{
-				//어디가 우측인지 알아냅니다.
-				const FRotator Rotation = Controller->GetControlRotation();
-				const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
-				//그 방향으로 동작을 더합니다.
-				AddMovementInput(Direction, Value);
-			}
+			// 어디가 오른쪽인지 알아냅니다.
+			FRotator Rotation = Controller->GetControlRotation();
+			// 그 방향으로 동작을 더합니다.
+			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
+			AddMovementInput(Direction, Value);
 		}
 		
-		//점프 플래그를 설정하는 함수입니다.
 		void AFPSCharacter::OnStartJump()
 		{
 			bPressedJump = true;
 		}
 		
-		//점프 플래그를 지우는 함수입니다.
 		void AFPSCharacter::OnStopJump()
 		{
 			bPressedJump = false;
+		}
+		
+		void AFPSCharacter::OnFire()
+		{
 		}
 
 ## 발사체의 스폰 위치 정의
@@ -629,10 +562,12 @@ Version: 4.9
 *	프로젝타일 클래스 (`FPSCharacter` 와 그 파생 블루프린트가 스폰할 발사체를 알도록 하기 위함입니다).
 
 [REGION:note]
-카메라 스페이스 오프셋 벡터를 사용하여 스폰 위치를 결정하게 됩니다. 이 파라미터를 편집가능으로 만들어 BP_FPSCharacter 블루프린트에서 설정 및 조정할 수 있도록 할 것입니다. 그러면 이 데이터를 토대로 발사체에 대한 초기 위치를 계산할 수 있을 것입니다.
+카메라 스페이스 오프셋 벡터를 사용하여 프로젝타일의 스폰 위치를 결정하게 됩니다.
+이 파라미터를 편집가능하게 만들어야 BP_FPSCharacter 블루프린트에서 설정 및 조정할 수 있습니다.
+궁극적으로 이 데이터를 토대로 발사체에 대한 초기 위치를 계산할 수 있을 것입니다.
 [/REGION]
 
-1.	**Solution Explorer** 에서 `FPSCharacter` 클래스 인터페이스 파일을 찾고 `FPSCharacter.h` 를 엽니다.
+1.	**Solution Explorer** 에서 `FPSCharacter` 클래스 헤더 파일을 찾고 `FPSCharacter.h` 를 엽니다.
 
 1.	`FPSCharacter.h` 에 다음 코드를 추가합니다:
 
@@ -641,7 +576,8 @@ Version: 4.9
 		FVector MuzzleOffset;
 
 	[REGION:note]
-	EditAnywhere 지정자를 통해 총구 오프셋 값을 블루프린트 에디터의 디폴트 모드나 캐릭터의 아무 인스턴스에 대한 디테일 탭에서 변경할 수 있습니다. BlueprintReadWrite 지정자를 통해서는 블루프린트 안에서 총구 오프셋의 값을 구하고 설정할 수 있습니다.
+	EditAnywhere 지정자를 통해 총구 오프셋 값을 블루프린트 에디터의 디폴트 모드나 캐릭터의 아무 인스턴스에 대한 디테일 탭에서 변경할 수 있습니다. 
+	BlueprintReadWrite 지정자를 통해서는 블루프린트 안에서 총구 오프셋의 값을 구하고 설정할 수 있습니다.
 	[/REGION]
 
 1.	`FPSCharacter.h` 에 다음 코드를 추가합니다:
@@ -672,9 +608,6 @@ Version: 4.9
 			// 이 캐릭터 프로퍼티에 대한 기본값을 설정합니다.
 			AFPSCharacter();
 		
-			// AFPSCharacter 에 대한 생성자입니다.
-			AFPSCharacter(const FObjectInitializer& ObjectInitializer);
-		
 			// 게임 시작시 또는 스폰시 호출됩니다.
 			virtual void BeginPlay() override;
 			
@@ -695,22 +628,22 @@ Version: 4.9
 			// 키를 누르면 점프 플래그를 설정합니다.
 			UFUNCTION()
 			void OnStartJump();
-			
+		
 			// 키를 떼면 점프 플래그를 지웁니다.
 			UFUNCTION()
 			void OnStopJump();
 		
-			// 발사 처리
+			// 프로젝타일 발사를 처리하는 함수입니다.
 			UFUNCTION()
 			void OnFire();
 		
-			// FPS 카메라
-			UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
-			UCameraComponent* FirstPersonCameraComponent;
+			// FPS 카메라입니다.
+			UPROPERTY(VisibleAnywhere)
+			UCameraComponent* FPSCameraComponent;
 		
 			// 폰 메시: 일인칭 시점 (자신에게만 보이는 팔)
 			UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-			USkeletalMeshComponent* FirstPersonMesh;
+			USkeletalMeshComponent* FPSMesh;
 		
 			// 카메라 위치에서의 총구 오프셋
 			UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
@@ -719,6 +652,7 @@ Version: 4.9
 			// 스폰시킬 프로젝타일 클래스
 			UPROPERTY(EditDefaultsOnly, Category = Projectile)
 			TSubclassOf<class AFPSProjectile> ProjectileClass;
+		
 		};
 
 ## 코드 컴파일 및 검사
@@ -733,7 +667,7 @@ Version: 4.9
 
 	![](BuildFPSProject.png)
 
-	[REGION:note]
+	[REGION:tip]
 	이 단계의 목적은 다음 단계로 넘어가기 전 빌드 오류를 잡아내기 위함입니다.
 	[/REGION]
 

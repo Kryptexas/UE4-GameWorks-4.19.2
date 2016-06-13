@@ -5,9 +5,7 @@ Crumbs: %ROOT%, GettingStarted
 Description:Minimum and recommended hardware specifications and necessary software for developing with Unreal Engine.
 version: 4.9
 
-[PUBLISH:Rocket]
 %Globals:OSSelect_Linux%
-[/PUBLISH:Rocket]
 
 [TOC(start:2)]
 
@@ -18,10 +16,6 @@ Unreal Engine has some specific hardware and software requirements for running t
 
 ## Recommended Hardware
 
-[PUBLISH:Licensee]
-[INCLUDE:#windowsminhardware]
-[/PUBLISH:Licensee]
-[PUBLISH:Rocket]
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
 	OS
@@ -62,7 +56,6 @@ Unreal Engine has some specific hardware and software requirements for running t
 	[INCLUDE:#linuxminhardware]
 	[/PARAM]
 [/OBJECT]
-[/PUBLISH:Rocket]
 
 <!--
 [EXCERPT:WindowsMinHardware]
@@ -79,7 +72,7 @@ Unreal Engine has some specific hardware and software requirements for running t
 | **Operating System** | Mac OS X 10.9.2  |
 | **Processor** | Quad-core Intel, 2.5 GHz or faster |
 | **Memory** | 8 GB RAM |
-| **Video Card** | DirectX 11 compatible graphics card |
+| **Video Card** | OpenGL 4.1 compatible graphics card |
 [/EXCERPT:MacOSMinHardware]
 [EXCERPT:LinuxMinHardware]
 |||
@@ -91,38 +84,6 @@ Unreal Engine has some specific hardware and software requirements for running t
 [/EXCERPT:LinuxMinHardware]
 -->
 
-[PUBLISH:Licensee]
-## Recommended Hardware
-
-[INCLUDE:#windowsrechardware]
-[/PUBLISH:Licensee]
-
-<!--
-[EXCERPT:WindowsRecHardware]
-| Developing with the Engine ||
-| -------- | --- |
-| **Processor** | 4 core > 2.5 GHz or better |
-| **Memory** | 8+ GB RAM |
-| **Video Card** | DirectX 11 compatible graphics card with 2 GB GDDR5 memory |
-| **Monitor** | 2 monitors @ 1680x1050 or better |
-[/EXCERPT:WindowsRecHardware]
-[EXCERPT:MacOSRecHardware]
-| Developing with the Engine ||
-| -------- | --- |
-| **Processor** | 4 core > 2.5 GHz or better |
-| **Memory** | 8+ GB RAM |
-| **Video Card** | DirectX 11 compatible graphics card with 2 GB GDDR5 memory |
-| **Monitor** | 2 monitors @ 1680x1050 or better |
-[/EXCERPT:MacOSRecHardware]
-[EXCERPT:LinuxRecHardware]
-| Developing with the Engine ||
-| -------- | --- |
-| **Processor** | 4 core > 2.5 GHz or better |
-| **Memory** | 8+ GB RAM |
-| **Video Card** | DirectX 11 compatible graphics card with 2 GB GDDR5 memory |
-| **Monitor** | 2 monitors @ 1680x1050 or better |
-[/EXCERPT:LinuxRecHardware]
--->
 
 [PUBLISH:Licensee]
 [REGION:note]
@@ -135,20 +96,6 @@ Unreal Engine has some specific hardware and software requirements for running t
 Below are the requirements for running the engine or editor.
 
 (#MinSoftwareReqs)
-
-[PUBLISH:Licensee]
-| Running the Engine ||
-| -------- | --- |
-| **Operating System** | Microsoft Windows Vista/7 64-bit |
-| **DirectX Version** | [DirectX End-User Runtimes (June 2010)](http://www.microsoft.com/download/en/details.aspx?id=8109) |
-| **Visual C++ Runtimes** | [Microsoft Visual C++ 2013 Redistributables](http://www.microsoft.com/en-us/download/details.aspx?id=40784) |
-
-[REGION:note]
-**Note:** Running the `UE4PrereqSetup.msi` found in `//depot/UE4/Engine/Extras/Redist/en-us` will install software necessary to run Unreal Engine, such as the DirectX and VC++ runtimes mentioned above.
-[/REGION]
-[/PUBLISH:Licensee]
-
-[PUBLISH:Rocket]
 
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
@@ -191,6 +138,12 @@ Below are the requirements for running the engine or editor.
 	[/PARAM]
 [/OBJECT]
 
+[PUBLISH:Licensee]
+[REGION:note]
+**Note:** Running the `UE4PrereqSetup.msi` found in `//depot/UE4/Engine/Extras/Redist/en-us` will install software necessary to run Unreal Engine, such as the DirectX and VC++ runtimes mentioned above.
+[/REGION]
+[/PUBLISH:Licensee]
+
 <!--
 [EXCERPT:WindowsMinSoftware]
 | Running the Engine ||
@@ -221,38 +174,14 @@ UE4's crash reporting feature requires you to have **Windows Error Reporting** e
 [/EXCERPT:WER]
 
 [EXCERPT:VCRuntime]
-[Visual Studio C++ 2013 Redist](http://www.microsoft.com/en-us/download/details.aspx?id=40784)
+[Visual Studio C++ 2015 Redist](https://www.microsoft.com/en-us/download/details.aspx?id=48145)
 [/EXCERPT:VCRuntime]
 
 -->
 
-[/PUBLISH:Rocket]
 
 The requirements for programmers developing with the engine are listed below.
 
-[PUBLISH:Licensee]
-
-(#DirectX)
-
-| Developing with the Engine ||
-| -------- | --- |
-| **Operating System** | Microsoft Windows Vista/7 64-bit |
-| **Visual Studio Version** | [Microsoft Visual Studio 2013 Professional](http://www.microsoft.com/en-us/download/details.aspx?id=43730) or [Microsoft Visual Studio 2013 Express for Windows Desktop](http://www.microsoft.com/en-us/download/details.aspx?id=43733)|
-| **Visual C++ Runtime** | [INCLUDE:#VCRuntimeLicensee] |
-
-<!--
-[EXCERPT:VCRuntimeLicensee]
-[Visual Studio C++ 2010 SP1 Redist x64](http://www.microsoft.com/en-us/download/details.aspx?id=13523)  
-
-[Visual Studio C++ 2012 Redist](http://www.microsoft.com/en-us/download/details.aspx?id=30679) 
- 
-[Visual Studio C++ 2013 Redist](http://www.microsoft.com/en-us/download/details.aspx?id=40784)
-[/EXCERPT:VCRuntimeLicensee]
--->
-
-
-[/PUBLISH:Licensee]
-[PUBLISH:Rocket]
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
 	OS
@@ -299,7 +228,7 @@ The requirements for programmers developing with the engine are listed below.
 | Developing with the Engine ||
 | -------- | --- |
 | **All 'Running the Engine' requirements (automatically installed)** ||
-| **Visual Studio Version** | [INCLUDE:#VS2013] |
+| **Visual Studio Version** | [INCLUDE:#VS] |
 | [REGION:tablesection]iOS Development[/REGION] ||
 | **iTunes Version** | [iTunes 11 or higher](http://www.apple.com/itunes/) |
 [/EXCERPT:WindowsMinDevelopment]
@@ -317,17 +246,17 @@ The requirements for programmers developing with the engine are listed below.
 | **IDE** | QtCreator 3.1 or KDevelop 4.6|
 | **Build System** | CMake 2.8 |
 [/EXCERPT:LinuxMinDevelopment]
-[EXCERPT:VS2013]
-Visual Studio 2013 Professional or Visual Studio 2013 Community:
+-->
 
-* [Pro](http://www.microsoft.com/en-us/download/details.aspx?id=43730)
+<!--
+[EXCERPT:VS]
+Visual Studio 2015 Professional or Visual Studio 2015 Community:
+
+* [Pro](https://www.visualstudio.com/downloads/download-visual-studio-vs)
 * [Community](https://www.visualstudio.com/en-us/products/visual-studio-community-vs.aspx)
 
-[/EXCERPT:VS2013]
+[/EXCERPT:VS]
 -->
-[/PUBLISH:Rocket]
-
-
 
 [PUBLISH:Licensee]
 ## Graphics Card Drivers

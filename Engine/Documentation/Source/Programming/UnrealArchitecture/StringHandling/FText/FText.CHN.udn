@@ -137,7 +137,7 @@ TextTest.cpp can show you examples of how to perform valid culture aware formatt
 
 ### Canvas
 
-To display FText in a HUD using [Canvas](Gameplay/Framework\UIAndHUD#canvas), you must create a new FCanvasTextItem.
+To display FText in a HUD using [Canvas](Gameplay/Framework\UIAndHUD), you must create a new FCanvasTextItem.
 
 	FCanvasTextItem TextItem( FVector2D::ZeroVector, TestHUDText, BigFont, FLinearColor::Black);
 	

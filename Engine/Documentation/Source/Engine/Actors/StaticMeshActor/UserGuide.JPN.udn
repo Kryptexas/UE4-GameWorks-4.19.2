@@ -1,9 +1,8 @@
-﻿INTSourceChangelist:2651383
-Availability:Public
+﻿Availability:Public
 Title:StaticMesh アクタ
 Crumbs:%ROOT%, Engine, Engine/Actors
-Description:背景にワールドジオメトリを作成するために StaticMesh アクタを配置および使用するためのガイド
-バージョン：4.9
+Description:背景にワールド ジオメトリを作成するために StaticMesh アクタを配置および使用するためのガイド
+version:4.9
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]
@@ -34,7 +33,7 @@ Description:背景にワールドジオメトリを作成するために StaticM
 自動的に StaticMesh アクタに変換されます。
 
 [REGION:note]
-これらは StaticMesh アクタと呼ばれますが、この言葉は StaticMesh アクタのメッシュが静的であることを意味します。StaticMesh アクタは、エレベータになるように可動にする、またはプレイヤーをクラッシュできるように物理をシミュレートするようにできます。 
+これらは StaticMesh アクタと呼ばれますが、この言葉は StaticMesh アクタのメッシュが静的であることを意味します。StaticMesh アクタは、エレベータになるように可動にする、またはプレイヤーをクラッシュできるように物理をシミュレートすることができます。 
 詳細は、[StaticMesh アクタを可動にする](#StaticMeshアクタを可動にする) をご覧ください。
 [/REGION]
 
@@ -129,7 +128,7 @@ StaticMesh アクタ の StaticMeshComponent の **Rendering** カテゴリに�
 
 デフォルトで、スタティックメッシュが任意の 3D オーサリング パッケージ 
 ([FBXパイプライン：スタティックメッシュ](Engine/Content/FBX/StaticMeshes#コリジョン) を参照) またはスタティックメッシュ エディタ 
-([](Engine/Physics/Collision/Reference) を参照) で生成された物理ボディを持つ場合、コリジョンを持ち、**Block All** に設定されます。コリジョン チャンネルとコリジョン設定の調整に関する詳細情報は、 
+([](Engine/Physics/Collision/Reference) を参照) で生成された物理ボディを持つ場合、コリジョンを持ち、**[Block All]** に設定されます。コリジョン チャンネルとコリジョン設定の調整に関する詳細情報は、 
 [](Engine/Physics/Collision) をご覧ください。
 
 

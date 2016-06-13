@@ -1,131 +1,136 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Collapsing Graphs
+﻿INTSourceChangelist:2679264
+Availability:Public
+Title:重叠图表
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
-Description:Collapsing nodes to a new Graph, a Function, or a Macro. 
-Related: Engine/Blueprints/UserGuide
-Related: Engine/Blueprints/UserGuide/Functions
-Related: Engine/Blueprints/UserGuide/Macros
+Description:将节点重叠为新图表、函数或宏。 
+Related:Engine/Blueprints/UserGuide
+Related:Engine/Blueprints/UserGuide/Functions
+Related:Engine/Blueprints/UserGuide/Macros
+version:4.9
+skilllevel:Beginner
+parent:Engine/Blueprints/BP_HowTo
+type:howto
+order:4
 
-This page covers several ways in which you can collapse your **Blueprint** graphs into a single node, into a **Function** or into a **Macro** which can help clean up any large graphs you may have by consolidating them into a linked graph. 
+本页讲述将 **Blueprint** 图表重叠为一个单独节点、一个 **函数** 或一个 **宏** 的多种方法。将大型图表重叠为一个连接图表，便于清理。 
 
 [TOC(start:2)]
 
-## Collapsing Nodes
+## 重叠节点
 
-The easiest method of collapsing which is illustrated below is through **Collapsing Nodes** into a linked graph. These are primarily used for organization and keeping things nice and neat inside your Event Graph. 
+下图表现的是最简单的重叠方法，将 **重叠节点** 转变为连接图表。它主要用于组织，使事件图表中的内容整齐清楚。 
 
-1.  On the **Graph** of a **Blueprint**, locate the nodes that you want to collapse. 
+1. 在 **蓝图** 的 **图表** 上找到需要重叠的节点。 
 
 	![](Collapse1.png)(w:740)
 
-	Here we have some nodes that reduce the player's energy after they jump. 
+	此处有一些在玩家跳跃后减少其能量的节点。 
 
-1.	Select all the nodes that you want to collapse by **Left-clicking** and dragging over the nodes. 
+1.	在节点上 **单击左键** 并拖动，选择需要重叠的所有节点。 
 
 	![](Collapse2.png)(w:740)
 	
-	You can also **Control + Left-click** to add/subtract nodes to your selection. 
+	可通过 **Control + 左键单击** 组合键从选择中添加/减去节点。 
 
-1.	Once you have the nodes you wish to collapse, **Right-click** on any node in the selection and choose **Collapse Nodes**. 
+1.	选定需要重叠的节点后，在选中的任意节点上 **单击右键** 并选择 **Collapse Nodes**。 
 
 	![](Collapse3.png)
 
-1.	The nodes will be collapsed into a single **Collapsed Graph** node, which you can then assign a name. 
+1.	所有节点将重叠为一个单独的 **Collapsed Graph** 节点，然后可为该节点命名。 
 
 	![](Collapse4.png)
 
-1.	If you mouse over the **Collapsed Graph** node, you will see a preview window of the node network. 
+1.	鼠标悬停在 **Collapsed Graph** 节点上，可以看到节点网络的预览窗口。 
 
 	![](Collapse5.png)
 
-1.	**Double-clicking** on the **Collapsed Graph** will open up a new graph with your selected nodes. 
+1.	**双击** **Collapsed Graph** 节点将打开含所选节点的新图表。 
 
 	![](Collapse6.png)(w:740)
 
-1.	Inside the **Collapsed Graph**, you can add pins to the **Inputs** or **Outputs** nodes from the **Details** panel. 
+1.	在 **Collapsed Graph** 中，可从 **Details** 面板添加引脚至 **Inputs** 或 **Outputs** 节点。 
 
 	![](Collapse10.png)
 
-	**Execute** is added by default when collapsing, here we have added two Execute Out Pins: **OutOfEnergy** and **CanJump**. 
+	重叠时将默认添加 **Execute**，在此添加两个 Execute 输出引脚：**OutOfEnergy** 和 **CanJump**。 
 
-	We also modified the graph to check if the player is out of energy before subtracting from the overall energy the player has. 
+	我们也对图表进行了修改，在扣除玩家拥有的能量之前确定能量是否已经耗尽。 
 
 	![](Collapse8.png)(w:740)
 
-	And our **Event Graph** with the collapsed node would look something like below. 
+	带重叠节点的 **事件图表** 外观如下图所示。 
 
 	![](Collapse9.png)(w:540)
 
-1.	By **Right-clicking** on the collapsed node, you can select **Expand Node** to "un-collapse" the nodes. 
+1.	在重叠节点上 **单击右键**，可选择 **Expand Node** 将节点转换为其原始状态。 
 
 	![](Collapse7.png)
 	
 
-## Collapsing to Function
+## 重叠为函数
 
-Another method that can be used to collapse your nodes is to collapse them to a **Function**. The benefit of collapsing your nodes to a Function versus to a Collapsed Graph is that not only can you can call the Function in another area of script based on whatever parameters you wish to specify, but you can also call the Function from inside a different Blueprint (as long as you provide a reference to the Blueprint that contains the Function you wish to call). 
+重叠节点的另一种方式是将它们重叠为一个 **函数**。较之于重叠图表，将节点重叠为函数有下列优点：基于任意指定参数在脚本的另一区域调用函数、在另一蓝图中调用函数（需为包含要调用函数的蓝图添加引用）。 
 
-Below are the steps you can take to collapse your nodes to a Function. 
+下列步骤说明如何将节点重叠为函数。 
 
-1.	With the nodes you want to collapse selected, **Right-click** on a node and select **Collapse to Function**. 
+1.	选中需要重叠的节点，在其中一个节点上 **单击右键** 并选择 **Collapse to Function**。 
 
 	![](CollapseFunction1.png)(w:700)
 
-1.	A new **Function** will be created, which you can re-name from the **MyBlueprint** window by pressing **F2** on it. 
+1.	一个新 **Function** 将被创建，可在 **MyBlueprint** 窗口按 **F2** 键对其进行重命名。 
 
 	![](CollapseFunction2.png)
 
-	The WARNING! message will disappear when you compile your Blueprint. 
+	编译蓝图后，“WARNING！”报错信息将自动消失。
 
 	![](CollapseFunction3.png)
 
-	Here you can re-name your Function.
+	在此处可对函数进行重命名。
 
-1.	**Double-clicking** on the Function will open it up in a new graph window. 
+1.	**双击** 函数在一个新图表窗口中将其打开。 
 
 	![](CollapseFunction4.png)
 
-	Similar to Collapsed Graphs, you can click on the **Inputs** or **Outputs** nodes and add pins to them via the **Details** panel. 
+	和重叠图表相似，可点击 **Inputs** 或 **Outputs** 节点，通过 **Details** 面板为其添加引脚。 
 
-1.	You can call the Function by its name off any condition you wish to specify. 
+1.	可通过函数名指定其在何时被调用。 
 
 	![](CollapseFunction5.png)
 
-	Here we are calling the **Remove Energy** Function whenever F is pressed. 
+	在此处，F 键被按下时将调用 **Remove Energy** 函数。 
 
-1.	You can "un-collapse" the Function by **Right-clicking** on it and selecting the **Expand Node** option. 
+1.	在函数上 **单击右键** 并选择 **Expand Node**可恢复重叠前的原始状态。 
 
-For more information about Using or Calling Functions, see the [](Engine/Blueprints/UserGuide/Functions) documentation. 
+如需函数使用或调用的更多信息，请查阅 [](Engine/Blueprints/UserGuide/Functions) 文档。 
 
 
-## Collapsing to Macro
+## 重叠为宏
 
-In addition to collapsing to a Collapsed Graph or Function, you can also collapse nodes to a **Macro**. The best way to think of a Macro is that it allows you to take several nodes that are connected and consolidate them into a single node that does everything you need it to do all in one. It is particularly useful for anything that you do frequently, like a complex math equation. 
+除重叠为重叠图表和函数外，还可将节点重叠为 **宏**。如此理解宏方为最佳：选取相连的数个节点，将它们合并为单个节点，便于执行整体操作。利用其执行高频率操作（如复杂数学方程式）十分实用。 
 
-See below for steps on collapsing nodes to a Macro. 
+下列步骤讲述如何将节点重叠为宏。 
 
-1.	With the nodes you wish to collapse selected, **Right-click** on a node and select **Collapse to Macro**. 
+1.	选中需要重叠的节点，在其中一个节点上 **单击右键** 并选择 **Collapse to Macro**。 
 
 	![](CollapseMacro1.png)(w:700)
 
-1.	A new Macro node will be created, which you can re-name via the **MyBlueprint** window by pressing **F2** on it. 
+1.	一个新宏节点创建成功，可在 **MyBlueprint** 窗口按 **F2** 键对其进行重命名。 
 
 	![](CollapseMacro2.png)
 
-1.	You can open the Macro by **Double-clicking** on it. 
+1.	**双击** 可将宏打开。 
 
 	![](CollapseMacro4.png)(w:700)
 
-	As with the other method of collapsing nodes, you can add **Input** or **Output** pins as needed. 
+	利用此方法可随意添加 **输入** 或 **输出** 引脚。 
 
-	Here is our Event Graph which implements the Macro with the additional pins. 
+	下图事件图表应用了带额外引脚的宏。 
 		
 	![](CollapseMacro5.png)
 
-1.	By **Right-clicking** on your Macro, you can select **Expand Node** to "un-collapse" the node network. 
+1.	在宏上 **单击右键**，可选择 **Expand Node** 将节点转换为其原始状态。 
 
-For more information about Macros, see the [](Engine/Blueprints/UserGuide/Macros) documentation. 
+如需宏的更多信息，请查阅 [](Engine/Blueprints/UserGuide/Macros) 文档。 
 
 
 

@@ -47,7 +47,7 @@ algorithm, they appear noisy and not as clear as the BokehDOF can do them.
 The method has good performance (quite better than Bokeh DoF) and good quality, especially in the transition areas.
 
 The defaults of CircleDOF are intentionally weak to be more pleasant. To get the maximum effect you can tweak settings. Use a low Aperture for a large Bokeh, get close to an object and change the Field of View to be lower.
-Play with the focal distance to
+Play with the focal distance to get some scene content in out of focus, ideally in front and behind the focal plane. Using showflag VisualizeDepthOfField might help to find the right settings.
 
 [/EXCERPT:DepthOfField_Circle]
 
@@ -198,10 +198,10 @@ In general, you want this to display all green. The more red shown by the visual
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Adaptive Reoslution - Optimized](dof_adaptive_good.png)(w:700)
+	![Adaptive Resolution - Optimized](dof_adaptive_good.png)(w:700)
 	[/PARAM]
 	[PARAM:after]
-	![Adaptive Reoslution - Expensive](dof_adaptive_bad.png)(w:700)
+	![Adaptive Resolution - Expensive](dof_adaptive_bad.png)(w:700)
 	[/PARAM]
 [/OBJECT]
 

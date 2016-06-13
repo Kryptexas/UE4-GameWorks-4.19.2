@@ -1,28 +1,29 @@
-﻿INTSourceChangelist:2281973
+﻿INTSourceChangelist:2729971
 Availability:Public
 title:プロシージャル
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:既存の高さマップから法線マップを作成するなどプロシージャルに生成されたテクスチャやオペレーション。
+Version:4.9
 
 [TOC (start:2 end:3)]
 
-## 概要
 
-プロシージャルな関数は、シンプルなプロシージャルに生成されたテクスチャやマスクを迅速に作る方法を提供します。これにより、インポートしたテクスチャを使用しなければならない場合に比べてメモリを節約します。
 
-## プロシージャルな関数
+**プロシージャル** 関数は、シンプルなプロシージャルに生成されたテクスチャやマスクを迅速に作る方法を提供します。これにより、インポートしたテクスチャを使用しなければならない場合に比べてメモリを節約します。
 
-以下はプロシージャルなカテゴリに属する全関数のリストです。
+## プロシージャル関数
+
+以下は Procedurals カテゴリに属する全関数のリストです。
 
 ### GeneratedBand
 
-GeneratedBand 関数はデフォルトの TextureCoordinates から水平、垂直のバンドを生成します。
+**GeneratedBand** 関数はデフォルトの TextureCoordinates から水平、垂直のバンドを生成します。
 
 | アイテム | 説明 |
 | -------- | -------- |
 | [REGION:tablesection]入力値[/REGION] ||
 | **Width (Scalar)** | プロシージャルなバンドの幅を計算する 0-1 の値。デフォルトは 0.25 です。|
-| **Sharpness (Scalar)** | バンドのエッジのフォールオフを制御します。設定を 100 にすると、エイリアシングがある非常にはっきりとしたバンドになります。
+| **Sharpness (Scalar)** | バンドのエッジのフォールオフを制御します。設定を 100 にすると、エイリアシングがある非常にはっきりとしたバンドになります。|
 | **Offset (Scalar)** | テクスチャ空間周囲でバンドをスライドさせます。|
 | **Direction Switch (StaticBool)** | *true* に設定するとバンドは水平ではなく垂直になります。デフォルトは *false*、すなわち水平です。|
 | **Compare (Scalar)** | これはバンドを作るためにテクスチャ座標が比較される値です。デフォルトは 0.5 です。|
@@ -33,13 +34,13 @@ GeneratedBand 関数はデフォルトの TextureCoordinates から水平、垂�
 
 ### GeneratedOffsetBands
 
-GeneratedBand 関数と同様に GeneratedOffsetBands は UV 空間上にプロシージャルに生成されたテクスチャのバンドを作ります。しかし、この関数は 1 つではなく、複数のバンドを作ることがあります。
+GeneratedBand 関数と同様に **GeneratedOffsetBands** は UV 空間上にプロシージャルに生成されたテクスチャのバンドを作ります。しかし、この関数は 1 つではなく、複数のバンドを作ることがあります。
 
 | アイテム | 説明 |
 | -------- | -------- |
 | [REGION:tablesection]入力値[/REGION] ||
 | **Width (Scalar)** | プロシージャルなバンドの幅を計算する 0-1 の値。デフォルトは 0.25 です。|
-| **Sharpness (Scalar)** | バンドのエッジのフォールオフを制御します。設定を 100 にすると、エイリアシングがある非常にはっきりとしたバンドになります。
+| **Sharpness (Scalar)** | バンドのエッジのフォールオフを制御します。設定を 100 にすると、エイリアシングがある非常にはっきりとしたバンドになります。|
 | **Offset (Scalar)** | テクスチャ空間周囲でバンドをスライドさせます。|
 | **Direction Switch (StaticBool)** | *true* に設定するとバンドは水平ではなく垂直になります。デフォルトは *false*、すなわち水平です。|
 | **Compare (Scalar)** | これはバンドを作るためにテクスチャ座標が比較される値です。デフォルトは 0.5 です。|
@@ -54,7 +55,7 @@ GeneratedBand 関数と同様に GeneratedOffsetBands は UV 空間上にプロ�
 この関数は、別個のテクスチャをメモリに読み込む代わりに、既存のブラックとホワイトの高さマップから法線マップを迅速に作成する手段となります。
 
 [REGION:note]
-	この関数は TextureSample ではなくTextureObject (T2d) 表現式ノードを受け取ります。
+	この関数は TextureSample ではなく TextureObject (T2d) 表現式ノードを受け取ります。
 [/REGION]
 
 | アイテム | 説明 |
@@ -70,7 +71,7 @@ GeneratedBand 関数と同様に GeneratedOffsetBands は UV 空間上にプロ�
 
 ### NormalFromHeightmapChaos
 
-NormalFromHeightMapChaos 関数は高さマップを受け取り、それを 4 方向にパンします。次にその結果をブレンドして合わせて、無秩序にアニメートされた法線マップを作ります。
+**NormalFromHeightMapChaos** 関数は高さマップを受け取り、それを 4 方向にパンします。次にその結果をブレンドして合わせて、無秩序にアニメートされた法線マップを作ります。
 
 [REGION:warning]
 	この関数は負荷が高いと考えられるため、注意深く使用してください。
@@ -94,12 +95,12 @@ NormalFromHeightMapChaos 関数は高さマップを受け取り、それを 4 �
 
 1. 新規のマテリアル エディタで NormalFromHeightmapChaos の関数ノードを **ダブルクリック** して開きます。
 
-1. Texture Object (T2d) 表現式ノードを探します。現在、その中にデフォルト (緑色のスライム) のテクスチャが入っているはずです。
+2.Texture Object (T2d) 表現式ノードを探します。現在、その中にデフォルト (緑色のスライム) のテクスチャが入っているはずです。
 
-1. FunctionInput 表現式ノードを作成し、それを 3 *Motion_4WayChaos* 関数ノード上の *Texture (T2d)* 関数ノードに接続します。
+3. **FunctionInput**  表現式ノードを作成し、それを 3 *Motion_4WayChaos* 関数ノード上の *Texture (T2d)* 関数ノードに接続します。
 
-1. その新しい FunctionInput の表現式で *Input Type* のプロパティを *FunctionInput_Texture2D* に設定します。
+4. その新しい FunctionInput の表現式で **Input Type** のプロパティを *FunctionInput_Texture2D* に設定します。
 
-1. その入力値にラベル付けするには、*Input Name* のプロパティを「Heightmap In」 に設定します。
+5. その入力値にラベル付けするには、**Input Name** のプロパティを「Heightmap In」 に設定します。
 
-1. オリジナルの *Texture Object (T2d)* 表現式ノードをその新規のFunctionInput 表現式ノードの *Preview* 入力値に接続します。
+6. オリジナルの *Texture Object (T2d)* 表現式ノードをその新規のFunctionInput 表現式ノードの *Preview* 入力値に接続します。

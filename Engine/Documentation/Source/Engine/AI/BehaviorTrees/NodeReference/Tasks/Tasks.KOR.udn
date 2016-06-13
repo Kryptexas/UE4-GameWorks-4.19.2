@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2623598
+﻿INTSourceChangelist:2755897
 Availability:Public
 Title: 비헤이비어 트리 노드 참고서: 태스크
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
 Description:비헤이비어 트리의 Task, 태스크 노드에 대한 참고서입니다.
+version: 4.9
 
 [TOC(start:2 end:2)]
 

@@ -1,86 +1,86 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2615195
 Availability:Public
-Title:Threaded Rendering
+Title:线程渲染
 Crumbs:%ROOT%, Programming, Programming/Rendering
-Description:Information for graphics programmers working with the threaded renderer.
-Version: 4.9
+Description:针对图形程序员的线程渲染器使用信息。
+Version:4.9
 
-## Rendering thread
+## 渲染线程
 
-In Unreal Engine 4 (UE4), the entire renderer operates in its own thread that is a frame or two behind the game thread. 
+在虚幻引擎 4（UE4）中，整个渲染器在其自身的线程中执行操作，该线程位于游戏线程的一两帧后。 
 
-When dealing with rendering things, you have to carefully consider every memory read and write to ensure not only thread safety, but also determinism in behavior.  When functional behavior depends on execution speed differences between two threads, it is called a race condition.  Avoiding race conditions is important because they are usually very difficult to reproduce, and may be machine, platform, debugger or configuration dependent because of speed differences. These kind of bugs can rarely be debugged and take something like 10x the time to fix compared to a normal reproducible bug.
+执行渲染操作时，必须仔细地考虑内存读写，确保线程安全，以及行为的确定性。功能行为取决于两个线程之间的执行速度差，这种情况被称作竞争条件。需要尽量避免竞争条件的出现，因为它们难以重现；且因为速度差的缘故，它们可能依赖于机器、平台、调试器或配置。这类 bug 很难进行调试，所花费的修复时间约为可重现的普通 bug 的 10 倍。
 
-Here is a simple example of a race condition / threading bug:
+这是一个竞争条件/线程 bug 的简单例子：
 
-	/** FStaticMeshSceneProxy Actor is called on the game thread when a component is registered to the scene. */
+	/** 组件注册到场景时，游戏线程上将调用 FStaticMeshSceneProxy Actor。*/
 	FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 		FPrimitiveSceneProxy(...),
-		Owner(InComponent->GetOwner()) <======== Note: AActor pointer is cached 
+		Owner(InComponent->GetOwner()) <======== 注：AActor 指示器已缓存 
 		...
 
-		/** DrawDynamicElements is called on the rendering thread when the renderer is doing a pass over the scene. */
+		/** 渲染器在场景上执行一次通路时，渲染线程上将调用 DrawDynamicElements。*/
 		void FStaticMeshSceneProxy::DrawDynamicElements(...)
 		{
-			if (Owner->AnyProperty) <========== Race condition!  The game thread owns all AActor / UObject state, 
-				// and may be writing to it at any time.  The UObject may even have been garbage collected, causing a crash.
-				// This could have been done safely by mirroring the value of AnyProperty in this proxy.
+			if (Owner->AnyProperty) <========== Race condition! 游戏线程拥有所有 AActor / UObject 状态，
+				// 并随时可能对其进行写入。UObject 可能已经执行过垃圾回收，导致程序崩溃。
+				// 在此代理中镜像 AnyProperty 的数值即可安全执行操作。
 		}
 
-#### Development approach
+#### 开发方法
 
-There is no way to exhaustively test to find race conditions. It is important to realize that you cannot create reliable threaded code by guess-and-checking or retroactively fixing bugs. The best approach is to completely understand the interactions of the game thread and rendering thread and use mechanisms to ensure determinism. You should be able to explain the order of events that will make every interaction deterministic, or else you are almost certainly creating race conditions. 
-#### Thread specific data structures
+不存在通过彻底测试找到竞争条件的方法。理解这点十分重要：猜测检验或消极的 bug 修复无法创建可靠的线程代码。最好的方法是完全理解游戏线程和渲染线程的互动，并使用机制保证确定性。应具备能力解释使每个互动具有决定性的事件顺序，否则定会出现竞争条件。 
+#### 线程特定数据结构
 
-For this reason, it is a good idea to have data in separate structures that are 'owned' by the different threads so that it is obvious who can modify what. This holds true for functions as well.  It is best to always call each function from the same thread or things get really complicated. Most of UE4 is structured this way, for example, **UPrimitiveComponent** is the base game thread class of anything that can be rendered, cast shadows, has its own visibility state, etc. The rendering thread can never touch the memory of UPrimitiveComponent directly since the game thread may be writing to its members at any time. The rendering thread has its own class to represent this functionality, which is **FPrimitiveSceneProxy**. The game thread can never touch the members of memory of an FPrimitiveSceneProxy after it is created and registered. **UActorComponent::RegisterComponent** adds a component to the scene and makes it visible to the renderer by creating a FPrimitiveSceneProxy. Once the component is registered, it will have **FPrimitiveSceneProxy::DrawDynamicElements** called on it for every pass that is needed if it is visible.
-#### Performance considerations
+因此可取的方法是 - 将数据保存在不同线程“拥有”的单独结构中，明确修改者和修改对象。此法同样适用于函数。最佳方法是 - 固定从相同线程或极为复杂的情况中调用每个函数。UE4 的大部分结构皆为如此。例如，**UPrimitiveComponent** 是属于可被渲染、可投射阴影资源的基础游戏线程类，拥有其自身的可视状态等属性。渲染线程无法直接触及 UPrimitiveComponent 的内存，因为游戏线程可能随时写入其构件中。渲染线程自身拥有代表此功能的类 - **FPrimitiveSceneProxy**。游戏线程被创建和注册后，无法触及 FPrimitiveSceneProxy 的内存构件。**UActorComponent::RegisterComponent** 将一个组件添加到场景，并创建一个 FPrimitiveSceneProxy 使其对渲染器可见。组件注册后，如其为可见，将为所需的每次通路调用 **FPrimitiveSceneProxy::DrawDynamicElements**。
+#### 性能注意事项
 
-The game thread blocks at the end of each **Tick()** until the rendering thread catches up to either one frame or two frames behind. Since the rendering thread is so far behind, it is never acceptable during gameplay to block the game thread until the rendering thread catches up completely. Blocking during loading or GC of individual objects is also a bad idea, since UE4 supports async streaming levels. There are asynchronous mechanisms for various operations to avoid blocking.
-## Inter-thread communication
-#### Asynchronous
+游戏线程将在每个 **Tick()** 事件的末尾阻塞，直到渲染线程赶上一到两帧的差距。因渲染线程十分滞后，在游戏进程中阻塞游戏线程，等待渲染线程完全赶上的方式完全不可取。在读取或单个物体垃圾回收时进行阻塞也不可取，因为 UE4 支持异步流关卡。诸多操作均有异步机制，防止阻塞。
+## 线程间通讯
+#### 异步
 
-The primary method of communication between the two threads is through the ENQUEUE_UNIQUE_RENDER_COMMAND_XXXPARAMETER macro. This macro creates a local class with a virtual **Execute** function that contains the code you enter into the macro. The game thread inserts the command into the rendering command queue, and the rendering thread calls the Execute function when it gets around to it.
+两个线程间通讯的主要方法是通过 ENQUEUE_UNIQUE_RENDER_COMMAND_XXXPARAMETER 宏进行。此宏使用虚拟的 **执行** 函数（包含输入宏的代码）创建本地类。游戏线程将命令插入渲染命令队列，渲染线程在开始时调用执行函数。
 
-**FRenderCommandFence** provides a convenient way to track the progress of the rendering thread on the game thread. The game thread calls **FRenderCommandFence::BeginFence** to begin the fence. The game thread can then call **FRenderCommandFence::Wait** to block until the rendering thread has processed the fence, or it can just poll the progress of the rendering thread by checking **GetNumPendingFences**. When GetNumPendingFences returns 0, the rendering thread has processed the fence.
-#### Blocking
+利用 **FRenderCommandFence** 可在游戏线程上方便地追踪渲染线程的进度。游戏线程调用 **FRenderCommandFence::BeginFence** 开始栅栏。然后游戏线程将调用 **FRenderCommandFence::Wait** 进行阻塞，直到渲染线程处理栅栏；或者检查 **GetNumPendingFences**，轮询渲染线程的进程。当 GetNumPendingFences 返回为零时，渲染线程已经处理栅栏。
+#### 阻塞
 
-**FlushRenderingCommands** is the standard method of blocking the game thread until the rendering thread has caught up. This is useful for offline (editor) operations which modify memory being accessed by the rendering thread.
-#### Rendering resources
+**FlushRenderingCommands** 是阻塞游戏线程直到渲染线程赶上的标准方法。这在离线（编辑器）操作中十分有用，通过渲染线程修改使用的内存。
+#### 渲染资源
 
-**FRenderResource** provides the base rendering resource interface and provides hooks for initialization and releasing. Anything that derives from FRenderResource (**FVertexBuffer**, **FIndexBuffer**, etc) needs to be initialized before it is used for rendering and released before being deleted. **FRenderResource::InitResource** can only be called from the rendering thread, so there is a helper function (**BeginInitResource**) that can be called on the game thread to enqueue a rendering command to call FRenderResource::InitResource. RHI functions can only be called from the rendering thread (with the exception of a few for creating devices, viewports, etc).
+**FRenderResource** 提供基础渲染资源接口、以及初始化和释放的挂钩。从 FRenderResource（**FVertexBuffer**、**FIndexBuffer** 等）派生出的资源在用于渲染前需要被初始化、在被删除前需要被释放。**FRenderResource::InitResource** 只能从渲染线程调用，因此游戏线程上可调用一个辅助函数（**BeginInitResource**），使渲染命令入列，以便调用 FRenderResource::InitResource。RHI 函数只能从渲染线程调用（创建设备、视口等除外）。
 
-#### UObjects and Garbage Collection
+#### UObjects 与垃圾回收
 
-**Garbage Collection** (GC) happens on the game thread and operates on **UObjects**. The game thread may delete a UObject while the rendering thread is processing a command that references it. For this reason, the rendering thread should never dereference a UObject pointer unless a mechanism is in place to make sure the UObject is not deleted until the rendering thread no longer references it. An example is UPrimitiveComponent, which uses a FRenderCommandFence called **DetachFence** to prevent GC from deleting the UObject before the rendering thread has processed the detach command.
-#### Game thread FRenderResource handling
+**Garbage Collection**（GC）在游戏线程上发生，并运算 **UObjects**。渲染线程正在处理引用 UObject 的命令时，游戏线程可能将 UObject 删除。因此渲染线程不应该解除 UObject 指示器的引用，除非有机制能确保 UObject 被渲染线程引用时不会被删除。以 UPrimitiveComponent 为例，它使用一个称为 **DetachFence** 的 FRenderCommandFence 防止 GC 在渲染线程处理分离命令前将 UObject 删除。
+#### 游戏线程 FRenderResource 处理
 
-There is two common scenarios of game thread rendering thread resource interaction to consider, the case of static resources (only modified on load or in the editor, like an index buffer) and dynamic resources, which need to be updated every frame with the latest results of the game thread simulation.
-#### Static resources
+需要考虑的游戏线程渲染线程交互常见情况有两种：静态资源（只能在加载后或编辑器中进行编辑，与索引缓冲相似）和动态资源（需要将游戏线程模拟的最新结果更新到每帧）。
+#### 静态资源
 
-Here is how the static resource interaction is handled in UE4, using **USkeletalMesh** as an example.
+本节讲述 UE4 中如何处理静态资源交互，以 **USkeletalMesh** 为例。
 
- * **USkeletalMesh::PostLoad** gets called on load, which calls **InitResources**. This calls **BeginInitResource** on any static **FRenderResources** that it has like the index buffer. BeginInitResource enqueues a rendering command to call **FRenderResource::InitResource**. From this point on, the game thread can no longer modify the index buffer memory until it does something to take back ownership.
- * A component registers which starts rendering with the USkeletalMesh's index buffer.
- * GC determines that the component is no longer referenced at some point (level unload or no longer referenced) and detaches the component. Note that at this point, the game thread cannot delete the index buffer memory, because the rendering thread may not have processed the detach yet and may still be rendering with the index buffer.
- * GC calls **USkeletalMesh::BeginDestroy**, which is the game thread object's chance to enqueue commands to release the rendering resources, so it does **BeginReleaseResource(&IndexBuffer)**; The game thread still cannot delete the memory of **IndexBuffer** because the rendering thread has not necessarily processed the release yet. We could block the game thread until the rendering thread catches up, but this would cause hitches and be slow, so we have an asynchronous mechanism instead. In order to track the rendering thread's progress of processing the release command we initiate a fence.
- * GC calls **USkeletalMesh::IsReadyForFinishDestroy**, and will not destroy the UObject until this function returns `true`. The function only returns `true` once the fence has been passed by the rendering thread, which means it is now safe to delete the index buffer memory from the game thread.
- * GC finally calls **UObject::FinishDestroy** which can be used to release memory in a central location. In the case of the index buffer, its memory gets freed when the USkeletalMesh destructor calls **FRawStaticIndexBuffer**'s destructor, which calls the destructor of the **TArray** holding the index buffer memory, which frees the memory.
+ * 加载后将调用 **USkeletalMesh::PostLoad**，此资源将调用 **InitResources**。与索引缓冲相同，它在自身拥有的任意静态 **FRenderResources** 上调用 **BeginInitResource**。BeginInitResource 使一个渲染命令入列，以便调用 **FRenderResource::InitResource**。从此时起，游戏线程无法修改索引缓冲内存，除非重新拿回所有权。
+ * 组件注册，以 USkeletalMesh 索引缓冲开始渲染。
+ * GC 在一些情况下（关卡未加载或不再引用）将停止引用组件并将其分离。注意：此时游戏线程无法删除索引缓冲内存，因为渲染线程可能尚未将分离处理完毕而仍然在使用索引缓冲渲染。
+ * GC 调用 **USkeletalMesh::BeginDestroy**（游戏线程物体使命令入列，释放渲染资源的机会），因此它执行 **BeginReleaseResource(&IndexBuffer)**；游戏线程仍无法删除 **索引缓冲** 的内存，因为渲染线程不一定已完成释放的处理。可阻塞游戏线程，等候渲染线程赶上，但会引发故障并减慢速度，因此我们使用异步机制代替。为追踪渲染线程处理释放命令的进度，我们将开始一个栅栏。
+ * GC 调用 **USkeletalMesh::IsReadyForFinishDestroy**，在此函数返回 `true` 之前不会销毁 UObject。渲染线程通过栅栏后，函数将只返回 `true`，意味着可以从游戏线程中安全地删除索引缓冲内存。
+ * GC 最后将调用 **UObject::FinishDestroy**，可在中心位置释放内存。而索引缓冲的内存在 USkeletalMesh 析构函数调用 **FRawStaticIndexBuffer** 析构函数时将被清空。被调用的析构函数将调用持有索引缓冲内存 **TArray** 的析构函数并清空内存。
 
-This mechanism works well because it is efficient (never blocks either thread, initializes in a central location instead of checking for whether initialization is needed every frame), and is deterministic.
-#### Dynamic resources
+该机制高效（不阻塞线程、在中心位置进行初始化，而不在每帧检查是否需要初始化）而具有决定性，十分实用。
+#### 动态资源
 
-The skeletal mesh bone transforms which are produced by the game thread animation each frame are a good example of dynamic resource updating. The goal is to get the transforms from the game thread after each animation update into an array on the rendering thread where they can be set as shader constants. The same would be true if you were updating an index or vertex buffer each frame. Here is the order of operations:
+动态资源更新的一个最佳范例是游戏线程动画每帧生成的骨骼网格体骨骼变形。目的是：在每个动画更新进渲染线程上（在此可将变形设为着色器常数）的一个阵列后，从游戏线程中获取变形。如在每帧更新索引或顶点缓冲，结果相同。以下是操作顺序：
 
- * **USkinnedMeshComponent::CreateRenderState_Concurrent** allocates **USkinnedMeshComponent::MeshObject**. From this point on, the game thread can only write to the **MeshObject** pointer, but not to the memory of the **FSkeletalMeshObject**.
- * **USkinnedMeshComponent::UpdateTransform** gets called to update the component's movement at least once per frame. This calls **FSkeletalMeshObjectGPUSkin::Update** in the case of GPU skinning. At this point, we have up to date transforms on the game thread and need to get them over to the rendering thread. This is done by first allocating memory on the heap (**FDynamicSkelMeshObjectData**), then copying the bone transforms into it, and then passing off this copy to the rendering thread using ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER. The rendering thread now owns the copy and is responsible for deleting it. The ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER macro contains code to copy the transforms to their final destination so they can be set as shader constants. This is where you would lock and update a vertex buffer if updating vertex positions.
- * At some point, the component gets detached. The game thread enqueues rendering commands to release all of the dynamic FRenderResources and can now set the MeshObject pointer to NULL, however the actual memory is still being referenced by the rendering thread and cannot be deleted. This is where the deferred deletion mechanism comes in to play. Classes that derive from **FDeferredCleanupInterface** can be deleted in an asynchronous way that is thread safe. FSkeletalMeshObject implements this interface. The game thread wants to kick off the deferred deletion of the FSkeletalMeshObject so it calls **BeginCleanup(MeshObject)**. The memory will eventually be deleted when it is safe to do so and cleanup is complete.
+ * **USkinnedMeshComponent::CreateRenderState_Concurrent** 分配 **USkinnedMeshComponent::MeshObject**。从此时起，游戏线程只可写入 **MeshObject** 指示器，但不可写入 **FSkeletalMeshObject** 的内存。
+ * **USkinnedMeshComponent::UpdateTransform** 每帧被调用至少一次，更新组件的移动。在 GPU 蒙皮中将调用 **FSkeletalMeshObjectGPUSkin::Update**。现在游戏线程上拥有最新的变形，需要将它们转移到渲染线程中。操作方法：首先在堆（**FDynamicSkelMeshObjectData**）上分配内存，然后将骨骼变形复制进去，再使用 ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER 将此拷贝传到渲染线程。渲染线程现在拥有此拷贝，并负责删除。ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER 宏包含复制变形到最终目的地的代码，因此变形可被设为着色器常数。如更新顶点位置，这就是锁定和更新顶点缓冲的位置。
+ * 在一些情况下，组件会被分离。游戏线程使渲染命令入列，以释放所有动态 FRenderResources，现在可将 MeshObject 指示器设为 NULL；然而实际内存仍被渲染线程引用，无法删除。此时延迟删除机制即可发挥作用。从 **FDeferredCleanupInterface** 派生的类可按对线程无害的异步方式进行删除。FSkeletalMeshObject 应用此接口。游戏线程需要开始 FSkeletalMeshObject 的延迟删除，因此它调用了 **BeginCleanup(MeshObject)**。安全且完成清理后，内存将被逐步删除。
 
-## Updating state vs Traversing the scene for rendering
+## 更新状态 VS 遍历渲染场景
 
-When developing a system that has distinct update and render operations, it is tempting to combine the two in **DrawDynamicElements**, however this is a poor design choice. A better solution is to separate the update out of the rendering traversal, for example enqueue the update command from within the game thread Tick.
+在开发一个拥有独特更新和渲染操作的系统时，将两者合并进 **DrawDynamicElements** 看上去很美，而实际上却是不是个好点子。更好的方法是将更新从渲染遍历中独立出来，例如使来自游戏线程 Tick 事件的更新入列。
 
-DrawDynamicElements is called by the high level rendering code to draw the elements of a primitive component. The high level code assumes that no RHI state is being changed, and that it can call DrawDynamicElements as many times as it needs each frame, depending on shading passes, number of views, and scene captures in the scene. DrawDynamicElements may even be called, but then the underlying drawing policy discards the results for various reasons (for example a translucent FMeshElement submitted during the depth pass will be discarded). If the primitive component is actually not visible, the occlusion system may or may not actually call DrawDynamicElements, depending on the heuristic it is using. All of these factors can conflict with state updating which should happen once per frame.
+通过高阶渲染代码调用 DrawDynamicElements，绘制原始组件的元素。高阶代码假定不对 RHI 进行改变，在每帧中可将 DrawDynamicElements 调用任意次（取决于着色通路、画面数量、以及场景中的场景捕捉）。甚至可能调用 DrawDynamicElements，但底层绘制规则会因为多种原因放弃结果（例如：深度通路中提交的半透明 FMeshElement 将被放弃）。如原始组件实际为不可见，遮挡系统可能会/不会实际调用 DrawDynamicElements（取决于其使用的启发法）。这些所有因素均可能和每帧发生一次的状态更新产生冲突。
 
-A better solution is to separate the update from the rendering traversal. The game thread Tick can enqueue a rendering command to do the update operation. The rendering command can optionally skip updating based on visibility, if this is acceptable for the use case, by using **LastRenderTime** of the primitive scene info. If the update operation is enqueued separately in this manner, any RHI functions can be used including setting different render targets. 
+更好的解决方法是将更新和渲染遍历独立开来。游戏线程 Tick 事件可使渲染命令入列，执行更新操作。渲染命令可基于可见性略过更新。如使用情况允许，可使用原始场景信息的 **LastRenderTime** 执行操作。如更新操作以这样的方式单独入列，任意 RHI 函数皆可使用（包括设置不同的渲染目标）。 
 
-State caching (as opposed to updating) is an exception to this rule. State caching is storing an intermediate result of the rendering traversal as an optimization. It is closely tied with the traversal, and does not change RHI state, so it does not suffer the downsides mentioned before (as long as the determination of when to cache is done correctly).
+状态缓存（与更新相反）是此规则的例外。状态缓存将渲染遍历的中间结果作为优化保存。它与遍历密切相关，且不改变 RHI 状态，因此它不受上文提到的负面影响（设置正确时机进行缓存即可）。

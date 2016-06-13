@@ -1,15 +1,16 @@
-﻿Availability: Docs
-Title:BSP
+﻿INTSourceChangelist:2712997
+Availability: Public
+Title: 几何体编辑范例
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
-Description:BSP内容示例关卡概述
+Description: 几何体编辑范例关卡概述
 Related: Engine/Actors/Brushes
 Related: Engine/UI/LevelEditor/Modes
-
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Resources/ContentExamples/Brushes:title%](Resources/ContentExamples/Brushes/1_9_BSPHouse.png)
+		![%Resources/ContentExamples/Brushes:title%](Resources/ContentExamples/Brushes/BSP_TopicCompact.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/physics_icon.png)(convert:false)
@@ -21,6 +22,7 @@ Related: Engine/UI/LevelEditor/Modes
 		%Resources/ContentExamples/Brushes:description%
 	[/PARAM]
 	[PARAM:path]
+	[RELATIVE:Resources/ContentExamples/Brushes]
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -29,7 +31,7 @@ Related: Engine/UI/LevelEditor/Modes
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Resources/ContentExamples/Brushes:title%](Resources/ContentExamples/Brushes/1_9_BSPHouse.png)
+		![%Resources/ContentExamples/Brushes:title%](Resources/ContentExamples/Brushes/BSP_TopicCompact.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/physics_icon.png)(convert:false)
@@ -41,6 +43,7 @@ Related: Engine/UI/LevelEditor/Modes
 		%Resources/ContentExamples/Brushes:description%
 	[/PARAM]
 	[PARAM:path]
+	[RELATIVE:Resources/ContentExamples/Brushes]
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -50,52 +53,33 @@ Related: Engine/UI/LevelEditor/Modes
 ![](BSP_Header.png)
 [/REGION]
 
-[TOC(start:2 end:2)]
-
-BSP内容示例旨在帮助您快速熟悉使用BSP创建您关卡中几何体的方法。
-
-## BSP概念
-
-在开始工作前，您应该了解一些关于BSP的概念性内容。
-
-
-* BSP形状被称为 "画刷"。
-
-* 在大多数情况下，您将使用添加型和挖空型画刷来定义几何体区域。
-
-* BSP这个缩写的全称是 _Binary Space Partitioning_  （二进制空间划分），它表示的是一种用来分割3D空间的特殊算法。这个话题有点复杂；您只要会使用即可，不需要了解BSP的工作原理。不过，如果您需要更多信息，可参阅[BSP的维基百科页面](http://en.wikipedia.org/wiki/Binary_space_partitioning)。
-
-* 一般来说，在为您的关卡创建几何体时，更好（就性能上来说更高效）的方法是使用[静态网格物体](Engine/Content\Types\StaticMeshes)。不过，由于创建静态网格物体需要使用一些3D建模软件，因此BSP工具就便利性来说，还是有存在的必要。
-
-* BSP作为快速描画关卡轮廓的方法，仍被广泛使用，它使得关卡设计师可以及时了解关卡总体大小及关卡流程。不过，随着关卡的美术资源完成，用来创建粗略版本的大多数-假设不是全部-BSP将会被静态网格物体所取代。
-
-
-## BSP模式
-
-为能使用不同的BSP工具，您必须首先在BSP模式中放置编辑器。这是通过点击工具窗口的BSP模式图标或按下 **Shift + 2** 来完成的。
-
-
-![](BSP_mode.png)
-
-
-[EXCERPT:BSPExamples]
-## 示例
-
-[REGION:topics third]
-%Resources/ContentExamples/Brushes\1_1:Topic%
-%Resources/ContentExamples/Brushes\1_2:Topic%
-%Resources/ContentExamples/Brushes\1_3:Topic%
-%Resources/ContentExamples/Brushes\1_4:Topic%
-%Resources/ContentExamples/Brushes\1_5:Topic%
-%Resources/ContentExamples/Brushes\1_6:Topic%
-%Resources/ContentExamples/Brushes\1_7:Topic%
-%Resources/ContentExamples/Brushes\1_8:Topic%
-%Resources/ContentExamples/Brushes\1_9:Topic%
-[/REGION]
-[/EXCERPT:BSPExamples]
+<!---[TOC(start:2 end:2)]--->
 
 
 
-## 相关主题
+在虚幻引擎 4 中有很多不同的方法可以创建、编辑场景中的几何体。通常意义下，相对于直接创建几何体而言，使用 [静态网格体](Engine/Content\Types\StaticMeshes) 是比较好的做法（性能上较优秀）。同时，由于静态网格体要求在引擎外部的 3D 建模软件中创建，因此可以使用引擎的 **几何体编辑** 工具快速的为游戏原型来搭建场景。
 
-[](Engine/Actors/Brushes)
+这个页面涵盖了 **Geometry_Editing** 关卡并且说明如何通过使用 **Aditive** 和 **Subtractive Brushes** 两种形式来搭建关卡，定义关卡的形状。在这些示例后，应当能够了解如何直接通过 Brush 来搭建一个房子，并能够开始搭建自定义关卡。
+
+<!--
+this part's content has been moved somewhere else. uncomment this when the content ready.
+
+[region:note]
+在下面的列表中可以看到到每个示例的额外资源
+[/region]
+ 
+ 
+## Geometry_Editing 关卡
+
+Geometry_Editing 关卡内有下面列表的内容：
+
+| 示例 | 展示的内容 |
+| ------- | ------------ |
+| **1.1 添加和挖空几何体示例** | 展示如何添加以及挖空几何体 |
+| **1.2 顺序示例** | Shows how the order in which you place Additive or Subtractive Brushes can affect how they interact with one another. |
+| **1.3 Solidity Example** | Shows how a Brush can collide differently with objects based on its Solidity setting. (e.g. whether a Brush causes cuts to be created in surrounding brushes or if it collides with objects in the world). |
+| **1.4 Surface Properties Example** | Shows how to control how textures that are placed across your surfaces as well as lightmap resolution via the Surface Properties options. |
+| **1.5 Edit Geometry Example** | This example demonstrates how to edit a Brush's shape with Edit Mode by clicking on the Edit (Shift+5) button. |
+| **1.6 Example House** | This is an example of using Additive and Subtractive Brushes to construct a house with windows and a door opening. |
+
+-->

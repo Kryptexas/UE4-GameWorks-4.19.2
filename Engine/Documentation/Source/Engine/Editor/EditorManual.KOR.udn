@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:2618933
+﻿INTSourceChangelist:2911789
 Availability:Public
 Title: 언리얼 에디터 매뉴얼
 Crumbs:%ROOT%, Engine
 Description:언리얼 에디터 툴세트 사용 및 환경설정 안내입니다.
 Navigation:topic
+parent:%ROOT%
+order:2
 
 [VAR:Params]
 [PARAM:image]
@@ -59,6 +61,9 @@ Navigation:topic
 [/OBJECT]
 [/VAR]
 
+[DIR(end:"1" output:"topic" org:"hierarchy" parent:"Engine/Editor")]
+
+<!--
 [REGION:topics third]
 %Engine/UI:topic%
 %GettingStarted/HowTo:topic%
@@ -69,3 +74,4 @@ Navigation:topic
 %Engine/Content:topic%
 %Engine/Basics/Projects:topic%
 [/REGION]
+-->

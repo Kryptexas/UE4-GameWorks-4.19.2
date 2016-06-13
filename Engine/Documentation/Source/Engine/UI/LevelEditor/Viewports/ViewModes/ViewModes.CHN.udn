@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2742006
 Availability:Public
-Title:View Modes
-Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
-Description:Explanations for the available View Modes within the viewports.
+Title:视图模式
+Crumbs:%ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
+Description:本文提供视口内可用视图模式的说明。
+Version:4.9
 
 
 [VAR:Topic]
@@ -53,121 +54,111 @@ Description:Explanations for the available View Modes within the viewports.
 
 [TOC(start:2 end:2)]
 
-## Overview
 
 
 [EXCERPT:Intro]
-The Unreal Editor viewports have a large number of visualization modes to help you see the type of data being processed in your scene, as well as to diagnose any errors or unexpected results. The more common view modes have their own hotkeys, but all can be accessed from the viewport within the **View Mode** menu.
+虚幻编辑器视口提供了许多可视化模式来帮助您查看场景中正在处理的数据类型，以及诊断任何错误或意外结果。较为常用的视图模式有自己的热键，但所有视图模式都可从视口内通过 **视图模式（View Mode）**菜单进行访问。
 
 ![](ViewModeMenu.png) ![](ViewModes_SubMenu_button.png)(h:273)
 [/EXCERPT:Intro]
 
-## Lit
+## 照亮
 
 [REGION:fullwidth]
 ![](VM_Lit.png)
 [/REGION]
 
-* View Mode Hotkey: **Alt + 4**
-* Console command: `viewmode lit`
+* 视图模式热键：**Alt + 4**
+* 控制台命令：`viewmode lit`
 
-**Lit** view mode shows the final result of your scene once all of the Materials and lighting have been applied.
+**照亮** 视图模式显示应用所有材质和照明之后的场景最终结果。
 
-## Unlit
+## 不照亮
 
 [REGION:fullwidth]
 ![](VM_Unlit.png)
 [/REGION]
 
 
-* View Mode Hotkey: **Alt + 3**
-* Console command: `viewmode unlit`
+* 视图模式热键：**Alt + 3**
+* 控制台命令：`viewmode unlit`
 
-**Unlit** view mode removes all lighting from the scene, showing you Base Color only.
+**不照亮** 视图模式从场景中移除所有照明，从而只显示底色。
 
 
-## Wireframe
+## 线框
 
 [REGION:fullwidth]
 ![](VM_Wireframe.png)
 [/REGION]
 
-* View Mode Hotkey: **Alt + 2**
-* Console command: `viewmode wireframe`
+* 视图模式热键：**Alt + 2**
+* 控制台命令：`viewmode wireframe`
 
-**Wireframe** shows all of the polygon edges in the scene. In the case of Brushes, you will see the resultant geometry.
+**线框** 显示场景中的所有多边形边缘。对于“画刷”，您将看到所产生的几何体。
 
-## Detail Lighting
+## 细节照明
 
 [REGION:fullwidth]
 ![](VM_DetailLighting.png)
 [/REGION]
 
-* View Mode Hotkey: **Alt + 5**
-* Console command: `viewmode lit_detaillighting`
+* 视图模式热键：**Alt + 5**
+* 控制台命令：`viewmode lit_detaillighting`
 
-**Detail Lighting** activates a neutral Material across the entire scene, using the normal maps of the original materials. This is useful for isolating whether your BaseColor is obscuring lighting by being too dark or noisy.
+**细节照明** 使用原始材质的法线贴图在整个场景内激活中性材质。这对于进行隔离而言非常有用，而无论底色是否因为过暗或噪声过高而遮蔽了光线。
 
-## Lighting Only
+## 仅照明
 
 [REGION:fullwidth]
 ![](VM_LightingOnly.png)
 [/REGION]
 
-* View Mode Hotkey: **Alt + 6**
-* Console command: `viewmode lightingonly`
+* 视图模式热键：**Alt + 6**
+* 控制台命令：`viewmode lightingonly`
 
-**Lighting Only** shows a neutral Material that is only affected by lighting. It differs from _Detail Lighting_ mode in that you will not see normal maps.
+**仅照明** 显示仅受照明影响的中性材质。此模式与 _细节照明_ 模式的区别在于，您不会看到法线贴图。
 
-## Light Complexity
+## 光线复杂性
 
 [REGION:fullwidth]
 ![](VM_LightingComplexity.png)
 [/REGION]
 
-* View Mode Hotkey: **Alt + 7**
-* Console command: `viewmode lightcomplexity`
+* 视图模式热键：**Alt + 7**
+* 控制台命令：`viewmode lightcomplexity`
 
-Light Complexity shows the number of non-static lights affecting your geometry. This is useful for tracking lighting cost - the more lights affecting a surface, the more expensive it will be to shade.
+“光线复杂性”显示影响几何体的非静态光线数目。这对于跟踪照明成本而言非常有用 - 影响表面的光线越多，进行明暗处理的成本越高。
 
-|Light Complexity Coloration|||||||
+|光线复杂性着色|||||||
 |:---|:---:|:---:|:---:|:---:|:---:|:---:|
-|**Color**|![](LightComplexity_0.gif)|![](LightComplexity_1.gif)|![](LightComplexity_2.gif)|![](LightComplexity_3.gif)|![](LightComplexity_4.gif)|![](LightComplexity_5.gif)|
-|**Number of Lights Affecting Surface**|**0**|**1**|**2**|**3**|**4**|**5+**|
+|**颜色**|![](LightComplexity_0.gif)|![](LightComplexity_1.gif)|![](LightComplexity_2.gif)|![](LightComplexity_3.gif)|![](LightComplexity_4.gif)|![](LightComplexity_5.gif)|
+|**影响表面的光线数目**|**0**|**1**|**2**|**3**|**4**|**5+**|
 
 
-This color scheme is defined in BaseEngine.ini (or YourGameEngine.ini) and can be edited by searching the following lines.
+此颜色方案是在着色器代码中定义的。
 
-[REGION:code]
-+LightComplexityColors=(R=0,G=0,B=0,A=1)  
-+LightComplexityColors=(R=0,G=255,B=0,A=1)  
-+LightComplexityColors=(R=63,G=191,B=0,A=1)  
-+LightComplexityColors=(R=127,G=127,B=0,A=1)  
-+LightComplexityColors=(R=191,G=63,B=0,A=1)  
-+LightComplexityColors=(R=255,G=0,B=0,A=1)
-[/REGION]
-
-## Shader Complexity
+## 着色器复杂性
 
 
 [REGION:fullwidth]
 ![](VM_ShaderPerf.png)
 [/REGION]
 
-* View Mode Hotkey: **Alt + 8**
-* Console command: `viewmode shadercomplexity`
+* 视图模式热键：**Alt + 8**
+* 控制台命令：`viewmode shadercomplexity`
 
-**Shader Complexity** Mode is used to visualize the number of shader instructions being used to calculate each pixel of your scene. It is generally a good indication of how performance-friendly your scene will be. In general, it is used to test overall performance for your base scene, as well as to optimize particle effects, which tend to cause performance spikes with a large amount of overdraw for a short period of time.
+**着色器复杂性** 模式用来显示用于计算场景中每个像素的着色器指令数。通常，这可以很好地指示场景的性能状况。一般来说，此模式用来测试基本场景的整体性能以及优化粒子效果，这些效果可能会导致短时间内发生大量过度绘制，从而导致性能突降。
 
-Only instruction count is used to calculate shader complexity, which may not always be accurate. For example, a shader with 16 instructions, all texture lookups, will be much slower on all platforms than a shader with 16 math instructions. Also shaders which contain loops that are not unrolled will not be represented accurately by the instruction count, this is mainly an issue for vertex shaders. Overall the instruction count is a good metric in the vast majority of cases.
+只有指令计数用来计算着色器复杂性，这可能不一定准确。例如，在所有平台上，含有 16 条指令（全部都是纹理查找）的着色器都会比含有 16 条算术指令的着色器慢得多。并且，包含未展开的循环的着色器无法由指令计数准确表示，此问题主要与顶点着色器相关。总的来说，指令计数在大部分情况下是一个良好的指标。
 
-The view mode uses a color spectrum to indicate how expensive the scene is. Green through red represent a linear relationship of "very inexpensive" to "expensive", while pink and white indicate a large jump to "very expensive" pixels. Small areas of white can be tolerated, but if the majority of your screen is covered in bright red or white, the performance will be poor.
+此视图模式使用色谱来指示场景的成本。绿色到红色表示“成本非常低”到“成本高”的线性关系，而粉红色和白色表示快速跳跃至“成本非常高”的像素。较小的白色区域可以容忍，但如果屏幕的大部分区域都显示为鲜红色或白色，那么表示性能不佳。
 
 [REGION:imagetable]
-|Shader Complexity Coloration||||||||||
+|着色器复杂性着色||||||||||
 |[REGION:shadercomplexity sc_1][/REGION]|[REGION:shadercomplexity sc_2][/REGION]|[REGION:shadercomplexity sc_3][/REGION]|[REGION:shadercomplexity sc_4][/REGION]|[REGION:shadercomplexity sc_5][/REGION]|[REGION:shadercomplexity sc_6][/REGION]|[REGION:shadercomplexity sc_7][/REGION]|[REGION:shadercomplexity sc_8][/REGION]|[REGION:shadercomplexity sc_9][/REGION]|
 |:---:|:---:|:---:|:--:-|:---:|:---:|:---:|:---:|:---:|
-|**Ideal**| | |**Moderate** | | |**Expensive**|**Very Expensive**||
+|**理想**| | |**中等** | | |**成本高**|**成本非常高**||
 [/REGION]
 
 [REGION:code]
@@ -182,71 +173,99 @@ The view mode uses a color spectrum to indicate how expensive the scene is. Gree
 +ShaderComplexityColors=(R=1.0,G=0.9,B=0.9,A=1.0)  
 [/REGION]
 
-## Stationary Light Overlap
+## 静止光线重叠
 
 [REGION:fullwidth]
 ![](VM_StationaryLightOverlap.png)
 [/REGION]
 
-* View Mode Hotkey: **None (Menu only by default)**
+* 视图模式热键：**无（默认情况下只能通过菜单进行访问）**
 
 
-## Lightmap Density
+## 光照贴图密度
 
 [REGION:fullwidth]
 ![](VM_LightmapDensity.png)
 [/REGION]
 
-View Mode Hotkey: **Alt + 0**
+视图模式热键：**Alt + 0**
 
-**Lightmap Density** mode displays the lightmap density of objects that are texture mapped, color coding them by their relation to an ideal/max density setting and displaying a grid that maps to the actual lightmap texels.  It is important to have even texel density across your scene to get consistent lightmap lighting.
+**光照贴图密度** 模式显示进行了纹理贴图的对象的光照贴图密度，按其与理想/最大密度设置的关系对其进行颜色编码，并显示映射到实际光照贴图纹素的网格。在整个场景内使用偶数纹素密度以获得一致的光照贴图照明十分重要。
 
 [REGION:imagetable]
 |![](LightmapDensityLight.gif)|![](LightmapDensityMedium.gif)|![](LightmapDensityHeavy.gif)|
 |---|---|---|
-|Less than ideal texel density|Ideal texel density|Max or greater than ideal texel density|
+|小于理想纹素密度|理想纹素密度|最大或大于理想纹素密度|
 [/REGION]
 
 [REGION:note]
-Skeletal Meshes will appear in light brown and are not considered in this calculation.
+骨骼网格将以浅棕色显示，此计算不会对其加以考虑。
 [/REGION]
-## Reflections
+## 反射
 
 [REGION:fullwidth]
 ![](VM_Reflections.png)
 [/REGION]
 
-* View Mode Hotkey: **None (Menu only by default)**
+* 视图模式热键：**无（默认情况下只能通过菜单进行访问）**
 
-**Reflections** view mode overrides all materials with a flat normal and a roughness of 0, which is a mirror. This is useful for diagnosing the detail of reflections and allowing you to place more Reflection Capture Actors in areas where you need more detail.
+**反射** 视图模式以平面法线和粗糙度 0（即镜面）覆盖所有材质。这对于诊断反射细节十分有用，还使您得以将更多反射捕获 Actor 放入需要更多细节的区域。
 
+## LOD 着色
 
+[REGION:fullwidth]
+![](ViewMode_LODColoration.png)
+[/REGION]
 
-## Buffer Visualization
+* 控制台命令：`viewmode LODColoration`
+
+**LOD 着色** 视图模式显示基本对象的当前 LOD 指标。这对于诊断任何 LOD 问题或了解 LOD 的切换距离非常有用。 
+
+|LOD 基本着色|||||||||
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+|**颜色**|![](LODColoration_0.png)|![](LODColoration_1.png)|![](LODColoration_2.png)|![](LODColoration_3.png)|![](LODColoration_4.png)|![](LODColoration_5.png)|![](LODColoration_6.png)|![](LODColoration_7.png)|
+|**LOD 基本颜色**|**0**|**1**|**2**|**3**|**4**|**5**|**6**|**7**|
+
+[REGION:code]
++LODColorationColors=(R=1.0,G=1.0,B=1.0,A=1.0)     
++LODColorationColors=(R=1.0,G=0.0,B=0.0,A=1.0)     
++LODColorationColors=(R=0.0,G=1.0,B=0.0,A=1.0)     
++LODColorationColors=(R=0.0,G=0.0,B=1.0,A=1.0)     
++LODColorationColors=(R=1.0,G=1.0,B=0.0,A=1.0)     
++LODColorationColors=(R=1.0,G=0.0,B=1.0,A=1.0)     
++LODColorationColors=(R=0.0,G=1.0,B=1.0,A=1.0)     
++LODColorationColors=(R=0.5,G=0.0,B=0.5,A=1.0)     
+[/REGION]
+
+[Region: note]
+默认情况下，引擎仅使用 4 个 LOD，但可在源代码中增加此数目。 
+[/Region]
+
+## 缓冲区可视化
 
 ![](GBufferMenu.png)
 
-The Buffer Visualization area offers you access to individual buffers within the graphics card, which can help you diagnose problems how your scenes look. In order to make the most out of the buffer visualization modes, it will help to understand the basics of [](Engine/Rendering/Materials\MaterialInputs) and [](Engine/Rendering/Materials\MaterialProperties).
+“缓冲区可视化”区域使您能够访问图形卡中的各个缓冲区，这可以帮助您诊断场景的外观问题。为了最大限度地利用缓冲区可视化模式，了解 [](Engine/Rendering/Materials\MaterialInputs) 和 [](Engine/Rendering/Materials\MaterialProperties) 的基本要点会有帮助。
 
-### Buffer Overview
+### 缓冲区概观
 
 [REGION:fullwidth]
 ![](Buffer_Overview.png)
 [/REGION]
 
-The **Buffer Overview** visualization mode allows you to see multiple images from the graphics card's GBuffer. Many of these correlate to inputs on Materials, meaning you can see how the scene looks with just a single Material input being used.
+**缓冲区概观** 可视化模式允许您查看图形卡 Gbuffer 中的多个图像。其中许多图像与材质上的输入相关，这意味着您可以在仅使用单个材质输入的情况下查看场景的外观。
 
 
-### Base Color
+### 底色
 
 
 [REGION:fullwidth]
 ![](Buffer_BaseColor.png)
 [/REGION]
 
-* View Mode Hotkey: **None (Menu only by default)**
+* 视图模式热键：**无（默认情况下只能通过菜单进行访问）**
 
-The **Base Color** mode allows you to see the only the Base Color of the Materials in your scene.
+**底色** 模式允许您仅查看场景中材质的底色。
 
 
 <!---
@@ -255,26 +274,26 @@ Not included until I can get an answer from Daniel
 -->
 
 
-### Decal Mask
+### 贴花蒙版
 
 [REGION:fullwidth]
 ![](Buffer_DecalMask.png)
 [/REGION]
 
-* View Mode Hotkey: **None (Menu only by default)**
+* 视图模式热键：**无（默认情况下只能通过菜单进行访问）**
 
-The **Decal Mask** mode shows in white any surface which can receive deferred decals. Objects which cannot appear in black.
+**贴花蒙版** 模式以白色显示任何可以接收延迟贴花的表面。无法显示的对象将显示为黑色。
 
-### Diffuse Color
+### 漫射颜色
 
 
 [REGION:fullwidth]
 ![](VM_DiffuseColor.png)
 [/REGION]
 
-* View Mode Hotkey: **None (Menu only by default)**
+* 视图模式热键：**无（默认情况下只能通过菜单进行访问）**
 
-**Diffuse Color** shows the result of Base Color and the Material's Ambient Occlusion inputs.
+**漫射颜色** 显示底色与材质环境光遮蔽输入的结果。
 
 
 <!--
@@ -283,69 +302,75 @@ Removed, since DanielW wasn't sure why it's here.
 
 "final image is the same as Lit
 aka no visualization
-not sure why it's in there
+not sure why it’s in there
 "
 -->
 
-### Shading Model
+### 明暗处理模型
 
 [REGION:fullwidth]
 ![](Buffer_LightingModel.png)
 [/REGION]
 
 
-* View Mode Hotkey: **None (Menu only by default)**
+* 视图模式热键：**无（默认情况下只能通过菜单进行访问）**
 
-The **Shading Model** mode shows value of the Shading Model property for each Material in the scene. 
+**明暗处理模型** 模式显示场景中每个材质的“明暗处理模型”属性的值。 
 
 
-|Light Complexity Coloration|||||
+|光线复杂性着色|||||
 |:---|:---:|:---:|:---:|:---:|
-|**Color**|![](LightModel_Lit.gif)|![](LightModel_Unlit.gif)|![](LightModel_Subsurface.gif)|![](LightModel_PreintegratedSkin.gif)|
-|**Material's Shading Model**|**Default Lit**|**Unlit**|**Subsurface**|**Preintegrated Skin**|
+|**颜色**|![](LightModel_Lit.gif)|![](LightModel_Unlit.gif)|![](LightModel_Subsurface.gif)|![](LightModel_PreintegratedSkin.gif)|
+|**材质的明暗处理模型**|**默认照亮**|**不照亮**|**次表面**|**预整合皮肤**|
 
 
-### Material AO
+### 材质 AO
 
-[REGION:imagetable]
-|![](Buffer_MaterialAO_1.png)(w:%WireSize%)|![](Buffer_MaterialAO_2.png)(w:%WireSize%)|
-|---|---|
-|Scene in Lit Mode (Game View On) |Scene in Buffer Material AO Mode (Game View On)|
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![点亮模式下的场景（游戏视图开启）](Buffer_MaterialAO_1.png)(w:500)
+	[/PARAM]
+	[PARAM:after]
+	![缓冲区材质 AO 模式下的场景（游戏视图开启）](Buffer_MaterialAO_2.png)(w:500)
+	[/PARAM]
+[/OBJECT]
 
-* View Mode Hotkey: **None (Menu only by default)**
+* 视图模式热键：**无（默认情况下只能通过菜单进行访问）**
 
-The **Material AO** visualization mode shows the result of any texturing or Material Expression nodes that are connected to the Material's _Ambient Occlusion_ input.
+**材质 AO** 可视化模式显示任何与材质 _环境光遮蔽（Ambient Occlusion）_输入相连接的纹理处理或材质表达式节点的结果。
 
 
-### Metallic
+### 金属色
 
 
 [REGION:fullwidth]
 ![](Buffer_Metallic.png)
 [/REGION]
 
-* View Mode Hotkey: **None (Menu only by default)**
+* 视图模式热键：**无（默认情况下只能通过菜单进行访问）**
 
-The **Metallic** visualization mode shows the result of any texturing or Material Expression nodes that are connected to the Material's _Metallic_ input.
+**金属色** 可视化模式显示任何与材质 _金属色（Metallic）_输入相连接的纹理处理或材质表达式节点的结果。
 
-Note: Materials should generally have Metallic values of 0 or 1, not in between.  Values between 0 and 1 will happen due to layer blending, but physical materials will always be a metal or not.
+注：通常，材质的“金属色”（Metallic）值为 0 或 1，而不是两者之间的值。介于 0 与 1 之间的值将会因为层混合而产生，但物理材质始终为金属或非金属。
 
-### Opacity
+### 不透明
 
-[REGION:imagetable]
-|![](Buffer_Opacity_1.png)(w:%WireSize%)|![](Buffer_Opacity_2.png)(w:%WireSize%)|
-|---|---|
-|Scene in Lit Mode (Game View On) |Scene in Buffer Material AO Mode (Game View On)|
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![点亮模式下的场景](Buffer_Opacity_1.png)(w:500)
+	[/PARAM]
+	[PARAM:after]
+	![缓冲区材质不透明模式下的场景（游戏视图开启）](Buffer_Opacity_2.png)(w:500)
+	[/PARAM]
+[/OBJECT]
 
-* View Mode Hotkey: **None (Menu only by default)**
+* 视图模式热键：**无（默认情况下只能通过菜单进行访问）**
 
-**Opacity** visualization mode shows the result of any texturing or Material Expression nodes that are connected to the Material's Opacity input. In the images above, you can see the dreadlocks on the character are somewhat transparent.
+**不透明** 可视化模式显示任何与材质 _不透明（Opacity）_输入相连接的纹理处理或材质表达式节点的结果。在上面的图中，您可以看到人物的长发绺有点透明。
 
-The Opacity viewmode only shows opaque materials with Opacity being used, which is important in the case of subsurface scattering materials, as the Opacity controls how far light can penetrate.
+“不透明”视图模式仅显示使用了“不透明”（Opacity）的不透明材质，这对于次表面散射材质来说十分重要，因为“不透明”（Opacity）控制着光线可以穿透的距离。
 
-### Roughness
+### 粗糙度
 
 
 [REGION:fullwidth]
@@ -353,24 +378,24 @@ The Opacity viewmode only shows opaque materials with Opacity being used, which 
 [/REGION]
 
 
-* View Mode Hotkey: **None (Menu only by default)**
+* 视图模式热键：**无（默认情况下只能通过菜单进行访问）**
 
-**Roughness** visualization mode shows the result of any texturing or Material Expression nodes that are connected to the Material's Roughness input.  Roughness variation is where a lot of reflection variation will come from.
+**粗糙度** 可视化模式显示任何与材质 _粗糙度（Roughness）_输入相连接的纹理处理或材质表达式节点的结果。粗糙度变化是许多反射变化的根源。
 
-### Scene Color
+### 场景颜色
 
 [REGION:fullwidth]
 ![](Buffer_SceneColor.png)
 [/REGION]
 
 
-* View Mode Hotkey: **None (Menu only by default)**
+* 视图模式热键：**无（默认情况下只能通过菜单进行访问）**
 
-**Scene Color** shows the result of the scene before any post processing is done. This means before any exposure, bloom, color correction, or antialiasing. In the above image, the scene appears very dark because exposure has not brightened it up for us.
+**场景颜色** 显示执行任何后处理之前的场景结果。即，在进行任何曝光、高光处理、颜色校正或抗锯齿之前的场景结果。在上图中，场景显得非常暗，因为曝光尚未使其变亮。
 
 
 
-### Scene Depth
+### 场景深度
 
 
 
@@ -379,11 +404,11 @@ The Opacity viewmode only shows opaque materials with Opacity being used, which 
 [/REGION]
 
 
-* View Mode Hotkey: **None (Menu only by default)**
+* 视图模式热键：**无（默认情况下只能通过菜单进行访问）**
 
-**Scene Depth** shows the depth of the scene in a constant gradient from white (farthest away) to black (closest). 
+**场景深度** 以白色（最远）到黑色（最近）的恒定梯度显示场景的深度。 
 
-### Separate Translucency RGB
+### 单独半透明 RGB
 
 
 [REGION:fullwidth]
@@ -391,12 +416,12 @@ The Opacity viewmode only shows opaque materials with Opacity being used, which 
 [/REGION]
 
 
-* View Mode Hotkey: **None (Menu only by default)**
+* 视图模式热键：**无（默认情况下只能通过菜单进行访问）**
 
-**Separate Translucency RGB** shows the color information of any Materials that are Translucent and using Separate Translucency.
+**单独半透明 RGB** 显示任何呈半透明且使用了“单独半透明”（Separate Translucency）的材质的颜色信息。
 
 
-### Separate Translucency A
+### 单独半透明 A
 
 
 [REGION:fullwidth]
@@ -404,76 +429,76 @@ The Opacity viewmode only shows opaque materials with Opacity being used, which 
 [/REGION]
 
 
-* View Mode Hotkey: **None (Menu only by default)**
+* 视图模式热键：**无（默认情况下只能通过菜单进行访问）**
 
-**Separate Translucency A** shows only the alpha information of any Materials that are Translucent and using Separate Translucency.
+**单独半透明 A** 仅显示任何呈半透明且使用了“单独半透明”（Separate Translucency）的材质的阿尔法信息。
 
-### Specular Color
+### 镜面反射颜色
 
 
 [REGION:fullwidth]
 ![](Buffer_SpecColor.png)
 [/REGION]
 
-* View Mode Hotkey: **None (Menu only by default)**
+* 视图模式热键：**无（默认情况下只能通过菜单进行访问）**
 
-**Specular Color** shows the color being imparted to the specular reflections of a Material. Generally, this is inferred from a combination of the Base Color and Metallic values.
+**镜面反射颜色** 显示向材质的镜面反射提供的颜色。通常，此颜色是根据底色和金属色值的组合来确定的。
 
-### Specular
+### 镜面反射
 
 
 [REGION:fullwidth]
 ![](buffer_Specular.png)
 [/REGION]
 
-* View Mode Hotkey: **None (Menu only by default)**
+* 视图模式热键：**无（默认情况下只能通过菜单进行访问）**
 
-**Specular** shows the results of any texturing or Material Expression nodes that are fed into a Material's Specular input.
+**镜面反射** 显示任何输送到材质 _镜面反射（Specular）_输入的纹理处理或材质表达式节点的结果。
 
-### Subsurface Color
+### 次表面颜色
 
 
 [REGION:fullwidth]
 ![](buffer_SubsurfColor.png)
 [/REGION]
 
-* View Mode Hotkey: **None (Menu only by default)**
+* 视图模式热键：**无（默认情况下只能通过菜单进行访问）**
 
-**Subsurface Color** shows the results of any texturing or Material Expression nodes that are fed into a Material's Subsurface Color input.
+**次表面颜色** 显示任何输送到材质 _次表面颜色（Subsurface Color）_输入的纹理处理或材质表达式节点的结果。
 
-### World Normal
+### 全局法线
 
 [REGION:fullwidth]
 ![](buffer_WorldNormal.png)
 [/REGION]
 
-* View Mode Hotkey: **None (Menu only by default)**
+* 视图模式热键：**无（默认情况下只能通过菜单进行访问）**
 
 
-**World Normal** shows the world space normal of any opaque surfaces. 
+**全局法线** 显示任何不透明表面的全局空间法线。 
 
 
-### Ambient Occlusion
+### 环境光遮蔽
 
 [REGION:fullwidth]
 ![](buffer_AO.png)
 [/REGION]
 
-* View Mode Hotkey: **None (Menu only by default)**
+* 视图模式热键：**无（默认情况下只能通过菜单进行访问）**
 
-**Ambient Occlusion (AO)** shows the result of any ambient occlusion calculations that are taking place on the scene. This is separate from any AO textures applied to Materials, as this is a calculation the engine makes based on surfaces and normal maps.
+**环境光遮蔽 (AO)** 显示场景中发生的任何环境光遮蔽计算的结果。此计算与任何应用于材质的 AO 纹理无关，因为这是引擎根据表面和法线贴图进行的计算。
 
+(#LandscapeVisualizers)
+## 地形可视化器
 
-## Landscape Visualizers
-
-### Normal
+### 正常
 
 [REGION:fullwidth]
 ![](Landscape_Normal.png)
 [/REGION]
 
 
-The **Normal** Landscape visualization mode shows a Landscape in its normal, lit state.
+**正常** 地形可视化模式以正常的照亮状态显示地形。
 
 
 ### LOD
@@ -482,17 +507,17 @@ The **Normal** Landscape visualization mode shows a Landscape in its normal, lit
 ![](Landscape_LOD.png)
 [/REGION]
 
-The **LOD** Landscape visualization mode breaks a landscape up into color-coded panels which represent their current LOD state.
+**LOD** 地形可视化模式将地形划分为颜色编码面板，这些面板代表其当前 LOD 状态。
 
 
 
-### Layer Density
+### 层密度
 
 [REGION:fullwidth]
 ![](Landscape_LayerDensity.png)
 [/REGION]
 
-The **Layer Density** Landscape visualization mode shows the landscape in a color-coded mode which shifts from green to red as more layers are added to the Landscape.
+**层密度** 地形可视化模式以颜色编码模式显示地形，随着更多的层添加到地形中，该颜色编码模式将从绿色变为红色。
 
 
 
@@ -501,15 +526,25 @@ The **Layer Density** Landscape visualization mode shows the landscape in a colo
 TODO
 -->
 
-## Exposure
+## 曝光
 
 [REGION:fullwidth]
-![](Exposure.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+yhjRn9xZUTs
+[/PARAMLITERAL]
+[/OBJECT]
 [/REGION]
 
-Exposure is a post-processing effect that controls the overall brightness of a scene. This can be set to a fixed value or left to automatic.
+曝光是一种后处理效果，用于控制场景的整体亮度。您可将其设置为固定值或保持自动调整。
 
 
-### Automatic vs. Fixed Exposure
+### 自动曝光与固定曝光
 
-When playing games with Exposure activated in your post processing, you will notice that moving from a light to a dark area or vice versa will cause the camera to temporarily adjust, similarly to how our eyes adjust when moving to different light environments. In most cases, this will be the desired result. However, if the constant shifting is distracting in your particular level, then you can set the view to a fixed exposure. This will lock the exposure in place so it no longer automatically changes as you move from light to dark or dark to light, but it also means that you can easily end up in a situation where the lights are overbright or overdark for the work you need to do.
+在后处理期间激活曝光的情况下游戏时，您会注意到从较亮区域移至较暗区域（反之亦然）会导致摄像机临时进行调整，这类似于我们的眼睛在注视不同光线环境时发生的调整。在大多数情况下，这是期望的结果。但是，如果特定关卡中不断变化会分散玩家的注意力，那么您可将视图设置为采用固定曝光。这将锁定曝光，使其不再随着您从较亮区域移至较暗区域或者从较暗区域移至较亮区域而自动变化，但也意味着很容易产生光线对于您需要完成的工作而言过亮或过暗的情况。

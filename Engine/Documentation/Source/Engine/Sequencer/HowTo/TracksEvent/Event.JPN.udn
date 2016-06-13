@@ -1,0 +1,135 @@
+﻿INTSourceChangelist:2890438
+Availability:Public
+Title:カスタム イベントを呼び出す
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:イベント トラックを使ってブループリントのカスタム イベントとスクリプトを呼び出す方法を説明します。 
+Version:4.11
+SkillLevel:Intermediate
+parent:Engine/Sequencer/HowTo
+order:1
+checkpoint: editorqs
+Related:Engine/Sequencer/Overview
+Related:Engine\Sequencer\ReferenceEditor\
+
+[REGION:warning]
+これは現在開発中の機能であり、期待どおりに機能しなかったり、将来のリビジョンで変更される可能性があります。
+[/REGION]
+
+**イベント トラック** を使用して [**カスタム イベント**](Engine/Blueprints/UserGuide/Events/Custom) を呼び出し、[**レベル ブループリント**](Engine/Blueprints/UserGuide/Types/LevelBlueprint) 内で [**ブループリント スクリプト**] (Engine/Blueprints) を実行します。 
+カスタム イベントが呼び出されると、それにアタッチされたスクリプトも実行され、ニーズに応じて任意の数のシナリオで使用することができます。 
+
+この例では、レベルでパーティクルエフェクトをアクティベートするために使うイベントを実行します。 
+
+## ステップ
+
+[REGION:note]
+ここでは **Starter Content Enabled (スターター コンテンツを有効にした状態)** で **Blueprint Third Person Template** プロジェクトを使います。 
+[/REGION]
+
+1.	プロジェクトを開き、[**シーケンサー**](Engine\Sequencer\HowTo\EnableSequencer) を有効にした状態で、**ツールバー** から **[Cinematics]** ボタンをクリックし、**[Add Level Sequence (レベル シーケンスを追加)]** をクリックします。 
+
+	![](EventTrack1.png)
+
+	プロンプトが表示されたら、保存場所を選び、レベルシーケンスに名前を付けます。 
+
+1.	シーケンサーで **[Add]** ボタンをクリックし、**Event Track** を追加することを選択します。 
+
+	![](EventTrack2.png)
+
+1.	**イベント トラック** で、タイムライン マーカーを **75** に動かし、 **+** 記号をクリックして、キーを追加します。 
+
+	![](EventTrack3.png)
+
+1.	キー上で **右クリック** して、**プロパティ** で **Value** に対して **MyEvent** と名前を入力します。 
+
+	![](EventTrack4.png)
+
+1.	**コンテンツ ブラウザ** の **StarterContent/Particles** で **P_Explosion** をレベルにドラッグします。 
+
+	![](EventTrack5.png)
+
+1.	**P_Explosion** アセットを選択した状態で、**[Details (詳細)]** パネルで、**[Auto Activate]** オプションのチェックを外します。 
+
+	![](EventTrack6.png)
+
+	これで、レベル開始時にパーティクル エフェクトがプレイされないようにします。 
+
+1.	**P_Explosion** アセットを選択した状態で、ツールバーの **[ブループリント]** ボタンをクリックして、**[Open Level Blueprint (レベル ブループリントを開く)]** を選択します。 
+
+	![](EventTrack7.png)
+
+1.	**Level ブループリント** で、**右クリック** して、 **[Create a Reference to P_Explosion]** を選択します。 
+
+	![](EventTrack8.png)
+
+1.	再びグラフ内で **右クリック** して、**カスタム イベント** ノードを検索して追加し、**MyEvent** と名前を付けます (**ステップ 4** と同じです)。 
+
+	![](EventTrack9.png)
+	[REGION:note]
+
+	このカスタム イベント名は、呼び出されるようにするために、Event Key Value (イベントキー値) のプロパティで指定したものと **同じ名前でなければなりません。**カスタム イベント ノードを選択した状態で **F2** キーを押して名前を変更することができます。 
+	[/REGION]
+
+1.	**左クリック** して、**P_Explosion** ノードからドラッグして、 **Activate (ParticleSystemComponent)** ノードを検索して、追加します。 
+
+	![](EventTrack10.png)
+
+1.	以下のように、**カスタム イベント** を **Activate** ノードに接続します。 
+
+	![](EventTrack11.png)
+
+1.	**ワールド アウトライナー** のメイン エディタ ウィンドウで、レベル シーケンスを選択します。次に、**[Details (詳細)]** で、**[Auto Play]** を有効にします。 
+
+	![](EventTrack12.png)
+
+1.	メイン ツールバーで **Play** ボタンをクリックしてエディタでプレイします。 
+
+
+## 最終結果
+
+エディタでプレイすると、数秒後に爆発が起こります。 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+QrOO2RnRYq8
+[/PARAMLITERAL]
+[/OBJECT]
+
+上の映像では、シーケンサー内で**[Play]** ボタンをクリックしてレベル シーケンスをプレイするとスクリプトが実行されているのは見えません。 
+ゲームプレイ中にレベル シーケンスをプレイしているときだけイベントトラックからスクリプトしたイベントが呼び出されているのをプレビューすることができます。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

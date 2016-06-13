@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2604054
+﻿INTSourceChangelist:2688263
 Availability:Public
 Title:컬러 그레이딩
 Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
 Description:씬 컬러 조절을 위한 톤매핑과 색보정 이펙트입니다.
+Version: 4.9
 
 언리얼 엔진에서 용어 **컬러 그레이딩** (Color Grading) 은 *톤 매핑* (HDR to LDR 변형) 및 그에 따른 *색 보정* (LDR color to color 변형) 기능을 포함합니다. (HDR/LDR = High/Low Dynamic Range)
 
@@ -31,19 +32,25 @@ Description:씬 컬러 조절을 위한 톤매핑과 색보정 이펙트입니�
 
 <!--
 [EXCERPT:SceneColorTint]
-[REGION:imagetable]
-| ![Scene Color Tint - (1.0, 1.0, 1.0)](scene_tint_full_small.png)(w:365) | ![Scene Color Tint - (0.25, 0.25, 0.25)](scene_tint_quarter_small.png)(w:365)
-| ------ | ------ |
-| (1.0, 1.0, 1.0) | (0.25, 0.25, 0.25) |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Scene Color Tint - (1.0, 1.0, 1.0)](scene_tint_full_small.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Scene Color Tint - (0.25, 0.25, 0.25)](scene_tint_quarter_small.png)(w:600)
+	[/PARAM]
+[/OBJECT]
 [/EXCERPT:SceneColorTint]
 
 [EXCERPT:TonemapperToeFactor]
-[REGION:imagetable]
-| ![Toe Factor - 0](toe_factor_0_small.png)(w:365) | ![Toe Factor - 1](toe_factor_1_small.png)(w:365)
-| ------ | ------ |
-| 0.0 | 1.0 |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Toe Factor - 0](toe_factor_0_small.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Toe Factor - 1](toe_factor_1_small.png)(w:600)
+	[/PARAM]
+[/OBJECT]
 [/EXCERPT:TonemapperToeFactor]
 -->
 

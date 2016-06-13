@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2592784
+﻿INTSourceChangelist:2735872
 Title: 언리얼 엔진 4.6 릴리즈 노트
 Crumbs:%ROOT%, Support/Builds
 Description:
 Availability:Public
+order:6
 
 [TOC(start:2 end:2)]
 
@@ -59,7 +60,7 @@ Alex Silkin (alexSilkin), alwei, Allegorithmic, Artem V. Navrotskiy (bozaro), Ce
 
 ![](StaticLightingfromEmissiveMaterials.png)
 
-* 이 기능을 켜려면 모빌리티를 스태틱으로 설정하고 섀도우 캐스팅 컴포넌트의 "Use Emissive For Static Lighting" (스태틱 라이팅에 이미시브 사용) 옵션을 사용하면 됩니다. 켜면, 라이트매스는 이미시브 텍스처 소스에서 구은 직사광을 생성합니다.
+* 이 기능을 켜려면 모빌리티를 스태틱으로 설정하고 섀도 캐스팅 컴포넌트의 "Use Emissive For Static Lighting" (스태틱 라이팅에 이미시브 사용) 옵션을 사용하면 됩니다. 켜면, 라이트매스는 이미시브 텍스처 소스에서 구은 직사광을 생성합니다.
 * <b>주:</b> 이 기능은 이미시브 라이팅을 제한시킨 빠른 버전입니다. 직사광만 계산되지만 빌드 시간에는 영향이 없습니다. 다른 광원이 있는 씬에서 사용하는 것이 좋습니다.
 
 #### 폴리지의 스태틱 라이팅
@@ -142,7 +143,7 @@ Alex Silkin (alexSilkin), alwei, Allegorithmic, Artem V. Navrotskiy (bozaro), Ce
 * 애니메이션은 이제 그룹별로 체계가 잡힙니다. 그룹별로 하나의 몽타주를 재생할 수 있습니다. 동시에 다른 몽타주를 재생하고 싶다고요? 새 그룹만 하나 더 만들어 주면 됩니다.
 * 슬롯 및 그룹 생성 기능을 페르소나에 새로 생긴 '애님 슬롯 매니저' 탭에 모아뒀습니다 (아래 참고).
 * 유효 슬롯 선택을 위한 드롭다운 UI 가 새로 생겼습니다. 더이상 애니메이션 슬롯 이름을 직접 입력할 필요가 없습니다.
-* 네트워크드 루트 모션 몽타주를 재생시에는 여전히 한 번에 하나의 몽타주만으로 제한됩니다.
+* 망으로 연결된 루트 모션 몽타주 재생시에는 여전히 한 번에 하나의 몽타주만으로 제한됩니다.
 * 새로운 몽타주 애셋과 슬롯 노드는 즉시 활용되도록 하나의 '디폴트 슬롯'으로 시작합니다.
 
 **애님 슬롯 매니저**
@@ -176,7 +177,7 @@ Alex Silkin (alexSilkin), alwei, Allegorithmic, Artem V. Navrotskiy (bozaro), Ce
 
 ![](EditingSlotsonMontageTracks04.png)
 
-**애님메이션 블루프린트에서 슬롯 편집하기**
+**애니메이션 블루프린트에서 슬롯 편집하기**
 
 * 애님 그래프에서, 'Slot' 노드는 그 슬롯과 그룹 이름을 표시합니다:
 
@@ -203,7 +204,7 @@ Alex Silkin (alexSilkin), alwei, Allegorithmic, Artem V. Navrotskiy (bozaro), Ce
 
 * 옵션은 다음과 같습니다:
 	* **No Root Motion Extraction** 루트 모션 추출 없음 - 루트 모션이 (루트 본에 적용된 채) 그대로 남아있습니다.
-	* **Ignore Root Motion** 무르 모션 무시 - 무트 모션이 추출(되고 루트 본에서 제거)되지만, 캐릭터에 적용되지는 않습니다.
+	* **Ignore Root Motion** 루트 모션 무시 - 루트 모션이 추출(되고 루트 본에서 제거)되지만, 캐릭터에 적용되지는 않습니다.
 	* **Root Motion from Everything** 모두에서 루트 모션 - 루트 모션 처리를 위한 새로운 메소드입니다 (아래 자세히 설명합니다).
 	* **Root Motion from Montages Only** 몽타주에서만 루트 모션 - 원래 루트 모션 방식(이자 모든 신규 블루프린트의 기본)입니다.
 
@@ -211,13 +212,13 @@ Alex Silkin (alexSilkin), alwei, Allegorithmic, Artem V. Navrotskiy (bozaro), Ce
 
 ![](RootMotion02.png)
 
-* 애님 시퀸스에 새로 생긴 'Enable Root Motion' (루트 모션 켜기) 세팅이 있습니다. 이 옵션은 애님 몽타주에 있던 'Enable Root Motion Translation' / 'Enable Root Motion Rotation' 옵션을 대체합니다 (로드시 자동 업데이트됩니다)
+* 애님 시퀀스에 새로 생긴 'Enable Root Motion' (루트 모션 켜기) 세팅이 있습니다. 이 옵션은 애님 몽타주에 있던 'Enable Root Motion Translation' / 'Enable Root Motion Rotation' 옵션을 대체합니다 (로드시 자동 업데이트됩니다)
 
-* **주**: 애님 몽타주의 원래 세팅도 여전히 존재하며, deprecated (폐기) 마킹도 되지 않았습니다. 의도적인 것으로, 애니메이션 시퀸스에 제대로 전파되도록 하기 위함입니다. 더이상 페르소나에서 편집은 불가능하며, 아무도 그것을 읽고/쓰는 코드를 작성해서는 안됩니다.
+* **주**: 애님 몽타주의 원래 세팅도 여전히 존재하며, deprecated (폐기) 마킹도 되지 않았습니다. 의도적인 것으로, 애니메이션 시퀀스에 제대로 전파되도록 하기 위함입니다. 더이상 페르소나에서 편집은 불가능하며, 아무도 그것을 읽고/쓰는 코드를 작성해서는 안됩니다.
 
 **모두에서 루트 모션**:
 
-* 최종 캐릭터 포즈에 기여하는 각 애니메이션 애셋(시퀸스, 블렌드 스페이스, 몽타주 등)은 (루트 모션이 있는 것으로 설정된 경우) 그 루트 모션을 추출합니다. 추출된 루트 모션 각 조각은 포즈에 대한 소스 애셋의 기여 가중치에 따라 블렌딩됩니다.
+* 최종 캐릭터 포즈에 기여하는 각 애니메이션 애셋(시퀀스, 블렌드 스페이스, 몽타주 등)은 (루트 모션이 있는 것으로 설정된 경우) 그 루트 모션을 추출합니다. 추출된 루트 모션 각 조각은 포즈에 대한 소스 애셋의 기여 가중치에 따라 블렌딩됩니다.
 
 
 ![](RootMotion03.png)
@@ -243,7 +244,7 @@ Alex Silkin (alexSilkin), alwei, Allegorithmic, Artem V. Navrotskiy (bozaro), Ce
 ![](BlueprintEditorMenus02.png)
 
 #### 더 커진 3D 월드
-각 월드의 최대 크기가 대략 **20** 킬로미터에 달하도록 확장되었습니다. 또한 이제 (기존 2D 만 가능했던) 3D 월드 오리진 쉬프팅도 지원합니다.
+각 월드의 최대 크기가 대략 **20** 킬로미터에 달하도록 확장되었습니다. 또한 이제 (기존 2D 만 가능했던) 3D 월드 원점 이동도 지원합니다.
 
 * 이는 C++ 코드에서 'WORLD_MAX' 상수로 정의됩니다. (기존 약 5km 였으니) 네 배 향상된 것입니다.
 
@@ -290,7 +291,7 @@ Alex Silkin (alexSilkin), alwei, Allegorithmic, Artem V. Navrotskiy (bozaro), Ce
 
 
 #### UI: 컴포짓 폰트
-슬레이트와 UMG 는 이제 폰트 패밀리와 컴포짓 폰트를 지원합니다. 이를 통해 실제로 다수의 서브 폰트로 구성된 폰트를 만들 수 있으며, 각 폰트를 각기 다른 글다 범위에 사용할 수 있습니다. 현지화된 텍스트 표시에 정말 유용합니다.
+슬레이트와 UMG 는 이제 폰트 패밀리와 컴포짓 폰트를 지원합니다. 이를 통해 실제로 다수의 서브 폰트로 구성된 폰트를 만들 수 있으며, 각 폰트를 각기 다른 글자 범위에 사용할 수 있습니다. 현지화된 텍스트 표시에 정말 유용합니다.
 
 **폰트 애셋**
 * 컴포짓 폰트와 거기에 연관된 TTF 또는 OTF 폰트 파일 데이터 임베딩이 지원되도록 폰트 애셋 유형이 업데이트되었습니다.

@@ -1,13 +1,46 @@
-﻿INTSourceChangelist:2595400
+﻿INTSourceChangelist:2974295
 Availability:Public
 Title:블루프린트 실전 사례
 Crumbs:%ROOT%, Engine/Blueprints
 Description:블루프린트를 언제 사용할 것인지와 그 최적의 구성 방법에 대한 의사 결정을 돕는 팁과 꼼수입니다.
+version: 4.9
+parent:Engine/Blueprints
 
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+	![](Engine/Blueprints/BestPractices_Topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Blueprints\BestPractices:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Blueprints\BestPractices:description%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Engine\Blueprints\BestPractices]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+	![](Engine/Blueprints/BestPractices_Topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Blueprints\BestPractices:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Blueprints\BestPractices:description%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Engine\Blueprints\BestPractices]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
 [TOC(start:2)]
 
-## 개요
 
 블루프린트로 할 수 있는 일은 많습니다. 작은 게임이나 콘텐츠 순차 생성 툴에서부터 새로운 함수성에 대한 프로토타입 제작, 프로그래머가 만든 부분에 대한 트윅 및 폴리싱에 이르기까지,
 모두 블루프린트 비주얼 스크립팅 시스템으로 가능합니다.
@@ -45,7 +78,7 @@ Description:블루프린트를 언제 사용할 것인지와 그 최적의 구�
 ![](VariablesLocal.png)
 
 로컬 변수는 범위(scope)가 있는, 정의하는 곳에만 존재하는 것입니다. 즉 함수나 매크로의 로컬 변수는 그 함수 안에서만 보이며, 다른 함수나 이벤트 그래프에는 보이지 않습니다.
-그 함수 안에서만 연관성이 있는 것들이 남아돌아다니지 않도록 하는 데 좋습니다. 로컬 변수란 함수 안에서 작업하는 "스크래치 패드" 같은 개념으로 생각해 보면 됩니다.
+그 함수 안에서만 연관성이 있는 것들이 남아돌지 않도록 하는 데 좋습니다. 로컬 변수란 함수 안에서 작업하는 "스크래치 패드" 같은 개념으로 생각해 보면 됩니다.
 함수의 작업에 필요한 것을 잠깐 썼다가, 함수가 완료되면 지워버리는 것입니다.
 
 클래스 변수는 블루프린트 여러 곳에서 접근할 가능성이 있는 것에 쓰입니다. 즉 메시나 다른 컴포넌트에 대한 레퍼런스, 또는 
@@ -90,7 +123,7 @@ Description:블루프린트를 언제 사용할 것인지와 그 최적의 구�
 
 두 블루프린트 사이의 통신 방법은 여러가지 있습니다. 가장 흔히 쓰이는 방식은 직접 블루프린트 통신이나, 가끔은 이벤트 디스패처 또는 블루프린트 인터페이스를 
 사용해야 할 수도 있습니다. 각 통신 유형에 대한 개요와 약간의 예제 및 시작을 돕는 튜토리얼은 [](Engine\Blueprints\UserGuide\BlueprintCommsUsage) 문서를 참고하세요. 
-세 가지 유형을 모두 사용하는 프로젝트를 만들려면, [](Engine/Blueprints/UserGuide/BlueprintCommsUsage/BPComHowTo) 문서를 참고하세요.
+세 가지 유형을 모두 사용하는 프로젝트를 만들려면, [](Engine/Blueprints/HowTo) 문서를 참고하세요.
 
 
 

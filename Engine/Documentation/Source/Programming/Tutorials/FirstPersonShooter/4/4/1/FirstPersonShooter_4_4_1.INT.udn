@@ -3,7 +3,7 @@ Title: 4.4.1 - Add Idle to/from Run Transitions
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4, Programming/Tutorials/FirstPersonShooter/4/4
 Description: Learn how to add idle to/from run state transitions your First Person Shooter character's animation state machine.
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -29,9 +29,9 @@ During this step, you're going to set the idle to and from run transitions so th
 
 	![](WireIdletoRun.png)
 
-1.	**Double-click** the transition to edit it.
+1.	Double-click the transition to edit it.
 
-1.	**Control-click** on **IsRunning** in the **My Blueprint** tab and drag into the graph to create a **Get Is Running** node.
+1.	Control-click on **IsRunning** in the **My Blueprint** tab and drag into the graph to create a **Get Is Running** node.
 
 1.	Connect the output pin from the **Get Is Running** node to the input pin of the **Can Enter Transition** pin on the **Result** node.
 
@@ -45,9 +45,9 @@ During this step, you're going to set the idle to and from run transitions so th
 
 	![](WireRuntoIdle.png)
 
-1.	**Double-click** the transition to edit it.
+1.	Double-click the transition to edit it.
 
-1.	**Control-click** on **IsRunning** in the **My Blueprint** tab and drag into the graph to create a **Get Is Running** node.
+1.	Control-click on **IsRunning** in the **My Blueprint** tab and drag into the graph to create a **Get Is Running** node.
 
 1.	Drag off the output Boolean pin on the **Get Is Running** node and create a **Not Boolean** node.
 

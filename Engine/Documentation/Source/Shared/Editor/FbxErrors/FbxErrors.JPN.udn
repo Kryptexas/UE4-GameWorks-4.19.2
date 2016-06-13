@@ -1,18 +1,16 @@
-﻿INTSourceChangelist:2330406
+﻿INTSourceChangelist:2726568
 Availability:Public
 Title:FBX インポート エラー
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/FBX
 Description:FBX ファイルのインポート中に発生するエラーの説明
+Version:4.9
 
 [TOC(start:2 end:3)]
-
-
-## 概要
 
 以下は、FBX ファイルのインポート中に発生することのあるエラーや警告メッセージのリストです。 
 
 
-###一般的なエラー 
+##一般的なエラー 
 
 (#Generic_ImportingNewObjectFailed)
 [EXCERPT:Generic_ImportingNewObjectFailed]
@@ -249,7 +247,7 @@ LOD をインポート(または LOD のあるスケルタルメッシュをイ�
 
 (#SkeletalMesh_InvalidRoot)
 [EXCERPT:SkeletalMesh_InvalidRoot]
-有効なルートノードが見つかりません
+有効なルートノードが見つかりません。
 
 [/EXCERPT:SkeletalMesh_InvalidRoot]
 
@@ -257,7 +255,7 @@ LOD をインポート(または LOD のあるスケルタルメッシュをイ�
 
 (#SkeletalMesh_InvalidBone
 [EXCERPT:SkeletalMesh_InvalidBone]
-ボーン階層の検索に失敗しました。Rigid Meshオプションを有効にしてインポートしてください。 
+ボーン階層の検索に失敗しました。Rigid Mesh オプションを有効にしてインポートしてください。 
 
 [/EXCERPT:SkeletalMesh_InvalidBone]
 
@@ -265,7 +263,7 @@ LOD をインポート(または LOD のあるスケルタルメッシュをイ�
 
 (#SkeletalMesh_InvalidNode)
 [EXCERPT:SkeletalMesh_InvalidNode]
-有効なノードが見つかりません 
+有効なノードが見つかりません。 
 
 [/EXCERPT:SkeletalMesh_InvalidNode]
 
@@ -364,7 +362,7 @@ LOD をインポート(または LOD のあるスケルタルメッシュをイ�
 
 失敗した場合、インポート後に物理アセットを作成できるようになります。
 
-コンテンツ ブラウザ の スケルタル メッシュ を 右クリック して、 [作成] から [物理アセットを作成] を表示します。対象のスケルタル メッシュのサイズで機能する物理アセットを作成できるように、ここで設定を調整することができます。
+コンテンツ ブラウザの [Skeletal Mesh] を右クリックして、[Create... (作成)] から [Create Physics Asset (物理アセットを作成)] を表示します。対象のスケルタル メッシュのサイズで機能する物理アセットを作成できるように、ここで設定を調整することができます。
 
 [/EXCERPT:SkeletalMesh_FailedToCreatePhyscisAsset]
 
@@ -526,7 +524,7 @@ LOD のモーフ ターゲットが見つかりませんでした。
 
 (#Animation_InvalidData)
 [EXCERPT:Animation_InvalidData]
-有効なアニメーション トラック、テイク、あるいはブレンド シェイプが、アニメーションに含まれていません 
+有効なアニメーション トラック、テイク、あるいはブレンド シェイプが、アニメーションに含まれていません。 
 
 [/EXCERPT:Animation_InvalidData]
 
@@ -534,7 +532,7 @@ LOD のモーフ ターゲットが見つかりませんでした。
 
 (#Animation_TransformError)
 [EXCERPT:Animation_TransformError]
-これは、せん断またはインポータのサポート対象外の変形フォームの使用により発生します。または、計算のエラーによっても発生することがあります。ペルソナで見てアニメーションに問題なければ、この警告は無視できます。 
+これは、シアまたはインポータのサポート対象外の変形フォームの使用により発生します。または、計算のエラーによっても発生することがあります。ペルソナで見てアニメーションに問題なければ、この警告は無視できます。 
 
 [/EXCERPT:Animation_TransformError]
 

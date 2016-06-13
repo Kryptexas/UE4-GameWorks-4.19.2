@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2625721
+﻿INTSourceChangelist:2754441
 Availability:Public
 Title:인바이언먼트 쿼리 시스템 사용 안내서
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem
 Description:이 문서는 비헤이비어 트리 내 인바이언먼트 쿼리 시스템의 인터페이스와 가장 자주 쓰이는 작업방식에 대해 다룹니다.
+Version: 4.9
+SkillLevel: Advanced
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -111,7 +113,7 @@ Generator (생성기)는 **Item** (아이템)이라고도 하는 위치 또는 �
 
 ## 블루프린트 컨텍스트 만들기
 
-1. 컨텐츠 브라우저에서 **생성** 버튼에 **좌클릭** 합니다.
+1. 콘텐츠 브라우저에서 **생성** 버튼에 **좌클릭** 합니다.
 1. **블루프린트** 를 선택합니다.
 1. **모든 클래스** 를 펼칩니다.
 1. **EnvQueryContext** 를 검색합니다.

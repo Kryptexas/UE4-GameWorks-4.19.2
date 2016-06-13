@@ -1,12 +1,14 @@
-﻿INTSourceChangelist:2628920
+﻿INTSourceChangelist:2754321
 Availability:Public
 Title:Aim Offset を作成する
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
-Description:Aim Offset を使用して、キャラクターはマウスまたはコントローラの方向に武器の照準を合わせます。 
-Related:Engine\Animation\AimOffset
-Related:Engine/Animation/AnimBlueprints
-Related:Engine\Content\Types\SkeletalMeshes\Sockets
-Related:Engine\Animation\AnimHowTo\AdditiveAnimations
+Description:Aim Offset を使用して、キャラクターはマウスまたはコントローラの方向で武器の照準を合わせます。 
+Related: Engine\Animation\AimOffset
+Related: Engine/Animation/AnimBlueprints
+Related: Engine\Content\Types\SkeletalMeshes\Sockets
+Related: Engine\Animation\AnimHowTo\AdditiveAnimations
+Version: 4.9
+SkillLevel: Advanced
 
 このガイドでは [**Aim Offset**](Engine/Animation/AimOffset) を作成します。これは、キャラクターが武器の照準を合わせることを支援するブレンド可能な一連のポーズを格納しているアセットです。アニメーション シーケンスを使って、Aim Offset 用に利用可能なポーズに分けます。プレイヤーのマウスの pitch/yaw の位置を取得し、それを使ってどのブレンドされたポーズを使用するかを決めて、以下の例のようにマウスの位置でキャラクターが移動し、照準を合わせるようにします (一部制約有り)。 
 
@@ -32,7 +34,7 @@ uyeMVzNn3_s
 
 1. ご自身のプロジェクトが開いた状態で、**コンテンツ ブラウザ** の **「Game/Blueprints」** フォルダで **MyGame** ブループリントを開きます。 
 
-1.	**Default Pawn Class** でドロップダウン メニューをクリックし、**ASP_Character** を選択します。 
+1.	**[Default Pawn Class]** でドロップダウン メニューをクリックし、** [ASP_Character]** を選択します。 
 
 	![](Engine\Animation\AnimHowTo\AdditiveAnimations\Animations1.png)
 
@@ -54,7 +56,7 @@ uyeMVzNn3_s
 
 	![](AimOffset3.png)
 
-1.	**Aim_Center** アセットを開き、再生コントロールの中から **[Pause (一時停止)]** ボタンをクリックし、続いて **[ToFront (前へ)]** ボタンをクリックします。 
+1.	**[Aim_Center]** アセットを開き、再生コントロールの中から **[Pause (一時停止)]** ボタンをクリックし、続いて **[ToFront (前へ)]** ボタンをクリックします。 
 
 	![](AimOffset4.png)
 
@@ -72,7 +74,7 @@ uyeMVzNn3_s
 
 	![](AimOffset7.png)
 
-	この状態で、Aim Offset で使用可能なポーズを含む単一フレームが存在します。 
+	この状態で、Aim Offset で使用可能なポーズを含むひとつのフレームが存在します。 
 
 1.	**[Save]** をクリックして、 **Aim_Center** アニメーションを閉じます。 
 
@@ -80,7 +82,7 @@ uyeMVzNn3_s
 
 	![](AimOffset8.png)
 
-1.	**Aim_CenterDown** を開いて、フレーム **0** になるようにし、**ToNext** ボタンをクリックし、フレーム **20** に進みます。 
+1.	**Aim_CenterDown** を開いて、フレーム **0** になるようにし、**[ToNext]** ボタンをクリックし、フレーム **20** に進みます。 
 
 	![](AimOffset9.png)
 
@@ -104,7 +106,7 @@ uyeMVzNn3_s
 
 	![](AimOffset13.png)
 
-1.	**Aim_CenterUp** を開いて、フレーム **0** になるようにし、**ToNext** ボタンをクリックし、フレーム **10** に進みます。 
+1.	**Aim_CenterUp** を開いて、フレーム **0** になるようにし、**[ToNext]** ボタンをクリックし、フレーム **10** に進みます。 
 
 1.	タイムラインのスクラブバーで **右クリック** し、**Remove frame 0 to frame 10** オプションを選択します。 
 
@@ -124,7 +126,7 @@ uyeMVzNn3_s
 
 1.	**Aim_Space_Ironsights** アセットを毎回 **複製** し、以下の表に基づき残りの各ポーズを作成します。
 
-	| Anim 名 | Start At Keyframe  (開始キーフレーム) | Remove Frames (取り除くフレーム) 1 | Remove Frames (取り除くフレーム) 2 |
+	| Anim Name | Start At Keyframe | Remove Frames 1 | Remove Frames 2 |
 	| ------- | ------ | ------ | ------ |
 	| **Aim_LeftCenter** | 35 | 0 - 34 | 1 - 68 |
 	| **Aim_LeftUp** | 40 | 0 - 39 | 1 - 63 |
@@ -196,7 +198,7 @@ uyeMVzNn3_s
 	**X Axis Label** を **Yaw(左右回転)** に、**Y Axis Label** を **Pitch(上下動)** に設定します。次に両方の Axis Ranges を **-90 から 90** に設定し、**[Apply Parameter Changes (パラメータ変更を適用)]** をクリックします。 
 
 	[REGION:note]
-	**ブレンドスペース** がどのように機能するか (AimOffset の元になっているもの) についての情報は、[**ブレンドスペース**](Engine/Animation/Blendspaces) をご覧ください。 
+	**ブレンドスペース** の仕組みについては (AimOffset の元になっているもの)、[**ブレンドスペース**](Engine/Animation/Blendspaces) をご覧ください。 
 	[/REGION]
 
 1.	**アセット ブラウザ** で **Aim** を検索し、**Aim_Center** アニメーションを以下の画面のようにグラフの中央部にドラッグします。 
@@ -228,10 +230,10 @@ uyeMVzNn3_s
 
 	![](AimOffset31.png)
 
-	これは、プレイ可能なキャラクターに割り当てられるもので、キャラクターのアニメーションのロジックを規定する Animation ブループリントです。 
+	これは、プレイ可能なキャラクターに割り当てられる Animation ブループリントで、キャラクターのアニメーションのロジックを規定します。 
 
 	[REGION:note]
-	**Animation ブループリント** がどのように機能するかについては、[**Animation ブループリント**](Engine/Animation/AnimBlueprints) のドキュメントをご覧ください。 
+	**Animation ブループリント** の仕組みについては、[**Animation ブループリント**](Engine/Animation/AnimBlueprints) のドキュメントをご覧ください。 
 	[/REGION]
 
 1.	Animation ブループリント内で、中央下部にあるウィンドウで **[MyBlueprint]** タブをクリックします。次に **AnimGraph** を **ダブルクリック** します。 
@@ -248,7 +250,7 @@ uyeMVzNn3_s
 
 	![](AimOffset34.png)
 
-1.	**[MyBlueprint]** ウィンドウで、 **[Add Variable (変数を追加)]** ボタンを再度クリックします。新規変数に **PlayerAimPitch** (**Float** も設定) と名前を付けます。 
+1.	**[MyBlueprint]** ウィンドウで、 **[Add Variable (変数を追加)]** ボタンを再度クリックします。この新規変数に **PlayerAimPitch** (**Float** も設定) と名前を付けます。 
 
 1.	**[Asset Browser (アセット ブラウザ)]** タブをクリックし、 **Hero** を探して **Hero_AimOffset** をグラフにドラッグします。 
 
@@ -317,6 +319,7 @@ uyeMVzNn3_s
 	![](AimOffset48.png)
 
 	上の画面のようにノードを接続します。 
+
 	**PlayerAimPitch** と **PlayerAimYaw** の現在の値を取得し、プレイヤーの実際の Pitch/Yaw に滑らかに移行します。 
 
 1.	**Movement** セクションの始まりで、**Event Blueprint Update Animation** の **Delta Time X** をドラッグし、**Promote to variable (変数に昇格)** します。 
@@ -349,13 +352,13 @@ uyeMVzNn3_s
 
 	![](AimOffset54.png)
 
-	このロジックは、Aim Offset でプレイヤーの pitch/yaw を 取得/使用するためのセットアップであり、仕上げるために、あともう少しやるべきことがあります。 
+	このロジックは、Aim Offset でプレイヤーの pitch/yaw を 取得/使用するためのセットアップであり、仕上げに、もう少しやるべきことがあります。 
 
 ## 仕上げ
 
 この最終セクションでは、デフォルトのアイドル ポーズを変更し、Aim Offset を正しく使用するために Character ブループリントを更新します。  
 
-1.	前のセクションから引き続き、**[MyBlueprint]** タブをクリックし、**Locomotion をダブルクリック** して開きます。 
+1.	前のセクションから引き続き、**[MyBlueprint]** タブをクリックし、**Locomotion をダブルクリック** してグラフを開きます。 
 
 	![](AimOffset55.png)
 
@@ -363,7 +366,7 @@ uyeMVzNn3_s
 
 	![](AimOffset56.png)
 
-1.	**Asset Browser** から **Idle_Rifle_Ironsights** をドラッグし、それを **Result** ピンに接続します。 
+1.	**Asset Browser** から **Idle_Rifle_Ironsights** 内をドラッグし、それを **Result** ピンに接続します。 
 
 	![](AimOffset57.png)
 
@@ -381,16 +384,16 @@ uyeMVzNn3_s
 
 	その結果、キャラクターが自動的にコントローラの yaw の位置に向くのを防ぎます。 
 
-1.	**[Graph]** タブをクリックします。**Crouching** セクションを見つけて、**InputAction Crouch** ノードを **C** Key イベントに置き換えます。 
+1.	**[Graph]** タブをクリックします。**Crouching** セクションを見つけて、**InputAction Crouch** ノードを **C** Key Event に置き換えます。 
 
 	![](AimOffset60.png)
 
-	これでウィンドウの左上隅にあるコンパイル ボタン上の黄色の警告記号が取り除かれます。プロジェクトはデフォルトでAction Mapping for Crouch (しゃがむためのアクション マッピング) をもっていないため、しゃがむために **C** ボタンを使用します (必要に応じてどの Key イベントでも使用可能)。 
+	これでウィンドウの左上隅にあるコンパイル ボタン上の黄色の警告記号が取り除かれます。プロジェクトはデフォルトでAction Mapping for Crouch (しゃがむためのアクション マッピング) をもっていないため、しゃがむために **C** ボタンを使用します (必要に応じてどの Key Event でも使用可能)。 
 
 1.	**コンパイル** し **保存** してから、ブループリントを閉じます。 
 
 	[REGION:note]
-	バージョン 4.8 以降では、レベルから **ThirdPersonCharacter** を取り除く必要があります。これを行うには、 **エディタ ビューポート** の **ワールド アウトライナー** 内で **ThirdPersonCharacter** をクリックし、[delete (削除)] を押します。 
+	バージョン 4.8 以降では、レベルから **ThirdPersonCharacter** を取り除く必要があります。これを行うには、 **エディタ ビューポート** の **シーン アウトライナー** 内で **ThirdPersonCharacter** をクリックし、[delete (削除)] を押します。 
 
 	これは、**ThirdPersonCharacter** が自動的にレベル内で所有されてしまうため行う必要があります。 
 
@@ -401,7 +404,7 @@ uyeMVzNn3_s
 
 エディタで再生する場合、キャラクターは静止状態で照準を合わせ、マウスの動きに反応し、マウスの方向を指し示します。マウスがキャラクターの背後にある場合、およびキャラクターが走っている間、キャラクターが後ろを向かないようにいくつかの制約があり、マウスを動かすとキャラクターの胴もポイントしている方向に向きます。 
 
-これをさらに進めて、キャラクターがある方向に照準を合わせ、その方向に射撃アニメーションを再生、および (または) キャラクターがある方向に移動またはしゃがんでいる間に射撃アニメーションを再生することができます。こうしたことを行うには、複数のアニメーションをまとめてブレンドする方法について学ぶ [**加算アニメーションを使用する**](Engine\Animation\AnimHowTo\AdditiveAnimations) の操作ガイドをご覧ください。または、照準できるようになったキャラクターの手に武器をアタッチする例がある [**スケルタルメッシュのソケット**](Engine\Content\Types\SkeletalMeshes\Sockets) をご覧ください。 
+これをさらに進めて、キャラクターがある方向に照準を合わせ、その方向に射撃アニメーションを再生、および (または) キャラクターがある方向に移動またはしゃがんでいる間に射撃アニメーションを再生することができます。こうしたことを行うには、複数のアニメーションをまとめてブレンドする方法について学ぶ [**加算アニメーションを使用する**](Engine\Animation\AnimHowTo\AdditiveAnimations) の操作ガイドをご覧ください。または、照準できるようになったので、キャラクターの手に武器をアタッチする例が掲載されている [**スケルタルメッシュのソケット**](Engine\Content\Types\SkeletalMeshes\Sockets) をご覧ください。 
 
 
 

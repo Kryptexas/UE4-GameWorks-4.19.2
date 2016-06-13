@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2672915
+﻿INTSourceChangelist:2953540
 Availability:Docs
 Title:4.1 - キャラクターをアニメートする
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4
-Description:First Person Shooter キャラクターをアニメートする方法を学びます。
-SkillLevel:初心者向け
-Version:4.9
+Description:FPS キャラクターをアニメートする方法を学びます。
+SkillLevel:Beginner
+Version:4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,22 +23,24 @@ Version:4.9
 
 %Steps%
 
+このステップでは、アニメーションをゲームに入れます。
+
+## アニメーションのインポート
+
 [REGION:note]
-作業を開始する前に、次のリンクからサンプル アニメーションをダウンロードし、抽出してください。
+作業を開始する前に、次のリンクからアニメーションをダウンロードし、抽出してください。
 *	[Sample Animations](FPP_Animations.zip "Sample Animations")
 [/REGION]
 
-このステップでは、アニメーションをゲームに入れます。
-
-1.	**コンテンツ ブラウザ** を **右クリック** して、 **[New Folder (新規フォルダ)]** を選択します。 
+1.	**コンテンツ ブラウザ** を右クリックして、 **[New Folder (新規フォルダ)]** を選択します。 
 
 	![](RightClickImport.png)
 
 1.	この新しいフォルダに「Animations」と名前を付けます。
 
-1.	フォルダを開くにはその上で **ダブルクリック** します。
+1.	その上でダブルクリックしてフォルダを開きます。
 
-1.	  以下の 5 つのアニメーション ファイルを探して選択します。
+1.	 以下の 5 つのアニメーション ファイルを探します。
 
 	*	FPP_Idle.FBX
 	*	FPP_JumpEnd.FBX
@@ -46,43 +48,45 @@ Version:4.9
 	*	FPP_JumpStart.FBX
 	*	FPP_Run.FBX
 
-1.	プロジェクトへのアニメーションのインポートを開始するには、**Open をクリック** します。
+1.	「Animations」フォルダ内で右クリックして、**[Import to /Game/Animations/...]** をクリックしてアニメーションのインポートを開始します。
 
-1.	**Select Skeleton** 見出しの下から **[HeroFPP_Skeleton]** を選択して、**[Import All]** をクリックしてすべてのアニメーションをインポートします。
+	![](ImportAnimations.png)
+
+1.	**[Select Skeleton]** の見出しの下から **[HeroFPP_Skeleton]** を選択して、 **[Import All]** をクリックしてすべてのアニメーションをインポートします。
 
 	![](SelectHeroFPP_Skeleton.png)
 
-1.	これで 5 つのアニメーションのすべてが **コンテンツ ブラウザ** の **「Animations」** フォルダに入ります。
+1.	これで 5 つのアニメーションが **コンテンツ ブラウザ** の **「Animations」** フォルダに入ります。
 
 	![](ImportedAnimations.png)
 
-1.	**[Save]** ボタンを **クリック** してインポートしたメッシュを保存します。
+1.	**[Save]** ボタンをクリックしてインポートしたファイルを保存します。
 
 ## Animation ブループリントを作成する
 
-1.	 **[Add New]** ボタンをクリックして、**Animation Blueprint** を選択します。
+1.	 **[Add New]** ボタンをクリックして、**[Animation Blueprint]** を選択します。
 
 	![](AddNewAnimBP.png)
 
-1.	Parent Class (親クラス) に **[AnimInstance]** を選択して、 [Target Skeleton] として **/Game/HeroFPP_Skeleton** を選択します。
+1.	Parent Class (親クラス) に **[AnimInstance]** を選択して、 [Target Skeleton] として **[/Game/HeroFPP_Skeleton]** を選択します。
 
 	![](CreateAnimBP.png)
 
 1.	新しい Animation ブループリントに、"Arms_AnimBP" と名前を付けます。
 
-1.	**ブループリント エディタ** を開くには、**Arms_AnimBP をダブルクリック** します。
+1.	**[Arms_AnimBP]**を **ダブルクリック** して **ブループリント エディタ** を開きます。
 
 	![](DoubleClickAnimBP.png)
 
-## ステートマシーンの遷移変数を追加する
+## ステートマシンの遷移変数を追加する
 
-1.	**[My Blueprint]** タブで、**[Add New]** ボタンを **クリック** して、 **[Variable]** を選択します。
+1.	**[My Blueprint]** タブで **[Add New]** ボタンをクリックして、**[Variable]** を選択します。
 
 	![](AddingNewVariable.png)
 
 1.	変数を **Boolean** にして、「IsRunning」 という名前を付けます。
 
-1.	**[My Blueprint]** タブで、**[Add New]** ボタンを **クリック** して、 **[Variable]** を選択します。
+1.	**[My Blueprint]** タブで **[Add New]** ボタンをクリックして、**[Variable]** を選択します。
 
 1.	変数を **Boolean** にして、「IsFalling」 という名前を付けます。
 

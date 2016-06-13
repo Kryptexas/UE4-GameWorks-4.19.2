@@ -1,0 +1,45 @@
+﻿INTSourceChangelist:0
+Title: Radial Menu
+Description: The Radial menu provides easy access to commonly used functions such as copy, paste, undo, etc., when in VR mode.
+Crumbs:
+Availability: docs
+parent: Engine/Editor/VR
+type: reference
+order: 3
+tags: VR
+version: 4.11
+skilllevel: intermediate
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Editor/VR/RadialMenu:title%](Engine/Editor/VR/RadialMenu/radialmenu.png)(fill:#919293)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/RadialMenu:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/RadialMenu]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/RadialMenu:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Editor/VR/RadialMenu:title%](Engine/Editor/VR/RadialMenu/radialmenu.png)(fill:#919293)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/RadialMenu:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/RadialMenu]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/RadialMenu:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]

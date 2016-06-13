@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Physics Damping
+﻿INTSourceChangelist:2714891
+Availability:Public
+Title:物理の減衰
 Crumbs: %ROOT%, Engine, Engine/Physics
-Description:Properties and methods used to cause physical objects to resist movement.
+Description:物理オブジェクトを運動に抵抗させるために使用するプロパティと方法。
 
 
 [TOC(start:2)]
@@ -10,77 +10,77 @@ Description:Properties and methods used to cause physical objects to resist move
 
 
 
-To slow down Physics Bodies, simulate atmospheric drag, or add resistance to a hinge, there are two properties available to Physics Bodies and Physics Constraints: Linear Damping 
-and Angular Damping. Linear Damping controls how much the Physics Body or Constraint resists translation, while Angular Damping controls how much they resist rotating. 
+物理ボディを減速させるには、大気抵抗をシミュレーションする、またはヒンジに抵抗を追加します。物理ボディと物理コンストレイントで利用可能なプロパティが 2 つあります。Linear Damping (線形減衰) と 
+Angular Damping (傾斜減衰) の 2 つです。Linear Damping は物理ボディやコンストレイントがどの程度平行移動に抵抗するかを制御します。 Angular Damping はどの程度、回転に抵抗するかを制御します。 
 
-## Physics Bodies
+##物理ボディ
 
-Every Physics Body has properties for **Linear Damping** and **Angular Damping**. These are primarily used to simulate drag, and even a value of 1.0 has a substantial effect on the Physics 
-Body.
+各物理ボディには、**Linear Damping** と **Angular Damping** の プロパティがあります。この 2 つは主に抵抗をシミュレーションするために使用し、 
+値 1.0 であってもかなりの効果を物理ボディに与えます。
 
 [REGION:note]
-For reference, in normal gravity (9.8m/s^2), a Linear Damping value of 30 is enough to stop any single body Actor from falling under the initial pull of gravity, at the start of the 
-simulation. Once more than one Physics Body is interacting (through the use of Physics Constraints or if a collision is occurring), the amount of damping required to stop the Physics 
-Body goes up.
+参考までに、通常の重力 (9.8m/s^2) では、シミュレーション開始時に最初に重力で引っ張られて単一のボディ アクタが落ちないようにするには、 
+Linear Damping 値 30 で十分です。複数の物理ボディが相互作用すると (物理コンストレイントの使用によって、またはコリジョンが発生している場合)、 
+物理ボディを止めるために必要な減衰量は増えます。
 
-The _minimum_ Linear Damping value to stop a Physics Body that has had force applied to it is around 100.
+力を適用された物理ボディを止めるための _最小_ Linear Damping 値は、約 100 です。
 
-Finally, with no Angular Damping, a Physics Body will continue to rotate until it is acted upon by an outside force. Even small values can reduce rotation rapidly, while a value of 
-100 will almost immediately stop any angular motion caused by an outside source.
+Angular Damping (傾斜減衰) がないと、外部の力の作用を加えられるまで回転し続けます。小さな値でも、回転を迅速に減らすことができます。 
+値 100 は、外部発生源で生じた角運動を直ちに止めます。
 [/REGION]
 
-## Physics Constraints
+## 物理コンストレイント
 
-The Damping for Physics Constraints work a bit differently than with Physics Bodies: they only work on Limited Motions and when a motion attempts to go beyond its limit. Setting a 
-Physics Constraint's Motion(s) to Limited will display the **Soft Limits**:
+物理コンストレイントの減衰は物理ボディの場合とは若干異なる働きをします。Limited Motions (制限されたモーション) とモーションがその制限を超えようとした場合にのみ機能します。物理コンストレイントのモーションを、Limited に設定すると、 
+以下のように **Soft Limits (ソフト リミット)** が表示されます。
 
 [REGION:raw]
 ![](Phys_ConstraintDampProps.png)(convert:false)
 [/REGION]
 
-_The two Angular Swing Motions share Damping values, the Angular Twist receives its own Damping values, and all the Linear axes use the same Damping values. While they may have 
-separate properties, the properties all have the same effect on the Motions they relate to._
+_2 つの Angular Swing Motions は、Damping (減衰) 値を共有し、Angular Twist は独自の減衰値を受け取り、すべての線形軸は同じ減衰値を使用します。これらは別個のプロパティを持つ場合がありますが、 
+プロパティはすべて関連するモーションに同じ効果をもたらします。_
 
-| Property | Description |
+| プロパティ | 説明 |
 | -------- | ----------- |
-| **Limit Stiffness** | When a limit is exceeded, this value affects how harshly the constraint attempts to stop the offending motion. The default of 50 will barely affect the motion, a value of 5000 will appear to bounce back into limit, and 50000 will completely deflect the motion. |
-| **Limit Damping** | Like the Damping on Physics Bodies, this defines how much the motion should be slowed. Unlike Damping on Physics Bodies, the damping affect occurs only when the Motion Limit is exceeded, draining momentum until the Physics Body stops. |
+| **Limit Stiffness** | 制限を超えた場合、この値はコンストレイントがどれくらい強く違反しているモーションを停止しようとするかに影響を与えます。デフォルト値 50 はモーションにほとんど影響を与えません。値 5000 は制限に戻るように見えます。値 50,000 はモーションを完全にかわします。 |
+| **Limit Damping** | 物理ボディ上の減衰と同様に、モーションをどの程度減速させるかを定義します。物理ボディ上の減衰とは異なり、この減衰の影響はモーション制限を超えた場合にのみ起こり、物理ボディが停止するまで運動量を弱めます。 |
 
-The two values work together to create different effects. A high Stiffness and low Damping will look like a hard limit, while having them both high will appear to be move through 
-tar, coming to a stop gently but quickly. A good deal of experimentation is necessary to find the right values for your specific needs.
+この 2 つの値は一緒に機能し、異なる効果を生み出します。Stiffness を高くし、Damping を低くすると厳しい制限に見えますが、両方とも高くするとタールの中を移動しているように見えます。 
+そっと停止しますが、迅速です。各自のニーズに合わせて適切な値が見つかるようにするには、色々試してみる必要があります。
 
-For more information on Constraints, see: [](Engine/Physics/Constraints/ConstraintsUserGuide)
+コンストレイントの詳細については[](Engine/Physics/Constraints/ConstraintsUserGuide) をご覧ください。
 
-Or for a reference on the properties available to Physics Constraints,
- see: [](Engine/Physics\Constraints\ConstraintsReference)
+または、物理コンストレイントで利用可能なプロパティの
+ リファレンスについては、[](Engine/Physics\Constraints\ConstraintsReference) をご覧ください。 
 
 <!--
-## PhysicalMaterial Damping
-This can be thought of like the air resistance that is applied to a body. A force is applied to a body to try and slow it down, and the strength of the force is proportional to the 
-speed that the object is moving. There is a separate setting for linear and angular damping, so you can control how much it will try and resist translation and rotation movement. 
-One place where you might want to use this would be a swinging chandelier that you did not want to swing forever. You may not want to use this for a door though, as a lot of the 
-friction on a real door is due to it's hinge. If you set a high damping on the door's PhysicalMaterial and then broke it off the hinge, it would still have that damping applied to 
-it which may look odd. 
+##PhysicalMaterial 減衰
+これはボディに適用される空気抵抗のようなものと考えるとよいでしょう。ボディを減速させようとして力が適用されます。 
+力の強度はオブジェクトが移動している速さに比例します。線形減衰と傾斜減衰には別個の設定があります。そのため、平行移動や回転の動きにどの程度抵抗しようとするかを制御できます。 
+この機能を使用するケースとしては、永遠には揺れてほしくないシャンデリアが考えられます。しかし、この機能をドアには使いたくないでしょう。 
+実際のドアの摩擦の多くはヒンジが原因で生じるからです。ドアの PhysicalMaterial (物理マテリアル) に高い減衰を設定し、ヒンジが外れた場合でも、減衰が適用されていて、 
+不自然に見える場合があります。 
 
 
 
 ## Joint Drive
-To simulate 'friction' within a joint, you can use the joint drive properties in the RB_ConstraintInstance (you can get to these properties in PhAT by selecting the joint and 
-pressing the 'I' key or the 'i' icon on the toolbar). First you want to turn on the appropriate bTwistVelocityDrive or bSwingVelocityDrive drive, set the desired angular velocity 
-to zero and modify the AngularDriveForceLimit to control how much friction is in the joint. You can find more information on this on the 
-[PhysicsConstraintReference](Engine/Physics/PhysX/Constraints) page. 
+ジョイント内で「摩擦」をシミュレーションするには、RB_ConstraintInstance のジョイント ドライブ プロパティを使用します 
+ (こうしたプロパティは、PhAT でジョイントを選択し、'I' キーを押すか、ツールバーの'i' のアイコンを押して利用できます)。最初に、適切な bTwistVelocityDrive または bSwingVelocityDrive ドライブをオンにして、必要な角速度をゼロに設定し、 
+AngularDriveForceLimit を変更してジョイントの摩擦の強さを制御します。詳しい情報は [物理コンストレイントのリファレンス](Engine/Physics/PhysX/Constraints) 
+ ページをご覧ください。 
 
-The key thing here is that the damping is applied between two jointed object. Imagine two objects jointed together, but then thrown through space. If you used PhysicalMaterial 
-damping here, it would slow down how quickly the pair of objects would move through the air, when what you really want is to modify how they move relative to each other. 
-That is why Joint Drive is the right thing to use in this case.
+重要なことは、2 つの結合されたオブジェクトの間に減衰が適用されるということです。2 つのオブジェクトが結合されているが、空間に投げ出されている様子を想像してみてください。この場合に PhysicalMaterial 減衰を使用すると、 
+実際に望んでいるのは相対的にどのように動くかを変更することであるにも関わらず、この一組のオブジェクトが空気中をどれくらい速く移動するかを減速させることになります。 
+従って、このケースでは、Joint Drive を使用するのが適切です。
 
 
 
 ## PhysicsVolume RigidBodyDamping
-Sometimes you want to apply damping or a force to objects only in a certain area of your level. To do this you would use a PhysicsVolume. The ZoneVelocity property of a 
-PhysicsVolume is the desired velocity that objects in that volume should achieve. You can think of this as the speed of a river or wind-tunnel in that area. You can then modify 
-the RigidBodyDamping property to control how strongly a physics body will try and achieve that velocity when in the volume. Setting a zero ZoneVelocity and a high RigidBodyDamping 
-can make the volume act like jelly. Setting a horizontal ZoneVelocity and a moderate RigidBodyDamping can make it act like a flowing river of water.
+レベルの一部のエリアにあるオブジェクトだけに減衰または力を適用したい場合があるかもしれません。これを行うには、PhysicsVolume を使用します。PhysicsVolume の  
+ZoneVelocity プロパティは、ボリューム内のオブジェクトが達成すべき望ましい速度です。エリア内の川や風洞の速度と考えることができます。次に、RigidBodyDamping プロパティを変更して、 
+ボリューム内で物理ボディがどれくらい強くその速度を達成しようとするかを制御することができます。ZoneVelocity をゼロに設定し、RigidBodyDamping を高くすると、 
+ボリュームはゼリーのような挙動をします。ZoneVelocity を水平にし、RigidBodyDamping を中程度にすると、流れる川の水のようになります。
 -->
  
 

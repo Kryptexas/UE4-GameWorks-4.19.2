@@ -2,8 +2,13 @@ Availability:Public
 Title: Getting Started: Developing Linux Projects
 Crumbs:%ROOT%, Platforms, Platforms/Linux
 Description:Setting up for development for the Linux platform.
+Version: 4.9
+SkillLevel: Advanced
+type:quickstart
+parent:Platforms/Linux
+tags:Linux
 
-%Globals:BinarySourceSelectVar%
+<!--- %Globals:BinarySourceSelectVar% --->
 
 [TOC(start:2 end:3)]
 
@@ -17,7 +22,9 @@ From this point on we assume that you are targeting x86_64 Linux; although the m
 
 Add an environment variable (Control Panel->System->Advanced system settings->Advanced->Environment variables) named LINUX_ROOT, value of which is the absolute path to your toolchain, without trailing backslash:
 
+[REGION:raw]
 ![](image00.png)
+[/REGION]
 
 After you made sure that variable is set, regenerate UE4 project files (using GenerateProjectFiles.bat) and restart Visual Studio. After this, you should have "Linux" available among Win32/Win64 configurations, and you should be able to cross-compile for it.
 

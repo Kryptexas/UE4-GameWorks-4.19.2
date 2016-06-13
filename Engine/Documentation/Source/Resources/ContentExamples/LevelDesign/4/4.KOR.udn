@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653187
+﻿INTSourceChangelist:2716626
 Availability: Public
 Title:4 - 폴리시 패스
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/LevelDesign
@@ -6,6 +6,7 @@ Description:Level Design 레벨에 대한 개요로, 예제 4: Polish Pass 입�
 Related: Engine/Rendering/LightingAndShadows/Lightmass
 Related: Engine/Rendering/LightingAndShadows/ReflectionEnvironment
 Related: Engine/Rendering/LightingAndShadows/LitTranslucency
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

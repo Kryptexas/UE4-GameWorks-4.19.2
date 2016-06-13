@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2648561
+﻿INTSourceChangelist:2786924
 Availability:Public
 Title:언리얼 엔진 소스 코드 내려받기
 Crumbs: %ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine
@@ -6,14 +6,14 @@ Description:소스 코드 저장소에 접속하여 언리얼 엔진 최신 빌�
 Prereq: GettingStarted/RecommendedSpecifications
 Related: GettingStarted/DownloadingUnrealEngine/GitHub
 Related: GettingStarted/DownloadingUnrealEngine/DownloadZip
-Version: 4.8
+Version: 4.9
 SkillLevel: Advanced
 
 [TOC (start:2 end:3)]
 
 [EXCERPT:Main]
 [PUBLISH:Licensee]
-라이선시께서는 에픽의 퍼포스 (P4V) 서버에 직접 연결하여 언리얼 엔진 4 를 내려받을 수 있습니다. 서버에 접속하기 전, 보안 VPN 연결을 먼저 구성해야 합니다. VPN 와 퍼포스 서버 둘 다에 대한 로그인 인증 정보는 에픽 게임스가 귀하의 기술팀장께 보내드린 UDN 환영 이메일에 제공되어 있습니다. 각 팀마다 한 세트의 로그인 인증정보만 제공됩니다.
+라이선시께서는 에픽의 퍼포스 (P4V) 프록시 서버에 연결하여 언리얼 엔진 4 를 내려받을 수 있습니다. 퍼포스 서버 로그인 정보는 에픽 게임스가 귀하의 기술팀장께 보내드린 UDN 환영 이메일에 제공되어 있습니다. 각 팀마다 한 세트의 로그인 인증정보만 제공됩니다.
 [/PUBLISH:Licensee]
 [PUBLISH:Rocket]
 
@@ -28,7 +28,7 @@ SkillLevel: Advanced
 [/PUBLISH:Rocket]
 
 [PUBLISH:Licensee]
-[INCLUDE:GettingStarted/DownloadingUnrealEngine/Perforce/Basics]
+[INCLUDE:GettingStarted/DownloadingUnrealEngine/Perforce/Basics#main]
 [/PUBLISH:Licensee]
 
 [PUBLISH:Rocket]

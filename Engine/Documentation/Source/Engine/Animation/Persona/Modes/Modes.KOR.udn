@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2593442
+﻿INTSourceChangelist:2666071
 Availability: Public
 Title:페르소나 편집 모드
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
 Description:페르소나 애니메이션 에디터에서 사용가능한 편집 모드 사용 안내서입니다.
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -65,7 +66,7 @@ Description:페르소나 애니메이션 에디터에서 사용가능한 편집 
 
 [![](Persona_Mode_Mesh.png)(w:800)](Engine/Animation/Persona/Modes/Mesh)
 
-(이미지를 클릭하면 **메시 편집 모드** 페이지로 이동합니다.)
+(이미지를 클릭하면 **메시 편집** 모드 페이지로 이동합니다.)
 
 [EXCERPT:MeshModeUI]
 1. [툴바](Engine/Animation/Persona\Toolbar) 
@@ -83,7 +84,7 @@ Description:페르소나 애니메이션 에디터에서 사용가능한 편집 
 
 [![](Persona_Mode_Anmation.png)(w:800)](Engine/Animation/Persona/Modes/Animation)
 
-(이미지를 클릭하면 **애니메이션 편집 모드** 페이지로 이동합니다.)
+(이미지를 클릭하면 **애니메이션 편집** 모드 페이지로 이동합니다.)
 
 [EXCERPT:AnimationModeUI]
 1. [툴바](Engine/Animation/Persona\Toolbar) 
@@ -102,7 +103,7 @@ Description:페르소나 애니메이션 에디터에서 사용가능한 편집 
 
 [![](Persona_Mode_Vim.png)(w:800)](Engine/Animation/Persona/Modes/Graph)
 
-(이미지를 클릭하면 **그래프 편집 모드** 페이지로 이동합니다.)
+(이미지를 클릭하면 **그래프 편집** 모드 페이지로 이동합니다.)
 
 [EXCERPT:GraphModeUI]
 1. [툴바](Engine/Animation/Persona\Toolbar) 

@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2663119
+﻿INTSourceChangelist:2730489
 Availability: Public
 Title:리프트 구성하기
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
 Description:A 지점에서 B 지점으로 자동 이동하는 두 가지 유형의 리프트를 만듭니다.
+Version: 4.9
+SkillLevel: Intermediate
 
 
 ---
@@ -85,7 +87,9 @@ Description:A 지점에서 B 지점으로 자동 이동하는 두 가지 유형�
 
 	![](Engine\Matinee\HowTo\MHT_1\MHT1_TrackContextMenu.png)
 
-1. ![](MHT2_Lift1GroupName.png) **새 그룹 이름** 박스에서 그룹에 새 이름을 입력합니다 (이 예제에서 그룹 이름은 **Lift1** 이라 했습니다).
+1. **새 그룹 이름** 박스에서 그룹에 새 이름을 입력합니다 (이 예제에서 그룹 이름은 **Lift1** 이라 했습니다).
+
+	![](MHT2_Lift1GroupName.png)
 
 1. **마티네** 창을 최소화시킨 다음 **레벨 뷰포트** 에서 처음 생성한 (바닥 위에 있는) 큐브를 선택하여 강조시킵니다.
 
@@ -147,7 +151,7 @@ Description:A 지점에서 B 지점으로 자동 이동하는 두 가지 유형�
 	360
 	[/PARAMLITERAL]
 	[PARAMLITERAL:videoid]
-	_nPqdhXIoAw
+	cDiagxqJAgI
 	[/PARAMLITERAL]
 	[/OBJECT]
 
@@ -263,7 +267,7 @@ Description:A 지점에서 B 지점으로 자동 이동하는 두 가지 유형�
 	360
 	[/PARAMLITERAL]
 	[PARAMLITERAL:videoid]
-	SrnTCME2RVU
+	-6dlhjG9JP4
 	[/PARAMLITERAL]
 	[/OBJECT]
 	

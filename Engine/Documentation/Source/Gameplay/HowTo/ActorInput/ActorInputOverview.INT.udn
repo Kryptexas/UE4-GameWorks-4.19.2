@@ -17,9 +17,9 @@ To learn more about **Setting up Input for an Actor** using Blueprints, follow t
 
 [REGION:buttonlist]
 * [](Gameplay\HowTo\ActorInput\Blueprints)
-[PUBLISH:Docs]
+<!--
 * [](Gameplay\HowTo\ActorInput\Code)
-[/PUBLISH:Docs]
+-->
 [/REGION]
 
 

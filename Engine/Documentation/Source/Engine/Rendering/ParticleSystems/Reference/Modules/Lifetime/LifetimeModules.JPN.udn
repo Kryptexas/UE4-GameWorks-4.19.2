@@ -1,19 +1,28 @@
-﻿INTSourceChangelist:2074246
+﻿INTSourceChangelist:2750660
 Availability:Public
 Title:Lifetime モジュール
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
-Description:Lifetimeモジュールは、スポーン時のパーティクルの初期ライフタイムを設定します。
+Description:Lifetime モジュールは、スポーン時のパーティクルの初期ライフタイムを設定します。
+Version:4.9
 
 [TOC(start:2 end:3)]
 
-## Lifetime モジュール 
-
 (#Lifetime)
-### Lifetime
+## Lifetime
 
-![psys_lifetime.gif](psys_lifetime.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+nnFIgdgObvU
+[/PARAMLITERAL]
+[/OBJECT]
 
-Lifetime モジュールは、スポーン時のパーティクルの初期ライフタイムを設定します。以下のメンバーが含まれます
+**Lifetime** モジュールは、スポーン時のパーティクルの初期ライフタイムを設定します。以下のメンバーが含まれます。
 
 | プロパティ | 説明 |
 | ---- | ---- |
@@ -24,9 +33,9 @@ Lifetime モジュールは、スポーン時のパーティクルの初期ラ�
 スポーン時は、モジュールは現在のエミッタ時間を使用して、分布から適切な値を読み出します。その後 Particle.OneOverMaxLifetime フィールドへ追加され、複数のライフタイムモジュールの適用が可能になります。
 
 
-### Lifetime (Seeded)
+## Lifetime (Seeded)
 
-Lifetime (Seeded) モジュールは、スポーン時にパーティクルのライフタイムを設定するという点で [Lifetime](#Lifetime) モジュールと同一です。しかしこのモジュールは、エミッタの使用時はいつでもモジュールからより一貫性のあるエフェクトを提供するために、分布値の選択に使用するシード情報を指定することが出来ます。以下のメンバーが含まれます
+**Lifetime (Seeded)** モジュールは、スポーン時にパーティクルのライフタイムを設定するという点で [Lifetime](#Lifetime) モジュールと同一です。しかしこのモジュールは、エミッタの使用時はいつでもモジュールからより一貫性のあるエフェクトを提供するために、分布値の選択に使用するシード情報を指定することが出来ます。以下のメンバーが含まれます。
 
 | プロパティ | 説明 |
 | ---- | ---- |

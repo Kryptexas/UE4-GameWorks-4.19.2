@@ -1,8 +1,10 @@
 Availability:Public
 Title:Custom Events
-Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
+Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/Scripting
 Description: Custom user-created events that can be fired off from within a Graph.
 version: 4.9
+Parent:Engine/Blueprints/Scripting
+tags:Execution Flow
 
 [VAR:Topic]
 [OBJECT:Topic]

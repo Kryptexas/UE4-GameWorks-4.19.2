@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2347450
+﻿INTSourceChangelist:2726448
 Availability: Public
 Title:Stylized Rendering 랜드스케이프
 Crumbs:%ROOT%, Resources, Resources/Showcases/Stylized
@@ -6,6 +6,7 @@ Description:UE4 에 포함된 Stylized Rendering 쇼케이스에 사용된 랜�
 Related: Engine/Landscape
 Related: Engine/Landscape/Editing/Splines
 Related: Engine/Landscape\Materials
+Version: 4.9
 
 
 
@@ -122,7 +123,7 @@ h:295
 
 ### 랜드스케이프 스플라인
 
-길이나 물 따라 나 있는 해빈선은 랜드스케이프 스플라인으로 만든 것입니다. 랜드스케이프 스플라인은 랜드스케이프 위에 길이나 흔적을 물론 랜드스케이프 표면에 합치시킬 필요가 있는 다른 유형의 애셋에도 쓰기 좋은 방식입니다.
+길이나 물 따라 나 있는 해안선은 랜드스케이프 스플라인으로 만든 것입니다. 랜드스케이프 스플라인은 랜드스케이프 위에 길이나 흔적을 물론 랜드스케이프 표면에 합치시킬 필요가 있는 다른 유형의 애셋에도 쓰기 좋은 방식입니다.
 
 [REGION:fullwidth]
 ![](Walkway.png)

@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2089751
+﻿INTSourceChangelist:2688591
 Availability:Public
-Title:Atmosphere表現式
+Title:Atmosphere 表現式
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
 Description:霧やその他の大気レベル効果に影響を与える表現式
+Version:4.9
 
 [EXCERPT:contents]
 [TOC(start:2 end:2)]
@@ -10,11 +11,11 @@ Description:霧やその他の大気レベル効果に影響を与える表現�
 
 
 
-## Atmospheric Fogのカラー
+## Atmospheric Fog Color
 
-Atmospheric Fog Material 表現式は、ワールド空間のどの位置からでも、レベルに存在する Atmospheric Fog の現在のカラーを問い合わせることができます。ワールド位置が表現式へ入力されない場合、問い合わせたピクセルのワールド位置を使用します。遠方の霧の色に薄れていくマテリアルの表示に実用的です。
+**Atmospheric Fog Color** マテリアル表現式は、ワールド空間のどの位置からでも、レベルの Atmospheric Fog の現在のカラーを問い合わせることができます。ワールド位置が表現式へ入力されない場合、問い合わせたピクセルのワールド位置を使用します。遠方の霧の色に薄れていくように見えるマテリアルが必要な場合に役立ちます。
 
-以下の事例は、Atmospheric Fog ノードを使用してベースカラーが設定されています。ワールド位置は常にオブジェクトから 50,000 単位後方の位置を問い合わせる簡易なネットワークを受け取ります。この位置はカメラの位置と相対的です。
+以下のサンプルは、Atmospheric Fog ノードを使用してベースカラーが設定されています。ワールド位置は常にオブジェクトから 50,000 単位後方の位置を問い合わせる簡易なネットワークを受け取ります。この位置はカメラの位置と相対的です。
 
 [REGION:fullwidth]
 ![](AtmoFogColorNetwork2.png)

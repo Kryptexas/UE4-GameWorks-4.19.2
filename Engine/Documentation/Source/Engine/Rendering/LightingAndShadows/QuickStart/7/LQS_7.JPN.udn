@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2523023
+﻿INTSourceChangelist:2685206
 Availability:Public
 Title:7.応用編
 Crumbs:%ROOT%, GettingStarted, Engine\Rendering\LightingAndShadows\QuickStart
 Description:最後のステップになります。自分のプロジェクトにできるサンプル、およびライトとライトの技術に関するその他のトピックスへのリンクを照会します。 
-
+SkillLevel:Beginner
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,19 +24,19 @@ Description:最後のステップになります。自分のプロジェクト�
 %Steps%
 
 
-クイックスタートガイドを通じて学んだ知識を活かして、以下の操作をしてみましょう。 
+クイックスタート ガイドを通じて学んだ知識を活かして、以下の操作をしてみましょう。 
 
 ![](apartment1.png)(w:720)
 
 * 部屋を追加して、アパートを拡張する 
-* **ポイントライト** または **スポットライト** で他の部屋を照らす 
+* **Point Lights** または **Spot Lights** で他の部屋を照らす 
 * **「Content/StarterContent/Props」** フォルダからプロップを追加する (ドア、窓、枠、ドア、ランプなど) 
 
 ![](apartment2.png)(w:720)
 
 * 部屋で **Sphere Reflection Capture** を使用する 
 * ライトに異なる **IES Profile** を使用する 
-* **スポットライト** を使ってフロア ランプを作成する 
+* **Spot Lights** を使ってフロア ランプを作成する 
 
 ![](apartment4.png)(w:720)
 
@@ -49,17 +50,17 @@ Description:最後のステップになります。自分のプロジェクト�
 
 * ライティングの基礎に関する詳細は [**ライティング基礎**](Engine\Rendering\LightingAndShadows\Basics) をご覧ください。
 
-* 環境のライティングに関する詳細は、 [**ライティングとシャドウ**](Engine\Rendering\LightingAndShadows) をご覧ください。
+* 背景のライティングに関する詳細は、 [**ライティングとシャドウ**](Engine\Rendering\LightingAndShadows) をご覧ください。
 
 * IES プロファイルに関する詳細は [**IES ライトプロファイル**](Engine/Rendering/LightingAndShadows/IESLightProfiles) をご覧ください。 
 
-* ライト機能に関する詳細は [**ライト機能**](Engine/Rendering/LightingAndShadows/LightFunctions) をご覧ください。
+* Light 関数に関する詳細は [**Light 関数**](Engine/Rendering/LightingAndShadows/LightFunctions) をご覧ください。
 
 * アンリアル エディタ 4 のレンダリングに関する詳細は、 [**レンダリングの概要**](Engine\Rendering\Overview) をご覧ください。
 
 * ライティングのサンプル集は [**ライティング コンテンツ サンプル**](Resources\ContentExamples\Lighting) をご覧ください。
 
-* ブラシを使ったレベルのビルドに関する詳細は [**ジオメトリ ブラシ アクタ**](Engine\Actors\Brushes) を参照してください。
+* ブラシを使ったレベルのビルドに関する詳細は [**Geometry Brush アクタ**](Engine\Actors\Brushes) を参照してください。
 
 * マテリアルに関する詳細は [**マテリアル入門**](Engine/Rendering/Materials/IntroductionToMaterials) をご覧ください。
 

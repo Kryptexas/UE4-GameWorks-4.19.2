@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2436929
+﻿INTSourceChangelist:2695180
 Availability:Public
 Title:월드 아웃라이너
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
 Description:현재 레벨 안에서 선택, attachment 부착 등에 사용되는 모든 액터를 나타내는 계층형 트리 뷰입니다.
+Version: 4.9
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]
@@ -26,7 +27,6 @@ Description:현재 레벨 안에서 선택, attachment 부착 등에 사용되�
 
 [TOC(start:2)]
 
-## 개요
 
 [EXCERPT:SceneOutliner]
 **월드 아웃라이너** (World Outliner) 패널에는 씬 안에 있는 모든 액터가 계층형 트리 뷰로 표시됩니다. 이 월드 아웃라이너에 있는 액터를 바로 선택하고 수정할 수 있습니다. **정보** 드롭 다운 메뉴를 사용하여 레벨, 레이어, ID 이름과 같은 열을 추가로 표시할 수도 있습니다.

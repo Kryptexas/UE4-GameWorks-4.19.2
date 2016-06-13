@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2612600
+﻿INTSourceChangelist:2717659
 Availability: Licensee
 Title:에픽 게임스로 VPN 연결 셋업하기
 Crumbs:%ROOT%, Engine, Programming, Programming/Basics
 Description:퍼포스 서버에 접근하여 엔진을 구하기 위해서 에픽의 가상 사설 네트워크(VPN)에 접속하는 방법 안내서입니다.
+version: 4.9
 
 [TOC(start:2)]
 
@@ -173,7 +174,7 @@ AnyConnect 로 VPN 연결하기는 매우 간단합니다.
 
 	![username and password](usernamepassword.png)
 
-1. ![vpn_anyconnect_connect_button.jpg](vpn_anyconnect_connect_button.jpg)버튼을 눌러 VPN에 연결합니다. 연결되면 태스크바에 ![vpn_anyconnect_connected.jpg](vpn_anyconnect_connected.jpg)아이콘이 표시됩니다.
+1. **Connect** 버튼을 눌러 VPN에 연결합니다. 연결되면 태스크바에 ![vpn_anyconnect_connected.jpg](vpn_anyconnect_connected.jpg)아이콘이 표시됩니다.
 [/EXCERPT:AnyConnect]
 
 VPN 연결 구성이 완료되면 [퍼포스 구성](GettingStarted/DownloadingUnrealEngine/Perforce/Setup)을 계속해도 됩니다.

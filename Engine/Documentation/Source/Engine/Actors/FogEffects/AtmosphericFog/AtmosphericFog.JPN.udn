@@ -91,7 +91,7 @@ Atmospheric Fog アクタには以下のプロパティが格納されます。
 | **Default Light Color** | レベルに太陽光が配置されていない場合に使用します。 |
 | **Disable Sun Disk** | チェックを入れると、Sun Disk のレンダリングが無効になります。 |
 | **Disable Ground Scattering** | チェックを入れると、グラウンドからのカラーのスキャッタリングが無効になります。 |
-| **Precompute Params** | このグループに含まれるプロパティは事前計算されたテクスチャデータの再計算が必要になります。They include:[INCLUDE:#PrecomputeParams]  |
+| **Precompute Params** | このグループに含まれるプロパティは事前計算されたテクスチャデータの再計算が必要になります。以下を含みます。[INCLUDE:#PrecomputeParams]  |
 | **Visible** | 霧のエフェクトを表示または非表示にします。 |
 | **Hidden in Game** | チェックを入れると、エフェクトはゲーム中は表示されません。 |
 

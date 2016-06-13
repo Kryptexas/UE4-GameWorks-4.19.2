@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2385999
+﻿INTSourceChangelist:2875952
 Title:2.Oculus Runtime をダウンロードする
 Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
 Description:Oculus Rift でゲームを実行するために必要なソフトウェアをダウンロードする
 Availability:Public
-
+Version:4.9
+SkillLevel:Intermediate
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -21,59 +22,25 @@ Availability:Public
 [/OBJECT]
 [/VAR]
 
+このセクションでは、ダウンロードする必要のある Oculus PC Runtime ドライバーのバージョンとダウンロード元について説明します。
+
 %Steps%
 
 
 [REGION:note]
-アンリアル エンジン 4 と互換性のある Oculus Runtime のバージョンは、現在 **Oculus SDK v0.4.2 Beta** となっています。 
+アンリアル エンジン 4 の最新バージョンと現在互換性のある Oculus Runtime のバージョンは **Oculus SDK v0.7.0.0-BETA** です。 
 [/REGION]
 
-%Globals:OSSelect%
 
-[OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	OS
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	windows
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	active_button_content
-	[/PARAMLITERAL]
-	[PARAM:content]
-	[INCLUDE:#windows]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	OS
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	mac
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	[/PARAMLITERAL]
-	[PARAM:content]
-	[INCLUDE:#macos]
-	[/PARAM]
-[/OBJECT]
-<!--
-[EXCERPT:windows]
-1. [Oculus Runtime for Windows version 0.4.2-beta](https://developer.oculus.com/downloads/#id=9f27e6a8) をクリックします。 
+1. ウェブ ブラウザで [Oculus Developer webpage](https://github.com/EpicGames/UnrealEngine) へ移動します。
 
-	![](3-oculus-runtime-for-windows.jpg)
-1. ダウンロードを開始するために、Unreal Engine エンドユーザーライセンス契約書 (EULA) の使用条件を一読して同意します。
+1. **[PC RUNTIME(V0.7.0-BETA)]** ボタンをクリックして [PC RUNTIME( v0.7.0.0-BETA)](https://developer.oculus.com/downloads/pc/0.7.0.0-beta/Oculus_Runtime_for_Windows/) をダウンロードします。
 
-	![](3-oculus-eula.jpg)
-[/EXCERPT:windows]
-[EXCERPT:macos]
-[INCLUDE:Platforms/Oculus#warning]
-1. [Oculus Runtime for OS X version 0.4.2-beta](https://developer.oculus.com/downloads/#id=4d85655b) をクリックします。
-	![](3-oculus-runtime-for-os-x.jpg)
-1. ダウンロードを開始するために、Unreal Engine エンドユーザーライセンス契約書 (EULA) の使用条件を一読して同意します。
+	![](Downloads.png)
 
-	![](3-oculus-eula.jpg)
-[/EXCERPT:macos]
--->
+1. 次のページで、EULA (エンドユーザーライセンス契約書) に同意して、**[DOWNLOAD (ダウンロード)]** ボタンを有効にして同意します。**[DOWNLOAD (ダウンロード)]** ボタンをクリックすると、ドライバーのダウンロードが始まります。
+
+	![](3-oculus-eula.png)
+
 
 %Steps%

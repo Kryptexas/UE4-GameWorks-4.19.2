@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2739011
+﻿INTSourceChangelist:2782706
 Availability:Public
 Title:アニメーションとサウンドの再生
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
@@ -57,6 +57,7 @@ SkillLevel:Intermediate
 
 	![](BoxHeightGray.jpg)
 
+
 [OBJECT:TopicList]
 	[PARAM:title]
 		アクタをマチネに追加し、トラックを追加する
@@ -104,7 +105,7 @@ SkillLevel:Intermediate
 
 	![](MHT7_MovementKeysAdded.png)
 
-1. Movement トラックの 2 つめのキーフレームをクリックして、マチネ を最小化します。次に SK_Mannequin の [詳細] パネルで **Z** の **Location** を **135** に設定します。 
+1. Movement トラックの 2 つめのキーフレームをクリックして、マチネを最小化します。次に SK_Mannequin の [詳細] パネルで **Z** の **Location** を **135** に設定します。 
 
 	![](MHT7_MoveDetailsKey2.png)
 
@@ -137,6 +138,7 @@ SkillLevel:Intermediate
 	_レベル ビューポートを見ると、**SK_Mannequin** アクタは、**アイドル** ポーズ状態になっています。これは、**マチネ** を開始するために使用するアニメーションを指定したためです。_ 
 
 1. **タイムバー** を **2.50** に移動し、**Enter** を押します。次に、メニューから **Jump_Start** を選択します。 
+
 1. **Jump_Start** キーフレームの **2.50** で **右クリック** し、**Set Play Rate** を選択し、値を **0.23** に設定します。 
 
 	![](MHT7_JumpAnimAdded.png)
@@ -163,7 +165,8 @@ SkillLevel:Intermediate
 
 	![](MHT7_AnimKey6.png)
 
-1. **Idle** キーフレームの **8.30** で **右クリック** し、**Set Time** を選択し、それを **8.20** に設定します。
+1. **Idle** キーフレームの **8.30** で **右クリック** し、**Set Time** を選択し、それを **8.20** に設定します。 
+
 1. **8.20** に移動した **Idle** キーフレームで **右クリック** し、**Set Looping** を選択します。 
 
 	![](MHT7_AnimKey7.png)

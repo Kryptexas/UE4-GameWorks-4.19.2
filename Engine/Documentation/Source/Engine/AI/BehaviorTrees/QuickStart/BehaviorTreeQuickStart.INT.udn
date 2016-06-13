@@ -2,6 +2,7 @@ Availability:Public
 Title: Behavior Tree Quick Start Guide
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
 Description:Overviews and examples AI
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -45,7 +46,7 @@ Description:Overviews and examples AI
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-1td5wSD3PPU
+q6vTg2roI6k
 [/PARAMLITERAL]
 [/OBJECT]
 

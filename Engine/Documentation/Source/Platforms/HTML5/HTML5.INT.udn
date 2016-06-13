@@ -5,28 +5,47 @@ Description:Developing games for the HTML5 platform.
 Platform:HTML5
 Navigation:platform
 Version: 4.9
+type:landing
+parent:Platforms
+tags:HTML5
 
+HTML5 uses the emscripten tool chain from [Mozilla](https://www.mozilla.org/en-US/) to cross-compile C++ into Javascript. 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
+## Starting Out
+
+[DIR(output:"listbutton" type:"quickstart" parent:"Platforms/HTML5")]
+
+## Samples
+
+[REGION:topics third]
+
+%TopicCompact%
+[/REGION]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](TappyChicken.png)
 	[/PARAM]
 	[PARAM:title]
-		HTML5 Essentials
+		Tappy Chicken in HTML5
 	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Platforms/HTML5/GettingStarted "%Platforms/HTML5/GettingStarted:description%")
-	[PUBLISH:Docs]
-	* [](Platforms/HTML5/BuildingEmscripten "%Platforms/HTML5/BuildingEmscripten:description%")
-	[/PUBLISH:Docs]
-	[/PARAM]
+	[PARAMLITERAL:path]
+		https://www.unrealengine.com/html5/
+	[/PARAMLITERAL]
 [/OBJECT]
+[/VAR]
 
-	
 
-		
+## Content Development
+
+HTML5 uses WebGL. When building content aimed at the HTML5 platform, guidelines used for creating mobile-oriented content are also often applicable. 
+
+[DIR(end:"1" output:"listbutton" type:"overview" parent:"Platforms/Mobile")]
+
+
+
+
 
 	      
 

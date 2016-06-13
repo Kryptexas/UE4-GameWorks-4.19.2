@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2607591
+﻿INTSourceChangelist:2742006
 Availability:Public
 Title: 엔진 피처 레벨 조절하기
 Crumbs: %ROOT%, Engine
 Description:콘솔 변수 및 명령 또는 명령줄 인수로 피처 레벨을 변경하는 법입니다.
 Navigation:topic
+version: 4.9
 
 
 ## 콘솔 변수 및 명령
@@ -27,8 +28,8 @@ Navigation:topic
 | **r.VisualizeOccludedPrimitives** | 가려진(occluded) 프리미티브의 바운딩 박스를 표시합니다. |
 | **StartFPSChart** **StopFPSChart** | 아래 참고. |
 | **r.SeparateTranslucency** | 이 기능은 반투명을 뎁스 오브 필드로 고정시키며, 필요치 않은 경우 끌 수 있지만, 다른 영향이 있습니다 (SceneColor 읽기). |
-| **r.TonemapperQuality** | 노이즈를 끄기 위해 톤매퍼를 추가하여 8 비트 양자화로 인한 색 띠 현상을 피합니다. 퀄리티가 약간 향상되지만, 10:10:10 으로 출력할 때는 필요치 않습니다.|
-| **r.SceneColorFormat** | 다른 씬컬러 포맷을 사용할 수 있습니다 (기본값은 최고 퀄리티와 스크린스페이스 서브서피스 스캐터링 지원을 위한 64 비트 입니다). |
+| **r.Tonemapper.GrainQuantization** | 노이즈를 끄기 위해 톤매퍼를 추가하여 8 비트 양자화로 인한 색 띠 현상을 피합니다. 퀄리티가 약간 향상되지만, 10:10:10 으로 출력할 때는 필요치 않습니다.|
+| **r.SceneColorFormat** | 다른 씬 컬러 포맷을 사용할 수 있습니다 (기본값은 최고 퀄리티와 스크린스페이스 서브서피스 스캐터링 지원을 위한 64 비트 입니다). |
 | **FX.AllowGPUSorting** | 파티클 소팅을 끕니다 (파티클이 많을 때 효과가 있습니다). |
 | **FX.FreezeParticleSimulation** | 파티클 업데이트를 끕니다. |
 | **r.SSR.MaxRoughness** | 스크린 스페이스 리플렉션의 최대 러프니스를 조절하여, 포스트 프로세스 세팅을 덮어씁니다. **VisualizeSSR** 표시 플래그 참고.|

@@ -1,10 +1,12 @@
-﻿INTSourceChangelist:2605745
+﻿INTSourceChangelist:2701352
 Availability: Public
 Title:블루프린트에서 변수 리플리케이트
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\Networking\ReplicateVariable
 Description:블루프린트에서 Replicated 및 RepNotify 변수 사용법 안내입니다.
 Related: Engine/Blueprints
 Related: Resources/ContentExamples/Networking
+Version: 4.9
+SkillLevel: Advanced
 
 
 [TOC (start:2 end:2)]
@@ -145,7 +147,7 @@ Related: Resources/ContentExamples/Networking
 
 	![](HT_17.png)
 
-1.	변수를 **RepNotify** 로 설정하고나면 새로운 함수가 자동으로 생성된 것을 볼 수 있습니다.
+1.	변수를 **RepNotify** 로 설정하고 나면 새로운 함수가 자동으로 생성된 것을 볼 수 있습니다.
 
 	![](HT_18.png)
 

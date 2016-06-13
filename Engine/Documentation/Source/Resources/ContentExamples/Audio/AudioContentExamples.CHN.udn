@@ -1,4 +1,5 @@
-﻿Availability: Public
+﻿INTSourceChangelist:2712654
+Availability: Public
 Title:音频内容示例
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
 Description:在音频内容示例中提供的实例概述。
@@ -42,7 +43,10 @@ Related: Engine/Audio/DistanceModelAttenuation
 	[/PARAM]
 [/OBJECT]
 [/VAR]
+
+<!---
 [TOC(start:2 end:2)]
+--->
 
 
 ## 概述

@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2432254
+﻿INTSourceChangelist:2693470
 Availability: Public
 Title:3 방향 블렌드 머티리얼
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor, Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor/MaterialSetup
 Description:3 방향, RGB 텍스처 블렌딩용 머티리얼 셋업 안내입니다.
-
+Version: 4.9
+SkillLevel: Intermediate
 
 
  메시 페인트 툴에서는 3 개의 텍스처 블렌딩을 아주 쉽게 처리할 수 있는데, 머티리얼 셋업을 조금 해 줘야 합니다. 고려할 부분은 다음과 같습니다:

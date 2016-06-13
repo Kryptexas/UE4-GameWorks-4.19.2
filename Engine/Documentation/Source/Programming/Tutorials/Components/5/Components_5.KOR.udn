@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2620109
+﻿INTSourceChangelist:2727346
 Availability: Public
 Title:5. 에디터에서 플레이하기
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
@@ -25,17 +25,17 @@ version:4.9
 
 1. **언리얼 에디터** 에서 **컴파일** 버튼을 누르고 코드 변경사항을 로드합니다.
 
-	[![](CompileFromEditor.png)](CompileFromEditor.png)
+	![](CompileFromEditor.png)
 
 1. **CollidingPawn** 인스턴스를 월드에 놓습니다. **콘텐츠 브라우저** 의 "C++ Classes/HowTo_Components/CollidingPawn" 아래에서 클래스를 찾을 수 있습니다.
 
-	[![](ClassInContentBrowser.png)](ClassInContentBrowser.png)
+	![](ClassInContentBrowser.png)
 
-	[![](LevelEditorBeforePlay.png)](LevelEditorBeforePlay.png)
+	![](LevelEditorBeforePlay.png)
 
 1. **플레이** 를 누르면 구체를 WASD 로 이동, 마우스로 회전시킬 수 있고, 탁자나 의자 또는 기타 월드에 배치한 피직스 오브젝트 등 월드의 오브젝트와 충돌하며 미끄러져 다닙니다. 스페이스바로 불을 붙이(거나 끄)거나 할 수도 있습니다.
 
-	[![](CollidingAndOnFire.png)](CollidingAndOnFire.png)
+	![](CollidingAndOnFire.png)
 
 ----
 

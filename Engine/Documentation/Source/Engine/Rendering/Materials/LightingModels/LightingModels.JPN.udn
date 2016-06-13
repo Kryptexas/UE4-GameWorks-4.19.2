@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2327730
+﻿INTSourceChangelist:2691803
 Availability:Public
-Title:マテリアル シェーディングモデル
+Title:マテリアル シェーディング モデル
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:サーフェスがライトとどのように相互作用するかを判断するためにマテリアルが使用する計算モデル
+Version:4.9
 
 
 [OBJECT:TopicButtonList]

@@ -1,8 +1,11 @@
-﻿INTSourceChangelist:2602708
+﻿INTSourceChangelist:2740161
 Title:ゲームプレイ ガイド
 Crumbs:%ROOT%
 Description:プログラマおよびビジュアル スクリプタ向けのゲームプレイ機能の概要とサンプル
 Availability:Public
+version:4.9
+parent:%ROOT%
+order:6
 
 [VAR:Params]
 [PARAM:image]
@@ -52,7 +55,7 @@ Availability:Public
 	[/PARAM]
 	[PARAM:description]
 		このページでは、主要なアンリアル用語を紹介します。ゲームプレイ オブジェクトに新規タイプを追加するためには、通常新規クラスを作成します。 
-		クラスは、新規オブジェクト用のテンプレートあるいはルールのコレクションなので、プロパティとビヘイビアがテンプレートに設定して、 
+		クラスは、新規オブジェクト用のテンプレートあるいはルールのコレクションであるため、プロパティとビヘイビアをテンプレートに設定して、 
 		好きな数だけ複製を作成することができます。
 	[/PARAM]
 	[PARAM:links]
@@ -61,7 +64,7 @@ Availability:Public
 	[/PARAM]
 [/OBJECT]
 
-[OBJECT:TopicButtonList]
+[OBJECT:TopicList]
 	[PARAM:icon]
 		![](%ROOT%/gameplay_icon.png)(convert:false)
 	[/PARAM]
@@ -69,17 +72,12 @@ Availability:Public
 		フレームワーク
 	[/PARAM]
 	[PARAM:description]
-		アンリアル エンジン 4 には、ビヘイビアがプリセットされたクラスが豊富なので、ゲームを簡単に始めることができます。これらのビルディング ブロックや機能の関連性については、 
+		UE4 には、ビヘイビアがプリセットされたクラスが豊富なので、ゲームを簡単に始めることができます。これらのビルディング ブロックや機能の関連性については、 
 		フレームワークの概要やクイック リファレンス、あるいは 
 		特定のクラスの詳細ページに直接アクセスして参照することができます。
 	[/PARAM]
 	[PARAM:links]
-		* [フレームワークの概要](Gameplay/Framework "%Gameplay/Framework:description%")
-		* [クリック リファレンス](Gameplay/Framework/QuickReference "%Gameplay/Framework/QuickReference:description%")
-		* [](Gameplay/Framework/Pawn "%Gameplay/Framework/Pawn:description%")
-		* [](Gameplay/Framework/Controller "%Gameplay/Framework/Controller:description%")
-		* [](Gameplay/Framework/GameMode "%Gameplay/Framework/GameMode:description%")
-		* [](Gameplay/Framework/Camera "%Gameplay/Framework/Camera:description%")
+	[DIR(output:"listbutton" type:"reference" tags:"Gameplay Framework" parent:"Gameplay" org:"hierarchy")]
 	[/PARAM]
 [/OBJECT]
 
@@ -88,7 +86,7 @@ Availability:Public
 		![](%ROOT%/gameplay_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		ゲームプレイ エレメント
+		ゲームプレイ要素
 	[/PARAM]
 	[PARAM:description]
 		キャラクター、ルール、ビジュアル スタイルはゲームによって異なりますが、中核となるエレメントはゲーム共通です。 
@@ -121,7 +119,7 @@ Availability:Public
 	[/PARAM]
 [/OBJECT]
 
-[OBJECT:TopicButtonList]
+[OBJECT:TopicList]
 	[PARAM:icon]
 		![](%ROOT%/gameplay_icon.png)(convert:false)
 	[/PARAM]
@@ -130,28 +128,10 @@ Availability:Public
 	[/PARAM]
 	[PARAM:description]
 		このページは、最も一般的なゲームプレイ シナリオの生成方法について、ステップごとに説明します。 
-		ゲームの中で敵やピックアップをスポーンする方法、カメラ角度を変更する方法、プレイヤー入力の設定方法は、ブループリントと C++ 向けの設定例を紹介しています。
+		ゲームの中で敵やピックアップをスポーンする方法、カメラ角度を変更する方法、プレイヤー入力の設定方法は、ブループリントと C++ 向けの両方の設定例を紹介しています。
 	[/PARAM]
 	[PARAM:links]
-		* [アクタをスポーン/破壊する](Gameplay\HowTo\SpawnAndDestroyActors)
-		* [Respawning (OnDestroyed)](Gameplay\HowTo\RespawnPlayer)
-		* [ポーンを所有する](Gameplay\HowTo\PossessPawns)
-		* [レイキャストを使用する (トレーシング)](Gameplay\HowTo\UseRaycasts)
-		* [アセットを参照する](Gameplay\HowTo\ReferenceAssets)
-		* [タイマーを使用する](Gameplay\HowTo\UseTimers)
-		* [ゲームモードを設定する](Gameplay\HowTo\SettingUpAGameMode)
-		* [入力を設定する](Gameplay\HowTo\SetUpInput)
-		* [アクタに入力を設定する](Gameplay\HowTo\ActorInput)
-		* [キャラクター移動の設定](Gameplay\HowTo\CharacterMovement)
-		* [シーンでアクタを見つける](Gameplay\HowTo\FindingActors)
-		* [カメラを使用する](Gameplay\HowTo\UsingCameras)
-		* [コンポーネントを追加する](Gameplay\HowTo\AddingComponents)
-		* [OnHit イベントを使用する](Gameplay\HowTo\UseOnHit)
-			* **ネットワーキング**
-			* [アクタをレプリケートする](Gameplay\HowTo\Networking\ReplicateActor)
-			* [関数をレプリケートする](Gameplay\HowTo\Networking\ReplicateFunction)
-			* [変数をレプリケートする](Gameplay\HowTo\Networking\ReplicateVariable)
-			* [マルチプレイヤーをテストする](Gameplay\HowTo\Networking\TestMultiplayer)
+	[DIR(end:"3" type:"how-to" output:"listbutton" parent:"Gameplay" org:"hierarchy")]
 	[/PARAM]
 [/OBJECT]
 

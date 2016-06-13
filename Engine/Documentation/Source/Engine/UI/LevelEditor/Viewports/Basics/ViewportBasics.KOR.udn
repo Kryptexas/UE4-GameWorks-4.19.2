@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2645242
+﻿INTSourceChangelist:2695245
 Availability:Public
 Title:뷰포트 기본
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
 Description:언리얼 에디터의 뷰포트에 대한 기본 개념 및 기능에 대한 글입니다.
+Version: 4.9
+SkillLevel: Beginner
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]
@@ -65,8 +67,6 @@ Description:언리얼 에디터의 뷰포트에 대한 기본 개념 및 기능�
 [/VAR]
 
 [TOC(start:2 end:3)]
-
-## 개요
 
 [INCLUDE:Engine/UI/LevelEditor/Viewports#intro]
 

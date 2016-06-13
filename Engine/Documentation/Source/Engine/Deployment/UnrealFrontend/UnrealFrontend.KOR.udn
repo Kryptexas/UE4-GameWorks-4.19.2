@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2602746
+﻿INTSourceChangelist:2955961
 Availability:Public
 Title:언리얼 프론트엔드
 Crumbs:%ROOT%, Engine, Engine/Deployment
@@ -57,7 +57,7 @@ UFE 는 다음과 같은 특징이 있습니다:
 [/EXCERPT:Profiling]
 
 [EXCERPT:DeviceManagement]
-개발킷, 모바일 디바이스, 기타 테스트 컴퓨터를 관리합니다. 단순한 디바이스 발견 기능은 이미 기존 버전의 
+개발 키트, 모바일 디바이스, 기타 테스트 컴퓨터를 관리합니다. 단순한 디바이스 발견 기능은 이미 기존 버전의 
 UFE 에서도 가능했으나, UE4 에서는 훨씬 강력해 집니다. 타겟 디바이스가 로컬 PC 에 물리적으로든 
 디바이스의 SDK 를 통해서든 연결되어 있어야 했던 제약을 없애고 있습니다.
 로컬 및 네트워크 연결된 디바이스를 감지하여 다른 이와 공유할 수 있게 될 것입니다. 윈도우와 맥 컴퓨터 
@@ -74,9 +74,13 @@ QA 종사자나 프로그래머 분들은 가벼운 독립형 어플리케이션
 
 ![](workspace_menu.png)
 
-독립형 어플리케이션은 /Engine/Binaries/Win64 디렉토리에 있습니다:
+독립형 어플리케이션은 /Engine/Binaries/Win64 와 /Engine/Binaries/Mac 디렉토리에 있습니다:
 
 ![](explorer.png)
+
+[REGION:note]
+참고로 엔진 소스 빌드를 사용중인 경우, Visual Studio 나 XCode 에서 먼저 언리얼 프론트엔드를 빌드해야 할 것입니다.
+[/REGION]
 
 ## 인터페이스
 

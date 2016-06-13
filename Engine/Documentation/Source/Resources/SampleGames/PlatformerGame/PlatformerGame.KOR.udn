@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2613895
+﻿INTSourceChangelist:2723382
 Availability: Public
 Title:플랫포머 게임 샘플
 Crumbs:%ROOT%, Resources
 Description:UE4 로 횡스크롤 플랫포머 게임을 제작해 보는 예제입니다.
+Version: 4.9
 
 
 [VAR:Topic]
@@ -139,7 +140,7 @@ _슬라이딩_ 특수 이동은 보통의 웅크리기와 비슷한 식으로 �
 
 ## 메뉴 시스템
 
-메뉴 시스템 생성에는 [슬레이트 UI 프레임웍](Programming/Slate) 이 사용됩니다. **메뉴**, **메뉴 위젯**, **메뉴 아이템** 으로 구성됩니다.
+메뉴 시스템 생성에는 [슬레이트 UI 프레임워크](Programming/Slate) 가 사용됩니다. **메뉴**, **메뉴 위젯**, **메뉴 아이템** 으로 구성됩니다.
 각 메뉴에는 모든 메뉴 아이템에 대한 애니메이션, 내부 이벤트 처리, 레이아웃을 담당하는 메뉴 위젯 (`SPlatformerMenuWidget`) 이 하나 있습니다. 
 메뉴 아이템 (`SPlatformerMenuItem`) 은 여러 동작을 수행하며 다른 메뉴 아이템을 몇이든 담을 수 있는 복합 오브젝트입니다.
 라벨이나 버튼 달랑 하나일 수도, 다른 메뉴 아이템들로 구성된 복잡한 서브메뉴가 들어있는 "탭" 일 수도 있습니다.

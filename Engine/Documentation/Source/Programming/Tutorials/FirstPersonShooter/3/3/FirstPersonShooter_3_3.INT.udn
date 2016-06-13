@@ -1,9 +1,9 @@
 Availability: Docs
 Title: 3.3 - Setting up Projectile Collision and Lifetime
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/3
-Description: Learn how to set-up collision and lifetime for your First Person Shooter projectiles.
+Description: Learn how to set up collision and lifetime for your First Person Shooter projectiles.
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,25 +23,25 @@ Version: 4.9
 
 %Steps%
 
-Currently, your projectiles:
+Currently, our projectiles:
 
-*	Live forever (evidenced by the fact that they never disappear in the Scene Outliner)
+*	Live forever (they never disappear from the Scene Outliner)
 *	Don't collide with other objects in the world
 
-During this step, we're going to set-up projectile collision and lifetime.
+During this step, we're going to set up projectile collision and lifetime.
 
 ## Limiting the Projectile's Life Span
 
-1.	Locate the `FPSProjectile` class implementation file in the **Solution Explorer** and open `FPSProjectile.cpp`.
+1.	Locate the `FPSProjectile` class CPP file in the **Solution Explorer** and open `FPSProjectile.cpp`.
 
 1.	Add the following code to the `FPSProjectile` constructor to set the projectile's lifespan:
 
-		// Die after 3 seconds (by default)
-		InitialLifeSpan = 3.f;
+		// die after 3 seconds
+		InitialLifeSpan = 3.0f;
 
 ## Editing the Projectile's Collision Settings
 
-UE4 comes with several useful collision chanels; however, the engine also provides several customizable channels that game projects can use.
+Unreal Engine comes packaged with several preset collision chanels; however, the engine also provides customizable channels that game projects can use.
 
 1. Open **Project Settings** and select **Collision** to customize a collision channel.
 
@@ -49,21 +49,22 @@ UE4 comes with several useful collision chanels; however, the engine also provid
 
 1.	Select **New Object Channel...** to create a new collision channel. Name your new collision channel "Projectile" and make sure that the **Default Response** is set to **Block** before clicking **Accept**.
 
+	![](NewChannel.png)
+
 1.	Select **New...** under **Preset** and name your new profile "Projectile" as well. Refer to the following image to set your collision presets.
 
 	![](NewProfile.png)
 
-	[REGION:note]
-	The profile shown above specifies that the projectile will be blocked by `Static Actors`, `Pawns`, `Dynamic Actors`, `Actors` simulating `Physics`, `Vehicles`, and `Destructible Actors`.
-	[/REGION]
+	This collision profile specifies that the projectile will be blocked by `Static Actors`, `Dynamic Actors`, `Actors` simulating `Physics`, `Vehicles`, and `Destructible Actors`. Also, 
+	this collision profile specifies that the projectile overlaps `Pawns`.
 
 ## Using the New Collision Channel's Settings
 
-1.	Locate the `FPSProjectile` class implementation file in the **Solution Explorer** and open `FPSProjectile.cpp`.
+1.	Locate the `FPSProjectile` class CPP file in the **Solution Explorer** and open `FPSProjectile.cpp`.
 
-1.	In the `FPSProjectile` constructor, add the following line after the creation of `CollisionComp`:
+1.	In the `FPSProjectile` constructor, add the following line after the creation of `CollisionComponent`:
 
-		CollisionComp->BodyInstance.SetCollisionProfileName("Projectile");
+		CollisionComponent->BodyInstance.SetCollisionProfileName(TEXT("Projectile"));
 
 1.	`FPSProjectile.cpp` should now look like the following:
 
@@ -77,36 +78,27 @@ UE4 comes with several useful collision chanels; however, the engine also provid
 		{
 		 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 			PrimaryActorTick.bCanEverTick = true;
-			
-			// Die after 3 seconds (by default)
-			InitialLifeSpan = 3.f;
-		}
 		
-		// Constructor
-		AFPSProjectile::AFPSProjectile(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
-		{
-			// Use a sphere as a simple collision representation
-			CollisionComp = ObjectInitializer.CreateDefaultSubobject<USphereComponent>(this, TEXT("SphereComp"));
+			// use a sphere as a simple collision representation
+			CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
+			CollisionComponent->BodyInstance.SetCollisionProfileName(TEXT("Projectile"));
 		
-			if (CollisionComp != NULL)
-			{
-				CollisionComp->BodyInstance.SetCollisionProfileName("Projectile");
-				CollisionComp->InitSphereRadius(15.f);
-				RootComponent = CollisionComp;
+			// set the sphere's collision radius
+			CollisionComponent->InitSphereRadius(15.0f);
+			// set the root component to be the collision component
+			RootComponent = CollisionComponent;
 		
-				// Use a ProjectileMovementComponent to govern this projectile's movement
-				ProjectileMovement = ObjectInitializer.CreateDefaultSubobject<UProjectileMovementComponent>(this, TEXT("ProjectileComp"));
+			// use this component to drive this projectile's movement
+			ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
+			ProjectileMovementComponent->SetUpdatedComponent(CollisionComponent);
+			ProjectileMovementComponent->InitialSpeed = 3000.0f;
+			ProjectileMovementComponent->MaxSpeed = 3000.0f;
+			ProjectileMovementComponent->bRotationFollowsVelocity = true;
+			ProjectileMovementComponent->bShouldBounce = true;
+			ProjectileMovementComponent->Bounciness = 0.3f;
 		
-				if (ProjectileMovement != NULL)
-				{
-					ProjectileMovement->UpdatedComponent = CollisionComp;
-					ProjectileMovement->InitialSpeed = 3000.f;
-					ProjectileMovement->MaxSpeed = 3000.f;
-					ProjectileMovement->bRotationFollowsVelocity = true;
-					ProjectileMovement->bShouldBounce = true;
-					ProjectileMovement->Bounciness = 0.3f;
-				}
-			}
+			// die after 3 seconds
+			InitialLifeSpan = 3.0f;
 		}
 		
 		// Called when the game starts or when spawned
@@ -123,21 +115,17 @@ UE4 comes with several useful collision chanels; however, the engine also provid
 		
 		}
 		
-		// Initiallizes velocity of the projectile in the shoot direction
+		// Function that initializes the projectile's velocity in the shoot direction
 		void AFPSProjectile::InitVelocity(const FVector& ShootDirection)
 		{
-			if (ProjectileMovement != NULL)
-			{
-				// set the projectile's velocity to the desired direction
-				ProjectileMovement->Velocity = ShootDirection * ProjectileMovement->InitialSpeed;
-			}
+			ProjectileMovementComponent->Velocity = ShootDirection * ProjectileMovementComponent->InitialSpeed;
 		}
 
 1.	Save `FPSProjectile.cpp` in Visual Studio.
 
 1.	Locate **FPSProject** in the **Solution Explorer**.
 
-1.	**Right-click** on **FPSProject** and select **Build** to compile your project.
+1.	Right-click on **FPSProject** and select **Build** to compile your project.
 
 	![](BuildFPSProject.png)
 

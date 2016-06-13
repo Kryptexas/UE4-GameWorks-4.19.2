@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2284738
+﻿INTSourceChangelist:2687868
 Availability:NoPublish
 Title:UAnimMontage
 Crumbs:
@@ -6,9 +6,19 @@ Description:AnimMontage クラスの概要
 
 [EXCERPT:UAnimMontage]
 
-AnimMontages (または省略して単にモンタージュ) は、幅広い種類のアニメーション エフェクトを有効にする多目的ツールです。主にコードやブループリント内部のアニメーション制御の公開に関わっています。インテリジェントなアニメーションのループ、ロジックベースのアニメーションの切り替え、ルートモーション処理などを含めて、多岐に渡るアニメーション エフェクトも作成します。 
+AnimMontage (または省略して単にモンタージュ) は、幅広い種類のアニメーション エフェクトを有効にする多目的ツールです。主にコードやブループリント内部のアニメーション制御の公開に関わっています。インテリジェントなアニメーションのループ、ロジックベースのアニメーションの切り替え、ルートモーション処理などを含めて、多岐に渡るアニメーション エフェクトびの作成にも使用することができます。 
 
 [VAR:ToolTipFullLink]
 Engine/Animation/AnimMontage
 [/VAR]
 [/EXCERPT:UAnimMontage]
+
+[EXCERPT:BlendIn]
+WIP - blending in option. http://easings.net/#
+
+[/EXCERPT:BlendIn]
+
+[EXCERPT:BlendOut]
+WIP - blending out option. http://easings.net/#
+
+[/EXCERPT:BlendOut]

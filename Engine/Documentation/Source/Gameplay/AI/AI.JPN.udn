@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2489503
+﻿INTSourceChangelist:2709798
 Availability:Public
-Title:AI & ビヘイビア ツリー
+Title:AI とビヘイビアツリー
 Crumbs:%ROOT%, Engine, Gameplay
-Description:ビヘイビア ツリーと Navmesh の使用を含む人工知能に関する情報
+Description:ビヘイビア ツリーと Navmesh の使用を含む AI に関する情報
+version:4.9
 
 <!-- Q:\Daniel.Broder\BT Docs -->
 
@@ -36,11 +37,15 @@ Description:ビヘイビア ツリーと Navmesh の使用を含む人工知能�
 	* [](Engine/AI/EnvironmentQuerySystem/UserGuide "%Engine/AI/EnvironmentQuerySystem/UserGuide:description%")
 	* [](Engine/AI/EnvironmentQuerySystem/EQSPawn "%Engine/AI/EnvironmentQuerySystem/EQSPawn:description%")
 	* [](Engine/AI/EnvironmentQuerySystem/NodeReference "%Engine/AI/EnvironmentQuerySystem/NodeReference:description%")
-	* [](Engine/AI/EnvironmentQuerySystem/AskingSmartQuestions "%Engine/AI/EnvironmentQuerySystem/AskingSmartQuestions:description%")
+	<!--* [](Engine/AI/EnvironmentQuerySystem/AskingSmartQuestions "%Engine/AI/EnvironmentQuerySystem/AskingSmartQuestions:description%")-->
 	[/PARAM]
 [/OBJECT]
 
 <!---
 * [](Engine/AI/EnvironmentQuerySystem/QuickStart "%Engine/AI/EnvironmentQuerySystem/QuickStart:description%")
 --->
+
+
+
+
 

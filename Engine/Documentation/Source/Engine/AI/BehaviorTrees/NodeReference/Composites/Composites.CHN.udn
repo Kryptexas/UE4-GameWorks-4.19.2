@@ -1,49 +1,49 @@
-﻿INTSourceChangelist:0
-Title: Behavior Tree Node Reference: Composites
+﻿INTSourceChangelist:2652873
+Title:行为树节点参考：Composites
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
-Description:Reference for the Behavior Tree Composite nodes.
+Description:行为树 Composite 节点的参考。
 Availability:Public
 
 [TOC(start:2 end:2)]
 
-**Composite Nodes** define the root of a branch and the base rules for how that branch is executed. They can have [Decorators](Engine/AI/BehaviorTrees/NodeReference/Decorators) applied to them to modify entry into their branch or even cancel out mid execution. Also, they can have [Services](Engine/AI/BehaviorTrees/NodeReference/Services) attached to them that will only be active if the children of the Composite are being executed.
+**Composite 节点** 定义一个分支的根以及该分支如何被执行的基本规则。可在其上应用 [Decorators](Engine/AI/BehaviorTrees/NodeReference/Decorators) 节点，以便修改分支的条目，甚至可在执行过程中取消。此外还可使 [Services](Engine/AI/BehaviorTrees/NodeReference/Services) 节点附着在它们上，Composite 节点的子项被执行时才会将其启用。
 
 ## Selector
 
 ![](Selector.png)
 
-**Selector** Nodes execute their children from left to right, and will stop executing its children when one of their children **Succeeds**. If a Selector's child succeeds, the Selector succeeds. If all the Selector's children fail, the Selector fails.
+**Selector** 节点从左至右执行其子项，其中一个子项达成后将停止执行其子项。如 Selector 的子项达成，则 Selector 也达成。如 Selector 的所有子项未达成，则 Selector 未达成。
 
-| Property | Description |
+| 属性 | 描述 |
 | -------- | ----------- |
-| **Node Name** | The name the node should display in the Behavior Tree graph. |
+| **Node Name** | 行为树图表中显示的节点名称。|
 	
 ## Sequence
 
 ![](Sequence.png)
 
-**Sequence** Nodes execute their children from left to right, and will stop executing its children when one of their children **Fails**. If a child fails, then the Sequence fails. If all the Sequence's children succeed, then the Sequence succeeds.
+**Sequence** 节点从左至右执行其子项，如其中一个子项未达成，将停止执行执行其子项。如子项未达成，则 Sequence 也未达成。如 Sequence 的所有子项均达成，则 Sequence 也达成。
 
-| Property | Description |
+| 属性 | 描述 |
 | -------- | ----------- |
-| **Node Name** | The name the node should display in the Behavior Tree graph. |
+| **Node Name** | 行为树图表中显示的节点名称。|
 
 ## Simple Parallel
 
 ![](SimpleParallel.png)
 
-The Simple Parallel node allows a single main task node to be executed along side of a full tree. When the main task finishes, the setting in **Finish Mode** dictates if the node should finish **Immediately**, aborting the secondary tree, or if it should **Delay** for the secondary tree to finish.
+Simple Parallel 节点可使单个主任务节点在整颗行为树旁执行。主任务完成后，**Finish Mode** 中的设置将确定节点是否立即完成、是否终止次要树，或是否延迟次要树的完成。
 
-| Property | Description |
+| 属性 | 描述 |
 | -------- | ----------- |
 | **Finish Mode** | [INCLUDE:#subprop1] |
-| **Node Name** | The name the node should display in the Behavior Tree graph. |
+| **Node Name** | 行为树图表中显示的节点名称。|
 
 <!--
 [EXCERPT:subprop1]
 | --- | --- |
-| **Immediate** | Once the main task finishes, the background tree will be aborted.  |
-| **Delayed** | The background tree will be permitted to finish once the main task has finished. |
+| **Immediate** | 主任务完成后，背景树的执行将中止。|
+| **Delayed** | 主任务完成后，背景树的执行可持续至完成。|
 [/EXCERPT:subprop1]
 -->
 

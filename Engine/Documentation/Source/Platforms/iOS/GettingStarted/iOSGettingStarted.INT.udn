@@ -5,6 +5,9 @@ Description:Setting up for development for the iOS platform.
 prereq:Platforms/iOS/QuickStart
 Version: 4.9
 SkillLevel: Intermediate
+parent:Platforms/iOS
+order:0
+type:overview
 
 [TOC(start:2 end:2)]
 

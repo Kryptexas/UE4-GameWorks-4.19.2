@@ -26,6 +26,11 @@ This PDF will cover introductory information on the following topics, to help yo
 
 [INCLUDE:GettingStarted/DownloadingUnrealEngine#Main(offset:1)]
 
+## Building Unreal Engine from Source
+
+[INCLUDE:Programming/Development/BuildingUnrealEngine#windowscompile]
+
+For instructions on building the engine and creating executables on platforms other than Windows, please see [](Programming/Development/BuildingUnrealEngine).
 
 ## Launching the Editor
 

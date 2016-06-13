@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2699294
+﻿INTSourceChangelist:2769883
 Availability:Public
 Title:アニメーション システムの概要
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -35,8 +35,8 @@ MorphTargets を使用したダメージ エフェクトまたは顔の表情の
 	[/PARAM]
 	[PARAM:description]
 	[INCLUDE:Engine/Animation/Persona#Intro]
-		[/PARAM]
 
+		[/PARAM]
 [/OBJECT]
 
 
@@ -50,9 +50,9 @@ MorphTargets を使用したダメージ エフェクトまたは顔の表情の
 	[/PARAM]
 	[PARAM:description]
 		**スケルトン** は、スケルタルメッシュを変形するために使用するボーンの位置と回転の階層です。UE4 では、スケルトンはその独自のアセットにあるスケルタルメッシュから抽出されます。つまり、アニメーションは、スケルタルメッシュではなくスケルトンに適用されます。同じスケルトンを使用することで、複数のスケルタルメッシュがアニメーションを共有できます。
+
+
 		[/PARAM]
-
-
 [/OBJECT]
 
 [OBJECT:IconSection]
@@ -64,20 +64,19 @@ MorphTargets を使用したダメージ エフェクトまたは顔の表情の
 	[/PARAM]
 	[PARAM:description]
 		[INCLUDE:Engine/Animation/Sequences#Intro]
+
+
+
 		**Additive Animation (加算アニメーション)**
 
-
-
 		アニメーションはいつでも絶対的もしくは加算的なものとして使用することができます。システムでは、必要に応じてデータをオフセットに変換する 
-
 		適切な演算を実行します。この機能により、あらかじめ加算的アニメーションであることを指定する必要がないため、 
 		前バージョンのエンジンよりもよりシステムの柔軟性が高まりました。
+
 		**Blending Animations (アニメーションのブレンド)**
 
 		[](Engine/Animation/NodeReference/Blend) および [](Engine/Animation/Blendspaces) を使用してアニメーションをブレンディングすることで一段と複雑な最終ポーズを作成できます。 
-
-		例えば、ランニング用のアニメーションと照準を定めるポーズや表情用のアニメーションとブレンドし、 
-		ソース アニメーションとは別に、走って、照準を定めて、話をしているプレイヤーの 
+		例えば、ランニング用のアニメーションと照準を定めるポーズや表情用のアニメーションとブレンドし、		ソース アニメーションとは別に、走って、照準を定めて、話をしているプレイヤーの 
 		出力アニメーションを作成することができます。これにより、さまざまな状況でひとつのソース アニメーションを 
 		再利用することができます。
 
@@ -135,8 +134,8 @@ MorphTargets を使用したダメージ エフェクトまたは顔の表情の
 	[PARAM:description]
 		[INCLUDE:Engine/Animation/AnimBlueprints#Intro]
 
-		[/PARAM]
 
+		[/PARAM]
 [/OBJECT]
 
 [OBJECT:IconSection]
@@ -199,7 +198,7 @@ MorphTargets を使用したダメージ エフェクトまたは顔の表情の
 ![](CreationDiagram.png)
 [/REGION] 
 
-この図は、アンリアルでアニメートされた典型的なキャラクタに対するデータのフローとオーナーシップを示したものです。
+この図は、アンリアルでアニメートされた典型的なキャラクターに対するデータのフローとオーナーシップを示したものです。
 
 [REGION:raw]
 ![](AnimationDiagram.png)
@@ -220,7 +219,7 @@ MorphTargets を使用したダメージ エフェクトまたは顔の表情の
 
 ### スケルタルメッシュ ボーンのレンダリング
 
-![](ShowDebugBones.png)(h:320)
+![](AnimationShowDebugBones.jpg)(h:320)
 
 スケルタルメッシュのボーンを表示するには、コンソール内で ShowDebug Bones コマンドを入力します。上図のように、ボーンは個別の白い線で表されます。 
 
@@ -236,7 +235,7 @@ MorphTargets を使用したダメージ エフェクトまたは顔の表情の
 
 ###アニメーション デバッグ出力
 
-![](ShowDebugAnimation.png)
+![](AnimationShowDebugToggle.jpg)
 
 **Animation Debug Output (アニメーション デバッグ出力)** 情報は、コンソール内で `ShowDebug Animation` コマンドを使用すれば有効にすることができます。 
 

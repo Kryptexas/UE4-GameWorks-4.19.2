@@ -1,40 +1,44 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2690134
 Availability:Public
-Title:Font Expressions
-Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
-Description:Expressions that sample and output font assets.
+Title:字体表达式
+Crumbs:%ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
+Description:对字体资产进行取样和输出的表达式。
+Version:4.9
+SkillLevel:
 
 [EXCERPT:TOC]
 [TOC(start:2)]
 [/EXCERPT:TOC]
 
 [EXCERPT:FontSample]
-## FontSample
+(#FontSample)
+## FontSample（字体取样）
 
-The FontSample expression allows you to sample the texture pages out of a font resource as regular 2D textures. The alpha channel of the font will contain the font outline value.  Only valid font pages are allowed to be specified.
+**FontSample（字体取样）**表达式允许您以常规 2D 纹理形式，从字体资源中取得纹理页面样本。字体的阿尔法通道将包含字体轮廓值。您只能指定有效的字体页面。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Properties[/REGION] ||
-| **Font**| Holds the default font asset (from the **Content Browser**) to be held within the expression. |
-| **Font Texture Page** | The current font texture page to be used as a part of the texture.
+| [REGION:tablesection]属性[/REGION] ||
+| **字体（Font）**| 包含要在表达式内保留的默认字体资产（来自 **内容浏览器**）。|
+| **字体纹理页面（Font Texture Page）** | 要用作纹理一部分的当前字体纹理页面。
 
 ![FontSampleExample.png](FontSampleExample.png)
 
 [/EXCERPT:FontSample]
 
 [EXCERPT:FontSampleParameter]
-## FontSampleParameter
+(#FontSampleParameter)
+## FontSampleParameter（字体取样参数）
 
-The FontSampleParameter expression provides a way to expose a font-based parameter in a material instance constant, making it easy to use different fonts in different instances. The alpha channel of the font will contain the font outline value.  Only valid font pages are allowed to be specified.
+**FontSampleParameter**（字体取样参数）表达式提供了一种在材质实例常量中公开基于字体的参数的方法，这使您可以在不同实例中轻松使用不同的字体。字体的阿尔法通道将包含字体轮廓值。您只能指定有效的字体页面。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Properties[/REGION] ||
-| **Parameter Name** | [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#ParameterNameDefinition] |
-| **Group**| [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#GroupDefinition] |
-| **Font**| Holds the default font asset (from the **Content Browser**) to be held within the expression. |
-| **Font Texture Page** | The current font texture page to be used as a part of the texture.
+| [REGION:tablesection]属性[/REGION] ||
+| **参数名称（Parameter Name）** | [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#ParameterNameDefinition] |
+| **组（Group）**| [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#GroupDefinition] |
+| **字体（Font）**| 包含要在表达式内保留的默认字体资产（来自 **内容浏览器**）。|
+| **字体纹理页面（Font Texture Page）** | 要用作纹理一部分的当前字体纹理页面。
 
 ![FontSampleParameterExample.png](FontSampleParameterExample.png)
 

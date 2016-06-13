@@ -1,4 +1,4 @@
-Availability:Public
+﻿Availability:Public
 Title: Open World Tools Tips & Tricks
 Crumbs:
 Description: A collection of tips and tricks about how to get the most out of the Open World Tools.
@@ -20,7 +20,7 @@ If you are looking for more basic information on how to use the Open World Tools
 
 ## Grass Tool Foliage Mesh Culling
 [region:warning]
-While you can adjust the culling of the Grass Tool to render Static Meshes extremely far in the distance be careful setting the options to high as you could run the risk of crashing your video card and/ or UE4 editor session.
+While you can adjust the culling of the Grass Tool to render Static Meshes extremely far in the distance be careful setting the options too high as you could run the risk of crashing your video card and/or UE4 editor session.
 [/region]
 
 When using the Grass Tools in your projects you might notice that past a certain distance the Static Meshes that are used stop being displayed. 

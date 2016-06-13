@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2682968
+﻿INTSourceChangelist:2755911
 Availability:Public
 Title:1. 基本設定
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:ステップ 1. 基本設定
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2643533
+﻿INTSourceChangelist:2690284
 Availability: Public
 Title:머티리얼 함수
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:패키지에 저장한 다음 여러 머티리얼에 재사용할 수 있는 머티리얼 그래프 조각입니다.
+Version: 4.9
 
 [REGION:full_feature]
 [/REGION]

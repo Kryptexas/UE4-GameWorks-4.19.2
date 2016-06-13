@@ -1,102 +1,117 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2828862
 Availability:Public
-Title: Menu Anchor
+Title:菜单锚
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide, Engine/UMG/UserGuide/WidgetTypeReference
-Description:Overview of using Menu Anchors for use with Popup Menus.
-Related: Engine/UMG/UserGuide
-Related: Engine/UMG/UserGuide/Styling
-Related: Engine/UMG/UserGuide/Slots
+Description:搭配弹出菜单使用的菜单锚使用概述。
+Related:Engine/UMG/UserGuide
+Related:Engine/UMG/UserGuide/Styling
+Related:Engine/UMG/UserGuide/Slots
+version:4.9
 
 [TOC(start:2 end:2)]
 
-## Widget Description
+## 描述
 
 [EXCERPT:desc]
-The menu anchor allows you to specify a location that a popup menu should be anchored to and should be summoned from.
+此控件用于指定一个位置，弹出菜单将从此处调出并被锚定在此处。
 [/EXCERPT:desc]
 
-## Widget Details
+## 详情
 
-In the **Details** panel for a placed **Menu Anchor**, there are a couple of specific options that can be set that pertain to the Widget: 
+在已放置的 **菜单锚** 的 **细节** 面板中，有一系列与此控件相关并可以进行设置的特定选项： 
 
 ![](DetailsPanel.png)
 
-| Option | Description |
+| 选项 | 描述 |
 | -------- | ----------- |
-| **Menu Class** | The Widget Blueprint (pop-up) to spawn when the menu is called. Creates the widget freshly each time. |
-| **Placement** | Several placement options use to determine the location of the created widget. |
-| **OnGetMenuContent** | Allows for the customization of the pop-up by binding a function or property to the **OnGetMenuContent** Event which is called when the pop-up is summoned (see below). |
+| **菜单类** | 调用菜单时生成的控件蓝图（弹出窗口）。每次都重新创建控件。|
+| **布置** | 几个布置选项，用于确定所创建的控件的位置。|
+| **OnGetMenuContent** | 通过将功能或属性绑定到 **OnGetMenuContent** 事件（调出弹出窗口时会调用该事件），实现对弹出窗口的自定义（请参阅下文）。|
+| **OnMenuOpenChanged** | 通过将功能或属性绑定到 **OnMenuOpenChanged** 事件（菜单的打开状态发生变化时调用该事件），实现对弹出窗口的自定义。|
 
-For the **OnGetMenuContent** Event, you can create and bind a function directly from the **Details** panel which will be called whenever the Menu Anchor is called. This allows you to provide extra functionality to the creation of your pop-up menu. For example, below we've run a check to determine if the player is _In Battle_ and if not, we allow them to access the pop-up menu. If they are we do not allow them to access the pop-up menu. 
+对于 **OnGetMenuContent** 事件，您可以直接从 **详情** 面板创建并绑定功能，只要调用菜单锚，就会调用该面板。这用于为弹出菜单的创建过程提供额外的功能。例如，下图我们运行了一项检查来确定玩家是否“正在战斗”，如果没有，则允许他们访问弹出菜单。如果正在战斗，则不允许他们访问弹出菜单。 
 
 ![](ExampleGetMenu.png)(w:840)
 
-### Menu Anchor Blueprint Functions
+### 蓝图功能
 
-The **Menu Anchor** widget has some widget specific functions that can be called through script which are described below. 
+菜单锚控件拥有一些控件特有的功能，这些功能可以通过脚本进行调用，下文进行介绍。 
 
 ![](MenuAnchorNodes.png)
 
-| Option | Description |
+| 选项 | 描述 |
 | -------- | ----------- |
-| **Close** | Closes the menu if it is currently open. |
-| **Is Open** | Checks to see if the Target Menu Anchor is currently open and returns a Boolean. |
-| **Open** | Opens the menu if it is currently closed. |
-| **Toggle Open** | This toggles the open state for the menu and can be used instead of opening/closing. |
+| **关闭** | 如果菜单当前已打开，则关闭菜单。|
+| **获取菜单位置** | 返回菜单在世界空间中的位置。|
+| **有打开的子菜单** | 返回菜单是否有打开的子菜单。|
+| **是否打开** | 检查目标菜单锚当前是否已打开，并返回布尔值。|
+| **打开** | 如果菜单当前已关闭，则打开菜单。|
+| **应在点击时打开** | 返回菜单是否可通过点击打开。|
+| **切换打开** | 此功能可切换菜单的打开状态，并可以用于代替打开/关闭。|
 
-## Usage Example
+## 使用示例
 
-Say you wanted to create an Inventory Menu and have a pop-up appear when the player clicks on a item, as seen in the example below. 
+若您想要创建库存菜单并在玩家点击物品时显示弹出菜单，请参阅以下示例。 
 
-![](PopUpGIF.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+t0yMkviWKUk
+[/PARAMLITERAL]
+[/OBJECT]
 
-The first thing you would want to do is create what your pop-up menu looks like. 
+首先您要创建弹出菜单的外观。 
 
 ![](PopUpDesigner.png)(w:720)
 
-Above we created a simple **Widget Blueprint** called **MenuPopUp** that is comprised of three Buttons inside a Vertical Box. 
+上图我们创建了一个简单的 **控件蓝图**，名为 **MenuPopUp**，它由垂直框以及其中的三个按钮组成。 
 
-Next you would need to create another Widget Blueprint for your Inventory Menu, which we called **HUD** below. 
+接下来，需要为库存菜单创建另一个控件蓝图，下文我们将其称为 **HUD**。 
 
 ![](MakeInventoryMenu.png)(w:720)
 
-After you have created your Inventory Menu, you would also add the **Menu Anchor** Widget (located under **Primitive**). 
+创建了库存菜单后，您还要添加 **菜单锚** 控件（位于 **基元** 下方）。 
 
 ![](AddMenuAnchor.png)
 
-You would then position the **Menu Anchor** where you want it to appear, we positioned and Anchored it to the right/center position. 
+然后，将菜单锚放置在希望其显示的位置，在本例中，我们将其放置并锚定在右边/中间的位置。 
 
 ![](PlacedAnchor.png)
 
-In the **Details** panel for the **Menu Anchor**, you would set the **Menu Class** (or Widget Blueprint to spawn) as well as its placement options.
+在菜单锚的 **详情** 面板中，设置 **菜单类**（或要生成的控件蓝图）及其布置选项。
 
 ![](MenuAnchorDetails.png)
 
-On the Graph tab, you would add **OnClick** Events for each of your Buttons and drag in the **Menu Anchor** widget. 
+在“图表”选项卡上，为每个按钮添加 **OnClick** 事件，并拖动到菜单锚控件中。 
 
-Dragging off the **Menu Anchor**, you can call the **Open** function to open and display your specified Menu Class. 
+拖动菜单锚，可以调用 **打开** 功能来打开并显示特定的菜单类。 
 
 ![](HUD_Graph.png)
 
 [REGION:note]
-The **Focus Menu** option, when selected, adds a outline box around the Menu Anchor and is optional. 
+选中** 焦点菜单** 选项时，会在菜单锚周围添加外框，这是一个可选项。 
 [/REGION]
 
-After you have created the Inventory Menu, you would need to call that menu in-game somehow. 
+创建了库存菜单后，需要通过某种方式在游戏中调用该菜单。 
 
-This could be through the **Level Blueprint** or (in our case) through the Default Pawn Class (which is set to use the **MyCharacter** Blueprint). 
+可以选择通过 **关卡蓝图** 或（在我们的示例中）通过默认 Pawn 类（将其设为使用 **MyCharacter** 蓝图）调用。 
 
 ![](DisplayingInventoryMenu.png)
 
-Above in our **MyCharacter** Blueprint, when the game is started we create the _HUD_ Widget and store it as a variable called **HUDWidget** so we can access it later. We then set **I** to toggle between **Add to Viewport** and **Remove from Parent** to Display or Remove the Inventory Menu. We also set **Show Mouse Cursor** to enabled or disabled based on whether or not the Inventory Menu is open or not. 
+在上述 **MyCharacter** 蓝图中，当游戏开始时，我们创建 HUD 控件并将其保存为名为 **HUDWidget** 的变量，这样，我们就可以在以后访问该控件。然后，将 **I** 设置为在 **Add to Viewport** 和 **Remove from Parent** 之间切换，从而显示或隐去库存菜单。我们还将 **Show Mouse Cursor** 设为根据是否打开了库存菜单来启用或禁用。 
 
-And finally inside the **MenuPopUp** Blueprint (your pop-up menu), adding some script to **Close** the Menu Anchor when the player presses a Button in the pop-up menu. Below when the pop-up is constructed, we get a reference to the **MyCharacter** Blueprint by **Casting** to it then promoting it to a variable called **MyCharacterReference**. With this reference we can then access the _HUD_
+最后，在 **MenuPopUp** 蓝图（您的弹出菜单）中，添加一些脚本，以便在玩家按下弹出菜单中的某个按钮时 **关闭** 菜单锚。下图中，当构建了弹出菜单后，我们 **投射** 它，然后将其提升为名为 **MyCharacterReference** 的变量，如此我们就得到了 **MyCharacter** 蓝图的引用。通过该引用就可以访问 HUD
 
 ![](PopUpMenuNetwork.png)(w:820)
 
-You would probably want to add some functionality for each of the buttons for your pop-up (instead of printing to the screen) that when pressed, does something. For example, perhaps the first button "uses" the item from the Inventory, while the second "drops" the item and the third "cancels" and returns the player to the Inventory Menu. 
+您可能想要为弹出菜单中的每个按钮添加一些功能，在按下按钮时，会调用这些功能（而不是输出到屏幕上）。例如，按下第一个按钮“使用”库存中的物品，按下第二个按钮“丢弃”物品，按下第三个按钮“取消”操作并让玩家返回到库存菜单。 
 
-This is just one example, you could also change what causes the **Menu Anchor** to open. Instead of a button press, perhaps using the **IsHovered** function to determine if an object is being hovered over then opening the Menu Anchor and pop-up window to display a tool-tip or some other form of notification. In either case, this should get you started with using the **Menu Anchor** to display/remove pop-up widgets through script. 
+这只是一个示例，您也可以更改菜单锚开启的条件。除了按下按钮，也可以使用 **IsHovered** 功能来确定光标是否悬停在某个对象上，然后打开菜单锚和弹出窗口，以便显示工具提示或其他形式的通知。无论是哪种情况，您都可以开始通过脚本来实现使用菜单锚显示/隐去弹出控件。 
 
 
 

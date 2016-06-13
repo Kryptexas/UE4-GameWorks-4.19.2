@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2746166
 Availability:Public
 Title:Paper 2D
 Crumbs: %ROOT%, Engine
 Description:Paper 2D は 2D および 2D/3D のハイブリッドなゲームをアンリアル エンジン 4 で作成するためのスプライト ベースのシステムです。
+Version:4.9
 
 [REGION:banner]
 ![](paper2d_banner.png)

@@ -63,7 +63,7 @@ Template:ReleaseNotes.html
 	* FBX 에서 애셋을 임포트할 때 이제, 애셋 생성 당시에 설정했던 임포트 옵션이 저장되며, 리임포트할 때마다 재사용됩니다.
 	* 이 옵션은 애셋의 프로퍼티 중 "Asset Import Data" 에서 수정할 수 있습니다.
 
-####게임플레이 및 프레임웍
+####게임플레이 및 프레임워크
 * **C++ 클래스 마법사**
 	* 이 기능으로 게임에 새로운 폰, 캐릭터, 플레이어 콘트롤러, 기타 게임 기능을 도입하기 위한 새로운 부모 클래스 추가가 가능합니다.  
 		![](NCW.png)(w:640)
@@ -122,7 +122,7 @@ Template:ReleaseNotes.html
 * 탭을 닫으면, 그 왼편에 있는 탭으로 포커스가 옮겨갑니다.
 
 
-####게임플레이 및 프레임웍
+####게임플레이 및 프레임워크
 * 기존 프로젝트에 소스 코드 파일을 추가시키는 마법사가 추가되었습니다.
 	* File->Add Code to Project... 로 불러올 수 있습니다.
 	* 생성 코드의 저작권 줄을 ini 파일에서 설정할 수 있습니다.
@@ -132,7 +132,7 @@ Template:ReleaseNotes.html
 * 새로운 폰 SpectatorPawn 을 추가했습니다. PlayerController 관람 상태는 SpectatorPawn 을 사용합니다. 
 	* DebugCameraController, LogVisualizer, 한 쌍의 게임 Controller 가 새로운 관람자 모델을 사용하도록 고쳤습니다.
 * 리짓 바디 리플리케이션이 되는 컴포넌트를 추가했습니다: StaticMeshReplicatedComponent, SkeletalMeshReplicatedComponent.
-* 빠른 필터링을 위해 리캐스트 오프-메시 연결에 미리지정된 플래그를 구워넣는 옵션 함수성을 추가했습니다.
+* 빠른 필터링을 위해 리캐스트 오프-메시 연결에 미리 지정된 플래그를 구워넣는 옵션 함수성을 추가했습니다.
 	* RecastNavMesh 를 가지고 길찾기 거리의 폴리곤을 질의할 수 있는 방법을 추가했습니다.
 	* RecastNavMesh 질의 도중 사용할 네임드 필터를 도입시켰습니다.
 * 게임 전용 코드별 옵션을 도입하여 (UNavigationSystem 에서 파생되는) 커스텀 내비게이션 시스템 클래스를 정의할 수 있습니다.
@@ -165,7 +165,7 @@ Template:ReleaseNotes.html
 	* 콜렉션에서 파라미터를 제거하면 다수의 블루프린트와 머티리얼이 한꺼번에 깨질 수 있으니 주의해야 합니다.
 * **라이팅 & 섀도잉:**
 	* 라이트매스 솔버 퀄리티가 개선되었습니다.
-	* 스무딩된 노멀이 트라이앵글 노멀과 그리 잘 일치되지 않는 지오메트리의 라이팅이 매우 얼룩지고 빌드시간도 오래걸리던 것이 해결되었습니다.
+	* 스무딩된 노멀이 트라이앵글 노멀과 그리 잘 일치되지 않는 지오메트리의 라이팅이 매우 얼룩지고 빌드시간도 오래 걸리던 것이 해결되었습니다.
 	* 이레디언스(복사조도) 캐시에 최소 거리 휴리스틱을 사용하도록 전환, 깔끔한 건축 라이팅에 더욱 잘 돌아갑니다. 잘못된 최소 반경으로 부작용이 유발되던 것도 제거했습니다.
 	* 최종 광선 수집에 의해 보이는 직사광은 이제 광자 밀도 추정 방식이 아닌 라이트의 명시적 샘플링을 통해 계산됩니다. 빛샘 현상이 감소되고 그림자가 전환되는 부분 근처의 첫 반사광 정확도가 향상됩니다.
 	* 단일 매핑에 대한 이레디언스 캐시 생성과 보간이 멀티 스레드 처리되어, 스레드만 충분하다면 커다란 매핑 하나로 된 맵의 빌드 시간이 크게 줄어듭니다.
@@ -212,7 +212,7 @@ Template:ReleaseNotes.html
 ####에디터 툴
 * UInterface 가 더욱 탄탄해 져서 블루프린트 구현가능 이벤트는 물론 네이티브 함수도 안전하게 가능합니다.
 	* 그 결과, 순수히 블루프린트로 (즉 블루프린트 프로퍼티의 "Interfaces" 섹션을 통해) 구현된 UInterface 는 이제 BlueprintImplementableEvent 만 가질 수 있습니다.
-	* 블루프린트 접근 가능은 하나 네이티브 클래스에 추가된 UInterface (예를 들면 class UMyClass : public UObject, public IMyInterface) 는 BlueprintImplementable 에빈트와 BlueprintCallable 함수 둘 다 가질 수 있습니다.
+	* 블루프린트 접근 가능은 하나 네이티브 클래스에 추가된 UInterface (예를 들면 class UMyClass : public UObject, public IMyInterface) 는 BlueprintImplementable 이벤트와 BlueprintCallable 함수 둘 다 가질 수 있습니다.
 	* 헤더 생성기가 이러한 범주를 위반하는 인터페이스는 생성할 수 없다고 확인해 줍니다.
 * **랜드스케이프:**
 	* PN-AEN 및 Flat 크랙-프리 테셀레이션을 활성화시켰습니다.
@@ -247,14 +247,14 @@ Template:ReleaseNotes.html
 * **포스트 프로세스 이펙트:**
 	* Atmospheric fog : 포그 레이어가 둘 이상 존재하는 경우를 처리합니다.
 * 남아있는 문제가 있어 여러줄 TextRenderActor 를 revert 시켰습니다. 추후 수정 예정입니다.
-* 모든 프로젝트에 대해 SeparateTransluceny 를 기본으로 활성화시킵니다. 디자이너에게 좀 더 일관되고 폭넓은 제어권을 주며, 약간은 느리나 낮은 정밀도의 씬컬러가 가능하며, 머티리얼 세팅에서 해당 기능을 끄지 않는 이상 반투명은 더이상 뎁스 오브 필드에 영향받지 않습니다.
+* 모든 프로젝트에 대해 SeparateTransluceny 를 기본으로 활성화시킵니다. 디자이너에게 좀 더 일관되고 폭넓은 제어권을 주며, 약간은 느리나 낮은 정밀도의 씬 컬러가 가능하며, 머티리얼 세팅에서 해당 기능을 끄지 않는 이상 반투명은 더이상 뎁스 오브 필드에 영향받지 않습니다.
 * **라이팅 & 섀도잉:**
 	* Lightmass EnvironmentColor 는 이제 상반구에만 적용됩니다.
 
 
 ####플랫폼
 * UnrealBuildTool 은 이제 코드를 컴파일한 맥 컴퓨터의 이름을 IPhonePackager 에 전달, IPP 환경 변수를 설정하거나 IPP 코드를 변경할 필요(도, 그럴 수)도 없습니다.
-* 모바일 provision 파일이 /Library 가 아닌 ~/Library 로 가도록 변경, 맥에서 이상한 환경설정이 필요없어 졌습니다.
+* 모바일 provision 파일이 /Library 가 아닌 ~/Library 로 가도록 변경, 맥에서 이상한 환경설정이 필요 없어 졌습니다.
 
 
 
@@ -306,7 +306,7 @@ Template:ReleaseNotes.html
 	* 배치 모드용 첫 단계 아이콘이 생성되었습니다. 후크 업을 위해서는 추가적인 코드 지원이 필요합니다.
 		* 비파괴성 체크인으로, Changelist 는 PNG 애셋 뿐입니다.
 	* 다음에 대해 16px 짜리 아이콘을 생성했습니다: AtmosphericFog, SphereReflectionCapture, BoxReflectionCapture, DestructibleActor, Note, Pawn, Character, DefaultPawn 액터 클래스.
-		* PNG 애셋 뿐이며, 비파괴성 체크인 입니다 (코드 후크업 필요).
+		* PNG 애셋 뿐이며, 비파괴성 체크인 입니다 (코드 후크 업 필요).
 * 소스 콘트롤이 꺼져 있으면 더이상 콘텐츠 브라우저에 그 상태가 표시되지 않습니다.
 * **월드 브라우저:**
 	* 월드 브라우저에 줌 레벨이 늘어났습니다.
@@ -322,7 +322,7 @@ Template:ReleaseNotes.html
 * uproject 파일에 대해 생성된 솔루션 파일의 이름은 해당 폴더 이름이 아닌 .uproject 파일의 이름을 땁니다.
 
 
-####게임플레이 및 프레임웍
+####게임플레이 및 프레임워크
 * 명령줄에 맵 토큰 없이 generatedistillfilesets 를 실행하면 모든 맵 파일을 사용한다 가정합니다.
 * 사용할 수 있는 컴파일러가 없거나 설치되지 않았으면서 C++ 템플릿을 선택한 경우, 새 프로젝트 대화창에서는 오류가 납니다.
 * PlayerController 에서 인풋 이벤트/축을 바인딩할 수 있습니다.
@@ -340,7 +340,7 @@ Template:ReleaseNotes.html
 * **피직스:**
 	* 솔버 반복처리 횟수를 늘려 피직스 시뮬레이션을 개선시켰습니다.
 	* 리팩터링: bCreatePhysicsState 플래그를 제거했습니다;
-		* 콜리전이 켜져 있을때만 피직스 스테이트를 생성합니다.
+		* 콜리전이 켜져 있을 때만 피직스 스테이트를 생성합니다.
 		* 질의용 콜리전 없이 피직스 스테이트를 생성해야 하는 경우, bAlwaysCreatePhysicsState 를 _True_ 로 설정해 주시기 바랍니다.
 * 캐릭터 이동 개선사항
 	* 표면 슬라이딩을 위한 중복 코드 다수를 리팩터링하여 공통의 SlideAlongSurface() 또는 SlideAlongVerticalSurface() 함수를 사용하도록 했습니다.
@@ -350,7 +350,7 @@ Template:ReleaseNotes.html
 		* StepUp 역시도 캡슐의 부드러운 부분에서 더 높은 표면을 올라설 수 있도록 했었으나, 이제 발을 올려 딛는 충격 지점 높이를 검사합니다.
 		* 게임에서 기존의 행위 반영을 위해서는 기본값을 높여야 할 수 있습니다.
 	* StepUp 코드는 걸어갈 수 없는 (바닥 노멀이 나쁜) 표면에 캐릭터가 놓이지 않도록 합니다. 앞으로는 걸을 수 없는 노멀을 가진 낮은 오브젝트 위로 이동할 때의 동작을 개선시킬 것입니다.
-	* 바닥 스윕 테스가 이제 인접 세로면을 피합니다. 그러한 표면과의 충격으로 잘못된 바닥 노멀이 보고되는 것을 방지하기 위해서입니다. ComputeFloorHeight() 참고.
+	* 바닥 스윕 테스트가 이제 인접 세로면을 피합니다. 그러한 표면과의 충격으로 잘못된 바닥 노멀이 보고되는 것을 방지하기 위해서입니다. ComputeFloorHeight() 참고.
 	* MoveComponent 에 관통 상태에서의 시작을 처리하는 SafeMoveUpdatedComponent() 를 추가했습니다.
 		* 이동을 막는 관통이 감지된 경우, 빠져나와서 원래 동작을 재시도합니다.
 
@@ -377,7 +377,7 @@ Template:ReleaseNotes.html
 	* 포스트 프로세싱 기능이 예상대로 작동하는지 테스트하기 위해 r.exposureoffset 를 추가시켰습니다.
 	* RenderTestMap 에 TemporalAA 테스트 머티리얼을 추가했습니다 (TemporalAA 와 함께 사용되는 고주파 디더링으로 약간의 렌더링 트릭이 가능합니다).
 	* PostProcessVolumes 등의 노출 수동 세팅이 DX10 에서 작동합니다.
-* 일부 밴딩 문제 제거를 위해 HDR 익스포트에 랜덤 디더링을 추가했습니다.
+* 일부 띠 현상 문제 제거를 위해 HDR 익스포트에 랜덤 디더링을 추가했습니다.
 
 
 ####플랫폼

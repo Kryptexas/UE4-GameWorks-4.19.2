@@ -1,0 +1,96 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Creating Spawnables
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:Shows how you can use Sequencer to Spawn Actors in your scenes regardless of level. 
+Version: 4.11
+SkillLevel: Advanced
+parent:Engine/Sequencer/HowTo
+order:1
+checkpoint: editorqs
+Related: Engine/Sequencer/Overview
+Related: Engine\Sequencer\ReferenceEditor\
+
+[REGION:warning]
+This is a feature that is currently undergoing development and may not work as expected or may change in future revisions.
+[/REGION]
+
+In **Matinee** all of the content in your cinematic had to exist within your level and be "possessed" by Matinee in order to gain control of and provide instructions to each Actor. 
+That exists within Sequencer, however there is also the concept of **Spawnables** where you can turn an Actor into something that Sequencer does not need to possess but instead spawns when it needs to. 
+This is useful when you have content you want to reuse in multiple levels, as the Actor is no longer bound to the level but is instead bound to the Level Sequence. 
+
+In this guide we will create a small scene using Spawnables that can be reused in multiple levels. 
+
+## Steps
+
+[REGION:note]
+For this how-to, we are using the **Blueprint Third Person Template** project with **Starter Content Enabled**. 
+[/REGION]
+
+1.	With [**Sequencer**](Engine\Sequencer\HowTo\EnableSequencer) enabled, from the **Tool Bar** select **Cinematics** and **Add Level Sequence**. 
+
+	![](Spawnables1.png)
+
+	Give the Level Sequence a name and choose a save location. 
+
+1.	Delete the default **ThirdPersonCharacter** from the level. 
+
+1.	From the **Content/Mannequin/Character/Mesh** folder, add the **SK_Mannequin** asset to the level. 
+
+1.	Add the **SK_Mannequin** to **Sequencer** and assign the **ThirdPersonWalk** animation for the scene. 
+
+	[REGION:lightbox]
+	[![](Spawnables3.png)](Spawnables3.png)
+	[/REGION]
+
+	[REGION:caption]
+	Click for full view. 
+	[/REGION]
+
+1.	**Right-click** on the **SK_Mannequin** in **Sequencer** and choose **Convert to Spawnable**. 
+
+	![](Spawnables4.png)
+
+	A new **Spawned** track will be checked and added and the icon next to the Skeletal Mesh will change. 
+
+	![](Spawnables5.png)
+
+	The lightning bolt indicates that this is now a Spawnable for use with Sequencer. 
+
+1.	From the **Modes** Panel, **Drag-and-drop** a **Camera** into **Sequencer**. 
+
+	![](Spawnables6.png)
+
+	You will notice the Camera is added and the same lightning bolt icon appears next to the Camera Actor. 
+
+	![](Spawnables7.png)
+
+	This is another way to create **Spawnables**, by dragging from the **Modes** panel (or **Content Browser**) into **Sequencer**. 
+
+1.	From the **File** menu, create a new **Default** level. 
+
+	![](Spawnables8.png)
+
+1.	Drag your **Level Sequence** into the new level. 
+
+
+## End Result
+
+The Skeletal Mesh and Camera that we added to the Level Sequence are automatically added to the level as part of the Level Sequence. 
+
+We can now manipulate them in this new level as we could any other Level Sequence. 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+eqR_TR4eQRM
+[/PARAMLITERAL]
+[/OBJECT]
+
+These Actors are no longer a part of the level but instead are part of the Level Sequence. They are not spawned until the Level Sequence starts and are despawned when the Level Sequence concludes. 
+

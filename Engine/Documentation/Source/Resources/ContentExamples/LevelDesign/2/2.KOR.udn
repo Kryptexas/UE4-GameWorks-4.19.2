@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653187
+﻿INTSourceChangelist:2716613
 Availability: Public
 Title:2 - 메시 패스
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/LevelDesign
@@ -7,6 +7,7 @@ Related: Engine/Content/Types/StaticMeshes
 Related: Engine/Rendering/Materials
 Related:Engine/UI/LevelEditor
 Related: Engine/UI/LevelEditor/Modes
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

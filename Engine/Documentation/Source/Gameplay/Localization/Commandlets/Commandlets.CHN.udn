@@ -1,130 +1,132 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2713299
 Availability:Public
-Title: Commandlets
+Title: 本地化相关的命令行
 Crumbs:%ROOT%, Gameplay, Gameplay/Localization
-Description:Descriptions and arguments for the commandlets used when localizing your project. 
+Description:对项目本地化过程中所用命令行的介绍及其参数。 
+version: 4.9
 
 
 [TOC (start:2)]
 
-## GatherText
-This is the master commandlet that must be run in order to configure and run other localization commandlets. It takes only one argument, `Config`, which specifies the path to the INI format file that lists 
-the commandlets to run and their own [configuration](Gameplay/Localization/Setup). The commandlet reads the specified file and looks for sections named `GatherTextStep` with a 0-based index numeral suffix. Each step must specify a value 
-for the key `CommandletClass` which specifies the name of the commandlet to execute. Additional configuration for commandlets can be provided in a `CommonSettings` section.
+## GatherText 命令
+主要命令行指令，必须运行它才能配置和运行其他本地化的命令行。它只有一个参数：`Config`，用于指定所需的 INI 格式文件的路径，
+该文件列出了要执行的其他命令行及各自的[配置](Gameplay/Localization/Setup)。该命令会读取指定文件并使用基于 0 的索引数字后缀
+来查找名为 `GatherTextStep` 的部分。每一步都必须为 `CommandletClass` 键（用于指定要执行的命令行的名称）指定一个值。
+关于命令行的其他配置可以在 `CommonSettings` 部分提供。
 
-All paths should be provided relative to the project's root directory unless otherwise specified.
+除非另外指定，提供的所有路径都应当以项目的根目录作为相对路径。
 
-All other commandlets take a command-line parameter of `Config` and `Section` so that they may read from the specified INI file's specified section and the `CommonSettings` section.
+其他所有命令行都有 `Config` 参数和 `Section` 参数，用于读取指定 INI 文件中的指定 Section 部分，以及 `CommonSettings` 部分。
 
 
-## For Gathering
+## 用于收集的命令
 
-### GatherTextFromSource
+### GatherTextFromSource 命令
 
-This commandlet scans specified directories that pass specified filters, parses matching files for markup like LOCTEXT_NAMESPACE, LOCTEXT, NSLOCTEXT and other macros with special relevance to 
-localization, and gathers that text for processing.
+这个命令可以扫描那些通过指定筛选器的指定目录，分析匹配文件寻找 LOCTEXT_NAMESPACE、LOCTEXT、NSLOCTEXT 之类的标记以及其他与本地化存在特殊关联的宏， 
+为后续处理来收集这些文本。
 
-| Setting | Description |
+| 设置 | 说明 |
 | --------| ------------| 
-| ManifestDependencies | Text found in the specified manifests will not be gathered.|
-| IncludePaths | These paths will be scanned.|
-| ExcludePaths | Paths that match these patterns will be excluded from scanning.|
-| SourceFileSearchFilters | Files matching these filters will be parsed.|
+| ManifestDependencies | 对于指定清单中发现的文本将不予收集。|
+| IncludePaths | 指定的路径将被扫描。|
+| ExcludePaths | 与指定样式相匹配的路径将排除在扫描之外。|
+| SourceFileSearchFilters | 与指定样式相匹配的文件将被进行分析。|
 
-### GatherTextFromAssets
+### GatherTextFromAssets  命令
 
-This commandlet scans specified directories that pass specified filters, loading the packages found and iterating through them, gathering text for processing.
-| Setting | Description |
+这个命令将扫描通过指定筛选器的特定目录，加载找到的资源包以及引用到的其他资源包，为后续处理收集文本。
+| 设置 | 说明 |
 | --------| ------------| 
-|ManifestDependencies | Text found in the specified manifests will not be gathered.|
-|ModulesToPreload | The names of modules to be loaded before iterating through packages that have been loaded. To be used if discovered packages depend on an unloaded module.|
-|IncludePaths | These paths will be scanned.|
-|ExcludePaths | Paths that match these patterns will be excluded from scanning.|
-|PackageExtensions  | Packages with these extensions will be iterated through.|
-|ExcludeClasses | Objects of these classes within packages will not be checked for gathering.|
-|bFixBroken | Repairs cases where a text within an asset is missing a key or conflicts with another text.|
+|ManifestDependencies | 对于指定清单中发现的文本将不予收集。|
+|ModulesToPreload | 在迭代引用资源包之前所加载模块的名称。如果发现的资源包依赖于一个未加载的模块，则使用此配置。|
+|IncludePaths | 指定的路径将被扫描。|
+|ExcludePaths | 与指定样式相匹配的路径将排除在扫描之外。|
+|PackageExtensions  | 拥有指定扩展名的资源包将被迭代访问。|
+|ExcludeClasses | 将不会从资源包内这些类型的实例中收集文本。|
+|bFixBroken | 当资源内的文本缺少键或与其他文本存在冲突时，可以通过此项进行修复。|
 
-### GatherTextFromMetadata
+### GatherTextFromMetadata 命令 
 
-This commandlet scans specified directories that pass specified filters, iterating through the metadata of objects whose class comes from those directories, creating text from metadata 
-values for specified metadata keys. Settings must be used to specify which metadata should be read and what the created text's namespace and key should be. The key may use formatting arguments including:
+这个命令可以扫描通过指定筛选器的指定目录，迭代访问从这些目录获取类的对象的元数据，并通过元数据值创建文本 
+用于指定的元数据键。必须通过设置来指定要读取的元数据，以及所创建文本的命名空间和键。键可以使用格式化参数，包括：
 
-| Argument | Description |
+| 参数 | 说明 |
 | --------| ------------| 
-|FieldPath | The qualified path to the object this metadata is from.
-|MetaDataValue | The string value of the metadata key.
+|FieldPath | 此元数据的来源对象所在的有效路径。
+|MetaDataValue | 元数据键的字符串值。
 
-| Setting | Description |
+| 设置 | 说明 |
 | --------| ------------| 
-|ManifestDependencies | Text found in the specified manifests will not be gathered.|
-|ModulesToPreload | The names of modules to be loaded before iterating through packages that have been loaded. To be used if discovered packages depend on an unloaded module.|
-|IncludePaths | These paths will be scanned.|
-|ExcludePaths | Paths that match these patterns will be excluded from scanning.|
-|InputKeys | Metadata keys to be used for creating text.|
-|OutputNamespaces | Namespaces to be used for the created text.|
-|OutputKeys | Pattern string to be formatted and used for the created texts' keys.|
+|ManifestDependencies | 对于指定清单中发现的文本将不予收集。|
+|ModulesToPreload | 在迭代引用资源包之前所加载模块的名称。如果发现的资源包依赖于一个未加载的模块，则使用此配置。|
+|IncludePaths | 指定的路径将被扫描。|
+|ExcludePaths | 与指定样式相匹配的路径将排除在扫描之外。|
+|InputKeys | 创建文本时所用的元数据键。|
+|OutputNamespaces | 用于已创建文本的命名空间。|
+|OutputKeys | 要进行格式化并用于已创建文本键的样式字符串。|
 
 
-## For Generation
-### GenerateGatherManifest
+## 用于生成的命令
+### GenerateGatherManifest 命令
 
-This commandlet writes a manifest file with the specified name to the specified directory using the data that has been gathered thus far by other gather commandlets.
+这个命令可以使用由其他收集类 commandlet 收集的数据，将一个具有指定名称的清单文件写入到指定目录。
 
-| Setting | Description |
+| 设置 | 说明 |
 | --------| ------------|
-| ManifestDependencies | Text found in the specified manifests will not be written to the new manifest.|
-|DestinationPath | The path to the directory to write the manifest file to.|
-|ManifestName | The full name of the manifest file to be written to, typically named the same as the target and with the "manifest" extension.|
+|ManifestDependencies | 指定清单中发现的文本将不会写入到新的清单。|
+|DestinationPath | 要写入清单文件的目录所在的路径。|
+|ManifestName | 要写入的清单文件的完整名称，通常与目标同名并带有“manifest”扩展名。|
 
-### GenerateGatherArchive
+### GenerateGatherArchive 命令
 
-This commandlet writes archive files with the specified name to the specified culture-named subdirectories of the specified directory using the specified manifest file. Existing archives will be updated if they exist.
+这个命令可以将指定名称的存档文件写入到某一指定目录中带有相关文化名称的指定子目录（使用指定的清单文件）。已经存在的现有存档将被更新。
 
-| Setting | Description |
+| 设置 | 说明 |
 | --------| ------------|
-|DestinationPath | The path to the directory containing the manifest and where culture-specific subdirectories reside for the archives being written.|
-|ManifestName | The full name of manifest the file to be read from, typically named the same as the target and with the "manifest" extension.|
-|ArchiveName | The full name of the archives files to be written to, typically named the same as the target and with the "archive" extension.|
-|SourceCulture | The name of the culture to which the native source text belongs. The archive for this culture will simply contain the source strings as its translation strings.|
-|CulturesToGenerate | The names of cultures for which stubbed archives should be generated.|
-|bPurgeOldEmptyEntries | If _true_, entries in an existing archive file that lack a translation will be removed before the archive is updated with new entries from the manifest. The result is that entries no longer present in the manifest and not already translated are purged.|
+|DestinationPath | 包含清单的目录所在的路径，以及要写入的存档所在的针对特定文化的子目录的路径。|
+|ManifestName | 要读取的清单文件的完整名称，通常与目标同名并带有“manifest”扩展名。|
+|ArchiveName | 要写入的存档文件的完整名称，通常与目标同名并带有“archive”扩展名。|
+|SourceCulture | 源文本所属的文化名称。该文化对应的存档将直接包含源字符串作为其翻译字符串。|
+|CulturesToGenerate | 生成的存根存档对应的文化名称。|
+|bPurgeOldEmptyEntries | 如果为_true_，缺少翻译的现有存档文件中的条目将被移除，然后会用清单中的新条目去更新存档。这样，那些已经从清单内消失以及尚未翻译的条目都会被清除。|
 
 
-### GenerateTextLocalizationResource
+### GenerateTextLocalizationResource 命令
 
-This commandlet writes localization resources files with the specified name to the specified culture-named subdirectories of the specified directory using the specified manifest file and all discovered archive files.
+这个命令可以将指定名称的本地化资源文件写入到某一指定目录中带有相关文化名称的指定子目录（使用指定的清单文件和所有发现的存档文件）。
 
-| Setting | Description |
+| 设置 | 说明 |
 | --------| ------------|
-|SourcePath | The path to the directory containing the manifest and where culture-specific subdirectories reside for the archives being written.|
-|ManifestName | The full name of the manifest file to be read from, typically named the same as the target and with the "manifest" extension.|
-|CulturesToGenerate | The names of cultures for which localization resources should be generated.|
-|DestinationPath | The path to the directory where culture-specific subdirectories reside for the localization resources being written.|
-|ResourceName | The full name of the localization resource file to be written to, typically named the same as the target and with the "locres" extension.|
+|SourcePath | 包含清单的目录所在的路径，以及要写入的存档所在的针对特定文化的子目录的路径。|
+|ManifestName | 要读取的清单文件的完整名称，通常与目标同名并带有“manifest”扩展名。|
+|CulturesToGenerate | 生成的本地化资源对应的文化名称。|
+|DestinationPath | 要写入的本地化资源所在的针对特定文化的子目录的目录路径。|
+|ResourceName | 要写入的本地化资源文件的完整名称，通常与目标同名并带有“locres”扩展名。|
 
-## For Maintenance
-### RepairLocalizationData
+## 用于维护的命令
+### RepairLocalizationData 命令
 
-This commandlet repairs and updates localization data between different versions. It repairs manifests and archives exclusively. Localization resources can be regenerated from repaired/updated manifests and archives as usual.
+这个命令可以修复并更新不同版本的本地化数据。它还能专门修复清单和存档。本地化资源可通过修复/更新后的清单和存档重新（正常）生成。
 
-| Setting | Description |
+| 设置 | 说明 |
 | --------| ------------|
-|DestinationPath  | The path to the directory containing the manifest and where culture-specific subdirectories reside for the archives being read and written.|
-|ManifestName | The full name of the manifest file to be read from and written to, typically named the same as the target and with the "manifest" extension.|
-|ArchiveName | The full name of the archive file to be read from and written to, typically named the same as the target and with the "archive" extension.|
-|CulturesToGenerate | The names of cultures for which archives should be repaired and updated.|
+|DestinationPath  | 包含清单的目录所在的路径，以及要读写的存档所在的针对特定文化的子目录的路径。|
+|ManifestName | 要读写的清单文件的完整名称，通常与目标同名并带有“manifest”扩展名。|
+|ArchiveName | 要读写的存档文件的完整名称，通常与目标同名并带有“archive”扩展名。|
+|CulturesToGenerate | 修复和更新的存档对应的文化名称。|
 
-### GenerateTextLocalizationReport
+### GenerateTextLocalizationReport 命令
 
-This commandlet generates and updates reports such as word counts and text conflicts.
+这个命令用于生成和更新报告，如字数和文本冲突。
 
-| Setting | Description |
+| 设置 | 说明 |
 | --------| ------------|
-|DestinationPath | The path to the directory where reports will be written to.|
-|bWordCountReport | If _true_, a word count report will be generated.|
-|SourcePath | The path to the directory containing the manifest and where culture-specific subdirectories reside for the archives being read.|
-|ManifestName | The full name of the manifest file to be read from, typically named the same as the target and with the "manifest" extension.|
-|CulturesToGenerate | The names of cultures for which archives should be read from.|
-|WordCountReportName | The full name of the CSV (comma-separated values) file to be read from and written to containing a table of word counts for cultures over time.|
-|bConflictReport | If _true_, a conflict report will be generated.|
-|ConflictReportName | The full name of the text file to be written to containing a list of all conflicting namespace/key/text entries.|
+|DestinationPath | 要写入报告的目录路径。|
+|bWordCountReport | 如果为_true_，将生成字数报告。|
+|SourcePath | 包含清单的目录所在的路径，以及要读取的存档所在的针对特定文化的子目录的路径。|
+|ManifestName | 要读取的清单文件的完整名称，通常与目标同名并带有“manifest”扩展名。|
+|CulturesToGenerate | 读取的存档对应的文化名称。|
+|WordCountReportName | 包含一段时间内相应文化的字数表格的、要读写的 CSV （逗号分隔值）文件的完整名称。|
+|bConflictReport | 如果为_true_，将生成冲突报告。|
+|ConflictReportName | 包含所有存在冲突的命名空间/键/文本条目列表的、要写入的文本文件的完整名称。|

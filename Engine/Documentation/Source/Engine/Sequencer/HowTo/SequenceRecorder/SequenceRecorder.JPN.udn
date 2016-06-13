@@ -1,0 +1,105 @@
+﻿INTSourceChangelist:2901839
+Availability:Public
+Title:ゲームプレイをシーケンスとして録画する
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:ゲームプレイ アクションをシーケンス レコーダーを使って録画し、そのデータをシーケンサー内で使用します。
+Version:4.11
+SkillLevel:Advanced
+parent:Engine/Sequencer/HowTo
+order:1
+checkpoint: editorqs
+Related:Engine/Sequencer/Overview
+Related:Engine\Sequencer\ReferenceEditor\
+
+[REGION:warning]
+これは現在開発中の機能であり、期待どおりに機能しなかったり、将来のリビジョンで変更される可能性があります。
+[/REGION]
+
+**シーケンス レコーダー** を使ってゲームプレイ中に指定したアクタをキャプチャし、新しい **レベル シーケンス** として保存すると **シーケンサー** 内で編集することができます。 
+これはシーンのコンテンツを迅速にキャプチャするのに役立ちます。シーケンス レコーダーで録画しながらプレイ可能なキャラクターを使って、ゲームプレイ中に何らかのアクションを行います。次に、こうしたデータをシーケンサーに取り込み、シネマティックスを作成します。 
+
+この例では、**シーケンス レコーダー** を使ってプレイ可能なキャラクターの動きを録画し、それを編集することができます。 
+
+
+## ステップ
+
+[REGION:note]
+ここでは **Starter Content Enabled (スターター コンテンツを有効にした状態)** で **Blueprint Third Person Template** プロジェクトを使います。 
+[/REGION]
+
+1.	[**シーケンサー**](Engine\Sequencer\HowTo\EnableSequencer) を有効にした状態で、**メニューバー** の **[Window]** で **[Sequence Recorder (シーケンス レコーダー)]** を選択します。 
+
+	![](RecorderStep1.png)
+	シーケンス レコーダー ウィンドウが自動的に開きます。**[Sequence Recording (シーケンス レコーディング)]** にはいくつかのオプションがあります。各オプション上にマウスを合わせると説明が表示されます (例、録画されたシーケンスの名前の設定や、保存場所、持続時間など)。この例では、デフォルトのままにします。 
+
+
+1.	メイン エディタ ツールバー で **[Play]** ボタンをクリックして Play in Editor セッションを開始します。 
+
+1.	ゲーム内に入ったらマウスで制御できるようにするには、**Shift+F1** キーを押します。 
+
+1.	**[Sequence Recorder]** ウィンドウで、**[Add]** ボタンをクリックします。 
+	![](SequenceRecorderAdd.png)
+
+
+1.	**None** とラベル付けされている新規アイテムをクリックして、**Actor Recording** でそのドロップダウンをクリックして **ThirdPersonCharacter** を選択します。 
+
+	![](ActorToRecord.png)
+
+	ここで録画したいアクタを指定してから録画プロセスを開始します。いくつかの追加の設定がありますが、この例ではデフォルトのままにします。 
+
+1.	**[Record]** ボタンをクリックします。 
+
+	![](RecordStart.png)
+
+	4 秒経過後 (これは Sequence Recording セクションの **Record Delay** オプションです) に録画プロセスが開始します。 
+
+1.	**WASD** キーと **Spacebar** キーを使ってキャラクターを動かしたり、ジャンプさせたりして、終了したら **ESC** を押します。
+
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	LDbr7BKe-9g
+	[/PARAMLITERAL]
+	[/OBJECT]
+
+	上の画面は、録画したシーケンスです。ただし、攻撃したり他のアクションを行うことができるキャラクターをお持ちの場合はそれをお使いいただくこともできます。 
+
+1.	**コンテンツ ブラウザ** 内で、録画したシーケンスに関連するアセットを含む新規フォルダが作成されます。 
+
+	![](RecordedAssets.png)
+
+	**レベル シーケンス** と行ったアクションに基づいた **アニメーション シーケンス** を含むフォルダです。 
+
+
+## 最終結果
+
+**RecordedSequence** アセットを開いて、通常のレベル シーケンスのように編集を開始します (カメラ、ライト、エフェクト、その他のキャラクターなどを追加)。以下ではサンプル シーンを作成しました。いくつかのカメラを使い、**カメラ カット** のトラックで異なるカメラ間で循環します。
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+1wTWy9wWMtg
+[/PARAMLITERAL]
+[/OBJECT]
+
+
+
+
+
+
+
+
+
+
+
+

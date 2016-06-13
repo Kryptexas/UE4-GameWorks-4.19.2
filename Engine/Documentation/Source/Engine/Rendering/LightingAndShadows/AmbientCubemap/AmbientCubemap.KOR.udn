@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2613774
+﻿INTSourceChangelist:2683525
 Availability:Public
 Title:앰비언트 큐브맵
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
-Description:고품질 라이팅 인바이언트를 위해 씬 라이팅에 적용된 큐맵 텍스처를 말합니다.
+Description:씬 라이팅에 적용하여 고품질 라이팅 인바이언먼트를 만드는 큐브맵 텍스처를 말합니다.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -37,7 +38,7 @@ Description:고품질 라이팅 인바이언트를 위해 씬 라이팅에 적�
 
 앰비언트 큐브맵은 (완벽히 동적인 라이팅의 게임에서 좋은) 미묘한 방향성 배경 효과, 또는 모델 뷰어 어플리케이션 용으로 의도된 것입니다.
 
-빛은 여러 방향에서 오기 때문에 이런 라이트 유형에 그냥 섀도우 맵을 사용할 수는 없습니다. SSAO 를 적용하면 근처 지오메트리에 인접한 그림자를 구합니다. ([앰비언트 오클루전](Engine/Rendering\LightingAndShadows\AmbientOcclusion) 참고)
+빛은 여러 방향에서 오기 때문에 이런 라이트 유형에 그냥 섀도 맵을 사용할 수는 없습니다. SSAO 를 적용하면 근처 지오메트리에 인접한 그림자를 구합니다. ([앰비언트 오클루전](Engine/Rendering\LightingAndShadows\AmbientOcclusion) 참고)
 
 표시 플래그 "Lighting Image Based Lighting" 은 앰비언트 큐브맵의 렌더링을 토글하는 데 사용할 수 있습니다.
 

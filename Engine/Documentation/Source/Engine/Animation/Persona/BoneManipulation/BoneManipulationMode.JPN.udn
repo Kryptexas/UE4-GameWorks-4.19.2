@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2665932
-Availability:Public
+﻿Availability:Public
 Title:Bone Manipulation モード
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
 Description:アニメーション アセットをプレビューしながらボーンの平行移動または回転を有効にするペルソナのモード
@@ -7,7 +6,7 @@ Related:Engine/Content/FBX/Animations
 Related:Engine/Content/Types/SkeletalMeshes
 Related:Engine/Animation/PhysicallyDrivenAnimation
 Related:Engine/Content/Tools/MayaRiggingTool
-version: 4.9
+version:4.9
 
 **Bone Manipulation** モードはペルソナのモードの 1 つです。テクニカルアーティストはアニメーションのプレビュー中に、スケルタルメッシュのスキニング問題を確認するために一時的にボーンを平行移動したり回転することができます。
 
@@ -25,15 +24,15 @@ version: 4.9
 
 	![Translation Widgets](Bones_Widgets.png)
 1. 表示されるウィジェットを使用して、ボーンを平行移動または回転させます。
-1. アニメーションを再生して、スキニング問題がないか確認します。
+1. アニメーションを再生して、スキニング問題がないかを確認します。
 
-平行移動や回転ウィジェットの使用に関する詳細は、[インタラクティブな変形](Engine/Actors/Transform\#インタラクティブな変形) を参照してください。
+平行移動や回転のウィジェットの使用に関する詳細は、[インタラクティブなトランスフォーム](Engine/Actors/Transform\#インタラクティブなトランスフォーム) を参照してください。
 
 [REGION:note]
 ボーンの操作後は、別のアニメーション アセットを選択しても操作が持続するため、別のアニメーションで変更をプレビューすることができます。
 [/REGION]
 
-**ボーンをデフォルトの平行移動と回転値に戻す方法**
+**ボーンをデフォルトの平行移動値と回転値に戻す方法**
 
 * **スケルトンツリー** で別のボーンを選択します。
 

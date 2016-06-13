@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:2695230
+﻿INTSourceChangelist:2968923
 Availability:Public
 Title:플로우 콘트롤
-Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
+Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/Scripting
 Description: 조건에 따라 실행 흐름을 제어할 수 있는 노드입니다.
 version: 4.9
+Parent:Engine/Blueprints/Scripting
+tags:Execution Flow
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -355,7 +357,7 @@ Sequence 노드는 한 번의 실행 신호로 일련의 이벤트를 순서대�
 동시에 발동된 것 처럼 보일 것입니다.
 
 이 예제에서 Sequence 노드는 레벨 시작시 호출됩니다. 그런 다음 5 rodml Print String 노드를 
-순서대로 발동시킵니다. 그러나 별다른 지연이 없기 떄문에 
+순서대로 발동시킵니다. 그러나 별다른 지연이 없기 때문에 
 메시지가 거의 동시에 출력되는 것처럼 보입니다.
 
 **클릭하면 크게 볼 수 있습니다.**

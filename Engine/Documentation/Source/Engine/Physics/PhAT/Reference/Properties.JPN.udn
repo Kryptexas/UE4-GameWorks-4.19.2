@@ -1,9 +1,8 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Physics Asset Properties Reference
+﻿Availability:Public
+Title:物理アセットのプロパティ リファレンス
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhAT
-Description:A listing of properties and descriptions for Physics Bodies, Physics Constraints, and Physics Assets accessible in the Physics Asset Tool.
-Version: 4.9
+Description:物理アセットツールで利用可能な物理ボディ、物理コンストレイント、物理アセットのプロパティとその説明の一覧です。
+Version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -49,18 +48,18 @@ Version: 4.9
 
 [VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
 
-This page contains a reference listing of properties you will find while working in the Physics Asset Tool.
+物理アセット ツールの作業中に目にするリファレンス プロパティを紹介します。
 
-## Properties
+## プロパティ
 
-Below are the properties for Physics Asset Tool, separated into 3 expandable sections based on what is selected in the viewport.
+以下は、物理アセット ツールのプロパティです。ビューポートで何を選んでいるかに応じて 3 つの展開可能なセクションに分けられます。
 
 [OBJECT:modulesection]
 	[PARAMLITERAL:id]
 		PhatP
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Physics Asset Tool Properties
+		物理アセット ツールのプロパティ
 	[/PARAM]
 	[PARAM:content]
 		%c1%
@@ -69,7 +68,7 @@ Below are the properties for Physics Asset Tool, separated into 3 expandable sec
 
 [VAR:c1]
 
-When no Physics Body or Physics Constraint is selected (regardless of mode), the properties for the Physics Asset Tool are show in the Details panel.
+物理ボディあるいは物理コンストレイントが何も選択されていないと (モードに関係なく)、[Details (詳細)] パネルには物理アセット ツールのプロパティは表示されません。
 
 [OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
@@ -150,7 +149,7 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 ![](PhATDef1.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| プロパティ | %spacer% | 説明 |
 | --- | :---: | :--- |
 | **Physics Blend** || %doxygen:UPhATSimOptions::PhysicsBlend% |
 | **Update Joints from Animation** || |
@@ -165,12 +164,12 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 ![](PhATDef2.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| プロパティ | %spacer% | 説明 |
 | --- | :---: | :--- |
 |**Floor Gap** || %doxygen:UPhATSimOptions::FloorGap% |
 |**Grav Scale** || %doxygen:UPhATSimOptions::GravScale% |
-|**Max FPS** || Max FPS for simulation in PhAT. This is helpful for targeting the same FPS as your game. -1 means this is disabled.  |
-|**Time Dilation** || This will dilate the time by scale.  |
+|**Max FPS** || PhAT でのシミュレーションの最高 FPS です。ゲームと同じ FPS をターゲットにするのに便利です。値 -1 は無効になっていることを表します。  |
+|**Time Dilation** || スケーリングによって時間を遅らせます。  |
 [/REGION]
 
 [/VAR]
@@ -180,7 +179,7 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 ![](PhATDef3.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| プロパティ | %spacer% | 説明 |
 | --- | :---: | :--- |
 |**Handle Linear Damping** || %doxygen:UPhATSimOptions::HandleLinearDamping% |
 |**Handle Linear Stiffness** || %doxygen:UPhATSimOptions::HandleLinearStiffness% |
@@ -196,7 +195,7 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 ![](PhATDef4.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| プロパティ | %spacer% | 説明 |
 | --- | :---: | :--- |
 | **Poke Strength** || %doxygen:UPhATSimOptions::PokeStrength% |
 [/REGION]
@@ -208,7 +207,7 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 ![](PhATDef5.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| プロパティ | %spacer% | 説明 |
 | --- | :---: | :--- |
 | **Show Constraints as Points** || %doxygen:UPhATSimOptions::bShowConstraintsAsPoints% |
 | **Show Names in Hierarchy** || %doxygen:UPhATSimOptions::bShowNamesInHierarchy% |
@@ -221,7 +220,7 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 ![](PhATDef6.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| プロパティ | %spacer% | 説明 |
 | --- | :---: | :--- |
 | **Constraint Draw Size** || %doxygen:UPhATSimOptions::ConstraintDrawSize% |
 [/REGION]
@@ -244,7 +243,7 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 
 [VAR:c2]
 
-When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the Details panel will display the properties for that Physics Body.
+物理アセット ツールが Body モードで、Physics Body が選択されている時、[Details (詳細)] パネルにはその Physics Body のプロパティが表示されます。
 
 [OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
@@ -289,7 +288,7 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 ![](PhATBody1.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| プロパティ | %spacer% | 説明 |
 | --- | :---: | :--- |
 | **Bone Name** || %doxygen:UBodySetup::BoneName% |
 | **Consider for Bounds** || %doxygen:UBodySetup::bConsiderForBounds% |
@@ -302,23 +301,23 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 ![](PhATBody2.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| プロパティ | %spacer% | 説明 |
 | --- | :---: | :--- |
-| **Mass in KG** || Mass of the body in KG. |
+| **Mass in KG** || KG 単位の質量です。 |
 | **Linear Damping** || %doxygen:FBodyInstance::LinearDamping% |
 | **Angular Damping** || %doxygen:FBodyInstance::AngularDamping% |
 | **Enable Gravity** || %doxygen:FBodyInstance::bEnableGravity% |
 | **Physics Type** || %doxygen:UBodySetup::PhysicsType% |
-| **Double Sided Geometry** || If true, the physics triangle mesh will use double sided faces when doing scene queries. Thsi is useful for planes and single sided meshes that need traces to work on both sides. |
+| **Double Sided Geometry** || true の場合、物理トライアングル メッシュはシーン クエリの際に両面を使用します。両面のトレースを必要とする平面や片面で構成されるメッシュに有用です。 |
 | **Simple Collision Physical Material** || %doxygen:UBodySetup::PhysMaterial% |
 [/REGION]
 
-### Advanced
+### 上級者向け
 
 ![](PhATBody2_adv.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| プロパティ | %spacer% | 説明 |
 | --- | :---: | :--- |
 | **Start Awake** || %doxygen:FBodyInstance::bStartAwake% |
 | **Center of Mass Offset** || %doxygen:FBodyInstance::COMNudge% |
@@ -328,7 +327,7 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 | **Generate Wake Events** ||  |
 | **Max Depenetration Velocity** || The maximum velocity used to depenetrate this object.  |
 | **Walkable Slope Override** || %doxygen:UBodySetup::WalkableSlopeOverride% |
-| **Walkable Slope Behavior** || Behavior of this surface (whether we affect the walkable slope). Determines how the Walkable Slope Angle operates on the existing walkable angle, whether it increases or decreases it. |
+| **Walkable Slope Behavior** || Behavior of this surface (whether we affect the walkable slope).既存の歩行可能な角度上で Walkable Slope Angle がどのように機能するのか、増加するのか減少するのかを決定します。 |
 | **Walkable Slope Angle** || %doxygen:FWalkableSlopeOverride::WalkableSlopeAngle% |
 | **Custom Sleep Threshold Multiplier** || |
 | **Position Solver Iteration Count** || %doxygen:FBodyInstance::PositionSolverIterationCount% |
@@ -343,19 +342,19 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 ![](PhATBody3.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| プロパティ | %spacer% | 説明 |
 | --- | :---: | :--- |
 | **Simulation Generates Hit Events** || %doxygen:FBodyInstance::bNotifyRigidBodyCollision% |
 | **Phys Material Override** || %doxygen:FBodyInstance::PhysMaterialOverride% |
 | **Collision Response** || %doxygen:UBodySetup::CollisionReponse% |
 
 [/REGION]
-### Advanced
+### 上級者向け
 
 ![](PhATBody3_adv.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| プロパティ | %spacer% | 説明 |
 | --- | :---: | :--- |
 | **Use CCD** || %doxygen:FBodyInstance::bUseCCD% |
 [/REGION]
@@ -379,7 +378,7 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 
 [VAR:c3]
 
-When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the Details panel will display the properties for that Physics Body.
+物理アセット ツールが Body モードで、Physics Body が選択されている時、[Details (詳細)] パネルにはその Physics Body のプロパティが表示されます。
 
 [OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
@@ -460,12 +459,12 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 ![](PhATCon1.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| プロパティ | %spacer% | 説明 |
 | --- | :---: | :--- |
 | **Joint Name** || %doxygen:FConstraintInstance::JointName% |
 | **Constraint Bone 1** || %doxygen:FConstraintInstance::ConstraintBone1% |
 | **Constraint Bone 2** || %doxygen:FConstraintInstance::ConstraintBone2% |
-| **Disable Collision** || Disable collision between bodies joined by this constraint. |
+| **Disable Collision** || このコンストレイントによって結合されているボディの間のコリジョンを無効にします。 |
 [/REGION]
 [/VAR]
 

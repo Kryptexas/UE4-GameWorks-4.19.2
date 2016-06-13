@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:2601316
+﻿INTSourceChangelist:2651238
 Availability:Public
 Title:액터 배치하기
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:레벨에 소품, 라이트, 카메라와 같은 액터를 배치하는 법을 보여줍니다.
 Related: Engine/UI/ClassViewer
 Related: GettingStarted\HowTo
+version: 4.9
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]

@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2585620
-Availability:Public
+﻿Availability:Public
 Title:6.応用編
 Crumbs:
 Description:Procedural Foliage ツールを使った次のステップです。
@@ -15,7 +14,7 @@ Version:4.8
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[How-To ホーム](Engine\OpenWorldTools\ProceduralFoliage\QuickStart "Engine\OpenWorldTools\ProceduralFoliage\QuickStart:Title%")
+		[クイックスタート ホーム](Engine\OpenWorldTools\ProceduralFoliage\QuickStart "Engine\OpenWorldTools\ProceduralFoliage\QuickStart:Title%")
 	[/PARAM]
 	[PARAM:next]
 
@@ -40,9 +39,9 @@ Procedural Foliage ツールに備わったパワーがお分かりになった�
 
 * ダイナミック シャドウだけでなく **[レイトレース ディスタンス フィールド シャドウ](Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing)** も利用する完全に動的ベースなライティング ソリューションを利用するように、レベル ライティングを設定します。 
 
-* **[Foliage System](Engine/Foliage)** ツールで、 Procedural Foliage ツールで配置されたフォーリッジ メッシュの位置、回転、スケールを削除または微調整して、望み通りの外見になるようにします。
+* **[Foliage System](Engine/Foliage)** ツールで、Procedural Foliage ツールで配置されたフォリッジ メッシュの位置、回転、スケールを削除または微調整して、望み通りの外見になるようにします。
 
-* レベルの動画を世界に発信するために **[Matinee](Engine/Matinee)** と **[Camera](Gameplay/HowTo/UsingCameras)** を一緒に使って、完成したレベルを動画で世界にお披露目しましょう。
+* レベルの動画を世界に発信するために **[マチネ](Engine/Matinee)** と **[カメラ](Gameplay/HowTo/UsingCameras)** を一緒に使って、完成したレベルを動画で世界にお披露目しましょう。
 
 
 

@@ -1,7 +1,7 @@
 Availability:Public
 Title:Macro Library UI
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
-Description:Overview of the Blueprint Class Editor interface.
+Description:A breakdown of the UI elements of the Blueprint Editor when working on Blueprint Macro Libraries.
 version: 4.9
 
 [VAR:Topic]
@@ -47,7 +47,7 @@ Much like with Blueprint Interfaces, when you first open the Blueprint Editor fo
 <!----------
 [EXCERPT:Visible]
 1. [Menu](Engine/Blueprints/Editor\UIComponents\Menu)
-1. [Toolbar](Engine/Blueprints/Editor\UIComponents\Toolbar\ToolbarOptions)
+1. [Toolbar](Engine/Blueprints/Editor\UIComponents\Toolbar)
 1. [My Blueprint](Engine/Blueprints/Editor\UIComponents\MyBlueprint)
 1. [Details](Engine/Blueprints/Editor\UIComponents\Details)
 1. [Graph Editor](Engine/Blueprints/Editor\UIComponents\GraphEditor)

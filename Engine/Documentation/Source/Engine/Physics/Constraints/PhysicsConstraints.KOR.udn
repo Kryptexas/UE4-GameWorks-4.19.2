@@ -1,20 +1,23 @@
-﻿INTSourceChangelist:2033300
+﻿INTSourceChangelist:2713167
 Availability: Public
 Title:피직스 컨스트레인트
 Crumbs: %ROOT%, Engine, Engine/Physics
-Description:Constraint, 컨스트레인트로 피직스 오브젝트를 다른 피직스 오브젝트나 월드에 제약시킵니다.
+Description:Constraint, 컨스트레인트는 피직스 오브젝트를 다른 피직스 오브젝트나 월드에 제약시킵니다.
+Version: 4.9
 
-[OBJECT:TopicList]
+
+[OBJECT:TopicButtonList]
 	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
+		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		컨스트레인트 관련
+		요점
 	[/PARAM]
 	[PARAM:links]
-		* [](Engine/Physics/Constraints/ConstraintsUserGuide) - 본 사이의 조인트를 제약시키는 방법 안내서입니다.
-		* [](Engine/Physics/Constraints/ConstraintsBlueprints) - 블루프린트에서 피직스 컨스트레인트 컴포넌트를 사용하는 방법 안내서입니다.
-		* [](Engine/Physics/Constraints/ConstraintsReference) - 언리얼 에디터에서 피직스 컨스트레인트에 볼 수 있는 모든 프로퍼티에 대한 참고서입니다.
-		* [](Engine/Physics/Constraints/DampingAndFriction) - 언리얼 에디터 4 의 damping(제동)과 friction(마찰) 특성에 대한 설명입니다.
+		* [Physics Constraints User Guide](Engine/Physics/Constraints/ConstraintsUserGuide "%Engine/Physics/Constraints/ConstraintsUserGuide:description%")
+		* [](Engine/Physics/Constraints/ConstraintsBlueprints "%Engine/Physics/Constraints/ConstraintsBlueprints:description%")
+		* [](Engine/Physics/Constraints/ConstraintsReference "%Engine/Physics/Constraints/ConstraintsReference:description%")
+		* [](Engine/Physics/FrictionRestitutionAndDamping "%Engine/Physics/FrictionRestitutionAndDamping:description%")
 	[/PARAM]
 [/OBJECT]
+

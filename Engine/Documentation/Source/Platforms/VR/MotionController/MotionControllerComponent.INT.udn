@@ -5,31 +5,31 @@ Description:Information over how to setup Motion Controllers for VR interaction.
 Navigation:platform
 Version:4.9
 Skilllevel:Intermediate
-
+parent:Platforms/VR
+type:overview
 
 [TOC(start:2)]
 
-The release of Unreal Engine 4.9 introduces some major changes in how Unreal Engine interfaces with Motion Controllers.
-You can now add a Motion Controller as a component to your Pawn / Character, set which "Hand" it is supposed to represent and the Motion Controller is now ready to be used.
+You can add a Motion Controller as a component to your Pawn / Character, set which "Hand" it is supposed to represent.
 In the following document we will cover how you can set up your Virtual Reality project to make use of Motion Controllers.
 
 [region:tip]
-Before going any further make sure that your VR Headset and Motion Controllers have been plugged into your PC and their required drivers installed. 
-If you have not done so already make sure to check out our other [VR Documents](Platforms/VR) as they contain valuable information on how to get various VR headsets to work with UE4.
+Before going any further make sure that your VR Headset and Motion Controllers are plugged into your PC and required the drivers installed. 
+See the [VR Documents](Platforms/VR) for information on how to get various VR headsets to work with UE4.
 [/region]
 
 ## Motion Controller Setup
 
-Setting up a VR project to make use of Motion Controllers can be accomplished in a few short steps. 
-In the following section we will cover how you can quickly get Motion Controllers working with your project.
+Setting up a VR project to make use of Motion Controllers requires adding a Motion Controller Component to your Pawn and configuring it. 
+In the this section we will cover how you can quickly get Motion Controllers working with your project.
 
-1. From the Content Browser open up the Player Pawn Blueprint.
+[region:note]
+Please note this setup can be applied to any Pawn in any UE4 project.
+[/region]
+
+1. In the **Content Browser** open the **Player Pawn** Blueprint.
 
 	![](Open_VR_Pawn.png)
-
-	[region:note]
-	Please note the following can be applied to any Pawn in any project and does not specifically have to be a VR project.
-	[/region]
 
 1. Once the Blueprint is opened, navigate to the **Viewport** tab and in the **Components** section click on the **Add Component** button to expose the components that can be added to this Blueprint. 
 
@@ -54,8 +54,9 @@ In the following section we will cover how you can quickly get Motion Controller
 
 	![](Setting_Up_Components.png)
 
-1. If you ran the game now the motion controller would work but you would not see anything as by default no visuals are rendered. 
-	To fix this add a **Static Mesh Component** to the Components sections and then in the Details section of the Static Mesh Component under the Static Mesh section pick a Static Mesh to use from the dropdown menu.
+1. To give the Motion Controller a visual representation in the world, select the **Motion Controller Component** in the **Components panel**	and click the **Add Component** button to add a **Static Mesh Component**.
+	Drag the Static Mesh Component on to the Motion Controller to parent it to the Motion Controller Component then, 
+	in the Details panel, assign a Static Mesh asset to the Static Mesh property of the new component.
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -70,23 +71,26 @@ In the following section we will cover how you can quickly get Motion Controller
 	[/OBJECT]
 
 	[region:tip]
-	If you do not see any Static Mesh in the Content Browser you will need to either import one or enable **Engine Content** and then select one from there. 
-	Also if the Static Mesh you selected is to big or to small you can scale to your likening using the Scale section of the Transform menu.
+	If your project does not currently have any Static Mesh assets, import one of your own meshes or click the Marketplace button in the toolbar to visit the Marketplace and download some assets to use in your project.
+	If the Static Mesh you selected is too big or too small you can scale to your likening using the Scale section of the Transform section in the Details panel.
 	[/region]
 
-1. Repeat this process again this time adding a Right Hand and when completed your Pawn Blueprint should look something like the image below.
+1. Add another Motion Controller Component parented to the root and set it to be the **Right Hand**. Add a Static Mesh Component parented to the new Motion Controller Component and apply the right hand mesh to it..
 
 	![](Finshed_MC_Setup.png)
 
 	[region:note]
-	In the image above the the two cone shaped meshes have been moved apart to show that they are two of them. 
-	When setting this up for your project leave both mesh at 0,0,0 so that they are located right on top of one another.
+	In the image above, the the two cone shaped meshes have been moved apart to show that there are two of them. 
+	When setting up your project leave both Static Mesh Components at 0,0,0 so that they are located right on top of one another.
 	[/region]
 
 ## Working with Motion Controllers
 
-Working with Motion Controllers inside UE4 is similar to working with other input devices such as a game-pad or a keyboard. 
+The Motion Controller-specific input controls are available in the Palette panel in the Blueprint Editor.
+
+[region:tip]
 If you search inside of the Blueprint Editor **Palette** using **MotionController** as the search term you will see all the available buttons and controls the Motion Controllers have available.
+[/region]
 
 ![](Working_With_MC.png)
 
@@ -98,16 +102,15 @@ This L or R means that this is for the **Left** or **Right** Motion Controller.
 
 ## Using Motion Controllers
 
-In the following section we will set the Motion Controllers up so that when you press the trigger button on the **Right-Handed** Motion Controller a Blueprint containing a Static Mesh is spawned into the world. 
-Then when you press the trigger button on the **Left-Handed** Motion Controller the Blueprint that contains the Static Mesh that was spawned into the world will be removed from the world.
+In the following section we will set the Motion Controllers up so that when you press the trigger button on the **Right-Handed** Motion Controller a Blueprint containing a Static Mesh is spawned into the world, while pressing the trigger button on the **Left-Handed** Motion Controller will remove the mesh from the world. 
 
-1. Inside of the Content Browser create a new Blueprint and name it **BP_Sphere** and then open it up by double clicking on it.  
+1. In the Content Browser create a new Blueprint named **BP_Sphere** and open it up by double-clicking on it.  
 
-1. Once the BP_Sphere Blueprint is open, navigate to the **Viewport** tab and add a new **Static Mesh Component**.
+1. Navigate to the **Viewport** tab and add a new **Static Mesh Component**.
 
 	![](Add_SM_Component.png)
 
-1. Move the Static Mesh Component on top of the **Default Screen Root** and then set the Static Mesh used to the **ArcadeEditorSphere** then compile and save your Blueprint.
+1. Move the Static Mesh Component on top of the **Default Screen Root** and set the Static Mesh used to the **ArcadeEditorSphere** and compile and save your Blueprint.
 
 	[OBJECT:EmbeddedVideo]
 		[PARAMLITERAL:width]
@@ -125,26 +128,26 @@ Then when you press the trigger button on the **Left-Handed** Motion Controller 
 	If you can not find the **ArcadeEditorSphere** make sure that you have the **Engine Content** folder enabled by going to **View Options** and then clicking on the **Engine Content** folder to enable it showing up in the Content Browser.
 	[/region]
 
-1. Close down the BP_Sphere Blueprint and open up your **Pawn** Blueprint then navigate to the **Event Graph** tab.
+1. Close the BP_Sphere Blueprint and open up your **Pawn** Blueprint.
 
-1. Create a new **Actor** variable with the name **Objects** and set it's **Variable Type** to array.
+1. In the my Blueprint panel, navigate to the **Event Graph** tab and create a new **Actor** variable with the name **Objects** with its **Variable Type** to array.
 	
 	![](Create_New_Var.png)
 
-1. To create the ability to add objects to the world, inside of the Event Graph add and connect the following Blueprint nodes together. When completed you should have something that looks like the following image.
+1. This Blueprint is going to allow us to add and remove a specified object from the world when the trigger button on the Motion Controllers is pressed. To do this, inside of the Event Graph add and connect the following Blueprint nodes together. When completed you should have something that looks like the following image.
 
 	![](Add_Objects_Setup.png)
 
 	[region:note]
-	The **Spawn Offset** was added to ensure that the objects could be seen while being placed in this example. This is not required for this to work and can be omitted by taking the **Return Value** from the **GetActorTransform** node and inputting that into the **Spawn Transform** input on the **SpawnActor** Blueprint node.
+	The **Spawn Offset** was added to ensure that the objects could be seen while being placed in this example. The offset is not required and can be omitted by connecting the **Return Value** from the **GetActorTransform** node to the **Spawn Transform** input on the **SpawnActor** node.
 	![](Add_Objects_Setup_Alt.png)
 	[/region]
 
-1. Once the Add Objects has been setup select the **Spawn Actor** Blueprint node and in the **Class** section, select the ** BP_Sphere** Blueprint that was created in step one.
+1. Select the **Spawn Actor** node and assign the ** BP_Sphere** Blueprint that was created in step one to the Class input.
 
 	![](Setting_SpawnActor_Up.png)
 
-1. To create the ability to remove the objects that were placed in the world, add and connect the following Blueprint nodes together. When completed you should have something that looks like the following image.
+1. This section of the BLueprint will allow us to remove the objects that were placed in the world. To add this functionality, add and connect the following Blueprint nodes together. When completed you should have something that looks like the following image.
 
 	![](Remove_Objects_Setup.png)
 
@@ -152,9 +155,9 @@ Then when you press the trigger button on the **Left-Handed** Motion Controller 
 	The keyboard input keys were placed in the graph for quick testing. You do not have to include those inputs for this to work with Motion Controllers.
 	[/region]
 
-1. **Compile** then **Save** the changes to your Pawn Blueprint then press the **Play** button to preview the level. 
-	Once the level has started try adding objects to the world by pressing the **K** key on the keyboard or by pressing the Right trigger on the Right Handed Motion Controller. 
-	To remove objects from the world press the **T** key on the keyboard or press the **Left** trigger on the Left Handed Motion Controller which you can see demonstrated in the video below.
+1. **Compile** and **Save** the changes to your Pawn Blueprint and then press the **Play** button. 
+	Once the level has started, try adding objects to the world by pressing the **K** key on the keyboard or by pressing the Right trigger on the Right Handed Motion Controller. 
+	To remove objects from the world, press the **T** key on the keyboard or press the **Left** trigger on the Left Handed Motion Controller which you can see demonstrated in the video below.
 
 	[OBJECT:EmbeddedVideo]
 		[PARAMLITERAL:width]
@@ -168,5 +171,31 @@ Then when you press the trigger button on the **Left-Handed** Motion Controller 
 		[/PARAMLITERAL]
 	[/OBJECT]
 
+## Training Streams
 
-
+[REGION:topics third]
+[OBJECT:TopicCompactVideo]
+	[PARAMLITERAL:title]
+	Setting Up Motion Controllers
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	6ALnsdQnkVQ
+	[/PARAMLITERAL]
+[/OBJECT]
+[OBJECT:TopicCompactVideo]
+	[PARAMLITERAL:title]
+	Creating Interactions in VR With Motion Controllers Part 1
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	eRNtgFo6iU0
+	[/PARAMLITERAL]
+[/OBJECT]
+[OBJECT:TopicCompactVideo]
+	[PARAMLITERAL:title]
+		Creating Interactions in VR With Motion Controllers Part 2
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	utOahIZgKgc
+	[/PARAMLITERAL]
+[/OBJECT]
+[/REGION]

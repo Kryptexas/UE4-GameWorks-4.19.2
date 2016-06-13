@@ -1,25 +1,29 @@
-﻿INTSourceChangelist:2690814
+﻿INTSourceChangelist:2695775
 Availability:Public
-Title:블루프린트 인터페이스 구현
-Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types/Interface
-Description:블루프린트 인터페이스는 블루프린트가 똑같은 인터페이스를 구현하기만 한다면 다른 타겟 유형의 함수를 호출할 수 있도록 해줍니다.
-Version: 4.9
+Title:블루프린트 인터페이스
+Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types
+Description:블루프린트 사이의 인터페이스를 정의하기 위한 함수를 선언하는 블루프린트입니다.
+related: Engine\Blueprints\UserGuide\BlueprintCommsUsage
+related: Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo
+related: Engine\Blueprints\UserGuide\EventDispatcher
+related: Engine\Blueprints\UserGuide\BlueprintComms
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\Types\Interface\UsingInterfaces:title%](Engine\Blueprints\UserGuide\using_interface_topic.png)
+		![%Engine/Blueprints\UserGuide\Types\Interface:title%](Engine/Blueprints/UserGuide/Types/blueprint_interface.png)
 	[/PARAM]
 	[PARAM:icon]
 	[/PARAM]
 	[PARAM:title]
-		%Engine\Blueprints\UserGuide\Types\Interface\UsingInterfaces:title%
+		%Engine/Blueprints\UserGuide\Types\Interface:title%
 	[/PARAM]
 	[PARAM:description]
-		%Engine\Blueprints\UserGuide\Types\Interface\UsingInterfaces:description%
+		%Engine/Blueprints\UserGuide\Types\Interface:description%
 	[/PARAM]
 	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\Types\Interface\UsingInterfaces]
+		[RELATIVE:Engine/Blueprints\UserGuide\Types\Interface]
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -27,149 +31,112 @@ Version: 4.9
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\Types\Interface\UsingInterfaces:title%](Engine\Blueprints\UserGuide\using_interface_topic.png)
+		![%Engine/Blueprints\UserGuide\Types\Interface:title%](Engine/Blueprints/UserGuide/Types/blueprint_interface.png)
 	[/PARAM]
 	[PARAM:icon]
 	[/PARAM]
 	[PARAM:title]
-		%Engine\Blueprints\UserGuide\Types\Interface\UsingInterfaces:title%
+		%Engine/Blueprints\UserGuide\Types\Interface:title%
 	[/PARAM]
 	[PARAM:description]
-		%Engine\Blueprints\UserGuide\Types\Interface\UsingInterfaces:description%
+		%Engine/Blueprints\UserGuide\Types\Interface:description%
 	[/PARAM]
 	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\Types\Interface\UsingInterfaces]
+		[RELATIVE:Engine/Blueprints\UserGuide\Types\Interface]
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 [TOC (start:2)]
 
-## 블루프린트에서 인터페이스 사용
+[EXCERPT:Intro]
+**Blueprint Interface** (블루프린트 인터페이스)는 이름만 있고 구현은 없는 함수 하나 이상으로 된 집합으로, 이를 다른 블루프린트에 추가할 수 있습니다.
+블루프린트에 인터페이스를 추가하면 그 블루프린트는 그 안에 들어있는 함수를 갖게 됩니다.
+인터페이스의 함수에는 그것을 추가한 각각의 블루프린트에 함수성을 줄 수 있습니다. 이는 본질상 일반 프로그래밍의 인터페이스 개념과 비슷한데,
+각기 다른 다수의 오브젝트가 모두 공통의 인터페이스를 통해 접근할 수 있게 되는 것입니다.
+간단히 말해서, 블루프린트 인터페이스를 통해 다양한 블루프린트는 서로간에 데이터를 공유하고 전송할 수 있습니다.
 
-[EXCERPT:intro]
-블루프린트 인터페이스를 사용하면 일정한 함수성을 공유하는 다수의 각기 다른 유형의 오브젝트와 공통된 방법으로 
-상호작용할 수 있습니다. 즉 차와 나무처럼 완전히 다른 유형의 오브젝트일지라도, 무기로 쏠 수 있다거나 대미지를 입는 등의 
-구체적인 것 한 가지를 공유할 수 있다는 것입니다. `OnTakeWeaponFire` 함수가 들어있는 블루프린트 인터페이스 를 만들고, 
-차와 나무 둘 다 그 블루프린트 인터페이스 를 구현하게 하면, 차와 나무 둘 다 같은 유형으로 간주해서 
-어느 것이 맞았더라도 `OnTakeWeaponFire` 를 호출하기만 하면 됩니다.
-[/EXCERPT:intro]
+블루프린트 인터페이스는 콘텐츠 제작자가 에디터에서 다른 블루프린트와 비슷한 방식으로 만들 수 있습니다만, 
+다음과 같은 작업이 불가능하다는 점에서 차이가 있습니다:
 
-
-### 인터페이스 추가
-
-블루프린트 인터페이스는 물론 내비티브 코드(C++) 로 정의된 인터페이스도 아무 유형의 [블루프린트](Engine/Blueprints) 에 추가시킬 수 있습니다.
-
-1. 메인 레벨 에디터 창에서, 프로젝트 안의 **레벨 블루프린트** 를 엽니다.
-
-	![](OpenLevelBP.png)(w:640)
-
-1. 상단에 걸쳐있는 [툴바](Engine/Blueprints/Editor/UIComponents/Toolbar) 에서 **클래스 세팅** 버튼을 클릭합니다.
-
-	![](ClassSettings.png)
-
-1. 오른편의 **디테일** 패널에서, **Interfaces** 카테고리를 찾습니다.
-
-1. **인터페이스 추가** 버튼을 클릭하여 사용가능한 인터페이스 목록을 확인한 뒤 사용할 인터페이스를 선택합니다.
-
-	![](InterfacesCategory.png)
-
-	![](InterfacesListPopulated.png)
-
-[REGION:tip]
-	인터페이스 제거는 _구현된 인터페이스_ 목록 각각의 옆에 있는 ![](button_X_Remove.png) 버튼을 클릭하여 제거할 수 있습니다. 블루프린트 인터페이스에서 보통 블루프린트 함수로 이주시킬 수도 있습니다. 자세한 정보는 [](Engine/Blueprints\UserGuide\BlueprintComms\InterfaceMigration) 문서를 참고하세요.
-[/REGION]
-
-[REGION:note]
-	Interfaces 카테고라 내 _Inherited Interfaces_ (상속된 인터페이스) 섹션은 이 오브젝트에 상속된 인터페이스들로 자동 채워집니다 (즉 현재 블루프린트가 파생된 블루프린트에 구현된 것들).
-[/REGION]
+* 새 변수 추가
+* 그래프 편집
+* 컴포넌트 추가
 
 
+[/EXCERPT:Intro]
 
-### 인터페이스 멤버 구현
+블루프린트 인터페이스를 사용하면 몇 가지 속성을 공유하는 여러가지 다양한 유형의 오브젝트를 공통된 방식으로 상호작용할 수 있습니다.
+무슨 뜻이냐면, 차량이나 나무처럼 완전히 다른 사물도 둘 다 무기로 쏴서 피해를 입힐 수 있다는 한 가지 속성을 공유할 수 있습니다.
+`OnTakeWeaponFire` (무기 발사 피격시) 함수가 들어있는 블루프린트 인터페이스를 만들고,
+차량과 나무 둘 다에서 그 블루프린트 인터페이스를 구현해 주면, 그 차량과 나무 어느 것을 총으로 쏘든 
+같은 유형으로 취급해서 `OnTakeWeaponFire` 함수만 호출해 주면 됩니다.
+블루프린트 인터페이스 구현 방법은 [](Engine/Blueprints\UserGuide\Types\Interface\UsingInterfaces) 문서를 참고하세요.
 
-인터페이스가 블루프린트에 추가되면, 그 블루프린트는 반드시 인터페이스의 함수를 **구현** 해야 
-호출시 일정한 동작이 가능합니다. 이는 **이벤트 그래프** 에 인터페이스 함수에 대한 **이벤트** 노드를 놓는 것으로 이루어집니다.
-이벤트에 연결된 노드는 함수에 대한 함수성을 정의, 또는 구현합니다.
+## 블루프린트 인터페이스 생성
 
-1. 블루프린트의 **이벤트 그래프** 에 우클릭한 다음 **이벤트 추가 > 이벤트 ...** 를 선택합니다.
+블루프린트 인터페이스 생성은 **콘텐츠 브라우저** 안에서 **우클릭** 한 뒤 맥락 메뉴에서 블루프린트 인터페이스를 선택한 다음 새 인터페이스의 이름을 지어주기만 하면 됩니다.
 
-	![Implement Interface - Add Event](k2_interface_event_menu.png) ![Implement Interface - Event Node](k2_interface_event_graph.png)
+![](createinterface.png)
 
-	추가하고자하는 이벤트 유형을 선택하면, 그 이벤트가 그래프에 추가됩니다.
+![](createdblueprintinterface.png)
 
-1. 노드 망을 만들고 이벤트의 실행 핀에 연결하여 함수성을 부여합니다.
+생성한 이후에는, 인터페이스의 함수를 편집해 줘야 합니다.
 
-	![Implement Interface - Event Implementation](k2_interface_event_implementation.png)
+## 블루프린트 인터페이스 편집
 
-	
-### 인터페이스 함수 호출
+블루프린트 인터페이스는 **블루프린트 에디터** 에서 편집합니다. 자체적으로 변수나 그래프나 컴포넌트를 만들 수는 없으므로, 인터페이스 편집 프로세스는 표준 블루프린트 클래스 편집 프로세스와는 크게 다릅니다.
 
-인터페이스의 함수의 실행은 **Interface Message** 노드를 통해 이루어지는데, 이는 외형적으로나 기능적으로 일반 
-[](Engine/Blueprints/UserGuide/Functions/FunctionCalls) 와 비슷하나, 타겟이 인터페이스 구현을 하지 않는 경우 조용히 실패한다는 점에서 
-살짝 다릅니다.
+새 인터페이스를 처음 열 때, 에디터는 이런 모습입니다:
 
-![Implement Interface - Call Function](k2_interface_event_call.png)
+![](InterfaceEditor.png)
+
+인터페이스를 처음 만들면 NewFunction_0 이라는 이름의 공백 함수가 새로 생성되어, 이름을 변경할 수 있도록 선택된 상태로 나타납니다.
+
+### 함수 추가
+
+함수는 인터페이스의 주요 성분입니다. 인터페이스 함수에는 구현이 없습니다. 단순히 입력과 출력의 정의를 위해서만 존재합니다. 이를 이용하여 인터페이스를 통해 데이터를 전송하거나, 그 인터페이스를 구현하는 다른 블루프린트로 덮어쓸 수도 있습니다.
+
+함수를 새로 추가하려면:
+
+1. **내 블루프린트** 탭에서 새 함수를 만듭니다. ![](Engine\Blueprints\Editor\UIComponents\MyBlueprint\myblueprint_function.png) 함수 목록 제목줄 아래 ![](Engine\Blueprints\Editor\UIComponents\MyBlueprint\plus_Button.png) **추가 버튼** 을 누르면 됩니다.
+
+1. **내 블루프린트** 패널에서, 새 함수의 이름을 입력합니다.
+
+	![](RenameMyFunction.png)
+
+1. 새 그래프 영역에 새로운 함수와 함께 나타납니다. 이 함수에는 아직 입력도 출력도 없는 것이 보입니다.
+
+	![](NewFunctionCreated.png)
 
 
-### 다른 블루프린트에서 인터페이스 함수 호출
+### 함수 시그너처 편집
 
-인터페이스는 각기 다른 블루프린트 사이의 통신을 하는 데 유용하게 쓰입니다. 한 인터페이스의 함수들을 다른 블루프린트에서도 호출할 수 있는 것입니다. 이는 두 가지 조건이 충족되면 가능합니다:
+인터페이스 함수에는 구현이 없기 때문에, 디자이너가 할 수 있는 작업이라곤 일정 유형의 입력과 출력 시리즈를 지정하는 것 뿐입니다.
 
-* 두 블루프린트 모두 필요한 함수와 같은 인터페이스를 구현
-* 호출하는 블루프린트에서 다른 블루프린트의 게임내 인스턴스 이름을 인지
+함수의 시그너처를 편집하려면:
+
+1. **디테일** 탭에서 Inputs (입력) 카테고리로 내려간 다음 ![](button_New.png) 버튼을 눌러 새로운 입력 파라미터를 만듭니다.
+
+	![](Details_Signature.png)
+
+1. Input Name (입력 이름)과 Type (유형)은 원하는 대로 설정합니다. 또한 이름 옆의 ![](button_DropdownArrow.png) 버튼을 사용하여 입력을 확장시키고, 거기서 Default Value (기본값) 설정도 가능합니다.
+
+	![](FloatInput.png) ![](MyFunctionGraph.png)
+
+1. 같은 방식으로, 출력 역시 추가할 수 있습니다. 그래프에서 자동으로 업데이트되어 표시되는 방식을 확인할 수 있습니다.
+
+	![](OutputBool.png) ![](InputWithOutput.png)
 
 
-이벤트 그래프 안에서 Interface Function 노드를 만들 때, 맥락 메뉴에 종종 두 가지 버전의 함수가 나열되는 것이 보일 것입니다.
 
-![](MyFunctionInMenu.png)
 
-중요한 점은, **Call Function** 아래 나열된 버전은 로컬 버전으로, 이 블루프린트 안에서만 호출하기 위한 것입니다.
+### 기타 고려사항
 
-**Interface Messages** 아래 나열된 버전은 같은 인터페이스를 구현하는 다른 블루프린트에서 인터페이스를 통해 함수를 호출하도록 디자인된 것입니다.
+* 아무 입력이나 출력 파라미터에 있는 ![](button_X_Remove.png) 버튼을 누르면 그 파라미터를 제거합니다.
 
-노드 제목 아래 라벨을 통해 구분하는 데 도움이 됩니다:
+* 입력 파라미터에는 파라미터 이름 칸 바로 아래 있는 작은 글상자를 사용해서 기본값을 줄 수 있으며, 확인을 위해서는 **디테일** 탭에서 프로퍼티 항목을 확장시켜야 합니다.
 
-[REGION:imagetable]
-| ![](Local_MyFunction.png)| ![](Interface_MyFunction.png) |
-| ------ | ------ |
-| 로컬 버전. | 인터페이스 메시지 버전. |
-[/REGION]
+* 노드에서 입력과 출력 파라미터가 나타나는 위치는 ![](button_moveUp.png) & ![](button_moveDown.png) 버튼을 사용해서 바꿀 수 있습니다. 이는 **디테일** 탭에서 파라미터 프로퍼티를 펼치면 찾을 수 있습니다.
 
-인터페이스 메시지 함수 호출을 위해서는 함수를 호출하는 적합한 블루프린트 인스턴스를 제공해 주는 것이 필요합니다.
-
-참고로 이 그림에서는 다른 블루프린트를 타겟 입력으로 전송하고 있습니다. 그러면 제공된 블루프린트에서 함수를 호출할 것입니다. 블루프린트가 인터페이스 구현을 하지 않았다면, 아무 일도 일어나지 않을 것입니다.
-
-![](InterfaceMessageFunctionCalled.png)
-
-[REGION:tip]
-	레벨 내 존재하는 블루프린트를 지정하려면, Actor 유형 퍼블릭 변수를 만든 다음, 레벨 에디터의 **디테일** 탭에서 해당 변수의 값에 적합한 블루프린트를 할당해 주는 것이 가장 좋습니다.
-[/REGION]
-
-### 레벨 블루프린트에서 인터페이스 함수 호출
-
-인터페이스를 통해서는 **Get Streaming Level** 노드를 사용해서 서브레벨간의 통신도 가능합니다. 레벨이 로드되어 유효한 상태라면, **Interface Message** 는 레벨의 블루프린트 스크립트를 타겟으로 해서 함수를 호출합니다.
-
-![](InterfaceGetLevelStreaming.png)
-
-### 인터페이스 함수 덮어쓰기
-
-인터페이스 함수의 가장 중요한 면 중 하나는, 직접적인 구현부가 없기에, 인터페이스를 구현하는 각 블루프린트에 대해 그 함수성을 독립적으로 구현할 수 있다는 것입니다.
-
-블루프린트에서 인터페이스를 구현한 이후에는, 그 인터페이스의 함수가 **내 블루프린트** 패널에 보일 것입니다.
-
-![](iFunctionInExplorer.png)
-
-그 함수를 더블클릭하면 블루프린트 에디터에 열립니다. 여기에는 이 함수에 대한 로컬 구현이 표시되며, 구현되는 함수성은 뭐가 됐든 이 블루프린트 고유의 것이 됩니다. 이런 식으로, 인터페이스를 구현하는 각 블루프린트마다 커스텀 함수성을 정의할 수 있습니다.
-
-예를 들어 이 그림에는 기본적인 인터페이스 함수가 블루프린트 안에 열린 것으로 보입니다. 현재 이 함수는 아무것도 하지 않습니다.
-
-![](DefaultFunction.png)(w:600)
-
-다음과 같이 수치 비교를 한 뒤 값을 출력하는 간단한 망을 만들어 볼 수 있습니다.
-
-![](ComparisonFunction.png)(w:600)
-
-이제 이 함수가 로컬에서 호출되면, 플로트 값을 받아, 숫자 10 과 비교한 다음, 화면에 불리언 값을 출력합니다.
-
-![](FunctionLogging.png)
+* 서버를 통해 리플리케이트시켜야 하는 함수가 들어있는 인터페이스의 경우 Replicates (리플리케이트) 박스를 체크하면 됩니다. **디테일** 탭에서 **클래스 세팅** 버튼을 먼저 클릭하는 것으로 찾을 수 있습니다.

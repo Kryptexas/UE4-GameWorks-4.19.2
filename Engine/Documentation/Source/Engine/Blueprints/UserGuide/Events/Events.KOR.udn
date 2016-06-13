@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:2688371
+﻿INTSourceChangelist:2968923
 Availability:Public
 Title:이벤트
-Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
+Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/Scripting
 Description: 키즈멧에서 사용할 수 있는 Event 노드에 대한 문서입니다.
 version: 4.9
+Parent:Engine/Blueprints/Scripting
+tags:Execution Flow
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -147,7 +149,12 @@ _이 블루프린트 액터가 Player Actor 변수에 저장된 액터를 제외
 
 ![](EventHit.png)
 
-충돌에 관련된 두 액터 모두의 콜리전 세팅에 **Simulation Generates Hit Events** 옵션이 True 설정된 경우에만 실행되는 이벤트입니다.
+충돌에 관련된 액터 중 하나가 콜리전 세팅에 **Simulation Generates Hit Events** 옵션이 True 설정된 경우에만 실행되는 이벤트입니다.
+
+[REGION:note]
+Sweep 을 사용해서 무브먼트를 
+If you are creating movement using Sweeps, you will get this event even if you don't have the flag selected. This occurs as long as the Sweep stops you from moving past the blocking object.
+[/REGION]
 
 | 항목 | 설명 |
 | -------- | ----------- |
@@ -230,7 +237,7 @@ _이 예제에서는, 대미지를 받으면 액터의 생명력에서 입은 �
 | **Origin** | **Vector** - 대미지 진원지의 3D 스페이스 위치를 나타냅니다. |
 | **Hit Info** | **Struct** `HitResult` - 한 번의 Hit 에 수집된 모든 데이터로, 이 결과를 분석 추출하여 개별 개별 데이터에 접근할 수 있습니다. |
 | **Instigated By** | **Controller** - 대미지를 입힌 Controller (AI 또는 Player) 입니다. |
-| **Damage Causer** | **Actor** - 대미지를 유발시킨 액터입니다. 총알, 로켓, 레이저, 또는 펀티를 날린 캐릭터가 될 수도 있습니다. |
+| **Damage Causer** | **Actor** - 대미지를 유발시킨 액터입니다. 총알, 로켓, 레이저, 또는 펀치를 날린 캐릭터가 될 수도 있습니다. |
 
 [REGION:lightbox]
 [![](RadialDamageEX.png)(w:940)](RadialDamageEX.png)

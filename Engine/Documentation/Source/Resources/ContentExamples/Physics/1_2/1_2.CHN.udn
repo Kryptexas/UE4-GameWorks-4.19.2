@@ -3,7 +3,7 @@ Title:1.2 -骨架网格刚体
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Physics
 Description:物理表现示例关卡概述，示例1.2： 骨架网格刚体的模拟物体表现
 Related: Engine/Physics/PhysicsBodies
-Related: Engine/Physics/PhAT/UserGuide
+Related: Engine/Physics/PhAT/HowTo
 Related: Engine/Physics/Constraints/ConstraintsReference
 Related: Engine/Physics/Constraints/ConstraintsUserGuide
 Related: Engine/Physics/Collision

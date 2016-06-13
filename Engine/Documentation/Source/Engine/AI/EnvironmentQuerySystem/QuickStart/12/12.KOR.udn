@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2606076
+﻿INTSourceChangelist:2654627
 Availability:Public
 Title: 12. FindHidingSpot EQS 생성
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
 Description: 플레이어의 TopDownCharacter 로 부터 숨을 최적의 지점을 그리드에서 찾는 EQS 를 만듭니다.
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -108,29 +109,29 @@ Description: 플레이어의 TopDownCharacter 로 부터 숨을 최적의 지점
 
 <!--
 [EXCERPT:eqsqs125]
-* **Line A - Rotation** = `PlayerContext`
-* **Line B - Line From** = `PlayerContext`
-* **Absolute Value** = `True`
-* **Test Purpose** = `Score Only`
-* **Scoring Factor** = `-1.0`
+* **Line A - Rotation** = PlayerContext
+* **Line B - Line From** = PlayerContext
+* **Absolute Value** = True
+* **Test Purpose** = Score Only
+* **Scoring Factor** = -1.0
 [/EXCERPT]
 
 [EXCERPT:eqsqs121]
-* **Grid Size** = `2000.0`
-* **Space Between** = `150.0`
-* **Navigation Filer** = `RecastFilter_UseDefaultArea`
-* **Project Down** = `2048.0`
-* **Post Projection Vertical Offset** = `32.0`
+* **Grid Size** = 2000.0
+* **Space Between** = 150.0
+* **Navigation Filer** = RecastFilter_UseDefaultArea
+* **Project Down** = 2048.0
+* **Post Projection Vertical Offset** = 32.0
 [/EXCERPT]
 
 [EXCERPT:eqsqs122]
-* **Distance To** = `Player Context`
-* **Test Purpose** = `Score Only`
+* **Distance To** = Player Context
+* **Test Purpose** = Score Only
 [/EXCERPT]
 
 [EXCERPT:eqsqs123]
-* **Test Purpose** = `Score Only`
-* **Scoring Equation** = `Inverse Linear`
-* **Scoring Factor** = `2.0`
+* **Test Purpose** = Score Only
+* **Scoring Equation** = Inverse Linear
+* **Scoring Factor** = 2.0
 [/EXCERPT]
 -->

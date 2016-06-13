@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2290814
+﻿INTSourceChangelist:2638696
 Availability:Docs
 Title:プリミティブのタイプの技術ガイド
 Crumbs:%ROOT%, Programming, Programming/Rendering
@@ -9,10 +9,6 @@ Description:レンダリング プリミティブの新規の種類を作成す�
 [/REGION]
 
 [TOC (start:2 end:3)]
-
-
-
-## 概要
 
 UPrimitiveComponents はレンダリングおよびコリジョンの対象となる Actor コンポーネントです。このページでは、 UPrimitiveComponent の種類を新規作成する方法を説明します。
 

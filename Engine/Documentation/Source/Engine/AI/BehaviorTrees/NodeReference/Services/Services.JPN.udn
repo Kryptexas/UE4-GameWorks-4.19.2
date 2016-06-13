@@ -1,24 +1,23 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2755887
 Availability:Public
-Title:Behavior Tree ノードのリファレンス:Services
+Title:Behavior Tree ノードのリファレンス: Services
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
 Description:Behavior Tree Service ノードの説明です。
+version:4.9
 
-[TOC(start:2 end:2)]
-
-**Services** は [**Composite**](Engine/AI/BehaviorTrees/NodeReference/Composites) ノードにアタッチされ、ブランチの実行中は定義された頻度で実行されるノードです。確認してブラックボードを更新するために頻繁に使用されます。他のビヘイビアツリー システムの通常の Parallel ノードの代わりになります。
+**Services** は [Composite](Engine/AI/BehaviorTrees/NodeReference/Composites) ノードにアタッチされ、ブランチの実行中は定義された頻度で実行されるノードです。確認してブラックボードを更新するために頻繁に使用されます。他のビヘイビアツリー システムの通常の Parallel ノードの代わりになります。
 
 
 ## Default Focus
 
 ![](SetDefaultFocus.png)
 
-Default Focus は、 AI コントローラーのフォーカスを設定することにより、アクタとブループリントへのショートカットを作成します。AI コントローラーのフォーカスをアクタに設定すると、 Blackboard Key にアクセスせずに AI コントローラーに直接アクセスできるようになります。
+Default Focus は、 AI コントローラーのフォーカスを設定することにより、ブループリント内のアクタへのショートカットを作成します。AI コントローラーのフォーカスをアクタに設定すると、 Blackboard Key にアクセスせずに AI コントローラーに直接アクセスできるようになります。
 
 | プロパティ | 説明 |
 | -------- | ----------- |
-| **Blackboard Key**| GetFocusActor を使って、 Actor Key (基本クラスがアクタに設定されたオブジェクト キー) が AI コントローラーからすぐに参照されるようにします。 |
-| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+| **Blackboard Key**| `GetFocusActor` を使って、 Actor Key (および基本クラスがアクタに設定されたオブジェクト キー) が AI コントローラーからすぐに参照されるようにします。 |
+| **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
 
 [REGION:note]
 4.4 では、 Vector Blackboard Key を受け取るために Blackboard Key が表示されますが、 Set/Clear/Get Focus Actor 関数がアクタ上で機能するため、何も行いません。

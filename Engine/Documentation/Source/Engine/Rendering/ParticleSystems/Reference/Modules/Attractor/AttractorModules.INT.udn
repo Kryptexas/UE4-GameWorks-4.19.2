@@ -2,6 +2,7 @@ Availability: Public
 Title:Attractor Modules
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:Modules for causing particles to be attracted toward specific points in space.
+Version: 4.9
 
 [TOC(start:2 end:3)]
 
@@ -21,9 +22,9 @@ Ntf5chUK4jM
 [/PARAMLITERAL]
 [/OBJECT]
 
-## Attractor Line
+## Line Attractor
 
-The line attractor allows for having particles be drawn to a line in 3D space.
+The **Line Attractor** allows for having particles be drawn to a line in 3D space.
 
 | Property | Description |
 | ----- | ----- |
@@ -49,7 +50,7 @@ The line attractor allows for having particles be drawn to a line in 3D space.
 [/PARAMLITERAL]
 [/OBJECT]
 
-The particle attractor allows for having particles be drawn to the particles emitted from another emitter in the system. It contains the following member(s):
+The **Particle Attractor** allows for having particles be drawn to the particles emitted from another emitter in the system. It contains the following member(s):
 
 | Property | Description |
 | ----- | ----- |
@@ -92,7 +93,7 @@ fHYk6juHU0c
 [/PARAMLITERAL]
 [/OBJECT]
 
-The point attractor allows for defining a point to which particles are attracted and its radius of effect. It contains the following member(s):
+The **Point Attractor** allows for defining a point to which particles are attracted and its radius of effect. It contains the following member(s):
 
 | Property | Description |
 | ----- | ----- |
@@ -121,7 +122,7 @@ uqXArTDw9as
 [/PARAMLITERAL]
 [/OBJECT]
 
-The Point Gravity module attracts particles towards a singular point in 3D space, using a given strength value. It is similar to the Newton field in Maya's particle system. It can be used to pull particles toward a source or to create orbital effects around a point.
+The **Point Gravity** module attracts particles towards a singular point in 3D space, using a given strength value. It is similar to the Newton field in Maya's particle system. It can be used to pull particles toward a source or to create orbital effects around a point.
 
 [REGION:warning]
 	Point Gravity is the only Attractor module usable by GPU Sprites.

@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2735872
 Availability: Public
 Title: 오디오 & 사운드
 Crumbs: %ROOT%, Engine
 Description:게임내 사운드 재생에 사용되는 시스템으로, 사운드큐 노드 기반 오디오 애셋 사용법도 다룹니다.
 Navigation:topic
+version: 4.9
+parent:Engine
+order:4
 
 [VAR:Topic]
 [OBJECT:Topic]

@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2636043
+﻿INTSourceChangelist:2757241
 Availability:Public
 Title:13.デコレーターの作成
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
-Description:13.Decoratorの作成
+Description:13.デコレーターの作成
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -22,18 +23,18 @@ Description:13.Decoratorの作成
 
 %Steps%
 
-Behavior Tree (ビヘイビアツリー) システムの条件式としても知られる **Decorators ノード** は [**Composite**](Engine/AI/BehaviorTrees/NodeReference/Composites) または [**Task**](Engine/AI/BehaviorTrees/NodeReference/Tasks) ノードのいずれかにアタッチされ、ツリーのブランチあるいはノード 1 つでも実行可能かどうかの判断をするノードです。
+Behavior Tree (ビヘイビアツリー) システムの条件式としても知られる **Decorators ノード** は [Composite](Engine/AI/BehaviorTrees/NodeReference/Composites) または [Task](Engine/AI/BehaviorTrees/NodeReference/Tasks) ノードのいずれかにアタッチされ、ツリーのブランチあるいはノード 1 つでも実行可能かどうかの判断をするノードです。
 
-AI のポーンがターゲットに十分近づくと、**Decorator** はビヘイビアツリーの Rapid Move To ブランチの実行を中止します。これは **Rapid Move To** Task 内あるいは **Move To** Task によって処理することができますが、この Decorator はすべてのアクタを受け取り、ブランチの実行をブロックすることができます。従って、様々な状況での再利用が可能になります。
+AI のポーンがターゲットに十分近づくと、**デコレーター** はビヘイビアツリーの Rapid Move To ブランチの実行を中止します。これは **Rapid Move To** タスク内あるいは **Move To** タスクによって処理することができますが、この Decorator はすべてのアクタを受け取り、ブランチの実行をブロックすることができます。従って、様々な状況での再利用が可能になります。
 
 ## ステップ
 
 1. **コンテンツ ブラウザ** で FollowerBT Behavior Tree を **ダブルクリック** して開きます。
-1. New Decorator ![](newDecorator_button.png) ボタンをクリックします。
+1. **[New Decorator (新規デコレーター)]** ボタンをクリックします。
 
-	ビヘイビアツリーと同じフォルダの中に作成されます。
-1. **コンテンツ ブラウザ** の中で名前を「CloseEnough」に変更します。
-1. 編集のためにエディタによって既に開いた状態になっているはずですが、もしそうでない場合はコンテンツ ブラウザで **ダブルクリック** してください。
+	ビヘイビアツリーと同じフォルダ内に作成されます。
+1. **コンテンツ ブラウザ** 内で名前を「CloseEnough」に変更します。
+1. 編集のためにエディタによって既に開いた状態になっているはずですが、もしそうでない場合は **コンテンツ ブラウザ** で **ダブルクリック** してください。
 1. [My Blueprint] タブの [Functions (関数)] セクションで、 **PerformConditionCheck** を "オーバーライド" します。
 
 	![](override_button.png)
@@ -47,14 +48,14 @@ AI のポーンがターゲットに十分近づくと、**Decorator** はビヘ
 			[/REGION]
 		[/PARAM]
 		[PARAMLITERAL:id]
-		fullgraphBTService13
+		fullgraphBTService12
 		[/PARAMLITERAL]
 		[PARAM:snippet]
 		%bpcode%
 		[/PARAM]
 	[/OBJECT]
 
-	_画像をクリックして拡大、または [こちら](fullGraph.png) をクリックしてウィンドウ中で開きます。_
+	_画像をクリックして拡大、または [こちら](fullGraph.png) をクリックしてウィンドウ内で開きます。_
 
 	![](variables.png)
 
@@ -66,14 +67,12 @@ AI のポーンがターゲットに十分近づくと、**Decorator** はビヘ
 	これは関数グラフなので、上の画像のグラフから **Code Snippet** を使った場合、グラフの中央部分しか取得できず、開始と終了のノードは接続されません。画像の通りにこれらを接続すれば、正常に機能します。
 	[/REGION]
 
-
-
 [VAR:varTable1]
 | 変数名 | タイプ | 値 |
 | --- | --- | --- |
 | **AI_CON_Ref** | Follower_AI_CON_C | None |
-| **AcceptableDistance** | Float |  0.0 - ただしこの変数には **True** に設定させている「編集可能な」フラグがあるので、ビヘイビアツリー上でインスタンスごとに変更することができます。. |
-| **TargetToFollow** | BlackboardKeySelector | None - ただしこの変数には **True** に設定させている「編集可能な」フラグがあるので、ビヘイビアツリー上でインスタンスごとに変更することができます。 |
+| **AcceptableDistance** | Float | 0.0 - ただしこの変数には **True** に設定している「編集可能な」フラグがあるので、ビヘイビアツリー上でインスタンスごとに変更することができます。. |
+| **TargetToFollow** | BlackboardKeySelector | None - ただしこの変数には **True** に設定している「編集可能な」フラグがあるので、ビヘイビアツリー上でインスタンスごとに変更することができます。 |
 [/VAR]
 
 1. イベント **Receive Condition Check** は、ビヘイビアツリーがこの条件のノードにヒットした時にこのブループリントへ送られるイベントです。
@@ -82,7 +81,7 @@ AI のポーンがターゲットに十分近づくと、**Decorator** はビヘ
 1. アクタと AI ポーン間の距離を取得します。
 1. 距離が設定可能な値より大きい場合は、条件は **True** を返します。そうでない場合は **False** を返し、それがあるビヘイビアツリー部の実行をブロックします。
 
-これにより、ビヘイビアツリーが継続的に **RapidMoveTo** へサイクルして再び戻ることがなくなります。基本的に、プレイヤーに追いついたら停止します。
+これにより、ビヘイビアツリーが絶えず **RapidMoveTo** へサイクルして再び戻ることがなくなります。基本的に、プレイヤーに追いついたら停止します。
 
 %Steps%
 

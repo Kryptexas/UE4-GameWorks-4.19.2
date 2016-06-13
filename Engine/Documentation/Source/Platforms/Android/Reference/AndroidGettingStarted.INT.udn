@@ -4,6 +4,10 @@ Crumbs:%ROOT%, Platforms, Platforms/Android
 Description:How to install different Android SDKs, set environment variables, and work with texture formats.
 Version: 4.9
 SkillLevel: Intermediate
+Parent:Platforms/Android
+tags:Mobile
+tags:Android
+type:reference
 
 [TOC(start:2 end:3)]
 

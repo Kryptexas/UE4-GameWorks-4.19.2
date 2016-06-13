@@ -2,6 +2,7 @@ Availability: Public
 Title:Size Modules
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:These modules affect the sizes of particles across various points of their lifespans.
+Version: 4.9
 
 [TOC(start:2 end:3)]
 
@@ -21,7 +22,7 @@ e72tK-OB9oE
 [/PARAMLITERAL]
 [/OBJECT]
 
-The Initial Size module is used to set the initial size of a particle at spawn time. It contains the following member(s):
+The **Initial Size** module is used to set the initial size of a particle at spawn time. It contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |
@@ -32,7 +33,7 @@ The Initial Size module is used to set the initial size of a particle at spawn t
 
 ## Initial Size (Seeded)
 
-The Initial Size (Seeded) module is identical to the [Initial Size](#InitialSize) module in that it sets the size of a particle when it is emitted; however, this module allows you to specify seed information to be used when choosing distribution values in order to provide a more consistent effect from the module each time the emitter is used. It contains the following member(s):
+The **Initial Size (Seeded)** module is identical to the [Initial Size](#InitialSize) module in that it sets the size of a particle when it is emitted; however, this module allows you to specify seed information to be used when choosing distribution values in order to provide a more consistent effect from the module each time the emitter is used. It contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |

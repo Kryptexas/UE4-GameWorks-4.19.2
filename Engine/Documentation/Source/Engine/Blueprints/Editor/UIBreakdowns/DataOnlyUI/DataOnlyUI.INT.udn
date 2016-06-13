@@ -1,7 +1,7 @@
 Availability:Public
 Title:Data-Only Blueprint UI
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
-Description:Overview of the Blueprint Class Editor interface.
+Description:A breakdown of the UI elements of the Blueprint Editor when working on Blueprint Classes where only the class defaults have changed from the parent.
 version: 4.9
 
 [VAR:Topic]

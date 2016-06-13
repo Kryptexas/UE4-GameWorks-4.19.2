@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2420648
+﻿INTSourceChangelist:2683548
 Availability:Public
 Title:ライトの種類
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:アンリアル・エンジン 4で利用可能なライトの種類
 DescriptionLong:アンリアル・エンジン 4で利用可能なライトの種類：Point (ポイント)、Spot (スポット)、Directional (指向性)、Particle (パーティクル)
+Version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -44,9 +45,9 @@ DescriptionLong:アンリアル・エンジン 4で利用可能なライトの�
 [/OBJECT]
 [/VAR]
 
-## 概要
 
-アンリアル エンジン 4 には **指向性** 、 **ポイント** 、 **スポット** 、 **スカイ** の 4 種類のライトがあります。指向性ライトは主に、主要な外部のライトあるいは極限またはほぼ無限の距離からライトをキャストしているかのように見せる必要のあるライトとして使用されます。ポイントライトは、 1 ヶ所から全方向にライトを放射する典型的な「電球」になります。スポットライトは、ライトを一点から放射しますが、コーン設定によってライトには限りがあります。スカイライトは、シーンのバックグラウンドをキャプチャし、レベルのメッシュにライティングを適用します。
+
+アンリアル エンジン 4 には **指向性**、**ポイント**、**スポット**、**スカイ** の 4 種類のライトがあります。指向性ライトは主に、主要な外部のライト、あるいは極限またはほぼ無限の距離からライトをキャストしているかのように見せる必要がある場合に使用します。ポイントライトは、 1 ヶ所から全方向にライトを放射する典型的な「電球」になります。スポットライトは、ライトを一点から放射しますが、コーン設定によってライトには限りがあります。スカイライトは、シーンのバックグラウンドをキャプチャし、レベルのメッシュにライティングを適用します。
 
 以下は各種ライトのリファレンスへのクイック リンクです。
 
@@ -58,3 +59,7 @@ DescriptionLong:アンリアル・エンジン 4で利用可能なライトの�
 %Engine/Rendering/LightingAndShadows/LightTypes/Spot:topiccompact%
 %Engine/Rendering/LightingAndShadows/LightTypes/SkyLight:topiccompact%
 [/REGION]
+
+
+
+

@@ -4,7 +4,7 @@ Title:Target Point アクタ
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:Target アクタの作成と使用に関するガイド
 Related:Gameplay/HowTo/SpawnAndDestroyActors/Blueprints
-バージョン：4.9
+version: 4.9
 
 ![](Target_Point_Actors.png)
 

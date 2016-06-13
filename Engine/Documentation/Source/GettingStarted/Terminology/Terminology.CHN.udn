@@ -1,5 +1,6 @@
-﻿Availability: Public
-Title:虚幻引擎4术语
+﻿INTSourceChangelist:2719462
+Availability: Public
+Title: 虚幻引擎 4 术语
 Crumbs: %ROOT%, Gameplay, GettingStarted
 Description: 介绍了应用虚幻引擎4时用到的常用术语。
 
@@ -37,7 +38,8 @@ Description: 介绍了应用虚幻引擎4时用到的常用术语。
 [/OBJECT]
 [/VAR]
 
-本页面的目的是介绍当应用 **虚幻引擎4** 时遇到的常用术语。比如，如果您发现自己会问像 “什么是Actor”、“什么是 **组件**”、“什么是Pawn”这样的问题，那么本页面便突出介绍了并提供了关于这些类型问题的描述。一旦您理解了每个术语的意思，下面的链接提供了更多文档及如何使用它们的指南。
+本页面的目的是介绍当应用 **虚幻引擎 4** 时遇到的常用术语。比如，如果您发现自己会问像 “什么是 Actor”、“什么是 **组件**”、“什么是 Pawn”这样的问题，
+那么本页面便突出介绍了并提供了关于这些类型问题的描述。一旦您理解了每个术语的意思，下面的链接提供了更多文档及如何使用它们的指南。
 
 | ------- | ------------ |
 |![](NewProject.png)(w:300 h:140)|[INCLUDE:GettingStarted\Terminology#projects]| 
@@ -129,20 +131,20 @@ Description: 介绍了应用虚幻引擎4时用到的常用术语。
 
 
 [EXCERPT:characters]
-**角色**
+**Character**
 [INCLUDE:Shared\Glossary\C#glossary_character]
 要了解更多信息，请参阅： [](Gameplay/Framework/Pawn/Character), [角色设置](Engine/Animation/CharacterSetupOverview), [指南 - 角色运动](Gameplay/HowTo/CharacterMovement/Blueprints)
 [/EXCERPT:characters]
 
 
 [EXCERPT:pawn]
-**Pawns**
+**Pawn**
 [INCLUDE:Shared\Glossary\P#glossary_pawn] 
 要了解更多信息，请参阅： [](Gameplay/Framework/Pawn), [](Gameplay/HowTo/PossessPawns)
 [/EXCERPT:pawn]
 
 [EXCERPT:controller]
-**Controllers（控制器）**
+**Controller（控制器）**
 [INCLUDE:Shared\Glossary\C#glossary_controller_class] 
 要了解更多信息，请参阅： [](Gameplay/Framework/Controller), [](Gameplay/Framework/Controller/PlayerController), [](Gameplay/Framework/Controller/AIController)
 [/EXCERPT:controller]

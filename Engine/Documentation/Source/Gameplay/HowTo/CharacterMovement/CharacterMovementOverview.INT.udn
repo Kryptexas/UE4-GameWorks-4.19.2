@@ -17,9 +17,9 @@ To learn more about **Setting up Character Movement in Blueprints**, follow the 
 
 [REGION:buttonlist]
 * [](Gameplay\HowTo\CharacterMovement\Blueprints)
-[PUBLISH:Docs]
+<!--
 * [](Gameplay\HowTo\CharacterMovement\Code)
-[/PUBLISH:Docs]
+-->
 [/REGION]
 
 

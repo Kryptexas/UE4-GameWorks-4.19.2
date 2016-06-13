@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653552
+﻿INTSourceChangelist:2721919
 Availability: Public
 Title:1.2 - 리플렉션 논메탈릭 머티리얼
 Crumbs: %ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Reflections
@@ -9,6 +9,7 @@ Related: Engine/Rendering/LightingAndShadows/LightTypes/SkyLight\
 Related: Engine/Rendering/Materials/PhysicallyBased
 Related: Resources/Showcases/RealisticRendering
 Related: Engine/Rendering/PostProcessEffects
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2634466
+﻿INTSourceChangelist:2697095
 Availability:Public
 Title:뷰포트 콘트롤
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
 Description:에디터 뷰포트의 다양한 콘트롤 방법을 배워봅니다.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]

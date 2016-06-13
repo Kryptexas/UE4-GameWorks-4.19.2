@@ -1,0 +1,107 @@
+﻿INTSourceChangelist:0
+Title: Unreal Engine VR Editor
+Description: Build worlds in a virtual reality environment using the full capabilities of the editor toolset with interactions designed specifically for VR.
+Crumbs:
+Availability:docs
+parent:Engine/Editor
+type:overview
+order:0
+tags:VR
+version:4.11
+skilllevel:intermediate
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Editor/VR:title%](Engine/Editor/VR/vreditor.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Editor/VR:title%](Engine/Editor/VR/vr_editor.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+The VR Editor enables you to design and build worlds in a virtual reality environment using the full capabilities of the editor toolset combined with interaction models designed specifically for VR world building.
+
+Working directly in VR provides the proper sense of scale necessary to create realistic, believable worlds, while the use of motion controllers means you can build environments with natural motions and interactions.
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	JKO9fEjNiio
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	930
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	568
+	[/PARAMLITERAL]
+[/OBJECT]
+
+To activate the VR Editor, click the **VR Mode** button on the main tool bar.
+
+![](vrmode_toolbar.png)(convert:false)
+
+In order to use Unreal Editor in VR mode, your development environment must mee the following specifications:
+
+| Hardware Requirements ||
+| --- | --- |
+| **PC Hardware** | Minimum for your VR hardware |
+| **Supported VR Hardware** | [INCLUDE:#VRHardware] |
+
+| Software Requirements ||
+| --- | --- |
+| **Operating System** | Windows 7/8 64-bit |
+| **SDKs** | [INCLUDE:#VRSoftware] |
+
+## Reference
+
+[DIR(end:"1" output:"topic" type:"reference" parent:"Engine/Editor/VR")]
+
+## Guides
+
+[DIR(end:"1" output:"topic" type:"howto" parent:"Engine/Editor/VR")]
+
+<!--
+[EXCERPT:VRHardware]
+[REGION:plainlist]
+* Oculus Rift with Oculus Touch controllers
+* HTC Vive with controllers
+[/REGION]
+[REGION:note]
+The VR Editor requires motion controllers in order to interact with and navigate the world.
+[/REGION]
+[/EXCERPT:VRHardware]
+
+[EXCERPT:VRSoftware]
+[REGION:plainlist]
+* **For Oculus Rift:** Oculus Runtime version 1.3 or later
+* **For HTC Vive:** SteamVR
+[/REGION]
+[REGION:note]
+The 0.8-beta runtimes will not work with VR Editor.  If you have access to Oculus Touch controllers, you can acquire the 1.3 runtime from your Oculus support contacts.
+[/REGION]
+[/EXCERPT:VRSoftware]
+-->

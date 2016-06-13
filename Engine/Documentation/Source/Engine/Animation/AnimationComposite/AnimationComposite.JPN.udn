@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2725188
+﻿INTSourceChangelist:2989492
 Availability:Public
 Title:アニメーション合成
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:アニメーション合成は複数のアニメーションを結合し、単一ユニットとして扱います。
-バージョン：4.9
+version:4.9
 
 [REGION:fullwidth]
 ![](AnimationCompositeHeader.png)
@@ -66,13 +66,30 @@ Description:アニメーション合成は複数のアニメーションを結�
 
 ## 合成を使用する
 
-一度まとめられると、アニメーション合成は Animation ブループリント (Engine\Animation\AnimBlueprints) の AnimGraph にある [アニメーション シーケンス](Engine\Animation\Sequences) と同じように扱われます。
+一度まとめられると、アニメーション合成は [Animation ブループリント](Engine\Animation\AnimBlueprints) の AnimGraph にある [アニメーション シーケンス](Engine\Animation\Sequences) と同じように扱われます。
 
 ![](PlayComposite.png)
 
 [REGION:note]
 **Animation ブループリント** のアニメーションの再生に関する詳細は [](Engine/Animation/Sequences/UserGuide) を参照してください。
 [/REGION]
+
+アニメーション合成を別のアニメーション合成の中や、[**AnimMontage**](Engine/Animation/AnimMontage) の中に埋め込むこともできます。
+
+以下では、AnimComposite を作成して AnimMontage の中に入れています。 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+qm0KEa8K1A8
+[/PARAMLITERAL]
+[/OBJECT]
+
 
 
 ##Anim アセットの詳細

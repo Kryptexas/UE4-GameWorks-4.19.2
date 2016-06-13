@@ -1,0 +1,257 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title: Sequencer Overview
+Crumbs: %ROOT%, Engine
+Description:Sequencer is Unreal Engine 4's multi-track editor used for creating and previewing cinematic sequences in real time. 
+Navigation:topic
+parent:Engine/Sequencer
+order:1
+Version: 4.11
+Related: Engine\Sequencer\ReferenceEditor
+Related: Engine\Sequencer\HowTo
+
+
+[REGION:warning]
+This is a feature that is currently undergoing development and may not work as expected or may change in future revisions.
+[/REGION]
+
+The **Sequencer** Editor gives users the ability to create in-game cinematics through a specialized multi-track editor similar to [**Matinee**](Engine\Matinee\). 
+By creating **Level Sequences** and adding **Tracks**, users can define the make-up of each Track which will determine the content for their scene.
+Tracks can consist of things like Animation (for animating a character), Transformation (moving things around in the scene like Camera), Audio (for including a music or sound effect), as well as several other Track types.  
+
+This page covers the basics of the Sequencer Editor inside Unreal Engine 4. 
+
+[TOC(start:2 end:2)]
+
+[REGION:note]
+To work with Sequencer, you will need to enable it. Please see [](Engine\Sequencer\HowTo\EnableSequencer) for more information. 
+[/REGION]
+
+## Creating Level Sequences
+
+The **Level Sequence** is the "container" for your cinematic scenes and must be created in order to begin working inside the Sequencer Editor. You can create a Level Sequence and directly place it inside of your level by choosing to create one from the **Toolbar** under **Cinematics** as seen below. 
+
+![](LevelSequence.png)
+
+This will add it to the level at which point it can be selected and its properties can be manipulated in the **Details** panel similar to a **Matinee Actor**. In the Details panel (below), you can define whether the Level Sequence will automatically play upon level start, the Play Rate for the sequence and whether the sequence should loop and other settings. 
+
+![](DetailsPanel.png)
+
+How this differs from Matinee is that Level Sequences are self-contained pieces of information and you can embed a Level Sequence within another Level Sequence. 
+For example, you can create a Level Sequence that has animated characters in it and camera cuts as one scene that is part of a larger cinematic. 
+
+You can then create another Level Sequence which is your "master" sequence that contains all the individual Level Sequences (or scenes that you've created) and in this master sequence you can add an Audio Track to score the whole thing, or you could re-order and move the individual Level Sequences around to form your final cinematic sequence. 
+
+This is where the second method of creating Level Sequences comes into play which you can do from the **Content Browser** and **Add New** button under **Animation** (below). When doing so in this manor you are creating the Level Sequence asset but haven't explicitly placed it in the level. 
+
+![](LevelSequence_B.png)
+
+
+## Adding Tracks to Sequencer
+
+With a Level Sequence created and the Sequencer Editor open, you can begin creating your cinematic. 
+
+![](BlankScene.png)
+
+[REGION:caption]
+Above we have a newly created and empty Level Sequence.
+[/REGION]
+
+The first thing you will need to do is add a **Track** type which you can do from the **Add** button drop-down menu. 
+
+![](AddToSequencer.png)
+
+From the drop-down, you will see several Track types you can select from as well as the ability to add an **Actor To Sequencer**. The Actor To Sequencer option will allow you to add any Actors that you have selected in your level at the time to Sequencer so that you can manipulate them during your scene. 
+
+Typically if you are creating a cinematic that has characters, animals, creatures or anything along those lines that will animate and move you will have a Skeletal Mesh for it which you will need to add to Sequencer. 
+For example below we have a Skeletal Mesh of a bear that we have placed in our level. With it selected, we can then click the **Add** button in Sequencer and choose **Actor To Sequencer** so that we can add it and control it through the Sequencer Editor.
+
+![](AddBear.png)(w:640)
+
+Once we have added our Skeletal Mesh, we can then add **Sub-tracks** to affect that Skeletal Mesh. 
+
+![](SkeletalMeshTracks.png)
+
+[REGION:caption]
+Based on the type of Track you create, Sub-Tracks may be added and the ability to add Sub-Tracks may be available. 
+[/REGION]
+
+Below we select the Animation Sub-Track and assign an Animation for our Skeletal Mesh Bear to play. 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+yCqXhA3UYeM
+[/PARAMLITERAL]
+[/OBJECT]
+
+By adding more Tracks, we can continue to modify this scene. For instance, suppose we wanted to shoot this idle animation from multiple camera angles. We would add the cameras we want to the level, and then add them to Sequencer. Once added, we would then add a Camera Cuts track to switch between those cameras as shown below. 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+NeChZY18tpY
+[/PARAMLITERAL]
+[/OBJECT]
+
+
+[REGION:note]
+Please see [](Engine\Sequencer\HowTo\TracksCameraCut) for a more detailed walk-through of using Cameras in Sequencer.
+[/REGION]
+
+
+## Keyframing Scenes
+
+If you are familiar with external animation tools, the concept of using Keyframes to drive content may be familiar to you. 
+If you are not, in short Sequencer allows you to manipulate your content by adding **Keys** (referred to as Keyframing) with defined properties at desired points along a timeline. 
+When reaching those keys in the Timeline, the properties you have defined at each keyframe are updated to reflect the value you've entered.
+
+Continuing with our bear scene, we can visualize this process by adding movement to the cameras that we placed through keyframes. 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+4Nim4vwT4v8
+[/PARAMLITERAL]
+[/OBJECT]
+
+[REGION:caption]
+Above we added Keyframes for the Location Transform by pressing **Enter** with the Track selected. 
+[/REGION]
+
+[REGION:tip]
+With a Track containing Keyframes selected, you can press the **<** and **>** keys to quickly move between each placed keyframe. 
+[/REGION]
+
+
+### Playback Range
+
+Sequencer will playback your scenes based on the defined Start and Stop playback ranges (green/red markers below). 
+
+![](PlaybackRange.png)
+
+[REGION:caption]
+Above our content only lasts 150 frames but our scene is set to extend all the way to 200 frames, leaving us with some dead space. 
+[/REGION]
+
+You can drag the Start and Stop Playback markers to fit your content or there is an option that can be set which will keep your content within these ranges. You can find it under the Sequencer Options drop-down menu and enabling **Keep Playback Range In Section Bounds**. 
+
+![](KeepInRange.png)
+
+##Specialized Viewports
+
+Sequencer allows you to use specialized viewports to make the editing process easier. 
+
+![](SpecialViewports.png)
+
+These viewports give you a better idea of what the final scene will look like and [can be enabled](Engine\Sequencer\HowTo\ViewportOptions) from the **Viewport** options button. 
+
+
+##Possessables vs. Spawnables
+
+Sequencer is very similar to Matinee in that it uses the concept of "possessables" meaning that an Actor exists in the level and Sequencer will take possession of it in order to apply changes you make to it via Sequencer. 
+
+As illustrated in our bear examples above, you can place a Skeletal Mesh in the level and add it to Sequencer, then inside Sequencer you can add an Animation Track to the Skeletal Mesh and assign different animations for it to play during your scene. 
+We are "possessing" that Skeletal Mesh that exists in order to tell it what to do. Sequencer also includes another form of manipulation which is referred to as "spawnables" meaning that the object we are possessing does not exist and Sequencer will "spawn" the object when told to and has the authority over it and can determine its lifecycle. 
+
+So how is this beneficial and when would I elect to use a "spawnable" object? Since Sequencer is the owner and spawns the object, it is not bound to a particular level. Anything deemed as spawnable can be used in any level, so you could create a scene and have it take place in any environment and reuse it in new levels without having to recreate it. 
+
+[REGION:note]
+Please see [](Engine\Sequencer\HowTo\Spawnables\) for more information. 
+[/REGION]
+
+
+##Render Movie Settings
+
+Within Sequencer, you can choose to render out your cinematic to a Video or Image Sequence from the **Render Movie Settings** option. 
+
+![](RenderMovie.png)
+
+This will display the **Render Movie Settings** window which you can use to define how your scene is rendered. 
+
+![](CaptureMovie.png)
+
+Click the **Capture Movie** button to start the capture process of recording your scene. 
+
+
+## Workflow Considerations
+
+Based on your team composition, you may want to consider some of the following workflows when working with Sequencer. 
+
+[REGION:note]
+These are merely suggestions, feel free to experiment and go with what works best for you in your situation. 
+[/REGION]
+
+### Linear Workflow
+
+In this workflow, a single Level Sequence is used and all content for the cinematic is authored inside it. This type of workflow might best be suited for an individual who is working on their own project and does not need to collaborate with others on the cinematic. 
+
+* A Level Sequence is created that contains all characters, animations, lights and other objects that will be in your cinematic.
+* Each scene in the cinematic is set up with its content. Animations, movement, lighting, etc. are all defined. 
+* With the content for the cinematic set up, cameras are moved into position to shoot each scene. 
+* Camera cuts are provided with a **Camera Cuts** Track to mold the sequence into the final cinematic. 
+* Audio is added to the Level Sequence and finishing touches are applied. 
+
+
+### Non-Linear Workflow
+
+In a non-linear workflow, content is split up into multiple Level Sequences which are then added to another "master" Level Sequence. 
+Since each scene is split up into its own Level Sequence, you can work on any sequence you want and then "arrange" the order of shots in the master Level Sequence. 
+
+* A Level Sequence is created for each "scene" of your cinematic and a Master Level Sequence is created to tie all scenes together. 
+* Each scene is set up with its content (not worrying about Cameras, just content). Characters, animation and movement are all added. 
+* Each Level Sequence is added to the Master Level Sequence where a Lead can author and set up the camera work for each scene. 
+* The Lead can also add any other effects, audio or other finishing touches from the Master level without having to add all the content. 
+
+Other considerations: 
+
+* Each scene that is its own Level Sequence can have cameras assigned and camera work set up in it instead.
+	* When that scene is added to the Master Level sequence, there would be no need to do any camera work.
+	* When that scene is played during the Master Level sequence, the camera work in the scene is used. 
+	* This allows each scene to be set up as its own mini sequence and tied together with the Master Level Sequence. 
+	* A Lead could then arrange each scene to form the final cinematic and jump into each scene to make changes if need be. 
+* With a **Shots** track, **Takes** can be used to provide variations of each scene within the Master Level Sequence. 
+	* This will create a duplicate of the Level Sequence and allow you to modify the "take" instead of the original. 
+
+[REGION:note]
+For an example of this, please see the [](Engine\Sequencer\HowTo\TracksShot) page. 
+[/REGION]
+
+
+		
+### Collaborative Workflow
+
+In a collaborative workflow, you would take the concepts of the non-linear worfklow but also add the ability for people to work concurrently on the same scenes without affecting each other�s work. 
+With a **Subscenes** Track, you could create Level Sequences for each aspect of each scene and overlap them so multiple people can work on a shot at once which is the traditional method applied to film.  
+
+Something to the effect of:
+
+* Master Sequence
+	* Shot 1 (Level Sequence)
+		* Shot 1 Lighting (Level Sequence on Subscene Track)
+		* Shot 1 Camera (Level Sequence on Subscene Track)
+		* Shot 1 Skeletal Animation (Level Sequence on Subscene Track)
+		* Shot 1 FX (Level Sequence on Subscene Track)
+
+Each aspect of the shot would be its own Level Sequence that when composited with each other produces the final shot. 
+
+[REGION:note]
+For an example of this, please see the [](Engine\Sequencer\HowTo\TracksSub) page. 
+[/REGION]
+
+

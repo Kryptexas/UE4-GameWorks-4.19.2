@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2622187
+﻿INTSourceChangelist:2728610
 Availability:Public
 Title: 게임플레이 프로그래밍
 Crumbs:%ROOT%, Programming
 Description:기본 게임플레이 요소인 Actor 와 Object 에 대한 설명입니다.
+version: 4.9
 
 
 이 문서의 목적은 코드베이스 입문을 돕기 위해 엔진의 핵심 기능에 대한 간략한 안내와 일부 핵심 아키텍처 개념을 소개해 드리는 것입니다.

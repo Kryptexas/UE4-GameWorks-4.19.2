@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2227015
+﻿INTSourceChangelist:2737439
 Availability:Public
 Title:パーティクル ライト
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:パーティクル ライトは VFX アーティストの保管庫にあるもう 1 つの武器です。
+Version:4.9
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -45,8 +46,6 @@ Description:パーティクル ライトは VFX アーティストの保管庫�
 
 [TOC(start:2 end:2)]
 
-## 概要
-
 [EXCERPT:PL001]
 _CPU Particle Emitters_ は **カスケード** の **Particle Light Module** を追加して、それぞれのパーティクルに適用されたライトでレンダリングするために作成することができます。ライトを十分にエミットして周りの環境より目立たせる火花や花火などのエフェクトに便利です。
 [/EXCERPT:PL001]
@@ -57,7 +56,29 @@ _CPU Particle Emitters_ は **カスケード** の **Particle Light Module** �
 
 パーティクル ライトを設定する際には、大きいパーティクル ライトは少なく、小さいパーティクル ライトを多くするのが一般的な戦略です。パーティクル ライトの負荷はあっという間に手に負えなくなるので、 _ProfileGPU_ コンソール コマンドで調整およびプロファイルすることが重要です。負荷は _ライト_ の下に表示されます。
 
-![](PL_Sparks_2.gif)(convert:false) ![](PL_flow_2.gif)(convert:false)
+[OBJECT:EmbeddedVideo]　
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+bJ1xiMPl71Y
+[/PARAMLITERAL]
+[/OBJECT]
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+nyGqpilZe08
+[/PARAMLITERAL]
+[/OBJECT]
 
 パーティクル ライト エミッタのみを使って上のアニメーションをした静止画像がこちらです。
 
@@ -71,7 +92,7 @@ _CPU Particle Emitters_ は **カスケード** の **Particle Light Module** �
 
 1. カスケードでパーティクル システムを開きます。
 1. エミッタへライトを配置する位置でエミッタを **右クリック** をします。
-1. マウスを使用してモジュール リストから **Lights -> Light** を選択します。
+1. マウスを使用してモジュール リストから **[Lights] -> [Light]** を選択します。
 	[REGION:lightbox]
 	[![](PL_addLightModule.png)(w:830)](PL_addLightModule.png)
 	[/REGION]

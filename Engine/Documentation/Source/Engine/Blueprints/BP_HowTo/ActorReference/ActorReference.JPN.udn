@@ -1,14 +1,15 @@
-﻿INTSourceChangelist:2679100
+﻿INTSourceChangelist:2968923
 Availability:Public
 Title:アクタ リファレンスの設定と取得
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
 Description:アクタ リファレンスを使って、様々なアクタをレベル内で移動させる
-Related: Gameplay/HowTo/ReferenceAssets/Blueprints
-version: 4.9
+Related:Gameplay/HowTo/ReferenceAssets/Blueprints
+version:4.9
 skilllevel:Intermediate
 type:howto
 parent:Engine/Blueprints/BP_HowTo
 order:1
+tags:Handling Objects and Actors
 
 [INCLUDE:Gameplay\HowTo\ReferenceAssets#referenceoverview]
 
@@ -63,7 +64,7 @@ order:1
 
 1. ブループリントを最小化してメイン ウィンドウに戻ったら、レベル内の **Box Trigger** ブループリントを選びます。 
 
-1. ウィンドウの **[Details]** パネルの **デフォルト** の中に **ターゲット アクタ** とツールチップがあるはずです。 
+1. ウィンドウの **[Details (詳細)]** パネルの **デフォルト** の中に **ターゲット アクタ** とツールチップがあるはずです。 
 
 	![](8DetailsPanel.png)
 
@@ -75,7 +76,7 @@ order:1
 	独自のプロジェクトを使っている場合は、好きなアクタ、スタティックメッシュ、あるいはブループリントをレベルに追加することができます。 
 	[/REGION]
 
-1. レベルに追加するものに関係なく、それぞれのアクタの **[Details]** パネルで可動性を **[Moveable (ムーバブル)]** に設定できます。 
+1. レベルに追加するものに関係なく、それぞれのアクタの **[Details (詳細)]** パネルで可動性を **[Moveable (ムーバブル)]** に設定できます。 
 
 	![](22Moveable.png)
 
@@ -83,11 +84,11 @@ order:1
 
 1. レベル内の **[Box Trigger]** をクリックします。
 
-1. **[Details]** パネルで、 **[Target Actor]** の下の **[None]** ボックスをクリックし、「**Shape** 」(または追加したアクタの名前) を検索します。
+1. **[Details (詳細)]** パネルで、 **[Target Actor]** の下の **[None]** ボックスをクリックし、「**Shape** 」(または追加したアクタの名前) を検索します。
 
 	![](10DropDownSelection.png)
 
-	**None** をクリックするとレベル内にあるすべてのアクタが表示されますが、ここでは追加したキューブの 1 つをターゲットにしていきます。 
+	**[None]** をクリックするとレベル内にあるすべてのアクタが表示されますが、ここでは追加したキューブの 1 つをターゲットにしていきます。 
 
 1. 虫眼鏡アイコンの横にあるスポイトツール アイコンをクリックします。 
 
@@ -123,7 +124,7 @@ order:1
 
 	レベル内のアクタに設定した変数に代入した値を取得する **Get** ノードが作成されます。 
 
-1. **TargetActor** ノードを引き出して、 **Add Actor Local Offset** ノードを探して追加します。 
+1. **TargetActor** ノードを引き出して、**Add Actor Local Offset** ノードを探して追加します。 
 
 	![](16AddOffSet.png)
 
@@ -135,7 +136,7 @@ order:1
 
 	ターゲットの現在位置を取得し、トリガーボックスがオーバーラップすると Z 軸に沿って上方に 500 ユニット移動します。 
 
-1.	**[Components]** ウィンドウで、 **TriggerBox_Blueprint** コンポーネントをクリックして選択します。 
+1.	**[Components]** ウィンドウで、**TriggerBox_Blueprint** コンポーネントをクリックして選択します。 
 
 	![](selectTriggerBox.png)
 
@@ -143,7 +144,7 @@ order:1
 
 	![](enableComponentWindow.png)
 
-1.	トリガーボックスの **[Details]** パネルで、 **Rendering** の下にある **[Actor Hidden In Game (インゲームでアクタを非表示にする)]** オプションのチェックを外します。 
+1.	トリガーボックスの **[Details]** パネルで、**[Rendering]** の下にある **[Actor Hidden In Game (インゲームでアクタを非表示にする)]** オプションのチェックを外します。 
 
 	![](19ActorHiddenInGame.png)
 

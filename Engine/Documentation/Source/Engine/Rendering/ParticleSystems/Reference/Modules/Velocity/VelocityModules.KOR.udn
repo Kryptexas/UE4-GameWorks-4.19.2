@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2620245
+﻿INTSourceChangelist:2750835
 Availability: Public
 Title:Velocity 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:Velocity (속도) 모듈은 다양한 방법으로 파티클의 속도를 조절하는 모듈입니다.
+Version: 4.9
 
 [TOC(start:2 end:3)]
 
@@ -64,9 +65,9 @@ Velocity Cone (속도 원뿔)은 파티클을 사용자 지정 원뿔 모양으�
 | **In World Space** | 월드 공간 내 - _True_ 면 속도는 월드-공간 내에 있는 것으로 간주됩니다. |
 | **Apply Owner Scale** | 오너 스케일 적용 - _True_ 면 속도 값은 파티클 시스템 컴포넌트의 스케일 값으로 조절됩니다. |
 
-## Inherit Parent Vel
+## Inherit Parent Velocity
 
-Inheret Parent Vel(부모 속도 상속)은 파티클이 스폰될 때 부모(파티클 이미터 자체)의 속도를 물려주는 모듈입니다. 다음과 같은 멤버가 포함됩니다:
+Inheret Parent Velocity (부모 속도 상속)은 파티클이 스폰될 때 부모(파티클 이미터 자체)의 속도를 물려주는 모듈입니다. 다음과 같은 멤버가 포함됩니다:
 
 | 프로퍼티 | 설명 |
 | ---- | ---- |

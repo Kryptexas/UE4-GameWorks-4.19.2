@@ -186,3 +186,29 @@ For example, the `UAnimGraphNode_LayeredBoneBlend` node adds menu entries for ad
 			}
 		}
 	}
+
+## Derived Native Getters
+
+Many projects create their own `UAnimInstance` derived class to get better performance. To go along with this, you can add new getters if there is a need. In order to do so however there is a bit of a setup involved in order for them to work correctly. 
+
+* The getter functions must be tagged as **UFUNCTIONS**. 
+* They must be **BlueprintPure**. 
+* They must include the metadata **AnimGetter="True"**. 
+
+They must also define some specifically named parameters (this is also explained above the base anim getter functions in `AnimInstance.h`). That list of parameters includes : 
+
+| **Paramter** | **Description** |
+| --- | --- |
+| **int32 AssetPlayerIndex**| The getter acts on an asset player and an entry will be added to the editor per asset player available. |
+| **int32 MachineIndex**| The getter acts on a state machine, an entry will be added per state machine. |
+| **int32 StateIndex**| This also requires MachineIndex. The getter acts on a state, an entry will be added per state.  |
+| **int32 TransitionIndex**| This also requires MachineIndex. The getter acts on a transition, an entry will be added per transtion.|
+
+There are also helper functions to get the actual nodes in your getters. These exist on the `UAnimInstance`: 
+
+| **Function** | **Description** |
+| --- | --- |
+| **GetStateMachineInstance(int32 MachineIndex)**| Gets the baked state machine instance. |
+| **GetCheckedNodeFromIndex(int32 NodeIdx)**| Gets a node from an index, asserts if invalid. |
+| **GetNodeFromIndex(int32 NodeIdx)**| As above, can return nullptr. |
+| **GetRelevantAssetPlayerFromState(int32 MachineIndex, int32 StateIndex)**| Gets the highest weighted asset player in a state. |

@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2613774
+﻿INTSourceChangelist:2683525
 Availability:Public
 Title:アンビエント キューブマップ
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
-Description:高品質なライティング環境の作成のためのシーンライティングへ適用されたキューブマップテクスチャ
+Description:高品質なライティング環境の作成のためのシーンライティングへ適用されたキューブマップ テクスチャ
+Version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]

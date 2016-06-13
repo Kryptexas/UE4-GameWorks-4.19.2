@@ -1,0 +1,135 @@
+Availability: Public
+Title:Adding Audio	
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:Example of how to add audio to your scenes.
+Version: 4.12
+SkillLevel: Beginner
+parent:Engine/Sequencer/HowTo
+order:1
+checkpoint: editorqs
+Related: Engine/Sequencer/Overview
+Related: Engine\Sequencer\ReferenceEditor\
+
+Whether your are looking to score your cinematic with a musical track or want to add sound effects such as impact sounds, voice overs, or others, you'll need to do so with an **Audio Track** inside Sequencer. 
+
+In this how-to, we add a music track to a sample scene and show how you can fade in/out an audio track with a **Sound Cue**.
+
+[REGION:warning]
+Currently **Audio Tracks** have limited editing capabilities. Additional support will come online in future engine updates. 
+[/REGION]
+
+
+## Steps
+
+[REGION:note]
+For this how-to, we are using the **Blueprint Third Person Template** with **Starter Content** enabled. 
+[/REGION]
+
+1.	From the Main Tool Bar click **Cinematics** and **Add Level Sequence**. 
+
+	![](Audio01.png)
+
+1.	Inside the Level Sequence, click the **Add** button and select the **Audio Track**. 
+
+	![](Audio02.png)
+
+1.	Click the **+ Audio** button then select the **Starter_Music_Cue** asset. 
+
+	![](Audio03.png)
+
+1.	Click the **+ Audio** button and select additional audio assets and arrange on the timeline as desired. 
+
+	![](Audio04.png)
+
+	You can layer sounds by arranging one audio asset on top of another. 
+
+1.	**Right-click** on the **Starter_Music_Cue** asset to reveal the **Properties**, then click the magnifying glass icon. 
+
+	![](Audio05.png)
+
+	Along with the properties that you can change for the asset, you can browse to and find the asset in the **Content Browser** by clicking the **Browse To** button. 
+
+1.	**Double-click** and open the **Starter_Music_Cue** Sound Cue asset. 
+
+1.	In the **Sound Cue Editor**, drag an **Enveloper** into the graph. 
+
+	![](Audio06.png)
+
+	Inside the Sound Cue Editor we can alter and mix sound assets. For this example we want to fade in the sound which we can do with the **Enveloper** node. 
+
+	[REGION:note]
+	In future engine releases, the ability to edit Audio Tracks within Sequencer will come online and this guide will be updated. 
+	[/REGION]
+
+1.	**Left-click** and connect the nodes as shown below. 
+
+	![](Audio07.png)
+
+	The Starter_Music01 asset will get passed through the Enveloper before outputting the final sound. 
+
+1.	In the **Details** panel of the **Enveloper**, click the key in the **Volume Curve** and change the **Value** to **0.0**. 
+
+	![](Audio08.png)
+
+	Here we are stating that at time 0.0 (the start), the value of Volume should be 0.0 (or off). 
+
+1.	Hold **Shift** and **Left-click** in the curve window to create a new key. 
+
+1.	Select the key, then change the **Time** to **4.0** and **Value** to **1.0**. 
+
+	![](Audio09.png)
+
+	Here we are stating that at 4 seconds, the value of the Volume should be 1.0 (or full volume) giving us a fade in. You can also click the two buttons next to the **Time** and **Value** properties to adjust the size of the curve window to display the curve. 
+
+	[REGION:tip]
+	If you wanted to fade out for example starting at 10 seconds, you would add a key and set the **Time** to **10.0** with **Value** being **1.0**. If you wanted the fade duration to last 5 seconds, you would add another key with the **Time** being **15.0** and the **Value** being **0.0**. 
+	[/REGION]
+
+1.	Return to **Sequencer** and click the **Preview Play** button. 
+
+
+## End Result
+
+You should now hear all your sounds that you've placed in the **Audio Track** and the music should fade in over time. 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+1STSDGBc5KM
+[/PARAMLITERAL]
+[/OBJECT]
+
+
+Audio Tracks support either **Sound Cue** or **Sound Wave** assets and can be added by dragging-and-dropping from the **Content Browser** into a Level Sequence or by adding through the **Add** option of an Audio Track. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

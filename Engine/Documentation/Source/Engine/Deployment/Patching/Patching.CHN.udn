@@ -1,5 +1,5 @@
 ﻿INTSourceChangelist:0
-Availability:Docs
+Availability:Public
 Title:Patching
 Crumbs:%ROOT%, Engine, Engine/Deployment
 Description:Creating updated content packages which allow you to update your project after release.
@@ -50,9 +50,9 @@ There are a number of settings for the patching process.
 1. Check the boxes for all platforms you would like to cook content for. In this example for Windows testing, we have selected **WindowsNoEditor**.
 1. Check the boxes for all cultures to cook localizations for.
 1. Check the boxes for all maps to cook. 
-[Region:tip]
-This will determine which content is cooked and then compared to the original package file. 
-[/REGION]
+	[Region:tip]
+	This will determine which content is cooked and then compared to the original package file. 
+	[/REGION]
 1. In **Release/DLC/Patching Settings**:
 	* Enter in the version number to base the patch on.
 	* Check the **Generate Patch** checkbox.
@@ -63,10 +63,10 @@ This will determine which content is cooked and then compared to the original pa
 1. Also under **Advanced Settings**, set the cooker configuration to **Shipping**.
 
 #### Package 
-* Set the build to  **Package & store locally**. 
+1. Set the build to  **Package & store locally**. 
 
 #### Deploy
-* Set the build to **Do Not Deploy**.
+1. Set the build to **Do Not Deploy**.
 
 1. Once you have set all the above settings, navigate back to the main profile window using the **Back** button in the top right corner. 
 	

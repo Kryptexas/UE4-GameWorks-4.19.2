@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:0
-Title:4. Set Up Your Oculus Rift DK2 Hardware
+﻿INTSourceChangelist:2982497
+Title:4.设置 Oculus Rift 硬件
 Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
-Description:Connect and update your Oculus Rift headset.
+Description:连接并更新 Oculus Rift 头戴设备
 Availability:Public
-
+Version:4.9
+SkillLevel:Intermediate
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -21,98 +22,29 @@ Availability:Public
 [/OBJECT]
 [/VAR]
 
+此章节说明如何完成 Oculus 头戴设备的设置，确保其与最新的 Oculus 驱动匹配。
+
+[region:note]
+首次将 Oculus Rift 与电脑连接时，Rift 软件可能要求您更新 Rift 的固件。强烈建议完成此更新，确保 Rift 可结合 UE4 正常使用。
+[/region]
+
 %Steps%
 
+1. Oculus 软件的驱动和软件安装完成后，将出现 Rift 设置画面。 
+	按下 **Next** 键，根据屏幕上的说明开始 Rift 设置。
 
-%Globals:OSSelect%
+	![](Rift_Setup_Screen_00.png)
 
-[OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	OS
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	windows
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	active_button_content
-	[/PARAMLITERAL]
-	[PARAM:content]
-	[INCLUDE:#windows]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	OS
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	mac
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	[/PARAMLITERAL]
-	[PARAM:content]
-	[INCLUDE:#macos]
-	[/PARAM]
-[/OBJECT]
-<!--
-[EXCERPT:windows]
-1. Connect your DK2 headset to your computer, following the included Instruction Manual (which can also be found [online](http://static.oculus.com/sdk-downloads/documents/Oculus_Rift_DK2_Instruction_Manual.pdf)).
-1. Run the **Oculus Configuration Utility** by:
-	* **Right-clicking** on the Oculus icon in the system tray and selecting **Configuration Utility**, or
-	* Opening the Start Menu and navigating to **Oculus Runtime > OculusConfigUtil**, or
-	* Running `OculusConfigUtil.exe` found in `[InstallDirectory]/Tools/`.
-1. Click on **Tools > Rift Display Mode**.
+[region:note]
+如在 Rift 设置过程中需要帮助，点击左下角的 **Get Help** 链接即可打开相应的帮助章节。
+[/region]
 
-	![](RiftDisplayMode_menu.png)
-1. Make sure the headset is in **Direct HMD Access from Apps** mode, then click **Apply** to save any changes. Close the window.
-	
-	![](DirectHMD.png)
+为便于参考，每个设置部分右下角的帮助链接已列于下方。链接的排序与其在设置过程中出现的顺序一致。
 
-[REGION:tip]
-Your firmware version is listed in the Configuration Utility. If your version is not 2.12, complete the following steps to update the headset's firmware.
-[/REGION]
-
-1. Click on **Tools > Advanced > Update Firmware**.
-
-	![](UpdateFirmware_menu.png)
-
-	[REGION:note]
-	Make sure Unreal Editor, Unreal Engine Launcher, and any other programs that might be using the Oculus are closed before you update the firmware. Otherwise, you will get a warning about closing other software and the firmware will not install.
-	[/REGION]
-
-1. Select `DK2Firmware_2_12.ovrf` when the file dialog appears, then click **Open**.
-
-	![](Firmware.png)
-1. The **Oculus Configuration Utility** will close. Reopen it by:
-	* Opening the Start Menu and navigating to **Oculus Runtime > OculusConfigUtil**, or
-	* Running `OculusConfigUtil.exe` found in `[InstallDirectory]/Tools/`.
-1. Verify that the firmware is 2.12.
-[/EXCERPT:windows]
-[EXCERPT:macos]
-[INCLUDE:Platforms/Oculus#warning]
-
-1. Connect your DK2 headset to your computer, following the included Instruction Manual (which can also be found [online](http://static.oculus.com/sdk-downloads/documents/Oculus_Rift_DK2_Instruction_Manual.pdf)).
-1. Run the **Oculus Configuration Utility** by:
-	* Using the OculusConfigUtil shortcut on the desktop, or
-	* Running `OculusConfigUtil.app` found in `[InstallDirectory]/Tools/`.
-
-[REGION:tip]
-Your firmware version is listed in the Configuration Utility. If your version is not 2.12, complete the following steps to update the headset's firmware.
-[/REGION]
-
-1. Click on **Tools > Advanced > Update Firmware**.
-
-	![](firmware_mac.png)(w:420)
-
-	[REGION:note]
-	Make sure Unreal Editor, Unreal Engine Launcher, and any other programs that might be using the Oculus are closed before you update the firmware. Otherwise, you will get a warning about closing other software and the firmware will not install.
-	[/REGION]
-
-1. Select `DK2Firmware_2_12.ovrf` when the file dialog appears, then click **Open**.
-1. The **Oculus Configuration Utility** will close. Reopen it by:
-	* Using the OculusConfigUtil shortcut on the desktop, or
-	* Running `OculusConfigUtil.app` found in `[InstallDirectory]/Tools/`.
-1. Verify that the firmware is 2.12.
-[/EXCERPT:macos]
--->
+* [**Rift 初始设置帮助**](https://support.oculus.com/674612489309093) 
+* [**Rift 保养与维修**](https://support.oculus.com/1659691017629165) 
+* [**使用头戴设备**](https://support.oculus.com/674612489309093) 
+* [**Oculus 遥控**](https://support.oculus.com/835449819935261) 
+* [**设置 Xbox 控制器（无线模式）**](https://support.oculus.com/1560296144292386) 
 
 %Steps%

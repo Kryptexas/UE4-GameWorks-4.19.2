@@ -1,11 +1,10 @@
-﻿INTSourceChangelist:2623211
+﻿INTSourceChangelist:2730197
 Availability: Public
 Title:FText
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Properties, Programming/UnrealArchitecture/StringHandling
 Description:
 Version: 4.9
 
-[TOC (start:2 end:3)]
 
 
 [EXCERPT:Overview]
@@ -19,13 +18,13 @@ FText 는 "표시되는 문자열"을 나타냅니다. 사용자에게 표시하
 전체적으로 Slate (슬레이트)는 FString 에 후크 노출시키던 것에서 FText 쪽으로 옮기는 추세입니다. 현지화 관련된 것들은 FText 가 인터페이스 뒤에서 모두 처리해 주므로, 
 앞으로 슬레이트는 실시간 언어 변환같은 기능도 지원하게 될 것입니다. FString 으로는 불가능한 작업이지요. FText 를 사용하면 텍스트 렌더링 퍼포먼스가 향상되기도 합니다. 
 FText 를 사용할 때는 문자열이 변경 불가능한 것으로 간주되기에, 문자열의 메모리 주소를 빠른 캐시 룩업용 키로 사용할 수 있습니다. 이는 문자열에 변화가 있나 검사해서 표시용으로 
-재측정하는 데 비해서 비용이 훨씬 저렴합니다. 마지막으로 슬레이스에서 FText 를 사용한다는 것은, 현지화 지원 기능이 UI 시스템에 자연스럽게 통합된다는 뜻으로, 현지화 모범 사례용 강력한 프레임웍이 
+재측정하는 데 비해서 비용이 훨씬 저렴합니다. 마지막으로 슬레이트에서 FText 를 사용한다는 것은, 현지화 지원 기능이 UI 시스템에 자연스럽게 통합된다는 뜻으로, 현지화 모범 사례용 강력한 프레임워크가 
 존재할 것입니다.
   
 
 ## FText 생성하기
 
-FText 의 현지화 기능때문에, 각 FText 는 텍스트와 함께 키도 셋업해 줘야 합니다. `LOCTEXT` 와 `NSLOCTEXT` 매크로를 사용하면 FText 를 올바르게 셋업해 줍니다.
+FText 의 현지화 기능 때문에, 각 FText 는 텍스트와 함께 키도 셋업해 줘야 합니다. `LOCTEXT` 와 `NSLOCTEXT` 매크로를 사용하면 FText 를 올바르게 셋업해 줍니다.
 `LOCTEXT` 는 키와 텍스트를 파라미터로 받습니다. 모든 파라미터는 스트링 리터럴이어야 합니다. 모든 리터럴은 현지화 시스템을 거치게 됩니다.
 
 [REGION:tip]

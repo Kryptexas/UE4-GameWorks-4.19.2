@@ -1,8 +1,9 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2719731
+Availability:Public
 Title:アニメーションノードのテクニカルガイド
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:Anim ブループリントのグラフで使用するノードの新規作成ガイド
-バージョン4.5
+Version:4.9
 
 [REGION:banner]
 ![Anim Nodes](animnodes_banner.png)(convert:false)
@@ -20,16 +21,16 @@ Description:Anim ブループリントのグラフで使用するノードの新
 
 * 出力ポーズを生成するために実際の演算を実行するランタイム構造体
 * ノードタイトルやコンテキスト メニューなど、グラフ内のノードの 
-視覚的側面と機能性を処理するエディタ時間のコンテナ クラス
+視覚的側面と機能を処理する editor-time のコンテナ クラス
 
 
-新規のアニメーション ノードを追加するには、この両方を作成しなければいけません。
+アニメーション ノードを新規で追加するには、この両方を作成しなければいけません。
 
-### ノード階層
+### ノードの階層
 
-ノードの階層を構成することは可能ですが、非抽象的なエディタ時間クラスには、 
-1 つだけランタイム ノードを格納しなければいけません（親が抽象クラスでノードが一つも格納されていない場合を除き、派生時にノードを追加してはいけません）。  
- `UAnimGraphNode_BlendListBase` ファミリーで例を参照してください。
+ノードの階層を作成することは可能ですが、非抽象的な editor-time クラスには、 
+1 つだけランタイム ノードを格納しなければいけません (親が抽象クラスでノードが一つも格納されていない場合を除き、派生時にノードを追加しないでください)。  
+例えば、 `UAnimGraphNode_BlendListBase` ファミリーをご覧ください。
 
 ## ランタイムノード
 
@@ -63,7 +64,7 @@ Description:Anim ブループリントのグラフで使用するノードの新
 	コンポーネント空間ポーズのピンは青い陰影がかかっています。
 [/REGION]
 
-または、ノードに対し一つ以上の入力が複数のアニメーションでブレンドされます
+または、ノードに対し一つ以上の入力が複数のアニメーションでブレンドされます。
 
 	UPROPERTY(Category=Links)
 	FPoseLink Base;
@@ -79,8 +80,8 @@ Description:Anim ブループリントのグラフで使用するノードの新
 
 ### プロパティとデータ入力
 
-アニメーション ノードは、ノード操作の実行に使用するためにアルファ値や変換データなど、 
-いくつでもプロパティを持つことができます。これらプロパティは `UPROPERTY()` マクロを使用して、 
+アニメーション ノードは、ノード操作の実行に使用するためのアルファ値や変換データなど、 
+いくつでもプロパティを持つことができます。こうしたプロパティは `UPROPERTY()` マクロを使用して、 
 他のプロパティ同様に宣言されます。
 
 	UPROPERTY(Category=Settings, meta(PinShownByDefault))
@@ -89,35 +90,32 @@ Description:Anim ブループリントのグラフで使用するノードの新
 ![Property Pin](node_propertypin.png)
 
 ノードへ値を渡すために、特別なメタデータ キーを使用して 
-データ入力としてアニメーションノードのプロパティをエクスポーズすることができます。これにより、ノードに使用されるプロパティは、ノード外で計算された値を使用することができます。 
-利用可能なメタデータキーは以下となります。
+データ入力としてアニメーション ノードのプロパティをエクスポーズすることができます。これにより、ノードが使用するプロパティは、ノード外で計算された値を使用することができます。 
+以下のメタデータキーを利用できます。
 
 | メタデータ | 説明 |
 | -------- | ----------- |
 | `NeverAsPin` | プロパティはデータピンとしてエクスポーズされず、ペルソナの **[詳細]** パネルのみで編集が可能です。|
-| `PinHiddenByDefault` | プロパティはデータピンとしてエクスポーズすることができますが、デフォルトでは非表示になっています（下記の [オプション ピン](#OptionalPins) 参照。 |
-| `PinShownByDefault` | プロパティをデータピンとしてエクスポーズすることが可能で、デフォルトで可視化されています（下記の [オプションピン](#OptionalPins) 参照。 |
+| `PinHiddenByDefault` | プロパティはデータピンとしてエクスポーズすることができますが、デフォルトでは非表示になっています (下記の [オプション ピン](#OptionalPins) 参照)。 |
+| `PinShownByDefault` | プロパティはデータピンとしてエクスポーズすることが可能で、デフォルトで可視化されています (下記の [オプションピン](#OptionalPins) 参照)。 |
 | `AlwaysAsPin` | プロパティは常にデータピンとしてエクスポーズされます。|
 
 (#OptionalPins)
-[REGION:note]
-	**オプション ピン**
-	[REGION:none]
-		 `PinHiddenByDefault` または `PinShownByDefault` を持つプロパティでは **[詳細]** パネルのプロパティの横にチェックボックスが表示され、 
-		表示/非表示を選択することができます。
-	[/REGION]	
-	[REGION:none]
-		![Property Details](node_property_details.png)
-	[/REGION]
-
+**オプション ピン**
+[REGION:none]
+	 `PinHiddenByDefault` または `PinShownByDefault` を持つプロパティでは **[詳細]** パネルのプロパティの横にチェックボックスが表示され、 
+	表示/非表示を選択することができます。
+[/REGION]	
+[REGION:none]
+	![Property Details](node_property_details.png)
 [/REGION]
 
 ##エディタノード
 
-エディタクラスは `UAnimGraphNode_Base` から派生し、ビジュアルノードのタイトルや、 
+Editor クラスは `UAnimGraphNode_Base` から派生し、ビジュアルノードのタイトルや、 
 コンテキスト メニュー アクションの追加を行います。
 
-エディタ時間クラスは、編集可能としてエクスポーズされたユーザーのランタイム ノードを格納していなくてはいけません。
+editor-time クラスには、編集可能としてエクスポーズされたランタイム ノードを格納するようにします。
 
 	UPROPERTY(Category=Settings)
 	FAnimNode_ApplyAdditive Node;
@@ -126,7 +124,7 @@ Description:Anim ブループリントのグラフで使用するノードの新
 
 ![Node Title](node_title.png)
 
-ペルソナで _アニメーション ブループリント_ のグラフに表示される背景色とアニメーションノードのタイトルテキストは、 
+ペルソナで Animation ブループリントのグラフに表示される背景色とアニメーション ノードのタイトルテキストは、 
 `GetNodeTitle()` 関数と `GetNodeTitleColor()` 関数をオーバーライドして定義します。
 
 例えば、`UAnimGraphNode_ApplyAdditive` ノードはグレーの背景色を使用し、 "Apply Additive" を表示します。
@@ -154,13 +152,13 @@ Description:Anim ブループリントのグラフで使用するノードの新
 
 ### コンテキスト メニュー
 
-それぞれのアニメーション ノードは、ペルソナのグラフでノードを **右クリック** すると表示されるコンテキストメニューへ、 
-ノード固有オプションを追加することができます。固有オプションは、全てのブループリント ノードのメンバーである 
+各アニメーション ノードは、ペルソナのグラフでノードを **右クリック** すると表示されるコンテキストメニューへ、 
+ノード固有オプションを追加することができます。オプションは、全てのブループリント ノードのメンバーである 
  `GetContextMenuActions()` 関数を使用して追加します。
 
 ![Node Context Menu Entry](node_menu.png)
 
-例えば、`UAnimGraphNode_LayeredBoneBlend` ノードはメニュー入力を追加し、新規入力または既存入力の削除をします。
+例えば、`UAnimGraphNode_LayeredBoneBlend` ノードは、新規入力の追加または既存入力の削除をするためのメニュー エントリを追加します。
 
 	void UAnimGraphNode_LayeredBoneBlend::GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const
 	{

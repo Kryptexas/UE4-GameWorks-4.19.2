@@ -1,8 +1,13 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:게임플레이 프레임워크 간단 참고서
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
 Description:게임의 프레임워크를 이루는 게임 규칙, 캐릭터, 콘트롤러, 유저 인터페이스 등에 대한 클래스 간단 개요입니다.
+Version: 4.9
+type:reference
+parent:Gameplay/Framework
+order:2
+tags:Gameplay Framework
 
 기본적인 게임플레이 클래스에는 플레이어, 아군, 적군에 대한 표현 및 그에 대한 아바타를 플레이어 입력이나 AI 로직으로 제어하는 데 대한 함수성이 포함되어 있습니다. 또한 
 플레이어용 카메라나 HUD 생성을 위한 클래스도 있습니다. 마지막으로 GameMode, GameState, PlayerState 같은 게임플레이 클래스로 게임의 규칙을 설정하며, 게임 및 플레이어의 진행상황을 기록하기도 합니다.

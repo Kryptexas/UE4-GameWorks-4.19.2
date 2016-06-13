@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2713167
 Availability:NoPublish
 Title:ビークルのプロパティ リファレンス
 Crumbs:%ROOT%
@@ -93,7 +93,7 @@ Navigation:topic
 
 | プロパティ | 説明 |
 | --- | --- |
-| **Idle Brake Input** | プレイヤーがスロットルを解放した場合に、ブレーキを押す度合。 |
+| **Idle Brake Input** | プレイヤーがスロットルを解放する場合に、ブレーキを押す度合。 |
 | **Stop Threshold** | ビークルの絶対前進速度が、この (cm/s) よりも遅い場合に自動ブレーキ |
 | **Wrong Direction Threshold** | ビークルの前進速度が、少なくともこの (cm/s) 程度まで、プレイヤーの入力の逆である場合、自動ブレーキ |
 | [REGION:tablesection] **Advanced** [/REGION]||
@@ -122,11 +122,11 @@ Navigation:topic
 [/VAR]
 
 [VAR:in3]
-ハンドブレーキの入力が上昇、下降が可能な割合。
+ハンドブレーキの入力が、上昇、下降が可能な割合。
 [/VAR]
 
 [VAR:in4]
-ステアリングの入力が上昇、下降が可能な割合。
+ステアリングの入力が、上昇、下降が可能な割合。
 [/VAR]
 -->
 

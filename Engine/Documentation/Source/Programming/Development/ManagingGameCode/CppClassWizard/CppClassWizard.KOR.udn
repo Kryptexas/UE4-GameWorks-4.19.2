@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2611022
+﻿INTSourceChangelist:2722940
 Availability:Public
 Title:C++ 클래스 마법사
 Crumbs: %ROOT%, Programming, Programming\Development
@@ -18,11 +18,11 @@ _C++ 클래스 마법사_ (C++ Class Wizard)는 자신만의 함수성을 원하
 [/REGION:note]
 
 
-1. 메인 에디터에서 **파일 > 프로젝트에 코드 추가...** 를 선택합니다.
+1. 메인 에디터에서 **파일 > 새 C++ 클래스...** 를 선택합니다.
 
 	![](FileCPP.png)
 
-1. **C++ 클래스 마법사** 가 뜨며, 흔히 추가되는 클래스를 표시합니다. 찾고 있는 클래스가 보이지 않는 경우, 전체 클래스 족보를 봐야 합니다. 창 우상단 구석의 ![](button_ShowAllClasses.png)(h:25) 박스를 체크하세요.
+1. **C++ 클래스 마법사** 가 뜨며, 흔히 추가되는 클래스를 표시합니다. 찾고 있는 클래스가 보이지 않는 경우, 전체 클래스 족보를 봐야 합니다. 창 우상단 구석의 **모든 클래스 표시** 박스를 체크하세요.
 
 	[REGION:imagetable]
 		| [REGION:lightbox][![](CppClassWizard.png)(w:430)](CppClassWizard.png)[/REGION] | [REGION:lightbox][![](AllClasses.png)(w:430)](AllClasses.png)[/REGION] |
@@ -30,9 +30,9 @@ _C++ 클래스 마법사_ (C++ Class Wizard)는 자신만의 함수성을 원하
 		| 기본 클래스 | 모든 클래스 |
 	[/REGION]
 
-	추가하고자 하는 클래스를 선택한 다음 ![](button_Next.png) 버튼을 누르세요.
+	추가하고자 하는 클래스를 선택한 뒤 **다음 >** 버튼을 누르세요.
 
-1. 새로운 클래스에 **이름** 을 입력하라는 창이 뜹니다. 입력한 다음 ![](button_Create.png) 버튼을 누릅니다. 그러면 헤더(.h) 와 소스(.cpp) 파일이 생성됩니다.
+1. 새로운 클래스에 **이름** 을 입력하라는 창이 뜹니다. 입력한 다음 **클래스 생성** 버튼을 누릅니다. 그러면 헤더(.h) 와 소스(.cpp) 파일이 생성됩니다.
 	
 	[REGION:lightbox]
 		[![](NameNewActor.png)(w:600)](NameNewActor.png)

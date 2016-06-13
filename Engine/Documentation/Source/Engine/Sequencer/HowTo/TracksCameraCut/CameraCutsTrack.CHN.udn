@@ -1,0 +1,133 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Working with Camera Cuts
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:Demonstrates how you can use multiple cameras with the Camera Cuts Track. 
+Version: 4.11
+SkillLevel: Intermediate
+parent:Engine/Sequencer/HowTo
+order:1
+checkpoint: editorqs
+Related: Engine/Sequencer/Overview
+Related: Engine\Sequencer\ReferenceEditor\
+
+[REGION:warning]
+This is a feature that is currently undergoing development and may not work as expected or may change in future revisions.
+[/REGION]
+
+When creating cinematic sequences, there may be times where you want to have a character in your scene move around or perform some kind of animation. 
+In **Sequencer** this can be done by adding a Skeletal Mesh Actor to a Level Sequence then adding an Animation sub-track and specifying the animation that you want the Actor to perform. 
+Repeating this process and adding different kinds of animations for your Actor to perform is what can bring your characters to life in your cinematic sequences! 
+
+Here in this guide we will create a small scene that has a character jump up and down by applying different animations. 
+
+## Steps
+
+[REGION:note]
+For this how-to, we are using the **Blueprint Third Person Template** project with **Starter Content Enabled**. 
+[/REGION]
+
+1.	With your project open and [**Sequencer**](Engine\Sequencer\HowTo\EnableSequencer) enabled, from the **Toolbar** click the **Cinematics** button and **Add Level Sequence**. 
+
+	![](Cameras_01.png)
+
+	When prompted, enter a name and save location for the new Level Sequence at the dialog box. 
+
+1.	From the **Modes** window, search for **Camera** and drag a **Camera** into the level viewport. 
+
+	![](Cameras_02.png)
+
+	There is an additional camera type called the **Cine Camera Actor** which includes additional Film and Lens settings that you can experiment with, for now we will use a normal [**Camera Actor**](Engine/Actors/CameraActors). 
+
+1.	Using the [**Transform Tools**](GettingStarted/HowTo/ManipulatingActors), move the camera into position so that it is focused on the character in the level's feet. 
+
+	![](Cameras_03.png)
+
+	We will pan this camera up to the characters face as well as switch between multiple cameras angles but before we can do any of that, we will need to add this camera to the Level Sequence so that we can manipulate it through Sequencer. 
+
+1.	With the Camera Actor selected in the level, inside **Sequencer** click the **Add** button and select add under **Actor To Sequencer**. 
+
+	![](Cameras_04.png)
+
+	This will add a Track to sequencer which can be used to manipulate the Camera Actor during the cinematic. 
+
+1.	With the **CameraActor** track selected in **Sequencer**, press **Shift+W** to add a key for **Location** on the **Transform** sub-track.
+
+	![](Cameras_05.png)
+
+	We are going to move the camera in our cinematic and will need to define start and end locations using keys on the timeline.
+
+	[REGION:tip]
+	The **Shift+W** command is a shortcut for adding a Transform Track for **Location** only. You can also press **Shift+R** (to add a Transform Track for **Rotation**) or **Shift+E** (to add a Transform Track for **Scale**). If a Transform Track exists, using these shortcuts will automatically add keys for the current value to the timeline. You could also use the **+** sign and select a **Transform** sub-track which will add a track with Location, Rotation and Scale included. 
+	[/REGION]
+
+1.	Move the Timeline marker from **0** to **75**. 
+
+	![](Cameras_06.png)
+
+	We will define a new location for the camera to be at when reaching this frame in the sequence. 
+
+	[REGION:tip]
+	Use **Ctrl + G** to open the **Go To Frame** box and enter the desired frame to jump to. 
+	[/REGION]
+
+1.	In the level select the Camera Actor and drag the **Blue** transform arrow up to the character's face. 
+
+1.	In **Sequencer** with the Camera Actor track selected press **Shift+W** to add a keyframe for the new camera location. 
+
+	![](Cameras_07.png)
+
+	The new keyframe for the camera's location will be added and you will see a dotted yellow line in the viewport attached to the camera indicating the path that the camera will take. Since we only care about Location for this example, we used the shortcut method for assigning a Location Transform Track. 
+
+1.	Add another **Camera Actor** to the level, then add it to **Sequencer** (step 2 and step 4) and position it where you would like. 
+
+	![](Cameras_08.png)
+
+	Here we positioned the camera over the shoulder of the character, but you can position it where you would like as we are only going to cut to it and not move the camera. In order to perform this camera cut, we will need to use a special track called the **Camera Cut Track**. 
+
+1.	In **Sequencer**, click the **Add** button and select the **Camera Cut Track**. 
+
+	![](Cameras_09.png)
+
+	The Camera Cut Track works very similar to the [**Director Group & Director Track**](Engine/Matinee/TrackReference) in **Matinee** and allows you to specify which camera to view the Level Sequence through. Without this, the Level Sequence will not know which camera to use even if you place just a single camera in your cinematic you will still need the Camera Cuts Track assigned to the single camera you have added. 
+
+1.	Move the Timeline back to **0**, then click the **+** on the **Camera Cuts** track and select the camera that contains the movement. 
+
+	![](Cameras_10.png)
+
+1.	Move the Timeline to the **75** mark, then click the **+** sign on the **Camera Cuts** and select the second camera. 
+
+	![](Cameras_11.png)
+
+1.	Add one more cut at the **125** mark to cut back to the first camera (the one with movement).
+ 
+	![](Cameras_12.png)
+
+	Our multi-camera sequence is complete, the last thing we need to do is tell our level to play this sequence when we start our game. 
+
+1.	In the **World Outliner**, select the **Level Sequence** then in the **Details** panel check the **Auto Play** option. 
+
+	![](Cameras_13.png)
+
+1.	Click the **Play** button from the Toolbar to play in the level.
+
+
+## End Result
+
+When the level starts, you will see your cinematic sequence with multiple camera angles. 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+nRbmjpQc3MY
+[/PARAMLITERAL]
+[/OBJECT]
+
+While this is only a small fraction of what you can do with cameras in Sequencer, it covers the basics and illustrates how to add cameras to a Level Sequence, move cameras and change between different cameras. You can add keyframes for most of the Post Processing effects from a camera to add film tinting, bloom effects and much more which you can experiment with to reach your desired effect. 
+
+

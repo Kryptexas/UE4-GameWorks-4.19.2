@@ -4,7 +4,9 @@ Crumbs:%ROOT%, Platforms
 Description:Information over developing for virtual reality platforms.
 Navigation:platform
 Version: 4.9
-
+type:landing
+parent:Platforms
+order:2
 
 [VAR:Params]
 [PARAM:image]
@@ -46,64 +48,20 @@ vr
 [/VAR]
 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/vr_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Virtual Reality Topics
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Platforms/VR/CheatSheet "%Platforms/VR/CheatSheet:description%")
-		* [](Platforms/VR/ContentSetup "%Platforms/VR/ContentSetup:description%")
-		* [](Platforms/VR/MotionController "%Platforms/VR/ContentSetup:description%")
-	[/PARAM]
-[/OBJECT]
+## Starting Out
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/oculus_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		[](Platforms/Oculus "%Platforms/Oculus:description%")
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Platforms/Oculus/BestPractices "%Platforms/Oculus/BestPractices:description%")
-		* [](Platforms/Oculus/QuickStart "%Platforms/Oculus/QuickStart:description%")
-	[/PARAM]
-[/OBJECT]
+[DIR(output:"listbutton" type:"quickstart" tags:"vr")]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/vr_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		[](Platforms/GearVR "%Platforms/GearVR:description%")
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Platforms/GearVR/BestPractices "%Platforms/GearVR/BestPractices:description%")
-		* [](Platforms/GearVR/QuickStart "%Platforms/GearVR/QuickStart:description%")
-	[/PARAM]
-[/OBJECT]
+## Virtual Reality Platforms
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/SteamVR_Icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		[](Platforms/SteamVR "%Platforms/GearVR:description%")
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Platforms/SteamVR/BestPractices   "%Platforms/GearVR/BestPractices:description%")
-		* [](Platforms/SteamVR/QuickStart      "%Platforms/GearVR/QuickStart:description%")
-		* [](Platforms/SteamVR/Tips_And_Tricks "%Platforms/GearVR/QuickStart:description%")
-	[/PARAM]
-[/OBJECT]
+[DIR(end:"1" output:"listbutton" type:"landing" parent:"Platforms/VR")]
+
+## Virtual Reality Topics
+
+[DIR(end:"1" output:"listbutton" type:"overview" parent:"Platforms/VR")]
+
+## Training Streams
+
+[REGION:topics third]
+[DIR(output:"video" type:"video" tags:"Virtual Reality")]
+[/REGION]

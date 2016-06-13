@@ -1,0 +1,60 @@
+﻿INTSourceChangelist:2911160
+Title:ユニバーサル ギズモ
+Description:VR において、アクタの移動、回転、スケーリングを行うトランスフォーム ウィジェットです。
+Crumbs:
+Availability: public
+parent:Engine/Editor/VR
+type: reference
+order:4
+tags:VR
+version:4.11
+skilllevel: intermediate
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Editor/VR/UniversalGizmo:title%](Engine/Editor/VR/UniversalGizmo/universalgizmo_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/UniversalGizmo:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/UniversalGizmo]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/UniversalGizmo:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Editor/VR/UniversalGizmo:title%](Engine/Editor/VR/UniversalGizmo/universalgizmo_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/UniversalGizmo:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/UniversalGizmo]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/UniversalGizmo:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+**ユニバーサル ギズモ** は、VR モードでの作業中にアクタの移動、回転、スケーリングを行うトランスフォーム ウィジェットです。 
+
+![](universalgizmo.png)(w:400)
+
+例えば Move ツールには、X、Y、Z の各軸を、赤、緑、青の矢印で示します。
+
+| アクション | マニピュレータ | 使用方法 |
+| --- | --- | --- |
+| **トランスレーション** | ![](universalgizmo_move.png)(w:192) | **トリガー** を半分引いたまま、トランスレーション マニピュレータの一つにコントローラの照準を合わせます。コントローラを移動させて、選択したアクタを軸と平行に移動させます。 |
+| **プレーンのトランスレーション** | ![](universalgizmo_moveplane.png)(w:192) | **トリガー** を半分引いたまま、トランスレーション マニピュレータの一つにコントローラの照準を合わせます。コントローラを移動させて、選択したアクタを (2 本の軸の間の) プレーンと平行に移動させます。 |
+| **回転** | ![](universalgizmo_rotate.png)(w:192) | **トリガー** を半分引いたまま、回転マニピュレータの一つにコントローラの照準を合わせます。コントローラを移動させて、選択したアクタを軸の回りを回転させます。 |
+| **スケーリング** | ![](universalgizmo_scale.png)(w:192) | **トリガー** を半分引いたまま、スケール マニピュレータの一つにコントローラの照準を合わせます。コントローラを移動させて、選択したアクタを Y 軸と平行にスケールします。 |
+| **均一なスケーリング** | ![](universalgizmo_uniformscale.png)(w:192) | **トリガー** を半分引いたまま、伸縮マニピュレータの一つにコントローラの照準を合わせます。コントローラを移動させて、選択したアクタをすべての軸と平行に均一にスケールします。 |
+| **伸縮** | ![](universalgizmo_stretch.png)(w:192) | **トリガー** を半分引いたまま、伸縮マニピュレータの一つにコントローラの照準を合わせます。コントローラを移動させて、選択したアクタを対角に固定したまま、すべての軸と平行に非均一にスケールします。 |

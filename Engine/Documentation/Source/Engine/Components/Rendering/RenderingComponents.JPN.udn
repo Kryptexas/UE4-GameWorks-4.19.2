@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2659191
+﻿INTSourceChangelist:2775974
 Availability:Public
 Title:Rendering コンポーネント
 Crumbs:%ROOT%, Engine, Engine/Components
@@ -79,7 +79,7 @@ Version:4.9
 **InstancedStaticMesh コンポーネント** は、同一スタティックメッシュの複数インスタンスを効率よくレンダリングするコンポーネントです。 
 このタイプのコンポーネントは、プロシージャルなレベルや部屋を制作するうえで特に役立ちます。レベルに数百 (場合によっては数千) という **Static Mesh アクタ** を配置する代わりに、はるかに低いパフォーマンス負荷でひとつの **Instanced Static Mesh (インスタンス化されたスタティックメッシュ)** を配置し、そのスタティックメッシュの複数のインスタンス (例、花や壁) を追加できます。 
 
-**InstancedStaticMesh** コンポーネントの作業と部屋をプロシージャルに生成する例については、[**プロシージャルな部屋生成**](https://docs.unrealengine.com/latest/INT/Videos/Player/index.html?series=PLZlv_N0_O1ga0aV9jVqJgog0VWz1cLL5f&video=mI7eYXMJ5eI&utm_source=uelauncher&utm_medium=software&utm_campaign=learntab) のトレーニング ストリームをご覧ください。 
+**InstancedStaticMesh** コンポーネントの作業とランダムな部屋をプロシージャルに生成する例については、[プロシージャルな部屋生成](https://wiki.unrealengine.com/Videos/Player?series=PLZlv_N0_O1ga0aV9jVqJgog0VWz1cLL5f&video=mI7eYXMJ5eI) の Wiki のトレーニング ストリームをご覧ください。 
 
 ## Particle System コンポーネント
 

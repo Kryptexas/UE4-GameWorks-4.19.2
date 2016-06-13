@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2627277
+﻿INTSourceChangelist:2735426
 Availability:Public
 Title:프로젝트 브라우저
 Crumbs: %ROOT%, Engine, Engine/Basics/Projects
@@ -6,6 +6,8 @@ Description:프로젝트 브라우저를 사용하여 새 프로젝트를 만들
 Related: GettingStarted
 Related: GettingStarted/HowTo
 Related: Engine/Content/Packs
+Version: 4.9
+SkillLevel:Beginner
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -39,7 +41,7 @@ Related: Engine/Content/Packs
 
 ## 프로젝트 열기
 
-**프로젝트 브라우저** 의 첫 탭음 **프로젝트** 탭입니다.
+**프로젝트 브라우저** 의 첫 탭은 **프로젝트** 탭입니다.
 
 ![](OpenProject_single.png)(w:800)
 

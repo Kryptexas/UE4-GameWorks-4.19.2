@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2654519
 Availability:Public
-Title: 7. AI Controller Setup
+Title:7.AI 控制器设置
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
-Description: Setup the AI Controller for the EQS Quick Start.
+Description:设置 EQS 快速入门的 AI 控制器。
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -22,13 +23,13 @@ Description: Setup the AI Controller for the EQS Quick Start.
 
 %Steps%
 
-The setup for this AI Controller is a single **Run Behavior Tree** node running our `RunnerBT` **Behavior Tree** when ever **Event BeginPlay** is executed.
+此 AI 控制器的设置为：单一 **Run Behavior Tree** 节点在 **Event BeginPlay** 执行时运行 RunnerBT 行为树。
 
-## Steps
+## 步骤
 
-1. Double-click the `Runner_AI_CON` Blueprint in the Content Browser to open it for editing.
+1. 在 **内容浏览器** 中双击打开 Runner_AI_CON 蓝图进行编辑。
 
-2. In the Event Graph, have **On Begin Play** execute a **Run Beahvior Tree** node using the `RunnerBT` as the **BTAsset**:
+2. 在 **事件图表** 中，让 **Event BeginPlay** 执行一个 **Run Beahvior Tree** 节点，将 RunnerBT 作为 **BTAsset** 使用：
 
 	![](setup.png)
 

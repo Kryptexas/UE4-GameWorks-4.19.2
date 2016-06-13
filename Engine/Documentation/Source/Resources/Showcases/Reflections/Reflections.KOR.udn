@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2616803
+﻿INTSourceChangelist:2726436
 Availability: Public
 Title:리플렉션
 Crumbs:%ROOT%, Resources
@@ -9,7 +9,7 @@ Related: Engine/Rendering/Materials
 Related: Engine/Rendering/PostProcessEffects/ScreenSpaceReflection
 Related: Resources/ContentExamples/Reflections/1_4
 Related: Resources/ContentExamples/Reflections/1_3
-
+Version: 4.9
 
 
 
@@ -64,7 +64,7 @@ Related: Resources/ContentExamples/Reflections/1_3
 
 이 예제에서는 언리얼 엔진 4 의 실시간 리플렉션 능력을 선보입니다. 씬에 나타나는 퇴락한 지하철역은  물이 많이 새고 있고, 더러운 세라믹 타일에다, 허물어져 가는 배관, 기타 배경 디테일도 낡았습니다. 이 문서에서는 이런 복합 효과를 내는데 활용된 기법과 기능을 하이 레벨 관점에서 살펴보도록 하겠습니다.
 
-다음 이미지에서는 이 씬의 리플렉션 블렌딩을 켜고 끄면서 그 효과를 옅볼 수 있습니다.
+다음 이미지에서는 이 씬의 리플렉션 블렌딩을 켜고 끄면서 그 효과를 엿볼 수 있습니다.
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -133,7 +133,7 @@ DUe4z3-5WvU
 
 ### 실제 반사 표면
 
-대비와 아울러서, 실사 리플렉션을 만들 때 중요한 점 또한가지는 현실에서 리플렉션이 생길 표면 유형을 고려하는 것입니다. 이 데모의 경우 젖은 콘크리트 바닥에 세라믹 벽타일을 사용하기로 했습니다. 대부분의 씬에 물방울이 떨어져 흐르고 있어, 대부분의 환경에 반사성을 더하고 있습니다. 물론 이는 멋진 모양새를 내는 데 있어서 머티리얼을 기발하게 잘 만드는 것이 핵심이라는 뜻입니다.
+대비와 아울러서, 실사 리플렉션을 만들 때 중요한 점 또 한 가지는 현실에서 리플렉션이 생길 표면 유형을 고려하는 것입니다. 이 데모의 경우 젖은 콘크리트 바닥에 세라믹 벽타일을 사용하기로 했습니다. 대부분의 씬에 물방울이 떨어져 흐르고 있어, 대부분의 환경에 반사성을 더하고 있습니다. 물론 이는 멋진 모양새를 내는 데 있어서 머티리얼을 기발하게 잘 만드는 것이 핵심이라는 뜻입니다.
 
 머티리얼 생성 관련 상세 정보는 [](Engine/Rendering/Materials), [](Engine/Rendering/Materials\PhysicallyBased) 문서를 참고해 주시기 바랍니다.
 

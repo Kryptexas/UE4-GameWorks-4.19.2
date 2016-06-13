@@ -1,49 +1,61 @@
-﻿Title: 2. 创建导航网格物体边界体积
-Crumbs:%ROOT%, Engine, Engine/AI/BehaviorTrees/QuickStart
-Description:步骤2. 创建导航网格物体边界体积
+﻿INTSourceChangelist:2755926
 Availability:Public
+Title:2.创建寻路网格物体边界体积框
+Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
+Description:第二步。创建寻路网格物体边界体积框
+version:4.9
 
 [VAR:Steps]
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Engine/AI/BehaviorTrees/QuickStart/1 "%Engine/AI/BehaviorTrees/QuickStart/1:title%")
 	[/PARAM]
-	[PARAM:title]
-		步骤
+	[PARAM:coloroverride]
+		#000000
 	[/PARAM]
-	[PARAM:description]
+	[PARAM:current]
 	[/PARAM]
-	[PARAM:links]
-		* [前一步 - %Engine/AI/BehaviorTrees/QuickStart/1:Title%](Engine/AI/BehaviorTrees/QuickStart/1 "%Engine/AI/BehaviorTrees/QuickStart/1:description%")
-		* **%Engine/AI/BehaviorTrees/QuickStart/2:Title%**
-		* [下一步 - %Engine/AI/BehaviorTrees/QuickStart/3:Title%](Engine/AI/BehaviorTrees/QuickStart/3 "%Engine/AI/BehaviorTrees/QuickStart/3:description%")
+	[PARAM:home]
+		[Quick Start Home](Engine/AI/BehaviorTrees/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Engine/AI/BehaviorTrees/QuickStart/3 "%Engine/AI/BehaviorTrees/QuickStart/3:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
+
 %Steps%
+[EXCERPT:AICreateNav]
 
----
+虚幻引擎中的寻路网格物体（NavMesh）拥有诸多功能，便于结合行为树使用。某些功能并非适用于所有游戏的开发，但对多数游戏类型而言，它们都十分实用。此外，自上而下模板已包含一个寻路网格物体边界体积框，随后您也可以选择从一个空白项目开始。
 
-虚幻引擎中的NavMesh（导航网格物体）具有很多功能，这些功能可以同Behavior Tree（行为树）协同工作，尽管根据您所制作的游戏类型的不同，有些功能可能没有必要，但是对于很多游戏类型来说，这些功能都是很有帮助的。同时，Top Down(自上而下)模板已经包含了Nav Mesh Bounds Volume(导航网格物体边界体积)，但是稍后您可以选择从一个完全空白的项目中开始制作。
+## 步骤
 
-1. **Modes Panel（模式面板）** -> **Create（创建）** -> **Volumes（体积）** 。
-1. 点击并拖拽一个 **Nav Mesh Bounds Volume（导航网格物体边界体积）** 到地图中。
+1. [REGION:raw]**Modes** 面板 %arrow% **Create** %arrow% **Volumes**。[/REGION]
+
+1. 点击并将 **Nav Mesh Bounds Volume** 拖入地图。
 
 	![](createNavVol.png)
 
-1. 平移并缩放体积，使得它包围您想让您的角色导航的区域。
+1. 对体积框进行 **平移（Translate）** 和 **缩放（Scale）**，使其包裹角色进行寻路的区域。
 
-	* 如果您愿意，您可以使用多个体积，或者也可以使用一个包围整个关卡的巨大体积。
+	* 可按个人需求使用多个体积框，或包裹整个关卡的大型体积框。
 
-1. 当在视口中工作时，按下 "**P**" 键来查看是否正在构建您的导航网格物体。
+1. 在视口中工作时，可按下 **P** 键查看寻路网格物体是否正处于构建中。
 
 	![](NMVis.png)
 
-	如果您看到地面上有一个绿色的网格物体覆盖层，那么说明它正在正确地进行构建。当网格物体变成红色时，则意味着它正在重新计算一个区域，因为您可能移动了该体积或者移动了体积内部的网格物体。
+	如果地表上有绿色网格物体覆层，则表明构建正常。网格物体变为红色时，则表明您移动过体积框或处于其中的网格物体，正对区域进行重新计算。
 
-	任何时候，您都可以按下 "**P**" 键来显示或隐藏导航网格物体。
+	可随时按下 **P** 键显示或隐藏寻路网格物体。
 
----
-
+[/EXCERPT:AICreateNav]
 %Steps%
+
+[VAR:arrow]![](Engine\AI\EnvironmentQuerySystem\QuickStart\arrow_button.png)[/VAR]
+
+
+
+
+

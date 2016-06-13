@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2291853
+﻿INTSourceChangelist:2721649
 Availability:Public
 Title:개발 셋업
 Crumbs: %ROOT%, Programming
 Description:코딩 환경, 코드 프로젝트 생성, 언리얼 엔진 소스 작업용 셋업을 하는 프로그래머를 위한 정보입니다.
+version: 4.9
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]

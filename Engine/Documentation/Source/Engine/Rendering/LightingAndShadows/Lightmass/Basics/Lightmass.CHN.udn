@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:1950694
+﻿INTSourceChangelist:2677192
 Availability: Public
-Title:Lightmass基础知识
-Crumbs: %ROOT%, Engine, Engine/Rendering, Engine/Rendering/LightingAndShadows
-Description:Lightmass概要介绍。
+Title: Lightmass 基础知识
+Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
+Description: Lightmass 概要介绍。
+SkillLevel: Beginner
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -44,18 +46,14 @@ Description:Lightmass概要介绍。
 [/VAR]
 
 [REGION:fullwidth raw]
-![](Engine/Rendering/LightingAndShadows/lighting_banner.png)(convert:false)
+![](Engine/Rendering/LightingAndShadows/lighting_overview_banner_001.png)(convert:false)
 [/REGION]
 
 [TOC(start:2)]
 
-## 概述
-
 [INCLUDE:Engine/Rendering/LightingAndShadows/Lightmass#LightMass_002]
 
-运行Lightmass的最低需求： 至少有一个 **静态光源** 或者 **固定光源** ，及一个 **Lightmass Importance Volume（Lightmass重要体积）** （下面进行介绍）。
-
-## Lightmass重要体积
+## Lightmass 重要体积
 
 [INCLUDE:Engine/Rendering/LightingAndShadows/Lightmass#LightMass_001]
 
@@ -65,32 +63,35 @@ Description:Lightmass概要介绍。
 
 ## 构建
 
-1. 点击工具条上的 **Build（构建）** ![](LI_Build.png)按钮(您可以使用构建按钮旁边的小倒三角形，并且您可以选择 **Build Lighting（构建光照）** )。
+1. 点击工具条上的 **构建 Build** ![](LI_Build.png) 按钮（可以使用构建按钮旁边的小倒三角形，并且您可以选择 **构建光照 Build Lighting** ）。
 
 1. 类似于这样的一个对话框将会出现在屏幕的右下角
 	
 	![](LI_SLInprogress.png)
 
-1. 当构建完成时，点击 **Keep（保存）** 。
+1. 当构建完成时，点击 **保留 Keep** 。
 	
 	![](LI_SLComplete.png)
 
 
-就这么简单。根据光源数量、质量模式、关卡大小、Lightmass重要体积所包含的部分、Swarm客户端是否有其他计算机可用，这个过程可能会花费几分钟甚至更长的时间。
+就这么简单。根据光源数量、质量模式、关卡大小、Lightmass 重要体积所包含的部分、Swarm 客户端是否有其他计算机可用，
+这个过程可能会花费几分钟或者更长的时间。
 
-## 质量模式
+## 画质模式
 
 ![](LMBuild_001.png)
 
-这些预置模式是时间和质量之间的平衡。**预览级** 将会快速地进行渲染，并提供大部分烘焙的直接光照的一般效果，而 **产品级** 设置渲染较慢，但是可以提供更加真实的效果，并且可以校正各种光照渗透错误。
+这些预置模式是时间花费和获得画质之间的平衡。**预览级** 将会快速地进行渲染，并提供大部分直接光照烘培后的一般效果，
+而 **产品级** 设置渲染较慢，但是可以提供更加真实的效果，并且可以校正各种光照渗透错误。
 
-* **Production（产品级）** - 看上去非常棒，需要一段时间
-* **High（高级）** - 看上去很好，需要一些时间
-* **Medium（中级）** - 看上去较好，需要稍微长一点的时间进行计算
-* **Preview（预览级）** - 可以接受，但至少渲染速度很快
+* **产品级 Production** - 看上去非常棒，需要花费一些时间
+* **高级 High** - 看上去很好，需要一些时间
+* **中级 Medium** - 看上去较好，需要稍微长一点的时间进行计算
+* **预览级 Preview** - 只是可以接受，但渲染速度很快
 
 
-这些仅是预置，还有很多设置可以调整，以便在您的游戏中获得满意的光照，请参照[**Lightmass**](Engine/Rendering/LightingAndShadows/Lightmass)文档那个获得关于如何调整 **Lightmass** 设置的更多信息。
+这些仅是预置，还有很多设置可以调整，以便在您的游戏中获得满意的光照，
+请参照 [**Lightmass**](Engine/Rendering/LightingAndShadows/Lightmass) 文档获得关于如何调整 **Lightmass** 设置的更多信息。
 
 
 

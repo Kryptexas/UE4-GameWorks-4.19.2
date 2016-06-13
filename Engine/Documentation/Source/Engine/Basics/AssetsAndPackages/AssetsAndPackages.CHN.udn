@@ -1,7 +1,9 @@
-﻿Availability:Public
+﻿INTSourceChangelist:0
+Availability:Public
 Title: 资源和包
-Crumbs: %ROOT%, Engine, Engine/Basics
+Crumbs: %ROOT%, Engine
 Description:概述了虚幻引擎4中使用的资源和包系统。
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]

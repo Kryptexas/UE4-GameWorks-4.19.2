@@ -1,14 +1,13 @@
-﻿INTSourceChangelist:2568498
+﻿INTSourceChangelist:2661707
 Availability:Public
 Title:インゲームでスレートを使用する
 Crumbs:%ROOT%, Programming, Programming/Slate
 Description:インゲーム ユーザー インターフェースにスレート UI ウィジェットを使用する
-Version:4.4
+Version:4.9
 
-## 概要
 
 スレート ウィジェットをインゲームで使用して、 
-ヘッドアップ ディスプレイ (HUD) やメニューなどのその他のユーザー インターフェース (UI) を作成することができます。通常は _コンテナ_ ウィジェットという、それぞれが UI 固有の特性を持つ、様々なタイプのウィジェットで構成されるウィジェットを 
+ヘッドアップ ディスプレイ (HUD) やメニューなどのその他のユーザー インターフェース (UI) を作成することができます。通常はコンテナ ウィジェットという、それぞれが UI 固有の特性を持つ、様々なタイプのウィジェットで構成されるウィジェットを 
  1 つ以上作成します。 
 
 <!-- HUD widget w/ menu overlay -->
@@ -38,10 +37,10 @@ Version:4.4
  Z 順序値が降順で 
 表示されます。
 
-**ゲーム ビューポートへアクセスする**
+###ゲーム ビューポートへアクセスする
 
-ゲームのビューポートは、 `GameViewportClient` のインスタンスです。現在のゲーム ビューポートへのリファレンスへは、 アンリアル エンジンの `GameViewport` メンバー経由でアクセスできます。 
-そして、 `GameViewport` メンバーには、ゲームの現在の UEngine インスタンスへ 
+ゲームのビューポートは、`GameViewportClient` のインスタンスです。現在のゲーム ビューポートへのリファレンスへは、 アンリアル エンジンの `GameViewport` メンバー経由でアクセスできます。 
+そして、`GameViewport` メンバーには、ゲームの現在の UEngine インスタンスへ 
  `GEngine` グローバル ポインタを使用してアクセスできます。 
 
 例:
@@ -53,7 +52,7 @@ Version:4.4
 メンバーを含めてアクセス前に必ず値を確認してください。
 [/REGION]
 
-**ウィジェットをビューポートに追加する**
+###ウィジェットをビューポートに追加する
 
 スレート ウィジェットは、リファレンス、正確には `TSharedref<SWidget>` を 
  `GameViewportClient::AddViewportWidgetContent()` のウィジェットへパスすると、ビューポートへ追加されます。この関数はウィジェットと Z 順序の両方を受け取ると、 
@@ -76,10 +75,10 @@ Version:4.4
 		.PossiblyNullContent(MyWidgetClass)
 	); 
 
-あるいは、 `SAssignNew()` を使って作成し、 `TSharedPtr` メンバを割り当て、以下にパス：
+あるいは、`SAssignNew()` を使って作成し、`TSharedPtr` メンバを割り当て、以下にパス：
 
 	GEngine->GameViewport->AddViewportWidgetContent(
-		SAssingNew(MyWidgetPtr, SWeakWidget)
+		SAssignNew(MyWidgetPtr, SWeakWidget)
 		.PossiblyNullContent(MyWidgetClass)
 	);
 

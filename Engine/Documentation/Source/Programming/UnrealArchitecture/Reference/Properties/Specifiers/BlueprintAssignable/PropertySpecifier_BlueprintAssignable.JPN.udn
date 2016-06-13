@@ -1,8 +1,28 @@
-﻿INTSourceChangelist:2374181
+﻿INTSourceChangelist:2669538
 Title:BlueprintAssignable
 Crumbs: %ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Properties, Programming/UnrealArchitecture/Reference/Properties/Specifiers
-Description: 
+Description:
 Availability:Public
-Version:4.5
+Version:4.9
 
-マルチキャスト デリゲートのみです。ブループリントへ割り当てるためにプロパティは公開されなければいけません。
+マルチキャスト デリゲートとのみ使用できます。ブループリントへ割り当てるためにプロパティを公開します。
+
+## 使用法
+
+    UPROPERTY(BlueprintAssignable)
+    Type VariableName;
+
+## 例
+
+    DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnItemRemoved, FItemStruct, RemovedItem);
+
+    UCLASS(meta=(BlueprintSpawnableComponent))
+    class UInventoryComponent : public UActorComponent
+    {
+        GENERATED_BODY()
+
+    public:
+
+        UPROPERTY(BlueprintAssignable)
+        FOnItemRemoved OnItemRemoved;
+    };

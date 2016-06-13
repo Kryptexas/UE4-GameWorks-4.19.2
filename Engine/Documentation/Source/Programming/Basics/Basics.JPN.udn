@@ -1,14 +1,19 @@
-﻿INTSourceChangelist:2419450
+﻿INTSourceChangelist:2721480
 Availability:Public
 Title:プログラミングの基礎
 Crumbs: %ROOT%, Programming
-Description:アンリアル エンジンで開発するプログラマー向けの情報
+Description:プログラミングに関する情報をみてみましょう
+related:Programming\UnrealArchitecture\Reference\Classes
+related:Programming\UnrealArchitecture\Reference\Functions
+related:Programming\UnrealArchitecture\Reference\Properties
+related:Programming\UnrealArchitecture\Reference\Structs
+related:Programming\UnrealArchitecture\Reference\Interfaces
+version:4.9
 
-## 概要
 
-個々のゲームは、そのゲームに特化したコード、コンテント、設定を全て含むゲーム プロジェクトによって定義されます。ゲームプレイ コードは、 1 つ以上のゲームプレイ モジュールに含まれ、 
-それぞれのゲーム プロジェクトにはモジュールが最低 1 つ含まれています。アセット、サウンドなどのコンテントはエディタにインポートされ、 
-パッケージとアセットの中に格納されます。利用できるゲーム設定は、スタートアップからダウンロード可能な [コンフィギュレーション ファイル](Programming/Basics/ConfigurationFiles) に定義されています。これらの全てが一緒になって、 
+個々のゲームは、そのゲームに特化したコード、コンテンツ、設定を全て含むゲーム プロジェクトによって定義されます。ゲームプレイ コードは、 1 つ以上のゲームプレイ モジュールに含まれ、 
+各ゲーム プロジェクトにはモジュールが最低 1 つ含まれています。アート アセット、サウンドなどのコンテンツはエディタにインポートされ、 
+パッケージとマップに格納されます。利用できるゲーム設定は、スタートアップ時にロードされる [コンフィギュレーション ファイル](Programming/Basics/ConfigurationFiles) に定義されています。これらの全てが一緒になって、 
 アンリアル エンジンで作成されるゲームの基礎を形成します。
 
 
@@ -17,9 +22,9 @@ Description:アンリアル エンジンで開発するプログラマー向け�
 [/REGION]
 
 
-[プロジェクト ブラウザ](Engine/Basics/Projects/Browser#新規プロジェクトの作成) のページで新規ゲーム プロジェクトの作成手順を説明しています。ゲーム プロジェクトが作成できたら、次はプロジェクトの 
- [](Engine/Basics/DirectoryStructure) に慣れてください。これにより、現在のがいるが何を意味し、プロジェクトに新規ファイルを追加すると何がどうなるのか分かりやすくなります。プロジェクトでエディタを操作する場合、 
- [](Programming\Basics\CommandLineArguments) を使用すれば、ゲーム プレビュー モードへ直接ジャンプしたり特定のマップ上での開始することができるようになります。
+[ゲーム プロジェクトの作成](Engine/Basics/Projects/Browser#新規プロジェクトの作成) のページで新規ゲーム プロジェクトの作成手順を説明しています。ゲーム プロジェクトが作成できたら、次はプロジェクトの 
+ [](Engine/Basics/DirectoryStructure) に慣れてください。これにより、既存のファイルが何を表し、プロジェクトに新規ファイルを追加すると何がどこにいつ入るのかが分かりやすくなります。プロジェクトでエディタを操作する場合、 
+ [](Programming\Basics\CommandLineArguments) を使用すれば、ゲーム プレビュー モードへ直接ジャンプしたり特定のマップ上で開始できるようになります。
 
 
 ##モジュール
@@ -31,21 +36,21 @@ Description:アンリアル エンジンで開発するプログラマー向け�
 
 #### Module API
 
-モジュール外からアクセスする必要のある関数とクラスは、 `*_API` マクロ経由でエクスポーズされなければなりません。エクスポーズされる各アイテムはコンパイル時間という負荷が伴うため、必要なもののみをエクスポーズするようにしてください。アクセスする必要のある関数がクラス内で 1 つだけの場合は、クラスではなくその関数をエクスポーズすればコンパイル時間を大幅に短縮できます。
+モジュール外からアクセスする必要のある関数とクラスは、 `*_API` マクロによって公開されなければなりません。公開される各アイテムはコンパイル時間という負荷が伴うため、必要なもののみを公開するようにしてください。アクセスする必要のある関数がクラス内で 1 つだけの場合は、クラスではなくその関数をエクスポーズすればコンパイル時間を大幅に短縮できます。
 
 クラスおよび関数を他のモジュールへエクスポーズする方法については [](Programming/Modules/API) ページを参照してください。
 
 ## クラス
 
-Gameplay クラスは標準の C++ ヘッダファイルと記法をエンジンで定義された特別なマクロと併用して定義して、アンリアル エンジンにユニークなクラスの特性を定義しやすくしています。
+Gameplay クラスは、標準の C++ ヘッダファイルと記法をエンジンで定義された特別なマクロと併用して定義され、アンリアル エンジン固有のクラスの特性の定義を支援します。
 
 クラス構造体と作成の包括的な説明は [](Programming/UnrealArchitecture/Reference) を参照してください。
 
 ### クラスの実装
 
-最も基本的なレベルでは、 **アクタ** はレベルに配置可能なゲームプレイオブジェクトです。全てのアクタは、 `AActor` クラスから拡張されます。このクラスは _スポーン可能_ なゲームプレイオブジェクトの基本クラスです。
+最も基本的なレベルでは、アクタはレベルに配置可能なゲームプレイ オブジェクトです。全てのアクタは、 `AActor` クラスから拡張されます。このクラスは _スポーン可能_ なゲームプレイ オブジェクトの基本クラスです。
 
-アクタはある意味、 [コンポーネント](Programming/UnrealArchitecture/Actors/Components) と呼ばれる特別なタイプの **オブジェクト** を保持するコンテナとして考えられます。例えば、 _CameraActor_ は _CameraComponent_ を格納します。
+アクタはある意味、 [コンポーネント](Programming/UnrealArchitecture/Actors/Components) と呼ばれる特別なタイプのオブジェクトを保持するコンテナと考えられます。例えば、 _CameraActor_ は _CameraComponent_ を格納します。
 
 ![](camera_actor.png)
 
@@ -54,33 +59,14 @@ FOV (視野角) のようなカメラの機能は、全て _CameraComponent_ 内
 
 ![](pawn_actor.png)
 
-異なるタイプのコンポーネントを、アクタの移動方法、レンダリング方法、また機能の他の部分に使用することができます。コンポーネントを含むすべてのオブジェクトは、 UObject クラスから拡張されて、 
-全ゲームプレイ オブジェクトのベースクラスです。つまり、このクラスはワールド内へ直接インスタンス化することはできず、アクタに属さなければいけません。
+異なるタイプのコンポーネントを、アクタの移動方法、レンダリング方法、また機能の他の部分に使用することができます。コンポーネントを含むすべてのオブジェクトは、 UObject クラスから拡張されます。 
+UObject クラスは、全ゲームプレイオブジェクトの基底クラスです。つまり、このクラスはワールド内へ直接インスタンス化することはできず、アクタに属さなければいけません。
 
-各アクタまたはオブジェクトは、クラスの単一インスタンスです。クラスは、アクタまたはオブジェクトのテンプレートを設定します。テンプレートは、アクタあるいはオブジェクトに設定可能な変数、
-そしてアクタまたはオブジェクト内で実行可能な関数を定義します。ユーザーは、 C++ コードでオブジェクトとアクタの新規クラスまたはタイプを作成することができます。 
-ユーザーは、 _Blueprint クラス_ でいくつかのオブジェクトを拡張することもできますが、新規の C++ クラスを作成して、このクラスから _Blueprint クラス_ を派生させることによって、これら両方を同時に実行することも出来ます。新規のアクタおよびオブジェクトのためのクラス作成に関する詳細は 
- [クラス作成の基本](Gameplay\ClassCreation) ページを参照してください。
+各アクタまたは各オブジェクトは、クラスの単一インスタンスです。クラスは、アクタまたはオブジェクトのテンプレートを設定します。テンプレートは、アクタあるいはオブジェクトに設定可能な変数、
+そしてアクタまたはオブジェクト内で実行可能な関数を定義します。C++ コードでオブジェクトとアクタの新規クラスまたはタイプを作成することができます。Blueprint クラスを使っていくつかのオブジェクトを拡張することもできますが、 
+Blueprint クラスでは主に新規アクタを設定するクラスを作成することができます。新規の C++ クラスを作成して、このクラスから Blueprint クラスを派生させることによって、これら両方を組み合わせることも出来ます。新規のアクタおよびオブジェクトのためのクラス作成に関する詳細は、 
+[クラス作成の基本](Gameplay\ClassCreation) ページを参照してください。
 
 オブジェクト、アクタ、コンポーネントに関する詳細は、 [](Programming/UnrealArchitecture) をご覧ください。
-
-
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/reference_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Related Pages
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Programming\UnrealArchitecture\Reference\Classes)
-	* [](Programming\UnrealArchitecture\Reference\Functions)
-	* [](Programming\UnrealArchitecture\Reference\Properties)
-	* [](Programming\UnrealArchitecture\Reference\Structs)
-	* [](Programming\UnrealArchitecture\Reference\Interfaces)
-	[/PARAM]
-[/OBJECT]
 
 

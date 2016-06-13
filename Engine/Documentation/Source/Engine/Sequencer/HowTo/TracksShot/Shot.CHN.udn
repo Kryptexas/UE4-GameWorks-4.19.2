@@ -1,0 +1,64 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Creating Shots & Takes
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:Shows a form of non-linear editing by arranging Shots and variations of Shots with Takes. 
+Version: 4.11
+SkillLevel: Intermediate
+parent:Engine/Sequencer/HowTo
+order:1
+checkpoint: editorqs
+Related: Engine/Sequencer/Overview
+Related: Engine\Sequencer\ReferenceEditor\
+
+[REGION:warning]
+This is a feature that is currently undergoing development and may not work as expected or may change in future revisions.
+[/REGION]
+
+The **Level Sequence** Editor (or **Sequencer** for short) is still in the early stages of development and must be enabled in order to access it. 
+This guide will show you where you can access and enable Sequencer (as well as the **Sequence Recorder**) and open up the Sequencer Editor so that you can begin creating cinematics. 
+
+## Steps
+
+[REGION:note]
+For this how-to, we are using the **Blueprint Third Person Template** project. However, you can use any project you wish. 
+[/REGION]
+
+1.	With [**Sequencer**](Engine\Sequencer\HowTo\EnableSequencer) enabled, in the **Content Browser** click **Add New** and under **Animation** select **Level Sequence**. 
+
+
+
+
+## End Result
+
+After choosing a name and save location for your Level Sequence, the **Sequencer** Editor will automatically open. 
+
+
+Inside the Sequencer Editor you can start adding different types of **Tracks** which you can use to craft your cinematic sequences. You can also use the **Sequence Recorder** to record content that will be used to automatically create new Level Sequences which you can edit inside Sequencer. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

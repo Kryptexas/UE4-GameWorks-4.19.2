@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2615013
+﻿INTSourceChangelist:2707725
 Availability: Public
 Title:머티리얼 에디터 - 머티리얼 함수 제작 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
@@ -9,6 +9,9 @@ Related: Engine/Rendering/Materials/Functions/Editing
 Related: Engine/Rendering/Materials/Functions/Using
 Related: Engine/Rendering/Materials/ExpressionReference
 Related: Engine/Rendering/Materials
+Version: 4.9
+SkillLevel: Intermediate
+
 
 [TOC(start:2)]
 
@@ -148,11 +151,11 @@ Related: Engine/Rendering/Materials
 	[/PARAMLITERAL]
 	[/OBJECT]                                                                                                                                                                                                     
 
-1. 머티리얼 노드를 전부 연결한 후에는, 이제 메인 툴바의 **적용** 버튼을 눌러 머티리얼 함수를 컴파일해 줘야 합니다. 머티리얼 함수가 제대로 컴파일되었다면, **적용** 버튼이 회색으로 탈색됩니다. 완료되었으면, 다음 그림과 같은 모습일 것입니다.
+1. 머티리얼 노드를 전부 연결한 후에는, 메인 툴바의 **적용** 버튼을 눌러 머티리얼 함수를 컴파일해 줘야 합니다. 머티리얼 함수가 제대로 컴파일되었다면, **적용** 버튼이 회색으로 탈색됩니다. 완료되었으면, 다음 그림과 같은 모습일 것입니다.
 
 	![](Material_Function_Completed_Material.png)
 
-
+	
 ## 머티리얼 함수 사용하기
 
 1. 머티리얼 함수가 완료되었으니, 머티리얼 함수 에디터를 닫고 **콘텐츠 브라우저** 에서 머티리얼을 새로 생성합니다. 새 머티리얼을 생성하려면, **콘텐츠 브라우저** 에 **우클릭** 한 다음 **기본 애셋 생성** 에서 **머티리얼** 을 선택하고 새로 생성된 머티리얼의 이름을 **Fresnel_Material** 로 짓습니다.

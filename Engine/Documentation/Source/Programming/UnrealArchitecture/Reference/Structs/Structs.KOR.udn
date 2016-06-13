@@ -13,6 +13,6 @@ Version: 4.9
 		GENERATED_USTRUCT_BODY()
 	};
 
-#### 구조제 지정자
+#### 구조체 지정자
 
 [INCLUDE:Programming/UnrealArchitecture/Reference/Structs/Specifiers#main(offset:2)]

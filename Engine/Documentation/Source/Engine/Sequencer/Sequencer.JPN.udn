@@ -1,0 +1,96 @@
+﻿INTSourceChangelist:2905246
+Availability:Public
+Title:シーケンサー エディタ
+Crumbs: %ROOT%, Engine
+Description:シーケンサーは UE4 のマルチ トラック エディタです。シネマティック シーケンスをリアルタイムで作成し、プレビューするために使用します。 
+Navigation:topic
+parent:Engine
+order:3
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Sequencer:title%](Engine/Sequencer/sequencer_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/cine_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Sequencer:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Sequencer:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Sequencer]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Sequencer:title%](Engine/Sequencer/sequencer_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/cine_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Sequencer:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Sequencer:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Sequencer]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:banner]
+![](SequencerBanner.png)(convert:false)
+[/REGION]
+
+[REGION:warning]
+これは現在開発中の機能であり、期待どおりに機能しなかったり、将来のリビジョンで変更される可能性があります。
+[/REGION]
+
+**シーケンサー** エディタは、アンリアル エンジン 4 に内蔵されている 2 つあるシネマティックス編集ツールの 1 つです。シーケンサーの前に、シネマティックスをオーサリングする主要手段が [**マチネ**](Engine/Matinee) エディタ内で実行されています。
+シーケンサーもマチネと同様で、特殊な **トラック** をいろいろ使ってシーンの構成を定義します。 
+いくつかのスケルタルメッシュのトラックをシーケンサーに追加してから Animation トラックを追加してこれらのスケルタルメッシュをアニメートし、Camera トラックと Camera Cuts トラックを加えてカメラ間の視点を与え、カメラ間で循環すると、シネマティック シーケンスの設定の基礎ができます。 
+
+このページでは、シーケンサー エディタのさまざまな特徴に関するドキュメントへのリンクを紹介します。 
+シーケンサーを初めて使う場合は **[Essentials (基本)]** セクションを一読することをお勧めします。ここには、シーケンサー エディタの概要、シーケンサー エディタのコンポーネントの詳細であるエディタ リファレンス、シーケンサーの各種タスクを手短に説明する操作ガイドが含まれています。 
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Essentials
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine\Sequencer\Overview "%Engine\Sequencer\Overview:description%")
+		* [](Engine\Sequencer\ReferenceEditor "%Engine\Sequencer\ReferenceEditor:description%")
+		* [](Engine\Sequencer\HowTo "%Engine\Sequencer\HowTo:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/related_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Related Links
+	[/PARAM]
+	[PARAM:links]
+		* [マチネ エディタ](Engine/Matinee "%Engine/Matinee:description%")
+	[/PARAM]
+[/OBJECT]
+
+
+<!-- Killing this for now while the current does get updates instead.
+* [](Engine\Sequencer\QuickStart "%Engine\Sequencer\QuickStart:description%")
+-->
+
+

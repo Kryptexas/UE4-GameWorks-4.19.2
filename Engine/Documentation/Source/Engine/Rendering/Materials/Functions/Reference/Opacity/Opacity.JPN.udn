@@ -1,22 +1,23 @@
-﻿INTSourceChangelist:2131046
+﻿INTSourceChangelist:2729971
 Availability:Public
 Title:オパシティ
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:マテリアル ネットワーク内でオパシティ値を処理する関数
+Version:4.9
 
 [TOC (start:2 end:3)]
 
-## 概要
+
 
 オパシティ関数は、複雑なオパシティ演算を迅速に処理するためのものです。
 
-## Opacity関数
+## Opacity 関数
 
 以下はオパシティのカテゴリ配下にある全関数のリストです。
 
 ### SoftOpacity
 
-SoftOpacity 関数は Opacity 値を受け取り、その値を使用してでさまざまな演算を実行することにより、ソフトな印象を出力します。フレネルエフェクト、深度ベースのアルファ、ピクセル深度を適用します。最終結果ではカメラが近づくとオブジェクトが消え去ります。
+**SoftOpacity** 関数は Opacity 値を受け取り、その値を使用してでさまざまな演算を実行することにより、ソフトな印象を出力します。フレネルエフェクト、深度ベースのアルファ、ピクセル深度を適用します。最終結果では、カメラが近づくとオブジェクトが消え去ります。
 
 | アイテム | 説明 |
 | -------- | -------- |

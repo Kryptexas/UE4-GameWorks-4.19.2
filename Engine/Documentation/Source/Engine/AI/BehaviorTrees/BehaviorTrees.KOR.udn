@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2623569
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title: 비헤이비어 트리
 Crumbs:%ROOT%, Engine, Gameplay/AI
 Description:비헤이비어 트리 관련 모든 문서가 모여있는 홈 페이지입니다.
+parent:Engine
+order:5
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -45,7 +47,7 @@ Description:비헤이비어 트리 관련 모든 문서가 모여있는 홈 페�
 
 빛을 피해 숨는 바퀴벌레부터 발사 타이밍은 물론 언제 생명력이나 탄창을 찾아야 하는지도 정확히 알고있는 슈팅게임 봇까지, **Behavior Tree** 비헤이비어 트리는 언리얼 엔진 4 의 인공지능 제작용 강력한 도구입니다.
 
-두 애셋 유형의 조합으로 이루어지는데, **Blackboard** 블랙보드와 **Behavior Tree** 비헤비이버 트리입니다.
+두 애셋 유형의 조합으로 이루어지는데, **Blackboard** 블랙보드와 **Behavior Tree** 비헤비이어 트리입니다.
 
 | 애셋 유형 | 설명 |
 | --- | --- |

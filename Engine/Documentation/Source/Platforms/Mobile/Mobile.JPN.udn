@@ -1,19 +1,65 @@
-﻿INTSourceChangelist:2417327
+﻿INTSourceChangelist:2940199
 Availability:Public
 Title: モバイル ゲームの開発
 Crumbs:%ROOT%, Platforms
 Description:モバイル ゲームを作成するデベロッパー向けの情報
 Platform:Mobile
 Navigation:platform
+version:4.9
+parent:Platforms
+tags:Mobile
+order:0
+type:landing
 
 [REGION:banner]
 ![](mobile_banner.png)
 [/REGION]
 
-
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		はじめよう
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		[DIR(output:"topiccompact" type:"quickstart" tags:"mobile")]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/platform_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		モバイル プラットフォーム
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		[DIR(output:"listbutton" type:"landing" parent:"Platforms/Mobile")]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/platform_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		モバイル サービス
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		[DIR(end:"1" output:"listbutton" type:"howto" parent:"Platforms/Mobile")]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/platform_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
 		一般的なモバイル ゲーム開発
@@ -21,42 +67,7 @@ Navigation:platform
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
-	* [](Platforms/Mobile/Materials "%Platforms/Mobile/Materials:description%")
-	* [](Platforms/Mobile/Textures "%Platforms/Mobile/Textures:description%")
-	* [](Platforms/Mobile/Lighting "%Platforms/Mobile/Lighting:description%")
-	* [](Platforms/Mobile/Content "%Platforms/Mobile/Content:description%")
-	* [](Platforms/Mobile/PostProcessEffects "%Platforms/Mobile/PostProcessEffects:description%")
-	* [](Platforms/Mobile/Performance "%Platforms/Mobile/Performance:description%")
+		[DIR(end:"1" output:"listbutton" type:"overview" parent:"Platforms/Mobile")]
 	[/PARAM]
 [/OBJECT]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/platform_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		モバイル クイック スタート
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Platforms/iOS/QuickStart "%Platforms/iOS/QuickStart:description%")
-	* [](Platforms/Android/GettingStarted "%Platforms/Android/GettingStarted:description%")
-	[/PARAM]
-[/OBJECT]
-
-
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/platform_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Mobile Platforms
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Platforms/iOS "%Platforms/iOS:description%")
-	* [](Platforms/Android "%Platforms/Android:description%")
-	[/PARAM]
-[/OBJECT]

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2246990
+﻿INTSourceChangelist:2591123
 Availability:NoPublish
 Title:UDialogueVoice
 Crumbs:
@@ -6,7 +6,7 @@ Description:DialogueVoice クラスの概要
 
 [EXCERPT:UDialogueVoice]
 
-新規作成した Dialogue Voice アセットを編集する場合、ボイスアクタの Gender とPlurality を定義することができます。
+新規作成した Dialogue Voice アセットを編集する場合、Voice アクタの Gender とPlurality を定義することができます。
 
 [VAR:ToolTipFullLink]
 Engine/Audio/Overview# Dialogue Voice & Dialogue Wave

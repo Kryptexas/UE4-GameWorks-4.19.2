@@ -1,34 +1,35 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Spawn Modules
+﻿INTSourceChangelist:2750779
+Availability:Public
+Title:Spawn 模块
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
-Description:Spawn modules will impact the number/rate of emitter particles.
+Description:Spawn 模块将影响发射器粒子的数量/速率。
+Version:4.9
 
-[TOC(start:2 end:3)]
-Spawn modules will impact the number/rate of emitter particles.
+
+**Spawn** 模块将影响发射器粒子的数量/速率。
 
 
 ## Spawn Per Unit
 
-Allows for spawning particles based on the distance the emitter has traveled. Useful for things like sprite based smoke trails where the trail needs to stay cohesive whether traveling quickly or slowly and spawning a relative number of particles to always fill in gaps. It contains the following member(s): 
+基于发射器移动的距离生成粒子。在创建类似于基于 sprite 的烟雾尾迹特效时十分实用。因为烟雾尾迹在速度快慢时都需要内凝力，生成相应数量的粒子可填补空隙。它包含下列属性： 
 
-| Property | Description |
+| 属性 | 描述 |
 | ---- | ---- |
 |[REGION:tablesection]Spawn[/REGION]||
-|**Unit Scalar** | A float value giving the scalar to apply to the distance traveled. The value from SpawnPerUnit is divided by this value to give the actual number of particles per unit.|
-|**Spawn Per Unit** | A float distribution giving the amount of particles to spawn per unit. The value is retrieved using the EmitterTime.|
-|**Ignore Spawn Rate When Moving** | If _true_, process the default spawn rate when not moving. When the emitter is moving, skip processing the default spawn rate. If _false_, return the _Process Spawn Rate_ setting.|
-|**Movement Tolerance** | A float value giving the tolerance for moving vs. not moving w.r.t. the _Ignore Spawn Rate When Moving_ flag, i.e. if (DistanceMoved < (UnitScalar * MovementTolerance)), then consider it not moving.|
-|**Max Frame Distance** | The maximum movement for a single frame. If the particle moves beyond this distance over a single frame, no particles are emitted. If left at 0, this check will not be performed. This is useful for handling teleporting objects.|
-|**Ignore Movement Along X** | If _true_, the X-component of the movement is ignored.|
-|**Ignore Movement Along Y** | If _true_, the Y-component of the movement is ignored.|
-|**Ignore Movement Along Z** | If _true_, the Z-component of the movement is ignored.|
-|**Process Spawn Rate** | A Boolean that indicates whether the SpawnRate of the RequiredModule should be processed or not. In the event of stacked spawn modules (multiple spawn modules on the same particle emitter), if ANY module indicates the 'default' spawn rate should not be processed, it will not be processed.|
+|**Unit Scalar** | 一个浮点值，用于确定应用至已移动距离的标量。SpawnPerUnit 的值除以该数值，获得每个单位上粒子的实际数量。|
+|**Spawn Per Unit** | 确定每个单位上粒子生成数量的浮点 distribution。利用 EmitterTime 获取该数值。|
+|**Ignore Spawn Rate When Moving** | 如为 _true_，非移动状态下将处理默认的生成速率。发射器为移动状态时，不处理默认生成速率。如为 _false_，返回 _Process Spawn Rate_ 设置。|
+|**Movement Tolerance** | 一个浮点值，用于确定关于 _Ignore Spawn Rate When Moving_ 旗标的移动和非移动状态公差，即如果（DistanceMoved 小于 (UnitScalar 乘 MovementTolerance)），则判定其为非移动状态。|
+|**Max Frame Distance** | 单独一帧中最长的移动距离。如粒子在一帧中的移动超过了此距离，发射器将不会发射粒子。如数值为 0，将不执行该检查。它在处理瞬移对象时十分实用。|
+|**Ignore Movement Along X** | 如为 _true_，则运动的 X 轴组件将被无视。|
+|**Ignore Movement Along Y** | 如为 _true_，则运动的 Y 轴组件将被无视。|
+|**Ignore Movement Along Z** | 如为 _true_，则运动的 Z 轴组件将被无视。|
+|**Process Spawn Rate** | 确认 Required 模块的 SpawnRate 是否应被处理。在叠列的 Spawn 模块（同一粒子发射器上的多个 Spawn 模块）中，如有模块指出“默认”生成速率不应被处理，将不会对其进行处理。|
 |[REGION:tablesection]Burst[/REGION]||
-|**Process Burst List** | If _true_, the BurstList of the SpawnModule of the emitter will be processed. If multiple Spawn modules are 'stacked' in an emitter, if ANY of them have this set to _false_, it will not process the SpawnModule BurstList.|
+|**Process Burst List** | 如为 _true_，发射器 SpawnModule 的 BurstList 将被处理。如多个 Spawn 模块叠列在一个发射器中，且其中有模块将此属性设为 _false_，将不对 SpawnModule BurstList 进行处理。|
 
 
-Using this module when spawning from other emitters may seem to not behave as expected when trying to spawn particles from a single lead particle.
+尝试从单个主粒子生成粒子时，使用该模块从其他发射器进行生成可能出现预计之外的情况。
 
-SpawnPerUnit actually uses the movement delta of the particle system itself and as such, does not understand what work to do when it is attached to submitters inside the particle system. Even though its parents are moving through space, the actual whole system is still stationary, so the SpawnPerUnit module does nothing.
+SpawnPerUnit 实际使用的是粒子系统本身的移动增量。附着在粒子系统中的传送器上时，它不理解需要执行的工作。虽然其父项在空间中移动，整个系统实际却处于静止状态，因此 SpawnPerUnit 模块不执行任何操作。
 

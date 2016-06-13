@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2634286
+﻿INTSourceChangelist:2735872
 Availability: Public
 Title:4 - 레벨에 액터 배치
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
@@ -10,6 +10,7 @@ Related:GettingStarted/HowTo/ManipulatingActors
 Related:Engine/UI/LevelEditor/Details
 Related:Engine/Actors
 Related:Engine/Rendering/LightingAndShadows
+checkpoint: editorqs
 
 
 [VAR:Steps]
@@ -31,8 +32,8 @@ Related:Engine/Rendering/LightingAndShadows
 %Steps%
 
 이번 단계에서는 공백 레벨에 (라이트나 지오메트리같은) [액터](Engine/Actors) 배치를 시작하겠습니다.
-레벨에 액터를 추가하는 데 쓰이는 가장 흔한 방법 두 가지를 다뤄볼텐데, 하나는 [배치 모드](Engine/UI/LevelEditor/Modes/PlaceMode) 를 통해서, 다른 하나는 [콘텐츠 브라우저](Engine/Content/Browser) 를 통해서입니다.
-이번 단계를 완료한 이후에는 레벨에 액터를 배치하고 그 액터 조작하여 환경 제작을 시작할 수 있습니다.
+레벨에 액터를 추가하는 데 쓰이는 가장 흔한 방법 두 가지를 다뤄볼 텐데, 하나는 [배치 모드](Engine/UI/LevelEditor/Modes/PlaceMode) 를 통해서, 다른 하나는 [콘텐츠 브라우저](Engine/Content/Browser) 를 통해서입니다.
+이번 단계를 완료한 이후에는 레벨에 액터를 배치하고 그 액터를 조작하여 환경 제작을 시작할 수 있습니다.
 
 ## 단계
 

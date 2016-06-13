@@ -1,0 +1,137 @@
+﻿INTSourceChangelist:2890438
+Availability: Public
+Title:캐릭터 애니메이션
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:시퀀서에서 스켈레탈 메시 액터에 애니메이션을 적용하는 법을 보여드립니다.
+Version: 4.11
+SkillLevel: Intermediate
+parent:Engine/Sequencer/HowTo
+order:1
+checkpoint: editorqs
+Related: Engine/Sequencer/Overview
+Related: Engine\Sequencer\ReferenceEditor\
+
+[REGION:warning]
+이 기능은 개발중이라 추후 버전에서 예상대로 작동치 않거나 변경될 수 있습니다.
+[/REGION]
+
+시네마틱 시퀀스 제작시, 씬에 있는 캐릭터가 돌아다니거나 어떤 애니메이션을 적용하고픈 경우가 있습니다.
+그 방법은 **시퀀서** 에서 레벨 시퀀스에 스켈레탈 메시 액터를 추가한 뒤 애니메이션 서브 트랙을 추가하고 액터에게 시키고자 하는 애니메이션을 지정해 주면 됩니다.
+이 과정을 반복하여 액터에 시키고자 하는 애니메이션을 여럿 추가해 주면 시네마틱 시퀀스의 캐릭터에 생동감을 불어넣을 수 있습니다.
+
+여기서는 여러가지 애니메이션을 적용해서 위 아래로 점프하는 캐릭터가 있는 작은 씬을 만들어 보겠습니다.
+
+## 단계
+
+[REGION:note]
+여기서는 **블루프린트 삼인칭 템플릿** 프로젝트에 **시작용 콘텐츠** 포함시켜 사용합니다.
+[/REGION]
+
+1.	프로젝트가 열린 상태에서, 레벨의 **ThirdPersonCharacter** 를 선택하고 **Delete** 키를 눌러 삭제합니다.
+
+	![](CharacterAnim_01.png)
+
+	게임 플레이시 템플릿에 기본으로 들어있는 **캐릭터 블루프린트** 인데 지금은 필요치 않습니다.
+
+1.	**콘텐츠 브라우저** 에서 **Content/Mannequin/Character/Mesh** 아래, **SK_Mannequin** 애셋을 끌어 레벨 뷰포트에 놓습니다.
+
+	![](CharacterAnim_02.png)
+
+1.	**툴바** 에서 **시네마틱** 드롭다운 옵션을 클릭하고 **레벨 시퀀스 추가** 를 선택합니다.
+
+	![](CharacterAnim_03.png)
+
+	확인창이 뜨면 새로운 레벨 시퀀스의 저장 위치와 이름을 입력합니다.
+
+1.	레벨의 **SK_Mannequin** 을 선택합니다.
+
+1.	**시퀀서** 창에서, **추가** 버튼을 누르고 **시퀀서에 액터 추가** 를 선택, **SK_Mannequin** 을 추가합니다. 
+
+	![](CharacterAnim_04.png)
+
+	그러면 SK_Mannequin 에 대한 **트랙** 이 시퀀서에 추가되어, 씬의 액터를 조작하는 데 사용할 수 있습니다.
+
+	![](CharacterAnim_04b.png)
+
+1.	**애니메이션** 서브트랙의 **+** 를 클릭하여 콘텐츠 메뉴를 띄우고, **ThirdPersonIdle** 을 선택합니다.  
+
+	![](CharacterAnim_05.png)
+
+	선택하고나면, 액터는 빈둥 위치라 가정, 애니메이션 트랙에 애니메이션이 추가됩니다.
+
+	![](CharacterAnim_05b.png)
+
+1.	**애니메이션** 트랙을 선택하고, 타임라인 마커를 **좌클릭** 으로 빈둥 애니메이션 끝으로 옮긴 뒤 **Enter** 키를 칩니다.
+
+	![](CharacterAnim_06.png)
+
+	그러면 시퀀스 해당 지점에 **키프레임** 이 새로 추가되며, 맥락 메뉴가 나타나 다른 애니메이션을 선택할 수 있습니다.
+
+1.	**ThirdPersonJump_Start** 애니메이션을 추가합니다.
+
+	![](CharacterAnim_07.png)
+
+	현재 구성 상태에서는, 빈둥 애니메이션 재생 후 점프 시작 애니메이션으로 진행됩니다. 타임라인에 있는 타임라인 마커를 앞뒤로 끌어보거나 뷰포트의 **플레이** 버튼을 눌러 현재 씬을 플레이하면 미리볼 수 있습니다.
+
+1.	점프 시작 애니메이션 끝에서 (애니메이션 트랙을 선택한 채로) **Enter** 키를 쳐 **ThirdPersonJump_End** 를 추가합니다. 
+
+	![](CharacterAnim_08.png)
+
+1.	점프 끝 애니메이션 끝에서 (애니메이션 트랙을 선택한 채로) **Enter** 키를 쳐 **ThirdPersonIdle** 애니메이션을 추가합니다.
+
+	![](CharacterAnim_09.png)
+
+
+## 최종 결과
+
+뷰포트의 **플레이** 버튼을 클릭하면, 캐릭터가 위 아래로 점프하는 것이 보일 것입니다.
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+TYJYT2e7fdA
+[/PARAMLITERAL]
+[/OBJECT]
+
+위는 에디터 안에서 시네마틱 시퀀스가 어때 보이는지를 확인하고 있습니다. 게임을 플레이해 보면, 레벨 시퀀스 자체에 재생 시작하라는 명령을 내리지 않았기에 아무것도 보이지 않을 것입니다.
+**마티네** 액터와 유사하게, 레벨에 있는 레벨 시퀀스를 선택한 다음 **디테일** 패널에서 **Auto Play** (자동 재생) 체크박스를 체크하면 레벨이 로드되었을 때 시퀀스를 재생할 수 있습니다.
+
+![](CharacterAnim_10.png)
+
+또 한 가지 이 비디오에는 시퀀서에서 재생이 어떻게 처리되는지가 설명되어 있습니다. **섹션 바운드** 안에 (초록과 빨강 마커 사이에) 있는 것들만 재생이 될 것입니다.
+마커를 끌거나 **시퀀서** 옵션을 통해 시퀀스의 바운드를 늘일/줄일 수도 있고, (아래 표시된) **Keep Playback Range in Section Bounds** (섹션 바운드 내 재생 범위 유지) 옵션으로 재생 범위에 모든 콘텐츠가 포함되도록 할 수 있습니다.
+
+![](CharacterAnim_11.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

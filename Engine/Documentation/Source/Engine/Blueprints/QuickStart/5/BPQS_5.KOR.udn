@@ -1,8 +1,12 @@
-﻿INTSourceChangelist:2615876
+﻿INTSourceChangelist:2735872
 Availability: Public
 Title:5. 액터가 겹치는지 확인하기
 Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
 Description:캐릭터만 도약시킬 수 있도록, 발구름판과 겹친 것이 캐릭터인지 확인합니다.
+version: 4.9
+parent:Engine/Blueprints/QuickStart
+order:5
+type:multi-step
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -62,7 +66,7 @@ Other Actor 출력 핀을 가지고 **OnComponentBeginOverlap** 이벤트에서 
 1. 검색 창에 "Branch" 라고 입력하고, 맥락 메뉴에서 **분기** 를 선택합니다.
 
 	![](BranchAdded.png)
-1. **Equals** 노드의 반환 핀을 끌어서 **분기** 노드의 불리언 입력 핀에 연결합니다.
+1. **Equals** 노드의 반환 핀을 끌어서 **Condition** 노드의 불리언 입력 핀에 연결합니다.
 
 	![](BranchComplete.png)
 

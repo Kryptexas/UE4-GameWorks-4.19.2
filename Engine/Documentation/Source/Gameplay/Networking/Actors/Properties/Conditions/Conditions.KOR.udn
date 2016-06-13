@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2472981
+﻿INTSourceChangelist:2713401
 Availability:Public
 Title:조건식 프로퍼티 리플리케이션
 Crumbs:%ROOT%, Gameplay, Gameplay/Networking, Gameplay/Networking/Actors, Gameplay/Networking/Actors/Properties
 Description:조건에 따라 액터 프로퍼티를 리플리케이트하는 법에 대한 상세 정보입니다.
+version: 4.9
 
 프로퍼티가 일단 리플리케이션 등록되면 해제시킬 수 없습니다 (여기서 평생이라는 부분이 나옵니다). 그 이유는 가급적 많은 정보를 구워넣어서, 같은 프로퍼티 세트에 대해 다수의 접속에서 작업물 공유의 이점을 활용할 수 있도록 하기 위함입니다. 그러면 계산 시간이 많이 절약됩니다.
 

@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2464839
+﻿INTSourceChangelist:2708281
 Availability:Public
-Title:5. ゲームをパッケージ化する
+Title:5.ゲームをパッケージ化する
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
 Description:ゲームをインストール用にパッケージ化する
+Version:4.9
+SkillLevel:Intermediate
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -20,28 +22,131 @@ Description:ゲームをインストール用にパッケージ化する
 [/OBJECT]
 [/VAR]
 
-
-
+自分のプロジェクトを他の人と共有する、もしくはデジタル ストアで販売するには、プロジェクトをパッケージ化しなければなりません。 
+次のセクションでは、UE4 内のデプロイメントのために、最終プロジェクトをパッケージ化する方法について説明します。
 
 %Steps%
 
-1.	ゲームをまるごと Android デバイスに入れるために、ゲームをパッケージ化する必要があります。**[ファイル]** メニューの **[Package Project]** にカーソルを当て、オプションを全表示します。ここで再びテクスチャ フォーマット リストが表示されるので、右側 (または名前なしの方) を選んでください。どれを選択してよいか分からない場合は、 **ETC1** を選択してください。
+%Globals:OSSelect%
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#WindowsSetup]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#MacOSSetup]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:WindowsSetup]
+
+[region:note]
+今現在このゲームはテスト中なので **[Development]** にパッケージ化します。ただし、ゲームが完成したら **[Package Project]** メニューの **[Build Configurations]** オプションにカーソルを当てて **[Shipping]** にパッケージ化することができます。
+[/region]
+
+1.	**[File]** メニューで **[Package Project] > [Android]** を選択し、パッケージ化したいテクスチャ フォーマットを選びます。 
+	このサンプルでは、すべてのデバイスがサポートしている Android **ETC1** を使うことにします。
 
 	[REGION:raw]  
 	![](package_menu.png)
 	[/REGION]
 
-1.	パッケージ化したゲームの保存場所を聞かれます。保存場所のデフォルトはプロジェクト フォルダです。
+	[REGION:note]
+	どのハードウェアで実行するかによって、サポートするテクスチャ フォーマットはデバイスごとに異なります。各種フォーマットの詳細は [](Platforms/Android/Reference) をご覧ください。
+	[/REGION]
+
+1.	 パッケージ化したゲームの保存場所を求められます。デスクトップにフォルダを新規作成して、プロジェクトの保存先に指定します。
+
 	![](package_folder.png)
-1. ゲームがパッケージ化されている間、パッケージ化のメッセージが右下隅に表示されます。
+
+1. ゲームがパッケージ化されている間、処理の進捗が右下隅に表示されます。
+
 	![](package_toast.png)
-1.	パッケージ化が正常に終了すると、パッケージ化完了メッセージがエディアの右下隅に表示されます。
-1.	さきほど設定した保存場所へ行きます。
-1.	このフォルダには、ユーザーのテクスチャ タイプに特化した名前のフォルダがあります。この例では、そのフォルダ名は「Android_DXT」です。このフォルダを開きます。
-1.	「Install_[ProjectName]_Development.bat」バッチ ファイルを **ダブルクリック** します。
-	![](batch_file.png)
-1.	これでゲームはインストールされました。 App ドロワーから開くことができます。
+
+1.	 パッケージ化が正常に終了すると、パッケージ化完了メッセージがエディアの右下隅に表示されます。
+
+	![](Packageing_Completed.png)
+
+1.	ステップ 2 で作成したフォルダを開くと、パッケージ処理中に指定したテクスチャ タイプ用に名前がついた新規フォルダがあるはずです。 
+	この例では、そのフォルダ名は **「Android_DXT」** です。
+
+	![](Android_ECT1_Folder.png)
+
+1.	Android_ETC1 フォルダを開いて **Install_[ProjectName]_Development.bat** バッチ ファイルを **ダブル クリック** して、Android デバイス上にプロジェクトをインストールします。
+
+	![](Install_Bat.png)
+	[region:note]
+	プロジェクトをデバイスへデプロイするには、Android デバイスを開発用 PC に USB で接続しておく必要があります。実行時にデバイスが接続されていないと、.BAT ファイルは何も処理しません。
+	[/region]
+
+1.	.BAT ファイルが終了したら、プロジェクトを Android デバイス上で使う準備が整いました。
+
+	![](Game_On_Phone.png)(w:320)
+
+[/EXCERPT:WindowsSetup]
+
+[EXCERPT:MacOSSetup]
+
+[region:note]
+今現在このゲームはテスト中なので **[Development]** にパッケージ化します。ただし、ゲームが完成したら **[Package Project]** メニューの **[Build Configurations]** オプションにカーソルを当てて **[Shipping]** にパッケージ化することができます。
+[/region]
 
 
+1. 	**[File]** メニューで **[Package Project] > [Android]** を選択し、パッケージ化したいテクスチャ フォーマットを選びます。 
+	このサンプルでは、すべてのデバイスがサポートしている Android **ETC1** を使うことにします。
+
+	![](AQS_Mac_01.png)
+
+1. パッケージ化したゲームの保存場所を聞かれます。保存場所のデフォルトはプロジェクト フォルダです。新規フォルダを作成し、**「Android_Builds」** と名前を付けます。
+
+	![](AQS_Mac_02.png)
+
+1. ゲームがパッケージ化されている間、処理の進捗が右下隅に表示されます。
+
+	![](package_toast.png)
+
+1.	 パッケージ化が正常に終了すると、パッケージ化完了メッセージがエディアの右下隅に表示されます。
+
+	![](Packageing_Completed.png)
+
+1.	ステップ 2 で作成したフォルダを開くと、パッケージ処理中に指定したテクスチャ タイプ用に名前がついた新規フォルダがあるはずです。 
+	この例では、そのフォルダ名は **「Android_DXT」** です。
+
+	![](MAC_Install_Folder.png)
+
+1.	「Android_ETC1」フォルダを開いて **Install_[ProjectName]_Development_armv7-es3.command** ファイルを **ダブル クリック** して、Android デバイス上にプロジェクトをインストールします。
+
+	![](MAC_Install_BAT.png)
+	[region:note]
+	プロジェクトをデバイスへデプロイするには、Android デバイスを開発用 PC に USB で接続しておく必要があります。実行時にデバイスが接続されていないと、.command ファイルは何も処理しません。
+	[/region]
+
+1. .command ファイルが終了したら、プロジェクトを Android デバイス上で使う準備が整いました。
+
+	![](Game_On_Phone.png)(w:320)
+
+[/EXCERPT:MacOSSetup]
+-->
 
 %Steps%

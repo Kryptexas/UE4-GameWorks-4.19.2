@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2605917
+﻿INTSourceChangelist:2697179
 Availability: Public
 Title:블루프린트에서 액터 레퍼런싱
 Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/ReferenceAssets
 Description:블루프린트에서 액터를 레퍼런싱하는 비법 안내서입니다.
+Version: 4.9
+SkillLevel: Advanced
 
 [TOC (start:2)]
 

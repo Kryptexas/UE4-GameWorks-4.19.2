@@ -1,8 +1,9 @@
-INTSourceChangelist:2187607
+﻿INTSourceChangelist:2670934
 Availability:Public
 Title:애니메이션 시퀀스 사용 안내서
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Sequences
-Description:블루프린트에서 _애니메이션 시퀀스_ 를 배치하고 샘플링하는 방법 안내서입니다.
+Description:애님 블루프린트에서 _애니메이션 시퀀스_ 를 배치하고 샘플링하는 방법 안내서입니다.
+version: 4.9
 
 [EXCERPT:Intro]
 _애니메이션 시퀀스_ 재생은 코드를 통해 가능하기도 합니다만, 일반적으로는 _스켈레탈 메시 컴포넌트_ 에 적용된 

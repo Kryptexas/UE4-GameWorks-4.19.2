@@ -1,9 +1,8 @@
-﻿INTSourceChangelist:2620109
-Availability:Public
+﻿Availability:Public
 Title:コンポーネントとコリジョン
 Crumbs:%ROOT%, GettingStarted, Programming/Tutorials
-Description:パーティクルエフェクトなどを使用してコンポーネントでポーンに物理的なインタラクションを有効にする方法を学ぶ
-バージョン:4.9
+Description:コンポーネントでポーンを有効にして物理と相互作用し、パーティクル エフェクトを使用する方法などについて学習します。
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -39,7 +38,7 @@ Description:パーティクルエフェクトなどを使用してコンポー�
 [/OBJECT]
 [/VAR]
 
-このチュートリアルは、コンポーネントの作成、コンポーネントを階層へ配置、ゲームプレイ中のコントロール、またソリッドなオブジェクトが存在するワールド内でコンポーネントを使用してポーンをあちこちへ移動させる方法を紹介します。
+このチュートリアルでは、コンポーネントの作成、コンポーネントを階層へ配置、ゲームプレイ中のコントロール、またソリッドなオブジェクトが存在するワールド内でコンポーネントを使用してポーンを移動させる方法を紹介します。
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -58,7 +57,7 @@ Description:パーティクルエフェクトなどを使用してコンポー�
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		手順
+		ステップ
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2604216
+﻿INTSourceChangelist:2741682
 Availability:Public
 Title:물리 기반 머티리얼
 Crumbs: %ROOT%, Engine
 Description:주요 머티리얼 입력에 대한 개요 및 그 최적 사용법입니다.
+Version: 4.9
 
 [REGION:fullwidth]
 ![](PhysMatHeader.png)

@@ -15,9 +15,9 @@ To learn more about **Adding Components to an Actor using Blueprints**, follow t
 
 [REGION:buttonlist]
 * [](Gameplay\HowTo\AddingComponents\Blueprints)
-[PUBLISH:Docs]
+<!--
 * [](Gameplay\HowTo\AddingComponents\Code)
-[/PUBLISH:Docs]
+-->
 [/REGION]
 
 

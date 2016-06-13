@@ -40,13 +40,13 @@ The Animation Blueprint **Toolbar** contains many of the same options as other B
 | Item | Description |
 | ---- | ----------- |
 | ![Compile Successful Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_compile_successful.png) | Compiles the Blueprint. | 
-| ![Save Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_save.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions/#Save] |
-| ![Find in Content Browser Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_find_in_cb.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions/#FindInCB] | 
-| ![Search Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_search.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions/#Search] | 
-| ![Blueprint Properties Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_properties.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions/#BlueprintProps] | 
+| ![Save Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_save.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#Save] |
+| ![Find in Content Browser Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_find_in_cb.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#FindInCB] | 
+| ![Search Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_search.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#Search] | 
+| ![Blueprint Properties Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_properties.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#BlueprintProps] | 
 | ![Simulate Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_simulate.png) | Starts the game in simulation mode. |
 | ![Play In Editor Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_play_in.png) | Starts the game in normal play mode in the Level Editor. Clicking the arrow displays the **Launch Options** menu. | 
-| ![Debug Dropdown](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_debug_dropdown.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions/#DebugObject]  | 
+| ![Debug Dropdown](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_debug_dropdown.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#DebugObject]  | 
 [/EXCERPT:Toolbar]
 
 For more information about Blueprint toolbars, see [](Engine/Blueprints\Editor/UIComponents\Toolbar).

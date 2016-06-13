@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2615520
+﻿INTSourceChangelist:2728773
 Availability:Public
 Title:UObject 인스턴스 생성
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture
 Description:게임플레이 코드에서 오브젝트의 새 인스턴스, 즉 UObject 생성 메소드입니다.
-Version: 4.5
+Version: 4.9
 
 [TOC (start:2 end:3)]
 

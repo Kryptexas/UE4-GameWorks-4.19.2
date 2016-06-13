@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2723473
 Availability: Public
 Title:코멘트 박스
 Crumbs:%ROOT%, Resources, Resources/Showcases/BlueprintExamples
@@ -8,6 +8,7 @@ Related: Engine/Animation/AnimBlueprints/EventGraph
 Related: Engine/Actors/Triggers
 Related: Engine/Blueprints
 Related: Engine/Content/Types/SkeletalMeshes/Sockets
+Version: 4.9
 
 [REGION:fullwidth]
 ![](BlueprintCommentary.png)
@@ -37,7 +38,7 @@ Related: Engine/Content/Types/SkeletalMeshes/Sockets
 ![](LinesProperty.png)
 
 
-이 블루프린트의 그래프를 열어보면, 꽤나 계산을 많이 하는 것처럼 보일 수가 있습니다. 자세히 살펴보면 그렇게 복잡한 것은 아닙니다. 그저 제공된 스태틱 메시로 글상자를 정확히 딱딱 맞출려면 계산을 꽤나 많이 해야 하는구나 정도만 알아두시면 되겠습니다.
+이 블루프린트의 그래프를 열어보면, 꽤나 계산을 많이 하는 것처럼 보일 수가 있습니다. 자세히 살펴보면 그렇게 복잡한 것은 아닙니다. 그저 제공된 스태틱 메시로 글상자를 정확히 딱딱 맞추려면 계산을 꽤나 많이 해야 하는구나 정도만 알아두시면 되겠습니다.
 
 ### 블루프린트 셋업
 

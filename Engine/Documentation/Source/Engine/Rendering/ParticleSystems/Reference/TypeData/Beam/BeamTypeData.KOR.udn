@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2620277
+﻿INTSourceChangelist:2750835
 Availability:Public
 Title:Beam 타입 데이터
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:전기 에너지 빔과 같은 이펙트를 내기 좋은 Beam Type Data 모듈입니다.
+Version: 4.9
 
 
 [EXCERPT:Intro]

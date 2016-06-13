@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2610947
+﻿INTSourceChangelist:2828862
 Availability:Public
 Title: 네임드 슬롯
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide, Engine/UMG/UserGuide/WidgetTypeReference
@@ -6,13 +6,14 @@ Description:Named Slot, 네임드 슬롯으로 사용자 생성 위젯에 대한
 Related: Engine/UMG/UserGuide
 Related: Engine/UMG/UserGuide/Styling
 Related: Engine/UMG/UserGuide/Slots
+version: 4.9
 
 [TOC(start:2 end:2)]
 
-## 위젯 설명
+## 설명
 
 [EXCERPT:desc]
-사용자 위젯에 대한 외부 슬롯을 노출시켜 줍니다. 사용자 슬롯 구현시 Named Slot 안에 얼마든지 다른 위젯을 넣을 수 있습니다.
+다른 위젯을 채울 수 있는 사용자 위젯에 대한 외부 슬롯을 노출시켜 주는 위젯으로, 커스텀 위젯 함수성을 만드는 데 좋습니다.
 [/EXCERPT:desc]
 
 ## 용례
@@ -25,7 +26,7 @@ Horizontal Box 에 **Named Slot** 위젯을 추가하면 그렇게 할 수 있�
 
 ![](NamedSlot2.png)
 
-우리 예제에서는 명확히 하기 위해 Named Slot 의 이름을 변경하고, **채우기** 로 설정한 다음 미리보기 크기를 조절합니다.
+우리 예제에서는 명확히 하기 위해 Named Slot 의 이름을 변경하고, **채우기** 로 설정한 다음 미리보기 크기를 조절합니다. 또한, 똑같은 크기를 구하려면, **Fill Size** (채우기 크기)에서 **Custom** (커스텀)을 선택하고 **Width** (폭)을 400, **Height** (높이)를 50 으로 설정합니다.
 
 ![](NamedSlot3.png)
 

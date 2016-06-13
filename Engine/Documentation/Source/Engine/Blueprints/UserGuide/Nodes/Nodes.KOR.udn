@@ -1,16 +1,17 @@
-﻿INTSourceChangelist:2690936
+﻿INTSourceChangelist:2968923
 Availability:Public
 Title:노드
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:이벤트와 함수 호출을 사용해서 블루프린트와 연관된 게임플레이 이벤트에 반응하는 동작을 수행하는 노드 그래프입니다.
 version: 4.9
+parent:Engine/Blueprints/Scripting
+tags:Execution Flow
+order:4
 
 
 **Node** (노드)란 그래프에서 사용할 수 있는 이벤트, 함수 호출, 흐름 제어 동작, 변수 등과 같은 오브젝트로,
-특정 그래프의 함수성이나 그 함수성이 들어있는 블루프린트를 정의하는 데 사용됩니다.
-사용가능한 여러가지 유형의 노드에 대한 설명은 아래와 같습니다.
-
-[INCLUDE:Engine/Blueprints/UserGuide#Nodes]
+특정 그래프의 함수성이나 그 함수성이 들어있는 블루프린트를 정의하는 데 
+사용됩니다.
 
 
 
@@ -150,7 +151,7 @@ version: 4.9
 [![](k2_collapsed_node.png)](k2_collapsed_node.png "Blueprint Collapse Node")
 [/REGION]
 
-[](Engine/Blueprints\UserGuide\Macros) 와는 달리, 접힌 노드 세트는 단일 레벨 블루프린트나 블루프린트 클래스 안에서도 공유되지 않습니다. 접힌 노드를 복사하면, 내부 그래프를 복제합니다. 작동방식이 거의 엇비슷한 변종을 여럿 만들려는 경우에는 편할 수 있지만, 버그가 있는 경우 각 사본마다 적용해 줘야 한다는 뜻이기도 합니다. 이 기능은 공유나 재사용 목적이라기 보다는, 그래프를 '깔끔히 정리'하여 내부 복잡도를 숨기기 위한 목적에 가깝습니다.
+매크로와는 달리, 접힌 노드 세트는 단일 레벨 블루프린트나 블루프린트 클래스 안에서도 공유되지 않습니다. 접힌 노드를 복사하면, 내부 그래프를 복제합니다. 작동방식이 거의 엇비슷한 변종을 여럿 만들려는 경우에는 편할 수 있지만, 버그가 있는 경우 각 사본마다 적용해 줘야 한다는 뜻이기도 합니다. 이 기능은 공유나 재사용 목적이라기 보다는, 그래프를 '깔끔히 정리'하여 내부 복잡도를 숨기기 위한 목적에 가깝습니다.
 
 #### 터널
 

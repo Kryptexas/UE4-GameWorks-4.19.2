@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2614979
+﻿INTSourceChangelist:2726422
 Availability: Public
 Title:실사 렌더링
 Crumbs:%ROOT%, Resources
@@ -11,6 +11,7 @@ Related: Engine/Actors/FogEffects\AtmosphericFog
 Related: Engine/Rendering/Materials
 Related: Engine/Rendering/Materials/PhysicallyBased
 Related: Engine/Rendering/Materials/LayeredMaterials
+Version: 4.9
 
 
 [VAR:Topic]

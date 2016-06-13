@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2709334
+﻿INTSourceChangelist:3004607
 Availability:Public
 Title:スケルタル制御
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference
@@ -20,23 +20,84 @@ Animation ブループリント内で使用します。下層スケルトンを�
 
 [TOC(start:2 end:2)]
 
-## コンポーネント空間
+## AnimDynamics
 
-[INCLUDE:Engine/Animation/NodeReference/SpaceConversion#intro]
+**AnimDynamics** ノードは、小さなソルバーです。Skeletal Mesh アセット用の物理ベースのセカンダリ アニメーションを提供するために使用することができます。 
+キャラクターが動くと揺れたり、動いたりするネックレス、ブレスレット、荷物、ワイヤー、ヘア、クロスなどのアイテムがあれば、このノードを使ってそうした動きを処理することができます。 
 
-SpaceConversion (空間変換) ノードに関する詳細は、[](Engine/Animation/NodeReference/SpaceConversion) をご覧ください。
 
-## 共通のピンとプロパティ
 
-全てのスケルタル制御で以下のように共通のピンとプロパティがあります。
+AnimDynamics は非常に軽い実装で LOD (Level of Detail) やその他のアニメーション設定でオンオフできます。処理は [**AnimGraph**](Engine/Animation/AnimBlueprints/AnimGraph) でのアニメーション処理中に行われ、単純なクイック ソルバーになるように作られているため、考慮すべき制約がいくつかあります。 
+
+* 動的ボーンはボックスで表され、その部分の慣性を計算するときだけ使われます。 
+* コリジョンは計算されませんが、コンストレイントを使用して動きを制限することができます。 
+
+AnimDynamics は、Linear、 Angular、 Planar のコンストレイントをサポートします。Linear コンストレイントと Angular のコンストレイントは、スプリングによって操作され、より弾むような感覚が得られます。一方、Planar コンストレイントはその部分が交差しない平面で使われます。
+
+チェーンもサポートされます。キャラクターの開始と終了のボーンが選択可能であり、こうしたリンクに対してチェーンが生成されます。これは単一ボディの動的ボーンよりもはるかに負荷が高くなります。リンクされたコンストレイントをソルブする必要があり、正しく収束するするために多くのイタレーションが必要になるからです (イタレーションのカウントもノード毎に設定可能)。 
+
+以下は AnimDynamics を使用したチェーンの例です。 
+
+![](AnimDynamicsChain.gif)(convert:false)
+
+[REGION:caption]
+このオプションを有効にするには、AnimDynamics ノードの [Details (詳細)] パネルにある**[Chain]** チェックボックスにチェックをいれます。 
+[/REGION]
+
+ボディがある場所とそのサイズを示すビジュアル化のレイヤーがあります。
+
+![](AnimDynamicsVisualization.png)
+
+以下は角度の制限のビジュアライザーを示した例です。
+
+![](AnimDynamicsaAngular.png)
+
+[REGION:caption]
+これらは、AnimDynamics ノードを選択した状態で **[Details]** パネルから設定することができます。
+[/REGION]
+
+AnimDynamics のコア アプリケーションは **[Details]** パネルの **[Setup]** と **[Constraint]** のセクションにあります。 
+
+![](SetupConstraints.png)
+
+この 2 つのエリアで必要とする動きにするために値を微調整します。**Bound Bone** はノードによって影響を受けるボーンです。**Box Extents** セクションは、慣性を生じ、動きを操作するボリュームを作成するために使用します。 
+
+例えば、スローな前後の動きにしたい場合、非常に高く若干幅広のボックスを必要としますが、少し動きを増やしたいが移動後にある位置に落ち着かせたい場合は、低くより幅が広いボックスを作成します。 
+
+**Local Joint Offset** は、コンストレイントをアタッチするために使用するオフセットで、回転の基点を決めます。これを 0 のままにすると、どこから回転してよいかわからないため、何も動かない場合があります。必要な動きになるまでこの値を調整します。
+
+[Constraint] のセクションで、動きの範囲を定義することができます。この範囲は、ビジュアライザーで確認できます。0 のままにすると何も影響がなく、そこに値を入力すると移動先、移動元の範囲になります。 
+
+映像による AnimDynamics の概要、ヒントとコツ、**Paragon** でのユース ケースについては、以下の AnimDynamics Twitch Stream をご覧ください。 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+5h5CvZEBBWo
+[/PARAMLITERAL]
+[/OBJECT]
+
+開始するには、**Animation ブループリント** の AnimGraph 内で **AnimDynamics** ノードを作成します。ひとつの動的ボーン毎または連続する動的チェーンに対してひとつのノードを作ります。すべてのビジュアル化、コンストレイント、ボディ、およびシミュレーションの設定は、各ノードで設定されます。 
+
+![](AnimDynamicsNode.png)
 
 | ピン | 説明 |
 | --- | ----------- |
 | [REGION:tablesection]**入力ピン**[/REGION] ||
+| **External Force** | チェックを入れた場合 (ワールド空間で指定)、シミュレーションですべてのボディに適用する外部の力です。 |
 | **Component Pose** | 変形させる入力ポーズ |
 | **Alpha** | スケルタル制御で適用される変形の重みづけを決定するためのアルファ値として使用する [0.0, 1.0] 範囲の浮動小数点値です。値 0.0 は入力ポーズに最大限の重み付けをし、値 1.0 は制御の計算をした変形に対し最大限の重み付けをします。|
 | [REGION:tablesection]**出力ピン**[/REGION] ||
 | Pose (Blank) | 変形適用後の最終ポーズ |
+
+[REGION:note]
+AnimDyamicsの使用手順については、[**動的アニメーションを作成する**](Engine\Animation\AnimHowTo\AnimDynamics) をご覧ください。 
+[/REGION]
 
 ## 回転の割合の適用
 
@@ -67,43 +128,6 @@ SpaceConversion (空間変換) ノードに関する詳細は、[](Engine/Animat
 [/REGION] 
 [/EXCERPT:Multiplier]
 -->
-
-## ボーンのコピー
-
-**Copy Bone** 制御は、変形データまたはそのコンポーネントがあればコピーします。例えばあるボーンから別のボーンへ 
-平行移動、回転、またはスケーリングのデータをコピーします。
-
-![Apply Percentage of Rotation](node_copybone.png)
-
-| プロパティ | 説明 |
-| -------- | ----------- |
-| [REGION:tablesection]**コピー**[/REGION] ||
-| **Target Bone** | 変形データをコピーするターゲット ボーンの名前です。| 
-| **Source Bone** | そこから変形データを受け取るソースボーンの名前です。 |
-
-| ピン | 説明 |
-| --- | ----------- |
-| [REGION:tablesection]**入力ピン**[/REGION] ||
-| **Copy Translation** | ソースボーンの変形データのTranslation (平行移動) 成分をコピーするか否かを指定する bool 値です。 |
-| **Copy Rotation** | ソースボーンの変形データの Rotation (回転) 成分をコピーするか否かを指定する bool 値です。 |
-| **Copy Scale** | ソースボーンの変形データの Scale (スケーリング) 成分をコピーするか否かを指定する bool 値です。 |
-
-## ボーンの変形 (修正) 
-
-![Apply Percentage of Rotation](node_modifybone.png)
-
-| プロパティ | 説明 |
-| -------- | ----------- |
-| [REGION:tablesection]**スケルタル制御**[/REGION] ||
-| **Bone To Modify** | 変形データを修正するターゲット ボーンの名前です。 |
-
-| ピン | 説明 |
-| --- | ----------- |
-| [REGION:tablesection]**入力ピン**[/REGION] ||
-| **Translation** | ターゲット ボーンに適用する平行移動データを指定するベクター値です。 |
-| **Rotation** | ターゲット ボーンに適用する回転データを指定する Rotator (ローテータ) です。 |
-| **Scale** | ターゲット ボーンに適用するスケーリング データを指定するベクター値です。 |
-
 
 ## ボーン駆動型コントローラー
 
@@ -170,6 +194,44 @@ CDG4WcQ7cIY
 -->
 
 
+## 共通のピンとプロパティ
+
+全てのスケルタル制御で以下のように共通のピンとプロパティがあります。
+
+| ピン | 説明 |
+| --- | ----------- |
+| [REGION:tablesection]**入力ピン**[/REGION] ||
+| **Component Pose** | 変形させる入力ポーズ |
+| **Alpha** | スケルタル制御で適用される変形の重みづけを決定するためのアルファ値として使用する [0.0, 1.0] 範囲の浮動小数点値です。値 0.0 は入力ポーズに最大限の重み付けをし、値 1.0 は制御の計算をした変形に対し最大限の重み付けをします。|
+| [REGION:tablesection]**出力ピン**[/REGION] ||
+| Pose (Blank) | 変形適用後の最終ポーズ |
+
+## コンポーネント空間
+
+[INCLUDE:Engine/Animation/NodeReference/SpaceConversion#intro]
+
+SpaceConversion (空間変換) ノードに関する詳細は、[](Engine/Animation/NodeReference/SpaceConversion) をご覧ください。
+
+
+## ボーンのコピー
+
+**Copy Bone** 制御は、変形データまたはそのコンポーネントがあればコピーします。例えばあるボーンから別のボーンへ 
+平行移動、回転、またはスケーリングのデータをコピーします。
+
+![Apply Percentage of Rotation](node_copybone.png)
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| [REGION:tablesection]**コピー**[/REGION] ||
+| **Target Bone** | 変形データをコピーするターゲット ボーンの名前です。| 
+| **Source Bone** | そこから変形データを受け取るソースボーンの名前です。 |
+
+| ピン | 説明 |
+| --- | ----------- |
+| [REGION:tablesection]**入力ピン**[/REGION] ||
+| **Copy Translation** | ソースボーンの変形データのTranslation (平行移動) 成分をコピーするか否かを指定する bool 値です。 |
+| **Copy Rotation** | ソースボーンの変形データの Rotation (回転) 成分をコピーするか否かを指定する bool 値です。 |
+| **Copy Scale** | ソースボーンの変形データの Scale (スケーリング) 成分をコピーするか否かを指定する bool 値です。 |
 
 ## スプリング コントローラー
 
@@ -188,6 +250,50 @@ CDG4WcQ7cIY
 | **Spring Damping** | スプリングで取り除いたボーンのベロシティの量です。 |
 | **Error Reset Thresh** | 変位の閾値。スプリングがこの値以上に伸縮した場合、アクタのテレポートなど突然発生する大きな変位を避けるためにリセットします。 |
 | **No ZSpring** | 有効になると、Z 軸の変位はスプリングによって無視されて、常に正しくなります。|
+
+
+## ボーンの変形 (修正) 
+
+![Apply Percentage of Rotation](node_modifybone.png)
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| [REGION:tablesection]**スケルタル制御**[/REGION] ||
+| **Bone To Modify** | 変形データを修正するターゲット ボーンの名前です。 |
+
+| ピン | 説明 |
+| --- | ----------- |
+| [REGION:tablesection]**入力ピン**[/REGION] ||
+| **Translation** | ターゲット ボーンに適用する平行移動データを指定するベクター値です。 |
+| **Rotation** | ターゲット ボーンに適用する回転データを指定する Rotator (ローテータ) です。 |
+| **Scale** | ターゲット ボーンに適用するスケーリング データを指定するベクター値です。 |
+
+## ツイスト補正
+
+**Twist Corrective** ノードは、あるボーンの他のボーンに対するツイストに基づいて **Morph Targets** などのカーブ値を操作します。例えば、首を右または左にひねりすぎた場合は、モーフターゲットを首に適用することで見た目が自然になります。 
+
+![](ExampleImage.png)
+
+ボーン名とローカル軸を使用して、**Base Frame** と **Twist Frame** を指定して、**Twist Normal** をツイストの軸に指定することができます。 
+
+例えば、Y 軸にそって右側へのツイストをチェックしたい場合は、法線は (0, 1, 0) になります。または、Y 軸にそって左側へのツイストをチェックしたい場合は、法線は (0, -1, 0)になります。例えば、Z 軸にそって上/中央へのツイストをチェックしたい場合は、法線は(0, 0, 1) になります。この角度は、その平面とツイスト フレームとの間で計算されます。
+
+範囲 **[Max Angle in Degree (最大角度)]** の Angle Delta は、名前を付けたカーブを使用して **[Mapped Range Min]** と **[Mapped Range Max]** にマッピングされます。 
+
+![](TwistDetails.png)
+
+**Animation ブループリント** の **AnimGraph** に Twist Corrective ノードを追加することができます。 
+
+![](TwistCorrective.png)
+
+| ピン | 説明 |
+| --- | ----------- |
+| [REGION:tablesection]**入力ピン**[/REGION] ||
+| **Component Pose** | 変形させる入力ポーズ |
+| **Alpha** | スケルタル制御で適用される変形の重みづけを決定するためのアルファ値として使用する [0.0, 1.0] 範囲の浮動小数点値です。値 0.0 は入力ポーズに最大限の重み付けをし、値 1.0 は制御の計算をした変形に対し最大限の重み付けをします。|
+| [REGION:tablesection]**出力ピン**[/REGION] ||
+| Pose (Blank) | 変形適用後の最終ポーズ |
+
 
 ## Two Bone IK
 
@@ -217,3 +323,4 @@ CDG4WcQ7cIY
 | [REGION:tablesection]**入力ピン**[/REGION] ||
 | **Effector Location** | Effector Location Space でエフェクタの位置を指定するベクター値です。 |
 | **Joint Target Location** | Joint Target Location Space でジョイント ターゲットの位置を指定するベクター値です。 |
+

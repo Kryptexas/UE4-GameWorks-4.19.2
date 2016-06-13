@@ -2,6 +2,7 @@ Availability:Public
 Title: 14. Build the Behavior Tree
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 14. Build the Behavior Tree
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -24,7 +25,7 @@ Description:Step 14. Build the Behavior Tree
 
 You should now have all the pieces needed to build this Behavior Tree:
 
-![](fullTree.png)
+![](DoneBehaviorTree.jpg)
 
 Let's break down what's going on.
 
@@ -78,10 +79,10 @@ You may have already done this back in part 8 of this guide, but just in case yo
 
 	![](addAgro.png)
 
-1. Select the **Agro Check** box on the **Selector** Node, and using the **Details** panel, set the **Target to Follow** property to `TargetToFollow`, set **Target Location** to `TargetLocation`, adjust the **Interval** to `0.5` and the **Random Deviation** to `0.0`
+1. Select the **Agro Check** box on the **Selector** Node, and using the **Details** panel, set the **Target to Follow** property to **TargetToFollow**, set **Target Location** to **TargetLocation**, adjust the **Interval** to 0.5 and the **Random Deviation** to 0.0
 
 	[REGION:raw]
-	![](setAgroCheck.jpg)
+	![](setAgroCheck1.jpg)
 	[/REGION]
 
 ### Add the Tasks
@@ -98,8 +99,8 @@ You may have already done this back in part 8 of this guide, but just in case yo
 
 	_From left to right: **Rapid Move To**, **Move To**, **Wait**, **Move To**._
 
-1. Select the left-most **Move To** Node, and using the **Details** Panel, set the **Blackboard Key** property on the to `TargetLocation`
-1. Set the **Blackboard Key** property on the right-most **Move To** Node to `HomeLocation`
+1. Select the left-most **Move To** Node, and using the **Details** Panel, set the **Blackboard Key** property on the to **TargetLocation**
+1. Set the **Blackboard Key** property on the right-most **Move To** Node to **HomeLocation**
 
 	[REGION:raw]
 	![](adjustMoveTo.jpg)
@@ -111,7 +112,7 @@ You may have already done this back in part 8 of this guide, but just in case yo
 	![](adjustWait.jpg)
 	[/REGION]
 
-1. Select the **RapidMoveTo** node, and using the **Details** panel, set its **Target to Follow** property to `TargetToFollow`.
+1. Select the **RapidMoveTo** node, and using the **Details** panel, set its **Target to Follow** property to **TargetToFollow**.
 
 ### Add the Decorators
 
@@ -122,24 +123,24 @@ You may have already done this back in part 8 of this guide, but just in case yo
 	![](addDecorator1.jpg)
 	[/REGION]
 
-1. Set the **Observer Aborts** property on the **Blackboard** decorator to `Both`, **Key Query** to `Is Set`, and the **Blackboard Key** to `TargetToFollow`
-1. Set the **Acceptable Distance** property on the **Close Enough** decorator to `100.0`, and **Target to Follow** property to `TargetToFollow`.
+1. Set the **Observer Aborts** property on the **Blackboard** decorator to **Both**, **Key Query** to **Is Set**, and the **Blackboard Key** to **TargetToFollow**
+1. Set the **Acceptable Distance** property on the **Close Enough** decorator to 100.0, and **Target to Follow** property to **TargetToFollow**.
 
 	[REGION:raw]
 	![](setBB1.jpg)
 	[/REGION]
 
 1. **Right-click** the **Sequence** node and select **Add Decorators..** -> **Blackboard**.
-1. **Right-click** the **Sequence** node and select **Add Decorators..** -> **Reached Move Goal**.
+1. **Right-click** the **Sequence** node and select **Add Decorators..** -> **Is At Location**.
 1. **Right-click** the **Sequence** node and select **Add Decorators..** -> **Blackboard**.
 
 	After adding all those decorators, the full node block should look like this:
 
 	![](addToSeqNode.png)
 
-1. On the first **Blackboard** decorator, set the **Key Query** to `Is Not Set`, and the **Blackboard Key** to `TargetToFollow`
-1. On the second **Blackboard** decorator, set the **Key Query** to `Is Set`, and the **Blackboard Key** to `TargetLocation`
-1. On the **Reached Move Goal** decorator, enable the **Inverse Condition** property.
+1. On the first **Blackboard** decorator, set the **Key Query** to **Is Not Set**, and the **Blackboard Key** to **TargetToFollow**
+1. On the second **Blackboard** decorator, set the **Key Query** to **Is Set**, and the **Blackboard Key** to **TargetLocation**
+1. On the **Is At Location** decorator, enable the **Inverse Condition** property and set the **Blackboard Key** to **HomeLocation**.
 
 	After setting those properties, the full node block should look like this:
 
@@ -157,7 +158,7 @@ And that is it! Leave the **Behavior Tree** editor open while using **Play in Ed
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-1td5wSD3PPU
+q6vTg2roI6k
 [/PARAMLITERAL]
 [/OBJECT]
 

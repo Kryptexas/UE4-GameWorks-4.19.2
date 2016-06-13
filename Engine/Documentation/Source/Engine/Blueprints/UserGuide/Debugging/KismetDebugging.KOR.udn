@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:2688102
+﻿INTSourceChangelist:2968923
 Availability:Public
 Title: 블루프린트 디버깅
-Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide
+Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Workflow
 Description:Breakpoint, 중단점으로 실행을 일시정지시켜 그래프와 변수 값을 조사합니다.
 version: 4.9
+Parent:Engine/Blueprints/Workflow
+order:5
 
 [EXCERPT:Overview]
 Blueprint 디버깅은 중단점 사용을 통해 Play In Editor 나 Simulate In Editor 모드에서 게임 실행을 일시정지시키고 블루프린트나 레벨 블루프린트의 어느 그래프로도 들어가 볼 수 있는 매우 강력한 기능입니다.

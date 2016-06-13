@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2622257
+﻿INTSourceChangelist:2709333
 Availability:Public
 Title:함수
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference
@@ -21,7 +21,7 @@ Version: 4.9
 `BlueprintCallable`, `BlueprintImplementableEvent`, `BlueprintPure` 와 같은 지정자를 사용해서 선언된 `UFunction` 은 
 **키즈멧** 에 노출되어 레벨 블루프린트나 **블루프린트** 에서 호출 가능합니다. `UFunction` 은 클래스의 디폴트 프로퍼티 안에서 스크립트 델리게이트로 할당도 가능합니다. 
 이 기법은 인풋 액션이나 축을 `Input` 클래스의 함수에 바인딩하는 데 흔히 사용됩니다. `UFunction` 은 리플리케이션 콜백으로도 사용됩니다. 
-즉 `UFunction` 은 연관된 변수에 변화가 있고 네트웍에 리플리케이트될 때 호출됩니다. `UFunction` 은 플레이어가 플레이 도중 게임내 콘솔에서 호출 가능한 exec 함수로 선언 가능한 유일한 함수형이기도 합니다.
+즉 `UFunction` 은 연관된 변수에 변화가 있고 네트워크에 리플리케이트될 때 호출됩니다. `UFunction` 은 플레이어가 플레이 도중 게임내 콘솔에서 호출 가능한 exec 함수로 선언 가능한 유일한 함수형이기도 합니다.
 
 
 ### 함수 지정자
