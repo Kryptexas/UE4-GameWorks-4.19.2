@@ -121,6 +121,8 @@ enum ECompilerFlags
 	CFLAG_FeatureLevelES31,
 	// Force removing unused interpolators for platforms that can opt out
 	CFLAG_ForceRemoveUnusedInterpolators,
+	// Set default precision to highp in a pixel shader (default is mediump on ES2 platforms)
+	CFLAG_UseFullPrecisionInPS,
 };
 
 /**

@@ -140,11 +140,12 @@ inline bool FAndroidTargetPlatform<TPlatformProperties>::SupportsFeature( ETarge
 			return true;
 			
 		case ETargetPlatformFeatures::LowQualityLightmaps:
+		case ETargetPlatformFeatures::MobileRendering:
 			return SupportsES2() || SupportsVulkan();
 			
 		case ETargetPlatformFeatures::HighQualityLightmaps:
-		case ETargetPlatformFeatures::VertexShaderTextureSampling:
 		case ETargetPlatformFeatures::Tessellation:
+		case ETargetPlatformFeatures::DeferredRendering:
 			return SupportsAEP();
 			
 		default:
@@ -413,13 +414,15 @@ inline bool FAndroidTargetPlatform<TPlatformProperties>::HandleTicker( float Del
 		{
 			ConnectedDeviceIds.Add(DeviceIt.Key());
 
+			const FAndroidDeviceInfo& DeviceInfo = DeviceIt.Value();
+
 			// see if this device is already known
 			if (Devices.Contains(DeviceIt.Key()))
 			{
+				//still update its authorized status, which could change while connected
+				Devices[DeviceIt.Key()]->SetAuthorized(DeviceInfo.bAuthorizedDevice);
 				continue;
 			}
-
-			const FAndroidDeviceInfo& DeviceInfo = DeviceIt.Value();
 
 			// check if this platform is supported by the extensions and version
 			if (!SupportedByExtensionsString(DeviceInfo.GLESExtensions, DeviceInfo.GLESVersion))
@@ -435,7 +438,7 @@ inline bool FAndroidTargetPlatform<TPlatformProperties>::HandleTicker( float Del
 			Device->SetConnected(true);
 			Device->SetModel(DeviceInfo.Model);
 			Device->SetDeviceName(DeviceInfo.DeviceName);
-			Device->SetAuthorized(!DeviceInfo.bUnauthorizedDevice);
+			Device->SetAuthorized(DeviceInfo.bAuthorizedDevice);
 			Device->SetVersions(DeviceInfo.SDKVersion, DeviceInfo.HumanAndroidVersion);
 
 			DeviceDiscoveredEvent.Broadcast(Device.ToSharedRef());

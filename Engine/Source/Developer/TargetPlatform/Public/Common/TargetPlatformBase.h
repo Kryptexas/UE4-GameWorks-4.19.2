@@ -355,12 +355,15 @@ public:
 		case ETargetPlatformFeatures::TextureStreaming:
 			return TPlatformProperties::SupportsTextureStreaming();
 
-		case ETargetPlatformFeatures::VertexShaderTextureSampling:
-			return TPlatformProperties::SupportsVertexShaderTextureSampling();
-
 		case ETargetPlatformFeatures::SdkConnectDisconnect:
 		case ETargetPlatformFeatures::UserCredentials:
 			break;
+
+		case ETargetPlatformFeatures::MobileRendering:
+			return false;
+		case ETargetPlatformFeatures::DeferredRendering:
+			return true;
+
 		case ETargetPlatformFeatures::ShouldUseCompressedCookedPackages:
 			return false;
 		}

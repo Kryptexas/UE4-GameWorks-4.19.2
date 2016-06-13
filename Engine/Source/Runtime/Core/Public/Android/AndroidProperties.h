@@ -86,15 +86,6 @@ struct FAndroidPlatformProperties
 		return false;
 	}
 
-	static FORCEINLINE bool SupportsVertexShaderTextureSampling()
-	{
-#if PLATFORM_ANDROIDES31 || PLATFORM_ANDROIDGL4
-		return true;
-#else
-		return false;
-#endif
-	}
-
 	static FORCEINLINE bool SupportsMinimize()
 	{
 		return true;

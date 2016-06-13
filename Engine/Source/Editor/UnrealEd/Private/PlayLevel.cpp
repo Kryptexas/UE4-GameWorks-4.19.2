@@ -1755,6 +1755,28 @@ void UEditorEngine::PlayUsingLauncher()
 		ILauncherServicesModule& LauncherServicesModule = FModuleManager::LoadModuleChecked<ILauncherServicesModule>(TEXT("LauncherServices"));
 		ITargetDeviceServicesModule& TargetDeviceServicesModule = FModuleManager::LoadModuleChecked<ITargetDeviceServicesModule>("TargetDeviceServices");
 
+		//if the device is not authorized to be launched to, we need to pop an error instead of trying to launch
+		ITargetPlatform* LaunchPlatform = GetTargetPlatformManagerRef().FindTargetPlatform(PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))));
+		if (LaunchPlatform != nullptr)
+		{
+			ITargetDevicePtr PlayDevice = LaunchPlatform->GetDefaultDevice();
+			if (!PlayDevice.IsValid() || !PlayDevice->IsAuthorized())
+			{
+				CancelRequestPlaySession();
+
+				FText LaunchingText = LOCTEXT("LauncherTaskInProgressNotificationNotAuthorized", "Cannot launch to this device until this computer is authorized from the device");
+				FNotificationInfo Info(LaunchingText);
+				Info.ExpireDuration = 5.0f;
+				TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification(Info);
+				if (Notification.IsValid())
+				{
+					Notification->SetCompletionState(SNotificationItem::CS_Fail);
+					Notification->ExpireAndFadeout();
+				}
+				return;
+			}
+		}
+
 		// create a temporary device group and launcher profile
 		ILauncherDeviceGroupRef DeviceGroup = LauncherServicesModule.CreateDeviceGroup(FGuid::NewGuid(), TEXT("PlayOnDevices"));
 		DeviceGroup->AddDevice(PlayUsingLauncherDeviceId);

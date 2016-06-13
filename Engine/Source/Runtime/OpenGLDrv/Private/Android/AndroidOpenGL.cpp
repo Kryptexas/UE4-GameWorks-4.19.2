@@ -71,6 +71,9 @@ PFNGLCLEARBUFFERUIVPROC					glClearBufferuiv = NULL;
 PFNGLDRAWBUFFERSPROC					glDrawBuffers = NULL;
 PFNGLTEXBUFFEREXTPROC					glTexBufferEXT = NULL;
 
+PFNGLGETPROGRAMBINARYOESPROC            glGetProgramBinary = NULL;
+PFNGLPROGRAMBINARYOESPROC               glProgramBinary = NULL;
+
 struct FPlatformOpenGLDevice
 {
 
@@ -235,6 +238,9 @@ void FPlatformOpenGLDevice::LoadEXT()
 	glGetObjectLabelKHR = (PFNGLGETOBJECTLABELKHRPROC)((void*)eglGetProcAddress("glGetObjectLabelKHR"));
 	glObjectPtrLabelKHR = (PFNGLOBJECTPTRLABELKHRPROC)((void*)eglGetProcAddress("glObjectPtrLabelKHR"));
 	glGetObjectPtrLabelKHR = (PFNGLGETOBJECTPTRLABELKHRPROC)((void*)eglGetProcAddress("glGetObjectPtrLabelKHR"));
+	
+	glGetProgramBinary = (PFNGLGETPROGRAMBINARYOESPROC)((void*)eglGetProcAddress("glGetProgramBinaryOES"));
+	glProgramBinary = (PFNGLPROGRAMBINARYOESPROC)((void*)eglGetProcAddress("glProgramBinaryOES"));
 }
 
 FPlatformOpenGLContext* PlatformCreateOpenGLContext(FPlatformOpenGLDevice* Device, void* InWindowHandle)

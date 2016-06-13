@@ -454,7 +454,7 @@ public:
 		return &LastRenderTime;
 	}
 
-	void SetName(FName& InName)
+	void SetName(const FName& InName)
 	{
 		TextureName = InName;
 	}

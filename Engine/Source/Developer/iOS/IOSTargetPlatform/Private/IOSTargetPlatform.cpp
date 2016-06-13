@@ -375,12 +375,15 @@ bool FIOSTargetPlatform::SupportsFeature( ETargetPlatformFeatures Feature ) cons
 	{
 		case ETargetPlatformFeatures::Packaging:
 			return true;
-			
+
+		case ETargetPlatformFeatures::MobileRendering:
 		case ETargetPlatformFeatures::LowQualityLightmaps:
 			return SupportsES2() || SupportsMetal();
 			
+		case ETargetPlatformFeatures::DeferredRendering:
 		case ETargetPlatformFeatures::HighQualityLightmaps:
 			return SupportsMetalMRT();
+
 		default:
 			break;
 	}

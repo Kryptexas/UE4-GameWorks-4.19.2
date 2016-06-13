@@ -532,6 +532,14 @@ bool FShaderResource::ArePlatformsCompatible(EShaderPlatform CurrentPlatform, ES
 	return bFeatureLevelCompatible;
 }
 
+static void SafeAssignHash(FRHIShader* InShader, const FSHAHash& Hash)
+{
+	if (InShader)
+	{
+		InShader->SetHash(Hash);
+	}
+}
+
 void FShaderResource::InitRHI()
 {
 	checkf(Code.Num() > 0, TEXT("FShaderResource::InitRHI was called with empty bytecode, which can happen if the resource is initialized multiple times on platforms with no editor data."));
@@ -554,19 +562,51 @@ void FShaderResource::InitRHI()
 
 	if(Target.Frequency == SF_Vertex)
 	{
-		VertexShader = ShaderCache ? ShaderCache->GetVertexShader((EShaderPlatform)Target.Platform, OutputHash, Code) : RHICreateVertexShader(Code);
+		if (ShaderCache)
+		{
+			VertexShader = ShaderCache->GetVertexShader((EShaderPlatform)Target.Platform, OutputHash, Code);
+		}
+		else
+		{
+			VertexShader = RHICreateVertexShader(Code);
+			SafeAssignHash(VertexShader, OutputHash);
+		}
 	}
 	else if(Target.Frequency == SF_Pixel)
 	{
-		PixelShader = ShaderCache ? ShaderCache->GetPixelShader((EShaderPlatform)Target.Platform, OutputHash, Code) : RHICreatePixelShader(Code);
+		if (ShaderCache)
+		{
+			PixelShader = ShaderCache->GetPixelShader((EShaderPlatform)Target.Platform, OutputHash, Code);
+		}
+		else
+		{
+			PixelShader = RHICreatePixelShader(Code);
+			SafeAssignHash(PixelShader, OutputHash);
+		}
 	}
 	else if(Target.Frequency == SF_Hull)
 	{
-		HullShader = ShaderCache ? ShaderCache->GetHullShader((EShaderPlatform)Target.Platform, OutputHash, Code) : RHICreateHullShader(Code);
+		if (ShaderCache)
+		{
+			HullShader = ShaderCache->GetHullShader((EShaderPlatform)Target.Platform, OutputHash, Code);
+		}
+		else
+		{
+			HullShader = RHICreateHullShader(Code);
+			SafeAssignHash(HullShader, OutputHash);
+		}
 	}
 	else if(Target.Frequency == SF_Domain)
 	{
-		DomainShader = ShaderCache ? ShaderCache->GetDomainShader((EShaderPlatform)Target.Platform, OutputHash, Code) : RHICreateDomainShader(Code);
+		if (ShaderCache)
+		{
+			DomainShader = ShaderCache->GetDomainShader((EShaderPlatform)Target.Platform, OutputHash, Code);
+		}
+		else
+		{
+			DomainShader = RHICreateDomainShader(Code);
+			SafeAssignHash(DomainShader, OutputHash);
+		}
 	}
 	else if(Target.Frequency == SF_Geometry)
 	{
@@ -583,12 +623,28 @@ void FShaderResource::InitRHI()
 		}
 		else
 		{
-			GeometryShader = ShaderCache ? ShaderCache->GetGeometryShader((EShaderPlatform)Target.Platform, OutputHash, Code) : RHICreateGeometryShader(Code);
+			if (ShaderCache)
+			{
+				GeometryShader = ShaderCache->GetGeometryShader((EShaderPlatform)Target.Platform, OutputHash, Code);
+			}
+			else
+			{
+				GeometryShader = RHICreateGeometryShader(Code);
+				SafeAssignHash(GeometryShader, OutputHash);
+			}
 		}
 	}
 	else if(Target.Frequency == SF_Compute)
 	{
-		ComputeShader = ShaderCache ? ShaderCache->GetComputeShader((EShaderPlatform)Target.Platform, Code) : RHICreateComputeShader(Code);
+		if (ShaderCache)
+		{
+			ComputeShader = ShaderCache->GetComputeShader((EShaderPlatform)Target.Platform, Code);
+		}
+		else
+		{
+			ComputeShader = RHICreateComputeShader(Code);
+		}
+		SafeAssignHash(ComputeShader, OutputHash);
 	}
 
 	if (Target.Frequency != SF_Geometry)

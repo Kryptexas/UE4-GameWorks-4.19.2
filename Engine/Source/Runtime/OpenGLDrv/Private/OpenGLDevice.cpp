@@ -1328,7 +1328,8 @@ void FOpenGLDynamicRHI::Init()
 {
 	check(!GIsRHIInitialized);
 	VERIFY_GL_SCOPE();
-
+	
+	FOpenGLProgramBinaryCache::Initialize();
 #if PLATFORM_DESKTOP
 	FShaderCache::InitShaderCache(SCO_Default, FOpenGL::GetMaxTextureImageUnits());
 #endif
@@ -1416,6 +1417,7 @@ void FOpenGLDynamicRHI::Cleanup()
 #if PLATFORM_DESKTOP
 		FShaderCache::ShutdownShaderCache();
 #endif
+		FOpenGLProgramBinaryCache::Shutdown();
 
 		// Reset the RHI initialized flag.
 		GIsRHIInitialized = false;

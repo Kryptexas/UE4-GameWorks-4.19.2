@@ -146,7 +146,7 @@ void ULandscapeComponent::AddReferencedObjects(UObject* InThis, FReferenceCollec
 
 void ULandscapeComponent::BeginCacheForCookedPlatformData(const ITargetPlatform* TargetPlatform)
 {
-	if (!TargetPlatform->SupportsFeature(ETargetPlatformFeatures::VertexShaderTextureSampling))
+	if (TargetPlatform->SupportsFeature(ETargetPlatformFeatures::MobileRendering))
 	{
 		CheckGenerateLandscapePlatformData(true);
 	}
@@ -221,14 +221,14 @@ void ULandscapeComponent::CheckGenerateLandscapePlatformData(bool bIsCooking)
 
 void ULandscapeComponent::Serialize(FArchive& Ar)
 {
-	if (Ar.IsCooking() && !Ar.CookingTarget()->SupportsFeature(ETargetPlatformFeatures::VertexShaderTextureSampling))
+	if (Ar.IsCooking() && !Ar.CookingTarget()->SupportsFeature(ETargetPlatformFeatures::DeferredRendering))
 	{
-		// These properties are not used for ES2 so we back them up and clear them before serializing them.
+		// These properties are only used for SM4+ so we back them up and clear them before serializing them.
 		UTexture2D* BackupHeightmapTexture = nullptr;
 		UTexture2D* BackupXYOffsetmapTexture = nullptr;
 		UMaterialInstanceConstant* BackupMaterialInstance = nullptr;
 		TArray<UTexture2D*> BackupWeightmapTextures;
-			
+
 		Exchange(HeightmapTexture, BackupHeightmapTexture);
 		Exchange(BackupXYOffsetmapTexture, XYOffsetmapTexture);
 		Exchange(BackupMaterialInstance, MaterialInstance);
@@ -306,37 +306,24 @@ void ULandscapeComponent::Serialize(FArchive& Ar)
 #if ENABLE_LANDSCAPE_COOKING
 	if (bCooked)
 	{
-		// Saving for cooking path
-		if (Ar.IsCooking() && !Ar.CookingTarget()->SupportsFeature(ETargetPlatformFeatures::VertexShaderTextureSampling))
-		{
-			bool bValid = ensure(PlatformData.HasValidPlatformData());
-			Ar << bValid;
-			if (bValid)
-			{
-				Ar << PlatformData;
-			}
-			if (Ar.UE4Ver() >= VER_UE4_SERIALIZE_LANDSCAPE_ES2_TEXTURES)
-			{
-				Ar << MobileMaterialInterface;
-				Ar << MobileWeightNormalmapTexture;
-			}
-		}
-		else if (!FPlatformProperties::SupportsVertexShaderTextureSampling())
-		{
-			// Loading cooked data path
-			bool bValid = false;
-			Ar << bValid;
+		bool bCookedMobileData = Ar.IsCooking() && Ar.CookingTarget()->SupportsFeature(ETargetPlatformFeatures::MobileRendering);
+		Ar << bCookedMobileData;
 
-			if (bValid)
+		// Saving for cooking path
+		if (bCookedMobileData)
+		{
+			if (Ar.IsCooking())
 			{
-				Ar << PlatformData;
+				check(PlatformData.HasValidPlatformData());
 			}
+			Ar << PlatformData;
 			if (Ar.UE4Ver() >= VER_UE4_SERIALIZE_LANDSCAPE_ES2_TEXTURES)
 			{
 				Ar << MobileMaterialInterface;
 				Ar << MobileWeightNormalmapTexture;
 			}
 		}
+
 		if (Ar.UE4Ver() >= VER_UE4_LANDSCAPE_GRASS_COOKING && Ar.UE4Ver() < VER_UE4_SERIALIZE_LANDSCAPE_GRASS_DATA)
 		{
 			// deal with previous cooked FGrassMap data

@@ -56,6 +56,8 @@ enum EHlslCompileFlag
 	HLSLCC_FixAtomicReferences = 0x800,
 	// Packs global uniforms & flattens structures, and makes each packed array its own uniform buffer
 	HLSLCC_PackUniformsIntoUniformBuffers = 0x1000 | HLSLCC_PackUniforms,
+	// Set default precision to highp in a pixel shader (default is mediump on ES2 platforms)
+	HLSLCC_UseFullPrecisionInPS = 0x2000,
 };
 
 int16 GetNumUniformBuffersUsed(const FShaderCompilerResourceTable& InSRT)
@@ -402,6 +404,7 @@ namespace CrossCompiler
 		CCTCmdLine += ((CCFlags & HLSLCC_SeparateShaderObjects) == HLSLCC_SeparateShaderObjects) ? TEXT(" -separateshaders") : TEXT("");
 		CCTCmdLine += ((CCFlags & HLSLCC_PackUniformsIntoUniformBuffers) == HLSLCC_PackUniformsIntoUniformBuffers) ? TEXT(" -packintoubs") : TEXT("");
 		CCTCmdLine += ((CCFlags & HLSLCC_FixAtomicReferences) == HLSLCC_FixAtomicReferences) ? TEXT(" -fixatomics") : TEXT("");
+		CCTCmdLine += ((CCFlags & HLSLCC_UseFullPrecisionInPS) == HLSLCC_UseFullPrecisionInPS) ? TEXT(" -usefullprecision") : TEXT("");
 		FString BatchFile;
 		if (PLATFORM_MAC)
 		{

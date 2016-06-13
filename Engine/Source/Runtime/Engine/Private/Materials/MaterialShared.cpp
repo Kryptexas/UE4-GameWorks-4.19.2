@@ -918,6 +918,11 @@ bool FMaterialResource::IsFullyRough() const
 	return Material->bFullyRough;
 }
 
+bool FMaterialResource::IsUsingFullPrecision() const
+{
+	return Material->bUseFullPrecision;
+}
+
 bool FMaterialResource::IsUsingHQForwardReflections() const
 {
 	return Material->bUseHQForwardReflections;
@@ -1425,6 +1430,11 @@ void FMaterial::SetupMaterialEnvironment(
 	OutEnvironment.SetDefine(TEXT("MATERIAL_BLOCK_GI"), ShouldBlockGI());
 	OutEnvironment.SetDefine(TEXT("MATERIAL_DITHER_OPACITY_MASK"), IsDitherMasked());
 	OutEnvironment.SetDefine(TEXT("MATERIAL_ALLOW_NEGATIVE_EMISSIVECOLOR"), AllowNegativeEmissiveColor());
+
+	if (IsUsingFullPrecision())
+	{
+		OutEnvironment.CompilerFlags.Add(CFLAG_UseFullPrecisionInPS);
+	}
 
 	{
 		auto DecalBlendMode = (EDecalBlendMode)GetDecalBlendMode();

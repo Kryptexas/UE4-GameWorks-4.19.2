@@ -39,6 +39,7 @@ namespace CCT
 		bool bExpandExpressions;
 		bool bFixAtomics;
 		bool bSeparateShaders;
+		bool bUseFullPrecisionInPS;
 
 		FRunInfo();
 		bool Setup(const FString& InOptions, const TArray<FString>& InSwitches);

@@ -106,17 +106,17 @@ void UDeviceProfileManager::InitializeCVarsForActiveDeviceProfile()
 				{
 					if( !CVarsAlreadySetList.Find( CVarKey ) )
 					{
+						OnSetCVarFromIniEntry(*DeviceProfileFileName, *CVarKey, *CVarValue, ECVF_SetByDeviceProfile);
 						IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(*CVarKey);
 						if( CVar )
 						{
 							UE_LOG(LogInit, Log, TEXT("Setting Device Profile CVar: [[%s:%s]]"), *CVarKey, *CVarValue);
-							CVar->Set( *CVarValue, ECVF_SetByDeviceProfile);
-							CVarsAlreadySetList.Add( CVarKey, CVarValue );
 						}
 						else
 						{
-							UE_LOG(LogInit, Warning, TEXT("Failed to find a registered CVar that matches the key: [%s]"), *CVarKey);
+							UE_LOG(LogInit, Warning, TEXT("Creating unregistered Device Profile CVar: [[%s:%s]]"), *CVarKey, *CVarValue);
 						}
+						CVarsAlreadySetList.Add(CVarKey, CVarValue);
 					}
 				}
 			}

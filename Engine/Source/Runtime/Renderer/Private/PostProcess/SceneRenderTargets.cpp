@@ -2226,7 +2226,7 @@ bool FSceneRenderTargets::AreShadingPathRenderTargetsAllocated(EShadingPath InSh
 		}
 	case EShadingPath::Deferred:
 		{
-			return (ShadowDepthZ != nullptr);
+			return (ScreenSpaceAO != nullptr);
 		}
 	default:
 		{

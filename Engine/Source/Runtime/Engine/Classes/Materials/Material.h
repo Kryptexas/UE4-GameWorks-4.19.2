@@ -638,6 +638,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Mobile)
 	uint32 bFullyRough:1;
 
+	/** 
+	 *	Forces this material to use full (highp) precision in the pixel shader.
+	 *	This is slower than the default (mediump) but can be used to work around precision-related rendering errors.
+	 *	This setting has no effect on older mobile devices that do not support high precision. 
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Mobile)
+	uint32 bUseFullPrecision : 1;
+
 	/* Use lightmap directionality and per pixel normals. If disabled, lighting from lightmaps will be flat but cheaper. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Mobile)
 	uint32 bUseLightmapDirectionality:1;

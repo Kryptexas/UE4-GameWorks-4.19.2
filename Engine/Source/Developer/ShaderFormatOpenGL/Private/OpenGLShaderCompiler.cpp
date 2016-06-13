@@ -1266,6 +1266,12 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 		AdditionalDefines.SetDefine(TEXT("COMPILER_SUPPORTS_ATTRIBUTES"), (uint32)0);
 	}
 
+	const bool bUseFullPrecisionInPS = Input.Environment.CompilerFlags.Contains(CFLAG_UseFullPrecisionInPS);
+	if (bUseFullPrecisionInPS)
+	{
+		AdditionalDefines.SetDefine(TEXT("FORCE_FLOATS"), (uint32)1);
+	}
+
 	auto DoPreprocess = [&]() -> bool
 	{
 		if (Input.bSkipPreprocessedCache)
@@ -1341,7 +1347,12 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 			// Currently only enabled for ES2, as there are still features to implement for SM4+ (atomics, global store, UAVs, etc)
 			CCFlags |= HLSLCC_ApplyCommonSubexpressionElimination;
 		}
-		
+
+		if (bUseFullPrecisionInPS)
+		{
+			CCFlags |= HLSLCC_UseFullPrecisionInPS;
+		}
+	
 		if (bCompileES2With310)
 		{
 			CCFlags |= HLSLCC_FlattenUniformBuffers | HLSLCC_FlattenUniformBufferStructures;

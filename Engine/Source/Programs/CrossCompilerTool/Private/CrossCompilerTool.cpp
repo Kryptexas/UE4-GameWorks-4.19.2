@@ -67,6 +67,7 @@ namespace CCT
 		Flags |= RunInfo.bExpandExpressions ? HLSLCC_ExpandSubexpressions : 0;
 		Flags |= RunInfo.bFixAtomics ? HLSLCC_FixAtomicReferences : 0;
 		Flags |= RunInfo.bSeparateShaders ? HLSLCC_SeparateShaderObjects : 0;
+		Flags |= RunInfo.bUseFullPrecisionInPS ? HLSLCC_UseFullPrecisionInPS : 0;
 
 		FGlslLanguageSpec GlslLanguage(RunInfo.Target == HCT_FeatureLevelES2);
 		FGlslCodeBackend GlslBackend(Flags, RunInfo.Target);

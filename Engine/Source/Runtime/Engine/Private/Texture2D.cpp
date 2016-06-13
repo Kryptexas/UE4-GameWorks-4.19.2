@@ -1241,6 +1241,7 @@ void FTexture2DResource::InitRHI()
 				Owner->PendingMipChangeRequestStatus.Increment();
 
 				TextureRHI = Texture2DRHI;
+				TextureRHI->SetName(Owner->GetFName());
 				RHIBindDebugLabelName(TextureRHI, *Owner->GetName());
 				RHIUpdateTextureReference(Owner->TextureReference.TextureReferenceRHI,TextureRHI);
 
@@ -1251,6 +1252,7 @@ void FTexture2DResource::InitRHI()
 			FRHIResourceCreateInfo CreateInfo(ResourceMem);
 			Texture2DRHI	= RHICreateTexture2D( SizeX, SizeY, EffectiveFormat, Owner->RequestedMips, 1, TexCreateFlags, CreateInfo);
 			TextureRHI		= Texture2DRHI;
+			TextureRHI->SetName(Owner->GetFName());
 			RHIBindDebugLabelName(TextureRHI, *Owner->GetName());
 			RHIUpdateTextureReference(Owner->TextureReference.TextureReferenceRHI,TextureRHI);
 
@@ -1303,6 +1305,7 @@ void FTexture2DResource::InitRHI()
 			FRHIResourceCreateInfo CreateInfo;
 			Texture2DRHI	= RHICreateTexture2D( SizeX, SizeY, EffectiveFormat, Owner->RequestedMips, 1, TexCreateFlags, CreateInfo );
 			TextureRHI		= Texture2DRHI;
+			TextureRHI->SetName(Owner->GetFName());
 			RHIBindDebugLabelName(TextureRHI, *Owner->GetName());
 			RHIUpdateTextureReference(Owner->TextureReference.TextureReferenceRHI,TextureRHI);
 			for( int32 MipIndex=CurrentFirstMip; MipIndex<OwnerMips.Num(); MipIndex++ )

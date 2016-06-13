@@ -129,6 +129,9 @@ extern PFNGLCOMPRESSEDTEXIMAGE3DPROC    glCompressedTexImage3D;
 extern PFNGLCOMPRESSEDTEXSUBIMAGE3DPROC	glCompressedTexSubImage3D;
 extern PFNGLCOPYTEXSUBIMAGE3DPROC		glCopyTexSubImage3D;
 
+extern PFNGLGETPROGRAMBINARYOESPROC     glGetProgramBinary;
+extern PFNGLPROGRAMBINARYOESPROC        glProgramBinary;
+
 #include "OpenGLES2.h"
 
 
@@ -348,6 +351,18 @@ struct FAndroidOpenGL : public FOpenGLES2
 	static FORCEINLINE void ProgramUniform4uiv(GLuint Program, GLint Location, GLsizei Count, const GLuint *Value)
 	{
 		glUniform4uiv(Location, Count, Value);
+	}
+
+	static FORCEINLINE bool SupportsProgramBinary() { return bSupportsProgramBinary; }
+
+	static FORCEINLINE void GetProgramBinary(GLuint Program, GLsizei BufSize, GLsizei *Length, GLenum *BinaryFormat, void *Binary)
+	{
+		glGetProgramBinary(Program, BufSize, Length, BinaryFormat, Binary);
+	}
+
+	static FORCEINLINE void ProgramBinary(GLuint Program, GLenum BinaryFormat, void *Binary, GLsizei Length)
+	{
+		glProgramBinary(Program, BinaryFormat, Binary, Length);
 	}
 
 	// Adreno doesn't support HALF_FLOAT

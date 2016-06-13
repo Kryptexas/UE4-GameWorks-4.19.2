@@ -947,6 +947,12 @@ static void CompileUsingExternal(const struct FShaderCompilerInput& Input, struc
 
 	AdditionalDefines.SetDefine(TEXT("COMPILER_SUPPORTS_ATTRIBUTES"), (uint32)1);
 
+	const bool bUseFullPrecisionInPS = Input.Environment.CompilerFlags.Contains(CFLAG_UseFullPrecisionInPS);
+	if (bUseFullPrecisionInPS)
+	{
+		AdditionalDefines.SetDefine(TEXT("FORCE_FLOATS"), (uint32)1);
+	}
+
 	auto DoPreprocess = [&]() -> bool
 	{
 		if (Input.bSkipPreprocessedCache)
@@ -1016,6 +1022,11 @@ static void CompileUsingExternal(const struct FShaderCompilerInput& Input, struc
 			CCFlags |= HLSLCC_SeparateShaderObjects;
 		}
 		//CCFlags |= HLSLCC_DX11ClipSpace;
+
+		if (bUseFullPrecisionInPS)
+		{
+			CCFlags |= HLSLCC_UseFullPrecisionInPS;
+		}
 
 		// Required as we added the RemoveUniformBuffersFromSource() function (the cross-compiler won't be able to interpret comments w/o a preprocessor)
 		CCFlags &= ~HLSLCC_NoPreprocess;
@@ -1396,6 +1407,12 @@ void CompileShader_Windows_Vulkan(const FShaderCompilerInput& Input, FShaderComp
 
 	AdditionalDefines.SetDefine(TEXT("COMPILER_SUPPORTS_ATTRIBUTES"), (uint32)1);
 
+	const bool bUseFullPrecisionInPS = Input.Environment.CompilerFlags.Contains(CFLAG_UseFullPrecisionInPS);
+	if (bUseFullPrecisionInPS)
+	{
+		AdditionalDefines.SetDefine(TEXT("FORCE_FLOATS"), (uint32)1);
+	}
+
 	//#todo-rco: Glslang doesn't allow this yet
 	AdditionalDefines.SetDefine(TEXT("noperspective"), TEXT(""));
 
@@ -1444,6 +1461,11 @@ void CompileShader_Windows_Vulkan(const FShaderCompilerInput& Input, FShaderComp
 	//if (Version == EVulkanShaderVersion::ES3_1 || Version == EVulkanShaderVersion::ES3_1_ANDROID)
 	{
 		CompilerInfo.CCFlags |= HLSLCC_FlattenUniformBuffers;
+	}
+
+	if (bUseFullPrecisionInPS)
+	{
+		CompilerInfo.CCFlags |= HLSLCC_UseFullPrecisionInPS;
 	}
 
 	CompilerInfo.CCFlags |= HLSLCC_SeparateShaderObjects;

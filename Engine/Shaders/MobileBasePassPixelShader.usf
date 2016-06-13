@@ -303,14 +303,15 @@ void Main(
 
 	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants, SvPosition);
 	FPixelMaterialInputs PixelMaterialInputs;
-	#if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
-		{
-			float4 ScreenPosition = SvPositionToScreenPosition(SvPosition);
-			CalcMaterialParametersEx(MaterialParameters, PixelMaterialInputs, SvPosition, ScreenPosition, bIsFrontFace, SvPositionToResolvedTranslatedWorld(SvPosition), BasePassInterpolants.PixelPositionExcludingWPO);
-		}
-	#else
-		CalcMaterialParameters(MaterialParameters, PixelMaterialInputs, SvPosition, bIsFrontFace);
-	#endif
+	{
+		float4 ScreenPosition = SvPositionToScreenPosition(SvPosition);
+		float3 WorldPosition = BasePassInterpolants.PixelPosition;
+		float3 WorldPositionExcludingWPO = BasePassInterpolants.PixelPosition;
+		#if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
+			WorldPositionExcludingWPO = BasePassInterpolants.PixelPositionExcludingWPO;
+		#endif
+		CalcMaterialParametersEx(MaterialParameters, PixelMaterialInputs, SvPosition, ScreenPosition, bIsFrontFace, WorldPosition, WorldPositionExcludingWPO);
+	}
 	  
 	//Clip if the blend mode requires it.
 	GetMaterialCoverageAndClipping(MaterialParameters, PixelMaterialInputs);
@@ -567,7 +568,7 @@ void Main(
 			if (GetHDR32bppEncodeMode() == HDR_ENCODE_NONE)
 			{
 				// FP16 HDR stores Z in framebuffer alpha
-				OutColor.a = MaterialParameters.ScreenPosition.w;
+				OutColor.a = BasePassInterpolants.PixelPosition.w; 
 			}
 		#endif
 	#endif

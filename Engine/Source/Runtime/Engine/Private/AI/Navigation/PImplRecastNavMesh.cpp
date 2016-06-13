@@ -2544,6 +2544,7 @@ void FPImplRecastNavMesh::GetNavMeshTilesIn(const TArray<FBox>& InclusionBounds,
 		const float* NavMeshOrigin = DetourNavMesh->getParams()->orig;
 		const float TileSize = DetourNavMesh->getParams()->tileWidth;
 
+		// Generate a set of all possible tile coordinates that belong to requested bounds
 		TSet<FIntPoint>	TileCoords;	
 		for (const FBox& Bounds : InclusionBounds)
 		{
@@ -2565,20 +2566,35 @@ void FPImplRecastNavMesh::GetNavMeshTilesIn(const TArray<FBox>& InclusionBounds,
 		// We guess that each tile has 3 layers in average
 		Indices.Reserve(TileCoords.Num()*3);
 
-		for (FIntPoint TileCoord : TileCoords)
+		TArray<const dtMeshTile*> MeshTiles;
+		MeshTiles.Reserve(3);
+
+		for (const FIntPoint& TileCoord : TileCoords)
 		{
 			int32 MaxTiles = DetourNavMesh->getTileCountAt(TileCoord.X, TileCoord.Y);
-			TArray<const dtMeshTile*> Tiles;
-			Tiles.AddZeroed(MaxTiles);
-
-			const int32 NumTiles = DetourNavMesh->getTilesAt(TileCoord.X, TileCoord.Y, Tiles.GetData(), MaxTiles);
-			for (int32 i = 0; i < NumTiles; ++i)
+			if (MaxTiles > 0)
 			{
-				dtTileRef TileRef = DetourNavMesh->getTileRef(Tiles[i]);
-				if (TileRef)
+				MeshTiles.SetNumZeroed(MaxTiles, false);
+				
+				const int32 MeshTilesCount = DetourNavMesh->getTilesAt(TileCoord.X, TileCoord.Y, MeshTiles.GetData(), MaxTiles);
+				for (int32 i = 0; i < MeshTilesCount; ++i)
 				{
-					const int32 TileIndex = (int32)DetourNavMesh->decodePolyIdTile(TileRef);
-					Indices.Add(TileIndex);
+					const dtMeshTile* MeshTile = MeshTiles[i];
+					dtTileRef TileRef = DetourNavMesh->getTileRef(MeshTile);
+					if (TileRef)
+					{
+						// Consider only mesh tiles that actually belong to a requested bounds
+						FBox TileBounds = Recast2UnrealBox(MeshTile->header->bmin, MeshTile->header->bmax);
+						for (const FBox& RequestedBounds : InclusionBounds)
+						{
+							if (TileBounds.Intersect(RequestedBounds))
+							{
+								int32 TileIndex = (int32)DetourNavMesh->decodePolyIdTile(TileRef);
+								Indices.Add(TileIndex);
+								break;
+							}
+						}
+					}
 				}
 			}
 		}

@@ -156,8 +156,8 @@ public:
 	static FORCEINLINE bool NeedsVertexAttribRemapTable()				{ return false; }
 	static FORCEINLINE bool SupportsHDR32bppEncodeModeIntrinsic()		{ return false; }
 	static FORCEINLINE bool SupportsRGB10A2()							{ return true; }
-
-
+	static FORCEINLINE bool SupportsProgramBinary()						{ return false; }
+	
 	static FORCEINLINE GLenum GetDepthFormat()							{ return GL_DEPTH_COMPONENT16; }
 	static FORCEINLINE GLenum GetShadowDepthFormat()					{ return GL_DEPTH_COMPONENT16; }
 	static FORCEINLINE GLenum GetVertexHalfFloatFormat()				{ return GL_HALF_FLOAT; }
@@ -333,6 +333,10 @@ public:
 	static FORCEINLINE void MakeTextureHandleResident(GLuint64 TextureHandle) UGL_REQUIRED_VOID
 	static FORCEINLINE void MakeTextureHandleNonResident(GLuint64 TextureHandle) UGL_REQUIRED_VOID
 	static FORCEINLINE void UniformHandleui64(GLint Location, GLuint64 Value) UGL_REQUIRED_VOID
+
+	static FORCEINLINE void GetProgramBinary(GLuint Program, GLsizei BufSize, GLsizei *Length, GLenum *BinaryFormat, void *Binary) UGL_OPTIONAL_VOID
+	static FORCEINLINE void ProgramBinary(GLuint Program, GLenum BinaryFormat, void *Binary, GLsizei Length) UGL_OPTIONAL_VOID
+
 
 	static FPlatformOpenGLDevice*	CreateDevice() UGL_REQUIRED(NULL)
 	static FPlatformOpenGLContext*	CreateContext( FPlatformOpenGLDevice* Device, void* WindowHandle ) UGL_REQUIRED(NULL)
