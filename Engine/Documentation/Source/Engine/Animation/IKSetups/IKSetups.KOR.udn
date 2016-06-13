@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2593371
+﻿INTSourceChangelist:2663461
 Availability:Public
 Title: IK 셋업
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -9,6 +9,7 @@ Related: Engine/Animation/PhysicallyDrivenAnimation
 Related: Engine/Content/Tools/MayaRiggingTool
 Related: Engine/Animation/AnimBlueprints
 Related: Engine/Animation/AnimBlueprints/EventGraph
+version: 4.9
 
 
 [REGION:fullwidth]
@@ -20,7 +21,7 @@ Related: Engine/Animation/AnimBlueprints/EventGraph
 [/REGION]
 
 
-## 개요
+
 
 Inverse Kinematics (IK, 역운동학)은, 조인트 로테이션을 직접 처리하지 않고 End Effector (엔드 이펙터)위치에서 조인트 로테이션을 처리할 수 있는 방편입니다. 실제적으로는, 이펙터 위치를 주면 IK 솔루션에서 조인트의 최종 위치가 그 위치와 가급적 일치되는 로테이션 값을 구합니다. 이 방법은 울퉁불퉁한 땅이나 기타 상황에서의 캐릭터의 발이 제대로 놓일 수 있도록 하여, 월드에 재대로 반응하는 듯한 느낌을 내 줍니다.
 
@@ -68,10 +69,10 @@ IK 를 사용하는 데 있어서 가장 중요한 고려사항은, 일반적으
 
 ## 발딛기 IK 셋업
 
-첫번째 예제로, 고르지 않은 땅에 캐릭터의 발이 제대로 유지되도록 하는 단순한 IK 셋업에 대해 개괄적으로 살펴보겠습니다.
+첫 번째 예제로, 고르지 않은 땅에 캐릭터의 발이 제대로 유지되도록 하는 단순한 IK 셋업에 대해 개괄적으로 살펴보겠습니다.
 
 [REGION:note]
-이 예제는 Content Examples 프로젝트에서 찾을 수 있습니다. Animation.umap 이란 이름의 맵을 열고 예제 1.8 을 살펴보세요!
+이 예제는 Content Examples 프로젝트에서 찾을 수 있습니다. Animation.umap 이란 이름의 맵을 열고 예제 1.8 을 살펴보세요.
 [/REGION]
 
 ### 폰 또는 캐릭터 블루프린트 셋업
@@ -166,7 +167,7 @@ IK 를 사용하는 데 있어서 가장 중요한 고려사항은, 일반적으
 
 애님 그래프는 지금까지 조합한 정보를 적용하여 캐릭터용으로 생성된 기존의 애니메이션을 업데이트하는데 사용하는 것으로 지금까지의 셋업의 마지막을 장식합니다. 이 예제의 경우, 애님 그래프는 정말이지 애니메이션 딱 하나 재생한다는 점에서 매우 간단합니다. 대부분의 경우 _Play JumpingJacks_ 노드를 다른 노드 여러개로 대체시켜 줘야 원하는 동작을 낼 수 있을 것입니다.
 
-중요한 부분은, 현재 스페이스를 로컬에서 컴포넌트로 전환하는 부분입니다. 캐릭터에 재생되는 모든 애니메이션은 로컬 스페이스를 기반으로 합니다. 로컬 트랜스폼 작업은 각 본의 계층구조상 부모를 기준으로 하기때문에 계산 속도가 가장 빠른 방식입니다. 그러나 2-본 IK 적용같은 본 조작은, 루트 본을 기준으로 하는 컴포넌트 스페이스에서 이루어져야 합니다.
+중요한 부분은, 현재 스페이스를 로컬에서 컴포넌트로 전환하는 부분입니다. 캐릭터에 재생되는 모든 애니메이션은 로컬 스페이스를 기반으로 합니다. 로컬 트랜스폼 작업은 각 본의 계층구조상 부모를 기준으로 하기 때문에 계산 속도가 가장 빠른 방식입니다. 그러나 2-본 IK 적용같은 본 조작은, 루트 본을 기준으로 하는 컴포넌트 스페이스에서 이루어져야 합니다.
 
 이런 젼차로, 딱 IK 계산을 할 만큼만 데이터를 로컬에서 컴포넌트로 전환해 줘야 합니다. 동시에 Final Animation Pose 노드는 로컬 스페이스 데이터만 받을 수 있기에, IK 적용이 끝나면 다시 역변환해 줘야 합니다.
 

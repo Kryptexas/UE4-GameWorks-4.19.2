@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2398741
+﻿INTSourceChangelist:2695245
 Availability:Public
 Title:ビューポートの基礎
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
-Description:アンリアル エディタのビューポートの基本概念と機能
+Description:エディタのビューポートの基本概念と機能
+Version:4.9
+SkillLevel:Beginner
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]
@@ -66,15 +68,13 @@ Description:アンリアル エディタのビューポートの基本概念と�
 
 [TOC(start:2 end:3)]
 
-## 概要
-
 [INCLUDE:Engine/UI/LevelEditor/Viewports#intro]
 
 ![](Engine/UI/LevelEditor/Viewports/Viewports_Topic.png)(w:640)
 
 ##ビューポート タイプ
 
-アンリアル エディタのビューポートには、主に以下の 2 つのタイプがあります。パースペクティブ (Perspective) と正投影 (Orthographic) です。パースペクティブ ビューは、 
+エディタのビューポートには、主に以下の 2 つのタイプがあります。パースペクティブ (Perspective) と正投影 (Orthographic) です。パースペクティブ ビューは、 
 ゲームワールドの 3D ウィンドウです。正投影ビューは、主要軸 (X, Y, Z) のいずれか 1 つを見下ろした 
 上部 (Top)、 前面 (Front)、側面 (Side) の 2D ビューポートです。
 
@@ -89,7 +89,7 @@ Description:アンリアル エディタのビューポートの基本概念と�
 
 ## ビューポートのレイアウト
 
-アンリアル エディタを開くと、デフォルトで、パースペクティブ ビューポートが単独で表示されます。 
+エディタを開くと、デフォルトで、パースペクティブ ビューポートが単独で表示されます。 
 
 ![](viewport_1.png)(w:640)
 
@@ -142,7 +142,7 @@ Description:アンリアル エディタのビューポートの基本概念と�
 
 ## ゲーム ビュー
 
-**ゲームビュー** は、ゲーム内で表示されるのと同様にシーンをビューポートに表示させます。つまり、アクタ アイコンなどのエディタ固有のエレメントは、 
+**ゲームビュー** は、ゲーム内で表示されるのと同様にシーンをビューポートに表示させます。つまり、アクタ アイコンなどのエディタ固有の要素は、 
 全く表示されません。ゲームビューは、ゲーム内で実行した場合に、レベルがどのように見えるかを 
 確認する簡単な方法を提供します。
 
@@ -167,24 +167,24 @@ Description:アンリアル エディタのビューポートの基本概念と�
 [/OBJECT]
 [/REGION]
 
-ゲームビューを有効にするには、ビューポートをフォーカスした状態で **[G] ** キー (デフォルト) を押すか、以下から**[ゲームビュー]** オプションを選択します。 
-[ビューポート オプション メニュー](Engine/UI/LevelEditor/Viewports/ViewportOptions):
+ゲームビューを有効にするには、ビューポートをフォーカスした状態で **[G] ** キー (デフォルト) を押すか、以下の [ビューポート オプション メニュー](Engine/UI/LevelEditor/Viewports/ViewportOptions) から 
+**[ゲームビュー]** オプションを選択します。
 
-![](viewport_options_gameview.png)
+![](GamemodeViewport.png)
 
 ## [Immersive] モード
 
-ビューポートには、最大化、最小化以外にもうひとつの状態である [Immersive] モードがあります。[Immersive] モードでは、 
-ビューポートは、ビューポート パネルを含みウィンドウ全体に最大化されます。レベル エディタを最大化させている場合、 
-真に _没入感がある (immersive)_ 編集体験を得るために、ビューポートを全画面で実行させることができます。
+ビューポートには、最大化、最小化以外にもうひとつの状態である [Immersive (没入)] モードがあります。[Immersive] モードでは、 
+ビューポートは、**ビューポート パネル** を含んだ状態でウィンドウ全体に最大化されます。レベル エディタを最大化させている場合、 
+真に _没入感がある (immersive)_ 編集体験にするために、ビューポートを全画面で実行させることができます。
 
-[Immersive] モードを有効にするには、ビューポートをフォーカスした状態で、**[F11]** キー (デフォルト) を押します。または、以下から **[Immersive Mode]** オプションを選択します。 
-[Viewport Options menu](Engine/UI/LevelEditor/Viewports/ViewportOptions):
+[Immersive] モードを有効にするには、ビューポートをフォーカスした状態で、**[F11]** キー (デフォルト) を押します。または、以下の [ビューポート オプション メニュー](Engine/UI/LevelEditor/Viewports/ViewportOptions) から 
+**[Immersive Mode]** オプションを選択します。
 
-![](viewport_options_immersive.png)
+![](ImmersiveModeOptions.png)
 
-上記と同様の手順を用いて、または以下のボタンを押してビューポートを通常の状態に戻すことができます。 ![Restore Viewport](button_restore.png) 
-このボタンは、[Immersive] モードで、ビューポートの右上にあります。
+上記と同様の手順を用いて、または ![Restore Viewport](button_restore.png) ボタンを押してビューポートを通常の状態に戻すことができます。 
+このボタンは、[Immersive] モード時に、ビューポートの右上にあります。
 
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]

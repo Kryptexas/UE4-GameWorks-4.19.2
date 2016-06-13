@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2603854
+﻿INTSourceChangelist:2743118
 Availability:Public
 Title: 파티클 시스템 레벨 오브 디테일 (LOD)
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
 Description:언제든지 십만 단위의 파티클이 가능한 GPU 파티클 시뮬레이션 입니다.
+Version: 4.9
 
 [TOC(start:2 end:3)]
 
@@ -83,7 +84,7 @@ Description:언제든지 십만 단위의 파티클이 가능한 GPU 파티클 �
 
 ![HighestLOD.png](HighestLOD.png)
 
-디자이너가 보기에, 이제 이 파티클 시스템에는 LOD 를 만들어도 되겠다고 느껴지면, 툴바에서 ![Cascade_Toolbar_RegenLOD.png](Cascade_Toolbar_RegenLOD.png)(w:32) **최하 LOD 재생성** 버튼을 선택해야 합니다. 그러면 시스템이 최하 LOD 레벨을 재생성하도록 만듭니다 (중간에 만들어진 스태틱 LOD 레벨이 있으면 지우기도 합니다). 지금으로서는 그저 최상 LOD 레벨을 복제하여 스폰 속도만 낮추도록 하겠습니다.
+디자이너가 보기에, 이제 이 파티클 시스템에는 LOD 를 만들어도 되겠다고 느껴지면, 툴바에서 **최하 LOD 재생성** 버튼을 선택해야 합니다. 그러면 시스템이 최하 LOD 레벨을 재생성하도록 만듭니다 (중간에 만들어진 스태틱 LOD 레벨이 있으면 지우기도 합니다). 지금으로서는 그저 최상 LOD 레벨을 복제하여 스폰 속도만 낮추도록 하겠습니다.
 
 최하 LOD 레벨을 선택한 이후, 값에 대한 트윅 작업을 거쳐 적합한 모양새를 만듭니다. 한 가지 주의할 점, 스태틱 LOD 레벨에 있는 모든 모듈은 기본적으로 _un-editable_ 수정불가능 마킹이 되어 있습니다. 대리석 배경으로 표시되는 모듈이 바로 그렇습니다.
 
@@ -110,13 +111,13 @@ Description:언제든지 십만 단위의 파티클이 가능한 GPU 파티클 �
 
 참고로 스폰 속도(Spawn Rate)는 최상 LOD 레벨의 10% 로 자동 설정되었습니다.
 
-다음 단계는 (아직 최하 LOD 를 보고 있다는 가정 하에) ![Cascade_Toolbar_AddLOD_Before.png](Cascade_Toolbar_AddLOD_Before.png)(w:32) **현재 이전에 LOD 추가** 버튼을 눌러 최상 / 최하 LOD 사이에 스태틱 LOD 를 추가하는 것입니다. SubImage Index 모듈이 활성화되어 그 인덱스가 1 로 설정됩니다. 그 결과는 다음과 같이 파랑 *2* 를 표시하는 이미터가 됩니다:
+다음 단계는 (아직 최하 LOD 를 보고 있다는 가정 하에) **현재 이전에 LOD 추가** 버튼을 눌러 최상 / 최하 LOD 사이에 스태틱 LOD 를 추가하는 것입니다. SubImage Index 모듈이 활성화되어 그 인덱스가 1 로 설정됩니다. 그 결과는 다음과 같이 파랑 *2* 를 표시하는 이미터가 됩니다:
 
 **LOD 레벨 1**
 
 ![LOD_33.png](LOD_33.png)
 
-마찬가지로 ![Cascade_Toolbar_AddLOD_After.png](Cascade_Toolbar_AddLOD_After.png)(w:32) **현재 이전에 LOD 추가** 버튼을 눌러 최상 / 최하 LOD 사이에 스태틱 LOD 를 또하나 추가하고, SubImage Index 모듈을 활성화시킵니다. 그 인덱스가 2 로 설정되어, 다음과 같이 녹색 *3* 을 표시하는 이미터가 되었습니다:
+마찬가지로 **현재 이전에 LOD 추가** 버튼을 눌러 최상 / 최하 LOD 사이에 스태틱 LOD 를 또하나 추가하고, SubImage Index 모듈을 활성화시킵니다. 그 인덱스가 2 로 설정되어, 다음과 같이 녹색 *3* 을 표시하는 이미터가 되었습니다:
 
 **LOD 레벨 2**
 

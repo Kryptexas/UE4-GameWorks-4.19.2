@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2679100
+﻿INTSourceChangelist:2968923
 Availability: Public
 Title:액터 레퍼런스 Set / Get
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -9,6 +9,7 @@ skilllevel:Intermediate
 type:howto
 parent:Engine/Blueprints/BP_HowTo
 order:1
+tags:오브젝트와 액터 처리
 
 [INCLUDE:Gameplay\HowTo\ReferenceAssets#referenceoverview]
 
@@ -110,7 +111,7 @@ order:1
 
 	![](showVariables.png)
 
-	그러면 트리거 박스를 클래스 블루프린트로 처음 전환했을때 상속된 컴포넌트에 이벤트를 추가할 수 있습니다.
+	그러면 트리거 박스를 클래스 블루프린트로 처음 전환했을 때 상속된 컴포넌트에 이벤트를 추가할 수 있습니다.
 	
 1. **Trigger Base** 아래 **CollisionComponent** 에 **우클릭** 한 다음 **Event 추가** 후 **OnComponentBeginOverlap 추가** 합니다. 
 

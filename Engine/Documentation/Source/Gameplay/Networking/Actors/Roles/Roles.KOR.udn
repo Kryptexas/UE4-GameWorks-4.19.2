@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:2637520
+﻿INTSourceChangelist:2752320
 Availability:Public
 Title: 액터 롤 및 리모트 롤
 Crumbs:%ROOT%, Gameplay, Gameplay/Networking, Gameplay/Networking/Actors
 Description:액터 오브젝트 리플리케이션의 여러가지 부분에 대한 것입니다.
 Related: Gameplay/Networking/Actors
 Related: Gameplay/Networking/Server
+Version: 4.9
 
 [TOC (start:2 end:3)]
 

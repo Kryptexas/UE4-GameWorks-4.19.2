@@ -1,9 +1,10 @@
-﻿Availability:Docs
+﻿INTSourceChangelist:2938862
+Availability:Docs
 Title:2.5 - キャラクターのジャンプを実装する
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
-Description:First Person Shooter キャラクターのジャンプの実装方法を学びます。
-スキルレベル:初心者向け
-バージョン：4.9
+Description:FPS キャラクターのジャンプの実装方法を学びます。
+SkillLevel:Beginner
+Version:4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,23 +24,22 @@ Description:First Person Shooter キャラクターのジャンプの実装方�
 
 %Steps%
 
-このステップでは、キャラクターがジャンプする機能を追加します。
+一般的にアクション マッピングでは、個別のイベントに対する入力を扱います。キーボード、マウス、およびコントローラーの入力を「フレンドリー ネーム」にマッピングします。この「フレンドリー ネーム」は後でゲームの動作 (移動など) にバインドすることができます。 
+最終的な効果としては、キー、マウスボタン、またはキーパッドボタンを押す (または解放する) と、特定のゲーム動作が直接トリガーされます。
 
-[REGION:note]
-一般的にアクション マッピングでは、個別のイベントに対する入力を扱います。キーボード、マウス、およびコントローラーの入力を「フレンドリー ネーム」にマッピングします。この「フレンドリーネーム」は後でゲームの動作 (移動など) に結合することができます。最終的な効果は、キー、マウスボタン、またはキーパッドボタンを押す (解放する) と、特定のゲーム動作が直接トリガーされます。
-[/REGION]
+このステップでは、キャラクターがジャンプする機能を追加します。そのために、スペースバーに対して入力アクションのマッピングを設定します。
 
 ## ジャンプ アクションのマッピング
 
-1.	**[Edit (編集)]** メニューで、**[Project Settings (プロジェクト設定)]** を **クリック** します。
+1.	**[Edit (編集)]** メニューで、 **[Project Settings (プロジェクト設定)]** をクリック します。
 
-1.	**[Project Settings]** タブの左側にある **[Engine]** の見出しで、**[Input]** を **クリック** します。
+1.	**[Project Settings]** タブの左側にある **[Engine]** の見出しで、 **[Input]** をクリックします。
 
-1.	**[Bindings]**** の **[Action Mappings]** の隣にあるプラス記号をクリックします。
+1.	**[Bindings]** の **[Action Mappings]** の隣にあるプラス記号をクリックします。
 
-1.	**[Axis Mappings]** の左側にある矢印を **クリック** します。
+1.	**[Axis Mappings]** の左側にある矢印をクリックします。
 
-1.	表示されるテキスト欄に "Jump" と入力し、テキスト ボックスの左側の矢印をクリックしてアクション結合オプションを展開します。
+1.	表示されるテキスト欄に "Jump" と入力し、テキスト ボックスの左側の矢印をクリックしてアクション バインディングのオプションを展開します。
 
 1.	ドロップダウン メニューで **[Keyboard]** ドロップダウン リストから **[Space Bar]** を選択します。
 
@@ -51,14 +51,16 @@ Description:First Person Shooter キャラクターのジャンプの実装方�
 
 ## 入力処理の実装
 
-Character 基底クラスの interface ファイル (*.h) 内を見ると、ジャンプするキャラクターのビルトインのサポートがあることがわかります。キャラクターのジャンプは、`bPressedJump` 変数に結び付けられているため、行うべきことは、ジャンプ アクションが押された場合に、そのブール値を `true` に設定するだけです。これを実行するには以下の 2 つの関数が必要です。
+Character 基本クラスの interface ファイル (*.h) 内を見ると、ジャンプするキャラクターのビルトインのサポートがあることがわかります。 
+キャラクターのジャンプは、`bPressedJump` 変数に結び付けられているため、行うべきことは、ジャンプ アクションが押された場合に、その boolean 値を `true` に設定するだけです。
+これを実行するには以下の 2 つの関数を追加する必要があります。
 
 *	`OnStartJump`
 *	`OnStopJump`
 
 FPSCharacter クラスにコードを追加するには、Visual Studio に戻ります。
 
-1.	「FPSCharacter.h」で、以下のパブリック関数宣言を追加します。
+1.	`FPSCharacter.h` で、以下のパブリック関数宣言を追加します。
 
 		// キー押下時のジャンプフラグを設定
 		UFUNCTION()
@@ -85,7 +87,7 @@ FPSCharacter クラスにコードを追加するには、Visual Studio に戻�
 
 			// このキャラクターのプロパティのデフォルト値を設定
 			AFPSCharacter();
-		// ゲーム開始時またはスポーン時に呼ばれます
+		// ゲーム開始時またはスポーン時に呼ばれます。
 
 			virtual void BeginPlay() override;
 			// フレームごとに呼ばれます。
@@ -126,9 +128,9 @@ FPSCharacter クラスにコードを追加するには、Visual Studio に戻�
 			bPressedJump = false;
 		}
 
-1.	以下のコードを `SetupPlayerInputComponent` に追加し、ジャンプ アクションを新しい関数にバインドします。
+1.	以下のコードを `SetupPlayerInputComponent` に追加し、ジャンプ アクションを新しく記述した関数にバインドします。
 
-		// ジャンプ アクションのバインドのセットアップ。
+		// ジャンプ アクションのバインドのセットアップ
 		InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::OnStartJump);
 		InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::OnStopJump);
 
@@ -140,23 +142,28 @@ FPSCharacter クラスにコードを追加するには、Visual Studio に戻�
 		#include "FPSCharacter.h"
 		// デフォルト値を設定
 
-
 		AFPSCharacter::AFPSCharacter()
 		{
 		 	// このキャラクターがフレーム毎に Tick() を呼び出すように設定します。必要がなければパフォーマンスを向上させるためにオフにすることができます。
 			PrimaryActorTick.bCanEverTick = true;
 		}
 
-		// ゲーム開始時またはスポーン時に呼ばれます
+		// ゲーム開始時またはスポーン時に呼ばれます。
 
 		void AFPSCharacter::BeginPlay()
 		{
 			Super::BeginPlay();
-			if (GEngine != nullptr)
+			const int32 Key = -1;
+
+			static const FString DebugMessage = TEXT("We are using FPSCharacter.");
+			FColor DisplayColor = FColor::Red;
+			float TimeToDisplay = 5.0f; //秒
+		if (GEngine != nullptr)
 
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::White, TEXT("We are using FPSCharacter."));
-			}
+				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
+		}
+
 		}
 		// フレームごとに呼ばれます。
 
@@ -170,57 +177,44 @@ FPSCharacter クラスにコードを追加するには、Visual Studio に戻�
 		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 		{
 			Super::SetupPlayerInputComponent(InputComponent);
-			// ゲームプレイのキーバインドをセットアップ
+		// ゲームプレイのキーバインド設定
 
 			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
 			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
-			// ゲームプレイのマウス バインドのセットアップ
+		// ゲームプレイのマウス バインドのセットアップ。
+
 			InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
 			InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
-			// ジャンプ アクションのバインドのセットアップ。
+		// ジャンプ アクションのバインドのセットアップ
+
 			InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::OnStartJump);
 			InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::OnStopJump);
 		}
-		//前方向の移動の関数の定義
-
 		void AFPSCharacter::MoveForward(float Value)
-		{
-			if (Controller != nullptr && Value != 0.f)
-			{
-				// 前進方向の確認
-				FRotator Rotation = Controller->GetControlRotation();
-				// 歩行または落下時のピッチ (上下動) の制限
-				if (GetCharacterMovement()->IsMovingOnGround() || GetCharacterMovement()->IsFalling())
-				{
-					Rotation.Pitch = 0.f;
-				}
-				// その方向へ動きを追加
-				const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
-				AddMovementInput(Direction, Value);
-			}
-		}
-		//右移動の関数の定義
 
+		{
+			// 前進方向の確認
+			FRotator Rotation = Controller->GetControlRotation();
+			// その方向へ動きを追加
+			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
+			AddMovementInput(Direction, Value);
+		}
 		void AFPSCharacter::MoveRight(float Value)
-		{
-			if (Controller != nullptr && Value != 0.f)
-			{
-				// 右方向の確認
-				const FRotator Rotation = Controller->GetControlRotation();
-				const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
-				// その方向へ動きを追加
-				AddMovementInput(Direction, Value);
-			}
-		}
-		//ジャンプ フラグを設定する関数
 
+		{
+			// 右方向の確認
+			FRotator Rotation = Controller->GetControlRotation();
+			// その方向へ動きを追加
+			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
+			AddMovementInput(Direction, Value);
+		}
 		void AFPSCharacter::OnStartJump()
+
 		{
 			bPressedJump = true;
 		}
-		//ジャンプ フラグをクリアする関数
-
 		void AFPSCharacter::OnStopJump()
+
 		{
 			bPressedJump = false;
 		}
@@ -229,18 +223,18 @@ FPSCharacter クラスにコードを追加するには、Visual Studio に戻�
 
 新規で実装したキャラクターの移動の関数をコンパイルし、テストします。
 
-1.	Visual Studio に `FPSCharacter` interface (\*.h) と implementation (\*.cpp) ファイルを保存します。
+1.	Visual Studio に `FPSCharacter` のヘッダ (\*.h) と CPP (\*.cpp) ファイルを保存します。
 
 1.	**[Solution Explorer (ソリューション エクスプローラ)]** で **[FPSProject]** を探します。
 
-1.	**[FPSProject]** 上で **右クリック** して、**[Build (ビルド)]** を選択してプロジェクトをコンパイルします。
+1.	[FPSProject] 上で **右クリック** して、**[Build (ビルド)]** を選択してプロジェクトをコンパイルします。
 
 	![](BuildProject.png)
 
 1.	ビルドが終了したらアンリアル エディタでご自身の **FPSProject** を開きます。
 
-1.	レベル エディタのツールバーで、**[Play (再生)]** ボタンを **クリック** します。マップ全体でジャンプできるようになります。
+1.	レベル エディタのツールバーで、**[Play (再生)]** ボタンをクリックします。マップ全体でジャンプできるようになります。
 
-1.	[PIE (Play In Editor)] モードを終了するには、レベル エディタで **[Stop]** ボタンを **クリック** します。
+1.	[PIE (Play In Editor)] モードを終了するには、レベル エディタで Escape キーを押すか、**[Stop]** ボタンをクリックします。
 
 %Steps%

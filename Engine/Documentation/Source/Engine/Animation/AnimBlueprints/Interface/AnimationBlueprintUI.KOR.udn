@@ -1,31 +1,33 @@
-﻿INTSourceChangelist:2615776
+﻿INTSourceChangelist:2815917
 Availability:Public
 Title:애니메이션 블루프린트 UI
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimBlueprints
 Description:애니메이션 블루프린트 UI 에 대한 개요입니다.
+version: 4.9
 
 [TOC(start:2 end:2)]
 
-## 개요
+
 
 애니메이션 블루프린트 UI 의 각 영역에 대한 설명은 다음과 같습니다:
 
 
-![](AnimGraphUI.png)(w:900)
+![](AnimGraphUI.png)
 
-1. **메뉴 바**
-1. **툴바**
-1. **뷰포트**
-1. **클래스 디폴트 패널**
-1. **그래프**
-1. **애셋 브라우저 탭**
-1. **내 블루프린트 탭**
-1. **디테일 패널**
-1. **팔레트**
+1. 메뉴 바
+1. 툴바
+1. 뷰포트
+1. 그래프
+1. 애님 프리뷰 에디터
+1. 애셋 오버라이드 에디터
+1. 애셋 브라우저 탭
+1. 내 블루프린트 탭
+1. 디테일 패널
+1. 팔레트
 
 ## 메뉴 바
 
-**메뉴 바** 에서는 저장, 되돌리기와 다시하기, 여러가지 페르소나 전용 메뉴 등 자주 쓰이는 에디터 기능을 접할 수 있습니다. 예를 들어 **애셋 메뉴** 에서는 
+**메뉴 바** 에서는 저장, 되돌리기와 다시하기, 여러가지 페르소나 전용 메뉴 등 자주 쓰이는 에디터 기능을 접할 수 있습니다. 예를 들어 **애셋 브라우저** 탭에서는 
 기본 프리뷰 메시 변경, 스켈레톤에서 미사용 본 제거, 애니메이션 녹화가 가능합니다.
 
 
@@ -33,19 +35,19 @@ Description:애니메이션 블루프린트 UI 에 대한 개요입니다.
 
 애니메이션 블루프린트 툴바에는 다른 블루프린트 툴바와 동일한 옵션이 다수 들어있습니다.
 
-![](AnimGraphUI_Toolbar.png)(w:900)
+![](AnimGraphUI_Toolbar.png)
 
 [EXCERPT:Toolbar]
 | 항목 | 설명 |
 | ---- | ----------- |
 | ![Compile Successful Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_compile_successful.png) | 블루프린트를 컴파일합니다. | 
-| ![Save Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_save.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions/#Save] |
-| ![Find in Content Browser Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_find_in_cb.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions/#FindInCB] | 
-| ![Search Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_search.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions/#Search] | 
-| ![Blueprint Properties Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_properties.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions/#BlueprintProps] | 
+| ![Save Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_save.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#Save] |
+| ![Find in Content Browser Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_find_in_cb.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#FindInCB] | 
+| ![Search Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_search.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#Search] | 
+| ![Blueprint Properties Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_properties.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#BlueprintProps] | 
 | ![Simulate Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_simulate.png) | 게임을 시뮬레이션 모드에서 시작합니다. |
 | ![Play In Editor Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_play_in.png) | 게임을 레벨 에디터에서 보통 플레이 모드로 시작합니다. 화살표 모양을 클릭하면 **실행 옵션** 메뉴가 표시됩니다. |
-| ![Debug Dropdown](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_debug_dropdown.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions/#DebugObject]  | 
+| ![Debug Dropdown](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_debug_dropdown.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#DebugObject]  | 
 [/EXCERPT:Toolbar]
 
 블루프린트 툴바 관련 상세 정보는 [](Engine/Blueprints\Editor/UIComponents\Toolbar) 문서를 참고해 주시기 바랍니다.
@@ -64,19 +66,12 @@ Description:애니메이션 블루프린트 UI 에 대한 개요입니다.
 ## 뷰포트
 뷰포트에는 스켈레탈 메시에 현재 변수 값으로 활성화된 애니메이션이 적용되어 표시됩니다.
 
-![](AnimGraphUI_Viewport.png)
-
-## 클래스 디폴트
-
-**클래스 디폴트** 패널에는 애니메이션 블루프린트의 모든 변수가, 할당된 카테고리별로 표시됩니다. 여기서 변수 값을 수동으로 변경하여 뷰포트에서 다양한 애니메이션을 미리보고 테스트해 볼 수 있습니다.
-
-![](AnimGraphUI_BPDefaults.png)
-
-상세 정보는 [](Engine/Animation\Persona\BlueprintDefaults) 문서를 참고해 주시기 바랍니다.
+![](AnimGraphUI_Viewport.png)(w:500)
 
 ## 그래프
 
 탭으로 된 그래프 패널에는 현재 선택된 그래프가 표시됩니다.
+
 
 ### 이벤트 그래프 탭
 
@@ -95,6 +90,19 @@ Description:애니메이션 블루프린트 UI 에 대한 개요입니다.
 [REGION:note]
 모든 애니메이션 노드를 **애님 그래프** 탭에 직접 넣을 수도 있지만, 유지보수의 편의와 간단명료함을 위해서는 스테이트 머신, 스테이트, 트랜지션 (룰)에 정리해 넣는 편이 더욱 효율적입니다.
 [/REGION]
+
+## 애님 프리뷰 에디터
+
+**애님 프리뷰 에디터** 패널에는 애니메이션 블루프린트의 변수 전부가 할당된 카테고리별로 표시됩니다. 여기서 변수 값을 수동 변경하여 뷰포트에서 다양한 애니메이션을 미리보고 테스트할 수 있습니다.
+
+![](AnimGraphUI_BPDefaults.png)
+
+보다 자세한 정보는 **[](Engine/Animation/Persona\BlueprintDefaults)** 문서를 참고하세요.
+
+
+## 애셋 오버라이드 에디터
+
+**애셋 오버라이드 에디터** 패널에는 부모 애니메이션 그래프에 레퍼런싱된 애니메이션 애셋을 전부 표시합니다. 부모 클래스에 애셋을 레퍼런싱하는 노드가 없거나 파생된 블루프린트가 아닌 경우 이 패널에는 아무것도 표시되지 않습니다.
 
 ## 애셋 브라우저 탭
 
@@ -122,7 +130,7 @@ Description:애니메이션 블루프린트 UI 에 대한 개요입니다.
 
 ## 팔레트
 
-**Palette** (팔레트 패널)에는 애니메이션 블루프린트의 다양한 그래프에서 사용할 수 있는 노드가 전부 표시됩니다.
+**Palette** (팔레트 패널)에는 애니메이션 블루프린트의 다양한 그래프에서 사용할 수 있는 노드가 전부 표시됩니다. 상단 패널에 "즐겨찾기" 마킹된 노드가 여기 표시됩니다.
 
 ![](AnimGraphUI_Palette.png)
 

@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2419450
+﻿INTSourceChangelist:2752527
 Availability: Docs
 Title:레벨 스크립팅
 Crumbs:%ROOT%, Resources
-Description:Level Scripting 예제 레벨에 대한 개요입니다.
+Description:An overview of the Level Scripting example level
+Version: 4.9
 
 [REGION:banner]
 ![](level_scripting_header.png)(convert:false)

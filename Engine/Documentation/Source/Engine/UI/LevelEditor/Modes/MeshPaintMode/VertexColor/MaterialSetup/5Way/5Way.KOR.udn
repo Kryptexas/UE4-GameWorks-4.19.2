@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2433645
+﻿INTSourceChangelist:2693485
 Availability: Public
 Title:5 방향 블렌드 머티리얼
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor, Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor/MaterialSetup
 Description:5 방향, 1-ARGB 텍스처 블렌딩용 머티리얼 셋업 안내입니다.
-
+Version: 4.9
+SkillLevel: Intermediate
 
 
 블렌드 웨이트 셋업에서 5 텍스처 처리를 위해서는, 머티리얼을 다음과 같이 만들어 줘야 합니다:

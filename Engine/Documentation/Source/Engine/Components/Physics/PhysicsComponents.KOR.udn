@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2659180
 Availability:Public
 Title:피직스 컴포넌트
 Crumbs:%ROOT%, Engine, Engine/Components
@@ -8,6 +8,8 @@ Related: Engine/Physics/Constraints/ConstraintsBlueprints
 Related: Resources/ContentExamples/Physics
 Related: Resources/ContentExamples/Destructables
 Related: Engine/Blueprints/UserGuide/Components
+SkillLevel: Beginner
+Version: 4.9
 
 Physics 컴포넌트는 레벨에서 피직스를 활용하는 오브젝트에 여러가지 방식으로 영향을 끼치는 데 사용됩니다.
 
@@ -48,6 +50,11 @@ Physics 컴포넌트는 레벨에서 피직스를 활용하는 오브젝트에 �
 폭발 등으로 인해 파괴된 오브젝트의 조각난 부분을 밀어내는 데 이러한 유형의 컴포넌트를 사용하면 됩니다. **RadialForceComponent** 를 사용하여 힘과 방향을 지정하고, 오브젝트가 파괴되면 아래 예제 그림에서 보는 것처럼 파편을 특정 방향으로 밀어버릴 수 있습니다 (자세한 정보는 [](Resources/ContentExamples/Destructables) 문서 참고). 
 
 ![](radial_force.png)(w:600)
+
+
+
+
+
 
 
 

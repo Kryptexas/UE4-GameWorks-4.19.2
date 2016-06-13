@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2591123
 Availability:Public
-Title: 4. Using Multiple Foliage Types
+Title:4.使用多种植物类
 Crumbs:
-Description:In this step we will set up our Foliage Spawner to work with multiple Foliage Types.
+Description:在这步中我们将对植物生成器进行设置，以便使用多种植物类。
 Navigation:topic
 SkillLevel:Intermediate
-Version: 4.8
+Version:4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -24,49 +24,49 @@ Version: 4.8
 [/VAR]
 
 %Steps%
-Adding another species of tree to our virtual forest will greatly help to increase the realism and overall look and feel. 
-Luckily for us the **Procedural Foliage Spawner** allows for you to spawn multiple **Foliage Types** resulting in one single **Procedural Foliage Spawner** being able to spawn an entire forest with a multitude of different trees. 
-In the following section we will take a look at how you can set up a Procedural Foliage Spawner to work with multiple Foliage Types.
-We will be continuing to work with the **PFT_00** level that was used in the last step.
+将另一种类的树木添加到虚拟森林中可极大提升真实感和整体观感效果。 
+幸运的是，使用 **Procedural Foliage Spawner** 可生成多种 **植物类**，使单个 **程序化植物生成器** 生成多种树木构成的森林。 
+在以下章节中我们将学习如何对程序化植物生成器进行设置，以便使用多种植物类。
+我们将继续使用上一步使用的 **PFT_00** 关卡。
 
-1. Inside of the **Content Browser** select the **Tree_00** Foliage Type and then press **Ctrl + W** on the Keyboard to duplicate it using **Tree_01** as the name.
+1. 在 **Content Browser** 中选择 **Tree_00** 植物类，然后按下 **Ctrl + W** 复制，使用 **Tree_01** 作为命名。
 
 	![](T_Dup_FT.png)
 
-1. Open the newly created **Tree_01** Foliage Type up and under the **Mesh** section change the mesh to the **ScotsPineTall_01** Static Mesh.
+1. 打开新建的 **Tree_01** 植物类，在 **Mesh** 部分将网格体变更为 **ScotsPineTall_01** 静态网格体。
 
 	![](T_New_Mesh.png)
 
-1. Open up the **Procedural Foliage Spawner** from the **Content Browser** and expand the **Foliage Types** section.
+1. 从 **Content Browser** 中打开 **程序化植物生成器**，并展开 **Foliage Types** 部分。
 
 	![](T_Expand_FT.png)
 
-1. Click on the **Plus** sign icon to add the option to input another Foliage Type.
+1. 点击 **加号** 图标添加选项输入另一个植物类。
 
 	![](T_Add_New_FT.png)
 
-1. From the **Content Browser** select the **Tree_01** Foliage Type and then in the Procedural Foliage Spawner under the **Foliage Types** add the **Tree_01** Foliage Type to the empty **Foliage Type Object** by pressing the white **Arrow** icon.
+1. 从 **Content Browser** 选择 **Tree_01** 植物类，然后在 **Foliage Types** 下的程序化植物生成器中按下白色 **箭头** 图标，将 **Tree_01** 植物类添加到空白的 **植物类物体**。
 
 	![](T_Add_New_FT_Type.gif)(convert:false)
 
-1. Select the **Procedural Foliage Spawner** that was placed in the level and then click on the **Resimulate** button. When completed you should see something like the following image.
+1. 选择已放置在关卡中的 **程序化植物生成器**，然后点击 **Resimulate** 按钮。完成后，屏幕上显示的内容与下图相似。
 
 	![](T_2_FT_In_Level.png)
 
-1. To make the forest look more interesting open up the **Tree_01** Foliage Type and adjust the following parameters with the following values. 
-	The numbers and options that are listed below were selected because they will produce a forest that has interesting clustering and growth interaction with the Foliage Types that are already used. 
-	However please feel free to experiment with these numbers and settings till you get something that suits your needs. 
+1. 打开 **Tree_01** 植物类，根据以下数值对下列参数进行调整，即可使森林视觉效果更佳。 
+	下列选项和数字生成的森林和已使用的植物类之间存在有趣的集群和生长互动。 
+	请随意使用这些数字和设置进行试验，达到您所需要的效果。 
 
-	* **Num Steps:** 4 
-	* **Initial Seed Density:** 0.125
-	* **Average Spread Distance:** 100
-	* **Can Grow in Shade:** Enabled
-	* **Spawns in Shade:** Enabled
-	* **Max Age:** 15
-	* **Overlap Priority:** 1
-	* **Procedural Scale:** Max 5.0
+	* **Num Steps：**4 
+	* **Initial Seed Density：**0.125
+	* **Average Spread Distance：**100
+	* **Can Grow in Shade：**启用
+	* **Spawns in Shade：**启用
+	* **Max Age：**15
+	* **Overlap Priority：**1
+	* **Procedural Scale：**最大 5.0
 
-1. Once the settings have been adjusted click on the **Resimulate** button on the Procedural Foliage Spawner and you should now have something that looks similar to the image below.
+1. 完成设置调整后，点击程序化植物生成器上的 **Resimulate** 按钮，屏幕上显示的内容应与下图相似。
 
 	![](T_FT01_Adjust_Settings.png)
 

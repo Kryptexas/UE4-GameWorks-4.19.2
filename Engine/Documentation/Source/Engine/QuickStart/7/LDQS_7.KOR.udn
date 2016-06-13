@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:2634286
+﻿INTSourceChangelist:2735872
 Availability: Public
 Title:7 - 직접 해보기
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
 Description:지금까지 배운 것을 토대로 콘텐츠를 추가하여 레벨을 가다듬고 관련된 내용에 대해 자세히 알아봅니다.
 SkillLevel:Beginner
 Version:4.9
+checkpoint: editorqs
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -21,13 +22,14 @@ Version:4.9
 [/OBJECT]
 [/VAR]
 
+
 %Steps%
 
 이 가이드에서 배운 내용을 토대로 다음과 같은 작업을 직접 해보세요:
 
 ![](update1.png)(w:830)
 
-* 레벨의 라이팅을 달빛으로 바꾸어 밤씬을 만듭니다.
+* 레벨의 라이팅을 달빛으로 바꾸어 밤 씬을 만듭니다.
 * 첫 방에 붙은 방을 하나 더 추가합니다.
 
 ![](update2.png)(h:380) ![](update4.png)(h:380)

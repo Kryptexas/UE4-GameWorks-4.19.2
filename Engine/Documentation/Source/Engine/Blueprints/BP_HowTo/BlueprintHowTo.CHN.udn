@@ -1,51 +1,81 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Blueprints - How To's
+﻿INTSourceChangelist:2738359
+Availability:Public
+Title:蓝图指导
 Crumbs: %ROOT%, Engine, Engine/Blueprints
-Description:The Blueprint How To page provides several short step-by-step guides for working with Blueprints. 
+Description:蓝图指导页面包含数个精炼的蓝图使用步骤指南。 
 Related: Engine/Blueprints
 Related: Engine/Blueprints/UserGuide
 Related: Gameplay
+version: 4.9
+parent: Engine/Blueprints
+order:2
+type:howto
+tags:Blueprints
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Blueprints/BP_HowTo:title%](Engine/Blueprints/BP_HowTo_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/BP_HowTo:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/BP_HowTo:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/BP_HowTo]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints/BP_HowTo:title%](Engine/Blueprints/BP_HowTo_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/BP_HowTo:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/BP_HowTo:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/BP_HowTo]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+如您刚接触到虚幻引擎 4 的 [](Engine/Blueprints)，“蓝图指导”则大有裨益。它提供蓝图使用核心要素的信息，包括创建蓝图、添加和连接节点、创建变量以及下表所示的其他内容。 
+
+在熟悉并了解蓝图的核心要素后，可在 [](Gameplay) 中查看“游戏性导向蓝图指导”。该部分将对游戏性相关要素进行说明，如生成/摧毁 Actors、重生（摧毁后）、使用计时器等。 
 
 
-If you are new to [](Engine/Blueprints) in Unreal Engine 4, these Blueprint How To's provide information on the core aspects needed to work with Blueprints including Creating Blueprints, Adding and Connecting Nodes, Creating Variables and others as seen in the tables below. 
+## 初级
+[DIR(output:"fancy" type:"howto" skill:"Beginner" parent:"Engine/Blueprints/BP_HowTo" org:"hierarchy")]
 
-When you are ready and have an understanding of the core aspects behind Blueprints, Gameplay oriented Blueprint How To's can be found in the [](Gameplay) which illustrate gameplay related elements like Spawning/Destroying Actors, Respawning (OnDestroyed), Using Timers, and more. 
+## 中级
+[REGION:wrapper transparent]
+[](FANCY:Engine/Blueprints/BP_HowTo/ActorReference "%Engine/Blueprints/BP_HowTo/ActorReference:description%")
+[](FANCY:Engine/Blueprints/BP_HowTo/MakingFunctions "%Engine/Blueprints/BP_HowTo/MakingFunctions:description%")
+[](FANCY:Engine/Blueprints/BP_HowTo/WorkingWithArrays "%Engine/Blueprints/BP_HowTo/WorkingWithArrays:description%")
+[](FANCY:Engine/Blueprints/UserGuide/Variables "%Engine/Blueprints/UserGuide/Variables:description%")
+[/REGION]
 
-Refer to the tables below for more information and click each link to view its contents. 
-
-
-## Beginner
-
-|How To... | Description |
-| ------- | ------------ |
-| [](Engine/Blueprints/UserGuide/Types/ClassBlueprint/Creation) | %Engine/Blueprints/UserGuide/Types/ClassBlueprint/Creation/:description% |
-| [](Engine/Blueprints/BP_HowTo/PlacingNodes) | %Engine/Blueprints/BP_HowTo/PlacingNodes:description% |
-| [](Engine/Blueprints/BP_HowTo/ConnectingNodes) | %Engine/Blueprints/BP_HowTo/ConnectingNodes:description% |
-| [](Engine/Blueprints/BP_HowTo/NavigatingGraphs) | %Engine/Blueprints/BP_HowTo/NavigatingGraphs:description% |
-| [](Engine/Blueprints/BP_HowTo/CollapsingGraphs) | %Engine/Blueprints/BP_HowTo/CollapsingGraphs:description% |
-| [](Engine/Blueprints/BP_HowTo/Debugging) | %Engine/Blueprints/BP_HowTo/Debugging:description% |
-
-
-## Intermediate
-
-|How To... | Description |
-| ------- | ------------ |
-| [](Engine/Blueprints/BP_HowTo/ActorReference) | %Engine/Blueprints/BP_HowTo/ActorReference:description% |
-| [](Engine/Blueprints/BP_HowTo/MakingFunctions) | %Engine/Blueprints/BP_HowTo/MakingFunctions:description% |
-| [](Engine/Blueprints/BP_HowTo/WorkingWithArrays) | %Engine/Blueprints/BP_HowTo/WorkingWithArrays:description% |
-| [](Engine/Blueprints/UserGuide/Variables) | The entire user guide for Variables. |
-
-## Advanced
-
-|How To... | Description |
-| ------- | ------------ |
-| [](Engine\Blueprints\BP_HowTo\DirectBlueprintComs) | %Engine\Blueprints\BP_HowTo\DirectBlueprintComs:description% |
-| [](Engine\Blueprints\BP_HowTo\Casting) | %Engine\Blueprints\BP_HowTo\Casting:description% |
-| [](Engine\Blueprints\BP_HowTo\Interfaces) | %Engine\Blueprints\BP_HowTo\Interfaces:description% |
-| [](Engine\Blueprints\BP_HowTo\EventDispatcher) | %Engine\Blueprints\BP_HowTo\EventDispatcher:description% |
-| [](Engine/Blueprints/BP_HowTo/MakingMacros) | %Engine/Blueprints/BP_HowTo/MakingMacros:description% |
-| [](Engine\Blueprints\BP_HowTo\MacroLibraries) | %Engine\Blueprints\BP_HowTo\MacroLibraries:description% |
+## 高级
+[REGION:wrapper transparent]
+[](FANCY:Engine/Blueprints/BP_HowTo/DirectBlueprintComs "%Engine/Blueprints/BP_HowTo/DirectBlueprintComs:description%")
+[](FANCY:Engine/Blueprints/BP_HowTo/Casting "%Engine/Blueprints/BP_HowTo/Casting:description%")
+[](FANCY:Engine/Blueprints/BP_HowTo/Interfaces "%Engine/Blueprints/BP_HowTo/Interfaces:description%")
+[](FANCY:Engine/Blueprints/BP_HowTo/EventDispatcher "%Engine/Blueprints/BP_HowTo/EventDispatcher:description%")
+[](FANCY:Engine/Blueprints/BP_HowTo/MakingMacros "%Engine/Blueprints/BP_HowTo/MakingMacros:description%")
+[](FANCY:Engine/Blueprints/BP_HowTo/MacroLibraries "%Engine/Blueprints/BP_HowTo/MacroLibraries:description%")
+[/REGION]
 
 <!-- To remove since information is redundant. 
 

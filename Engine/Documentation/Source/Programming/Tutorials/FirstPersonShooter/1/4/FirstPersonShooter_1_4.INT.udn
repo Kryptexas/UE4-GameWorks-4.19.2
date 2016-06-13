@@ -3,7 +3,7 @@ Title: 1.4 - Compiling the Project
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
 Description: Learn how to compile your first C++ class.
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,16 +23,21 @@ Version: 4.9
 
 %Steps%
 
-You will now compile your project in this step so that you can see your code changes reflected in-game. 
+Now is a good time to compile our project so that we can see our code changes reflected in-game. 
 
-1.	Locate **FPSProject** in the **Solution Explorer**.
-
-1.	**Right-click** on **FPSProject** and select **Build** to compile your project.
+1.	Going back to the editor, click the **Compile** button to compile your code.
 
 	![](CompileProject.png)
 
-1.	After the build finishes, open Unreal Editor and verify that your newly compiled **FPSGameMode** class is visible in the **Content Browser**.
+	_Since you started developing your project as a C++ project, you're able to compile your C++ code directly from the Unreal Editor._
 
-	![](CompiledFPSGameModeObj.png)
+1.	Go ahead and click the **Play** button to enter Play in Editor (PIE) mode.
+
+	![](PIE_DefaultGameMode.png)
+
+	You might be wondering why your log message isn't being displayed on screen when you're in PIE mode. The reason you're not seeing your log message is because the Editor is still using the 
+	default `Game Mode` rather than `FPSProjectGameMode` at this stage in development. 
+
+1.	Before going to the next step, press the Escape key or click the **Stop** button in the Level Editor to exit PIE mode.
 
 %Steps%

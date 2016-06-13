@@ -1,21 +1,21 @@
 ﻿INTSourceChangelist:0
 Availability:Public
-Title:5. Package Your Game
+Title:5.打包游戏
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
 Description:Package your game for installation.
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Platforms/Android/GettingStarted/4 "%Platforms/Android/GettingStarted/4:title%")
+		[上一步](Platforms/Android/GettingStarted/4 "%Platforms/Android/GettingStarted/4:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Quick Start Home](Platforms/Android/GettingStarted)
+		[快速入门主页](Platforms/Android/GettingStarted)
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Platforms/Android/GettingStarted/6 "%Platforms/Android/GettingStarted/6:title%")
+		[下一步](Platforms/Android/GettingStarted/6 "%Platforms/Android/GettingStarted/6:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -56,51 +56,51 @@ Description:Package your game for installation.
 <!--
 [EXCERPT:WindowsSetup]
 
-1.	To push your full game to your Android device, you will need to package it. In the **File** menu, hover over **Package Project** to expand the full list of options. Here you will again see the list of texture formats, and must select the right one (or unlabeled). If you are unsure what to select, use **ETC1**.
+1.	若要将整个游戏推送到您的安卓设备，您需要打包游戏。在 **File** 菜单中，将鼠标悬停在 **Package Project** 上以展开整个选项列表。您在此将再次看到纹理格式列表，并必需选择正确的格式（或未标记）。如果不确定要选择的格式，请使用 **ETC1**。
 
 	[REGION:raw]  
 	![](package_menu.png)
 	[/REGION]
 
-1.	You will be prompted for a save location for your packaged game, which should default to your project folder.
+1.	系统将提示您输入游戏包的保存位置，默认位置为您的项目文件夹。
 	![](package_folder.png)
-1. A packaging message will appear in the bottom right corner of the editor while the game is being packaged.
+1.当打包游戏时，编辑器右下角将显示一条打包消息。
 	![](package_toast.png)
-1.	Once packaging is successful, a Packaging Complete message will appear in the bottom right of the editor.
-1.	Navigate to the save location you just set. 
-1.	In this folder, there will be a folder named specifically for your texture type. In this example, the folder is named `Android_DXT`. Open this folder.
-1.	**Double-click** on the `Install_[ProjectName]_Development.bat` batch file.
+1.	打包成功后，编辑器右下角将显示一条表明打包完成的消息。
+1.	导航到设置的保存位置。 
+1.	在此文件夹中，有一个专为您的纹理类型指定的文件夹。在本例中，此文件夹命名为 `Android_DXT`。打开此文件夹。
+1.	**Double-click**`Install_[ProjectName]_Development.bat` 批处理文件。
 	![](batch_file.png)
-1.	Your game is now installed and you can open it from your Apps drawer.
+1.	您的游戏现已安装完毕，您可以从应用抽屉中打开它。
 
 [/EXCERPT:WindowsSetup]
 
 [EXCERPT:MacOSSetup]
-1. Now, to push your full game to your Android device, you will need to package it. In the **File** menu, hover over **Package Project** to expand the full list of options. Here you will again see the list of texture formats, and must select the right one (or unlabeled).
+1.现在，为了将整个游戏推送到您的安卓设备，您需要打包游戏。在 **File** 菜单中，将鼠标悬停在 **Package Project** 上以展开整个选项列表。您在此将再次看到纹理格式列表，并必需选择正确的格式（或未标记）。
 
 	![](AQS_Mac_01.png)
 
-We are currently packaging in **Development** because we are testing this game, but when your game is complete, you can package it in **Shipping** by hovering over the **Build Configurations** option in the **Package Project** menu.
+我们目前在 **Development** 中打包，是因为我们在测试此游戏，但在游戏测试完成后，您可以通过将鼠标指针悬停在 **Package Project** 菜单的 **Build Configurations** 选项上在 **Shipping** 中打包游戏。
 
-1. You will be prompted for a save location for your packaged game, which should default to your project folder.
+1.系统将提示您输入打包游戏的保存位置，默认位置为您的项目文件夹。
 
 	![](AQS_Mac_02.png)
 
-1. A packaging message will appear in the bottom right corner of the editor while the game is being packaged.
+1.当打包游戏时，编辑器右下角将显示一条打包消息。
 
 	![](AQS_Mac_03.png)
 
-1. Once packaging is successful, a Packaging Complete message will appear in the bottom right of the editor.
+1.打包成功后，编辑器右下角将显示一条表明打包完成的消息。
 
-1. Navigate to the save location you just set.
+1.导航到设置的保存位置。
 
-1. In this folder, there will be a folder named specifically for your texture type. In this example, the folder is named Android_DXT. Open this folder.
+1.在此文件夹中，有一个专为您的纹理类型指定的文件夹。在本例中，此文件夹命名为 Android_DXT。打开此文件夹。
 
-1. **Double-click** on the Install_[ProjectName]_Development-arm*.command script file.
+1. **Double-click** Install_[ProjectName]_Development-arm*.命令脚本文件。
 
 	![](AQS_Mac_04.png)
 
-1. Your game is now installed and you can open it from your Apps drawer.
+1.您的游戏现已安装完毕，您可以从应用抽屉中打开它。
 
 [/EXCERPT:MacOSSetup]
 -->

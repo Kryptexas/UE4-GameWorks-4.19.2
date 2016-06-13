@@ -2,7 +2,7 @@ Availability: Public
 Title:Foliage Instanced Meshes
 Crumbs:%ROOT%, Engine
 Description:System for rendering instanced meshes on the surfaces of other geometry for use as foliage or other ground cover effects.
-Version: 4.9
+Version: 4.12
 SkillLevel:Intermediate
 parent:Engine
 order:9
@@ -60,11 +60,13 @@ These meshes are automatically grouped together into batches that are rendered u
 
 [/EXCERPT:Intro]
 
+[region:note]
 For examples of the Foliage tool in action, see the [Foliage](Resources\ContentExamples\Landscapes\1_3) section of the [](Resources\ContentExamples\Landscapes) Content Example.
+[/region]
 
 ## Foliage Edit Mode
 
-To use the Foliage tool, click the Foliage button(**Shift+4**) in the **Modes** panel. 
+To use the Foliage tool, click the Foliage button (**Shift+4**) in the **Modes** panel. 
 
 ![FoliageMode.png](FoliageMode.png)
  
@@ -76,21 +78,27 @@ The Foliage Edit Mode window appears in the **Modes** panel.
 ## Mesh List
 
 The Mesh List is the area in which Static Meshes that are to be used as foliage are placed. 
-To add a Static Mesh to the Mesh List you must drag the Static Mesh from the Content Browser into the area that says **Drop Foliage Here**.
+To add a Static Mesh to the Mesh List, you must drag the Static Mesh from the **Content Browser** into the area that says **Drop Foliage Here**.
 
-![](Foliage_TextBar.png)
+[REGION:lightbox]
+[![](Foliage_TextBar.png)(w:400 h:250)](Foliage_TextBar.png)
+[/REGION]
 
 [REGION:tip]
 The yellow Foliage Type will only be displayed when you are trying to add the correct actor type. If you do not see this then what you are trying to add will not work.
 [/REGION]
 
-To adjust the properties of a Static Mesh that is used as foliage first select the Static Mesh in the Mesh List and then press the small **Magnifying Glass** icon in the lower right hand corner of the foliage tool to expose the selected Static Meshes details. 
+To adjust the properties of a Static Mesh that is used as foliage, first, select the Static Mesh in the Mesh List and then press the small **Magnifying Glass** icon in the lower right-hand corner of the foliage tool. This will expose the selected Static Meshes details. 
 
-![](Expose_Instanc_Options.png)
+[REGION:lightbox]
+[![](Expose_Instanc_Options.png)(w:190 h:350)](Expose_Instanc_Options.png)
+[/REGION]
 
-Once pressed you should see something that looks similar to the image below.
+Once pressed, you should see something that looks similar to the image below.
 
-![](Foliage_Mesh_Options.png)
+[REGION:lightbox]
+[![](Foliage_Mesh_Options.png)(w:190 h:350)](Foliage_Mesh_Options.png)
+[/REGION]
 
 
 ### Selecting Foliage Meshes in the Mesh List
@@ -100,15 +108,18 @@ Foliage Meshes in the Mesh list can be enabled or disabled by hovering the mouse
 ![](Foliage_Selecting_Meshes.png)
 
 You can also select Foliage Meshes by clicking on them in the Mesh list. 
-This will put an orange highlight around them and then in the option panel below you can adjust various properties. 
+This will put an orange highlight around them and then in the options panel below you can adjust various properties. 
 
-![](Foliage_Selected_Meshes.png)
+[REGION:lightbox]
+[![](Foliage_Selected_Meshes.png)(w:190 h:350)](Foliage_Selected_Meshes.png)
+[/REGION]
 
 ## Brush Settings
 
 ![](Foliage_Brush_Settings.png)
 
-Above the **Meshes** list, the Mesh Edit Tool displays properties related to the foliage tool that is currently selected. (Not every setting is displayed with every foliage tool.)
+In the Meshes list (pictured above), the Mesh Edit Tool displays properties related to the foliage tool that is currently selected. 
+(Not every setting is displayed with every foliage tool.)
 
 | Item | Description |
 | ---- | ----------- |
@@ -118,7 +129,7 @@ Above the **Meshes** list, the Mesh Edit Tool displays properties related to the
 
 The checkmark boxes you see with the names **Landscape**, **Static Meshes**, **BSP** and **Translucent** determine which type of Actor type the Foliage meshes will be placed on when the tool is used. 
 Checking a box will indicate that a Foliage mesh should be added should you use the tool on that Actor type.
-Un-checking a box will indicate that a foliage mesh should not be added to that Actor type.
+Unchecking a box will indicate that a foliage mesh should not be added to that Actor type.
 
 <!---
 [EXCERPT:PaintDensity]
@@ -127,7 +138,6 @@ The target density at which you will add instances when using **Left Mouse** but
 * If the density of meshes in the brush is already greater than this, no meshes will be added.
 [/EXCERPT:PaintDensity]
 --->
-
 
 <!---
 [EXCERPT:EraseDensity]
@@ -145,9 +155,8 @@ The kinds of objects you want to place instances on.
 [/EXCERPT:Filter]
 --->
 
-
 [REGION:note]
-Tablet pressure sensitivity is also supported. The pen pressure will modulate the number of foliage mesh instances added or removed, after all other parameters are considered.
+Tablet pressure sensitivity is also supported. The pen pressure will modulate the number of foliage mesh instances added or removed after all other parameters are considered.
 [/REGION]
 
 ## Foliage Tools
@@ -155,40 +164,38 @@ There are five tools available by selecting the appropriate button in the Toolba
 
 | Item | Description |
 | --- | --- |
-| ![Paint Tool](ToolPaint.png) | **Paint tool**, used for adding and removing foliage instances from the world. |
-| ![Reapply Tool](ToolReapply.png) | **Reapply tool**, used to change the parameters of instances already painted in the world. |
-| ![Select Tool](ToolSelect.png) | **Selection tool**, used to select individual instances, for moving, deleting etc. |
-| ![Paint Select Tool](ToolPaintSelect.png) | **Lasso tool**, used to select many instances using the paint brush. |
-| ![Fill Tool](ToolFill.png) | **Fill Tool**, used to determine the number of meshes to place with the Paint tool. |
-
+| ![Paint Tool](ToolPaint.png) | **Paint tool** - used for adding and removing foliage instances from the world. |
+| ![Reapply Tool](ToolReapply.png) | **Reapply tool** - used to change the parameters of instances already painted in the world. |
+| ![Select Tool](ToolSelect.png) | **Selection tool** - used to select individual instances, for moving, deleting etc. |
+| ![Paint Select Tool](ToolPaintSelect.png) | **Lasso tool** - used to select many instances using the paint brush. |
+| ![Fill Tool](ToolFill.png) | **Fill Tool** - used to determine the number of meshes to place with the Paint tool. |
 
 ### Paint Tool
-
 ![Paint Tool](ToolPaint.png)
 
-The Paint tool is Foliage Edit Mode's default tool. You can use it to paint instances of the Static Meshes in the Meshes list in your level.
-When Foliage Edit Mode is active, a transparent sphere brush is drawn in the level indicating where the foliage brush will operate.
-In the image below you can see an example of what the Foliage paint brush looks like.
+The Paint tool is Foliage Edit Mode's default tool. You can use it to paint instances of the Static Meshes in the Meshes list in your level. When Foliage Edit Mode is active, a transparent sphere brush is drawn in the level indicating where the foliage brush will operate. In the image below you can see an example of what the Foliage paint brush looks like.
 
 ![](Foliage_Paint_Tool_Gimzo.png)
 
 **To add foliage to the brush area:**  
-* Holding down **Left Mouse** button and clicking where you want to add foliage. All currently selected meshes in the mesh list will be added according to their current parameters and settings.
+* Hold down the **Left Mouse** button and **click** where you want to add foliage.
+All currently selected meshes in the mesh list will be added according to their current parameters and settings.
 
 When painting meshes, the engine performs a number of line traces inside the sphere parallel to your viewing direction, meaning any surface you can see inside the sphere will be a potential target for foliage instances.
 
 **To erase foliage from the brush area:**  
-* Holding down **Left Mouse Button + Shift**, click where you want to remove foliage. Note that only instances of meshes that are currently selected in the mesh list will be erased.
-
+* Hold down **Shift** and **Left Mouse** button and **click** where you want to remove foliage.
 
 ### Paint Settings
 
-Each Static mesh in the Mesh List has a number of properties that control how instances are placed, scale or rotated when the selected Static mesh is painted. 
+Each Static mesh in the Mesh List has a number of properties that control how instances are placed, scaled or rotated when the selected Static mesh is painted. 
 The properties are accessible by selecting the Static Mesh or Static Meshes you want in the Mesh List and then adjusting the properties displayed below.
 
-![Paint Settings](Foliage_PaintSettings.png)
+[REGION:lightbox]
+[![](Foliage_PaintSettings.png)(w:190 h:350)](Foliage_PaintSettings.png)
+[/REGION]
 
-Here is a high level description of what each section is used for.
+Here is a high-level description of what each section is used for.
 
 | **Property** | **Description** |
 | --- | --- |
@@ -197,18 +204,20 @@ Here is a high level description of what each section is used for.
 | **Placement** | This controls how the Foliage meshes will be placed when painted in the level.|
 | **Instance Settings** | This allows you to adjust the behavior of this instance and not use properties derived from the Static Mesh in the Content Browser.|
 
-
 ### Reapply Tool
 
 ![Reapply Tool](ToolReapply.png)
 
 The Reapply tool allows you to selectively change certain parameters for Foliage meshes already placed in the world. 
-When you paint over those Foliage meshes with the Reapply tool active the Foliage meshes that are selected in the Mesh List will be updated to reflect the changes made in the Reapply tool.
+When you paint over Foliage meshes with the Reapply tool active, the Foliage meshes that are selected in the Mesh List will be updated to reflect the changes made in the Reapply tool.
 
-![](Foliage_Reapply.png)
+[REGION:lightbox]
+[![](Foliage_Reapply.png)(w:190 h:350)](Foliage_Reapply.png)
+[/REGION]
+
 
 If a checkbox is set, the corresponding parameter will be reapplied when painting the brush over existing instances. 
-Most settings are the same as when using the Paint Tool, however there are a few differences:
+Most settings are the same as when using the Paint Tool, however, there are a few differences:
 
 | Item | Description |
 | --- | --- |
@@ -216,15 +225,15 @@ Most settings are the same as when using the Paint Tool, however there are a few
 | **Painting** | This is where you override what should happen when you are adding Foliage meshes to the level. |
 | **Placement** | This is where you override how Foliage meshes are placed in the level. |
 
-
-
 ### Select Tool
 ![Select Tool](ToolSelect.png)
 
 When the Select tool is active, you can select individual instances of foliage meshes by clicking on them. 
 You can select multiple Foliage meshes at a time by holding down the **Ctrl** button while clicking on Foliage meshes in the level.
 
-![Selected Instance](Foliage_SelectInstance.png)
+[REGION:lightbox]
+[![](Foliage_SelectInstance.png)(w:600 h:400)](Foliage_SelectInstance.png)
+[/REGION]
 
 Once instances have been selected you can perform the following actions on them.
 
@@ -243,10 +252,10 @@ Using the various **Select** buttons you can select all Foliage Mesh Actors, sel
 
 ![Lasso Tool](ToolPaintSelect.png)
 
-The Lasso tool allows you to select a number large or small number of Foliage meshes simultaneously by using the sphere brush that is also used with the Paint tool. 
+The Lasso tool allows you to select a number large or small number of Foliage meshes simultaneously. 
 You can use the filter settings to ensure that you do not select Foliage meshes that are placed on certain objects. 
-To select Foliage meshes hold down the Right Mouse button and move the mouse around the scene.
-To de-select Foliage meshes hold down the **Shift** key while painting. 
+To select Foliage meshes, hold down the **Right Mouse** button and move the mouse around the scene.
+To de-select Foliage meshes, hold down the **Shift** key while painting. 
 Once you have a selection, you can switch to the regular Select tool and do things like duplicate, move or remove Foliage meshes.
 
 ![Lasso Tool](Foliage_Lasso.png)
@@ -256,40 +265,32 @@ Once you have a selection, you can switch to the regular Select tool and do thin
 ![Fill Tool](ToolFill.png)
 
 The Fill tool is used to cover an entire Static Mesh Actor in your level with the selected Foliage meshes. 
-The Fill tool works a lot like the Painting tool with the key difference being that you can cover an entire Actor in Foliage in a single click.
-To use the Fill tool, press the **Left Mouse Button** on the Static Mesh you want covered with foliage. 
-The more mouse button clicks you make the more Foliage will be added.
-TO remove Foliage hold down the **Shift** key and use the **Left Mouse Button** to click on the Static Mesh you want to remove Foliage from.
+The Fill tool works a lot like the Paint tool with the key difference being that you can cover an entire Actor in Foliage in a single click.
+To use the Fill tool, press the **Left Mouse** button on the Static Mesh you want to be covered with foliage. 
+The more mouse button clicks you make, the more Foliage will be added.
+To remove Foliage, hold down the **Shift** key and use the **Left Mouse** button to click on the Static Mesh you want to remove Foliage from.
 
-![Foliage Tool](Foliage_Fill.png)
+[REGION:lightbox]
+[![](Foliage_Fill.png)(w:600 h:400)](Foliage_Fill.png)
+[/REGION]
 
 [region:tip]
-If you are having issues getting Foliage meshes to erase with the Fill tool make sure that you are clicking on the Actor that they are placed and not on the Foliage meshes that were added.
+If you are having issues getting Foliage meshes to erase with the Fill tool, make sure that you are clicking on the Actor that they are placed and not on the Foliage meshes that were added.
 [/region]
 
 
 ## Culling
 
-Because foliage instances are rendered as clusters in a single draw call, each cluster is either rendered or not rendered based on occlusion. If you set a value in the **End Cull Distance** parameter, the clusters will also be culled beyond that distance. However this will cause groups of meshes to disappear abruptly as the entire cluster goes out of range.
+Because foliage instances are rendered as clusters in a single draw call, each cluster is either rendered or not rendered based on occlusion. If you set a value in the **End Cull Distance** parameter, the clusters will also be culled beyond that distance. However, this will cause groups of meshes to disappear abruptly as the entire cluster goes out of range.
 
-This can be reduced by adding a **Start Cull Distance** parameter and then setting up the Material appropriately. In the vertex shader, a per-instance fading factor is calculated, which goes from 1.0 at the start distance to 0.0 at the end distance. This is accessible in the Material using a PerInstanceFadeAmount node. If you connect that to an opacity or masking value, you can use it to fade instances over a distance before they reach the **Cull Distance End** and are removed from rendering.
+This can be reduced by adding a **Start Cull Distance** parameter and then setting up the Material appropriately.
+ In the vertex shader, a per-instance fading factor is calculated, which goes from 1.0 at the start distance to 0.0 at the end distance. 
+ This is accessible in the Material using a **PerInstanceFadeAmount** node.
+ If you connect that to an opacity or masking value, you can use it to fade instances over a distance before they reach the **Cull Distance End** and are removed from rendering.
 
 The example Material below multiplies the Material mask by the fading factor to thin out the foliage mesh's leaves until they completely disappear.
 
 ![Culling Material Example](Foliage_MaterialSetup.png)
-
-
-<!-----
-![Culling Material Example](CullingMaterial.png)(w:752 h:378)
----->
-
-## Static Mesh Settings
-
-You can set foliage-related options for a Static Mesh in the **Static Mesh Editor** instead of in the Foliage tool.
-
-In the **Static Mesh Editor**, in the **Details** panel, in the **Static Mesh Settings** section, there is a **Foliage Default Settings** option. By default, it is set to **None**.  But if you click the drop-down arrow, you can choose **InstancedFoliageSettings**, which opens a whole sub-area of settings that apply to using this Static Mesh with the Foliage tool.  These settings mirror the settings in the Foliage tool's Show Painting Settings and Show Instance Settings.
-
-![Static Mesh Editor Foliage Settings](Foliage_StaticMeshEditor.png)
 
 ### LOD
 
@@ -298,8 +299,6 @@ Static Mesh LOD is supported on foliage. There are a few caveats:
 * You should ensure your Static Mesh has only one entry in the Elements array (visible under LOD0).
 * Note that light and shadowmaps are shared between all LOD levels, so all LODs need to use the same unwrapping.
 * Currently the entire cluster of instances change LODs simultaneously. We may add support for distance-based fading per instance in the future.
-
-
 
 ### Lighting
 
@@ -312,16 +311,15 @@ Each individual mesh instance has its own shadow and/or light map generated by L
 
 [PUBLISH:Licensee]
 
-
 ### Settings for Instancing on Consoles
 
-Hardware instancing on consoles such as Xbox360 and PS3 works a little differently than on PC. In order to render multiple instances in a single draw call, the index buffer data for the Static Mesh needs to be duplicated. There is a setting in the Static Mesh called **Console Preallocate Instance Count**. This value controls how many instances we want to preallocate, to be rendered in a single draw call.
+Hardware instancing on consoles, such as Xbox360 and PS3, works a little differently than on PC. In order to render multiple instances in a single draw call, the index buffer data for the Static Mesh needs to be duplicated. There is a setting in the Static Mesh called **Console Preallocate Instance Count**. This value controls how many instances we want to preallocate, to be rendered in a single draw call.
 
 For example, if you had a foliage mesh with 100 triangles, normally this would need 300 vertex indices (3 for each triangle) to render as a regular Static Mesh. These are 2 bytes each, so 600 bytes of data are stored for the Static Mesh. 
 
 If you wanted to be able to render a maximum of 20 instances of this mesh as foliage in a single draw call, we could set the ConsolePreallocateInstanceCount to 20, which would store duplicate values of those 300 indices 20 times. That would mean the total memory requirement for the indices of that Static Mesh would increase to 12,000 bytes (20 x 300 x 2).
 
-This overhead is incurred only once for the Static Mesh regardless of how many instances will be placed in the level, but simply preallocating that data allows us to render up to 20 instances of this Static Mesh in a single draw call any time we want, rendering up to 2000 triangles
+This overhead is incurred only once for the Static Mesh regardless of how many instances will be placed in the level, but simply preallocating that data allows us to render up to 20 instances of this Static Mesh in a single draw call anytime we want, rendering up to 2000 triangles
 
 The engine will automatically issue multiple draw calls should the ConsolePreallocateInstanceCount be insufficient for the number of instances we wish to render in a cluster (the Instances Per Cluster setting above).
 
@@ -330,7 +328,122 @@ On consoles, draw calls are relatively inexpensive provided the total number of 
 So you should set the ConsolePreallocateInstanceCount number for Static Meshes used for foliage to a number that, taking into account the number of triangles in an instance, will keep the console's GPU busy. Setting the number too small could cause the console's GPU to be idle waiting for the individual draw calls, and a number too large will waste memory without any significant performance increase.
 [/PUBLISH:Licensee]
 
- 
+### Foliage Scalability
+
+Foliage Static Meshes can  use the [Scalability System](Engine/Performance/Scalability/ScalabilityReference/) to increase or decrease the amount of Foliage Instances that are currently being rendered on screen. To add this functionality to your project you will need to do the following:
+
+[region:note]
+In Order to use the Foliage Painting mode, you will need to make sure that your level has either a Landscape Terrain or Static Meshes with Collision enabled. 
+[/region]
+
+
+1. Right-click in the Content Browser and from the menu that is displayed, under the **Create Advanced Asset** section, expand the **Miscellaneous** section and select the **Foliage Type** option.
+
+	[REGION:lightbox]
+	[![](Foliage_Scalability_00.png)(w:300 h:350)](Foliage_Scalability_00.png)
+	[/REGION]
+
+1. Input a name for the Foliage Type, for this example the name **FT_Box** was used, then double - click on the FT_Box Foliage Type to open it up.  
+
+	[REGION:lightbox]
+	[![](Foliage_Scalability_01.png)(w:405 h:223)](Foliage_Scalability_01.png)
+	[/REGION]
+
+1. Once FT_Box is opened, expand the **Mesh** and **Scalability** sections.
+
+	[REGION:lightbox]
+	[![](Foliage_Scalability_02.png)(w:405 h:223)](Foliage_Scalability_02.png)
+	[/REGION]
+
+1. In the **Content Browser** select a Static Mesh, for this example we are using the **Shape_Cube** that comes with the Starter Content, then in the FT_Box Foliage Type, under the **Mesh** section, drag the **Shape_Cube** from the Content Browser to the **Mesh** option.
+
+	[REGION:lightbox]
+	[![](Foliage_Scalability_03.png)(w:405 h:223)](Foliage_Scalability_03.png)
+	[/REGION]
+
+1. In the **Scalability** section of the FT_Box Foliage Type, click on the box that is next to **Enable Density Scaling** to allow the Scalability System access to this Static Mesh.
+
+	[REGION:lightbox]
+	[![](Foliage_Scalability_04.png)(w:405 h:223)](Foliage_Scalability_04.png)
+	[/REGION]
+
+	[region:note]
+	The **Enable Density Scaling** option should typically only be **enabled** for detail foliage without collision such as small rocks and bushes. It should be **disabled** for Foliage Types with collision such as trees as the collision for removed instances will continue to exist in the game.
+	[/region]
+
+1. On the **Modes** panel, click on the **Foliage Tool** option then select and drag the FT_Box Foliage Type from the Content Browser to the area that says **Drop Foliage Here**.
+
+	[REGION:lightbox]
+	[![](Foliage_Scalability_05.png)(w:250 h:350)](Foliage_Scalability_05.png)
+	[/REGION]
+
+1. Select the FT_Box Foliage Type that was just placed in the Foliage Type list to select it and then in the viewport hold down the **Left Mouse Button** to begin painting were the FT_Bo Foliage Type meshes should go. 
+
+	[REGION:lightbox]
+	[![](Foliage_Scalability_06.png)(w:592 h:398)](Foliage_Scalability_06.png)
+	[/REGION]
+
+1. On the **Toolbar** click on the **Play** button to launch the level and then navigate to a location where Foliage has been added.
+
+	![](Foliage_Scalability_07.png)
+
+1. You can control the density at which the Foliage is rendered by pressing the **Backtick** key (`) to open up the **Console** by and then enter the following command followed by a decimal number in the 0 to 1 range.
+
+	* **foliage.DensityScale**
+
+	[region:warning]
+	Adjusting the Foliage Density Scale setting and seeing the results update in real time does not work in any of the Editor viewports. The only way to see the Foliage Density update in real time is to input the command while the project is in a game mode like PIE, Simulate, or Standalone. 
+	[/region]
+
+In the image comparison below you can see what happens to the density of the Foliage when the foliage.DensityScale setting was set to 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0.
+
+[REGION:fullwidth]
+[INCLUDE:Engine\Foliage\#FS]
+[/REGION]
+
+<!-----
+[EXCERPT:FS]
+[OBJECT:SliderSequence]
+	[PARAMLITERAL:max]
+	10
+	[/PARAMLITERAL]
+	[PARAMLITERAL:ext]
+	jpg
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	FS
+	[/PARAMLITERAL]
+	[PARAM:caption]
+	**Dragging the slider will show what happens when adjusting the foliage.DensityScale setting using numbers from 0.1 to 1.0.**
+	[/PARAM]
+	[PARAM:image_list]
+	![](FS_1.png)
+	![](FS_2.png)
+	![](FS_3.png)
+	![](FS_4.png)
+	![](FS_5.png)
+	![](FS_6.png)
+	![](FS_7.png)
+	![](FS_8.png)
+	![](FS_9.png)
+	![](FS_10.png)
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:FS]
+-->
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

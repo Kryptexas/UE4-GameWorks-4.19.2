@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2606309
+﻿INTSourceChangelist:2697210
 Availability: Public
 Title:블루프린트로 게임 모드 구성
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\SettingUpAGameMode
 Description:블루프린트로 게임 모드를 구성하는 비법 안내서입니다.
+Version: 4.9
+SkillLevel: Advanced
 
 [TOC (start:2 end:2)]
 

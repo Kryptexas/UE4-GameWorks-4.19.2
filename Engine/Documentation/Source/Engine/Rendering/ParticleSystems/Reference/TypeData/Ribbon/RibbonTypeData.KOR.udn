@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2227210
+﻿INTSourceChangelist:2750847
 Availability: Public
 Title:Ribbon 타입데이터
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:잇따르는 꼬리 파티클을 만들 수 있는 Ribbon 타입데이터 모듈에 대한 참고서입니다.
+Version: 4.9
 
 
 

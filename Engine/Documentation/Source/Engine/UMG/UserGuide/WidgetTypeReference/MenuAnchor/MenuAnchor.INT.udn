@@ -9,13 +9,13 @@ version: 4.9
 
 [TOC(start:2 end:2)]
 
-## Widget Description
+## Description
 
 [EXCERPT:desc]
-The menu anchor allows you to specify a location that a popup menu should be anchored to and should be summoned from.
+This widget allows you to specify a location that a popup menu should be anchored to and should be summoned from.
 [/EXCERPT:desc]
 
-## Widget Details
+## Details
 
 In the **Details** panel for a placed **Menu Anchor**, there are a couple of specific options that can be set that pertain to the Widget: 
 
@@ -32,7 +32,7 @@ For the **OnGetMenuContent** Event, you can create and bind a function directly 
 
 ![](ExampleGetMenu.png)(w:840)
 
-### Menu Anchor Blueprint Functions
+### Blueprint Functions
 
 The Menu Anchor widget has some widget specific functions that can be called through script which are described below. 
 

@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2615437
+﻿INTSourceChangelist:2728743
 Availability:Public
 Title: 이벤트 (Event)
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture, Programming/UnrealArchitecture/Delegates
 Description:여러 함수에 바인딩하여 모두 한 번에 실행시킬 수 있는 델리게이트입니다.
-Version: 4.5
+Version: 4.9
 
 이벤트(Event)는 [멀티캐스트 델리게이트](Programming/UnrealArchitecture/Delegates\Multicast) 와 매우 유사합니다. 그러나 어느 클래스도 이벤트 바인딩이 가능하지만, 이벤트를 선언한 클래스만이 이벤트의 
 `Broadcast`, `IsBound`, `Clear` 함수를 호출할 수 있습니다. 즉 이와 같이 민감한 함수에 대한 접근권을 외부 클래스에 주면 어떡하지 하는 걱정 없이, 이벤트 오브젝트는 퍼블릭 인터페이스에 노출시킬 수 있다는 뜻입니다.

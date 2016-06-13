@@ -310,7 +310,7 @@ Engine/Physics/Constraints/ConstraintsReference#sharedproperties
 
 [EXCERPT:bLinearVelocityDrive]
 
-선형 속도 드라아브 - 선형 속도 드라이브를 켜거나 끕니다.
+선형 속도 드라이브 - 선형 속도 드라이브를 켜거나 끕니다.
 [VAR:ToolTipFullLink]
 Engine/Physics/Constraints/ConstraintsReference#sharedproperties
 [/VAR]

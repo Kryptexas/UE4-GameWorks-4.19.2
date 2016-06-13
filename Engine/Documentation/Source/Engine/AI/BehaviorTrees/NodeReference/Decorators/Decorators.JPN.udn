@@ -1,13 +1,14 @@
-﻿INTSourceChangelist:2623581
+﻿INTSourceChangelist:2755881
 Availability:Public
-Title:Behavior Tree ノードのリファレンス:Decorators
+Title:Behavior Tree ノードのリファレンス:デコレーター
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
 Description:Behavior Tree Decorator ノードの説明です。
+version:4.9
 
 [TOC(start:2 end:2)]
 
 
-Behavior Tree (ビヘイビアツリー) システムの条件式としても知られる **Decorator ノード** は [**Composite**](Engine/AI/BehaviorTrees/NodeReference/Composites) または [**Task**](Engine/AI/BehaviorTrees/NodeReference/Tasks) ノードのいずれかにアタッチされ、ツリーのブランチあるいはノード 1 つでも実行可能かどうかの判断をするノードです。
+他の Behavior Tree (ビヘイビアツリー) システムで条件式としても知られる **Decorator ノード** は [Composite](Engine/AI/BehaviorTrees/NodeReference/Composites) または [Task](Engine/AI/BehaviorTrees/NodeReference/Tasks) ノードのいずれかにアタッチされ、ツリーのブランチあるいはノード 1 つでも実行可能かどうかの判断をします。
 
 ## Blackboard
 
@@ -20,14 +21,14 @@ Blackboard ノードは、任意の Blackboard Key に値が設定されてい�
 | **Notify Observer** | [INCLUDE:#subprop2] |
 | **Observer Aborts** | [INCLUDE:#subprop3] |
 | **Key Query** | [INCLUDE:#subprop4] |
-| **Blackboard Key**| 確認するためのキーです。他のタイプが初期化された値 (0, false, {0,0,0}, etc...) を返すので、 Objects などの None を返すことができるデータタイプの場合に非常に便利です。
-| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+| **Blackboard Key**| 確認するためのキーです。他のタイプが初期化された値 (0, false, {0,0,0}, etc...) を返すので、 Objects などの`None` を返すことができるデータ タイプの場合に非常に便利です。
+| **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
 
 <!--
 [EXCERPT:subprop2]
 | --- | --- |
 | **On Result Change** | 条件が変更された時のみ再評価されます。 |
-| **On Value Change** | 測定された Blackboard Key が変更された時のみ再評価されます。 |
+| **On Value Change** | 評価された Blackboard Key が変更された時のみ再評価されます。 |
 [/EXCERPT:subprop2]
 
 [EXCERPT:subprop3]
@@ -57,7 +58,7 @@ Compare Blackboard Entries ノードは 2 つのブラックボード キーの�
 | **Blackboard Key A**| この比較で使用される最初のキーです。 |
 | **Blackboard Key B**| この比較で使用される 2 番目のキーです。 |
 | **Observer Aborts** | [INCLUDE:#subprop3] |
-| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+| **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
 
 <!--
 [EXCERPT:subprop5]
@@ -71,7 +72,7 @@ Compare Blackboard Entries ノードは 2 つのブラックボード キーの�
 
 ![](Composite.png)
 
-Composite Decorator ノードは、内臓されているノードよりもさらに高度ではあるけれどブループリント全体ほど複雑ではないロジックの設定ができます。Composite Decorator をノードに追加して Composite Decorator を **ダブルクリック** すると、 Composite のグラフが呼び出されます。グラフ領域を **右クリック** すると、 Decorator Node をスタンドアローン型のノードとして追加し、 AND ノード、 OR ノード、 NOT ノードでまとめて接続して、さらに高度なロジックを作成することができます。
+**Composite Decorator** ノードは、予め用意されているノードよりもさらに高度ではあるけれどブループリント全体ほど複雑ではないロジックの設定ができます。Composite Decorator をノードに追加して Composite Decorator を **ダブルクリック** すると、 Composite のグラフが呼び出されます。グラフ内で **右クリック** すると、 Decorator Node をスタンドアローン型のノードとして追加し、 **AND** ノード、 **OR** ノード、 **NOT** ノードを使って接続して、さらに高度なロジックを作成することができます。
 
 ![](CompositeGraph.png)(w:940)
 
@@ -82,22 +83,22 @@ Composite Decorator ノードは、内臓されているノードよりもさら
 
 ## Conditional Loop
 
-**Key Query** 条件が一致している限り、このデコレーターはノードをループにアタッチします。
+**Key Query** 条件が一致している限り、このデコレーターはループにアタッチされているノードを持ちます。
 
 ![](ConditionalLoop.png)
 
 | プロパティ | 説明 |
 | -------- | ----------- |
-| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+| **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
 | **Key Query** | [INCLUDE:#subprop4] |
-| **Blackboard Key**| 確認するためのキーです。他のタイプが初期化された値 (0, false, {0,0,0}, etc...) を返すので、 Objects などの None を返すことができるデータタイプの場合に非常に便利です。
+| **Blackboard Key**| 確認するためのキーです。他のタイプが初期化された値 (0, false, {0,0,0}, etc...) を返すので、 Objects などの`None` を返すことができるデータ タイプの場合に非常に便利です。
 
 
 ## Cone Check
 
 ![](ConeCheck.png)
 
-Cone Check デコレーターは 3 つのベクター キーを受け取ります。 1 つ目がコーンの開始位置のキー、 2 つ目がコーン ポイントの向きを定義するキー、 3 つ目は位置がコーンの内部にあるか確認するキーです。**Cone Half Angle** プロパティを使って、コーンの角度を定義します。
+**Cone Check** デコレーターは 3 つのベクター キーを受け取ります。 1 つ目がコーンの開始位置のキー、 2 つ目がコーンがポイントする向きを定義するキー、 3 つ目はコーンの内部にその位置があるかを確認するキーです。**Cone Half Angle** プロパティを使って、コーンの角度を定義します。
 
 | プロパティ | 説明 |
 | -------- | ----------- |
@@ -105,9 +106,9 @@ Cone Check デコレーターは 3 つのベクター キーを受け取りま�
 | **Observer Aborts** | [INCLUDE:#subprop3] |
 | **Cone Origin** | コーンの開始位置 (コーンの先端) です。 |
 | **Cone Direction** | コーンの底面が指す方向です。 |
-| **Observed** | コーン内部にあるかどうか確認するために使われる位置あるいはアクタです。 |
-| **Inverse Condition** | 結果を反転するかどうか (_true_ から _false_ 、 _false_ から _true)_ |
-| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+| **Observed** | コーン内部にあるかどうか確認されている位置あるいはアクタです。 |
+| **Inverse Condition** | 結果を反転するかどうか (_true_ から _false_ 、 _false_ から _true_) |
+| **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
 
 ## Cooldown
 
@@ -117,25 +118,25 @@ Cone Check デコレーターは 3 つのベクター キーを受け取りま�
 
 | プロパティ | 説明 |
 | -------- | ----------- |
-| **Cool Down time** | Cooldown デコレーターがこのノードの実行をロックする秒時間。 |
+| **Cool Down time** | Cooldown デコレーターがこのノードの実行をロックする秒単位の時間。 |
 | **Observer Aborts** | [INCLUDE:#subprop3] |
-| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+| **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
 
 ## Does Path Exist
 
 ![](DoesPathExist.png)
 
-パスが Blackboard Key A と Blackboard Key B の 2 つのベクターから構成できるかどうかを確認します。Blackboard Key A と Blackboard Key B です。
+**Does Path Exist** ノードは、パスが Blackboard Key A と Blackboard Key B の 2 つのベクターから構成できるかどうかを確認します。
 
 | プロパティ | 説明 |
 | -------- | ----------- |
 | **Blackboard Key A**| パスの最初の位置です。 |
 | **Blackboard Key B**| パスの 2 番目の位置です。 |
 | **Path Query Type** | [INCLUDE:#subprop6] |
-| **Inverse Condition** | 結果を反転するかどうか (_true_ から _false_ 、 _false_ から _true)_ |
+| **Inverse Condition** | 結果を反転するかどうか (_true_ から _false_ 、 _false_ から _true_) |
 | **Observer Aborts** | [INCLUDE:#subprop3] |
-| **Filter Class** | どのナビゲーション データを使用すべきか？None に設定されていると、デフォルトのナビゲーション データが使用されます。 |
-| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+| **Filter Class** | 使用するナビゲーション データを設定します。None に設定されていると、デフォルトのナビゲーション データが使用されます。 |
+| **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
 
 <!--
 [EXCERPT:subprop6]
@@ -150,11 +151,11 @@ Cone Check デコレーターは 3 つのベクター キーを受け取りま�
 
 ![](ForceSuccess.png)
 
-Force Success デコレーターはノード結果を成功に変更します。
+**Force Success** デコレーターはノード結果を成功に変更します。
 
 | プロパティ | 説明 |
 | -------- | ----------- |
-| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+| **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
 
 ## Gameplay Tag Condition
 
@@ -163,10 +164,10 @@ Force Success デコレーターはノード結果を成功に変更します。
 | プロパティ | 説明 |
 | -------- | ----------- |
 | **Actor to Check** | チェックするアクタへのリファレンスを含む Blackboard Key です。 |
-| **Tags to Match** |  デコレーターを **Gameplay Tags** プロパティにリストされているタグの **どれか** あるいは **すべて** に一致させるかどうかです。. |
-| **Gameplay Tags** | この デコレーターに使われているタグを選択するために Gameplay Tag エディタをロードします。 |
-| **Inverse Condition** | このデコレーターの結果を逆にしますか? (false を true に、 true は falseに) |
-| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+| **Tags to Match** | デコレーターを **Gameplay Tags** プロパティにリストされているタグの **どれか** あるいは **すべて** に一致させるかどうかです。. |
+| **Gameplay Tags** | この デコレーターで使うタグを選択するために Gameplay Tag エディタをロードします。 |
+| **Inverse Condition** | このデコレーターの結果を反転しますか? (false を true に、 true は falseに) |
+| **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
 
 ## Is Blackboard Value of Given Class
 
@@ -177,7 +178,7 @@ Force Success デコレーターはノード結果を成功に変更します。
 | **Test Class** | Blackboard Key プロパティのオブジェクトのクラスをテストするクラスタイプです。 |
 | **Blackboard Key** | テストされる Blackboard Key です。 |
 | **Observer Aborts** | [INCLUDE:#subprop3] |
-| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+| **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
 
 ## Keep in Cone
 
@@ -189,7 +190,7 @@ Force Success デコレーターはノード結果を成功に変更します。
 | **Observer Aborts** | [INCLUDE:#subprop3] |
 | **Cone Origin** | コーンの開始位置 (コーンの先端) です。 |
 | **Observed** | コーン内部に保持する位置あるいはアクタです。 |
-| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+| **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
 
 ## Loop 
 
@@ -201,18 +202,18 @@ Force Success デコレーターはノード結果を成功に変更します。
 | -------- | ----------- |
 | **Num Loops** | 実行するループ回数です。 |
 | **Infinite Loop** | このループを無限にループさせるかどうか。 |
-| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+| **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
 
 ## Reached Move Goal
 
 ![](ReachedMoveGoal.png)
 
-(Character Movement コンポーネントのある) ポーンのパスを確認し、ポーンが移動ゴールに到達すると成功を返します。
+**Reached Move Goal** ノードは、(Character Movement コンポーネントのある) ポーンのパスを確認し、ポーンが移動ゴールに到達すると成功を返します。
 
 | プロパティ | 説明 |
 | -------- | ----------- |
-| **Inverse Condition** | 結果を反転するかどうか (_true_ から _false_ 、 _false_ から _true)_ |
-| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+| **Inverse Condition** | 結果を反転するかどうか (_true_ から _false_ 、 _false_ から _true_) |
+| **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
 
 ## Set Tag Cooldown
 
@@ -221,9 +222,9 @@ Force Success デコレーターはノード結果を成功に変更します。
 | プロパティ | 説明 |
 | -------- | ----------- |
 | **Cooldown Tag** | Cooldown に使用する GameplayTag です。 |
-| **Cooldown Duration** | Cooldown の秒単位の長さです。 |
+| **Cooldown Duration** | Cooldown の秒単位の時間です。 |
 | **Add to Existing Duration** | ある GameplayTag 上に既に Cooldown がある場合、さらに追加するかどうかを決めます。 |
-| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+| **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
 
 ## Tag Cooldown
 
@@ -232,23 +233,23 @@ Force Success デコレーターはノード結果を成功に変更します。
 | プロパティ | 説明 |
 | -------- | ----------- |
 | **Cooldown Tag** | Cooldown に使用する GameplayTag です。 |
-| **Cooldown Duration** | Cooldown の秒時間です。 |
+| **Cooldown Duration** | Cooldown の秒単位の時間です。 |
 | **Add to Existing Duration** | ある GameplayTag 上に既に Cooldown がある場合、さらに追加するかどうかを決めます。 |
 | **Adds/Sets Cooldown on Deactivation** | デコレーターが非アクティブの時、 CooldownTag の値を追加 / 設定するかどうかを決めます。 |
 | **Observer Aborts** | [INCLUDE:#subprop3] |
-| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+| **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
 
 ## Time Limit
 
 ![](TimeLimit.png)
 
-ブランチまたはノードに、停止する前または失敗する前に終了する時間量を設定するデコレーターです。ノードがフォーカスを取得する都度、タイマーはリセットされます。
+**Time Limit** デコレーターは、ブランチまたはノードに、停止または失敗するまでの終了時間の長さを設定します。ノードがフォーカスを取得する都度、タイマーはリセットされます。
 
 | プロパティ | 説明 |
 | -------- | ----------- |
-| **Time Limit** | ノードが失敗する前の秒時間リミットです。 |
+| **Time Limit** | ノードが失敗するまでの秒単位の時間制限です。 |
 | **Observer Aborts** | [INCLUDE:#subprop3] |
-| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+| **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
 
 
 

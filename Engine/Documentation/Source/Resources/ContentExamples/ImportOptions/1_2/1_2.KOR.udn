@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653165
+﻿INTSourceChangelist:2714607
 Availability: Public
 Title:1.2 - 메시 LOD 임포트
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/ImportOptions
@@ -13,6 +13,7 @@ Related: Engine/Content/FBX/MorphTargets
 Related: Shared/Editor/FbxErrors
 Related: Engine/Content/FBX/Materials
 Related: Engine/Content/Types/StaticMeshes/HowTo/LODs
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

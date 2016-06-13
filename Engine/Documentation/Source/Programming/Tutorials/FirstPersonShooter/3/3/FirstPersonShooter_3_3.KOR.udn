@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2672916
+﻿INTSourceChangelist:2953540
 Availability: Docs
 Title: 3.3 - 발사체 콜리전 및 수명 구성
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/3
 Description: 일인칭 슈팅 발사체에 대한 콜리전 및 수명 구성법을 배워봅니다.
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -26,23 +26,23 @@ Version: 4.9
 
 현재 발사체는:
 
-*	수명이 무한입니다 (그 증거로 씬 아웃라이너에서 전혀 사라지지 않습니다).
+*	수명이 무한입니다 (씬 아웃라이너에서 전혀 사라지지 않습니다).
 *	월드의 다른 오브젝트와 충돌하지 않습니다.
 
 이번 단계에서는 발사체의 충돌과 수명을 구성해 주겠습니다.
 
 ## 발사체의 수명 기간 제한
 
-1.	**Solution Explorer** 에서 `FPSProjectile` 클래스 구현 파일을 찾아 `FPSProjectile.cpp` 를 엽니다.
+1.	**Solution Explorer** 에서 `FPSProjectile` 클래스 CPP 파일을 찾아 `FPSProjectile.cpp` 를 엽니다.
 
 1.	`FPSProjectile` 생성자에 다음 코드를 추가하여 발사체의 수명을 설정합니다:
 
-		// 3 초 후 죽습니다 (기본).
-		InitialLifeSpan = 3.f;
+		// 3 초 후 죽습니다.
+		InitialLifeSpan = 3.0f;
 
 ## 발사체의 충돌 세팅 편집
 
-UE4 에는 여러가지 유용한 콜리전 채널이 있으나, 엔진에서는 게임 프로젝트에 사용할 수 있는 커스터마이징 가능 채널을 여럿 제공하기도 합니다.
+언리얼 엔진에는 여러가지 프리셋 콜리전 채널이 포함되어 있으나, 엔진에서는 게임 프로젝트에 사용할 수 있는 커스터마이징 가능 채널을 여럿 제공하기도 합니다.
 
 1. **프로젝트 세팅** 을 열고 **콜리전** 을 선택하면 콜리전 채널 커스터마이징이 가능합니다.
 
@@ -50,21 +50,22 @@ UE4 에는 여러가지 유용한 콜리전 채널이 있으나, 엔진에서는
 
 1.	**새 오브젝트 채널...** 을 선택하여 콜리전 채널을 새로 만듭니다. 새로운 콜리전 채널 이름을 "Projectile" 이라 하고 **Default Response** (기본 반응) 이 **Block** (막음)이라 되어있는지 확인하고 **수락** 을 누릅니다.
 
+	![](NewChannel.png)
+
 1.	**프리셋** 아래 **추가...** 를 선택하고 새 프로파일 이름도 "Projectile" 이라 해줍니다. 다음 그림을 참고하여 콜리전 프리셋을 설정하세요.
 
 	![](NewProfile.png)
 
-	[REGION:note]
-	위에 표시된 프로파일은 발사체가 `스태틱 액터`, `폰`, `다이내믹 액터`, `피직스` 시뮬레이션 `액터`, `비히클`, `디스트럭터블 액터` 에 막힘을 나타냅니다.
-	[/REGION]
+	이 콜리전 프로파일은 발사체가 `스태틱 액터`, `폰`, `다이내믹 액터`, `피직스` 시뮬레이션 `액터`, `비히클`, `디스트럭터블 액터` 에 막힘을 나타냅니다.
+	또한 이 콜리전 프로파일은 프로젝타일 오버랩의 `Pawn` 을 지정하기도 합니다.
 
 ## 새 콜리전 채널 세팅 사용
 
-1.	**Solution Explorer** 에서 `FPSProjectile` 클래스 구현 파일을 찾은 다음 `FPSProjectile.cpp` 를 엽니다.
+1.	**Solution Explorer** 에서 `FPSProjectile` 클래스 CPP 파일을 찾은 다음 `FPSProjectile.cpp` 를 엽니다.
 
-1.	`FPSProjectile` 생성자에서, `CollisionComp` 뒤에 다음 줄을 추가합니다:
+1.	`FPSProjectile` 생성자에서, `CollisionComponent` 뒤에 다음 줄을 추가합니다:
 
-		CollisionComp->BodyInstance.SetCollisionProfileName("Projectile");
+		CollisionComponent->BodyInstance.SetCollisionProfileName(TEXT("Projectile"));
 
 1.	`FPSProjectile.cpp` 는 이제 다음과 같을 것입니다:
 
@@ -78,36 +79,27 @@ UE4 에는 여러가지 유용한 콜리전 채널이 있으나, 엔진에서는
 		{
 		 	// 이 액터가 매 프레임 Tick() 을 호출하도록 설정합니다. 필요치 않은 경우 끄면 퍼포먼스가 향상됩니다.
 			PrimaryActorTick.bCanEverTick = true;
-			
-			// 3 초 뒤에 죽습니다 (기본).
-			InitialLifeSpan = 3.f;
-		}
 		
-		// 생성자
-		AFPSProjectile::AFPSProjectile(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
-		{
 			// 구체를 단순 콜리전 표현으로 사용합니다.
-			CollisionComp = ObjectInitializer.CreateDefaultSubobject<USphereComponent>(this, TEXT("SphereComp"));
+			CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
+			CollisionComponent->BodyInstance.SetCollisionProfileName(TEXT("Projectile"));
 		
-			if (CollisionComp != NULL)
-			{
-				CollisionComp->BodyInstance.SetCollisionProfileName("Projectile");
-				CollisionComp->InitSphereRadius(15.f);
-				RootComponent = CollisionComp;
+			// 구체의 콜리전 반경을 설정합니다.
+			CollisionComponent->InitSphereRadius(15.0f);
+			// 루트 컴포넌트를 콜리전 컴포넌트가 되도록 설정합니다.
+			RootComponent = CollisionComponent;
 		
-				// ProjectileMovementComponent 를 사용하여 이 발사체의 운동을 관장합니다.
-				ProjectileMovement = ObjectInitializer.CreateDefaultSubobject<UProjectileMovementComponent>(this, TEXT("ProjectileComp"));
+			// 이 컴포넌트를 사용하여 이 프로젝타일의 무브먼트를 구동시킵니다.
+			ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
+			ProjectileMovementComponent->SetUpdatedComponent(CollisionComponent);
+			ProjectileMovementComponent->InitialSpeed = 3000.0f;
+			ProjectileMovementComponent->MaxSpeed = 3000.0f;
+			ProjectileMovementComponent->bRotationFollowsVelocity = true;
+			ProjectileMovementComponent->bShouldBounce = true;
+			ProjectileMovementComponent->Bounciness = 0.3f;
 		
-				if (ProjectileMovement != NULL)
-				{
-					ProjectileMovement->UpdatedComponent = CollisionComp;
-					ProjectileMovement->InitialSpeed = 3000.f;
-					ProjectileMovement->MaxSpeed = 3000.f;
-					ProjectileMovement->bRotationFollowsVelocity = true;
-					ProjectileMovement->bShouldBounce = true;
-					ProjectileMovement->Bounciness = 0.3f;
-				}
-			}
+			// 3 초 후 죽습니다.
+			InitialLifeSpan = 3.0f;
 		}
 		
 		// 게임 시작시 또는 스폰시 호출됩니다.
@@ -124,14 +116,10 @@ UE4 에는 여러가지 유용한 콜리전 채널이 있으나, 엔진에서는
 		
 		}
 		
-		// 발사체의 속도를 발사 방향으로 초기화시킵니다.
+		// 프로젝타일의 속도를 발사 방향으로 초기화시키는 함수입니다.
 		void AFPSProjectile::InitVelocity(const FVector& ShootDirection)
 		{
-			if (ProjectileMovement != NULL)
-			{
-				// 발사체의 속도를 원하는 방향으로 설정합니다.
-				ProjectileMovement->Velocity = ShootDirection * ProjectileMovement->InitialSpeed;
-			}
+			ProjectileMovementComponent->Velocity = ShootDirection * ProjectileMovementComponent->InitialSpeed;
 		}
 
 1.	Visual Studio 에서 `FPSProjectile.cpp` 를 저장합니다.

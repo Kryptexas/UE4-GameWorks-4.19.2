@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2612430
+﻿INTSourceChangelist:2716482
 Availability: Licensee
 Title:퍼포스 자동 병합 툴
 Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine, GettingStarted/DownloadingUnrealEngine/Perforce
 Description:퍼포스를 사용한 통합 프로세스를 자동화시켜 주는 스크립트입니다.
+version: 4.9
 
 [TOC(start:2)]
 
@@ -45,7 +46,7 @@ Perforce의 AutoMerge 스크립트는 Perforce의 통합 (일명 병합)과 관�
 
 ### Safe Merge (안전 병합)
 
- _Safe Merge_ 도구는 변경목록을 병합하고, 두 브랜치  중의 한 브랜치에서 변경된 파일들만을 분석하는 _자동-안전_ 분석을 수행합니다. 이 타입의 분석은 성공이 보장됩니다. 이 과정이 끝나면, 이미 필요한 체크인 설명이 들어 있는새 변경목록을 가지게 됩니다. 분석할 파일(병합이 수행될 필요가 있는 파일들)이 남아있는 경우에는, 체크인 하기 전에 수동으로 처리해야 합니다.
+ _Safe Merge_ 도구는 변경목록을 병합하고, 두 브랜치  중의 한 브랜치에서 변경된 파일들만을 분석하는 _자동-안전_ 분석을 수행합니다. 이 타입의 분석은 성공이 보장됩니다. 이 과정이 끝나면, 이미 필요한 체크인 설명이 들어 있는 새 변경목록을 가지게 됩니다. 분석할 파일(병합이 수행될 필요가 있는 파일들)이 남아있는 경우에는, 체크인 하기 전에 수동으로 처리해야 합니다.
 
 수동 분석에 대한 도움이 필요하시면 [Perforce 통합](GettingStarted/DownloadingUnrealEngine/Perforce/Integration) 페이지를 참고하십시오.
 
@@ -155,7 +156,7 @@ NULL 병합에 대한 자세한 정보는 [Perforce 통합](GettingStarted/Downl
 
 
 
-로그인 하기에 대한 설비는없습니다. 따라서 스크립트가 성공적으로 작용하기 위해서는, 이미 그 클라이언트에서 사용자로 인증되었어야 합니다.
+로그인 관련 구성은 없습니다. 따라서 스크립트의 정상 작동을 위해서는, 이미 그 클라이언트에서 사용자 인증이 된 상태여야 합니다.
 
  
 

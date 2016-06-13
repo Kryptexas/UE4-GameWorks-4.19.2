@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2713165
 Availability: Public
-Title:Physical Materials Reference
+Title:피지컬 머티리얼 참고서
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
-Description:Assets applied to physically simulated primitives directly or via materials used to configure and control physical properties used by the simulation.
+Description:물리 시뮬레이션이 적용되는 프리미티브에 직접 또는 머티리얼을 통해 적용하여 시뮬레이션에 사용되는 물리적 속성을 설정하고 제어하는 데 사용되는 애셋입니다.
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -44,16 +44,16 @@ Description:Assets applied to physically simulated primitives directly or via ma
 
 [INCLUDE:Shared/Glossary/P/#Glossary_Physical_Material]
 
-## Properties
+## 프로퍼티
 
-Below are the properties for Physical Materials separated by major category.
+아래는 피지컬 머티리얼의 프로퍼티를 주요 카테고리별로 나눈 것입니다.
 
 [OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
 		physmat
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Physical Material
+		Physical Material (피지컬 머티리얼)
 	[/PARAM]
 	[PARAM:content]
 		%p1%
@@ -62,20 +62,20 @@ Below are the properties for Physical Materials separated by major category.
 
 [VAR:p1]
 
-This category contains the core properties of the Physics Material: Friction, Restitution, and Density.
+이 카테고리에는 Friction (마찰), Restitution (복원력), Density (밀도)와 같은 피지컬 머티리얼 핵심 프로퍼티가 있습니다.
 
 ![](p1.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| 프로퍼티 | %spacer% | 설명 |
 | -------- | --- | :---------- |
-| **Friction** || This is the friction value of the surface, which controls how easily things can slide on this surface. |
+| **Friction** || 표면의 마찰 값으로, 사물이 표면을 얼마나 쉽게 미끄러지는지를 제어합니다. |
 | **Friction Combine Mode** || [INCLUDE:#FcombineMode]  |
-| **Override Friction Combine Mode** || By default, the Friction Combine Mode is set to **Average**, by enabling this property you can change how Frictions are combined between touching Physical Materials.|
-| **Restitution** || This is how "bouncy" the surface is, or how much energy it retains when it collides with another surface. |
+| **Override Friction Combine Mode** || 기본적으로 Friction Combine Mode 는 **Average** 로 설정되며, 이 프로퍼티를 켜는 것으로 인접한 피지컬 머티리얼 사이의 마찰 결합 방식을 변경할 수 있습니다. |
+| **Restitution** || 표면의 "복원력", 또는 다른 표면과 충돌할 때 얼마만큼의 에너지를 유지하는지를 나타냅니다. |
 | **Restitution Combine Mode** || [INCLUDE:#RcombineMode] |
-| **Override Restitution Combine Mode** || By default, the Restitution Combine Mode is set to **Average**, by enabling this property you can change how Restitutions are combined between touching Physical Materials. |
-| **Density** || Used with the shape of the object to calculate its mass properties. The higher the number, the heavier the object. Measured as **g** per cubic **cm**. |
+| **Override Restitution Combine Mode** || 기본적으로 Restitution Combine Mode 는 **Average** 로 설정되는데, 이 프로퍼티를 켜서 접한 피지컬 머티리얼 사이의 복원력 결합 방식을 변경할 수 있습니다. |
+| **Density** || 오브젝트의 모양과 함께 사용해서 질량 프로퍼티를 계산하는 데 사용됩니다. 수치가 클 수록 오브젝트가 무거워집니다. 입방 **센티미터** 당 **그램** 으로 측정됩니다. |
 [/REGION]
 
 [/VAR]
@@ -100,7 +100,7 @@ This category contains a property to change how scale affects the mass of the Ac
 ![](p2.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| 프로퍼티 | %spacer% | 설명 |
 | -------- | --- | :---------- |
 | **Raise Mass To Power** || Used to adjust the way that mass increases as objects get larger. This is applied to the mass as calculated based on a "solid" object. In actuality, larger objects do not tend to be solid, and become more like "shells" (e.g. a car is not a solid piece of metal). Values are clamped to 1 or less. |
 [/REGION]
@@ -128,7 +128,7 @@ Properties that are specific to the Destruction system in Unreal Engine 4.
 ![](p3.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| 프로퍼티 | %spacer% | 설명 |
 | -------- | :---: | :---------- |
 | **Destructible Damage Threshold Scale** || How much to scale the damage threshold by on any destructible this Physics Material is applied to. |
 [/REGION]
@@ -156,7 +156,7 @@ Gameplay related properties for the Physical Material.
 ![](p4.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| 프로퍼티 | %spacer% | 설명 |
 | -------- | --- | :---------- |
 | **Surface Type** || [INCLUDE:#one]|
 [/REGION]
@@ -184,7 +184,7 @@ These properties are specific to Vehicles in Unreal Engine 4. While they may say
 ![](p5.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| 프로퍼티 | %spacer% | 설명 |
 | -------- | :---: | :---------- |
 | **Tire Friction Scale** || Overall tire friction scalar when this Physical Material is applied to a Vehicle. This value is multiplied against the Vehicle's Wheels' specific Friction Scale values. |
 | **Tire Friction Scales** || Tire friction scales for specific Wheels when this Physical Material is applied to a Vehicle. These values are multiplied against the Vehicle's Wheels' specific Friction Scale values. |

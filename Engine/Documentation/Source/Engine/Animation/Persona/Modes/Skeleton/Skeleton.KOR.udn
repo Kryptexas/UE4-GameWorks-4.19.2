@@ -1,10 +1,9 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2666250
 Availability: Public
 Title:스켈레톤 모드
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
 Description:
-
-## 개요
+version: 4.9
 
 [EXCERPT:Overview]
 **스켈레톤 모드** 에서는 캐릭터 또는 스켈레탈 메시의 본이나 조인트 계층구조에 관련된 여러가지 부분을 확인하고 제어할 수 있습니다. 사용 예는 다음과 같습니다:

@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2918212
 Availability:Public
 Title: 환경 라이팅
 Crumbs: %ROOT%, Engine
 Description:지오메트리에 대한 라이팅 및 섀도잉 사용법, 글로벌 일루미네이션 사용법, 리플렉션 구성 방법입니다.
 Navigation:topic
 Related:Engine/Rendering/ParticleSystems/ParticleLights
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]

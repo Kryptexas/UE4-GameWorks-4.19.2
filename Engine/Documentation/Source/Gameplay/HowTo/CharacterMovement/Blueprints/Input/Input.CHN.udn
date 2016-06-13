@@ -3,6 +3,8 @@ Availability: Public
 Title:2.输入和游戏模式
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:在这一步中，我们将设置输入来控制人物，并设置我们的默认 pawn（这是可玩人物）。
+Version: 4.9
+SkillLevel:Advanced
 
 [VAR:Steps]
 [OBJECT:Navigation]

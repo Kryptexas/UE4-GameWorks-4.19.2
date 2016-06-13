@@ -1,84 +1,88 @@
-﻿INTSourceChangelist:0
-Title: Samsung Gear VR Headset Prerequisites
-Description:Required initial setup for the Gear VR Headset
+﻿INTSourceChangelist:2940199
+Title:三星 Gear VR 头戴设备必备条件
+Description:Gear VR 头戴设备必需的初始设置
 Availability:Public
 Crumbs:
 Navigation:platform
 Platform:Gear VR
-Skilllevel: Intermediate
-Version: 4.8
-prereq: Engine\Blueprints\GettingStarted
+Skilllevel:Intermediate
+Version:4.8
+prereq:Engine\Blueprints\GettingStarted
+type:overview
+parent:Platforms/GearVR
+tags:VR
+tags:GearVR
 
 ![](Platforms\GearVR\QuickStart\GVR_Headset_00.png)
 
 [REGION:warning]
-Developing for the Gear VR Headset requires **Unreal Engine 4.7.4** or later.
+针对 Gear VR 头戴设备的开发要求使用 **虚幻引擎 4.7.4** 或更新的版本。
 [/REGION]
 
-With the 4.7 release of Unreal Engine 4 (UE4) you can now build Virtual Reality(VR) projects for the Samsung Gear VR Headset that can transform your Samsung Galaxy Note 4, Galaxy S6, and Galaxy S6 Edge Smartphone into an immersive VR device. 
-In the following sections we will go over everything you need to know to get your Samsung Galaxy Note 4 Smartphone properly setup so that it can work with the Samsung Gear VR headset.
+在虚幻引擎 4（UE4）4.7 版本中，您可开始打造针对三星 Gear VR 头戴设备的虚拟现实（VR）项目。此设备可将三星 Galaxy Note 4、Galaxy S6 和 Galaxy S6 Edge 智能手机转变为引人入胜的 VR 设备。 
+以下章节将讲述如何对三星 Galaxy Note 4 智能手机进行正确设置，使其可结合三星 Gear VR 头戴设备使用。
 
-## Gear VR Official Documentation
+## Gear VR 官方文档
 
-For a more in-depth look at how the Gear VR SDK works or for more information on Oculus Mobile VR development check out the official Oculus documents linked below.
+如需了解 Gear VR SDK 使用的深度解析，或 Oculus 移动 VR 开发的更多内容，请移步下方的官方 Oculus 文档链接。
 
-* **[Oculus Mobile Software Development Kit(SDK) Device and Environment Setup Guide](http://static.oculus.com/sdk-downloads/documents/Oculus_Mobile_v0.4.0_Device_and_Environment_Setup_Guide.pdf)**
-* **[Oculus Mobile Development Documentation](http://static.oculus.com/sdk-downloads/documents/Oculus_Mobile_v0.5.0_SDK_Documentation.pdf)**
+* **[Oculus 移动软件开发工具包（SDK）设备与环境设置指南](http://static.oculus.com/sdk-downloads/documents/Oculus_Mobile_v0.4.0_Device_and_Environment_Setup_Guide.pdf)**
+* **[Oculus 移动开发文档](http://static.oculus.com/sdk-downloads/documents/Oculus_Mobile_v0.5.0_SDK_Documentation.pdf)**
 
 
 
-## Gear VR Headset Pre-requisites 
+## Gear VR 头戴设备必备条件 
 
-Before we can get into UE4 Gear VR development we first must make sure that the following prerequisites are fulfilled as if we do not, we run the risk of our Gear VR projects not working with the Gear VR Headset. 
+在开始 UE4 Gear VR 开发之前，首先须确保以下必备条件得到满足；如未能满足条件，则存在 Gear VR 项目无法结合 Gear VR 头戴设备使用的风险。 
 
-* Make sure you have the USB cord used for charging your Samsung Galaxy Note 4 Smartphone available and plugged into a USB port on the PC you are developing on. 
-The USB cord is of vital importance as this is how you transfer data between your development PC and your Smartphone.
+* 准备好三星 Galaxy Note 4 智能手机和用于充电的 USB 连接线，将其插入开发项目的电脑 USB 接口。 
+作为在开发电脑和智能手机之间的数据传输媒介，USB 接口非常重要。
 
-* Only certain types of Samsung Galaxy Smartphone's will work with the Gear VR Headset. 
-	The **[Oculus website](https://support.oculus.com/hc/en-us/articles/204113096-Samsung-Gear-VR-Innovator-Edition-Samsung-Galaxy-Note-4-Compatibility)** has a list of phone models that will work with the Gear VR Headset.
-	Make sure to double check that the Samsung Galaxy Note 4 Smartphone you are buying is the correct model that will work with the Gear VR Headset.
+* Gear VR 头戴设备只支持特定的三星 Galaxy 智能手机。 
+	在 **[Oculus 网站](https://support.oculus.com/hc/en-us/articles/204113096-Samsung-Gear-VR-Innovator-Edition-Samsung-Galaxy-Note-4-Compatibility)** 中可查看 Gear VR 头戴设备支持的机型列表。
+	检查您的三星 Galaxy Note 4 智能手机，确保其为 Gear VR 头戴设备所支持的机型。
 
-* Make sure to download and install the specific USB drivers for your Galaxy Note 4 from the **[Samsung Website](http://www.samsung.com/us/support/downloads)**. 
+* 须从 **[三星官网](http://www.samsung.com/us/support/downloads)** 为您的 Galaxy Note 4 下载并安装 USB 驱动。 
 
-* Download Unreal Engine version **4.7.4** or later from the **[UE4 Launcher](https://www.unrealengine.com/)** or **[Github](https://www.unrealengine.com/ue4-on-github)**. 
+* 从 **[UE4 启动程序](https://www.unrealengine.com/)** 或 **[Github](https://www.unrealengine.com/ue4-on-github)** 下载 **4.7.4** 版本或更新的虚幻引擎。 
 
-* Install the **Tegra Android Development Pack** which can be found in **Engine\Extras\Android**.  
+* 安装 **Engine\Extras\Android** 路径下的 **Tegra Android 开发包**。  
 
-* Check to see if **[Developer Mode](https://docs.unrealengine.com/latest/INT/Platforms/Android/GettingStarted/2/index.html )** has been enabled on your Samsung Galaxy Note 4 Smartphone and if not, enable it. 
+* 检查三星 Galaxy Note 4 智能手机是否已启动 **[开发者模式](https://docs.unrealengine.com/latest/INT/Platforms/Android/GettingStarted/2/index.html )**。如未启动，则将其启动。 
 
-* Also make sure to check that USB Debugging has been enabled to ensure that you can load data onto your Smartphone from your PC.
+* 检查并确保 USB Debugging 已启用，便于从电脑中载入数据到智能手机。
 	
 	![](Platforms\GearVR\GVR_Dev_Options_Enabled.png)
 
-* With your Smartphone plugged into your development PC via USB, make sure to accept the RSA Fingerprint key from your PC.
-This way your development PC and Smartphone can send data back and forth.
-Also make sure to check **Always allow this computer** to ensure that your development PC can always interact with this Smartphone when plugged in. 
+* 通过 USB 接口将智能手机插入开发电脑，须接受电脑的 RSA 指纹密钥。
+之后便可在开发电脑和智能手机之间来回传输数据。
+勾选 **默认接受此电脑（Always allow this computer）**，使此手机插入后便可与开发电脑进行互动。 
 
 	![](Platforms\GearVR\GVR_USB_Debuging.png)
 
-* Generate and download the **OSIG File** for your Samsung Smartphone using your Smartphone's Device ID and the **[Oculus](https://developer.oculus.com/tools/osig/)** website.
-If you are not sure how to get your Smartphone's **Device ID** the **[Oculus website](https://developer.oculus.com/tools/osig/)** has detailed directions on how to do this.
+* 使用手机的设备 ID 和 **[Oculus](https://developer.oculus.com/tools/osig/)** 生成并下载三星智能手机的 **OSIG 文件**。
+**[Oculus 网站](https://developer.oculus.com/tools/osig/)** 中有如何获取智能手机 **设备 ID** 的详细说明。
 	
 	![](Platforms\GearVR\GVR_OSIG_Website.png)
 
-* After you download the OSIG file, create a folder called **assets** and place the **OSIG** file inside of it. 
-Then place that folder in **Engine/Build/Android/Java**. 
+* OSIG 文件下载完成后，创建一个名为 **assets** 的文件夹，将 **OSIG** 置入其中。 
+然后将文件夹放入 **Engine/Build/Android/Java** 路径。 
 
 	[region:warning]
-	**If you do not do this your project will not be able to run on your Galaxy Smartphone.**
+	**如不执行此操作，将无法在 Galaxy 智能手机上运行项目。**
 	[/region]
 	
 	![](Platforms\GearVR\GVR_OSIG_File_Location.png)
 
-It is very important that you make sure all items listed in the Gear VR Prerequisites section are completed before moving on to the next section. 
-Skipping a step could result in your project not working with the Gear VR Headset. 
+进入下一章节之前，须确保“Gear VR 必备条件”章节中列出的所有操作均已完成。 
+如有操作未执行，可能导致项目和 Gear VR 头戴设备不兼容。 
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/vr_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Gear VR Development
+		Gear VR 开发
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

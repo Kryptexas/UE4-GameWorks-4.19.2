@@ -1,12 +1,17 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2987515
 Availability:NoPublish
 Title:퍼포스로 언리얼 엔진 내려받기
 Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine, GettingStarted/DownloadingUnrealEngine/Perforce
 Description:퍼포스로 언리얼 엔진 소스 코드 내려받는 방법 안내서입니다.
 
+<!--
 ## 에픽의 VPN 접속
 
 [INCLUDE:GettingStarted/DownloadingUnrealEngine/VPNSetup#Browser]
+-->
+
+[EXCERPT:main]
+에픽의 퍼포스 서버는 이제 SSL 암호화를 통해 접속되며, 퍼포스 클라이언트 (P4V, p4, 또는 API) 2012.1 버전 이상이 필요합니다. 대기시간 기반 라우팅을 활용하여 글로벌 DNS 이름을 사용하는 경우 가장 가까운 퍼포스 지역 서버에 자동 접속되도록 할 수가 있으며, 각 지역의 프록시 서버에 직접 연결하여 항상 가장 가까운 곳에 접속되도록 할 수도 있습니다.
 
 ## 에픽의 퍼포스 서버에 접속
 
@@ -18,13 +23,15 @@ Description:퍼포스로 언리얼 엔진 소스 코드 내려받는 방법 안�
 
 1.	Open Connection 대화창에 다음과 같이 접속 정보를 입력합니다:
 
-	* **Server**: _p4-licensee-proxy.epicgames.net:1667_
+	* **Server**: _ssl:p4-licensee.epicgames.com:1667_
 		
-	[REGION:note]
-		동아시아와 유럽 사용자용 프록시가 준비되어 있습니다. 해당 지역의 라이선시 께서는 이 프록시를 사용하시면 퍼포먼스가 나아질 것입니다.
-		* **동아시아 프록시**: _p4-licensee-proxy-asia.epicgames.net:1667_
-		* **유럽 프록시**: _p4-licensee-proxy-euro.epicgames.net:1667_
-	[/REGION]
+		[REGION:tip]
+			위 주소로 접속자의 물리적 위치에 따라 속도가 가장 빠른 지역 프록시 서버로 자동 접속될 것입니다. 어떤 이유로든 특정 지역 프록시에 연결할 필요가 있는 경우엔 아래 주소를 사용하면 됩니다:
+			* **미국 동부 (버지니아)**: _ssl:p4-licensee-east.us.epicgames.com:1667_
+			* **미국 서부 (오레건)**: _ssl:p4-licensee-west.us.epicgames.com:1667_
+			* **아시아 북동부 (도쿄)**: _ssl:p4-licensee-northeast.ap.epicgames.com:1667_
+			* **유럽 중부 (프랑크푸르트)**: _ssl:p4-licensee-central.eu.epicgames.com:1667_
+		[/REGION]
 
 	* **User**: 에픽 게임스가 제공한 퍼포스 사용자명입니다.
 	* **Password**: 에픽 게임스가 제공한 암호입니다.
@@ -32,6 +39,35 @@ Description:퍼포스로 언리얼 엔진 소스 코드 내려받는 방법 안�
 
 1.	OK 를 누르면 퍼포스 서버에 접속합니다.
 
+[REGION:note]
+에픽에서는 모든 브로커와 프록시 SSL end point (종단점)에 대해 일관된 certificate fingerprint (서티피케이트 핑거프린트)를 유지하나, 퍼포스에서는 하나의 IP 주소 + 핑거프린트 짝마다 하나의 trust (신뢰)를 필요로 합니다. 하나의 종단점에 처음 접속할 때, 반드시 그 종단점을 신뢰해 줘야 합니다. 에픽의 핑거프린트는 45:0D:78:E2:0E:9E:E4:82:45:80:16:36:29:5E:54:4D:66:31:6C:43 입니다.
+
+P4V 에 새로운 종단점을 신뢰하겠냐는 창이 뜹니다:
+
+![](fingerprint.png)(w:640 convert:false)
+
+명령줄로는 p4 trust 명령을 사용합니다.
+
+	$ p4 trust -y
+	The fingerprint of the server of your P4PORT setting
+	'ssl:p4-licensee-east.us.epicgames.com:1666' (52.23.106.194:1666) is not known.
+	That fingerprint is 45:0D:78:E2:0E:9E:E4:82:45:80:16:36:29:5E:54:4D:66:31:6C:43
+	Added trust for P4PORT 'ssl:p4-licensee-east.us.epicgames.com:1666' (52.23.106.194:1666)
+[/REGION]
+
+### 로컬 프록시 서버 사용
+
+로컬 프록시 서버를 운영중인 경우, 각 지역의 프록시 서버가 아닌 브로커를 통해 접속해야 합니다. 글로벌 브로커 접속 주소는 다음과 같습니다:
+
+* ssl:p4-licensee.epicgames.com:1666
+
+[REGION:tip]
+	위 주소를 통해 접속자의 물리적 위치에 따라 가장 빠른 지역 브로커에 자동 연결될 것입니다. 어떤 이유로든 특정 지역 브로커에 연결할 필요가 있는 경우 아래 주소를 사용하시면 됩니다:
+			
+	* **미국 동부 (버지니아)**: _ssl:p4-licensee-east.us.epicgames.com:1666_
+	* **아시아 북동부 (토쿄)**: _ssl:p4-licensee-northeast.ap.epicgames.com:1666_
+	* **유럽 중부 (프랑크푸르트)**: _ssl:p4-licensee-central.eu.epicgames.com:1666_
+[/REGION]
 
 ## 언리얼 엔진 4 내려받기
 
@@ -57,3 +93,18 @@ Description:퍼포스로 언리얼 엔진 소스 코드 내려받는 방법 안�
 1.	**Browse** 버튼을 누르면 열리는 대화창에서 *QA_APPROVED_UE4_BUILD_MINIMUM* (엔진 실행에 필수적인 최소한) 또는 *QA_APPROVED_UE4_BUILD_CURRENT* (크기는 훨씬 크지만 샘플 프로젝트 포함) 중에서 선택합니다. **OK** 를 누릅니다.
 
 1.	**Get Revision** 을 눌러 언리얼 엔진 4 내려받기를 시작합니다.
+
+[/EXCERPT:main]
+
+## 기존 워크스페이스 이주
+
+전역 복제본(global replica) 상에 워크스페이스를 새로 만들 때 전체 워크스페이스 force sync 를 하지 않으려면, p4 flush 를 통해 로컬 워크스페이스의 파일 정보를 기반으로 한 파일 소유 정보를 채워줘야 합니다. 이 절차는 force sync 보다 훨씬 빠르며, 중간에 멈춘 경우 이어서 받는 것이 가능합니다.
+
+1. 전역 복제본에 워크스페이스를 새로 만들고, 원본 워크스페이스에서 뷰 & 루트 세팅을 복사합니다.
+1. 새 워크스페이스로 전환합니다.
+1. p4 flush 또는 p4 sync -k 명령으로 서버상의 소유 정보를 채웁니다.
+1. 예전 워크스페이스는, 6 개월간 사용되지 않는 경우 에픽에서 자동 정리해 줍니다.
+
+[REGION:warning]
+쓰기 권한이 있는 사용자는 P4 디포/VPN 계정을 통해 에픽 디포에 연결하세요. 이 VPN 계정은 계속 활성 상태로 남아있습니다. 서비스 장애를 피하기 위해서는 클라우드로 전환하지 마시기 바랍니다.
+[/REGION]

@@ -3,7 +3,7 @@ Title: 4.2 - Setting up your Event Graph
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4
 Description: Learn how to set-up an Event Graph for your First Person Shooter character.
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,26 +23,26 @@ Version: 4.9
 
 %Steps%
 
-During this step, you'll edit the animation's Event Graph to ensure that your animation transition variables are firing properly while the game is running.
+During this step, we're going to edit the animation's Event Graph to ensure that our animation transition variables are firing properly while the game is running.
 
 ## Updating your State Variables
 
-1.	Open the event graph by **double-clicking** on **EventGraph** in the **My Blueprint** tab.
+1.	Open the event graph by double-clicking on **EventGraph** in the **My Blueprint** tab.
 
 	![](OpenEventGraph.png)
 
-1.	**Right-click** in the graph to bring up the **Context Menu**.
+1.	Right-click in the graph to bring up the **Context Menu**.
 
-1.	Type "Update" in the **Context Menu** search field, then **click** on the **Event Blueprint Update Animation** to add that node.
+1.	Type "Update" in the **Context Menu** search field, then click on the **Event Blueprint Update Animation** to add that node.
 
 	[REGION:note]
 	The **Event Blueprint Update Animation** node allows us to update our state variables every time the Animation updates so that they are always in sync with the game state.  
 	![](EventBlueprintUpdateAnimationNode.png)
 	[/REGION]
 
-1.	**Right-click** in the graph to bring up the **Context Menu**.
+1.	Right-click in the graph to bring up the **Context Menu**.
 
-1.	Type "Owner" in the **Context Menu** search field, then **click** on **Try Get Pawn Owner** to add that node.
+1.	Type "Owner" in the **Context Menu** search field, then click on **Try Get Pawn Owner** to add that node.
 
 	![](TryGetPawnOwnerBP_Node.png)
 
@@ -74,7 +74,7 @@ During this step, you'll edit the animation's Event Graph to ensure that your an
 
 	![](ConnectedIsFalling.png)
 
-1.	**Alt-click** on **IsFalling** in the **My Blueprint** tab and drag into the graph to create a **Set Is Falling** node.
+1.	Alt-click on **IsFalling** in the **My Blueprint** tab and drag into the graph to create a **Set Is Falling** node.
 
 	![](IsFalling.png)
 
@@ -96,7 +96,7 @@ During this step, you'll edit the animation's Event Graph to ensure that your an
 
 	![](GreaterThan.png)
 
-1.	**Alt-click** on **IsRunning** in the **My Blueprint** tab and drag into the graph to create a **Set Is Running** node.
+1.	Alt-click on **IsRunning** in the **My Blueprint** tab and drag into the graph to create a **Set Is Running** node.
 
 	![](IsRunning.png)
 

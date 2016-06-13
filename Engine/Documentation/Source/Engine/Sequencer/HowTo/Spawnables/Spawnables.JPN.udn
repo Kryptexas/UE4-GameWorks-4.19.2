@@ -1,0 +1,96 @@
+﻿INTSourceChangelist:2890438
+Availability:Public
+Title:Spawnables （スポーン可能なもの）を作成する
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:シーケンサーを使ってレベルに関係なくシーンにアクタをスポーンします。 
+Version:4.11
+SkillLevel:Advanced
+parent:Engine/Sequencer/HowTo
+order:1
+checkpoint: editorqs
+Related:Engine/Sequencer/Overview
+Related:Engine\Sequencer\ReferenceEditor\
+
+[REGION:warning]
+これは現在開発中の機能であり、期待どおりに機能しなかったり、将来のリビジョンで変更される可能性があります。
+[/REGION]
+
+**マチネ** では、シネマティックスのすべてのコンテンツは、レベル内に存在し、マチネが所有 ("possessed") しなければなりません。マチネが制御し、各アクタに指示するためです。 
+所有したものはシーケンサー内にありますが、**Spawnables (スポーン可能なもの)** というコンセプトもあります。この場合、シーケンサーが所有する必要はないが、代わりに必要なときにスポーンするものにアクタを変えます。 
+これは複数レベルで再利用したいコンテンツがある場合に便利です。アクタはレベルに制限されずに、レベル シーケンスに制限されるからです。 
+
+このガイドでは、複数のレベルで再利用可能な Spawnables を使って小さなシーンを作成します。 
+
+## ステップ
+
+[REGION:note]
+ここでは **Starter Content Enabled (スターター コンテンツを有効にした状態)** で **Blueprint Third Person Template** プロジェクトを使います。 
+[/REGION]
+
+1.	[**シーケンサー**](Engine\Sequencer\HowTo\EnableSequencer) を有効にした状態で、**ツールバー** から **シネマティックス** を選択し、**Add Level Sequence (レベル シーケンスを追加)** を選択します。 
+
+	![](Spawnables1.png)
+
+	レベル シーケンスに名前を付けて保存場所を選びます。 
+
+1.	レベルからデフォルトの **ThirdPersonCharacter** を削除します。 
+
+1.	**Content/Mannequin/Character/Mesh** フォルダから、**SK_Mannequin** アセットをレベルに追加します。 
+
+1.	**SK_Mannequin** を **Sequencer** に追加し、シーンに **ThirdPersonWalk** アニメーションを割り当てます。 
+
+	[REGION:lightbox]
+	[![](Spawnables3.png)](Spawnables3.png)
+	[/REGION]
+
+	[REGION:caption]
+	クリックしてフルサイズで表示 
+	[/REGION]
+
+1.	**シーケンサー** で **[SK_Mannequin]** を **右クリック** し、**[Convert to Spawnable]** を選択します。 
+
+	![](Spawnables4.png)
+
+	新しい **Spawned** トラックにチェックが入り、追加され、スケルタルメッシュの隣のアイコンが変化します。 
+
+	![](Spawnables5.png)
+
+	この稲妻アイコンは、シーケンサーで使うために Spawnable であることを示します。 
+
+1.	**[Modes]** パネルから **カメラ** を **シーケンサー** に **ドラッグ＆ドロップ** します。 
+
+	![](Spawnables6.png)
+
+	カメラが追加され、同じ稲妻アイコンが Camera アクタの隣に表示されるのがわかります。 
+
+	![](Spawnables7.png)
+
+	**Spawnables** を作成する別の方法があります。**[Modes (モード)]** パネル (または **コンテンツ ブラウザ**) から **シーケンサー** にドラッグします。 
+
+1.	**[File]** メニューから新しい **デフォルト** レベルを作成します。 
+
+	![](Spawnables8.png)
+
+1.	**レベル シーケンス** をその新しいレベルにドラッグします。 
+
+
+## 最終結果
+
+レベル シーケンスに追加したスケルタルメッシュとカメラはレベル シーケンスの一部として自動的にレベルに追加されます。 
+
+他のレべル シーケンスで行うのと同様にこれらをこの新しいレベルで操作することができます。 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+eqR_TR4eQRM
+[/PARAMLITERAL]
+[/OBJECT]
+
+こうしたアクタはもうレベルの一部ではなく、代わりにレベル シーケンスの一部になります。レベル シーケンスが開始するまでスポーンされず、レベル シーケンスが終わるとデスポーンされます。 
+

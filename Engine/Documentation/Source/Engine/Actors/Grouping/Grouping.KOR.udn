@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2601327
+﻿INTSourceChangelist:2651203
 Availability: Public
 Title:액터 그룹
 Crumbs:%ROOT%, Engine, Engine/Actors
 Description:언리얼 에디터에서 액터 그룹 관련 작업을 하는 방법 안내서입니다.
+version: 4.9
 
 
 [VAR:playlistnav]

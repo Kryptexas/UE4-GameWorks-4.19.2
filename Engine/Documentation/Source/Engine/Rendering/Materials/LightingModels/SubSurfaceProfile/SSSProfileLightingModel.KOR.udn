@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2604006
+﻿INTSourceChangelist:2699405
 Availability:Public
 Title:서브서피스 프로파일 셰이딩 모델
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:머티리얼에서 사용할 수 있는 서브서피스 프로파일 셰이딩 모델에 대한 설명과 기술적 세부사항입니다.
+Version: 4.9
 
 [TOC(start:2)]
 
@@ -13,11 +14,15 @@ Description:머티리얼에서 사용할 수 있는 서브서피스 프로파일
 서브서피스 프로파일은 스크린 스페이스를 기반으로 하는 렌더링 접근법을 사용합니다. 사람 피부에서 볼 수 있는 미묘한 서브서피스 이펙트, 이를테면 귀와 같은 곳에서 보이는 후방 산란 이펙트 표현에 더욱 좋기 때문입니다.
 다음 문서에서는 서브서피스 프로파일이란 무엇인지, 어떻게 사용할 수 있을지에 대해 다뤄봅니다.
 
-[REGION:lightbox]
-[![](Results.png)(w:920 convert:false)](Results.png)
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Not using SubsurfaceProfile](Results_1.png)(w:700 convert:false)
+	[/PARAM]
+	[PARAM:after]
+	![Using SubsurfaceProfile](Results_2.png)(w:700 convert:false)
+	[/PARAM]
+[/OBJECT]
 
-**왼쪽** 은 서브서피스 프로파일 셰이딩 모델을 사용하지 않는 머티리얼을 나타냅니다. **오른쪽** 은 서브서피스 프로파일 셰이딩 모델을 사용하는 애셋을 나타냅니다.
 
 [Region:note]
 3D 스캔 헤드 모델 제공 및 도움을 주신 Lee Perry-Smith 와 그의 회사 [Infinite Realities] (http://ir-ltd.net) 에 감사드립니다.
@@ -37,7 +42,7 @@ Description:머티리얼에서 사용할 수 있는 서브서피스 프로파일
 
 ## 서브서피스 프로파일 활성화, 생성 및 사용
 
-머티리얼에서 서브서피스 프로파일을 사용하려면, 먼저 머티리얼의 **디테일** 패널에서 **셰이딩 모델** 을 **서브서피트 프로파일** 로 설정하여 서브서피스 프로파일을 사용할 머티리얼을 활성화시켜줘야 합니다.
+머티리얼에서 서브서피스 프로파일을 사용하려면, 먼저 머티리얼의 **디테일** 패널에서 **셰이딩 모델** 을 **서브서피스 프로파일** 로 설정하여 서브서피스 프로파일을 사용할 머티리얼을 활성화시켜줘야 합니다.
 **서브서비스 프로파일** 입력에 다른 서브서피스 프로파일을 연결하여 머티리얼에 사용할 서브서피스 프로파일을 덮어쓸 수 있습니다.
 
 [REGION:tip]
@@ -95,7 +100,7 @@ Description:머티리얼에서 사용할 수 있는 서브서피스 프로파일
 
 **Metallic Input:** 메탈릭 입력 채널은 서브서피스 프로파일에는 사용할 수 없습니다. 메탈릭 입력에 대한 GBuffer 공간이 서브서피스 프로파일 데이터를 수용하도록 용도 변경되었기 때문입니다.
 
-**Opacity Input:** 오파티시 입력 채널은 서브서피스 스캐터링 공헌을 마스킹하는 데 사용됩니다.
+**Opacity Input:** 오파시티 입력 채널은 서브서피스 스캐터링 공헌을 마스킹하는 데 사용됩니다.
 0 과 1 사이 값을 통해 서브서피스 스캐터링 강도가 다른 여러 영역 사이를 부드럽게 전환시키는 방식으로 작동합니다.
 예를 들어 오파시티 입력에 값을 0 입력하면, 서브서피스 스캐터링이 꺼집니다.
 값을 1 입력하면 서브서피스 스캐터링이 최대로 표시됩니다.

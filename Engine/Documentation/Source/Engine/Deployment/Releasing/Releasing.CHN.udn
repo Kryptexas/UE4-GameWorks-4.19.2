@@ -1,5 +1,5 @@
 ﻿INTSourceChangelist:0
-Availability:Docs
+Availability:Public
 Title:Releasing Your Project
 Crumbs:%ROOT%, Engine, Engine/Deployment
 Description:Creating a release versioned project with cooked content for distribution.
@@ -44,10 +44,10 @@ There are a number of settings for the release process.
 1. Also under **Advanced Settings**, set the cooker configuration to **Shipping**.
 
 #### Package 
-* Set the build to  **Package & store locally**. 
+1. Set the build to  **Package & store locally**. 
 
 #### Deploy
-* Set the build to **Do Not Deploy**.
+1. Set the build to **Do Not Deploy**.
 
 1. Once you have set all the above settings, navigate back to the main profile window using the **Back** button in the top right corner. 
 	

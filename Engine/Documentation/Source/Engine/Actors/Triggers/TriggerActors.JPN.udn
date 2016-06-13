@@ -1,9 +1,8 @@
-﻿INTSourceChangelist:2652676
-Availability:Public
+﻿Availability:Public
 Title:Trigger アクタ
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:アクティベートされ、レベル内でイベントを発生させることができるアクタ
-バージョン：4.9
+version:4.9
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]
@@ -55,7 +54,7 @@ Description:アクティベートされ、レベル内でイベントを発生�
 
 **ビューポート** でトリガーを選択した状態で以下の手順に従います。
 
-* Level ブループリントの Event Graph で **右クリック** して、**Add Event for [Trigger Actor Name]** にあるイベントの 1 つを選択します。
+* Level ブループリントのイベントグラフで **右クリック** して、**Add Event for [Trigger Actor Name]** にあるイベントの 1 つを選択します。
 
 	![](trigger_event_context.png)
 

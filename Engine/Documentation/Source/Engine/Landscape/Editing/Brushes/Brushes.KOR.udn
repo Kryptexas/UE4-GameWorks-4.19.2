@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2651797
+﻿INTSourceChangelist:2697512
 Availability: Public
 Title:랜드스케이프 브러시
 Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Editing
 Description:랜드스케이프 편집에 사용할 수 있는 브러시 사용 안내서입니다.
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topiccompact]
@@ -37,7 +38,7 @@ Description:랜드스케이프 편집에 사용할 수 있는 브러시 사용 �
 | -------- | ----------- |
 | **Brush Size** | 브러시 크기 - 언리얼 유닛으로  감쇠를 포함한 브러시 크기를 결정합니다. 이 범위 내라면 브러시는 최소한 어떤 효과든 냅니다. |
 | **Brush Falloff** | 브러시 감쇠 - 브러시의 총 규모 중 어느 부분에서부터 감쇠를 시작시킬지 정합니다. 본질적으로는 브러시의 가장자리가 얼마나 딱 끊어지나(hard)를 말합니다. 감쇠가 0.0 이면 브러시 가장자리까지 온전한 효과가 적용되어 딱 끊어진다는 뜻입니다. 감쇠가 1.0 이면 브러시 중앙에만 온전한 효과를 내며, 가장자리에 이르기까지 지속적으로 감쇠됩니다. |
-| **Use Clay Brush** | 클래이 브러시 사용 - 선택하면 클레이 브러시를 사용합니다. |
+| **Use Clay Brush** | 클레이 브러시 사용 - 선택하면 클레이 브러시를 사용합니다. |
 
 
 현재 브러시의 크기와 감쇠는 뷰포트에 깜빡이는 연보라 색원, 또는 중심축이 같은 원 한 쌍으로 표시됩니다.

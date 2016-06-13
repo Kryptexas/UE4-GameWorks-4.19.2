@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2643533
+﻿INTSourceChangelist:2735587
 Availability: Public
 title:그레디언트
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:Gradient 카테고리 아래 머티리얼 함수의 설명과 예제입니다.
+Version: 4.9
 
 [TOC (start:2 end:3)]
 
@@ -21,11 +22,11 @@ UV 채널 0 을 사용하여 방사상 그레디언트를 내는 함수로, 사�
 | 항목 | 설명 |
 | ---- | ---- |
 |[REGION:tablesection]입력[/REGION] ||
-| **UVs (Vector 2)** | |
+| **UVs (Vector 2)** | UV (벡터2) - 그레디언트를 어디에 위치시킬지, 0-1 스페이스의 얼마만큼을 커버할지 제어할 수 있습니다. |
 | **CenterPosition (Vector2)** | 중앙 위치 - 그레디언트 중심 위치에 대한 0-1 기반 오프셋입니다. |
 | **Radius (Scalar)** | 반경 - 방사상 그레디언트 중심에서부터의 크기입니다. 기본값 0.5 는 그레디언트 에지를 텍스처 스페이스 에지 주변 위치에 놓습니다. |
-| **Density (Scalar)** | |
-| **Invert Density (Boolean)** | |
+| **Density (Scalar)** | 밀도 (스칼라) - 함수로 생성되는 그레디언트 결과물의 거친 정도를 조절합니다. 수치가 클 수록 그레디언트가 선명해진다는 뜻입니다. |
+| **Invert Density (Boolean)** | 밀도 반전 (불리언) - 그레디언트의 하양을 검정으로, 검정을 하양으로 반전시킵니다. |
 
 
 ![Radial Gradient](RadialGradient.png)
@@ -37,8 +38,6 @@ UV 채널 0 을 사용하여 방사상 그레디언트를 내는 함수로, 사�
 | 기본 출력 결과 | |
 
 [/REGION]
-
-
 
 
 
@@ -78,7 +77,6 @@ UV 채널 0 을 사용하여 어느 출력이 사용되는가에 따라 U 나 V 
 ![Linear Gradient](LinearGradient.png)
 
 [REGION:imagetable]
-
 | ------- | ------- |
 | ![Linear Gradient Default](LinearGradient_DefaultU.png) | 기본 U 출력 결과 |
 | ![Linear Gradient Default](LinearGradient_DefaultV.png) | 기본 V 출력 결과 |

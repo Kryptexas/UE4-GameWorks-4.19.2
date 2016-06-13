@@ -1,0 +1,128 @@
+﻿INTSourceChangelist:2911160
+Title:VR エディタの制御
+Description:VR モードでのワールドの作成に使用する、様々な制御スキームとインタラクションを学習します。
+Crumbs:
+Availability: public
+parent:Engine/Editor/VR
+type: reference
+order:1
+tags:VR
+version:4.11
+skilllevel: intermediate
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Editor/VR/Controls:title%](Engine/Editor/VR/Controls/vreditor_controls.png)(fill:#919293)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/Controls:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/Controls]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/Controls:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Editor/VR/Controls:title%](Engine/Editor/VR/Controls/vreditor_controls.png)(fill:#919293)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/Controls:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/Controls]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/Controls:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+様々な制御によって、シーンのナビゲート、アクタの選択と操作、エディタ パネルとウィンドウでの作業が可能になります。
+
+## コントローラ
+
+[REGION:raw]
+![](controller.png)(convert:false)
+[/REGION]
+
+1. モディファイア
+2. トラックパッド
+3. トリガー
+4. サイド ボタン
+
+## レーザー ポインタ
+
+各コントローラは、レーザー ポインタと呼ばれるビームを放出し、これを使ってインタラクトするアクタを決定します。ビームの色は、コントローラのインタラクション モードを表します。
+
+| 色 | 外見 | 意味 |
+| ----- | ---------- | ------- |
+| オレンジ |![](standardmode.png)(w:192) | 標準のインタラクション モードです。コントローラのデフォルト ステートです。 |
+| 緑 |![](selectionmode.png)(w:192) | 選択モードです。現在選択中のアクタがあることを表します。 |
+| 黄色 |![](movementmode.png)(w:192) | 移動モードです。ワールドをナビゲートする時に使われてます。 |
+
+## ナビゲーション制御
+
+[REGION:raw]
+| 制御 | 説明 |
+| ------- | ----------- |
+| ![Press Side Buttons + Move Controller](move_world.png)(convert:false) | サイド ボタンを押したまま、ワールドを手でつかんで押したり引いたりするようにコントローラを動かします。 |
+| ![Press Side Buttons + Aim Controller + Squeeze Trigger](teleport_world.png)(convert:false) | サイド ボタンを押して、コントローラの照準を合わせてトリガーを引くと、現在位置からコントローラが狙いを定めた位置へテレポートします。 |
+| ![Press Side Buttons + Move Controllers Around Each Other](rotate_world.png)(convert:false) | 両方のコントローラのサイド ボタンを押して互いに動かすと、まるでワールドを手でつかんで回転させているかのように、自分の周りのワールドが回転します。 |
+| ![Press Side Buttons + Move Controllers Towards or Away From Each Other](scale_world.png)(convert:false) | 両方のコントローラのサイド ボタンを押して、互いに遠ざけたり近づけたりして動すと、ワールドがスケーリングします。|
+[/REGION]
+
+## 選択制御
+
+[REGION:raw]
+| 制御 | 説明 |
+| ------- | ----------- |
+| ![Aim Controller at Actor + Squeeze Trigger](select_actor.png)(convert:false) | ワールドのアクタにコントローラの照準を合わせてトリガーを引くと、アクタが選択されます。 |
+| [INCLUDE:#multiselect] | ワールドのアクタに片方のコントローラの照準を合わせて、トリガーを半分だけ引いてアクタを選択すると、複数選択モードになります。トリガーは半分だけ引いたまま片方のコントローラの照準を別のアクタに合わせ、そこでトリガーを引くと、その選択が追加 / 解除されます。 |
+[/REGION]
+
+## トランスフォーム制御
+
+[REGION:raw]
+| 制御 | 説明 |
+| ------- | ----------- |
+| ![Aim Controller at Actor + Squeeze Trigger + Move Controller](move_actor.png)(convert:false) | ワールドのアクタにコントローラの照準を合わせてトリガーを引くと、アクタが選択されます。コントローラを動かすと、照準位置にアクタが移動します。 |
+| ![Aim Controllers at Actor + Squeeze Triggers + Move Controller Around Each Other](rotate_actor.png)(convert:false) | ワールドのアクタに両方のコントローラの照準を合わせてトリガーを引くと、アクタが選択されます。両方のコントローラを互いに動かすと、まるでアクタを手でつかんで回転させているかのように、アクタが回転します。 |
+| ![Aim Controllers at Actor + Squeeze Triggers + Move Controllers Towards or Away From Each Other](scale_actor.png)(convert:false) | ワールドのアクタに両方のコントローラの照準を合わせてトリガーを引くと、アクタが選択されます。両方のコントローラを互いに遠ざけたり近づけたりすると、まるでアクタを手でつかんで伸ばしているかのように、アクタがスケーリングします。 |
+| ![Aim Controller at Actor + Squeeze Trigger + Track Pad Towards or Away](slide_actor.png)(convert:false) |ワールドのアクタにコントローラの照準を合わせてトリガーを引くと、アクタが選択されます。トラックパッド上で親指を上下に動かすと、選択されたアクタが近づいたり遠ざかったりします。 |
+[/REGION]
+
+## メニュー制御
+
+[REGION:raw]
+| 制御 | 説明 |
+| ------- | ----------- |
+| ![Modifier Button](radial_menu.png)(convert:false) | トラックパッドを親指で軽く叩くと、ラジアル メニューが開きます。トラックパッド上で親指を滑らすと、オプションが強調表示されます。トラックパッドを完全に押すと、強調表示されたオプションが選択されます。 |
+| ![Aim One Controller at the Other Controller](quick_select_menu.png)(convert:false) | 片方のコントローラの照準をもう片方のコントローラに向けて、クイック選択メニューにアクセスします。 |
+[/REGION]
+
+## ウィンドウ制御
+
+[REGION:raw]
+| 制御 | 説明 |
+| ------- | ----------- |
+| ![Tap Track Pad](show_hide_windows.png)(convert:false) | トラックパッドを叩いて、開いているウィンドウを表示 / 非表示にします。 |
+| ![Aim Controller at Window Grip + Squeeze Trigger + Track Pad Towards or Away](scale_window.png)(convert:false) | コントローラの照準をウィンドウのグリップに合わせてトリガーを引くと、ウィンドウが選択されます。トラックパッド上で親指を上下に滑らすと、ウィンドウがスケーリングされます。 |
+[/REGION]
+
+<!--
+[EXCERPT:MultiSelect]
+[PUBLISH:Rocket]
+[REGION:lightbox][![Aim Controller at Actor + Squeeze Trigger Halfway + Aim Controller at another Actor + Squeeze Trigger](select_actor_multiple.png)(h:108 convert:false)](select_actor_multiple.png)[/REGION]
+[/PUBLISH:Rocket]
+[PUBLISH:Epic]
+![Aim Controller at Actor + Squeeze Trigger Halfway + Aim Controller at another Actor + Squeeze Trigger](select_actor_multiple.png)(h:108 convert:false)
+[/PUBLISH:Epic]
+[/EXCERPT:MultiSelect]
+-->

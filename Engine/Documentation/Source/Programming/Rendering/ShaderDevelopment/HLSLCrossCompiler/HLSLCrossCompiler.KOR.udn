@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2615102
+﻿INTSourceChangelist:2726994
 Availability:Public
 Title:HLSL 크로스 컴파일러
 Crumbs:%ROOT%, Programming, Programming/Rendering, Programming/Rendering/ShaderDevelopment
@@ -42,7 +42,7 @@ $1, $2, 등 = 현재 규칙에 의해 일치된 하위 규칙의 결과입니다
 
 컴파일 도중, AST 를 탐색하여 IR 인스트럭션을 생성하는 데 사용됩니다. 한 가지 알아둬야 할 중요 개념은, IR 은 매우 낮은 수준의 연산 시퀀스입니다. 그렇기에 묵시적 변환이나 그런 속성을 지닌 어떤 작업도 하지 않으므로, 모든 것을 명시적으로 해 줘야 합니다!
 
-흥미로훈 함수 몇 가지는:
+흥미로운 함수 몇 가지는:
 
 apply_type_conversion - 이 함수는 한 유형의 값을 가능한 경우 다른 유형으로 변환합니다. 묵시적 변환이냐 명시적 변환이냐는 파라미터를 통해 제어됩니다.
 

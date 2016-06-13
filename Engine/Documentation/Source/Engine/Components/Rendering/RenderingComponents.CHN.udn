@@ -1,151 +1,152 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2775974
 Availability:Public
-Title:Rendering Components
+Title:渲染组件
 Crumbs:%ROOT%, Engine, Engine/Components
-Description:Several different types of Rendering based Components are outlined, including ParticleSystemComponents, DecalComponets, and BillboardComponents to name a few. 
+Description:我们将介绍几种基于组件的不同渲染类型，包括 ParticleSystemComponents、DecalComponets 和 BillboardComponents 等。 
 Related: Engine/Rendering
 Related: Engine/Rendering/ParticleSystems
 Related: Engine/Blueprints
 Related: Engine/Blueprints/UserGuide/Components
-
+Skilllevel: Beginner
+Version: 4.9
 [TOC (start:2 end:2)]
 
-## Atmospheric Fog Component
+## Atmospheric Fog Component （环境雾气组件）
 
-**AtmosphericFogComponents** are used to create fogging effects such as clouds or ambient fog in a level. There are several settings that can be adjusted for this Component that can affect how the effect is generated in your level when placed. 
+**AtmosphericFogComponents** 用于创建雾化效果，如场景中的云或环境雾气。该组件拥有几项可调整的设置，可以影响此效果在关卡中的生成方式。 
 
-Examples of this type of Component in use with varying values for its **Decay Height** setting (which controls fog density decay height, ie. lower values cause the fog to be denser, while higher values thin the fog, causing less scatter) are portrayed below. For more information, see the [](Engine/Actors/FogEffects/AtmosphericFog) page. 
+下面通过示例介绍了对 **Decay Height** 设置（用于控制雾的浓度衰减高度，例如，较低的值可以让雾变浓，较高的值会让雾变稀，产生更少的散布）使用不同值的这类组件。有关详细信息，请参见 **[](Engine/Actors/FogEffects/AtmosphericFog)** 页面。 
 
 [INCLUDE:Engine/Actors/FogEffects/AtmosphericFog#examples]
 
-## Exponential Height Fog Component
+## Exponential Height Fog Component （指数高度雾气组件）
 
-The **ExponentialHeightFogComponent** is used to create fog effects but with a density that is related to the height of the fog. 
+**ExponentialHeightFogComponent** 用于创建雾化效果，而其浓度与雾的高度相关。 
 
 [INCLUDE:Engine/Actors/FogEffects/HeightFog#intro]
 
-See [](Engine/Actors/FogEffects/HeightFog) for more information and settings that can be adjusted. 
+请参见 **[](Engine/Actors/FogEffects/HeightFog)** 了解详细信息以及可调整的设置。 
 
-## Billboard Component
+## Billboard Component （看板组件）
 
-The **BillboardComponent** is a 2D Texture that will be rendered always facing the camera and functions similarly to an **ArrowComponent** in that it can be used for a method of placement and easy selection. For example in the fog sheet that was created below, the only Component added is a **BillboardComponent** (the actual fog effect is a material that is dynamically created through script). 
+**BillboardComponent** 是一个会被渲染为始终朝向摄像机的 2D 贴图，其功能与 **ArrowComponent** 类似，可用于某种放置方法且能够轻松选取。例如在下面创建的雾化效果图中，唯一添加的组件就是 **BillboardComponent**（实际的雾气效果是一个通过脚本动态创建的材质）。 
 
 ![](billboard1.png)
 
-Inside the level, you can manipulate the fog sheet by selecting the **BillboardComponent** icon (which is a texture that you can specify). 
+在场景中，您可以通过选择 **BillboardComponent** 图标（一个可以指定的贴图）来操控雾化效果图。 
 
 ![](billboard2.png)
 
-For an example of how this Fog Sheet was created, see the [](Resources/Showcases/BlueprintExamples/FogSheet) documentation. 
+有关如何创建此雾化效果图的示例，请参见 **[](Resources/Showcases/BlueprintExamples/FogSheet)** 文档。 
 
-## Material Billboard Component
+## Material Billboard Component （材质看板组件）
 
-The **MaterialBillboardComponent** is a 2D Material that will be rendered always facing the camera. One example of where this type of Component could be used is in the form of 2D grass or foliage. Rather than using Static Meshes to represent pockets of growing grass or even individual grass blades, using a **MaterialBillboardComponent** with a Material used to convey growing grass, there is no need to have a 3D representation of grass as the billboard will automatically turn and face the player giving the illusion of three dimensional grass. 
+**MaterialBillboardComponent** 是一个被渲染为始终朝向摄像机的 2D 材质。这类组件可用在 2D 草丛或树叶等情形中。我们并未使用静态网格模型来呈现生长中的草丛甚至单个草叶，而是利用 **MaterialBillboardComponent** 和一个材质来表现生长中的草，这样就无需使用草的 3D 象征，因为看板（billboard）将自动转动并朝向玩家，从而呈现出草的三维表象。 
 
 
-## Cable Component
+## Cable Component （连线组件）
 
-A **CableComponent** allows you attach two Components together while rendering a cable between them. On the cable itself, you can assign a Material and define parameters that affect the way the cable is displayed. 
+**CableComponent** 可以将两个组件附加在一起，同时在它们之间渲染出一条连线。在这条连线上，您可以指定一个材质并定义参数来影响连线的显示方式。 
 
-An example use case for this type of Component is if you were in need of a rope or something that a player character could swing on. By attaching one point to a fixed location and attaching the other to the player character through script, the character could swing on the rope. Below you have a first person character that can shoot a cable out from their gun and attach it to the impact location, creating a "grappling gun" of sorts. 
+假如您需要让玩家人物在绳索之类的东西上摆动，就可以使用这类组件。只要通过脚本将一个点附加到某个固定位置，并将另一个点附加到玩家人物，该人物便可以在绳索上摆动。下面是一个第一人称人物，他可以用枪（“抓钩枪”一类的东西）发射一条绳索并将其连接到命中位置。 
 
 ![](cable.png)(w:440)
 
-Of course you could use this for simple visual elements as well such as representing wires that connect objects together. 
+当然，您也可以将这个用于简单的视觉元素，如连接多个物体的连线。 
 
-## Custom Mesh Component
+## Custom Mesh Component （自定义网格组件）
 
-The **CustomMeshComponent** allows you to specify custom triangle mesh geometry. 
+**CustomMeshComponent** 能让您指定自定义三角形网格几何体。 
 
-## Poseable Mesh Component
+## Poseable Mesh Component （姿态网格组件）
 
-The **PoseableMeshComponent** allows bone transforms to be driven by a **Blueprint**. 
+**PoseableMeshComponent** 允许您通过 **Blueprint** 来控制骨骼变换。 
 
-## Decal Component
+## Decal Component （贴花组件）
 
-A **DecalComponent** is a material that is rendered onto the surface of a mesh (a kind of "bumper sticker" for a model). Decals can be used for any number of purposes, such as bullet impact decals on a wall when shot, a skid mark decal for a car that breaks along a road, blood that splatters on the ground when being shot, etc. (an example decal is provided below). 
+**DecalComponent** 是一个被渲染到网格模型表面上的材质（一种适用于模型的“保险杠标贴”）。贴花组件可用于任何目的，如发射子弹时在墙上撞出的痕迹，车辆在道路上擦出的打滑印记，被击中时在地上溅出的血迹等（下面有一个相关的示例）。 
 
 ![](Engine/Actors/DecalActor/Decal_1.png)(w:440)
 
-There are several pages you can refer to for more information on working with Decals. 
+您可以参考多个页面了解关于使用贴花组件的详细信息。 
 
-* See [](Engine/Actors/DecalActor). 
-* See [](Resources/ContentExamples/Decals/1_1). 
-* See [Decals Content Examples](Resources/ContentExamples/Materials#decalsmap). 
+* 参见 **[](Engine/Actors/DecalActor)**。 
+* 参见 **[](Resources/ContentExamples/Decals/1_1)**。 
+* 参见 **[贴花内容范例](Resources/ContentExamples/Materials)**。 
 
-## Instanced Static Mesh Component
+## Instanced Static Mesh Component （实例化静态网格组件）
 
-An **InstancedStaticMeshComponent** is a Component that efficiently renders multiple instances of the same Static Mesh. 
-This type of Component is particularly useful for procedural level or room creation, as instead of placing hundreds (or even thousands) of **Static Mesh Actors** in your level, you can place one **Instanced Static Mesh** and add multiple instances of the Static Mesh (floors or walls for example) at a much lower performance cost. 
+**InstancedStaticMeshComponent** 可以高效渲染同一静态网格模型的多个实例。 
+这类组件尤其适用于程序化创建的场景或房间，因为它不会在场景中放置成百上千个 **Static Mesh Actors**，您只需放置一个 **Instanced Static Mesh** 并添加该静态网格模型（如地板或墙）的多个实例，性能负担也大大降低。 
 
-See the [Procedural Room Generation](https://docs.unrealengine.com/latest/INT/Videos/Player/index.html?series=PLZlv_N0_O1ga0aV9jVqJgog0VWz1cLL5f&video=mI7eYXMJ5eI&utm_source=uelauncher&utm_medium=software&utm_campaign=learntab) training stream for an example of working with **InstancedStaticMesh** Components and procedurally generating a random room. 
+请在我们的 Wiki 页面上参阅 [**Procedural Room Generation**](https://wiki.unrealengine.com/Videos/Player?series=PLZlv_N0_O1ga0aV9jVqJgog0VWz1cLL5f&video=mI7eYXMJ5eI) 培训教程，了解关于使用 **InstancedStaticMesh** 组件以及程序化生成随机房间的示例。 
 
-## Particle System Component
+## Particle System Component （粒子系统组件）
 
-A **ParticleSystemComponent** allows you to add a particle emitter as a sub-object to another object. Adding a **ParticleSystemComponent** could be used for several reasons, from adding an explosion effect to something that gets destroyed to adding a fire effect to something you can set on fire. By adding this type of Component to another Object, through script you can access and set any of the parameters of the Particle Effect during gameplay (ie. turning the effect on or off). 
+**ParticleSystemComponent** 可以让您添加一个粒子发射器作为其他对象的子对象。添加 **ParticleSystemComponent** 可用于多种目的，例如，为想要摧毁的对象添加爆炸效果，或是为可以点燃的对象增加着火效果。通过添加这类组件到其他对象，您便可以在游戏过程中借助脚本访问和设置任何粒子效果参数（例如打开或关闭效果）。 
 
-For example, below we have a security camera and have added a **ParticleSystemComponent** for a spark effect. 
+例如，我们在下面生成了一个安保摄像头并添加了一个 **ParticleSystemComponent** 用于产生火花效果。 
 
 ![](particle1.png)
 
-Through script we could state that the spark effect is off by default, but activated when the camera is shot. 
+通过脚本，我们可以声明在默认情况下关闭火花效果，并在摄像头被击中时将其激活。 
 
 ![](particle2.png)
 
-See [](Engine/Rendering/ParticleSystems) for more information. 
+请参见 **[](Engine/Rendering/ParticleSystems)** 了解详细信息。 
 
 
-## Post Process Component
+## Post Process Component （后处理组件）
 
-**PostProcessComponets** enable Post Process controls for **Blueprints**. It will use a parent `UShapeComponent` to provide volume data if available. This type of Component could be used to shift the tone of your level, when Post Process Settings are applied to it. For example suppose you defined a default Post Process Setting to use for your game, when the player is damaged (or potentially killed), you could through script change the settings to a black/white tone for the **Scene Color Tint**. 
+**PostProcessComponets** 可以为 **Blueprints** 开启后处理控制。它将使用一个父级 `UShapeComponent` 来提供体积数据（如可用）。这类组件可以在某一场景应用了后处理设置时变换场景的色调。例如，假设您定义了一个默认的后处理设置并将其用于游戏，那么在玩家受到伤害（或丧命）时，您可以通过脚本将 **Scene Color Tint** 的设置改为黑色/白色色调。 
 
-For more information see the [](Resources/ContentExamples/PostProcessing) or [](Engine/Rendering/PostProcessEffects) documentation. 
+有关详细信息，请参见 **[](Resources/ContentExamples/PostProcessing)** 或 **[](Engine/Rendering/PostProcessEffects)** 文档。 
 
-## Scene Capture 2D Component
+## Scene Capture 2D Component （场景捕捉 2D 组件）
 
-The **SceneCapture2DComponent** is used to capture a "snapshot" of the scene from a single plane and feed it to a Render Target. There are settings for controlling the **Field of View** when capturing as well as specifying the **Render Target** texture (among other settings). An example of using this would be in the case of creating a mirror (shown below) or security camera view on a monitor (see [](Resources/Showcases/BlueprintExamples/SecurityCameraAndAlarm).) 
+**SceneCapture2DComponent** 用于从单一平面捕获场景“快照”并将其馈送给渲染目标。在捕获和指定 **Render Target** 贴图时，除其他设置外有一些设置可用于控制 **Field of View**。这样的示例包括在监视器上创建镜子（如下面所示）或安保摄像头视角的情形（参见 **[](Resources/Showcases/BlueprintExamples/SecurityCameraAndAlarm)**。） 
 
 ![](2dRender.png)(w:440)
 
-Above we have created a **Blueprint** with a **SceneCapture2DComponent** and assigned a **Render Target** texture which was then used as a **Material** that we applied to the piece of geometry in the level. For more information, see [Scene Capture 2D Content Example](Resources/ContentExamples/Reflections/1_7). 
+在上面的示例中，我们创建了一个带有 **SceneCapture2DComponent** 的 **Blueprint** 并指定了一个 **Render Target** 贴图，它随后被用作 **Material** 施加给场景中的几何体。有关详细信息，请参见 [**Scene Capture 2D Content Example**](Resources/ContentExamples/Reflections/1_7)。 
 
-## Scene Capture Cube Component
+## Scene Capture Cube Component （场景捕捉立方组件）
 
-A **SceneCaptureCubeComponent** is used to capture a "snapshot" of the scene from 6 planes and feed it to a Render Target. 
+**SceneCaptureCubeComponent** 用于从 6 个平面捕获场景“快照”并将其馈送给渲染目标。 
 
 ![](Resources/ContentExamples/Reflections/1_6/Reflections_1_6_Header.png)(w:640)
 
-In most instances the **SceneCapture2DComponent** should accomplish most of your scene capturing needs, however in the event that you need a 3D capture of an environment you could use this type of Component. Be aware of your usage however as these are very expensive performance wise and should only be used when absolutely necessary. See the [](Resources/Showcases/Reflections) for more information on the different the methods that can be used to create reflections in your levels. 
+在多数情况下，**SceneCapture2DComponent** 应当能满足大部分场景捕获需求，但在需要对环境进行 3D 捕获时，您可以使用这个组件。但在使用时应当留意，因为这会产生很大的性能消耗，只应当在绝对必要时使用。请参见 **[](Resources/Showcases/Reflections)** 了解在场景中创建反射时所用不用方法的详细信息。 
 
-## Spline Mesh Component
+## Spline Mesh Component （样条网格组件）
 
-**SplineMeshComponents** can be used to stretch and bend a Static Mesh asset. With **SplineMeshesComponents**, you must provide vectors for the position and tangent for the start and end of the spline. Below, a **SplineMeshComponent** has been added to a **Blueprint** and a pipe **Static Mesh** has been assigned as the asset to affect. 
+**SplineMeshComponents** 可用于拉伸和弯曲静态网格模型资源。使用 **SplineMeshesComponents** 时，您必须提供方位对应的向量，并提供样条曲线起点和终点的切线。在下面的示例中，**SplineMeshComponent** 被添加到 **Blueprint**，同时有一个管道 **Static Mesh** 被指定为要影响的资源。 
 
 ![](splinemesh.png)(w:800)
 
-While you specify the vectors for the position and tangent on the Component itself, you can use script to set these as variables and make them public so that they can be edited inside the Editor Viewport as seen below. 
+在您为方位指定向量并在组件本身上指定切线时，您可以使用脚本将它们设置为变量并改为公用，以便其可以在编辑器视区中编辑（如下面所示）。 
 
 ![](splinemesh2.png)
 
-Above we can move the **Start Transform** and **End Transform** independently of moving the entire Actor, allowing us to stretch or rotate it as we desire. This example and setup can be found inside the [](Resources/ContentExamples/Blueprint_Splines) Content Examples map. 
+在上述示例中，我们可以单独移动 **Start Transform** 和 **End Transform** 而无需移动整个 Actor，从而随意拉伸或旋转它。该示例及其相关设置可以在 **[](Resources/ContentExamples/Blueprint_Splines)** 内容示例图中找到。 
 
-## Text Render Component
+## Text Render Component （字体渲染组件）
 
-A **TextRenderComponent** renders text in the world with the given font. Contains usual font related attributes such as Scale, Alignment, Color, etc. You might use this Component to indicate to a player that an object is intractable in your levels. 
+**TextRenderComponent** 可以用指定的字体渲染世界中的文本。其中包含与常用字体有关的属性，如 Scale、Alignment、Color 等。您可以使用该组件提示玩家您的场景中有一个复杂对象。 
 
-For example, suppose you had a chair in your level that players can sit down in when they approach it if they press a button. You could add a **TextRenderComponent** containing the instructions needed to execute the command of sitting (visibility set to off) along with a **BoxComponent** used as a trigger which will set visibility of the text to true when the player enters it (shown below). 
+例如，假设您的场景中有一把椅子，玩家只要在靠近时按一个按键就能坐下。您可以添加一个包含必要提示的 **TextRenderComponent** 来执行就坐命令（关闭可见性），同时将一个 **BoxComponent** 用作触发器，用于在玩家进入时将文本的可见性设为 true（如下所示）。 
 
 ![](text1.png)(w:800)
 
-In game when the player enters the trigger, the **TextRenderComponent** text is displayed informing the player how to sit. 
+在玩家进入触发器范围时，游戏将显示 **TextRenderComponent** 文本以提示玩家如何坐下。 
 
 ![](text2.png)(w:500)
 
 
-## Vector Field Component
+## Vector Field Component （向量场组建）
 
-A **VectorFieldComponent** is used for referencing a [Vector Field](Engine/Rendering/ParticleSystems/VectorFields) which are 3D containers with a grid of velocity vectors that can be used to determine the velocity or acceleration of GPU sprites. 
-Vector Fields can be used for small scale effects like wind gusts particle effects to large scale blizzards in your levels. See also [Local Vector Fields](Resources/ContentExamples/EffectsGallery/2_A) and [Global Vector Fields](Resources/ContentExamples/EffectsGallery/2_B) for more information. 
+**VectorFieldComponent** 用于引用 [**Vector Field**](Engine/Rendering/ParticleSystems/VectorFields)，这是一种带有速度向量网格的 3D 容器，可用于确定 GPU 子画面的速度或加速度。 
+向量场可用于场景中的小规模效果（如强风粒子效果）和大规模效果（如暴雪）。另请参见 [**Local Vector Fields**](Resources/ContentExamples/EffectsGallery/2_A) 和 [**Global Vector Fields**](Resources/ContentExamples/EffectsGallery/2_B) 了解详细信息。 
 
 ![](Resources/ContentExamples/EffectsGallery/2_B/image050.png)(w:640)
 

@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:2515048
+﻿INTSourceChangelist:2968923
 Availability:Public
 Title:블루프린트 테크니컬 가이드
 Crumbs: %ROOT%, Programming
 Description:블루프린트 작업을 하는 프로그래머를 위한 테크니컬 가이드입니다.
-
-
-Blueprint (블루프린트)는 언리얼 엔진 4 에 도입된 강력한 신기능입니다.
+version: 4.9
+Parent:Engine/Blueprints
+Type:guide
 
 블루프린트를 요약하자면, 코드를 작성하거나 컴파일하지 않고도 UClass 를 새로 만들 수 있는 수단입니다. 블루프린트를 만들 때, 'native' C++ 클래스 또는 다른 Blueprint 클래스를 확장하도록 
 선택할 수 있습니다. 그런 다음 자신만의 컴포넌트를 추가 배치 수정, 비주얼 스크립팅 언어를 사용해서 별도의 로직 구현, 이벤트에 반응하여 상호작용, 커스텀 변수 정의, 입력 처리 등등 

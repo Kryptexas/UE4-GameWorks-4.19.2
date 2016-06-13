@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2711067
 Availability:Public
 Title:폰 (Pawn)
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
 Description:Pawn, 폰이란 월드 내 플레이어에 대한 물리적 표현입니다.
+Version: 4.9
 
 [OBJECT:Redirect]
 [PARAM:link]

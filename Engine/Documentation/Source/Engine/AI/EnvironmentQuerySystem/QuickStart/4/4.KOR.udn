@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2602715
+﻿INTSourceChangelist:2654417
 Availability:Public
 Title: 4. 기본 애셋 생성
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
 Description: EQS 퀵스타트에 필요한 일곱가지 애셋을 만듭니다.
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -45,7 +46,7 @@ Description: EQS 퀵스타트에 필요한 일곱가지 애셋을 만듭니다.
 
 	이 **블루프린트** 이름은 `AI_Character` 로 합니다.
 
-1. [REGION:raw]**추가** %arrow% **기타** %arrow% **비헤이비어 트리**.[/REGION]
+1. [REGION:raw]**추가** %arrow% **인공 지능** %arrow% **비헤이비어 트리**.[/REGION]
 
 	[REGION:raw]
 	![](Engine/AI/BehaviorTrees/QuickStart/3/newBT.png)
@@ -53,7 +54,7 @@ Description: EQS 퀵스타트에 필요한 일곱가지 애셋을 만듭니다.
 
 	**비헤이비어 트리** 이름은 `RunnerBT` 로 합니다.
 	
-1. [REGION:raw]**추가** %arrow% **기타** %arrow%  **블랙보드**.[/REGION]
+1. [REGION:raw]**추가** %arrow% **인공 지능** %arrow%  **블랙보드**.[/REGION]
 	
 	[REGION:raw]
 	![](Engine/AI/BehaviorTrees/QuickStart/3/newBB.png)
@@ -61,7 +62,7 @@ Description: EQS 퀵스타트에 필요한 일곱가지 애셋을 만듭니다.
 
 	**블랙보드** 이름은 `RunnerBlackboard` 로 합니다.
 
-1. **인바이언먼트 쿼리** 를 만듭니다: [REGION:raw]**추가** %arrow% **기타** %arrow%  **인바이언먼트 쿼리**.[/REGION]
+1. **인바이언먼트 쿼리** 를 만듭니다: [REGION:raw]**추가** %arrow% **인공 지능** %arrow%  **인바이언먼트 쿼리**.[/REGION]
 	
 	[REGION:raw]
 	![](newEQ.PNG)

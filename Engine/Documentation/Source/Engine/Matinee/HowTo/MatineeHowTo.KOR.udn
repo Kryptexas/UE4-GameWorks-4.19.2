@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2663119
+﻿INTSourceChangelist:2709577
 Availability: Public
 Title:마티네 비법
 Crumbs: %ROOT%, Engine, Engine/Matinee
 Description:언리얼 엔진 4 에서 마티네의 여러가지 부분을 사용하는 법에 대한 안내서입니다.
+Version: 4.9
 
 
 **마티네 비법** 은 **마티네** 를 사용하여 단순한 시나리오를 셋업하는 법을 그림과 설명을 통해 단계별로 알아보는 문서입니다.

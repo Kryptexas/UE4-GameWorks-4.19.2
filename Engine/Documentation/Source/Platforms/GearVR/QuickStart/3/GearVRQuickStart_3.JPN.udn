@@ -1,15 +1,20 @@
-﻿INTSourceChangelist:2520626
+﻿INTSourceChangelist:2743354
 Availability:Public
 Title:3.Gear VR プロジェクトのパッケージングとデプロイメント
 Crumbs:%ROOT%, Platforms/GearVR
 Description:Samsung Gear VR ヘッドセットを使用するプロジェクトを UE4 からデプロイする方法
 Navigation:platform
 Platform:Gear VR
+Related:Platforms\GearVR\Prerequisites
+Related:Platforms\GearVR\BestPractices
+Related:Platforms\GearVR\Debugging
+Skilllevel:Intermediate
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-	[前の手順](Platforms/GearVR/QuickStart/2 "%Platforms/GearVR/QuickStart/2:title%")
+	[前のステップ](Platforms/GearVR/QuickStart/2 "%Platforms/GearVR/QuickStart/2:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
@@ -17,8 +22,8 @@ Platform:Gear VR
 		[クイックスタートのホーム画面](Platforms/GearVR/QuickStart)
 	[/PARAM]
 	[PARAM:next]
-		[/PARAM]
 
+	[/PARAM]
 [/OBJECT]
 [/VAR]
 
@@ -27,34 +32,34 @@ Platform:Gear VR
 
 1. 最初に Samsung Galaxy Note 4 スマートフォンと USB コードを接続して、このコードが開発に使用している PC の USB ポートに差し込まれていることを確認してください。
 
-1. 次に **Main Toolbar** へ移動して、 **File** > **Package Project** > **Android** > **Android ETC 2** を選択してパッケージング処理を開始します。
+1. 次に **Main Toolbar** へ移動して、**[File]** > **[Package Project]** > **[Android]** > **[Android ETC 2]** を選択してパッケージング処理を開始します。
 
 	![](GVR_Deploy_To_Android.png)
 
-1. **Android ETC 2** オプションをクリックすると、 Windows のダイアログボックスが表示されます。このダイアログボックスでパッケージしたプロジェクトを保存するためのフォルダを選択、もしくは作成します。 **OK** ボタンを押してパッケージング処理を開始します。
+1. **[Android ETC 2]** オプションをクリックすると、Windows のダイアログボックスが表示されます。このダイアログ ボックスでパッケージしたプロジェクトを保存するためのフォルダを選択、もしくは作成します。**[OK]** ボタンを押してパッケージング処理を開始します。
 
 	![](GVR_Save_Project.png)
 
 1. プロジェクトのサイズ次第では、パッケージング処理は数分、もしくは数時間かかる場合があります。 
-	処理が完了すると、ビルドを保存するために選択/作成したフォルダ内部に以下の画像のようなファイルが3つ作成されています。 
+	処理が完了すると、ビルドを保存するために選択 / 作成したフォルダ内部に以下の画像のようなファイルが 3 つ作成されています。 
 
 	![](GVR_Deployed_Files.png)
 
-1. 次にビルドをパッケージ処理したフォルダ内にある **「.BAT」** ファイルを  **左マウスボタン** で **ダブルクリック** して実行します。
+1. 次にビルドをパッケージ処理したフォルダ内にある **「.BAT」** ファイルを **マウスの左ボタン** で **ダブルクリック** して実行します。
 	「.BAT」ファイルを実行すると、スマートフォンへの現在のデプロイの進捗状況を示すコマンドラインウィンドウが表示されます。
 	スマートフォンへのプロジェクトのデプロイが成功すると、コマンドラインウィンドウは自動的に閉じます。
-	![](GVR_Run_Bat_File.png)
 
+	![](GVR_Run_Bat_File.png)
 
 1. 「.BAT」ファイルを実行すると、スマートフォンへの現在のデプロイの進捗状況と発生したエラーを示すコマンドラインウィンドウが表示されます。 
 
 	![](GVR_Deployment_Window.png)
 
 	[region:note]
-	「.BAT」ファイルの実行時に表示されるコマンドラインウィンドウは、終了時に自動的に閉じます。コマンドラインウィンドウを手動で閉じるとデプロイに問題が生じる要因となるため、ウィンドウを手動で閉じないでください。 
+	「.BAT」ファイルの実行時に表示されるコマンドライン ウィンドウは、終了時に自動的に閉じます。コマンドライン ウィンドウを手動で閉じると、デプロイに問題が生じる要因となるため、ウィンドウを手動で閉じないでください。 
 	[/region]
 
-1. コマンドラインウィンドウが閉じたら、新規に作成したアプリケーションをスマートフォンでチェックします。このアプリケーション名は、作成元の UE4 C++ プロジェクトに使用した名前と一致しなくてはいけません。
+1. コマンドライン ウィンドウが閉じたら、新規に作成したアプリケーションをスマートフォンでチェックします。このアプリケーション名は、作成元の UE4 C++ プロジェクトに使用した名前と一致しなくてはいけません。
 	アプリケーションを起動して、スマートフォンを Gear VR ヘッドセットにセットします。
 
 	![](GVR_On_Phone.png)

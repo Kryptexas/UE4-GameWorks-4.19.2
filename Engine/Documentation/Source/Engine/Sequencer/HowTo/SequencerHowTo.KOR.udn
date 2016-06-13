@@ -1,0 +1,47 @@
+﻿INTSourceChangelist:2890438
+Availability: Public
+Title: 시퀀서 - 안내서
+Crumbs: %ROOT%, Engine, Engine\Sequencer
+Description:시퀀서 에디터로 시네마틱 시퀀스를 제작하는 법에 대한 안내서입니다.
+Related: Engine\Sequencer
+version: 4.11
+
+
+**시퀀서 - 안내서** 는 언리얼 엔진 4 에서 **시퀀서** 에디터를 여러가지 방법으로 활용하는 법을 단계별 예제와 함께 안내해 드립니다.
+캐릭터 애니메이션이든, 멀티 카메라 시퀀스 구성이든, 일반적인 카메라 작업 관련이든, 하나씩 단계별로 안내받으실 수 있을 것입니다.
+또한 제공되는 참조 링크를 통해 이 시스템 관련 보다 자세한 문서와 각 안내서의 목차를 확인하실 수 있습니다.
+
+보다 자세한 정보는 아래 표를 참조하여 각 링크를 통해 내용을 확인하시기 바랍니다.
+
+## 초급
+[REGION:wrapper transparent]
+[](FANCY:Engine\Sequencer\HowTo\EnableSequencer "%Engine\Sequencer\HowTo\EnableSequencer:description%")
+[](FANCY:Engine\Sequencer\HowTo\ViewportOptions "%Engine\Sequencer\HowTo\ViewportOptions:description%")
+[](FANCY:Engine\Sequencer\HowTo\TracksFade "%Engine\Sequencer\HowTo\TracksFade:description%")
+[](FANCY:Engine\Sequencer\HowTo\TracksPlayRate "%Engine\Sequencer\HowTo\TracksPlayRate:description%")
+[/REGION]
+
+
+## 중급
+[REGION:wrapper transparent]
+[](FANCY:Engine\Sequencer\HowTo\CharacterAnimation "%Engine\Sequencer\HowTo\CharacterAnimation:description%")
+[](FANCY:Engine\Sequencer\HowTo\TracksCameraCut "%Engine\Sequencer\HowTo\TracksCameraCut:description%")
+[](FANCY:Engine\Sequencer\HowTo\TracksEvent "%Engine\Sequencer\HowTo\TracksEvent:description%")
+[](FANCY:Engine\Sequencer\HowTo\TracksShot "%Engine\Sequencer\HowTo\TracksShot:description%")
+[/REGION]
+
+
+## 고급
+[REGION:wrapper transparent]
+[](FANCY:Engine\Sequencer\HowTo\TracksSub "%Engine\Sequencer\HowTo\TracksSub:description%")
+[](FANCY:Engine\Sequencer\HowTo\Spawnables "%Engine\Sequencer\HowTo\Spawnables:description%")
+[](FANCY:Engine\Sequencer\HowTo\SequenceRecorder "%Engine\Sequencer\HowTo\SequenceRecorder:description%")
+[](FANCY:Engine\Sequencer\HowTo\TracksLevelVisibility "%Engine\Sequencer\HowTo\TracksLevelVisibility:description%")
+[/REGION]
+
+
+
+
+
+
+

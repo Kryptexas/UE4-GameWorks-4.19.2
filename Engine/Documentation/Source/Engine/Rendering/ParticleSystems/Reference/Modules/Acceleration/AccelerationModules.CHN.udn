@@ -1,85 +1,117 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Acceleration Modules
+﻿INTSourceChangelist:2750589
+Availability:Public
+Title:Acceleration 模块
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
-Description:These modules provide the ability to apply a change in velocity over time to particles.
+Description:这些模块可随时间变化改变粒子的速度。
+Version:4.9
+
 
 [TOC(start:2 end:3)]
 
-These modules provide the ability to apply acceleration, or a change in velocity over time, to particles.
+这些模块用于在粒子上应用加速度，或随时间变化改变粒子的速度。
 
 
 ## Acceleration
 
-![psys_acceleration.gif](psys_acceleration.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+o3TuesKDJ_A
+[/PARAMLITERAL]
+[/OBJECT]
 
-The Acceleration module sets the initial acceleration of the particle. This value is stored per-particle, and is applied each frame during the Update call. It contains the following member(s):
+**Acceleration** 模块设置粒子的初始加速度。该数值存储于每个粒子中，在更新调用中应用于每一帧。它包含下列属性：
 
-| Property | Description |
+| 属性 | 描述 |
 | ---- | ---- |
 |[REGION:tablesection]Acceleration[/REGION]||
-| **Acceleration** | A vector distribution indicating the acceleration to use. The value is grabbed based on the EmitterTime at the spawn of the particle.|
-| **Apply Owner Scale** | If _true_, the acceleration is multiplied by the scale of the ParticleSystemComponent. |
-| **Always In World Space** | If _true_, the acceleration vector is assumed to be in world-space coordinates. Otherwise, it is assumed to be in local-space relative to the ParticleSystemComponent. |
+| **Acceleration** | 确定加速度数值的矢量 distribution。基于粒子生成的 EmitterTime 获取该数值。|
+| **Apply Owner Scale** | 如为 _true_，加速度数值将乘以 ParticleSystemComponent 的大小。|
+| **Always In World Space** | 如为 _true_，加速度矢量将被假定位于全局空间坐标中。否则，它将相对 ParticleSystemComponent 被假定位于局部空间中。|
 
-This module will add a vector parameter to the particle payload data, UsedAcceleration. This value is used to retain the acceleration over the life of each particle.
+该模块将为粒子荷载数据 UsedAcceleration 添加一个矢量参数。该数值用于保留每个粒子生命周期中的加速度。
 
-Each frame, the current and base velocity values of the particle is then updated using the formula (velocity += acceleration * DeltaTime) where DeltaTime is the amount of time passed since the last frame.
+在每一帧中，粒子当前的基础速度值使用公式（速度 += 加速度乘以 DeltaTime）进行更新。此公式中的 DeltaTime 是上一帧后流逝的时间。
 
 
 ## Const Acceleration
 
 
-![psys_acceleration.gif](psys_acceleration.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+o3TuesKDJ_A
+[/PARAMLITERAL]
+[/OBJECT]
 
-The Const Acceleration module is very similar to the Acceleration module, in that it applies an initial acceleration to the particle. The key difference, however, is that the Const Acceleration module does _not_ accept a Distribution property. 
+**Const Acceleration** 模块与 Acceleration 模块十分相似，在其中为粒子应用了初始加速度。然而关键的不同点在于 Const Acceleration 模块 _不_ 接受 Distribution 属性。 
 
 [REGION:warning]
-	Const Acceleration is the only type of acceleration available to **GPU Sprite** particles.
+	Const Acceleration 是 **GPU Sprite** 粒子唯一可用的加速度类型。
 [/REGION]
 
-| Property | Description |
+| 属性 | 描述 |
 | ---- | ---- |
 |[REGION:tablesection]Const Acceleration[/REGION]||
-| **Acceleration** | A vector distribution indicating the acceleration to use. The value is grabbed based on the EmitterTime at the spawn of the particle.|
+| **Acceleration** | 确定加速度数值的矢量 distribution。基于粒子生成的 EmitterTime 获取该数值。|
 
-This module will add a vector parameter to the particle payload data, UsedAcceleration. This value is used to retain the acceleration over the life of each particle.
+该模块将为粒子荷载数据 UsedAcceleration 添加一个矢量参数。该数值用于保留每个粒子生命周期中的加速度。
 
-Each frame, the current and base velocity values of the particle is then updated using the formula (velocity += acceleration * DeltaTime) where DeltaTime is the amount of time passed since the last frame.
+在每一帧中，粒子当前的基础速度值利用公式（速度 += 加速度乘以 DeltaTime）进行更新。此公式中的 DeltaTime 是上一帧后流逝的时间。
 
 ## Drag 
 
-![phys_drag.gif](phys_drag.gif)(w:430 convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+inAil0AgElQ
+[/PARAMLITERAL]
+[/OBJECT]
 
-Drag applies a constant resistance to motion to each particle. The coefficient value is calculated at spawn time and applied to the particle at each frame.
+**Drag** 为每个粒子的运动应用恒定阻力。系数值在生成时计算，应用于每一帧的粒子。
 
-| Property | Description |
+| 属性 | 描述 |
 | ---- | ---- |
 |[REGION:tablesection]Drag[/REGION]||
-| **Coefficient** | A float distribution defining the drag coefficient, or the amount of resistance to motion, that will be applied to each particle.|
+| **Coefficient** | 一个浮点 distribution，用于定义每个粒子的阻力系数或运动抵力大小。|
 
 ## Drag Scale/Life
 
-Drag Scale/Life is a multiplier value that works with an existing Drag module, allowing, for example, for the drag to be scaled via a curve across the life of the particle.
+**Drag Scale/Life** 是和现有阻力模块共用的一个乘数值，可在粒子生命周期中利用曲线对阻力大小进行调整。
 
 [REGION:warning]
-	Drag Scale/Life only works on **GPU Sprite** particles.
+	Drag Scale/Life 仅限用于 **GPU Sprite** 粒子。
 [/REGION]
 
-| Property | Description |
+| 属性 | 描述 |
 | ---- | ---- |
 |[REGION:tablesection]Drag Scale/Life[/REGION]||
-| **Drag Scale** | A float distribution defining the scaling value that will be applied to the existing particle drag coefficient.|
+| **Drag Scale** | 一个浮点 distribution，定义应用于现有粒子阻力系数的大小值。|
 
 ## AccelerationOverLife
 
-Sets the acceleration of the particle over its lifetime. It contains the following member(s):
+**Acceleration Over Life** 设定粒子生命周期中的加速度。它包含下列属性：
 
-| Property | Description |
+| 属性 | 描述 |
 | ---- | ---- |
 |[REGION:tablesection]Acceleration[/REGION]||
-| **Accel Over Life** | A vector distribution indicating the acceleration to use. Value is retrieved based on the RelativeTime at the update of the particle.|
-| **Always In World Space** | If _true_, the acceleration vector is assumed to be in world-space coordinates. Otherwise, it is assumed to be in local-space relative to the ParticleSystemComponent. |
+| **Accel Over Life** | 确定加速度数值的矢量 distribution。基于粒子更新的 RelativeTime 获取该数值。|
+| **Always In World Space** | 如为 _true_，加速度矢量将被假定位于全局空间坐标中。否则，它将相对 ParticleSystemComponent 被假定位于局部空间中。|
 
-The acceleration is retrieved from the Acceleration distribution using the Particle.RelativeTime. The current and base velocity values of the particle are then updated using the formula (velocity += acceleration* DeltaTime) where DeltaTime is the amount of time passed since the last frame.
+Particle.RelativeTime 用于从 Acceleration distribution 中获取加速度。粒子当前的基础速度值利用公式（速度 += 加速度乘以 DeltaTime）进行更新。此公式中的 DeltaTime 是上一帧后流逝的时间。
 

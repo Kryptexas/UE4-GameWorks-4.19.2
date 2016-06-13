@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2644097
+﻿INTSourceChangelist:2691797
 Availability: Public
 Title:핵심 머티리얼 개념
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:UE4 머티리얼과 그 작동법에 대한 소개 문서입니다.
+Version: 4.9
+SkillLevel: Beginner
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]
@@ -73,7 +75,7 @@ Description:UE4 머티리얼과 그 작동법에 대한 소개 문서입니다.
 
 ## 머티리얼 표현식 노드와 망
 
-머티리얼에 대해 알아야 할 가장 첫번째로 중요한 사실은, 코드를 통해 생성되는 것이 아니라, 머티리얼 에디터 안에서 (머티리얼 표현식이라 불리는) 비주얼 스크립팅 노드로 엮인 망을 통해 생성된다는 사실입니다. 각 노드에는 특정 동작을 하도록 설계되어 있는 [HLSL 코드](http://en.wikipedia.org/wiki/High_Level_Shader_Language) 스니펫이 들어있습니다. 즉 머티리얼을 생성하는 것은 비주얼 스크립팅을 통해 HLSL 코드를 생성한다는 뜻입니다.
+머티리얼에 대해 알아야 할 가장 첫 번째로 중요한 사실은, 코드를 통해 생성되는 것이 아니라, 머티리얼 에디터 안에서 (머티리얼 표현식이라 불리는) 비주얼 스크립팅 노드로 엮인 망을 통해 생성된다는 사실입니다. 각 노드에는 특정 동작을 하도록 설계되어 있는 [HLSL 코드](http://en.wikipedia.org/wiki/High_Level_Shader_Language) 스니펫이 들어있습니다. 즉 머티리얼을 생성하는 것은 비주얼 스크립팅을 통해 HLSL 코드를 생성한다는 뜻입니다.
 
 [REGION:fullwidth]
 ![](WoodFloor.png)
@@ -132,7 +134,7 @@ UE4 의 머티리얼에 대해 고려할 때, 다수의 표현식이 **각각의
 
 [INCLUDE:Engine/Content/Types/Textures#Overview]
 
-텍스처를 생성하여 언리얼 엔진에 임포트하고나면, _Texture Sample_ 노드와 같은 특수 머티리얼 표현식 노드를 통해 머티리얼로 들여오게 됩니다. 이러한 노드는 머티리얼 외부에 존재하여 콘텐츠 브라우저에서도 별도로 찾아볼 수 있는 텍스처 애셋으로의 참조를 만듭니다. 일부 3D 프로그램과는 달리, 머티리얼에 텍스처를 자체적으로 포함시킬 수 있는 방법은 없습니다.
+텍스처를 생성하여 언리얼 엔진에 임포트하고 나면, _Texture Sample_ 노드와 같은 특수 머티리얼 표현식 노드를 통해 머티리얼로 들여오게 됩니다. 이러한 노드는 머티리얼 외부에 존재하여 콘텐츠 브라우저에서도 별도로 찾아볼 수 있는 텍스처 애셋으로의 참조를 만듭니다. 일부 3D 프로그램과는 달리, 머티리얼에 텍스처를 자체적으로 포함시킬 수 있는 방법은 없습니다.
 
 텍스처 및 그 제작 관련 상세 정보는 [텍스처 문서](Engine/Content/Types/Textures) 를 확인해 주시기 바랍니다.
 
@@ -179,11 +181,11 @@ UE4 의 머티리얼에 대해 고려할 때, 다수의 표현식이 **각각의
 
 1. 머티리얼을 적용하고자 하는 브러시 표면을 클릭합니다.
 
-	![](BoxPanelSelected.png)
+	![](BoxPanelSelected.png)(w:700)
 
 1. 디테일 패널에서 ![](ArrowButton.png) 버튼을 누릅니다. 이 버튼을 누르면 브러시 표면에 머티리얼을 적용합니다.
 
-	![](AddingMaterialToBox.png)![](RedOnBox.png)
+	![](AddingMaterialToBox.png)![](RedOnBox.png)(w:700)
 
 
 %playlistnav%

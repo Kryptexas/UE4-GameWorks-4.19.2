@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2740063
+﻿INTSourceChangelist:2753687
 Availability:Public
 Title:ダイレクト ブループリント通信
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -91,9 +91,8 @@ Character ブループリントが選択されると、**[Details (詳細)]** �
 
 
 [REGION:note]
-ウォークスルーの詳細は、[](Engine/Blueprints/BP_HowTo/DirectBlueprintComs)をご覧ください。 
+ウォークスルーの詳細は、[](Engine/Blueprints/BP_HowTo/DirectBlueprintComs) をご覧ください。 
 [/REGION]
-
 
 
 ## 関数とダイレクト ブループリント通信

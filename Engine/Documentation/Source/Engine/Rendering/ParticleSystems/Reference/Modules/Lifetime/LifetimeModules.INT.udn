@@ -2,6 +2,7 @@ Availability: Public
 Title:Lifetime Modules
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:The Lifetime module is used to set the initial lifetime of a particle at spawn time.
+Version: 4.9
 
 [TOC(start:2 end:3)]
 
@@ -20,7 +21,7 @@ nnFIgdgObvU
 [/PARAMLITERAL]
 [/OBJECT]
 
-The Lifetime module is used to set the initial lifetime of a particle at spawn time. It contains the following member(s):
+The **Lifetime** module is used to set the initial lifetime of a particle at spawn time. It contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |
@@ -33,7 +34,7 @@ In Spawn, the module retrieves the appropriate values from the distribution usin
 
 ## Lifetime (Seeded)
 
-The Lifetime (Seeded) module is identical to the [Lifetime](#Lifetime) module in that it sets the lifetime of a particle at spawn time; however, this module allows you to specify seed information to be used when choosing distribution values in order to provide a more consistent effect from the module each time the emitter is used. It contains the following member(s):
+The **Lifetime (Seeded)** module is identical to the [Lifetime](#Lifetime) module in that it sets the lifetime of a particle at spawn time; however, this module allows you to specify seed information to be used when choosing distribution values in order to provide a more consistent effect from the module each time the emitter is used. It contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |

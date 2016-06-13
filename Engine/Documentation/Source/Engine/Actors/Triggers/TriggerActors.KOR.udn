@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2602398
+﻿INTSourceChangelist:2652676
 Availability:Public
 Title: 트리거 액터
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:활성화되면 레벨에 이벤트가 발생하도록 하는 액터입니다.
+version: 4.9
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]
@@ -49,7 +50,7 @@ Trigger (트리거)는 레벨의 다른 오브젝트와 상호작용이 일어�
 ## 이벤트 트리거하기
 
 트리거는 [레벨 블루프린트](Engine/Blueprints/UserGuide/Types/LevelBlueprint) 안에 배치된 이벤트를 발동시키는 데 사용됩니다. 
-트리거가 발동시킬 수 있는 이벤트 유형은 여러가지 있습니다. 무언가가 트리어게 걸리거나 겹치는 등, 주로 다른 오브젝트와 일정한 
+트리거가 발동시킬 수 있는 이벤트 유형은 여러가지 있습니다. 무언가가 트리거에 걸리거나 겹치는 등, 주로 다른 오브젝트와 일정한 
 형태의 콜리전이 발생했을 때 반응하여 일어나는 경우가 있고, 플레이어로부터의 입력에 반응하여 일어나는 경우도 있습니다.
 
 **뷰포트** 에 트리거를 선택한 채:

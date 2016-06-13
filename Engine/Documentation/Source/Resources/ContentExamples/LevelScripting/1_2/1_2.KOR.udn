@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2621689
+﻿INTSourceChangelist:2752557
 Availability: Docs
 Title:1.2 - 이벤트 디스패처
 Crumbs:%ROOT%, Resources, Resources/ContentExamples/LevelScripting
 Description:Level Scripting 예제 레벨에 대한 개요로, 예제 1.2: Event Dispatcher used to open a door, 이벤트 디스패처로 문열기 입니다.
+Version: 4.9
 
 
 [VAR:TopicCompact]

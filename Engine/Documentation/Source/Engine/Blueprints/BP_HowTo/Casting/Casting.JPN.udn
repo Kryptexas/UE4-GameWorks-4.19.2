@@ -1,15 +1,18 @@
-﻿INTSourceChangelist:2679240
+﻿INTSourceChangelist:2968923
 Availability:Public
-Title:ブループリント キャスティング
+Title:ブループリント キャスティングのサンプル
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
 Description:ブループリント キャスティングを使って、1 つのブループリントから複数のブループリント通信してみましょう。 
 Related:Engine/Blueprints/UserGuide/CastNodes
 Related:Engine/Blueprints/UserGuide/BlueprintCommsUsage
 Related:Engine/Blueprints/UserGuide
-スキルレベル:上級
-バージョン：4.9
+skilllevel:Advanced
+version:4.9
+Parent:Engine/Blueprints
+tags:Handling Objects and Actors
+order:3
 
-ブループリント キャスティングを使って異なるブループリントと通信して情報を共有する方法を説明します。このサンプルでは、プレイヤーはオブジェクトを撃ち、ヒットするたびにオブジェクトを小さくすることができます。そして、オブジェクトはヒットのたびに Character ブループリントに通知し,プレイヤーの移動速度を加速します。 
+ブループリント キャスティングを使って異なるブループリントと通信して情報を共有する方法を説明します。このサンプルでは、プレイヤーはオブジェクトを撃ち、ヒットするたびにオブジェクトを小さくすることができます。そして、オブジェクトはヒットのたびに Character ブループリントに通知し、プレイヤーの移動速度を加速します。 
 
 [REGION:note]
 このガイドでは、**Starter Content** を有効にした状態で **Blueprint First Person** テンプレートを使用します。 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2648565
+﻿INTSourceChangelist:2719402
 Availability:Public
 Title:언리얼 엔진 설치하기
 Description:언리얼 엔진 설치법 단계별 안내입니다.
@@ -9,7 +9,7 @@ Related: Engine/Content/QuickStart
 Related: Programming/QuickStart
 Related: Engine/QuickStart
 Related: Support/Builds
-Version: 4.8
+Version: 4.9
 SkillLevel: Beginner
 
 이 튜토리얼을 통해 배울 수 있는 내용은 다음과 같습니다:
@@ -163,6 +163,7 @@ SkillLevel: Beginner
 
 이제 언리얼 엔진 사용을 시작할 준비가 되셨습니다.
 
+<!--Deprecated as it is redundant with the Related Topics section directly below it.
 ## 언리얼 엔진 시작
 
 [](GettingStarted) 문서를 참고하여 언리얼 엔진 사용법을 배워봅니다!
@@ -173,9 +174,9 @@ UE4 를 빠르게 시작하고자 하는 분들께서는 다음 튜토리얼을 
 *	[](Engine/QuickStart)
 
 
-[REGION:tip]
+[REGION:note]
 UE4 의 에디터내 도움말 기능도 질문의 답을 구하는 데 뛰어난 방법입니다.
-[/REGION]
+[/REGION]-->
 <!--Deprecated on 21 July 2015 due to outdated screenshots and outdated procedures
 %Globals:OSSelect%
 

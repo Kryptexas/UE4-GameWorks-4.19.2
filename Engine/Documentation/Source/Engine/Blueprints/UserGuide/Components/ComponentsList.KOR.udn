@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2688066
+﻿INTSourceChangelist:2968923
 Availability:Public
 Title:컴포넌트 창
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -8,6 +8,8 @@ Related: Engine/Blueprints/UserGuide/Variables
 Related: Engine/Blueprints/UserGuide/Events
 Related: Engine/Blueprints/UserGuide/Functions
 version: 4.9
+Parent:Engine/Blueprints/Anatomy
+Tags:컴포넌트
 
 [VAR:Topic]
 [OBJECT:Topic]

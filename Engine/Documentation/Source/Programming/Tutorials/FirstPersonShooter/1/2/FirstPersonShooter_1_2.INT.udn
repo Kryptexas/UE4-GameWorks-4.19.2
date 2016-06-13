@@ -1,9 +1,9 @@
 Availability: Docs
-Title: 1.2 - Using the C++ Class Wizard
+Title: 1.2 - Opening the Project in Visual Studio
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
-Description: Learn how to create your first C++ class using the C++ Wizard.
+Description: Learn how to open your C++ project in Visual Studio.
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,20 +23,37 @@ Version: 4.9
 
 %Steps%
 
-During this step, you're going to create a Game Mode. Game Modes define your game's rules and win conditions. The Game Mode will also set default classes that will be used for some basic gameplay framework types, including Pawn, PlayerController, and HUD. As a final note, you need to create a Game Mode prior to setting up your FPS Character.
+When we setup our **Basic Code** project in the previous step, Unreal Engine created a **Game Mode** for us. Game Modes define a game's rules and win conditions. Our Game Mode also sets default classes that will be used for some basic gameplay framework types, including Pawn, PlayerController, and HUD. During this step, we're going to use the Editor to open our solution in Visual Studio so that we can view our project's Game Mode class. 
 
-1.	In the File menu, select **New C++ Class...** to choose your new parent class.
+1.	In the File menu, select **Open Visual Studio** to open your C++ code in Visual Studio.
 
-1.	The **Choose Parent Class** menu will open. Scroll down, select **Game Mode** as the parent class and click **Next**.
+	![](FileMenu_OpenVS.png)
 
-	![](AddGameModeParentClass.png)
+1.	After Visual Studio opens up your C++ code, you should be able to see the **CPP** and **header** files inside of Visual Studio's **Solution Explorer**.
 
-1.	Name the new class "FPSGameMode," then click **Create**.
+	![](VS_SolutionExplorer.png)
 
-	![](CreateFPSGameMode.png)
+1.	By now, you should have the following code inside of `FPSProjectGameMode.cpp`.
 
-	[REGION:note]
-	Now that you've created our first C++ class, you can switch to **Visual Studio** to add code to your newly created class. `FPSGameMode.h` and `FPSGameMode.cpp` will be opened for you and **Unreal Engine** will automatically compile and reload the code for your new class.
-	[/REGION]
+		#include "FPSProject.h"
+		#include "FPSProjectGameMode.h"
 
+1.	Also, you should have the following code inside of `FPSProjectGameMode.h`.
+
+		#pragma once
+		
+		#include "GameFramework/GameMode.h"
+		#include "FPSProjectGameMode.generated.h"
+		
+		/**
+		 * 
+		 */
+		UCLASS()
+		class FPSPROJECT_API AFPSProjectGameMode : public AGameMode
+		{
+			GENERATED_BODY()
+		};
+
+1.	Now that you've opened your C++ project in Visual Studio, you're ready to start adding code to the project. 
+		
 %Steps%

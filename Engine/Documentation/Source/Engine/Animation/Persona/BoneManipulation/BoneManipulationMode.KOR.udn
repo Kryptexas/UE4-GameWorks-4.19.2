@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2665932
 Availability:Public
 Title:본 조작 모드
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
@@ -7,6 +7,7 @@ Related: Engine/Content/FBX/Animations
 Related: Engine/Content/Types/SkeletalMeshes
 Related: Engine/Animation/PhysicallyDrivenAnimation
 Related: Engine/Content/Tools/MayaRiggingTool
+version: 4.9
 
 **본 조작 모드** 는 테크니컬 아티스트가 애니메이션을 미리보면서 본을 임시로 이동 및 회전해 가며 스켈레탈 메시의 스키닝 문제를 찾아보는 데 사용할 수 있는 페르소나의 한 모드입니다.
 

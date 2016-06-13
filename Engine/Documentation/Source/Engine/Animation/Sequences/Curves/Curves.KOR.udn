@@ -1,11 +1,12 @@
-﻿INTSourceChangelist:2629577
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:애니메이션 커브
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Sequences
 Description:애니메이션 재생 전반에 걸쳐 모프 타겟과 머티리얼의 프로퍼티를 구동하는 데 사용되는 커브 시스템입니다.
+version: 4.9
 
 [EXCERPT:Intro]
-커브를 통해 애니메이션이 재생중인 동안 머티리얼 파라미터나 모프 타겟의 값을 바꿀 수 있습니다. 그 작업방식은 매우 간단합니다. (머티리얼이든 모프 타겟이든) 변경하고자 하는 애셋을 지정한 다음, 그에 맞는 커브 이름을 대 주고, 애니메이션 기간에 걸쳐 키프레임 값을 조절해 주기만 하면 됩니다.
+**Animation Curve** (애니메이션 커브)는 애니메이션이 재생중인 동안 머티리얼 파라미터나 모프 타겟의 값을 바꿔줍니다. 그 작업방식은 매우 간단합니다. (머티리얼이든 모프 타겟이든) 변경하고자 하는 애셋을 지정한 다음, 그에 맞는 커브 이름을 대 주고, 애니메이션 기간에 걸쳐 키프레임 값을 조절해 주기만 하면 됩니다.
 [/EXCERPT:Intro]
 
 
@@ -40,14 +41,14 @@ TKAcNubFOH8
 캐릭터의 머리에 _Blush_ 라는 이름의 파라미터가 있는 간단한 머티리얼이 있습니다. 머티리얼 그래프는 이렇습니다:
 
 [REGION:fullwidth]
-![](BlushMaterial.jpg)
+![](BlushMaterial.png)
 [/REGION]
 
 [REGION:note]
 이 머티리얼에서 [머티리얼 인스턴스](Engine/Rendering/Materials\MaterialInstances) 도 만든 다음 캐릭터에 적용시켜 줬습니다.
 [/REGION]
 
-페르소나에서 커브 영역에 위치한 ![](button_AddFloatTrack.png) 버튼을 클릭하는 것으로 시작합니다. 이 이름은 머티리얼 파라미터에 사용된 이름과 _반드시_ 일치해야 합니다.
+페르소나에서 커브 영역에 위치한 ![](button_AddFloatTrack.png) 버튼을 클릭하는 것으로 시작합니다. 여기서 **변수 커브 추가...** 칸으로 가 **커브 생성** 을 선택합니다. 이 이름은 머티리얼 파라미터에 사용된 이름과 _반드시_ 일치해야 합니다.
 
 ![](AddingBlushCurve.png)
 

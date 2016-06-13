@@ -1,13 +1,12 @@
-﻿INTSourceChangelist:2614193
+﻿INTSourceChangelist:2728676
 Availability:Public
 Title: 컴포넌트
 Crumbs:%ROOT%, Programming
 Description:컴포넌트와 사용가능한 여러가지 유형에 대한 설명입니다.
-Version: 4.5
+Version: 4.9
 
 [TOC (start:2 end:3)]
 
-## 개요
 
 [EXCERPT:Overview]
 **컴포넌트** (Component)란 **액터** 내 서브-오브젝트로 사용되도록 고안된 특수한 유형의 **오브젝트** 입니다. 
@@ -116,13 +115,13 @@ Version: 4.5
 
 기본적으로 `RelativeLocation`, `RelativeRotation`, `RelativeScale3D` 는 그 `AttachParent` 를 기준으로 합니다. `bAbsoluteLocation`, `bAbsoluteRotation`, `bAbsoluteScale` 프로퍼티를 사용하면 이 값의 기준을 월드로 강제시킬 수 있습니다. 이 옵션 중 하나를 _True_ 로 설정하면 해당 프로퍼티는 월드를 기준으로 합니다.
 
-부모를 기준으로 한 트랜스폼 값을 사용할 때도, 아래 표시된 메서드를 통해 절대 월드 값을 사용하여 트랜슬레이션과 로테이션을 설정하는 것도 여전히 가능한 일입니다:
+부모를 기준으로 한 트랜스폼 값을 사용할 때도, 아래 표시된 메소드를 통해 절대 월드 값을 사용하여 트랜슬레이션과 로테이션을 설정하는 것도 여전히 가능한 일입니다:
 
 
 | 함수 | 설명 |
 | ---- | ---- |
 | SceneComponent::SetWorldLocation() | 이 컴포넌트를 월드 스페이스 내 지정된 위치에 놓도록 상대 트랜슬레이션을 설정합니다. |
-| SceneComponent::SetWorldRotation() | 이 컴포넌트를 월드 스페이 내 지정된 방향으로 놓도록 상대 로테이션을 설정합니다. |
+| SceneComponent::SetWorldRotation() | 이 컴포넌트를 월드 스페이스 내 지정된 방향으로 놓도록 상대 로테이션을 설정합니다. |
 
 ## 프리미티브 컴포넌트
 

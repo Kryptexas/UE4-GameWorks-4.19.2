@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2600554
+﻿INTSourceChangelist:2696043
 Availability:Public
 Title:카메라 컴포넌트
 Crumbs:%ROOT%, Engine, Engine/Components
@@ -7,6 +7,7 @@ Related: Gameplay/Framework/Camera
 Related: Engine/Actors/CameraActors
 Related: Gameplay/HowTo/UsingCameras
 Related: Engine/Blueprints/UserGuide/Components
+version: 4.9
 
 (세상을 보는 카메라 시점을 추가하는) **CameraComponent** 및 (충돌 발생시 자손을 고정된 거리만큼 늘렸다가 복귀시키는) **SpringArmComponent** 를 함께 사용하면 게임 월드를 동적으로 조절할 수 있는 삼인칭 시점 기능이 제공됩니다.
 
@@ -20,7 +21,7 @@ Related: Engine/Blueprints/UserGuide/Components
 
 ## 스프링 암 컴포넌트
 
-**SpringArmComponent** 는 그 자손을 부모와 고정된 거리에 유지하면서, 충돌이 생긴 경우 자손을 당겼다가 더이상 충돌이 없으면 원래대로 돌아가게 만듭니다. 전형적으로, SpringArmComponent 는 플레이어를 따라다니는 카메라가 월드와 충돌하지 않도록 하는 "카메라 보호대" 역할을 합니다 (SpringArmComponent 가 없다면, 오브젝트와 거기에 붙어있는 카메라 사이에 다른 것들이 끼어들어도 CameraComponent 가 지정된 고정 거리에 유지됩니다). 자세한 내용은 [](Gameplay/HowTo/UsingCameras/Blueprints) 문서를 참고하세요. 
+**SpringArmComponent** 는 그 자손을 부모와 고정된 거리에 유지하면서, 충돌이 생긴 경우 자손을 당겼다가 더이상 충돌이 없으면 원래대로 돌아가게 만듭니다. 전형적으로, SpringArmComponent 는 플레이어를 따라다니는 카메라가 월드와 충돌하지 않도록 하는 "카메라 보호대" 역할을 합니다 (SpringArmComponent 가 없다면, 오브젝트와 거기에 붙어있는 카메라 사이에 다른 것들이 끼어들어도 CameraComponent 가 지정된 고정 거리에 유지됩니다). 자세한 내용은 [](Gameplay/HowTo/UsingCameras/SpringArmComponents) 문서를 참고하세요. 
 
 ![](camera_springArm.png)
 

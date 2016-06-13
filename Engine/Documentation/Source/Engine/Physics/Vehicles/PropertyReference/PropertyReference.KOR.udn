@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2713167
 Availability:NoPublish
 Title:비히클 프로퍼티 참고서
 Crumbs:%ROOT%
@@ -93,7 +93,7 @@ Navigation:topic
 
 | 프로퍼티 | 설명 |
 | --- | --- |
-| **Idle Brake Input** | 플레이어가 쓰로틀을 뗄 때 브레이크를 얼마나 많이 누를지 입니다. |
+| **Idle Brake Input** | 플레이어가 스로틀을 뗄 때 브레이크를 얼마나 많이 누를지 입니다. |
 | **Stop Threshold** | 비히클 전방 절대 속력(cm/s)이 이보다 크면 자동 브레이크가 걸립니다. |
 | **Wrong Direction Threshold** | 비히클 전방 속력(cm/s)이 최소 이만큼 플레이어 입력의 반대인 경우 자동 브레이크가 걸립니다. |
 | [REGION:tablesection] **고급** [/REGION]||
@@ -114,7 +114,7 @@ Navigation:topic
 [/EXCERPT:riseFall]
 
 [VAR:in1]
-쓰로틀 입력이 오르고 내려가는 속도입니다.
+스로틀 입력이 오르고 내려가는 속도입니다.
 [/VAR]
 
 [VAR:in2]

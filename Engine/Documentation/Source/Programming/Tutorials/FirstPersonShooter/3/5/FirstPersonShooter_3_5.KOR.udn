@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2672916
+﻿INTSourceChangelist:2946108
 Availability: Docs
 Title: 3.5 - 뷰포트에 조준선 추가
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/3
 Description: 일인칭 슈팅 프로젝트의 뷰포트에 조준선을 추가하는 법을 배워봅니다.
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -24,14 +24,14 @@ Version: 4.9
 
 %Steps%
 
+이번 단계에서는 게임에 조준선 HUD 요소를 추가하여 발사체를 조준할 수 있도록 하겠습니다.
+
+## 조준선 애셋 임포트
+
 [REGION:note]
 시작하기에 앞서, 다음 링크에서 샘플 이미지를 다운로드하고 압축을 풀어주세요:
 *	[샘플 조준선 이미지](Crosshair_fps_tutorial.zip "샘플 조준선 이미지")
 [/REGION]
-
-이번 단계에서는 게임에 조준선 HUD 요소를 추가하여 발사체를 조준할 수 있도록 하겠습니다.
-
-## 조준선 애셋 임포트
 
 1.	콘텐츠 브라우저의 파일창 안에 우클릭하여 **애세 임포트** 대화창을 엽니다.
 
@@ -61,13 +61,15 @@ Version: 4.9
 
 1.	`FPSHUD.h` 에서 `GENERATED_BODY()` 아래 다음 생성자 선언을 넣습니다:
 
-		AFPSHUD(const FObjectInitializer& ObjectInitializer);
+		// Constructor
+		AFPSHUD();
 
-1.	**Solution Explorer** 에서 `FPSHUD` 클래스 구현 파일을 찾아 `FPSHUD.cpp` 를 엽니다.
+1.	**Solution Explorer** 에서 `FPSHUD` 클래스 CPP 파일을 찾아 `FPSHUD.cpp` 를 엽니다.
 
 1.	`FPSHUD.h` 에서 `GENERATED_BODY()` 아래 다음 생성자 정의부를 작성합니다:
 
-		AFPSHUD::AFPSHUD(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+		// Constructor
+		AFPSHUD::AFPSHUD()
 		{
 		
 		}
@@ -76,25 +78,25 @@ Version: 4.9
 
 		private:
 		
-			// 조준선 애셋 포인터
-			UTexture2D* CrosshairTex;
+			// 조준선 애셋 포인터입니다.
+			UTexture2D* CrosshairTexture;
 
 1.	이제 `FPSHUD.cpp` 에 위치한 생성자 안에 다음 코드를 추가합니다:
 
 		// 조준선 텍스처를 설정합니다.
-		static ConstructorHelpers::FObjectFinder<UTexture2D> CrosshairTexObj(TEXT("Texture2D'/Game/crosshair.crosshair'"));
-		
-		if (CrosshairTexObj.Object != NULL)
+		static ConstructorHelpers::FObjectFinder<UTexture2D> CrosshairTextureObject(TEXT("Texture2D'/Game/crosshair.crosshair'"));
+
+		if (CrosshairTextureObject.Object)
 		{
-			CrosshairTex = CrosshairTexObj.Object;
+			CrosshairTexture = CrosshairTextureObject.Object;
 		}
 
-	[REGION:note]
+	[REGION:tip]
 	참고로 텍스처 애셋 경로는 에디터의 콘텐츠 브라우저에서 애셋에 우클릭한 다음 '레퍼런스 복사' 를 선택하여 얻을 수 있습니다.
 	![](CopyReference.png)
 	[/REGION]
 
-1.	`FPSHUD.h` 로 돌아가, `GENERATED_BODY()` 아래 다음 함수 선언부를 추가합니다:
+1.	`FPSHUD.h` 로 돌아가, 다음 함수 선언부를 추가합니다:
 
 		// HUD 에 대한 주요 드로 콜입니다.
 		virtual void DrawHUD() override;
@@ -104,13 +106,15 @@ Version: 4.9
 		void AFPSHUD::DrawHUD()
 		{
 			Super::DrawHUD();
-			// 단순한 조준선을 그립니다.
+			
 			// 캔버스 중심을 찾습니다.
 			const FVector2D Center(Canvas->ClipX * 0.5f, Canvas->ClipY * 0.5f);
+		
 			// 텍스처 크기 절반만큼 오프셋을 적용하여 텍스처 중심을 캔버스 중심에 정렬시킵니다.
-			const FVector2D CrossHairDrawPosition((Center.X - (CrosshairTex->GetSurfaceWidth() * 0.5f)), (Center.Y - (CrosshairTex->GetSurfaceHeight() * 0.5f)));
+			const FVector2D CrossHairDrawPosition(Center.X - (CrosshairTexture->GetSurfaceWidth() * 0.5f), Center.Y - (CrosshairTexture->GetSurfaceHeight() * 0.5f));
+		
 			// 조준선을 그립니다.
-			FCanvasTileItem TileItem(CrossHairDrawPosition, CrosshairTex->Resource, FLinearColor::White);
+			FCanvasTileItem TileItem(CrossHairDrawPosition, CrosshairTexture->Resource, FLinearColor::White);
 			TileItem.BlendMode = SE_BLEND_Translucent;
 			Canvas->DrawItem(TileItem);
 		}
@@ -132,15 +136,16 @@ Version: 4.9
 		{
 			GENERATED_BODY()
 		
-			AFPSHUD(const FObjectInitializer& ObjectInitializer);
+			// Constructor
+			AFPSHUD();
 		
 			// HUD 에 대한 주요 드로 콜입니다.
 			virtual void DrawHUD() override;
 		
 		private:
-		
+			
 			// 조준선 애셋 포인터입니다.
-			UTexture2D* CrosshairTex;
+			UTexture2D* CrosshairTexture;
 			
 		};
 
@@ -151,27 +156,30 @@ Version: 4.9
 		#include "FPSProject.h"
 		#include "FPSHUD.h"
 		
-		AFPSHUD::AFPSHUD(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+		// Constructor
+		AFPSHUD::AFPSHUD()
 		{
 			// 조준선 텍스처를 설정합니다.
-			static ConstructorHelpers::FObjectFinder<UTexture2D> CrosshairTexObj(TEXT("Texture2D'/Game/crosshair.crosshair'"));
-			
-			if (CrosshairTexObj.Object != NULL)
+			static ConstructorHelpers::FObjectFinder<UTexture2D> CrosshairTextureObject(TEXT("Texture2D'/Game/crosshair.crosshair'"));
+		
+			if (CrosshairTextureObject.Object) 
 			{
-				CrosshairTex = CrosshairTexObj.Object;
+				CrosshairTexture = CrosshairTextureObject.Object;
 			}
 		}
 		
 		void AFPSHUD::DrawHUD()
 		{
 			Super::DrawHUD();
-			// 단순한 조준선을 그립니다.
+			
 			// 캔버스 중심을 찾습니다.
 			const FVector2D Center(Canvas->ClipX * 0.5f, Canvas->ClipY * 0.5f);
+		
 			// 텍스처 크기 절반만큼 오프셋을 적용하여 텍스처 중심을 캔버스 중심에 정렬시킵니다.
-			const FVector2D CrossHairDrawPosition((Center.X - (CrosshairTex->GetSurfaceWidth() * 0.5f)), (Center.Y - (CrosshairTex->GetSurfaceHeight() * 0.5f)));
+			const FVector2D CrossHairDrawPosition(Center.X - (CrosshairTexture->GetSurfaceWidth() * 0.5f), Center.Y - (CrosshairTexture->GetSurfaceHeight() * 0.5f));
+		
 			// 조준선을 그립니다.
-			FCanvasTileItem TileItem(CrossHairDrawPosition, CrosshairTex->Resource, FLinearColor::White);
+			FCanvasTileItem TileItem(CrossHairDrawPosition, CrosshairTexture->Resource, FLinearColor::White);
 			TileItem.BlendMode = SE_BLEND_Translucent;
 			Canvas->DrawItem(TileItem);
 		}
@@ -199,31 +207,36 @@ Version: 4.9
 		// 프로젝트 세팅의 설명 페이지에서 저작권 문구를 채우세요.
 		
 		#include "FPSProject.h"
-		#include "FPSGameMode.h"
+		#include "FPSProjectGameMode.h"
 		#include "FPSHUD.h"
 		
-		AFPSGameMode::AFPSGameMode(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+		AFPSProjectGameMode::AFPSProjectGameMode()
 		{
 			// 기본 폰 클래스를 블루프린트화된 캐릭터로 설정합니다.
 			static ConstructorHelpers::FClassFinder<APawn> PlayerPawnObject(TEXT("Pawn'/Game/Blueprints/BP_FPSCharacter.BP_FPSCharacter_C'"));
-			if (PlayerPawnObject.Class != NULL)
+			if (PlayerPawnObject.Class != nullptr)
 			{
 				DefaultPawnClass = PlayerPawnObject.Class;
 			}
 			HUDClass = AFPSHUD::StaticClass();
-		}//AFPSGameMode 생성자
+		}
 		
-		void AFPSGameMode::StartPlay()
+		void AFPSProjectGameMode::StartPlay()
 		{
 			Super::StartPlay();
 		
 			StartMatch();
 		
+			const int32 Key = -1;
+			static const FString DebugMessage = TEXT("Hello World, this is FPSGameMode!");
+			FColor DisplayColor = FColor::Yellow;
+			float TimeToDisplay = 5.0f; //초
+		
 			if (GEngine != nullptr)
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("We are using FPSGameMode."));
+				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
 			}
-		}//StartPlay()
+		}
 
 1.	Visual Studio 에서 `FPSGameMode.cpp` 를 저장합니다.
 

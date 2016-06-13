@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2609501
+﻿INTSourceChangelist:2709468
 Availability:Public
 Title: 프로퍼티 바인딩
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
 Description:UMG 에서의 프로퍼티 바인딩 안내서입니다.
+Version: 4.9
 
 [TOC(start:2 end:2)]
 

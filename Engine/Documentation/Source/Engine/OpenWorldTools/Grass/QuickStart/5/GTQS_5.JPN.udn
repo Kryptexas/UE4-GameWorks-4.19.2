@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2585616
-Availability:Public
+﻿Availability:Public
 Title:5. 応用編
 Crumbs:
 Description:Grass ツールの中級操作と応用編
@@ -10,12 +9,12 @@ Version:4.8
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-	[前の手順](Engine\OpenWorldTools\Grass\QuickStart\4 "%Engine\OpenWorldTools\ProceduralFoliage\QuickStart\4:title%") 
+	[前のステップ](Engine\OpenWorldTools\Grass\QuickStart\4 "%Engine\OpenWorldTools\ProceduralFoliage\QuickStart\4:title%") 
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Quick Start Home](Engine\OpenWorldTools\Grass\QuickStart "%Engine\OpenWorldTools\Grass\QuickStart:Title%")
+		[クイックスタートのホームページ](Engine\OpenWorldTools\Grass\QuickStart "%Engine\OpenWorldTools\Grass\QuickStart:Title%")
 	[/PARAM]
 	[PARAM:next]
 	[/PARAM]
@@ -28,19 +27,19 @@ Grass ツールのパワフルな機能が分かったところで、以下に�
 
 ![](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\6\T_On_Your_Own.png)
 
-* 草、花、低木で密に覆われたランドスケープの作成に **[Procedural Foliage ツール](Engine\OpenWorldTools\ProceduralFoliage\QuickStart)** を使用します。
+* **[Procedural Foliage ツールのクイックスタート](Engine\OpenWorldTools\ProceduralFoliage\QuickStart)** で、ランドスケープが草と花を茂みに深く覆われているように見せます。
 
-* [Landscape Sculpt](Engine/Landscape/Editing/SculptMode)** ツールで丘、山、湖などをいくつか追加して、ランドスケープテレインのルックアンドフィールを定義します。
+* **[ランドスケープ スカルプト](Engine/Landscape/Editing/SculptMode)** ツールで、丘、山、湖などを追加し、ランドスケープ テレインの外見と質感を定義します。
 
-* ランドスケープテレイン上でペイント可能な複数のテクスチャを設定した **[Landscape Material](Engine/Landscape/Materials)** を作成して、ランドスケープのサーフェスに視覚表現や詳細を強調します。
+* ランドスケープ上にペイント可能な複数のテクスチャのある **[ランドスケープ マテリアル](Engine/Landscape/Materials)** を作成し、ランドスケープのサーフェスのビジュアルをさらに多彩で詳細にします。
 
-* 早朝や夕方に差し込む光に似たレベルライティングを作成するために **[Directional Light](Engine/Rendering/LightingAndShadows/LightTypes/Directional)** を調整します。
+* **[指向性ライト](Engine/Rendering/LightingAndShadows/LightTypes/Directional)** を調節して、レベル ライティングを早朝や夕方に生じる光源のように見せます。
 
-* ダイナミックシャドウと **[Ray Traced Distance Field Soft Shadows](Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing)** を利用する完全なダイナミックベースのライティングソリューションを使用するためにレベルライティングを設定します。 
+* ダイナミック シャドウだけでなく **[レイトレース ディスタンス フィールド シャドウ](Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing)** も利用する完全に動的ベースなライティング ソリューションを利用するように、レベル ライティングを設定します。 
 
-* 思い通りの外観を作成するために、プロシージャルフォーリッジで配置されたフォーリッジメッシュの配置、回転、スケーリングを削除したり微調整するには **[Foliage System](Engine/Foliage)** ツールを使用します。
+* **[フォーリッジ システム](Engine/Foliage)** ツールで、 Procedural Foliage ツールで配置されたフォーリッジ メッシュの位置、回転、スケールを削除または微調整して、望み通りの外見になるようにします。
 
-* レベルのビデオの出力に、 **[Camera](Gameplay/HowTo/UsingCameras)** と一緒に **[Matinee](Engine/Matinee)** を使用してご自身の作品を他のユーザーと共有してください。
+* レベルの動画を世界に発信するために **[マチネ](Engine/Matinee)** と **[カメラ](Gameplay/HowTo/UsingCameras)** を一緒に使って、完成したレベルを動画で世界にお披露目しましょう。
 
 
 

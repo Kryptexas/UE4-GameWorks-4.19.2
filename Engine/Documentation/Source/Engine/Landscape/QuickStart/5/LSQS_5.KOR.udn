@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2702740
 Availability: Public
 Title:5. 랜드스케이프 머티리얼 칠하기
 Crumbs:%ROOT%, GettingStarted, Engine/Landscape/QuickStart
 Description:레벨에 액터가 조금 있으니, 변종을 추가할 차례입니다.
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

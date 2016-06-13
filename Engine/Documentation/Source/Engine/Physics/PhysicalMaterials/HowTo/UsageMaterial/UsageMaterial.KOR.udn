@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2714898
 Availability: Public
-Title:Assign a Physical Material to a Material
+Title:머티리얼에 피지컬 머티리얼 할당
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
 Description:
 Version: 4.9
@@ -46,16 +46,16 @@ SkillLevel: Intermediate
 [/VAR]
 
 
-1. **Open** or **create** a new Material.
+1. 머티리얼을 **열기** 또는 새로 **생성** 합니다.
 
 	![](Engine\Physics\PhysicalMaterials\HowTo\PhysMat_Material_01.png)
 
-1. **Select** the main material node.
+1. 메인 머티리얼 노드를 **선택** 합니다.
 
 	![](Engine\Physics\PhysicalMaterials\HowTo\PhysMatNone.jpg)
 
-1. **Change** the Physical Material.
+1. 피지컬 머티리얼을 **변경** 합니다.
 
 	![](Engine\Physics\PhysicalMaterials\HowTo\PhysMatGlass2.jpg)
 
-1. **Click Save** ![](Shared\Icons\icon_SaveAsset_40x.png)
+1. ![](Shared\Icons\icon_SaveAsset_40x.png) 저장을 클릭합니다.

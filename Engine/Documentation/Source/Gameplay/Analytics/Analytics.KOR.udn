@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2601374
+﻿INTSourceChangelist:2709806
 Availability:Public
 Title:게임내 분석
 Crumbs: %ROOT%, Gameplay
 Description:게임내 분석을 사용하여 플레이어 관련된 일이나 밸런스 문제를 찾아내는 법입니다.
+version: 4.9
 
 
 게임이 어떻게 돌아가는지에 대한 데이터를 구하기 위해서는, 분석(analytics) 제공자를 사용하여 프로세스와 데이터를 캡처해야 합니다. 자체적인 솔루션이 없는 분들은, 무료는 물론 유료 서비스까지 

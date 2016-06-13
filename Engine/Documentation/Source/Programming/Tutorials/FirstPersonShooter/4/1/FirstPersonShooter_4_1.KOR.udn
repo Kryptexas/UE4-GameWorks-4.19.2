@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2672915
+﻿INTSourceChangelist:2953540
 Availability: Docs
 Title: 4.1 - 캐릭터 애니메이션
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4
 Description: 일인칭 슈팅 캐릭터에 애니메이션을 적용하는 법을 배워봅니다.
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,12 +23,14 @@ Version: 4.9
 
 %Steps%
 
+여기서는 게임에 애니메이션을 조금 가져와 보도록 하겠습니다.
+
+## 애니메이션 임포트
+
 [REGION:note]
 시작하기에 앞서, 다음 링크에서 샘플 애니메이션을 다운로드하고 압축을 풉니다:
 *	[샘플 애니메이션](FPP_Animations.zip "샘플 애니메이션")
 [/REGION]
-
-이번 단계에서는, 게임에 애니메이션을 몇 가지 들여오겠습니다.
 
 1.	**콘텐츠 브라우저** 에 우클릭하고 **새 폴더** 를 선택합니다.
 
@@ -46,7 +48,9 @@ Version: 4.9
 	*	FPP_JumpStart.FBX
 	*	FPP_Run.FBX
 
-1.	**열기** 를 클릭하여 프로젝트에 애니메이션 임포트를 시작합니다.
+1.	Animations 폴더에 우클릭하고 **/Game/Animations/ 에 임포트...** 를 선택하여 애니메이션 임포트를 시작합니다.
+
+	![](ImportAnimations.png)
 
 1.	**Select Skeleton** 제목줄 아래 **HeroFPP_Skeleton** 를 선택한 다음 **모두 임포트** 를 클릭하여 모든 애니메이션을 임포트합니다.
 
@@ -56,7 +60,7 @@ Version: 4.9
 
 	![](ImportedAnimations.png)
 
-1.	**저장** 버튼을 눌러 임포트한 애니메이션을 저장합니다.
+1.	**저장** 버튼을 눌러 임포트한 파일을  저장합니다.
 
 ## 애니메이션 블루프린트 만들기
 

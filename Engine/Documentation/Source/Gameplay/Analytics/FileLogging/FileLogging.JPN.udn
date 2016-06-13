@@ -1,20 +1,20 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2601374
 Availability:Public
 Title:File Logging Analytics Provider
 Crumbs: %ROOT%, Gameplay, Gameplay/Analytics
-Description:The file logging provider can be used to debug your analytics process during development.
+Description:ファイル ロギング プロバイダーは、開発中にアナリティクス プロセスをデバッグするために使用します。
 
 ![](image00.png)
 
-This provider is used to write analytics API calls to disk in JSON format. The reason to use this provider is for debugging the analytics process. It writes the data to the 
-`Saved/Analytic`s folder giving each file a unique name that ends in `.analytics`. You can then compare the data saved in that file to the events on your analytics provider's dashboard to 
-make sure all of the data is being processed. There aren't any special configuration settings for this provider.
+これは、アナリティクスの API コールを JSON 形式のディスクに書き込むために使用します。アナリティクス プロセスをデバッグするためのものです。データを 
+`Saved/Analytic` フォルダに書き込んで、各ファイルに `.analytics` で終わる一意の名前を付けます。次に、そのファイルに保存されているデータを、アナリティクス プロバイダーのダッシュボード上のイベントと比較し、 
+すべてのデータが処理されていることを確認します。特殊なコンフィギュレーション設定はありません。
 
 [REGION:note]
-This provider writes each session's data to disk which will cause ever-growing data in a released game or app. We recommend that you only use this provider for development and 
-don't include it in your released product.
+このプロバイダーは各セッションのデータをディスクに書き込みますが、これにより、リリースされたゲームやアプリケーションのデータが増え続けます。開発用にのみ使用し、 
+リリース製品には含まないようにすることをお勧めします。
 [/REGION]
 
-The image below shows files created when testing the 4.8 API additions.
+以下の画像は、4.8 の API の追加をテストする際に作成したファイルを示しています。
 
 ![](image01.png)

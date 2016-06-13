@@ -3,7 +3,7 @@ Availability:Public
 Title:Animation モード
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona, Engine/Animation/Persona/Modes
 Description:ペルソナ アニメーション エディタ ツールバーのユーザーガイド
-バージョン：4.9
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]

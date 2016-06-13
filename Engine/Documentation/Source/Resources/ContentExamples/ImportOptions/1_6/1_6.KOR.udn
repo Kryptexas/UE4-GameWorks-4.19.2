@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653165
+﻿INTSourceChangelist:2714669
 Availability: Public
 Title:1.6 - 애니메이션 드래그 앤 드롭
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/ImportOptions
@@ -12,6 +12,7 @@ Related: Engine/Content/FBX
 Related: Engine/Content/FBX/MorphTargets
 Related: Shared/Editor/FbxErrors
 Related: Engine/Content/FBX/Materials
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

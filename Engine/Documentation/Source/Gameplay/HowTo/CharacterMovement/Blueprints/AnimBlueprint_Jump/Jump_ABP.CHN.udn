@@ -2,7 +2,9 @@
 Availability: Public
 Title:8.动画蓝图 - 跳跃状态
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
-Description:继续我们的动画蓝图设置，在这里我们设置跳跃的条件。 
+Description:继续我们的动画蓝图设置，在这里我们设置跳跃的条件。
+Version: 4.9
+SkillLevel:Advanced 
 
 [VAR:Steps]
 [OBJECT:Navigation]

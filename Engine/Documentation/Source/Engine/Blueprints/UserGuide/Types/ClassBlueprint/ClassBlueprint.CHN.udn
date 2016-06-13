@@ -1,7 +1,10 @@
-﻿Availability:Public
-Title:类蓝图
+﻿INTSourceChangelist:2735432
+Availability:Public
+Title:蓝图类
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types
 Description:这些类蓝图定义了一种新类别或类型的Actor，就和其他类型的Actor的行为一样，这些Actor可作为实例进行放置。
+Version: 4.9
+SkillLevel: Beginner
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -43,15 +46,40 @@ Description:这些类蓝图定义了一种新类别或类型的Actor，就和其
 
 [TOC(start:2)]
 
-## 概述
 
 [EXCERPT:Intro]
- **_Class Blueprint（类蓝图）_** ，一般缩写为 **_Blueprint(蓝图)_** ，是一种允许内容创建者轻松地基于现有游戏性类添加功能的资源。
+**_Blueprint Class（蓝图类）_**, 一般缩写为 **_Blueprint(蓝图)_**,是一种允许内容创建者轻松地基于现有游戏性类添加功能的资源。 
 _蓝图_ 是在虚幻编辑器中可视化地创建的，不需要书写代码，会被作为类保存在内容包中。
 实际上，这些类蓝图定义了一种新类别或类型的Actor，这些Actor可以作为实例放置到地图中， 
 就和其他类型的Actor的行为一样。
-
 [/EXCERPT:Intro]
+
+## Parent Classes
+
+你可以创建多种不同类型的蓝图，当然在你做这些之前，你需要指定该蓝图的**Parent Class(父类)** 
+选择继承父类，允许你在自己的蓝图里面调用父类创建的属性。 
+
+下面是你创建蓝图是最常见的父类：
+
+| 类型 | 描述 |
+| ------- | ---------- |
+| **Actor** | 一个可以在世界中摆放，或者生成的Actor。
+| **Pawn** | Pawn是一个可以从控制器获得输入信息处理的Actor. |
+| **Character** | 角色是一个包含了行走，跑步，跳跃以及更多动作的Pawn. |
+| **PlayerController** | A Player Controller is an Actor responsible for controlling a Pawn used by the player. |
+| **Game Mode** | 一个Game Mode 定义了游戏是如何被执行的，游戏规则，如何的分以及其他方面的内容。 |
+
+上面的是最常用的内容，所有的类都可以为一个新建的蓝图用作父类 (甚至其他的蓝图类). 
+
+例如, 你创建了一个叫做 _Animals_ 的 **Actor Blueprint** 在它里面实现了所有动物的共享属性，例如__Hunger_, _Thirst_, _Energy_, 或者是其他你想实现的脚本。然后你从_Animals_作为父类，创建了另外一个叫做_Dog_的蓝图 ; 你在这个 _Dogs_里定义了例如_Play Fetch_ or _Roll Over_ 之类特别的功能，那么这个_Dogs_除了独享自己的功能之外，还继承了_Animals_ 里定义的其他功能. 
+
+[REGION:note]
+根据所用的方法 [create a Blueprint Class](Engine\Blueprints\UserGuide\Types\ClassBlueprint\Creation), 一个父类将在被创建时分配。 
+[/REGION]
+
+## 用蓝图类工作
+
+参考下面的信息 **蓝图类**: 
 
 [REGION:topics half]
 [OBJECT:TopicCompact]
@@ -80,10 +108,10 @@ _蓝图_ 是在虚幻编辑器中可视化地创建的，不需要书写代码�
 
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![Editing Class Blueprints](ClassBPEdit.png)
+		![Editing Blueprint Classes](ClassBPEdit.png)
 	[/PARAM]
 	[PARAM:title]
-		编辑类蓝图
+		编辑蓝图类
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/Blueprints\Editor/UIBreakdowns\ClassBPUI]
@@ -95,14 +123,13 @@ _蓝图_ 是在虚幻编辑器中可视化地创建的，不需要书写代码�
 		![%Engine/Blueprints/Editor:title%](edit_blueprints_landing.png)
 	[/PARAM]
 	[PARAM:title]
-		蓝图编辑器概述
+		蓝图编辑器总览
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/Blueprints/Editor]
 	[/PARAM]
 [/OBJECT]
 [/REGION]
-
 
 
 ## 仅包含数据的蓝图

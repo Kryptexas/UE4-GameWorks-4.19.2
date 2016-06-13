@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:2686598
+﻿INTSourceChangelist:2968923
 Availability:Public
 Title:배열 노드
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/Blueprints/UserGuide/Arrays
 Description: 블루프린트 배열 작업용 노드입니다.
 version: 4.9
+parent:Engine/Blueprints/Scripting
+tags:배열과 구조체
+order:2
 
 [VAR:Topic]
 [OBJECT:Topic]

@@ -1,25 +1,22 @@
-﻿Title:N
+﻿INTSourceChangelist:2620017
+Title:N
 Crumbs:Shared/Glossary
 Description:
-Availability:Public
+Availability:NoPublish
 
 [EXCERPT:Glossary_N]
 
-[OBJECT:GlossaryItem]
-	[PARAM:Term]
-Navigation（ナビゲーション）
-	[/PARAM]
-	[PARAM:Definition]
-ビューポートで行うレベル内の移動方法です。レベルエディタで行うナビゲーションはしばし右マウスボタンを使用します。W、A、S、Dキーや/またはマウスのスクロールホイールを使用します。
-	[/PARAM]
-[/OBJECT]
 
 [OBJECT:GlossaryItem]
 	[PARAM:Term]
-Node（ノード）
+ノード
 	[/PARAM]
 	[PARAM:Definition]
-ブループリントのグラフセクションに配置される任意の関数、イベント、その他のオブジェクトです。下層にあるコードを実行するために、ワイヤーで他のノードと接続します。
+
+[EXCERPT:Glossary_node]
+**ノード** は、ビジュアル スクリプティング コードの単一のブロックで、一般的には各種データ / 実行ワイヤが接続される形状になっています。
+[/EXCERPT:Glossary_node]
+
 	[/PARAM]
 [/OBJECT]
 

@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2672915
+﻿INTSourceChangelist:2953540
 Availability:Docs
 Title:4.4.6 - Jump End から Idle への遷移を追加
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4, Programming/Tutorials/FirstPersonShooter/4/4
-Description:First Person Shooter キャラクターのアニメーション ステートマシンに Jump End から Idle Transition へのステート遷移を追加する方法を学びます。
-SkillLevel:初心者向け
-Version:4.9
+Description:FPS キャラクターのアニメーション ステートマシンに Jump End から Idle へのステート遷移を追加する方法を学びます。
+SkillLevel:Beginner
+Version:4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -24,17 +24,17 @@ Version:4.9
 
 %Steps%
 
-このステップでは、ジャンプ エンドからアイドルへの遷移を設定します。
+このステップでは、Jump End から Idle への遷移を設定します。
 
 1.	**[Arms State Machine]** グラフへ戻って、 **JumpEnd** ステートから **Idle** ステートへワイヤーをドラッグします。
 
 	![](JumpEndtoIdle.png)
 
-1.	遷移を **ダブルクリック** して編集します。
+1.	遷移をダブルクリックして編集します。
 
-1.	グラフを **右クリック** して、 **TimeRemaining for 'FPP_JumpEnd'** ノードを検索して選択します。
+1.	グラフを右クリックして、 **TimeRemaining for 'FPP_JumpEnd'** ノードを検索して選択します。
 
-1.	**Time Remaining** 出力ピンを引き出して、コンテキスト メニューから **<= (float)** ノードを追加します。
+1.	**Time Remaining** 出力ピンを引き出して、**コンテキスト メニュー** を使って **<= (float)** ノードを追加します。
 
 1.	**<= (float)** ノードのもうひとつの出力欄に「0.1」と入力したら、そのノードの Boolean 出力ピンを **Result** ノードの **Can Enter Transition** 入力ピンと接続します。
 

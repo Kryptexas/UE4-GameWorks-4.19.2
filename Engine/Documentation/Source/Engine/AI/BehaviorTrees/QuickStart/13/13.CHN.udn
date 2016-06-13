@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2757241
 Availability:Public
-Title: 13. Make a Decorator
+Title:13.创建 Decorator 节点
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
-Description:13. Make a Decorator
+Description:创建 Decorator 节点
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -22,23 +23,23 @@ Description:13. Make a Decorator
 
 %Steps%
 
-**Decorators**, also known as conditionals in other Behavior Tree systems, are attached to either a [**Composite**](Engine/AI/BehaviorTrees/NodeReference/Composites) or a [**Task**](Engine/AI/BehaviorTrees/NodeReference/Tasks) node and define whether or not a branch in the tree, or a single node, can be executed.
+**Decorators** 即为其他行为树系统中的条件语句，附着于一个 [Composite](Engine/AI/BehaviorTrees/NodeReference/Composites) 或 [Task](Engine/AI/BehaviorTrees/NodeReference/Tasks) 节点，并定义树中的一个分支或单个节点是否能被执行。
 
-This **Decorator** is going to stop execution of the Rapid Move To branch of the Behavior Tree once the AI's Pawn is close enough to its target. While this could be handled in the **Rapid Move To** Task or by just using a **Move To** Task, this decorator can take in any Actor and can block execution of any branch. This makes it reusable in a number of situations.
+AI Pawn 接近目标时，**Decorator** 将停止执行行为树中的 Rapid Move To 分支。利用 **Rapid Move To** 或 **Move To** Task 节点也可执行该操作，但 decorator 可接收任何 Actor 并阻止任何分支的执行。在许多情况下均可重复利用。
 
-## Steps
+## 步骤
 
-1. Open the FollowerBT Behavior Tree by **Double-clicking** it in the **Content Browser**.
-1. Click New Decorator ![](newDecorator_button.png) button.
+1. 在 **内容浏览器** 中 **双击** 打开 FollowerBT 行为树。
+1. 点击 **New Decorator** 按钮。
 
-	It will create in the same folder as the Behavior Tree.
-1. Rename it in the **Content Browser** to "CloseEnough".
-1. The editor should have already opened it for editing, but if not, **Double-click** it in the **Content Browser**.
-1. In the Functions section of the My Blueprint Tab, "Override" **PerformConditionCheck**.
+	它将创建于和行为树相同的文件夹中。
+1. 在 **内容浏览器** 中将其重命名为 “CloseEnough”。
+1. 编辑器应已将其打开以便编辑。如尚未打开，在 **内容浏览器** 中 **双击** 打开。
+1. 在 My Blueprint 标签下的 Functions 部分中，“覆盖” **PerformConditionCheck**。
 
 	![](override_button.png)
 
-1. Create the following graph in that new function:
+1. 在新功能中创建以下图表：
 
 	[OBJECT:Snippet]
 		[PARAM:image]
@@ -54,35 +55,35 @@ This **Decorator** is going to stop execution of the Rapid Move To branch of the
 		[/PARAM]
 	[/OBJECT]
 
-	_Click the image to expand it, or click [here](fullGraph.png) to open it in the window._
+	_点击图片将其展开，或点击 [此处](fullGraph.png) 在窗口中打开。_
 
 	![](variables.png)
 
-	The variable names, types, and values for this Blueprint:
+	该蓝图的变量名、类型和数值：
 
 	%vartable1%
 
 	[REGION:note]
-	As this is a Function Graph, if you use the **Code Snippet** from the graph image above, you will only get the center portion of the graph, and the beginning and end nodes will not be connected. Just wire those connects as the image shows, and it will work just fine.
+	因其为功能图表，如使用上方图表图片中的 **Code Snippet**，只能获取图表的中央部分，首尾两端的节点将不会被连接。只需依据图片所示连接节点便可正常执行。
 	[/REGION]
 
 	
 
 [VAR:varTable1]
-| Variable Name | Type | Value |
+| 变量名 | 类型 | 数值 |
 | --- | --- | --- |
-| **AI_CON_Ref** | Follower_AI_CON_C | None |
-| **AcceptableDistance** | Float | 0.0 - However, this variable has its "Editable" flag set to **True** so you can change it, per instance, on the Behavior Tree. |
-| **TargetToFollow** | BlackboardKeySelector | None - However, this variable has its "Editable" flag set to **True** so you can change it, per instance, on the Behavior Tree. |
+| **AI_CON_Ref** | Follower_AI_CON_C | 无 |
+| **AcceptableDistance** | Float | 0.0 - 但此变量的“可编辑”标记为 **True**，因此可在行为树中根据实例进行变更。|
+| **TargetToFollow** | BlackboardKeySelector | 无 - 但此变量的“可编辑”标记为 **True**，因此可在行为树中根据实例进行变更。|
 [/VAR]
 
-1. Event **Receive Condition Check** is the event sent to this Blueprint when the Behavior Tree hits a node with this condition on it.
-1. Once again, store the AI Controller so we can reference it later easily.
-1. Get the Actor we want to follow (the Player Pawn).
-1. Get the distance between that Actor and the AI Pawn.
-1. If distance is greater than a configurable amount, then the condition returns **True**. If not, then it returns **False** and blocks execution of the portion of the Behavior tree it is on.
+1. 当行为树根据条件命中一个节点时，事件 **Receive Condition Check** 将被发送至该蓝图。
+1. 保存 AI 控制器以便日后轻松参考。
+1. 获取需要追踪的 Actor（玩家 Pawn）。
+1. 获取该 Actor 和 AI Pawn 之间的距离。
+1. 如距离大于可配置量，则条件将返回 **True**。如小于可配置量，则返回 **False**，并阻止其所在行为树部分的执行。
 
-This will make it so the Behavior Tree is not constantly cycling to the **RapidMoveTo** and back out again. Basically, if he caught up to the player, then stop.
+这可使其正常工作，避免行为树不断循环至 **RapidMoveTo**，导致 AI 反复行动。基本上而言，AI 抓住玩家后便会停止行动。
 
 %Steps%
 

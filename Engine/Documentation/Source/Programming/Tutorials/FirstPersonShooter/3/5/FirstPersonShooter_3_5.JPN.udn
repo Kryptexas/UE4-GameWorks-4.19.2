@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2672916
+﻿INTSourceChangelist:2946108
 Availability:Docs
 Title:3.5 - ビューポートにクロスヘアを追加する
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/3
-Description:First Person Shooter プロジェクトで、ビューポートにクロスヘアを追加する方法を学びます。
-SkillLevel:初心者向け
-Version:4.9
+Description:FPS プロジェクトで、ビューポートにクロスヘアを追加する方法を学びます。
+SkillLevel:Beginner
+Version:4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -24,18 +24,18 @@ Version:4.9
 
 %Steps%
 
+このステップでは、照準 (クロスヘア) HUD エレメントをゲームに追加し、発射物の照準を合わすことができるようにします。
+
+## クロスヘア アセットをインポートする
+
 [REGION:note]
 作業を開始する前に、次のリンクからサンプル画像をダウンロードし、抽出してください。
 *	[Sample Crosshair Image](Crosshair_fps_tutorial.zip "Sample Crosshair Image")
 [/REGION]
 
-このステップでは、照準 (クロスヘア) HUD エレメントをゲームに追加し、発射物の照準を合わすことができるようにします。
+1.	コンテンツ ブラウザのファイル ボックス内で右クリックして **[Import Asset (インポート アセット)]** ダイアログボックスを開きます。
 
-## クロスヘア アセットをインポートする
-
-1.	コンテンツ ブラウザのファイル ボックス内で **右クリック** して **インポート アセット** ダイアログボックスを開きます。
-
-1.	**'Import to /Game...' をクリック** して **[Import]** ダイアログボックスを開きます。
+1.	**'Import to /Game...'** をクリックして **[Import]** ダイアログボックスを開きます。
 
 	![](RightClickImport.png)
 
@@ -43,7 +43,7 @@ Version:4.9
 
 1.	**[Open]** をクリックして画像ファイルのプロジェクトへのインポートを開始します。
 
-1.	**[Save]** ボタンを **クリック** してインポートしたメッシュを保存します。
+1.	**[Save]** ボタンをクリックしてインポートした画像を保存します。
 
 ## 新規 HUD クラスを追加する
 
@@ -57,17 +57,19 @@ Version:4.9
 
 	![](NameHUDClass.png)
 
-1.	**[Solution Explorer]** で、`FPSHUD` クラス インターフェースを探して、 `FPSHUD.h` を開きます。
+1.	**[Solution Explorer]** で、`FPSHUD` クラス ヘッダ ファイルを探して、 `FPSHUD.h` を開きます。
 
-1.	 `FPSHUD.h` で `GENERATED_BODY()`の下に以下のコンストラクタ宣言を配置します。
+1.	 `FPSHUD.h` で `GENERATED_BODY()`の下に以下のコンストラクタ宣言を記述します。
 
-		AFPSHUD(const FObjectInitializer& ObjectInitializer);
+		// Constructor (コンストラクタ)
+		AFPSHUD();
 
-1.	**[Solution Explorer]** で、`FPSHUD` クラスを探して、 `FPSHUD.cpp` を開きます。
+1.	**[Solution Explorer]** で、`FPSHUD` クラスの CPP ファイルを探して、 `FPSHUD.cpp` を開きます。
 
 1.	`FPSHUD.h` で `GENERATED_BODY()` の下に以下のコンストラクタ宣言を記述します。
 
-		AFPSHUD::AFPSHUD(const FObjectInitializer& ObjectInitializer) :Super(ObjectInitializer)
+		// Constructor (コンストラクタ)
+		AFPSHUD::AFPSHUD()
 		{
 
 		}
@@ -76,28 +78,28 @@ Version:4.9
 
 		private:
 
-		// Crosshair アセット ポインタ
+			//  Crosshair asset pointer (Crosshair アセット ポインタ)
 
-			UTexture2D* CrosshairTex;
+			UTexture2D* CrosshairTexture;
 
 1.	`FPSHUD.cpp` にあるコンストラクタ内に以下のコードを追加します。:
 
-		// クロスヘア テクスチャの設定
-		static ConstructorHelpers::FObjectFinder<UTexture2D> CrosshairTexObj(TEXT("Texture2D'/Game/crosshair.crosshair'"));
-		if (CrosshairTexObj.Object != NULL)
+		// set the crosshair texture (クロスヘア テクスチャの設定)
+		static ConstructorHelpers::FObjectFinder<UTexture2D> CrosshairTextureObject(TEXT("Texture2D'/Game/crosshair.crosshair'"));
 
+		if (CrosshairTextureObject.Object)
 		{
-			CrosshairTex = CrosshairTexObj.Object;
+			CrosshairTexture = CrosshairTextureObject.Object;
 		}
 
-	[REGION:note]
+	[REGION:tip]
 	エディタにあるテクスチャへのアセットパスは、 [コンテンツ ブラウザ] でアセットを右クリックして、[Copy Reference] を選択すると取得できることを覚えておいてください。
 	![](CopyReference.png)
 	[/REGION]
 
-1.	`FPSHUD.h` に戻り、`GENERATED_BODY()` の下に以下の関数宣言を追加します。
+1.	`FPSHUD.h` に戻り、以下の関数宣言を追加します。
 
-		// HUD の最初のドロー コール
+		// Primary draw call for the HUD (HUD の最初のドロー コール)
 		virtual void DrawHUD() override;
 
 1.	`FPSHUD.cpp` で、以下の関数定義で `DrawHUD` オーバーライドを実装します。
@@ -105,73 +107,79 @@ Version:4.9
 		void AFPSHUD::DrawHUD()
 		{
 			Super::DrawHUD();
-			// シンプルなクロスヘアを描画
-			// キャンバスの中心を見つけます。
+			// Find the center of our canvas (キャンバスの中心を見つけます)
 			const FVector2D Center(Canvas->ClipX * 0.5f, Canvas->ClipY * 0.5f);
-			// テクスチャの中央をキャンバスの中央と一致させるために半分のテクスチャのディメンションでオフセット
-			const FVector2D CrossHairDrawPosition((Center.X - (CrosshairTex->GetSurfaceWidth() * 0.5f)), (Center.Y - (CrosshairTex->GetSurfaceHeight() * 0.5f)));
-			// クロスヘアを描画
-			FCanvasTileItem TileItem(CrossHairDrawPosition, CrosshairTex->Resource, FLinearColor::White);
+		// Offset by half of the texture's dimensions so that the center of the texture aligns with the center of the Canvas (テクスチャの中央をキャンバスの中央と一致させるためにテクスチャの半分のディメンションでオフセット)
+			const FVector2D CrossHairDrawPosition(Center.X - (CrosshairTexture->GetSurfaceWidth() * 0.5f), Center.Y - (CrosshairTexture->GetSurfaceHeight() * 0.5f));
+		// Draw the crosshair (クロスヘアを描画)
+			FCanvasTileItem TileItem(CrossHairDrawPosition, CrosshairTexture->Resource, FLinearColor::White);
 			TileItem.BlendMode = SE_BLEND_Translucent;
 			Canvas->DrawItem(TileItem);
 		}
 
 1.	`FPSHUD.h` は以下のようになります。
 
-		// Project Settings の Description ページに著作権情報を入力してください。
+		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください)
 		#pragma once
 
 		#include "GameFramework/HUD.h"
-
 		#include "FPSHUD.generated.h"
-		/**
 
+		/**
 		 * 
 		 */
 		UCLASS()
 		class FPSPROJECT_API AFPSHUD : public AHUD
 		{
 			GENERATED_BODY()
-		AFPSHUD(const FObjectInitializer& ObjectInitializer);
 
-		// HUD の最初のドロー コール
+		// Constructor (コンストラクタ)
+			AFPSHUD();
 
+		// Primary draw call for the HUD (HUD の最初のドロー コール)
 			virtual void DrawHUD() override;
+
 		private:
 
-		// Crosshair アセット ポインタ
+			// Crosshair asset pointer (Crosshair アセット ポインタ)
 
-			UTexture2D* CrosshairTex;
-			};
+			UTexture2D* CrosshairTexture;
+		};
 
 1.	`FPSHUD.cpp` は以下のようになります。
 
-		// Project Settings の Description ページに著作権情報を入力してください。
+		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください)
 
 		#include "FPSProject.h"
 		#include "FPSHUD.h"
 
-		AFPSHUD::AFPSHUD(const FObjectInitializer& ObjectInitializer) :Super(ObjectInitializer)
+		// Constructor (コンストラクタ)
+		AFPSHUD::AFPSHUD()
 		{
-			// クロスヘア テクスチャの設定
-			static ConstructorHelpers::FObjectFinder<UTexture2D> CrosshairTexObj(TEXT("Texture2D'/Game/crosshair.crosshair'"));
+			// set the crosshair texture (クロスヘア テクスチャの設定)
+			static ConstructorHelpers::FObjectFinder<UTexture2D> CrosshairTextureObject(TEXT("Texture2D'/Game/crosshair.crosshair'"));
 
-			if (CrosshairTexObj.Object != NULL)
+		if (CrosshairTextureObject.Object) 
 			{
-				CrosshairTex = CrosshairTexObj.Object;
+				CrosshairTexture = CrosshairTextureObject.Object;
 			}
 		}
 
 		void AFPSHUD::DrawHUD()
 		{
 			Super::DrawHUD();
-			// シンプルなクロスヘアを描画
-			// キャンバスの中心を見つけます。
+
+			// Find the center of our canvas (キャンバスの中心を見つけます)
+
 			const FVector2D Center(Canvas->ClipX * 0.5f, Canvas->ClipY * 0.5f);
-			// テクスチャの中央をキャンバスの中央と一致させるために半分のテクスチャのディメンションでオフセット
-			const FVector2D CrossHairDrawPosition((Center.X - (CrosshairTex->GetSurfaceWidth() * 0.5f)), (Center.Y - (CrosshairTex->GetSurfaceHeight() * 0.5f)));
-			// クロスヘアを描画
-			FCanvasTileItem TileItem(CrossHairDrawPosition, CrosshairTex->Resource, FLinearColor::White);
+
+			// Offset by half of the texture's dimensions so that the center of the texture aligns with the center of the Canvas (テクスチャの中央をキャンバスの中央と一致させるためにテクスチャの半分のディメンションでオフセット)
+
+			const FVector2D CrossHairDrawPosition(Center.X - (CrosshairTexture->GetSurfaceWidth() * 0.5f), Center.Y - (CrosshairTexture->GetSurfaceHeight() * 0.5f));
+
+			// Draw the crosshair (クロスヘアを描画)
+
+			FCanvasTileItem TileItem(CrossHairDrawPosition, CrosshairTexture->Resource, FLinearColor::White);
 			TileItem.BlendMode = SE_BLEND_Translucent;
 			Canvas->DrawItem(TileItem);
 		}
@@ -180,7 +188,7 @@ Version:4.9
 
 1.	**[Solution Explorer (ソリューション エクスプローラ)]** で **[FPSProject]** を探します。
 
-1.	**[FPSProject]** 上で **右クリック** して、**[Build (ビルド)]** を選択してプロジェクトをコンパイルします。
+1.	**[FPSProject]** 上で右クリックして **[Build]** を選択してプロジェクトをコンパイルします。
 
 	![](BuildFPSProject.png)
 
@@ -196,52 +204,54 @@ Version:4.9
 
 1.	`FPSGameMode.cpp` は以下のようになります。
 
-		// Project Settings の Description ページに著作権情報を入力してください。
+		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください)
+
 		#include "FPSProject.h"
-
-		#include "FPSGameMode.h"
+		#include "FPSProjectGameMode.h"
 		#include "FPSHUD.h"
-		AFPSGameMode::AFPSGameMode(const FObjectInitializer& ObjectInitializer) :Super(ObjectInitializer)
-
+		AFPSProjectGameMode::AFPSProjectGameMode()
 		{
-			// ブループリントで作成したキャラクターにデフォルトのポーンクラスを設定
+			// デフォルトのポーンクラスを Blueprint キャラクターに設定
 			static ConstructorHelpers::FClassFinder<APawn> PlayerPawnObject(TEXT("Pawn'/Game/Blueprints/BP_FPSCharacter.BP_FPSCharacter_C'"));
-			if (PlayerPawnObject.Class != NULL)
+			if (PlayerPawnObject.Class != nullptr)
 			{
 				DefaultPawnClass = PlayerPawnObject.Class;
 			}
 			HUDClass = AFPSHUD::StaticClass();
-		}//AFPSGameMode Constructor
-		void AFPSGameMode::StartPlay()
+		}
 
+		void AFPSProjectGameMode::StartPlay()
 		{
 			Super::StartPlay();
 		StartMatch();
 
+		const int32 Key = -1;
+			static const FString DebugMessage = TEXT("Hello World, this is FPSGameMode!");
+			FColor DisplayColor = FColor::Yellow;
+			float TimeToDisplay = 5.0f; //seconds (秒) 
 		if (GEngine != nullptr)
-
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("We are using FPSGameMode."));
+				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
 			}
-		}//StartPlay()
+		}
 
 1.	`FPSGameMode.cpp` を Visual Studio に保存します。
 
 1.	**[Solution Explorer (ソリューション エクスプローラ)]** で **[FPSProject]** を探します。
 
-1.	**[FPSProject]** 上で **右クリック** して、**[Build (ビルド)]** を選択してプロジェクトをコンパイルします。
+1.	**[FPSProject]** 上で右クリックして **[Build]** を選択してプロジェクトをコンパイルします。
 
 	![](BuildFPSProject.png)
 
-1.	ビルドが終了したらアンリアル エディタでご自身の **FPSProject** を開きます。
+1.	ビルドが終了したらアンリアル エディタで **FPSProject** を開きます。
 
-1.	レベル エディタのツールバーで、**[Play (再生)]** ボタンを **クリック** します。新規作成したクロスヘアで発射物の照準を合わせることができるようになります。
+1.	レベル エディタのツールバーで、**[Play (プレイ)]** ボタンをクリックします。新規作成したクロスヘアで発射物の照準を合わせることができるようになります。
 
 	![](CrosshairsInGame.png)
 
-1.	[PIE (Play In Editor)] モードを終了するには、レベル エディタで **[Stop]** ボタンを **クリック** します。
+1.	[PIE (Play In Editor)] モードを終了するには、レベル エディタで [Stop] ボタンを **クリック** します。
 
-これで終わりです！以下について学習しました。
+これで終わりです！ 以下について学習しました。
 
 &#x2713; ゲームに発射物を追加  
 &#x2713; シューティングの実装  

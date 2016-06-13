@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2407639
+﻿INTSourceChangelist:2697138
 Availability:Licensee
 Title:Simplygon
 Crumbs:%ROOT%, Engine
 Description:언리얼 엔진 4 에 통합된 써드파티 메시 단순화 / 병합 툴입니다.
+Version: 4.9
 
 [REGION:raw]
 ![](SimplygonLogo.png)
@@ -25,7 +26,7 @@ Description:언리얼 엔진 4 에 통합된 써드파티 메시 단순화 / 병
 <!--
 [EXCERPT:License]
 [REGION:warning]
-Simplygon (심플리곤)은 언리얼 엔진과 함깨 배포되기는 하지만, 라이선시께서 이 기능을 사용하기 위해서는 Donya Labs ([](http://simplygon.com/)) 와 라이선스 계약을 맺으셔야 합니다. 
+Simplygon (심플리곤)은 언리얼 엔진과 함께 배포되기는 하지만, 라이선시께서 이 기능을 사용하기 위해서는 Donya Labs ([](http://simplygon.com/)) 와 라이선스 계약을 맺으셔야 합니다. 
 [PUBLISH:Licensee] 
 자세한 정보는 [](Engine/UI/Tools/Simplygon/Compiling) 페이지를 확인해 주시기 바랍니다.
 [/PUBLISH:Licensee]

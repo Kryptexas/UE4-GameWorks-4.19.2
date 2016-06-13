@@ -1,408 +1,466 @@
-Availability: Public
-Title:虚幻 Cascade 用户指南
-Crumbs: %ROOT%, Engine, Engine/Rendering, Engine/Rendering/ParticleSystems
-Crumbs:%ROOT%, Engine
+﻿INTSourceChangelist:2603851
+Availability:Public
+Title:级联粒子编辑器参考
+Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
+Description:级联编辑器 UI 总览，详解每个关键部分。
+Version:4.9
 
-[TOC (end:3)]
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Rendering/ParticleSystems/Cascade:title%](cascade_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/ParticleSystems/Cascade:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/ParticleSystems/Cascade:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/ParticleSystems/Cascade]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
+[TOC (start:2 end:3)]
 
-
-## 概述
-
-Cascade 是虚幻引擎中使用发射器创建粒子特效的工具。
-
-
-
-## 打开 Cascade
-
-Cascade 粒子编辑器可以通过双击任何粒子系统资源打开，或者通过在内容浏览器中右击粒子系统资源的关联菜单。这两种方法都可以在 Cascade 中打开特定的粒子系统进行编辑。
-
-
-
-## Cascade 界面
-
-Cascade 由六个部分组成：
-
-![cascadelayout.jpg](cascadelayout.jpg)
-
-
-1. [菜单栏 (Menu Bar)](#MenuBar) - 可视化和导航工具。
-1. [工具栏 (Tool Bar)](#MenuBar) - 可视化和导航工具。
-1. [预览面板 (Preview Pane)](#PreviewPane) - 显示了当前的粒子系统（包括在那个系统中包含的所有的发射器）。在 _Sim(仿真)_ 工具条的控制选项中可以设定仿真的速度。
-1. [发射器列表 (Emitter List)](#EmitterList) - 这个面板包含了在当前的粒子系统中的所有发射器的列表，以及在这些发射器中的所有模块的列表。
-1. [属性面板 (Properties Pane)](#PropertiesPane) - 这个面板允许查看和修改当前粒子系统、粒子发射器或粒子模块。
-1. [曲线编辑器 (Curve Editor)](#CurveEditor) - 这个曲线编辑器显示了在相对时间或绝对时间过程中所正在修改的属性。当多个模块被添加到曲线编辑器中，可以控制显示哪个模块(在本文档稍后会进行讨论)。
+级联（Cascade）是虚幻引擎中使用发射器创建模块化粒子特效的工具。
 
 
 
-###菜单条
+## 打开级联
 
-
-#### 编辑
-
-
-* **重新生成最低 LOD (Regenerate lowest LOD)** - 通过使用最高 LOD 值的预设百分数重新生成最低 LOD。
-* **保存软件包 (Save Package)** - 保存包含粒子系统的软件包。
+**双击** 任意粒子系统资源，或在 **Content Browser** 中粒子系统资源的 **右键** 快捷菜单中均可将级联粒子编辑器打开。以上两种方法均可将特定粒子系统在级联中打开进行编辑。
 
 
 
-#### 视图
+## 级联界面
+
+级联由六个主要部分组成：
+
+![](Cascade_Interface.png)(w:720)
 
 
-* **查看原点坐标 (View Origin Axes)** - 开启在预览面板的世界远点显示轴标记。
-* **查看粒子数量 (View Particle Counts)** - 开启在预览面板中显示粒子系统中每个发射器的粒子数统计数据。
-* **查看粒子事件数 (View Particle Event Counts)** - 开启在预览面板中显示粒子系统中的每个发射器的粒子事件统计数据。
-* **查看粒子时间 (View Particle Times)** - 开启在预览面板中显示粒子系统中的每个发射器的粒子时间统计数据。
-* **查看粒子距离 (View Particle Distance)** - 需要说明。
-* **查看几何体 (View Geometry)** - 开启在预览面板中显示其中的静态网格物体。可以用于测试特定发射器效果，例如碰撞。
-* **查看几何体 (View Geometry Properties)** - 打开其中的几何体的属性窗口，它允许您修改它的属性并更改所使用的网格物体。
-* **保存相机位置 (Save Cam Position)** - 通过预览面板相机视角保存内容浏览器中粒子系统的缩略图。
-* **保存动态半径 (Save Motion Radius)** - 需要说明。
+1. [菜单栏（Menu Bar）](#BookmarkMenuBar) - 在 **Content Browser** 中保存资源并找到当前的粒子系统。
+1. [工具栏（ToolBar）](#BookmarkToolBar) - 可视化和导航工具。
+1. [视口面板（Viewport Panel）](#BookmarkViewportPanel) - 显示当前粒子系统（包括系统内的所有发射器）。_Sim_ 工具栏选项中的功能按钮可设置模拟速度。
+1. [发射器面板（Emitters Panel）](#BookmarkEmittersPanel) - 该窗格包含当前粒子系统中所有发射器的列表，以及这些发射器中所有模块的列表。
+1. [细节面板（Details Panel）](#BookmarkDetailsPanel) - 在该窗格中可查看和编辑当前粒子系统、粒子发射器或粒子模块。
+1. [曲线编辑器（Curve Editor）](#BookmarkCurveEditor) - 该图表编辑器显示在相对或绝对时间中被修改的所有属性。模块被添加至图表编辑器后，可通过功能按钮进行展示（稍后在文中继续讨论）。
 
 
+(#BookmarkMenuBar)
+### 菜单栏
 
-#### 窗口
+![Cascade_Menubar.png](Cascade_Menubar.png)
+
+#### File
+
+| 命令 | 描述 |
+| ------- | ----------- |
+| [REGION:tablesection]**读取和保存**[/REGION] ||
+| **Save** | 保存当前粒子系统。|
+| **Save All** | 保存所有资源。|
+| **Choose Files to Save** | 打开含资源保存选项的对话框。|
+| [REGION:tablesection]**应用**[/REGION] ||
+| **Switch Project** | 在可用游戏项目之间切换。|
+| **Exit** | 关闭编辑器。|
+
+#### Edit
+
+| 命令 | 描述 |
+| ------- | ----------- |
+| [REGION:tablesection]**操作**[/REGION] ||
+| **Undo** | 撤销已完成的上步操作。|
+| **Redo** | 重新执行未完成的上步操作。|
 
 
-* **属性 (Properties)：** - 开启显示属性面板。
-* **虚幻曲线编辑器 (Unreal Curve Editor)：** - 开启显示曲线编辑器。
-* **预览 (Preview)：** - 开启显示预览面板。
+#### Asset
+
+| 命令 | 描述 |
+| ------- | ----------- |
+| [REGION:tablesection]**操作**[/REGION] ||
+| **Find in Content Browser** | 在 **Content Browser** 中选择当前的粒子系统。|
 
 
+#### Window
 
-###工具条
+| 命令 | 描述 |
+| ------- | ----------- |
+| [REGION:tablesection]**资源编辑器标签 编辑器标签**[/REGION] ||
+| **Viewport** | 打开显示合成粒子系统的 [视口面板](#BookmarkViewportPanel) 标签。|
+| **Emitters** | 打开 [发射器列表](#BookmarkEmittersPanel) 标签，在此处可将多个发射器添加至粒子系统。|
+| **Details** | 打开 [细节面板](#BookmarkDetailsPanel) 标签，在此处可对每个粒子模块的属性进行编辑。|
+| **Curve Editor** | 打开 [曲线编辑器](#BookmarkCurveEditor)，在此处可通过动画曲线对属性进行调整。|
+| **Toolbar** | 打开 [工具栏](#BookmarkToolBar)，常用操作快捷按钮在此处以水平阵列排列。|
 
-这也是个工具栏，如下所示：
+(#BookmarkToolBar)
+### 工具栏
 
-![CascadeToolBar.jpg](CascadeToolBar.jpg)
+工具栏如下图所示：
 
-这个工具条包含了以下控制项（在工具条上从左到右）：
+![Cascade_ToolBar.png](Cascade_ToolBar.png)(w:860)
+
+工具栏包含以下功能按钮（工具栏中从左至右）：
+
+
 
 | **图标** | **名称** | **描述** |
 | --- | --- | --- |
-| ![toolbar_restartsim.jpg](toolbar_restartsim.jpg)| <strong>重新开始仿真 (Restart Sim)</strong> | 这将会在预览窗口中重新开始仿真。|
-| ![toolbar_restartlevel.jpg](toolbar_restartlevel.jpg)| <strong>在关卡中重启 (Restart in Level)</strong> | 这项将重新启动粒子系统及关卡中的任何该系统的实例。|
-| ![toolbar_find.jpg](toolbar_find.jpg)| <strong>在内容浏览器中查找 (Find in Content Browser)</strong> | 打开内容浏览器，然后选择当前粒子系统。|
-| ![toolbar_savethumb.jpg](toolbar_savethumb.jpg)| <strong>保存缩略图 (Save Thumbnail Image)</strong> | 通过预览面板相机的视角保存内容浏览器中的粒子系统的缩略图。|
-| ![toolbar_orbit.jpg](toolbar_orbit.jpg)| <strong>切换轨道模式 (Toggle Orbit Mode)</strong> | 在围绕粒子系统进行轨道旋转或自由移动之间切换预览视口的相机。|
-| ![toolbar_motion.jpg](toolbar_motion.jpg)| <strong>切换运动 (Toggle Motion)</strong> | 开启发射器模块中的任意运动效果。|
-| ![toolbar_viewmode.jpg](toolbar_viewmode.jpg)| <strong>改变视图模式 (Change view mode)</strong> | 循环在预览面板中使用的视图模式。|
-| ![toolbar_bounds.jpg](toolbar_bounds.jpg)| <strong>开启边界 (Toggle Bounds)</strong> | 开启在预览面板中显示粒子系统的当前边界。|
-| ![toolbar_postprocess.jpg](toolbar_postprocess.jpg)| <strong>开启后期特效 (Toggle PostProcess)</strong> | 开启在预览面板中使用 cascade 后期特效链。|
-| ![toolbar_grid.jpg](toolbar_grid.jpg)| <strong>开启网格 (Toggle Grid)</strong> | 开启在预览面板中显示网格。|
-| ![toolbar_play.jpg](toolbar_play.jpg)| <strong>播放 (Play)</strong> | 在预览视窗中播放仿真。|
-| ![toolbar_pause.jpg](toolbar_pause.jpg)| <strong>暂停 (Pause)</strong> | 暂停仿真。|
-| ![toolbar_simspeed.jpg](toolbar_simspeed.jpg)| <strong>设置仿真速度 (Set sim speed)</strong> | 循环整个现有仿真回放速度。|
-| ![toolbar_loop.jpg](toolbar_loop.jpg)| <strong>开启循环播放系统 (Toggle Loop System)</strong> | 对于没有设置为循环播放的发射器，这个选项将会强制使它们显示在预览视窗中。|
-| ![toolbar_realtime.jpg](toolbar_realtime.jpg)| <strong>开启实时 (Toggle Realtime)</strong> | 在预览视窗中实时预览发射器。|
-| ![toolbar_color.jpg](toolbar_color.jpg)| <strong>背景颜色 (Background Color)</strong> | 允许用户改变预览窗口的背景色。|
-| ![toolbar_sphere.jpg](toolbar_sphere.jpg)| <strong>开启线框球体 (Toggle Wireframe Sphere)</strong> |   |
-| ![toolbar_undo.jpg](toolbar_undo.jpg)| <strong>取消 (Undo)</strong> | 取消最后一步执行的操作。|
-| ![toolbar_redo.jpg](toolbar_redo.jpg)| <strong>重复 (Redo)</strong> | 重复上一个未完成的操作。|
-| ![toolbar_regenfromhighest.jpg](toolbar_regenfromhighest.jpg)| <strong>复制最高LOD来重新生成最低 LOD (Regenerate lowest LOD duplicating highest)</strong> | 通过复制最高的 LOD 重新生成最低的 LOD。|
-| ![toolbar_regenlowest.jpg](toolbar_regenlowest.jpg)| <strong>重新生成最低的 LOD (Regenerate lowest LOD)</strong> | 通过使用最高 LOD 值的预设百分数重新生成最低 LOD。|
-| ![toolbar_jumphighest.jpg](toolbar_jumphighest.jpg)| <strong>跳转到最高 LOD 层次 (Jump to Highest LOD Level)</strong> | 加载最高的 LOD。|
-| ![toolbar_jumphigher.jpg](toolbar_jumphigher.jpg)| <strong>跳转到较高 LOD 层次 (Jump to Higher LOD Level)</strong> | 从当前 LOD 中加载下一个较高的 LOD。|
-| ![toolbar_addbefore.jpg](toolbar_addbefore.jpg)| <strong>在当前 LOD 前面添加 LOD (Add LOD before current)</strong> | 在当前加载的 LOD 前添加一个新的 LOD。|
-| ![toolbar_addafter.jpg](toolbar_addafter.jpg)| <strong>在当前 LOD 后面添加 LOD (Add LOD after current)</strong> | 在当前加载的 LOD 后面添加一个新的 LOD。|
-| ![toolbar_jumplower.jpg](toolbar_jumplower.jpg)| <strong>跳转到较低的 LOD 层次 (Jump to Lower LOD Level)</strong> | 加载下一个较低的 LOD。|
-| ![toolbar_jumplowest.jpg](toolbar_jumplowest.jpg)| <strong>跳转到最低的 LOD 层次 (Jump to Lowest LOD Level)</strong> | 加载最低的 LOD。|
-| ![toolbar_delete.jpg](toolbar_delete.jpg)| <strong>删除 LOD (Delete LOD)</strong> | 删除当前加载的 LOD。|
+|![](Cascade_Toolbar_Save.png) | **Save** | 保存当前粒子系统资源。|
+|![](Cascade_Toolbar_FindInCB.png)|**Find in Content Browser**| 在 **Content Browser** 中找到当前的粒子系统资源。|
+| ![Cascade_Toolbar_RestartSim.png](Cascade_Toolbar_RestartSim.png)| **Restart Sim** | 此按钮用于重设视口窗口中的模拟，按下 **空格键** 可执行相同操作。|
+| ![Cascade_Toolbar_RestartLevel.png](Cascade_Toolbar_RestartLevel.png)| **Restart in Level** | 此按钮用于重设粒子系统，以及关卡中任何类型的系统。|
+| ![Cascade_Toolbar_Undo.png](Cascade_Toolbar_Undo.png)| **Undo** | 撤销上步操作，按 **Ctrl+Z** 组合键可执行相同操作。|
+| ![Cascade_Toolbar_Redo.png](Cascade_Toolbar_Redo.png)| **Redo** | 重新执行未完成的上步操作，按 **Ctrl+Y** 组合键可执行相同操作。|
+| ![Cascade_Toolbar_Thumbnail.png](Cascade_Toolbar_Thumbnail.png)| **Save Thumbnail Image** | 将视口面板的摄像机画面存为 Content Browser 中粒子系统的缩略图。|
+|![](Cascade_Toolbar_Bounds.png)|**Toggle Bounds**|在视口面板中切换粒子系统当前边界的显示。|
+|![](Cascade_Toolbar_BoundsOptions.png)|**Bounds Options**|点击该按钮可对 GPU Sprite 粒子系统的固定边界进行设置。固定边界对 GPU Sprite 粒子可到达的范围进行限定。|
+|![](Cascade_Toolbar_OriginAxis.png)|**Toggle Origin Axis**| 在粒子视口窗口中显示或隐藏原点轴。|
+| ![Cascade_Toolbar_RegenLOD.png](Cascade_Toolbar_RegenLOD.png)| **Regenerate lowest LOD duplicating highest** | 复制最高 LOD，以重新生成最低 LOD。|
+| ![Cascade_Toolbar_RegenLODPer.png](Cascade_Toolbar_RegenLODPer.png)| **Regenerate lowest LOD** | 使用最高 LOD 数值预设百分比的数值重新生成最低 LOD。|
+| ![Cascade_Toolbar_HighestLOD.png](Cascade_Toolbar_HighestLOD.png)| **Jump to Highest LOD Level** | 加载最高的 LOD。|
+| ![Cascade_Toolbar_AddLOD_Before.png](Cascade_Toolbar_AddLOD_Before.png)| **Add LOD before current** | 在当前加载的 LOD 前添加一个新 LOD。|
+| ![Cascade_Toolbar_AddLOD_After.png](Cascade_Toolbar_AddLOD_After.png)| **Add LOD after current** | 在当前加载的 LOD 后添加一个新 LOD。|
+| ![Cascade_Toolbar_LowerLOD.png](Cascade_Toolbar_LowerLOD.png)| **Jump to Lower LOD Level** | 加载下一个较低的 LOD。|
+| ![Cascade_Toolbar_LowestLOD.png](Cascade_Toolbar_LowestLOD.png)| **Jump to Lowest LOD Level** | 加载最低的 LOD。|
+| ![Cascade_Toolbar_DeleteLOD.png](Cascade_Toolbar_DeleteLOD.png)| **Delete LOD** | 删除当前加载的 LOD。|
+| ![Cascade_Toolbar_CurrentLOD.png](Cascade_Toolbar_CurrentLOD.png)| **Current LOD Slider** | 此按钮用于选择需要预览的当前 LOD。可手动输入数值或拖动鼠标选取数字。|
 
 
-###预览面板
 
-预览面板将会为您提供一个当前粒子系统的渲染预览，就在它在游戏中进行渲染的时候出现。它可以提供有关对 Cascade 中的粒子系统进行的更改的实时反馈。除了完全渲染的预览之外，预览面板还可以在不带光照、贴图密度和线框视图模式中渲染，并显示诸如粒子系统的当前边界之类的信息。
+(#BookmarkViewportPanel)
+### 视口面板
+
+![PreviewPane.png](PreviewPane.png)(w:400)
+
+**Viewport** 窗格显示当前粒子系统的渲染预览，和游戏中实际渲染的效果相同。它对级联中粒子系统的变更进行实时反馈。除全渲染预览外，视口窗格还可在不点亮、纹理密度、过度绘制和线框视图模式中进行渲染，并显示信息（如粒子系统的当前边界）。
+
+#### 视口窗格导航
+
+可利用鼠标以下列方式在 **Viewport** 窗格中导航：
+
+| 按钮 | 操作 | 
+| --- | --- |
+| **鼠标左键** | 沿粒子系统翻滚摄像机。|
+| **鼠标中键** | 沿粒子系统平移摄像机。|
+| **鼠标右键** | 旋转摄像机。|
+| **Alt + 鼠标左键** | 围绕粒子系统进行轨道运动。|
+| **Alt + 鼠标右键** | 使摄像机对粒子系统进行推轨（推近和拉远）拍摄。|
+| **F 键** | 聚焦于粒子系统。|
+| **L + 鼠标左键** | 旋转灯光。仅适用于使用照亮材质的粒子。在不照亮粒子（如火焰、火星等）上并无效果。|
+
+#### 视口窗格菜单
+
+![PreviewPaneMenus.png](PreviewPaneMenus.png)
+
+**Viewport** 窗格的左上角有两个菜单。可使用它们显示和隐藏面板的数个功能，并对视口进行设置。
+
+##### View 菜单
+
+![ViewMenu.png](ViewMenu.png)
+
+View 用于显示和隐藏 viewport 窗格的诸多诊断和可视化功能。菜单包含下列选项：
 
 
-### 发射器列表 
+| 项目 | 描述 |
+| --- | --- |
+| [REGION:tablesection]View 菜单[/REGION] ||
+| **View Overlays** | 访问 View Overlays 子菜单。查看以下内容。|
+| **View Modes** | 访问 View Modes 子菜单。查看以下内容。|
+| **Detail Modes** | 访问 Detail Modes 子菜单。查看以下内容。|
+| **Background Color** | 打开选色器，设置 Viewport 窗格的背景颜色。|
+| **Orbit Mode** | 切换摄像机沿粒子系统进行轨道运动，或在 Viewport 窗格中自由运动。| 
+| **Origin Axis** | 切换原点轴小工具（位于左下角）的显示。| 
+| **Vector Fields** | 切换显示应用于粒子系统的矢量场。|
+| **Grid** | 切换网格显示。|
+| **Wireframe Sphere** | 显示代表粒子系统球面半径的线框球体。|
+| **Post Process** | 切换全局后期处理的显示。|
+| **Motion** | 在粒子系统静止状态或围绕网格中心转动之间切换。|
+| **Motion Radius** | 打开输入框，添加 Motion 设置的旋转半径。|
+| **Geometry** | 显示或隐藏默认测试网格体。|
+| **Geometry Properties** | 打开 geometry properties 窗口，可在此处调整默认几何体的属性、调整放置、换出已使用的网格体、以及进行其他诸多选项的设置。|
+| **Bounds** | 切换粒子系统边界的显示。边界显示为边界框和边界球。|
+| **Set Fixed Bounds** | 启动粒子系统的固定边界，并自动将值设为至今计算出的最大值。|
 
-该发射器列表包含可以在 Cascade 中进行编辑的粒子系统中包含的所有粒子发射器。它是一个所有发射器水平排列的列表，其中每栏代表系统中包含的单个粒子发射器。每个栏都由一个发射器块及后续的很多模块组成。
 
-这个发射器块如下所示：
+##### View Overlay 子菜单
+
+![ViewOverlaysMenu.png](ViewOverlaysMenu.png)
+
+View Overlay 子菜单切换一系列数据读出的开关。这些数据是当前粒子系统状态的各种信息。 
+
+| 项目 | 描述 |
+| --- | --- |
+| [REGION:tablesection]View Overlays 子菜单[/REGION] ||
+| **Particle Counts** | 切换粒子计数覆层显示。此覆层显示系统中每个发射器发射的粒子数量。|
+| **Particle Event Counts** | 切换事件计数覆层的显示。此覆层显示每个发射器中触发的事件数量。|
+| **Particle Distance** | 尚未进行描述。|
+| **Particle Times** | 切换粒子发射器时间反馈的显示。将显示每个发射器已启动的时长。|
+| **Particle Memory** | 切换粒子系统内存使用情况（在模板和实例中）的显示。| 
+
+##### View Modes 子菜单
+
+![ViewModeMenu.png](ViewModeMenu.png)
+
+利用 View Modes 子菜单可在 Viewport 窗格中不同绘制模式之间切换。
+
+###### 线框
+
+线框查看模式显示粒子的线框。在这个 sprite 中，可以看到组成每个 sprite 的两个多边形。
+
+![Wireframe.png](Wireframe.png)(convert:false)
+
+
+###### 不照亮
+
+不照亮查看模式在没有灯光和后期效果的状态下显示粒子效果。
+
+![Unlit.png](Unlit.png)
+
+###### 照亮 
+
+照亮查看模式在拥有灯光和后期效果的状态下显示粒子效果。
+
+![Lit.png](Lit.png)
+
+###### 着色器复杂度
+
+着色器复杂度为一个特定着色器所需指令数量提供反馈。绿色是最低数值，带更高指令值将逐渐变为红色。
+
+![ShaderComplexity.png](ShaderComplexity.png)
+
+
+##### Detail Modes 子菜单
+
+利用 Detail Modes 子菜单可切换 viewport 窗口 *低*、*中*、*高* 细节程度。它们与 engine detail modes 相关，可以利用它们查看不同模式下粒子系统的显示效果。
+
+![DetailModesMenu.png](DetailModesMenu.png)
+
+| 项目 | 描述 |
+| --- | --- |
+| [REGION:tablesection]Detail Modes 子菜单[/REGION] || 
+| **Low** | 预览 system detail mode 设为 _low_ 时粒子系统的显示效果。|
+| **Medium** | 预览 system detail mode 设为 _medium_ 时粒子系统的显示效果。|
+| **High** | 预览 system detail mode 设为 _high_ 时粒子系统的显示效果。|
+
+
+##### Time 菜单
+
+![TimeMenu.png](TimeMenu.png)
+
+利用 Time 菜单可对 Viewport 窗格的播放速度进行调整。
+
+| 项目 | 描述 |
+| --- | --- |
+| [REGION:tablesection]Time 菜单[/REGION] || 
+| **Play/Pause** | 勾选后将开始模拟播放。取消勾选后模拟暂停。|
+| **Realtime** | 勾选后模拟将实时播放。取消勾选后，模拟仅在 **Viewport** 窗格中出现更新时才会播放。|
+| **Loop** | 勾选后粒子系统将反复循环播放。取消勾选后，播放完成后将停止。|
+| **AnimSpeed** | 此选项将打开一个子菜单，在 100%、50%、25%、10% 和 1% 之间调整播放速度百分比。|
+
+(#BookmarkEmittersPanel)
+### Emitters 面板 
+
+![EmitterList.png](EmitterList.png)(w:700)
+
+**Emitters** 面板包含当前在级联中打开的粒子系统中所包含的全部粒子发射器。在此可对掌控粒子系统外观和行为的诸多粒子模块进行添加、选择和使用。 
+
+当前粒子系统中的所有发射器在发射器列表中呈水平排列。在单个粒子系统中可能存在任意数量的发射器。每个发射器处理整体效果的不同方面。
+
+每列即代表单个粒子发射器，每列顶部为发射器段，下方为任意数量的模块段。发射器段包含发射器的主要属性，如发射器的名称和类型；而其下方的每个模块将对粒子行为的各个方面进行单独控制。
+
+发射器列表界面非常直观易读，还包含一个右键访问的快捷菜单。 
+
+[REGION:note]
+	在一个粒子系统中的发射器将按发射器列表中从左至右的顺序进行计算。点击一个发射器，使用 **左方向键和右方向键** 在列表中调整位置。
+[/region]
+
+
+#### 导航和功能键
+
+以下是发射器列表中应用的功能键和命令
+
+| 按钮 | 操作 | 
+| --- | --- |
+| **鼠标左键单击** | 选择一个发射器或模块。|
+| **鼠标左键拖动（在一个模块上）** | 将模块从一个发射器移动至另一个发射器。|
+| **Shift + 鼠标左键拖动（在一个模块上）** | 将在发射器之间将一个模块举为实例。模块名旁将出现一个 + 符号，其他模块颜色与该模块相同。|
+| **Ctrl + 鼠标左键拖动（在一个模块上）** | 将一个模块从源发射器复制到目标发射器。|
+| **鼠标右键单击** | 打开快捷菜单。在空白栏中 **单击右键** 可创建一个新发射器。在发射器上 **单击右键** 可对其执行多种操作，以及添加新模块。|
+| **左右方向键** | *在选中一个发射器的情况下*，将发射器在列表中的位置向左或向右调。|
+
+
+#### 发射器
+
+使用发射器列表时，理解其中发射器的基本构造十分重要。以下进行快速讲解：
+
+[OBJECT:topiclistnotitle]
+	[PARAM:icon]
+		![EmitterCallout.png](EmitterCallout.png)(w:400)
+	[/PARAM]
+	[PARAM:description]
+	[INCLUDE:#Emitters]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:Emitters]
+1. **发射器栏** - 每栏均代表一个单独的发射器。
+2. **发射器段** - 发射器顶部的这个部分包含发射器的主要属性和功能键，如发射器类型、发射器命名和其他主要属性。
+3. **模块列表** - 发射器段下方是所有模块的列表，这些模块定义该发射器的外观和行为。所有的发射器都包含一个 **Required** 模块，和任意数量用于定义行为的模块。
+[/EXCERPT:Emitters]
+-->
+
+[REGION:raw]
+![](Engine\Rendering\LightingAndShadows\LightTypes\Point\spacer.png)
+[/REGION]
+
+<!--
+如需发射器的更多信息，请查阅“使用发射器”章节。
+-->
+
+如需粒子模块的更多信息，请查阅 [模块参考章节](Engine/Rendering/ParticleSystems/Reference)。
+
+
+
+#### 发射器列表快捷菜单
+
+在空白栏上 **单击右键** 可创建一个新发射器；在发射器上单击右键将呼出可直接对发射器执行的操作，如变更发射器的命名或类型，以及将多种行为模块添加至发射器。
+
+![EmitterListMenu.png](EmitterListMenu.png)
+
+(#BookmarkDetailsPanel)
+### Details 面板
+
+![PropertiesWindow.png](PropertiesWindow.png)(w:400)
+
+**Details** 面板内是虚幻引擎 4 标准细节窗口。该窗格内显示的属性取决于级联中当前选中的内容。举例而言，如一个粒子模块被选中，将显示该特定粒子模块的属性。
+
+[REGION:note]
+	粒子系统的主要属性可作为一个整体被访问，方法有二：在发射器列表中选择 *nothing*，或在发射器列表中 **单击右键** 并从快捷菜单中选择 *Particle System > Select Particle System*。
+[/REGION]
+
+
+<!--
+#### LOSE ME
+发射器段显示如下：
 
 ![Cascade_EmitterBlock.jpg](Cascade_EmitterBlock.jpg)
 
-以下是显示在发射器块上的按钮(从左到右)：
+下列按钮显示在发射器段中（从左至右）：
 
 ![CASC_ModuleEnable.jpg](CASC_ModuleEnable.jpg)/ ![CASC_ModuleDisable.jpg](CASC_ModuleDisable.jpg)
 
-这个按钮将 启用/禁用 发射器。当启用了发射器时显示了第一张图片，当禁用了发射器时显示了第二张图片。请注意当发射器为禁用状态时，它将不再调用 Tick 或 Render 函数。
+此按钮将启用/禁用发射器。发射器启用时将显示第一张图片，禁用时显示第二张图片。重要须知：发射器被禁用后无法在其之上进行标记和渲染。
 
-中间的按钮是发射器的渲染模式。点击它将会切换到另一个可用的渲染模式。支持以下图标：
+中间的按钮为发射器的渲染模式。点击将切换至下个可用的渲染模式。支持下列图标：
 
 | --- | --- |
-|![CASC_Normal.jpg](CASC_Normal.jpg)| 发射器应该正常进行渲染。|
-|![CASC_Cross.jpg](CASC_Cross.jpg)|发射器在粒子的位置渲染十字线。|
-|![CASC_Point.jpg](CASC_Point.jpg)|发射器在粒子的位置渲染点。|
-|![CASC_None.jpg](CASC_None.jpg)|发射器不进行渲染。|
+|![CASC_Normal.jpg](CASC_Normal.jpg)| 发射器将正常渲染。|
+|![CASC_Cross.jpg](CASC_Cross.jpg)|发射器将渲染粒子所在位置的交叉线。|
+|![CASC_Point.jpg](CASC_Point.jpg)|发射器将渲染粒子所在位置的点。|
+|![CASC_None.jpg](CASC_None.jpg)|发射器不会执行渲染。|
 
-在发射器块上的最后一个按钮如下所示：
+发射器端上最后的按钮如下：
 
 ![CASC_CurveEd.jpg](CASC_CurveEd.jpg)
-这个按钮将会发送相关的编辑器属性到曲线编辑器窗口(#4)。
+该按钮将把相关发射器属性发送至弧线编辑器窗口（4 号）。
 
-在发射器中的每个模块以栏的形式出现在编辑器块的下方。以下是 ascade 中一个模块的图片：
+发射器中的每个模块显示在发射器段下的一栏中。下列图片级联中的一个模块：
 
 ![Cascade_ModuleBlock.jpg](Cascade_ModuleBlock.jpg)
 
-右上方的图标是用于发送相关的模块数据到曲线编辑器中的按钮。右下方的图标是用于 启用/禁用 模块的按钮。（注意： 如果禁用在发射器之间共享的模块，则该模块将会在所有的发射器中被禁用!)
+右上方图标是将相关模块数据发送至曲线编辑器的按钮。右下方图标是启用/禁用模块的按钮。（注意：在发射器之间共享的禁用模块将在所有发射器上被禁用！）
 
-最后一个按钮仅出现在粒子可以在预览窗口中进行3D展现的模块中。
+最后的按钮只出现在可在预览视口中渲染为 3D 演示的模块上。
 
 ![CASC_Cross.jpg](CASC_Cross.jpg)/ ![CASC_None.jpg](CASC_None.jpg)
 
-左边的图片预示着描画 3D _预览 (preview)_ 。右边的图片预示着它当前禁用。
+左图显示 3D _预览_ 将被绘制。右图显示器当前被禁用。
+-->
 
-
+(#BookmarkCurveEditor)
 ### 曲线编辑器
 
+![](Curve_Editor.png)(w:720)
 
-#### 添加一个模块曲线编辑器
+级联界面包括一个标准的虚幻编辑器 curve editor 窗口。可利用它调整需在粒子或发射器生命周期中进行改变的数值。简而言之，它定义随时间变化的数值。如需在曲线编辑器中对任意属性（通常来自一个粒子模块中）进行编辑，此属性需拥有利用曲线（如 *DistributionFLoatConstantCurve*）的 Distribution 类型。如需了解 Distributions 使用的更多内容，请查阅 [Distributions 章节](Engine/Basics/Distributions)。
 
-将一个模块添加到 Graph Editor(曲线编辑器)是非常简单的。 在模块左侧的绿色方块将会把那个模块添加到曲线编辑器中。 在曲线编辑器中出现的模块的颜色是在模块创建时随机决定的。 要想改变它的颜色，可以打开您想修改的模块的属性窗口中的 Cascade 组的属性，并在那里设置颜色。 
+查阅 [曲线编辑器使用指南](Engine/UI/CurveEditor) 页面中的详细内容。
 
+[REGION:note]
+	点击显示于模块左侧的绿框可为曲线编辑器添加一个模块。须注意，图表编辑器中显示的模块颜色将在创建模块时随机选择。可在 Property 窗口中进行修改：选择相应模块，然后编辑 *Module Editor Color* 属性。  
+[/REGION]
 
-#### 操作曲线
+#### 导航 
 
-在曲线编辑器条目处右侧出现的黄色的方盒切换控制是否为那个模块渲染渲染样条曲线。 右击这些条目其中的一个，您可以将其从曲线中删除。
+| 按钮 | 操作 | 
+| --- | --- |
+|[REGION:tablesection]![PanMode.png](PanMode.png) 平移模式导航 [/REGION]||
+| **鼠标左键拖动** | 以平移正视图的方式移动曲线画面。|
+| **鼠标滚轮** | 对曲线进行一致地放大和缩小。|
+|[REGION:tablesection]![ZoomMode.png](ZoomMode.png) 缩放模式导航 [/REGION]||
+| **鼠标左键拖动** | 仅在水平维度对画面进行缩放。|
+| 鼠标右键拖动 | 仅在垂直维度对画面进行缩放。|
 
+#### 为图表添加曲线
 
-##### 在曲线上创建点
+曲线不会自动出现在图表编辑器中。曲线必须被发送至图表编辑器，然后才可进行编辑。每个粒子模块段上都有一个曲线绿色小图标 ![SendToCurveEditor_button.png](SendToCurveEditor_button.png)。点击该图标将把可用曲线发送到曲线编辑器，以便进行调整。
 
-注意在您增加多个点之前，您需要确定您正在编辑的 Distribution(分布曲线)的类型是'curve(曲线)'(比如DistributionFloatConstantCurve)。
+#### 从图表中移除曲线
 
-为了在曲线编辑器中创建点，可以按住 Ctrl 键并左击样条曲线来设定您想要的值。 实现这个操作的最简单方法是通过使用上面讨论的复选框关闭所有的其它模块。 所有模块在时间 0 的时候通过一个按键在 0 的位置开始。Ctrl 左键单击时间轴中任意位置的样条曲线将会在那里创建一个点。 这个点可以随意地到处拖动，但是正如上面所讨论的那样，如果样条曲线代表的是一个向量(XYZ)那么它将为那个向量在时间上移动所有的 3 个关键帧但在数值上不移动。
+在一些情况下，完成编辑之后需要将曲线从图表中移除。在曲线编辑器中 **右键单击** 曲线段，选择 _Remove Curve_ 即可轻松完成移除。
 
-右击关键点可以弹出一个菜单来让您可以手动地输入时间 (Time) 或者关键点的数值 (Value)。如果它是在颜色曲线上的一个关键帧，它将会允许您使用颜色选择器来选择它的颜色。
-
-如果模块是 随生命周期改变颜色 (ColorOverLife)，那么渲染的样条曲线将会反映粒子在那个时候的当前颜色，然而点的颜色将反映那个样条曲线的特殊通道。
-
-![GraphEditor.jpg](GraphEditor.jpg)
-
-
-请查看[曲线编辑器用户指南](Engine/UI/UserGuide/CurveEditor)页面获取更多信息。
-
-
-###属性面板
-
-属性面板包含一个标准的虚幻编辑器属性窗口（没有高级搜索和收藏功能）。显示在这个面板中的属性由当前在 Cascade 中选择的内容决定。如果什么都没有选（或者如果选择了粒子系统本身，例如，通过发射器列表中的关联菜单），那么会显示粒子系统本身的属性。如果选择了一个粒子发射器，指的是发射器块，那么会显示该特定粒子发射器的属性。如果选择的是一个粒子模块，那么会显示该特定粒子模块的属性。
-
-
-### 控制
-
-
-####鼠标控制
-
-Cascade 中的运动的控制是这样的：
-
-在预览面板中，鼠标左键可以使场景围绕粒子系统的中心来旋转场景，鼠标右键将会对场景进行缩小及放大。
-
-在发射器面板中，左击一个发射器或模块将会选中那个发射器或者模块。 左击并拖动一个模块时，假设在该模块的下面有一个发射器，则该模块将会移动到它落下的任何地方。 这个以用于将一个模块在堆栈中进行上下拖拽，或者拖拽到另一个发射其中。 右击将会打开一个关联对话框来创建新的发射器(点击空白空间)、创建一个模块(点击一个发射器的空白空间)、删除一个模块(点击一个模块名)或则会删除整个发射器(点击在顶部的主发射器)。
-
-在发射器间，按住 shift 键并左击拖拽一个发射器中的模块到另一个发射器中，将会在这个发射器中实例化一个模块，并且在这个模块名的后面会有一个'+'，这样这两个模块便可以共享相同的颜色。
-
-按下 Ctrl 键并左击拖拽一个模块将该模块从源发射器复制到目标发射器上。
-
-按下鼠标中间键并拖拽发射器面板则可以到处平移发射器面板。
-
-在发射器面板中选中一个发射器，使用 左/右 箭头键将会按照整个粒子系统的顺序来改变发射器的位置。发射器将按照它们出现在 Cascade 中从左到右的顺序通过粒子系统进行更新和渲染。
-
-在属性面板中，左击并选中文本域或者打开合并项来查看关于属性的信息。
-
-在图表 (Graph) 视图中，控制可以根据所使用的模式更改。这里为控制图表 (Graph) 视图提供了两种模式，分别为：
-
-平移模式 (Pan Mode)： 左击并拖拽可以到处地移动视图，鼠标滑轮可以用于进行统一缩放。
-
-缩放模式 (Zoom Mode)： 左击并拖动将会在垂直方向缩放曲线，右击并拖拽可以在水平方向上缩放曲线。
-
-如果在曲线编辑器中存在一个样条曲线，那么左击样条曲线的任何地方将会在那个点创建一个关键帧。 可以通过左击并拖拽关键帧来移动它们，但是任何时候在一个有多个值被曲线化(比如Color Over Lifetime的RGB 值)的模块中创建一个关键帧、把一个关键帧添加到那个模块的其它曲线中时。 这些关键帧将会和其它关键帧同时被保存，如果红色 (Red) 曲线的关键帧随着时间向前或向后移动，则绿色曲线和蓝色曲线的关键帧也将会在水平方向移动(但垂直方向不移动)。
-
-在曲线编辑器中的另两个按钮是视图适应按钮。 左边的按钮将会缩放及平移视图来适应当前可见样条曲线水平方向的长度，右边的按钮将使视图在垂直方向适应样条曲线的范围。
+![RemoveCurve.png](RemoveCurve.png)
 
 
 
-## 创建粒子系统
+#### 在图表上创建点
 
-要在虚幻引擎3中创建一个粒子系统，可以打开通用浏览器 (Generic browser)，然后或者打开 文件 (File)>新建 (New) 来从对话框底部的下拉列表中选择 粒子系统 (Particle System)，或者在通用浏览器 (Generic browser)中单击空白空间并从关联菜单中选择新建粒子系统 (New Particle System)。这两种方法适用于 Package、Group 和 Name。输入适当的数据，粒子系统将会出现在通用浏览器 (Generic browser) 中并且被白色的线框包围。
+在添加多个点之前，需要确保正在修改的 Distribution 为“曲线”类型（如 DistributionFloatConstantCurve）。
 
+在所需数值的样条上按下 **Ctrl + 左键单击** 组合键，即可在图表编辑器中创建点。最简便的方式是使用上文讲述的复选框将所有其他模块关闭。所有模块均从 0 开始，时间 0 上存在单个关键点。在时间线中的样条上按下 **Ctrl + 左键单击** 组合键即可于该处创建一个点。该点可被随意拖动，但如上文中所讨论，如样条代表一个矢量（XYZ），则将移动此向量三个关键点的时间，而非数值。
 
+在关键点上 **单击右键** 将呼出菜单，用以手动输入该关键点的时间和数值。如其为颜色曲线中的关键点，需要使用选色器为其设置颜色。
 
-## 创建平面粒子发射器
+如模块为 ColorOverLife，则渲染的样条将体现在渲染时的颜色；点也将拥有颜色，反映该样条的特定通道。
 
-在 Cascade 中创建一个发射器可以非常简单地完成。简单地在 Cascade 的发射器列表面板中右击并选择 新建平面粒子发射器 (New Sprite Emitter)。 这样便会创建一个具有生命周期 (Lifetime) 和初始尺寸 (Initial Size) 模块的发射器。 （目前这些模块没有包含有用的默认设置；这个功能将会在以后更新）。 设置 Lifetime 周期的最小值 (Min)/最大值 (Max)为 1，尺寸 (Size) 在 X,Y 和 Z 方向的最小值 (Min)/最大值 (Max) 为 30。
-
-
-
-## 基本的发射器选项
-
-右击一个发射器将会弹出包含以下选项的菜单：
-
-**重命名发射器 (Rename Emitter)** - 可以改变发射器的名称(可替换的，您也可以通过在全局设置中的发射器名称 (EmitterName) 处输入新的名称来该改变)。
-
-**克隆发射器 (Duplicate Emitter)** -在粒子系统中克隆发射器。
-
-**克隆+共享发射器 (Duplicate + Share Emitter)** -在粒子系统内克隆发射器，并在源发射器和克隆的发射器之间共享所有模块。
-
-**删除反射器 (Delete Emitter)** -删除发射器(可替换地，您可以仅通过选中粒子发射器然后点击 DELETE 键来删除)。
-
-**导出发射器 (Export Emitter)** -从当前的 Cascade 窗口中导出发射器到一个在通用浏览器 (General Browser) 中选中的粒子系统。 （打开具有您要导出的发射器的粒子系统，到通用浏览器 (General Browser) 中选中您的目标粒子系统，然后返回到 Cascade 窗口并选择导出发射器 (Export Emitter)）。
+![CurveEditor_1.png](CurveEditor_1.png)(w:720)
 
 
 
-## 创建模块
 
-创建模块的方式和创建粒子类似。 右击您想添加模块的发射器下方的空白空间，并从提供的下拉列表中选择您想使用的模块。
-
-
-
-## 复制发射器
-
-打开包含您想复制的发射器的粒子系统，在通用浏览器中选择您想复制到的目标粒子系统，右击您想复制的发射器，并选择发射器 (Emitter)>导出发射器 (Export Emitter)。 这样将会在另一个粒子系统中创建一个粒子发射器的拷贝。
-
+ 
 
 
 ## 模块
 
+模块是定义粒子行为的关键。每个模块都将会粒子行为的一个方面添加到系统中，如粒子生成位置、移动方式、颜色以及其他等。 
 
-### 模块信息
+在发射器的空白区域 **单击右键**，然后从快捷菜单中选择发射器，可将模块添加至发射器栏。
 
-如果您把一个属性改成一个随着时间变化的分布型，有些模块使用'相对时间'有些模块使用'绝对时间'(关于分布的更多信息如下所示)。
-
-
-* 绝对时间基本上是包含发射器的时间。如果您设置一个发射器为 2 秒内循环 3 次，则那个发射器中的模块的绝对时间将从 0-2 秒内运行 3 次。
-
-* 相对时间的值在 0-1 之间，预示着每个粒子的生命周期。
+![ModuleMenu.png](ModuleMenu.png)
 
 
-当前可用的模块可以在[粒子系统参考](Engine/Rendering/ParticleSystems/Reference)中找到。
+### 模块交互
 
+理解模块的计算方式十分重要。模块行为的属性为相加，但影响相同数值的初始模块将相互重叠（除非另有指定）。例如，_Scale Color/Life_ 模块对粒子的现有颜色产生 _影响_，而非将其替代。 
 
-### 模块的交互作用
+这样的计算在发射器叠列中自上至下进行。例如，影响粒子颜色的任意模块均会重叠位于其上方的相似模块。因此，将最重要的模块放在叠列层顶部附近位置方为上策。
 
-模块基于它们在一个发射器的栈中的位置来进行彼此间的交互。 比如，创建了一个初始位置为 Min(x=2, y=2, x=2), Max(x=-2, y=-2, z=-2)的发射器，它将会在一个非常小的四方盒子内产生粒子，然后将初始速度的StartVelocityRadia(初始速度径向)的 Min 和 Max 设置为 100，这样将会导致粒子从四方盒子的中心离开。 增加另一个初始位置，设置它的Ｘ、Ｙ的 Min(最小值) 和 Max(最大值)为 100，Z 将使整个发射器将在各个维度上都移动 100 个单位，但是粒子仍然从新确定位置的方盒子的中心离开。 如果将第二个初始位置模块 (Initial Location module) 移动到初始速度模块 (Initial Velocity module) 的上面，则会导致粒子将会从系统的原点进行发射而不是从位置偏移处发射。
+### Distribution 类型
 
+Distributions 是以极为独特方式设为数字的特殊数据类型。粒子模块中可用的多数主要属性均被指定有 distributions。这些 distributions 可定义属性拥有的单个数值、一段范围、或沿曲线进行内插操作。
 
-### 分布类型
+所使用的 distribution 类型将基于属性变化。例如，如需将所有粒子的生命周期设为 5 秒，distribution _DistributionFloatConstant_ 便会持有单个数据。然而如果需要将粒子的生命周期设为 2 到 5 秒之间的随机值，需切换至 _DistributionFloatUniform_，在这里便可指定范围。 
 
-请查看[分布参考页面](Engine/Basics/Distributions)获得更多详细信息。
+对于新用户而言，初期可能感觉 distributions 难以理解，但很快便能了解它在粒子系统处理的诸多属性中所拥有的巨大自由度。查阅 [Distribution 参考](Engine/Basics/Distributions) 页面中的详细内容。
 
 (#PartileSystemLODs)
-
-
-
-## 粒子系统细节层次 (LOD)
-
-虚幻引擎3中的粒子系统提供了对细节层次的支持。这个文档将说明了关于如何在您的粒子系统中创建 LOD 层次及如何在游戏中使用它们。
-
-
-### Cascade LOD 控制
-
-Cascade 工具条中的以下部分包含了关于 LOD 控制内容。
-
-**Cascade LOD 控制**
-
-![toolbar_lodtools.jpg](toolbar_lodtools.jpg)
-
-每个控制的详细信息如下所示：
-
-**跳转到最高 LOD 按钮 (Jump to Highest LOD Button)**  ![toolbar_jumphighest.jpg](toolbar_jumphighest.jpg)
-
-当按下 _跳转到最高LOD按钮 (Jump to Highest LOD)_ 时，系统将会被设置为最高的静态 LOD。
-
-**跳转到较高 LOD 按钮 (Jump to Higher LOD Button)**  ![toolbar_jumphigher.jpg](toolbar_jumphigher.jpg)
-
-当按下 _跳转到较高 LOD 按钮 (Jump to Higher LOD)_ 时，系统将会被设置为比当前 LOD 设置稍高的下一个可用的静态 LOD。
-
-**在当前位置前面添加 LOD 按钮 (Add LOD before current Button)**  ![toolbar_addbefore.jpg](toolbar_addbefore.jpg)
-
-按下 _在当前位置前面添加 LOD_ 按钮后，系统将会在当前加载的 LOD 前面插入一个新的静态 LOD。
-
-**当前 LOD (Current LOD)**  ![toolbar_lodcurrent.jpg](toolbar_lodcurrent.jpg)
-
-当前 LOD 信息框显示的是当前加载的 LOD 以及在粒子系统中存在的 LOD 数量。
-
-**在当前位置后面添加 LOD 按钮 (Add LOD after current Button)**  ![toolbar_addafter.jpg](toolbar_addafter.jpg)
-
-按下 _在当前位置前面添加 LOD_ 按钮后，系统将会在当前加载的 LOD 后面插入一个新的静态 LOD。
-
-**跳转到较低的 LOD 按钮 (Jump to Lower LOD Button)**  ![toolbar_jumplower.jpg](toolbar_jumplower.jpg)
-
-当按下 _跳转到较低的LOD按钮 (Jump to Lower LOD Button)_ 时，系统将会被设置为比当前 LOD 设置稍低的下一个可用的静态 LOD。
-
-**跳转到最低的 LOD 按钮 (Jump to Lowest LOD Button)**  ![toolbar_jumplowest.jpg](toolbar_jumplowest.jpg)
-
-当按下 _跳转到最低 LOD 按钮 (Jump to Lowest LOD Button)_ 时，系统将会被设置为可用的最低静态 LOD。
-
-**重新生成最低 LOD 按钮 (Regen Lowest LOD Button)**  ![toolbar_regenlowest.jpg](toolbar_regenlowest.jpg)
-
-当按下 _重新生成最低 LOD 按钮 (Regen Lowest LOD Button)_ 时，粒子系统将会移除当前存在的所有较低的 LOD 层次并重新产生一个最低的 LOD。
-
-**重新生成最低的 LOD 复制最高按钮 (Regenerate Lowest LOD Duplicating Highest Button)**  ![toolbar_regenfromhighest.jpg](toolbar_regenfromhighest.jpg)
-
-当按下 _重新生成最低 LOD 复制按钮 (Regen Lowest LOD Duplicate Button)_ 时，粒子系统将会删除现存的所有较低的 LOD 层次，并产生一个是最高层次的精确拷贝来重生成新的最低 LOD。
-
-**删除 LOD 按钮 (Delete LOD Button)**  ![LODDelete.jpg](LODDelete.jpg)
-
-当按下 _删除LOD按钮 (Delete LOD Button)_ 时，从粒子系统中删除当前选中的静态 LOD。
-
-
-### 在粒子系统中创建 LOD 层次
-
-以下部分将会复习创建粒子系统的设计流程，并完全地支持 LOD(Level of detail)。
-
-最高 LOD 用于呈现出全面的预期效果。请注意：在最高 LOD 层次上进行编辑时，仅能 添加/删除 模块。在这个例子中，创建了一个显示每一帧红色 *1* 的贴图的单独的子 UV 发射器。可以通过一个将常量索引设置为 0 的子图像索引 (SubImage Index) 模块完成这项操作。最终系统显示在下面的屏幕截图中。
-
-**最高 LOD 层次**
-
-![LODLevel_Highest.jpg](LODLevel_Highest.jpg)
-
-由于为粒子所选择的尺寸较大，所以图片稍微的有点模糊。这是为了示范在游戏中将会发生的 LOD 层次选择而设计的。
-
-只要设计者感觉粒子系统已经准备好了进行 LOD 设计，他应该从 **编辑 (Edit)** 菜单中选择 **重新生成最低LOD (Regenerate Lowest LOD)** 。这将会导致系统来重新产生最低的 LOD 层次。(它也会删除在中间生成的任何静态 LOD 层次。目前，这个操作将仅是简单地以较低的产生速率来复制最高 LOD 层次来完成。只要从内部团队中收集到了反馈，将会实现一般模块的相应产生规则。
-
-当选择了最低 LOD 层次后，可以着手对其值进行调整来获得适当的外观。默认情况下有一件事需要注意的是，在静态 LOD 层次中所有的模块都标识为 _不可编辑 (un-editable)_ 。这以显示一个大理石背景的模块为代表。（这个背景颜色是可以改变的。） 为了在一个静态 LOD 层次中编辑一个模块，它必须被启用。这可以通过右击那个模块，并从关联菜单中选择 _启用模块 (Enable Module)_ 来实现。
-
-在我们的示例中，我们已经启用了子图像索引 (SubImage Index) 模块进行编辑，同时将索引值设置为 3。这个结果在发射器中显示为一个绿色的 *4* ，如下所示：
-
-**最低 LOD 层次**
-
-![LODLevel_Lowest.jpg](LODLevel_Lowest.jpg)
-
-注意产生速率自动设置为最高 LOD 层次的 10%。
-
-下一步将会包括通过按下 **在当前 LOD 前面添加 LOD (Add LOD before current)** 按钮在最高和最低 LOD 之间添加一个静态 LOD（假设您仍然查看的是最低 LOD）。启用子图像索引 (SubImage Index)模块，并设置索引为 1。这将会导致发射器显示一个黄色的 *2* ，如下所示。
-
-**LOD 层次 1**
-
-![LODLevel_33.jpg](LODLevel_33.jpg)
-
-通过按下 **在当前 LOD 后面添加 LOD (Add LOD after current)** 按钮并启用子图像索引模块在第一个静态 LOD 和最低 LOD 之间对另一个静态 LOD 进行相同的操作。设置 SubImage Index(子图像索引) 为 2 将会导致发射器显示一个蓝色的 *3* ，如下所示：
-
-**LOD 层次 2**
-
-![LODLevel_66.jpg](LODLevel_66.jpg)
-
-
-### LOD 方法及距离设置
-
-粒子系统 LOD 在游戏中的控制可以通过这两种方式其中的一种来完成。在每个粒子系统中有一个枚举变量叫做 LODMethod，它提供了决定如何在游戏中控制粒子系统 LOD 的方法。
-
-第一个允许的值是 _Direct(直接)_ 模式，可以通过将 LODMethod 的模式选择为 **PARTICLESYSTEMLODMETHOD_DirectSet** 来指出。当选择了这个模式时，粒子系统将会使用它所设定的 LOD 层次。这个是打算在游戏中产生的特效使用的，假设它按照需要设置好了适当的 LOD 层次。
-
-第一个允许的值是 _自动 (Automatic)_ 模式，通过将 LODMethod 的属性设置为 **PARTICLESYSTEMLODMETHOD_Automatic** 来说明。当选择了这个模式时，粒子系统将在粒子产生时及循环特效的每次进行循环时决定要使用的 LOD 层次。LOD 层次是通过计算从相机到粒子的距离，并从 LODDistances 数组中查找适当的层次来决定的。系统将基于大于或等于在数组中的项的距离来选择 LOD 层次。
-
-以下我们的实例粒子系统的属性窗口：
-
-**LODDistances 属性窗口**
-
-![LODDistanceProperty.jpg](LODDistanceProperty.jpg)
-
-在这个粒子中，当相机和发射器的距离为[0..1249]个单位时，使用 LOD 0(最高)。当距离为[1250..1874]使用 LOD 1、当距离为[1875..2499]使用 LOD 2、当距离大于2500个单位时使用 LOD3。
-
-LODDistanceCheckTime 用于设置每个设置为 Automatic 模式的 ParticleSystemComponent 在运行时多找时间执行一次距离检测来确定要使用的 LOD (以秒为单位)。在这个例子中，在关卡中的这个粒子系统的每个粒子实例会每隔 1/10 秒来进行一次距离检查。
-
- 
 
 
 

@@ -1,0 +1,115 @@
+﻿INTSourceChangelist:2983084
+Availability:Public
+Title:2. 구글 VR 프로젝트 구성
+Crumbs:%ROOT%, Platforms/GoogleVR
+Description:구글 VR 을 사용하는 UE4 프로젝트 구성입니다.
+Navigation:platform
+Skilllevel: Intermediate
+Version: 4.12
+Parent:Platforms/GoogleVR/QuickStart
+order:2
+type:step
+tags:VR
+tags:Google VR
+
+[NAV]
+
+ 구글 VR 퀵 스타트 이번 회에서는 구글 VR 을 사용할 수 있도록 UE4 프로젝트를 구성하는 법을 다뤄보겠습니다.
+
+1. UE4 에디터가 로드되면, **메인 툴바** 에서 **편집** 탭을 열고 **Plugins** 메뉴 항목을 선택합니다.
+
+	![](GVRQS_Pligin_Menu_00.png)
+
+1. Plugins 메뉴에서 **Virtual Reality** (가상 현실) 섹션으로 가 **Google VR** (구글 VR)이 활성화되어 있는지 확인합니다.
+
+	![](GVRQS_Pligin_GVR_Enabled_00.png)
+
+    [region:note]
+    구글 VR 플러그인은 기본적으로 활성화되어 있을 것입니다. 그렇지 않은 경우, 그 옆의 체크박스를 클릭하면 **Enabled** (활성화)됩니다. 그러면 변경사항 적용을 위해 UE4 에디터를 재시작하라는 창이 뜹니다. 구글 VR 플러그인 활성화 후 UE4 에디터를 재시작하지 않으면 플러그인이 정상 작동하지 않을 수 있습니다.
+    [/region]
+
+1. **콘텐츠 브라우저** 안에서 새 머티리얼을 만든 뒤 이름을 **MAT_Floor** 라 하고, 더블클릭하여 엽니다.
+
+	![](GVRQS_Floor_Material_00.png)
+
+1. 머티리얼 그래프에서, **Constant** 머티리얼 표현식 노드를 추가하고 값을 **0.5** 로 설정한 뒤 그 출력을 **베이스 컬러** 입력에 연결하고서 **적용** 버튼을 눌러 머티리얼을 컴파일합니다.
+
+	![](GVRQS_Floor_Material_Setup_00.png)
+
+1. **Mat_Floor** 머티리얼을 콘텐츠 브라우저에서 끌어 레벨에 배치된 **Floor** 스태틱 메시에 놓으면 그 스태틱 메시에 머티리얼이 적용됩니다.
+
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	k-1bWOSaXU8
+	[/PARAMLITERAL]
+	[/OBJECT]
+
+1. 메인 툴바에서 **파일** 옵션을 선택하고 **저장** 옵션을 클릭하면 **다른 이름으로 저장** 창이 뜹니다.
+
+	![](GVRQS_Save_Level_00.png)
+
+1. **다른 이름으로 저장** 창에서 **이름** 부분 아래 레벨 이름을 **EntryLevel** 이라 입력한 뒤 **저장** 버튼을 누릅니다.
+
+	![](GVRQS_Save_Level_01.png)
+
+1. **메인 툴바** 로 돌아와서 **편집** - **프로젝트 세팅** 메뉴 옵션을 선택합니다.
+
+	![](GVRQS_Project_Settings_00.png)
+
+1. 프로젝트 세팅 메뉴에서 **맵 & 모드** 섹션으로 이동한 뒤 **Default Maps** (기본 맵) 섹션 아래, **Editor Startup Map** (에디터 시작 맵)과 **Game Default Map** (게임 기본 맵)을 EntryLevel 맵으로 설정합니다. 그러면 프로젝트 실행시 EntryLevel 맵이 로드됩니다.
+
+	![](GVRQS_Select_Level_00.png)
+
+1. 프로젝트 세팅으로 돌아와 **Target Hardware** (타겟 하드웨어) 섹션 아래 **Target Hardware** 클래스가 **Mobile / Tablet** (모바일 / 타블렛) 으로, 그래픽 레벨은 **Scalable 3D or 2D** (스케일가능 3D 또는 2D) 로 되어있는지 확인합니다. 
+
+	![](GVRQS_Target_Hardware_00.png)
+
+	[region:note]
+	**Pending Changes** (대기중인 변경사항) 섹션 아래 **Restart Editor** (에디터 재시작) 버튼이 보이면, 눌러서 에디터를 재시작해야 변경사항이 적용됩니다. 그렇게 하지 않으면 프로젝트가 구글 VR 과 정상 작동하지 않을 수 있습니다.
+	![](GVRQS_Target_Hardware_01.png)
+	[/region]
+
+1. **Rendering** (렌더링) 섹션에서 **Mobile HDR** (모바일 HDR)이 비활성화되었는지 확인합니다. 올바른 입체 렌더링을 위해서는 필수입니다.
+
+	![](GVRQS_Moile_HDR_Off_00.png)
+
+1. **Input** (입력) 섹션 아래 **Mobile** 카테고리에서, **Default Touch Interface** (기본 터치 인터페이스)의 **DefaultVirtualJoysticks** 옆 작은 하양 삼각형을 클릭하면 뜨는 드롭다운 목록에서 **Clear** (비우기) 옵션을 눌러 제거합니다.
+
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	-Ylbi1TCKZs
+	[/PARAMLITERAL]
+	[/OBJECT]
+
+1. **Android** (안드로이드) 섹션 아래 **Platforms** (플랫폼) 부분에서 **APKPackaging** (APK 패키징)과 **Google Play Services** (구글 플레이 서비스) 섹션의 **Configure Now** (지금 환경설정) 버튼을 누릅니다.
+
+	![](GVRQS_Config_Now_00.png)
+
+1. **APKPackaging** 섹션 아래 **Minimum SDK Version** 과 **Target SDK Version** (최소/타겟 SDK 버전)을 **21** 로 설정하고, **Enable FullScreen Immersive on KitKat and above devices** (KitKat 이상 디바이스에서 전체화면 몰입 활성화) 옵션을 켜 VR 헤드셋을 쓰고 프로젝트를 볼 때 화면상의 버튼이 보이지 않도록 합니다.
+
+	![](GVRQS_SDK_Version_00.png)
+
+1. **Advanced APKPackaging** (고급 APK 패키징) 섹션에서 **Configure GoogleVR for sustained performance mode** (지속 퍼포먼스 모드로 구글 VR 환경설정 모드) 옵션을 활성화시킵니다.
+
+	![](GVRQS_GoogleVR_Options_00.png)
+
+	* **Sustained Performance:** (지속 퍼포먼스): 지속 퍼포먼스 모드에 들어간 디바이스는, 과열되어 퍼포먼스가 떨어지기 전까지 일정 수준 퍼포먼스가 가속됩니다. 꽤 오랜 기간 실행되는 앱에는 이 옵션을 활성화시키는 것이 좋습니다.
+
+1. **Android SDK** (안드로이드 SDK) 섹션의 **SDKConfig** (SDK 환경설정) 섹션 아래 **SDK API Level** 과 **NDK API Level** 둘 다 기본값이 아닌 **android-21** 로 설정하여 프로젝트가 가장 최신의 안드로이드 SDK 로 컴파일되도록 합니다.
+
+	![](GVRQS_Android_SDK_Options_00.png)
+
+구글 VR 퀵 스타트 다음 회에서는, UE4 프로젝트를 패키징하고 구글 VR 디바이스에서 실행시키는 법을 알아보도록 하겠습니다.
+[NAV]

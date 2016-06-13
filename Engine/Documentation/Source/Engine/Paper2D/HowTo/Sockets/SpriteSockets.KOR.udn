@@ -1,10 +1,13 @@
-﻿INTSourceChangelist:2632165
+﻿INTSourceChangelist:2746192
 Availability:Public
 Title:스프라이트 소켓 사용하기
 Crumbs: %ROOT%, Engine, Engine/Paper2D
 Description:페이퍼 2D 스프라이트에 정의된 소켓에 오브젝트를 붙이는 방법입니다.
 Related: Engine\Paper2D\Sprites
 Related: Engine\Paper2D\Flipbooks
+Version: 4.9
+SkillLevel: Intermediate
+
 
 
 이 글에서는 스프라이트에 오브젝트를 붙일 수 있는 소켓을 추가한 뒤 블루프린트 안에서 그 소켓에 접근하는 법에 대해 알아보겠습니다. 스프라이트 소켓에서 파티클 이펙트를 스폰(하여 불붙은 캐릭터를 표현)한다든가, 캐릭터의 손에 (총이나 칼같은) 무기를 붙이는 등, 스프라이트의 소켓에 붙이거나 스폰할 수 있는 것은 여러가지 있습니다.

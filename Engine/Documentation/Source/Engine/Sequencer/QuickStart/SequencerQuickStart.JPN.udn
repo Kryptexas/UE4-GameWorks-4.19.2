@@ -1,0 +1,44 @@
+﻿INTSourceChangelist:2901521
+Availability:Docs
+Title:シーケンサー クイック スタート
+Crumbs: %ROOT%, Engine
+Description:UE4 でシーケンサー エディタの作業を開始するためのガイドです。 
+Navigation:topic
+parent:Engine/Sequencer
+order:1
+Version:4.11
+Related:Engine/Sequencer/Overview
+Related:Engine\Sequencer\ReferenceEditor
+Related:Engine\Sequencer\HowTo
+
+
+[REGION:warning]
+これは現在開発中の機能であり、期待どおりに機能しなかったり、将来のリビジョンで変更される可能性があります。
+[/REGION]
+
+シーケンサーは、[**マチネ**](Engine\Matinee\) の後継であり、特殊なマルチ トラック エディタを通してインゲームのシネマティックスを作成する機能があります。 
+**レベル シーケンス** を作成し **トラック** を追加することで、各トラックの構成を定義し、それによりシーケンスの内容を決めることができます。 
+トラックには、アニメーション (キャラクターをアニメートするため)、トランスフォーム (カメラなどをシーン内で動かす) 、オーディオ (音楽やサウンド エフェクトを含むため) などがあります。 
+
+このページでは、UE4 内の **シーケンサー** エディタの基本について説明します。 
+
+[REGION:note]
+シーケンサーは、まだ開発の初期段階であり、利用するには有効にしなければなりません。詳細は [](Engine\Sequencer\HowTo\EnableSequencer) のページをご覧ください。 
+[/REGION]
+
+##レベル シーケンス
+
+**Level Sequence** アセットは、**Matinee アクタ** と類似しており、シーケンサーで作業を始める前に作成しなければなりません。 
+
+作成するには、**ツールバー** の **シネマティックス** から、または **コンテンツ ブラウザ** から行います。 
+
+
+
+
+
+
+
+
+
+
+

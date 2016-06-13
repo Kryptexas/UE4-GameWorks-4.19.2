@@ -1,45 +1,38 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:1. Required Project Setup
+﻿INTSourceChangelist:2735872
+Availability:Public
+Title:1.必要项目设置
 Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
-Description:Use the Side Scroller Blueprint Template as a jumping-off point for your game.
+Description:使用“横卷轴蓝图模板”作为游戏的起点。
+version:4.9
+parent:Engine/Blueprints/QuickStart
+order:1
+type:multi-step
 
+[NAV]
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Quick Start Home](Engine/Blueprints/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Engine/Blueprints/QuickStart/2 "%Engine/Blueprints/QuickStart/2:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
 
 ---
 
-1. [Create a new project](Engine/Basics/Projects/Browser#creatingnewprojects).
+1. [创建一个新项目](Engine/Basics/Projects/Browser#bookmarkcreatingnewprojects)。
 
-1. Select the Side Scroller template in the Blueprint tab of the New Project wizard.
+1. 在 **新项目** 向导的 **Blueprint** 标签下选择 **横卷轴** 模板。
 
-1. Choose whatever [scalability and quality settings work best for your setup, but make sure to include starter content](Engine/Basics/Projects/Browser#projectsettings).
+1. 任选符合个人设定要求的可延展性和质量设置，必须加入 **初学者内容**。
 
-1. Give your project a name, and then create it by clicking the **Create Project** button. 
+[REGION:note]
+如不明确何种设定符合自身要求，可在 [项目设置](Engine/Basics/Projects/Browser#bookmarkprojectsettings) 章节下查看更多内容。
+[/REGION]
+
+1. 为项目命名，然后点击 **创建项目** 按钮进行创建。 
 
 
-You should now see a side-scroller level, ready to jump in and start adding to. 
+之后将出现一个横卷轴关卡，可添加资源将其投入使用。 
 
 ![](Step1End.png)
 
 
 ---
 
-%Steps%
+[NAV]
 
 

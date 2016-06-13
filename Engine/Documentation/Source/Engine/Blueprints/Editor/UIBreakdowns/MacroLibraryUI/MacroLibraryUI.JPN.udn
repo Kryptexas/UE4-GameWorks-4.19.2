@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2683142
+﻿INTSourceChangelist:2953341
 Availability:Public
 Title:マクロライブラリ UI
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
-Description:ブループリント クラス エディタ インターフェースの概要
+Description:ブループリント マクロ ライブラリで作業する際のブループリント エディタの UI エレメントの分類
 version:4.9
 
 [VAR:Topic]
@@ -48,7 +48,7 @@ version:4.9
 <!----------
 [EXCERPT:Visible]
 1. [メニュー](Engine/Blueprints/Editor\UIComponents\Menu)
-1. [ツールバー](Engine/Blueprints/Editor\UIComponents\Toolbar\ToolbarOptions)
+1. [ツールバー](Engine/Blueprints/Editor\UIComponents\Toolbar)
 1. [My Blueprint](Engine/Blueprints/Editor\UIComponents\MyBlueprint)
 1. [詳細](Engine/Blueprints/Editor\UIComponents\Details)
 1. [グラフ エディタ](Engine/Blueprints/Editor\UIComponents\GraphEditor)

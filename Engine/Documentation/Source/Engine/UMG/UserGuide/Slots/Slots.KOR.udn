@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2609568
+﻿INTSourceChangelist:2709477
 Availability:Public
 Title: 슬롯
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
 Description:UMG 의 슬롯 사용법 개요입니다.
+Version: 4.9
 
 [TOC(start:2 end:2)]
 
@@ -21,7 +22,7 @@ Description:UMG 의 슬롯 사용법 개요입니다.
 
 ### 레이아웃 프로퍼티 설정하기
 
-실행시간에 **Layout** 아래 프로퍼티를 변경하기 위해서는, **블루프린트** 나 C++ 에서 위젯의 **슬롯** 멤버에 접근한 다음 올바른 **슬롯 유형** 으로 **Cast** (형변환)해 주면 됩니다. 그렇게 하고나면 프로퍼티를 변경할 수 있게 되는데, 그 예는 아래 나타나 있습니다.
+실행시간에 **Layout** 아래 프로퍼티를 변경하기 위해서는, **블루프린트** 나 C++ 에서 위젯의 **슬롯** 멤버에 접근한 다음 올바른 **슬롯 유형** 으로 **Cast** (형변환)해 주면 됩니다. 그렇게 하고 나면 프로퍼티를 변경할 수 있게 되는데, 그 예는 아래 나타나 있습니다.
 
 ![](SlotCast.png)
 

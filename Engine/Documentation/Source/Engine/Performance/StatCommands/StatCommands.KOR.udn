@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2694087
+﻿INTSourceChangelist:2704570
 Availability:Public
 Title: Stat 명령
 Crumbs: %ROOT%, Engine
 Description:게임 통계 표시를 위한 콘솔 명령입니다.
 Navigation:topic
+version: 4.9
 
 프로파일링 보조를 위해 콘솔에 입력할 수 있는 stat, 통계 명령 목록은 이렇습니다. 기억하실 것은, 로그를 파일로 덤핑하려면, 에디터/게임에 -log 명령을 붙여서 로그 파일을 설정한 뒤 실행해 줘야 합니다.
 
@@ -70,7 +71,7 @@ Note: removed until this can be checked against profiler info. StatsViewer didn'
 [![](statSlow2.png)(w:600)](statSlow2.png)
 [/REGION]
 
-**Stat slow** 는 화면 공간을 많이 잡아먹을 수 있는데, **stat slow** (나 **stat Grouped**) 를 사용하면 보이는 모든 통계 그룹이 제거됩니다. 추가적으로 다른 통계 그룸을 켜도 **stat slow** 가 꺼집니다.
+**Stat slow** 는 화면 공간을 많이 잡아먹을 수 있는데, **stat slow** (나 **stat Grouped**) 를 사용하면 보이는 모든 통계 그룹이 제거됩니다. 추가적으로 다른 통계 그룹을 켜도 **stat slow** 가 꺼집니다.
 
 [/EXCERPT]
 

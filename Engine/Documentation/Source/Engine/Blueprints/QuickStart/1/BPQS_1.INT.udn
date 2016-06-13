@@ -18,9 +18,9 @@ type:multi-step
 
 1. Choose whatever scalability and quality settings work best for your setup, but make sure to include **Starter Content**.
 
-[REGION:note]
-If you are unsure of what settings are right for you, you can find more information in the [Project Settings](Engine/Basics/Projects/Browser#projectsettings) section
-[/REGION]
+	[REGION:note]
+	If you are unsure of what settings are right for you, you can find more information in the [Project Settings](Engine/Basics/Projects/Browser#projectsettings) section
+	[/REGION]
 
 1. Give your project a name, and then create it by clicking the **Create Project** button. 
 

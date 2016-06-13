@@ -53,7 +53,7 @@ skilllevel:Advanced
 
 	![](EventD_7.png)
 
-	레벨 안의 SM_Bush 에 대한 레퍼런그를 구하는 것입니다.
+	레벨 안의 SM_Bush 에 대한 레퍼런스를 구하는 것입니다.
 
 	[REGION:note]
 	위에 나열된 노드가 안보이나요? 레벨 안의 **SM_Bush** 를 선택한 다음 다시 해 보세요.

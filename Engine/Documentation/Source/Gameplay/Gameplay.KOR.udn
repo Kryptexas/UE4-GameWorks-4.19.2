@@ -1,8 +1,11 @@
-﻿INTSourceChangelist:2602708
+﻿INTSourceChangelist:2740161
 Title: 게임플레이 안내
 Crumbs:%ROOT%
 Description:프로그래머와 비주얼 스크립터를 위한 게임플레이 함수성 개요 및 예제입니다.
 Availability:Public
+version: 4.9
+parent:%ROOT%
+order:6
 
 [VAR:Params]
 [PARAM:image]
@@ -61,7 +64,7 @@ gameplay
 	[/PARAM]
 [/OBJECT]
 
-[OBJECT:TopicButtonList]
+[OBJECT:TopicList]
 	[PARAM:icon]
 		![](%ROOT%/gameplay_icon.png)(convert:false)
 	[/PARAM]
@@ -74,12 +77,7 @@ gameplay
 		확인해 보시거나, 그냥 특정 클래스 페이지에 바로 점프해 보시기 바랍니다.
 	[/PARAM]
 	[PARAM:links]
-		* [프레임워크 개요](Gameplay/Framework "%Gameplay/Framework:description%")
-		* [간단 참고서](Gameplay/Framework/QuickReference "%Gameplay/Framework/QuickReference:description%")
-		* [](Gameplay/Framework/Pawn "%Gameplay/Framework/Pawn:description%")
-		* [](Gameplay/Framework/Controller "%Gameplay/Framework/Controller:description%")
-		* [](Gameplay/Framework/GameMode "%Gameplay/Framework/GameMode:description%")
-		* [](Gameplay/Framework/Camera "%Gameplay/Framework/Camera:description%")
+	[DIR(output:"listbutton" type:"reference" tags:"Gameplay Framework" parent:"Gameplay" org:"hierarchy")]
 	[/PARAM]
 [/OBJECT]
 
@@ -121,7 +119,7 @@ gameplay
 	[/PARAM]
 [/OBJECT]
 
-[OBJECT:TopicButtonList]
+[OBJECT:TopicList]
 	[PARAM:icon]
 		![](%ROOT%/gameplay_icon.png)(convert:false)
 	[/PARAM]
@@ -133,25 +131,7 @@ gameplay
 		게임에 적 또는 픽업 스폰 방법이라든가, 카메라 앵글 변경, 플레이어 인풋 셋업 등등, 여기서는 블루프린트와 C++ 용 예제 셋업이 제공됩니다.
 	[/PARAM]
 	[PARAM:links]
-		* [액터 스폰/소멸](Gameplay\HowTo\SpawnAndDestroyActors)
-		* [리스폰 (소멸시)](Gameplay\HowTo\RespawnPlayer)
-		* [폰 빙의하기](Gameplay\HowTo\PossessPawns)
-		* [레이캐스트 (트레이싱) 사용하기](Gameplay\HowTo\UseRaycasts)
-		* [액터 레퍼런싱하기](Gameplay\HowTo\ReferenceAssets)
-		* [타이머 사용하기](Gameplay\HowTo\UseTimers)
-		* [게임 모드 구성하기](Gameplay\HowTo\SettingUpAGameMode)
-		* [플레이어 인풋 구성하기](Gameplay\HowTo\SetUpInput)
-		* [액터에 인풋 구성하기](Gameplay\HowTo\ActorInput)
-		* [캐릭터 이동 구성하기](Gameplay\HowTo\CharacterMovement)
-		* [씬에 있는 액터 찾기](Gameplay\HowTo\FindingActors)
-		* [카메라 사용하기](Gameplay\HowTo\UsingCameras)
-		* [컴포넌트 추가하기](Gameplay\HowTo\AddingComponents)
-		* [OnHit 이벤트 사용하기](Gameplay\HowTo\UseOnHit)
-			* **네트워킹**
-			* [액터 리플리케이션](Gameplay\HowTo\Networking\ReplicateActor)
-			* [함수 리플리케이션](Gameplay\HowTo\Networking\ReplicateFunction)
-			* [변수 리플리케이션](Gameplay\HowTo\Networking\ReplicateVariable)
-			* [멀티플레이어 테스트하기](Gameplay\HowTo\Networking\TestMultiplayer)
+	[DIR(end:"3" type:"how-to" output:"listbutton" parent:"Gameplay" org:"hierarchy")]
 	[/PARAM]
 [/OBJECT]
 

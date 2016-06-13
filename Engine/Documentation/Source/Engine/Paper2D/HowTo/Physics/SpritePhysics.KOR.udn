@@ -1,10 +1,12 @@
-﻿INTSourceChangelist:2632157
+﻿INTSourceChangelist:2746186
 Availability:Public
 Title:2D 피직스 적용하기
 Crumbs: %ROOT%, Engine, Engine/Paper2D
 Description:2D 게임용 피직스 구현 예제입니다.
 Related: Engine\Paper2D\Sprites
 Related: Engine\Paper2D\Flipbooks
+Version: 4.9
+SkillLevel: Intermediate
 
 이 글에서는 2D 게임의 스프라이트에 피직스를 적용하는 예제를 살펴봅니다.
 

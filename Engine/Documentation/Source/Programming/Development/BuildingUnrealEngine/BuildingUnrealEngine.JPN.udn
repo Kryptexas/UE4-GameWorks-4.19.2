@@ -1,15 +1,22 @@
-﻿INTSourceChangelist:2374181
+﻿INTSourceChangelist:2944238
 Availability:Public
-Title:アンリアル エンジンのビルド
+Title:ソースからアンリアル エンジンをビルドする
 Crumbs:%ROOT%, Programming, Programming/Development
-Description:アンリアル・エンジンのコンパイル
-バージョン4.5
+Description:ソースからアンリアル エンジンをコンパイルする
+Prereq:GettingStarted/DownloadingUnrealEngine
+Related:GettingStarted
+Related:Engine/Content/QuickStart
+Related:Programming/QuickStart
+Related:Engine/QuickStart
+Related:Support/Builds
+Version:4.9
+SkillLevel:Advanced
 
-%Globals:OSSelect%
+%Globals:osselect_linux%
 
 [TOC (start:2 end:3)]
 
-##アンリアル エンジンの設定
+## ソースからアンリアル エンジンをビルドする
 
 [EXCERPT:Main]
 [OBJECT:ToggleButtonContent]
@@ -23,23 +30,7 @@ Description:アンリアル・エンジンのコンパイル
 	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
-		[REGION:note]
-		開始前に、Visual Studio 2013 が実行されていることを確認してください。
-		[/REGION]
-
-		エンジンでの作業に取り掛かる前に、行うべき基本的な設定手順がいくつかあります。
-
-		1.	ルート ディレクトリに格納されている `GenerateProjectFiles.bat` バッチファイルを実行します。
-
-			[REGION:warning]
-				全てのプロジェクトファイルと UE4 ソリューションは中間ファイルであり、`[UE4Root]\Engine\Intermediate\ProjectFiles` に格納されています。新しいビルドと同期する度にこうしたファイルを生成し、ファイルが存在することと最新状態であることを確認してください。もし`Intermediate` フォルダを削除したら、上記のバッチファイルを使用してプロジェクトファイルを再生成する必要があります。
-			[/REGION]
-
-		1. 	ルート ディレクトリにある `UE4.sln` Visual Studio ソリューションを開きます。これはエンジン全体に対する主要な Visual Studio ソリューションです。エンジンコアやゲームのプロジェクトはこのソリューション内にあります。 
-
-		1. 	**UE4** プロジェクトを **右クリック** して、**「Set As StartUp Project」** を選びます。
-
-		1. 	`UE4.sln` を保存します。次回ソリューションを開く際に上記の手順を再度繰り返さなくていいように、変更を必ず保存してください。
+		[INCLUDE:#windowscompile]
 	[/PARAM]
 [/OBJECT]
 [OBJECT:ToggleButtonContent]
@@ -52,29 +43,159 @@ Description:アンリアル・エンジンのコンパイル
 	[PARAMLITERAL:active]
 	[/PARAMLITERAL]
 	[PARAM:content]
-		[REGION:note]
-		開始前に、Xcode 5.1 が実行されていることを確認してください。
-		[/REGION]
-
-		エンジンでの作業に取り掛かる前に、コンパイルするためにプロジェクト ファイルが必要です。 
-		1. ルート ディレクトリにある `GenerateProjectFiles.command` を実行します。完了までに 1 分弱程度かかります。 
-
-		1. オペレーションが完了したら、Terminal ウィンドウを閉じます。
-
-
-		1. ルート ディレクトリにある `UE4.xcodeproj` Xcode プロジェクトを開きます。これはエンジン全体に対する主要なプロジェクトです。エンジンコア、ツール、ゲームのプロジェクトはすべてこのプロジェクトに格納されています。
-
-		1. Xcode では、アクティブ スキームに対して **UE4Editor - Mac** と **My Mac 64-bit** を選択します。
-
+		[INCLUDE:#maccompile]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	linux
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+		[INCLUDE:#linuxcompile]
 	[/PARAM]
 [/OBJECT]
 
+<!--
+[EXCERPT:windowscompile]
+[REGION:note]
+Microsoft Visual Studio 2015 がインストール済であることを確認してから、ソースからアンリアル エンジンをビルドしてください。
+[/REGION]
 
-##アンリアル エンジンのコンパイル
+1.	ルート ディレクトリ内で、**GenerateProjectFiles.bat** を実行してプロジェクト ファイルをセットアップします。
 
-アンリアル エンジン4 は、UnrealBuildTool を利用したカスタム ビルド方法を使用します。このツールはエンジンのコンパイルに関する全ての複雑な側面と要素を処理します。 
+	[REGION:warning]
+	すべてのプロジェクト ファイルは、Intermediate (中間) ファイルです (`[UE4Root]\Engine\Intermediate\ProjectFiles`)。新しいビルドを同期する度にこうしたプロジェクト ファイルを必ず生成し、最新状態にしてください。もし`Intermediate` フォルダを削除したら、'GenerateProjectFiles' バッチファイルを使用してプロジェクト ファイルを再生成する必要があります。
+	[/REGION]
 
-###ビルド コンフィギュレーション
+1.	プロジェクトを Visual Studio にロードするには、**UE4.sln をダブルクリック** します。
+
+1.	ご自分のソリューション コンフィギュレーションを **Development Editor** に設定します。
+
+	![](configMenu_updated.png)
+
+1.	ソリューション プラットフォームを **Win64** に設定します。
+
+	![](platform_menu_updated.png)
+
+1.	**UE4** ターゲットを **右クリック** し、**Build** を選択します。
+
+	![](BuildUE4.png)
+
+	[REGION:note]
+	システムの仕様に応じて、ソースからエンジンをコンパイルするには 10 分から 40 分程度かかることがあります。
+	[/REGION]
+
+1.	エンジンをコンパイルしたら、スタートアップ プロジェクトを **UE4** に設定します。
+
+	![](SetUE4_StartPrj.png)
+
+1.	**UE4** プロジェクトを **右クリック** し、 **'Debug' にマウスをかざし**、**'Start New Instance' をクリック** して、エディタを起動します。
+
+	![](RunCompiledWindowsEditor.png)
+
+	[REGION:tip]
+	または、キーボード上で **F5 キー** を押して、エディタの新しいインスタンスを開始します。
+	[/REGION]
+
+1.	これで終わりです！エンジンをソースからコンパイルし、起動しました。
+
+	![](CompiledEditor_Windows.png)
+
+[/EXCERPT:windowscompile]
+[EXCERPT:maccompile]
+[REGION:note]
+XCode の最新版がインストール済であることを確認してから、ソースからアンリアル エンジンをビルドしてください。
+[/REGION]
+
+1.	ルート ディレクトリ内で、**GenerateProjectFiles.command** を実行してプロジェクト ファイルをセットアップします。
+
+1.	プロジェクトを XCode にロードするには、**UE4.xcodeproj をダブルクリック** します。
+
+1.	ビルド ターゲットを設定するには、タイトルバーで **UE4Editor - Mac** for **My Mac** を選択します。
+
+	![](SettingMacTarget.png)
+
+1.	プロジェクトをビルドするには **Product > Build** を選択します。
+
+	![](BuildingMacEditor.png)
+
+	[REGION:note]
+	システムの仕様に応じて、ソースからエンジンをコンパイルするには 15 分から 40 分程度かかることがあります。
+	[/REGION]
+
+1.	エンジンのコンパイル後、**Product > Run** の順に選択し、エディタを起動します。
+		
+	![](RunningMacEditor.png)
+
+1.	これで終わりです！エンジンをソースからコンパイルし、起動しました。
+
+	![](CompiledEditor_Mac.png)
+[/EXCERPT:maccompile]
+[EXCERPT:linuxcompile]
+[REGION:warning]
+弊社のデベロッパーおよびサポートチームは Ubuntu の最新版を使用しているため、他の Linux ディストリビューション (Ubuntu の他のバージョンも含めて) に対するサポートができない場合があります。
+[/REGION]
+
+1. ルート ディレクトリ内で、ターミナルから **Setup.sh** を実行し、プロジェクト ファイルを生成する準備のためにファイルをセットアップします。
+
+	![](RunSetupShellScript_Linux.png)
+
+1.	ルート ディレクトリ内で、ターミナルから **GenerateProjectFiles.sh** を実行してプロジェクト ファイルを生成します。 
+
+	![](RunGenPrjFilesShellScript_Linux.png)
+
+1.	プロジェクトをビルドするには、ターミナルから **make** を実行します。
+
+	![](RunMakeFile_Linux.png)
+
+	[REGION:tip]
+	QtCreator、 CodeLite、 KDevelop、および CMake を使ってエンジンをビルドすることもできます。
+	[/REGION]
+
+1.	エンジンをコンパイルしたら、** cd Engine/Binaries/Linux/ ** をターミナルに入力して、エディタのバイナリ パスに移動します。
+
+1.	エディタを起動するには、**UE4Editor** を実行します。
+
+	![](RunUE4Editor_Linux.png)
+
+	[REGION:warning]
+	OpenGL 環境を作れない場合は、グラフィック ドライバーを更新する必要があるかもしれません (Ubuntu のドキュメントをご覧ください)。NVidia のバイナリ ドライバーを使用することをお勧めします (バージョン 343.xx 以上)。
+  	[/REGION]
+
+1.	これで終わりです！エンジンをソースからコンパイルし、起動しました。
+
+	![](CompiledEditor_Linux.png)
+[/EXCERPT:linuxcompile]
+-->
+
+## アンリアル エンジンの使用を開始する
+
+[](GettingStarted) のドキュメントを参照してアンリアル エンジンの使用方法を学習しましょう！
+
+UE4 の使用について取り急ぎ学習したい場合は、以下のチュートリアルをご覧ください。
+*	[](Engine/Content/QuickStart)
+*	[](Programming/QuickStart)
+*	[](Engine/QuickStart)
+
+
+[REGION:note]
+UE4 のエディタ内ヘルプ機能は、疑問点を解消するのに役立ちます。
+[/REGION]
+
+[/EXCERPT:Main]
+
+<!--Currently deprecated for the 'Building from Source' version
+
+## アンリアル エンジンのコンパイル
+
+アンリアル エンジン4 (UE4) は、UnrealBuildTool を利用したカスタムビルド方法を使用します。このツールはエンジンのコンパイルに関する全ての複雑な側面と要素を処理します。 
+
+### ビルド コンフィギュレーション
 
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
@@ -89,19 +210,19 @@ Description:アンリアル・エンジンのコンパイル
 	[PARAM:content]
 		全てのコンフィギュレーションがデフォルトで表示されるわけではありません。メインの UE4 ディレクトリにある [GenerateProjectFiles.bat](Programming/UnrealBuildSystem/ProjectFileGenerator) ファイルを編集して、随時追加されるコンフィギュレーションに対してプロジェクト ファイルを生成します。
 
-		エンジンのコンパイル方法を決定する際に、アンリアル エンジン 4 と UnrealBuildTool は異なるビルド コンフィギュレーションを使用します。使用するコンフィギュレーションは、作成するビルドの目的によって決定されます。
+		エンジンのコンパイル方法を決定する際に、アンリアル エンジンと UnrealbuildTool は異なるビルド コンフィギュレーションを使用します。使用するコンフィギュレーションは、作成するビルドの目的によって決定されます。
 
-		下記が利用可能なコンフィギュレーションになります：
+		以下は利用可能なコンフィギュレーションです。
 
 		| ビルド コンフィギュレーション | 説明 |
 		|-------------|-------------|
 		| **Debug** | デバッグ コンフィギュレーションでエンジンとゲームコードの両方をビルドします。|
 		| **DebugGame** | エンジンを最適化してビルドしますが、ゲームコードはデバッグ可能な状態のままにします。ゲーム モジュールのみをデバッグする場合に理想的なコンフィギュレーションです。|
-		| **Development** | リリースと同等のコンフィギュレーションです。エンジンとゲームコードの両方がこのコンフィギュレーションでビルドされます。 |
-		| **Shipping** | 最適なパフォーマンスでゲームを出荷するためのコンフィギュレーションです。コンソール コマンド、統計情報、プロファイリング ツールが取り除かれます。|
+		| **Development** | Release と同等のコンフィギュレーションです。エンジンとゲームコードの両方がこのコンフィギュレーションでビルドされます。 |
+		| **Shipping** | 最適なパフォーマンスを実現し、ゲームを出荷するためのコンフィギュレーションです。コンソール コマンド、統計情報、プロファイリング ツールが取り除かれます。|
 		| **Test** | このコンフィギュレーションは、**Shipping** コンフィギュレーションですが、一部のコンソール コマンド、統計情報、プロファイリング ツールが有効になっています。 |
 
-		このビルド コンフィギュレーションは、Visual Studio のツールバーから設定が出来ます。
+		このビルド コンフィギュレーションは、Visual Studio のツールバーから設定することができます。
 
 		![UE4 Solution - Configuration Menu](configuration_menu.png)
 	[/PARAM]
@@ -116,19 +237,19 @@ Description:アンリアル・エンジンのコンパイル
 	[PARAMLITERAL:active]
 	[/PARAMLITERAL]
 	[PARAM:content]
-		下記が利用可能なコンフィギュレーションになります：
+		以下は利用可能なコンフィギュレーションです。
 
 		| ビルド コンフィギュレーション | 説明 |
 		| ------------------- | ----------- |
 		| **Product > Build For > Running** | デバッグ コンフィギュレーションでエンジンとゲームコードの両方をビルドします。|
 		| **Product > Build For > Profiling** | Release と同等のコンフィギュレーションです。エンジンとゲームコードの両方がこのコンフィギュレーションでビルドされます。 |
-		[/PARAM]
 
+	[/PARAM]
 [/OBJECT]
 
 ### ターゲット プラットフォーム
 
-現在アンリアル・エンジン 4 は、以下のプラットフォームをサポートしています。
+UE4 は現在、以下のプラットフォームをサポートしています。
 
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
@@ -169,16 +290,16 @@ Description:アンリアル・エンジンのコンパイル
 [/OBJECT]
 
 (#BinaryNamingConvention)
-### バイナリー命名規則
+### バイナリ命名規則
 
-生成されるバイナリーの名前は、ビルド時に使用されたコンフィギュレーションによって異なります。以下は一般的な命名規則です。
+生成されるバイナリの名前は、ビルド時に使用されたコンフィギュレーションによって異なります。以下は一般的な命名規則です。
 
 |エンジン モード | 命名規則 |
 |----------- | ------------------|
 | Editor	  | UE4Editor-Platform-Configuration.extension |
 | Uncooked Game | UE4-Platform-Configuration.extension |
 
-このルールの例外は PC プラットフォームで、開発コンフィギュレーションのビルド時に、このプラットフォームとコンフィギュレーションが省略されます。例えば、Win64 プラットフォームに対して生成されるエディタ実行ファイルの名前は以下となります。
+このルールの例外は PC プラットフォームで、Development コンフィギュレーションのビルド時に、このプラットフォームとコンフィギュレーションが省略されます。例えば、Win64 プラットフォームに対して生成されるエディタ実行ファイルの名前は以下となります。
 
 | コンフィギュレーション | EXE 名 |
 | ------------- | -------- |
@@ -206,20 +327,19 @@ Description:アンリアル・エンジンのコンパイル
 
 		1.	**UE4** プロジェクトを **右クリック** します。 
 
-			1. **Clean** を選んで、コンパイル済みまたは仮のファイルをクリーンアップします。この作業によって、次回のビルドが確実に完全な再ビルドになるようにします。
+			1. **Clean** を選んで、コンパイル済みまたはテンポラリ ファイルをクリーンアップします。この作業によって、次回のビルドが確実に完全な再ビルドになるようにします。
 
 			1.	**Rebuild** を選んでエンジンを再コンパイルします。
 
-		または、**UE4** プロジェクトがまだスタートアップ プロジェクトに設定されていない場合は
+		または、**UE4** プロジェクトがまだスタートアップ プロジェクトとして設定されている場合は以下の手順に従います。
 
 		1. **Build Configuration** を設定します。
 
 		1. **Build** メニューから以下を行います。
 
-	1. **UE4 をクリーンアップ**
+			1. **UE4 をクリーンアップ**
 
-	1. **UE4 を再ビルド**
-
+			1. **UE4 を再ビルド**
 	[/PARAM]
 [/OBJECT]
 [OBJECT:ToggleButtonContent]
@@ -237,5 +357,4 @@ Description:アンリアル・エンジンのコンパイル
 		1. **[product]** メニューから **Build For > Running** を選択します。
 	[/PARAM]
 [/OBJECT]
-
-[/EXCERPT:Main]
+-->

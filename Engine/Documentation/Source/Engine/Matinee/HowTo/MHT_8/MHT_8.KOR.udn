@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2663119
+﻿INTSourceChangelist:2738171
 Availability: Public
 Title:트리거 이벤트 및 표시여부 토글
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
 Description:이벤트와 표시여부를 사용하여 카운트다운 이후 폭발하는 바위를 만드는 방법입니다.
-
+Version: 4.9
+SkillLevel: Intermediate
 
 ---
 여기서는 타이머 카운트 이후 폭발한 뒤 **마티네 이벤트** 와 **Visibility** 트랙을 사용하여 이펙트를 스폰하는 돌을 만들겠습니다.
@@ -158,7 +159,7 @@ Description:이벤트와 표시여부를 사용하여 카운트다운 이후 폭
 		블루프린트에서 마티네 액터 사용
 	[/PARAM]
 	[PARAM:description]
-	여기서는 **마티네** 시퀸스에서 **Explode** 이벤트가 호출되면 이벤트를 발동시키고 **마티네** 가 종료되면 파티클 이펙트를 활성화시킵니다.
+	여기서는 **마티네** 시퀀스에서 **Explode** 이벤트가 호출되면 이벤트를 발동시키고 **마티네** 가 종료되면 파티클 이펙트를 활성화시킵니다.
 	[/PARAM]
 [/OBJECT]
 
@@ -220,7 +221,7 @@ Description:이벤트와 표시여부를 사용하여 카운트다운 이후 폭
 	360
 	[/PARAMLITERAL]
 	[PARAMLITERAL:videoid]
-	8dIuZDHHQa8
+	E2MHE2vQGDk
 	[/PARAMLITERAL]
 	[/OBJECT]
 

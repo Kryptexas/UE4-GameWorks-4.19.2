@@ -3,9 +3,8 @@ Title:Blueprint Editor Cheat Sheet
 Crumbs: %ROOT%, Engine, Engine/Blueprints
 Description:Reference covering Blueprint shortcuts and useful actions.
 version: 4.9
-parent:Engine/Blueprints
+parent:Engine/Blueprints/Workflow
 order:1
-type:howto
 
 [VAR:Topic]
 [OBJECT:Topic]

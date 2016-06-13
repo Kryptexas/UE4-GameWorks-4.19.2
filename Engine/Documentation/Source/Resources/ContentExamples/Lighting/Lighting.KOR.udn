@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2615877
+﻿INTSourceChangelist:2716638
 Availability: Public
 Title:라이팅 콘텐츠 예제
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -12,6 +12,7 @@ Related: Engine/Rendering/LightingAndShadows/Lightmass
 Related: Engine/Rendering/LightingAndShadows/Shadows
 Related: Engine/Rendering/LightingAndShadows/IndirectLightingCache
 Related: Engine/Rendering/LightingAndShadows/LightMobility
+Version: 4.9
 
 [REGION:banner]
 ![](Lighting_Header.png)(convert:false)
@@ -119,7 +120,7 @@ Content Examples (콘텐츠 예제) 프로젝트 안의 **Lighting** 맵에는 �
 
 | 예제 | 데모 내용 |
 | ------- | ------------ |
-| **[6.1 Self Shadowing Accuracy](Resources\ContentExamples\Lighting\6_1)** | 셀프 섀도잉 정확도 - 오브젝트가 땅 위에 있다는 느낌을 살리기 위해 자기 위에다 그림자를 드리우는 법을 보여줍니다. |
+| **[6.1 Shadow Bias](Resources\ContentExamples\Lighting\6_1)** | 셀프 섀도잉 정확도 - 오브젝트가 땅 위에 있다는 느낌을 살리기 위해 자기 위에다 그림자를 드리우는 법을 보여줍니다. |
 | **[6.2 Shadow Filter Sharpen](Resources\ContentExamples\Lighting\6_2)** | 그림자 필터 선명화 - 그림자 가장자리 부분의 선명도를 증폭시키는 데 사용되는 세팅입니다. |
 
 <!--

@@ -1,36 +1,44 @@
-﻿INTSourceChangelist:2498962
+﻿INTSourceChangelist:2659220
 Availability:Public
 Title:控件组件
 Crumbs:%ROOT%, Engine, Engine/Components
-Description:描述可在世界中进行互动的控件蓝图的三维实例的控件组件。 
+Description:介绍了作为控件组件蓝图 3D 实例且可以在世界中互动的控件组件。 
 Related: Engine/UMG
 Related: Engine/UMG/UserGuide/WidgetBlueprints
 Related: Engine/MediaFramework
 Related: Engine/Blueprints/UserGuide/Components
+SkillLevel: Beginner
+Version: 4.9
 
-控件组件让您可以通过游戏世界中的[虚幻运动图形](Engine/UMG/UserGuide) 来显示创建的三维UI元素。 
+使用控件组件，您可以在游戏世界中显示那些通过 [**Unreal Motion Graphics**](Engine/UMG/UserGuide) 创建的 3D UI 元素。 
 
-## 控件组件
+## Widget Component （小组件）
 
-**WidgetComponent** （控件组件）本身是可以让您在游戏世界中进行互动的 **控件蓝图** 的三维实例。 
+**WidgetComponent** 本身是控件组件蓝图（Widget Blueprint）的一个 3D 实例，您可以在游戏世界中与它进行互动。 
 
-在下述示例中，我们添加了 **WidgetComponent** ，它现在让我们可以指定 **Widget Class Blueprint** （控件类蓝图）。 
+在下面的示例中，我们添加了一个 WidgetComponent，它可以让我们指定一个控件组件类蓝图。 
 
 ![](Engine/UMG/HowTo/Create3DWidgets/UMG_3D_21.png)
 
-_这个实例使用 **控件蓝图** 来显示出现在游戏世界中的互动菜单。_
+_该示例使用了一个小组件蓝图在游戏世界中显示互动菜单。_
 
-您可以通过变更 **描画大小** 或 **最大互动** 距离来变更世界中的 **WidgetComponent** （控件组件）显示的设置。 
+您可以更改 Draw Size 或 Max Interaction Distance 设置来改变 WidgetComponent 在世界中的呈现方式。 
 
 ![](Engine/UMG/HowTo/Create3DWidgets/UMG_3D_22.png)(w:720)
 
-当我们在关卡中放置了包含 **WidgetComponent** 的Actor后， **Widget Class Blueprint** （控件类蓝图）在世界中进行了显示。 
+在场景中放置包含 WidgetComponent 的 Actor 之后，我们的控件组件类蓝图将显示在世界中。 
 
 ![](Engine/UMG/HowTo/Create3DWidgets/UMG_3D_30.png)(w:720)
 
-请参阅 [](Engine/UMG/HowTo/Create3DWidgets)来了解使用 **WidgetCompoment** 和 **Widget Blueprint** 来创建此示例的分步指南。 
+请参见 **[](Engine/UMG/HowTo/Create3DWidgets)** 了解关于使用 WidgetCompoment 和控件组件蓝图创建此示例的操作步骤指南。 
 
 [REGION:note]
-此组件被视为试验性内容，可能会在未来的版本发布中进行重大变更或删除。 
+该组件仍处在试验阶段，在今后的版本中可能有大量改动或被去除。 
 [/REGION]
+
+
+
+
+
+
 

@@ -1,12 +1,17 @@
-﻿INTSourceChangelist:2641563
+﻿INTSourceChangelist:2940199
 Availability:Public
 Title:入門編:HTML5 プロジェクトの開発
 Crumbs:%ROOT%, Platforms, Platforms/HTML5
 Description:HTML5 プラットフォーム開発の設定
+Version:4.9
+SkillLevel:Intermediate
+type:quickstart
+parent:Platforms/HTML5
+tags:HTML5
 
 [TOC(start:2 end:3)]
 
-## 免責条項
+## ご注意
 
 [REGION:todo]
 HTML5 パイプラインは現在実験版です。HTML5 プラットフォーム向けにビルドしても、適切に動かないプロジェクトがあるかもしれません。ラフエッジを予期してください。
@@ -58,7 +63,7 @@ HTML5 は [Mozilla](https://www.mozilla.org/en-US/) から [**emscripten**](http
 
 * [Python (2.X series)](https://www.python.org/downloads/)
 
-	* python.exe が 環境変数 Path に含まれるようにしてください。 
+	* python.exe が Path 環境変数に含まれるようにしてください。 
 
 * [Java](http://www.oracle.com/technetwork/java/javase/downloads/index.html)
 
@@ -76,7 +81,7 @@ Emscripten の [ウェブサイト](http://kripken.github.io/emscripten-site/doc
 
 ### アンリアル エンジン 4 のセットアップ 
 
-* アンリアルエンジン4のレポジトリをフォークおよびクローンします \[[UnrealEngine](https://github.com/EpicGames/UnrealEngine)\]
+* アンリアル エンジン 4 のレポジトリをフォークおよびクローンします \[[UnrealEngine](https://github.com/EpicGames/UnrealEngine)\]
 
 * シェルで `Setup.bat -include=HTML5` を実行します。
 
@@ -123,12 +128,12 @@ Mac OS での移植については、[http://kripken.github.io/emscripten-site/d
 1. [emcripten をインストールします](http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html)。Windows ユーザーの場合は、[emscripten SDK Web Installer](https://s3.amazonaws.com/mozilla-games/emscripten/releases/emsdk-1.29.0-web-64bit.exe) の使用をお勧めします。
 
 	[REGION:note]
-	Emscripten 用のウェブ インストーラはパスをシステム パス 環境変数へ加えます。そうなっていることを確認するようにしてください。
+	Emscripten 用のウェブ インストーラがパスをシステム パス環境変数へ加えているはずですが、念のためそうなっているか確認してください。
 	[/REGION]
 
 1. [Install Python 2.7](https://www.python.org/download/releases/2.7/)
 
-	Python **2.7** のすべてのバージョンに当てはまります。このドキュメントを記載している現時点では、2.7 の最新版は 2.7.9 です。Python 3.X は使わないでください。
+	Python **2.7** のすべてのバージョンに当てはまります。このドキュメントを記載している現時点では、2.7 の最新版は 2.7.10 です。Python 3.X は使わないでください。
 
 1. `Engine\Config\HTML5\HTML5Engine.ini` ファイルを更新してください。
 

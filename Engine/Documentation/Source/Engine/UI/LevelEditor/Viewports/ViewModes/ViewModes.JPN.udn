@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2539135
+﻿INTSourceChangelist:2742006
 Availability:Public
 Title:ビューモード
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
 Description:ビューポート内で使用できるビューモードに関する説明
+Version:4.9
 
 
 [VAR:Topic]
@@ -53,16 +54,15 @@ Description:ビューポート内で使用できるビューモードに関す�
 
 [TOC(start:2 end:2)]
 
-## 概要
 
 
 [EXCERPT:Intro]
-アンリアル エンジンには視覚化されたモードが数多く装備されてているので、シーンで処理中のデータタイプを見やすくするだけでなく、エラーや予想外の結果を診断しやすくなっています。使用頻度の高いビュー モードにはそれぞれホットキーがついていますが、 **[View Mode]** メニュー内であればビューポートから全てにアクセスすることができます。
+エディタ ビューポートには視覚化モードが数多くあるので、シーンで処理中のデータ タイプを見やすくするだけでなく、エラーや予想外の結果を診断しやすくなっています。使用頻度の高いビュー モードにはそれぞれホットキーがついていますが、 **[View Mode]** メニュー内であればビューポートから全てにアクセスすることができます。
 
 ![](ViewModeMenu.png) ![](ViewModes_SubMenu_button.png)(h:273)
 [/EXCERPT:Intro]
 
-## Lit (リット)
+## Lit (ライティング有り)
 
 [REGION:fullwidth]
 ![](VM_Lit.png)
@@ -73,7 +73,7 @@ Description:ビューポート内で使用できるビューモードに関す�
 
 全てのマテリアルとライティングが適用されると、 **Lit** ビューモードでシーンの最終結果が表示されます。
 
-## Unlit (アンリット)
+## Unlit (ライティング無し)
 
 [REGION:fullwidth]
 ![](VM_Unlit.png)
@@ -86,7 +86,7 @@ Description:ビューポート内で使用できるビューモードに関す�
 **Unlit** ビューモードは、ベース カラーのみを表示して、シーンから全てのライティングを取り除きます。
 
 
-## Wireframe (ワイヤーフレーム)
+## ワイヤーフレーム
 
 [REGION:fullwidth]
 ![](VM_Wireframe.png)
@@ -95,7 +95,7 @@ Description:ビューポート内で使用できるビューモードに関す�
 * ビューモードのホットキー：**Alt + 2**
 * コンソール コマンド： `viewmode wireframe`
 
-**Wireframe** ではシーンにポリゴンのエッジが全て表示されます。BSP ブラシの場合、結果となるジオメトリが表示されます。
+**Wireframe** ではシーンにポリゴンのエッジが全て表示されます。ブラシの場合、結果となるジオメトリが表示されます。
 
 ## Detail Lighting (詳細ライティング)
 
@@ -128,7 +128,7 @@ Description:ビューポート内で使用できるビューモードに関す�
 * ビューモードのホットキー：**Alt + 7**
 * コンソール コマンド： `viewmode lightcomplexity`
 
-Light Complexity はジオメトリに影響を与える非静止のライトの数を表示します。ライティングの負荷をトラックする場合に便利です。サーフェスに影響するライトが多くなるほど、シェードする負荷が大きくなります。
+Light Complexity はジオメトリに影響を与える非静的ライトの数を表示します。ライティング負荷の監視に有用な機能です。ライトがサーフェスに影響を与えれば与えるほど、描画負荷が高くなります。
 
 |ライトの複雑度の色分け|||||||
 |:---|:---:|:---:|:---:|:---:|:---:|:---:|
@@ -136,16 +136,7 @@ Light Complexity はジオメトリに影響を与える非静止のライトの
 |**サーフェスに影響を及ぼす光の数**|**0**|**1**|**2**|**3**|**4**|**5+**|
 
 
-このカラ ースキームは BaseEngine.ini (または YourGameEngine.ini) で定義され、以下のラインを検索することで編集が可能です。
-
-[REGION:code]
-+LightComplexityColors=(R=0,G=0,B=0,A=1)  
-+LightComplexityColors=(R=0,G=255,B=0,A=1)  
-+LightComplexityColors=(R=63,G=191,B=0,A=1)  
-+LightComplexityColors=(R=127,G=127,B=0,A=1)  
-+LightComplexityColors=(R=191,G=63,B=0,A=1)  
-+LightComplexityColors=(R=255,G=0,B=0,A=1)
-[/REGION]
+このカラー スキームは、シェーダー コードで定義されます。
 
 ## Shader Complexity (シェーダーの複雑度)
 
@@ -157,17 +148,17 @@ Light Complexity はジオメトリに影響を与える非静止のライトの
 * ビューモードのホットキー：**Alt + 8**
 * コンソール コマンド： `viewmode shadercomplexity`
 
-**Shader Complexity** モードでは、ピクセルシェーダ命令の実行数をシーンのピクセルごとに視覚化されます。そのシーンのパフォーマンス効率を知る目安として便利です。通常、短時間での大量のオーバードローが原因でパフォーマンスのスパイクを引き起こしやすいパーティクル エフェクトの最適化だけでなく、ベースシーン全体のパフォーマンステストにも使用します。
+**Shader Complexity** モードでは、シーンの各ピクセルの計算に使用しているシェーダ命令数を視覚化します。そのシーンのパフォーマンス効率を知る目安として便利です。通常、ベースシーン全体のパフォーマンステストや、短時間での大量のオーバードローが原因でパフォーマンスのスパイクを引き起こしやすいパーティクル エフェクトの最適化にも使用します。
 
-命令カウントはシェーダーの複雑度を演算するのみに使用されます。これは常に正確というわけではありません。例えば、 16 のすべてがテクスチャルックアップ命令であるシェーダーの場合、 演算命令 16 のシェーダーより全てのプラットフォームで遅くなります。また、アンロールされていないループが含まれるシェーダーは、命令カウントでは正確に表されません。これは主に頂点シェーダーで起こる問題です。全体的に、命令カウントはほとんどのケースで便利な測定基準となります。
+シェーダーの複雑度の計算には命令カウントのみが使用されます。これは常に正確というわけではありません。例えば、 16 のすべてがテクスチャルックアップ命令であるシェーダーの場合、 演算命令 16 のシェーダーより全てのプラットフォームで遅くなります。また、アンロールされていないループが含まれるシェーダーは、命令カウントでは正確に表されません。これは主に頂点シェーダーで起こる問題です。全体的に、命令カウントはほとんどのケースで便利な測定基準となります。
 
-ビューモードは、カラースペクトラムを使用してシーンにかかるコストを表示します。緑から赤は「非常に安い」から「高い」への直線関係を表します。ピンクと白は、ピクセルが非常に高いことを表します。白の領域が小さい場合は許容範囲ですが、画面の大部分が明るい赤または白になっている場合、パフォーマンスは下がります。
+ビューモードでは、カラースペクトラムを使用してシーンにかかる負荷を表示します。緑から赤は「非常に低い」から「高い」への直線関係を表します。ピンクと白は、ピクセルが非常に高いピクセルになることを表します。白の領域が小さい場合は許容範囲ですが、画面の大部分が明るい赤または白になっている場合、パフォーマンスは下がります。
 
 [REGION:imagetable]
 |シェーダーの複雑度の色分け||||||||||
 |[REGION:shadercomplexity sc_1][/REGION]|[REGION:shadercomplexity sc_2][/REGION]|[REGION:shadercomplexity sc_3][/REGION]|[REGION:shadercomplexity sc_4][/REGION]|[REGION:shadercomplexity sc_5][/REGION]|[REGION:shadercomplexity sc_6][/REGION]|[REGION:shadercomplexity sc_7][/REGION]|[REGION:shadercomplexity sc_8][/REGION]|[REGION:shadercomplexity sc_9][/REGION]|
 |:---:|:---:|:---:|:--:-|:---:|:---:|:---:|:---:|:---:|
-|**理想**| | |**普通** | | |**高い**|**非常に高い**||
+|**理想的**| | |**普通** | | |**高い**|**非常に高い**||
 [/REGION]
 
 [REGION:code]
@@ -182,7 +173,7 @@ Light Complexity はジオメトリに影響を与える非静止のライトの
 +ShaderComplexityColors=(R=1.0,G=0.9,B=0.9,A=1.0)  
 [/REGION]
 
-## Stationary Light Overlap (ステーショナリー ライト オーバーラップ)
+## Stationary Light Overlap (固定ライト オーバーラップ)
 
 [REGION:fullwidth]
 ![](VM_StationaryLightOverlap.png)
@@ -199,18 +190,18 @@ Light Complexity はジオメトリに影響を与える非静止のライトの
 
 ビューモードのホットキー：**Alt + 0**
 
-**Lightmap Density** モードは最適または最高密度設定に合わせてテクスチャ マッピングとカラーコーディングによりオブジェクトのライトマップ密度を表示して、実際のライトマップ テクセルへマッピングするグリッドを表示します。ライトマップのライティングを一定にするために、シーンのテクセル密度を均等にすることが重要です。
+**Lightmap Density** モードは、テクスチャ マッピングされるオブジェクトのライトマップ密度を表示して、理想的/最大限の密度設定別に色分けして、実際のライトマップ テクセルへマッピングするグリッドを表示します。ライトマップのライティングを一定にするために、シーンのテクセル密度を均等にすることが重要です。
 
 [REGION:imagetable]
 |![](LightmapDensityLight.gif)|![](LightmapDensityMedium.gif)|![](LightmapDensityHeavy.gif)|
 |---|---|---|
-|テクセル密度が理想以下|テクセル密度が理想|テクセル密度が理想以上または最高|
+|テクセル密度が理想以下|テクセル密度が理想的|テクセル密度が最大限または理想以上|
 [/REGION]
 
 [REGION:note]
-スケルタル メッシュが明るい茶色で表示されます。この計算では考慮されません。
+スケルタルメッシュが明るい茶色で表示されます。この計算では考慮されません。
 [/REGION]
-## Reflections (反射)
+## 反射
 
 [REGION:fullwidth]
 ![](VM_Reflections.png)
@@ -218,9 +209,37 @@ Light Complexity はジオメトリに影響を与える非静止のライトの
 
 * ビューモードのホットキー：**なし (デフォルトでメニューのみ)**
 
-**Reflections** ビューモードは、平坦な法線と 0 のラフネスで全てのマテリアルをオーバーライド、つまりミラーリングします。反射の詳細を診断し、より詳細が必要な場所により多くの反射キャプチャ アクタを置けるようになります。
+**Reflections** ビューモードは、平坦な法線と 0 のラフネスで全てのマテリアルをオーバーライド、つまりミラーリングします。反射の詳細を診断し、より詳細が必要な場所により多くのReflection Capture (反射キャプチャ) アクタを置けるようになります。
 
+## LOD 彩色
 
+[REGION:fullwidth]
+![](ViewMode_LODColoration.png)
+[/REGION]
+
+* Console command: `viewmode LODColoration`
+
+**LOD Coloration** ビュー モードでは、プリミティブの現在の LOD インデックスを表示します。これは、LOD の問題の診断や、どの距離で LOD が切り替わるかを確認するのに便利です。 
+
+|LOD プリミティブの彩色|||||||||
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+|**Color**|![](LODColoration_0.png)|![](LODColoration_1.png)|![](LODColoration_2.png)|![](LODColoration_3.png)|![](LODColoration_4.png)|![](LODColoration_5.png)|![](LODColoration_6.png)|![](LODColoration_7.png)|
+|**LOD Primitive Color**|**0**|**1**|**2**|**3**|**4**|**5**|**6**|**7**|
+
+[REGION:code]
++LODColorationColors=(R=1.0,G=1.0,B=1.0,A=1.0)     
++LODColorationColors=(R=1.0,G=0.0,B=0.0,A=1.0)     
++LODColorationColors=(R=0.0,G=1.0,B=0.0,A=1.0)     
++LODColorationColors=(R=0.0,G=0.0,B=1.0,A=1.0)     
++LODColorationColors=(R=1.0,G=1.0,B=0.0,A=1.0)     
++LODColorationColors=(R=1.0,G=0.0,B=1.0,A=1.0)     
++LODColorationColors=(R=0.0,G=1.0,B=1.0,A=1.0)     
++LODColorationColors=(R=0.5,G=0.0,B=0.5,A=1.0)     
+[/REGION]
+
+[Region: note]
+デフォルトでは、LOD を 4 つだけ使用しますが、これはソース コードで拡張可能です。 
+[/Region]
 
 ## Buffer の視覚化
 
@@ -234,10 +253,10 @@ Buffer Visualization 領域では、グラフィック カード内の各バッ�
 ![](Buffer_Overview.png)
 [/REGION]
 
-**Buffer Overview** visualization モードによりグラフィックカードの GBuffer から複数の画像を見ることが可能になります。画像の多くはマテリアル上の入力と関連づいています。つまり、マテリアル入力をたった 1 つ使えば、シーンの見た目を確認することができるのです。
+**Buffer Overview** visualization モードによりグラフィック カードの GBuffer から複数の画像を見ることが可能になります。画像の多くはマテリアル上の入力と関連付いています。つまり、たったひとつのマテリアル入力で、シーンの見た目を確認することができるのです。
 
 
-### Base Color (基本色)
+### Base Color (基本色) 
 
 
 [REGION:fullwidth]
@@ -251,7 +270,7 @@ Buffer Visualization 領域では、グラフィック カード内の各バッ�
 
 <!---
 ### Custom Depth (カスタム深度)
-Daniel からの回答がくるまで除外。 
+Not included until I can get an answer from Daniel 
 -->
 
 
@@ -263,7 +282,7 @@ Daniel からの回答がくるまで除外。
 
 * ビューモードのホットキー：**なし (デフォルトでメニューのみ)**
 
-**Decal Mask** モードは、保留されたデカールの受け取りが可能なサーフェスを全て白で表示します。不可能なオブジェクトは黒で表示されます。
+**Decal Mask** モードは、ディファード デカールを受けることが可能なサーフェスを全て白で表示します。不可能なオブジェクトは黒で表示されます。
 
 ### Diffuse Color (ディフューズ カラー)
 
@@ -278,12 +297,12 @@ Daniel からの回答がくるまで除外。
 
 
 <!--
-### Final Image (最終イメージ)
-ここに入っている理由が DanielW にも分からないので削除。 
+### Final Image
+Removed, since DanielW wasn't sure why it's here. 
 
-Final image は Lit と同じ。
+"final image is the same as Lit
 aka no visualization
-なぜここにあるのか不明。
+not sure why it's in there
 "
 -->
 
@@ -307,11 +326,14 @@ aka no visualization
 
 ### Material AO (マテリアル AO)
 
-[REGION:imagetable]
-|![](Buffer_MaterialAO_1.png)(w:%WireSize%)|![](Buffer_MaterialAO_2.png)(w:%WireSize%)|
-|---|---|
-|Lit Mode のシーン (ゲームビューがオン) |Buffer Material AO Mode のシーン (ゲームビューがオン)|
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Scene in Lit Mode (Game View On)](Buffer_MaterialAO_1.png)(w:500)
+	[/PARAM]
+	[PARAM:after]
+	![Scene in Buffer Material AO Mode (Game View On)](Buffer_MaterialAO_2.png)(w:500)
+	[/PARAM]
+[/OBJECT]
 
 * ビューモードのホットキー：**なし (デフォルトでメニューのみ)**
 
@@ -329,23 +351,26 @@ aka no visualization
 
 **Metallic** visualization モードは、マテリアルの _Metallic_ 入力に接続している全てのテクスチャリングまたは Material Expression ノードの結果を表示します。
 
-注記：メタルには、 0 または 1 のメタリック値を使用し、その間の値にはなりません。レイヤー ブレンディングのために 0 と 1 の間の値が発生しますが、物理マテリアルは常にメタルかそうでないかになります。
+注意:メタルには、 0 または 1 のメタリック値を使用し、その間の値にはなりません。レイヤー ブレンディングのために 0 と 1 の間の値が発生しますが、物理マテリアルは常にメタルかそうでないかになります。
 
-### オパシティ (不透明)
+### Opacity (オパシティ)
 
-[REGION:imagetable]
-|![](Buffer_Opacity_1.png)(w:%WireSize%)|![](Buffer_Opacity_2.png)(w:%WireSize%)|
-|---|---|
-|Lit Mode のシーン (ゲームビューがオン) |Buffer Material AO Mode のシーン (ゲームビューがオン)|
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Scene in Lit Mode](Buffer_Opacity_1.png)(w:500)
+	[/PARAM]
+	[PARAM:after]
+	![Scene in Buffer Material Opacity Mode (Game View On)](Buffer_Opacity_2.png)(w:500)
+	[/PARAM]
+[/OBJECT]
 
 * ビューモードのホットキー：**なし (デフォルトでメニューのみ)**
 
-**Opacity** visualization モードは、マテリアルの Opacity 入力に接続している全てのテクスチャリングまたは Material Expression ノードの結果を表示します。上図では、キャラクターのドレッドロックに若干透明性があるのが分かると思います。
+**Opacity** visualization モードは、マテリアルの Opacity 入力に接続している全てのテクスチャリングまたは Material Expression ノードの結果を表示します。上図では、キャラクターのドレッドロック (髪) に若干透明性があるのが分かると思います。
 
-Opacity ビューモードは Opacity の使用中に不透明なマテリアルのみを表示します。 Opacity によってライトの貫通方法を制御するので、サブサーフェス スキャタリング マテリアルには重要です。
+Opacity ビューモードは Opacity の使用中に不透明なマテリアルのみを表示します。 Opacity によってどれくらい遠くにライトが差し込むかを制御するので、サブサーフェス スキャタリング マテリアルには重要です。
 
-### ラフネス
+### Roughness (ラフネス)
 
 
 [REGION:fullwidth]
@@ -355,7 +380,7 @@ Opacity ビューモードは Opacity の使用中に不透明なマテリアル
 
 * ビューモードのホットキー：**なし (デフォルトでメニューのみ)**
 
-**Roughness** visualization モードは、マテリアルの Roughness 入力に接続している全てのテクスチャリングまたは Material Expression ノードの結果を表示します。ラフネス バリエーションは様々なリフレクションが発生するところです。
+**Roughness** visualization モードは、マテリアルの Roughness 入力に接続している全てのテクスチャリングまたは Material Expression ノードの結果を表示します。様々なリフレクションが発生するところでラフネスが変化します。
 
 ### Scene Color (シーン カラー)
 
@@ -366,7 +391,7 @@ Opacity ビューモードは Opacity の使用中に不透明なマテリアル
 
 * ビューモードのホットキー：**なし (デフォルトでメニューのみ)**
 
-**Scene Color** はポストプロセスが完了する前にシーンの結果を表示します。つまり、露出、ブルーム、色補正、アンチエイリアスの前という意味です。上図では、露出が明るくされていないため、シーンが非常に暗く表示されています。
+**Scene Color** はポストプロセスが完了する前にシーンの結果を表示します。つまり、露出、ブルーム、色補正、アンチ エイリアスの前という意味です。上図では、露出が明るくされていないため、シーンが非常に暗く表示されています。
 
 
 
@@ -381,9 +406,9 @@ Opacity ビューモードは Opacity の使用中に不透明なマテリアル
 
 * ビューモードのホットキー：**なし (デフォルトでメニューのみ)**
 
-**Scene Depth** は白 (最も遠く) から黒 (最も近く) への継続的なグラディエントでのシーン深度を表示します。 
+**Scene Depth** は白 (最も遠く) から黒 (最も近く) への一定のグラディエントでのシーン深度を表示します。 
 
-### Separate Translucency RGB (透過 RGB を分離)
+### Separate Translucency RGB
 
 
 [REGION:fullwidth]
@@ -406,7 +431,7 @@ Opacity ビューモードは Opacity の使用中に不透明なマテリアル
 
 * ビューモードのホットキー：**なし (デフォルトでメニューのみ)**
 
-**Separate Translucency A** は、透過マテリアルであり、 Separate Translucency を使用しているすべてのマテリアルのアルファ情報を表示します。
+**Separate Translucency A** は、透過マテリアルであり、 Separate Translucency を使用しているすべてのマテリアルのアルファ情報のみを表示します。
 
 ### Specular Color (スペキュラカラー)
 
@@ -417,7 +442,7 @@ Opacity ビューモードは Opacity の使用中に不透明なマテリアル
 
 * ビューモードのホットキー：**なし (デフォルトでメニューのみ)**
 
-**スペキュラ カラー** はマテリアルのスペキュラ反射に使用される色を表示します。通常は、基本色とメタリックの値の組み合わせと推測されます。
+**スペキュラ カラー** はマテリアルのスペキュラ反射に使用される色を表示します。通常は、基本色とメタリックの値の組み合わせから推測されます。
 
 ### Specular (スペキュラ)
 
@@ -439,7 +464,7 @@ Opacity ビューモードは Opacity の使用中に不透明なマテリアル
 
 * ビューモードのホットキー：**なし (デフォルトでメニューのみ)**
 
-**Subsurface Color** は、マテリアルの Subsurface Colo 入力に接続された全てのテクスチャリングまたは Material Expression ノードの結果を表示します。
+**Subsurface Color** は、マテリアルの Subsurface Color 入力に接続された全てのテクスチャリングまたは Material Expression ノードの結果を表示します。
 
 ### World Normal (ワールド空間の法線)
 
@@ -453,7 +478,7 @@ Opacity ビューモードは Opacity の使用中に不透明なマテリアル
 **World Normal** は不透明なサーフェスのワールド空間法線を表示します。 
 
 
-### Ambient Occlusion (環境オクルージョン)
+### アンビエント オクルージョン (AO)
 
 [REGION:fullwidth]
 ![](buffer_AO.png)
@@ -461,7 +486,7 @@ Opacity ビューモードは Opacity の使用中に不透明なマテリアル
 
 * ビューモードのホットキー：**なし (デフォルトでメニューのみ)**
 
-**Ambient Occlusion (AO)** はシーン上で行われた環境オクルージョンの計算結果を表示します。この計算はエンジンがサーフェスと法線マップに基づいて行っているので、マテリアルに適用される AO テクスチャとは別のものです。
+**Ambient Occlusion (AO)** はシーンで行われたアンビエント オクルージョンの計算結果を表示します。この計算はエンジンがサーフェスと法線マップに基づいて行っているので、マテリアルに適用される AO テクスチャとは別のものです。
 
 
 ## Landscape Visualizers
@@ -473,26 +498,26 @@ Opacity ビューモードは Opacity の使用中に不透明なマテリアル
 [/REGION]
 
 
-**Normal** Landscape visualization モードは、正常な lit ステートのランドスケープを表示します。
+**Normal** Landscape visualization モードは、通常の lit ステートのランドスケープを表示します。
 
 
-###LOD
+### LOD
 
 [REGION:fullwidth]
 ![](Landscape_LOD.png)
 [/REGION]
 
-**LOD** Landscape visualization モードは、現在の LOD ステートを表す色づけされたパネル中にランドスケープを分解します。
+**LOD** Landscape visualization モードは、現在の LOD ステートを表す色付けされたパネルにランドスケープを分解します。
 
 
 
-### Layer Density (レイヤの濃度)
+### Layer Density (レイヤーの密度)
 
 [REGION:fullwidth]
 ![](Landscape_LayerDensity.png)
 [/REGION]
 
-**Layer Density** Landscape visualization モードは、さらに多くのレイヤーがランドスケープに追加されると、カラーコードモードを緑から赤に変更してランドスケープを表示します。
+**Layer Density** Landscape visualization モードは、さらに多くのレイヤーがランドスケープに追加されると、カラーコードモードを緑から赤に変化させてランドスケープを表示します。
 
 
 
@@ -504,12 +529,22 @@ TODO
 ## Exposure (露出)
 
 [REGION:fullwidth]
-![](Exposure.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+yhjRn9xZUTs
+[/PARAMLITERAL]
+[/OBJECT]
 [/REGION]
 
-露出はシーンの全体的な明るさを制御するポストプロセスエフェクトです。この動作は固定値を設定するか、または自動のままにしておくことができます。
+露出はシーンの全体的な明るさを制御するポストプロセス エフェクトです。この動作は固定値を設定するか、または自動のままにしておくことができます。
 
 
-### Automatic (自動露出) と Fixed Exposure (固定露出)
+###自動と固定の露出
 
-ポストプロセスで露出をアクティベートさせてゲームを再生する時、ちょうど人間の視覚が異なる明るさに順応していくのと同様に、明るい環境から暗い環境、またはその逆に移る場合にカメラが自動調整を行うことに気付くでしょう。たいていの場合、望んだ結果になります。ただし、変わり続ける事が妨げになるレベルがあれば、ビューを固定露出に設定することができます。明るい環境から暗い環境、またはその逆に移動する際、所定の露出で固定され自動変更は行われません。ただし、必要とする動作に対してライトが明るすぎたり暗すぎたりする状態も多くなってしまいます。
+ポストプロセスで露出をアクティベートさせてゲームを再生する時、ちょうど人間の視覚が異なる明るさに順応していくのと同様に、明るい環境から暗い環境、またはその逆に移る場合にカメラが自動調整を行うことに気付くでしょう。たいていの場合、望んだ結果になります。ただし、絶えず変化を続ける事が妨げになるレベルがあれば、ビューを固定露出に設定することができます。明るい環境から暗い環境、またはその逆に移動する際、所定の露出で固定され自動変更は行われません。ただし、必要とする動作に対してライトが明るすぎたり暗すぎたりする状態も多くなってしまいます。

@@ -1,0 +1,137 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Animating a Character
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:Illustrates how you can apply animation to a Skeletal Mesh Actor in Sequencer
+Version: 4.11
+SkillLevel: Intermediate
+parent:Engine/Sequencer/HowTo
+order:1
+checkpoint: editorqs
+Related: Engine/Sequencer/Overview
+Related: Engine\Sequencer\ReferenceEditor\
+
+[REGION:warning]
+This is a feature that is currently undergoing development and may not work as expected or may change in future revisions.
+[/REGION]
+
+When creating cinematic sequences, there may be times where you want to have a character in your scene move around or perform some kind of animation. 
+In **Sequencer** this can be done by adding a Skeletal Mesh Actor to a Level Sequence then adding an Animation sub-track and specifying the animation that you want the Actor to perform. 
+Repeating this process and adding different kinds of animations for your Actor to perform is what can bring your characters to life in your cinematic sequences! 
+
+Here in this guide we will create a small scene that has a character jump up and down by applying different animations. 
+
+## Steps
+
+[REGION:note]
+For this how-to, we are using the **Blueprint Third Person Template** project with **Starter Content Enabled**. 
+[/REGION]
+
+1.	With your project open, select the **ThirdPersonCharacter** in the level and press **Delete** to delete it. 
+
+	![](CharacterAnim_01.png)
+
+	This is the **Character Blueprint** you use when playing the game that comes with this template which we will not need. 
+
+1.	In the **Content Browser** under **Content/Mannequin/Character/Mesh**, drag the **SK_Mannequin** asset into the level viewport. 
+
+	![](CharacterAnim_02.png)
+
+1.	From the **Toolbar**, click the **Cinematics** drop-down option and select **Add Level Sequence**. 
+
+	![](CharacterAnim_03.png)
+
+	When prompted, enter a save name and location for the new Level Sequence. 
+
+1.	Select the **SK_Mannequin** in the level.
+
+1.	In the **Sequencer** window, click the **Add** button and select **Add Actor to Sequencer** and **Add SK_Mannequin**. 
+
+	![](CharacterAnim_04.png)
+
+	This will add a **Track** for the SK_Mannequin to Sequencer which we can then use to manipulate the Actor in our scene. 
+
+	![](CharacterAnim_04b.png)
+
+1.	Click the **+** on the **Animation** Sub-Track to bring up the content menu, then select **ThirdPersonIdle**.  
+
+	![](CharacterAnim_05.png)
+
+	Once selected, the Actor will assume an idle position and an Animation will be added to the Animation Track. 
+
+	![](CharacterAnim_05b.png)
+
+1.	Select the **Animation** track, then **Left-click** drag the timeline marker to the end of the idle animation and press **Enter**. 
+
+	![](CharacterAnim_06.png)
+
+	This will add a new **Keyframe** at that point in the sequence and a context menu will appear where you can select another animation. 
+
+1.	Add the **ThirdPersonJump_Start** animation. 
+
+	![](CharacterAnim_07.png)
+
+	With our current setup, after the idle animation plays it will proceed to the jump start animation. You can preview this by dragging the timeline marker back-and-forth along the timeline or by pressing the **Play** button in the viewport to play our current scene. 
+
+1.	At the end of the jump start animation (with the Animation track selected), press **Enter** and add the **ThirdPersonJump_End**. 
+
+	![](CharacterAnim_08.png)
+
+1.	At the end of the jump end animation (with the Animation track selected), press **Enter** and add the **ThirdPersonIdle** animation.
+
+	![](CharacterAnim_09.png)
+
+
+## End Result
+
+When you click the **Play** button in the viewport, you will see your character jump up and down. 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+TYJYT2e7fdA
+[/PARAMLITERAL]
+[/OBJECT]
+
+Above we are seeing what the cinematic sequence would look like from inside the Editor. If we were to play the game, we would not see anything as we have not issued a command to the Level Sequence itself that it should start playing. 
+Similar to a **Matinee** Actor, you can select the Level Sequence in your level then in the **Details** panel check the **Auto Play** checkbox to play the sequence when the level is loaded. 
+
+![](CharacterAnim_10.png)
+
+Also illustrated in the video is how playback is handled in Sequencer. Only what is contained in the **Section Bounds** will be played back (between the green and red markers). 
+You can drag those to increase/decrease the bounds of the sequence or through the **Sequencer** options, enable the **Keep Playback Range in Section Bounds** option (shown below) to ensure that the playback range includes all content. 
+
+![](CharacterAnim_11.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

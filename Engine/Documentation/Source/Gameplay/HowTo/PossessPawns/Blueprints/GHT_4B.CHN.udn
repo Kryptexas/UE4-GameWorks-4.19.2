@@ -1,89 +1,89 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2701420
 Availability: Public
-Title:Possessing Pawns in Blueprint
+Title:在蓝图中支配 Pawn
 Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/PossessPawns
-Description:Illustrates using the Possess node in Blueprints to switch between and control multiple characters. 
+Description:阐述如何在蓝图中使用 Possess 节点切换和控制多个人物。 
 Version: 4.8
-SkillLevel: Beginner
+SkillLevel: Intermediate
 Related: Engine/Blueprints
 Related: Gameplay/Framework/Pawn
 Related: Gameplay/Framework/Pawn/Character
 Related: Engine/Basics/Projects/Browser
 Related: Gameplay/Framework/Controller/PlayerController
 
-Learn how to use the **Possess** and **UnPossess** [Blueprint](Engine/Blueprints) nodes to take control of and provide input to a [Pawn](Gameplay/Framework/Pawn) or [Character](Gameplay/Framework/Pawn/Character) in your project.  
+了解如何使用 **Possess** 和 **UnPossess** [蓝图](Engine/Blueprints)节点在您的项目中控制 [Pawn](Gameplay/Framework/Pawn) 或 [人物](Gameplay/Framework/Pawn/Character) 并向其输入内容。  
 
 [REGION:note]
-For the purposes of this guide we are using the **Blueprint Side Scroller** template, however you can use your own project if you would like. If you do not know how to create projects or use templates, refer to the [Project Browser](Engine/Basics/Projects/Browser) page for more information. 
+对于此指南，我们使用的是 **Blueprint Side Scroller** 模板，但是，您可以随意使用自己的项目。如果您不知道如何创建项目或使用模板，请参阅[项目浏览器](Engine/Basics/Projects/Browser)页面了解更多信息。 
 [/REGION]
  
-## Steps
+## 步骤
 
-1. From the **Content Browser**, drag-and-drop into your level the additional characters you would like to control. 
+1.	在 **Content Browser** 中，将您要控制的其他人物拖放入关卡中。 
 
 	![](Pawns1b.png)(w:860)
 
-	Here we added two additional **SideScrollerCharacter** Blueprints from the **Content > SideScrollerBP > Blueprints** folder to the level giving us a total of three characters in our level. With this particular template project, a character is already placed inside the level by default. 
+	在这里，我们从 **Content > SideScrollerBP > Blueprints** 文件夹另外添加了两个 **SideScrollerCharacter** 蓝图到关卡中，这样，关卡中共有三个人物。在此特殊模板项目中，一个人物已默认放置到关卡中。 
 	
-1.	In the **World Outliner**, select each of the characters you want to control. 
+1.	在 **World Outliner** 中，选择您要控制的每个人物。 
 
 	![](Pawns2b.png)
 	
-1. From the Main Toolbar, click the **Blueprints** button and **Open Level Blueprint**. 
+1.	在主工具栏中，单击 **Blueprints** 按钮并 **Open Level Blueprint**。 
 
 	![](Pawns3b.png)
 
-1. **Right-click** in the graph area, then select **Create References to selected Actors** option from the context menu. 
+1.	在图表中 **右键**，然后在弹出菜单中选择 **Create References to selected Actors** 选项。 
 
 	![](Pawns4b.png)(w:640)
 
-	This will allow us to reference each of the characters that we've selected in the level. 
+	此操作将允许我们引用关卡中选定的每个人物。 
 
-1. **Right-click** in the graph area, then search for the **1** Keyboard Event and select it. 
+1.	在图表中 **右键**，然后搜索并选择 **1** 按键事件。 
 
 	![](Pawns5b.png)(w:640)
 
-	This will allow us to fire off an event whenever the 1 key is pressed or released. 
+	此操作将允许我们在按下或松开 1 键时启动一个事件。 
 
-1. Add the **2** and **3** Keyboard Events to the graph. 
+1.	将 **2** 和 **3** 键盘事件添加到图表中。 
 
-1. **Right-click** in the graph and search for and add the **Get Player Controller** node. 
+1.	在图表中 **右键**，然后搜索并添加 **Get Player Controller** 节点。 
 
 	![](Pawns6b.png)(w:640)
 
-	The [Player Controller](Gameplay/Framework/Controller/PlayerController) is used to take the input from a human player and translate that into actions for a Pawn. 
+	[玩家控制器](Gameplay/Framework/Controller/PlayerController)用于获得人类玩家输入并将其转化为 Pawn 的动作。 
 
-1. **Left-click** and drag off the **Return Value** of the Get Player Controller node and search for and add the **Possess** node. 
+1.	**左键** 并拖出 Get Player Controller 节点的 **Return Value**，然后搜索并添加 **Possess** 节点。 
 
 	![](Pawns7b.png)(w:640)
 
-	This will tell the Player Controller which target Pawn to possess and take control of. When the **Possess** function is called, it will automatically check if a Pawn is currently controlled and **UnPossess** it first before attempting to Possess a new Pawn. 
+	此操作将指示玩家控制器要支配和控制的目标 Pawn。调用 **Possess** 函数时，该函数将自动检查 Pawn 当前是否被控制并在试图支配新的 Pawn 前先 **UnPossess** 它。 
 	
-	You can use the UnPossess function if you want to have the player release control of their Pawn and enter, say for example, a spectator type of state where they are not directly controlling a playable character. 
+	如果您想让玩家不再控制他们的 Pawn 并进入不直接控制可玩人物的旁观者状态，您可以使用 UnPossess 函数。 
 
-1. Create two more **Possess** nodes and connect the **1**, **2** and **3** Keyboard Events as shown below. 
+1.	再创建两个 **Possess** 节点并按以下所示连接 **1**、 **2** 和 **3** 键盘事件。 
 
 	![](Pawns8.png)(w:640)
 	
-	We are now set up to possess a Pawn when 1, 2 or 3 is pressed. Next we need to define which Pawn to possess from our references. 
+	现在，我们的设置是按下 1、2 或 3 时支配一个 Pawn。然后，我们需要从引用中定义要支配的 Pawn。 
 
-1. Connect each of the **SideScrollerCharacter** references to each of the **In Pawn** pins as shown below. 
+1.	按以下所示，将每个 **SideScrollerCharacter** 引用连接到每个 **In Pawn** 针。 
 
 	![](Pawns9.png)(w:640)
 
-	Our scripted functionality is complete and we are ready to test it. 
+	完成脚本化功能后，即可对其进行测试。 
 
-1. Click **Compile** from the toolbar to update your script. 
+1.	在工具栏中单击 **Compile** 以更新脚本。 
 
 	![](Pawns10b.png)
 
-1. Click **Play** from the toolbar to play the game in the editor. 
+1.	在工具栏中单击 **Play** 以在编辑器中开始游戏。 
 
 	![](Pawns11b.png)
 	
-## End Result
+## 最终结果
 
-When you press 1, 2 or 3 on your keyboard you will switch between each of the characters in your level. 
+按下键盘上的 1、2 或 3 时，您将在关卡中的每个人物之间切换。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]

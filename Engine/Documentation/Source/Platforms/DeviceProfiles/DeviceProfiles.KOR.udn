@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2559121
+﻿INTSourceChangelist:2743336
 Availability:Public
 Title:디바이스 프로파일 설정하기
 Crumbs:%ROOT%, Platforms
 Description:플랫폼 전용 환경설정에 대한 디바이스 프로파일 설정하기 입니다.
+Version: 4.9
 
 
 디바이스 전용 환경설정을 설정하는 가장 좋은 방법은, 프로젝트 안에 커스텀 `Config/DefaultDeviceProfiles.ini` 파일을 만드는 것입니다. 디바이스 프로파일에는 텍스처 풀 크기같은 프로퍼티를 여럿 

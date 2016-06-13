@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2774060
 Availability:Public
-Title: Behavior Tree Quick Start Guide
+Title:行为树快速入门指南
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
-Description:Overviews and examples AI
+Description:总览与 AI 范例
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -38,16 +39,26 @@ Description:Overviews and examples AI
 [/OBJECT]
 [/VAR]
 
-![](Engine\AI\BehaviorTrees\QuickStart\14\BTFinal.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+q6vTg2roI6k
+[/PARAMLITERAL]
+[/OBJECT]
 
-The Behavior Tree Quick Start Guide walks you through the process of creating a NavMesh, creating an AI Controller, creating a Character that will be controlled by that AI Controller, and creating all the parts necessary for a simple Behavior Tree.
+行为树快速入门指南助您通晓寻路网格物体（NavMesh）、AI 控制器、被 AI 控制器控制的角色，和一个简单行为树所有必要部分的创建方法。
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		步骤
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

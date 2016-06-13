@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2372968
+﻿INTSourceChangelist:2709334
 Availability:Public
 Title:스켈레탈 콘트롤
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference
 Description:타겟 스켈레톤의 본을 직접 조작하거나 솔버 적용이 가능한 애니메이션 노드입니다.
+version: 4.9
 
 [REGION:banner]
 ![Skeletal Control](skelcontrol_banner.png)(convert:false)
@@ -16,6 +17,8 @@ Description:타겟 스켈레톤의 본을 직접 조작하거나 솔버 적용�
 재생하면서도 트레이스로 땅에 발을 일치시킬 수도 있습니다. _AnimationSequence_ (애니메이션 시퀀스)에 의해 적용된 
 본 _트랜스폼_ 을 조정하거나 완전 덮어쓰는 데 있어 어떠한 종류의 변경도 가능합니다.
 [/EXCERPT:Intro]
+
+[TOC(start:2 end:2)]
 
 ## 컴포넌트 스페이스
 
@@ -101,6 +104,73 @@ _스켈레톤_ 내 다른 본 `로테이션` 의 지정된 백분율만큼 구�
 | Rotation | 로테이션 - 타겟 본에 적용할 `로테이션` 을 나타내는 `Rotator` 입니다. |
 | Scale | 스케일 - 타겟 본에 적용할 `스케일` 을 나타내는 `Vector` 입니다. |
 
+
+## Bone Driven Controller
+
+**Bone Driven Controller** (본 구동형 콘트롤러)는 "드라이버" (구동) 본이 하나 이상의 "드리븐" (피구동) 본의 모션에 동적으로 영향을 끼치도록 하는 것이 가능합니다. 이는 액세서리가 붙은 캐릭터에 좋은데, 다수의 블렌딩 사용시에도 애니메이션 도중에 지오메트리가 교차되지 않도록 할 수 있기 때문입니다.
+
+"드라이버" 값은 **Multiplier** (배수)를 통해 직접 설정한 뒤 새로운 범위로 리매핑시키거나, **커브** 애셋을 사용하여 모션을 구동시킬 수 있습니다. 커브를 사용하면 자연스러운 반응을 정의할 수 있고, 포인트/탄젠트 변화가 실시간 반영되는 대화식 트윅 작업이 가능하여 보통 최적의 방법이 됩니다.
+
+아래 예제에서, 붙은 (초록) 액세서리에는 자체 애니메이션이 없으며, 캐릭터 허벅지 본의 함수로 두 축을 구동시키고 있습니다. 이 모두 실행시간에 계산되므로, 여기서 애니메이션 블렌딩은 수동 조절 없이도 꽤나 잘 일어납니다.
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+CDG4WcQ7cIY
+[/PARAMLITERAL]
+[/OBJECT]
+
+![Bone Driven Controller](BoneDrivenController.png)
+
+| 프로퍼티 | 설명 |
+| -------- | ----------- |
+| [REGION:tablesection]**Source (Driver)** 원본 (구동)[/REGION] ||
+| **Source Bone** | 소스 본 - 콘트롤러 입력으로 사용할 본입니다. |
+| **Source Component** | 소스 컴포넌트 - 입력으로 사용할 트랜스폼 컴포넌트입니다. |
+| [REGION:tablesection]**Mapping** 매핑[/REGION] ||
+| **Driving Curve** | 구동 커브 - 있으면 원본 특성에서 피구동 특성으로의 매핑에 사용되는 커브입니다 (없으면 Multiplier 가 사용됩니다). |
+| **Remap Source** | 소스 리매핑 - 드라이버 값에 스케일을 적용하기 전 제한시킬지 입니다. |
+| **Multiplier** | 배수 - 입력값에 적용할 배수입니다 (커브가 사용되면 무시됩니다). |
+| [REGION:tablesection]**Destination (Driven)** 대상 (피구동)[/REGION] ||
+| **Target Bone** | 타겟 본 - 콘트롤러 입력을 사용해서 구동시킬 본입니다. |
+| **Target Component Space** | 타겟 컴포넌트 스페이스 - 사용되는 부모 본 스페이스입니다. [INCLUDE:#LocationSpace] |
+| **Modification Mode** | 변경 모드 - 대상 컴포넌트에 가할 변경 유형을 설정합니다. [INCLUDE:#ModificationSettings]  |
+| [REGION:tablesection]**Settings** 세팅[/REGION] ||
+| **(As Pin) Alpha** | (핀으로써) 알파 - 노드의 알파 핀 표시를 켜고/끕니다. |
+| **Alpha Scale Bias** | 알파 스케일 바이어스 - 최소 / 최대 입력 스케일 값을 설정합니다. |
+
+
+<!--
+[EXCERPT:LocationSpace]
+[REGION:simpletable]
+| Value | Effect |
+| ----- | ------ |
+| **Translation** | The XYZ component of translation on the target bone. |
+| **Rotation** | The XYZ component of rotation on the target bone. |
+| **Scale** | The XYZ component of scale on the target bone. |
+[/REGION] 
+[/EXCERPT:LocationSpace]
+-->
+
+<!--
+[EXCERPT:ModificationSettings]
+[REGION:simpletable]
+| Value | Effect |
+| ----- | ------ |
+| **Add to Input** | Add the driven value to the input component value(s). |
+| **Replace Component** | Replace the input component value(s) with the driven value. |
+| **Add to Ref Pose** | Add the driven value to the reference pose value. |
+[/REGION] 
+[/EXCERPT:ModificationSettings]
+-->
+
+
+
 ## Spring
 
 **Spring** (스프링) 콘트롤러는 본을 레퍼런스 포즈 위치에서 얼마나 멀리 잡아당길 수 있는지 
@@ -141,19 +211,6 @@ _스켈레톤_ 내 다른 본 `로테이션` 의 지정된 백분율만큼 구�
 | [REGION:tablesection]**Join Target**[/REGION] ||
 | Joint Target Location Space | 조인트 타겟 위치 스페이스 - **Joint Target Location** 에 대한 기준 좌표계입니다. [INCLUDE:#LocationSpace] |
 | Joint Target Space Bone Name | 조인트 타겟 스페이스 본 이름 - **Joint Target Location Space** 가 _BCS_BoneSpace_ 로 설정되었을 때 조인트 타겟 위치로 사용할 본 이름입니다. |
-
-<!--
-[EXCERPT:LocationSpace]
-[REGION:simpletable]
-| 값 | 효과 |
-| ----- | ------ |
-| BCS_WorldSpace | 위치가 월드 스페이스에 상대적인 것으로 간주됩니다. |
-| BCS_ComponentSpace | 위치가 _SkeletalMeshComponent_ 에 상대적인 것으로 간주됩니다. |
-| BCS_ParentSpace | 위치가 부모 본에 상대적인 것으로 간주됩니다. |
-| BCS_BoneSpace | 위치가 (다른 프로퍼티 값 이름으로 지정된) 임의의 본에 상대적인 것으로 간주됩니다. |
-[/REGION] 
-[/EXCERPT:LocationSpace]
--->
 
 | 핀 | 설명 |
 | --- | ----------- |

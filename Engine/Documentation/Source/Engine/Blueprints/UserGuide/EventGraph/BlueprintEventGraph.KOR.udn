@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:2688251
+﻿INTSourceChangelist:2968923
 Availability:Public
 Title:이벤트 그래프
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:Blueprint 와 연관된 게임플레이 이벤트에 반응하여 동작을 수행하기 위해서 이벤트와 펑션콜을 사용하는 노드 그래프입니다. 
 version: 4.9
-
+Parent:Engine/Blueprints/Anatomy
+Tags:그래프
 
 [VAR:Topic]
 [OBJECT:Topic]

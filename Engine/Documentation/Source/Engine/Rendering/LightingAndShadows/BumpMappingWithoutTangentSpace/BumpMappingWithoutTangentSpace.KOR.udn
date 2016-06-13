@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2600600
+﻿INTSourceChangelist:2677173
 Availability:Public
 Title:탄젠트 스페이스 없는 범프 매핑
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:예전 탄젠트 스페이스가 작동하지 않을 때 3D 순차 셰이더에서 범프 매핑을 이뤄내는 법입니다.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -27,7 +28,7 @@ Description:예전 탄젠트 스페이스가 작동하지 않을 때 3D 순차 �
 **Bump mapping** (범프 매핑)이란, 지오메트리를 추가하지 않고 셰이딩 계산 조절을 통해 표면에 
 오돌도돌한 느낌을 내는 (1978년 James Blinn이 개발한) 그래픽 프로그래머들의 오래된 꼼수입니다. 
 셰이딩에는 표면 노멀 대신 새로운 노멀이 사용됩니다. 새로운 노멀은 (Perlin 노이즈, 그레이스케일 
-텍스처와 같은) 1d 함수로 조절 가능합니다. 이 꼼수는 (실루엣, 오클루전, 섀도우 등) 약간의 결점이 있긴 
+텍스처와 같은) 1d 함수로 조절 가능합니다. 이 꼼수는 (실루엣, 오클루전, 섀도 등) 약간의 결점이 있긴 
 하지만 실제 디스플레이스먼트 매핑보다 훨씬 빠릅니다.
 
 [REGION:imagetable]
@@ -94,11 +95,15 @@ ddx 와 ddy 는 2x2 블록으로 계산되므로 해상도가 높은 입력에�
 계단현상을 유발할 수 있기에 범프 매핑에는 매우 중요합니다.
 
 다음 예제 이미지는 순차 범프 맵 함수로 페이드 아웃 되는 원거리 부분이 어떤지 볼 수 있습니다.
-[REGION:imagetable]
-| ![DetailSize0.png](DetailSize0.png)(convert:false) | ![DetailSizeNot0.png](DetailSizeNot0.png)(convert:false) |
-| :---: | :---: |
-| FilterWidth 미사용 | FilterWidth 사용 |
-[/REGION]
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![필터 폭 미사용](DetailSize0.png)(convert:false)
+	[/PARAM]
+	[PARAM:after]
+	![필터 폭 사용](DetailSizeNot0.png)(convert:false)
+	[/PARAM]
+[/OBJECT]
 
 | 항목 | 설명 |
 | ---- | ---- |
@@ -113,11 +118,14 @@ ddx 와 ddy 는 2x2 블록으로 계산되므로 해상도가 높은 입력에�
 그러나 앞서 말했듯이 2x2 블록 부작용이 있는 [ddx 와 ddy](#ddx와ddy) 를 사용하기에, 
 월드 스페이스 노멀 출력의 퀄리티는 낮습니다.
 
-[REGION:imagetable]
-| ![](bump_lq.png)(convert:false) | ![](bump_hq.png)(convert:false) |
-| ------ | ------ |
-| 낮은 퀄리티 | 높은 퀄리티 |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![낮은 퀄리티](bump_lq.png)(convert:false)
+	[/PARAM]
+	[PARAM:after]
+	![높은 퀄리티](bump_hq.png)(convert:false)
+	[/PARAM]
+[/OBJECT]
 
 | 항목 | 설명 |
 | ---- | ---- |
@@ -132,7 +140,7 @@ ddx 와 ddy 는 2x2 블록으로 계산되므로 해상도가 높은 입력에�
 [/REGION]
 
 [REGION:warning]
-	이 함수는 참고용일 뿐, 머티리얼 함수 라이브러이에 노출되어 있지 않습니다. 
+	이 함수는 참고용일 뿐, 머티리얼 함수 라이브러리에 노출되어 있지 않습니다. 
  [PerturbNormalHQ](#PerturbNormalHQ) 함수를 대신 사용해 주시기 바랍니다.
 [/REGION]
 

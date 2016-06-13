@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2590541
+﻿INTSourceChangelist:2690214
 Availability:Public
 Title:Particle 표현식
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
 Description:파티클 시스템에서 이미터에 적용할 머티리얼을 만드는 데 사용되는 표현식입니다.
+Version: 4.9
 
 [EXCERPT:TOC]
 [TOC(start:2)]
@@ -160,11 +161,17 @@ SphericalParticleOpacity (구체형 파티클 불투명도)는 순차 오파시�
 | **Density** | 밀도 - 구체 맵의 밀도를 조절하는 0-1 값입니다. 낮을 수록 구체는 더욱 투명해집니다. 기본값은 1 입니다. |
 
 
-[REGION:imagetable]
-| ![](SPO_Before.png)(w:290) | ![](SPO_After.png)(w:290) | [INCLUDE:#SPO] |
-| :---: | :---: | :---: |
-| 전 | 후 | 망 (클릭하면 확대) |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Before](SPO_Before.png)(w:350)
+	[/PARAM]
+	[PARAM:after]
+	![After](SPO_After.png)(w:350)
+	[/PARAM]
+[/OBJECT]
+
+[INCLUDE:#SPO]
+
 
 <!--
 [EXCERPT:SPO]
@@ -178,7 +185,7 @@ SphericalParticleOpacity (구체형 파티클 불투명도)는 순차 오파시�
 [EXCERPT:ParticleSubUV]
 ## ParticleSubUV
 
-ParticleSubUV (파티클 Sub UV) 표현식은 텍스처의 서브 이미지를 파티클로 렌더링하는 데 사용됩니다. ParticleSubUV 는 플립북과 유사하나, 그 텍스처 애니메이션을 캐스케이트에서 조작할 수 있다는 점이 다릅니다.
+ParticleSubUV (파티클 Sub UV) 표현식은 텍스처의 서브 이미지를 파티클로 렌더링하는 데 사용됩니다. ParticleSubUV 는 플립북과 유사하나, 그 텍스처 애니메이션을 캐스케이드에서 조작할 수 있다는 점이 다릅니다.
 
 | 항목 | 설명 |
 | -------- | ----------- |

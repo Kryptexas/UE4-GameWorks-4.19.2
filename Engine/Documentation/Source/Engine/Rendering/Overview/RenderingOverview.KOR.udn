@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2532339
+﻿INTSourceChangelist:2691839
 Availability:Public
 Title: 렌더링 개요
 Crumbs: %ROOT%, Engine
 Description:렌더링 서브시스템 주요 기능에 대한 개요입니다.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -77,7 +78,7 @@ UE4 에는 세 가지의 라이팅 패쓰가 있습니다:
 [REGION:imagetable]
 ![Translucent Particle Self-Shadowing](self_shadow_1.png)(w:465) | ![Translucent Particle Self-Shadowing](self_shadow_2.png)(w:465) |
 | ------ | ------ |
-| | |
+| 반투명 파티클 셀프 섀도잉 (측면) | 반투명 파티클 셀프 섀도잉 (정면) |
 [/REGION]
 
 자세한 정보는 [라이팅된 반투명](Engine/Rendering/LightingAndShadows/LitTranslucency) 페이지를 참고하시기 바랍니다.
@@ -96,11 +97,14 @@ UE4 에는 세 가지의 라이팅 패쓰가 있습니다:
 
 UE4 는 GPU 상에서 파티클 시뮬레이션을 지원합니다. 예전의 CPU 시스템에서는 한 프레임에 천 단위의 파티클이 가능했습니다. GPU 시뮬레이션을 통해서는 십만 단위의 파티클을 효율적으로 시뮬레이션하여 렌더링할 수 있습니다.
 
-[REGION:imagetable]
-![](gpu_spawn_500.png)(w:465) | ![](gpu_spawn_20000.png)(w:465) |
-| ------ | ------ |
-| 스폰 속도 500 | 스폰 속도 20000 |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Spawn Rate - 500](gpu_spawn_500.png)(w:500)
+	[/PARAM]
+	[PARAM:after]
+	![Spawn Rate - 20000](gpu_spawn_20000.png)(w:500)
+	[/PARAM]
+[/OBJECT]
 
 ### 벡터 필드
 
@@ -156,11 +160,14 @@ UE4 는 GPU 상에서 파티클 시뮬레이션을 지원합니다. 예전의 CP
 
 **Tone Mapping** 은 렌더링된 씬의 색을 변환 내지 수정하여 최종 결과물을 변경하는 것을 말합니다. 세피아 필터라든가 맞았을 때의 (빨갛게 번쩍인다든가 하는) 효과 등을 내는 데 사용할 수 있습니다.
 
-[REGION:imagetable]
-![](scene_tint_full.png)(w:465) | ![](scene_tint_quarter.png)(w:465) |
-| ------ | ------ |
-| 톤 매핑 - 끔 | 톤 매핑 - 켬 |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Tone Mapping - Off](scene_tint_full.png)(w:500)
+	[/PARAM]
+	[PARAM:after]
+	![Tone Mapping - On](scene_tint_quarter.png)(w:500)
+	[/PARAM]
+[/OBJECT]
 
 ### 비녜트
 

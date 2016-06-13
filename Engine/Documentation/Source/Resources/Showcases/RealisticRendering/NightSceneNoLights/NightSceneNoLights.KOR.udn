@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2726432
 Availability: Public
 Title:라이트 없는 밤 씬 라이팅
 Crumbs:%ROOT%, Resources, Resources/Showcases/RealisticRendering
@@ -11,6 +11,7 @@ Related: Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights
 Related: Engine/Rendering/LightingAndShadows/LightMobility/StaticLights
 Related: Engine/Rendering/LightingAndShadows/IESLightProfiles
 Related: Resources/ContentExamples/Lighting/4_2
+Version: 4.9
 
 [REGION:fullwidth]
 ![](RoomNightNoLights.png)

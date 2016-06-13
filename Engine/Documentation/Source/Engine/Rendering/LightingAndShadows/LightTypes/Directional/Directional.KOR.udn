@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2602426
+﻿INTSourceChangelist:2954984
 Availability: Public
 Title:디렉셔널 라이트
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows, Engine/Rendering/LightingAndShadows/LightTypes
 Description:디렉셔널 라이트에 대한 기초입니다.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -54,11 +55,6 @@ Description:디렉셔널 라이트에 대한 기초입니다.
 [EXCERPT:Intro]
 **Directional Light** (디렉셔널 라이트)는 무한히 먼 거리에 있는 광원에서 오는 빛을 흉내내는 것입니다. 즉 이 라이트로 인해 드리워지는 모든 그림자는 평행이 되며, 태양광 시뮬레이션에 이상적입니다. **디렉셔널 라이트** 를 배치하면 세 가지 **모빌리티** 세팅 중 하나로 설정 가능합니다:
 
-
-[REGION:raw]
-![](spacer.png)
-[/REGION]
-
 [OBJECT:topiclistnotitle]
 	[PARAM:icon]
 		![](Directional_LightStationary.png)(w:150 convert:false)
@@ -71,11 +67,6 @@ Description:디렉셔널 라이트에 대한 기초입니다.
 [/OBJECT]
 [/EXCERPT:Intro]
 
-[REGION:raw]
-![](spacer.png)
-[/REGION]
-
-
 [OBJECT:topiclistnotitle]
 	[PARAM:icon]
 		![](Directional_LightMove.png)(w:150 convert:false)
@@ -85,22 +76,24 @@ Description:디렉셔널 라이트에 대한 기초입니다.
 	[/PARAM]
 [/OBJECT]
 
-[REGION:raw]
-![](spacer.png)
-[/REGION]
-
 아래는 지붕의 틈을 통해 태양빛이 내리쬐는 것에 대한 표현입니다.
 
-[REGION:raw]
-![](spacer.png)
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![디렉셔널 라이트](directional_001.png)(w:450)
+	[/PARAM]
+	[PARAM:after]
+	![디렉셔널 라이트 섀도 프러스텀](directional_002.png)(w:450)
+	[/PARAM]
+[/OBJECT]
 
-
+<!--
 [REGION:lightbox]
 [![](directional_001.png)(w:450)](directional_001.png) [![](directional_002.png)(w:450)](directional_002.png)
 [/REGION]
+-->
 
-_천정의 구멍을 통해 방을 비추는 디렉셔널 라이트입니다. 왼쪽에는 라이트만, 오른쪽에는 투명한 그림자 드리우개에 **섀도우 프러스텀** 을 켜 둬서 디렉셔널 라이트가 평행 광선을 드리우고 있음을 확인할 수 있습니다.
+_천정의 구멍을 통해 방을 비추는 디렉셔널 라이트입니다. 왼쪽에는 라이트만, 오른쪽에는 투명한 그림자 드리우개에 **섀도 프러스텀** 을 켜 둬서 디렉셔널 라이트가 평행 광선을 드리우고 있음을 확인할 수 있습니다.
 
 [OBJECT:topiclistnotitle]
 	[PARAM:icon]
@@ -128,7 +121,7 @@ _천정의 구멍을 통해 방을 비추는 디렉셔널 라이트입니다. �
 | **Indirect Lighting Intensity** | 간접광 세기 - 라이트에서의 간접광 공헌 크기를 조절합니다. |
 | **Min Roughness** | 최소 러프니스 - 이 라이트에 유효한 최소 러프니스로, 스페큘러 하이라이트를 부드럽게 만드는 데 사용됩니다. |
 | **Shadow Bias** | 그림자 편향 - 이 라이트에서의 그림자 정확도를 조절합니다. |
-| **Shadow Filter Sharpen** | 섀도우 필더 선명화 - 이 라이트에 대한 섀도우 필터를 얼마나 날카롭게 할 것인가 입니다. |
+| **Shadow Filter Sharpen** | 섀도 필더 선명화 - 이 라이트에 대한 섀도 필터를 얼마나 날카롭게 할 것인가 입니다. |
 | **Cast Translucent Shadows** | 반투명 그림자 드리우기 - 이 라이트가 반투명 오브젝트를 통해 동적인 그림자를 드리울 수 있는지 입니다. |
 | **Affect Dynamic Indirect Lighting** | 동적인 간접광 영향 - 이 라이트를 **Light Propagation Volume** 에 주입시킬 것인지 입니다. |
 | **Cast Static Shadows** | 정적 그림자 드리우기 - 이 라이트가 정적 그림자를 드리울지 입니다. |
@@ -165,10 +158,10 @@ _천정의 구멍을 통해 방을 비추는 디렉셔널 라이트입니다. �
 ### Cascaded Shadow Maps
 프로퍼티 | 설명 |
 | -------- | ----------- |
-| **Dynamic Shadow Distance MovableLight** | 다이내믹 섀도우 거리 무버블 라이트 - 무버블 라이트에 대해 **캐스케이드 섀도우 맵** 다이내믹 섀도우를 얼마나 커버할지, 카메라부터 측정한 거리입니다. |
-| **Dynamic Shadow Distance StationaryLight** | 다이내믹 섀도우 거리 스테이셔너리 라이트 - 스테이셔너리 라이트에 대해 **캐스케이드 섀도우 맵** 다이내믹 섀도우를 얼마나 커버할지, 카메라부터 측정한 거리입니다. |
-| **Num Dynamic Shadow Cascades** | 다이내믹 섀도우 캐스케이드 수 - 전체 씬에 대해 뷰 프러스텀을 몇 개의 캐스케이드로 분할시킬지 입니다. |
-| **Cascade Distribution Exponent** | 캐스케이트 분포 지수 - 캐스케이드를 카메라 쪽에 가깝게 분포시킬지 (큰 지수), 멀리 분포시킬지 (작은 지수) 입니다.|
+| **Dynamic Shadow Distance MovableLight** | 다이내믹 섀도 거리 무버블 라이트 - 무버블 라이트에 대해 **캐스케이드 섀도 맵** 다이내믹 섀도를 얼마나 커버할지, 카메라부터 측정한 거리입니다. |
+| **Dynamic Shadow Distance StationaryLight** | 다이내믹 섀도 거리 스테이셔너리 라이트 - 스테이셔너리 라이트에 대해 **캐스케이드 섀도 맵** 다이내믹 섀도를 얼마나 커버할지, 카메라부터 측정한 거리입니다. |
+| **Num Dynamic Shadow Cascades** | 다이내믹 섀도 캐스케이드 수 - 전체 씬에 대해 뷰 프러스텀을 몇 개의 캐스케이드로 분할시킬지 입니다. |
+| **Cascade Distribution Exponent** | 캐스케이드 분포 지수 - 캐스케이드를 카메라 쪽에 가깝게 분포시킬지 (큰 지수), 멀리 분포시킬지 (작은 지수) 입니다.|
 | **Cascade Transition Fraction** | 캐스케이드 전환 비율 - 캐스케이드 사이의 페이드 구역 비율입니다. |
-| **Shadow Distance Fadeout Fraction** | 그림자 거리 페이드아웃 비율 - 다이내믹 섀도우 영향력의 최대 거리에서 페이드 아웃 구역 크기를 조절합니다. |
-| **Use Inset Shadows for Movable Objects** | 무버블 오브젝트에 내부설정 그림자 사용 - (스테이셔너리 라이트 전용) 캐스케이드 섀도우 맵이 켜져있어도 무버블 컴포는트에는 오브젝트별 내부설정 그림자를 사용할지 입니다.|
+| **Shadow Distance Fadeout Fraction** | 그림자 거리 페이드아웃 비율 - 다이내믹 섀도 영향력의 최대 거리에서 페이드 아웃 구역 크기를 조절합니다. |
+| **Use Inset Shadows for Movable Objects** | 무버블 오브젝트에 내부설정 그림자 사용 - (스테이셔너리 라이트 전용) 캐스케이드 섀도 맵이 켜져있어도 무버블 컴포넌트에는 오브젝트별 내부설정 그림자를 사용할지 입니다.|

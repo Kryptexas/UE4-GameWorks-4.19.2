@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2481343
+﻿INTSourceChangelist:2638771
 Availability:Docs
 Title:カスタム インポーター テクニカル ガイド
 Crumbs: %ROOT%, Engine, Engine/UI, Programming
@@ -9,10 +9,6 @@ Description:カスタム仕様のアセットタイプ用インポーターの�
 [/REGION]
 
 [TOC(start:2)]
-
-
-
-## 概要
 
 UFactory クラスは、新しい資産の作成用のエディタで使用され、通常、外部ファイルに基づいています。
 

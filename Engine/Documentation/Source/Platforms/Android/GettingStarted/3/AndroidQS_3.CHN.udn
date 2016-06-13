@@ -1,21 +1,21 @@
 ﻿INTSourceChangelist:0
 Availability:Public
-Title:3. Create Your Project
+Title:3.创建项目
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
 Description:Start a template project
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Platforms/Android/GettingStarted/2 "%Platforms/Android/GettingStarted/2:title%")
+		[上一步](Platforms/Android/GettingStarted/2 "%Platforms/Android/GettingStarted/2:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Quick Start Home](Platforms/Android/GettingStarted)
+		[快速入门主页](Platforms/Android/GettingStarted)
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Platforms/Android/GettingStarted/4 "%Platforms/Android/GettingStarted/4:title%")
+		[下一步](Platforms/Android/GettingStarted/4 "%Platforms/Android/GettingStarted/4:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -26,13 +26,13 @@ Description:Start a template project
 %Steps%
 
 
-1.	Create a new project. Here we are testing a Blueprint-based project. If you start with a C++ project and then compile it, the following steps will be the same.  
+1.	创建新项目。在此我们将测试一个基于蓝图的项目。如果先从 C++ 项目开始，然后进行编译，则以下步骤是相同的。  
 
 ![](new_android_project.png)
 
 
 [REGION:tip]
-Note that we are not including the starter content in this project.
+请注意，我们没有在此项目中添加默认资源。
 [/REGION]
 
 

@@ -1,44 +1,45 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2775843
 Availability:Public
-Title:Light Components
+Title: 灯光组件
 Crumbs:%ROOT%, Engine, Engine/Components
-Description:Descriptions of the different LightComponents that can be used in Unreal Engine 4. 
+Description:对虚幻引擎 4 中可使用的不同灯光组件进行描述。 
 Related: Engine/Rendering/LightingAndShadows/LightTypes
 Related: Engine/Rendering/LightingAndShadows
 Related: Engine/Blueprints/UserGuide/Components
+version: 4.9
 
-Different types of **Light Components** will allow you to add a light source as a sub-object to an Actor, depending upon the effect you aim to achieve. Regardless of which Light Component type you choose, there are several light settings such as _Light Color_ or _Intensity_ that apply to all as well as individual settings that you can adjust (refer to each individual light for their specific settings).  
+不同类型的 **Light Components** 可将光照添加为 Actor 的子对象，取决于您想要实现的效果。无论您选择哪种灯光组件类型，都有一些总体灯光设置（灯光颜色或强度）或单独设置（参见各独立灯光的特定设置）可供调节。  
 
 ![](light_component.png)(w:720)
 
-_Above, a **PointLightComponent** is added to a **Blueprint** which also includes a **Static Mesh** to create a functional Ceiling Lamp._ 
+_在上图中，我们在蓝图中加入了一个点光源组件，其中也包含了一个静态网格用于创建功能性吊灯。_ 
 
-## Directional Light Component
+## Directional Light Component （方向性灯光组件）
 
-The **DirectionalLightComponent** simulates light that is being emitted from a source that is infinitely far away. This means that all shadows cast by this light will be parallel, making this the ideal choice for simulating sunlight. 
+**DirectionalLightComponent** 模拟了从无穷远的光源发射出的灯光。这也就是说，这种灯光所投射的所有阴影都是平行的，使其成为模拟阳光的最佳选择。 
 
-See [](Engine/Rendering/LightingAndShadows/LightTypes/Directional) for more information. 
-
-
-## Point Light Component
-
-A **PointLightComponent** works much like a real world light bulb, emitting light in all directions from the light bulb's tungsten filament. However, for the sake of performance, PointLightComponents are simplified down emitting light equally in all directions from just a single point in space. 
-
-See [](Engine/Rendering/LightingAndShadows/LightTypes/Point) for more information. 
+请参见 [](Engine/Rendering/LightingAndShadows/LightTypes/Directional) 以了解更多信息。 
 
 
-## Sky Light Component
+## Point Light Component （点灯光组件）
 
-**SkyLightComponents** capture the distant parts of your level (everything further than the `SkyDistanceThreshold`) and applies that to the scene as a light. That means the sky's appearance and its lighting / reflections will match. 
+**PointLightComponent** 感觉上很像是现实世界中的灯泡，从灯泡的钨丝向着所有方向发射灯光。但是，为了提高运行性能，点光源组件被简化了，只从空间中的一个点均匀地向所有方向发射光线。 
 
-See [](Engine/Rendering/LightingAndShadows/LightTypes/Spot) for more information. 
+请参见 [](Engine/Rendering/LightingAndShadows/LightTypes/Point) 以了解更多信息。 
 
 
-## Spot Light Component
+## Sky Light Component （天空灯光组件）
 
-A **SpotLightComponent** emits a directional light from a single point in a cone shape. There are settings for adjusting the _Inner Cone Angle_ and _Outer Cone Angle_ as well as the other types of light settings such as _Intensity_, _Light Color_ and shadow settings. This type of light is excellent for a flash light due to its ability to define the inner/outer cone radius.
+**SkyLightComponents** 用于捕捉关卡中的远距离物体（距离大于 SkyDistanceThreshold 的所有物体），并将其作为灯光应用到场景中。这也就是说，天空的外观及其光线/反射将匹配。 
 
-See [](Engine/Rendering/LightingAndShadows/LightTypes/Skylight) for more information. 
+请参见 [](Engine/Rendering/LightingAndShadows/LightTypes/SkyLight) 以了解更多信息。
+
+
+## Spot Light Component （射光圈组件）
+
+**SpotLightComponent** 从锥形的单点发射出方向性光线。有一些设置可调节内锥角和外锥角，另外还有一些其他类型的光线设置，如强度、光线颜色和阴影设置。这种光线很适合作为手电筒，因为它可以定义内/外锥角半径。
+
+请参见 [](Engine/Rendering/LightingAndShadows/LightTypes/Spot) 以了解更多信息。
 
 
 

@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:2639459
-Availability: Docs
+﻿INTSourceChangelist:2977555
+Availability: Public
 Title: 빌드 환경설정 참고서
 Description: 솔루션 및 빌드 환경설정 참고서입니다.
 Crumbs: %ROOT%, Programming, Programming/Development
@@ -8,13 +8,13 @@ Related: GettingStarted/DownloadingUnrealEngine
 Related: Programming/Development/BuildingUnrealEngine
 Related: Programming/Development/CompilingProjects
 Related: Support/Builds
-Version: 4.8
+Version: 4.9
 
 [TOC (start:2 end:3)]
 
 ## 빌드 환경설정 설명
 
-언리얼 엔진 4 (UE4) 는 UnrealBuildTool (언리얼 빌드 툴)을 통한 커스텀 빌드 메소드를 사용합니다. 이 툴은 엔진 컴파일에 있어서의 복잡한 부분을 전부 처리해 줍니다.
+언리얼 엔진 4 는 UnrealBuildTool (언리얼 빌드 툴, UBT)를 통한 커스텀 빌드 메소드를 사용합니다. 이 툴은 엔진의 리플렉션 시스템을 빌드하는 데 필요한 정보를 처리해 주어, C++ 코드를 블루프린트, 리플리케이션, 시리얼라이제이션, 가비지 콜렉션과 통합시켜 줍니다.
 
 [INCLUDE:Programming/Development/CompilingProjects#winbuildconfig]
 

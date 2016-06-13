@@ -1,8 +1,9 @@
-INTSourceChangelist:2086066
+﻿INTSourceChangelist:2659583
 Availability:Public
 Title:이벤트 그래프
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimBlueprints
 Description:_애님 그래프_ 에서 사용할 값을 계산하고 _애니메이션 블루프린트_ 를 업데이트하는 데 사용되는 이벤트 기반 그래프입니다.
+version: 4.9
 
 [REGION:banner]
 ![EventGraph](eventgraph_banner.png)(convert:false)
@@ -26,7 +27,7 @@ Description:_애님 그래프_ 에서 사용할 값을 계산하고 _애니메�
 
 ## 애니메이션 이벤트
 
-[INCLUDE:Engine/Animation/NodeReference/Events#Intro]
+애니메이션 시스템이 애니메이션 블루프린트 초기화 및 업데이트를 위해 호출하는 다양한 이벤트입니다. 이벤트 그래프에 배치하여 함수성 구현 또는 덮어쓰기 가능합니다.
 
 
 ### BlueprintInitializeAnimation

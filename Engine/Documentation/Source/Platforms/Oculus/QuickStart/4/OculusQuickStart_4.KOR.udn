@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2385999
-Title:4. 오큘러스 리프트 DK2 하드웨어 셋업
+﻿INTSourceChangelist:2982497
+Title:4. 오큘러스 리프트 하드웨어 셋업
 Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
 Description:오큘러스 리프트 헤드셋을 연결하고 업데이트합니다.
 Availability:Public
-
+Version: 4.9
+SkillLevel: Intermediate
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -21,98 +22,29 @@ Availability:Public
 [/OBJECT]
 [/VAR]
 
+여기서는 오큘러스 HMD 구성을 완료하고 최신 오큘러스 드라이버로 작동되는지 확인하는 법을 살펴보겠습니다.
+
+[region:note]
+오큘러스 리프트를 처음 PC 에 꽂을 때, 리프트 소프트웨어가 펌웨어를 업데이트하겠냐고 물어올 수 있습니다. 리프트의 UE4 정상 작동을 위해서는 이 업데이트를 해 줄 것을 강력 추천합니다.
+[/region]
+
 %Steps%
 
+1. 오큘러스 소프트웨어가 드라이버와 소프트웨어 설치를 마친 후, 리프트 셋업 화면이 표시됩니다.
+	**Next** 버튼을 누르면 리프트 셋업 프로세스가 시작되며, 화면의 지시를 따르면 됩니다.
 
-%Globals:OSSelect%
+	![](Rift_Setup_Screen_00.png)
 
-[OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	OS
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	windows
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	active_button_content
-	[/PARAMLITERAL]
-	[PARAM:content]
-	[INCLUDE:#windows]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	OS
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	mac
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	[/PARAMLITERAL]
-	[PARAM:content]
-	[INCLUDE:#macos]
-	[/PARAM]
-[/OBJECT]
-<!--
-[EXCERPT:windows]
-1. DK2 헤드셋을 컴퓨터에 연결하고, 동봉된 안내 매뉴얼을 따릅니다 (이 매뉴얼은 [온라인](http://static.oculus.com/sdk-downloads/documents/Oculus_Rift_DK2_Instruction_Manual.pdf) 에서도 찾을 수 있습니다).
-1. **Oculus Configuration Utility** 를 실행합니다. 방법은:
-	* 시스템 트레이의 오큘러스 아이콘에 **우클릭** 한 다음 **Configuration Utility** 를 선택하거나,
-	* 시작 메뉴를 열어 **Oculus Runtime > OculusConfigUtil** 로 찾아가거나,
-	* `[InstallDirectory]/Tools/` 에 있는 `OculusConfigUtil.exe` 를 실행합니다.
-1. **Tools > Rift Display Mode** 를 클릭합니다.
+[region:note]
+리프트 셋업 프로세스 중 도움말이 필요한 경우 좌하단 구석의 **Get Help** 링크를 클릭하면 도움말 섹션이 표시됩니다.
+[/region]
 
-	![](RiftDisplayMode_menu.png)
-1. 헤드셋이 **Direct HMD Access from Apps** 모드에 있는지 확인한 다음 **Apply** 를 클릭하여 변경사항을 적용하고 창을 닫습니다.
-	
-	![](DirectHMD.png)
+간단한 참고용으로, 각 섹션 우하단 구석에서 찾을 수 있는 도움말 링크를 아래에 모아두었습니다. 링크 순서는 셋업 프로세스에 등장하는 순서와 동일합니다.
 
-[REGION:tip]
-Configuration Utility 에 펌웨어 버전이 나타납니다. 버전이 2.12 가 아닌 경우, 다음과 같이 헤드셋 펌웨어를 업데이트해야 합니다.
-[/REGION]
-
-1. **Tools > Advanced > Update Firmware** 를 클릭합니다.
-
-	![](UpdateFirmware_menu.png)
-
-	[REGION:note]
-	펌웨어 업데이트 전 오큘러스를 사용하고 있을 수 있는 언리얼 에디터, 언리얼 엔진 런처 및 기타 프로그램을 닫아주시기 바랍니다. 그렇지 않으면 다른 소프트웨어를 닫아야 한다는 경고창과 함께, 펌웨어가 설치되지 않을 것입니다.
-	[/REGION]
-
-1. 파일 대화창이 뜨면 `DK2Firmware_2_12.ovrf` 를 선택한 다음 **Open** 을 클릭합니다.
-
-	![](Firmware.png)
-1. **Oculus Configuration Utility** 가 닫힙니다. 다시 여는 방법은:
-	* 시작 메뉴를 열고 **Oculus Runtime > OculusConfigUtil** 를 탐색하거나,
-	* `[InstallDirectory]/Tools/` 에서 `OculusConfigUtil.exe` 를 실행시킵니다.
-1. 펌웨어가 2.12 인지 확인합니다.
-[/EXCERPT:windows]
-[EXCERPT:macos]
-[INCLUDE:Platforms/Oculus#warning]
-
-1. DK2 헤드셋을 컴퓨터에 연결하고, 동봉된 안내 매뉴얼을 따릅니다 (이 매뉴얼은 [온라인](http://static.oculus.com/sdk-downloads/documents/Oculus_Rift_DK2_Instruction_Manual.pdf) 에서도 찾을 수 있습니다).
-1. **Oculus Configuration Utility** 를 실행합니다. 방법은:
-	* 데스크탑의 OculusConfigUtil 바로가기를 사용하거나,
-	* `[InstallDirectory]/Tools/` 에 있는 `OculusConfigUtil.app` 를 실행하면 됩니다.
-
-[REGION:tip]
-Configuration Utility 에 펌웨어 버전이 나타납니다. 버전이 2.12 가 아닌 경우, 다음과 같이 헤드셋 펌웨어를 업데이트해야 합니다.
-[/REGION]
-
-1. **Tools > Advanced > Update Firmware** 를 클릭합니다.
-
-	![](firmware_mac.png)(w:420)
-
-	[REGION:note]
-	펌웨어 업데이트 전 오큘러스를 사용하고 있을 수 있는 언리얼 에디터, 언리얼 엔진 런처 및 기타 프로그램을 닫아주시기 바랍니다. 그렇지 않으면 다른 소프트웨어를 닫아야 한다는 경고창과 함께, 펌웨어가 설치되지 않을 것입니다.
-	[/REGION]
-
-1. 파일 대화창이 뜨면 `DK2Firmware_2_12.ovrf` 를 선택한 다음 **Open** 을 클릭합니다.
-1. **Oculus Configuration Utility** 가 닫힙니다. 다시 여는 방법은:
-	* 데스크탑의 OculusConfigUtil 바로가기를 사용하거나,
-	* `[InstallDirectory]/Tools/` 에 있는 `OculusConfigUtil.app` 을 실행하면 됩니다.
-1. 펌웨어가 2.12 인지 확인합니다.
-[/EXCERPT:macos]
--->
+* [**Rift Initial Setup Help**](https://support.oculus.com/674612489309093) 
+* [**Rift Care and Maintenance**](https://support.oculus.com/1659691017629165) 
+* [**Using the Headset**](https://support.oculus.com/674612489309093) 
+* [**Oculus Remote**](https://support.oculus.com/835449819935261) 
+* [**Setup Your Xbox Controller (wireless mode)**](https://support.oculus.com/1560296144292386) 
 
 %Steps%

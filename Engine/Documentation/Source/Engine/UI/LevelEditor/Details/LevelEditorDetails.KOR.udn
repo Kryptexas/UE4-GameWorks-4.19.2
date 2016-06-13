@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2604329
+﻿INTSourceChangelist:2687039
 Availability:Public
 Title:디테일 패널
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
 Description:레벨 에디터에서 선택된 액터에 대한 정보와 특화된 편집 툴을 제공하는 패널입니다.
+Version: 4.9
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]
@@ -34,7 +35,7 @@ Description:레벨 에디터에서 선택된 액터에 대한 정보와 특화�
 패널은 선택된 액터에 사용된 머티리얼이 있으면 보여주기도 하고, 빠르게 편집할 수 있도록 열 수도 있습니다.
 [/EXCERPT:DetailsOverview]
 
-![Level Editor Details Panel](LE_DetailsUI2.png)
+![Level Editor Details Panel](details_panel.png)
 
 **디테일** 패널 UI 관련 상세 정보는 [](Engine/UI/LevelEditor\Details\Interface) 문서를 참고하시기 바랍니다.
 
@@ -83,7 +84,7 @@ Description:레벨 에디터에서 선택된 액터에 대한 정보와 특화�
 다른 변수 값에 따라 켤 것인지, 편집 가능한 것인지 아닌지를 결정합니다.
 
 어떤 경우에 편집 조건은 프로퍼티가 다른 값을 덮어쓸 것인지, 아니면 영향을 끼치게 할 것인지를 결정하는 데 
-사용됩니다. 그 외의 경우, 특정 프로퍼티는 일정 조건이 만족되지 않으면 그냥 당연히 안될 수도 있습니다. 예를 들어 간점광에 관련이 있는 
+사용됩니다. 그 외의 경우, 특정 프로퍼티는 일정 조건이 만족되지 않으면 그냥 당연히 안될 수도 있습니다. 예를 들어 간접광에 관련이 있는 
 프로퍼티 그룹이 있고, 간접광을 끌지 켤지 토글시키는 전역 `bool` 프로퍼티가 
 있을 수 있습니다. 그룹 내 각 프로퍼티는 간접광이 사용중일 때만 켜지도록 하기 위해, 전역 토글에 따라 조건이 
 달라지도록 할 수 있습니다.

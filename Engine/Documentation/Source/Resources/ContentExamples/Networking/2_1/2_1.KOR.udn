@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653552
+﻿INTSourceChangelist:2719899
 Availability: Public
 Title:2.1 - 네트워크 연관성 [1 부 - 전혀 리플리케이트되지 않음]
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Networking
@@ -8,6 +8,7 @@ Related: Gameplay/Networking/Actors/Components
 Related: Gameplay/Networking/Actors
 Related: Gameplay/Networking/Actors/RPCs
 Related: Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -53,7 +54,7 @@ Related: Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 [/REGION]
 
 
-블루프린트를 통해 제대로된 네트워킹 게임플레이를 만들기 위해서는, **Network Relevancy** (네트워크 연관성) 개념을 이해하는 것이 중요합니다.
+블루프린트를 통해 제대로 된 네트워킹 게임플레이를 만들기 위해서는, **Network Relevancy** (네트워크 연관성) 개념을 이해하는 것이 중요합니다.
 간단히 말해서, 클라이언트 머신에서는 모든 액터에 대한 네트워크 데이터를 항상 수신할 필요가 없다는 것입니다. 커다란 맵 한 쪽에 있는 플레이어는 네트워킹 관점에서 맵 반대편에서 벌어지는 일을 모두 알 필요가 없습니다.
 그러한 경우, 어떤 액터는 일정한 시간에 플레이어에게 "연관성이 있다"고 합니다. 연관성이 있는 액터는 주로 플레이어가 볼 수 있거나, 만질 수 있거나, 근처에 있는 것을 말합니다. 플레이어는 일종의 최적화로써, 연관성이 있는 액터에 대해서만 최대 네트워크 업데이트를 받습니다.
 

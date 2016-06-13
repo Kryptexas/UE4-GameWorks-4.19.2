@@ -6,22 +6,31 @@ Platform:Gear VR
 Skilllevel: Intermediate
 Version: 4.9
 prereq: Engine\Blueprints\GettingStarted
+Crumbs:%ROOT%, Platforms
+type:landing
+parent:Platforms/VR
+tags:VR
+tags:GearVR
 
+## Starting Out
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/vr_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Gear VR Development
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Platforms/GearVR/Prerequisites "%Platforms/GearVR/Prerequisites:description%")
-		* [](Platforms/GearVR/QuickStart "%Platforms/GearVR/QuickStart:description%")
-		* [](Platforms/GearVR/GlobalMenu "%Platforms/GearVR/GlobalMenu:description%")
-		* [](Platforms/GearVR/BestPractices "%Platforms/GearVR/BestPractices:description%")
-		* [](Platforms/GearVR/Debugging "%Platforms/GearVR/BestPractices:description%")
-	[/PARAM]
+[DIR(output:"listbutton" type:"quickstart" parent:"Platforms/GearVR")]
+
+## GearVR Topics
+
+[DIR(output:"listbutton" type:"overview" parent:"Platforms/GearVR")]
+
+## Training Streams
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+rNjDsNYvgfk
+[/PARAMLITERAL]
 [/OBJECT]
+

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2616662
+﻿INTSourceChangelist:2727112
 Availability:Public
 Title:디테일 패널 커스터마이징
 Crumbs:%ROOT%, Programming, Programming/Slate
@@ -145,7 +145,7 @@ version: 4.9
 		값 접근시의 핸들링 실패 케이스입니다.
 	[/REGION]
 	
-	기억할 것은, 디테일 뷰는 한 번에 여러 개의 오브젝트를 볼 수도 있고, 사용자가 액터를 한 번에 수 백개씩 선택하는 일도 다반사라는 것입니다. 이런 경우에는 의심의 여지 없이 한 프로퍼티에 대해 값이 여럿 생기게 됩니다. GetValue, SetValue 는 값에 접근하는 데 성공했는지 결정을 돕기 위해 `FPropertyAccess::Result` 를 반환합니다. `FPropertyAccess::MultipleValues` 는 흔한 반환 값이 됩니다.
+	기억할 것은, 디테일 뷰는 한 번에 여러 개의 오브젝트를 볼 수도 있고, 사용자가 액터를 한 번에 수백 개씩 선택하는 일도 다반사라는 것입니다. 이런 경우에는 의심의 여지 없이 한 프로퍼티에 대해 값이 여럿 생기게 됩니다. GetValue, SetValue 는 값에 접근하는 데 성공했는지 결정을 돕기 위해 `FPropertyAccess::Result` 를 반환합니다. `FPropertyAccess::MultipleValues` 는 흔한 반환 값이 됩니다.
 
 		/**
 		* 프로퍼티 값에 접근하여 얻을 수도 있는 결과입니다.
@@ -317,7 +317,7 @@ Slate 레이아웃으로 프로퍼티의 모양과 배치에 대한 완벽 커�
 	* 머티리얼 요소에 대한 위젯 생성
 	* 
 	 * @param ElementProperty     생성해야 하는 배열 요소에 대한 핸들
-	* @param ElementIndex        생성하려는요소의 인덱스
+	* @param ElementIndex        생성하려는 요소의 인덱스
 	*/
 	TSharedRef<SWidget> FMeshComponentDetails::OnGenerateElementForMaterials( TSharedRef<IPropertyHandle> ElementProperty, INT ElementIndex )
 	{
@@ -375,7 +375,7 @@ _복잡한 프로퍼티_ 란, 프로퍼티 이름만 가지고는 해석(resolve
                                 
 	* `MyActor` 내 `Struct2` 의 인덱스 `2` 번 `StaticArray` 에 접근하려면, 경로는 `"MyStruct.StaticArray[2]"` 가 되고, 인스턴스 이름은 `"Struct2"` 가 됩니다.
 	* `MyActor` 커스텀 함수 밖의 같은 `StaticArray` 에 접근하려면 위와 똑같이 해 주되 `ClassOutermost` 는 `MyActor::StaticClass()` 가 됩니다.
-	* `MyActor` 내 `MyFloat` 에 접근하려면, 프로퍼티 이름은 모호하지 않기때문에 그냥 `"MyFloat"` 를 전해주면 됩니다.
+	* `MyActor` 내 `MyFloat` 에 접근하려면, 프로퍼티 이름은 모호하지 않기 때문에 그냥 `"MyFloat"` 를 전해주면 됩니다.
 
 * 프로퍼티 핸들이 있는 경우 그 이름에서 자손 프로퍼티 핸들을 구할 수 있습니다:
 

@@ -1,15 +1,15 @@
-﻿INTSourceChangelist:2374181
+﻿INTSourceChangelist:2709304
 Title:Within
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Classes, Programming/UnrealArchitecture/Reference/Classes/Specifiers
 Description:
 Availability:Public
-Version:4.5
+Version:4.9
 
-**Within** クラス指定子は、 
-このクラスのオブジェクトが *ClassName* のインスタンスの外には存在できないことを示します。このクラスのオブジェクトを作成するには、 
- *ClassName* のインスタンスを「外部の」オブジェクトに指定する必要があります。
+`Within` クラス指定子は、 
+このクラスのオブジェクトが *ClassName* のインスタンスの _外側_ には存在できないことを示します。このクラスのオブジェクトを作成するには、 
+ *ClassName* のインスタンスを `Outer` オブジェクトに指定する必要があります。
 
-## 記法
+## Syntax
 
 	Within=OuterClassName
 

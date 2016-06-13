@@ -1,16 +1,21 @@
-﻿Title:R
+﻿INTSourceChangelist:2620017
+Title:R
 Crumbs:Shared/Glossary
 Description:
-Availability:Public
+Availability:NoPublish
 
 [EXCERPT:Glossary_R]
 
 [OBJECT:GlossaryItem]
 	[PARAM:Term]
-Rotate tool（回転ツール） 
+回転ツール 
 	[/PARAM]
 	[PARAM:Definition]
-シーン内のアクタをX、Y、Z軸と平行して回転させるウィジェットです。
+
+[EXCERPT:Glossary_Rotate_tool]
+**回転ツール** は、シーンのアクタを X 、 Y 、 Z 軸に沿ってスケーリングさせる変換ウィジェットです。
+[/EXCERPT:Glossary_Rotate_tool]
+
 	[/PARAM]
 [/OBJECT]
 

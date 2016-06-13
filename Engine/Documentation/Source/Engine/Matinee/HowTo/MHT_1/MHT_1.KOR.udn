@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2663119
+﻿INTSourceChangelist:2739011
 Availability: Public
 Title:문 구성하기
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
 Description:마티네를 통해 자동으로 열리고 닫히는 문을 구성합니다.
+Version: 4.9
+SkillLevel: Beginner
 
 
 ---
@@ -20,7 +22,7 @@ Description:마티네를 통해 자동으로 열리고 닫히는 문을 구성�
 
 1. **언리얼 프로젝트 브라우저** 창에서 **새 프로젝트** 를 생성한 다름 **블루프린트 삼인칭** 템플릿을 사용합니다.
 
-	![](MHT1_CreateProject.png)(w:640)
+	![](MatineeHowTo.jpg)(w:640)
 
 1. **시작용 콘텐츠 포함** 옵션이 켜졌는지 확인합니다.
 
@@ -42,8 +44,10 @@ Description:마티네를 통해 자동으로 열리고 닫히는 문을 구성�
 
 	![](MHT1_DoorFrame.png)(w:480)
 
-	_주: **Props** 폴더가 보이지 않는 경우, **프로젝트 생성하기** 단계를 참고하여 **시작용 콘텐츠 포함** 을 체크했는지 확인하시기 바랍니다._
-	
+	[Region:note]
+	**Props** 폴더가 보이지 않는 경우, **프로젝트 생성하기** 단계를 참고하여 **시작용 콘텐츠 포함** 을 체크했는지 확인하시기 바랍니다._
+	[/Region]
+
 1. **SM_DoorFrame** 스태틱 메시에 클릭한 다음 **레벨 뷰포트** 에 끌어 놓습니다.
 	
 	![](MHT_DoorFrameDragIn.jpg)(w:640)
@@ -58,13 +62,17 @@ Description:마티네를 통해 자동으로 열리고 닫히는 문을 구성�
 
 	![](MHT_CollisionComplexity.jpg)
 
-	_주: 위 단계로 문에 콜리전이 적용되도록 합니다._
+	[Region:note]
+	위 단계로 문에 콜리전이 적용되도록 합니다._
+	[/Region]
 
 1. **레벨 뷰포트** 에서 **SM_Door** 를 선택한 상태로 **디테일** 패널을 찾습니다. **트랜스폼** 아래 **회전** 세팅에서 **Z** 값을 **-180** 으로 설정합니다. 
 
 	![](MHT1_RotateDoor.png)(w:640)
 
-	_주: -179.99 로 자동 조정되는데 괜찮습니다._
+	[Region:note]
+	-179.99 로 자동 조정되는데 괜찮습니다._
+	[/Region]
 
 1. **이동** 위젯을 사용하여 문을 문틀 안에 위치시킵니다.
 
@@ -115,7 +123,7 @@ Description:마티네를 통해 자동으로 열리고 닫히는 문을 구성�
 
 	![](MHT1_TrackContextMenu.png)
 
-1. ![](MHT1_GroupName.png) 창이 뜨면 그룹에 새 이름을 지어줍니다 (이 예제에서는 **Door** 라 하겠습니다).
+1. 그룹에 **새 그룹 이름** 을 지으라는 창이 뜨면 이 그룹의 이름을 지어줍니다 (이 예제에서는 **Door** 라 하겠습니다).
 
 1. **마티네** 창을 최소화시킨 다음 **메인 에디터** 에서 **월드 아웃라이너** 창을 찾아 **SM_Door** 를 선택하여 강조시킵니다.
 
@@ -125,7 +133,9 @@ Description:마티네를 통해 자동으로 열리고 닫히는 문을 구성�
 
 	![](MHT1_AddDoorToGroup.png)
 
-	_주: 그러면 **Door** 그룹에 **SM_Door** 액터가 추가됩니다._
+	[Region:note]
+	그러면 **Door** 그룹에 **SM_Door** 액터가 추가됩니다._
+	[/Region]
 
 1. 그룹 (Door) 에 다시 우클릭하여 맥락 메뉴를 띄운 다음 **새 Movement Track 추가** 를 선택합니다. 
 
@@ -149,7 +159,7 @@ Description:마티네를 통해 자동으로 열리고 닫히는 문을 구성�
 
 	![](MHT1_DoorOpen.png)
 
-1. **마티네** 창으로 돌아가 ![](MHT1_EndPoint.png) **끝 마커** 를 클릭한 다음 왼쪽 **0.50** 으로 옮깁니다. 
+1. **마티네** 창으로 돌아가 빨강 화살표 **끝 마커** 를 클릭한 다음 왼쪽 **0.50** 으로 옮깁니다. 
 
 	![](MHT1_EndPointMoved.png)
 
@@ -215,7 +225,7 @@ Description:마티네를 통해 자동으로 열리고 닫히는 문을 구성�
 	
 1. 블루프린트 컴파일이 완료되어 **TriggerBox** 가 이제 **마티네** 액터에 걸렸습니다.
 
-1. **레벨 블루프린트** 를 최소화시킨 다음 ![](MHT1_PlayButton.png) **플레이** 버튼을 눌러 에디터에서 플레이합니다. 
+1. **레벨 블루프린트** 를 최소화시킨 다음 메인 툴바의 **플레이** 버튼을 눌러 에디터에서 플레이합니다. 
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]

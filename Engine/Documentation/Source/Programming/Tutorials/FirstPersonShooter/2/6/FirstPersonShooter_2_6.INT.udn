@@ -3,7 +3,7 @@ Title: 2.6 - Adding a Mesh to your Character
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
 Description: Learn how to add a mesh to your First Person Shooter character.
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,46 +23,44 @@ Version: 4.9
 
 %Steps%
 
-During this step, you'll give your character a skeletal mesh. The `Character` class creates a `SkeletalMeshComponent` object for us by default, so all it needs to know is which `SkeletalMesh` asset to use.
-
 [REGION:note]
-Before getting started, download and extract our sample mesh from the following link:
+Download and extract the sample mesh from the following link:
 *	[Sample Mesh](GenericMale.zip "Sample Mesh")
 [/REGION]
 
+During this step, we'll give the character a skeletal mesh. The `Character` class creates a `SkeletalMeshComponent` object for us by default, so all it needs to know is which `SkeletalMesh` asset to use.
+
 ## Importing a Skeletal Mesh
 
-1.	**Right-click** inside the Content Browser's file box to open the **Import Asset** dialog box
+1.	Navigate back to the Content folder inside of the Content Browser's file box.
 
-1.	**Click 'Import to /Game...'** to open the **Import** dialog box.
+1.	Now, right-click inside the Content Browser's file box to open the **Import Asset** dialog box
+
+1.	Click **'Import to /Game...'** to open the **Import** dialog box.
 
 	![](RightClickImport.png)
 
 1.	Locate and select the **GenericMale.fbx** mesh file.
 
-1.	**Click Open** to begin importing the mesh to your project.
+1.	Click **Open** to begin importing the mesh to your project.
 
-1.	In the **Content Browser**, the **FBX Import Options** dialog box appears. **Clicking Import** adds your mesh to the Project.
+1.	In the **Content Browser**, the **FBX Import Options** dialog box appears. Clicking **Import** adds your mesh to the Project.
 
-1.	**Click** the **Save** button to save your imported mesh.
+1.	Click the **Save** button to save your imported mesh.
 
 ## Creating a Blueprint for an FPS Character
 
-1.	**Right-click** in the **Content Browser** and select **New Folder**. 
+1.	Right-click in the **Content Browser** and select **New Folder**. 
 
-1.	Name this new folder "Blueprints".
+1.	Name this new folder "Blueprints" and double-click on the folder to open it.
 
-1.	**Double-click** on the folder to open it.
-
-1.	**Click** the **Add New** button and select **Blueprint Class**.
+1.	Click the **Add New** button and select **Blueprint Class**.
 
 	![](AddNewBPClass.png)
 
-1.	Expand the **All Classes** dropdown menu and type "FPSCharacter" into the search box.
+1.	Expand the **All Classes** dropdown menu and type "FPSCharacter" into the search box. Once you see **FPSCharacter** show up in your search results, go ahead and select **FPSCharacter** before clicking the **Select** button.
 
 	![](AddFPSCharacterClass.png)
-
-1.	**Click** on the **FPSCharacter** and **click** the **Select** button.
 
 1.	Name the new Blueprint "BP_FPSCharacter".
 
@@ -70,108 +68,107 @@ Before getting started, download and extract our sample mesh from the following 
 
 ## Setting up a Third Person Mesh
 
-1.	 **Double-click** the **BP_FPSCharacter** icon to open it in the **Blueprint Editor**.
+1.	Double-click the **BP_FPSCharacter** icon to open it in the **Blueprint Editor**.
 
-1.	**Click** on the **Mesh** component in the **Components** tab.
+1.	Click on the **Mesh** component in the **Components** tab.
 
 	![](MeshComponent.png)
 
-1.	Scroll down to the **Mesh** section of the **Details** tab and **click** on the dropdown menu that says "None".
+1.	Scroll down to the **Mesh** section of the **Details** tab and click on the dropdown menu that says "None".
 
 1.	Select the **GenericMale** skeletal mesh.
 
 	![](SelectSkeletalMesh.png)
 
-1.	Align the `SkeletalMeshComponent` to the `CapsuleComponent` by setting its Z **Location** to -88 in the **Details** tab.
+1.	Align the `SkeletalMeshComponent` to the `CapsuleComponent` by setting its Z **Location** to "-88.0".
 
 	![](NewZLoc_Mesh.png)
-
-	[REGION:note]
-	You can also move components around with widgets in the **Preview Viewport** rather than setting values in the **Details** tab.
-	[/REGION]
 
 1.	The `SkeletalMeshComponent` should now resemble the following:
 
 	![](SkeletalMeshLocation.png)
 
-	[REGION:note]
-	Generally, you should strive to contain your `SkeletalMeshComponent` within the `CapsuleComponent`, facing the same direction that the `ArrowComponent` is pointing, ensuring that your character moves correctly through the world.
+	[REGION:tip]
+	It's good practice to locate your `SkeletalMeshComponent` within the `CapsuleComponent`, facing the same direction that the `ArrowComponent` is pointing, ensuring that your character moves correctly through the world.
 	[/REGION]
 
 1.	 Make sure to **Compile** and **Save** the **BP_FPSCharacter** Blueprint before closing the **Blueprint Editor**.
 
 ## Setting the Default Pawn Class
 
-1.	Switch back to Visual Studio and open `FPSGameMode.cpp`.
+1.	Switch back to Visual Studio and open `FPSProjectGameMode.cpp`.
 
-1.	Find the `FPSGameMode` constructor in `FPSGameMode.cpp` to locate the existing `DefaultPawnClass` assignment:
+1.	Find the `AFPSProjectGameMode` constructor in `FPSProjectGameMode.cpp` to locate the existing `DefaultPawnClass` assignment, which should look like the following line:
 
 		DefaultPawnClass = AFPSCharacter::StaticClass();
 
 1.	Replace the `DefaultPawnClass` assignment with the following code:
 
-		// set the default pawn class to the Blueprinted character
+		//set the default pawn class to the Blueprint character
 		static ConstructorHelpers::FClassFinder<APawn> PlayerPawnObject(TEXT("Pawn'/Game/Blueprints/BP_FPSCharacter.BP_FPSCharacter_C'"));
-		if (PlayerPawnObject.Class != NULL)
+		if (PlayerPawnObject.Class != nullptr)
 		{
 			DefaultPawnClass = PlayerPawnObject.Class;
 		}
 
-	[REGION:note]
 	This code will find the class generated by your blueprint and assign it as your default pawn class. Note that the "_C" suffix in the asset path distinguishes the actual class used by the game from the Blueprint asset. If you put your Blueprint in a different folder in the asset tree, you can get the full path by right-clicking on the asset in the Content Browser and selecting Copy Reference.
 	![](CopyAssetReference.png)
-	[/REGION]
 
-1.	At this point, you can remove `#include "FPSCharacter.h"` from the top of `FPSGameMode.cpp`. `FPSGameMode.cpp` should now look like the following:
+1.	At this point, you can remove `#include "FPSCharacter.h"` from the top of `FPSProjectGameMode.cpp`. `FPSProjectGameMode.cpp` should now look like the following:
 
 		// Fill out your copyright notice in the Description page of Project Settings.
 		
 		#include "FPSProject.h"
-		#include "FPSGameMode.h"
+		#include "FPSProjectGameMode.h"
 		
-		AFPSGameMode::AFPSGameMode(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+		AFPSProjectGameMode::AFPSProjectGameMode()
 		{
-			// set the default pawn class to the Blueprinted character
+			//set the default pawn class to the Blueprint character
 			static ConstructorHelpers::FClassFinder<APawn> PlayerPawnObject(TEXT("Pawn'/Game/Blueprints/BP_FPSCharacter.BP_FPSCharacter_C'"));
-			if (PlayerPawnObject.Class != NULL)
+			if (PlayerPawnObject.Class != nullptr)
 			{
 				DefaultPawnClass = PlayerPawnObject.Class;
 			}
-		}//AFPSGameMode Constructor
+		}
 		
-		void AFPSGameMode::StartPlay()
+		void AFPSProjectGameMode::StartPlay()
 		{
 			Super::StartPlay();
 		
 			StartMatch();
 		
+			const int32 Key = -1;
+			static const FString DebugMessage = TEXT("Hello World, this is FPSGameMode!");
+			FColor DisplayColor = FColor::Yellow;
+			float TimeToDisplay = 5.0f; //seconds
+		
 			if (GEngine != nullptr)
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("We are using FPSGameMode."));
+				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
 			}
-		}//StartPlay()
+		}
 
 ## Verifying the New Mesh in PIE Mode
 
 It's now time to compile and test your newly added mesh in-editor.
 
-1.	Save `FPCSGameMode.cpp` in Visual Studio.
+1.	Save `FPSProjectGameMode.cpp` in Visual Studio.
 
 1.	Locate **FPSProject** in the **Solution Explorer**.
 
-1.	**Right-click** on **FPSProject** and select **Build** to compile your project.
+1.	Right-click on **FPSProject** and select **Build** to compile your project.
 
 	![](BuildProject.png)
 
 1.	After the build finishes, open your **FPSProject** in Unreal Editor.
 
-1.	**Click** the **Play** button in the Level Editor Toolbar. You should be able to see your character's shadow as you move around.
+1.	Click the **Play** button in the Level Editor Toolbar. You should be able to see your character's shadow as you move around.
 
-	[REGION:note]
-	To freely move the camera to see your character's mesh, press F1 to regain control of your mouse cursor, then **click** the **Eject** button in the toolbar.
+	![](PawnwithShadow.png)
+
+	If you want to see your character's mesh inside the editor's viewport, press the F8 key to eject yourself from your pawn. After pressing the F8 key, you'll be able to to move your camera freely through the level. To move your camera, hold the left mouse button down while moving the mouse at the same time.
 	![](FreelyMovingCamera.png)
-	[/REGION]
 
-1.	**Click** the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
+1.	Press the Escape key or click the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
 
 %Steps%

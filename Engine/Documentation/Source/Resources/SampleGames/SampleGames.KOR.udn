@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2803975
 Availability: Public
 Title:예제 게임 프로젝트
 Crumbs:%ROOT%, Resources
 Description:다양한 장르 구현에 대한 데모가 되는 완전판 샘플 게임입니다.
+Version: 4.9
 
 
 [VAR:Topic]
@@ -53,6 +54,8 @@ Example Game (예제 게임) 프로젝트는 에픽의 개발자와 아티스트
 [/Excerpt:SampleGames]
 
 [REGION:topics third]
+%Resources/SampleGames/UnrealMatch3:TopicCompact%
+%Resources/SampleGames/PlatformerGame:TopicCompact%
 %Resources/SampleGames/ShooterGame:TopicCompact%
 %Resources/SampleGames/StrategyGame:TopicCompact%
 %Resources/SampleGames/CardGame:TopicCompact%

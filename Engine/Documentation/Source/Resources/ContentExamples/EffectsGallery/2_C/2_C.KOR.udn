@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653104
+﻿INTSourceChangelist:2714534
 Availability: Public
 Title:2.3 - 블랙 바디 노드 [다이내믹 파라미터 콘트롤]
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/EffectsGallery
@@ -10,6 +10,7 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/ParticleLights
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -79,7 +80,7 @@ UE4 머티리얼 시스템의 매우 유용한 기능 중 하나는 머티리얼
 쉬운 말로, 노드에 켈빈 단위 실제 온도를 주면, 그 온도에 맞는 실제 색을 얻을 수 있습니다. 이로써 '이 폭발/화염의 색은 무얼까?' 하는 해묵은 문제가 해결됩니다. Black Body 머티리얼 노드를 사용하면 이펙트에 사용되는 색의 현실성을 보장받을 수 있습니다. 이 머티리얼 표현식을 최대한 활용하기 위해서는, [흑체복사](http://ko.wikipedia.org/wiki/흑체) 개념을 이해해 두는 것이 도움이 됩니다.
 
 
-이번 예제에서는 파티클 시스템 안에서 Dynamic Parameter 모듈을 사용합니다. 이를 통해 임의의 네밍드 파라미터를 만든 다음, 그것을 사용해서 머티리얼의 일정 부분을 구동시킬 수 있습니다. 즉 _Temperature_ 라는 커스텀 다이내믹 파라미터가 있고, 그 값은 파티클의 수명에 따라 4500 에서 0 까지 내려갑니다.
+이번 예제에서는 파티클 시스템 안에서 Dynamic Parameter 모듈을 사용합니다. 이를 통해 임의의 네임드 파라미터를 만든 다음, 그것을 사용해서 머티리얼의 일정 부분을 구동시킬 수 있습니다. 즉 _Temperature_ 라는 커스텀 다이내믹 파라미터가 있고, 그 값은 파티클의 수명에 따라 4500 에서 0 까지 내려갑니다.
 
  
  ![](image058.png)

@@ -3,7 +3,8 @@ Title:Blueprints Technical Guide
 Crumbs: %ROOT%, Programming
 Description:Technical guide for programmers working with Blueprints.
 version: 4.9
-
+Parent:Engine/Blueprints
+Type:guide
 
 Blueprints are a powerful new feature introduced in Unreal Engine 4.  
 
@@ -14,20 +15,4 @@ generally create a fully custom object type.
 Each Blueprint has a Construction Script, analogous to a constructor in C++, which is run when the object is created.  This script can dynamically construct the Actor instance based on any number 
 of factors, such as a fence that automatically sizes itself to fill a gap between buildings.  In this sense, a Blueprint can also be thought of as a very powerful prefab system. 
 
-
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/prog_icon.png)
-	[/PARAM]
-	[PARAM:title]
-		Blueprint Architecture
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Engine/Blueprints/TechnicalGuide/Compiler "%Engine/Blueprints/TechnicalGuide/Compiler:description%")
-		* [](Engine/Blueprints/TechnicalGuide/ExtendingBlueprints "%Engine/Blueprints/TechnicalGuide/ExtendingBlueprints:description%")
-		* [](Engine/Blueprints/TechnicalGuide/Guidelines "%Engine/Blueprints/TechnicalGuide/Guidelines:description%")
-	[/PARAM]
-[/OBJECT]
-
+[DIR(output:"listbutton" parent:"Engine/Blueprints/TechnicalGuide")]

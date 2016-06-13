@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:2629189
+﻿INTSourceChangelist:2713052
 Availability: Public
 Title:데칼
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
 Description:Decals 예제 레벨에 대한 개요입니다.
-
-[TOC(start:2 end:2)]
+Version: 4.9
+Related: Engine/Actors/DecalActor
+<!---[TOC(start:2 end:2)]--->
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -72,7 +73,8 @@ Description:Decals 예제 레벨에 대한 개요입니다.
 %Resources/ContentExamples/Decals/1_7:TopicCompact%
 [/REGION]
 
-
+<!---
 ## 관련 글타래 및 추가 참고자료
 
 * [데칼](Engine/Actors/DecalActor)
+--->

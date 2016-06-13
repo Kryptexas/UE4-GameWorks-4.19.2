@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Collision Overview
+﻿INTSourceChangelist:2714891
+Availability:Public
+Title:碰撞总览
 Crumbs: %ROOT%, Engine, Engine/Physics
-Description:An overview of how Collision and Collision Responses operate in Unreal Engine 4.
+Description:虚幻引擎 4 中碰撞和碰撞响应的操作方式总览。
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -26,104 +26,104 @@ Description:An overview of how Collision and Collision Responses operate in Unre
 
 [TOC(start:2 end:3)]
 
-**Collision Responses** and **Trace Responses** form the basis for how Unreal Engine 4 handles collision and ray casting during run time. Every object that can collide gets an **Object Type** and a series of responses that define how it interacts will all other object types. When a collision or overlap event occurs, both (or all) objects involved can be set to affect or be affected by blocking, overlapping, or ignoring each other.
+**碰撞响应（Collision Responses）** 和 **轨迹响应（Trace Responses）** 为虚幻引擎 4 提供运行时碰撞和光线投射的处理方式。每个可以发生碰撞的物体都拥有 **物体类型（Object Type）** 和一系列响应。正是这些响应定义了该物体与其他物体类型之间的物理交互。碰撞或重叠事件发生时，两个（或所有）相关物体可被设为产生影响或受到影响，两者（或所有）物体之间存在阻挡、重叠、或无视的情况。
 
-**Trace Responses** work basically the same way, except the trace (ray cast) itself can be defined as one of the Trace Response types, thusly allowing Actors to either block it or ignore it based on _their_ Trace Responses.
+**轨迹响应** 的工作方式基本相同，轨迹本身（光线投射）可被定义为轨迹响应类型之一，使 Actors 基于 _它们的_ 轨迹响应阻挡或无视光线投射。
 
-## Interactions
+## 交互
 
-There are a few rules to keep in mind with how collisions are handled:
+以下是碰撞的处理规则：
 
-* **Blocking** will naturally occur between two (or more) Actors set to Block. However, **Simulation Generates Hit Events** needs to be enabled to execute **Event Hit**, which is used in Blueprints, Destructible Actors, Triggers, etc...
-* Setting Actors to **Overlap** will often look like they **Ignore** each other, and without **Generate Overlap Events**, they are essentially the same.
-* For two or more simulating objects to block each other, they both need to be set to block their respective object types.
-* For two or more simulating objects: if one is set to overlap an object, and the second object is set to block the other, the overlap will occur but not the block.
-* Overlap events **can** be generated even if an object **Blocks** another, especially if traveling at high speeds.
-	* It is not recommended for an object to have both collision and overlap events. Though possible, there is much that needs manual handling.
-* If one object is set to ignore and the other is set to overlap, no overlap events will be fired.
-<!--* The **Object Responses** listed are just the defaults and have no actual bearing on what an object _is_. See below for more information on setting up custom [Object Types and Trace Channels](#customobjectchannelsandtracechannels).-->
+* 两个（或多个）设为 Block 的 Actors 之间将自然生成 **阻挡（Blocking）**。然而，执行 **命中事件（Event Hit）** 需启用 **Simulation Generates Hit Events**，此功能用于蓝图、可摧毁 Actor、触发器等资源中。
+* 将 Actors 设为 **Overlap** 通常看起来他们将 **无视** 对方。如未启用 **Generate Overlap Events**，两种设置在本质上相同。
+* 对两个（或多个）相互阻挡的模拟物体而言，需将两者设为对其各自的物体类型进行阻挡。
+* 对两个（或多个）模拟物体而言，如一个设为重叠，另一个设为阻挡，两者间将出现重叠，而非阻挡。
+* 在物体 **阻挡** 其他物体时，仍然 **可以** 产生重叠，尤其是在高速运动状态下。
+	* 不推荐为物体同时设置碰撞和重叠事件。但可以进行手动调整。
+* 如一个物体设为无视，另一个设为重叠，将不会产生重叠事件。
+<!--* 所列出的 **Object Responses** 仅为默认项，并未指定物体究竟 _为何种_。在下文中查阅设置自定义 [物体类型和轨迹通道](#customobjectchannelsandtracechannels) 的更多内容。-->
 
-For purposes of testing levels and looking around your worlds:
+测试关卡并在世界场景中进行环视：
 
-* The default **Play In Editor** camera is a pawn. Thusly can be blocked by anything set to block pawns.
-* The **Simulate in Editor** camera, before possessing anything, is **not** a pawn. It can freely clip through everything and will not create any collision or overlap events.
+* 默认的 **Play In Editor** 摄像机就是一个 pawn。因此它将被设为“阻挡 pawns”的任意物体阻挡。
+* 在执行处理之前，**Simulate in Editor** 摄像机 **不是** pawn。它可以自由地夹在所有资源中，不会引发任何碰撞或重叠事件。
 
 
-## Common Collision Interaction Examples
+## 常见碰撞互动范例
 
 [REGION:note]
-These interactions assume that all the objects have **Collision Enabled** set to **Collision Enabled** so they are set to fully collide with everything. If collision is disabled, it is as if **ignore** has been set for all **Collision Responses**.
+这些互动假定所有物体的 **Collision Enabled** 设为 **Collision Enabled**，它们将和其他物体产生完整的碰撞。如碰撞被禁用，就相当于所有 **碰撞响应** 被设为 **无视**。
 [/REGION]
 
-For the following section, this will be the setup used to explain what is happening:
+对以下部分而言，这是用于解释即将发生情况的设置。
 
 ![](COL_setup.png)(w:940 convert:false)
 
-The sphere is a **PhysicsBody** and the box is **WorldDynamic**, and by changing their collision settings we can get a number of behaviors.
+图中球体是一个 **PhysicsBody**，方块为 **WorldDynamic**。变更其碰撞设置可获得各种行为。
 
-### Collision
+### 碰撞
 
 [VAR:spacer]![](%ROOT%/spacer.png)[/VAR]
 
-By setting both of their collision settings to block each other, you get a collision, great for having objects interact with each other:
+对两者的碰撞进行设置使其相互阻挡，从而获得碰撞效果。在相互互动的物体上十分实用。
 
 ![](COL_collideNoEvent.png)(w:940 convert:false)
 
-| Sphere Collision Setup| Wall Collision Setup |
+| 球体碰撞设置| 墙壁碰撞设置 |
 | --- | ---- |
 | ![](COL_collideNoEvent_Sphere.png)(convert:false) |![](COL_collideNoEvent_Box.png)(convert:false) |
-| In this case, the sphere is a **PhysicsBody** and it is set to `block` **WorldDynamic** (which is what the wall is). | The wall is a **WorldDynamic** and is set to `block` **PhysicsBody** Actors (which is what the sphere is). |
+| 在此例中，球体为一个 **PhysicsBody**，被设为 `阻挡` **WorldDynamic**（墙壁）。| 墙壁是一个 **WorldDynamic**，被设为 `阻挡` **PhysicsBody** Actors（球体）。|
 
-In this case, the sphere and the wall will simply collide; no further notifications of the collision will take place.
+在此例中，球体和墙壁将产生简单碰撞，没有进一步的碰撞通知。
 
-### Collision and Simulation Generates Hit Events
+### 碰撞和模拟产生命中事件
 
-Just collision is useful and in general, the bare minimum for physics interactions, but if you want something to **report** it has collided so a Blueprint or section of code can be triggered:
+基础碰撞很实用，但整体而言只是最基础的物理互动；如果需要 **报告** 碰撞发生进而触发蓝图或节点的部分，则需要进行如下设置：
 
 ![](COL_collideEvent.png)(w:940 convert:false)
 
-| Sphere Collision Setup| Wall Collision Setup |
+| 球体碰撞设置| 墙壁碰撞设置 |
 | --- | ---- |
 | ![](COL_collideEvent_Sphere.png)(convert:false)|![](COL_collideNoEvent_Box.png)(convert:false)|
-| As in the example above, the sphere is a **PhysicsBody** and it is set to `block` **WorldDynamic** (which is what the wall is). However, the sphere has also enabled **Simulation Generates Hit Events** so it will trigger an event for itself whenever it collides with something. | The wall is a **WorldDynamic** and is set to `block` **PhysicsBody** Actors (which is what the sphere is). Since the wall is not set to **Simulation Generates Hit Events**, it will not generate an event for itself. |
+| 在上图中，球体为一个 **PhysicsBody**，被设为 `阻挡` **WorldDynamic**（墙壁）。然而球体还启用了 **Simulation Generates Hit Events**，因此它和其他物体发生碰撞时将为自身触发事件。| 墙壁是一个 **WorldDynamic**，被设为 `阻挡` **PhysicsBody** Actors（球体）。墙壁未设为 **Simulation Generates Hit Events**，因此它将不会为自身产生事件。|
 
-With the sphere set to **Simulation Generates Hit Events**, the sphere will tell itself that it has had a collision. It will fire off events such as **ReceiveHit** or **OnComponentHit** in the sphere's blueprint. Now if the box had an event for collision, it would not fire because it will never notify itself it has happened.
+设为 **Simulation Generates Hit Events** 后，球体发生碰撞时将进行自我告知。球体将在其蓝图中将产生诸如 **ReceiveHit** 或 **OnComponentHit** 的事件。如果墙壁拥有碰撞事件，它将不会生成事件，因为它并未自我告知已发生的碰撞。
 
-Further, an object that is reporting rigid collisions will report them all and spam reports when it is just sitting on something, so it is best to be careful to filter what it is colliding within its blueprint or in code.
+深入而言，报告刚体碰撞的物体与其他物体发生接触时便会报告所有的碰撞并发送报告。因此需要在蓝图或代码中对其碰撞的物体进行仔细过滤。
 
-### Overlap and Ignore
+### 重叠和无视
 
-For all intents and purposes, **Overlap** and **Ignore** work exactly the same **assuming Generate Overlap Events** is disabled. In this case, the sphere is set to overlap or ignore the box:
+就全部的意图和目的而言，**重叠** 和 **无视** 与禁用 **assuming Generate Overlap Events** 功能后的效果相同。在此例中，球体被设为重叠或无视方块。
 
 ![](COL_ignore.png)(w:940 convert:false)
 
 
 
 
-| Sphere Collision Setup| Wall Collision Setup |
+| 球体碰撞设置| 墙壁碰撞设置 |
 | --- | ---- |
 | ![](COL_OverlapNoEvent_Sphere.png)(convert:false) |![](COL_collideNoEvent_Box.png)(convert:false) |
-| Here the sphere is set to `overlap` **WorldDynamic** Actors (like our wall), but it does not have **Generate Overlap Events** enabled. As far as the sphere is concerned, it has not collided or overlapped anything, effectively it has ignored the wall.  | The wall is a **WorldDynamic** and is set to `block` **PhysicsBody** Actors (which is what the sphere is). As stated above, both Actors need to be set to block each other's respective object types. If they do not, they will not collide. |
+| 球体在此被设为 `重叠` **WorldDynamic** Actors（如墙壁），但并未启用 **Generate Overlap Events**。就球体本身而言，它并未与任何物体发生碰撞或产生重叠，实际上无视了墙壁。| 墙壁是一个 **WorldDynamic**，被设为 `阻挡` **PhysicsBody** Actors（球体）。如上所述，两个 Actors 需要被设为阻挡对方的物体类型。如为进行此设置，它们将不会产生碰撞。|
 
-Or:
+或者：
 
-| Sphere Collision Setup| Wall Collision Setup |
+| 球体碰撞设置| 墙壁碰撞设置 |
 | --- | ---- |
 | ![](COL_ignore_sphere.png)(convert:false) |![](COL_collideNoEvent_Box.png)(convert:false) |
-| Here the sphere is set to `ignore` **WorldDynamic** Actors (like our wall), and it will pass through the wall. | The wall is a **WorldDynamic** and is set to `block` **PhysicsBody** Actors (which is what the sphere is). As stated above, both Actors need to be set to block each other's respective object types. If they do not, they will not collide. |
+| 球体在此被设为 `无视` **WorldDynamic** Actors（例如墙壁），它将穿过墙壁。| 墙壁是一个 **WorldDynamic**，被设为 `阻挡` **PhysicsBody** Actors（球体）。如上所述，两个 Actors 需要被设为阻挡对方的物体类型。如为进行此设置，它们将不会产生碰撞。|
 
 
 
-### Overlap and Generate Overlap Events
+### 重叠与重叠事件生成
 
-Unlike collisions that can fire every frame, the overlap events are **ReceiveBeginOverlap** and **ReceiveEndOverlap**, which only fire in those specific cases.
+和每帧均生成的碰撞不同，重叠事件为 **ReceiveBeginOverlap** 和 **ReceiveEndOverlap**，只在特定条件下生成。
 
 ![](COL_overlapEvent.png)(w:940 convert:false)
 
-| Sphere Collision Setup| Wall Collision Setup |
+| 球体碰撞设置| 墙壁碰撞设置 |
 | --- | ---- |
 | ![](COL_OverlapEvent_Sphere.png)(convert:false) | ![](COL_collideNoEvent_Box.png)(convert:false) |
-| Here the sphere is set to `overlap` **WorldDynamic** Actors (like our wall), and it will generate an event for itself when it does overlap something. | The wall is a **WorldDynamic** and is set to `block` **PhysicsBody** Actors (which is what the sphere is). As stated above, both Actors need to be set to block each other's respective object types. If they do not, they will not collide. But, an **Overlap** does occur here, and an event for the sphere is fired. |
+| 球体在此被设为 `重叠` **WorldDynamic** Actors（如墙壁），它将在和其他物体发生重叠时为自身生成一个事件。| 墙壁是一个 **WorldDynamic**，被设为 `阻挡` **PhysicsBody** Actors（球体）。如上所述，两个 Actors 需要被设为阻挡对方的物体类型。如为进行此设置，它们将不会产生碰撞。但此处确有　**重叠**　发生，并为球体触发一个事件。|
 
  
 

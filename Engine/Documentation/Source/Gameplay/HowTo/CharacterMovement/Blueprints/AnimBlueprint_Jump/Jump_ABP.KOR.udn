@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2612304
+﻿INTSourceChangelist:2740691
 Availability: Public
 Title:8. 애니메이션 블루프린트 - 점프 상태
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:애니메이션 블루프린트 셋업을 이어, 점프에 대한 조건을 구성해 줍니다.
+Version: 4.9
+SkillLevel:Advanced
 
 [VAR:Steps]
 [OBJECT:Navigation]

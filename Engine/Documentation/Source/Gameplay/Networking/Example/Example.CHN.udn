@@ -1,28 +1,29 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2713562
 Availability:Public
-Title: Replication Example
+Title: 复制过程示例
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
-Description:Setting up networked games for multiplayer.
+Description:设置多人模式连网游戏。
 Related: Gameplay/Networking/Blueprints
 Related: Gameplay/Networking/Actors
+version: 4.9
 
-To give a concrete example, consider the case where you are a client in a network game. You see two opponents running towards you, shooting at you, and you hear their shots. Since all of the game 
-state is being maintained on the server rather than on your machine, why can you see and hear those things happening?
+为了让示例更加形象具体，我们在这里假设您是网络游戏中的一个客户端。您会看到两名对手朝着您这里跑来，对您射击，而且会听到他们的射击声。既然所有的游戏状态 
+都是在服务器而非您的计算机上维护，您为何能看到和听到这些事物呢？
 
-You can see the opponents because the server has recognized that the opponents are relevant to you (i.e. they are visible) and the server is currently replicating those Actors to you. Thus, you (the 
-client) have a local copy of those two player Actors who are running after you. You can see that the opponents are running toward you because the server is replicating their Location and Velocity 
-properties to you. Between Location updates from the server, your client simulates the movement of the opponents locally. You can hear their gunshots because the server is replicating the 
-ClientHearSound function to you. The ClientHearSound function is called for a PlayerPawn whenever the server determines that the PlayerPawn hears a sound.
+您可以看到对手，是因为服务器已经识别出对手与您相关（也就是说，他们是可见的），而此时服务器会将这些 Actor 复制给您。这样，您（客户端） 
+就会有这两个正在追击您的玩家 Actor 的本地复本。您可以看到对手朝您跑来，是因为服务器正在将他们的方位和速率属性 
+复制给您。在服务器提供方位更新的间隔，您的客户端会在本地模拟对手的移动。您可以听到他们的射击声，是因为服务器正在将 
+ClientHearSound 函数复制给您。当服务器确认 PlayerPawn 听到声音时，就会为 PlayerPawn 调用 ClientHearSound 函数。
 
-So, by this point, the low-level mechanisms by which Unreal multiplayer games operate should be clear. The server is updating the game state and making all of the big game decisions. The server is 
-replicating some Actors to clients. The server is replicating some variables to clients. And, the server is replicating some function calls to clients.
+讲解至此，虚幻引擎多人游戏背后的底层机制应该是清晰明确了 。服务器不断更新游戏状态并作出所有的重大游戏决策；服务器会 
+复制一部分 Actor 给客户端；服务器会复制一些变量给客户端。同时，服务器还要向客户端复制一些函数调用。
 
-It should also be clear that not all Actors need to be replicated. For example, if an Actor is halfway across the level and way out of your sight, you do not need to waste bandwidth sending updates 
-about it. Also, all variables do not need to be updated. For example, the variables that the server uses to make AI decisions do not need to be sent to clients; the clients only need to know about 
-their display variables, animation variables and physics variables. Also, most functions executed on the server should not be replicated. Only the function calls that result in the client seeing or 
-hearing something need to be replicated. So, in all, the server contains a huge amount of data, and only a small fraction of it matters to the client - the ones which affect things the player sees,
-hears or feels.
+另外可以明确的是，并非所有的 Actor 都需要复制。例如，如果一个 Actor 已经通过了半个关卡并离开您的视野，您就无需浪费带宽来发送与此有关的 
+更新。同样，变量也无需全部更新。例如，服务器做出 AI 决定时所用的变量可以不必发送到客户端；客户端只需了解 
+它们的显示变量、动画变量和物理变量。同时，服务器上执行的大多数函数都不应被复制。只有那些能让客户端看到或听到事物的 
+函数调用才需要被复制。总之，服务器中包含了大量数据，而只有一小部分数据会涉及客户端，影响到玩家的所见、所闻或
+所感。
 
-Thus, the next logical question is, "How does Unreal Engine know what Actors, variables, and function calls need to be replicated?"
+因此从逻辑上讲，我们不禁要问：“虚幻引擎如何知道要复制哪些 Actor、变量和函数调用？”
 
-The answer is, whoever writes the code or sets up the Blueprint for a class is responsible for determining what variables and functions need to be replicated.
+答案就是，无论谁来给类编写代码或设置蓝图，都要负责确定所需复制的变量和函数。

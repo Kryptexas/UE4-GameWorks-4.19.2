@@ -2,6 +2,7 @@ Availability: Public
 Title: 1. Essential Setup
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 1. Essential Setup
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

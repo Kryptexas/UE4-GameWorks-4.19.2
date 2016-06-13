@@ -5,7 +5,7 @@ Description:If you are just getting started with Blueprints, this provides a hig
 version: 4.9
 parent:Engine/Blueprints
 order:1
-type:reference
+
 
 [VAR:Topic]
 [OBJECT:Topic]

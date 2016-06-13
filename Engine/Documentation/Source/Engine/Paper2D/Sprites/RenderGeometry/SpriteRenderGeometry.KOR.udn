@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2632192
+﻿INTSourceChangelist:2739096
 Availability:Public
 Title:스프라이트 소스 리전 및 렌더 지오메트리
 Crumbs: %ROOT%, Engine, Engine/Paper2D, Engine/Paper2D/Sprites
@@ -7,6 +7,7 @@ Related: Engine\Paper2D\Sprites\Collision
 Related: Engine\Paper2D\Flipbooks
 Related: Engine/Rendering/Materials
 Related: Engine/Content/Types/Textures
+Version: 4.9
 
 
 [TOC(start:2)]

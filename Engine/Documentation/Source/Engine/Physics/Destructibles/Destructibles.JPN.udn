@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2223390
+﻿INTSourceChangelist:2713167
 Availability:Docs
-Title: 非破壊性アクタ
+Title:Destructible アクタ
 Crumbs: %ROOT%, Engine
 Description:
 
@@ -50,7 +50,7 @@ Description:
 
 ## 概要
 
-過酷な戦いで粉々にする、壊す、倒壊させる、屈する何かが必要な場合、「Destructible Actors (被破壊性アクタ)」 が良い手段です。インエディタ ツールにあるホストと **PhysX APEX Destruction** アセットに対するサポートにより、アンリアル エンジン 4 ではコンテンツ クリエーターがワールドを作成しては最終的に壊す多種多様な方法を提供しています。
+激しい戦いで粉々にする、壊す、倒壊させる、屈する何かが必要な場合、「Destructible (被破壊) アクタ」 が役立ちます。インエディタのツールと **PhysX APEX Destruction** アセットのサポートにより、UE4 ではコンテンツ クリエーターがワールドを作成して最終的に壊す多様な方法を提供しています。
 
 ## トピックス
 
@@ -66,7 +66,7 @@ Description:
 ## 例
 
 [REGION:todo]
-　
+コンテンツ サンプルのリンクは、準備でき次第ここに貼ります。
 [/REGION]
 
 [/PUBLISH:docs]

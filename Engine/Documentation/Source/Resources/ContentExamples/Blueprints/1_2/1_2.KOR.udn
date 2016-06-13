@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2652825
+﻿INTSourceChangelist:2712695
 Availability: Public
 Title:1.2 - 컴포넌트
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
@@ -11,6 +11,7 @@ Related: Engine/Blueprints/UserGuide/Types/MacroLibrary
 Related: Engine/Animation/AnimBlueprints/EventGraph
 Related: Engine/Blueprints/UserGuide/UserConstructionScript
 Related: Gameplay/HowTo/SetUpInput/Blueprints
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -55,14 +56,14 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 
 Component (컴포넌트)란 블루프린트 오브젝트의 임무 완수를 위해 필요한 오브젝트같은 것으로 생각해 볼 수 있습니다. 블루프린트에 추가할 수 있는 컴포넌트 유형은 여러가지 있습니다. 예를 들어 블루프린트를 정의하기 위해 약간의 폴리곤 메시가 필요하다면, **스태틱 메시 컴포넌트** 를 추가하면 됩니다. 블루프린트 오브젝트가 빛을 발하도록 하려면, **포인트 라이트 컴포넌트** 또는 **스포트 라이트 컴포넌트** 를 추가해 주면 됩니다.
 
-이 예제에서 보게되는 일련의 블루프린트 액터 각각에는 약간의 컴포넌트가 사용되는 것을 볼 수 있습니다.
+이 예제에서 보게 되는 일련의 블루프린트 액터 각각에는 약간의 컴포넌트가 사용되는 것을 볼 수 있습니다.
 
 ## 컴포넌트
 
 이 블루프린트들은 왼쪽에서 오른쪽 순으로:
 
 * **BP_SpriteComponent** - 빌보드 컴포넌트만 들어있으며, 블루프린트 배치를 보조하는 데 종종 사용됩니다.
-* **BP_StaticMeshComponent** - 스태틱 메시 컴포넌트만 들어있으며, 블루프랜트 액터를 정의하기 위해 폴리곤 메시나 모델이 필요할 때 사용됩니다.
+* **BP_StaticMeshComponent** - 스태틱 메시 컴포넌트만 들어있으며, 블루프린트 액터를 정의하기 위해 폴리곤 메시나 모델이 필요할 때 사용됩니다.
 * **BP_PointLightComponent** - 포인트 라이트 컴포넌트만 들어있으며, 블루프린트 액터가 빛을 내도록 할 때 사용됩니다.
 * **BP_SeveralComponents** - 빌보드 컴포넌트, 스태틱 메시 컴포넌트, 포인트 라이트 컴포넌트를 포함해서 위의 모든 컴포넌트 중 하나가 들어있습니다.
 

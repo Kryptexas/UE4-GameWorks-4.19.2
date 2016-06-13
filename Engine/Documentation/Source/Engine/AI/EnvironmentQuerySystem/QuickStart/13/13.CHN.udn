@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2654644
 Availability:Public
-Title: 13. Play in Editor and Testing
+Title:13.Play in Editor 和测试
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
-Description: Finally, test your Runner AI by using Play in Editor.
+Description:最后通过 Play in Editor 对 Runner AI 进行测试。
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -22,16 +23,26 @@ Description: Finally, test your Runner AI by using Play in Editor.
 
 %Steps%
 
-Now since you setup the **Behavior Tree** [earlier](Engine/AI/EnvironmentQuerySystem/QuickStart/9), and told the [AI Controller to run](Engine/AI/EnvironmentQuerySystem/QuickStart/7) it, you are ready to test! 
+之前已设好 [行为树](Engine/AI/EnvironmentQuerySystem/QuickStart/9)，并指令 [AI 控制器](Engine/AI/EnvironmentQuerySystem/QuickStart/7) 开始运行，即可进行测试！
 
 
-## Steps
+## 步骤
 
-* Hit the **Play in Editor** button and watch your AI flee from you.
+* 点击 **Play in Editor** 按钮，观看 AI 逃离玩家的追踪。
 
 ![](play.png)
 
-![](running.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+BWhnjDIhYwU
+[/PARAMLITERAL]
+[/OBJECT]
 
 
 %Steps%

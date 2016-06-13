@@ -1,11 +1,12 @@
-﻿INTSourceChangelist:2627837
+﻿INTSourceChangelist:2735410
 Availability:Public
 Title:버텍스 애니메이션 툴
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description: 3D Max 버텍스 애니메이션 툴 세트 사용 안내서입니다.
 Related: Engine\Animation\Tools\VertexAnimationTool\VAT_KF_Meshes
 Related: Engine\Animation\Tools\VertexAnimationTool\VAT_TL_Meshes
-Version: 4.8
+SkillLevel:Advanced
+Version: 4.9
 
 [TOC(start:2 end:3)]
 
@@ -30,13 +31,13 @@ Version: 4.8
 ### 툴 주의사항
 이 툴은 복잡한 애니메이션 데이터를 텍스처에 저장하여 애니메이션 부하를 줄이는 데 매우 좋지만, 툴 사용시 생기는 문제점이 몇 가지 있습니다.
 무엇보다 이 툴은 하나의 2D 텍스처 내 최대 **8192 버텍스** 에만 영향을 끼칠 수 있습니다.
-그 이유는, DirectX 11 에서 최대 텍스처 크기는 X 나 Y 어느 한 쪽이 8192 픽셀 이내여야 하기 떄문입니다.
+그 이유는, DirectX 11 에서 최대 텍스처 크기는 X 나 Y 어느 한 쪽이 8192 픽셀 이내여야 하기 때문입니다.
 이 툴은 다음 공식을 사용하여 텍스처 내 데이터를 생성합니다.
 
 		최종 텍스처 해상도:  X = 메시의 버텍스 수, Y = 캡처된 프레임 수.
 
 이러한 한계로 인해 이 툴은 비주얼 이펙트나 배경 스태틱 메시처럼 애니메이션이 필요는 하되 복잡한 애니메이션 리깅까지 쓰기에는 조금 무리인 경우에 최적입니다.
-이 툴은 스켈레탈 메시 애니메이션과도 **작동하지 않는데** 본 트랜스폼은 머티리얼 에디터에서 사용할 수 없기 떄문입니다.
+이 툴은 스켈레탈 메시 애니메이션과도 **작동하지 않는데** 본 트랜스폼은 머티리얼 에디터에서 사용할 수 없기 때문입니다.
 즉 스켈레탈 메시의 버텍스에 비슷한 방식으로 영향을 끼치려면, [모프 타겟](Engine/Content/FBX/MorphTargets) 을 사용해야 한다는 뜻입니다.
 
 ### 버텍스 애니메이션 툴 분석

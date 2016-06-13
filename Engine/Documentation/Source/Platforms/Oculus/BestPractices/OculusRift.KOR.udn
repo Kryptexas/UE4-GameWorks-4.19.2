@@ -1,17 +1,21 @@
-﻿INTSourceChangelist:2609228
+﻿INTSourceChangelist:2975673
 Availability:Public
 Title:오큘러스 리프트 실전 사례
 Crumbs:%ROOT%, Platforms, Platforms/Oculus
 Description:오큘러스 리프트 개발에 대한 정보입니다.
 Navigation:platform
+Version: 4.11
+parent:Platforms/Oculus
+type:overview
+tags:VR
+tags:Oculus Rift
 
 [TOC(start:2)]
-
-## 오큘러스 리프트 개요
 
 Oculus Rift, 오큘러스 리프트는 Head Mounted Display (HMD), 머리에 장착하는 디스플레이는 사용자가 바라보고 플레이하는 월드와 게임에 대한 몰입감을 
 크게 높일 수 있도록 해 주는 기기입니다. 이 글을 통해 언리얼 엔진 4 (UE4) 로 오큘러스 리프트용 콘텐츠를 개발할 때 알아둬야 할 
 유용한 정보 몇 가지를 짚어드릴 수 있었으면 합니다.
+
 
 ## 오큘러스 리프트 온전성 검사
 
@@ -23,258 +27,44 @@ Oculus Rift, 오큘러스 리프트는 Head Mounted Display (HMD), 머리에 장
 ![](T_VR_Plug-In_On_00.png)
 [/REGION]
 
-그렇게 해서 문제가 해결되지 않은 경우, 다음으로 검사해 볼 것은 오큘러스 리프트가 감지되었는지 확인하는 것입니다. 
+<!-- 그렇게 해서 문제가 해결되지 않은 경우, 다음으로 검사해 볼 것은 오큘러스 리프트가 감지되었는지 확인하는 것입니다. 
 그 방법은 다음과 같습니다:
 
 * 먼저 [독립형 게임](Engine/UI/LevelEditor/InEditorTesting/Settings#독립형게임에서플레이) 을 실행합니다.
 * 독립형 게임이 시작되면, 물결 (`) 키를 눌러 언리얼 콘솔을 띄웁니다.
-* 콘솔에 `showlog` 을 칩니다.
-* 그 다음 `ovrversion` 을 칩니다.
+* 콘솔에 showlog 을 칩니다.
+* 그 다음 ovrversion 을 칩니다.
 * 다음 그림과 같이 현재 LibOVR 버전과 빌드 날짜가 로그 창에 출력될 것입니다:
 	[REGION:fullwidth]
-	![](T_OculusRiftPluginVersionCheck.jpg)
+	![](T_OculusRiftPluginVersionCheck.png)
 	[/REGION]
-* 메시지가 "Command not recognized: ovrversion" 라고 나온다면 점검해 볼 사항은 다음과 같습니다:
+* 메시지가 **Command not recognized: ovrversion** 라고 나온다면 점검해 볼 사항은 다음과 같습니다:
 	* 플러그인이 활성화되었는지.
 	* 윈도우 플랫폼에서 UE4 를 실행중인지.
 	* 오큘러스 리프트가 꽂혀 있는지.
 	* 오큘러스 리프트가 정상 작동하는지.
 
-
 [REGION:tip]
 위 사항을 모두 점검했는데도 아직 작동하지 않는 경우, 하드웨어 문제일 수 있습니다. 그런 일이 발생한 경우, 
-[오큘러스 VR 기술지원](https://support.oculus.com/hc/en-us) 을 통해 연락 바랍니다. 
+[오큘러스 VR 기술지원](https://support.oculus.com/help/oculus/885981024820727/?ref=hc_fnav) 을 통해 연락 바랍니다. 
 [/REGION]
-
+-->
 
 ## 오큘러스 리프트 작동 확인하기
 
-오큘러스 리프트는 에디터 뷰포트라든가 에디터에서 플레이(PIE) 세션에서는 작동하지 않습니다. 
-작동하는지 확인할 유일한 방법은 독립형 게임 실행입니다. 독립형 게임을 실행하는 방법은 다음과 같습니다.
+오큘러스 리프트 HMD 는 아무 에디터 뷰포트나 기본 에디터에서 플레이(PIE) 세션에서는 작동하지 않습니다. 리프트에서 프로젝트를 확인하려면, **VR 프리뷰** 옵션을 사용해야 합니다. VR 프리뷰 옵션 접근을 위해서는 UE4 에디터 안에서 다음과 같은 작업을 해 줘야 합니다.
 
-* PIE 이외의 게임 모드, [독립형 게임](Engine/UI/LevelEditor/InEditorTesting#에디터에서플레이) 같은 것을 선택하세요. 
-* 게임이 전체 화면 이외의 모드에서 실행되면, **ALT+Enter** 를 눌러 전체화면 모드로 전환하거나, [콘솔](GettingStarted/RunningUnrealEngine#유용한게임내명령) 에 **fullscreen** 이라 칩니다.
-* [콘솔](GettingStarted/RunningUnrealEngine#유용한게임내명령) 에 **stereo on** 이라 칩니다.
+1. 메인 툴바의 **플레이** 부분에서, 플레이 버튼 옆의 작은 하양 삼각형을 클릭합니다.
 
-## 오큘러스 전용 환경설정 세팅
+	![](Rift_Preview_00.png)
 
-VR 디바이스용 몇 가지 변수 영구 설정을 위해 **DefaultEngine.INI** 파일에 넣어야 하는 오큘러스 전용 세팅이 
-몇 가지 있습니다.
+1. 드롭다운 메뉴에서 **VR 프리뷰** 옵션을 선택한 뒤 리프트를 장착하여 프로젝트를 VR 모드에서 확인합비다.
 
-[REGION:tip]
- `DefaultEngine.ini` 파일 위치는 `[게임 경로]\Config\DefaultEngine.ini` 입니다.
-[/REGION]
+	![](Rift_Preview_01.png)
 
-	[Oculus.Settings]
-	; In meters, not Unreal Units (cm)
-	; Recommended for true first person viewpoint
-	; since you are simulating the head.
-	;HeadModel_v2=(X=0.0,Y=0,Z=0.0)
-	; Default values
-	HeadModel_v2=(X=0.12,Y=0,Z=0.17)
-
-## 진짜 일인칭 시점
-
-플레이어를 VR 월드에 완벽히 몰입시키기 좋은 방법 중 하나는 진짜 일인칭 뷰포트를 구성하는 것입니다. 진짜 일인칭
-뷰포트는 플레이어 카메라가 플레이어 캐릭터의 눈 위치에 오도록 하는 것입니다.
-UE4 안에서 이 작업은 다음과 같이 이루어집니다.
-
-1. 먼저 선택한 캐릭터를 기반으로 블루프린트를 만듭니다.
-1. 다음 [컴포넌트 탭](Engine/Blueprints/UserGuide/Components) 아래 카메라 컴포넌트를 추가합니다.
-1. 카메라 컴포넌트를 캐릭터 메시에 끌어놓아 붙입니다.
-1. 카메라 컴포넌트를 선택한 다음 그 부모 소켓을 선택한 본 / 소켓으로 변경합니다.
-1. 필요하다면 상대 [위치 & 회전](Engine/Blueprints/UserGuide/Components#컴포넌트트랜스폼) 조정을 합니다.
-1. 카메라 세팅 -> Use Controller View Rotation (콘트롤러 뷰 회전 사용) 옵션을 켭니다.
-1. 블루프린트를 컴파일합니다.
-1. 게임 모드의 Default Pawn Class 를 TFP Character 로 설정합니다. 
-1. **Virtual Head Model** 영점을 잡습니다.
-
-## Virtual Head Model
-
-[REGION:note]
-DK1 헤드셋을 사용중인 경우, Virtual Head Model 셋업을 하는 것이 좋습니다. DK2 헤드셋을 사용중이지 않은 경우 필수입니다.
-[/REGION]
-
-Virtual Head Model 은 플레이어 시점에 오프셋을 적용하는 데 사용됩니다. 전통적인 일인칭 슈팅 게임에서 뷰포트 회전은 중앙축을 기준으로 
-일어나는데, 괜찮습니다. 하지만 VR 게임의 경우 이러한 오프셋이 불필요하므로, 영점을 잡아줘야 합니다.
-
-[REGION:tip]
-이 Virtual Head Model 의 치수는 HeadModel_v2 환경설정 세팅을 참고하여 결정된 것입니다.
-
-	HeadModel_v2=(X=0.12,Y=0,Z=0.17)
-[/REGION]
-
-<!--
-## Default Head Tracking Behavior
-
-By default, head tracking will affect the players view rotation and movement direction. However if that is not want you want this 
-behavior can be altered via C++ or Blueprints. To alter this behavior there are two ways to go about it. 
-
-* Create a new Player Camera Manager, Player Controller & Game Mode using Blueprints.
-* Create a new Player Controller, Character & Game Mode using  C++.
-
-
-In the end the results are similar with the player's view and movement directions separated however you fill find that the C++ version 
-is more flexible. Here are examples of you might go about implementing via Blueprints and C++.
-
-**Blueprint Method**
-
-1. Create a Blueprint that based on **PlayerCameraManager**.
-1. In the Defaults tab, find **Follow HMD Orientation** and set it to **true**.
-1. Create a Blueprint that based on **Player Controller**.
-1. In the Defaults tab, find **Player Camera Manager Class** and set it to your **PlayerCameraManager 1** Blueprint.
-1. Create a Blueprint that based on **Game Mode**.
-1. In the Defaults tab, find Default Controller Class and set it to your **Player Controller** Blueprint.
-1. Finally, under your levels **World Settings**, find **Game Mode Override** and set it to your **Game Mode** Blueprint.
-
-**C++ Method**
-
-1.	**Your.Build.cs** - Add **HeadMountedDisplay** to **PublicDependencyModuleNames.**
-
-			PublicDependencyModuleNames.AddRange(new string[] { 
-						"Core", 
-						"CoreUObject",
-						"Engine",
-						"InputCore", 
-						"HeadMountedDisplay"
-					});
-			});
-
-1. **YourPlayerController.h**
-
-				virtual void UpdateRotation(float DeltaTime) override;
-				UFUNCTION(BlueprintCallable, Category="Pawn")
-				FRotator GetViewRotation() const;
-				UFUNCTION(BlueprintCallable, Category="Pawn")
-				virtual void SetViewRotation(const FRotator& NewRotation);
-				virtual void SetControlRotation(const FRotator& NewRotation) override;
- 
-			protected:
- 
-				/**
-					*  View & Movement direction are now separate.
-					*  The controller rotation will determine which direction we will move.
-					*  ViewRotation represents where we are looking.
-					*/
-				UPROPERTY()
-				FRotator ViewRotation;
-
-1. **YourPlayerController.cpp**
-
-			// Make sure you include this!!
-			#include "IHeadMountedDisplay.h"
- 
-			void AYourPlayerController::UpdateRotation(float DeltaTime)
-			{
-				// Calculate Delta to be applied on ViewRotation
-				FRotator DeltaRot(RotationInput);
- 
-				FRotator NewControlRotation = GetControlRotation();
- 
-				if (PlayerCameraManager)
-				{
-					PlayerCameraManager->ProcessViewRotation(DeltaTime, NewControlRotation, DeltaRot);
-				}
- 
-				SetControlRotation(NewControlRotation);
- 
-				if (!PlayerCameraManager || !PlayerCameraManager->bFollowHmdOrientation)
-				{
-					if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed())
-					{
-						FQuat HMDOrientation;
-						FVector HMDPosition;
- 
-						// Disable bUpdateOnRT if using this method.
-						GEngine->HMDDevice->GetCurrentOrientationAndPosition(HMDOrientation, HMDPosition);
- 
-						FRotator NewViewRotation = HMDOrientation.Rotator();
- 
-						// Only keep the yaw component from the controller.
-						NewViewRotation.Yaw += NewControlRotation.Yaw;
- 
-						SetViewRotation(NewViewRotation);
-					}
-				}
- 
-				APawn* const P = GetPawnOrSpectator();
-				if (P)
-				{
-					P->FaceRotation(NewControlRotation, DeltaTime);
-				}
-			}
- 
-			void AYourPlayerController::SetControlRotation(const FRotator& NewRotation)
-			{
-				ControlRotation = NewRotation;
- 
-				// Anything that is overriding view rotation will need to 
-				// call SetViewRotation() after SetControlRotation().
-				SetViewRotation(NewRotation);
- 
-				if (RootComponent && RootComponent->bAbsoluteRotation)
-				{
-					RootComponent->SetWorldRotation(GetControlRotation());
-				}
-			}
- 
-			void AYourPlayerController::SetViewRotation(const FRotator& NewRotation)
-			{
-				ViewRotation = NewRotation;
-			}
- 
-			FRotator AYourPlayerController::GetViewRotation() const
-			{
-				return ViewRotation;
-			}
-
-1. **YourCharacter.h**
-
-				public:
-					virtual FRotator GetViewRotation() const override;
-
-1. **YourCharacter.cpp**
-
-			FRotator AYourCharacter::GetViewRotation() const
-			{
-				if (AYourPlayerController* MYPC = Cast<AYourPlayerController>(Controller))
-				{
-					return MYPC->GetViewRotation();
-				}
-				else if (Role < ROLE_Authority)
-				{
-					// check if being spectated
-					for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
-					{
-						APlayerController* PlayerController = *Iterator;
-						if (PlayerController && PlayerController->PlayerCameraManager->GetViewTargetPawn() == this)
-						{
-							return PlayerController->BlendedTargetViewRotation;
-						}
-					}
-				}
- 
-				return GetActorRotation();
-
-
-1. **YourGameMode.cpp**
-
-		AYourGameMode::AYourGameMode(const FObjectInitializer& ObjectInitializer)
-			: Super(ObjectInitializer)
-		{
-			DefaultPawnClass = AYourCharacter::StaticClass();
-			PlayerControllerClass = AYourPlayerController::StaticClass();
-		}
--->
-						
-
-## C++ 함수
-
-오큘러스 리프트의 입력으로 플레이어 시점 변경 방식 제어를 담당하는 것은, 실제 플러그인을 제외하고, 
-크게 두 가지 함수가 있습니다.
-
-	APlayerController::UpdateRotation()
-	APlayerCameraManager::UpdateViewTarget()
+	[region:note]
+	플레이 모드를 VR 프리뷰 옵션으로 변경하면 프로젝트가 항상 VR 모드에서 실행되며, **ALT + P** 같은 단축키를 사용해도 마찬가지입니다.
+	[/region]
 
 ## 오큘러스 참고서
 

@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2108384
+﻿INTSourceChangelist:2677192
 Availability:Public
 Title:ライトマスの基礎
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:ライトマスの概要説明
+SkillLevel:Beginner
+Version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -49,8 +51,6 @@ Description:ライトマスの概要説明
 
 [TOC(start:2)]
 
-## 概要
-
 [INCLUDE:Engine/Rendering/LightingAndShadows/Lightmass#LightMass_002]
 
 ## Lightmass Importance Volume
@@ -63,24 +63,24 @@ Description:ライトマスの概要説明
 
 ## 構築
 
-1. メニューバーの **Build** ![](LI_Build.png) をクリックします (ビルドボタンの隣にある小さな下向き三角を使用して、必要に応じて **Build Lighting** を選択することもできます)。
+1. メニューバーの **[Build]** ![](LI_Build.png) をクリックします (ビルドボタンの隣にある小さな下向き三角を使用して、必要に応じて **[Build Lighting]** を選択することもできます)。
 
 1. このようなダイアログがスクリーンの右下隅に表示されます。
+
 	![](LI_SLInprogress.png)
 
+1. 終了時に **[Keep]** をクリックします。
 
-1. 終了時に **Keep** をクリックします。
 	![](LI_SLComplete.png)
 
 
+これで終わりです。ライト数、[Quality] モード、レベルのサイズ、lightmass Importance Volume 内にどの部分が含まれるか、Swarm クライアントが使用するために他のコンピュータが利用可能であるか次第では、このプロセスは数分もしくは大幅に時間を要する場合があります。
 
-これで終わりです。ライト数、[Quality] モード、レベルのサイズ、lightmass Importance Volume内にどの部分が含まれるか、Swarm クライアントが使用するために他のコンピュータが利用可能であるか次第では、このプロセスは数分もしくは大幅に時間を要する場合があります。
-
-## [Quality] モード
+## Quality モード
 
 ![](LMBuild_001.png)
 
-これらのプリセットはすべて時間に対比した品質です。**Preview** 設定は素早くレンダリングしてベイクした大部分の直接光をだいたい満足のいく形で表現します。**Production** 設定では、レンダリングは遅くなりますが、様々なライト漏れエラーを訂正すると同時にさらに現実的な外観になります。
+これらのプリセットはすべて時間に対比した品質です。**[Preview (プレビュー)]** 設定は素早くレンダリングしてベイクした大部分の直接光をだいたい満足のいく形で表現します。**[Production (プロダクション)]** 設定では、レンダリングは遅くなりますが、様々なライト漏れエラーを訂正すると同時にさらに現実的な外観になります。
 
 * **Production** - 最高の見栄えです。しばらく時間がかかります。
 * **High** -良い見栄えです。いくらか時間がかかります。
@@ -88,7 +88,7 @@ Description:ライトマスの概要説明
 * **Preview** - 全体的な概要は得られます。少なくとも高速です。
 
 
-これらは単なるプリセットです。ゲームに適したライティングへ調整が可能な数多くの設定を利用出来ます。**Lightmass** 設定を微調整する詳しい情報については、[ライトマス](Engine/Rendering/LightingAndShadows/Lightmass) のドキュメントを参照してください。
+これらは単なるプリセットです。ゲームに適したライティングへ調整が可能な数多くの設定を利用出来ます。**ライトマス** 設定を微調整する詳しい情報については、[ライトマス](Engine/Rendering/LightingAndShadows/Lightmass) のドキュメントを参照してください。
 
 
 

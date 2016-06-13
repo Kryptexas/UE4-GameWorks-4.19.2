@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2663119
+﻿INTSourceChangelist:2728232
 Availability: Public
 Title:다중 카메라 사용하기
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
 Description:다수의 카메라를 전환하고 카메라 이동을 적용하는 법을 보여주는 씬입니다.
+Version: 4.9
+SkillLevel: Intermediate
 
 
 ---
@@ -41,7 +43,7 @@ Description:다수의 카메라를 전환하고 카메라 이동을 적용하는
 
 	_위 그림에서처럼 템플릿 텍스트 왼쪽 어딘가에 **카메라** 를 배치하도록 합니다._
 
-1.  뷰포트게 **카메라** 를 두 대 더 놓은 다음 아래 그림과같이 박스를 향하도록 안쪽으로 회전시킵니다. 
+1.  뷰포트에 **카메라** 를 두 대 더 놓은 다음 아래 그림과같이 박스를 향하도록 안쪽으로 회전시킵니다. 
 
 	![](MHT3_All_CamerasPlaced.jpg)(w:580)
 
@@ -191,7 +193,7 @@ Description:다수의 카메라를 전환하고 카메라 이동을 적용하는
 
 1. **타임 바** 가 **0.00** (에 이미 있지 않은 경우 그곳)으로 옮긴 다음 **디렉터** 트랙을 클릭하고 **Enter** 키를 쳐 키프레임을 추가합니다.
 
-1. ![](MHT3_CutToGroup.png) **그룹으로 컷** 팝업창이 나타나며, **Camera1** 에 대해 **OK** 를 눌러 키프레임 추가를 완료합니다.
+1. **그룹으로 컷** 팝업창이 나타나며, **Camera1** 에 대해 **OK** 를 눌러 키프레임 추가를 완료합니다.
 	
 	![](MHT3_FirstCutAdded.png)(w:740)
 
@@ -205,7 +207,8 @@ Description:다수의 카메라를 전환하고 카메라 이동을 적용하는
 	_클릭하면 원래 크기로 봅니다._
 
 1. **마티네** 창을 닫은 다음 **월드 아웃라이너** 에서 **마티네** 를 선택하고 **디테일** 패널에서 다음 옵션을 체크합니다: **Play on Level Load**, **Looping**, **Disable Movement Input**, **Disable Look at Input**, **Hide Player**. 
-
+	
+	![](MHT3_CutToGroup.png)
 	![](MHT3_MatineeActorSettings.png)
 
 1. 메인 툴바에서 **빌드** 를 클릭(, 옵션으로 레벨의 라이팅을 빌드)한 다음 **재생** 버튼을 클릭합니다.

@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2033304
+﻿INTSourceChangelist:2691859
 Availability:Public
 Title: 배열 콘트롤
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor, Engine/UI/LevelEditor/Details
 Description:다른 프로퍼티 유형의 동적 목록입니다.
+Version:4.9
 
 `배열` (Array)이란 오브젝트 레퍼런스와 같이 다른 유형의 프로퍼티에 대한 동적 목록입니다.
 요소 목록에는 각각의 개별 요소가, 해당 프로퍼티 유형을 나타내는 표준색으로 

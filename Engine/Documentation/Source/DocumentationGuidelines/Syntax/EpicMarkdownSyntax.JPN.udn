@@ -1,4 +1,5 @@
-﻿Availability:Docs
+﻿INTSourceChangelist:2598017
+Availability:Docs
 Keywords:メタデータはセミコロンでドキュメントの上部に追加します。
 Title:Epic で使用している Markdown 記法と拡張機能
 Crumbs:DocumentationGuidelines
@@ -7,7 +8,7 @@ Description:Epic がカスタマイズした Markdown 拡張機能を用いた�
 [TOC (start:2 end:3)]
 
 [REGION:note]
-**注記：**本ドキュメントは Epic の Markdown を使用して [こちら](DocumentationGuidelines\SyntaxSource) でも記載しています。
+**注記：** 本ドキュメントは Epic の Markdown を使用して [こちら](DocumentationGuidelines\SyntaxSource) でも記載しています。
 [/REGION]
 
 ## 概要
@@ -52,10 +53,10 @@ Epic 版の Markdown は [MarkdownSharp](http://code.google.com/p/markdownsharp/
 	<p> ファイル内の見出しにリンク付けした例です <a href="#AutogenerationofTableofContents">Auto generation of Table of Contents</a>.ヘッダ テキストはテキスト内のスペースを削除するとリンク付けされます。さらに、 複数のヘッダに同じ名前が付いている場合、後に続くヘッダの名前の後にスペースをいれずに 2,3 などを付けて参照できます <a href="#MarkdownSyntax">Markdown Syntax 1</a> <a href="#MarkdownSyntax2">Markdown Syntax 2</a> <a href="#MarkdownSyntax3">Markdown Syntax 3</a> </p>
 	<p>ドキュメント内にユーザー定義のブックマークをリンク付けした例です <a href="#Bookmark1">Bookmark 1</a>.</p>
 	<p><a id="Bookmark1"/> ブックマーク テキストは行頭文字でなければなりません。</p>
-	#### 結果
 
+#### 結果
 
-ファイル [目次と見出しの自動生成](#目次と見出しの自動生成) 内の見出しにリンクを付けた例です。ヘッダ テキストはテキスト内のスペースを削除するとリンク付けされます。さらに、 複数のヘッダに同じ名前が付いている場合、後に続くヘッダの名前の後にスペースをいれずに 2 、 3 などを付けて参照できます。. [Markdown Syntax 1]（#MarkdownSyntax） [Markdown Syntax 2]（#MarkdownSyntax2） [Markdown Syntax 3]（#MarkdownSyntax3） 
+ファイル [目次と見出しの自動生成](#目次と見出しの自動生成) 内の見出しにリンクを付けた例です。ヘッダ テキストはテキスト内のスペースを削除するとリンク付けされます。さらに、 複数のヘッダに同じ名前が付いている場合、後に続くヘッダの名前の後にスペースをいれずに 2 、 3 などを付けて参照できます。 `[Markdown Syntax 1](#MarkdownSyntax)` `[Markdown Syntax 2](#MarkdownSyntax2)` `[Markdown Syntax 3](#MarkdownSyntax3)` 
 
 [こちら](#Bookmark1) は、ドキュメント内にユーザー定義のブックマークをリンク付けした例です。
 
@@ -101,13 +102,13 @@ Epic 版の Markdown は [MarkdownSharp](http://code.google.com/p/markdownsharp/
 
 	(w: h: a: convert: type: quality: fill: )
 
-* 	**w:**画像を表示する幅です。これを省略すると、高さが指定されていなければソース画像の幅が使用され、その場合、ソース画像比に与えられた高さに対応する正しい幅が使用されます。
-*	**h:**画像を表示する高さです。これを省略すると、幅が指定されていなければソース画像の高さが使用され、その場合、ソース画像比に与えられた幅に対応する正しい高さが使用されます。
-*	**a:**左、右、通常（初期値）のフロートスタイルが画像に指定されていることを表します。デフォルトはなしです。
-*   **convert:**画像を異なるタイプに圧縮 / 変換すべきかを false または true 値で表します。デフォルトは true です。クオリティを維持したい場合、または GIF がアニメートされている場合などリソース形式が重要な場合には false に設定します。
-*	**type:**画像形式は jpg、png、gif のいずれかに変換できます。デフォルトは jpg です。
-* 	**クオリティ**圧縮クオリティが jpeg となります (1 - 100)。圧縮クオリティのデフォルトは 80 です。デフォルト値のアッシュでは画像レベルを劣化させるアーティファクトが発生する場合は、この値を下げると便利です。
-*	**fill:*** jpg 形式に変換されている場合、画像の背景色番号を示す 16 進数で入力したカラー (#0088FF 形式を使用)。デフォルトは `#FFFFFF`です。
+* 	**w:** 画像の表示幅これを省略すると、高さが指定されていなければソース画像の幅が使用され、その場合、ソース画像比に与えられた高さに対応する正しい幅が使用されます。
+*	**h:** 画像表示高さこれを省略すると、幅が指定されていなければソース画像の高さが使用され、その場合、ソース画像比に与えられた幅に対応する正しい高さが使用されます。
+*	**a:** 左、右、通常（初期値）のフロートスタイルが画像に指定されていることを表します。デフォルトはなしです。
+*   **convert:** 画像を異なるタイプに圧縮 / 変換すべきかを `false` または `true` 値で表します。デフォルトは true です。クオリティを維持したい場合、または GIF がアニメートされている場合などリソース形式が重要な場合には false に設定します。
+*	**type:** 画像形式は `jpg`、`png`、`gif` のいずれかに変換できます。デフォルトは `jpg` です。
+* 	**クオリティ** 圧縮品質が jpeg となります (`1`-`100`)。圧縮クオリティのデフォルトは `80` です。デフォルト値のアッシュでは画像レベルを劣化させるアーティファクトが発生する場合は、この値を下げると便利です。
+*	**fill:** * jpg 形式に変換されている場合、画像の背景色番号を示す 16 進数で入力したカラー (使用形式：`#0088FF`)。デフォルトは `#FFFFFF`です。
 
 [REGION:note]
 	* オプションの順番は重要ですが、それぞれ任意で省略可能、または画像情報の後ろのブラケットをまるまる省略することが可能です。
@@ -119,13 +120,13 @@ Epic 版の Markdown は [MarkdownSharp](http://code.google.com/p/markdownsharp/
 
 #### Markdown 記法
     右 ![Epic Logo](Logo_Epic-New.jpg "Here's a title")(a:right) フロートを指定、高さ、幅をブランクのままにしたインライン イメージです。
-    幅、高さ、左をフローとにしたリファレンス イメージ ![Epic Logo][RefEpicLogo] です。
-    [RefEpicLogo]:Logo_Epic-New.jpg "Here's a title"(w:50 h:50 a:left convert:true quality:75 fill:#000000)
+    幅、高さ、左をフローとにしたリファレンス イメージ ![Epic Logo][refepiclogo] です。
+    [refepiclogo]:Logo_Epic-New.jpg "Here's a title"(w:50 h:50 a:left convert:true quality:75 fill:#000000)
 	段落内のテキストは画像に平行になります。特別な div エレメントをフロートの終わりに置きます。
 	[REGION:clear]
 		<!-- clear float -->
-
 	[/REGION]    
+
 #### HTML 出力
 	<p>右 <img style="float: right;" title="Here's a title" alt="Epic Logo" src="./../../../images\EpicMarkdownDocGuides\EpicMarkdownExtension\Logo_Epic-New.jpg"/> フロートを指定、高さ、幅をブランクのままにしたインライン イメージです。</p>
 	<p>幅、高さ、左をフローとにしたリファレンス イメージ <img width="50" height="50" style="float: left;" title="Here's a title" alt="Epic Logo" src="./../../../images\EpicMarkdownDocGuides\EpicMarkdownExtension\Logo_Epic-New.jpg"/> です。</p>
@@ -137,9 +138,9 @@ Epic 版の Markdown は [MarkdownSharp](http://code.google.com/p/markdownsharp/
 #### 結果
 右フロート指定で、高さと幅の左をブランクにしたインライン イメージです ![Epic Logo](Logo_Epic-New.jpg "Here's a title")(a:right)。
 
-幅、高さ、左をフローとにしたリファレンス イメージ ![Epic Logo][RefEpicLogo] です。
+幅、高さ、左をフローとにしたリファレンス イメージ ![Epic Logo][refepiclogo] です。
 
-[RefEpicLogo]:Logo_Epic-New.jpg "Here's a title"(w:50 h:50 a:left convert:true quality:75 fill:#000000)
+[refepiclogo]:Logo_Epic-New.jpg "Here's a title"(w:50 h:50 a:left convert:true quality:75 fill:#000000)
 
 段落内のテキストは画像に平行になります。特別な div エレメントをフロートの終わりに置きます。
 
@@ -287,7 +288,7 @@ Epic 版の Markdown は [MarkdownSharp](http://code.google.com/p/markdownsharp/
 上記以外にも特殊な機能をもつキーがあります。
 
 * タイトルメタデータはヘッダブロック <title> タイトル </title> で使用されます。
-* HtmlDocumentType のメタデータは、 「include/templates」 フォルダの中で html 生成に使用するテンプレートを定義するために使用されます。テンプレートがない場合は、default.html テンプレートファイルを使用します。
+* HtmlDocumentType のメタデータは、 「include/templates」 フォルダの中で html 生成に使用するテンプレートを定義するために使用されます。存在しない場合は、 default.html テンプレート ファイルが使用されます。
 * DoIndex:false からインデクサに、インデックスからドキュメントを排除し結果を検索するよう指示がでます。文書はすべて true がデフォルト値になっています。
 * ForcePublishFiles: を使用して、添付と画像を「 html 」フォルダに強制的に公開することができます。
 

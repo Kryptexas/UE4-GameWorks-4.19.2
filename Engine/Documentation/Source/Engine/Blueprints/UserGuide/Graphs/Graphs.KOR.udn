@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:2694967
+﻿INTSourceChangelist:2968923
 Availability:Public
 Title:그래프
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:블루프린트와 연관된 게임플레이 이벤트에 대한 반응으로 이벤트와 함수 호출을 사용하여 동작을 수행하는 노드 그래프입니다.
 version: 4.9
+Parent:Engine/Blueprints/Anatomy
+Tags:Graphs
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -71,7 +73,7 @@ _블루프린트_ 망의 체계적인 정리에 도움이 됩니다. **이벤트
 ![%Engine/Blueprints/UserGuide/UserConstructionScript:title%](Engine/Blueprints/UserGuide/UserConstructionScript/ucs_topic.png)(w:300)
 
 **Construction Script** (컨스트럭션 스크립트)는 _블루프린트 클래스_ 고유의 것으로, 각각의 _블루프린트 클래스_ 마다 단 하나의 **컨스트럭션 스크립트** 만이 존재합니다. **컨스트럭션 스크립트** 는 _블루프린트 클래스_ 초기화에 좋은데,
-_블루프린트 클래스_ 에 대해 **컴포넌트** 리스트가 셋업된 직후 실행되기 떄문입니다.
+_블루프린트 클래스_ 에 대해 **컴포넌트** 리스트가 셋업된 직후 실행되기 때문입니다.
 
 이 섹션 관련 상세 정보는, [](Engine/Blueprints\UserGuide\UserConstructionScript) 문서를 참고하세요.
 

@@ -1,7 +1,9 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2690184
+Availability:Public
 Title:Parameter 表現式
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
 Description:子インスタンスで無効またはランタイム時に修正してプロパティをマテリアルインスタンスへ公開する表現式
+Version:4.9
 
 [EXCERPT:TOC]
 [TOC(start:2)]
@@ -10,7 +12,7 @@ Description:子インスタンスで無効またはランタイム時に修正�
 
 ## Collection Parameters
 
-Collection Parameter 表現式は、パラメータ コレクション アセットを参照するために使用します。マテリアル、ブループリントなどといった様々なアセットで簡単に再利用できるパラメータ グループです。Collection Parameters については、 [マテリアルのパラメータ コレクション](Engine/Rendering/Materials\ParameterCollections) を必ずお読みください。
+**Collection Parameter** 表現式は、Parameter Collection アセットを参照するために使用します。マテリアル、ブループリントなどといった様々なアセットで簡単に再利用できるパラメータ グループです。Collection Parameters については、 [マテリアルのパラメータ コレクション](Engine/Rendering/Materials\ParameterCollections) を必ずお読みください。
 
 
 
@@ -22,7 +24,7 @@ Collection Parameter 表現式は、パラメータ コレクション アセッ
 ## DynamicParameter
 [EXCERPT:DynamicParameter]
 
-DynamicParameter 表現式は、パーティクル エミッタにルートを提供します。このルートから、どんな方法でも使用が可能な最大 4 つの値をマテリアルへ送り込みます。これらの値は、エミッタに配置されている Parameterdynamic モジュールを経由してカスケードに設定されます。
+**DynamicParameter** 表現式は、パーティクル エミッタにルートを提供します。このルートから、どんな方法でも使用が可能な最大 4 つの値をマテリアルへ送り込みます。これらの値は、エミッタに配置されている **ParameterDynamic** モジュールを経由して **カスケード** に設定されます。
 
 | アイテム | 説明 |
 | -------- | ----------- |
@@ -41,7 +43,7 @@ DynamicParameter 表現式は、パーティクル エミッタにルートを�
 
 ## ScalarParameter
 
-ScalarParameter 表現式は、アクセス可能な浮動小数値 ([Constant](Engine/Rendering/Materials/ExpressionReference/Constant#Constant)) を出力し、マテリアルのインスタンス、またはオンザフライ書き込みで変更することができます。  
+**ScalarParameter** 表現式は、アクセス可能な浮動小数値 ([Constant](Engine/Rendering/Materials/ExpressionReference/Constant#Constant)) を出力し、マテリアルのインスタンス、またはオンザフライ書き込みで変更することができます。  
 
 | アイテム | 説明 |
 | -------- | ----------- |
@@ -58,7 +60,7 @@ ScalarParameter 表現式は、アクセス可能な浮動小数値 ([Constant](
 
 ## StaticBoolParameter
 
-StaticBoolParameter 表現式は、 Bool 型パラメータのみを作成する点とスイッチを実装しない点を除いて、 StaticSwitchParameter 表現式のような機能をします。
+**StaticBoolParameter** 表現式は、 Bool 型パラメータのみを作成する点とスイッチを実装しない点を除いて、 StaticSwitchParameter 表現式のように機能します。
 
 [REGION:note]
 パラメータは、ランタイム時に変更することができないため静的に名前がつけられます。名前は、マテリアル インスタンス エディタ上のみで設定することができます。静的スイッチは、ランタイム時ではなくコンパイル時に適用されます。つまり、マテリアルのブランチがドロップされた時は決して実行されません。よって静的スイッチはランタイム時に効率よく解放されます。その一方で、マテリアルの新バージョンは、マテリアルで静的パラメータが **使われた** 組み合わせごとにコンパイルされなくてはいけませんので、気をつけないとコンパイルされたシェーダーがたくさんハードディスク スペースやメモリを使ってしまい、ゲームのパフォーマンスに大きな影響を与えるかもしれません。マテリアルに使用する静的パラメータの数と、実際に使用された静的パラメータの置換数を最小限にとどめてください。
@@ -78,7 +80,7 @@ StaticBoolParameter 表現式は、 Bool 型パラメータのみを作成する
 
 ## StaticSwitchParameter
 
-StaticSwitchParameter 表現式は 2 つの入力値を受け取り、パラメータの値が _true_ の時、最初の入力値を出力します。 False の場合は 2 番目の入力値を出力します。   
+**StaticSwitchParameter** 表現式は 2 つの入力値を受け取り、パラメータの値が _true_ の時、最初の入力値を出力します。 False の場合は 2 番目の入力値を出力します。  
 
 [REGION:note]
 パラメータは、ランタイム時に変更することができないため静的に名前がつけられます。名前は、マテリアル インスタンス エディタ上のみで設定することができます。静的スイッチは、ランタイム時ではなくコンパイル時に適用されます。つまり、マテリアルのブランチがドロップされた時は決して実行されません。よって静的スイッチはランタイム時に効率よく解放されます。その一方で、マテリアルの新バージョンは、マテリアルで静的パラメータが **使われた** 組み合わせごとにコンパイルされなくてはいけませんので、気をつけないとコンパイルされたシェーダーがたくさんハードディスク スペースやメモリを使ってしまい、ゲームのパフォーマンスに大きな影響を与えるかもしれません。マテリアルに使用する静的パラメータの数と、実際に使用された静的パラメータの置換数を最小限にとどめてください。
@@ -96,7 +98,7 @@ StaticSwitchParameter 表現式は 2 つの入力値を受け取り、パラメ�
 | **B** | さまざまなチャンネルの値を受け取ります。|
 
 
-**使用例：**ランタイム コストが発生することなく、マテリアルの全ブランチの削除に静的スイッチを使用します。インスタンスは異なる値を持つことができます。パフォーマンス ロスなしにテンプレート化したシェーダーを設定することが可能になります。
+**使用例：** ランタイム コストが発生することなく、マテリアルの全ブランチの削除に静的スイッチを使用します。インスタンスは異なる値を持つことができます。パフォーマンス ロスなしにテンプレート化したシェーダーを設定することが可能になります。
 
 [REGION:fullwidth]
 ![StaticSwitchParameterExample_A.png](StaticSwitchParameterExample_A.png)
@@ -108,7 +110,7 @@ StaticSwitchParameter 表現式は 2 つの入力値を受け取り、パラメ�
 
 ## StaticComponentMaskParameter
 
-StaticComponentMaskParameter 表現式は、マスクの値をインスタンスで設定できる点を除いて、通常のコンポーネント マスクのような動作をします。  
+**StaticComponentMaskParameter** 表現式は、マスクの値をインスタンスで設定できる点を除いて、通常のコンポーネント マスクのような動作をします。  
 
 [REGION:note]
 パラメータは、ランタイム時に変更することができないため静的に名前がつけられます。名前は、マテリアル インスタンス エディタ上のみで設定することができます。静的スイッチは、ランタイム時ではなくコンパイル時に適用されます。つまり、マテリアルのブランチがドロップされた時は決して実行されません。よって静的スイッチはランタイム時に効率よく解放されます。その一方で、マテリアルの新バージョンは、マテリアルで静的パラメータが **使われた** 組み合わせごとにコンパイルされなくてはいけませんので、気をつけないとコンパイルされたシェーダーがたくさんハードディスク スペースやメモリを使ってしまい、ゲームのパフォーマンスに大きな影響を与えるかもしれません。マテリアルに使用する静的パラメータの数と、実際に使用された静的パラメータの置換数を最小限にとどめてください。
@@ -125,7 +127,7 @@ StaticComponentMaskParameter 表現式は、マスクの値をインスタンス
 | **Default A** | チェックされると、アルファまたは 4 番目のチャンネルの入力値が出力へ渡されます。 |
 
 
-**使用例：**インスタンスが使用するマスクテクスチャのチャンネルの選択に、静的コンポーネント マスクを使用します。マスクが静的 (ランタイム時に変更が不必要) な場合、チャンネルをマスクするためにベクター パラメータでテクスチャ ルックアップを乗算する代わりに常にこの方法を使用します。この方法を使用しないと、テクスチャ帯域幅とシェーダー命令が無駄になります。
+**使用例：** インスタンスが使用するマスクテクスチャのチャンネルの選択に、Static Component Masks を使用します。マスクが静的 (ランタイム時に変更が不必要) な場合、チャンネルをマスクするためにベクター パラメータでテクスチャ ルックアップを乗算する代わりに常にこの方法を使用します。この方法を使用しないと、テクスチャ帯域幅とシェーダー命令が無駄になります。
 
 [REGION:fullwidth]
 ![StaticComponentMaskParameterExample.png](StaticComponentMaskParameterExample.png)
@@ -133,7 +135,7 @@ StaticComponentMaskParameter 表現式は、マスクの値をインスタンス
 
 ## VectorParameter
 
-VectorParameter 表現式は、マテリアルのインスタンスやコードで修正できるパラメータである点を除いて [定数式](Engine/Rendering/Materials/ExpressionReference/Constant#Constant4Vector) と同一です。VectorParameter の良い点の一つに、カラーピッカーで値を設定できる点があります。
+**VectorParameter** は、マテリアルのインスタンスやコードで修正できるパラメータである点を除いて [Constant4Vector](Engine/Rendering/Materials/ExpressionReference/Constant#Constant4Vector) と同一です。VectorParameter の良い点の一つに、カラーピッカーで値を設定できる点があります。
 
 | アイテム | 説明 |
 | -------- | ----------- |
@@ -151,7 +153,7 @@ VectorParameter 表現式は、マテリアルのインスタンスやコード�
 [/REGION]
 
 [REGION:note]
-**プログラマー向け:**スプライト パーティクルに関して、メッシュ パーティクルのカラーはシェーダー定数として設定されているのに対し、カラーは頂点毎にシェーダーと通信をします。
+**プログラマー:** スプライト パーティクルに関して、メッシュ パーティクルのカラーはシェーダー定数として設定されているのに対し、カラーは頂点毎にシェーダーと通信をします。
 [/REGION]
 
 
@@ -159,7 +161,7 @@ VectorParameter 表現式は、マテリアルのインスタンスやコード�
 [EXCERPT:TextureObjectParameter]
 ## TextureObjectParameter
 
-TextureObjectParameter 表現式はテクスチャ パラメータを定義します。そしてテクスチャ入力と一緒に関数を呼ぶマテリアルに用いるテクスチャ オブジェクトを出力します。 このノードはテクスチャを実際にサンプル化しないので、 TextureSample ノードを併用しなくてはいけません。
+**TextureObjectParameter** 表現式はテクスチャ パラメータを定義します。そしてテクスチャ入力と一緒に関数を呼ぶマテリアルに用いるテクスチャ オブジェクトを出力します。このノードはテクスチャを実際にサンプル化しないので、 TextureSample ノードを併用しなくてはいけません。
 
 | アイテム | 説明 |
 | -------- | ----------- |
@@ -177,7 +179,7 @@ TextureObjectParameter 表現式はテクスチャ パラメータを定義し�
 [EXCERPT:TextureSampleParameter2D]
 ## TextureSampleParameter2D
 
-TextureSampleParameter2D は、マテリアルのインスタンスやコードで修正できるパラメータである点を除いて TextureSample と同一です。
+**TextureSampleParameter2D** 表現式は、マテリアルのインスタンスやコードで修正できるパラメータである点を除いて TextureSample と同一です。
 
 | アイテム | 説明 |
 | -------- | ----------- |
@@ -203,7 +205,7 @@ TextureSampleParameter2D は、マテリアルのインスタンスやコード�
 [EXCERPT:TextureSampleParameterCube]
 ## TextureSampleParameterCube
 
-TextureSampleParameterCube 表現式は、キューブマップのみを受け取る点と、マテリアルのインスタンスやコードを通じて修正できるパラメータである点を除いて TextureSample と同一です。
+**TextureSampleParameterCube** 表現式は、キューブマップのみを受け取る点と、マテリアルのインスタンスやコードを通じて修正できるパラメータである点を除いて TextureSample と全く同一です。
 
 | アイテム | 説明 |
 | -------- | ----------- |
@@ -227,7 +229,7 @@ TextureSampleParameterCube 表現式は、キューブマップのみを受け�
 [EXCERPT:TextureSampleParameterMovie]
 ## TextureSampleParameterMovie
 
-TextureSampleParameterMovie 表現式は、ムービーテクスチャ (Bink ムービー) のみを受け取る点と、マテリアルのインスタンスやコードで修正できるパラメータである点を除いて TextureSample と同一です。
+**TextureSampleParameterMovie** 表現式は、ムービーテクスチャ (Bink ムービー) のみを受け取る点と、マテリアルのインスタンスやコードで修正できるパラメータである点を除いて TextureSample  と同一です。
 
 | アイテム | 説明 |
 | -------- | ----------- |

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653552
+﻿INTSourceChangelist:2717082
 Availability: Public
 Title:1.6 - 독립 반투명
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
@@ -14,6 +14,7 @@ Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Rendering/Materials/MaterialInstances
 Related: Engine/Actors/DecalActor
 Related: Engine/Rendering/Materials/MaterialProperties
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -73,7 +74,14 @@ Related: Engine/Rendering/Materials/MaterialProperties
 [/VAR]
 
 <div align="center">
-![](MP_1_6_001.png)(h:350) ![](MP_1_6_002.png)(h:350)
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Separate Translucency No Post Process](MP_1_6_001.png)(h:400)
+	[/PARAM]
+	[PARAM:after]
+	![Separate Translucency with Depth of Field ](MP_1_6_002.png)(h:400)
+	[/PARAM]
+[/OBJECT]
 </div>
 
 반투명 오브젝트를 독립적으로 그립니다. **Separate Translucency** (독립 반투명) 셰이더는 **뎁스 오브 필드** 의 영향을 받지 않습니다.

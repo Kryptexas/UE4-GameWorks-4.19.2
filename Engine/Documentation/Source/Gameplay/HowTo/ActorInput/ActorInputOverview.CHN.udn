@@ -3,7 +3,10 @@ Availability: Public
 Title:设置Actor的输入
 Crumbs: %ROOT%, Gameplay
 Description:如何在虚幻引擎4中设置 Actor 的输入的操作指南。 
-版本: 4.9
+Version: 4.9
+Parent:Gameplay
+type:how-to
+order:9
 
 在开发游戏时，你可能会希望让玩家在你的等级中执行某种形式的Actor**Input**。例如，也许你希望玩家在靠近一个藏宝箱时能打开它，或者你希望他们能打开/关闭一盏灯，或在玩家按下按钮时以某种方式影响一些其它形式的交互对象。 
 

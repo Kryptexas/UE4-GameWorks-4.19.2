@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2537337
+﻿INTSourceChangelist:2727199
 Availability:Public
 Title:C++ 프로그래밍 튜토리얼
 Crumbs: %ROOT%, Programming
 Description: 언리얼 엔진 프로그래밍에 대한 실전 학습용 단계별 안내서입니다.
+version: 4.9
 
 [VAR:Params]
 [PARAM:image]

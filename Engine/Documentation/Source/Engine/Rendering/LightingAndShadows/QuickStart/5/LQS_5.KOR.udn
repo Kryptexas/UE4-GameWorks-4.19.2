@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2526977
+﻿INTSourceChangelist:2685187
 Availability: Public
 Title:5. 라이트 퀄리티와 리플렉션
 Crumbs:%ROOT%, GettingStarted, Engine\Rendering\LightingAndShadows\QuickStart
 Description:이번 단계에서는 라이트 퀄리티 향상 및 최적화 방법을 살펴보겠습니다.
-
+SkillLevel: Beginner
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

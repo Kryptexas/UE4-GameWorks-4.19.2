@@ -1,120 +1,120 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2709429
 Availability:Public
-Title: Fonts
+Title:字体
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
-Description:Details the process of importing fonts, working with the Font Editor and using fonts in UMG. 
-Related: Engine/UMG
-Related: Engine/UMG/UserGuide/WidgetBlueprints
-Related: Engine/UMG/UserGuide/WidgetTypeReference
+Description:导入字体的详细操作流程、如何使用字体编辑器以及如何在 UMG 中使用字体。 
+Related:Engine/UMG
+Related:Engine/UMG/UserGuide/WidgetBlueprints
+Related:Engine/UMG/UserGuide/WidgetTypeReference
+version:4.9
 
 [TOC(start:2 end:2)]
 
-This page covers how to import your own fonts, using the **Font Editor** and fonts in the **Unreal Motion Graphics (UMG) UI Designer**. 
+该页面介绍如何导入您自己的字体、使用 **字体编辑器** 以及 **虚幻动态图形 (UMG) UI 设计器** 中的字体。 
 
-## Font Assets
+## 字体资产
 
-Fonts in Unreal Engine 4 are categorized as a **Font** asset and use two caching methods, **Runtime** which is in the form of a Composite Font or **Offline** which is the older pre-computed Font Atlas method. You can switch between the two methods by opening up a Font asset in the **Font Editor** (this provides a simple way to convert existing Font assets from the older method to the new composite method without having to replace them). 
+虚幻引擎 4 中的字体被列为 **字体** 资产，使用两种缓存方式：复合字体形式的 **运行时** 和早期的预计算 Font Atlas 方式 **离线**。可以在字体编辑器中打开字体资产来切换这两种方式（这样可以简单地将现有的字体资产从早期的方式转换成新的复合方式，而不需要替换它们）。 
 
-## Creating & Importing Fonts
+## 创建和导入字体
 
-This section illustrates how to create a new Font asset or import TTF or OTF files to generate a Font asset. 
+此部分介绍如何创建新字体资产，或者导入 TTF 或 OTF 文件来生成字体资产。 
 
-### Creating Font Assets
+### 创建字体资产
 
-To create a Font asset, follow the steps below: 
+要创建字体资产，请执行以下的步骤： 
 
-1.	Click the **Create** button inside the **Content Browser**, then under **User Interface** select the **Font** option. 
+1.	在 **内容浏览器** 中点击 **添加新内容** 按钮，然后在 **用户界面** 下选择 **字体** 选项。 
 
 	![](NewFont.png)
 
-1.	A new Composite Font asset will be created, prompting you to give it a name. 
+1.	这将创建一个新的复合字体资产，并会提示您输入名称。 
 
 	![](NameFont.png)
 
-1.	Once you enter a name, you will notice an asterisk appears on the asset, this indicates that the asset has not be saved. 
+1.	输入名称后，会在资产上看到一个星号，表示该资产尚未保存。单击 **保存全部** 按钮保存资产，然后在出现的弹出菜单中确认保存。
 
 	![](SaveFont.png)
-
-1.	Click the **Save All** button to save your asset, then confirm the save in the pop-up menu that appears to finish. 
+	 
 
 [REGION:tip]
-Instead of clicking the **Create** button, you can instead **Right-click** in an empty space in the **Content Browser** to access the context menu. From there, you can click the **User Interface** and **Font** option to create a Font asset. Do not forget to save your assets! 
+除了单击 **添加新内容** 按钮，您也可以 **右键单击** **内容浏览器** 中的空白处来访问上下文菜单。在上下文菜单中可以单击 **用户界面** 和 **字体** 选项来创建字体资产。不要忘了保存资产！
 [/REGION]
 
-When you create a new Font asset inside the Editor, it will create an empty Composite Font asset which you can then define its parameters using the **Font Editor**. When you import a TTF or OTF file, a new Composite Font asset is generated using the font sample you provided (at which point you can define additional parameters by opening it up in the **Font Editor**). 
+在编辑器中创建新字体资产时，将会创建一个空白复合字体资产，之后可以使用字体编辑器定义其参数。导入 TTF 或 OTF 文件时，会使用您所提供的字体示例生成一个新的复合字体资产（此时可以使用字体编辑器将其打开并定义额外的参数）。 
 
-### Importing Fonts
+### 导入字体
 
-You can import either TTF or OTF files into the Editor, and you can do so in a number of different ways. 
+可以使用多种方法向编辑器中导入 TTF 或 OTF 文件。 
 
-The first method is by clicking the **Import** button inside the **Content Browser**. 
+第一种方法是单击 **内容浏览器** 中的 **导入** 按钮。 
 
 ![](Import1.png)
 
-In the dialogue box that appears, navigate to the file to import then click on it and click **Open**. 
+在出现的对话框中，导航至要导入的文件并单击它，再单击 **打开**。 
 
 ![](Import2.png)
 
-The file will then be added to the **Content Browser** as a Composite Font asset, using the file you have selected. 
+这会使用您所选择的文件，将该文件作为复合字体资产添加到内容浏览器中。 
 
 ![](Import3.png)
 
-You can **Drag-and-drop** a TTF or OTF file into the **Content Browser** to create a Composite Font asset as well. 
+也可以将 TTF 或 OTF 文件 **拖放** 到 **内容浏览器** 中以创建复合字体资产。 
 
 ![](Import4.png)
 
-When using the Drag-and-drop method, a Composite Font asset will also automatically be created for you using the file you have selected. 
+使用拖放方式时，也会使用您所选择的文件自动创建一个复合字体资产。 
 
-## Font Editor
+## 字体编辑器
 
-When you **Double-click** on a Font asset in the **Content Browser**, it will open up inside the **Font Editor** window. 
+在 **内容浏览器** 中 **双击** 字体资产时，会在 **字体编辑器** 窗口中打开该字体资产。 
 
 ![](FontEditorWindow.png)(w:820)
 
-A breakdown of the Font Editor Window is presented below: 
+字体编辑器窗口的细分结构如下： 
 
-1.	**Toolbar Menu** - From this menu, you can save any changes you make, find the asset in the **Content Browser**, change the Background Color of the preview window (4) or the Foreground Color (text color) in the preview window. There are options for Updating or Exporting changes made, however these options are only available within the **Offline** cache mode. 
-1.	**Default Font Family** - In this window, you can assign the Default Font Family for use with this Font asset. You can add versions of a particular Font style (for example Normal, Bold, Italics, Underline, etc.) or have a collection of different Font styles as one Composite Font. If you have created a blank Font asset, you can assign a font from inside this window as well. Once a Font has been added, you can also define the hinting algorithm used with the font. 
-1.	**Sub-Font Family** - In this window, you assign the Sub-Font Family for this Font asset to use. Here you can specify a Character Range and if a character entered falls within the range, you can specify a different Font style to use instead of the Default (this is useful for when you want to use different Font types for different Languages). 
-1.	**Preview** - This window allow you to preview your fonts and provides a text entry box for entering sample texts. 
-1.	**Details** - In this window, you can change the Font Cache Type as well as change the Font Size and Font Name (for Runtime). 
-	* If you are using the older method, you can still change the parameters for your Font while in Offline cache mode. 
-	* You can also convert any existing Font assets from **Offline** to **Runtime** without having to replace them. 
+1.	**工具栏菜单** - 可以在该菜单中保存所做出的更改，查找 **内容浏览器** 中的资产，更改预览窗口的背景颜色 (4) 或更改预览窗口的前景颜色（文本颜色）。有用于更新或导出所做更改的选项，但这些选项仅可以在 **离线** 缓存模式下使用。 
+1.	**默认字体系列** - 可以在该窗口中指定该字体资产所使用的默认字体系列。可以添加特定字体样式的版本（例如正常、粗体、斜体、下划线等）或者在一个复合字体内包含一系列不同的字体样式。如果创建了空白的字体资产，则也可以在该窗口中指定一个字体。添加字体后，也可以定义该字体使用的提示算法。 
+1.	**子字体系列** - 可以在该窗口中指定该字体资产所使用的子字体系列。可以在此指定字符范围，如果输入的字符在该范围内，则可以指定使用默认字体以外的其他字体样式（当您想针对不同语言使用不同字体类型时就可以这样做）。 
+1.	**预览** - 该窗口中可以预览字体，并且提供用于输入示例文本的文本输入框。 
+1.	**细节** - 可以在该窗口中更改字体缓存类型、字体大小和字体名称（针对运行时）。 
+	* 如果您使用的是早期的方法，则仍可以在离线缓存模式下更改字体的参数。 
+	* 您也可以将现有的字体资产从 **离线** 转换成 **运行时**，而无需替换字体。 
 
-An example Font asset is provided below. 
+下面给出了一个字体资产示例。 
 
 [REGION:lightbox]
 [![](ExampleFontLayout.png)(w:820)](ExampleFontLayout.png)
 [/REGION]
 
-_Click image for a full view._
+_点击查看全图。_
 
-A Composite Font will always contain a Default Font Family, and may also contain any number of Sub-Font Families that should be used for a given range of characters. Each Font Family is itself made up of any number of Fonts that can be named based on their style. At runtime, the most suitable Font to use for each character based on the Fonts available in the Font Family for that character range is used. 
+复合字体始终包含一个默认字体系列，也可能包含任意数量的子字体系列，它们应用于给定范围的字符。每个字体系列本身由任意数量的字体组成，可以根据这些字体的样式对它们进行命名。在运行时，会在字体系列内可用于该字符范围的字体中，确定出对每个字符最合适的字体，并加以使用。 
 
-As seen in the example image above, the Japanese text falls within the character ranges of the Japanese font family, and so is drawn using Source Han Sans rather than the Default Font Family Roboto. Fonts in a Sub-Font Family are preferably chosen by name match, as in the case of Regular, Bold, and Light, however can also fallback to matching based on the attributes of the Default Font, as is the case of Bold Italic (it automatically chose the Bold Japanese font because the font contained the Bold attribute, and was the best match). 
+如上图示例所示，日语文本属于日语字体系列的字符范围中，因此日文部分使用“Source Han Sans”绘制，而不是默认字体系列“Roboto”。子字体系列中的字体最好根据名称匹配选择，如对于正常、黑体和细体，但也可以随机应变地基于默认字体的属性进行匹配，如对于粗斜体（这将会自动选择粗体日语字体，因为该字体包含了粗体属性，是最佳匹配）。 
 
 
-## Fonts in UMG
+## UMG 中的字体
 
-Once you have created a [Widget Blueprint](Engine/UMG/UserGuide/WidgetBlueprints) and placed a Widget that contains Text (such as a Text Box or Text Widget), when clicking on it and accessing the **Details** panel, under **Appearance**, you will see a **Font** option. 
+创建 [Widget Blueprint](Engine/UMG/UserGuide/WidgetBlueprints) 并放置了包含文本（如文本框或文本控件）的控件之后，在单击该控件并访问 **细节** 面板时，可以在 **外观** 下面看到 **字体** 选项。 
 
 ![](UMGFonts1.png)
 
-By default the Engine uses **Roboto**, however if you click the drop-down menu, any Composite Font assets created can be selected and used instead. 
+默认情况下，引擎使用 **Roboto**，但可以单击下拉菜单并选择和使用任何已创建的复合字体资产来替换。 
 
 ![](UMGFonts2.png)
 
-You can also choose to create a Composite Font from this menu and specify where the new asset should be saved (it will be blank by default and you will have to fill it out). 
+也可以从该菜单中创建一个复合字体，并指定新资产保存的位置（默认为空白，必须填写）。 
 
-Once you select your Composite Font, the second drop-down menu will allow you to select a font to use from the **Default Font Family**. 
+选择复合字体后，可以在第二个下拉菜单从 **默认字体系列** 中选择要使用的字体。 
 
 ![](UMGFonts3.png)
 
-You can also specify the size of the font in the input box. 
+也可以在输入框中指定字体的大小。 
 
 ![](UMGFonts4.png)
 
-Currently UMG only supports **Runtime** cached font assets. Also, if you have assigned fonts using the old method, none of your existing file based font settings will be lost, however going forward, you will need to create a Composite Font asset in order to use custom fonts with UMG. 
+目前，UMG 仅支持 **运行时** 缓存的字体资产。另外，如果您指定了使用早期方式的字体，那么基于现有文件的字体设置并不会丢失，但是为了继续进行，您需要创建一个复合字体资产以便在 UMG 中使用自定义字体。 
 
 
 

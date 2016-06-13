@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2685291
 Availability:Public
 Title:머티리얼
 Crumbs: %ROOT%, Engine
 Description:셰이더를 활용하여 월드의 표면 외형을 제어하는 방법입니다.
 Navigation:topic
-
+Version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -51,7 +51,9 @@ Navigation:topic
 ![Materials](materials.png)
 [/REGION]
 
-[INCLUDE:Shared/Glossary/M/#Glossary_Material]
+**Material** (머티리얼)이란 메시에 적용하여 씬의 시각적인 모양을 조절할 수 있는 애셋입니다. 넓게 보면, 머티리얼이란 오브젝트에 적용할 수 있는 "페인트"라 보면 됩니다.  하지만 그것도 약간 오해의 소지가 있는데, 머티리얼이란 말 그대로 오브젝트가 어떤 재질로 만들어졌는지를 정의하는 것이기 때문입니다. 그 색이나 광택, 투과성 등을 정의할 수 있습니다.
+
+보다 기술적인 용어로 풀자면, 씬에서의 빛이 표면에 닿으면, 머티리얼을 사용하여 그 빛과 표면의 상호작용을 계산합니다. 이러한 계산은 여러가지 이미지(텍스처)에서 온 데이터를 수학 표현식과 아울러 머티리얼 자체에 상속된 여러가지 프로퍼티 세팅을 통해 이루어집니다.
 
 
 [REGION:topics third]

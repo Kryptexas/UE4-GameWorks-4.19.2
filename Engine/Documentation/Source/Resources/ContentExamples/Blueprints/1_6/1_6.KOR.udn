@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2652825
+﻿INTSourceChangelist:2712764
 Availability: Public
 Title:1.6 - 단순 계산
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
@@ -11,6 +11,7 @@ Related: Engine/Blueprints/UserGuide/Types/MacroLibrary
 Related: Engine/Animation/AnimBlueprints/EventGraph
 Related: Engine/Blueprints/UserGuide/UserConstructionScript
 Related: Gameplay/HowTo/SetUpInput/Blueprints
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -49,7 +50,7 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 
 [REGION:fullwidth]
 
-## 개요
+
 
 이번 예제는 블루프린트에서 데이터에 단순한 수학 공식을 대입하는 법에 대한 데모입니다. 여기서는 게임 실행 이후 경과한 시간을 더해 그 초 수만큼 텍스트 렌더 컴포넌트에 적용하겠습니다.
 
@@ -59,7 +60,7 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 ![](1.6Components.png)(w:500)
 
 ## 컨스트럭션 스크립트
-이 예제의 컨스트럭션 스크립트는 그저 '텍스트 렌더 컴포넌트'의 텍스츠를 프라이빗 변수 IntegerVariable 의 값으로 설정합니다. 이 데이터를 스트링으로 형 변환하여 '텍스트 렌더 컴포넌트'의 _Text_ 프로퍼티에 호환되도록 합니다.
+이 예제의 컨스트럭션 스크립트는 그저 '텍스트 렌더 컴포넌트'의 텍스트를 프라이빗 변수 IntegerVariable 의 값으로 설정합니다. 이 데이터를 스트링으로 형 변환하여 '텍스트 렌더 컴포넌트'의 _Text_ 프로퍼티에 호환되도록 합니다.
 
 ![](1.6ConstructionScript.png)
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2775843
 Availability:Public
 Title:라이트 컴포넌트
 Crumbs:%ROOT%, Engine, Engine/Components
@@ -6,6 +6,7 @@ Description:언리얼 엔진 4 에서 사용할 수 있는 여러가지 Light �
 Related: Engine/Rendering/LightingAndShadows/LightTypes
 Related: Engine/Rendering/LightingAndShadows
 Related: Engine/Blueprints/UserGuide/Components
+version: 4.9
 
 여러가지 유형의 **Light** 컴포넌트를 통해서, 이루고자 하는 효과에 따라 액터에 광원을 서브 오브젝트로 추가시킬 수 있습니다. 라이트 세팅 중에는 어떤 라이트 컴포넌트를 선택하든 상관없이 모두에 적용되는 _Light Color_ 또는 _Intensity_ 같은 세팅, 또는 개별적으로 적용되는 세팅을 조절할 수 있습니다 (구체적인 세팅에 대해서는 각각의 라이트 부분을 참고하세요).
 
@@ -29,16 +30,20 @@ _위에서, **PointLightComponent** 가 추가된 **블루프린트** 에는 **S
 
 ## 스카이 라이트 컴포넌트
 
-**SkyLightComponent** 는 레벨의 원거리 부분 (`SkyDistanceThreshold` 값보다 멀리 있는 모든 것)을 캡처, 그것을 씬에 라이트로 적용합니다. 즉 하늘 모양과 그 라이팅 / 리플렉션이 일치한다는 뜻입니다.
+**SkyLightComponent** 는 레벨의 원거리 부분 (SkyDistanceThreshold 값보다 멀리 있는 모든 것)을 캡처, 그것을 씬에 라이트로 적용합니다. 즉 하늘 모양과 그 라이팅 / 리플렉션이 일치한다는 뜻입니다.
 
-자세한 정보는 [](Engine/Rendering/LightingAndShadows/LightTypes/Spot) 문서를 참고하세요.
+자세한 정보는 [](Engine/Rendering/LightingAndShadows/LightTypes/SkyLight) 문서를 참고하세요.
 
 
 ## 스포트 라이트 컴포넌트
 
-**SpotLightComponent** 는 한 점에서 원뿔 모양으로 빛을 내뿜습니다. _내부 원뿔 각_ 및 _외부 원뿔 각_ 조정을 위한 세팅은 물론, _Intensity_, _Light Color_ 같은 라이트 세팅 및 그림자 세팅을 조절할 수도 있습니다. 내부/외부 원뿔 각도를 조정할 수 있기때문에 손전등같은 것에 좋습니다.
+**SpotLightComponent** 는 한 점에서 원뿔 모양으로 빛을 내뿜습니다. _내부 원뿔 각_ 및 _외부 원뿔 각_ 조정을 위한 세팅은 물론, _Intensity_, _Light Color_ 같은 라이트 세팅 및 그림자 세팅을 조절할 수도 있습니다. 내부/외부 원뿔 각도를 조정할 수 있기 때문에 손전등같은 것에 좋습니다.
 
-자세한 정보는 [](Engine/Rendering/LightingAndShadows/LightTypes/Skylight) 문서를 참고하세요.
+자세한 정보는 [](Engine/Rendering/LightingAndShadows/LightTypes/Spot) 문서를 참고하세요.
+
+
+
+
 
 
 

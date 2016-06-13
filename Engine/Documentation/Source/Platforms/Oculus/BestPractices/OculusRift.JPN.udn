@@ -1,283 +1,73 @@
-﻿INTSourceChangelist:2584537
+﻿INTSourceChangelist:2975673
 Availability:Public
 Title:Oculus Rift ベスト プラクティス
 Crumbs:%ROOT%, Platforms, Platforms/Oculus
 Description:Oculus Rift の開発に関する情報
 Navigation:platform
+Version:4.11
+parent:Platforms/Oculus
+type:overview
+tags:VR
+tags:Oculus Rift
 
 [TOC(start:2)]
 
-## Oculus Rift の概要 
+Oculus Rift とは、ユーザーが見たりプレイしているワールドとゲームに深く没入することができる 
+ Head Mounted Display (HMD) のことです。Oculus Rift とアンリアル エンジン 4 (UE4) 向けにコンテンツを開発するために 
+知っておく必要のある情報をこのガイドで紹介していきます。
 
-Oculus Rift とは、ユーザーが見たり再生しているワールドとゲームに深く没入することができる 
- Head Mounted Display (HMD) のことです。以下のガイドでは、 Oculus Rift とアンリアル エンジン 4 (UE4) 向けにコンテンツを 
-開発する際に知っておく必要のある情報を紹介していきます。
 
 ## Oculus Rift サニティ チェック
 
 Oculus Rift がプラグインされ、プラグインが有効になっていると、アンリアル エンジンは自動的に Oculus Rift を使用します。 
-Oculus が動かない場合は、プラグインが有効になっているかどうかを最初に確認してください。プラグインは [プラグイン](https://docs.unrealengine.com/latest/INT/Programming/Plugins/index.html) メニューの  
+Oculus が動かない場合は、プラグインが有効になっているかどうかをまず確認してください。プラグインは [プラグイン](Programming/Plugins) メニューの  
 [Head Mounted Displays] の下にあります。  
 
 [REGION:fullwidth]
 ![](T_VR_Plug-In_On_00.png)
 [/REGION]
 
-それでも問題が解決しない場合は、 Oculus Rift が検出されることを確認してください。これは 
-次の方法で行います。
+<!-- それでも問題が解決しない場合は、 Oculus Rift が検出されるか確認してください。以下の方法で 
+確認します。
 
-* まず [スタンドアロン型ゲーム](Engine/UI/LevelEditor/InEditorTesting/Settings#スタンドアロンゲームでプレイ) を起動します。 
-* スタンドアローン型ゲームが起動したら、バッククオート (`) キーを使ってアンリアル コンソールを呼び出します。 
-* そして `showlog` と入力します。
-* 次に `ovrversion` と入力します。
+* まず [スタンドアローンゲーム](Engine/UI/LevelEditor/InEditorTesting/Settings#スタンドアローンゲームでプレイ) を起動します。 
+* スタンドアローン ゲームが起動したら、バッククオート (`) キーを使ってアンリアル コンソールを呼び出します。 
+* そして **「showlog」** と入力します。
+* 次に **「ovrversion」** と入力します。
 * 現在の LibOVR のバージョンとビルドした日時は、以下のようにログ ウィンドウに印刷されています。
 	[REGION:fullwidth]
-	![](T_OculusRiftPluginVersionCheck.jpg)
+	![](T_OculusRiftPluginVersionCheck.png)
 	[/REGION]
-* 「Command not recognized: ovrversion」というメッセージが表示された場合は、以下を確認してください。
+* **「Command not recognized: ovrversion」** というメッセージが表示された場合は、以下を確認してください。
 	* プラグインが有効になっているかどうか。 
 	* Windows プラットフォーム上で UE4 を実行しているかどうか。
 	* Oculus Rift がプラグインされているかどうか。
 	* Oculus Rift が正しく動作しているかどうか。
 
-
 [REGION:tip]
 以上をすべて確認したにもかかわらず問題が解決しない場合、ハードウェアが原因である可能性があります。その場合は 
- [Oculus VR Support](https://support.oculus.com/hc/en-us) までお問い合わせください。 
+ [Oculus VR Support](https://support.oculus.com/help/oculus/885981024820727/?ref=hc_fnav) までお問合せください。 
 [/REGION]
-
+-->
 
 ## Oculus Rift で作業を確認する
 
-Oculus Rift は、ビューポート上あるいは Play in Editor (PIE) セッション中では機能しません。この方法で、 
-作業を表示する唯一の方法は、スタンドアローン型ゲームを実行することです。スタンドアローン型ゲームは、以下の手順で実行します。 
+Oculus Rift HMD が UE4 Editor ビューポート、またはデフォルトの Play In Editor(PIE) セッションでは動きません。Rift にプロジェクトを表示するには、**[VR Preview (VR プレビュー)]** オプションを使います。[VR Preview] オプションを使用するには、UE4 エディタで以下の操作が必要です。 
 
-* [スタンドアロン型ゲーム](Engine/UI/LevelEditor/InEditorTesting#playineditor) など Non-PIE を選択します。 
-* ゲームが全画面表示で起動しない場合は、 **ALT+Enter** を押してゲーム ウィンドウを全画面表示にするか、 [コンソール](GettingStarted/RunningUnrealEngine#便利なインゲームコマンド) に **「fullscreen」** と入力します。
-* [コンソール](GettingStarted/RunningUnrealEngine#便利なインゲームコマンド) (`/backtick) が表示されるので、 **「stereo on」** と入力します。
+1. **[Play (プレイ)]** セクションのメイン ツールバー上にある、[Play (プレイ)] ボタンの横の小さな白い三角をクリックします。 
 
-## Oculus の特殊なコンフィギュレーション設定
+	![](Rift_Preview_00.png)
 
-Oculus には、 VR デバイス用の幾つかの変数を永久に設定するために 
- **DefaultEngine.INI** ファイルに置かなければならない特殊な設定が幾つかあります。 
+1. ドロップダウン メニューから **[VR Preview]** オプションを選択して、Rift を装着し、VR の中のプロジェクトを見ます。
 
-[REGION:tip]
- `DefaultEngine.ini` は`[Path to YourGame]\Config\DefaultEngine.ini` にあります。
-[/REGION]
+	![](Rift_Preview_01.png)
 
-	[Oculus.Settings]
-	; In meters, not Unreal Units (cm)
-	; Recommended for true first person viewpoint
-	; since you are simulating the head.
-	;HeadModel_v2=(X=0.0,Y=0,Z=0.0)
-	; Default values
-	HeadModel_v2=(X=0.12,Y=0,Z=0.17)
-
-## 正確なファースト パーソン ビュー
-
-プレイヤーを完全に VR ワールドに没入させる最善の方法は、true first person ビューポートを設定することです。正確なファースト パーソン ビューポートとは、 
-プレイヤーのキャラクター目線が正しくなるように 
-プレイヤーのカメラを移動し配置する場所のことです。UE4 では、以下の手順で行います。  
-
-1. まず、選択したキャラクターに基いてブループリントを作成します。 
-1. 次に [コンポーネント タブ](Engine/Blueprints/UserGuide/Components) で Camera コンポーネントを追加します。 
-1. Camera コンポーネントをキャラクター メッシュ上にドラッグしてアタッチします。
-1. Camera コンポーネントを選択し、その親ソケットを選択したボーン / ソケットに変更します。 
-1. 必要な場合は、相対的な [位置と回転](Engine/Blueprints/UserGuide/Components#コンポーネントの変形) を調整します。
-1. [Camera Setting (カメラ設定)] -> [Use Controller View Rotation (Controller View Rotation を使用する)] が有効になっていることを確認してください。 
-1. ブループリントがコンパイルされていることを確認してください。
-1. ゲーム モードの Pawn クラスのデフォルトを TFP キャラクターに設定します。 
-1. **Virtual Head Model** をゼロアウトする
-
-## Virtual Head Model
-
-[REGION:note]
-DK1 ヘッドセットを使用している場合は、バーチャル ヘッド モデルを設定した方が良いでしょう。DK2 ヘッドセットを使用している場合は必要ありません。
-[/REGION]
-
-Virtual Head Model は、プレイヤーの視点をオフセットするために使用します。FPS へ遷移するために、 
-ビューポートは中央軸で回転します。これは問題ありません。ただし、 VR ゲームではこのような余分なオフセットは必要ないので、ゼロアウトします。 
-
-[REGION:tip]
-このバーチャル ヘッド モデルのディメンションは、 HeadModel_v2 config 設定によって決まります。
-
-	HeadModel_v2=(X=0.12,Y=0,Z=0.17)
-[/REGION]
-
-<!--
-## デフォルトのヘッド トラッキング ビヘイビア
-
-デフォルトでは、ヘッド トラッキングはプレイヤーの視点回転と移動方向に影響します。違うビヘイビアにしたい場合は、 
- C++ またはブループリントで変更します。このビヘイビアを変更する方法は 2 通りあります。 
-
-* ブループリントを使って新規に Player Camera Manager 、 Player Controller 、 Game Mode を作成します。
-* C++ を使って新規に Player Controller 、 Character & Game Mode を作成します。
-
-
-最終的には結果は類似して、プレイヤーのビューと移動方向が分かれますが、 
- C++ の方がより柔軟性があることが分かると思います。ブループリントと C++ での実行に関する例を紹介します。
-
-**ブループリント手法**
-
-1. **PlayerCameraManager** に基いてブループリントを作成します。
-1. [Defaults (デフォルト)] タブの **Follow HMD Orientation** を **true** に設定します。
-1. **Player Controller** に基いてブループリントを作成します。
-1. [Defaults (デフォルト)] タブの **Player Camera Manager クラス** を **PlayerCameraManager 1** ブループリントに設定します。
-1. **Game Mode** に基いてブループリントを作成します。
-1. [Defaults (デフォルト)] タブの Default Controller クラスを検索して **Player Controller** ブループリントに設定します。
-1. 最後に、レベル **World Settings (ワールド設定)** の **Game Mode Override (ゲームモード オーバーライド)** を **Game Mode** ブループリントに設定します。
-
-**C++ 手法**
-
-1.	**Your.Build.cs** - **HeadMountedDisplay** を **PublicDependencyModuleNames.** に追加します。
-
-			PublicDependencyModuleNames.AddRange(new string[] { 
-						"Core", 
-						"CoreUObject",
-						"Engine",
-						"InputCore", 
-						"HeadMountedDisplay"
-					});
-			});
-
-1. **YourPlayerController.h**
-
-				virtual void UpdateRotation(float DeltaTime) override;
-				UFUNCTION(BlueprintCallable, Category="Pawn")
-				FRotator GetViewRotation() const;
-				UFUNCTION(BlueprintCallable, Category="Pawn")
-				virtual void SetViewRotation(const FRotator& NewRotation);
-				virtual void SetControlRotation(const FRotator& NewRotation) override;
- 
-			protected:
- 
-				/**
-					*  表示と移動方向は別々になりました。
-					*  コントローラ回転が移動方法を決定します。
-					*  ViewRotation は今見ている場所を表します。
-					*/
-				UPROPERTY()
-				FRotator ViewRotation;
-
-1. **YourPlayerController.cpp**
-
-			// Make sure you include this!!
-			#include "IHeadMountedDisplay.h"
- 
-			void AYourPlayerController::UpdateRotation(float DeltaTime)
-			{
-				// Calculate Delta to be applied on ViewRotation
-				FRotator DeltaRot(RotationInput);
- 
-				FRotator NewControlRotation = GetControlRotation();
- 
-				if (PlayerCameraManager)
-				{
-					PlayerCameraManager->ProcessViewRotation(DeltaTime, NewControlRotation, DeltaRot);
-				}
- 
-				SetControlRotation(NewControlRotation);
- 
-				if (!PlayerCameraManager || !PlayerCameraManager->bFollowHmdOrientation)
-				{
-					if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed())
-					{
-						FQuat HMDOrientation;
-						FVector HMDPosition;
- 
-						// Disable bUpdateOnRT if using this method.
-						GEngine->HMDDevice->GetCurrentOrientationAndPosition(HMDOrientation, HMDPosition);
- 
-						FRotator NewViewRotation = HMDOrientation.Rotator();
- 
-						// Only keep the yaw component from the controller.
-						NewViewRotation.Yaw += NewControlRotation.Yaw;
- 
-						SetViewRotation(NewViewRotation);
-					}
-				}
- 
-				APawn* const P = GetPawnOrSpectator();
-				if (P)
-				{
-					P->FaceRotation(NewControlRotation, DeltaTime);
-				}
-			}
- 
-			void AYourPlayerController::SetControlRotation(const FRotator& NewRotation)
-			{
-				ControlRotation = NewRotation;
- 
-				// Anything that is overriding view rotation will need to 
-				// call SetViewRotation() after SetControlRotation().
-				SetViewRotation(NewRotation);
- 
-				if (RootComponent && RootComponent->bAbsoluteRotation)
-				{
-					RootComponent->SetWorldRotation(GetControlRotation());
-				}
-			}
- 
-			void AYourPlayerController::SetViewRotation(const FRotator& NewRotation)
-			{
-				ViewRotation = NewRotation;
-			}
- 
-			FRotator AYourPlayerController::GetViewRotation() const
-			{
-				return ViewRotation;
-			}
-
-1. **YourCharacter.h**
-
-				public:
-					virtual FRotator GetViewRotation() const override;
-
-1. **YourCharacter.cpp**
-
-			FRotator AYourCharacter::GetViewRotation() const
-			{
-				if (AYourPlayerController* MYPC = Cast<AYourPlayerController>(Controller))
-				{
-					return MYPC->GetViewRotation();
-				}
-				else if (Role < ROLE_Authority)
-				{
-					// check if being spectated
-					for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
-					{
-						APlayerController* PlayerController = *Iterator;
-						if (PlayerController && PlayerController->PlayerCameraManager->GetViewTargetPawn() == this)
-						{
-							return PlayerController->BlendedTargetViewRotation;
-						}
-					}
-				}
- 
-				return GetActorRotation();
-
-
-1. **YourGameMode.cpp**
-
-		AYourGameMode::AYourGameMode(const FObjectInitializer& ObjectInitializer)
-			:Super(ObjectInitializer)
-		{
-			DefaultPawnClass = AYourCharacter::StaticClass();
-			PlayerControllerClass = AYourPlayerController::StaticClass();
-		}
--->
-
-
-## C++ 機能
-
-実際のプラグイン以外に、プレイヤーのビューポートが Oculus Rift からの入力でどのように変更されるかを決定する 
-主要な機能が 2 つあります。
-
-	APlayerController::UpdateRotation()
-	APlayerCameraManager::UpdateViewTarget()
+	[region:note]
+	プレイ モードを [VR Preview] オプションに切り替えておけば、**ALT + P** などのショートカットでもプロジェクトが VR でいつでも起動します。  
+	[/region]
 
 ## Oculus のリファレンス
 
-Oculus 社は、莫大な時間とエネルギーをかけて、 
-どうすればユーザーが Rift 使用時に最高の VR 体験ができるのかを調査してきました。VR ユーザー体験の開発や提供に役立つ情報が満載の [website]( https://developer.oculus.com/) をまだご覧になっていない方は、 
+Oculus 社は膨大な時間とエネルギーをかけて、 
+どうすればユーザーが Rift 使用時に最高の VR 体験ができるのかを調査してきました。VR ユーザー体験の開発や提供に役立つ情報が満載の [ウェブサイト]( https://developer.oculus.com/) をまだご覧になっていない方は、 
 是非ご確認ください。

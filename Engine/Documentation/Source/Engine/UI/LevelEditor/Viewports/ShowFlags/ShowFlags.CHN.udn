@@ -20,7 +20,7 @@ Description:可以在视口中显示及隐藏的各种对象。
 		关于视口中所有可用Show Flags（显示标志）的介绍。
 	[/PARAM]
 	[PARAM:path]
-		[RELATIVE:Engine/UI/UserGuide/LevelEditor/Viewports/ShowFlags]
+		[RELATIVE:Engine/UI/LevelEditor/Viewports/ShowFlags]
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -152,7 +152,7 @@ Show Flags（显示标志）选项位于视口的 **Show（显示）** 菜单下
 |**Depth of Field Layers（景深图层）**|给视图应用一个颜色编码过滤器，以便使通过近景深变模糊的对象呈现为绿色，通过远景深变模糊的对象呈现为蓝色。聚焦的对象呈现为黑色。|
 |**HDR（高清渲染）**|显示一个可视化查看窗口，展示了场景柱状图、及所暴露的设置是如何影响亮度的。|
 |**Motion Blur(运动模糊)**|当启用运动模糊时，该项将视图改为一个运动模糊查看器，允许您查看用于计算模糊效果的运动向量。|
-| [**Out of Bounds Pixels（超出边界的像素）**](Engine/Performance/Rendering/RenderingVisualizers/OutOfBoundsPixels) | 如果一个对象的像素存在于那个对象的边界体积的外面，那么当边界体积(而不是那个网格物体)离开相机时，会导致闪烁或对象消失。这个可视化查看器把这些像素着色为蓝色、红色及白色。|
+| [**Out of Bounds Pixels（超出边界的像素）**](Engine/Performance/Visualizers/OutOfBoundsPixels) | 如果一个对象的像素存在于那个对象的边界体积的外面，那么当边界体积(而不是那个网格物体)离开相机时，会导致闪烁或对象消失。这个可视化查看器把这些像素着色为蓝色、红色及白色。|
 
 |高级||
 |---|---|

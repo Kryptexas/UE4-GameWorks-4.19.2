@@ -1,0 +1,122 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title: Force Feedback
+Crumbs:
+Description: Using the vibration functionality of mobile devices and controllers to convey a force occuring in the game to the player.
+Parent:Gameplay
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Gameplay/ForceFeedback:title%](Gameplay/ForceFeedback/force_feedback_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Gameplay/ForceFeedback:title%
+	[/PARAM]
+	[PARAM:description]
+		%Gameplay/ForceFeedback:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Gameplay/ForceFeedback]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Gameplay/ForceFeedback:title%](Gameplay/ForceFeedback/force_feedback_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Gameplay/ForceFeedback:title%
+	[/PARAM]
+	[PARAM:description]
+		%Gameplay/ForceFeedback:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Gameplay/ForceFeedback]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC]
+
+**Force Feedback** (sometimes referred to as rumble or haptic feedback) refers to the vibrating of a device or controller used in games to convey a force occuring in the game to the player. A simple example is when an explosion occurs in the game and force feedback is used to simulate the shockwave, which gives an additional dimension to the immersion.
+
+Once implemented, Force Feedback will work on all platforms where it is supported. This includes iOS (as of 4.10), Android, and controllers.
+
+## Force Feedback Effect Assets
+
+A **Force Feedback Effect Asset** contains the properties used to define a specific force feedback effect. This enables designers to customize the force feedback to each situation it is used in.
+
+![image alt text](image_0.png)(w:640 convert:false)
+
+Each Force Feedback Effect can have multiple channels, each of which can play a diferent effect. For instance, one channel could play one large, long vibration on the right side of the controller while a second channel could play small, short bursts on the left side. The pattern of the effect for each channel is controlled by a curve.
+
+The duration of the force feedback effect will be calculated automatically, based on the position of the last key in the curves for all channels. For example, if there are 3 channels and the last key in each is at 1.25, 1.5, and 1.75, then the duration for the overall effect will be 1.75.
+
+### Channel Properties
+
+Each channel has the following properties that control how the effect for the channel is played.
+
+| Item | Description |
+| ---- | ----------- |
+| **Affects Left Large** | If true, the left large motor will be used to play the effect. |
+| **Affects Left Small** | If true, the left small motor will be used to play the effect. |
+| **Affects Right Large** | If true, the right large motor will be used to play the effect. |
+| **Affects Right Large** | If true, the right small motor will be used to play the effect. |
+| **Curve** | A curve that controls the intensity of the effect over time. In other words, this defines the pattern of the vibration. Values above 0.5 will vibrate, while values below 0.5 will not vibrate. |
+
+## Creating a Force Feedback Effect Asset
+
+Force Feedback Effect assets are created using the **Content Browser**:
+
+1. In the **Content Browser**, click **Add New** and choose **Miscellaneous > Force Feedback Effect**. By default, the asset will have one channel, but you can add more.
+
+1. Select whether the force feedback affects the left and/or right of the device, as well as whether it's large or small on either side.
+
+1. Hold **Shift** and click the **Left Mouse Button** on the curve to add one or more keys.
+
+	![](curve.png)(convert:false)
+
+1. Manipulate the keys by entering values directly or dragging them in the curve editor.
+
+	[REGION:note]
+	Unlike in other curve editors, the keys can only be connected by straight lines. 
+	[/REGION]
+
+## Playing Force Feedback
+
+Force Feedback is implemented in the base PlayerController class. You will need access to the local Player Controller in order to play the force feedback on the target device or controller.
+
+**Playing Force Feedback in Blueprints:**
+
+1. Get a reference to your Player Controller, either with a **Get Player Controller** node or a saved reference.
+
+	![](effect_controller.png)(w:640)
+
+1. Drag off of the output pin of the reference, then type _Play Force Feedback_ into the context menu and select **Client Play Force Feedback**.
+
+	![](effect_play.png)(w:640)
+
+	[REGION:note]
+	The force feedback will be replicated to the owning client if called on the server.
+	[/REGION]
+
+1. Specify the Force Feedback Effect to use directly on the node or with a connected variable.
+
+	![](effect_select.png)(w:640)
+
+1. Check **Looping** if you want the effect to loop.
+
+	![](effect_looping.png)(w:640)
+
+1. Optionally, set a tag for the effect. The tag allows you to stop the effect; if an effect with the same tag is already playing, it will be stopped and the new effect will play instead.
+
+	![](effect_tag.png)(w:640)
+
+**Playing Force Feedback in C++:**
+
+Call [](API:APlayerController::ClientPlayForceFeedback) on the local Player Controller, passing it the Force Feedback Effect to use as well as whether or not the effect should loop, and an optional tag for the effect. The tag allows you to stop the effect; if an effect with the same tag is already playing, it will be stopped and the new effect will play instead.
+
+

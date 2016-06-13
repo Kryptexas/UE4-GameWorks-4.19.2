@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2556992
+﻿INTSourceChangelist:2719403
 Availability:Public
 Title:언리얼 엔진 실행하기
 Crumbs: %ROOT%, GettingStarted
 Description:엔진을 게임이나 에디터로 실행하는 법은 물론, 특정 맵을 같이 로드하는 법과 유용한 게임내 명령도 다룹니다.
+version: 4.9
 
 %Globals:OSSelect%
 
@@ -26,7 +27,7 @@ Description:엔진을 게임이나 에디터로 실행하는 법은 물론, 특�
 
 에디터 실행은, 단순히 실행시킬 프로젝트 이름을 실행파일에 인수로 붙여 전달해 주기만 하면 됩니다.
 
-[REGION:tip]
+[REGION:note]
 실행파일에 `-debug` 스위치를 붙이면 프로젝트의 디버그 버전 모듈을 강제 로드시킬 수 있으며, 여기에는 
 디버깅 심볼이 전부 포함됩니다. 이 작업은 Visual Studio 환경설정이 **Debug** 로 설정된 것을 디버깅할 때도 필수인데,
 그 이유는 주 실행파일은 항상 **Development** 환경설정을 사용하여 컴파일되기 때문입니다. 
@@ -171,15 +172,16 @@ Description:엔진을 게임이나 에디터로 실행하는 법은 물론, 특�
 
 ## 쿠킹되지 않은 게임 실행하기
 
-언리얼 에디터에 프로젝트가 로드되고나면, **플레이:** 메뉴에서 Uncooked Game 모드로 [게임플레이 테스트](Engine/UI/LevelEditor/InEditorTesting#모드) 가 가능합니다.
+언리얼 에디터에 프로젝트가 로드되고 나면, **플레이:** 메뉴에서 Uncooked Game 모드로 [게임플레이 테스트](Engine/UI/LevelEditor/InEditorTesting#모드) 가 가능합니다.
 독립된 창에서 쿠킹안된 게임을 플레이하려면, 레벨 에디터 툴바의 [**플레이:** 드롭다운 메뉴](Engine/UI/LevelEditor/InEditorTesting#툴바) 를 사용하여 
 [**새 창 위치:** > **기본 플레이어 스타트** 모드](Engine/UI/LevelEditor/InEditorTesting#모드) 를 선택하시기 바랍니다.
 
-**클릭하면 원래 크기 이미지로 볼 수 있습니다:**
+
 
 [REGION:lightbox]
 [![](Engine/UI/LevelEditor/InEditorTesting/PIE_newwindow.png)(w:300)](Engine/UI/LevelEditor/InEditorTesting/PIE_newwindow.png)
 [/REGION:lightbox]
+_클릭하면 원래 크기 이미지로 볼 수 있습니다:_
 
 아래 중 어느 방법으로 엔진 실행파일의 쿠킹되지 않은 게임 버전을 실행시키든 같은 동작을 보입니다.
 

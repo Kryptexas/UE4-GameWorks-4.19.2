@@ -19,7 +19,7 @@ Description:关于视口中可用的各种选项的概述。
 		如何将Actor锁定到视口相机来进行直观的放置。
 	[/PARAM]
 	[PARAM:path]
-		[RELATIVE:Engine/UI/UserGuide/LevelEditor/Viewports/ActorLocking]
+		[RELATIVE:Engine/UI/LevelEditor/Viewports/ActorLocking]
 	[/PARAM]
 [/OBJECT]
 [/VAR]

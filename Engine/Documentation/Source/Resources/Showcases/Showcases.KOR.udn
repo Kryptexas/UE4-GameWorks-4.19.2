@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2695309
+﻿INTSourceChangelist:2743761
 Availability: Public
 Title:엔진 기능 예제
 Crumbs:%ROOT%, Resources
 Description:특정 기능 또는 난제에 대한 접근법 데모가 되는 씬입니다.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -45,21 +46,22 @@ Description:특정 기능 또는 난제에 대한 접근법 데모가 되는 씬
 
 엔진 기능 예제는 다양한 엔진 피처 세트에 대한 설명이 되는 프로젝트와 애셋 팩입니다. 콘텐츠 예제 프로젝트처럼 작은 독립형 예제일 수도 있고, 특정 비주얼 스타일이나 씬을 보여주는 커다란 쇼케이스일 수도 있습니다.
 
-각 부분에 해당하는 문서에는 에픽의 담당 아티스트로부터의 직접적인 피드백을 통해 얻은 통찰을 제공해 드리고자 하고 있습니다. 이 예제에 있는 것은 어떤 부분이는 자유로이 열어보고 분석해 보셔도 되며, 자신의 프로젝트에 쓰셔도 됩니다.
+각 부분에 해당하는 문서에는 에픽의 담당 아티스트로부터의 직접적인 피드백을 통해 얻은 통찰을 제공해 드리고자 하고 있습니다. 이 예제에 있는 것은 어떤 부분이든 자유로이 열어보고 분석해 보셔도 되며, 자신의 프로젝트에 쓰셔도 됩니다.
 
 [/EXCERPT:Showcases]
 
 [REGION:topics third]
-%Resources/ContentExamples:TopicCompact%
 %Resources/Showcases/Infiltrator:topiccompact%
+%Resources/ContentExamples:TopicCompact%
+%Engine/OpenWorldTools:TopicCompact%
 %watertopic%
 %featurestopic%
 %Resources/Showcases/MatineeFightScene:topiccompact%
-%Resources/Showcases/Effects:TopicCompact%
 %Resources/Showcases/Reflections:TopicCompact%
 %Resources/Showcases/RealisticRendering:TopicCompact%
-%Resources/Showcases/Stylized:TopicCompact%
+%Resources/Showcases/Effects:TopicCompact%
 %Resources/Showcases/BlueprintExamples:TopicCompact%
+%Resources/Showcases/Stylized:TopicCompact%
 [/REGION]
 
 [VAR:watertopic]

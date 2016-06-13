@@ -1,14 +1,15 @@
-﻿INTSourceChangelist:2338434
+﻿INTSourceChangelist:2708373
 Availability:Public
 Title: DPI 스케일링
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
 Description:DPI 스케일링 규칙 접근 및 조절 방법입니다.
+version: 4.9
 
 [REGION:banner]
 ![](DPIscaling.png)(convert:false)
 [/REGION]
 
-**UMG** 는 해상도 무관 UI 를 위한 자동 스케일을 지원합니다. 모든 프로젝트에 적용되는 기본 DPI 스케일링 규칙이 있으며, **프로젝트 세팅** 메뉴의 **렌더링** 섹션에서 원하는 대로 환경설정 가능합니다.
+**UMG** 는 해상도 무관 UI 를 위한 자동 스케일을 지원합니다. 모든 프로젝트에 적용되는 기본 DPI 스케일링 규칙이 있으며, **프로젝트 세팅** 메뉴의 **유저 인터페이스** 섹션에서 원하는 대로 환경설정 가능합니다.
 
 ![](ProjectSettings.png)(w:820)
 

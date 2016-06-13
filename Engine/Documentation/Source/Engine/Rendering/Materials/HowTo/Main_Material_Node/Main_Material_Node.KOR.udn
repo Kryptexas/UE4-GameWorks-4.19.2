@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2614984
+﻿INTSourceChangelist:2707696
 Availability: Public
 Title:머티리얼 에디터 - 메인 머티리얼 노드 사용 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
@@ -8,6 +8,8 @@ Related: Engine/Rendering/Materials/MaterialInputs
 Related: Engine/Rendering/Materials/Editor
 Related: Engine/Rendering/Materials/IntroductionToMaterials
 Related: Engine/Rendering/Materials/MaterialProperties
+Version: 4.9
+SkillLevel: Beginner
 
 [TOC(start:2 end:3)]
 

@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2220735
+﻿INTSourceChangelist:2666096
 Availability:Public
 Title:애니메이션 모드
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona, Engine/Animation/Persona/Modes
 Description:페르소나 애니메이션 에디터의 애니메이션 모드에 대한 사용 안내서입니다.
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -24,13 +25,13 @@ Description:페르소나 애니메이션 에디터의 애니메이션 모드에 
 [/OBJECT]
 [/VAR]
 
-##개요
+
 
 [REGION:fullwidth]
 ![](AnimationModeWindow.png)
 [/REGION]
 
-**페르소나** 의 **애니메이션 모드** 는 (툴바 창의 **애니메이션** 탭을 선택하여 접근 가능하며) 다른 모드에 나타나는 창이 여럿 있지만, **애니메이션 모드** 작업시 가장 자주 사용되는 창은 (위에 언급된) 세 가지입니다.
+**페르소나** 의 **애니메이션** 모드는 (툴바 창의 **애니메이션** 탭을 선택하여 접근 가능하며) 다른 모드에 나타나는 창이 여럿 있지만, **애니메이션** 모드작업시 가장 자주 사용되는 창은 (위에 언급된) 세 가지입니다.
 
 1. [애님 애셋 디테일](Engine\Animation\Persona\AnimAssetDetails) - **애님 애셋 디테일** 패널은 맥락 의존적인 프로퍼티 에디터로, 애님 시퀀스, 블렌드 스페이스, 애님 몽타주 등과 같은 다양한 애니메이션 애셋의 세팅을 변경할 수 있습니다. 기본적으로, **애님 애셋 디테일** 패널은 페르소나가 **애니메이션** 모드에 있을 때만 보입니다.
 1. [애님 시퀀스 에디터](Engine\Animation\Sequences\Editor) - **애니메이션 시퀀스 에디터** 는 개별 _애니메이션 시퀀스_ 애셋을 미리보고 편집하는 기능을 제공합니다. _애니메이션 시퀀스_ 의 압축 방법을 포함한 프로퍼티를 설정할 수 있고, 애니메이션 노티파이 이벤트( 소위 노티파이)를 추가하여 애니메이션에 맞춰 카메라 이펙트, 파티클 이펙트, 사운드 등을 발동시킬 수 있습니다.

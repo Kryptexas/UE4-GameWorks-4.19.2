@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2291853
+﻿INTSourceChangelist:2697129
 Availability:Public
 Title:ツールとシステム
 Crumbs:%ROOT%, Engine, Engine/UI
-Description:アンリアル エディタに使用されている個別のツールとシステム
+Description:エディタの各ツールとシステム
 Navigation:topic
-
+Version:4.9
 
 [REGION:features half]
 [OBJECT:Role]
@@ -12,7 +12,7 @@ Navigation:topic
 	![Editor Systems](%ROOT%/profile_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-	エディタ システム
+	エディタのシステム
 	[/PARAM]
 	[PARAM:path]
 	[RELATIVE:#Systems]
@@ -104,12 +104,12 @@ Navigation:topic
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
-	* [スタティックメッシュ エディタ](Engine/Content/Types/StaticMeshes/Editor "%Engine/Content/Types/StaticMeshes/Editor:Description%")
+	* [](Engine/Content/Types/StaticMeshes/Editor "%Engine/Content/Types/StaticMeshes/Editor:Description%")
 	[PUBLISH:Licensee]
 	* [](Engine/UI/Tools/Simplygon "%Engine/UI/Tools/Simplygon:Description%")
 	[/PUBLISH:Licensee]
 	* [](Engine/Animation/Persona "%Engine/Animation/Persona:Description%")
-	* [PhAT ユーザーガイドとリファレンス](Engine/Physics/PhAT "%Engine/Physics/PhAT:Description%")
+	* [](Engine/Physics/PhAT "%Engine/Physics/PhAT:Description%")
 	* [](Engine/Rendering/Materials/Editor "%Engine/Rendering/Materials/Editor:Description%")
 	* [](Engine/Rendering/ParticleSystems/Cascade "%Engine/Rendering/ParticleSystems/Cascade:Description%")
 	[/PARAM]
@@ -132,4 +132,8 @@ Navigation:topic
 	[/PUBLISH:Licensee]
 	[/PARAM]
 [/OBJECT]
+
+
+
+
 

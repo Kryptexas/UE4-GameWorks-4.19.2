@@ -1,13 +1,14 @@
-﻿INTSourceChangelist:2617373
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:에디터 개인설정
 Crumbs:%ROOT%, Engine, Engine/UI
 Description:에디터의 조작법, 뷰포트, 소스 콘트롤 등 여러가지 작동방식에 대한 환경설정 세팅입니다.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Editor/EditorSettings:title%](Engine/UI/EditorSettings_topic.png)
+		![%Engine/UI/EditorSettings:title%](Engine/UI/EditorSettings_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/editor_icon.png)(convert:false)
@@ -16,7 +17,7 @@ Description:에디터의 조작법, 뷰포트, 소스 콘트롤 등 여러가지
 		에디터 세팅
 	[/PARAM]
 	[PARAM:description]
-		%Editor/EditorSettings:description%
+		%Engine/UI/EditorSettings:description%
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/UI/EditorSettings]
@@ -26,7 +27,7 @@ Description:에디터의 조작법, 뷰포트, 소스 콘트롤 등 여러가지
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Editor/EditorSettings:title%](Engine/UI/EditorSettings_topic.png)
+		![%Engine/UI/EditorSettings:title%](Engine/UI/EditorSettings_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/editor_icon.png)(convert:false)
@@ -35,7 +36,7 @@ Description:에디터의 조작법, 뷰포트, 소스 콘트롤 등 여러가지
 		Editor Settings
 	[/PARAM]
 	[PARAM:description]
-		%Editor/EditorSettings:description%
+		%Engine/UI/EditorSettings:description%
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/UI/EditorSettings]
@@ -122,7 +123,7 @@ yvwZUtmW12I
 | **Add New Files when Modified** | 변경시 새 파일 추가 - 켜면 새 파일은 소스 콘트롤에 자동 추가됩니다. |
 | **Host** | 호스트 - 소스 콘트롤 서버의 호스트명과 포트 번호입니다. 예: `hostname:1234` |
 | **Username** | 사용자명 - 소스 콘트롤에 접속할 때 사용할 사용자명입니다. |
-| **Workspace** | 웍스페이스 - 소스 콘트롤의 clientspec 입니다. |
+| **Workspace** | 워크스페이스 - 소스 콘트롤의 clientspec 입니다. |
 
 ### 파티클
 

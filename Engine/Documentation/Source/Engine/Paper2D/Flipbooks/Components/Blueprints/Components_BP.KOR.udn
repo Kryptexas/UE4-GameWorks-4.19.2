@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2617291
+﻿INTSourceChangelist:2707875
 Availability:Public
 Title:블루프린트에서의 플립북 컴포넌트
 Crumbs: %ROOT%, Engine, Engine/Paper2D, Engine/Paper2D/Flipbooks, Engine\Paper2D\Flipbooks\Components
@@ -7,6 +7,8 @@ Related: Engine/Paper2D/Flipbooks
 Related: Engine/Paper2D/Sprites
 Related: Engine/Paper2D
 Related: Engine/Blueprints
+Version: 4.9
+SkillLevel: Beginner
 
 [REGION:banner]
 ![](Components_Banner.png)

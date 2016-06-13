@@ -1,0 +1,89 @@
+﻿INTSourceChangelist:2968923
+Availability:Public
+Title: 기본 스크립팅
+Crumbs: %ROOT%, Engine, Engine/Blueprints
+Description: 블루프린트 그래프 내에서 사용할 수 있는 블루프린트와 노드 여러 부분에 대한 학습에 있어서 조언을구할 수 있는 소스 안내서입니다.
+version: 4.9
+parent:Engine/Blueprints
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Blueprints/Scripting:title%](Engine\Blueprints\UserGuide\using_interface_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/reference_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/Scripting:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/Scripting:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/Scripting]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints/Scripting:title%](BasicScripting.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/reference_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/Scripting:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/Scripting:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/Scripting]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+## 데이터 유형
+
+변수는 불리언, 인티저, 플로트를 포함한 여러가지 유형으로 생성 가능합니다. 이들은 색을 통해 블루프린트에 쉽게 식별이 가능합니다.
+
+[DIR(output:"listbutton" parent:"Engine/Blueprints/Scripting" tags:"Data Types")]
+
+## 실행 흐름
+
+블루프린트에서, 실행하려는 첫 노드는 이벤트이며, 그 다음은 왼쪽에서 오른쪽으로 흰색 실행 선을 따라 흘러갑니다. 에디터에서 게임이 실행중일 때 실행 흐름을 시각화시켜 볼 수 있는데,
+디버깅에 도움이 됩니다. 데이터는 변수 유형에 일치하는 색의 선을 따라 흐르기도 합니다. 입력 핀은 노드 실행시 평가되며,
+오른쪽에서 왼쪽으로 데이터 선을 거슬러 올라가며 최종 결과를 계산한 후 노드에 제공합니다.
+
+[DIR(output:"listbutton" parent:"Engine/Blueprints/Scripting" tags:"Execution Flow")]
+
+## 배열 & 구조체
+
+블루프린트에서 사용할 수 있는 기본 데이터 유형은 배열과 구조체로 조직화시켜 보다 복잡한 체계를 만들 수 있습니다.
+
+[DIR(output:"listbutton" parent:"Engine/Blueprints/Scripting" tags:"Arrays and Structures")]
+
+<!--
+구조체
+-->
+
+## 오브젝트와 액터 처리
+
+블루프린트 변수는 오브젝트, 액터, 클래스와 같은 것을 저장하는 레퍼런스 유형이 될 수도 있습니다.
+
+[DIR(output:"listbutton" tags:"Handling Objects and Actors")]
+
+
+<!--
+레퍼런스 (포인터)
+액터 레퍼런스 설정 및 구하기	Engine/Blueprints/BP_HowTo/ActorReference
+유효성
+형변환
+블루프린트 형변환	Engine/Blueprints/BP_HowTo/Casting
+형변환	Engine/Blueprints/UserGuide/CastNodes
+-->
+

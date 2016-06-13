@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2606496
+﻿INTSourceChangelist:2697122
 Availability: Public
 Title:소스 콘트롤
 Crumbs:%ROOT%, Engine, Engine/UI
 Description:소스 콘트롤 기능에 대한 개요서입니다.
+Version: 4.9
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -42,7 +43,8 @@ Description:소스 콘트롤 기능에 대한 개요서입니다.
 
 | 항목 | 설명 |
 | --- | --- |
-| **Prompt for Checkout on Package Modification** | 패키기 변경시 체크아웃 묻기 - 체크하면 소스 콘트롤 제어되는 패키지에 변경을 가할 때 해당 패키지를 체크 아웃(하고 고정)시키겠냐고 묻는 창이 뜹니다. |
+| **Automatically Checkout on Asset Modification** | 애셋 변경시 자동 체크아웃 - 체크되면 변경된 애셋을 자동으로 체크아웃 시킵니다. |
+| **Prompt for Checkout on Package Modification** | 패키지 변경시 체크아웃 묻기 - 체크하면 소스 콘트롤 제어되는 패키지에 변경을 가할 때 해당 패키지를 체크 아웃(하고 고정)시키겠냐고 묻는 창이 뜹니다. |
 | **Add New Files when Modified** | 변경시 새 파일 추가 - 새 파일이 추가되면 소스 콘트롤에도 추가합니다. |
 | **Use Global Settings** | 글로벌 세팅 사용 - 프로젝트 단위가 아닌 글로벌 소스 콘트롤 로그인 세팅을 사용합니다. 이 옵션을 바꾸면 다시 로그인해야 합니다. |
 | **Tool for diff'ing text** | 텍스트 버전비교 툴 - 텍스트 파일 버전비교에 사용할 툴의 파일 경로를 지정합니다. |
@@ -69,7 +71,7 @@ Description:소스 콘트롤 기능에 대한 개요서입니다.
 [REGION:imagetable]
 | ![CheckedOutByYou.png](CheckedOutByYou.png)(w:178) | ![CheckedOut.png](CheckedOut.png)(w:178) | ![MarkedForAdd.png](MarkedForAdd.png)(w:178) | ![notInDepot.png](notInDepot.png)(w:178) | ![NotHadRevision.png](NotHadRevision.png)(w:178) 
 | --- | --- | --- | --- | --- |
-| 자신이 체크아웃 | 다른이가 체크아웃 | 추가 마킹 | 디포에 없음 | 헤드 리비전 아님
+| 자신이 체크아웃 | 다른이가 체크아웃 | 추가 마킹 | 디포에 없음 | 소스 콘트롤에 새 버전 존재
 
 [/REGION]
 

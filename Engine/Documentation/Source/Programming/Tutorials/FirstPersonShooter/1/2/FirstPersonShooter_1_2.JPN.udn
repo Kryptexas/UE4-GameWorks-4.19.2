@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2672558
+﻿INTSourceChangelist:2923487
 Availability:Docs
-Title:1.2 - C++ Class Wizard を使用する
+Title:1.2 - Visual Studio でプロジェクトを開く
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
-Description:C++ Wizard を使用して初めての C++ クラスを作成する方法を学びましょう。
-スキルレベル:初心者向け
-バージョン：4.9
+Description:Visual Studio で C++ プロジェクトを開く方法を学習しましょう。
+SkillLevel:Beginner
+Version:4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -24,20 +24,36 @@ Description:C++ Wizard を使用して初めての C++ クラスを作成する�
 
 %Steps%
 
-このステップでは、Game Mode (ゲーム モード) を作成します。ゲームモードでは、ゲームのルールと勝敗条件を定義します。また、デフォルト クラスも設定します。これは、ポーン、プレイヤー コントローラー、HUD を含む一部の基本的なゲームプレイ フレームワークのタイプに使用されます。最後に、FPS キャラクターをセットアップする前に、ゲームモードを作成する必要があります。
+前のステップで **Basic Code** プロジェクトをセットアップし、**ゲーム モード** を作成しました。ゲーム モードでは、ゲームのルールと勝敗条件を定義します。また、デフォルト クラスも設定します。これは、ポーン、プレイヤー コントローラー、HUD を含む一部の基本的なゲームプレイ フレームワークのタイプに使用されます。このステップではエディタを使って Visual Studio でソリューションを開き、プロジェクトの Game Mode クラスを見ることができるようにします。 
 
-1.	ファイル メニューで **[New C++ Class... (新規 C++ クラス)]** を選択して、新しい Parent (親) クラスを選択します。
+1.	ファイル メニューから **[Open Visual Studio]** を選択して Visual Studio で C++ コードを開きます。
 
-1.	**[Choose Parent Class (親クラスを選択)]** メニューが開きます。下方にスクロールして、親クラスとして **[Game Mode]** を選択して、**[Next]** をクリックします。
+	![](FileMenu_OpenVS.png)
 
-	![](AddGameModeParentClass.png)
+1.	Visual Studio で C++ コードを開くと、**Solution Explorer** に **CPP** ファイルと **ヘッダー** ファイルが表示されます。
 
-1.	新しいクラスに 「FPSGameMode」 と名前を付けて、 **[Create (作成)]** をクリックします。
+	![](VS_SolutionExplorer.png)
 
-	![](CreateFPSGameMode.png)
+1.	ここまでで、`FPSProjectGameMode.cpp` の中に以下のコードがあるはずです。
 
-	[REGION:note]
-	初めての C++ クラスを作成したので、**Visual Studio** へ切り替えて、新規作成したクラスにコードを追加することができます。`FPSGameMode.h` および`FPSGameMode.cpp` が開き、 **アンリアル エンジン** が新規クラスのためにコードをコンパイルし、再読み込みします。
-	[/REGION]
+		#include "FPSProject.h"
+		#include "FPSProjectGameMode.h"
 
-%Steps%
+1.	`FPSProjectGameMode.h` 内に以下のコードもあります。
+
+		#pragma once
+		#include "GameFramework/GameMode.h"
+
+		#include "FPSProjectGameMode.generated.h"
+		/**
+
+		 * 
+		 */
+		UCLASS()
+		class FPSPROJECT_API AFPSProjectGameMode : public AGameMode
+		{
+			GENERATED_BODY()
+		};
+
+1.	C++ プロジェクトを Visual Studio で開いたので、プロジェクトにコードを追加することができます。 
+		%Steps%

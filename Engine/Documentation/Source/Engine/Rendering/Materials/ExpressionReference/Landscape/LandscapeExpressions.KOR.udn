@@ -1,8 +1,9 @@
-INTSourceChangelist:2266078
+﻿INTSourceChangelist:2690150
 Availability:Public
 Title:Landscape ???
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
-Description:?????? ???? ???? ???? ??? ??????.
+Description:랜드스케이프 머티리얼에 적용할 머티리얼 제작용 표현식입니다.
+Version: 4.9
 
 [EXCERPT:TOC]
 [TOC(start:2)]

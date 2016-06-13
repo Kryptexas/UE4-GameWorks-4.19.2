@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2680831
+﻿INTSourceChangelist:2956400
 Availability:Public
 Title: Scalability, 엔진 퀄리티 참고서
-Crumbs: %ROOT%, Engine, Engine/Performance/Scalability
+Crumbs: %ROOT%, Engine, Engine/Performance, Engine/Performance/Scalability
 Description:Scalability, 엔진 퀄리티 옵션, 프로퍼티, 콘솔 변수입니다.
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -54,7 +55,7 @@ Description:Scalability, 엔진 퀄리티 옵션, 프로퍼티, 콘솔 변수입
 
 ## 엔진 퀄리티 세팅
 
-에디터에서 엔진 퀄리티 세팅은 툴바의 **퀵 세팅** 메뉴를 통해 열어볼 수 있습니다 ![](%ROOT%/Shared/Icons/icon_view_40x.png). **엔진 퀄리티 세팅** 에는 `BaseScalability.ini` 파일에 정의된 세팅 중 가장 자주 사용되는 것들에 대한 바로가기가 모여있습니다. 반면 **머티리얼 퀄리티 레벨** 은 글로벌 머티리얼 퀄리티 세팅을 설정합니다.
+에디터에서 엔진 퀄리티 세팅은 툴바의 **퀵 세팅** 메뉴를 통해 열어볼 수 있습니다. **엔진 퀄리티 세팅** 에는 `BaseScalability.ini` 파일에 정의된 세팅 중 가장 자주 사용되는 것들에 대한 바로가기가 모여있습니다. 반면 **머티리얼 퀄리티 레벨** 은 글로벌 머티리얼 퀄리티 세팅을 설정합니다.
 
 [REGION:lightbox]
 [![](ScaleR_ViewQual.png)(h:490)](ScaleR_ViewQual.png) [![](ScaleR_ViewMatQual.png)(h:490)](ScaleR_ViewMatQual.png)
@@ -94,7 +95,7 @@ _왼쪽: `r.ViewDistanceScale 0.4`, 가운데: `r.ViewDistanceScale 0.7`, 오른
 [![](ScaleR_AA_small.png)(w:920)](ScaleR_AA.png)
 [/REGION]
 [REGION:caption]
-왼쪽에서부터: r.PostProcessAAQuality 0 부터 6 까지. 처음 셋은 **뷰 -> 엔진 퀄리티 옵션 -> AA** 를 **낮음**, **중간**, **높음/에픽** 으로 설정한 것입니다.
+왼쪽에서부터: r.PostProcessAAQuality 0 부터 6 까지. 처음 셋은 **뷰 -> 엔진 퀄리티 옵션 -> AA** 를 **낮음**, **중간**, **높음**, **에픽** 으로 설정한 것입니다.
 [/REGION]
 r.PostProcessAAQuality 콘솔 명령으로 안티앨리어싱 퀄리티 레벨을 조절하면, (FXAA 든 템포럴 AA 든) 사용중인 안티앨리어싱 메소드의 퀄리티가 조정됩니다. 어느 안티앨리어싱 메소드든, `r.PostProcessAAQuality` 에 0 값이 사용되면 이펙트를 끕니다. FXAA 의 경우 값이 2, 4, 6 인 경우 그 이펙트를 위 이미지에서 볼 수 있는데, 각진 변의 부드러운 정도가 나아지고 있습니다. 6 이상의 값은 효과가 없습니다.
 
@@ -138,7 +139,7 @@ sg.PostProcessQuality 0 은 왼쪽, 3 은 오른쪽.
 	r.BloomQuality=4
 	r.FastBlurThreshold=0
 	r.Upscale.Quality=1
-	r.TonemapperQuality=0
+	r.Tonemapper.GrainQuantization=0
 [/EXCERPT:post1]
 
 [EXCERPT:post2]
@@ -154,7 +155,7 @@ sg.PostProcessQuality 0 은 왼쪽, 3 은 오른쪽.
 	r.BloomQuality=4
 	r.FastBlurThreshold=2
 	r.Upscale.Quality=2
-	r.TonemapperQuality=0
+	r.Tonemapper.GrainQuantization=0
 [/EXCERPT:post2]
 
 [EXCERPT:post3]
@@ -170,7 +171,7 @@ sg.PostProcessQuality 0 은 왼쪽, 3 은 오른쪽.
 	r.BloomQuality=5
 	r.FastBlurThreshold=3
 	r.Upscale.Quality=2
-	r.TonemapperQuality=1
+	r.Tonemapper.GrainQuantization=1
 [/EXCERPT:post3]
 
 [EXCERPT:post4]
@@ -186,13 +187,13 @@ sg.PostProcessQuality 0 은 왼쪽, 3 은 오른쪽.
 	r.BloomQuality=5
 	r.FastBlurThreshold=7
 	r.Upscale.Quality=3
-	r.TonemapperQuality=1
+	r.Tonemapper.GrainQuantization=1
 [/EXCERPT:post4]
 
 -->
 
 
-## 섀도우 - sg.ShadowQuality
+## 섀도 - sg.ShadowQuality
 
 [REGION:lightbox]
 [![](SC_ShadowQualLevels.png)(w:900)](SC_ShadowQualLevels.png)
@@ -201,7 +202,7 @@ sg.PostProcessQuality 0 은 왼쪽, 3 은 오른쪽.
 sg.ShadowQuality 0 은 왼쪽, 3 은 오른쪽.
 [/REGION]
 
-**뷰** -> **엔진 퀄리티 세팅** -> **섀도우** 옵션으로 `[UE4_InstallPath]/Engine/Config` 폴더에 위치한 `BaseScalaiblity.ini` 파일에서 찾을 수 있는 세팅에 맞게 다이내믹 섀도우 퀄리티를 조절합니다. _낮음_ 세팅은 `sg.ShadowQuality 0` 에, _에픽_ 은 `sg.ShadowQuality 3` 에 해당합니다.
+**뷰** -> **엔진 퀄리티 세팅** -> **섀도** 옵션으로 `[UE4_InstallPath]/Engine/Config` 폴더에 위치한 `BaseScalaiblity.ini` 파일에서 찾을 수 있는 세팅에 맞게 다이내믹 섀도 퀄리티를 조절합니다. _낮음_ 세팅은 `sg.ShadowQuality 0` 에, _에픽_ 은 `sg.ShadowQuality 3` 에 해당합니다.
 
 [REGION:simpletable]
 |sg.ShadowQuality 0|sg.ShadowQuality 1|
@@ -260,7 +261,7 @@ sg.ShadowQuality 0 은 왼쪽, 3 은 오른쪽.
 
 ## 텍스처 - sg.TextureQuality
 
-최근의 렌더링 엔진은 훨씬 만은 GPU 메모리를 요구합니다 (텍스처, 메시, GBUffer, 뎁스 버퍼, 섀도우 맵). 이들 중 일부는 (GBuffer 처럼) 화면 해상도에 비례하는 것도 있고, (섀도우 맵처럼) 특정 퀄리티 세팅에 비례하는 것도 있습니다. 스트리밍 시스템 관리를 좀 더 적극적으로 (풀 크기는 작게, 미사용 텍스처는 컬링)하거나, 밉 레벨 계산에서 디테일을 높이거나 낮출 수 있습니다. 이는 이미지 퀄리티, 텍스처 스트리밍 부작용 부각 정도, 게임 실행의 원활한 정도에 영향을 끼칠 수 있습니다 (업데이트는 메모리 전송 비용이 비싸게 듭니다). 그 결과는 (고속/저속 하드 드라이브 또는 SSD 등) 미디어에 따라 달라질 수 있습니다. DVD/블루레이에서의 스트리밍은 반응지연시간이 훨씬 더 오래걸리니 피해야 할 것입니다.
+최근의 렌더링 엔진은 훨씬 만은 GPU 메모리를 요구합니다 (텍스처, 메시, GBUffer, 뎁스 버퍼, 섀도 맵). 이들 중 일부는 (GBuffer 처럼) 화면 해상도에 비례하는 것도 있고, (섀도 맵처럼) 특정 퀄리티 세팅에 비례하는 것도 있습니다. 스트리밍 시스템 관리를 좀 더 적극적으로 (풀 크기는 작게, 미사용 텍스처는 컬링)하거나, 밉 레벨 계산에서 디테일을 높이거나 낮출 수 있습니다. 이는 이미지 퀄리티, 텍스처 스트리밍 부작용 부각 정도, 게임 실행의 원활한 정도에 영향을 끼칠 수 있습니다 (업데이트는 메모리 전송 비용이 비싸게 듭니다). 그 결과는 (고속/저속 하드 드라이브 또는 SSD 등) 미디어에 따라 달라질 수 있습니다. DVD/블루레이에서의 스트리밍은 반응지연시간이 훨씬 더 오래 걸리니 피해야 할 것입니다.
 
 텍스처 퀄리티는 텍스처 필터링 모드에도 (r.MaxAnisotropy) 영향을 끼칩니다. Anisotropy 샘플 수를 제한시키면 텍스처 대역폭이 줄지만, 텍스처 메모리가 절약되지는 않습니다.
 
@@ -394,7 +395,7 @@ sg.ShadowQuality 0 은 왼쪽, 3 은 오른쪽.
 [![](SC_SwitchNode.png)(w:900)](SC_SwitchNode.png)
 [/REGION]
 
-**머티리얼 퀄리티 레벨** 이 낮음 또는 높음으로 설정될 때마다, 이 머티리얼에 대해 (낮음 핀 또는 높음 핀) 어느 표현식을 구할지 결정합니다. 입력이 없는 경우 기본 핀은 높음 또는 낮음 (또는 양쪽)으로 채웁니다. 이 머티리얼은 높음으로 설정히 꽤나 비용이 많이 드는 펄린 노이즈 연산이 두 개 있습니다:
+**머티리얼 퀄리티 레벨** 이 낮음 또는 높음으로 설정될 때마다, 이 머티리얼에 대해 (낮음 핀 또는 높음 핀) 어느 표현식을 구할지 결정합니다. 입력이 없는 경우 기본 핀은 높음 또는 낮음 (또는 양쪽)으로 채웁니다. 이 머티리얼은 높음으로 설정시 꽤나 비용이 많이 드는 펄린 노이즈 연산이 두 개 있습니다:
 
 [REGION:note]
 이 예제는 간단히 **Material Switch Node** 를 보여드리기 위함입니다. **Noise** 노드는 정말 비싸서 이 예제에 사용하기는 정말 좋지만, 실제로는 더욱 싼 비용으로 동일한 효과를 내는 방법이 있으니 아껴 사용해야 할 것입니다.

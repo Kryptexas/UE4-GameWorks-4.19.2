@@ -1,7 +1,7 @@
 Availability:Public
 Title:Level Blueprint UI
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
-Description:Overview of the Level Blueprint Editor interface.
+Description:A breakdown of the UI elements of the Blueprint Editor when working on Level Blueprints.
 version: 4.9
 
 [VAR:Topic]
@@ -47,7 +47,7 @@ The Blueprint Editor contains the following sections when editing Level Blueprin
 <!----------
 [EXCERPT:Visible]
 1. [Menu](Engine/Blueprints/Editor\UIComponents\Menu)
-1. [Toolbar](Engine/Blueprints/Editor\UIComponents\Toolbar\ToolbarOptions)
+1. [Toolbar](Engine/Blueprints/Editor\UIComponents\Toolbar)
 1. [My Blueprint](Engine/Blueprints/Editor\UIComponents\MyBlueprint)
 1. [Details](Engine/Blueprints/Editor\UIComponents\Details)
 1. [Graph Editor](Engine/Blueprints/Editor\UIComponents\GraphEditor)

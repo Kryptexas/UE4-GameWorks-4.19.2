@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2719368
 Availability:Public
-Title:Unreal Engine 4 Quick Start Directory
+Title:虚幻引擎 4 快速入门目录
 Crumbs: %ROOT%, GettingStarted
-Description:All of the quick start guides available to help you get started with Unreal Engine, at a glance.
+Description:所有快速入门类别的文档汇总
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -39,28 +40,28 @@ Description:All of the quick start guides available to help you get started with
 [/VAR]
 
 
-## First Steps
+## 第一步
 [REGION:topics third]
 %Engine/QuickStart:topiccompact%
 %Engine/Content/QuickStart:topiccompact%
 %Programming/QuickStart:topiccompact%
 [/REGION]
 
-## Platform Development
+## 平台开发
 [REGION:topics third]
 %Platforms/Android/GettingStarted:topiccompact%
 %Platforms/iOS/QuickStart:topiccompact%
 %Platforms/Oculus/QuickStart:topiccompact%
 [/REGION]
 
-## Content Creation
+## 内容制作
 [REGION:topics third]
 %Engine/Rendering/LightingAndShadows/QuickStart:topiccompact%
 %Engine/Landscape/QuickStart:topiccompact%
 %Engine/UMG/QuickStart:topiccompact%
 [/REGION]
 
-## Gameplay
+## 游戏玩法
 [REGION:topics third]
 %Engine/AI/BehaviorTrees/QuickStart:topiccompact%
 [/REGION]

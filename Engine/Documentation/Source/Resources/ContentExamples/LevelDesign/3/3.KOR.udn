@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653187
+﻿INTSourceChangelist:2716625
 Availability: Public
 Title:3 - 라이팅 패스
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/LevelDesign
@@ -6,6 +6,7 @@ Description:Level Design 레벨에 대한 개요로, 예제 3: Lighting Pass 입
 Related: Engine/Rendering/LightingAndShadows/Basics
 Related: Engine/Rendering/PostProcessEffects
 Related: Engine/Rendering/ParticleSystems
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

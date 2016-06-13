@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2635791
+﻿INTSourceChangelist:2757171
 Availability:Public
 Title: 4. 캐릭터 블루프린트 셋업
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:단계 4. 캐릭터 블루프린트 셋업
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -42,7 +43,7 @@ Description:단계 4. 캐릭터 블루프린트 셋업
 
 1. **Mesh** 컴포넌트가 파랑 애로우 컴포넌트가 가리키는 쪽을 향하도록 회전시킵니다.
 
-1. **디테일** 패널에서 **Animation** 케타고리를 찾아 **Animation Blueprint Generated Class** (애니메이션 블루프린트 생성 클래스) 프로퍼티에 `TopDown_AnimBP` 를 할당합니다.
+1. **디테일** 패널에서 **Animation** 케타고리를 찾아 **Animation Blueprint Generated Class** (애니메이션 블루프린트 생성 클래스) 프로퍼티에 ThirdPerson_AnimBP 를 할당합니다.
 
 	![](assignAnimBP.png)
 
@@ -64,11 +65,15 @@ Description:단계 4. 캐릭터 블루프린트 셋업
 	
 	![](maxWalk.png)
 
-1. ![](Engine\Blueprints\UserGuide\Variables\defaultsButton.png) **클래스 디폴트** 버튼을 클릭한 다음 **Pawn** 카테고리의 **AI Controller Class** 프로퍼티에 새로운 AI 콘트롤러 (`Follower_AI_CON`) 를 할당합니다.
+1. **클래스 디폴트** 버튼을 클릭한 다음 **Pawn** 카테고리의 **AI Controller Class** 프로퍼티에 새로운 AI 콘트롤러 (`Follower_AI_CON`) 를 할당합니다.
 
 	![](AI_con.png)
 
-1. ![](compile_button.png) 컴파일 후 ![](save_button.png) 저장 합니다.
+1. 컴파일 후 ![](save_button.png) 저장 합니다.
 
 
 %Steps%
+
+
+
+

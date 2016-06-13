@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2117037
+﻿INTSourceChangelist:2691875
 Availability:Public
 Title: 오브젝트 레퍼런스 콘트롤
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor, Engine/UI/LevelEditor/Details
 Description:Object 와 Actor 로의 레퍼런스를 담는 프로퍼티입니다.
+Version: 4.9
 
  `Object` (오브젝트) 레퍼런스 프로퍼티는 레벨에 있는 액터에 대한 레퍼런스를 저장하는 프로퍼티입니다.
 **디테일** 패널에서, `Object` 레퍼런스 프로퍼티는 드롭다운 박스로 표시되며, 레퍼런스 변경을 위한 콘트롤 세트도 딸려 있습니다.

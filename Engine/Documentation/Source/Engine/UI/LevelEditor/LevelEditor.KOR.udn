@@ -1,8 +1,11 @@
-﻿INTSourceChangelist:2604306
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:레벨 에디터
 Crumbs:%ROOT%, Engine, Engine/UI
 Description:게임 레벨과 배경 디자인 및 조성에 대한 개요서입니다.
+Version: 4.9
+parent:Engine/Editor
+order:3
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]

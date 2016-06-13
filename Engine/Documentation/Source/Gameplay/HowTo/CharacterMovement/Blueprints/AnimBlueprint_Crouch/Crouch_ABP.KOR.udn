@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2612264
+﻿INTSourceChangelist:2740691
 Availability: Public
 Title:6. 애니메이션 블루프린트 - 웅크리기 상태
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:캐릭터의 애니메이션 블루프린트 구성을 계속해서, 이번에는 웅크리기 상태를 구성합니다.
+Version: 4.9
+SkillLevel:Advanced
 
 [VAR:Steps]
 [OBJECT:Navigation]

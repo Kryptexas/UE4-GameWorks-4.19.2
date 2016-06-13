@@ -1,8 +1,11 @@
-﻿INTSourceChangelist:2373757
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title: UMG UI 디자이너
 Crumbs:%ROOT%, Engine
 Description:UI 요소 제작을 위한 UMG, 언리얼 모션 그래픽 사용 안내입니다.
+Version: 4.9
+parent:Engine
+order:2
 
 [VAR:Topic]
 [OBJECT:Topic]

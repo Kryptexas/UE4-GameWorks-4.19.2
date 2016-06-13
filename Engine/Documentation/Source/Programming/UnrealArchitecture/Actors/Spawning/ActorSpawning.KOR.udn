@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2374181
+﻿INTSourceChangelist:2728687
 Availability:Public
 Title:액터 스폰하기
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture
 Description:게임플레이 코드에서 Actor 의 새 인스턴스, AActor 를 생성하는 메소드에 대해 설명합니다.
-Version: 4.5
+Version: 4.9
 
 [TOC (start:2 end:3)]
 

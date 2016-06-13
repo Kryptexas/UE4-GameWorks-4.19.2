@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2374838
+﻿INTSourceChangelist:2670989
 Availability:Public
 Title: 스테이트 머신 생성
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/StateMachines
 Description:애니메이션 애셋의 애님 그래프에서 사용되는 스테이트 머신을 새로 만드는 방법 안내서입니다.
-
+version: 4.9
 
 [TOC(start:2)]
 
@@ -21,7 +21,7 @@ Description:애니메이션 애셋의 애님 그래프에서 사용되는 스테
 
 ![](LocomotionSMNode.png)
 
-처음 생성하면 스테이트 머신은 비어 있습니다. 더블클릭하면 열어서 그 스테이트와 트랜지션을 정의할 수 있습니다. 그러면 새 그래프 탭이 열리는데, 이 그래프는 본질적으로 애니메이션을 발동시키는 시발점 말고는 없는 상태로 나옵니다.
+처음 생성하면 스테이트 머신은 비어 있으며, 그에 대한 경고가 나올 것입니다. 더블클릭하면 열어서 그 스테이트와 트랜지션을 정의할 수 있습니다. 그러면 새 그래프 탭이 열리는데, 이 그래프는 본질적으로 애니메이션을 발동시키는 시발점 말고는 없는 상태로 나옵니다.
 
 
 ![](StateMachineEntryPoint.png)

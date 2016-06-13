@@ -2,8 +2,9 @@ Availability: Public
 Title:Vector Fields
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference, Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Description:An overview of vector fields and how they work with GPU sprites.
+Version: 4.9
 
-## Overview
+
 
 [EXCERPT:VectorFields]
 
@@ -19,11 +20,11 @@ Additionally, vector fields may be reconstructed from a 2D image. In this case, 
 
 ## Global Vector Fields
 
-Global vector fields, as mentioned above, can be placed in a level as an Actor. However, they cannot merely be dragged out of the **Content Browser**. In order for a vector field to be set up within a level, a Vector Field Volume Actor will need to be added, and the appropriate vector field asset will need to be associated with it. 
+**Global Vector Fields*, as mentioned above, can be placed in a level as an Actor. However, they cannot merely be dragged out of the **Content Browser**. In order for a vector field to be set up within a level, a Vector Field Volume Actor will need to be added, and the appropriate vector field asset will need to be associated with it. 
 
 ### Vector Field Volume Actors
 
-A Vector Field Volume Actor is not a volume in the traditional sense. To create one, find Vector Field Volume in the Class Viewer and drag and drop it into the level. Then, assign the Vector Field from the **Content Browser** via the Actor's properties. Once added, the field can be positioned, rotated, and scaled. 
+A **Vector Field Volume Actor** is not a volume in the traditional sense. To create one, find Vector Field Volume in the Class Viewer and drag and drop it into the level. Then, assign the Vector Field from the **Content Browser** via the Actor's properties. Once added, the field can be positioned, rotated, and scaled. 
 
 ![](VFScaled.png)(w:460)
 
@@ -39,7 +40,7 @@ In this image, only the particles about halfway down the length of the emission 
 
 ## Local Vector Fields
 
-Local Vector Fields, as opposed to their global counterparts, are vector fields that exist entirely within a particle system and are not placed in the world. This means that local vector fields can only affect the particle emitters to which they are assigned, unlike Global Vector Fields, which can affect any particle system with a [Global Vector Fields module](Engine/Rendering/ParticleSystems/Reference/Modules/VectorField).
+**Local Vector Fields**, as opposed to their global counterparts, are vector fields that exist entirely within a particle system and are not placed in the world. This means that local vector fields can only affect the particle emitters to which they are assigned, unlike Global Vector Fields, which can affect any particle system with a [Global Vector Fields module](Engine/Rendering/ParticleSystems/Reference/Modules/VectorField).
 
 Local Vector Fields are added via the [Local Vector Field module](Engine/Rendering/ParticleSystems/Reference/Modules/VectorField). 
 

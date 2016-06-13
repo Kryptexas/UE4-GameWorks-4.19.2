@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2602426
+﻿INTSourceChangelist:2954984
 Availability: Public
 Title:스포트 라이트
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows, Engine/Rendering/LightingAndShadows/LightTypes
 Description:스포트 라이트에 대한 기초입니다.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -69,10 +70,6 @@ Description:스포트 라이트에 대한 기초입니다.
 [/OBJECT]
 [/EXCERPT:Intro]
 
-[REGION:raw]
-![](spacer.png)
-[/REGION]
-
 [OBJECT:topiclistnotitle]
 	[PARAM:icon]
 		![](Spotlight_Movable.png)(w:150 convert:false)
@@ -82,13 +79,17 @@ Description:스포트 라이트에 대한 기초입니다.
 	[/PARAM]
 [/OBJECT]
 
-[REGION:raw]
-![](spacer.png)
-[/REGION]
-
 아래 레벨 안에 배치된 **스포트 라이트** 두 예제를 통해 라이트의 반경과 원뿔 유효 범위 결정 방식을 알 수 있습니다:
 
-![](spotlight_example.png)
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Spot Light without its Cone showing](SpotLightNoCone.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Spot Light with Cone showing](SpotLightCone.png)(w:600)
+	[/PARAM]
+[/OBJECT]
+
 
 왼쪽의 **스포트 라이트** 는 원뿔에 라이트 반경을 표시하지 않은 것이고, 오른쪽은 동일한 **스포트 라이트** 에 원뿔 유효 범위를 표시한 것입니다.
 
@@ -114,11 +115,11 @@ Description:스포트 라이트에 대한 기초입니다.
 | **Light Falloff Exponent** | 라이트 감쇠 지수 - **UseInverseSquaredFalloff** 옵션이 꺼졌을 때 라이트의 방사형 감쇠를 제어합니다. |
 | **Min Roughness** | 최소 러프니스 - 이 라이트의 실제적인 최소 거칠기로, 스페큘러 하이라이트를 부드럽게 만드는 데 쓰입니다. |
 | **Shadow Bias** | 그림자 편향 - 이 라이트의 그림자가 정확히 붙도록 조절합니다. |
-| **Shadow Filter Sharpen** | 섀도우 필터 선명화 - 이 라이트에 대한 섀도우 필터링을 얼마나 선명하게 할지입니다. |
-| **Cast Translucent Shadows** | 반투명 그림자 드리우기 - 이 라이트가 반투명 오브젝트를 통과하는 다이내믹 섀도우를 드리우도록 할것인지 입니다. |
+| **Shadow Filter Sharpen** | 섀도 필터 선명화 - 이 라이트에 대한 섀도 필터링을 얼마나 선명하게 할지입니다. |
+| **Cast Translucent Shadows** | 반투명 그림자 드리우기 - 이 라이트가 반투명 오브젝트를 통과하는 다이내믹 섀도를 드리우도록 할것인지 입니다. |
 | **Affect Dynamic Indirect Lighting** | 동적인 간접광 영향 - 라이트를 **Light Propagation Volume** 에 주입시킬지 입니다. |
-| **Cast Static Shadows** | 스태틱 섀도우 드리우기 - 이 라이트가 스태틱 섀도우를 드리울지 입니다. |
-| **Cast Dynamic Shadows** | 다이내믹 섀도우 드리우기 - 이 라이트가 다이내믹 섀도우를 드리울지 입니다. |
+| **Cast Static Shadows** | 스태틱 섀도 드리우기 - 이 라이트가 스태틱 섀도를 드리울지 입니다. |
+| **Cast Dynamic Shadows** | 다이내믹 섀도 드리우기 - 이 라이트가 다이내믹 섀도를 드리울지 입니다. |
 | **Affect Translucent Lighting** | 반투명 라이팅에 영향 - 이 라이트가 반투명에 영향을 끼칠지 입니다. |
 
 

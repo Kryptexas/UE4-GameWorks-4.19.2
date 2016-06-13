@@ -1,19 +1,19 @@
-﻿INTSourceChangelist:2573926
+﻿INTSourceChangelist:2690811
 Title:T
 Crumbs:Shared/Glossary
 Description:
-Availability:Public
+Availability:NoPublish
 
 [EXCERPT:Glossary_T]
 
 [OBJECT:GlossaryItem]
 	[PARAM:Term]
-Tangent handle (タンジェント ハンドル)
+タンジェント ハンドル
 	[/PARAM]
 	[PARAM:Definition]
 
 [EXCERPT:Glossary_tangent_handles]
-**Tangent handle (タンジェント ハンドル)** は、2 つのキーフレームを接続しているラインの形状とカーブを調整するために、キーフレームの編集に使用するツールです。カーブエディタに、キーにアタッチされたタンジェントハンドルがあります。
+**タンジェント ハンドル** は、2 つのキーフレームを接続しているラインの形状とカーブを調整するために、キーフレームの編集に使用するツールです。カーブエディタに、キーにアタッチされたタンジェントハンドルがあります。
 [/EXCERPT:Glossary_tangent_handles]
 
 	[/PARAM]
@@ -38,7 +38,7 @@ Tangent handle (タンジェント ハンドル)
 
 [OBJECT:GlossaryItem]
 	[PARAM:Term]
-タイムカーソル
+タイム カーソル
 	[/PARAM]
 	[PARAM:Definition]
 
@@ -75,7 +75,7 @@ Timeline ノード
 [EXCERPT:Glossary_Timeline_node]
 **Timeline ノード** は、ブループリント内の特殊なノードです。単純な時間ベースのアニメーションを迅速に設計し、インゲームのイベントに基づき再生できるようにします。タイムラインは簡単なマチネ シーケンスのようなものであり、 
 簡単な値をアニメートし、時間経過に伴いイベントを発行することができます。Timeline ノードは、ブループリント エディタ内で、 
-[グラフ] タブまたは [マイブループリント] タブでタイムライン上で **ダブルクリック** することで直接編集できます。Timeline ノードは、単純なシネマティックスではないタスクを扱うために作られています。 
+[Graph (グラフ)] タブまたは [My Blueprint] タブでタイムライン上で **ダブルクリック** することで直接編集できます。Timeline ノードは、単純なシネマティックスではないタスクを扱うために作られています。 
 こうしたタスクには、ドアを開ける、ライトを変更する、またはシーン内でアクタに対して時間ベースの操作を行うなどがあります。
 [/EXCERPT:Glossary_Timeline_node]
 

@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2683099
+﻿INTSourceChangelist:2953341
 Availability:Public
 Title:Level ブループリント UI
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
-Description:Level ブループリントのエディタ インターフェースの概要
+Description:Level ブループリントで作業する際のブループリント エディタの UI エレメントの分類
 version:4.9
 
 [VAR:Topic]
@@ -48,14 +48,14 @@ Level ブループリントの編集時は、以下のセクションがブル�
 <!----------
 [EXCERPT:Visible]
 1. [メニュー](Engine/Blueprints/Editor\UIComponents\Menu)
-1. [ツールバー](Engine/Blueprints/Editor\UIComponents\Toolbar\ToolbarOptions)
+1. [ツールバー](Engine/Blueprints/Editor\UIComponents\Toolbar)
 1. [My Blueprint](Engine/Blueprints/Editor\UIComponents\MyBlueprint)
 1. [詳細](Engine/Blueprints/Editor\UIComponents\Details)
 1. [グラフ エディタ](Engine/Blueprints/Editor\UIComponents\GraphEditor)
 [/EXCERPT:Visible]
 
 [EXCERPT:Invisible]
-* [クラスデフォルト][Class Defaults](Engine/Blueprints/Editor\Modes\Defaults\DefaultsTab)
+* [クラスデフォルト](Engine/Blueprints/Editor\Modes\Defaults\DefaultsTab)
 * [コンパイラの結果](Engine/Blueprints/Editor\UIComponents\CompilerResults)
 * [デバッグ](Engine/Blueprints/Editor\UIComponents\Debug)
 * [検索結果](Engine/Blueprints/Editor\UIComponents\FindResults)

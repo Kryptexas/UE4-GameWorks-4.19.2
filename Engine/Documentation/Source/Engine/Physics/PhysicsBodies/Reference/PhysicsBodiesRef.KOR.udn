@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2897467
 Availability: Public
-Title:Physics Bodies Reference
+Title:피직스 바디 참고서
 Crumbs: %ROOT%
-Description:Physics Body, or Body Instance, property reference.
+Description:피직스 바디, 또는 바디 인스턴스의 프로퍼티 참고서입니다.
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -43,12 +43,12 @@ Description:Physics Body, or Body Instance, property reference.
 [/OBJECT]
 [/VAR]
 
-This page contains a reference listing of properties in the Physics and Collision categories of properties. If you are looking for reference on Collision Responses or Collision Presets please see: [](Engine/Physics/Collision/Reference).
+이 글은 프로퍼티 중 Physics (피직스) 및 Collision (콜리전) 카테고리의 프로퍼티 참고 목록입니다. Collision Responses (콜리전 반응)이나 Collision Presets (콜리전 프리셋) 관련해서는, [](Engine/Physics/Collision/Reference) 문서를 참고하세요.
 
 
-## Properties
+## 프로퍼티
 
-Below are the properties for Physics Bodies (Body Instances) separated by major category.
+Physics Body (피직스 바디), 또는 Body Instance (바디 인스턴스)의 프로퍼티를 주요 카테고리별로 나눈 것입니다.
 
 
 [OBJECT:modulesectionexpanded]
@@ -56,7 +56,7 @@ Below are the properties for Physics Bodies (Body Instances) separated by major 
 		phys
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Physics
+		Physics (피직스)
 	[/PARAM]
 	[PARAM:content]
 		%p1%
@@ -68,10 +68,10 @@ Below are the properties for Physics Bodies (Body Instances) separated by major 
 ![](physicsProps.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| 프로퍼티 | %spacer% | 설명 |
 | --- | :---: | :--- |
 | **Simulate Physics** || %doxygen:FBodyInstance::bSimulatePhysics% |
-| **Mass in KG** || Mass of the body in KG. |
+| **Mass in KG** || KG 단위 바디 질량입니다. |
 | **Angular Damping** || %doxygen:FBodyInstance::AngularDamping% |
 | **Linear Damping** || %doxygen:FBodyInstance::LinearDamping% |
 | **Enable Gravity** || %doxygen:FBodyInstance::bEnableGravity% |
@@ -86,7 +86,7 @@ Below are the properties for Physics Bodies (Body Instances) separated by major 
 ![](physicsPropsAdv.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| 프로퍼티 | %spacer% | 설명 |
 | --- | :---: | :--- |
 | **Auto Weld** || %doxygen:FBodyInstance::bAutoWeld% |
 | **Start Awake** || %doxygen:FBodyInstance::bStartAwake% |
@@ -115,7 +115,7 @@ Below are the properties for Physics Bodies (Body Instances) separated by major 
 		coll
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Collision
+		Collision (콜리전)
 	[/PARAM]
 	[PARAM:content]
 		%p2%
@@ -127,20 +127,20 @@ Below are the properties for Physics Bodies (Body Instances) separated by major 
 ![](collisionProps.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| 프로퍼티 | %spacer% | 설명 |
 | --- | :---: | :--- |
 | **Simulation Generates Hit Events** || %doxygen:FBodyInstance::bNotifyRigidBodyCollision% |
 | **Phys Material Override** || %doxygen:FBodyInstance::PhysMaterialOverride% |
 | **Generate Overlap Events** || %doxygen:UPrimitiveComponent::bGenerateOverlapEvents% |
-| **Collision Responses** || See the **[](Engine/Physics/Collision/Reference)** documentation for more information. |
+| **Collision Responses** || 자세한 정보는 **[](Engine/Physics/Collision/Reference)** 문서를 참고하세요. |
 [/REGION]
 
-### Advanced
+### 고급
 
 ![](collisionPropsAdv.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| 프로퍼티 | %spacer% | 설명 |
 | --- | :---: | :--- |
 | **Use CCD** || %doxygen:FBodyInstance::bUseCCD% |
 | **Always Create Physics State** || %doxygen:UPrimitiveComponent::bAlwaysCreatePhysicsState% |
@@ -148,7 +148,7 @@ Below are the properties for Physics Bodies (Body Instances) separated by major 
 | **Check Async Scene On Move** || %doxygen:UPrimitiveComponent::bCheckAsyncSceneOnMove% |
 | **Trace Complex On Move** || %doxygen:UPrimitiveComponent::bTraceComplexOnMove% |
 | **Return Material On Move** || %doxygen:UPrimitiveComponent::bReturnMaterialOnMove% |
-| **Can Ever Affect Navigation** || %doxygen:UPrimitiveComponent::bCanEverAffectNavigation% |
+| **Can Ever Affect Navigation** || 이 컴포넌트가 내비게이션에 영향을 끼칠 수 있을 것인지 입니다. |
 
 [/REGION]
 
@@ -164,7 +164,7 @@ Below are the properties for Physics Bodies (Body Instances) separated by major 
 %doxygen:FBodyInstance::bLockTranslation%
 
 [REGION:raw]
-| Property | %spacer2% | Description |
+| 프로퍼티 | %spacer2% | 문서 |
 | --- | :---: | :--- |
 | **Lock X Translation** || %doxygen:FBodyInstance::bLockXTranslation% |
 | **Lock Y Translation** || %doxygen:FBodyInstance::bLockYTranslation% |
@@ -177,7 +177,7 @@ Below are the properties for Physics Bodies (Body Instances) separated by major 
 %doxygen:FBodyInstance::bLockRotation%
 
 [REGION:raw]
-| Property | %spacer2% | Description |
+| 프로퍼티 | %spacer2% | 문서 |
 | --- | :---: | :--- |
 | **Lock X Rotation** || %doxygen:FBodyInstance::bLockXRotation% |
 | **Lock Y Rotation** || %doxygen:FBodyInstance::bLockYRotation% |
@@ -190,15 +190,15 @@ Below are the properties for Physics Bodies (Body Instances) separated by major 
 %doxygen:FBodyInstance::DOFMode%
 
 [REGION:raw]
-| Property | %spacer2% | Description |
+| 프로퍼티 | %spacer2% | 문서 |
 | --- | :---: | :--- |
-| **Default** || Inherits the degrees of freedom from the project settings. |
-| **Six DOF** || Specifies which axis to freeze rotation and movement along. |
-| **YZPlane** || Allows 2D movement along the Y-Z plane. |
-| **XZPlane** || Allows 2D movement along the X-Z plane. |
-| **XYPlane** || Allows 2D movement along the X-Y plane. |
-| **Custom Plane** || Allows 2D movement along the plane of a given normal. |
-| **None** || No constraints. |
+| **Default** || 프로젝트 세팅에서 자유도를 물려받습니다. |
+| **Six DOF** || 이동과 회전을 고정시킬 축을 지정합니다. |
+| **YZPlane** || Y-Z 면의 2D 운동이 가능합니다. |
+| **XZPlane** || X-Z 면의 2D 운동이 가능합니다. |
+| **XYPlane** || X-Y 면의 2D 운동이 가능합니다. |
+| **Custom Plane** || 주어진 노멀 면으로의 2D 운동이 가능합니다. |
+| **None** || 컨스트레인트가 없습니다. |
 [/REGION]
 [/EXCERPT]
 -->

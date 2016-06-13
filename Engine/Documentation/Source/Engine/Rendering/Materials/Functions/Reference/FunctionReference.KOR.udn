@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2643533
+﻿INTSourceChangelist:2735575
 Availability: Public
 title:머티리얼 표현식 참고서
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:머티리얼 함수 개념에 대한 참고서로, 카테고리별로 하나씩 분석해 놓은 페이지입니다.
+Version: 4.9
 
 
 아래는 언리얼 에디터에 기본적으로 포함된 여러가지 머티리얼 함수를 나누어 카테고리별로 정렬한 것입니다.

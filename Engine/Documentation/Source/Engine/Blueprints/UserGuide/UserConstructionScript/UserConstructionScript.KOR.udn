@@ -1,8 +1,11 @@
-﻿INTSourceChangelist:2600525
+﻿INTSourceChangelist:2968923
 Availability:Public
 Title:컨스트럭션 스크립트
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:블루프린트의 인스턴스 생성시 초기화 작업을 수행하기 위해 실행되는 노드 그래프입니다.
+version: 4.9
+Parent:Engine/Blueprints/Anatomy
+Tags:Graphs
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -48,7 +51,6 @@ Description:블루프린트의 인스턴스 생성시 초기화 작업을 수행
 [/REGION]
 
 
-[TOC(start:2 end:3)]
 
 [EXCERPT:Intro]
 

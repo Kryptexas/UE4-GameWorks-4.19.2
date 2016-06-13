@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653165
+﻿INTSourceChangelist:2714610
 Availability: Public
 Title:1.3 - 노멀 임포트
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/ImportOptions
@@ -12,6 +12,7 @@ Related: Engine/Content/FBX
 Related: Engine/Content/FBX/MorphTargets
 Related: Shared/Editor/FbxErrors
 Related: Engine/Content/FBX/Materials
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

@@ -1,6 +1,6 @@
 ﻿INTSourceChangelist:0
 Availability:Public
-Title:Blueprint Communication Usage
+Title:蓝图交互的用法
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:Overview of when to use different methods of Blueprint Communications. 
 Related: Engine\Blueprints\UserGuide\BlueprintComms

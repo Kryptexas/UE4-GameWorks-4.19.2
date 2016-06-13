@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2650066
+﻿INTSourceChangelist:2723054
 Availability: Licensee
 Title:퍼포스 연결 셋업하기
 Crumbs:%ROOT%, Engine, Programming, Programming/Basics, GettingStarted/DownloadingUnrealEngine/Perforce
 Description:에픽의 퍼포스 서버에 접속하여 언리얼 엔진 4 빌드를 구하는 방법 안내서입니다.
+version: 4.9
 
 [TOC(start:2)]
 
@@ -188,10 +189,10 @@ US 프록시(p4-licensee-proxy.epicgames.net:1667)도 이 연결을 통해 사�
     
 
 
-
-주: 윈도우에서만 작동합니다. 또한 윈도우 서버 2008 R2, 윈도우 비스타, 윈도우 7 에서 실행하는 경우, 최근 접근일
+[REGION:note]
+윈도우에서만 작동합니다. 또한 윈도우 서버 2008 R2, 윈도우 비스타, 윈도우 7 에서 실행하는 경우, 최근 접근일
 (last access date)이 디폴트로 꺼져 있습니다. 최근 접근일을 다시 켜려면 "fsutil behavior set disablelastaccess 0" 를 해 줘야 합니다.
-
+[/REGION]
 
 ## 정기 점검 시간
 

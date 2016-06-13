@@ -1,15 +1,15 @@
-﻿INTSourceChangelist:2672916
+﻿INTSourceChangelist:2953540
 Availability:Docs
 Title:3.2 - シューティングを実装する
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/3
-Description:First Person Shooter キャラクターにシューティングを実装する方法を学びます。
-SkillLevel:初心者向け
-Version:4.9
+Description:FPS キャラクターにシューティングを実装する方法を学びます。
+SkillLevel:Beginner
+Version:4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[前のステップ](Programming/Tutorials/FirstPersonShooter/3/1 "")
+		[前のステップ](Programming/Tutorials/FirstPersonShooter/3/1)
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
@@ -24,9 +24,11 @@ Version:4.9
 
 %Steps%
 
-このステップでは、`OnFire` 関数を実装し、キャラクターが発射物 (プロジェクタイル) を発射を開始できるようにします。
+このステップでは、`OnFire` 関数を実装し、キャラクターが発射物 (プロジェクタイル) の発射を開始できるようにします。
 
-1.	**Solution Explorer** で、`FPSCharacter` クラス実装ファイルを探して、`FPSCharacter.cpp` を開きます。
+## OnFire 関数を実装する
+
+1.	**Solution Explorer** で、`FPSCharacter` クラスの CPP ファイルを探して、`FPSCharacter.cpp` を開きます。
 
 1.	`FPSCharacter.cpp` の上に、以下の `#include` を追加します。
 
@@ -36,29 +38,30 @@ Version:4.9
 
 		void AFPSCharacter::OnFire()
 		{
-			// 発射物を発射しようとします。
-			if (ProjectileClass != NULL)
+			// attempt to fire a projectile (発射物の発射をアクティベートしようとします)
+			if (ProjectileClass)
 			{
-				// カメラの平行移動を取得
+				// get the camera transform (カメラのトランスフォームを取得)
 				FVector CameraLocation;
 				FRotator CameraRotation;
 				GetActorEyesViewPoint(CameraLocation, CameraRotation);
-				// MuzzleOffset (銃口オフセット) はカメラ空間にあるため、銃口の最終位置を見つけるために、カメラからオフセットする前にワールド空間へ変換する必要があります。
+		// transform MuzzleOffset from camera space to world space (カメラ空間からワールド空間に MuzzleOffset をトランスフォーム)
 
 				FVector const MuzzleLocation = CameraLocation + FTransform(CameraRotation).TransformVector(MuzzleOffset);
 				FRotator MuzzleRotation = CameraRotation;
-				MuzzleRotation.Pitch += 10.f; // slightly skew the aim upwards
+				// skew the aim to be slightly upwards (照準を若干上方向に傾斜させます) 
+				MuzzleRotation.Pitch += 10.0f; 
 				UWorld* const World = GetWorld();
-				if (World != NULL)
+				if (World)
 				{
 					FActorSpawnParameters SpawnParams;
 					SpawnParams.Owner = this;
 					SpawnParams.Instigator = Instigator;
-					// 銃口で発射物をスポーンします。
+					// spawn the projectile at the muzzle (銃口で発射物をスポーンします)
 					AFPSProjectile* const Projectile = World->SpawnActor<AFPSProjectile>(ProjectileClass, MuzzleLocation, MuzzleRotation, SpawnParams);
-					if (Projectile != NULL)
+					if (Projectile)
 					{
-						// 発射位置を見つけます。
+						// find the launch direction (発射方向を見つけます)
 						FVector const LaunchDirection = MuzzleRotation.Vector();
 						Projectile->InitVelocity(LaunchDirection);
 					}
@@ -68,154 +71,140 @@ Version:4.9
 
 1.	`FPSCharacter.cpp` は以下のようになります。
 
-		// Project Settings の Description ページに著作権情報を入力してください。
+		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください。) 
 		#include "FPSProject.h"
 
 		#include "FPSCharacter.h"
 		#include "FPSProjectile.h"
-		// デフォルト値を設定
+		// Sets default values (デフォルト値を設定) 
 
 		AFPSCharacter::AFPSCharacter()
 		{
-		 	// このキャラクターがフレーム毎に Tick() を呼び出すように設定します。必要がなければパフォーマンスを向上させるためにオフにすることができます。
+		 	// Set this character to call Tick() every frame. (このキャラクターがフレーム毎に Tick() を呼び出すように設定します。) You can turn this off to improve performance if you don't need it. (必要がなければパフォーマンスを向上させるためにオフにすることができます。) 
 			PrimaryActorTick.bCanEverTick = true;
-		}
+		// create a first person camera component (first person camera コンポーネントを作成)
 
-		// camera コンポーネントを作成するコンストラクタ
+			FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
+			// attach the camera component to our capsule component (camera コンポーネントを capsule コンポーネントにアタッチします)
+			FPSCameraComponent->AttachTo(GetCapsuleComponent());
+			// position the camera slightly above the eyes (目の高さより少し上にカメラを設定)
+			FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
+			// allow the pawn to control rotation (ポーンが回転を制御できるようにします)
+			FPSCameraComponent->bUsePawnControlRotation = true;
+		// create a first person mesh component (first person mesh コンポーネントを作成) 
 
-		AFPSCharacter::AFPSCharacter(const FObjectInitializer& ObjectInitializer) :Super(ObjectInitializer)
-		{
-			// Camera コンポーネントを作成
-			FirstPersonCameraComponent = ObjectInitializer.CreateDefaultSubobject<UCameraComponent>(this, TEXT("FirstPersonCamera"));
-		if (FirstPersonCameraComponent != NULL)
-
-			{
-				FirstPersonCameraComponent->AttachParent = GetCapsuleComponent();
-				// 目の高さより少し上にカメラを設定
-				FirstPersonCameraComponent->RelativeLocation = FVector(0.f, 0.f, 50.f + BaseEyeHeight);
-				// ポーンが回転を制御できるようにします。
-				FirstPersonCameraComponent->bUsePawnControlRotation = true;
-			}
-		// このポーンの制御時、一人称視点で見ている時に使用されるメッシュコンポーネントを作成。
-
-			FirstPersonMesh = ObjectInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("FirstPersonMesh"));
-		if (FirstPersonMesh != NULL)
-
-			{
-				FirstPersonMesh->SetOnlyOwnerSee(true);// このメッシュは所有しているプレイヤーだけから見えます。
-				FirstPersonMesh->AttachParent = FirstPersonCameraComponent;
-				bPressedJump = false;
-				FirstPersonMesh->CastShadow = false;
-			}
-		// オーナー以外は誰でも通常のボディメッシュを見ることができます。
+			FPSMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
+			// only the owning player sees this mesh (このメッシュは所有しているプレイヤーだけから見えます)
+			FPSMesh->SetOnlyOwnerSee(true);
+			// attach the FPS mesh to the FPS camera (FPS メッシュを FPS カメラにアタッチします)
+			FPSMesh->AttachTo(FPSCameraComponent);
+			// disable some environmental shadowing to preserve the illusion of having a single mesh (一部の背景のシャドウイングを無効にして、ひとつのメッシュを持っているという錯覚を維持します) 
+			FPSMesh->bCastDynamicShadow = false;
+			FPSMesh->CastShadow = false;
+			// everyone but you can see the regular body mesh (自分以外は誰でも通常のボディメッシュを見ることができます)
 
 			GetMesh()->SetOwnerNoSee(true);
 		}
-		// ゲーム開始時またはスポーン時に呼ばれます。
+		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます)
 
 		void AFPSCharacter::BeginPlay()
 		{
 			Super::BeginPlay();
-			if (GEngine != nullptr)
+			const int32 Key = -1;
+
+			static const FString DebugMessage = TEXT("We are using FPSCharacter.");
+			FColor DisplayColor = FColor::Red;
+			float TimeToDisplay = 5.0f; //seconds (秒) 
+		if (GEngine != nullptr)
 
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::White, TEXT("We are using FPSCharacter."));
-			}
+				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
 		}
-		// フレームごとに呼ばれます。
+
+		}
+		// Called every frame (フレーム毎に呼ばれます) 
 
 		void AFPSCharacter::Tick( float DeltaTime )
 		{
 			Super::Tick( DeltaTime );
 		}
 
-		// 機能と入力をバインドするために呼ばれます。
+		// Called to bind functionality to input (機能と入力をバインドするために呼ばれます)
 
 		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 		{
 			Super::SetupPlayerInputComponent(InputComponent);
-			// ゲームプレイのキーバインドをセットアップ
+		// set up gameplay key bindings (ゲームプレイのキーバインドのセットアップ)
 
 			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
 			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
-			// ゲームプレイのマウス バインドのセットアップ
+		// set up gameplay mouse bindings (ゲームプレイのマウス バインドのセットアップ) 
+
 			InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
 			InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
-			// ジャンプ アクションのバインドのセットアップ。
+		// set up jump action bindings (ジャンプ アクションのバインドのセットアップ) 
+
 			InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::OnStartJump);
 			InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::OnStopJump);
-			// 銃の発砲アクションのバインディングをセットアップします。
+		// set up projectile fire action binding (発射物のアクティベート操作のバインドを設定)
+
 			InputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::OnFire);
 		}
-		//前方向の移動の関数の定義
-
 		void AFPSCharacter::MoveForward(float Value)
-		{
-			if (Controller != nullptr && Value != 0.f)
-			{
-				// 前進方向の確認
-				FRotator Rotation = Controller->GetControlRotation();
-				// 歩行または落下時のピッチ (上下動) の制限
-				if (GetCharacterMovement()->IsMovingOnGround() || GetCharacterMovement()->IsFalling())
-				{
-					Rotation.Pitch = 0.f;
-				}
-				// その方向へ動きを追加
-				const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
-				AddMovementInput(Direction, Value);
-			}
-		}
-		//右移動の関数の定義
 
+		{
+			// find out which way is forward (前進方向の確認)
+			FRotator Rotation = Controller->GetControlRotation();
+			// add movement in that direction (その方向へ動きを追加)
+			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
+			AddMovementInput(Direction, Value);
+		}
 		void AFPSCharacter::MoveRight(float Value)
-		{
-			if (Controller != nullptr && Value != 0.f)
-			{
-				// 右方向の確認
-				const FRotator Rotation = Controller->GetControlRotation();
-				const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
-				// その方向へ動きを追加
-				AddMovementInput(Direction, Value);
-			}
-		}
-		//ジャンプ フラグを設定する関数
 
+		{
+			// find out which way is right (右方向の確認)
+			FRotator Rotation = Controller->GetControlRotation();
+			// add movement in that direction (その方向へ動きを追加)
+			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
+			AddMovementInput(Direction, Value);
+		}
 		void AFPSCharacter::OnStartJump()
+
 		{
 			bPressedJump = true;
 		}
-		//ジャンプ フラグをクリアする関数
-
 		void AFPSCharacter::OnStopJump()
+
 		{
 			bPressedJump = false;
 		}
 		void AFPSCharacter::OnFire()
 
 		{
-			// 発射物を発射しようとします。
-			if (ProjectileClass != NULL)
+			// attempt to fire a projectile (発射物の発射をアクティベートしようとします)
+			if (ProjectileClass)
 			{
-				// カメラの平行移動を取得
+				// get the camera transform (カメラのトランスフォームを取得)
 				FVector CameraLocation;
 				FRotator CameraRotation;
 				GetActorEyesViewPoint(CameraLocation, CameraRotation);
-				// MuzzleOffset (銃口オフセット) はカメラ空間にあるため、銃口の最終位置を見つけるために、カメラからオフセットする前にワールド空間へ変換する必要があります。
+		// transform MuzzleOffset from camera space to world space (カメラ空間からワールド空間に MuzzleOffset をトランスフォーム)
 
 				FVector const MuzzleLocation = CameraLocation + FTransform(CameraRotation).TransformVector(MuzzleOffset);
 				FRotator MuzzleRotation = CameraRotation;
-				MuzzleRotation.Pitch += 10.f; // slightly skew the aim upwards
+				// skew the aim to be slightly upwards (照準を若干上方向に傾斜させます) 
+				MuzzleRotation.Pitch += 10.0f; 
 				UWorld* const World = GetWorld();
-				if (World != NULL)
+				if (World)
 				{
 					FActorSpawnParameters SpawnParams;
 					SpawnParams.Owner = this;
 					SpawnParams.Instigator = Instigator;
-					// 銃口で発射物をスポーンします。
+					// spawn the projectile at the muzzle (銃口で発射物をスポーンします)
 					AFPSProjectile* const Projectile = World->SpawnActor<AFPSProjectile>(ProjectileClass, MuzzleLocation, MuzzleRotation, SpawnParams);
-					if (Projectile != NULL)
+					if (Projectile)
 					{
-						// 発射位置を見つけます。
+						// find the launch direction (発射方向を見つけます)
 						FVector const LaunchDirection = MuzzleRotation.Vector();
 						Projectile->InitVelocity(LaunchDirection);
 					}
@@ -227,7 +216,7 @@ Version:4.9
 
 1.	**[Solution Explorer (ソリューション エクスプローラ)]** で **[FPSProject]** を探します。
 
-1.	**[FPSProject]** 上で **右クリック** して、**[Build (ビルド)]** を選択してプロジェクトをコンパイルします。
+1.	**[FPSProject]** 上で右クリックして、**[Build (ビルド)]** を選択してプロジェクトをコンパイルします。
 
 	![](BuildFPSProject.png)
 
@@ -238,47 +227,45 @@ Version:4.9
 ["Projectile Mesh"](Sphere.zip "Projectile Mesh")
 [/REGION]
 
-1.	コンテンツ ブラウザのファイル ボックス内で **右クリック** して **インポート アセット** ダイアログボックスを開きます。
+1.	コンテンツ ブラウザのファイル ボックス内で右クリックして **[Import Asset (インポート アセット)]** ダイアログボックスを開きます。
 
-1.	**'Import to /Game...' をクリック** して **[Import]** ダイアログボックスを開きます。
+1.	**'Import to /Game...'** をクリックして **[Import]** ダイアログボックスを開きます。
 
 	![](RightClickImport.png)
 
-1.	  **Sphere.fbx** メッシュ ファイルを探して選択します。
+1.	 **Sphere.fbx** メッシュ ファイルを探して選択します。
 
-1.	プロジェクトへのメッシュのインポートを開始するには、**Open をクリック** します。
+1.	プロジェクトへのメッシュのインポートを開始するには、**[Open]** をクリックします。
 
-1.	**コンテンツ ブラウザ** に、**[FBX Import Options]** ダイアログ ボックスが表示されます。メッシュをプロジェクトに追加するには、**インポートをクリック** します。
+1.	**コンテンツ ブラウザ** に、**[FBX Import Options]** ダイアログ ボックスが表示されます。メッシュをプロジェクトに追加するには、**[インポート]** をクリックします。
 
 	[REGION:warning]
 	スムージング グループに関する以下のエラーは無視してください。
 	![](FBXWarning.png)  
-	このメッシュは一人称メッシュの設定を表していますが、この後のセクションで設定するアニメーションでも機能します。
+	このメッシュはファーストパーソン メッシュの設定を表していますが、この後のセクションで設定するアニメーションでも機能します。
 	[/REGION]
 
-1.	**[Save]** ボタンを **クリック** してインポートしたスタティックメッシュを保存します。
+1.	[Save] ボタンを **クリック** してインポートしたスタティックメッシュを保存します。
 
 1.	**コンテンツ ブラウザ** の **Blueprints** フォルダに戻ります。
 
 1.	 **[Add New]** ボタンをクリックして、**Blueprint クラス** を選択します。
 
-	![](AddNewBPClass.png)
-
 1.	**[All Classes]** ドロップダウン メニューを展開して、検索ボックスに "FPSProjectile" と入力します。
 
 	![](AddNewBPClass.png)
 
-1.	**FPSCharacter** の上で **クリック** して、**[Select]** ボタンを **クリック** します。
+1.	**FPSProjectile** の上でクリックして、**[Select]** ボタンを クリックします。
 
 1.	新しいブループリントに、"BP_FPSProjectile" と名前を付けます。
 
 	![](NameBP_FPSProjectile.png)
 
-1. 	 **ブループリント エディタ** 内で **BP_FPSCharacter** のアイコンを **ダブルクリック** して開きます。
+1. 	 **ブループリント エディタ** 内で **BP_FPSCharacter** のアイコンを ダブルクリックして開きます。
 
-1.	**[Components]** タブで **CollisionComp** コンポーネントを **クリック** します。
+1.	**[Components]** タブで **CollisionComponent** をクリックします。
 
-1.	**[Add Component (コンポーネント追加)]** ドロップダウン リストを **クリック** して、 **Static Mesh** を選択します。
+1.	**[Add Component (コンポーネント追加)] ** ドロップダウン リストをクリックして、**[Static Mesh]** を選択します。
 
 	![](AddStaticMeshComponent.png)
 
@@ -286,7 +273,7 @@ Version:4.9
 
 	![](NameProjectileMeshComponent.png)
 
-1.	**[Details (詳細)]** タブの **Mesh** セクションまで下にスクロールして、"None" と表示されているドロップダウン メニュー上で **クリック** します。
+1.	**[Details (詳細)]** タブの **[Mesh]** セクションまで下にスクロールして、"None" と表示されているドロップダウン メニュー上でクリックします。
 
 1.	 **Sphere** スタティックメッシュを選択します。
 
@@ -298,21 +285,25 @@ Version:4.9
 
 1.	 X、Y、および Z のスケール値を 0.09 に設定します。
 
+	![](Set_XYZ_ScaleValues.png)
+
 	[REGION:note]
-	ロック アイコンをクリックすると 3 つの軸が全てロックされて、相対スケールが保たれます。
+	鍵のアイコンをクリックすると 3 つの軸が全てロックされて、相対スケールが保たれます。
 	[/REGION]
 
-1.	**ProjectileMesh の Collision Presets** 値を、**NoCollision** に設定します(コリジョンにこの **スタティックメッシュ** ではなく、`SphereComponent` を使用しているため）。	
+1.	`ProjectileMeshComponent` **Collision Presets** の値を、**NoCollision** に設定します (コリジョンにこのスタティックメッシュではなく、`SphereComponent` を使用しているため)。	
 
 	![](SetCollisionPresets.png)
 
 1.	ブループリントを **コンパイル** し、**保存** してから、**ブループリント エディタ** を閉じます。
 
-1.	**BP_FPSCharacter** を **ダブルクリック** して、編集のために character ブループリントを開きます。
+1.	**BP_FPSCharacter** をダブルクリックして、編集のために Character ブループリントを開きます。
 
-1.	**Defaults Mode (デフォルト モード)** を開きます。
+1.	**[Class Defaults Mode (クラスのデフォルト モード)]** を開きます。
 
-1.	**[Projectile Class]** プロパティを探して、 **[BP_FPSProjectile]** へ設定します。
+1.	**[Projectile Class]** プロパティを探して、それを **[BP_FPSProjectile]** に設定します。
+
+	![](SelectProjectileClass.png)
 
 1.	カメラの少し手前で発射物をスポーンするために、 **[MuzzleOffset]** プロパティを {100, 0, 00} に設定します。
 
@@ -322,12 +313,12 @@ Version:4.9
 
 ## インゲームで発射物を発射する
 
-1.	**レベル エディタのツールバー** で、**[Play In]** ボタンを **クリック** し、インゲームで発射物を発射します。
+1.	**レベル エディタのツールバー** で、**[Play In]** ボタンをクリックし、インゲームで発射物を発射します。
 
-1.	**左クリック** して、発射物をワールドに発射します。
+1.	左クリックして、発射物をワールドに発射します。
 
 	![](FiringProjectiles.png)
 
-1.	[PIE (Play In Editor)] モードを終了するには、レベル エディタで **[Stop]** ボタンを **クリック** します。
+1.	[PIE (Play In Editor)] モードを終了するには、レベル エディタで Escape キーを押すか、**[Stop]** ボタンをクリックします。
 
 %Steps%

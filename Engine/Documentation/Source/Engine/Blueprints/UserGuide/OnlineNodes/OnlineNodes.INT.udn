@@ -7,7 +7,8 @@ Related: Programming/Online
 Related: Gameplay/Networking/Actors
 Related: Resources/ContentExamples/Networking
 version: 4.9
-
+Parent:Engine/Blueprints
+Type:guide
 
 [VAR:Topic]
 [OBJECT:Topic]

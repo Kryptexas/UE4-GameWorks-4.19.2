@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2735872
 Availability:docs
 Title:出力ログ
 Crumbs:%ROOT%, Engine, Engine/UI
@@ -7,21 +7,38 @@ Description:出力ログの概要と使用方法
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Editor/ClassViewer:title%](Engine/UI/OutputLog_topic.png)
+		![%Engine/UI/OutputLog:title%](Engine/UI/OutputLog_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/editor_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		出力ログ
+		Output Log
 	[/PARAM]
 	[PARAM:description]
-		出力ログの概要と使用方法
+		Overview and usage of the Output Log.
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/UI/OutputLog]
 	[/PARAM]
 [/OBJECT]
 [/VAR]
-
-## 概要
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/UI/OutputLog:title%](Engine/UI/OutputLog_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Output Log
+	[/PARAM]
+	[PARAM:description]
+		Overview and usage of the Output Log.
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/UI/OutputLog]
+	[/PARAM]
+[/OBJECT]
+[/VAR]

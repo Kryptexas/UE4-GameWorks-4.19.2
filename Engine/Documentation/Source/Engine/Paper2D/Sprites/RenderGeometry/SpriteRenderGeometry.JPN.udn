@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2514961
+﻿INTSourceChangelist:2739096
 Availability:Public
 Title:スプライトのソース領域とレンダリング ジオメトリ
 Crumbs: %ROOT%, Engine, Engine/Paper2D, Engine/Paper2D/Sprites
@@ -7,14 +7,14 @@ Related:Engine\Paper2D\Sprites\Collision
 Related:Engine\Paper2D\Flipbooks
 Related:Engine/Rendering/Materials
 Related:Engine/Content/Types/Textures
+Version:4.9
 
 
 [TOC(start:2)]
 
 
-## 概要
 
-各スプライトはテクスチャからの矩形として大まかに定義されます。これは、スプライト エディタの **[Edit Source Region]** モードを使用してインタラクティブに編集できます。または [詳細] パネルで手動入力できます (ソースの寸法とソースのUV、両方ともピクセル単位)。実際にレンダリングされるジオメトリは、**Edit RenderGeom** モードでさらに調整できます。コリジョン形状は、[Edit Collision](Engine\Paper2D\Sprites\Collision) モードで調整できます。
+各スプライトはテクスチャからの矩形として大まかに定義されます。これは、スプライト エディタの **[Edit Source Region]** モードを使用してインタラクティブに編集できます。または詳細パネルで手動入力できます (ソースの寸法とソースのUV、両方ともピクセル単位)。実際にレンダリングされるジオメトリは、**Edit RenderGeom** モードでさらに調整できます。コリジョン形状は、[**Edit Collision**](Engine\Paper2D\Sprites\Collision) モードで調整できます。
 
 **Edit RenderGeom** は、透明またはマスクされたスプライトの最適化にも役立ちます。テクスチャの透明領域でのオーバードローを減らすことと引き換えに、余分なトライアングルを処理します。設定とツールは、カスタム コリジョン ジオメトリを編集するのと全く同じです。カスタム ジオメトリの編集後に **Snap to Pixel Grid (ピクセル グリッドにスナップ)** ツールを使用するようにしてください (これは将来的なリリースで自動的に行われますが、現時点では手動プロセスです)。
 
@@ -22,7 +22,7 @@ Related:Engine/Content/Types/Textures
 
 スプライトの **ソース領域** は、スプライトをレンダリングするために使用されるソース テクスチャの領域を定義します。 
 スプライト エディタの **Edit Source Region** を使用してインタラクティブに編集できます。 
-または **Source Dimension** と **Source UV** のプロパティを使用して [詳細] パネルで手動設定できます。
+または **Source Dimension** と **Source UV** のプロパティを使用して [Details (詳細)] パネルで手動設定できます。
 
 **Edit Source Region** モードではスプライトのソース領域の現在のバウンディング (境界) 矩形が表示されます。 
 この矩形には、四隅と各辺の中央にハンドルが付いています。各ハンドルを選択して、 
@@ -51,3 +51,8 @@ Ctrl を押しながらソース テクスチャの周囲をドラッグする�
 スプライトの不透明ピクセルとレンダリング ジオメトリがさらに密接になることで、 
 深刻なパフォーマンスの浪費元になりうる不透明ピクセルのオーバードローの可能性を低くします。
 [/REGION]
+
+
+
+
+

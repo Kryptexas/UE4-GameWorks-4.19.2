@@ -4,6 +4,10 @@ Crumbs:%ROOT%, Platforms, Platforms/Mobile
 Description:Texture creation and properties for mobile games.
 Platform:Mobile
 Version: 4.9
+parent:Platforms/Mobile
+order:2
+type:overview
+tags:mobile
 
 [TOC(start:2)]
 

@@ -1,33 +1,32 @@
-﻿INTSourceChangelist:0
-Availability: Public
-title:VectorOps
-Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
-Description:Functions build to handle vector mathematics, such as calculating a Fresnel effect.
+﻿INTSourceChangelist:2730073
+Availability:Public
+title:矢量操作
+Crumbs:%ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
+Description:这些函数用来处理矢量数学运算，例如计算菲涅耳效果。
+Version:4.9
 
 [TOC (start:2 end:3)]
 
-## Overview
+“矢量操作”类别包含用于应用各种基于矢量的数学方程式的特殊函数。
 
-The VectorOps category contains special functions for applying various vector-based math equations.
+## 矢量操作函数
 
-## VectorOps Functions
+以下是“矢量操作”类别下所有函数的列表。
 
-The following is a list of all the functions found in the VectorOps category.
+## Fresnel（菲涅尔）
 
-### Fresnel
+与普通的 Fresnel（菲涅尔）表达式节点不同，Fresnel（菲涅尔）函数允许您指定自己的一组用于计算方程式的矢量以及对混合进行其他调整。
 
-Unlike the regular Fresnel expression node, the Fresnel function allows you to designate your own set of vectors used to calculate the equation, as well as make other adjustments to the blend.
-
-| Item | Description |
+| 项目 | 说明 |
 | -------- | -------- |
-|[REGION:tablesection]Inputs[/REGION] ||
-| **Normal Vector (Vector3)** | The first vector used in the Fresnel operation. Typically, this is the surface normal.|
-| **Camera Vector (Vector3)** | The vector of the camera's direction.|
-| **Invert Fresnel (StaticBool)** | This inverts the operation, reversing the way normals are calculated to yield results.|
-| **Power (Scalar)** | This value controls how quickly color falls off between the core and the edges.|
-| **Use Cheap Contrast (StaticBool)** | This activates an internal CheapContrast function to boost the contrast of the Fresnel's result.|
-| **Cheap contrast dark (Scalar)** | When using cheap contrast, this controls how much the dark value shows in the result. Has no effect when not using cheap contrast.|
-| **Cheap contrast bright (Scalar)** | When using cheap contrast, this controls how much the bright value shows in the result. Has no effect when not using cheap contrast.|
+| [REGION:tablesection]输入[/REGION] ||
+| **法线矢量（矢量 3）（Normal Vector (Vector3)）** | 菲涅尔运算中使用的第一个矢量。这通常是表面矢量。|
+| **摄像机矢量（矢量 3）（Camera Vector (Vector3)）** | 摄像机方向的矢量。|
+| **反转菲涅尔（静态布尔值）（Invert Fresnel (StaticBool)）** | 此值用于反转运算，从而反转计算法线以产生结果的方式。|
+| **幂（标量）（Power (Scalar)）** | 此值控制颜色在核心与边缘之间衰减的速度。|
+| **使用低成本对比度（静态布尔值）（Use Cheap Contrast (StaticBool)）** | 此值激活内部的 CheapContrast（低成本对比度）函数，以提升菲涅耳效果的对比度。|
+| **低成本对比度 - 暗（标量）（Cheap contrast dark (Scalar)）** | 使用低成本对比度时，此值控制在结果中显示的暗值数量。不使用低成本对比度时，此值不起作用。|
+| **低成本对比度 - 亮（标量）（Cheap contrast bright (Scalar)）** | 使用低成本对比度时，此值控制在结果中显示的亮值数量。不使用低成本对比度时，此值不起作用。|
 
 
-![Fresnel](Fresnel_Demo.png)
+![Fresnel（菲涅尔）](Fresnel_Demo.png)

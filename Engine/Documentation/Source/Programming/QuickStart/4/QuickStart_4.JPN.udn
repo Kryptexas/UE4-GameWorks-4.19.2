@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2481542
+﻿INTSourceChangelist:2725415
 Availability:Public
-Title:4.コードをテストする
+Title:4 - コードをテストする
 Crumbs:%ROOT%, Programming, Programming/QuickStart
 Description:テスト オブジェクトをレベルに作成する
+SkillLevel:Beginner
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -12,7 +14,7 @@ Description:テスト オブジェクトをレベルに作成する
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[プログラミング ホーム](Programming)
+		[クイックスタートのホーム](Programming)
 	[/PARAM]
 	[PARAM:next]
 		[次のステップ](Programming\QuickStart\5 "%Programming\QuickStart\5:title%")
@@ -22,34 +24,32 @@ Description:テスト オブジェクトをレベルに作成する
 
 %Steps%
 
-1. **アンリアル エディタ** の **コンテンツ ブラウザ** から "C++ Classes" という名前のフォルダを展開します。そのフォルダ内の "QuickStart" フォルダの中に、 **Actor** クラスの **FloatingActor** が入っています。
+1. **アンリアル エディタ** の **コンテンツ ブラウザ** から「C++ Classes」という名前のフォルダを展開します。そのフォルダ内の「QuickStart」フォルダの中に、**Actor** クラスの **FloatingActor** が入っています。
 
 	[![](ClassInContentBrowser.png)](ClassInContentBrowser.png)
 
-1. **FloatingActor** クラスを直接 **[Level Editor]** ウィンドウへドラッグすると、ワールド内に **MyActor** のインスタンスを作成することができます。**レベル エディタ** と **ワールド アウトライナー** で "FloatingActor1" と名前が付いています。それを選択します。**Components** やその他のプロパティが **[Details] パネル** で見えるようになります。
+1. **FloatingActor** クラスを直接 **[レベル エディタ]** ウィンドウへドラッグすると、ワールド内に **MyActor** のインスタンスを作成することができます。**レベル エディタ** と **ワールド アウトライナー** で「FloatingActor1」と名前が付いています。それを選択します。**コンポーネント** やその他のプロパティが **[Details (詳細)] パネル** で見えるようになります。
 
 	[![](WorldOutliner.png)](WorldOutliner.png)
 
-1. **FloatingActor** をゲーム内で見えるようにする必要があります。選択したまま、 **[Details] パネル** の **[Add Component]** をクリックし、 **[Cone]** を選んで簡単な形を与えます。
+1. **FloatingActor** をゲーム内で見えるようにする必要があります。選択したまま、 **[Details (詳細)] パネル** の **[Add Component (コンポーネントを追加)]** をクリックし、 **[Cone]** を選んで簡単な形を与えます。
 
 	[![](AddStaticMesh.png)](AddStaticMesh.png)
 
-1. カスタマイズした **Actor** の準備ができたので、どこか目立つ場所に移動させましょう。マウスの左ボタンで選択してドラッグしてワールド内を移動させたり、または手動で移動させることができます。手動で移動させるには、 **Level Editor** または **World Outliner** で対象を選択して、 **[Details] パネル** で "FloatingActor1 (Instance)" を選択します。FloatingActor1 の **Transform** の **Location** フィールドを直接編集できるようになります。X を -200 に、そして Z を 200 に設定してみましょう。この設定により、"FloatingActor1" はシーンの中のテーブルの右側に配置されます。
+1. カスタマイズした **アクタ** の準備ができたので、どこか目立つ場所に移動させましょう。マウスの左ボタンで選択してドラッグしてワールド内を移動させたり、または手動で移動させることができます。手動で移動させるには、**レベル エディタ** または **ワールド アウトライナー** で対象を選択して、**[Details (詳細)] パネル** で [FloatingActor1 (Instance)] を選択します。FloatingActor1 の **[Transform (トランスフォーム)]** の **[Location (位置)]** フィールドを直接編集できるようになります。X を -200 に、そして Z を 200 に設定してみましょう。この設定により、"FloatingActor1" はシーンの中のテーブルの右側に配置されます。
 
 	[![](SetActorLocation.png)](SetActorLocation.png)
 
-1. **Play** ボタンを押して、コーンの浮き沈みを見てみましょう。
+1. **[Play (再生)]** ボタンを押して、コーンの浮き沈みを見てみましょう。
 
 	[![](MovingCone.png)](MovingCone.png)
-
-----
 
 [OBJECT:Section]
     [PARAMLITERAL:id]
     code
     [/PARAMLITERAL]
     [PARAM:heading]
-    Finished Code
+    完成コード
     [/PARAM]
     [PARAM:content]
 		**FloatingActor.h**
@@ -64,8 +64,8 @@ Description:テスト オブジェクトをレベルに作成する
 			class QUICKSTART_API AFloatingActor : public AActor
 			{
 				GENERATED_BODY()
-			public:
 
+			public:
 				// Sets default values for this actor's properties
 				AFloatingActor();
 

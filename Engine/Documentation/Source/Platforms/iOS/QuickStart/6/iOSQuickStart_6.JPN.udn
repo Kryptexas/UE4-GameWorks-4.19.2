@@ -1,22 +1,24 @@
-﻿INTSourceChangelist:2565283
+﻿INTSourceChangelist:2744695
 Title:6. iOS プロビジョニング- プロビジョニングの作成とインポート
 Crumbs:%ROOT%, Platforms, Platforms/iOS, Platforms/iOS/QuickStart
 Description:プロビジョニングのプロファイルを作成し、アンリアル エンジンにインポートする
 Availability:Public
+Version:4.9
+SkillLevel:Intermediate
 
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Platforms/iOS/QuickStart/5 "%Platforms/iOS/QuickStart/5:title%")
+		[前のステップ](Platforms/iOS/QuickStart/5 "%Platforms/iOS/QuickStart/5:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Quick Start Home](Platforms/iOS/QuickStart)
+		[クイック スタートのホーム](Platforms/iOS/QuickStart)
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Platforms/iOS/QuickStart/7 "%Platforms/iOS/QuickStart/7:title%")
+		[次のステップ](Platforms/iOS/QuickStart/7 "%Platforms/iOS/QuickStart/7:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -27,7 +29,7 @@ Availability:Public
 
 アプリケーションを iOS デバイスにインストールするには、プロビジョニング プロファイルを持っていなければなりません。これらは、 
 [Apple iOS Developer site](https://developer.apple.com/devcenter/ios/index.action) で作成し、ダウンロードします。プロビジョニング プロファイルには、署名証明書、 
-デバイス、App ID があります。Development プロビジョニング プロファイルと Distribution プロビジョニング プロファイルの両方があります。Development プロビジョニング プロファイルは、開発サイクル中にゲームをビルドし、インストールするために使用し、 
+Development プロビジョニング プロファイルと Distribution プロビジョニング プロファイルの両方があります。Development プロビジョニング プロファイルは、開発サイクル中にゲームをビルドし、インストールするために使用し、 
 Distribution プロビジョニング プロファイルはゲームを App Store にサブミットする際に使用します。
 
 [OBJECT:ToggleButtonContent]
@@ -77,17 +79,17 @@ Distribution プロビジョニング プロファイルはゲームを App Stor
 
 1. Apple iOS Developer サイトの [iOS Provisioning Profiles](https://developer.apple.com/account/ios/profile/profileList.action) ページに進みます。
 
-1. 新規プロファイルを追加するには ![Add](button_add.png) ボタンをクリックします。
+1. 新規プロファイルを追加するには、**[Add (追加)]** (プラス記号) ボタンをクリックします。
 
-1. Development で、[iOS App Development] を選択し、**[Continue]** をクリックします。
+1. Development で、[iOS App Development] を選択し、**[Continue (続ける)]** をクリックします。
 
 	![](provision_development.png)
 
-1. 以前に作成した App ID を選択し、**[Continue]** をクリックします。
+1. 以前に作成した App ID を選択し、**[Continue (続ける)]** をクリックします。
 
 	![](provision_app_id.png)
 
-1. 以前に作成した証明書を選択し、**[Continue]** をクリックします。
+1. 以前に作成した証明書を選択し、**[Continue (続ける)]** をクリックします。
 
 	![](provision_certificate.png)
 
@@ -95,7 +97,7 @@ Distribution プロビジョニング プロファイルはゲームを App Stor
 
 	![](provision_device.png)
 
-1. プロファイルの名前を入力し、**Generate** をクリックします。
+1. プロファイルの名前を入力し、**[Generate (生成)]** をクリックします。
 
 	![](provision_name.png)
 
@@ -138,13 +140,13 @@ Distribution プロビジョニング プロファイルはゲームを App Stor
 [EXCERPT:windowsimport]
 1. `Engine\Binaries\DotNET\IOS\` ディレクトリに移動し、`iPhonePackager.exe` を実行します。
 
-1. 指示が表示されたら、iPhonePackager アプリケーションに関連付けるプロジェクトの .uproject ファイルを選択し、**Open** をクリックします。
+1. 指示が表示されたら、iPhonePackager アプリケーションに関連付けるプロジェクトの .uproject ファイルを選択し、**[Open (開く)]** をクリックします。
 
-1. **Import a mobile provision** をクリックし、ダウンロードしたプロビジョニング プロファイルを選択します。プロビジョンのインポートに成功したことを示す緑色のチェックが表示されます。
+1. **Import a mobile provision (モバイル プロビジョンをインポート)]** をクリックし、ダウンロードしたプロビジョニング プロファイルを選択します。プロビジョンのインポートに成功したことを示す緑色のチェックが表示されます。
 
 	![](import_provision.png)
 
-1. **Import a certificate** をクリックし、証明書 (Apple Developer サイトからダウンロードした場合は`.cer` ファイル、または Mac からエクスポートした場合は `.p12` ファイル) を選択します。また、プロビジョンのインポートに成功したことを示す緑色のチェックが表示されます。
+1. **[Import a certificate (証明書をインポート)]** をクリックし、証明書 (Apple Developer サイトからダウンロードした場合は`.cer` ファイル、または Mac からエクスポートした場合は `.p12` ファイル) を選択します。また、プロビジョンのインポートに成功したことを示す緑色のチェックが表示されます。
 
 	![](import_certificate.png)
 

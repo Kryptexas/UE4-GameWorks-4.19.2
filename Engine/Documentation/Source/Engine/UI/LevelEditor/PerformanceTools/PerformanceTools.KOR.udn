@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2094827
+﻿INTSourceChangelist:2695091
 Availability:Public
 Title:퍼포먼스 툴
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
 Description:흔히 사용되는 툴과 작업을 빠르게 접할 수 있는 명령 모음입니다.
+Version: 4.9
 
 탭 바 오른편의 레벨 에디터 창 상단에는 여러가지 퍼포먼스와 디버깅 툴을 찾을 수 있습니다.
 

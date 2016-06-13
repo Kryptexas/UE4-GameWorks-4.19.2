@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653165
+﻿INTSourceChangelist:2714670
 Availability: Public
 Title:1.7 - 모프 타겟
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/ImportOptions
@@ -12,6 +12,7 @@ Related: Engine/Content/FBX
 Related: Engine/Content/FBX/MorphTargets
 Related: Shared/Editor/FbxErrors
 Related: Engine/Content/FBX/Materials
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -69,9 +70,20 @@ Related: Engine/Content/FBX/Materials
 [/OBJECT]
 [/VAR]
 
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Cube](CE_1_7_001.png)(h:500)
+	[/PARAM]
+	[PARAM:after]
+	![Sphere](CE_1_7_002.png)(h:500)
+	[/PARAM]
+[/OBJECT]
+
+<!---
 [REGION:lightbox]
 [![](CE_1_7_001.png)(h:330)](CE_1_7_001.png) [![](CE_1_7_002.png)(h:330)](CE_1_7_002.png)
 [/REGION]
+--->
 
 [INCLUDE:Engine/Content\FBX\MorphTargets#FBX_morph]
 

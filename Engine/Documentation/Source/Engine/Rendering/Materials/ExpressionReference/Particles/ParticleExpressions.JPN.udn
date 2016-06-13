@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2281678
+﻿INTSourceChangelist:2690214
 Availability:Public
-Title:パーティクル表現式
+Title:Particle 表現式
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
 Description:パーティクル システムでエミッタに適用するマテリアルの作成に用いる表現式
+Version:4.9
 
 [EXCERPT:TOC]
 [TOC(start:2)]
@@ -17,7 +18,7 @@ Description:パーティクル システムでエミッタに適用するマテ�
 [EXCERPT:ParticleColor]
 ## ParticleColor
 
-ParticleColor は、 Cascade 内で定義されたパーティクルごとのカラーデータをもとに任意のパーティクルの現在のカラーに結合します。関数は適切なチャンネル (エミッシブカラー) に接続しなくてはいけません。
+**ParticleColor** 表現式は、**Cascade** 内で定義されたパーティクルごとのカラーデータをもとに任意のパーティクルの現在のカラーに結合します。関数は適切なチャンネル (エミッシブカラー) に接続しなくてはいけません。
 
 | アイテム | 説明 |
 |----|----|
@@ -39,7 +40,7 @@ ParticleColor は、 Cascade 内で定義されたパーティクルごとのカ
 [EXCERPT:ParticleDirection]
 ## ParticleDirection
 
-ParticleDirection はパーティクルごとに 3vector (RGB) データを出力します。これは任意のパーティクルが現在移動している方向を表します。 
+**ParticleDirection** 表現式はパーティクルごとに 3vector (RGB) データを出力します。これは任意のパーティクルが現在移動している方向を表します。 
 
 
 ![ParticleDirectionExample.png](ParticleDirectionExample.png)(w:900)
@@ -52,7 +53,7 @@ ParticleDirection はパーティクルごとに 3vector (RGB) データを出�
 
 ## ParticleMacroUV
 
-ParticleMacroUV は、連続的に 2D テクスチャをパーティクル システム全体へマップする際に使用する UV のテクスチャ座標を出力します。つまり、パーティクル全体でテクスチャがシームレスな動作となります。UV は、タイル表示されるワールド空間の半径を決定する MacroUVPosition (MacroUV カテゴリ配下の ParticleSystem 、 Cascade で特定) と MacroUVRadius を軸に展開されます。ParticleMacroUV ノードは、法線テクスチャ座標と各パーティクル上にテクスチャをマッピングすることによってパターン化を解消し、パーティクル上の連続的なノイズのマッピングに有益です。
+**ParticleMacroUV** は、連続的に 2D テクスチャをパーティクル システム全体へマップする際に使用する UV のテクスチャ座標を出力します。つまり、パーティクル全体でテクスチャがシームレスな動作となります。UV は、MacroUVPosition (ParticleSystem の Cascade の中のMacroUV カテゴリで指定) を中心に配置され、MacroUVRadius は UV がタイル処理されるワールド空間の半径を決定します。ParticleMacroUV ノードは、法線テクスチャ座標と各パーティクル上にテクスチャをマッピングすることによってパターン化を解消し、パーティクル上の連続的なノイズのマッピングに有益です。
 
 | アイテム | 説明 |
 | -------- | ----------- |
@@ -66,7 +67,7 @@ ParticleMacroUV は、連続的に 2D テクスチャをパーティクル シ�
 [EXCERPT:ParticleMotionBlurFade]
 ## ParticleMotionBlurFade
 
-ParticleMotionBlurFade は、モーションブラーの結果としてパーティクル上でフェードする量を値で出力します。1 の値はブラーが無いことを表し、黒は完全なブラーを表します。
+**ParticleMotionBlurFade** 式は、モーションブラーの結果としてパーティクル上でフェードする量を値で出力します。1 の値はブラーが無いことを表し、黒は完全なブラーを表します。
 
 ![ParticleMotionBlurFade.png](ParticleMotionBlurFade.png)(w:900)
 
@@ -77,14 +78,14 @@ ParticleMotionBlurFade は、モーションブラーの結果としてパーテ
 [EXCERPT:ParticlePositionWS]
 ## ParticlePositionWS
 
-ParticlePositionWS は、ワールド空間におけるそれぞれのパーティクルの位置を表す 3vector (RGB) データを出力します。
+**ParticlePositionWS** 表現式は、ワールド空間における各パーティクルの位置を表す Vector3 (RGB) データを出力します。
 
 
 ![ParticlePositionWS.png](ParticlePositionWSExample.png)(w:900)
 
 
 
-この画像では、 ParticlePositionWS はデータを可視化するためにエミッシブカラーへ送り込まれています。パーティクル システムの機能は、位置に基づいた色の変化方法を表示するようになりました。
+この画像では、ParticlePositionWS はデータを可視化するためにエミッシブカラーへ送り込まれています。パーティクル システムの機能は、位置に基づいた色の変化方法を表示するようになりました。
 
 [/EXCERPT:ParticlePositionWS]
 
@@ -93,7 +94,7 @@ ParticlePositionWS は、ワールド空間におけるそれぞれのパーテ�
 [EXCERPT:ParticleRadius]
 ## ParticleRadius
 
-ParticleRadius は、それぞれのパーティクルの半径をアンリアル単位で個別に出力します。例えば、半径がある特定の場所にたどり着くと、この表現式がマテリアルに変化をもたらします。
+**ParticleRadius** 表現式は、各パーティクルの半径をアンリアル単位で個別に出力します。例えば、半径がある特定の場所にたどり着くと、この表現式がマテリアルに変化をもたらします。
 
 [REGION:fullwidth]
 ![ParticleRadiusExample.png](ParticleRadiusExample.png)(w:1000 h:448)
@@ -108,7 +109,7 @@ ParticleRadius は、それぞれのパーティクルの半径をアンリア�
 [EXCERPT:ParticleRelativetime]
 ## ParticleRelativeTime
 
-ParticleRelativeTime は、パーティクルの寿命を表す 0 か 1の値を出力します。 0 はパーティクルの誕生を表し、 1 はパーティクルの消滅を表します。
+**ParticleRelativeTime** 表現式は、パーティクルの寿命を表す 0 か 1の値を出力します。 0 はパーティクルの誕生を表し、 1 はパーティクルの消滅を表します。
 
 [REGION:fullwidth]
 ![ParticleRelativeTimeExample.png](ParticleRelativeTimeExample.png)(w:900)
@@ -121,7 +122,7 @@ ParticleRelativeTime は、パーティクルの寿命を表す 0 か 1の値を
 [EXCERPT:ParticleSize]
 ## ParticleSize
 
-ParticleSize 表現式は、パーティクル スプライトの X と Y サイズを出力します。これは、マテリアルのある局面の操作に使用できます。
+**Particle Size** 表現式は、パーティクル スプライトの X と Y のサイズを出力します。これは、マテリアルのある局面の操作に使用できます。
 
 ![](ParticleSize.png)(w:480) 
 
@@ -131,7 +132,7 @@ ParticleSize 表現式は、パーティクル スプライトの X と Y サイ
 
 _画像をクリックして全画面表示にします。_
 
-上のサンプルでは、パーティクル サイズはパーティクル カラーへ乗算されます。出力をマスクしているので、 Y 軸あるいはパーティクルの長さに対応する緑チャネルのみ利用できることにご注意ください。つまり、パーティクルが伸びるにつれて、色が明るくなるということです。パーティクルが縮むと色は暗くなります。
+上のサンプルでは、パーティクル サイズはパーティクル カラーへ乗算されます。出力をマスクしているので、Y 軸あるいはパーティクルの長さに対応する緑チャネルのみ利用できることにご注意ください。つまり、パーティクルが伸びるにつれて、色が明るくなるということです。パーティクルが縮むと色は暗くなります。
 
 [/EXCERPT:ParticleSize]
 
@@ -139,7 +140,7 @@ _画像をクリックして全画面表示にします。_
 
 ## ParticleSpeed
 
-ParticleSpeed は、各パーティクルの現在の移動速度をアンリアル単位 / 秒で測定して出力します。
+**ParticleSpeed** は、各パーティクルの現在の移動速度をアンリアル単位 / 秒で測定して出力します。
 
 [REGION:fullwidth]
 ![ParticleSpeedExample.png](ParticleSpeedExample.png)(w:1000 h:448)
@@ -152,7 +153,7 @@ ParticleSpeed は、各パーティクルの現在の移動速度をアンリア
 
 ## SphericalParticleOpacity
 
-SphericalParticleOpacity は、スプライト パーティクルを球体に表示させるプロシージャ オパシティ マップを作成します。インポート テクスチャマップで類似したエフェクトを作成するよりも非常にシンプルです。
+**SphericalParticleOpacity** 表現式は、スプライト パーティクルを球体に表示させるプロシージャル オパシティ マップを作成します。インポート テクスチャマップで類似したエフェクトを作成するよりも非常にシンプルです。
 
 | アイテム | 説明 |
 | -------- | ----------- |
@@ -160,11 +161,17 @@ SphericalParticleOpacity は、スプライト パーティクルを球体に表
 | **Density** | 球体マップの密度を制御する 0-1 の値です。低値は透明性のある球体となります。デフォルト値は 1 です。 |
 
 
-[REGION:imagetable]
-| ![](SPO_Before.png)(w:290) | ![](SPO_After.png)(w:290) | [INCLUDE:#SPO] |
-| :---: | :---: | :---: |
-| 前 | 後 | ネットワーク (クリックして拡大) |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Before](SPO_Before.png)(w:350)
+	[/PARAM]
+	[PARAM:after]
+	![After](SPO_After.png)(w:350)
+	[/PARAM]
+[/OBJECT]
+
+[INCLUDE:#SPO]
+
 
 <!--
 [EXCERPT:SPO]
@@ -178,7 +185,7 @@ SphericalParticleOpacity は、スプライト パーティクルを球体に表
 [EXCERPT:ParticleSubUV]
 ## ParticleSubUV
 
-ParticleSubUV は、テクスチャのサブイメージをパーティクルへレンダリングする際に使用します。ParticleSubUV はテクスチャ アニメーションを Cascade で操作できるという点を除いて、フリップブックと似ています。
+**ParticleSubUV** 表現式は、テクスチャのサブイメージをパーティクルへレンダリングする際に使用します。ParticleSubUV はテクスチャ アニメーションを Cascade で操作できるという点を除いて、フリップブックと似ています。
 
 | アイテム | 説明 |
 | -------- | ----------- |
@@ -194,7 +201,7 @@ ParticleSubUV は、テクスチャのサブイメージをパーティクルへ
 | **R** | カラーの赤チャンネルを出力します。 |
 | **G** | カラーの緑チャンネルを出力します。 |
 | **B** | カラーの青チャンネルを出力します。 |
-| **A** | カラーのアルファチャンネルを出力します。テクスチャにアルファ チャンネルが含まれていない場合、「アルファ」チャンネルへ何かを接続すると、表向きは不正行為ではないものの常に結果はゼロ (黒) となります。|
+| **A** | カラーのアルファチャンネルを出力します。テクスチャにアルファ チャンネルが含まれていない場合、「アルファ」チャンネルへ何かを接続すると、表向きは不正行為ではないものの常に結果はゼロ (黒) となります。 |
 
 
 ![ParticleSubUVExample.png](ParticleSubUVExample.png)
@@ -224,7 +231,7 @@ TextureSampleParameterSubUV は、マテリアルのインスタンスやコー�
 | **R** | カラーの赤チャンネルを出力します。 |
 | **G** | カラーの緑チャンネルを出力します。 |
 | **B** | カラーの青チャンネルを出力します。 |
-| **A** | カラーのアルファチャンネルを出力します。テクスチャにアルファ チャンネルが含まれていない場合、「アルファ」チャンネルへ何かを接続すると、表向きは不正行為ではないものの常に結果はゼロ (黒) となります。|
+| **A** | カラーのアルファチャンネルを出力します。テクスチャにアルファ チャンネルが含まれていない場合、「アルファ」チャンネルへ何かを接続すると、表向きは不正行為ではないものの常に結果はゼロ (黒) となります。 |
 [/EXCERPT:TextureSampleParameterSubUV]
 
 

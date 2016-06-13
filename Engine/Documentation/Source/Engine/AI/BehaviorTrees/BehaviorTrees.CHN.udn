@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2735872
 Availability:Public
-Title: Behavior Trees
+Title:行为树
 Crumbs:%ROOT%, Engine, Gameplay/AI
-Description:Landing Page for all the documentation relating to Behavior Trees
+Description:所有行为树相关文档的着陆页面
+parent:Engine
+order:5
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -43,23 +45,23 @@ Description:Landing Page for all the documentation relating to Behavior Trees
 [/OBJECT]
 [/VAR]
 
-From a lowly roach that hides from the light, to the Bot in Shooter Game that knows when to shoot, and when to seek health or ammo; **Behavior Trees** are a powerful tool for creating Artificial Intelligence in Unreal Engine 4. 
+**行为树** 是虚幻引擎 4 中创建 AI 的强大工具。从隐藏在阴影中的小蟑螂，到射击游戏中自主向目标开火并寻找回复剂和弹药的机器人，皆可一一实现。 
 
-They're a combination of two asset types: The **Blackboard** and the **Behavior Tree**.
+它们是两种资源的组合：**黑板（Blackboard）** 和 **行为树（Behavior Tree）**。
 
-| Asset Type | Description |
+| 资源类型 | 描述 |
 | --- | --- |
-| **Blackboard** | The **Blackboard** is the AI's memory. It stores key values for the Behavior Tree to use. |
-| **Behavior Tree** | The **Behavior Tree** is the AI's processor. It makes decisions, and then acts on those decisions. |
+| **黑板** | 黑板是 AI 的记忆。它保存关键值，以供行为树使用。|
+| **行为树** | 行为树是 AI 的处理器。它做出决定，然后执行。|
 
-Below are links to the sections in the documentation covering the use of Behavior Trees. The [Quick Start Guide](Engine/AI/BehaviorTrees/QuickStart) takes you through making an AI chase the Player. Then there's the [User Guide](Engine/AI/BehaviorTrees/UserGuide), which contains instructions on the most common tasks when using Behavior Trees. Next, the [Node Reference](Engine/AI/BehaviorTrees/NodeReference) contains a listing of all then nodes available in the Behavior Tree editor, what they do, and what their properties are. Finally, [How Unreal Engine 4 Behavior Trees Differ](Engine/AI/BehaviorTrees/HowUE4BehaviorTreesDiffer) is a paper written for those who are already familiar with how other Behavior Trees work.
+以下是文档中有关行为树使用章节的链接。[快速入门指南](Engine/AI/BehaviorTrees/QuickStart) 讲述如何让 AI 追逐玩家。[用户指南](Engine/AI/BehaviorTrees/UserGuide) 中包含使用行为树执行常见任务的说明。[节点参考](Engine/AI/BehaviorTrees/NodeReference) 包含行为树编辑器中所有可用节点，以及其作用和各种属性的列表。[虚幻引擎 4 行为树的不同之处](Engine/AI/BehaviorTrees/HowUE4BehaviorTreesDiffer) 是为已经了解其他行为树工作方式的读者准备的文档。
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/tech_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Behavior Tree Topics
+		行为树主题
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

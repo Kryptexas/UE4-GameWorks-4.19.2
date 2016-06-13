@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2604540
+﻿INTSourceChangelist:2693453
 Availability: Public
 Title:애셋 대 인스턴스
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor
 Description:애셋에 칠하는 것과 개별 인스턴스에 칠하는 것 사이의 차이점 일람입니다.
+Version: 4.9
 
 **버텍스 컬러** 를 칠할 때는, 실제 머티리얼 애셋 자체가 아니라 머티리얼의 개별 **인스턴스** 에만 칠을 하게 되는 것입니다.
 메시의 다른 인스턴스에 버텍스 컬러 데이터를 적용하고자 하는 경우, 데이터를 **복사** 한 다음 다른 메시(들)에 **붙여넣기** 하면 됩니다.

@@ -6,6 +6,10 @@ Navigation:platform
 Platform:Gear VR
 Skilllevel: Intermediate
 Version: 4.9
+type:quickstart
+parent:Platforms/GearVR
+tags:VR
+tags:GearVR
 
 The Gear VR Quick Start will walk you through how to setup your development PC and Samsung Galaxy Note 4 Smartphone to work with the Samsung Gear VR headset.
 

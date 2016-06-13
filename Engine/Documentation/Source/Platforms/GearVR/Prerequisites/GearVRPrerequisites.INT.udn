@@ -7,6 +7,10 @@ Platform:Gear VR
 Skilllevel: Intermediate
 Version: 4.8
 prereq: Engine\Blueprints\GettingStarted
+type:overview
+parent:Platforms/GearVR
+tags:VR
+tags:GearVR
 
 ![](Platforms\GearVR\QuickStart\GVR_Headset_00.png)
 

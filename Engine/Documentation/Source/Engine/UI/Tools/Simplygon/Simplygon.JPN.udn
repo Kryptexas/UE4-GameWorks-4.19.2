@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2407639
-Availability:Licensee
+﻿Availability:Licensee
 Title:Simplygon
 Crumbs:%ROOT%, Engine
-Description:アンリアル エンジン 4 にインテグレートされたメッシュの単純化およびマージのためのサードパーティ製のツール
+Description:UE4 に統合されたメッシュの単純化およびマージのためのサードパーティ製のツール
+Version:4.9
 
 [REGION:raw]
 ![](SimplygonLogo.png)
@@ -13,7 +13,7 @@ Description:アンリアル エンジン 4 にインテグレートされたメ�
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		必須情報
+		Essentials
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
@@ -25,7 +25,7 @@ Description:アンリアル エンジン 4 にインテグレートされたメ�
 <!--
 [EXCERPT:License]
 [REGION:warning]
-Simplygon はアンリアル エンジンに付与されていますが、この機能を使用するためにライセンシーの皆様はまず  Donya Labs ([](http://simplygon.com/)) からライセンスを取得する必要があります。ライセンスの取得については、 Donya Labs へお問い合わせください。 
+Simplygon はアンリアル エンジンと合わせて配布されていますが、この機能を使用するためにライセンシーの皆様はまず Donya Labs ([](http://simplygon.com/)) からライセンスを取得する必要があります。ライセンスの取得については、 Donya Labs へお問い合わせください。 
 [PUBLISH:Licensee] 
 詳細は [Simplygon のコンパイル](Engine/UI/Tools/Simplygon/Compiling) を参照してください。 
 [/PUBLISH:Licensee]

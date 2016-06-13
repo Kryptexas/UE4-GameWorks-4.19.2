@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2600917
+﻿INTSourceChangelist:2663342
 Availability:Public
 Title: 블렌드 스페이스 편집하기
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Blendspaces
 Description:복잡한 다중입력 애니메이션 블렌딩을 위해 블렌드 스페이스에 샘플 파라미터와 애니메이션 샘플을 셋업하는 방법 안내서입니다.
+version: 4.9
 
 
 [VAR:topic]
@@ -87,13 +88,13 @@ _AAT_RotationOffsetMeshSpace_ 로 설정해 둬야 샘플로 추가할 수 있�
 샘플의 위치 이동은 대화식 또는 수동식으로 가능합니다. 대화식 이동은 
 매우 직관적이나 수동식에 비해 정확도가 떨어집니다.
 
-**대화식 샘플 이동:**
+대화식 샘플 이동:
 
 **그래프** 에서 노드를 클릭하고 끕니다:
 
 ![Move Sample by Dragging](bs_sample_move_drag.png)(convert:false)
  
-**수동식 샘플 이동:**
+수동식 샘플 이동:
 
 노드를 클릭한 다음 노드를 위치시킬 **X**, **Y** 값을 지정합니다:
 
@@ -104,7 +105,7 @@ _AAT_RotationOffsetMeshSpace_ 로 설정해 둬야 샘플로 추가할 수 있�
 _블렌드 스페이스_ 에 놓은 샘플은 _드래그 앤 드롭_ 또는 UI 의 **샘플** 부분을 통해 다른 샘플로 
 대체 가능합니다.
 
-**_드래그 앤 드롭_ 대체:**
+드래그 앤 드롭 대체:
 
 **그래프** 의 샘플을 대체하려면, **애셋 브라우저** 에서 새로운 _애니메이션 시퀀스_ 를 기존 노드에 
 직접 끌어다 놓습니다.
@@ -119,7 +120,7 @@ _블렌드 스페이스_ 에 놓은 샘플은 _드래그 앤 드롭_ 또는 UI �
 | 원래 샘플 | 대체된 샘플 |
 [/REGION]
 
-**수동식 대체:**
+수동식 대체:
 
 **샘플** 부분의 샘플을 대체하려면 **콘텐츠 브라우저** 에서 새로운 _애니메이션 시퀀스_ 를 선택한 다음 
 목록에 있는 샘플에 대해 ![Use Selected Asset](button_use_selected.png) 버튼을 누릅니다.
@@ -136,14 +137,14 @@ _블렌드 스페이스_ 에 놓은 샘플은 _드래그 앤 드롭_ 또는 UI �
 
 UI 의 **샘플** 부분을 사용하거나 아니면 **그래프** 에서 바로 샘플을 지울 수 있습니다.
 
-**그래프에서 삭제하려면:**
+그래프에서 삭제하려면:
 
 **그래프** 의 Sample 노드를 선택하여 편집창을 띄운 다음 ![Delete](button_delete.png) 버튼을 눌러
 샘플을 제거합니다.
 
 ![Remove Sample in Graph](bs_sample_remove.png)(convert:false)
 
-**샘플 섹션에서 삭제하려면:**
+샘플 섹션에서 삭제하려면:
 
 목록에서 제거할 샘플에 대해 ![Remove Sample](button_clear_reference.png) 버튼을 누릅니다.
 

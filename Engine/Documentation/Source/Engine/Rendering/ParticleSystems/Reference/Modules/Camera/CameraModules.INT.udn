@@ -2,8 +2,9 @@ Availability: Public
 Title:Camera Modules
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:These modules modify the emitter behavior with respect to the camera.
+Version: 4.9
 
-[TOC(start:2 end:3)]
+
 
 These modules modify the emitter behavior with respect to the camera.
 
@@ -14,7 +15,7 @@ These modules modify the emitter behavior with respect to the camera.
 
 In this example, the blue particles are the same size as the red ones, and are being emitted from the same location. However, a Camera Offset node is offsetting the blue particles, pulling them closer to the camera.
 
-The Camera Offset module allows the positions of sprite particles to be offset relative to the camera. In essence, it pulls particles closer toward the camera or pushes them away. It provides the following properties:
+The **Camera Offset** module allows the positions of sprite particles to be offset relative to the camera. In essence, it pulls particles closer toward the camera or pushes them away. It provides the following properties:
 
 | Property | Description |
 | ---- | ---- |

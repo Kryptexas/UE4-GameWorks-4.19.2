@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653552
+﻿INTSourceChangelist:2722008
 Availability: Public
 Title:1.6 - 씬 캡처 큐브
 Crumbs: %ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Reflections
@@ -9,6 +9,7 @@ Related: Engine/Rendering/LightingAndShadows/LightTypes/SkyLight\
 Related: Engine/Rendering/Materials/PhysicallyBased
 Related: Resources/Showcases/RealisticRendering
 Related: Engine/Rendering/PostProcessEffects
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -72,7 +73,7 @@ Related: Engine/Rendering/PostProcessEffects
 
 ![](Reflections_1_6_Header.png)
 
-**Scene Capture Cube** (씬 캡처 큐브)는 매 프레임마다 그 위치에서 완전히 동적인 큐브 맵 캡처를 합니다. 여기에는 실제 캡처를 저장할 Cubemap Render Target (큐브맵 렌더 타겟)이 필요하며, 저장하고나면 그 렌더 타겟은 어느 머티리얼에서도 텍스처로 사용할 수 있게 됩니다. 
+**Scene Capture Cube** (씬 캡처 큐브)는 매 프레임마다 그 위치에서 완전히 동적인 큐브 맵 캡처를 합니다. 여기에는 실제 캡처를 저장할 Cubemap Render Target (큐브맵 렌더 타겟)이 필요하며, 저장하고 나면 그 렌더 타겟은 어느 머티리얼에서도 텍스처로 사용할 수 있게 됩니다. 
 
 [REGION:warning]
 씬 캡처 큐브는 퍼포먼스 비용이 꽤나 비싸므로, 원하는 효과를 내는 데 꼭 필요한 곳에만 사용해야 할 것입니다.

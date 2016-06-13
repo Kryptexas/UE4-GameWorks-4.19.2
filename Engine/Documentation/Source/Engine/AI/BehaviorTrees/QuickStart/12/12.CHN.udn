@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2757227
 Availability:Public
-Title: 12. Make a Task
+Title:12.创建 Task 节点
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
-Description:Step 12. Make a Task
+Description:第十二步。创建 Task 节点
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -22,20 +23,20 @@ Description:Step 12. Make a Task
 
 %Steps%
 
-Tasks are nodes that "do" things, like move an AI, or adjust Blackboard values. They can have [**Decorators**](Engine/AI/BehaviorTrees/NodeReference/Decorators) attached to them.
+Task 是真正“执行”操作的节点，如移动 AI，或调整黑板值。它们可以被 [Decorators](Engine/AI/BehaviorTrees/NodeReference/Decorators) 附着。
 
-This **Task** is basically a re-creation of the **Move To** node, with one major difference: this Task will have the AI always run towards the Player's Pawn, instead of its location. Also, it helps to break things down and see that if you don't ever execute **Finish Execute** the Task Node will continue to process, and the **AI MoveTo** node shows this perfectly.
+这里的这个 **Task** 实际上是 **Move To** 节点的新形态，主要的不同点是：Task 节点将指引 AI 向玩家的 Pawn 前进，而非向其所在位置前进。此外，它有助于分解任务，并确认如未执行 **Finish Execute**，Task 节点将继续进行处理，**AI MoveTo** 节点完整地展示了这点。
 
 
-## Steps
+## 步骤
 
-1. Open the FollowerBT Behavior Tree by **Double-clicking** it in the **Content Browser**.
-1. Click New Task ![](newTask_button.png) button.
+1. 在 **内容浏览器** 中 **双击** 打开 FollowerBT 行为树。
+1. 点击 **New Task** 按钮。
 
-	It will create in the same folder as the Behavior Tree.
-1. Rename it in the **Content Browser** to "RapidMoveTo".
-1. The editor should have already opened it for editing, but if not, **Double-click** it in the **Content Browser**.
-1. Create the following graph:
+	它将创建于和行为树相同的文件夹中。
+1. 在 **内容浏览器** 中将其重命名为 “RapidMoveTo”。
+1. 编辑器应已将其打开以便编辑。如尚未打开，在 **内容浏览器** 中 **双击** 打开。
+1. 创建如下图表：
 
 	[OBJECT:Snippet]
 		[PARAM:image]
@@ -51,30 +52,30 @@ This **Task** is basically a re-creation of the **Move To** node, with one major
 		[/PARAM]
 	[/OBJECT]
 
-	_Click the image to expand it, or click [here](fullGraph.png) to open it in the window._
+	_点击图片将其展开，或点击 [此处](fullGraph.png) 在窗口中打开。_
 
 	![](variables.png)
 
-	The variable names, types, and values for this Blueprint:
+	该蓝图的变量名、类型和数值：
 
 	%vartable1%
 
 	
 
 [VAR:varTable1]
-| Variable Name | Type | Value |
+| 变量名 | 类型 | 数值 |
 | --- | --- | --- |
-| **AI_CON_Ref** | Follower_AI_CON_C | None |
-| **TargetToFollow** | BlackboardKeySelector | None - However, this variable has its "Editable" flag set to **True** so you can change it, per instance, on the Behavior Tree. |
+| **AI_CON_Ref** | Follower_AI_CON_C | 无 |
+| **TargetToFollow** | BlackboardKeySelector | 无 - 但此变量的“可编辑”标记为 **True**，因此可在行为树中根据实例进行变更。|
 [/VAR]
 
 
-Here is what is going on in this graph:
+以下是该图表中将执行的操作：
 
-1. The **Event Receive Execute** is the event that is called when the Behavior Tree runs this task node.
-1. We store the Follower_AI_CON like we did in the previous step.
-1. The **Cast to Actor** node pulls the "TargetToFollow" object value from the Blackboard and casts it to an Actor so we can use it in the **AI MoveTo** node.
-1. On success, the task will run the **Finish Execute** node successfully.
+1. **Event Receive Execute** 是行为树运行此任务节点时调用的事件。
+1. 按之前步骤中的方法保存 Follower_AI_CON。
+1. **Cast to Actor** 节点从黑板获取 “TargetToFollow” 物体值并投射到一个 Actor 上，以便在 **AI MoveTo** 节点中使用。
+1. 完成后，任务将成功运行 **Finish Execute** 节点。
 
 
 %Steps%

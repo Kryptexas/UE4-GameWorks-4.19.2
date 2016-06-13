@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2704715
 Availability:Public
-Title: Out of Bounds Pixels
+Title:越界像素
 Crumbs: %ROOT%, Engine, Engine/Performance/Visualizers
-Description:Visualizing out of bounds pixels in the Unreal Editor viewport.
+Description:在虚幻编辑器视口中显示越界像素。
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -50,60 +51,49 @@ Description:Visualizing out of bounds pixels in the Unreal Editor viewport.
 [TOC(start:2)]
 
 
-If you run into a situation where an object is flickering or perhaps it is disappearing even though a portion of it is still on screen, it may be because parts of it are 
-outside of its bounds. Common reasons for this are: use of world position offset or displacement in a shader, Skeletal Mesh without a physics asset, or a component setup to 
-inherit owner bounds.
+如果一个物体出现闪烁或消失（一部分有可能仍然在屏幕中），原因有可能是它的一部分已越界。出现此状况的常见原因：在选色器中使用了世界位置偏移或位移、骨骼网格体未包含物理资源、或组件设置为继承所有者边界。
 
-This causes frustum culling, occlusion culling, shadow casting, indirect lighting cache and various other rendering functions to operate incorrectly.  The most noticeable 
-artifact will be flickering as you rotate the camera, since it will be incorrectly culled as soon as the bounds are off screen.
+这会导致视锥剔除、遮蔽剔除、阴影投射、间接光照缓存和其他诸多渲染功能出现异常。最明显的穿帮是摄像机旋转时出现的闪烁，因为边界出屏后它便会被错误剔除。
 
-**Visualize -> Out of Bounds Pixels** will show you any pixel that is outside of its object's bounds.
+选择 **Visualize -> Out of Bounds Pixels** 即可显示处于物体边界外的像素。
 
-## Usage
+## 用法
 
-[REGION:raw]
-To enable this mode on any viewport, **Left-click** the **Show Button** ![](OOBP_button_show.png) on the viewport and select **Visualize -> Visualize Out of Bounds Pixels**.
-[/REGION]
+如需在视口中启用该模式 - 在视口上 **左键单击** **Show 按钮** 并选择 **Visualize -> Out of Bounds Pixels**。
 
 ![](OOBP_showMenu.png)
 
-## Inherit Owner Bounds
+## 继承所有者边界
 
-Blueprint components, often times, can be set to inherit the bounds of their parent, which can cause issues if the parent has smaller bounds than the child.
+蓝图组件通常可设为继承其父项的边界，如父项的边界比子项小，则可能出现问题。
 
-The cube object below is a Blueprint composed of a **Box Component** (the red box in these images) and a **Static Mesh Component**. The Static Mesh is set to inherit its 
-bounds from the box. If the box extents are smaller than the Static Mesh, then Visualize Out of Bounds Pixels will show those portions in various colors (blue, yellow, 
-and white).
+下图中的方块物体是由一个盒子组件（图中红色盒子）和一个静态网格体组件所构成的蓝图。静态网格体被设为从盒子继承边界。如盒子的范围比静态网格体小，越界的像素部分将以各种颜色显示（蓝、黄、白）。
 
 [REGION:lightbox]
 [![](OOBP_smallBounds_boxExtents.png)(w:300)](OOBP_smallBounds_boxExtents.png) [![](OOBP_smallBounds.png)(w:300)](OOBP_smallBounds.png) [![](OOBP_smallBoundsRotated.png)(w:300)](OOBP_smallBoundsRotated.png)
 
-Since the bounding box (the blue box in these images) is always world aligned, rotating the box can bring portions of the mesh back into the bounding box. However, if any out 
-of bounds portion of the mesh remains in the camera view, it will disappear if the bounding box moves completely off camera.
+边界框（图中蓝色框）固定与世界场景对齐，旋转盒子即可使越界的网格体部分重新回到边界框中。然而如果越界的网格体部分仍处于摄像机画面中，边界框完全移出摄像机后它便会从画面中消失。
 
-Below is a corrected Blueprint, with the Box Component's extents set correctly.
+下图是修正后的蓝图，盒子组件的范围已正确设置。
 
 [![](OOBP_correctBounds_boxExtents.png)(w:300)](OOBP_correctBounds_boxExtents.png) [![](OOBP_correctBounds.png)(w:300)](OOBP_correctBounds.png) [![](OOBP_correctBoundsRotated.png)(w:300)](OOBP_correctBoundsRotated.png)
 [/REGION]
 
-## World Position Offset or Displacement
+## 世界位置偏移或位移
 
-The other common time this can occur is when a shader is modifying the world position of vertices in real time, pushing them well outside the bounds of the object's original 
-bounding box:
+可能出现越界的另一种常见情况：着色器正在对顶点的世界位置进行即时修改，将它们推出物体原有的边界框外：
 
 [REGION:lightbox]
 [![](OOBP_worldPostionOffsetIssue_02.png)(h:300)](OOBP_worldPostionOffsetIssue_02.png) [![](OOBP_worldPostionOffsetIssue_01.png)(h:300)](OOBP_worldPostionOffsetIssue_01.png)
 [/REGION]
 
-Because portions of this object will be visible after the bounding box is completely hidden or off camera, it will flicker or disappear at inappropriate times.
+该物体的部分在边界框隐藏或离开摄像机时将变为可见，因此它会在不恰当的时机闪烁或消失。
 
-In this case, BoundsScale under **Component -> Rendering -> Advanced** can be used to increase the bounding box of the mesh until it contains all the pixels.  Be careful 
-doing this on shadow casters though, large shadow casters have a large performance cost.  On Skeletal Meshes, the bounds are derived from the physics asset, and individual 
-bones can be marked as contributing to the bounds or not.
+在此状况下，使用组件 **Details** 面板中 **Rendering** 扩展菜单下的 **Bounds Scale** 即可扩大网格体的边界框，使其将所有像素包含在内。在阴影投射物上执行此操作需格外注意，因为较大的阴影投射物的性能消耗较高。骨骼网格体上的边界源自物理资源，可单独对个体骨骼进行标记，确定是否对边界产生影响。
 
-## Skeletal Meshes
+![](OOBP_BoundsScale.png)
 
-The primary reason a Skeletal Mesh becomes displaced from its bounds is due to the animation causing the mesh to move away from its Actor root. However, a Skeletal Mesh with 
-a Physics Asset will use the Physics Asset for calculating its bounds. To enable this, **right-click** the Skeletal Mesh in the **Content Browser** and select 
-**Create Physics Asset**. Using the default settings will get you past any errors being caused by the Skeletal Mesh bounds, but you will probably want to edit the results. 
-See the [**Physics Asset Tool**](Engine/Physics\PhAT) documentation for more information on editing a **Physics Asset**.
+## 骨骼网格体
+
+骨骼网格体离开其边界的主要原因是由于动画导致网格体从其 Actor 的根移开。然而，带物理资源的骨骼网格体可通过物理资源计算其边界。启用方法：在 **Content Browser** 中 **右键单击** 骨骼网格体并选择 **Create Physics Asset**。使用默认设置将消除骨骼网格体边界引起的问题，但可能需要对结果进行编辑。 
+如需了解 **物理资源** 编辑的详细内容，请查阅 [物理资源工具](Engine/Physics\PhAT) 文档。

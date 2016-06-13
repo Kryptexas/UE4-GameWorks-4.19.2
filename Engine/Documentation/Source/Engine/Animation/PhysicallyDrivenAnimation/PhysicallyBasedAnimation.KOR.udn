@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2667891
 Availability:Public
 Title: 물리 기반 애니메이션
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -8,11 +8,12 @@ Related: Engine/Content/Types/SkeletalMeshes
 Related: Engine/Animation/StateMachines
 Related: Gameplay/AI
 Related: Engine/Content/Tools/MayaRiggingTool
+version: 4.9
 
 [REGION:fullwidth]
 ![](PhysicsBlend.png)
 
-## 개요
+
 
 이 문서에서는 캐릭터와 스켈레탈 메시에 물리 기반 애니메이션을 적용하는 방법을 다룹니다. 개념적으로는 키프레임 애니메이션에 시뮬레이션 결과를 접목시켜 "래그돌" 효과를 낼 필요가 있는 캐릭터에 자연스러운 시뮬레이션 느낌을 줄 수 있습니다.
 
@@ -33,7 +34,7 @@ Related: Engine/Content/Tools/MayaRiggingTool
 
 ### Set All Bodies Below Simulate Physics
 
-**Set All Bodies Below Simulate Physics** 노드의 목적은 스켈레탈 메시의 피직스 애셋 바디를 재귀적으로 활성화시켜, 주어진 본 위치를 시작으로 본 체인을 따라내려가면서 물리 시뮬레이션을 시작하도록 만드는 것입니다. 예를 들어 왼쪽 쇄골에 시물레이션을 시작하라고 한다면, 스켈레탈 계층구조상 그 이하의 모든 본 역시도 시뮬레이션이 시작되어, 팔이 흐느적거리거나 래그돌처럼 작동하기 시작합니다. 간단히 말해서, 이 노드는 주어진 본에서부터 물리 시뮬레이션을 시작 또는 중지시키는 똑딱이 스위치로 생각하면 됩니다.
+**Set All Bodies Below Simulate Physics** 노드의 목적은 스켈레탈 메시의 피직스 애셋 바디를 재귀적으로 활성화시켜, 주어진 본 위치를 시작으로 본 체인을 따라내려가면서 물리 시뮬레이션을 시작하도록 만드는 것입니다. 예를 들어 왼쪽 쇄골에 시뮬레이션을 시작하라고 한다면, 스켈레탈 계층구조상 그 이하의 모든 본 역시도 시뮬레이션이 시작되어, 팔이 흐느적거리거나 래그돌처럼 작동하기 시작합니다. 간단히 말해서, 이 노드는 주어진 본에서부터 물리 시뮬레이션을 시작 또는 중지시키는 똑딱이 스위치로 생각하면 됩니다.
 
 ### Set All Bodies Below Physics Blend Weight
 

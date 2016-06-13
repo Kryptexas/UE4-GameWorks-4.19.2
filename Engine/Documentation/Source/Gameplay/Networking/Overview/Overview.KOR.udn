@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2472981
+﻿INTSourceChangelist:2713567
 Availability:Public
 Title: 네트워킹 개요
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
@@ -6,6 +6,7 @@ Description:멀티플레이어용 네트워크 게임 구성하기 입니다.
 Related: Gameplay/Networking/Blueprints
 Related: Gameplay/Networking/Example
 Related: Gameplay/Networking/Actors
+version: 4.9
 
 UE4 프레임워크는 멀티플레이어 게임을 염두에 두고 만들어졌습니다. 기본적인 프레임워크 규칙만 따른다면, 일반적으로는 싱글 플레이어 게임을 멀티 플레이어로 확장하는 데 별다른 작업이 필요 없을 것입니다.
 

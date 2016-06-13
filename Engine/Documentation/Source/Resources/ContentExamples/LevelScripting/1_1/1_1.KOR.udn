@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2621691
+﻿INTSourceChangelist:2752557
 Availability: Docs
 Title:1.1 - 트리거 박스
 Crumbs:%ROOT%, Resources, Resources/ContentExamples/LevelScripting
 Description:Level Scripting 예제 레벨에 대한 개요로, 예제 1.1: Trigger box used to open a door, 트리거 박스로 문열기 입니다.
+Version: 4.9
 
 
 [VAR:TopicCompact]

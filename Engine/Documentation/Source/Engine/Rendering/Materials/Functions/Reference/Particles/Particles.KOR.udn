@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2643533
+﻿INTSourceChangelist:2729971
 Availability: Public
 title:파티클
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:Particles, 파티클 카테고리 아래 머티리얼 함수에 대한 설명과 예제입니다.
+Version: 4.9
 
 [TOC (start:2 end:3)]
 

@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2559121
-Availability:Public
+﻿Availability:Public
 Title:デバイス プロファイルの設定
 Crumbs:%ROOT%, Platforms
 Description:プラットフォーム専用コンフィギュレーション用にデバイス プロファイルを設定する
+Version:4.9
 
 
 プラットフォーム専用コンフィギュレーションに設定する場合、プロジェクト内に Config/DefaultDeviceProfiles.ini をカスタマイズで作成するのが最適な方法です。デバイス プロファイルには、テクスチャ プール サイズを始めとする沢山のプロパティを設定することができますので、 

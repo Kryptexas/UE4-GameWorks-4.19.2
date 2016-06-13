@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2746166
 Availability:Public
 Title: 페이퍼 2D
 Crumbs: %ROOT%, Engine
 Description:Paper 2D 는 언리얼 엔진 4 안에서만 2D 및 2D/3D 혼합 게임 제작용 스프라이트 기반 시스템입니다.
+Version: 4.9
 
 [REGION:banner]
 ![](paper2d_banner.png)

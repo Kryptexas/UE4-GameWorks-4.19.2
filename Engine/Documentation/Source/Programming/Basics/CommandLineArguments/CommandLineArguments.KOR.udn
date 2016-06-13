@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2611257
+﻿INTSourceChangelist:2721581
 Availability: Public
 Title: 명령줄 인수
 Crumbs: %ROOT%, Engine
@@ -23,7 +23,7 @@ Version: 4.9
 이 명령은 대소문자를 구분하지 않습니다.
 [/REGION]
 
-*예제:*
+예:
 
       
 	UE4Editor.exe -game
@@ -131,7 +131,7 @@ URL은 맵 이름 또는 서버 IP 주소 / 부가 파라미터 시리즈의 두
 * `SEEKFREEPACKAGEMAP`: 패키지 맵으로 seekfree (쿠킹된) 버전으로 덮어씁니다.
 * `SEEKFREELOADINGPCCONSOLE`: PC 콘솔 모드용으로 쿠킹된 데이터만 사용합니다.
 * `SEEKFREELOADINGSERVER`: 서버용으로 쿠킹된 데이터만 사용합니다.
-* `SETTHREADNAMES`: (Xbox 전용) 쓰레드명을 강제로 설정합니다. XDK COM API를 망칠 수 있기에, 필요한 경우 수행할 것을 명시적으로 설정해야 하는 겁니다.
+* `SETTHREADNAMES`: (Xbox 전용) 스레드명을 강제로 설정합니다. XDK COM API를 망칠 수 있기에, 필요한 경우 수행할 것을 명시적으로 설정해야 하는 겁니다.
 * `SHOWMISSINGLOC`: 현지화된 텍스트가 없는 경우, 영문 텍스트 대신 오류 문자열을 반환합니다.
 * `SILENT`: 출력 및 피드백을 끕니다.
 * `TRACEANIMUSAGE`: 애니메이션 사용량을 추적합니다.
@@ -175,7 +175,7 @@ URL은 맵 이름 또는 서버 IP 주소 / 부가 파라미터 시리즈의 두
 * `Limitclientticks`: 네트워크 업데이트를 강제로 조절합니다.
 * `MULTIHOME`: 엔진이 네트워킹용 멀티홈 주소를 사용하게 합니다.
 * `NETWORKPROFILER`: 네트워크 프로파일러 트래킹을 켭니다.
-* `NOSTEAM`: 스팀웍스를 사용하지 않게 합니다.
+* `NOSTEAM`: 스팀워크스를 사용하지 않게 합니다.
 * `PORT`: 엔진이 지정된 포트 번호를 사용하게 합니다.
 * `PRIMARYNET`: 엔진이 네트워크 바인딩을 처리하는 방법에 영향을 끼칩니다.
 
@@ -189,9 +189,9 @@ URL은 맵 이름 또는 서버 IP 주소 / 부가 파라미터 시리즈의 두
 * `NOSOUND`: 엔진으로부터의 사운드 출력을 끕니다.
 * `NOSPLASH`: 게임 로딩시의 스플래시 이미지 사용을 끕니다.
 * `NOTEXTURESTREAMING`: 텍스처 스트리밍을 끕니다. 항상 최고품질 텍스처가 로딩됩니다.
-* `ONETHREAD`: 멀티-쓰레드가 아닌 싱글-쓰레드를 사용하여 엔진을 실행시킵니다.
+* `ONETHREAD`: 멀티-스레드가 아닌 싱글-스레드를 사용하여 엔진을 실행시킵니다.
 * `PATHS`: 의견이 분분한 콘텐츠 테스팅용으로 사용할 경로를 설정합니다. 출하 공개판용으로는 사용되지 않습니다.
-* `PREFERREDPROCESSOR`: 특정 프로세서에 대한 쓰레드 친화력을 설정합니다.
+* `PREFERREDPROCESSOR`: 특정 프로세서에 대한 스레드 친화력을 설정합니다.
 * `USEALLAVAILABLECORES`: 타겟 플랫폼에서 사용가능한 코어 전부를 강제로 사용하게 합니다.
 
 

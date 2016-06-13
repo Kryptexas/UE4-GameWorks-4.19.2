@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2415393
+﻿INTSourceChangelist:2735872
 Availability:Public
-Title:パーティクルシステム
+Title:カスケード パーティクル システム
 Crumbs: %ROOT%, Engine, Engine/Rendering 
 Description:ワールドでエフェクトの作成に使用するエミッタを格納したアセット
+Version:4.9
+SkillLevel:Beginner
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -52,7 +54,7 @@ Description:ワールドでエフェクトの作成に使用するエミッタ�
 アンリアルエンジンは非常にパワフルでロバストなパーティクルシステムを搭載しています。アーティストは、煙、スパーク、炎など多岐に渡る衝撃的なビジュアルエフェクトで、はるかに複雑で異世界の例を作成することができます。 
 [/EXCERPT:Intro]
 
-アンリアルのパーティクルシステムはカスケードを通じて編集します。カスケードは完全統合型の、モジュラーパーティクルエフェクトエディタです。カスケードは、最も複雑なエフェクトさえも迅速かつ簡単に作成して、リアルタイムなフィードバックとモジュラーエフェクト編集を提供します。
+アンリアルのパーティクルシステムは **カスケード** で編集します。カスケードは完全統合型の、モジュラー パーティクルエフェクト エディタです。カスケードは、最も複雑なエフェクトさえも迅速かつ簡単に作成して、リアルタイムなフィードバックとモジュラーエフェクト編集を提供します。
 
 パーティクルシステムは、各パーティクルに適用したさまざまなマテリアルやテクスチャとも密接に関係しています。パーティクルシステムの主な機能は、全体のパーティクルシステムのある固有の外観や印象をしばしマテリアルでコントロールする一方で、パーティクルの挙動をコントロールすることです。例として、マテリアルに関するドキュメントへのショートカットを以下に示します。
 
@@ -131,7 +133,7 @@ Description:ワールドでエフェクトの作成に使用するエミッタ�
 		![](%ROOT%/tech_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		 関連トピック
+		Related Topics
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
@@ -141,3 +143,7 @@ Description:ワールドでエフェクトの作成に使用するエミッタ�
 	* [](Engine/Rendering/ParticleSystems/Optimization "%Engine/Rendering/ParticleSystems/Optimization:Description%")
 	[/PARAM]
 [/OBJECT]
+
+
+
+

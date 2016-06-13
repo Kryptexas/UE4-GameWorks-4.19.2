@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2630506
+﻿INTSourceChangelist:2747818
 Availability: Public
 Title:머티리얼 에디터 - 머티리얼 파라미터 제작
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
@@ -7,6 +7,8 @@ Related: Engine/Rendering/Materials/ExpressionReference/Parameters
 Related: Engine/Rendering/Materials/MaterialInstances
 Related: Engine/Rendering/Materials/ParameterCollections
 Related: Engine/Matinee/HowTo/MHT_6
+Version: 4.9
+SkillLevel: Intermediate
 
 [TOC(start:2)]
 
@@ -28,7 +30,7 @@ Related: Engine/Matinee/HowTo/MHT_6
 
 ### 우클릭 변환하기
 
-머티리얼 표현식에서 머티리얼 파라미터를 만드는 가장 간단한 방법은, 기존 머티리얼 표현식 노드에 **우클릭** 한 다음 메뉴에 **파라미터로 변환** 옵션이 있다면 선택하는 것입니다. 변환되고나면, 머티리얼 파라미터에 이름과 기본값을 지을 수 있습니다. 체계적인 정리를 위하여 머티리얼 파라미터에 **Group** (그룹)을 지정할 수도 있습니다. **그룹** 은 머티리얼 인스턴스 내 파라미터를 그룹별로 묶어, 파라미터 확인이 쉬워집니다.
+머티리얼 표현식에서 머티리얼 파라미터를 만드는 가장 간단한 방법은, 기존 머티리얼 표현식 노드에 **우클릭** 한 다음 메뉴에 **파라미터로 변환** 옵션이 있다면 선택하는 것입니다. 변환되고 나면, 머티리얼 파라미터에 이름과 기본값을 지을 수 있습니다. 체계적인 정리를 위하여 머티리얼 파라미터에 **Group** (그룹)을 지정할 수도 있습니다. **그룹** 은 머티리얼 인스턴스 내 파라미터를 그룹별로 묶어, 파라미터 확인이 쉬워집니다.
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -51,7 +53,7 @@ lbCuDpVSfUA
 **팔레트** 검색 메뉴에서 머티리얼 파라미터를 추가할 수도 있습니다.
 그러기 위해서는 우선 **팔레트** 검색 메뉴에 **Parameter** 라는 단어를 검색합니다.
 그 후 사용하고자 하는 머티리얼 파라미터를 **좌클릭** 으로 선택한 다음 유지한 상태에서, 원하는 머티리얼 파라미터를 머티리얼 그래프에 끌어온 뒤,
-머티리얼 그래프 위에 마우스 커서가 있을때 **왼쪽 마우스 버튼** 을 놓으면 머티리얼 그래프에 머티리얼 표현식 노드가 추가됩니다.
+머티리얼 그래프 위에 마우스 커서가 있을 때 **왼쪽 마우스 버튼** 을 놓으면 머티리얼 그래프에 머티리얼 표현식 노드가 추가됩니다.
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -90,7 +92,7 @@ fyVkiBqwyWw
 
 1. 우선 다음의 머티리얼 파라미터 표현식 노드를 찾아 갯수대로 머티리얼 그래프에 추가합니다.
 
-	* **  Vector Parameter ** x 1
+	* ** Vector Parameter ** x 1
 	* ** Scalar Node** x 2
 	
 	[OBJECT:EmbeddedVideo]
@@ -111,9 +113,9 @@ fyVkiBqwyWw
 
 1. 다음, 모든 파라미터 노드에 이름과 기본값이 있는지 확인합니다. 이 예제에서는 다음과 같은 이름과 기본값을 사용하겠습니다.
 
-	* ** Base_Color** R:1.0 G:0.0 B:0.0
-	* ** Metallic** 0.0
-	* ** Roughness** 0.5
+	* **Base_Color** R:1.0 G:0.0 B:0.0
+	* **Metallic** 0.0
+	* **Roughness** 0.5
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]

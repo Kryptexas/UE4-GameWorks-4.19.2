@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2291853
+﻿INTSourceChangelist:2684616
 Availability:Public
-Title:3.プロジェクトを作成
+Title:3.プロジェクトを作成する
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
 Description:テンプレート プロジェクトを開始する
+Version:4.9
+SkillLevel:Intermediate
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -20,23 +22,29 @@ Description:テンプレート プロジェクトを開始する
 [/OBJECT]
 [/VAR]
 
-
+以下のセクションでは、Android を使うためにデプロイメントをテストするための新規プロジェクトを作成します。
+Blueprint Third Person template を用いてブループリント ベースのプロジェクトを新規作成していきます。
 
 
 %Steps%
 
 
-1.	新規プロジェクトを作成します。今ここではブループリント ベースのプロジェクトをテストしますが、 C++ プロジェクトで開始してからコンパイルする場合でもエディタ内で開かれるので、次のステップは同じになります。  
+1. **[Unreal Projects Browser]** ウィンドウから、 「EmissiveMaterials」 という名前の FPS プロジェクト を新規作成します。 
+* Third Person Template を使う
+* ハードウェアをモバイル / タブレットに設定する
+* グラフィック レベルを Scalable 3D または 2D に設定する
+* スターター コンテンツは含めない
+* AndroidProject にプロジェクト名を付ける
 
 ![](new_android_project.png)
 
 
 [REGION:tip]
-このプロジェクトにはスターター コンテンツは含まれないことにご注意ください。
+ここではサンプルとしてブループリント ベースのプロジェクトを選びましたが、C++ やブループリントなど、どんなタイプのプロジェクトでも Android デバイスへパッケージ化およびデプロイできます。
 [/REGION]
 
 
 
-
-
 %Steps%
+
+

@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2823027
 Availability:Public
-Title:Constant Expressions
-Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
-Description:Expressions where the values of the outputs generally do not change once set in the editor or when play begins.
+Title:常量表达式
+Crumbs:%ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
+Description:输出值在编辑器中设置后或在游戏开始时设置后通常保持不变的表达式。
+Version:4.9
 
 [EXCERPT:TOC]
 [TOC(start:2)]
@@ -10,105 +11,111 @@ Description:Expressions where the values of the outputs generally do not change 
 
 %Description%
 
-## Constant
+(#BookmarkConstant)
+(#Constant)
+## Constant（常量）
 
-The Constant expression outputs a single float value. It is one of the most commonly used expressions and can be connected to any input, regardless of the number of channels the input expects. For instance, if you connect a Constant to an input expecting a 3 Vector, the constant value will be used for all 3 elements. When supplying a single number, it can be useful to collapse the node using the small triangle icon in the description area.
+**Constant（常量）**表达式输出单个浮点值。这是最常用的表达式之一，并可连接到任何输入，而不必考虑该输入所需的通道数。例如，如果您将一个常量连接到需要 3 个矢量的输入，那么该常量值将用于全部 3 个元素。提供单个数值时，使用说明区域中的小三角形图标来折叠节点可能非常有用。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Properties[/REGION] ||
-| **R** | Specifies the float value the expression outputs. |
+| [REGION:tablesection]属性[/REGION] ||
+| **R** | 指定表达式所输出的浮点值。|
 
 
-**Examples:** 0.7, -0.24, 1.1
+**示例：**0.7、-0.24 和 1.1
 
 ![ConstantExample.png](ConstantExample.png)
 
 [REGION:tip]
-You can quickly create a Constant node by holding the **1** key and clicking in the graph area of the Material Editor.
+通过在材质编辑器的图形区域中按住 **1** 键并 **单击鼠标左键**，可快速创建 Constant（常量）节点。
 [/REGION]
 
 [EXCERPT:Constant2vector]
-## Constant2Vector
+(#Constant2Vector)
+## Constant2Vector（常量 2 矢量）
 
-The Constant2Vector expression outputs a two-channel vector value, in other words, two constant numbers.
+**Constant2Vector（常量 2 矢量）**表达式输出双通道矢量值，即输出两个常量数值。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Properties[/REGION] ||
-| **R** | Specifies the float value of the red (first) channel of the vector the expression outputs. |
-| **G** | Specifies the float value of the green (second) channel of the vector the expression outputs. |
+| [REGION:tablesection]属性[/REGION] ||
+| **R** | 指定表达式所输出的矢量的红色（第一个）通道的浮点值。|
+| **G** | 指定表达式所输出的矢量的绿色（第二个）通道的浮点值。|
 
-**Examples:** (0.4, 0.6), (1.05, -0.3)
+**示例：**(0.4, 0.6) 和 (1.05, -0.3)
 
-**Example Usage:** The Constant2Vector is useful for modifying texture coordinates, as they are two-channel values as well.
+**用法示例：**Constant2Vector（常量 2 矢量）对于修改纹理坐标非常有用，因为这些坐标也是双通道值。
 
 [REGION:fullwidth]
 ![Constant2Example.png](Constant2Example.png)
 [/REGION]
 
 [REGION:tip]
-You can quickly create a Constant2Vector node by holding the **2** key and clicking in the graph area of the Material Editor.
+通过在材质编辑器的图形区域中按住 **2** 键并 **单击鼠标左键**，可快速创建 Constant2Vector（常量 2 矢量）节点。
 [/REGION]
 
 [/EXCERPT:Constant2vector]
 
 [EXCERPT:Constant3vector]
-## Constant3Vector
+(#Constant3Vector)
+## Constant3Vector（常量 3 矢量）
 
-The Constant3Vector expression outputs a three-channel vector value, in other words, three constants numbers.  An RGB color can be thought of as a Constant3Vector, where each channel is assigned to a color (red, green, blue).
+**Constant3Vector（常量 3 矢量）**表达式输出三通道矢量值，即输出三个常量数值。您可以将 RGB 颜色看作 Constant3Vector（常量 3 矢量），其中每个通道都被赋予一种颜色（红色、绿色、蓝色）。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Properties[/REGION] ||
-| **R** | Specifies the float value of the red (first) channel of the vector the expression outputs. |
-| **G** | Specifies the float value of the green (second) channel of the vector the expression outputs. |
-| **B** | Specifies the float value of the blue (third) channel of the vector the expression outputs. |
+| [REGION:tablesection]属性[/REGION] ||
+| **R** | 指定表达式所输出的矢量的红色（第一个）通道的浮点值。|
+| **G** | 指定表达式所输出的矢量的绿色（第二个）通道的浮点值。|
+| **B** | 指定表达式所输出的矢量的蓝色（第三个）通道的浮点值。|
 
 
-**Examples:** (0.4, 0.6, 0.0), (1.05, -0.3, 0.3)
+**示例：**(0.4, 0.6, 0.0) 和 (1.05, -0.3, 0.3)
 
 [REGION:fullwidth]
 ![Constant3Example.png](Constant3Example.png)
 [/REGION]
 
 [REGION:tip]
-You can quickly create a Constant3Vector node by holding the **3** key and clicking in the graph area of the Material Editor.
+通过在材质编辑器的图形区域中按住 **3** 键并 **单击鼠标左键**，可快速创建 Constant3Vector（常量 3 矢量）节点。
 [/REGION]
 
 [/EXCERPT:Constant3vector]
 
 [EXCERPT:Constant4Vector]
-## Constant4Vector
+(#Constant4Vector)
+## Constant4Vector（常量 4 矢量）
 
-The Constant4Vector expression outputs a four-channel vector value, in other words, four constants numbers.  An RGBA color can be thought of as a Constant4Vector, where each channel is assigned to a color (red, green, blue, alpha).
+**Constant4Vector（常量 4 矢量）**表达式输出四通道矢量值，即输出四个常量数值。您可以将 RGBA 颜色看作 Constant4Vector（常量 4 矢量），其中每个通道都被赋予一种颜色（红色、绿色、蓝色、阿尔法）。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Properties[/REGION] ||
-| **R** | Specifies the float value of the red (first) channel of the vector the expression outputs. |
-| **G** | Specifies the float value of the green (second) channel of the vector the expression outputs. |
-| **B** | Specifies the float value of the blue (third) channel of the vector the expression outputs. |
-| **A** | Specifies the float value of the alpha (fourth) channel of the vector the expression outputs. |
+| [REGION:tablesection]属性[/REGION] ||
+| **R** | 指定表达式所输出的矢量的红色（第一个）通道的浮点值。|
+| **G** | 指定表达式所输出的矢量的绿色（第二个）通道的浮点值。|
+| **B** | 指定表达式所输出的矢量的蓝色（第三个）通道的浮点值。|
+| **A** | 指定表达式所输出的矢量的阿尔法（第四个）通道的浮点值。|
 
-**Examples:** (0.4, 0.6, 0.0, 1.0), (1.05, -0.3, 0.3, 0.5)
+**示例：**(0.4, 0.6, 0.0, 1.0) 和 (1.05, -0.3, 0.3, 0.5)
 
 ![Constant4Example.png](Constant4Example.png)
 
 [REGION:tip]
-You can quickly create a Constant4Vector node by holding the **4** key and clicking in the graph area of the Material Editor.
+通过在材质编辑器的图形区域中按住 **4** 键并 **单击鼠标左键**，可快速创建 Constant4Vector（常量 4 矢量）节点。
 [/REGION]
 
 [/EXCERPT:Constant4Vector]
 
 [EXCERPT:DiscanceCullFade]
-## Distance Cull Fade
+(#DistanceCullFade)
+## Distance Cull Fade（距离剔除消退）
 
-The DistanceCullFade expression outputs a scalar value that fades from black to white and can be used to fade an object in once it comes within the cull distance. It should be noted that it does not fade the object out. 
+DistanceCullFade（距离剔除消退）表达式输出一个从黑色逐渐消退到白色的标量值，并可用于使对象进入剔除距离后逐渐消退。请注意，它不会使对象淡出。 
 
 ![DistanceCullFadeExample.png](DistanceCullFadeExample.png)
 
-This network will cause the object to fade in (instead of "popping") once the camera comes within the cull distance.
+这个网络将使对象在摄像机进入剔除距离后淡入（而非“跳入”）。
 
 [/EXCERPT:DiscanceCullFade]
 
@@ -133,88 +140,113 @@ This network will cause the object to fade in (instead of "popping") once the ca
 
 [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Particles#ParticleSpeed]
 
+(#PerInstanceFadeAmount)
+## PerInstanceFadeAmount（按实例消退量）
 
-## PerInstanceFadeAmount
-
-The PerInstanceFadeAmount expression outputs a float value associated with the amount of fade applied to an instanced Static Mesh, such as foliage. It is constant, but can be a different number for each individual instance of a mesh.
+**PerInstanceFadeAmount（按实例消退量）**表达式输出一个浮点值，该值与应用于实例化静态网格（例如植物叶子）的消退量相关联。它是常量，但对于网格的每个实例，可以是不同的数值。
 
 [REGION:note]
-This only works when applied to an InstancedStaticMesh Actor or other Actor which utilizes InstancedStaticMeshComponents.
+仅当应用于 InstancedStaticMesh（实例化静态网格）Actor 或其他利用 InstancedStaticMeshComponent（实例化静态网格组件）的 Actor 时，此表达式才有效。
 [/REGION]
 
-## PerInstanceRandom
+(#PerInstanceRandom)
+## PerInstanceRandom（按实例随机）
 
-The PerInstanceRandom expression outputs a different random float value per Static Mesh instance to which the material is applied. InstancedStaticMeshComponent sets a random float for instance, which is exposed so that it can be used for whatever is desired (e.g. random light level behind a window). It is constant, but different, for each instance of the mesh.
+**PerInstanceRandom（按实例随机）**表达式按材质所应用于的静态网格实例输出不同的随机浮点值。InstancedStaticMeshComponent（实例化静态网格组件）用于为实例设置随机浮点值，这个值将公开，以便可用于任何期望的内容（例如，窗外的随机光照水平）。它是常量，但对于网格的每个实例有所不同。
 
-The output value will be a whole number between 0 and RAND_MAX for the target platform.
+输出值将是介于 0 与目标平台的 RAND_MAX 之间的整数。
 
 ![](PerInstRandomResult.png)(h:402) ![](PerInstanceRandomGraph.png) 
 
 [REGION:note]
-This only works when applied to an InstancedStaticMesh Actor or other Actor which utilizes InstancedStaticMeshComponents.
+仅当应用于 InstancedStaticMesh（实例化静态网格）Actor 或其他利用 InstancedStaticMeshComponent（实例化静态网格组件）的 Actor 时，此表达式才有效。
 [/REGION]
 
 
 
 [EXCERPT:Time]
 (#Time)
-## Time
+## Time（时间）
 
-The Time node is used to add the passage of time to a material, such as a [Panner](Engine/Rendering/Materials/ExpressionReference/Coordinates#Panner), [Cosine](Engine/Rendering/Materials/ExpressionReference/Math#Cosine), or other time-dependent operation.
+**Time（时间）**节点用来向材质（例如，[Panner（平移）](Engine/Rendering/Materials/ExpressionReference/Coordinates#Panner)、[Cosine（余弦）](Engine/Rendering/Materials/ExpressionReference/Math#Cosine) 或其他时间相关操作）添加经历时间。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Properties[/REGION] ||
-| **Ignore Pause** | If _true_, time will continue to march on even if the game is paused. |
-| **Period** | If _true_, this will be the amount at which to wrap around time. On Mobile Materials, this will perform the Period computation on the CPU at full-precision, whereas on the GPU it will run at half precision (potentially having issues on periods longer than a minute). |
+| [REGION:tablesection]属性[/REGION] ||
+| **忽略暂停（Ignore Pause）** | 如果为 _true_，那么时间将一直推进，即使游戏暂停也是这样。|
+| **周期（Period）** | 如果为 _true_，那么这将是时间回绕前经过的时间量。针对移动材质，这将以全精度在 CPU 上执行周期计算，而在 GPU 上，将以半精度运行（处理长度超过一分钟的周期时，可能会产生问题）。|
 
 [REGION:fullwidth]
 ![TimeExample.png](TimeExample.png)
 [/REGION]
-The network described in the image above would create a Material that would change over time, constantly exhibiting a sinusoidal transition between white and black.  If you enable period, setting period to 0 will effectively stop the transition and 1 will be as if period was _false_.  Setting the number closer to 0 will make the material change at a more rapid pace.
+上图中说明的网络将创建一个随时间推移而变化的材质，从而连贯地展现白色与黑色之间的正弦曲线过渡。如果启用了时间段，那么将时间段设置为 0 会有效地停止过渡，而设置为 1 相当于时间段为 _false_。设置接近于 0 的数值将使材质更迅速地变化。
 
 
 [/EXCERPT:Time]
+(#TwoSidedSign)
+## TwoSidedSign（双面符号）
 
-## TwoSidedSign
-
-The TwoSidedSign expression is useful for flipping the normal on backfaces of two sided custom lighting materials to match the functionality of Phong. +1 for frontfaces, -1 for backfaces of a twosided material.
+**TwoSidedSign（双面符号）**表达式适合在双面定制照明材质的背面翻转法线，以便与冯氏（Phong）明暗处理算法匹配。+1 表示双面材质的正面，-1 表示背面。
 
 ![exp_twosidedsign.png](exp_twosidedsign.png)
 
+(#VertexColor)
+## VertexColor（顶点颜色）
 
-## VertexColor
+**VertexColor（顶点颜色）**表达式是材质的访问点，用于访问影响精灵粒子发射器的颜色模块的输出。
 
-The VertexColor expression is the access point for the material to the outputs of color modules affecting sprite particles emitters.
-
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Outputs[/REGION] ||
-| **RGB** | Outputs the three-channel RGB vector value of the color. |
-| **R** | Outputs the red channel of the color. |
-| **G** | Outputs the green channel of the color. |
-| **B** | Outputs the blue channel of the color. |
-| **A** | Outputs the alpha channel of the color. |
+| [REGION:tablesection]输出[/REGION] ||
+| **RGB** | 输出颜色的三通道 RGB 矢量值。|
+| **R** | 输出颜色的红色通道。|
+| **G** | 输出颜色的绿色通道。|
+| **B** | 输出颜色的蓝色通道。|
+| **A** | 输出颜色的阿尔法通道。|
 
 ![](VertexColorExample.png)
 
-The network above would utilize color and alpha data directly from a Particle System. Such networks are ideal for special effects such as sparks.
+以上网络将利用直接来自粒子系统的颜色和阿尔法数据。此类网络特别适合于实现火花等特殊效果。
 
 (#ViewProperty)
-## View Property
+## ViewProperty（视图属性）
 
-The ViewProperty expression outputs a view dependant constant property such as the field of view or the render target size. The view property to be accessed can be configured, and the type of the output depends on the configured accessed property.
+ViewProperty（视图属性）表达式输出依赖于视图的常量属性，例如视野或渲染目标大小。要访问的视图属性可配置，并且，输出类型取决于所配置的待访问属性。
 
 [REGION:fullwidth]
 ![ViewPropertyExample.png](ViewPropertyExample.png)
 [/REGION]
 
-Here is the example with a field of view of 50 degrees.
+在此示例中，视野为 50 度。
 [REGION:fullwidth]
 ![ViewPropertyExampleFOV50.png](ViewPropertyExampleFOV50.png)
 [/REGION]
 
-Here is the same example with a field of view of 90 degrees.
+这是同一示例，其视野为 90 度。
 [REGION:fullwidth]
 ![ViewPropertyExampleFOV90.png](ViewPropertyExampleFOV90.png)
 [/REGION]
+
+## PrecomputedAOMask（预先计算的 AO 蒙版）
+
+**PrecomputedAOMask（预先计算的 AO 蒙版）**节点用来访问材质中光照系统计算的环境光遮蔽 (AO)，
+ 这可能很适合于过程式纹理贴图，或者在老化效果及尘埃随时间推移而缓慢积累的区域加入老化效果及尘埃。
+
+[region:note]
+您必须先使用光照系统来建立您所在关卡的照明，然后才能看到 PrecomputedAOMask（预先计算的 AO 蒙版）的结果。
+[/region]
+
+![](PrecompitedAOMas_00.png)
+
+以上截屏使用 AO 蒙版让尘埃层自动混合到环境的角落。
+要使用 AO 蒙版，您需要同时启用 **全局设置（World Settings） -> 光照系统设置（Lightmass settings）**下的 **使用环境光遮蔽（Use Ambient Occlusion）**和 **生成环境光遮蔽材质蒙版（Generate Ambient Occlusion Material Mask）**，然后建立照明。 
+**最大遮蔽距离（Max Occlusion Distance）**等其他 AO 控制对于调整 AO 外观来说可能非常有用。 
+并且，请确保将 **直接遮蔽小数（Direct Occlusion Fraction）**和 **间接遮蔽小数（Indirect Occlusion Fraction）**都设置为 **0**，以使此 AO 不会应用于实际关卡照明。
+
+![](PrecompitedAOSettings_00.png)
+
+您可使用 **PrecomputedAOMask（预先计算的 AO 蒙版）**材质表达式节点来访问任何材质中的 AO。 
+PrecomputedAOMask（预先计算的 AO 蒙版）作为 0 到 1 蒙版工作，其中 1 提供受 AO 影响的区域，而 0 提供不受影响的区域。
+在下图中，您可以了解如何设置材质以利用 PrecomputedAOMask（预先计算的 AO 蒙版）。
+
+![](PrecomputedAO_Material_00.png)

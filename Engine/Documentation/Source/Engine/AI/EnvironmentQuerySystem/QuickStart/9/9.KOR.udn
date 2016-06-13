@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2604304
+﻿INTSourceChangelist:2654747
 Availability:Public
 Title: 9. 비헤이비어 트리 구성
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
 Description: EQS 퀵스타트 비헤이비어 트리 구성입니다.
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -76,7 +77,7 @@ Description: EQS 퀵스타트 비헤이비어 트리 구성입니다.
 
 	![](setEqs2props.png)
 
-1. 두 번째 **Run EQS Query Node** 의 오른쪽에 배치합니다.
+1. 첫 번째 **Run EQS Query Node** 의 오른쪽에 배치합니다.
 1. [REGION:raw]**Move To Node** 를 생성합니다 (그래프 영역에 우클릭 %arrow% **Tasks** %arrow% **Move To**)[/REGION]
 
 	![](addMoveTo.png)

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2629334
+﻿INTSourceChangelist:2940199
 Availability:Public
 Title:삼성 기어 VR 글로벌 메뉴
 Crumbs:%ROOT%, Platforms
@@ -8,6 +8,10 @@ Platform:Gear VR
 Skilllevel: Intermediate
 Version: 4.8
 prereq: Engine\Blueprints\GettingStarted
+type:overview
+parent:Platforms/GearVR
+tags:VR
+tags:GearVR
 
 Gear VR 프로젝트를 Oculus Store 에 통과시키기 위해선 프로젝트가 준수해야 하는 요구사항이 있습니다.
 그 중 하나는 누군가 자신의 프로젝트를 사용중일 때 뒤로가기 버튼을 0.75 초 이상 누르고 있으면 기어 VR 글로벌 메뉴에 접근할 수 있어야 한다는 것입니다.

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2615847
+﻿INTSourceChangelist:2716608
 Availability: Public
 Title:레벨 디자인 콘텐츠 예제
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -7,7 +7,7 @@ Related: Engine/Actors/Brushes
 Related:Engine/UI/LevelEditor
 Related: Engine/UI/LevelEditor/Modes
 Related: Engine/Actors/Volumes
-
+Version: 4.9
 
 
 [REGION:banner]

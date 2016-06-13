@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2421168
+﻿INTSourceChangelist:2699746
 Availability:Public
 Title:캐릭터
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework, Gameplay/Framework/Pawn
@@ -9,6 +9,7 @@ Related: Gameplay/Framework/GameMode
 Related: Engine/Animation/RootMotion
 Related: Engine/Animation/CharacterSetupOverview
 Related: Gameplay/HowTo/CharacterMovement
+Version: 4.9
 
 
 `CharacterMovementComponent`, `CapsuleComponent`, **SkeletalMesh** 의 추가를 통해 Pawn 클래스는 매우 특징적인 Character (캐릭터) 클래스로 확장됩니다.

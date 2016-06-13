@@ -1,251 +1,98 @@
-﻿INTSourceChangelist:2553123
+﻿INTSourceChangelist:2701420
 Availability:Public
-Title:ブループリントでポーンを所有する方法
+Title:ブループリントでポーンを所有する
 Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/PossessPawns
-Description:ブループリントでキャラクター間の切替えや様々なタイプのポーンを所有する方法のガイド
+Description:ブループリントで Possess ノードを使って、複数のキャラクター間で切り替えて、制御する方法を説明します。 
+Version:4.8
+SkillLevel:Intermediate
+Related:Engine/Blueprints
+Related:Gameplay/Framework/Pawn
+Related:Gameplay/Framework/Pawn/Character
+Related:Engine/Basics/Projects/Browser
+Related:Gameplay/Framework/Controller/PlayerController
 
-[TOC (start:2)]
+**Possess** と **UnPossess** の [ブループリント](Engine/Blueprints) ノードを使って、プロジェクトの [ポーン](Gameplay/Framework/Pawn) や [キャラクター](Gameplay/Framework/Pawn/Character) を制御し、入力を与えます。  
 
-## 概要
-
-このページでは、レベル内での **ポーンの所有** と複数キャラクター間の切り替え方法について学習します。**ブループリント** を使用して、サードパーソン キャラクタから切り替えて、運転可能なビークル (乗り物) に出入りする方法についても学習します。 
+[REGION:note]
+このガイドの目的上、 **Blueprint Side Scroller** テンプレートを使用しますが、皆さんの独自のプロジェクトをお使いいただくこともできます。プロジェクトの作成およびテンプレートの使用の方法がわからない場合は、 [プロジェクト ブラウザ](Engine/Basics/Projects/Browser) ページで詳しい情報をご覧ください。 
+[/REGION]
  
-## 複数キャラクター間で切り替える
+## ステップ
 
-以下は、**Level ブループリント** を使用して複数キャラクター間で切り替える手順です。 
+1. **コンテンツ ブラウザ** から、制御するキャラクターを追加でレベルにドラッグします。 
 
-_以下の手順は、**Blueprint Side Scroller Template** プロジェクトの使用に基づいていますが、必要に応じて他のプロジェクトを使用することもできます。_
+	![](Pawns1b.png)(w:860)
 
-1.	プロジェクト内で、制御する追加のキャラクターをレベルにドラッグします。 
+	ここでは、 **「Content > SideScrollerBP > Blueprints」** フォルダから 2 つの **SideScrollerCharacter** をレベルに追加し、キャラクターは合計 3 つになりました。この特定のテンプレート プロジェクトでは、デフォルトでキャラクターは既にレベル内に配置されています。 
 
-	![](GHT4B_1.png)
+1.	**ワールド アウトライナー** で、制御対象の各キャラクターを選択します。 
 
-	ここでは、2 つの **MyCharacter** ブループリントをレベルに追加しました。 
+	![](Pawns2b.png)
 
-1.	レベル内で各キャラクターを選択します (前の手順でレベルに追加した 2 つのキャラクター)。 
+1. メイン ツールバーで **[ブループリント]** ボタンをクリックして、**[Open Level Blueprint]** を選択します。 
 
-	![](GHT4B_3.png)
+	![](Pawns3b.png)
 
-1.	メイン ツールバー で **[ブループリント]** ボタンをクリックして、**Open Level ブループリント** を選択します。 
+1. グラフ エリア内で **右クリック** し、コンテキスト メニューから **[Create References to selected Actors]** オプションを選択します。 
 
-	![](GHT4B_2.png)
+	![](Pawns4b.png)(w:640)
 
-1.	グラフ エリア内で **右クリック** し、**[Add references to selected actors]** オプションを選択します。 
+	これで、レベルで選択した各キャラクターを参照することができます。 
 
-	![](GHT4B_4.png)
+1. グラフ エリアで **右クリック** して、**1** Keyboard Event を検索して選択します。 
 
-	これで、ボタンを押すとキャラクターを参照し、所有することができます。 
+	![](Pawns5b.png)(w:640)
 
-1.	グラフ内で **右クリック** して、**Event Begin Play** ノードを追加します。再度 **右クリック** して **Get Player Character** ノードを追加します。  
+	1 キーを押すか、1 キーを開放すると常にイベントを発行させることができます。 
 
-1.	**Get Player Character** の **Return Value** からドラッグして、 **Cast To SideScrollerCharacter** ノードを追加します。 
+1. **2** と **3** のKeyboard Event をグラフに追加します。 
 
-	![](GHT4B_5.png)
+1. グラフ内で **右クリック** し、 **Get Player Controller** ノードを検索して追加します。 
 
-	デフォルト キャラクターへの参照を保存し、ボタンを押したときに切り替えることができるようにします。 
+	![](Pawns6b.png)(w:640)
 
-1.	 **As SideScrollerCharacter** ピンからドラッグして、**Promote to variable** を選択し、変数 **DefaultCharacter** を呼び出します。 
+	[プレイヤー コントローラー](Gameplay/Framework/Controller/PlayerController) を使用して、人プレイヤーからの入力を受け取り、それをポーンのアクションに変換します。 
 
-	![](GHT4B_6.png)
+1. **左クリック** して、Get Player Controller ノードの **Return Value** からドラッグして、**Possess** ノードを検索して追加します。 
 
-1.	グラフ内を **右クリック** して、**1** Key Event、**2** Key Event、**3** Key Event のノードを探して追加します。 
+	![](Pawns7b.png)(w:640)
 
-1.	**Control** キーを押しながら、上記で作成した **DefaultCharacter** 変数をドラッグします。 
+	これにより、プレイヤー コントローラーに対して、どのターゲット ポーンを所有し、制御するかを指示します。**Possess** 関数が呼び出されると、ポーンが現在制御されているかを自動的にチェックし、まずそれを **UnPossess (所有を解除)** してから、新しいポーンを所有しようとします。 
 
-	![](GHT4B_7.png)
+	プレイヤーのポーンの制御を解除させて、例えばプレイ可能なキャラクターを直接制御しないステートのスペクテーター (観戦者) タイプにする場合には、 UnPossess 関数を使用することができます。 
 
-	1 を押すと、デフォルト キャラクターに切り替わり、 2 を押すと 2 番めのキャラクター、3 を押すと 3 番めのキャラクターに切り替わります。 
+1. あと 2 つ **Possess** ノードを作成して、以下のように **1**、**2**、および **3** の Keyboard Event を接続します。 
 
-1.	グラフ内を **右クリック** して、**Possess** ノードを探して追加します。 
+	![](Pawns8.png)(w:640)
 
-	![](GHT4B_8.png)
+	1、2、 または 3 が押されたら、ポーンを所有するようにセットアップします。次に、参照からどのポーンを所有するかを定義する必要があります。 
 
-	ノードをリストに表示させるようにするには、**Context Sensitive** オプションのチェックを外す必要があるかもしれません。 
+1. **SideScrollerCharacter** 参照のそれぞれを以下のように **In Pawn** ピンに接続します。 
 
-1.	各キャラクターを **In Pawn** ピンと **Possess** ノードのそれぞれの **Key Events** に接続します。 
+	![](Pawns9.png)(w:640)
 
-	![](GHT4B_9.png)
+	スクリプティングした機能が完成し、テストする準備が整いました。 
 
-1.	グラフ内で **右クリック** して、**Get Player Controller** ノードを追加し、それを各 **Target** ピンに接続します。 
+1. ツールバーから **Compile** をクリックして、スクリプトを更新します。 
 
-	![](GHT4B_10.png)(w:760)
+	![](Pawns10b.png)
 
-	**Possess** ノードは **Player Controller** をターゲットとし、ここではデフォルトのプレイヤー コントローラをターゲットに割り当てます (Player Controller ブループリントを持っている場合は、それに **Cast To** してターゲットに接続することができます。この例では、デフォルトのコントローラを使用しています)。 
+1. ツールバーから **[Play (再生)]** をクリックしてエディタでゲームを再生します。 
 
-1.	**Compile** ボタンをクリックしてブループリントをコンパイルします。次に、メインツールバーから **Play** ボタン をクリックしてエディタで再生します。 
+	![](Pawns11b.png)
 
-	![](GHT4B_11.png)
+## 最終結果
 
-エディタで再生する場合、1、2、または 3 のキーを押してレベル内の 3 種類のキャラクター間を循環できます。 
+キーボードで 1、 2、 または 3 を押すと、レベル内の各キャラクターの間で切り替わります。 
 
-
-
-
-## ビークルに出入りする
-
-以下は、サードパーソン キャラクターを運転可能なビークルに出入りさせる手順です。 
-
-_この例は、**Blueprint 3rd Person and Vehicle Template** プロジェクトの使用に基づいていますが、必要に応じて他のプロジェクトを使用することもできます。_
-
-1.	**Blueprint Vehicle Template** と **Blueprint 3rd Person Template** プロジェクトを作成します。 
-
-1.	**Blueprint 3rd Person** プロジェクト内の **Game/Blueprints** で **ThirdPersonCharacter** ブループリント上で **右クリック** し、**Migrate** (**Asset Actions** 内にあります) を選択します。 
-
-	![](GHT4B_12.png)
-
-	このブループリントを **Vehicle** プロジェクトの **「MyDocuments/Unreal Projects/ProjectName/Content」** フォルダに移動します。 
-
-1.	**Vehicle プロジェクト** 内でメインツールバーから **World Settings** オプションを開きます。 
-
-1.	**Game Mode** で、**ThirdPersonCharacter** ブループリントを使用するように **Default Pawn Class** を設定します。
-
-	![](GHT4B_13.png)
-
-	これはデフォルト プレイヤー キャラクターがビークルの代わりにサードパーソン キャラクターを使用することを表しています。 
-
-1.	**Project Settings** で **Input** セクションを探して、以下でハイライトされているバインディングを追加します。
-
-	![](Bindings.png)
-
-	これらはサードパーソン キャラクターを制御するために使用された必要なバインディングです。**Scale** 値を画面のように設定したことを確認してください (お好みの制御方法に合わせたい場合は、これらは後で変更できます)。 
-
-1.	**コンテンツ ブラウザ** の **Game/Sedan** で **Sedan** ブループリントを開きます。 
-
-1.	**[コンポーネント]** タブをクリックし、**[コンポーネント]** ウィンドウで **[Add Component]** をクリックし、**[Arrow]** と **[Box]** を追加します。
-
-1.	 Arrow **SpawnLocation** と Box **Trigger** に名前を付けて、ドライバー側のドアの近くに移動します。 
-
-	![](GHT4B_15.png)
-
-	ボックスがトリガーとして機能する一方で、ビークルを出るときに矢印はキャラクターの位置を定め、キャラクターがビークルに入るのに十分近くにいるかを決めます。トリガー内でプレイヤーはボタンを押してビークルに入りますが、トリガーの外側ではビークルに入ることはできません。 
-
-	![](GHT4B_16.png)
-
-	ドライバー側のドアの近くにボックス トリガーを移動し、矢印はボックスの外側に移動しました。 
-
-1.	**SpawnLocation** (矢印) について 、**[詳細]** パネルの **Location** で **Z** を **131.0** に設定します。 
-
-1.	**コンテンツ ブラウザ** で、**「ゲーム / ブループリント」** フォルダで **ThirdPersonCharacter** ブループリントを開きます。 
-
-1.	**WheeledVehicle** タイプの **Car** と呼ばれる変数と、**NearCar** と呼ばれる **Bool** 変数を追加します。 
-
-	![](GHT4B_17.png)
-
-	ここでは、car への参照を get して、それを **Car** 変数に割り当てます。プレイヤーが **Sedan** ブループリントにある **Trigger** に入ったら **NearCar** を _true_ に set します。これは、プレイヤーがボタンを押して車に入ることを許可するかを決めます。 
-
-1.	**Sedan** ブループリントに戻り、**Player** という **Character** 変数を追加します。 
-
-	![](GHT4B_18.png)
-
-1.	**Trigger** ボックス上で **右クリック** して、**OnComponentBeginOverlap** イベントと **OnComponentEndOverlap** イベントの両方を追加します。 
-
-	![](GHT4B_19.png)
-
-1.	グラフ内で **OnComponentBeginOverlap** ノードの **Other Actor** ピンからドラッグして、**Cast To ThirdPersonCharacter** ノードを追加します。 
-
-1.	**As My Character C** ピンから **Set Near Car** 変数を追加し、チェックボックスをクリックしてそれを **True** に set します。 
-
-	![](GHT4B_20.png)(w:780)
-
-	**Cast To** ノードを使用して **ThirdPersonCharacter** ブループリントにある変数にアクセスし、更新することができます。 
-
-1.	再度 **As My Character C** からドラッグして、**Set Car** ノードを追加し、**Car** ピンをドラッグして、**Get Reference To Self** ノードを追加します。 
-
-	[REGION:lightbox]
-	[![](GHT4B_21.png)(w:780)](GHT4B_21.png)
-	[/REGION]
-
-	_画像をクリックしてフルサイズで表示_
-
-	ここでは、**Sedan** ブループリントへの参照を作成し、それを **ThirdPersonCharacter** ブループリント内の変数に割り当てます。**Trigger** ボックス内にいることを示すテキストと合わせて最後の部分に **Print String** ノードも追加できます (これを **車に入るため** に設定します)。 
-
-1.	**OnComponentEndOverlap** ノードの **Other Actor** ピンから、**Cast To ThirdPersonCharacter** にドラッグします。 
-
-1.	**As My Character C** ピンから **Set Near Car** ノードを追加し、チェックボックスにチェックを入れないままにしてそれを **False** に set します。 
-
-	![](GHT4B_22.png)
-
-1.	**MyBlueprint** ウィンドウで、**Control** キーを押しながら、**SpawnLocation** 変数と **Player** 変数をドラッグします。 
-
-	![](GHT4B_29.png)
-
-1.	グラフ内で **右クリック** して、**E** キー イベントを追加し、それを **Set Actor Transform** ノードに接続します。 
-
-1.	**SpawnLocation** 変数からドラッグし、**Context Sensitive** のチェックを外し、**Get World Transform** ノードを追加します。 
-
-1.	**Get World Transform** を、**Set Actor Transform** ノードに接続します。 
-
-1.	**Player** 変数を、**Set Actor Transform** ノードの **Target** に接続します。 
-
-	![](GHT4B_23.png)
-
-	最後のいくつかの手順は上記に類似した結果になります (プレイヤー ノードの追加のワイヤーについてはまだ気にしないでください)。 
-
-1.	**Player** 変数からドラッグして、**Set Actor Hidden in Game** ノードを追加します (チェックボックスにチェックを入れないままにします)。 
-
-1.	再度、**Player** 変数からドラッグして、**Set Actor Enable Collision** ノードを追加します (コリジョンを有効にするには、チェックボックスにチェックを入れます)。 
-
-1.	グラフ内を **右クリック** して、**Possess** ノードを追加します。
-
-	![](GHT4B_30.png)
-
-	**Possess** ノードにアクセスするには、リストに表示するために **Context Sensitive** オプションのチェックを外す必要があるかもしれません。 
-
-1.	**Player** 変数を **Possess** ノードの **In Pawn** に接続し、**Target** からドラッグして **Get Player Controller** ノードを追加します。
-
-1.	以下のように残りのすべてのノードを接続します。 
-
-	[REGION:lightbox]
-	[![](GHT4B_24.png)(w:780)](GHT4B_24.png)
-	[/REGION]
-
-	_画像をクリックしてフルサイズで表示_
-
-1.	**ThirdPersonCharacter** ブループリントを開き、グラフで **E** キーイベントを追加し、**Pressed** ピンを **Branch** ノードに追加します。 
-
-1.	**Control** を押した状態で **NearCar** 変数内でドラッグしてそれを **Branch** condition に接続します。 
-
-1.	グラフ内を **右クリック** して、**Possess** ノードを追加します (リストに表示されていなければ、**Context Sensitive** のチェックを外します)。 
-
-1.	**Control** を押した状態で **Car** 変数をドラッグしてそれを **Possess** ノードの **In Pawn** ピンに接続します。 
-
-1.	**Possess** ノードの **Target** からドラッグして、**Get Player Controller** ノードを追加します。グラフは以下のようになるはずです。 
-
-	![](GHT4B_25.png)
-
-1.	**Possess** ノードの後に **Set Actor Hidden in Game** ノード (_True_ に set) を追加します。続いて **Set Actor Enable Collision** (_False_ に set) を追加します。 
-
-1.	**Car** 変数からドラッグして **Context Sensitive** オプションに再度チェックを入れます。 
-
-1.	 **Cast To Sedan** ノードを探して **Set Actor Enable Collision** ノードの後に追加します。 
-
-1.	**As Sedan C** ピンからドラッグして **Set Player** ノードを追加します。次に、**Player** からドラッグして **Get Reference To Self** ノードを追加します。
-
-1.	**ThirdPersonCharacter** のフルシーケンスは次のようになるはずです。 
-
-	[REGION:lightbox]
-	[![](GHT4B_26.png)(w:780)](GHT4B_26.png)
-	[/REGION]
-
-	_画像をクリックしてフルサイズで表示_
-
-	ここでは、**E** を押すと (**NearCar** が _True_ の場合。これは **Sedan** ブループリントでトリガーボックスを入力して設定)、車を 所有し、**ThirdPersonCharacter** アクタをゲーム内で非表示にし、コリジョンを取り除きます。これで **Sedan** ブループリントに対して、ブループリントの **Player** 変数が **ThirdPersonCharacter** ブループリントを参照し、ビークルから出るときに **ThirdPersonCharacter** に戻ることができるように指示します。 
-
-1. レベル内に既に Sedan が存在する場合は、削除してください。次に、**コンテンツ ブラウザ** から **Sedan** ブループリントをレベルにドラッグします。 
-
-1.	メインツールバーから **Compile** をクリックし、**Play** を押してエディタで再生します。以下のように再生されるはずです。 
-
-	![](GIF1.gif)(convert:false)
-
-	[REGION:note]
-	この例は、ビークルに出入りするアプローチ方法を実演する開始点となることを意図したものです。こうした実装では、斜面のビークルを出たり、ジャンプしてビークルから出る際に問題が生じる場合があります。
-	[/REGION]
-
-	**Sedan** ブループリント内で、**Break Transform** にスクリプトのセクションを追加し、**Spawn Location** マーカーの **Pitch** と **Roll** をゼロにします。これは、傾斜していたり、飛行中のビークルを出るときのキャラクターの向きを調整するのに役立ちます。 
-
-	[REGION:lightbox]
-	[![](GHT4B_Add.png)(w:780)](GHT4B_Add.png)
-	[/REGION]
-
-	_画像をクリックしてフルサイズで表示_
-
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+RFgeogZOnvQ
+[/PARAMLITERAL]
+[/OBJECT]

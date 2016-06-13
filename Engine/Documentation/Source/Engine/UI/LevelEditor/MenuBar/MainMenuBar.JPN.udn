@@ -1,11 +1,12 @@
-﻿INTSourceChangelist:2538023
+﻿INTSourceChangelist:2691917
 Availability:Public
 Title:メインメニュー バー
 Crumbs:%ROOT%, Engine, Engine/UI
 Description:エディタでの作業時に使用する一般的なツールやコマンドを含むメニュー
+Version:4.9
 
 [EXCERPT:Intro]
-Windows アプリケーションを使用したことがあれば、エディタの **メニュー バー** は見慣れているはずです。このメニューバーでエディタのレベルでの作業中に、一般的なツールおよびコマンドを利用できます。
+Windows アプリケーションを使用したことがあれば、エディタの **メニュー バー** は見慣れているはずです。このメニューバーからエディタのレベルでの作業中に、一般的なツールおよびコマンドを利用できます。
 [/EXCERPT:Intro]
 
 ![](MainMenubar.png)
@@ -19,27 +20,27 @@ Windows アプリケーションを使用したことがあれば、エディタ
 | **Open Level** | 既存レベルをロードします。 |
 | **Save** | 現在のレベルをディスクに保存します。 |
 | **Save As** | 任意の名前で現在の永続的なマップを保存します。 |
-| **Save All Levels** | ストリーミング レベルを含む、ロード済みの未保存レベルとアセットを保存します。 |
+| **Save All Levels** | ストリーミング レベルを含む、未保存のロードされたレベルを保存します。 |
 | **Open Asset** | アセットピッカーを呼び出します。 |
 | **Save All** | 全ての未保存レベルとアセットを保存します。 |
-| **Choose Files to Save** | 保存オプションでコンテンツ用にダイアログを開きます。 |
-| **Submit to Source Control** | コンテンツとレベル用オプションにチェックを入れてダイアログを開きます。 |
+| **Choose Files to Save** | レベルとコンテンツのための保存オプションがあるダイアログを開きます。 |
+| **Submit to Source Control** | コンテンツとレベルのためのチェックイン オプションがあるダイアログを開きます。 |
 | [REGION:tablesection]**プロジェクト**[/REGION] ||
-| **New Project** | 新規ゲームプロジェクトを作成するためにダイアログを開きます。 |
-| **Open Project** | 開くゲームプロジェクトを選択するためにダイアログを開きます。 |
-| **Add Code To Project** | C++ コードをプロジェクトに追加します。Visual Studio がインストールされている場合、C++ コードはコンパイルのみ可能となります。
-| **Cook Content** | プロジェクトのコンテンツを特定のプラットフォーム用にクックします。Visual Studio からコードベースのプロジェクトを実行する場合に便利です。 |
-| **Package Project** | プロジェクトとディストリビューション用コンテンツのコンパイル、クック、パッケージを行います。 |
+| **New Project** | 新規ゲームプロジェクトを作成するためのダイアログを開きます。 |
+| **Open Project** | 開くゲームプロジェクトを選択するためのダイアログを開きます。 |
+| **Add Code To Project** | C++ コードをプロジェクトに追加します。Visual Studio がインストールされている場合に限り、C++ コードはコンパイル可能となります。
+| **Cook Content** | プロジェクトのコンテンツを特定のプラットフォーム用にクックします。Visual Studio からコー ドベースのプロジェクトを実行する場合に便利です。 |
+| **Package Project** | プロジェクトとそのコンテンツを配布用にコンパイル、クック、パッケージングします。 |
 | **Open Visual Studio** | Visual Studioで C++ コードを開きます。 |
 | **Refresh Visual Studio Project** | Visual Studio で C++ コードをリフレッシュします。|
 | [REGION:tablesection]**アクタ**[/REGION] ||
 | **Import** | T3D 形式から現在のレベルへ、オブジェクトとアクタをインポートします。 |
 | **Export All** | レベル全体をディスクのファイルにエクスポートします (複数形式に対応) |
-| **Export Selected** | 現在選択中のオブジェクトを、単一ファイルとしてエクスポートします (複数形式に対応)。 |
+| **Export Selected** | 現在選択中のオブジェクトを、ディスクのファイルにエクスポートします (複数形式に対応)。 |
 | [REGION:tablesection]**アプリケーション**[/REGION] ||
 | **Add Level To Favorites** | 現在ロードされているレベルをお気に入りレベルのリストに表示するかどうかを設定します。 |
 | **Recent Levels** | ロードするレベルを選択します。 |
-| **Recent Projects** | 切り替えるプロジェクトを選択します。 |
+| **Recent Projects** | 切り替え先のプロジェクトを選択します。 |
 | **Exit** | アプリケーションを終了します。 |
 
 ## 編集
@@ -53,7 +54,8 @@ Windows アプリケーションを使用したことがあれば、エディタ
 [VAR:EditConfig]
 | [REGION:tablesection]**コンフィギュレーション**[/REGION] ||
 |**Editor Preferences**| エディタの動作と機能を設定します。詳細は [](Engine/UI/EditorSettings) を参照してください。 |
-|**Project Settings**| 現在ロード中のプロジェクト設定を変更します。詳細は [](Engine/UI/ProjectSettings) を参照してください。 |
+|**Project Settings**| 現在ロードされているプロジェクト設定を変更します。詳細は [](Engine/UI/ProjectSettings) を参照してください。 |
+|**Plugins**| プラグイン ブラウザを開きます。このブラウザで、現在のプロジェクトに対してプラグインを有効、無効にすることができます。 |
 [/VAR]
 
 
@@ -61,45 +63,45 @@ Windows アプリケーションを使用したことがあれば、エディタ
 | ------- | ----------- |
 %edithistory%
 | [REGION:tablesection]**編集**[/REGION] ||
-| **Cut** | 選択対象を切り取ります。 |
-| **Copy** | 選択対象をコピーします。 |
+| **Cut** | 選択したものを切り取ります。 |
+| **Copy** | 選択したものをコピーします。 |
 | **Paste** | クリップボードの内容を貼り付けます。 |
-| **Duplicate** | 選択対象を複製します。 |
-| **Delete** | 現在の選択対象を削除します。 |
+| **Duplicate** | 選択したものを複製します。 |
+| **Delete** | 現在選択したものを削除します。 |
 %editconfig%
 
 ## ウィンドウ
 
 | コマンド | 説明 |
 | ------- | ----------- |
-|**Details**| **[詳細]** パネルを表示して、選択対象の各種プロパティへのアクセスを提供します。最高 4 つまでの**[詳細]** パネルを同時に表示できます。|
-|**Viewports**| ゲームの 3D ワールドのビューであるビューポートを表示します。ビューポートは最高 4 つまで表示できます。|
-|**Build and Submit**| レベルにライトを作成し、そのレベルを保存し、ソースコントロールへサブミットするための **[Build and Submit]** パネルを開きます。|
-| **Layers** | レベルを一連の表示レイヤに分割する **[Layers]** パネルを開きます。 |
+|**Details**| **[Details (詳細)]** パネルを表示して、選択したオブジェクトの各種プロパティへのアクセスを提供します。最高 4 つまでの**[詳細]** パネルを同時に表示できます。|
+|**Viewports**| ゲームの 3D ワールドのビューであるビューポートを表示します。ビューポートは最高 4 つまで同時に表示できます。|
+|**Hierarchical LOD Outliner**| HLOD 設定を表示し、クラスタを生成できるようにします。|
+| **Layers** | レベルを一連の表示レイヤーに分割する **[Layers]** パネルを開きます。 |
 | **Levels** | 永続レベルと全てのストリーミング レベルを表示する**[Levels]** パネルを開きます。 |
-| **Modes** | ランドスケープとフォリッジなどの特殊なレベル編集ツールにアクセスする **[Modes]** パネルを表示します。 |
-| **World Outliner** | 現在レベル内にある全てのアクタの階層的分類である **ワールド アウトライナー** を開きます。 |
-| **Statistics** | レベルに対する各種パフォーマンス統計情報へのアクセスを提供する **[Statistics]** パネルを表示します。
-| **Toolbar** | レベル編集中に実行する各種共通関数を含むツールバーを表示します。 |
+| **Modes** | ランドスケープやフォリッジなどの特殊なレベル編集ツールにアクセスする **[Modes]** パネルを表示します。 |
+| **World Outliner** | 現在レベル内にある全てのアクタを階層的に分類した **ワールド アウトライナー** を開きます。 |
+| **Statistics** | レベルに対する各種パフォーマンスの統計情報を利用できる **[Statistics]** パネルを表示します。
+| **Toolbar** | レベル編集中に使用する各種機能を含むツールバーを表示します。 |
 | **World Settings** | 現在編集中のレベルに特化した設定を検索するための **[World Settings]** パネルを表示します。 |
 %commonwindowmenu%
 
 [VAR:CommonWindowMenu]
 | [REGION:tablesection]** **[/REGION] ||
-| **コンテンツ ブラウザ** | コンテンツ アセットで作業するために最高 4 つまで別々に [コンテンツ ブラウザ](Engine/Content/Browser) を開きます |
-| **Developer Tools** | このエンジンとエディタで作業するプログラマにとって有用な様々なツールにアクセスすることができます。 |
+| **コンテンツ ブラウザ** | コンテンツのアセットで作業するために最高 4 つまで別々に [コンテンツ ブラウザ](Engine/Content/Browser) を開きます |
+| **Developer Tools** | エンジンやとエディタで作業するプログラマにとって有用な様々なツールにアクセスすることができます。 |
 | **Blueprint Debugger** | [](Engine/Blueprints/UserGuide/Debugging) パネルを開きます。 |
-| **Class Viewer** | [](Engine/UI/ClassViewer) を開き、**アクタ** のインスタンスをマップに追加し、**ブループリント** を作成します。 |
-| **Message Log** | 各種特殊情報ログが含まれる **Message Log** を開きます。常に 1 つの **Message Log** のみが存在可能です。 |
-| **Output Log** | 新しい **Output Log** を開きます。常に 1 つの **Output Log** のみが存在可能です。 |
-| **Plugins** | プラグインのブラウザタブを開きます。 |
+| **Class Viewer** | **アクタ** のインスタンスをマップに追加し、**ブループリント** を作成するための [](Engine/UI/ClassViewer) を開きます。 |
+| **Message Log** | 様々な専門的な情報ログが含まれる **Message Log** を開きます。一度に 1 つの **Message Log** だけが存在します。 |
+| **Output Log** | 新しい **Output Log** を開きます。一度に 1 つの **Output Log** だけが存在します。 |
+| **Plugins** | プラグインのブラウザ タブを開きます。 |
 | [REGION:tablesection]**Unreal Frontend**[/REGION] ||
 | **Device Manager** | [デバイス マネージャ] タブを開きます。|
-| **Session Frontend** | [オートメーション システム](Programming/Automation)、 Unreal Console などにアクセスを提供する [](Engine/Deployment/UnrealFrontend) ツールを開きます。 |
+| **Session Frontend** | [オートメーション システム](Programming/Automation)、 Unreal Console などへのアクセスを提供する [](Engine/Deployment/UnrealFrontend) ツールを開きます。 |
 | [REGION:tablesection]**Layout**[/REGION] ||
 | **Reset Layout** | ユーザー設定のバックアップを作成してカスタマイズしたレイアウトをリセットします。
 | **Save Layout** | 現在のユーザーインターフェース (UI) のレイアウトを保存します。 |
-| **Enable Fullscreen** | エディタを最大画面と通常画面に切り替えます。 |
+| **Enable Fullscreen** | エディタを最大画面と通常モードとの間で切り替えます。 |
 [/VAR]
 
 ##ヘルプ
@@ -111,8 +113,8 @@ Windows アプリケーションを使用したことがあれば、エディタ
 | **API Reference** | API リファレンスのドキュメントを開きます。 |
 | **Viewport Controls** | ビューポート コントロールのカンニング シートを開きます。 |
 | [REGION:tablesection]**チュートリアル**[/REGION] ||
-| アンリアル エンジン 4 のエディタ使用の基礎の入門チュートリアルを開きます。 ||
+| アンリアル エンジン 4 のエディタ使用の基礎となる入門チュートリアルを開きます。 ||
 | [REGION:tablesection]**Online**[/REGION] ||
-| エピック ゲームズとアンリアル エンジンのサポート サイトへのリンクを含みます。 ||
+| エピック ゲームズとアンリアル エンジンのサポート サイトへのリンクがあります。 ||
 | [REGION:tablesection]**アプリケーション**[/REGION] ||
 | **About Unreal Editor** | エンジンのバージョン情報を表示する [About] ダイアログを開きます。 |

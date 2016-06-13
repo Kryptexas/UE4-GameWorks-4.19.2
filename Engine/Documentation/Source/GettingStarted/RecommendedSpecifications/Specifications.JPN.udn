@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2719371
+﻿INTSourceChangelist:2858962
 Availability:Public
 Title:ハードウェア＆ソフトウェアの仕様
 SEO-Title:ハードウェア＆ソフトウェア仕様
@@ -6,9 +6,7 @@ Crumbs: %ROOT%, GettingStarted
 Description:アンリアル エンジンを用いた開発に必要なハードウェアの最低限スペックと推奨スペック及び必須のソフトウェア
 version:4.9
 
-[PUBLISH:Rocket]
 %Globals:OSSelect_Linux%
-[/PUBLISH:Rocket]
 
 [TOC(start:2)]
 
@@ -19,10 +17,6 @@ version:4.9
 
 ## 推奨ハードウェア
 
-[PUBLISH:Licensee]
-[INCLUDE:#windowsminhardware]
-[/PUBLISH:Licensee]
-[PUBLISH:Rocket]
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
 	OS
@@ -31,7 +25,7 @@ version:4.9
 	windows
 	[/PARAMLITERAL]
 	[PARAMLITERAL:active]
-	アクティブな_ボタン_コンテンツ
+	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
 	[INCLUDE:#windowsminhardware]
@@ -55,7 +49,7 @@ version:4.9
 	OS
 	[/PARAMLITERAL]
 	[PARAMLITERAL:id]
-	Linux
+	linux
 	[/PARAMLITERAL]
 	[PARAMLITERAL:active]
 	[/PARAMLITERAL]
@@ -63,7 +57,6 @@ version:4.9
 	[INCLUDE:#linuxminhardware]
 	[/PARAM]
 [/OBJECT]
-[/PUBLISH:Rocket]
 
 <!--
 [EXCERPT:WindowsMinHardware]
@@ -80,7 +73,7 @@ version:4.9
 | **オペレーティング システム** | Mac OS X 10.9.2  |
 | **プロセッサ** | クアッドコア Intel、2.5 GHz 以上 |
 | **メモリ** | 8 GB RAM |
-| **ビデオカード** | DirectX 11 対応のグラフィック カード |
+| **ビデオカード** | OpenGL 4.1 対応のグラフィック カード |
 [/EXCERPT:MacOSMinHardware]
 [EXCERPT:LinuxMinHardware]
 |||
@@ -92,38 +85,6 @@ version:4.9
 [/EXCERPT:LinuxMinHardware]
 -->
 
-[PUBLISH:Licensee]
-## 推奨ハードウェア
-
-[INCLUDE:#windowsrechardware]
-[/PUBLISH:Licensee]
-
-<!--
-[EXCERPT:WindowsRecHardware]
-| エンジンで開発を行う ||
-| -------- | --- |
-| **プロセッサ** | 4 コア > 2.5 GHz もしくはそれ以上の CPU |
-| **メモリ** | 8+ GB RAM |
-| **Video Card** | 2 GB GDDR5 メモリを搭載した DirectX 11 対応のグラフィック カード |
-| **モニター** | 1680x1050 かそれ以上のスペックのモニター 2 つ |
-[/EXCERPT:WindowsRecHardware]
-[EXCERPT:MacOSRecHardware]
-| エンジンで開発を行う ||
-| -------- | --- |
-| **プロセッサ** | 4 コア > 2.5 GHz もしくはそれ以上の CPU |
-| **メモリ** | 8+ GB RAM |
-| **Video Card** | 2 GB GDDR5 メモリを搭載した DirectX 11 対応のグラフィック カード |
-| **モニター** | 1680x1050 以上のスペックのモニター 2 つ |
-[/EXCERPT:MacOSRecHardware]
-[EXCERPT:LinuxRecHardware]
-| エンジンで開発を行う ||
-| -------- | --- |
-| **プロセッサ** | 4 コア > 2.5 GHz もしくはそれ以上の CPU |
-| **メモリ** | 8+ GB RAM |
-| **Video Card** | 2 GB GDDR5 メモリを搭載した DirectX 11 対応のグラフィック カード |
-| **モニター** | 1680x1050 以上のスペックのモニター 2 つ |
-[/EXCERPT:LinuxRecHardware]
--->
 
 [PUBLISH:Licensee]
 [REGION:note]
@@ -137,20 +98,6 @@ version:4.9
 
 (#MinSoftwareReqs)
 
-[PUBLISH:Licensee]
-| エンジンを実行する ||
-| -------- | --- |
-| **オペレーティングシステム** | Microsoft Windows Vista/7 64 ビット |
-| **DirectX バージョン** | [DirectX End-User Runtimes (June 2010)](http://www.microsoft.com/download/en/details.aspx?id=8109) |
-| **Visual C++ ランタイム** | [Microsoft Visual C++ 2013 Redistributables](http://www.microsoft.com/en-us/download/details.aspx?id=40784) |
-
-[REGION:note]
-**注記:** 「//depot/UE4/Engine/Extras/Redist/en-us」 に格納されている 「UE4PrereqSetup.msi」 ファイルを実行すると、上記で言及した DirectX や VC++ ランタイムなど、アンリアル エンジン 4 の実行に必要なソフトウェアがインストールされます。
-[/REGION]
-[/PUBLISH:Licensee]
-
-[PUBLISH:Rocket]
-
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
 	OS
@@ -159,7 +106,7 @@ version:4.9
 	windows
 	[/PARAMLITERAL]
 	[PARAMLITERAL:active]
-	アクティブな_ボタン_コンテンツ
+	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
 	[INCLUDE:#windowsminsoftware]
@@ -183,7 +130,7 @@ version:4.9
 	OS
 	[/PARAMLITERAL]
 	[PARAMLITERAL:id]
-	Linux
+	linux
 	[/PARAMLITERAL]
 	[PARAMLITERAL:active]
 	[/PARAMLITERAL]
@@ -191,6 +138,12 @@ version:4.9
 	[INCLUDE:#linuxminsoftware]
 	[/PARAM]
 [/OBJECT]
+
+[PUBLISH:Licensee]
+[REGION:note]
+**注意：** 「//depot/UE4/Engine/Extras/Redist/en-us」 に格納されている 「UE4PrereqSetup.msi」 ファイルを実行すると、上記で言及した DirectX や VC++ ランタイムなど、アンリアル エンジン 4 の実行に必要なソフトウェアがインストールされます。
+[/REGION]
+[/PUBLISH:Licensee]
 
 <!--
 [EXCERPT:WindowsMinSoftware]
@@ -222,38 +175,14 @@ UE4 のクラッシュ レポート機能を使用するには、 **[Windows Err
 [/EXCERPT:WER]
 
 [EXCERPT:VCRuntime]
-[Visual Studio C++ 2013 Redist](http://www.microsoft.com/en-us/download/details.aspx?id=40784)
+[Visual Studio C++ 2015 Redist](https://www.microsoft.com/en-us/download/details.aspx?id=48145)
 [/EXCERPT:VCRuntime]
 
 -->
 
-[/PUBLISH:Rocket]
 
 エンジンで開発を行うプログラマに必要な条件は以下となります。
 
-[PUBLISH:Licensee]
-
-(#DirectX)
-
-| エンジンで開発を行う ||
-| -------- | --- |
-| **オペレーティング システム** | Microsoft Windows Vista/7 64 ビット |
-| **Visual Studio Version** | [Microsoft Visual Studio 2013 Professional](http://www.microsoft.com/en-us/download/details.aspx?id=43730) もしくは [Microsoft Visual Studio 2013 Express for Windows Desktop](http://www.microsoft.com/en-us/download/details.aspx?id=43733)|
-| **Visual C++ ランタイム** | [INCLUDE:#VCRuntimeLicensee] |
-
-<!--
-[EXCERPT:VCRuntimeLicensee]
-[Visual Studio C++ 2010 SP1 Redist x64](http://www.microsoft.com/en-us/download/details.aspx?id=13523)  
-
-[Visual Studio C++ 2012 Redist](http://www.microsoft.com/en-us/download/details.aspx?id=30679) 
- 
-[Visual Studio C++ 2013 Redist](http://www.microsoft.com/en-us/download/details.aspx?id=40784)
-[/EXCERPT:VCRuntimeLicensee]
--->
-
-
-[/PUBLISH:Licensee]
-[PUBLISH:Rocket]
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
 	OS
@@ -262,7 +191,7 @@ UE4 のクラッシュ レポート機能を使用するには、 **[Windows Err
 	windows
 	[/PARAMLITERAL]
 	[PARAMLITERAL:active]
-	アクティブな_ボタン_コンテンツ
+	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
 	[INCLUDE:#windowsmindevelopment]
@@ -286,7 +215,7 @@ UE4 のクラッシュ レポート機能を使用するには、 **[Windows Err
 	OS
 	[/PARAMLITERAL]
 	[PARAMLITERAL:id]
-	Linux
+	linux
 	[/PARAMLITERAL]
 	[PARAMLITERAL:active]
 	[/PARAMLITERAL]
@@ -300,7 +229,7 @@ UE4 のクラッシュ レポート機能を使用するには、 **[Windows Err
 | エンジンで開発を行う ||
 | -------- | --- |
 | **「エンジンの実行」に必要な全ての条件 (自動インストール)** ||
-| **Visual Studio バージョン** | [INCLUDE:#VS2013] |
+| **Visual Studio バージョン** | [INCLUDE:#VS] |
 | [REGION:tablesection]iOS 向けの開発[/REGION] ||
 | **iTunes バージョン** | [iTunes 11 以上](http://www.apple.com/itunes/) |
 [/EXCERPT:WindowsMinDevelopment]
@@ -318,17 +247,17 @@ UE4 のクラッシュ レポート機能を使用するには、 **[Windows Err
 | **IDE** | QtCreator 3.1 または KDevelop 4.6|
 | **ビルド システム** | CMake 2.8 |
 [/EXCERPT:LinuxMinDevelopment]
-[EXCERPT:VS2013]
-Visual Studio 2013 Professional または Visual Studio 2013 Community:
+-->
 
-* [Pro](http://www.microsoft.com/en-us/download/details.aspx?id=43730)
+<!--
+[EXCERPT:VS]
+Visual Studio 2015 Professional または Visual Studio 2015 Community:
+
+* [Pro](https://www.visualstudio.com/downloads/download-visual-studio-vs)
 * [Community](https://www.visualstudio.com/en-us/products/visual-studio-community-vs.aspx)
 
-[/EXCERPT:VS2013]
+[/EXCERPT:VS]
 -->
-[/PUBLISH:Rocket]
-
-
 
 [PUBLISH:Licensee]
 ## グラフィック カード ドライバ

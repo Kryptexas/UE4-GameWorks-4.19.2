@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2246990
+﻿INTSourceChangelist:2591123
 Availability:NoPublish
 Title:USoundCue
 Crumbs:
@@ -6,7 +6,7 @@ Description:SoundCue クラスの概要
 
 [EXCERPT:USoundCue]
 
-サウンドキュー は、外部プログラムで作成され既にプロジェクトへインポートされたオーディオファイルへの参照を格納するオーディオ アセットです。インポートされたオーディオに基づいて、オーディオ出力をサウンドキュー エディタで修正することができます。
+サウンドキューは、外部プログラムで作成され既にプロジェクトへインポートされたオーディオファイルへの参照を格納するオーディオ アセットです。インポートされたオーディオに基づいて、オーディオ出力をサウンドキュー エディタで修正することができます。
 
 [VAR:ToolTipFullLink]
 Engine/Audio/SoundCues/Editor#Sound Cue

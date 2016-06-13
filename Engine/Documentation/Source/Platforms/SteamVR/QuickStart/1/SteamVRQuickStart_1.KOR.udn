@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2667895
+﻿INTSourceChangelist:2959633
 Title: 1. SteamVR 초기 구성
 Crumbs:%ROOT%, Platforms
 Description: SteamVR 필수 하드웨어 및 소프트웨어 구성법입니다.
@@ -23,44 +23,44 @@ Platform:SteamVR
 
 %Steps%
 
-SteamVr 하드웨어가 제대로 구성되었고 소프트웨어가 개발 PC 에 제대로 설치되었는지 확인하는 것은 언리얼 엔진 4 에 SteamVR 하드웨어가 정상 작동하도록 하는 데 있어 매우 중요한 일입니다.
-다음 섹션에서는 UE4 에서 SteamVR 소프트웨어 및 하드웨어 작업을 할 수 있도록 구성하는 데 있어 필요한 특수 고려사항을 살펴보도록 하겠습니다.
+여기서는 SteamVR 이 언리얼 엔진 4 (UE4) 와 정상 작동하도록 하는 방법을 살펴보겠습니다.
 
 [region:note]
 SteamVR 개발 키트 각각에는 Valve 가 제공한 [상세 안내서](http://media.steampowered.com/apps/steamvr/vr_setup.pdf ) 가 포함되어 있어 올바른 구성법을 참고할 수 있습니다.
 이 문서를 읽지 않으신 경우, 계속 진행하기 전 먼저 읽어보시기 바랍니다. 왜냐면 다음 정보는 Valve 의 문서에 포함된 정보에는 적합하지 않기 때문입니다.
 [/region]
 
-1. 4 x 3 미터 정도 공간에서 SteamVR 사용 도중 걸려 넘어질 수 있는 모든 물건을 치웁니다.
+1. 12 x 9 피트 / 4 x 3 미터 정도 공간에서 SteamVR 사용 도중 걸려 넘어질 수 있는 모든 물건을 치웁니다.
 
-1. Steam 클라이언트 내 **라이브러리** 섹션에서 **툴** 옵션 아래, **SteamVR** 과 **VRMonitor** 둘 다 다운로드하여 설치합니다.
+1. Vive 머리 장착 디스플레이(HMD), 스팀 콘트롤러, 브레이크아웃 박스, 라이트하우스 베이스 스테이션 모두 포장을 풀고 전원이 들어온 상태에서 연결되어 Valve 의 [안내](http://media.steampowered.com/apps/steamvr/vr_setup.pdf) 대로 구성되었는지 확인합니다.
+
+1. 개발 PC 에 [Steam Client](http://store.steampowered.com/about/) 가 설치되지 않은 경우, 다운로드하여 설치합니다.
+
+1. **SteamVR** 툴 설치를 위해서는, 마우스 커서를 Steam 의 **Library** 옵션에 올려 표시되는 메뉴에서 **Tools** 옵션을 선택합니다.
+
+	![](T_Launch_SteamVR_Tools.png)
+
+1. Tools 섹션에서 상단의 검색창을 사용하여 **SteamVR** 을 검색합니다. SteamVR 을 찾았으면, 더블클릭하여 다운로드하고 설치합니다.
 
 	![](T_SteamTools_Software.png)
 
-1. Vive Head Mounted Display (HMD), Steam Controllers, Breakout box, Lighthouse Base station 모두 포장을 풀고 전원이 들어와 있으며 Valve 의 [안내](http://media.steampowered.com/apps/steamvr/vr_setup.pdf) 대로 연결 및 구성되어 있는지 확인합니다.
-
-1. 모두 연결되어 전원이 켜졌으면 Vive HMD 의 렌즈가 자신을 향하도록 집어듭니다.
-Vive HMD 의 **왼쪽 측면** 에 보면 위에 작은 라이트가 있는 작은 **검정 버튼** 이 있습니다.
-현재 라이트는 **빨강** 이라 Vive HMD 가 대기 모드임을 나타냅니다.
-**검정 버튼** 을 **5 초** 이상 누르고 있으면 빨강 라이트가 **초록** 으로 바뀌어, Vive HMD 사용 준비가 되었음을 나타냅니다.
-
-	![](T_Vive_Standby_Mode.png)
-
 	[region:note]
-	한가지 염두에 둘 것은, Vive HMD 의 정상 작동을 위해서는 개발 PC 에 사용할 수 있는 **[USB 3.0](http://en.wikipedia.org/wiki/USB_3.0)** 포트가 있어야 합니다. 
+	SteamVR 설치는 Steam Client 우상단의 **VR** 아이콘을 클릭한 다음 화면상의 안내에 따르는 것으로도 가능합니다.
+	![](T_SteamVR_Icon_Install.png)
 	[/region]
 
-1. Steam 클라이언트에서 **Steam VR** 어플리케이션을 실행시키면 다음과 같은 창이 뜹니다.
+1. Tools 메뉴의 **SteamVR** 옵션을 더블클릭하면 아래 그림과 같은 SteamVR 툴이 실행됩니다.
+
+	![](T_Steam_VR_Ready.png)
+	[region:note]
+	SteamVR 에 위 그림처럼 모든 디바이스가 표시되면 모든 것이 정상 작동한다는 뜻입니다.
+	디바이스가 회색으로 나타나면 문제가 있다는 뜻입니다.
+	문제가 있는 디바이스는 회색으로 표시되어 마우스 커서를 올리면 무엇이 잘못되었고 어떻게 하면 고칠 수 있는지 알 수 있습니다.
+	[/region]
+
+1. UE4 에서 SteamVR 을 사용하기 전 반드시 SteamVR 작동 영역을 구성해 줘야 합니다.
+그러기 위해서는 SteamVR 창에 우클릭하고 **Run Room Setup** 을 선택한 뒤 제공된 지시에 따라 SteamVR 작동 영역을 구성합니다.
 
 	![](T_Steam_VR_App.png)
-
-1. **구성** 섹션의 처음 세 단계대로 완료했는지 확인한 뒤, 모든 것이 완료되었으면 **Run your first VR app!** 을 클릭한 뒤 HMD 를 착용합니다.
-   모두 제대로 구성되었다면 HMD 에 아래와 같은 이미지가 보일 것입니다.
-
-	![](T_FirstVRApp.png)
-
-
-
-
 
 %Steps%

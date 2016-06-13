@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:2300073
-Title:3. 오큘러스 런타임 설치
+﻿INTSourceChangelist:2975682
+Title:3. 오큘러스 계정 생성 / 로그인
 Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
-Description:오큘러스 리프트용 게임 실행에 필요한 소프트웨어를 설치합니다.
+Description:오큘러스 리프트에서 게임을 실행할 때 필요한 소프트웨어를 설치합니다.
 Availability:Public
+Version: 4.9
+SkillLevel: Intermediate
 
+여기서는 오큘러스 리프트 소프트웨어를 설치한 이후 작업에 대해 다룹니다.
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -24,90 +27,18 @@ Availability:Public
 %Steps%
 
 
-%Globals:OSSelect%
+1. 오큘러스 리프트 소프트웨어가 설치되면, **Next** 버튼을 눌러 설치 프로세스 다음 부분을 시작합니다.
 
-[OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	OS
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	windows
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	active_button_content
-	[/PARAMLITERAL]
-	[PARAM:content]
-	[INCLUDE:#windows]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	OS
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	mac
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	[/PARAMLITERAL]
-	[PARAM:content]
-	[INCLUDE:#macos]
-	[/PARAM]
-[/OBJECT]
-<!--
-[EXCERPT:windows]
-1. 다운로드한 런타임 인스톨러를 엽니다.
-1. **Next** 를 클릭합니다.
-	
-	![](oculus_setup_1.png)
-1. license agreement 를 수락한 뒤 **Next** 를 클릭합니다.
+	![](Rift_Finshed_Install_00.png)
 
-	![](oculus_setup_2.png)
-1. 설치 위치를 지정한 뒤 **Next** 를 클릭합니다.
+1. 이제 **Sign in** (로그인) 또는 **Create Account** (계정 생성) 여부를 묻는 창이 뜹니다. 이미 계정이 있으신 경우, 로그인 옵션을 클릭합니다. 없으신 경우, 계정 생성 버튼을 클릭하여 다음 제공 정보를 따릅니다.
 
-	![](oculus_setup_3.png)
-1. **Next** 를 클릭합니다.
-	
-	![](oculus_setup_4.png)
-1. 설치 도중 이미징 디바이스 소프트웨어를 설치하겠냐고 물어옵니다. **Install** 을 클릭합니다.
+	![](Rift_Create_Account_LogIn_00.png)
 
-	![](oculus_setup_6.png)
-1. 디스플레이 어댑터 소프트웨어를 설치하겠냐고도 물어옵니다. **Install** 을 클릭합니다.
 
-	![](oculus_setup_7.png)
-1. 셋업이 완료되면 **Finish** 를 클릭합니다.
-	
-	![](oculus_setup_8.png)
-1. README 파일에 DK2 펌웨어 업데이트 관련 내용이 있습니다. 퀵스타트 다음 단계에서 다루겠습니다.
 
-	 ![](oculus_setup_9.png)
-1. 확인 창이 뜨면 컴퓨터를 리부팅합니다.
 
-	![](oculus_setup_10.png)
-[/EXCERPT:windows]
-[EXCERPT:macos]
-[INCLUDE:Platforms/Oculus#warning]
 
-1. 다운로드한 런타임 인스톨러를 엽니다.
-1. **Next** 를 클릭합니다.
-	
-	![](mac_oculus_1.png)(w:516)
-1. license agreement 를 수락한 뒤 **Next** 를 클릭합니다.
 
-	![](mac_oculus_2.png)(w:516)
-1. 설치 위치를 지정한 다음 **Next** 를 클릭합니다.
-
-	![](mac_oculus_3.png)(w:516)
-1. **Next** 를 클릭합니다.
-	
-	![](mac_oculus_4.png)(w:516)
-1. 셋업이 완료되면 **Finish** 를 클릭합니다.
-	
-	![](mac_oculus_5.png)(w:516)
-1. README 파일에 DK2 펌웨어 업데이트 관련 내용이 있습니다. 퀵스타트 다음 단계에서 다루겠습니다.
-
-	 ![](mac_oculus_6.png)(w:516)
-
-[/EXCERPT:macos]
--->
 
 %Steps%

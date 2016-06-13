@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2725188
-Availability:Public
+﻿Availability:Public
 Title:ブレンドスペース
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:ブレンドスペースは複数入力値に基づいていくつものアニメーションのブレンドを可能にするアセットです。
@@ -11,7 +10,7 @@ Related:Engine/Animation/NodeReference/Blend
 Related:Engine/Animation/StateMachines
 Related:Engine/Animation/AnimBlueprints/AnimGraph
 Related:Engine/Content/Tools/MayaRiggingTool
-バージョン：4.9
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -68,7 +67,7 @@ Locomotion **Blendspace** の例は、セクション 1.3 の [アニメーシ�
 ブレンドスペースの目的は、特定のプロパティや条件に基づいたブレンディングの実行に、 
 個別にハードコード化したノードを作成する必要性を減らすことです。アニメーターやプログラマーが入力、アニメーション、およびアニメーションのブレンドに使用する入力値の使用法を指定できるようにすることで、 
 事実上、いかなるタイプのブレンドも 
-汎用ブレンドスペースを使用して実行することができます。これはアンリアル・エンジン 3 の 
+汎用ブレンドスペースを使用して実行することができます。これはアンリアル エンジン 3 の 
 AnimTree で同タスクの処理方法と全く正反対です。複雑なブレンドを処理するためには 
 新規ノードの作成が必要になります。ブレンドスペースは完全に汎用的であり、 
 ブレンドを決定する係数を各ブレンドスペースで指定することができます。各ブレンドスペースは 
@@ -94,7 +93,7 @@ AnimTree で同タスクの処理方法と全く正反対です。複雑なブ�
 例として、プレイヤーの動きの方向と速さに基づいた「方向性のある走りアニメーション」と「待機アニメーション」 
 の一般的なブレンドを見ていきます。
 
-アンリアル・エンジン 3 は、SpeedBlending ノードと一緒に 
+アンリアル エンジン 3 は、SpeedBlending ノードと一緒に 
 DirectionalBlending ノードを使用することによってこのブレンドを実行していました。これらのノードは、特定のブレンドのみを実行するようにそれぞれがハードコード化されていました。ブレンドの実行に使用する値はコードに隠されて、 
 プログラマー以外の人がブレンドに微調整を加えることは出来ない仕様でした。 
 コードの値を修正すると、AnimTree で使用しているノードの 

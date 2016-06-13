@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2735872
+﻿INTSourceChangelist:2968923
 Availability:Public
 Title:ブループリントのクイックスタートガイド
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -11,7 +11,7 @@ order:1
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Engine/Blueprints/QuickStart:title%](Engine/Blueprints/QuickStart/engine_qs_topic.png)
+		![%Engine/Blueprints/QuickStart:title%](QuickStart.png)
 	[/PARAM]
 	[PARAM:title]
 		%Engine/Blueprints/QuickStart:title%
@@ -28,7 +28,7 @@ order:1
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Engine/Blueprints/QuickStart:title%](Engine/Blueprints/QuickStart/engine_qs_topic.png)
+		![%Engine/Blueprints/QuickStart:title%](QuickStart.png)
 	[/PARAM]
 	[PARAM:title]
 		%Engine/Blueprints/QuickStart:title%

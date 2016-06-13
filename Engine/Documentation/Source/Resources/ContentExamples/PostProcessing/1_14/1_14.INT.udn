@@ -79,7 +79,7 @@ Version: 4.9
 [Region:imagetable]
 | [![](1_14_01.png)(w:302)](1_14_01.png) | [![](1_14_02.png)(w:302)](1_14_02.png) | [![](1_14_03.png)(w:302)](1_14_03.png) |
 | ------ | ------ | ------ |
-| None | FXAA | TXAA |
+| None | FXAA | Temporal AA |
 [/Region]
 [/Region]
 

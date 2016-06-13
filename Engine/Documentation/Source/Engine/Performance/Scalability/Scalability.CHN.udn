@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2704427
 Availability:Public
-Title: Scalability
+Title: 可扩展性
 Crumbs: %ROOT%, Engine, Engine/Performance
-Description:Options for adjusting quality and performance.
+Description: 用于调整质量和性能的选项
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -48,9 +49,10 @@ Description:Options for adjusting quality and performance.
 [/REGION]
 
 
-Modern games need to run on a wide range of hardware and need to adapt the game performance for various needs, such as split screen or some special gameplay mode. Tuning the game's graphics is generally the easiest to scale without affecting gameplay much.
+当今的游戏都需要在各种不同性能的硬件上运行，并根据需要调整游戏性能，比如分屏游戏，或者一些特殊的游戏玩法的时候。
+调整游戏画面通常是最简单的修正游戏性能的方法，无需对游戏玩法造成太多影响。
 
-The following sections will describe the features Unreal Engine 4 implements for scalability, how to use them, and the things different disciplines of developers should be aware of.
+下面的章节中，将会描述虚幻引擎 4 对可扩展性实现的共恩那个，以及如何使用，以及对于不同的原则下制作游戏的开发者们应该留意的事情。
 
 
 [REGION:topics third]

@@ -6,7 +6,7 @@ Version: 4.9
 
 ## Property Declaration
 
-Properties are declared using standard C++ variable syntax, preceeded by the UPROPERTY macro which defines property metadata and variable specifiers.
+Properties are declared using standard C++ variable syntax, preceded by the UPROPERTY macro which defines property metadata and variable specifiers.
 
 	UPROPERTY([specifier, specifier, ...], [meta(key=value, key=value, ...)])
 	Type VariableName;
@@ -27,19 +27,47 @@ The convention for integral data types is "int" or "uint" followed by the size i
 | **int32**	| 32-bit signed|
 | **int64** | 64-bit signed|
 
+#### As Bitmasks
+Integer properties can now be exposed to the Editor as bitmasks. To mark an integer property as a bitmask, just add "bitmask" to the meta section, as follows:
+
+	UPROPERTY(EditAnywhere, Meta = (Bitmask))
+	int32 BasicBits;
+
+Adding this meta tag will cause the integer to be editable as a drop-down list of generically-named flags ("Flag 1", "Flag 2", "Flag 3", etc.) that can be 
+turned on or off individually. In order to customize the bitflags' names, create a UENUM with the "bitflags" meta tag and reference it with the "BitmaskEnum" 
+meta tag, like this:
+
+	UENUM(Meta = (Bitflags))
+	enum class EColorBits
+	{
+		ECB_Red,
+		ECB_Green,
+		ECB_Blue
+	};
+
+	UPROPERTY(EditAnywhere, Meta = (Bitmask, BitmaskEnum = "EColorBits"))
+	int32 ColorFlags;
+
+After this change, the bitflags listed in the drop-down box will take on the names and values of the enumerated class entries. In the example above, ECB_Red 
+is value 0, meaning it will activate bit 0 (adding 1 to ColorFlags) when checked. ECB_Green corresponds to bit 1 (adding 2 to ColorFlags), and ECB_Blue 
+corresponds to bit 2 (adding 4 to ColorFlags).
+
+[REGION:note]While enumerated types can contain more than 32 entries, only the first 32 values will be visible in a bitmask association in the Property Editor 
+UI. Similarly, while explicit-value entries are accepted, entries with explicit values not between 0 and 31 will not be included in the drop-down.[/REGION]
+
 ### Floating Point Types
-Unreal uses the standard C++ floating point types, float and double.
+Unreal uses the standard C++ floating point types, float, and double.
 
 ### Boolean Types
 Boolean types can be represented either with the C++ bool keyword or as a bitfield.
 
 	uint32 bIsHungry : 1;
-    bool bIsThirsty;
+	bool bIsThirsty;
 
 ### Strings
-Unreal supports 3 core types of strings.
+Unreal Engine 4 supports three core types of strings.
 * FString is a classic "dynamic array of chars" string type.
-* FName is a reference to an immutable case-insensitive string in a global string table.  It is smaller and more efficient to pass around than a FString, but more difficult to manipulate.
+* FName is a reference to an immutable case-insensitive string in a global string table.  It is smaller and more efficient to pass around than an FString, but more difficult to manipulate.
 * FText is a more robust string representation designed to handle localization.
 
 For most uses, Unreal relies on the TCHAR type for characters.  The TEXT() macro is available to denote TCHAR literals.

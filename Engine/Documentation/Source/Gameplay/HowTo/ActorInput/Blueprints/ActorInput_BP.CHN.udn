@@ -3,7 +3,7 @@ Availability: Public
 Title:在蓝图中设置Actor的输入
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\ActorInput
 Description:如何在蓝图中设置Actor的输入的操作指南 
-版本: 4.9
+Version: 4.9
 SkillLevel: Intermediate
 
 [TOC (start:2 end:2)]

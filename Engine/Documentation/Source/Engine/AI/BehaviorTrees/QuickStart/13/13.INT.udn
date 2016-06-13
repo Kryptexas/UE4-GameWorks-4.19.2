@@ -2,6 +2,7 @@ Availability:Public
 Title: 13. Make a Decorator
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:13. Make a Decorator
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -21,14 +22,14 @@ Description:13. Make a Decorator
 
 %Steps%
 
-**Decorators**, also known as conditionals in other Behavior Tree systems, are attached to either a [**Composite**](Engine/AI/BehaviorTrees/NodeReference/Composites) or a [**Task**](Engine/AI/BehaviorTrees/NodeReference/Tasks) node and define whether or not a branch in the tree, or a single node, can be executed.
+**Decorators**, also known as conditionals in other Behavior Tree systems, are attached to either a [Composite](Engine/AI/BehaviorTrees/NodeReference/Composites) or a [Task](Engine/AI/BehaviorTrees/NodeReference/Tasks) node and define whether or not a branch in the tree, or a single node, can be executed.
 
 This **Decorator** is going to stop execution of the Rapid Move To branch of the Behavior Tree once the AI's Pawn is close enough to its target. While this could be handled in the **Rapid Move To** Task or by just using a **Move To** Task, this decorator can take in any Actor and can block execution of any branch. This makes it reusable in a number of situations.
 
 ## Steps
 
 1. Open the FollowerBT Behavior Tree by **Double-clicking** it in the **Content Browser**.
-1. Click New Decorator ![](newDecorator_button.png) button.
+1. Click **New Decorator** button.
 
 	It will create in the same folder as the Behavior Tree.
 1. Rename it in the **Content Browser** to "CloseEnough".

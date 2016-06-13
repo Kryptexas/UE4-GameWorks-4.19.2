@@ -1,49 +1,49 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2632102
 Availability:Public
-Title: Cooking Statistics
+Title:クックの統計情報
 Crumbs: %ROOT%, Engine
-Description:How to identify performance problems and fix them.
+Description:パフォーマンス問題の特定および修正方法
 
-When you cook your project, statistics are always created. You can find them saved into:
+プロジェクトをクックすると、統計情報が必ず作成されます。統計情報は以下の場所に保存されます。
 
 	<projectdirectory>\Saved\Stats\<datetime>Stats.csv
 
-The **Stats.csv** file contains a number of lines each with a set of comma separated values. The first value is a unique key which describes that line. Which, is followed by a tag that can have a value associated with it, using a '=' to separate. Example:
+**Stats.csv** ファイルは、値がカンマで区切られた数多くの行を含んでいます。最初の値はユニークなキーで、その行の説明になります。関連する値を持つタグを '=' で区切ってこの後に続けます。例：
 
 	DDCTransactionId2154470643B07308C1979DA468F3EA48_0,StartTime=2015.07.14-17.09.19
 
-The key is the first parameter, so in this example, this is the first parameter:
+キーが最初のパラメータになるので、この例の最初のパラメータは以下になります。
 
 	DDCTransactionId2154470643B07308C1979DA468F3EA48_0
 
-And the first tag is:
+そして最初のタグは以下です。
 
 	StartTime=2015.07.14-17.09.19
 
-The first tag can then be split into a tag name and value pair
+最初のタグは、タグ名と値のペアに分けることができます。
 
-	TagName: StartTime
-	Value: 2015.07.14-17.09.19
+	TagName:StartTime
+	Value:2015.07.14-17.09.19
 
-These keys and tags can help you solve issues in the cooking pipeline.
+これらのキーとタグは、クックのパイプラインにおける問題の解決に役立ちます。
 
 
-## Debugging Cooking Performance Issues
+## クック パフォーマンス問題のデバッグ
 
-Most time variations are caused by the **Derived Data Cache** being invalidated
-and needing to rebuild textures for platforms.
+処理時間がかかってしまう原因は、
+**Derived Data Cache** が無効になると、プラットフォームのテクスチャをリビルドする必要がある場合がほとんどです。
 
-If repeated cooks are still slow, this can indicate there is a large amount of data being cooked.  Consider using iterative cooking (experimental) or if cooking for testing / development purposes, only cook what is required.
+クックの反復がそれでも遅い場合は、大量のデータがクックされていることを示しています。クックの必要がある場合には、反復型のクック (実験的) もしくはテスティング / 開発目的のクックの使用を検討してみてください。
 
 
 
 ## Derived Data Cache (DDC) Stats
 
-DDC stats are recognizable in the stats.CSV file as their key will begin with DDCTransactionId.
+DDC 統計情報は DDCTransactionId で始まるので、stats.CSV ファイルの中ですぐ分かります。
 
-DDC stats are in a hierarchical format to reflect how the DDC searches for content in the cache.
+また、キャッシュ内のコンテンツを DDC がどのように検索したかを反映するために、階層形式になっています。
 
-Review the 3 entries for DCC stats in, (tag lines edited for clarity)
+DDC 統計情報の 3 つのエントリをレビューします (分かりやすいようにタグ行は編集してあります)
 
 	DDCTransactionId2154470643B07308C1979DA468F3EA48_86
 	 GetCachedData
@@ -58,21 +58,21 @@ Review the 3 entries for DCC stats in, (tag lines edited for clarity)
 	 Parent=DDCTransactionId2154470643B07308C1979DA468F3EA48_86
 	 StartTime=2015.07.14-17.09.30
 
-The second two transactions are linked to the first through the use of the
-"Parent" tag.
-The parent tag specifies the first transaction as the source for the DDC
-request.
-The first transaction also specifies the tag "GetCachedData" which is the
-entry point on the transaction.  We can also see the CacheKey which was
-specified.
-Each transaction has a start time and a duration. The duration is in
-milliseconds, all duration's are inclusive time.
-The exclusive time for a parent transaction can be determined by
-subtracting the child transactions duration.
+次の 2 つのトランザクションは "Parent" タグによって
+最初のトランザクションへリンクします。
+親タグは最初のトランザクションを
+DDC リクエストのソースに指定します。
+最初のトランザクションは、
+トランザクションのエントリ ポイントであるタグ "GetCachedData" も指定します。CacheKey も指定されていることが
+わかります。
+トランザクションにはすべて開始時間と継続時間があります。継続時間はミリ秒で、
+すべて包括時間です。
+親のトランザクションに対する排他時間は、
+子のトランザクション継続時間を差し引くと決まります。
 
 ## Save Package Stats
 
-Save package is a large part of cooking, and each save package stats key starts with "SavePackageTransactionId":
+Save Package はクック処理の大部分です。Save Package Stats はそれぞれ "SavePackageTransactionId" で始まります。
 
 	SavePackageTransactionId830D62FB4EE90050FDB33BBDAA57A9A7_124
 	 Filename=D:/Builds/UE4/QAGame/Saved/Cooked/PS4/Engine/Plugins/Runtime/LeapMotionController/Content/LM_SampleDistortion.uasset
@@ -94,17 +94,17 @@ Save package is a large part of cooking, and each save package stats key starts 
 	 AsyncWrite=4.576687ms  UnaccountedTime=0.307079ms
 	 RunGuid=RunID7F4E40464DE38EF1DECAF5A385FBDB1E
 
-The tags in save package are broken up into sections of the save.
-Debugging issues in save package requires specific knowledge of the
-different sections of save package.
+Save package のタグは保存されたセクションごとに別れます。
+Save package のデバッグ問題には
+save package の別のセクションの特定の知識も必要となります。
 
 ## Cooking Package Stats
 
-Cooking Package Stats let you know how the cooker is processing the
-packages (from the cooker side).  They give you an idea of how long each
-package takes to process.
+Cooking Package Stats によって、
+クッカが (クッカ側から) どのようにパッケージを処理しているかが分かります。パッケージごとのおおよその処理時間が
+わかります。
 
-Cooking package stats key is the standard package name.
+Cooking package stats キーは、標準のパッケージ名です。
 
 	../../../Engine/Content/EditorMaterials/Cascade/CASC_Cross.uasset
 	 AllOfLoadPackage_Duration=0.115048ms  AllOfLoadPackage_HitCount=5
@@ -117,19 +117,19 @@ Cooking package stats key is the standard package name.
 	 SaveCookedPackage_Duration=1.683380ms  SaveCookedPackage_HitCount=1
 	 RunGuid=RunID2062A4FA4DBD3833D4A026A94B8970BB
 
-Each stat has the hitcount and also the duration recorded.
-For example:
+各統計情報にはヒットカウントと継続時間が記録されます。
+例:
 
-* **AllOfLoadPackage** is a single stat, but has two tags associated with it:
-	* **AllOfLoadPackage_Duration** is the time taken to run all of load package.
-	* **AllOfLoadPackage_HitCount** is the number of times load package was hit.
+* **AllOfLoadPackage** は単一の統計情報ですが、関連するタグが 2 つ付いています。
+	* **AllOfLoadPackage_Duration** は、取り込んだパッケージをすべて実行するためにかかる時間です。
+	* **AllOfLoadPackage_HitCount** は、取り込んだパッケージがヒットした回数です。
 
-Different sections of the cooker can be hit multiple times due to the
-cooker trying to optimize the cooking process.
-The most common situation is that the cooker loads a package and the
-content is missing from DDC so needs to be regenerated (slow process),
-In this case the cooker will try and opportunistically cook other packages
-which have their content ready and come back to this package.
-This doesn't necessarily mean that the package was loaded 5 times, the
-cooker will early out if the package is already loaded and try and keep the
-package in memory if it isn't saved yet.
+クッカはクック処理を最適化しようとするため、
+クッカのさまざまなセクションで、複数回ヒットする場合があります。
+クッカがパッケージを取り込んで、コンテンツが DDC から消えたため、
+再生成しなければいけない場合が最も一般的なケースです (処理は遅い)。
+そのような場合クッカは、コンテンツがそろっていてる他のパッケージを勝手にクックして、
+このパッケージに戻ってこようとします。
+ただし、パッケージが必ずしも 5 回取り込まれるわけではなく、
+パッケージが既にロードされている場合はクッカは早めに引き上げて、
+保存されていない場合はメモリにパッケージを保存します。

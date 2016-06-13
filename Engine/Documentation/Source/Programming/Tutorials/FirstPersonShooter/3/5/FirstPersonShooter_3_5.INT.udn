@@ -3,7 +3,7 @@ Title: 3.5 - Adding Crosshairs to your Viewport
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/3
 Description: Learn how to add crosshairs to the viewport for your First Person Shooter project.
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,26 +23,26 @@ Version: 4.9
 
 %Steps%
 
+During this step, we'll add a crosshair HUD element to our game so that we can aim our projectiles.
+
+## Importing a Crosshair Asset
+
 [REGION:note]
 Before getting started, download and extract our sample image from the following link:
 *	[Sample Crosshair Image](Crosshair_fps_tutorial.zip "Sample Crosshair Image")
 [/REGION]
 
-During this step, you'll add a crosshair HUD element to your game so that you can aim your projectiles.
+1.	Right-click inside the Content Browser's file box to open the **Import Asset** dialog box
 
-## Importing a Crosshair Asset
-
-1.	**Right-click** inside the Content Browser's file box to open the **Import Asset** dialog box
-
-1.	**Click 'Import to /Game...'** to open the **Import** dialog box.
+1.	Click **'Import to /Game...'** to open the **Import** dialog box.
 
 	![](RightClickImport.png)
 
 1.	Locate and select the **crosshair.TGA** image file.
 
-1.	**Click Open** to begin importing the image file to your project.
+1.	Click **Open** to begin importing the image file to your project.
 
-1.	**Click** the **Save** button to save your imported mesh.
+1.	Click the **Save** button to save your imported image.
 
 ## Adding a New HUD Class
 
@@ -56,17 +56,19 @@ During this step, you'll add a crosshair HUD element to your game so that you ca
 
 	![](NameHUDClass.png)
 
-1.	Locate the `FPSHUD` class interface file in the **Solution Explorer** and open `FPSHUD.h`.
+1.	Locate the `FPSHUD` class header file in the **Solution Explorer** and open `FPSHUD.h`.
 
-1.	Place the following constructor declaration in `FPSHUD.h` under `GENERATED_BODY()`:
+1.	Write the following constructor declaration in `FPSHUD.h` under `GENERATED_BODY()`:
 
-		AFPSHUD(const FObjectInitializer& ObjectInitializer);
+		// Constructor
+		AFPSHUD();
 
-1.	Locate the `FPSHUD` class implementation file in the **Solution Explorer** and open `FPSHUD.cpp`.
+1.	Locate the `FPSHUD` class CPP file in the **Solution Explorer** and open `FPSHUD.cpp`.
 
 1.	Write the following constructor definition in `FPSHUD.h` below `GENERATED_BODY()`:
 
-		AFPSHUD::AFPSHUD(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+		// Constructor
+		AFPSHUD::AFPSHUD()
 		{
 		
 		}
@@ -76,24 +78,24 @@ During this step, you'll add a crosshair HUD element to your game so that you ca
 		private:
 		
 			// Crosshair asset pointer
-			UTexture2D* CrosshairTex;
+			UTexture2D* CrosshairTexture;
 
 1.	Now add the following code inside the constructor that's located in `FPSHUD.cpp`:
 
-		// Set the crosshair texture
-		static ConstructorHelpers::FObjectFinder<UTexture2D> CrosshairTexObj(TEXT("Texture2D'/Game/crosshair.crosshair'"));
-		
-		if (CrosshairTexObj.Object != NULL)
+		// set the crosshair texture
+		static ConstructorHelpers::FObjectFinder<UTexture2D> CrosshairTextureObject(TEXT("Texture2D'/Game/crosshair.crosshair'"));
+
+		if (CrosshairTextureObject.Object)
 		{
-			CrosshairTex = CrosshairTexObj.Object;
+			CrosshairTexture = CrosshairTextureObject.Object;
 		}
 
-	[REGION:note]
+	[REGION:tip]
 	As a reminder, you can obtain the asset path to your texture in the editor by right-clicking the asset in the Content Browser and selecting Copy Reference.
 	![](CopyReference.png)
 	[/REGION]
 
-1.	Going back to `FPSHUD.h`, add the following function declaration below `GENERATED_BODY()`:
+1.	Going back to `FPSHUD.h`, add the following function declaration:
 
 		// Primary draw call for the HUD
 		virtual void DrawHUD() override;
@@ -103,13 +105,15 @@ During this step, you'll add a crosshair HUD element to your game so that you ca
 		void AFPSHUD::DrawHUD()
 		{
 			Super::DrawHUD();
-			// Draw simple crosshair
+			
 			// Find the center of our canvas
 			const FVector2D Center(Canvas->ClipX * 0.5f, Canvas->ClipY * 0.5f);
+		
 			// Offset by half of the texture's dimensions so that the center of the texture aligns with the center of the Canvas
-			const FVector2D CrossHairDrawPosition((Center.X - (CrosshairTex->GetSurfaceWidth() * 0.5f)), (Center.Y - (CrosshairTex->GetSurfaceHeight() * 0.5f)));
+			const FVector2D CrossHairDrawPosition(Center.X - (CrosshairTexture->GetSurfaceWidth() * 0.5f), Center.Y - (CrosshairTexture->GetSurfaceHeight() * 0.5f));
+		
 			// Draw the crosshair
-			FCanvasTileItem TileItem(CrossHairDrawPosition, CrosshairTex->Resource, FLinearColor::White);
+			FCanvasTileItem TileItem(CrossHairDrawPosition, CrosshairTexture->Resource, FLinearColor::White);
 			TileItem.BlendMode = SE_BLEND_Translucent;
 			Canvas->DrawItem(TileItem);
 		}
@@ -131,15 +135,16 @@ During this step, you'll add a crosshair HUD element to your game so that you ca
 		{
 			GENERATED_BODY()
 		
-			AFPSHUD(const FObjectInitializer& ObjectInitializer);
+			// Constructor
+			AFPSHUD();
 		
 			// Primary draw call for the HUD
 			virtual void DrawHUD() override;
 		
 		private:
-		
+			
 			// Crosshair asset pointer
-			UTexture2D* CrosshairTex;
+			UTexture2D* CrosshairTexture;
 			
 		};
 
@@ -150,27 +155,30 @@ During this step, you'll add a crosshair HUD element to your game so that you ca
 		#include "FPSProject.h"
 		#include "FPSHUD.h"
 		
-		AFPSHUD::AFPSHUD(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+		// Constructor
+		AFPSHUD::AFPSHUD()
 		{
-			// Set the crosshair texture
-			static ConstructorHelpers::FObjectFinder<UTexture2D> CrosshairTexObj(TEXT("Texture2D'/Game/crosshair.crosshair'"));
-			
-			if (CrosshairTexObj.Object != NULL)
+			// set the crosshair texture
+			static ConstructorHelpers::FObjectFinder<UTexture2D> CrosshairTextureObject(TEXT("Texture2D'/Game/crosshair.crosshair'"));
+		
+			if (CrosshairTextureObject.Object) 
 			{
-				CrosshairTex = CrosshairTexObj.Object;
+				CrosshairTexture = CrosshairTextureObject.Object;
 			}
 		}
 		
 		void AFPSHUD::DrawHUD()
 		{
 			Super::DrawHUD();
-			// Draw simple crosshair
+			
 			// Find the center of our canvas
 			const FVector2D Center(Canvas->ClipX * 0.5f, Canvas->ClipY * 0.5f);
+		
 			// Offset by half of the texture's dimensions so that the center of the texture aligns with the center of the Canvas
-			const FVector2D CrossHairDrawPosition((Center.X - (CrosshairTex->GetSurfaceWidth() * 0.5f)), (Center.Y - (CrosshairTex->GetSurfaceHeight() * 0.5f)));
+			const FVector2D CrossHairDrawPosition(Center.X - (CrosshairTexture->GetSurfaceWidth() * 0.5f), Center.Y - (CrosshairTexture->GetSurfaceHeight() * 0.5f));
+		
 			// Draw the crosshair
-			FCanvasTileItem TileItem(CrossHairDrawPosition, CrosshairTex->Resource, FLinearColor::White);
+			FCanvasTileItem TileItem(CrossHairDrawPosition, CrosshairTexture->Resource, FLinearColor::White);
 			TileItem.BlendMode = SE_BLEND_Translucent;
 			Canvas->DrawItem(TileItem);
 		}
@@ -179,7 +187,7 @@ During this step, you'll add a crosshair HUD element to your game so that you ca
 
 1.	Locate **FPSProject** in the **Solution Explorer**.
 
-1.	**Right-click** on **FPSProject** and select **Build** to compile your project.
+1.	Right-click on **FPSProject** and select **Build** to compile your project.
 
 	![](BuildFPSProject.png)
 
@@ -198,47 +206,52 @@ During this step, you'll add a crosshair HUD element to your game so that you ca
 		// Fill out your copyright notice in the Description page of Project Settings.
 		
 		#include "FPSProject.h"
-		#include "FPSGameMode.h"
+		#include "FPSProjectGameMode.h"
 		#include "FPSHUD.h"
 		
-		AFPSGameMode::AFPSGameMode(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+		AFPSProjectGameMode::AFPSProjectGameMode()
 		{
-			// set the default pawn class to the Blueprinted character
+			//set the default pawn class to the Blueprint character
 			static ConstructorHelpers::FClassFinder<APawn> PlayerPawnObject(TEXT("Pawn'/Game/Blueprints/BP_FPSCharacter.BP_FPSCharacter_C'"));
-			if (PlayerPawnObject.Class != NULL)
+			if (PlayerPawnObject.Class != nullptr)
 			{
 				DefaultPawnClass = PlayerPawnObject.Class;
 			}
 			HUDClass = AFPSHUD::StaticClass();
-		}//AFPSGameMode Constructor
+		}
 		
-		void AFPSGameMode::StartPlay()
+		void AFPSProjectGameMode::StartPlay()
 		{
 			Super::StartPlay();
 		
 			StartMatch();
 		
+			const int32 Key = -1;
+			static const FString DebugMessage = TEXT("Hello World, this is FPSGameMode!");
+			FColor DisplayColor = FColor::Yellow;
+			float TimeToDisplay = 5.0f; //seconds
+		
 			if (GEngine != nullptr)
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("We are using FPSGameMode."));
+				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
 			}
-		}//StartPlay()
+		}
 
 1.	Save `FPSGameMode.cpp` in Visual Studio.
 
 1.	Locate **FPSProject** in the **Solution Explorer**.
 
-1.	**Right-click** on **FPSProject** and select **Build** to compile your project.
+1.	Right-click on **FPSProject** and select **Build** to compile your project.
 
 	![](BuildFPSProject.png)
 
 1.	After the build finishes, open your **FPSProject** in Unreal Editor.
 
-1.	**Click** the **Play** button in the Level Editor Toolbar. You should be able to aim the projectiles with your newly created crosshairs.
+1.	Click the **Play** button in the Level Editor Toolbar. You should be able to aim the projectiles with your newly created crosshairs.
 
 	![](CrosshairsInGame.png)
 
-1.	**Click** the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
+1.	Click the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
 
 Congratulations! You've learned how to:
 

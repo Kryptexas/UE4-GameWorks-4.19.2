@@ -2,6 +2,7 @@ Availability:Public
 Title: 10. Behavior Tree Basics
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 10. Behavior Tree Basics
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -45,7 +46,7 @@ However, unlike Blueprint node pins which allow you to drag connections from eit
 
 	![](sequence.png)
 
-These are the 2 primary decision making nodes available for Behavior Trees. The **Selector** node will run through its children, from left to right, until one of them **succeeds**, at which point it will fail back up the tree. While the **Sequence** node will run through its children from left to right until one of them **fails**, at which point it will fail back up the tree.
+These are the 2 primary decision making nodes available for Behavior Trees. The **Selector** node will run through its children, from left to right, until one of them succeeds, at which point it will fail back up the tree. While the **Sequence** node will run through its children from left to right until one of them fails, at which point it will fail back up the tree.
 
 While Selector and Sequence nodes will have a number of children under them, the **Root** node can only have one node attached to it.
 

@@ -1,30 +1,26 @@
 ﻿INTSourceChangelist:0
 Availability:Public
-Title:Animation System Overview
+Title: 动画系统概述
 Crumbs: %ROOT%, Engine, Engine/Animation
-Description:Overview of the system for deforming SkeletalMeshes based on animation data using Animation Blueprints, Blendspaces, and AnimationSequences.
+Description: 骨骼网格物体的动画数据系统，蓝图，混合空间，动画序列的概述。
 
 [TOC(start:2 end:2)]
 
-## Overview
 
 [EXCERPT:Intro]
-Unreal Engine 4's animation system allows for a deep level of control for your characters and Skeletal Meshes. In this document, we will provide a high level overview  of how animation works in UE4, and the base concepts that drive it. <!---In the documents that follow, we'll cover the---> 
+**虚幻引擎 4** （**虚幻 4**）的动画系统能对骨骼网格物体进行深度设定，以便服务于游戏角色的需要。
+在这篇文档中，提供了关于虚幻 4 的动画系统如何工作的概要说明，以及关于使用这套动画系统的基础知识。
 
-
-
-The **Animation** system mixes skeletal-based deformation of meshes with morph-based vertex deformation to 
-allow for complex animation. This system can be used to make basic player movement appear much more realistic 
-by playing and blending between canned _AnimationSequences_, create customized special moves such as scaling 
-ledges and walls using _AnimMontages_, apply damage effects or facial expressions through _MorphTargets_, or 
-directly control the transformations of bones using _SkeletalControls_.
+对网格物体进行骨架的绑定，结合对顶点数据的变形（Morph）的 **动画** 系统能够执行复杂的动画计算。
+这套系统能够完成从最基础的移动行为，到根据游戏过程混合预制的动画序列来获得真实的动画效果，
+比如使用动画蒙太奇（AnimMontage）来计算在窗台上移动或者墙上行走的动画表现，
+或者配合受伤效果以及利用 MorphTarget 显示面部表情，又或者通过 SkeletalControl 直接控制骨骼变形。
 [/EXCERPT:Intro]
 
+这篇文档的目的是提供一个虚幻 4 动画系统的概述，主要是面向刚刚开始使用虚幻 4 的动画系统的人员。这并不是虚幻 4 引擎动画系统和动画资源的完整手册。
+可以把这个文档看作为帮助熟悉动画系统一些方面的入门说明，解释了几个不同的部分是如何协同工作的，并展现这个动画系统的灵活性以及可以基于这个灵活性完成的强大效果。
 
-The purpose of this document is to offer a high-level overview of Unreal Engine 4's animation system, geared primarily toward users who are new to animating in Unreal. However, this should not be considered the comprehensive manual for how to animate skeletal assets in the Unreal Engine. Rather, think of this as a primer to familiarize you with the various pieces of the animation system, providing an illustration of how they all fit together and showing how animation in UE4 is more powerful flexible than ever before. 
-
-We will start by identifying the primary terms and concepts of UE4's animation system:
-
+我们先来定义虚幻 4 的动画系统中主要的术语和概念。
 
 (#Skeleton)
 [OBJECT:IconSection]
@@ -36,7 +32,7 @@ We will start by identifying the primary terms and concepts of UE4's animation s
 	[/PARAM]
 	[PARAM:description]
 	[INCLUDE:Engine/Animation/Persona#Intro]
-		
+
 	[/PARAM]
 [/OBJECT]
 
@@ -51,8 +47,8 @@ We will start by identifying the primary terms and concepts of UE4's animation s
 	[/PARAM]
 	[PARAM:description]
 		A **Skeleton** is a hierarchy of bone locations and rotations used to deform a Skeletal Mesh. In UE4, Skeletons are abstracted from Skeletal Meshes in their own asset. This means that animations are applied to the Skeleton, rather than the Skeletal Mesh. By using the same Skeleton, multiple Skeletal Meshes can share animations.
-		
-		
+
+
 	[/PARAM]
 [/OBJECT]
 
@@ -84,24 +80,24 @@ We will start by identifying the primary terms and concepts of UE4's animation s
 
 		**Animation Poses**
 
-		An **Animation Pose** is essentially a snapshot of the Skeleton, including the position and rotation of all of its 
+		An Animation Pose is essentially a snapshot of the Skeleton, including the position and rotation of all of its 
 		bones. Think of a pose as what you see if you pause the playback of an animation. For example, if you paused a run 
 		animation mid-stride, you might see something like this:
 
 		![](AnimationPose_Running.png)(w:600)
 
-		It is as if the mesh, via the underlying Skeleton, has been **posed**. The data that represents the transforms of 
-		all of the bones in the _Skeleton_ is what makes up the actual Animation Pose.
+		It is as if the mesh, via the underlying Skeleton, has been posed. The data that represents the transforms of 
+		all of the bones in the Skeleton is what makes up the actual Animation Pose.
 
-		Some _AnimationSequences_ are designed purely to be used as poses. For instance, you might have a series of short 
+		Some AnimationSequences are designed purely to be used as poses. For instance, you might have a series of short 
 		one- or two-frame animations that simply define a pose. The pose below is from this type of Animation Sequence, 
 		which is designed to be used to cause the mesh to aim its weapon where the player is looking.
 
 		![](AnimationPose_Aiming.png)(w:600)
 
-		The Animation system uses this concept of Animation Poses within the _AnimGraph_. The data output from an _AnimationSequence_, 
-		_Blendspace_, or simple blend node is an Animation Pose, or snapshot of the animation up to that point, to apply 
-		to the _SkeletalMesh_. 
+		The Animation system uses this concept of Animation Poses within the AnimGraph. The data output from an AnimationSequence, 
+		Blendspace, or simple blend node is an Animation Pose, or snapshot of the animation up to that point, to apply 
+		to the SkeletalMesh. 
 
 		**Component vs Local Space**
 
@@ -217,19 +213,27 @@ For more information on Content Examples and how to use them, refer to the [Cont
 
 ## Animation Debug Features
 
-Debug features can be accessed by pressing the ` key to bring up the console while in play mode. 
+Debug features can be accessed by pressing the **`** key to bring up the console while in play mode. 
 
 ### Rendering Skeletal Mesh Bones
 
-![](ShowDebugBones.png)(h:320)
+![](AnimationShowDebugBones.jpg)(h:320)
 
-To display the **Skeletal Mesh Bones**, enter the `ShowDebug Bones` command inside the console. As seen in the image above the bones are represented by individual white lines. 
+To display the Skeletal Mesh Bones, enter the `ShowDebug Bones` command inside the console. As seen in the image above the bones are represented by individual white lines. 
 
-An alternative look, matching the bones displayed in **Persona**, can be enabled by entering the `ShowDebugToggleSubCategory 3DBones` command inside the console. 
+The `ShowDebug Bones` command will display the information for the playable character during a play session. To view the debug animation for another character (other than the player character), you can use the `viewactor ExampleCharacterID` command, where _ExampleCharacterID_ refers to the Character ID assigned to the character you wish to view. You can find this ID by hovering over a character in the [World Outliner](Engine/UI/LevelEditor/SceneOutliner) which will display its ID name. 
+
+[REGION:note]
+At this time when using the `viewactor` command, the camera will be moved to and locked on the Actor you are currently viewing. If you need to manipulate the camera while debugging still, a work around for this is to create a [Play in Editor](Engine/UI/LevelEditor/InEditorTesting) session with more than one player from the dropdown menu using one window for debugging and the other for controlling a player character. 
+[/REGION]
+
+An alternative look, matching the bones displayed in Persona, can be enabled by entering the `ShowDebugToggleSubCategory 3DBones` command inside the console. 
+
+
 
 ### Animation Debug Output
 
-![](ShowDebugAnimation.png)
+![](AnimationShowDebugToggle.jpg)
 
 The **Animation Debug Output** information can be enabled by using the `ShowDebug Animation` command inside the console. 
 

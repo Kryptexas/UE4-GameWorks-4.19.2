@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2227559
+﻿INTSourceChangelist:2687062
 Availability:Public
 Title: 코드 뷰 카테고리
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor, Engine/UI/LevelEditor/Details
 Description:현재 선택된 액터의 클래스 계층구조와, 해당 클래스 내 퍼블릭 함수도 함께 표시합니다.
+Version: 4.9
 
 
 **코드 뷰** (Code View) 카테고리는 현재 선택된 액터의 클래스와 함께, 해당 클래스 내 공용 함수를 함께 

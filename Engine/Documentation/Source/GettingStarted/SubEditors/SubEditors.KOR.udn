@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2613484
+﻿INTSourceChangelist:2719415
 Availability: Public
 Title:툴 및 에디터
 Crumbs: %ROOT%, Gameplay, GettingStarted
 Description:언리얼 엔진 4 에는 여러가지 다양한 에디터 유형이 포함되어 있으며, 여기서는 그 각각을 집중 조명해 봅니다.
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]

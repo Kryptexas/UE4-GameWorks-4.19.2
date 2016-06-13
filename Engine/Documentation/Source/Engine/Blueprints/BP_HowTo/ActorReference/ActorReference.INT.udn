@@ -8,6 +8,7 @@ skilllevel:Intermediate
 type:howto
 parent:Engine/Blueprints/BP_HowTo
 order:1
+tags:Handling Objects and Actors
 
 [INCLUDE:Gameplay\HowTo\ReferenceAssets#referenceoverview]
 

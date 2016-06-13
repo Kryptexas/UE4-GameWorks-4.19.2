@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2623201
+﻿INTSourceChangelist:2810123
 Availability: Public
 Title:FString
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Properties, Programming/UnrealArchitecture/StringHandling
@@ -39,8 +39,8 @@ FString 은 검색, 변경에 다른 스트링과의 비교도 가능합니다. 
 
 ### 숫자 및 기타 변수
 
-#### FString 에서
-| 변수 유형 | 스트링으로의 변환 | 스트링 포맷 |
+#### FString 으로
+| 변수 유형 | 스트링에서 변환 | 스트링 포맷 |
 | ------------- | -------------------- | --------------|
 |	float		|  `FString::SanitizeFloat(FloatVariable);`| | 
 |  int          |   `FString::FromInt(IntVariable);` | |
@@ -53,11 +53,11 @@ FString 은 검색, 변경에 다른 스트링과의 비교도 가능합니다. 
 
 다른 숫자 변환의 경우, `FString::Printf()` 함수에 적합한 인수를 곁들어 사용하면 됩니다.
 
-#### FString 으로
+#### FString 에서
 
 `FString` 에서 `int` 나 `float` 숫자 변수로의 변환은 물론, 불리언 변수로의 변환도 존재합니다.
 
-| 변수 유형 | 스트링으로의 변환 | 참고 |
+| 변수 유형 | 스트링에서 변환 | 참고 |
 | ------------- | -------------------- | --------------|
 |bool | `TestHUDString.ToBool();` | %doxygen:FString::ToBool%|
 | int | `FCString::Atoi(*TestHUDString);` | |

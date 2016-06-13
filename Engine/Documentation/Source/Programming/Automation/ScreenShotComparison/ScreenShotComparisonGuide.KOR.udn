@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2613743
+﻿INTSourceChangelist:2721416
 Availability:Public
 Title:스크린샷 비교 사용 안내서
 Crumbs: %ROOT%, Programming, Programming/Automation
 Description:스크린샷을 찍고 비교하는 데 있어서의 개발자 안내서입니다.
-Version: 4.5
+Version: 4.9
 
 스크린샷 브라우저 툴은 QA 작업시 스크린 샷을 빠르게 찍고 비교할 수 있는 툴입니다. 자동화 테스트 도중 스크린샷을 찍은 다음 언리얼 프론트엔드 툴에서 볼 수 있습니다.
 스크린샷의 히스토리가 유지되어, QA 가 최신 스크린샷을 히스토리와 비교하여 최신 빌드에 눈에 띄는 렌더링 오류가 있는지 알아낼 수 있습니다.

@@ -2,6 +2,7 @@ Availability: Public
 Title:Parameter Modules
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:Modules that pass data out of a particle system to other aspects, such as materials.
+Version: 4.9
 
 [TOC(start:2 end:3)]
 
@@ -9,7 +10,7 @@ Parameter modules exist to pass data out of a particle system so that it can con
 
 ## Dynamic
 
-The Dynamic module is used to pass four scalar values to the material(s) used by the emitter allowing the emitter to control material effects.
+The **Dynamic** module is used to pass four scalar values to the material(s) used by the emitter allowing the emitter to control material effects.
 
 | Property | Description |
 | ---- | ---- |
@@ -53,7 +54,7 @@ The Dynamic module is used to pass four scalar values to the material(s) used by
 
 ## Dynamic (Seed)
 
-The Dynamic (Seed) module is identical to the [Dynamic Parameter](#Dynamic) module in that it allows the emitter to pass values to the material(s); however, this module allows you to specify seed information to be used when choosing distribution values in order to provide a more consistent effect from the module each time the emitter is used. It contains the following member(s):
+The **Dynamic (Seed)** module is identical to the [Dynamic Parameter](#Dynamic) module in that it allows the emitter to pass values to the material(s); however, this module allows you to specify seed information to be used when choosing distribution values in order to provide a more consistent effect from the module each time the emitter is used. It contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |

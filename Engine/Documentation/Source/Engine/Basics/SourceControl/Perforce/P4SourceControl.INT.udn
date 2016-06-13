@@ -18,7 +18,7 @@ be rolled back to an earlier version if something went wrong with the file.
 
 ## Workflow 
 In general and mostly for historical reasons, working with assets in the Unreal Editor follows the workflow of Perforce. 
-Files known as Assets (extension .usasset and .umap) are mainly what the Editor works with. 
+Files known as Assets (extension .uasset and .umap) are mainly what the Editor works with. 
 These files are binary, so cannot be opened as text or merged in a text-based merge tool. For this reason, when working on a file the Editor will lock that 
 file (this is known as **Checking Out** in Perforce nomenclature) so that other users cannot concurrently edit it. When the user is done with editing the file(s) they have locked, 
 they check in, or commit those files, uploading the changes to the server and releasing the lock on the file.

@@ -4,26 +4,58 @@ Description:
 Availability:Public
 Navigation:platform
 Platform:Oculus
-Version: 4.9
+Version: 4.11
+type:landing
+parent:Platforms/VR
+tags:VR
+tags:Oculus Rift
 
-[EXCERPT:warning]
-[REGION:warning]
-Developing for Oculus on Mac currently requires Unreal Engine 4.3 or higher
+
+## Starting Out
+
+[DIR(output:"listbutton" type:"quickstart" parent:"Platforms/Oculus")]
+
+## Oculus Rift Topics
+
+[REGION:buttonlist]
+[DIR(output:"listbutton" type:"overview" parent:"Platforms/Oculus")]
+* [Lessons from Integrating the Oculus Rift into Unreal Engine 4](https://de45xmedrsdbp.cloudfront.net/Resources/files/UE4-Integration-and-Demos_OC-100270768.pptx "Oculus Connect 2014 Presentation")
 [/REGION]
-[/EXCERPT:warning]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/vr_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Oculus Rift Development
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Platforms/Oculus/BestPractices "%Platforms/Oculus/BestPractices:description%")
-		* [](Platforms/Oculus/QuickStart "%Platforms/Oculus/QuickStart:description%")
-		* [Lessons from Integrating the Oculus Rift into Unreal Engine 4](https://de45xmedrsdbp.cloudfront.net/Resources/files/UE4-Integration-and-Demos_OC-100270768.pptx "Oculus Connect 2014 Presentation")
-	[/PARAM]
+## Shipping with Oculus
+If you are planning on releasing a VR game that targets the Oculus Rift, you will need to make sure that you are using **UE4** version **4.11.1** or later. Earlier version of UE4 will not be compiled against the shipping versions of the Oculus Libraries. This means your project will not be able to be submitted to the Oculus store.
+
+## Enabling Unknown Sources 
+While you're developing your UE4 VR project, it's best to enable **Unknown Sources** so you can run your application with having to have it be registered or reviewed by Oculus. To enable the **Unknown Sources** option, you will need to do doing the following.
+
+1. Open the Oculus Store then click on the **Gear** icon that is in the upper right-hand corner to expose the **Settings** menu option, then click on the word **Settings**.
+
+	![](Rift_UKS_01.png)
+
+1. From the left hand side, select the **General** section. Then in the **Unknown Sources** section, click on the box that has an **X** inside of it.
+
+	![](Rift_UKS_02.png)
+
+1. After the box has been clicked on, a message will be displayed. Click on the **Allow** button to continue.
+
+	![](Rift_UKS_03.png)
+
+1. When completed, you should now see a checkmark in the button instead of a **X**. To revert this change back to the default settings, click on the button again and the checkmark will change from a checkmark back into an X.
+	![](Rift_UKS_04.png)
+
+
+
+## Oculus Talks
+ **Oculus Connect: Integrating the Oculus Rift into Unreal Engine 4**
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+0oM6Xe7fT-8
+[/PARAMLITERAL]
 [/OBJECT]
+

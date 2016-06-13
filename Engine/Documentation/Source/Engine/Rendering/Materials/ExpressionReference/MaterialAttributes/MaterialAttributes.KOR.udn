@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2690154
 Availability:Public
 Title:Material Attributes 표현식
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
 Description:여러가지 머티리얼 특성, 특히 레이어드 머티리얼 제작시 유용한 특성을 나누고 합치는 수단이 되는 표현식 노드입니다.
-
+Version: 4.9
 
 [EXCERPT:TOC]
 [TOC(start:2)]

@@ -1,13 +1,15 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2723269
 Title:Paper 2D Flipbooks
 Crumbs: %ROOT%, Engine, Engine/Paper2D
-Description:Description of Paper 2D Flipbooks and how to create them. 
+Description:虚幻引擎 4 中 Flipbooks 的描述及其创建方法。 
 Availability:Public
-Related: Engine/Paper2D/Flipbooks/Editor
-Related: Engine\Paper2D\Flipbooks\Components
-Related: Engine/Paper2D/Sprites
-Related: Engine/Rendering/Materials
-Related: Engine/Content/Types/Textures
+Related:Engine/Paper2D/Flipbooks/Editor
+Related:Engine\Paper2D\Flipbooks\Components
+Related:Engine/Paper2D/Sprites
+Related:Engine/Rendering/Materials
+Related:Engine/Content/Types/Textures
+Version:4.9
+SkillLevel:Beginner
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -55,71 +57,70 @@ Related: Engine/Content/Types/Textures
 
 [TOC (start:2 end:3)]
 
-## Overview
 
 [EXCERPT:intro]
-The best way to think of **Paper 2D Flipbooks** (or **Flipbooks** for short) is in the form of hand-drawn animation, where a series of images that are slightly different are "flipped" through to produce what appears to be motion. In Unreal Engine 4, Flipbooks consist of a series of key frames, each of which contains a [Sprite](Engine\Paper2D\Sprites) to be displayed and a duration (in frames) to display it. 
-A **Frames Per Second** option determines how fast the frames will be displayed, indicating how many animation "beats" will occur in a second and the key frames themselves can be edited in the **Details** panel or by using a **Timeline** which can be found at the bottom of the **Flipbook Editor**. 
+理解 **Paper 2D Flipbooks** （简称 **Flipbooks**）的最佳方式是把它看做一种手绘动画的表现形式。原理是一系列有细微不同之处的图片快速“翻过”，从而产生动画的效果。在虚幻引擎 4 中，Flipbooks 由一系列关键帧组成，每帧均包含一个需要展示的 [Sprite](Engine\Paper2D\Sprites) 和展示时长（以帧数为单位）。 
+**每秒帧率** 选项将决定帧的播放速度，确定每秒中存在多少动画“节奏”；可在 **细节** 面板中编辑关键帧，或使用 **Flipbook 编辑器** 下方的 **时间轴** 进行编辑。 
 [/EXCERPT]
 
-## Creating a Flipbook
+## 创建一个 Flipbook
 
-There are a couple of ways you can go about creating a Flipbook. You can either create a blank Flipbook that you populate with sprites yourself or you can auto-generate a Flipbook based off a series of selected sprites. 
+可通过多种方法进行 Flipbook 的创建。可创建一个需自行填入 sprite 的空白 Flipbook 或基于一系列选中的 sprite 自动生成一个 Flipbook。 
 
 [REGION:note]
-You can import a JSON formatted sprite sheet description, which will import associated textures and create sprites and a Flipbook for the described frames as well. See [](Engine\Paper2D\Importing) for more information. 
+可导入一个 JSON 格式化 sprite 表单描述，它将导入相关纹理并为描述的帧创建 sprite 和一个 Flipbook。查看 [](Engine\Paper2D\Importing) 中的详细内容。 
 [/REGION]
 
-### Blank Flipbooks
+### 空白 Flipbooks
 
-Creating a blank Flipbook can be achieved by following the steps below. 
+可通过下列方法创建一个空白 Flipbook。 
 
-**From the Content Browser**: 
+**打开内容浏览器**： 
 
-1.	Click the **Add New** button, then in the context menu under _Animation_, select the **Paper Flipbook** option. 
+1.	点击 **新建** 按钮，然后在 _动画_ 的快捷菜单下选择 **纸质 Flipbook** 选项。 
 
 	![](FlipbookCreate1.png)
 
 	[REGION:note]
-	You can also **Right-click** inside the **Content Browser** to open the context menu instead of clicking **Add New**. 
+	除点击 **新建** 外，也可在 **内容浏览器** 中 **单击右键** 打开快捷菜单。 
 	[/REGION]
 
-1.	You will then be prompted to enter a name for your new Flipbook. 
+1.	弹出输入新 Flipbook 名称的提示。 
 
 	![](FlipbookCreate2.png)
 
-1.	After you select a name, your Flipbook asset has been created. 
+1.	选定名字之后，Flipbook 资源便已成功创建。 
 
 	![](FlipbookCreate3.png)
 
-	The asterisk symbol in the lower-left corner indicates that the asset has not been saved yet and will go away when you save it. 
+	左下角的星号提醒资源尚未保存，保存成功后将自动消失。 
 
-### Auto-Generated Flipbooks
+### 自动生成 Flipbooks
 
-To create an automatically generated Flipbook, follow the steps below. 
+以下是创建自动生成 Flipbook 的步骤。 
 
-**From the Content Browser**: 
+**打开内容浏览器**： 
 
-1.	Locate and select each of the sprites you would like to include in the Flipbook in the **Content Browser**. 
+1.	在 **内容浏览器**.中找到并选择需要被加入 Flipbook 的每个 sprite。 
 
 	![](Autocreate1.png)
 
-1.	**Right-click** on any of the sprites, then select the **Create Flipbook** option from the context menu. 
+1.	在任意 sprite 上 **单击右键**，然后从快捷菜单选择 **创建 Flipbook** 选项。 
 
 	![](Autocreate2.png)
 
-1.	You will then be prompted to enter a name for your new Flipbook. 
+1.	弹出输入新 Flipbook 名称的提示。 
 
 	![](Autocreate3.png)
 
-1.	After you select a name, your Flipbook asset has been created. 
+1.	选定名字之后，Flipbook 资源便成功创建。 
 
 	![](Autocreate4.png)
 
-	When you mouse over the Flipbook in the **Content Browser**, you will also be able to preview the Flipbook animation. 
+	在 **内容浏览器**.中将鼠标悬停在 Flipbook 上即可预览 Flipbook 动画。 
 
 [REGION:warning]
-When auto-generating a Flipbook, the naming convention you use for the sprites included is **very important** as the sprites will be added to the Flipbook in alphabetical order. In the example above, we've named each of our sprites for creating an Idle to **Idle_x** where X is the order in which we want the sequence to appear. 
+自动生成 Flipbook 时，用于 sprite 的命名规则 **十分重要**，因为 sprite 将以字母顺序添加至 Flipbook。在以上范例中每个 sprite 皆被命名，**Idle_x** 中的 X 就是序列的播放顺序。 
 [/REGION]
 
 

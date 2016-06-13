@@ -1,0 +1,50 @@
+﻿INTSourceChangelist:0
+Availability:Docs
+Title:Nativizing Blueprints
+Crumbs: %ROOT%, Programming, Engine/Blueprints/TechnicalGuide
+Description:Technical guide for gameplay programmers exposing gameplay elements to Blueprints.
+Version: 4.12
+Parent: Engine/Blueprints/TechnicalGuide
+
+[REGION:warning]
+This is an experimental beta feature. All Unreal Engine 4 sample games and some medium-size demos were successfully nativized, but we're still working on using the feature with larger projects.
+[/REGION]
+
+
+The new Blueprint Nativization tool enables you to generate native C++ code from your project's Blueprints. Cooking your project out for testing outside the editor or for release will
+compile the project with the generated code. All of the Blueprint Classes are then replaced by the newly-generated native classes. The main goal of Blueprint Nativization is to 
+reduce the virtual machine (VM) overhead in the runtime version of the project. As a result, the generated code is not necessarily designed to be "friendly" or reusable. 
+
+This page will get you started with nativizing your project's Blueprints, and for Blueprint-only projects, this should be a mostly transparent process. If you have C++ in your project as well,
+or want to debug the nativized code, see  [](Engine/Blueprints/TechnicalGuide/NativizingBlueprints/Advanced) for more information.
+
+
+## Enabling Blueprint Nativization
+
+To enable Blueprint Nativization, use the **Edit Menu** to open **Project Settings**. Under **Packaging**, enable the **Nativize Blueprint Assets** checkbox.
+
+![](BlueprintNativizeCheckbox.png)
+
+Then, when you package your project, the following Blueprint assets will be nativized: 
+
+* Blueprint Classes
+* Blueprint Function Libraries
+* Blueprint Interfaces
+* Anim Blueprints 
+* Widget Blueprints
+* User Defined Structures
+* User Defined Enums
+
+Currently, _Level Blueprints_ will not be converted. The nativized code is stored in `[ProjectDirectory]\Intermediate\[Platform That Was Cooked For]\NativizedAssets\Source\NativizedAssets\`.
+
+## Excluding Blueprints from Conversion
+
+You can also exclude certain _Blueprints_ from conversion. In your project's `DefaultEditor.ini` file, create a `[BlueprintNativizationSettings]` heading.
+
+* To exclude a certain type of asset, set `ExcludedBlueprintTypes`. For example, `+ExcludedBlueprintTypes=/Script/UMGEditor.WidgetBlueprint` will not convert any _Widget Blueprints_.
+* To exclude an individual asset, set `ExcludedAssets`. For example, `+ExcludedAssets=/Engine/Tutorial/SubEditors/TutorialAssets/Character/TutorialCharacter` will not convert the **Tutorial Character**.
+
+Assets are nativized if and only if they are cooked. When the cooker has no assets/maps specified to be cooked, it cooks 
+everything from your project's **Content** directory. If you see some unused Blueprints are being nativized, you can also use the list of maps to package to omit assets. 
+
+![](AdditionalMaps.png)

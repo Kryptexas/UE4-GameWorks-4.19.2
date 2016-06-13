@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2481863
+﻿INTSourceChangelist:2940199
 Availability:Public
 Title:모바일 플랫폼용 머티리얼
 Crumbs:%ROOT%, Platforms, Platforms/Mobile
@@ -10,10 +10,13 @@ Related: Engine/Rendering/Materials/CustomizedUVs
 Related: Engine/Rendering/Materials/MaterialProperties/BlendModes
 Related: Engine/Rendering/Materials/ExpressionReference/Utility
 Related: Platforms/Mobile/Lighting
+version: 4.9
+parent:Platforms/Mobile
+order:1
+type:overview
+tags:mobile
 
 [TOC(start:2)]
-
-## 개요
 
 모바일 플랫폼(피처 레벨 ES2)에서의 머티리얼은 다른 플랫폼에서와 마찬가지로 동일한 노드 기반 생성 프로세스를 사용합니다. 모바일 머티리얼에는 거의 모든 머티리얼 입력이 사용 가능하며, 
 머티리얼의 모양이나 동작도 다른 플랫폼과 마찬가지로 모바일 플랫폼에서와 일반적으로 동일합니다. 예를 들어, 다음의 머티리얼 입력은 전부 PC 에서나 모바일 플랫폼에서나 

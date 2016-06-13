@@ -3,7 +3,7 @@ Title: 4.4.6 - Add Jump End to Idle Transition
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4, Programming/Tutorials/FirstPersonShooter/4/4
 Description: Learn how to add jump end to idle state transitions your First Person Shooter character's animation state machine.
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -29,9 +29,9 @@ During this step, you're going to set your jump end to idle transition.
 
 	![](JumpEndtoIdle.png)
 
-1.	**Double-click** the transition to edit it.
+1.	Double-click the transition to edit it.
 
-1.	**Right-click** in the graph, search for and select the **TimeRemaining for 'FPP_JumpEnd'** node.
+1.	Right-click in the graph, search for and select the **TimeRemaining for 'FPP_JumpEnd'** node.
 
 1.	Drag off the **Time Remaining** output pin and add a **<= (float)** node using the **Context Menu**.
 

@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2743766
 Availability:Public
-Title: 虚幻编辑器指南
+Title: 虚幻编辑器手册
 Crumbs:%ROOT%, Engine
-Description:使用和配置虚幻编辑器工具集的指南。
+Description: 使用和配置虚幻编辑器工具集的指南。
 Navigation:topic
+parent:%ROOT%
+order:2
 
 [VAR:Params]
 [PARAM:image]
@@ -59,6 +61,9 @@ Navigation:topic
 [/OBJECT]
 [/VAR]
 
+[DIR(end:"1" output:"topic" org:"hierarchy" parent:"Engine/Editor")]
+
+<!--
 [REGION:topics third]
 %Engine/UI:topic%
 %GettingStarted/HowTo:topic%
@@ -69,3 +74,4 @@ Navigation:topic
 %Engine/Content:topic%
 %Engine/Basics/Projects:topic%
 [/REGION]
+-->

@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2617227
+﻿INTSourceChangelist:2707659
 Availability: Public
 Title:2. 생명력, 에너지, 탄창 표시하기
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
-Description:이 단계에서는 HUD 에 플레이어의 생명력, 에너지, 탄창을 연결하여 표시하도록 합니다.
+Description:In this step we will hook up and display the Health, Energy and Ammo of the player on our HUD. Description:이 단계에서는 HUD 에 플레이어의 생명력, 에너지, 탄창을 연결하여 표시하도록 합니다.
+version: 4.9
 
 
 [VAR:Steps]
@@ -79,7 +80,7 @@ Description:이 단계에서는 HUD 에 플레이어의 생명력, 에너지, �
 
 1.	Health 옆의 **Progress Bar** 를 선택하고 **디테일** 패널에서 **Fill Color and Opacity** (채우기 색 및 불투명도)를 녹색으로 설정합니다.
 
-	![](Step2_24.png)(w:800)
+	![](UMGColorPicker1.jpg)(w:800)
 
 	색을 정했는데도 진행상황 바의 색이 변하지 않습니다. 왜냐면 바를 채우는 **Percent** 값이 0.0 으로 설정되었기 때문입니다 (이 값을 바꿔 색을 테스트해 볼 수 있는데, 나중에 여기에 캐릭터의 생명력 값을 연동시키도록 하겠습니다).
 
@@ -115,7 +116,9 @@ Description:이 단계에서는 HUD 에 플레이어의 생명력, 에너지, �
 
 	![](Step2_20.png)
 
-1.	**그래프** 에서 **Event Construct** 아래 **우클릭** 한 뒤 **Get Player Character** 노드와 **Cast To FirstPersonCharacter** 노드를 추가합니다.
+1.	**그래프** 에서 **Event Construct** 노드 아래 **우클릭** 한 뒤 **Get Player Character** 노드를 추가합니다.
+
+1.  **Return Value** 핀을 끌어놓고 **FirstPersonCharacter 에 형변환** 을 선택합니다.
 
 	![](Step2_21.png)
 
@@ -127,21 +130,23 @@ Description:이 단계에서는 HUD 에 플레이어의 생명력, 에너지, �
 
 	**FirstPersonCharacter** 블루프린트 안에 들어있는 변수에 접근할 수 있게 됩니다.
 
+1.  툴바의 **컴파일** 을 클릭하여 스크립트를 컴파일합니다.
+
 1.	**디자이너** 탭으로 돌아가 **Health** 옆의 **Progress Bar** 를 선택합니다.
 
-1.	**디테일** 패널에서 **Appearance** 아래, **Percent** 옆의 **바인드** 옵션을 선택한 다음 **MyCharacter** 의 **Health** 를 사용하도록 설정합니다.
+1.	**디테일** 패널에서 **Progress** 아래, **Percent** 옆의 **바인드** 옵션을 선택한 다음 **MyCharacter** 의 **Health** 를 사용하도록 설정합니다.
 
-	![](Step2_23.png)
+	![](HealthProgress.jpg)
 
-	그러면 Progress Bar 의 값이 **First Person Character** 블루프린트 안의 **Health** 값에 바인딩합니다. 이제 캐릭터 블루프린트의 Health 값이 바뀔 때마다 HUD 의 값도 자동으로 업데이트됩니다. 바인딩 후 Progress Bar 가 변하지 않는 것도 볼 수 있는데, **Event Construct** (이번트 구성시, 다른 말로 게임이 시작되면 벌어지는 HUD 구성시) 벌어지도록 해놨기 때문입니다.
+	그러면 Progress Bar 의 값이 **First Person Character** 블루프린트 안의 **Health** 값에 바인딩합니다. 이제 캐릭터 블루프린트의 Health 값이 바뀔 때마다 HUD 의 값도 자동으로 업데이트됩니다. 바인딩 후 Progress Bar 가 변하지 않는 것도 볼 수 있는데, **Event Construct** (이벤트 구성시, 다른 말로 게임이 시작되면 벌어지는 HUD 구성시) 벌어지도록 해놨기 때문입니다.
 
 1.	Energy 옆의 **Progress Bar** 를 선택하고 위 프로세스를 반복, **Percent** 를 **MyCharacter** 의 **Energy** 에 바인딩합니다. 
 
-	![](Step2_25.png)
+	![](EnergyProgress.jpg)
 
 1.	Ammo 텍스트 다음의 25 를 선택한 다음, **Text** 에 대한 **디테일** 패널에서 **바인드** 를 클릭하고 **바인딩 생성** 합니다.
 
-	![](Step2_26.png)
+	![](CreateBinding.jpg)
 
 	기존에 **Sub-Object Properties** 를 사용하여 같은 유형의 프로퍼티를 바인딩했던 방식으로, 별도의 커스텀 바인딩을 만들 수도 있습니다. 여기서는 **Text** 프로퍼티를 **First Person Character** 블루프린트의 **Integer** 프로퍼티에 바인딩하여 현재 탄창 수를 표시하도록 하겠습니다.
 
@@ -149,7 +154,9 @@ Description:이 단계에서는 HUD 에 플레이어의 생명력, 에너지, �
 
 	![](Step2_27.png)(w:820)
 
-1.	**MyCharacter** 를 끌어놓고 **Ammo** 를 구한 다음 **Return Node** 의 **Return Value** 에 연결합니다. 
+1.	**MyCharacter** 핀을 끌어놓고 **Get Ammo** 를 선택합니다. 
+
+1.  Ammo 핀을 **Return Node** 의 **Return Value** 에 연결합니다.
 
 	![](Step2_28.png)
 

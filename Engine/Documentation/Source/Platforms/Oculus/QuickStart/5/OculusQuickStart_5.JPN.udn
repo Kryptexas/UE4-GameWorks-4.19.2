@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:2318890
+﻿INTSourceChangelist:2744797
 Title:5.バーチャル リアリティのコンテンツをテストする
 Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
 Description:アンリアル エンジン 4 を使って Oculus Rift 用に作成されたコンテンツをロードし再生する
 Availability:Public
+Version:4.9
+SkillLevel:Intermediate
 
+このセクションでは、DK2 がアンリアル エンジン 4 で機能しているか確認するためのテスト方法を説明します。
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,30 +26,37 @@ Availability:Public
 
 %Steps%
 
-1. まだお持ちでない場合は、 [](Resources\ContentExamples) プロジェクトからダウンロードしてください。
+1. まだお持ちでない場合は、アンリアル エンジン ランチャーから [](Resources\ContentExamples) プロジェクトをダウンロードしてください。
+
 1. **Content Examples** プロジェクトを開きます。
+
 	![](CE_Start.png)(w:500)
 
-1. **[ファイル] > [レベルを開く]** をクリックします。
-1. `VR.umap` を選択して **[開く]** をクリックします。
+1. **[File (ファイル)] > [Open Level (レベルを開く)]** をクリックします。
+
+1. **[VR.umap]** を選択して **[Open (開く)]** をクリックします。
 
 	![](VRmap.png)
-1. **レベル エディタ ツールバー** の **[再生]** の横にあるドロップダウン矢印をクリックして、 **Play In Editor** オプションを開きます。
+
+1. **レベル エディタ ツールバー** の **[Play (再生)]** の横にあるドロップダウン矢印をクリックして、**[Play In Editor]** オプションを開きます。
 
 	![](PlayDropdown.png)
-1. **Standalone Game** を選択してゲームを起動します。**Standalone Game** は Oculus との互換性を持つ唯一の **Play In Editor** ゲームです。
+
+1. **[VR Preview]** オプションを選択して HMD を装着します。
 
 	![](StandAloneGame.png)
 
 	[REGION:tip]
-	プロジェクトに **Standalone Game** を 1 回選択すると、別のものを選択するまでずっとそのモードのままになります。つまり、 **[再生]** アイコンをクリックすれば、テストを再開することができます。
+	**[Standalone Game]** オプションの使用も可能ですが、その場合は必ず **Alt+Enter** で VR モードにしてください。これを行わないと、HMD を装着した時に何も見えません。
 	[/REGION]
 
-1. **Alt+Enter** を押して VR モードにします。これにより、画面上のビューがステレオビューに変更され、ゲームの表示が Oculus に送信されます。
+1. HMD を装着すると、以下のような画像が HMD に表示されているはずです。
 
 	![](VRMode.png)(w:800)
-1. この段階で、 Oculus に入り、レベル周辺を移動することができます。ゲームプレイを終了するには、以下の操作を行います。
-	* **~** を押し、コンソールに `quit` と入力するか、または 
+
+1. ゲームプレイは、以下の 2 通りの方法で終了することができます。
+
+	* **~** を押し、コンソールに **「Quit」** と入力する、または
 	* **Shift+F1** を押して、マウス カーソルを復活させてウィンドウを閉じます。
 
 

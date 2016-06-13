@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2721340
 Availability:Public
 Title:자동화 시스템 개요
 Crumbs: %ROOT%, Programming
 Description:유닛 테스팅, 피처 테스팅, 콘텐츠 스트레스 테스팅에 사용되는 자동화 시스템 개요입니다.
 Navigation:topic
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -65,7 +66,7 @@ $ Smoke Tests : 스모크 테스트란 구현자가 기약한 속도가 나는�
 		모든 스모크 테스트는 **1 초** 이내에 완료되어야 정상입니다. Unit Test 와 빠른 Feature Test 만 Smoke Test 로 마킹하세요.
 	[/REGION]
 
-$ Content Stress Tests : 특정 시스템의 크래시를 방지하기 위한 좀 더 절처한 테스트, 이를테면 모든 맵을 로드하거나 
+$ Content Stress Tests : 특정 시스템의 크래시를 방지하기 위한 좀 더 철저한 테스트, 이를테면 모든 맵을 로드하거나 
 모든 블루프린트 컴파일 등입니다. 예제는 `EditorAutomationTests.cpp` 나 `EngineAutomationTests.cpp` 를
 확인해 주세요.
 

@@ -16,7 +16,7 @@ Description: 3D 앱 스타일로 뷰포트를 조작하는 법입니다.
 [/EXCERPT:AltLeftMouse]
 
 [EXCERPT:AltRightMouse]
-## 뷰포트 줌잉
+## 뷰포트 줌
 ![](AltRightMouse.png)
 
 1. Alt (맥에서는 Option) 키를 누른 상태로 마우스 오른쪽 버튼을 누르고 왼쪽 또는 위쪽으로 끌면 뷰를 줌 아웃 시킵니다.

@@ -136,7 +136,7 @@ Case conversion is done by using `ToUpper` and `ToLower`, converting the string 
 
 ### Canvas
 
-To display an FString in a HUD using [Canvas](Gameplay/Framework\UIAndHUD#canvas), call the `FCanvas::DrawText()` function:
+To display an FString in a HUD using [Canvas](Gameplay/Framework\UIAndHUD), call the `FCanvas::DrawText()` function:
 	
 	Canvas->DrawText(BigFont, TestHUDString, 110.0f,110.0f);
 

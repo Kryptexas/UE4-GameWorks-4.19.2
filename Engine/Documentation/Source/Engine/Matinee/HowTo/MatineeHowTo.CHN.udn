@@ -1,15 +1,17 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2709577
 Availability: Public
-Title:Matinee - How To...
+Availability:Public
+Title:Matinee 指导
 Crumbs: %ROOT%, Engine, Engine/Matinee
-Description:A How To Guide for using different aspects of Matinee in Unreal Engine 4. 
+Description:在虚幻引擎 4 中使用 Matinee 各要素的指南。 
+Version:4.9
 
 
-The **Matinee - How-To...** pages will show you how you can set up simple scenarios using Matinee in a step-by-step process with images and instructions. 
+**Matinee 指导...** 页面以图文并茂的形式说明 Matinee 简单情况的使用步骤。 
 
-Refer to the table below for more information and click each link to view its contents. 
+在下表中查阅详细内容，点击链接查看内容。 
 
-|How To... | Description |
+指导内容| Description |
 | ------- | ------------ |
 | **[](Engine\Matinee\HowTo\MHT_1)** | %Engine\Matinee\HowTo\MHT_1:description% |
 | **[](Engine\Matinee\HowTo\MHT_2)** | %Engine\Matinee\HowTo\MHT_2:description% |

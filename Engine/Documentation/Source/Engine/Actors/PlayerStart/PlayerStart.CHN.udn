@@ -1,17 +1,18 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Player Start
+﻿INTSourceChangelist:2651255
+Availability:Public
+Title:Player Start（玩家出生点）
 Crumbs: %ROOT%, Engine, Engine/Actors
-Description:Guide to using Player Starts.
+Description:玩家出生点使用指南
+version:4.9
 
 ![](Player_Start_Actor.png)
 
 
-The ability to spawn a player into the world at any location is a very useful feature for any game. Unreal Engine 4 offers a special Actor that will allow you to do this called a **Player Start**. A Player Start is just that, a location in the game world that the player will start from.  
+在世界场景中任意地点生成玩家是游戏中非常重要的一个功能。虚幻引擎 4 利用一个特殊 Actor 来实现此功能，称之为 **玩家出生点**。所谓“玩家出生点”，就是指在游戏世界场景中玩家开始游戏的地点。  
 
-## Placing a Player Start Actor
+## 放置玩家出生点 Actor
 
-Player Start Actors can be found in the Mode panel under the Basic category. To place one into the world, simply drag it from the **Modes** panel into the game world.
+可在 **Basic（基础）** 类目下的 **Modes（模式）** 面板中找到玩家出生点 Actor。从 **Modes（模式）** 面板中将其拖入游戏世界场景即可完成放置。
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -21,29 +22,29 @@ Player Start Actors can be found in the Mode panel under the Basic category. To 
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-DeMIl0BgRtw
+fXX07XG5qW8
 [/PARAMLITERAL]
 [/OBJECT]
 
-## Using Player Start Actor
+## 使用玩家出生点 Actor
 
-Using a Player Start is as easy as selecting it from the **Modes** panel and then dragging it into the world. Once you have the Player Start in the world, you can then use it in combination with Blueprints to spawn the player where ever you would like in the world. 
+玩家出生点的使用方法极其简单：在 **Modes（模式）** 面板中选定，然后将其拖入世界场景。世界场景中便存在一个玩家出生点，结合蓝图进行使用即可在世界场景中的任意位置生成玩家角色。 
 
 [region:tip]
-When using a Player Start to spawn a player, the Player Start's location and rotation will be taken into consideration when used. If you would like to have your player look at something specific when they spawn, make sure that the Player Start that you use to spawn them is pointed in the direction that you want the player to look. 
+使用玩家出生点生成玩家角色时，需要考虑其位置和旋转方向。如要使玩家角色在出生时面对某个特定物体，需将使用的玩家出生点对准该物体所处的方向。 
 [/REGION]
 
-##  Player Start Tips & Tricks
+## 玩家出生点使用提示和技巧
 
-While using Player Starts is quite simple, there are a few tips and tricks about using them that might help you out during development. 
+玩家出生点的使用方法非常简单，了解以下使用提示与技巧还可使开发过程更加容易。 
 
- **No Player Start:** If you try and play your game without adding a Player Start to the world, the player will start from 0,0,0 in the world. Because of this, always make sure that you have a Player Start in your world.
+ **No Player Start（无玩家出生点）：**如开始游戏时世界场景中不存在玩家出生点，玩家角色在世界场景中出现的坐标将为 0,0,0。正因如此，请务必在世界场景中放置玩家出生点。
 
- **Right-Click Player From Here:** Sometimes you might want to play from a certain location and not from the Player Start. You can do this by using the **Right-click** play from here option that is available by **Right-clicking** in the editor viewport and selecting the **Play From Here** options. 
+ **Play From Here（从此处开始）：**也许有时需要从非玩家出生点的其他位置开始游戏。在编辑器视口中 **单击右键**，选择 **Play From Here（从此处开始）** 选项，即可实现该功能。 
 
 ![](Right_Click_Play.png)
 
-** Bad Size:** Sometimes your Player Start might change from an icon of a controller to an icon that says Bad Size. If this happens, all you need to do is move your Player Start around in the world until it is not intersecting anything in the scene.
+**Bad Size（尺寸错误）:**有时玩家出生点的控制器图标可能会变成一个 “BADsize” 字样的图标。出现此情况时，须在世界场景中移动玩家出生点，确保其不与场景中的物体相交。
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]

@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:2634286
+﻿INTSourceChangelist:2735872
 Availability: Public
 Title:6 - 빌드 프로세스 실행
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
 Description:다수의 액터를 배치하고 편집한 후, 레벨 제작에 있어 최종 단계중 하나는 빌드 프로세스입니다.
 SkillLevel:Beginner
 Version:4.9
+checkpoint: editorqs
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -24,7 +25,7 @@ Version:4.9
 
 %Steps%
 
-지금쯤 그림자와 벽 아래 새어드는 빛에 "Preview" 딱지가 붙어있는 것을 눈치챘을 것입니다.
+지금쯤 그림자와 벽 아래 새어 드는 빛에 "Preview" 딱지가 붙어있는 것을 눈치챘을 것입니다.
 
 ![](beforeBake2.png)
 

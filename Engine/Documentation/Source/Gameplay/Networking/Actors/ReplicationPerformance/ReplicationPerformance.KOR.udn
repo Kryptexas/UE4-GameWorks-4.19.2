@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2472981
+﻿INTSourceChangelist:2713442
 Availability:Public
 Title: 퍼포먼스 및 대역폭 꼼수
 Crumbs:%ROOT%, Gameplay, Gameplay/Networking, Gameplay/Networking/Actors
@@ -6,6 +6,7 @@ Description:액터 리플리케이션의 퍼포먼스와 대역폭 사용량 최
 Related: Gameplay/Networking/Actors
 Related: Gameplay/Networking/Actors/Relevancy
 Related: Gameplay/Networking/Actors/ReplicationFlow
+version: 4.9
 
 액터 리플리케이션은 시간이 걸릴 수 있습니다. 엔진은 이 작업의 효율을 가급적 높이려 최선을 다합니다만, 이 작업을 수월하게 만들기 위해 할 수 있는 일이 몇 가지 있습니다.
 

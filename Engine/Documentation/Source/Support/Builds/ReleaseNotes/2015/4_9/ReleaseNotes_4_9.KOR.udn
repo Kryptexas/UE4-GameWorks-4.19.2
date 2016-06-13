@@ -1,699 +1,699 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2760663
 Availability:Public
-Title:Unreal Engine 4.9 Release Notes
+Title:언리얼 엔진 4.9 릴리즈 노트
 Crumbs:%ROOT%, Engine
 Description:
+order:9
 
-This release brings hundreds of updates for Unreal Engine 4, including 129 improvements submitted by the community of Unreal Engine developers on GitHub! Thanks to all of these contributors to Unreal Engine 4.9:
+이번 릴리즈에는 수백에 달하는 언리얼 엔진 4 업데이트가 포함, 여기에는 GitHub 의 언리얼 엔진 개발자 커뮤니티의 제출내용 129 개도 포함됩니다! 언리얼 엔진 4.9 에 기여해 주신 모든 분들께 감사드립니다:
 
 Andrew Zhilin (zoon), Artem V. Navrotskiy (bozaro), Artyom Sovetnikov, Ben Rog-Wilhelm(zorbathut), Ben Wiklund (bwiklund), Black Phoenix (PheonixBlack), Błażej Szczygieł (zaps166), Brad Grantham (bradgrantham), Brent Scriver (FineRedMist), Cengiz Terzibas (yaakuro), chipgw, Christian Radich (yoyohobo665), Christopher P. Yarger (cpyarger), Clay Chai (chaiyuntian), Cliff Jolly (ExpiredPopsicle), Dave Newson (dave-newson), Derek van Vliet (derekvanvliet), Dorgon Chang (dorgonman), ewirch, Felix Laurie von Massenbach (erbridge), Gabriel Hare (GabrielHare), gatools, Hakki Ozturk (ozturkhakki), HueyPark, JaredTherriault, Jason Spangler (Stormwind99), Javier Osset (Xaklse), Jeff Rous (JeffRous), JohnAlcatraz, Kitatus Studios (KitatusStudios), Konstantin Nosov (gildor2), korypostma, Lee Berger (MrCrowbar), Maarten Scholl (maartenscholl), Marat Radchenko (slonopotamus), marynate, Matthias Huerbe (MatzeOGH), Maxim (maxpestun), Michael Allar (Allar), Michael3DX, MiniTurtle, Moritz Wundke (moritz-wundke), Nako Sung (nakosung), Nari Demura (demuyan), Nastenko Michael (deM-on), Nathan Stocks (CleanCut), Niels Huylebroeck (red15), Pablo Zurita (pzurita), Patrick Flanagan (valtrain), Pedja Ljubomirovic (3dluvr), Philipp Smorygo (fsmorygo), Pierdek, Piotr Bąk (Pierdek), Quadtree, Rajko Stojadinovik (rajkosto), Rama (EverNewJoy), Rem (rveilleux), rlefebvre, Robert Khalikov (nbjk667), Russ Treadwell (trdwll), Salamanderrake, Sebastian Witkowski (witkowski-seb), Sébastien Rombauts (Srombauts), Simon Taylor (simontaylor81), Stephen Whittle (stephenwhittle), szyszq, TK-Master, Tobias Mollstam (mollstam), Tomasz Sterna (smokku), user37337, Victor Xie (FTPiano), Vladimir Ivanov (ArCorvus), Will Stahl (merlin91), yamashi, Zhi Kang Shao (zkshao)
 
-## Major Features 
+## 주요 기능
 
-### Enhanced Support for Mobile Devices
+### 모바일 디바이스 지원 강화
 
-We've been working to greatly improve support for mobile platforms in UE4, and this release contains many exciting rendering features to help you create leading-edge mobile titles.  These include efficient dynamic shadows, movable lights and decals.  Expect to see continued improvements to mobile and HTML5 rendering quality in the future.  In this release, IOS In-App Purchases has been improved and we've added Remote Push Notifications and support for CloudKit.  For Android, we've added OpenGL ES 3.1, Immersive Mode support, asynchronous audio decompression, and better orientation features.  And we now include NVIDIA AndroidWorks to make it easy to get up and running on your device.  UE4 now includes a Flurry analytics plugin for iOS out of the box, also!  Many of the new features for mobile devices are also available in your HTML5 games, too.  
+모바일 플랫폼에 대한 지원을 대폭 강화하려는 노력을 계속한 결과, 이번 릴리즈에는 최첨단 모바일 타이틀 제작에 힘을 실어줄 흥미로운 렌더링 기능이 다수 포함되어 있습니다. 새로 추가된 내용에는 효율적인 다이내믹 섀도, 무버블 라이트와 데칼입니다. 앞으로도 모바일과 HTML5 의 렌더링 퀄리티에 지속적인 향상을 볼 수 있을 것입니다. 이번 릴리즈에는 iOS 앱 내 구매 기능이 향상되었으며, 원격 푸시 알림과 CloudKit 도 지원합니다. 안드로이드의 경우, OpenGL ES 3.1, 몰입 모드, 비동기 오디오 압축해제, 향상된 종횡방향 기능이 추가되었습니다. NVIDIA AndroidWorks 역시도 포함되어 디바이스 준비 및 실행이 쉬워졌습니다. 이제 UE4 에 iOS 용 Flurry 애널리틱스 플러그인이 내장되어 배포되기도 합니다! 모바일 디바이스용 신기능 다수는 HTML5 게임에서도 사용 가능합니다.
 
 ![image alt text](image_0.png)
 
-### New: Dynamic Character Shadows for Mobile
+### 모바일용 다이내믹 캐릭터 섀도
 
-Dynamic modulated character shadows from directional lights are now supported on mobile devices!
+디렉셔널 라이트에서의 다이내믹 모듈레이트 캐릭터 섀도가 모바일 디바이스에 지원됩니다!
 
 ![image alt text](image_1.png)
 
-* You can use dynamic modulated shadows even if your scene is statically lit
+* 스태틱 라이팅된 씬에도 다이내믹 모듈레이트 섀도를 사용할 수 있습니다.
 
-* To enable this feature, turn on the "Cast Modulated Shadows" option on a directional light!
+* 이 기능을 켜려면, 디렉셔널 라이트의 "Cast Modulated Shadows" (모듈레이트 섀도 드리우기) 옵션을 켜면 됩니다!
 
-### New: Dynamic Point Lights for Mobile
+### 모바일용 다이내믹 포인트 라이트
 
-Dynamic point lights are now supported on mobile devices and HTML5!
+이제 모바일 디바이스와 HTML5 에 다이내믹 포인트 라이트가 지원됩니다!
 
 ![](image_2.gif)(convert:false)
 
-* These can be used to enhance short lived visual effects such as explosions, projectiles, particle effects etc.
+* 폭발, 발사체, 파티클 이펙트 등과 같은 단발성 비주얼 이펙트 강화에 사용할 수 있습니다.
 
-* Up to four dynamic point lights are supported on each object being illuminated.
+* 조명 대상 오브젝트 하나당 다이내믹 포인트 라이트가 최대 4 개까지 지원됩니다.
 
-* Note:  Dynamic shadows cast from point lights are not yet supported
+* 주: 포인트 라이트에서의 다이내믹 섀도는 아직 지원되지 않습니다.
 
-### New: Decals on Mobile
+### 모바일에서의 데칼
 
-Decals are now supported by the mobile renderer!
+이제 모바일 렌더러에서 데칼이 지원됩니다!
 
 ![image alt text](image_3.png)
 
-* Translucent, additive and modulated blend modes are supported
+* 반투명, 더하기, 변조 블렌드 모드가 지원됩니다.
 
-* Note:  Only unlit decals are supported on mobile and web, currently.
+* 주: 현재 모바일과 웹에서는 라이팅되지 않은 데칼만 지원됩니다.
 
-### New: Major VR Updates
+### 주요 VR 업데이트
 
 #### Steam VR (HTC Vive)
 
-Unreal Engine's SteamVR plugin includes many major fixes to make it easier to use, and more performant.
+언리얼 엔진의 SteamVR 플러그인에는 보다 사용 편의성과 퍼포먼스를 개선시켜주는 주요 픽스가 포함되어 있습니다.
 
 ![image alt text](image_4.png)
 
-SteamVR improvements include:
+SteamVR 개선 사항:
 
-* Fix for latency issues that appeared in 4.8 Preview 2+
+* 4.8 프리뷰 2+ 에 등장한 지연시간 문제를 고쳤습니다.
 
-* Support for the standard Motion Controller abstraction, so both Vive controllers can route to the same player
+* 표준 모션 콘트롤러 추상화가 지원되어, 양쪽 바이브 콘트롤러 다 같은 플레이어로 경유시킬 수 있습니다.
 
-* C++ projects are now cleanly supported by the plugin API
+* C++ 프로젝트가 이제 플러그인 API 에 깔끔히 지원됩니다.
 
-* Various improvements and bug fixes
+* 여러가지 버그 수정과 개선사항이 있었습니다.
 
-#### Gear VR Updated to Mobile SDK 0.6.0
+#### Gear VR 이 모바일 SDK 0.6.0 으로 업데이트
 
-This revision fixes several major Gear VR rendering bugs and issues present in the 0.5.0 release, as well as some hardware compatibility issues. 
+이번 리비전에서는 0.5.0 릴리즈에 있던 주요 Gear VR 렌더링 버그와 문제점 및 하드웨어 호환성 문제도 몇 가지 해결되었습니다.
 
 ![image alt text](image_5.png)
 
-### New: VR Motion Controller Support
+### VR 모션 콘트롤러 지원
 
-Motion Controllers are now supported through a common abstraction layer in UE4!  
+이제 UE4 의 공용 추상 레이어를 통해 모션 콘트롤러가 지원됩니다!
 
 ![image alt text](image_6.png)
 
-This means that motion controller devices will now all be available through a common interface.  The HTC Vive controller is currently supported, with more (such as the PlayStation Move) to come soon.  Input button presses and triggers can now be routed to a single player from multiple controllers, using the Motion Controller key abstraction.  Additionally, you can add motion tracking to your project by simply adding a Motion Controller component to your character, which automatically updates anything attached to it to follow the position of your controllers!  We recommend that all plugins for motion controllers move over to the new system, so that they can be part of the device-agnostic interface.
+이제 공용 인터페이스를 통해 모션 콘트롤러 디바이스가 전부 사용가능해진다는 뜻입니다. 현재 HTC Vive 콘트롤러가 지원되며, 곧 (PlayStation Move 같은 것이) 추가 지원될 계획입니다. 입력 버튼 눌림 및 트리거는 이제 모션 콘트롤러 키 추상화를 사용하여 여러 콘트롤러에서 하나의 플레이어로 경유시킬 수 있습니다. 추가적으로 캐릭터에 모션 콘트롤러를 추가하는 것만으로도 연결된 모든 것이 자동으로 콘트롤러 위치를 따르도록 업데이트시키는 모션 트래킹을 프로젝트에 추가할 수 있습니다! 모션 콘트롤러용 플러그인 전부를 새 시스템으로 옮겨, 디바이스에 상관없이 작동하는 인터페이스의 일부로 만들 것을 추천합니다.
 
-### New: Experimental DirectX 12 Support
+### DirectX 12 실험단계 지원
 
-DirectX 12 is now supported as an experimental feature! If you are using Windows 10, try it out by running the engine with "-DX12" on the command line.
+DirectX 12 가 현재 실험단계 기능으로 지원됩니다! 윈도우 10 을 사용중이라면, 명령줄에 "-DX12" 를 붙여 엔진을 실행하면 됩니다.
 
 ![image alt text](image_7.png)
 
-Microsoft's engineers added support for DirectX 12 to UE4 and we have worked with them to integrate their changes into 4.9. The feature is still new and is considered experimental. DirectX 12 offers a much lower-level rendering API that is more efficient and allows for rendering commands to be submitted in parallel across many threads, a feature inspired by console rendering APIs. Going forward, we'll continue to improve support for DirectX 12 and look for ways to leverage the new API in upcoming versions of the engine.
+마이크로소프트의 개발자가 UE4 에 DirectX 12 지원을 추가하고, 저희가 협업하여 그 변경사항을 4.9 에 통합시켰습니다. 이 기능은 아직 신기능이라 실험단계로 간주됩니다. DirectX 12 는 보다 효율적인 훨씬 낮은 단계의 렌더링 API 를 제공, 여러 스레드에 걸쳐 다수의 렌더링 명령을 병렬 처리하는 것이 가능한데, 이는 콘솔 렌더링 API 에 영향을 받은 것입니다. 앞으로 계속해서 DirectX 12 지원을 강화시켜 갈 것이며, 추후 엔진 버전에서 이 새로운 API 를 보다 적극 활용할 수 있는 방안을 모색할 것입니다.
 
-### New: Full Scene Particle Collision with Mesh Distance Fields
+### 메시 디스턴스 필드를 통한 풀 씬 파티클 콜리전
 
-Distance field GPU particle collision allows particles to efficiently collide with the entire scene.
+디스턴스 필드 GPU 파티클 콜리전을 통해 전체 씬에 걸쳐 파티클의 보다 효율적인 충돌 처리가 가능합니다.
 
 ![image alt text](image_8.png)
 
-This can be used for [sparks colliding with surfaces](https://www.youtube.com/watch?v=3YH8oTzSQwY).
+[표면에 충돌하는 스파크](https://www.youtube.com/watch?v=3YH8oTzSQwY) 등에 사용 가능합니다.
 
 ![image alt text](image_9.gif)(convert:false)
 
-It can also be used for various effects like and [snow that accumulates on surfaces](https://www.youtube.com/watch?v=Z-2e8j0t0Ww),
+[표면에 쌓이는 눈](https://www.youtube.com/watch?v=Z-2e8j0t0Ww) 과 같은 다양한 이펙트에도 사용 가능합니다.
 
 ![image alt text](image_10.gif)(convert:false)
 
-* The Collision module on GPU particle emitters has a new property called 'Collision Mode' where you can specify 'Distance Field'
+* GPU 파티클 이미터의 콜리전 모듈에 새로 생긴 'Collision Mode' 라는 프로퍼티를 통해 'Distance Field' 설정이 가능합니다.
 
 	![image alt text](image_11.png)
 
-* In order for a particle to collide we need to have a colliding plane, and this can be extracted very efficiently from the distance field.  A single sample of the distance field gives distance to the nearest colliding surface.  Computing the gradient of the distance field provides the direction to that surface, and the surface's normal.  Putting these together gives the collision plane.
+* 파티클의 충돌을 위해서는 충돌시킬 면이 있어야 하는데, 이는 디스턴스 필드를 통해 아주 효율적으로 추상화 가능합니다. 디스턴스 필드의 단일 샘플링으로 가장 가까운 충돌 표면과의 거리가 나옵니다. 디스턴스 필드의 경향을 계산하여 그 표면의 방향과 표면 노멀을 구합니다. 이들을 합치면 충돌면이 나오는 것입니다.
 
-* Particle collision using this method is more reliable than the existing Scene Depth collision, which only collides against what's on your screen, restricting it to effects with short lifetimes.  However, the global distance field is fairly low resolution so particles will pass through thin objects, and sharp corners are rounded.
+* 이러한 방법을 사용한 파티클 콜리전은 기존의 씬 뎁스 콜리전보다 안정적인데, 기존의 것은 화면상에 있는 것에 대해서만 충돌하므로 수명을 짧게 할 수 밖에 없기 때문입니다. 그러나 글로벌 디스턴스 필드는 해상도가 꽤 낮아, 파티클이 얇은 오브젝트를 통과해 버리거나 날카로운 구석이 둥글어질 것입니다.
 
-* As with all distance field features, this requires 'Generate Mesh Distance Fields' to be enabled in the Rendering Project settings.  Distance field particle collision is a Shader Model 5 feature, on hardware that doesn't support SM5, the particles will fall back to scene depth collision instead.
+* 모든 디스턴스 필드 기능과 마찬가지로, 이는 렌더링 프로젝트 세팅에서 'Generate Mesh Distance Fields' (메시 디스턴스 필드 생성) 옵션을 켜줘야 합니다. 디스턴스 필드 파티클 콜리전은 셰이더 모델 5 기능이라, SM5 를 지원하지 않는 하드웨어에서 파티클은 원래대로 씬 뎁스 콜리전을 사용하게 됩니다.
 
-* Particle collision with distance fields is very efficient - it costs about the same as particle collision with scene depth.
+* 디스턴스 필드를 통한 파티클 콜리전은 매우 효율적이라, 씬 뎁스를 통한 파티클 콜리전과 비용이 거의 같습니다.
 
-### New: Hierarchical LOD Fast Preview and Clustering
+### 계층형 LOD 빠른 미리보기 및 클러스터링
 
-Hierarchical Level-of-Detail (HLOD) is a system introduced in 4.8 which allows many objects in your levels to be collapsed down to only a few objects when they are small on screen.  This helps you achieve much higher quality levels when viewing objects up close, and faster overall performance for your level.  We've made improvements to HLOD in 4.9 and will continue to in future releases.
+Hierarchical Level-of-Detail (HLOD, 계층형 LOD) 시스템은 4.8 에 도입된 것으로, 레벨에 있는 다수의 오브젝트가 화면상에서 작아지면 소수의 오브젝트로 압축시켜주는 기능입니다. 이를 통해 오브젝트를 가까이서 볼 때 훨씬 높은 수준의 퀄리티를 내는 데 도움을 주며, 레벨의 전반적인 퍼포먼스도 향상됩니다. HLOD 는 4.9 뿐만 아니라 앞으로도 계속 개선될 것입니다.
 
-#### Fast HLOD Preview
+#### 빠른 HLOD 미리보기
 
-In order to allow for rapid iteration on Hierarchical LOD builds, you can now use the Preview HLOD option. This will create the HLOD Actors with only a visual representation of their bounds and objects without merging and creating the HLODs meshes themselves. Their bounds are rendered according to the Draw Distance setting inside the LOD System settings for the specific Hierarchical LOD Level. 
+계층형 LOD 빌드의 빠른 반복처리를 위해, 이제 프리뷰 HLOD 옵션을 사용할 수 있습니다. 그러면 HLOD 메시를 직접 병합 및 생성하지 않고도 HLOD 액터 바운드와 오브젝트의 시각적 표현만으로 된 HLOD 액터가 생성됩니다. 그 바운드는 특정 계층형 LOD 레벨에 대한 LOD System 세팅 내 Draw Distance 세팅에 따라 렌더링됩니다.
 
 ![image alt text](image_12.gif)(convert:false)
 
-The image above shows both the first and second Hierarchical LOD level clusters popping into view, this gives a clear indication how the level is clustered without having to go through the time-consuming process of merging and creating the Hierarchical LOD meshes. Be aware that this is an initial implementation of the preview system and may tend to change and improve over time.
+위 그림은 뷰에 뜨는 첫째 둘째 계층형 LOD 레벨 클러스터 양쪽을 나타내는데, 이로써 계층형 LOD 메시를 병합하고 생성하는 데 따르는 지루한 과정을 거치지 않고도 어떻게 레벨 클러스터링이 이뤄지는지 명확히 알 수 있습니다. 미리보기 시스템은 구현 초기 단계라, 앞으로의 개선에 따라 바뀔 수 있다는 점 유념해 주시기 바랍니다.
 
-#### Custom LOD Clustering (HLOD Volumes)
+#### 커스텀 LOD 클러스터링 (HLOD 볼륨)
 
-In order to allow for more granular control over the clustering process for the Hierarchical LODs, you can now place Hierarchical LOD Volumes which will define a cluster for the Actors it encapsulates. Use this to manually define which areas and objects within a level should be clustered together.
+계층형 LOD 클러스터링 프로세스에 대한 보다 세밀한 제어를 위해, 이제 Hierarchical LOD Volume (계층형 LOD 볼륨)을 배치하는 것으로 그 안에 포함된 액터의 클러스터를 정의할 수 있습니다. 이 방법을 통해 레벨의 어느 영역과 오브젝트를 클러스터로 묶을 것인지 수동 정의할 수 있습니다.
 
 ![image alt text](image_13.png)
 
-### New: "Arch Vis" Character Controls
+### "Arch Vis" (건축 시각화) 캐릭터 콘트롤
 
-The new "ArchVisCharacter” plugin adds a character class that provides out-of-the-box controls appropriate for architectural visualization applications. It is intended to feel pleasant and natural to control at realistic world scales, and to enable smoother videos and live demos.
+새로운 "ArchVisCharacter" 플러그인으로 건축 시각화 어플리케이션에 딱 맞는 콘트롤을 바로 제공해 주는 캐릭터 클래스가 추가됩니다. 현실 세계의 스케일대로 편안하고 자연스러운 느낌을 내기 위한 것으로, 보다 부드러운 비디오와 라이브 데모가 가능합니다.
 
 ![image alt text](image_14.png)
 
-You can hook up ArchVisCharacter directly as your Pawn Class, or you can create custom blueprints from it to tweak the movement settings as you see fit.
+ArchVisCharacter 를 Pawn Class 로 바로 걸어줘도 되고, 그를 기반으로 커스텀 블루프린트를 만들어 원하는 대로 조작 세팅을 해 줘도 됩니다.
 
-### New: Widget Depth Ordering
+### 위젯 깊이 순서
 
-Widget Components in screen space now automatically sort based on distance from the viewer, ensuring the closest screen space widget component is always on top of the other components.
+스크린 스페이스의 위젯 컴포넌트는 이제 관찰자와의 거리에 따라 자동 소팅, 가장 가까운 스크린 스페이스 위젯 컴포넌트가 항상 다른 컴포넌트 위에 오도록 할 수 있습니다.
 
 ![image alt text](image_15.png)
 
-We now sort all widget components against one another based on distance to the camera. Previously it was based a manual Z Order, or whoever was added to the viewport first.
+이제 카메라와의 거리에 따라 모든 위젯 컴포넌트 순서를 정렬합니다. 예전에는 수동 Z 순서, 다른 말로 뷰포트에 추가된 순서에 따랐습니다.
 
-### New: Area Shadows (for stationary lights)
+### 에리어 섀도 (스테이셔너리 라이트용)
 
-You're no longer limited to sharp shadows with uniform penumbra sizes.  The Lightmass ray-tracer now supports area shadows are now fully support for Stationary lights!
+더이상 반그늘 크기가 균등한 날카로운 그림자에 제한되지 않습니다. 라이트매스 레이 트레이서는 이제 스테이셔너리 라이트에 대해 에리어 섀도를 지원합니다!
 
-![image alt text](image_16.gif)(convert:false)
+![image alt text](image_16.gif)
 
-Turn on the "Use Area Shadows for Stationary Light" option to use this feature.  The 'Light Source Angle' (or 'Source Radius' for a point light) controls how soft these shadows are.
+이 기능을 사용하려면 "Use Area Shadows for Stationary Light" (스테이셔너리 라이트에 대해 에리어 섀도 사용) 옵션을 켜면 됩니다. 'Light Source Angle' (라이트 소스 앵글) (, 포인트 라이트의 경우 'Source Radius' (소스 반경))으로 이 그림자의 농도를 조절합니다.
 
 ![image alt text](image_17.png)
 
-Performance details:
+퍼포먼스 디테일:
 
-* Uniform penumbra shadows are still better at dealing with low lightmap resolutions, so those stay the default.  Previously the uniform penumbra size was controlled with an obscure project setting, now it is controlled by the 'Light Source Angle' property, just like the area shadows are.  Double the source angle to get twice as soft shadows, etc.
+* 라이트맵 해상도가 낮은 경우 균등 반그늘 그림자가 여전히 더 나으므로, 기본값은 그대로입니다. 예전에 균등 반그늘 크기는 애매한 프로젝트 세팅으로 조절했으나, 이제 에리어 섀도와 마찬가지로 'Light Source Angle' 프로퍼티로 조절합니다. 그림자의 농도를 두 배로 연하게 하려면 소스 앵글을 두 배로 높이면 됩니다.
 
-* There's also a new optimization for areas of maps which are only affected by a single stationary light channel (eg one Stationary Directional light).  Their shadow maps will be packed into a single channel texture instead of a 4 channel texture, for 1/4th the memory cost.
+* 단일 스테이셔너리 라이트 채널(, 즉 스테이셔너리 디렉셔널 라이트 하나)에만 영향받는 맵 영역에 대한 최적화도 새로 도입되었습니다. 그 섀도 맵은 4 채널 텍스처가 아닌 단일 채널 텍스처에 패킹되어, 메모리 비용이 1/4 이 됩니다.
 
-### New: Ambient Occlusion Material Mask
+### 앰비언트 오클루전 머티리얼 마스크
 
-The new Ambient Occlusion Material Mask feature lets you access Lightmass calculated AO in your material, which can be useful for procedural texturing, for example to add in aging effects and dirt in areas where it would accumulate.
+새로운 앰비언트 오클루전 머티리얼 마스크 기능으로 머티리얼의 라이트매스 계산 AO 에 접근할 수 있는데, 이는 순차적 텍스처링, 예를 들면 노화 효과나 특정 지역의 먼지 등 시간에 따라 누적되는 효과에 유용할 수 있습니다.
 
 ![image alt text](image_18.png)
 
-The above screenshot uses an AO mask to blend a dirt layer automatically into corners of the environment.
+위 스크린샷은 먼지 레이어를 환경 구석 속에 자동으로 블렌딩하는 AO 마스크를 사용한 것입니다.
 
-To use AO mask, you'll need to enable both 'Use Ambient Occlusion' and 'Generate Ambient Occlusion Material Mask' under World Settings -> Lightmass settings, and then build lighting.  The other AO controls like Max Occlusion Distance can be useful to tweak the look.  (Be sure to set Direct and Indirect Occlusion Fraction to 0, so that this AO will not be applied to the actual level lighting.)
+AO 마스크를 사용하려면, 월드 세팅 -> 라이트매스 세팅 아래 있는 'Use Ambient Occlusion' (앰비언트 오클루전 사용)과 'Generate Ambient Occlusion Material Mask' (앰비언트 오클루전 머티리얼 마스크 생성) 옵션 둘 다 켠 다음 라이팅을 빌드하면 됩니다. Max Occlusion Distance (최대 오클루전 거리)같은 다른 AO 콘트롤로 모양을 미세조정할 수 있습니다. (반드시 Direct and Indirect Occlusion Fraction (직간접 오클루전 비율)은 0 으로 설정해야, 이 AO 가 실제 레벨 라이팅에 적용되지 않습니다).
 
 ![image alt text](image_19.png)
 
-Then in your material you can access the AO as a 0-1 mask with the PrecomputedAOMask node.  This node will provide 1 in occluded areas and 0 elsewhere. 
+그런 다음 머티리얼에서 PrecomputedAOMask 노드로 AO 를 0-1 마스크로써 접근할 수 있습니다. 1 은 오클루전 적용 영역, 0 은 나머지입니다.
 
 ![image alt text](image_20.png)
 
-Performance details:  
+퍼포먼스 디테일:
 
-* Using the PrecomputedAOMask node is just a standard texture lookup.  Enabling the feature adds half a byte per lightmap texel, where the default usage is about 4 bytes per lightmap texel.  
+* PrecomputedAOMask 노드 사용은 표준 텍스처 룩업입니다. 이 기능을 켜면 라이트맵 텍셀당 0.5 바이트가 추가되는데, 기본 가용량은 라이트맵 텍셀당 약 4 바이트입니다.
 
-* AOMaterialMask texture memory can be inspected with the ‘ListTextures' console command.
+* AOMaterialMask 텍스처 메모리는 &lsquo;ListTextures' 콘솔 명령으로 조사할 수 있습니다.
 
-### New: Mesh Distance Field Materials
+### 메시 디스턴스 필드 머티리얼
 
-This feature allows your materials to cheaply determine the distance to the nearst solid from any point in space.  There are two new nodes to access the global distance field properties within the material editor. 
+이 기능으로 머티리얼과 스페이스 내 특정 지점 사이에서 가장 가까운 입체면 사이의 거리를 싸게 구할 수 있습니다. 머티리얼 에디터에서 글로벌 디스턴스 필드 프로퍼티를 접근하는 노드가 두 개 새로 생겼습니다.
 
 ![image alt text](image_21.png)
 
-DistanceToNearestSurface returns signed distance in world space units.  Note that the distance will always be near 0 on the surface of an opaque mesh.  DistanceToNearestSurface can be used to have effects avoid occluders:
+DistanceToNearestSurface 는 월드 스페이스 유닛으로 부호가 있는 거리를 반환합니다. 참고로 거리는 불투명 메시 표면상에서는 항상 0 근처일 것입니다. DistanceToNearestSurface 를 사용하면 이펙트가 가려지는 것을 피할 수 있습니다:
 
-UE4 user Roel Bartstra has already found some interesting uses for this - one to [get a soft body look](https://www.youtube.com/watch?v=shmJIbCayhc), and another to [create flow maps that automatically avoid surfaces](https://www.youtube.com/watch?v=3lCkrRDOWXM).
+UE4 사용자 Roel Bartstra 가 이미 이를 활용한 재밌는 사례를 찾았습니다 - 하나는 [소프트 바디 모양 내기](https://www.youtube.com/watch?v=shmJIbCayhc), 또 하나는 [표면을 자동으로 피하는 흐름 맵 만들기](https://www.youtube.com/watch?v=3lCkrRDOWXM) 입니다.
 
-As with all distance field features, this requires 'Generate Mesh Distance Fields' to be enabled in the Rendering Project settings.  Distance field material access is a Shader Model 5 feature.  Use a FeatureLevelSwitch material node to provide fallbacks for Shader Model 4 hardware.
+모든 디스턴스 필드 기능과 마찬가지로, 이것 역시 렌더링 프로젝트 세팅에서 'Generate Mesh Distance Fields' (메시 디스턴스 필드 생성) 옵션을 켜줘야 합니다. 디스턴스 필드 머티리얼 접근은 셰이더 모델 5 기능입니다. 셰이더 모델 4 하드웨어 대비를 위해서는 FeatureLevelSwitch 머티리얼 노드를 사용하세요.
 
-### New: Improved Distance Field Ambient Occlusion
+### 개선된 디스턴스 필드 앰비언트 오클루전
 
-Sky occlusion gives nice soft shadows around objects lit by the sky, especially important in overcast lighting scenarios, a use case traditionally hard to render at high quality without precomputed lighting. Distance Field Ambient Occlusion solves this for fully dynamic games where both the time of day and environment can change at any time. We've put a lot of effort into improving the quality and performance of the technology for 4.9 and believe that it is now a shippable feature on medium spec PC and PlayStation 4 level hardware with a total GPU cost of under 4ms for a typical game scene!
+스카이 오클루전은 하늘빛을 받은 오브젝트 주변에 멋지게 연한 그림자가 표현되는데, 이는 구름낀 라이팅 상황에서 특히나 중요한 것으로, 보통 라이팅 미리계산 없이는 하이 퀄리티 렌더링에서 내기가 힘든 것이었습니다. 바로 디스턴스 필드 앰비언트 오클루전이, 하루의 시간이나 환경이 언제든 변할 수 있는 완전 동적인 게임에서 이러한 문제를 해결해줍니다. 이번 4.9 에서 이 기술의 퀄리티와 퍼포먼스 향상에 많은 노력을 기울였으며, 이제 전형적인 게임 씬의 경우 총 GPU 비용 4ms 미만으로 가능하니 중사양 PC 나 플레이스테이션 4 수준의 하드웨어에서 출시 가능하다 생각합니다!
 
-The previous method did adaptive sampling, so flat surfaces did less work, but this also caused a lot of splotchiness in clean environments.
+예전 방법은 적응형 샘플링이었기에, 평평한 표면의 작업은 덜했지만, 깨끗한 환경에서 얼룩이 많이 생기기도 했습니다.
 
 ![image alt text](image_22.gif)(convert:false)
 
-The AO computations are now fast enough to get rid of the adaptive sampling, so occlusion is much smoother.
+이제 적응형 샘플링을 제거할 만큼 AO 계산이 충분히 빨라졌기에, 오클루전이 훨씬 부드러워졌습니다.
 
 ![image alt text](image_23.gif)(convert:false)
 
-The catch is that the new method requires a longer history filter, which can contribute to ghosting, especially when shadow casters are moved.  Hopefully this can be improved in the future.
+주의점은 이 새로운 방법은 더욱 긴 히스토리 필터를 요하는데, 그로 인해 유령 현상이, 특히나 그림자를 드리우는 것이 움직였을 경우에 생길 수 있습니다. 앞으로 개선의 여지가 있는 부분입니다.
 
-**Performance**
+**퍼포먼스**
 
-Distance Field AO has been made much faster such that it can run on medium spec PC and PS4.  It also has a much more reliable cost now, so that it's mostly constant, with a slight dependency on object density.  
+디스턴스 필드 AO 는 중사양 PC 와 PS4 에서 실행 가능하도록 훨씬 속도를 높였습니다. 이제 그 비용도 훨씬 안정화되어, 오브젝트 밀도에 약간 좌우될 뿐 거의 비용이 같아졌습니다.
 
-In cases with a static camera and mostly flat surfaces, the new method is **1.6x faster**.  In complex scenes with foliage and a fast moving camera, the new method is **5.5x faster**.  The cost of Distance Field AO on PS4 for a full game scene is 3.7ms.
+고정 카메라에 거의 평면 표면의 경우, 이 새로운 방법은 **1.6 배 빠릅니다**. 폴리지가 있고 카메라가 빠르게 움직이는 경우, 새로운 방법은 **5.5 배 빠릅니다**. PS4 에서 전체 게임 씬에 대한 디스턴스 필드 AO 비용은 3.7ms 입니다.
 
-**Technical details**
+**테크니컬 디테일**
 
-The main optimization is the use of a global distance field, which follows the camera around.  This is created by compositing all the usual per-object distance fields into a few volume textures centered around the camera, called clipmaps.  Only newly visible areas or those affected by a scene modification need to be updated, so the composition doesn't cost much.
+주요 최적화는 카메라 주변을 따르는 글로벌 디스턴스 필드의 사용입니다. 일반적인 오브젝트별 디스턴스 필드 전부를 몇몇 카메라 주변 볼륨 텍스처, 소위 클립맵에 합성해 넣는 식으로 만듭니다. 새롭게 보이는 영역과 씬 변화에 영향받는 것들만 업데이트해 주면 되므로, 합성 비용은 많이 들지 않습니다.
 
-Visualization of the texel size of the clipmaps - each clipmap is a different color
+클립맵 텍셀 크기 시각화 - 각 클립맵마다 색이 다릅니다.
 
 ![image alt text](image_24.png)
 
-The global distance field is lower resolution than the object distance fields, so it can't be used for everything.  When computing cone traces for sky occlusion, the object distance fields are sampled near the point being shaded, while the much faster global distance field is sampled further away. 
+글로벌 디스턴스 필드는 오브젝트 디스턴스 필드보다 해상도가 낮으므로, 모든 것에 사용할 수는 없습니다. 스카이 오클루전에 대한 콘 트레이스 계산시, 오브젝트 디스턴스 필드는 셰이딩이 이루어지는 지점 근처에서 샘플링되는 반면, 훨씬 빠른 글로벌 디스턴스 필드는 더욱 멀리서 샘플링됩니다.
 
-This is a visualization of ray tracing the global distance field vs object distance fields.  Surfaces in the global distance field have become blobby and thin objects disappear.
+글로벌 디스턴스 필드 vs 오브젝트 디스턴스 필드에 대한 레이 트레이싱 시각화입니다. 글로벌 디스턴스 필드의 표면이 얼룩덜룩해지고 얇은 오브젝트가 사라집니다.
 
 ![image alt text](image_25.png)
 
-### New: Content Browser Advanced Search
+### 콘텐츠 브라우저 고급 검색
 
-The Content Browser now supports advanced search syntax.  Unreal Engine 4 is used on many large projects, including some with teams comprising hundreds of developers, and content libraries with hundreds of thousands of assets!  These new search features improve the workflow for finding your content on projects of any size.
+이제 콘텐츠 브라우저에 고급 검색 문법이 지원됩니다. 언리얼 엔진 4 는 수백명의 개발자로 이루어진 몇몇 팀을 포함해서, 콘텐츠 라이브러리의 애셋이 수십만 단위에 이르는 대규모 프로젝트 다수에 사용되고 있습니다! 이러한 새로운 검색 기능 덕에 어떤 규모의 프로젝트에서든 콘텐츠를 쉽게 찾을 수 있습니다.
 
 ![image alt text](image_26.png)
 
-This augments the existing simple search syntax by providing a way to match key->value pairs from the asset metadata, as well as the following special keys:
+기존 단순 검색 문법을 강화시키는 방법으로 애셋 메타데이터에서의 키->값 짝을 일치시키는 것 뿐만아니라 다음과 같은 특수 키도 제공합니다:
 
-* Name - Tests against the asset name.
+* Name - 애셋 이름에 대해 테스트합니다.
 
-* Path - Tests against the asset path.
+* Path - 애셋 경로에 대해 테스트합니다.
 
-* Class (alias: Type) - Tests against the asset class.
+* Class (또는 Type) - 애셋 클래스에 대해 테스트합니다.
 
-* Collection (alias: Tag) - Tests against the names of any collections that contain the asset.
+* Collection (또는 Tag) - 애셋이 들어있는 콜렉션 이름에 대해 테스트합니다.
 
-### New: Collection Improvements
+### 콜렉션 개선
 
-This release includes many changes to Collections that allow you to help you manage assets in your game such as collection nesting, smart collections and tagging functionality.
+이번 릴리즈에는 콜렉션 관련 변경사항이 다수 포함되어 있어, 콜렉션 중첩, 스마트 콜렉션, 태깅 등 게임의 애셋 관리에 도움이 되는 기능이 추가되었습니다.
 
-#### Nested Collections
+#### 중첩 콜렉션
 
-* Your collections of assets can now be organized into a hierarchy.
+* 애셋 콜렉션은 이제 계층구조식 체계 정리가 가능합니다.
 
 	![image alt text](image_27.png)
 
-* Child collections can be created by choosing the "New…" option from a given collections context menu. Alternatively, collections can be parented via drag-and-drop.
+* 자손 콜렉션은 콜렉션에 주어진 맥락 메뉴에서 "New&hellip;" (추가) 옵션을 선택하여 새로 만들 수 있습니다. 다른 방법으로는, 드래그 앤 드롭을 통해 콜렉션 부모를 설정할 수 있습니다.
 
 	![image alt text](image_28.png)
 
-#### Dynamic Collections
+#### 동적 콜렉션
 
-* Dynamic collections leverage the power of the Advanced Content Browser Search Syntax to allow you to create and share Content Browser filters.
+* 동적 콜렉션은 고급 콘텐츠 브라우저 검색 문법의 위력을 활용하여 콘텐츠 브라우저 필터 생성 및 공유가 가능합니다.
 
 	![image alt text](image_29.png)
 
-* Anything you can do with the Content Browser text search can be saved as a dynamic collection, including referencing other collections (both static and dynamic).
+* 콘텐츠 브라우저 텍스트 검색으로 할 수 있는 것이면 무엇이든 동적 콜렉션으로 저장하여, (정적이든 동적이든) 다른 콜렉션 레퍼런싱도 가능합니다.
 
-* You can create a dynamic collection using the "Save" button to the right of the Content Browser text filter.
+* 콘텐츠 브라우저 텍스트 필터 오른쪽의 "Save" (저장) 버튼을 사용하여 동적 콜렉션을 생성할 수 있습니다.
 
 	![image alt text](image_30.png)
 
-#### Quick Asset Management
+#### 빠른 애셋 관리
 
-* You can now quickly add an asset to many collections at once using the new Quick Asset Management check boxes.
+* 새로 생긴 Quick Asset Management (빠른 애셋 관리) 체크 박스를 사용하여 하나의 애셋을 다수의 콜렉션에 동시에 빠르게 추가시킬 수 있습니다.
 
 	![image alt text](image_31.png)
 
-* These are available within the collections view itself, or alternatively, via the context menu of any selected asset(s).
+* 이들은 콜렉션 뷰 자체 안에서, 또는 선택된 애셋의 맥락 메뉴를 통해서도 사용 가능합니다.
 
 	![image alt text](image_32.png)
 
-#### Improved Robustness
+#### 안정성 개선
 
-* Collections will now automatically follow any redirectors that they contain, which avoids the issue of an asset seeming to vanish from a collection when it was renamed or moved. Additionally, collections are now considered when fixing up (and ultimately removing) redirectors via the Content Browser.
+* 콜렉션은 이제 자동으로 그 안에 들어있는 리디렉터를 따르도록 하여, 애셋을 콜렉션에서 제거 또는 이름변경했을 때 사라진 것처럼 보이도록 만드는 문제가 해결됩니다. 추가적으로 이제, 콘텐츠 브라우저를 통해 리디렉터 고치기(fix up, 궁극적으로 제거)시 이제 그 대상에 포함됩니다.
 
-#### Improved Status Reporting
+#### 상태 보고 개선
 
-* Each collection now has a little status indicator at the right hand side of its row item. This changes colour depending on the current state of the collection, with each colour meaning:
+* 각 콜렉션의 행 항목 우측편에 작은 상태 표시기가 생겼습니다. 콜렉션의 현재 상태에 따라 색이 변하는데, 각 색의 뜻은 다음과 같습니다:
 
-    * Red - The collection is in some kind of bad or read-only state. See the tooltip for how to resolve the issue.
+* 빨강 - 콜렉션이 일종의 잘못된 상태이거나 읽기전용 상태입니다. 툴팁에서 문제 해결 방법을 확인할 수 있습니다.
 
-    * Orange - The collection is not up-to-date with the latest version in source control.
+* 주황 - 콜렉션이 소스 콘트롤의 최신 버전보다 뒤쳐져 있습니다.
 
-    * Blue - The collection has local unsaved changes. This may happen if a save or auto-checkin fails, or if the collection had its redirectors followed.
+* 파랑 - 콜렉션에 저장하지 않은 로컬 변경사항이 있습니다. 저장 또는 자동 체크인이 실패한 경우, 또는 콜렉션에 리디렉터가 따르는 경우 발생할 수 있습니다.
 
-    * Green - The collection is non-empty and up-to-date.
+* 초록 - 콜렉션이 비어있지 않고 최신 상태입니다.
 
-    * Grey - The collection is empty and up-to-date.
+* 회색 - 콜렉션이 비어있고 최신 상태입니다.
 
-#### Improved Asset Tooltips
+#### 애셋 툴팁 개선
 
-* The static collections for a given object are now shown as part of its tooltip in the Content Browser.
+* 주어진 오브젝트에 대한 정적 콜렉션은 이제 콘텐츠 브라우저에서 툴팁의 일부로 표시됩니다.
 
 	![image alt text](image_33.png)
 
-### New: Plugin Creation Wizard
+### 플러그인 생성 마법사
 
-Its now easy to create new C++ plugins for Unreal Engine 4!  Check out or new plugin wizard.
+언리얼 엔진 4 용 C++ 플러그인을 새로 만들기가 쉬워졌습니다! 새로운 플러그인 마법사를 살펴보세요.
 
 ![image alt text](image_34.png)
 
-* The Plugins browser (accessible from the Window menu) now lets you create a new plugin!
+* (창 메뉴에 있는) 플러그인 브라우저를 통해 새 플러그인을 만들 수 있습니다!
 
-* You'll be able to give your new plugin a name and select from a few preset plugin types (Blank, Toolbar, Standalone Window).
+* 새 플러그인 이름을 짓고 몇 가지 프리셋 플러그인 유형(공백, 툴바, 독립형 창)에서 선택할 수 있을 것입니다.
 
-* This will create all of the initial files you need for your plugin to compile and be loaded into the editor
+* 그러면 플러그인 컴파일에 필요한 초기 파일을 전부 만들어 에디터에 로드할 것입니다.
 
-### New: Enhanced Curve Editor
+### 커브 에디터 개선
 
-We've made many improvements to the Curve Editor to make it easier to manipulate curve keys and tangents.
+커브 에디터가 여러가지로 개선되어 커브 키와 탄젠트 조작이 더욱 쉬워졌습니다.
 
 ![image alt text](image_35.gif)(convert:false)
 
-* Middle mouse now also moves selected keyframes or selected tangents
+* 가운데 마우스 버튼으로도 선택된 키프레임이나 탄젠트를 이동할 수 있습니다.
 
-* Added support for selecting and manipulating multiple tangents
+* 이제 다중 탄젠트 선택 & 조작이 지원됩니다.
 
-* Selection now respects control (toggle) and shift (add to existing selection)
+* 이제 선택시 Ctrl (토글) & Shift (기존 선택에 추가)가 적용됩니다.
 
-* Holding down shift will restrict movement to one axis
+* Shift 를 누르면 이동을 한 축으로 제한시킵니다.
 
-* Navigation: alt-middle mouse pans the view and alt-right mouse zooms the view
+* 내비게이션: Alt + 가운데 마우스 버튼으로 뷰 이동, Alt + 오른쪽 마우스 버튼으로 뷰 줌 레벨 조정입니다.
 
-* Added tangent display options: Always show tangents, show tangents for selected points, never show tangents
+* 새로운 탄젠트 표시 옵션: 탄젠트 항상 표시, 선택된 점에 대한 탄젠트 표시, 탄젠트 표시 않음
 
-* Added pre-post infinity extrapolation options for curves
+* 커브에 대한 사전-사후 무한 외삽 옵션이 새로 생겼습니다.
 
-* Make adding keys more predictable
+* 키 추가 지점을 예상하기가 쉬워졌습니다.
 
-    * Keys are only added under the mouse when there is only one curve to edit
+    * 편집할 커브가 하나뿐인 경우, 키는 마우스 아래에만 추가됩니다.
 
-    * When multiple curves are available clicking on a curve will add a key inline on that curve, and clicking off of the curve will add keys to all curves
+    * 대상 커브가 여럿인 경우, 커브 클릭시 그 커브 안에 키가 추가되며, 커브 밖 클릭시 모든 커브에 키가 추가됩니다.
 
-    * Changed the text of the menu item to make it clear what's going to happen
+    * 메뉴 항목의 텍스트가 변경되어 무슨 일이 벌어질지 보다 명확히 알 수 있습니다.
 
-### New: Multiple Return Nodes in Blueprints
+### 블루프린트에서 다중 반환 노드
 
-A function can now have multiple return nodes. As soon as execution reaches a return the function's execution is terminated. This can be used to return early from a Blueprint function, or to branch and return differing values.
+함수는 이제 여러 개의 반환 노드를 가질 수 있습니다. 실행이 반환에 도달하자마자 함수의 실행은 중단됩니다. 블루프린트 함수에서의 이른 반환이나, 분기를 통한 다른 값 반환을 위해 사용할 수 있습니다.
 
 ![image alt text](image_36.png)
 
-### New: Construct Custom Objects in Blueprints
+### 블루프린트에서 커스텀 오브젝트 생성
 
-In Blueprints, you can now spawn baser object types (not just actors/components). The Construct Object From Class node takes a class and creates a new object of that type, similar to Spawn Actor From Class (except for types that are not an actor).
+블루프린트에서 이제, (액터/컴포넌트뿐만 아니라) 베이스 오브젝트 유형도 스폰시킬 수 있습니다. Construct Object From Class 노드는 클래스를 받아서 그 유형의 오브젝트를 새로 생성합니다. 액터가 아니라는 유형만 빼고는 Spawn Actor From Class 와 비슷합니다.
 
 ![image alt text](image_37.png)
 
-* The "Outer" input will serve as the new object's owner, which controls the lifetime of the created object.
+* "Outer" 입력은 새 오브젝트의 오너 역할을 하여, 생성되는 오브젝트의 수명을 제어합니다.
 
-* For actor classes, you'll still use the Spawn Actor From Class node.  And for widgets, you'll use the Create Widget node.  In a future release we may try to combine these different features.
+* 액터 클래스의 경우, 여전히 Spawn Actor From Class 노드를 사용합니다. 그리고 위젯의 경우, Create Widget 노드를 사용합니다. 추후 버전에서 이렇게 여러가지로 나뉜 것을 합칠 수도 있습니다.
 
-### New: Blueprint Class Defaults
+### 블루프린트 클래스 디폴트
 
-In Blueprints, it is now possible to access a class's defaults through the new "Get Class Defaults" node. This can be helpful when working with data-only Blueprints, giving you access to those Blueprints' values without having to create an instance.
+블루프린트에서 이제, 새로운 Get Class Defaults 노드를 통해 클래스의 디폴트에 접근할 수 있습니다. 데이터 전용 블루프린트 작업시 인스턴스를 만들지 않고도 해당 블루프린트 값에 접근할 수 있어 유용하게 쓰일 수 있습니다.
 
 ![image alt text](image_38.png)
 
-* To keep the output pins from growing too unwieldy, use the node's details to show/hide specific defaults
+* 출력 핀이 늘어 거추장스러워지지 않도록 하려면, 노드의 디테일을 통해 특정 디폴트를 표시/숨기면 됩니다.
 
-### New: Level Blueprint Communication
+### 레벨 블루프린트 통신
 
-Level Blueprints can now be communicated with through interfaces. They can adopt and implement interface functions just as Class Blueprints can. After an interface has been added to a Level Blueprint, calls can be made through interface message nodes (using a streaming level as the target).
+레벨 블루프린트는 이제 인터페이스를 통해 통신 가능합니다. 클래스 블루프린트와 마찬가지로 인터페이스 함수를 적용 및 구현 가능합니다. 인터페이스를 레벨 블루프린트에 추가한 이후에는, 인터페이스 메시지 노드를 통해 (스트리밍 레벨을 타겟으로 하여) 호출 가능합니다.
 
 ![image alt text](image_39.png)
 
-* Use the "Get Streaming Level" node to get the level to communicate with
+* Get Streaming Level 노드를 사용하여 통신할 레벨을 구합니다.
 
-    * Since you have to use "Get Streaming Level" to target a specific level, this will only work for sub-levels
+    * Get Streaming Level 을 사용하여 특정 레벨을 타겟으로 해야 하므로, 서브 레벨에만 통합니다.
 
-### New: Optimized Math Expression
+### 수학 표현식 최적화
 
-We've optimized the Math Expression node so that it is more performant than regular nodes. It is now roughly twice as fast to use a Math Expression node, when compared to a series of operation/function nodes representing the same expression.
+Math 표현식 노드가 일반 노드보다 높은 퍼포먼스를 내도록 최적화시켰습니다. 이제 Math 표현식 노드는 그와 동일한 일련의 연산/함수 노드 시리즈 표현식을 사용했을 때보다 약 두 배 빠릅니다.
 
 ![image alt text](image_40.png)
 
-### New: Blueprint Asset IDs
+### 블루프린트 애셋 ID
 
-We've made it possible for Blueprints to load assets on-demand instead of right away.  There are two new data types exposed to Blueprints: "Asset ID" and “Class Asset ID”. An Asset ID represents a loaded or unloaded asset, and can be resolved into an object using the “Resolve Asset” node. If the asset was not loaded, then the “Resolve Asset” node returns an invalid object. You can load the asset using the “Load Asset” node. Similarly, a “Class Asset ID” will resolve into a class, and can be loaded with the “Load Asset Class” node. 
+블루프린트에서 요청시 바로 애셋 로드가 가능해졌습니다. 블루프린트에 새로 노출된 두 가지 데이터 유형이 있는데, "Asset ID" (애셋 ID)와 "Class Asset ID" (클래스 애셋 ID)입니다. 애셋 ID 는 로드 또는 언로드된 애셋을 나타내며, "Resolve Asset" 노드를 사용해서 오브젝트 속으로 분해해 들어갈 수 있습니다. 애셋이 로드되지 않은 경우, "Resolve Asset" 노드는 유효하지 않은 오브젝트를 반환합니다. "Load Asset" 노드를 사용해서 애셋을 로드할 수 있습니다. 비슷하게 "Class Asset ID" 는 클래스 속으로 분해해 들어갈 수 있으며, "Load Asset Class" 노드로 로드할 수 있습니다.
 
 ![image alt text](image_41.png)
 
-### New: Montage Element Timing Interface
+### 몽타주 엘리먼트 타이밍 인터페이스
 
-​We've added a new panel to the Montage editor to help you control the order that Montage events will fire when your animations execute at runtime.
+실행시간에 애니메이션 실행시 몽타주 이벤트 발동 순서를 조절하는 데 도움이 되는 새 패널이 몽타주 에디터에 추가되었습니다.
 
 ![image alt text](image_42.png)
 
-### New: Non-Linear Animation Blending
+### 비선형 애니메이션 블렌딩
 
-We now support many different blending functions between animation poses and transitions!
+애니메이션 포즈끼리의 전환 사이에 여러가지 다양한 블렌딩 함수가 지원됩니다!
 
 ![image alt text](image_43.gif)(convert:false)
 
-Previously, only linear or cubic blending was supported.  Now you can select from many different blending functions:  Linear, Cubic, Hermite Cubic, Sinusoidal, Quadratic, Circular, Exponential and Custom.  For most types, you can separately control whether you want easing on either the "in" or the “out” of the curve.
+기존에는, 선형 또는 큐브형 블렌딩만 지원되었습니다. 이제 선형, 큐브형, 헤르밋 큐브형, 사인형, 이차형, 원형, 지수형, 커스텀 등 여러가지 중에서 선택 가능합니다. 대부분의 유형에서 커브에 부드럽게 드나들도록 하는 별도의 제어가 가능합니다.
 
-The "Custom" option requires a “Curve Float” asset.  After creating one, you can assign it in the details panel for the relevant nodes:
+커스텀 옵션은 "커브 플로트" 애셋이 필요합니다. 만든 이후에는, 관련 노드의 디테일 패널에서 할당할 수 있습니다:
 
 ![image alt text](image_44.png)
 
 ![image alt text](image_45.png)
 
-This will allow you to specify just about any blend you want to perform. The length of the curve will be normalized and scaled down to meet the specified blend time and any values that are outside of the range 0-1 are clamped back to fit (this limitation will hopefully be lifted soon, watch this space). If a custom curve is not specified the system will fall back to a linear blend.
+그러면 원하는 어떤 블렌딩도 지정 가능합니다. 커브의 길이는 정규화 & 스케일 하향 조절을 통해 지정된 블렌드 시간에 맞추고 0-1 범위 밖의 값은 그 안에 맞도록 제한시킵니다 (이 제한은 곧 해제될 것으로 기대되니, 이 곳을 확인해 주세요). 커스텀 커브에 시스템이 지정되지 않은 경우, 예비로 선형 블렌드가 쓰입니다.
 
 ![image alt text](image_46.gif)(convert:false)
 
-### New: Bone-driven Animation Controllers
+### 본 주도형 애니메이션 콘트롤
 
-This allows a "Driver" bone to dynamically affect the motion of one or more “Driven” bones.  This is great for characters that have accessories attached!  You can avoid geometry intersecting during an animation, even when a lot of blending is used.
+하나 이상의 본 모션에 동적으로 영향을 끼치는 "Driver" 본이 생겼습니다. 장신구가 붙은 캐릭터에 좋습니다. 애니메이션 도중 지오메트리 겹침 현상을 피할 수 있습니다. 많은 수의 블렌딩이 사용될 때도 말이지요.
 
 ![image alt text](image_47.gif)(convert:false)
 
-In the above example, the attached accessory (green) has no authored animations, and is being driven in two axes as a function of the character's thigh bone.  This is all calculated at runtime, so a blend of animations ends up working quite well here, even without hand-authored tweaking.
+위 예제에서 붙은 액세서리에는 (초록색) 저작된 애니메이션이 없으며, 캐릭터 허벅지 폰의 함수로써 양축 구동중입니다. 이 부분은 모두 실행시간에 계산되므로, 애니메이션 블렌딩은 심지어 별다른 트윅 수작업 없이도 여기서 잘 마무리됩니다.
 
-You can either set the "Driver" value directly with a multiplier, remap it into a whole new range, or just use a Curve Asset to drive the motion.  Using a curve is usually the best approach as it lets you define the response naturally and interactively tweak points/tangents, seeing the changes in real-time.
+멀티플라이어로 "Driver" 값을 바로 설정하고, 완전히 새로운 범위로 리매핑하거나, 그냥 커브 애셋을 사용하여 모션을 구동시키면 됩니다. 커브 사용이 보통 가장 좋은 접근법인데, 자연스러운 반응을 정의하고 실시간 변화를 확인하며 대화식으로 점/탄젠트 조정이 가능하기 때문입니다.
 
-Here are the new settings for bone-driven animation controllers:
+본 주도형 애니메이션 콘트롤러에 대한 새로운 세팅은 이렇습니다:
 
 ![image alt text](image_48.png)
 
-### New: Animation Transition Rules
+### 애니메이션 트랜지션 룰
 
-This release contains improvements to animation blending trees, particularly to how transition rules work.
+이번 릴리즈에는 애니메이션 블렌딩 트리, 특히나 트랜지션 룰 작동 방식이 개선되었습니다.
 
-#### Better handling of animation Asset Overrides
+#### 애니메이션 애셋 오버라이드 처리 개선
 
-Nodes like Time Remaining in transition rules now correctly respond to changes in animation length due to overriden animations in Child Animation Blueprints.  This means that animations referenced by transition rules no longer have to be the same length in every child Animation Blueprint.
+트랜지션 룰의 Time Remaining 같은 노드는 이제 자손 애니메이션 블루프린트에서 애니메이션을 덮어쓴 데 따른 애니메이션 길이 변화에 정상 반응합니다. 즉 트랜지션 룰에 레퍼런싱된 애니메이션이 더이상 모든 자손 애니메이션 블루프린트에서 동일한 길이일 필요가 없다는 뜻입니다.
 
-#### Referencing the most relevant animation player
+#### 연관성이 가장 높은 애니메이션 플레이어 레퍼런싱
 
-In order to make state machines more maintainable, you can now use a new class of getter that always picks the highest weighted animation from the source state, rather than targeting a specific animation that might change in the future.  The following nodes are now available:
+스테이트 머신 관리를 보다 용이하게 하기 위해, 앞으로 변화될 애니메이션을 특정해 지정하기 보다는, 항상 원본 상태에서 가중치가 가장 높은 애니메이션을 선택하는 새로운 Getter 클래스를 사용할 수 있게 되었습니다. 사용할 수 있는 노드는 다음과 같습니다:
 
 ![image alt text](image_49.png)
 
-#### Custom Blend Graph Improvements
+#### 커스텀 블렌드 그래프 개선
 
-Additional information is now exposed in Custom Blend graphs to allow them to be used for more than just a one-shot custom transition animation.  The following nodes that provide information about the corresponding transition node and source/destination states are now available in custom blend graphs:
+이제 커스텀 블렌드 그래프에 부가 정보가 노출되어 단순 일회성 이상의 커스텀 트랜지션 애니메이션에도 사용할 수 있습니다. 커스텀 블렌드 그래프에서 해당 트랜지션 노드 및 원본/대상 상태 관련 정보 제공을 위해 사용할 수 있는 노드는 다음과 같습니다:
 
 ![image alt text](image_50.png)
 
-You can also use getter methods that reference the asset players, just like in a transition rule.
+트랜지션 룰에서와 마찬가지로 애셋 플레이어를 레퍼런싱하는 Getter 메소드를 구할 수도 있습니다.
 
-### New: Animation Curve Evaluation Change
+### 애니메이션 커브 이밸류에이션 변화
 
-Animation Curve Evaluation used to happen in Update phase of animation, but now it is moved to Evaluate phase. This comes with following benefits. 
+애니메이션의 업데이트 단계에서 일어나던 애니메이션 커브 이밸류에이션(평가)이 이제 평가 단계로 이동되었습니다. 그로 인해 다음과 같은 이점이 생겼습니다.
 
-* The curve's weight is properly is evaluated with blended weights. 
+* 가중치 혼합시에도 커브의 가중치가 제대로 평가됩니다.
 
-    * Cache Nodes
+    * 캐시 노드
 
-    * Additive Nodes: Additive nodes will apply the delta of additive curve data from base to the current pose as animation bone transform does
+    * 애디티브 노드: 애니메이션 본 트랜스폼 진행에 따라 베이스에서 현재 포즈까지 더하기식 커브 데이터의 델타를 적용합니다.
 
-    * Layered Node: This was a bit more tricky to make it work properly as you don't know which curve is influencing which part of joint. Right now it does provide option of how to blend curves. 
+    * 레이어드 노드: 어느 커브가 조인트의 어느 부분에 영향을 끼치는지 알지 못하기에 정상 작동하도록 만들기가 조금 더 까다로웠습니다. 이제는 커브 블렌딩 방식 옵션을 제공합니다.
 
-        * Max Weight : It choose the max weight of curves from blended poses
+        * Max Weight(최대 가중치): 블렌드 포즈에서의 커브 최대 가중치를 선택합니다.
 
-        * Normalize by Weight : It sums up all weights of blended poses for all curves and normalize to 1
+        * Normalize by Weight(가중치로 정규화): 모든 커브에 대해 블렌딩된 포즈의 모든 가중치를 더한 다음 1 로 정규화시킵니다.
 
-        * Blend by Weight: It just sums up (weights * curve value)
-	
+        * 가중치로 블렌딩: 그냥 (가중치 * 커브 값) 을 더합니다.
+
 		![image alt text](image_51.png)
 
-* Curve Evaluation has moved to multi-threading if you're using parallel evaluation.
+* 병렬 평가를 사용하는 경우 커브 이밸류에이션이 멀티 스레드로 이동됩니다.
 
-* Eventually this will allow us to create a node that can drive curve from bone transform and vice versa
+* 이를 통해 결국 본 트랜스폼에서 커브를 구동시키거나 그 반대 작업을 할 수 있는 노드를 만들 수 있습니다.
 
-* However, if you need a curve that hasn't been evaluated (if you're ticking but not evaluating), you won't get the up-to-date data. Curve data is treated as bone transform now as opposed to treated as notifies before. 
+* 그러나, 아직 평가되지 않은 (틱은 하되 평가는 안된) 커브가 필요한 경우, 최신 데이터를 구할 수 없을 것입니다. 커브 데이터는 전에 노티파이로 취급되던 것과 반대로 이제는 본 트랜스폼으로 취급됩니다.
 
-### New: Animation Asset Metadata Support
+### 애니메이션 애셋 메타데이터 지원
 
-We now support Metadata that can be added to animation assets.  The metadata is a Blueprintable class derived from the Anim Meta Data class.  This allows you to add custom metadata to animation assets.  Anim Sequence, Anim Montage, Anim Composite, and Blendspace are all supported. 
+이제 애니메이션 애셋에 추가시킬 수 있는 메타데이터를 지원합니다. 메타데이터는 Anim Meta Data 클래스에서 파생된 Blueprintable 클래스입니다. 이를 통해 애니메이션 애셋에 커스텀 메타데이터 추가가 가능합니다. 애님 시퀀스, 애님 몽타주, 애님 컴포짓, 블렌드 스페이스 모두 지원됩니다.
 
 ![image alt text](image_52.png)
 
-You can query those data from an animation asset in C++ by calling the GetMetaData() method, or by using GetSectionMetaData() on Anim Montages.
+C++ 에서 GetMetaData() 메소드를 호출하거나, 애님 몽타주에서 GetSectionMetaData() 를 사용하는 것으로 애니메이션 애셋에서 해당 데이터를 질의할 수 있습니다.
 
 ​
 
-### New: Sound Quality Levels
+### 사운드 퀄리티 레벨
 
-A new feature has been added that gives sound designers the ability to manage audio memory usage and (to some extent) performance for lower end machines/devices.
+사운드 디자이너에게 오디오 관련해서 저사양 머신/디바이스의 메모리 사용량과 (일정 수준까지) 퍼포먼스 관리를 할 수 있도록 해주는 신기능이 추가되었습니다.
 
-The available Sound Quality Levels are defined in the Audio section of the Project Settings. Each Quality Level can currently specify the maximum number of audio channels created by the audio device (though some platforms, notably Android, can still limit that value a lower number).
+사용가능한 사운드 퀄리티 레벨은 프로젝트 세팅의 오디오 섹션에서 정의합니다. 각 퀄리티 레벨은 현재 오디오 디바이스에 의해 생성된 오디오 채널 최대 수를 지정할 수 있습니다 (일부 플랫폼, 특히 안드로이드는 그 값을 여전히 낮은 수로 제한시킬 수 있습니다).
 
 ![image alt text](image_53.png)
 
-In a Sound Cue you can place a Quality Level sound node that will provide an input pin for each Quality Level defined in the Project Settings and only the branch connected to the active Quality Level will be executed.  This can be used to reduce the number of variations that are loaded or it could be used to specify reduced fidelity wave files.
+사운드 큐에서 Quality Level 사운드 노드를 배치하면 프로젝트 세팅에 정의된 각 퀄리티 레벨에 대한 입력 핀이 제공되어, 활성 퀄리티 레벨에 연결된 브랜치만 실행됩니다. 이를 통해 로드되는 변종 수를 줄이거나, 저품질 웨이브 파일을 지정하는 데 사용할 수 있습니다.
 
 ![image alt text](image_54.png)
 
-When playing a standalone game, the Quality Level is specified via the Game User Settings and only the Sound Waves that are needed for that Quality Level will be loaded in to memory. The default value can be set per game or platform via the appropriate GameUserSettings.ini file and games can allow setting the value via their settings UI.  Currently, the game will need to be restarted for the quality changes to take effect.
+독립형 게임 플레이시, 퀄리티 레벨은 게임 유저 세팅을 통해 지정되며, 해당 퀄리티 레벨에 필요한 사운드 웨이브만 메모리에 로드됩니다. 기본값은 적합한 GameUserSettings.ini 파일을 통해 게임별 또는 플랫폼별로 설정 가능하며, 그 세팅 UI 를 통해 값 설정이 가능합니다. 현재, 퀄리티 변경시 효과 적용을 위해서는 재시작이 필요합니다.
 
-For Play in Editor you can specify which Quality Level to use via the Level Editor Play Settings. Changing this value will work while the Play session is active and new sounds will use the current Quality Level.
+에디터에서 플레이의 경우 레벨 에디터 플레이 세팅을 통해 사용할 퀄리티 레벨을 지정할 수 있습니다. 이 값을 변경하면 플레이 세션 활성화 도중 작동하여 새로운 사운드는 현재 퀄리티 레벨을 사용할 것입니다.
 
-### New: Custom Audio Attenuation Curves
+### 커스텀 오디오 감쇠 커브
 
-You can now define your own custom curve for attenuating sounds rather than simply being limited to the built in algorithms.
+이제 사운드 감쇠가 단순 내장 알고리즘에 국한되지 않은, 별도로 정의된 커스텀 커브에 따라서도 가능합니다.
 
-In the attenuation settings set the Distance Algorithm to "Custom" and you will see the custom curve section appear.  You can then either specify an external curve asset from the content browser or define a custom curve directly in the details panel yourself.
+감쇠 세팅에서 Distance Algorithm 을 "Custom" 으로 설정하면 커스텀 커브 섹션이 나타나는 것이 보입니다. 콘텐츠 브라우저에서 외부 커브 애셋을 지정해도 되고, 디테일 패널에서 직접 커스텀 커브를 정의해도 됩니다.
 
 ![image alt text](image_55.png)
 
-### New: Actor Tick Intervals
+### 액터 틱 간격
 
-You can now specify an interval at which a tick function will be executed allowing you to reduce the overhead of per-frame tick execution without the overhead or complexity of timers.
+이제 틱 함수가 실행되는 간격을 지정하여, 별다른 부하나 복잡한 타이머 없이도 프레임별 틱 실행에 따른 부하를 줄일 수 있게 되었습니다.
 
-This is exposed to end users via the Actor and Component default properties and for programmers it can be set in C++ similarly to any other Tick Function property.
+최종 사용자에게는 액터와 컴포넌트 디폴트 프로퍼티를 통해 노출되며, 프로그래머는 다른 Tick Function 프로퍼티와 비슷하게 C++ 에서 설정 가능합니다.
 
 ![image alt text](image_56.png)
 
-A few implementation details to be aware of.
+유의해야 할 구현 세부사항 몇 가지:
 
-* All Tick functions execute the first frame they are registered, at which point they will wait the tick interval until their next tick.
+* 모든 틱 함수는 등록된 첫 프레임에 실행되고, 거기서부터 정의된 간격을 기다린 뒤 다음 틱이 일어납니다.
 
-* Changing the tick interval of an already ticking function will not change when the next scheduled tick will occur. If you wish the change to take effect immediately you should disable the tick, change the interval, and then re-enable the tick.
+* 이미 틱 중인 함수의 틱 간격을 변경해도 다음 예정 틱이 바뀌지는 않습니다. 효과를 즉시 적용시키려면 먼저 틱을 끄고, 간격을 조정한 뒤, 틱을 다시 켜야합니다.
 
-* Tick functions will occur as close as possible to the specified interval by providing a credit for any overrun when scheduling the next tick.  For example if a function is specified to occur every 1 second and it has been 1.1 seconds since the last tick at the point the tick function is executed it will be scheduled to occur once another 0.9 seconds have passed.  However, no tick function will execute more than once in a frame even if a multiple of its interval has occurred during the frame.
+* 틱 함수는 다음 틱 스케쥴을 잡을 때 넘친 부분을 고려하여 가급적 지정된 간격에 근접해서 일어나도록 합니다. 예를 들어 함수가 1 초마다 실행되도록 지정되었는데, 지난 틱 이후 1.1 초가 지난 후 틱 함수가 실행되었다면, 다음 틱은 0.9 초 후에 일어나도록 스케쥴을 잡습니다. 하지만 프레임 도중 그 간격이 여러번 겹쳐 발생했다 하더라도 한 프레임에 틱 함수가 두 번 이상 실행되지는 않습니다.
 
-* DeltaTime for tick functions remains the same regardless of tick interval.  It is not the time since the last time this function ticked, but always the delta time of the frame in question.
+* 틱 함수의 DeltaTime (경과 시간)은 틱 간격과 상관없이 동일하게 유지됩니다. 이 함수의 지난 번 틱 이후 걸린 시간이 아닌, 항상 해당 프레임의 경과 시간입니다.
 
-* An Actor's Custom Time Dilation does not apply to the Tick Interval.  The frequency with which the tick is dispatched remains constant regardless of whether the individual Actor has its own Time Dilation, that Time Dilation is only applied to the DeltaTime passed in to the tick function.
+* 액터의 커스텀 타임 딜레이는 틱 간격에 적용되지 않습니다. 틱이 발생되는 빈도는 개별 액터의 시간 딜레이와는 무관하게 일정하며, 그 시간 딜레이는 틱 함수에 전달된 경과 시간에만 적용됩니다.
 
-### New: Actor Encroachment Detection
+### 액터 침범 감지
 
-Encroachment detection is also more robust and works in more situations.  We've added new customization options for encroachment, too.
+침범 감지 안정성이 높아지고 더욱 많은 상황에서 작동합니다. 침범에 대한 커스텀 옵션을 새로 추가하기도 했습니다.
 
 ![image alt text](image_57.jpg)
 
-The "Spawn Even If Colliding" option ("bNoCollisionFail" in C++) when spawning an actor has extended to support four methods of handling collision at the spawn point:
+액터 스폰시 Spawn Even If Colliding (충돌한다 해도 스폰) 옵션(C++ 는 bNoCollisionFail)을 확장, 스폰 지점에서 지원되는 콜리전 처리 메소드가 넷이 되었습니다:
 
-* Spawn it there anyway.
+* 그냥 거기 스폰합니다.
 
-* Spawn at suitable location nearby if possible, else just spawn it there anyway.
+* 가능하면 주변 적합한 위치에 스폰하고, 아니면 그냥 거기 스폰합니다.
 
-* Spawn only if a suitable location can be found nearby, else don't spawn.
+* 주변 적합한 위치가 있을 때만 스폰하고, 아니면 스폰하지 않습니다.
 
-* Just don't spawn it.
+* 그냥 스폰하지 않습니다.
 
-Existing blueprints will update automatically to choose the correct corresponding choice. Some code has been deprecated and will need to be manually updated.
+기존 블루프린트는 올바른 선택 사항을 자동으로 선택하도록 업데이트될 것입니다. 일부 코드는 폐기되어 수동 업데이트해 줘야 할 것입니다.
 
-Actor classes have a new blueprint-exposed member called Spawn Collision Handling Method that controls how to resolve spawn collisions by default. This can be overridden by the setting on the Spawn Actor node or function call.
+액터 클래스에 Spawn Collision Handling Method 라는 블루프린트 노출 멤버가 새로 생겨 스폰 충돌 기본 처리 방식을 조절할 수 있습니다. Spawn Actor 노드의 세팅이나 함수 호출을 덮어쓸 수 있습니다.
 
-For actors with a Movement Component, it is assumed the updated component is the primary collision shape and will be the only component tested for encroachment. For other actors, all components with appropriate collision settings will now be checked. Be aware this may result in some situations where actors fail to spawn after upgrading -- double check your collision settings, handling method, and spawn transform if this occurs.
+Movement Component 포함 액터의 경우, 업데이트된 컴포넌트는 주요 콜리전 모양이라 가정하고 유일한 침입 검사 대상 컴포넌트가 됩니다. 다른 액터의 경우, 세팅이 적합한 모든 컴포넌트를 대상으로 검사합니다. 주의할 점이라면 이로 인해 액터 업그레이드 후 스폰이 안되는 상황이 발생할 수 있는데, 그렇다면 콜리전 세팅, 처리 방법, 스폰 트랜스폼을 다시 한 번 확인하시기 바랍니다.
 
-### New: Post Process Blending
+### 포스트 프로세스 블렌딩
 
-Post process "Blendables" are used to transition post process effects between different states. We've made improvements to this system.
+포스트 프로세스 "블렌더블" 은 각기 다른 상태의 포스트 프로세스 이펙트를 전환시키는 데 사용되는 것인데, 이 시스템이 강화되었습니다.
 
-You can now set a blending weight value for each Blendable. This blending weight can be modified at runtime in either Blueprints or C++ code, so you can do some interesting things with post process transitions.
+이제 각 블렌더블에 대해 블렌딩 가중치 값을 설정할 수 있습니다. 이 블렌딩 가중치는 블루프린트나 C++ 코드에서 실행시간에 변경할 수 있으므로, 포스트 프로세싱 전환을 가지고 재미난 작업을 할 수 있습니다.
 
-You're also now able to define post process settings "inline" right within the post process volume, or you can opt to create a standalone Blendables asset that you can share between many objects!  
+또한 이제 포스트 프로세스 볼륨 바로 안에서 포스트 프로세스 세팅을 "인라인" 방식으로 정의하거나, 독립형 블렌더블 애셋으로 만들어 여러 오브젝트에 공유시킬 수도 있습니다!
 
 ![image alt text](image_58.png)           ![image alt text](image_59.png)
 
-Also, we've made it easier to define your own custom blendable settings. You no longer have to modify the engine's built-in PostProcessSettings structure, but instead can define new structures with settings, such as the Light Propagation Volume Blendable settings above.
+또 자신만의 커스텀 블렌더블 세팅 정의를 보다 쉽게 할 수 있도록 만들었습니다. 더이상 엔진의 내장 PostProcessSettings 구조체를 변경할 필요가 없으며, 그 대신 위의 Light Propagation Volume Blendable 같은 세팅으로 새 구조체를 정의할 수 있습니다.
 
-Finally, here's an example of how you'd use Blueprints to edit the blending weight value for a Blendable at runtime:
+마지막으로 블루프린트를 사용해서 실행시간에 블렌더블의 블렌딩 가중치 값을 편집하는 법을 보여주는 예제입니다:
 
 ![image alt text](image_60.png)
 
-### New: Runtime Asset Cache
+### 런타임 애셋 캐시
 
-Some games need to support storing local copies of assets that may not have shipped with the game. For example if you have a lot of procedurally created assets, or assets that come from a server (such as advertisement graphics.) The new Runtime Asset Cache is a generic asset cache system that can be used to persistently store data generated during runtime in configurable asset buckets.
+어떤 게임에서는 게임 발매시 포함되지 않은 애셋의 로컬 사본을 저장하는 기능 지원이 필요합니다. 예를 들어 순차 생성 애셋이나 (광고 그래픽처럼) 서버에서 오는 애셋이 많은 경우입니다. 새로운 런타임 애셋 캐시는 일반 애셋 캐시 시스템으로, 실행시간 도중 환경설정 가능한 애셋 버킷으로 생성되는 데이터를 일관되게 저장하기 위해 사용할 수 있습니다.
 
 ![image alt text](image_61.png)
 
-The Runtime Asset Cache has the following characteristics:
+런타임 애셋 캐시에는 다음과 같은 특징이 있습니다:
 
-* Multiple buckets, separately storing assets of types intended by user, e.g. Character Image cache and Advertisement Image cache.
+* 다수의 버킷 그 각각에는 사용자가 의도한 유형의 애셋, 예를 들면 캐릭터 이미지 캐시와 광고 이미지 캐시가 별도로 저장됩니다.
 
-* Each bucket has separately configurable size.
+* 각 버킷마다 크기를 별도로 환경설정할 수 있습니다.
 
-* Asset versioning, allowing to rebuild cache entry when it becomes obsolete.
+* 애셋 버전관리를 통해, 캐시를 쓸 수 없게 되면 캐시 항목을 다시 만들 수 있습니다.
 
-* Synchronous and asynchronous cache querying.
+* 동기 & 비동기식 캐시 질의가 가능합니다.
 
-* When cache grows larger than specified size, oldest entries are removed from it.
+* 캐시가 지정된 크기보다 커지면, 오래된 항목부터 지웁니다.
 
-### New: Volume Decals (Experimental only!)
+### 볼륨 데칼 (실험단계 전용)
 
-3D function field rendering is an alternative to polygons for describing geometry. It is better-suited to solving some hard rendering problems such as shadows, Boolean operations, smoothing, ambient occlusion, ray tracing, and deformation. 2D and 3D distance functions are already in use in various places in the engine, like fonts, lightmaps, and distance field shadows/ambient occlusion. The new Volume Decals feature enables a distance function to be rendered as opaque objects into the GBuffer, using all of the information normally available to deferred passes, including ambient occlusion, screen-space reflections, lighting, and depth of field. The bowl in the following image is a Volume Decal.
+3D 함수 필드 렌더링은 지오메트리 묘사용 폴리곤의 대안입니다. 그림자, 불리언 연산, 스무딩, 앰비언트 오클루전, 레이 트레이싱, 디포메이션과 같은 하드 렌더링 문제 해결에 적합한 것이지요. 2D 및 3D 거리 함수는 엔진 내에서 폰트, 라이트맵, 디스턴스 필드 섀도/앰비언트 오클루전 등 여러 곳에서 이미 사용중입니다. 새로운 볼륨 데칼 기능을 통해 보통은 디퍼드 패스에 사용할 수 있는 모든 정보, 이를테면 앰비언트 오클루전, 스크린 스페이스 리플렉션, 라이팅, 뎁스 오브 필드를 포함한 전부를 사용해서 거리 함수가 불투명 오브젝트를 GBuffer 속에 렌더링해 넣을 수 있도록 해줍니다. 다음 그림에서 그릇이 볼륨 데칼입니다.
 
 ![image alt text](image_62.png)
 
-The object was created (see image below, from left to right) 
+오브젝트 생성 방식은 (아래 그림의 왼쪽에서 오른쪽으로)
 
-* by defining a sphere with the distance to the decal center and a texture projection
+* 데칼 중심까지의 거리와 텍스처 투명으로 구체를 정의합니다.
 
-* defining a sphere another sphere and taking the maximum of both (boolean intersection)
+* 또다른 구체를 정의하고 그 둘의 최대값을 취해서 (불리언 교차) 구체를 정의합니다.
 
-* moving the spheres to adjust the shape
+* 구체를 움직여 모양을 조절합니다.
 
-* adding another sphere and changing the material (boolean subtraction)
+* 구체를 또하나 추가하고 머티리얼을 변경합니다 (불리언 빼기).
 
-* adjusting the shape again
+* 모양을 다시 정의합니다.
 
 ![image alt text](image_63.png)
 
-This is how the distance function for the sphere is defined:
+구체에 대한 거리 함수 정의 방식은 이렇습니다:
 
 ![image alt text](image_64.png)
 
-The feature is unfinished. Shadow casting, normal map support, and indirect lighting are missing, and performance and quality optimizations have not been made. In addition, the feature will always be costly on the GPU (distance function needs to be evaluated maybe hundreds of times for each pixel). We will polish it further by adding material functions, shadow casting, documentation, etc., but it might never be fast enough for real-time use.
+이 기능은 마무리되지 않은 상태입니다. 그림자 드리우기, 노멀 맵 지원, 간접광이 빠진 상태이며, 퍼포먼스와 퀄리티 최적화 역시 이루어지지 않았습니다. 추가로 이 기능은 항상 GPU 비용이 많이 발생할 것입니다 (거리 함수는 각 픽셀당 아마도 수백 번의 평가가 필요합니다). 앞으로 머티리얼 함수, 그림자 드리우기, 문서 등을 추가해서 다듬을 것이지만, 실시간에 적합할 만큼 빨라질 일은 절대 없을 것입니다.
 
-### New: UE4 Documentation Tags, Version and Skill Level
+### UE4 문서 태그, 버전, 스킬 레벨
 
-* Documentation pages now have skill level, engine version, and category tags which are displayed at the top and bottom of pages that enable you to find other pages with matching tags.
+* 문서 페이지에 이제 스킬 레벨, 엔진 버전, 카테고리 태그가 페이지 상하단에 표시되어 태그가 같은 다른 페이지를 쉽게 찾을 수 있습니다.
 
 	![image alt text](image_65.png)
 
-* Added ability to filter the sitemap by skill level and/or engine version. The sitemap is now an expandable tree view. When filtered, the tree is expanded to show matching items while non-matching items appear grayed out
+* 이제 사이트맵 필터링이 펼쳐지는 트리 뷰 형태로 되어, 스킬 레벨 및/또는 엔진 버전별로 표시됩니다. 필터가 적용되면, 트리가 펼쳐져 일치되는 항목이 표시되면서 일치되지 않는 항목은 회색으로 탈색되어 보입니다.
 
 	![image alt text](image_66.png)
 
-* Skill Level, Engine Version, and Tags on pages also now link to the sitemap and automatically filter it.  Clicking a tag opens the sitemap filtered to only show pages with that tag.
+* 페이지의 스킬 레벨, 엔진 버전, 태그 역시 사이트맵으로 링크되어 필터가 자동으로 적용됩니다. 태그를 클릭하면 그 태그가 붙어있는 페이지만 표시하도록 사이트맵에 필터를 적용합니다.
 
 	![image alt text](image_67.png)
 
-* Links to tutorials (how-to's, quick starts, etc.) display the skill level and engine version of that tutorial:
+* 튜토리얼 (비법, 퀵스타트 등) 링크에는 그 튜토리얼의 스킬 레벨과 엔진 버전이 표시됩니다:
 
 	![image alt text](image_68.png)
 
-### New and Updated UE4 Documentation
+### 추가되고 업데이트된 UE4 문서
 
-* [Gear VR Global Menu](https://docs.unrealengine.com/latest/INT/Platforms/GearVR/GlobalMenu/index.html)
+* [기어 VR 글로벌 메뉴](Platforms/GearVR/GlobalMenu)
 
-* [Reducing APK Package Size](https://docs.unrealengine.com/latest/INT/Platforms/Android/ReducingAPKSize/index.html)
+* [APK 패키지 크기 줄이기](Platforms/Android/ReducingAPKSize)
 
-* [Mobile Content Scale Factor](https://docs.unrealengine.com/latest/INT/Platforms/Mobile/Performance/index.html#mobilecontentscalefactor)
+* [모바일 콘텐츠 스케일 인수](Platforms/Mobile/Performance)
 
-* [Blueprints Best Practices](https://docs.unrealengine.com/latest/INT/Engine/Blueprints/BestPractices/index.html)
+* [블루프린트 실전 사례](Engine/Blueprints/BestPractices)
 
-* [Guidelines for Programming for Blueprints](https://docs.unrealengine.com/latest/INT/Engine/Blueprints/TechnicalGuide/Guidelines/index.html)
+* [블루프린트 프로그래밍 가이드라인](Engine/Blueprints/TechnicalGuide/Guidelines)
 
-* [Gameplay Debugger](https://docs.unrealengine.com/latest/INT/Gameplay/Tools/GameplayDebugger/index.html)
+* [게임플레이 디버거](Gameplay/Tools/GameplayDebugger)
 
-* [Visual Logger](https://docs.unrealengine.com/latest/INT/Gameplay/Tools/VisualLogger/index.html)
+* [비주얼 로거](Gameplay/Tools/VisualLogger)
 
-* [Network Profiler](https://docs.unrealengine.com/latest/INT/Gameplay/Tools/NetworkProfiler/index.html)
+* [네트워크 프로파일러](Gameplay/Tools/NetworkProfiler)
 
-* [Behavior Tree Quick Start](https://docs.unrealengine.com/latest/INT/Engine/AI/BehaviorTrees/QuickStart/index.html)
+* [비헤이비어 트리 퀵 스타트](Engine/AI/BehaviorTrees/QuickStart)
 
-* [Behavior Tree Node Reference](https://docs.unrealengine.com/latest/INT/Engine/AI/BehaviorTrees/NodeReference/index.html)
+* [비헤이비어 트리 노드 참고서](Engine/AI/BehaviorTrees/NodeReference)
 
-* [Environment Query System Quick Start](https://docs.unrealengine.com/latest/INT/Engine/AI/EnvironmentQuerySystem/QuickStart/index.html)
+* [인바이언먼트 쿼리 시스템 퀵 스타트](Engine/AI/EnvironmentQuerySystem/QuickStart)
 
-* In-Game Analytics Provider Pages
+* 게임내 애널리틱스 플러그인 제공사 페이지
 
-    * [Apsalar](https://docs.unrealengine.com/latest/INT/Gameplay/Analytics/Apsalar/index.html)
+    * [Apsalar](Gameplay/Analytics/Apsalar)
 
-    * [File Logging](https://docs.unrealengine.com/latest/INT/Gameplay/Analytics/FileLogging/index.html)
+    * [파일 로깅](Gameplay/Analytics/FileLogging)
 
-    * [Flurry](https://docs.unrealengine.com/latest/INT/Gameplay/Analytics/Flurry/index.html)
+    * [Flurry](Gameplay/Analytics/Flurry)
 
-    * [Multicast](https://docs.unrealengine.com/latest/INT/Gameplay/Analytics/Multicast/index.html)
+    * [멀티캐스트](Gameplay/Analytics/Multicast)
 
-### New: Asynchronous Real-time Audio Decompression
+### 비동기 실시간 오디오 압축해제
 
-Platforms that support real-time ogg-vorbis based audio decompression (PC, Xbox One, Mac, Android) now perform the decompression asynchronously when possible to avoid blocking operations on the main game thread. 
+실시간 ogg-vorbis 기반 오디오 압축해제를 지원하는 플랫폼(PC, 엑스박스 원, 맥, 안드로이드)는 이제 가능하면 비동기 압축해제를 통해 메인 게임 스레드 작업을 중단시키지 않습니다.
 
-### New: Shared Resources for Feature Packs and Templates
+### 피처 팩 & 템플릿용 공유 리소스
 
-We now support shared resources in templates and feature packs. This is achieved by allowing both templates and feature packs to specify other feature packs to include. This means that many assets that were common to all templates now only exist once. It also means that we no longer need to duplicate assets that are shared between the Blueprint and C++ versions of templates.
+이제 템플릿과 피처 팩에 공유 리소스가 지원됩니다. 템플릿과 피처 팩 모두 포함시킬 다른 피처 팩을 지정하는 방식으로 가능해 졌습니다. 즉 모든 템플릿에 공통인 애셋 다수가 딱 하나만 존재한다는 뜻입니다. 더이상 블루프린트와 C++ 버전 템플릿에 공유되는 애셋이 중복되지도 않는다는 뜻입니다.
 
-Multiple target platforms are supported, so different assets can exist in a template or feature pack for mobile and desktop targets. That's useful when you want lower detail models on one platform but not another, for example.
+다중 플랫폼이 지원되므로, 모바일 & 데스크톱 타겟용 템플릿 또는 피처 팩에 다양한 애셋이 존재할 수 있습니다. 한 플랫폼에는 디테일을 낮추고 다른 데는 정상으로 놔두는 등으로 유용하게 쓰입니다.
 
-### New: Improved HTML5 (Easy Setup, Amazon S3 Support, Networking)
+### HTML5 개선 (쉬운 셋업, 아마존 S3 지원, 네트워킹)
 
-You no longer need to install any third party SDKs to start development with HTML5 and package your game for a web browser! To package, simply select HTML5 in the File -> Package menu. 
+더이상 HTML5 개발 및 웹 브라우저용 게임 패키징 시작을 위한 써드 파티 SDK 설치를 할 필요가 없습니다! 패키징은 그냥 파일 -> 패키지 메뉴에서 HTML5 를 선택하면 됩니다.
 
-Other improvements include:
+그 외 개선사항:
 
-* Emitting compressed javascript which reduce the size of the builds drastically. 
+* 압축 자바스크립트 방출로 빌드 크기가 대폭 줄어듭니다.
 
-* A small web server is included with the game during packaging which can handle serving compressed files for local testing. 
+* 패키징 도중 로컬 테스트용 압축 파일 서빙 처리를 위해서 게임에 작은 웹 서버가 포함됩니다.
 
-* HTML5 Networking is now supported! There is now a Unreal Build Tool configuration variable which can be used to create dedicated servers that support HTML5 clients. 
+* 이제 HTML5 네트워킹이 지원됩니다! 이제 HTML5 클라이언트를 지원하는 데디케이티드 서버 생성에 사용할 수 있는 언리얼 빌드 툴 환경설정 변수가 생겼습니다.
 
-* We now support uploading to Amazon S3 during packaging. Once the credentials for AWS are filled in, the build will be uploaded to S3 and the game can be served to browser directly from S3. 
+* 이제 아마존 S3 패키징에 업로드가 지원됩니다. AWS 용 인증서를 채우고 나면, 빌드가 S3 에 업로드되고, 게임이 S3 에서 브라우저에 바로 서빙됩니다.
 
 	![image alt text](image_69.png)
-
 ## Release Notes
 
 ### AI
@@ -2134,9 +2134,9 @@ Other improvements include:
 
     * *Notes when upgrading*:
 
-        * - If you have custom actors or blueprints with transform data on the root component that was previously ignored, you will see different results when spawning them with 4.9. In this case the best fix is likely to be simply zeroing out the transform data, since it was ignored before anyway.
+        * If you have custom actors or blueprints with transform data on the root component that was previously ignored, you will see different results when spawning them with 4.9. In this case the best fix is likely to be simply zeroing out the transform data, since it was ignored before anyway.
 
-        * - If you have added code somewhere to take this transform data into account before spawning, you will likely want to remove it, or else you will end up applying the transform twice.
+        * If you have added code somewhere to take this transform data into account before spawning, you will likely want to remove it, or else you will end up applying the transform twice.
 
 * New: A Remove Player analogue to Create Player is now available for use in Blueprints.
 

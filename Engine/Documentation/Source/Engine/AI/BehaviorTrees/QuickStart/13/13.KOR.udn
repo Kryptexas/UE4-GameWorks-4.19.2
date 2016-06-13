@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2636043
+﻿INTSourceChangelist:2757241
 Availability:Public
 Title: 13. 데코레이터 생성
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:13 단계. 데코레이터 생성
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -29,7 +30,7 @@ Description:13 단계. 데코레이터 생성
 ## Steps
 
 1. **콘텐츠 브라우저** 에서 FollowerBT 비헤이비어 트리에 **더블클릭** 하여 엽니다.
-1. ![](newDecorator_button.png) 새 데코레이터 버튼을 클릭합니다.
+1. 새 데코레이터 버튼을 클릭합니다.
 
 	비헤이비어 트리와 같은 폴더에 생성됩니다.
 1. **콘텐츠 브라우저** 에서 그 이름을 "CloseEnough" 로 변경합니다.

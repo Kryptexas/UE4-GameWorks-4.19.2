@@ -1,8 +1,12 @@
-﻿INTSourceChangelist:2033300
+﻿INTSourceChangelist:2940199
 Availability:Public
 Title:iOS デバイスの互換性
 Crumbs:%ROOT%, Platforms, Platforms/iOS
 Description:iOS による開発で必要なデバイス互換性
+Version:4.9
+Parent:Platforms/iOS
+order:1
+type:overview
 
 [VAR:Retina]
 ![](%ROOT%/icon_success_16x.png)
@@ -16,14 +20,14 @@ Description:iOS による開発で必要なデバイス互換性
 ![](%ROOT%/icon_error_16x.png)
 [/VAR]
 
-すべての iOS デバイスをテストしたわけではありませんが、それぞれのデバイスと相性よく動作すると思われる機能を以下の表にまとめてみました。新規デバイスのリリース時および社内テスト中のデバイスが増加した際には、本ページを拡大してより深くお伝えしていこうと思います。
+すべての iOS デバイスをテストしたわけではありませんが、それぞれのデバイスと相性よく動作すると思われる機能を以下の表にまとめてみました。新規デバイスのリリース時および社内テスト中のデバイスの追加に応じて、本ページに詳細な記載を追加する予定です。
 
-[](Platforms/Mobile/Performance) ページに記載されているリファレンス機能を、以下の表に並べました。
+[](Platforms/Mobile/Performance) ページに記載されているリファレンス機能を以下の表に並べました。
 
 [REGION:raw]
-* %Retina% Retina - このデバイスのファミリーをテストし、ネイティブ Retine 解像度でよく動くことが期待されます。
-* %NonRetina% Non-Retina - このデバイスのファミリーをテストし、非 Retine 解像度でよく動くことが期待されます。
-* %Unsupported% Unsupported - 機能群に対しデバイスの正常な動作を期待しません。
+* %Retina% Retina - このデバイスのファミリーをテストしました。ネイティブ Retine 解像度でよく動くことが期待されます。
+* %NonRetina% Non-Retina - このデバイスのファミリーをテストしました。非 Retine 解像度でよく動くことが期待されます。
+* %Unsupported% Unsupported - 機能一覧に対して動作がよくないと思われるデバイスです。
 [/REGION]
 
 以下は携帯電話デバイスのリストです。
@@ -35,6 +39,8 @@ Description:iOS による開発で必要なデバイス互換性
 | **iPhone4S** | %Retina% Retina | %NonRetina% Non-Retina | %Unsupported% サポートなし | %Unsupported% サポートなし |
 | **iPhone5** | %Retina% Retina | %Retina% Retina |%NonRetina%  Non-Retina | %Unsupported% サポートなし |
 | **iPhone5S** | %Retina% Retina | %Retina% Retina | %Retina% Retina | %Retina% Retina |
+| **iPhone6** | %Retina% Retina | %Retina% Retina | %Retina% Retina | %Retina% Retina |
+| **iPhone6 Plus** | %Retina% Retina | %Retina% Retina | %Retina% Retina | %Retina% Retina |
 [/REGION]
 
 以下はタブレットデバイスのリストです。

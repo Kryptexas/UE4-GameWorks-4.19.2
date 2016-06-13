@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2727158
 Availability: Docs
-Title:Physics Bodies Overview
+Title:피직스 바디 개요
 Crumbs: %ROOT%, Engine, Engine/Physics
-Description:Overview of what a Physics Body, or BodyInstance, is and what it does.
+Description:피직스 바디, 또는 바디 인스턴스란 무엇이며 어떤 역할을 하는지에 대한 개요입니다.
 
 [VAR:Topic]
 [OBJECT:Topic]

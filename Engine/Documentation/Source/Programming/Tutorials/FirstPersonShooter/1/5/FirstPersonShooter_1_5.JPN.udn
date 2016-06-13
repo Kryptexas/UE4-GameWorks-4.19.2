@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2672918
+﻿INTSourceChangelist:3002648
 Availability:Docs
 Title:1.5 -  デフォルトのゲームモードを設定する
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
 Description:First Person Shooter プロジェクトのデフォルトのゲームモードの設定方法を学びます。
-スキルレベル:初心者向け
-バージョン：4.9
+SkillLevel:Beginner
+Version:4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -24,28 +24,76 @@ Description:First Person Shooter プロジェクトのデフォルトのゲー�
 
 %Steps%
 
-新たに追加したゲームモードのコンパイルに成功したので、このステップでは、**FPSProject** でデフォルトのゲームモードとして **FPSGameMode** を使用するように設定する必要があります。
+新たに修正したゲームモードのコンパイルに成功したので、このステップでは、プロジェクトでデフォルトの **Game Mode** として `FPSProjectGameMode` を使用するように設定する必要があります。
 
 1.	**[Edit (編集)]** メニューで、**[Project Settings (プロジェクト設定)]** をクリックします。
 
 1.	**[Project Settings]** タブの左側にある **[Project]** の見出しで、**[Maps & Modes]** をクリックします。
 
-1.	Default GameMode のドロップダウンで **[FPSGameMode]** を選択します。
+1.	 **[Default GameMode]** のドロップダウン メニューで **[FPSGameMode]** を選択します。
 
 	![](SettingFPSGameMode.png)
 
 1.	**[Project Settings]** メニューを閉じます。
 
-1.	レベルエディタのツールバーで、**[Play (再生)]** ボタンをクリックします。"We are using FPSGameMode." というメッセージがビューポートの左上隅に表示されます。
+1.	レベルエディタのツールバーで、**[Play (再生)]** ボタンをクリックします。ビューポートの左上隅に "Hello World, this is FPSGameMode!" と黄色のテキストで 5 秒間表示されます。
 
 	![](SectionResult.png)
 
-1.	[PIE (Play In Editor)] モードを終了するには、レベル エディタで **[Stop]** ボタンを押します。
+1.	[PIE (Play In Editor)] モードを終了するには、レベル エディタで Escape キーを押すか、**[Stop]** ボタンをクリックします。
 
-これで終わりです！以下について学習しました。
+[OBJECT:Section]
+    [PARAMLITERAL:id]
+    code
+    [/PARAMLITERAL]
+    [PARAM:heading]
+    完成コード
+    [/PARAM]
+    [PARAM:content]
+		**FPSProjectGameMode.h**
+			// Fill out your copyright notice in the Description page of Project Settings (Project Settings の Description ページに著作権情報を入力してください) 
+			#pragma once
+
+			#include "GameFramework/GameMode.h"
+
+			#include "FPSGameMode.generated.h"
+			/**
+
+			 * 
+			 */
+			UCLASS()
+			class FPSPROJECT_API AFPSProjectGameMode : public AGameMode
+			{
+				GENERATED_BODY()
+
+				virtual void StartPlay() override;
+			};
+
+		**FPSProjectGameMode.cpp**
+			// Fill out your copyright notice in the Description page of Project Settings (Project Settings の Description ページに著作権情報を入力してください) 
+			#include "FPSProject.h"
+
+			#include "FPSProjectGameMode.h"
+			void AFPSProjectGameMode::StartPlay()
+
+			{
+				Super::StartPlay();
+			if (GEngine)
+
+				{
+					// Display a debug message for five seconds. (デバッグ メッセージを 5 秒間表示)  
+					// The -1 "Key" value (first argument) indicates that we will never need to update or refresh this message. ( -1 のキー値 (最初の引数) は、このメッセージを更新、リフレッシュする必要がないことを示しています) 
+					GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Hello World, this is FPSGameMode!"));
+				}
+			}
+
+    [/PARAM]
+[/OBJECT]
+
+これで終わりです！ 以下について学習しました。
 
 &#x2713; 新規プロジェクトのセットアップ  
-&#x2713; C++ Class Wizard の使用  
+&#x2713; Visual Studio でプロジェクトを開く  
 &#x2713; ログ メッセージをプロジェクトに追加  
 &#x2713; 初めての C++ Class のコンパイル  
 &#x2713; デフォルトのゲーム モードの設定

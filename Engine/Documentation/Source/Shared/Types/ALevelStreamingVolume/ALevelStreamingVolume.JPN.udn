@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2246990
+﻿INTSourceChangelist:2591123
 Availability:NoPublish
 Title:ALevelStreamingVolume
 Crumbs:
@@ -6,7 +6,7 @@ Description:LevelStreamingVolume クラスの概要
 
 [EXCERPT:ALevelStreamingVolume]
 
-Level Streaming Volume はレベル ストリーミング プロセス支援のために使用します。また、プレイヤーのボリュームの出入りに合わせてレベルがメモリに入出力される際、レベルを簡単にカプセル化および制御できるようにします。 
+Level Streaming Volume はレベル ストリーミング プロセスを支援するために使用します。また、プレイヤーのボリュームの出入りに合わせてレベルがメモリに入出力される際、レベルを簡単にカプセル化および制御できるようにします。 
 
 [VAR:ToolTipFullLink]
 Engine/Actors/Volumes#Volume Types

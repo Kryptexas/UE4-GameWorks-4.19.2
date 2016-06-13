@@ -15,17 +15,17 @@ Description:如何创建使用顶点颜色的材质，以便您可以在网格�
 
 **点击查看完整大小。**
 
- [![](OriginalColorMaterial.png)(w:720)](OriginalColorMaterial.png)
+[![](OriginalColorMaterial.png)(w:720)](OriginalColorMaterial.png)
 
 
- [REGION:note]
+[REGION:note]
 	这个材质的饱和度已经被降低了一些，以便我们有更多的空间来通过网格物体描画工具添加颜色。
- [/REGION]
+[/REGION]
 
 
- 要想把我们的顶点颜色应用到材质中，我们需要简单地中断Base Color连接，并使用 Vertex Color表达式的RGB值和其相乘，如下所示：
+要想把我们的顶点颜色应用到材质中，我们需要简单地中断Base Color连接，并使用 Vertex Color表达式的RGB值和其相乘，如下所示：
 
- **点击查看完整大小。**
+**点击查看完整大小。**
 
 [![](VertexColorAdded.png)(w:720)](VertexColorAdded.png)
 

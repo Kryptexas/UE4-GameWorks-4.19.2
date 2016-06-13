@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2632559
+﻿INTSourceChangelist:2746215
 Availability:Public
 Title:내려보기 2D 게임 구성
 Crumbs: %ROOT%, Engine, Engine/Paper2D
@@ -8,6 +8,8 @@ Related: Engine\Paper2D\TileMaps
 Related: Gameplay/HowTo/UsingCameras/Blueprints
 Related: Engine\Paper2D\Sprites
 Related: Engine\Paper2D\Flipbooks
+Version: 4.9
+SkillLevel: Intermediate
 
 여기서는 기존 **삼인칭 템플릿** 프로젝트를 변경하여 **내려보기 2D** 스타일의 게임을 만드는 법을 알아보겠습니다.
 

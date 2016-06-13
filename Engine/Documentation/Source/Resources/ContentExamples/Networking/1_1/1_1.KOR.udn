@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653552
+﻿INTSourceChangelist:2719837
 Availability: Public
 Title:1.1 - 액터 리플리케이션
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Networking
@@ -8,6 +8,7 @@ Related: Gameplay/Networking/Actors/Components
 Related: Gameplay/Networking/Actors
 Related: Gameplay/Networking/Actors/RPCs
 Related: Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -61,7 +62,7 @@ Related: Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 
 ![](1_1_Replicates.png)
 
-## 래밸 블루프린트
+## 레벨 블루프린트
 플레이 세션에 들어갈 때, **레벨 블루프린트** 를 통해 스폰되는 두 개의 액터는 아래와 같습니다.
 
 [REGION:fullwidth]

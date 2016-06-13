@@ -1,0 +1,70 @@
+﻿INTSourceChangelist:2985497
+Availability:Public
+Title:Simple コリジョンと Complex コリジョン
+Crumbs: %ROOT%, Engine
+Description:UseSimpleAsComplex フラグと UseComplexAsSimple フラグが何を行うか、およびそれをいつ使用するのが適切であるかについて説明します。
+Version:4.11
+parent:Engine/Physics
+order:6
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Physics/SimpleVsComplex:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/SimpleVsComplex:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/SimpleVsComplex:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Physics/SimpleVsComplex:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/SimpleVsComplex:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/SimpleVsComplex:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+アンリアル エンジン 4 (UE4) では、単純なコリジョン形状と複雑なコリジョン形状を使用することができます。**Simple Collision (単純なコリジョン)** は、ボックス、 
+球体、カプセル、凸包などのようなプリミティブです。**Complex Collision (複雑なコリジョン)** は任意のオブジェクトの三角メッシュです。デフォルトで、UE4 は 
+PhysX 内で単純な形状と複雑な形状を作成します。続いて、ユーザーが必要とするものに応じて (複雑なクエリ vs 単純なクエリ)、 
+対応する形状を使用します。 
+
+## 使用方法
+
+**スタティックメッシュ エディタ** では、以下のように **[Static Mesh Settings]** カテゴリに、**[Collision Complexity]** の設定があります。
+
+![](StaticMeshSettingsCollisionComplexity.png)
+
+[REGION:raw]
+| **設定** | %spacer% | **説明** |
+| --- | :---: | :--- |
+| **Default** || 単純なコリジョンのリクエストで単純なコリジョンを使用し、複雑なコリジョンのリクエストで複雑なコリジョンを使用します。デフォルトのビヘイビアです。 |
+| **UseSimpleAsComplex** || 複雑なクエリがリクエストされても、エンジンは単純な形状をクエリし、基本的に三角メッシュを無視します。その結果、メモリを節約します。三角メッシュをベイクする必要がなく、コリジョンのジオメトリがシンプルならば、パフォーマンスを向上させることができるからです。 |
+| **UseComplexAsSimple** || simple クエリがリクエストされたら、エンジンが複雑な形状をクエリし、基本的に simple コリジョンを無視します。これにより、物理のシミュレーションのコリジョンで三角メッシュを使用することができます。**UseComplexAsSimple** を使用する場合、オブジェクトをシミュレーションすることができませんが、他のシミュレーションした (simple) オブジェクトに衝突させることはできます。 |
+[/REGION]
+
+[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
+
+[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]

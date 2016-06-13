@@ -38,8 +38,8 @@ reversing.  FStrings can be searched, modified, and compared against other strin
 
 ### Numeric and Other Variables
 
-#### From FString
-| Variable Type | Conversion to String | String Format |
+#### TO FString
+| Variable Type | Conversion from String | String Format |
 | ------------- | -------------------- | --------------|
 |	float		|  `FString::SanitizeFloat(FloatVariable);`| | 
 |  int          |   `FString::FromInt(IntVariable);` | |
@@ -52,11 +52,11 @@ reversing.  FStrings can be searched, modified, and compared against other strin
 
 For other numeric conversions, you can use the **FString::Printf()** function with the appropriate arguments. 
 
-#### To FString
+#### From FString
 
 Conversions also exist from FString to int and float numeric variables, as well as to boolean variables. 
 
-| Variable Type | Conversion to String | Notes |
+| Variable Type | Conversion from String | Notes |
 | ------------- | -------------------- | --------------|
 |bool | `TestHUDString.ToBool();` | %doxygen:FString::ToBool%|
 | int | `FCString::Atoi(*TestHUDString);` | |

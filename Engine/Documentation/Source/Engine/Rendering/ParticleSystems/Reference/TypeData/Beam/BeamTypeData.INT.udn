@@ -2,6 +2,7 @@ Availability:Public
 Title:Beam Type Data
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:The Beam Type Data module is useful for creating effects such as beams of energy of electricity.
+Version: 4.9
 
 
 [EXCERPT:Intro]
@@ -20,7 +21,7 @@ coXs-CmI_v8
 [/PARAMLITERAL]
 [/OBJECT]
 
-The Beam type data module has the following properties:
+The **Beam** type data module has the following properties:
 
 | Property | Description |
 | -------- | ----------- |

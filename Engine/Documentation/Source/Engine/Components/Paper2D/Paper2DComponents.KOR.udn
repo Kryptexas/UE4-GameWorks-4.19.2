@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2609228
+﻿INTSourceChangelist:2696110
 Availability:Public
 Title:페이퍼 2D 컴포넌트
 Crumbs:%ROOT%, Engine, Engine/Components
@@ -7,6 +7,7 @@ Related: Engine\Paper2D
 Related: Engine\Paper2D\Flipbooks
 Related:Engine\Paper2D\Sprites
 Related: Engine/Blueprints/UserGuide/Components
+version: 4.9
 
 Paper 2D 컴포넌트는 액터에 2D **스프라이트** 나 **플립북** 을 서브 오브젝트로 추가( 또는 변경)하는 데 사용됩니다.
 

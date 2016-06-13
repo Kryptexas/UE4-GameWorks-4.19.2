@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:블루프린트 클래스 만들기
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types/ClassBlueprint
@@ -7,6 +7,11 @@ Related: Engine/Blueprints/UserGuide/Types/ClassBlueprint
 Related: Engine/Blueprints/UserGuide/Types/ClassBlueprint/Opening 
 Related: Engine/Blueprints/Editor/UIBreakdowns/ClassBPUI
 Related: Engine/Blueprints/Editor
+version: 4.9
+skilllevel:Beginner
+parent:Engine/Blueprints/BP_HowTo
+type:howto
+order:1
 
 
 [TOC(start:2 end:2)]

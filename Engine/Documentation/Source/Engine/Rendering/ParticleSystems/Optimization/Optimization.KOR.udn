@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2603858
+﻿INTSourceChangelist:2741685
 Availability: Public
 Title:VFX 최적화 안내서
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
 Description:파티클 시스템 최적화를 통한 퍼포먼스 문제 해결하기 입니다.
+Version: 4.9
 
 
 [TOC (start:2 end:3)]
@@ -17,7 +18,7 @@ $ **Tick Time** 틱 시간 : 게임 스레드가 모든 파티클 시스템을 �
 $ **Draw Calls** 드로 콜 : GPU 용으로 준비할 스테이트 셋업입니다. (렌더 스레드)
 $ **Bounds Calculation** 바운드 계산 : 이펙트의 바운드를 업데이트하는 데 걸리는 시간입니다. 이 바운드는 카메라 프러스텀을 기준으로 표시여부(즉 이펙트의 바운드가 뷰에 있는지)를 결정하는데 사용됩니다.
 
-이와 같은 주요 이슈도 많은 서브셋으로 나뉘며, 보통은 이슈 생성에 큰 역할을 합니다. 그리고 각각의 서브셋에 대해서도 보통 퍼포먼스 이슈를 관리하기 위한 툴이 있습니다.
+이와 같은 주요 이슈도 여러 분류로 나뉘며, 보통은 이슈 생성에 큰 역할을 합니다. 그리고 각각의 분류에 대해서도 보통 퍼포먼스 이슈 관리를 위한 툴이 있습니다.
 
 
 ## 이펙트 퍼포먼스를 위한 코어 시스템

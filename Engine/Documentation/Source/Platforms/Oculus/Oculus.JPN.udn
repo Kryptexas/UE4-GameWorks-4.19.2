@@ -1,29 +1,44 @@
-﻿INTSourceChangelist:2319976
+﻿INTSourceChangelist:2940199
 Title:Oculus Rift の開発
 Crumbs:%ROOT%, Platforms
 Description:
 Availability:Public
 Navigation:platform
 Platform:Oculus
+Version:4.9
+type:landing
+parent:Platforms/VR
+tags:VR
+tags:Oculus Rift
 
 [EXCERPT:warning]
 [REGION:warning]
-Mac 上での Oculus 開発には、現在アンリアル エンジン 4.3 が必要です。
+Mac で Oculus 用の開発を行うには、現在アンリアル エンジン 4.3 以上が必要になります。
 [/REGION]
 [/EXCERPT:warning]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/vr_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Oculus Rift の開発
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Platforms/Oculus/BestPractices "%Platforms/Oculus/BestPractices:description%")
-		* [](Platforms/Oculus/QuickStart "%Platforms/Oculus/QuickStart:description%")
-		* [Oculus Rift のアンリアル エンジン 4 への統合の教訓](https://de45xmedrsdbp.cloudfront.net/Resources/files/UE4-Integration-and-Demos_OC-100270768.pptx "Oculus Connect 2014 Presentation")
-	[/PARAM]
+## はじめよう
+
+[DIR(output:"listbutton" type:"quickstart" parent:"Platforms/Oculus")]
+
+## Oculus Rift のトピックス
+
+[REGION:buttonlist]
+[DIR(output:"listbutton" type:"overview" parent:"Platforms/Oculus")]
+* [Oculus Rift のアンリアル エンジン 4 へ統合する](https://de45xmedrsdbp.cloudfront.net/Resources/files/UE4-Integration-and-Demos_OC-100270768.pptx "Oculus Connect 2014 Presentation")
+[/REGION]
+
+## Oculus Talks
+ **Oculus Connect:Oculus Rift をアンリアル エンジン 4 に統合します**
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+0oM6Xe7fT-8
+[/PARAMLITERAL]
 [/OBJECT]
+

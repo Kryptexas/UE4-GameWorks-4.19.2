@@ -35,7 +35,7 @@ version: 4.9
 
 	[![](PlaceCube.png)](PlaceCube.png)
 
-	[REGION:note]在这个步骤中，我们可以使用几乎任何actor类。 我们在快速启动指南中创建的MyActor类可以用来替换立方体。
+	[REGION:note]在这个步骤中，我们可以使用几乎任何actor类。 我们在快速启动指南中创建的MyActor类可以用来替换立方体。[/REGION]
 
 1. 在放置了 **立方体** actor后，我们应该添加一个 **CameraComponent** ，然后设置该 **CameraComponent** 的位置和旋转，从而获得与之前我们放置的 **CameraActor** 不同的场景视图。
 

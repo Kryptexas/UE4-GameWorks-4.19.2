@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2004247
+﻿INTSourceChangelist:2728067
 Availability:Licensee
 Title: 출하 점검목록
 Crumbs:%ROOT%, Support/BusinessAndLegal
 Description:언리얼 엔진 4 를 사용하여 게임을 출하할 때 신경써야 할 항목과 지침 목록입니다.
+Version: 4.9
 
 프로젝트에 언리얼 엔진 4 를 사용하기로 결정하셨고, 프로젝트가 거의 완성단계에 달했다면 shipping, 출하 전 점검하고 취해야 할 조치들이 
 몇 가지 있습니다. 이 문서에는 언리얼 엔진 4 를 사용하여 공인된 게임 프로젝트를 출하하는 데 관련된 참고사항과 문서 모음이 

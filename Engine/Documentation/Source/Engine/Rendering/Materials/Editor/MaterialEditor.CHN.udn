@@ -1,330 +1,187 @@
-Availability: Public
-Title:材质编辑器用户指南
-Crumbs: %ROOT%, Engine, Engine/Rendering, Engine/Rendering/Materials
-Crumbs:%ROOT%, Engine
+﻿Availability: Public
+Title:Material Editor Reference
+Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
+Description:Guide to using the Material Editor for creating shaders.
+Version: 4.9
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/:title%](Engine/Rendering/Materials_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/texture_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Material Editor
+	[/PARAM]
+	[PARAM:description]
+		Guide to using the Material Editor for creating shaders.
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials/Editor]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
 [TOC(start:2)]
 
 
-##简介
-
-本文档描述了如何使用UnrealEd的材质编辑器的相关内容。要获得关于各种材质表达式功能的详细描述，请参照[材质概要](Engine/Rendering/Materials/ExpressionReference)页面。要获得关于如何创建材质表达式的说明，请参考[创建材质表达式](Engine/Rendering/Programming/MaterialExpressions)页面。
 
 
-##使用材质表达式
+[EXCERPT:Intro]
+The **Material Editor** provides the ability to create shaders to be applied to geometry using a node-based graph interface.
+[/EXCERPT:Intro]
+
+This document describes how to use the Unreal Editor's Material Editor.  For a description of what the various material expressions 
+do, see the [Materials Compendium](Engine/Rendering/Materials/ExpressionReference).
+
+[PUBLISH:Licensee]
+For an explanation of how to create new material expressions, see [](Programming/Rendering/MaterialExpressions).
+[/PUBLISH:Licensee]
+
+For more information about the Material Editor UI, see [](Engine/Rendering/Materials\Editor\Interface).
+
+## Opening the Material Editor
+
+The Material Editor can be opened by **double-clicking** any Material asset or through the **right-click** context menu of a Material 
+asset in the Content Browser. Either of these will open up that particular Material in the Material Editor for editing. 
+
+The Material Editor is also opened whenever you create a new Material in the Content Browser, which is done either by **right-clicking** 
+and choosing New Material from the context menu, or clicking the **Add New** button at the top of the **Content Browser** and choosing 
+**Material** from the drop-down list.
 
 
-###打开材质编辑器
 
-要想打开材质编辑器，可以在Generic Browser(通用浏览器)中双击一个材质。编辑器被分为5个部分，如下所示：
+## Commenting Material Expression Networks
 
+Comments are a great way to document what your Material is doing, making it easier for you and others to understand 
+what is going on within a complicated material graph. There are two ways to add comments to your Materials: by adding text to 
+the **Desc** property of individual nodes or by placing nodes within a Comment object frame.
 
-##材质编辑器概述
+### Using the Desc Property
 
+Every material expression node contains a **Desc** property, available in the **Details** panel. This property exists as a 
+way for artists to add an explicit description of what a specific node is doing. Simply add text into the **Desc** property 
+field in the **Details** panel and the text will appear in a text bubble just above the current node. 
 
-###材质编辑器布局
+![descpropertycomment.png](descpropertycomment.png)
 
-![MaterialEditor.jpg](MaterialEditor.jpg)
+### Using Comments
 
+Comments are another way to make descriptive notes about what certain parts of your material network are doing. Creating 
+them will allow you to stretch a frame around a group of multiple nodes, making this a perfect way to describe entire 
+sections of a network, rather than using the **Desc** property to describe a single node at a time. 
 
-| --- | --- | --- |
-| _1_ | [菜单条](#Menu_Bar)和[工具栏](#Toolbar). |可视化和导航工具|
-| _2_ | [预览面板](#Preview_Pane). |在静态网格物体上的预览材质。|
-| _3_ | [属性面板](#Properties_Pane). |材质或选中的材质表达式节点的属性。 |
-| _4_ | [材质表达式列表](#Material_Expressions_Pane). |一系列可用的材质表达式。|
-| _5_ | [材质表达式图表](#Material_Expression_Graph_Pane). |材质表达式在这个面板中连接在一起来创建着色器指令。|
+You can create a Comment at any time by pressing **C** while hovering the mouse over the Graph. You can also **right-click** in 
+any blank area of the Graph and choose **Add Comment** from the context menu.
 
+The comments themselves are displayed as banners of text along the top of the comment box. This text will not scale 
+with the Graph's zoom level, so even when zoomed far away, you will still be able to read the description.
 
-###菜单条
+![Comments.png](Comments.png)
 
+Nodes within a comment frame can be moved by dragging on the group comment text.  The frame can be resized by dragging on 
+the edges of the comment box.  Any nodes inside a group comment will be moved with the 
+frame, so you can resize an existing frame to include new nodes.
 
-####窗口
+Comments can be renamed by selecting the comment and then modifying the **Text** property using the property window.
 
-**Properties(属性):**  显示属性面板。
-
-**Preview(预览):**  显示预览面板。
-
-**Material Expressions(材质表达式):**  显示材质表达式图表。
-
-
-###工具栏
-
- 
-
-以下是关于工具栏中每个按钮的描述，正如它们在工具条中出现的顺序一样从左到右开始介绍。
-
-| **图标** | **名称** | **描述** | 
-| --- | --- | --- |
-| ![Home.jpg](Home.jpg)| **初始位置** |移动材质表达式，使基础材质节点出现在主要面板的左上角。|
-| ![ToggleGrid.jpg](ToggleGrid.jpg)| **切换网格** |切换在材质预览面板中的背景网格。|
-| ![Shapes.jpg](Shapes.jpg)| **预览形状** |选择标准的形状用于预览您的材质。 |
-| ![SelectPreviewMesh.jpg](SelectPreviewMesh.jpg)| **选择预览网格物体** |从当前加载的静态网格物体下拉列表中选择一个用于预览的网格物体。|
-| ![UseSelectedMesh.jpg](UseSelectedMesh.jpg)| **使用在通用浏览器中选中的静态网格物体** |在通用浏览器中选中一个静态网格物体，并按下这个按钮来使选中的网格物体作为预览网格物体。|
-| ![CleanUnused.jpg](CleanUnused.jpg)| **清除未使用的表达式** |删除任何没有连接到材质的材质表达式节点。|
-| ![UnusedConnectors.jpg](UnusedConnectors.jpg)| **显示/隐藏未使用的连接器** |显示/隐藏没有连接到任何东西的材质表达式连接器。 |
-| ![ToggleCurvedConnections.jpg](ToggleCurvedConnections.jpg)| **切换曲线连接** |在曲线连接和直线连接间切换。为了更好的编辑器性能请禁用此标志。|
-| ![RealtimeMaterial.jpg](RealtimeMaterial.jpg)| **切换实时材质视口** |如果启用此项，则实时地在预览网格物体上更新材质。为了更好的编辑器性能请禁用此标志。|
-| ![RealtimeExpression.jpg](RealtimeExpression.jpg)| **切换实时表达式视口** |如果启用此项，则实时地在每个材质表达式节点更新材质。为了更好的编辑器性能请禁用此标志。|
-| ![ExpressionPreview.jpg](ExpressionPreview.jpg)| **切换表达式实时预览** |这个按钮是材质表达式的bRealtimePreview(是否实时预览)标志的全局切换控制处。如果启用此项，当每次添加、删除、连接、取消链接或者改变材质属性的值时将重新编译所有的子表达式的着色器。为了更好的编辑器性能请禁用此标志。请参照[表达式预览](#Expression_Preview)部分。|
+(#LiveNodesAndLiveUpdate)
 
 
-### 预览面板
 
- 
+## Live Nodes and Live Update
 
-材质预览面板显示了正在编辑的并被应用到一个网格物体上的材质。通过拖拽鼠标左键来旋转网格物体；通过拖拽鼠标的中间键来平移网格物体；通过拖拽鼠标右键来缩放网格物体。通过按下L并拖拽鼠标左键来旋转光源的方向。
+![toolbar_live_nodes.png](toolbar_live_nodes.png)![toolbar_live_update.png](toolbar_live_update.png)
 
-用于预览的网格物体可以通过使用相应的工具条控制按钮来改变(形状按钮、"选择预览网格物体"、及"使用选中的及静态网格物体"按钮)。用于预览的网格物体和材质一同被保存，以便下次您在材质编辑器中打开材质时，材质会在同样的网格物体上进行预览。
+When making changes to a network, it can be useful to get immediate feedback from each change in realtime. The Material Editor 
+offers two features in the Graph to give you instantaneous feedback for your network: Live Nodes and Live Update.
 
+The difference between these two options may not be apparent at first. **Live Nodes** allows for any constant changes that the nodes 
+make - due to such expressions as Panners - to playback in real time. 
 
-###属性面板
-![PropertyPane.jpg](PropertyPane.jpg)
+**Live Update**, on the other hand, allows for each node within the network to have its shader recompiled whenever a change is made. 
+These changes include creation of new nodes, deletion of nodes, node connections and disconnections, and changes in properties. 
+This recompilation is necessary so that the material preview drawn at that node is up to date. However, recompiling these 
+intermediate shaders can be time-consuming, especially if your Material contains many nodes.  If you are experiencing long wait 
+times after every change, you may want to deactivate the Live Update option.
 
-这个面板包含了一个选中的材质表达式的属性窗口。如果没有选中表达式，正在编辑的材质属性将显示在该面板上。
+As an example, consider the example below, in which we have a panning texture of an awesome rocket hull being multiplied by a 
+vector parameter, which is supplying color.
 
+![LiveNodesLiveUpdate.png](LiveNodesLiveUpdate.png)
 
-####材质
-
-
-####应用
-
-应用属性标记允许您将材质和具有不同网格物体类型或渲染技术一同使用。有几个类别。
-
-用于控制渲染行为并且和其它标记相互排斥的标记。
-
-* **bUsedAsLightFunction(是否用于作为光照函数)**
-* **bUsedWithFogVolumes(是否和雾体积一同应用)**
-* **bUsedWithDecals(是否和Decals一同应用)**
-
-
-特殊标记:
-
-* **bUsedWithGammaCorrection(是否使用Gamma校正)** -在着色尾部进行gamma校正。这仅对用到LDR UI scenes的材质是必要的。
-* **bUsedWithMaterialEffect(是否和材质特效一同使用)** -允许材质读取场景深度和场景颜色，即使材质是不透明的。
+* In this example, activating *Live Nodes* would cause the rocket texture to pan in realtime in the node's preview thumbnail. 
+If *Live Nodes* was deactivated, the texture would remain stationary even though the Panner was telling it to move. You may, however, 
+notice small updates as you move your mouse around the Graph area.
+* If you changed the color from cyan to purple, you would only see the change if *Live Update* was active. With *Live Update* off, 
+the change in color would not be visible on the nodes, even though the color property was indeed changed.
 
 
-其它的所有标记仅仅是针对特定的网格物体类型对那个材质增加的一些支持。比如，选中 **bUsedWithStaticLighting** 允许您在具有光照贴图的静态网格物体或BSP上应用材质。在内部它们将导致相应网格物体类型所需要的着色器被编译。当您把材质应用到需要设置一些标记的网格物体上时，编辑器将会根据需要来设置这些标记，然后材质将会被标记为dirty(材质已经被改变)，因为它需要进行保存。
-
-注意: %RED%在游戏中这些标记不会被自动地被设置，如果没有设置适当的标志，则使用默认的材质！%ENDCOLOR%将会有一个详细的关于这个问题的日志警告来告诉您哪些材质存在问题以及它需要哪些标记。
-
-
-####材质实例
+When _Live Update_ is deactivated, you can force-update all previews manually by hitting the Spacebar.  Fast iteration can be achieved 
+by disabling _Live Update_ and then pressing the spacebar whenever you would like to view your changes.
 
 
-####对象
+(#CompilerErrors)
 
 
-###材质表达式面板
- 
 
-这个面板包含着一系列的材质表达式，它们通过"拖拽并落下"的操作被放置在材质中。要想放置一个新的材质表达式节点。左击要放置的材质表达式类型，并拖拽鼠标到图表面板，然后释放。
+## Compiler Errors
 
+Each time a change is made to the material network, the Material must be compiled. If any required inputs of an expression within 
+the network have no connections or are being passed the wrong type of data, a compiler error will occur. These errors are displayed 
+in the [Graph Panel](Engine/Rendering/Materials/Editor/Interface/#GraphPanel).
 
-###材质表达式图表面板
- 
+Compiler errors let you know a problem exists and what that problem is by providing information about the type of expression 
+that they occurred on and a description of the error. 
 
-这个面板包含了一个属于这个材质的所有的材质表达式的图表。在这个材质中所应用的着色器指令的数量显示在左上角。指令的数量越少，材质的消耗越小。没有连接到基础材质表达式节点的材质表达式节点不被算入到这个材质的指令数量(消耗)中。
-
-
-###控制
-
-材质编辑器中的控制基本和UnrealEd中的其它工具的控制相匹配。比如，材质表达式图表可以像其他包含相互连接的对象的编辑器那样进行导航，材质预览网格物体可以像其它的网格物体工具那样改变其方向等等。
+![error_highlight.png](error_highlight.png)
 
 
-####鼠标控制
 
+(#ExpressionSearch)
+
+
+
+## Material Expression Search
+
+The search functionality in the Material Editor allows you to quickly find any nodes (including comments) within the material 
+network that contain a specific piece of text in their description or certain other properties specific to individual types 
+of expressions. This makes it easy to add identifying keywords to nodes and jump to them at a later time without hunting through 
+the network of expressions haphazardly.
+
+Typing a full or partial keyword into the search box will perform a search against the properties of the expressions present 
+in the **Graph** panel. The currently selected result will be brought into view and highlighted.
+
+![search_highlight.png](search_highlight.png)
+
+[REGION:note]
+The search is case-insensitive.
+[/REGION]
+
+Searches are performed against the following property values:
+
+| **Expression Type** | **Searched Properties** |
 | --- | --- |
-| _在背景上点击并拖拽_  |平移材质表达式图表|
-| _鼠标滚轮_  |缩放控制|
-| _押下鼠标左键和右键并进行拖拽_  |缩放控制|
-| _点击一个对象_  |选中 表达式/注释|
-| _按下Ctrl并点击一个对象_  |切换表达式/注释的选择情况 |
-| _按下Ctrl并拖拽_  |移动当前 选项/注释|
-| _按下Ctrl和Alt并拖拽_  |通过鼠标拖动的方盒进行区域选择 |
-| _按下Ctrl、Alt和Shift键并拖拽_  |通过鼠标拖动的方盒进行区域选择(添加到当前的选项中)|
-| _点击并拖拽连接器_  |创建连接(在连接器或变量处释放) |
-| _右击背景_  |弹出New Expression(新建表达式)菜单 |
-| _右击对象_  |弹出对象菜单|
-| _右击连接器_  |弹出连接器菜单|
-| _按下Alt键并点击连接器_  |断开到这个连接器的所有连接|
-| _在预览面板按下L并拖拽鼠标_  |旋转预览光源的方向 |
-
-
-####键盘控制
-
-| --- | --- |
-| _Ctrl-C_  |复制选中的表达式|
-| _Ctrl-V_  |粘帖 |
-| _Ctrl-W_  |克隆选中的对象 |
-| _Delete_  |删除选中的对象 |
-| _Ctrl-Z_  |取消 |
-| _Ctrl-Y_  |重复|
-| _Spacebar(空格键)_  |强制更新所有材质表达式的预览|
-| _C + 左击_  | ComponentMask (分量蒙板表达式)|
-| _S +左击_  | ScalarParameter (标量参数表达式)|
-| _Enter(回车)_  | (和点击'应用'按钮的作用一样) |
-| _Shift + C + 左击_  |在选项旁边创建注释框|
-| _E + 左击_  | Power (幂函数)|
-| _R + 左击_  | Reflection Vector(反射向量) |
-| _U + 左击_  | Texture Coordinate(贴图坐标) |
-| _V + 左击_  | Vector Parameter(向量参数) |
-
-
-####热键
-
-有一些热键用于放置经常使用的材质表达式。按下热键并左击来放置节点：
-
-| --- | --- |
-| _A_ | Add(加法) |
-| _B_ | BumpOffset(凸凹偏移) |
-| _D_ | Divide(除法) |
-| _I_ | If (条件表达式)|
-| _L_ | LinearInterpolate(线性插值) |
-| _M_ | Multiply (乘法)|
-| _N_ | Normalize (单位化)|
-| _O_ | OneMinus(一减去) |
-| _P_ | Panner(平移器) |
-| _S_ | Subtract (减法)|
-| _T_ | TextureSample(贴图采样) |
-| _1_ | Constant (常量)|
-| _2_ | Constant2Vector(二维常数向量) |
-| _3_ | Constant3Vector(三维常数向量) |
-| _4_ | Constant4Vector (四维常数向量)|
-
-
-##使用材质进行工作
-
-
-###表达式注释
-
-注释是说明您的材质作用的最好方法，它使您或其他人更容易地理解可能非常复杂的材质图表。注释以蓝色的文字出现在相应节点的上方。注释的渲染是不依赖于缩放的，这使得导航复杂的材质图表变得更加容易。
-
-![Comments.jpg](Comments.jpg)
-
-材质表达式节点可以分别地进行注释，通过在那个节点的"Desc(描述)"属性中输入文本即可。
-
-通过选中几个节点并点击'C'键来为一组节点来分配组注释。在"New Comment(新建注释)"对话框中输入注释文本并点击确定按钮。选中的节点将被分组在一个注释框中。可以通过在组注释文本上进行拖拽来移动在组注释中的节点。通过拖拽在注释框架右下角的黑色三角形可以重新设定框架的大小。在一个组注释中的任何节点将随着边框移动，所以您可以调整现有框架的大小来包含新的节点。
-
-通过选择注释然后修改属性窗口中的"Text(文本)"属性可以重命名注释。
-
-
-###表达式预览
-
-![RealtimePreviewCloseup.jpg](RealtimePreviewCloseup.jpg)
-
-在材质编辑器中的节点的左上角有一个小方框。这个方框暗示着节点的bRealtimePreview(实时预览)属性：黄色意味着启用该属性，黑色意味这禁用该属性。
-
-无论何时材质以任何方式改变(创建、删除、连接一个节点及改变属性等等)，所有启用了bRealtimePreview(实时预览)功能的节点都会重新编译它们的着色器。这个重新编译的过程一定会发生，意味这样在那个节点处的材质预览描画才会更新。然而，重新编译这些中间的着色器是很消耗时间的，尤其是如果您的材质包含许多节点时。所以，为了避免冗长的工作流程，除了TextureSample以外的所有节点默认情况下都是禁用bRealtimePreview(实时预览)功能的。
-
-您可以通过点击空格键来强制更新所有预览。所以，通过禁用尽可能多的节点的bRealtimePreview(实时预览功能)可以获得快速的迭代。
-
-您可以通过点击在节点左上角的小方框或者通过使用选中节点的属性窗口来启用bRealtimePreview(实时预览)功能.
-
-您可以使用"Toggle Expression Realtime Preview(切换表达式实时预览)"全局地控制所有节点的实时预览功能。
-
-
-***
-
-
-## 材质参考
-
-
-### Material Properties (材质属性)
-
-
-#### PhysMaterial (物理材质)
-
-和这个材质相关的物理材质。请参照[物理材质系统](Physics/PhysicalMaterials/Overview)。
-
-
-#### OpacityMaskClipValue(不透明蒙板剪切值)
-
-这是遮挡材质的OpacityMask(不透明蒙板)输入端基于每个像素进行比较剪切的参考值。任何比OpacityMaskClipValue值大的值都会通过并且将描画这个像素，任何比它小的值，都将会失败，那个像素也将被丢弃。
-
-
-#### BlendMode(混合模式)
-
-BlendMode (混合模式)描述了当渲染时当前材质的输出和已经在帧缓冲(目标颜色)的东西如何进行结合。  
-
-
-* BLEND_Opaque - Final color = Source color  这个混合模式和光照兼容。
-* BLEND_Masked - Final color = Source color  如果OpacityMask < OpacityMaskClipValue，则像素将会被丢弃。这个混合模式和光照兼容。
-* BLEND_Translucent - Final color = Source color * Opacity + Dest color * (1 - Opacity)  这个混合模式不能喝动态光照相兼容。
-* BLEND_Additive - Final color = Source color + Dest color  这个混合模式不能和动态光照相兼容。
-* BLEND_Modulate - Final color = Source color * Dest color  除非这个材质是一个decal材质，否则这个混合模式不能和动态光照、雾相兼容。
-
-
-
-####光照模型
-
-光照模型决定了材质输入(比如Emissive(自发光), Diffuse(漫反射), Specular(高光), Normal(法线))是如何相互结合来生成最终颜色的。
-
-
-* MLM_Phong - 默认的光照模式，计算每个像素的漫反射和高光。
-* MLM_Unlit -仅计算自发光，任何半透明混合模式都需要这个光照模型。
-
-
-
-#### TwoSided(双面)
-
-在背面上法线将会被翻转，这意味在正面和反面都进行光照计算。这项功能经常在植被上进行应用，可以阻止是多边形的数量加倍。Two Sided(双面)在静态光照上并不能很好地进行工作，因为静态光照仅在一个半球内存储入射光线。结果，具有静态光照的双面材质在同样地被遮挡。
-
-
-####线框
-
-材质将在线框内进行渲染。
-
-
-####半透明
-
-
-##### bDisableDepthTest(禁用深度测试)
-
-允许材质禁用深度测试，这项仅对半透明混合模型有用。禁用深度测试时，由于遮挡的像素不会被剔除将会使渲染变得非常的慢。
-
-
-##### bAllowFog(允许雾)
-
-材质是否可以受到雾的影响。这项仅对使用半透明混合模型的材质有效。
-
-
-##### bUseOneLayerDistortion(使用一个层变形)
-
-材质是否应该使用一个层变形(One layer distortion)，这对于某些图源类型(主要是流体表面)来说要比正常的变形更加便宜。一个层变形(One layer distortion)将不能正确地处理重叠的one layer distortion(一个层变形)图元。这样将导致一个额外的场景颜色来解决使用one layer distortion(一个层变形)的第一个图元，所以这项应该仅在非常特殊的情况下才使用。
-
-
-#### FallbackMaterial(后备材质)
-
-当编译shader model 2的材质时，每个材质的编译都是不能改变的。如果由于shader model导致编译失败，(太多指令等等)，那么高光、法线、漫反射及自发光都会被丢弃，一次一个，直到材质编译完成。如果漫反射必须被丢弃那么它会被替换为绿色，如果自发光必须被丢弃那么它必须被替换为红色。这个过程叫做自动后备材质或者生成后备材质。美术工作者可以通过指定Fallback Material(后备材质)来了覆盖这个过程，那样产生后备材质的过程将完全地被跳过，指定的后备材质直接在shader model 2显卡上进行应用。为了创建一个FallbackMaterial(后备材质)，点击P 'Propagate to Fallback(传递给后备材质)'按钮。然后点击F'Open Fallback(打开后备材质)'来编辑后备材质。目前还没有办法删除以前创建的后备材质。
-
-
-###应用
-
-这些标记用于最小化每个材质需要编译的着色器的数量。请认真地设置这些项，否则当您错误地使用时将会出现一些警告，比如："材质blah和骨架网格物体一同使用，但是却没有设置bUsedWithSkeletalMesh=True"。例如，如果一个材质没有设置bUsedWithSkeletalMesh=True，但它被赋值给了一个静态网格物体，在编辑器中编辑器将会为您设置这个标记，并且材质将会重新进行编译，并且标志为已改变状态。然而在游戏中将会使用默认的材质。
-
-
-#### bUsedAsLightFunction(是否用作为光照函数)
-
-意味着这个材质将会和光照函数一起使用。
-
-
-#### bUsedAsSpecialEngineMaterial
-
-意味着这个材质应该和所有的顶点工厂和材质组合物一起进行编译，基本上是说它可以应用于除了decals以外的任何图元类型。这将会导致编译大量的着色器(大约600个，而普通的材质使用大约30个)，所以请节约使用。
-
-
-#### bUsedWithSkeletalMesh(是否和骨架网格物体一同使用)
-
-意味着这个材质将会和骨架网格物体一同使用。
-
-
-#### bUsedWithParticleSystem(是否和粒子系统一同使用)
-
-I意味着这个材质将会和粒子系统一同使用。
+| _All_ | Desc |
+| _Texture Sample_ | Texture |
+| _Parameters_ | ParamName |
+| _Comment_ | Text |
+| _FontSample_ | Font |
+| _MaterialFunctionCall_ | MaterialFunction |
+
+Searches can also be performed for specific types of expressions by using the `NAME=` switch with your search. For 
+example, to find all texture samplers, you could use the following search:
+    
+    NAME=texture
+
+When a new match is clicked in the **Search** panel, it will be brought into view in the **Graph** tab if it 
+is not already visible.
+
+To clear a search, simply press the ![search_clear_button.png](search_clear_button.png) button.
 
  
-
-
 
 
 

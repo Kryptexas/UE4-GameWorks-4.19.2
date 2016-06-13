@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2607751
+﻿INTSourceChangelist:2711553
 Availability: Public
 Title:입력 (Input)
 Crumbs:%ROOT%, Gameplay
 Description:Input 오브젝트는 플레이어로부터의 입력을 액터가 이해하고 활용할 수 있는 형태의 데이터로 변환하는 작업을 담당합니다.
+version: 4.9
 
 
 **PlayerInput** 오브젝트는 플레이어로부터 받은 입력을 PlyaerController 나 Pawn 같은 액터가 이해하고 활용할 수 있는 형태의 데이터로 변환하는 작업을 담당합니다. 

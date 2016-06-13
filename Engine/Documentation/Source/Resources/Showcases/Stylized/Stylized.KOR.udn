@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2726448
 Availability: Public
 Title:Stylized 렌더링
 Crumbs:%ROOT%, Resources
@@ -12,6 +12,7 @@ Related: Engine/Rendering/Materials/MaterialInstances
 Related: Engine/Landscape
 Related: Engine/Landscape/Editing/Splines
 Related: Engine/Landscape/Materials
+Version: 4.9
 
 
 [VAR:Topic]

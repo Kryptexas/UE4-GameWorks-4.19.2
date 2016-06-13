@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:2610045
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:7 - 応用編
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
 Description:このガイドで説明した方法を使って、追加のコンテンツでレベルにさらに磨きをかけます。関連トピックスのドキュメントも紹介します。 
-SkillLevel:初心者
-Version:4.7
+SkillLevel:Beginner
+Version:4.9
+checkpoint: editorqs
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -20,6 +21,7 @@ Version:4.7
 	[/PARAM]
 [/OBJECT]
 [/VAR]
+
 
 %Steps%
 
@@ -44,19 +46,19 @@ Version:4.7
 
 クイック スタートガイドで取り扱った詳細は以下でご覧いただけます。
 
-* レベル エディタに関する詳細は、 以下を参照してください。 [レベルエディタ](Engine\UI\LevelEditor)
+* レベル エディタに関する詳細は、[レベルエディタ](Engine\UI\LevelEditor) を参照してください。
 
-* ビューポートのナビゲーションに関する詳細は以下を参照してください。 [ビューポート](Engine\UI\LevelEditor\Viewports)
+* ビューポートのナビゲーションに関する詳細は、[ビューポート](Engine\UI\LevelEditor\Viewports) を参考にしてください。
 
 * アンリアル エディタ 4 で利用可能な編集モードに関する詳細は、 以下を参照してください。 [レベルエディタのモード](Engine\UI\LevelEditor\Modes)
 
-* **コンテンツブラウザ** に関する詳細は、以下を参照してください。 [**コンテンツ ブラウザ**](Engine\Content\Browser) を参照してください。
+* コンテンツ ブラウザ に関する詳細は、[コンテンツ ブラウザ](Engine\Content\Browser) を参照してください。
 
-* **[Details]** パネルに関する詳細は、以下を参照してください。 [詳細パネル](Engine\UI\LevelEditor\Details)
+* [Details (詳細)] パネルに関する詳細は、[詳細パネル](Engine\UI\LevelEditor\Details) を参照してください。
 
-* ビルドに関する詳細は以下を参照してください。 [Lightmass](Engine\Rendering\LightingAndShadows\Lightmass)
+* ビルドに関する詳細は、[ライトマス](Engine\Rendering\LightingAndShadows\Lightmass) を参照してください。
 
-* ライティングの基礎に関する詳細は以下を参照してください。 [**ライティング クイックスタート ガイド**][クイックスタート ホーム](Engine/Rendering/LightingAndShadows/QuickStart)
+* ライティングの基礎に関する詳細は、[ライティング クイックスタート ガイド](Engine/Rendering/LightingAndShadows/QuickStart) を参照してください。
 
 %Steps%
 

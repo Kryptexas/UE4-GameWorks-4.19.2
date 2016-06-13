@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2374181
+﻿INTSourceChangelist:2709306
 Title:ShowFunctions
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Classes, Programming/UnrealArchitecture/Reference/Classes/Specifiers
 Description:
 Availability:Public
-Version:4.5
+Version:4.9
 
-プロパティビューアーで設定した関数を表示にします。利用法： showFunctions=FunctionName または showFunctions=(category0、 category1、・・・)
+プロパティ ビューアーで設定した関数を表示します。 
+
+利用法： showFunctions=FunctionName または showFunctions=(category0、 category1、・・・)

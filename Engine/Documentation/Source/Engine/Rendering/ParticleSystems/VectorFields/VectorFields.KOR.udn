@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2750876
 Availability: Public
 Title:벡터 필드
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference, Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Description:벡터 필드에 대한 개요, GPU 스프라이트와 어떻게 작동하는가에 대한 문서입니다.
+Version: 4.9
 
-## 개요
+
 
 [EXCERPT:VectorFields]
 
@@ -24,7 +25,7 @@ GPU 파티클의 가장 흥미로운 기능은, 그 효율성 말고도, 벡터 
 
 ### 벡터 필드 볼륨 액터
 
-Vector Field Volume (벡터 필드 볼륨) 액터는 일반적인 볼륨과는 다릅니다. 클래스 뷰어 창에서 'Vector Field Volume' 을 끌어 레벨에 놓으면 만들 수 있습니다. 그런 다음 콘텐츠 브라우저에서 액터의 프로퍼티를 통해 벡터 필드를 할당해 주면 됩니다. 추가하고나면 필드의 위치, 방향, 크기를 조절할 수 있습니다.
+Vector Field Volume (벡터 필드 볼륨) 액터는 일반적인 볼륨과는 다릅니다. 클래스 뷰어 창에서 'Vector Field Volume' 을 끌어 레벨에 놓으면 만들 수 있습니다. 그런 다음 콘텐츠 브라우저에서 액터의 프로퍼티를 통해 벡터 필드를 할당해 주면 됩니다. 추가하고 나면 필드의 위치, 방향, 크기를 조절할 수 있습니다.
 
 ![](VFScaled.png)(w:460)
 

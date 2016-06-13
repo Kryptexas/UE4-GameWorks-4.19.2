@@ -69,7 +69,7 @@ SteamVR改进的内容包括：
 
 这个版本修复了多个Gear VR的主要渲染bug以及在0.5.0版本中出现的问题，以及一些硬件兼容性问题。
 
-![image alt text](https://docs.unrealengine.com/latest/images/Support/Builds/ReleaseNotes/2015/4_9/image_5.jpg)
+![image alt text](image_5.png)
 
 ### 新增内容: 支持虚拟现实运动控制器
 

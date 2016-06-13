@@ -4,43 +4,18 @@ Crumbs:%ROOT%, Platforms
 Description:Developing games for the Linux platform.
 Platform:Linux
 Navigation:platform
+Version: 4.9
+type:landing
+parent:Platforms
+tags:Linux
 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Linux Essentials
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Platforms/Linux/GettingStarted "%Platforms/Linux/GettingStarted:description%")
-	[/PARAM]
-[/OBJECT]
+## Starting Out
 
-	
+[DIR(output:"listbutton" type:"quickstart" parent:"Platforms/Linux")]
 
-		
+<!--
+## Linux Topics
 
-	      
-
-	       
-
-	   
-
-	   
-
-	  
-
-		
-
-		
-
-		
-
-		
-
-		
-
+[DIR(output:"listbutton" type:"overview" parent:"Platforms/Linux")]
+-->

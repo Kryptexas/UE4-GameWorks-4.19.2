@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2604385
+﻿INTSourceChangelist:2691867
 Availability:Public
 Title: 기본 콘트롤
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor, Engine/UI/LevelEditor/Details
 Description:숫자칸, 회전판, 문자칸, 체크박스, 동글버튼, 콤보박스와 같은 단순 프로퍼티 유형입니다.
+Version: 4.9
 
 **언리얼 에디터** 에는 수치 값, 문자 등을 편집하는 데 친숙한 단순 콘트롤 유형이 다수 있습니다.
 

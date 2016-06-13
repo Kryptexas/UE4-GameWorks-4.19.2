@@ -1,8 +1,10 @@
-INTSourceChangelist:2068342
+﻿INTSourceChangelist:2695267
 Availability:Public
 Title:화면 속 화면
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
 Description:정확한 카메라 배치를 위해 화면 속 화면을 만드는 뷰포트 기능입니다.
+Version: 4.9
+SkillLevel:Beginner
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -56,7 +58,7 @@ Description:정확한 카메라 배치를 위해 화면 속 화면을 만드는 
 ![](pip_single.png)(w:720)
 
 [REGION:note]
-	선택된 카메라가 뷰포트 드롭다운 메뉴의 **Actor Locking** 메뉴를 통해 활성 뷰포트에 _고정된_ 상태인 경우에는 미리보기가 표시되지 않습니다.
+	선택된 카메라가 우클릭 맥락 메뉴의 메뉴의 **Piloting** (파일럿) 메뉴를 통해 활성 뷰포트에 _고정된_ 상태인 경우에는 미리보기가 표시되지 않습니다.
 [/REGION]
 
 여러 개의 카메라 액터가 선택된 경우, 각각에 대한 미리보기가 표시됩니다.

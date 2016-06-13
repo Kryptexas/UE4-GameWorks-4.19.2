@@ -1,58 +1,62 @@
-﻿Availability:Public
-Title: 10. 行为树基础内容
+﻿INTSourceChangelist:2757202
+Availability:Public
+Title:10.行为树基础
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
-Description:步骤10.行为树基础内容
+Description:第十步。行为树基础
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[上一步](Engine/AI/BehaviorTrees/QuickStart/9 "%Engine/AI/BehaviorTrees/QuickStart/9:title%")
+		[Previous Step](Engine/AI/BehaviorTrees/QuickStart/9 "%Engine/AI/BehaviorTrees/QuickStart/9:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[快速入门主页](Engine/AI/BehaviorTrees/QuickStart)
+		[Quick Start Home](Engine/AI/BehaviorTrees/QuickStart)
 	[/PARAM]
 	[PARAM:next]
-		[下一步](Engine/AI/BehaviorTrees/QuickStart/11 "%Engine/AI/BehaviorTrees/QuickStart/11:title%")
+		[Next Step](Engine/AI/BehaviorTrees/QuickStart/11 "%Engine/AI/BehaviorTrees/QuickStart/11:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
-
-这个步骤主要阐述了行为树是如何执行的，以及行为树中常用的节点。
-
-**Root** （根）节点是树的起始，其它节点在其下方进行连接。
+**Root** 节点是树的“根”，其他所有节点连于其下方。
 
 ![](root.png)
 
-它只能有一个输出连接。 节点底部的暗色条类似于蓝图中的引脚，您可以拖曳它来连接到其它节点：
+它仅有一个输出连接。该节点下方的深色条就像是蓝图中的一个引脚，可将其拖动与其他节点相连。
 
 ![](connectNodes.png)
 
-然而，和蓝图节点引脚不同，蓝图节点引脚让您可以从输出之一拖曳连接到输入，或从输入到输出，而行为树节点是方向性的： 您必须从"output bar" （输出条）拖曳到"input bar"（输入条）。
+利用蓝图节点引脚可形成输出到输入，或输入到输出的连接；行为树节点则有所不同，它存在方向性，必须从“输出条”拖至“输入条”。
 
 
-## 创建并连接一些节点
+## 步骤
 
 ![](selAndSeq.png)
 
-1. 打开您的行为树资源，如果其没有打开，您可以 **双击** **内容浏览器** 。
-1. 在行为树模式中，在图表区域 **右键点击** 并创建 **合成**  -> **选择器** 节点。
+1. 打开行为树资源，如尚未打开，则在 **内容浏览器** 中 **双击** 打开。
+1. 在行为树模式中，在图表区域 **单击右键** 并创建两个 **Composites** -> **Selector** 节点。
 
 	![](selector.png)
 
-1. 在行为树模式中，在图表区域 **右键点击** 并创建 **合成**  -> **序列** 节点。
+1. 在行为树模式中，在图表区域 **单击右键** 并创建一个 **Composites** -> **Sequence** 节点。
 
 	![](sequence.png)
 
-主要有两种决策节点可用于行为树。 **选择器** 节点将会从左到右在其子项中运行，直到其中的一个 **成功** ，此时该点将回复到树中。 **序列** 节点将会从左到右在其子项中运行，直到其中的一个 **失败** ，此时该点将回复到树中。
+这是行为树中的两个主要功能节点。**Selector** 节点从左到右在其子项中运行，直到其中一个成功，此时该节点将回到树中。**Sequence** 节点从左到右在其子项中运行，直到其中一个失败，此时该节点将回到树中。
 
-选择器节点和序列节点都会在其下有多个子节点， **根** 节点只能有一个附加的节点。
+虽然 Selector 和 Sequence 节点下有诸多子项，但 **Root** 节点只能附着一个节点。
 
 ![](connected.png)
 
 
 %Steps%
+
+
+
+
+

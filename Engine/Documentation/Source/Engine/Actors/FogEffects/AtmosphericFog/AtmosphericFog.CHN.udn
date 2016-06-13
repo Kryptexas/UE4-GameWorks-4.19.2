@@ -96,7 +96,7 @@ Description:大气层雾actor可以产生具有真实感觉的大气层、空气
 | **在游戏中隐藏** | 如果选中，特效将在游戏中不可见。|
 
 ## 带图片的示例设置
-
+[EXCERPT:examples]
 [REGION:imagetable]
 | ![Atmo0.5_4.png](Atmo0.5_4.png)(w:460) | ![Atmo0.35_4.png](Atmo0.35_4.png)(w:460) |
 | ------ | ------ |
@@ -104,7 +104,7 @@ Description:大气层雾actor可以产生具有真实感觉的大气层、空气
 | ![Atmo1.0_4.png](Atmo1.0_4.png)(w:460) | ![Atmo1.0_1.png](Atmo1.0_1.png)(w:460) |
 | 衰减高度为1.0 (64 km)，最大散射为4|衰减高度为1.0 (64 km)，最大散射为1|
 [/REGION]
-
+[/EXCERPT:examples]
 <!---Includes
 [EXCERPT:PrecomputeParams]
 [REGION:simpletable]

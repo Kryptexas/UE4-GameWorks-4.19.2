@@ -1,0 +1,127 @@
+Title: VR Editor Controls
+Description: Learn about the various control schemes and interactions used when creating worlds in VR mode.
+Crumbs:
+Availability: public
+parent: Engine/Editor/VR
+type: reference
+order: 1
+tags: VR
+version: 4.11
+skilllevel: intermediate
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Editor/VR/Controls:title%](Engine/Editor/VR/Controls/vreditor_controls.png)(fill:#919293)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/Controls:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/Controls]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/Controls:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Editor/VR/Controls:title%](Engine/Editor/VR/Controls/vreditor_controls.png)(fill:#919293)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/Controls:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/Controls]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/Controls:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+There are various controls to enable you to navigate the scene, select and manipulate Actors, and workw ith editor panels and windows.
+
+## The Controller
+
+[REGION:raw]
+![](controller.png)(convert:false)
+[/REGION]
+
+1. Modifier
+2. Track pad
+3. Trigger
+4. Side Buttons
+
+## Laser Pointer
+
+Each Controller emits a beam called the laser pointer which is used to determine which Actor you will interact with.  The color of the beam indicates the interaction mode the controller is in.
+
+| Color | Appearance | Meaning |
+| ----- | ---------- | ------- |
+| Orange |![](standardmode.png)(w:192) | The controller is in the standard interaction mode. This is the default state for the controller. |
+| Green |![](selectionmode.png)(w:192) | The controller is in selection mode, meaning it currently has an Actor selected.  |
+| Yellow |![](movementmode.png)(w:192) | The controller is in movement mode, meaning it is being used to navigate the world. |
+
+## Navigation Controls
+
+[REGION:raw]
+| Control | Description |
+| ------- | ----------- |
+| ![Press Side Buttons + Move Controller](move_world.png)(convert:false) | Press the Side Buttons and move the controller to the world like you are grabbing the world with your hand and pushing or pulling it. |
+| ![Press Side Buttons + Aim Controller + Squeeze Trigger](teleport_world.png)(convert:false) | Press the Side Buttons, aim the controller, and squeeze the Trigger to teleport from your current location to the location the controller is aiming at. |
+| ![Press Side Buttons + Move Controllers Around Each Other](rotate_world.png)(convert:false) | Press the Side Buttons on both controllers and move them around each other to rotate the world around you, as if you are grabbing the world with your hands and then rotating it. |
+| ![Press Side Buttons + Move Controllers Towards or Away From Each Other](scale_world.png)(convert:false) | Press the Side Buttons on both controllers and move them toward or away from each other to scales the world up or down. |
+[/REGION]
+
+## Selection Controls
+
+[REGION:raw]
+| Control |  Description |
+| ------- | ----------- |
+| ![Aim Controller at Actor + Squeeze Trigger](select_actor.png)(convert:false) | Aim the controller at an Actor in the world and squeeze the Trigger to select the Actor. |
+| [INCLUDE:#multiselect] | Aim one controller at an Actor in the world and squeeze the Trigger halfway to select the Actor and enter multi-select mode. While holding the Trigger halfway, Aim the other controller at other Actors and squeeze its Trigger to add or remove them from the selection. |
+[/REGION]
+
+## Transform Controls
+
+[REGION:raw]
+| Control | Description |
+| ------- | ----------- |
+| ![Aim Controller at Actor + Squeeze Trigger + Move Controller](move_actor.png)(convert:false) | Aim the controller at an Actor in the world and squeeze the Trigger to select the Actor. Move the controller to move the Actor to the location it is aiming at. |
+| ![Aim Controllers at Actor + Squeeze Triggers + Move Controller Around Each Other](rotate_actor.png)(convert:false) | Aim both controllers at an Actor in the world and squeeze both Triggers to select the Actor. Move the controllers around each other to rotate the Actor as if you are grabbing it with your hands and rotating it. |
+| ![Aim Controllers at Actor + Squeeze Triggers + Move Controllers Towards or Away From Each Other](scale_actor.png)(convert:false) | Aim both controllers at an Actor in the world and squeeze both Triggers to select the Actor. Move the controllers towards or away from each other to scale the Actor up or down as if you are grabbing it with your hands and stretching it. |
+| ![Aim Controller at Actor + Squeeze Trigger + Track Pad Towards or Away](slide_actor.png)(convert:false) | Aim the controller at an Actor in the world and squeeze the Trigger to select the Actor. Move your thumb down or up on the Track Pad to move the selected Actor towards or away from you. |
+[/REGION]
+
+## Menu Controls
+
+[REGION:raw]
+| Control | Description |
+| ------- | ----------- |
+| ![Modifier Button](radial_menu.png)(convert:false) | Lightly press the Track Pad with your thumb to open the Radial Menu. Move your thumb around the Track Pad to highlight the options. Press the Track Pad fully to select the highlighted option. |
+| ![Aim One Controller at the Other Controller](quick_select_menu.png)(convert:false) | Aim one controller at the other controller to access the Quick Select Menu. |
+[/REGION]
+
+## Window Controls
+
+[REGION:raw]
+| Control | Description |
+| ------- | ----------- |
+| ![Tap Track Pad](show_hide_windows.png)(convert:false) | Tap the Track Pad to show or hide any open windows. |
+| ![Aim Controller at Window Grip + Squeeze Trigger + Track Pad Towards or Away](scale_window.png)(convert:false) | Aim the controller at the Grip of a window and squeeze the Trigger to grab the window. Move your thumb up or down on the Track Pad to scale the window up or down. |
+[/REGION]
+
+<!--
+[EXCERPT:MultiSelect]
+[PUBLISH:Rocket]
+[REGION:lightbox][![Aim Controller at Actor + Squeeze Trigger Halfway + Aim Controller at another Actor + Squeeze Trigger](select_actor_multiple.png)(h:108 convert:false)](select_actor_multiple.png)[/REGION]
+[/PUBLISH:Rocket]
+[PUBLISH:Epic]
+![Aim Controller at Actor + Squeeze Trigger Halfway + Aim Controller at another Actor + Squeeze Trigger](select_actor_multiple.png)(h:108 convert:false)
+[/PUBLISH:Epic]
+[/EXCERPT:MultiSelect]
+-->

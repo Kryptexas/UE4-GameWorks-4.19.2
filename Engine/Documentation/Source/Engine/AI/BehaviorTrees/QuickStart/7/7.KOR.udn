@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2635870
+﻿INTSourceChangelist:2757188
 Availability:Public
 Title: 7. AI 콘트롤러 블루프린트: 초기 블랙보드 값
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:7 단계. AI 콘트롤러 블루프린트: 초기 블랙보드 값
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -62,7 +63,7 @@ Description:7 단계. AI 콘트롤러 블루프린트: 초기 블랙보드 값
 
 	![](hlconnected.png)
 
-1. 블루프린트를 ![](button_compile.png) 컴파일 합니다.
+1. 블루프린트를 컴파일 합니다.
 1. **내 블루프린트** 패널에서 **HomeLocationKey** 변수를 선택합니다.
 1. **디테일** 패널에서 그 **Default Value** 를 블랙보드의 Vector Value 와 똑같은 이름, 이 경우 `HomeLocation` 으로 변경합니다.
 
@@ -75,3 +76,7 @@ Description:7 단계. AI 콘트롤러 블루프린트: 초기 블랙보드 값
 다음 단계에서는 이 그래프 편집을 계속하여 AI 콘트롤러가 원하는 비헤이비어 트리를 실행하도록 만드는 부분을 그래프에 추가하도록 하겠습니다.
 
 %Steps%
+
+
+
+

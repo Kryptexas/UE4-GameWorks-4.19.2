@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2116766
+﻿INTSourceChangelist:2690274
 Availability:Public
 Title:ベクター表現式
-Crumbs: %ROOT%, Engine, Engine/Rendering, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
+Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
 Description:位置や法線などのベクター値を出力する表現式
+Version:4.9
 
 [EXCERPT:TOC]
 [TOC(start:2)]
@@ -11,11 +12,11 @@ Description:位置や法線などのベクター値を出力する表現式
 [EXCERPT:ActorPositionWS]
 ## ActorPositionWS
 
-ActorPositionWSは、マテリアルが設定されたワールド空間のオブジェクト位置を表す 3vector (RGB) データを出力します。 
+**ActorPositionWS** は、マテリアルが設定されたオブジェクトのワールド空間の位置を表す 3vector (RGB) データを出力します。 
 
 ![](ActorPositionColors.png)(w:434) ![](ActorPositionNetwork.png)(w:490)
 
-この例で、ActorPositionWS がマテリアルの Base Color へ直接入力されている様子が理解できます。結果としてマテリアルが適用されたそれぞれの球は、3D 空間の位置を移動する際に異なった色を表現します。ActorPositionWSノードの出力結果は、最良なカラーのブレンドを作成するために1600で分割されていることに注目してください。
+この例で、ActorPositionWS がマテリアルの Base Color へ直接入力されている様子が理解できます。結果としてマテリアルが適用されたそれぞれの球は、3D 空間の位置を移動する際に異なった色を表現します。ActorPositionWS ノードの出力結果は、最良なカラーのブレンドを作成するために 1600 で分割されていることに注目してください。
 
 [/EXCERPT:ActorPositionWS]
 
@@ -24,19 +25,19 @@ ActorPositionWSは、マテリアルが設定されたワールド空間のオ�
 ## CameraPositionWS
 
 
-CameraWorldPosition 表現式は、ワールド空間のカメラ位置を表す 3 チャンネルのベクター値を出力します。
+**CameraWorldPosition** 表現式は、ワールド空間のカメラ位置を表す 3 チャンネルのベクター値を出力します。
 
 カメラが回転すると球のプレビュー表示は変化します。
 
-![CameraPositionWSExample.png](CameraPositionWSExample.png)(w:476) ![](CameraPositionWSNetwork.png)(w:450)
+![CameraPositionWSExample.png](CameraPositionWSExample.png)(w:450) ![](CameraPositionWSNetwork.png)(h:333)
 [/EXCERPT:CameraPositionWS]
 
 
 ## CameraVectorWS
 
-CameraVector 表現式はサーフェスに対するカメラ方向を表す 3 チャンネルベクター値です。つまり、ピクセルからカメラへの方向を表します。
+**CameraVector** 表現式はサーフェスに対するカメラ方向を表す 3 チャンネルベクター値を出力しま。つまり、ピクセルからカメラへの方向を表します。
 
-**使用例：**CameraVector 表現式は、CameraVector と ComponentMask を接続して環境マップの偽造や、テクスチャ座標として CameraVector のX、Yチャンネルを使用します。 
+**使用例：** CameraVector は、CameraVector と ComponentMask を接続して環境マップの偽造や、テクスチャ座標として CameraVector の X、Y チャンネルを使用します。
 
 [REGION:fullwidth]
 ![CameraVectorWSExample.png](CameraVectorWSExample.png)
@@ -53,13 +54,13 @@ CameraVector 表現式はサーフェスに対するカメラ方向を表す 3 �
 
 
 ## LightVector
-
-**ライティング計算は現在保留となっているため、この表現式はアンリアル・エンジン 4で将来的にサポートの保証がありません。**
-
+[REGION:warning]
+**ライティング計算は現在保留となっているため、この表現式はアンリアル・エンジン 4 で将来的にサポートの保証がありません。**
+[/REGION:warning]
 <!--
 LightVector 表現式はサーフェスに対するライト方向を表す 3 チャンネルベクター値です。
 
-**使用例：**LightVector はランバート照明モデルのような、カスタムのライティング計算に使用します。
+**使用例：** LightVector はランバート照明モデルのような、カスタムのライティング計算に使用します。
 
 ![LightVectorExample.jpg](LightVectorExample.jpg)
 
@@ -72,7 +73,7 @@ LightVector 表現式はサーフェスに対するライト方向を表す 3 �
 
 ## Object Bounds
 
-Object Bounds 表現式は、各軸のオブジェクトのサイズを出力します。カラーとして使用すると、X 軸、Y 軸と Z 軸はそれぞれ R、G、および B に対応します。 
+**Object Bounds** 表現式は、各軸のオブジェクトのサイズを出力します。カラーとして使用すると、X 軸、Y 軸と Z 軸はそれぞれ R、G、および B に対応します。 
 
 ![](ObjectBoundsScene.png)(w:411) ![](ObjectBoundsNetwork.png)
 
@@ -82,7 +83,7 @@ Object Bounds 表現式は、各軸のオブジェクトのサイズを出力し
 ## ObjectOrientation
 
 
-ObjectOrientation 表現式は、オブジェクトのワールド空間の Up ベクターを出力します。つまり、マテリアルが適用されたオブジェクトが指しているローカルの正の Z 軸方向です。
+**ObjectOrientation** 表現式は、オブジェクトのワールド空間の Up ベクターを出力します。言い換えると、オブジェクトのローカルの正の z 軸はこの方向を指しています。
 
 ![ObjectOrientationExample.png](ObjectOrientationExample.png)
 [/EXCERPT:ObjectOrientation]
@@ -92,10 +93,10 @@ ObjectOrientation 表現式は、オブジェクトのワールド空間の Up �
 ## ObjectPositionWS
 
 
-ObjectPositionWS 表現式は、オブジェクト範囲にあるワールド空間の中心位置を出力します。例えばフォーリッジに球状のライティングを作成する際に便利です。
+**ObjectPositionWS** 表現式は、オブジェクト範囲のワールド空間の中心位置を出力します。フォーリッジに球状のライティングを作成するなどの場合に便利です。
 
 
-![](WorldPositionWSScene.png)(w:460) ![](WorldPositionNetwork.png)(w:470)
+![](WorldPositionWSScene.png)(w:450) ![](WorldPositionNetwork.png)(h:349)
 
 [/EXCERPT:ObjectPositionWS]
 
@@ -106,20 +107,20 @@ ObjectPositionWS 表現式は、オブジェクト範囲にあるワールド空
 [EXCERPT:PixelNormalWS]
 ## PixelNormalWS
 
-PixelNormalWS 表現式は、現法線をベースに対面しているピクセルの方向を表すベクターデータを出力します。
+**PixelNormalWS** 表現式は、現法線をベースに対面しているピクセルの方向を表すベクターデータを出力します。
 
 ![PixelNormalWSExample.png](PixelNormalWSExample.png)
 
-この例では、PixelNormalWSは Base Color へ入力されています。ピクセルごとに結果を出すための法線マップの使用方法にご注目ください。 
+この例では、PixelNormalWS は Base Color へ入力されています。ピクセルごとに結果を出すための法線マップの使用方法にご注目ください。 
 
 [/EXCERPT:PixelNormalWS]
 
 
 ## ReflectionVectorWS
 
-The ReflectionVectorWS表現式は [CameraVectorWS](#CameraVectorWS)と似た性質をもっていますが、サーフェス法線上に反射するカメラ方向を表す3チャンネルのベクター値を出力します。
+**ReflectionVectorWS** 表現式は [CameraVectorWS](#CameraVectorWS) と似た性質をもっていますが、サーフェス法線上に反射するカメラ方向を表す 3 チャンネルのベクター値を出力します。
 
-**使用例：**ReflectionVector 表現式は、反射ベクターのX、Y コンポーネントがキューブマップテクスチャへの UV として使用される環境マップへ一般的に使用されます。
+**使用例：** ReflectionVector は、反射ベクターの X、Y コンポーネントがキューブマップ テクスチャへの UV として使用される環境マップで一般的に使用されます。
 
 [REGION:fullwidth]
 ![ReflectionVectorWSExample.png](ReflectionVectorWSExample.png)
@@ -129,7 +130,7 @@ The ReflectionVectorWS表現式は [CameraVectorWS](#CameraVectorWS)と似た性
 ## VertexNormalWS
 
 
-VertexNormalWS 表現式はワールド空間の頂点法線を出力します。WorldPositionOffset など頂点シェーダーの実行のマテリアル入力としてのみ使用することができます。メッシュを拡大または収縮させるのに便利です。法線に沿ったオフセット位置はUVの継ぎ目に沿ってジオメトリが割れる原因であることに注目してください。
+**VertexNormalWS** 表現式はワールド空間の頂点法線を出力します。WorldPositionOffset など頂点シェーダーで実行するマテリアル入力としてのみ使用することができます。メッシュを拡大または収縮させるのに便利です。法線に沿ったオフセット位置は UV の継ぎ目に沿ってジオメトリが割れる原因であることに注目してください。
 
 [REGION:fullwidth]
 ![VertexNormalWSExample.png](VertexNormalWSExample.png)

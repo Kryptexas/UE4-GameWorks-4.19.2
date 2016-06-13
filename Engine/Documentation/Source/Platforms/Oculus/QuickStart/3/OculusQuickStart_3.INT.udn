@@ -1,11 +1,11 @@
-Title:3. Install the Oculus Runtime
+Title:3. Creat / Sign in to an Oculus Account
 Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
 Description:Install the needed software for running games on the Oculus Rift
 Availability:Public
 Version: 4.9
 SkillLevel: Intermediate
 
-In the section we will go over how you can install the Oculus drivers once they have been downloaded to your development PC.
+In the section we will go over what to do once the Oculus Rift software has been installed.
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -26,43 +26,17 @@ In the section we will go over how you can install the Oculus drivers once they 
 %Steps%
 
 
-1. Locate where the **0.7.0 BETA** drivers that were downloaded in the last step and **Double-click** on them to being the install process.
+1. Once the Oculus Rift software has been installed, press the **Next** button to begin the next part of the install process.
 
-1. When the installer starts, Click the **Next** button to being the install.
-	
-	![](oculus_setup_1.png)
+	![](Rift_Finshed_Install_00.png)
 
-1. Accept the license agreement, then click **Next**.
+1. You will now be prompted to either **Sign in** or **Create Account**. If you already have an account click on the Sign in option. If you do not have an Oculus Account, click on the Create Account and follow the provided instructions.
 
-	![](oculus_setup_2.png)
+	![](Rift_Create_Account_LogIn_00.png)
 
-1. Specify an install location, then click **Next**.
 
-	![](oculus_setup_3.png)
 
-1. Click **Next**.
-	
-	![](oculus_setup_4.png)
 
-1. During the installation process, you will be prompted to install the imaging devices software. Click **Install**.
-
-	![](oculus_setup_6.png)
-
-1. You will also be prompted to install the display adapters software. Click **Install**.
-
-	![](oculus_setup_7.png)
-
-1. When setup is complete, click **Finish**.
-	
-	![](oculus_setup_8.png)
-
-1. The README file mentions updating the firmware for your DK2. This will be covered in the next step of the Quick Start.
-
-	 ![](oculus_setup_9.png)
-
-1. **Reboot** your computer when prompted.
-
-	![](oculus_setup_10.png)
 
 
 

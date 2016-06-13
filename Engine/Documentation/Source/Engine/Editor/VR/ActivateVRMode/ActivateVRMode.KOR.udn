@@ -1,0 +1,67 @@
+﻿INTSourceChangelist:2950818
+Title: VR 모드 가동
+Description: 언리얼 에디터의 VR 모드 활성화 방법을 배워봅니다.
+Crumbs:
+Availability: public
+parent: Engine/Editor/VR
+type: howto
+order: 2
+tags: VR
+tags: Getting Started
+version: 4.11
+skilllevel: intermediate
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Editor/VR/ActivateVRMode:title%](Engine/Editor/VR/ActivateVRMode/activate_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/ActivateVRMode:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/ActivateVRMode]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/ActivateVRMode:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Editor/VR/ActivateVRMode:title%](Engine/Editor/VR/ActivateVRMode/activate_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/ActivateVRMode:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/ActivateVRMode]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/ActivateVRMode:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[EXCERPT:main]
+
+1. 에디터가 로드된 이후, **파일 > 새 레벨** 을 선택하여 "VR-Basic" 레벨을 엽니다. 이 환경은 조작법을 배워보기에 좋은 놀이터입니다.
+
+	![](vr_map_template.png)
+
+1. 에디터 개인설정 (**편집 > 에디터 개인설정**) 에서, **Experimental** (실험단계) 카테고리를 선택하고 **Enable VR Editing** (VR 편집 활성화)를 선택합니다.
+
+1. VR 로 들어가기 위해서는, 에디터 메인 툴바의 새로운 **VR** 버튼을 클릭하여 VR 모드를 가동시킵니다. 트래킹 공간 교정이 제대로 되었다면, 앞에 도움말과 함께 튜토리얼 창이 떠 있는 것이 보일 것입니다.
+
+	![](vrmode_toolbar.png)
+	
+	[REGION:tip]
+	명령줄 UE4Editor.exe 에 `-VREditor` 옵션을 붙이면 바로 VR 모드로 시작할 수 있습니다.
+	[/REGION]
+1. 튜토리얼을 사용하려면, 콘트롤러를 읽고자 하는 섹션 위에 올린 다음 콘트롤러 트리거를 조작하여 섹션을 열면 됩니다.
+
+언제든 홈 버튼을 눌러 이 메뉴로 돌아온 뒤 다른 도움말 섹션을 선택할 수 있습니다.
+
+[/EXCERPT:main]

@@ -1,0 +1,249 @@
+Availability:Public
+Title: Sequencer Overview
+Crumbs: %ROOT%, Engine
+Description:Sequencer is Unreal Engine 4's multi-track editor used for creating and previewing cinematic sequences in real time. 
+Navigation:topic
+parent:Engine/Sequencer
+order:1
+Version: 4.12
+Related: Engine\Sequencer\ReferenceEditor
+Related: Engine\Sequencer\HowTo
+
+The **Sequencer** Editor gives users the ability to create in-game cinematics through a specialized multi-track editor similar to [**Matinee**](Engine\Matinee\). 
+By creating **Level Sequences** and adding **Tracks**, users can define the make-up of each Track which will determine the content for their scene.
+Tracks can consist of things like Animation (for animating a character), Transformation (moving things around in the scene like Camera), Audio (for including a music or sound effect), as well as several other Track types.  
+
+[TOC(start:2 end:2)]
+
+## Creating Level Sequences
+
+The **Level Sequence** is the "container" for your cinematic scenes and must be created in order to begin working inside the Sequencer Editor. You can create a Level Sequence and directly place it inside of your level by choosing to create one from the **Toolbar** under **Cinematics** as seen below. 
+
+![](LevelSequence.png)
+
+This will add it to the level at which point it can be selected and its properties can be manipulated in the **Details** panel similar to a **Matinee Actor**. In the Details panel (below), you can define whether the Level Sequence will automatically play upon level start, the Play Rate for the sequence and whether the sequence should loop and other settings. 
+
+![](DetailsPanel.png)
+
+How this differs from Matinee is that Level Sequences are self-contained assets and you can embed a Level Sequence within another Level Sequence. 
+For example, you can create a Level Sequence that has animated characters, cameras, etc. as one scene that is part of a larger cinematic sequence.
+
+The second method of creating Level Sequences can be performed in the **Content Browser** by clicking the **Add New** button and selecting **Level Sequence** under _Animation_. When doing so in this manor you are creating the Level Sequence asset but haven't explicitly placed it in the level. 
+
+![](LevelSequence_B.png)
+
+
+## Adding Tracks to Sequencer
+
+With a Level Sequence created and the Sequencer Editor open, you can begin creating your cinematic. 
+
+![](BlankScene.png)
+
+[REGION:caption]
+Above we have a newly created and empty Level Sequence.
+[/REGION]
+
+The first thing you will need to do is add a **Track** type which you can do from the **Add** button drop-down menu. 
+
+![](AddToSequencer.png)
+
+From the drop-down, you will see several Track types you can select from as well as the ability to add an **Actor To Sequencer**. The Actor To Sequencer option will allow you to add any Actors that you have selected in your level at the time to Sequencer so that you can manipulate them during your scene. 
+
+Typically if you are creating a cinematic that has characters, animals, creatures or anything along those lines that will animate and move you will have a Skeletal Mesh for it which you will need to add to Sequencer. 
+For example below we have a Skeletal Mesh of a bear that we have placed in our level. With it selected, we can then click the **Add** button in Sequencer and choose **Actor To Sequencer** so that we can add it and control it through the Sequencer Editor.
+
+![](AddBear.png)(w:640)
+
+Once we have added our Skeletal Mesh, we can then add **Sub-tracks** to affect that Skeletal Mesh. 
+
+![](SkeletalMeshTracks.png)
+
+[REGION:caption]
+Based on the type of Track you create, Sub-Tracks may be added and the ability to add Sub-Tracks may be available. 
+[/REGION]
+
+Below we select the Animation Sub-Track and assign an Animation for our Skeletal Mesh Bear to play. 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+KoksbI7ZOTM
+[/PARAMLITERAL]
+[/OBJECT]
+
+##Possessables vs. Spawnables
+
+Sequencer is very similar to Matinee in that it uses the concept of "possessables" meaning that an Actor exists in the level and Sequencer will take possession of it in order to apply changes you make to it via Sequencer. 
+
+As illustrated in our bear example above, you can place a Skeletal Mesh in the level and add it to Sequencer, then inside Sequencer you can add an Animation Track to the Skeletal Mesh and assign different animations for it to play during your scene. 
+We are "possessing" that Skeletal Mesh that exists in order to tell it what to do. Sequencer also includes another form of manipulation which is referred to as "spawnables" meaning that the object we are possessing does not exist and Sequencer will "spawn" the object when told to and has the authority over it and can determine its lifecycle. 
+
+So how is this beneficial and when would I elect to use a "spawnable" object? Since Sequencer is the owner and spawns the object, it is not bound to a particular level. Anything deemed as spawnable can be used in any level, so you could create a scene and have it take place in any environment and reuse it in new levels without having to recreate it. 
+
+[REGION:note]
+Please see [**Creating Spawnables**](Engine\Sequencer\HowTo\Spawnables\) for more information. 
+[/REGION]
+
+
+## Keyframing Scenes
+
+If you are familiar with external animation tools, the concept of using Keyframes to drive content may be familiar to you. 
+If you are not, in short Sequencer allows you to manipulate your content by adding **Keys** (referred to as Keyframing) with defined properties at desired points along a timeline. 
+When reaching those keys in the Timeline, the properties you have defined at each keyframe are updated to reflect the value you've entered.
+
+A sample scene below illustrates the process of adding movement by keyframing different transformations of a Skeletal Mesh Actor. 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+dVDNJkQxlRk
+[/PARAMLITERAL]
+[/OBJECT]
+
+[REGION:caption]
+Above we added a keyframe for the starting position and another keyframe for the ending position for the **Location** track.
+[/REGION]
+
+You can add a keyframe by selecting a track and pressing **Enter** or by clicking the add keyframe button on each track. 
+
+![](KeyframeButton.png)
+
+Some properties in the **Details** panel of an Actor can be keyframed directly by clicking the add keyframe button next to each property. 
+
+![](KeyframeDetails.png)
+
+[REGION:caption]
+Above, keyframe buttons are shown for the Current Focal Length and Aperture settings of a Cine Camera Actor. 
+[/REGION]
+
+
+
+[REGION:tip]
+With a Track containing Keyframes selected, you can press the **,** and **.** keys to quickly move between each placed keyframe. 
+[/REGION]
+
+
+### Playback Range
+
+Sequencer will playback your scenes based on the defined Start and Stop playback ranges (green/red markers below). 
+
+![](PlaybackRange.png)
+
+[REGION:caption]
+Above our content contains two shots which end at frame 600 but our sequence extends to frame 1000 which results in dead space. 
+[/REGION]
+
+You can drag the Start and Stop Playback markers to fit your content or there is an option that can be set which will keep your content within these ranges. You can find it under the Sequencer Options drop-down menu and enabling **Keep Playback Range In Section Bounds**. 
+
+![](KeepInRange.png)
+
+##Specialized Viewports
+
+Sequencer allows you to use specialized viewports to make the editing process easier. 
+
+![](SpecialViewports.png)
+
+These [**Cinematic Viewports**](Engine\Sequencer\HowTo\ViewportOptions) give a better idea of what the scene will look like and can be enabled from the **Viewport** options button. 
+
+##Cinematic Actors
+
+From the **Modes** panel under **Cinematic** there are three Cinematic Actors you can use for crafting your cinematics. 
+
+![](CineTools.png)
+
+You can drag any of these into your level then add it to Sequencer or you can drag it into Sequencer (which will make it a Spawnable). 
+
+### Camera Rig Crane
+
+The Camera Rig Crane Actor can be used to simulate crane-like camera movements that are used in traditional film making. 
+
+![](Crane.png)(w:480)
+
+You can attach a Camera to the Camera Rig Crane Actor then manipulate the crane's movement through the **Details** panel and **Crane Controls** values. Those values can affect the Crane Pitch, Crane Yaw and Crane Arm Length. These values can be keyframed within Sequencer which will allow you to adjust them during your cinematics as desired. 
+
+[REGION:note]
+Please see [**Shooting from a Camera Rig Crane**](Engine\Sequencer\HowTo\CameraRigCrane) for more information. 
+[/REGION]
+
+### Camera Rig Rail
+
+The Camera Rig Rail Actor is a spline based tool that a Camera can be attached to which provides a "path" for movement. 
+
+![](Rail.png)(w:480)
+
+You can select each spline point and alter the tangents to produce the path you want your camera to follow. The camera that is attached to the rail can be rotated independently and the position of where the camera is on the rail can be adjusted with the **Current Position on Rail** property inside the **Details** panel. This value can be keyframed allowing you to alter the value through Sequencer. 
+
+[REGION:note]
+Please see [**Shooting from a Camera Rig Rail**](Engine\Sequencer\HowTo\CameraRigRail) for more information. 
+[/REGION]
+
+### Cine Camera Actor
+
+The Cine Camera Actor is similar to the default Camera Actor. However, additional Camera Settings are available. 
+
+![](CineCamera.png)(w:480)
+
+[REGION:caption]
+Cine Camera Actor (black camera) and default Camera Actor (blue camera) pictured above. 
+[/REGION]
+
+The Cine Camera Actor includes settings for Look at Tracking (following an Actor), Filmback Settings (16:9 DSLR, Super 8mm, 35mm VistaVision, etc.), Lens and Focus Settings as well as Current Aperture and Focus Distances. While using a normal Camera Actor is perfectly fine, to achieve a more cinematic feel and expose more camera settings it is recommended that you shoot your scenes with a Cine Camera Actor. 
+
+[REGION:note]
+Please see [**Using Cine Camera Actors**](Engine\Sequencer\HowTo\CineCameraActors) for more information. 
+[/REGION]
+
+
+##Sequence Recording
+
+One tool you can use to narrow down your content creation time is to use the **Sequence Recorder** to record gameplay (or Level Sequences) in order to generate new Level Sequence assets. 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+mvCPXslVb8Y
+[/PARAMLITERAL]
+[/OBJECT]
+
+Add a new recording, pick an Actor to record and click Record to start capturing. When stopping the recording, new Level Sequence assets will be created which you can then incorporate into your existing cinematic or you can use pieces from the recorded Level Sequence to create new sequences.
+
+[REGION:note]
+Please see [**Recording Gameplay**](Engine/Sequencer/HowTo/SequenceRecorder) for more information. 
+[/REGION]
+
+##Render Movie Settings
+
+Within Sequencer, you can choose to render out your cinematic to a Video or Image Sequence from the **Render Movie Settings** option. 
+
+![](RenderMovie.png)
+
+This will display the **Render Movie Settings** window which you can use to define how your scene is rendered. 
+
+![](CaptureMovie.png)
+
+Click the **Capture Movie** button to start the capture process of recording your scene. 
+
+
+## Workflow Considerations
+
+Once you have a basic understanding of how the Sequencer Editor works, you may want to consider how you will use the tool as there several different ways to author content. Whether you create all of your content within a single Level Sequence, embed sequences within one another and use a Mater sequence to control them all, or use a Master Sequence asset to get started, Sequencer offers multiple ways in which you can generate your cinematics. 
+
+
+[REGION:note]
+Please see [**Workflow Considerations**](Engine\Sequencer\Workflow\ToolUsage) for more information. 
+[/REGION]

@@ -1,14 +1,15 @@
-﻿INTSourceChangelist:2078918
+﻿INTSourceChangelist:2670963
 Availability:Public
 Title: 스켈레톤 애셋
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:UE4 의 스켈레톤 애셋과 애니메이션에 적용되는 방식에 대한 개요입니다.
+version: 4.9
 
 [REGION:fullwidth]
 ![](SkeletonImage.png)
 [/REGION]
 
-## 개요
+
 
 언리얼 엔진 4 에서, 스켈레톤(Skeleton) 은 스켈레탈 메시와 별개의 애셋입니다. 각 스켈레탈 메시는 스켈레탈 메시를 연관시켜줘야 하며, 모든 (애니메이션 시퀀스, 애니메이션 몽타주, 블렌드 스페이스 등의) 애니메이션 애셋은 스켈레탈 메시가 아닌 그 스켈레톤과 연관이 있습니다.
 
@@ -53,7 +54,7 @@ Description:UE4 의 스켈레톤 애셋과 애니메이션에 적용되는 방�
 [/REGION]
 
 
-두번째 스켈레탈 메시에 같은 스켈레톤 애셋을 사용하려는 경우, 그 본을 같은 순서대로 유지시켜 줘야 하지만, 계층구조에 지엽적인 본을 추가시는 것이 _가능은_ 합니다. 즉 예를 들어, 이런 식의 계층구조가 가능합니다:
+두 번째 스켈레탈 메시에 같은 스켈레톤 애셋을 사용하려는 경우, 그 본을 같은 순서대로 유지시켜 줘야 하지만, 계층구조에 지엽적인 본을 추가시는 것이 _가능은_ 합니다. 즉 예를 들어, 이런 식의 계층구조가 가능합니다:
 
 [REGION:raw]
 ![](PeripheralBones.png)(w:600)

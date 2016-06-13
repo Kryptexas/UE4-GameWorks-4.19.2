@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653552
+﻿INTSourceChangelist:2847663
 Availability: Public
 Title:1.14 - 안티앨리어싱 메소드
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/PostProcessing
@@ -6,6 +6,7 @@ Description:Post Processing 예제 레벨에 대한 개요로, 예제 1.14: AA M
 Related: Engine/Rendering/Overview
 Related: Engine/Rendering/PostProcessEffects
 Related: Engine/Rendering/PostProcessEffects/PostProcessMaterials
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -64,9 +65,26 @@ Related: Engine/Rendering/PostProcessEffects/PostProcessMaterials
 [/OBJECT]
 [/VAR]
 
-[REGION:lightbox]
-[![](1_14_01.png)(w:302)](1_14_01.png) [![](1_14_02.png)(w:302)](1_14_02.png) [![](1_14_03.png)(w:302)](1_14_03.png)
-[/REGION:lightbox]
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Anti-Aliasing: None](1_14_01.png)(w:960)
+	[/PARAM]
+	[PARAM:after]
+	![Anti-Aliasing: Temporal](1_14_03.png)(w:960)
+	[/PARAM]
+[/OBJECT]
+
+
+[Region:lightbox]
+[Region:imagetable]
+| [![](1_14_01.png)(w:302)](1_14_01.png) | [![](1_14_02.png)(w:302)](1_14_02.png) | [![](1_14_03.png)(w:302)](1_14_03.png) |
+| ------ | ------ | ------ |
+| 없음 | FXAA | 템포럴 AA |
+[/Region]
+[/Region]
+
+
 
 Anti-Aliasing (안티-앨리어싱, AA)는 화면상에 각져 보이는 선분의 계단현상을 제거하여 이미지 퀄리티를 향상시킵니다. **Temporal AA** (템포럴 AA) 방식이 기본 최적 방법입니다. 기본적으로 켜 있지만, 에디터에서는 뷰포트에서 실시간 모드가 활성화되었거나 (**G** 키를 눌러) 게임 모드에 있을 때만 표시됩니다.
 

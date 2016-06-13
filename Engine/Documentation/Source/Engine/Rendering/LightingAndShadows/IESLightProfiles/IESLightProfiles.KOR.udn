@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2602324
+﻿INTSourceChangelist:2726736
 Availability:Public
 Title: IES 라이트 프로파일
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:언리얼 엔진 4 에서 라이트 프로파일 사용하기 입니다.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -111,12 +112,16 @@ _Lithonia TPG_1000S_PG21_M 에 대한 IES 프로파일_
 1. **IES Brightness Scale** 슬라이더를 사용하여 프로파일 밟기를 조절할 수 있습니다.
 1. **콘텐츠 브라우저** 에서 생성된 "텍스처" 를 더블클릭해서 **Texture** 프로퍼티를 띄워 트윅 작업을 할 수도 있습니다.
 
-## 스포트 라이트
+[Region:note]
+모빌리티가 스태틱으로 설정된 라이트에 IES 프로파일을 사용할 수는 있는 반면, 모빌리티가 스테이셔너리 또는 무버블이 아닌 한 직접 할당할 수는 없습니다. 미리계산된 스태틱 라이팅과 함께 IES 프로파일을 사용하면 마스크 지역에서 가끔 부작용이 생길 수 있습니다. 최적의 결과를 내기 위해서는 스테이셔너리 및 무버블 라이팅하고만 사용할 것을 추천합니다.
+[/Region]
 
-IES 라이트 프로파일은 기본적으로 포인트 라이트를 (시각적으로 볼 때) 스포트 라이트로 바꿔 주는 것이며, 프로파일을 스포트 라이트에 사용한다 해도 스포트 라이트 원뿔이 IES 프로파일 이펙트에 마스크 역할을 한다는 점을 제외하면 포인트 라이트에 사용했을 떄와 같은 방식으로 작동합니다. 그러나 스포트 라이트의 투사 영역은 최대 179 도 원호이기에, 그 시점 이후에는 IES 데이터를 잃게 됩니다.
+## Spotlights
+
+IES 라이트 프로파일은 기본적으로 포인트 라이트를 (시각적으로 볼 때) 스포트 라이트로 바꿔 주는 것이며, 프로파일을 스포트 라이트에 사용한다 해도 스포트 라이트 원뿔이 IES 프로파일 이펙트에 마스크 역할을 한다는 점을 제외하면 포인트 라이트에 사용했을 때와 같은 방식으로 작동합니다. 그러나 스포트 라이트의 투사 영역은 최대 179 도 원호이기에, 그 시점 이후에는 IES 데이터를 잃게 됩니다.
 
 [REGION:lightbox]
-[![](IES_SpotVsPoint_02.png)(h:220)](IES_SpotVsPoint_02.png) [![](IES_SpotVsPoint_01.png)(h:220)](IES_SpotVsPoint_01.png)
+[![](IES_SpotVsPoint_02.png)(h:270)](IES_SpotVsPoint_02.png) [![](IES_SpotVsPoint_01.png)(h:270)](IES_SpotVsPoint_01.png)
 [/REGION]
 
 _위 그림에서 왼쪽의 라이트는 스포트 라이트이며 오른쪽의 라이트는 포인트 라이트입니다. 스포트 라이트 위쪽에 빛이 없는 것을 볼 수 있습니다. 오른쪽 이미지에서 보듯이 스포트 라이트의 원뿔이 IES 라이트 프로파일 이펙트를 잘라내고 있습니다._

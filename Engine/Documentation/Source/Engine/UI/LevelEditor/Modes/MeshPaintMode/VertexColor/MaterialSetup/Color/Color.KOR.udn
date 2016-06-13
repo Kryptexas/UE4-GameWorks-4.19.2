@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2636094
+﻿INTSourceChangelist:2693494
 Availability: Public
 Title:버텍스 컬러 머티리얼
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor, Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor/MaterialSetup
 Description:메시 페인트 모드에서 컬러를 칠할 수 있도록 버텍스 컬러를 활용하는 머티리얼 셋업 방법입니다.
-
+Version: 4.9
+SkillLevel: Intermediate
 
 Vertex Color 머티리얼 표현식에서의 컬러를 사용할 수 있는 방법은 정말이지 무한합니다. 이 셋업에서는 비교적 단순함을 유지하기 위해, 그냥 컬러를 기존 머티리얼에 곱해 보도록 하겠습니다. 이를 통해 미리 놔둔 원본 텍스처에 메시 페인트 툴로 색을 칠할 수 있게 됩니다.
 

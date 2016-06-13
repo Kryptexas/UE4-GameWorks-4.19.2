@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2550815
+﻿INTSourceChangelist:2713387
 Availability:Public
 Title: 액터와 그 접속 소유
 Crumbs:%ROOT%, Gameplay, Gameplay/Networking, Gameplay/Networking/Actors
@@ -6,6 +6,7 @@ Description:멀티플레이어에서 서버의 역할에 대한 개요입니다.
 Related: Gameplay/Networking/Actors
 Related: Gameplay/Networking/Actors/RPCs
 Related: Gameplay/Networking/Server
+version: 4.9
 
 액터의 접속을 소유한다는 것에 대해 많이 들어보셨을 것입니다. 궁극적으로 각 접속에는 PlayerController 가 있으며, 해당 접속 전용으로 만들어진 것입니다 (그 과정에 대해서는 클라이언트 접속 흐름 부분에서 자세히 읽어보세요). 그러한 이유로 생성되는 각 PlayerController 는 해당 접속에 소유됩니다. 일반적으로 액터가 접속에 소유되었는지 알아보려면, 액터의 가장 바깥쪽(outer) 오너에 질의를 하여, 그 오너가 PlayerController 인 경우 그 액터 역시도 그 PlayerController 를 소유하는 동일 접속에 소유된 것입니다.
 

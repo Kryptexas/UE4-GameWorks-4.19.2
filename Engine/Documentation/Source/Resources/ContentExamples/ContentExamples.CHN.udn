@@ -39,7 +39,7 @@ Description:展示具有相关文件的特定内容或技术的示例资源。
 
 [EXCERPT:ContentExamples] 
 [REGION:fullwidth]
-[![](CEs_Image.png)](Resources/ContentExamples)
+![](CEs_Image.png)
 [/REGION]
 
 **Content Examples** （内容示例）是一种您可以通过相关文件来对照检索专门设置的示例资源一种训练方法。每个内容示例都包含了其在内容示例项目中的独有关卡。当您在每个关卡中移动时，您将会看到一系列有数字的底座，每一个都有其各自的示例资源。通过查看该内容示例和示例数字的文件，您可以了解该示例是如何被创建的。

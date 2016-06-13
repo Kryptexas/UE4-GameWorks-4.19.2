@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2620692
+﻿INTSourceChangelist:2718470
 Availability: Public
 Title:내비메시 콘텐츠 예제
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -7,6 +7,7 @@ Related: Engine/AI/BehaviorTrees/QuickStart
 Related: Gameplay/AI
 Related: Engine/AI/BehaviorTrees/NodeReference
 Related: Engine/Actors/Volumes
+Version: 4.9
 
 [REGION:banner]
 ![](NavMesh_Header.png)(convert:false)
@@ -64,7 +65,7 @@ Related: Engine/Actors/Volumes
 | ------- | ------------ |
 | **[1.1 Simple navigation around obstacles](Resources\ContentExamples\NavMesh\1_1)** | 장애물을 우회하는 단순한 내비게이션 - **폰** 이 장애물을 피해 길을 찾도록 하는 방법입니다. |
 | **[1.2 Navigation using a Nav Link Proxy](Resources\ContentExamples\NavMesh\1_2)** | 내비 링크 프록시를 사용한 내비게이션 - **폰** 이 경사로에 올라 점프하도록 하는 법을 보여줍니다. |
-| **[1.3 Navmesh rebuild after moving actors](Resources\ContentExamples\NavMesh\1_3)** | 액터 이동후 내비메시 리빌드 - 에디터에서 **스태틱 메시** 같은 **액터** 를 움직일 때 **내비메시** 가 자동 업데이트하는 방법에 대한 데모 예제입니다. |
+| **[1.3 Navmesh rebuild after moving actors](Resources\ContentExamples\NavMesh\1_3)** | 액터 이동 후 내비메시 리빌드 - 에디터에서 **스태틱 메시** 같은 **액터** 를 움직일 때 **내비메시** 가 자동 업데이트하는 방법에 대한 데모 예제입니다. |
 
 
 

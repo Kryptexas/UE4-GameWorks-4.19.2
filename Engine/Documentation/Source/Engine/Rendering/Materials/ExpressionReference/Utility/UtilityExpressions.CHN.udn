@@ -1,127 +1,135 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2875940
 Availability:Public
-Title:Utility Expressions
-Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
-Description:Expressions that perform various utility operations on one or more inputs.
+Title:实用程序表达式
+Crumbs:%ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
+Description:对一个或多个输入执行各种实用程序操作的表达式。
+Version:4.9
 
 [EXCERPT:TOC]
 [TOC(start:2)]
 [/EXCERPT:TOC]
 
+(#BlackBody)
+## BlackBody（黑体）
 
-## BlackBody
-
-The Black Body expression simulates the effects of [black body radiation](http://en.wikipedia.org/wiki/Black-body_radiation) within your Material. The user inputs a temperature (in Kelvin) and the resulting color and intensity can be used to drive Base Color and Emissive values to get a physically accurate result. 
+**BlackBody（黑体）**表达式用来在材质中模拟 [黑体辐射](http://en.wikipedia.org/wiki/Black-body_radiation) 效果。用户输入开氏温度，产生的颜色和强度可用来驱动“底色”（Base Color）和“自发光”（Emissive）值，以获得在物理上准确的结果。 
 
 [REGION:fullwidth]
 ![](BlackBody.png)
 [/REGION]
 
-## BumpOffset
+(#BumpOffset)
+## BumpOffset（凹凸贴图偏移）
 
 [EXCERPT:BumpOffset]
-BumpOffset is the Unreal Engine 4 term for what is commonly known as 'Parallax Mapping'.  The Bump Offset expression allows a material to give the illusion of depth without the need for additional geometry.  BumpOffset materials use a grayscale _heightmap_ to give depth information.  The brighter the value in the heightmap, the more 'popped out' the material will be; these areas will parallax (shift) as a camera moves across the surface.  Darker areas in the heightmap are 'further away' and will shift the least.
+**BumpOffset（凹凸贴图偏移）**是虚幻引擎 4 术语，就是通常所谓的“视差贴图”。BumpOffset（凹凸贴图偏移）表达式可以使材质产生深度错觉，而不需要额外的几何体。BumpOffset（凹凸贴图偏移）材质使用灰阶 _高度贴图_ 来提供深度信息。高度贴图中的值越亮，材质的“凸出”效果越明显；当摄像机在表面上移动时，这些区域将产生视差（移位）。高度贴图中较暗的区域将显得“距离较远”，其移位程度最小。
 [/EXCERPT:BumpOffset]
 
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Properties[/REGION] ||
-| **HeightRatio** | Multiplier for the depth taken from the _heightmap_.  The larger the value, the more extreme the depth will be.  Typical values range from 0.02 to 0.1. |
-| **ReferencePlane** | Specifies the approximate height in texture space to apply the effect.  A value of 0 will appear to distort the texture completely off the surface, whereas a value of 0.5 (the default) means that some of the surface will pop off while some areas will be sunken in. |
-| [REGION:tablesection]Inputs[/REGION] ||
-| **Coordinate** | Takes in base texture coordinates to be modified by the expression. |
-| **Height** | Takes in the texture (or a value) to be used as the heightmap. |
-| **HeightRatioInput** |  Multiplier for the depth taken from the _heightmap_.  The larger the value, the more extreme the depth will be.  Typical values range from 0.02 to 0.1. If used, this input supersedes any value in the Height Ratio property. |
+| [REGION:tablesection]属性[/REGION] ||
+| **高度比（HeightRatio）** | 从 _高度贴图_ 中取得的深度的乘数。这个值越大，深度越极端。典型值的范围是 0.02 到 0.1。|
+| **参考平面（ReferencePlane）** | 指定纹理空间中要应用此效果的近似高度。值为 0 将使纹理完全离开表面，而值 0.5（默认值）表示部分表面凸起而部分区域凹陷。|
+| [REGION:tablesection]输入[/REGION] ||
+| **坐标（Coordinate）** | 接收此表达式所要修改的基本纹理坐标。|
+| **高度（Height）** | 接收要用作高度贴图的纹理（或值）。|
+| **高度比输入（HeightRatioInput）** |  从 _高度贴图_ 中取得的深度的乘数。这个值越大，深度越极端。典型值的范围是 0.02 到 0.1。如果使用此输入，那么它将取代“高度比”（Height Ratio）属性中的任何值。|
 
 [REGION:fullwidth]
 ![BumpOffsetExample.png](BumpOffsetExample.png)
 [/REGION]
 
-## ConstantBiasScale
+(#ConstantBiasScale)
+## ConstantBiasScale（常量偏差比例）
 
-The ConstantBiasScale expression takes an input value, adds a bias value to it, and then multiplies it by a scaling factor outputting the result.  So for example, to convert input data from [-1,1] to [0,1] you would use a bias of 1.0 and a scale of 0.5.
+**ConstantBiasScale（常量偏差比例）**表达式接收输入值，加上偏差值，然后乘以比例缩放系数并输出结果。例如，要将输入数据从 [-1,1] 转换到 [0,1]，请使用偏差值 1.0 和比例缩放系数 0.5。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Properties[/REGION] ||
-| **Bias** | Specifies the value to be added to the input. |
-| **Scale** | Specifies the multiplier for the biased result. |
+| [REGION:tablesection]属性[/REGION] ||
+| **偏差（Bias）** | 指定要与输入相加的值。|
+| **比例（Scale）** | 指定偏差结果的乘数。|
 
 
 ![ConstantBiasScaleExample.png](ConstantBiasScaleExample.png)
 
-
+(#DDX)
 ## DDX
 
-The DDX expression exposes DDX derivative calculation, a GPU hardware feature used in pixel shader calculation.
+**DDX** 表达式公开 DDX 导数计算，这是像素着色器计算中使用的一项 GPU 硬件功能。
 
+(#DDY)
 ## DDY
 
-The DDY expression exposes DDX derivative calculation, a GPU hardware feature used in pixel shader calculation.
+**DDY** 表达式公开 DDX 导数计算，这是像素着色器计算中使用的一项 GPU 硬件功能。
 
 [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Depth#DepthFade]
 
+(#DepthOfFieldFunction)
+## DepthOfFieldFunction（视野深度函数）
 
-## DepthOfFieldFunction
+**DepthOfFieldFunction（视野深度函数）**表达式使美工能够控制当视野深度使材质模糊时，材质所发生的情况。它输出介于 0 与 1 之间的值，其中 0 代表“清晰”，而 1 代表“完全模糊”。例如，这对于在纹理的清晰版本与模糊版本之间进行插值非常有用。“深度”（Depth）输入允许您使用其他计算来覆盖场景视野深度计算所产生的现有结果。
 
-The Depth of Field Function expression is designed to give artists control over what happens to a Material when it is being blurred by Depth of Field. It outputs a value between 0-1 such that 0 represents "in focus" and 1 represents "completely blurred." This is useful for interpolating between sharp and blurry versions of a texture, for instance. The Depth input allows for the existing results from the scene's Depth of Field calculations to be overridden by other calculations.
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Blended Colors](DepthOfFieldFunction_Color.png)(w:350)
+	[/PARAM]
+	[PARAM:after]
+	![混合常规纹理与模糊纹理](DepthOfFieldFunction_Texture.png)(w:350)
+	[/PARAM]
+[/OBJECT]
 
-[REGION:imagetable]
-| ![](DepthOfFieldFunction_Color.png)(w:305) |![](DepthOfFieldFunction_Texture.png)(w:305)  | [INCLUDE:#DOFF] |
-| :--: | :--: | :--: |
-| Blended colors | Blending regular and blurred textures | Network sample (click to enlarge) |
-[/REGION]
-
-<!--
-[EXCERPT:DOFF]
 [REGION:lightbox]
 [![](DepthOfFieldFunctionNetwork.png)(w:300)](DepthOfFieldFunctionNetwork.png)
 [/REGION]
-[/EXCERPT:DOFF]
--->
+[REGION:caption]
+网络样本（单击可查看大图）
+[/REGION]
 
 [EXCERPT:Desaturation]
-## Desaturation
+(#Desaturation)
+## Desaturation（去饱和度）
 
-The Desaturation expression desaturates its input, or converts the colors of its input into shades of gray, based a certain percentage.
+**Desaturation（去饱和度）**表达式对其输入进行去饱和度，即根据特定百分比将其输入的颜色转换为灰色阴影。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Properties[/REGION] ||
-| **Luminance Factors** | Specifies the amount that each channel contributes to the desaturated color. This is what controls that green is brighter than red which is brighter than blue when desaturated. |
-| [REGION:tablesection]Inputs[/REGION] ||
-| **Fraction** | Specifies the amount of desaturation to apply to the input. Percent can range from 0.0 (fully desaturated) to 1.0 (full original color, no desaturation). |
+| [REGION:tablesection]属性[/REGION] ||
+| **亮度系数（Luminance Factors）** | 指定每个通道对去饱和度颜色的影响量。此属性确保在去饱和度之后，绿色比红色亮，而红色比蓝色亮。|
+| [REGION:tablesection]输入[/REGION] ||
+| **小数（Fraction）** | 指定要应用于输入的去饱和度数量。此百分比的范围是 0.0（完全去饱和度）到 1.0（完全原始颜色，不去饱和度）。|
 
 
 ![DesaturationExample.png](DesaturationExample.png)
 
 [REGION:note]
-**Programmers:** Define desaturated color `D`, input color `I` and luminance factor `L`.  The output will be `O = (1-Percent)*(D.dot(I)) + Percent*I`
+**程序员需知：**定义去饱和度颜色 `D`、输入颜色 `I` 和亮度系数 `L`。输出将是 `O = (1-百分比)*(D.dot(I)) + 百分比*I`
 [/REGION]
 [/EXCERPT:Desaturation]
 
 
 [EXCERPT:Distance]
-## Distance
+(#Distance)
+## Distance（距离）
 
-The Distance expression computes the (Euclidian) distance between two points/colors/positions/vectors and outputs the resulting value. This works on one, two, three and four component vectors, but both inputs to the expression must have the same number of channels.
+**Distance（距离）**表达式计算两个点/颜色/位置/矢量之间的欧氏距离，并输出结果值。此表达式可作用于单分量、双分量、三分量和四分量矢量，但此表达式的两个输入必须具有相同数目的通道。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Inputs[/REGION] ||
-| **A** | Takes in a value or vector of any length. |
-| **B** | Takes in a value or vector of any length. |
+| [REGION:tablesection]输入[/REGION] ||
+| **A** | 接收一个值，或接收任意长度的矢量。|
+| **B** | 接收一个值，或接收任意长度的矢量。|
 
 [REGION:fullwidth]
 ![DistanceExample.png](DistanceExample.png)
 [/REGION]
 
-**Pseudo code:**
+**伪代码：**
 
 	Result = length(A - B)
 
-**Low level HLSL code:**
+**低级 HLSL 代码：**
 	
 	float Result = sqrt(dot(A-B, A-B))
 	
@@ -130,56 +138,58 @@ The Distance expression computes the (Euclidian) distance between two points/col
 
 
 [EXCERPT:FeatureLevelSwitch]
-## FeatureLevelSwitch
+(#FeatureLevelSwitch)
+## FeatureLevelSwitch（功能级别开关）
 
-The Feature Level Switch node allows you to make simplified materials for lower powered devices. 
+**FeatureLevelSwitch（功能级别开关）**节点允许您建立简化的材质，以用于功能不太强大的设备。 
 
-**Example Usage**: You might have a material with 10 textures overlapping and complex math, but just a single static texture for mobile (feature level ES2). 
+**用法示例**：您可能有一个采用 10 个重叠纹理及复杂数学运算的材质，但仅将单个静态纹理用于移动设备（功能级别 ES2）。 
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Inputs[/REGION] ||
-| **Default** | The default Feature Level. |
-| **ES2** | Feature Level defined by the core capabilities of OpenGL ES2. |
-| **ES3.1** | Feature Level defined by the capabilities of Metal-level devices. |
-| **SM4** | Feature Level defined by the core capabilities of DX10 Shader Model 4. |
-| **SM5** | Feature Level defined by the core capabilities of DX11 Shader Model 5. |
+| [REGION:tablesection]输入[/REGION] ||
+| **默认值（Default）** | 默认功能级别。|
+| **ES2** | 由 OpenGL ES2 的核心功能定义的功能级别。|
+| **ES3.1** | 由金属级设备的功能定义的功能级别。|
+| **SM4** | 由 DX10 Shader Model 4 的核心功能定义的功能级别。|
+| **SM5** | 由 DX11 Shader Model 5 的核心功能定义的功能级别。|
 
 [/EXCERPT:FeatureLevelSwitch]
 
 
+(#Fresnel)
+## Fresnel（菲涅尔）
 
-## Fresnel
+**Fresnel（菲涅尔）**表达式根据表面法线与摄像机方向的标量积来计算衰减。当表面法线正对着摄像机时，输出值为 0。当表面法线垂直于摄像机时，输出值为 1。结果限制在 [0,1] 范围内，以确保不会在中央产生任何负颜色。
 
-The Fresnel expression calculates a falloff based on the dot product of the surface normal and the direction to the camera. When the surface normal points directly at the camera, a value of 0 is output. When the surface normal is perpendicular to the camera, a value of 1 is output. The result is clamped to [0,1] so you do not have any negative color in the center.
-
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Properties[/REGION] ||
-| **Exponent** | Specifies the how quickly the output value falls off. Larger values mean tighter or quicker falloff. |
-| **Base Reflect Fraction** | Specifies the fraction of specular reflection the surface is viewed from straight on. A value of 1 effectively disables the Fresnel effect. |
-| [REGION:tablesection]Inputs[/REGION] ||
-| **ExponentIn** | Specifies the how quickly the output value falls off. Larger values mean tighter or quicker falloff. If used, value will always supersede the Exponent property value. |
-| **Base Reflect Fraction** | Specifies the fraction of specular reflection the surface is viewed from straight on. A value of 1 effectively disables the Fresnel effect. If used, value will always supersede the Exponent property value. |
-| **Normal** | Takes in a three-channel vector value representing the normal of the surface, in world space. To see the results of a normal map applied to the surface of the Fresnel object, connect the normal map to the Normal input of the material, then connect a (PixelNormalWS)[Engine/Rendering/Materials/ExpressionReference/Vector#PixelNormalWS] expression to this input on the Fresnel. If no normal is specified, the tangent normal of the mesh is used. |
+| [REGION:tablesection]属性[/REGION] ||
+| **指数（Exponent）** | 指定输出值的衰减速度。值越大，意味着衰减越紧或越快。|
+| **基本反射小数（Base Reflect Fraction）** | 指定从正对表面的方向查看表面时，镜面反射的小数。值为 1 将有效地禁用菲涅耳效果。|
+| [REGION:tablesection]输入[/REGION] ||
+| **指数输入（ExponentIn）** | 指定输出值的衰减速度。值越大，意味着衰减越紧或越快。如果使用此输入，那么值将始终取代“指数”（Exponent）属性值。|
+| **基本反射小数（Base Reflect Fraction）** | 指定从正对表面的方向查看表面时，镜面反射的小数。值为 1 将有效地禁用菲涅耳效果。如果使用此输入，那么值将始终取代“指数”（Exponent）属性值。|
+| **法线（Normal）** | 接收三通道矢量值，该值代表表面在全局空间中的法线。要查看应用于菲涅耳对象表面的法线贴图的结果，请将该法线贴图连接到材质的“法线”（Normal）输入，然后连接一个 (PixelNormalWS（像素全局空间法线）)[Engine/Rendering/Materials/ExpressionReference/Vector#PixelNormalWS] 表达式到 Fresnel（菲涅尔）上的此输入。如果未指定任何法线，那么将使用网格的切线法线。|
 
 
 ![FresnelExample.png](FresnelExample.png)
 
 
 [EXCERPT:GIReplace]
-## GIReplace
+(#GIReplace)
+## GIReplace（GI 替换）
 
-GIReplace allows artists to specify a different, usually simpler, expression chain when the material is being used for GI.  
+**GIReplace（GI 替换）**允许美工指定另一个表达式链（通常较为简单），以便在材质用于 GI 时使用。  
 
-**Example Usage**: Lightmass static GI and LPV dynamic GI use it.
+**用法示例**：光照系统静态 GI 和 LPV 动态 GI 使用此表达式。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Inputs[/REGION] ||
-| **Default** | The default GI. |
-| **StaticIndirect** | Used for baked indirect lighting. |
-| **DynamicIndirect** | Used for dynamic indirect lighting. |
+| [REGION:tablesection]输入[/REGION] ||
+| **默认值（Default）** | 默认 GI。|
+| **静态间接（StaticIndirect）** | 用于烘焙间接照明。|
+| **动态间接（DynamicIndirect）** | 用于动态间接照明。|
 
 [INCLUDE:Engine\Rendering\LightingAndShadows\LightPropagationVolumes#gireplaceexample]
 
@@ -188,155 +198,216 @@ GIReplace allows artists to specify a different, usually simpler, expression cha
 
 
 
+(#LightmassReplace)
+## LightmassReplace（光照系统替换）
 
-## LightmassReplace
+**LightmassReplace（光照系统替换）**表达式用来在编译材质以用于正常渲染用途时传递“实时”（Realtime）输入，并在导出材质到光照系统以用于全局照明时传递“光照系统”（Lightmass）输入。使用此表达式可以避免使用导出版本无法正确处理的材质表达式，例如 WorldPosition（全局位置）。
 
-The LightmassReplace expression simply passes through the Realtime input when compiling the material for normal rendering purposes, and passes through the Lightmass input when exporting the material to Lightmass for global illumination.  This is useful to work around material expressions that the exported version cannot handle correctly, for example WorldPosition.
-
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Inputs[/REGION] ||
-| **Realtime** | Takes in the value(s) to pass through for normal rendering. |
-| **Lightmass** | Takes in the value(s) to pass through when exporting the material to Lightmass. |
+| [REGION:tablesection]输入[/REGION] ||
+| **实时（Realtime）** | 接收要传递以用于正常渲染的值。|
+| **光照系统（Lightmass）** | 接收在导出材质到光照系统时要传递的值。|
 
 
 [EXCERPT:LinearInterpolate]
-## LinearInterpolate
+(#LinearInterpolate)
+## LinearInterpolate（线性插值）
 
-The LinearInterpolate expression blends between two input value(s) based on a third input value used as a mask. This can be thought of as a mask to define transitions between two textures, like a layer mask in Photoshop.  The intensity of the mask Alpha determines the ratio of color to take from the two input values.  If Alpha is 0.0/black, the first input is used.  If Alpha is 1.0/white, the second input is used.  If Alpha is grey (somewhere between 0.0 and 1.0), the output is a blend between the two inputs. Keep in mind that the blend happens per channel.  So, if Alpha is an RGB color, Alpha's red channel value defines the blend between A and B's red channels **independently** of Alpha's green channel, which defines the blend between A and B's green channels.
+**LinearInterpolate（线性插值）**表达式根据用作蒙版的第三个输入值，在两个输入值之间进行混合。您可以将其想像成用于定义两个纹理之间的过渡效果的蒙版，例如 Photoshop 中的层蒙版。蒙版“阿尔法”（Alpha）的强度确定从两个输入值获取颜色的比例。如果“阿尔法”（Alpha）为 0.0/黑色，那么将使用第一个输入。如果“阿尔法”（Alpha）为 1.0/白色，那么将使用第二个输入。如果“阿尔法”（Alpha）为灰色（介于 0.0 与 1.0 之间的值），那么输出是两个输入之间的混合。请记住，混合按通道进行。因此，如果“阿尔法”（Alpha）为 RGB 颜色，那么“阿尔法”（Alpha）的红色通道值定义 A 与 B 的红色通道之间的混合，而与“阿尔法”（Alpha）的绿色通道 **无关**，该通道定义 A 与 B 的绿色通道之间的混合。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Properties[/REGION] ||
-| **Const A** | The value mapped to black (0.0). Only used if the A input is unconnected. |
-| **Const B** | The value mapped to white (1.0). Only used if the B input is unconnected. |
-| **Const Alpha** | Takes in the value to use as the mask alpha. Only used if the Alpha input is unconnected. |
-| [REGION:tablesection]Inputs[/REGION] ||
-| **A** | Takes in the value(s) mapped to black (0.0). |
-| **B** | Takes in the value(s) mapped to white (1.0). |
-| **Alpha** | Takes in the value to use as the mask alpha. |
+| [REGION:tablesection]属性[/REGION] ||
+| **常量 A（Const A）** | 映射到黑色 (0.0) 的值。仅当未连接 A 输入时才使用。|
+| **常量 B（Const B）** | 映射到白色 (1.0) 的值。仅当未连接 B 输入时才使用。|
+| **常量阿尔法（Const Alpha）** | 接收要用作蒙版阿尔法的值。仅当未连接“阿尔法”（Alpha）输入时才使用。|
+| [REGION:tablesection]输入[/REGION] ||
+| **A** | 接收映射到黑色 (0.0) 的值。|
+| **B** | 接收映射到白色 (1.0) 的值。|
+| **阿尔法（Alpha）** | 接收要用作蒙版阿尔法的值。|
 
 
-**Programmers:** LinearInterpolate does a per-channel lerp between A and B based on the parametric value Alpha.
+**程序员需知：**LinearInterpolate（线性插值）根据参数值“阿尔法”（Alpha）在 A 与 B 之间执行按通道插值。
 
 ![LerpExample.png](LerpExample.png)(w:900)
 [/EXCERPT:LinearInterpolate]
 
+(#Noise)
+## Noise（噪声）
 
-## Noise
+**Noise（噪声）**表达式建立过程式噪声场，以使您能够控制其生成方式。
 
-The Noise expression creates a procedural noise field, giving you control over how it is generated.
-
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Properties[/REGION] ||
-| **Scale** | Changes the overall size of the noise cells. Lower numbers make the noise bigger. |
-| **Quality** | A look/performance setting. 0 is fast. Higher values are slower but may look better. |
-| **Function** | Controls the type of noise being calculated. Options include Simplex, Perlin, and Gradient. |
-| **Turbulence** | Whether or not to calculate multiple levels of noise on top of one another. |
-| **Levels** | How many different levels of noise are combined. Only useful is Turbulence is active. |
-| **Output Min** | The lowest value output by the noise calculation. |
-| **Output Max** | The highest value output by the noise calculation. |
-| **Level Scale** | Controls the scale of individual levels when Turbulence is active. This defaults to 2, but higher values can result in more efficient use of low numbers of levels.
+| [REGION:tablesection]属性[/REGION] ||
+| **比例（Scale）** | 更改噪声单元的整体大小。数字越小，噪声越大。|
+| **质量（Quality）** | 外观/性能设置。0 表示速度最快。较大的值将导致速度下降，但外观可能较好。|
+| **功能（Function）** | 控制要计算的噪声类型。选项包括“单形”（Simplex）、“柏林”（Perlin）和“梯度”（Gradient）。|
+| **干扰（Turbulence）** | 是否计算多个级别、彼此叠加的噪声。|
+| **级别数（Levels）** | 要组合的不同噪声级别数。仅当激活“干扰”（Turbulence）后才有用。|
+| **最小输出（Output Min）** | 噪声计算的最低值输出。|
+| **最大输出（Output Max）** | 噪声计算的最高值输出。|
+| **级别比例（Level Scale）** | 控制激活“干扰”（Turbulence）后各个级别的比例。默认值为 2，但较大的值可确保更高效率地使用少量级别。
 || [REGION:tablesection]Inputs[/REGION] ||
-| **Position** | Allows the texture size to be adjusted via a 3D vector. |
-| **FilterWidth** | In effect, controls how much blur will be applied to the noise texture. |
+| **位置（Position）** | 允许通过 3D 矢量来调整纹理大小。|
+| **过滤宽度（FilterWidth）** | 实际上，控制应用于噪声纹理的模糊量。|
 
 ![NoiseExample.png](NoiseExample.png)
 
+(#QualitySwitch)
+## QualitySwitch（质量开关）
 
-## QualitySwitch
+**QualitySwitch（质量开关）**表达式允许根据引擎在不同质量级别之间的切换使用不同的表达式网络，例如在较低端的设备上使用较低的质量。
 
-The QualitySwitch expression allows for the use of different expression networks based on the engine is switched between quality levels, such as using lower quality on lower-end devices.
-
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Inputs[/REGION] ||
-| Default | This input is used for networks designed for default visual quality. |
-| Low | This input is used for networks designed for lower visual quality. |
-| High | This input is used for networks designed for higher visual quality. |
+| [REGION:tablesection]输入[/REGION] ||
+| 默认值（Default） | 此输入用于针对默认视觉质量而设计的网络。|
+| 低（Low） | 此输入用于针对较低视觉质量而设计的网络。|
+| 高（High） | 此输入用于针对较高视觉质量而设计的网络。|
 
 [EXCERPT:RotateAboutAxis]
-## RotateAboutAxis
+(#RotateAboutAxis)
+## RotateAboutAxis（绕轴旋转）
 
-The RotateAboutAxis expression rotates a three-channel vector input given the rotation axis, a point on the axis, and the angle to rotate.  It is useful for animations using WorldPositionOffset that have better quality than simple shears.
+**RotateAboutAxis（绕轴旋转）**表达式在给定旋转轴、该轴上的某个点以及旋转角度的情况下，旋转三通道矢量输入。此表达式适合于使用 WorldPositionOffset（全局位置偏移）产生质量优于简单剪切的动画。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Inputs[/REGION] ||
-| **NormalizedRotationAxis** | Takes in a normalized (0-1) vector which represents the axis about which the object will rotate. |
-| **RotationAngle** | The angle of rotation. A value of 1 equals a full 360-degree rotation.
-| **PivotPoint** | Takes in the three-channel vector representing the pivot point about which the object will rotate. |
-| **Position** | Takes in the three-channel vector representing the position of the object. When the RotateAboutAxis expression is created, a WorldPosition expression is automatically created and connected to this input. |
+| [REGION:tablesection]输入[/REGION] ||
+| **规范化旋转轴（NormalizedRotationAxis）** | 接收一个规范化 (0-1) 矢量，它代表对象的旋转轴。|
+| **旋转角度（RotationAngle）** | 旋转角度。值 1 表示完全 360 度旋转。
+| **枢轴点（PivotPoint）** | 接收代表枢轴点的三通道矢量，对象将绕着该枢轴点旋转。|
+| **位置（Position）** | 接收代表对象位置的三通道矢量。创建 RotateAboutAxis（绕轴旋转）表达式时，将自动创建一个 WorldPosition（全局位置）表达式并将其连接至此输入。|
 
 [REGION:fullwidth]
 ![RotateAboutAxisExample.png](RotateAboutAxisExample.png)
 [/REGION]
-In the above example, the preview plane would appear to spin on its vertical axis.
+在以上示例中，预览平面将显示为绕着它的垂直轴旋转。
 
 [/EXCERPT:RotateAboutAxis]
 
+(#SphereMask)
+## SphereMask（球体蒙版）
 
-## SphereMask
+**SphereMask（球体蒙版）**表达式根据距离计算来输出蒙版值。如果某一个输出是某个点的位置，而另一输入是具有某半径的球体的中心，那么蒙版值将是 0（位于球体外部）和 1（位于球体内部），并存在一定的过渡区域。此表达式可作用于单分量、双分量、三分量和四分量矢量。
 
-The SphereMask expression outputs a mask value based on a distance calculation. If one input is the position of a point and the other input is the center of a sphere with some radius, the mask value is 0 outside and 1 inside with some transition area. This works on one, two, three, and four component vectors
-
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Properties[/REGION] ||
-| **Attenuation Radius** | Specifies the radius to use for the distance calculation. |
-| **Hardness Percent** | Specifies the transition area size. This works like the Photoshop brush hardness value. 0 means the transition is hard, 100 means the transition area is maximal(soft). |
-| [REGION:tablesection]Inputs[/REGION] ||
-| **A** | Takes in the value representing the position of the point to check. |
-| **B** | Takes in the value representing the center of the sphere. |
+| [REGION:tablesection]属性[/REGION] ||
+| **衰减半径（Attenuation Radius）** | 指定用于距离计算的半径。|
+| **硬度百分比（Hardness Percent）** | 指定过渡区域大小。此项目类似于 Photoshop 的笔刷硬度值。0 表示硬过渡，100 表示最大化过渡区域（软过渡）。|
+| [REGION:tablesection]输入[/REGION] ||
+| **A** | 接收一个值，该值代表要检查的点的位置。|
+| **B** | 接收一个值，该值代表球体中心。|
 
 [REGION:fullwidth]
 ![SphereMaskExample.png](SphereMaskExample.png)
 [/REGION]
 
-In this example, the preview object will smoothly fade to black as the camera exceeds 256 units away from it.
+在此示例中，当摄像机距离预览对象超过 256 个单位时，该对象将平滑地渐变为黑色。
 
 
 
 [EXCERPT:AntialiasedTextureMask]
 
+(#AntialiasedTextureMask)
+## AntialiasedTextureMask（抗锯齿纹理蒙版）
 
-## AntialiasedTextureMask
+**AntialiasedTextureMask（抗锯齿纹理蒙版）**表达式允许您使用软（抗锯齿）过渡蒙版来创建材质。此蒙版可用来在两个复杂材质属性之间混合，或者使阿尔法混合材质淡出（适合与“软屏蔽”配合使用）。您只需指定在其中一个通道（红色、绿色、蓝色或阿尔法）中指定了蒙版的材质，在此表达式中设置所使用的通道，并指定比较值。假设该通道存储 0（黑色）到 1（白色）范围内的灰阶值，比较功能将定义产生的蒙版是应该为 0 还是 1。此表达式是一个参数，这使 **纹理（Texture）**属性可以由子材质实例覆盖。
 
-The AntialiasedTextureMask expression allows you to create a material using a soft (anti-aliased) transition mask. The mask can be used to blend between two complex material properties or to fade out an alpha blended material (works well with SoftMasked). Simple specify a texture with the mask specified in one channel (red, green, blue, or alpha), set the used channel in the expression and specify the comparison value. Assuming the channel stores a grayscale value in the range 0=black to 1=white the comparison function defines if the resulting mask should be 0 or 1. This expression is a parameter, allowing the **Texture** property to be overridden by child MaterialInstances.
-
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Properties[/REGION] ||
-| **Threshold** | Specifies the value used as the cutoff point in pixel coverage. Pixel coverage values less than this become black; values greater become white. |
-| **Channel** | Specifies the channel of the Texture to use as the mask. |
-| **Texture** | Specifies the mask texture to use. |
-| [REGION:tablesection]Inputs[/REGION] ||
-| **UVs** | Takes in texture coordinates to apply to the texture mask. |
+| [REGION:tablesection]属性[/REGION] ||
+| **阈值（Threshold）** | 指定用作像素范围中的分界点的值。小于此值的像素范围值将变为黑色，大于此值的像素范围值将变为白色。|
+| **通道（Channel）** | 指定要用作蒙版的纹理通道。|
+| **纹理（Texture）** | 指定要使用的蒙版纹理。|
+| [REGION:tablesection]输入[/REGION] ||
+| **UVs** | 接收要应用于纹理蒙版的纹理坐标。|
 
 
-**Pseudo code:**
+**伪代码：**
 
     Result = 1
     if TextureLookup < Threshold then Result = 0
     
-The actual implementation is quite a bit more complicated as it tries to return values between 0 and 1 depending on the actual pixel coverage to avoid aliasing. 
+实际实现略微复杂，因为它会尝试根据实际像素范围来返回介于 0 与 1 之间的值，以消除锯齿。 
 
-Example (this tiny 128x128 texture, uncompressed for best quality): 
+示例（为了确保质量最佳，这个 128x128 的小纹理未进行压缩）： 
 
 ![ULogoLowBlurred.png](ULogoLowBlurred.png)
 
-Was used as a normal texture (left top) and used with the described material expression (bottom right):
+用作正常纹理（左上角），以及与说明的材质表达式配合使用（右下角）：
 
 ![AAMasked_Demo.png](AAMasked_Demo.png)
 
-The technique works best in magnification and with blurred input content. Compression hurts the quality a lot so try to use uncompressed low resolution textures.
+这种技术最适合在进行放大时使用，并可作用于模糊的输入内容。压缩会导致质量大幅下降，因此，请尝试使用未经压缩的低分辨率纹理。
 
 [/EXCERPT:AntialiasedTextureMask]
 
+(#DistanceToNearestSurface)
+## DistanceToNearestSurface（与最近表面的距离）
+
+**DistanceToNearestSurface（与最近表面的距离）**材质表达式节点允许材质对“全局距离场”关卡中的任何点进行取样。 
+这个材质表达式将输出从距离场到场景中最近遮挡体的带符号距离（以全局空间单位计）。
+
+[region:note]
+必须在 **项目设置（Project Settings）**的 **渲染（Rendering）**下启用 **生成网格距离场（Generate Mesh Distance Fields）**，此表达式才能正确工作。
+[/region]
+
+| 项目 | 说明 |
+| -------- | ----------- |
+| **位置（Position）**  | 如果未输入任何内容，那么默认为当前全局位置。|
+
+以下是作用中的 **DistanceToNearestSurface（与最近表面的距离）**材质表达式示例。 
 
 
+[Region:lightbox]
+[![](DistanceNearSurface_01.png)(w:960)](DistanceNearSurface_01.png)
+[/Region]
 
+![](DistanceNearSurface_02.png)(w:550)
 
+在此示例中，DistanceToNearestSurface（与最近表面的距离）输送到材质上的“不透明”（Opacity）输入，而该材质应用于放在关卡地板正上方的“静态网格”平面。 
+DistanceToNearestSurface（与最近表面的距离）的作用是告诉材质，“静态网格”平面仅从红色区域开始与场景中的其他“静态网格”相交。
 
+(#DistanceFieldGradient)
+## DistanceFieldGradient（距离场梯度）
 
+**DistanceFieldGradient（距离场梯度）**材质表达式节点进行规范化后，将输出对象在距离场中的 X,Y,Z 移动方向。 
+这使 DistanceFieldGradient（距离场梯度）材质表达式节点非常适合于需要模拟液体流的材质。
+
+[region:note]
+必须在 **项目设置（Project Settings）**的 **渲染（Rendering）**下启用 **生成网格距离场（Generate Mesh Distance Fields）**，此表达式才能正确工作。 
+[/region]
+
+| 项目 | 说明 |
+| -------- | ----------- |
+| **位置（Position）**  | 如果未输入任何内容，那么默认为当前全局位置。|
+
+这里是在材质中使用 **DistanceFieldGradient（距离场梯度）**材质表达式的示例。
+在此示例中，请务必注意，DistanceFieldGradient（距离场梯度）首先进行规范化，然后输入到“蒙版通道”（Mask Channel）节点。
+这样做的原因是，如果不首先对 DistanceFieldGradient（距离场梯度）进行规范化，您将无法获得方向性数据。 
+为了方便在材质实例中进行 RGB 通道切换，添加了“蒙版通道”（Mask Channel）参数。
+
+[Region:lightbox]
+[![](DistanceFieldGradient_Material.png)](DistanceFieldGradient_Material.png)
+[/Region]
+
+以下是作用中的 DistanceFieldGradient（距离场梯度）示例。 
+下图显示启用各种 RGB 后 DistanceFieldGradient（距离场梯度）将会使用的数据。
+
+[Region:lightbox]
+[![](DistanceFieldGradient_Example.png)(w:960)](DistanceFieldGradient_Example.png)
+[/Region]
+
+<!---
+![](DistanceFieldGradient_Example.png)
+--->
+
+| 编号 | 说明|
+| -------- | ----------- |
+| **1**  | 启用 R 通道并禁用所有其他通道。|
+| **2**  | 启用 G 通道并禁用所有其他通道。|
+| **3**  | 启用 B 通道并禁用所有其他通道。|

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653552
+﻿INTSourceChangelist:2717049
 Availability: Public
 Title:1.2 - 라이팅 모델
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
@@ -12,6 +12,7 @@ Related: Engine/Rendering/Materials/MaterialInputs
 Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Rendering/Materials/MaterialInstances
 Related: Engine/Actors/DecalActor
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -80,7 +81,7 @@ Related: Engine/Actors/DecalActor
 | ---- | ----- |
 | **Default Lit** | 디폴트 라이팅포함 - 가장 흔히 사용되는 세팅입니다. 표준 방식으로 빛을 반사합니다. |
 | **Unlit** | 라이팅제외 - 라이팅을 전혀 받지 않습니다. 베이스 컬러는 항상 검정이 됩니다. VFX 또는 **라이트 함수** 에 종종 사용됩니다. |
-| **SubSurface** | 서브서피스 - **서브서피스** 이펙트의 빠른 렌더링 시뮬레이션입니다. 이 셰이딩 모델은 오브젝트의 섀도잉에 변화를 주기 때문에 다이내믹 섀도우가 있는 오브젝트에 잘 어울립니다. 마지막으로 구워지는 라이팅이 있는 스태틱 오브젝트에 사용할 수는 있지만, 이펙트는 사라질 것입니다. 캐릭터의 피부나 폴리지에 최적입니다. |
+| **SubSurface** | 서브서피스 - **서브서피스** 이펙트의 빠른 렌더링 시뮬레이션입니다. 이 셰이딩 모델은 오브젝트의 섀도잉에 변화를 주기 때문에 다이내믹 섀도가 있는 오브젝트에 잘 어울립니다. 마지막으로 구워지는 라이팅이 있는 스태틱 오브젝트에 사용할 수는 있지만, 이펙트는 사라질 것입니다. 캐릭터의 피부나 폴리지에 최적입니다. |
 
 
 

@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:2308810
+﻿INTSourceChangelist:2590930
 Title:
 Crumbs:
 Description:
 Availability:
 
 [EXCERPT:bHighlightWithBrackets]
-有効になると、選択したオブジェクトはデフォルトの透明なオーバーレイハイライトではなく、ビューポートでブラケッでハイライトされます。
+有効になると、選択したオブジェクトはデフォルトの透明なオーバーレイ ハイライトではなく、ビューポートでブラケットでハイライトされます。
 
 ![](selection_brackets.png)
 
@@ -41,3 +41,4 @@ Engine/UI/EditorSettings#viewportlookandfeel
 
 ![](transrotation_widget.png)
 [/EXCERPT:bAllowTranslateRotateZWidget]
+

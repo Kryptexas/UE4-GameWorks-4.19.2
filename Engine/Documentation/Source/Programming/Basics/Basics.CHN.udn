@@ -16,7 +16,7 @@ every game made with Unreal Engine.
 [/REGION]
 
 
-The [Creating a Game Project](Engine/Basics/Projects/Browser#creatingnewprojects) page walks you through the steps of creating a new game project. Once you have created your game project, you should familiarize yourself 
+The [Creating a Game Project](Engine/Basics/Projects/Browser#bookmarkcreatingnewprojects) page walks you through the steps of creating a new game project. Once you have created your game project, you should familiarize yourself 
 with the [](Engine/Basics/DirectoryStructure) of the project. This will help you to know what any existing files represent and what goes where when adding new files to the project. You can 
 also supply [](Programming\Basics\CommandLineArguments) when running the editor with your project to do things like jump straight into game preview mode or start on a particular map.
 

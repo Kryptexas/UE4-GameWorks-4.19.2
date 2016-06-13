@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2539468
+﻿INTSourceChangelist:2690368
 Availability:Public
 Title:マテリアル - 操作ガイド
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -8,6 +8,7 @@ Related:Engine/Rendering/Materials/MaterialInputs
 Related:Engine/Rendering/Materials/Editor
 Related:Engine/Rendering/Materials/IntroductionToMaterials
 Related:Engine/Rendering/Materials/MaterialProperties
+Version:4.9
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -29,7 +30,7 @@ Related:Engine/Rendering/Materials/MaterialProperties
 [/OBJECT]
 [/VAR]
 
-## 概要
+
 
 以下の操作ガイドでは、UE4 のマテリアル エディタを十分に活用する方法について説明します。
 人間の皮膚の適切なセットアップからレイヤー マテリアルの使用方法のヒントまで、こうした操作ガイドは UE4 のマテリアル エディタについて詳しく知りたい方にとって必読です。
@@ -37,8 +38,8 @@ Related:Engine/Rendering/Materials/MaterialProperties
 
 ## プロジェクトの新規作成
 
-まだ作成していない場合は、以下の手順に従い作業する **Third Person** プロジェクトを新規作成してください。 
-以下のすべての操作ガイドは以下で説明する指示に従いプロジェクトを新規作成したことを前提に作られています。 
+まだ作成していない場合は、以下の手順に従い、作業対象の **Third Person** プロジェクトを新規作成してください。 
+以下のすべての操作ガイドは、以下で説明する指示に従いプロジェクトを新規作成したことを前提に作られています。 
 別のプロジェクトを使用して手順に従うことも可能ですが、使用するプロジェクトに **スターター コンテンツ** (または類似コンテンツ) が含まれるようにしてください。以下の例の多くは、ガイド内でこうしたコンテンツを利用しているからです。
 
 [region:note]
@@ -47,20 +48,20 @@ Related:Engine/Rendering/Materials/MaterialProperties
 
 ![](Engine\Rendering\Materials\HowTo\Main_Material_Node\Materail_HT_New_Project.png)
 
-1. **[Unreal Project Browser]** ウィンドウから **新規プロジェクト** を作成し、ブループリントの **Third Person** テンプレートを使用します。 
+1. **[Unreal Project Browser (アンリアル プロジェクト ブラウザ)]** ウィンドウから、 **新規プロジェクト** を作成し、 **[Blueprint Third Person]** テンプレートを使用します。 
 
-1. **With Starter Content** を必ず有効にしてください。 
+1. **[With Starter Content]** を必ず有効にしてください。 
 
 1. プロジェクトの保存場所を指定します。 
 
 1. プロジェクトに名前を付けます。 
 
-1. 上記をそれぞれ定義して、 **[Create Project]** をクリックして新規プロジェクトを作成します。 
+1. 上記をそれぞれ定義して、 **[Create Project (プロジェクトを作成)]** をクリックして新規プロジェクトを作成します。 
 
 
 ## マテリアルの操作ガイド 
 
-以下はマテリアルの操作ガイドに関する幅広いトピックを扱う操作ガイドです。 
+以下はマテリアルに関する幅広いトピックを扱う操作ガイドです。 
 各説明を読んで、操作ガイドの取扱い範囲を把握した上で、対象のガイドをクリックして開き、その操作を開始します。
 
 
@@ -70,10 +71,10 @@ Related:Engine/Rendering/Materials/MaterialProperties
 | **[マテリアルのプレビューと適用](Engine\Rendering\Materials\HowTo\Previewing_Applying)** | マテリアルをプレビューし適用する機能は UE4 で見栄えの良い 3D プロジェクトを作るうえで重要です。このチュートリアルではマテリアルのプレビュー方法だけでなく、レベル内のオブジェクトにマテリアルを適用する方法について学習します。 |
 | **[マテリアルでインスタンス化を使用する](Engine\Rendering\Materials\HowTo\Instancing)** | マテリアルのインスタンス化はワークフローを大幅に改善しうるパワフルな概念です。このチュートリアルではマテリアルのインスタンス化を利用できるようにマテリアルのセットアップ方法を学習します。 |
 | **[マテリアル式と関数を配置する](Engine\Rendering\Materials\HowTo\Placing_Expressions_Functions)** |マテリアル式ノードの配置はシェーダーを構築する基本となります。この操作ガイドではマテリアル グラフに式を配置する方法について知っておくべきことを説明します。 |
-| **[マテリアル関数を作る](Engine\Rendering\Materials\HowTo\Making_Functions)** | マテリアル関数はリサイクル可能なマテリアル コードのスニペットです。このチュートリアルではマテリアルでマテリアル関数を使用する方法について学習します。 |
+| **[マテリアル関数を作る](Engine\Rendering\Materials\HowTo\Making_Functions)** | マテリアル関数はリサイクル可能なマテリアル コードのスニペットです。このチュートリアルでは、マテリアルでマテリアル関数を使用する方法について学習します。 |
 | **[マテリアル パラメータを作る](Engine\Rendering\Materials\HowTo\Making_Parameters)** | マテリアル パラメータは、マテリアル インスタンスとインタラクションすることができます。この操作ガイドでは、マテリアルでマテリアル パラメータをセットアップし、使用する方法について学習します。 |
 | **[Bump Offset ノードを使用する](Engine\Rendering\Materials\HowTo\BumpOffset)** | Bump Offset マテリアル ノードでは、マテリアルのデプス情報をさらに追加することができます。この操作ガイドでは、マテリアルで Bump Offset マテリアル ノードを使用するために知っておくべきことを説明します。
-| **[人間の皮膚をセットアップする](Engine\Rendering\Materials\HowTo\Human_Skin)** | 人間のリアルな皮膚のセットアップを正しく行うのは難しい作業です。この操作ガイドでは、人間の皮膚の作成で最良の結果を得るための操作方法を説明します。
+| **[人間の皮膚をセットアップする](Engine\Rendering\Materials\HowTo\Human_Skin)** | 人間のリアルな皮膚のセットアップを正しく行うのは難しい作業です。この操作ガイドでは、人間の皮膚の作成で最良の結果を得るための操作方法を説明します。|
 | **[エミッシブ マテリアルのセットアップ](Engine\Rendering\Materials\HowTo\EmissiveGlow)** | 3D プロジェクトが必要とするライティング条件が何であっても発光するマテリアルを作成します。この操作ガイドでは、エミッシブ マテリアル入力を使用して発光するマテリアルのセットアップ方法について説明します。|
 | **[マテリアルでマスキングを使用する](Engine\Rendering\Materials\HowTo\Masking)** |テクスチャ マスキングは、ほとんど負荷をかけずに無限の多様性をオブジェクトに加えることができるパワフルなツールです。この操作ガイドでは、マテリアルでテクスチャマスクを使用するために知っておくべきことを説明します。 |
 | **[マテリアルでフレネルを使用する](Engine\Rendering\Materials\HowTo\Fresnel)** |シーン内で目立たせるためキャラクターのシルエットを強調する必要がある場合があります。これはリムライトと呼ばれることが多いですが、UE4 ではフレネルと言います。この操作ガイドではマテリアルにフレネルを加える方法で知っておくべきことをすべて説明します。 |
@@ -84,4 +85,10 @@ Related:Engine/Rendering/Materials/MaterialProperties
 | **[レイヤー マテリアルの使用](Engine/Rendering/Materials/HowTo/CreatingLayeredMaterials)** | %Engine/Rendering/Materials/HowTo/CreatingLayeredMaterials:description% |
 | **[光沢のあるマテリアルを作る](Engine/Rendering/Materials/HowTo/ShinyMaterials)** | 光沢のあるマテリアルは、マウスを数回クリックするだけで作ることができます。この操作ガイドではマテリアルを光沢のあるものにする方法について説明します。|
 | **[色付きの透過シャドウ](Engine/Rendering/Materials/HowTo/ColoredTransluscentShadows)** |色付きのシャドウをワールドにキャストしているように見えるシャドウを作るには、色付きの透過シャドウ (Colored Translucent Shadows) を使用します。この操作ガイドでは色付きの透過シャドウを使用してマテリアルを作成する方法について説明します。|
+| **[サブサーフェス プロファイルをマテリアルで使用する](Engine/Rendering/Materials/HowTo/Subsurface_Profile)** |リアルに見える人間の皮膚をレンダリングする機能は、最近のビデオ ゲーム エンジンでは必須です。この操作ガイドではサブサーフェス プロファイルがどのようなものであるか、各自の作業でどのように使用できるかについて説明します。 |
+| **[Using Subsurface Scattering in your Materials](Engine/Rendering/Materials/HowTo/Subsurface_Scattering)** |サブサーフェス スキャタリングは透過 / 半透過のサーフェスを通過しながら光を散乱するライティング現象を表す用語です。この操作ガイドではマテリアルでサブサーフェス スキャタリングを使用する方法について知っておくべき内容を説明します。 |
+
+
+
+
 

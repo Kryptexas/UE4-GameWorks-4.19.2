@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2602348
+﻿INTSourceChangelist:2683548
 Availability: Public
 Title:라이트 유형
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:언리얼 엔진 4 에서 사용가능한 라이트 유형입니다.
-DescriptionLong:언리얼 엔진 4 에서 사용가능한 라이트 유형: 포인트, 스포트, 디렉셔널, 스카이 입니다.
+DescriptionLong:The types of lights available in Unreal Engine 4: Point, Spot, Directional, and Sky.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]

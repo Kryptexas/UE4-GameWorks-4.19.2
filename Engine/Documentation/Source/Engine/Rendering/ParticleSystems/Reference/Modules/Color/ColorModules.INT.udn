@@ -2,6 +2,7 @@ Availability: Public
 Title:Color Modules
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:Color modules impact the color of the emitted particles.
+Version: 4.9
 
 [TOC(start:2 end:3)]
 
@@ -29,7 +30,7 @@ WCG-PdJ41rw
 [/PARAMLITERAL]
 [/OBJECT]
 
-The Initial Color module sets the color of a particle at spawn time. The particle will retain this color over its lifetime unless another color module overrides it. It contains the following member(s):
+The **Initial Color** module sets the color of a particle at spawn time. The particle will retain this color over its lifetime unless another color module overrides it. It contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |
@@ -44,7 +45,7 @@ In Spawn, the module retrieves the appropriate values from the distributions usi
 
 ## Init Color (Seed)
 
-The Init Color (Seed) module is identical to the [Initial Color](#InitialColor) module in that it sets the initial color of a particle at spawn time; however, this module allows you to specify seed information to be used when choosing distribution values in order to provide a more consistent effect from the module each time the emitter is used. It contains the following member(s):
+The **Init Color (Seed)** module is identical to the [Initial Color](#InitialColor) module in that it sets the initial color of a particle at spawn time; however, this module allows you to specify seed information to be used when choosing distribution values in order to provide a more consistent effect from the module each time the emitter is used. It contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |
@@ -79,7 +80,7 @@ zlZ1dvYsjrk
 [/PARAMLITERAL]
 [/OBJECT]
 
-The Color Over Life module is used to set the color of a particle over its lifetime. It contains the following member(s):
+The **Color Over Life** module is used to set the color of a particle over its lifetime. It contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |
@@ -100,7 +101,7 @@ In Update, the module retrieves the appropriate values from the distributions us
 
 ## Scale Color/Life
 
-The Scale Color/Life module is used to scale the color of a particle over its lifetime. It contains the following member(s):
+The **Scale Color/Life** module is used to scale the color of a particle over its lifetime. It contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |

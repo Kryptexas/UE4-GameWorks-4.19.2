@@ -1,11 +1,10 @@
-﻿INTSourceChangelist:2585620
-Availability:Public
+﻿Availability:Public
 Title:1. Foliage Type アクタを作成する
 Crumbs:
 Description:必要なアクタの作成と追加
 Navigation:topic
 SkillLevel:Intermediate
-バージョン：4.8
+Version:4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -14,7 +13,7 @@ SkillLevel:Intermediate
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[How-To ホーム](Engine\OpenWorldTools\ProceduralFoliage\QuickStart "Engine\OpenWorldTools\ProceduralFoliage\QuickStart:Title%")
+		[クイックスタート ホーム](Engine\OpenWorldTools\ProceduralFoliage\QuickStart "Engine\OpenWorldTools\ProceduralFoliage\QuickStart:Title%")
 	[/PARAM]
 	[PARAM:next]
 	[次のステップ](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\2 "%Engine\OpenWorldTools\ProceduralFoliage\QuickStart\2:title%") 
@@ -31,7 +30,7 @@ SkillLevel:Intermediate
 
 	![](T_New_Level.png)
 
-1. まず **[Landscape Tool]** アイコンをクリックして Landscape アクタを追加し、次に **[Create]** ボタンを押してその Landscape アクタをレベルに追加します。
+1. まず **[Landscape Tool]** アイコンをクリックして Landscape アクタを追加し、次に **[Create (作成)]** ボタンを押してその Landscape アクタをレベルに追加します。
 
 	![](T_Create_Landscape.gif)(convert:false)
 
@@ -47,7 +46,7 @@ SkillLevel:Intermediate
 	Landscape Terrain アクタを使用すると、多数のスタティックメッシュをスポーンする広い領域がすぐに与えられます。
 	[/region]
 
-1. **コンテンツ ブラウザ** を **右クリック** し、[Miscellaneous] > **[Procedural Foliage Spawner]** セクションを展開して **Procedural Foliage Spawner** をクリックします。 
+1. **コンテンツ ブラウザ** を **右クリック** し、[Miscellaneous (その他)] > **[Procedural Foliage Spawner]** セクションを展開して **[Procedural Foliage Spawner]** をクリックします。 
 
 	![](T_Create_PFS.png)
 
@@ -61,12 +60,12 @@ SkillLevel:Intermediate
 
 1. 森をスポーンする十分な広さがないので、X、Y、Z 軸が **100,100,10** になるように Procedural Foliage Spawner をスケールします。
 
-1. スポーナーができたので、スポーンするためにフォーリッジのタイプを決める必要があります。**コンテンツ ブラウザ** を **右クリック** し、[Miscellaneous] > **[Procedural Foliage Spawner]** セクションを展開して **Foliage Type** をクリックします。Foliage Type に **Tree_00** などの名前を付けます。
+1. スポーナーができたので、スポーンするためにフォリッジのタイプを決める必要があります。**コンテンツ ブラウザ** を **右クリック** し、[Miscellaneous (その他)] > **[Procedural Foliage Spawner]** セクションを展開して **[Foliage Type]** をクリックします。Foliage Type に **「Tree_00」** などの名前を付けます。
 
 	![](T_Create_FT.png)
 
-1. この時点では、以下のようになります。そうならなかった場合は、 **[Save All]** ボタンでコンテンツを、**[Save]** ボタンでレベルと保存して、作業とレベルを保存してください。 
-	レベル名を求められたら、 「**PFT_00**」としてください。
+1. この時点では、以下のようになります。そうならなかった場合は、**[Save All (すべて保存)]** ボタンでコンテンツを、**[Save (保存)]** ボタンでレベルと保存して、作業とレベルを保存してください。 
+	レベル名を求められたら、**PFT_00** としてください。
 
 	![](T_Save_All.png)
 

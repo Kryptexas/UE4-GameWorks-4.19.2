@@ -11,9 +11,18 @@ The **Unreal Motion Graphics UI Designer (UMG) - How To...** pages will show you
 
 Refer to the table below for more information and click each link to view its contents. 
 
-|How To... | Description |
-| ------- | ------------ |
-| [](Engine\UMG\HowTo\Create3DWidgets) | %Engine\UMG\HowTo\Create3DWidgets:description% |
+## Beginner
+
+## Intermediate
+[REGION:wrapper transparent]
+[](FANCY:Engine\UMG\HowTo\Create3DWidgets "%Engine\UMG\HowTo\Create3DWidgets:description%")
+[](FANCY:Engine\UMG\HowTo\ScalingUI "%Engine\UMG\HowTo\ScalingUI:description%")
+[/REGION]
+
+## Advanced
+[REGION:wrapper transparent]
+[](FANCY:Engine\UMG\HowTo\EventBasedUI "%Engine\UMG\HowTo\EventBasedUI:description%")
+[/REGION]
 
 
 

@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2614253
+﻿INTSourceChangelist:2897028
 Availability:Public
 Title:다이내믹 델리게이트
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture, Programming/UnrealArchitecture/Delegates
 Description:serialize 가능하면서 리플렉션도 지원하는 델리게이트입니다.
-Version: 4.5
+Version: 4.9
 
 다이내믹 델리게이트는 serialize 가능하며, 그 함수를 이름으로 찾을 수도 있으나, 일반 델리게이트보다는 느립니다.
 
@@ -14,8 +14,8 @@ Version: 4.5
 
 | 선언 매크로 | 설명 |
 | --- | -- |
-| `DECLARE_DYNAMIC_DELEGATE[_Const, _RetVal, etc.]( DelegateName )` | 다이내믹 델리게이트를 생성합니다. |
-| `DECLARE_DYNAMIC_MULTICAST_DELEGATE[_Const, _RetVal, etc.]( DelegateName )` | 다이내믹 멀티-캐스트 델리게이트를 생성합니다. |
+| `DECLARE_DYNAMIC_DELEGATE[_RetVal, etc.]( DelegateName )` | 다이내믹 델리게이트를 생성합니다. |
+| `DECLARE_DYNAMIC_MULTICAST_DELEGATE[_RetVal, etc.]( DelegateName )` | 다이내믹 멀티-캐스트 델리게이트를 생성합니다. |
 
 ## 다이내믹 델리게이트 바인딩
 
@@ -35,5 +35,5 @@ Version: 4.5
 
 | 선언 매크로 | 설명 |
 | --- | --- |
-| `DECLARE_DYNAMIC_DELEGATE[_Const, _RetVal, etc.]( DelegateName )` | 래핑된 다이내믹 델리게이트를 생성합니다. |
-| `DECLARE_DYNAMIC_MULTICAST_DELEGATE[_Const, _RetVal, etc.]( DelegateName )` | 래핑된 다이내믹 멀티캐스트 델리게이트를 생성합니다. |
+| `DECLARE_DYNAMIC_DELEGATE[_RetVal, etc.]( DelegateName )` | 래핑된 다이내믹 델리게이트를 생성합니다. |
+| `DECLARE_DYNAMIC_MULTICAST_DELEGATE[_RetVal, etc.]( DelegateName )` | 래핑된 다이내믹 멀티캐스트 델리게이트를 생성합니다. |

@@ -1,14 +1,15 @@
-﻿INTSourceChangelist:2607982
+﻿INTSourceChangelist:2716169
 Availability:Public
 Title: 블루프린트로 게임 저장하기
 Crumbs:%ROOT%,  Gameplay, Gameplay/SaveGame
 Description:블루프린트를 사용하여 게임을 저장하고 로드하는 방법입니다.
+version: 4.9
 
 
 ### SaveGame 오브젝트 생성
 
 SaveGame 오브젝트를 새로 생성하기 위해서는, [블루프린트 클래스를 새로 생성](Engine\Blueprints\UserGuide\Types\ClassBlueprint\Creation) 합니다. **부모 클래스 선택** 대화창이 뜨면, **Custom Class** 
-드롭다운을 펼친 다음 **SaveGame** 을 선택합니다. 검색창에서 **SaveGame** 에 바로 점프할 수 있습니다.
+드롭다운을 펼친 다음 **SaveGame** 을 선택합니다. 검색창에서 **SaveGame** 에 바로 점프할 수 있습니다. 새 블루프린트 이름은 MySaveGame 이라 합니다.
 
 ![](savegame.png) 
 
@@ -26,20 +27,19 @@ SaveGame 오브젝트를 새로 생성하기 위해서는, [블루프린트 클�
 
 ### 변수 저장하기
 
-**전체 저장 셋업에 대한 스냅샷입니다. 이미지를 클릭하면 확대해 볼 수 있습니다.**
-
 [REGION:lightbox]
 	[![](SaveGameBP.png)(w:880)](SaveGameBP.png)
 [/REGION]
+_전체 저장 구성 스냅샷입니다. 이미지를 클릭하면 원래 크기로 볼 수 있습니다._
 
 [REGION:fullwidth]
 먼저 **Create Save Game Object** 노드를 사용하여 SaveGame 오브젝트의 인스턴스를 생성 또는 복사합니다. **Save Game Class** 드롭다운 이름을 새로운 SaveGame 오브젝트 블루프린트 이름으로 설정했는지 확인합니다.
 이 경우 **MySaveGame** 입니다. **Create Save Game Object** 노드가 범용 SaveGame 오브젝트 사본을 만들기 때문에, **Return Value** 핀을 드래그한 다음 **Cast to MySaveGame** 를 놓아야 합니다. 
-나중에 SaveGame 오브젝트를 쉽게 재사용할 수 있으려면 변수에 대한 형변환 결과를 저장하세요.
+나중에 SaveGame 오브젝트를 쉽게 재사용하려면 **변수로 승격** 을 통해 변수에 대한 형변환 결과를 저장하세요.
 
 ![](SaveGameBP_1.png)
 
-이제 커스텀 SaveGame 오브젝트인 MySaveGmae 사본을 **Save Game Instance** 변수에 저장했으니, 이제 거기에 정보를 전송할 수 있습니다. 여기서 **Player Name** 은 **Player One** 으로 설정되어 있습니다.
+이제 커스텀 SaveGame 오브젝트인 MySaveGmae 사본을 **Save Game Instance** 변수에 저장했으니, 이제 거기에 정보를 전송할 수 있습니다. 여기서 **Player Name** 은 **PlayerOne** 으로 설정되어 있습니다.
 정보를 저장하고자 하는 변수가 더 있는 경우, 이 단계를 반복해 주면 됩니다.
 
 ![](SaveGameBP_2.png)
@@ -52,11 +52,10 @@ SaveGame 오브젝트를 새로 생성하기 위해서는, [블루프린트 클�
 
 ### 변수 로드하기
 
-**전체 저장 셋업에 대한 스냅샷입니다. 이미지를 클릭하면 확대해 볼 수 있습니다.**
-
 [REGION:lightbox]
 	[![](LoadGameBP.png)(w:880)](LoadGameBP.png)
 [/REGION]
+_전체 저장 셋업에 대한 스냅샷입니다. 이미지를 클릭하면 확대해 볼 수 있습니다._
 
 [REGION:fullwidth]
 

@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2547516
+﻿INTSourceChangelist:2740691
 Availability:Public
 Title:5.Animation ブループリント - Idle ステートと Walk ステート
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
-Description:このステップでは、Animation ブループリントでキャラクターの Idle および Walking ステートのロジックを作成します。 
+Description:このステップでは、Animation ブループリントでキャラクターの Idle ステートおよび Walking ステートのロジックを作成します。 
+Version:4.9
+SkillLevel:Advanced
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -22,10 +24,10 @@ Description:このステップでは、Animation ブループリントでキャ�
 
 %Steps%
  
-このセクションでは、プレイヤーがゲーム内で取るアクションに合わせて、どのアニメーションを再生するかを判断する **Animation ブループリント** を設定します。その後で **ステートマシン** を設定し、 **Idle** と **Walk** ステートを作成し、両ステート間の移行を設定します。 
+このセクションでは、プレイヤーがゲーム内で取るアクションに合わせて、どのアニメーションを再生するかを判断する **Animation ブループリント** を設定します。その後で **ステートマシン** を設定し、 **Idle** と **Walk** ステートを作成し、両ステート間の遷移を設定します。 
 
 [REGION:note]
-**Animation ブループリント** に関する詳細は、 [](Engine/Animation/AnimBlueprints) ドキュメントを参照してください。 
+Animation ブループリント に関する詳細は、 [](Engine/Animation/AnimBlueprints) ドキュメントを参照してください。 
 [/REGION]
 
 Animation ブループリントは以下の方法で設定します。 
@@ -48,7 +50,7 @@ Animation ブループリントは以下の方法で設定します。
 
 	_画像をクリックしてフルサイズで表示_
 
-	上のグラフでは、プレイヤー キャラクターの方向と速度を取得し、Animation ブループリント内で使用する変数にそれらを割り当てます。プレイヤーが取るアクションに対応する **MyCharacter** ブループリントからも変数を取得します (**Try Get Pawn Owner** ノードをドラッグし、Character ブループリントへ **キャスト** します)。そしてこれらの変数は、いつ Animation ステートに移行するかを判断する Animation ブループリント内の変数にパスされます。 
+	上のグラフでは、プレイヤー キャラクターの方向と速度を取得し、Animation ブループリント内で使用する変数にそれらを割り当てます。プレイヤーが取るアクションに対応する **MyCharacter** ブループリントからも変数を取得します (**Try Get Pawn Owner** ノードをドラッグし、Character ブループリントへ **キャスト** します)。そしてこれらの変数は、いつ Animation ステートに移行/ Animation ステートから移行するかを判断する Animation ブループリント内の変数に渡されます。 
 
 1.	**[Anim Graph]** タブをクリックし、グラフ内を **右クリック** して **State Machine** を見つけて追加します。 
 
@@ -70,21 +72,21 @@ Animation ブループリントは以下の方法で設定します。
 
 	プレビュー ウィンドウでキャラクターがアイドルになっていることが確認できます。 
 
-1.	**[Asset Browser]** ウィンドウで、 **Idle** を検索し Idle_Rifle_Hip アセットをグラフにドラッグします。
+1.	**[Asset Browser]** ウィンドウで、 **Walk_BS** を検索し、グラフにドラッグします。
 
 	![](AnimBP_Walk1.png)
 
-1.	**Walk_BS** を **ダブルクリック** し、 **[MyBlueprint]** タブから **Control** を押したまま **Speed** 変数と **Direction** 変数にドラッグします。 
+1.	**Walk_BS** を **ダブルクリック** し、 **[MyBlueprint]** タブから **Control** を押したまま **Speed** 変数と **Direction** 変数をドラッグします。 
 
 	![](AnimBP_Walk2.png)
 
-	以下のように接続します。キャラクターからの値を Blend Space に設定していきます。
+	上図のように接続します。キャラクターからの値を Blend Space に設定していきます。
 
-1.	**[Walk_BS]** タブを閉じ、ステートマシン グラフで **Idle_Rifle_Hip** から **Walk_BS** への **移行** を作成します。
+1.	**[Walk_BS]** タブを閉じ、ステートマシン グラフで **Idle_Rifle_Hip** から **Walk_BS** への **遷移** を作成します。
 
 	![](AnimBP_Walk3.png)
 
-1.	**Walk_BS** から **Idle_Rifle_Hip** への **Transition** を作成し、 **Idle_Rifle_Hip** から **Walk_BS** への **Transition Rule (移行ルール)** を **ダブルクリック** します。 
+1.	**Walk_BS** から **Idle_Rifle_Hip** への **遷移** を作成し、 **Idle_Rifle_Hip** から **Walk_BS** への **Transition Rule (遷移ルール)** を **ダブルクリック** します。 
 
 	![](AnimBP_Walk4.png)
 
@@ -94,7 +96,7 @@ Animation ブループリントは以下の方法で設定します。
 
 	![](AnimBP_Walk5.png)(w:800)
 
-	上記のスクリプトで、プレイヤー キャラクターが宙に浮いていないこと、そして現在の速度が 160 より大きくなっていることを確認し、そうなっていれば Idle から Walk へ移行できるようにします。 
+	上記のスクリプトで、プレイヤー キャラクターが宙に浮いていないこと (落下またはジャンプのいずれかによって) 、そして現在の速度が 160 より大きくなっていることを確認し、そうなっていれば Idle から Walk への遷移が起こるようにします。 
 
 1.	ステートマシン グラフに戻り、 **Walk_BS** から **Idle_Rifle_Hip** への **Transition Rule** を開きます。 
 
@@ -102,7 +104,7 @@ Animation ブループリントは以下の方法で設定します。
 
 	![](AnimBP_Walk6.png)
 
-	キャラクターの速度が 160 未満だと移行できるようにします。 
+	キャラクターの速度が 160 未満だと遷移できるようにします。 
 
 1.	Animation ブループリントを **コンパイル** し **保存** します。 
 

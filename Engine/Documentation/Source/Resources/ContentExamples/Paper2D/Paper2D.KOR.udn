@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2412968
+﻿INTSourceChangelist:2719950
 Availability: Public
 Title:Paper2D 콘텐츠 예제
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -9,6 +9,7 @@ Related: Engine/Content/Tools/RenderToTextureTools/5
 Related: Engine/Content/Tools/RenderToTextureTools/3
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/SubUV
 Related: Engine/Rendering/Materials/Functions/Reference/Misc
+Version: 4.9
 
 [REGION:banner]
 ![](paper2d_header.png)(convert:false)
@@ -45,12 +46,10 @@ Related: Engine/Rendering/Materials/Functions/Reference/Misc
 [/OBJECT]
 [/VAR]
 
-[TOC(start:2 end:2)]
 
 
-## 개요
 
-**Paper 2D** 콘텐츠 예제에는 2D 게임 제작 관련 여러가지 주제를 다루고 있습니다. **스프라이트 에디터** 를 통한 **스프라이트** 생성 및 편집, 본질상 **스프라이트** 와 키프레임을 사용하여 2D 애니메이션 애셋을 만드는 방법인 **플립북**, **블루프린트** 로 **플립푹** 제어하기, 2D 애셋에 피직스 추가하기, **스프라이트** 에 저해상도 픽셀의 고전 느낌을 내는 방법까지도 알아봅니다.
+**Paper 2D** 콘텐츠 예제에는 2D 게임 제작 관련 여러가지 주제를 다루고 있습니다. **스프라이트 에디터** 를 통한 **스프라이트** 생성 및 편집, 본질상 **스프라이트** 와 키프레임을 사용하여 2D 애니메이션 애셋을 만드는 방법인 **플립북**, **블루프린트** 로 **플립북** 제어하기, 2D 애셋에 피직스 추가하기, **스프라이트** 에 저해상도 픽셀의 고전 느낌을 내는 방법까지도 알아봅니다.
 
 ## 예제
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2621686
+﻿INTSourceChangelist:2731779
 Availability: Public
 Title:머티리얼 에디터 - 머티리얼 미리보기 및 적용 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
@@ -8,6 +8,8 @@ Related: Engine/Rendering/Materials/MaterialInputs
 Related: Engine/Rendering/Materials/Editor
 Related: Engine/Rendering/Materials/IntroductionToMaterials
 Related: Engine/Rendering/Materials/MaterialProperties
+Version: 4.9
+SkillLevel: Beginner
 
 [TOC(start:2 end:3)]
 
@@ -157,7 +159,7 @@ TDn_9Dg1s-Q
 
 보시듯이 UE4 에서 머티리얼을 미리보고 적용할 수 있는 방법은 여러가지 있습니다.
 머티리얼 미리보기와 적용에 선택한 방법이 무엇이든, 작업방식에 잘 맞는 것이 최선입니다.
-기억하실 것은 무언가를 미리볼 때, **적용** 및 **저장** 버튼을 눌르지 않으면 작업물을 잃거나 보이지 않게 될 수가 있습니다.
+기억하실 것은 무언가를 미리볼 때, **적용** 및 **저장** 버튼을 누르지 않으면 작업물을 잃거나 보이지 않게 될 수가 있습니다.
 
 ![](Engine\Rendering\Materials\HowTo\Refraction\R_Apply_&_Save.png)
 

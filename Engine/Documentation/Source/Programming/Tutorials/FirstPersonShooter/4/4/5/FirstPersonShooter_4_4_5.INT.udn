@@ -3,7 +3,7 @@ Title: 4.4.5 - Add Jump Loop to Jump End Transition
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4, Programming/Tutorials/FirstPersonShooter/4/4
 Description: Learn how to add jump loop to jump end state transitions your First Person Shooter character's animation state machine.
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -29,9 +29,9 @@ During this step, you're going to set your jump loop to jump end transition.
 
 	![](JumpLooptoJumpEnd.png)
 
-1.	**Double-click** the transition to edit it.
+1.	Double-click the transition to edit it.
 
-1.	**Control-click** on **IsFalling** in the **My Blueprint** tab and drag into the graph to create a **Get Is Falling** node.
+1.	Control-click on **IsFalling** in the **My Blueprint** tab and drag into the graph to create a **Get Is Falling** node.
 
 1.	Drag off the output Boolean pin on the **Get Is Falling** node and create a **Not Boolean** node.
 

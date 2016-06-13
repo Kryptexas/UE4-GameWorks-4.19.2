@@ -1,4 +1,5 @@
-﻿Availability:Public
+﻿INTSourceChangelist:0
+Availability:Public
 Title: 动画重定向
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:重定向允许您在具有不同比例的角色上重用动画。
@@ -47,15 +48,13 @@ Description:重定向允许您在具有不同比例的角色上重用动画。
 
 一旦给角色应用了重定向，就会在对等处理过程中去除它们的比例差异，动画可以在角色上进行正常地播放。您可也可以跳转到 **Show（显示） > Non-Retargeted Animation（没有重定向的动画）** 来查看原始骨架(显示为米黄色)和当前骨架(显示为白色)的差别。注意，在基础角色上，米黄色的非重定向骨骼完美地和该骨架相匹配。
 
+[EXCERPT:AfterTable]
 [REGION:imagetable]
 |![](BaseCharacterRunningRetargetedBones.png)(%chars%)|![](ShortStockyRunningRetargetedBones.png)(%chars%)|![](TallSkinnyRunningRetargetedBones.png)(%chars%)|
 |---|---|---|
 |基本角色|矮粗版本的角色|高瘦版本的角色|
 [/REGION]
-
-
-
-
+[/EXCERPT:AfterTable]
 
 ## 重定向的工作原理
 

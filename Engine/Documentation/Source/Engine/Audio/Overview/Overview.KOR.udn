@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2611656
+﻿INTSourceChangelist:2674618
 Availability: Public
 Title:오디오 시스템 개요
 Crumbs: %ROOT%, Engine, Engine/Audio
 Description:사운드 큐 노드 기반 오디오 애셋 사용법을 포함해서, 게임내 사운드 재생에 사용되는 오디오 시스템에 대한 개요서입니다.
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -47,7 +48,7 @@ Description:사운드 큐 노드 기반 오디오 애셋 사용법을 포함해�
 
 
 언리얼 엔진 4 의 오디오 시스템은 여러 부분으로 구성되어 있으며, 그 각각이 합해져 플레이어가 듣게 되는 오디오 경험을 만들어 냅니다.
-엔진에 오디오 파일을 임포트한 다음 레벨에 끌어 놓아 배치하면, **Volume** (볼륨)이나 **Pitch** (핏치)와 같은 기본적인 조절 옵션 뿐만 아니라, 소리의 근원지와 청자와의 거리에 따라 소리가 어떻게 들리는지를 정의하는 **Attenuation** (감쇠)같은 미세 조정 옵션도 생깁니다.
+엔진에 오디오 파일을 임포트한 다음 레벨에 끌어 놓아 배치하면, **Volume** (볼륨)이나 **Pitch** (핏치)와 같은 기본적인 조절 옵션 뿐만 아니라, 소리의 근원지와 청자와의 거리에 따라 소리가 어떻게 들리는지를 정의하는 **Sound Attenuation** (사운드 감쇠)같은 미세 조정 옵션도 생깁니다.
 
 언리얼 엔진 4 는 **Sound Cue** (사운드 큐) 형태로 복합적인 사운드를 만드는 것이 가능하며, **사운드 큐 에디터** 를 통해 소리의 사운드를 합치는 것은 물론 **사운드 노드** 라는 형태로 변조시켜 최종 출력을 변경할 수도 있습니다.
 이 글에서는 사운드의 청취 또는 재생 방식을 정의하는 데 사용되는 부가 요소들을 다루겠으며, 각 섹션별로 자세한 문서에 대한 링크를 찾을 수 있습니다.
@@ -103,9 +104,7 @@ Description:사운드 큐 노드 기반 오디오 애셋 사용법을 포함해�
 
 ![](soundAttenuation.png)
 
-**Attenuation** (감쇠) 프로퍼티 관련 상세 정보는, [앰비언트 사운드 액터 사용 안내서](Engine\Audio\SoundActors) 의 **Attenuation 프로퍼티** 부분을 참고해 주시기 바랍니다.
-
-**Distance Model Attenuation** (디스턴스 모델 감쇠) 관련 상세 정보는, [디스턴스 모델 감쇠](Engine/Audio/DistanceModelAttenuation) 문서를 참고해 주시기 바랍니다.
+**Attenuation** (감쇠) 프로퍼티 관련 상세 정보는, [사운드 감쇠](Engine/Audio/DistanceModelAttenuation) 문서를 참고해 주시기 바랍니다.
 
 
 ### 반향 이펙트

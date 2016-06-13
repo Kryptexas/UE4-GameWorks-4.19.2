@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2426145
+﻿INTSourceChangelist:2708377
 Availability:Public
 Title: 위젯 만들기
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
 Description:게임에서 위젯 블루프린트를 만들고 표시하는 법입니다.
+version: 4.9
 
 **위젯 블루프린트** 를 만들고 배치한 이후 게임에서 표시되도록 하기 위해서는, 다른 (**레벨 블루프린트** 또는 **캐릭터 블루프린트** 등의) 블루프린트에서 **Create Widget** 과 **Add to Viewport** 노드를 사용하여 호출해 줘야 합니다.
 
@@ -43,7 +44,7 @@ Description:게임에서 위젯 블루프린트를 만들고 표시하는 법입
 
 ![](AddChild.png)
 
-위 예제는 _Player List_ 라는 Scroll Box 위젯을, **Add Child** 함수를 사용하여 _Main Menu_ 라는 새 위젯에 덧붙이는 방법을 보여줍니다.
+위 예제는 start_Button 이라는 Scroll Box 위젯을, **Add Child** 함수를 사용하여 _Main Menu_ 라는 새 위젯에 덧붙이는 방법을 보여줍니다.
 
 [REGION:note]
 **Add Child** 노드는 한 패널 내에서 한 위젯과 다른 위젯에 부모자손 관계를 만드는 노드인 반면, **Add to Viewport** 는 위젯이 마치 새로운 창인 양 루트 뷰포트에 추가해 줍니다. 자손 위젯을 제거하려면 부모에서 **RemoveChild** 가 호출되도록 해야합니다.

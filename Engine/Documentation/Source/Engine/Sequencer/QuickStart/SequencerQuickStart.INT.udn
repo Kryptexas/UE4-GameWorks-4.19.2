@@ -1,0 +1,43 @@
+Availability:Docs
+Title: Sequencer Quick Start
+Crumbs: %ROOT%, Engine
+Description:A guide to quickly get up and running with the Sequencer Editor in Unreal Engine 4. 
+Navigation:topic
+parent:Engine/Sequencer
+order:1
+Version: 4.11
+Related: Engine\Sequencer\Overview
+Related: Engine\Sequencer\ReferenceEditor
+Related: Engine\Sequencer\HowTo
+
+
+[REGION:warning]
+This is a feature that is currently undergoing development and may not work as expected or may change in future revisions.
+[/REGION]
+
+Sequencer is the successor to [**Matinee**](Engine\Matinee\) and gives users the ability to create in-game cinematics through a specialized multi-track editor. 
+By creating **Level Sequences** and adding **Tracks**, users can define the make up of each Track which will define the content for their sequence. 
+Tracks can consist of things like Animation (for animating a character), Transformation (moving things around in the scene like Camera), Audio (for including a music or sound effect), etc. 
+
+This page covers the basics of the **Sequencer** Editor inside **Unreal Engine 4**. 
+
+[REGION:note]
+Sequencer is in the early stages of development and you will need to enable it before you can start working with it. Please see the [](Engine\Sequencer\HowTo\EnableSequencer) page for more information. 
+[/REGION]
+
+##Level Sequences
+
+The **Level Sequence** asset is similar to the **Matinee Actor** and must be created before you can begin working with Sequencer. 
+
+You can create one from the **Toolbar** under **Cinematics** or from the **Content Browser** as seen below. 
+
+
+
+
+
+
+
+
+
+
+

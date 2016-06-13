@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2603910
+﻿INTSourceChangelist:2652918
 Availability:Public
 Title:EQS 테스팅 폰
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem
 Description:인바이언먼트 쿼리 시스템에는 에디터의 인바이언먼트 쿼리 실시간 결과를 전문적으로 표시하는 폰이 포함되어 있습니다. 여기서는 EQSTestingPawn 을 만들고 사용하는 법을 다룹니다.
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]

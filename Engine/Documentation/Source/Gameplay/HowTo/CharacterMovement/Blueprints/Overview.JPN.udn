@@ -1,19 +1,31 @@
-﻿INTSourceChangelist:2428435
+﻿INTSourceChangelist:2740691
 Availability:Public
 Title:ブループリントにおけるキャラクター移動の設定方法
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement
 Description:ブループリントにおいてキャラクター移動を設定するためのガイド 
+Version:4.9
+SkillLevel:Advanced
 
  
 この「How To」シリーズでは、 **ブループリント** を使って完全にプレイ可能かつアニメートされたキャラクターを作成するために必要なすべてのステップを紹介していきます。シリーズの最後には、歩く、走る、しゃがむ、しゃがんで歩く、前かがみになる、静止した立ち姿勢または動作中からジャンプするといった動きが可能なキャラクターが出来上がります。 
 
-こちらのビデオサンプルで、完成品のサンプルをご覧いただけます。 
+こちらのビデオで、完成品のサンプルをご覧いただけます。 
 
-[![](CharacterMovement_Thumbnail.png)(w:640)](CharaterMovement.mp4)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+f5DQQWQ8GEY
+[/PARAMLITERAL]
+[/OBJECT]
  
-このシリーズの中では **Animation Starter Pack** が使用されています。これは、キャラクターの移動を作成できるアニメーションが幾つか含まれており、**マーケットプレイス** から無料でご利用いただけます。Animation Pack をダウンロードすると、ランチャーの **[プロジェクトに追加する]** ボタンで既存プロジェクト (できれば新規のブランク プロジェクト) に追加してから、アセットを追加するプロジェクトを指定することができます。 
+このシリーズの中では **Animation Starter Pack** が使用されています。これは、キャラクターの移動を作成できるアニメーションが幾つか含まれており、**マーケットプレイス** から無料でご利用いただけます。Animation Pack をダウンロードすると、ランチャーの **[Add to project (プロジェクトに追加する)]** ボタンで既存プロジェクト (できれば新規のブランク プロジェクト) に追加してから、アセットを追加するプロジェクトを指定することができます。 
 
-![](Characters_1.png)
+![](AnimationStartePack1.jpg)
 
 では、以下のステップから開始していきましょう。 
 

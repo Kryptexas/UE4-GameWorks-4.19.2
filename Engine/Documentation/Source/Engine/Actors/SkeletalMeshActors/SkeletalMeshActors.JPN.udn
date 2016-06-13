@@ -1,11 +1,10 @@
-﻿INTSourceChangelist:2714898
-Availability:Public
+﻿Availability:Public
 Title:Skeletal Mesh アクタ
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:Skeletal Mesh  アクタを作成して使用する
 Related:Engine/Actors
 Related:Engine/Animation
-バージョン：4.9
+version:4.9
 
 
 
@@ -14,10 +13,10 @@ Related:Engine/Animation
 ![](SkeletalMeshActor_Matinee_Example.png)
 
 
-アンリアル エンジン 4 (UE4) を使用するビデオ ゲームでプレイする場合、画面上で制御するキャラクターは多くの場合、**Skeletal Mesh アクタ** と呼ばれる特殊なメッシュで作られています。Skeletal Mesh アクタは、外部の 3D アプリケーションで作られた複雑なアニメーション データを表示するために使用可能であり、UE4 にインポートできる特殊なものです。以下のガイドでは、UE4 で Skeletal Mesh アクタを使用するためのノウハウをご紹介します。
+UE4 を使用するビデオ ゲームでプレイする場合、画面上で制御するキャラクターは多くの場合、**Skeletal Mesh アクタ** と呼ばれる特殊なメッシュで作られています。Skeletal Mesh アクタは、外部の 3D アプリケーションで作られた複雑なアニメーション データを表示するために使用可能であり、UE4 にインポートできる特殊なものです。以下のガイドでは、UE4 で Skeletal Mesh アクタを使用するためのノウハウをご紹介します。
 
 [region:tip]
-このチュートリアルの全コンテンツは、Matinee のデモのものです。このデモは、Learn (学習) タブから無料ダウンロードできます。 
+このチュートリアルの全コンテンツは、Matinee のデモのものです。このデモは、Learn (ラーニング) タブから無料ダウンロードできます。 
 [/region]
 
 ## Skeletal Mesh アクタとは何か
@@ -43,14 +42,14 @@ Skeletal Mesh アクタは一般的なアクタ配置方法を用いてマップ
 
 1. **[コンテンツ ブラウザ]** で、Skeletal Mesh アクタとしてレベルへ追加する Skeletal Mesh アクタを選択します。
    
-1. メッシュを追加するビューポート内で **右クリック** して、コンテキスト メニューから、**Place Actor:Skeletal Mesh** を選択します。正確な追加位置でなくても構いません。後でいつでも配置しなおしたり、回転することができます。 
+1. メッシュを追加するビューポート内で **右クリック** して、コンテキスト メニューから、**[Place Actor:Skeletal Mesh]** を選択します。正確な追加位置でなくても構いません。後でいつでも配置しなおしたり、回転することができます。 
 
-1. **Place Actor:Skeletal Mesh** オプションをクリックすると、選択したSkeletal Mesh がシーンに配置されます。 
+1. **[Place Actor:Skeletal Mesh]** オプションをクリックすると、選択した Skeletal Mesh がシーンに配置されます。 
 
 ![](Skeletal_Mesh_Context_Menu.gif.gif)
 
 ## Skeletal Mesh アクタでアニメーションを再生する 
-ゲーム実行中に Skeletal Mesh アクタをアニメートさせるには、UE4 で行う以下の 2 種類の方法があります。複数のアニメーションをまとめて再生し、ブレンドすることができる [アニメーション ブループリント]( Engine/Animation/AnimBlueprints) を使用できます。または、アニメーション アセットを使用して、ひとつの [アニメーション シーケンス]( Engine/Animation/Sequences) を再生できます。このチュートリアルでは、アニメーション シーケンスを使用して、ゲーム実行中にアニメーションを再生させることに焦点を当てて説明します。 
+ゲーム実行中に Skeletal Mesh アクタをアニメートさせるには、UE4 内で行われる以下の 2 種類の方法があります。複数のアニメーションをまとめて再生し、ブレンドすることができる [Animation ブループリント]( Engine/Animation/AnimBlueprints) を使用できます。または、アニメーション アセットを使用して、ひとつの [アニメーション シーケンス]( Engine/Animation/Sequences) を再生できます。このチュートリアルでは、アニメーション シーケンスを使用して、ゲーム実行中にアニメーションを再生させることに焦点を当てて説明します。 
 
 ### Skeletal Mesh アクタのセットアップ
 アニメーションを再生できるように Skeletal Mesh アクタをセットアップするのは、非常に簡単です。以下の手順に従い行うことができます。
@@ -65,17 +64,17 @@ Skeletal Mesh アクタがレベルに追加されたら、以下の手順に従
 
 	![](SkeletalMeshActor_Finding_Anim_Sequance.png)
 
-1. 使用するアニメーションを配置したら、Skeletal Mesh アクタをセットアップし、使用できるようにします。最初に **アニメーション モード** を **Use Animation Blueprint** から **Use Animation Asset** に設定する必要があります。
+1. 使用するアニメーションを配置したら、Skeletal Mesh アクタをセットアップし、使用できるようにします。最初に **Animation Mode (アニメーション モード)** を **[Use Animation Blueprint]** から **[Use Animation Asset]** に設定する必要があります。
 
 	![](SkeletalMeshActor_Use_Anim_Asset.png)
 
-1. **アニメーション モード** を正しく設定したら、再生するアニメーションを選択します。これを行うには、 **[コンテンツ ブラウザ]** で再生する **アニメーション シーケンス** を選択し、それを **Anim to Play** セクションに適用します。適用の方法は、**Animation Sequence** を **Anim to Play** にドラッグ＆ドロップするか、または **Anim to Play** 入力ボックスの右側の矢印を使用します。
+1. **アニメーション モード** を正しく設定したら、再生するアニメーションを選択します。これを行うには、 **[コンテンツ ブラウザ]** で再生する **アニメーション シーケンス** を選択し、それを **Anim to Play** セクションに適用します。適用の方法は、**アニメーション シーケンス** を **[Anim to Play]** にドラッグ＆ドロップするか、または **[Anim to Play]** 入力ボックスの右側の矢印を使用します。
 	![](SkeletalMeshActor_Anim_To_Play.png)
 
 
 ### スケルタルメッシュのアニメーションの再生	
 
-1. **[Looping]** と **[Playing]** の両方にチェックが入っていること (デフォルト設定) を確認します。ゲーム中にアニメーションを見るには、**[Play (再生)]** ボタンを押します。
+1. **[Looping]** と **[Playing]** の両方にチェックが入っていること (デフォルト設定) を確認します。ゲーム中にアニメーションを見るには、**[Play (プレイ)]** ボタンを押します。
 
 	![](SkeletalMeshActor_Looping_Playing.png)
 

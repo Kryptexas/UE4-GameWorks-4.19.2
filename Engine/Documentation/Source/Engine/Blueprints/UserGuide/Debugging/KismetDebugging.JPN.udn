@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:2688102
+﻿INTSourceChangelist:2968923
 Availability:Public
 Title:ブループリントのデバッグ作業
-Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide
+Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Workflow
 Description:ブレークポイントを使って一時停止を実行して、変数のグラフと値を調査する
 Version:4.9
+Parent:Engine/Blueprints/Workflow
+order:5
 
 [EXCERPT:Overview]
 ブループリントのデバッグは、 Play In Editor と Simulate In Editor モードで実行中のゲームを一時停止できる便利な機能です。ブレークポイントを利用してブループリントまたはレベルスクリプトの全てのグラフをステップスルーします。

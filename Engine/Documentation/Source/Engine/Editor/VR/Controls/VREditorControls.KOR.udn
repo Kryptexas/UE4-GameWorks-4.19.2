@@ -1,0 +1,128 @@
+﻿INTSourceChangelist:2911160
+Title: VR 에디터 조작법
+Description: VR 모드에서 월드 제작 작업시 사용되는 여러가지 조작법과 상호작용 방식에 대해 배워봅니다.
+Crumbs:
+Availability: public
+parent: Engine/Editor/VR
+type: reference
+order: 1
+tags: VR
+version: 4.11
+skilllevel: intermediate
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Editor/VR/Controls:title%](Engine/Editor/VR/Controls/vreditor_controls.png)(fill:#919293)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/Controls:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/Controls]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/Controls:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Editor/VR/Controls:title%](Engine/Editor/VR/Controls/vreditor_controls.png)(fill:#919293)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/Controls:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/Controls]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/Controls:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+씬 이동, 액터 선택 및 조작, 에디터 패널과 창 작업을 할 수 있도록 해 주는 여러가지 조작법이 있습니다.
+
+## 콘트롤러
+
+[REGION:raw]
+![](controller.png)(convert:false)
+[/REGION]
+
+1. 모디파이어
+2. 트랙 패드
+3. 트리거
+4. 사이드 버튼
+
+## 레이저 포인터
+
+각 콘트롤러는 레이저 포인터라 불리는 빔을 쏘며, 이를 사용하여 어떤 액터를 조작할 지 결정합니다. 빔의 색으로 콘트롤러의 현재 모드를 알 수 있습니다.
+
+| 색 | 모양 | 의미 |
+| ----- | ---------- | ------- |
+| 주황 |![](standardmode.png)(w:192) | 콘트롤러가 표준 상호작용 모드입니다. 콘트롤러의 기본 상태입니다. |
+| 초록 |![](selectionmode.png)(w:192) | 콘트롤러가 선택 모드이며, 액터가 선택되었다는 뜻입니다. |
+| 노랑 |![](movementmode.png)(w:192) | 콘트롤러가 이동 모드이며, 월드 이동중이라는 뜻입니다. |
+
+## 조작 콘트롤
+
+[REGION:raw]
+| 조작 | 설명 |
+| ------- | ----------- |
+| ![사이드 버튼 + 콘트롤러 이동](move_world.png)(convert:false) | 사이드 버튼을 누르고 콘트롤러를 이동시키면 월드를 잡고 손으로 밀거나 끄는 방식으로 원하는 대로 이동할 수 있습니다. |
+| ![사이드 버튼 + 콘트롤러 조준 + 트리거 조작](teleport_world.png)(convert:false) | 사이드 버튼을 누르고, 콘트롤러를 조준한 뒤, 트리거를 조작하면 현재 위치에서 콘트롤러로 조준한 위치로 순간이동합니다. |
+| ![사이드 버튼 + 양쪽 콘트롤러 회전 이동](rotate_world.png)(convert:false) | 양쪽 콘트롤러의 사이드 버튼을 누르고 양쪽 콘트롤러를 회전 이동시키면 월드를 손에 잡고 회전시키듯 주변 월드를 회전시킵니다. |
+| ![사이드 버튼 + 양쪽 콘트롤러 좁히기 또는 벌리기 이동](scale_world.png)(convert:false) | 양쪽 콘트롤러의 사이드 버튼을 누르고 서로 가까이 또는 멀리 이동시키면 월드의 스케일을 올리거나 낮춥니다. |
+[/REGION]
+
+## 선택 조작법
+
+[REGION:raw]
+| 조작 |  설명 |
+| ------- | ----------- |
+| ![콘트롤러 액터에 조준 + 트리거 조작](select_actor.png)(convert:false) | 콘트롤러의 월드의 액터에 조준한 상태로 트리거를 조작하면 액터를 선택합니다. |
+| [INCLUDE:#multiselect] | 한 콘트롤러의 월드의 한 액터에 조준하고 트리거를 절반쯤 조작하여 액터를 선택하면 다중 선택 모드로 들어갑니다. 트리거를 절반 조작한 상태에서 다른 콘트롤러로 다른 액터를 조준한 뒤 그쪽 트리거를 조작하면, 선택에서 그 액터가 추가 또는 제거됩니다. |
+[/REGION]
+
+## 트랜스폼 조작
+
+[REGION:raw]
+| 조작 | 설명 |
+| ------- | ----------- |
+| ![콘트롤러 액터에 조준 + 트리거 조작 + 콘트롤러 이동](move_actor.png)(convert:false) | 콘트롤러를 월드의 액터에 조준하고 트리거를 조작하여 선택합니다. 콘트롤러를 이동시켜 액터를 조준 위치로 이동시킵니다. |
+| ![콘트롤러 액터에 조준 + 트리거 조작 + 양쪽 콘트롤러 회전 이동](rotate_actor.png)(convert:false) | 양쪽 콘트롤러를 월드의 액터에 조준하고 양쪽 트리거를 조작하여 액터를 선택합니다. 양쪽 콘트롤러를 서로 회전시키면 액터를 손에 잡고 돌리듯 회전시킵니다. |
+| ![콘트롤러 액터에 조준 + 트리거 조작 + 양쪽 콘트롤러 좁히기 또는 벌리기](scale_actor.png)(convert:false) | 양쪽 콘트롤러를 월드의 액터세 조준한 뒤 양쪽 콘트롤러를 조작하여 액터를 선택합니다. 양쪽 콘트롤러를 서로 가까이 또는 멀리 이동시키면 액터를 손으로 잡고 늘이거나 줄이듯 그 스케일을 높이거나 낮춥니다. |
+| ![콘트롤러 액터에 조준 + 트리거 조작 + 트랙 패드 멀리 또는 가까이](slide_actor.png)(convert:false) | 콘트롤러를 월드의 액터에 조준하고 트리거를 조작하여 액터를 선택합니다. 트랙 패드에 엄지를 올리고 위 또는 아래로 움직이면 선택된 액터가 멀리 또는 가까이 이동됩니다. |
+[/REGION]
+
+## 메뉴 조작
+
+[REGION:raw]
+| 조작 | 설명 |
+| ------- | ----------- |
+| ![모디파이어 버튼](radial_menu.png)(convert:false) | 트랙 패드를 엄지로 살짝 누르면 원형 메뉴가 열립니다. 트랙 패드 위에 엄지를 두고 이동시켜 강조시킬 옵션을 선택합니다. 트랙 패드를 완전히 누르면 강조된 옵션을 선택합니다. |
+| ![한 콘트롤러로 다른 콘트롤러 조준](quick_select_menu.png)(convert:false) | 한 콘트롤러를 다른 콘트롤러에 조준하여 빠른 선택 메뉴를 엽니다. |
+[/REGION]
+
+## 창 조작
+
+[REGION:raw]
+| 조작 | 설명 |
+| ------- | ----------- |
+| ![트랙 패드 탭](show_hide_windows.png)(convert:false) | 트랙 패드를 탭하면 열린 창을 표시 또는 숨깁니다. |
+| ![콘트롤러를 창 손잡이에 조준 + 트리거 조작 + 트랙 패드 멀리 또는 가까이](scale_window.png)(convert:false) | 콘트롤러를 창 손잡이에 조준하고 트리거를 쥐어 창을 잡습니다. 트랙 패드 위에 엄지를 위 또는 아래로 움직여 창 크기를 키우거나 줄입니다. |
+[/REGION]
+
+<!--
+[EXCERPT:MultiSelect]
+[PUBLISH:Rocket]
+[REGION:lightbox][![콘트롤러 액터에 조준 + 트리거 절반 조작 + 콘트롤러 다른 액터 조준 + 트리거 조작](select_actor_multiple.png)(h:108 convert:false)](select_actor_multiple.png)[/REGION]
+[/PUBLISH:Rocket]
+[PUBLISH:Epic]
+![콘트롤러 액터에 조준 + 트리거 절반 조작 + 트리거 다른 액터에 조준 + 트리거 조작](select_actor_multiple.png)(h:108 convert:false)
+[/PUBLISH:Epic]
+[/EXCERPT:MultiSelect]
+-->

@@ -3,7 +3,7 @@ Title: 4.3 - Adding an Animation State Machine
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4
 Description: Learn how to add an animation state machine for your First Person character.
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,17 +23,17 @@ Version: 4.9
 
 %Steps%
 
-During this step, you're going to put together a state machine that will take advantage of your newly made variables.
+During this step, we're going to put together a state machine that will take advantage of our newly made variables.
 
-1.	**Double-click** on **AnimGraph** in the **My Blueprint** tab to open it.
+1.	Double-click on **AnimGraph** in the **My Blueprint** tab to open it.
 
 	![](AnimGraph.png)
 
-1.	**Right-click** the graph and select **State Machines > Add New State Machine... ** in the **Context Menu**.
+1.	Right-click the graph and select **State Machines > Add New State Machine... ** in the **Context Menu**.
 
 	![](AddNewSM.png)
 
-1.	**Right-click** on **New State Machine** in the **My Blueprint** tab and name it "Arms State Machine".
+1.	Right-click on **New State Machine** in the **My Blueprint** tab and name it "Arms State Machine".
 
 	![](NewArmsStateMachine.png)
 
@@ -41,6 +41,6 @@ During this step, you're going to put together a state machine that will take ad
 
 	![](ConnectedArmsStateMachine.png)
 
-1.	**Double-click** the "Arms State Machine" node to open its graph for editing.
+1.	Double-click the "Arms State Machine" node to open its graph for editing.
 
 %Steps%

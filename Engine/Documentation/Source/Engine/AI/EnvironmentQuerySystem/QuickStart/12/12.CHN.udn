@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2654627
 Availability:Public
-Title: 12. Creating the FindHidingSpot EQS
+Title:12.创建 FindHidingSpot EQS
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
-Description: Create an EQS that finds the best point on a grid to hide from the Player's TopDownCharacter.
+Description:创建一个 EQS，在网格上寻找最佳藏身点，躲避玩家的 TopDownCharacter。
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -22,83 +23,83 @@ Description: Create an EQS that finds the best point on a grid to hide from the 
 
 %Steps%
 
-For this step you'll be creating a much more involved Environment Query. It's going to create a grid of points, projected onto the NavMesh, then run a series of tests to figure out the "best" place to hide. Some of the tests will simply cull out completely unsatisfactory locations, such as those that are visible to the Player's Character (Trace), others will weight the potential hiding spots based on if they are reachable on the NavMesh (PathFinding) or how much a point is in front of the Player's Character (Dot Product).
+该步骤需要创建更为复杂的场景查询。将创建一个点网格投射到寻路网格体上，然后通过一系列测试找到最佳的藏身之处。部分测试将完全剔除掉不理想的位置，如处于玩家角色视线（Trace）中的位置，其他将基于寻路网格体是否可到达（PathFinding）权衡潜在的隐藏点，或玩家角色前有多少点存在（Dot Product）。
 
-Just a quick reminder:
+小提醒：
 
-* A Generator creates Items in relation to a Context
-* Items are used in Tests often in relation to a Context (how far is Item X from Context Y)
-* Items are culled or scored based on the results of Tests
+* 生成器（Generator）创建与 Context 有关的项目（Item）
+* 测试中使用的项目通常与 Context 有关（项目 X 到 Context Y 有多远）
+* 基于测试结果对项目进行剔除和评分
 
-## Steps
+## 步骤
 
-1. To start, **Double-Click** the `FindHidingSpot` Environment Query asset in the **Content Browser**.
+1. 首先，在 **内容浏览器** 中 **双击** FindHidingSpot 场景查询资源。
 
 	![](findHide.png)
 
-1. Create **Simple Grid** Generator and connect it to the **Root** node
+1. 创建 **Simple Grid** 生成器并将其和 **Root** 节点连接起来。
 
 	![](simpleGrid.png)
 
-1. Select the **Simple Grid** Generator and in the **Details** Panel set the following Properties:
+1. 选择 **Simple Grid** 生成器并在 **Details** 面板中设置以下属性：
 	
 	 ![](gridProp.png)
 
 	[INCLUDE:#eqsqs121]
 
-	These settings for the Grid Generator will create a sizable, but manageable, number of Items for the Query to test against. The **Project Down**, **Project Up,** and **Post Projection Vertical Offset** properties are particularly useful to change if you have an AI that needs to find something above or below them.
+	网格生成器的这些设置将创建大小可调，便于管理的多个项目，便于查询进行测试。如 AI 需要在其上方或下方进行寻找，**Project Down**、**Project Up** 和 **Post Projection Vertical Offset** 属性均十分便于进行变更。
 
-1. [REGION:raw]Add 2 **Distance** Tests by **Right-Clicking** the **Simple Grid** node and selecting **Tests** %arrow% **Distance**[/REGION]
+1. [REGION:raw]**右键单击** **Simple Grid** 节点并选择 **Tests** %arrow% **Distance** 添加 2 个 **距离** 测试[/REGION]
 
 	![](addDistance.png)
 
-1. Select the first one and in the **Details** Panel adjust the following Properties:
+1. 选择第一个测试，在 **Details** 面板中调整下列属性：
 
 	![](distanceProps.png)
 
 	[INCLUDE:#eqsqs122]
 
-	This Distance test is meant to give Items _further_ from the Player a higher Score.
+	此距离测试将为离玩家 _更远_ 的项目赋予更高分数。
 
-1. Select the second one and in the **Details** Panel adjust the following Properties:
+1. 选择第二个测试，在 **Details** 面板中调整下列属性：
 
 	![](distanceProps2.png)
 
 	[INCLUDE:#eqsqs123]
 
-	This Distance test is meant to give Items _closer_ to the AI a higher Score, and this test carries more weight than the previous **Distance Test** meaning it will favor closer to the AI but still select away from the Player.
+	此距离测试将为更靠近 AI 的项目赋予更高分数，较之前的 **距离测试** 权重更多，意味着它愿意靠近 AI，但仍然会选择远离玩家。
 
-1. [REGION:raw]Add 2 **Trace** Tests by **Right-Clicking** the **Simple Grid** node and selecting **Tests** %arrow% **Trace**[/REGION]
+1. [REGION:raw]**右键单击** **Simple Grid** 节点并选择 **Tests** %arrow% **Trace** 添加 2 个 **Trace** 测试[/REGION]
 
 	![](addTrace.png)
 
-1. Select the one of the Trace tests and in the **Details** panel change **Context** to `PlayerContext` (the Context created earlier in this Quick Start):
+1. 选择一个 Trace 测试并在 **Details** 面板中将 **Context** 改为 PlayerContext（之前在此快速入门中创建的 Context）：
 
 	![](traceProps.png)	
 
-	Here we remove any Item that the Player Pawn or AI pawn has line of sight to. Also, you may be concerned that this test comes after a bunch of **Distance** tests, but it's ok, as the Environment Query runs **Trace** tests first regardless of order here. Also, the other Trace requires no additional setup.
+	我们将移除处于玩家 Pawn 或 AI pawn 视线中的项目。此外，您可能会担心该测试会在一系列的 **Distance** 测试后进行，但实际上无需担心 - 场景查询将无视此处的排序率先运行 **Trace** 测试。此外，其他 Trace 也无需进行额外设置。
 
-1. [REGION:raw]Add a **Dot** test by **Right-Clicking** the **Simple Grid** node and selecting **Tests** %arrow% **Dot**[/REGION]
+1. [REGION:raw]**右键单击** **Simple Grid** 节点并选择 **Tests** %arrow% **Dot** 添加 1 个 **Dot** 测试[/REGION]
 
 	![](addDot.png)
 
-1. Select the **Dot** test and in the **Details** panel adjust the following properties: 
+1. 选择 **Dot** 测试，在 **Details** 面板中调整下列属性： 
 	
 	![](dotProps.png)
 
 	[INCLUDE:#eqsqs125]
 
-	Here things get tricky, at the high level, this is saying "Favor Items that are to the sides of the Player Pawn," but how it works is a bit odd. A Dot Product function will return how "alike" two vectors are on a scale of 1.0 (perfectly the same) to -1.0 (completely opposite). So if we get the **Absolute Value** of the Dot Product between the rotation vector of the Player and the vector from the Player to the Item we'll favor points in front of and behind the Player. But if we set the **Scoring Factor** to -1.0, then we favor to the sides of the Player.
+	此处需要一些技巧，最高层上描述的是“偏好位于玩家 Pawn 两侧的项目”，但其工作方式稍显另类。Dot Product 函数将返回 2 个矢量在 1.0（完全相同）到 -1.0（完全相反）尺度上的相似度。因此，如果 Dot Product 的 **绝对值** 在玩家的旋转矢量和玩家到项目的矢量之间，则会偏好玩家前后的点。但如果将 **Scoring Factor** 设为 -1.0，则会偏好玩家两侧的点。
 
-1. [REGION:raw]Add a **PathFinding** test by **Right-Clicking** the **Simple Grid** node and selecting **Tests** %arrow% **PathFinding**[/REGION]
+1. [REGION:raw]**右键单击** **Simple Grid** 节点并选择 **Tests** %arrow% **PathFinding** 添加 1 个 **PathFinding** 测试[/REGION]
 
 	![](addPath.png)
 
-1. Select the **PathFinding** test and in the **Details** panel adjust **Test Purpose** to `Score Only`:
+1. 选择 **PathFinding** 测试，在 **Details** 面板中将 **Test Purpose** 设为 Score Only：
 
 	![](pathProps.png)
 
-	That's it for the editing! The final Environment Query will look similar to this:
+	仅供编辑！最终的场景查询与下图相似：
 
 	![](final.png)
 
@@ -108,29 +109,29 @@ Just a quick reminder:
 
 <!--
 [EXCERPT:eqsqs125]
-* **Line A - Rotation** = `PlayerContext`
-* **Line B - Line From** = `PlayerContext`
-* **Absolute Value** = `True`
-* **Test Purpose** = `Score Only`
-* **Scoring Factor** = `-1.0`
+* **Line A - Rotation** = PlayerContext
+* **Line B - Line From** = PlayerContext
+* **Absolute Value** = True
+* **Test Purpose** = Score Only
+* **Scoring Factor** = -1.0
 [/EXCERPT]
 
 [EXCERPT:eqsqs121]
-* **Grid Size** = `2000.0`
-* **Space Between** = `150.0`
-* **Navigation Filer** = `RecastFilter_UseDefaultArea`
-* **Project Down** = `2048.0`
-* **Post Projection Vertical Offset** = `32.0`
+* **Grid Size** = 2000.0
+* **Space Between** = 150.0
+* **Navigation Filer** = RecastFilter_UseDefaultArea
+* **Project Down** = 2048.0
+* **Post Projection Vertical Offset** = 32.0
 [/EXCERPT]
 
 [EXCERPT:eqsqs122]
-* **Distance To** = `Player Context`
-* **Test Purpose** = `Score Only`
+* **Distance To** = Player Context
+* **Test Purpose** = Score Only
 [/EXCERPT]
 
 [EXCERPT:eqsqs123]
-* **Test Purpose** = `Score Only`
-* **Scoring Equation** = `Inverse Linear`
-* **Scoring Factor** = `2.0`
+* **Test Purpose** = Score Only
+* **Scoring Equation** = Inverse Linear
+* **Scoring Factor** = 2.0
 [/EXCERPT]
 -->

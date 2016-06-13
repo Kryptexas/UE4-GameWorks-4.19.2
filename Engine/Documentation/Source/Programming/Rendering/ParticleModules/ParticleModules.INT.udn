@@ -1,4 +1,4 @@
-Availability:Public
+Availability:Docs
 Title:Particle Module Technical Guide
 Crumbs:%ROOT%, Programming, Programming/Rendering
 Description:Programmer's guide to adding new particle modules for customizing the behavior of particle systems.

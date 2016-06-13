@@ -1,8 +1,11 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:언리얼 게임 프로젝트
 Crumbs: %ROOT%, Engine
 Description:게임 프로젝트에 대한 개요 및 그 작업을 위한 지침입니다.
+version: 4.9
+parent:Engine/Editor
+order:8
 
 [VAR:Topic]
 [OBJECT:Topic]

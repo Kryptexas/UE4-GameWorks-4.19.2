@@ -1,13 +1,17 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2744014
 Availability:Public
-Title: Blueprints Quick Start Guide
+Title:蓝图快速入门指南
 Crumbs: %ROOT%, Engine, Engine/Blueprints
-Description: Creating Your First Blueprint
+version:4.9
+Description:创建首个蓝图，正式动工
+parent:Engine/Blueprints
+order:1
+type:quickstart
 
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![](engine_qs_topic.jpg)
+		![%Engine/Blueprints/QuickStart:title%](Engine/Blueprints/QuickStart/engine_qs_topic.png)
 	[/PARAM]
 	[PARAM:title]
 		%Engine/Blueprints/QuickStart:title%
@@ -16,7 +20,7 @@ Description: Creating Your First Blueprint
 		[RELATIVE:Engine/Blueprints/QuickStart]
 	[/PARAM]
 	[PARAM:description]
-	%Engine/Blueprints/QuickStart:description%
+		%Engine/Blueprints/QuickStart:description%
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -24,7 +28,7 @@ Description: Creating Your First Blueprint
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![](engine_qs_topic.jpg)
+		![%Engine/Blueprints/QuickStart:title%](Engine/Blueprints/QuickStart/engine_qs_topic.png)
 	[/PARAM]
 	[PARAM:title]
 		%Engine/Blueprints/QuickStart:title%
@@ -33,7 +37,7 @@ Description: Creating Your First Blueprint
 		[RELATIVE:Engine/Blueprints/QuickStart]
 	[/PARAM]
 	[PARAM:description]
-	%Engine/Blueprints/QuickStart:description%
+		%Engine/Blueprints/QuickStart:description%
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -43,35 +47,16 @@ Description: Creating Your First Blueprint
 	640
 	[/PARAMLITERAL]
 	[PARAMLITERAL:height]
-	360
+	390
 	[/PARAMLITERAL]
 	[PARAMLITERAL:videoid]
 	Ax4Xgu2Zb4g
 	[/PARAMLITERAL]
 [/OBJECT]
 
-This quick start guide will walk you through building an Actor in the level with different Components, then turning it into a Blueprint Class you can add launching behavior to so your Character will fly around the level!
-Making it into a Blueprint Class also means you can create as many launchpads in your world as you want, just by dragging into the level from the **Content Browser**.
+快速入门指南将指导您利用不同组件在关卡中构建一个 Actor，然后转换为一个可添加发射行为的蓝图类，角色就能在关卡中四处飞行啦！
+转换为蓝图类意味着可以在场景中创建任意数量的起飞平台，从 **内容浏览器** 中拖入关卡即可。
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Steps
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine/Blueprints/QuickStart/1 "%Engine/Blueprints/QuickStart/1:description%")
-	* [](Engine/Blueprints/QuickStart/2 "%Engine/Blueprints/QuickStart/2:description%")
-	* [](Engine/Blueprints/QuickStart/3 "%Engine/Blueprints/QuickStart/3:description%")
-	* [](Engine/Blueprints/QuickStart/4 "%Engine/Blueprints/QuickStart/4:description%")
-	* [](Engine/Blueprints/QuickStart/5 "%Engine/Blueprints/QuickStart/5:description%")
-	* [](Engine/Blueprints/QuickStart/6 "%Engine/Blueprints/QuickStart/6:description%")
-	* [](Engine/Blueprints/QuickStart/7 "%Engine/Blueprints/QuickStart/7:description%")
-	[/PARAM]
-[/OBJECT]
+## 步骤
 
-
-
+[DIR(end:"1" output:"listbutton" type:"multi-step" parent:"Engine/Blueprints/QuickStart" org:"hierarchy")]

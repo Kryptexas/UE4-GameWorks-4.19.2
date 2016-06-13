@@ -3,7 +3,7 @@ Availability:Public
 Title:ペルソナ アニメーション プレビュー エディタ
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
 Description:ペルソナ アニメーション エディタの [アニメーション プレビュー エディタ] パネルに関するユーザーガイド
-バージョン：4.9
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]

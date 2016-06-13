@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2652918
 Availability:Public
-Title:The EQS Testing Pawn
+Title:EQS 测试 Pawn
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem
-Description:The Environment Query System includes a specialized Pawn that will display real time results of any Environment Query in the editor. This document covers creating and using an EQSTestingPawn.
+Description:场景查询系统包含一个特殊 pawn，可显示编辑器中任意场景查询的实时结果。此文档讲述 EQSTestingPawn 的创建和使用。
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -45,60 +46,60 @@ Description:The Environment Query System includes a specialized Pawn that will d
 
 ![](testingPawnBanner.png)(convert:false)
 
-The **Environment Query System Testing Pawn** (EQSTestingPawn) is a specialized Pawn class that enables you to check out what your Environment Queries are actually doing. The exact makeup of your Environment Query will define the size and shape of what is created, but it will always be represented as colored spheres. Spheres that are on the color scale from green to red, indicate some level of match for the various tests your Environment Query ran. Blue spheres indicate a failure or a boolean type test that returned false, such as the **Trace** test.
+**场景查询系统测试 Pawn**（**EQSTestingPawn**）是一个特殊的 Pawn 类，可对场景查询实际进行的操作进行查看。场景查询的实际组成将定义所创建内容的尺寸和形状，但始终以彩色球体显示。球体的色阶从绿色到红色，表示场景查询执行的诸多测试的匹配度。蓝色球体表示失败或布尔型测试返回 false（如 **Trace** 测试）。
 
-## Creating an EQS Testing Pawn
+## 创建 EQS 测试 Pawn
 
 [REGION:raw]
 ![](newEQSPawn.png)(convert:false)
 [/REGION]
 
-1. In the Content Browser, **Create** a new Blueprint
-1. Expand **All Classes** and search for **EQSTestingPawn**
-1. Select **EQSTestingPawn**
-1. Name the new **EQSTestingPawn** Blueprint
+1. 在内容浏览器中 **创建** 一个新蓝图。
+1. 点开 **All Classes** 并搜索 **EQSTestingPawn**
+1. 选择 **EQSTestingPawn**
+1. 为新的 **EQSTestingPawn** 蓝图命名
 
-## Using an EQS Testing Pawn
+## 使用 EQS 测试 Pawn
 
 [REGION:lightbox]
 [![](placeEQSPawn.png)(convert:false)](placeEQSPawn.png)
 [/REGION]
 
-1. Place the **EQSTestingPawn** Blueprint into your level, by clicking and dragging it from the **Content Browser** to the **Viewport**.
+1. 从 **内容浏览器** 点击拖动 EQSTestingPawn 蓝图到 **视口**，将其放进关卡。
 
 	[REGION:note]
-	Given the experimental nature of the Environment Query System, the EQSTestingPawn can be very processor intensive, and making changes to its active Query Template can cause your system to hang for extremely long times. It's best to clear the Query Template property while making edits to your Environment Query.
+	由于场景查询系统实验性较强，EQSTestingPawn 的处理器开销较大，对其活跃的查询模板进行修改时将导致系统出现极长时间的停滞。对场景查询进行编辑时，最好清除 Query Template 属性。
 	[/REGION]
 
-1. Assign an **Environment Query** to the **Query Template** property
+1. 为 **Query Template** 属性指定一个 **场景查询**。
 
-## Feedback Reference
+## 反馈参考
 
-**Blue**: Test failed at that item, so the item is completely un-weighted and culled from the results. Usually occurs when a value is filtered out, such as using a Distance Test and filtering out any Item over (or under) a range. If you don't want a value to be culled completely, use the Clamp Features in the scoring section. 
+**蓝色**：测试在该项目上失败，因此其为完全不加权，并从结果中剔除。常见于数值被过滤掉时，如使用距离测试过滤掉其上（或其下）一定距离的项目时。如不希望数值被完全剔除，可使用 scoring 部分的 Clamp 功能。 
 
-**Green-Red**: Green is more desirable than Red. The number listed on these is the weight of the Item. If previewing only one Debug Step, this value will be the final value from the selected Test.
+**绿色-红色**：绿色较红色更佳。上面列出的数字是项目的权重。如只预览调试的一个步骤，此数值即为所选测试的最终数值。
 
-## EQS Testing Pawn Property Reference
+## EQS 测试 Pawn 属性参考
 
-| Property | Description |
+| 属性 | 描述 |
 | --- | --- |
-| **Query Template** | The Environment Query that the EQSTestingPawn should use. |
-| **Query Params** | Enables you to pass named values into the Environment Query to quickly adjust its settings. |
-| **Time Limit Per Step** | If this value is set to anything greater than 0.0, it will cause the EQSTestingPawn to stop calculating a step at the time this property is set to. Helps to mitigate making adjustments to the Environment Query while using the EQSTestingPawn. Note: This will not reduce the time it takes to calculate the locations for the **Generator**, such as using a large **Simple Grid** with a tight **Density** |
-| **Step to Debug Draw** | Shows a single debug step. May not map to the order your steps appear in the Environment Query.  |
-| **Draw Labels** | Enables drawing the weight or reason for failure on the debug spheres in the Viewport. |
-| **Draw Failed Items** | Enables the culling of any failed tests, such as when a trace fails to find its target. |
-| **Re Run Query Only on Finished Move** | Will only update the debug visualization in the Viewport when you stop moving the EQSTestingPawn. It's advised to keep this enabled unless you are working with a very quick Environment Query. |
-| **Should be Visible in Game** | Makes the EQSTestingPawn, and its debug visualization, visible in the running game. |
+| **Query Template** | EQSTestingPawn 使用的场景查询。|
+| **Query Params** | 便于将命名的数值传入场景查询，对设置进行快速调整。|
+| **Time Limit Per Step** | 如此数值大于 0.0，将导致 EQSTestingPawn 在此属性设置的时间上停止计算步骤。用于使用 EQSTestingPawn 时暂停对场景查询进行的调整。注解：此属性不会减少 **生成器** 位置的计算时间（如以紧实的 **Density** 使用较大的 **Simple Grid**）|
+| **Step to Debug Draw** | 显示单个调试步骤。无法映射到场景查询中步骤出现的顺序上。|
+| **Draw Labels** | 启用视口中调试球体权重或失败原因的绘制。|
+| **Draw Failed Items** | 启用失败测试剔除（如追踪无法找到其目标）。|
+| **Re Run Query Only on Finished Move** | 停止移动 EQSTestingPawn 时只更新视口中的调试显示。除非使用的是快速场景查询，否则均建议将此属性启用。|
+| **Should be Visible in Game** | 在运行的游戏中显示 EQSTestingPawn 和调试显示。|
 | **Querying Mode** | [INCLUDE:#eqs1] |
 
 <!--
 [EXCERPT:EQS1]
-Changes what the debug view shows.
+变更调试视图显示的内容。
 
-| Value | Description |
+| 数值 | 描述 |
 | --- | --- |
-| **Single Result** | Shows only the result for the item listed in the **Step to Debug Draw** property. |
-| **All Matching** | Shows the final, filtered and weighted score of the entire Environment Query. |
+| **Single Result** | 只显示 **Step to Debug Draw** 属性中列出项目的结果。|
+| **All Matching** | 显示整个场景查询经过滤和加权的最终分数。|
 [/EXCERPT:EQS1]
 -->

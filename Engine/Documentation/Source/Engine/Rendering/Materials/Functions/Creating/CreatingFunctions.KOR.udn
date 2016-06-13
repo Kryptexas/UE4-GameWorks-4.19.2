@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2643533
+﻿INTSourceChangelist:2690298
 Availability: Public
 Title:머티리얼 함수 만들기
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:머티리얼 함수를 만드는 과정에 대한 안내서입니다.
+Version: 4.9
+SkillLevel: Advanced
 
 [TOC(start:2)]
 

@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2713562
 Availability:Public
 Title: 리플리케이션 예제
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
 Description:멀티플레이어용 네트워크 게임 구성하기 입니다.
 Related: Gameplay/Networking/Blueprints
 Related: Gameplay/Networking/Actors
+version: 4.9
 
 구체적인 예제로, 네트워크 게임에서 클라이언트인 상황을 생각해 봅시다. 적 두 마리가 총을 쏘며 달려오고 있고, 그 총소리가 들립니다. 모든 게임 스테이트는 
 로컬 머신이 아닌 서버에 유지되고있는데, 그러한 것들이 벌어지는 것을 어떻게 보고 들을 수 있는 걸까요?

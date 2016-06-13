@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2593377
+﻿INTSourceChangelist:2663431
 Availability:Public
 Title: 캐릭터 셋업 개요
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -11,6 +11,7 @@ Related: Engine/Animation/AnimBlueprints
 Related: Engine/Animation/AnimBlueprints/EventGraph
 Related: Engine/Animation/StateMachines
 Related: Gameplay/AI
+version: 4.9
 
 [REGION:fullwidth]
 ![](Character.png)
@@ -18,7 +19,7 @@ Related: Gameplay/AI
 
 [TOC(start:2 end:2)]
 
-## 개요
+
 
 게임 프로젝트나 장르를 불문하고, 일정 시점에서는 배경을 뛰어다니는 캐릭터에 애니메이션이 필요하게 됩니다. 플레이어가 제어하는 캐릭터일 수도 있고, 어떤 식으로든 월드와 상호작용하는 AI 제어 개체일 수도 있습니다. 아무튼, 그러한 월드의 캐릭터에 애니메이션을 제대로 적용하기 위해서는 그 셋업 방법을 알 필요가 있을 것입니다. 이 문서의 목적은 그 방법을 매우 개괄적으로 알려드리기 위함이며, 구체적인 디테일 예제나 전용 문서에 대해서도 안내해 드리겠습니다. 일단 여기서는 어떤 식으로든 플레이어가 제어할 수 있는 캐릭터를 만들고자 한다는 가정하에 진행하도록 하겠습니다.
 
@@ -85,7 +86,7 @@ PlayerController 는 언리얼 안에 이미 존재하는 클래스입니다. �
 
 새 프로젝트 안에 있을 때, **클래스 뷰어** 안에서 필터를 끈 다음 PlayerController 를 검색하면 됩니다. 이 애셋에 더블클릭하여 열어보면 직접 그 구성 상태를 확인할 수 있습니다.
 
-새 프로젝트 생성 (**파일 > 새 프로젝트**) 후 **Blueprint Top Down** 템플릿을 선택하여 C++ 스크립트로 된 PlayerController 를 확인할 수도 있습니다.
+새 프로젝트 생성 (**파일 > 새 프로젝트**) 후 **C++ Top Down** 템플릿을 선택하여 C++ 스크립트로 된 PlayerController 를 확인할 수도 있습니다.
 
 
 ## 폰 또는 캐릭터 블루프린트 만들기
@@ -133,7 +134,7 @@ Character 클래스에는 스켈레탈 메시에 대한 레퍼런스도 저장�
 
 이들은 그저 빙산의 일각에 불과합니다. 아마도 [](Engine/Animation/AnimBlueprints) 문서나, First / Third Person 템플릿과 Content Examples 프로젝트에서 찾을 수 있는 예제 콘텐츠에 포함된 애니메이션 블루프린트를 살펴보는 편이 좋을 것입니다.
 
-캐릭터의 모션을 정의하는 애니메이션 블루프린트를 만들고나면, 캐릭터 블루프린트의 _Mesh Component_ 아래에 있는 **Anim Blueprint Generated Class** 프로퍼티에 할당해 줘야 할 것입니다. 이 작업은 반드시 해 줘야 하는데, 그 이유는 각 스켈레탈 메시마다 애니메이션 블루프린트가 여럿 있을 수 있고, 캐릭터 블루프린트에서는 필요한 애니메이션과 변수 데이터를 어디에 보내야 하는지 알아야 하기 때문입니다.
+캐릭터의 모션을 정의하는 애니메이션 블루프린트를 만들고 나면, 캐릭터 블루프린트의 _Mesh Component_ 아래에 있는 **Anim Blueprint Generated Class** 프로퍼티에 할당해 줘야 할 것입니다. 이 작업은 반드시 해 줘야 하는데, 그 이유는 각 스켈레탈 메시마다 애니메이션 블루프린트가 여럿 있을 수 있고, 캐릭터 블루프린트에서는 필요한 애니메이션과 변수 데이터를 어디에 보내야 하는지 알아야 하기 때문입니다.
 
 ## 게임모드 셋업
 
@@ -145,6 +146,7 @@ GameMode (게임모드)는 게임을 정의하는 데 사용되는 특수 유형
 * **HUD Class** - 특수한 HUD(눈앞계기판) 클래스가 생성되는 것이 있으면 여기에 저장되는데, 이 문서에서는 다루지 않는 부분입니다.
 * **PlayerController Class** - 게임내 캐릭터에 대해 구성된 커스텀 PlayerController 클래스가 저장됩니다.
 * **Spectator Class** - 관람자 또는 그저 동작을 관찰하는 수동형 플레이어를 제어하는 데 사용되는 특수 클래스가 저장됩니다. 이 문서에서는 다루지 않는 부분입니다.
+* **Replay Spectator Class** - 리플레이 내 관람자 제어에 사용되는 특수 클래스를 담습니다. 이 문서에서는 다루지 않습니다.
 * **Game State Class** - 게임 플레이 방식에 대한 셋업이나 특별 규칙을 제어하는 클래스입니다. 이 문서에서는 다루지 않는 부분입니다.
 * **Player State Class** - 연관성이 있는 플레이어 정보를 모든 클라이언트에 리플리케이트시키는 특수 규칙을 정의하는 클래스입니다.
 
@@ -156,7 +158,7 @@ GameMode (게임모드)는 게임을 정의하는 데 사용되는 특수 유형
 
 GameMode 셋업을 마치고나서 커스텀 캐릭터로 플레이하기 위한 마지막 단계는, 현재 레벨이 자신의 GameMode 를 사용하는지 확인해 주는 것입니다. 이 작업은 World Settings (월드 세팅) 탭에서 이루어지는데, 메인 툴바에 있는 '월드 세팅' 버튼으로 열 수 있습니다.
 
-월드 세팅 안에서, GameMode Override 를 자신의 GameMode 클래스 이름으로 설정했는지 확인해 주는 것이 좋습니다. 그러고나면 새 캐릭터로 테스트할 준비를 마친 것입니다.
+월드 세팅 안에서, GameMode Override 를 자신의 GameMode 클래스 이름으로 설정했는지 확인해 주는 것이 좋습니다. 그러고 나면 새 캐릭터로 테스트할 준비를 마친 것입니다.
 
 ![](GameModeSettings.png)
 

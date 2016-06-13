@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2363518
+﻿INTSourceChangelist:2816042
 Availability:Licensee
 Title:비즈니스와 법무
 Crumbs:%ROOT%
 Description:언리얼 엔진 4 로 게임을 개발하는 분들을 위한 비즈니스와 법무 관련 정보입니다.
 Navigation:role
+Version: 4.9
 
 [REGION:banner]
 ![Business and Legal](business.png)
@@ -36,6 +37,5 @@ Navigation:role
 	[PARAM:links]
 		* [](Support/BusinessAndLegal/IntegratedPartnersProgram "%Support/BusinessAndLegal/IntegratedPartnersProgram:description%")
 		* [](Support/BusinessAndLegal/ShippingChecklist "%Support/BusinessAndLegal/ShippingChecklist:description%")
-		* [](Support/BusinessAndLegal/ThirdPartySoftware "%Support/BusinessAndLegal/ThirdPartySoftware:description%")
 	[/PARAM]
 [/OBJECT]

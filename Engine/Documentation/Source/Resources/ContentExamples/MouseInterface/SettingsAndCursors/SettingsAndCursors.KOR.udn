@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2620685
+﻿INTSourceChangelist:2718430
 Availability: Public
 Title:마우스 상호작용 프로퍼티
 Crumbs:%ROOT%, Resources,  Resources/ContentExamples/MouseInterface
 Description:마우스 상호작용에 사용되는 프로퍼티와 커서에 대한 분석입니다.
+Version: 4.9
 
 
 [TOC(start:2 end:2)]

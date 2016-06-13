@@ -3,7 +3,7 @@ Title: 2.5 - Implementing Character Jumping
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
 Description: Learn how to implement jumping for your First Person Shooter character.
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,23 +23,22 @@ Version: 4.9
 
 %Steps%
 
-During this step, you're going to add the ability for your character to jump.
+In general, Action Mappings deal with inputs for discrete events, they allow you to map inputs to a "friendly name" that can later be bound to event-driven behavior. 
+The end effect is that pressing and/or releasing a key, mouse button, or keypad button directly triggers game behavior.
 
-[REGION:note]
-In general, Action Mappings deal with inputs for discrete events, they allow you to map inputs to a "friendly name" that can later be bound to event-driven behavior. The end effect is that pressing and/or releasing a key, mouse button, or keypad button directly triggers game behavior.
-[/REGION]
+During this step, we're going to add the ability for our character to jump by setting up the input action mapping for the space bar.
 
 ## Jump Action Mapping
 
-1.	In the **Edit** menu, **click** on **Project Settings**.
+1.	In the **Edit** menu, click on **Project Settings**.
 
-1.	Under the **Engine** heading on the left side of the **Project Settings** tab, **click** on **Input**.
+1.	Under the **Engine** heading on the left side of the **Project Settings** tab, click on **Input**.
 
-1.	Under **Bindings**, **click** on the plus sign next to **Action Mappings**.
+1.	Under **Bindings**, click on the plus sign next to **Action Mappings**.
 
-1.	**Click** on the arrow to the left of **Action Mappings**.
+1.	Click on the arrow to the left of **Action Mappings**.
 
-1.	Type "Jump" into the text field that appears, then **click** on the arrow to the left of the text box to expand the action binding options.
+1.	Type "Jump" into the text field that appears, then click on the arrow to the left of the text box to expand the action binding options.
 
 1.	In the dropdown menu, select **Space Bar** from the **Keyboard** dropdown list.
 
@@ -51,7 +50,9 @@ In general, Action Mappings deal with inputs for discrete events, they allow you
 
 ## Implement Input Handling
 
-If you look inside the interface file (*.h) for the Character base class, you'll notice that there is built-in support for jumping characters. Character jumping is tied to the `bPressedJump` variable, so all we need to do is set that boolean to `true` when the jump action is pressed, and `false` when the jump action is released. We need the following two functions to accomplish this:
+If you look inside the interface file (*.h) for the Character base class, you'll notice that there is built-in support for character jumping. 
+Character jumping is tied to the `bPressedJump` variable, so all we need to do is set that boolean to `true` when the jump action is pressed, and `false` when the jump action is released.
+You'll need to add the following two functions to accomplish this:
 
 *	`OnStartJump`
 *	`OnStopJump`
@@ -126,7 +127,7 @@ Go back to Visual Studio to add code to your FPSCharacter class.
 			bPressedJump = false;
 		}
 
-1.	Add the following code to `SetupPlayerInputComponent` so as to bind the Jump action to your new functions:
+1.	Add the following code to `SetupPlayerInputComponent` to bind your Jump action to the newly written functions:
 
 		// set-up jump action bindings
 		InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::OnStartJump);
@@ -138,7 +139,6 @@ Go back to Visual Studio to add code to your FPSCharacter class.
 		
 		#include "FPSProject.h"
 		#include "FPSCharacter.h"
-		
 		
 		// Sets default values
 		AFPSCharacter::AFPSCharacter()
@@ -153,9 +153,15 @@ Go back to Visual Studio to add code to your FPSCharacter class.
 		{
 			Super::BeginPlay();
 			
+			const int32 Key = -1;
+			static const FString DebugMessage = TEXT("We are using FPSCharacter.");
+			FColor DisplayColor = FColor::Red;
+			float TimeToDisplay = 5.0f; //seconds
+		
 			if (GEngine != nullptr)
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::White, TEXT("We are using FPSCharacter."));
+				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
+		
 			}
 		}
 		
@@ -170,56 +176,43 @@ Go back to Visual Studio to add code to your FPSCharacter class.
 		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 		{
 			Super::SetupPlayerInputComponent(InputComponent);
-			
-			// set-up gameplay key bindings
+		
+			// set up gameplay key bindings
 			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
 			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
-			// set-up gameplay mouse bindings
+		
+			// set up gameplay mouse bindings
 			InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
 			InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
-			// set-up jump action bindings
+		
+			// set up jump action bindings
 			InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::OnStartJump);
 			InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::OnStopJump);
 		}
 		
-		// Forward movement function definition
 		void AFPSCharacter::MoveForward(float Value)
 		{
-			if (Controller != nullptr && Value != 0.f)
-			{
-				//find out which way is forward
-				FRotator Rotation = Controller->GetControlRotation();
-				//limit pitch when walking for falling
-				if (GetCharacterMovement()->IsMovingOnGround() || GetCharacterMovement()->IsFalling())
-				{
-					Rotation.Pitch = 0.f;
-				}
-				//add movement in that direction
-				const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
-				AddMovementInput(Direction, Value);
-			}
+			// find out which way is forward
+			FRotator Rotation = Controller->GetControlRotation();
+			// add movement in that direction
+			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
+			AddMovementInput(Direction, Value);
 		}
 		
-		//Right movement function definition
 		void AFPSCharacter::MoveRight(float Value)
 		{
-			if (Controller != nullptr && Value != 0.f)
-			{
-				//find our which way is right
-				const FRotator Rotation = Controller->GetControlRotation();
-				const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
-				//add movement in that direction
-				AddMovementInput(Direction, Value);
-			}
+			// find out which way is right
+			FRotator Rotation = Controller->GetControlRotation();
+			// add movement in that direction
+			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
+			AddMovementInput(Direction, Value);
 		}
 		
-		//Function setting the jump flag
 		void AFPSCharacter::OnStartJump()
 		{
 			bPressedJump = true;
 		}
 		
-		//Function clearning the jump flag
 		void AFPSCharacter::OnStopJump()
 		{
 			bPressedJump = false;
@@ -229,18 +222,18 @@ Go back to Visual Studio to add code to your FPSCharacter class.
 
 It's now time to compile and test your newly implemented character movement functions.
 
-1.	Save the `FPSCharacter` interface (\*.h) and implementation (\*.cpp) files in Visual Studio.
+1.	Save the `FPSCharacter` header (\*.h) and CPP (\*.cpp) files in Visual Studio.
 
 1.	Locate **FPSProject** in the **Solution Explorer**.
 
-1.	**Right-click** on **FPSProject** and select **Build** to compile your project.
+1.	Right-click on **FPSProject** and select **Build** to compile your project.
 
 	![](BuildProject.png)
 
 1.	After the build finishes, open your **FPSProject** in Unreal Editor.
 
-1.	**Click** the **Play** button in the Level Editor Toolbar. You should be able to jump throughout the map.
+1.	Click the **Play** button in the Level Editor Toolbar. You should be able to jump throughout the map.
 
-1.	**Click** the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
+1.	Press the Escape key or click the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
 
 %Steps%

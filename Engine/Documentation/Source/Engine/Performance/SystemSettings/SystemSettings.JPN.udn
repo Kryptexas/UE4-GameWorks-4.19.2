@@ -2,6 +2,7 @@
 Title:システム設定
 Crumbs: %ROOT%, Engine
 Description:ハードウェアの特性に基づいてゲームやエンジンの特定分野を制御するプラットフォーム固有の設定コレクション
+version:4.9
 
 
 [TOC (start:2 end:3)]
@@ -10,106 +11,105 @@ Description:ハードウェアの特性に基づいてゲームやエンジン�
 
 
 
-## 概要
 
-アンリアル・エンジン 4は「`FSystemSettings`」クラスを用いて様々なパフォーマンス関連機能を制御します。このクラスは「`Engine.ini`」ファイルの「`[SystemSettings]`」セクションから初期化されます。
+アンリアル・エンジン 4 は **FSystemSettings** クラスを用いて様々なパフォーマンス関連機能を制御します。このクラスは `Engine.ini` ファイルの `[SystemSettings]` セクションから初期化されます。
 
-以下のセクションに、「SystemSettings」を介して制御が可能なさまざまな設定詳細を示します。INI設定は文字通り変数の文字列名で、変数の種類はサポートされる値を決定します。例として「`EngineIni[SystemSettings]`」を参照してください。
-
-
-
-## Texture LOD Settings（テクスチャLOD設定）
-
-テクスチャ解像度とその詳細を制御するための設定を説明する情報を、[Texture Support and Settings](Engine/Content/Types/Textures/SupportAndSettings) ページで参照することができます。
+以下のセクションでは、システム設定で制御できる各種設定の詳細を紹介します。.ini 設定は文字通り変数の文字列名で、変数の種類はサポートされる値を決定します。例として EngineIni[SystemSettings] を参照してください。
 
 
 
-## World Detail Settings（ワールド詳細設定）
+## テクスチャ LOD の設定
 
-$ **DetailMode**: (int32) (1-3) 現在の [Detail] モードです。アクタのコンポーネントを更新/ティックさせるかを決定します。「Scene.uc」にあるEDetailModeの列挙型変数に対応します。PrimitiveComponentで設定されて、WorldSettings.GetDetailMode()に返されます。
-$ **SpeedTreeLeaves**: (bool) SpeedTreeのLeaves（葉）のレンダリングを許可するかどうか。
-$ **SpeedTreeFronds**: (bool) SpeedTreeのFronds（葉状体）のレンダリングを許可するかどうか。
-$ **StaticDecals**: (bool) 静的デカールを許可するかどうか。
-$ **DynamicDecals**: (bool) 動的デカールを許可するかどうか。
-$ **UnbatchedDecals**: (bool) スタティック描画リストにはまだ配置されていないけれども動的ビューに関連性があるデカールを許可するかどうか。 
-$ **DecalCullDistanceScale**: (float) 距離カリングデカールのスケール係数を許可するかどうか。
-$ **DynamicLights**: (bool) 動的ライトを許可するかどうか。
-$ **CompositeDynamicLights**: (bool) ライト背景へ動的ライトの合成を許可するかどうか。
-$ **HighQualityLightmaps**: (bool) マテリアルの法線とスペキュラを使用する指向性ライトマップを許可するかどうか。 
-$ **MotionBlur**: (bool) モーションブラーを許可するかどうか。
-$ **MotionBlurPause**: (bool) モーションブラーの一時停止を許可するかどうか。
-$ **DepthOfField**: (bool) DOF （Depth of field:被写界深度）を許可するかどうか。
-$ **AmbientOcclusion**: (bool) アンビエントオクルージョンを許可するかどうか。
-$ **Bloom**: (bool) ブルームを許可するかどうか。
-$ **UseHighQualityBloom**: (bool) 高品質のブルームまたは高速バージョンのブルームを許可するかどうか。
-$ **Distortion**: (bool) 歪み（ディスト―ション）を許可するかどうか。
-$ **FilteredDistortion**: (bool) 適用パス中にシーンカラーをサンプリングする際にバイリニアフィルタを利用した歪み（ディスト―ション）を許可するかどうか。
+テクスチャ解像度とその詳細を制御するための設定を説明する情報を、[テクスチャのサポートと設定](Engine/Content/Types/Textures/SupportAndSettings) ページで参照することができます。
+
+
+
+## ワールドの詳細設定
+
+$ **DetailMode**: (int32) (1-3) 現在の詳細モードです。アクタのコンポーネントを更新/ティックさせるかを決定します。「Scene.uc」にある EDetailMode の列挙型変数に対応します。PrimitiveComponent で設定されて、WorldSettings.GetDetailMode() に返されます。
+$ **SpeedTreeLeaves**: (bool) SpeedTree の Leaves (葉) のレンダリングを有効または無効に設定します。
+$ **SpeedTreeFronds**: (bool) SpeedTree の Fonds (葉状体) を有効または無効に設定します。
+$ **StaticDecals**: (bool) 静的デカールを有効または無効に設定します。
+$ **DynamicDecals**: (bool) 動的デカールを有効または無効に設定します。
+$ **UnbatchedDecals**: (bool) スタティック描画リストにはまだ配置されていないけれども動的ビューに関連性があるデカールを有効または無効にします。 
+$ **DecalCullDistanceScale**: (float) 距離カリングデカールのスケール係数を設定します。
+$ **DynamicLights**: (bool) 動的ライトを有効または無効に設定します。
+$ **CompositeDynamicLights**: (bool) ライト環境へ動的ライトの合成を有効または無効に設定します。
+$ **HighQualityLightmaps**: (bool) マテリアルの法線とスペキュラを使用する指向性ライトマップを有効または無効に設定します。 
+$ **MotionBlur**: (bool) モーションブラーの有効または無効を設定します。
+$ **MotionBlurPause**: (bool) モーションブラーの有効または無効を設定します。
+$ **DepthOfField**: (bool) DOF (Depth of field:被写界深度) の有効または無効を設定します。
+$ **AmbientOcclusion**: (bool) アンビエント オクルージョンの有効または無効を設定します。
+$ **Bloom**: (bool) ブルームの有効または無効を設定します。
+$ **UseHighQualityBloom**: (bool) 高品質のブルームまたは高速バージョンのブルームの有効もしくは無効を設定します。
+$ **Distortion**: (bool) 歪み (ディストーション) の有効または無効を設定します。
+$ **FilteredDistortion**: (bool) 適用パス中にシーンカラーをサンプリングする際にバイリニアフィルタを利用した歪み (ディストーション) の有効または無効を設定します。
 
 $ **DropParticleDistortion**: 
-(bool) 「WorldSettings::bDropDetail」に基づいてパーティクル上に落とす歪み（ディスト―ション）を許可するかどうか。 
+(bool) 「WorldSettings::bDropDetail」に基づいてパーティクル上に歪み (ディスト―ション) を被せることを可能にするかどうかを設定します。 
 
-$ **LensFlares**: (bool) LensFlaresのレンダリングを許可するかどうか。
-$ **FogVolumes**: (bool) フォグボリュームを許可するかどうか。
-$ **OneFrameThreadLag**: (bool) ゲームスレッドから1フレーム遅れたレンダリングスレッドを許可するかどうか。
-$ **SkeletalMeshLODBias**: (int32) スケルタルメッシュのLODバイアスです。
-$ **ParticleLODBias**: (int32) パーティクルシステムのLODバイアスです。
+$ **LensFlares**: (bool) LensFlares のレンダリングの有効または無効を設定します。
+$ **FogVolumes**: (bool) フォグ ボリュームの有効または無効を設定します。
+$ **OneFrameThreadLag**: (bool) ゲームスレッドから 1 フレーム遅れたレンダリングスレッドの有効または無効を設定します。
+$ **SkeletalMeshLODBias**: (int32) スケルタルメッシュの LOD バイアスです。
+$ **ParticleLODBias**: (int32) パーティクルシステムの LOD バイアスです。
 
 
 
-## Fractured Detail Settings（フラクチャ（破砕）詳細設定）
+## フラクチャの詳細設定
 
-$ **bAllowFracturedDamage**: (bool) フラクチャメッシュが受けるダメージを許可するかどうか。
+$ **bAllowFracturedDamage**: (bool) フラクチャメッシュが受けるダメージの有効または無効を設定します。
 $ **NumFracturedPartsScale**: (float) 指定されたゲーム固有のフラクチャ物理オブジェクト数をスケーリングします。
 $ **FractureDirectSpawnChanceScale**: (float) フラクチャスタティックメッシュが直接ダメージを受けた後に、剛体がスポーンする可能性を % で表します。 [0-1] 
-$ **FractureRadialSpawnChanceScale**: (float) フラクチャスタティックメッシュが放射状の爆発でダメージを受けた後に、剛体がスポーンする可能性を % で表します。  [0-1] 
-$ **FractureCullDistanceScale**: (float) ダメージを受けた時に、スタティックメッシュに実際のフラクチャを許可する際に使用する距離スケールです。 
+$ **FractureRadialSpawnChanceScale**: (float) フラクチャ スタティックメッシュが放射状の爆発でダメージを受けた後に、剛体がスポーンする可能性を % で表します。  [0-1] 
+$ **FractureCullDistanceScale**: (float) ダメージを受けたフラクチャ スタティックメッシュを、実際にフラクチャさせるかどうかを設定する距離スケールです。 
 
 
 
-## Shadow Detail Settings（シャドウ詳細設定）
+## シャドウの詳細設定
 
-$ **DynamicShadows**: (bool) 動的シャドウを許可するかどうか。
-$ **MinShadowResolution**: (int32) シャドウの影響を受ける深度をレンダリングする最少ディメンション（テクセル単位）です。 
-$ **MaxShadowResolution**: (int32) シャドウの影響を受ける深度をレンダリングする最大ディメンション（テクセル単位）です。
+$ **DynamicShadows**: (bool) 動的シャドウを有効または無効に設定します。
+$ **MinShadowResolution**: (int32) シャドウの影響を受ける深度をレンダリングする最少範囲 (テクセル単位) です。 
+$ **MaxShadowResolution**: (int32) シャドウの影響を受ける深度をレンダリングする最大範囲 (テクセル単位) です。
 $ **ShadowTexelsPerPixel**: (float) シャドウテクセルに対して影響を受けるピクセルの比率です。
-$ **ShadowDepthBias**: (float) VSMを除く投影されたシャドウの全タイプの深度パスに適用される深度バイアスです。 
-$ **ShadowFadeResolution**: (int32) シャドウがフェードアウトする解像度をテクセルで表します。 
+$ **ShadowDepthBias**: (float) VSM を除く投影されたシャドウの全タイプの深度パスに適用される深度バイアスです。 
+$ **ShadowFadeResolution**: (int32) シャドウがフェードアウトする境となる解像度をテクセルで表します。 
 $ **ShadowFadeExponent**: (float) シャドウがフェードアウトする速度を制御します。 
 
 
 
-## Texture Detail Settings（テクスチャ詳細設定）
+## テクスチャの詳細設定
 
 $ **OnlyStreamInTextures**: (bool) 有効な場合、テクスチャはストリームインされるのみでストリームアウトされません。
 $ **MaxAnisotropy**: (int32) 使用する異方性の最大レベルです。
-$ **FoliageDrawRadiusMultiplier**: (float) フォーリッジを描画する距離のスカラー量です。 
+$ **FoliageDrawRadiusMultiplier**: (float) フォリッジを描画する距離のスカラー量です。 
 
 
 
-## VSync Settings（VSync設定）
+## VSync 設定
 
-$ **UseVSync**: (bool) VSyncの有効を許可するかどうか。
+$ **UseVSync**: (bool) VSync の有効または無効を設定します。
 
 
 
-## Screen Percentage Settings（画面サイズ比率設定）
+## 画面の比率設定
 
 $ **ScreenPercentage**: (float) メインビューが占有する画面の割合です。
-$ **UpscaleScreenPercentage**: (bool) フロントバッファを完全に占有するためにスクリーンのアップスケールを許可するかどうか。
+$ **UpscaleScreenPercentage**: (bool) フルのフロントバッファを占有するためにスクリーンのアップスケールを有効または無効に設定します。
 
 
 
-## Resolution Settings（解像度設定）
+## 解像度設定
 
-$ **ResX**: (int32) スクリーン X の解像度に設定。 
-$ **ResY**: (int32) スクリーン Y の解像度に設定。
-$ **Fullscreen**: (bool) フルスクリーンに設定。
+$ **ResX**: (int32) 画面 X の解像度を設定します。 
+$ **ResY**: (int32) 画面 Y の解像度を設定します。
+$ **Fullscreen**: (bool) 全画面
 
 
 
-## Mesh Settings（メッシュ設定）
+## メッシュ設定
 
-$ **bForceCPUAccessToGPUSkinVerts**: (bool) CPUによるGPUスキン頂点データへの強制アクセスの有効または無効を設定します。 
+$ **bForceCPUAccessToGPUSkinVerts**: (bool) CPU による GPU スキン頂点データへの強制アクセスの有効または無効を設定します。 
 
  
 

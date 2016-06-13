@@ -1,10 +1,12 @@
-﻿INTSourceChangelist:2615876
+﻿INTSourceChangelist:2735872
 Availability: Public
 Title:6. 캐릭터 띄우기
 Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
 Description:Launch Character 노드로 실제 도약 행위를 구성합니다.
-
-
+version: 4.9
+parent:Engine/Blueprints/QuickStart
+order:6
+type:multi-step
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -45,7 +47,7 @@ Description:Launch Character 노드로 실제 도약 행위를 구성합니다.
 
 	![](LaunchWired.png)
 
-	[REGION:tip]
+	[REGION:note]
 	형변환 노드의 실행 순서 핀이 자동으로 **Launch Character** 노드에 연결 된 것을 봐 주세요. 
 	[/REGION]
 

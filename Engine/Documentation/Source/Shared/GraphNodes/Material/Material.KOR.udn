@@ -679,7 +679,7 @@ Engine/Rendering/Materials/ExpressionReference/Parameters#collectionparameters
 [/EXCERPT:UMaterialExpressionCollectionParameter]
 
 [EXCERPT:UMaterialExpressionDynamicParameter]
-Dynamic Parameter (다이내믹 파라미터)는 파티클 이미터가 머티리얼에 네 개의 값을 전해 어떤 식으로든 사용할 수 있도록 해 주는 통로입니다. 이 값의 설정은 캐스케이트에서 이미터에 놓인 ParameterDynamic 모듈로 합니다.
+Dynamic Parameter (다이내믹 파라미터)는 파티클 이미터가 머티리얼에 네 개의 값을 전해 어떤 식으로든 사용할 수 있도록 해 주는 통로입니다. 이 값의 설정은 캐스케이드에서 이미터에 놓인 ParameterDynamic 모듈로 합니다.
 
 [VAR:ToolTipFullLink]
 Engine/Rendering/Materials/ExpressionReference/Parameters#dynamicparameter
@@ -763,7 +763,7 @@ Engine/Rendering/Materials/ExpressionReference/Particles#particlemacrouv
 [/EXCERPT:UMaterialExpressionParticleMacroUV]
 
 [EXCERPT:UMaterialExpressionParticleSubUV]
-ParticleSubUV (파티클 Sub UV) 표현식은 텍스처의 서브 이미지를 파티클로 렌더링하는 데 사용됩니다. ParticleSubUV 는 플립북과 유사하나, 그 텍스처 애니메이션을 캐스케이트에서 조작할 수 있다는 점이 다릅니다.
+ParticleSubUV (파티클 Sub UV) 표현식은 텍스처의 서브 이미지를 파티클로 렌더링하는 데 사용됩니다. ParticleSubUV 는 플립북과 유사하나, 그 텍스처 애니메이션을 캐스케이드에서 조작할 수 있다는 점이 다릅니다.
 
 [VAR:ToolTipFullLink]
 Engine/Rendering/Materials/ExpressionReference/Particles#particlesubuv

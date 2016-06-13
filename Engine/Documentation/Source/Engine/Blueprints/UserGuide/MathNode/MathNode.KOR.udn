@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:2690714
+﻿INTSourceChangelist:2968923
 Availability:Public
 Title:수학 표현식 노드
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:수학 표현식 노드는 수식을 직접 입력하면 적합한 서브 그래프를 만들어 해당 표현식을 생성해 줍니다.
 version: 4.9
+Parent:Engine/Blueprints
+Type:guide
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -140,7 +142,7 @@ Math Expression (수학 표현식) 노드를 만들려면, 그래프에 우클�
 
 ## 지원 연산자
 
-다음 연산자 모두 지원될것이며, 논리 연산자와 비교 연산자를 결합하여 복잡한 수식을 만들 수 있습니다.
+다음 연산자 모두 지원될 것이며, 논리 연산자와 비교 연산자를 결합하여 복잡한 수식을 만들 수 있습니다.
 
 * 곱하기식: 
 		*, /, %

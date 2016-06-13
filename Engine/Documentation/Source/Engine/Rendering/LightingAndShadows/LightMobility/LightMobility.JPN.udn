@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2075534
+﻿INTSourceChangelist:2668538
 Availability:Public
 Title:ライトの可動性
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:ライトの可動性を利用してライティングとシャドウイングに影響を与える方法
+Version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -47,13 +48,13 @@ Description:ライトの可動性を利用してライティングとシャド�
 ![](Engine/Rendering/LightingAndShadows/lighting_overview_banner_001.png)(convert:false)
 [/REGION]
 
-## 概要
 
-全てのライトは、**[Transform]** カテゴリ内に **Mobility (可動性)** と呼ばれるプロパティがあります。
+
+全てのライトは、**[Transform]** カテゴリ内に **[Mobility (可動性)]** と呼ばれるプロパティがあります。
 
 ![](IL_mobility.png)
 
-プロパティ内には **Static (静的)**、 **Stationary (固定)**、そして **Movable (可動)** の 3 つの設定があり、それぞれの設定でライト機能とパフォーマンスへの影響を劇的に変化させることができます。
+プロパティ内には **Static (静的)**、**Stationary (固定)**、そして **Movable (可動)** の 3 つの設定があり、それぞれの設定でライト機能とパフォーマンスへの影響を劇的に変化させることができます。
 
 [OBJECT:TopicList]
 	[PARAM:icon]
@@ -63,9 +64,9 @@ Description:ライトの可動性を利用してライティングとシャド�
 		ライトの可動性の種類
 	[/PARAM]
 	[PARAM:links]
-	* [Static](Engine/Rendering/LightingAndShadows/LightMobility\StaticLights) - %Engine/Rendering/LightingAndShadows/LightMobility\StaticLights:description%
-	* [Stationary](Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights) - %Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights:description%
-	* [Movable](Engine/Rendering/LightingAndShadows/LightMobility/DynamicLights) - %Engine/Rendering/LightingAndShadows/LightMobility/DynamicLights:description%
+	* [Static (静的)](Engine/Rendering/LightingAndShadows/LightMobility\StaticLights) - %Engine/Rendering/LightingAndShadows/LightMobility\StaticLights:description%
+	* [Stationary (固定)](Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights) - %Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights:description%
+	* [Movable (可動)](Engine/Rendering/LightingAndShadows/LightMobility/DynamicLights) - %Engine/Rendering/LightingAndShadows/LightMobility/DynamicLights:description%
 	[/PARAM]
 [/OBJECT]
 
@@ -83,7 +84,7 @@ Description:ライトの可動性を利用してライティングとシャド�
 		[![Static Lights](LightmobilityStatic_tall_topic.png)(w:256)](Engine/Rendering/LightingAndShadows/LightMobility\StaticLights)
 	[/PARAM]
 	[PARAM:title]
-		[Static](Engine/Rendering/LightingAndShadows/LightMobility\StaticLights)
+		[Static (静的)](Engine/Rendering/LightingAndShadows/LightMobility\StaticLights)
 	[/PARAM]
 	[PARAM:description]
 
@@ -97,10 +98,10 @@ Description:ライトの可動性を利用してライティングとシャド�
 		[![Stationary Lights](Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights\stationarylights_tall_topic.png)(convert:false)](Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights)
 	[/PARAM]
 	[PARAM:title]
-		[Stationary](Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights)
+		[Stationary (固定)](Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights)
 	[/PARAM]
 	[PARAM:description]
-固定ライトは可動および静的ライトの機能が混ざったライトです。**固定ライト** は効力を持つ半径を移動または変更することはできませんが、色と輝度を変更することができます。レベルの静的部分は、ライトとシャドウをライトマップと間接ライティングキャッシュへ焼き付けることができますが、静的ライトと異なる固定ライトはシーンにスペキュラエフェクトが表示されます。可動および動的オブジェクトに対して、動的ライトと動的シャドウをキャストします。
+Stationary light (固定ライト) は Mobile (可動) および Static (静的) ライトの機能が混ざったライトです。Stationary light (固定ライト) は効力を持つ半径を移動または変更することはできませんが、色と輝度を変更することができます。レベルの静的部分は、ライトとシャドウをライトマップと間接ライティングキャッシュへ焼き付けることができますが、Stationary Light (静的ライト) と異なる Stationary Light (固定ライト) はシーンにスペキュラエフェクトが表示されます。可動および動的オブジェクトに対して、動的ライトと動的シャドウをキャストします。
 	[/PARAM]
 [/OBJECT]
 
@@ -109,7 +110,7 @@ Description:ライトの可動性を利用してライティングとシャド�
 		[![Movable Lights](Engine/Rendering/LightingAndShadows/LightMobility/DynamicLights\ML_tall_topic.png)(convert:false)](Engine/Rendering/LightingAndShadows/LightMobility/DynamicLights)
 	[/PARAM]
 	[PARAM:title]
-		[Movable](Engine/Rendering/LightingAndShadows/LightMobility/DynamicLights)
+		[Movable (可動)](Engine/Rendering/LightingAndShadows/LightMobility/DynamicLights)
 	[/PARAM]
 	[PARAM:description]
 

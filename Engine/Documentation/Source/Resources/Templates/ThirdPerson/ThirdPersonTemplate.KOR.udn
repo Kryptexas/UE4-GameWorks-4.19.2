@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2726550
 Availability: Public
 Title:삼인칭
 Crumbs:%ROOT%
 Description:여러가지 예제 씬, 샘플 게임, 튜토리얼에 대한 링크입니다.
 Navigation:topic
+Version: 4.9
 
 
 [VAR:Params]
@@ -70,7 +71,7 @@ resources
 	* 고급 동작
 	* 무기 전환 시스템
 	* 순차적 콘텐츠
-	* 커버 시스엠
+	* 커버 시스템
 
 <!--
 

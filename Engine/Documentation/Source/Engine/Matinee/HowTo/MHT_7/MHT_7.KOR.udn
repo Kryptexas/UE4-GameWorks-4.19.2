@@ -1,10 +1,12 @@
-﻿INTSourceChangelist:2663119
+﻿INTSourceChangelist:2782706
 Availability: Public
 Title:애니메이션 및 사운드 재생
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
 Description:플랫폼에 점프하는 스켈레탈 메시 애니메이션과 마티네에서 사운드를 적용하는 방법입니다.
+Version: 4.9
+SkillLevel: Intermediate
 
-
+ 
 ---
 여기서는 **스켈레탈 메시** 에 애니메이션과 이동을 적용하여 플랫폼에 점프하는 캐릭터를 만들겠습니다. **Sound Track** 을 사용하여 배경 음악과 사운드도 추가하겠습니다.
 
@@ -35,17 +37,17 @@ Description:플랫폼에 점프하는 스켈레탈 메시 애니메이션과 마
 
 	_클릭하면 원래 크기로 봅니다._
 
-1.  **마티네** 를 최소화시킨 다음 **콘텐츠 브라우저** 에서 **Game/Character** 폴더 아래 **HeroTPP** 스켈레탈 메시 애셋을 레벨에 끌어 놓습니다.
+1.  **마티네** 를 최소화시킨 다음 **콘텐츠 브라우저** 에서 **Game/Character** 폴더 아래 **SK_Mannequin** 애셋을 레벨에 끌어 놓습니다.
 
-	![](MHT7_AddSkeleton.png)
+	![](GrayIntoLvl.jpg)(w:720)
 
-1.  **HeroTTP** 에 대한 **디테일** 패널에서 **트랜스폼** 아래 **위치** 의 **X, Y, Z** 값을 **-610.0**, **-690.0**, **125.0** 으로 설정합니다.
+1.  **SK_Mannequin** 에 대한 **디테일** 패널에서 **트랜스폼** 아래 **위치** 의 **X, Y, Z** 값을 **-610.0**, **-690.0**, **125.0** 으로 설정합니다.
 
 	![](MHT7_HeroDetails.png)
 
 1.  레벨에서 템플릿 텍스트 위의 작은 박스 브러시를 잡아 **스켈레탈 메시** 앞으로 끌어 옮깁니다.
 
-	![](MHT7_MoveBoxBrush.png)
+	![](DragBoxMannequin.jpg)(w:720)
 	
 1.  박스 브러시의 **디테일** 패널에서 **Brush Settings** 아래 **X** 와 **Y** 값을 **250.0** 으로, **Z** 를 **1400.0** 으로 설정합니다.
 
@@ -53,7 +55,7 @@ Description:플랫폼에 점프하는 스켈레탈 메시 애니메이션과 마
 
 	_박스가 이런 모습일 것입니다:_
 	
-	![](MHT7_ExampleBox.png)
+	![](BoxHeightGray.jpg)
 
 
 [OBJECT:TopicList]
@@ -61,7 +63,7 @@ Description:플랫폼에 점프하는 스켈레탈 메시 애니메이션과 마
 		마티네에 액터 및 트랙 추가
 	[/PARAM]
 	[PARAM:description]
-	여기서는 **마티네** 에 **HeroTPP** 를 추가한 다음 시퀀스에 사용할 트랙을 추가하겠습니다.
+	여기서는 **마티네** 에 **SK_Mannequin** 를 추가한 다음 시퀀스에 사용할 트랙을 추가하겠습니다.
 	[/PARAM]
 [/OBJECT]
 
@@ -69,11 +71,11 @@ Description:플랫폼에 점프하는 스켈레탈 메시 애니메이션과 마
 
 	![](MHT7_OpenMatineeActor.png)
 
-1.  **마티네** 를 최소화시킨 다음 **HeroTPP** 를 선택하고 **마티네** 를 다시 연 뒤, 트랙 창에 **우클릭** - **새 스켈레탈 그룹 추가** 를 선택합니다.
+1.  **마티네** 를 최소화시킨 다음 **SK_Mannequin** 를 선택하고 **마티네** 를 다시 연 뒤, 트랙 창에 **우클릭** - **새 스켈레탈 그룹 추가** 를 선택합니다.
 
-	![](MHT7_AddSkeletalGroup.png)
+	![](NewSkelGroupGray.jpg)
 
-	_그룹에 새 이름을 짓습니다. 이 예제에서는 **HeroTPP** 라 합니다.__
+	_그룹에 새 이름을 짓습니다. 이 예제에서는 **SK_Mannequin** 라 합니다.__
 
 1.  **그룹 이름** 에 **우클릭** 한 다음 메뉴에서 **새 Sound Track 추가** 를 선택합니다.
 
@@ -103,7 +105,7 @@ Description:플랫폼에 점프하는 스켈레탈 메시 애니메이션과 마
 
 	![](MHT7_MovementKeysAdded.png)
 
-1.  **Movement** 트랙의 두 번째 키프레임에 클릭하고 **마티네** 를 최소화시킨 다음 **HeroTPP** 에 대한 **디테일** 패널에서 **Z** 위치를 **135** 로 설정합니다. 
+1.  **Movement** 트랙의 두 번째 키프레임에 클릭하고 **마티네** 를 최소화시킨 다음 **SK_Mannequin** 에 대한 **디테일** 패널에서 **Z** 위치를 **135** 로 설정합니다. 
 
 	![](MHT7_MoveDetailsKey2.png)
 
@@ -123,9 +125,9 @@ Description:플랫폼에 점프하는 스켈레탈 메시 애니메이션과 마
 
 	![](MHT7_MoveDetailsKey6.png)
 
-1.  **Movement** 트랙의 마지막 키프레임을 선택한 채, 레벨 뷰포트를 보면 **HeroTPP** 액터가 플랫폼 위에 서 있을 것입니다.
+1.  **Movement** 트랙의 마지막 키프레임을 선택한 채, 레벨 뷰포트를 보면 **SK_Mannequin** 액터가 플랫폼 위에 서 있을 것입니다.
 
-	![](MHT7_FinalMovementKeyframe.png)
+	![](IdleOnTop.jpg)
 
 	_액터가 플랫폼 위에 서 있지 않다면, 그 위에 올라가도록 (위 박스의 스내핑 크기를 조절해서) 이동시켜 줍니다._
 
@@ -133,7 +135,7 @@ Description:플랫폼에 점프하는 스켈레탈 메시 애니메이션과 마
 
 	![](MHT7_AnimKey1.png)
 
-	_레벨 뷰포트를 살펴보면, **HeroTPP** 액터가 **Idle** 포즈에 있는데, **마티네** 시작시 사용할 애니메이션을 지정했기 때문입니다._ 
+	_레벨 뷰포트를 살펴보면, **SK_Mannequin** 액터가 **Idle** 포즈에 있는데, **마티네** 시작시 사용할 애니메이션을 지정했기 때문입니다._ 
 
 1.  **타임 바** 를 **2.50** 으로 옮긴 다음 **Enter** 키를 치고, 메뉴에서 **Jump_Start** 를 선택합니다.
 
@@ -153,7 +155,7 @@ Description:플랫폼에 점프하는 스켈레탈 메시 애니메이션과 마
 
 	_이 애니메이션 시작이 0 프레임이 아닌 5 프레임이라고 설정해 준 것입니다._
 
-	![](MHT7_AnimKey5.png)(w:720)
+	![](JumpStart.jpg)(w:720)
 
 	_캐릭터의 포즈가 바뀐 것도 볼 수 있습니다. 캐릭터가 웅크리는 **Jump_Start** 포즈를 사용하지 않고 있습니다._
 
@@ -225,11 +227,11 @@ Description:플랫폼에 점프하는 스켈레탈 메시 애니메이션과 마
 	360
 	[/PARAMLITERAL]
 	[PARAMLITERAL:videoid]
-	7KG-7UoVnwc
+	-FAd67U7fmo
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-	_**HeroTPP** 액터가 박수 위로 점프하는 것이 보이며, 폭발 사운드 이펙트와 음악이 재생되는 것도 들을 수 있습니다._
+	_**SK_Mannequin** 액터가 박수 위로 점프하는 것이 보이며, 폭발 사운드 이펙트와 음악이 재생되는 것도 들을 수 있습니다._
 
 	_다중 카메라 앵글, FOV, 포스트 프로세싱 이펙트, 슬로모 트랙이 포함된 **Director Track** 을 적용하여 자신만의 폴리싱 작업을 할 수도 있습니다._
 

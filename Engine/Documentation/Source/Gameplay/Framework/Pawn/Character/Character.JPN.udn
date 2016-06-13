@@ -1,22 +1,23 @@
-﻿INTSourceChangelist:2421168
+﻿INTSourceChangelist:2699746
 Availability:Public
-Title:キャラクター
+Title:Character
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework, Gameplay/Framework/Pawn
-Description:キャラクター とは、デフォルト設定で基本的な二足歩行の動作機能を持つポーンです。
+Description:キャラクターとは、デフォルト設定で基本的な二足歩行の動作機能を持つポーンです。
 Related:Gameplay/Framework/Pawn
 Related:Gameplay/Framework/Controller
 Related:Gameplay/Framework/GameMode
 Related:Engine/Animation/RootMotion
 Related:Engine/Animation/CharacterSetupOverview
 Related:Gameplay/HowTo/CharacterMovement
+Version:4.9
 
-`CharacterMovementComponent`、 `CapsuleComponent`、 そして **Skeletal Mesh** が追加されたことで、 **Pawn** クラスは高度な機能を持つ **Character** クラスに拡張されました。
-キャラクターは、ワールド内で歩行、走行、ジャンプ、飛行、水泳が可能なプレイヤーを垂直方向に表現するために設計されています。クラスには、 
+`CharacterMovement コンポーネント`、 `Capsule コンポーネント`、および **Skeletal Mesh** が加わり、Pawn クラスは高度な機能を備えた **Character** クラスに拡張されました。
+Character は、ワールド内で歩行、走行、ジャンプ、飛行、水泳できる縦方向に表現したプレイヤー向けに設計されています。このクラスには、 
 基本的なネットワークの構築や入力モデルの実装も含まれます。  
 
-### SkeletalMeshComponent
-ポーンとは違って、キャラクターにはスケルトンを使用する高度なアニメーションを有効にするための `SkeletalMeshComponent` が含まれています。キャラクターから派生したクラスへ他のスケルタルメッシュを追加できますが、
-これがキャラクターに関連付けられているメインのスケルタルメッシュになります。スケルタルメッシュに関する詳細は以下を参照してください。 
+### SkeletalMesh コンポーネント
+Pawn とは異なり、Character にはスケルトンを使用する高度なアニメーションを有効にするための `SkeletalMesh コンポーネント` が含まれています。Character から派生したクラスへ他のスケルタルメッシュを追加できますが、
+これが Character に関連付けられているメインのスケルタルメッシュになります。スケルタルメッシュに関する詳細は以下を参照してください。 
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
@@ -35,8 +36,8 @@ Related:Gameplay/HowTo/CharacterMovement
 
 
 
-### CapsuleComponent
-`CapsuleComponent` は移動コリジョンに使用します。`CharacterMovementComponent` の複雑なジオメトリを計算するために、Character クラスのコリジョンコンポ―ネントは垂直方向のカプセルであると仮定します。コリジョンに関する詳細については以下を参照してください。 
+### Capsule コンポーネント
+`Capsule コンポーネント` は移動コリジョンに使用します。`CharacterMovement コンポーネント` の複雑なジオメトリを計算するために、Character クラスの Collision コンポーネントは垂直方向のカプセルであると仮定します。コリジョンに関する詳細については以下を参照してください。 
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
@@ -53,11 +54,11 @@ Related:Gameplay/HowTo/CharacterMovement
 	[/PARAM]
 [/OBJECT]
 
-### CharacterMovementComponent
-`CharacterMovementComponent` は、歩行、走行、ジャンプ、飛行、落下、水泳によるアバターの移動を可能とするために剛体物理を使用しません。 
-これはキャラクター特有のもので、その他のクラスには実装できません。`CharacterMovementComponent` に設定可能なプロパティには、
-落下や歩行時の摩擦力、大気、水中、陸地を移動時の速度、浮力、重力スケール、またキャラクターが物理オブジェクトに与える物理的力の
-値が含まれます。`CharacterMovementComponent` はアニメーションに由来するルートモーションパラメータを含み、
+### CharacterMovement コンポーネント
+`CharacterMovement コンポーネント` は、歩行、走行、ジャンプ、飛行、落下、水泳によるアバターの移動を可能とするために剛体物理を使用しません。 
+これは Character 特有のもので、その他のクラスには実装できません。`CharacterMovement コンポーネント` で設定可能なプロパティには、
+落下や歩行時の摩擦力の値、大気、水中、陸地を移動中の速度、浮力、重力スケールが含まれ、こうした物理によって、キャラクターが物理オブジェクトに
+影響を及ぼすことができるようにします。`CharacterMovement コンポーネント` はアニメーションに由来するルートモーション パラメータを含み、
 ワールド空間で既に変換されて物理的な使用の準備が整っています。 
 
 ---

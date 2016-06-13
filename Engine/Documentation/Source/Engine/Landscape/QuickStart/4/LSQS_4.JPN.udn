@@ -69,7 +69,7 @@ Landscapes Content Example プロジェクトにある以下のフォルダに�
 以下の手順に従い、ランドスケープのマテリアルを作成します。
 
 1. **「Materials」** フォルダに移動します。
-1. **コンテンツ ブラウザ** を **右クリック** して、**[New Material Parameter Collection]** を選択します。 
+1. **コンテンツ ブラウザ** を **右クリック** して、**[Material]** を選択します。 
 1. 新規作成した マテリアル に、例えば **Landscape_Material** などの簡単に見つけられる名前を付けます。 
 
 [REGION:note]

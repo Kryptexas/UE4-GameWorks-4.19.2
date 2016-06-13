@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2600667
+﻿INTSourceChangelist:2659220
 Availability:Public
 Title:위젯 컴포넌트
 Crumbs:%ROOT%, Engine, Engine/Components
@@ -7,6 +7,8 @@ Related: Engine/UMG
 Related: Engine/UMG/UserGuide/WidgetBlueprints
 Related: Engine/MediaFramework
 Related: Engine/Blueprints/UserGuide/Components
+SkillLevel: Beginner
+Version: 4.9
 
 Widget Component, 위젯 컴포넌트로 게임 월드에서 [언리얼 모션 그래픽](Engine/UMG/UserGuide) 을 통해 제작된 3D UI 요소를 조작할 수 있습니다.
 

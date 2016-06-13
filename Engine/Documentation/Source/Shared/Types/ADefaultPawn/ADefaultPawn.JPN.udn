@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2246990
+﻿INTSourceChangelist:2591123
 Availability:NoPublish
 Title:ADefaultPawn
 Crumbs:
@@ -7,7 +7,7 @@ Description:DefaultPawn クラスの概要
 [EXCERPT:ADefaultPawn]
 
 DefaultPawn クラスは、ネイティブ DefaultPawnMovementComponent 、球体の CollisionComponent 、そして StaticMeshComponent を格納します。 
-DefaultPawnMovementComponent の動作スタイル一式は無重力で飛行スタイルです。通常の MovementComponent プロパティに加えて、 MaxSpeed 、 Acceleration 、 Deceleration の浮動小数点値を含みます。
+DefaultPawnMovementComponent の動作スタイル一式は無重力で飛行スタイルです。通常の MovementComponent の変数に加えて、 MaxSpeed 、 Acceleration 、 Deceleration の浮動小数点値を含みます。
 
 [VAR:ToolTipFullLink]
 Gameplay/Framework/Pawn

@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2714898
 Availability: Public
-Title:Physical Material How To Guides
+Title:피지컬 머티리얼 비법 안내
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
-Description:Various How To Guides focused on the creation and usage of Physical Materials.
+Description:피지컬 머티리얼의 생성 및 사용법에 초점을 맞춘 여러가지 비법 안내서입니다.
 Version: 4.9
 SkillLevel: Intermediate
 
@@ -45,14 +45,14 @@ SkillLevel: Intermediate
 [/OBJECT]
 [/VAR]
 
-This section of documentation contains a number of short "how to" guides focused on getting things done with **Physical Materials**.
+이 문서 섹션에는 **피지컬 머티리얼** 로 할 수 있는 작업에 초점을 맞춘 여러가지 짧은 "비법" 안내가 들어있습니다.
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		How To
+		비법
 	[/PARAM]
 	[PARAM:links]
 		* [](Engine/Physics/PhysicalMaterials/HowTo/Creation)

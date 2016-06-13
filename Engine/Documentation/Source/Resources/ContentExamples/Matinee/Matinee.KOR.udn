@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2620548
+﻿INTSourceChangelist:2718321
 Availability: Public
 Title:마티네 콘텐츠 예제
 Crumbs: %ROOT%, Resources, Resources/ContentExamples
@@ -7,6 +7,7 @@ Related: Engine/Matinee
 Related: Engine/Matinee/UserGuide
 Related: Engine/Matinee/TrackReference
 Related: Engine/UI/CurveEditor
+Version: 4.9
 
 
 

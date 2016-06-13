@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2613591
+﻿INTSourceChangelist:2721212
 Availability:Public
 Title:비동기 애셋 로딩
 Crumbs:%ROOT%, Programming
 Description:실행시간에 애셋을 로드/언로드하는 메소드입니다.
-Version: 4.5
+Version: 4.9
 
 [TOC(start:2)]
 
@@ -11,7 +11,7 @@ UE4 에는 애셋 데이터 비동기 로딩을 훨씬 쉽게 할 수 있는 신
 
 ## FStringAssetReference 와 TAssetPtr
 
-아티스트나 디자이너가 애셋을 레퍼런싱하는 가장 쉬운 방법은 하드 포인터의 UProperty 를 만든 다음 카테고리를 지정하는 것입니다. UE4 에서 애셋을 레퍼런싱하는 하드 UObject 포인터 프로퍼티가 있다면, 그 프로퍼티가 포함된 오브젝트가 (맵에 배치되거나, 게임인포같은 것에서 레퍼런싱되어) 로드될 때 애셋이 로드됩니다. 주의를 기울이지 않으면 게임 시작시 100% 의 애셋이 로드되버리는 수가 생깁니다. 아티스트/디자이너가 하드 포인터와 같은 UI 를 사용해서 특정 애셋에 대한 레퍼런스를 만들되, 항상 로드되지는 않도록 하려면, `FStringAssetReference` 또는 `TAssetPtr` 을 사용하면 됩니다.
+아티스트나 디자이너가 애셋을 레퍼런싱하는 가장 쉬운 방법은 하드 포인터의 UProperty 를 만든 다음 카테고리를 지정하는 것입니다. UE4 에서 애셋을 레퍼런싱하는 하드 UObject 포인터 프로퍼티가 있다면, 그 프로퍼티가 포함된 오브젝트가 (맵에 배치되거나, 게임인포같은 것에서 레퍼런싱되어) 로드될 때 애셋이 로드됩니다. 주의를 기울이지 않으면 게임 시작시 100% 의 애셋이 로드되어버리는 수가 생깁니다. 아티스트/디자이너가 하드 포인터와 같은 UI 를 사용해서 특정 애셋에 대한 레퍼런스를 만들되, 항상 로드되지는 않도록 하려면, `FStringAssetReference` 또는 `TAssetPtr` 을 사용하면 됩니다.
 
 `FStringAssetReference` 는 애셋의 전체 이름으로 된 스트링이 들어있는 단순한 구조체입니다. 클래스에 이 유형의 프로퍼티를 만들면, 에디터에는 마치 `UObject *` 프로퍼티인 양 나타납니다. 쿠킹과 리디렉터도 제대로 처리되므로, StringAssetReference 가 있다면 디바이스에서의 정상 작동도 보장됩니다. TAssetPtr 은 기본적으로 `FStringAssetReference` 를 감싸는 `TWeakObjectPtr` 이며, 에디터 UI 에서 특정 클래스만 선택되게끔 제한시킬 수 있도록 하기 위해서 특정 클래스로 고정됩니다. 레퍼런싱된 애셋이 메모리에 존재한다면 `TAssetPtr.Get()` 은 그것을 반환합니다. 존재하지 않는다면, `ToStringReference()` 을 호출하여 레퍼런싱하는 애셋을 찾아내어 아래 설명된 메소드를 사용해서 로드한 다음 `TAssetPtr.Get()` 을 다시 호출하여 역참조합니다.
 
@@ -51,7 +51,7 @@ TAssetPtr 과 StringAssetReference 는 아티스트나 디자이너가 레퍼런
 		   }
 	}
 
-이 예제에서는, 오브젝트 라이브러리에서 `TypeName` 칸에 "FooType" 이 들어있는 것들을 검색하여 처음 찾은 것을 반환합니다. 그 `AssetData` 가 생긴 후 `ToStringReference()` 를 호출하여 `FStringAssetReference` 으로 변환하고나면, 다음 시스템을 사용하여 비동기 로드가 가능합니다:
+이 예제에서는, 오브젝트 라이브러리에서 `TypeName` 칸에 "FooType" 이 들어있는 것들을 검색하여 처음 찾은 것을 반환합니다. 그 `AssetData` 가 생긴 후 `ToStringReference()` 를 호출하여 `FStringAssetReference` 으로 변환하고 나면, 다음 시스템을 사용하여 비동기 로드가 가능합니다:
 
 ## StreamableManager 와 비동기 로딩
 

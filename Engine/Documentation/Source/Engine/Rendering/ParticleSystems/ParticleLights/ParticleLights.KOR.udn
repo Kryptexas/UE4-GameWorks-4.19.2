@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2620280
+﻿INTSourceChangelist:2737439
 Availability:Public
 Title:파티클 라이트
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:VFX 아티스트에게 있어서 또하나의 무기, 파티클 라이트입니다.
+Version: 4.9
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -83,7 +84,7 @@ nyGqpilZe08
 
 ![](PL_system_01_still.png)(h:407) ![](PL_system_02_still.png)(h:407)
 
-첫 이미지에서 파티클 라이트는 이미 입체 파티클 시스템을 강조하기 위해 사용되었으며, 스파크와 플레어에 좀 더 물리적인 느낌을 내고 있습니다. 나아가 특정 순간에 존재하는 파티클 라이트는 극소수입니다. 두번째 이미지에서 라이트는 시스템에 볼륨과 위치를 추가하고 있으나, 같은 효과를 내는 데 훨씬 더 많은 수(200 개 이상)의 파티클 라이트를 사용하고 있습니다.
+첫 이미지에서 파티클 라이트는 이미 입체 파티클 시스템을 강조하기 위해 사용되었으며, 스파크와 플레어에 좀 더 물리적인 느낌을 내고 있습니다. 나아가 특정 순간에 존재하는 파티클 라이트는 극소수입니다. 두 번째 이미지에서 라이트는 시스템에 볼륨과 위치를 추가하고 있으나, 같은 효과를 내는 데 훨씬 더 많은 수(200 개 이상)의 파티클 라이트를 사용하고 있습니다.
 
 ## 용례
 

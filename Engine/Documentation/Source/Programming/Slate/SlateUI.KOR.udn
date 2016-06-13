@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2615198
+﻿INTSourceChangelist:2727063
 Availability:Public
 Title:슬레이트 UI 프레임워크
 Crumbs:%ROOT%, Programming
@@ -42,7 +42,9 @@ Slate (슬레이트)는 언리얼의 커스텀 UI 프로그래밍 프레임워�
 	[PARAM:links]
 		* [](Programming/Slate/Architecture "%Programming/Slate/Architecture:Description%")
 		* [](Programming/Slate/DetailsCustomization "%Programming/Slate/DetailsCustomization:Description%")
+		* [](Programming/Slate/InGameUI "%Programming/Slate/InGameUI:Description%")
 		* [](Programming/Slate/Overview "%Programming/Slate/Overview:Description%")
+		* [](Programming/Slate/Setup "%Programming/Slate/Setup:Description%")
 		* [](Programming/Slate/Widgets "%Programming/Slate/Widgets:Description%")
 	[/PARAM]
 [/OBJECT]

@@ -59,7 +59,7 @@ If your layers are not output at the correct size you will receive the following
 1. 在材质创建后，将其应用到地貌Actor，这样会看起来像下图这样。 
 ![](Landscape_Applied_Material.png)
 1. 在应用了材质后，我们可以添加一些 **Layer Info** （图层信息）到地貌Actor。 对每个图层都添加一个 **Layer Info** （图层信息）对象。 
-在这个示例中，我们有三个对象。 如需了解更多关于 **Layer Info** （图层信息）对象的内容，请查阅[描画模式](Engine/Landscape/Editing/PaintMode) 文档的[图层信息对象](Engine/Landscape/Editing/PaintMode#LayerInfOobjects) 。 在完成后，您的 **Target Layers** （对象图层）部分看起来应该和下图一样。 
+在这个示例中，我们有三个对象。 如需了解更多关于 **Layer Info** （图层信息）对象的内容，请查阅[描画模式](Engine/Landscape/Editing/PaintMode) 文档的[图层信息对象](Engine/Landscape/Editing/PaintMode#LayerInfoObjects) 。 在完成后，您的 **Target Layers** （对象图层）部分看起来应该和下图一样。 
 ![](Landscape_Target_Layers.png)
 1. 现在可以导入图层了。 要完成这个内容，您需要对想要导入图层的 **Target Layer** （目标图层） **点击右键** ，然后选择您想要从弹出的对话框中导入的图层。 
 ![](Landscape_Import_Layer_Option.png)

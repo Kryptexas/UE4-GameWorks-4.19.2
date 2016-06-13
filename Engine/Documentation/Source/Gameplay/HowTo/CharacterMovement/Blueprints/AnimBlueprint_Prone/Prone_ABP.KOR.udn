@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2612378
+﻿INTSourceChangelist:2797706
 Availability: Public
 Title:9. 애니메이션 블루프린트 - 엎드리기 상태
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:캐릭터에 Prone, 엎드리기 상태를 구성하여 마무리합니다.
+Version: 4.9
+SkillLevel:Advanced
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -82,6 +84,8 @@ Description:캐릭터에 Prone, 엎드리기 상태를 구성하여 마무리합
 1.	**Prone_To_Stand** 에서 **Idle_Rifle_Hip** 로의 **트랜지션 룰** 을 열고 아래 그래프를 만듭니다.
 
 	![](AnimBP_ProneToStand2.png)
+
+	**==** 노드가 false 로 설정(체크 해제)되어 있는지, 즉 **Prone** 이 더이상 true 가 아닌 것으로 되어 있는지 확인합니다.
 
 1.	전체 스테이트 머신 그래프는 아래와 비슷할 것입니다 (노드 배치는 다를 수 있습니다).
 

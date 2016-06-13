@@ -4,6 +4,9 @@ Title:平台开发
 Crumbs:%ROOT%
 Description:在PC以外的平台开发游戏的信息。
 Navigation:platform 
+version: 4.9
+parent:%ROOT%
+order:8
 
 [VAR:Params]
 [PARAM:image]

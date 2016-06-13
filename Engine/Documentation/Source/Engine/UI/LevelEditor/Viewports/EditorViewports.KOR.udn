@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2604680
+﻿INTSourceChangelist:2695201
 Availability:Public
 Title:언리얼 에디터 뷰포트
 Crumbs: %ROOT%, Engine, Engine/UI
 Description:언리얼 에디터 뷰포트 조작법 및 시각화 세팅 안내서입니다.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -47,8 +48,6 @@ Description:언리얼 에디터 뷰포트 조작법 및 시각화 세팅 안내�
 [REGION:fullwidth]
 ![](Viewports_Topic.png)
 [/REGION]
-
-## 개요
 
 [EXCERPT:Intro]
 [INCLUDE:Shared/Tutorials/inEditorTutorialCamera#viewportintro]

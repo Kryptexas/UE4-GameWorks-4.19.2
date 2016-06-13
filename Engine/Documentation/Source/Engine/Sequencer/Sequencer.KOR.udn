@@ -1,0 +1,96 @@
+﻿INTSourceChangelist:2905246
+Availability:Public
+Title: 시퀀스 에디터
+Crumbs: %ROOT%, Engine
+Description:시퀀서는 언리얼 엔진 4 의 멀티 트랙 에디터로, 시네마틱 시퀀스의 실시간 생성 및 미리보기에 사용됩니다.
+Navigation:topic
+parent:Engine
+order:3
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Sequencer:title%](Engine/Sequencer/sequencer_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/cine_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Sequencer:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Sequencer:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Sequencer]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Sequencer:title%](Engine/Sequencer/sequencer_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/cine_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Sequencer:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Sequencer:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Sequencer]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:banner]
+![](SequencerBanner.png)(convert:false)
+[/REGION]
+
+[REGION:warning]
+이 기능은 현재 개발중인 기능으로, 예상대로 작동하지 않거나 추후 변경될 수 있습니다.
+[/REGION]
+
+**Sequencer** (시퀀서) 에디터는 언리얼 엔진 4 의 두 가지 시네마틱 편집 툴 중 하나입니다. 시퀀서 이전에, 시네마틱 제작 작업은 주로 [**마티네**](Engine/Matinee) 에디터 안에서 이루어졌었습니다.
+마티네와 유사하게, 시퀀서는 여러가지 전문화된 **트랙** 을 사용하여 씬의 구성을 정의합니다.
+시퀀서에 스켈레탈 메시 트랙을 둘 추가한 뒤, 애니메이션 트랙을 추가하여 그 스켈레탈 메시에 애니메이션을 적용하고, 카메라 트랙과 카메라 컷 트랙을 던져넣어 앵글을 잡고 카메라 전환이 가능해 지면, 시네마틱 시퀀스의 기본적인 구성이 완료된 것입니다.
+
+여기서는 다양한 시퀀스 에디터 부분에 대한 문서 링크를 찾으실 수 있습니다.
+시퀀서가 처음이신 경우, **필독** 부분을 확인해 보시면 시퀀서 에디터에 대한 하이 레벨 개요, 에디터 참고서를 살펴보시면 시퀀서 에디터의 각 요소에 대한 분석과 아울러 시퀀서로 일정한 구체적인 작업을 하는 법을 다루는 일회성 페이지인 비법을 다수 확인할 수도 있습니다.
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		필독
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine\Sequencer\Overview "%Engine\Sequencer\Overview:description%")
+		* [](Engine\Sequencer\ReferenceEditor "%Engine\Sequencer\ReferenceEditor:description%")
+		* [](Engine\Sequencer\HowTo "%Engine\Sequencer\HowTo:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/related_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		관련 링크
+	[/PARAM]
+	[PARAM:links]
+		* [마티네 에디터](Engine/Matinee "%Engine/Matinee:description%")
+	[/PARAM]
+[/OBJECT]
+
+
+<!-- Killing this for now while the current does get updates instead.
+* [](Engine\Sequencer\QuickStart "%Engine\Sequencer\QuickStart:description%")
+-->
+
+

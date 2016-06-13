@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2635791
+﻿INTSourceChangelist:2757171
 Availability:Public
-Title:4. Character ブループリントの設定
+Title:4.Character ブループリントのセットアップ
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
-Description:ステップ 4. Character ブループリントの設定
+Description:ステップ 4.Character ブループリントのセットアップ
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -22,31 +23,31 @@ Description:ステップ 4. Character ブループリントの設定
 
 %Steps%
 
-**キャラクター** が既に入っているプロジェクトを作成したので、人間の形をした **スケルタルメッシュ** とその **Animation ブループリント** を利用できます。ここではチュートリアルの中にあるものを使用しますが、既にお持ちの場合はご自分のものを使って頂いて構いません。
+**キャラクター** を含むプロジェクトが既に作成されているので、人型の **スケルタルメッシュ** とその **Animation** ブループリントをご利用いただけます。このチュートリアルではこうしたものを使用しますが、既にお持ちの場合はご自分のものを使って頂いて構いません。
 
-このキャラクターが新規の AI キャラクターとなります。キャラクター、例えばポーンなどを使う理由は、 Character Movement コンポーネントの機能を利用できるようにするためです。
+このキャラクターが新規 AI キャラクターになります。例えばポーンではなくキャラクターを使う理由は、Character Movement コンポーネントの機能にアクセスするためです。
 
 ## ステップ
 
-1. **コンテンツ ブラウザ** の **AI_Character ブループリント** をダブルクリックして、編集用に開きます。
+1. **コンテンツ ブラウザ** で AI_Character ブループリントを **ダブルクリック** して、編集用に開きます。
 
-1. **[Components]** パネルで **Mesh** コンポーネントを選択します。
+1. **[Components (コンポーネント)]** パネルで **Mesh** コンポーネントを選択します。
 
 	![](meshComp.png)
 
-1. **[Details (詳細)]** パネルの **Mesh** カテゴリで `SK_Mannequin` (または独自の) **スケルタルメッシュ** を割り当てます。
+1. **[Details (詳細)]** パネルの **[Mesh]** カテゴリで SK_Mannequin (または独自の) **スケルタルメッシュ** を探します。
 
 	![](assignSkelMesh.png)
 
-1. **Mesh** コンポーネントを、カプセルの真ん中に来るように移動させます。
+1. **Mesh** コンポーネントを、カプセル内の真ん中に来るように移動させます。
 
-1. **Mesh** コンポーネントを回転させて、青い Arrow コンポーネントの指す方向に向かせます。
+1. **Mesh** コンポーネントを回転させて、青色の Arrow コンポーネントがポイントする方向を向くようにします。
 
-1. **[Details]** パネルの **Animation** カテゴリで `HeroTPP_AnimBlueprint` を **Animation Blueprint Generated Class (Animation ブループリントが生成したクラス)** に割り当てます。
+1. **[Details]** パネルの **Animation** カテゴリで ThirdPerson_AnimBP を **Animation Blueprint Generated Class (Animation ブループリントが生成したクラス)** プロパティに割り当てます。
 
 	![](assignAnimBP.png)
 
-1. **[Components (コンポーネント)]** パネルで **CapsuleComponent** を選び、 **[Details (詳細)]** パネルで **スケルタル メッシュ** が囲まれるように **Capsule Half Height (カプセルの半分の高さ)** と **Capsule Radius (カプセルの半径)** を調整します。
+1. **[Components]** パネルで **CapsuleComponent** を選び、 **[Details]** パネルで **Capsule Half Height (カプセルの半分の高さ)** と **Capsule Radius (カプセルの半径)** を調整して **スケルタル メッシュ** を囲むようにします。
 
 	![](shapeCat.png)
 
@@ -54,21 +55,21 @@ Description:ステップ 4. Character ブループリントの設定
 
 	![](charmve.png)
 
-1. **[Details]** パネルの Movement Component カテゴリで、 Agent Radius (エージェントの半径) と Agent Height (エージェントの高さ) の値を調整します。
+1. **[Details]** パネルの Movement Component カテゴリで、 _Agent Radius (エージェントの半径)_ と _Agent Height (エージェントの高さ)_ の値を調整します。
 
 	![](agentProps.png)
 
-	_Agent Radius は最低でもカプセルの半径、そして Agent Height は少なくともカプセルの半分の高さの 2 倍になるように設定します。_
+	_Agent Radius は最低でもカプセルの半径、そして Agent Height は少なくともカプセルの「半分の高さ」の 2 倍になるように設定します。_
 
-1. Character Movement コンポーネントをまだ選択した状態のまま、 **Character Movement** カテゴリの **Max Walk Speed (最高歩行速度)** プロパティを 400 に変更します。
+1. Character Movement コンポーネントを選択した状態のまま、 **Character Movement** カテゴリの **[Max Walk Speed (最高歩行速度)]** プロパティを 400 に変更します。
 
 	![](maxWalk.png)
 
-1. **Class Defaults** ![](Engine\Blueprints\UserGuide\Variables\defaultsButton.png) ボタンをクリックして、新規 AI Controller (`Follower_AI_CON`) を **Pawn** カテゴリの **AIController Class** プロパティに割り当てます。
+1. **Class Defaults** ボタンをクリックして、新規 AI Controller (`Follower_AI_CON`) を **[Pawn]** カテゴリの **[AIController Class]** プロパティに割り当てます。
 
 	![](AI_con.png)
 
-1. コンパイル ![](compile_button.png) して保存 ![](save_button.png) します。
+1. コンパイルおよび保存します。
 
 
 %Steps%

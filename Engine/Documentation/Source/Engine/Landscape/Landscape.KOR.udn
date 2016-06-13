@@ -1,8 +1,11 @@
-﻿INTSourceChangelist:2602775
+﻿INTSourceChangelist:2735872
 Availability: Public
 Title:랜드스케이프 야외 지형
 Crumbs:%ROOT%, Engine
 Description:Landscape, 랜드스케이프는 드넓은 개방형 야외 환경을 만들기 위한 시스템입니다.
+version: 4.9
+parent:Engine
+order:8
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -156,11 +159,11 @@ Description:Landscape, 랜드스케이프는 드넓은 개방형 야외 환경�
 ### 거대한 지형 크기
 
 [EXCERPT:landscape001]
-랜드스케이프 시스템으로 기존 언리얼 엔진에서 가능했던 것 보다 수십배 큰 큐모의 지형을 만들 수 있습니다. 강력한 LOD 시스템과 메모리의 효율적인 사용 덕에 현재 8192x8192 까지의 하이트맵이 가능합니다. 언리얼 엔진에서는 이제 어떠한 유형의 게임이든 원하는 만큼 거대한 야외 세계를, 내부 엔진이나 툴 변경 없이도 쉽고 빠르게 만들어낼 수 있습니다.
+랜드스케이프 시스템으로 기존 언리얼 엔진에서 가능했던 것 보다 수십 배 큰 규모의 지형을 만들 수 있습니다. 강력한 LOD 시스템과 메모리의 효율적인 사용 덕에 현재 8192x8192 까지의 하이트맵이 가능합니다. 언리얼 엔진에서는 이제 어떠한 유형의 게임이든 원하는 만큼 거대한 야외 세계를, 내부 엔진이나 툴 변경 없이도 쉽고 빠르게 만들어낼 수 있습니다.
 [/EXCERPT:landscape001]
 
 [REGION:raw]
-![Landscape_Terrain_Size.jpg](Landscape_Terrain_Size.jpg)
+![](Landscape_Terrain_Size.png)
 [/REGION]
 
 ### 랜드스케이프 메모리 사용량
@@ -178,10 +181,13 @@ Description:Landscape, 랜드스케이프는 드넓은 개방형 야외 환경�
 
 ### 연속 지오-밉맵 LOD
 
-랜드스케이프 터레인에 대한 LOD는 표준 텍스처 밉맵을 사용하여 처리합니다. 각 밉맵은 레벨 오브 디테일(LOD)이며, 샘플링할 밉맵은 =text2Dlod= HLSL 인스트럭션(명령)을 사용하여 지정할 수 있습니다. 이 방법으로 두 밉 레벨 다 샘플링한 다음 하이트와 X Y 오프셋을 버텍스 셰이더에서 보간시켜 깨끗한 모핑 효과를 낼 수 있기에, 다수의 LOD 는 물론 부드러운 LOD 전환도 가능합니다.
+랜드스케이프 터레인에 대한 LOD는 표준 텍스처 밉맵을 사용하여 처리합니다. 각 밉맵은 레벨 오브 디테일(LOD)이며, 샘플링할 밉맵은 =text2Dlod= HLSL 인스트럭션(명령)을 사용하여 지정할 수 있습니다. 이 방법으로 두 밉 레벨 다 샘플링한 다음 높이와 X Y 오프셋을 버텍스 셰이더에서 보간시켜 깨끗한 모핑 효과를 낼 수 있기에, 다수의 LOD 는 물론 부드러운 LOD 전환도 가능합니다.
 
-[REGION:fullwidth raw]
-![Landscape_LOD_Morph.jpg](Landscape_LOD_Morph.jpg)
+
+[REGION:imagetable]
+| ![](Landscape_LOD1.png) | ![](Landscape_LOD1toLOD2.png) |  ![](Landscape_LOD2.png) |
+| -------- | ----------- | ------- |
+| ** 완전 LOD 1 **| ** LOD 1 에서 LOD 2 로 모핑** | ** 완전 LOD 2**|
 [/REGION]
 
 ### 하이트맵과 웨이트맵 데이터 스트리밍
@@ -192,15 +198,32 @@ Description:Landscape, 랜드스케이프는 드넓은 개방형 야외 환경�
 
 지형의 X Y 기울기가 저장되기에, (LOD 가 적용되지 않은) 온전한 고해상도 노멀 데이터가 라이팅 계산에 활용됩니다.
 
-![Landscape_HighRes_Normals.jpg](Landscape_HighRes_Normals.jpg)(w:900 h:272)
+
+[REGION:imagetable]
+| ![](Landscape_LODs.png) | ![](Landscape_FullResNormals.png) |
+| -------- |-------- |
+| ** 랜드스케이프 LOD **| ** 전해상도 노멀 ** |
+[/REGION]
 
 이 방법으로 멀리 있어서 LOD 가 낮아진 컴포넌트에도 픽셀별 라이팅을 하는 데 항상 최고해상도 지형을 사용할 수 있는 것입니다.
 
-![Landscape_HighRes_Lighting.jpg](Landscape_HighRes_Lighting.jpg)(w:900 h:272)
+
+[REGION:imagetable]
+| ![](Landscape_SimpleVertexLighting.png) | ![](Landscape_HRPerPixel.png) | 
+| -------- | ----------- | 
+| ** 심플 버텍스 라이팅 **| ** 고해상도 픽셀별 라이팅 ** | 
+[/REGION]
+
 
 이 고해상도 노멀 데이터를 디테일 노멀 맵과 결합하면, 별다른 부하 없이 랜드스케이프 지형에 매우 디테일한 라이팅을 낼 수 있습니다.
 
-![Landscape_Normals_Comparison.jpg](Landscape_Normals_Comparison.jpg)(w:900 h:272)
+
+
+[REGION:imagetable]
+| ![](Landscape_GeometryNormals.png) | ![](Landscape_DetailNormals.png) | 
+| -------- | ----------- | 
+| ** 지오메트리 노멀만 **| ** 디테일 노멀 포함 ** | 
+[/REGION]
 
 ### PhysX 콜리전
 

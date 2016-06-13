@@ -1,12 +1,10 @@
-﻿INTSourceChangelist:2527430
-Availability:Public
+﻿Availability:Public
 Title:テクスチャリング
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:UV の再投影、トリミングなど、テクスチャ作業の補助を目的に作成された幅広い機能
+Version:4.9
 
 [TOC (start:2 end:3)]
-
-## 概要
 
 テクスチャリング機能により、テクスチャベースの動作に対する特別な処理が可能になります。
 
@@ -21,11 +19,11 @@ Description:UV の再投影、トリミングなど、テクスチャ作業の�
 | アイテム | 説明 |
 | -------- | -------- |
 | [REGION:tablesection]入力値[/REGION] ||
-| **TextureObject (Texture Object)** | Cylindrical UVs 経由で投影されるテクスチャです。 |
+| **TextureObject (Texture Object)** | Cylindrical UVs を使って投影されるテクスチャです。 |
 | **In (Scalar)** | 投影円柱の高さをワールド空間単位で受け取ります。|
 | **Normal (Vector3)** | 投影円柱を回転させるためのベクターを入力します。|
 |[REGION:tablesection]出力値[/REGION] ||
-| **Cylinder Projection** | 最終的なテクスチャをまるで円柱から投影されているように出力します。ただし、キャップがないので、テクスチャの上側と下側で詰まってしまう傾向があります。
+| **Cylinder Projection** | 最終的なテクスチャをまるで円柱から投影されているように出力します。ただし、キャップがないので、テクスチャの上側と下側で詰まってしまう傾向があります。|
 | **Cylinder Projection w Top** | 最終的なテクスチャをまるでキャップ付きの円柱から投影されているように出力します。|
 
 
@@ -55,7 +53,7 @@ Description:UV の再投影、トリミングなど、テクスチャ作業の�
 
 ### LocalAlignedTexture
 
- LocalAlignedTexture 関数は、ローカル空間のオブジェクト上のテクスチャをタイル処理します。
+LocalAlignedTexture 関数は、ローカル空間のオブジェクト上のテクスチャをタイル処理します。
 
 [REGION:note]
 	この関数には法線用の入力がありますが、現時点では入力は機能しません。
@@ -138,7 +136,9 @@ WorldAlignedNormal は法線を受け取り、テクスチャをローカルに�
 
 ![WorldAlignedNormal](WorldAlignedNormal_Demo.png)
 
-**床が回転してもテクスチャがワールド座標にアラインされることに留意してください。**
+[REGION:note]
+床が回転してもテクスチャがワールド座標にアラインされることに留意してください。
+[/REGION]
 
 ### WorldAlignedTexture
 
@@ -165,11 +165,13 @@ WorldAlignedNormal は法線を受け取り、テクスチャをローカルに�
 
 ![WorldAlignedTexture](WorldAlignedTexture_Demo.png)
 
-**床が回転してもテクスチャがワールド座標にアラインされることに留意してください。**
+[REGION:note]
+床が回転してもテクスチャはワールド座標系に基づくことに留意してください。
+[/REGION]
 
 ### 3DSandMayaUVCoordinates
 
-入力 UV の緑のチャンネルを反転させて、左上ではなくて左下角の 0、0 座標 (3ds Max や Maya と同様)に配置する関数です。これらのアプリケーションから入力されるモデルの場合は、テクスチャを反転する必要がなくなるので重要です。
+入力 UV の緑のチャンネルを反転させて、左上ではなくて左下角の 0、0 座標 (3ds Max や Maya と同様) に配置する関数です。これらのアプリケーションから入力されるモデルの場合は、テクスチャを反転する必要がなくなるので重要です。
 
 | アイテム | 説明 |
 | -------- | -------- |
@@ -198,20 +200,20 @@ WorldAlignedNormal は法線を受け取り、テクスチャをローカルに�
 
 ### HeightLerp
 
-ハイトマップとトランジション フェーズ値に基いて、2 つのテクスチャの間の線形補間を実行する関数です。Lerp を実行するハイトマップに沿って値を調節できます。
+ハイトマップと遷移位相値に基いて、2 つのテクスチャの間の線形補間を実行する関数です。Lerp を実行するハイトマップに沿って値を調節できます。
 
 | アイテム | 説明 |
 | -------- | -------- |
 | [REGION:tablesection]入力値[/REGION] ||
 | **A (Vector3)** | lerp 計算の最初のテクスチャです。|
 | **B (Vector3)** | lerp 計算の 2 番目のテクスチャです。|
-| **Transition Phase (Scalar)** | トランジションを実行するハイトマップの領域を定義する値です。この値を 0.5 にすると標準の lerp が実行されます。 0 と 1 に向かって値を調整すると、それぞれハイトマップの上と下に向かってバイアスが生じます。
+| **Transition Phase (Scalar)** | 遷移を実行するハイトマップの領域を定義する値です。この値を 0.5 にすると標準の lerp が実行されます。0 と 1 に向かって値を調整すると、それぞれハイトマップの上と下に向かってバイアスが生じます。
 | **Height Texture (Scalar)** | lerp の操作に使用するハイトマップです。|
 | **Contrast (Scalar)** | CheapContrast 関数を使ってコントラストの強調をハイトマップに適用します。|
 |[REGION:tablesection]出力値[/REGION] ||
 | **Results** | HeightLerp 関数によるブレンド結果です。|
 | **Alpha** | コントラスト強調を適用させて、lerp で使用するアルファ値です。|
-| **Alpha** | コントラスト強調を適用させずに、lerp で使用するアルファ値です。|
+| **Alpha** | コントラスト強調を適用せずに、lerp で使用するアルファ値です。|
 
 
 ![HeightLerp](HeightLerp_Demo.png)
@@ -228,22 +230,24 @@ WorldAlignedNormal は法線を受け取り、テクスチャをローカルに�
 | -------- | -------- |
 | [REGION:tablesection]入力値[/REGION] ||
 | **Blend Power (Scalar)** | あるテクスチャから別のテクスチャへブレンドする割合です。|
-| **Use Reflection Vector (StaticBool)** | *true* の場合、CameraVector (マテリアルの Normal 入力が結果に影響します) ではなく ReflectionVector を使用します。デフォルトは *false* です。ただし今回は、切り替え用の _false_入力データがないので、_false_ に設定したままでも結果に影響しません。
-| **Use Smoothable Normals (StaticBool)** | *true* の場合、CameraVector (Material's Normal input will effect results) ではなく ReflectionVector を使用します。デフォルトは *false* です。ただし今回は、切り替え用の _false_入力データがないので、_false_ に設定したままでも結果に影響しません。
+| **Use Reflection Vector (StaticBool)** | *true* の場合、CameraVector (マテリアルの Normal 入力が結果に影響します) ではなく ReflectionVector を使用します。デフォルトは *false* です。ただし今回は、切り替え用の _false_入力データがないので、_false_ に設定したままでも結果に影響しません。|
+| **Use Smoothable Normals (StaticBool)** | *true* の場合、CameraVector (Material's Normal input will effect results) ではなく ReflectionVector を使用します。デフォルトは *false* です。ただし今回は、切り替え用の _false_入力データがないので、_false_ に設定したままでも結果に影響しません。|
 | **Smooth Reflection Percentage (Scalar)** | ブレンド前にサーフェスに適用する法線のスムーズ度です。|
 |[REGION:tablesection]出力値[/REGION] ||
-| **XY True** | サーフェスが XY プレーンと並ぶため、白くブレンドされるフォールオフの結果です。|
-| **XZ True** | サーフェスが XZ プレーンと並ぶため、白くブレンドされるフォールオフの結果です。|
-| **YZ True** | サーフェスが YZ プレーンと並ぶため、白くブレンドされるフォールオフの結果です。|
+| **XY True** | サーフェスが XY プレーと平行になるので、フォールオフで白へブレンドされます。|
+| **XZ True** | サーフェスが XZ プレーンと平行になるので、フォールオフで白へブレンドされます。|
+| **YZ True** | サーフェスが YZ プレーンと平行になるので、フォールオフで白へブレンドされます。|
 
 
 ![CameraWorldBlend](CameraWorldBlend_Demo.png)
 
-**緑色のテクスチャはサーフェスが XY プレーンにアラインされるとブレンドされ、赤色は他のどこででもブレンドされることに留意してください。**
+[REGION:note]
+緑色のテクスチャはサーフェスが XY 面と平行になるとブレンドされ、赤色はどの位置でもブレンドされることに留意してください。
+[/REGION]
 
 ### LocalSpaceSurfaceMirroring
 
-この関数は、ある特定のローカル軸の方へ向いているサーフェスの全ての面に対してミラーリングを適用します。それ以外のサーフェス面はマスクされます。これらのマスクはスカラー値の入力によりオフセットされ、法線マップを計算全体に反映し凹凸を表現することができます。サーフェスのトポロジーに応じてミラーリングを行う必要がある場合に便利です。
+この関数は、ある特定のローカル軸の方へ向いているサーフェスの全てのサーフェスに対してミラーリングを適用します。それ以外のサーフェス面はマスクされます。これらのマスクはスカラー値の入力によりオフセットされ、法線マップを計算全体に反映し凹凸を表現することができます。サーフェスのトポロジーに応じてミラーリングを行う必要がある場合に便利です。
 
 | アイテム | 説明 |
 | -------- | -------- |
@@ -302,9 +306,9 @@ WorldAlignedNormal は法線を受け取り、テクスチャをローカルに�
 | **XY Scale (Scalar)** | XY プレーンに投影されるテクスチャに適用されるスケーリングです。 |
 | **YZ Scale (Scalar)** | YZ プレーンに投影されるテクスチャに適用されるスケーリングです。 |
 | **XZ Scale (Scalar)** | XZ プレーンに投影されるテクスチャに適用されるスケーリングです。 |
-| **Blend Exponent Y Z (Scalar)** | Y と Z に沿って投影されるテクスチャ間のトランジションの比率を制御します。|
+| **Blend Exponent Y Z (Scalar)** | Y と Z に沿って投影されるテクスチャ間の遷移の比率を制御します。|
 | **Blend Mult Y Z (Scalar)** | 側面の間のブレンドを乗算します。|
-| **Blend Exponent X (Scalar)** | Y と Z に沿って投影されるテクスチャ間のトランジションの比率を制御します。|
+| **Blend Exponent X (Scalar)** | Y と Z に沿って投影されるテクスチャ間の遷移の比率を制御します。|
 | **Blend Mult X (Scalar)** | 側面の間のブレンドを乗算します。|
 | **Single Texture (StaticBool)** | _true_ に設定されている場合、 *XY Texture* 入力に適用されるテクスチャのみ使用し、3 つ全ての側面上に投影します。|
 | **Normal (Vector3)** | 法線マップでブレンド計算を行い、それによりサーフェスが向く方向を決定します。|

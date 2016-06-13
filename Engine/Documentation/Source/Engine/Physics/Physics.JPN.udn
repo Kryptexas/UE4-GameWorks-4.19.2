@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2735872
+﻿INTSourceChangelist:2985497
 Availability:Public
 Title:物理のシミュレーション
 Crumbs: %ROOT%, Engine
@@ -52,7 +52,7 @@ order:6
 [/REGION]
 
 [EXCERPT:Intro]
-アンリアル エンジン 4 では、PhysX 3.3 物理エンジンを使用し、物理シミュレーションの演算を行い、すべてのコリジョンの計算を行います。PhysX には、正確なコリジョン検知だけでなく、ワールド内にあるオブジェクト間の物理的な相互作用をシミュレートする機能があります。ゲームに物理を利用すれば、あらゆるシーンにおいて没入感の価値が高まり、プレイヤーは、シーンと相互作用をもつことができ、シーンから何らかの反応が返ってくると信じ込むことができるようになります。
+アンリアル エンジン 4 では、PhysX 3.3 物理エンジンを使用し、物理シミュレーションの演算を行い、すべてのコリジョンの計算を行います。PhysX は、正確なコリジョン検知だけでなく、ワールド内にあるオブジェクト間の物理的な相互作用のシミュレーションが可能です。ゲームに物理を利用すれと、プレイヤーはシーンと相互作用をもち、シーンから何らかの反応があると思い込むことができるので、あらゆるシーンにおいて没入感を高めやすくなります。
 [/EXCERPT:Intro]
 
 [OBJECT:TopicButtonList]
@@ -96,6 +96,7 @@ order:6
 	[/PARAM]
 	[PARAM:links]
 		* [物理ボディ](Engine/Physics/PhysicsBodies "%Engine/Physics/PhysicsBodies:description%")
+		* [複雑なコリジョンとシンプルなコリジョン](Engine/Physics/SimpleVsComplex "%Engine/Physics/SimpleVsComplex:description%")
 		* [物理マテリアル](Engine/Physics/PhysicalMaterials "%Engine/Physics/PhysicalMaterials:description%")
 		* [PhAT ユーザーガイド/リファレンス](Engine/Physics/PhAT "%Engine/Physics/PhAT:description%")
 	[/PARAM]

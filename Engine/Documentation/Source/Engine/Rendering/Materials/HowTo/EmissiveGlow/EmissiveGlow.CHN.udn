@@ -1,106 +1,108 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Use the Emissive Material Input
-Crumbs: %ROOT%, Engine, Engine/Rendering/Materials/HowTo
-Description:A How To Guide for using the Emissive Material input inside the Material Editor in Unreal Engine 4. 
-Related: Engine/Rendering/Materials/MaterialInputs
-Related: Engine/Rendering/Materials/MaterialProperties/LightingModels
-Related: Engine/Rendering/PostProcessEffects/Bloom
-Related: Resources/ContentExamples/MaterialNodes/1_5
+﻿INTSourceChangelist:2691763
+Availability:Public
+Title:使用“自发光”（Emissive）材质输入
+Crumbs:%ROOT%, Engine, Engine/Rendering/Materials/HowTo
+Description:有关在虚幻引擎 4 的材质编辑器中使用“自发光”（Emissive）材质输入的操作指南。 
+Related:Engine/Rendering/Materials/MaterialInputs
+Related:Engine/Rendering/Materials/MaterialProperties/LightingModels
+Related:Engine/Rendering/PostProcessEffects/Bloom
+Related:Resources/ContentExamples/MaterialNodes/1_5
+Version:4.9
+SkillLevel:Intermediate
 
 
 [TOC(start:2 end:3)]
 
 
 
-During the course of project development, the need might arise for a Self-Illuminated Material or glowing Material. 
-Inside of Unreal Engine 4(UE4), Self-Illuminated Materials are known as Emissive Materials. 
-In the following How - To guide, we will be covering how you setup your Materials to use the Emissive input as well as how you can use the Emissive input to actually light the world that you are creating. 
+在项目开发过程中，可能会需要自发亮材质或发光材质。 
+在虚幻引擎 4 (UE4) 中，自发亮材质也称为自发光材质。 
+在以下操作指南中，我们将阐述如何设置材质以使用“自发光”（Emissive）输入，以及如何使用“自发光”（Emissive）输入以实际照亮您所创建的环境。 
 
-## Emissive Glow
+## 放射性辉光
 
-Emissive Glow or in UE4, Emissive Materials, give artists a very cheap and effective way to give the illusion that a Material is casting light when it really is not. 
-Emissive Materials do this by allowing artist to push the values of the Emissive input higher than 1.0 which will push the Material into the HDR range, 
-giving off a Bloom effect that you might see when looking at a very bright light source.
+放射性辉光（在 UE4 中称为“自发光材质”）为美工提供了一种非常有效而低成本的方法，可在材质实际未投射光线时产生其正在投射光线的错觉。 
+自发光材质通过允许美工将“自发光”（Emissive）输入的值提高到大于 1.0 来实现此效果，这将使材质进入 HDR 范围， 
+从而发出您注视非常明亮的光源时可能会看到的高光效果。
 
-## Lit & Unlit Emissive Materials
+## 照亮与不照亮自发光材质
 
-Emissive Materials are self-illuminating which means that they can be used with both Lit and Unlit Shading Models. 
-However whenever possible, Emissive Materials should use the Unlit Shading Model as it will result in a shader that is cheaper to render.
- There is also no visual difference between the two different Shading Models in terms of how the Emissive is rendered. 
- So whenever possible, use the Unlit Shading Mode as it will be cheaper. 
+自发光材质是自发亮材质，这表示它们可以与照亮和不照亮明暗处理模型配合使用。 
+但是，自发光材质应该尽可能使用不照亮明暗处理模型，因为这将产生渲染成本较低的着色器。
+ 在这两种不同的明暗处理模型之间，渲染自发光的方式并没有视觉上的差别。 
+ 所以，应尽可能使用成本较低的不照亮阴影模式。 
 
 ![](EM_Shading_Model.png)
 
-* **When to use the Lit Shading Model**: You should use the Lit Shading Model if your Emissive Material has to be used in combination with other shader inputs like the Base Color input or the 
-	Normal Map input. An example of this would be if you were creating a Material for a gun that had lights on it. You will still want to use the Lit Shading Model so that the Normal map and 
-	other shader inputs would still work with the lighting in the level. 
+* **何时使用照亮明暗处理模型**：如果您的自发光材质必须与“底色”（Base Color）输入或“法线贴图”（Normal Map）输入等其他着色器输入结合使用，那么您应该使用 
+	照亮明暗处理模型。例如，您要为光线照射下的枪支创建材质。在这种情况下，您仍想使用照亮明暗处理模型，以使法线贴图和 
+	其他着色器输入仍与关卡中的照明配合工作。 
 
-* **When to use the Unlit Shading Model**: You should use the Unlit Shading Model if your Emissive Material does not have to use the other shader inputs. An example of this would be if you are 
-	using the Emissive Material strictly to simulate light source such as a light card or the surface area of a light bulb. 
+* **何时使用不照亮明暗处理模型**：如果自发光材质不必使用其他着色器输入，那么您应该使用不照亮明暗处理模型。例如，您 
+	要完全使用自发光材质来模拟光源，比如灯光卡或灯泡的表面区域。 
 
-## Emissive Material Creation
+## 创建自发光材质
 
-Creating Emissive Materials is no different than creating any other Material inside of UE4. The following section will cover all that is needed to setup up any Material to make use of the Emissive input.
+在 UE4 中，创建自发光材质与创建任何其他材质没有不同。下一节阐述设置任何材质以使用“自发光”（Emissive）输入所需完成的所有操作。
 
 [region:note]
-All of the content that is used in the following sections can be found if you include the **Starter Content** with your project. While the techniques that are shown here will work with any Textures, if you want to follow along, please make sure that your project does include the **Starter Content**.
+如果您的项目包含 **起步内容**，那么您可找到下列各节中使用的所有内容。虽然此处展示的技巧适用于任何纹理，但如果您想采用这些技巧，请确保项目包含 **起步内容**。
 [/region]
 
-1. First use the mouse to **Right-Click** in the **Content Browser** and then from the **Create Basic Asset** section of the pop-up Menu, select **Material**. 
-  Once selected, a new **Material** will be created, name the Material **Emissive_Material**. 
+1. 首先，在 **内容浏览器** 中 **右键单击**，然后在弹出菜单的 **创建基本资产（Create Basic Asset）**部分中，选择 **材质（Material）**。 
+  选择此选项将创建新的 **材质**，请将其命名为 **Emissive_Material**。 
 
-1. Once the Material has been created open it up by using the **Left Mouse Button** and **Double-Clicking** on the Material in the **Content Browser**.
-	Once open add the following Material Expression nodes and Textures. 
+1. 创建材质之后，请在 **内容浏览器** 中使用 **鼠标左键双击** 此材质以将其打开。
+	打开之后，请添加下列材质表达式节点和纹理。 
 
-	* **Vector Parameter** x 2
-	* **Scalar Parameter** x 2
-	* **Texture** - T_Tech_Panel_M
-	* **Texture** - T_Tech_Panel_N
+	* **矢量参数（Vector Parameter）**x 2
+	* **标量参数（Scalar Parameter）**x 2
+	* **纹理（Texture）**- T_Tech_Panel_M
+	* **纹理（Texture）**- T_Tech_Panel_N
 
 	![](EM_Adding_Nodes_&_Textures_To_Material.png)
 
 	[region:tip]
-	If you cannot find the **Tech_Panel** textures that are used in this How - To, that means that you might have forgotten to include the **Starter Content** with your project. 
-	To find this content, you can create another project, make sure to include the Start Content, and then use the [Migrate Tool](Engine/Content/Browser/UserGuide/Migrate) 
-	to move the textures from that project into your project. 
+	如果您找不到本操作指南中使用的 **Tech_Panel** 纹理，那么可能表示您忘记在项目中包括 **起步内容**。 
+	要查找此内容，您可以创建另一个项目，确保包括“起步内容”，然后使用 [迁移工具](Engine/Content/Browser/UserGuide/Migrate) 
+	将纹理从该项目复制到您的项目中。 
 	[/region]
 
-1. Now that the Material Expression nodes have been added, it is now time to start to set the Material up. The first thing that needs to be done is that the Material Expression nodes 
-	need to be named and filled in with data. Here is a list of names and values that we are going to be using.
+1. 需要的材质表达式节点现已添加完毕，我们可以开始设置材质。首先，需要命名材质表达式节点 
+	并填写数据。以下是我们将要使用的名称和值的列表。
 
-	* **Vector Parameter** - Base_Color - 1, 1, 1
-	* **Vector Parameter** - Emissive_Color - 1, 0, 0
-	* **Scalar Parameter** - Roughness - 0.5
-	* **Scalar Parameter** - Emissive_Strength - 1.0
+	* **矢量参数** - Base_Color - 1, 1, 1
+	* **矢量参数** - Emissive_Color - 1, 0, 0
+	* **标量参数** - Roughness - 0.5
+	* **标量参数** - Emissive_Strength - 1.0
 
-	When completed, you should have something that looks like the following. 
+	完成后，您应该看到类似下图的内容。 
 	
 	![](EM_Naming_Nodes.png)
 
-1. With the Material Expression nodes now labeled and filled in, it is now time to start to wire everything together. The most important part to make sure to wire up correctly is 
-	the Emissive input as without that, no Emissive  will work. When completed, your Material should look like the following.
+1. 材质表达式节点现已标注并填写完毕，我们可以开始将所有节点连接到一起。确保连线正确的最重要一点就是， 
+	没有“自发光”（Emissive）输入自发光就不工作。完成后，您的材质应该如下所示。
 	
 	![](EM_Completed_Material.png)
 
-1. Now that the Material is wired up, make sure to **Compile** and **Save** the Material by pressing both the **Apply** and **Save** buttons at the top of the Material editor. 
-	Once that has been completed, you can then close the Material.
+1. 材质现已连接完毕，请通过单击材质编辑器顶部的 **应用（Apply）**和 **保存（Save）**，确保 **编译** 并 **保存** 材质。 
+	完成之后，您可以关闭材质。
 	
 	![](EM_Save_&_Compile.png)
 
-1. Now that the Material has been compiled and closed, find the Material in the **Content Browser** and then **Right-Click** on the Material and chose the **Create Material Instance** option to make a
-	Material Instance from the **Emissive_Material** Material.
+1. 材质现已通过编译并关闭，请在 **内容浏览器** 中查找该材质，然后 **右键单击** 该材质并选择 **创建材质实例（Create Material Instance）**选项以
+	根据 **Emissive_Material** 材质建立材质实例。
 	
 	![](EM_Create_New_Material_Instance.png)
 
-1. Once the Material Instance has been created, open it up by **Double-Clicking** on it with the **Left Mouse Button**. Once it is open, have a look at the **Parameter Groups** section. 
-	In this section, you will find all of the controls that were exposed in the Parent Material like Emisive_Color and Emissive_Strength. 
+1. 材质实例现已创建完毕，请通过 **鼠标左键双击** 将其打开。打开之后，请查看 **参数组（Parameter Groups）**部分。 
+	在这部分中，您将找到父材质中公开的所有控制，例如 Emisive_Color 和 Emissive_Strength。 
 	
 	![](EM_Emissive_Material_Instance.png)
 
-1. To change a parameter, you must first enable the parameter by using the **Left Mouse Button** to click on the checkmark box that is next to the name of the parameter you want to enable. 
-	After clicking, a check mark should be added to the box and both the name and the input area will no longer be grayed out. Now it is just a matter of inputting the values that you want 
-	to use and saving the Material Instance. 
+1. 要更改某个参数，您必须先使用 **鼠标左键** 单击要启用的参数名称旁边的复选框，以将其启用。 
+	单击之后，该复选框中将出现一个勾选标记，并且名称和输入区域都不再显示为灰色。现在，我们只需输入所要使用的值 
+	并保存材质实例。 
 	[OBJECT:EmbeddedVideo]
 		[PARAMLITERAL:width]
 		640
@@ -113,115 +115,115 @@ All of the content that is used in the following sections can be found if you in
 		[/PARAMLITERAL]
 	[/OBJECT]
 
-### Texture or Scalar For Emissive Input 
-You can input Textures, numbers, or a combination of both into the Emissive Input. What you input really depends on the needs of the Material. If the Emissive Material is just to simulate light ,
-then using a numeric value instead of a texture is the way to go. However if you want to simulate lights on an object, using a texture as a Emissive Mask is the way to go as you can define in the Mask 
-Texture exactly which parts should be illuminated. In the example above, we used Emissive Masking as we used a texture to define where the Emissive parts of the Materials should be. 
+### 用于“自发光”（Emissive）输入的纹理或标量 
+您可以将纹理、数字或这两者的组合输入到“自发光”（Emissive）输入。实际上，您输入的内容视材质的需要而定。如果自发光材质仅用于模拟光线，
+那么应该使用数值，而不是纹理。但是，如果要模拟对象上的光线，那么应使用纹理作为自发光蒙板，因为您可以在蒙板纹理中准确定义 
+应该照亮的部分。在以上示例中，我们使用的是自发光遮罩，因为我们使用了纹理来定义材质的自发光部分。 
 
 
-## Testing Map Creation 
+## 创建测试贴图 
 
-1. Before we go any further, we need to first set up a little testing room so that we can see the Emissive Material in action. To do this, create a new level by going **File** -> **New Level**
- and choose the **Default** option from the new level dialogue box.  
+1. 在进一步操作之前，我们需要先设置一个小测试间，以便查看作用中的自发光材质。为此，请创建一个新关卡：选择 **文件（File）**-> **新建关卡（New Level）**，
+ 然后从新建关卡对话框中选择 **默认（Default）**选项。  
 	
 	![](EM_Create_New_Level.png)
 
 	[region:tip]
-	You can also create a new level by pressing **CRTL + N** on the keyboard. 
+	您也可以通过在键盘上按 **CRTL + N** 来创建新关卡。 
 	[/region]
 
-1. Once the level has been created, take the existing floor, **SM_Template_Map_Floor**, and duplicate it 4 times by first selecting it and then pressing **CRTL + W** on the keyboard 4 times. 
-	Once you have all of the floors duplicated arrange them so that they form a room that is open on one side and has a bit of a gap in the roof to make for some interesting lighting conditions. 
-	When completed, your room should look something like this. 
+1. 创建关卡后，请找到现有的地板 **SM_Template_Map_Floor**，将其选中，并在键盘上按 4 次  **CRTL + W** 以复制 4 次。 
+	复制所有地板之后，进行排列以形成在某一侧敞开的房间，其屋顶有一个小间隙，可产生一些有趣的光照条件。 
+	完成后，您的房间应该如下所示。 
 	![](EM_Testing_Level.png)
 
-1. When the room is completed, make sure to save your work by pressing **CTRL + S** on the keyboard TO SAVE YOUR WORK.
+1. 房间完成后，务必在键盘上按 **CTRL + S** 以保存您的工作。
 
-## Emissive Materials in Action
+## 作用中的自发光材质
 
-1. With the room now setup, it is now time to add some meshes for testing.
-	Inside of the **Starter Content** folder, there is a folder labeled **Shapes**. Inside of that folder, you will find a mesh named **Shape_Cube**. Select the **Shape_Cube** with your 
-	**Left Mouse Button** and then drag the mesh from the **Content Browser** into the level releasing the **Left Mouse Button** when the mesh is over the level viewport. This will place the mesh in the level.
+1. 房间设置完成后，可以开始添加一些网格以用于测试。
+	在 **起步内容（Starter Content）**文件夹中，有一个标为 **形状（Shapes）**的文件夹。在该文件夹中，您将找到名为 **Shape_Cube** 的网格。请使用 **鼠标左键** 选中 
+	**Shape_Cube**，然后将此网格从 **内容浏览器** 拖入关卡，当网格位于关卡视口上方时，释放 **鼠标左键**。这会将该网格放入关卡。
 	
 	![](EM_Adding_Test_Box.png)
 
-1. Now that the mesh has been added to level, it is now time to apply the Emissive Material to it. To do this, locate the **Emissive Material** folder in the **Content Browser**. 
-	Once you find it, select the **Material Instance** with the **Left Mouse Button** and then drag the Material Instance from the **Content Browser** onto the **Shape_Cube** mesh.
+1. 网格现已添加到关卡，您可以开始对其应用自发光材质。为此，请在 **内容浏览器** 中找到 **自发光材质（Emissive Material）**文件夹。 
+	找到之后，请使用 **鼠标左键** 选中 **材质实例**，然后将该材质实例从 **内容浏览器** 拖到 **Shape_Cube** 网格上。
 	
 	![](EM_Applying_Material_Instance.png)
 
-1. Once the Material Instance has been applied to the Shape_Cube mesh, open up the Material Instance by **Double-Clicking** on it with the **Left Mouse Button**. Once open, we can then start to 
-	adjust the parameters of the Material Instance to affect the way our  Emissive looks. For example, if we adjust the **Emissive_Strength**, we can control the influence of the Emissive. 
-	Here are some examples of what happens when we set the **Emissive_Strength** to a value of 0 on the left, 1 in the middle, and 25 on the right. 
+1. 在材质实例应用于 Shape_Cube 网格后，请使用 **鼠标左键双击** 材质实例以将其打开。打开之后，我们可以开始 
+	调整材质实例的参数，以影响自发光的外观。例如，如果我们调整 **Emissive_Strength**，那么我们可以控制自发光的影响。 
+	以下是将 **Emissive_Strength** 设置为值 0（左）、1（中）和 25（右）时的情况示例。 
 	
 	![](EM_Different_Emissive_Values.png)
 
-1. You can also change the color of the Emissive by changing the **Emissive_Color** Vector Parameter. Here are some examples of what changing the color of the Emissive looks like. 
+1. 您还可以通过更改 **Emissive_Color** 矢量参数来改变自发光颜色。以下是一些改变自发光颜色的示例。 
 	
 	![](EM_Different_Emissive_Color.png)
 
 
-## Using Emissive Materials to Light the World
+## 使用自发光材质来照亮环境
 
 [region:warning]
-This feature is only available in Unreal Engine build **4.6** and later. 
+此功能仅在虚幻引擎 **4.6** 版及更高版本中可用。 
 [/region]
 
-Unreal Engine 4 now has the ability to use the Emissive input in your Material to help illuminate the world. To enable this functionality, all you have to do is make sure that you have something going 
-into the Emissive input in the Material and then place that Material on an object in the world. After you build the light, you should see that static objects in the world now look like they have 
-been illuminated by the Emissive input of your Material. Here is an example of using a yellow Emissive light to illuminate a dark part of our testing level with yellow light. 
+在虚幻引擎 4 中，可以在材质中使用“自发光”（Emissive）输入来帮助照亮环境。要启用此功能，您只需确保为 
+材质中的“自发光”（Emissive）输入提供输入，然后将材质放在环境中的某个对象上。构建光线后，您应该会看到，环境中的静态对象现在看起来像是被 
+材质的“自发光”（Emissive）输入照亮一样。在以下示例中，我们使用黄色自发光光线来照亮测试关卡的黑暗部分。 
 ![](EM_Emissive_Material_Light.png)
 
-### Controlling Emissive Influence on the World
+### 控制自发光对环境的影响
 
-When using the Emissive input to light the world, you might find that the effect is either too subtle or too powerful. To fix this, any Materials that are created should have a way to adjust the 
-influence of the Emissive light being cast into the world. In the shader that we created above, this parameter was called  **Emissive_Strength**. By **Increasing** the Emissive_Strength, you will 
-increase the amount of light that is cast into the world when building light. **Decreasing** the Emissive_Strength, you will lessen the amount of light that is cast into the world. In the image 
-below, you can see how increasing the Emissive_Strength increases the Emissive effect on the world. On the left, the Emissive_Strength was set to a value of 1.0. In the middle, the Emissive_Strength 
-was set to a value of 10.0, and finally on the right, the Emissive_Strength was set to a value of 100.0. 
+使用“自发光”（Emissive）输入照亮环境时，您可能会觉得效果太弱或太强。为了解决此问题，创建的任何材质都应该可以调整 
+投射到环境的自发光光线的影响。在前面创建的着色器中，此参数名为 **Emissive_Strength**。构建光线时，通过 **增大** Emissive_Strength，可以 
+增加投射到环境的光线量。通过 **减小** Emissive_Strength，可以减少投射到环境的光线量。在下图中， 
+您可以看到增大 Emissive_Strength 将如何增加自发光对环境的影响。在左侧，Emissive_Strength 的值设置为 1.0。在中间，Emissive_Strength 
+的值设置为 10.0，而在右侧，Emissive_Strength 的值设置为 100.0。 
 
 ![](EM_Emissive_Lighting_World.png)
 
-### Turning on or off Emissive Influence on the World
+### 开启或关闭自发光对环境的影响
 
-In some cases, you might want to or not want to have the Emissive Material cast lighting into the world. To enable or disable this feature, follow the following steps. 
+在某些情况下，您可能希望也可能不希望自发光材质向环境中投射光线。要启用或禁用此功能，请完成下列步骤。 
 
-1. To accomplish this, first select the mesh that you do not want to cast light from the Emissive in the world. 
+1. 首先，选择您不希望向环境中投射自发光光线的材质。 
 
-1. Then in the **Details** panel, under the **Lighting** section, check the box that says **Use Emissive for Static Lighting** by using the **Left Mouse Button** and clicking on it.
+1. 然后，在 **细节（Details）**面板的 **照明（Lighting）**部分中，使用 **鼠标左键** 单击选中 **将自发光用于静态照明（Use Emissive for Static Lighting）**框。
 
 	![](EM_Turn_Off_Use_As_SL.png)
 
 	[region:note]
-	By default, **Use Emissive for Static Lighting** is disabled on all meshes that you place inside of the world. If you want to use it, you will always have to enable it. 
+	默认情况下，对于您放入世界中的所有网格，**将自发光用于静态照明（Use Emissive for Static Lighting）**都处于禁用状态。您必须将其启用才能使用。 
 	[/region]
 
-1. Here are the results of a mesh that has had the **Use Emissive for Static Lighting**  disabled on the left and enabled on the right. 
+1. 在下图中，左右分别是禁用和启用 **将自发光用于静态照明（Use Emissive for Static Lighting）**时的网格结果。 
 	![](EM_SL_Off_On.png)
 
 [region:note]
-In order to see the effects the Emissive will have on the world, you need to build your level lighting. If you do not do this, your changes will not be seen. This also means that whenever you make a change to the Emissive Material you will also need to re-build lighting to see the changes.
+您需要构建关卡照明才能看到自发光对世界的影响。否则，更改效果不可见。这也意味着，您每次更改自发光材质后，还必须重新构建照明才能看到这些更改的效果。
 [/region]
 
-## Emissive Influence & Bloom
+## 自发光影响与高光
 
-You might notice that as you increase the strength of your Emissive input inside your Material Instance, the bloom that is generated from the Emissive sections of the Material will get brighter and brighter. 
-One way to tone down the effect of the Bloom without turning down the values inside of your Material Instance is to adjust the **Bloom** setting on the **Post Process Volume**.
+您可能会注意到，当您提高材质实例内“自发光”（Emissive）输入的强度时，材质自发光部分所产生的高光会越来越亮。 
+调低高光效果而不调低材质实例内的值的一种方法是，调整 **后期处理体积（Post Process Volume）**的 **高光（Bloom）**设置。
 
 ![](EM_Bloom_On_PP.png)
 
-Adjusting this value will help to compensate when you push the Emissive values very high to get more static light from the Emissive Material cast in the world. In the image below, on the left-hand side, you can see what happens 
-when the Emissive value is pushed to a very high number, 100, and the Bloom is not adjusted for. In the image on the right-hand side, the Bloom setting was tweaked from 1 to 0.1. 
-This will still allow the Emissive to cast lots of static light into the world and also not blow out the Bloom. 
+调整这个值有助于在您将自发光值设置得非常大时进行补偿，以将自发光材质的更多静态光线投射到世界中。在下图的左侧，您可看到 
+当自发光值设置为非常大的数值 (100) 且未相应调整高光（Bloom）时的情况。在右侧的图中，“高光”（Bloom）设置已从 1 调整为 0.1。 
+这将仍允许自发光将大量静态光线投射到世界中，同时不会抵消高光。 
 
 ![](EM_Tweak_PP.png)
 
 
-## Conclusion 
+## 总结 
 
-Adding Emissive Glow to any Material is very cheap and effective way to simulate a light source without adding any new lights. 
-However keep in mind that when using Emissive Glow the Emissive Glow will not illuminate dynamic objects, like characters, the same way that lights will. 
-Also remember to tweak the Bloom setting on the Post Process volume if your glow is too intense. 
+向任何材质添加放射性辉光是一种低成本而成效的方法，这样可以模拟光源，而不必添加任何新光线。 
+但是，请记住，使用放射性辉光时，放射性辉光不会像普通光线那样照亮动态对象（例如人物）。 
+另外，如果辉光过强，请记住调整“后期处理体积”（Post Process Volume）的“高光”（Bloom）设置。 
 
 
 

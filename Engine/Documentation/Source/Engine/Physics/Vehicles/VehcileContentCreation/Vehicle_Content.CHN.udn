@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2713167
 Availability:Public
-Title:Vehicle Art Setup
+Title:载具美术设置
 Crumbs:%ROOT%
-Description:How to setup the art assets for a vehicle in Unreal Engine 4.
+Description:如何在虚幻引擎 4 中为载具设置美术资源。
 Navigation:topic
+SkillLevel:Advanced
+Version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -28,129 +30,129 @@ Navigation:topic
 
 
 
-The basic, bare minimum, art setup for a vehicle is just a **Skeletal Mesh**. The type of vehicle will decide how complicated an art setup you will need, and special consideration 
-may need to be given to the suspension. A tank does not need to have a crazy suspension setup, because it will almost always go unseen, but a dune buggy, such as the one in 
-**Vehicle Game**, will require more joints to make all the exposed components move in a believable way.
+载具最基础、最少量的美术设置即为 **骨骼网格体**。载具的类型决定所需美术设置的复杂程度，对于悬挂 
+部分可能需要进行特殊考量。坦克不需要进行精细的悬挂设置，因为其悬挂部分未不可见。 
+但 **Vehicle Game** 中的越野大脚车则需要更多的连接点，使暴露在外组件的运动效果真实。
 
-## Basics
+## 基础
 
-The vehicle mesh should point down Positive X.
+载具网格体应向下指向正 X 轴。
 
 ![](basics01.png)(convert:false)
 
-You will need to measure the radius of your wheels, in centimeters, for use within Unreal Engine 4.
+需要测量在虚幻引擎 4 中使用的轮子半径（以厘米为单位）。
 
 ![](wheelRadius.png)
 
-In the image above, the Distance Measurement tool in Maya is being used to get the diameter of the wheels based on the distance between 2 vertices opposite each other on the wheel. 
-The radius of the wheel is half of this value.
+上图中，Maya 的距离测量工具基于两者相对的顶点距离得出轮子的直径。 
+轮子的半径即为该数值的一半。
 
-A similar tool exists in the Helpers section of 3D Studio Max.
+3D Studio Max 的 Helpers 部分中也有类似工具。
 
-## Joints
+## 连接点
 
-The absolute minimum number of joints required for 4 wheeled vehicle, is 5:1 root, and 4 wheels. The wheel and root joints should be aligned with X forward, Z up:
+四轮载具连接点的绝对最小数量为 5:1 根、4 轮。轮子和根连接点与 X 轴向前、Z 轴向上对齐：
 
 ![](wheelJnt.png)
 
-This will ensure they roll on the Y axis and steer on the Z axis.
+可确保轮子在 Y 轴上旋转，在 Z 轴上转向。
 
-All other joints can be arranged as you see fit, but it should be noted that things like **Look At** nodes for the **Animation Blueprint** assume X forward.
+其他所有节点均可按适当方式进行排列，但需注意诸如 **动画蓝图** **Look At** 节点之类的资源会假定 X 轴向前。
 
-To prevent visual oddities, the joints for the wheels should be accurately centered. The visual mesh will not be used for collision detection, however, if the wheel mesh is off center,
-then it will look like the wheel is broken, and will be really noticeable due to motion blur.
+为防止出现视觉古怪，轮子的连接点应被精确居中。视觉网格体不会用于碰撞检测，然而如果轮子网格体偏移中心，
+视觉上会感觉轮子已经损坏，出现动态模糊时十分明显。
 
-## Binding
+## 蒙皮
 
-Standard smooth bind for Maya or Skin Modifier for 3DS Max. Wheels should only have weighting to one joint, so they can spin free with no odd deformation. For shocks and struts, you 
-can get away with some fancy skinning, but it will require more thought on the Unreal Editor side. 
-
-
-## Export
-
-Vehicles are simply exported as [Skeletal Meshes](Engine/Content/FBX/SkeletalMeshes), with no special considerations.
+Maya 的标准平滑绑定，或 3DS Max 的 Skin Modifier。轮子应只在一个连接点拥有权重，确保在旋转时不产生变形。对避震和支柱而言， 
+可使用一些技巧性的蒙皮，但需要虚幻编辑器层面上进行一些思考。 
 
 
-## Import
+## 导出
 
-Standard FBX import for a Skeletal Mesh. You will want to have the importer create a **Physics Asset** for you.
+载具可作为 [**骨骼网格体**](Engine/Content/FBX/SkeletalMeshes) 被导出而无需其他考量。
 
-## Physics Asset
 
-![](PAicon.png)
+## 导入
 
-The Physics Asset is incredibly important for vehicles, and cannot be overlooked or skipped. When you first have Unreal Engine 4 create a Physics Asset for you, it will 
-probably end up looking much like this:
+骨骼网格体的标准 FBX 导入。需要导入器为您创建一个 **物理资源**。
+
+## 物理资源
+
+![](PAicon.png)(w:150)
+
+物理资源对载具十分重要，不应被忽视或忽略。首次在虚幻引擎 4 中创建物理资源时，情况可能 
+与下图相似：
 
 ![](badPA.png)
 
-That is because the **Physics Asset Tool** (**PhAT**) attempts to wrap the vertices skinned to a joint the best it can. And honestly, you are going to delete and re-create them all. 
-Why? The PhAT does not currently have a way to gracefully handle the re-creation of the constraints that hold all the Physics Bodies together. So if you delete an intermediate 
-Physics Body, it does not create a new constraint up the hierarchy. However, if you delete all the Physics Bodies and start building them from the root joint out, all your constraints 
-will get created correctly.
+这是因为 **Physics Asset 工具**（**PhAT**）尝试将一个连接点的蒙皮顶点尽可能完善地包裹起来。您需要将它们全部删除并重新创建。 
+为什么呢？因为 PhAT 当前无法良好地重建支撑所有物理形体的约束。所以，如果作为中间媒介的 
+物理形体被删除后，层级上将不会创建一个新约束。如果删除所有物理形体并从根连接点进行构建，所有约束 
+均会被正确创建。
 
-In the **Hierarchy** pane, **Shift Select** everything, and then **press** the **Delete** key. This will remove all Physics Bodies from the asset.
+在 **Hierarchy** 窗格中，**按住 Shift 键全选**，然后 **按下** **Delete** 键。此操作将从资源中移除所有物理形体。
 
 ![](selectAllDelete.png)
 
-Now, starting with your root joint, start creating physics bodies on your vehicles joints. Keeping in mind, you only need a physics body on a joint that either needs to be physically 
-simulated or affects the bounds of the vehicle.
+现在从根连接点开始在载具连接点上创建物理形体。请牢记，一个连接点只需要一个物理形体。连接点须进行物理 
+模拟或影响载具边界。
 
-In the case of our buggy here, a box for the root and spheres for the wheels will be just fine to start, but it will require a number of other Physics Bodies to get the desired 
-behavior.
+就此例中的大脚车而言，以方块为根、以球体为轮子即可开始。但要达到期望的效果还需要多个其他物理 
+形体。
 
-### Create the Body Collision
+### 创建形体碰撞
 
-To create the box for the root of the vehicle:
+为载具的根创建方块：
 
-1. **Right-click** the root joint in the **Hierarchy** pane.
-1. **Select** **Add Body**
-1. **Set** the **Collision Geometry** to **Box**.
-1. **Click** "**OK**"
+1. 在 **Hierarchy** 窗格中 **右键单击** 根连接点。
+1. **选择** **Add Body**
+1. 将 **Collision Geometry** **设为** **Box**。
+1. **点击** “**OK**”
 
 	[REGION:raw]
 	![](bodyToRoot.png)(convert:false)
 	[/REGION]
 
-1. You can then **move**, **rotate**, and **scale** the new Physics Body to better approximate the shape of your vehicle
+1. 可以对新建物理形体进行 **移动**、**旋转**、**缩放**，使其匹配载具的外形
 
 	![](newBodyBoxResultScaled.png)
 
 
-### Create the Wheel Collision
+### 创建轮子碰撞
 
-To create the spheres for the wheels:
+为轮子创建球体：
 
-1. **Right-click** a wheel joint in the Hierarchy pane.
-1. **Select Add Body**.
+1. 在 Hierarchy 窗格中 **右键单击** 轮子连接点。
+1. **选择 Add Body**。
 
 	![](bodyToWheel.png)
 
-1. **Set** the **Collision Geometry** to **Sphere**.
-1. Click "**OK**"
+1. 将 **Collision Geometry** **设为** **Sphere**。
+1. 点击 “**OK**”
 
 	![](spheres.png)
 
-1. In the Details pane, find the **Physics Type** property and **set it to Kinematic**.
+1. 在 Details 窗格中，选择 **Physics Type** 属性并 **将其设为 Kinematic**。
 
 	![](makeTheWheelsKin.png)
 
-	This is necessary for the wheels to affect the bounds of the vehicle so shadows and culling occur correctly, and also, to prevent them from just rolling off the vehicle once your 
-	game begins.
+	此为必要操作，使轮子影响载具的边界，使阴影和消隐正常产生，并在游戏开始时防止轮子从载具上 
+	滚落。
 
 	[REGION:note]
-	The wheel Physics Bodies are never actually used for collision. Currently, the wheels use a ray casting for interacting with the world.
+	轮子物理形体不会实际用于碰撞。当前轮子使用光线投射与世界场景互动。
 	[/REGION]
 
 
-### Taking it Further
+### 更进一步
 
-This is just a simple setup. If you examine the Physics Asset for the Vehicle in Vehicle Game, it looks like this:
+这是一个简单的设置。在 Vehicle Game 中查看载具物理资源如下图所示：
 
 ![](goodPA.png)
 
-Outside of the wheels, all of those collision bodies exist on the root joint of the vehicle. They prevent the wheels from getting jammed on certain game elements, and also prevents 
-the meshes of the wheels from clipping through walls and railings.
+所有的碰撞形体都在载具的根连接点上，轮子的外部。它们可防止轮子被游戏内的元素塞住， 
+还可防止轮胎与墙壁和栏杆之间发生穿插。
 
 
 

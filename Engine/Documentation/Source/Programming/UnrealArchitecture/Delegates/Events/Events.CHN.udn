@@ -11,7 +11,7 @@ Event use cases include including callbacks in purely abstract classes, and rest
 
 ## Declaring Events
 
-Events are declared in almost the same manner as you **[declare multi-cast delegates](Programming/UnrealArchitecture/Delegates/Multicast#DeclaringMulti-castDelegates)** except they use the macro variations specific to events.
+Events are declared in almost the same manner as you **[declare multi-cast delegates](Programming/UnrealArchitecture/Delegates/Multicast)** except they use the macro variations specific to events.
 
 | Declaration Macro | Description |
 | --- | --- |
@@ -26,7 +26,7 @@ The first parameter of the `DECLARE_EVENT` macro is the class which will "own" t
 
 ## Binding Events
 
-Binding of events is performed in the same manner as **[binding multi-cast delegates](Programming/UnrealArchitecture/Delegates/Multicast#BindingMulti-CastDelegates)**.
+Binding of events is performed in the same manner as **[binding multi-cast delegates](Programming/UnrealArchitecture/Delegates/Multicast)**.
 
 ## Event Execution
 

@@ -1,14 +1,15 @@
-﻿INTSourceChangelist:2537723
+﻿INTSourceChangelist:2686770
 Availability:Public
 Title:Screen Space Reflection (スクリーン空間の反射)
 Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
 Description:マテリアルのサーフェス上に現れる反射を変更するエフェクト
+Version:4.9
 
 [REGION:fullwidth]
 ![](GlossyScreenSpaceReflection.png)
 [/REGION]
 
-**Screen Space Reflection** (スクリーン空間の反射) は、デフォルトで有効になっているエフェクトであり、 **マテリアル** サーフェス上のオブジェクトの外観を変更します。このエフェクトについて微調整できるオプションはほんの一握りしかありません。以下でこうしたオプションについて説明します。 
+**Screen Space Reflection (スクリーン空間の反射)** は、デフォルトで有効になっているエフェクトであり、 **マテリアル** サーフェス上のオブジェクトの外観を変更します。このエフェクトについて微調整できるオプションはほんの一握りしかありません。以下でこうしたオプションについて説明します。 
 
 
 | プロパティ | 説明 |

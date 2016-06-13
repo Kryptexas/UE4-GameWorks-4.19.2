@@ -3,6 +3,8 @@ Title:Math Expression Node
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:The math expression node allows you to type in a math expression and builds the appropriate sub-graph to create that expression.
 version: 4.9
+Parent:Engine/Blueprints
+Type:guide
 
 [VAR:Topic]
 [OBJECT:Topic]

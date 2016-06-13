@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2613566
+﻿INTSourceChangelist:2738908
 Availability: Public
 Title:머티리얼 에디터 - 투명도 사용 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -6,6 +6,8 @@ Description:머티리얼에서 Transparency, 투명도를 사용하는 방법 �
 Related: Engine/Rendering/Materials/MaterialProperties/BlendModes
 Related: Engine/Rendering/Materials/Functions/Reference/Opacity
 Related: Engine/Rendering/LightingAndShadows/LitTranslucency
+Version:4.9
+SkillLevel: Intermediate
 
 [TOC(start:2 end:3)]
 
@@ -188,7 +190,7 @@ UE4 에서 투명도를 많이 사용하는 경우는 아래와 같습니다.
 초록색이 더 많이 보일 수록 렌더링 비용이 싸지며, 빨간색이 많이 보일 수록 렌더링 비용이 비싸집니다.
 이 뷰 모드를 켜는 방법은 다음과 같습니다.
 
-1. **셰이더 복잡도** 모드를 켜려면, 에디터 뷰포트 상단의 **뷰 모드** 옵션을 **좌클릭** 합니다. 현재 **뷰 모드** 가 **Lit**, 라아팅포함으로 설정되어 있습니다.
+1. **셰이더 복잡도** 모드를 켜려면, 에디터 뷰포트 상단의 **뷰 모드** 옵션을 **좌클릭** 합니다. 현재 **뷰 모드** 가 **Lit**, 라이팅포함으로 설정되어 있습니다.
 
 	![](Trans_SC_View_Mode.png)
 
@@ -268,7 +270,7 @@ VFX 의 **반투명 소트 우선권** 변경 방법은 다음과 같습니다.
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-1. **Translucency Sort Priority** 를 -100 으로 설정하면 연기가 항당 다른 반투명 오브젝트 뒤에 그려집니다.
+1. **Translucency Sort Priority** 를 -100 으로 설정하면 연기가 항상 다른 반투명 오브젝트 뒤에 그려집니다.
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]

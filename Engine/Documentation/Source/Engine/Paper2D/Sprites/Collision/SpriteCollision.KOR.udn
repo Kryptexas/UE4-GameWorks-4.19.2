@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2632144
+﻿INTSourceChangelist:2746228
 Availability:Public
 Title:스프라이트 콜리전
 Crumbs: %ROOT%, Engine, Engine/Paper2D, Engine/Paper2D/Sprites
@@ -7,6 +7,7 @@ Related: Engine\Paper2D\Sprites\Collision
 Related: Engine\Paper2D\Flipbooks
 Related: Engine/Rendering/Materials
 Related: Engine/Content/Types/Textures
+Version: 4.9
 
 
 [TOC(start:2)]
@@ -59,7 +60,7 @@ Box2D 2.3.1 및 여러가지 관련된 변경내용의 초기 *실험단계* 통
 논-제로 익스텐트 쿼리, 스윕 테스트, 오버랩 테스트는 아직 구현되지 않았습니다. bSweep=true 인 CharacterMovementComponent 및 
 MoveComponent 같은 것은 이러한 유형의 쿼리에 의존하며, 아직 정상 작동하지 않습니다.
 
-장기적인 통합 전략은 일급 객채로 만들어, 3D 씬에 사용되는 것과 똑같은 기법과 지식을 2D 씬에도 바로 적용하는 것입니다. 
+장기적인 통합 전략은 일급 오브젝트로 만들어, 3D 씬에 사용되는 것과 똑같은 기법과 지식을 2D 씬에도 바로 적용하는 것입니다. 
 예를 들어 오버랩 이벤트는 하나만 있으며, 2D 나 3D 가 따로 있지는 않도록 하는 것입니다.
 3D 레이캐스트는 Box2D 에 대해 이미 구현되어 있으며, '평면 내' (2D '월드' 내 게임플레이 트레이스) 
 또는 '평면에 수직' (손가락/마우스 커서 아래의 오브젝트를 알아내기 위한 터치 인풋 트레이스) 둘 다 트레이스 가능하여,

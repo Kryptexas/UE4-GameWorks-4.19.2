@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2714898
 Availability: Public
-Title:Assign a Physical Material to a Physics Asset Body
+Title:피직스 애셋 바디에 피지컬 머티리얼 할당
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
-Description:How to assign a Physical Material to a specific Physics Body in a Physics Asset using the Physics Asset Tool.
+Description:피직스 애셋 툴을 사용해서 피직스 애셋의 특정 피직스 바디에 피지컬 머티리얼을 할당하는 방법입니다.
 Version: 4.9
 SkillLevel: Intermediate
 
@@ -46,21 +46,21 @@ SkillLevel: Intermediate
 [/VAR]
 
 
-If specific Physics Bodies need differing Physical Materials, you can then adjust them individually.
+특정 피직스 바디에 다양한 피지컬 머티리얼이 필요한 경우, 개별적으로 조정해 줄 수 있습니다.
 
-1. **Open** a Physics Asset in the Physics Asset Tool.
+1. 피직스 애셋 툴에서 피직스 애셋을 엽니다.
 
 	![](Engine\Physics\PhysicalMaterials\HowTo\PhysicsAsset1.jpg)
 
-1. **Enable Body Edit Mode** in the Physics Asset Tool.
-1. **Select** a Physics Body.
-1. In the Details pane, in the Physics Category, change the **Simple Collision Physical Material**.
+1. 피직스 애셋 툴의 **바디 편집 모드** 를 켭니다.
+1. 피직스 바디를 선택합니다.
+1. 디테일 패널의 Physics 카테고리에서 **Simple Collision Physical Material** (심플 콜리전 피지컬 머티리얼)을 변경합니다.
 
 	[REGION:raw]
 	![](Engine\Physics\PhysicalMaterials\HowTo\SimpleCollision.png)(w:700)
 	[/REGION]
 
-1. **Click Save** ![](Shared\Icons\icon_SaveAsset_40x.png)
+1. ![](Shared\Icons\icon_SaveAsset_40x.png) 저장을 클릭합니다.
 
 <!--
 The default behavior for Physics interactions with Skeletal Meshes is to only interact with its associated Physics Asset, so the Skeletal Mesh's material's Physical Material will 

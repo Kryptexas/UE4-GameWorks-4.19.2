@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2414251
+﻿INTSourceChangelist:2685246
 Availability:Public
 Title:シャドウ キャスティング
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:シャドウの概説
 Related:Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing
+Version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -50,21 +51,21 @@ Related:Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing
 
 [TOC(start:2 end:2)]
 
-## 概要
+
 
 シャドウはオブジェクトがワールドの地面に接しているようにし、奥行と空間の感覚を見ている人に与えます。静的シャドウのレンダリングに関しては実質的に負荷はかかりませんが、動的シャドウはパフォーマンスの負荷が最大になります。このドキュメントではアンリアル エンジン 4 の 4 種類のシャドウキャスティングの基礎について説明します。
 
-## 静的ライト
+## Static Lights (静的ライト)
 
 [EXCERPT:StaticLightShadows]
-静的ライトは完全に静的なシャドウ **とライト** をキャストします。つまり以下のブロンズのキャラクターのような動的オブジェクトに対し _直接的な_ 効果はもたらしません (静的ライトは Indirect Lighting Cache (間接光キャッシュ) へベイクされる為、_ある程度_ の効果をもたらします)。
+Static Lights (静的ライト) は完全に静的なシャドウとライトをキャストします。つまり、以下のブロンズのキャラクターのような動的オブジェクトに対し _直接的な_ 効果はもたらしません (Static Lights (静的ライト) は Indirect Lighting Cache (間接光キャッシュ) へベイクされる為、_ある程度_ の効果をもたらします)。
 [/EXCERPT:StaticLightShadows]
 
 ![](LI_StaticMeansStatic.png)(w:900)
 
-_固定ライトに照らされた右のキャラクターには腿の辺りと体の後方にシャドウが作成されているのに対し、静的ライトに照らされた左のブロンズのキャラクターは何も (ライティングまたはシャドウ) 変化がありません _
+_Stationary Lights (固定ライト) に照らされた右のキャラクターには腿の辺りと体の後方にシャドウが作成されているのに対し、Static Lights (静的ライト) に照らされた左のブロンズのキャラクターは何も (ライティングまたはシャドウ) 変化がありません _
 
-## 指向性ライトのカスケーディング シャドウ マップ （シーン全域のシャドウ）
+## 指向性ライトのカスケーディング シャドウ マップ (シーン全域のシャドウ)
 
 [INCLUDE:Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights#CascadedShadowMaps]
 
@@ -80,9 +81,9 @@ _固定ライトに照らされた右のキャラクターには腿の辺りと�
 
 
 ## シャドウのプレビュー
-ライティングをアンビルドするような方法で静的ライトや固定ライトを編集する場合、**Preview Shadowing** を有効にして、ライティングを再ビルドした場合にシャドウがどのように見えるかを把握することができます。 
+ライティングをアンビルドするような方法で静的ライトや固定ライトを編集する場合、**[Preview Shadowing (シャドウイングをプレビュー)]** を有効にして、ライティングを再ビルドした場合にシャドウがどのように見えるかを把握することができます。 
 
-こうしたシャドウは事前に存在していたシャドウと区別するために以下のようにエディタで「Preview」というテキスト付きで表示されます。 
+こうしたシャドウは事前に存在していたシャドウと区別するために、以下のようにエディタで「Preview」というテキスト付きで表示されます。 
 
 ![](UnbuiltShadows.png)(w:480)
 
@@ -90,11 +91,11 @@ _固定ライトに照らされた右のキャラクターには腿の辺りと�
 
 ![](UnbuiltShadowsPIE.png)(w:480)
 
-プレビュー シャドウからシャドウを生成するためには、メイン エディタのツールバーの **[ビルド]** オプションから **[ライトのビルド]** を選択する必要があります。 
+プレビュー シャドウからシャドウを生成するためには、メイン エディタのツールバーの **[Build (ビルド)]** オプションから **[Build Lighting (ライトのビルド)]** を選択する必要があります。 
 
 ![](BuiltShadows.png)(w:480)
 
-ビューポートの **Show/Visualize** メニューで **[シャドウ インジケータのプレビュー]** オプションのチェックを外すことでプレビュー シャドウを無効にすることができます。 
+ビューポートの **Show/Visualize** メニューで **[Preview Shadows Indicator (シャドウ インジケータのプレビュー)]** オプションのチェックを外すことでプレビュー シャドウを無効にすることができます。 
 
 
 [REGION:note]
@@ -106,5 +107,9 @@ _固定ライトに照らされた右のキャラクターには腿の辺りと�
 全てのシャドウを同時に使用すると、それぞれのシャドウの長所がお互いの弱点を補い、急速にレンダリングされる印象的なビジュアルが実現します。
 
 ![](LO_Shadows_Footer.png)
+
+
+
+
 
 

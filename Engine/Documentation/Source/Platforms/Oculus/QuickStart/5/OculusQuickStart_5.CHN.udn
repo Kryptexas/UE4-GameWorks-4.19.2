@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:0
-Title:5. Test out VR Content
+﻿INTSourceChangelist:2975673
+Title:5.测试 Rift 和 UE4
 Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
-Description:Load and play content designed for the Oculus Rift using Unreal Engine 4.
+Description:使用虚幻引擎 4 加载并播放为 Oculus Rift 精心设计的内容。
 Availability:Public
+Version:4.11
+SkillLevel:Intermediate
 
+此章节讲述如何进行测试，确定 Rift 在虚幻引擎 4 中工作正常。
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,31 +26,19 @@ Availability:Public
 
 %Steps%
 
-1. If you have not already, download the [](Resources\ContentExamples) project.
-1. Open the **Content Examples** project.
-	
-	![](CE_Start.png)(w:500)
-1. Click on **File > Open Level**.
-1. Select `VR.umap`, then click **Open**.
+1. 安装 Oculus 驱动并完成 Oculus Rift 的设置后，打开虚幻项目浏览器，使用以下设置在 **New Project** 标签中创建一个新项目。
 
-	![](VRmap.png)
-1. Click on the arrow next to **Play** in the **Level Editor Toolbar** to open the **Play In Editor** options.
+	![](Rift_New_Project_00.png)
 
-	![](PlayDropdown.png)
-1. Select **Standalone Game** to launch the game. **Standalone Game** is the only **Play In Editor** game testing mode that is compatible with the Oculus.
+1. 启动 UE4 后，在主菜单中将 Play 选项从默认的 **Selected Viewport** 设为 **VR Preview**，然后戴上 Rift。
 
-	![](StandAloneGame.png)
+	![](Rift_VR_Preview_00.png)
 
-	[REGION:tip]
-	Once you have selected **Standalone Game** for a project, it will remain in that mode until you pick a different one. This means you can just click on the **Play** icon to resume testing.
-	[/REGION]
+1. 戴上 Rift 头戴显示器后，您看到的画面与下图相似。 
 
-1. Press **Alt+Enter** to enter VR mode. This will send your game's display to the Oculus, as well as change the view on the screen to stereo view.
-
-	![](VRMode.png)(w:800)
-1. At this point, you can put on the Oculus and move around the level. To end gameplay:
-	* Press **~** and type `quit` in the console, or 
-	* Press **Shift+F1** to reclaim your mouse cursor and close the window.
-
+	![](Rift_Preview_Window_00.png)
+	[region:note]
+	使用 VR preview 选项和 Rift 时，VR 预览窗口显示为黑色，表明 Rift 不会在启动和重启 VR 预览窗口时进行更新。这是因为 Rift 未放置在用户头上时将禁用输出，以延长显示器的寿命。Rift 放置在头上后，将启用向 VR 预览窗口的输出，使 Rift 中看到的内容显示在 VR 预览窗口中。
+	[/region]
 
 %Steps%

@@ -1,15 +1,17 @@
-﻿INTSourceChangelist:2612552
+﻿INTSourceChangelist:2717692
 Availability: Licensee
 Title:퍼포스 통합 FAQ
 Crumbs:%ROOT%, Engine, Programming, Programming/Basics, GettingStarted/DownloadingUnrealEngine/Perforce
 Description:퍼포스 용어 관련 자주 묻는 질문에 대한 답변과 자세한 사용법입니다.
+version: 4.9
 
 [TOC(start:2)]
 
 이 문서는 Perforce를 Unreal Engine 4와 함께 사용하는 많은 일반적인 방법에 대한 이해 및 관련 용어들을 제공합니다.
 
-_[주: 병합 과정의 단순화를 돕기 위해 P4V 및 P4Win으로 통합될 수 있는 자동 병합 도구가 창조되었습니다. 이 도구는 여러 지루한 단계 및 이 문서에서 설명한 최상의 처리방법들을 자동화합니다. 더 자세한 정보는 [Perforce AutoMerge](GettingStarted/DownloadingUnrealEngine/Perforce/AutoMerge) 페이지를 참고하십시오._
-
+[REGION:note]
+병합 과정의 단순화를 돕기 위해 P4V 및 P4Win으로 통합될 수 있는 자동 병합 도구가 창조되었습니다. 이 도구는 여러 지루한 단계 및 이 문서에서 설명한 최상의 처리방법들을 자동화합니다. 더 자세한 정보는 [Perforce AutoMerge](GettingStarted/DownloadingUnrealEngine/Perforce/AutoMerge) 페이지를 참고하십시오.
+[/REGION]
 
 
 ## 자주 묻는 질문
@@ -29,7 +31,9 @@ Perforce는 발생한 모든 변경 및 통합에 대한, 검색이 가능하고
 
 ### 단일 변경목록은 어떻게 통합합니까?
 
-_주: 통합을 할 때는 P4V를 사용할 것이 강력히 권장됩니다. UI에 처리 과정을 시각화하는 많은 향상이 이루어졌기 때문입니다. 모든 것들이 최종적으로는 기본적인 P4API 호출로 귀착되므로, P4V 및 P4Win이 모두 같은 기능의 세트를 지원합니다._
+[REGION:note]
+통합을 할 때는 P4V를 사용할 것이 강력히 권장됩니다. UI에 처리 과정을 시각화하는 많은 향상이 이루어졌기 때문입니다. 모든 것들이 최종적으로는 기본적인 P4API 호출로 귀착되므로, P4V 및 P4Win이 모두 같은 기능의 세트를 지원합니다.
+[/REGION]
 
 P4V에서 단일 변경목록을 통합하는 방법은 다음과 같습니다:
 
@@ -162,7 +166,9 @@ P4V는 변경 및 발견된 불일치의 수를 요약해서 보여주며, 보�
 
 아닙니다. 항상 변경목록으로부터 통합한 모든 파일들을 체크인 해야 합니다. 파일이 변경되지 않더라도, 이를 체크인함으로써 Perforce 데이터베이스가  통합 정보로 업데이트됩니다.
 
-주: Perforce는 통합 내력을 변경목록 단위가 아니라 파일 단위로 보존합니다. 변경목록을 통합한 다음 일부 파일을 귀속시키면, 일부 변경목록들은 부분적으로만 통합된 것으로 기록되기 때문에 데이터베이스의 분석을 더 어렵게 만듭니다.
+[REGION:note]
+Perforce는 통합 내력을 변경목록 단위가 아니라 파일 단위로 보존합니다. 변경목록을 통합한 다음 일부 파일을 귀속시키면, 일부 변경목록들은 부분적으로만 통합된 것으로 기록되기 때문에 데이터베이스의 분석을 더 어렵게 만듭니다.
+[/REGION]
 
 (#NullMerge)
 

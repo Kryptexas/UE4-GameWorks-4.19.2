@@ -3,7 +3,9 @@ Title:iOS Packaged Game Size
 Crumbs:%ROOT%, Platforms, Platforms/iOS
 Description:Factors that affect the size of a packaged iOS game.
 Version:4.9
-
+parent:Platforms/iOS
+order:2
+type:overview
 
 There are a number of things that affect the size of a packaged iOS game, from the content it references to the build configuration you choose.
 

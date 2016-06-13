@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2719482
 Availability: Public
-Title: Android Game Development
+Title: 安卓游戏开发
 Crumbs:%ROOT%, Platforms
 Description:Developing games for the Android platform.
 Platform:Android
 Navigation:platform
+version: 4.9
 
 
 [OBJECT:TopicButtonList]
@@ -12,7 +13,7 @@ Navigation:platform
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Android Essentials
+		安卓概要
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

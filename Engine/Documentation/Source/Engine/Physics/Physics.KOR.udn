@@ -1,8 +1,11 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2985497
 Availability: Public
 Title:피직스 시뮬레이션
 Crumbs: %ROOT%, Engine
 Description:피지컬 액터의 시뮬레이션과 콜리전 계산에 사용되는 서브시스템 입니다.
+Version: 4.9
+parent:Engine
+order:6
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -93,6 +96,7 @@ Description:피지컬 액터의 시뮬레이션과 콜리전 계산에 사용되
 	[/PARAM]
 	[PARAM:links]
 		* [](Engine/Physics/PhysicsBodies "%Engine/Physics/PhysicsBodies:description%")
+		* [](Engine/Physics/SimpleVsComplex "%Engine/Physics/SimpleVsComplex:description%")
 		* [](Engine/Physics/PhysicalMaterials "%Engine/Physics/PhysicalMaterials:description%")
 		* [](Engine/Physics/PhAT "%Engine/Physics/PhAT:description%")
 	[/PARAM]

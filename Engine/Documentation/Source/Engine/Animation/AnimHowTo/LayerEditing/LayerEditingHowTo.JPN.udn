@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2661444
-Availability:Public
+﻿Availability:Public
 Title:アニメーション レイヤーを編集する
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:アニメーション レイヤー編集を使用してアイドル状態のアニメーションを編集して再読み込みする新規アニメーションを作成します。
@@ -9,8 +8,8 @@ Related:Engine\Animation\AnimBlueprints
 Related:Engine\Animation\AnimHowTo\AdditiveAnimations
 Related:Engine\Animation\Skeleton
 Related:Engine\Animation\Overview
-バージョン：4.9
-スキルレベル:上級
+version:4.9
+skilllevel:Advanced
 
 Animation Layer Editing (アニメーション レイヤー編集) では UE4 内の既存の [](Engine\Animation\Sequences) を Additive Layer Tracks (加算レイヤー トラック) の一部として修正することができます。アニメーション レイヤー編集では、既存のアニメーションを使用して調整し、異なるテイクをアニメーションで作ります。または、オリジナルをもとに独自のモーションを適用した別個の新しいアニメーションを作成することもできます。 
 

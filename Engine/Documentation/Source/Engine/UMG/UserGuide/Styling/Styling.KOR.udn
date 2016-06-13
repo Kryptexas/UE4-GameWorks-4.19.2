@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2609594
+﻿INTSourceChangelist:2709507
 Availability:Public
 Title: 스타일링
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
@@ -59,7 +59,7 @@ Related: Engine\UMG\UserGuide\WidgetTypeReference
 * **이미지** 는 이미지를 그리고 (주황색 화살표처럼) **늘어나며** (Stertch) **마진** 은 무시될 것입니다.
 
 #### 텍스처 기반 이미지
-**텍스처** 를 자기 **이미지** 애셋으로 할당할 수는 있지만, 텍스터가 모든 디바이스에서 압축 부작용 없이 산뜻하게 나타나도록 하기 위해서 설정해 줘야 하는 옵션이 몇 가지 있습니다. 텍스처 에디터에서 Level Of Detail 아래, **Mip Gen Settings** 을 **NoMipmaps** 로, **LOD Group** 을 **UI** 로 설정합니다. Compression 아래에서 **Compression Setting** 을 **TC Editor Icon** 로 설정합니다.
+**텍스처** 를 자기 **이미지** 애셋으로 할당할 수는 있지만, 텍스처가 모든 디바이스에서 압축 부작용 없이 산뜻하게 나타나도록 하기 위해서 설정해 줘야 하는 옵션이 몇 가지 있습니다. 텍스처 에디터에서 Level Of Detail 아래, **Mip Gen Settings** 을 **NoMipmaps** 로, **LOD Group** 을 **UI** 로 설정합니다. Compression 아래에서 **Compression Setting** 을 **TC Editor Icon** 로 설정합니다.
 
 [REGION:lightbox]
 	[![](TextureSetup.png)(w:480)](TextureSetup.png)
@@ -77,7 +77,7 @@ _클릭하면 크게 볼 수 있습니다._
 _클릭하면 크게 볼 수 있습니다._
 
 #### 다이내믹 머티리얼
-머티리얼 파라미터를 수정하기 위해서는 **다이내믹 머티리얼 인스턴스** 가 필요합니다. **이미지** 위젯만 있으면, 머티리얼 포함 슬레이트 브러시가 있기만 하다면야 그 작업이 특히나 쉬워지며, 다이내믹 이미지를 요청하면 됩니다 (한 번ㅁ난 생성한 다음 캐시에 저장합니다).
+머티리얼 파라미터를 수정하기 위해서는 **다이내믹 머티리얼 인스턴스** 가 필요합니다. **이미지** 위젯만 있으면, 머티리얼 포함 슬레이트 브러시가 있기만 하다면야 그 작업이 특히나 쉬워지며, 다이내믹 이미지를 요청하면 됩니다 (한 번만 생성한 다음 캐시에 저장합니다).
 
 ![](UMG_Auto_Dynamic_Material_Image.png)(w:760)
 

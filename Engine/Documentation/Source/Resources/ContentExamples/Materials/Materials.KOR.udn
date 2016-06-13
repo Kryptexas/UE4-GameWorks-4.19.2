@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2619058
+﻿INTSourceChangelist:2718289
 Availability: Public
 Title:머티리얼 콘텐츠 예제
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -11,6 +11,7 @@ Related: Engine/Rendering/Materials/MaterialInputs
 Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Rendering/Materials/MaterialInstances
 Related: Engine/Actors/DecalActor
+Version: 4.9
 
 [REGION:banner]
 ![](MaterialNodes_Header.png)(convert:false)
@@ -80,7 +81,7 @@ Related: Engine/Actors/DecalActor
 | **[1.10 WorldPositionOffset](Resources\ContentExamples\MaterialNodes\1_10)** | 월드 포지션 오프셋 - 머티리얼을 통해 메시의 버텍스를 월드스페이스에서 조작할 수 있습니다 (오브젝트 이동, 모양이나 기타 이펙트 변경에 좋습니다). |
 | **[1.11 WorldDisplacement](Resources\ContentExamples\MaterialNodes\1_11)** | 월드 디스플레이스먼트 - 1.10 과 비슷하지만 메시의 바탕 버텍스보다는 테셀레이션 버텍스를 사용합니다. |
 | **[1.12 Tesselation Multiplier](Resources\ContentExamples\MaterialNodes\1_12)** | 테셀레이션 멀티플라이어 - 머티리얼 표면상의 테셀레이션 양을 제어합니다 (필요에 따라 디테일을 추가시킬 수 있습니다). |
-| **[1.13 SubSurfaceColor](Resources\ContentExamples\MaterialNodes\1_13)** | 서브서피스 컬러 - **Shading Model** 프로퍼티가 **Subsurface** (서브서피스)로 설정되어 있을때만 사용되는데, **머티리얼** 에 색을 추가시켜 표면에 빛이 통과할 때의 색 변화 시뮬레이션이 가능합니다 (사람의 피부에는 그 아래를 흐르는 피에 대한 시뮬레이션으로 빨간색 서브서피스 컬러를 가질 수 있습니다. |
+| **[1.13 SubSurfaceColor](Resources\ContentExamples\MaterialNodes\1_13)** | 서브서피스 컬러 - **Shading Model** 프로퍼티가 **Subsurface** (서브서피스)로 설정되어 있을 때만 사용되는데, **머티리얼** 에 색을 추가시켜 표면에 빛이 통과할 때의 색 변화 시뮬레이션이 가능합니다 (사람의 피부에는 그 아래를 흐르는 피에 대한 시뮬레이션으로 빨간색 서브서피스 컬러를 가질 수 있습니다. |
 | **[1.14 Refraction](Resources\ContentExamples\MaterialNodes\1_14)** | 굴절 - **Refraction** 은 유리나 수면같은 것을 통과할 때의 빛이 굴절되는 효과에 대한 시뮬레이션입니다. |
 
 
@@ -96,7 +97,7 @@ Related: Engine/Actors/DecalActor
 | **1.1 Example for flexible Master Material** | 마스터 머티리얼의 유연성 - **마스터 머티리얼** 은 다른 **머티리얼 인스턴스** 에 대한 토대가 되어 상속받은 다음, 개별적으로 변경시켜 다양한 변종을 만드는 데 사용됩니다. |
 | **1.2 Material Functions** | 머티리얼 함수 - **Material Function** 사용을 통해 전체 머티리얼 망을 다시 만들었습니다 (머티리얼 함수를 사용하여 복합적인 머티리얼을 빠르게 재성성한 다음 어떤 머티리얼 레이어에서도 사용 및 변경 가능합니다). |
 | **1.3 Material Layers Using Material Functions** | 머티리얼 함수를 사용한 머티리얼 레이어 - **머티리얼 함수** 에 사용된 레이어를 편집하여 복합적인 머티리얼의 변종을 만들 수 있습니다 (다수의 로켓마다 복합적인 머티리얼 변종이 적용되어 표시됩니다). |
-| **1.4 Vertex Animation** | 버텍스 애니메이션 - 버텍스 애니메이션을 사용한 클로쓰 시뮬레이션입니다 (머티리얼을 통해서만 처리되고 있는 깃발 애니메이션입니다). |
+| **1.4 Vertex Animation** | 버텍스 애니메이션 - 버텍스 애니메이션을 사용한 클로스 시뮬레이션입니다 (머티리얼을 통해서만 처리되고 있는 깃발 애니메이션입니다). |
 
 
 ## Material_Instances 맵

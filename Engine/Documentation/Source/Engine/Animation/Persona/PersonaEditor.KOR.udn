@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2615776
+﻿INTSourceChangelist:2666114
 Availability:Public
 Title:페르소나 애니메이션 에디터 참고서
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:애니메이션 블루프린트, 애니메이션 시퀀스, 기타 애니메이션 애셋을 미리보고 편집하는 에디터입니다.
+version: 4.9
 
 
 [VAR:ModeSize]w:450 convert:false[/VAR]
@@ -33,7 +34,7 @@ Description:애니메이션 블루프린트, 애니메이션 시퀀스, 기타 �
 
 [TOC (start:2 end:3)]
 
-## 개요
+
 
 [EXCERPT:Intro]
 
@@ -63,7 +64,18 @@ Description:애니메이션 블루프린트, 애니메이션 시퀀스, 기타 �
 
 ## 페르소나 모드와 유저 인터페이스
 
-![](ModeSelector.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+3DKiBKb5a3E
+[/PARAMLITERAL]
+[/OBJECT]
+
 [REGION:caption]
 [**페르소나 편집 모드**](Engine\Animation\Persona\Modes) 는 인터페이스 우상단의 **모드** 툴바에 버튼으로 나타납니다.
 [/REGION]

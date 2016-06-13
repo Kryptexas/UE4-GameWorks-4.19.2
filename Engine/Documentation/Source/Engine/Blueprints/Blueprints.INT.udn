@@ -5,6 +5,7 @@ Description:Overview of using the Blueprint visual scripting system for gameplay
 version: 4.9
 parent:%ROOT%
 order:5
+social-image:bp_social_image.png
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -70,7 +71,7 @@ order:5
 [/VAR]
 
 [REGION:banner]
-![Blueprint](k2_banner.png)
+![](k2_banner.gif)
 [/REGION]
 
 [EXCERPT:Intro]
@@ -79,29 +80,132 @@ a node-based interface to create gameplay elements from within Unreal Editor. Th
 provides the ability for designers to use virtually the full range of concepts and tools generally only available to programmers.
 [/EXCERPT:Intro]
 
-Through the use of Blueprints, designers can prototype, implement, or modify virtually any gameplay element, such as:
+## Getting Started
 
-* **Games** - set up game rules, tweak gameplay conditions, etc.
-* **Players** - create variants with different meshes and _Materials_ or character customization.
-* **Cameras** - prototype new camera perspectives or change the camera dynamically during play.
-* **Input** - change the player controls or allow players to pass input to items.
-* **Items** - weapons, spells, pickups, triggers, etc.
-* **Environments** - create randomized props or procedurally-generated items.
+[REGION:topics third]
+%Engine/Blueprints/QuickStart:TopicCompact%
+%Engine/Blueprints/GettingStarted:TopicCompact%
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints:title%](BPVid.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Videos: Introduction to Blueprints (v4.8)
+	[/PARAM]
+	[PARAMLITERAL:path]
+		https://docs.unrealengine.com/latest/INT/Videos/PLZlv_N0_O1gY35ezlSQn1sWOGfh4C7ewO/EFXMW_UEDco/index.html
+	[/PARAMLITERAL]
+[/OBJECT]
+[/REGION]
 
+## General Scripting
+
+[REGION:topics third]
+%Engine/Blueprints/Scripting:TopicCompact%
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints:title%](BlueprintEssentials.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Videos: Blueprint Essentials
+	[/PARAM]
+	[PARAMLITERAL:path]
+		https://docs.unrealengine.com/latest/INT/Videos/PLZlv_N0_O1ga2b_ZaJoaR5dLHOFw4-MMl/zaVY5A0hqiI/index.html
+	[/PARAMLITERAL]
+[/OBJECT]
+[/REGION]
+
+## Building Blueprints
+[REGION:topics third]
+%Engine/Blueprints/Anatomy:TopicCompact%
+%Engine/Blueprints/Workflow:TopicCompact%
+%Engine/Blueprints/BP_HowTo:TopicCompact%
+%Engine/Blueprints/BestPractices:TopicCompact%
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![Blueprint Video Tutorials](BPTutorials.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Blueprint Video Tutorials
+	[/PARAM]
+	[PARAMLITERAL:path]
+		https://docs.unrealengine.com/latest/INT/Videos/Blueprints/index.html
+	[/PARAMLITERAL]
+[/OBJECT]
+[/REGION]
+
+## Blueprint Communication
+[REGION:topics third]
+%Engine\Blueprints\UserGuide\BlueprintCommsUsage:topiccompact%
+%Engine/Blueprints\HowTo:topiccompact%
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![Livestream: Blueprint Communications](CommStream.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Livestream: Blueprint Communications
+	[/PARAM]
+	[PARAMLITERAL:path]
+		https://docs.unrealengine.com/latest/INT/Videos/PLZlv_N0_O1gYuWkyTSbfcuyPNOQsK_8bu/EM_HYqQdToE/index.html
+	[/PARAMLITERAL]
+[/OBJECT]
+%Engine\Blueprints\UserGuide\BlueprintComms:topiccompact%
+%Engine\Blueprints\UserGuide\EventDispatcher:topiccompact%
+%Engine/Blueprints/UserGuide/Types/Interface:topiccompact%
+[/REGION]
+
+## Doing More With Blueprints
+
+[REGION:topics third]
+%BlueprintAPI:TopicCompact%
+%Engine/Blueprints/Editor:TopicCompact%
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![Live Training Streams: Blueprints](BPLiveStream.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Live Training Streams: Blueprints
+	[/PARAM]
+	[PARAMLITERAL:path]
+		https://docs.unrealengine.com/latest/INT/Videos/PLZlv_N0_O1gYuWkyTSbfcuyPNOQsK_8bu/index.html
+	[/PARAMLITERAL]
+[/OBJECT]
+[/REGION]
+
+[DIR(output:"listbutton" parent:"Engine/Blueprints" type:"guide")]
+
+
+<!--
 ## Starting Out
 
-[DIR(end:"1" output:"topic" type:"quickstart")]
+[DIR(end:"1" output:"topic" type:"quickstart" parent:"Engine/Blueprints")]
 
 ## Reference
 
-[DIR(end:"1" output:"topic" type:"reference")]
+[DIR(end:"1" output:"topic" type:"reference" parent:"Engine/Blueprints")]
 
 ## Guides
 
-[DIR(end:"1" output:"topic" type:"howto")]
+[DIR(end:"1" output:"topic" type:"howto" parent:"Engine/Blueprints")]
 
 ## Video Tutorials
 
 [REGION:simplegallery]
-[VideoLink(videoid:"cRhWc2kAhqI" playlistid:"PLZlv_N0_O1gbYMYfhhdzfW1tUV4jU0YxH" width:"275")]
+[VideoLink(videoid:"EFXMW_UEDco" playlistid:"PLZlv_N0_O1gY35ezlSQn1sWOGfh4C7ewO" width:"275")]
 [/REGION]
+-->

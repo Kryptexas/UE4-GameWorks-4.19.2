@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2590789
+﻿INTSourceChangelist:2690274
 Availability:Public
 Title:Vector Operation 표현식
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
 Description:벡터 입력값에 일정한 연산을 하는 표현식입니다.
+Version: 4.9
 
 [EXCERPT:TOC]
 [TOC(start:2)]

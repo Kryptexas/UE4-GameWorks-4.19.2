@@ -5,7 +5,7 @@ Description: The Blueprint Overview page breaks down the anatomy of a Blueprint 
 version: 4.9
 parent:Engine/Blueprints
 order:2
-type:reference
+
 
 [VAR:Topic]
 [OBJECT:Topic]

@@ -1,0 +1,89 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title: Basic Scripting
+Crumbs: %ROOT%, Engine, Engine/Blueprints
+Description: The User Guide is the go-to source to learn the different parts of Blueprints and nodes that are available to use within Blueprint graphs.
+version: 4.9
+parent:Engine/Blueprints
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Blueprints/Scripting:title%](Engine\Blueprints\UserGuide\using_interface_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/reference_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/Scripting:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/Scripting:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/Scripting]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints/Scripting:title%](BasicScripting.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/reference_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/Scripting:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/Scripting:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/Scripting]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+## Data Types
+
+Variables can be created in a variety of different types, including data types such as Boolean, integer, and float. They are color-coded for easy identification within your Blueprint.
+
+[DIR(output:"listbutton" parent:"Engine/Blueprints/Scripting" tags:"Data Types")]
+
+## Execution Flow
+
+In Blueprints, the first node to execute is an event, and then execution flows through the white execution wire from left to right. You can visualize the execution flow
+while your game is running in the editor, which can help with debugging. Data also flows through wires colored to match the variable types. Input pins are evaluated
+when the node executes, tracing the data wires back from right to left until the final  result is calculated and supplied to the node.
+
+[DIR(output:"listbutton" parent:"Engine/Blueprints/Scripting" tags:"Execution Flow")]
+
+## Arrays & Structures
+
+The basic data types available in Blueprints can be organized into arrays and structures for more complex systems. 
+
+[DIR(output:"listbutton" parent:"Engine/Blueprints/Scripting" tags:"Arrays and Structures")]
+
+<!--
+Structs
+-->
+
+## Handling Objects and Actors
+
+Blueprint variables can also be reference types for holding things like Objects, Actors, and Classes. 
+
+[DIR(output:"listbutton" tags:"Handling Objects and Actors")]
+
+
+<!--
+References (pointers)
+Set and Get an Actor Reference	Engine/Blueprints/BP_HowTo/ActorReference
+Validity
+Casting
+Blueprint Casting	Engine/Blueprints/BP_HowTo/Casting
+Casting	Engine/Blueprints/UserGuide/CastNodes
+-->
+

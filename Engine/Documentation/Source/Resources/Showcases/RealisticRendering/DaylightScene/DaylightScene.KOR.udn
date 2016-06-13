@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2726423
 Availability: Public
 Title:낮 씬 라이팅
 Crumbs:%ROOT%, Resources, Resources/Showcases/RealisticRendering
@@ -11,7 +11,7 @@ Related: Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights
 Related: Engine/Rendering/LightingAndShadows/LightMobility/StaticLights
 Related: Engine/Rendering/LightingAndShadows/IESLightProfiles
 Related: Resources/ContentExamples/Lighting/4_2
-
+Version: 4.9
 
 
 
@@ -32,12 +32,15 @@ Related: Resources/ContentExamples/Lighting/4_2
 
 태양빛의 산란은 라이트매스가 처리해 준대도, 하늘에서의 산란광 효과를 흉내내는 Static Spot Light 가 네 개 있습니다. **World Properties 의 Lightmass Environment Light** 대신 그렇게 한 이유는 방 안의 산란광에 대해 보다 정교한 제어가 가능하도록 하기 위함입니다.
 
-[REGION:imagetable]
-| 산란광 비교 ||
-| --- | --- |
-| ![](WithBounceSpots.png)(w:455) | ![](WithoutBounceLights.png)(w:455) |
-| **앰비언트 스포트 라이트 있음** | **앰비언트 스포트 라이트 없음** |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![With ambient spot lights](WithBounceSpots.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Without ambient spot lights](WithoutBounceLights.png)(w:600)
+	[/PARAM]
+[/OBJECT]
+
 
 [INCLUDE:Resources/Showcases/RealisticRendering#IESProfiles]
 

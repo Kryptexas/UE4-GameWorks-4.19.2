@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2721304
 Availability:Public
 Title:애셋 레지스트리
 Crumbs: %ROOT%, Engine, Engine/UI, Programming
 Description:에디터에서 애셋을 어떻게 발견하는지, 애셋을 로드하기 전 그 유형 정보를 더 많이 알아내는 데 대한 문서입니다.
-Version: 4.5
+Version: 4.9
 
 **애셋 레지스트리** (Asset Registry)는 에디터가 로드되면서 로드되지 않은 애셋에 대한 정보를 비동기적으로 그러모으는 에디터 서브시스템입니다.
 이 정보는 에디터가 애셋을 로드하지 않고 목록을 만들 수 있도록 메모리에 저장됩니다.

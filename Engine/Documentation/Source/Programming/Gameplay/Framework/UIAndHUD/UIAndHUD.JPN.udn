@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2099361
+﻿INTSourceChangelist:2711078
 Availability:Public
-Title:ユーザー インターフェイスと HUD
+Title:UI と HUD
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
-Description:メニューなどのユーザーインターフェース (UI) や HUD を作成するアーティスト、プログラマのためのガイドと情報
-
+Description:メニューや HUD などの UI を作成するアーティスト、プログラマ向けのガイドと情報
+Version:4.9
 
 [OBJECT:Redirect]
 [PARAM:link]

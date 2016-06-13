@@ -16,7 +16,7 @@ UPrimitiveComponent (프리미티브 컴포넌트)는 렌더링 및 충돌 대�
 
 ## 렌더링
 
-프리미티브는 는 표시여부(visibility) 단위입니다. 뷰 프러스텀 컬링 및 오클루전 컬링은 프리미티브의 바운딩 박스를 통해 이뤄집니다. 프리미티비의 바운딩 볼륨을 Bounds 멤버에 쓰기 위해서는, UPrimitiveComponent::UpdateBounds 를 반드시 구현해야 합니다.
+프리미티브는 는 표시여부(visibility) 단위입니다. 뷰 프러스텀 컬링 및 오클루전 컬링은 프리미티브의 바운딩 박스를 통해 이뤄집니다. 프리미티브의 바운딩 볼륨을 Bounds 멤버에 쓰기 위해서는, UPrimitiveComponent::UpdateBounds 를 반드시 구현해야 합니다.
 
 프리미티브는 메시 엘리먼트, 선, 스프라이트, 점으로 렌더링됩니다. 프리미티브는 그 외형을 이루는 엘리먼트에 대한 열거형을 씬 매니저에 표시합니다.
 
@@ -47,20 +47,20 @@ PrimitiveComponent 는 프리미티브 씬 프록시가 할당되고 렌더링 �
 
 여러분 PrimitiveComponent 의 멤버가 게임 플레이 동안 스태틱이면 그 멤버를 렌더링 스레드에 있는 프리미티브 씬 프록시에서 직접 접근할 수 있습니다.
 
-만약 PrimitiveComponent 의 멤버가 게임 플레이 동안 스태틱이면 프리미티브 씬 프록시에서 반드시 미러링하거나, 그에 대한 접근을 Serialize 해야 합니다.  글로벌 FlushRenderingCommands 함수를 사용하여 그에 대한 접근의 Serialize 가능합니다. FlushRenderingCommands 는 렌더링 스레드가 idle 상태가 될때가지 기다립니다. 그 이후 렌더링 명령이 큐에 등록될 때까지 렌더링 스레드가 접근하지 않는다는 가정 하에 공유 멤버에게 쓰기가 가능합니다.
+만약 PrimitiveComponent 의 멤버가 게임 플레이 동안 스태틱이면 프리미티브 씬 프록시에서 반드시 미러링하거나, 그에 대한 접근을 Serialize 해야 합니다.  글로벌 FlushRenderingCommands 함수를 사용하여 그에 대한 접근의 Serialize 가능합니다. FlushRenderingCommands 는 렌더링 스레드가 idle 상태가 될 때까지 기다립니다. 그 이후 렌더링 명령이 큐에 등록될 때까지 렌더링 스레드가 접근하지 않는다는 가정 하에 공유 멤버에게 쓰기가 가능합니다.
 
 
 ### 라이팅
 
 렌더러는 디퍼드 셰이딩 패스에 다이내믹 라이트를 적용합니다.
 
-FLightCacheInterface 를 구현하고, 그 구현을 메시 엘리먼트의 LCI 멤버에 전달함으로써 메시 엘리먼트에 스태틱 라이팅을 제공할 수 있습니다. FLightCacheInterface 는 선택적으로 라이트맵을 제공하고, 라이트 GUID 에서 디테일한 라이트 상호작용 정보로 매핑합니다. 라이트 상호작용 정보는 FLightInteraction 에 포함되어 있으며, uncached (캐시안됨), irrelevant (연관성 없음), light-mapped (라이트 매핑됨), vertex shadow-mapped (버텍스 섀도우 매핑됨), texture shadow-mapped (텍스처 섀도우 매핑됨) 등이 가능합니다.
+FLightCacheInterface 를 구현하고, 그 구현을 메시 엘리먼트의 LCI 멤버에 전달함으로써 메시 엘리먼트에 스태틱 라이팅을 제공할 수 있습니다. FLightCacheInterface 는 선택적으로 라이트맵을 제공하고, 라이트 GUID 에서 디테일한 라이트 상호작용 정보로 매핑합니다. 라이트 상호작용 정보는 FLightInteraction 에 포함되어 있으며, uncached (캐시안됨), irrelevant (연관성 없음), light-mapped (라이트 매핑됨), vertex shadow-mapped (버텍스 섀도 매핑됨), texture shadow-mapped (텍스처 섀도 매핑됨) 등이 가능합니다.
 
 스태틱 라이팅을 계산하기 위해서는 반드시 UPrimitiveComponent::GetStaticLightingInfo 를 구현해야 합니다. 스태틱 라이팅 시스템에서는 미리계산 도중 프리미티브의 메시와 매핑을 열거하기 위해 이 함수를 호출합니다.
 
-스태틱 라이팅 메시는 스태틱 라이팅을 막거나 튕겨내는 트라이앵글 집합니다.
+스태틱 라이팅 메시는 스태틱 라이팅을 막거나 튕겨내는 트라이앵글 집합입니다.
 
-스태틱 라이팅 매핑은 스태틱 라이팅 메시에 대한 스태틱 라이팅 텍스처 또는 버텍스 버퍼의 매핑입니다. 스태틱 라이팅 시스템은 매핑에 대한 라이트맵과 섀도우맵을 계산한 다음 매핑의 Apply 함수 구현에 전달합니다.
+스태틱 라이팅 매핑은 스태틱 라이팅 메시에 대한 스태틱 라이팅 텍스처 또는 버텍스 버퍼의 매핑입니다. 스태틱 라이팅 시스템은 매핑에 대한 라이트맵과 섀도맵을 계산한 다음 매핑의 Apply 함수 구현에 전달합니다.
 
  
 

@@ -52,7 +52,7 @@ version: 4.9
 [TOC(start:2 end:2)]
 
 [EXCERPT:intro]
-**Direct Blueprint Communi1cation** is the most common method of Blueprint Communication and is great for when you have two Blueprints that you know you want to have talk to each other at some point. This type of communication is always one-to-one; meaning one Blueprint (the "Working Blueprint") is requesting to access another Blueprint (the "Target Blueprint"). The simplest way to use Direct Blueprint Communication is to get a reference to the Target Blueprint through a publicly exposed object [**Variable**](Engine/Blueprints/UserGuide/Variables) and then specify which instance of that Blueprint you want to access.
+**Direct Blueprint Communication** is the most common method of Blueprint Communication and is great for when you have two Blueprints that you know you want to have talk to each other at some point. This type of communication is always one-to-one; meaning one Blueprint (the "Working Blueprint") is requesting to access another Blueprint (the "Target Blueprint"). The simplest way to use Direct Blueprint Communication is to get a reference to the Target Blueprint through a publicly exposed object [**Variable**](Engine/Blueprints/UserGuide/Variables) and then specify which instance of that Blueprint you want to access.
 [/EXCERPT:intro]
 
 ## General Workflow

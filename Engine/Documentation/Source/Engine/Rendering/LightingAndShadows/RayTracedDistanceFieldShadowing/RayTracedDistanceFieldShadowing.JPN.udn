@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2523052
+﻿INTSourceChangelist:2685227
 Availability:Public
 Title:レイトレース ディスタンス フィールド ソフト シャドウ
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:動的エリア シャドウ
+Version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -49,19 +50,19 @@ Description:動的エリア シャドウ
 
 [TOC(start:2 end:2)]
 
-## 概要
+
 
 レイトレース ディスタンス フィールド シャドウは、シーンのディスタンス フィールドを表すプロパティを活用し、動的メッシュから効率的なエリア シャドウイングを計算します。これは、[ディスタンス フィールド アンビエント オクルージョン](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion) と同じデータを使用します。したがって、同じ制約が数多くあります。
 
 シャドウイングを計算するために、シーンの符号付きディスタンス フィールドを使用して、シェーディングされるポイントから各ライトに向かってレイ (光線) がトレースされます。オクルーダに最も近い距離を使用して、レイトレースとほぼ同じ負荷のコーン トレースを近似します。これにより、球体光源形状から高品質のエリア シャドウイングを実現します。
 
 [REGION:note]
-ディスタンス フィールド シャドウでは、プロジェクト設定の (レンダリングの) **'Generate Mesh Distance Fields'** を有効にする必要があります。この設定値を変更後、エディタを再起動しなければなりません。
+ディスタンス フィールド シャドウでは、プロジェクト設定の (レンダリングの) **[Generate Mesh Distance Fields (メッシュ ディスタンス フィールドを生成)]** を有効にする必要があります。この設定値を変更後、エディタを再起動しなければなりません。
 [/REGION]
 
-## ポイントライトとスポットライト
+## Point Light と Spot Light
 
-ソース半径 ( 'Source Radius' ) を使用して、ポイントライトのシャドウの半暗部の大きさを決定します。エリア シャドウは距離が長くなるとソフトになるシャープなコンタクトで計算されます。光源の球体は、シーンに交差しないようにしてください。そうしないと、アーティファクトを生じます。
+ソース半径 (Source Radius) を使用して、ポイントライトのシャドウの半暗部の大きさを決定します。エリア シャドウは距離が長くなるとソフトになるシャープなコンタクトで計算されます。光源の球体は、シーンに交差しないようにしてください。そうしないと、アーティファクトを生じます。
 
 [![](LightSourceVis.jpg)(w:288)](LightSourceVis.jpg)
 [REGION:caption]
@@ -80,7 +81,7 @@ Description:動的エリア シャドウ
 
 ## 指向性ライト
 
-'Light Source Angle' を使用して、指向性ライトのシャドウの半暗部の大きさを決定します。レイトレースされたシャドウには、自己交差の問題はほとんどありません。したがって、従来のシャドウマッピングで問題がある遠くでの漏れと過剰バイアスを回避します。
+[Light Source Angle] を使用して、指向性ライトのシャドウの半暗部の大きさを決定します。レイトレースされたシャドウには、自己交差の問題はほとんどありません。したがって、従来のシャドウマッピングで問題がある遠くでの漏れと過剰バイアスを回避します。
 
 [REGION:fullwidth]
 	![](DirectionalLightAreaShadows.jpg)
@@ -93,25 +94,21 @@ Light Source Angle 2 の指向性ライトからのレイトレース ソフト�
 
 レイトレース ディスタンス フィールド シャドウは、可視ピクセルに対してのみシャドウイングの作業を行い、遠くで非常にうまく機能します。カスケード シャドウ マップを使用してカメラ近くの領域をカバーし、レイトレース シャドウで 'DistanceField Shadow Distance' までの領域をカバーします。
 
-[REGION:fullwidth]
-	![](CSM2.jpg)
-[/REGION]
-[REGION:caption]
-カスケード シャドウ マップ (CSM) で 100 m までをカバーしたフォーリッジ シーン
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![A foliage scene with CSM covering up to 100 meters.](CSM2.jpg)(w:800)
+	[/PARAM]
+	[PARAM:after]
+	![A foliage scene with CSM covering up to 100 meters, and Ray Traced Distance Field shadows covering up to 1.2 kilometers.](RTDF2.jpg)(w:800)
+	[/PARAM]
+[/OBJECT]
 
-[REGION:fullwidth]
-	![](RTDF2.jpg)
-[/REGION]
-[REGION:caption]
-カスケード シャドウ マップ (CSM) で 100 m までをカバーしたフォーリッジ シーン、およびレイトレース ディスタンス フィールド シャドウで 1.2 km までをカバー。
-[/REGION]
 
 [_レイトレース ディスタンス フィールド シャドウを用いた時間変化を表したビデオ_](https://www.youtube.com/watch?v=4249b94KtyA&list=UUBobmJyzsJ6Ll7UbfhI4iwQ)
 
 ## 品質
 
-ディスタンス フィールドの忠実度は、ディスタンス フィールド アンビエント オクルージョンよりもシャドウの精度に大きな影響を及ぼします。'Distance Field Resolution' (Build Settings の下) を、それを必要とするスタティックメッシュでより高く設定します。  
+ディスタンス フィールドの忠実度は、ディスタンス フィールド アンビエント オクルージョンよりもシャドウの精度に大きな影響を及ぼします。それを必要とするスタティックメッシュには、[Distance Field Resolution]（[Build Settings(ビルド設定)] の下）を高めに設定します。  
 
 こうしたシャドウは、深度に配慮したアップサンプリングで 1/2 解像度で計算されます。Temporal AA (テンポラル アンチエイリアシング) は、1/2 解像度によるフリッカーを減らすうえで非常に効果的ですが、シャドウのジャギーは表示されることがあります。
 
@@ -147,13 +144,13 @@ Light Source Angle 2 の指向性ライトからのレイトレース ソフト�
 
 ## 設定
 
-### ライト
+### Light
 | プロパティ | 説明 |
 | -------- | ----------- |
 | **Use RayTraced DistanceField Shadows** | シャドウ マッピングの技術をディスタンス フィールド シャドウイングに切り替えます。 |
 | **Ray Start Offset Depth Scale** | カメラが遠くなるに従い、受け面からどれくらいの大きさのオフセットのレイトレース シャドウにするかを制御します。これは、非常に大きなスタティック メッシュの低解像ディスタンス フィールドからのセルフ シャドウのアーティファクトを隠すのに便利です。
 
-### ポイントライトとスポットライト
+### Point Light と Spot Light
 | プロパティ | 説明 |
 | -------- | ----------- |
 | **Source Radius** | ソース半径。光源の球体のサイズです。値が大きくなると、半暗部が大きくなりますが、パフォーマンスの負荷も高くなります。 |

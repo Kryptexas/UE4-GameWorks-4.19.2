@@ -1,5 +1,5 @@
 ﻿INTSourceChangelist:0
-Availability: Docs
+Availability: Public
 Title: Build Configurations Reference
 Description: Reference guide for solution and project build configurations.
 Crumbs: %ROOT%, Programming, Programming/Development
@@ -8,13 +8,13 @@ Related: GettingStarted/DownloadingUnrealEngine
 Related: Programming/Development/BuildingUnrealEngine
 Related: Programming/Development/CompilingProjects
 Related: Support/Builds
-Version: 4.8
+Version: 4.9
 
 [TOC (start:2 end:3)]
 
 ## Build Configuration Descriptions
 
-Unreal Engine 4 (UE4) uses a custom building method via the UnrealBuildTool. This tool handles all the complex aspects of compiling the engine. 
+Unreal Engine 4 uses a custom building method via the UnrealBuildTool (UBT). This tool processes the information necessary to build the engine's reflection system, integrating your C++ code with Blueprints, replication, serialization, and garbage collection.
 
 [INCLUDE:Programming/Development/CompilingProjects#winbuildconfig]
 

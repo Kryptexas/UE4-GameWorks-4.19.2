@@ -1,251 +1,275 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Set Up Lifts
+﻿INTSourceChangelist:2730489
+Availability:Public
+Title:设置电梯
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
-Description:Create two types of lifts that move from point A to point B automatically.
+Description:创建两种自动从 A 点前往 B 点的电梯。
+Version:4.9
+SkillLevel:Intermediate
 
 
 ---
-In the following steps, we are going to create two lifts that move from one point to another automatically.
+在下列步骤中，我们将创建两个自动从一个点前往另一个点的电梯。
 
 [INCLUDE:Engine/Matinee/HowTo/MHT_1#projectstart]
 
 [OBJECT:TopicList]
 	[PARAM:title]
-		Creating the Lifts
+		创建电梯
 	[/PARAM]
 	[PARAM:description]
-	In this step, we will create both lifts and platforms using basic shapes. 
+	在该步骤中，我们将利用基础形态创建电梯和平台。 
 	[/PARAM]
 [/OBJECT]
 
-1.  Inside the **Content Browser** and the **Shapes** folder, drag a **Shape_Cube** into the level in front of the **PlayerStart**. 
+1. 在 **Content Browser** 和 **Shapes** 文件夹中，将一个 **Shape_Cube** 拖进关卡中 **PlayerStart** 的前面。 
 
-	![](MHT2_DragInCube.png)(w:720)
+	![](MHT2_Drag_inCube.jpg)(w:720)
 
-1.  In the **Details** panel for the **Shape_Cube**, under **Transform**, set the **Scale** for **X, Y,** and **Z** to **3.0, 3.0** and **0.25**. 
+1. 在 **Shape_Cube** **Details** 面板中 **Transform** 下，将 **X、Y** 和 **Z** 轴的 **Scale** 分别设为 **3.0、3.0** 和 **0.25**。 
 
 	![](MHT2_ScaleCube1.png)(w:720)
 
-1.  With the **Shape_Cube** still selected, press **Control+W** to duplicate the cube and position it next to the first cube. 
+1. 选中 **Shape_Cube**，按下 **Control+W** 组合键复制方块并放置在第一个方块的旁边。 
 
 	![](MHT2_DuplicateCube1.png)
 	
-1.  With the second cube still selected, move it up somewhere above the level (This will serve as our platform to reach). 
+1. 选中第二个方块，将其移至关卡上方的某处（它将作为平台使用）。 
 
 	![](MHT2_MoveCube2Up.png)
 		
-1.  With the second cube still selected, press **Control+W** to duplicate it and move the new cube next to the second cube. 
+1. 选中第二个方块，按下 **Control+W** 组合键复制方块并将新方块放置在第二个方块的旁边。 
 
 	![](MHT2_ThirdCubeAdded.png)
 
-1.  With the third cube selected, press **Control+W** to duplicate it and move the new cube across from and leaving a space between the third cube.
+1. 选中第三个方块，按下 **Control+W** 组合键复制方块并将新方块移开，与第三个方框之间形成一点空间。
 
 	![](MHT2_FourthCubeAdded.png)
 
-1.  With the fourth cube selected, press **Control+W** to duplicate it and move the new cube just to the right of the fourth cube. 
+1. 选中第四个方块，按下 **Control+W** 组合键复制方块并将新方块移动到第四个方块的右边。 
 
 	![](MHT2_FifthCubeAdded.png)
 
-1.  With the fifth cube selected, in the Details panel under Transform set the **Scale** for the **Z** value to **5.0**.
+1. 选中第五个方块，在 Details 面板的 Transform 中将 **Z** 轴的 **Scale** 数值设为 **5.0**。
 
 	![](MHT2_FifthCubeScaled.png)(w:720)
 
-1.  Last, select one of the other smaller platforms and press **Control+W** to duplicate it, then move it up near the top of the larger cube as seen below. 
+1. 最后，选择其他较小的平台之一，按下 **Control+W** 组合键复制，然后如下图所示将其移至较大方块的顶部附近。 
 
 	![](MHT2_LastCubeAdded.png)
 
 
 [OBJECT:TopicList]
 	[PARAM:title]
-		Adding the Matinee and Moving the First Lift
+		添加 Matinee 并移动第一个电梯
 	[/PARAM]
 	[PARAM:description]
-	In this step, we will add the **Matinee** and create a **Movement Track** for the first lift. 
+	在这步中，我们将添加 **Matinee** 并为第一个电梯创建一个 **Movement Track**。 
 	[/PARAM]
 [/OBJECT]
 
-1. From the **Toolbar** menu, select **Matinee** and click the **Add Matinee** button. 
+1. 在 **工具栏** 菜单中选择 **Matinee** 并点击 **Add Matinee** 按钮。 
 
 	![](Engine\Matinee\HowTo\MHT_1\MHT1_AddMatinee.png)(w:720)
 
-1. The Matinee undo warning message will appear, click the **Continue** button. 
+1. 在出现的 Matinee 撤销提示上点击 **继续** 按钮。 
 
 	![](Engine\Matinee\HowTo\MHT_1\MHT1_MatineeWarning.png)
 	
-1. The **Matinee Editor** window will open. 
+1. **Matinee Editor** 窗口将打开。 
 
 	[REGION:lightbox]
 	[![](Engine\Matinee\HowTo\MHT_1\MHT1_MatineeOpen.png)(w:640)](Engine\Matinee\HowTo\MHT_1\MHT1_MatineeOpen.png)
 	[/REGION]
 
-	_Click for Full View._
+	_点击查看全图。_
 
-1. **Right-Click** in the **Tracks** window (in the empty section below **All**) and from the context menu, select **Add New Empty Group**. 
+1. 在 **Tracks** 窗口（**All** 下的空白部分）中 **单击右键**，然后从快捷菜单中选择 **Add New Empty Group**。 
 
 	![](Engine\Matinee\HowTo\MHT_1\MHT1_TrackContextMenu.png)
 
-1. In the ![](MHT2_Lift1GroupName.png) **New Group Name** box, enter a name for the group (In this example, we named the group **Lift1**). 
+1. 在 **New Group Name** 中为群组命名（在本例中将群组命名为 **Lift1**）。 
 
-1. Minimize the Matinee window, then in the **Level Viewport** select the first cube created (the cube that is on the floor) so that it is highlighted. 
+	![](MHT2_Lift1GroupName.png)
+
+1. 最小化 Matinee 窗口，然后在 **Level Viewport** 中选择创建的首个方块（在地面的方块），使其高亮。 
 
 	![](MHT2_ReselectFirstCube.png)
 
-1. Return to the Matinee window and **Right-Click** on the Group (Lift1) to bring up the context menu, then select **Actors** then **Add Selected Actors**. 
+1. 返回 Matinee 窗口并在群组（Lift1）上 **单击右键** 呼出快捷菜单，选择 **Actors**，然后选择 **Add Selected Actors**。 
 
 	![](MHT2_AddLift1.png)(w:640)
 	
-	_Note: This will add the cube to the **Lift1** group._ 
+	_注解：此操作将把方块添加至 **Lift1** 群组。_ 
 
-1. **Right-Click** on the Group (Lift1) again to bring up the context menu, then select **Add New Movement Track**. 
+1. 再次在群组（Lift1）上 **单击右键** 呼出快捷菜单，然后选择 **Add New Movement Track**。 
 
 	![](MHT2_Lift1MovementTrack.png)(w:640)
 
-1. When the **Movement Track** is added, a new **Keyframe** will be automatically added at the time **0.00** (see 1 below) along with the track. 
+1. **运动轨迹（Movement Track）** 被添加后，将在时间 **0.00** 上沿轨迹自动添加新 **关键帧**（下图 1 所示）。 
 
 	![](MHT2_MovementTrackExplained.png)(w:640)
 
-	_Note: Section 2 includes the Start/End Markers (Red Triangles), Loop Section (Green Triangles) and **Time Bar** (Black Bar)._ 
+	_注解：图中 2 框内包含开始/结束标记（红色三角）、循环部分（绿色三角）和 **时间条（Time Bar）**（黑色条）。_ 
 
-1. **Left-Click** on the **Time Bar** and drag it to the time **2.00**, then press the **Enter** key to add a new **Keyframe**. 
+1. 在 **时间条** 上 **单击左键** 将其拖至时间 **2.00**，然后按下 **Enter** 键添加一个新的 **关键帧**。 
 
 	![](MHT2_Lift1SecondKey.png)(w:640)
 
-1. Minimize the Matinee Editor and return to the Level Viewport. With the first cube still selected, move it up next to the second cube. 
+1. 最小化 Matinee 编辑器，返回关卡视口。选中第一个方块，将其移动至第二个方块旁。 
 
 	![](MHT2_Lift1MovedUp.png)
 
-	_Note: You should also see the yellow dotted line which indicates the movement the lift will take._
+	_注解：图中黄色虚线为电梯的移动轨迹。
 
-1. In the Matinee Editor, **Left-Click** on the **Keyframe** at **2.00** and press **Control+C** to copy it, then move the **Time Bar** to **3.00** and press **Control+V** to paste it. 
+1. 在 Matinee 编辑器中，在 **2.00** 处的 **关键帧** 上 **单击左键** 并按下 **Control+C** 组合键复制；然后将 **时间条** 移至 **3.00**，再按下 **Control+V** 组合键粘贴。 
 
 	![](MHT2_Lift1ThirdKeyAdded.png)(w:640)
 
-	_Note: This will allow the lift to stay in the "lifted" position for a second before we return it to the ground._
+	_注解：此操作将使电梯在“升起”的位置悬停一秒，然后再返回地面。_
 
-1. **Left-Click** on the first **Keyframe** at the **0.00** mark and press **Control+C** to copy it, then paste it at both the **4.00** and **5.00** marks. 
+1. 在 **0.00** 标记处 **左键单击** 第一个 **关键帧** 并按下 **Control+C** 复制，然后在 **4.00** 和 **5.00** 标记处粘贴。 
 
 	![](MHT2_Lift1Complete.png)(w:640)
 
-	_Note: This will allow the lift to stay in the "lowered" position for a second before we loop the sequence and raise the lift again._
+	_注解：此操作将使电梯在“地面”位置停留一秒，然后序列循环，电梯再次上升。_
 
-1. Return to the **Main Editor** window and in the **World Outliner** select the **Matinee Actor**. 
+1. 返回 **主编辑器** 窗口，在 **World Outliner** 中选择 **Matinee Actor**。 
 
 	![](MHT2_Matinee1Selected.png)(w:320)
 
-1. In the Details panel for the Matinee Actor, find the **Play** section and check both **Play on Level Load** and **Looping**. 
+1. 前往 Matinee Actor 细节面板的 **Play** 部分，勾选 **Play on Level Load** 和 **Looping**。 
 
 	![](MHT2_Lift1Details.png)(w:320)
 
-1. If you click the **Play** button to play in the editor, you should see the lift now moving up/down repeatedly, pausing at the top and bottom positions for a second. 
+1. 如点击 **Play** 按钮在编辑器中进行游戏，则可以看到电梯重复上下移动，并在顶点和低点位置各暂停一秒。 
 
-	![](MHT2_Lift1Gif.gif)(w:420 convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	cDiagxqJAgI
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 
 [OBJECT:TopicList]
 	[PARAM:title]
-		Moving the Second Lift Using the Curve Editor
+		使用弧线编辑器移动第二个电梯
 	[/PARAM]
 	[PARAM:description]
-	In this step, we will move the second lift by adjusting Keyframes inside the **Curve Editor**. 
+	在这步中，我们移动 **弧线编辑器（Curve Editor）** 中的关键帧，实现第二个电梯的移动。 
 	[/PARAM]
 [/OBJECT]
 
-1. From the **World Outliner**, select the **Matinee Actor** and in the Details panel, select the **Open Matinee** option. 
+1. 在 **World Outliner** 中选择 **Matinee Actor**，然后在 Details 面板中选择 **Open Matinee** 选项。 
 
 	![](MHT2_ReopenMatinee.png)
 	
-1. Minimize the Matinee window, then in the Level Viewport select the third cube created so that it is highlighted. 
+1. 最小化 Matinee 窗口，然后在关卡视口中选择创建的第三个方块，使其高亮。 
 
 	![](MHT2_SelectThirdPlatform.png)
 		
-1. Return to the Matinee Editor and **Right-Click** under the **Lift1** group, and in the context menu, select **Add New Empty Group**. 
+1. 返回 Matinee 编辑器，在 **Lift1** 群组下 **单击右键**，在快捷菜单中选择 **Add New Empty Group**。 
 
 	![](MHT2_AddSecondGroup.png)(w:640)
 
-1. In the **New Group Name** box, enter a name for this group (In this example, we named the group **Lift2**). 
+1. 在 **New Group Name** 框中为群组命名（在本例中将群组命名为 **Lift2**）。 
 
-1. **Right-Click** on the Group (Lift2) in the **Tracks Window** again to bring up the context menu, then select **Add New Movement Track**. 
+1. 再次在 **Tracks 窗口** 中的群组（Lift2）上 **单击右键** 呼出快捷菜单，然后选择 **Add New Movement Track**。 
 
 	![](MHT2_Lift2MovementGroup.png)
 
-1. **Left-Click** on the **Time Bar** and drag it to the **2.00** mark, then press **Enter** to add a new **Keyframe**. 
+1. 在 **时间条** 上 **单击左键** 将其拖至 **2.00** 标记，然后按下 **Enter** 键添加一个新的 **关键帧**。 
 
 	![](MHT2_Lift2SecondKey.png)(w:640)
 
-1. Minimize the Matinee window, then in the Level Viewport move the lift to the other side of the wall, next to the last platform as seen below. 
+1. 最小化 Matinee 窗口，然后如下图所示在关卡视口中将电梯移至墙的另一边（上个平台的旁边）。 
 
 	![](MHT2_Lift2Moved.png)
 
-	_Note: You should see that the movement track goes through the wall which we will fix using the **Curve Editor**._
+	_注解：可以看到移动轨迹穿过了墙，我们将利用 **弧线编辑器** 进行修复。_
 
-1. With the **Keyframe** at the **2.00** mark selected, press the **Curve Editor** box next to the little green box highlighted below. 
+1. 选中 **2.00** 标记处的 **关键帧**，按下下图高亮的绿色小框旁的 **弧线编辑器** 框。 
 
 	![](MHT2_EnableCurveEditor.png)(w:780)
 
-1. The **Curve Editor** should now be displayed in the top window and the **Curve Editor** icon in the **Movement Track** should be highlighted. 
+1. **弧线编辑器** 显示于上方窗口中，**移动轨迹** 中的 **弧线编辑器** 图标将高亮显示。 
 
 	![](MHT2_CurveTrackAdded.png)(w:780)
 
-1. Press each of the **Toolbar** options highlighted in the box below to adjust the view of the **Curve Editor** so that it is more visible. 
+1. 将下图框中高亮的每个 **工具栏** 选项按下，使 **弧线编辑器** 便于观看。 
 
 	![](MHT2_ToolBarOptions.png)
 
-	_Note: You can also **Mouse Wheel Up** or **Down** to zoom the graph **In** or **Out** to get a better view._
+	_注解：也可通过 **鼠标滚轮向上滚动** 或 **向下滚动** 对图表进行 **放大** 或 **缩小**，便于观看。_
 
-1. **Right-Click** on the **Keyframe** at the **2.00** mark of **Lift2's Movement Track**, and in the context menu, select **Interp Mode** and **Curve (Break)**. 
+1. **右键单击** **Lift2 移动轨迹** **2.00** 标记处的 **关键帧**，选择快捷菜单中的 **Interp Mode** 和 **Curve (Break)**。 
 
 	![](MHT2_CurveKey1Break.png)(w:780)
 		
-1. In the Curve Editor window, **Left-Click** on the top **Keyframe** at the **2.00** mark. 
+1. 在弧线编辑器窗口中，**左键单击** **2.00** 标记处的上部 **关键帧**。 
 
 	![](MHT2_CE_ClickTopKey.png)(w:780)
 
-1. **Left-Click** on the little white box and drag the handle-bar widget downward to create an arc. 
+1. 在白色小框上 **单击左键**，向下拖动手把控件创建弧线。 
 
-	![](MHT2_CE_DragCurveDown1.png)(w:780)
+	![](MHT2_CEDragCurveDown1.jpg)(w:780)
 
-1. You should also see in the Level Viewport that the **Movement Path** has bent with the adjustment made in the last step. 
+1. 在关卡视口中可以发现，上步操作已将 **移动路线** 弯曲。 
 
 	![](MHT2_MovementBending.png)
 	
-1. **Left-Click** on the **Keyframe** at the **0.00** mark, then click the **Break** option from the **Toolbar** (see 2 below) and move the little white box (see 1 below) downward to create an arch. 
+1. **左键单击** **0.00** 标记处的 **关键帧**，点击 **工具栏** 中的 **Break** 选项（下图 2 所示），然后向下移动白色小框（下图 1 所示）创建弧线。 
 
-	![](MHT2_CE_AdjustFirstKey.png)(w:780)
+	![](MHT2_CEAdjustFirstKey.jpg)(w:780)
 
-	_Note: You can switch between the **Keyframes** at 0.00 and 2.00, and continue moving the widget to create a smoother arch._
+	_注解：可在 0.00 和 2.00 **关键帧** 之间切换，并继续移动控件创建流畅的弧线。_
 
 	![](MHT2_EvenCurve.png)
 
-1. In the Movement Track scrub the **Time Bar** to the **3.00** and **4.00** marks and press **Enter** at each to create **Keyframes**. 
+1. 在运动轨迹中，将 **时间条** 移至 **3.00** 和 **4.00** 标记处，然后分别在每处按下 **Enter** 键创建 **关键帧**。 
 
 	![](MHT2_Lift2FourthKeyAdded.png)
 	
-1. With the fourth **Keyframe** selected, in the Level Viewport move the lift back to its original position. 
+1. 选中第四个 **关键帧**，在关卡视口中将电梯移回其原始位置。 
 
 	![](MHT2_Lift2FourthKeyView.png)
 
-	_Note: The movement track goes back through the wall, so we will need to adjust the curve for the remaining **Keyframes** as we did above._
+	_注解：移动轨迹将再次穿过墙，因此需要按之前步骤调整其余 **关键帧** 的弧线。_
 
-1. In the Movement Track scrub the **Time Bar** to the **5.00** mark and press **Enter** to create the final **Keyframe**. 
+1. 在运动轨迹中，将 **时间条** 移至 **5.00** 标记处，然后按下 **Enter** 键创建最终的 **关键帧**。 
 
 	![](MHT2_FinalKeyFrameAdded.png)(w:780)
 
-1. **Right-Click** on the **Keyframes** at **3.00** and **4.00** and in the context menu, set both to use the **Interp Mode** / **Curve(Break)** option. 
+1. **右键单击** **3.00** 和 **4.00** 处的 **关键帧**，将两者设为使用 **Interp Mode** / **Curve(Break)** 选项。 
 
 	![](MHT2_FinalCurveBreak.png)(w:780)
 
-1. In the **Curve Editor**, adjust the **Keyframes** at **3.00** and **4.00** as previously performed above to create a curved path as seen below. 
+1. 在 **弧线编辑器** 中按之前的操作方式调整 **3.00** 和 **4.00** 处的 **关键帧**，创建如下图所示的弧线路径。 
 
 	![](MHT2_LoopComplete.png)(w:780)
 
-1. The reverse movement path, should now be complete. 
+1. 反向移动路径现已完成。 
 
 	![](MHT2_ReverseCurveComplete.png)
 
-1. When you click the **Play** button from the Main Editor's Toolbar, you should have two lifts that move differently and one that uses a curved path. 
+1. 从主编辑器工具栏点击 **Play** 按钮，可看到两个移动方式不同的电梯，其中一个拥有弧线路径。 
 
-	![](MHT2_BothLiftsGif.gif)(w:420 convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	-6dlhjG9JP4
+	[/PARAMLITERAL]
+	[/OBJECT]
 	
 
 ---

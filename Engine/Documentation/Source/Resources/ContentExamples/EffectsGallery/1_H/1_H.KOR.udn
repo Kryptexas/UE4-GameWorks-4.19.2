@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653104
+﻿INTSourceChangelist:2714479
 Availability: Public
 Title:1.8 - 반투명 파티클 그림자 드리우기
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/EffectsGallery
@@ -10,6 +10,7 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/ParticleLights
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -81,7 +82,7 @@ UE4 의 CPU 스프라이트는 배경에 그림자를 드리울 수 있으며, �
  
 ![](image042.png)
 
-마지막으로 섀도우와 셀프섀도우 기능에 대한 세팅은 이 파티클 이펙트에 사용된 머티리얼의 머티리얼 프로퍼티 내 두 개의 Translucency (반투명) 그룹 아래 위치해 있습니다. 머티리얼 에디터에서 본 프로퍼티는 아래 그림과 같습니다.
+마지막으로 섀도와 셀프섀도 기능에 대한 세팅은 이 파티클 이펙트에 사용된 머티리얼의 머티리얼 프로퍼티 내 두 개의 Translucency (반투명) 그룹 아래 위치해 있습니다. 머티리얼 에디터에서 본 프로퍼티는 아래 그림과 같습니다.
 
 ![](image044.png)
 

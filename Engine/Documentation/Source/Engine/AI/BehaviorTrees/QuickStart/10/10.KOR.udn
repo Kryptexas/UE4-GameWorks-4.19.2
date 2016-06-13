@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2635893
+﻿INTSourceChangelist:2757202
 Availability:Public
 Title: 10. 비헤이비어 트리 기초
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:10 단계. 비헤이비어 트리 기초
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -54,3 +55,7 @@ Selector 및 Sequence 노드 아래에는 자손이 여럿 있을 수 있지만,
 
 
 %Steps%
+
+
+
+

@@ -1,8 +1,13 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:게임모드 (GameMode)
 Crumbs:%ROOT%, Gameplay/Framework
-Description:GameMode, 게임모드는 게임의 규칙 설정을 담당합니다.
+Description:The GameMode is responsible for setting the rules of the game.
+Version: 4.9
+type:reference
+parent:Gameplay/Framework
+order:5
+tags:Gameplay Framework
 
 가장 제약이 없다는 게임일지라도 토대가 되는 규칙들이 있으며, 이러한 규칙들이 게임타입을 이룹니다. 가장 기본적인 레벨에서 이러한 규칙에 포함되는 것은 다음과 같습니다:
 

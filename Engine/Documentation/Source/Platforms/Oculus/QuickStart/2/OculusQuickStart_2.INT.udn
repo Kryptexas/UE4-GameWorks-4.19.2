@@ -1,4 +1,4 @@
-Title:2. Download the Oculus Runtime
+Title:2. Install the Oculus Runtime
 Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
 Description:Download the needed software for running games on the Oculus Rift
 Availability:Public
@@ -21,29 +21,43 @@ SkillLevel: Intermediate
 [/OBJECT]
 [/VAR]
 
-In this section we will go over which version of the Oculus PC Runtime drivers you need to download and where you can download them from.
+In this section we will go over how to install the Oculus runtimes as well as how to resolve any issues that might come up during the install process.
+
+[region:note]
+You will need to be connected to the internet for 30 to 60 minutes while the Oculus runtimes are installing.
+[/region]
 
 %Steps%
 
+1. Once the Oculus Rift runtimes have finished downloading, locate the **OculusSetup.exe** and double - click on it to begin the install.
 
-[REGION:note]
-The version of the Oculus Runtime that is currently compatible with the latest version of Unreal Engine 4 is **Oculus SDK v0.7.0.0-BETA**. 
-[/REGION]
+	![](RIft_EXE_Download_00.png)
 
+1. Once the Oculus Rift installer has opened, press the **Let's Go** button to begin the install.
 
-1. From the web browser of your choice go to the Oculus Developer webpage by clicking on the link below.
-	
-	[https://developer.oculus.com/](https://developer.oculus.com/) 
+	![](Rift_Install_Start_00.png)
 
-1. Download the [PC RUNTIME( v0.7.0.0-BETA)](https://developer.oculus.com/downloads/pc/0.7.0.0-beta/Oculus_Runtime_for_Windows/) by clicking on the **PC RUNTIME(V0.7.0-BETA)** button.
+1. If you agree with the privacy policy and terms of service press the **Agree** button to move on to the next install step.
 
-	![](Downloads.png)
+	![](Rift_TC_00.png)
 
-1. Once you have clicked on the download button you will be brought to the webpage below. 
- Make sure to read the EULA and Terms of Use and if you agree to them then click on the box indicating you do and then the Download button will become available.
- Click on the **DOWNLOAD** button to begin the driver download.
+1. Read the Health & Safety Warning message and if you agree to it, click on the **I Understand** button to be taken to the next install step.
 
-	![](3-oculus-eula.png)
+	![](Rift_Health_Safety_Warning_00.png)
 
+1. Press the **Install Now** button to install the Oculus runtimes on your C: drive. 
+
+	![](Rift_Install_Now.png)
+	[region:note]
+	If you do not have room on your C drive or you want to change the location of the install, press the **Change Drive** button to change which hard drive the Oculus runtimes will be installed to.
+	[/region]
+
+1. The Oculus Rift runtimes will now be downloaded and installed to your PC.
+
+	![](Rift_Installing_Progress_00.png)
+
+1. During the install process you will be asked to install device software from Oculus VR, LLC. When this is displayed, press the **Install** button to continue the installation. 
+
+	![](Rift_Device_Software_Install_00.png)
 
 %Steps%

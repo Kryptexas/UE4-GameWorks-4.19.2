@@ -1,104 +1,111 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2735882
 Availability: Public
-Title:Testing Multiplayer
+Title:测试多人游戏
 Crumbs: %ROOT%, Gameplay
-Description:Demonstrates how you can set up the Unreal Editor for testing multiplayer games. 
+Description:介绍如何设置 Unreal Editor 以测试多人游戏。 
 Related: Resources/ContentExamples/Networking
+Version: 4.9
+Parent:Gameplay
+type:how-to
+order:18
 
 [TOC (start:2 end:2)]
 
-This page shows you how you can change some of the settings for the editor for testing different multiplayer scenarios. 
+本页介绍了如何更改编辑器的某些设置，以测试不同的多人场景。 
 
-## Setting Number of Players
+## 设置玩家数量
 
-**To Increase the Number of Players:**
+**增加玩家数量**
 
-* Click the down arrow next to the **Play** button and enter a value for **Number of Players**. 
+* 单击 **Play** 按钮旁的下箭头，然后输入 **Number of Players** 的值。 
 
 	[REGION:raw]
 	![](NumberOfPlayers.png)
 	[/REGION]
 
-By default, the Server will use the **Selected Viewport** as the play window and new windows will be created for each player that is added. 
+默认情况下，服务器将使用 **Selected Viewport** 作为游戏窗口，并为添加的每位玩家创建新窗口。 
 
 ![](PIE.png)
 
 
-## Adjusting Play Windows
+## 调整游戏窗口
 
-While it is perfectly okay to use the Editor's Viewport as a play window, for clarity you may want to use windows for each player. 
+您完全可以使用编辑器的视口作为游戏窗口，但为了清晰起见，使用适用于每位玩家的窗口可能更好。 
 
-**To adjust the play window for the server:**
+**为服务器调整窗口**
 
-*	Click the down arrow next to the **Play** button then select **New Editor Window**. 
+*	单击 **Play** 按钮旁的下箭头，然后选择 **New Editor Window**。 
 
 	[REGION:raw]
 	![](NewEditorWindow.png)
 	[/REGION]
 
-While simulated clients have their own windows, this setting will also create a separate window for the simulated server. 
+虽然模拟客户端拥有自己的窗口，但此设置还会模拟服务器创建独立窗口。 
 
-## Advanced Settings
+## 高级设置
 
-If you have set up the **Play** method to use new editor windows, you may want to adjust the size of the editor windows. 
+如果您已设置 **Play** 方法以使用新的编辑器窗口，您可能想要调整编辑器窗口的大小。 
 
-**To Adjust Window Sizes:**
+**调整窗口大小**
 
-1.	Click the down arrow next to the **Play** button then select **Advanced Settings**. 
+1.	单击 **Play** 按钮旁的下箭头，然后选择 **Advanced Settings**。 
 
 	[REGION:raw]
 	![](AdvancedSettings.png)
 	[/REGION]
 
-1.	Set the desired window sizes under the **Play in New Window** section. 
+1.	在 **Play in New Window** 部分下设置所需的窗口大小。 
 
 	![](WindowSize.png)
 
-	The **Play in New Window** size option allows you to set the size and default position of windows that are created. You can choose from a number of preset window sizes or manually enter a window size (we specified 640x480 in our example). You set the **Left** and **Top** position windows that are created or click the checkbox for **Always center window to screen**. 
+	**Play in New Window** 大小选项允许您设置所创建的窗口的大小和默认位置。您可以从若干预设窗口大小中选择或手动输入窗口大小（此例中，我们指定为 640x480）。
+	您可以将所创建的窗口设置为 **Left** 和 **Top** 位置或单击 **Always center window to screen** 的复选框。 
 
-Once you have entered a window size, when you play in the editor, each new window will be of the same size. 
+输入窗口大小后，当您在编辑器中玩游戏时，每个新窗口的大小相同。 
 
 ![](MultipleWindows.png)
 
-When playing in the editor using new windows for each play session, you will notice at the top of each window it will display if the player is a server or client. Also while in **Play** mode, when you move windows around, their locations will be remembered for your next **Play** in editor session (so you will not have to keep moving them around which makes testing easier). 
+当在编辑器中使用每个游戏会话的新窗口玩游戏时，您将注意到每个窗口顶部将显示玩家是服务器玩家还是客户端玩家。同时，在 **Play** 模式下，移动窗口时，
+系统将为您下次在编辑器会话中 **Play** 记住其位置（因此，您无需一直移动窗口，这样使得更简单）。 
 
-### Multiplayer Options
+### 多人选项
 
-Also inside **Advanced Settings**, there is a section for setting up additional multiplayer options: 
+**Advanced Settings** 中还包括用于设置附加多人选项的部分： 
 
 ![](MultiplayerOptions.png)
 
-| Option | Description |
+| 选项 | 说明 |
 | -------- | ----------- |
-| **Number of Players** | This option defines the number of players to spawn in the game when launched. The editor and listen server count as players, a dedicated server will not. Clients make up the remainder of players. |
-| **Server Game Options** | Here you can specify additional options that will be passed to the server as URL parameters. |
-| **Run Dedicated Server** | If checked, a separate dedicated server will be launched. Otherwise the first player will act as a listen server that all other players can connect to. |
-| **Route 1st Gamepad to 2nd Client** | When running multiple player windows in a single process, this option determines how the game pad input get routed. If unchecked (default) the 1st game pad is attached to the 1st window, 2nd to the 2nd window, and so on. If it is checked, the 1st game pad goes to the 2nd window. The 1st window can then be controlled by keyboard/mouse, which is convenient if two people are testing on the same computer. |
-| **Use Single Process** | This spawns multiple player windows in a single instance of Unreal Engine 4. This will load much faster, but has potential to have more issues. When this is unchecked, additional options become available. |
-| **Create Audio Device for Every Player** | Enabling this will allow rendering accurate audio from every player's perspective but will use more CPU. |
-| **Play In Editor Description** | This is a description of what will occur when playing based on the currently applied multiplayer settings. |
+| **Number of Players** | 此选项定义游戏启动时其中将生成的玩家数量。编辑器和监听服务器均视为玩家，而专用服务器则不会。客户端组成剩余玩家。 |
+| **Server Game Options** | 您可在此指定将作为 URL 参数传输到服务器的附加选项。 |
+| **Run Dedicated Server** | 如果选中，则将启动独立的专用服务器。否则，第一个玩家将充当所有其他玩家均可连接的监听服务器。 |
+| **Route 1st Gamepad to 2nd Client** | 在单个进程中运行多个玩家窗口时，此选项将决定游戏手柄输入的路由方式。如果未选中（默认），第一个游戏手柄将连接到第一个窗口，第二个连接到第二个窗口，以此类推。如果选中，则第一个游戏手柄将连接第二个窗口。然后即可通过键盘/鼠标控制第一个窗口，如果两人在同一台计算机上进行测试则十分便利。 |
+| **Use Single Process** | 此选项将在虚幻引擎 4 的单个实例中生成多个玩家窗口。其加载速度更快，但也有存在更多问题的可能性。未选中此选项时，附加选项将可用。 |
+| **Create Audio Device for Every Player** | 启用此选项将允许从每位玩家的角度渲染精确音频，但将占用更多 CPU 资源。 |
+| **Play In Editor Description** | 此选项根据当前应用的多人设置说明玩游戏时将发生的事情。 |
 
-When **Use Single Process** is checked, multiple windows are spawned in a single instance of Unreal Engine 4. When this option is unchecked, multiple instances of UE4 will be launched for each player that is assigned and additional options become available: 
+当选中 **Use Single Process** 时，虚幻引擎 4 的单个实例中将生成多个窗口。当未选中此选项时，将为分配的每位玩家启动多个 UE4 的实例，而且附加选项将可用： 
 
 ![](NoSingleProcess.png)
 
-| Option | Description |
+| 选项 | 说明 |
 | -------- | ----------- |
-| **Editor Multiplayer Mode** | This is the NetMode to use for Play In Editor (**Play Offline**, **Play As Listen Server** or **Play As Client**).|
-| **Command Line Arguments** | Here you can assign additional command line options that will be passed to standalone game instances. |
-| **Multiplayer Window Size (in pixels)** | Define the width/height to use when spawning additional standalone game instances. |
+| **Editor Multiplayer Mode** | 此选项是用于 Play In Editor（**Play Offline**、**Play As Listen Server** 或 **Play As Client**）的 NetMode。|
+| **Command Line Arguments** | 您可在此分配将传输到独立游戏实例的附加命令行选项。 |
+| **Multiplayer Window Size (in pixels)** | 定义生成附加独立游戏实例时所采用的宽度/高度。 |
 
-## Listen Server vs. Dedicated Server
+## 监听服务器与专用服务器
 
-When launching a multiplayer game, there are two methods in which the game can be hosted. The first, is by using a **Listen Server** (default setting) which means that the machine that has the authority is also running a client and can play the game normally while hosting for other players. 
+启动多人游戏时，游戏托管方式有两种。第一种方式是通过使用 **Listen Server**（默认设置），这表示拥有权限的机器也可以运行客户端，并可在为其他玩家托管时正常玩游戏。 
 
-The second method is by using a **Dedicated Server**, which as the name implies, is dedicated to only hosting the game and no local players play on the machine as everyone connected is a client. Usually running as a Dedicated Server is more optimized than running as a Listen Server as there are no visuals or input being registered. 
+第二种方式是通过使用 **Dedicated Server**，顾名思义，专用服务器仅专用于托管游戏，而没有本地玩家在此机器上玩游戏，因为连接的每位玩家均是客户端玩家。
+通常情况下，相比作为监听服务器运行，作为专用服务器运行性能因为没有图像或输入而更优化。 
 
-By default, the server type is set to a Listen Server when playing in the editor or standalone game. 
+默认情况下，在编辑器或独立游戏中玩游戏时，服务器类型设置为监听服务器。 
 
-**To run a Dedicated Server:**
+**运行专用服务器**
 
-*	Click the down arrow next to the **Play** button then check the **Run Dedicated Server** checkbox. 
+*	单击 **Play** 按钮旁的下箭头，然后选中 **Run Dedicated Server** 复选框。 
 
 	[REGION:raw]
 	![](DedicatedServer.png)

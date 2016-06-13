@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:2615876
+﻿INTSourceChangelist:2735872
 Availability: Public
 Title:2. 발구름판 만들기
 Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
 Description:레벨에 처음 발구름판을 만듭니다.
-
+version: 4.9
+parent:Engine/Blueprints/QuickStart
+order:2
+type:multi-step
 
 [VAR:Steps]
 [OBJECT:Navigation]

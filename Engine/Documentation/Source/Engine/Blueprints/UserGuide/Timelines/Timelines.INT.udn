@@ -3,6 +3,8 @@ Title: Timelines
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description: This document contains an overview of Timelines in Unreal Engine 4 Blueprints.
 version: 4.9
+Parent:Engine/Blueprints
+Type:guide
 
 ![k2_timeline_demo.png](k2_timeline_demo.png)
 

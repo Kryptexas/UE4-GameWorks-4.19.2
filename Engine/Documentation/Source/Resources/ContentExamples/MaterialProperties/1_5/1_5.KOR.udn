@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653552
+﻿INTSourceChangelist:2717064
 Availability: Public
 Title:1.5 - 머티리얼 도메인
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
@@ -13,6 +13,7 @@ Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Rendering/Materials/MaterialInstances
 Related: Engine/Actors/DecalActor
 Related: Engine/Rendering/Materials/MaterialProperties
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -83,4 +84,4 @@ Related: Engine/Rendering/Materials/MaterialProperties
 | **Deferred Decals** | 디퍼드 데칼 - 머티리얼이 **데칼 액터** 에 사용되는 경우, 이렇게 설정해 주지 않으면 작동하지 않습니다. |
 | **Light Function**  | 라이트 함수 - **라이트 함수** 로 라이트에 적용된 머티리얼에 사용됩니다. |
 | **PostProcess**     | 포스트 프로세스 - 머티리얼이 **포스트 프로세싱** 체인에서 **블렌더블 머티리얼** 로 사용된 경우입니다. |
-
+| **User Interface**     | 유저 인터페이스 - 이 머티리얼은 UMG 나 슬레이트 UI 에서 사용됩니다. |

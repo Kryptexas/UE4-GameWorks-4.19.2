@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2631099
+﻿INTSourceChangelist:2708150
 Availability: Public
 Title:5. 게임내 일시정지 메뉴 생성 / 스크립트 작성
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
 Description:게임 일시정지 또는 종료가 가능한 게임내 일시정지 메뉴를 만들겠습니다.
+version: 4.9
 
 
 [VAR:Steps]
@@ -123,7 +124,7 @@ Description:게임 일시정지 또는 종료가 가능한 게임내 일시정�
 
 	**Quit** 를 클릭하면, 메인 메뉴로 돌아갈 때의 메뉴 조작용 마우스 커서를 켭니다.
 
-1.	다음 위에서 생성한 **Remove HUD** 함수를 (**MainMenu** 로 설정된) **Open Level** 뒤에 추가하고 다음과 같이 연결합니다.
+1.	다음 위에서 생성한 **Remove HUD** 함수를 (**MainMenu** 또는 메인 메뉴가 있는 레벨 이름으로 설정된) **Open Level** 뒤에 추가하고 다음과 같이 연결합니다.
 
 	[REGION:lightbox]
 	[![](PauseScript8.png)(w:840)](PauseScript8.png)

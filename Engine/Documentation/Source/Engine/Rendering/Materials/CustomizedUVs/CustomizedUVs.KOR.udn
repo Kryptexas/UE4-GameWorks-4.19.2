@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2685309
 Availability: Public
 Title:Customized UV
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:버텍스 셰이더 내 계산 퍼포먼스를 픽셀 단위로 할 때보다 향상시킬 수 있는 기능입니다.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -45,7 +46,6 @@ Description:버텍스 셰이더 내 계산 퍼포먼스를 픽셀 단위로 할 
 
 [TOC(start:2)]
 
-## 개요
 
 GPU 상에서, 버텍스 셰이더는 모든 버텍스에 대해 실행되며, 픽셀 셰이더는 모든 픽셀에 대해 실행됩니다. 언리얼 엔진 4 의 거의 모든 머티리얼 노드는 모든 픽셀에 대해 실행됩니다. 반면 **UV Coordinate** (UV 좌표) 노드는 버텍스 / 픽셀 셰이더 어디에도 속할 수 있지만, **CustomizedUVs** 기능은 버텍스 셰이더에서만 실행되는데, 같은 계산을 픽셀 셰이더에서 할 때보다 더 나은 퍼포먼스를 보입니다. 덕분에 그냥 텍스처 타일링 속도를 올리기에도 아주 좋습니다. 이 시스템이 UV 상에서 수행하는 수학 연산에 제한된 것은 아니지만, 결과는 메시의 테셀레이션에 따라 달라질 것입니다.
 
@@ -89,7 +89,7 @@ UV 를 파라미터로 스케일 조절(곱)하는 연산은 양쪽에서 동일
   
 ## 작동 원리
   
-CustomizedUV 핀은 기본적으로 메시의 텍스처 좌표(UVs)를 틍과시킵니다. 그런 다음 (BaseColor 같은) 픽셀 셰이더 입력에 Texcoord 노드를 배치하면, 계속해서 메시의 텍스처 좌표를 얻게 됩니다. 그런데, CustomizedUV0 에서 무언가 한 다음 BaseColor 입력의 Texcoord 0 를 사용한다면, 변경된 UV 값을 얻게 됩니다. 참고로 Texture sample 노드는 기본적으로 TexCoord 0 을 사용합니다.
+CustomizedUV 핀은 기본적으로 메시의 텍스처 좌표(UVs)를 통과시킵니다. 그런 다음 (BaseColor 같은) 픽셀 셰이더 입력에 Texcoord 노드를 배치하면, 계속해서 메시의 텍스처 좌표를 얻게 됩니다. 그런데, CustomizedUV0 에서 무언가 한 다음 BaseColor 입력의 Texcoord 0 를 사용한다면, 변경된 UV 값을 얻게 됩니다. 참고로 Texture sample 노드는 기본적으로 TexCoord 0 을 사용합니다.
 
 
   

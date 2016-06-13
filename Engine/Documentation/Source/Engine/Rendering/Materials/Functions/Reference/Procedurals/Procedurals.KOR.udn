@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2643533
+﻿INTSourceChangelist:2729971
 Availability: Public
 title:순차함수
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:Procedurals (순차함수) 카테고리 아래 있는 머티리얼 함수에 대한 설명과 예제입니다.
+Version: 4.9
 
 [TOC (start:2 end:3)]
 
@@ -54,7 +55,7 @@ GeneratedBand 함수처럼 GeneratedOffsetBands 도 UV 스페이스에 걸쳐 �
 별도의 텍스처를 메모리에 로드할 필요 없이, 기존 흑백 하이트맵에서 노멀맵을 빠르게 만들어낼 수 있는 함수입니다.
 
 [REGION:note]
-	이 합수는 TextureSample 이 아닌 TextureObject (T2d) 표현식 노드를 받습니다.
+	이 함수는 TextureSample 이 아닌 TextureObject (T2d) 표현식 노드를 받습니다.
 [/REGION]
 
 | 항목 | 설명 |

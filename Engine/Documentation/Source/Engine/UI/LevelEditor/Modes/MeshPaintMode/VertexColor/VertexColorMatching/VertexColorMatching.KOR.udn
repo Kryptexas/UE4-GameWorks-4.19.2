@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2286220
+﻿INTSourceChangelist:2693563
 Availability: Public
 Title:버텍스 컬러 일치
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor
 Description:버텍스 수가 다른 버전의 메시가 새로 임포트되면 버텍스 컬러를 고칠 수 있는 툴입니다.
+Version: 4.9
+
 
 
 
@@ -24,10 +26,11 @@ Description:버텍스 수가 다른 버전의 메시가 새로 임포트되면 �
 
 이 기능은 수정이 필요한 메시에서만 사용할 수 있으며, 수정이 필요 없으면 활성화되지 않습니다. 대부분의 경우, 특히나 약간만 조정하려는 경우에는 잘 돌아갑니다. 메시가 크게 변경될 수록 불일치 확률도 높아집니다. 이 기능은 변경이 극심한 경우에도 색을 항상 일치시키기 위해 고안된 것입니다. 이 툴을 자동으로 적용시키지 않은 이유는, 고치기 결과가 마음에 들지 않을 때 선택할 수 있는 기회를 주기 위해서입니다. 추가로 고치기를 적용한 이후 메시 페인트로 쉽게 마무리 작업을 해 줄 수도 있습니다.
 
-**원본 메시:**
-
-![fix_before.png](fix_before.png)(w:800 h:354)
-
-**고치기를 적용한 낮은 폴리 메시:**
-
-![fix_after.png](fix_after.png)(w:800 h:354)
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Original Mesh - Fix Before](fix_before.png)(w:850 h:404)
+	[/PARAM]
+	[PARAM:after]
+	![Lower Poly Mesh - Fixup applied](fix_after.png)(w:850 h:404)
+	[/PARAM]
+[/OBJECT]

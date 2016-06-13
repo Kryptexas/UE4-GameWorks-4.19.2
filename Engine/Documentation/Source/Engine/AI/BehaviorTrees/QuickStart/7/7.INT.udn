@@ -2,6 +2,7 @@ Availability:Public
 Title: 7. AI Controller Blueprint: Initial Blackboard Values
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 7. AI Controller Blueprint: Initial Blackboard Values
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -61,9 +62,9 @@ Now we need to set the "HomeLocation" key on the **Blackboard**. This is a more 
 
 	![](hlconnected.png)
 
-1. Compile the Blueprint ![](button_compile.png)
+1. Compile the Blueprint.
 1. Select the **HomeLocationKey** variable in the **My Blueprint Panel**.
-1. In the **Details** panel, change its **Default Value** to the exact name of the Vector Value on the Blackboard, in this case, `HomeLocation`
+1. In the **Details** panel, change its **Default Value** to the exact name of the Vector Value on the Blackboard, in this case, "HomeLocation"
 
 	![](homeLocationDetails.png)
 

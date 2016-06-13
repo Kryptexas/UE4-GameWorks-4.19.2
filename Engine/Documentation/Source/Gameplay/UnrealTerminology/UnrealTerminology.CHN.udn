@@ -5,8 +5,8 @@ Crumbs: %ROOT%, Gameplay
 Description:Introduction to projects, levels, classes, and Actors in Unreal Engine.
 
 Everything for your project is contained within the project directory.  You can create as many projects as you would like, but each one is self-contained. Using Unreal Engine's **Project Browser**
-to [create new projects](Engine/Basics/Projects/Browser#creatingnewprojects) will set up the necessary project framework such as the [directory structure](Engine\Basics\DirectoryStructure) and 
-the Unreal Project File (`[ProjectName].uproject`) that you can [open in Unreal Editor](Engine/Basics/Projects/Browser#openingprojects).  
+to [create new projects](Engine/Basics/Projects/Browser#bookmarkcreatingnewprojects) will set up the necessary project framework such as the [directory structure](Engine\Basics\DirectoryStructure) and 
+the Unreal Project File (`[ProjectName].uproject`) that you can [open in Unreal Editor](Engine/Basics/Projects/Browser#bookmarkopeningprojects).  
 
 Your project contains assets, stored as `.uasset` files in the Content folder. These assets can include Materials, Static and Skeletal Meshes, Blueprints, Sound Cues, and Textures, and are reusable reference materials
 and templates that can be called upon by objects in your project.

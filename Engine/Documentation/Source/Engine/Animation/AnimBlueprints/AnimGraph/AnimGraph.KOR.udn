@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2495730
+﻿INTSourceChangelist:2659553
 Availability:Public
 Title:애님 그래프
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimBlueprints
 Description: _애니메이션 블루프린트_ 를 통해 _스켈레탈 메시_ 에 적용시킬 포즈의 샘플링, 블렌딩, 조작에 사용되는 그래프입니다.
+version: 4.9
 
 [REGION:banner]
 ![AnimGraph](animgraph_banner.png)(convert:false)

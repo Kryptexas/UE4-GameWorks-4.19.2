@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2604286
+﻿INTSourceChangelist:2686892
 Availability:Public
 Title: 레이아웃 커스터마이징
 Crumbs: %ROOT%, Engine, Engine/UI
 Description:다양한 패널과 탭을 재배치하고 도킹하여 유저 인터페이스의 외형과 느낌을 커스터마이징하는 법입니다.
 Navigation:topic
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -59,7 +60,7 @@ Navigation:topic
 ## 인터페이스 요소 유형
 
 [EXCERPT:Intro]
-언리얼 에디터의 인터페이스는 레이아웃 관점에서 볼 때 완전 자유로이 설정 가능합니다. 원하는 대로 뗴었다 붙일 수 있는 
+언리얼 에디터의 인터페이스는 레이아웃 관점에서 볼 때 완전 자유로이 설정 가능합니다. 원하는 대로 떼었다 붙일 수 있는 
 탭 창으로 구성됩니다. 이러한 창은 탑 레벨 에디터가 될 수도, 그 에디터 안의 탭이 될 수도 있습니다.
 [/EXCERPT:Intro]
 
@@ -140,7 +141,7 @@ Navigation:topic
 [/REGION]
 
 떠다니는 창을 포함해서 에디터 내 탭의 레이아웃은 다른 세션에서도 유지되며, 에디터가 닫힐 때 
-자동 저장됩니다. 탭을 다시 열때도 지난 위치를 기억하여 거기서 다시 열립니다.
+자동 저장됩니다. 탭을 다시 열 때도 지난 위치를 기억하여 거기서 다시 열립니다.
 
 [REGION:raw]
 ![](layout.png)(w:700)

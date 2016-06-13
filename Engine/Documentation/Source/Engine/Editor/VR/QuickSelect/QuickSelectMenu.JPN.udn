@@ -1,0 +1,73 @@
+﻿Title:クイック選択メニュー
+Description:クイック選択メニューを使うと、VR モードにおいてエディタ パネルとウィンドウに簡単にアクセスできるようになります。
+Crumbs:
+Availability: public
+parent:Engine/Editor/VR
+type: reference
+order:2
+tags:VR
+version:4.11
+skilllevel: intermediate
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Editor/VR/QuickSelect:title%](Engine/Editor/VR/QuickSelect/quickselect_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/QuickSelect:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/QuickSelect]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/QuickSelect:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Editor/VR/QuickSelect:title%](Engine/Editor/VR/QuickSelect/quickselect_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/QuickSelect:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/QuickSelect]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/QuickSelect:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+**クイック選択** メニューを使うと、コンテンツ ブラウザ、詳細パネルなどの呼び出しに加えて、グリッド、回転、スナップ設定の調整を簡単に行えるようになります。
+
+![](quickselectmenu.png)(w:480)
+
+## クイック選択メニューの使用方法
+
+1. 片方のコントローラの照準をもう片方に合わせて [Quick Select (クイック選択)] メニューを開きます。
+1. フリーな方のコントローラの照準をメニュー上のオプションに合わせて強調表示します。
+1. トリガーを引いて、選択したオプションを強調表示します。
+
+## クイック選択メニューのオプション
+
+| オプション| 説明 |
+| ------ | ----------- |
+| [REGION:tablesection]グリッド スナップ[/REGION] ||
+| Move | アクタの移動時のグリッド スナップ機能のオンオフを切り替えます。スナップ値は、下にある数字指定枠に照準を合わせてトリガーを引き、コントローラを動かして変更します。 |
+| Rotate | アクタの回転時のグリッド スナップ機能のオンオフを切り替えます。スナップ値は、下にある数字指定枠に照準を合わせてトリガーを引き、コントローラを動かして変更します。 |
+| Scale | アクタのスケール時のグリッド スナップ機能のオンオフを切り替えます。スナップ値は、下にある数字指定枠に照準を合わせてトリガーを引き、コントローラを動かして変更します。 |
+| [REGION:tablesection]ギズモ[/REGION] ||
+| Coordinate System | アクタのトランスフォーム時に使用する座標システム [World Space/Local Space] を設定します。 |
+| Transform Selector | ユニバーサル ギズモに利用可能な 3 つのトランスフォーム モード (平行移動、回転、スケール) を循環させます。選択したモードに対するマニピュレーターのみ表示されます。 |
+| [REGION:tablesection]インターフェース[/REGION] ||
+| Content | コンテンツ ブラウザを開きます。 |
+| Details |  [Details (詳細)] パネルを開いて、選択したアクタのプロパティを表示および修正できます。 |
+| Modes | [Modes (モード)] パネルを開いて、アクタ配置ツールなどへアクセスできます。 |
+| Outliner | ワールド内のすべてのアクタの階層リストを表示するワールド アウトライナーを開いて、クイック選択、可視化の切り替え、整理、アクタ固有のアクションの実行を可能にします。 |
+| Asset | ブループリント エディタ、マテリアル エディタなど、すべてのアセット エディタのコンテナとなる [Asset (アセット)] ウィンドウを開きます。 |
+| Tutorial | VR モード チュートリアルを開いて、VR エディタの一般的な機能の解説付きウォークスルーのコレクションにアクセスできます。 |

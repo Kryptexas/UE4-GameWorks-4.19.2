@@ -76,19 +76,12 @@ The **Depth of Field Function** expression is designed to give artists control o
 	[/PARAM]
 [/OBJECT]
 
-[REGION:imagetable]
-| [INCLUDE:#DOFF] |
-| :--: | 
-| Network sample (click to enlarge) |
-[/REGION]
-
-<!--
-[EXCERPT:DOFF]
 [REGION:lightbox]
 [![](DepthOfFieldFunctionNetwork.png)(w:300)](DepthOfFieldFunctionNetwork.png)
 [/REGION]
-[/EXCERPT:DOFF]
--->
+[REGION:caption]
+Network sample (Click for full size)
+[/REGION]
 
 [EXCERPT:Desaturation]
 ## Desaturation
@@ -349,7 +342,7 @@ The **Distance To Nearest Surface** Material Expression node allows Materials to
 This Material Expression works by outputting the signed distance in world space units from the distance field to the nearest occluders in the scene.
 
 [region:note]
-Please note that this Material Expression node requires that your project have the **Generate Mesh Distance Fields** enabled in order to work correctly. If you have not done so already, enabled this property in your Projects Settings under the Rendering category before going any further. 
+**Generate Mesh Distance Fields** must be enabled in **Project Settings** under **Rendering** for this expression to work correctly.
 [/region]
 
 | Item | Description |
@@ -371,10 +364,10 @@ What the Distance To Nearest Surface is doing is telling the Material to only co
 ## DistanceFieldGradient
 
 The **DistanceFieldGradient** Material Expression node, when normalized, outputs the X,Y,Z direction an object would move with in the distance field. 
-This makes the Distance Field Gradient Material Expression node perfect for Materials that need to simulate the flow of liquids.
+This makes the Distance Field Gradient Material Expression node well-suited for Materials that need to simulate the flow of liquids.
 
 [region:note]
-Please note that this Material Expression node requires that your project have the **Generate Mesh Distance Fields** enabled in order to work correctly. If you have not done so already, enabled this property in your Projects Settings under the Rendering category before going any further. 
+**Generate Mesh Distance Fields** must be enabled in **Project Settings** under **Rendering** for this expression to work correctly. 
 [/region]
 
 | Item | Description |

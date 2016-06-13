@@ -1,4 +1,5 @@
-﻿Availability:Docs
+﻿INTSourceChangelist:2735872
+Availability:Public
 Title:프로젝트 릴리즈
 Crumbs:%ROOT%, Engine, Engine/Deployment
 Description:쿠킹 콘텐츠가 포함된 배포용 릴리즈 버전 프로젝트 제작법입니다.
@@ -14,6 +15,7 @@ ShooterGame 1.0 릴리즈 패키징 예제로, 윈도우 64 비트에 영어로 
 
 	![](1.png)
 1. **+** 버튼을 사용해서 커스텀 론치 프로파일을 새로 만듭니다.
+	
 	![](2.png)
 1. 프로파일의 이름과 설명을 설정합니다.
 
@@ -48,20 +50,24 @@ ShooterGame 1.0 릴리즈 패키징 예제로, 윈도우 64 비트에 영어로 
 * 빌드를 **Do Not Deploy** (디플로이 안함)으로 설정합니다.
 
 1. 위 세팅을 전부 설정한 이후에는, 우상단 구석의 **뒤로** 버튼을 사용하여 메인 프로파일 창으로 돌아갑니다.
+	
 	![](9.png)
 
-1. **Release** 프로파일 옆의 실행 아이콘을 클릭합니다.
+1. **Release** 프로파일 옆의 실행 아이콘을 클릭합니다.	
+	
 	![](10.png)
 1. 프로젝트 런처가 빌드, 쿠킹, 패키징 프로세스를 거칩니다. 프로젝트 복잡도에 따라 시간이 조금 걸릴 수 있습니다.
-![](11.png)
+	
+	![](11.png)
 1. 작업이 끝나면 창을 닫고 **완료** 를 클릭합니다. 패치 테스트 방법은 다음과 같습니다.
+	
 	![](12.png)
 
 1. `[ProjectName]\Releases\[ReleaseVersion]\[Platform]` 에서 pak 파일과 애셋 레지스트리를 저장합니다. 이 예제에서는 `ShooterGame\Releases\1.0\WindowsNoEditor` 입니다.
 
-[Region:tip]
-애셋 레지스트리와 pak 파일은 앞으로의 검사 대상 패치 또는 DLC 에 필요합니다.
-[/REGION]
+	[Region:tip]
+	애셋 레지스트리와 pak 파일은 앞으로의 검사 대상 패치 또는 DLC 에 필요합니다.
+	[/REGION]
 
 1. 윈도우에서는 `[ProjectName]\Saved\StagedBuilds\WindowsNoEditor` 에서 프로젝트 실행 테스트 가능합니다.
 

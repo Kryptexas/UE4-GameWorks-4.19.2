@@ -1,4 +1,5 @@
-﻿Title:P
+﻿INTSourceChangelist:2463968
+Title:P
 Crumbs:Shared/Glossary
 Description:
 Availability:Public
@@ -44,7 +45,7 @@ Persona（角色编辑器）
 	[PARAM:Definition]
 
 [EXCERPT:Glossary_Persona]
-**Persona** （角色编辑器）是虚幻引擎中的动画编辑工具集。 这是一个强大的系统，可用来编辑骨架，骨架网格物体，动画蓝图以及多种其它动画资源。 在虚幻引擎中，您的大部分（即时不是全部）动画处理工作都在这个编辑器中进行。 这是一款多用途的工具，包含了用于编辑骨架[插槽](Engine/Content\Types\SkeletalMeshes\Sockets)、预览[动画序列](Engine/Animation/Sequences)、设置动画 [混合空间](Engine/Animation/Blendspaces)以及[蒙太奇](Engine/Animation/AnimMontage)、编辑[动画蓝图](Engine/Animation/AnimBlueprints)等的面板。
+**Persona** （角色编辑器）是虚幻引擎中的动画编辑工具集。这是一个健壮的系统，可用来编辑骨架，骨架网格物体，动画蓝图以及多种其它动画资源。 在虚幻引擎中，大部分（即时不是全部）动画处理工作都在这个编辑器中进行。这是一款多功能的工具，包含了用于编辑骨架 [插槽](Engine/Content\Types\SkeletalMeshes\Sockets)、预览 [动画序列](Engine/Animation/Sequences)、设置动画 [混合空间](Engine/Animation/Blendspaces) 以及 [蒙太奇](Engine/Animation/AnimMontage)、编辑 [动画蓝图](Engine/Animation/AnimBlueprints)等的面板。
 [/EXCERPT:Glossary_Persona]
 
 您可以通过 **双击** 任何动画相关的资源来打开角色编辑器，例如骨架网格物体，混合空间，动画蓝图等等。
@@ -168,14 +169,14 @@ project（项目）
 	[PARAM:Definition]
 
 [EXCERPT:Glossary_project]
-**Project** （项目）是保存所有组成单独游戏并与您硬盘上的一组目录设置相一致的所有内容和代码的自包含单位。 举例来说，下图中， **内容浏览器** 的层次结构树中包含与您硬盘中的项目文件夹内相同的目录结构。 
+**项目（Project）** 是保存所有组成单独游戏并与您硬盘上的一组目录设置相一致的所有内容和代码的自包含单位。 举例来说，下图中， **内容浏览器** 的层次结构树中包含与您硬盘中的项目文件夹内相同的目录结构。 
 [REGION:lightbox]
 [![](ProjectHierarchy.png)(w:440)](ProjectHierarchy.png)
 [/REGION:lightbox]
 
 _点击图像以获得完整视图。_
 
- 尽管项目经常是由与其关联的.uproject文件所引用，它们是互存的两个单独文件。 .uproject是用于创建、打开或保存文件的参考文件，Project（项目）中包含了所有与其关联的文件和文件夹。
+尽管项目经常是由与其关联的 .uproject 文件所引用，它们是互存的两个单独文件。 .uproject 是用于创建、打开或保存文件的参考文件，Project（项目）中包含了所有与其关联的文件和文件夹。
 
 您可以创建任意数量的不同项目，您可以并行地保存并开发它们。 引擎（和编辑器）可以方便地在其中切换，它们可以让您同时开发多个游戏，或除了主要游戏项目外，具有多个测试项目。
 [/EXCERPT:Glossary_project]

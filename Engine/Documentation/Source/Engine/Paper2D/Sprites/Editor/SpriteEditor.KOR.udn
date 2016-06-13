@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2632184
+﻿INTSourceChangelist:2836375
 Availability:Public
 Title:스프라이트 에디터 참고서
 Crumbs: %ROOT%, Engine, Engine/Paper2D
@@ -8,6 +8,8 @@ Related: Engine\Paper2D\Sprites\RenderGeometry
 Related: Engine\Paper2D\Flipbooks
 Related: Engine/Rendering/Materials
 Related: Engine/Content/Types/Textures
+Version: 4.9
+SkillLevel: Beginner
 
 [TOC(start:2 end:2)]
 
@@ -54,6 +56,7 @@ Related: Engine/Content/Types/Textures
 | **Save** | 저장 - 편집중인 스프라이트를 저장합니다. |
 | **Find in CB** | 콘텐츠 브라우저에서 찾기 - 콘텐츠 브라우저에서 편집중인 스프라이트를 표시합니다. |
 | **Src Tex** | 소스 텍스처 - 스프라이트가 레퍼런싱하고 있는 전체 텍스처 표시를 토글합니다. |
+| **Add Box** | 박스 추가 - 콜리전 편집 또는 지오메트리 렌더링시 부가 박스 폴리곤을 추가합니다. |
 | **Add Polygon** | 폴리곤 추가 - 콜리전 편집시나 지오메트리 렌더링시 폴리곤을 추가합니다. |
 | **Snap to pixel grid** | 픽셀 그리드로 스냅 - 콜리전 편집시나 지오메트리 렌더링시 픽셀 그리드에 모든 버텍스를 끌어붙입니다. |
 
@@ -63,7 +66,6 @@ Related: Engine/Content/Types/Textures
  
 ![](modes.png)
 
-_아래 링크를 통해 추가 문서를 확인할 수 있습니다._
 
 | 모드 | 설명 |
 | ---- | ----------- |
@@ -97,7 +99,7 @@ _아래 링크를 통해 추가 문서를 확인할 수 있습니다._
 
 ### 스프라이트 리스트
 
-여기에는 공통의 소스 텍스처를 공유하는 스프라이트가 전부 표시됩니다. 다른 스프라이트를 **더블클릭** 하면 현재 편집중인 애셋이 전환되어, 여러 개의 스프라이트 묶음을 일렬로 조절할 때 좋습니다. 또다른 대량 편집 방법은 **콘텐츠 브라우저** 에서 다수의 애셋을 선택한 상태에서의 맥락 메뉴에서 [프로퍼티 매트릭스](GettingStarted/HowTo/DetailsPanel) 옵션을 사용하는 것입니다.
+여기에는 공통의 소스 텍스처를 공유하는 스프라이트가 전부 표시됩니다. 다른 스프라이트를 **더블클릭** 하면 현재 편집중인 애셋이 전환되어, 여러 개의 스프라이트 묶음을 일렬로 조절할 때 좋습니다. 또다른 대량 편집 방법은 **콘텐츠 브라우저** 에서 다수의 애셋을 선택한 상태에서의 맥락 메뉴에서 [프로퍼티 매트릭스](Engine/UI/PropertyMatrix) 옵션을 사용하는 것입니다.
 
 ![](sprite_list.png)
 
@@ -108,6 +110,7 @@ _아래 링크를 통해 추가 문서를 확인할 수 있습니다._
 * 스프라이트 소스 구역 편집 관련: [](Engine\Paper2D\Sprites\RenderGeometry)
 * 스프라이트 콜리전 편집 관련: [](Engine\Paper2D\Sprites\Collision)
 * 스프라이트 렌더 지오메트리 편집 관련: [](Engine\Paper2D\Sprites\RenderGeometry)
+
 
 
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2639203
+﻿INTSourceChangelist:2696099
 Availability:Public
 Title: 내비게이션 컴포넌트
 Crumbs:%ROOT%, Engine, Engine/Components
@@ -7,6 +7,7 @@ Related: Resources/ContentExamples/NavMesh
 Related: Gameplay/AI
 Related: Gameplay/Framework/Controller
 Related: Engine/Blueprints/UserGuide/Components
+version: 4.9
 
 
 Navigation 컴포넌트는 언리얼 엔진 4 의 **NavMesh** (내비메시, 길찾기) 시스템의 함수성을 변경 또는 확장할 수 있는 컴포넌트 유형입니다.

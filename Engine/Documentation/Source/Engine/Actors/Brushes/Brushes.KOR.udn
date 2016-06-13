@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2602309
+﻿INTSourceChangelist:2651126
 Availability: Public
 Title:지오메트리 브러시 액터
 Crumbs:%ROOT%, Engine, Engine/Actors
@@ -6,6 +6,8 @@ Description:언리얼 에디터에서 브러시를 사용하여 레벨 지오메
 Related: Engine/UI/LevelEditor
 Related: Engine/UI/LevelEditor/Modes
 Related: Engine/Actors/Volumes
+version: 4.9
+
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]
@@ -146,7 +148,7 @@ Related: Engine/Actors/Volumes
 |![](BSP_Cylinder.png)|빌더 브러시를 원통 모양으로 변경합니다. 나중에 브러시 옵션 패널에서 수정할 수 있으며, 그 옵션은 다음과 같습니다:[INCLUDE:#CylinderBuilder]|
 |![](BSP_LinStair.png)|빌더 브러시를 선형 계단, 즉 굽어있지 않는 직선형 계단 모양으로 변경합니다. 계단은 땅까지 계속해서 뻗어갑니다. 그 모양은 나중에 브러시 옵션 패널에서 수정할 수 있으며, 그 옵션은 다음과 같습니다:[INCLUDE:#LinearStairBuilder]|
 |![](BSP_CurvedStair.png)|빌더 브러시를 굽은 계단, 즉 일정한 각도로 한바퀴 미만 (이상의 경우는 나선 계단) 굽은 계단 모양으로 변경합니다. 굽은 계단은 땅까지 쭉 뻗어갑니다. 그 모양은 나중에 브러시 옵션 패널에서 수정할 수 있으며, 그 옵션은 다음과 같습니다:[INCLUDE:#CurvedStairBuilder]|
-|![](BSP_SpiralStair.png)|빌더 브러시를 나선 계단, 즉 한바퀴 이상 반복해서 굽은 계단 모양으로 변경합니다. 나선 계단은ㄴ 땅까지 쭉 뻗어갑니다. 그 모양은 나중에 브러시 옵션 패널에서 수정할 수 있으며, 그 옵션은 다음과 같습니다:[INCLUDE:#SpiralStairBuilder]||
+|![](BSP_SpiralStair.png)|빌더 브러시를 나선 계단, 즉 한바퀴 이상 반복해서 굽은 계단 모양으로 변경합니다. 나선 계단은 땅까지 쭉 뻗어갑니다. 그 모양은 나중에 브러시 옵션 패널에서 수정할 수 있으며, 그 옵션은 다음과 같습니다:[INCLUDE:#SpiralStairBuilder]||
 |![](BSP_Sphere.png)|빌더 브러시를 구체 모양으로 변경합니다. 나중에 브러시 옵션 패널에서 수정할 수 있으며, 그 옵션은 다음과 같습니다:[INCLUDE:#SphereBuilder]|
 
 
@@ -351,7 +353,7 @@ Related: Engine/Actors/Volumes
 
 ## 드래그 그리드
 
-월드의 오브젝트를 십자선에 낚애채는 데 사용되는 드래그 그리드는 브러시 작업을 할 때 매우 중요합니다. 브러시의 선분이나 모서리가 그리드에 설정되어 있지 않으면, 렌더링 부작용이나 다른 문제를 만들 수 있는 에러가 날 수 있습니다. 브러시 작업을 할 때는 드래그 그리드를 항상 켜 두는 것이 좋으며, 브러시의 버텍스가 항상 이 그리드 위에 와 있는지 확인해야 합니다.
+월드의 오브젝트를 십자선에 낚아채는 데 사용되는 드래그 그리드는 브러시 작업을 할 때 매우 중요합니다. 브러시의 선분이나 모서리가 그리드에 설정되어 있지 않으면, 렌더링 부작용이나 다른 문제를 만들 수 있는 에러가 날 수 있습니다. 브러시 작업을 할 때는 드래그 그리드를 항상 켜 두는 것이 좋으며, 브러시의 버텍스가 항상 이 그리드 위에 와 있는지 확인해야 합니다.
 
 
 ## 브러시 순서

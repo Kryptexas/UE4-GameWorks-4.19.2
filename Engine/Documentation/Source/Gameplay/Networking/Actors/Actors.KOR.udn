@@ -1,12 +1,13 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2713340
 Availability:Public
 Title: 액터 리플리케이션
 Crumbs:%ROOT%, Gameplay, Gameplay/Networking
 Description:액터 오브젝트 리플리케이션을 여러모로 살펴봅니다.
 Related: Gameplay/Networking/Actors/Properties
 Related: Gameplay/Networking/Actors/RPCs
+version: 4.9
 
-네트워킹 개요에서 언급했듯이, 리플리케이션의 주역은 액터입니다. 서버는 액터 목록을 유지하고, 클라이언트에서 (리플리케이트되도록 마킹된) 각 액터에 대한 근접 추정치를 유지할 수 있도록 클라이언트를 주기적으로 업데이트합니다.
+네트워킹 개요에서 언급했듯이, 리플리케이션의 주역은 **Actor**, 액터입니다. 서버는 액터 목록을 유지하고, 클라이언트에서 (리플리케이트되도록 마킹된) 각 액터에 대한 근접 추정치를 유지할 수 있도록 클라이언트를 주기적으로 업데이트합니다.
 
 액터 업데이트 방식은 크게 두 가지입니다:
 * 프로퍼티 업데이트

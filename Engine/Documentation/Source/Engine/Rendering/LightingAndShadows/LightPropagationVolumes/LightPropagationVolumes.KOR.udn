@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2634320
+﻿INTSourceChangelist:2735504
 Availability:Public
 Title:Light Propagation Volumes
 Crumbs:%ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:글로벌 일루미네이션의 동적인 생성을 위한 시스템입니다.
+Version: 4.9
+SkillLevel: Advanced
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -113,7 +115,7 @@ Light Propagation Volume (라이트 전파 볼륨)은 개발중인 기능으로,
 ## 디렉셔널 라이트 세팅
 
 퍼포먼스 상의 이유로 Light Propagation Volume 은 입사광으로 디렉셔널 라이트만을 사용합니다. 이 방법은 
-소위 카메라 근처의 _Reflective Shadow Map_ 이라 불립니다. 일반적인 섀도우 맵(라이트 시점에서의 불투명 
+소위 카메라 근처의 _Reflective Shadow Map_ 이라 불립니다. 일반적인 섀도 맵(라이트 시점에서의 불투명 
 깊이 2D 텍스처)과 비슷하지만 (머티리얼 컬러, 노멀 등의) 머티리얼 프로퍼티가 추가됩니다. 그 작업을 
 각 포인트 라이트마다 하면 비용이 매우 높겠지요. 디렉셔널 라이트의 세팅이 올바르게 되었는지 확인하세요:
 
@@ -127,11 +129,14 @@ Light Propagation Volume (라이트 전파 볼륨)은 개발중인 기능으로,
 표시 플래그에서 LPV 를 끌 수 있습니다 (참고로 라이트매스로 계산되어 구워진 글로벌 일루미네이션도 
 꺼집니다):
 
-[REGION:imagetable]
-| ![](LPV_show_flag.png)(w:460) | ![](LPV_show_flag_enabled.png)(w:460) |
-| --- | --- |
-| 글로벌 일루미네이션 꺼짐 | 글로벌 일루미네이션 켜짐 |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Global Illumination Disabled](LPV_show_flag.png)(w:460)
+	[/PARAM]
+	[PARAM:after]
+	![Global Illumination Enabled](LPV_show_flag_enabled.png)(w:460)
+	[/PARAM]
+[/OBJECT]
 
 ## Light Propagation Volume 시각화
 
@@ -171,7 +176,7 @@ Light Propagation Volume (라이트 전파 볼륨)은 개발중인 기능으로,
 * 실행시간에 크기를 변경하면 약간의 부작용이 생기지만 서서히 사라집니다.
 * 간단한 에리어 라이트용 이미시브 라이팅 (현재 미구현)
 * 오클루전 (현재 미구현)
-* 오클루전으로 추정되는 포인트 라이트 섀도우 (현재 미구현)
+* 오클루전으로 추정되는 포인트 라이트 섀도 (현재 미구현)
 * 약간의 비용으로 꽤 나은 퀄리티를 내는 지오메트리 복셀화를 통한 이차 오클루전 (현재 미구현)
 
 

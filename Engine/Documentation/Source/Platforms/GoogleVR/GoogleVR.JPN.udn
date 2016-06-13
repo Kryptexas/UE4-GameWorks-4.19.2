@@ -1,0 +1,27 @@
+﻿INTSourceChangelist:0
+Title:Google VR Development	
+Crumbs:%ROOT%, Platforms
+Description:
+Availability:Public
+Navigation:platform
+Platform:GoogleVR
+Version: 4.12
+type:landing
+parent:Platforms/VR
+tags:VR
+tags:Google VR
+prereq: Platforms/Android/GettingStarted/
+
+
+## Starting Out
+
+The GoogleVR Quick Start will walk you through getting your PC and Android-based smartphone to work with UE4 and Google VR.
+
+[DIR(output:"listbutton" type:"quickstart" parent:"Platforms/GoogleVR")]
+
+## Google VR Daydream
+
+Daydream is a part of Google VR that adds specific support for rendering optimizations and the use of Motion Controllers.
+
+[DIR(output:"listbutton" type:"overview" parent:"Platforms/GoogleVR")]
+

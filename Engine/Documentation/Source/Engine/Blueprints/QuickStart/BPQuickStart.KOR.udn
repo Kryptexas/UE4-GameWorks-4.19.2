@@ -1,13 +1,17 @@
-﻿INTSourceChangelist:2465824
+﻿INTSourceChangelist:2968923
 Availability:Public
 Title: 블루프린트 퀵스타트 가이드
 Crumbs: %ROOT%, Engine, Engine/Blueprints
 Description: 블루프린트를 처음 만들어 봅니다.
+Description: Get up and running by creating your first Blueprint
+parent:Engine/Blueprints
+order:1
+type:quickstart
 
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![](engine_qs_topic.jpg)
+		![%Engine/Blueprints/QuickStart:title%](QuickStart.png)
 	[/PARAM]
 	[PARAM:title]
 		%Engine/Blueprints/QuickStart:title%
@@ -16,7 +20,7 @@ Description: 블루프린트를 처음 만들어 봅니다.
 		[RELATIVE:Engine/Blueprints/QuickStart]
 	[/PARAM]
 	[PARAM:description]
-	%Engine/Blueprints/QuickStart:description%
+		%Engine/Blueprints/QuickStart:description%
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -24,7 +28,7 @@ Description: 블루프린트를 처음 만들어 봅니다.
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![](engine_qs_topic.jpg)
+		![%Engine/Blueprints/QuickStart:title%](QuickStart.png)
 	[/PARAM]
 	[PARAM:title]
 		%Engine/Blueprints/QuickStart:title%
@@ -33,7 +37,7 @@ Description: 블루프린트를 처음 만들어 봅니다.
 		[RELATIVE:Engine/Blueprints/QuickStart]
 	[/PARAM]
 	[PARAM:description]
-	%Engine/Blueprints/QuickStart:description%
+		%Engine/Blueprints/QuickStart:description%
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -43,7 +47,7 @@ Description: 블루프린트를 처음 만들어 봅니다.
 	640
 	[/PARAMLITERAL]
 	[PARAMLITERAL:height]
-	360
+	390
 	[/PARAMLITERAL]
 	[PARAMLITERAL:videoid]
 	Ax4Xgu2Zb4g
@@ -53,24 +57,6 @@ Description: 블루프린트를 처음 만들어 봅니다.
 이 퀵스타트 가이드에서 안내해 드릴 것은, 다양한 컴포넌트로 액터를 만든 다음 블루프린트 클래스로 변환시키고, 거기에 캐릭터가 레벨을 날아다니도록 만드는 발구름(launch) 동작을 추가시켜 봅니다.
 블루프린트 클래스로 만든다는 것은 발구름판(Launchpad)을 그냥 **콘텐츠 브라우저** 에서 레벨에 끌어다 놓기만 하면 원하는 만큼 생성할 수 있다는 뜻입니다.
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		단계
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine/Blueprints/QuickStart/1 "%Engine/Blueprints/QuickStart/1:description%")
-	* [](Engine/Blueprints/QuickStart/2 "%Engine/Blueprints/QuickStart/2:description%")
-	* [](Engine/Blueprints/QuickStart/3 "%Engine/Blueprints/QuickStart/3:description%")
-	* [](Engine/Blueprints/QuickStart/4 "%Engine/Blueprints/QuickStart/4:description%")
-	* [](Engine/Blueprints/QuickStart/5 "%Engine/Blueprints/QuickStart/5:description%")
-	* [](Engine/Blueprints/QuickStart/6 "%Engine/Blueprints/QuickStart/6:description%")
-	* [](Engine/Blueprints/QuickStart/7 "%Engine/Blueprints/QuickStart/7:description%")
-	[/PARAM]
-[/OBJECT]
+## 단계
 
-
+[DIR(end:"1" output:"listbutton" type:"multi-step" parent:"Engine/Blueprints/QuickStart" org:"hierarchy")]

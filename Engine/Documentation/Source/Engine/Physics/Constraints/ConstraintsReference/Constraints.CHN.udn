@@ -1,35 +1,314 @@
-﻿Availability: Public
-Title:物理约束参考指南
+﻿INTSourceChangelist:0
+Availability: Public
+Title: 物理约束参考指南
 Crumbs: %ROOT%, Engine, Engine/Physics
-Description:关于虚幻编辑器中物理约束上的所有可用属性的参考指南。
+Description: 关于虚幻编辑器中物理约束上的所有可用属性的参考指南。
+Version: 4.9
 
-[TOC(start:2)]
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Physics/Constraints/ConstraintsReference:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/Constraints/ConstraintsReference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/Constraints/ConstraintsReference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/Constraints/ConstraintsReference]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Physics/Constraints/ConstraintsReference:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/Constraints/ConstraintsReference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/Constraints/ConstraintsReference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/Constraints/ConstraintsReference]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
-[EXCERPT:PhysXConstraints_001]
-约束基本上是一种关节类型。它使您能够将两个Actor连接在一起(假定一个Actor没有物理模拟)，并应用限制或者力。虚幻引擎 4 
-有非常灵活的数据驱动约束系统，允许设计者简单地更改一些选项就可以制作许多不同类型的关节。该引擎有一些默认的关节类型 
-（球窝式、hinge（铰链）式、Prismatic（棱柱）式），而它们仅仅在设置上有所不同。您应该可以从任意类型的关节入手，通过设置自己的配置 
-进行实验。
-[/EXCERPT:PhysXConstraints_001]
 
-## 属性参考指南
 
-有三种创建PhysX约束的方法： **蓝图** 、**Actor** 及在 **物理资源工具** (**PhAT**)工具中。
+This page contains a reference listing of properties in the Physics Constraints. 
 
-### Actor 约束
+## Properties
 
-| 属性 | 描述 |
-| -------- | ----------- |
-|[REGION:tablesection]约束[/REGION]||
-| **约束 Actor 1** | %doxygen:UPhysicsConstraintComponent::ConstraintActor1% |
-| **组件名称 1** | %doxygen:UPhysicsConstraintComponent::ComponentName1% |
-| **约束Actor 2** | %doxygen:UPhysicsConstraintComponent::ConstraintActor2% |
-| **组件名称2** | %doxygen:UPhysicsConstraintComponent::ComponentName2%  |
-| **关节名称** | %doxygen:FConstraintInstance::JointName% |
-| **约束骨骼1** | %doxygen:FConstraintInstance::ConstraintBone1% |
-| **约束骨骼2** | %doxygen:FConstraintInstance::ConstraintBone2% |
-| **禁用碰撞** | %doxygen:FConstraintInstance::bDisableCollision% |
+Below are the properties for Physics Constraints separated by major category.
 
+[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
+
+[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		cons
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Constraint
+	[/PARAM]
+	[PARAM:content]
+		%p1%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p1]
+
+![](propConstraint.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **约束 Actor 1** || %doxygen:UPhysicsConstraintComponent::ConstraintActor1% |
+| **组件名称 1** || %doxygen:UPhysicsConstraintComponent::ComponentName1% |
+| **约束Actor 2** || %doxygen:UPhysicsConstraintComponent::ConstraintActor2% |
+| **组件名称2** || %doxygen:UPhysicsConstraintComponent::ComponentName2%  |
+| **关节名称** || %doxygen:FConstraintInstance::JointName% |
+| **约束骨骼1** || %doxygen:FConstraintInstance::ConstraintBone1% |
+| **约束骨骼2** || %doxygen:FConstraintInstance::ConstraintBone2% |
+| **禁用碰撞** || %doxygen:FConstraintInstance::bDisableCollision% |
+[/REGION]
+
+[/VAR]
+
+
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		proj
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Projection
+	[/PARAM]
+	[PARAM:content]
+		%p2%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p2]
+
+![](propProjection.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **Enable Projection** || %doxygen:FConstraintInstance::bEnableProjection% |
+| **Projection Linear Tolerance** || %doxygen:FConstraintInstance::ProjectionLinearTolerance% |
+| **Projection Angular Tolerance** || %doxygen:FConstraintInstance::ProjectionAngularTolerance% |
+[/REGION]
+
+[/VAR]
+
+
+
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		join
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Joint Presets
+	[/PARAM]
+	[PARAM:content]
+		%p3%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p3]
+
+![](propJointPresets.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **Hinge（铰链式）** || _锁定_ **线性运动**, _锁定_ **摇动**,并设置 **	角扭动** 为 _自由_ 。经典的门铰链或膝盖关节。|
+| **Prismatic(棱柱式)** || _锁定_  **摇动**, _锁定_ **角扭动**, _锁定_ **线性Y运动** 和 **线性Z 运动**, 并设置 **Linear ZMotion（线性Z运动）** 为 _自由_ 。比如水利活塞。|
+| **Ball and Socket（球窝式）** || _锁定_ 所有 **线性运动** ，设置 **摇动** 和 **扭动** 为 _自由_ 。完全自由地旋转，和沙袋或破碎球。|
+[/REGION]
+
+[/VAR]
+
+
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		linlim
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Linear Limits
+	[/PARAM]
+	[PARAM:content]
+		%p4%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p4]
+
+![](propLinearLimits.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **Linear XMotion** || %doxygen:FConstraintInstance::LinearXMotion% |
+| **Linear YMotion** || %doxygen:FConstraintInstance::LinearYMotion% |
+| **Linear ZMotion** || %doxygen:FConstraintInstance::LinearZMotion% |
+| **Linear Limit Size** || %doxygen:FConstraintInstance::LinearLimitSize% |
+[/REGION]
+
+### Advanced
+
+![](propLinearLimitsADV.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **Linear Limit Soft** || %doxygen:FConstraintInstance::bLinearLimitSoft% |
+| **Linear Limit Stiffness** || %doxygen:FConstraintInstance::LinearLimitStiffness% |
+| **Linear Limit Damping** || %doxygen:FConstraintInstance::LinearLimitDamping% |
+| **Linear Breakable** || %doxygen:FConstraintInstance::bLinearBreakable% |
+| **Linear Break Threshold** || %doxygen:FConstraintInstance::LinearBreakThreshold% |
+[/REGION]
+
+[/VAR]
+
+
+
+
+
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		anglim
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Angular Limits
+	[/PARAM]
+	[PARAM:content]
+		%p5%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p5]
+
+![](propsAngularLimits.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **Angular Swing 1Motion** || %doxygen:FConstraintInstance::AngularSwing1Motion% |
+| **Angular Twist Motion** || %doxygen:FConstraintInstance::AngularTwistMotion% |
+| **Angular Swing 2Motion** || %doxygen:FConstraintInstance::AngularSwing2Motion% |
+| **Swing 1Limit Angle** || %doxygen:FConstraintInstance::Swing1LimitAngle% |
+| **Twist Limit Angle** || %doxygen:FConstraintInstance::TwistLimitAngle% |
+| **Swing 2Limit Angle** || %doxygen:FConstraintInstance::Swing2LimitAngle% |
+| **Angular Rotation Offset** || %doxygen:FConstraintInstance::AngularRotationOffset% |
+[/REGION]
+
+### Advanced
+
+![](propsAngularLimitsADV.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **Swing Limit Soft** || %doxygen:FConstraintInstance::bSwingLimitSoft% |
+| **Swing Limit Stiffness** || %doxygen:FConstraintInstance::SwingLimitStiffness% |
+| **Swing Limit Damping** || %doxygen:FConstraintInstance::SwingLimitDamping% |
+| **Twist Limit Soft** || %doxygen:FConstraintInstance::bTwistLimitSoft% |
+| **Twist Limit Stiffness** || %doxygen:FConstraintInstance::TwistLimitStiffness% |
+| **Twist Limit Damping** || %doxygen:FConstraintInstance::TwistLimitDamping% |
+| **Angular Breakable** || %doxygen:FConstraintInstance::bAngularBreakable% |
+| **Angular Break Threshold** || %doxygen:FConstraintInstance::AngularBreakThreshold% |
+[/REGION]
+
+[/VAR]
+
+
+
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		linmot
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Linear Motor
+	[/PARAM]
+	[PARAM:content]
+		%p6%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p6]
+
+![](propLinearMotor.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **Linear Position Drive** || %doxygen:FConstraintInstance::bLinearPositionDrive% |
+| **Linear Position Target** || %doxygen:FConstraintInstance::LinearPositionTarget% |
+| **Linear Position Strength** || %doxygen:FConstraintInstance::LinearDriveSpring% |
+| **Linear Velocity Drive** || %doxygen:FConstraintInstance::bLinearVelocityDrive% |
+| **Linear Velocity Target** || %doxygen:FConstraintInstance::LinearVelocityTarget% |
+| **Linear Velocity Strength** || %doxygen:FConstraintInstance::LinearDriveDamping% |
+| **Max Linear Force** || %doxygen:FConstraintInstance::LinearDriveForceLimit% |
+[/REGION]
+
+[/VAR]
+
+
+
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		angmot
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Angular Motor
+	[/PARAM]
+	[PARAM:content]
+		%p7%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p7]
+
+![](propsAngularMotor.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **Angular Orientation Drive** || %doxygen:FConstraintInstance::bAngularOrientationDrive% |
+| **Angular Orientation Target** || %doxygen:FConstraintInstance::AngularOrientationTarget% |
+| **Angular Orientation Strength** || %doxygen:FConstraintInstance::AngularDriveSpring% |
+| **Angular Velocity Drive** || %doxygen:FConstraintInstance::bAngularVelocityDrive% |
+| **Angular Velocity Target** || %doxygen:FConstraintInstance::AngularVelocityTarget% |
+| **Angular Velocity Strength** || %doxygen:FConstraintInstance::AngularDriveDamping% |
+| **Max Angular Force** || %doxygen:FConstraintInstance::AngularDriveForceLimit% |
+| **Angular Drive Mode** || %doxygen:FConstraintInstance::AngularDriveMode% |
+[/REGION]
+
+[/VAR]
+
+
+
+<!--
 ![](PhysCon_JointPresets.png)(convert:false) 
 
 [INCLUDE:#presetTable]
@@ -250,7 +529,7 @@ Prismatic（棱柱）关节3个线性自由度中有2个被锁定，且其所有
 您可以模拟出类似于Punchbag（沙袋）的东西(它是一个挂在垂直杆上的球状物，可以被敲打)。首先创建一个球窝关节，然后打开swing（摆动）位置驱动并调节 **AngularDriveSpring** 与 **AngularDriveDamping**，直到被推动时顺利地绕着垂直位置摆动为止。您可以设置摆动限制，以确保它不会过度弯曲。
 
 -->
- 
+-->
 
 
 

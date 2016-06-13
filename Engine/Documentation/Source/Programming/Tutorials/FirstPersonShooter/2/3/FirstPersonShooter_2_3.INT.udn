@@ -3,7 +3,7 @@ Title: 2.3 - Implementing Character Movement Functions
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
 Description: Learn how to implement movement functions for your First Person Shooter character.
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,14 +23,14 @@ Version: 4.9
 
 %Steps%
 
-In this step, you're going to set-up your Player Input Component and implement the following functions in your `FPSCharacter` class:
+In this step, we're going to set-up our Player Input Component and implement the following functions in the `FPSCharacter` class:
 
 *	`MoveForward`
 *	`MoveRight`
 
-Now that you've set-up Axis mappings for your `FPSCharacter`, you can switch to your project in Visual Studio.
-
 ## Movement Function Interfaces
+
+Now that you've set-up Axis mappings for your `FPSCharacter`, you can switch to your project in Visual Studio.
 
 1.	In `FPSCharacter.h`, add the following function declarations under `SetupPlayerInputComponent`.
 
@@ -42,9 +42,7 @@ Now that you've set-up Axis mappings for your `FPSCharacter`, you can switch to 
 		UFUNCTION()
 		void MoveRight(float Value);
 
-	[REGION:note]
-	The `UFUNCTION` macro is used above each of these functions. By itself, the `UFUNCTION` macro makes the engine aware of these functions so that they can be included in serialization, optimization, and other engine functionality.
-	[/REGION]
+	The `UFUNCTION` macro (located above each of these functions) makes the engine aware of these functions so that they can be included in serialization and other engine functionality.
 
 1.	`FPSCharacter.h` should now look like the following:
 
@@ -85,7 +83,7 @@ Now that you've set-up Axis mappings for your `FPSCharacter`, you can switch to 
 
 ## Movement Function Implementations
 
-In a typical FPS control scheme, a character's movement axes are relative to the camera. "Forward" movement means "the direction that the camera is pointing" and "right" means "to the right of the direction that the camera is pointing." You are going to use the `PlayerController` to get the character's control rotation. Also, your `MoveForward` function will ignore the pitch component of the control rotation and restrict your input to the XY plane so as to guarantee that your character will move along the ground while you are looking up or down.
+In a typical FPS control scheme, the character's movement axes are relative to the camera. "Forward" movement means "the direction that the camera is pointing" and "right" means "to the right of the direction that the camera is pointing." You are going to use the `PlayerController` to get the character's control rotation. Also, your `MoveForward` function will ignore the pitch component of the control rotation and restrict your input to the XY plane so as to guarantee that your character will move along the ground while you are looking up or down.
 
 1.	In `FPSCharacter.cpp`, add the following lines to the `SetupPlayerInputComponent` function under `Super::SetupPlayerInputComponent(InputComponent)`:
 
@@ -94,7 +92,7 @@ In a typical FPS control scheme, a character's movement axes are relative to the
 		{
 			Super::SetupPlayerInputComponent(InputComponent);
 			
-			// set-up gameplay key bindings
+			// set up gameplay key bindings
 			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
 			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
 		}
@@ -107,40 +105,28 @@ In a typical FPS control scheme, a character's movement axes are relative to the
 
 		void AFPSCharacter::MoveForward(float Value)
 		{
-			if (Controller != nullptr && Value != 0.f)
-			{
-				//find out which way is forward
-				FRotator Rotation = Controller->GetControlRotation();
-				//limit pitch when walking for falling
-				if (GetCharacterMovement()->IsMovingOnGround() || GetCharacterMovement()->IsFalling())
-				{
-					Rotation.Pitch = 0.f;
-				}
-				//add movement in that direction
-				const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
-				AddMovementInput(Direction, Value);
-			}
+			// find out which way is forward
+			FRotator Rotation = Controller->GetControlRotation();
+			// add movement in that direction
+			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
+			AddMovementInput(Direction, Value);
 		}
 
 1.	Add the following `MoveRight` function definition in `FPSCharacter.cpp`.
 
-		//Right movement function definition
 		void AFPSCharacter::MoveRight(float Value)
 		{
-			if (Controller != nullptr && Value != 0.f)
-			{
-				//find our which way is right
-				const FRotator Rotation = Controller->GetControlRotation();
-				const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
-				//add movement in that direction
-				AddMovementInput(Direction, Value);
-			}
+			// find out which way is right
+			FRotator Rotation = Controller->GetControlRotation();
+			// add movement in that direction
+			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
+			AddMovementInput(Direction, Value);
 		}
 
 1.	`FPSCharacter.cpp` should now look like the following:
 
 		// Fill out your copyright notice in the Description page of Project Settings.
-		
+
 		#include "FPSProject.h"
 		#include "FPSCharacter.h"
 		
@@ -157,9 +143,15 @@ In a typical FPS control scheme, a character's movement axes are relative to the
 		{
 			Super::BeginPlay();
 			
+			const int32 Key = -1;
+			static const FString DebugMessage = TEXT("We are using FPSCharacter.");
+			FColor DisplayColor = FColor::Red;
+			float TimeToDisplay = 5.0f; //seconds
+		
 			if (GEngine != nullptr)
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::White, TEXT("We are using FPSCharacter."));
+				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
+		
 			}
 		}
 		
@@ -174,59 +166,46 @@ In a typical FPS control scheme, a character's movement axes are relative to the
 		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 		{
 			Super::SetupPlayerInputComponent(InputComponent);
-			
-			// set-up gameplay key bindings
+		
+			// set up gameplay key bindings
 			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
 			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
 		}
 		
-		// Forward movement function definition
 		void AFPSCharacter::MoveForward(float Value)
 		{
-			if (Controller != nullptr && Value != 0.f)
-			{
-				//find out which way is forward
-				FRotator Rotation = Controller->GetControlRotation();
-				//limit pitch when walking for falling
-				if (GetCharacterMovement()->IsMovingOnGround() || GetCharacterMovement()->IsFalling())
-				{
-					Rotation.Pitch = 0.f;
-				}
-				//add movement in that direction
-				const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
-				AddMovementInput(Direction, Value);
-			}
+			// find out which way is forward
+			FRotator Rotation = Controller->GetControlRotation();
+			// add movement in that direction
+			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
+			AddMovementInput(Direction, Value);
 		}
 		
-		//Right movement function definition
 		void AFPSCharacter::MoveRight(float Value)
 		{
-			if (Controller != nullptr && Value != 0.f)
-			{
-				//find our which way is right
-				const FRotator Rotation = Controller->GetControlRotation();
-				const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
-				//add movement in that direction
-				AddMovementInput(Direction, Value);
-			}
+			// find out which way is right
+			FRotator Rotation = Controller->GetControlRotation();
+			// add movement in that direction
+			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
+			AddMovementInput(Direction, Value);
 		}
 
 ## Testing Character Movement
 
-It's now time to compile and test our newly implemented character movement functions.
+It's now time to compile and test your newly implemented character movement functions.
 
-1.	Save the `FPSCharacter` interface (\*.h) and implementation (\*.cpp) files in Visual Studio.
+1.	Save the `FPSCharacter` header (\*.h) and CPP (\*.cpp) files in Visual Studio.
 
 1.	Locate **FPSProject** in the **Solution Explorer**.
 
-1.	**Right-click** on **FPSProject** and select **Build** to compile your project.
+1.	Right-click on **FPSProject** and select **Build** to compile your project.
 
 	![](BuildProject.png)
 
 1.	After the build finishes, open your **FPSProject** in Unreal Editor.
 
-1.	**Click** the **Play** button in the Level Editor Toolbar. You should be able to move and strafe throughout the map (although your camera will be fixed in place).
+1.	Click the **Play** button in the Level Editor Toolbar. By now, you should be able to move forward, backward, left, and right.
 
-1.	**Click** the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
+1.	Press the Escape key or click the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
 
 %Steps%

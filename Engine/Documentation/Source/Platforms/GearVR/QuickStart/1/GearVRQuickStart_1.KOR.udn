@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:2609228
+﻿INTSourceChangelist:2743354
 Availability:Public
 Title:1. 기어 VR 프로젝트 생성
 Crumbs:%ROOT%, Platforms/GearVR
 Description:기어 VR 헤드셋에 사용할 수 있는 UE4 C++ 기반 프로젝트 생성 방법 안내입니다.
 Navigation:platform
 Skilllevel: Intermediate
-Version: 4.8
+Version: 4.9
 
 
 [VAR:Steps]
@@ -51,7 +51,7 @@ UE4 버전 4.8 이상에서는 C++ 프로젝트도 블루프린트 프로젝트�
 	[/REGION]
 
 1. 다음으로 사용할 템플릿을 **일인칭 템플릿** 을 선택하고 다음 옵션을 변경하도록 합니다.
-	* **모바일 / 타블렛**
+	* **모바일 / 태블릿**
 	* **스케일가능 3D / 2D** 
 	* 프로젝트 크기 감소를 위해 **시작용 콘텐츠** 는 포함시키지 않도록 합니다.
 	![](GVR_New_Project_01.png)

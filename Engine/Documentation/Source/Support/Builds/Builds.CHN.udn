@@ -1,7 +1,10 @@
-﻿Availability:Public
+﻿INTSourceChangelist:3006014
+Availability:Public
 Title: 版本信息
 Crumbs:%ROOT%
-Description:虚幻引擎版本的版本说明。
+Description: 虚幻引擎版本的版本说明。
+parent:%ROOT%
+order:9
 
 [VAR:Params]
 [PARAM:image]
@@ -65,11 +68,16 @@ Description:虚幻引擎版本的版本说明。
 [OBJECT:Role]
 %params%
 [PARAMLITERAL:id]
-引擎
+engine
 [/PARAMLITERAL]
 [/OBJECT]
 [/VAR]
 
+[PUBLISH:Rocket]
+[DIR(end:"1" output:"listbutton" order:"descend" parent:"Support/Builds" org:"hierarchy")]
+[/PUBLISH:Rocket]
+
+[PUBLISH:Licensee]
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 	[/PARAM]
@@ -79,6 +87,9 @@ Description:虚幻引擎版本的版本说明。
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
+	* [](Support/Builds/ReleaseNotes/2016/4_12)
+	* [](Support/Builds/ReleaseNotes/2016/4_11)
+	* [](Support/Builds/ReleaseNotes/2015/4_10)
 	* [](Support/Builds/ReleaseNotes/2015/4_9)
 	* [](Support/Builds/ReleaseNotes/2015/4_8)
 	* [](Support/Builds/ReleaseNotes/2015/4_7)
@@ -100,14 +111,11 @@ Description:虚幻引擎版本的版本说明。
 	* [](Support/Builds/ReleaseNotes/2014/4_3)
 	* [](Support/Builds/ReleaseNotes/2014/4_2)
 	* [](Support/Builds/ReleaseNotes/2014/4_1)
-	[PUBLISH:Licensee]
 	* [](Support/Builds/ReleaseNotes/2014/March)
 	* [](Support/Builds/ReleaseNotes/2014/January)
-	[/PUBLISH:Licensee]
 	[/PARAM]
 [/OBJECT]
 
-[PUBLISH:Licensee]
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 	[/PARAM]

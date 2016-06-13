@@ -1,10 +1,13 @@
 Availability:Public
-Title:Casting
+Title:Casting in Blueprints
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:Examples of different Casting Nodes and usage cases. 
 Related: Engine/Blueprints/UserGuide/BlueprintCommsUsage
 Related: Engine/Blueprints/HowTo
 version: 4.9
+Parent:Engine/Blueprints/Scripting
+tags:Handling Objects and Actors
+order:2
 
 [VAR:Topic]
 [OBJECT:Topic]

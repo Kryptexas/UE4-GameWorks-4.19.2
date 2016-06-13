@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2615095
+﻿INTSourceChangelist:2738774
 Availability: Public
 Title:머티리얼 에디터 - 광택 머티리얼 제작 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -7,11 +7,12 @@ Related: Engine/Rendering/Materials/PhysicallyBased
 Related: Resources/ContentExamples/MaterialNodes/1_4
 Related: Resources/ContentExamples/MaterialNodes/1_2
 Related: Resources/ContentExamples/MaterialNodes/1_3
+Version: 4.9
+SkillLevel:Intermediate
 
 
 [TOC(start:2 end:3)]
 
-## 개요
 
 매일 접하는 오브젝트에는 어느정도 shininess, 광택이 있습니다.
 언리얼 엔진 4 안에서는 메탈릭, 스페큘러, 러프니스 머티리얼 입력을 사용해서 이러한 오브젝트의 광택을 시뮬레이션해낼 수 있습니다.
@@ -84,7 +85,7 @@ Shininess, 광택이란 단순히 표면의 빛 반사 능력을 말합니다.
 1. 먼저 **콘텐츠 브라우저** 에 **우클릭** 하고 메뉴에서 **기본 애셋 생성** 아래의 **머티리얼** 을 선택합니다.
    선택하면 새로운 **머티리얼** 이 생성됩니다.
 
-	![](Engine\Rendering\Materials\HowTo\Transparency\Trans_Create_New_Material.png)
+	![](Create_New_Material.png)
 
 1. 머티리얼 이름을 **Shiny_Material** 이라 짓고 **콘텐츠 브라우저** 에서 **더블클릭** 하여 엽니다.
 

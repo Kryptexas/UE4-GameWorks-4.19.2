@@ -30,7 +30,7 @@ version:4.9
 
 	[![](NameYourActor.png)](NameYourActor.png)
 
-1. 게임내에서 볼 수 있는 간단한 카운드다운 타이머를 만드는 것으로 시작하겠습니다. `Countdown.h` 에서 클래스 정의 끝에 다음 줄을 추가합니다:
+1. 게임내에서 볼 수 있는 간단한 카운트 다운 타이머를 만드는 것으로 시작하겠습니다. `Countdown.h` 에서 클래스 정의 끝에 다음 줄을 추가합니다:
 
 		int32 CountdownTime;
 
@@ -89,7 +89,7 @@ version:4.9
 		UpdateTimerDisplay();
 		GetWorldTimerManager().SetTimer(CountdownTimerHandle, this, &ACountdown::AdvanceTimer, 1.0f, true);
 
-	[REGION:note]**ACountdown::ACountdown** 이 아닌 **ACountdown::BeginPlay** 에서 디스클레이를 업데이트하고 있는데, **언리얼 에디터** 에서 변수에 설정된 값은 생성자 이후 **BeginPlay** 이전 할당되기 떄문입니다. 나중에 CountdownTime 을 에디터에 노출시킬 때, 그 값을 따라주는 것이 좋을 것입니다.[/REGION]
+	[REGION:note]**ACountdown::ACountdown** 이 아닌 **ACountdown::BeginPlay** 에서 디스플레이를 업데이트하고 있는데, **언리얼 에디터** 에서 변수에 설정된 값은 생성자 이후 **BeginPlay** 이전 할당되기 때문입니다. 나중에 CountdownTime 을 에디터에 노출시킬 때, 그 값을 따라주는 것이 좋을 것입니다.[/REGION]
 
 1. **언리얼 에디터** 로 가서 **컴파일** 을 눌러 지금까지의 진행상황을 점검해 봅시다.
 
@@ -101,12 +101,12 @@ version:4.9
 
 	[![](LevelEditorText.png)](LevelEditorText.png)
 
-	[REGION:note]카운트다운 텍스트 설정은 **ACountdown::ACountdown** 가 아닌 **ACountdown::BeginPlay** 도중 하기때문에, 기본 "Text" 가 **레벨 에디터** 에 표시됩니다.[/REGION]
+	[REGION:note]카운트다운 텍스트 설정은 **ACountdown::ACountdown** 가 아닌 **ACountdown::BeginPlay** 도중 하기 때문에, 기본 "Text" 가 **레벨 에디터** 에 표시됩니다.[/REGION]
 	**플레이** 를 누르면 카운트다운은 예상대로 "3", "2", "1", 마지막 "GO!" 로 진행됩니다.
 
 ----
 
-이 시점에서 이미 타미어를 사용하는 간단한 클래스가 생성되었습니다. 프로그래머가 아닌 사용자를 위해 카운트다운 시간 설정, 카운트다운 완료시의 작동방식을 변경할 수 있다면 훨씬 활용도가 높을 것입니다. 다음에는 이 기능을 에디터에 노출시키도록 하겠습니다.
+이 시점에서 이미 타이머를 사용하는 간단한 클래스가 생성되었습니다. 프로그래머가 아닌 사용자를 위해 카운트다운 시간 설정, 카운트다운 완료시의 작동방식을 변경할 수 있다면 훨씬 활용도가 높을 것입니다. 다음에는 이 기능을 에디터에 노출시키도록 하겠습니다.
 
 [OBJECT:Section]
     [PARAMLITERAL:id]

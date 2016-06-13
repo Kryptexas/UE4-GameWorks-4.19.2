@@ -122,7 +122,7 @@ In this section, we will take a look at **Simulate In Editor** and how to simula
 
 	![](Sim1.png)
 
-1.	Click on the arrows of the [Move Tool](GettingStarted\HowTo\PlacingActors) widget to move the Sphere up above the stairs, similar to below. 
+1.	Click on the arrows of the [Move Tool](Engine/Actors/Placement) widget to move the Sphere up above the stairs, similar to below. 
 
 	![](Sim2.png)
 

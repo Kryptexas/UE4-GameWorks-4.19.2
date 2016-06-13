@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2539074
+﻿INTSourceChangelist:2695190
 Availability:Public
 Title:レベル エディタ ツールバー
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
 Description:共通で使用するツールと操作へ素早くアクセスできるコマンドのコレクション
+Version:4.9
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]
@@ -10,10 +11,10 @@ Description:共通で使用するツールと操作へ素早くアクセスで�
 		LevelDesign_Beginner
 	[/PARAMLITERAL]
 	[PARAM:previous]
-		[Previous Topic](Engine/UI/LevelEditor "%Engine/UI/LevelEditor:title%")
+		[前のトピック](Engine/UI/LevelEditor "%Engine/UI/LevelEditor:title%")
 	[/PARAM]
 	[PARAM:next]
-		[Next Topic](Engine/UI/LevelEditor/Modes "%Engine/UI/LevelEditor/Modes:title%")
+		[次のトピック](Engine/UI/LevelEditor/Modes "%Engine/UI/LevelEditor/Modes:title%")
 	[/PARAM]
 	[PARAM:home]
 		[](Tracks/LevelDesign/Beginner)
@@ -24,7 +25,7 @@ Description:共通で使用するツールと操作へ素早くアクセスで�
 
 %playlistnav%
 
-大抵のアプリケーション同様に、**[ツールバー]** パネルは頻繁に使用するツールや操作へ素早いアクセスを提供するコマンドのグループです。
+ほとんどのアプリケーション同様に、**[ツールバー]** パネルは頻繁に使用するツールや操作へ素早くアクセスるためのコマンドの集まりです。
 
 [REGION:fullwidth]
 ![](toolbar.png)
@@ -33,11 +34,12 @@ Description:共通で使用するツールと操作へ素早くアクセスで�
 | コマンド | 説明 |
 | ------- | ----------- |
 |![](button_Toolbar_Save.png)| 現在のレベルを保存します。|
-| ![](button_Toolbar_Content.png)| ゲームに含まれる全コンテンツ アセットを表示する [コンテンツ ブラウザ] (Engine/Content/Browser) を開きます。ここで、全てのコンテンツを作成、インポート、編集します。 |
-| ![](button_Toolbar_marketplace.png) |マーケットプレイスのセクションへのアンリアル エンジンのランチャーを開きます。  |
-| ![](button_Toolbar_View.png) | レベル エディタの選択、編集、プレビューをコントロールするために一般的に使用されるオプションがある [クイック設定](Engine/UI/LevelEditor/QuickSettings) メニューを表示します。 |
-| ![](button_Toolbar_blueprints.png) | ワールドでブループリントを作成、編集するためのアクセスを提供します。 [ブループリント エディタ] (Engine/Blueprints/Editor\UIBreakdowns\LevelBPUI) で、現在のレベルの [レベル ブループリント](Engine/Blueprints/UserGuide/Types/LevelBlueprint) を開くことを含みます。このメニューでは、ゲームのルール、プレイヤーのタイプ、HUD などのゲームのフレームワークのセットアップにエディタ内から迅速にアクセスできます。
-| ![](button_Toolbar_matinee.png)| レベル内で新規 [マチネ](Engine/Matinee) シーケンスを作成したり、既存の **[マチネ]** シーケンスを編集できるようにします。 |
+| ![](SourceControl.png)| ソース コントロールに接続または [ソース コントロール](Engine/UI/SourceControl) ソリューションを割り当てることができます。 |
+| ![](button_Toolbar_Content.png)| ゲームに含まれる全コンテンツ アセットを表示する [コンテンツ ブラウザ](Engine/Content/Browser) を開きます。ここで、全てのコンテンツを作成、インポート、編集します。 |
+| ![](button_Toolbar_marketplace.png) |マーケットのセクションへのアンリアル エンジンのランチャーを開きます。  |
+| ![](button_Toolbar_View.png) | レベル エディタの選択、編集、プレビューをコントロールする一般的に使用されるオプションに簡単にアクセスできる [クイック設定](Engine/UI/LevelEditor/QuickSettings) メニューを表示します。 |
+| ![](button_Toolbar_blueprints.png) | ワールドでブループリントを作成、編集するためのアクセスを提供します。これには、 [ブループリント エディタ] (Engine/Blueprints/Editor\UIBreakdowns\LevelBPUI) で、現在のレベルの [レベル ブループリント](Engine/Blueprints/UserGuide/Types/LevelBlueprint) を開くことを含みます。このメニューでは、ゲームのルール、プレイヤーのタイプ、HUD などのゲームのフレームワークを設定するためにエディタ内から迅速にアクセスできます。
+| ![](button_Toolbar_matinee.png)| レベル内で新規 [マチネ](Engine/Matinee) シーケンスを作成したり、既存の **[マチネ]** シーケンスを編集できます。 |
 | ![](button_toolbar_build.png) | エディタで開くすべてのレベル (パーシスタントおよびストリーミング) で _ビルド_ オペレーションを行います。ビルドは、レベルの様々な側面に関連する可能な限り多くのデータを事前計算します。例えば、静的ライト - ライトマップ、シャドウ、グローバル イルミネーション - およびジオメトリはこのプロセス中に計算されます。矢印をクリックすると **[Build Options]** メニューが表示されます。 |
 | ![](button_Toolbar_PlayIn.png) | [INCLUDE:#playin] |
 | ![](button_Toolbar_launch.png) | サポートしているプラットフォーム上で現在のマップを起動します。接続されているデバイスは、矢印をクリックしてアクセスするメニューに一覧表示されます。

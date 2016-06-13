@@ -19,23 +19,84 @@ Transforms applied by AnimationSequences.
 
 [TOC(start:2 end:2)]
 
-## Component Space
+## AnimDynamics
 
-[INCLUDE:Engine/Animation/NodeReference/SpaceConversion#intro]
+The **AnimDynamics** node is a small solver which can be used to provide physically based secondary animation for Skeletal Mesh assets. 
+If your character has necklaces, bracelets, packs, wires, hair, cloth, or other items that you want to bounce around or move while the character moves, this node can provide that movement. 
 
-See [](Engine/Animation/NodeReference/SpaceConversion) for more information on the space conversion nodes.
 
-## Common Pins and Properties
 
-Some pins and properties are common to all SkeletalControls. These are described below.
+AnimDynamics is a very light-weight implementation that you can turn on or off with LOD or other animation settings. The processing occurs during the animation processing on the [**AnimGraph**](Engine/Animation/AnimBlueprints/AnimGraph) and its built to be a simple and quick solver so there are a few limitations to consider. 
+
+* Dynamic bones are represented by boxes only which are used to calculate inertia of the part. 
+* Collision is not calculated however constraints can be used to restrict movement. 
+
+AnimDynamics supports Linear, Angular and Planar Constraints. Linear and Angular constraints can be driven by springs to provide a more bouncy feel while Planar Constraints can be used a a plane in which the part will not cross.
+
+Chains are also supported where a begin and end bone in a character can be selected and a chain will be generated for those links. This is much more expensive than a single body dynamic bone as linked constraints now need to be solved and that requires many more iterations to correctly converge (iteration counts are also configurable per-node). 
+
+Here is an example of a chain using AnimDynamics: 
+
+![](AnimDynamicsChain.gif)(convert:false)
+
+[REGION:caption]
+You can enable this option by check the **Chain** checkbox in the Details panel of the AnimDynamics node. 
+[/REGION]
+
+There are visualization layers which can be used to show where the bodies are and their sizes.
+
+![](AnimDynamicsVisualization.png)
+
+Here is an example showing the visualizer for angular limits:
+
+![](AnimDynamicsaAngular.png)
+
+[REGION:caption]
+These can be set via the **Details** panel with the AnimDynamics node selected.
+[/REGION]
+
+The core application of AnimDynamics exists within the **Setup** and **Constraint** sections of the **Details** panel. 
+
+![](SetupConstraints.png)
+
+It is in these two areas where you will tune and tweak values to exhibit the movement you are looking for. The **Bound Bone** is the bone which is being affected by the node and the **Box Extents** section is used to create a volume that will produce interia and drive the movement. 
+
+For example, if you want something that is going to have a slow back-and-forth style movement you may want a very tall and slightly wide box whereas if you want something that has a little more movement but will settle into position after moving you might create a short wider box. 
+
+The **Local Joint Offset** is an offset used to attach the constraint to and determines the point to pivot from. If you leave this as 0 you may not see any movement as it doesn't know where to pivot from. Adjust this value until you achieve the movement you desire.
+
+In the Constraint section, you can define the movement range which is where the visualizers help to see the range of movement. If you leave something as 0 it will not affect it, as soon as you enter a value it will provide a range in which to move to/from. 
+
+For a video breakdown of AnimDynamics, tips & tricks and use cases in **Paragon**, see the AnimDynamics Twitch Stream below : 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+5h5CvZEBBWo
+[/PARAMLITERAL]
+[/OBJECT]
+
+To quickly get started, create an **AnimDynamics** node inside the AnimGraph of your **Animation Blueprint**. There should be one node per dynamic bone or continuous dynamic chain. All of the visualization, constraint, body and simulation settings are set on each node. 
+
+![](AnimDynamicsNode.png)
 
 | Pin | Description |
 | --- | ----------- |
 | [REGION:tablesection]**Input Pins**[/REGION] ||
+| **External Force** | An external force to apply to all bodies in the simulation when checked (specified in world space). |
 | **Component Pose** | The input pose to be transformed. |
 | **Alpha** | A float value in the range [0.0, 1.0] to use as the alpha value to determine the weighting of the Transform applied by the SkeletalControl. A value of 0.0 gives full weighting to the input pose, while a value of 1.0 gives full weighting to the control's computed Transform. |
 | [REGION:tablesection]**Output Pins**[/REGION] ||
 | Pose (Blank) | The final pose after the Transform has been applied. |
+
+[REGION:note]
+Please see the [**Creating Dyanmic Aniamtions**](Engine\Animation\AnimHowTo\AnimDynamics) how-to for a step-by-step example of using AnimDyamics. 
+[/REGION]
 
 ## Apply a Percentage of Rotation
 
@@ -66,43 +127,6 @@ of the Rotation of another bone within the Skeleton.
 [/REGION] 
 [/EXCERPT:Multiplier]
 -->
-
-## Copy Bone
-
-The **Copy Bone** control copies the Transform data or any component of it - i.e. Translation, Rotation, or 
-Scale - from one bone to another.
-
-![Apply Percentage of Rotation](node_copybone.png)
-
-| Property | Description |
-| -------- | ----------- |
-| [REGION:tablesection]**Copy**[/REGION] ||
-| **Target Bone** | Name of the target bone to copy Transform to. |
-| **Source Bone** | Name of the source bone to get Transform from. |
-
-| Pin | Description |
-| --- | ----------- |
-| [REGION:tablesection]**Input Pins**[/REGION] ||
-| **Copy Translation** | A bool specifying whether to copy the Translation component of the source bone's Transform. |
-| **Copy Rotation** | A bool specifying whether to copy the Rotation component of the source bone's Transform. |
-| **Copy Scale** | A bool specifying whether to copy the Scale component of the source bone's Transform. |
-
-## Transform (Modify) Bone
-
-![Apply Percentage of Rotation](node_modifybone.png)
-
-| Property | Description |
-| -------- | ----------- |
-| [REGION:tablesection]**Skeletal Control**[/REGION] ||
-| **Bone To Modify** | Name of the target bone to modify the Transform of. |
-
-| Pin | Description |
-| --- | ----------- |
-| [REGION:tablesection]**Input Pins**[/REGION] ||
-| **Translation** | A Vector specifying the Translation to apply to the target bone. |
-| **Rotation** | A Rotator specifying the Rotation to apply to the target bone. |
-| **Scale** | A Vector specifying the Scale to apply to the target bone. |
-
 
 ## Bone Driven Controller
 
@@ -169,6 +193,44 @@ CDG4WcQ7cIY
 -->
 
 
+## Common Pins and Properties
+
+Some pins and properties are common to all SkeletalControls. These are described below.
+
+| Pin | Description |
+| --- | ----------- |
+| [REGION:tablesection]**Input Pins**[/REGION] ||
+| **Component Pose** | The input pose to be transformed. |
+| **Alpha** | A float value in the range [0.0, 1.0] to use as the alpha value to determine the weighting of the Transform applied by the SkeletalControl. A value of 0.0 gives full weighting to the input pose, while a value of 1.0 gives full weighting to the control's computed Transform. |
+| [REGION:tablesection]**Output Pins**[/REGION] ||
+| Pose (Blank) | The final pose after the Transform has been applied. |
+
+## Component Space
+
+[INCLUDE:Engine/Animation/NodeReference/SpaceConversion#intro]
+
+See [](Engine/Animation/NodeReference/SpaceConversion) for more information on the space conversion nodes.
+
+
+## Copy Bone
+
+The **Copy Bone** control copies the Transform data or any component of it - i.e. Translation, Rotation, or 
+Scale - from one bone to another.
+
+![Apply Percentage of Rotation](node_copybone.png)
+
+| Property | Description |
+| -------- | ----------- |
+| [REGION:tablesection]**Copy**[/REGION] ||
+| **Target Bone** | Name of the target bone to copy Transform to. |
+| **Source Bone** | Name of the source bone to get Transform from. |
+
+| Pin | Description |
+| --- | ----------- |
+| [REGION:tablesection]**Input Pins**[/REGION] ||
+| **Copy Translation** | A bool specifying whether to copy the Translation component of the source bone's Transform. |
+| **Copy Rotation** | A bool specifying whether to copy the Rotation component of the source bone's Transform. |
+| **Copy Scale** | A bool specifying whether to copy the Scale component of the source bone's Transform. |
 
 ## Spring Controller
 
@@ -187,6 +249,50 @@ its reference pose position and apply a force in the opposite direction.
 | **Spring Damping** | The amount of the bone's velocity removed by the spring. |
 | **Error Reset Thresh** | A threshold displacement whereby if the spring stretches more than this amount, it resets in order to avoid errors introduced by sudden, large displacements such as those caused by teleporting Actors. |
 | **No ZSpring** | If enabled, the displacement in the Z axis is ignored by the spring and is always correct. |
+
+
+## Transform (Modify) Bone
+
+![Apply Percentage of Rotation](node_modifybone.png)
+
+| Property | Description |
+| -------- | ----------- |
+| [REGION:tablesection]**Skeletal Control**[/REGION] ||
+| **Bone To Modify** | Name of the target bone to modify the Transform of. |
+
+| Pin | Description |
+| --- | ----------- |
+| [REGION:tablesection]**Input Pins**[/REGION] ||
+| **Translation** | A Vector specifying the Translation to apply to the target bone. |
+| **Rotation** | A Rotator specifying the Rotation to apply to the target bone. |
+| **Scale** | A Vector specifying the Scale to apply to the target bone. |
+
+## Twist Corrective
+
+The **Twist Corrective** node is a node that can drive curve values, such as **Morph Targets**, based on the twist of one bone relative to another. As an example, when the neck is twisted too far to the right or left you can apply a Morph Target to the neck in order to create a more natural look. 
+
+![](ExampleImage.png)
+
+You can specify the **Base Frame** and **Twist Frame** using bone name and local axis, and a **Twist Normal** as the axis of the twist. 
+
+For example, if you'd like to check the twist to the right side along the Y axis, the normal would be (0, 1, 0). Or, if you'd like to check the twist to the left side along the Y axis, the normal would be (0, -1, 0). If you'd like to twist up/center along the Z axis, the normal would be (0, 0, 1). The Angle will be calculated between the plane and the twist frame.
+
+Angle Delta of the range **Max Angle in Degree** will be mapped to **Mapped Range Min** and **Mapped Range Max** using a named curve. 
+
+![](TwistDetails.png)
+
+You can add the Twist Corrective node in the **AnimGraph** of your **Animation Blueprint**. 
+
+![](TwistCorrective.png)
+
+| Pin | Description |
+| --- | ----------- |
+| [REGION:tablesection]**Input Pins**[/REGION] ||
+| **Component Pose** | The input pose to be transformed. |
+| **Alpha** | A float value in the range [0.0, 1.0] to use as the alpha value to determine the weighting of the Transform applied by the SkeletalControl. A value of 0.0 gives full weighting to the input pose, while a value of 1.0 gives full weighting to the control's computed Transform. |
+| [REGION:tablesection]**Output Pins**[/REGION] ||
+| Pose (Blank) | The final pose after the Transform has been applied. |
+
 
 ## Two Bone IK
 
@@ -216,3 +322,4 @@ The **Two Bone IK** control applies an Inverse Kinematic (IK) solver to a 3-join
 | [REGION:tablesection]**Input Pins**[/REGION] ||
 | **Effector Location** | A Vector specifying the location effector in the Effector Location Space. |
 | **Joint Target Location** | A Vector specifying the location joint target in the Joint Target Location Space. |
+

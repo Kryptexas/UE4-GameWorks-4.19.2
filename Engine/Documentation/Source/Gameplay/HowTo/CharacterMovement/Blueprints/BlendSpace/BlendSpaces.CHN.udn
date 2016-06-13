@@ -2,7 +2,9 @@
 Availability: Public
 Title:4.创建混合空间
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
-Description:在这一步中，我们将为动作状态设置混合空间，以便能在向不同方向移动时混合动画。 
+Description:在这一步中，我们将为动作状态设置混合空间，以便能在向不同方向移动时混合动画。
+Version: 4.9
+SkillLevel: Advanced  
 
 [VAR:Steps]
 [OBJECT:Navigation]

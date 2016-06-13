@@ -1,21 +1,22 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Parameter Modules
+﻿INTSourceChangelist:2750701
+Availability:Public
+Title:Parameter 模块
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
-Description:Modules that pass data out of a particle system to other aspects, such as materials.
+Description:将数据从粒子系统中传出到其他方面（如材质）的模块。
+Version:4.9
 
 [TOC(start:2 end:3)]
 
-Parameter modules exist to pass data out of a particle system so that it can control other aspects, such as materials.
+Parameter 模块将数据从粒子系统中传出，以便对其他方面（如材质）进行控制。
 
 ## Dynamic
 
-The Dynamic module is used to pass four scalar values to the material(s) used by the emitter allowing the emitter to control material effects.
+**Dynamic** 模块用于向发射器使用的材质传递四个标量值，使发射器对材质效果进行控制。
 
-| Property | Description |
+| 属性 | 描述 |
 | ---- | ---- |
 |[REGION:tablesection]ParticleModuleParameterDynamic[/REGION]||
-|**Dynamic Params** | The array of dynamic parameters for the module. Each element in the _Dynamic Params_ array has the following properties:[INCLUDE:#DynamicParams]|
+|**Dynamic Params** | 模块动态参数阵列。_Dynamic Params_ 阵列中的每个元素均有以下属性：[INCLUDE:#DynamicParams]|
 
 
 
@@ -25,27 +26,27 @@ The Dynamic module is used to pass four scalar values to the material(s) used by
 
 [EXCERPT:DynamicParams]
 [REGION:simpletable]
-|**Property**|**Description**|
+|**属性**|**描述**|
 | --- | --- |
-|**Param Name** | The name of the associated parameter in the DynamicParameter expression of the material. This property is read-only and populated automatically when a Particle Dynamic material expression exists within the material applied to this emitter.|
-|**Use Emitter Time** | If _true_, use the emitter time to retrieve the distribution value for the parameter. Otherwise, use the particle-relative time.|
-|**Spawn Time Only** | If _true_, only set the parameter value when the particle is spawned. Otherwise, the value is updated each frame.|
-|**Value Method** | Specifies the method used to get the parameter value. It includes the following options:[INCLUDE:#ValueMethod]|
-|**Scale Velocity By Param Value** | If _true_, the velocity value passed to the material will be scaled by the value set in the _Param Value_ distribution.|
-|**Param Value** | A float distribution for setting the parameter value to use with the _EDPV_UserSet_ method.|
+|**Param Name** | 材质 DynamicParameter 表现中相关参数的名称。该属性为只读，在粒子动态材质表现存在于此发射器应用的材质中时进行自动填入。
+|**Use Emitter Time** | 如为 _true_，使用发射器时间获取参数的 distribution 值。否则将使用粒子相对时间。|
+|**Spawn Time Only** | 如为 _true_，粒子生成时只设置参数值。否则，该值将每帧更新。|
+|**Value Method** | 指定用于获得参数值的方法。它包含下列选项：[INCLUDE:#ValueMethod]|
+|**Scale Velocity By Param Value** | 如为 _true_，在 _Param Value_ distribution 中设置的值将对传至材质的速度值进行调整。|
+|**Param Value** |浮点 distribution，用于设置以 _EDPV_UserSet_ 方法使用的参数值。|
 [/REGION]
 [/EXCERPT:DynamicParams]
 
 
 [EXCERPT:ValueMethod]
 [REGION:transparenttable]
-|**Method**|**Description**|
+|**方法**|**描述**|
 | --- | --- |
-|_EDPV_UserSet_|The value set in the _Param Value_ property is passed to the material as the parameter's value.|
-|_EDPV_VelocityX_|The particle velocity along the X-axis is passed to the material as the parameter's value.|
-|_EDPV_VelocityY_|The particle velocity along the Y-axis is passed to the material as the parameter's value.|
-|_EDPV_VelocityZ_|The particle velocity along the Z-axis is passed to the material as the parameter's value.|
-|_EDPV_VelocityMag_|The magnitude of the particle velocity is passed to the material as the parameter's value.|
+|_EDPV_UserSet_|在 _Param Value_ 属性中设置的值作为参数值传递到材质。|
+|_EDPV_VelocityX_|沿 X 轴的粒子速度作为参数值传递到材质。|
+|_EDPV_VelocityY_|沿 Y 轴的粒子速度作为参数值传递到材质。|
+|_EDPV_VelocityZ_|沿 Z 轴的粒子速度作为参数值传递到材质。|
+|_EDPV_VelocityMag_|粒子速度的量级作为参数值传递到材质。|
 [/REGION]
 [/EXCERPT:ValueMethod]
 
@@ -54,14 +55,14 @@ The Dynamic module is used to pass four scalar values to the material(s) used by
 
 ## Dynamic (Seed)
 
-The Dynamic (Seed) module is identical to the [Dynamic Parameter](#Dynamic) module in that it allows the emitter to pass values to the material(s); however, this module allows you to specify seed information to be used when choosing distribution values in order to provide a more consistent effect from the module each time the emitter is used. It contains the following member(s):
+**Dynamic (Seed)** 模块与允许发射器传递数值到材质的 [Dynamic Parameter](#Dynamic) 模块相同；然而此模块可对种子信息进行指定。该种子信息用于选择 distribution 值，从发射器每次使用的模块获得更稳定的效果。它包含下列属性：
 
-| Property | Description |
+| 属性 | 描述 |
 | ---- | ---- |
 |[REGION:tablesection]RandomSeed[/REGION]||
-|**Random Seed Info** | The random seed(s) to use for selecting "random" values for this module's properties.[INCLUDE:Engine/Rendering/ParticleSystems/Reference#RandomSeedInfo]|
+|**Random Seed Info** | 为该模块属性选择“随机”值而使用的随机种子。[INCLUDE:Engine/Rendering/ParticleSystems/Reference#RandomSeedInfo]|
 |[REGION:tablesection]ParticleModuleParameterDynamic[/REGION]||
-|**Dynamic Params** | The array of dynamic parameters for the module. Each element in the _Dynamic Params_ array has the following properties:[INCLUDE:#DynamicParams]|
+|**Dynamic Params** | 模块动态参数阵列。_Dynamic Params_ 阵列中的每个元素均有以下属性：[INCLUDE:#DynamicParams]|
 
 
 

@@ -11,7 +11,7 @@ Description:애니메이션 블루프린트에서 사용할 수 있는 여러가
 
 [EXCERPT:UAnimGraphNode_LayeredBoneBlend]
 
-(본별) 레이어드 블렌드 노드에는 여러가지 본 세트별로 블렌딩할 수 있는 유동적 갯수의 블렌드 포즈가 있습니다.
+(본 별) 레이어드 블렌드 노드에는 여러가지 본 세트별로 블렌딩할 수 있는 유동적 갯수의 블렌드 포즈가 있습니다.
 
 [/EXCERPT:UAnimGraphNode_LayeredBoneBlend]
 

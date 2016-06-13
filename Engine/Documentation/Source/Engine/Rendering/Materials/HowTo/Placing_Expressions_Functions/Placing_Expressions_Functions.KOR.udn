@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2609216
+﻿INTSourceChangelist:2731729
 Availability: Public
 Title:머티리얼 에디터 - 머티리얼 표현식 및 함수 배치 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
@@ -6,6 +6,8 @@ Description:머티리얼 그래프 안에서 머티리얼 표현식 및 함수�
 Related: Engine/Rendering/Materials/ExpressionReference/Functions
 Related: Engine/Rendering/Materials/ExpressionReference
 Related: Engine/UI/KeyBindings
+Version: 4.9
+SkillLevel:Intermediate
 
 [TOC(start:2)]
 

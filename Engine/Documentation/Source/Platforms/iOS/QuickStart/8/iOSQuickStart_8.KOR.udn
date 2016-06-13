@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2324403
+﻿INTSourceChangelist:2744727
 Title:8. 게임 패키징
 Crumbs:%ROOT%, Platforms, Platforms/iOS, Platforms/iOS/QuickStart
 Description:게임을 패키징하여 iOS 디바이스에 설치합니다.
 Availability:Public
+Version: 4.9
+SkillLevel:Intermediate
 
 
 [VAR:Steps]
@@ -86,7 +88,7 @@ Availability:Public
 
 1. 디바이스에 설치된 앱을 실행시켜 게임을 테스트합니다.
 
-	![](game_device.png)
+	![](game_device.png)(w:650)
 
 <!--
 [EXCERPT:windows]

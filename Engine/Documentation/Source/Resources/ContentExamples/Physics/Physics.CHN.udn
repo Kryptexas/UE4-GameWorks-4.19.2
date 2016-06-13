@@ -3,7 +3,7 @@ Title:物理内容示例
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
 Description:在物理内容示例中提供的实例概述。
 Related: Engine/Physics/PhysicsBodies
-Related: Engine/Physics/PhAT/UserGuide
+Related: Engine/Physics/PhAT
 Related: Engine/Physics/Constraints/ConstraintsReference
 Related: Engine/Physics/Constraints/ConstraintsUserGuide
 Related: Engine/Physics/Collision

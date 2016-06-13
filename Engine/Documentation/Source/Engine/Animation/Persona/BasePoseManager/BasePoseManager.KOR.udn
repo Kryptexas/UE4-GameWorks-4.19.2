@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2182145
+﻿INTSourceChangelist:2664829
 Availability:Public
 Title:페르소나 리타겟 소스 매니저
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
 Description:페르소나 애니메이션 에디터의 리타겟 소스 매니저 사용 안내서입니다.
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -30,7 +31,7 @@ Description:페르소나 애니메이션 에디터의 리타겟 소스 매니저
 
 **레퍼런스용 새 리타겟 소스를 추가하려면:**
 
-1. 리타겟 소스 매니저에서 우클릭한 다음 **Add** (추가)를 선택합니다.
+1. **새 리타겟 소스 추가** 버튼을 클릭합니다.
 1. 목록에서 사용하고자 하는 베이스 포즈를 가진 스켈레탈 메시를 선택합니다.
 
 [region:note]

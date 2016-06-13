@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2596226
+﻿INTSourceChangelist:2685386
 Availability:Public
 Title: 포스트 프로세스 이펙트
 Crumbs: %ROOT%, Engine
 Description:렌더링 직전의 전체 씬에 적용되는 이펙트입니다.
 Navigation:topic
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]

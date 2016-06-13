@@ -108,6 +108,7 @@ Description:蓝图相关的快捷方式及有用操作的参考指南。
 
 
 ## 引脚操作
+[EXCERPT:PinActions]
 [REGION:fullwidth]
 ![PinActions.png](PinActions.png)
 [/REGION] 
@@ -121,6 +122,7 @@ Description:蓝图相关的快捷方式及有用操作的参考指南。
 | 断开所有连接 | **Alt + 左击** 引脚 |
 | 移动所有连接 | **Ctrl + 鼠标左键** 拖拽到引脚 |
 
+[/EXCERPT:PinActions]
 
 ## 创建相关的快捷方式
 [REGION:fullwidth]

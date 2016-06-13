@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2683038
+﻿INTSourceChangelist:2796819
 Availability:Public
 Title:블루프린트 클래스 UI
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
@@ -39,7 +39,7 @@ version: 4.9
 <!----------
 [EXCERPT:Visible]
 1. [메뉴](Engine/Blueprints/Editor\UIComponents\Menu)
-1. [툴바](Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions)
+1. [툴바](Engine/Blueprints/Editor/UIComponents/Toolbar)
 1. [컴포넌트](Engine/Blueprints/UserGuide/Components)
 1. [내 블루프린트](Engine/Blueprints/Editor/UIComponents/MyBlueprint)
 1. [그래프 에디터](Engine/Blueprints/Editor/UIComponents/GraphEditor)

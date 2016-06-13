@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2609111
+﻿INTSourceChangelist:2721440
 Availability:Public
 Title:자동화 테크니컬 가이드
 Crumbs: %ROOT%, Programming, Programming/Automation
@@ -70,7 +70,7 @@ _에디터에서 플레이_ 에 로드되나, Slate 에서 문장 줄바꿈이 �
 
 	IMPLEMENT_SIMPLE_AUTOMATION_TEST( FSetResTest, "Windows.SetResolution", ATF_Game )
 
-위의 _SetRes_ 예제를 사용하는 구현은 다음과 같급니다:
+위의 _SetRes_ 예제를 사용하는 구현은 다음과 같습니다:
 
 	bool FSetResTest::RunTest(const FString& Parameters)
 	{

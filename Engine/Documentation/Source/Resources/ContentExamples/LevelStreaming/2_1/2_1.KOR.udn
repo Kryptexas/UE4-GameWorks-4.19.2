@@ -57,6 +57,6 @@ SVB_LoadingandVisibility = 로드하고 볼륨 안에 있으면 맵을 보이도
 
 SVB_VisiblityBlockingOnLoad = 로딩 시작에서 보이게 될 때까지 게임을 일시정지시킵니다.
 
-SVB_Blocking on Load = 로딩 시작부터 끝까지 게임을 일시정지시키나 보이게 만들지는 않습니다.
+SVB_Blocking on Load = 로딩 시작부터 끝까지 게임을 일시정지시키되 보이게 만들지는 않습니다.
 
 SVB_LoadingNotVisible = 레벨을 로드는 하나 보이지 않도록 설정합니다.

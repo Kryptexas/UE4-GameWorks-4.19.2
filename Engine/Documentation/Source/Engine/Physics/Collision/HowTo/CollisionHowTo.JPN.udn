@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2714891
+﻿INTSourceChangelist:2744832
 Availability:Public
 Title:コリジョンの操作ガイド
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/Collision
@@ -37,7 +37,9 @@ Description:コリジョン ジオメトリの作成および設定のコンテ�
 		* [](Engine/Physics/Collision/HowTo/AddSimpleCollision "%Engine/Physics/Collision/HowTo/AddSimpleCollision:description%")
 		* [](Engine/Physics/Collision/HowTo/AddDOP "%Engine/Physics/Collision/HowTo/AddDOP:description%")
 		* [](Engine/Physics/Collision/HowTo/AddCustomCollisionType "%Engine/Physics/Collision/HowTo/AddCustomCollisionType:description%")
+		[PUBLISH:Docs]
 		* [](Engine/Physics/Collision/HowTo/AddCustomTraceType "%Engine/Physics/Collision/HowTo/AddCustomTraceType:description%")
+		[/PUBLISH:Docs]
 		* [](Engine/Physics/Collision/HowTo/PreviewCollision "%Engine/Physics/Collision/HowTo/PreviewCollision:description%")
 	[/PARAM]
 [/OBJECT]

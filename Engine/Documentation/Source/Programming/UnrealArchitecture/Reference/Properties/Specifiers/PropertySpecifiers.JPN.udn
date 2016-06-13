@@ -1,11 +1,13 @@
-﻿Title:プロパティ指定子
+﻿INTSourceChangelist:2704985
+Title:プロパティ指定子
 Crumbs:%ROOT%, Programming/UnrealArchitecture/Reference,  Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Properties
 Description:エンジンおよびエディタの各種特性でのプロパティの動作を指定するゲームプレイ プロパティの宣言時に使用するキーワード
 Availability:Public
+Version:4.9
 
 [EXCERPT:main]
 プロパティを宣言する時、エンジンおよびエディタの各種特性で、プロパティがどのように動作するのか制御する指定子を 
-宣言に追加することができます。
+追加することができます。
 
 * [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/AdvancedDisplay)
 * [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/AssetRegistrySearchable)

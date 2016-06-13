@@ -62,26 +62,26 @@ Persona toolbar buttons provide easy access to switching between asset modes, su
 
 | Button																						| Description														|
 | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | 
-| ![Compile Successful Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_compile_successful.png)		| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#compilesuccessful]	|
-| ![Compile Needed Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_needs_compile.png)				| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#compileneeded]		|
-| ![Compile Warning Button](Engine/Blueprints/Editor/UIComponents/Toolbar/compile_warning.png)				| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#compilewarning]		|
-| ![Compile Failed Button](Engine/Blueprints/Editor/UIComponents/Toolbar/compile_failed.png)				| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#compilefailed]		|
-| ![Save Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_save.png)									| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#save]					|
-| ![Find in Content Browser Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_find_in_cb.png)		| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#findincb]				| 
-| ![Blueprint Properties Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_properties.png)			| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#blueprintprops]		|
+| ![Compile Successful Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_compile_successful.png)		| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#compilesuccessful]	|
+| ![Compile Needed Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_needs_compile.png)				| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#compileneeded]		|
+| ![Compile Warning Button](Engine/Blueprints/Editor/UIComponents/Toolbar/compile_warning.png)				| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#compilewarning]		|
+| ![Compile Failed Button](Engine/Blueprints/Editor/UIComponents/Toolbar/compile_failed.png)				| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#compilefailed]		|
+| ![Save Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_save.png)									| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#save]					|
+| ![Find in Content Browser Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_find_in_cb.png)		| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#findincb]				| 
+| ![Blueprint Properties Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_properties.png)			| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#blueprintprops]		|
 | ![Blueprint Properties Button](Engine/Blueprints/Editor/UIComponents/Toolbar/defaults.png)				| Shows the Class Defaults Panel in the Details Tab |
-| ![Search Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_search.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#search]				|
+| ![Search Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_search.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#search]				|
 | ![Simulate Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_simulate.png)							| [INCLUDE:Engine/UI/LevelEditor/Toolbar#simulate]			|
 | ![Play In Editor Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_play_in.png)					| [INCLUDE:Engine/UI/LevelEditor/Toolbar#playin]				|
-| ![Pause Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_pause.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#pause]				|
-| ![Resume Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_resume.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#resume]				|
-| ![Frame Skip Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_frameskip.png)						| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#frameskip]			|
-| ![Stop Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_stop.png)									| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#stop]					|
-| ![Possess Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_possess.png)							| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#possess]				|
-| ![Eject Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_eject.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#eject]				|
-| ![Find Node Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_find_node.png)						| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#findnode]				|
-| ![Step Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_step.png)									| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#step]					|
-| ![Debug Dropdown](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_debug_dropdown.png)					| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#debugobject]			|
+| ![Pause Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_pause.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#pause]				|
+| ![Resume Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_resume.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#resume]				|
+| ![Frame Skip Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_frameskip.png)						| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#frameskip]			|
+| ![Stop Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_stop.png)									| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#stop]					|
+| ![Possess Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_possess.png)							| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#possess]				|
+| ![Eject Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_eject.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#eject]				|
+| ![Find Node Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_find_node.png)						| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#findnode]				|
+| ![Step Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_step.png)									| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#step]					|
+| ![Debug Dropdown](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_debug_dropdown.png)					| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#debugobject]			|
 | ![](button_Preview.png)																					| Displays a preview of the currently selected animation asset. |
 | ![](button_RefPose.png)																					| Displays the skeletal mesh in it's reference pose. |
 | ![](button_Import.png)																					| Brings up the Import dialogue. |

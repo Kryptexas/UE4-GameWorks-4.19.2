@@ -13,6 +13,10 @@ Related: Engine/Rendering/Materials/MaterialProperties/BlendModes
 Related: Engine/Rendering/Materials/CustomizedUVs
 Skilllevel: Intermediate
 Version: 4.9
+type:overview
+parent:Platforms/GearVR
+tags:VR
+tags:GearVR
 
 [TOC(start:2 end:3)]
 

@@ -1,40 +1,40 @@
-﻿INTSourceChangelist:2520771
+﻿INTSourceChangelist:2638793
 Availability:Public
 Title:アサーション
 Crumbs:
 Description:
-Version:4.7
+Version:4.9
 
-アサーションは、あるコードの構成要素が依存している仮定を検証するツールです。ポインタが NULL ではないことの確認のように簡単な場合もあれば、ある関数が再入力されていないことを確認ような複雑な場合もあります。UE4 はこれらの形式の評価を行うマクロを提供しています。マクロなので、パフォーマンス上に問題がある、または最終ビルドで必要がないかのいずれかの理由で、ビルド設定でコンパイル対象から除外することができます。以下で実際のマクロをご覧になれます。
+アサーションは、任意のコードの前提条件を検証するツールです。ポインタが NULL ではないことの確認のように簡単な場合もあれば、ある関数が再入力されていないことを確認するような複雑な場合もあります。UE4 にはこうしたバリデーションを行うマクロがあります。マクロなので、パフォーマンス上の理由や、または最終ビルドで不要のいずれかの理由で、ビルド設定でコンパイル対象から除外することができます。以下で実際のマクロをご覧になれます。
 
 `/UE4/Engine/Source/Runtime/Core/Public/Misc/AssertionMacros.h.`
 
-ランタイム アサーション マクロは、実行を停止、デバッグ ビルドで実行を停止、実行を停止せずにエラーを報告、という 3 形式に分類されます。1 つ目と 3 つ目の形式は、 DO_CHECK 定義によってコンパイルされます。2 つ目の形式は DO_GUARD_SLOW 定義を使用してコンパイルされます。これらの定義のいずれかが 0 に設定されると、マクロが無効にされ、実行に影響を及ぼしません。
+ランタイム アサーション マクロは、実行を停止、デバッグ ビルドで実行を停止、実行を停止せずにエラーを報告、という 3 形式に分類されます。1 つ目と 3 つ目の形式は、 DO_CHECK 定義によってコンパイルされます。2 つ目の形式は DO_GUARD_SLOW 定義を使用してコンパイルされます。これらの定義のいずれかが 0 に設定されると、マクロが無効になり、実行に影響を及ぼしません。
 
-アサーション マクロの最初のクラスを見てみましょう。以下のマクロはすべて、アサーションが true にならなかった場合に実行を停止します。デバッガー内でアサーションを実行するとブレークポイントが発生するので、そのポイントへの到達方法を調査することができます。
+アサーション マクロの最初のクラスを見てみましょう。以下のマクロはすべて、アサーションが true にならなかった場合に実行を停止します。デバッガー内でアサーションを実行するとブレークポイントを発生させて、どのようにそのポイントに到達したかを調査することができます。
 
 **check(expression);**
 
-このマクロは表現式を実行し、結果が false の場合、実行を停止します。マクロがビルドにコンパイルされると、表現式は実行のみされます (DO_CHECK=1)。これは check() マクロの最も単純な形式です。
+このマクロは表現式を実行し、結果が false アサーションの場合、実行を停止します。マクロがビルドでコンパイルされる場合のみ、表現式は実行されます (DO_CHECK=1)。これは check() マクロの最も単純な形式です。
 
-例： 
+以下は例です。
 
 	check(Mesh != nullptr);
 	check(bWasInitialized && "Did you forget to call Init()?");
 
 **verify(expression);**
 
-DO_CHECK が有効の場合、このマクロのビヘイビアは check() と全く同じです。ただし、 DO_CHECK が無効の場合、表現式は実行されます。このマクロを使って、変数のアサイメントが仮定を満たしているかを検証することができます。
+DO_CHECK が有効の場合、このマクロの挙動は check() と全く同じです。ただし、 DO_CHECK が無効の場合、表現式は実行されます。このマクロを使って、変数の代入が前提条件を満たしているかを検証することができます。
 
-例： 
+以下は例です。
 
 	verify((Mesh = GetRenderMesh()) != nullptr);
 
 **checkf(expression, …);**
 
-checkf() マクロは、表現式が true であるとアサートし、デバッグ中の補助のために追加情報を印字することが可能になります。コンパイルのビヘイビアという点では、このマクロのビヘイビアは check() と同じです。
+checkf() マクロは、表現式が true であるとアサートし、デバッグ中の補助のために追加情報を印字することが可能になります。コンパイルの動作という点では、このマクロの動作は check() と同じです。
 
-例：
+以下は例です。
 
 	checkf(WasDestroyed, TEXT( "Failed to destroy Actor %s (%s)"), *Actor->GetClass()->GetName(), *Actor->GetActorLabel());
 	checkf( TCString<ANSICHAR>::Strlen( Key ) >= KEYLENGTH( AES_KEYBITS ), TEXT( "AES_KEY needs to be at least %d characters" ), KEYLENGTH( AES_KEYBITS ) );
@@ -43,7 +43,7 @@ checkf() マクロは、表現式が true であるとアサートし、デバ�
 
 verify() マクロと全く同じで、verifyf() マクロも常に表現式を実行します。また、checkf(); と同様に、デバッグ メッセージを追加すると実行を停止します。
 
-例：
+以下はその例です。
 
 	verifyf(Module_libeay32, TEXT("Failed to load DLL %s"), *DLLToLoad);
 
@@ -51,7 +51,7 @@ verify() マクロと全く同じで、verifyf() マクロも常に表現式を�
 
 checkCode() マクロは通常の check() に比べて若干複雑です。そして 1 回だけ実行される do/while ループ内で表現式を実行します。表現式は do/while ブラケット (角括弧) で囲みます。エンジンでは使用頻度が低いですが、必要であれば利用できます。標準の check() マクロと同様に、このマクロも DO_CHECK が無効だとコンパイル対象から除外されます。そのため、DO_CHECK が無効だとコードが削除されるので、副作用を必要とする表現式は使用しないでください。
 
-例：
+以下はその例です。
 
 	checkCode( if( Object->HasAnyFlags( RF_PendingKill ) ) { UE_LOG(LogUObjectGlobals, Fatal, TEXT("Object %s is part of root set though has been marked RF_PendingKill!"), *Object->GetFullName() ); } );
 
@@ -59,7 +59,7 @@ checkCode() マクロは通常の check() に比べて若干複雑です。そ�
 
 CheckNoEntry() マクロは表現式を受け取らず、絶対に実行されるべきでないコード パスをマークするために使用します。
 
-例：
+以下はその例です。
 
 	switch (MyEnum)
 	{
@@ -74,7 +74,7 @@ CheckNoEntry() マクロは表現式を受け取らず、絶対に実行され�
 
 checkNoReentry() マクロは、コールが所定の関数のリエントラントになることを防ぐために使用します。1 度だけ呼び出されるべき関数が再び呼び出される前に完了しなければならない場合に使用します。
 
-例：
+以下はその例です。
 
 	void NoReentry()
 	{
@@ -85,7 +85,7 @@ checkNoReentry() マクロは、コールが所定の関数のリエントラン
 
 CheckNoReentry() と同じチェックを行いますが、用途に対してより明確な名前を使います。
 
-例：
+以下はその例です。
 
 	int32 Recurse(int32 A, int32 B)
 	{
@@ -97,20 +97,20 @@ CheckNoReentry() と同じチェックを行いますが、用途に対してよ
 
 DO_CHECK マクロの最初のクラスの最後のマクロは、その関数にインプリメンテーションが含まれていないため、オーバーライドされるべき、あるいは特定のクラス上には呼び出すべきではない関数をマークするために使用します。
 
-例：
+以下はその例です。
 
 	class FNoImpl
 	{
 		virtual void DoStuff()
 		{
-			// You must override this
+			// これはオーバーライドしなければなりません。
 			unimplemented();
 		}
 	};
 
-アサーション マクロの 2 つ目のクラスは、 DO_GUARD_SLOW が有効の場合にのみ実行されます。DO_GUARD_SLOW は普通、デバッグ ビルドの場合にだけ有効にしますが、プロジェクトに合わせて変更することができます。時間のかかる、細かいチェックで、開発やシッピング ビルドでは必要ありません。これらのマクロは、 Slow でないマクロと同じ内容を実行します。checkSlow() 、 checkfSlow() 、 verifySlow() です。 
+アサーション マクロの 2 つ目のクラスは、 DO_GUARD_SLOW が有効の場合にのみ実行されます。DO_GUARD_SLOW は普通、デバッグ ビルドの場合にだけ有効にしますが、プロジェクトに合わせて変更することができます。時間のかかる、細かいチェックで、開発やシッピング ビルドでは必要ありません。これらのマクロは、 Slow でないマクロと同じ内容を実行します。すなわち、checkSlow() 、 checkfSlow() 、 verifySlow() です。 
 
-例：
+以下は例です。
 
 	checkSlow(List->HasCycle());
 	checkfSlow(Class->IsA(AActor::StaticClass()), TEXT("Class (%s) is wrong type"), Class->GetName());
@@ -122,7 +122,7 @@ DO_CHECK マクロの最初のクラスの最後のマクロは、その関数�
 
 表現式を検証し、失敗するとそのポイントへ導くコールスタックを生成します。
 
-例：
+以下はその例です。
 
 	if (ensure( InObject != NULL ))
 	{
@@ -131,17 +131,17 @@ DO_CHECK マクロの最初のクラスの最後のマクロは、その関数�
 
 **ensureMsg(expression, message);**
 
-表現式を検証し、レポートの 1 部としてメッセージが追加されたコールスタックを生成します。
+表現式を検証し、レポートの一部としてメッセージが追加されたコールスタックを生成します。
 
-例：
+以下はその例です。
 
 	ensureMsg(Node != nullptr, TEXT("Node is invalid"));
 
 **ensureMsgf(expression, message, …);**
 
-表現式を評価して、生成されたレポート用のコールスタックと結びついた情報をさらに多く含みます。Checkf() や verifyf() と同様に、問題の追跡を補助する状況に応じた情報を含みます。
+表現式を評価して、生成されたレポート用のコールスタックと結びついた情報をさらに多く含みます。Checkf() や verifyf() と同様に、問題の追跡に役立つ状況に応じた情報を含みます。
 
-例：
+以下はその例です。
 
 	if (ensureMsgf(!bModal, TEXT("Could not create dialog because modal is set to (%d)"), int32(bModal)))
 	{

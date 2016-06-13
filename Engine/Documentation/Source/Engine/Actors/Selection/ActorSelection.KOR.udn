@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2602175
+﻿INTSourceChangelist:2651303
 Availability:Public
 Title:액터 선택
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:레벨 에디터 뷰포트에서 액터를 선택하는 데 사용할 수 있는 방법에 대한 개요입니다.
+version: 4.9
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]
@@ -67,7 +68,7 @@ Description:레벨 에디터 뷰포트에서 액터를 선택하는 데 사용�
 
 [TOC(start:2)]
 
-## 개요
+
 
 액터 선택은 속성상 단순하기는 하지만 레벨 편집 과정에 있어 매우 중요한 부분입니다. 올바른 액터 그룹을 빠르게 선택할 수 없다면, 프로세스가 늦춰지고 생산성이 저하됩니다. 
 

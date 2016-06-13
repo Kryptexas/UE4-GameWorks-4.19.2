@@ -1,12 +1,13 @@
-﻿INTSourceChangelist:2612616
+﻿INTSourceChangelist:2725030
 Availability:Public
 Title:모듈 API 지정자
 Crumbs:%ROOT%, Programming
 Description:클래스와 함수를 다른 모듈에 노출시키는 방법입니다.
+version: 4.9
 
 이 지정자에 대해 가장 쉽게 생각해 볼 수 있는 방법은, 함수나 클래스나 데이터를 자기 모듈 DLL 파일에 "공용"(public)인 것으로 태그를 다는 데 사용하는 것입니다. Engine 모듈에 있는 함수를 ENGINE_API 로 마킹을 한다면, Engine 을 임포트하는 모듈은 그 함수에 직접 접근할 수 있게 됩니다.
 
-이러한 방법은 엔진을 "모듈식"(modular) 모드(데스크탑 플랫폼에서의 DLL 파일)로 컴파일할 때만 사용됩니다. 이와 반대대는 방법은 소위 "모노리식"(monolithic) 모드로, 모든 코드를 하나의 실행파일 안에 몰아넣는 것을 말합니다. 빌드 유형은 UnrealBuildTool 세팅 및/또는 플랫폼과 빌드 환경설정에 따라 제어됩니다.
+이러한 방법은 엔진을 "모듈식"(modular) 모드(데스크탑 플랫폼에서의 DLL 파일)로 컴파일할 때만 사용됩니다. 이와 반대되는 방법은 소위 "모노리식"(monolithic) 모드로, 모든 코드를 하나의 실행파일 안에 몰아넣는 것을 말합니다. 빌드 유형은 UnrealBuildTool 세팅 및/또는 플랫폼과 빌드 환경설정에 따라 제어됩니다.
 
 실제 API 매크로는 UBT 가 코드를 컴파일하는 방식에 따라 다음 중 하나에 해당합니다:
 

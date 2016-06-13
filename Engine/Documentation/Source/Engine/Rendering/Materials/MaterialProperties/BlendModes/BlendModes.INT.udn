@@ -44,6 +44,8 @@ Masked Blend Mode is used for objects in which you will need to selectively cont
 
 It is important to keep in mind the difference between _transparent_ and _not rendered_. A transparent surface, such as glass, still interacts with light in the form of reflections (specularity). Pixels that are culled in Masked mode simply _do not draw_; you will not see any reflections in those areas. If you want to retain reflections or specular aspects, you would do well to use the Translucent Blend Mode, or consider making a Layered Material.
 
+Further, since these features don't render in the masked area, they aren't calculated at all, leading to performance savings on the GPU.
+
 
 [REGION:imagetable]
 | ![](MaskedSetup.png)(w:500) | ![](MaskedGridCameraView.png)(h:189) |

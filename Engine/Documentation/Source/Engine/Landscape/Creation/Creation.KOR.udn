@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2615103
+﻿INTSourceChangelist:2697291
 Availability: Public
 Title:랜드스케이프 만들기
 Crumbs: %ROOT%, Engine, Engine/Landscape
 Description:랜드스케이프 터레인을 새로 만드는 방법 안내서입니다.
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topiccompact]
@@ -34,7 +35,7 @@ Description:랜드스케이프 터레인을 새로 만드는 방법 안내서입
 * 기존에 언리얼 에디터나 외부 툴에서 만든 랜드스케이프 하이트맵을 임포트할 수 있습니다. 이에 대한 상세 정보는 
 	[](Engine/Landscape/Custom) 문서를 참고하시기 바랍니다.
 
-[REGION:tip]
+[REGION:note]
 랜드스케이프 툴 실전 예제는 [](Resources\ContentExamples\Landscapes) 콘텐츠 예제를 살펴보세요.
 [/REGION]
 
@@ -49,17 +50,17 @@ Description:랜드스케이프 터레인을 새로 만드는 방법 안내서입
 
 ![](Landscape_ModesPanel.png)
 
-[REGION:note]
+[REGION:tip]
 키보드의 **Shift + 3** 키를 눌러도 언제든 랜드스케이프 툴로 전환할 수 있습니다.
 [/REGION]
 
 랜드스케이프 툴을 처음 열 때, 레벨에 현재 다른 랜드스케이프 액터가 없는 경우 자동으로 [관리 모드](Engine/Landscape/Editing/ManageMode) 탭으로 이동됩니다.
-랜드스케이프 관리 모드에서 새 랜드스케이프를 만들거나 기존 랜드스케이와 그 컴포넌트를 변경할 수 있습니다.
+랜드스케이프 관리 모드에서 새 랜드스케이프를 만들거나 기존 랜드스케이프와 그 컴포넌트를 변경할 수 있습니다.
 
 ![](Landscape_New_Manage_Tab.png)
 
 [REGION:note]
-레벨에 이미 랜드스케이프가 하나 이상 있는 경우, **관리** 탭의 **랜드스케이프 에디터** 섹션에 **선택** 툴이 보이는 드롭다운 메뉴가 표시되는 등, 달라보입니다.
+레벨에 이미 랜드스케이프가 하나 이상 있는 경우, **관리** 탭의 **랜드스케이프 에디터** 섹션에 **선택** 툴이 보이는 드롭다운 메뉴가 표시되는 등, 달라 보입니다.
 이 드롭다운 메뉴에서 작업할 랜드스케이프를 선택하게 됩니다.
 
 ![](Landscape_Multiple_Landscapes_Actors.png)
@@ -99,7 +100,7 @@ Description:랜드스케이프 터레인을 새로 만드는 방법 안내서입
 | **Number of Components:**| 컴포넌트 수 - 8 x 8|
 | **Overall Resolution:**| 전체 해상도 - 505 x 505|
 
-[REGION:tip]
+[REGION:note]
 **섹션 크기** 선택시에는 주의를 기울여야 하는 것이, 컴포넌트 수가 늘어나면 빌드 시간과 퍼포먼스에 크게 영향을 끼치기 때문입니다. 일반적으로 섹션당 63x63 쿼드 정도가 퍼포먼스와 크기 균형이 잘 맞는 추천 설정입니다.
 [/REGION]
 
@@ -132,7 +133,7 @@ og7fnKaqYdI
 
 ![](Landscape_Assign_Material.png)
 
-[REGION:tip]
+[REGION:note]
 랜드스케이프 머티리얼 관련 상세 정보는 [](Engine/Landscape\Materials) 문서를 참고하세요.
 [/REGION]
 

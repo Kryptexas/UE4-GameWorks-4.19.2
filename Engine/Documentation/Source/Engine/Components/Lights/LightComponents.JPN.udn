@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2696062
+﻿INTSourceChangelist:2775843
 Availability:Public
 Title:Light コンポーネント
 Crumbs:%ROOT%, Engine, Engine/Components
@@ -32,14 +32,14 @@ _上の画面では、PointLight コンポーネントをブループリント�
 
 **SkyLight コンポーネント** は、レベルの遠い部分 (Sky Distance Threshold 以遠全て) をキャプチャし、それをライトとしてシーンに適用します。つまり、空の外観とライティング / 反射が対応します。 
 
-詳細は、[](Engine/Rendering/LightingAndShadows/LightTypes/Spot) をご覧ください。 
+詳細は [](Engine/Rendering/LightingAndShadows/LightTypes/SkyLight) をご覧ください。
 
 
 ## SpotLight コンポーネント
 
 **SpotLight コンポーネント** は、平行光源 (指向性ライト) を一点からコーン (円錐) 形状に放射します。Inner Cone Angle と Outer Cone Angle、および Intensity、 Light Color などの他のタイプのライト設定、シャドウの設定などを調整するための設定があります。このタイプのライトは、内側 / 外側のコーンの半径を定義する機能があるため懐中電灯として優れています。
 
-詳細は [](Engine/Rendering/LightingAndShadows/LightTypes/Skylight) をご覧ください。 
+詳細は、[](Engine/Rendering/LightingAndShadows/LightTypes/Spot) をご覧ください。
 
 
 

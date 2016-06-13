@@ -1,8 +1,13 @@
-﻿INTSourceChangelist:2691671
+﻿INTSourceChangelist:2968923
 Availability:Public
 Title:블루프린트 클래스
-Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types
+Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Anatomy
 Description:새 클래스나 액터 유형을 정의한 다음, 인스턴스로 배치하면 다른 액터 유형처럼 작동하는 것입니다.
+Version: 4.9
+SkillLevel: Beginner
+Parent:Engine/Blueprints/Anatomy
+Tags:클래스 블루프린트
+order:1
 
 [VAR:Topic]
 [OBJECT:Topic]

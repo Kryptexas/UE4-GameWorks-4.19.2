@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2438964
+﻿INTSourceChangelist:2683818
 Availability:Public
-Title:2.大気中＆指向性ライト
+Title:2.大気と指向性のライティング
 Crumbs:%ROOT%, GettingStarted, Engine\Rendering\LightingAndShadows\QuickStart
 Description:このステップでは Atmospheric Fog と Directional Light を使って、基本レベルのライトを作成します。 
+Version:4.9
+SkillLevel:Beginner
 
 
 [VAR:Steps]
@@ -13,7 +15,7 @@ Description:このステップでは Atmospheric Fog と Directional Light を�
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[クイックスタート ホーム](Engine/Rendering/LightingAndShadows/QuickStart)
+		[ライティング クイックスタート ガイド](Engine/Rendering/LightingAndShadows/QuickStart)
 	[/PARAM]
 	[PARAM:next]
 		[次のステップ](Engine/Rendering/LightingAndShadows/QuickStart/3 "%Engine/Rendering/LightingAndShadows/QuickStart/3:title%")
@@ -23,19 +25,19 @@ Description:このステップでは Atmospheric Fog と Directional Light を�
 
 %Steps%
 
-前のステップで設定した基本のアパートを使って、全体的なレベルにライトを追加していきます。 
+前のステップで設定した基本のアパートを使って、レベル全体にライティングを追加していきます。 
 
-1. (有効にしている場合は) まず **Wireframe** モードを無効にして (**Alt+4** を押して) **Lit** モードに戻します。 
+1. **Wireframe** モードが有効になっている場合は無効にして、**Lit** モードに戻します (**Alt+4** を押します)。 
 
 	![](step2_1.png)
 
-1. **Visual Effects** の **[Modes]** メニューで、 **[Atmospheric Fog]** をレベル ビューポートにドラッグします。 
+1. **Visual Effects** の **[Modes]** メニューで、**[Atmospheric Fog]** をレベル ビューポートにドラッグします。 
 
 	![](step2_2.png)
 
 	ドラッグすると、レベルには単純なスカイボックスと夕陽のライトが表示されます。 
 
-1. **Lights** の **[Modes]** メニューで、 **[Directional Light]** をレベル ビューポートにドラッグします。 
+1. **[Modes]** メニューの **[Lights]** の **[Directional Light]** をレベル ビューポートにドラッグします。 
 
 	![](step2_3.png)
 
@@ -45,27 +47,37 @@ Description:このステップでは Atmospheric Fog と Directional Light を�
 
 	ゲームを **ビルド** し実行すると、インゲームに表示される実際のライトのプレビューを見ていることを示します。 
 
-1. **Directional Light** の **[詳細]** パネルで **Transform** を以下のように設定し、 **Atmosphere Sun Light** のチェックボックスにチェックを入れます。 
+1. **Directional Light** の **[Details (詳細)]** パネルで **Transform** を以下のように設定し、 **Atmosphere Sun Light** のチェックボックスにチェックを入れます。 
 
 	![](newDirectionalLight.png)
 
-	**Atmosphere Sun Light** にチェックを入れると、 **Rotation** モード (**E**) を使ってライトを回転させながら、太陽の位置を制御することができます。 
+	**[Atmosphere Sun Light]** にチェックを入れると、 **Rotation** モード (**E**) を使ってライトを回転させながら、太陽の位置を制御することができます。 
 
-	![](SunControlGif.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	d5PdhSHwpWs
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 	1 日の様々な時間帯の間で簡単に切り替えができるように、レベル内のライトは太陽の位置によって変わります。 
 
-今、デフォルトはこのようになっています。 
+今、デフォルトはこのようになっています。
 
 ![](step2_9.png)
 
- **Directional Light** の設定を変更して、夕陽に温かみを出してみましょう。 
+**Directional Light** の設定を変更して、夕陽に温かみを出してみましょう。 
 
-1. **Directional Light** の **[詳細]** パネルで、 **Light Color** バーをクリックすると、 **Color Picker** が表示されます。 
+1. **Directional Light** の **[Details (詳細)]** パネルで、**[Light Color]** バーをクリックすると、**カラーピッカー** が表示されます。 
 
 	![](LightingColorPicker.png)(w:640)
 
-	または、展開アイコンをクリックして、 **RGB** 値を手入力することもできます。 
+	または、展開アイコンをクリックして、**RGB** 値を手入力することもできます。 
 
 	![](step2_11.png)
 
@@ -95,7 +107,7 @@ Description:このステップでは Atmospheric Fog と Directional Light を�
 	各種 **Directional Light** の設定詳細は [](Engine/Rendering/LightingAndShadows/LightTypes/Directional) をご覧ください。 
 [/REGION]
 
-**次のステップ** では、大気中のライトを設定して、アパート内に光を当てて暗い部分を照らしていきます。 
+**次のステップ** では、大気のライトを設定して、アパート内に光を当てて暗い部分を照らしていきます。 
 
 %Steps%
 

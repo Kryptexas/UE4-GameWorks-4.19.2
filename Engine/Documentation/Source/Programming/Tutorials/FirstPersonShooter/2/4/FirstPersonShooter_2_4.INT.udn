@@ -3,7 +3,7 @@ Title: 2.4 - Implementing Mouse Camera Control
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
 Description: Learn how to implement mouse camera control for your First Person Shooter character.
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,19 +23,19 @@ Version: 4.9
 
 %Steps%
 
-During this step, you're going to add the ability for your character to look around and steer with the mouse.
+During this step, we're going to add the ability for our character to look around and steer with the mouse.
 
 ## Turn Axis Mapping
 
-1.	In the **Edit** menu, **click** on **Project Settings**.
+1.	In the **Edit** menu, click on **Project Settings**.
 
-1.	Under the **Engine** heading on the left side of the **Project Settings** tab, **click** on **Input**.
+1.	Under the **Engine** heading on the left side of the **Project Settings** tab, click on **Input**.
 
-1.	Under **Bindings**, **click** on the plus sign next to **Axis Mappings**.
+1.	Under **Bindings**, click on the plus sign next to **Axis Mappings**.
 
-1.	**Click** on the arrow to the left of **Axis Mappings**.
+1.	Click on the arrow to the left of **Axis Mappings**.
 
-1.	Type "Turn" into the text field that appears, then **click** on the arrow to the left of the text box to expand the axis binding options.
+1.	Type "Turn" into the text field that appears, then click on the arrow to the left of the text box to expand the axis binding options.
 
 1.	In the dropdown menu, select **Mouse X** from the **Mouse** dropdown list.
 
@@ -45,13 +45,13 @@ During this step, you're going to add the ability for your character to look aro
 
 ## Look-up Axis Mapping
 
-1.	Under **Bindings**, **click** on the plus sign next to **Axis Mappings**.
+1.	Under **Bindings**, click on the plus sign next to **Axis Mappings**.
 
-1.	Type **LookUp** into the text field that appears, then **click** on the arrow to the left of the text box to expand the axis binding options.
+1.	Type "LookUp" into the text field that appears, then click on the arrow to the left of the text box to expand the axis binding options.
 
 1.	In the dropdown menu, select **Mouse Y** from the **Mouse** dropdown list.
 
-1.	Type "-1" in the **Scale** field next to **Mouse Y**.
+1.	Type "-1.0" in the **Scale** field next to **Mouse Y**.
 
 1.	Your input settings should now look like the following:
 
@@ -81,11 +81,12 @@ If you want to perform additional processing, such as adding support for sensiti
 		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 		{
 			Super::SetupPlayerInputComponent(InputComponent);
-			
-			// set-up gameplay key bindings
+		
+			// set up gameplay key bindings
 			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
 			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
-			// set-up gameplay mouse bindings
+		
+			// set up gameplay mouse bindings
 			InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
 			InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
 		}
@@ -102,8 +103,8 @@ If you want to perform additional processing, such as adding support for sensiti
 
 1.	After the build finishes, open your **FPSProject** in Unreal Editor.
 
-1.	**Click** the **Play** button in the Level Editor Toolbar. You can now control the camera with your mouse.
+1.	Click the **Play** button in the Level Editor Toolbar. You can now control the camera with your mouse.
 
-1.	**Click** the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
+1.	Press the Escape key or click the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
 
 %Steps%

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2684616
+﻿INTSourceChangelist:2708278
 Availability:Public
 Title:2. 안드로이드 디바이스 셋업
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
@@ -66,7 +66,12 @@ Android Works 가 설치되었으니 안드로이드 디바이스를 개발에 �
 
 1.	안드로이드 디바이스에서 Settings 어플리케이션을 엽니다.
 
-1.	Developer Options 메뉴를 찾습니다. 사용할 수 없는 경우, 디바이스의 Developer Options 를 먼저 켜 줘야 합니다. Developer Options 관련 상세 내용은 [Android's Using Hardware Devices](http://developer.android.com/tools/device.html) 페이지를 참고하세요.
+1.	Developer Options 메뉴에서 **Developer Options** 를 탭합니다.
+
+	[REGION:note]
+	이 항목이 보이지 않는 경우, 디바이스의 Developer Options 활성화가 필요합니다.
+	자세한 내용은 [Android's Using Hardware Devices](http://developer.android.com/tools/device.html) 페이지를 참고하세요.
+	[/REGION]
 
 1.	화면 스크롤을 내려 About Phone 을 선택합니다. 안드로이드 디바이스에 따라 About Device, About Tablet, About Shield 옵션이 대신 나타날 수도 있습니다.
 	[REGION: note]
@@ -132,8 +137,12 @@ Android Works 가 설치되었으니 안드로이드 디바이스를 개발에 �
 
 1. 안드로이드 디바이스에서 **Settings** 어플리케이션을 엽니다.
 
-1. Developer Options 메뉴를 찾습니다. 사용할 수 없는 경우, 디바이스의 Developer Options 를 먼저 켜 줘야 합니다. 
-	Developer Options 관련 상세 내용은 [Android's Using Hardware Devices](http://developer.android.com/tools/device.html) 페이지를 참고하세요.
+1.	Developer Options 메뉴에서 **Developer Options** 를 탭합니다.
+	
+	[REGION:note]
+	이 항목이 보이지 않는 경우, 디바이스의 Developer Options 활성화가 필요합니다.
+	자세한 내용은 [Android's Using Hardware Devices](http://developer.android.com/tools/device.html) 페이지를 참고하세요.
+	[/REGION]
 
 1. 화면 스크롤을 내려 About Phone 을 선택합니다. 안드로이드 디바이스에 따라 About Device, About Tablet, About Shield 옵션이 대신 나타날 수도 있습니다.
 

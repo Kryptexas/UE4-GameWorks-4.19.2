@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2604027
+﻿INTSourceChangelist:2750813
 Availability: Public
 Title:SubUV 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:파티클에 SubUV 멀티 프레임 텍스처를 활용할 수 있는 SubUV 모듈입니다.
+Version: 4.9
 
 [TOC(start:2 end:3)]
 

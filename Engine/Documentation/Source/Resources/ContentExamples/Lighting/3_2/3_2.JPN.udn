@@ -1,6 +1,5 @@
-﻿INTSourceChangelist:2716715
-Availability:Public
-Title:3.2 - Light Functions
+﻿Availability:Public
+Title:3.2 - Light 関数
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
 Description:ライティングのサンプル レベル、サンプル 3.1：Light Functions
 Related:Engine/Rendering/LightingAndShadows/LightFunctions
@@ -59,7 +58,7 @@ Version:4.9
 
 [INCLUDE:Engine/Rendering/LightingAndShadows/LightFunctions#LightFunctions]
 
-Light Functions は、主に全体的なライト形状を変化させる際に使用するので、[サンプル 3.1](Resources\ContentExamples\Lighting\3_1) で紹介した IES プロファイルと混同しないようにしてください。IES プロファイルの計算は演算コストが低く、可能な時はいつでも Light Functions の代替として使用することができます。
+Light 関数は主に全体的なライト形状を変化させる際に使用するので、[サンプル 3.1](Resources\ContentExamples\Lighting\3_1) で紹介した IES プロファイルと混同しないでください。IES プロファイルの計算は演算コストが低く、可能な時はいつでも Light 関数の代替として使用することができます。
 
 
 

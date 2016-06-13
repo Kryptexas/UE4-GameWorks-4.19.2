@@ -2,6 +2,7 @@ Availability: Public
 Title:Location Modules
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:Location modules affect the position of particles at various times throughout their lives.
+Version: 4.9
 
 [TOC(start:2 end:3)]
 
@@ -21,7 +22,7 @@ LAd89U2b-YY
 [/PARAMLITERAL]
 [/OBJECT]
 
-The Initial Location module is used to set the initial location of a particle at spawn time. It contains the following member(s):
+The **Initial Location** module is used to set the initial location of a particle at spawn time. It contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |
@@ -35,7 +36,7 @@ In Spawn, the module retrieves the appropriate values from the distribution usin
 
 ## Initial Loc (Seed)
 
-The Initial Loc (Seeded) module is identical to the [Initial Location](#InitialLocation) module in that it sets the initial location of a particle at spawn time; however, this module allows you to specify seed information to be used when choosing distribution values in order to provide a more consistent effect from the module each time the emitter is used. It contains the following member(s):
+The **Initial Loc (Seeded)** module is identical to the [Initial Location](#InitialLocation) module in that it sets the initial location of a particle at spawn time; however, this module allows you to specify seed information to be used when choosing distribution values in order to provide a more consistent effect from the module each time the emitter is used. It contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |
@@ -54,7 +55,7 @@ In Spawn, the module retrieves the appropriate values from the distribution usin
 
 ## World Offset
 
-The World Offset module is used to offset the initial location of a particle. The offset is in world space but respects the _Use Local Space_ flag through the life of the particle. This means the particle will always spawn offset in world space regardless of the orientation of the emitter, but will keep that offset relative to the emitter throughout its life. It contains the following member(s):
+The **World Offset** module is used to offset the initial location of a particle. The offset is in world space but respects the _Use Local Space_ flag through the life of the particle. This means the particle will always spawn offset in world space regardless of the orientation of the emitter, but will keep that offset relative to the emitter throughout its life. It contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |
@@ -67,7 +68,7 @@ The World Offset module is used to offset the initial location of a particle. Th
 
 ## Bone/Socket Location
 
-The Bone/Socket Location module allows particle to be spawned directly at the locations of bones or sockets of a SkeletalMesh. It provides the following properties:
+The **Bone/Socket Location** module allows particle to be spawned directly at the locations of bones or sockets of a SkeletalMesh. It provides the following properties:
 
 | Property | Description |
 | ---- | ---- |
@@ -124,7 +125,7 @@ The Bone/Socket Location module allows particle to be spawned directly at the lo
 
 ## Direct Location
 
-The Direct Location module is used to directly set the location of a particle. It contains the following member(s):
+The **Direct Location** module is used to directly set the location of a particle. It contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |
@@ -138,7 +139,7 @@ The Direct Location module is used to directly set the location of a particle. I
 
 ## Emitter Init Loc
 
-The Emitter InitLoc module is used to set the initial location of a particle to the position of a particle from another emitter (in the same particle system). It contains the following member(s):
+The **Emitter InitLoc** module is used to set the initial location of a particle to the position of a particle from another emitter (in the same particle system). It contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |
@@ -169,7 +170,7 @@ The Emitter InitLoc module is used to set the initial location of a particle to 
 
 ## Emitter Direct Loc
 
-The Emitter DirectLoc module is used to set the location of a particle to the position of a particle from another emitter (in the same particle system) for the particle's entire life. It contains the following member(s):
+The **Emitter DirectLoc** module is used to set the location of a particle to the position of a particle from another emitter (in the same particle system) for the particle's entire life. It contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |
@@ -194,7 +195,7 @@ sefKMZtdGR0
 [/PARAMLITERAL]
 [/OBJECT]
 
-The Cylinder module is used to set the initial location of particles within a cylinder shape. It contains the following member(s):
+The **Cylinder** module is used to set the initial location of particles within a cylinder shape. It contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |
@@ -228,7 +229,7 @@ The Cylinder module is used to set the initial location of particles within a cy
 
 ## Cylinder (Seeded)
 
-The Cylinder (Seeded) module is identical to the [Cylinder](#Cylinder) module in that it sets the initial location of particles within a cylinder shape; however, this module allows you to specify seed information to be used when choosing distribution values in order to provide a more consistent effect from the module each time the emitter is used. It contains the following member(s):
+The **Cylinder (Seeded)** module is identical to the [Cylinder](#Cylinder) module in that it sets the initial location of particles within a cylinder shape; however, this module allows you to specify seed information to be used when choosing distribution values in order to provide a more consistent effect from the module each time the emitter is used. It contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |
@@ -263,7 +264,7 @@ ZM6GkFxO-b0
 [/PARAMLITERAL]
 [/OBJECT]
 
-The Sphere module is used to set the initial location of particles within a sphere shape. The class contains the following member(s):
+The **Sphere** module is used to set the initial location of particles within a sphere shape. The class contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |
@@ -283,7 +284,7 @@ The Sphere module is used to set the initial location of particles within a sphe
 
 ## Sphere (Seeded)
 
-The Sphere (Seeded) module is identical to the [Sphere](#Sphere) module in that it sets the initial location of particles within a sphere shape; however, this module allows you to specify seed information to be used when choosing distribution values in order to provide a more consistent effect from the module each time the emitter is used. It contains the following member(s):
+The **Sphere (Seeded)** module is identical to the [Sphere](#Sphere) module in that it sets the initial location of particles within a sphere shape; however, this module allows you to specify seed information to be used when choosing distribution values in order to provide a more consistent effect from the module each time the emitter is used. It contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |
@@ -304,7 +305,7 @@ The Sphere (Seeded) module is identical to the [Sphere](#Sphere) module in that 
 
 ![](Triangle.png)
 
-The Triangle module allows the user to specify the shape and location of a triangle, with particles being emitted from that triangle's 2D or 3D area, depending on whether there is a thickness applied.
+The **Triangle** module allows the user to specify the shape and location of a triangle, with particles being emitted from that triangle's 2D or 3D area, depending on whether there is a thickness applied.
 
 | Property | Description |
 | ---- | ---- |
@@ -317,7 +318,7 @@ The Triangle module allows the user to specify the shape and location of a trian
 
 ## Skeletal Mesh Vertex/Surface Location (Skel Vert/Surf Loc)
 
-The Skel Vert/Surf Loc module allows for particles to be emitted from a skeletal mesh's vertices or polygonal surfaces. It provides the following properties:
+The **Skel Vert/Surf Loc** module allows for particles to be emitted from a skeletal mesh's vertices or polygonal surfaces. It provides the following properties:
 
 | Property | Description |
 | ---- | ---- |
@@ -364,7 +365,7 @@ The Skel Vert/Surf Loc module allows for particles to be emitted from a skeletal
 
 ## Source Movement
 
-The Source Movement module is used to offset the location of particles based on the movement of the source (i.e. the emitter). It contains the following properties:
+The **Source Movement** module is used to offset the location of particles based on the movement of the source (i.e. the emitter). It contains the following properties:
 
 | Property | Description |
 | ---- | ---- |

@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2757227
 Availability:Public
 Title:12.タスクの作成
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:ステップ 12タスクの作成
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -22,19 +23,19 @@ Description:ステップ 12タスクの作成
 
 %Steps%
 
-Tasks ノードは、AI を移動するなどのように何かを "実行する"、あるいは Blackboard 値を調整するノードです。[**Decorators**](Engine/AI/BehaviorTrees/NodeReference/Decorators) をアタッチすることができます。
+Task ノードは、AI を移動するなどのように何かを "実行する"、あるいは Blackboard 値を調整するノードです。[デコレーター](Engine/AI/BehaviorTrees/NodeReference/Decorators) をアタッチすることができます。
 
-**Task** ノードは基本的には **Move To** ノードを再生成したものです。大きな違いは、Task ノードは常に AI を、プレイヤーの位置ではなく Pawn に向かって走らせることです。また、内容を細かくして、**Finish Execute** を実行しないと Task ノードが処理を継続するか確認する場合に便利です。**AI MoveTo** ノードがこれを完璧に表示します。
+**Task** ノードは基本的には **Move To** ノードを再生成したものです。大きな違いは、Task ノードは常に AI を、プレイヤーの位置ではなく Pawn に向かって走らせることです。また、内容を細かく分けて、**Finish Execute** を実行しないと Task ノードが処理を継続するかを確認する場合に便利です。**AI MoveTo** ノードがこれを完璧に表示します。
 
 
-## 手順
+## ステップ
 
 1. **コンテンツ ブラウザ** で FollowerBT Behavior Tree を **ダブルクリック** して開きます。
-1. New Task ![](newTask_button.png) ボタンをクリックします。
+1. **[New Task (新規タスク)]** ボタンをクリックします。
 
-	ビヘイビアツリーと同じフォルダの中に作成されます。
-1. **コンテンツ ブラウザ** の中で「RapidMoveTo」に名前を変更します。
-1. 編集のためにエディタによって既に開いた状態になっているはずですが、もしそうでない場合はコンテンツ ブラウザで **ダブルクリック** してください。
+	ビヘイビアツリーと同じフォルダ内に作成されます。
+1. **コンテンツ ブラウザ** 内で名前を「RapidMoveTo」に変更します。
+1. 編集のためにエディタによって既に開いた状態になっているはずですが、もしそうでない場合は **コンテンツ ブラウザ** で **ダブルクリック** してください。
 1. 次のグラフを作成します。
 
 	[OBJECT:Snippet]
@@ -51,7 +52,7 @@ Tasks ノードは、AI を移動するなどのように何かを "実行する
 		[/PARAM]
 	[/OBJECT]
 
-	_画像をクリックして拡大、または [こちら](fullGraph.png) をクリックしてウィンドウ中で開きます。_
+	_画像をクリックして拡大、または [こちら](fullGraph.png) をクリックしてウィンドウ内で開きます。_
 
 	![](variables.png)
 
@@ -65,7 +66,7 @@ Tasks ノードは、AI を移動するなどのように何かを "実行する
 | 変数名 | タイプ | 値 |
 | --- | --- | --- |
 | **AI_CON_Ref** | Follower_AI_CON_C | None |
-| **TargetToFollow** | BlackboardKeySelector | None - ただしこの変数には **True** に設定させている「編集可能な」フラグがあるので、ビヘイビアツリー上でインスタンスごとに変更することができます。 |
+| **TargetToFollow** | BlackboardKeySelector | None - ただしこの変数には **True** に設定している「編集可能な」フラグがあるので、ビヘイビアツリー上でインスタンスごとに変更することができます。 |
 [/VAR]
 
 

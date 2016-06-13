@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2609228
+﻿INTSourceChangelist:2697628
 Availability: Public
 Title:관리 모드
 Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Editing
 Description:랜드스케이프 툴의 Manage, 관리 모드 사용 안내서입니다.
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topiccompact]
@@ -112,7 +113,7 @@ Delete (삭제) 툴은 선택된 컴포넌트를 삭제합니다.
 
 ![selection_remove.jpg](selection_remove.jpg)(w:900 h:453)
 
-[REGION:tip]
+[REGION:note]
 플레이어가 들어갈 수 있는 영역에 대해 보다 세밀한 제어를 위해서는, [](Engine/Landscape/Materials) 문서를 참고하시기 바랍니다.
 [/REGION]
 

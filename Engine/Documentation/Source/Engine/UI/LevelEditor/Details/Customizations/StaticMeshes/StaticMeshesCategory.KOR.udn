@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2604372
+﻿INTSourceChangelist:2687105
 Availability:Public
 Title: 스태틱 메시 카테고리
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor, Engine/UI/LevelEditor/Details
 Description:액터의 모든 컴포넌트에 적용된 스태틱 메시 애셋의 확인과 수정에 특화된 콘트롤입니다.
+Version: 4.9
 
 **디테일** 패널의 **스태틱 메시** 카테고리는 선택된 액터가 스태틱 메시 액터 또는 인터프 액터일 경우에만 표시됩니다.
 보통 액터의 스태틱 메시 컴포넌트에 묻힌 **StaticMesh** 프로퍼티를 승격시켜 가장 돋보이게 만들고,

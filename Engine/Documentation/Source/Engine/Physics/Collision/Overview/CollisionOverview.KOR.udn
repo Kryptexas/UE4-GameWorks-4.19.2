@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2714891
+﻿INTSourceChangelist:2987073
 Availability: Public
 Title:콜리전 개요
 Crumbs: %ROOT%, Engine, Engine/Physics
@@ -118,12 +118,18 @@ Description:언리얼 엔진 4 의 콜리전 및 콜리전 반응 작동법 개�
 
 매 프레임 발동 가능한 콜리전과는 달리, 오버랩 이벤트는 **ReceiveBeginOverlap** (겹침 시작 수신) **ReceiveEndOverlap** (겹침 끝 수신)으로 나뉘어 있어서, 각각의 경우에만 발동합니다.
 
+[REGION:note]
+오버랩 발생을 위해서는, 양쪽 액터 모두 **Generate Overlap Events** (오버랩 이벤트 생성) 옵션이 켜져있어야 합니다. 이는 퍼포먼스 때문입니다. 구체와 박스 양쪽에 오버랩을 원하는 경우에서 구체나 박스 중 하나를 움직이면, 오버랩 쿼리를 하여 이벤트 발동이 필요한지 알아봅니다.
+
+박스가 오버랩을 원하지 않는 경우 이동시 오버랩 쿼리를 하지 않습니다. 하지만 이제 구체와는 겹칠 수 있으므로, 구체도 틱을 하고 매 프레임 오버랩 검사를 해야 누군가 들어섰는지를 확인할 수 있습니다.
+[/REGION]
+
 ![](COL_overlapEvent.png)(w:940 convert:false)
 
 | 구체 콜리전 구성 | 벽 콜리전 구성 |
 | --- | ---- |
-| ![](COL_OverlapEvent_Sphere.png)(convert:false) | ![](COL_collideNoEvent_Box.png)(convert:false) |
-| 여기서 구체는 **WorldDynamic** 액터(, 즉 벽) 겹침 설정되어 있어, 무언가에 겹치면 자체적으로 이벤트를 생성합니다. | 벽은 **WorldDynamic** 이며 **PhysicsBody** 액터(, 즉 구체) 막음 설정되어 있습니다. 위에서 언급했듯이, 두 액터 모두 각자의 오브젝트 유형을 막음 설정되어 있어야 합니다. 그렇지 않으면 충돌하지 않습니다. 하지만 여기서는 **Overlap** (겹침)은 발생하며, 구체에 그 이벤트가 발동됩니다. |
+| ![](COL_OverlapEvent_Sphere.png)(convert:false) | ![](COL_collideOverLapEvent_Box.png)(convert:false) |
+| 여기서 구체는 **WorldDynamic** 액터(, 즉 벽) 겹침 설정되어 있어, 무언가에 겹치면 자체적으로 이벤트를 생성합니다. | 벽은 **WorldDynamic** 이며 **PhysicsBody** 액터(, 즉 구체) 막음 설정되어 있습니다. 위에서 언급했듯이, 두 액터 모두 각자의 오브젝트 유형을 막음 설정되어 있어야 합니다. 그렇지 않으면 충돌하지 않습니다. 하지만 여기서는 **Overlap** (겹침)은 발생하며, 구체와 박스에 그 이벤트가 발동됩니다. |
 
  
 

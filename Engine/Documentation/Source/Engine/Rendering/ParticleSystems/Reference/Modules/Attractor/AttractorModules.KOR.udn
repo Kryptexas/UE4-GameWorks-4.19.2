@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2620308
+﻿INTSourceChangelist:2750603
 Availability: Public
 Title:Attractor 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:파티클을 공간의 한 점으로 끌어당기는 모듈입니다.
+Version: 4.9
 
 [TOC(start:2 end:3)]
 
@@ -22,7 +23,7 @@ Ntf5chUK4jM
 [/PARAMLITERAL]
 [/OBJECT]
 
-## Attractor Line
+## Line Attractor
 
 선 인력은 파티클의 3D 공간 내 선쪽으로 잡아당기는 모듈입니다.
 

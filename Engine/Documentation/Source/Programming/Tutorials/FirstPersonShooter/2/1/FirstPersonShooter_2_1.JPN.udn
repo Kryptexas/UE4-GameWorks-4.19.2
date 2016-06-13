@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2672917
+﻿INTSourceChangelist:2938862
 Availability:Docs
 Title:2.1- キャラクターを新規作成する
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
-Description:First Person Shooter プロジェクト用にキャラクターを新規作成する方法を学びます。
-スキルレベル:初心者向け
-バージョン：4.9
+Description:FPS プロジェクト用にキャラクターを新規作成する方法を学びます。
+SkillLevel:Beginner
+Version:4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,15 +23,15 @@ Description:First Person Shooter プロジェクト用にキャラクターを�
 
 %Steps%
 
-このステップでは、アンリアル エンジンの Character 基底クラスを使用して新規キャラクターを作成します。Character クラス (Pawn クラスから派生) は、歩く、走る、ジャンプするなどの二足方向の動きのためのビルトイン機能です。
-
-[REGION:note]
-手動で \*.h ファイルおよび \*.cpp ファイルを Visual Studio ソリューションに追加できますが、グッドプラクティスは C++ Class Wizard を使用して新規クラスをプロジェクトに追加する方法を使用することです。C++ Class Wizard を使用することで、アンリアル エンジンではアンリアル固有のマクロをセットアップするヘッダーとソース テンプレートを作成します。
-[/REGION]
+このステップでは、アンリアル エンジンの Character 基本クラスを使用して新規キャラクターを作成します。Character クラス (Pawn クラスから派生) は、歩く、走る、ジャンプするなどの二足方向の動きのためのビルトイン機能です。
 
 ## Character クラスを追加する
 
+手動で \*.h ファイルおよび \*.cpp ファイルを Visual Studio ソリューションに追加できますが、グッドプラクティスは C++ Class Wizard を使用して新規クラスをプロジェクトに追加する方法を使用することです。C++ Class Wizard を使用することで、アンリアル エンジンではアンリアル固有のマクロをセットアップするヘッダーとソース テンプレートを作成します。
+
 1.	ファイル メニューで **[New C++ Class... (新規 C++ クラス)]** を選択して、新しい Parent (親) クラスを選択します。
+
+	![](SelectNewCPPClass.png)
 
 1.	**[Choose Parent Class (親クラスを選択)]** メニューが開きます。下方にスクロールして、親クラスとして **[Character]** を選択して、**[Next]** をクリックします。
 
@@ -42,53 +42,58 @@ Description:First Person Shooter プロジェクト用にキャラクターを�
 	![](MakeFPSCharacterClass.png)
 
 	[REGION:note]
-	FPSCharacter クラスを作成したので、**Visual Studio** へ切り替えて、新規作成したクラスにコードを追加することができます。`FPSCharacter.h` と `FPSCharacter.cpp` が開き、 **アンリアル エンジン** が新規クラスのために自動的にコードをコンパイルし、再読み込みします。
+	FPSCharacter クラスを作成したので、**Visual Studio** へ切り替えて、新規作成したクラスにコードを追加することができます。`FPSCharacter.h` と `FPSCharacter.cpp` が開き、アンリアル エンジンが新規クラスのために自動的にコードをコンパイルし、再読み込みします。
 	[/REGION]
 
 ## Game Mode クラスを編集する
 
-ゲームプレイ開始時に「FPSCharacter」をデフォルトのポーンとして使用するように、まず **[GameMode]** を編集します。
+ゲームプレイ開始時に FPSCharacter をデフォルトのポーンとして使用するように、まず **[GameMode]** を編集します。
 
 1.	**Solution Explorer** で、**FPSProject > Source > FPSProject** の順に展開します。
 
 	![](ExpandedSolutionExplorer.png)
 
-1.	`FPSGameMode.cpp` を **ダブルクリック** して、**FPSGameMode** クラスのための実装ファイルを開きます。
+1.	`FPSProjectGameMode.cpp` をダブルクリックして、**FPSProjectGameMode** クラスのための実装ファイルを開きます。
 
-1.	`FPSGameMode.cpp` 上部に `FPSCharacter` ヘッダーをインクルードします。
+1.	`FPSProjectGameMode.cpp` 上部に `FPSCharacter` ヘッダーをインクルードします。
 
 		#include "FPSCharacter.h"
 
-1.	以下の行を `AFPSGameMode` コンストラクタに追加します。
+1.	以下の行を `AFPSProjectGameMode` コンストラクタに追加します。
 
 		DefaultPawnClass = AFPSCharacter::StaticClass();
 
 1.	`FPSGameMode.cpp` は以下のようになります。
 
-		// Project Settings の Description ページに著作権情報を入力してください。
+		// Project Settings の Description ページに著作権情報を入力してください
 		#include "FPSProject.h"
 
-		#include "FPSGameMode.h"
+		#include "FPSProjectGameMode.h"
 		#include "FPSCharacter.h"
-		AFPSGameMode::AFPSGameMode(const FObjectInitializer& ObjectInitializer) :Super(ObjectInitializer)
+		AFPSProjectGameMode::AFPSProjectGameMode()
 
 		{
 			DefaultPawnClass = AFPSCharacter::StaticClass();
-		}//AFPSGameMode Constructor
-		void AFPSGameMode::StartPlay()
+		}
+		void AFPSProjectGameMode::StartPlay()
 
 		{
 			Super::StartPlay();
 		StartMatch();
 
+		const int32 Key = -1;
+
+			static const FString DebugMessage = TEXT("Hello World, this is FPSGameMode!");
+			FColor DisplayColor = FColor::Yellow;
+			float TimeToDisplay = 5.0f; //秒
 		if (GEngine != nullptr)
 
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("We are using FPSGameMode."));
+				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
 			}
-		}//StartPlay()
+		}
 
-1.	Visual Studio に `FPSGameMode.cpp` 実装ファイルを保存します。
+1.	Visual Studio に `FPSProjectGameMode.cpp` 実装ファイルを保存します。
 
 ## Character クラスを検証する
 
@@ -96,22 +101,28 @@ Description:First Person Shooter プロジェクト用にキャラクターを�
 
 	![](ExpandedSolutionExplorer.png)
 
-1.	`FPSCharacter.cpp` を **ダブルクリック** して、**FPSGameMode** クラスのための実装ファイルを開きます。
+1.	`FPSCharacter.cpp` をダブルクリックして、**FPSCharacter** クラスのための実装ファイルを開きます。
 
 1.	以下のコードの行を `BeginPlay()` 関数に追加して、 `FPSCharacter` クラスが使用されていることを検証します。
 
-		if(GEngine != nullptr)
+		const int32 Key = -1;
+		static const FString DebugMessage = TEXT("We are using FPSCharacter.");
+		FColor DisplayColor = FColor::Red;
+		float TimeToDisplay = 5.0f; //秒
+
+		if (GEngine != nullptr)
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::White, TEXT("We are using FPSCharacter."));
+			GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
+
 		}
 
 1.	`FPSCharacter.cpp` は以下のようになります。
 
-		// Project Settings の Description ページに著作権情報を入力してください。
+		// Project Settings の Description ページに著作権情報を入力してください
 		#include "FPSProject.h"
 
 		#include "FPSCharacter.h"
-		// デフォルト値を設定
+				// デフォルト値を設定
 
 		AFPSCharacter::AFPSCharacter()
 		{
@@ -124,11 +135,17 @@ Description:First Person Shooter プロジェクト用にキャラクターを�
 		void AFPSCharacter::BeginPlay()
 		{
 			Super::BeginPlay();
-			if (GEngine != nullptr)
+			const int32 Key = -1;
+
+			static const FString DebugMessage = TEXT("We are using FPSCharacter.");
+			FColor DisplayColor = FColor::Red;
+			float TimeToDisplay = 5.0f; //秒
+		if (GEngine != nullptr)
 
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::White, TEXT("We are using FPSCharacter."));
-			}
+				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
+		}
+
 		}
 		// フレームごとに呼ばれます
 
@@ -145,11 +162,11 @@ Description:First Person Shooter プロジェクト用にキャラクターを�
 		}
 
 
-1.	Visual Studio に `FPSCharacter` 実装ファイルを保存します。
+1.	Visual Studio に `FPSCharacter` CPP ファイルを保存します。
 
 1.	**[Solution Explorer (ソリューション エクスプローラ)]** で **[FPSProject]** を探します。
 
-1.	**[FPSProject]** 上で **右クリック** して、**[Build (ビルド)]** を選択してプロジェクトをコンパイルします。
+1.	今まで、エディタの **[Build]** ボタンを使ってプロジェクトをコンパイルしていました。このステップでは、Visual Studio のビルド機能を使ってコードをコンパイルします。Visual Studio 内からコードをコンパイルするには、**[FPSProject]** 上で 右クリックして、**[Build (ビルド)]** を選択してプロジェクトをコンパイルします。
 
 	![](BuildProject.png)
 
@@ -157,14 +174,12 @@ Description:First Person Shooter プロジェクト用にキャラクターを�
 
 	![](FPSCharacterContentBrowser.png)
 
-1.	レベル エディタのツールバーで、**[Play (再生)]** ボタンを **クリック** します。ビューポートの左上隅で "We are using FPSCharacter." というメッセージが"We are using FPSGameMode." の下に表示されます。
+1.	レベル エディタのツールバーで、**[Play (再生)]** ボタンをクリックします。ビューポートの左上隅に "Hello World, this is FPSGameMode!" と表示される黄色のテキストの下に "We are using FPSCharacter." が赤色のテキストで 5 秒間表示されるようになります。
 
 	![](VerifyingFPSCharacterResult.png)
 
-	[REGION:note]
 	新しいキャラクターにはまだ移動の制御がありません。そのため、レベル内を移動できません。移動できない場合は、ポーンとして `FPSCharacter` を正しく使用していることになります！
-	[/REGION]
 
-1.	[PIE (Play In Editor)] モードを終了するには、レベル エディタで **[Stop]** ボタンを **クリック** します。
+1.	次のステップに進む前に、[PIE (Play In Editor)] モードを終了するには、レベル エディタで Escape キーを押すか、**[Stop]** ボタンをクリックします。
 
 %Steps%

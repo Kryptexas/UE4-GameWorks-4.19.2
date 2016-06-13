@@ -1,10 +1,13 @@
-﻿INTSourceChangelist:2683101
+﻿INTSourceChangelist:2968923
 Availability:Public
 Title:레벨 블루프린트
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types
 Description:맵 안의 레벨 전용 이벤트 스크립트를 짜는 데 사용되는 블루프린트 입니다.
 Related: Engine/Blueprints/UserGuide/Types
 Related: Engine/Blueprints
+version: 4.9
+Parent:Engine/Blueprints
+Type:guide
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -80,7 +83,7 @@ _레벨 블루프린트_ 는 이 클래스를 기반으로 생성되며, 여기�
 ![](level_blueprint_editor.png)
 [/REGION]
 
-**블루프린트 에디터** 는 [**그래프**](Engine/Blueprints/Editor/UIComponents/GraphEditor) 에디터, **내 블루프린트** 패널, **디테일** 패널만 사용합니다. **클래스 디폴트** 패널은 메뉴 바의 ![](Engine\Blueprints\UserGuide\Variables\classDefaults_button.png) **클래스 디폴트** 버튼을 사용합니다.
+**블루프린트 에디터** 는 [그래프 에디터](Engine/Blueprints/Editor/UIComponents/GraphEditor), **내 블루프린트** 패널, **디테일** 패널만 사용합니다. **클래스 디폴트** 패널은 메뉴 바의 ![](Engine\Blueprints\UserGuide\Variables\classDefaults_button.png) **클래스 디폴트** 버튼을 사용합니다.
 
 ## 액터 레퍼런싱
 

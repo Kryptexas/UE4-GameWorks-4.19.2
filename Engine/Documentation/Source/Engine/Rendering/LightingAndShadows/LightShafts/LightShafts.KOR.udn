@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2602348
+﻿INTSourceChangelist:2683545
 Availability:Public
 Title:라이트 섀프트
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:대기에 흩어지는 빛줄기에 대한 시뮬레이션입니다.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -69,7 +70,7 @@ Description:대기에 흩어지는 빛줄기에 대한 시뮬레이션입니다.
 | **Bloom Scale** | 블룸 스케일 - 블룸의 애디티브 컬러에 대한 스케일을 조절, 더 또는 덜 강조되어 보이게 만듭니다. |
 | **Bloom Threshold** | 블룸 한계치 - 씬 컬러가 이 값보다 커야 라이트 섀프트에 블룸 효과가 생깁니다. |
 | **Bloom Tint** | 블룸 색조 - 씬 컬러에 곱하여 블룸 컬러를 만듭니다. 라이트 섀프트 블룸 효과에 색을 입힙니다. |
-| **Light Shaft Override Direction** | 라이트 섀프트 오버라이드 방향 - 라이트 섀프트가 라이트의 실제 방향과 다른 곳에서 오게끔 만드는 데 사용할 수 있습니다 (0 이 아니고 정규화시킬 필요가 없을때만 사용됩니다). |
+| **Light Shaft Override Direction** | 라이트 섀프트 오버라이드 방향 - 라이트 섀프트가 라이트의 실제 방향과 다른 곳에서 오게끔 만드는 데 사용할 수 있습니다 (0 이 아니고 정규화시킬 필요가 없을 때만 사용됩니다). |
   
 ## 오클루전 메소드
   
@@ -93,6 +94,8 @@ Description:대기에 흩어지는 빛줄기에 대한 시뮬레이션입니다.
   
 이러한 (오클루전과 블룸) 이펙트는 별도의 비용이 들기에, 원하는 것만 켜 주는 것이 최선입니다. 680GTX 의 1080p 해상도에서 오클루전은 .5ms 이며, 하나의 라이트에 대한 블룸은 .68ms 입니다.
 
+<!-- Redundant Images
 [REGION:lightbox]
 [![](2LightShafts.png)(h:250)](2LightShafts.png) [![](5LightShafts.png)(h:250)](5LightShafts.png) 
 [/REGION]
+-->

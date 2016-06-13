@@ -312,7 +312,7 @@ We'd like to thank all of the amazing developers who contributed code in this re
 	* **Unreal Editor Manual**
 		* New: [Blueprint Cheat Sheet](Engine/Blueprints/UserGuide/CheatSheet)
 		* New: [Light Propagation Volumes](Engine/Rendering/LightingAndShadows/LightPropagationVolumes)
-		* New: [Preview Shadows](Engine/Rendering/LightingAndShadows/Shadows#previewshadows)
+		* New: [Preview Shadows](Engine/Rendering/LightingAndShadows/Shadows)
 		* New: [Pivot Painter](Engine/Content/Tools/PivotPainter)
 		* New: [Mac Viewport Controls Quick Reference](Engine/UI/LevelEditor/Viewports/ViewportControls)
 	* **Programming Guide** 

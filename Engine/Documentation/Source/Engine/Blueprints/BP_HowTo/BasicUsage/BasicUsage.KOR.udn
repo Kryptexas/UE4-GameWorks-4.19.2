@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2664320
+﻿INTSourceChangelist:2975314
 Availability: Public
 Title:블루프린트 기본 사용 안내서
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -9,6 +9,9 @@ Related: Engine/Blueprints/UserGuide
 Related: Engine/Blueprints/UserGuide/CheatSheet
 Related: Gameplay
 Version: 4.9
+Parent:Engine/Blueprints/Anatomy
+Tags:클래스 블루프린트
+
 
 [TOC(start:2 end:2)]
 
@@ -29,7 +32,7 @@ Version: 4.9
 ![](Basic4.png)
 
 <!--
-1.	이름을 짓고나면 블루프린트 생성 프로세스가 완료됩니다.
+1.	이름을 짓고 나면 블루프린트 생성 프로세스가 완료됩니다.
 
 	![](Basic5.png)
 
@@ -128,7 +131,7 @@ Version: 4.9
 
 ## 블루프린트 노드 배치하기
 
-**그래프 모드** 에서 노드를 배치하는 방법은 여러가지 있는데 (자세한 벙보는 [](Engine\Blueprints\BP_HowTo\PlacingNodes) 참고), 이 섹션에서는 그 중 가장 흔히 사용되는 배치 방법과 아울러 노드를 연결하는 방법도 알아보겠습니다.
+**그래프 모드** 에서 노드를 배치하는 방법은 여러가지 있는데 (자세한 정보는 [](Engine\Blueprints\BP_HowTo\PlacingNodes) 참고), 이 섹션에서는 그 중 가장 흔히 사용되는 배치 방법과 아울러 노드를 연결하는 방법도 알아보겠습니다.
 
 [INCLUDE:Engine\Blueprints\BP_HowTo\PlacingNodes#context]
 
@@ -145,7 +148,6 @@ Version: 4.9
 
 ![](ConversionNode.png)
 
-* 블루프린트 그래프 내부 작업 관련 상세 정보: [](Engine\Blueprints\BP_HowTo\NavigatingGraphs)
 *  부가적인 노드 기반 동작 및 단축키 정보: [](Engine/Blueprints/UserGuide/CheatSheet)
 
 

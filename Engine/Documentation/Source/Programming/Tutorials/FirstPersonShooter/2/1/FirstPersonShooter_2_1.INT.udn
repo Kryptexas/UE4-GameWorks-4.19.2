@@ -3,7 +3,7 @@ Title: 2.1 - Making a New Character
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
 Description: Learn how to make a new character for your First Person Shooter project.
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -22,15 +22,15 @@ Version: 4.9
 
 %Steps%
 
-During this step, you're going to make a new character using the engine's Character base class. The Character class (derived from the Pawn class) has built-in functionality for bipedal movement, such as walking, running, and jumping.
-
-[REGION:note]
-Although you can manually add \*.h and \*.cpp files to your Visual Studio solution, it's good practice to use the C++ Class Wizard to add new classes to your project. By using the C++ Class Wizard, the engine creates header and source templates that set-up Unreal specific macros for you.
-[/REGION]
+During this step, we're going to make a new character using the engine's Character base class. The Character class (derived from the Pawn class) has built-in functionality for bipedal movement; such as walking, running, and jumping.
 
 ## Adding a Character Class
 
+Although you can manually add \*.h and \*.cpp files to your Visual Studio solution, it's good practice to use the C++ Class Wizard to add new classes to your project. By using the C++ Class Wizard, the engine creates header and source templates that set-up Unreal specific macros for you.
+
 1.	In the File menu, select **New C++ Class...** to choose your new parent class.
+
+	![](SelectNewCPPClass.png)
 
 1.	The **Choose Parent Class** menu will open. Scroll down, select **Character** as the parent class and click **Next**.
 
@@ -41,24 +41,24 @@ Although you can manually add \*.h and \*.cpp files to your Visual Studio soluti
 	![](MakeFPSCharacterClass.png)
 
 	[REGION:note]
-	Now that you've created your FPSCharacter class, you can switch to **Visual Studio** to add code to your newly created class. `FPSCharacter.h` and `FPSCharacter.cpp` will be opened for you and **Unreal Engine** will automatically compile and reload the code for your new class.
+	Now that you've created your FPSCharacter class, you can switch to **Visual Studio** to add code to your newly created class. `FPSCharacter.h` and `FPSCharacter.cpp` will be opened for you and Unreal Engine will automatically compile and reload the code for your new class.
 	[/REGION]
 
 ## Editing the Game Mode Class
 
-First, you're going to edit your **GameMode** so that FPSCharacter is the defaul Pawn used when starting gameplay.
+First, you're going to edit your **GameMode** so that FPSCharacter is the default Pawn used when starting gameplay.
 
 1.	In the **Solution Explorer**, expand **FPSProject > Source > FPSProject**.
 
 	![](ExpandedSolutionExplorer.png)
 
-1.	**Double-click** `FPSGameMode.cpp` to open the implementation file for your **FPSGameMode** class.
+1.	Double-click `FPSProjectGameMode.cpp` to open the implementation file for your **FPSProjectGameMode** class.
 
-1.	First, include the `FPSCharacter` header at the top of `FPSGameMode.cpp`:
+1.	First, include the `FPSCharacter` header at the top of `FPSProjectGameMode.cpp`:
 
 		#include "FPSCharacter.h"
 
-1.	Now, add the following line in your `AFPSGameMode` constructor:
+1.	Now, add the following line in your `AFPSProjectGameMode` constructor:
 
 		DefaultPawnClass = AFPSCharacter::StaticClass();
 
@@ -67,27 +67,32 @@ First, you're going to edit your **GameMode** so that FPSCharacter is the defaul
 		// Fill out your copyright notice in the Description page of Project Settings.
 		
 		#include "FPSProject.h"
-		#include "FPSGameMode.h"
+		#include "FPSProjectGameMode.h"
 		#include "FPSCharacter.h"
 		
-		AFPSGameMode::AFPSGameMode(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+		AFPSProjectGameMode::AFPSProjectGameMode()
 		{
 			DefaultPawnClass = AFPSCharacter::StaticClass();
-		}//AFPSGameMode Constructor
+		}
 		
-		void AFPSGameMode::StartPlay()
+		void AFPSProjectGameMode::StartPlay()
 		{
 			Super::StartPlay();
 		
 			StartMatch();
 		
+			const int32 Key = -1;
+			static const FString DebugMessage = TEXT("Hello World, this is FPSGameMode!");
+			FColor DisplayColor = FColor::Yellow;
+			float TimeToDisplay = 5.0f; //seconds
+		
 			if (GEngine != nullptr)
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("We are using FPSGameMode."));
+				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
 			}
-		}//StartPlay()
+		}
 
-1.	Save the `FPSGameMode.cpp` implementation file in Visual Studio.
+1.	Save the `FPSProjectGameMode.cpp` implementation file in Visual Studio.
 
 ## Verifying the Character Class
 
@@ -95,13 +100,19 @@ First, you're going to edit your **GameMode** so that FPSCharacter is the defaul
 
 	![](ExpandedSolutionExplorer.png)
 
-1.	**Double-click** `FPSCharacter.cpp` to open the implementation file for your **FPSCharacter** class.
+1.	Double-click `FPSCharacter.cpp` to open the implementation file for your **FPSCharacter** class.
 
 1.	Add the following lines of code in the `BeginPlay()` function to verify that `FPSCharacter` class is being used:
 
-		if(GEngine != nullptr)
+		const int32 Key = -1;
+		static const FString DebugMessage = TEXT("We are using FPSCharacter.");
+		FColor DisplayColor = FColor::Red;
+		float TimeToDisplay = 5.0f; //seconds
+
+		if (GEngine != nullptr)
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::White, TEXT("We are using FPSCharacter."));
+			GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
+
 		}
 
 1.	`FPSCharacter.cpp` should now look like the following:
@@ -110,7 +121,7 @@ First, you're going to edit your **GameMode** so that FPSCharacter is the defaul
 		
 		#include "FPSProject.h"
 		#include "FPSCharacter.h"
-		
+				
 		// Sets default values
 		AFPSCharacter::AFPSCharacter()
 		{
@@ -124,9 +135,15 @@ First, you're going to edit your **GameMode** so that FPSCharacter is the defaul
 		{
 			Super::BeginPlay();
 			
+			const int32 Key = -1;
+			static const FString DebugMessage = TEXT("We are using FPSCharacter.");
+			FColor DisplayColor = FColor::Red;
+			float TimeToDisplay = 5.0f; //seconds
+		
 			if (GEngine != nullptr)
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::White, TEXT("We are using FPSCharacter."));
+				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
+		
 			}
 		}
 		
@@ -144,11 +161,11 @@ First, you're going to edit your **GameMode** so that FPSCharacter is the defaul
 		
 		}
 
-1.	Save the `FPSCharacter` implementation file in Visual Studio.
+1.	Save the `FPSCharacter` CPP file in Visual Studio.
 
 1.	Locate **FPSProject** in the **Solution Explorer**.
 
-1.	**Right-click** on **FPSProject** and select **Build** to compile your project.
+1.	Up until now, you've been compiling your project using the editor's **Build** button. During this step, you're going to gain experience compiling code using Visual Studio's build feature. To compile your code from inside Visual Studio, right-click on **FPSProject** and select **Build** to compile your project.
 
 	![](BuildProject.png)
 
@@ -156,14 +173,12 @@ First, you're going to edit your **GameMode** so that FPSCharacter is the defaul
 
 	![](FPSCharacterContentBrowser.png)
 
-1.	**Click** the **Play** button in the Level Editor Toolbar. "We are using FPSCharacter." should now be displayed below "We are using FPSGameMode." in the upper left corner of the viewport.
+1.	Click the **Play** button in the Level Editor Toolbar. "We are using FPSCharacter." should now be displayed in red text below "Hello World, this is FPSGameMode!" for five seconds in the upper left corner of the viewport.
 
 	![](VerifyingFPSCharacterResult.png)
 
-	[REGION:note]
 	Your new Character doesn't have any movement controls yet, so you won't be able to move around in the level. If you're unable to move, you are using FPSCharacter as your Pawn correctly!
-	[/REGION]
 
-1.	**Click** the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
+1.	Before going to the next step, press the Escape key or click the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
 
 %Steps%

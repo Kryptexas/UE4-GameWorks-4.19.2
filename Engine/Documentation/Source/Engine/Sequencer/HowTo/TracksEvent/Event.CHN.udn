@@ -1,0 +1,135 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Calling Custom Events
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:Shows how you can use the Event Track to call Custom Events and script in Blueprint. 
+Version: 4.11
+SkillLevel: Intermediate
+parent:Engine/Sequencer/HowTo
+order:1
+checkpoint: editorqs
+Related: Engine/Sequencer/Overview
+Related: Engine\Sequencer\ReferenceEditor\
+
+[REGION:warning]
+This is a feature that is currently undergoing development and may not work as expected or may change in future revisions.
+[/REGION]
+
+The **Event Track** can be used to call [**Custom Events**](Engine/Blueprints/UserGuide/Events/Custom) and fire off [**Blueprint Script**](Engine/Blueprints) inside the  [**Level Blueprint**](Engine/Blueprints/UserGuide/Types/LevelBlueprint). 
+Once the Custom Event is called, any script attached to it will also be executed and can be used for any number of scenarios based on your needs. 
+
+In this example, we will execute an Event which will be used to activate a particle effect in the level. 
+
+## Steps
+
+[REGION:note]
+For this how-to, we are using the **Blueprint Third Person Template** project with **Starter Content** enabled. 
+[/REGION]
+
+1.	With your project open and [**Sequencer**](Engine\Sequencer\HowTo\EnableSequencer) enabled, from the **Toolbar** click the **Cinematics** button and **Add Level Sequence**. 
+
+	![](EventTrack1.png)
+
+	Choose a Save Location and give the Level Sequence a name when prompted. 
+
+1.	In Sequencer, click the **Add** button and select to add an **Event Track**. 
+
+	![](EventTrack2.png)
+
+1.	On the **Event Track**, move the Timeline Marker to **75** then click the **+** sign to add a key. 
+
+	![](EventTrack3.png)
+
+1.	**Right-click** on the key, then under **Properties** enter the name **MyEvent** for the **Value**. 
+
+	![](EventTrack4.png)
+
+1.	In the **Content Browser** under **StarterContent/Particles**, drag the **P_Explosion** into the level. 
+
+	![](EventTrack5.png)
+
+1.	With the **P_Explosion** asset selected, in the **Details** panel un-check the **Auto Activate** option. 
+
+	![](EventTrack6.png)
+
+	This will ensure that the particle effect is not played upon starting the level. 
+
+1.	With the **P_Explosion** asset still selected, click the **Blueprints** button from the Toolbar and select **Open Level Blueprint**. 
+
+	![](EventTrack7.png)
+
+1.	In the **Level Blueprint**, **Right-click** and select **Create a Reference to P_Explosion**. 
+
+	![](EventTrack8.png)
+
+1.	**Right-click** in the graph again and search for and add a **Custom Event** node and name it **MyEvent** (the same as in **Step 4**). 
+
+	![](EventTrack9.png)
+	
+	[REGION:note]
+	The Custom Event name **MUST** be the same name as the one provided in the properties of the Event Key Value in order for it to be called. You can press the **F2** key with the Custom Event node selected to rename it. 
+	[/REGION]
+
+1.	**Left-click** drag off the **P_Explosion** node and search for and add the **Activate (ParticleSystemComponent)** node. 
+
+	![](EventTrack10.png)
+
+1.	Connect the **Custom Event** to the **Activate** node as shown below. 
+
+	![](EventTrack11.png)
+
+1.	In the Main Editor window from the **World Outliner** select your Level Sequence then in the **Details** enable **Auto Play**. 
+
+	![](EventTrack12.png)
+
+1.	Click the **Play** button from the Main Toolbar to play in the editor. 
+
+
+## End Result
+
+When playing in the editor after a few seconds, the explosion will active. 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+QrOO2RnRYq8
+[/PARAMLITERAL]
+[/OBJECT]
+
+In the video above, we also illustrate that you will not see the script being executed when you click the **Play** button inside Sequencer to play your Level Sequence. 
+You will only be able to preview your scripted events being called from your Event Track during gameplay when the Level Sequence is played.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

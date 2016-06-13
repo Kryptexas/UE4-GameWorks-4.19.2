@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2590541
+﻿INTSourceChangelist:2690274
 Availability:Public
 Title:Vector 표현식
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
 Description:위치나 노멀같은 벡터값을 출력하는 표현식입니다.
+Version: 4.9
 
 [EXCERPT:TOC]
 [TOC(start:2)]
@@ -28,7 +29,7 @@ CameraWorldPosition 는 월드 스페이스에서의 카메라 위치를 나타�
 
 미리보기 구체는 카메라가 회전하면서 색이 바뀝니다.
 
-![CameraPositionWSExample.png](CameraPositionWSExample.png)(w:476) ![](CameraPositionWSNetwork.png)(w:450)
+![CameraPositionWSExample.png](CameraPositionWSExample.png)(w:450) ![](CameraPositionWSNetwork.png)(h:333)
 [/EXCERPT:CameraPositionWS]
 
 
@@ -92,10 +93,10 @@ ObjectOrientation 는 오브젝트의 월드 스페이스 업 벡터를 출력�
 ## ObjectPositionWS
 
 
-ObjectPositionWS 는 오브젝트 바운드의 월드 스페이스 중심 위치를 출력하는 표현식입니다. 예로 포울리지에 대한 구체형 라이팅을 만든다든가 할 때 좋습니다.
+ObjectPositionWS 는 오브젝트 바운드의 월드 스페이스 중심 위치를 출력하는 표현식입니다. 예로 폴리지에 대한 구체형 라이팅을 만든다든가 할 때 좋습니다.
 
 
-![](WorldPositionWSScene.png)(w:460) ![](WorldPositionNetwork.png)(w:470)
+![](WorldPositionWSScene.png)(w:450) ![](WorldPositionNetwork.png)(h:349)
 
 [/EXCERPT:ObjectPositionWS]
 

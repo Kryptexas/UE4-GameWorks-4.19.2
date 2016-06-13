@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2650085
+﻿INTSourceChangelist:2969282
 Availability: Public
 Title:2 - C++ 클래스 생성
 Crumbs:%ROOT%, Programming, Programming/QuickStart
 Description:C++ 클래스를 생성합니다.
 SkillLevel: Beginner
-Version: 4.8
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -14,7 +14,7 @@ Version: 4.8
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[퀵스타트 홈](Programming\QuickStart)
+		[프로그래밍 퀵스타트 홈](Programming\QuickStart)
 	[/PARAM]
 	[PARAM:next]
 		[다음 단계](Programming\QuickStart\3 "%Programming\QuickStart\3:title%")

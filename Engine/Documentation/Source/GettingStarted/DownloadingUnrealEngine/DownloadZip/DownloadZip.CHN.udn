@@ -1,4 +1,5 @@
-﻿Availability:NoPublish
+﻿INTSourceChangelist:2735872
+Availability:Public
 Title:从GitHub下载虚幻引擎的压缩文件
 Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine
 Description:从GitHub下载虚幻引擎源码的压缩文件。

@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2426414
+﻿INTSourceChangelist:2699661
 Availability:Public
 Title:카메라 애님
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework, Gameplay/Framework/Camera
 Description:CameraAnim, 카메라 애님은 카메라에 애니메이션 레이어를 끼워 임팩트, 배경 모션, 기타 이펙트 시뮬레이션이 가능합니다.
+Version: 4.9
 
 개념적으로 CameraAnim, 카메라 애님은 단순히 게임내 카메라에 레이어로 놓을 수 있는 애니메이션입니다. 애니메이팅 가능한 것은 카메라 위치와 회전, FOV, 포스트 프로세스 세팅입니다.
 카메라 애님의 위치, 회전, FOV 변화는 게임 카메라에 더하기식으로 적용됩니다. 이러한 키프레임은 "초기치에 상대적인" 것으로 간주, 즉 애니메이션 내 0.0 시간으로부터의 경과치만 

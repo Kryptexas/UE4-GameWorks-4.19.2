@@ -1,4 +1,4 @@
-Availability: Public
+Availability:Public
 Title:Creating a Blend Space
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:Using a Blend Space, a character blends between walking/jogging when a button is pressed. 

@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:2515048
+﻿INTSourceChangelist:2968976
 Availability:Public
 Title: 블루프린트 비주얼 스크립팅
 Crumbs: %ROOT%, Engine
 Description:게임플레이용 비주얼 스크립팅 시스템 Blueprint, 블루프린트 사용 개요서입니다.
-
+version: 4.9
+parent:%ROOT%
+order:5
+social-image:bp_social_image.png
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -62,15 +65,14 @@ Description:게임플레이용 비주얼 스크립팅 시스템 Blueprint, 블�
 	[PARAM:path]
 		[RELATIVE:Engine/Blueprints]
 	[/PARAM]
-[PARAMLITERAL:id]
-blueprints
-[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	blueprints
+	[/PARAMLITERAL]
 [/OBJECT]
 [/VAR]
 
-
 [REGION:banner]
-![Blueprint](k2_banner.png)
+![](k2_banner.gif)
 [/REGION]
 
 [EXCERPT:Intro]
@@ -79,188 +81,132 @@ blueprints
 보통은 프로그래머만이 가능했던 개념이나 툴 기능 전부가 사실상 디자이너에게도 지원되는 것입니다.
 [/EXCERPT:Intro]
 
-_Blueprint_ 를 통해 디자이너는 사실상 어떤 게임플레이 요소든 프로토타이핑, 구현, 변경 가능한데, 그 요소란 다음과 같습니다:
-
-* **Game** - 게임 규칙 수립, 게임플레이 조건 조절 등.
-* **Player** - 다양한 메시나 _머티리얼_ 변종, 또는 캐릭터 커스터마이제이션 제작.
-* **Camera** - 새로운 카메라 시점 프로토타이핑 또는 플레이 도중 카메라 시점 동적 변경.
-* **Input** - 플레이어 콘트롤 변경 또는 플레이어 입력 아이템으로 전달.
-* **Item** - 무기, 마법, 픽업, 트리거 등.
-* **Environment** - 임의의 소품 또는 순차 생성 아이템 생성.
+## 시작하기
 
 [REGION:topics third]
-[EXCERPT:Topics]
-[OBJECT:Topic]
+%Engine/Blueprints/QuickStart:TopicCompact%
+%Engine/Blueprints/GettingStarted:TopicCompact%
+[OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Engine/Blueprints/GettingStarted:title%](intro_topic.png)
+		![%Engine/Blueprints:title%](BPVid.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/blueprint_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Engine/Blueprints/GettingStarted:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/GettingStarted:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/GettingStarted]
-	[/PARAM]
-[/OBJECT]
-%Engine/Blueprints/Overview:topic%
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/UserGuide:title%](Engine\Blueprints\UserGuide\using_interface_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/reference_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/UserGuide:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/UserGuide:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/UserGuide]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/Editor:title%](editor_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/Editor:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/Editor:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/Editor]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:Topic]
-	[PARAM:image]
-		![Blueprint Node Reference](bp_api_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		블루프린트 노드 참고서
-	[/PARAM]
-	[PARAM:description]
-		모든 함수 호출, 이벤트, 기타 블루프린트 노드에 대한 포괄적인 참고서입니다.
+		비디오: 블루프린트 입문 (v4.8)
 	[/PARAM]
 	[PARAMLITERAL:path]
-		https://docs.unrealengine.com/latest/INT/BlueprintAPI/index.html
+		https://docs.unrealengine.com/latest/INT/Videos/PLZlv_N0_O1gY35ezlSQn1sWOGfh4C7ewO/EFXMW_UEDco/index.html
 	[/PARAMLITERAL]
 [/OBJECT]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/BP_HowTo:title%](BP_HowTo_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/BP_HowTo:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/BP_HowTo:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/BP_HowTo]
-	[/PARAM]
-[/OBJECT]
-[/EXCERPT:Topics]
 [/REGION]
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/reference_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		가이드
-	[/PARAM]
-	[PARAM:description]
-	[REGION:topics third]
-	[OBJECT:TopicCompact]
-		[PARAM:image]
-		![](blueprintcheatsheet.png)
-		[/PARAM]
-		[PARAM:title]
-			블루프린트 에디터 단축키 일람표
-		[/PARAM]
-		[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\CheatSheet]
-		[/PARAM]
-	[/OBJECT]
-	[OBJECT:TopicCompact]
-		[PARAM:image]
-		![](BestPractices_Topic.png)
-		[/PARAM]
-		[PARAM:title]
-			블루프린트 실전 사례
-		[/PARAM]
-		[PARAM:path]
-		[RELATIVE:Engine\Blueprints\BestPractices]
-		[/PARAM]
-	[/OBJECT]
-	[OBJECT:TopicCompact]
-		[PARAM:image]
-			![](UsingBPComms_Topic.png)
-		[/PARAM]
-		[PARAM:title]
-			블루프린트 통신 사용하기
-		[/PARAM]
-		[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\BlueprintCommsUsage]
-		[/PARAM]
-	[/OBJECT]
-	[OBJECT:TopicCompact]
-		[PARAM:image]
-			![](BPCommTopic.png)
-		[/PARAM]
-		[PARAM:title]
-			%Engine\Blueprints\HowTo:title%
-		[/PARAM]
-		[PARAM:path]
-		[RELATIVE:Engine\Blueprints\HowTo]
-		[/PARAM]
-	[/OBJECT]
-	[/REGION]
-	[/PARAM]
-[/OBJECT]
+## 일반 스크립팅
 
-[OBJECT:TopicList]
+[REGION:topics third]
+%Engine/Blueprints/Scripting:TopicCompact%
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints:title%](BlueprintEssentials.png)
+	[/PARAM]
 	[PARAM:icon]
-		![](%ROOT%/cine_icon.png)(convert:false)
+		![](%ROOT%/blueprint_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		비디오 튜토리얼
+		비디오: 블루프린트 핵심
 	[/PARAM]
-	[PARAM:description]
-		[REGION:simplegallery]
-		[OBJECT:VideoLink]
-			[PARAMLITERAL:videoid]
-			cRhWc2kAhqI
-			[/PARAMLITERAL]
-			[PARAMLITERAL:playlistid]
-			PLZlv_N0_O1gbYMYfhhdzfW1tUV4jU0YxH
-			[/PARAMLITERAL]
-			[PARAMLITERAL:width]
-			275
-			[/PARAMLITERAL]
-			[PARAMLITERAL:image]
-			[/PARAMLITERAL]
-			[PARAMLITERAL:playerurl]
-				https://wiki.unrealengine.com/Videos/Player
-			[/PARAMLITERAL]
-		[/OBJECT]
-		[/REGION]
-	[/PARAM]
+	[PARAMLITERAL:path]
+		https://docs.unrealengine.com/latest/INT/Videos/PLZlv_N0_O1ga2b_ZaJoaR5dLHOFw4-MMl/zaVY5A0hqiI/index.html
+	[/PARAMLITERAL]
 [/OBJECT]
+[/REGION]
+
+## 블루프린트 제작
+[REGION:topics third]
+%Engine/Blueprints/Anatomy:TopicCompact%
+%Engine/Blueprints/Workflow:TopicCompact%
+%Engine/Blueprints/BP_HowTo:TopicCompact%
+%Engine/Blueprints/BestPractices:TopicCompact%
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![블루프린트 비디오 튜토리얼](BPTutorials.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		블루프린트 비디오 튜토리얼
+	[/PARAM]
+	[PARAMLITERAL:path]
+		https://docs.unrealengine.com/latest/INT/Videos/Blueprints/index.html
+	[/PARAMLITERAL]
+[/OBJECT]
+[/REGION]
+
+## 블루프린트 통신
+[REGION:topics third]
+%Engine\Blueprints\UserGuide\BlueprintCommsUsage:topiccompact%
+%Engine/Blueprints\HowTo:topiccompact%
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![라이브스트림: 블루프린트 통신](CommStream.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		라이브스트림: 블루프린트 통신
+	[/PARAM]
+	[PARAMLITERAL:path]
+		https://docs.unrealengine.com/latest/INT/Videos/PLZlv_N0_O1gYuWkyTSbfcuyPNOQsK_8bu/EM_HYqQdToE/index.html
+	[/PARAMLITERAL]
+[/OBJECT]
+%Engine\Blueprints\UserGuide\BlueprintComms:topiccompact%
+%Engine\Blueprints\UserGuide\EventDispatcher:topiccompact%
+%Engine/Blueprints/UserGuide/Types/Interface:topiccompact%
+[/REGION]
+
+## 블루프린트 추가 작업
+
+[REGION:topics third]
+%BlueprintAPI:TopicCompact%
+%Engine/Blueprints/Editor:TopicCompact%
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![교육용 라이브 스트림: 블루프린트](BPLiveStream.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		교육용 라이브 스트림: 블루프린트
+	[/PARAM]
+	[PARAMLITERAL:path]
+		https://docs.unrealengine.com/latest/INT/Videos/PLZlv_N0_O1gYuWkyTSbfcuyPNOQsK_8bu/index.html
+	[/PARAMLITERAL]
+[/OBJECT]
+[/REGION]
+
+[DIR(output:"listbutton" parent:"Engine/Blueprints" type:"guide")]
+
+
+<!--
+## 시작하기
+
+[DIR(end:"1" output:"topic" type:"quickstart" parent:"Engine/Blueprints")]
+
+## 참고서
+
+[DIR(end:"1" output:"topic" type:"reference" parent:"Engine/Blueprints")]
+
+## 안내서
+
+[DIR(end:"1" output:"topic" type:"howto" parent:"Engine/Blueprints")]
+
+## 비디오 튜토리얼
+
+[REGION:simplegallery]
+[VideoLink(videoid:"EFXMW_UEDco" playlistid:"PLZlv_N0_O1gY35ezlSQn1sWOGfh4C7ewO" width:"275")]
+[/REGION]
+-->

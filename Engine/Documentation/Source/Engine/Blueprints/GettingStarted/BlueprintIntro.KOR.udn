@@ -1,16 +1,39 @@
-﻿INTSourceChangelist:2597355
+﻿INTSourceChangelist:2968923
 Availability:Public
 Title: 블루프린트 소개
 Crumbs: %ROOT%, Engine, Engine/Blueprints
 Description:블루프린트가 처음이신 분들에게 블루프린트란 무엇이며 어떠한 것을 할 수 있는가에 대한 하이 레벨 개요입니다.
+version: 4.9
+parent:Engine/Blueprints
+order:1
+
 
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Engine/Blueprints/GettingStarted:title%](blueprint_topic.png)
+		![%Engine/Blueprints/GettingStarted:title%](Engine/Blueprints/intro_topic.png)
 	[/PARAM]
 	[PARAM:icon]
-		![](%ROOT%/anim_icon.png)(convert:false)
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/GettingStarted:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/GettingStarted:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/GettingStarted]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints/GettingStarted:title%](Engine/Blueprints/intro_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
 		%Engine/Blueprints/GettingStarted:title%
@@ -120,22 +143,13 @@ _레벨 블루프린트_ 와 _블루프린트 클래스_ 에 대한 설명 다�
 	[/PARAM]
 [/OBJECT]
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-	![](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		블루프린트 샘플 및 튜토리얼
-	[/PARAM]
-	[PARAM:description]
-		_블루프린트_ 시스템에 관해 자세히 배워볼 수 있는 추가 자료입니다.
-	[/PARAM]
-	[PARAM:links]
-		* [](Resources/Showcases/BlueprintExamples)
-		* [블루프린트 리프트 튜토리얼](http://wiki.unrealengine.com/Blueprint_Lift_Tutorial)
-		* [블루프린트 파워업 튜토리얼](http://wiki.unrealengine.com/Blueprint_Power_Up_Tutorial)
-	[/PARAM]
-[/OBJECT]
+##블루프린트 샘플 & 튜토리얼
+
+블루프린트 시스템에 관해 자세히 배워볼 수 있는 추가 자료입니다.
+
+* [](Resources/Showcases/BlueprintExamples)
+* [Blueprint Lift Tutorial](http://wiki.unrealengine.com/Blueprint_Lift_Tutorial)
+* [Blueprint Power-Up Tutorial](http://wiki.unrealengine.com/Blueprint_Power_Up_Tutorial)
 
 
 ## 블루프린트 에디터와 그래프

@@ -88,7 +88,7 @@ version: 4.9
 		같은 클래스의 모든 액터 구하기
 	[/PARAM]
 	[PARAM:description]
-	여기서는 **Get All Actors of Class** 노드를 사용하여 플레이어가 불에 붙으면 레벨에 배치된 다수의 파티클 이팩트를 한꺼번에 전부 켜도록 하겠습니다.
+	여기서는 **Get All Actors of Class** 노드를 사용하여 플레이어가 불에 붙으면 레벨에 배치된 다수의 파티클 이펙트를 한꺼번에 전부 켜도록 하겠습니다.
 	[/PARAM]
 [/OBJECT]
 

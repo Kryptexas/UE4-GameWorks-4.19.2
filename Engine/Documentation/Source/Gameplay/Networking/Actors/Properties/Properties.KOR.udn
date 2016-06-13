@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2637468
+﻿INTSourceChangelist:2752308
 Availability:Public
 Title:프로퍼티 리플리케이션
 Crumbs:%ROOT%, Gameplay, Gameplay/Networking, Gameplay/Networking/Actors
@@ -6,8 +6,8 @@ Description:액터 프로퍼티 리플리케이션 방법에 대한 상세 정�
 Related: Gameplay/Networking/Actors/Properties/ObjectReferences
 Related: Gameplay/Networking/Actors/Properties/Conditions
 Related: Gameplay/Networking/Actors/RPCs
+Version:4.9
 
-[TOC (start:2 end:3)]
 
 
 
