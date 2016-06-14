@@ -52,7 +52,7 @@ namespace AnalyticsConversion
 
 	/** Lexical conversion. Allow any type that we have a LexicalConversion for. */
 	template <typename T>
-	inline typename TEnableIf<TIsArithmeticType<T>::Value, FString>::Type ToString(T Value)
+	inline typename TEnableIf<TIsArithmetic<T>::Value, FString>::Type ToString(T Value)
 	{
 		return LexicalConversion::ToSanitizedString(Value);
 	}

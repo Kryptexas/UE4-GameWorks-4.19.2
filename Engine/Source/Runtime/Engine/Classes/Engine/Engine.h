@@ -10,13 +10,10 @@ class UDeviceProfileManager;
 class FViewport;
 class FCommonViewportClient;
 class FCanvas;
-
-#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 class FTypeContainer;
 class IMessageRpcClient;
 class IPortalRpcLocator;
 class IPortalServiceLocator;
-#endif
 
 /**
  * Enumerates types of fully loaded packages.
@@ -2181,7 +2178,6 @@ public:
 
 	virtual void RemapGamepadControllerIdForPIE(class UGameViewportClient* InGameViewport, int32 &ControllerId) { }
 
-#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 	/**
 	 * Get a locator for Portal services.
 	 *
@@ -2205,7 +2201,6 @@ protected:
 
 	/** Holds registered service instances. */
 	TSharedPtr<IPortalServiceLocator> ServiceLocator;
-#endif
 
 
 public:
@@ -2306,10 +2301,8 @@ protected:
 	/** Loads all Engine object references from their corresponding config entries. */
 	virtual void InitializeObjectReferences();
 
-#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 	/** Initialize Portal services. */
 	virtual void InitializePortalServices();
-#endif
 
 	/** Initializes the running average delta to some good initial framerate. */
 	virtual void InitializeRunningAverageDeltaTime();

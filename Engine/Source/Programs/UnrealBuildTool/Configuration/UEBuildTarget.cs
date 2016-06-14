@@ -1883,33 +1883,36 @@ namespace UnrealBuildTool
 				Manifest = Utils.ReadClass<BuildManifest>(ManifestPath.FullName);
 			}
 
-			// Expand all the paths in the receipt; they'll currently use variables for the engine and project directories
-			TargetReceipt ReceiptWithFullPaths = new TargetReceipt(Receipt);
-			ReceiptWithFullPaths.ExpandPathVariables(UnrealBuildTool.EngineDirectory, ProjectDirectory);
-
-			foreach (BuildProduct BuildProduct in ReceiptWithFullPaths.BuildProducts)
+			if(!BuildConfiguration.bEnableCodeAnalysis)
 			{
-				// If we're cleaning, don't add any precompiled binaries to the manifest. We don't want to delete them.
-				if (UEBuildConfiguration.bCleanProject && bUsePrecompiled && BuildProduct.IsPrecompiled)
+				// Expand all the paths in the receipt; they'll currently use variables for the engine and project directories
+				TargetReceipt ReceiptWithFullPaths = new TargetReceipt(Receipt);
+				ReceiptWithFullPaths.ExpandPathVariables(UnrealBuildTool.EngineDirectory, ProjectDirectory);
+
+				foreach (BuildProduct BuildProduct in ReceiptWithFullPaths.BuildProducts)
 				{
-					continue;
+					// If we're cleaning, don't add any precompiled binaries to the manifest. We don't want to delete them.
+					if (UEBuildConfiguration.bCleanProject && bUsePrecompiled && BuildProduct.IsPrecompiled)
+					{
+						continue;
+					}
+
+					// Don't add static libraries into the manifest unless we're explicitly building them; we don't submit them to Perforce.
+					if (!UEBuildConfiguration.bCleanProject && !bPrecompile && (BuildProduct.Type == BuildProductType.StaticLibrary || BuildProduct.Type == BuildProductType.ImportLibrary))
+					{
+						Manifest.LibraryBuildProducts.Add(BuildProduct.Path);
+					}
+					else
+					{
+						Manifest.AddBuildProduct(BuildProduct.Path);
+					}
 				}
 
-				// Don't add static libraries into the manifest unless we're explicitly building them; we don't submit them to Perforce.
-				if (!UEBuildConfiguration.bCleanProject && !bPrecompile && (BuildProduct.Type == BuildProductType.StaticLibrary || BuildProduct.Type == BuildProductType.ImportLibrary))
+				UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
+				if (OnlyModules.Count == 0)
 				{
-					Manifest.LibraryBuildProducts.Add(BuildProduct.Path);
+					Manifest.AddBuildProduct(ReceiptFileName);
 				}
-				else
-				{
-					Manifest.AddBuildProduct(BuildProduct.Path);
-				}
-			}
-
-			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
-			if (OnlyModules.Count == 0)
-			{
-				Manifest.AddBuildProduct(ReceiptFileName);
 			}
 
 			if (UEBuildConfiguration.bCleanProject)

@@ -306,23 +306,39 @@ void UPackage::WaitForAsyncFileWrites()
 	}
 }
 
-void AsyncWriteFile(const TArray<uint8>& Data, const TCHAR* Filename, const FDateTime& TimeStamp)
+struct FLargeMemoryDelete
+{
+	void operator()(uint8* Ptr) const
+	{
+		if (Ptr)
+		{
+			FMemory::Free(Ptr);
+		}
+	}
+};
+
+typedef TUniquePtr<uint8, FLargeMemoryDelete> FLargeMemoryPtr;
+
+void AsyncWriteFile(FLargeMemoryPtr Data, const int64 DataSize, const TCHAR* Filename, const FDateTime& TimeStamp)
 {
 	class FAsyncWriteWorker : public FNonAbandonableTask
 	{
 	public:
 		/** Filename To write to**/
 		FString Filename;
-		/** Data for the file **/
-		TArray<uint8> Data;
+		/** Data for the file. Will be freed after write **/
+		FLargeMemoryPtr Data;
+		/** Size of data */
+		const int64 DataSize;
 		/** Timestamp to give the file. MinValue if shouldn't be modified */
 		FDateTime FinalTimeStamp;
 
 		/** Constructor
 		*/
-		FAsyncWriteWorker(const TCHAR* InFilename, const TArray<uint8>* InData, const FDateTime& InTimeStamp)
+		FAsyncWriteWorker(const TCHAR* InFilename, FLargeMemoryPtr InData, const int64 InDataSize, const FDateTime& InTimeStamp)
 			: Filename(InFilename)
-			, Data(*InData)
+			, Data(MoveTemp(InData))
+			, DataSize(InDataSize)
 			, FinalTimeStamp(InTimeStamp)
 		{
 		}
@@ -330,15 +346,21 @@ void AsyncWriteFile(const TArray<uint8>& Data, const TCHAR* Filename, const FDat
 		/** Write the file  */
 		void DoWork()
 		{
-			check(Data.Num());
+			check(DataSize);
 			FString TempFilename; 
 			TempFilename = FPaths::GetBaseFilename(Filename, false);
 			TempFilename += TEXT(".t");
-			if (FFileHelper::SaveArrayToFile(Data,*TempFilename))
+
+			// Open a file writer for saving
+			FArchive* Ar = IFileManager::Get().CreateFileWriter(*TempFilename);
+			if (Ar)
 			{
+				Ar->Serialize(Data.Get(), DataSize);
+				delete Ar;
+				
 				// Clean-up the memory as soon as we save the file to reduce the memory footprint.
-				const int64 DataSize = Data.Num(); 
-				Data.Empty();
+				Data.Reset();
+
 				if (IFileManager::Get().FileSize(*TempFilename) == DataSize)
 				{
 					if (!IFileManager::Get().Move(*Filename, *TempFilename, true, true, false, false))
@@ -374,10 +396,11 @@ void AsyncWriteFile(const TArray<uint8>& Data, const TCHAR* Filename, const FDat
 		{
 			RETURN_QUICK_DECLARE_CYCLE_STAT(FAsyncWriteWorker, STATGROUP_ThreadPoolAsyncTasks);
 		}
+
 	};
 
 	OutstandingAsyncWrites.Increment();
-	(new FAutoDeleteAsyncTask<FAsyncWriteWorker>(Filename, &Data, TimeStamp))->StartBackgroundTask();
+	(new FAutoDeleteAsyncTask<FAsyncWriteWorker>(Filename, MoveTemp(Data), DataSize, TimeStamp))->StartBackgroundTask();
 }
 
 /** 
@@ -1056,7 +1079,9 @@ public:
 	{
 		FString TmpFilename = FPaths::GetPath( DstFilename ) / ( FPaths::GetBaseFilename( DstFilename ) + TEXT( "_SaveCompressed.tmp" ));
 		// Create file reader and writer...
-		FMemoryReader Reader(*(FBufferArchive*)(SrcLinker->Saver),true);
+		FLargeMemoryWriter* Writer = (FLargeMemoryWriter*)(SrcLinker->Saver);
+		FLargeMemoryReader Reader(Writer->GetData(), Writer->TotalSize(), (ELargeMemoryReaderFlags::TakeOwnership | ELargeMemoryReaderFlags::Persistent), FName(*Writer->GetArchiveName()));
+		Writer->ReleaseOwnership();
 		FArchive* FileWriter = IFileManager::Get().CreateFileWriter( *TmpFilename );
 		// ... and abort if either operation wasn't successful.
 		if( !FileWriter )
@@ -1406,15 +1431,17 @@ private:
 
 
 
-void AsyncWriteCompressedFile(const TArray<uint8>& Data, const TCHAR* Filename, const FDateTime& TimeStamp, const bool bForceByteSwapping, const int32 TotalHeaderSize, const TArray<int32>& ExportSizes)
+void AsyncWriteCompressedFile(FLargeMemoryPtr Data, const int64 DataSize, const TCHAR* Filename, const FDateTime& TimeStamp, const bool bForceByteSwapping, const int32 TotalHeaderSize, const TArray<int32>& ExportSizes)
 {
 	class FAsyncWriteWorker : public FNonAbandonableTask
 	{
 	public:
 		/** Filename To write to**/
 		FString Filename;
-		/** Data for the file **/
-		TArray<uint8> Data;
+		/** Data for the file. Will be freed after writing **/
+		FLargeMemoryPtr Data;
+		/** Size of the data */
+		const int64 DataSize;
 		/** Timestamp to give the file. MinValue if shouldn't be modified */
 		FDateTime FinalTimeStamp;
 
@@ -1424,9 +1451,10 @@ void AsyncWriteCompressedFile(const TArray<uint8>& Data, const TCHAR* Filename, 
 
 		/** Constructor
 		*/
-		FAsyncWriteWorker(const TArray<uint8>& InData, const TCHAR* InFilename, const FDateTime& InTimeStamp, bool InBForceByteSwapping, const int32 InTotalHeaderSize, const TArray<int32>& InExportSizes)
+		FAsyncWriteWorker(FLargeMemoryPtr InData, const int64 InDataSize, const TCHAR* InFilename, const FDateTime& InTimeStamp, bool InBForceByteSwapping, const int32 InTotalHeaderSize, const TArray<int32>& InExportSizes)
 			: Filename(InFilename)
-			, Data(InData)
+			, Data(MoveTemp(InData))
+			, DataSize(InDataSize)
 			, FinalTimeStamp(InTimeStamp)
 			, bForceByteSwapping(InBForceByteSwapping)
 			, TotalHeaderSize(InTotalHeaderSize)
@@ -1438,8 +1466,8 @@ void AsyncWriteCompressedFile(const TArray<uint8>& Data, const TCHAR* Filename, 
 		void DoWork()
 		{
 			FString TmpFilename = FPaths::GetPath(Filename) / (FPaths::GetBaseFilename(Filename) + TEXT("_SaveCompressed.tmp"));
-			// Create file reader and writer...
-			FMemoryReader Reader(Data, true);
+			// Create memory reader and file writer...
+			FLargeMemoryReader Reader(Data.Get(), DataSize, ELargeMemoryReaderFlags::Persistent, *Filename);
 			FArchive* FileWriter = IFileManager::Get().CreateFileWriter(*TmpFilename);
 			// ... and abort if either operation wasn't successful.
 			if (!FileWriter)
@@ -1458,8 +1486,8 @@ void AsyncWriteCompressedFile(const TArray<uint8>& Data, const TCHAR* Filename, 
 			delete FileWriter;
 
 			// Clean-up the memory as soon as we save the file to reduce the memory footprint.
-			const int64 DataSize = Data.Num();
-			Data.Empty();
+			Data.Reset();
+
 			if (!IFileManager::Get().Move(*Filename, *TmpFilename, true, true, false, false))
 			{
 				UE_LOG(LogSavePackage, Fatal, TEXT("Could not move from %s to %s."), *TmpFilename, *Filename);
@@ -1479,10 +1507,11 @@ void AsyncWriteCompressedFile(const TArray<uint8>& Data, const TCHAR* Filename, 
 		{
 			RETURN_QUICK_DECLARE_CYCLE_STAT(FAsyncWriteWorker, STATGROUP_ThreadPoolAsyncTasks);
 		}
+
 	};
 
 	OutstandingAsyncWrites.Increment();
-	(new FAutoDeleteAsyncTask<FAsyncWriteWorker>(Data, Filename, TimeStamp, bForceByteSwapping, TotalHeaderSize, ExportSizes))->StartBackgroundTask();
+	(new FAutoDeleteAsyncTask<FAsyncWriteWorker>(MoveTemp(Data), DataSize, Filename, TimeStamp, bForceByteSwapping, TotalHeaderSize, ExportSizes))->StartBackgroundTask();
 }
 
 
@@ -4838,7 +4867,11 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 							{
 								ExportSizes.Add(Linker->ExportMap[I].SerialSize);
 							}
-							AsyncWriteCompressedFile(*(FBufferArchive*)(Linker->Saver), *NewPath, FinalTimeStamp, Linker->ForceByteSwapping(), Linker->Summary.TotalHeaderSize, ExportSizes);
+							FLargeMemoryWriter* Writer = (FLargeMemoryWriter*)(Linker->Saver);
+							int64 DataSize = Writer->TotalSize();
+							FLargeMemoryPtr DataPtr = FLargeMemoryPtr(Writer->GetData());
+							Writer->ReleaseOwnership();
+							AsyncWriteCompressedFile(MoveTemp(DataPtr), DataSize, *NewPath, FinalTimeStamp, Linker->ForceByteSwapping(), Linker->Summary.TotalHeaderSize, ExportSizes);
 							Linker->Detach();
 						}
 					}
@@ -4875,7 +4908,11 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 						if( Linker )
 						{
 							COOK_STAT(FScopedDurationTimer SaveTimer(SavePackageStats::AsyncWriteTimeSec));
-							AsyncWriteFile(*(FBufferArchive*)(Linker->Saver), *NewPath, FinalTimeStamp);
+							FLargeMemoryWriter* Writer = (FLargeMemoryWriter*)(Linker->Saver);
+							int64 DataSize = Writer->TotalSize();
+							FLargeMemoryPtr DataPtr(Writer->GetData());
+							Writer->ReleaseOwnership();
+							AsyncWriteFile(MoveTemp(DataPtr), DataSize, *NewPath, FinalTimeStamp);
 							Linker->Detach();
 						}
 					}

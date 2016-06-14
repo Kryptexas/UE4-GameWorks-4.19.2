@@ -12,9 +12,12 @@ void FMovieSceneColorKeyStruct::PropagateChanges(const FPropertyChangedEvent& Ch
 {
 	for (int32 Index = 0; Index <= 3; ++Index)
 	{
-		if (Keys[Index] == nullptr && Curves[Index] != nullptr)
+		if (Keys[Index] == nullptr)
 		{
-			Curves[Index]->SetDefaultValue(Color.Component(Index));
+			if (Curves[Index] != nullptr)
+			{
+				Curves[Index]->SetDefaultValue(Color.Component(Index));
+			}
 		}
 		else
 		{

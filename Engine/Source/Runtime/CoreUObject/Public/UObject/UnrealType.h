@@ -8,6 +8,7 @@
 
 #include "ObjectBase.h"
 #include "PropertyPortFlags.h"
+#include "Templates/IsTriviallyDestructible.h"
 
 COREUOBJECT_API DECLARE_LOG_CATEGORY_EXTERN(LogType, Log, All);
 
@@ -895,7 +896,7 @@ protected:
 	{
 		return 
 			(TIsPODType<TCppType>::Value ? CPF_IsPlainOldData : 0) 
-			| (TNoDestructorType<TCppType>::Value ? CPF_NoDestructor : 0) 
+			| (TIsTriviallyDestructible<TCppType>::Value ? CPF_NoDestructor : 0) 
 			| (TIsZeroConstructType<TCppType>::Value ? CPF_ZeroConstructor : 0);
 
 	}
@@ -1227,25 +1228,25 @@ public:
 	// UNumericProperty interface.
 	virtual bool IsFloatingPoint() const override
 	{
-		return TIsFloatType<TCppType>::Value;
+		return TIsFloatingPoint<TCppType>::Value;
 	}
 	virtual bool IsInteger() const override
 	{
-		return TIsIntegralType<TCppType>::Value;
+		return TIsIntegral<TCppType>::Value;
 	}
 	virtual void SetIntPropertyValue(void* Data, uint64 Value) const override
 	{
-		check(TIsIntegralType<TCppType>::Value);
+		check(TIsIntegral<TCppType>::Value);
 		TTypeFundamentals::SetPropertyValue(Data, Value);
 	}
 	virtual void SetIntPropertyValue(void* Data, int64 Value) const override
 	{
-		check(TIsIntegralType<TCppType>::Value);
+		check(TIsIntegral<TCppType>::Value);
 		TTypeFundamentals::SetPropertyValue(Data, Value);
 	}
 	virtual void SetFloatingPointPropertyValue(void* Data, double Value) const override
 	{
-		check(TIsFloatType<TCppType>::Value);
+		check(TIsFloatingPoint<TCppType>::Value);
 		TTypeFundamentals::SetPropertyValue(Data, Value);
 	}
 	virtual void SetNumericPropertyValueFromString(void* Data, TCHAR const* Value) const override
@@ -1258,17 +1259,17 @@ public:
 	}
 	virtual int64 GetSignedIntPropertyValue(void const* Data) const override
 	{
-		check(TIsIntegralType<TCppType>::Value);
+		check(TIsIntegral<TCppType>::Value);
 		return TTypeFundamentals::GetPropertyValue(Data);
 	}
 	virtual uint64 GetUnsignedIntPropertyValue(void const* Data) const override
 	{
-		check(TIsIntegralType<TCppType>::Value);
+		check(TIsIntegral<TCppType>::Value);
 		return TTypeFundamentals::GetPropertyValue(Data);
 	}
 	virtual double GetFloatingPointPropertyValue(void const* Data) const override
 	{
-		check(TIsFloatType<TCppType>::Value);
+		check(TIsFloatingPoint<TCppType>::Value);
 		return TTypeFundamentals::GetPropertyValue(Data);
 	}
 	// End of UNumericProperty interface

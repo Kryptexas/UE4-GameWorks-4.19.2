@@ -113,72 +113,11 @@ class FAutoDeleteAsyncTask
 	}
 
 public:
-#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 	/** Forwarding constructor. */
 	template<typename...T>
 	explicit FAutoDeleteAsyncTask(T&&... Args) : Task(Forward<T>(Args)...)
 	{
 	}
-#else
-	/** Default constructor. */
-	FAutoDeleteAsyncTask( )
-	{
-	}
-	/** Forwarding constructor. */
-	template<typename T>
-	FAutoDeleteAsyncTask( T&& Arg )
-		: Task(Forward<T>(Arg))
-	{
-	}
-	/** Forwarding constructor. */
-	template<typename T1,typename T2>
-	FAutoDeleteAsyncTask( T1&& Arg1, T2&& Arg2 )
-		: Task(Forward<T1>(Arg1), Forward<T2>(Arg2))
-	{
-	}
-	/** Forwarding constructor. */
-	template<typename T1,typename T2, typename T3>
-	FAutoDeleteAsyncTask( T1&& Arg1, T2&& Arg2, T3&& Arg3 )
-		: Task(Forward<T1>(Arg1), Forward<T2>(Arg2), Forward<T3>(Arg3))
-	{
-	}
-	/** Forwarding constructor. */
-	template<typename T1,typename T2, typename T3, typename T4>
-	FAutoDeleteAsyncTask( T1&& Arg1, T2&& Arg2, T3&& Arg3, T4&& Arg4 )
-		: Task(Forward<T1>(Arg1), Forward<T2>(Arg2), Forward<T3>(Arg3), Forward<T4>(Arg4))
-	{
-	}
-	/** Forwarding constructor. */
-	template<typename T1,typename T2, typename T3, typename T4, typename T5>
-	FAutoDeleteAsyncTask( T1&& Arg1, T2&& Arg2, T3&& Arg3, T4&& Arg4, T5&& Arg5 )
-		: Task(Forward<T1>(Arg1), Forward<T2>(Arg2), Forward<T3>(Arg3), Forward<T4>(Arg4), Forward<T5>(Arg5))
-	{
-	}
-	/** Forwarding constructor. */
-	template<typename T1,typename T2, typename T3, typename T4, typename T5, typename T6>
-	FAutoDeleteAsyncTask( T1&& Arg1, T2&& Arg2, T3&& Arg3, T4&& Arg4, T5&& Arg5, T6&& Arg6 )
-		: Task(Forward<T1>(Arg1), Forward<T2>(Arg2), Forward<T3>(Arg3), Forward<T4>(Arg4), Forward<T5>(Arg5), Forward<T6>(Arg6))
-	{
-	}
-	/** Forwarding constructor. */
-	template<typename T1,typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
-	FAutoDeleteAsyncTask( T1&& Arg1, T2&& Arg2, T3&& Arg3, T4&& Arg4, T5&& Arg5, T6&& Arg6, T7&& Arg7 )
-		: Task(Forward<T1>(Arg1), Forward<T2>(Arg2), Forward<T3>(Arg3), Forward<T4>(Arg4), Forward<T5>(Arg5), Forward<T6>(Arg6), Forward<T7>(Arg7))
-	{
-	}
-	/** Forwarding constructor. */
-	template<typename T1,typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8>
-	FAutoDeleteAsyncTask( T1&& Arg1, T2&& Arg2, T3&& Arg3, T4&& Arg4, T5&& Arg5, T6&& Arg6, T7&& Arg7, T8&& Arg8 )
-		: Task(Forward<T1>(Arg1), Forward<T2>(Arg2), Forward<T3>(Arg3), Forward<T4>(Arg4), Forward<T5>(Arg5), Forward<T6>(Arg6), Forward<T7>(Arg7), Forward<T8>(Arg8))
-	{
-	}
-	/** Forwarding constructor. */
-	template<typename T1,typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9>
-	FAutoDeleteAsyncTask( T1&& Arg1, T2&& Arg2, T3&& Arg3, T4&& Arg4, T5&& Arg5, T6&& Arg6, T7&& Arg7, T8&& Arg8, T9&& Arg9 )
-		: Task(Forward<T1>(Arg1), Forward<T2>(Arg2), Forward<T3>(Arg3), Forward<T4>(Arg4), Forward<T5>(Arg5), Forward<T6>(Arg6), Forward<T7>(Arg7), Forward<T8>(Arg8), Forward<T9>(Arg9))
-	{
-	}
-#endif
 
 	/** 
 	* Run this task on this thread, now. Will end up destroying myself, so it is not safe to use this object after this call.

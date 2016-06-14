@@ -14,6 +14,16 @@
 #include "PostProcessing.h"
 #include "SceneUtils.h"
 
+const TCHAR* GShaderSourceModeDefineName[] =
+{
+	TEXT("SOURCE_MODE_SCENE_COLOR_AND_OPACITY"),
+	nullptr,
+	TEXT("SOURCE_MODE_SCENE_COLOR_SCENE_DEPTH"),
+	TEXT("SOURCE_MODE_SCENE_DEPTH"),
+	TEXT("SOURCE_MODE_NORMAL"),
+	TEXT("SOURCE_MODE_BASE_COLOR")
+};
+
 /**
  * A pixel shader for capturing a component of the rendered scene for a scene capture.
  */
@@ -30,13 +40,10 @@ public:
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		switch(CaptureSource)
+		const TCHAR* DefineName = GShaderSourceModeDefineName[CaptureSource];
+		if (DefineName)
 		{
-			case SCS_SceneColorHDR: OutEnvironment.SetDefine(TEXT("SOURCE_MODE_SCENE_COLOR_AND_OPACITY"), 1); break;
-			case SCS_SceneColorSceneDepth: OutEnvironment.SetDefine(TEXT("SOURCE_MODE_SCENE_COLOR_SCENE_DEPTH"), 1); break;
-			case SCS_SceneDepth: OutEnvironment.SetDefine(TEXT("SOURCE_MODE_SCENE_DEPTH"), 1); break;
-			case SCS_Normal: OutEnvironment.SetDefine(TEXT("SOURCE_MODE_NORMAL"), 1); break;
-			case SCS_BaseColor: OutEnvironment.SetDefine(TEXT("SOURCE_MODE_BASE_COLOR"), 1); break;
+			OutEnvironment.SetDefine(DefineName, 1);
 		}
 	}
 
@@ -331,7 +338,7 @@ void BuildProjectionMatrix(FIntPoint RenderTargetSize, ECameraProjectionMode::Ty
 
 	if (ProjectionType == ECameraProjectionMode::Orthographic)
 	{
-		check((int32)ERHIZBuffer::IsInverted != 0);
+		check((int32)ERHIZBuffer::IsInverted);
 		const float OrthoWidth = InOrthoWidth / 2.0f;
 		const float OrthoHeight = InOrthoWidth / 2.0f * YAxisMultiplier;
 
@@ -350,29 +357,29 @@ void BuildProjectionMatrix(FIntPoint RenderTargetSize, ECameraProjectionMode::Ty
 	}
 	else
 	{
-	if ((int32)ERHIZBuffer::IsInverted != 0)
-	{
-		ProjectionMatrix = FReversedZPerspectiveMatrix(
-			FOV,
-			FOV,
-			XAxisMultiplier,
-			YAxisMultiplier,
-			GNearClippingPlane,
-			GNearClippingPlane
-			);
+		if ((int32)ERHIZBuffer::IsInverted)
+		{
+			ProjectionMatrix = FReversedZPerspectiveMatrix(
+				FOV,
+				FOV,
+				XAxisMultiplier,
+				YAxisMultiplier,
+				GNearClippingPlane,
+				GNearClippingPlane
+				);
+		}
+		else
+		{
+			ProjectionMatrix = FPerspectiveMatrix(
+				FOV,
+				FOV,
+				XAxisMultiplier,
+				YAxisMultiplier,
+				GNearClippingPlane,
+				GNearClippingPlane
+				);
+		}
 	}
-	else
-	{
-		ProjectionMatrix = FPerspectiveMatrix(
-			FOV,
-			FOV,
-			XAxisMultiplier,
-			YAxisMultiplier,
-			GNearClippingPlane,
-			GNearClippingPlane
-			);
-	}
-}
 }
 
 FSceneRenderer* CreateSceneRendererForSceneCapture(

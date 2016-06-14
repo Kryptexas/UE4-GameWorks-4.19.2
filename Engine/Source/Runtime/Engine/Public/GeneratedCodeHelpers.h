@@ -334,7 +334,6 @@ struct TSwitchPair<IndexType, ValueType*>
 	}
 };
 
-#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 template<typename IndexType, typename ValueType>
 ValueType& TSwitchValue(const IndexType& CurrentIndex, ValueType& DefaultValue, int OptionsNum)
 {
@@ -350,30 +349,6 @@ ValueType& TSwitchValue(const IndexType& CurrentIndex, ValueType& DefaultValue, 
 	}
 	return TSwitchValue<IndexType, ValueType, Tail...>(CurrentIndex, DefaultValue, OptionsNum, TailOptions...);
 }
-#else //PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
-template<typename IndexType, typename ValueType>
-ValueType& TSwitchValue(const IndexType& CurrentIndex, ValueType& DefaultValue, int OptionsNum, ...)
-{
-	typedef TSwitchPair < IndexType, ValueType > OptionType;
-
-	ValueType* SelectedValuePtr = nullptr;
-
-	va_list Options;
-	va_start(Options, OptionsNum);
-	for (int OptionIt = 0; OptionIt < OptionsNum; ++OptionIt)
-	{
-		OptionType Option = va_arg(Options, OptionType);
-		if (Option.IndexRef == CurrentIndex)
-		{
-			SelectedValuePtr = &Option.ValueRef;
-			break;
-		}
-	}
-	va_end(Options);
-
-	return SelectedValuePtr ? *SelectedValuePtr : DefaultValue;
-}
-#endif //PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 
 // Base class for wrappers for unconverted BlueprintGeneratedClasses
 template<class NativeType>

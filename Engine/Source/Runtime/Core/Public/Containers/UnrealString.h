@@ -1867,10 +1867,22 @@ namespace LexicalConversion
 
 	/** Convert numeric types to a string */
 	template<typename T>
-	typename TEnableIf<TIsArithmeticType<T>::Value, FString>::Type
+	typename TEnableIf<TIsArithmetic<T>::Value, FString>::Type
 		ToString(const T& Value)
 	{
 		return FString::Printf( TFormatSpecifier<T>::GetFormatSpecifier(), Value );
+	}
+
+	template<typename CharType>
+	typename TEnableIf<TIsCharType<CharType>::Value, FString>::Type
+		ToString(const CharType* Ptr)
+	{
+		return FString(Ptr);
+	}
+
+	inline FString ToString(bool Value)
+	{
+		return Value ? TEXT("true") : TEXT("false");
 	}
 
 	/** Helper template to convert to sanitized strings */
@@ -1891,7 +1903,7 @@ namespace LexicalConversion
 	/** Parse a string into this type, returning whether it was successful */
 	/** Specialization for arithmetic types */
 	template<typename T>
-	static typename TEnableIf<TIsArithmeticType<T>::Value, bool>::Type
+	static typename TEnableIf<TIsArithmetic<T>::Value, bool>::Type
 		TryParseString(T& OutValue, const TCHAR* Buffer)
 	{
 		if (FCString::IsNumeric(Buffer))

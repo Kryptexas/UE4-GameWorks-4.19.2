@@ -324,7 +324,7 @@ public:
 	int32			LogSustainedCount;
 
 	/** @todo document */
-	TMap<TWeakObjectPtr<AActor>,class UActorChannel*> ActorChannels;
+	TMap<TWeakObjectPtr<AActor>, UActorChannel*, FDefaultSetAllocator, TWeakObjectPtrMapKeyFuncs<TWeakObjectPtr<AActor>, UActorChannel*>> ActorChannels;
 
 	/** This holds a list of actor channels that want to fully shutdown, but need to continue processing bunches before doing so */
 	TMap<FNetworkGUID,class UActorChannel*> KeepProcessingActorChannelBunchesMap;

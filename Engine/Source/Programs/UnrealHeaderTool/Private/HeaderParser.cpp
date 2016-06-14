@@ -7534,57 +7534,71 @@ void FHeaderParser::SimplifiedClassParse(const TCHAR* InBuffer, TArray<FSimplifi
 				}
 			}
 
-			// Stub out the comments, ignoring anything inside literal strings.
-			Pos = StrLine.Find(TEXT("//"));
-
-			// Check if first slash is end of multiline comment and adjust position if necessary.
-			if (Pos > 0 && StrLine[Pos - 1] == TEXT('*'))
+			// Find the first '/' and check for '//' or '/*' or '*/'
+			if (StrLine.FindChar('/', Pos))
 			{
-				++Pos;
-			}
-			if (Pos >= 0)
-			{
-				if (StrBegin == INDEX_NONE || Pos < StrBegin || Pos > StrEnd)
-					StrLine = StrLine.Left( Pos );
-
-				if (StrLine == TEXT(""))
-					continue;
-			}
-
-			// look for a / * ... * / block, ignoring anything inside literal strings
-			Pos = StrLine.Find(TEXT("/*"));
-			EndPos = StrLine.Find(TEXT("*/"));
-			if (Pos >= 0)
-			{
-				if (StrBegin == INDEX_NONE || Pos < StrBegin || Pos > StrEnd)
+				if (Pos >= 0)
 				{
-					if (EndPos != INDEX_NONE && (EndPos < StrBegin || EndPos > StrEnd))
+					// Stub out the comments, ignoring anything inside literal strings.
+					Pos = StrLine.Find(TEXT("//"), ESearchCase::CaseSensitive, ESearchDir::FromStart, Pos);
+
+					// Check if first slash is end of multiline comment and adjust position if necessary.
+					if (Pos > 0 && StrLine[Pos - 1] == TEXT('*'))
 					{
-						StrLine = StrLine.Left(Pos) + StrLine.Mid(EndPos + 2);
-						EndPos = INDEX_NONE;
+						++Pos;
 					}
-					else 
+
+					if (Pos >= 0)
 					{
-						StrLine = StrLine.Left( Pos );
-						CommentDim++;
+						if (StrBegin == INDEX_NONE || Pos < StrBegin || Pos > StrEnd)
+						{
+							StrLine = StrLine.Left(Pos);
+						}
+
+						if (StrLine == TEXT(""))
+						{
+							continue;
+						}
+					}
+
+					// look for a / * ... * / block, ignoring anything inside literal strings
+					Pos = StrLine.Find(TEXT("/*"), ESearchCase::CaseSensitive, ESearchDir::FromStart, Pos);
+					EndPos = StrLine.Find(TEXT("*/"), ESearchCase::CaseSensitive, ESearchDir::FromStart, FMath::Max(0, Pos - 1));
+					if (Pos >= 0)
+					{
+						if (StrBegin == INDEX_NONE || Pos < StrBegin || Pos > StrEnd)
+						{
+							if (EndPos != INDEX_NONE && (EndPos < StrBegin || EndPos > StrEnd))
+							{
+								StrLine = StrLine.Left(Pos) + StrLine.Mid(EndPos + 2);
+								EndPos = INDEX_NONE;
+							}
+							else
+							{
+								StrLine = StrLine.Left(Pos);
+								CommentDim++;
+							}
+						}
+						bProcess = CommentDim <= 1;
+					}
+
+					if (EndPos >= 0)
+					{
+						if (StrBegin == INDEX_NONE || EndPos < StrBegin || EndPos > StrEnd)
+						{
+							StrLine = StrLine.Mid(EndPos + 2);
+							CommentDim--;
+						}
+
+						bProcess = CommentDim <= 0;
 					}
 				}
-				bProcess = CommentDim <= 1;
-			}
-
-			if (EndPos >= 0)
-			{
-				if (StrBegin == INDEX_NONE || EndPos < StrBegin || EndPos > StrEnd)
-				{
-					StrLine = StrLine.Mid( EndPos+2 );
-					CommentDim--;
-				}
-
-				bProcess = CommentDim <= 0;
 			}
 
 			if (!bProcess || StrLine == TEXT(""))
+			{
 				continue;
+			}
 
 			Str = *StrLine;
 

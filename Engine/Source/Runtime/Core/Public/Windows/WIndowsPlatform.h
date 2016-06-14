@@ -58,14 +58,10 @@ typedef FWindowsPlatformTypes FPlatformTypes;
 #define PLATFORM_USES_MICROSOFT_LIBC_FUNCTIONS				1
 #define PLATFORM_SUPPORTS_TBB								1
 #define PLATFORM_SUPPORTS_NAMED_PIPES						1
-#if 0 //@todo: VS2015 supports defaulted functions but we have errors in some of our classes we need to fix up before we can enable it
-	#define PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS		1
-#else
+#if _MSC_VER < 1900
 	#define PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS		0
 #endif
-#define PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES		1
 #define PLATFORM_COMPILER_HAS_EXPLICIT_OPERATORS		1
-#define PLATFORM_COMPILER_HAS_DEFAULT_FUNCTION_TEMPLATE_ARGUMENTS	1
 #define PLATFORM_COMPILER_HAS_TCHAR_WMAIN					1
 
 #define PLATFORM_RHITHREAD_DEFAULT_BYPASS					WITH_EDITOR
@@ -85,7 +81,6 @@ typedef FWindowsPlatformTypes FPlatformTypes;
 #define STDCALL		__stdcall										/* Standard calling convention */
 #define FORCEINLINE __forceinline									/* Force code to be inline */
 #define FORCENOINLINE __declspec(noinline)							/* Force code to NOT be inline */
-#define FUNCTION_CHECK_RETURN_START __declspec("SAL_checkReturn")	/* Warn that callers should not ignore the return value. */
 #define FUNCTION_NO_RETURN_START __declspec(noreturn)				/* Indicate that the function never returns. */
 
 // Hints compiler that expression is true; generally restricted to comparisons against constants
@@ -143,3 +138,13 @@ typedef FWindowsPlatformTypes FPlatformTypes;
 
 // Include code analysis features
 #include "WindowsPlatformCodeAnalysis.h"
+
+#if USING_CODE_ANALYSIS && _MSC_VER == 1900
+	// Disable this warning as VC2015 Update 1 produces this warning erroneously when placed on variadic templates:
+	//
+	// warning C28216: The checkReturn annotation only applies to postconditions for function 'Func' _Param_(N).
+	#define FUNCTION_CHECK_RETURN_START __pragma(warning(push)) __pragma(warning(disable: 28216)) __declspec("SAL_checkReturn")
+	#define FUNCTION_CHECK_RETURN_END __pragma(warning(pop))
+#else
+	#define FUNCTION_CHECK_RETURN_START __declspec("SAL_checkReturn")	/* Warn that callers should not ignore the return value. */
+#endif

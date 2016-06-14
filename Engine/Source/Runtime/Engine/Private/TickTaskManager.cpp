@@ -111,7 +111,6 @@ public:
 	typedef InElementType ElementType;
 	typedef InAllocator   Allocator;
 
-#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 	template <typename... ArgsType>
 	int32 EmplaceThreadsafe(ArgsType&&... Args)
 	{
@@ -119,16 +118,6 @@ public:
 		new(this->GetData() + Index) ElementType(Forward<ArgsType>(Args)...);
 		return Index;
 	}
-
-#else
-	template <typename Arg0Type>
-	int32 EmplaceThreadsafe(Arg0Type&& Arg0)
-	{
-		const int32 Index = AddUninitializedThreadsafe(1);
-		new(this->GetData() + Index) ElementType(Forward<Arg0Type>(Arg0));
-		return Index;
-	}
-#endif
 
 
 	/**

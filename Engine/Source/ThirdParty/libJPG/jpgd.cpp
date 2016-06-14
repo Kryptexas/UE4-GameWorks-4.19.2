@@ -861,6 +861,12 @@ namespace jpgd {
 		m_error_code = status;
 		free_all_blocks();
 		longjmp(m_jmp_state, status);
+
+		// we shouldn't get here as longjmp shouldn't return, but we put it here to make it explicit
+		// that this function doesn't return, otherwise we get this error:
+		// 
+		// error : function declared 'noreturn' should not return
+		exit(1);
 	}
 
 	void *jpeg_decoder::alloc(size_t nSize, bool zero)

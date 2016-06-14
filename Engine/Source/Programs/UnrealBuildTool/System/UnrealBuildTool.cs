@@ -866,6 +866,10 @@ namespace UnrealBuildTool
 				{
 					UEBuildConfiguration.GPUArchitectures = LowercaseArg.Replace("-gpuarchitectures=", "").Split(new char[] { '+' }, StringSplitOptions.RemoveEmptyEntries);
 				}
+				else if(LowercaseArg == "-enablecodeanalysis")
+				{
+					BuildConfiguration.bEnableCodeAnalysis = true;
+				}
 			}
 		}
 

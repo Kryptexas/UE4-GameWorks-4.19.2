@@ -1279,9 +1279,8 @@ void UPlayerInput::FinishProcessingPlayerInput()
 		if (KeyState)
 		{
 			KeyState->bDownPrevious = KeyState->bDown;
+			KeyState->bConsumed = false;
 		}
-
-		KeyState->bConsumed = false;
 	}
 }
 

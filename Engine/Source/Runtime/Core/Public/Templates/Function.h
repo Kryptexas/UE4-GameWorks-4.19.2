@@ -285,95 +285,61 @@ namespace UE4Function_Private
 	 * can be collapsed into FFunctionRefCaller.  They're currently separated out to minimize the amount of workarounds
 	 * needed.
 	 */
-	#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
-
-		template <typename Functor, typename Ret, typename... ParamTypes>
-		struct TFunctionRefCaller<Functor, Ret (ParamTypes...)>
+	template <typename Functor, typename Ret, typename... ParamTypes>
+	struct TFunctionRefCaller<Functor, Ret (ParamTypes...)>
+	{
+		static Ret Call(void* Obj, ParamTypes&... Params)
 		{
-			static Ret Call(void* Obj, ParamTypes&... Params)
-			{
-				return (*(Functor*)Obj)(Forward<ParamTypes>(Params)...);
-			}
-		};
+			return (*(Functor*)Obj)(Forward<ParamTypes>(Params)...);
+		}
+	};
 
-		/**
-		 * Specialization for void return types.
-		 */
-		template <typename Functor, typename... ParamTypes>
-		struct TFunctionRefCaller<Functor, void (ParamTypes...)>
+	/**
+	 * Specialization for void return types.
+	 */
+	template <typename Functor, typename... ParamTypes>
+	struct TFunctionRefCaller<Functor, void (ParamTypes...)>
+	{
+		static void Call(void* Obj, ParamTypes&... Params)
 		{
-			static void Call(void* Obj, ParamTypes&... Params)
-			{
-				(*(Functor*)Obj)(Forward<ParamTypes>(Params)...);
-			}
-		};
+			(*(Functor*)Obj)(Forward<ParamTypes>(Params)...);
+		}
+	};
 
-		template <typename Ret, typename... ParamTypes>
-		struct TFunctionRefAsserter<Ret (ParamTypes...)>
+	template <typename Ret, typename... ParamTypes>
+	struct TFunctionRefAsserter<Ret (ParamTypes...)>
+	{
+		static Ret Call(void* Obj, ParamTypes&...)
 		{
-			static Ret Call(void* Obj, ParamTypes&...)
-			{
-				checkf(false, TEXT("Attempting to call a null TFunction!"));
+			checkf(false, TEXT("Attempting to call a null TFunction!"));
 
-				// This doesn't need to be valid, because it'll never be reached, but it does at least need to compile.
-				return FakeCall((Ret*)Obj);
-			}
-		};
+			// This doesn't need to be valid, because it'll never be reached, but it does at least need to compile.
+			return FakeCall((Ret*)Obj);
+		}
+	};
 
-		template <typename DerivedType, typename Ret, typename... ParamTypes>
-		struct TFunctionRefBase<DerivedType, Ret (ParamTypes...)> : TFunctionRefBaseCommon<Ret (ParamTypes...), Ret (void*, ParamTypes&...)>
+	template <typename DerivedType, typename Ret, typename... ParamTypes>
+	struct TFunctionRefBase<DerivedType, Ret (ParamTypes...)> : TFunctionRefBaseCommon<Ret (ParamTypes...), Ret (void*, ParamTypes&...)>
+	{
+		typedef TFunctionRefBaseCommon<Ret (ParamTypes...), Ret (void*, ParamTypes&...)> Super;
+
+		explicit TFunctionRefBase(ENoInit)
+			: Super(NoInit)
 		{
-			typedef TFunctionRefBaseCommon<Ret (ParamTypes...), Ret (void*, ParamTypes&...)> Super;
+		}
 
-			explicit TFunctionRefBase(ENoInit)
-				: Super(NoInit)
-			{
-			}
+		template <typename FunctorType>
+		explicit TFunctionRefBase(FunctorType* Functor)
+			: Super(Functor)
+		{
+		}
 
-			template <typename FunctorType>
-			explicit TFunctionRefBase(FunctorType* Functor)
-				: Super(Functor)
-			{
-			}
-
-			Ret operator()(ParamTypes... Params) const
-			{
-				const DerivedType* Derived = static_cast<const DerivedType*>(this);
-				return this->GetCallable()(Derived->GetPtr(), Params...);
-			}
-		};
-
-	#else
-
-		/**
-		 * Specializations of the above classes which don't use variadic templates, up to a maximum arity of 4.
-		 */
-
-		template <typename Functor, typename Ret                                                    > struct TFunctionRefCaller<Functor, Ret (              )> { static Ret Call(void* Obj                                ) { return (*(Functor*)Obj)(                                                                  ); } };
-		template <typename Functor, typename Ret, typename T0                                       > struct TFunctionRefCaller<Functor, Ret (T0            )> { static Ret Call(void* Obj, T0& P0                        ) { return (*(Functor*)Obj)(Forward<T0>(P0)                                                   ); } };
-		template <typename Functor, typename Ret, typename T0, typename T1                          > struct TFunctionRefCaller<Functor, Ret (T0, T1        )> { static Ret Call(void* Obj, T0& P0, T1& P1                ) { return (*(Functor*)Obj)(Forward<T0>(P0), Forward<T1>(P1)                                  ); } };
-		template <typename Functor, typename Ret, typename T0, typename T1, typename T2             > struct TFunctionRefCaller<Functor, Ret (T0, T1, T2    )> { static Ret Call(void* Obj, T0& P0, T1& P1, T2& P2        ) { return (*(Functor*)Obj)(Forward<T0>(P0), Forward<T1>(P1), Forward<T2>(P2)                 ); } };
-		template <typename Functor, typename Ret, typename T0, typename T1, typename T2, typename T3> struct TFunctionRefCaller<Functor, Ret (T0, T1, T2, T3)> { static Ret Call(void* Obj, T0& P0, T1& P1, T2& P2, T3& P3) { return (*(Functor*)Obj)(Forward<T0>(P0), Forward<T1>(P1), Forward<T2>(P2), Forward<T3>(P3)); } };
-
-		template <typename Functor                                                    > struct TFunctionRefCaller<Functor, void (              )> { static void Call(void* Obj                                ) { (*(Functor*)Obj)(                                                                  ); } };
-		template <typename Functor, typename T0                                       > struct TFunctionRefCaller<Functor, void (T0            )> { static void Call(void* Obj, T0& P0                        ) { (*(Functor*)Obj)(Forward<T0>(P0)                                                   ); } };
-		template <typename Functor, typename T0, typename T1                          > struct TFunctionRefCaller<Functor, void (T0, T1        )> { static void Call(void* Obj, T0& P0, T1& P1                ) { (*(Functor*)Obj)(Forward<T0>(P0), Forward<T1>(P1)                                  ); } };
-		template <typename Functor, typename T0, typename T1, typename T2             > struct TFunctionRefCaller<Functor, void (T0, T1, T2    )> { static void Call(void* Obj, T0& P0, T1& P1, T2& P2        ) { (*(Functor*)Obj)(Forward<T0>(P0), Forward<T1>(P1), Forward<T2>(P2)                 ); } };
-		template <typename Functor, typename T0, typename T1, typename T2, typename T3> struct TFunctionRefCaller<Functor, void (T0, T1, T2, T3)> { static void Call(void* Obj, T0& P0, T1& P1, T2& P2, T3& P3) { (*(Functor*)Obj)(Forward<T0>(P0), Forward<T1>(P1), Forward<T2>(P2), Forward<T3>(P3)); } };
-
-		template <typename Ret                                                    > struct TFunctionRefAsserter<Ret (              )> { static Ret Call(void* Obj                    ) { checkf(false, TEXT("Attempting to call a null TFunction!")); return FakeCall((Ret*)Obj); } };
-		template <typename Ret, typename T0                                       > struct TFunctionRefAsserter<Ret (T0            )> { static Ret Call(void* Obj, T0&               ) { checkf(false, TEXT("Attempting to call a null TFunction!")); return FakeCall((Ret*)Obj); } };
-		template <typename Ret, typename T0, typename T1                          > struct TFunctionRefAsserter<Ret (T0, T1        )> { static Ret Call(void* Obj, T0&, T1&          ) { checkf(false, TEXT("Attempting to call a null TFunction!")); return FakeCall((Ret*)Obj); } };
-		template <typename Ret, typename T0, typename T1, typename T2             > struct TFunctionRefAsserter<Ret (T0, T1, T2    )> { static Ret Call(void* Obj, T0&, T1&, T2&     ) { checkf(false, TEXT("Attempting to call a null TFunction!")); return FakeCall((Ret*)Obj); } };
-		template <typename Ret, typename T0, typename T1, typename T2, typename T3> struct TFunctionRefAsserter<Ret (T0, T1, T2, T3)> { static Ret Call(void* Obj, T0&, T1&, T2&, T3&) { checkf(false, TEXT("Attempting to call a null TFunction!")); return FakeCall((Ret*)Obj); } };
-
-		template <typename DerivedType, typename Ret                                                    > struct TFunctionRefBase<DerivedType, Ret (              )> : TFunctionRefBaseCommon<Ret (              ), Ret (void*                    )> { typedef TFunctionRefBaseCommon<Ret (              ), Ret (void*                    )> Super; explicit TFunctionRefBase(ENoInit) : Super(NoInit) {} template <typename FunctorType> explicit TFunctionRefBase(FunctorType* Functor) : Super(Functor) {} Ret operator()(                          ) const { const DerivedType* Derived = static_cast<const DerivedType*>(this); return this->GetCallable()(Derived->GetPtr()                ); } };
-		template <typename DerivedType, typename Ret, typename T0                                       > struct TFunctionRefBase<DerivedType, Ret (T0            )> : TFunctionRefBaseCommon<Ret (T0            ), Ret (void*, T0&               )> { typedef TFunctionRefBaseCommon<Ret (T0            ), Ret (void*, T0&               )> Super; explicit TFunctionRefBase(ENoInit) : Super(NoInit) {} template <typename FunctorType> explicit TFunctionRefBase(FunctorType* Functor) : Super(Functor) {} Ret operator()(T0 P0                     ) const { const DerivedType* Derived = static_cast<const DerivedType*>(this); return this->GetCallable()(Derived->GetPtr(), P0            ); } };
-		template <typename DerivedType, typename Ret, typename T0, typename T1                          > struct TFunctionRefBase<DerivedType, Ret (T0, T1        )> : TFunctionRefBaseCommon<Ret (T0, T1        ), Ret (void*, T0&, T1&          )> { typedef TFunctionRefBaseCommon<Ret (T0, T1        ), Ret (void*, T0&, T1&          )> Super; explicit TFunctionRefBase(ENoInit) : Super(NoInit) {} template <typename FunctorType> explicit TFunctionRefBase(FunctorType* Functor) : Super(Functor) {} Ret operator()(T0 P0, T1 P1              ) const { const DerivedType* Derived = static_cast<const DerivedType*>(this); return this->GetCallable()(Derived->GetPtr(), P0, P1        ); } };
-		template <typename DerivedType, typename Ret, typename T0, typename T1, typename T2             > struct TFunctionRefBase<DerivedType, Ret (T0, T1, T2    )> : TFunctionRefBaseCommon<Ret (T0, T1, T2    ), Ret (void*, T0&, T1&, T2&     )> { typedef TFunctionRefBaseCommon<Ret (T0, T1, T2    ), Ret (void*, T0&, T1&, T2&     )> Super; explicit TFunctionRefBase(ENoInit) : Super(NoInit) {} template <typename FunctorType> explicit TFunctionRefBase(FunctorType* Functor) : Super(Functor) {} Ret operator()(T0 P0, T1 P1, T2 P2       ) const { const DerivedType* Derived = static_cast<const DerivedType*>(this); return this->GetCallable()(Derived->GetPtr(), P0, P1, P2    ); } };
-		template <typename DerivedType, typename Ret, typename T0, typename T1, typename T2, typename T3> struct TFunctionRefBase<DerivedType, Ret (T0, T1, T2, T3)> : TFunctionRefBaseCommon<Ret (T0, T1, T2, T3), Ret (void*, T0&, T1&, T2&, T3&)> { typedef TFunctionRefBaseCommon<Ret (T0, T1, T2, T3), Ret (void*, T0&, T1&, T2&, T3&)> Super; explicit TFunctionRefBase(ENoInit) : Super(NoInit) {} template <typename FunctorType> explicit TFunctionRefBase(FunctorType* Functor) : Super(Functor) {} Ret operator()(T0 P0, T1 P1, T2 P2, T3 P3) const { const DerivedType* Derived = static_cast<const DerivedType*>(this); return this->GetCallable()(Derived->GetPtr(), P0, P1, P2, P3); } };
-
-	#endif
+		Ret operator()(ParamTypes... Params) const
+		{
+			const DerivedType* Derived = static_cast<const DerivedType*>(this);
+			return this->GetCallable()(Derived->GetPtr(), Params...);
+		}
+	};
 }
 
 /**
@@ -438,13 +404,8 @@ public:
 	/**
 	 * Constructor which binds a TFunctionRef to a non-const lvalue function object.
 	 */
-#if !PLATFORM_COMPILER_HAS_DEFAULT_FUNCTION_TEMPLATE_ARGUMENTS
-	template <typename FunctorType>
-	TFunctionRef(FunctorType& Functor, typename TEnableIf<!TIsFunction<FunctorType>::Value && !TAreTypesEqual<TFunctionRef, FunctorType>::Value>::Type* = nullptr)
-#else
 	template <typename FunctorType, typename = typename TEnableIf<!TIsFunction<FunctorType>::Value && !TAreTypesEqual<TFunctionRef, FunctorType>::Value>::Type>
 	TFunctionRef(FunctorType& Functor)
-#endif
 		: Super(NoInit)
 	{
 		// This constructor is disabled for function types because we want it to call the function pointer overload.
@@ -456,13 +417,8 @@ public:
 	/**
 	 * Constructor which binds a TFunctionRef to an rvalue or const lvalue function object.
 	 */
-#if !PLATFORM_COMPILER_HAS_DEFAULT_FUNCTION_TEMPLATE_ARGUMENTS
-	template <typename FunctorType>
-	TFunctionRef(const FunctorType& Functor, typename TEnableIf<!TIsFunction<FunctorType>::Value && !TAreTypesEqual<TFunctionRef, FunctorType>::Value>::Type* = nullptr)
-#else
 	template <typename FunctorType, typename = typename TEnableIf<!TIsFunction<FunctorType>::Value && !TAreTypesEqual<TFunctionRef, FunctorType>::Value>::Type>
 	TFunctionRef(const FunctorType& Functor)
-#endif
 		: Super(NoInit)
 	{
 		// This constructor is disabled for function types because we want it to call the function pointer overload.
@@ -474,13 +430,8 @@ public:
 	/**
 	 * Constructor which binds a TFunctionRef to a function pointer.
 	 */
-#if !PLATFORM_COMPILER_HAS_DEFAULT_FUNCTION_TEMPLATE_ARGUMENTS
-	template <typename FunctionType>
-	TFunctionRef(FunctionType* Function, typename TEnableIf<TIsFunction<FunctionType>::Value>::Type* = nullptr)
-#else
 	template <typename FunctionType, typename = typename TEnableIf<TIsFunction<FunctionType>::Value>::Type>
 	TFunctionRef(FunctionType* Function)
-#endif
 		: Super(NoInit)
 	{
 		// This constructor is enabled only for function types because we don't want weird errors from it being called with arbitrary pointers.
@@ -627,13 +578,8 @@ public:
 	/**
 	 * Constructor which binds a TFunction to any function object.
 	 */
-#if !PLATFORM_COMPILER_HAS_DEFAULT_FUNCTION_TEMPLATE_ARGUMENTS
-	template <typename FunctorType>
-	TFunction(FunctorType&& InFunc, typename TEnableIf<!TAreTypesEqual<TFunction, typename TDecay<FunctorType>::Type>::Value>::Type* = nullptr)
-#else
 	template <typename FunctorType, typename = typename TEnableIf<!TAreTypesEqual<TFunction, typename TDecay<FunctorType>::Type>::Value>::Type>
 	TFunction(FunctorType&& InFunc)
-#endif
 		: Super(NoInit)
 	{
 		// This constructor is disabled for TFunction types because VC is incorrectly treating it as copy/move constructors.

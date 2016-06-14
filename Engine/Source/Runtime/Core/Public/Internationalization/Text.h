@@ -318,7 +318,6 @@ public:
 	static FText Format(FText Fmt, FText v1, FText v2, FText v3);
 	static FText Format(FText Fmt, FText v1, FText v2, FText v3, FText v4);
 
-#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 	/**
 	 * FormatNamed allows you to pass name <-> value pairs to the function to format automatically
 	 *
@@ -340,7 +339,6 @@ public:
 	 */
 	template < typename... TArguments >
 	static FText FormatOrdered( FText Fmt, TArguments&&... Args );
-#endif // PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 
 	static void SetEnableErrorCheckingResults(bool bEnable){bEnableErrorCheckingResults=bEnable;}
 	static bool GetEnableErrorCheckingResults(){return bEnableErrorCheckingResults;}
@@ -572,35 +570,34 @@ struct FFormatArgumentData
 	}
 };
 
-#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 namespace TextFormatUtil
 {
 
-template < typename TName, typename TValue >
-void FormatNamed( OUT FFormatNamedArguments& Result, TName&& Name, TValue&& Value )
-{
-	Result.Emplace( Forward< TName >( Name ), Forward< TValue >( Value ) );
-}
-
-template < typename TName, typename TValue, typename... TArguments >
-void FormatNamed( OUT FFormatNamedArguments& Result, TName&& Name, TValue&& Value, TArguments&&... Args )
-{
-	FormatNamed( Result, Forward< TName >( Name ), Forward< TValue >( Value ) );
-	FormatNamed( Result, Forward< TArguments >( Args )... );
-}
-
-template < typename TValue >
-void FormatOrdered( OUT FFormatOrderedArguments& Result, TValue&& Value )
-{
-	Result.Emplace( Forward< TValue >( Value ) );
-}
-
-template < typename TValue, typename... TArguments >
-void FormatOrdered( OUT FFormatOrderedArguments& Result, TValue&& Value, TArguments&&... Args )
-{
-	FormatOrdered( Result, Forward< TValue >( Value ) );
-	FormatOrdered( Result, Forward< TArguments >( Args )... );
-}
+	template < typename TName, typename TValue >
+	void FormatNamed( OUT FFormatNamedArguments& Result, TName&& Name, TValue&& Value )
+	{
+		Result.Emplace( Forward< TName >( Name ), Forward< TValue >( Value ) );
+	}
+	
+	template < typename TName, typename TValue, typename... TArguments >
+	void FormatNamed( OUT FFormatNamedArguments& Result, TName&& Name, TValue&& Value, TArguments&&... Args )
+	{
+		FormatNamed( Result, Forward< TName >( Name ), Forward< TValue >( Value ) );
+		FormatNamed( Result, Forward< TArguments >( Args )... );
+	}
+	
+	template < typename TValue >
+	void FormatOrdered( OUT FFormatOrderedArguments& Result, TValue&& Value )
+	{
+		Result.Emplace( Forward< TValue >( Value ) );
+	}
+	
+	template < typename TValue, typename... TArguments >
+	void FormatOrdered( OUT FFormatOrderedArguments& Result, TValue&& Value, TArguments&&... Args )
+	{
+		FormatOrdered( Result, Forward< TValue >( Value ) );
+		FormatOrdered( Result, Forward< TArguments >( Args )... );
+	}
 
 } // namespace TextFormatUtil
 
@@ -621,7 +618,6 @@ FText FText::FormatOrdered( FText Fmt, TArguments&&... Args )
 	TextFormatUtil::FormatOrdered( FormatArguments, Forward< TArguments >( Args )... );
 	return FormatInternal( MoveTemp( Fmt ), MoveTemp( FormatArguments ), false, false );
 }
-#endif // PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 
 /** A snapshot of an FText at a point in time that can be used to detect changes in the FText, including live-culture changes */
 class CORE_API FTextSnapshot

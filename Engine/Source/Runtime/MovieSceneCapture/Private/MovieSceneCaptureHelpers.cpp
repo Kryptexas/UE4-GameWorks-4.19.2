@@ -343,7 +343,7 @@ bool MovieSceneCaptureHelpers::ImportEDL(UMovieScene* InMovieScene, float InFram
 			for (UMovieSceneSection* Section : CinematicShotTrack->GetAllSections())
 			{
 				UMovieSceneCinematicShotSection* CinematicShotSection = Cast<UMovieSceneCinematicShotSection>(Section);
-				if (CinematicShotSection->GetSequence()->GetName() == ShotName)
+				if (CinematicShotSection && CinematicShotSection->GetSequence()->GetName() == ShotName)
 				{
 					ShotSection = CinematicShotSection;
 					break;

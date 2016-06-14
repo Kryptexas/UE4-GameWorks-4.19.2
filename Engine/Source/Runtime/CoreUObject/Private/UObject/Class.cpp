@@ -864,7 +864,7 @@ struct TConvertIntToIntProperty
 		static_cast<typename UE4Types_Private::TIntegerPropertyMapping<NewIntType>::Type*>(Property)->SetPropertyValue_InContainer(Obj, NewValue, ArrayIndex);
 
 		UE_CLOG(
-			(TIsSignedIntegralType<OldIntType>::Value && !TIsSignedIntegralType<NewIntType>::Value && OldValue < 0) || (sizeof(NewIntType) < sizeof(OldIntType) && (OldIntType)NewValue != OldValue),
+			(TIsSigned<OldIntType>::Value && !TIsSigned<NewIntType>::Value && OldValue < 0) || (sizeof(NewIntType) < sizeof(OldIntType) && (OldIntType)NewValue != OldValue),
 			LogClass,
 			Warning,
 			TEXT("Potential data loss during conversion of integer property %s of %s - was (%s) now (%s) - for package: %s"),

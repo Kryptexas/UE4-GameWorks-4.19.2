@@ -17,7 +17,16 @@
 #include "UProjectInfo.h"
 
 #if UE_ENABLE_ICU
+#if defined(_MSC_VER) && USING_CODE_ANALYSIS
+	#pragma warning(push)
+	#pragma warning(disable:28251)
+	#pragma warning(disable:28252)
+	#pragma warning(disable:28253)
+#endif
 	#include <unicode/locid.h>
+#if defined(_MSC_VER) && USING_CODE_ANALYSIS
+	#pragma warning(pop)
+#endif
 #endif
 
 DEFINE_LOG_CATEGORY_STATIC(LogGenericPlatformMisc, Log, All);

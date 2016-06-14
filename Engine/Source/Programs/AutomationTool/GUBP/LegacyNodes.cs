@@ -2535,6 +2535,64 @@ partial class GUBP
         }
     }
 
+    public class StaticAnalysisTestNode : TestNode
+    {
+		GUBP.GUBPBranchConfig BranchConfig;
+
+        public StaticAnalysisTestNode(GUBP.GUBPBranchConfig InBranchConfig, UnrealTargetPlatform InHostPlatform)
+            : base(InHostPlatform)
+        {
+			BranchConfig = InBranchConfig;
+            AddDependency(ToolsForCompileNode.StaticGetFullName(HostPlatform));
+            AddPseudodependency(RootEditorNode.StaticGetFullName(HostPlatform));
+			AgentSharingGroup = "TargetPlatforms" + StaticGetHostPlatformSuffix(InHostPlatform);
+        }
+		public override string[] GetAgentTypes()
+		{
+			return new string[]{ "CompileWin64", "Win64" };
+		}
+		public override float Priority()
+		{
+			return -100000.0f;
+		}
+		public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform)
+        {
+            return "UE4_Win64_StaticAnalysis" + StaticGetHostPlatformSuffix(InHostPlatform);
+        }
+        public override string GetFullName()
+        {
+            return StaticGetFullName(HostPlatform);
+        }
+		public override int CISFrequencyQuantumShift(GUBP.GUBPBranchConfig BranchConfig)
+        {
+            int Result = base.CISFrequencyQuantumShift(BranchConfig) + 2;
+            if(HostPlatform == UnrealTargetPlatform.Mac)
+            {
+                Result += 1;
+            }
+            return Result;
+        }
+		public override int AgentMemoryRequirement()
+        {
+            int Result = base.AgentMemoryRequirement();
+            if(HostPlatform == UnrealTargetPlatform.Mac)
+            {
+                Result = 32;
+            }
+            return Result;
+        }
+        public override void DoTest(GUBP bp)
+        {
+            UE4Build.BuildAgenda Agenda = new UE4Build.BuildAgenda();
+            Agenda.AddTargets(new string[] { "UE4Game" }, HostPlatform, UnrealTargetConfiguration.Development, InAddArgs: "-enablecodeanalysis");
+
+			UE4Build Build = new UE4Build(bp);
+            Build.Build(Agenda, InDeleteBuildProducts: true, InUpdateVersionFiles: false, InForceNoXGE: true);
+
+            SaveRecordOfSuccessAndAddToBuildProducts();
+        }
+    }
+
     public class IOSOnPCTestNode : TestNode
     {
 		GUBP.GUBPBranchConfig BranchConfig;

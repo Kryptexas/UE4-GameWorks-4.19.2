@@ -1673,7 +1673,7 @@ bool FRepLayout::ReceiveProperties_BackwardsCompatible( UNetConnection* Connecti
 
 	TSharedPtr< FCompatibleRepLayout > CompatibleRepLayout = ( ( UPackageMapClient* )Connection->PackageMap )->GetCompatibleRepLayoutChecked( Owner );
 
-	return ReceiveProperties_BackwardsCompatible_r( RepState, CompatibleRepLayout.Get(), InBunch, 0, Cmds.Num() - 1, bEnableRepNotifies ? RepState->StaticBuffer.GetData() : nullptr, ( uint8* )Data, ( uint8* )Data, RepState ? &RepState->UnmappedGuids : nullptr, bOutHasUnmapped );
+	return ReceiveProperties_BackwardsCompatible_r( RepState, CompatibleRepLayout.Get(), InBunch, 0, Cmds.Num() - 1, (bEnableRepNotifies && RepState) ? RepState->StaticBuffer.GetData() : nullptr, ( uint8* )Data, ( uint8* )Data, RepState ? &RepState->UnmappedGuids : nullptr, bOutHasUnmapped );
 }
 
 int32 FRepLayout::FindCompatibleProperty( const int32 CmdStart, const int32 CmdEnd, const uint32 Checksum ) const

@@ -265,7 +265,7 @@ public partial class Project : CommandUtils
             string[] ExcludeWildCards = {"AssetRegistry.bin"};
 
             // Stage any loose files in the root folder
-            SC.StageFiles(StagedFileType.UFS, PlatformCookDir, "*", false, ExcludeWildCards, "", true, !Params.UsePak(SC.StageTargetPlatform));
+            SC.StageFiles(StagedFileType.UFS, PlatformCookDir, "*", false, ExcludeWildCards, SC.RelativeProjectRootForStage, true, !Params.UsePak(SC.StageTargetPlatform));
 
             // Stage each sub directory separately so that we can skip Engine if need be
             string[] SubDirs = CommandUtils.FindDirectories(true, "*", false, new string[] { PlatformCookDir });
@@ -276,7 +276,7 @@ public partial class Project : CommandUtils
                 {
                     continue;
                 }
-                SC.StageFiles(StagedFileType.UFS, SubDir, "*", true, ExcludeWildCards, "", true, !Params.UsePak(SC.StageTargetPlatform));
+                SC.StageFiles(StagedFileType.UFS, SubDir, "*", true, ExcludeWildCards, SC.RelativeProjectRootForStage, true, !Params.UsePak(SC.StageTargetPlatform));
             }
 
             return;

@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include "EnumClassFlags.h"
+
 /**
  * Base class for serializing arbitrary data in memory.
  */
@@ -125,6 +127,124 @@ protected:
 	TArray<uint8>&	Bytes;
 
 	/** Archive name, used to debugging, by default set to NAME_None. */
+	const FName ArchiveName;
+};
+
+/**
+* Archive for storing a large amount of arbitrary data to memory
+*/
+class CORE_API FLargeMemoryWriter : public FMemoryArchive
+{
+public:
+	
+	FLargeMemoryWriter(const int64 PreAllocateBytes = 0, bool bIsPersistent = false, const FName InArchiveName = NAME_None);
+
+	virtual void Serialize(void* InData, int64 Num) override;
+
+	/**
+	* Returns the name of the Archive.  Useful for getting the name of the package a struct or object
+	* is in when a loading error occurs.
+	*
+	* This is overridden for the specific Archive Types
+	**/
+	virtual FString GetArchiveName() const override;
+
+	/**
+	 * Gets the total size of the data written
+	 */
+	virtual int64 TotalSize() override;
+	
+	/**
+	 * Returns the written data. To release this archive's ownership of the data, call ReleaseOwnership()
+	 */
+	uint8* GetData() const;
+
+	/** 
+	 * Releases ownership of the written data
+	 */
+	void ReleaseOwnership();
+	
+	/**
+	 * Destructor
+	 */
+	~FLargeMemoryWriter();
+
+private:
+
+	/** Non-copyable */
+	FLargeMemoryWriter(const FLargeMemoryWriter&) = delete;
+	FLargeMemoryWriter& operator=(const FLargeMemoryWriter&) = delete;
+
+	/** Memory owned by this archive. Ownership can be released by calling ReleaseOwnership() */
+	uint8* Data;
+
+	/** Number of bytes currently written to our data buffer */
+	int64 NumBytes;
+
+	/** Number of bytes currently allocated for our data buffer */
+	int64 MaxBytes;
+
+	/** Resizes the data buffer to at least the desired new size with some slack */
+	void GrowBuffer(const int64 DesiredBytes);
+
+	/** Archive name, used for debugging, by default set to NAME_None. */
+	const FName ArchiveName;
+};
+
+enum class ELargeMemoryReaderFlags : uint8
+{
+	None =				0x0,	// No Flags
+	TakeOwnership =		0x1,	// Archive will take ownership of the passed-in memory and free it on destruction
+	Persistent =		0x2,	// Archive will be set as persistent when constructed
+};
+
+ENUM_CLASS_FLAGS(ELargeMemoryReaderFlags);
+
+/**
+* Archive for reading a large amount of arbitrary data from memory
+*/
+class CORE_API FLargeMemoryReader : public FMemoryArchive
+{
+public:
+
+	FLargeMemoryReader(const uint8* InData, const int64 Num, ELargeMemoryReaderFlags InFlags = ELargeMemoryReaderFlags::None, const FName InArchiveName = NAME_None);
+
+	virtual void Serialize(void* OutData, int64 Num) override;
+
+	/**
+	* Gets the total size of the data buffer
+	*/
+	virtual int64 TotalSize() override;
+
+	/**
+	* Returns the name of the Archive.  Useful for getting the name of the package a struct or object
+	* is in when a loading error occurs.
+	*
+	* This is overridden for the specific Archive Types
+	**/
+	virtual FString GetArchiveName() const override;
+
+	/**
+	* Destructor
+	*/
+	~FLargeMemoryReader();
+
+private:
+
+	/** Non-copyable */
+	FLargeMemoryReader(const FLargeMemoryReader&) = delete;
+	FLargeMemoryReader& operator=(const FLargeMemoryReader&) = delete;
+
+	/** Whether the data buffer should be freed when this archive is closed */
+	const uint8 bFreeOnClose : 1;
+	
+	/** Data buffer we are reading from */
+	const uint8* Data;
+
+	/** Total size of the data buffer */
+	const int64 NumBytes;
+
+	/** Name of the archive this buffer is for */
 	const FName ArchiveName;
 };
 

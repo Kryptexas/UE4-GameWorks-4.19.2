@@ -561,7 +561,7 @@ void UClassCompiledInDefer(FFieldCompiledInInfo* ClassInfo, const TCHAR* Name, S
 	if (ExistingClassInfo)
 	{
 		// Class exists, this can only happen during hot-reload
-		check(GIsHotReload);
+		checkf(GIsHotReload, TEXT("Trying to recreate class '%s' outside of hot reload!"), *CPPClassName.ToString());
 
 		// Get the native name
 		FString NameWithoutPrefix(RemoveClassPrefix(Name));

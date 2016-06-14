@@ -7,10 +7,19 @@
 #include "TextData.h"
 #include "TextHistory.h"
 #include "FastDecimalFormat.h"
-#include "unicode/utypes.h"
-#include <unicode/numfmt.h>
-#include "unicode/fmtable.h"
-#include "unicode/unistr.h"
+#if defined(_MSC_VER) && USING_CODE_ANALYSIS
+	#pragma warning(push)
+	#pragma warning(disable:28251)
+	#pragma warning(disable:28252)
+	#pragma warning(disable:28253)
+#endif
+	#include "unicode/utypes.h"
+	#include <unicode/numfmt.h>
+	#include "unicode/fmtable.h"
+	#include "unicode/unistr.h"
+#if defined(_MSC_VER) && USING_CODE_ANALYSIS
+	#pragma warning(pop)
+#endif
 
 #define EXPERIMENTAL_TEXT_FAST_DECIMAL_FORMAT 1
 

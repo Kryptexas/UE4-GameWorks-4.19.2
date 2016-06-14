@@ -110,7 +110,6 @@
 #include "JsonInternationalizationArchiveSerializer.h"
 #include "JsonInternationalizationManifestSerializer.h"
 
-#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 #include "IMessagingRpcModule.h"
 #include "IMessageRpcClient.h"
 #include "IPortalRpcModule.h"
@@ -118,7 +117,6 @@
 #include "IPortalServicesModule.h"
 #include "IPortalServiceLocator.h"
 #include "TypeContainer.h"
-#endif
 
 #include "MovieSceneCaptureModule.h"
 #include "GameFramework/OnlineSession.h"
@@ -975,13 +973,11 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 	// Initialise buffer visualization system data
 	GetBufferVisualizationData().Initialize();
 
-#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 	// Initialize Portal services
 	if (!IsRunningCommandlet() && !IsRunningDedicatedServer())
 	{
 		InitializePortalServices();
 	}
-#endif
 
 	// Connect the engine analytics provider
 	FEngineAnalytics::Initialize();
@@ -1651,7 +1647,6 @@ void UEngine::InitializeObjectReferences()
 	UISettings->ForceLoadResources();
 }
 
-#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 void UEngine::InitializePortalServices()
 {
 	TSharedPtr<IMessagingRpcModule> MessagingRpcModule;
@@ -1712,7 +1707,6 @@ void UEngine::InitializePortalServices()
 		ServiceLocator = MakeShareable(new FNullPortalServiceLocator());
 	}
 }
-#endif
 
 //
 // Exit the engine.

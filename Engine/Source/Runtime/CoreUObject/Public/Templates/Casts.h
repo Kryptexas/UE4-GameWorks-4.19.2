@@ -344,7 +344,7 @@ private:
 namespace UE4Casts_Private
 {
 	template <typename To, typename From>
-	FORCEINLINE typename TEnableIf<TAnd<TIsPointerType<To>, TAnd<TIsCastableToPointer<typename TRemovePointer<To>::Type>, TIsCastable<From>>>::Value, To>::Type DynamicCast(From* Arg)
+	FORCEINLINE typename TEnableIf<TAnd<TIsPointer<To>, TAnd<TIsCastableToPointer<typename TRemovePointer<To>::Type>, TIsCastable<From>>>::Value, To>::Type DynamicCast(From* Arg)
 	{
 		typedef typename TRemovePointer<To  >::Type ToValueType;
 		typedef typename TRemovePointer<From>::Type FromValueType;
@@ -357,7 +357,7 @@ namespace UE4Casts_Private
 	}
 
 	template <typename To, typename From>
-	FORCEINLINE typename TEnableIf<!TAnd<TIsPointerType<To>, TAnd<TIsCastableToPointer<typename TRemovePointer<To>::Type>, TIsCastable<From>>>::Value, To>::Type DynamicCast(From* Arg)
+	FORCEINLINE typename TEnableIf<!TAnd<TIsPointer<To>, TAnd<TIsCastableToPointer<typename TRemovePointer<To>::Type>, TIsCastable<From>>>::Value, To>::Type DynamicCast(From* Arg)
 	{
 		return dynamic_cast<To>(Arg);
 	}

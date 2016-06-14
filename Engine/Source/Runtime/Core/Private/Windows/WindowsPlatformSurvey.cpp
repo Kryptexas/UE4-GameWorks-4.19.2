@@ -14,7 +14,15 @@
 	#include <PowrProf.h>				// Uses PowrProf.lib on Windows XP and later versions only
 	#pragma comment( lib, "PowrProf.lib" )
 #endif
-	#include <subauth.h>
+
+#if defined(_MSC_VER) && USING_CODE_ANALYSIS
+	#pragma warning(push)
+	#pragma warning(disable:28251)
+#endif
+#include <subauth.h>
+#if defined(_MSC_VER) && USING_CODE_ANALYSIS
+	#pragma warning(pop)
+#endif
 
 #include "UnrealString.h"
 #include "SynthBenchmark.h"

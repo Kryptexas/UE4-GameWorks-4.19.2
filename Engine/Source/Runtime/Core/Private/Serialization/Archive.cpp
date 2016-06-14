@@ -1099,6 +1099,154 @@ int64 FArchiveLoadCompressedProxy::Tell()
 	return RawBytesSerialized;
 }
 
+
+/*----------------------------------------------------------------------------
+	FLargeMemoryWriter
+----------------------------------------------------------------------------*/
+
+FLargeMemoryWriter::FLargeMemoryWriter(const int64 PreAllocateBytes, bool bIsPersistent, const FName InArchiveName)
+	: FMemoryArchive()
+	, Data(nullptr)
+	, NumBytes(0)
+	, MaxBytes(0)
+	, ArchiveName(InArchiveName)
+{
+	ArIsSaving = true;
+	ArIsPersistent = bIsPersistent;
+	GrowBuffer(PreAllocateBytes);
+}
+
+void FLargeMemoryWriter::Serialize(void* InData, int64 Num)
+{
+	UE_CLOG(!Data, LogSerialization, Fatal, TEXT("Tried to serialize data to an FLargeMemoryWriter that was already released. Archive name: %s."), *ArchiveName.ToString());
+	
+	const int64 NumBytesToAdd = Offset + Num - NumBytes;
+	if (NumBytesToAdd > 0)
+	{
+		const int64 NewByteCount = NumBytes + NumBytesToAdd;
+		if (NewByteCount > MaxBytes)
+		{
+			GrowBuffer(NewByteCount);
+		}
+
+		NumBytes = NewByteCount;
+	}
+
+	check((Offset + Num) <= NumBytes);
+
+	if (Num)
+	{
+		FMemory::Memcpy(&Data[Offset], InData, Num);
+		Offset += Num;
+	}
+}
+
+FString FLargeMemoryWriter::GetArchiveName() const
+{
+	return ArchiveName.ToString();
+}
+
+int64 FLargeMemoryWriter::TotalSize()
+{
+	return NumBytes;
+}
+
+uint8* FLargeMemoryWriter::GetData() const
+{
+	UE_CLOG(!Data, LogSerialization, Warning, TEXT("Tried to get written data from an FLargeMemoryWriter that was already released. Archive name: %s."), *ArchiveName.ToString());
+
+	return Data;
+}
+
+void FLargeMemoryWriter::ReleaseOwnership()
+{
+	Data = nullptr;
+	NumBytes = 0;
+	MaxBytes = 0;
+}
+
+FLargeMemoryWriter::~FLargeMemoryWriter()
+{
+	if (Data)
+	{
+		FMemory::Free(Data);
+	}
+}
+
+void FLargeMemoryWriter::GrowBuffer(const int64 DesiredBytes)
+{
+	int64 NewBytes = 4; // Initial alloc size
+
+	if (MaxBytes || DesiredBytes > NewBytes)
+	{
+		// Allocate slack proportional to the buffer size
+		NewBytes = FMemory::QuantizeSize(DesiredBytes + 3 * DesiredBytes / 8 + 16);
+	}
+
+	if (Data)
+	{
+		Data = (uint8*)FMemory::Realloc(Data, NewBytes);
+	}
+	else
+	{
+		Data = (uint8*)FMemory::Malloc(NewBytes);
+	}
+
+	MaxBytes = NewBytes;
+}
+
+
+/*----------------------------------------------------------------------------
+	FLargeMemoryReader
+----------------------------------------------------------------------------*/
+
+FLargeMemoryReader::FLargeMemoryReader(const uint8* InData, const int64 Num, ELargeMemoryReaderFlags InFlags, const FName InArchiveName)
+	: FMemoryArchive()
+	, bFreeOnClose((InFlags & ELargeMemoryReaderFlags::TakeOwnership) != ELargeMemoryReaderFlags::None)
+	, Data(InData)
+	, NumBytes(Num)
+	, ArchiveName(InArchiveName)
+{
+	UE_CLOG(!(InData && Num > 0), LogSerialization, Fatal, TEXT("Tried to initialize an FLargeMemoryReader with a null or empty buffer. Archive name: %s."), *ArchiveName.ToString());
+	ArIsLoading = true;
+	ArIsPersistent = (InFlags & ELargeMemoryReaderFlags::Persistent) != ELargeMemoryReaderFlags::None;
+}
+
+void FLargeMemoryReader::Serialize(void* OutData, int64 Num)
+{
+	if (Num && !ArIsError)
+	{
+		// Only serialize if we have the requested amount of data
+		if (Offset + Num <= NumBytes)
+		{
+			FMemory::Memcpy(OutData, &Data[Offset], Num);
+			Offset += Num;
+		}
+		else
+		{
+			ArIsError = true;
+		}
+	}
+}
+
+int64 FLargeMemoryReader::TotalSize()
+{
+	return NumBytes;
+}
+
+FString FLargeMemoryReader::GetArchiveName() const
+{
+	return ArchiveName.ToString();
+}
+
+FLargeMemoryReader::~FLargeMemoryReader()
+{
+	if (bFreeOnClose)
+	{
+		FMemory::Free((void*)Data);
+	}
+}
+
 /*----------------------------------------------------------------------------
 	The End
 ----------------------------------------------------------------------------*/

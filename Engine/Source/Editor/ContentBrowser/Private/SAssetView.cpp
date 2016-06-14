@@ -1371,6 +1371,12 @@ static bool IsValidObjectPath(const FString& Path)
 	return false;
 }
 
+static bool ContainsT3D(const FString& ClipboardText)
+{
+	return (ClipboardText.StartsWith(TEXT("Begin Object")) && ClipboardText.EndsWith(TEXT("End Object")))
+		|| (ClipboardText.StartsWith(TEXT("Begin Map")) && ClipboardText.EndsWith(TEXT("End Map")));
+}
+
 FReply SAssetView::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
 	if (InKeyEvent.IsControlDown() && InKeyEvent.GetCharacter() == 'V' && IsAssetPathSelected())
@@ -1380,26 +1386,31 @@ FReply SAssetView::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKe
 
 		// Get the copied asset paths
 		FPlatformMisc::ClipboardPaste(AssetPaths);
-		AssetPaths.ParseIntoArrayLines(AssetPathsSplit);
 
-		// Get assets and copy them
-		TArray<UObject*> AssetsToCopy;
-		for (const FString& AssetPath : AssetPathsSplit)
+		// Make sure the clipboard does not contain T3D
+		if (!ContainsT3D(AssetPaths.TrimTrailing()))
 		{
-			// Validate string
-			if (IsValidObjectPath(AssetPath))
+			AssetPaths.ParseIntoArrayLines(AssetPathsSplit);
+
+			// Get assets and copy them
+			TArray<UObject*> AssetsToCopy;
+			for (const FString& AssetPath : AssetPathsSplit)
 			{
-				UObject* ObjectToCopy = LoadObject<UObject>(nullptr, *AssetPath);
-				if (ObjectToCopy && !ObjectToCopy->IsA(UClass::StaticClass()))
+				// Validate string
+				if (IsValidObjectPath(AssetPath))
 				{
-					AssetsToCopy.Add(ObjectToCopy);
+					UObject* ObjectToCopy = LoadObject<UObject>(nullptr, *AssetPath);
+					if (ObjectToCopy && !ObjectToCopy->IsA(UClass::StaticClass()))
+					{
+						AssetsToCopy.Add(ObjectToCopy);
+					}
 				}
 			}
-		}
 
-		if (AssetsToCopy.Num())
-		{
-			ContentBrowserUtils::CopyAssets(AssetsToCopy, SourcesData.PackagePaths[0].ToString());
+			if (AssetsToCopy.Num())
+			{
+				ContentBrowserUtils::CopyAssets(AssetsToCopy, SourcesData.PackagePaths[0].ToString());
+			}
 		}
 
 		return FReply::Handled();
