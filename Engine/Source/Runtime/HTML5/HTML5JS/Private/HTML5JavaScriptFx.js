@@ -48,10 +48,7 @@ var UE_JavaScriptLibary = {
     Module.HEAP32[outdataptr >> 2] = outdata;
   },
 
-  // ================================================================================
-  // ================================================================================
-
-  UE_SaveGame: function (name, userIndex, indata, insize) {
+  UE_SaveGame: function (name, userIndex, indata, insize){
     // user index is not used.
     var _name = Pointer_stringify(name);
     var gamedata = Module.HEAPU8.subarray(indata, indata + insize);
@@ -61,7 +58,7 @@ var UE_JavaScriptLibary = {
     return true;
   },
 
-  UE_LoadGame: function (name, userIndex, outdataptr, outsizeptr) {
+  UE_LoadGame: function (name, userIndex, outdataptr, outsizeptr){
     var _name = Pointer_stringify(name);
     // local storage only takes strings, we need to convert string to base64 before storing.
     var b64encoded = $.jStorage.get(_name);
@@ -84,33 +81,32 @@ var UE_JavaScriptLibary = {
   UE_DoesSaveGameExist: function (name, userIndex){
     var _name = Pointer_stringify(name);
     var b64encoded = $.jStorage.get(_name);
-    return !!b64encoded;
+    if (b64encoded === null)
+      return false;
+    return true;
   },
-
-  // ================================================================================
-  // ================================================================================
 
   UE_MessageBox: function (type, message, caption ) {
     // type maps to EAppMsgType::Type
-    var text = Pointer_stringify(message);
-    if (!type) return confirm(text);
-    alert(text);
+    var text;
+    if ( type === 0 ) {
+      text = Pointer_stringify(message);
+      if (!confirm(text))
+        return 0;
+    } else {
+      text = Pointer_stringify(message);
+      alert(text);
+    }
     return 1;
   },
-
-  // ================================================================================
-  // ================================================================================
 
   UE_GetCurrentCultureName: function (address, outsize) {
     var culture_name = navigator.language || navigator.browserLanguage;
     if (culture_name.lenght >= outsize)
-      return 0;
+    	return 0;
     Module.writeAsciiToMemory(culture_name, address);
     return 1;
   },
-
-  // ================================================================================
-  // ================================================================================
 
   UE_MakeHTTPDataRequest: function (ctx, url, verb, payload, payloadsize, headers, freeBuffer, onload, onerror, onprogress) {
     var _url = Pointer_stringify(url);
@@ -127,7 +123,7 @@ var UE_JavaScriptLibary = {
       var header = _headerArray[headerArrayidx].split(":");
       // NOTE: as of Safari 9.0 -- no leading whitespace is allowed on setRequestHeader's 2nd parameter: "value"
       xhr.setRequestHeader(header[0], header[1].trim());
-    }
+  }
 
     // Onload event handler
     xhr.addEventListener('load', function (e) {
@@ -147,8 +143,6 @@ var UE_JavaScriptLibary = {
 
     // Onerror event handler
     xhr.addEventListener('error', function (e) {
-      if ( xhr.responseURL == "" )
-        console.log('ERROR: Cross-Origin Resource Sharing [CORS] check FAILED'); // common error that's not quite so clear during onerror callbacks
       if (onerror)
         Runtime.dynCall('viii', onerror, [ctx, xhr.status, xhr.statusText]);
     });
@@ -167,33 +161,12 @@ var UE_JavaScriptLibary = {
 
     if (_verb === "POST") {
       var postData = Module.HEAP8.subarray(payload, payload + payloadsize);
+//    xhr.setRequestHeader("Connection", "close"); // NOTE: this now errors as of chrome 47.0.2526.80
       xhr.send(postData);
     } else {
       xhr.send(null);
     }
-  },
-
-  // ================================================================================
-  // ================================================================================
-
-  // persistant OBJECT accessible within JS code
-  $UE_JSlib: {
-	// defaults -- see HTMLOpenGL.cpp::FPlatformOpenGLDevice()
-	UE_GSystemResolution_ResX: function() { return 800; },
-	UE_GSystemResolution_ResY: function() { return 600; },
-  },
-
-  // GSystemResolution - helpers to obtain game's resolution for JS
-  UE_GSystemResolution: function( resX, resY ) {
-    UE_JSlib.UE_GSystemResolution_ResX = function() {
-      return Runtime.dynCall('i', resX, []);
-    };
-    UE_JSlib.UE_GSystemResolution_ResY = function() {
-      return Runtime.dynCall('i', resY, []);
-    };
-  },
- 
+  }
 };
 
-autoAddDeps(UE_JavaScriptLibary,'$UE_JSlib');
 mergeInto(LibraryManager.library, UE_JavaScriptLibary);
