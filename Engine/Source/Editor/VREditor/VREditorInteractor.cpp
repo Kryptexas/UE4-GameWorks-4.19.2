@@ -553,7 +553,7 @@ bool UVREditorInteractor::HasUIInFront() const
 
 void UVREditorInteractor::SetHasUIOnForearm( const bool bInHasUIOnForearm )
 {
-	bHasUIOnForearm = bHasUIOnForearm;
+	bHasUIOnForearm = bInHasUIOnForearm;
 }
 
 bool UVREditorInteractor::HasUIOnForearm() const
