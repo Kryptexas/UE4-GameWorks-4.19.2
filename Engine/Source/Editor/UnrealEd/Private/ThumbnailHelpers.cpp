@@ -972,11 +972,6 @@ void FClassActorThumbnailScene::SpawnPreviewActor(UClass* InClass)
 {
 	if (PreviewActor)
 	{
-		if (PreviewActor->GetClass() == InClass)
-		{
-			return;
-		}
-
 		PreviewActor->Destroy();
 		PreviewActor = nullptr;
 	}

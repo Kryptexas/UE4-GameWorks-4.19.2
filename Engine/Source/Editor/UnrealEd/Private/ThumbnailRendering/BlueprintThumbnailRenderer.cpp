@@ -99,6 +99,7 @@ void UBlueprintThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32
 
 		ThumbnailScene->GetView(&ViewFamily, X, Y, Width, Height);
 		GetRendererModule().BeginRenderingViewFamily(Canvas,&ViewFamily);
+		ThumbnailScene->SetBlueprint(nullptr);
 	}
 }
 
