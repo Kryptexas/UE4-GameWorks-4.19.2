@@ -32,25 +32,25 @@ void UVREditorQuickMenu::OnDeleteButtonClicked()
 
 void UVREditorQuickMenu::OnUndoButtonClicked()
 {
-	GetOwner()->GetOwner().GetOwner().Undo();
+	GetOwner()->GetOwner().GetOwner().GetWorldInteraction().Undo();
 }
 
 
 void UVREditorQuickMenu::OnRedoButtonClicked()
 {
-	GetOwner()->GetOwner().GetOwner().Redo();
+	GetOwner()->GetOwner().GetOwner().GetWorldInteraction().Redo();
 }
 
 
 void UVREditorQuickMenu::OnCopyButtonClicked()
 {
-	GetOwner()->GetOwner().GetOwner().Copy();
+	GetOwner()->GetOwner().GetOwner().GetWorldInteraction().Copy();
 }
 
 
 void UVREditorQuickMenu::OnPasteButtonClicked()
 {
-	GetOwner()->GetOwner().GetOwner().Paste();
+	GetOwner()->GetOwner().GetOwner().GetWorldInteraction().Paste();
 }
 
 
@@ -170,22 +170,21 @@ bool UVREditorQuickMenu::IsScaleSnapEnabled() const
 
 FText UVREditorQuickMenu::OnGizmoCoordinateSystemButtonClicked()
 {
-	GetOwner()->GetOwner().GetOwner().CycleTransformGizmoCoordinateSpace();
-
+	GetOwner()->GetOwner().GetOwner().GetWorldInteraction().CycleTransformGizmoCoordinateSpace(); 
 	return GetGizmoCoordinateSystemText();
 }
 
 
 FText UVREditorQuickMenu::GetGizmoCoordinateSystemText() const
 {
-	const ECoordSystem CurrentCoordSystem = GetOwner()->GetOwner().GetOwner().GetTransformGizmoCoordinateSpace();
+	const ECoordSystem CurrentCoordSystem = GetOwner()->GetOwner().GetOwner().GetWorldInteraction().GetTransformGizmoCoordinateSpace(); //@todo VREditor
 	return CurrentCoordSystem == COORD_World ? LOCTEXT( "WorldCoordinateSystem", "World Space" ) : LOCTEXT( "LocalCoordinateSystem", "Local Space" );
 }
 
 
 FText UVREditorQuickMenu::OnGizmoModeButtonClicked()
 {
-	const EGizmoHandleTypes CurrentGizmoMode = GetOwner()->GetOwner().GetOwner().GetCurrentGizmoType();
+	const EGizmoHandleTypes CurrentGizmoMode = GetOwner()->GetOwner().GetOwner().GetWorldInteraction().GetCurrentGizmoType();
 	GetOwner()->GetOwner().GetOwner().CycleTransformGizmoHandleType();
 	return GetGizmoModeText();
 }
@@ -193,7 +192,7 @@ FText UVREditorQuickMenu::OnGizmoModeButtonClicked()
 
 FText UVREditorQuickMenu::GetGizmoModeText() const
 {
-	const EGizmoHandleTypes CurrentGizmoType = GetOwner()->GetOwner().GetOwner().GetCurrentGizmoType();
+	const EGizmoHandleTypes CurrentGizmoType = GetOwner()->GetOwner().GetOwner().GetWorldInteraction().GetCurrentGizmoType();
 	FText GizmoTypeText;
 	switch( CurrentGizmoType )
 	{
@@ -262,57 +261,53 @@ bool UVREditorQuickMenu::IsSimulatingEnabled() const
 
 bool UVREditorQuickMenu::OnContentBrowserButtonClicked( const bool bIsChecked )
 {
-	GetOwner()->GetOwner().TogglePanelVisibility( FVREditorUISystem::EEditorUIPanel::ContentBrowser );
-
+	GetOwner()->GetOwner().TogglePanelVisibility( UVREditorUISystem::EEditorUIPanel::ContentBrowser );
 	return IsContentBrowserVisible();
 }
 
 
 bool UVREditorQuickMenu::IsContentBrowserVisible() const
 {
-	return ( GetOwner()->GetOwner().IsShowingEditorUIPanel( FVREditorUISystem::EEditorUIPanel::ContentBrowser ) );
+	return ( GetOwner()->GetOwner().IsShowingEditorUIPanel( UVREditorUISystem::EEditorUIPanel::ContentBrowser ) );
 }
 
 
 bool UVREditorQuickMenu::OnWorldOutlinerButtonClicked( const bool bIsChecked )
 {
-	GetOwner()->GetOwner().TogglePanelVisibility( FVREditorUISystem::EEditorUIPanel::WorldOutliner );
-
+	GetOwner()->GetOwner().TogglePanelVisibility( UVREditorUISystem::EEditorUIPanel::WorldOutliner );
 	return IsWorldOutlinerVisible();
 }
 
 
 bool UVREditorQuickMenu::IsWorldOutlinerVisible() const
 {
-	return ( GetOwner()->GetOwner().IsShowingEditorUIPanel( FVREditorUISystem::EEditorUIPanel::WorldOutliner ) );
+	return ( GetOwner()->GetOwner().IsShowingEditorUIPanel( UVREditorUISystem::EEditorUIPanel::WorldOutliner ) );
 }
 
 
 bool UVREditorQuickMenu::OnActorDetailsButtonClicked( const bool bIsChecked )
 {
-	GetOwner()->GetOwner().TogglePanelVisibility( FVREditorUISystem::EEditorUIPanel::ActorDetails );
-
+	GetOwner()->GetOwner().TogglePanelVisibility( UVREditorUISystem::EEditorUIPanel::ActorDetails );
 	return IsActorDetailsVisible();
 }
 
 
 bool UVREditorQuickMenu::IsActorDetailsVisible() const
 {
-	return ( GetOwner()->GetOwner().IsShowingEditorUIPanel( FVREditorUISystem::EEditorUIPanel::ActorDetails ) );
+	return ( GetOwner()->GetOwner().IsShowingEditorUIPanel( UVREditorUISystem::EEditorUIPanel::ActorDetails ) );
 }
 
 
 bool UVREditorQuickMenu::OnModesButtonClicked( const bool bIsChecked )
 {
-	GetOwner()->GetOwner().TogglePanelVisibility( FVREditorUISystem::EEditorUIPanel::Modes );
-
+	GetOwner()->GetOwner().TogglePanelVisibility( UVREditorUISystem::EEditorUIPanel::Modes );
 	return IsModesVisible();
 }
 
 
 bool UVREditorQuickMenu::IsModesVisible() const
 {
-	return ( GetOwner()->GetOwner().IsShowingEditorUIPanel( FVREditorUISystem::EEditorUIPanel::Modes ) );
+	return ( GetOwner()->GetOwner().IsShowingEditorUIPanel( UVREditorUISystem::EEditorUIPanel::Modes ) );
 }
 
 
@@ -338,21 +333,20 @@ bool UVREditorQuickMenu::IsGameModeEnabled() const
 
 bool UVREditorQuickMenu::OnTutorialButtonClicked( const bool bIsChecked )
 {
-	GetOwner()->GetOwner().TogglePanelVisibility( FVREditorUISystem::EEditorUIPanel::Tutorial );
-
+	GetOwner()->GetOwner().TogglePanelVisibility( UVREditorUISystem::EEditorUIPanel::Tutorial );
 	return IsTutorialVisible();
 }
 
 bool UVREditorQuickMenu::IsTutorialVisible() const
 {
-	return ( GetOwner()->GetOwner().IsShowingEditorUIPanel( FVREditorUISystem::EEditorUIPanel::Tutorial ) );
+	return ( GetOwner()->GetOwner().IsShowingEditorUIPanel( UVREditorUISystem::EEditorUIPanel::Tutorial ) );
 }
 
-bool UVREditorQuickMenu::OnLightButtonClicked(const bool bIsChecked)
+bool UVREditorQuickMenu::OnLightButtonClicked( const bool bIsChecked ) 
 {
-	const int32 HandIndexWithoutQuickMenu = GetOwner()->GetDockedTo() == AVREditorFloatingUI::EDockedTo::LeftArm ? VREditorConstants::RightHandIndex : VREditorConstants::LeftHandIndex;
-	GetOwner()->GetOwner().GetOwner().ToggleFlashlight(HandIndexWithoutQuickMenu);
-
+	EControllerHand ControllerHand = GetOwner()->GetDockedTo() == AVREditorFloatingUI::EDockedTo::LeftArm ? EControllerHand::Right : EControllerHand::Left;
+	UVREditorInteractor* Interactor = GetOwner()->GetOwner().GetOwner().GetHandInteractor( ControllerHand );
+	GetOwner()->GetOwner().GetOwner().ToggleFlashlight( Interactor );
 	return IsLightVisible();
 }
 
@@ -387,25 +381,24 @@ void UVREditorQuickMenu::OnScreenshotButtonClicked()
 
 bool UVREditorQuickMenu::OnAssetEditorButtonClicked( const bool bIsChecked )
 {
-	GetOwner()->GetOwner().TogglePanelVisibility( FVREditorUISystem::EEditorUIPanel::AssetEditor );
+	GetOwner()->GetOwner().TogglePanelVisibility( UVREditorUISystem::EEditorUIPanel::AssetEditor );
 	return IsAssetEditorVisible();
 }
 
 bool UVREditorQuickMenu::IsAssetEditorVisible() const
 {
-	return ( GetOwner()->GetOwner().IsShowingEditorUIPanel( FVREditorUISystem::EEditorUIPanel::AssetEditor ) );
+	return ( GetOwner()->GetOwner().IsShowingEditorUIPanel( UVREditorUISystem::EEditorUIPanel::AssetEditor ) );
 }
 
-bool UVREditorQuickMenu::OnWorldSettingsButtonClicked(const bool bIsChecked)
+bool UVREditorQuickMenu::OnWorldSettingsButtonClicked( const bool bIsChecked )
 {
-	GetOwner()->GetOwner().TogglePanelVisibility(FVREditorUISystem::EEditorUIPanel::WorldSettings);
-
+	GetOwner()->GetOwner().TogglePanelVisibility( UVREditorUISystem::EEditorUIPanel::WorldSettings);
 	return IsWorldSettingsVisible();
 }
 
 bool UVREditorQuickMenu::IsWorldSettingsVisible() const
 {
-	return (GetOwner()->GetOwner().IsShowingEditorUIPanel(FVREditorUISystem::EEditorUIPanel::WorldSettings));
+	return ( GetOwner()->GetOwner().IsShowingEditorUIPanel( UVREditorUISystem::EEditorUIPanel::WorldSettings ) );
 }
 
 #undef LOCTEXT_NAMESPACE

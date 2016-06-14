@@ -2,21 +2,21 @@
 
 #pragma once
 
-#include "VREditorGizmoHandle.h"
-#include "VREditorUniformScaleGizmoHandle.generated.h"
+#include "VIGizmoHandle.h"
+#include "VIUniformScaleGizmoHandle.generated.h"
 
 /**
  * Gizmo handle for uniform scaling
  */
 UCLASS()
-class UVREditorUniformScaleGizmoHandleGroup : public UVREditorGizmoHandleGroup
+class VIEWPORTINTERACTION_API UUniformScaleGizmoHandleGroup : public UGizmoHandleGroup
 {
 	GENERATED_BODY()
 
 public:
 
 	/** Default constructor that sets up CDO properties */
-	UVREditorUniformScaleGizmoHandleGroup();
+	UUniformScaleGizmoHandleGroup();
 	
 	/** Updates the Gizmo handles */
 	virtual void UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, class UActorComponent* DraggingHandle,

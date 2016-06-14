@@ -56,7 +56,7 @@ void UVREditorRotationGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransform
 	// Place the rotation handles
 	for (int32 HandleIndex = 0; HandleIndex < Handles.Num(); ++HandleIndex)
 	{
-		FVREditorGizmoHandle& Handle = Handles[ HandleIndex ];
+		FGizmoHandle& Handle = Handles[ HandleIndex ];
 
 		UStaticMeshComponent* RotationHandle = Handle.HandleMesh;
 		if (RotationHandle != nullptr)	// Can be null if no handle for this specific placement

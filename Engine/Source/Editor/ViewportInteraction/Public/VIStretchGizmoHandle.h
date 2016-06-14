@@ -2,21 +2,21 @@
 
 #pragma once
 
-#include "VREditorGizmoHandle.h"
-#include "VREditorStretchGizmoHandle.generated.h"
+#include "VIGizmoHandle.h"
+#include "VIStretchGizmoHandle.generated.h"
 
 /**
  * Gizmo handle for stretching/scaling
  */
 UCLASS()
-class UVREditorStretchGizmoHandleGroup : public UVREditorGizmoHandleGroup
+class VIEWPORTINTERACTION_API UStretchGizmoHandleGroup : public UGizmoHandleGroup
 {
 	GENERATED_BODY()
 
 public:
 
 	/** Default constructor that sets up CDO properties */
-	UVREditorStretchGizmoHandleGroup();
+	UStretchGizmoHandleGroup();
 	
 	/** Updates the Gizmo handles */
 	virtual void UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, 

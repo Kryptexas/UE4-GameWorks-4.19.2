@@ -1,11 +1,9 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "VREditorModule.h"
-#include "VREditorStretchGizmoHandle.h"
-#include "UnitConversion.h"
-#include "VREditorTransformGizmo.h"
+#include "ViewportInteractionModule.h"
+#include "VIGizmoHandle.h"
 
-UVREditorStretchGizmoHandleGroup::UVREditorStretchGizmoHandleGroup()
+UStretchGizmoHandleGroup::UStretchGizmoHandleGroup()
 	: Super()
 {
 	UStaticMesh* StretchingHandleMesh = nullptr;
@@ -75,7 +73,7 @@ UVREditorStretchGizmoHandleGroup::UVREditorStretchGizmoHandleGroup()
 	}
 }
 
-void UVREditorStretchGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, 
+void UStretchGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, 
 	float AnimationAlpha, float GizmoScale, const float GizmoHoverScale, const float GizmoHoverAnimationDuration, bool& bOutIsHoveringOrDraggingThisHandleGroup )
 {
 	// Call parent implementation (updates hover animation)
@@ -84,7 +82,7 @@ void UVREditorStretchGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransform&
 
 	for (int32 HandleIndex = 0; HandleIndex < Handles.Num(); ++HandleIndex)
 	{
-		FVREditorGizmoHandle& Handle = Handles[ HandleIndex ];
+		FGizmoHandle& Handle = Handles[ HandleIndex ];
 
 		UStaticMeshComponent* StretchingHandle = Handle.HandleMesh;
 		if (StretchingHandle != nullptr)	// Can be null if no handle for this specific placement
@@ -234,17 +232,17 @@ void UVREditorStretchGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransform&
 	}
 }
 
-ETransformGizmoInteractionType UVREditorStretchGizmoHandleGroup::GetInteractionType() const
+ETransformGizmoInteractionType UStretchGizmoHandleGroup::GetInteractionType() const
 {
 	return ETransformGizmoInteractionType::StretchAndReposition;
 }
 
-EGizmoHandleTypes UVREditorStretchGizmoHandleGroup::GetHandleType() const
+EGizmoHandleTypes UStretchGizmoHandleGroup::GetHandleType() const
 {
 	return EGizmoHandleTypes::Scale;
 }
 
-bool UVREditorStretchGizmoHandleGroup::SupportsWorldCoordinateSpace() const
+bool UStretchGizmoHandleGroup::SupportsWorldCoordinateSpace() const
 {
 	// Stretching only works with local space gizmos
 	return false;

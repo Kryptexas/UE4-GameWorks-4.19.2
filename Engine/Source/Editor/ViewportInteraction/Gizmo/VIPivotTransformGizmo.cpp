@@ -1,13 +1,9 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "VREditorModule.h"
-#include "VREditorPivotTransformGizmo.h"
-#include "VREditorTranslationGizmoHandle.h"
-#include "VREditorRotationGizmoHandle.h"
-#include "VREditorPlaneTranslationGizmoHandle.h"
-#include "VREditorStretchGizmoHandle.h"
-#include "VREditorUniformScaleGizmoHandle.h"
-#include "VREditorMode.h"
+#include "ViewportInteractionModule.h"
+#include "VIPivotTransformGizmo.h"
+#include "VIStretchGizmoHandle.h"
+#include "VIUniformScaleGizmoHandle.h"
 
 namespace VREd //@todo VREditor: Duplicates of TransformGizmo
 {
@@ -16,44 +12,44 @@ namespace VREd //@todo VREditor: Duplicates of TransformGizmo
 	static FAutoConsoleVariable PivotGizmoTranslationPivotOffsetX( TEXT("VREd.PivotGizmoTranslationPivotOffsetX" ), 20.0f, TEXT( "How much the translation cylinder is offsetted from the pivot" ) );
 	static FAutoConsoleVariable PivotGizmoScalePivotOffsetX( TEXT( "VREd.PivotGizmoScalePivotOffsetX" ), 120.0f, TEXT( "How much the non-uniform scale is offsetted from the pivot" ) );
 	static FAutoConsoleVariable PivotGizmoPlaneTranslationPivotOffsetYZ(TEXT("VREd.PivotGizmoPlaneTranslationPivotOffsetYZ" ), 40.0f, TEXT( "How much the plane translation is offsetted from the pivot" ) );
-	static FAutoConsoleVariable PivotGizmoTranslationScaleMultiply( TEXT( "VREd.PivotGizmoTranslationScaleMultiply" ), 2.0f, TEXT( "Multiplies translation handles scale" ) );
-	static FAutoConsoleVariable PivotGizmoTranslationHoverScaleMultiply( TEXT( "VREd.PivotGizmoTranslationHoverScaleMultiply" ), 2.5f, TEXT( "Multiplies translation handles hover scale" ) );
+	static FAutoConsoleVariable PivotGizmoTranslationScaleMultiply( TEXT( "VREd.PivotGizmoTranslationScaleMultiply" ), 3.0f, TEXT( "Multiplies translation handles scale" ) );
+	static FAutoConsoleVariable PivotGizmoTranslationHoverScaleMultiply( TEXT( "VREd.PivotGizmoTranslationHoverScaleMultiply" ), 1.2f, TEXT( "Multiplies translation handles hover scale" ) );
 }
 
 APivotTransformGizmo::APivotTransformGizmo() :
 	Super()
 {
-	UniformScaleGizmoHandleGroup = CreateDefaultSubobject<UVREditorUniformScaleGizmoHandleGroup>( TEXT( "UniformScaleHandles" ), true );
+	UniformScaleGizmoHandleGroup = CreateDefaultSubobject<UUniformScaleGizmoHandleGroup>( TEXT( "UniformScaleHandles" ), true );
 	UniformScaleGizmoHandleGroup->SetTranslucentGizmoMaterial( TranslucentGizmoMaterial );
 	UniformScaleGizmoHandleGroup->SetGizmoMaterial( GizmoMaterial );
 	UniformScaleGizmoHandleGroup->SetupAttachment( SceneComponent );
 	AllHandleGroups.Add( UniformScaleGizmoHandleGroup );
 
-	TranslationGizmoHandleGroup = CreateDefaultSubobject<UVREditorPivotTranslationGizmoHandleGroup>(TEXT("TranslationHandles"), true);
+	TranslationGizmoHandleGroup = CreateDefaultSubobject<UPivotTranslationGizmoHandleGroup>(TEXT("TranslationHandles"), true);
 	TranslationGizmoHandleGroup->SetTranslucentGizmoMaterial(TranslucentGizmoMaterial);
 	TranslationGizmoHandleGroup->SetGizmoMaterial(GizmoMaterial);
 	TranslationGizmoHandleGroup->SetupAttachment( SceneComponent );
 	AllHandleGroups.Add(TranslationGizmoHandleGroup);
 
-	ScaleGizmoHandleGroup = CreateDefaultSubobject<UVREditorPivotScaleGizmoHandleGroup>( TEXT( "ScaleHandles" ), true );
+	ScaleGizmoHandleGroup = CreateDefaultSubobject<UPivotScaleGizmoHandleGroup>( TEXT( "ScaleHandles" ), true );
 	ScaleGizmoHandleGroup->SetTranslucentGizmoMaterial( TranslucentGizmoMaterial );
 	ScaleGizmoHandleGroup->SetGizmoMaterial( GizmoMaterial );
 	ScaleGizmoHandleGroup->SetupAttachment( SceneComponent );
 	AllHandleGroups.Add( ScaleGizmoHandleGroup );
 
-	PlaneTranslationGizmoHandleGroup = CreateDefaultSubobject<UVREditorPivotPlaneTranslationGizmoHandleGroup>( TEXT( "PlaneTranslationHandles" ), true );
+	PlaneTranslationGizmoHandleGroup = CreateDefaultSubobject<UPivotPlaneTranslationGizmoHandleGroup>( TEXT( "PlaneTranslationHandles" ), true );
 	PlaneTranslationGizmoHandleGroup->SetTranslucentGizmoMaterial( TranslucentGizmoMaterial );
 	PlaneTranslationGizmoHandleGroup->SetGizmoMaterial( GizmoMaterial );
 	PlaneTranslationGizmoHandleGroup->SetupAttachment( SceneComponent );
 	AllHandleGroups.Add( PlaneTranslationGizmoHandleGroup );
 
-	RotationGizmoHandleGroup = CreateDefaultSubobject<UVREditorPivotRotationGizmoHandleGroup>( TEXT( "RotationHandles" ), true );
+	RotationGizmoHandleGroup = CreateDefaultSubobject<UPivotRotationGizmoHandleGroup>( TEXT( "RotationHandles" ), true );
 	RotationGizmoHandleGroup->SetTranslucentGizmoMaterial( TranslucentGizmoMaterial );
 	RotationGizmoHandleGroup->SetGizmoMaterial( GizmoMaterial );
 	RotationGizmoHandleGroup->SetupAttachment( SceneComponent );
 	AllHandleGroups.Add( RotationGizmoHandleGroup );
 
-	StretchGizmoHandleGroup = CreateDefaultSubobject<UVREditorStretchGizmoHandleGroup>( TEXT( "StretchHandles" ), true );
+	StretchGizmoHandleGroup = CreateDefaultSubobject<UStretchGizmoHandleGroup>( TEXT( "StretchHandles" ), true );
 	StretchGizmoHandleGroup->SetTranslucentGizmoMaterial( TranslucentGizmoMaterial );
 	StretchGizmoHandleGroup->SetGizmoMaterial( GizmoMaterial );
 	StretchGizmoHandleGroup->SetShowOnUniversalGizmo( false );
@@ -85,7 +81,7 @@ void APivotTransformGizmo::UpdateGizmo( const EGizmoHandleTypes GizmoType, const
 
 	// Update all the handles
 	bool bIsHoveringOrDraggingScaleGizmo = false;
-	for ( UVREditorGizmoHandleGroup* HandleGroup : AllHandleGroups )
+	for ( UGizmoHandleGroup* HandleGroup : AllHandleGroups )
 	{
 		if ( HandleGroup != nullptr && 
 		   ( DraggingHandle == nullptr || HandleGroup == StretchGizmoHandleGroup ) )
@@ -102,7 +98,7 @@ void APivotTransformGizmo::UpdateGizmo( const EGizmoHandleTypes GizmoType, const
 /************************************************************************/
 /* Translation                                                          */
 /************************************************************************/
-UVREditorPivotTranslationGizmoHandleGroup::UVREditorPivotTranslationGizmoHandleGroup() :
+UPivotTranslationGizmoHandleGroup::UPivotTranslationGizmoHandleGroup() :
 	Super()
 {
 	UStaticMesh* TranslationHandleMesh = nullptr;
@@ -116,7 +112,7 @@ UVREditorPivotTranslationGizmoHandleGroup::UVREditorPivotTranslationGizmoHandleG
 }
 
 
-void UVREditorPivotTranslationGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, class UActorComponent* DraggingHandle, 
+void UPivotTranslationGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, class UActorComponent* DraggingHandle, 
 	const TArray< UActorComponent* >& HoveringOverHandles, float AnimationAlpha, float GizmoScale, const float GizmoHoverScale, const float GizmoHoverAnimationDuration, bool& bOutIsHoveringOrDraggingThisHandleGroup )
 {
 	// Call parent implementation (updates hover animation)
@@ -129,12 +125,12 @@ void UVREditorPivotTranslationGizmoHandleGroup::UpdateGizmoHandleGroup( const FT
 	UpdateHandlesRelativeTransformOnAxis( FTransform( FVector( VREd::PivotGizmoTranslationPivotOffsetX->GetFloat(), 0, 0 ) ), AnimationAlpha, MultipliedGizmoScale, MultipliedGizmoHoverScale, ViewLocation, DraggingHandle, HoveringOverHandles );
 }
 
-ETransformGizmoInteractionType UVREditorPivotTranslationGizmoHandleGroup::GetInteractionType() const
+ETransformGizmoInteractionType UPivotTranslationGizmoHandleGroup::GetInteractionType() const
 {
 	return ETransformGizmoInteractionType::Translate;
 }
 
-EGizmoHandleTypes UVREditorPivotTranslationGizmoHandleGroup::GetHandleType() const
+EGizmoHandleTypes UPivotTranslationGizmoHandleGroup::GetHandleType() const
 {
 	return EGizmoHandleTypes::Translate;
 }
@@ -142,7 +138,7 @@ EGizmoHandleTypes UVREditorPivotTranslationGizmoHandleGroup::GetHandleType() con
 /************************************************************************/
 /* Scale	                                                            */
 /************************************************************************/
-UVREditorPivotScaleGizmoHandleGroup::UVREditorPivotScaleGizmoHandleGroup() :
+UPivotScaleGizmoHandleGroup::UPivotScaleGizmoHandleGroup() :
 	Super()
 {
 	UStaticMesh* TranslationHandleMesh = nullptr;
@@ -155,7 +151,7 @@ UVREditorPivotScaleGizmoHandleGroup::UVREditorPivotScaleGizmoHandleGroup() :
 	CreateHandles( TranslationHandleMesh, FString( "PivotScaleHandle" ) );	
 }
 
-void UVREditorPivotScaleGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, class UActorComponent* DraggingHandle, 
+void UPivotScaleGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, class UActorComponent* DraggingHandle, 
 	const TArray< UActorComponent* >& HoveringOverHandles, float AnimationAlpha, float GizmoScale, const float GizmoHoverScale, const float GizmoHoverAnimationDuration, bool& bOutIsHoveringOrDraggingThisHandleGroup )
 {
 	// Call parent implementation (updates hover animation)
@@ -165,17 +161,17 @@ void UVREditorPivotScaleGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransfo
 	UpdateHandlesRelativeTransformOnAxis( FTransform( FVector( VREd::PivotGizmoScalePivotOffsetX->GetFloat(), 0, 0 ) ), AnimationAlpha, GizmoScale, GizmoHoverScale, ViewLocation, DraggingHandle, HoveringOverHandles );
 }
 
-ETransformGizmoInteractionType UVREditorPivotScaleGizmoHandleGroup::GetInteractionType() const
+ETransformGizmoInteractionType UPivotScaleGizmoHandleGroup::GetInteractionType() const
 {
 	return ETransformGizmoInteractionType::Scale;
 }
 
-EGizmoHandleTypes UVREditorPivotScaleGizmoHandleGroup::GetHandleType() const
+EGizmoHandleTypes UPivotScaleGizmoHandleGroup::GetHandleType() const
 {
 	return EGizmoHandleTypes::Scale;
 }
 
-bool UVREditorPivotScaleGizmoHandleGroup::SupportsWorldCoordinateSpace() const
+bool UPivotScaleGizmoHandleGroup::SupportsWorldCoordinateSpace() const
 {
 	return false;
 }
@@ -183,7 +179,7 @@ bool UVREditorPivotScaleGizmoHandleGroup::SupportsWorldCoordinateSpace() const
 /************************************************************************/
 /* Plane Translation	                                                */
 /************************************************************************/
-UVREditorPivotPlaneTranslationGizmoHandleGroup::UVREditorPivotPlaneTranslationGizmoHandleGroup() :
+UPivotPlaneTranslationGizmoHandleGroup::UPivotPlaneTranslationGizmoHandleGroup() :
 	Super()
 {
 	UStaticMesh* TranslationHandleMesh = nullptr;
@@ -196,7 +192,7 @@ UVREditorPivotPlaneTranslationGizmoHandleGroup::UVREditorPivotPlaneTranslationGi
 	CreateHandles( TranslationHandleMesh, FString( "PlaneTranslationHandle" ) );
 }
 
-void UVREditorPivotPlaneTranslationGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, class UActorComponent* DraggingHandle,
+void UPivotPlaneTranslationGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, class UActorComponent* DraggingHandle,
 	const TArray< UActorComponent* >& HoveringOverHandles, float AnimationAlpha, float GizmoScale, const float GizmoHoverScale, const float GizmoHoverAnimationDuration, bool& bOutIsHoveringOrDraggingThisHandleGroup )
 {
 	// Call parent implementation (updates hover animation)
@@ -207,12 +203,12 @@ void UVREditorPivotPlaneTranslationGizmoHandleGroup::UpdateGizmoHandleGroup( con
 		AnimationAlpha, GizmoScale, GizmoHoverScale, ViewLocation, DraggingHandle, HoveringOverHandles );
 }
 
-ETransformGizmoInteractionType UVREditorPivotPlaneTranslationGizmoHandleGroup::GetInteractionType() const
+ETransformGizmoInteractionType UPivotPlaneTranslationGizmoHandleGroup::GetInteractionType() const
 {
 	return ETransformGizmoInteractionType::TranslateOnPlane;
 }
 
-EGizmoHandleTypes UVREditorPivotPlaneTranslationGizmoHandleGroup::GetHandleType() const
+EGizmoHandleTypes UPivotPlaneTranslationGizmoHandleGroup::GetHandleType() const
 {
 	return EGizmoHandleTypes::Translate;
 }
@@ -220,7 +216,7 @@ EGizmoHandleTypes UVREditorPivotPlaneTranslationGizmoHandleGroup::GetHandleType(
 /************************************************************************/
 /* Rotation																*/
 /************************************************************************/
-UVREditorPivotRotationGizmoHandleGroup::UVREditorPivotRotationGizmoHandleGroup() :
+UPivotRotationGizmoHandleGroup::UPivotRotationGizmoHandleGroup() :
 	Super()
 {
 	UStaticMesh* TranslationHandleMesh = nullptr;
@@ -233,7 +229,7 @@ UVREditorPivotRotationGizmoHandleGroup::UVREditorPivotRotationGizmoHandleGroup()
 	CreateHandles(TranslationHandleMesh, FString("RotationHandle"));
 }
 
-void UVREditorPivotRotationGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, class UActorComponent* DraggingHandle,
+void UPivotRotationGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, class UActorComponent* DraggingHandle,
 	const TArray< UActorComponent* >& HoveringOverHandles, float AnimationAlpha, float GizmoScale, const float GizmoHoverScale, const float GizmoHoverAnimationDuration, bool& bOutIsHoveringOrDraggingThisHandleGroup )
 {
 	// Call parent implementation (updates hover animation)
@@ -243,12 +239,12 @@ void UVREditorPivotRotationGizmoHandleGroup::UpdateGizmoHandleGroup( const FTran
 	UpdateHandlesRelativeTransformOnAxis( FTransform( FVector( 0, 0, 0 ) ), AnimationAlpha, GizmoScale, GizmoScale, ViewLocation, DraggingHandle, HoveringOverHandles );
 }
 
-ETransformGizmoInteractionType UVREditorPivotRotationGizmoHandleGroup::GetInteractionType() const
+ETransformGizmoInteractionType UPivotRotationGizmoHandleGroup::GetInteractionType() const
 {
 	return ETransformGizmoInteractionType::RotateOnAngle;
 }
 
-EGizmoHandleTypes UVREditorPivotRotationGizmoHandleGroup::GetHandleType() const
+EGizmoHandleTypes UPivotRotationGizmoHandleGroup::GetHandleType() const
 {
 	return EGizmoHandleTypes::Rotate;
 }

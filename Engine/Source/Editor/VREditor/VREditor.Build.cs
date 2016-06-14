@@ -18,7 +18,8 @@ namespace UnrealBuildTool.Rules
 				    "UnrealEd",
 					"UMG",
 					"LevelEditor",
-					"HeadMountedDisplay"
+					"HeadMountedDisplay",
+                    "ViewportInteraction"
 				}
 			);
 

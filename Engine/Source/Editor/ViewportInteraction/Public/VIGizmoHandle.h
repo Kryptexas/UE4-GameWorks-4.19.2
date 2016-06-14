@@ -3,13 +3,13 @@
 #pragma once
 
 #include "Components/SceneComponent.h"
-#include "VREditorWorldInteractionTypes.h"
-#include "VREditorGizmoHandle.generated.h"
+#include "ViewportInteractionTypes.h"
+#include "VIGizmoHandle.generated.h"
 
 enum class EGizmoHandleTypes : uint8;
 
 USTRUCT()
-struct FVREditorGizmoHandle
+struct VIEWPORTINTERACTION_API FGizmoHandle
 {
 	GENERATED_BODY()
 
@@ -25,14 +25,14 @@ struct FVREditorGizmoHandle
  * Base class for gizmo handles
  */
 UCLASS( ABSTRACT )
-class UVREditorGizmoHandleGroup : public USceneComponent
+class VIEWPORTINTERACTION_API UGizmoHandleGroup : public USceneComponent
 {
 	GENERATED_BODY()
 
 public:
 
 	/** Default constructor that sets up CDO properties */
-	UVREditorGizmoHandleGroup();
+	UGizmoHandleGroup();
 	
 	/** Given the unique index, makes a handle */
 	FTransformGizmoHandlePlacement MakeHandlePlacementForIndex( const int32 HandleIndex ) const;
@@ -66,7 +66,7 @@ public:
 	void SetTranslucentGizmoMaterial( UMaterialInterface* Material );
 
 	/** Gets all the handles */
-	TArray< FVREditorGizmoHandle >& GetHandles();
+	TArray< FGizmoHandle >& GetHandles();
 
 	/** Gets the GizmoType for this Gizmo handle */
 	virtual EGizmoHandleTypes GetHandleType() const;
@@ -85,7 +85,7 @@ public:
 
 protected:
 	/** Updates the colors of the dynamic material instances for the handle passed using its axis index */	
-	void UpdateHandleColor( const int32 AxisIndex, FVREditorGizmoHandle& Handle, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles );
+	void UpdateHandleColor( const int32 AxisIndex, FGizmoHandle& Handle, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles );
 
 	/** Helper function to create gizmo handle meshes */
 	class UStaticMeshComponent* CreateMeshHandle( class UStaticMesh* HandleMesh, const FString& ComponentName );
@@ -109,7 +109,7 @@ protected:
 	
 	/** All the StaticMeshes for this handle type */
 	UPROPERTY()
-	TArray< FVREditorGizmoHandle > Handles;
+	TArray< FGizmoHandle > Handles;
 
 private:
 
@@ -124,7 +124,7 @@ private:
  * Base class for gizmo handles on axis
  */
 UCLASS(ABSTRACT)
-class UVREditorAxisGizmoHandleGroup : public UVREditorGizmoHandleGroup
+class VIEWPORTINTERACTION_API UAxisGizmoHandleGroup : public UGizmoHandleGroup
 {
 	GENERATED_BODY()
 
@@ -133,11 +133,10 @@ protected:
 	/** Creates mesh for every axis */
 	void CreateHandles(UStaticMesh* HandleMesh, const FString& HandleComponentName);
 	
-
-	/** Calculates the transforms of meshes of this handlegroup 
-	 * @param FTransform - The offset from the center of the gizmo in roomspace
+	/** 
+	 * Calculates the transforms of meshes of this handlegroup 
+	 * @param HandleToCenter - The offset from the center of the gizmo in roomspace
 	 */
 	void UpdateHandlesRelativeTransformOnAxis( const FTransform& HandleToCenter, const float AnimationAlpha, const float GizmoScale, const float GizmoHoverScale, 
 		const FVector& ViewLocation, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles );
-
 };

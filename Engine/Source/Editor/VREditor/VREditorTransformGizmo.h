@@ -2,22 +2,8 @@
 
 #pragma once
 
-#include "Gizmo/VREditorBaseTransformGizmo.h"
+#include "VIBaseTransformGizmo.h"
 #include "VREditorTransformGizmo.generated.h"
-
-/**
- * Displays measurements along the bounds of selected objects
- */
-USTRUCT()
-struct FTransformGizmoMeasurement
-{
-	GENERATED_BODY()
-
-	/** The text that displays the actual measurement and units */
-	UPROPERTY()
-	class UTextRenderComponent* MeasurementText;
-};
-
 
 /**
  * A transform gizmo that allows you to interact with selected objects by moving, scaling and rotating.
@@ -44,18 +30,23 @@ private:
 	UPROPERTY()
 	FTransformGizmoMeasurement Measurements[ 3 ];
 
+	/** Bounding box translation handles */
 	UPROPERTY()
 	class UVREditorTranslationGizmoHandleGroup* TranslationGizmoHandleGroup;
 
+	/** Bounding box plane translation handles */
 	UPROPERTY()
 	class UVREditorPlaneTranslationGizmoHandleGroup* PlaneTranslationGizmoHandleGroup;
 
+	/** Bounding box rotation handles */
 	UPROPERTY()
 	class UVREditorRotationGizmoHandleGroup* RotationGizmoHandleGroup;
 
+	/** Bounding box stretch handles */
 	UPROPERTY()
-	class UVREditorStretchGizmoHandleGroup* StretchGizmoHandleGroup;
+	class UStretchGizmoHandleGroup* StretchGizmoHandleGroup;
 
+	/** Bounding box uniform scale handle */
 	UPROPERTY()
-	class UVREditorUniformScaleGizmoHandleGroup* UniformScaleGizmoHandleGroup;
+	class UUniformScaleGizmoHandleGroup* UniformScaleGizmoHandleGroup;
 };

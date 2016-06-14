@@ -8,7 +8,7 @@
 #include "VREditorMode.h"
 #include "VREditorWorldInteraction.h"
 #include "VREditorTransformGizmo.h"
-#include "VirtualHand.h"
+#include "VREditorInteractor.h"
 
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 
@@ -28,14 +28,14 @@ PreviousItem( nullptr )
 }
 
 
-void UVREditorRadialMenu::Update( const FVirtualHand& Hand )
+void UVREditorRadialMenu::Update( const UVREditorInteractor* Interactor )
 {
-	TrackpadPosition = Hand.TrackpadPosition;
+	TrackpadPosition = Interactor->GetTrackpadPosition();
 
-	if (!GetOwner()->bHidden)
+	if ( !GetOwner()->bHidden )
 	{
 		// Check if position is from the center
-		if (!IsInMenuRadius())
+		if ( !IsInMenuRadius() )
 		{
 			const float AnglePerItem = 360 / MenuItems.Num();
 			float Angle = FRotator::NormalizeAxis( FMath::RadiansToDegrees( FMath::Atan2( TrackpadPosition.X, TrackpadPosition.Y ) ) );
@@ -131,7 +131,7 @@ void UVREditorRadialMenu::ResetItem()
 	}
 }
 
-void UVREditorRadialMenu::SelectCurrentItem( const FVirtualHand& Hand )
+void UVREditorRadialMenu::SelectCurrentItem()
 {
 	if (IsInMenuRadius())
 	{
@@ -153,7 +153,7 @@ void UVREditorRadialMenu::UpdateGizmoTypeLabel()
 {
 	FString Result;
 
-	switch (GetOwner()->GetOwner().GetOwner().GetCurrentGizmoType())
+	switch (GetOwner()->GetOwner().GetOwner().GetWorldInteraction().GetCurrentGizmoType())
 	{
 	case EGizmoHandleTypes::All:
 		Result = LOCTEXT( "AllGizmoType", "Universal Gizmo" ).ToString();
@@ -182,7 +182,7 @@ void UVREditorRadialMenu::OnGizmoCycle()
 
 void UVREditorRadialMenu::OnDuplicateButtonClicked()
 {
-	GetOwner()->GetOwner().GetOwner().Duplicate();
+	GetOwner()->GetOwner().GetOwner().GetWorldInteraction().Duplicate();
 }
 
 
@@ -194,30 +194,34 @@ void UVREditorRadialMenu::OnDeleteButtonClicked()
 
 void UVREditorRadialMenu::OnUndoButtonClicked()
 {
-	GetOwner()->GetOwner().GetOwner().Undo();
+	GetOwner()->GetOwner().GetOwner().GetWorldInteraction().Undo();
 }
 
 
 void UVREditorRadialMenu::OnRedoButtonClicked()
 {
-	GetOwner()->GetOwner().GetOwner().Redo();
+	GetOwner()->GetOwner().GetOwner().GetWorldInteraction().Redo();
 }
 
 
 void UVREditorRadialMenu::OnCopyButtonClicked()
 {
-	GetOwner()->GetOwner().GetOwner().Copy();
+	GetOwner()->GetOwner().GetOwner().GetWorldInteraction().Copy();
 }
 
 
 void UVREditorRadialMenu::OnPasteButtonClicked()
 {
-	GetOwner()->GetOwner().GetOwner().Paste();
+	GetOwner()->GetOwner().GetOwner().GetWorldInteraction().Paste();
 }
 
 void UVREditorRadialMenu::OnSnapActorsToGroundClicked()
 {
-	GetOwner()->GetOwner().GetOwner().SnapSelectedActorsToGround();
+	UVREditorWorldInteraction* WorldInteraction = Cast<UVREditorWorldInteraction>( &( GetOwner()->GetOwner().GetOwner().GetWorldInteraction() ) );
+	if ( WorldInteraction )
+	{
+		WorldInteraction->SnapSelectedActorsToGround();
+	}
 }
 
 

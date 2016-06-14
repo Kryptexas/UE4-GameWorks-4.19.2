@@ -1,18 +1,18 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "VREditorModule.h"
-#include "VREditorGizmoHandle.h"
-#include "VREditorTransformGizmo.h"
-#include "VREditorMode.h"
+#include "ViewportInteractionModule.h"
+#include "VIGizmoHandle.h"
+#include "Public/VIBaseTransformGizmo.h"
+#include "ViewportWorldInteraction.h"
 
-UVREditorGizmoHandleGroup::UVREditorGizmoHandleGroup()
+UGizmoHandleGroup::UGizmoHandleGroup()
 	: Super(),
 	bShowOnUniversalGizmo( true )
 {
 
 }
 
-FTransformGizmoHandlePlacement UVREditorGizmoHandleGroup::MakeHandlePlacementForIndex( const int32 HandleIndex ) const
+FTransformGizmoHandlePlacement UGizmoHandleGroup::MakeHandlePlacementForIndex( const int32 HandleIndex ) const
 {
 	FTransformGizmoHandlePlacement HandlePlacement;
 	HandlePlacement.Axes[0] = (ETransformGizmoHandleDirection)(HandleIndex / 9);
@@ -22,14 +22,14 @@ FTransformGizmoHandlePlacement UVREditorGizmoHandleGroup::MakeHandlePlacementFor
 	return HandlePlacement;
 }
 
-int32 UVREditorGizmoHandleGroup::MakeHandleIndex( const FTransformGizmoHandlePlacement HandlePlacement ) const
+int32 UGizmoHandleGroup::MakeHandleIndex( const FTransformGizmoHandlePlacement HandlePlacement ) const
 {
 	const int32 HandleIndex = (int32)HandlePlacement.Axes[0] * 9 + (int32)HandlePlacement.Axes[1] * 3 + (int32)HandlePlacement.Axes[2];
 	//	GWarn->Logf( TEXT( "HandlePlacment[ %i %i %i ] = %i" ), (int32)HandlePlacement.Axes[ 0 ], (int32)HandlePlacement.Axes[ 1 ], (int32)HandlePlacement.Axes[ 2 ], HandleIndex );
 	return HandleIndex;
 }
 
-FString UVREditorGizmoHandleGroup::MakeHandleName( const FTransformGizmoHandlePlacement HandlePlacement ) const
+FString UGizmoHandleGroup::MakeHandleName( const FTransformGizmoHandlePlacement HandlePlacement ) const
 {
 	FString HandleName;
 	int32 CenteredAxisCount = 0;
@@ -72,7 +72,7 @@ FString UVREditorGizmoHandleGroup::MakeHandleName( const FTransformGizmoHandlePl
 	return HandleName;
 }
 
-FVector UVREditorGizmoHandleGroup::GetAxisVector( const int32 AxisIndex, const ETransformGizmoHandleDirection HandleDirection )
+FVector UGizmoHandleGroup::GetAxisVector( const int32 AxisIndex, const ETransformGizmoHandleDirection HandleDirection )
 {
 	FVector AxisVector;
 
@@ -102,24 +102,24 @@ FVector UVREditorGizmoHandleGroup::GetAxisVector( const int32 AxisIndex, const E
 	return AxisVector;
 }
 
-void UVREditorGizmoHandleGroup::GetHandleIndexInteractionType( const int32 HandleIndex, ETransformGizmoInteractionType& OutInteractionType, TOptional<FTransformGizmoHandlePlacement>& OutHandlePlacement )
+void UGizmoHandleGroup::GetHandleIndexInteractionType( const int32 HandleIndex, ETransformGizmoInteractionType& OutInteractionType, TOptional<FTransformGizmoHandlePlacement>& OutHandlePlacement )
 {
 	OutHandlePlacement = MakeHandlePlacementForIndex( HandleIndex );
 	OutInteractionType = GetInteractionType();
 }
 
-ETransformGizmoInteractionType UVREditorGizmoHandleGroup::GetInteractionType() const
+ETransformGizmoInteractionType UGizmoHandleGroup::GetInteractionType() const
 {
 	return ETransformGizmoInteractionType::Translate;
 }
 
-void UVREditorGizmoHandleGroup::UpdateGizmoHandleGroup(const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, class UActorComponent* DraggingHandle, 
+void UGizmoHandleGroup::UpdateGizmoHandleGroup(const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, class UActorComponent* DraggingHandle, 
 	const TArray< UActorComponent* >& HoveringOverHandles, float AnimationAlpha, float GizmoScale, const float GizmoHoverScale, const float GizmoHoverAnimationDuration, bool& bOutIsHoveringOrDraggingThisHandleGroup )
 {
 	UpdateHoverAnimation(DraggingHandle, HoveringOverHandles, GizmoHoverAnimationDuration, bOutIsHoveringOrDraggingThisHandleGroup);
 }
 
-int32 UVREditorGizmoHandleGroup::GetDraggedHandleIndex(class UStaticMeshComponent* DraggedMesh)
+int32 UGizmoHandleGroup::GetDraggedHandleIndex(class UStaticMeshComponent* DraggedMesh)
 {
 	for( int32 HandleIndex = 0; HandleIndex < Handles.Num(); ++HandleIndex )
 	{
@@ -131,37 +131,37 @@ int32 UVREditorGizmoHandleGroup::GetDraggedHandleIndex(class UStaticMeshComponen
 	return INDEX_NONE;
 }
 
-void UVREditorGizmoHandleGroup::SetGizmoMaterial( UMaterialInterface* Material )
+void UGizmoHandleGroup::SetGizmoMaterial( UMaterialInterface* Material )
 {
 	GizmoMaterial = Material;
 }
 
-void UVREditorGizmoHandleGroup::SetTranslucentGizmoMaterial( UMaterialInterface* Material )
+void UGizmoHandleGroup::SetTranslucentGizmoMaterial( UMaterialInterface* Material )
 {
 	TranslucentGizmoMaterial = Material;
 }
 
-TArray<FVREditorGizmoHandle>& UVREditorGizmoHandleGroup::GetHandles()
+TArray<FGizmoHandle>& UGizmoHandleGroup::GetHandles()
 {
 	return Handles;
 }
 
-EGizmoHandleTypes UVREditorGizmoHandleGroup::GetHandleType() const
+EGizmoHandleTypes UGizmoHandleGroup::GetHandleType() const
 {
 	return EGizmoHandleTypes::All;
 }
 
-void UVREditorGizmoHandleGroup::SetShowOnUniversalGizmo( const bool bInShowOnUniversal )
+void UGizmoHandleGroup::SetShowOnUniversalGizmo( const bool bInShowOnUniversal )
 {
 	bShowOnUniversalGizmo = bInShowOnUniversal;
 }
 
-bool UVREditorGizmoHandleGroup::GetShowOnUniversalGizmo() const
+bool UGizmoHandleGroup::GetShowOnUniversalGizmo() const
 {
 	return bShowOnUniversalGizmo;
 }
 
-void UVREditorGizmoHandleGroup::UpdateHandleColor( const int32 AxisIndex, FVREditorGizmoHandle& Handle, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles )
+void UGizmoHandleGroup::UpdateHandleColor( const int32 AxisIndex, FGizmoHandle& Handle, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles )
 {
 	UStaticMeshComponent* HandleMesh = Handle.HandleMesh;
 
@@ -179,36 +179,36 @@ void UVREditorGizmoHandleGroup::UpdateHandleColor( const int32 AxisIndex, FVREdi
 	UMaterialInstanceDynamic* MID1 = CastChecked<UMaterialInstanceDynamic>( HandleMesh->GetMaterial( 1 ) );
 
 	ABaseTransformGizmo* GizmoActor = CastChecked<ABaseTransformGizmo>( GetOwner() );
-	if (GizmoActor)
+	if ( GizmoActor )
 	{
-		FVREditorMode* Mode = GizmoActor->GetOwnerMode();
-		if (Mode)
+		UViewportWorldInteraction* WorldInteraction = GizmoActor->GetOwnerWorldInteraction();
+		if ( WorldInteraction )
 		{
-			FLinearColor HandleColor = Mode->GetColor( FVREditorMode::EColors::WhiteGizmoColor );
-			if (HandleMesh == DraggingHandle)
+			FLinearColor HandleColor = WorldInteraction->GetColor( UViewportWorldInteraction::EColors::DefaultColor );
+			if ( HandleMesh == DraggingHandle )
 			{
-				HandleColor = Mode->GetColor( FVREditorMode::EColors::DraggingGizmoColor );
+				HandleColor = WorldInteraction->GetColor( UViewportWorldInteraction::EColors::Dragging );
 			}
-			else if (AxisIndex != INDEX_NONE)
+			else if ( AxisIndex != INDEX_NONE )
 			{
-				switch (AxisIndex)
+				switch ( AxisIndex )
 				{
 				case 0:
-					HandleColor = Mode->GetColor( FVREditorMode::EColors::RedGizmoColor );
+					HandleColor = WorldInteraction->GetColor( UViewportWorldInteraction::EColors::Forward );
 					break;
 
 				case 1:
-					HandleColor = Mode->GetColor( FVREditorMode::EColors::GreenGizmoColor );
+					HandleColor = WorldInteraction->GetColor( UViewportWorldInteraction::EColors::Right );
 					break;
 
 				case 2:
-					HandleColor = Mode->GetColor( FVREditorMode::EColors::BlueGizmoColor );
+					HandleColor = WorldInteraction->GetColor( UViewportWorldInteraction::EColors::Up );
 					break;
 				}
 
-				if (HoveringOverHandles.Contains( HandleMesh ))
+				if ( HoveringOverHandles.Contains( HandleMesh ) )
 				{
-					HandleColor = FLinearColor::LerpUsingHSV( HandleColor, Mode->GetColor( FVREditorMode::EColors::HoverGizmoColor ), Handle.HoverAlpha );
+					HandleColor = FLinearColor::LerpUsingHSV( HandleColor, WorldInteraction->GetColor( UViewportWorldInteraction::EColors::Hover ), Handle.HoverAlpha );
 				}
 			}
 
@@ -219,7 +219,7 @@ void UVREditorGizmoHandleGroup::UpdateHandleColor( const int32 AxisIndex, FVREdi
 	}
 }
 
-class UStaticMeshComponent* UVREditorGizmoHandleGroup::CreateMeshHandle( class UStaticMesh* HandleMesh, const FString& ComponentName )
+class UStaticMeshComponent* UGizmoHandleGroup::CreateMeshHandle( class UStaticMesh* HandleMesh, const FString& ComponentName )
 {
 	const bool bAllowGizmoLighting = false;	// @todo vreditor: Not sure if we want this for gizmos or not yet.  Needs feedback.  Also they're translucent right now.
 
@@ -245,14 +245,14 @@ class UStaticMeshComponent* UVREditorGizmoHandleGroup::CreateMeshHandle( class U
 	return HandleComponent;
 }
 
-UStaticMeshComponent* UVREditorGizmoHandleGroup::CreateAndAddMeshHandle( UStaticMesh* HandleMesh, const FString& ComponentName, const FTransformGizmoHandlePlacement& HandlePlacement )
+UStaticMeshComponent* UGizmoHandleGroup::CreateAndAddMeshHandle( UStaticMesh* HandleMesh, const FString& ComponentName, const FTransformGizmoHandlePlacement& HandlePlacement )
 {
 	UStaticMeshComponent* HandleComponent = CreateMeshHandle( HandleMesh, ComponentName );
 	AddMeshToHandles( HandleComponent, HandlePlacement );
 	return HandleComponent;
 }
 
-void UVREditorGizmoHandleGroup::AddMeshToHandles( UStaticMeshComponent* HandleMeshComponent, const FTransformGizmoHandlePlacement& HandlePlacement )
+void UGizmoHandleGroup::AddMeshToHandles( UStaticMeshComponent* HandleMeshComponent, const FTransformGizmoHandlePlacement& HandlePlacement )
 {
 	int32 HandleIndex = MakeHandleIndex( HandlePlacement );
 	if (Handles.Num() < (HandleIndex + 1))
@@ -262,7 +262,7 @@ void UVREditorGizmoHandleGroup::AddMeshToHandles( UStaticMeshComponent* HandleMe
 	Handles[HandleIndex].HandleMesh = HandleMeshComponent;
 }
 
-FTransformGizmoHandlePlacement UVREditorGizmoHandleGroup::GetHandlePlacement( const int32 X, const int32 Y, const int32 Z ) const
+FTransformGizmoHandlePlacement UGizmoHandleGroup::GetHandlePlacement( const int32 X, const int32 Y, const int32 Z ) const
 {
 	FTransformGizmoHandlePlacement HandlePlacement;
 	HandlePlacement.Axes[0] = (ETransformGizmoHandleDirection)X;
@@ -272,9 +272,9 @@ FTransformGizmoHandlePlacement UVREditorGizmoHandleGroup::GetHandlePlacement( co
 	return HandlePlacement;
 }
 
-void UVREditorGizmoHandleGroup::UpdateHoverAnimation( UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, const float GizmoHoverAnimationDuration, bool& bOutIsHoveringOrDraggingThisHandleGroup )
+void UGizmoHandleGroup::UpdateHoverAnimation( UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, const float GizmoHoverAnimationDuration, bool& bOutIsHoveringOrDraggingThisHandleGroup )
 {
-	for (FVREditorGizmoHandle& Handle : Handles)
+	for (FGizmoHandle& Handle : Handles)
 	{
 		const bool bIsHoveringOverHandle = HoveringOverHandles.Contains( Handle.HandleMesh ) || (DraggingHandle != nullptr && DraggingHandle == Handle.HandleMesh);
 
@@ -291,7 +291,7 @@ void UVREditorGizmoHandleGroup::UpdateHoverAnimation( UActorComponent* DraggingH
 	}
 }
 
-void UVREditorAxisGizmoHandleGroup::CreateHandles( UStaticMesh* HandleMesh, const FString& HandleComponentName )
+void UAxisGizmoHandleGroup::CreateHandles( UStaticMesh* HandleMesh, const FString& HandleComponentName )
 {
 	for ( int32 X = 0; X < 3; ++X )
 	{
@@ -322,14 +322,14 @@ void UVREditorAxisGizmoHandleGroup::CreateHandles( UStaticMesh* HandleMesh, cons
 	}
 }
 
-void UVREditorAxisGizmoHandleGroup::UpdateHandlesRelativeTransformOnAxis( const FTransform& HandleToCenter, const float AnimationAlpha, const float GizmoScale, const float GizmoHoverScale,
+void UAxisGizmoHandleGroup::UpdateHandlesRelativeTransformOnAxis( const FTransform& HandleToCenter, const float AnimationAlpha, const float GizmoScale, const float GizmoHoverScale,
 	const FVector& ViewLocation, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles )
 {
 	const float WorldScaleFactor = GetWorld()->GetWorldSettings()->WorldToMeters / 100.0f;
 
 	for (int32 HandleIndex = 0; HandleIndex < Handles.Num(); ++HandleIndex)
 	{
-		FVREditorGizmoHandle& Handle = Handles[HandleIndex];
+		FGizmoHandle& Handle = Handles[HandleIndex];
 		UStaticMeshComponent* GizmoHandleMeshComponent = Handle.HandleMesh;
 		if (GizmoHandleMeshComponent != nullptr)	// Can be null if no handle for this specific placement
 		{

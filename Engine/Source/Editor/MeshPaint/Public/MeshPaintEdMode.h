@@ -715,7 +715,8 @@ private:
 	void OnPreReimportAsset(UObject* Object);
 
 	/** Called when the user presses a button on their motion controller device */
-	void OnVRAction( FEditorViewportClient& ViewportClient, const FVRAction VRAction, const EInputEvent Event, bool& bIsInputCaptured, bool& bOutWasHandled ); 
+	void OnVRAction( class FEditorViewportClient& ViewportClient, class UViewportInteractor* Interactor,
+		const struct FViewportActionKeyInput& Action, const EInputEvent Event, bool& bOutIsInCaptured, bool& bWasHandled );
 
 private:
 
@@ -723,7 +724,7 @@ private:
 	bool bIsPainting;
 
 	/** When painting in VR, this is the hand index that we're painting with.  Otherwise INDEX_NONE. */
-	int32 PaintingWithHandIndexInVR;
+	class UViewportInteractor* PaintingWithInteractorInVR;
 
 	/** Whether we are doing a flood fill the next render */
 	bool bIsFloodFill;

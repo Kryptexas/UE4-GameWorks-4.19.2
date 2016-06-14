@@ -1,12 +1,11 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "VREditorModule.h"
-#include "VREditorUniformScaleGizmoHandle.h"
-#include "VREditorBaseTransformGizmo.h"
-#include "VREditorMode.h"
-#include "UnitConversion.h"
+#include "ViewportInteractionModule.h"
+#include "VIUniformScaleGizmoHandle.h"
+#include "ViewportWorldInteraction.h"
+#include "VIBaseTransformGizmo.h"
 
-UVREditorUniformScaleGizmoHandleGroup::UVREditorUniformScaleGizmoHandleGroup()
+UUniformScaleGizmoHandleGroup::UUniformScaleGizmoHandleGroup()
 	: Super(),
 	bUsePivotAsLocation( true )
 {
@@ -21,18 +20,18 @@ UVREditorUniformScaleGizmoHandleGroup::UVREditorUniformScaleGizmoHandleGroup()
 	UStaticMeshComponent* UniformScaleHandle = CreateMeshHandle( UniformScaleMesh, FString( "UniformScaleHandle" ) );
 	check( UniformScaleHandle != nullptr );
 
-	FVREditorGizmoHandle& NewHandle = *new( Handles ) FVREditorGizmoHandle();
+	FGizmoHandle& NewHandle = *new( Handles ) FGizmoHandle();
 	NewHandle.HandleMesh = UniformScaleHandle;
 }
 
-void UVREditorUniformScaleGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, 
+void UUniformScaleGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, 
 	float AnimationAlpha, float GizmoScale, const float GizmoHoverScale, const float GizmoHoverAnimationDuration, bool& bOutIsHoveringOrDraggingThisHandleGroup )
 {
 	// Call parent implementation (updates hover animation)
 	Super::UpdateGizmoHandleGroup( LocalToWorld, LocalBounds, ViewLocation, bAllHandlesVisible, DraggingHandle, HoveringOverHandles, 
 		AnimationAlpha, GizmoScale, GizmoHoverScale, GizmoHoverAnimationDuration, bOutIsHoveringOrDraggingThisHandleGroup );
 
-	FVREditorGizmoHandle& Handle = Handles[ 0 ];
+	FGizmoHandle& Handle = Handles[ 0 ];
 	UStaticMeshComponent* UniformScaleHandle = Handle.HandleMesh;
 	if (UniformScaleHandle != nullptr)	// Can be null if no handle for this specific placement
 	{
@@ -67,17 +66,17 @@ void UVREditorUniformScaleGizmoHandleGroup::UpdateGizmoHandleGroup( const FTrans
 			ABaseTransformGizmo* GizmoActor = CastChecked<ABaseTransformGizmo>( GetOwner() );
 			if( GizmoActor )
 			{
-				FVREditorMode* Mode =GizmoActor->GetOwnerMode();
-				if( Mode )
+				UViewportWorldInteraction* WorldInteraction = GizmoActor->GetOwnerWorldInteraction();
+				if( WorldInteraction )
 				{
-					FLinearColor HandleColor = Mode->GetColor( FVREditorMode::EColors::WhiteGizmoColor );
+					FLinearColor HandleColor = WorldInteraction->GetColor( UViewportWorldInteraction::EColors::DefaultColor );
 					if (UniformScaleHandle == DraggingHandle)
 					{
-						HandleColor = Mode->GetColor( FVREditorMode::EColors::DraggingGizmoColor );
+						HandleColor = WorldInteraction->GetColor( UViewportWorldInteraction::EColors::Dragging );
 					}
 					else if (HoveringOverHandles.Contains( UniformScaleHandle ))
 					{
-						HandleColor = FLinearColor::LerpUsingHSV( HandleColor, Mode->GetColor( FVREditorMode::EColors::HoverGizmoColor ), Handle.HoverAlpha );
+						HandleColor = FLinearColor::LerpUsingHSV( HandleColor, WorldInteraction->GetColor( UViewportWorldInteraction::EColors::Hover ), Handle.HoverAlpha );
 					}
 
 					MID0->SetVectorParameterValue( "Color", HandleColor );
@@ -88,17 +87,17 @@ void UVREditorUniformScaleGizmoHandleGroup::UpdateGizmoHandleGroup( const FTrans
 	}
 }
 
-ETransformGizmoInteractionType UVREditorUniformScaleGizmoHandleGroup::GetInteractionType() const
+ETransformGizmoInteractionType UUniformScaleGizmoHandleGroup::GetInteractionType() const
 {
 	return ETransformGizmoInteractionType::UniformScale;
 }
 
-EGizmoHandleTypes UVREditorUniformScaleGizmoHandleGroup::GetHandleType() const
+EGizmoHandleTypes UUniformScaleGizmoHandleGroup::GetHandleType() const
 {
 	return EGizmoHandleTypes::Scale;
 }
 
-void UVREditorUniformScaleGizmoHandleGroup::SetUsePivotPointAsLocation( const bool bInUsePivotAsLocation )
+void UUniformScaleGizmoHandleGroup::SetUsePivotPointAsLocation( const bool bInUsePivotAsLocation )
 {
 	bUsePivotAsLocation = bInUsePivotAsLocation;
 }

@@ -21,7 +21,7 @@ public:
 	UVREditorRadialMenu( const FObjectInitializer& ObjectInitializer );
 
 	/** Update the state of the widget with the trackpad location */
-	void Update( const struct FVirtualHand& Hand );
+	void Update( const class UVREditorInteractor* Interactor );
 
 	/** To bind the buttons from UMG */
 	UFUNCTION(BlueprintCallable, Category = "RadialItems")
@@ -32,7 +32,7 @@ public:
 	void ResetItem();
 
 	/** Press the current item */
-	void SelectCurrentItem( const FVirtualHand& Hand );
+	void SelectCurrentItem();
 
 	/** If the users has his trackpad or analog stick inside the radius where buttons will not be selected */
 	bool IsInMenuRadius() const;
@@ -47,6 +47,7 @@ public:
 
 private:
 	/** All the buttons in the radial menu */
+	UPROPERTY()
 	TArray<UVREditorRadialMenuItem*> MenuItems;
 
 	/** The current widget currently selected */

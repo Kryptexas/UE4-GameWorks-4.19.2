@@ -2,12 +2,41 @@
 
 #pragma once
 
-#include "VREditorWorldInteractionTypes.generated.h"
+#include "ViewportInteractionTypes.generated.h"
+
+/**
+ * Represents a generic action
+*/
+USTRUCT()
+struct VIEWPORTINTERACTION_API FViewportActionKeyInput
+{
+	GENERATED_BODY()
+	
+	FViewportActionKeyInput() :
+		ActionType( NAME_None ),
+		bIsInputCaptured( false )
+	{}
+
+	FViewportActionKeyInput( const FName& InActionType ) : 
+		ActionType( InActionType ),
+		bIsInputCaptured( false )
+	{}
+
+	/** The name of this action */
+	FName ActionType;
+
+	/** Input event */
+	EInputEvent Event;
+
+	/** True if this action owned by an interactor is "captured" for each possible action type, meaning that only the active captor should 
+	handle input events until it is no longer captured.  It's the captors responsibility to set this using OnVRAction(), or clear it when finished with capturing. */
+	bool bIsInputCaptured;
+};
 
 
 /** Methods of dragging objects around in VR */
 UENUM()
-enum class EVREditorDraggingMode : uint8
+enum class EViewportInteractionDraggingMode : uint8
 {
 	/** Not dragging right now with this hand */
 	Nothing,
@@ -27,17 +56,19 @@ enum class EVREditorDraggingMode : uint8
 	/** Moving the world itself around (actually, moving the camera in such a way that it feels like you're moving the world) */
 	World,
 
-	/** Dragging a material to place it on an object under the laser */
-	Material,
+	/** Moving a custom interactable */
+	Interactable,
 
-	/** Moving a dockable window */
-	DockableWindow,
+	/** Custom implementation for dragging */
+	Custom,
+
+	/** Dragging a material */
+	Material
 };
 
-
 /**
- * Things the transform gizmo can do to objects
- */
+* Things the transform gizmo can do to objects
+*/
 UENUM()
 enum class ETransformGizmoInteractionType : uint8
 {
@@ -77,8 +108,11 @@ enum class ETransformGizmoHandleDirection
 
 
 /** Placement of a handle in pivot space */
-struct FTransformGizmoHandlePlacement
+USTRUCT()
+struct VIEWPORTINTERACTION_API FTransformGizmoHandlePlacement
 {
+	GENERATED_BODY()
+
 	/* Handle direction in X, Y and Z */
 	ETransformGizmoHandleDirection Axes[ 3 ];
 
@@ -90,5 +124,3 @@ struct FTransformGizmoHandlePlacement
 	or INDEX_NONE if it's not an edge */
 	void GetCenterHandleCountAndFacingAxisIndex( int32& OutCenterHandleCount, int32& OutFacingAxisIndex, int32& OutCenterAxisIndex ) const;
 };
-
-

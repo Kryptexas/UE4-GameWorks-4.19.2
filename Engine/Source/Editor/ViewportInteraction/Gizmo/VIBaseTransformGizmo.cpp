@@ -1,10 +1,10 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "VREditorModule.h"
-#include "VREditorBaseTransformGizmo.h"
+#include "ViewportInteractionModule.h"
+#include "VIBaseTransformGizmo.h"
 #include "UnitConversion.h"
-#include "VREditorGizmoHandle.h"
-#include "VREditorMode.h"
+#include "VIGizmoHandle.h"
+#include "ViewportWorldInteraction.h"
 
 namespace VREd
 {
@@ -14,7 +14,7 @@ namespace VREd
 }
 
 ABaseTransformGizmo::ABaseTransformGizmo( ) :
-	Owner( nullptr )
+	WorldInteraction( nullptr )
 {
 	// Create root default scene component
 	{
@@ -39,6 +39,11 @@ ABaseTransformGizmo::ABaseTransformGizmo( ) :
 	}
 }
 
+ABaseTransformGizmo::~ABaseTransformGizmo()
+{
+	WorldInteraction = nullptr;
+}
+
 void ABaseTransformGizmo::OnNewObjectsSelected()
 {
 	SelectedAtTime = FTimespan::FromSeconds( FApp::GetCurrentTime() );
@@ -54,7 +59,7 @@ ETransformGizmoInteractionType ABaseTransformGizmo::GetInteractionType( UActorCo
 		{
 			ETransformGizmoInteractionType ResultInteractionType;
 
-			for ( UVREditorGizmoHandleGroup* HandleGroup : AllHandleGroups )
+			for ( UGizmoHandleGroup* HandleGroup : AllHandleGroups )
 			{
 				if ( HandleGroup != nullptr )
 				{
@@ -97,16 +102,15 @@ float ABaseTransformGizmo::GetAnimationAlpha()
 	return AnimationAlpha;
 }
 
-void ABaseTransformGizmo::SetOwnerMode( FVREditorMode* InOwner )
+void ABaseTransformGizmo::SetOwnerWorldInteraction( class UViewportWorldInteraction* InWorldInteraction )
 {
-	Owner = InOwner;
+	WorldInteraction = InWorldInteraction;
 }
 
-FVREditorMode* ABaseTransformGizmo::GetOwnerMode() const
+class UViewportWorldInteraction* ABaseTransformGizmo::GetOwnerWorldInteraction() const
 {
-	return Owner;
+	return WorldInteraction;
 }
-
 
 void ABaseTransformGizmo::GetBoundingBoxEdge( const FBox& Box, const int32 AxisIndex, const int32 EdgeIndex, FVector& OutVertex0, FVector& OutVertex1 )
 {
@@ -213,14 +217,14 @@ void ABaseTransformGizmo::GetBoundingBoxEdge( const FBox& Box, const int32 AxisI
 
 void ABaseTransformGizmo::UpdateHandleVisibility( const EGizmoHandleTypes GizmoType, const ECoordSystem GizmoCoordinateSpace, const bool bAllHandlesVisible, UActorComponent* DraggingHandle )
 {
-	for ( UVREditorGizmoHandleGroup* HandleGroup : AllHandleGroups )
+	for ( UGizmoHandleGroup* HandleGroup : AllHandleGroups )
 	{
 		if ( HandleGroup != nullptr )
 		{
 			const bool bIsTypeSupported = ( GizmoType == EGizmoHandleTypes::All && HandleGroup->GetShowOnUniversalGizmo() ) || HandleGroup->GetHandleType() == GizmoType;
 			const bool bSupportsCurrentCoordinateSpace = HandleGroup->SupportsWorldCoordinateSpace() || GizmoCoordinateSpace != COORD_World;
 
-			for ( FVREditorGizmoHandle& Handle : HandleGroup->GetHandles() )
+			for ( FGizmoHandle& Handle : HandleGroup->GetHandles() )
 			{
 				if( Handle.HandleMesh != nullptr )
 				{

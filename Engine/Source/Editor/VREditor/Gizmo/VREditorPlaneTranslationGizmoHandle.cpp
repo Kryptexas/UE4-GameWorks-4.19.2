@@ -2,7 +2,7 @@
 
 #include "VREditorModule.h"
 #include "VREditorPlaneTranslationGizmoHandle.h"
-#include "VREditorBaseTransformGizmo.h"
+#include "VREditorTransformGizmo.h"
 #include "UnitConversion.h"
 
 UVREditorPlaneTranslationGizmoHandleGroup::UVREditorPlaneTranslationGizmoHandleGroup()
@@ -55,7 +55,7 @@ void UVREditorPlaneTranslationGizmoHandleGroup::UpdateGizmoHandleGroup(const FTr
 
 	for (int32 HandleIndex = 0; HandleIndex < Handles.Num(); ++HandleIndex)
 	{
-		FVREditorGizmoHandle& Handle = Handles[ HandleIndex ];
+		FGizmoHandle& Handle = Handles[ HandleIndex ];
 		UStaticMeshComponent* PlaneTranslationHandle = Handle.HandleMesh;
 		if (PlaneTranslationHandle != nullptr)	// Can be null if no handle for this specific placement
 		{

@@ -6,8 +6,8 @@
 #include "Gizmo/VREditorTranslationGizmoHandle.h"
 #include "Gizmo/VREditorRotationGizmoHandle.h"
 #include "Gizmo/VREditorPlaneTranslationGizmoHandle.h"
-#include "Gizmo/VREditorStretchGizmoHandle.h"
-#include "Gizmo/VREditorUniformScaleGizmoHandle.h"
+#include "VIStretchGizmoHandle.h"
+#include "VIUniformScaleGizmoHandle.h"
 #include "VREditorMode.h"
 
 namespace VREd
@@ -39,13 +39,13 @@ ATransformGizmo::ATransformGizmo()
 	RotationGizmoHandleGroup->SetupAttachment( SceneComponent );
 	AllHandleGroups.Add( RotationGizmoHandleGroup );
 
-	StretchGizmoHandleGroup = CreateDefaultSubobject<UVREditorStretchGizmoHandleGroup>( TEXT( "StretchHandles" ), true );
+	StretchGizmoHandleGroup = CreateDefaultSubobject<UStretchGizmoHandleGroup>( TEXT( "StretchHandles" ), true );
 	StretchGizmoHandleGroup->SetTranslucentGizmoMaterial( TranslucentGizmoMaterial );
 	StretchGizmoHandleGroup->SetGizmoMaterial( GizmoMaterial );
 	StretchGizmoHandleGroup->SetupAttachment( SceneComponent );
 	AllHandleGroups.Add( StretchGizmoHandleGroup );
 
-	UniformScaleGizmoHandleGroup = CreateDefaultSubobject<UVREditorUniformScaleGizmoHandleGroup>( TEXT( "UniformScaleHandles" ), true );
+	UniformScaleGizmoHandleGroup = CreateDefaultSubobject<UUniformScaleGizmoHandleGroup>( TEXT( "UniformScaleHandles" ), true );
 	UniformScaleGizmoHandleGroup->SetTranslucentGizmoMaterial( TranslucentGizmoMaterial );
 	UniformScaleGizmoHandleGroup->SetGizmoMaterial( GizmoMaterial );
 	UniformScaleGizmoHandleGroup->SetUsePivotPointAsLocation( false );
@@ -96,8 +96,8 @@ ATransformGizmo::ATransformGizmo()
 
 			MeasurementText->SetWorldSize( 8.0f );	// @todo vreditor tweak: Size of text in world units
 
-													// Assign our custom text rendering material.  It should be Unlit and have Depth Test disabled
-													// so that it draws on top of overlapping geometry.
+			// Assign our custom text rendering material.  It should be Unlit and have Depth Test disabled
+			// so that it draws on top of overlapping geometry.
 			MeasurementText->SetTextMaterial( GizmoTextMaterial );
 
 			// Color the text based on the axis it represents
@@ -163,9 +163,9 @@ void ATransformGizmo::UpdateGizmo( const EGizmoHandleTypes GizmoType, const ECoo
 
 	// Update all the handles
 	bool bIsHoveringOrDraggingScaleGizmo = false;
-	for (UVREditorGizmoHandleGroup* HandleGroup : AllHandleGroups)
+	for ( UGizmoHandleGroup* HandleGroup : AllHandleGroups )
 	{
-		if (HandleGroup != nullptr)
+		if ( HandleGroup != nullptr )
 		{
 			bool bIsHoveringOrDraggingThisHandleGroup = false;
 			HandleGroup->UpdateGizmoHandleGroup( LocalToWorld, LocalBounds, ViewLocation, bAllHandlesVisible, DraggingHandle, 
@@ -249,7 +249,7 @@ void ATransformGizmo::UpdateGizmo( const EGizmoHandleTypes GizmoType, const ECoo
 				Measurement.MeasurementText->SetRelativeLocation( GizmoSpaceEdgeCenter + GizmoSpaceUpVector * UpOffsetAmount );
 
 				const int32 TextFacingAxisIndex = AxisIndex == 0 ? 1 : ( AxisIndex == 1 ? 0 : 0 );
-				FVector TextFacingDirection = UVREditorGizmoHandleGroup::GetAxisVector( TextFacingAxisIndex, ETransformGizmoHandleDirection::Positive );
+				FVector TextFacingDirection = UGizmoHandleGroup::GetAxisVector( TextFacingAxisIndex, ETransformGizmoHandleDirection::Positive );
 
 				// Make sure to face the camera
 				const FVector WorldSpaceEdgeCenterToViewDirection = ( LocalToWorld.TransformPosition( GizmoSpaceEdgeCenter ) - ViewLocation ).GetSafeNormal();
@@ -268,8 +268,6 @@ void ATransformGizmo::UpdateGizmo( const EGizmoHandleTypes GizmoType, const ECoo
 
 	// Update visibility
 	{
-		UpdateHandleVisibility( GizmoType, GizmoCoordinateSpace, bAllHandlesVisible, DraggingHandle );
-
 		const bool bShouldShowMeasurements =
 			GetShowMeasurementText() ||
 			bIsHoveringOrDraggingScaleGizmo;

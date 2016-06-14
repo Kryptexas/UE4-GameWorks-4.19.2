@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include "VREditorGizmoHandle.h"
+#include "VIGizmoHandle.h"
 #include "VREditorTranslationGizmoHandle.generated.h"
 
 /**
  * Gizmo handle for translating
  */
 UCLASS()
-class UVREditorTranslationGizmoHandleGroup : public UVREditorGizmoHandleGroup
+class UVREditorTranslationGizmoHandleGroup : public UGizmoHandleGroup
 {
 	GENERATED_BODY()
 

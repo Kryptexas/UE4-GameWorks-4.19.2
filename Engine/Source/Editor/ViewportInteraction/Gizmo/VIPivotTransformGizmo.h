@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include "VREditorBaseTransformGizmo.h"
-#include "VREditorGizmoHandle.h"
-#include "VREditorPivotTransformGizmo.generated.h"
+#include "VIBaseTransformGizmo.h"
+#include "VIGizmoHandle.h"
+#include "VIPivotTransformGizmo.generated.h"
 
 /**
  * A transform gizmo on the pivot that allows you to interact with selected objects by moving, scaling and rotating.
@@ -28,41 +28,41 @@ public:
 private:
 	/** Uniform scale handle group component */
 	UPROPERTY()
-	class UVREditorUniformScaleGizmoHandleGroup* UniformScaleGizmoHandleGroup;
+	class UUniformScaleGizmoHandleGroup* UniformScaleGizmoHandleGroup;
 
 	/** Translation handle group component */
 	UPROPERTY()
-	class UVREditorPivotTranslationGizmoHandleGroup* TranslationGizmoHandleGroup;
+	class UPivotTranslationGizmoHandleGroup* TranslationGizmoHandleGroup;
 	
 	/** Scale handle group component */
 	UPROPERTY()
-	class UVREditorPivotScaleGizmoHandleGroup* ScaleGizmoHandleGroup;
+	class UPivotScaleGizmoHandleGroup* ScaleGizmoHandleGroup;
 	
 	/** Plane translation handle group component */
 	UPROPERTY()
-	class UVREditorPivotPlaneTranslationGizmoHandleGroup* PlaneTranslationGizmoHandleGroup;
+	class UPivotPlaneTranslationGizmoHandleGroup* PlaneTranslationGizmoHandleGroup;
 
 	/** Rotation handle group component */
 	UPROPERTY()
-	class UVREditorPivotRotationGizmoHandleGroup* RotationGizmoHandleGroup;
+	class UPivotRotationGizmoHandleGroup* RotationGizmoHandleGroup;
 
 	/** Stretch handle group component */
 	UPROPERTY()
-	class UVREditorStretchGizmoHandleGroup* StretchGizmoHandleGroup;
+	class UStretchGizmoHandleGroup* StretchGizmoHandleGroup;
 };
 
 /**
  * Axis Gizmo handle for translating
  */
 UCLASS()
-class UVREditorPivotTranslationGizmoHandleGroup : public UVREditorAxisGizmoHandleGroup
+class UPivotTranslationGizmoHandleGroup : public UAxisGizmoHandleGroup
 {
 	GENERATED_BODY()
 
 public:
 
 	/** Default constructor that sets up CDO properties */
-	UVREditorPivotTranslationGizmoHandleGroup();
+	UPivotTranslationGizmoHandleGroup();
 
 	/** Updates the gizmo handles */
 	virtual void UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, 
@@ -79,15 +79,14 @@ public:
  * Axis Gizmo handle for scaling
  */
 UCLASS()
-class UVREditorPivotScaleGizmoHandleGroup : public UVREditorAxisGizmoHandleGroup
+class UPivotScaleGizmoHandleGroup : public UAxisGizmoHandleGroup
 {
 	GENERATED_BODY()
 
 public:
 
 	/** Default constructor that sets up CDO properties */
-	UVREditorPivotScaleGizmoHandleGroup();
-
+	UPivotScaleGizmoHandleGroup();
 
 	/** Updates the gizmo handles */
 	virtual void UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds,  const FVector ViewLocation, bool bAllHandlesVisible, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, 
@@ -107,15 +106,14 @@ public:
  * Axis Gizmo handle for plane translation
  */
 UCLASS()
-class UVREditorPivotPlaneTranslationGizmoHandleGroup : public UVREditorAxisGizmoHandleGroup
+class UPivotPlaneTranslationGizmoHandleGroup : public UAxisGizmoHandleGroup
 {
 	GENERATED_BODY()
 
 public:
 
 	/** Default constructor that sets up CDO properties */
-	UVREditorPivotPlaneTranslationGizmoHandleGroup();
-
+	UPivotPlaneTranslationGizmoHandleGroup();
 
 	/** Updates the gizmo handles */
 	virtual void UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, 
@@ -133,14 +131,14 @@ public:
  * Axis Gizmo handle for rotation
  */
 UCLASS()
-class UVREditorPivotRotationGizmoHandleGroup : public UVREditorAxisGizmoHandleGroup
+class UPivotRotationGizmoHandleGroup : public UAxisGizmoHandleGroup
 {
 	GENERATED_BODY()
 
 public:
 
 	/** Default constructor that sets up CDO properties */
-	UVREditorPivotRotationGizmoHandleGroup();
+	UPivotRotationGizmoHandleGroup();
 
 	/** Updates the gizmo handles */
 	virtual void UpdateGizmoHandleGroup(const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, 

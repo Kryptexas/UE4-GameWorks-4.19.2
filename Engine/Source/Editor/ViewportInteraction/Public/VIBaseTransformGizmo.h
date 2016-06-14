@@ -2,10 +2,9 @@
 
 #pragma once
 
-#include "VREditorWorldInteractionTypes.h"
+#include "ViewportInteractionTypes.h"
 #include "GameFramework/Actor.h"
-#include "VREditorBaseTransformGizmo.generated.h"
-
+#include "VIBaseTransformGizmo.generated.h"
 
 UENUM()
 enum class EGizmoHandleTypes : uint8
@@ -16,12 +15,25 @@ enum class EGizmoHandleTypes : uint8
 	Scale = 3
 };
 
+/**
+* Displays measurements along the bounds of selected objects
+*/
+USTRUCT()
+struct FTransformGizmoMeasurement
+{
+	GENERATED_BODY()
+
+		/** The text that displays the actual measurement and units */
+		UPROPERTY()
+	class UTextRenderComponent* MeasurementText;
+};
+
 
 /**
  * Base class for transform gizmo
  */
 UCLASS( Abstract )
-class ABaseTransformGizmo : public AActor
+class VIEWPORTINTERACTION_API ABaseTransformGizmo : public AActor
 {
 	GENERATED_BODY()
 
@@ -29,6 +41,9 @@ public:
 	
 	/** Default constructor that sets up CDO properties */
 	ABaseTransformGizmo();
+
+	/** Deconstructor */
+	virtual ~ABaseTransformGizmo();
 
 	/** Call this when new objects become selected.  This triggers an animation transition. */
 	void OnNewObjectsSelected();
@@ -38,14 +53,14 @@ public:
 		(rather than a specific axis/handle) */
 	ETransformGizmoInteractionType GetInteractionType( UActorComponent* DraggedComponent, TOptional<FTransformGizmoHandlePlacement>& OutHandlePlacement );
 
-	/** Updates the animation with the currenttime and selectedtime */
+	/** Updates the animation with the current time and selected time */
 	float GetAnimationAlpha();
 
 	/** Sets the owner */
-	void SetOwnerMode( class FVREditorMode* InOwner );
+	void SetOwnerWorldInteraction( class UViewportWorldInteraction* InWorldInteraction );
 
 	/** Gets the owner */
-	class FVREditorMode* GetOwnerMode() const;
+	class UViewportWorldInteraction* GetOwnerWorldInteraction() const;
 
 	/** Called by the world interaction system after we've been spawned into the world, to allow
 	    us to create components and set everything up nicely for the selected objects that we'll be
@@ -64,8 +79,6 @@ protected:
 	/** Gets if the gizmo shows measurement texts */
 	bool GetShowMeasurementText() const;
 
-protected:
-	
 	/** Real time that the gizmo was last attached to a selected set of objects.  This is used for animation transitions */
 	FTimespan SelectedAtTime;
 	
@@ -83,8 +96,9 @@ protected:
 
 	/** All gizmo components */
 	UPROPERTY()
-	TArray< class UVREditorGizmoHandleGroup* > AllHandleGroups;
+	TArray< class UGizmoHandleGroup* > AllHandleGroups;
 
 	/** Owning object */
-	class FVREditorMode* Owner;
-};
+	UPROPERTY()
+	class UViewportWorldInteraction* WorldInteraction;
+};	

@@ -56,7 +56,7 @@ void UVREditorTranslationGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransf
 	// Place the translation handles
 	for (int32 HandleIndex = 0; HandleIndex < Handles.Num(); ++HandleIndex)
 	{
-		FVREditorGizmoHandle& Handle = Handles[ HandleIndex ];
+		FGizmoHandle& Handle = Handles[ HandleIndex ];
 
 		UStaticMeshComponent* TranslationHandle = Handle.HandleMesh;
 		if (TranslationHandle != nullptr)	// Can be null if no handle for this specific placement

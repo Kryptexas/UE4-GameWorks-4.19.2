@@ -23,21 +23,21 @@ public class MeshPaint : ModuleRules
                 "UnrealEd",
                 "RawMesh",
                 "SourceControl",
-            } 
+                "ViewportInteraction",
+                "VREditor"
+            }
         );
 
 		PrivateIncludePathModuleNames.AddRange(
 			new string[]
 			{
-				"AssetTools",
-				"VREditor"
-			} );
+				"AssetTools"
+            });
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[]
 			{
-				"AssetTools",
-				"VREditor"
-			} );
+				"AssetTools"
+            });
     }
 }
