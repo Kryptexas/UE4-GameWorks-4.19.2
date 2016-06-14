@@ -17,12 +17,12 @@ namespace VREd
 
 UVREditorTeleporter::UVREditorTeleporter( const FObjectInitializer& Initializer ) :
 	Super( Initializer ),
+	VRMode( nullptr ),
 	bIsTeleporting( false ),
 	TeleportLerpAlpha( 0 ),
 	TeleportStartLocation( FVector::ZeroVector ),
 	TeleportGoalLocation( FVector::ZeroVector ),
-	bJustTeleported( false ),
-	VRMode( nullptr )
+	bJustTeleported( false )
 {
 	// Load sounds
 	TeleportSound = LoadObject<USoundCue>( nullptr, TEXT( "/Engine/VREditor/Sounds/VR_teleport_Cue" ) );

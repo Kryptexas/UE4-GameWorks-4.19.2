@@ -1067,36 +1067,37 @@ FTransform UVREditorUISystem::MakeDockableUITransform( AVREditorDockableWindow* 
 	
 	const FTransform UIToWorld = UIToUIOnLaser * UIOnLaserToWorld;
 
-	if( DraggingUI != nullptr &&  DraggingUI->GetDockedTo() == AVREditorFloatingUI::EDockedTo::Dragging && InteractorDraggingUI )
+	if( DraggingUI != nullptr &&  DraggingUI->GetDockedTo() == AVREditorFloatingUI::EDockedTo::Dragging && InteractorDraggingUI && Interactor == InteractorDraggingUI )
 	{
 		UVREditorInteractor* OtherInteractor = Cast<UVREditorInteractor>( InteractorDraggingUI->GetOtherInteractor() );
-		
-		const float WorldScaleFactor = GetOwner().GetWorldScaleFactor();
-		const FVector DraggingUILocation = InteractorDraggingUI->GetHoverLocation();
-		const FVector OtherHandLocation =  OtherInteractor->GetTransform().GetLocation();
-		LastDraggingHoverLocation = UIOnLaserToWorld.GetLocation();
-
-		const float Distance = FVector::Dist( UIOnLaserToWorld.GetLocation(), OtherHandLocation ) / WorldScaleFactor;
-
-		// if dragged passed the threshold since starting dragging
-		if ( Distance > VREd::MinDockDragDistance->GetFloat() && !bDraggedDockFromHandPassedThreshold && 
-			( DraggingUI->GetPreviouslyDockedTo() == AVREditorFloatingUI::EDockedTo::LeftHand || DraggingUI->GetPreviouslyDockedTo() == AVREditorFloatingUI::EDockedTo::RightHand ) )
+		if ( OtherInteractor )
 		{
-			bDraggedDockFromHandPassedThreshold = true;
-		}
+			const float WorldScaleFactor = GetOwner().GetWorldScaleFactor();
+			const FVector DraggingUILocation = InteractorDraggingUI->GetHoverLocation();
+			const FVector OtherHandLocation = OtherInteractor->GetTransform().GetLocation();
+			LastDraggingHoverLocation = UIOnLaserToWorld.GetLocation();
 
-		// Snapping to a hand when in range
-		if ( Distance <= VREd::MinDockDragDistance->GetFloat() && ( bDraggedDockFromHandPassedThreshold || DraggingUI->GetPreviouslyDockedTo() == AVREditorFloatingUI::EDockedTo::Room ) )
-		{
-			UVREditorInteractor* OtherInteractor = Cast<UVREditorInteractor>( Interactor->GetOtherInteractor() );
-			const FVector EditorUIRelativeOffset( DraggingUI->GetSize().Y * 0.5f + VREd::EditorUIOffsetFromHand->GetFloat(), 0.0f, 0.0f );
-			const FTransform MovingUIGoalTransform = DraggingUI->MakeUITransformLockedToHand( OtherInteractor, false, EditorUIRelativeOffset, FRotator( 90.0f, 180.0f, 0.0f ) );
-			const AVREditorFloatingUI::EDockedTo NewDockedTo = OtherInteractor->GetControllerSide() == EControllerHand::Left ? AVREditorFloatingUI::EDockedTo::LeftHand : AVREditorFloatingUI::EDockedTo::RightHand;
-			DraggingUI->MoveTo( MovingUIGoalTransform, VREd::DockDragSpeed->GetFloat(), NewDockedTo );
-		}
-		else
-		{
-			DraggingUI->MoveTo( UIToWorld, VREd::DockDragSpeed->GetFloat(), AVREditorFloatingUI::EDockedTo::Room );
+			const float Distance = FVector::Dist( UIOnLaserToWorld.GetLocation(), OtherHandLocation ) / WorldScaleFactor;
+
+			// if dragged passed the threshold since starting dragging
+			if ( Distance > VREd::MinDockDragDistance->GetFloat() && !bDraggedDockFromHandPassedThreshold &&
+				( DraggingUI->GetPreviouslyDockedTo() == AVREditorFloatingUI::EDockedTo::LeftHand || DraggingUI->GetPreviouslyDockedTo() == AVREditorFloatingUI::EDockedTo::RightHand ) )
+			{
+				bDraggedDockFromHandPassedThreshold = true;
+			}
+
+			// Snapping to a hand when in range
+			if ( Distance <= VREd::MinDockDragDistance->GetFloat() && ( bDraggedDockFromHandPassedThreshold || DraggingUI->GetPreviouslyDockedTo() == AVREditorFloatingUI::EDockedTo::Room ) )
+			{
+				const FVector EditorUIRelativeOffset( DraggingUI->GetSize().Y * 0.5f + VREd::EditorUIOffsetFromHand->GetFloat(), 0.0f, 0.0f );
+				const FTransform MovingUIGoalTransform = DraggingUI->MakeUITransformLockedToHand( OtherInteractor, false, EditorUIRelativeOffset, FRotator( 90.0f, 180.0f, 0.0f ) );
+				const AVREditorFloatingUI::EDockedTo NewDockedTo = OtherInteractor->GetControllerSide() == EControllerHand::Left ? AVREditorFloatingUI::EDockedTo::LeftHand : AVREditorFloatingUI::EDockedTo::RightHand;
+				DraggingUI->MoveTo( MovingUIGoalTransform, VREd::DockDragSpeed->GetFloat(), NewDockedTo );
+			}
+			else
+			{
+				DraggingUI->MoveTo( UIToWorld, VREd::DockDragSpeed->GetFloat(), AVREditorFloatingUI::EDockedTo::Room );
+			}
 		}
 	}
 

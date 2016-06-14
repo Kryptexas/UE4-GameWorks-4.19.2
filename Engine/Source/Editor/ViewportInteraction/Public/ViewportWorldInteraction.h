@@ -414,12 +414,6 @@ private:
 	/** Duration to interpolate transformables over */
 	float TransformablesInterpolationDuration;
 
-	/** Event that fires every frame to update hover state based on what's under the cursor.  Set bWasHandled to true if you detect something to hover. */
-	FOnVIHoverUpdate OnHoverUpdateEvent;
-
-	/** Event that is fired for when a key is pressed by an interactor */
-	FOnVIActionHandle OnInputActionEvent;
-
 	//
 	// Transform gizmo
 	//
@@ -471,5 +465,11 @@ private:
 	//
 
 	/** The current dragged interactable */
-	class IViewportInteractableInterface* DraggedInteractable;	
+	class IViewportInteractableInterface* DraggedInteractable;		
+	
+	/** Event that fires every frame to update hover state based on what's under the cursor.  Set bWasHandled to true if you detect something to hover. */
+	FOnVIHoverUpdate OnHoverUpdateEvent;
+
+	/** Event that is fired for when a key is pressed by an interactor */
+	FOnVIActionHandle OnInputActionEvent;
 };

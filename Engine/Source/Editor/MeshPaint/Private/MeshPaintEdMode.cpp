@@ -2681,21 +2681,17 @@ void FEdModeMeshPaint::Render( const FSceneView* View, FViewport* Viewport, FPri
 						float StrengthScale = ( PaintingWithInteractorInVR == nullptr && FMeshPaintSettings::Get().bEnableFlow ) ? FMeshPaintSettings::Get().FlowAmount : 1.0f;
 
 						// Apply VR controller trigger pressure if we're painting in VR
-						if ( bIsPainting && PaintingWithInteractorInVR )
+						if ( bIsPainting && PaintingWithInteractorInVR && VREditorMode != nullptr && PaintingWithInteractorInVR )
 						{
-							IVREditorMode* VREditorMode = static_cast< IVREditorMode* >( GetModeManager()->GetActiveMode( IVREditorModule::Get().GetVREditorModeID() ) );
-							if ( VREditorMode != nullptr && PaintingWithInteractorInVR )
+							UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>( PaintingWithInteractorInVR );
+							if ( VRInteractor )
 							{
-								UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>( PaintingWithInteractorInVR );
-								if ( VRInteractor )
-								{
-									StrengthScale *= VRInteractor->GetSelectAndMoveTriggerValue();
+								StrengthScale *= VRInteractor->GetSelectAndMoveTriggerValue();
 
-									// Make sure light press locking is enabled in VR for the hand we're painting with.  We don't want
-									// a full press to be converted to a move action, however locking will have been disabled already
-									// by the world interaction code after a light press happened on an object. 
-									VRInteractor->SetAllowTriggerLightPressLocking( true );
-								}
+								// Make sure light press locking is enabled in VR for the hand we're painting with.  We don't want
+								// a full press to be converted to a move action, however locking will have been disabled already
+								// by the world interaction code after a light press happened on an object. 
+								VRInteractor->SetAllowTriggerLightPressLocking( true );
 							}
 						}
 
