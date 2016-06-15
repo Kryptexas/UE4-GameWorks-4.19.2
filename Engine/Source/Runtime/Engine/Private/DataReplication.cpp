@@ -675,11 +675,6 @@ bool FObjectReplicator::ReceivedBunch( FNetBitReader& Bunch, const FReplicationF
 					HANDLE_INCOMPATIBLE_PROP
 				}
 
-				// Call the function.
-				RPC_ResetLastFailedReason();
-
-				Object->ProcessEvent( Function, Parms );
-
 				// Forward the RPC to a client recorded replay, if needed.
 				const UWorld* const OwningDriverWorld = OwningChannel->Connection->Driver->World;
 				if (OwningDriverWorld && OwningDriverWorld->IsRecordingClientReplay())
@@ -688,6 +683,11 @@ bool FObjectReplicator::ReceivedBunch( FNetBitReader& Bunch, const FReplicationF
 					UObject* const SubObject = Object != OwningChannel->Actor ? Object : nullptr;
 					OwningDriverWorld->DemoNetDriver->ProcessRemoteFunction(OwningChannel->Actor, Function, Parms, nullptr, nullptr, SubObject);
 				}
+
+				// Call the function.
+				RPC_ResetLastFailedReason();
+
+				Object->ProcessEvent( Function, Parms );
 
 				// Destroy the parameters.
 				// warning: highly dependent on UObject::ProcessEvent freeing of parms!
