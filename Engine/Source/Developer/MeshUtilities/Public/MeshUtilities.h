@@ -4,10 +4,12 @@
 
 #include "ModuleInterface.h"
 #include "SkeletalMeshTypes.h"
+#include "Engine/MeshMerging.h"
 
 typedef FIntPoint FMeshIdAndLOD;
 struct FFlattenMaterial;
 struct FReferenceSkeleton;
+struct FStaticMeshLODResources;
 
 /**
  * Mesh reduction interface.

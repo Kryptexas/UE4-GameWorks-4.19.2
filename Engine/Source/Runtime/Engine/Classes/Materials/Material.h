@@ -551,13 +551,6 @@ public:
 	uint32 bUsedWithEditorCompositing:1;
 
 	/** 
-	 * Indicates that the material and its instances can be use with landscapes 
-	 * This will result in the shaders required to support landscapes being compiled which will increase shader compile time and memory usage.
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Usage)
-	uint32 bUsedWithLandscape:1;
-
-	/** 
 	 * Indicates that the material and its instances can be use with particle sprites 
 	 * This will result in the shaders required to support particle sprites being compiled which will increase shader compile time and memory usage.
 	 */

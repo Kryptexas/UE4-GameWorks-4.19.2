@@ -10,6 +10,7 @@
 #include "EngineModule.h"
 #include "RHIStaticStates.h"
 #include "LandscapeEdit.h"
+#include "LandscapeInfo.h"
 
 struct FLightmassLandscapeVertex
 {

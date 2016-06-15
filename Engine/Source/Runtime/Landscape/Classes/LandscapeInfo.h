@@ -6,6 +6,7 @@
 // Forward declarations
 class ALandscapeProxy;
 class ALandscape;
+class ALandscapeStreamingProxy;
 class ULandscapeComponent;
 class ULandscapeLayerInfoObject;
 class UMaterialInstanceConstant;
@@ -126,7 +127,7 @@ public:
 	TMap<FIntPoint, FLandscapeAddCollision> XYtoAddCollisionMap;
 #endif
 
-	TSet<ALandscapeProxy*> Proxies;
+	TSet<ALandscapeStreamingProxy*> Proxies;
 
 private:
 	TSet<ULandscapeComponent*> SelectedComponents;

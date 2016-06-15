@@ -835,7 +835,7 @@ bool FMaterialResource::IsUsedWithSkeletalMesh() const
 
 bool FMaterialResource::IsUsedWithLandscape() const
 {
-	return Material->bUsedWithLandscape;
+	return false;
 }
 
 bool FMaterialResource::IsUsedWithParticleSystem() const

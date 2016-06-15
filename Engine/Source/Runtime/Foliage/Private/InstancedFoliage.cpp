@@ -2641,14 +2641,16 @@ bool AInstancedFoliageActor::FoliageTrace(const UWorld* InWorld, FHitResult& Out
 	const FVector StartTrace = DesiredInstance.StartTrace - (Dir * DesiredInstance.TraceRadius);
 
 	TArray<FHitResult> Hits;
-
-	bool bInsideProceduralVolumeOrArentUsingOne = false;
 	FCollisionShape SphereShape;
 	SphereShape.SetSphere(DesiredInstance.TraceRadius);
 	InWorld->SweepMultiByObjectType(Hits, StartTrace, DesiredInstance.EndTrace, FQuat::Identity, FCollisionObjectQueryParams(ECC_WorldStatic), SphereShape, QueryParams);
 
 	for (const FHitResult& Hit : Hits)
 	{
+		const UPrimitiveComponent* HitComponent = Hit.GetComponent();
+
+		// don't place procedural foliage inside an AProceduralFoliageBlockingVolume
+		// this test is first because two of the tests below would otherwise cause the trace to ignore AProceduralFoliageBlockingVolume
 		if (DesiredInstance.PlacementMode == EFoliagePlacementMode::Procedural)
 		{
 			if (const AProceduralFoliageBlockingVolume* ProceduralFoliageBlockingVolume = Cast<AProceduralFoliageBlockingVolume>(Hit.Actor.Get()))
@@ -2659,52 +2661,46 @@ bool AInstancedFoliageActor::FoliageTrace(const UWorld* InWorld, FHitResult& Out
 					return false;
 				}
 			}
-			else if(Cast<AInstancedFoliageActor>(Hit.Actor.Get()))
-			{
-				return false;
-			}
-			else if (Cast<AProceduralFoliageVolume>(Hit.Actor.Get()))	//we never want to collide with our spawning volume
+			else if (Hit.GetActor()->IsA<AProceduralFoliageVolume>()) //we never want to collide with our spawning volume
 			{
 				continue;
 			}
+		}
 
-			if (DesiredInstance.ProceduralVolumeBodyInstance)
-			{
-				// We have a procedural volume, so lets make sure we are inside it.
-				bInsideProceduralVolumeOrArentUsingOne = DesiredInstance.ProceduralVolumeBodyInstance->OverlapTest(Hit.ImpactPoint, FQuat::Identity, FCollisionShape::MakeSphere(1.f));	//make sphere of 1cm radius to test if we're in the procedural volume
-			}
-			else
-			{
-				// We have no procedural volume, so we aren't using one.
-				bInsideProceduralVolumeOrArentUsingOne = true;
-			}
-		}
-		else
+		// Don't place foliage on foliage
+		if (Hit.GetActor()->IsA<AInstancedFoliageActor>())
 		{
-			// Not procedural, so we aren't using a procedural volume.
-			bInsideProceduralVolumeOrArentUsingOne = true;
+			return false;
 		}
-			
-		// In the editor traces can hit "No Collision" type actors, so ugh.
-		const FBodyInstance* BodyInstance = Hit.Component->GetBodyInstance();
+
+		// In the editor traces can hit "No Collision" type actors, so ugh. (ignore these)
+		const FBodyInstance* BodyInstance = HitComponent->GetBodyInstance();
 		if (BodyInstance->GetCollisionEnabled() != ECollisionEnabled::QueryAndPhysics || BodyInstance->GetResponseToChannel(ECC_WorldStatic) != ECR_Block)
 		{
 			continue;
 		}
 
-		const UPrimitiveComponent* HitComponent = Hit.Component.Get();
-
-		if (HitComponent && HitComponent->GetComponentLevel())
+		// Don't place foliage on invisible walls / triggers / volumes
+		if (HitComponent->IsA<UBrushComponent>())
 		{
-			if (FilterFunc && FilterFunc(HitComponent) == false)
-			{
-				// supplied filter does not like this component, so keep iterating
-				continue;
-			}
-			
-			OutHit = Hit;
-			return bInsideProceduralVolumeOrArentUsingOne;
+			continue;
 		}
+
+		if (FilterFunc && FilterFunc(HitComponent) == false)
+		{
+			// supplied filter does not like this component, so keep iterating
+			continue;
+		}
+
+		bool bInsideProceduralVolumeOrArentUsingOne = true;
+		if (DesiredInstance.PlacementMode == EFoliagePlacementMode::Procedural && DesiredInstance.ProceduralVolumeBodyInstance)
+		{
+			// We have a procedural volume, so lets make sure we are inside it.
+			bInsideProceduralVolumeOrArentUsingOne = DesiredInstance.ProceduralVolumeBodyInstance->OverlapTest(Hit.ImpactPoint, FQuat::Identity, FCollisionShape::MakeSphere(1.f));	//make sphere of 1cm radius to test if we're in the procedural volume
+		}
+
+		OutHit = Hit;
+		return bInsideProceduralVolumeOrArentUsingOne;
 	}
 
 	return false;
@@ -2763,12 +2759,13 @@ bool AInstancedFoliageActor::CheckCollisionWithWorld(const UWorld* InWorld, cons
 }
 
 FPotentialInstance::FPotentialInstance(FVector InHitLocation, FVector InHitNormal, UPrimitiveComponent* InHitComponent, float InHitWeight, const FDesiredFoliageInstance& InDesiredInstance)
-: HitLocation(InHitLocation)
-, HitNormal(InHitNormal)
-, HitComponent(InHitComponent)
-, HitWeight(InHitWeight)
-, DesiredInstance(InDesiredInstance)
-{}
+	: HitLocation(InHitLocation)
+	, HitNormal(InHitNormal)
+	, HitComponent(InHitComponent)
+	, HitWeight(InHitWeight)
+	, DesiredInstance(InDesiredInstance)
+{
+}
 
 bool FPotentialInstance::PlaceInstance(const UWorld* InWorld, const UFoliageType* Settings, FFoliageInstance& Inst, bool bSkipCollision)
 {

@@ -463,9 +463,12 @@ void SerializeInlineShaderMaps(const TMap<const ITargetPlatform*, TArray<FMateri
 	}
 }
 
-void ProcessSerializedInlineShaderMaps(TArray<FMaterialResource>& LoadedResources, FMaterialResource* (&OutMaterialResourcesLoaded)[EMaterialQualityLevel::Num][ERHIFeatureLevel::Num])
+void ProcessSerializedInlineShaderMaps(UMaterialInterface* Owner, TArray<FMaterialResource>& LoadedResources, FMaterialResource* (&OutMaterialResourcesLoaded)[EMaterialQualityLevel::Num][ERHIFeatureLevel::Num])
 {
 	check(IsInGameThread());
+
+	UMaterial* OwnerMaterial = Cast<UMaterial>(Owner);
+	UMaterialInstance* OwnerMaterialInstance = Cast<UMaterialInstance>(Owner);
 
 	for (FMaterialResource& Resource : LoadedResources)
 	{
@@ -515,7 +518,8 @@ void ProcessSerializedInlineShaderMaps(TArray<FMaterialResource>& LoadedResource
 					{
 						if (!OutMaterialResourcesLoaded[QualityLevelIndex][LoadedFeatureLevel])
 						{
-							OutMaterialResourcesLoaded[QualityLevelIndex][LoadedFeatureLevel] = new FMaterialResource();
+							OutMaterialResourcesLoaded[QualityLevelIndex][LoadedFeatureLevel] =
+								OwnerMaterialInstance ? OwnerMaterialInstance->AllocatePermutationResource() : OwnerMaterial->AllocateResource();
 						}
 						OutMaterialResourcesLoaded[QualityLevelIndex][LoadedFeatureLevel]->ReleaseShaderMap();
 						OutMaterialResourcesLoaded[QualityLevelIndex][LoadedFeatureLevel]->SetInlineShaderMap(LoadedShaderMap);
@@ -548,7 +552,8 @@ void ProcessSerializedInlineShaderMaps(TArray<FMaterialResource>& LoadedResource
 						{
 							if (!OutMaterialResourcesLoaded[QualityLevelIndex][LoadedFeatureLevel])
 							{
-								OutMaterialResourcesLoaded[QualityLevelIndex][LoadedFeatureLevel] = new FMaterialResource();
+								OutMaterialResourcesLoaded[QualityLevelIndex][LoadedFeatureLevel] =
+									OwnerMaterialInstance ? OwnerMaterialInstance->AllocatePermutationResource() : OwnerMaterial->AllocateResource();
 							}
 
 							OutMaterialResourcesLoaded[QualityLevelIndex][LoadedFeatureLevel]->SetInlineShaderMap(LoadedShaderMap);
@@ -943,7 +948,6 @@ bool UMaterial::GetUsageByFlag(EMaterialUsage Usage) const
 	switch(Usage)
 	{
 		case MATUSAGE_SkeletalMesh: UsageValue = bUsedWithSkeletalMesh; break;
-		case MATUSAGE_Landscape: UsageValue = bUsedWithLandscape; break;
 		case MATUSAGE_ParticleSprites: UsageValue = bUsedWithParticleSprites; break;
 		case MATUSAGE_BeamTrails: UsageValue = bUsedWithBeamTrails; break;
 		case MATUSAGE_MeshParticles: UsageValue = bUsedWithMeshParticles; break;
@@ -998,10 +1002,6 @@ void UMaterial::SetUsageByFlag(EMaterialUsage Usage, bool NewValue)
 		{
 			bUsedWithSkeletalMesh = NewValue; break;
 		}
-		case MATUSAGE_Landscape: 
-		{
-			bUsedWithLandscape = NewValue; break;
-		}
 		case MATUSAGE_ParticleSprites:
 		{
 			bUsedWithParticleSprites = NewValue; break;
@@ -1011,7 +1011,7 @@ void UMaterial::SetUsageByFlag(EMaterialUsage Usage, bool NewValue)
 			bUsedWithBeamTrails = NewValue; break;
 		}
 		case MATUSAGE_MeshParticles:
-		{	
+		{
 			bUsedWithMeshParticles = NewValue; break;
 		}
 		case MATUSAGE_StaticLighting:
@@ -1048,7 +1048,6 @@ FString UMaterial::GetUsageName(EMaterialUsage Usage) const
 	switch(Usage)
 	{
 		case MATUSAGE_SkeletalMesh: UsageName = TEXT("bUsedWithSkeletalMesh"); break;
-		case MATUSAGE_Landscape: UsageName = TEXT("bUsedWithLandscape"); break;
 		case MATUSAGE_ParticleSprites: UsageName = TEXT("bUsedWithParticleSprites"); break;
 		case MATUSAGE_BeamTrails: UsageName = TEXT("bUsedWithBeamTrails"); break;
 		case MATUSAGE_MeshParticles: UsageName = TEXT("bUsedWithMeshParticles"); break;
@@ -2392,7 +2391,7 @@ void UMaterial::PostLoad()
 	Super::PostLoad();
 
 	// Resources can be processed / registered now that we're back on the main thread
-	ProcessSerializedInlineShaderMaps(LoadedMaterialResources, MaterialResources);
+	ProcessSerializedInlineShaderMaps(this, LoadedMaterialResources, MaterialResources);
 	// Empty the lsit of loaded resources, we don't need it anymore
 	LoadedMaterialResources.Empty();
 

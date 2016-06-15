@@ -8,7 +8,6 @@
 #include "SceneTypes.h"
 #include "StaticLighting.h"
 #include "Components/PrimitiveComponent.h"
-#include "LandscapeGrassType.h"
 
 #include "LandscapeComponent.generated.h"
 
@@ -19,6 +18,7 @@ class ALandscapeProxy;
 class ALandscape;
 class ULandscapeHeightfieldCollisionComponent;
 class ULandscapeComponent;
+class ULandscapeGrassType;
 
 struct FEngineShowFlags;
 struct FConvexVolume;
@@ -26,6 +26,7 @@ struct FLandscapeEditDataInterface;
 struct FLandscapeEditToolRenderData;
 struct FLandscapeWeightmapUsage;
 struct FLandscapeTextureDataInfo;
+struct FLandscapeComponentGrassData;
 
 class FLandscapeComponentDerivedData
 {
@@ -100,14 +101,9 @@ struct FWeightmapLayerAllocationInfo
 	UPROPERTY()
 	uint8 WeightmapTextureChannel;
 
-	/** Only relevant in non-editor builds, this indicates which channel in the data array is this layer...must be > 1 to be valid, the first two are height **/
-	UPROPERTY()
-	uint8 GrassMapChannelIndex;
-
 	FWeightmapLayerAllocationInfo()
 		: WeightmapTextureIndex(0)
 		, WeightmapTextureChannel(0)
-		, GrassMapChannelIndex(0)
 	{
 	}
 
@@ -116,7 +112,6 @@ struct FWeightmapLayerAllocationInfo
 		:	LayerInfo(InLayerInfo)
 		,	WeightmapTextureIndex(255)	// Indicates an invalid allocation
 		,	WeightmapTextureChannel(255)
-		,	GrassMapChannelIndex(0) // Indicates an invalid allocation
 	{
 	}
 	
@@ -288,7 +283,7 @@ public:
 	FGuid BakedTextureMaterialGuid;
 
 	/** Pre-baked Base Color texture for use by distance field GI */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BakedTextures)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = BakedTextures)
 	UTexture2D* GIBakedBaseColorTexture;
 
 #if WITH_EDITORONLY_DATA
@@ -331,8 +326,6 @@ public:
 
 	/** Grass data for generation **/
 	TSharedRef<FLandscapeComponentGrassData, ESPMode::ThreadSafe> GrassData;
-
-	virtual ~ULandscapeComponent();
 
 	//~ Begin UObject Interface.	
 	virtual void PostInitProperties() override;	
@@ -393,10 +386,10 @@ public:
 	LANDSCAPE_API ULandscapeInfo* GetLandscapeInfo(bool bSpawnNewActor = true) const;
 
 	/** @todo document */
-	LANDSCAPE_API void DeleteLayer(ULandscapeLayerInfoObject* LayerInfo, FLandscapeEditDataInterface* LandscapeEdit);
+	LANDSCAPE_API void DeleteLayer(ULandscapeLayerInfoObject* LayerInfo, FLandscapeEditDataInterface& LandscapeEdit);
+	LANDSCAPE_API void FillLayer(ULandscapeLayerInfoObject* LayerInfo, FLandscapeEditDataInterface& LandscapeEdit);
+	LANDSCAPE_API void ReplaceLayer(ULandscapeLayerInfoObject* FromLayerInfo, ULandscapeLayerInfoObject* ToLayerInfo, FLandscapeEditDataInterface& LandscapeEdit);
 
-	LANDSCAPE_API void ReplaceLayer(ULandscapeLayerInfoObject* FromLayerInfo, ULandscapeLayerInfoObject* ToLayerInfo, FLandscapeEditDataInterface* LandscapeEdit);
-	
 	void GeneratePlatformVertexData();
 	void GeneratePlatformPixelData();
 

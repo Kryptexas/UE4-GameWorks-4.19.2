@@ -180,6 +180,10 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 		]
 	];
 
+	TSharedRef<IPropertyHandle> PropertyHandle_AlphamapType = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, ImportLandscape_AlphamapType));
+	NewLandscapeCategory.AddProperty(PropertyHandle_AlphamapType)
+	.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateStatic(&GetVisibilityOnlyInNewLandscapeMode, ENewLandscapePreviewMode::ImportLandscape)));
+
 	TSharedRef<IPropertyHandle> PropertyHandle_Layers = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, ImportLandscape_Layers));
 	NewLandscapeCategory.AddProperty(PropertyHandle_Layers);
 
@@ -791,23 +795,50 @@ FReply FLandscapeEditorDetailCustomization_NewLandscape::OnCreateButtonClicked()
 			WordData[i] = 32768;
 		}
 
-		TArray<FLandscapeImportLayerInfo> LayerInfos;
+		TArray<FLandscapeImportLayerInfo> ImportLayers;
 
-		if (LandscapeEdMode->NewLandscapePreviewMode == ENewLandscapePreviewMode::ImportLandscape)
+		if (LandscapeEdMode->NewLandscapePreviewMode == ENewLandscapePreviewMode::NewLandscape)
+		{
+			const auto& ImportLandscapeLayersList = LandscapeEdMode->UISettings->ImportLandscape_Layers;
+			ImportLayers.Reserve(ImportLandscapeLayersList.Num());
+
+			// Fill in LayerInfos array and allocate data
+			for (const FLandscapeImportLayer& UIImportLayer : ImportLandscapeLayersList)
+			{
+				FLandscapeImportLayerInfo ImportLayer = FLandscapeImportLayerInfo(UIImportLayer.LayerName);
+				ImportLayer.LayerInfo = UIImportLayer.LayerInfo;
+				ImportLayer.SourceFilePath = "";
+				ImportLayer.LayerData = TArray<uint8>();
+				ImportLayers.Add(MoveTemp(ImportLayer));
+			}
+
+			// Fill the first weight-blended layer to 100%
+			if (FLandscapeImportLayerInfo* FirstBlendedLayer = ImportLayers.FindByPredicate([](const FLandscapeImportLayerInfo& ImportLayer) { return ImportLayer.LayerInfo && !ImportLayer.LayerInfo->bNoWeightBlend; }))
+			{
+				FirstBlendedLayer->LayerData.AddUninitialized(SizeX * SizeY);
+
+				uint8* ByteData = FirstBlendedLayer->LayerData.GetData();
+				for (int32 i = 0; i < SizeX * SizeY; i++)
+				{
+					ByteData[i] = 255;
+				}
+			}
+		}
+		else if (LandscapeEdMode->NewLandscapePreviewMode == ENewLandscapePreviewMode::ImportLandscape)
 		{
 			const int32 ImportSizeX = LandscapeEdMode->UISettings->ImportLandscape_Width;
 			const int32 ImportSizeY = LandscapeEdMode->UISettings->ImportLandscape_Height;
 
 			const TArray<FLandscapeImportLayer>& ImportLandscapeLayersList = LandscapeEdMode->UISettings->ImportLandscape_Layers;
-			LayerInfos.Reserve(ImportLandscapeLayersList.Num());
+			ImportLayers.Reserve(ImportLandscapeLayersList.Num());
 
 			// Fill in LayerInfos array and allocate data
-			for (int32 LayerIdx = 0; LayerIdx < ImportLandscapeLayersList.Num(); LayerIdx++)
+			for (const FLandscapeImportLayer& UIImportLayer : ImportLandscapeLayersList)
 			{
-				LayerInfos.Add(ImportLandscapeLayersList[LayerIdx]); //slicing is fine here
-				FLandscapeImportLayerInfo& ImportLayer = LayerInfos.Last();
+				ImportLayers.Add((const FLandscapeImportLayer&)UIImportLayer); //slicing is fine here
+				FLandscapeImportLayerInfo& ImportLayer = ImportLayers.Last();
 
-				if (ImportLayer.LayerInfo != NULL && ImportLayer.SourceFilePath != "")
+				if (ImportLayer.LayerInfo != nullptr && ImportLayer.SourceFilePath != "")
 				{
 					FFileHelper::LoadFileToArray(ImportLayer.LayerData, *ImportLayer.SourceFilePath, FILEREAD_Silent);
 
@@ -816,7 +847,7 @@ FReply FLandscapeEditorDetailCustomization_NewLandscape::OnCreateButtonClicked()
 						IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>("ImageWrapper");
 						IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
 
-						const TArray<uint8>* RawData = NULL;
+						const TArray<uint8>* RawData = nullptr;
 						if (ImageWrapper->SetCompressed(ImportLayer.LayerData.GetData(), ImportLayer.LayerData.Num()) &&
 							ImageWrapper->GetRaw(ERGBFormat::Gray, 8, RawData))
 						{
@@ -848,9 +879,9 @@ FReply FLandscapeEditorDetailCustomization_NewLandscape::OnCreateButtonClicked()
 					-OffsetX, -OffsetY, SizeX - OffsetX - 1, SizeY - OffsetY - 1);
 
 				// Layers
-				for (int32 LayerIdx = 0; LayerIdx < LayerInfos.Num(); LayerIdx++)
+				for (int32 LayerIdx = 0; LayerIdx < ImportLayers.Num(); LayerIdx++)
 				{
-					TArray<uint8>& ImportLayerData = LayerInfos[LayerIdx].LayerData;
+					TArray<uint8>& ImportLayerData = ImportLayers[LayerIdx].LayerData;
 					if (ImportLayerData.Num())
 					{
 						ImportLayerData = LandscapeEditorUtils::ExpandData(ImportLayerData,
@@ -865,14 +896,9 @@ FReply FLandscapeEditorDetailCustomization_NewLandscape::OnCreateButtonClicked()
 
 		const FVector Offset = FTransform(LandscapeEdMode->UISettings->NewLandscape_Rotation, FVector::ZeroVector, LandscapeEdMode->UISettings->NewLandscape_Scale).TransformVector(FVector(-ComponentCountX * QuadsPerComponent / 2, -ComponentCountY * QuadsPerComponent / 2, 0));
 		ALandscape* Landscape = LandscapeEdMode->GetWorld()->SpawnActor<ALandscape>(LandscapeEdMode->UISettings->NewLandscape_Location + Offset, LandscapeEdMode->UISettings->NewLandscape_Rotation);
-
-		//if (LandscapeEdMode->NewLandscapePreviewMode == ENewLandscapePreviewMode::ImportLandscape)
-		{
-			Landscape->LandscapeMaterial = LandscapeEdMode->UISettings->NewLandscape_Material.Get();
-		}
-
+		Landscape->LandscapeMaterial = LandscapeEdMode->UISettings->NewLandscape_Material.Get();
 		Landscape->SetActorRelativeScale3D(LandscapeEdMode->UISettings->NewLandscape_Scale);
-		Landscape->Import(FGuid::NewGuid(), 0, 0, SizeX-1, SizeY-1, LandscapeEdMode->UISettings->NewLandscape_SectionsPerComponent, LandscapeEdMode->UISettings->NewLandscape_QuadsPerSection, Data.GetData(), NULL, LayerInfos, LandscapeEdMode->UISettings->ImportLandscape_AlphamapType);
+		Landscape->Import(FGuid::NewGuid(), 0, 0, SizeX-1, SizeY-1, LandscapeEdMode->UISettings->NewLandscape_SectionsPerComponent, LandscapeEdMode->UISettings->NewLandscape_QuadsPerSection, Data.GetData(), nullptr, ImportLayers, LandscapeEdMode->UISettings->ImportLandscape_AlphamapType);
 
 		// automatically calculate a lighting LOD that won't crash lightmass (hopefully)
 		// < 2048x2048 -> LOD0
@@ -889,10 +915,11 @@ FReply FLandscapeEditorDetailCustomization_NewLandscape::OnCreateButtonClicked()
 		ULandscapeInfo* LandscapeInfo = Landscape->GetLandscapeInfo(true);
 		LandscapeInfo->UpdateLayerInfoMap(Landscape);
 
+		// Import doesn't fill in the LayerInfo for layers with no data, do that now
 		const TArray<FLandscapeImportLayer>& ImportLandscapeLayersList = LandscapeEdMode->UISettings->ImportLandscape_Layers;
 		for (int32 i = 0; i < ImportLandscapeLayersList.Num(); i++)
 		{
-			if (ImportLandscapeLayersList[i].LayerInfo != NULL)
+			if (ImportLandscapeLayersList[i].LayerInfo != nullptr)
 			{
 				if (LandscapeEdMode->NewLandscapePreviewMode == ENewLandscapePreviewMode::ImportLandscape)
 				{
@@ -915,7 +942,7 @@ FReply FLandscapeEditorDetailCustomization_NewLandscape::OnCreateButtonClicked()
 		LandscapeEdMode->UpdateLandscapeList();
 		LandscapeEdMode->CurrentToolTarget.LandscapeInfo = Landscape->GetLandscapeInfo();
 		LandscapeEdMode->CurrentToolTarget.TargetType = ELandscapeToolTargetType::Heightmap;
-		LandscapeEdMode->CurrentToolTarget.LayerInfo = NULL;
+		LandscapeEdMode->CurrentToolTarget.LayerInfo = nullptr;
 		LandscapeEdMode->CurrentToolTarget.LayerName = NAME_None;
 		LandscapeEdMode->UpdateTargetList();
 

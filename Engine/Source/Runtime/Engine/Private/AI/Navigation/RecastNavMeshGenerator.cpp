@@ -504,13 +504,16 @@ void ExportPxHeightField(PxHeightField const * const HeightField, const FTransfo
 			const PxHeightFieldSample& Sample = HFSamples[SampleIdx];
 			const bool HoleQuad = (Sample.materialIndex0 == PxHeightFieldMaterial::eHOLE);
 
-			IndexBuffer.Add(VertOffset + I00);
-			IndexBuffer.Add(VertOffset + (HoleQuad ? I00 : I11));
-			IndexBuffer.Add(VertOffset + (HoleQuad ? I00 : I10));
+			if (!HoleQuad)
+			{
+				IndexBuffer.Add(VertOffset + I00);
+				IndexBuffer.Add(VertOffset + I11);
+				IndexBuffer.Add(VertOffset + I10);
 
-			IndexBuffer.Add(VertOffset + I00);
-			IndexBuffer.Add(VertOffset + (HoleQuad ? I00 : I01));
-			IndexBuffer.Add(VertOffset + (HoleQuad ? I00 : I11));
+				IndexBuffer.Add(VertOffset + I00);
+				IndexBuffer.Add(VertOffset + I01);
+				IndexBuffer.Add(VertOffset + I11);
+			}
 		}
 	}
 }

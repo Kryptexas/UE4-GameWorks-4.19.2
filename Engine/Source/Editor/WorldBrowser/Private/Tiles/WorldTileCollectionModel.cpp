@@ -26,6 +26,8 @@
 #include "InstancedFoliageActor.h"
 #include "LandscapeMeshProxyActor.h"
 #include "LandscapeMeshProxyComponent.h"
+#include "LandscapeLayerInfoObject.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 

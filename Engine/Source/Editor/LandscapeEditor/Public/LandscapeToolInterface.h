@@ -260,3 +260,8 @@ public:
 	int32					PreviousBrushIndex;
 	TArray<FName>			ValidBrushes;
 };
+
+namespace LandscapeTool
+{
+	UMaterialInstance* CreateMaterialInstance(UMaterialInterface* BaseMaterial);
+}

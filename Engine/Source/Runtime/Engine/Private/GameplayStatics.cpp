@@ -20,6 +20,7 @@
 #include "Components/DecalComponent.h"
 #include "LandscapeProxy.h"
 #include "MessageLog.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
 #define LOCTEXT_NAMESPACE "GameplayStatics"
 

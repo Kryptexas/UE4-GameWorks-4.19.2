@@ -24,6 +24,8 @@
 #include "LandscapeVersion.h"
 #include "Algo/Accumulate.h"
 #include "LandscapeLight.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Materials/MaterialInstanceConstant.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"
 
@@ -2352,6 +2354,13 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 	}
 }
 
+FAsyncGrassTask::FAsyncGrassTask(FAsyncGrassBuilder* InBuilder, const FCachedLandscapeFoliage::FGrassCompKey& InKey, UHierarchicalInstancedStaticMeshComponent* InFoliage)
+	: Builder(InBuilder)
+	, Key(InKey)
+	, Foliage(InFoliage)
+{
+}
+
 void FAsyncGrassTask::DoWork()
 {
 	Builder->Build();
@@ -2364,25 +2373,17 @@ FAsyncGrassTask::~FAsyncGrassTask()
 
 static void FlushGrass(const TArray<FString>& Args)
 {
-	for (TObjectIterator<ALandscapeProxy> It; It; ++It)
+	for (ALandscapeProxy* Landscape : TObjectRange<ALandscapeProxy>(RF_ClassDefaultObject | RF_ArchetypeObject, true, EInternalObjectFlags::PendingKill))
 	{
-		ALandscapeProxy* Landscape = *It;
-		if (Landscape && !Landscape->IsTemplate() && !Landscape->IsPendingKill())
-		{
-			Landscape->FlushGrassComponents();
-		}
+		Landscape->FlushGrassComponents();
 	}
 }
 
 static void FlushGrassPIE(const TArray<FString>& Args)
 {
-	for (TObjectIterator<ALandscapeProxy> It; It; ++It)
+	for (ALandscapeProxy* Landscape : TObjectRange<ALandscapeProxy>(RF_ClassDefaultObject | RF_ArchetypeObject, true, EInternalObjectFlags::PendingKill))
 	{
-		ALandscapeProxy* Landscape = *It;
-		if (Landscape && !Landscape->IsTemplate() && !Landscape->IsPendingKill())
-		{
-			Landscape->FlushGrassComponents(nullptr, false);
-		}
+		Landscape->FlushGrassComponents(nullptr, false);
 	}
 }
 

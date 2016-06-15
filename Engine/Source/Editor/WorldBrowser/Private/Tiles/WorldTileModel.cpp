@@ -13,6 +13,7 @@
 #include "Engine/LevelStreaming.h"
 #include "Engine/LevelStreamingKismet.h"
 #include "Landscape.h"
+#include "LandscapeStreamingProxy.h"
 #include "AssetData.h"
 
 
@@ -920,7 +921,7 @@ ALandscapeProxy* FWorldTileModel::ImportLandscapeTile(const FLandscapeImportSett
 	
 	check(Settings.LandscapeGuid.IsValid())
 	
-	ALandscapeProxy* LandscapeProxy = Cast<UWorld>(LoadedLevel->GetOuter())->SpawnActor<ALandscapeProxy>();
+	ALandscapeProxy* LandscapeProxy = Cast<UWorld>(LoadedLevel->GetOuter())->SpawnActor<ALandscapeStreamingProxy>();
 	LandscapeProxy->SetActorTransform(Settings.LandscapeTransform);
 		
 	if (Settings.LandscapeMaterial)

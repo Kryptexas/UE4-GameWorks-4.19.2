@@ -5,7 +5,7 @@ LandscapeEdit.cpp: Landscape editing
 =============================================================================*/
 
 #include "Landscape.h"
-#include "LandscapeProxy.h"
+#include "LandscapeStreamingProxy.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Materials/MaterialExpressionLandscapeVisibilityMask.h"
 #include "Materials/MaterialExpressionLandscapeLayerWeight.h"
@@ -52,7 +52,7 @@ DEFINE_LOG_CATEGORY(LogLandscape);
 // Channel remapping
 extern const size_t ChannelOffsets[4];
 
-ULandscapeLayerInfoObject* ALandscapeProxy::VisibilityLayer = NULL;
+ULandscapeLayerInfoObject* ALandscapeProxy::VisibilityLayer = nullptr;
 
 void ULandscapeComponent::Init(int32 InBaseX, int32 InBaseY, int32 InComponentSizeQuads, int32 InNumSubsections, int32 InSubsectionSizeQuads)
 {
@@ -111,60 +111,35 @@ ULandscapeMaterialInstanceConstant* ALandscapeProxy::GetLayerThumbnailMIC(UMater
 		LandscapeMaterial = Proxy ? Proxy->GetLandscapeMaterial() : UMaterial::GetDefaultMaterial(MD_Surface);
 	}
 
-	UMaterialInstanceConstant* CombinationMaterialInstance = NULL;
-	FString LayerKey = LandscapeMaterial->GetPathName() + FString::Printf(TEXT("_%s_0"), *LayerName.ToString());
-	if (Proxy)
-	{
-		CombinationMaterialInstance = Proxy->MaterialInstanceConstantMap.FindRef(*LayerKey);
-	}
+	FlushRenderingCommands();
 
-	if (CombinationMaterialInstance == NULL || CombinationMaterialInstance->Parent != LandscapeMaterial || (Proxy && Proxy->GetOutermost() != CombinationMaterialInstance->GetOutermost()))
-	{
-		FlushRenderingCommands();
-		UObject* MICOuter = GetTransientPackage();
-		if (Proxy)
-		{
-			MICOuter = Proxy->GetOutermost();
-		}
-		CombinationMaterialInstance = NewObject<ULandscapeMaterialInstanceConstant>(MICOuter);
-		if (Proxy)
-		{
-			UE_LOG(LogLandscape, Log, TEXT("Looking for key %s, making new combination %s"), *LayerKey, *CombinationMaterialInstance->GetName());
-			Proxy->MaterialInstanceConstantMap.Add(*LayerKey, CombinationMaterialInstance);
-		}
-		CombinationMaterialInstance->SetParentEditorOnly(LandscapeMaterial);
-
-		FStaticParameterSet StaticParameters;
-		CombinationMaterialInstance->GetStaticParameterValues(StaticParameters);
-
-		for (int32 LayerParameterIdx = 0; LayerParameterIdx < StaticParameters.TerrainLayerWeightParameters.Num(); LayerParameterIdx++)
-		{
-			FStaticTerrainLayerWeightParameter& LayerParameter = StaticParameters.TerrainLayerWeightParameters[LayerParameterIdx];
-			if (LayerParameter.ParameterName == LayerName)
-			{
-				LayerParameter.WeightmapIndex = 0;
-				LayerParameter.bOverride = true;
-			}
-			else
-			{
-				LayerParameter.WeightmapIndex = INDEX_NONE;
-			}
-		}
-
-		CombinationMaterialInstance->UpdateStaticPermutation(StaticParameters);
-
-		CombinationMaterialInstance->PostEditChange();
-	}
-
-	// Create the instance for this component, that will use the layer combination instance.
-	ULandscapeMaterialInstanceConstant* MaterialInstance = NewObject<ULandscapeMaterialInstanceConstant>();
-	MaterialInstance->SetParentEditorOnly(CombinationMaterialInstance);
+	ULandscapeMaterialInstanceConstant* MaterialInstance = NewObject<ULandscapeMaterialInstanceConstant>(GetTransientPackage());
 	MaterialInstance->bIsLayerThumbnail = true;
+	MaterialInstance->SetParentEditorOnly(LandscapeMaterial);
+
+	FStaticParameterSet StaticParameters;
+	MaterialInstance->GetStaticParameterValues(StaticParameters);
+
+	for (int32 LayerParameterIdx = 0; LayerParameterIdx < StaticParameters.TerrainLayerWeightParameters.Num(); ++LayerParameterIdx)
+	{
+		FStaticTerrainLayerWeightParameter& LayerParameter = StaticParameters.TerrainLayerWeightParameters[LayerParameterIdx];
+		if (LayerParameter.ParameterName == LayerName)
+		{
+			LayerParameter.WeightmapIndex = 0;
+			LayerParameter.bOverride = true;
+		}
+		else
+		{
+			LayerParameter.WeightmapIndex = INDEX_NONE;
+		}
+	}
+	MaterialInstance->UpdateStaticPermutation(StaticParameters);
 
 	FLinearColor Mask(1.0f, 0.0f, 0.0f, 0.0f);
 	MaterialInstance->SetVectorParameterValueEditorOnly(FName(*FString::Printf(TEXT("LayerMask_%s"), *LayerName.ToString())), Mask);
 	MaterialInstance->SetTextureParameterValueEditorOnly(FName(TEXT("Weightmap0")), ThumbnailWeightmap);
 	MaterialInstance->SetTextureParameterValueEditorOnly(FName(TEXT("Heightmap")), ThumbnailHeightmap);
+
 	MaterialInstance->PostEditChange();
 
 	return MaterialInstance;
@@ -205,15 +180,6 @@ UMaterialInstanceConstant* ULandscapeComponent::GetCombinationMaterial(bool bMob
 
 	if (ensure(MaterialToUse != nullptr))
 	{
-		// Ensure top level UMaterial has appropriate usage flags set.
-		bool bNeedsRecompile;
-		UMaterial* ParentUMaterial = MaterialToUse->GetMaterial();
-		if (ParentUMaterial && ParentUMaterial != UMaterial::GetDefaultMaterial(MD_Surface))
-		{
-			ParentUMaterial->SetMaterialUsage(bNeedsRecompile, MATUSAGE_Landscape);
-			ParentUMaterial->SetMaterialUsage(bNeedsRecompile, MATUSAGE_StaticLighting);
-		}
-
 		FString LayerKey = GetLayerAllocationKey(MaterialToUse, bMobile);
 		//UE_LOG(LogLandscape, Log, TEXT("Looking for key %s"), *LayerKey);
 
@@ -260,7 +226,7 @@ void ULandscapeComponent::UpdateMaterialInstances()
 	// Find or set a matching MIC in the Landscape's map.
 	UMaterialInstanceConstant* CombinationMaterialInstance = GetCombinationMaterial(false);
 
-	if (CombinationMaterialInstance != NULL)
+	if (CombinationMaterialInstance != nullptr)
 	{
 		// not having the context recreate the render state because we will manually do it for only this component
 		FMaterialUpdateContext Context(FMaterialUpdateContext::EOptions::Default & ~FMaterialUpdateContext::EOptions::RecreateRenderStates);
@@ -272,7 +238,7 @@ void ULandscapeComponent::UpdateMaterialInstances()
 		}
 
 		// Create the instance for this component, that will use the layer combination instance.
-		if (MaterialInstance == NULL || GetOutermost() != MaterialInstance->GetOutermost())
+		if (MaterialInstance == nullptr || GetOutermost() != MaterialInstance->GetOutermost())
 		{
 			MaterialInstance = NewObject<ULandscapeMaterialInstanceConstant>(GetOutermost());
 		}
@@ -336,7 +302,7 @@ class UMaterialInterface* ULandscapeComponent::GetMaterial(int32 ElementIndex) c
 	}
 	else
 	{
-		return NULL;
+		return nullptr;
 	}
 }
 
@@ -433,7 +399,7 @@ void ULandscapeComponent::FixupWeightmaps()
 				FLandscapeEditDataInterface LandscapeEdit(Info);
 				for (int32 Idx = 0; Idx < LayersToDelete.Num(); ++Idx)
 				{
-					DeleteLayer(LayersToDelete[Idx], &LandscapeEdit);
+					DeleteLayer(LayersToDelete[Idx], LandscapeEdit);
 				}
 			}
 
@@ -463,7 +429,7 @@ void ULandscapeComponent::FixupWeightmaps()
 				FLandscapeWeightmapUsage& Usage = Proxy->WeightmapUsageMap.FindOrAdd(WeightmapTexture);
 
 				// Detect a shared layer allocation, caused by a previous undo or layer deletion bugs
-				if (Usage.ChannelUsage[Allocation.WeightmapTextureChannel] != NULL &&
+				if (Usage.ChannelUsage[Allocation.WeightmapTextureChannel] != nullptr &&
 					Usage.ChannelUsage[Allocation.WeightmapTextureChannel] != this)
 				{
 					FFormatNamedArguments Arguments;
@@ -486,7 +452,7 @@ void ULandscapeComponent::FixupWeightmaps()
 			RemoveInvalidWeightmaps();
 
 			// Store the layer combination in the MaterialInstanceConstantMap
-			if (MaterialInstance != NULL)
+			if (MaterialInstance != nullptr)
 			{
 				UMaterialInstanceConstant* CombinationMaterialInstance = Cast<UMaterialInstanceConstant>(MaterialInstance->Parent);
 				if (CombinationMaterialInstance)
@@ -1237,7 +1203,7 @@ void ULandscapeComponent::UpdateCollisionLayerData()
 
 
 
-void ULandscapeComponent::GenerateHeightmapMips(TArray<FColor*>& HeightmapTextureMipData, int32 ComponentX1/*=0*/, int32 ComponentY1/*=0*/, int32 ComponentX2/*=MAX_int32*/, int32 ComponentY2/*=MAX_int32*/, FLandscapeTextureDataInfo* TextureDataInfo/*=NULL*/)
+void ULandscapeComponent::GenerateHeightmapMips(TArray<FColor*>& HeightmapTextureMipData, int32 ComponentX1/*=0*/, int32 ComponentY1/*=0*/, int32 ComponentX2/*=MAX_int32*/, int32 ComponentY2/*=MAX_int32*/, FLandscapeTextureDataInfo* TextureDataInfo/*=nullptr*/)
 {
 	bool EndX = false;
 	bool EndY = false;
@@ -1589,7 +1555,7 @@ namespace
 };
 
 template<typename DataType>
-void ULandscapeComponent::UpdateMipsTempl(int32 InNumSubsections, int32 InSubsectionSizeQuads, UTexture2D* Texture, TArray<DataType*>& TextureMipData, int32 ComponentX1/*=0*/, int32 ComponentY1/*=0*/, int32 ComponentX2/*=MAX_int32*/, int32 ComponentY2/*=MAX_int32*/, struct FLandscapeTextureDataInfo* TextureDataInfo/*=NULL*/)
+void ULandscapeComponent::UpdateMipsTempl(int32 InNumSubsections, int32 InSubsectionSizeQuads, UTexture2D* Texture, TArray<DataType*>& TextureMipData, int32 ComponentX1/*=0*/, int32 ComponentY1/*=0*/, int32 ComponentX2/*=MAX_int32*/, int32 ComponentY2/*=MAX_int32*/, struct FLandscapeTextureDataInfo* TextureDataInfo/*=nullptr*/)
 {
 	int32 WeightmapSizeU = Texture->Source.GetSizeX();
 	int32 WeightmapSizeV = Texture->Source.GetSizeY();
@@ -1754,12 +1720,12 @@ void ULandscapeComponent::UpdateMipsTempl(int32 InNumSubsections, int32 InSubsec
 	}
 }
 
-void ULandscapeComponent::UpdateWeightmapMips(int32 InNumSubsections, int32 InSubsectionSizeQuads, UTexture2D* WeightmapTexture, TArray<FColor*>& WeightmapTextureMipData, int32 ComponentX1/*=0*/, int32 ComponentY1/*=0*/, int32 ComponentX2/*=MAX_int32*/, int32 ComponentY2/*=MAX_int32*/, struct FLandscapeTextureDataInfo* TextureDataInfo/*=NULL*/)
+void ULandscapeComponent::UpdateWeightmapMips(int32 InNumSubsections, int32 InSubsectionSizeQuads, UTexture2D* WeightmapTexture, TArray<FColor*>& WeightmapTextureMipData, int32 ComponentX1/*=0*/, int32 ComponentY1/*=0*/, int32 ComponentX2/*=MAX_int32*/, int32 ComponentY2/*=MAX_int32*/, struct FLandscapeTextureDataInfo* TextureDataInfo/*=nullptr*/)
 {
 	UpdateMipsTempl<FColor>(InNumSubsections, InSubsectionSizeQuads, WeightmapTexture, WeightmapTextureMipData, ComponentX1, ComponentY1, ComponentX2, ComponentY2, TextureDataInfo);
 }
 
-void ULandscapeComponent::UpdateDataMips(int32 InNumSubsections, int32 InSubsectionSizeQuads, UTexture2D* Texture, TArray<uint8*>& TextureMipData, int32 ComponentX1/*=0*/, int32 ComponentY1/*=0*/, int32 ComponentX2/*=MAX_int32*/, int32 ComponentY2/*=MAX_int32*/, struct FLandscapeTextureDataInfo* TextureDataInfo/*=NULL*/)
+void ULandscapeComponent::UpdateDataMips(int32 InNumSubsections, int32 InSubsectionSizeQuads, UTexture2D* Texture, TArray<uint8*>& TextureMipData, int32 ComponentX1/*=0*/, int32 ComponentY1/*=0*/, int32 ComponentX2/*=MAX_int32*/, int32 ComponentY2/*=MAX_int32*/, struct FLandscapeTextureDataInfo* TextureDataInfo/*=nullptr*/)
 {
 	UpdateMipsTempl<uint8>(InNumSubsections, InSubsectionSizeQuads, Texture, TextureMipData, ComponentX1, ComponentY1, ComponentX2, ComponentY2, TextureDataInfo);
 }
@@ -1768,7 +1734,7 @@ float ULandscapeComponent::GetLayerWeightAtLocation(const FVector& InLocation, U
 {
 	// Allocate and discard locally if no external cache is passed in.
 	TArray<uint8> LocalCache;
-	if (LayerCache == NULL)
+	if (LayerCache == nullptr)
 	{
 		LayerCache = &LocalCache;
 	}
@@ -1901,10 +1867,10 @@ TArray<FName> ALandscapeProxy::GetLayersFromMaterial(UMaterialInterface* Materia
 		UMaterial* Material = MaterialInterface->GetMaterial();
 		TArray<FName> ParameterNames;
 		TArray<FGuid> Guids;
+		Material->GetAllParameterNames<UMaterialExpressionLandscapeLayerBlend>(ParameterNames, Guids);
 		Material->GetAllParameterNames<UMaterialExpressionLandscapeLayerWeight>(ParameterNames, Guids);
 		Material->GetAllParameterNames<UMaterialExpressionLandscapeLayerSwitch>(ParameterNames, Guids);
 		Material->GetAllParameterNames<UMaterialExpressionLandscapeLayerSample>(ParameterNames, Guids);
-		Material->GetAllParameterNames<UMaterialExpressionLandscapeLayerBlend>(ParameterNames, Guids);
 
 		for (const FName& Name : ParameterNames)
 		{
@@ -1931,13 +1897,13 @@ ULandscapeLayerInfoObject* ALandscapeProxy::CreateLayerInfo(const TCHAR* LayerNa
 	FString PackageName = Path + LayerObjectName.ToString();
 	FString PackageFilename;
 	int32 Suffix = 1;
-	while (FPackageName::DoesPackageExist(PackageName, NULL, &PackageFilename))
+	while (FPackageName::DoesPackageExist(PackageName, nullptr, &PackageFilename))
 	{
 		LayerObjectName = FName(*FString::Printf(TEXT("LayerInfoObject_%s_%d"), LayerName, Suffix));
 		PackageName = Path + LayerObjectName.ToString();
 		Suffix++;
 	}
-	UPackage* Package = CreatePackage(NULL, *PackageName);
+	UPackage* Package = CreatePackage(nullptr, *PackageName);
 	ULandscapeLayerInfoObject* LayerInfo = NewObject<ULandscapeLayerInfoObject>(Package, LayerObjectName, RF_Public | RF_Standalone | RF_Transactional);
 	LayerInfo->LayerName = LayerName;
 
@@ -2901,7 +2867,7 @@ void ULandscapeInfo::ExportHeightmap(const FString& Filename)
 		IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>("ImageWrapper");
 		IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
 
-		const TArray<uint8>* RawData = NULL;
+		const TArray<uint8>* RawData = nullptr;
 		if (ImageWrapper->SetRaw(HeightData.GetData(), HeightData.Num(), (MaxX - MinX + 1), (MaxY - MinY + 1), ERGBFormat::Gray, 16))
 		{
 			HeightData = ImageWrapper->GetCompressed();
@@ -2940,7 +2906,7 @@ void ULandscapeInfo::ExportLayer(ULandscapeLayerInfoObject* LayerInfo, const FSt
 		IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>("ImageWrapper");
 		IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
 
-		const TArray<uint8>* RawData = NULL;
+		const TArray<uint8>* RawData = nullptr;
 		if (ImageWrapper->SetRaw(WeightData.GetData(), WeightData.Num(), (MaxX - MinX + 1), (MaxY - MinY + 1), ERGBFormat::Gray, 8))
 		{
 			WeightData = ImageWrapper->GetCompressed();
@@ -2971,7 +2937,7 @@ void ULandscapeInfo::DeleteLayer(ULandscapeLayerInfoObject* LayerInfo)
 	}
 
 	ALandscape* Landscape = LandscapeActor.Get();
-	if (Landscape != NULL)
+	if (Landscape != nullptr)
 	{
 		Landscape->Modify();
 		Landscape->EditorLayerSettings.Remove(LayerInfo);
@@ -3009,11 +2975,11 @@ void ULandscapeInfo::ReplaceLayer(ULandscapeLayerInfoObject* FromLayerInfo, ULan
 		}
 
 		ALandscape* Landscape = LandscapeActor.Get();
-		if (Landscape != NULL)
+		if (Landscape != nullptr)
 		{
 			Landscape->Modify();
 			FLandscapeEditorLayerSettings* ToEditorLayerSettings = Landscape->EditorLayerSettings.FindByKey(ToLayerInfo);
-			if (ToEditorLayerSettings != NULL)
+			if (ToEditorLayerSettings != nullptr)
 			{
 				// If the new layer already exists, simple remove the old layer
 				Landscape->EditorLayerSettings.Remove(FromLayerInfo);
@@ -3021,7 +2987,7 @@ void ULandscapeInfo::ReplaceLayer(ULandscapeLayerInfoObject* FromLayerInfo, ULan
 			else
 			{
 				FLandscapeEditorLayerSettings* FromEditorLayerSettings = Landscape->EditorLayerSettings.FindByKey(FromLayerInfo);
-				if (FromEditorLayerSettings != NULL)
+				if (FromEditorLayerSettings != nullptr)
 				{
 					// If only the old layer exists (most common case), change it to point to the new layer info
 					FromEditorLayerSettings->LayerInfoObj = ToLayerInfo;
@@ -3039,7 +3005,7 @@ void ULandscapeInfo::ReplaceLayer(ULandscapeLayerInfoObject* FromLayerInfo, ULan
 			ALandscapeProxy* Proxy = *It;
 			Proxy->Modify();
 			FLandscapeEditorLayerSettings* ToEditorLayerSettings = Proxy->EditorLayerSettings.FindByKey(ToLayerInfo);
-			if (ToEditorLayerSettings != NULL)
+			if (ToEditorLayerSettings != nullptr)
 			{
 				// If the new layer already exists, simple remove the old layer
 				Proxy->EditorLayerSettings.Remove(FromLayerInfo);
@@ -3047,7 +3013,7 @@ void ULandscapeInfo::ReplaceLayer(ULandscapeLayerInfoObject* FromLayerInfo, ULan
 			else
 			{
 				FLandscapeEditorLayerSettings* FromEditorLayerSettings = Proxy->EditorLayerSettings.FindByKey(FromLayerInfo);
-				if (FromEditorLayerSettings != NULL)
+				if (FromEditorLayerSettings != nullptr)
 				{
 					// If only the old layer exists (most common case), change it to point to the new layer info
 					FromEditorLayerSettings->LayerInfoObj = ToLayerInfo;
@@ -3145,18 +3111,6 @@ void ALandscapeProxy::PostEditMove(bool bFinished)
 void ALandscapeProxy::PostEditImport()
 {
 	Super::PostEditImport();
-	if (!bIsProxy && GetWorld()) // For Landscape
-	{
-		for (TActorIterator<ALandscape> It(GetWorld()); It; ++It)
-		{
-			ALandscape* Landscape = *It;
-			if (Landscape != this && !Landscape->HasAnyFlags(RF_BeginDestroyed) && Landscape->LandscapeGuid == LandscapeGuid)
-			{
-				// Copy/Paste case, need to generate new GUID
-				LandscapeGuid = FGuid::NewGuid();
-			}
-		}
-	}
 
 	for (int32 ComponentIndex = 0; ComponentIndex < LandscapeComponents.Num(); ++ComponentIndex)
 	{
@@ -3180,6 +3134,24 @@ void ALandscape::PostEditMove(bool bFinished)
 	}
 
 	Super::PostEditMove(bFinished);
+}
+
+void ALandscape::PostEditImport()
+{
+	Super::PostEditImport();
+
+	if (GetWorld())
+	{
+		for (ALandscape* Landscape : TActorRange<ALandscape>(GetWorld()))
+		{
+			if (Landscape != this && !Landscape->HasAnyFlags(RF_BeginDestroyed) && Landscape->LandscapeGuid == LandscapeGuid)
+			{
+				// Copy/Paste case, need to generate new GUID
+				LandscapeGuid = FGuid::NewGuid();
+				break;
+			}
+		}
+	}
 }
 #endif	//WITH_EDITOR
 
@@ -3287,7 +3259,7 @@ void ALandscapeProxy::RemoveXYOffsets()
 			Comp->XYOffsetmapTexture->ClearFlags(RF_Standalone);
 			Comp->Modify();
 			Comp->MarkPackageDirty();
-			Comp->XYOffsetmapTexture = NULL;
+			Comp->XYOffsetmapTexture = nullptr;
 			Comp->MarkRenderStateDirty();
 			bFoundXYOffset = true;
 		}
@@ -3426,106 +3398,10 @@ namespace
 
 void ALandscapeProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	Super::PostEditChangeProperty(PropertyChangedEvent);
 	const FName PropertyName = PropertyChangedEvent.MemberProperty ? PropertyChangedEvent.MemberProperty->GetFName() : NAME_None;
-	if (bIsProxy)
-	{
-		if (PropertyName == FName(TEXT("LandscapeActor")))
-		{
-			if (LandscapeActor && IsValidLandscapeActor(LandscapeActor.Get()))
-			{
-				LandscapeGuid = LandscapeActor->LandscapeGuid;
-				// defer LandscapeInfo setup
-				if (GIsEditor && GetWorld() && !GetWorld()->IsPlayInEditor())
-				{
-					GEngine->DeferredCommands.AddUnique(TEXT("UpdateLandscapeEditorData"));
-				}
-			}
-			else
-			{
-				LandscapeActor = nullptr;
-			}
-		}
-		else if (PropertyName == FName(TEXT("LandscapeMaterial")) || PropertyName == FName(TEXT("LandscapeHoleMaterial")))
-		{
-			{
-				FMaterialUpdateContext MaterialUpdateContext;
-				GetLandscapeInfo()->UpdateLayerInfoMap(/*this*/);
+	const FName SubPropertyName = PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName() : NAME_None;
 
-				// Clear the parents out of combination material instances
-				for (const auto& MICPair : MaterialInstanceConstantMap)
-				{
-					UMaterialInstanceConstant* MaterialInstance = MICPair.Value;
-					MaterialInstance->BasePropertyOverrides.bOverride_BlendMode = false;
-					MaterialInstance->SetParentEditorOnly(nullptr);
-					MaterialUpdateContext.AddMaterialInstance(MaterialInstance);
-				}
-
-				// Remove our references to any material instances
-				MaterialInstanceConstantMap.Empty();
-			}
-
-			for (int32 ComponentIndex = 0; ComponentIndex < LandscapeComponents.Num(); ComponentIndex++)
-			{
-				ULandscapeComponent* Comp = LandscapeComponents[ComponentIndex];
-				if (Comp)
-				{
-					// Update the MIC
-					Comp->UpdateMaterialInstances();
-				}
-			}
-		}
-	}
-
-	if (GIsEditor && PropertyName == FName(TEXT("StreamingDistanceMultiplier")))
-	{
-		// Recalculate in a few seconds.
-		GetWorld()->TriggerStreamingDataRebuild();
-	}
-	else if (GIsEditor && PropertyName == FName(TEXT("DefaultPhysMaterial")))
-	{
-		ChangedPhysMaterial();
-	}
-	else if (GIsEditor &&
-		(PropertyName == GET_MEMBER_NAME_CHECKED(ALandscapeProxy, CollisionMipLevel) ||
-		 PropertyName == GET_MEMBER_NAME_CHECKED(ALandscapeProxy, SimpleCollisionMipLevel) ||
-		 PropertyName == GET_MEMBER_NAME_CHECKED(ALandscapeProxy, CollisionThickness) ||
-		 PropertyName == GET_MEMBER_NAME_CHECKED(ALandscapeProxy, bBakeMaterialPositionOffsetIntoCollision)))
-	{
-		if (bBakeMaterialPositionOffsetIntoCollision)
-		{
-			MarkComponentsRenderStateDirty();
-		}
-		RecreateCollisionComponents();
-	}
-	else if (PropertyName == GET_MEMBER_NAME_CHECKED(ALandscapeProxy, bUseMaterialPositionOffsetInStaticLighting))
-	{
-		InvalidateLightingCache();
-	}
-	else if(PropertyName == FName(TEXT("bCastStaticShadow")) ||
-		PropertyName == FName(TEXT("bCastShadowAsTwoSided")) ||
-		PropertyName == FName(TEXT("bCastFarShadow")))
-	{
-		// Replicate shared properties to all components.
-		for (int32 ComponentIndex = 0; ComponentIndex < LandscapeComponents.Num(); ComponentIndex++)
-		{
-			ULandscapeComponent* Comp = LandscapeComponents[ComponentIndex];
-			if (Comp)
-			{
-				Comp->bCastStaticShadow = bCastStaticShadow;
-				Comp->bCastShadowAsTwoSided = bCastShadowAsTwoSided;
-				Comp->bCastFarShadow = bCastFarShadow;
-			}
-		}
-	}
-}
-
-void ALandscapeProxy::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
-{
-	const FName MemberPropertyName = PropertyChangedEvent.PropertyChain.GetActiveMemberNode()->GetValue()->GetFName();
-	const FName PropertyName = PropertyChangedEvent.PropertyChain.GetActiveNode()->GetValue()->GetFName();
-
-	if (MemberPropertyName == FName(TEXT("RelativeScale3D")))
+	if (PropertyName == FName(TEXT("RelativeScale3D")))
 	{
 		// RelativeScale3D isn't even a property of ALandscapeProxy, it's a property of the root component
 		if (RootComponent)
@@ -3533,7 +3409,7 @@ void ALandscapeProxy::PostEditChangeChainProperty(FPropertyChangedChainEvent& Pr
 			FVector ModifiedScale = RootComponent->RelativeScale3D;
 
 			// Lock X and Y scaling to the same value
-			if (PropertyName == FName("Y"))
+			if (SubPropertyName == FName("Y"))
 			{
 				ModifiedScale.X = FMath::Abs(RootComponent->RelativeScale3D.Y)*FMath::Sign(ModifiedScale.X);
 			}
@@ -3590,7 +3466,101 @@ void ALandscapeProxy::PostEditChangeChainProperty(FPropertyChangedChainEvent& Pr
 	}
 
 	// Must do this *after* correcting the scale or reattaching the landscape components will crash!
-	Super::PostEditChangeChainProperty(PropertyChangedEvent);
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	if (GIsEditor && PropertyName == FName(TEXT("StreamingDistanceMultiplier")))
+	{
+		// Recalculate in a few seconds.
+		GetWorld()->TriggerStreamingDataRebuild();
+	}
+	else if (GIsEditor && PropertyName == FName(TEXT("DefaultPhysMaterial")))
+	{
+		ChangedPhysMaterial();
+	}
+	else if (GIsEditor &&
+		(PropertyName == GET_MEMBER_NAME_CHECKED(ALandscapeProxy, CollisionMipLevel) ||
+		 PropertyName == GET_MEMBER_NAME_CHECKED(ALandscapeProxy, SimpleCollisionMipLevel) ||
+		 PropertyName == GET_MEMBER_NAME_CHECKED(ALandscapeProxy, CollisionThickness) ||
+		 PropertyName == GET_MEMBER_NAME_CHECKED(ALandscapeProxy, bBakeMaterialPositionOffsetIntoCollision)))
+	{
+		if (bBakeMaterialPositionOffsetIntoCollision)
+		{
+			MarkComponentsRenderStateDirty();
+		}
+		RecreateCollisionComponents();
+	}
+	else if (PropertyName == GET_MEMBER_NAME_CHECKED(ALandscapeProxy, bUseMaterialPositionOffsetInStaticLighting))
+	{
+		InvalidateLightingCache();
+	}
+	else if(PropertyName == FName(TEXT("bCastStaticShadow")) ||
+		PropertyName == FName(TEXT("bCastShadowAsTwoSided")) ||
+		PropertyName == FName(TEXT("bCastFarShadow")))
+	{
+		// Replicate shared properties to all components.
+		for (int32 ComponentIndex = 0; ComponentIndex < LandscapeComponents.Num(); ComponentIndex++)
+		{
+			ULandscapeComponent* Comp = LandscapeComponents[ComponentIndex];
+			if (Comp)
+			{
+				Comp->bCastStaticShadow = bCastStaticShadow;
+				Comp->bCastShadowAsTwoSided = bCastShadowAsTwoSided;
+				Comp->bCastFarShadow = bCastFarShadow;
+			}
+		}
+	}
+}
+
+void ALandscapeStreamingProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	const FName PropertyName = PropertyChangedEvent.MemberProperty ? PropertyChangedEvent.MemberProperty->GetFName() : NAME_None;
+	if (PropertyName == FName(TEXT("LandscapeActor")))
+	{
+		if (LandscapeActor && IsValidLandscapeActor(LandscapeActor.Get()))
+		{
+			LandscapeGuid = LandscapeActor->GetLandscapeGuid();
+			// defer LandscapeInfo setup
+			if (GIsEditor && GetWorld() && !GetWorld()->IsPlayInEditor())
+			{
+				GEngine->DeferredCommands.AddUnique(TEXT("UpdateLandscapeEditorData"));
+			}
+		}
+		else
+		{
+			LandscapeActor = nullptr;
+		}
+	}
+	else if (PropertyName == FName(TEXT("LandscapeMaterial")) || PropertyName == FName(TEXT("LandscapeHoleMaterial")))
+	{
+		{
+			FMaterialUpdateContext MaterialUpdateContext;
+			GetLandscapeInfo()->UpdateLayerInfoMap(/*this*/);
+
+			// Clear the parents out of combination material instances
+			for (const auto& MICPair : MaterialInstanceConstantMap)
+			{
+				UMaterialInstanceConstant* MaterialInstance = MICPair.Value;
+				MaterialInstance->BasePropertyOverrides.bOverride_BlendMode = false;
+				MaterialInstance->SetParentEditorOnly(nullptr);
+				MaterialUpdateContext.AddMaterialInstance(MaterialInstance);
+			}
+
+			// Remove our references to any material instances
+			MaterialInstanceConstantMap.Empty();
+		}
+
+		for (int32 ComponentIndex = 0; ComponentIndex < LandscapeComponents.Num(); ComponentIndex++)
+		{
+			ULandscapeComponent* Comp = LandscapeComponents[ComponentIndex];
+			if (Comp)
+			{
+				// Update the MIC
+				Comp->UpdateMaterialInstances();
+			}
+		}
+	}
 }
 
 void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
@@ -3688,10 +3658,10 @@ void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 		if (bPropagateToProxies)
 		{
 			// Propagate Event to Proxies...
-			for (TSet<ALandscapeProxy*>::TIterator It(Info->Proxies); It; ++It)
+			for (ALandscapeProxy* Proxy : Info->Proxies)
 			{
-				(*It)->GetSharedProperties(this);
-				(*It)->PostEditChangeProperty(PropertyChangedEvent);
+				Proxy->GetSharedProperties(this);
+				Proxy->PostEditChangeProperty(PropertyChangedEvent);
 			}
 		}
 
@@ -3705,9 +3675,8 @@ void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 		// We cannot iterate the XYtoComponentMap directly because reregistering components modifies the array.
 		TArray<ULandscapeComponent*> AllComponents;
 		Info->XYtoComponentMap.GenerateValueArray(AllComponents);
-		for (auto It = AllComponents.CreateIterator(); It; ++It)
+		for (ULandscapeComponent* Comp : AllComponents)
 		{
-			ULandscapeComponent* Comp = *It;
 			if (Comp)
 			{
 				if (bNeedsRecalcBoundingBox)
@@ -3740,9 +3709,9 @@ void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 		// Need to update Gizmo scene proxy
 		if (bNeedsRecalcBoundingBox && GetWorld())
 		{
-			for (TActorIterator<ALandscapeGizmoActiveActor> It(GetWorld()); It; ++It)
+			for (ALandscapeGizmoActiveActor* Gizmo : TActorRange<ALandscapeGizmoActiveActor>(GetWorld()))
 			{
-				It->ReregisterAllComponents();
+				Gizmo->ReregisterAllComponents();
 			}
 		}
 
@@ -3754,9 +3723,9 @@ void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 			}
 
 			// Update all the proxies...
-			for (TSet<ALandscapeProxy*>::TIterator It(Info->Proxies); It; ++It)
+			for (ALandscapeProxy* Proxy : Info->Proxies)
 			{
-				(*It)->MarkComponentsRenderStateDirty();
+				Proxy->MarkComponentsRenderStateDirty();
 			}
 		}
 	}
@@ -3847,7 +3816,7 @@ void ULandscapeComponent::PreEditChange(UProperty* PropertyThatWillChange)
 			FIntPoint ComponentKey = GetSectionBase() / ComponentSizeQuads;
 			auto RegisteredComponent = Info->XYtoComponentMap.FindRef(ComponentKey);
 
-			if (RegisteredComponent == NULL)
+			if (RegisteredComponent == nullptr)
 			{
 				Info->XYtoComponentMap.Add(ComponentKey, this);
 			}
@@ -3918,7 +3887,7 @@ void ULandscapeInfo::UpdateSelectedComponents(TSet<ULandscapeComponent*>& NewCom
 		for (TSet<ULandscapeComponent*>::TIterator It(NewComponents); It; ++It)
 		{
 			ULandscapeComponent* Comp = *It;
-			if (Comp->EditToolRenderData != NULL && (Comp->EditToolRenderData->SelectedType & InSelectType) == 0)
+			if (Comp->EditToolRenderData != nullptr && (Comp->EditToolRenderData->SelectedType & InSelectType) == 0)
 			{
 				Comp->Modify();
 				int32 SelectedType = Comp->EditToolRenderData->SelectedType;
@@ -3932,7 +3901,7 @@ void ULandscapeInfo::UpdateSelectedComponents(TSet<ULandscapeComponent*>& NewCom
 		for (TSet<ULandscapeComponent*>::TIterator It(RemovedComponents); It; ++It)
 		{
 			ULandscapeComponent* Comp = *It;
-			if (Comp->EditToolRenderData != NULL)
+			if (Comp->EditToolRenderData != nullptr)
 			{
 				Comp->Modify();
 				int32 SelectedType = Comp->EditToolRenderData->SelectedType;
@@ -3950,7 +3919,7 @@ void ULandscapeInfo::UpdateSelectedComponents(TSet<ULandscapeComponent*>& NewCom
 			for (TSet<ULandscapeComponent*>::TIterator It(NewComponents); It; ++It)
 			{
 				ULandscapeComponent* Comp = *It;
-				if (Comp->EditToolRenderData != NULL && (Comp->EditToolRenderData->SelectedType & InSelectType) == 0)
+				if (Comp->EditToolRenderData != nullptr && (Comp->EditToolRenderData->SelectedType & InSelectType) == 0)
 				{
 					Comp->Modify();
 					int32 SelectedType = Comp->EditToolRenderData->SelectedType;
@@ -3967,7 +3936,7 @@ void ULandscapeInfo::UpdateSelectedComponents(TSet<ULandscapeComponent*>& NewCom
 			for (TSet<ULandscapeComponent*>::TIterator It(SelectedRegionComponents); It; ++It)
 			{
 				ULandscapeComponent* Comp = *It;
-				if (Comp->EditToolRenderData != NULL)
+				if (Comp->EditToolRenderData != nullptr)
 				{
 					Comp->Modify();
 					int32 SelectedType = Comp->EditToolRenderData->SelectedType;
@@ -4004,7 +3973,7 @@ void ULandscapeInfo::ClearSelectedRegion(bool bIsComponentwise /*= true*/)
 
 struct FLandscapeDataInterface* ULandscapeInfo::GetDataInterface()
 {
-	if (DataInterface == NULL)
+	if (DataInterface == nullptr)
 	{
 		DataInterface = new FLandscapeDataInterface();
 	}
@@ -4064,7 +4033,7 @@ void ULandscapeComponent::ReallocateWeightmaps(FLandscapeEditDataInterface* Data
 
 			for (int32 ChanIdx = 0; ChanIdx < 4; ChanIdx++)
 			{
-				if (Usage->ChannelUsage[ChanIdx] == NULL)
+				if (Usage->ChannelUsage[ChanIdx] == nullptr)
 				{
 					for (int32 LayerIdx = 0; LayerIdx < WeightmapLayerAllocations.Num(); LayerIdx++)
 					{
@@ -4105,8 +4074,8 @@ void ULandscapeComponent::ReallocateWeightmaps(FLandscapeEditDataInterface* Data
 	{
 		// UE_LOG(LogLandscape, Log, TEXT("Still need %d channels"), TotalNeededChannels);
 
-		UTexture2D* CurrentWeightmapTexture = NULL;
-		FLandscapeWeightmapUsage* CurrentWeightmapUsage = NULL;
+		UTexture2D* CurrentWeightmapTexture = nullptr;
+		FLandscapeWeightmapUsage* CurrentWeightmapUsage = nullptr;
 
 		if (TotalNeededChannels < 4)
 		{
@@ -4122,7 +4091,7 @@ void ULandscapeComponent::ReallocateWeightmaps(FLandscapeEditDataInterface* Data
 					// See if this candidate is closer than any others we've found
 					for (int32 ChanIdx = 0; ChanIdx < 4; ChanIdx++)
 					{
-						if (TryWeightmapUsage->ChannelUsage[ChanIdx] != NULL)
+						if (TryWeightmapUsage->ChannelUsage[ChanIdx] != nullptr)
 						{
 							int32 TryDistanceSquared = (TryWeightmapUsage->ChannelUsage[ChanIdx]->GetSectionBase() - GetSectionBase()).SizeSquared();
 							if (TryDistanceSquared < BestDistanceSquared)
@@ -4139,7 +4108,7 @@ void ULandscapeComponent::ReallocateWeightmaps(FLandscapeEditDataInterface* Data
 
 		bool NeedsUpdateResource = false;
 		// No suitable weightmap texture
-		if (CurrentWeightmapTexture == NULL)
+		if (CurrentWeightmapTexture == nullptr)
 		{
 			MarkPackageDirty();
 
@@ -4164,7 +4133,7 @@ void ULandscapeComponent::ReallocateWeightmaps(FLandscapeEditDataInterface* Data
 		{
 			// UE_LOG(LogLandscape, Log, TEXT("Finding allocation for layer %d"), CurrentLayer);
 
-			if (CurrentWeightmapUsage->ChannelUsage[ChanIdx] == NULL)
+			if (CurrentWeightmapUsage->ChannelUsage[ChanIdx] == nullptr)
 			{
 				// Use this allocation
 				FWeightmapLayerAllocationInfo& AllocInfo = WeightmapLayerAllocations[CurrentLayer];
@@ -4183,7 +4152,7 @@ void ULandscapeComponent::ReallocateWeightmaps(FLandscapeEditDataInterface* Data
 					UTexture2D* OldWeightmapTexture = WeightmapTextures[AllocInfo.WeightmapTextureIndex];
 
 					// Copy the data
-					if (ensure(DataInterface != NULL)) // it's not safe to skip the copy
+					if (ensure(DataInterface != nullptr)) // it's not safe to skip the copy
 					{
 						DataInterface->CopyTextureChannel(CurrentWeightmapTexture, ChanIdx, OldWeightmapTexture, AllocInfo.WeightmapTextureChannel);
 						DataInterface->ZeroTextureChannel(OldWeightmapTexture, AllocInfo.WeightmapTextureChannel);
@@ -4192,7 +4161,7 @@ void ULandscapeComponent::ReallocateWeightmaps(FLandscapeEditDataInterface* Data
 
 					// Remove the old allocation
 					FLandscapeWeightmapUsage* OldWeightmapUsage = Proxy->WeightmapUsageMap.Find(OldWeightmapTexture);
-					OldWeightmapUsage->ChannelUsage[AllocInfo.WeightmapTextureChannel] = NULL;
+					OldWeightmapUsage->ChannelUsage[AllocInfo.WeightmapTextureChannel] = nullptr;
 				}
 
 				// Assign the new allocation
@@ -4411,7 +4380,7 @@ void ULandscapeComponent::InitWeightmapData(TArray<ULandscapeLayerInfoObject*>& 
 		new (WeightmapLayerAllocations)FWeightmapLayerAllocationInfo(LayerInfos[Idx]);
 	}
 
-	ReallocateWeightmaps(NULL);
+	ReallocateWeightmaps(nullptr);
 
 	check(WeightmapLayerAllocations.Num() > 0 && WeightmapTextures.Num() > 0);
 
@@ -4466,7 +4435,7 @@ void ULandscapeComponent::InitWeightmapData(TArray<ULandscapeLayerInfoObject*>& 
 
 	FlushRenderingCommands();
 
-	MaterialInstance = NULL;
+	MaterialInstance = nullptr;
 
 }
 
@@ -4619,7 +4588,7 @@ void ULandscapeComponent::ImportCustomProperties(const TCHAR* SourceText, FFeedb
 		{
 			if (FParse::Value(SourceText, TEXT("LayerInfo="), LayerInfoPath))
 			{
-				LayerInfos.Add(LoadObject<ULandscapeLayerInfoObject>(NULL, *LayerInfoPath));
+				LayerInfos.Add(LoadObject<ULandscapeLayerInfoObject>(nullptr, *LayerInfoPath));
 
 				while (*SourceText && (!FChar::IsWhitespace(*SourceText)))
 				{
@@ -4658,9 +4627,9 @@ void ULandscapeComponent::ImportCustomProperties(const TCHAR* SourceText, FFeedb
 	}
 }
 
-bool ALandscapeProxy::IsValidLandscapeActor(ALandscape* Landscape)
+bool ALandscapeStreamingProxy::IsValidLandscapeActor(ALandscape* Landscape)
 {
-	if (bIsProxy && Landscape)
+	if (Landscape)
 	{
 		if (!Landscape->HasAnyFlags(RF_BeginDestroyed))
 		{
@@ -4669,7 +4638,7 @@ bool ALandscapeProxy::IsValidLandscapeActor(ALandscape* Landscape)
 				return true; // always valid for newly created Proxy
 			}
 			if (((LandscapeActor && LandscapeActor == Landscape)
-				|| (LandscapeActor.IsNull() && LandscapeGuid.IsValid() && LandscapeGuid == Landscape->LandscapeGuid))
+				|| (LandscapeActor.IsNull() && LandscapeGuid.IsValid() && LandscapeGuid == Landscape->GetLandscapeGuid()))
 				&& ComponentSizeQuads == Landscape->ComponentSizeQuads
 				&& NumSubsections == Landscape->NumSubsections
 				&& SubsectionSizeQuads == Landscape->SubsectionSizeQuads)
@@ -4920,25 +4889,25 @@ void ULandscapeComponent::GeneratePlatformVertexData()
 						FLandscapeVertexRef V4(x0, y1, SubX, SubY);
 
 						uint64 Key1 = V1.MakeKey();
-						if (VertexMap.Find(Key1) == NULL)
+						if (VertexMap.Find(Key1) == nullptr)
 						{
 							VertexMap.Add(Key1, VertexOrder.Num());
 							VertexOrder.Add(V1);
 						}
 						uint64 Key2 = V2.MakeKey();
-						if (VertexMap.Find(Key2) == NULL)
+						if (VertexMap.Find(Key2) == nullptr)
 						{
 							VertexMap.Add(Key2, VertexOrder.Num());
 							VertexOrder.Add(V2);
 						}
 						uint64 Key3 = V3.MakeKey();
-						if (VertexMap.Find(Key3) == NULL)
+						if (VertexMap.Find(Key3) == nullptr)
 						{
 							VertexMap.Add(Key3, VertexOrder.Num());
 							VertexOrder.Add(V3);
 						}
 						uint64 Key4 = V4.MakeKey();
-						if (VertexMap.Find(Key4) == NULL)
+						if (VertexMap.Find(Key4) == nullptr)
 						{
 							VertexMap.Add(Key4, VertexOrder.Num());
 							VertexOrder.Add(V4);

@@ -2,34 +2,22 @@
 
 #pragma once
 
-#include "LandscapeInfo.h"
-
-#include "Engine/EngineTypes.h"
-#include "Engine/Texture.h"
-#include "Engine/TextureDefines.h"
-
-#include "GameFramework/Actor.h"
 #include "PhysicsEngine/BodyInstance.h"
-#include "Materials/Material.h"
-#include "Materials/MaterialInstanceConstant.h"
-#include "Components/HierarchicalInstancedStaticMeshComponent.h"
-#include "LandscapeComponent.h"
-#include "LandscapeLayerInfoObject.h"
-#include "LandscapeGrassType.h"
-#include "Tickable.h"
 #include "AI/Navigation/NavigationTypes.h"
-
+#include "Engine/Texture.h"
 #include "LandscapeProxy.generated.h"
 
-class ULandscapeMaterialInstanceConstant;
-class ULandscapeSplinesComponent;
-class ULandscapeHeightfieldCollisionComponent;
-class UMaterialInterface;
-class UTexture2D;
-class ALandscape;
-class ALandscapeProxy;
+class ULandscapeInfo;
 class ULandscapeComponent;
-class USplineComponent;
+class ULandscapeSplinesComponent;
+class ULandscapeGrassType;
+class UHierarchicalInstancedStaticMeshComponent;
+class ULandscapeHeightfieldCollisionComponent;
+class UMaterialInstanceConstant;
+class ULandscapeMaterialInstanceConstant;
+class ALandscapeProxy;
+class ALandscape;
+class ALandscapeStreamingProxy;
 struct FLandscapeInfoLayerSettings;
 struct FAsyncGrassBuilder;
 
@@ -44,18 +32,18 @@ struct FLandscapeWeightmapUsage
 
 	FLandscapeWeightmapUsage()
 	{
-		ChannelUsage[0] = NULL;
-		ChannelUsage[1] = NULL;
-		ChannelUsage[2] = NULL;
-		ChannelUsage[3] = NULL;
+		ChannelUsage[0] = nullptr;
+		ChannelUsage[1] = nullptr;
+		ChannelUsage[2] = nullptr;
+		ChannelUsage[3] = nullptr;
 	}
 	friend FArchive& operator<<( FArchive& Ar, FLandscapeWeightmapUsage& U );
 	int32 FreeChannelCount() const
 	{
-		return	((ChannelUsage[0] == NULL) ? 1 : 0) + 
-				((ChannelUsage[1] == NULL) ? 1 : 0) + 
-				((ChannelUsage[2] == NULL) ? 1 : 0) + 
-				((ChannelUsage[3] == NULL) ? 1 : 0);
+		return	((ChannelUsage[0] == nullptr) ? 1 : 0) +
+				((ChannelUsage[1] == nullptr) ? 1 : 0) +
+				((ChannelUsage[2] == nullptr) ? 1 : 0) +
+				((ChannelUsage[3] == nullptr) ? 1 : 0);
 	}
 };
 
@@ -72,7 +60,7 @@ struct FLandscapeEditorLayerSettings
 	FString ReimportLayerFilePath;
 
 	FLandscapeEditorLayerSettings()
-		: LayerInfoObj(NULL)
+		: LayerInfoObj(nullptr)
 		, ReimportLayerFilePath()
 	{
 	}
@@ -100,7 +88,7 @@ struct FLandscapeLayerStruct
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(transient)
-	UMaterialInstanceConstant* ThumbnailMIC;
+	ULandscapeMaterialInstanceConstant* ThumbnailMIC;
 
 	UPROPERTY()
 	ALandscapeProxy* Owner;
@@ -116,10 +104,10 @@ struct FLandscapeLayerStruct
 #endif // WITH_EDITORONLY_DATA
 
 	FLandscapeLayerStruct()
-		: LayerInfoObj(NULL)
+		: LayerInfoObj(nullptr)
 #if WITH_EDITORONLY_DATA
-		, ThumbnailMIC(NULL)
-		, Owner(NULL)
+		, ThumbnailMIC(nullptr)
+		, Owner(nullptr)
 		, DebugColorChannel(0)
 		, bSelected(false)
 		, SourceFilePath()
@@ -155,21 +143,17 @@ struct FLandscapeImportLayerInfo
 	UPROPERTY(Category="Import", EditAnywhere)
 	ULandscapeLayerInfoObject* LayerInfo;
 
-	UPROPERTY(Category="Import", VisibleAnywhere)
-	UMaterialInstanceConstant* ThumbnailMIC; // Optional
-
 	UPROPERTY(Category="Import", EditAnywhere)
 	FString SourceFilePath; // Optional
 	
 	// Raw weightmap data
-	TArray<uint8> LayerData;		
+	TArray<uint8> LayerData;
 #endif
 
 #if WITH_EDITOR
 	FLandscapeImportLayerInfo(FName InLayerName = NAME_None)
 	:	LayerName(InLayerName)
-	,	LayerInfo(NULL)
-	,	ThumbnailMIC(NULL)
+	,	LayerInfo(nullptr)
 	,	SourceFilePath("")
 	{
 	}
@@ -305,12 +289,7 @@ public:
 	FCachedLandscapeFoliage::FGrassCompKey Key;
 	TWeakObjectPtr<UHierarchicalInstancedStaticMeshComponent> Foliage;
 
-	FAsyncGrassTask(FAsyncGrassBuilder* InBuilder, const FCachedLandscapeFoliage::FGrassCompKey& InKey, UHierarchicalInstancedStaticMeshComponent* InFoliage)
-		: Builder(InBuilder)
-		, Key(InKey)
-		, Foliage(InFoliage)
-	{
-	}
+	FAsyncGrassTask(FAsyncGrassBuilder* InBuilder, const FCachedLandscapeFoliage::FGrassCompKey& InKey, UHierarchicalInstancedStaticMeshComponent* InFoliage);
 	void DoWork();
 
 	FORCEINLINE TStatId GetStatId() const
@@ -321,10 +300,13 @@ public:
 	~FAsyncGrassTask();
 };
 
-UCLASS(NotPlaceable, NotBlueprintable, hidecategories=(Display, Attachment, Physics, Debug, Lighting, LOD), showcategories=(Lighting, Rendering, "Utilities|Transformation"), MinimalAPI)
+UCLASS(Abstract, MinimalAPI, hidecategories=(Display, Attachment, Physics, Debug, Lighting, LOD), showcategories=(Lighting, Rendering, "Utilities|Transformation"))
 class ALandscapeProxy : public AActor
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+
+public:
+	ALandscapeProxy(const FObjectInitializer& ObjectInitializer);
 
 	virtual ~ALandscapeProxy();
 
@@ -428,9 +410,6 @@ public:
 	UPROPERTY(EditAnywhere, Category=Lighting)
 	float StaticLightingResolution;
 
-	UPROPERTY(EditAnywhere, Category=LandscapeProxy)
-	TLazyObjectPtr<ALandscape> LandscapeActor;
-
 	UPROPERTY(EditAnywhere, Category=Lighting, meta=(DisplayName = "Static Shadow"))
 	uint32 bCastStaticShadow:1;
 
@@ -447,9 +426,6 @@ public:
 		Does not work correctly with an XY offset map (mesh collision) */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Lighting)
 	uint32 bUseMaterialPositionOffsetInStaticLighting:1;
-
-	UPROPERTY()
-	uint32 bIsProxy:1;
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(transient)
@@ -575,7 +551,7 @@ public:
 
 	FGuid GetLandscapeGuid() const { return LandscapeGuid; }
 	void SetLandscapeGuid(const FGuid& Guid) { LandscapeGuid = Guid; }
-	virtual ALandscape* GetLandscapeActor();
+	virtual ALandscape* GetLandscapeActor() PURE_VIRTUAL(GetLandscapeActor, return nullptr;)
 
 	/* Per-frame call to update dynamic grass placement and render grassmaps */
 	void TickGrass();
@@ -619,7 +595,6 @@ public:
 
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
 	virtual void PreEditUndo() override;
 	virtual void PostEditUndo() override;
 	virtual void PostEditImport() override;
@@ -643,9 +618,6 @@ public:
 
 	// Changed Physical Material
 	LANDSCAPE_API void ChangedPhysMaterial();
-
-	// Check input Landscape actor is match for this LandscapeProxy (by GUID)
-	LANDSCAPE_API bool IsValidLandscapeActor(ALandscape* Landscape);
 
 	// Copy properties from parent Landscape actor
 	LANDSCAPE_API void GetSharedProperties(ALandscapeProxy* Landscape);
@@ -709,4 +681,3 @@ public:
 	LANDSCAPE_API void RemoveOverlappingComponent(ULandscapeComponent* Component);
 #endif
 };
-

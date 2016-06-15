@@ -134,7 +134,7 @@ public:
 				for (ULandscapeComponent* Component : SelectedComponents)
 				{
 					Component->LayerWhitelist.RemoveSingle(Target.LayerInfo.Get());
-					Component->DeleteLayer(Target.LayerInfo.Get(), &LandscapeEdit);
+					Component->DeleteLayer(Target.LayerInfo.Get(), LandscapeEdit);
 				}
 			}
 

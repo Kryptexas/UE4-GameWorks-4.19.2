@@ -2195,6 +2195,12 @@ void UHierarchicalInstancedStaticMeshComponent::BuildTree()
 			bDiscardAsyncBuildResults = true;
 		}
 	}
+	else
+	{
+		InstanceReorderTable.Empty();
+		SortedInstances.Empty();
+		RemovedInstances.Empty();
+	}
 
 	ReleasePerInstanceRenderData();
 }
@@ -2387,6 +2393,12 @@ void UHierarchicalInstancedStaticMeshComponent::BuildTreeAsync()
 			)
 			);
 	}
+	else
+	{
+		InstanceReorderTable.Empty();
+		SortedInstances.Empty();
+		RemovedInstances.Empty();
+	}
 }
 
 FPrimitiveSceneProxy* UHierarchicalInstancedStaticMeshComponent::CreateSceneProxy()
@@ -2514,19 +2526,30 @@ void UHierarchicalInstancedStaticMeshComponent::PostLoad()
 			}
 
 			// prune tree
-			StaticMesh->ConditionalPostLoad();
+			if (StaticMesh)
+			{
+				StaticMesh->ConditionalPostLoad();
+			}
 			BuildTree();
 		}
 	}
 
-	// For some reason we don't have a tree, or it is out of date. Build one now!
-	if (StaticMesh && PerInstanceSMData.Num() > 0 && (!ClusterTreePtr.IsValid() || ClusterTreePtr->Num() == 0 || (NumBuiltInstances != PerInstanceSMData.Num()) || UnbuiltInstanceBoundsList.Num() > 0 || GetLinkerUE4Version() < VER_UE4_REBUILD_HIERARCHICAL_INSTANCE_TREES))
+#if WITH_EDITOR
+	// If any of the data is out of sync, build the tree now!
+	if (InstanceReorderTable.Num() != PerInstanceSMData.Num() ||
+		NumBuiltInstances != PerInstanceSMData.Num() ||
+		UnbuiltInstanceBoundsList.Num() > 0 ||
+		GetLinkerUE4Version() < VER_UE4_REBUILD_HIERARCHICAL_INSTANCE_TREES)
 	{
-		UE_LOG(LogStaticMesh, Warning, TEXT("Rebuilding foliage, please resave map %s."), *GetFullName());
+		UE_LOG(LogStaticMesh, Warning, TEXT("Rebuilding hierarchical instanced mesh component, please resave map %s."), *GetFullName());
 		check(!IsAsyncBuilding());
-		StaticMesh->ConditionalPostLoad();
+		if (StaticMesh)
+		{
+			StaticMesh->ConditionalPostLoad();
+		}
 		BuildTree();
 	}
+#endif
 
 	if (CVarASyncInstaneBufferConversion.GetValueOnGameThread() > 0)
 	{

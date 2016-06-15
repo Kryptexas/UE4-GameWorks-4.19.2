@@ -4,6 +4,7 @@
 
 #include "RawMesh.h"
 #include "PhysicsEngine/AggregateGeom.h"
+#include "Engine/StaticMesh.h"
 
 /** Structure holding intermediate mesh merging data that is used throughout the mesh merging and proxy creation processes */
 struct FMeshMergeData

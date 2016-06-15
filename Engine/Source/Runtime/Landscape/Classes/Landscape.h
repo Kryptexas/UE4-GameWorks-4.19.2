@@ -6,10 +6,11 @@
 #include "CoreUObject.h"
 #include "Casts.h"
 #include "LazyObjectPtr.h"
+#include "Engine/EngineBaseTypes.h"
+#include "Engine/World.h"
 
 #include "LandscapeProxy.h"
 #include "LandscapeInfoMap.h"
-#include "Engine/World.h"
 
 #include "Landscape.generated.h"
 
@@ -26,10 +27,13 @@ enum ELandscapeSetupErrors
 	LSE_MAX,
 };
 
-UCLASS(Placeable, hidecategories = LandscapeProxy, showcategories = (Display, Movement, Collision, Lighting, LOD, Input), MinimalAPI)
+UCLASS(MinimalAPI, showcategories=(Display, Movement, Collision, Lighting, LOD, Input))
 class ALandscape : public ALandscapeProxy
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+
+public:
+	ALandscape(const FObjectInitializer& ObjectInitializer);
 
 	// Make a key for XYtoComponentMap
 	static FIntPoint MakeKey( int32 X, int32 Y ) { return FIntPoint(X, Y); }
@@ -44,8 +48,6 @@ class ALandscape : public ALandscapeProxy
 	//~ Begin ALandscapeProxy Interface
 	LANDSCAPE_API virtual ALandscape* GetLandscapeActor() override;
 #if WITH_EDITOR
-	virtual UMaterialInterface* GetLandscapeMaterial() const override;
-	virtual UMaterialInterface* GetLandscapeHoleMaterial() const override;
 	//~ End ALandscapeProxy Interface
 
 	LANDSCAPE_API bool HasAllComponent(); // determine all component is in this actor
@@ -66,6 +68,7 @@ class ALandscape : public ALandscapeProxy
 	virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostEditMove(bool bFinished) override;
+	virtual void PostEditImport() override;
 #endif
 	virtual void PostLoad() override;
 	//~ End UObject Interface

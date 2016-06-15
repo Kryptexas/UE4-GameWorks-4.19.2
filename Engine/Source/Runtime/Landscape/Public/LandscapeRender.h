@@ -12,6 +12,7 @@ LandscapeRender.h: New terrain rendering
 #include "LandscapeProxy.h"
 #include "LandscapeMeshProxyComponent.h"
 
+#include "Materials/MaterialInterface.h"
 #include "PrimitiveSceneProxy.h"
 #include "StaticMeshResources.h"
 
@@ -67,12 +68,12 @@ namespace ELandscapeEditRenderMode
 LANDSCAPE_API extern bool GLandscapeEditModeActive;
 LANDSCAPE_API extern int32 GLandscapeEditRenderMode;
 LANDSCAPE_API extern int32 GLandscapePreviewMeshRenderMode;
-LANDSCAPE_API extern UMaterial* GLayerDebugColorMaterial;
-LANDSCAPE_API extern UMaterialInstanceConstant* GSelectionColorMaterial;
-LANDSCAPE_API extern UMaterialInstanceConstant* GSelectionRegionMaterial;
-LANDSCAPE_API extern UMaterialInstanceConstant* GMaskRegionMaterial;
+LANDSCAPE_API extern UMaterialInterface* GLayerDebugColorMaterial;
+LANDSCAPE_API extern UMaterialInterface* GSelectionColorMaterial;
+LANDSCAPE_API extern UMaterialInterface* GSelectionRegionMaterial;
+LANDSCAPE_API extern UMaterialInterface* GMaskRegionMaterial;
 LANDSCAPE_API extern UTexture2D* GLandscapeBlackTexture;
-LANDSCAPE_API extern UMaterial* GLandscapeLayerUsageMaterial;
+LANDSCAPE_API extern UMaterialInterface* GLandscapeLayerUsageMaterial;
 #endif
 
 

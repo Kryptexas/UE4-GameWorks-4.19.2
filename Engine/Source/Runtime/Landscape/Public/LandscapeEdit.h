@@ -119,6 +119,8 @@ struct LANDSCAPE_API FLandscapeEditDataInterface
 	void SetAlphaData(const TSet<ULandscapeLayerInfoObject*>& DirtyLayerInfos, const int32 X1, const int32 Y1, const int32 X2, const int32 Y2, const uint8* Data, int32 Stride, ELandscapeLayerPaintingRestriction PaintingRestriction = ELandscapeLayerPaintingRestriction::None);
 	// Delete a layer and re-normalize other layers
 	void DeleteLayer(ULandscapeLayerInfoObject* LayerInfo);
+	// Fill a layer and re-normalize other layers
+	void FillLayer(ULandscapeLayerInfoObject* LayerInfo);
 	// Replace/merge a layer
 	void ReplaceLayer(ULandscapeLayerInfoObject* FromLayerInfo, ULandscapeLayerInfoObject* ToLayerInfo);
 

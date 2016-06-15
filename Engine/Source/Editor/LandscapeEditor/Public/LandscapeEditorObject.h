@@ -187,10 +187,14 @@ struct FLandscapeImportLayer : public FLandscapeImportLayerInfo
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(Category="Import", VisibleAnywhere)
+	ULandscapeMaterialInstanceConstant* ThumbnailMIC;
+
+	UPROPERTY(Category="Import", VisibleAnywhere)
 	ELandscapeImportLayerError ImportError;
 
 	FLandscapeImportLayer()
 		: FLandscapeImportLayerInfo()
+		, ThumbnailMIC(nullptr)
 		, ImportError(ELandscapeImportLayerError::None)
 	{
 	}
@@ -473,7 +477,7 @@ class ULandscapeEditorObject : public UObject
 	TArray<uint16> ImportLandscape_Data;
 
 	// Whether the imported alpha maps are to be interpreted as "layered" or "additive" (UE4 uses additive internally)
-	UPROPERTY(Category="New Landscape", EditAnywhere, NonTransactional, EditFixedSize, meta=(DisplayName="Layer Alphamap Type", ShowForTools="NewLandscape"))
+	UPROPERTY(Category="New Landscape", EditAnywhere, NonTransactional, meta=(DisplayName="Layer Alphamap Type", ShowForTools="NewLandscape"))
 	ELandscapeImportAlphamapType ImportLandscape_AlphamapType;
 
 	// The landscape layers that will be created. Only layer names referenced in the material assigned above are shown here. Modify the material to add more layers.

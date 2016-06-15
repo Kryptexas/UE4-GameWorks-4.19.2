@@ -147,6 +147,17 @@ void FLandscapeTool::SetEditRenderType()
 	GLandscapeEditRenderMode = ELandscapeEditRenderMode::SelectRegion | (GLandscapeEditRenderMode & ELandscapeEditRenderMode::BitMaskForMask);
 }
 
+namespace LandscapeTool
+{
+	UMaterialInstance* CreateMaterialInstance(UMaterialInterface* BaseMaterial)
+	{
+		ULandscapeMaterialInstanceConstant* MaterialInstance = NewObject<ULandscapeMaterialInstanceConstant>(GetTransientPackage());
+		MaterialInstance->SetParentEditorOnly(BaseMaterial);
+		MaterialInstance->PostEditChange();
+		return MaterialInstance;
+	}
+}
+
 //
 // FEdModeLandscape
 //
@@ -164,12 +175,12 @@ FEdModeLandscape::FEdModeLandscape()
 	, CachedLandscapeMaterial(nullptr)
 	, bToolActive(false)
 {
-	GLayerDebugColorMaterial = LoadObject<UMaterial>(NULL, TEXT("/Engine/EditorLandscapeResources/LayerVisMaterial.LayerVisMaterial"), NULL, LOAD_None, NULL);
-	GSelectionColorMaterial = LoadObject<UMaterialInstanceConstant>(NULL, TEXT("/Engine/EditorLandscapeResources/SelectBrushMaterial_Selected.SelectBrushMaterial_Selected"), NULL, LOAD_None, NULL);
-	GSelectionRegionMaterial = LoadObject<UMaterialInstanceConstant>(NULL, TEXT("/Engine/EditorLandscapeResources/SelectBrushMaterial_SelectedRegion.SelectBrushMaterial_SelectedRegion"), NULL, LOAD_None, NULL);
-	GMaskRegionMaterial = LoadObject<UMaterialInstanceConstant>(NULL, TEXT("/Engine/EditorLandscapeResources/MaskBrushMaterial_MaskedRegion.MaskBrushMaterial_MaskedRegion"), NULL, LOAD_None, NULL);
-	GLandscapeBlackTexture = LoadObject<UTexture2D>(NULL, TEXT("/Engine/EngineResources/Black.Black"), NULL, LOAD_None, NULL);
-	GLandscapeLayerUsageMaterial = LoadObject<UMaterial>(NULL, TEXT("/Engine/EditorLandscapeResources/LandscapeLayerUsageMaterial.LandscapeLayerUsageMaterial"), NULL, LOAD_None, NULL);
+	GLayerDebugColorMaterial = LandscapeTool::CreateMaterialInstance(LoadObject<UMaterial>(nullptr, TEXT("/Engine/EditorLandscapeResources/LayerVisMaterial.LayerVisMaterial")));
+	GSelectionColorMaterial  = LandscapeTool::CreateMaterialInstance(LoadObject<UMaterialInstanceConstant>(nullptr, TEXT("/Engine/EditorLandscapeResources/SelectBrushMaterial_Selected.SelectBrushMaterial_Selected")));
+	GSelectionRegionMaterial = LandscapeTool::CreateMaterialInstance(LoadObject<UMaterialInstanceConstant>(nullptr, TEXT("/Engine/EditorLandscapeResources/SelectBrushMaterial_SelectedRegion.SelectBrushMaterial_SelectedRegion")));
+	GMaskRegionMaterial      = LandscapeTool::CreateMaterialInstance(LoadObject<UMaterialInstanceConstant>(nullptr, TEXT("/Engine/EditorLandscapeResources/MaskBrushMaterial_MaskedRegion.MaskBrushMaterial_MaskedRegion")));
+	GLandscapeBlackTexture   = LoadObject<UTexture2D>(nullptr, TEXT("/Engine/EngineResources/Black.Black"));
+	GLandscapeLayerUsageMaterial = LandscapeTool::CreateMaterialInstance(LoadObject<UMaterial>(nullptr, TEXT("/Engine/EditorLandscapeResources/LandscapeLayerUsageMaterial.LandscapeLayerUsageMaterial")));
 
 	// Initialize modes
 	InitializeToolModes();
@@ -2238,11 +2249,6 @@ bool FEdModeLandscape::Select(AActor* InActor, bool bInSelected)
 		return false;
 	}
 
-	if (NewLandscapePreviewMode != ENewLandscapePreviewMode::None)
-	{
-		return false;
-	}
-
 	if (InActor->IsA<ALandscapeProxy>() && bInSelected)
 	{
 		ALandscapeProxy* Landscape = CastChecked<ALandscapeProxy>(InActor);
@@ -2251,17 +2257,24 @@ bool FEdModeLandscape::Select(AActor* InActor, bool bInSelected)
 		{
 			CurrentToolTarget.LandscapeInfo = Landscape->GetLandscapeInfo();
 			UpdateTargetList();
+
+			// If we were in "New Landscape" mode and we select a landscape then switch to editing mode
+			if (NewLandscapePreviewMode != ENewLandscapePreviewMode::None)
+			{
+				SetCurrentTool("Sculpt");
+			}
 		}
 	}
 
 	if (IsSelectionAllowed(InActor, bInSelected))
 	{
+		// false means "we haven't handled the selection", which allows the editor to perform the selection
+		// so false means "allow"
 		return false;
 	}
-	else if (!bInSelected)
-	{
-		return false;
-	}
+
+	// true means "we have handled the selection", which effectively blocks the selection from happening
+	// so true means "block"
 	return true;
 }
 
@@ -2273,15 +2286,16 @@ bool FEdModeLandscape::IsSelectionAllowed(AActor* InActor, bool bInSelection) co
 		return false;
 	}
 
-	if (NewLandscapePreviewMode != ENewLandscapePreviewMode::None)
-	{
-		return false;
-	}
-
 	// Override Selection for Splines Tool
 	if (CurrentTool && CurrentTool->OverrideSelection())
 	{
 		return CurrentTool->IsSelectionAllowed(InActor, bInSelection);
+	}
+
+	if (!bInSelection)
+	{
+		// always allow de-selection
+		return true;
 	}
 
 	if (InActor->IsA(ALandscapeProxy::StaticClass()))
@@ -2512,6 +2526,8 @@ void FEdModeLandscape::ImportData(const FLandscapeTargetListInfo& TargetInfo, co
 			{
 				if (RawData->Num() == SizeX * SizeY * sizeof(uint16))
 				{
+					FScopedTransaction Transaction(LOCTEXT("Undo_ImportHeightmap", "Importing Landscape Heightmap"));
+
 					FHeightmapAccessor<false> HeightmapAccessor(LandscapeInfo);
 					HeightmapAccessor.SetData(MinX, MinY, MaxX, MaxY, (const uint16*)RawData->GetData());
 				}
@@ -2525,6 +2541,8 @@ void FEdModeLandscape::ImportData(const FLandscapeTargetListInfo& TargetInfo, co
 			{
 				if (RawData->Num() == SizeX * SizeY)
 				{
+					FScopedTransaction Transaction(LOCTEXT("Undo_ImportWeightmap", "Importing Landscape Layer"));
+
 					FAlphamapAccessor<false, false> AlphamapAccessor(LandscapeInfo, TargetInfo.LayerInfoObj.Get());
 					AlphamapAccessor.SetData(MinX, MinY, MaxX, MaxY, RawData->GetData(), ELandscapeLayerPaintingRestriction::None);
 				}
@@ -2731,10 +2749,9 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 			}
 
 			// Delete the old Landscape and all its proxies
-			for (TActorIterator<ALandscapeProxy> It(OldLandscapeProxy->GetWorld()); It; ++It)
+			for (ALandscapeStreamingProxy* Proxy : TActorRange<ALandscapeStreamingProxy>(OldLandscapeProxy->GetWorld()))
 			{
-				ALandscapeProxy* Proxy = (*It);
-				if (Proxy && Proxy->LandscapeActor == OldLandscapeActor)
+				if (Proxy->LandscapeActor == OldLandscapeActor)
 				{
 					Proxy->Destroy();
 				}

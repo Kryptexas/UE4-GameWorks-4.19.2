@@ -9,6 +9,7 @@
 
 #include "LandscapeProxy.h"
 #include "LandscapeComponent.h"
+#include "LandscapeInfo.h"
 
 uint32			EngineThreadId;
 const TCHAR*	GItem;

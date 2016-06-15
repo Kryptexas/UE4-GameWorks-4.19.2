@@ -6,6 +6,8 @@
 
 #include "Landscape.h"
 #include "Components/SplineMeshComponent.h"
+#include "LandscapeStreamingProxy.h"
+#include "LandscapeComponent.h"
 #include "ShaderParameterUtils.h"
 #include "StaticMeshResources.h"
 #include "LandscapeSplineProxies.h"
@@ -1441,12 +1443,20 @@ void ULandscapeSplineControlPoint::UpdateSplinePoints(bool bUpdateCollision, boo
 			}
 		}
 
-		if (MeshComponent->RelativeLocation != Location ||
-			MeshComponent->RelativeRotation != Rotation ||
+		FVector MeshLocation = Location;
+		FRotator MeshRotation = Rotation;
+		if (MeshComponentOuterSplines != OuterSplines)
+		{
+			const FTransform RelativeTransform = OuterSplines->ComponentToWorld.GetRelativeTransform(MeshComponentOuterSplines->ComponentToWorld);
+			MeshLocation = RelativeTransform.TransformPosition(MeshLocation);
+		}
+
+		if (MeshComponent->RelativeLocation != MeshLocation ||
+			MeshComponent->RelativeRotation != MeshRotation ||
 			MeshComponent->RelativeScale3D != MeshScale)
 		{
 			MeshComponent->Modify();
-			MeshComponent->SetRelativeTransform(FTransform(Rotation, Location, MeshScale));
+			MeshComponent->SetRelativeTransform(FTransform(MeshRotation, MeshLocation, MeshScale));
 			MeshComponent->InvalidateLightingCache();
 		}
 
@@ -2296,9 +2306,10 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 			MeshComponent->SplineUpDir = FVector(0,0,1); // Up, to be consistent between joined meshes. We rotate it to horizontal using roll if using Z Forward X Up or X Forward Y Up
 			MeshComponent->ForwardAxis = MeshEntry->ForwardAxis;
 
-			if (MeshComponent->GetAttachParent() != OuterSplines)
+			auto* const MeshComponentOuterSplines = MeshComponent->GetAttachParent();
+			if (MeshComponentOuterSplines != OuterSplines)
 			{
-				FTransform RelativeTransform = OuterSplines->ComponentToWorld.GetRelativeTransform(MeshComponent->GetAttachParent()->ComponentToWorld);
+				const FTransform RelativeTransform = OuterSplines->ComponentToWorld.GetRelativeTransform(MeshComponentOuterSplines->ComponentToWorld);
 				MeshComponent->SplineParams.StartPos = RelativeTransform.TransformPosition(MeshComponent->SplineParams.StartPos);
 				MeshComponent->SplineParams.EndPos   = RelativeTransform.TransformPosition(MeshComponent->SplineParams.EndPos);
 			}

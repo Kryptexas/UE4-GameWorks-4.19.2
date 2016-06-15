@@ -630,14 +630,11 @@ void ULandscapeEditorObject::RefreshImportLayersList()
 
 		if (bFound)
 		{
-			UMaterialInstanceConstant* CombinationMaterialInstance = CastChecked<UMaterialInstanceConstant>(NewImportLayer.ThumbnailMIC->Parent);
-			if (CombinationMaterialInstance->Parent != Material)
+			if (NewImportLayer.ThumbnailMIC->Parent != Material)
 			{
 				FMaterialUpdateContext Context;
-				CombinationMaterialInstance->SetParentEditorOnly(Material);	
-				Context.AddMaterialInterface(Material);
-
-				//NewImportLayer.ThumbnailMIC = ALandscapeProxy::GetLayerThumbnailMIC(Material, LayerName, ThumbnailWeightmap, ThumbnailHeightmap, NULL);
+				NewImportLayer.ThumbnailMIC->SetParentEditorOnly(Material);
+				Context.AddMaterialInterface(NewImportLayer.ThumbnailMIC);
 			}
 
 			NewImportLayer.ImportError = ELandscapeImportLayerError::None;
@@ -694,7 +691,7 @@ void ULandscapeEditorObject::RefreshImportLayersList()
 		else
 		{
 			NewImportLayer.LayerName = LayerName;
-			NewImportLayer.ThumbnailMIC = ALandscapeProxy::GetLayerThumbnailMIC(Material, LayerName, ThumbnailWeightmap, ThumbnailHeightmap, NULL);
+			NewImportLayer.ThumbnailMIC = ALandscapeProxy::GetLayerThumbnailMIC(Material, LayerName, ThumbnailWeightmap, ThumbnailHeightmap, nullptr);
 		}
 
 		ImportLandscape_Layers.Add(MoveTemp(NewImportLayer));

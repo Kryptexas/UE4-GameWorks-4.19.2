@@ -1485,11 +1485,20 @@ bool ULandscapeHeightfieldCollisionComponent::DoCustomNavigableGeometryExport(FN
 {
 	check(IsInGameThread());
 #if WITH_PHYSX
-	if (IsValidRef(HeightfieldRef) && HeightfieldRef->RBHeightfield != nullptr)
+	if (IsValidRef(HeightfieldRef) && HeightfieldRef->RBHeightfield)
 	{
 		FTransform HFToW = ComponentToWorld;
-		HFToW.MultiplyScale3D(FVector(CollisionScale, CollisionScale, LANDSCAPE_ZSCALE));
-		GeomExport.ExportPxHeightField(HeightfieldRef->RBHeightfield, HFToW);
+		if (HeightfieldRef->RBHeightfieldSimple)
+		{
+			const float SimpleCollisionScale = CollisionScale * CollisionSizeQuads / SimpleCollisionSizeQuads;
+			HFToW.MultiplyScale3D(FVector(SimpleCollisionScale, SimpleCollisionScale, LANDSCAPE_ZSCALE));
+			GeomExport.ExportPxHeightField(HeightfieldRef->RBHeightfieldSimple, HFToW);
+		}
+		else
+		{
+			HFToW.MultiplyScale3D(FVector(CollisionScale, CollisionScale, LANDSCAPE_ZSCALE));
+			GeomExport.ExportPxHeightField(HeightfieldRef->RBHeightfield, HFToW);
+		}
 	}
 #endif// WITH_PHYSX
 	return false;

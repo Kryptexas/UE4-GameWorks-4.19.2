@@ -23,6 +23,7 @@ LandscapeRender.cpp: New terrain rendering
 #include "EngineGlobals.h"
 #include "UnrealEngine.h"
 #include "LandscapeLight.h"
+#include "LandscapeLayerInfoObject.h"
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FLandscapeUniformShaderParameters, TEXT("LandscapeParameters"));
 
@@ -450,12 +451,12 @@ LANDSCAPE_API bool GLandscapeEditModeActive = false;
 LANDSCAPE_API ELandscapeViewMode::Type GLandscapeViewMode = ELandscapeViewMode::Normal;
 LANDSCAPE_API int32 GLandscapeEditRenderMode = ELandscapeEditRenderMode::None;
 LANDSCAPE_API int32 GLandscapePreviewMeshRenderMode = 0;
-UMaterial* GLayerDebugColorMaterial = nullptr;
-UMaterialInstanceConstant* GSelectionColorMaterial = nullptr;
-UMaterialInstanceConstant* GSelectionRegionMaterial = nullptr;
-UMaterialInstanceConstant* GMaskRegionMaterial = nullptr;
+UMaterialInterface* GLayerDebugColorMaterial = nullptr;
+UMaterialInterface* GSelectionColorMaterial = nullptr;
+UMaterialInterface* GSelectionRegionMaterial = nullptr;
+UMaterialInterface* GMaskRegionMaterial = nullptr;
 UTexture2D* GLandscapeBlackTexture = nullptr;
-UMaterial* GLandscapeLayerUsageMaterial = nullptr;
+UMaterialInterface* GLandscapeLayerUsageMaterial = nullptr;
 
 // Game thread update
 void FLandscapeEditToolRenderData::Update(UMaterialInterface* InToolMaterial)
@@ -642,7 +643,6 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 
 	// Check material usage
 	if (MaterialInterface == nullptr ||
-		!MaterialInterface->CheckMaterialUsage(MATUSAGE_Landscape) ||
 		(bHasStaticLighting && !MaterialInterface->CheckMaterialUsage(MATUSAGE_StaticLighting)))
 	{
 		MaterialInterface = UMaterial::GetDefaultMaterial(MD_Surface);
@@ -1631,8 +1631,6 @@ void FLandscapeComponentSceneProxy::GetDynamicMeshElements(const TArray<const FS
 
 			default:
 
-#else
-			{
 #endif // WITH_EDITOR
 
 #if WITH_EDITOR || !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -1682,7 +1680,10 @@ void FLandscapeComponentSceneProxy::GetDynamicMeshElements(const TArray<const FS
 					NumTriangles += Mesh.GetNumPrimitives();
 					NumDrawCalls += Mesh.Elements.Num();
 				}
-			}
+
+#if WITH_EDITOR
+			} // switch
+#endif
 
 #if WITH_EDITOR
 			// Extra render passes for landscape tools
@@ -2540,6 +2541,104 @@ ULandscapeMaterialInstanceConstant::ULandscapeMaterialInstanceConstant(const FOb
 {
 	bIsLayerThumbnail = false;
 }
+
+class FLandscapeMaterialResource : public FMaterialResource
+{
+	bool bIsLayerThumbnail;
+
+public:
+	FLandscapeMaterialResource(bool InbIsLayerThumbnail)
+		: bIsLayerThumbnail(InbIsLayerThumbnail)
+	{
+	}
+
+	bool IsUsedWithLandscape() const override
+	{
+		return !bIsLayerThumbnail;
+	}
+
+	bool IsUsedWithStaticLighting() const override
+	{
+		if (bIsLayerThumbnail)
+		{
+			return false;
+		}
+		return FMaterialResource::IsUsedWithStaticLighting();
+	}
+
+	bool IsUsedWithSkeletalMesh()          const override { return false; }
+	bool IsUsedWithParticleSystem()        const override { return false; }
+	bool IsUsedWithParticleSprites()       const override { return false; }
+	bool IsUsedWithBeamTrails()            const override { return false; }
+	bool IsUsedWithMeshParticles()         const override { return false; }
+	bool IsUsedWithMorphTargets()          const override { return false; }
+	bool IsUsedWithSplineMeshes()          const override { return false; }
+	bool IsUsedWithInstancedStaticMeshes() const override { return false; }
+	bool IsUsedWithAPEXCloth()             const override { return false; }
+
+	bool ShouldCache(EShaderPlatform Platform, const FShaderType* ShaderType, const FVertexFactoryType* VertexFactoryType) const override
+	{
+		//return FMaterialResource::ShouldCache(Platform, ShaderType, VertexFactoryType);
+
+		static const FName LocalVertexFactory = FName(TEXT("FLocalVertexFactory"));
+		static const FName LandscapeVertexFactory = FName(TEXT("FLandscapeVertexFactory"));
+		static const FName LandscapeVertexFactoryMobile = FName(TEXT("FLandscapeVertexFactoryMobile"));
+
+		static const FName TBasePassVSFNoLightMapPolicy = FName(TEXT("TBasePassVSFNoLightMapPolicy"));
+		static const FName TBasePassPSFNoLightMapPolicy = FName(TEXT("TBasePassPSFNoLightMapPolicy"));
+		static const FName TBasePassVSFCachedPointIndirectLightingPolicy = FName(TEXT("TBasePassVSFCachedPointIndirectLightingPolicy"));
+		static const FName TBasePassPSFCachedPointIndirectLightingPolicy = FName(TEXT("TBasePassPSFCachedPointIndirectLightingPolicy"));
+		static const FName TShadowDepthVSVertexShadowDepth_OutputDepthfalse = FName(TEXT("TShadowDepthVSVertexShadowDepth_OutputDepthfalse"));
+
+		if (VertexFactoryType)
+		{
+			if (bIsLayerThumbnail)
+			{
+				// Thumbnail MICs are only rendered in the preview scene using a simple LocalVertexFactory
+				if (VertexFactoryType->GetFName() == LocalVertexFactory)
+				{
+					if (ShaderType->GetFName() == TBasePassVSFNoLightMapPolicy ||
+						ShaderType->GetFName() == TBasePassPSFNoLightMapPolicy ||
+						ShaderType->GetFName() == TBasePassVSFCachedPointIndirectLightingPolicy ||
+						ShaderType->GetFName() == TBasePassPSFCachedPointIndirectLightingPolicy ||
+						ShaderType->GetFName() == TShadowDepthVSVertexShadowDepth_OutputDepthfalse)
+					{
+						return true;
+					}
+				}
+			}
+			else
+			{
+				// Landscape MICs are only for use with the Landscape vertex factories
+				if (VertexFactoryType->GetFName() == LandscapeVertexFactory ||
+					VertexFactoryType->GetFName() == LandscapeVertexFactoryMobile)
+				{
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+};
+
+FMaterialResource* ULandscapeMaterialInstanceConstant::AllocatePermutationResource()
+{
+	return new FLandscapeMaterialResource(bIsLayerThumbnail);
+}
+
+bool ULandscapeMaterialInstanceConstant::HasOverridenBaseProperties() const
+{
+	// force a static permutation for ULandscapeMaterialInstanceConstants
+	if (Parent && !Parent->IsA<ULandscapeMaterialInstanceConstant>())
+	{
+		return true;
+	}
+
+	return Super::HasOverridenBaseProperties();
+}
+
+//////////////////////////////////////////////////////////////////////////
 
 void ULandscapeComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
 {

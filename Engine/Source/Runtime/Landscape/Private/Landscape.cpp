@@ -5,6 +5,7 @@ Landscape.cpp: Terrain rendering
 =============================================================================*/
 
 #include "Landscape.h"
+#include "LandscapeStreamingProxy.h"
 #include "EditorSupportDelegates.h"
 #include "LandscapeDataAccess.h"
 #include "LandscapeRender.h"
@@ -122,10 +123,6 @@ ULandscapeComponent::ULandscapeComponent(const FObjectInitializer& ObjectInitial
 #endif
 
 	LpvBiasMultiplier = 0.0f; // Bias is 0 for landscape, since it's single sided
-}
-
-ULandscapeComponent::~ULandscapeComponent()
-{
 }
 
 void ULandscapeComponent::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
@@ -529,7 +526,7 @@ void ULandscapeComponent::PostLoad()
 			RelativeLocation.X = CheckRelativeLocationX;
 			RelativeLocation.Y = CheckRelativeLocationY;
 		}
-						
+
 		// Remove standalone flags from data textures to ensure data is unloaded in the editor when reverting an unsaved level.
 		// Previous version of landscape set these flags on creation.
 		if (HeightmapTexture && HeightmapTexture->HasAnyFlags(RF_Standalone))
@@ -542,6 +539,13 @@ void ULandscapeComponent::PostLoad()
 			{
 				WeightmapTextures[Idx]->ClearFlags(RF_Standalone);
 			}
+		}
+
+		// Remove public flag from GI textures to stop them being visible in the content browser.
+		// Previous version of landscape set these flags on creation.
+		if (GIBakedBaseColorTexture && GIBakedBaseColorTexture->HasAnyFlags(RF_Public))
+		{
+			GIBakedBaseColorTexture->ClearFlags(RF_Public);
 		}
 	}
 #endif
@@ -585,21 +589,6 @@ void ULandscapeComponent::PostLoad()
 
 #endif // WITH_EDITOR
 
-ALandscape::ALandscape(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
-{
-	bIsProxy = false;
-
-#if WITH_EDITORONLY_DATA
-	bLockLocation = false;
-#endif // WITH_EDITORONLY_DATA
-}
-
-ALandscape* ALandscape::GetLandscapeActor()
-{
-	return this;
-}
-
 ALandscapeProxy::ALandscapeProxy(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, bHasLandscapeGrass(true)
@@ -625,7 +614,6 @@ ALandscapeProxy::ALandscapeProxy(const FObjectInitializer& ObjectInitializer)
 
 	StaticLightingResolution = 1.0f;
 	StreamingDistanceMultiplier = 1.0f;
-	bIsProxy = true;
 	MaxLODLevel = -1;
 #if WITH_EDITORONLY_DATA
 	bLockLocation = true;
@@ -668,13 +656,30 @@ ALandscapeProxy::ALandscapeProxy(const FObjectInitializer& ObjectInitializer)
 #endif
 }
 
-ALandscape* ALandscapeProxy::GetLandscapeActor()
+ALandscape::ALandscape(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 #if WITH_EDITORONLY_DATA
-	return LandscapeActor.Get();
-#else
-	return 0;
+	bLockLocation = false;
 #endif // WITH_EDITORONLY_DATA
+}
+
+ALandscapeStreamingProxy::ALandscapeStreamingProxy(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+#if WITH_EDITORONLY_DATA
+	bLockLocation = true;
+#endif // WITH_EDITORONLY_DATA
+}
+
+ALandscape* ALandscape::GetLandscapeActor()
+{
+	return this;
+}
+
+ALandscape* ALandscapeStreamingProxy::GetLandscapeActor()
+{
+	return LandscapeActor.Get();
 }
 
 #if WITH_EDITOR
@@ -1282,7 +1287,7 @@ bool ULandscapeInfo::UpdateLayerInfoMap(ALandscapeProxy* Proxy /*= NULL*/, bool 
 								// Valid layer infos take precedence over invalid ones
 								// Landscape Actors take precedence over Proxies
 								if ((bValid && !LayerSettings.bValid)
-									|| (bValid == LayerSettings.bValid && !Proxy->bIsProxy))
+									|| (bValid == LayerSettings.bValid && Proxy->IsA<ALandscape>()))
 								{
 									LayerSettings.Owner = Proxy;
 									LayerSettings.bValid = bValid;
@@ -1605,10 +1610,6 @@ UMaterialInterface* ALandscapeProxy::GetLandscapeMaterial() const
 	{
 		return LandscapeMaterial;
 	}
-	else if (LandscapeActor)
-	{
-		return LandscapeActor->GetLandscapeMaterial();
-	}
 	return UMaterial::GetDefaultMaterial(MD_Surface);
 }
 
@@ -1618,27 +1619,31 @@ UMaterialInterface* ALandscapeProxy::GetLandscapeHoleMaterial() const
 	{
 		return LandscapeHoleMaterial;
 	}
-	else if (ALandscape* Landscape = LandscapeActor.Get())
-	{
-		return Landscape->GetLandscapeHoleMaterial();
-	}
 	return nullptr;
 }
 
-UMaterialInterface* ALandscape::GetLandscapeMaterial() const
+UMaterialInterface* ALandscapeStreamingProxy::GetLandscapeMaterial() const
 {
 	if (LandscapeMaterial)
 	{
 		return LandscapeMaterial;
 	}
+	else if (LandscapeActor)
+	{
+		return LandscapeActor->GetLandscapeMaterial();
+	}
 	return UMaterial::GetDefaultMaterial(MD_Surface);
 }
 
-UMaterialInterface* ALandscape::GetLandscapeHoleMaterial() const
+UMaterialInterface* ALandscapeStreamingProxy::GetLandscapeHoleMaterial() const
 {
 	if (LandscapeHoleMaterial)
 	{
 		return LandscapeHoleMaterial;
+	}
+	else if (ALandscape* Landscape = LandscapeActor.Get())
+	{
+		return Landscape->GetLandscapeHoleMaterial();
 	}
 	return nullptr;
 }
@@ -1779,25 +1784,26 @@ void ULandscapeInfo::RegisterActor(ALandscapeProxy* Proxy, bool bMapCheck)
 	}
 
 	// register
-	ALandscape* Landscape = Cast<ALandscape>(Proxy);
-	if (Landscape)
+	if (ALandscape* Landscape = Cast<ALandscape>(Proxy))
 	{
 		LandscapeActor = Landscape;
 		// In world composition user is not allowed to move landscape in editor, only through WorldBrowser 
-		LandscapeActor->bLockLocation = (OwningWorld->WorldComposition != NULL);
+		LandscapeActor->bLockLocation = (OwningWorld->WorldComposition != nullptr);
 
 		// update proxies reference actor
-		for (auto It = Proxies.CreateConstIterator(); It; ++It)
+		for (ALandscapeStreamingProxy* StreamingProxy : Proxies)
 		{
-			(*It)->LandscapeActor = LandscapeActor;
-			(*It)->ConditionalAssignCommonProperties(Landscape);
+			StreamingProxy->LandscapeActor = LandscapeActor;
+			StreamingProxy->ConditionalAssignCommonProperties(Landscape);
 		}
 	}
 	else
 	{
-		Proxies.Add(Proxy);
-		Proxy->LandscapeActor = LandscapeActor;
-		Proxy->ConditionalAssignCommonProperties(LandscapeActor.Get());
+		ALandscapeStreamingProxy* StreamingProxy = CastChecked<ALandscapeStreamingProxy>(Proxy);
+
+		Proxies.Add(StreamingProxy);
+		StreamingProxy->LandscapeActor = LandscapeActor;
+		StreamingProxy->ConditionalAssignCommonProperties(LandscapeActor.Get());
 	}
 
 	//
@@ -1811,22 +1817,22 @@ void ULandscapeInfo::RegisterActor(ALandscapeProxy* Proxy, bool bMapCheck)
 
 void ULandscapeInfo::UnregisterActor(ALandscapeProxy* Proxy)
 {
-	ALandscape* Landscape = Cast<ALandscape>(Proxy);
-	if (Landscape)
+	if (ALandscape* Landscape = Cast<ALandscape>(Proxy))
 	{
 		check(LandscapeActor.Get() == Landscape);
 		LandscapeActor = nullptr;
 
 		// update proxies reference to landscape actor
-		for (auto It = Proxies.CreateConstIterator(); It; ++It)
+		for (ALandscapeStreamingProxy* StreamingProxy : Proxies)
 		{
-			(*It)->LandscapeActor = nullptr;
+			StreamingProxy->LandscapeActor = nullptr;
 		}
 	}
 	else
 	{
-		Proxies.Remove(Proxy);
-		Proxy->LandscapeActor = nullptr;
+		ALandscapeStreamingProxy* StreamingProxy = CastChecked<ALandscapeStreamingProxy>(Proxy);
+		Proxies.Remove(StreamingProxy);
+		StreamingProxy->LandscapeActor = nullptr;
 	}
 
 	// remove proxy components from the XY map
@@ -2396,12 +2402,29 @@ ALandscapeMeshProxyActor::ALandscapeMeshProxyActor(const FObjectInitializer& Obj
 // ULandscapeMeshProxyComponent
 //
 ULandscapeMeshProxyComponent::ULandscapeMeshProxyComponent(const FObjectInitializer& ObjectInitializer)
-: Super(ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
-#if WITH_EDITOR
+void ULandscapeMeshProxyComponent::InitializeForLandscape(ALandscapeProxy* Landscape, int8 InProxyLOD)
+{
+	LandscapeGuid = Landscape->GetLandscapeGuid();
 
+	for (ULandscapeComponent* Component : Landscape->LandscapeComponents)
+	{
+		if (Component)
+		{
+			ProxyComponentBases.Add(Component->GetSectionBase() / Component->ComponentSizeQuads);
+		}
+	}
+
+	if (InProxyLOD != INDEX_NONE)
+	{
+		ProxyLOD = FMath::Clamp<int32>(InProxyLOD, 0, FMath::CeilLogTwo(Landscape->SubsectionSizeQuads + 1) - 1);
+	}
+}
+
+#if WITH_EDITOR
 void ULandscapeComponent::SerializeStateHashes(FArchive& Ar)
 {
 	if (MaterialInstance)
@@ -2572,7 +2595,7 @@ void ALandscapeProxy::UpdateBakedTextures()
 							NumGenerated++;
 						}
 					}
-					UTexture2D* AtlasTexture = FMaterialUtilities::CreateTexture(GetOutermost(), HeightmapTexture->GetName() + TEXT("_BaseColor"), AtlasSize, AtlasSamples, TC_Default, TEXTUREGROUP_World, RF_Public, true, CombinedStateId);
+					UTexture2D* AtlasTexture = FMaterialUtilities::CreateTexture(GetOutermost(), HeightmapTexture->GetName() + TEXT("_BaseColor"), AtlasSize, AtlasSamples, TC_Default, TEXTUREGROUP_World, RF_NoFlags, true, CombinedStateId);
 					AtlasTexture->MarkPackageDirty();
 
 					for (ULandscapeComponent* Component : Info.Components)

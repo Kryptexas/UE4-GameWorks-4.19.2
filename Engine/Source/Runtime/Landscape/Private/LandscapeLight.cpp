@@ -10,9 +10,9 @@ LandscapeLight.cpp: Static lighting for LandscapeComponents
 #include "LandscapeRender.h"
 #include "LandscapeDataAccess.h"
 
-#include "ComponentReregisterContext.h"
-
 #include "UnrealEngine.h"
+#include "ComponentReregisterContext.h"
+#include "Materials/MaterialInstanceConstant.h"
 
 #if WITH_EDITOR
 

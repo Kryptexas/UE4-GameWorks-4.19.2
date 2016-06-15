@@ -506,7 +506,7 @@ public:
 				ALandscapeProxy* LandscapeProxy = LandscapeInfo->GetCurrentLevelLandscapeProxy(false);
 				if (!LandscapeProxy)
 				{
-					LandscapeProxy = World->SpawnActor<ALandscapeProxy>();
+					LandscapeProxy = World->SpawnActor<ALandscapeStreamingProxy>();
 					// copy shared properties to this new proxy
 					LandscapeProxy->GetSharedProperties(Landscape);
 

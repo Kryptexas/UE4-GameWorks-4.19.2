@@ -9,6 +9,7 @@
 #include "LandscapeRender.h"
 #include "Landscape.h"
 #include "LandscapeHeightfieldCollisionComponent.h"
+#include "LandscapeMaterialInstanceConstant.h"
 
 #include "LevelUtils.h"
 #include "Materials/MaterialInstanceDynamic.h"
@@ -56,10 +57,9 @@ protected:
 	/** Protected so that only subclasses can create instances of this class. */
 	FLandscapeBrushCircle(FEdModeLandscape* InEdMode, UMaterialInterface* InBrushMaterial)
 		: LastMousePosition(0, 0)
-		, BrushMaterial(nullptr)
+		, BrushMaterial(LandscapeTool::CreateMaterialInstance(InBrushMaterial))
 		, EdMode(InEdMode)
 	{
-		BrushMaterial = InBrushMaterial; //UMaterialInstanceDynamic::Create(InBrushMaterial, nullptr);
 	}
 
 public:
@@ -339,7 +339,7 @@ class FLandscapeBrushComponent : public FLandscapeBrush
 
 protected:
 	FVector2D LastMousePosition;
-	UMaterial* BrushMaterial;
+	UMaterialInterface* BrushMaterial;
 public:
 	FEdModeLandscape* EdMode;
 
@@ -347,7 +347,8 @@ public:
 		: BrushMaterial(nullptr)
 		, EdMode(InEdMode)
 	{
-		BrushMaterial = LoadObject<UMaterial>(nullptr, TEXT("/Engine/EditorLandscapeResources/SelectBrushMaterial.SelectBrushMaterial"), nullptr, LOAD_None, nullptr);
+		UMaterial* BaseBrushMaterial = LoadObject<UMaterial>(nullptr, TEXT("/Engine/EditorLandscapeResources/SelectBrushMaterial.SelectBrushMaterial"));
+		BrushMaterial = LandscapeTool::CreateMaterialInstance(BaseBrushMaterial);
 	}
 
 	// FGCObject interface
@@ -541,8 +542,8 @@ public:
 		: BrushMaterial(nullptr)
 		, EdMode(InEdMode)
 	{
-		UMaterialInstanceConstant* GizmoMaterial = LoadObject<UMaterialInstanceConstant>(nullptr, TEXT("/Engine/EditorLandscapeResources/MaskBrushMaterial_Gizmo.MaskBrushMaterial_Gizmo"), nullptr, LOAD_None, nullptr);
-		BrushMaterial = UMaterialInstanceDynamic::Create(GizmoMaterial, nullptr);
+		UMaterialInterface* GizmoMaterial = LoadObject<UMaterialInstanceConstant>(nullptr, TEXT("/Engine/EditorLandscapeResources/MaskBrushMaterial_Gizmo.MaskBrushMaterial_Gizmo"));
+		BrushMaterial = UMaterialInstanceDynamic::Create(LandscapeTool::CreateMaterialInstance(GizmoMaterial), nullptr);
 	}
 
 	// FGCObject interface

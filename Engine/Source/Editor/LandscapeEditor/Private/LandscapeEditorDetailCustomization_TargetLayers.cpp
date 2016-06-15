@@ -26,6 +26,7 @@
 #include "LandscapeRender.h"
 #include "LandscapeLayerInfoObject.h"
 #include "Materials/MaterialExpressionLandscapeVisibilityMask.h"
+#include "LandscapeEdit.h"
 
 #define LOCTEXT_NAMESPACE "LandscapeEditor.TargetLayers"
 
@@ -498,6 +499,27 @@ TSharedPtr<SWidget> FLandscapeEditorCustomNodeBuilder_TargetLayers::OnTargetLaye
 				FUIAction ReImportAction = FUIAction(FExecuteAction::CreateStatic(&FLandscapeEditorCustomNodeBuilder_TargetLayers::OnReimportLayer, Target));
 				MenuBuilder.AddMenuEntry(FText::Format(LOCTEXT("LayerContextMenu.ReImport", "Reimport from {0}"), FText::FromString(ReimportPath)), FText(), FSlateIcon(), ReImportAction);
 			}
+
+			if (Target->TargetType == ELandscapeToolTargetType::Weightmap)
+			{
+				MenuBuilder.AddMenuSeparator();
+
+				// Fill
+				FUIAction FillAction = FUIAction(FExecuteAction::CreateStatic(&FLandscapeEditorCustomNodeBuilder_TargetLayers::OnFillLayer, Target));
+				MenuBuilder.AddMenuEntry(LOCTEXT("LayerContextMenu.Fill", "Fill Layer"), LOCTEXT("LayerContextMenu.Fill_Tooltip", "Fills this layer to 100% across the entire landscape. If this is a weight-blended (normal) layer, all other weight-blended layers will be cleared."), FSlateIcon(), FillAction);
+
+				// Clear
+				FUIAction ClearAction = FUIAction(FExecuteAction::CreateStatic(&FLandscapeEditorCustomNodeBuilder_TargetLayers::OnClearLayer, Target));
+				MenuBuilder.AddMenuEntry(LOCTEXT("LayerContextMenu.Clear", "Clear Layer"), LOCTEXT("LayerContextMenu.Clear_Tooltip", "Clears this layer to 0% across the entire landscape. If this is a weight-blended (normal) layer, other weight-blended layers will be adjusted to compensate."), FSlateIcon(), ClearAction);
+			}
+			else if (Target->TargetType == ELandscapeToolTargetType::Visibility)
+			{
+				MenuBuilder.AddMenuSeparator();
+
+				// Clear
+				FUIAction ClearAction = FUIAction(FExecuteAction::CreateStatic(&FLandscapeEditorCustomNodeBuilder_TargetLayers::OnClearLayer, Target));
+				MenuBuilder.AddMenuEntry(LOCTEXT("LayerContextMenu.ClearHoles", "Remove all Holes"), FText(), FSlateIcon(), ClearAction);
+			}
 		}
 		MenuBuilder.EndSection();
 
@@ -634,6 +656,27 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::OnReimportLayer(const TShar
 	if (LandscapeEdMode)
 	{
 		LandscapeEdMode->ReimportData(*Target);
+	}
+}
+
+void FLandscapeEditorCustomNodeBuilder_TargetLayers::OnFillLayer(const TSharedRef<FLandscapeTargetListInfo> Target)
+{
+	FScopedTransaction Transaction(LOCTEXT("Undo_FillLayer", "Filling Landscape Layer"));
+	if (Target->LandscapeInfo.IsValid() && Target->LayerInfoObj.IsValid())
+	{
+		FLandscapeEditDataInterface LandscapeEdit(Target->LandscapeInfo.Get());
+		LandscapeEdit.FillLayer(Target->LayerInfoObj.Get());
+	}
+}
+
+
+void FLandscapeEditorCustomNodeBuilder_TargetLayers::OnClearLayer(const TSharedRef<FLandscapeTargetListInfo> Target)
+{
+	FScopedTransaction Transaction(LOCTEXT("Undo_ClearLayer", "Clearing Landscape Layer"));
+	if (Target->LandscapeInfo.IsValid() && Target->LayerInfoObj.IsValid())
+	{
+		FLandscapeEditDataInterface LandscapeEdit(Target->LandscapeInfo.Get());
+		LandscapeEdit.DeleteLayer(Target->LayerInfoObj.Get());
 	}
 }
 

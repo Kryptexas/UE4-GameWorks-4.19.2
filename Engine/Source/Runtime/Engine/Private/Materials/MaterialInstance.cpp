@@ -1573,6 +1573,11 @@ void UMaterialInstance::GetAllShaderMaps(TArray<FMaterialShaderMap*>& OutShaderM
 	}
 }
 
+FMaterialResource* UMaterialInstance::AllocatePermutationResource()
+{
+	return new FMaterialResource();
+}
+
 void UMaterialInstance::UpdatePermutationAllocations()
 {
 	if (bHasStaticPermutationResource)
@@ -1591,7 +1596,7 @@ void UMaterialInstance::UpdatePermutationAllocations()
 
 				if (!CurrentResource)
 				{
-					CurrentResource = new FMaterialResource();
+					CurrentResource = AllocatePermutationResource();
 				}
 
 				const bool bQualityLevelHasDifferentNodes = QualityLevelsUsed[QualityLevelIndex];
@@ -1662,7 +1667,7 @@ void UMaterialInstance::CacheResourceShadersForCooking(EShaderPlatform ShaderPla
 			// Cache all quality levels, unless they are all the same (due to using the same nodes), then just cache the high quality
 			if (bAnyQualityLevelUsed || QualityLevelIndex == EMaterialQualityLevel::High)
 			{
-				FMaterialResource* NewResource = new FMaterialResource();
+				FMaterialResource* NewResource = AllocatePermutationResource();
 				NewResource->SetMaterial(BaseMaterial, (EMaterialQualityLevel::Type)QualityLevelIndex, QualityLevelsUsed[QualityLevelIndex], (ERHIFeatureLevel::Type)TargetFeatureLevel, this);
 				ResourcesToCache.Add(NewResource);
 			}
@@ -1977,7 +1982,7 @@ void UMaterialInstance::PostLoad()
 	Super::PostLoad();
 
 	// Resources can be processed / registered now that we're back on the main thread
-	ProcessSerializedInlineShaderMaps(LoadedMaterialResources, StaticPermutationMaterialResources);
+	ProcessSerializedInlineShaderMaps(this, LoadedMaterialResources, StaticPermutationMaterialResources);
 	// Empty the lsit of loaded resources, we don't need it anymore
 	LoadedMaterialResources.Empty();
 
