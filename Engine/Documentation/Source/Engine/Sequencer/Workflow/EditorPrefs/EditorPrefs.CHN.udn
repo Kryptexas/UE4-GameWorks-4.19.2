@@ -1,43 +1,46 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3013212
 Availability:Public
-Title: Level Sequence Editor Preferences
-Crumbs: %ROOT%, Engine
-Description:Breakdown of the Sequencer Editor Preferences and settings. 
+Title:关卡序列编辑器首选项
+Crumbs:%ROOT%, Engine
+Description:Sequencer 编辑器首选项和设置的明细。 
 Navigation:topic
 parent:Engine\Sequencer\Workflow
 order:1
-Version: 4.12
-Related: Engine\Sequencer\Overview
-Related: Engine\Sequencer\ReferenceEditor
-Related: Engine\Sequencer\HowTo
+Version:4.12
+Related:Engine\Sequencer\Overview
+Related:Engine\Sequencer\ReferenceEditor
+Related:Engine\Sequencer\HowTo
 
 ![](EditorPrefs.png)
 
-To improve your productivity, several shortcuts have been built into the Sequencer Editor. While some of these shortcuts are readily apparent and indicated through the menus, some key bindings are a bit hidden. This page covers the most commonly used actions, shortcuts and bindings to working with Sequencer.
+**关卡序列编辑器首选项**（可通过 [**编辑器首选项（Editor Preferences）**](Engine/UI/EditorSettings) 窗口访问）包括各种设置，您可以调整这些设置，以定义 Sequencer 编辑器显示信息或功能的方式。 
+本页面分为多个部分，并概述每个属性及其对 Sequencer 编辑器的影响。您可以调整这些设置，使其符合您的工作流程或期望的编辑器功能。 
 
 [TOC(start:2 end:2)]
 
-## Keyframing
+## 建立关键帧
 
-| Setting | Description |
+以下部分定义在 Sequencer 中使用自动建立关键帧功能的方式。 
+
+| 设置 | 说明 |
 | ---- | ----------- |
-| **Auto Key Mode** | Determines method in which to apply auto-keying of properties. [INCLUDE:#AutoKeyMode] |
-| **Key All Enabled** | Key all properites or only properites that change when **Key All** or **Key Animated** is used.|
-| **Key Interp Properties Only** | Whether or not to key interpolation properties only as part of auto-keying. |
-| **Key Interpolation** | The interpolation to use for keys when **Key All** or **Key Animated** is used. [INCLUDE:#keyinterp] |
+| **自动键模式（Auto Key Mode）** | 确定对属性自动建立键的方法。[INCLUDE:#AutoKeyMode] |
+| **启用全部建立键（Key All Enabled）** | 对所有属性建立键，或仅对使用 **全部建立键（Key All）**或 **动画项建立键（Key Animated）**时发生更改的属性建立键。|
+| **仅对插值属性建立键（Key Interp Properties Only）** | 是否仅在自动建立键的过程中对插值属性建立键。|
+| **键插值（Key Interpolation）** | 使用 **全部建立键（Key All）**或 **动画项建立键（Key Animated）**时用于键的插值。[INCLUDE:#keyinterp] |
 
 [REGION:note]
-For more information on Key Interploation, see [**Interpolation Modes**](Engine/UI/CurveEditor).
+有关键插值的更多信息，请参见 [**插值模式**](Engine/UI/CurveEditor)。
 [/REGION]
 
 <!--
 [EXCERPT:AutoKeyMode]
 [REGION:simpletable]
-| Value | Effect |
+| 值 | 效果 |
 | ----- | ------ |
-| **Key All** | Key all properties that change. |
-| **Key Animated** | Only key changed properties if they have existing animations. |
-| **Key None** | Do not auto-key any properties. |
+| **全部建立键（Key All）** | 对所有发生更改的属性建立键。|
+| **动画项建立键（Key Animated）** | 仅当已更改的属性有现有动画时，才对这些属性建立键。|
+| **不建立键（Key None）** | 不对任何属性自动建立键。|
 [/REGION] 
 [/EXCERPT:AutoKeyMode]
 -->
@@ -45,93 +48,91 @@ For more information on Key Interploation, see [**Interpolation Modes**](Engine/
 <!--
 [EXCERPT:KeyInterp]
 [REGION:simpletable]
-| Value | Effect |
+| 值 | 效果 |
 | ----- | ------ |
-| **Auto** | Sets key interpolation to Auto. |
-| **User** | Sets key interpolation to User. |
-| **Break** | Sets key interpolation to Break. |
-| **Linear** | Sets key interpolation to Linear. |
-| **Constant** | Sets key interpolation to Constant. |
+| **自动（Auto）** | 将键插值设置为“自动”。|
+| **用户（User）** | 将键插值设置为“用户”。|
+| **中断（Break）** | 将键插值设置为“中断”。|
+| **线性（Linear）** | 将键插值设置为“线性”。|
+| **常量（Constant）** | 将键插值设置为“常量”。|
 [/REGION] 
 [/EXCERPT:KeyInterp]
 -->
 
 
-## General
+## 常规
 
-Select a section in the Keyframe window (audio or animation asset, camera, etc.) and edit it with the commands below. 
+下列设置可用来确定处理新添加的关卡序列的方式，如何创建从工具栏添加的摄像机，或者是否打开“标签浏览器”（Label Browser）窗口。 
 
-| Setting | Description |
+| 设置 | 说明 |
 | ---- | ----------- |
-| **Spawn Position** | Defines the position where newly created Level Sequences are placed in the viewport. [INCLUDE:#spawn]|
-| **Create Spawnable Cameras** | Determines whether or not cameras added from the Sequencer Toolbar are created as [**Spawnables**](Engine/Sequencer/HowTo/Spawnables).   |
-| **Label Browser Visible** | Displays or hides the **Label Browser** window. |
+| **产生位置（Spawn Position）** | 定义新创建的标签序列在视口中的放置位置。[INCLUDE:#spawn]|
+| **创建可产生摄像机（Create Spawnable Cameras）** | 确定从 Sequencer 工具栏添加的摄像机是否创建为 [**可产生项**](Engine/Sequencer/HowTo/Spawnables)。|
+| **标签浏览器可见（Label Browser Visible）** |显示或隐藏 **标签浏览器（Label Browser）**窗口。|
 
 <!--
 [EXCERPT:Spawn]
 [REGION:simpletable]
-| Value | Effect |
+| 值 | 效果 |
 | ----- | ------ |
-| **Auto** | Sets key interpolation to Auto. |
-| **User** | Sets key interpolation to User. |
+| **原始（Origin）** | 在默认原始位置创建。 |
+| **放置于摄像机前** | 在摄像机透视视口的前方创建。 |
 [/REGION] 
 [/EXCERPT:Spawn]
 -->
 
 
-## Timeline
+## 时间轴
 
-Select an Actor in your level and use the commands below to add keyframes at the current time position. 
+此部分定义 Sequencer 中时间轴的显示或工作方式。 
 
-| Setting | Description |
+| 设置 | 说明 |
 | ---- | ----------- |
-| **Show Frame Numbers** | Toggles the timeline to display Frames (checked) or Time (unchecked). |
-| **Show Range Slider** | Toggles the display of the timeline range slider. |
-| **Zoom Position** | Determines where zooming in or out in the timeline occurs.  [INCLUDE:#zoom] |
-| **Auto Scroll Enabled** | Determines if the timline will automatically scroll during playback. |
-| **Keep Cursor in Play Range** |  |
-| **Keep Play Range in Section Bounds** | When checked, the playback range will be synchronized to the section bounds. |
-| **Zero Pad Frames** |  |
-| **Show Combined Keyframes** | When enabled, denotes properties that have more then one key assigned for a frame. |
-| **Infinite Key Areas** |  |
-| **Show Channel Colors** |  |
+| **显示帧号（Show Frame Numbers）** | 进行切换，确定时间轴是显示帧（选中）还是时间（未选中）。|
+| **显示范围滑块（Show Range Slider）** | 切换时间轴范围滑块的显示。|
+| **缩放位置（Zoom Position）** | 确定时间轴中发生缩放的位置。[INCLUDE:#zoom] |
+| **启用自动滚动（Auto Scroll Enabled）** | 确定时间轴在播放期间是否自动滚动。|
+| **保持光标处于播放范围内（Keep Cursor in Play Range）** | 如果为 true，则范围由绿色/红色播放标记定义。如果为 false，则范围由“工作范围开始”（Working Range Start）和“工作范围结束”（Working Range End）定义。|
+| **保持播放范围在片段边界内（Keep Play Range in Section Bounds）** | 如果选中此项，则播放范围将与片段边界同步。|
+| **零填充帧（Zero Pad Frames）** | 定义在显示的帧号前应显示多少个 0。|
+| **显示组合关键帧（Show Combined Keyframes）** | 如果启用此项，则指示对一个帧指定了多个键的属性。|
+| **显示通道颜色（Show Channel Colors）** | 进行切换，确定是否对“位置”、“旋转”和“比例”的 XYZ 显示彩色线条。|
 
 <!--
 [EXCERPT:Zoom]
 [REGION:simpletable]
-| Value | Effect |
+| 值 | 效果 |
 | ----- | ------ |
-| **Current Time** | Zoom in/out will occur at the current marker time. |
-| **Mouse Position** | Zoom in/out will occur at the position of the mouse in the timeline. |
+| **当前时间（Current Time）** | 缩放将在当前标记时间处发生。|
+| **鼠标位置（Mouse Position）** | 缩放将在时间轴中的鼠标位置处发生。|
 [/REGION] 
 [/EXCERPT:Zoom]
 -->
 
-## Snapping
+## 对齐
 
-Select a section in the Keyframe window (audio or animation asset, camera, etc.) and edit it with the commands below. 
+下列选项可用来处理 Sequencer 中使用“网格对齐”功能的方式。 
 
-| Setting | Description |
+| 设置 | 说明 |
 | ---- | ----------- |
-| **Is Snap Enabled** | Determines if timeline grid snapping is enabled/disabled. |
-| **Time Snap Interval** | Defines the interval in which grid snapping is applied. |
-| **Snap Key Times to Interval** |  |
-| **Snap Key Times to Keys** |  |
-| **Snap Section Times to Interval** | |
-| **Snap Section Times to Sections** | |
-| **Snap Play Time to Keys** | |
-| **Snap Play Time to Interval** |  |
-| **Snap Play Time to Dragged Key** ||
-| **Fixed Time Step Playback** | |
-| **Curve Value Snap Interval** ||
-| **Snap Curve Value to Interval** | |
+| **启用对齐（Is Snap Enabled）** | 确定启用还是禁用时间轴网格对齐。|
+| **时间对齐间隔（Time Snap Interval）** | 定义应用网格对齐的间隔。|
+| **将键时间与间隔对齐（Snap Key Times to Interval）** | 是否将键移动与“时间对齐间隔”（Time Snap Interval）值对齐。|
+| **将键时间与键对齐（Snap Key Times to Keys）** | 是否将键与同一轨道上的其他键对齐。|
+| **将片段时间与间隔对齐（Snap Section Times to Interval）** | 是否将片段移动与“时间对齐间隔”（Time Snap Interval）值对齐。|
+| **将片段时间与片段对齐（Snap Section Times to Sections）** | 是否将片段时间与轨道上的其他片段对齐。|
+| **将播放时间与键对齐（Snap Play Time to Keys）** | 是否将播放与轨道上的键对齐。|
+| **将播放时间与间隔对齐（Snap Play Time to Interval）** | 是否将播放标记移动与“时间对齐间隔”（Time Snap Interval）值对齐。|
+| **将播放时间与拖动的键对齐（Snap Play Time to Dragged Key）** | 是否将播放标记与拖动的键对齐。|
+| **曲线值对齐间隔（Curve Value Snap Interval）** | 定义网格对齐应用于曲线编辑器的间隔。|
+| **将曲线值与间隔对齐（Snap Curve Value to Interval）** | 是否将曲线与指定的间隔值对齐。|
 
-## Curve Editor
+## 曲线编辑器
 
-Select a section in the Keyframe window (audio or animation asset, camera, etc.) and edit it with the commands below. 
+此部分提供 Sequencer 中的曲线编辑器的设置。 
 
-| Setting | Description |
+| 设置 | 说明 |
 | ---- | ----------- |
-| **Show Curve Editor** | Show/Hide the Curve Editor window. |
-| **Show Curve Editor Curve Tool Tips** | Show/Hide Curve Editor tool tips. |
-| **Link Curve Editor Time Range** | |
+| **显示曲线编辑器（Show Curve Editor）** | 显示/隐藏“曲线编辑器”（Show Curve Editor）窗口。|
+| **显示曲线编辑器曲线工具提示（Show Curve Editor Curve Tool Tips）** | 显示/隐藏曲线编辑器工具提示。|
+| **链接曲线编辑器时间范围（Link Curve Editor Time Range）** | 是否将曲线编辑器时间范围链接到 Sequencer 的时间范围。|

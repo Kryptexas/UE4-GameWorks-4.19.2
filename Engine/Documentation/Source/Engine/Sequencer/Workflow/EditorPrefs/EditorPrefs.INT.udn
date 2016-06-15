@@ -74,8 +74,8 @@ The following settings can be used to determine how newly added Level Sequences 
 [REGION:simpletable]
 | Value | Effect |
 | ----- | ------ |
-| **Auto** | Sets key interpolation to Auto. |
-| **User** | Sets key interpolation to User. |
+| **Origin** | Spawns at the default origin position. |
+| **Place in Front of Camera** | Spawns in front of the camera in a Persepctive viewport. |
 [/REGION] 
 [/EXCERPT:Spawn]
 -->

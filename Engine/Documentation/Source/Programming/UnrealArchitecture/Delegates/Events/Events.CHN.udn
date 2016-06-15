@@ -1,51 +1,49 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2728743
 Availability:Public
-Title: Events
+Title:事件
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture, Programming/UnrealArchitecture/Delegates
-Description:Delegates that can be bound to multiple functions and execute them all at once.
-Version: 4.5
+Description:可绑定到多个函数并同时全部执行的委托。
+Version:4.9
 
-Events are very similar to **[multi-cast delegates](Programming/UnrealArchitecture/Delegates\Multicast)**. However, while any class can bind events, only the class that declares the event may invoke the event's 
-`Broadcast`, `IsBound`, and `Clear` functions.  This means event objects can be exposed in a public interface without worrying about giving external classes access to these sensitive functions. 
-Event use cases include including callbacks in purely abstract classes, and restricting external classes from invoking the `Broadcast`, `IsBound`, and `Clear` functions.
+事件与 [组播委托](Programming/UnrealArchitecture/Delegates\Multicast) 十分相似。虽然任意类均可绑定事件，但只有声明事件的类可以调用事件 
+的 `Broadcast`、`IsBound` 和 `Clear` 函数。这意味着事件对象可在公共接口中公开，而无需让外部类访问这些敏感度函数。事件使用情况有：在纯抽象类中包含回调、限制外部类调用 `Broadcast`、`IsBound` 和 `Clear` 函数。
 
-## Declaring Events
+## 声明事件
 
-Events are declared in almost the same manner as you **[declare multi-cast delegates](Programming/UnrealArchitecture/Delegates/Multicast)** except they use the macro variations specific to events.
+事件的声明和 [组播委托声明](Programming/UnrealArchitecture/Delegates/Multicast#DeclaringMulti-castDelegates) 方式几乎相同，唯一的区别是它们使用事件特有的宏变体。
 
-| Declaration Macro | Description |
+| 声明宏 | 描述 |
 | --- | --- |
-| `DECLARE_EVENT( OwningType, EventName )` | Creates an event. |
-| `DECLARE_EVENT_OneParam( OwningType, EventName, Param1Type )` | Creates an event with one parameter. |
-| `DECLARE_EVENT_TwoParams( OwningType, EventName, Param1Type, Param2Type )` | Creates an event with two parameters. |
-| `DECLARE_EVENT_<Num>Params( OwningType, EventName, Param1Type, Param2Type, ... )` | Creates an event with N parameters. |
+| `DECLARE_EVENT( OwningType, EventName )` | 创建一个事件。|
+| `DECLARE_EVENT_OneParam( OwningType, EventName, Param1Type )` | 创建带一个参数的事件。|
+| `DECLARE_EVENT_TwoParams( OwningType, EventName, Param1Type, Param2Type )` | 创建带两个参数的事件。|
+| `DECLARE_EVENT_<Num>Params( OwningType, EventName, Param1Type, Param2Type, ...)` | 创建带 N 个参数的事件。|
 
 [REGION:tip]	
-The first parameter of the `DECLARE_EVENT` macro is the class which will "own" this event, and thus be able to call the `Broadcast()` function.
+`DECLARE_EVENT` 宏的首个参数是“拥有”此事件的类，因此可调用 `Broadcast()` 函数。
 [/REGION]
 
-## Binding Events
+## 绑定事件
 
-Binding of events is performed in the same manner as **[binding multi-cast delegates](Programming/UnrealArchitecture/Delegates/Multicast)**.
+事件绑定与 [组播委托绑定](Programming/UnrealArchitecture/Delegates/Multicast#BindingMulti-CastDelegates) 方式相同。
 
-## Event Execution
+## 事件执行
 
-Events allow you to attach multiple function delegates, then execute them all at once by calling the event's `Broadcast()` function.  Event signatures are not allowed to use a return value. For events, 
-`Broadcast()` can only be called by the class which defines them.
+事件允许附带多个函数委托，然后调用事件的 `Broadcast()` 函数将它们一次性全部执行。事件签名不允许使用返回值。对于事件而言，只有定义事件的类才能调用 `Broadcast()` 函数。
 
-It is always safe to call `Broadcast()` on an event, even if nothing is bound.  The only time you need to be careful is if you are using an event to initialize output variables, which is generally very bad to do.
+即使不存在绑定，在事件上调用 `Broadcast()` 也是安全操作。唯一需要注意的情况是使用事件初始化输出变量，通常不建议执行此操作。
 
-The execution order of bound functions when calling `Broadcast()` is not defined.  It may not be in the order the functions were added.
+调用 `Broadcast()` 函数时，被绑定函数的执行顺序尚未定义。有可能不按照函数的添加顺序执行。
 
-| Function | Description |
+| 函数 | 描述 |
 | --- | --- |
-| `Broadcast()` | Broadcasts this event to all bound objects, except to those that may have expired. |
+| `Broadcast()` | 将此事件广播到所有绑定对象，已失效的对象除外。|
 
 
 
-## Implementation Examples
+## 实现范例
 
-### Simple Event
+### 简单事件
 
 	public:
 	/** Broadcasts whenever the layer changes */
@@ -58,33 +56,31 @@ The execution order of bound functions when calling `Broadcast()` is not defined
 	FChangedEvent ChangedEvent;
 
 [REGION:tip]
-Accessors for events should follow an OnXXX pattern instead of the usual GetXXX pattern.
+事件的访问器应该依照 OnXXX 模式，而非常规的 GetXXX 模式。
 [/REGION]
 
-### Inherited Abstract Event
+### 继承的抽象事件
 
-**Base Class Implementation:**
+**基础类实现：**
 	
 	/** Register/Unregister a callback for when assets are added to the registry */
 	DECLARE_EVENT_OneParam( IAssetRegistry, FAssetAddedEvent, const FAssetData&);
 	virtual FAseetAddedEvent& OnAssetAdded() = 0;
 
-**Derived Class Implementation:**
+**派生类实现：**
 
 	DECLARE_DERIVED_EVENT( FAssetRegistry, IAssetRegistry::FAssetAddedEvent, FAssetAddedEvent);
 	virtual FassetAddedEvent& OnAssetAdded() override { return AssetAddedEvent; }
 
 [REGION:tip]
-When declaring a derived event in the derived class, you do not repeat the function signature in the `DECLARE_DERIVED_EVENT` macro. Also, the last parameter of the `DECLARE_DERIVED_EVENT` macro is 
-the new name for the event, and is generally the same as the base type.
+在派生类中声明一个派生事件时，不要在 `DECLARE_DERIVED_EVENT` 宏中重复函数签名。此外，`DECLARE_DERIVED_EVENT` 宏的最后一个参数是事件的新命名，通常与基础类型相同。
 [/REGION]
 
-### Inherited Event
+### 继承事件
 
-A derived class does not inherit access to a base class's sensitive event members. Instead, base classes with the intent 
-to allow derived classes to broadcast their events will need to expose a protected Broadcast function for the event.
+派生类不会继承对基础类敏感事件成员的访问。允许派生类广播其事件的基础类需要公开事件受保护的广播函数。
 
-**Base Class:**
+**基础类：**
 	
 	public:
 	/** Broadcasts whenever the layer changes */

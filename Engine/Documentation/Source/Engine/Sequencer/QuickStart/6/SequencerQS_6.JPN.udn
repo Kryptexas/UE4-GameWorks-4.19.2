@@ -1,0 +1,55 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:6 - On Your Own!
+Crumbs:%ROOT%
+Description:This step offers some additional things to try with our sample scene and links to more documentation. 
+SkillLevel:Beginner
+Version:4.12
+Related:Engine\Sequencer
+Related:Engine\Sequencer\Overview
+checkpoint: editorqs
+ 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Engine\Sequencer\QuickStart\5 "%Engine\Sequencer\QuickStart\5:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Engine\Sequencer\QuickStart)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+Now that you have created a sample cinematic with Sequencer, you can try several of the How-to's to add to this scene. 
+
+Try some of the following on your own: 
+
+* Try to fade the scene in/out use a [**Fade Track**](Engine/Sequencer/HowTo/TracksFade). 
+* Make the Character in the level walk using more [**Character Animation**](Engine/Sequencer/HowTo/CharacterAnimation).
+* Add Music from the **Content/StarterContent/Audio** folder with an [**Audio Track**](Engine\Sequencer\HowTo\TracksAudio). 
+* Add a [**Crane**](Engine\Sequencer\HowTo\CameraRigCrane) or [**Rail**](Engine\Sequencer\HowTo\CameraRigRail) shot to the scene. 
+* Cause the scene to enter slow motion with the [**Play Rate**](Engine\Sequencer\HowTo\TracksPlayRate) track. 
+
+Try to re-create a similar scene: 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+88egahbLEWo
+[/PARAMLITERAL]
+[/OBJECT]
+
+%Steps%
+
+

@@ -1,158 +1,158 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3009005
 Availability:Public
-Title: Sequencer Cheat Sheet
-Crumbs: %ROOT%, Engine
-Description:Shortcuts and Keyboard Bindings you can use to increase your Sequencer productivity.
+Title:Sequencer 速查表
+Crumbs:%ROOT%, Engine
+Description:可用来提高 Sequencer 工作效率的快捷键和键盘组合键。
 Navigation:topic
 parent:Engine\Sequencer\Workflow
 order:1
-Version: 4.12
-Related: Engine\Sequencer\Overview
-Related: Engine\Sequencer\ReferenceEditor
-Related: Engine\Sequencer\HowTo
+Version:4.12
+Related:Engine\Sequencer\Overview
+Related:Engine\Sequencer\ReferenceEditor
+Related:Engine\Sequencer\HowTo
 
 [TOC(start:2 end:2)]
 
-To improve your productivity, several shortcuts have been built into the Sequencer Editor. While some of these shortcuts are readily apparent and indicated through the menus, some key bindings are a bit hidden. This page covers the most commonly used actions, shortcuts and bindings to working with Sequencer.
+为了提高您的工作效率，在 Sequencer 编辑器中构建了一些快捷键。虽然某些快捷键显而易见并通过菜单指出，但部分键盘组合键不易了解。本页列出 Sequencer 中最常用的操作、快捷键和键盘组合键。
 
-## Playback Shortcuts
+## 播放快捷键
 
 ![](Playback.png)
 
-| Command | Description |
+| 命令 | 说明 |
 | ---- | ----------- |
-| **Spacebar** | Play or Pause Playback for the selected sequence. |
-| **Down Arrow** | Plays the selected sequence. |
-| **Up Arrow** | Returns to the start of the of the assigned Playback Range. |
-| **Left Arrow** | Step backwards in the current sequence. |
-| **Right Arrow** | Step fowards in the current sequence. |
-| **[** | Sets the start of Playback Range to the current time. |
-| **]** | Sets the end of Playback Range to the current time. |
+| **空格键** | 播放或暂停所选序列的播放。|
+| **向下箭头** |播放所选序列。|
+| **向上箭头** |返回到所指定播放范围的开始位置。|
+| **向左箭头** |在当前序列中逐帧回退。|
+| **向右箭头** |在当前序列中逐帧前进。|
+| **[** | 将播放范围的起点设置为当前时间。|
+| **]** | 将播放范围的终点设置为当前时间。|
 
 
-## Keyframe Window Navigation
+## 关键帧窗口导航
 
 ![](KeyframeWindow.png)
 
 
-### Basic Navigation
+### 基本导航
 [EXCERPT:keyframe]
-| Command | Description |
+| 命令 | 说明 |
 | ---- | ----------- |
-| **Right-click Drag** | Allows you to move around keyframe window. |
-| **Ctrl + Mouse Wheel In/Out** | Zoom in/out in the Keyframe window.  |
-| **Home** | Resets the zoom/view range of the Keyframe window. |
-| **-** and **=** | Zoom into and out of the view range by 10%. |
-| **,** and **.** | Moves backwards and forwards between placed keyframes. |
-| **Left-click Drag** | Creates a selection box around keys in the window. |
-| **Left-click** on a key | Selects the key. |
-| **Right-click** on a key | Displays the Context Menu where you can define properties for the key. |
-| **Middle Mouse** | Creates a key at the mouse position. |
-| **Enter** | Set a key on the selected tracks at the current time. |
-| **Ctrl + G** | Go to a set time/frame in the sequence. |
-| **I** | Sets the start of Selection Range. |
-| **O** | Sets the end of Selection Range. |
+| **右键单击拖动** |允许您在关键帧窗口中随意移动。|
+| **Ctrl + 鼠标滚轮上下滚动** | 在关键帧窗口中放大/缩小。|
+| **Home 键** | 重置关键帧窗口的缩放/视图范围。|
+| **-** 和 **=** | 以 10% 为增量缩放视图范围。|
+| **,** 和 **.**| 在设置的关键帧之间前后移动。|
+| **左键单击拖动** | 在窗口中的键周围创建一个选择框。|
+| **左键单击** 键 | 选中该键。|
+| **右键单击** 键 | 显示快捷菜单，您可在其中定义该键的属性。|
+| **按鼠标中键** | 在鼠标所在位置创建一个键。|
+| **Enter 键** | 在所选轨道的当前时间位置设置一个键。|
+| **Ctrl + G** | 转到序列中设定的时间/帧。|
+| **I** | 设置选择范围的起点。|
+| **O** | 设置选择范围的终点。|
 [/EXCERPT:keyframe]
 
-### Key Interpolation Shortcuts
+### 键插值快捷键
 
 ![](KeyInterp.png)
 
-You can use the following keys to set the keyrame interpolation method for the selected key(s).
+您可使用下列键来设置所选键的关键帧插值方法。
 
 [REGION:note]
-The commands below do not respond to Numpad entries.
+以下命令不会对数字键盘上的输入作出回应。
 [/REGION]
 
-| Command | Description |
+| 命令 | 说明 |
 | ---- | ----------- |
-| **1** | Set the selected key to use an auto tangent. |
-| **2** | Set the selected key to use a user defined tangent. |
-| **3** | Set the selected key to use a break tangent. |
-| **4** | Set the selected key to use a linear tangent. |
-| **5** | Set the selected key to use a constant tangent. |
+| **1** | 将所选键设置为使用自动切线。|
+| **2** | 将所选键设置为使用用户定义的切线。|
+| **3** | 将所选键设置为使用间断切线。|
+| **4** | 将所选键设置为使用线性切线。|
+| **5** | 将所选键设置为使用常量切线。|
 
-## Editing Shortcuts
+## 编辑快捷键
 
 ![](Editing.png)
 
-Select a section in the Keyframe window (audio or animation asset, camera, etc.) and edit it with the commands below. 
+在关键帧窗口中选择某个片段（音频或动画资产以及摄像机，等等）之后，可使用下列命令进行编辑。 
 
-| Command | Description |
+| 命令 | 说明 |
 | ---- | ----------- |
-| **Ctrl + /** | Split the current section at the current time position. |
-| **Ctrl + ,** | Trim the current section left at the current time position. |
-| **Ctrl + .** | Trim the current section right at the current time position. |
+| **Ctrl + /** | 在当前时间位置分割当前片段。|
+| **Ctrl + ,** | 修剪掉当前片段中位于当前时间位置左侧的部分。|
+| **Ctrl + .**| 修剪掉当前片段中位于当前时间位置右侧的部分。|
 
 
-## Transform Track Shortcuts
+## 转换轨道快捷键
 
 ![](TransformKeys.png)
 
-Select an Actor in your level and use the commands below to add keyframes at the current time position. 
+在关卡中选择 Actor 后，使用以下命令可在当前时间位置添加关键帧。 
 
-| Command | Description |
+| 命令 | 说明 |
 | ---- | ----------- |
-| **S** with a Track selected | Adds a Transform Sub-Track (if it does not exist) and adds keys for Location, Rotation and Scale. |
-| **Shift + W** with a Track selected | Adds a Transform Sub-Track (if it does not exist) and adds a key for Location only. |
-| **Shift + E** with a Track selected | Adds a Transform Sub-Track (if it does not exist) and adds a key for Rotation only. |
-| **Shift + R** with a Track selected | Adds a Transform Sub-Track (if it does not exist) and adds a key for Scale only. |
+| 选中轨道后按 **S** | 添加一条转换子轨道（如果尚不存在该子轨道），并添加对应位置、旋转和比例的键。|
+| 选中轨道后按 **Shift + W** | 添加一条转换子轨道（如果尚不存在该子轨道），并只添加对应位置的键。|
+| 选中轨道后按 **Shift + E** | 添加一条转换子轨道（如果尚不存在该子轨道），并只添加对应旋转的键。|
+| 选中轨道后按 **Shift + R** | 添加一条转换子轨道（如果尚不存在该子轨道），并只添加对应比例的键。|
 
 [REGION:note]
-If you do not have a Transform track for the selected actor, one will be created when you use the shortcut commands. 
+如果没有用于所选 Actor 的“转换”轨道，那么使用快捷命令将创建该轨道。 
 [/REGION]
 
 
-## Workflow Shortcuts
+## 工作流程快捷键
 
-The following shortcuts can be used to improve adding content to Sequencer. 
+您可以使用下列快捷键向 Sequencer 快速添加内容。 
 
-### Auto Add to Sequencer
+### 自动添加到 Sequencer
 
-You can automatically add objects to Sequencer when dragging them into the viewport from the **Modes** panel or **Content Browser** provided you have a Level Sequence open. 
+打开关卡序列后，将对象从 **模式（Modes）**面板或 **内容浏览器** 拖到视口时，会将这些对象自动添加到 Sequencer。 
 
 ![](Workflow.png)
 
-| Command | Description |
+| 命令 | 说明 |
 | ---- | ----------- |
-| **Ctrl + Drag** asset into viewport | This will automatically add the object to Sequencer. |
-| **Shift + Drag** asset into viewport | This will automatically add the object to Sequencer as a **Spawnable**. |
+| **Ctrl + 拖动** 资产到视口 | 这会将对象自动添加到 Sequencer。|
+| **Shift + 拖动** 资产到视口 | 这会将对象作为 **可产生项** 自动添加到 Sequencer。|
 
 [REGION:note]
-You can also drag assets directly into Sequencer which will add them as a **Spawnable**. 
+您还可以将资产直接拖到 Sequencer 中，这会将它们添加为 **可产生项**。 
 [/REGION]
 
-### Quick Add Camera Option
+### 快速添加摄像机选项
 
-On the Sequencer toolbar you can click the camera icon to quickly add a **Cine Camera Actor** and **Camera Cuts** track to your sequence. 
+在 Sequencer 工具栏中，您可以单击摄像机图标，以向序列中快速添加 **电影摄像机 Actor** 和 **镜头切换** 轨道。 
 
 ![](CameraShortcut.png)
 
-The viewport automatically enters **Pilot** mode allowing you to quickly frame up your shots with **WASD** navigation controls. 
+视口会自动进入 **飞行（Pilot）**模式，这使您能够通过 **WASD** 导航控制快速定位镜头。 
 
-## Misc Shortcuts
+## 混合快捷键
 
-These shortcuts can be used to organize the layout of Sequencer or display settings. 
+这些快捷键可用来组织 Sequencer 布局或显示设置。 
 
-### Track Organization
+### 轨道组织
 
 ![](Organization.png)
 
-| Command | Description |
+| 命令 | 说明 |
 | ---- | ----------- |
-| **Ctrl + O** | Toggle for expanding/collapsing selected tracks. |
-| **Shift + O** | Toggle for expanding/collapsing selected tracks and its child tracks. |
+| **Ctrl + O** | 所选轨道的展开/折叠开关。|
+| **Shift + O** | 所选轨道及其子轨道的展开/折叠开关。|
 
 
-### Viewports
+### 视口
 
 ![](Viewports.png)
 
-| Command | Description |
+| 命令 | 说明 |
 | ---- | ----------- |
-| **Shift + C** | Switch the active viewport to a Cinematic Viewport view mode. |
-| **Shift + D** | Switch the active viewport to a Default Viewport view mode. |
-| **Ctrl + Shift + T** | Toggles the display of the Toolbar in the active viewport. |
-| **G** | Enters Game View (hides all editor icons from being displayed). |
+| **Shift + C** | 将活动视口切换到“过场动画视口”查看模式。|
+| **Shift + D** | 将活动视口切换到“默认视口”查看模式。|
+| **Ctrl + Shift + T** | 切换活动视口中工具栏的显示。|
+| **G** | 进入游戏视图（隐藏所有编辑器图标）。|
 
 

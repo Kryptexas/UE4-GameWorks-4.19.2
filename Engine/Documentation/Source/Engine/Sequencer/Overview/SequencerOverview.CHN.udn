@@ -1,82 +1,69 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3009005
 Availability:Public
-Title: Sequencer Overview
-Crumbs: %ROOT%, Engine
-Description:Sequencer is Unreal Engine 4's multi-track editor used for creating and previewing cinematic sequences in real time. 
+Title:Sequencer 概述
+Crumbs:%ROOT%, Engine
+Description:Sequencer 是虚幻引擎 4 的多轨道编辑器，用于实时创建和预览过场动画序列。 
 Navigation:topic
 parent:Engine/Sequencer
 order:1
-Version: 4.11
-Related: Engine\Sequencer\ReferenceEditor
-Related: Engine\Sequencer\HowTo
+Version:4.12
+Related:Engine\Sequencer\ReferenceEditor
+Related:Engine\Sequencer\HowTo
 
-
-[REGION:warning]
-This is a feature that is currently undergoing development and may not work as expected or may change in future revisions.
-[/REGION]
-
-The **Sequencer** Editor gives users the ability to create in-game cinematics through a specialized multi-track editor similar to [**Matinee**](Engine\Matinee\). 
-By creating **Level Sequences** and adding **Tracks**, users can define the make-up of each Track which will determine the content for their scene.
-Tracks can consist of things like Animation (for animating a character), Transformation (moving things around in the scene like Camera), Audio (for including a music or sound effect), as well as several other Track types.  
-
-This page covers the basics of the Sequencer Editor inside Unreal Engine 4. 
+**Sequencer** 编辑器使用户能够通过类似于 [**Matinee**](Engine\Matinee\) 的专用多轨道编辑器创建游戏过场动画。 
+通过创建 **关卡序列** 和添加 **轨道**，用户可以定义每条轨道的构成，而这些轨道将决定序列的内容。
+轨道可以包含动画（用于使角色动起来）、转换（在场景中移动摄像机等对象）、音频（用于包含音乐或音效），以及其他多种轨道类型。  
 
 [TOC(start:2 end:2)]
 
-[REGION:note]
-To work with Sequencer, you will need to enable it. Please see [](Engine\Sequencer\HowTo\EnableSequencer) for more information. 
-[/REGION]
+## 创建关卡序列
 
-## Creating Level Sequences
-
-The **Level Sequence** is the "container" for your cinematic scenes and must be created in order to begin working inside the Sequencer Editor. You can create a Level Sequence and directly place it inside of your level by choosing to create one from the **Toolbar** under **Cinematics** as seen below. 
+**关卡序列** 是过场动画场景的“容器”，必须先创建它们才能开始在 Sequencer 编辑器中工作。您可以从 **工具栏** 的 **过场动画（Cinematics）**下选择创建一个关卡序列，并将其直接放入关卡中，如下图所示。 
 
 ![](LevelSequence.png)
 
-This will add it to the level at which point it can be selected and its properties can be manipulated in the **Details** panel similar to a **Matinee Actor**. In the Details panel (below), you can define whether the Level Sequence will automatically play upon level start, the Play Rate for the sequence and whether the sequence should loop and other settings. 
+这会将它添加到关卡中，然后可以在关卡中选择它，用类似于 **Matinee Actor** 的 **细节（Details）**面板操纵其属性。在“细节”（Details）面板中（下图），您可以定义关卡序列是否在关卡启动时自动播放，序列的播放速率，序列是否应该循环播放，以及其他设置。 
 
 ![](DetailsPanel.png)
 
-How this differs from Matinee is that Level Sequences are self-contained pieces of information and you can embed a Level Sequence within another Level Sequence. 
-For example, you can create a Level Sequence that has animated characters in it and camera cuts as one scene that is part of a larger cinematic. 
+与 Matinee 不同之处是，关卡序列是自包含的资产，您可以将一个关卡序列嵌入另一个关卡序列中。 
+例如，您可以创建一个包含动画角色和摄像机的关卡序列作为一个场景，以其作为一段更大的过场动画序列的一部分。
 
-You can then create another Level Sequence which is your "master" sequence that contains all the individual Level Sequences (or scenes that you've created) and in this master sequence you can add an Audio Track to score the whole thing, or you could re-order and move the individual Level Sequences around to form your final cinematic sequence. 
-
-This is where the second method of creating Level Sequences comes into play which you can do from the **Content Browser** and **Add New** button under **Animation** (below). When doing so in this manor you are creating the Level Sequence asset but haven't explicitly placed it in the level. 
+创建关卡序列的第二种方法可在 **内容浏览器** 中执行：单击 **新增（Add New）**按钮，再选择 _动画（Animation）_下的 **关卡序列（Level Sequence）**。用这种方式创建的关卡序列资产是尚未显式地放入关卡中的。 
 
 ![](LevelSequence_B.png)
 
 
-## Adding Tracks to Sequencer
+## 向 Sequencer 添加轨道
 
-With a Level Sequence created and the Sequencer Editor open, you can begin creating your cinematic. 
+在创建关卡序列并打开 Sequencer 编辑器后，您可以开始创建过场动画。 
 
 ![](BlankScene.png)
 
 [REGION:caption]
-Above we have a newly created and empty Level Sequence.
+在上面我们创建了一个新的空关卡系列。
 [/REGION]
 
-The first thing you will need to do is add a **Track** type which you can do from the **Add** button drop-down menu. 
+您需要做的第一件事是添加 **轨道** 类型，可以从 **添加（Add）**下拉菜单进行操作。 
 
 ![](AddToSequencer.png)
 
-From the drop-down, you will see several Track types you can select from as well as the ability to add an **Actor To Sequencer**. The Actor To Sequencer option will allow you to add any Actors that you have selected in your level at the time to Sequencer so that you can manipulate them during your scene. 
+在下拉菜单中，你将看到多种可以选择的轨道类型，以及添加 **Actor 到 Sequencer（Actor To Sequencer）**的功能。“Actor 到 Sequencer”（Actor To Sequencer）选项允许您将您当时在关卡中选择的任何 Actor 添加到 Sequencer，以便在场景中操纵它们。 
 
-Typically if you are creating a cinematic that has characters, animals, creatures or anything along those lines that will animate and move you will have a Skeletal Mesh for it which you will need to add to Sequencer. 
-For example below we have a Skeletal Mesh of a bear that we have placed in our level. With it selected, we can then click the **Add** button in Sequencer and choose **Actor To Sequencer** so that we can add it and control it through the Sequencer Editor.
+通常，如果您要创建的过场动画中有角色、动物、怪物或任何类似的会做动作或移动的对象，您需要有它的骨骼网格，并且需要将网格添加到 Sequencer。 
+在下面的示例中，我们在关卡中放入了一头熊的骨骼网格。选中它以后，我们在 Sequencer 中单击 **添加（Add）**按钮，然后选择 **Actor 到 Sequencer（Actor To Sequencer）**添加它，以便通过 Sequencer 编辑器控制它。
 
 ![](AddBear.png)(w:640)
 
-Once we have added our Skeletal Mesh, we can then add **Sub-tracks** to affect that Skeletal Mesh. 
+添加骨骼网格后，我们可以添加影响该骨骼网格的 **子轨道**。 
 
 ![](SkeletalMeshTracks.png)
 
 [REGION:caption]
-Based on the type of Track you create, Sub-Tracks may be added and the ability to add Sub-Tracks may be available. 
+根据您创建的轨道类型，有可能可以添加子轨道，并可以使用添加子轨道的功能。 
 [/REGION]
 
-Below we select the Animation Sub-Track and assign an Animation for our Skeletal Mesh Bear to play. 
+我们在下面选择动画子轨道，并为我们的骨骼网格熊指定一段要播放的动画。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -86,37 +73,31 @@ Below we select the Animation Sub-Track and assign an Animation for our Skeletal
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-yCqXhA3UYeM
+KoksbI7ZOTM
 [/PARAMLITERAL]
 [/OBJECT]
 
-By adding more Tracks, we can continue to modify this scene. For instance, suppose we wanted to shoot this idle animation from multiple camera angles. We would add the cameras we want to the level, and then add them to Sequencer. Once added, we would then add a Camera Cuts track to switch between those cameras as shown below. 
+##可占据项与可生成项
 
-[OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-NeChZY18tpY
-[/PARAMLITERAL]
-[/OBJECT]
+Sequencer 与 Matinee 非常相似的一点是它使用了“可占据项”的概念，也就是说如果关卡中存在 Actor，Sequencer 将会占据它来应用您通过 Sequencer 对它作出的更改。 
 
+正如我们在上面的熊示例中所示，您可以在关卡中放置骨骼网格并添加到 Sequencer，然后在 Sequencer 中您可以向骨骼网格添加动画轨道，并为它指定在场景中要播放的不同动画。 
+我们“占据”存在的骨骼网格是为了告诉它要做些什么。Sequencer 还包含另一种被称作“可生成项”的操作对象，也就是说如果我们要占据的对象不存在，Sequencer 会在接到指示时“生成”该对象并有权操纵它，还可定义其生命周期。 
+
+那么这有什么好处呢？我什么时候应该选择使用“可生成”的对象？因为 Sequencer 是生成该对象的主人，所以对象并不绑定到特定关卡。任何被视作可生成项的对象都可以在任何关卡中使用，因此您可以创建一个场景，让它在任何环境中发生，并在新的关卡中复用它，而不必重新创建。 
 
 [REGION:note]
-Please see [](Engine\Sequencer\HowTo\TracksCameraCut) for a more detailed walk-through of using Cameras in Sequencer.
+请参见 [创建可生成项](Engine\Sequencer\HowTo\Spawnables\) 了解更多信息。 
 [/REGION]
 
 
-## Keyframing Scenes
+## 设置场景关键帧
 
-If you are familiar with external animation tools, the concept of using Keyframes to drive content may be familiar to you. 
-If you are not, in short Sequencer allows you to manipulate your content by adding **Keys** (referred to as Keyframing) with defined properties at desired points along a timeline. 
-When reaching those keys in the Timeline, the properties you have defined at each keyframe are updated to reflect the value you've entered.
+如果您熟悉外部动画工具，那么可能也熟悉使用关键帧驱动内容的概念。 
+如果您不熟悉，那么简单说来，就是 Sequencer 允许您通过在时间轴上的所需点添加带有定义属性的 **键**（称为设置关键帧）来操纵你的内容。 
+当在时间轴上到达这些键时，您在每个关键帧上定义的属性会更新，以反映您输入的值。
 
-Continuing with our bear scene, we can visualize this process by adding movement to the cameras that we placed through keyframes. 
+以下样本场景演示通过为骨骼网格 Actor 的不同转换建立关键帧来添加移动的过程。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -126,132 +107,144 @@ Continuing with our bear scene, we can visualize this process by adding movement
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-4Nim4vwT4v8
+dVDNJkQxlRk
 [/PARAMLITERAL]
 [/OBJECT]
 
 [REGION:caption]
-Above we added Keyframes for the Location Transform by pressing **Enter** with the Track selected. 
+在上面的步骤中，我们已经为 **位置** 轨道的开始位置添加一个关键帧，并为结束位置添加了另一个关键帧。
 [/REGION]
+
+要添加关键帧，您可选择轨道并按 **Enter** 键，或者单击各个轨道上的“添加关键帧”按钮。 
+
+![](KeyframeButton.png)
+
+对于 Actor 的 **细节（Details）**面板中的部分属性，您可通过单击各属性旁边的“添加关键帧”按钮为其添加关键帧。 
+
+![](KeyframeDetails.png)
+
+[REGION:caption]
+在上图中，对于电影摄像机 Actor 的“当前焦距”（Current Focal Length）和“光圈”（Aperture）设置，显示了关键帧按钮。 
+[/REGION]
+
+
 
 [REGION:tip]
-With a Track containing Keyframes selected, you can press the **<** and **>** keys to quickly move between each placed keyframe. 
+选择包含关键帧的轨道后，您可以按 **,** 和 **.** 键在每个已放置的关键帧之间快速移动。 
 [/REGION]
 
 
-### Playback Range
+### 播放范围
 
-Sequencer will playback your scenes based on the defined Start and Stop playback ranges (green/red markers below). 
+Sequencer 将根据定义的开始和停止播放范围（下图的绿色/红色标记）播放您的场景。 
 
 ![](PlaybackRange.png)
 
 [REGION:caption]
-Above our content only lasts 150 frames but our scene is set to extend all the way to 200 frames, leaving us with some dead space. 
+在上图中，我们的内容包含两个在第 600 帧结束的镜头，但我们的序列延伸到第 1000 帧，这导致存在空白。 
 [/REGION]
 
-You can drag the Start and Stop Playback markers to fit your content or there is an option that can be set which will keep your content within these ranges. You can find it under the Sequencer Options drop-down menu and enabling **Keep Playback Range In Section Bounds**. 
+您可以拖动开始和停止播放标记来配合您的内容，也可选择一个选项，使您的内容保持在这些范围内。您可以在 Sequencer“选项”（Options）下拉菜单中找到该选项，启用 **使播放范围保持在片段边界中（Keep Playback Range In Section Bounds）**。 
 
 ![](KeepInRange.png)
 
-##Specialized Viewports
+##专用视口
 
-Sequencer allows you to use specialized viewports to make the editing process easier. 
+Sequencer 允许您使用专用视口简化编辑过程。 
 
 ![](SpecialViewports.png)
 
-These viewports give you a better idea of what the final scene will look like and [can be enabled](Engine\Sequencer\HowTo\ViewportOptions) from the **Viewport** options button. 
+这些 [**过场动画视口**](Engine\Sequencer\HowTo\ViewportOptions) 可使您更好地了解场景外观，并可通过 **视口（Viewport）**选项按钮启用。 
 
+##过场动画 Actor
 
-##Possessables vs. Spawnables
+在 **过场动画（Cinematic）**下的 **模式（Modes）**面板中，有三个可用于操纵过场动画的过场动画 Actor。 
 
-Sequencer is very similar to Matinee in that it uses the concept of "possessables" meaning that an Actor exists in the level and Sequencer will take possession of it in order to apply changes you make to it via Sequencer. 
+![](CineTools.png)
 
-As illustrated in our bear examples above, you can place a Skeletal Mesh in the level and add it to Sequencer, then inside Sequencer you can add an Animation Track to the Skeletal Mesh and assign different animations for it to play during your scene. 
-We are "possessing" that Skeletal Mesh that exists in order to tell it what to do. Sequencer also includes another form of manipulation which is referred to as "spawnables" meaning that the object we are possessing does not exist and Sequencer will "spawn" the object when told to and has the authority over it and can determine its lifecycle. 
+您可将其中任何过场动画 Actor 拖到关卡内，然后将其添加到 Sequencer，也可直接将其拖到 Sequencer 中（这将使其成为可生成项）。 
 
-So how is this beneficial and when would I elect to use a "spawnable" object? Since Sequencer is the owner and spawns the object, it is not bound to a particular level. Anything deemed as spawnable can be used in any level, so you could create a scene and have it take place in any environment and reuse it in new levels without having to recreate it. 
+### 摄像机吊臂
+
+摄像机吊臂 Actor 可用来模拟传统电影摄制中类似于吊臂的摄像机移动。 
+
+![](Crane.png)(w:480)
+
+您可将一个摄像机附加到摄像机吊臂 Actor，然后通过 **细节（Details）**面板和 **吊臂控件（Crane Controls）**值来操纵吊臂移动。这些值可以影响吊臂倾斜角、吊臂旋角和吊臂长度。在 Sequencer 中可以为这些值建立关键帧，这将允许您在过场动画期间根据需要调整这些值。 
 
 [REGION:note]
-Please see [](Engine\Sequencer\HowTo\Spawnables\) for more information. 
+请参见 [创建可生成项](Engine\Sequencer\HowTo\Spawnables\) 了解更多信息。 
+[/REGION]
+
+### 摄像机轨道
+
+摄像机轨道 Actor 是基于样条的工具，您可将摄像机附加到此工具，以提供移动“路径”。 
+
+![](Rail.png)(w:480)
+
+您可选择每个样条点并改变切线，以产生要让摄像机遵循的路径。附加到轨道的摄像机可以独立旋转，摄像机在轨道上所处的位置可通过 **细节（Details）**面板中的 **轨道上的当前位置（Current Position on Rail）**属性进行调整。可以为此值建立关键帧，这将允许您通过 Sequencer 来改变值。 
+
+[REGION:note]
+请参见 [创建可生成项](Engine\Sequencer\HowTo\Spawnables\) 了解更多信息。 
+[/REGION]
+
+### 电影摄像机 Actor
+
+电影摄像机 Actor 与默认摄像机 Actor 类似，但提供了更多摄像机设置。 
+
+![](CineCamera.png)(w:480)
+
+[REGION:caption]
+上图显示电影摄像机 Actor（黑色摄像机）和默认摄像机 Actor（蓝色摄像机）。 
+[/REGION]
+
+电影摄像机 Actor 提供了观看追踪（追踪 Actor）设置、菲林板设置（16:9 DSLR、超级 8mm 和 35mm VistaVision 等等）、镜头和聚焦设置以及当前光圈和焦距设置。虽然使用普通的摄像机 Actor 就可以获得不错的效果，但为了实现更强烈的过场动画感受并公开更多摄像机设置，建议您使用电影摄像机 Actor 来拍摄场景。 
+
+[REGION:note]
+请参见 [创建可生成项](Engine\Sequencer\HowTo\Spawnables\) 了解更多信息。 
 [/REGION]
 
 
-##Render Movie Settings
+##序列记录
 
-Within Sequencer, you can choose to render out your cinematic to a Video or Image Sequence from the **Render Movie Settings** option. 
+有一个可用来缩短内容创建时间的工具是 **序列记录器**，它可记录游戏（或关卡序列）以生成新的关卡序列资产。 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+mvCPXslVb8Y
+[/PARAMLITERAL]
+[/OBJECT]
+
+添加新记录，选择要记录的 Actor，然后单击“记录”（Record）以开始捕获。停止记录时将会创建新的关卡序列资产，您可将这些资产合并到现有的过场动画中，或者使用所记录的关卡序列中的片段来创建新序列。
+
+[REGION:note]
+请参见 [**记录游戏**](Engine/Sequencer/HowTo/SequenceRecorder) 了解更多信息。 
+[/REGION]
+
+##渲染电影设置
+
+在 Sequencer 中，您可以通过 **渲染电影设置（Render Movie Settings）**选项选择将过场动画渲染为视频或图像序列。 
 
 ![](RenderMovie.png)
 
-This will display the **Render Movie Settings** window which you can use to define how your scene is rendered. 
+此选项将显示 **渲染电影设置（Render Movie Settings）**窗口，您可以用它定义如何渲染场景。 
 
 ![](CaptureMovie.png)
 
-Click the **Capture Movie** button to start the capture process of recording your scene. 
+单击 **采集电影（Capture Movie）**可开始记录场景的采集过程。 
 
 
-## Workflow Considerations
+## 工作流程考虑事项
 
-Based on your team composition, you may want to consider some of the following workflows when working with Sequencer. 
+对 Sequencer 编辑器的工作方式有了基本了解之后，您可以考虑使用该工具的方式，因为可以通过多种不同的方法来编写内容。无论您是在单个关卡序列中创建所有内容，使各个序列相互嵌套并使用主序列来控制所有这些序列，还是从使用主序列资产入手，Sequencer 都会提供多种可生成过场动画的方法。 
+
 
 [REGION:note]
-These are merely suggestions, feel free to experiment and go with what works best for you in your situation. 
+请参见 [**工作流程考虑事项**](Engine\Sequencer\Workflow\ToolUsage) 了解更多信息。 
 [/REGION]
-
-### Linear Workflow
-
-In this workflow, a single Level Sequence is used and all content for the cinematic is authored inside it. This type of workflow might best be suited for an individual who is working on their own project and does not need to collaborate with others on the cinematic. 
-
-* A Level Sequence is created that contains all characters, animations, lights and other objects that will be in your cinematic.
-* Each scene in the cinematic is set up with its content. Animations, movement, lighting, etc. are all defined. 
-* With the content for the cinematic set up, cameras are moved into position to shoot each scene. 
-* Camera cuts are provided with a **Camera Cuts** Track to mold the sequence into the final cinematic. 
-* Audio is added to the Level Sequence and finishing touches are applied. 
-
-
-### Non-Linear Workflow
-
-In a non-linear workflow, content is split up into multiple Level Sequences which are then added to another "master" Level Sequence. 
-Since each scene is split up into its own Level Sequence, you can work on any sequence you want and then "arrange" the order of shots in the master Level Sequence. 
-
-* A Level Sequence is created for each "scene" of your cinematic and a Master Level Sequence is created to tie all scenes together. 
-* Each scene is set up with its content (not worrying about Cameras, just content). Characters, animation and movement are all added. 
-* Each Level Sequence is added to the Master Level Sequence where a Lead can author and set up the camera work for each scene. 
-* The Lead can also add any other effects, audio or other finishing touches from the Master level without having to add all the content. 
-
-Other considerations: 
-
-* Each scene that is its own Level Sequence can have cameras assigned and camera work set up in it instead.
-	* When that scene is added to the Master Level sequence, there would be no need to do any camera work.
-	* When that scene is played during the Master Level sequence, the camera work in the scene is used. 
-	* This allows each scene to be set up as its own mini sequence and tied together with the Master Level Sequence. 
-	* A Lead could then arrange each scene to form the final cinematic and jump into each scene to make changes if need be. 
-* With a **Shots** track, **Takes** can be used to provide variations of each scene within the Master Level Sequence. 
-	* This will create a duplicate of the Level Sequence and allow you to modify the "take" instead of the original. 
-
-[REGION:note]
-For an example of this, please see the [](Engine\Sequencer\HowTo\TracksShot) page. 
-[/REGION]
-
-
-		
-### Collaborative Workflow
-
-In a collaborative workflow, you would take the concepts of the non-linear worfklow but also add the ability for people to work concurrently on the same scenes without affecting each other�s work. 
-With a **Subscenes** Track, you could create Level Sequences for each aspect of each scene and overlap them so multiple people can work on a shot at once which is the traditional method applied to film.  
-
-Something to the effect of:
-
-* Master Sequence
-	* Shot 1 (Level Sequence)
-		* Shot 1 Lighting (Level Sequence on Subscene Track)
-		* Shot 1 Camera (Level Sequence on Subscene Track)
-		* Shot 1 Skeletal Animation (Level Sequence on Subscene Track)
-		* Shot 1 FX (Level Sequence on Subscene Track)
-
-Each aspect of the shot would be its own Level Sequence that when composited with each other produces the final shot. 
-
-[REGION:note]
-For an example of this, please see the [](Engine\Sequencer\HowTo\TracksSub) page. 
-[/REGION]
-
-

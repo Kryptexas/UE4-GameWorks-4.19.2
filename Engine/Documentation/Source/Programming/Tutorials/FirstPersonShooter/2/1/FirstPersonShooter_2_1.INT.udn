@@ -44,56 +44,6 @@ Although you can manually add \*.h and \*.cpp files to your Visual Studio soluti
 	Now that you've created your FPSCharacter class, you can switch to **Visual Studio** to add code to your newly created class. `FPSCharacter.h` and `FPSCharacter.cpp` will be opened for you and Unreal Engine will automatically compile and reload the code for your new class.
 	[/REGION]
 
-## Editing the Game Mode Class
-
-First, you're going to edit your **GameMode** so that FPSCharacter is the default Pawn used when starting gameplay.
-
-1.	In the **Solution Explorer**, expand **FPSProject > Source > FPSProject**.
-
-	![](ExpandedSolutionExplorer.png)
-
-1.	Double-click `FPSProjectGameMode.cpp` to open the implementation file for your **FPSProjectGameMode** class.
-
-1.	First, include the `FPSCharacter` header at the top of `FPSProjectGameMode.cpp`:
-
-		#include "FPSCharacter.h"
-
-1.	Now, add the following line in your `AFPSProjectGameMode` constructor:
-
-		DefaultPawnClass = AFPSCharacter::StaticClass();
-
-1.	`FPSGameMode.cpp` should now look like the following:
-
-		// Fill out your copyright notice in the Description page of Project Settings.
-		
-		#include "FPSProject.h"
-		#include "FPSProjectGameMode.h"
-		#include "FPSCharacter.h"
-		
-		AFPSProjectGameMode::AFPSProjectGameMode()
-		{
-			DefaultPawnClass = AFPSCharacter::StaticClass();
-		}
-		
-		void AFPSProjectGameMode::StartPlay()
-		{
-			Super::StartPlay();
-		
-			StartMatch();
-		
-			const int32 Key = -1;
-			static const FString DebugMessage = TEXT("Hello World, this is FPSGameMode!");
-			FColor DisplayColor = FColor::Yellow;
-			float TimeToDisplay = 5.0f; //seconds
-		
-			if (GEngine != nullptr)
-			{
-				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
-			}
-		}
-
-1.	Save the `FPSProjectGameMode.cpp` implementation file in Visual Studio.
-
 ## Verifying the Character Class
 
 1.	In the **Solution Explorer**, expand **FPSProject > Source > FPSProject**.
@@ -104,15 +54,10 @@ First, you're going to edit your **GameMode** so that FPSCharacter is the defaul
 
 1.	Add the following lines of code in the `BeginPlay()` function to verify that `FPSCharacter` class is being used:
 
-		const int32 Key = -1;
-		static const FString DebugMessage = TEXT("We are using FPSCharacter.");
-		FColor DisplayColor = FColor::Red;
-		float TimeToDisplay = 5.0f; //seconds
-
-		if (GEngine != nullptr)
+		if (GEngine)
 		{
-			GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
-
+			// Put up a debug message for five seconds. The -1 "Key" value (first argument) indicates that we will never need to update or refresh this message.
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
 		}
 
 1.	`FPSCharacter.cpp` should now look like the following:
@@ -135,15 +80,10 @@ First, you're going to edit your **GameMode** so that FPSCharacter is the defaul
 		{
 			Super::BeginPlay();
 			
-			const int32 Key = -1;
-			static const FString DebugMessage = TEXT("We are using FPSCharacter.");
-			FColor DisplayColor = FColor::Red;
-			float TimeToDisplay = 5.0f; //seconds
-		
-			if (GEngine != nullptr)
+			if (GEngine)
 			{
-				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
-		
+				// Put up a debug message for five seconds. The -1 "Key" value (first argument) indicates that we will never need to update or refresh this message.
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
 			}
 		}
 		
@@ -172,6 +112,43 @@ First, you're going to edit your **GameMode** so that FPSCharacter is the defaul
 1.	After the build finishes, open Unreal Editor to verify that your newly compiled **FPSCharacter** class is visible in the **Content Browser**.
 
 	![](FPSCharacterContentBrowser.png)
+
+## Extending your CPP FPS Character Class to Blueprints
+
+Now is a good time to extend the CPP FPS Character class to Blueprints. Please feel free to go to our [](Gameplay/ClassCreation/CodeAndBlueprints) reference page to learn more about extending
+C++ classes to Blueprints.
+
+1.	Right-click the `FPSCharacter` class to open the **C++ Class Actions** menu.
+
+	![](CPPClassActionsMenu.png)
+
+1.	Click **Create Blueprint class based on FPSCharacter** to open the **Add Blueprint Class** dialog menu.
+
+	![](CreateDerivedBPClass.png)
+
+1.	Name your new Blueprint Class "BP_FPSCharacter" and choose the Blueprints folder before clicking the **Create Blueprint Class** button.
+
+	![](AddBPClass.png)
+
+1.	By now, you should have a newly created `BP_FPSCharacter` Blueprint Class located inside of the Blueprints folder.
+
+	![](AddedBPClass.png)
+
+1.	Make sure to save your `BP_FPSCharacter` Blueprint before closing the Blueprint Editor.
+
+## Setting the Default Pawn Class
+
+Now that we've successfully extended our newly modified Game Mode to Blueprints, we'll need to set our project to use `BP_FPSCharacter` as the default **Pawn** in this step.
+
+1.	In the **Edit** menu, click on **Project Settings**.
+
+1.	Under the **Project** heading on the left side of the **Project Settings** tab, click on **Maps & Modes**.
+
+1.	Select **BP_FPSCharacter** in the **Default Pawn** dropdown menu.
+
+	![](SettingFPSCharacter.png)
+
+1.	Close the **Project Settings** menu.
 
 1.	Click the **Play** button in the Level Editor Toolbar. "We are using FPSCharacter." should now be displayed in red text below "Hello World, this is FPSGameMode!" for five seconds in the upper left corner of the viewport.
 

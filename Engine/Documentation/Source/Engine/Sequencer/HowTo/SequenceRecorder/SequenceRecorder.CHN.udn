@@ -1,61 +1,61 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Record Gameplay as a Sequence
-Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
-Description:Record your gameplay actions with the Sequence Recorder and use that data inside Sequencer.
-Version: 4.11
-SkillLevel: Advanced
+﻿INTSourceChangelist:3007759
+Availability:Public
+Title:记录游戏
+Crumbs:%ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:用序列记录器记录您的游戏运行操作，并将该数据用于 Sequencer 中。
+Version:4.12
+SkillLevel:Advanced
 parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
-Related: Engine/Sequencer/Overview
-Related: Engine\Sequencer\ReferenceEditor\
+Related:Engine/Sequencer/Overview
+Related:Engine\Sequencer\ReferenceEditor\
 
-[REGION:warning]
-This is a feature that is currently undergoing development and may not work as expected or may change in future revisions.
-[/REGION]
+**序列记录器** 允许您在游戏运行中捕获指定的 Actor，然后将其另存为新的 **关卡序列**，并可在 **Sequencer** 中编辑。 
+这对于快速捕获场景的内容很有用，因为您可以让一个可操纵的角色在游戏运行时执行一些操作，同时用序列记录器进行记录，然后将该数据输入 Sequencer 中，围绕它创建一段过场动画。 
 
-The **Sequence Recorder** allows you to capture specified Actors during gameplay which are then saved as a new **Level Sequence** which can be edited inside **Sequencer**. 
-This is useful for quickly capturing content for scenes as you can take a playable character, perform some actions during gameplay while recording with the Sequence Recorder then take that data into Sequencer and create a cinematic around it. 
-
-In this example, we will use the **Sequence Recorder** to record our playable character movement which we can then edit. 
+在这个示例中，我们将使用序列记录器记录我们的可操纵角色的运动，随后我们可以对其进行编辑。 
 
 
-## Steps
+## 步骤
 
 [REGION:note]
-For this how-to, we are using the **Blueprint Third Person Template** project with **Starter Content Enabled**. 
+在本操作指南中，我们使用 **Blueprint Third Person Template** 项目，并 **启用了起步内容**。 
 [/REGION]
 
-1.	With [**Sequencer & Sequence Recorder**](Engine\Sequencer\HowTo\EnableSequencer) enabled, from the **Menu Bar** under **Window** select **Sequence Recorder**. 
+1. 	从 **菜单栏（Menu Bar）**中的 **窗口（Window）**下方，选择 **序列记录器（Sequence Recorder）**。 
 
-	[REGION:raw]
 	![](RecorderStep1.png)
-	[/REGION]
+	
+	“序列记录器”（Sequence Recorder）窗口将自动打开。 
+	**序列记录（Sequence Recording）** 下的一些选项可确定新关卡序列资产的保存方式及保存位置。 
+	您可以选择记录产生的 Actor（例如粒子效果和其他角色等等），确定命名约定和保存位置，以及更改其他设置（例如记录持续时间或开始记录前的延迟）。 
+	
+1. 	在主编辑器工具栏中，单击 **运行（Play）**开始在编辑器会话中运行。 
 
-	The Sequence Recorder window will automatically open. There are some options under **Sequence Recording** which you can mouse over to get an idea of what each will do (for example, setting the name of the recorded sequence as well as the save location, the duration and others). For this example we will leave these all as default. 
+1. 	进入游戏后，按 **Shift+F1** 取得鼠标控制权。 
 
-1.	From the Main Editor Toolbar, click the **Play** button to start a Play in Editor session. 
-
-1.	Press **Shift+F1** to gain mouse control once inside game. 
-
-1.	On the **Sequence Recorder** window, click the **Add** button. 
+1. 	在 **序列记录器（Sequence Recorder）**窗口上，单击 **添加（Add）**按钮。 
 	
 	![](SequenceRecorderAdd.png)
 
-1.	Click on the new item labeled **None**, then under **Actor Recording** click the drop-down and select **ThirderPersonCharacter**. 
+1. 	单击新记录，然后对于 **要记录的 Actor（Actor to Record）**单击下拉菜单并选择 **ThirdPersonCharacter**。 
 
 	![](ActorToRecord.png)
 
-	This is where we specify which Actor(s) you want to record before starting the recording process. There are some additional settings here that you can explore, but for this example we will leave them as default. 
+	这是开始记录过程前我们指定哪个 Actor 是记录目标的位置。 
 
-1.	Click the **Record** button. 
+1. 	单击 **记录（Record）**按钮。 
 
 	![](RecordStart.png)
 
-	After 4 seconds (which is the **Record Delay** option under the Sequence Recording section), the record process will start. 
+	4 秒钟后（这是“序列记录”（Sequence Recording）部分的 **记录延迟（Record Delay）**选项所设定的），记录过程将开始。 
 
-1.	Use the **WASD** and **Spacebar** keys to move the character around and (or) jump and press **ESC** when done.
+	[REGION:note]
+	单击 **记录（Record）**按钮时，还将记录列表中所有已设置为受追踪的 Actor。 
+	[/REGION]
+
+1. 	使用 **WASD** 和 **空格** 键使角色移动和跳跃，完成后按 **ESC** 键。
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -65,22 +65,22 @@ For this how-to, we are using the **Blueprint Third Person Template** project wi
 	360
 	[/PARAMLITERAL]
 	[PARAMLITERAL:videoid]
-	M_mptcDeAtA
+	xo5JRkV3_nI
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-	Above is the sequence we recorded, however if you have a character that can attack or perform other actions, feel free to use that. 
+	以上是我们记录的序列。但是，如果您的角色还能攻击或执行其他操作，您大可让其做出这些操作。 
 
-1.	Inside the **Content Browser** a new folder will be created containing assets related to the recorded sequence. 
+1. 	在 **内容浏览器** 中将创建一个新的文件夹，其中包含与所记录序列相关的资产。 
 
 	![](RecordedAssets.png)
 
-	A **Level Sequence** as well as a folder containing an **Animation Sequence** based on the actions you performed. 
+	记录完成后，将创建一个包含过场动画数据的 **关卡序列** 资产以及包含动画数据的 **动画序列**。 
+	 
 
+## 最终结果
 
-## End Result
-
-You can now open the **RecordedSequence** asset and begin editing it as you would a normal Level Sequence (adding cameras, lights, effects, other characters and more). Below we created a sample scene with some cameras, a **Camera Cuts** track to cycle between the different camera angles, and a **Fade** Track to fade the scene in/out. 
+现在您可以打开 **RecordedSequence** 资产，并开始像编辑普通关卡序列一样进行编辑。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -90,10 +90,12 @@ You can now open the **RecordedSequence** asset and begin editing it as you woul
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-O3RrRKpwCnI
+hR5zBjYO5Oc
 [/PARAMLITERAL]
 [/OBJECT]
 
+以上是我们记录的序列，我们可以在其中添加摄像机和 [**镜头切换**](Engine/Sequencer/HowTo/TracksCameraCut) 轨道，以提供多个角度、音乐、效果或者我们所需的任何内容。 
+我们甚至可以将此序列作为 [**镜头轨道**] (Engine/Sequencer/HowTo/TracksShot) 的一部分嵌入到另一个序列中。 
 
 
 
@@ -106,3 +108,4 @@ O3RrRKpwCnI
 
 
 	
+

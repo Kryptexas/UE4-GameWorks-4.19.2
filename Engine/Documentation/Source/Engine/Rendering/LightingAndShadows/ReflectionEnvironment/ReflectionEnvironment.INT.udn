@@ -445,78 +445,6 @@ Some new show flags have been added which are useful for isolating down the comp
 | **Lighting Features > ReflectionEnvironment** | This will disable the Reflection Environment feature, but other reflection features will still be active (SSR, analytical specular). |
 
 
-## Planar Reflections
-UE4 has support for real-time Planar Reflection that can give more accurate looking reflections than Screen Space Reflections (SSR) provide but come with a higher rendering cost. This higher rendering cost is due to how Planar Reflection works, as Planar Reflection actually renders the level again from the direction of the reflection. This will increase the BasePass triangle cost by ~15% regardless of whether Planar Reflections are used or not. 
-
-![](Planar_Reflections_00.png)
-
-### Screen Space Reflections VS Planar Reflections 
-Screen Space Reflections (SSR) are much more efficient than Planar Reflections when it comes to rendering, but are also much less reliable.The image comparison below shows the limits of SSR versus Planar Reflections. 
-
-[OBJECT:ComparisonSlider]
-	[PARAM:before]
-	![Screen Space Reflections](SSR_Relections_00.png)(w:800 h:500)
-	[/PARAM]
-	[PARAM:after]
-	![Planar Reflections](PR_00.png)(w:800 h:500)
-	[/PARAM]
-[/OBJECT]
-
-* **Screen Space Reflections:** The image on the left shows the limitation of Screen Space Reflections. Notice the significant amount of 'leaking' that happens at the edges of the image. This happens because SSR can not reflect objects that are off-screen. 
-
-* **Planar Reflections:** The image on the right shows the same level, however, this time, Planar Reflections have been enabled. Notice how there is no leaking in the image, even at the sides. This is because Planar Reflections can reflect objects that are off-screen.
-
-### Enabling Planar Reflections 
-To use enable and use Planar Reflections in your project you will need to do the following:
-
-1. From the Main Toolbar go to **Edit**> **Project Settings** and from the Project Settings menu, go to the **Rendering** > **Optimizations** section.
-	
-	[REGION:lightbox]
-	[![](PR_Project_Settings_00.png)(w:650 h:350)](PR_Project_Settings_00.png)
-	[/REGION]
-
-1. Click on the check box next to **Support global clip plane for Planar Reflections** and re-start the UE4 Editor when prompted. 
-	
-	![](PR_Enable_PR_00.png)
-
-	[region:warning]
-	Failing to re-start the UE4 Editor after Planar Reflections are enabled will result in Planar Reflections not working.
-	[/region]
-
-1. Once the UE4 Editor restarts, go to the **Modes** panel and from the **Visual Effects** section, select and drag a **Planar Reflection Actor** to the level.
-
-	![](PR_Add_Actor_00.png)
-
-1. With the Planar Reflection Actor now placed in the level, use the **Move**, **Rotate**, and **Scale** tools to better position the Planar Reflection Actor to meet your levels needs. 
-	
-	[region:tip]
-	Any nearby reflective Materials will automatically be affected by the Planar Reflection Actor as soon as it is added to the level. Static Meshes that are placed in the level will also have their normals  used to distort the reflection, allowing for the simulation of waves. 
-	[/region]
-
-### Planar Reflection Actor Properties Breakdown
-The Planar Reflection Actor has a number of properties that when adjusted can greatly affect the look of the reflection. The following table  outlines these properties and how they will affect the look of the Planar Reflection.
-
-![](PR_Props_Breakdown_00.png)
-
-|Setting Name| Description|
-|------------------|--------------------|
-||Normal Distortion Strength|Controls the strength of normals when distorting the planar reflection.|
-|Prefilter Roughness| The roughness value to prefilter the planar reflection texture with, useful for hiding low resolution. Larger values have larger GPU cost.|
-|Distance from Plane Fade Start|Receiving pixels at this distance from the reflection plane will begin to fade out the planar reflection.|
-|Distance from Plane Fade End|Receiving pixels at this distance from the reflection plane will have completely faded out the planar reflection.|
-|Angle from Plane Fade Start|Receiving pixels whose normal is at this angle from the reflection plane will begin to fade out the planar reflection.|
-|Angle from Plane Fade End|Receiving pixels whose normal is at this angle from the reflection plane will have completely fade out the planar reflection.|
-|Prefilter Roughness Distance|The distance at which the prefilter roughness value will be achieved.|
-|Screen Percentage|Downsample percent can be used to reduce GPU time rendering the planar reflection.|
-|Extra FOV|Additional FOV used when rendering to the reflection texture. This is useful when normal distortion is causing reads outside the reflection texture. Larger values increase rendering thread and GPU cost, as more objects and triangles have to be rendered into the planar reflection.|
-
-### Planar Reflection Limitations
-While Planar Reflections offer some very realistic reflections, this features does have a number of limitations which are listed below.
-
-* There's no way to control what rendering features are enabled in the reflection pass.
-* Dynamic shadowing and fog are incorrect in the reflection pass.
-* Only a constant Roughness value is supported, and it's specified on the Planar Reflection Component instead of Materials.
-
 ## Performance Considerations
 
 The Reflection Environment cost is only dependent on how many captures influence the pixels on the screen. 
@@ -538,6 +466,7 @@ means dynamic objects cannot be reflected, although they can receive reflections
 One side can be setup to have correct reflections, but it will always leak into the other side. 
 * Due to DX11 hardware limitations, the cubemaps used to capture the level are all 128 on each side, and 
 the world can have at most 341 reflection captures enabled at one time.
+
 
 <!-----
 [EXCERPT:ReflectionResolution]
@@ -569,7 +498,3 @@ the world can have at most 341 reflection captures enabled at one time.
 [/OBJECT]
 [/EXCERPT:ReflectionResolution]
 -->
-
-
-
-

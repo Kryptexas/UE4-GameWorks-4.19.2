@@ -26,8 +26,10 @@ checkpoint: editorqs
 
 %Steps%
 
-Before we get started, the first thing that we will need to do is create a [Project](Engine/Basics/Projects) to work from for the duration of this guide. In the steps below we will use Unreal Engine 4's [Project Browser](Engine/Basics/Projects/Browser) to create our project. 
-After completing this step, you will have a Template that you can build onto for your future projects.  
+Before we get started, the first thing that we will need to do is create a [Project](Engine/Basics/Projects) to work from for the duration of this guide. 
+In the steps below we will use Unreal Engine 4's [Project Browser](Engine/Basics/Projects/Browser) to create our project.
+After completing this step, you will have a Template that you can build onto for your future projects.
+
 
 ## Steps
 

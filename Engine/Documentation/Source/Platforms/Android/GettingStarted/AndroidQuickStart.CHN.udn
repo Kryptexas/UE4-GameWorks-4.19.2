@@ -3,6 +3,13 @@ Availability: Public
 Title:安卓快速入门
 Crumbs:%ROOT%, Platforms, Platforms/Android
 Description:Setting up for development for the Android platform.
+Version:4.9
+Skilllevel:Intermediate
+tags:Android
+tags:Mobile
+parent:Platforms/Android
+order:2
+type:quickstart
 
 [VAR:Topic]
 [OBJECT:Topic]

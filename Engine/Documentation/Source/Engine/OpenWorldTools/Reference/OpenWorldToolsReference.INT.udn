@@ -75,7 +75,7 @@ This page contains a reference listing of properties you will find while working
 |**Cast Static Shadow** | Whether the foliage should cast a static shadow from shadow casting lights. This flag is only used if CastShadow is true. |
 |**Light Map Resolution** | Overrides the lightmap resolution defined in the static mesh. |
 |**Collision Presets** |Select collision presets. You can set this data in Project Settings. |
-|**Custom Navigable Geometry** |Force navmesh. |
+|**Custom Navigable Geometry** |[INCLUDE:#NavMesh] |
 |**Cast Shadow as Two Sided** |Whether this foliage should cast dynamic shadows as if it were a two sided material. |
 |**Receives Decals** |Whether the foliage receives decals. |
 |**Use as Occluder** |If enabled, foliage will render a pre-pass which allows it to occlude other primitive, and also allows it to correctly receive DBuffer decals. Enabling this setting may have a negative performance impact. |
@@ -123,7 +123,15 @@ This page contains a reference listing of properties you will find while working
 |**Foliage Type Object** | The foliage type that will be spawned by the procedural foliage simulation.|
 
 
-
-
+<!--
+[EXCERPT:NavMesh]
+| Value | Description |
+| --- | --- |
+| **No**|Primitive doesn't have custom navigation geometry, if collision is enabled then its convex/trimesh collision will be used for generating the navmesh. |
+| **Yes**| If primitive would affect navmesh, DoCustomNavigableGeometryExport() should be called to export this primitive's navigable geometry.|
+| **Even if not Collidable** |DoCustomNavigableGeometryExport() should be called even if the mesh is non-collidable and wouldn't normally affect the navmesh.|
+| **Dont Export**|Don't export navigable geometry even if primitive is relevant for navigation (can still add modifiers).|
+[/EXCERPT:NavMesh]
+-->
 
 

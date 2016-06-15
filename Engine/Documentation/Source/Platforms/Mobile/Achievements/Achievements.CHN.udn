@@ -4,6 +4,9 @@ Description:Using Mobile Achievements to increase player engagement.
 Crumbs:
 Availability:Public
 Parent:Platforms/Mobile
+order:2
+type:howto
+tags:mobile
 
 [VAR:Topic]
 [OBJECT:Topic]
