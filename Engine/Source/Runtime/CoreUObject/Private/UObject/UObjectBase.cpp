@@ -1157,7 +1157,10 @@ UObject* ConstructDynamicType(FName TypePathName)
 	UObject* Result = nullptr;
 	if (FClassConstructFunctions* ClassConstructFn = GetDynamicClassMap().Find(TypePathName))
 	{
-		Result = ClassConstructFn->StaticClassFn();
+		UClass* DynamicClass = ClassConstructFn->StaticClassFn();
+		check(DynamicClass);
+		DynamicClass->AssembleReferenceTokenStream();
+		Result = DynamicClass;
 	}
 	else if (UScriptStruct *(**StaticStructFNPtr)() = GetDynamicStructMap().Find(TypePathName))
 	{

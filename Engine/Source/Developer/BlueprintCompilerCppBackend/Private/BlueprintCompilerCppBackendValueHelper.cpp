@@ -791,6 +791,7 @@ void FEmitDefaultValueHelper::GenerateCustomDynamicClassInitialization(FEmitterL
 	Context.AddLine(TEXT("ensure(0 == InDynamicClass->ComponentTemplates.Num());"));
 	Context.AddLine(TEXT("ensure(0 == InDynamicClass->Timelines.Num());"));
 	Context.AddLine(TEXT("ensure(nullptr == InDynamicClass->AnimClassImplementation);"));
+	Context.AddLine(TEXT("InDynamicClass->AssembleReferenceTokenStream();"));
 
 	Context.CurrentCodeType = FEmitterLocalContext::EGeneratedCodeType::SubobjectsOfClass;
 	Context.ResetPropertiesForInaccessibleStructs();
