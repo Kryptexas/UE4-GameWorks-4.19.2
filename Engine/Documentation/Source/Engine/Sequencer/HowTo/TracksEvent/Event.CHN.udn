@@ -1,93 +1,95 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Calling Custom Events
-Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
-Description:Shows how you can use the Event Track to call Custom Events and script in Blueprint. 
-Version: 4.11
-SkillLevel: Intermediate
+﻿INTSourceChangelist:2998420
+Availability:Public
+Title:调用定制事件
+Crumbs:%ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:向您说明如何使用事件轨道在蓝图中调用定制事件和脚本。 
+Version:4.12
+SkillLevel:Intermediate
 parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
-Related: Engine/Sequencer/Overview
-Related: Engine\Sequencer\ReferenceEditor\
+Related:Engine/Sequencer/Overview
+Related:Engine\Sequencer\ReferenceEditor\
 
-[REGION:warning]
-This is a feature that is currently undergoing development and may not work as expected or may change in future revisions.
-[/REGION]
+**事件轨道** 可用于在 [**关卡蓝图**](Engine/Blueprints/UserGuide/Types/LevelBlueprint) 中调用 [**定制事件**](Engine/Blueprints/UserGuide/Events/Custom) 和触发 [**蓝图脚本**](Engine/Blueprints)。 
+一旦调用定制事件，还会执行所有与其关联的脚本，它们可根据您的需求用于任意数量的场景。 
 
-The **Event Track** can be used to call [**Custom Events**](Engine/Blueprints/UserGuide/Events/Custom) and fire off [**Blueprint Script**](Engine/Blueprints) inside the  [**Level Blueprint**](Engine/Blueprints/UserGuide/Types/LevelBlueprint). 
-Once the Custom Event is called, any script attached to it will also be executed and can be used for any number of scenarios based on your needs. 
+在本示例中我们将执行一个事件，它将用于在关卡中激活粒子效果。 
 
-In this example, we will execute an Event which will be used to activate a particle effect in the level. 
-
-## Steps
+## 步骤
 
 [REGION:note]
-For this how-to, we are using the **Blueprint Third Person Template** project with **Starter Content** enabled. 
+在本操作指南中，我们使用 **Blueprint Third Person Template** 项目，并启用了 **起步内容**。 
 [/REGION]
 
-1.	With your project open and [**Sequencer**](Engine\Sequencer\HowTo\EnableSequencer) enabled, from the **Toolbar** click the **Cinematics** button and **Add Level Sequence**. 
+1. 	在主工具栏中，单击 **过场动画（Cinematics）**按钮，然后单击 **添加关卡序列（Add Level Sequence）**。 
 
 	![](EventTrack1.png)
 
-	Choose a Save Location and give the Level Sequence a name when prompted. 
+	当系统提示时选择一个保存位置并给关卡序列起个名称。 
 
-1.	In Sequencer, click the **Add** button and select to add an **Event Track**. 
+1. 	在 Sequencer，中单击 **添加（Add）**按钮，并选择添加 **事件轨道（Event Track）**。 
 
 	![](EventTrack2.png)
 
-1.	On the **Event Track**, move the Timeline Marker to **75** then click the **+** sign to add a key. 
+1. 	在该 **事件轨道** 上，将时间轴标记移动到 **75**，然后单击 **+** 号添加一个键。 
 
 	![](EventTrack3.png)
 
-1.	**Right-click** on the key, then under **Properties** enter the name **MyEvent** for the **Value**. 
+1. 	**右键单击** 该键，然后在 **属性（Properties）**下面为 **值（Value）**输入名称 **MyEvent**。 
 
 	![](EventTrack4.png)
 
-1.	In the **Content Browser** under **StarterContent/Particles**, drag the **P_Explosion** into the level. 
+	您在此处提供的名称是您创建要调用的 **定制事件** 时 **必须** 使用的名称。 
+
+1. 	在 **内容浏览器** 中的 **StarterContent/Particles** 下，将 **P_Explosion** 拖动到关卡中。 
 
 	![](EventTrack5.png)
 
-1.	With the **P_Explosion** asset selected, in the **Details** panel un-check the **Auto Activate** option. 
+1. 	选择 **P_Explosion** 资产后，在 **细节（Details）**面板中取消选中 **自动激活（Auto Activate）**选项。 
 
 	![](EventTrack6.png)
 
-	This will ensure that the particle effect is not played upon starting the level. 
+	这将确保粒子效果不在关卡启动时播放。 
 
-1.	With the **P_Explosion** asset still selected, click the **Blueprints** button from the Toolbar and select **Open Level Blueprint**. 
+1. 	在仍然选中 **P_Explosion** 资产的情况下，在工具栏中单击 **蓝图（Blueprints）**按钮，然后选择 **打开关卡蓝图（Open Level Blueprint）**。 
 
 	![](EventTrack7.png)
 
-1.	In the **Level Blueprint**, **Right-click** and select **Create a Reference to P_Explosion**. 
+1. 	在 **关卡蓝图（Level Blueprint）**中，**右键单击** 并选择 **创建对 P_Explosion 的引用（Create a Reference to P_Explosion）**。 
 
 	![](EventTrack8.png)
 
-1.	**Right-click** in the graph again and search for and add a **Custom Event** node and name it **MyEvent** (the same as in **Step 4**). 
+1. 	在图中再次 **右键单击**，然后就搜索并添加一个 **定制事件（Custom Event）**节点，将它命名为 **MyEvent**（与 **第 4 步** 中相同）。 
 
 	![](EventTrack9.png)
 	
 	[REGION:note]
-	The Custom Event name **MUST** be the same name as the one provided in the properties of the Event Key Value in order for it to be called. You can press the **F2** key with the Custom Event node selected to rename it. 
+	这必须是您在步骤 4 中输入的文本值。您可在节点上按 **F2** 键，以将其重命名。 
 	[/REGION]
 
-1.	**Left-click** drag off the **P_Explosion** node and search for and add the **Activate (ParticleSystemComponent)** node. 
+1. 	**左键单击** **P_Explosion** 节点并拖出，然后搜索并添加 **激活 (ParticleSystemComponent)（Activate (ParticleSystemComponent)）**节点。 
 
 	![](EventTrack10.png)
 
-1.	Connect the **Custom Event** to the **Activate** node as shown below. 
+1. 	将 **定制事件** 节点连接到 **激活** 节点，如下图所示。 
 
 	![](EventTrack11.png)
 
-1.	In the Main Editor window from the **World Outliner** select your Level Sequence then in the **Details** enable **Auto Play**. 
+	调用该事件时，它将激活（开启）我们放在关卡中的粒子效果。
+
+1. 	在主编辑器窗口中，从 **全局大纲（World Outliner）**选择您的关卡序列，然后在 **细节（Details）**中启用 **自动播放（Auto Play）**。 
 
 	![](EventTrack12.png)
 
-1.	Click the **Play** button from the Main Toolbar to play in the editor. 
+	当我们在此关卡中播放时，此关卡序列将自动播放并触发效果。 
+
+1. 	在主工具栏中单击 **播放（Play）**按钮在编辑器中播放。 
 
 
-## End Result
+## 最终结果
 
-When playing in the editor after a few seconds, the explosion will active. 
+在编辑器中播放几秒后，爆炸效果就会激活。
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -97,12 +99,12 @@ When playing in the editor after a few seconds, the explosion will active.
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-QrOO2RnRYq8
+krFTHenh9zw
 [/PARAMLITERAL]
 [/OBJECT]
 
-In the video above, we also illustrate that you will not see the script being executed when you click the **Play** button inside Sequencer to play your Level Sequence. 
-You will only be able to preview your scripted events being called from your Event Track during gameplay when the Level Sequence is played.
+在上面的视频中，我们还展示了在 Sequencer 中单击 **播放（Play）**按钮时不会执行脚本。
+在播放关卡序列时，您无法预览在游戏运行中从事件轨道调用脚本事件。
 
 
 

@@ -36,8 +36,35 @@ Now is a good time to compile our project so that we can see our code changes re
 	![](PIE_DefaultGameMode.png)
 
 	You might be wondering why your log message isn't being displayed on screen when you're in PIE mode. The reason you're not seeing your log message is because the Editor is still using the 
-	default `Game Mode` rather than `FPSProjectGameMode` at this stage in development. 
+	default `Game Mode` at this stage in development. 
 
-1.	Before going to the next step, press the Escape key or click the **Stop** button in the Level Editor to exit PIE mode.
+1.	Press the Escape key or click the **Stop** button in the Level Editor to exit PIE mode.
+
+## Extending your CPP Game Mode Class to Blueprints
+
+Now is a good time to extend the CPP Game Mode class to Blueprints. Please feel free to go to our [](Gameplay/ClassCreation/CodeAndBlueprints) reference page to learn more about extending
+C++ classes to Blueprints.
+
+1.	First, create a Blueprints folder inside of the Content folder.
+
+	![](BlueprintsFolder.png)
+
+1.	Now, right-click the `FPSProjectGameMode` class to open the **C++ Class Actions** menu.
+
+	![](CPPClassActionsMenu.png)
+
+1.	Click **Create Blueprint class based on FPSProjectGameMode** to open the **Add Blueprint Class** dialog menu.
+
+	![](CreateDerivedBPClass.png)
+
+1.	Name your new Blueprint Class "BP_FPSProjectGameMode" and choose the Blueprints folder before clicking the **Create Blueprint Class** button.
+
+	![](AddBPClass.png)
+
+1.	By now, you should have a newly created `BP_FPSProjectGameMode` Blueprint Class located inside of the Blueprints folder.
+
+	![](AddedBPClass.png)
+
+1.	Make sure to save your `BP_FPSProjectGameMode` Blueprint before closing the Blueprint Editor.
 
 %Steps%

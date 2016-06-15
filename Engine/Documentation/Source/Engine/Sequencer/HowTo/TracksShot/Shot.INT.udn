@@ -59,7 +59,7 @@ For this how-to, we are using the **Blueprint Third Person Template** project wi
 	Here we placed the camera on the left side of the character at the feet then moved it up over time. You can also adjust the **Manual Focus Distance** and add a key for your change to bring the character into focus. 
 
 	[REGION:note]
-	See [**Working with Camera Cuts**](Engine/Sequencer/HowTo/TracksCameraCut) for a refreshing on how to add camera movement. 
+	See [**Working with Camera Cuts**](Engine/Sequencer/HowTo/TracksCameraCut) for a refresher on how to add camera movement. 
 	[/REGION]
 
 1.	Open **Shot03** and add camera movement for the shot.

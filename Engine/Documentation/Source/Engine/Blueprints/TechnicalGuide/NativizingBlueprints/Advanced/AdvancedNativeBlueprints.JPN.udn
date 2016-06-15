@@ -1,60 +1,61 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3007724
 Availability:Docs
-Title:Advanced Blueprint Nativization
+Title:高度なブループリントのネイティブ化
 Crumbs: %ROOT%, Programming, Engine/Blueprints/TechnicalGuide
-Description:Technical guide for gameplay programmers exposing gameplay elements to Blueprints.
+Description:ゲームプレイ要素をブループリントに公開するゲームプレイ プログラマーのためのテクニカル ガイド
 Related: Engine/Blueprints/TechnicalGuide/NativizingBlueprints
-Parent: Engine/Blueprints/TechnicalGuide
+Parent:Engine/Blueprints/TechnicalGuide
 Version:4.12
+type:reference
 
 [TOC(start:2)]
 
 
-## Building with Unreal Automation Tool
-To nativize Blueprints while building with Unreal Automation too, add the `-nativizeAssets` switch to your BuildCookRun command line.
+## アンリアル アニメーション ツールでビルドする
+アンリアル アニメーション ツールによるビルド中にブループリントをネイティブ化するには、BuildCookRun コマンドラインに `-nativizeAssets` スイッチを追加します。
 
-## C++ Cooperation
+## C++ との連携
 
-Nativized blueprints are stored in a new, separate module, which means that the headers from gameplay module are now used outside their module. 
-You should check that all headers have declared all classes and all structs that are used, either as a included header, or as a forward declaration.
+ネイティブ化されたブループリントは、新しい別のモジュールに格納されます。つまり、ゲームプレイ モジュールのヘッダはモジュール外で使用することが可能になります。 
+すべてのヘッダが、使用しているすべてのクラスと構造体を、インクルード ヘッダもしくは前方宣言として宣言していることを確認してください。
 
-There are some rules/restrictions that help make cooperation between manually written code and the nativized code more reliable and efficient. 
+手書きのコードとネイティブ化したコード間の連携の信頼性と効率をさらに高めるルール / 制限があります。 
 
-The following implementations are not supported: 
-- private/protected variables with `BlueprintVisible` or `Editable` tags
-- private/protected functions that are marked as `BlueprintPure` or `BlueprintCallable`
-- `noexport` structures/classes
-- bitfield variables with `BlueprintVisible` or `Editable` tags
-- private bitfield variables
-- `UBlueprintGeneratedClass`, `UUserDefinedStruct`, `UUserDefinedEnum` variables, or any type based on them
+以下のインプリメンテーションはサポートされていません： 
+- `BlueprintVisible` あるいは `Editable` タグのある pribate/protected 変数
+- `BlueprintPure` あるいは`BlueprintCallable` としてマークされた pribate/protected 変数
+- `noexport` 構造体 / クラス
+- `BlueprintVisible` あるいは `Editable` タグのあるビットフィールド変数
+- private ビットフィールド変数
+- `UBlueprintGeneratedClass`、`UUserDefinedStruct`、`UUserDefinedEnum` 変数、もしくはそれらをベースにした変数型
 
-## Technical Details
+## 技術的な詳細
 
-Nativizing Blueprints should work with Visual Studio 2013 and Visual Studio 2015, however 2015 is strongly recommended as it handles larger projects better.
-If there is a strange compiler/linker error like LNK1000, LNK1248, then try to reduce the amount of nativized Blueprints by excluding types or specific Blueprints.
+ブループリントのネイティブ化は Visual Studio 2013 と Visual Studio 2015 で使用できますが、大規模プロジェクトの処理も可能な 2015 を推奨します。
+LNK1000 や LNK1248 などの変わったコンパイル / リンカ エラーが出たら、型や特定のブループリントを除外してネイティブ化したブループリントの量を減らしてみてください。
 
-The `BlueprintCompilerCppBackend` module (found here: `Engine\Source\Developer\BlueprintCompilerCppBackend\`) converts the Blueprint syntax tree into C++. 
-The `BlueprintNativeCodeGen` module (found here: `Engine\Source\Developer\BlueprintNativeCodeGen\`) does a lot of magic while cooking and packaging. 
+`BlueprintCompilerCppBackend` モジュール (格納場所: `Engine\Source\Developer\BlueprintCompilerCppBackend\`) はブループリント記法のツリーを C++ に変換します。 
+`BlueprintNativeCodeGen` モジュール (格納場所: `Engine\Source\Developer\BlueprintNativeCodeGen\`) は、クックおよびパッキング中に素晴らしいことがいろいろできます。 
 
 
 [PUBLISH:Licensee]
-## Debugging Converted Code on Windows
+## Windows での変換コードのデバッグ
 
-If you are working with a project that already includes some C++ code, you can debug using the existing project solution.
-However, if your project originally contained only Blueprints, you need to execute `GenerateProjectFiles.bat` so that your project will have a solution.  
-Do not use this solution (or the new project under the main UE4 solution) to compile your project or to build an Editor version of your project. 
+プロジェクトに既に C++ コードが含まれている場合、既存プロジェクトのソリューションを使ってデバッグできます。
+ただし、プロジェクトにもともとブループリントしか含まれていない場合、`GenerateProjectFiles.bat` を実行してプロジェクトにソリューションを作ります。  
+プロジェクトのコンパイル、あるいはプロジェクトのエディタ版のビルドには、このソリューション (主となる UE4 ソリューションの新規プロジェクト) は使用しないでください。 
 
-To build a debug .exe file:
+Debug .exe ファイルのビルド手順です：
 
-1. Run the following lines. They can be found in your output log when your nativized build is packaged, so it's easiest to copy them out to verify that the switches 
-are correct for your environment. Just change the `Development` switch to `Debug`. 
+1. 以下のラインを実行します。ネイティブ化されたビルドをパッケージ処理する出力ログにあるので、 
+スイッチが環境に合っているか検証する一番簡単な方法は、それらをコピーすることです。`Development` スイッチを `Debug` に変えるだけです。 
 
 		<UE4>\Engine\Binaries\DotNET\UnrealBuildTool.exe" <project name> Win64 Debug -Project=<project path>\<project name>.uproject  <project path>\<project name>.uproject  -PLUGIN "<project path>\Intermediate\<platform>\NativizedAssets\NativizedAssets.uplugin" -remoteini="<project path>" -noxge -generatemanifest -NoHotReloadFromIDE -ignorejunk
 
 		<UE4>\Engine\Binaries\DotNET\UnrealBuildTool.exe" <project name> Win64 Debug -Project=<project path>\<project name>.uproject  <project path>\<project name>.uproject  -PLUGIN "<project path>\Intermediate\<platform>\NativizedAssets\NativizedAssets.uplugin" -remoteini="<project path>" -noxge -NoHotReloadFromIDE -ignorejunk
 
-2. Set the working directory in your Visual Studio project (debug configuration) to `<Packaged Folder>\<platform>\<project name>\Binaries\Win64\`
+2. Visual Studio プロジェクトで作業中のディレクトリ (デバッグ設定) を `<Packaged Folder>\<platform>\<project name>\Binaries\Win64\` に設定します。
 
-3. Run debug in Visual Studio, but do not recompile the project from Visual Studio.
+3. Visual Studio でデバッグを実行しますが、Visual Studio からはプロジェクトを再コンパイルしないでください。
 
 [/PUBLISH:Licensee]

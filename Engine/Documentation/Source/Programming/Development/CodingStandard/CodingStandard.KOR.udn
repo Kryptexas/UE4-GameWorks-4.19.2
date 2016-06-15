@@ -71,11 +71,11 @@ In 또는 Out 파라미터 역시 불리언인 경우, In/Out 접두사 앞에 b
 
 값을 반환하는 함수는 반환값에 대한 설명을 해야 합니다. 이름을 통해 함수가 반환하게 될 값을 명확히 알 수 있어야 하지요. 이는 불리언 함수의 경우 특히나 중요합니다. 다음 두 예제 메소드를 살펴 봅시다:
 
-		bool CheckTea(FTea Tea) {...} // _True_ 면 뭐라는 걸까요?
-		bool IsTeaFresh(FTea Tea) {...} // _True_ 면 차가 신선하다는 것이 명확해집니다.
+		bool CheckTea(FTea Tea) {...} // true 면 뭐라는 걸까요?
+		bool IsTeaFresh(FTea Tea) {...} // true 면 차가 신선하다는 것이 명확해집니다.
 
 
-### Examples
+### 예제
 
 		float TeaWeight;
 
@@ -94,9 +94,9 @@ In 또는 Out 파라미터 역시 불리언인 경우, In/Out 접두사 앞에 b
 		UTexture* TeaTexture;
 
 
-## 기본 C++ 유형에 이식가능 alias
+## 기본 C++ 유형에 이식가능 앨리어스
 
-* bool - boolean (4 바이트). BOOL은 컴파일되지 않습니다. true / flase 가 아니라 true / false 로 써야 합니다.
+* bool - boolean (bool 크기 추정 금지). BOOL 은 컴파일되지 않습니다.
 * TCHAR - character (TCHAR 크기 추정 금지)
 * uint8 - unsigned byte (1 바이트)
 * int8 - signed byte (1 바이트)
@@ -108,7 +108,7 @@ In 또는 Out 파라미터 역시 불리언인 경우, In/Out 접두사 앞에 b
 * int64 - signed "quad word" (8 바이트)
 * float - single precision floating point (4 바이트)
 * double - double precision floating point (8 바이트)
-* PTRINT - 포인터를 가질 수 있는 integer (PTRINT 크기를 추정 금지)
+* PTRINT - 포인터를 가질 수 있는 integer (PTRINT 크기 추정 금지)
 
 
 C+\+ 의 int 와 unsigned int 유형은 플랫폼에 따라 크기가 변할 수 있기에 정수 범위가 중요치 않은 경우라면 코드에서 사용해도 괜찮습니다. 명시적으로 크기가 정해진 유형은 여전히 시리얼라이즈 또는 리플리케이트된 포맷으로 사용해야 합니다.
@@ -116,7 +116,7 @@ C+\+ 의 int 와 unsigned int 유형은 플랫폼에 따라 크기가 변할 수
 
 ## 코멘트
 
-코멘트는 소통이고, 소통은 _중요합니다_. 코멘트에 대해 명심하실 점이 몇 가지 있습니다 (Kernighan & Pike 의 _The Practice of Programming_ 에서):
+코멘트는 소통이고, 소통은 중요합니다. 코멘트에 대해 명심하실 점이 몇 가지 있습니다 (Kernighan & Pike 의 _The Practice of Programming_ 에서):
 
 
 ### 지침

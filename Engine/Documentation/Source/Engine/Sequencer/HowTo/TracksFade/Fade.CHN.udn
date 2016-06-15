@@ -1,66 +1,64 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Fade In/Out a Scene
-Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
-Description:Example of how you can fade in/out your Level Sequence with the Fade Track.
-Version: 4.11
-SkillLevel: Beginner
+﻿INTSourceChangelist:2996736
+Availability:Public
+Title:淡入/淡出场景
+Crumbs:%ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:如何通过消退轨道使关卡序列淡入/淡出的示例。
+Version:4.12
+SkillLevel:Beginner
 parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
-Related: Engine/Sequencer/Overview
-Related: Engine\Sequencer\ReferenceEditor\
+Related:Engine/Sequencer/Overview
+Related:Engine\Sequencer\ReferenceEditor\
 
-[REGION:warning]
-This is a feature that is currently undergoing development and may not work as expected or may change in future revisions.
-[/REGION]
 
-The **Level Sequence** Editor (or **Sequencer** for short) is still in the early stages of development and must be enabled in order to access it. 
-This guide will show you where you can access and enable Sequencer (as well as the **Sequence Recorder**) and open up the Sequencer Editor so that you can begin creating cinematics. 
+有时，您可能希望在过场动画内淡入或淡出场景。 
+无论您是选择在开始时淡入还是在结束时淡出，或者在这两者之间淡出镜头，都可以在 Sequencer 中使用 **消退轨道** 来完成。 
+在本指南中，我们将创建一个小场景并使其随着时间推移而淡入，然后在短暂的暂停后让该场景淡出。 
 
-## Steps
+## 步骤
 
 [REGION:note]
-For this how-to, we are using the **Blueprint Third Person Template**. However, you can use any project you wish. 
+在本操作指南中，我们使用 **Blueprint Third Person Template**。不过，您可以使用任意项目。 
 [/REGION]
 
-1.	With [**Sequencer**](Engine\Sequencer\HowTo\EnableSequencer) enabled, from the Main Tool Bar click **Cinematics** and **Add Level Sequence**. 
+1. 	在主工具栏中单击 **过场动画（Cinematics）**，再选择 **添加关卡序列（Add Level Sequence）**。 
 
 	![](FadeTrack1.png)
 
-	Enter any name and save location for your new Level Sequence asset which will be added to the Level and **Content Browser**. 
+	为新关卡序列资产输入任何保存名称和保存位置，它将自动添加到关卡和 **内容浏览器**。 
 
-1.	In Sequencer, click the **Add** button and select **Fade Track**. 
+1. 	在 Sequencer，中单击 **添加（Add）**按钮，并选择 **消退轨道（Fade Track）**。 
 
 	![](FadeTrack2.png)
 
-1.	Select the **Fade Track** then change the value to **1.0** and click the **+** button to add a keyframe for the value. 
+1. 	选择该 **消退轨道**，然后将值改为 **1.0**，再单击 **+** 按钮为该值开始添加一个关键帧。 
 
 	![](FadeTrack3.png)
 
-	The Level Viewport will appear black after changing the value to 1.0 (or full tint).
+	将值改为 1.0（意味着全染色）后，关卡视口将显示为黑色。
 	
 	 ![](FadeTrack3b.png)
 
-1.	Move the Timeline Marker to **50** then change the value to **0.0** and add a key (press **Enter** or click **+**). 
+1. 	将时间轴标记移动到 **50**，然后将值改为 **0.0**，再添加一个键（按 **Enter** 键或单击 **+**）。 
 
 	![](FadeTrack4.png)
 	
-	The Level Viewport will appear as normal after reducing the Fade value back to 0 (or no tint). 
+	将消退值改回 0（意味着不染色）后，关卡视口将正常显示。 
 
 	[REGION:tip]
-	You can hold **CTRL** and **Mouse-Wheel** in or out to zoom in or out on the Timeline. 
+	您可以按住 **CTRL** 并滚动 **鼠标滚轮** 来放大或缩小时间轴。 
 	[/REGION]
 
-1.	Add a key at **100** with a value of **0.0** and a key at **150** with a value of **1.0** to fade out the scene. 
+1. 	在 **100** 处添加一个值为 **0.0** 的键，并在 **150** 处添加一个值为 **1.0** 的键使场景淡出。 
 
 	![](FadeTrack5.png)
 
-1.	Click the **Play** button in the Level Viewport to simulate your sequence. 
+1. 	在关卡视口中单击 **播放（Play）**按钮来模拟您的序列。 
 
-## End Result
+## 最终结果
 
-You will see that the scene fades in from 1.0 (full tint) to 0.0 (no tint) then fades out from 0.0 to 1.0. 
+现在，您将看到样本场景淡入并在淡出前保持点亮。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -70,11 +68,11 @@ You will see that the scene fades in from 1.0 (full tint) to 0.0 (no tint) then 
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-NGEPbKb0Mtw
+nA0GZlmbQww
 [/PARAMLITERAL]
 [/OBJECT]
 
-To increase the duration of the fade time, you can increase the amount of frames between your full and no tint keyframes. Whenever you choose to play this Level Sequence (via Auto Play or calling it through script), the Fade track will handle fading the scene in and out. 
+要增加消退持续时间，您可以增加全染色关键帧与不染色关键帧之间的帧数。每当您选择播放此关卡序列时（通过自动播放或通过脚本调用），消退轨道都会处理场景的淡入和淡出。 
 
 
 

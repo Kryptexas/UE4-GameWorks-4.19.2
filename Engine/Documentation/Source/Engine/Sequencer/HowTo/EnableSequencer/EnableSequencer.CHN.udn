@@ -1,59 +1,76 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Enabling & Opening Sequencer
-Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
-Description:Shows how you can enable the Level Sequence Editor and Sequence Recorder Plugins and open the Sequencer Editor. 
-Version: 4.11
-SkillLevel: Beginner
+Availability:Docs
+Title:启用和打开 Sequencer
+Crumbs:%ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:向您展示如何启用关卡序列编辑器和序列记录器插件，以及打开 Sequencer 编辑器。 
+Version:4.11
+SkillLevel:Beginner
 parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
-Related: Engine/Sequencer/Overview
-Related: Engine\Sequencer\ReferenceEditor\
+Related:Engine/Sequencer/Overview
+Related:Engine\Sequencer\ReferenceEditor\
+
+<!--
+****** This is an outdated and no longer needed doc. *******
+-->
+
 
 [REGION:warning]
-This is a feature that is currently undergoing development and may not work as expected or may change in future revisions.
+此功能尚在开发中，其作用可能不如预期，在今后的修订版中也可能更改。
 [/REGION]
 
-The **Level Sequence** Editor (or **Sequencer** for short) is still in the early stages of development and must be enabled in order to access it. 
-This guide will show you where you can access and enable Sequencer (as well as the **Sequence Recorder**) and open up the Sequencer Editor so that you can begin creating cinematics. 
+**关卡序列** 编辑器（简称 **Sequencer**）仍然处于早期开发阶段，需要启用它才能访问。 
+本指南向您展示在何处可以访问并启用 Sequencer（以及 **序列记录器**），以及打开 Sequencer 编辑器以开始创建过场动画。 
 
-## Steps
+## 步骤
 
 [REGION:note]
-For this how-to, we are using the **Blueprint Third Person Template** project. However, you can use any project you wish. 
+在本操作指南中，我们使用 **Blueprint Third Person Template** 项目。不过，您可以使用任意项目。 
 [/REGION]
 
-1.	With your project open select **Edit** from the **File** Menu, then select **Plugins**. 
+1. 	在打开项目后，从 **文件（File）**菜单选择 **编辑（Edit）**，然后选择 **插件（Plugins）**。 
 
 	![](Enable_01.png)
 
-1.	From the **Plugins** menu, select **Editor** then enable the **Level Sequence Editor** and **Sequence Recorder Plugin** options. 
+1. 	在 **插件（Plugins）**菜单中，选择 **编辑器（Editor）**，然后启用 **关卡序列编辑器（Level Sequence Editor）**和 **序列记录器插件（Sequence Recorder Plugin）**选项。 
 
 	![](Enable_02.png)
 
-	You will need to click **Okay** at the confirmations as well as **Restart** the Editor for the changes to be applied. 
+	您需要在确认对话框中单击 **确定（Okay）**，并且 **重新启动** 编辑器才能使更改生效。 
 
-	[REGION:note]
-	The **Sequence Recorder** plug-in is also used with **Sequencer** and allows you to record gameplay actions. Please [](Engine\Sequencer\HowTo\SequenceRecorder\) for more information.
-	[/REGION]
-
-1.	After restarting the Editor, inside your project from the **Toolbar** click **Cinematics** then **Add Level Sequence**.
+1. 	重新启动编辑器后，在您的项目中，从 **工具栏** 单击 **过场动画（Cinematics）**按钮，再选择 **添加关卡序列（Add Level Sequence）**。
 
 	![](Enable_03.png)
 
-1.	Choose a name and save location for your **Level Sequence**. 
+1. 	为您的 **关卡序列** 选择名称和保存位置。 
 
 	![](Enable_04.png)
 
 
-## End Result
+## 最终结果
 
-After choosing a name and save location for your Level Sequence, the **Sequencer** Editor will automatically open. 
+为关卡序列选择名称和保存位置后，**Sequencer** 编辑器将自动打开。 
 
 ![](Enable_05.png)
 
-Inside the Sequencer Editor you can start adding different types of **Tracks** which you can use to craft your cinematic sequences. You can also use the **Sequence Recorder** to record content that will be used to automatically create new Level Sequences which you can edit inside Sequencer. 
+在 Sequencer 编辑器中，您可以开始添加不同类型的 **轨道**，它们可用于制作您的过场动画序列。 
+还可以使用 [**序列记录器**](Engine\Sequencer\HowTo\SequenceRecorder\) 记录将用于自动创建新关卡序列的内容，您可以在 Sequencer 中编辑这些内容。 
+
+要打开“序列记录器”（Sequence Recorder）窗口，在菜单栏的 **窗口（Window）**选项中选择 **序列记录器（Sequence Recorder）**。 
+
+![](Add_01.png)
+
+**序列记录器（Sequence Recorder）**窗口将打开。 
+
+![](Add_02.png)
+
+[REGION:note]
+默认情况下已启用了序列记录器，但只要您没有启用 **关卡序列编辑器**，就无法编辑它创建的关卡序列。 
+[/REGION]
+
+
+
+
 
 
 

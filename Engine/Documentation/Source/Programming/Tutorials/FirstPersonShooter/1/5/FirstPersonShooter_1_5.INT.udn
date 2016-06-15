@@ -23,13 +23,13 @@ Version: 4.11
 
 %Steps%
 
-Now that we've successfully compiled our newly modified Game Mode, we'll need to set our project to use `FPSProjectGameMode` as the default **Game Mode** in this step.
+Now that we've successfully extended our newly modified Game Mode to Blueprints, we'll need to set our project to use `BP_FPSProjectGameMode` as the default **Game Mode** in this step.
 
 1.	In the **Edit** menu, click on **Project Settings**.
 
 1.	Under the **Project** heading on the left side of the **Project Settings** tab, click on **Maps & Modes**.
 
-1.	Select **FPSGameMode** in the **Default GameMode** dropdown menu.
+1.	Select **BP_FPSGameMode** in the **Default GameMode** dropdown menu.
 
 	![](SettingFPSGameMode.png)
 

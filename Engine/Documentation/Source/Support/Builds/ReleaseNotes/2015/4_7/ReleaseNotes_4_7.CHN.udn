@@ -2,6 +2,8 @@
 Crumbs:%ROOT%, Support/Builds
 Description:
 Availability:Public
+version: 4.7
+order:7
 
 [TOC(start:2 end:2)]
 

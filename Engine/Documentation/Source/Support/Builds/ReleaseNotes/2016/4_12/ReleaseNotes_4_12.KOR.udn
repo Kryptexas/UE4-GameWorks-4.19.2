@@ -27,7 +27,7 @@ aninda, amcofi, Artem V. Navrotskiy (bozaro), Beau Hardy (psychogony), Black Pho
 
 비선형 에디터의 위력과 3D 애니메이션 편집 기능이 결합된 시퀀서는, 게임내 시네마틱은 물론 영화, 텔레비전, 사전 시각화의 시퀀스 샷 제작도 가능합니다.
 
-![image alt text](image_0.png)(w:929 h:809 convert:false)
+![image alt text](image_0.jpg)(w:929 h:809 convert:false)
 
 ### 비선형 작업방식
 
@@ -45,7 +45,7 @@ aninda, amcofi, Artem V. Navrotskiy (bozaro), Beau Hardy (psychogony), Black Pho
 
 ### 직관적 유저 인터페이스
 
-유저 인터페이스 디자인은 마티네와 전통적 3D 소프트웨어 패키지의 영향을 받아, 애니메이션 데이터의 확인, 편집, 체계 정리를 명확하고 간결한 방식으로 처리할 수 있습니다. 3D 콘텐츠 제작자는 인터페이스가 직관적이고 익숙하다고 느낄 것입니다. ![image alt text](image_2.png)(w:929 h:542 convert:false).
+유저 인터페이스 디자인은 마티네와 전통적 3D 소프트웨어 패키지의 영향을 받아, 애니메이션 데이터의 확인, 편집, 체계 정리를 명확하고 간결한 방식으로 처리할 수 있습니다. 3D 콘텐츠 제작자는 인터페이스가 직관적이고 익숙하다고 느낄 것입니다. ![image alt text](image_2.jpg)(w:929 h:542 convert:false).
 
 * 액터 유형에 따라 자동 트랙 생성이 가능합니다.
 
@@ -65,7 +65,7 @@ aninda, amcofi, Artem V. Navrotskiy (bozaro), Beau Hardy (psychogony), Black Pho
 
 새로운 카메라 릭 액터와 결합된 새로운 시네마틱 카메라 액터로 영화 제작자는 물론 초보자들도 현실적인 카메라 샷을 쉽게 만들 수 있습니다. 효율적인 새 뷰포트로 영화 제작에서 데일리용 샷 시퀀스를 확인할 수 있습니다.
 
-![image alt text](image_3.png)(w:929 h:529 convert:false)
+![image alt text](image_3.jpg)(w:929 h:529 convert:false)
 
 * 시네마틱 카메라 액터의 프로퍼티로 현실의 카메라를 흉내낼 수 있습니다.
 
@@ -107,7 +107,7 @@ aninda, amcofi, Artem V. Navrotskiy (bozaro), Beau Hardy (psychogony), Black Pho
 
 새로운 "VR 에디터" 모드로 가상현실 몰입 상태에서 레벨을 돌아다니며 편집할 수 있습니다! 오브젝트 선택과 이동은 물론, "월드" 자체를 잡아당겨 전체 레벨을 자유로이 이동, 회전, 스케일 조절까지 가능합니다! 가상현실 모션 콘트롤러로 자신의 관점에서 오브젝트에 대한 일대일 제어가 가능합니다.
 
-![image alt text](image_5.png)(w:929 h:610 convert:false)
+![image alt text](image_5.jpg)(w:929 h:610 convert:false)
 
 가상현실에서 콘텐츠 브라우저와 같이 익숙한 에디터 기능에 접근한 뒤 트랜스폼 기즈모를 사용해서 오브젝트를 정교히 배치할 수 있습니다. 스내핑 툴로 줄도 깔끔하게 맞출 수 있습니다.
 
@@ -212,7 +212,7 @@ OSVR 소프트웨어 플랫폼을 통해 이제 다양한 VR & AR 디바이스 �
 
 이번 릴리즈에서는 Vulkan (벌칸) 그래픽 API 를 사용한 모바일 렌더링의 초기 프리뷰가 가능합니다.
 
-![image alt text](image_14.png)(w:793 h:384 convert:false)
+![image alt text](image_14.jpg)(w:793 h:384 convert:false)
 
 위 스크린샷은 벌칸으로 렌더링된 ProtoStar (프로토스타) 데모로, 삼성 갤럭시 S7 언팩 이벤트에서 선보인 것입니다. 현재 모바일 렌더링 기능만 구현되어 있습니다.
 
@@ -254,7 +254,7 @@ OSVR 소프트웨어 플랫폼을 통해 이제 다양한 VR & AR 디바이스 �
 
 블루프린트 실행에 들어가는 가상머신 부하를 줄이기 위해, 블루프린트를 네이티브 소스 코드로 패키징해 주는 기능을 추가했습니다. 이 기능은 아직 실험단계라 발매되는 게임에는 사용을 자제해 주시고, 사용 후 피드백 주시면 감사하겠습니다!
 
-![image alt text](image_19.png)(w:900 h:485 convert:false)
+![image alt text](image_19.jpg)(w:900 h:485 convert:false)
 
 * 에디터에서 프로젝트의 패키징 세팅을 통해 켤 수 있습니다: 실험단계 => Nativize Blueprint Assets (블루프린트 애셋 네이티브화).
 
@@ -290,7 +290,7 @@ UMG 웹 브라우저 위젯이 이제 iOS 에 지원됩니다!
 
 새로운 Twist Corrective (트위스트 보정형) 노드를 추가, 모프 타겟과 같은 것에서 어느 한 본을 기준으로 다른 본의 트위스트에 따라 커브 값을 구동시킬 수 있습니다. 예를 들어, 목이 오른쪽이나 왼쪽으로 너무 뒤틀린 경우, 목에 모프 타겟을 적용하여 보다 부드러운 모양새를 낼 수 있습니다.
 
-![image alt text](image_22.png)(w:488 h:257 convert:false) ![image alt text](image_23.png)(w:342 h:257 convert:false)
+![image alt text](image_22.jpg)(w:488 h:257 convert:false) ![image alt text](image_23.jpg)(w:342 h:257 convert:false)
 
 본 이름과 로컬 축, 트위스트 노멀을 트위스트 축으로 사용해서 베이스 프레임과 트위스트 프레임을 지정합니다. 지정한 커브를 사용하여 [레퍼런스 포즈 델타 각도, 최대 각도] 값을 [매핑된 최소 범위, 매핑된 최대 범위] 로 매핑시킵니다.
 
@@ -298,7 +298,7 @@ UMG 웹 브라우저 위젯이 이제 iOS 에 지원됩니다!
 
 풀 씬 임포트로 이제 Max / Maya / Blender 에서 이미 만든 환경을 가져와 전체 씬을 에디터의 레벨에 임포트할 수 있습니다.
 
-![image alt text](image_24.png)(w:201 h:477 convert:false) ![image alt text](image_25.png)(w:572 h:470 convert:false)
+![image alt text](image_24.jpg)(w:201 h:477 convert:false) ![image alt text](image_25.jpg)(w:572 h:470 convert:false)
 
  환경에 새로운 씬 FBX 애셋이 생성되어, 다시 임포트하여 환경 반복처리 작업도 할 수 있습니다. 4.11 에서 사용할 수 있었던 초기 버전은 스태틱 메시가 들어있는 씬만 지원합니다. 4.12 버전에서는 스켈레탈 메시가 포함된 씬도 임포트할 수 있어 완성도가 높아졌습니다.
 
@@ -308,19 +308,19 @@ UMG 웹 브라우저 위젯이 이제 iOS 에 지원됩니다!
 
 이제 손쉽게 레벨 뷰포트에서 바로 메시 액터를 병합할 수 있습니다. 드로 콜이 줄어 퍼포먼스가 향상됩니다.
 
-![image alt text](image_26.png)(w:353 h:209 convert:false) ![image alt text](image_27.png)(w:320 h:209 convert:false)
+![image alt text](image_26.jpg)(w:353 h:209 convert:false) ![image alt text](image_27.jpg)(w:320 h:209 convert:false)
 
 스태틱 메시 병합 예제로, *왼쪽* 은 레벨 뷰포트의 이전 뷰 / *오른쪽* 은 스태틱 메시 에디터의 이후 뷰입니다.
 
 Merge Actor (액터 병합) 기능은 엔진의 실험단계 기능에서 탈피, *창/개발자/기타* 아래에서 찾을 수 있습니다. UI 패널도 계층형 LOD 시스템용 병합 경로에 대한 최신 변경사항을 지원하도록 확장 및 업데이트 되었습니다.
 
-![image alt text](image_28.png)(w:464 h:532 convert:false)
+![image alt text](image_28.jpg)(w:464 h:532 convert:false)
 
 ## 픽셀 조사기
 
 새로운 Pixel Inspector (픽셀 조사기)는 씬의 픽셀을 클릭하면 그 색이 나오는 데 기여한 머티리얼과 렌더링 상태를 시각화시켜 주는 툴입니다.
 
-![image alt text](image_29.png)(w:769 h:410 convert:false)
+![image alt text](image_29.jpg)(w:769 h:410 convert:false)
 
 씬의 픽셀 색이 왜 이상하게 나오는지 궁금했던 적이 있나요? 어떤 머티리얼 입력때문에 그 픽셀 색이 그렇게 나오는지 알려주는 툴이 있다면 어떨까요? 픽셀 조사기 툴이 도와드립니다!
 
@@ -344,7 +344,7 @@ Merge Actor (액터 병합) 기능은 엔진의 실험단계 기능에서 탈피
 
 이제 인티저 프로퍼티를 비트마스크로 선언할 수 있으며, 여기에 선택적으로 비트플래그 값으로 캡슐화되는 열거형을 연관시켜 줄 수 있습니다. 이 작업은 C++ 와 블루프린트 양쪽에서 작동합니다!
 
-![image alt text](image_31.png)(w:900 h:485 convert:false)
+![image alt text](image_31.jpg)(w:900 h:485 convert:false)
 
 * 네이티브 프로퍼티는 Bitmask 메타데이터를 마킹하면, 블루프린트 에디터에 추가되는 변수는 Bitmask 체크박스가 생깁니다.
 
@@ -356,7 +356,7 @@ Merge Actor (액터 병합) 기능은 엔진의 실험단계 기능에서 탈피
 
 콘솔 타이틀 작업시, UI 가 TV 화면 가장자리에 너무 가까이 나오지 않도록 하는 것이 중요합니다. 그러한 경우를 예방하는 데 도움이 되는 간단한 툴을 추가했습니다.
 
- ![image alt text](image_32.png)(w:929 h:524 convert:false)
+ ![image alt text](image_32.jpg)(w:929 h:524 convert:false)
 
 사용하려면 DefaultEngine.ini 의 [SystemSettings] 아래 다음 줄을 추가하거나, 콘솔 명령으로 입력하면 됩니다:
 
@@ -386,21 +386,21 @@ Merge Actor (액터 병합) 기능은 엔진의 실험단계 기능에서 탈피
 
 이제 애님 몽타주나 애님 컴포짓에 다른 애님 컴포짓을 내장시켜, 독립적인 애니메이션 애셋을 보다 유연하게 생성할 수 있습니다. 아래 그림에서 TEST_Montage 에 TEST_AnimComposite 이 들어있으며, 그 자체에도 여러가지 다른 애니메이션 시퀀스가 들어있습니다.
 
-![image alt text](image_33.png)(w:929 h:144 convert:false)
+![image alt text](image_33.jpg)(w:929 h:144 convert:false)
 
-![image alt text](image_34.png)(w:929 h:92 convert:false)
+![image alt text](image_34.jpg)(w:929 h:92 convert:false)
 
 ## 콜리전 메시에 선택적 LOD 
 
 이제 Complex (복합, 폴리 단위) 콜리전에 스태틱 메시의 어떤 LOD 를 사용할 것인지 선택할 수 있습니다. 이를 통해 Simple (단순, 컨벡스 헐) 콜리전이 적합하지 않은 메시에 대해 보다 단순한 형태의 콜리전 표현을 임포트 또는 생성 가능합니다. 이는 작동방식이나 퍼포먼스 향상으로 이어지고, 하이 폴리 메시의 메모리 사용량이 크게 줄어듭니다.
 
-![image alt text](image_35.png)(w:586 h:740 convert:false)
+![image alt text](image_35.jpg)(w:586 h:740 convert:false)
 
 ## 메시의 기본 콜리전
 
 스태틱 메시 컴포넌트는 이제 디폴트 콜리전을 지원, 즉 스태틱 메시 애셋에서의 콜리전 세팅을 그대로 사용합니다. 이로써 콜리전 정보를 한 곳에 지정할 수 있어, 인스턴스를 맵에 배치하면서 일일히 업데이트해야 하던 작업이 편해집니다. 스카이 돔 메시를 예로 들 수 있겠는데, 이제 애셋 자체에 콜리전을 끄면 각 인스턴스는 기본적으로 콜리전이 꺼진 상태로 배치됩니다.
 
-![image alt text](image_36.png)(w:366 h:349 convert:false)
+![image alt text](image_36.jpg)(w:366 h:349 convert:false)
 
 필요한 경우 스태틱 메시 컴포넌트의 세팅을 기본값 이외의 것으로 변경해서 인스턴스별로 세팅을 덮어쓰는 것도 여전히 가능합니다.
 
@@ -432,7 +432,7 @@ UE4 사운드 믹스는 사운드 클래스 프로퍼티를 동적으로 조정�
 
 4.12 에서는 이제 블루프린트에서 새로운 블루프린트 함수 Set Sound Mix Class Override 를 사용하여 사운드 믹스가 자신의 사운드 클래스 조정을 동적으로 덮어쓸 수 있게 되었습니다.
 
-![image alt text](image_37.png)(w:296 h:322 convert:false)
+![image alt text](image_37.jpg)(w:296 h:322 convert:false)
 
 사운드 믹스 내 사운드 클래스 조정 값은 지정된 페이드 인 시간에 걸쳐 주어진 값으로 보간됩니다. 지정된 사운드 클래스가 사운드 믹스 내 존재하지 않는 경우, 사운드 클래스를 사운드 믹스에 덧붙이고, 1.0 에서부터 목표 값으로 (즉 미적용 값에서 적용 값으로) 보간해 갑니다. 이 기능을 통해 사운드 디자이너는 동적인 게임플레이 이벤트나 게임 상태에 맞춰 사운드 믹스 볼륨을 밀접하게 통합시킬 수 있을 것입니다. 예를 들어, 이제 사운드 클래스의 프로퍼티를 어떤 게임 상태, 즉 차의 주행 속도, 맵에서의 정교한 위치, 액터 생명력 수준, 플레이어의 공포 수준 등과 밀접하게 결합시키는 것이 가능해 졌습니다. 이 기능으로 또 한가지, 슬레이트에 게임의 볼륨 선호도 패널을 작성할 수가 있어, C++ 코드를 통해 사운드 클래스 볼륨을 수동으로 덮어쓴 뒤 정적인 애셋 데이터에 쓰지 않아도 되게 되었습니다.
 
@@ -442,7 +442,7 @@ UE4 사운드 믹스는 사운드 클래스 프로퍼티를 동적으로 조정�
 
 4.12 에는 (다이얼로그 웨이브와 다이얼로그 보이스 애셋을 통한) 오디오 현지화 내장 기능이 개선되어, 시도후 피드백을 제공받아도 괜찮은 시점에 이르렀습니다.
 
-![image alt text](image_38.png)(w:478 h:577 convert:false)
+![image alt text](image_38.jpg)(w:478 h:577 convert:false)
 
 * 구어 텍스트는 이제 다이얼로그 웨이브 애셋에서 수집한 뒤 다른 애셋 기반 텍스트와 함께 번역할 수 있도록 PO 파일에 포함됩니다.
 

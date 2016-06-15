@@ -3,7 +3,10 @@ Title: Using In-App Purchases
 Description: Using in-app purchases to offer additional paid content for your game.
 Crumbs:
 Availability:Public
-Parent:Platforms/Mobile
+parent:Platforms/Mobile
+order:1
+type:howto
+tags:mobile
 
 [VAR:Topic]
 [OBJECT:Topic]

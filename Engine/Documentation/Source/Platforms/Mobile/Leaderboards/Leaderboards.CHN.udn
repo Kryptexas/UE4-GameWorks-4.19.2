@@ -3,7 +3,10 @@ Title: Using Mobile Service Leaderboards
 Description:Using leaderboards in your game.
 Crumbs:
 Availability:Public
-Parent:Platforms/Mobile
+parent:Platforms/Mobile
+order:4
+type:howto
+tags:mobile
 
 [VAR:Topic]
 [OBJECT:Topic]

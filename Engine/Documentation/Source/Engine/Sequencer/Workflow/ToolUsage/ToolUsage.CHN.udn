@@ -1,106 +1,106 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3009005
 Availability:Public
-Title: Workflow Considerations
-Crumbs: %ROOT%, Engine
-Description:Outlines and describes some of the different Sequencer Workflows and what each offer. 
+Title:工作流程考虑事项
+Crumbs:%ROOT%, Engine
+Description:概述并说明一些不同的 Sequencer 工作流程以及各工作流程的功能。 
 Navigation:topic
 parent:Engine\Sequencer\Workflow
 order:1
-Version: 4.12
-Related: Engine\Sequencer\Overview
-Related: Engine\Sequencer\ReferenceEditor
-Related: Engine\Sequencer\HowTo
+Version:4.12
+Related:Engine\Sequencer\Overview
+Related:Engine\Sequencer\ReferenceEditor
+Related:Engine\Sequencer\HowTo
 
-Based on your team needs, you may want to consider some of the following Sequencer workflows. 
+根据您的团队需求，您可能需要考虑下列某些 Sequencer 工作流程。 
 
 [TOC(start:2 end:2)]
 
-## Linear Workflow
+## 线性工作流程
 
-In this workflow, a single Level Sequence is used and all content for the cinematic is authored inside it. This type of workflow might best be suited for an individual who is working on their own project and does not need to collaborate with others on the cinematic. 
+在这种工作流程中，使用一个关卡序列，在其中制作过场动画的所有内容。这种工作流程可能最适合独自处理自己的项目而不需要与他人就过场动画进行协作的人。 
 
-* A Level Sequence is created that contains all characters, animations, lights and other objects that will be in your cinematic.
-* Each scene in the cinematic is set up with its content. Animations, movement, lighting, etc. are all defined. 
-* With the content for the cinematic set up, cameras are moved into position to shoot each scene. 
-* Camera cuts are provided with a **Camera Cuts** Track to mold the sequence into the final cinematic. 
-* Audio is added to the Level Sequence and finishing touches are applied. 
+* 创建一个关卡序列，它包含您的过场动画中将有的所有角色、动画、光照和其他对象。
+* 设置该过场动画中每个场景的内容。定义动画、运动、光照等各种项目。 
+* 设置完过场动画的内容后，将摄像机移动到相应位置拍摄每个场景。 
+* 通过 **镜头切换** 轨道提供镜头切换，将场景制作成最终的过场动画。 
+* 在关卡序列中添加音频，并进行各种润色。 
 
 
-## Non-Linear Workflow
+## 非线性工作流程
 
-In a non-linear workflow, content is split up into multiple Level Sequences which are then added to another "master" Level Sequence. 
-Since each scene is split up into its own Level Sequence, you can work on any sequence you want and then "arrange" the order of shots in the master Level Sequence. 
+在非线性工作流程中，内容被分到多个关卡序列中，然后这些关卡序列被添加到另一个“主”关卡序列。 
+因为每个场景都被分到各自的关卡序列，所以您可以根据需要处理任意序列，然后在主关卡序列中“安排”镜头的顺序。 
 
-* A Level Sequence is created for each "scene" of your cinematic and a Master Level Sequence is created to tie all scenes together. 
-* Each scene is set up with its content (not worrying about Cameras, just content). Characters, animation and movement are all added. 
-* Each Level Sequence is added to the Master Level Sequence where a Lead can author and set up the camera work for each scene. 
-* The Lead can also add any other effects, audio or other finishing touches from the Master level without having to add all the content. 
+* 为过场动画的每个“场景”创建一个关卡序列，并创建一个主关卡序列将所有场景连接起来。 
+* 设置每个场景的内容（不必为摄像机操心，只要设置内容就好）。添加角色、动画和运动等各种项目。 
+* 将每个关卡序列添加到主关卡序列，由一名主任动画师为每个场景设置摄像机。 
+* 主任还可以从主关卡添加其他任何效果、音频或作其他润色，而不必添加所有内容。 
 
-Other considerations: 
+其他注意事项： 
 
-* Each scene that is its own Level Sequence can have cameras assigned and camera work set up in it instead.
-	* When that scene is added to the Master Level sequence, there would be no need to do any camera work.
-	* When that scene is played during the Master Level sequence, the camera work in the scene is used. 
-	* This allows each scene to be set up as its own mini sequence and tied together with the Master Level Sequence. 
-	* A Lead could then arrange each scene to form the final cinematic and jump into each scene to make changes if need be. 
-* With a **Shots** track, **Takes** can be used to provide variations of each scene within the Master Level Sequence. 
-	* This will create a duplicate of the Level Sequence and allow you to modify the "take" instead of the original. 
+* 也可以对每个场景自身的关卡序列指定摄像机，并在其中设置摄像机。
+	* 这样将场景添加到主关卡序列时，就不需要作任何摄像机设置。
+	* 在主关卡序列中播放该场景时，会使用场景中的摄像机设置。 
+	* 这样可以将每个场景设置为独立的小场景，再通过主关卡序列连接起来。 
+	* 然后主任可以安排每个场景来组成最终的过场动画，并跳转到每个场景中进行必要的更改。 
+* 使用 **镜头** 轨道时，可以使用 **副镜头** 在主关卡序列中提供每个场景的变体。 
+	* 这种做法将创建关卡序列的副本，允许您修改“副镜头”而不修改原镜头。 
 
 [REGION:note]
-For an example of this, please see the [](Engine\Sequencer\HowTo\TracksShot) page. 
+有关示例请参见 [](Engine\Sequencer\HowTo\TracksShot) 页面。 
 [/REGION]
 
 	
-## Collaborative Workflow
+## 协作式工作流程
 
-In a collaborative workflow, you would take the concepts of the non-linear worfklow but also add the ability for people to work concurrently on the same scenes without affecting each other�s work. 
-With a **Subscenes** Track, you could create Level Sequences for each aspect of each scene and overlap them so multiple people can work on a shot at once which is the traditional method applied to film.  
+在协作式工作流程中，您可以采用非线性工作流程的概念，而且能让多个人同时处理相同的场景而不影响各自的工作。 
+在使用 **子场景** 轨道的情况下，您可以为每个场景的每个方面创建关卡序列并使他们重叠，从而让多个人可以同时处理一个镜头，就像传统电影的制作方法一样。  
 
-Something to the effect of:
+处理各种效果：
 
-* Master Sequence
-	* Shot 1 (Level Sequence)
-		* Shot 1 Lighting (Level Sequence on Subscene Track)
-		* Shot 1 Camera (Level Sequence on Subscene Track)
-		* Shot 1 Skeletal Animation (Level Sequence on Subscene Track)
-		* Shot 1 FX (Level Sequence on Subscene Track)
+* 主序列
+	* 镜头 1（关卡序列）
+		* 镜头 1 光照（子场景轨道上的关卡序列）
+		* 镜头 1 摄像机（子场景轨道上的关卡序列）
+		* 镜头 1 骨骼动画（子场景轨道上的关卡序列）
+		* 镜头 1 FX（子场景轨道上的关卡序列）
 
-Each aspect of the shot would be its own Level Sequence that when composited with each other produces the final shot. 
+镜头的每个方面都自成一个关卡序列，互相合成起来就得到最终的镜头。 
 
 [REGION:note]
-For an example of this, please see the [](Engine\Sequencer\HowTo\TracksSub) page. 
+有关示例请参见 [](Engine\Sequencer\HowTo\TracksSub) 页面。 
 [/REGION]
 
 
-## Master Sequence Workflow
+## 主序列工作流程
 
-This workflow is similar to the Non-Linear Workflow mentioned above in that you will have a "master" Level Sequence containing "shots" that comprise your cinematic. 
-Where it differs is that most of the processes used to set up your cinematic in the Non-Linear Workflow can be automated based on settings you define when creating a new **Master Sequence** asset. 
+此工作流程与上文中提到的非线性工作流程的相似之处在于，您将有一个“主”关卡序列，其中包含组成过场动画的“镜头”。 
+而不同之处在于，非线性工作流程中的大部分用来设置过场动画的过程都可根据您创建新的 **主序列** 资产时定义的设置自动完成。 
 
 ![](MasterSequenceAsset.png)
 
 [REGION:caption]
-You can create a Master Sequence from the Cinematics drop-down menu off the main toolbar. 
+您可使用主工具栏上的“过场动画”（Cinematics）下拉菜单创建主序列。 
 [/REGION]
 
-When creating a Master Sequence you are presented with a Settings window which defines how the Master Sequence is created. 
+创建主序列时，系统将显示“设置”（Settings）窗口，该窗口可定义创建主序列的方式。 
 
 ![](MasterSequenceSettings.png)
 
-In the Settings window you can define the naming convention for your sequences, the duration of each sequence created and the number of shots in your sequence. This is helpful if you have storyboarded out your cinematic and know how many shots you will need and the duration you are shooting for. 
+在“设置”（Settings）窗口中，您可定义序列的命名约定、所创建的每个序列的持续时间以及序列中的镜头数。如果您已建立过场动画的故事板，并了解所需的镜头数以及拍摄持续时间，那么此窗口非常有用。 
 
-Another helpful option is the **Sequence to Duplicate** option which allows you to base each of the shots created off an existing Level Sequence. For example, you could create all the animation, effects, etc. in one Level Sequence then use that as the sequence to duplicate. 
-From there each shot created will contain that information that you can then dissect to create each shot as needed. 
+另一个非常有帮助的选项是 **要复制的序列（Sequence to Duplicate）**，此选项允许您以现有关卡序列为基础创建每个镜头。例如，您可以先在一个关卡序列中创建所有的动画和效果等等，然后将该序列用作“要复制的序列”。 
+这样，创建的每个镜头都将包含这些信息，然后您可以仔细分析这些信息以根据需要创建每个镜头。 
 
-The other useful aspect of the Master Sequence is that each shot created is created with a **Camera Cuts** track and a **Cine Camera Actor** assigned as the camera to use for the shot. This allows you to quickly get in and start creating your content as you do not need to go through the process of adding either of those to Sequencer as they will be created for you. 
+主序列的另一个非常有用的特性是，创建的每个镜头都带有 **镜头切换** 轨道，并已指定 **电影摄像机 Actor** 作为用于拍摄的摄像机。这使您可以迅速着手创建内容，因为这两个项目都会自动创建，您不需要完成将它们添加到 Sequencer 的过程。 
 
 ![](PopulatedShot.png)
 
 [REGION:caption]
-Above a Shot with a Camera Cuts track and a Cine Camera Actor already assigned as part of the Master Sequence asset.
+在上图中，已指定带有“镜头切换”轨道和“电影摄像机 Actor”的镜头作为主序列资产的组成部分。
 [/REGION]
 
 [REGION:note]
-For an example of this, please see the [](Engine\Sequencer\HowTo\TracksSub) page. 
+有关示例请参见 [](Engine\Sequencer\HowTo\TracksSub) 页面。 
 [/REGION]
 
