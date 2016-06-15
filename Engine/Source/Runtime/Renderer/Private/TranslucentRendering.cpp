@@ -1007,6 +1007,7 @@ void FTranslucentPrimSet::PlaceScenePrimitive(FPrimitiveSceneInfo* PrimitiveScen
 	const auto FeatureLevel = ViewInfo.GetFeatureLevel();
 	int32 CVarEnabled = FSceneRenderTargets::CVarSetSeperateTranslucencyEnabled.GetValueOnRenderThread();
 
+	// This condition must match with FSceneRenderTargets::IsSeparateTranslucencyActive
 	bool bCanBeSeparate = CVarEnabled
 		&& FeatureLevel >= ERHIFeatureLevel::SM4
 		&& ViewInfo.Family->EngineShowFlags.PostProcessing 

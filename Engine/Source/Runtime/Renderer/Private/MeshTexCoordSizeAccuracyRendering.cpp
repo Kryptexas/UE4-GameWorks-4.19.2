@@ -19,9 +19,6 @@ void FMeshTexCoordSizeAccuracyPS::SetParameters(
 	const FSceneView& View
 	)
 {
-	const auto& ViewUniformBufferParameter = GetUniformBufferParameter<FViewUniformShaderParameters>();
-	SetUniformBufferParameter(RHICmdList, FGlobalShader::GetPixelShader(), ViewUniformBufferParameter, View.ViewUniformBuffer);
-
 	const int32 NumEngineColors = FMath::Min<int32>(GEngine->StreamingAccuracyColors.Num(), NumStreamingAccuracyColors);
 	int32 ColorIndex = 0;
 	for (; ColorIndex < NumEngineColors; ++ColorIndex)
@@ -32,6 +29,9 @@ void FMeshTexCoordSizeAccuracyPS::SetParameters(
 	{
 		SetShaderValue(RHICmdList, FGlobalShader::GetPixelShader(), AccuracyColorsParameter, FLinearColor::Black, ColorIndex);
 	}
+
+	// Bind view params
+	FGlobalShader::SetParameters(RHICmdList, FGlobalShader::GetPixelShader(), View);
 }
 
 void FMeshTexCoordSizeAccuracyPS::SetMesh(
