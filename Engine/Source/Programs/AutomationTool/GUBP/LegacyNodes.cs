@@ -2537,12 +2537,9 @@ partial class GUBP
 
     public class StaticAnalysisTestNode : TestNode
     {
-		GUBP.GUBPBranchConfig BranchConfig;
-
         public StaticAnalysisTestNode(GUBP.GUBPBranchConfig InBranchConfig, UnrealTargetPlatform InHostPlatform)
             : base(InHostPlatform)
         {
-			BranchConfig = InBranchConfig;
             AddDependency(ToolsForCompileNode.StaticGetFullName(HostPlatform));
             AddPseudodependency(RootEditorNode.StaticGetFullName(HostPlatform));
 			AgentSharingGroup = "TargetPlatforms" + StaticGetHostPlatformSuffix(InHostPlatform);
