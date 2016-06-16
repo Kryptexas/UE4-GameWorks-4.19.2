@@ -1891,6 +1891,17 @@ void FAnimBlueprintCompiler::FEvaluationHandlerRecord::PatchFunctionNameAndCopyR
 		{
 			UProperty* SimpleCopyPropertySource = TargetObject->GetClass()->FindPropertyByName(AnimNodeSinglePropertyHandler.SimpleCopyPropertyName);
 
+			// we cant copy non-POD structs
+			if (SimpleCopyPropertySource && SimpleCopyPropertySource->IsA<UStructProperty>())
+			{
+				UStructProperty* SourceStructProperty = CastChecked<UStructProperty>(SimpleCopyPropertySource);
+				if (SourceStructProperty->Struct->GetCppStructOps() && !SourceStructProperty->Struct->GetCppStructOps()->IsPlainOldData())
+				{
+					bOnlyUsesCopyRecords = false;
+					break;
+				}
+			}
+
 			// we dont support copying *from* array properties at the moment
 			if (SimpleCopyPropertySource && !SimpleCopyPropertySource->IsA<UArrayProperty>())
 			{

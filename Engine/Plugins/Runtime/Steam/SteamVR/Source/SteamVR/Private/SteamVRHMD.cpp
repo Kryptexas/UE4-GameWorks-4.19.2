@@ -935,8 +935,9 @@ void FSteamVRHMD::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdLis
 
 	if (bImplicitHmdPosition)
 	{
+		const FQuat DeltaControlOrientation =  View.ViewRotation.Quaternion() * TrackingFrame.DeviceOrientation[vr::k_unTrackedDeviceIndex_Hmd].Inverse();
 		const FVector DeltaPosition = TrackingFrame.DevicePosition[vr::k_unTrackedDeviceIndex_Hmd] - View.BaseHmdLocation;
-		View.ViewLocation += DeltaPosition;
+		View.ViewLocation += DeltaControlOrientation.RotateVector(DeltaPosition);
 	}
 
  	View.UpdateViewMatrix();

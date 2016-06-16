@@ -2796,6 +2796,9 @@ void FObjectInitializer::InitProperties(UObject* Obj, UClass* DefaultsClass, UOb
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_InitProperties_Blueprint);
 
+		// As with native classes, we must iterate through all properties (slow path) if default data is pointing at something other than the CDO.
+		bCanUsePostConstructLink &= (DefaultData == Class->GetDefaultObject(false));
+
 		UObject* ClassDefaults = bCopyTransientsFromClassDefaults ? DefaultsClass->GetDefaultObject() : NULL;		
 		for (UProperty* P = bCanUsePostConstructLink ? Class->PostConstructLink : Class->PropertyLink; P; P = bCanUsePostConstructLink ? P->PostConstructLinkNext : P->PropertyLinkNext)
 		{
