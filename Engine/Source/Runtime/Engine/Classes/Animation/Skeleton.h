@@ -8,6 +8,7 @@
 #pragma once
 #include "PreviewAssetAttachComponent.h"
 #include "SmartName.h"
+#include "ReferenceSkeleton.h"
 #include "Skeleton.generated.h"
 
 class UAnimSequence;
@@ -334,9 +335,12 @@ public:
 	ENGINE_API void RemoveSlotGroup(const FName& InSlotName);
 	ENGINE_API void RenameSlotName(const FName& OldName, const FName& NewName);
 
+	////////////////////////////////////////////////////////////////////////////
+	// Smart Name Interfaces
+	////////////////////////////////////////////////////////////////////////////
 	// Adds a new name to the smart name container and modifies the skeleton so it can be saved
 	// return bool - Whether a name was added (false if already present)
-	ENGINE_API bool AddSmartNameAndModify(FName ContainerName, FName NewName, FSmartNameMapping::UID& NewUid);
+	ENGINE_API bool AddSmartNameAndModify(FName ContainerName, FName NewDisplayName, FSmartName& NewName);
 
 	// Renames a smartname in the specified container and modifies the skeleton
 	// return bool - Whether the rename was sucessful
@@ -348,12 +352,26 @@ public:
 	// Removes smartnames from the specified container and modifies the skeleton
 	ENGINE_API void RemoveSmartnamesAndModify(FName ContainerName, const TArray<FSmartNameMapping::UID>& Uids);
 
-	// Get or add a smartname container with the given name
-	ENGINE_API const FSmartNameMapping* GetOrAddSmartNameContainer(FName ContainerName);
+	// quick wrapper function for Find UID by name, if not found, it will return FSmartNameMapping::MaxUID
+	ENGINE_API FSmartNameMapping::UID GetUIDByName(FName ContainerName, FName Name);
+	ENGINE_API bool GetSmartNameByUID(FName ContainerName, FSmartNameMapping::UID UID, FSmartName& OutSmartName);
+	ENGINE_API bool GetSmartNameByName(FName ContainerName, FName InName, FSmartName& OutSmartName);
+
+	// Adds a new name to the smart name container and modifies the skeleton so it can be saved
+	// return bool - Whether a name was added (false if already present)
+	ENGINE_API bool RenameSmartName(FName ContainerName, const FSmartNameMapping::UID& Uid, FName NewName);
 
 	// Get or add a smartname container with the given name
-	ENGINE_API const FSmartNameMapping* GetSmartNameContainer(FName ContainerName) const;
+	ENGINE_API const FSmartNameMapping* GetSmartNameContainer(const FName& ContainerName) const;
 
+	// make sure the smart name has valid UID and so on
+	ENGINE_API void VerifySmartName(const FName&  ContainerName, FSmartName& InOutSmartName);
+	ENGINE_API void VerifySmartNames(const FName&  ContainerName, TArray<FSmartName>& InOutSmartNames);
+private:
+	// Get or add a smartname container with the given name
+	FSmartNameMapping* GetOrAddSmartNameContainer(const FName& ContainerName);
+	bool VerifySmartNameInternal(const FName&  ContainerName, FSmartName& InOutSmartName);
+	bool FillSmartNameByDisplayName(FSmartNameMapping* Mapping, const FName& DisplayName, FSmartName& OutSmartName);
 #if WITH_EDITORONLY_DATA
 private:
 	/** The default skeletal mesh to use when previewing this skeleton */
@@ -524,13 +542,13 @@ public:
 	 *	Anybody modifying BoneTree will corrupt animation data, so will need to make sure it's not modifiable outside of Skeleton
 	 *	You can add new BoneNode but you can't modify current list. The index will be referenced by Animation data.
 	 */
-	const TArray<FBoneNode> & GetBoneTree()	const
+	const TArray<FBoneNode>& GetBoneTree()	const
 	{ 
 		return BoneTree;	
 	}
 
 	// @todo document
-	const TArray<FTransform> & GetRefLocalPoses( FName RetargetSource = NAME_None ) const 
+	const TArray<FTransform>& GetRefLocalPoses( FName RetargetSource = NAME_None ) const 
 	{
 		if ( RetargetSource != NAME_None ) 
 		{

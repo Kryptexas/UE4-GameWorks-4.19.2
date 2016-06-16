@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Animation/PoseAsset.h"
 #include "AnimInstanceProxy.h"
 #include "Animation/AnimStats.h"
 #include "Animation/AnimMontage.h"
@@ -10,6 +11,7 @@
 #include "Animation/AnimNode_AssetPlayerBase.h"
 #include "Animation/AnimNode_StateMachine.h"
 #include "Animation/AnimNode_TransitionResult.h"
+#include "Animation/AnimNode_SaveCachedPose.h"
 
 #define DO_ANIMSTAT_PROCESSING(StatName) DEFINE_STAT(STAT_ ## StatName)
 #include "AnimMTStats.h"
@@ -31,6 +33,12 @@ void FAnimInstanceProxy::UpdateAnimationNode(float DeltaSeconds)
 	{
 		UpdateCounter.Increment();
 		RootNode->Update(FAnimationUpdateContext(this, DeltaSeconds));
+
+		// We've updated the graph, now update the fractured saved pose sections
+		for(FAnimNode_SaveCachedPose* PoseNode : SavedPoseQueue)
+		{
+			PoseNode->PostGraphUpdate();
+		}
 	}
 }
 
@@ -53,6 +61,17 @@ void FAnimInstanceProxy::Initialize(UAnimInstance* InAnimInstance)
 		else
 		{
 			RootNode = nullptr;
+		}
+
+		// Initialise the pose node list
+		const TArray<int32>& PoseNodeIndices = AnimClassInterface->GetOrderedSavedPoseNodeIndices();
+		const TArray<UStructProperty*>& AnimNodeProperties = AnimClassInterface->GetAnimNodeProperties();
+		SavedPoseQueue.Empty(PoseNodeIndices.Num());
+		for(int32 Idx : PoseNodeIndices)
+		{
+			int32 ActualPropertyIdx = AnimNodeProperties.Num() - 1 - Idx;
+			FAnimNode_SaveCachedPose* ActualPoseNode = AnimNodeProperties[ActualPropertyIdx]->ContainerPtrToValuePtr<FAnimNode_SaveCachedPose>(InAnimInstance);
+			SavedPoseQueue.Add(ActualPoseNode);
 		}
 
 		// if no mesh, use Blueprint Skeleton
@@ -154,8 +173,6 @@ void FAnimInstanceProxy::InitializeRootNode()
 
 void FAnimInstanceProxy::Uninitialize(UAnimInstance* InAnimInstance)
 {
-	MorphTargetCurves.Reset();
-	MaterialParameterCurves.Reset();
 }
 
 void FAnimInstanceProxy::PreUpdate(UAnimInstance* InAnimInstance, float DeltaSeconds)
@@ -274,6 +291,13 @@ void FAnimInstanceProxy::MakeBlendSpaceTickRecord(FAnimTickRecord& TickRecord, c
 	TickRecord.PlayRateMultiplier = PlayRate;
 	TickRecord.EffectiveBlendWeight = FinalBlendWeight;
 	TickRecord.bLooping = bLooping;
+}
+
+/** Helper function: make a tick record for a pose asset*/
+void FAnimInstanceProxy::MakePoseAssetTickRecord(FAnimTickRecord& TickRecord, class UPoseAsset* PoseAsset, float FinalBlendWeight) const
+{
+	TickRecord.SourceAsset = PoseAsset;
+	TickRecord.EffectiveBlendWeight = FinalBlendWeight;
 }
 
 void FAnimInstanceProxy::SequenceAdvanceImmediate(UAnimSequenceBase* Sequence, bool bLooping, float PlayRate, float DeltaSeconds, float& CurrentTime, FMarkerTickRecord& MarkerTickRecord)
@@ -741,16 +765,6 @@ void FAnimInstanceProxy::EvaluateAnimation(FPoseContext& Output)
 	}
 }
 
-void FAnimInstanceProxy::UpdateCurvesToComponents(USkeletalMeshComponent* Component)
-{
-	// AnimInstanceProxy has SkeletalMeshComponent but it's not safe to be used everywhere
-	// so please give us Component to update
-	if (Component)
-	{
-		Component->ApplyAnimationCurvesToComponent(&MaterialParameterCurves, &MorphTargetCurves);
-	}
-}
-
 // for now disable becauase it will not work with single node instance
 #if (UE_BUILD_SHIPPING || UE_BUILD_TEST)
 #define DEBUG_MONTAGEINSTANCE_WEIGHT 0
@@ -987,9 +1001,16 @@ const FMontageEvaluationState* FAnimInstanceProxy::GetActiveMontageEvaluationSta
 
 void FAnimInstanceProxy::GatherDebugData(FNodeDebugData& DebugData)
 {
+	// Gather debug data for Root Node
 	if(RootNode != nullptr)
 	{
 		 RootNode->GatherDebugData(DebugData); 
+	}
+
+	// Gather debug data for Cached Poses.
+	for (FAnimNode_SaveCachedPose* PoseNode : SavedPoseQueue)
+	{
+		PoseNode->GatherDebugData(DebugData);
 	}
 }
 

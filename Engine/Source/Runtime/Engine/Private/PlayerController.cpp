@@ -149,12 +149,12 @@ bool APlayerController::DestroyNetworkActorHandled()
 bool APlayerController::IsLocalController() const
 {
 	// Never local on dedicated server, always local on clients. IsServerOnly() and IsClientOnly() are checked at compile time and optimized out appropriately.
-	if (FGenericPlatformProperties::IsServerOnly())
+	if (FPlatformProperties::IsServerOnly())
 	{
-		check(!bIsLocalPlayerController);
+		checkSlow(!bIsLocalPlayerController);
 		return false;
 	}
-	else if (FGenericPlatformProperties::IsClientOnly())
+	else if (FPlatformProperties::IsClientOnly())
 	{
 		bIsLocalPlayerController = true;
 		return true;
@@ -170,7 +170,7 @@ bool APlayerController::IsLocalController() const
 	if (NetMode == NM_DedicatedServer)
 	{
 		// This is still checked for the PIE case, which would not be caught in the IsServerOnly() check above.
-		check(!bIsLocalPlayerController);
+		checkSlow(!bIsLocalPlayerController);
 		return false;
 	}
 
@@ -1510,7 +1510,7 @@ void APlayerController::SendClientAdjustment()
 	// Server sends updates.
 	// Note: we do this for both the pawn and spectator in case an implementation has a networked spectator.
 	APawn* RemotePawn = GetPawnOrSpectator();
-	if (RemotePawn && (GetNetMode() < NM_Client) && (RemotePawn->GetRemoteRole() == ROLE_AutonomousProxy))
+	if (RemotePawn && (RemotePawn->GetRemoteRole() == ROLE_AutonomousProxy) && !IsNetMode(NM_Client))
 	{
 		INetworkPredictionInterface* NetworkPredictionInterface = Cast<INetworkPredictionInterface>(RemotePawn->GetMovementComponent());
 		if (NetworkPredictionInterface)
@@ -3877,7 +3877,7 @@ void APlayerController::TickActor( float DeltaSeconds, ELevelTick TickType, FAct
 
 	//root of tick hierarchy
 
-	if ((GetNetMode() < NM_Client) && (GetRemoteRole() == ROLE_AutonomousProxy) && !IsLocalPlayerController())
+	if ((GetRemoteRole() == ROLE_AutonomousProxy) && !IsNetMode(NM_Client) && !IsLocalPlayerController())
 	{
 		// force physics update for clients that aren't sending movement updates in a timely manner 
 		// this prevents cheats associated with artificially induced ping spikes

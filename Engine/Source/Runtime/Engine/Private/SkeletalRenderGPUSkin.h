@@ -140,6 +140,7 @@ public:
 	{
 		check(SkelMeshResource);
 		check(SkelMeshResource->LODModels.IsValidIndex(LODIdx));
+		bUsesComputeShader = false;
 	}
 	/** 
 	* Initialize the dynamic RHI for this rendering resource 
@@ -150,6 +151,14 @@ public:
 	* Release the dynamic RHI for this rendering resource 
 	*/
 	virtual void ReleaseDynamicRHI();
+
+	inline void RecreateResourcesIfRequired(bool bInUsesComputeShader)
+	{
+		if (bUsesComputeShader != bInUsesComputeShader)
+		{
+			UpdateRHI();
+		}
+	}
 
 	/** 
 	* Morph target vertex name 
@@ -198,6 +207,8 @@ protected:
 
 	// guaranteed only to be valid if the vertex buffer is valid
 	FUnorderedAccessViewRHIRef UAVValue;
+
+	bool bUsesComputeShader;
 
 private:
 	/** index to the SkelMeshResource.LODModels */
@@ -315,9 +326,9 @@ private:
 		 * Init default vertex factory resources for this LOD 
 		 *
 		 * @param VertexBuffers - available vertex buffers to reference in vertex factory streams
-		 * @param Chunks - relevant chunk information (either original or from swapped influence)
+		 * @param Sections - relevant section information (either original or from swapped influence)
 		 */
-		void InitVertexFactories(const FVertexFactoryBuffers& VertexBuffers, const TArray<FSkelMeshChunk>& Chunks, ERHIFeatureLevel::Type FeatureLevel);
+		void InitVertexFactories(const FVertexFactoryBuffers& VertexBuffers, const TArray<FSkelMeshSection>& Sections, ERHIFeatureLevel::Type FeatureLevel);
 		/** 
 		 * Release default vertex factory resources for this LOD 
 		 */
@@ -326,9 +337,9 @@ private:
 		 * Init morph vertex factory resources for this LOD 
 		 *
 		 * @param VertexBuffers - available vertex buffers to reference in vertex factory streams
-		 * @param Chunks - relevant chunk information (either original or from swapped influence)
+		 * @param Sections - relevant section information (either original or from swapped influence)
 		 */
-		void InitMorphVertexFactories(const FVertexFactoryBuffers& VertexBuffers, const TArray<FSkelMeshChunk>& Chunks, bool bInUsePerBoneMotionBlur, ERHIFeatureLevel::Type InFeatureLevel);
+		void InitMorphVertexFactories(const FVertexFactoryBuffers& VertexBuffers, const TArray<FSkelMeshSection>& Sections, bool bInUsePerBoneMotionBlur, ERHIFeatureLevel::Type InFeatureLevel);
 		/** 
 		 * Release morph vertex factory resources for this LOD 
 		 */
@@ -337,9 +348,9 @@ private:
 		 * Init APEX cloth vertex factory resources for this LOD 
 		 *
 		 * @param VertexBuffers - available vertex buffers to reference in vertex factory streams
-		 * @param Chunks - relevant chunk information (either original or from swapped influence)
+		 * @param Sections - relevant section information (either original or from swapped influence)
 		 */
-		void InitAPEXClothVertexFactories(const FVertexFactoryBuffers& VertexBuffers, const TArray<FSkelMeshChunk>& Chunks, ERHIFeatureLevel::Type InFeatureLevel);
+		void InitAPEXClothVertexFactories(const FVertexFactoryBuffers& VertexBuffers, const TArray<FSkelMeshSection>& Sections, ERHIFeatureLevel::Type InFeatureLevel);
 		/** 
 		 * Release morph vertex factory resources for this LOD 
 		 */

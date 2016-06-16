@@ -1015,11 +1015,24 @@ public:
 	/**
 	 * Get distance to the body surface if available
 	 * It is only valid if BodyShape is convex
-	 * If point is inside or shape is not convex, it will return 0.f
+	 * If point is inside distance it will be 0
+	 * Returns false if geometry is not supported
 	 *
 	 * @param Point				Point in world space
+	 * @param OutDistanceSquared How far from the instance the point is. 0 if inside the shape
 	 * @param OutPointOnBody	Point on the surface of body closest to Point
+	 * @return true if a distance to the body was found and OutDistanceSquared has been populated
 	 */
+	bool GetSquaredDistanceToBody(const FVector& Point, float& OutDistanceSquared, FVector& OutPointOnBody) const;
+
+	/**
+	* Get the square of the distance to the body surface if available
+	* It is only valid if BodyShape is convex
+	* If point is inside or shape is not convex, it will return 0.f
+	*
+	* @param Point				Point in world space
+	* @param OutPointOnBody	Point on the surface of body closest to Point
+	*/
 	float GetDistanceToBody(const FVector& Point, FVector& OutPointOnBody) const;
 
 	/** 

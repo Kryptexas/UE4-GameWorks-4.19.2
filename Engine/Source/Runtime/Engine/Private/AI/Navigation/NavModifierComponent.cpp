@@ -4,6 +4,7 @@
 #include "AI/NavigationModifier.h"
 #include "AI/Navigation/NavModifierComponent.h"
 #include "AI/Navigation/NavAreas/NavArea_Null.h"
+#include "AI/NavigationOctree.h"
 
 UNavModifierComponent::UNavModifierComponent(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {

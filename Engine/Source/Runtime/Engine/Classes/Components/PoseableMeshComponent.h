@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "Animation/AnimationAsset.h"
+#include "Components/SkinnedMeshComponent.h"
 #include "PoseableMeshComponent.generated.h"
 
 /**

@@ -95,7 +95,9 @@ public:
 	/** Set New Asset - calls InitializeAnimation, for now we need MeshComponent **/
 	UFUNCTION(BlueprintCallable, Category="Animation")
 	virtual void SetAnimationAsset(UAnimationAsset* NewAsset, bool bIsLooping=true, float InPlayRate=1.f);
-
+	/** Set pose value */
+ 	UFUNCTION(BlueprintCallable, Category = "Animation")
+ 	void SetPreviewPoseOverride(const FName& PoseName, float Value);
 public:
 	/** AnimSequence specific **/
 	void StepForward();

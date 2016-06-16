@@ -257,7 +257,7 @@ void UAnimInstance::UninitializeAnimation()
 	}
 
 	ActiveAnimNotifyState.Reset();
-	EventCurves.Reset();
+	ResetAnimationCurves();
 	MaterialParamatersToClear.Reset();
 	NotifyQueue.Reset(SkelMeshComp);
 }
@@ -911,38 +911,48 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 		{
 			FIndenter CurveIndent(Indent);
 
-			Heading = FString::Printf(TEXT("Morph Curves: %i"), Proxy.GetMorphTargetCurves().Num());
+			Heading = FString::Printf(TEXT("Morph Curves: %i"), AnimationCurves[(uint8)EAnimCurveType::MorphTargetCurve].Num());
 			DisplayDebugManager.DrawString(Heading, Indent);
 
 			DisplayDebugManager.SetLinearDrawColor(TextWhite);
 
 			{
 				FIndenter MorphCurveIndent(Indent);
-				OutputCurveMap(Proxy.GetMorphTargetCurves(), Canvas, DisplayDebugManager, Indent);
+				OutputCurveMap(AnimationCurves[(uint8)EAnimCurveType::MorphTargetCurve], Canvas, DisplayDebugManager, Indent);
 			}
 
 			DisplayDebugManager.SetLinearDrawColor(TextYellow);
 
-			Heading = FString::Printf(TEXT("Material Curves: %i"), Proxy.GetMaterialParameterCurves().Num());
+			Heading = FString::Printf(TEXT("Material Curves: %i"), AnimationCurves[(uint8)EAnimCurveType::MaterialCurve].Num());
 			DisplayDebugManager.DrawString(Heading, Indent);
 
 			DisplayDebugManager.SetLinearDrawColor(TextWhite);
 
 			{
 				FIndenter MaterialCurveIndent(Indent);
-				OutputCurveMap(Proxy.GetMaterialParameterCurves(), Canvas, DisplayDebugManager, Indent);
+				OutputCurveMap(AnimationCurves[(uint8)EAnimCurveType::MaterialCurve], Canvas, DisplayDebugManager, Indent);
 			}
 
 			DisplayDebugManager.SetLinearDrawColor(TextYellow);
 
-			Heading = FString::Printf(TEXT("Event Curves: %i"), EventCurves.Num());
+			Heading = FString::Printf(TEXT("Event Curves: %i"), AnimationCurves[(uint8)EAnimCurveType::EventCurve].Num());
 			DisplayDebugManager.DrawString(Heading, Indent);
 
 			DisplayDebugManager.SetLinearDrawColor(TextWhite);
 
 			{
 				FIndenter EventCurveIndent(Indent);
-				OutputCurveMap(EventCurves, Canvas, DisplayDebugManager, Indent);
+				OutputCurveMap(AnimationCurves[(uint8)EAnimCurveType::EventCurve], Canvas, DisplayDebugManager, Indent);
+			}
+
+			Heading = FString::Printf(TEXT("Pose Curves: %i"), AnimationCurves[(uint8)EAnimCurveType::PoseCurve].Num());
+			DisplayDebugManager.DrawString(Heading, Indent);
+
+			DisplayDebugManager.SetLinearDrawColor(TextWhite);
+
+			{
+				FIndenter EventCurveIndent(Indent);
+				OutputCurveMap(AnimationCurves[(uint8)EAnimCurveType::PoseCurve], Canvas, DisplayDebugManager, Indent);
 			}
 		}
 	}
@@ -1034,45 +1044,58 @@ void UAnimInstance::AddCurveValue(const FName& CurveName, float Value, int32 Cur
 	//CurveValues.Add(CurveName, Value);
 	if (CurveTypeFlags & ACF_TriggerEvent)
 	{
-		float *CurveValPtr = EventCurves.Find(CurveName);
+		float *CurveValPtr = AnimationCurves[(uint8)EAnimCurveType::EventCurve].Find(CurveName);
 		if ( CurveValPtr )
 		{
 			// sum up, in the future we might normalize, but for now this just sums up
 			// this won't work well if all of them have full weight - i.e. additive 
-			*CurveValPtr += Value;
+			*CurveValPtr = Value;
 		}
 		else
 		{
-			EventCurves.Add(CurveName, Value);
+			AnimationCurves[(uint8)EAnimCurveType::EventCurve].Add(CurveName, Value);
 		}
 	}
 
 	if (CurveTypeFlags & ACF_DrivesMorphTarget)
 	{
-		float *CurveValPtr = Proxy.GetMorphTargetCurves().Find(CurveName);
+		float *CurveValPtr = AnimationCurves[(uint8)EAnimCurveType::MorphTargetCurve].Find(CurveName);
 		if ( CurveValPtr )
 		{
 			// sum up, in the future we might normalize, but for now this just sums up
 			// this won't work well if all of them have full weight - i.e. additive 
-			*CurveValPtr += Value;
+			*CurveValPtr = Value;
 		}
 		else
 		{
-			Proxy.GetMorphTargetCurves().Add(CurveName, Value);
+			AnimationCurves[(uint8)EAnimCurveType::MorphTargetCurve].Add(CurveName, Value);
 		}
 	}
 
 	if (CurveTypeFlags & ACF_DrivesMaterial)
 	{
 		MaterialParamatersToClear.RemoveSwap(CurveName);
-		float* CurveValPtr = Proxy.GetMaterialParameterCurves().Find(CurveName);
+		float* CurveValPtr = AnimationCurves[(uint8)EAnimCurveType::MaterialCurve].Find(CurveName);
 		if( CurveValPtr)
 		{
-			*CurveValPtr += Value;
+			*CurveValPtr = Value;
 		}
 		else
 		{
-			Proxy.GetMaterialParameterCurves().Add(CurveName, Value);
+			AnimationCurves[(uint8)EAnimCurveType::MaterialCurve].Add(CurveName, Value);
+		}
+	}
+
+	if (CurveTypeFlags & ACF_DrivesPose)
+	{
+		float* CurveValPtr = AnimationCurves[(uint8)EAnimCurveType::PoseCurve].Find(CurveName);
+		if (CurveValPtr)
+		{
+			*CurveValPtr = Value;
+		}
+		else
+		{
+			AnimationCurves[(uint8)EAnimCurveType::PoseCurve].Add(CurveName, Value);
 		}
 	}
 }
@@ -1104,10 +1127,51 @@ void UAnimInstance::TickSyncGroupWriteIndex()
 	GetProxyOnGameThread<FAnimInstanceProxy>().TickSyncGroupWriteIndex();
 }
 
-void UAnimInstance::RefreshCurves(USkeletalMeshComponent* Component)
+void UAnimInstance::UpdateCurvesToComponents(USkeletalMeshComponent* Component /*= nullptr*/)
 {
 	// update curves to component
-	GetProxyOnGameThread<FAnimInstanceProxy>().UpdateCurvesToComponents(Component);
+	if (Component)
+	{
+		Component->ApplyAnimationCurvesToComponent(&AnimationCurves[(uint8)EAnimCurveType::MaterialCurve], &AnimationCurves[(uint8)EAnimCurveType::MorphTargetCurve]);
+	}
+}
+
+void UAnimInstance::GetAnimationCurveList(int32 CurveFlags, TMap<FName, float>& OutCurveList) const
+{
+	OutCurveList.Reset();
+
+	if (CurveFlags & ACF_TriggerEvent)
+	{
+		OutCurveList.Append(AnimationCurves[(uint8)EAnimCurveType::EventCurve]);
+	}
+
+	if (CurveFlags & ACF_DrivesMorphTarget)
+	{
+		OutCurveList.Append(AnimationCurves[(uint8)EAnimCurveType::MorphTargetCurve]);
+	}
+
+	if (CurveFlags & ACF_DrivesMaterial)
+	{
+		OutCurveList.Append(AnimationCurves[(uint8)EAnimCurveType::MaterialCurve]);
+	}
+
+	if (CurveFlags & ACF_DrivesPose)
+	{
+		OutCurveList.Append(AnimationCurves[(uint8)EAnimCurveType::PoseCurve]);
+	}
+}
+
+void UAnimInstance::RefreshCurves(USkeletalMeshComponent* Component)
+{
+	UpdateCurvesToComponents(Component);
+}
+
+void UAnimInstance::ResetAnimationCurves()
+{
+	for (uint8 Index = 0; Index < (uint8)EAnimCurveType::MaxAnimCurveType; ++Index)
+	{
+		AnimationCurves[Index].Reset();
+	}
 }
 
 void UAnimInstance::UpdateCurves(const FBlendedHeapCurve& InCurve)
@@ -1118,7 +1182,7 @@ void UAnimInstance::UpdateCurves(const FBlendedHeapCurve& InCurve)
 
 	//Track material params we set last time round so we can clear them if they aren't set again.
 	MaterialParamatersToClear.Reset();
-	for(auto Iter = Proxy.GetMaterialParameterCurves().CreateConstIterator(); Iter; ++Iter)
+	for(auto Iter = AnimationCurves[(uint8)EAnimCurveType::MaterialCurve].CreateConstIterator(); Iter; ++Iter)
 	{
 		if(Iter.Value() > 0.0f)
 		{
@@ -1126,9 +1190,7 @@ void UAnimInstance::UpdateCurves(const FBlendedHeapCurve& InCurve)
 		}
 	}
 
-	EventCurves.Reset();
-	Proxy.GetMorphTargetCurves().Reset();
-	Proxy.GetMaterialParameterCurves().Reset();
+	ResetAnimationCurves();
 
 	if (InCurve.UIDList != nullptr)
 	{
@@ -1148,19 +1210,24 @@ void UAnimInstance::UpdateCurves(const FBlendedHeapCurve& InCurve)
 		AddCurveValue(ParamsToClearCopy[i], 0.0f, ACF_DrivesMaterial);
 	}
 
+#if WITH_EDITOR
+	// if we're supporting this in-game, this code has to change to work with UID
+	for (auto& AddAnimCurveDelegate : OnAddAnimationCurves)
+	{
+		if (AddAnimCurveDelegate.IsBound())
+		{
+			AddAnimCurveDelegate.Execute(this);
+		}
+	}
+
+#endif
 	// update curves to component
-	// Proxy might not have SkeletalMeshComponent
-	Proxy.UpdateCurvesToComponents(GetOwningComponent());
+	UpdateCurvesToComponents(GetOwningComponent());
 }
 
 bool UAnimInstance::HasMorphTargetCurves() const
 {
-	return GetProxyOnGameThread<FAnimInstanceProxy>().HasMorphTargetCurves();
-}
-
-TMap<FName, float>& UAnimInstance::GetMorphTargetCurves()
-{
-	return GetProxyOnGameThread<FAnimInstanceProxy>().GetMorphTargetCurves();
+	return AnimationCurves[(uint8)EAnimCurveType::MorphTargetCurve].Num() > 0;
 }
 
 void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
@@ -1313,7 +1380,7 @@ float UAnimInstance::GetSlotMontageGlobalWeight(FName SlotNodeName) const
 
 float UAnimInstance::GetCurveValue(FName CurveName)
 {
-	float* Value = EventCurves.Find(CurveName);
+	float* Value = AnimationCurves[(uint8)EAnimCurveType::EventCurve].Find(CurveName);
 	if (Value)
 	{
 		return *Value;
@@ -2697,5 +2764,29 @@ void UAnimInstance::QueueRootMotionBlend(const FTransform& RootTransform, const 
 {
 	RootMotionBlendQueue.Add(FQueuedRootMotionBlend(RootTransform, SlotName, Weight));
 }
+
+#if WITH_EDITOR
+void UAnimInstance::AddDelegate_AddCustomAnimationCurve(FOnAddCustomAnimationCurves& InOnAddCustomAnimationCurves)
+{
+	if (InOnAddCustomAnimationCurves.IsBound())
+	{
+		OnAddAnimationCurves.Add(InOnAddCustomAnimationCurves);
+	}
+}
+
+void UAnimInstance::RemoveDelegate_AddCustomAnimationCurve(FOnAddCustomAnimationCurves& InOnAddCustomAnimationCurves)
+{
+	for (int32 DelegateId = 0; DelegateId < OnAddAnimationCurves.Num(); ++DelegateId)
+	{
+		if (InOnAddCustomAnimationCurves.GetHandle() == OnAddAnimationCurves[DelegateId].GetHandle())
+		{
+			InOnAddCustomAnimationCurves.Unbind();
+			OnAddAnimationCurves.RemoveAt(DelegateId);
+			break;
+		}
+	}
+}
+
+#endif // WITH_EDITOR
 
 #undef LOCTEXT_NAMESPACE 

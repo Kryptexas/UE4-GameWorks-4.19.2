@@ -12,6 +12,7 @@
 #include "AssetRegistryModule.h"
 #include "Engine/StaticMesh.h"
 #include "Animation/SkeletalMeshActor.h"
+#include "Animation/AnimSequence.h"
 #include "PackageTools.h"
 
 #include "SFbxSceneOptionWindow.h"

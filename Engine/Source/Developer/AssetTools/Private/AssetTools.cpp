@@ -46,6 +46,7 @@ FAssetTools::FAssetTools()
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_AimOffset) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_AimOffset1D) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_BlendSpace) );
+	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_PoseAsset));
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_BlendSpace1D) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Blueprint) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_CameraAnim) );

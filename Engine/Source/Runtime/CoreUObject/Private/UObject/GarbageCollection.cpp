@@ -1448,6 +1448,18 @@ bool UMapProperty::ContainsObjectReference() const
 }
 
 /**
+* Returns true if this property, or in the case of e.g. array or struct properties any sub- property, contains a
+* UObject reference.
+*
+* @return true if property (or sub- properties) contain a UObject reference, false otherwise
+*/
+bool USetProperty::ContainsObjectReference() const
+{
+	check(ElementProp);
+	return ElementProp->ContainsObjectReference();
+}
+
+/**
  * Returns true if this property, or in the case of e.g. array or struct properties any sub- property, contains a
  * UObject reference.
  *
@@ -1505,6 +1517,13 @@ bool UMapProperty::ContainsWeakObjectReference() const
 	check(KeyProp);
 	check(ValueProp);
 	return KeyProp->ContainsWeakObjectReference() || ValueProp->ContainsWeakObjectReference();
+}
+
+// Returns true if this property contains a weak UObject reference.
+bool USetProperty::ContainsWeakObjectReference() const
+{
+	check(ElementProp);
+	return ElementProp->ContainsWeakObjectReference();
 }
 
 // Returns true if this property contains a weak UObject reference.
@@ -1665,6 +1684,19 @@ void UMapProperty::EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset)
 	if (ContainsObjectReference())
 	{
 		OwnerClass.EmitObjectReference(BaseOffset + GetOffset_ForGC(), GetFName(), GCRT_AddTMapReferencedObjects);
+		OwnerClass.ReferenceTokenStream.EmitPointer((const void*)this);
+	}
+}
+
+/**
+* Emits tokens used by realtime garbage collection code to passed in OwnerClass' ReferenceTokenStream. The offset emitted is relative
+* to the passed in BaseOffset which is used by e.g. arrays of structs.
+*/
+void USetProperty::EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset)
+{
+	if (ContainsObjectReference())
+	{
+		OwnerClass.EmitObjectReference(BaseOffset + GetOffset_ForGC(), GetFName(), GCRT_AddTSetReferencedObjects);
 		OwnerClass.ReferenceTokenStream.EmitPointer((const void*)this);
 	}
 }
@@ -1892,6 +1924,7 @@ void FGCReferenceTokenStream::ReplaceOrAddAddReferencedObjectsCall(void (*AddRef
 				return;
 			}
 		case GCRT_AddTMapReferencedObjects:
+		case GCRT_AddTSetReferencedObjects:
 			{
 				// Skip pointer
 				TokenIndex += GNumTokensPerPointer;

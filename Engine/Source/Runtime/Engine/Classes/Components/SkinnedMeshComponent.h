@@ -9,7 +9,7 @@
 // Forward declarations
 //
 class FSkeletalMeshResource;
-struct FSkelMeshChunk;
+struct FSkelMeshSection;
 class FSkeletalMeshVertexBuffer;
 
 DECLARE_DELEGATE_OneParam(FOnAnimUpdateRateParamsCreated, FAnimUpdateRateParameters*)
@@ -927,7 +927,7 @@ private:
 	 * Simple, CPU evaluation of a vertex's skinned position helper function
 	 */
 	template <bool bExtraBoneInfluencesT, bool bCachedMatrices>
-	FVector GetTypedSkinnedVertexPosition(const FSkelMeshChunk& Chunk, const FSkeletalMeshVertexBuffer& VertexBufferGPUSkin, int32 VertIndex, bool bSoftVertex, const TArray<FMatrix> & RefToLocals = TArray<FMatrix>()) const;
+	FVector GetTypedSkinnedVertexPosition(const FSkelMeshSection& Section, const FSkeletalMeshVertexBuffer& VertexBufferGPUSkin, int32 VertIndex, const TArray<FMatrix> & RefToLocals = TArray<FMatrix>()) const;
 
 	/**
 	 * Gets called when register, verifies all ActiveMorphTargets is still valid 

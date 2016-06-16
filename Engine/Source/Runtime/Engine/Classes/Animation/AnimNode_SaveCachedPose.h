@@ -5,7 +5,7 @@
 #include "AnimNode_SaveCachedPose.generated.h"
 
 USTRUCT()
-struct ANIMGRAPHRUNTIME_API FAnimNode_SaveCachedPose : public FAnimNode_Base
+struct ENGINE_API FAnimNode_SaveCachedPose : public FAnimNode_Base
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -16,9 +16,14 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_SaveCachedPose : public FAnimNode_Base
 	UPROPERTY()
 	FName CachePoseName;
 
+	UPROPERTY(Transient)
+	float GlobalWeight;
+
 protected:
 	FCompactHeapPose CachedPose;
 	FBlendedHeapCurve CachedCurve;
+
+	TArray<FAnimationUpdateContext> CachedUpdateContexts;
 
 	FGraphTraversalCounter InitializationCounter;
 	FGraphTraversalCounter CachedBonesCounter;
@@ -35,4 +40,6 @@ public:
 	virtual void Evaluate(FPoseContext& Output) override;
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
 	// End of FAnimNode_Base interface
+
+	void PostGraphUpdate();
 };

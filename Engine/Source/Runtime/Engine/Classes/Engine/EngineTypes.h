@@ -2770,7 +2770,7 @@ enum class ERotatorQuantization : uint8
   * and velocity.Z is commonly zero (most position replications are for walking pawns). 
   */
 USTRUCT()
-struct FRepMovement
+struct ENGINE_API FRepMovement
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -3310,6 +3310,8 @@ struct FComponentSocketDescription
 	}
 };
 
+/** Dynamic delegate to use by components that want to route the broken-event into blueprints */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FConstraintBrokenSignature, int32, ConstraintIndex);
 
 // ANGULAR DOF
 UENUM()
@@ -3324,6 +3326,17 @@ enum EAngularConstraintMotion
 
 	ACM_MAX,
 };
+
+/** Enum to indicate which frame we want. */
+UENUM()
+namespace EConstraintFrame
+{
+	enum Type
+	{
+		Frame1,
+		Frame2
+	};
+}
 
 
 /**

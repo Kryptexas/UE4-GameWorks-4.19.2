@@ -21,6 +21,52 @@ struct FBlendedCurve;
 class UBlendSpaceBase;
 typedef TArray<FTransform> FTransformArrayA2;
 
+/////////////////////////////////////////////////////////
+// Templated Transform Blend Functionality
+
+namespace ETransformBlendMode
+{
+	enum Type
+	{
+		Overwrite,
+		Accumulate
+	};
+}
+
+template<int32>
+void BlendTransform(const FTransform& Source, FTransform& Dest, const float BlendWeight)
+{
+	check(false); /// should never call this
+}
+
+template<>
+FORCEINLINE void BlendTransform<ETransformBlendMode::Overwrite>(const FTransform& Source, FTransform& Dest, const float BlendWeight)
+{
+	const ScalarRegister VBlendWeight(BlendWeight);
+	Dest = Source * VBlendWeight;
+}
+
+template<>
+FORCEINLINE void BlendTransform<ETransformBlendMode::Accumulate>(const FTransform& Source, FTransform& Dest, const float BlendWeight)
+{
+	const ScalarRegister VBlendWeight(BlendWeight);
+	Dest.AccumulateWithShortestRotation(Source, VBlendWeight);
+}
+
+FORCEINLINE void BlendCurves(const TFixedSizeArrayView<FBlendedCurve>& SourceCurves, const TFixedSizeArrayView<float>& SourceWeights, FBlendedCurve& OutCurve)
+{
+	if (SourceCurves.Num() > 0)
+	{
+		OutCurve.Override(SourceCurves[0], SourceWeights[0]);
+
+		for (int32 CurveIndex = 1; CurveIndex < SourceCurves.Num(); ++CurveIndex)
+		{
+			OutCurve.Accumulate(SourceCurves[CurveIndex], SourceWeights[CurveIndex]);
+		}
+	}
+}
+
+/////////////////////////////////////////////////////////
 /** Interface used to provide interpolation indices for per bone blends
   *
   */
@@ -214,6 +260,9 @@ public:
 	/** Convert TargetPose into an AdditivePose, by doing TargetPose = TargetPose - BasePose */
 	static void ConvertPoseToAdditive(FCompactPose& TargetPose, const FCompactPose& BasePose);
 
+	/** convert transform to additive */
+	static void ConvertTransformToAdditive(FTransform& TargetTrasnform, const FTransform& BaseTransform);
+
 	/** Convert LocalPose into MeshSpaceRotations. Rotations are NOT normalized. */
 	static void ConvertPoseToMeshRotation(FCompactPose& LocalPose);
 
@@ -357,5 +406,13 @@ private:
 			enum ECurveBlendOption::Type CurveBlendOption,
 			/*out*/ FCompactPose& OutPose, 
 			/*out*/ FBlendedCurve& OutCurve);
+public:
+	/** 
+	 * Calculate distance how close two strings are. 
+	 * By close, it calculates how many operations to transform First to Second 
+	 * The return value is [0-MaxLengthString(First, Second)]
+	 * 0 means it's identical, Max means it's completely different
+	 */
+	static int32 GetStringDistance(const FString& First, const FString& Second);
 };
 

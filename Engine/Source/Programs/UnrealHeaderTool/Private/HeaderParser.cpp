@@ -3298,7 +3298,7 @@ FIndexRange*                    ParsedVarIndexRange
 		VarType.PropertyFlags |= Flags;
 
 		GetVarType(AllClasses, Scope, VarProperty, Disallow, &VarType, EPropertyDeclarationStyle::None, VariableCategory);
-		if (VarProperty.ArrayType != EArrayType::None || VarProperty.MapKeyProp.IsValid())
+		if (VarProperty.IsContainer())
 		{
 			FError::Throwf(TEXT("Nested containers are not supported.") );
 		}
@@ -3347,7 +3347,7 @@ FIndexRange*                    ParsedVarIndexRange
 
 		FToken MapKeyType;
 		GetVarType(AllClasses, Scope, MapKeyType, Disallow, &VarType, EPropertyDeclarationStyle::None, VariableCategory);
-		if (VarProperty.ArrayType != EArrayType::None || VarProperty.MapKeyProp.IsValid())
+		if (MapKeyType.IsContainer())
 		{
 			FError::Throwf(TEXT("Nested containers are not supported.") );
 		}
@@ -3364,13 +3364,13 @@ FIndexRange*                    ParsedVarIndexRange
 		}
 
 		GetVarType(AllClasses, Scope, VarProperty, Disallow, &VarType, EPropertyDeclarationStyle::None, VariableCategory);
-		if (VarProperty.ArrayType != EArrayType::None || VarProperty.MapKeyProp.IsValid())
+		if (VarProperty.IsContainer())
 		{
 			FError::Throwf(TEXT("Nested containers are not supported.") );
 		}
 
-		OriginalVarTypeFlags |= VarProperty.PropertyFlags & (CPF_ContainsInstancedReference | CPF_InstancedReference); // propagate these to the array, we will fix them later
-		OriginalVarTypeFlags |= MapKeyType .PropertyFlags & (CPF_ContainsInstancedReference | CPF_InstancedReference); // propagate these to the array, we will fix them later
+		OriginalVarTypeFlags |= VarProperty.PropertyFlags & (CPF_ContainsInstancedReference | CPF_InstancedReference); // propagate these to the map value, we will fix them later
+		OriginalVarTypeFlags |= MapKeyType .PropertyFlags & (CPF_ContainsInstancedReference | CPF_InstancedReference); // propagate these to the map key, we will fix them later
 		VarType.PropertyFlags = OriginalVarTypeFlags;
 		FToken* MapKeyProp = new FToken(MapKeyType);
 		VarProperty.MapKeyProp = MakeShareable<FToken>(MapKeyProp);
@@ -3399,6 +3399,54 @@ FIndexRange*                    ParsedVarIndexRange
 			}
 
 			FError::Throwf(TEXT("Found '%s' - explicit allocators are not supported in TMap properties."), AllocatorToken.Identifier);
+		}
+	}
+	else if ( VarType.Matches(TEXT("TSet")) )
+	{
+		RequireSymbol( TEXT("<"), TEXT("'tset'") );
+
+		// GetVarType() clears the property flags of the array var, so use dummy 
+		// flags when getting the inner property
+		uint64 OriginalVarTypeFlags = VarType.PropertyFlags;
+		VarType.PropertyFlags |= Flags;
+
+		GetVarType(AllClasses, Scope, VarProperty, Disallow, &VarType, EPropertyDeclarationStyle::None, VariableCategory);
+		if (VarProperty.IsContainer())
+		{
+			FError::Throwf(TEXT("Nested containers are not supported.") );
+		}
+
+		if (VarProperty.Type == CPT_Struct)
+		{
+			FError::Throwf(TEXT("USTRUCTs are not currently supported as element types."));
+		}
+
+		OriginalVarTypeFlags |= VarProperty.PropertyFlags & (CPF_ContainsInstancedReference | CPF_InstancedReference); // propagate these to the set, we will fix them later
+		VarType.PropertyFlags = OriginalVarTypeFlags;
+		VarProperty.ArrayType = EArrayType::Set;
+
+		FToken CloseTemplateToken;
+		if (!GetToken(CloseTemplateToken, /*bNoConsts=*/ true, ESymbolParseOption::CloseTemplateBracket))
+		{
+			FError::Throwf(TEXT("Missing token while parsing TArray."));
+		}
+
+		if (CloseTemplateToken.TokenType != TOKEN_Symbol || FCString::Stricmp(CloseTemplateToken.Identifier, TEXT(">")))
+		{
+			// If we didn't find a comma, report it
+			if (FCString::Stricmp(CloseTemplateToken.Identifier, TEXT(",")))
+			{
+				FError::Throwf(TEXT("Expected '>' but found '%s'"), CloseTemplateToken.Identifier);
+			}
+
+			// If we found a comma, read the next thing, assume it's an allocator, and report that
+			FToken AllocatorToken;
+			if (!GetToken(AllocatorToken, /*bNoConsts=*/ true, ESymbolParseOption::CloseTemplateBracket))
+			{
+				FError::Throwf(TEXT("Expected '>' but found '%s'"), CloseTemplateToken.Identifier);
+			}
+
+			FError::Throwf(TEXT("Found '%s' - explicit allocators are not supported in TSet properties."), AllocatorToken.Identifier);
 		}
 	}
 	else if ( VarType.Matches(TEXT("FString")) )
@@ -4061,7 +4109,7 @@ UProperty* FHeaderParser::GetVarNameAndDim
 	int32 OuterContextCount = 0;
 	UField* Existing = FindField(Scope, VarProperty.Identifier, true, UField::StaticClass(), NULL);
 
-	if (Existing != NULL)
+	if (Existing != nullptr)
 	{
 		bool bErrorDueToShadowing = true;
 
@@ -4108,7 +4156,7 @@ UProperty* FHeaderParser::GetVarNameAndDim
 			}
 		}
 
-		if (VarProperty.ArrayType == EArrayType::Dynamic || VarProperty.MapKeyProp.IsValid())
+		if (VarProperty.IsContainer())
 		{
 			FError::Throwf(TEXT("Static arrays of containers are not allowed"));
 		}
@@ -4127,7 +4175,7 @@ UProperty* FHeaderParser::GetVarNameAndDim
 		// Only static arrays are declared with [].  Dynamic arrays use TArray<> instead.
 		VarProperty.ArrayType = EArrayType::Static;
 
-		UEnum* Enum = NULL;
+		UEnum* Enum = nullptr;
 
 		if (*Dimensions.String)
 		{
@@ -4218,10 +4266,10 @@ UProperty* FHeaderParser::GetVarNameAndDim
 	FName PropertyName(VarProperty.Identifier, FindFlag);
 
 	// Add property.
-	UProperty* NewProperty = NULL;
+	UProperty* NewProperty = nullptr;
 
 	{
-		UProperty* Prev = NULL;
+		UProperty* Prev = nullptr;
 	    for (TFieldIterator<UProperty> It(Scope, EFieldIteratorFlags::ExcludeSuper); It; ++It)
 		{
 			Prev = *It;
@@ -4229,6 +4277,7 @@ UProperty* FHeaderParser::GetVarNameAndDim
 
 		UArrayProperty* Array             = nullptr;
 		UMapProperty*   Map               = nullptr;
+		USetProperty*   Set               = nullptr; // TODO: Set Property
 		UProperty*      NewMapKeyProperty = nullptr;
 		UObject*        NewScope          = Scope;
 		int32           ArrayDim          = 1; // 1 = not a static array, 2 = static array
@@ -4242,6 +4291,13 @@ UProperty* FHeaderParser::GetVarNameAndDim
 		else if (VarProperty.ArrayType == EArrayType::Static)
 		{
 			ArrayDim = 2;
+		}
+		else if (VarProperty.ArrayType == EArrayType::Set)
+		{
+			Set               = new (EC_InternalUseOnlyConstructor, Scope, PropertyName, ObjectFlags) USetProperty(FObjectInitializer());
+			UHTMakefile.AddSetProperty(CurrentSrcFile, Set);
+			NewScope          = Set;
+			ObjectFlags       = RF_Public;
 		}
 		else if (VarProperty.MapKeyProp.IsValid())
 		{
@@ -4293,13 +4349,22 @@ UProperty* FHeaderParser::GetVarNameAndDim
 			NewProperty = Map;
 		}
 
+		if (Set)
+		{
+			Set->ElementProp = NewProperty;
+
+			PropagateFlags(CPF_PropagateToSetElement, VarProperty, NewProperty);
+
+			NewProperty = Set;
+		}
+
 		NewProperty->ArrayDim = ArrayDim;
 		if (ArrayDim == 2)
 		{
 			GArrayDimensions.Add(NewProperty, Dimensions.String);
 		}
 		NewProperty->PropertyFlags = VarProperty.PropertyFlags;
-		if (Prev != NULL)
+		if (Prev != nullptr)
 		{
 			NewProperty->Next = Prev->Next;
 			Prev->Next = NewProperty;

@@ -11,7 +11,137 @@
 #include "Http.h"
 #include "EngineVersion.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogAnalyticsDumpEventPayload, Display, All);
+/** When enabled (and -AnalyticsTrackPerf is specified on the command line, will log out analytics flush timings on a regular basis to Saved/AnalyticsTiming.csv. */
+#define ANALYTICS_PERF_TRACKING_ENABLED !UE_BUILD_SHIPPING
+#if ANALYTICS_PERF_TRACKING_ENABLED
+
+/** Measures analytics bandwidth. Only active when -AnalyticsTrackPerf is specified on the command line. */
+struct FAnalyticsPerfTracker : FTickerObjectBase
+{
+	FAnalyticsPerfTracker()
+	{
+		bEnabled = FParse::Param(FCommandLine::Get(), TEXT("ANALYTICSTRACKPERF"));
+		if (bEnabled)
+		{
+			LogFile.SetSuppressEventTag(true);
+			LogFile.Serialize(TEXT("Date,CL,RunID,Time,WindowSeconds,ProfiledSeconds,Frames,Flushes,Events,Bytes"), ELogVerbosity::Log, FName());
+			LastSubmitTime = StartTime;
+			StartDate = FDateTime::UtcNow().ToIso8601();
+			CL = LexicalConversion::ToString(FEngineVersion::Current().GetChangelist());
+		}
+	}
+
+	/** Called once per flush */
+	void RecordFlush(uint64 Bytes, uint64 NumEvents, double TimeSec)
+	{
+		if (bEnabled)
+		{
+			++FlushesThisWindow;
+			BytesThisWindow += Bytes;
+			NumEventsThisWindow += NumEvents;
+			TimeThisWindow += TimeSec;
+		}
+	}
+
+	static FAnalyticsPerfTracker& Get()
+	{
+		static FAnalyticsPerfTracker GTracker;
+		return GTracker;
+	}
+
+	bool IsEnabled() const { return bEnabled; }
+
+	void SetRunID(const FString& InRunID)
+	{
+		if (bEnabled)
+		{
+			RunID = InRunID;
+			StartDate = FDateTime::UtcNow().ToIso8601();
+		}
+	}
+
+private:
+	/** Check to see if we need to log another window of time. */
+	virtual bool Tick(float DeltaTime) override
+	{
+		if (bEnabled)
+		{
+			++FramesThisWindow;
+			double Now = FPlatformTime::Seconds();
+			if (WindowExpired(Now))
+			{
+				LogFile.Serialize(*FString::Printf(TEXT("%s,%s,%s,%f,%f,%f,%d,%d,%d,%d"),
+					*StartDate,
+					*CL,
+					*RunID,
+					Now - StartTime,
+					Now - LastSubmitTime,
+					TimeThisWindow,
+					FramesThisWindow,
+					FlushesThisWindow,
+					NumEventsThisWindow,
+					BytesThisWindow),
+					ELogVerbosity::Log, FName(), Now);
+				ResetWindow(Now);
+			}
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	/** Helper to reset our window in Tick. */
+	bool WindowExpired(double Now)
+	{
+		return Now > LastSubmitTime + 60.0;
+	}
+
+	/** Helper to reset our window in Tick. */
+	void ResetWindow(double Now)
+	{
+		LastSubmitTime = Now;
+		TimeThisWindow = 0.0;
+		BytesThisWindow = 0;
+		NumEventsThisWindow = 0;
+		FlushesThisWindow = 0;
+		FramesThisWindow = 0;
+	}
+
+	/** log file to use. */
+	FOutputDeviceFile LogFile{ *FPaths::Combine(*FPaths::GameSavedDir(), TEXT("AnalyticsTiming.csv")) };
+	FString StartDate;
+	FString CL;
+	FString RunID = FGuid().ToString().ToLower();
+	// Window tracking data
+	double LastSubmitTime = 0.0;
+	double TimeThisWindow = 0.0;
+	uint64 BytesThisWindow = 0;
+	uint64 NumEventsThisWindow = 0;
+	int FlushesThisWindow = 0;
+	int FramesThisWindow = 0;
+	// time when the first measurement was made.
+	double StartTime = FPlatformTime::Seconds();
+	/** Controls whether metrics gathering is enabled. */
+	bool bEnabled = false;
+};
+
+/** Used to set the RunID between matches in game code. Must be carefully called only in situations where ANALYTICS_PERF_TRACKING_ENABLED = 1 */
+ANALYTICSET_API void SetAnayticsETPerfTrackingRunID(const FString& RunID)
+{
+	FAnalyticsPerfTracker::Get().SetRunID(RunID);
+}
+
+#define ANALYTICS_FLUSH_TRACKING_BEGIN() double FlushStartTime = FPlatformTime::Seconds()
+#define ANALYTICS_FLUSH_TRACKING_END(NumBytes, NumEvents) FAnalyticsPerfTracker::Get().RecordFlush(NumBytes, NumEvents, FPlatformTime::Seconds() - FlushStartTime)
+
+#else
+
+#define ANALYTICS_FLUSH_TRACKING_BEGIN(...)
+#define ANALYTICS_FLUSH_TRACKING_END(...)
+
+#endif
 
 class FAnalyticsProviderET :
 	public IAnalyticsProviderET,
@@ -182,6 +312,10 @@ bool FAnalyticsProviderET::Tick(float DeltaSeconds)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FAnalyticsProviderET_Tick);
 
+	// There are much better ways to do this, but since most events are recorded and handled on the same (game) thread,
+	// this is probably mostly fine for now, and simply favoring not crashing at the moment
+	FScopeLock ScopedLock(&CachedEventsCS);
+
 	if (CachedEvents.Num() > 0)
 	{
 		// Countdown to flush
@@ -216,7 +350,7 @@ bool FAnalyticsProviderET::StartSession(const TArray<FAnalyticsEventAttribute>& 
 bool FAnalyticsProviderET::StartSession(TArray<FAnalyticsEventAttribute>&& Attributes)
 {
 	UE_LOG(LogAnalytics, Log, TEXT("[%s] AnalyticsET::StartSession"), *APIKey);
-
+	
 	// end/flush previous session before staring new one
 	if (bSessionInProgress)
 	{
@@ -256,15 +390,19 @@ void FAnalyticsProviderET::EndSession()
 
 void FAnalyticsProviderET::FlushEvents()
 {
+	// There are much better ways to do this, but since most events are recorded and handled on the same (game) thread,
+	// this is probably mostly fine for now, and simply favoring not crashing at the moment
+	FScopeLock ScopedLock(&CachedEventsCS);
+
 	// Make sure we don't try to flush too many times. When we are not caching events it's possible this can be called when there are no events in the array.
 	if (CachedEvents.Num() == 0)
 	{
 		return;
 	}
 
-	// There are much better ways to do this, but since most events are recorded and handled on the same (game) thread,
-	// this is probably mostly fine for now, and simply favoring not crashing at the moment
-	FScopeLock ScopedLock(&CachedEventsCS);
+	ANALYTICS_FLUSH_TRACKING_BEGIN();
+	int EventCount = CachedEvents.Num();
+	int PayloadSize = 0;
 
 	if(ensure(FModuleManager::Get().IsModuleLoaded("HTTP")))
 	{
@@ -315,23 +453,23 @@ void FAnalyticsProviderET::FlushEvents()
 				*FPlatformHttp::UrlEncode(UserID),
 				*FPlatformHttp::UrlEncode(AppEnvironment),
 				*FPlatformHttp::UrlEncode(UploadType));
+			PayloadSize = URLPath.Len() + Payload.Len();
 
-			// Recreate the URLPath for logging because we do not want to escape the parameters when logging.
-			// We cannot simply UrlEncode the entire Path after logging it because UrlEncode(Params) != UrlEncode(Param1) & UrlEncode(Param2) ...
-			FString LogString = FString::Printf(TEXT("[%s] AnalyticsET URL:datarouter/api/v1/public/data?SessionID=%s&AppID=%s&AppVersion=%s&UserID=%s&AppEnvironment=%s&UploadType=%s. Payload:%s"),
-				*APIKey,
-				*SessionID,
-				*APIKey,
-				*AppVersion,
-				*UserID,
-				*AppEnvironment,
-				*UploadType,
-				*Payload);
-			UE_LOG(LogAnalytics, VeryVerbose, TEXT("%s"), *LogString);
-
-			// Duplicate the same log message with a separate category. This is used as an "last chance" backup on the servers in the unlikely case 
-			// if the backend lost the events due to overload - then we can scrape the logs manually for them.
-			UE_LOG(LogAnalyticsDumpEventPayload, Log, TEXT("%s"), *LogString);
+			if (UE_LOG_ACTIVE(LogAnalytics, VeryVerbose))
+			{
+				// Recreate the URLPath for logging because we do not want to escape the parameters when logging.
+				// We cannot simply UrlEncode the entire Path after logging it because UrlEncode(Params) != UrlEncode(Param1) & UrlEncode(Param2) ...
+				FString LogString = FString::Printf(TEXT("[%s] AnalyticsET URL:datarouter/api/v1/public/data?SessionID=%s&AppID=%s&AppVersion=%s&UserID=%s&AppEnvironment=%s&UploadType=%s. Payload:%s"),
+					*APIKey,
+					*SessionID,
+					*APIKey,
+					*AppVersion,
+					*UserID,
+					*AppEnvironment,
+					*UploadType,
+					*Payload);
+				UE_LOG(LogAnalytics, VeryVerbose, TEXT("%s"), *LogString);
+			}
 
 			// Create/send Http request for an event
 			TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
@@ -387,6 +525,7 @@ void FAnalyticsProviderET::FlushEvents()
 					*FPlatformHttp::UrlEncode(UserID), 
 					*FPlatformHttp::UrlEncode(Event.EventName), 
 					*EventParams));
+				PayloadSize = HttpRequest->GetURL().Len();
 				HttpRequest->SetVerb(TEXT("GET"));
 				HttpRequest->OnProcessRequestComplete().BindRaw(this, &FAnalyticsProviderET::EventRequestComplete);
 				HttpRequest->ProcessRequest();
@@ -396,6 +535,7 @@ void FAnalyticsProviderET::FlushEvents()
 		FlushEventsCountdown = MaxCachedElapsedTime;
 		CachedEvents.Empty();
 	}
+	ANALYTICS_FLUSH_TRACKING_END(PayloadSize, EventCount);
 }
 
 void FAnalyticsProviderET::SetUserID(const FString& InUserID)

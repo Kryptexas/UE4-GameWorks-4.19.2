@@ -2,6 +2,7 @@
 
 #include "SequenceRecorderPrivatePCH.h"
 #include "AnimationRecorder.h"
+#include "Animation/AnimInstance.h"
 #include "Animation/AnimCompress.h"
 #include "Animation/AnimCompress_BitwiseCompressOnly.h"
 #include "SCreateAnimationDlg.h"
@@ -10,6 +11,8 @@
 #include "NotificationManager.h"
 #include "EngineLogs.h"
 #include "Animation/AnimationSettings.h"
+#include "Animation/AnimNotifies/AnimNotify.h"
+#include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "Toolkits/AssetEditorManager.h"
 #include "ActorRecording.h"
 
@@ -301,6 +304,7 @@ UAnimSequence* FAnimationRecorder::StopRecord(bool bShowMessage)
 		// add to real curve data 
 		if (RecordedCurves.Num() == NumFrames && UIDList)
 		{
+			USkeleton* SkeletonObj = AnimationObject->GetSkeleton();
 			for (int32 CurveIndex = 0; CurveIndex < (*UIDList).Num(); ++CurveIndex)
 			{
 				USkeleton::AnimCurveUID UID = (*UIDList)[CurveIndex];
@@ -314,8 +318,12 @@ UAnimSequence* FAnimationRecorder::StopRecord(bool bShowMessage)
 					if (FrameIndex == 0)
 					{
 						// add one and save the cache
-						AnimationObject->RawCurveData.AddFloatCurveKey(UID, CurCurve.Flags, TimeToRecord, CurCurve.Value);
-						FloatCurveData = static_cast<FFloatCurve*>(AnimationObject->RawCurveData.GetCurveData(UID, FRawCurveTracks::FloatType));
+						FSmartName CurveName;
+						if (SkeletonObj->GetSmartNameByUID(USkeleton::AnimCurveMappingName, UID, CurveName))
+						{
+							AnimationObject->RawCurveData.AddFloatCurveKey(CurveName, CurCurve.Flags, TimeToRecord, CurCurve.Value);
+							FloatCurveData = static_cast<FFloatCurve*>(AnimationObject->RawCurveData.GetCurveData(UID, FRawCurveTracks::FloatType));
+						}
 					}
 					else if (FloatCurveData)
 					{

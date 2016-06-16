@@ -1144,6 +1144,32 @@ partial class GUBP
 			BranchConfig.AddNode(new BuildEngineLocalizationNode(BranchOptions.EngineLocalizationBranchSuffix));
 		}
 
+		if(BranchConfig.BranchName != null && BranchConfig.BranchName.StartsWith("//UE4/Dev-", StringComparison.InvariantCultureIgnoreCase))
+		{
+			List<BranchInfo.BranchUProject> CodeProjects = new List<BranchInfo.BranchUProject>();
+			CodeProjects.Add(BranchConfig.Branch.BaseEngineProject);
+			CodeProjects.AddRange(BranchConfig.Branch.CodeProjects);
+
+			foreach(BranchInfo.BranchUProject CodeProject in CodeProjects)
+			{
+				SingleTargetProperties Properties;
+				if(CodeProject.Properties.Targets.TryGetValue(TargetRules.TargetType.Game, out Properties))
+				{
+					foreach(UnrealTargetPlatform HostPlatform in HostPlatforms)
+					{
+						HashSet<UnrealTargetPlatform> TargetPlatforms = new HashSet<UnrealTargetPlatform>();
+						TargetPlatforms.UnionWith(Properties.Rules.GUBP_GetPlatforms_MonolithicOnly(HostPlatform));
+						TargetPlatforms.UnionWith(Properties.Rules.GUBP_GetBuildOnlyPlatforms_MonolithicOnly(HostPlatform));
+						foreach(UnrealTargetPlatform TargetPlatform in TargetPlatforms)
+						{
+							GUBP.SingleTargetNode TargetNode = new SingleTargetNode(BranchConfig, HostPlatform, CodeProject, Properties.TargetName, TargetPlatform, UnrealTargetConfiguration.Development);
+							BranchConfig.AddNode(TargetNode);
+						}
+					}
+				}
+			}
+		}
+
         BranchConfig.AddNode(new WaitForTestShared(this));
 		List<UnrealTargetPlatform> HostPlatformsToWaitFor = BranchConfig.HostPlatforms;
 		HostPlatformsToWaitFor.RemoveAll(HostPlatform => BranchOptions.ExcludePlatformsForEditor.Contains(HostPlatform));

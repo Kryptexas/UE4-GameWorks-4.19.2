@@ -12,6 +12,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Collision.h"
 #include "PhysicsPublic.h"
+#include "Tickable.h"
 #include "IHeadMountedDisplay.h"
 
 #include "ParticleDefinitions.h"

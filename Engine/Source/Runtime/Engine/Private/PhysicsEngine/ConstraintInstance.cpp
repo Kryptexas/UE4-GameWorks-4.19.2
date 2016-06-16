@@ -4,6 +4,7 @@
 #include "PhysicsPublic.h"
 #include "PhysXSupport.h"
 #include "PhysicsEngine/PhysicsAsset.h"
+#include "PhysicsEngine/PhysicsConstraintComponent.h"
 
 #define LOCTEXT_NAMESPACE "ConstraintInstance"
 

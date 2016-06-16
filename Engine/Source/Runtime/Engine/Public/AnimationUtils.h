@@ -267,6 +267,6 @@ public:
 	/**
 	 * @return		The default animation compression algorithm singleton, instantiating it if necessary.
 	 */
-	static UAnimCompress* GetDefaultAnimationCompressionAlgorithm();
+	ENGINE_API static UAnimCompress* GetDefaultAnimationCompressionAlgorithm();
 
 };

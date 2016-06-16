@@ -11,6 +11,7 @@
 #include "AssetRegistryModule.h"
 #include "Engine/StaticMesh.h"
 #include "ObjectTools.h"
+#include "Animation/AnimSequence.h"
 
 #define LOCTEXT_NAMESPACE "FBXFactory"
 

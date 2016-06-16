@@ -10,6 +10,7 @@
 #include "SSearchBox.h"
 #include "SInlineEditableTextBlock.h"
 #include "STextEntryPopup.h"
+#include "Animation/AnimSequence.h"
 
 #define LOCTEXT_NAMESPACE "SkeletonSmartNameManager"
 
@@ -352,8 +353,8 @@ void SSkeletonSmartNameManager::CreateNewNameEntry(const FText& CommittedText, E
 		if (const FSmartNameMapping* NameMapping = CurrentSkeleton->GetSmartNameContainer(ContainerName))
 		{
 			FName NewName = FName(*CommittedText.ToString());
-			FSmartNameMapping::UID NewUid;
-			if(CurrentSkeleton->AddSmartNameAndModify(ContainerName, NewName, NewUid))
+			FSmartName NewCurveName;
+			if(CurrentSkeleton->AddSmartNameAndModify(ContainerName, NewName, NewCurveName))
 			{
 				// Successfully added
 				GenerateDisplayedList(CurrentFilterText);
@@ -453,11 +454,16 @@ void SCurveNameManager::OnDeleteNameClicked()
 			for(FAssetData& Data : AnimationAssets)
 			{
 				UAnimSequenceBase* Sequence = Cast<UAnimSequenceBase>(Data.GetAsset());	
+				USkeleton* MySkeleton = Sequence->GetSkeleton();
 				Sequence->Modify(true);
 				for(FSmartNameMapping::UID Uid : SelectedUids)
 				{
-					Sequence->RawCurveData.DeleteCurveData(Uid);
-					Sequence->MarkRawDataAsModified();
+					FSmartName CurveToDelete;
+					if (MySkeleton->GetSmartNameByUID(USkeleton::AnimCurveMappingName, Uid, CurveToDelete))
+					{
+						Sequence->RawCurveData.DeleteCurveData(CurveToDelete);
+						Sequence->MarkRawDataAsModified();
+					}
 				}
 			}
 			GWarn->EndSlowTask();

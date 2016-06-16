@@ -452,7 +452,7 @@ public:
 			if (Section.MaterialIndex == Data.MaterialIndex)
 			{
 				NumTris += Section.NumTriangles;
-				NumVerts += LODModel.Chunks[Section.ChunkIndex].GetNumVertices();
+				NumVerts += Section.GetNumVertices();
 			}
 		}
 
@@ -503,9 +503,8 @@ public:
 			for (int32 SectionIndex = 0; SectionIndex < SectionCount; SectionIndex++)
 			{
 				const FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
-				const FSkelMeshChunk& Chunk = LODModel.Chunks[Section.ChunkIndex];
 
-				const int32 NumVertsInChunk = Chunk.GetNumVertices();
+				const int32 NumVertsInSection = Section.GetNumVertices();
 
 				if (Section.MaterialIndex == Data.MaterialIndex)
 				{
@@ -514,7 +513,7 @@ public:
 
 					// copy vertices
 					int32 SrcVertIndex = FirstVertex;
-					for (int32 VertIndex = 0; VertIndex < NumVertsInChunk; VertIndex++)
+					for (int32 VertIndex = 0; VertIndex < NumVertsInSection; VertIndex++)
 					{
 						const FSoftSkinVertex& SrcVert = Vertices[SrcVertIndex];
 						FMaterialMeshVertex* DstVert = new(OutVerts)FMaterialMeshVertex();
@@ -551,7 +550,7 @@ public:
 						}
 					}
 				}
-				FirstVertex += NumVertsInChunk;
+				FirstVertex += NumVertsInSection;
 			}
 		}
 		else // bUseNewUVs

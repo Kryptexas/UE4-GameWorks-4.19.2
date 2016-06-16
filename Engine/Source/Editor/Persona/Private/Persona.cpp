@@ -21,6 +21,7 @@
 #include "SAnimationBlendSpace1D.h"
 #include "SKismetInspector.h"
 #include "SSkeletonWidget.h"
+#include "SPoseEditor.h"
 
 #include "Editor/Kismet/Public/BlueprintEditorTabs.h"
 #include "Editor/Kismet/Public/BlueprintEditorModes.h"
@@ -46,6 +47,8 @@
 #include "AnimGraphNode_LayeredBoneBlend.h"
 #include "AnimGraphNode_SequencePlayer.h"
 #include "AnimGraphNode_SequenceEvaluator.h"
+#include "AnimGraphNode_PoseByName.h"
+#include "AnimGraphNode_PoseBlendNode.h"
 #include "AnimGraphNode_Slot.h"
 #include "Customization/AnimGraphNodeSlotDetails.h"
 
@@ -72,6 +75,7 @@
 #include "Animation/AimOffsetBlendSpace.h"
 #include "Animation/AimOffsetBlendSpace1D.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
+#include "Animation/PoseAsset.h"
 
 #include "MessageLog.h"
 
@@ -322,6 +326,14 @@ TSharedPtr<SWidget> FPersona::CreateEditorWidgetForAnimDocument(UObject* InAnimA
 				.Montage(Montage);
 
 			DocumentLink = TEXT("Engine/Animation/AnimMontage");
+		}
+		else if (UPoseAsset* PoseAsset = Cast<UPoseAsset>(InAnimAsset))
+		{
+			Result = SNew(SPoseEditor)
+				.Persona(SharedThis(this))
+				.PoseAsset(PoseAsset);
+
+			DocumentLink = TEXT("Engine/Animation/Sequences");
 		}
 		else if (UBlendSpace* BlendSpace = Cast<UBlendSpace>(InAnimAsset))
 		{
@@ -1654,6 +1666,113 @@ void FPersona::OnConvertToBlendSpacePlayer()
 		// because of SetAndCenterObject kicks in after new node is added
 		// will need to disable that first
 		TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+		// Update the graph so that the node will be refreshed
+		FocusedGraphEd->NotifyGraphChanged();
+		// It's possible to leave invalid objects in the selection set if they get GC'd, so clear it out
+		FocusedGraphEd->ClearSelectionSet();
+
+		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetAnimBlueprint());
+	}
+}
+
+void FPersona::OnConvertToPoseBlender()
+{
+	FGraphPanelSelectionSet SelectedNodes = GetSelectedNodes();
+	if (SelectedNodes.Num() > 0)
+	{
+		for (auto NodeIter = SelectedNodes.CreateIterator(); NodeIter; ++NodeIter)
+		{
+			UAnimGraphNode_PoseByName* OldNode = Cast<UAnimGraphNode_PoseByName>(*NodeIter);
+
+			// see if sequence player
+			if (OldNode && OldNode->Node.PoseAsset)
+			{
+				// convert to sequence player
+				UEdGraph* TargetGraph = OldNode->GetGraph();
+				// create new player
+				FGraphNodeCreator<UAnimGraphNode_PoseBlendNode> NodeCreator(*TargetGraph);
+				UAnimGraphNode_PoseBlendNode* NewNode = NodeCreator.CreateNode();
+				NewNode->Node.PoseAsset = OldNode->Node.PoseAsset;
+				NodeCreator.Finalize();
+
+				// get default data from old node to new node
+				FEdGraphUtilities::CopyCommonState(OldNode, NewNode);
+
+				UEdGraphPin* OldPosePin = OldNode->FindPin(TEXT("Pose"));
+				UEdGraphPin* NewPosePin = NewNode->FindPin(TEXT("Pose"));
+
+				if (ensure(OldPosePin && NewPosePin))
+				{
+					NewPosePin->CopyPersistentDataFromOldPin(*OldPosePin);
+				}
+
+				// remove from selection and from graph
+				NodeIter.RemoveCurrent();
+				TargetGraph->RemoveNode(OldNode);
+
+				NewNode->Modify();
+			}
+		}
+
+		// @todo fixme: below code doesn't work
+		// because of SetAndCenterObject kicks in after new node is added
+		// will need to disable that first
+		TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+
+		// Update the graph so that the node will be refreshed
+		FocusedGraphEd->NotifyGraphChanged();
+		// It's possible to leave invalid objects in the selection set if they get GC'd, so clear it out
+		FocusedGraphEd->ClearSelectionSet();
+
+		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetAnimBlueprint());
+	}
+}
+
+void FPersona::OnConvertToPoseByName()
+{
+	FGraphPanelSelectionSet SelectedNodes = GetSelectedNodes();
+	if (SelectedNodes.Num() > 0)
+	{
+		for (auto NodeIter = SelectedNodes.CreateIterator(); NodeIter; ++NodeIter)
+		{
+			UAnimGraphNode_PoseBlendNode* OldNode = Cast<UAnimGraphNode_PoseBlendNode>(*NodeIter);
+
+			// see if sequence player
+			if (OldNode && OldNode->Node.PoseAsset)
+			{
+				//const FScopedTransaction Transaction( LOCTEXT("ConvertToSequenceEvaluator", "Convert to Single Frame Animation") );
+				// convert to sequence player
+				UEdGraph* TargetGraph = OldNode->GetGraph();
+				// create new player
+				FGraphNodeCreator<UAnimGraphNode_PoseByName> NodeCreator(*TargetGraph);
+				UAnimGraphNode_PoseByName* NewNode = NodeCreator.CreateNode();
+				NewNode->Node.PoseAsset = OldNode->Node.PoseAsset;
+				NodeCreator.Finalize();
+
+				// get default data from old node to new node
+				FEdGraphUtilities::CopyCommonState(OldNode, NewNode);
+
+				UEdGraphPin* OldPosePin = OldNode->FindPin(TEXT("Pose"));
+				UEdGraphPin* NewPosePin = NewNode->FindPin(TEXT("Pose"));
+
+				if (ensure(OldPosePin && NewPosePin))
+				{
+					NewPosePin->CopyPersistentDataFromOldPin(*OldPosePin);
+				}
+
+				// remove from selection and from graph
+				NodeIter.RemoveCurrent();
+				TargetGraph->RemoveNode(OldNode);
+
+				NewNode->Modify();
+			}
+		}
+
+		// @todo fixme: below code doesn't work
+		// because of SetAndCenterObject kicks in after new node is added
+		// will need to disable that first
+		TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+
 		// Update the graph so that the node will be refreshed
 		FocusedGraphEd->NotifyGraphChanged();
 		// It's possible to leave invalid objects in the selection set if they get GC'd, so clear it out
@@ -3405,7 +3524,7 @@ void FPersona::TestSkeletonCurveNamesForUse() const
 						TSharedPtr<FTokenizedMessage> Message;
 						for (FFloatCurve& Curve : Seq->RawCurveData.FloatCurves)
 						{
-							if (UnusedNames.Contains(Curve.LastObservedName))
+							if (UnusedNames.Contains(Curve.Name.DisplayName))
 							{
 								bFoundIssue = true;
 								if (!Message.IsValid())
@@ -3414,7 +3533,7 @@ void FPersona::TestSkeletonCurveNamesForUse() const
 									Message->AddToken(FAssetNameToken::Create(Anim.ObjectPath.ToString(), FText::FromName(Anim.AssetName)));
 									Message->AddToken(FTextToken::Create(LOCTEXT("VerifyCurves_FoundAnimationsWithUnusedReferences", "References the following curves that are not used for either morph targets or material parameters and so may be unneeded")));
 								}
-								CurveOutput.Info(FText::FromName(Curve.LastObservedName));
+								CurveOutput.Info(FText::FromName(Curve.Name.DisplayName));
 							}
 						}
 					}

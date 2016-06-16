@@ -539,20 +539,23 @@ void UProceduralMeshComponent::UpdateMeshSection(int32 SectionIndex, const TArra
 			}
 		}
 
-		// Create data to update section
-		FProcMeshSectionUpdateData* SectionData = new FProcMeshSectionUpdateData;
-		SectionData->TargetSection = SectionIndex;
-		SectionData->NewVertexBuffer = Section.ProcVertexBuffer;
+		if (SceneProxy)
+		{
+			// Create data to update section
+			FProcMeshSectionUpdateData* SectionData = new FProcMeshSectionUpdateData;
+			SectionData->TargetSection = SectionIndex;
+			SectionData->NewVertexBuffer = Section.ProcVertexBuffer;
 
-		// Enqueue command to send to render thread
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			FProcMeshSectionUpdate,
-			FProceduralMeshSceneProxy*, ProcMeshSceneProxy, (FProceduralMeshSceneProxy*)SceneProxy,
-			FProcMeshSectionUpdateData*, SectionData, SectionData,
-			{
-				ProcMeshSceneProxy->UpdateSection_RenderThread(SectionData);
-			}
-		);
+			// Enqueue command to send to render thread
+			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+				FProcMeshSectionUpdate,
+				FProceduralMeshSceneProxy*, ProcMeshSceneProxy, (FProceduralMeshSceneProxy*)SceneProxy,
+				FProcMeshSectionUpdateData*, SectionData, SectionData,
+				{
+					ProcMeshSceneProxy->UpdateSection_RenderThread(SectionData);
+				}
+			);
+		}
 
 		// If we have collision enabled on this section, update that too
 		if(bPositionsChanging && Section.bEnableCollision)
@@ -610,16 +613,19 @@ void UProceduralMeshComponent::SetMeshSectionVisible(int32 SectionIndex, bool bN
 		// Set game thread state
 		ProcMeshSections[SectionIndex].bSectionVisible = bNewVisibility;
 
-		// Enqueue command to modify render thread info
-		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
-			FProcMeshSectionVisibilityUpdate,
-			FProceduralMeshSceneProxy*, ProcMeshSceneProxy, (FProceduralMeshSceneProxy*)SceneProxy,
-			int32, SectionIndex, SectionIndex,
-			bool, bNewVisibility, bNewVisibility,
-			{
-				ProcMeshSceneProxy->SetSectionVisibility_RenderThread(SectionIndex, bNewVisibility);
-			}
-		);
+		if (SceneProxy)
+		{
+			// Enqueue command to modify render thread info
+			ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+				FProcMeshSectionVisibilityUpdate,
+				FProceduralMeshSceneProxy*, ProcMeshSceneProxy, (FProceduralMeshSceneProxy*)SceneProxy,
+				int32, SectionIndex, SectionIndex,
+				bool, bNewVisibility, bNewVisibility,
+				{
+					ProcMeshSceneProxy->SetSectionVisibility_RenderThread(SectionIndex, bNewVisibility);
+				}
+			);
+		}
 	}
 }
 

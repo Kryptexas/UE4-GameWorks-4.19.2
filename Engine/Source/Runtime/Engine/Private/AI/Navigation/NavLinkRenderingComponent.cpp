@@ -9,6 +9,7 @@
 #endif
 #include "AI/Navigation/NavLinkHostInterface.h"
 #include "AI/Navigation/NavAreas/NavArea.h"
+#include "AI/Navigation/RecastNavMesh.h"
 
 //----------------------------------------------------------------------//
 // UNavLinkRenderingComponent

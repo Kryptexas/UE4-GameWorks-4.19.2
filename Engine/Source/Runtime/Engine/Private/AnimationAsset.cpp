@@ -207,6 +207,11 @@ void UAnimationAsset::TickAssetPlayerInstance(FAnimTickRecord& Instance, class U
 }
 
 #if WITH_EDITOR
+void UAnimationAsset::RemapTracksToNewSkeleton(USkeleton* NewSkeleton, bool bConvertSpaces)
+{
+	SetSkeleton(NewSkeleton);
+}
+
 bool UAnimationAsset::ReplaceSkeleton(USkeleton* NewSkeleton, bool bConvertSpaces/*=false*/)
 {
 	// if it's not same 
@@ -223,16 +228,10 @@ bool UAnimationAsset::ReplaceSkeleton(USkeleton* NewSkeleton, bool bConvertSpace
 		{
 			for (auto Iter = AnimAssetsToReplace.CreateIterator(); Iter; ++Iter)
 			{
-				UAnimSequence* AnimSeq = Cast<UAnimSequence>(*Iter);
-				if (AnimSeq && AnimSeq->Skeleton != NewSkeleton)
-				{
-					AnimSeq->RemapTracksToNewSkeleton(NewSkeleton, bConvertSpaces);
-				}
-				else
-				{
-					// if not anim sequence, at least replace skeleton
-					(*Iter)->SetSkeleton(NewSkeleton);
-				}
+				UAnimationAsset* IterAsset = (*Iter);
+				// these two are different functions for now
+				// technically if you have implementation for Remap, it will also set skeleton 
+				IterAsset->RemapTracksToNewSkeleton(NewSkeleton, bConvertSpaces);
 			}
 		}
 

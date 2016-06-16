@@ -346,9 +346,9 @@ public:
 			//todo: check - memory leak here - SrcModel is not released?
 
 			// fix up chunks to remove the bones that set to be removed
-			for (int32 ChunkIndex = 0; ChunkIndex < NewSrcModel->Chunks.Num(); ++ChunkIndex)
+			for (int32 SectionIndex = 0; SectionIndex < NewSrcModel->Sections.Num(); ++SectionIndex)
 			{
-				MeshBoneReductionInterface->FixUpChunkBoneMaps(NewSrcModel->Chunks[ChunkIndex], BonesToRemove);
+				MeshBoneReductionInterface->FixUpSectionBoneMaps(NewSrcModel->Sections[SectionIndex], BonesToRemove);
 			}
 		}
 
@@ -1529,17 +1529,12 @@ private:
 		GeometryData->AddMaterialIds();
 		SimplygonSDK::spRidArray MaterialIndices = GeometryData->GetMaterialIds();
 
-		// Add per-vertex data. This data needs to be added per-chunk so that we can properly map bones.
-#if WITH_APEX_CLOTHING
-		const int32 ChunkCount = LODModel.NumNonClothingSections();
-#else
-		const int32 ChunkCount = LODModel.Chunks.Num();
-#endif // #if WITH_APEX_CLOTHING
+		// Add per-vertex data. This data needs to be added per-section so that we can properly map bones.
 		uint32 FirstVertex = 0;
-		for ( int32 ChunkIndex = 0; ChunkIndex < ChunkCount; ++ChunkIndex )
+		for ( uint32 SectionIndex = 0; SectionIndex < SectionCount; ++SectionIndex )
 		{
-			const FSkelMeshChunk& Chunk = LODModel.Chunks[ ChunkIndex ];
-			const uint32 LastVertex = FirstVertex + (uint32)Chunk.RigidVertices.Num() + (uint32)Chunk.SoftVertices.Num();
+			const FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
+			const uint32 LastVertex = FirstVertex + (uint32)Section.SoftVertices.Num();
 			for ( uint32 VertexIndex = FirstVertex; VertexIndex < LastVertex; ++VertexIndex )
 			{
 				FSoftSkinVertex& Vertex = Vertices[ VertexIndex ];
@@ -1555,8 +1550,8 @@ private:
 
 					if ( BoneInfluence > 0 )
 					{
-						check( BoneIndex < Chunk.BoneMap.Num() );
-						uint32 BoneID = BoneIDs[ Chunk.BoneMap[ BoneIndex ] ];
+						check( BoneIndex < Section.BoneMap.Num() );
+						uint32 BoneID = BoneIDs[Section.BoneMap[ BoneIndex ] ];
 						VertexBoneIds[InfluenceIndex] = BoneID;
 						VertexBoneWeights[InfluenceIndex] = BoneInfluence / 255.0f;
 					}

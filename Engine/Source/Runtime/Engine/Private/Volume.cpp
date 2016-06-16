@@ -56,22 +56,31 @@ void AVolume::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent
 
 bool AVolume::EncompassesPoint(FVector Point, float SphereRadius/*=0.f*/, float* OutDistanceToPoint) const
 {
-	if(GetBrushComponent())
+	if (GetBrushComponent())
 	{
 #if WITH_PHYSX
 		FVector ClosestPoint;
-		float Distance = GetBrushComponent()->GetDistanceToCollision(Point, ClosestPoint);
+		float DistanceSqr;
+
+		if (GetBrushComponent()->GetSquaredDistanceToCollision(Point, DistanceSqr, ClosestPoint) == false)
+		{
+			if (OutDistanceToPoint)
+			{
+				*OutDistanceToPoint = -1.f;
+			}
+			return false;
+		}
 #else
 		FBoxSphereBounds Bounds = BrushComponent->CalcBounds(BrushComponent->ComponentToWorld);
-		float Distance = FMath::Sqrt(Bounds.GetBox().ComputeSquaredDistanceToPoint(Point));
+		const float DistanceSqr = Bounds.GetBox().ComputeSquaredDistanceToPoint(Point);
 #endif
 
-		if(OutDistanceToPoint)
+		if (OutDistanceToPoint)
 		{
-			*OutDistanceToPoint = Distance;
+			*OutDistanceToPoint = FMath::Sqrt(DistanceSqr);
 		}
 
-		return Distance >= 0.f && Distance <= SphereRadius;
+		return DistanceSqr >= 0.f && DistanceSqr <= FMath::Square(SphereRadius);
 	}
 	else
 	{

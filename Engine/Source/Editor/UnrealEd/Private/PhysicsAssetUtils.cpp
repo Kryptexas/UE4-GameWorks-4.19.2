@@ -464,9 +464,8 @@ bool CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 Bon
 	else if (Params.GeomType == EFG_MultiConvexHull)
 	{
 		// Just feed in all of the verts which are affected by this bone
-		int32 ChunkIndex;
+		int32 SectionIndex;
 		int32 VertIndex;
-		bool bSoftVertex;
 		bool bHasExtraInfluences;
 
 		// Storage for the hull generation
@@ -476,16 +475,21 @@ bool CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 Bon
 
 		// Get the static LOD from the skeletal mesh and loop through the chunks		
 		FStaticLODModel& LODModel = skelMesh->GetSourceModel();
-		TArray<uint32> indexBufferInOrder;
-		LODModel.MultiSizeIndexContainer.GetIndexBuffer( indexBufferInOrder );
-		uint32 indexBufferSize = indexBufferInOrder.Num();
-		uint32 currentIndex = 0;
+		TArray<uint32> IndexBufferInOrder;
+		LODModel.MultiSizeIndexContainer.GetIndexBuffer(IndexBufferInOrder);
+		uint32 IndexBufferSize = IndexBufferInOrder.Num();
+		uint32 CurrentIndex = 0;
 
 		// Add all of the verts and indices to a list I can loop over
-		for ( uint32 index = 0; index < indexBufferSize; index++ )
+		for ( uint32 Index = 0; Index < IndexBufferSize; Index++ )
 		{
-			LODModel.GetChunkAndSkinType(indexBufferInOrder[index], ChunkIndex, VertIndex, bSoftVertex, bHasExtraInfluences);
-			const FSkelMeshChunk& Chunk = LODModel.Chunks[ChunkIndex];
+			LODModel.GetSectionFromVertexIndex(IndexBufferInOrder[Index], SectionIndex, VertIndex, bHasExtraInfluences);
+			const FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
+			const FSoftSkinVertex& SoftVert = Section.SoftVertices[VertIndex];
+
+			uint8 VertBone = 0;
+			bool bSoftVertex = !SoftVert.GetRigidWeightBone(VertBone);
+
 			if ( bSoftVertex )
 			{
 				// We dont want to support soft verts, only rigid
@@ -496,9 +500,8 @@ bool CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 Bon
 			}
 
 			// Using the same code in GetSkinnedVertexPosition
-			const FRigidSkinVertex& RigidVert = Chunk.RigidVertices[VertIndex];
-			const int LocalBoneIndex = Chunk.BoneMap[RigidVert.Bone];
-			const FVector& VertPosition = skelMesh->RefBasesInvMatrix[LocalBoneIndex].TransformPosition(RigidVert.Position);
+			const int LocalBoneIndex = Section.BoneMap[VertBone];
+			const FVector& VertPosition = skelMesh->RefBasesInvMatrix[LocalBoneIndex].TransformPosition(SoftVert.Position);
 
 			if ( LocalBoneIndex == BoneIndex )
 			{
@@ -508,8 +511,8 @@ bool CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 Bon
 				}
 				else
 				{
-					Indices.Add( currentIndex );
-					IndexMap.Add( VertIndex, currentIndex++ );
+					Indices.Add( CurrentIndex );
+					IndexMap.Add( VertIndex, CurrentIndex++ );
 					Verts.Add( VertPosition );					
 				}
 			}

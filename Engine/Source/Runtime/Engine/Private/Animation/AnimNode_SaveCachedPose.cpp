@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimGraphRuntimePrivatePCH.h"
-#include "AnimNodes/AnimNode_SaveCachedPose.h"
+#include "EnginePrivate.h"
+#include "Animation/AnimNode_SaveCachedPose.h"
 #include "Animation/AnimInstanceProxy.h"
 
 /////////////////////////////////////////////////////
@@ -40,13 +40,8 @@ void FAnimNode_SaveCachedPose::CacheBones(const FAnimationCacheBonesContext& Con
 
 void FAnimNode_SaveCachedPose::Update(const FAnimationUpdateContext& Context)
 {
-	if (!UpdateCounter.IsSynchronizedWith(Context.AnimInstanceProxy->GetUpdateCounter()))
-	{
-		UpdateCounter.SynchronizeWith(Context.AnimInstanceProxy->GetUpdateCounter());
-
-		// Update the subgraph
-		Pose.Update(Context);
-	}
+	// Store this context for the post update
+	CachedUpdateContexts.Add(Context);
 }
 
 void FAnimNode_SaveCachedPose::Evaluate(FPoseContext& Output)
@@ -71,9 +66,35 @@ void FAnimNode_SaveCachedPose::GatherDebugData(FNodeDebugData& DebugData)
 	FString DebugLine = DebugData.GetNodeName(this);
 	DebugLine += FString::Printf(TEXT("%s:"), *CachePoseName.ToString());
 
-	if (FNodeDebugData* SaveCachePoseDebugDataPtr = DebugData.GetCachePoseDebugData(CachePoseName))
+	if (FNodeDebugData* SaveCachePoseDebugDataPtr = DebugData.GetCachePoseDebugData(GlobalWeight))
 	{
 		SaveCachePoseDebugDataPtr->AddDebugItem(DebugLine);
 		Pose.GatherDebugData(*SaveCachePoseDebugDataPtr);
 	}
+}
+
+void FAnimNode_SaveCachedPose::PostGraphUpdate()
+{
+	GlobalWeight = 0.f;
+
+	// Update GlobalWeight based on highest weight calling us.
+	const int32 NumContexts = CachedUpdateContexts.Num();
+	if(NumContexts > 0)
+	{
+		GlobalWeight = CachedUpdateContexts[0].GetFinalBlendWeight();
+		int32 MaxWeightIdx = 0;
+		for(int32 CurrIdx = 1; CurrIdx < NumContexts; ++CurrIdx)
+		{
+			const float BlendWeight = CachedUpdateContexts[CurrIdx].GetFinalBlendWeight();
+			if(BlendWeight > GlobalWeight)
+			{
+				GlobalWeight = BlendWeight;
+				MaxWeightIdx = CurrIdx;
+			}
+		}
+
+		Pose.Update(CachedUpdateContexts[MaxWeightIdx]);
+	}
+
+	CachedUpdateContexts.Reset();
 }

@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 // @todo AIModule circular dependency
 #include "AI/Navigation/NavFilters/NavigationQueryFilter.h"
+#include "AI/Navigation/NavAreas/NavArea.h"
 
 //----------------------------------------------------------------------//
 // FNavigationQueryFilter

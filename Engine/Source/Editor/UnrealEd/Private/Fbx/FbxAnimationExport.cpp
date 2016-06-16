@@ -8,6 +8,7 @@
 #include "Matinee/InterpData.h"
 #include "Matinee/InterpTrackAnimControl.h"
 #include "Animation/SkeletalMeshActor.h"
+#include "Animation/AnimSequence.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFbxAnimationExport, Log, All);
 

@@ -325,9 +325,21 @@ public:
 	/** Returns true if we are replicating and not authorative */
 	bool	IsNetSimulating() const;
 
+	/** Get the network role of the Owner, or ROLE_None if there is no owner. */
 	ENetRole GetOwnerRole() const;
 
+	/**
+	 * Get the network mode (dedicated server, client, standalone, etc) for this component.
+	 * @see IsNetMode()
+	 */
 	ENetMode GetNetMode() const;
+
+	/**
+	* Test whether net mode is the given mode.
+	* In optimized non-editor builds this can be more efficient than GetNetMode()
+	* because it can check the static build flags without considering PIE.
+	*/
+	bool IsNetMode(ENetMode Mode) const;
 
 private:
 
@@ -339,6 +351,9 @@ private:
 
 	// If WorldPrivate isn't set this will determine the world from outers
 	UWorld* GetWorld_Uncached() const;
+
+	/** Private version without inlining that does *not* check Dedicated server build flags (which should already have been done). */
+	ENetMode InternalGetNetMode() const;
 
 protected:
 
@@ -785,4 +800,38 @@ FORCEINLINE_DEBUGGABLE class AActor* UActorComponent::GetOwner() const
 FORCEINLINE bool UActorComponent::CanEverAffectNavigation() const
 {
 	return bCanEverAffectNavigation;
+}
+
+FORCEINLINE_DEBUGGABLE bool UActorComponent::IsNetSimulating() const
+{
+	return GetIsReplicated() && GetOwnerRole() != ROLE_Authority;
+}
+
+FORCEINLINE_DEBUGGABLE ENetMode UActorComponent::GetNetMode() const
+{
+	// IsRunningDedicatedServer() is a compile-time check in optimized non-editor builds.
+	if (IsRunningDedicatedServer())
+	{
+		return NM_DedicatedServer;
+	}
+
+	return InternalGetNetMode();
+}
+
+FORCEINLINE_DEBUGGABLE bool UActorComponent::IsNetMode(ENetMode Mode) const
+{
+#if UE_EDITOR
+	// Editor builds are special because of PIE, which can run a dedicated server without the app running with -server.
+	return GetNetMode() == Mode;
+#else
+	// IsRunningDedicatedServer() is a compile-time check in optimized non-editor builds.
+	if (Mode == NM_DedicatedServer)
+	{
+		return IsRunningDedicatedServer();
+	}
+	else
+	{
+		return !IsRunningDedicatedServer() && (InternalGetNetMode() == Mode);
+	}
+#endif // UE_EDITOR
 }

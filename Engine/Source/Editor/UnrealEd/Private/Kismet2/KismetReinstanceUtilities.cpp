@@ -12,6 +12,7 @@
 #include "Engine/BlueprintGeneratedClass.h"
 #include "Engine/Selection.h"
 #include "BlueprintEditorSettings.h"
+#include "Animation/AnimInstance.h"
 
 DECLARE_CYCLE_STAT(TEXT("Replace Instances"), EKismetReinstancerStats_ReplaceInstancesOfClass, STATGROUP_KismetReinstancer );
 DECLARE_CYCLE_STAT(TEXT("Find Referencers"), EKismetReinstancerStats_FindReferencers, STATGROUP_KismetReinstancer );

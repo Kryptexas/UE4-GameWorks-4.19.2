@@ -14,6 +14,7 @@
 #include "AnimGraphNodeDetails.h"
 #include "AnimInstanceDetails.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
+#include "Animation/AnimInstance.h"
 
 IMPLEMENT_MODULE( FPersonaModule, Persona );
 

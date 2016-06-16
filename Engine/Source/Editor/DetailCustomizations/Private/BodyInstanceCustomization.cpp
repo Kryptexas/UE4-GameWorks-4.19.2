@@ -26,10 +26,10 @@ UStaticMeshComponent* FBodyInstanceCustomization::GetDefaultCollisionProvider(co
 	UPrimitiveComponent* OwnerComp = BI->OwnerComponent.Get();
 	if(!OwnerComp)
 	{
-		if(UPrimitiveComponent* const* FoundComp = BodyInstanceToPrimComponent.Find(BI))
-		{
-			OwnerComp = *FoundComp;
-		}
+		TWeakObjectPtr<UPrimitiveComponent> FoundComp = BodyInstanceToPrimComponent.FindRef(BI);
+		OwnerComp = FoundComp.Get();
+		
+		ensureMsgf(!FoundComp.IsStale(), TEXT("BodyInstance has no owner and the map data is stale"));
 	}
 	
 	UStaticMeshComponent* SMC = Cast<UStaticMeshComponent>(OwnerComp);

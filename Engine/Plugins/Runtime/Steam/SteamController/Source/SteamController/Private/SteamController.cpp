@@ -142,7 +142,7 @@ public:
 		Buttons[22] = FGamepadKeyNames::RightStickLeft;
 		Buttons[23] = FGamepadKeyNames::RightStickRight;
 		Buttons[24] = SteamControllerKeyNames::BackLeft;
-		Buttons[25] = SteamControllerKeyNames::BackLeft;
+		Buttons[25] = SteamControllerKeyNames::BackRight;
 	}
 
 	virtual ~FSteamController()

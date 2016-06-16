@@ -560,7 +560,7 @@ void UDebugSkelMeshComponent::ToggleClothSectionsVisibility(bool bShowOnlyClothS
 				if (bShowOnlyClothSections)
 				{
 					// enables only cloth sections
-					if (LODModel.Chunks[Section.ChunkIndex].HasApexClothData())
+					if (Section.HasApexClothData())
 					{
 						Section.bDisabled = false;
 					}
@@ -571,7 +571,7 @@ void UDebugSkelMeshComponent::ToggleClothSectionsVisibility(bool bShowOnlyClothS
 				}
 				else
 				{   // disables cloth sections and also corresponding original sections
-					if (LODModel.Chunks[Section.ChunkIndex].HasApexClothData())
+					if (Section.HasApexClothData())
 					{
 						Section.bDisabled = true;
 						LODModel.Sections[Section.CorrespondClothSectionIndex].bDisabled = true;
@@ -615,7 +615,7 @@ void UDebugSkelMeshComponent::RestoreClothSectionsVisibility()
 			{
 				FSkelMeshSection& Section = LODModel.Sections[SecIdx];
 
-				if(LODModel.Chunks[Section.ChunkIndex].HasApexClothData())
+				if(Section.HasApexClothData())
 				{
 					LODModel.Sections[Section.CorrespondClothSectionIndex].bDisabled = true;
 				}
@@ -662,7 +662,7 @@ int32 UDebugSkelMeshComponent::FindCurrentSectionDisplayMode()
 		{
 			FSkelMeshSection& Section = LODModel.Sections[SecIdx];
 
-			if (LODModel.Chunks[Section.ChunkIndex].HasApexClothData())
+			if (Section.HasApexClothData())
 			{
 				// Normal state if the cloth section is visible and the corresponding section is disabled
 				if (Section.bDisabled == false &&
@@ -682,7 +682,7 @@ int32 UDebugSkelMeshComponent::FindCurrentSectionDisplayMode()
 			FSkelMeshSection& Section = LODModel.Sections[SecIdx];
 
 			// not related to cloth sections
-			if (!LODModel.Chunks[Section.ChunkIndex].HasApexClothData() &&
+			if (!Section.HasApexClothData() &&
 				Section.CorrespondClothSectionIndex < 0)
 			{
 				bFoundNonClothSection = true;

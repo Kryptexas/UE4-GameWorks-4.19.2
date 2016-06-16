@@ -29,7 +29,6 @@ FSkeletalMeshObject::FSkeletalMeshObject(USkinnedMeshComponent* InMeshComponent,
 ,	WorkingMaxDistanceFactor(0.f)
 ,   bHasBeenUpdatedAtLeastOnce(false)
 #if WITH_EDITORONLY_DATA
-,   ChunkIndexPreview(InMeshComponent->ChunkIndexPreview)
 ,   SectionIndexPreview(InMeshComponent->SectionIndexPreview)
 #endif	
 ,	SkeletalMeshResource(InSkeletalMeshResource)
@@ -46,7 +45,6 @@ FSkeletalMeshObject::FSkeletalMeshObject(USkinnedMeshComponent* InMeshComponent,
 #if WITH_EDITORONLY_DATA
 	if ( !GIsEditor )
 	{
-		ChunkIndexPreview = -1;
 		SectionIndexPreview = -1;
 	}
 #endif // #if WITH_EDITORONLY_DATA
@@ -129,10 +127,10 @@ void FSkeletalMeshObject::UpdateMinDesiredLODLevel(const FSceneView* View, const
  * List of chunks to be rendered based on instance weight usage. Full swap of weights will render with its own chunks.
  * @return Chunks to iterate over for rendering
  */
-const TArray<FSkelMeshChunk>& FSkeletalMeshObject::GetRenderChunks(int32 InLODIndex) const
+const TArray<FSkelMeshSection>& FSkeletalMeshObject::GetRenderSections(int32 InLODIndex) const
 {
 	const FStaticLODModel& LOD = SkeletalMeshResource->LODModels[InLODIndex];
-	return LOD.Chunks;
+	return LOD.Sections;
 }
 
 /**

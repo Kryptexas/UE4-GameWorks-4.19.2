@@ -71,6 +71,16 @@ class UNREALED_API UFbxAnimSequenceImportData : public UFbxAssetImportData
 	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category = ImportSettings)
 	bool bDeleteExistingMorphTargetCurves;
 
+	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category = ImportSettings)
+	TArray<FString> MaterialCurveSuffixes;
+
+	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category = ImportSettings)
+	TArray<FString> PoseCurveSuffixes;
+
+	/** If enabled, this will import a curve within the animation */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category = ImportSettings)
+	bool bRemoveRedundantKeys;
+
 	/** Gets or creates fbx import data for the specified anim sequence */
 	static UFbxAnimSequenceImportData* GetImportDataForAnimSequence(UAnimSequence* AnimSequence, UFbxAnimSequenceImportData* TemplateForCreation);
 

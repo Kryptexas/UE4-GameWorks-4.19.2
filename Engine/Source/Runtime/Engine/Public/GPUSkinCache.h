@@ -7,8 +7,8 @@
 
 // Requirements
 // * Compute shader support (with Atomics)
-// * Project settings needs to be enabled (r.SkinCacheShaders)
-// * feature need to be enabled (r.SkinCaching)
+// * Project settings needs to be enabled (r.SkinCache.CompileShaders)
+// * feature need to be enabled (r.SkinCache.Mode)
 
 // Features
 // * Skeletal mesh, 4 / 8 weights per vertex, 16/32 index buffer
@@ -18,12 +18,12 @@
 // * RecomputeTangents results in improved tangent space for WorldPosOffset animation and morph target animation
 // * fixed amount of memory (r.MaxGPUSkinCacheElementsPerFrame, r.SkinCache.BufferSize)
 // * Velocity Rendering for MotionBlur and TemporalAA (test Velocity in BasePass)
-// * r.SkinCaching and r.SkinCaching.RecomputeTangents can be toggled at runtime
+// * r.SkinCache.Mode and r.SkinCache.RecomputeTangents can be toggled at runtime
 
 // TODO:
 // * Test: Tessellation
 // * Quality/Optimization: increase TANGENT_RANGE for better quality or accumulate two components in one 32bit value
-// * Feature: RecomputeTangents should be a per section setting, the cvar (r.SkinCaching.RecomputeTangents) can stay but should be on by default
+// * Feature: RecomputeTangents should be a per section setting, the cvar (r.SkinCache.RecomputeTangents) can stay but should be on by default
 // * Bug: We iterate through all chunks and try to find the Section. This is costly and might fail (Seems the section has a StartChunkIndex but it's called ChunkIndex)
 // * Bug: UpdateMorphVertexBuffer needs to handle SkinCacheObjects that have been rejected by the SkinCache (e.g. because it was running out of memory)
 // * Refactor: Unify the 3 compute shaders to use the same C++ setup code for the variables
@@ -102,7 +102,7 @@ public:
 	// @param MorphVertexBuffer if no morph targets are used
 	// @returns -1 if failed, otherwise index into CachedElements[]
 	int32 StartCacheMesh(FRHICommandListImmediate& RHICmdList, uint32 FrameNumber, int32 Key, class FGPUBaseSkinVertexFactory* VertexFactory,
-		class FGPUSkinPassthroughVertexFactory* TargetVertexFactory, const struct FSkelMeshChunk& BatchElement, FSkeletalMeshObjectGPUSkin* Skin,
+		class FGPUSkinPassthroughVertexFactory* TargetVertexFactory, const struct FSkelMeshSection& BatchElement, FSkeletalMeshObjectGPUSkin* Skin,
 		const class FMorphVertexBuffer* MorphVertexBuffer);
 
 	// @param FrameNumber from GFrameNumber or better ViewFamily.FrameNumber
@@ -124,7 +124,7 @@ public:
 		// key section -------------
 
 		// TODO: using a pointer as key is dangerous
-		const FSkelMeshChunk* BatchElement;
+		const FSkelMeshSection* BatchElement;
 		// TODO: using a pointer as key is dangerous
 		const FSkeletalMeshObjectGPUSkin* Skin;
 
@@ -161,10 +161,10 @@ public:
 		struct FSearchInfo
 		{
 			const FSkeletalMeshObjectGPUSkin* Skin;
-			const FSkelMeshChunk* BatchElement;
+			const FSkelMeshSection* BatchElement;
 
 			FSearchInfo()  { BatchElement = nullptr; Skin = nullptr; }
-			FSearchInfo(const FSkeletalMeshObjectGPUSkin* InSkin, const FSkelMeshChunk* InBatchElement) { BatchElement = InBatchElement; Skin = InSkin; }
+			FSearchInfo(const FSkeletalMeshObjectGPUSkin* InSkin, const FSkelMeshSection* InBatchElement) { BatchElement = InBatchElement; Skin = InSkin; }
 		};
 
 		// to support FindByKey()
@@ -174,7 +174,7 @@ public:
 		}
 
 		// to support == (confusing usage, better: IsSameBatchElement)
-		bool operator == (const FSkelMeshChunk& OtherBatchElement) const 
+		bool operator == (const FSkelMeshSection& OtherBatchElement) const
 		{
 			return (BatchElement == &OtherBatchElement);
 		}
@@ -184,9 +184,9 @@ public:
 	struct FDispatchData 
 	{
 		FRHICommandListImmediate& RHICmdList;
-		const FSkelMeshChunk& Chunk;
+		const FSkelMeshSection& Section;
 		// for debugging / draw events, -1 if not set
-		uint32 ChunkIdx;
+		uint32 SectionIdx;
 		ERHIFeatureLevel::Type FeatureLevel;
 		
 		// must not be 0
@@ -219,10 +219,10 @@ public:
 		uint32 IndexBufferOffsetValue;
 		uint32 NumTriangles;
 		
-		FDispatchData(FRHICommandListImmediate& InRHICmdList, const FSkelMeshChunk& InChunk, ERHIFeatureLevel::Type InFeatureLevel, FSkeletalMeshObjectGPUSkin* InGPUSkin)
+		FDispatchData(FRHICommandListImmediate& InRHICmdList, const FSkelMeshSection& InSection, ERHIFeatureLevel::Type InFeatureLevel, FSkeletalMeshObjectGPUSkin* InGPUSkin)
 			: RHICmdList(InRHICmdList)
-			, Chunk(InChunk)
-			, ChunkIdx(-1)
+			, Section(InSection)
+			, SectionIdx(-1)
 			, FeatureLevel(InFeatureLevel)
 			, GPUSkin(InGPUSkin)
 			, SkinType(0)

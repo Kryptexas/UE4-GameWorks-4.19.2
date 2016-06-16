@@ -24,6 +24,7 @@
 #include "AutomationCommon.h"
 #include "AutomationEditorCommon.h"
 #include "Engine/Selection.h"
+#include "Animation/AnimInstance.h"
 #include "Animation/AimOffsetBlendSpace.h"
 #include "Animation/AimOffsetBlendSpace1D.h"
 #include "Animation/AnimBlueprint.h"

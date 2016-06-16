@@ -26,7 +26,7 @@ struct FMorphGPUSkinVertex
 	FVector			DeltaTangentZ;
 };
 
-// This PerVertexInfoList (3 uints)
+// This is how PerVertexInfoList is interpreted as (3 uints)
 struct FPerVertexInfo
 {
 	uint32 DestVertexIndex;
@@ -34,7 +34,7 @@ struct FPerVertexInfo
 	uint32 NumDeltas;
 };
 
-// This FFlattenedDelta (7 uints)
+// This is how FFlattenedDelta is interpreted as (7 uints)
 struct FFlattenedDeltaList
 {
 	FVector PosDelta;
@@ -88,28 +88,27 @@ void ApplyMorphDeltas(uint DestVertexIndex, uint StartDelta, uint NumDeltas, out
 [numthreads(64,1,1)]
 void GPUMorphUpdateCS(uint DispatchId : SV_DispatchThreadID)
 {
-	uint NumLODVertices = (uint)MorphTargetCounts.x;
-
 	// See FMorphDelta
 	const uint MorphDeltaStride = 3 + 3 + 1;
-
-	float3 Position = 0;
-	float3 TangentZ = 0;
 
 	uint NumVertexInfoMorphs = (uint)MorphTargetCounts.y;
 	if (DispatchId.x < NumVertexInfoMorphs)
 	{
 		// See FPerVertexInfo
 		const uint PerVertexInfoStride = 3;
+		// Equivalent to PerVertexInfoList<FPerVertexInfo>
 		const uint DestVertexIndex = PerVertexInfoList[DispatchId.x * PerVertexInfoStride + 0];
 		const uint StartDelta = PerVertexInfoList[DispatchId.x * PerVertexInfoStride + 1];
 		const uint NumDeltas = PerVertexInfoList[DispatchId.x * PerVertexInfoStride + 2];
+
+		float3 Position = 0;
+		float3 TangentZ = 0;
 
 		ApplyMorphDeltas(DestVertexIndex, StartDelta, NumDeltas, Position, TangentZ);
 
 		// See FMorphGPUSkinVertex
 		const uint MorphVertexBufferStride = 3 + 3;
-
+		// Equivalent to MorphVertexBuffer<FMorphGPUSkinVertex>
 		MorphVertexBuffer[MorphVertexBufferStride * DestVertexIndex + 0] = asuint(Position.x);
 		MorphVertexBuffer[MorphVertexBufferStride * DestVertexIndex + 1] = asuint(Position.y);
 		MorphVertexBuffer[MorphVertexBufferStride * DestVertexIndex + 2] = asuint(Position.z);

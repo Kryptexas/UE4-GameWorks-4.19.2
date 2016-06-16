@@ -1253,15 +1253,30 @@ public:
 	virtual FBodyInstance* GetBodyInstance(FName BoneName = NAME_None, bool bGetWelded = true) const;
 
 	/** 
-	 * returns Distance to closest Body Instance surface. 
+	 * returns The square of the distance to closest Body Instance surface. 
 	 *
 	 * @param Point				World 3D vector
+	 * @param OutSquaredDistance The squared distance to closest Body Instance surface. 0 if inside of the body
 	 * @param OutPointOnBody	Point on the surface of collision closest to Point
 	 * 
-	 * @return		Success if returns > 0.f, if returns 0.f, it is either not convex or inside of the point
-	 *				If returns < 0.f, this primitive does not have collsion
+	 * @return		true if a distance to the body was found and OutDistanceSquared has been populated
 	 */
-	virtual float GetDistanceToCollision(const FVector& Point, FVector& ClosestPointOnCollision) const;
+	virtual bool GetSquaredDistanceToCollision(const FVector& Point, float& OutSquaredDistance, FVector& OutClosestPointOnCollision) const;
+
+	/** 
+	* returns Distance to closest Body Instance surface. 
+	*
+	* @param Point				World 3D vector
+	* @param OutPointOnBody	Point on the surface of collision closest to Point
+	* 
+	* @return		Success if returns > 0.f, if returns 0.f, point is inside the geometry
+	*				If returns < 0.f, this primitive does not have collsion or if geometry is not supported
+	*/	
+	float GetDistanceToCollision(const FVector& Point, FVector& ClosestPointOnCollision) const 
+	{
+		float DistanceSqr = -1.f;
+		return (GetSquaredDistanceToCollision(Point, DistanceSqr, ClosestPointOnCollision) ? FMath::Sqrt(DistanceSqr) : -1.f);
+	}
 
 	/**
 	* Returns the distance and closest point to the collision surface.

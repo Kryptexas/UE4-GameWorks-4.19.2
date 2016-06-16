@@ -530,9 +530,7 @@ namespace EditorAnimUtils
 	{
 		// Copy curve data from source asset, preserving data in the target if present.
 		const FSmartNameMapping* OldNameMapping = OldSkeleton->GetSmartNameContainer(ContainerName);
-		const FSmartNameMapping* NewNameMapping = NewSkeleton->GetOrAddSmartNameContainer(ContainerName);
-
-		SequenceBase->RawCurveData.UpdateLastObservedNames(OldNameMapping, CurveType);
+		SequenceBase->RawCurveData.RefreshName(OldNameMapping, CurveType);
 
 		switch (CurveType)
 		{
@@ -540,7 +538,7 @@ namespace EditorAnimUtils
 			{
 				for(FFloatCurve& Curve : SequenceBase->RawCurveData.FloatCurves)
 				{
-					NewSkeleton->AddSmartNameAndModify(ContainerName, Curve.LastObservedName, Curve.CurveUid);
+					NewSkeleton->AddSmartNameAndModify(ContainerName, Curve.Name.DisplayName, Curve.Name);
 				}
 				break;
 			}
@@ -548,7 +546,7 @@ namespace EditorAnimUtils
 			{
 				for(FVectorCurve& Curve : SequenceBase->RawCurveData.VectorCurves)
 				{
-					NewSkeleton->AddSmartNameAndModify(ContainerName, Curve.LastObservedName, Curve.CurveUid);
+					NewSkeleton->AddSmartNameAndModify(ContainerName, Curve.Name.DisplayName, Curve.Name);
 				}
 				break;
 			}
@@ -556,7 +554,7 @@ namespace EditorAnimUtils
 			{
 				for(FTransformCurve& Curve : SequenceBase->RawCurveData.TransformCurves)
 				{
-					NewSkeleton->AddSmartNameAndModify(ContainerName, Curve.LastObservedName, Curve.CurveUid);
+					NewSkeleton->AddSmartNameAndModify(ContainerName, Curve.Name.DisplayName, Curve.Name);
 				}
 				break;
 			}

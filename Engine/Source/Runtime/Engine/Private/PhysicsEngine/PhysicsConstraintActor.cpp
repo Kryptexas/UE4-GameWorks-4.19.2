@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 #include "PhysXSupport.h"
 #include "PhysicsEngine/PhysicsConstraintActor.h"
+#include "PhysicsEngine/PhysicsConstraintComponent.h"
 
 APhysicsConstraintActor::APhysicsConstraintActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

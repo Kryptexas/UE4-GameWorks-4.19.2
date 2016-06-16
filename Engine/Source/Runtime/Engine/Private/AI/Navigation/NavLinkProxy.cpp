@@ -11,6 +11,7 @@
 #include "AI/Navigation/NavLinkRenderingComponent.h"
 #include "NavigationSystemHelpers.h"
 #include "VisualLogger/VisualLogger.h"
+#include "AI/NavigationOctree.h"
 
 ANavLinkProxy::ANavLinkProxy(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {

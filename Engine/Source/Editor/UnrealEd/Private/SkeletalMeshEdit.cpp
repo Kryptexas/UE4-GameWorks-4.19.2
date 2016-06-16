@@ -940,22 +940,22 @@ bool UnFbx::FFbxImporter::ImportCurveToAnimSequence(class UAnimSequence * Target
 		const FSmartNameMapping* NameMapping = Skeleton->GetSmartNameContainer(USkeleton::AnimCurveMappingName);
 
 		// Add or retrieve curve
-		USkeleton::AnimCurveUID Uid;
 		if (!NameMapping->Exists(Name))
 		{
 			// mark skeleton dirty
 			Skeleton->Modify();
 		}
 
-		Skeleton->AddSmartNameAndModify(USkeleton::AnimCurveMappingName, Name, Uid);
+		FSmartName NewName;
+		Skeleton->AddSmartNameAndModify(USkeleton::AnimCurveMappingName, Name, NewName);
 
-		FFloatCurve * CurveToImport = static_cast<FFloatCurve *>(TargetSequence->RawCurveData.GetCurveData(Uid, FRawCurveTracks::FloatType));
+		FFloatCurve * CurveToImport = static_cast<FFloatCurve *>(TargetSequence->RawCurveData.GetCurveData(NewName.UID, FRawCurveTracks::FloatType));
 		if(CurveToImport==NULL)
 		{
-			if (TargetSequence->RawCurveData.AddCurveData(Uid, ACF_DefaultCurve | CurveFlags))
+			if (TargetSequence->RawCurveData.AddCurveData(NewName, ACF_DefaultCurve | CurveFlags))
 			{
-				CurveToImport = static_cast<FFloatCurve *> (TargetSequence->RawCurveData.GetCurveData(Uid, FRawCurveTracks::FloatType));
-				CurveToImport->LastObservedName = Name;
+				CurveToImport = static_cast<FFloatCurve *> (TargetSequence->RawCurveData.GetCurveData(NewName.UID, FRawCurveTracks::FloatType));
+				CurveToImport->Name = NewName;
 			}
 			else
 			{
@@ -972,10 +972,17 @@ bool UnFbx::FFbxImporter::ImportCurveToAnimSequence(class UAnimSequence * Target
 
 		// update last observed name. If not, sometimes it adds new UID while fixing up that will confuse Compressed Raw Data
 		const FSmartNameMapping* Mapping = Skeleton->GetSmartNameContainer(USkeleton::AnimCurveMappingName);
-		TargetSequence->RawCurveData.UpdateLastObservedNames(Mapping);
+		TargetSequence->RawCurveData.RefreshName(Mapping);
 
 		TargetSequence->MarkRawDataAsModified();
-		return ImportCurve(FbxCurve, CurveToImport, AnimTimeSpan, ValueScale);
+		if (ImportCurve(FbxCurve, CurveToImport, AnimTimeSpan, ValueScale))
+		{
+			if (ImportOptions->bRemoveRedundantKeys)
+			{
+				CurveToImport->FloatCurve.RemoveRedundantKeys(SMALL_NUMBER);
+			}
+			return true;
+		}
 	}
 
 	return false;
@@ -1113,10 +1120,35 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 							const FText StatusUpate = FText::Format(LOCTEXT("ImportingCustomAttributeCurvesDetail", "Importing Custom Attribute [{CurveName}]"), Args);
 							GWarn->StatusUpdate(CurLinkIndex + 1, TotalLinks, StatusUpate);
 
-							int32 CurveFlags = 0;
+							int32 CurveFlags = ACF_DefaultCurve;
+							// first let them override material curve if required
 							if (ImportOptions->bSetMaterialDriveParameterOnCustomAttribute)
 							{
 								CurveFlags |= ACF_DrivesMaterial;
+							}
+							else
+							{
+								// if not material set by default, apply naming convention for material
+								for (const auto& Suffix : ImportOptions->MaterialCurveSuffixes)
+								{
+									int32 TotalSuffix = Suffix.Len();
+									if (CurveName.Right(TotalSuffix) == Suffix)
+									{
+										CurveFlags |= ACF_DrivesMaterial;
+										break;
+									}
+								}
+							}
+
+							// apply naming convention for pose curve
+							for (const auto& Suffix : ImportOptions->PoseCurveSuffixes)
+							{
+								int32 TotalSuffix = Suffix.Len();
+								if (ChannelName.Right(TotalSuffix) == Suffix)
+								{
+									CurveFlags |= ACF_DrivesPose;
+									break;
+								}
 							}
 
 							ImportCurveToAnimSequence(DestSeq, FinalCurveName, AnimCurve, CurveFlags, AnimTimeSpan);

@@ -26,17 +26,6 @@ enum ELinearConstraintMotion
 	LCM_MAX,
 };
 
-/** Enum to indicate which frame we want. */
-UENUM()
-namespace EConstraintFrame
-{
-	enum Type
-	{
-		Frame1,
-		Frame2
-	};
-}
-
 UENUM()
 namespace EAngularDriveMode
 {

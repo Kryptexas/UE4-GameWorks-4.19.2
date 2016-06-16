@@ -18,12 +18,8 @@ EnginePrivate.h: Unreal engine private header file.
 #include "Components/ActorComponent.h"
 #include "GameFramework/Actor.h"
 #include "Engine/Brush.h"
-#include "AI/Navigation/NavAgentInterface.h"
 #include "GameFramework/Controller.h"
-#include "AI/Navigation/NavLinkDefinition.h"
-#include "AI/Navigation/NavigationTypes.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
-#include "AI/Navigation/NavigationSystem.h"
 #include "Camera/PlayerCameraManager.h"
 #include "GameFramework/Info.h"
 #include "Components/InputComponent.h"
@@ -32,8 +28,6 @@ EnginePrivate.h: Unreal engine private header file.
 #include "GameFramework/WorldSettings.h"
 #include "Components/SceneComponent.h"
 #include "Components/LightComponentBase.h"
-#include "AI/Navigation/NavigationData.h"
-#include "AI/Navigation/RecastNavMesh.h"
 #include "Components/PrimitiveComponent.h"
 #include "GameFramework/Pawn.h"
 #include "Components/MeshComponent.h"
@@ -86,8 +80,6 @@ EnginePrivate.h: Unreal engine private header file.
 #include "ActiveSound.h"
 #include "SystemSettings.h"					// Scalability options.
 #include "SceneManagement.h"				// Scene management.
-#include "NavigationModifier.h"
-#include "NavigationOctree.h"
 #include "ContentStreaming.h"				// Content streaming class definitions.
 #include "ComponentReregisterContext.h"	
 #include "DrawDebugHelpers.h"

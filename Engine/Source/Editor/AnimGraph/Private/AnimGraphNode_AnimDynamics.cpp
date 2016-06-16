@@ -9,6 +9,7 @@
 #include "DetailWidgetRow.h"
 #include "IDetailPropertyRow.h"
 #include "AnimationCustomVersion.h"
+#include "Animation/AnimInstance.h"
 
 #define LOCTEXT_NAMESPACE "AnimDynamicsNode"
 

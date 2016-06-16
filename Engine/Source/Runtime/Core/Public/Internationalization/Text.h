@@ -428,7 +428,7 @@ public:
 	friend class FTextFormatHelper;
 	friend class FTextSnapshot;
 	friend class FTextInspector;
-	friend class UStruct;
+	friend class UTextProperty;
 	friend class UGatherTextFromAssetsCommandlet;
 	friend class FTextHistory_NamedFormat;
 	friend class FTextHistory_ArgumentDataFormat;

@@ -881,17 +881,17 @@ FBodyInstance* UPrimitiveComponent::GetBodyInstance(FName BoneName, bool bGetWel
 	return const_cast<FBodyInstance*>(&BodyInstance);
 }
 
-float UPrimitiveComponent::GetDistanceToCollision(const FVector& Point, FVector& ClosestPointOnCollision) const
+bool UPrimitiveComponent::GetSquaredDistanceToCollision(const FVector& Point, float& OutSquaredDistance, FVector& OutClosestPointOnCollision) const
 {
-	ClosestPointOnCollision=Point;
+	OutClosestPointOnCollision = Point;
 
 	FBodyInstance* BodyInst = GetBodyInstance();
-	if(BodyInst != NULL)
+	if (BodyInst != nullptr)
 	{
-		return BodyInst->GetDistanceToBody(Point, ClosestPointOnCollision);
+		return BodyInst->GetSquaredDistanceToBody(Point, OutSquaredDistance, OutClosestPointOnCollision);
 	}
 
-	return -1.f;
+	return false;
 }
 
 float UPrimitiveComponent::GetClosestPointOnCollision(const FVector& Point, FVector& OutPointOnBody, FName BoneName) const

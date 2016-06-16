@@ -737,7 +737,7 @@ FBlendSpaceThumbnailScene::FBlendSpaceThumbnailScene()
 	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	SpawnInfo.bNoFail = true;
 	SpawnInfo.ObjectFlags = RF_Transient;
-	PreviewActor = GetWorld()->SpawnActor<ASkeletalMeshActor>(SpawnInfo);
+	PreviewActor = GetWorld()->SpawnActor<AAnimationThumbnailSkeletalMeshActor>(SpawnInfo);
 
 	PreviewActor->SetActorEnableCollision(false);
 }
@@ -762,11 +762,14 @@ bool FBlendSpaceThumbnailScene::SetBlendSpace(class UBlendSpaceBase* InBlendSpac
 			{
 				bSetSucessfully = true;
 
-				// Handle posing the mesh at the middle of the animation
-				PreviewActor->GetSkeletalMeshComponent()->PlayAnimation(InBlendSpace, false);
-				PreviewActor->GetSkeletalMeshComponent()->Stop();
+				UDebugSkelMeshComponent* MeshComponent = CastChecked<UDebugSkelMeshComponent>(PreviewActor->GetSkeletalMeshComponent());
 
-				UAnimSingleNodeInstance* AnimInstance = PreviewActor->GetSkeletalMeshComponent()->GetSingleNodeInstance();
+				// Handle posing the mesh at the middle of the animation
+				MeshComponent->EnablePreview(true, InBlendSpace);
+				MeshComponent->Play(false);
+				MeshComponent->Stop();
+
+				UAnimSingleNodeInstance* AnimInstance = MeshComponent->GetSingleNodeInstance();
 				if (AnimInstance)
 				{
 					FVector BlendInput(0.f);
@@ -777,7 +780,9 @@ bool FBlendSpaceThumbnailScene::SetBlendSpace(class UBlendSpaceBase* InBlendSpac
 					}
 					AnimInstance->UpdateBlendspaceSamples(BlendInput);
 				}
-				PreviewActor->GetSkeletalMeshComponent()->RefreshBoneTransforms(nullptr);
+
+				MeshComponent->TickAnimation(0.f, false);
+				MeshComponent->RefreshBoneTransforms(nullptr);
 
 				FTransform MeshTransform = FTransform::Identity;
 
@@ -972,6 +977,11 @@ void FClassActorThumbnailScene::SpawnPreviewActor(UClass* InClass)
 {
 	if (PreviewActor)
 	{
+		if (PreviewActor->GetClass() == InClass)
+		{
+			return;
+		}
+
 		PreviewActor->Destroy();
 		PreviewActor = nullptr;
 	}

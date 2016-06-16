@@ -257,7 +257,7 @@ void USkeletalMeshComponent::RegisterClothTick(bool bRegister)
 
 bool USkeletalMeshComponent::ShouldRunPostPhysicsTick() const
 {
-	return	(bEnablePhysicsOnDedicatedServer || GetNetMode() != NM_DedicatedServer) && // Early out with we are on a dedicated server and not running physics
+	return	(bEnablePhysicsOnDedicatedServer || !IsNetMode(NM_DedicatedServer)) && // Early out if we are on a dedicated server and not running physics.
 			(IsSimulatingPhysics() || ShouldBlendPhysicsBones());
 }
 
@@ -270,7 +270,7 @@ bool USkeletalMeshComponent::ShouldRunClothTick() const
 {
 #if WITH_APEX_CLOTHING
 	bool bShouldRunCloth = ClothingActors.Num() > 0 && SkeletalMesh && SkeletalMesh->ClothingAssets.Num() > 0
-								&& GetNetMode() != NM_DedicatedServer; // Cloth never needs to run on dedicated server
+								&& !IsNetMode(NM_DedicatedServer); // Cloth never needs to run on dedicated server
 
 	//If we are eligible to run cloth we should check if any of the clothing actors will actually simulate at this LOD
 	if(bShouldRunCloth)
@@ -1949,6 +1949,12 @@ class UAnimSingleNodeInstance* USkeletalMeshComponent::GetSingleNodeInstance() c
 	return Cast<class UAnimSingleNodeInstance>(AnimScriptInstance);
 }
 
+bool USkeletalMeshComponent::PoseTickedThisFrame() const 
+{ 
+	return LastPoseTickTime == GetWorld()->TimeSeconds; 
+}
+
+
 FTransform USkeletalMeshComponent::ConvertLocalRootMotionToWorld(const FTransform& InTransform)
 {
 	// Make sure component to world is up to date
@@ -2036,31 +2042,11 @@ bool USkeletalMeshComponent::ComponentIsTouchingSelectionBox(const FBox& InSelBB
 		check(SkelMeshResource);
 		check(SkelMeshResource->LODModels.Num() > 0);
 
-		// Transform hard and soft verts into world space. Note that this assumes skeletal mesh is in reference pose...
+		// Transform verts into world space. Note that this assumes skeletal mesh is in reference pose...
 		const FStaticLODModel& LODModel = SkelMeshResource->LODModels[0];
-		for (const auto& Chunk : LODModel.Chunks)
+		for (const auto& Section : LODModel.Sections)
 		{
-			for (const auto& Vertex : Chunk.RigidVertices)
-			{
-				const FVector Location = ComponentToWorld.TransformPosition(Vertex.Position);
-				const bool bLocationIntersected = FMath::PointBoxIntersection(Location, InSelBBox);
-
-				// If the selection box doesn't have to encompass the entire component and a skeletal mesh vertex has intersected with
-				// the selection box, this component is being touched by the selection box
-				if (!bMustEncompassEntireComponent && bLocationIntersected)
-				{
-					return true;
-				}
-
-				// If the selection box has to encompass the entire component and a skeletal mesh vertex didn't intersect with the selection
-				// box, this component does not qualify
-				else if (bMustEncompassEntireComponent && !bLocationIntersected)
-				{
-					return false;
-				}
-			}
-
-			for (const auto& Vertex : Chunk.SoftVertices)
+			for (const auto& Vertex : Section.SoftVertices)
 			{
 				const FVector Location = ComponentToWorld.TransformPosition(Vertex.Position);
 				const bool bLocationIntersected = FMath::PointBoxIntersection(Location, InSelBBox);
@@ -2085,8 +2071,8 @@ bool USkeletalMeshComponent::ComponentIsTouchingSelectionBox(const FBox& InSelBB
 		// is consider touching
 		if (bMustEncompassEntireComponent)
 		{
-		return true;
-	}
+			return true;
+		}
 	}
 
 	return false;
@@ -2100,31 +2086,11 @@ bool USkeletalMeshComponent::ComponentIsTouchingSelectionFrustum(const FConvexVo
 		check(SkelMeshResource);
 		check(SkelMeshResource->LODModels.Num() > 0);
 
-		// Transform hard and soft verts into world space. Note that this assumes skeletal mesh is in reference pose...
+		// Transform verts into world space. Note that this assumes skeletal mesh is in reference pose...
 		const FStaticLODModel& LODModel = SkelMeshResource->LODModels[0];
-		for (const auto& Chunk : LODModel.Chunks)
+		for (const auto& Section : LODModel.Sections)
 		{
-			for (const auto& Vertex : Chunk.RigidVertices)
-			{
-				const FVector Location = ComponentToWorld.TransformPosition(Vertex.Position);
-				const bool bLocationIntersected = InFrustum.IntersectSphere(Location, 0.0f);
-
-				// If the selection box doesn't have to encompass the entire component and a skeletal mesh vertex has intersected with
-				// the selection box, this component is being touched by the selection box
-				if (!bMustEncompassEntireComponent && bLocationIntersected)
-				{
-					return true;
-				}
-
-				// If the selection box has to encompass the entire component and a skeletal mesh vertex didn't intersect with the selection
-				// box, this component does not qualify
-				else if (bMustEncompassEntireComponent && !bLocationIntersected)
-				{
-					return false;
-				}
-			}
-
-			for (const auto& Vertex : Chunk.SoftVertices)
+			for (const auto& Vertex : Section.SoftVertices)
 			{
 				const FVector Location = ComponentToWorld.TransformPosition(Vertex.Position);
 				const bool bLocationIntersected = InFrustum.IntersectSphere(Location, 0.0f);

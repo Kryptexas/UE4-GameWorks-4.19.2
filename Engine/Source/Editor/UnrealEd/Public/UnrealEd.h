@@ -118,6 +118,7 @@
 #include "Classes/Factories/AnimCompositeFactory.h"
 #include "Classes/Factories/AnimMontageFactory.h"
 #include "Classes/Factories/AnimSequenceFactory.h"
+#include "Classes/Factories/PoseAssetFactory.h"
 #include "Classes/Factories/BlendSpaceFactory1D.h"
 #include "Classes/Factories/AimOffsetBlendSpaceFactory1D.h"
 #include "Classes/Factories/BlendSpaceFactoryNew.h"

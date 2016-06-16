@@ -14,6 +14,7 @@
 #include "PhysXSupport.h"
 #include "Components/DestructibleComponent.h"
 #include "PhysicsEngine/PhysicsAsset.h"
+#include "PhysicsEngine/ConstraintInstance.h"
 
 PxFoundation*			GPhysXFoundation = NULL;
 PxProfileZoneManager*	GPhysXProfileZoneManager = NULL;

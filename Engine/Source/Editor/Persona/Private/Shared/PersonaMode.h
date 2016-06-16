@@ -14,6 +14,7 @@ struct FPersonaTabs
 
 	// Selection Details
 	static const FName MorphTargetsID;
+	static const FName AnimCurveViewID;
 	static const FName SkeletonTreeViewID;
 	// Skeleton Pose manager
 	static const FName RetargetManagerID;
@@ -174,6 +175,22 @@ public:
 	virtual TSharedPtr<SToolTip> CreateTabToolTipWidget(const FWorkflowTabSpawnInfo& Info) const override
 	{
 		return  IDocumentation::Get()->CreateToolTip(LOCTEXT("MorphTargetTooltip", "The Morph Target tab lets you preview any morph targets (aka blend shapes) available for the current mesh."), NULL, TEXT("Shared/Editors/Persona"), TEXT("MorphTarget_Window"));
+	}
+};
+/////////////////////////////////////////////////////
+// FAnimCurveViewerTabSummoner
+
+struct FAnimCurveViewerTabSummoner : public FWorkflowTabFactory
+{
+public:
+	FAnimCurveViewerTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp);
+
+	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override;
+
+	// Create a tooltip widget for the tab
+	virtual TSharedPtr<SToolTip> CreateTabToolTipWidget(const FWorkflowTabSpawnInfo& Info) const override
+	{
+		return  IDocumentation::Get()->CreateToolTip(LOCTEXT("AnimCurveViewTooltip", "The Anim Curve Viewer tab lets you preview any animation curves available for the current mesh from preview asset."), NULL, TEXT("Shared/Editors/Persona"), TEXT("AnimCurveView_Window"));
 	}
 };
 

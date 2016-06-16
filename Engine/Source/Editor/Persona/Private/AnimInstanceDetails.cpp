@@ -12,6 +12,7 @@
 #include "IDetailCustomNodeBuilder.h"
 #include "PropertyCustomizationHelpers.h"
 #include "AssetData.h"
+#include "Animation/AnimInstance.h"
 
 /////////////////////////////////////////////////////
 // FAnimInstanceDetails 

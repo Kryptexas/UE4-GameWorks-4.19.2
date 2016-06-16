@@ -78,6 +78,7 @@ public:
 	virtual void OnRegister() override;
 	virtual void OnUnregister() override;
 	virtual FActorComponentInstanceData* GetComponentInstanceData() const override;
+	virtual void BeginPlay() override;
 	//~ End ActorComponent Interface.
 
 	/** Apply the component instance data to the child actor component */

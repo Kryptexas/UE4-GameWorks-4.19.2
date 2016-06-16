@@ -16,6 +16,7 @@
 #include "BlueprintActionDatabase.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
+#include "Animation/AnimSequence.h"
 #include "SAnimTimingPanel.h"
 
 // Track Panel drawing

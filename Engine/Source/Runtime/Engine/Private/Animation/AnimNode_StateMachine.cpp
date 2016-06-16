@@ -842,6 +842,9 @@ void FAnimNode_StateMachine::EvaluateTransitionCustomBlend(FPoseContext& Output,
 		{
 			Output.Pose[BoneIndex] = StatePoseResult.Pose[BoneIndex];
 		}
+
+		// Copy curve over also, replacing current.
+		Output.Curve.CopyFrom(StatePoseResult.Curve);
 	}
 }
 

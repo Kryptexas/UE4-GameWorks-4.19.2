@@ -511,9 +511,12 @@ namespace MovementBaseUtility
 			}
 
 			// Fall back to physics velocity.
-			if (BaseVelocity.IsZero() && MovementBase->GetBodyInstance())
+			if (BaseVelocity.IsZero())
 			{
-				BaseVelocity = MovementBase->GetBodyInstance()->GetUnrealWorldVelocity();
+				if (FBodyInstance* BaseBodyInstance = MovementBase->GetBodyInstance())
+				{
+					BaseVelocity = BaseBodyInstance->GetUnrealWorldVelocity();
+				}
 			}
 		}
 		

@@ -80,9 +80,9 @@ class UFbxImportUI : public UObject
 	UPROPERTY(EditAnywhere, config, Category=Animation, meta=(ImportType="SkeletalMesh|Animation"))
 	uint32 bImportAnimations:1;
 
-	/** Override for the name of the animation to import **/
+	/** Override for the name of the animation to import. By default, it will be the name of FBX **/
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Animation, meta=(editcondition="bImportAnimations", ImportType="SkeletalMesh")) 
-	FString AnimationName;
+	FString OverrideAnimationName;
 
 	/** Enables importing of 'rigid skeletalmesh' (unskinned, hierarchy-based animation) from this FBX file, no longer shown, used behind the scenes */
 	UPROPERTY()

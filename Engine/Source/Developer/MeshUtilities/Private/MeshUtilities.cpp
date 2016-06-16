@@ -1195,7 +1195,6 @@ void FMeshUtilities::RechunkSkeletalMeshModels(USkeletalMesh* SrcMesh, int32 Max
 		check(SectionSortOptions.Num() == Chunks.Num());
 
 		BuildSkeletalModelFromChunks(DestModel, RefSkeleton, Chunks, PointToOriginalMap);
-		check(DestModel.Sections.Num() == DestModel.Chunks.Num());
 		check(DestModel.Sections.Num() == SectionSortOptions.Num());
 
 		DestModel.NumTexCoords = SrcModel.NumTexCoords;
@@ -1231,7 +1230,6 @@ void FMeshUtilities::BuildSkeletalModelFromChunks(FStaticLODModel& LODModel, con
 #if WITH_EDITORONLY_DATA
 	// Clear out any data currently held in the LOD model.
 	LODModel.Sections.Empty();
-	LODModel.Chunks.Empty();
 	LODModel.NumVertices = 0;
 	if (LODModel.MultiSizeIndexContainer.IsIndexBufferValid())
 	{
@@ -1245,15 +1243,12 @@ void FMeshUtilities::BuildSkeletalModelFromChunks(FStaticLODModel& LODModel, con
 
 		FSkelMeshSection& Section = *new(LODModel.Sections) FSkelMeshSection();
 		Section.MaterialIndex = SrcChunk->MaterialIndex;
-		Section.ChunkIndex = ChunkIndex;
-
-		FSkelMeshChunk& Chunk = *new(LODModel.Chunks) FSkelMeshChunk();
-		Exchange(Chunk.BoneMap, SrcChunk->BoneMap);
+		Exchange(Section.BoneMap, SrcChunk->BoneMap);
 
 		// Update the active bone indices on the LOD model.
-		for (int32 BoneIndex = 0; BoneIndex < Chunk.BoneMap.Num(); ++BoneIndex)
+		for (int32 BoneIndex = 0; BoneIndex < Section.BoneMap.Num(); ++BoneIndex)
 		{
-			LODModel.ActiveBoneIndices.AddUnique(Chunk.BoneMap[BoneIndex]);
+			LODModel.ActiveBoneIndices.AddUnique(Section.BoneMap[BoneIndex]);
 		}
 	}
 
@@ -1329,14 +1324,12 @@ void FMeshUtilities::BuildSkeletalModelFromChunks(FStaticLODModel& LODModel, con
 	for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
 	{
 		FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
-		int32 ChunkIndex = Section.ChunkIndex;
-		FSkelMeshChunk& Chunk = LODModel.Chunks[ChunkIndex];
-		TArray<FSoftSkinBuildVertex>& ChunkVertices = Chunks[ChunkIndex]->Vertices;
+		TArray<FSoftSkinBuildVertex>& ChunkVertices = Chunks[SectionIndex]->Vertices;
 
 		if (IsInGameThread())
 		{
 			// Only update status if in the game thread.  When importing morph targets, this function can run in another thread
-			GWarn->StatusUpdate(ChunkIndex, LODModel.Chunks.Num(), NSLOCTEXT("UnrealEd", "ProcessingChunks", "Processing Chunks"));
+			GWarn->StatusUpdate(SectionIndex, LODModel.Sections.Num(), NSLOCTEXT("UnrealEd", "ProcessingChunks", "Processing Chunks"));
 		}
 
 		CurrentVertexIndex = 0;
@@ -1344,7 +1337,7 @@ void FMeshUtilities::BuildSkeletalModelFromChunks(FStaticLODModel& LODModel, con
 		PrevMaterialIndex = Section.MaterialIndex;
 
 		// Calculate the offset to this chunk's vertices in the vertex buffer.
-		Chunk.BaseVertexIndex = CurrentChunkBaseVertexIndex = LODModel.NumVertices;
+		Section.BaseVertexIndex = CurrentChunkBaseVertexIndex = LODModel.NumVertices;
 
 		// Update the size of the vertex buffer.
 		LODModel.NumVertices += ChunkVertices.Num();
@@ -1352,80 +1345,48 @@ void FMeshUtilities::BuildSkeletalModelFromChunks(FStaticLODModel& LODModel, con
 		// Separate the section's vertices into rigid and soft vertices.
 		TArray<uint32>& ChunkVertexIndexRemap = *new(VertexIndexRemap)TArray<uint32>();
 		ChunkVertexIndexRemap.AddUninitialized(ChunkVertices.Num());
-		for (int32 VertexIndex = 0; VertexIndex < ChunkVertices.Num(); VertexIndex++)
-		{
-			const FSoftSkinBuildVertex& SoftVertex = ChunkVertices[VertexIndex];
-			if (SoftVertex.InfluenceWeights[1] == 0)
-			{
-				FRigidSkinVertex RigidVertex;
-				RigidVertex.Position = SoftVertex.Position;
-				RigidVertex.TangentX = SoftVertex.TangentX;
-				RigidVertex.TangentY = SoftVertex.TangentY;
-				RigidVertex.TangentZ = SoftVertex.TangentZ;
-				FMemory::Memcpy(RigidVertex.UVs, SoftVertex.UVs, sizeof(FVector2D)*MAX_TEXCOORDS);
-				RigidVertex.Color = SoftVertex.Color;
-				RigidVertex.Bone = SoftVertex.InfluenceBones[0];
-				// make sure it exists in bone map
-				check(Chunk.BoneMap.IsValidIndex(SoftVertex.InfluenceBones[0]));
-				Chunk.RigidVertices.Add(RigidVertex);
-				ChunkVertexIndexRemap[VertexIndex] = (uint32)(Chunk.BaseVertexIndex + CurrentVertexIndex);
-				CurrentVertexIndex++;
-				// add the index to the original wedge point source of this vertex
-				RawPointIndices.Add(SoftVertex.PointWedgeIdx);
-				// Also remember import index
-				const int32 RawVertIndex = PointToOriginalMap[SoftVertex.PointWedgeIdx];
-				LODModel.MeshToImportVertexMap.Add(RawVertIndex);
-				LODModel.MaxImportVertex = FMath::Max<float>(LODModel.MaxImportVertex, RawVertIndex);
-			}
-		}
-		for (int32 VertexIndex = 0; VertexIndex < ChunkVertices.Num(); VertexIndex++)
-		{
-			const FSoftSkinBuildVertex& SoftVertex = ChunkVertices[VertexIndex];
-			if (SoftVertex.InfluenceWeights[1] > 0)
-			{
-				FSoftSkinVertex NewVertex;
-				NewVertex.Position = SoftVertex.Position;
-				NewVertex.TangentX = SoftVertex.TangentX;
-				NewVertex.TangentY = SoftVertex.TangentY;
-				NewVertex.TangentZ = SoftVertex.TangentZ;
-				FMemory::Memcpy(NewVertex.UVs, SoftVertex.UVs, sizeof(FVector2D)*MAX_TEXCOORDS);
-				NewVertex.Color = SoftVertex.Color;
-				for (int32 i = 0; i < MAX_TOTAL_INFLUENCES; ++i)
-				{
-					// it only adds to the bone map if it has weight on it
-					// BoneMap contains only the bones that has influence with weight of >0.f
-					// so here, just make sure it is included before setting the data
-					if (Chunk.BoneMap.IsValidIndex(SoftVertex.InfluenceBones[i]))
-					{
-						NewVertex.InfluenceBones[i] = SoftVertex.InfluenceBones[i];
-						NewVertex.InfluenceWeights[i] = SoftVertex.InfluenceWeights[i];
-					}
-				}
-				Chunk.SoftVertices.Add(NewVertex);
-				ChunkVertexIndexRemap[VertexIndex] = (uint32)(Chunk.BaseVertexIndex + CurrentVertexIndex);
-				CurrentVertexIndex++;
-				// add the index to the original wedge point source of this vertex
-				RawPointIndices.Add(SoftVertex.PointWedgeIdx);
-				// Also remember import index
-				const int32 RawVertIndex = PointToOriginalMap[SoftVertex.PointWedgeIdx];
-				LODModel.MeshToImportVertexMap.Add(RawVertIndex);
-				LODModel.MaxImportVertex = FMath::Max<float>(LODModel.MaxImportVertex, RawVertIndex);
-			}
-		}
 
-		// update total num of verts added
-		Chunk.NumRigidVertices = Chunk.RigidVertices.Num();
-		Chunk.NumSoftVertices = Chunk.SoftVertices.Num();
+		for (int32 VertexIndex = 0; VertexIndex < ChunkVertices.Num(); VertexIndex++)
+		{
+			const FSoftSkinBuildVertex& SoftVertex = ChunkVertices[VertexIndex];
+
+			FSoftSkinVertex NewVertex;
+			NewVertex.Position = SoftVertex.Position;
+			NewVertex.TangentX = SoftVertex.TangentX;
+			NewVertex.TangentY = SoftVertex.TangentY;
+			NewVertex.TangentZ = SoftVertex.TangentZ;
+			FMemory::Memcpy(NewVertex.UVs, SoftVertex.UVs, sizeof(FVector2D)*MAX_TEXCOORDS);
+			NewVertex.Color = SoftVertex.Color;
+			for (int32 i = 0; i < MAX_TOTAL_INFLUENCES; ++i)
+			{
+				// it only adds to the bone map if it has weight on it
+				// BoneMap contains only the bones that has influence with weight of >0.f
+				// so here, just make sure it is included before setting the data
+				if (Section.BoneMap.IsValidIndex(SoftVertex.InfluenceBones[i]))
+				{
+					NewVertex.InfluenceBones[i] = SoftVertex.InfluenceBones[i];
+					NewVertex.InfluenceWeights[i] = SoftVertex.InfluenceWeights[i];
+				}
+			}
+			Section.SoftVertices.Add(NewVertex);
+			ChunkVertexIndexRemap[VertexIndex] = (uint32)(Section.BaseVertexIndex + CurrentVertexIndex);
+			CurrentVertexIndex++;
+			// add the index to the original wedge point source of this vertex
+			RawPointIndices.Add(SoftVertex.PointWedgeIdx);
+			// Also remember import index
+			const int32 RawVertIndex = PointToOriginalMap[SoftVertex.PointWedgeIdx];
+			LODModel.MeshToImportVertexMap.Add(RawVertIndex);
+			LODModel.MaxImportVertex = FMath::Max<float>(LODModel.MaxImportVertex, RawVertIndex);
+		}
 
 		// update max bone influences
-		Chunk.CalcMaxBoneInfluences();
+		Section.CalcMaxBoneInfluences();
 
 		// Log info about the chunk.
-		UE_LOG(LogSkeletalMesh, Log, TEXT("Chunk %u: %u rigid vertices, %u soft vertices, %u active bones"),
-			ChunkIndex,
-			Chunk.RigidVertices.Num(),
-			Chunk.SoftVertices.Num(),
-			Chunk.BoneMap.Num()
+		UE_LOG(LogSkeletalMesh, Log, TEXT("Section %u: %u vertices, %u active bones"),
+			SectionIndex,
+			Section.GetNumVertices(),
+			Section.BoneMap.Num()
 			);
 	}
 
@@ -1454,7 +1415,7 @@ void FMeshUtilities::BuildSkeletalModelFromChunks(FStaticLODModel& LODModel, con
 		FRawStaticIndexBuffer16or32Interface* IndexBuffer = LODModel.MultiSizeIndexContainer.GetIndexBuffer();
 		Section.BaseIndex = IndexBuffer->Num();
 		const int32 NumIndices = SectionIndices.Num();
-		const TArray<uint32>& SectionVertexIndexRemap = VertexIndexRemap[Section.ChunkIndex];
+		const TArray<uint32>& SectionVertexIndexRemap = VertexIndexRemap[SectionIndex];
 		for (int32 Index = 0; Index < NumIndices; Index++)
 		{
 			uint32 VertexIndex = SectionVertexIndexRemap[SectionIndices[Index]];
@@ -4683,10 +4644,9 @@ bool FMeshUtilities::BuildSkeletalMesh(FStaticLODModel& LODModel, const FReferen
 			bHasBadSections |= (Section.NumTriangles == 0);
 
 			// Log info about the section.
-			UE_LOG(LogSkeletalMesh, Log, TEXT("Section %u: Material=%u, Chunk=%u, %u triangles"),
+			UE_LOG(LogSkeletalMesh, Log, TEXT("Section %u: Material=%u, %u triangles"),
 				SectionIndex,
 				Section.MaterialIndex,
-				Section.ChunkIndex,
 				Section.NumTriangles
 				);
 		}
@@ -5140,10 +5100,9 @@ bool FMeshUtilities::BuildSkeletalMesh_Legacy(FStaticLODModel& LODModel, const F
 			bHasBadSections |= (Section.NumTriangles == 0);
 
 			// Log info about the section.
-			UE_LOG(LogSkeletalMesh, Log, TEXT("Section %u: Material=%u, Chunk=%u, %u triangles"),
+			UE_LOG(LogSkeletalMesh, Log, TEXT("Section %u: Material=%u, %u triangles"),
 				SectionIndex,
 				Section.MaterialIndex,
-				Section.ChunkIndex,
 				Section.NumTriangles
 				);
 		}
@@ -6421,7 +6380,9 @@ void FMeshUtilities::CalculateTextureCoordinateBoundsForSkeletalMesh(const FStat
 		const int32 MaterialIndex = Section.MaterialIndex;
 
 		if (OutBounds.Num() <= MaterialIndex)
+		{
 			OutBounds.SetNumZeroed(MaterialIndex + 1);
+		}
 
 		for (uint32 Index = FirstIndex; Index < LastIndex; ++Index)
 		{

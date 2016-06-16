@@ -45,7 +45,8 @@ struct EArrayType
 	{
 		None,
 		Static,
-		Dynamic
+		Dynamic,
+		Set
 	};
 };
 
@@ -425,6 +426,11 @@ public:
 	bool IsObject() const
 	{
 		return Type == CPT_ObjectReference || Type == CPT_Interface || Type == CPT_WeakObjectReference || Type == CPT_LazyObjectReference || Type == CPT_AssetObjectReference;
+	}
+
+	bool IsContainer() const
+	{
+		return (ArrayType != EArrayType::None || MapKeyProp.IsValid());
 	}
 
 	/**

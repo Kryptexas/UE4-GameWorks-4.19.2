@@ -54,9 +54,9 @@ void UDestructibleMesh::PostLoad()
 			ThisLODModel.ActiveBoneIndices.Sort();
 		}
 
-		for (int32 ChunkIndex = 0; ChunkIndex < ThisLODModel.Chunks.Num(); ++ChunkIndex)
+		for (int32 SectionIndex = 0; SectionIndex < ThisLODModel.Sections.Num(); ++SectionIndex)
 		{
-			if (ThisLODModel.Chunks[ChunkIndex].BoneMap.Num() > MaxGPUSkinBones)
+			if (ThisLODModel.Sections[SectionIndex].BoneMap.Num() > MaxGPUSkinBones)
 			{
 #if WITH_EDITOR
 				// re create destructible asset if it exceeds

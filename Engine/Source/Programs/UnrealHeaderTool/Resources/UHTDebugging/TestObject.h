@@ -39,6 +39,9 @@ public:
 	UPROPERTY()
 	TMap<int32, bool> TestMap;
 
+	UPROPERTY()
+	TSet<int32> TestSet;
+
 	UFUNCTION()
 	void CodeGenTestForEnumClasses(ECppEnum Val);
 

@@ -7,6 +7,7 @@
 #include "SNumericEntryBox.h"
 #include "SequenceRecorderSettings.h"
 #include "SequenceRecorder.h"
+#include "Animation/AnimSequence.h"
 
 #define LOCTEXT_NAMESPACE "SequenceRecorder"
 

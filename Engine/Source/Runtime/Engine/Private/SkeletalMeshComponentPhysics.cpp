@@ -259,9 +259,7 @@ bool USkeletalMesh::HasClothSections(int32 LODIndex, int AssetIndex)
 
 	for(int32 SecIdx=0; SecIdx < NumSections; SecIdx++)
 	{
-		uint16 ChunkIdx = LODModel.Sections[SecIdx].ChunkIndex;
-
-		if(LODModel.Chunks[ChunkIdx].CorrespondClothAssetIndex == AssetIndex)
+		if(LODModel.Sections[SecIdx].CorrespondClothAssetIndex == AssetIndex)
 		{
 			return true;
 		}
@@ -283,7 +281,7 @@ void USkeletalMesh::GetClothSectionIndices(int32 LODIndex, int32 AssetIndex, TAr
 
 	for(int32 SecIdx=0; SecIdx < NumSections; SecIdx++)
 	{
-		if(LODModel.Chunks[LODModel.Sections[SecIdx].ChunkIndex].CorrespondClothAssetIndex == AssetIndex)
+		if(LODModel.Sections[SecIdx].CorrespondClothAssetIndex == AssetIndex)
 		{
 			//add cloth sections
 			OutSectionIndices.Add(SecIdx);
@@ -325,7 +323,7 @@ void USkeletalMesh::GetOriginSectionIndicesWithCloth(int32 LODIndex, int32 Asset
 
 	for(int32 SecIdx=0; SecIdx < NumSections; SecIdx++)
 	{
-		if(LODModel.Chunks[LODModel.Sections[SecIdx].ChunkIndex].CorrespondClothAssetIndex == AssetIndex)
+		if(LODModel.Sections[SecIdx].CorrespondClothAssetIndex == AssetIndex)
 		{
 			//add original sections
 			OutSectionIndices.Add(LODModel.Sections[SecIdx].CorrespondClothSectionIndex);
@@ -345,12 +343,12 @@ bool USkeletalMesh::IsMappedClothingLOD(int32 InLODIndex, int32 InAssetIndex)
 
 		// loop reversely for optimized search
 		for (int32 SecIdx = NumSections-1; SecIdx >= 0; SecIdx--)
-	{
-			int32 ClothAssetIndex = LODModel.Chunks[LODModel.Sections[SecIdx].ChunkIndex].CorrespondClothAssetIndex;
-			if (ClothAssetIndex == InAssetIndex)
 		{
-			return true;
-		}
+			int32 ClothAssetIndex = LODModel.Sections[SecIdx].CorrespondClothAssetIndex;
+			if (ClothAssetIndex == InAssetIndex)
+			{
+				return true;
+			}
 			else if (ClothAssetIndex == INDEX_NONE) // no more cloth sections
 			{
 				return false;
@@ -385,8 +383,7 @@ int32 USkeletalMesh::GetClothAssetIndex(int32 LODIndex, int32 SectionIndex)
 		return INDEX_NONE;
 	}
 
-	int16 ChunkIdx = LODModel.Sections[ClothSecIdx].ChunkIndex;
-	return LODModel.Chunks[ChunkIdx].CorrespondClothAssetIndex;
+	return LODModel.Sections[ClothSecIdx].CorrespondClothAssetIndex;
 }
 #endif//#if WITH_APEX_CLOTHING
 
@@ -1843,52 +1840,40 @@ FVector USkeletalMeshComponent::GetSkinnedVertexPosition(int32 VertexIndex) cons
 		FStaticLODModel& Model = MeshObject->GetSkeletalMeshResource().LODModels[0];
 
 		// Find the chunk and vertex within that chunk, and skinning type, for this vertex.
-		int32 ChunkIndex;
+		int32 SectionIndex;
 		int32 VertIndexInChunk;
-		bool bSoftVertex;
 		bool bHasExtraBoneInfluences;
-		Model.GetChunkAndSkinType(VertexIndex, ChunkIndex, VertIndexInChunk, bSoftVertex, bHasExtraBoneInfluences);
+		Model.GetSectionFromVertexIndex(VertexIndex, SectionIndex, VertIndexInChunk, bHasExtraBoneInfluences);
 
 		bool bClothVertex = false;
 		int32 ClothAssetIndex = -1;
 
+		// if this section corresponds to a cloth section, returns corresponding cloth section's info instead
+		const FSkelMeshSection& Section = Model.Sections[SectionIndex];
+
 		// if this chunk has cloth data
-		if (Model.Chunks[ChunkIndex].HasApexClothData())
+		if (Section.HasApexClothData())
 		{
 			bClothVertex = true;
-			ClothAssetIndex = Model.Chunks[ChunkIndex].CorrespondClothAssetIndex;
+			ClothAssetIndex = Section.CorrespondClothAssetIndex;
 		}
 		else
 		{
-			// if this chunk corresponds to a cloth section, returns corresponding cloth section's info instead
-			for (int32 SectionIdx = 0; SectionIdx < Model.Sections.Num(); SectionIdx++)
+			// if current section is disabled and the corresponding cloth section is visible
+			if (Section.bDisabled && Section.CorrespondClothSectionIndex >= 0)
 			{
-				const FSkelMeshSection& Section = Model.Sections[SectionIdx];
+				bClothVertex = true;
 
-				// find a section which has this chunk index
-				if (Section.ChunkIndex == ChunkIndex)
+				const FSkelMeshSection& ClothSection = Model.Sections[Section.CorrespondClothSectionIndex];
+				ClothAssetIndex = ClothSection.CorrespondClothAssetIndex;
+
+				// the index can exceed the range because this vertex index is based on the corresponding original section
+				// the number of cloth chunk's vertices is not always same as the corresponding one 
+				// cloth chunk has only soft vertices
+				if (VertIndexInChunk >= ClothSection.GetNumVertices())
 				{
-					// if current section is disabled and the corresponding cloth section is visible
-					if (Section.bDisabled && Section.CorrespondClothSectionIndex >= 0)
-					{
-						bClothVertex = true;
-
-						const FSkelMeshSection& ClothSection = Model.Sections[Section.CorrespondClothSectionIndex];
-						const FSkelMeshChunk& ClothChunk = Model.Chunks[ClothSection.ChunkIndex];
-
-						ClothAssetIndex = ClothChunk.CorrespondClothAssetIndex;
-
-						// the index can exceed the range because this vertex index is based on the corresponding original section
-						// the number of cloth chunk's vertices is not always same as the corresponding one 
-						// cloth chunk has only soft vertices
-						if (VertIndexInChunk >= ClothChunk.GetNumSoftVertices())
-						{
-							// if the index exceeds, re-assign a random vertex index for this chunk
-							VertIndexInChunk = FMath::TruncToInt(FMath::SRand() * (ClothChunk.GetNumSoftVertices() - 1));
-						}
-					}
-					// if found, quit this loop quickly
-					break;
+					// if the index exceeds, re-assign a random vertex index for this chunk
+					VertIndexInChunk = FMath::TruncToInt(FMath::SRand() * (ClothSection.GetNumVertices() - 1));
 				}
 			}
 		}
@@ -1922,10 +1907,9 @@ FVector USkeletalMeshComponent::GetSkinnedVertexPosition(int32 VertexIndex) cons
 
 extern float DebugLineLifetime;
 
-float USkeletalMeshComponent::GetDistanceToCollision(const FVector& Point, FVector& ClosestPointOnCollision) const
+bool USkeletalMeshComponent::GetSquaredDistanceToCollision(const FVector& Point, float& OutSquaredDistance, FVector& OutClosestPointOnCollision) const
 {
-	ClosestPointOnCollision = Point;
-	float ClosestPointDistance = -1.f;
+	OutClosestPointOnCollision = Point;
 	bool bHasResult = false;
 
 	for (int32 BodyIdx = 0; BodyIdx < Bodies.Num(); ++BodyIdx)
@@ -1934,22 +1918,22 @@ float USkeletalMeshComponent::GetDistanceToCollision(const FVector& Point, FVect
 		if (BodyInst && BodyInst->IsValidBodyInstance() && (BodyInst->GetCollisionEnabled() != ECollisionEnabled::NoCollision))
 		{
 			FVector ClosestPoint;
-			const float Distance = Bodies[BodyIdx]->GetDistanceToBody(Point, ClosestPoint);
+			float DistanceSqr = -1.f;
 
-			if (Distance < 0.f)
+			if (!Bodies[BodyIdx]->GetSquaredDistanceToBody(Point, DistanceSqr, ClosestPoint))
 			{
 				// Invalid result, impossible to be better than ClosestPointDistance
 				continue;
 			}
 
-			if (!bHasResult || (Distance < ClosestPointDistance))
+			if (!bHasResult || (DistanceSqr < OutSquaredDistance))
 			{
 				bHasResult = true;
-				ClosestPointDistance = Distance;
-				ClosestPointOnCollision = ClosestPoint;
+				OutSquaredDistance = DistanceSqr;
+				OutClosestPointOnCollision = ClosestPoint;
 
 				// If we're inside collision, we're not going to find anything better, so abort search we've got our best find.
-				if (Distance <= KINDA_SMALL_NUMBER)
+				if (DistanceSqr <= KINDA_SMALL_NUMBER)
 				{
 					break;
 				}
@@ -1957,7 +1941,7 @@ float USkeletalMeshComponent::GetDistanceToCollision(const FVector& Point, FVect
 		}
 	}
 
-	return ClosestPointDistance;
+	return bHasResult;
 }
 
 DECLARE_CYCLE_STAT(TEXT("GetClosestPointOnPhysicsAsset"), STAT_GetClosestPointOnPhysicsAsset, STATGROUP_Physics);
@@ -3446,11 +3430,9 @@ void USkeletalMeshComponent::PrepareClothMorphTargets()
 			FStaticLODModel& Model = MeshObject->GetSkeletalMeshResource().LODModels[0];
 
 			// Find the chunk and vertex within that chunk, and skinning type, for this vertex.
-			int32 ChunkIndex;
+			int32 SectionIndex;
 			int32 VertIndexInChunk;
-			bool bSoftVertex;
 			bool bHasExtraBoneInfluences;
-			int32 SectionIndex = INDEX_NONE;
 
 			int32 NumAssets = SkeletalMesh->ClothingAssets.Num();
 			TArray<TArray<PxVec3>> ClothOriginalPosArray;
@@ -3458,42 +3440,24 @@ void USkeletalMeshComponent::PrepareClothMorphTargets()
 			ClothOriginalPosArray.AddZeroed(NumAssets);
 			ClothPositionDeltaArray.AddZeroed(NumAssets);
 
-			int ClothChunkIndex = INDEX_NONE;
-
 			for (int32 VertIdx = 0; VertIdx < NumVerts; VertIdx++)
 			{
-				Model.GetChunkAndSkinType(Vertices[VertIdx].SourceIdx, ChunkIndex, VertIndexInChunk, bSoftVertex, bHasExtraBoneInfluences);
+				Model.GetSectionFromVertexIndex(Vertices[VertIdx].SourceIdx, SectionIndex, VertIndexInChunk, bHasExtraBoneInfluences);
 
-				FSkelMeshChunk& Chunk = Model.Chunks[ChunkIndex];
+				int32 ClothSectionIndex = INDEX_NONE;
 
-				for (int32 SecIdx = 0; SecIdx < Model.Sections.Num(); SecIdx++)
+				// if current section is disabled and the corresponding cloth section is visible
+				FSkelMeshSection& Section = Model.Sections[SectionIndex];
+				if (Section.bDisabled && Section.CorrespondClothSectionIndex >= 0)
 				{
-					FSkelMeshSection& Section = Model.Sections[SecIdx];
-					if (Section.ChunkIndex == ChunkIndex)
-					{
-						// if current section is disabled and the corresponding cloth section is visible
-						if (Section.bDisabled && Section.CorrespondClothSectionIndex >= 0)
-						{
-							SectionIndex = SecIdx;
-							ClothChunkIndex = Model.Sections[Section.CorrespondClothSectionIndex].ChunkIndex;
-						}
-						break;
-					}
+					ClothSectionIndex = Section.CorrespondClothSectionIndex;
 				}
 
-				if (SectionIndex != INDEX_NONE)
+				if (ClothSectionIndex != INDEX_NONE)
 				{
-					FVector Position;
-					if (bSoftVertex)
-					{
-						Position = Chunk.SoftVertices[VertIndexInChunk].Position;
-					}
-					else
-					{
-						Position = Chunk.RigidVertices[VertIndexInChunk].Position;
-					}
+					FVector Position = Section.SoftVertices[VertIndexInChunk].Position;
 
-					int32 AssetIndex = Model.Chunks[ClothChunkIndex].CorrespondClothAssetIndex;
+					int32 AssetIndex = Model.Sections[ClothSectionIndex].CorrespondClothAssetIndex;
 					// save to original positions
 					ClothOriginalPosArray[AssetIndex].Add(U2PVector(Position));
 					ClothPositionDeltaArray[AssetIndex].Add(Vertices[VertIdx].PositionDelta);
@@ -4120,8 +4084,6 @@ void USkeletalMeshComponent::DrawClothingTangents(FPrimitiveDrawInterface* PDI)
 			// simulation is enabled and there exist simulated vertices
 			if(!bDisableClothSimulation && NumSimulVertices > 0)
 			{
-				uint16 ChunkIndex = 0;
-
 				FStaticLODModel& LODModel = MeshObject->GetSkeletalMeshResource().LODModels[PredictedLODLevel];
 
 				TArray<uint32> SectionIndices;
@@ -4132,24 +4094,21 @@ void USkeletalMeshComponent::DrawClothingTangents(FPrimitiveDrawInterface* PDI)
 				for(int32 SecIdx=0; SecIdx <NumSections; SecIdx++)
 				{
 					uint16 SectionIndex = SectionIndices[SecIdx];
-
-					ChunkIndex = LODModel.Sections[SectionIndex].ChunkIndex;
-
-					FSkelMeshChunk& Chunk = LODModel.Chunks[ChunkIndex];
+					FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
 
 					const physx::PxVec3* SimulVertices = ApexClothingActor->getSimulationPositions();
 					const physx::PxVec3* SimulNormals = ApexClothingActor->getSimulationNormals();
 
-					uint32 NumMppingData = Chunk.ApexClothMappingData.Num();
+					uint32 NumMppingData = Section.ApexClothMappingData.Num();
 
 					FVector Start, End;		
 
 					for(uint32 MappingIndex=0; MappingIndex < NumMppingData; MappingIndex++)
 					{
-						FVector4 BaryCoordPos = Chunk.ApexClothMappingData[MappingIndex].PositionBaryCoordsAndDist;
-						FVector4 BaryCoordNormal = Chunk.ApexClothMappingData[MappingIndex].NormalBaryCoordsAndDist;
-						FVector4 BaryCoordTangent = Chunk.ApexClothMappingData[MappingIndex].TangentBaryCoordsAndDist;
-						uint16*  SimulIndices = Chunk.ApexClothMappingData[MappingIndex].SimulMeshVertIndices;
+						FVector4 BaryCoordPos = Section.ApexClothMappingData[MappingIndex].PositionBaryCoordsAndDist;
+						FVector4 BaryCoordNormal = Section.ApexClothMappingData[MappingIndex].NormalBaryCoordsAndDist;
+						FVector4 BaryCoordTangent = Section.ApexClothMappingData[MappingIndex].TangentBaryCoordsAndDist;
+						uint16*  SimulIndices = Section.ApexClothMappingData[MappingIndex].SimulMeshVertIndices;
 
 						bool bFixed = (SimulIndices[3] == 0xFFFF);
 
@@ -4234,8 +4193,6 @@ void USkeletalMeshComponent::DrawClothingTangents(FPrimitiveDrawInterface* PDI)
 
 				NumSimulVertices = VisualInfo.ClothPhysicalMeshVertices.Num();
 
-				uint16 ChunkIndex = 0;
-
 				FStaticLODModel& LODModel = MeshObject->GetSkeletalMeshResource().LODModels[PredictedLODLevel];
 
 				TArray<uint32> SectionIndices;
@@ -4246,24 +4203,21 @@ void USkeletalMeshComponent::DrawClothingTangents(FPrimitiveDrawInterface* PDI)
 				for(int32 SecIdx=0; SecIdx <NumSections; SecIdx++)
 				{
 					uint16 SectionIndex = SectionIndices[SecIdx];
-
-					ChunkIndex = LODModel.Sections[SectionIndex].ChunkIndex;
-
-					FSkelMeshChunk& Chunk = LODModel.Chunks[ChunkIndex];
+					FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
 
 					const TArray<FVector>& SimulVertices = VisualInfo.ClothPhysicalMeshVertices;
 					const TArray<FVector>& SimulNormals = VisualInfo.ClothPhysicalMeshNormals;
 
-					uint32 NumMppingData = Chunk.ApexClothMappingData.Num();
+					uint32 NumMppingData = Section.ApexClothMappingData.Num();
 
 					FVector Start, End;		
 
 					for(uint32 MappingIndex=0; MappingIndex < NumMppingData; MappingIndex++)
 					{
-						FVector4 BaryCoordPos = Chunk.ApexClothMappingData[MappingIndex].PositionBaryCoordsAndDist;
-						FVector4 BaryCoordNormal = Chunk.ApexClothMappingData[MappingIndex].NormalBaryCoordsAndDist;
-						FVector4 BaryCoordTangent = Chunk.ApexClothMappingData[MappingIndex].TangentBaryCoordsAndDist;
-						uint16*  SimulIndices = Chunk.ApexClothMappingData[MappingIndex].SimulMeshVertIndices;
+						FVector4 BaryCoordPos = Section.ApexClothMappingData[MappingIndex].PositionBaryCoordsAndDist;
+						FVector4 BaryCoordNormal = Section.ApexClothMappingData[MappingIndex].NormalBaryCoordsAndDist;
+						FVector4 BaryCoordTangent = Section.ApexClothMappingData[MappingIndex].TangentBaryCoordsAndDist;
+						uint16*  SimulIndices = Section.ApexClothMappingData[MappingIndex].SimulMeshVertIndices;
 
 						bool bFixed = (SimulIndices[3] == 0xFFFF);
 
@@ -4565,8 +4519,6 @@ void USkeletalMeshComponent::DrawClothingFixedVertices(FPrimitiveDrawInterface* 
 
 			NumSimulVertices = VisualInfo.ClothPhysicalMeshVertices.Num();
 
-			uint16 ChunkIndex = 0;
-
 			FStaticLODModel& LODModel = MeshObject->GetSkeletalMeshResource().LODModels[PredictedLODLevel];
 
 			TArray<uint32> SectionIndices;
@@ -4577,24 +4529,21 @@ void USkeletalMeshComponent::DrawClothingFixedVertices(FPrimitiveDrawInterface* 
 			for(int32 SecIdx=0; SecIdx <NumSections; SecIdx++)
 			{
 				uint16 SectionIndex = SectionIndices[SecIdx];
-
-				ChunkIndex = LODModel.Sections[SectionIndex].ChunkIndex;
-
-				FSkelMeshChunk& Chunk = LODModel.Chunks[ChunkIndex];
+				FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
 
 				const TArray<FVector>& SimulVertices = VisualInfo.ClothPhysicalMeshVertices;
 				const TArray<FVector>& SimulNormals = VisualInfo.ClothPhysicalMeshNormals;
 
-				uint32 NumMppingData = Chunk.ApexClothMappingData.Num();
+				uint32 NumMppingData = Section.ApexClothMappingData.Num();
 
 				FVector Start, End;		
 
 				for(uint32 MappingIndex=0; MappingIndex < NumMppingData; MappingIndex++)
 				{
-					FVector4 BaryCoordPos = Chunk.ApexClothMappingData[MappingIndex].PositionBaryCoordsAndDist;
-					FVector4 BaryCoordNormal = Chunk.ApexClothMappingData[MappingIndex].NormalBaryCoordsAndDist;
-					FVector4 BaryCoordTangent = Chunk.ApexClothMappingData[MappingIndex].TangentBaryCoordsAndDist;
-					uint16*  SimulIndices = Chunk.ApexClothMappingData[MappingIndex].SimulMeshVertIndices;
+					FVector4 BaryCoordPos = Section.ApexClothMappingData[MappingIndex].PositionBaryCoordsAndDist;
+					FVector4 BaryCoordNormal = Section.ApexClothMappingData[MappingIndex].NormalBaryCoordsAndDist;
+					FVector4 BaryCoordTangent = Section.ApexClothMappingData[MappingIndex].TangentBaryCoordsAndDist;
+					uint16*  SimulIndices = Section.ApexClothMappingData[MappingIndex].SimulMeshVertIndices;
 
 					bool bFixed = (SimulIndices[3] == 0xFFFF);
 
@@ -4618,7 +4567,7 @@ void USkeletalMeshComponent::DrawClothingFixedVertices(FPrimitiveDrawInterface* 
 						+ BaryCoordPos.Y*(b + BaryCoordPos.W*nb)
 						+ BaryCoordPos.Z*(c + BaryCoordPos.W*nc);
 
-					FSoftSkinVertex& SoftVert = Chunk.SoftVertices[MappingIndex];
+					FSoftSkinVertex& SoftVert = Section.SoftVertices[MappingIndex];
 
 					// skinning, APEX clothing supports up to 4 bone influences for now
 					const uint8* BoneIndices = SoftVert.InfluenceBones;
@@ -4626,10 +4575,10 @@ void USkeletalMeshComponent::DrawClothingFixedVertices(FPrimitiveDrawInterface* 
 				
 					FMatrix SkinningMat(ForceInitToZero);
 
-					for(int32 BoneWeightIdx=0; BoneWeightIdx < Chunk.MaxBoneInfluences; BoneWeightIdx++)
+					for(int32 BoneWeightIdx=0; BoneWeightIdx < Section.MaxBoneInfluences; BoneWeightIdx++)
 					{
 						float Weight = BoneWeights[BoneWeightIdx]*Inv_255;
-						SkinningMat += RefToLocals[Chunk.BoneMap[BoneIndices[BoneWeightIdx]]]*Weight;
+						SkinningMat += RefToLocals[Section.BoneMap[BoneIndices[BoneWeightIdx]]]*Weight;
 					}
 
 					FVector SkinnedPosition = SkinningMat.TransformPosition(Position);

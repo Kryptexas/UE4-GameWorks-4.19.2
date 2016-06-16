@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
+#include "PropertyTag.h"
 
 /*-----------------------------------------------------------------------------
 	UByteProperty.
@@ -71,7 +72,7 @@ void UByteProperty::Serialize( FArchive& Ar )
 {
 	Super::Serialize( Ar );
 	Ar << Enum;
-	if (Enum != NULL)
+	if (Enum != nullptr)
 	{
 		Ar.Preload(Enum);
 	}
@@ -123,6 +124,142 @@ FString UByteProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uint32 CP
 		}
 	}
 	return Super::GetCPPType(ExtendedTypeText, CPPExportFlags);
+}
+
+template <typename OldIntType>
+struct TConvertIntToEnumProperty
+{
+	static void Convert(FArchive& Ar, UByteProperty* Property, UEnum* Enum, void* Obj, const FPropertyTag& Tag)
+	{
+		OldIntType OldValue;
+		Ar << OldValue;
+
+		uint8 NewValue = OldValue;
+		if (OldValue > (OldIntType)TNumericLimits<uint8>::Max() || !Enum->IsValidEnumValue(NewValue))
+		{
+			UE_LOG(
+				LogClass,
+				Warning,
+				TEXT("Failed to find valid enum value '%d' for enum type '%s' when converting property '%s' during property loading - setting to '%s'"),
+				OldValue,
+				*Enum->GetName(),
+				*Property->GetName(),
+				*Enum->GetNameByValue(Enum->GetMaxEnumValue()).ToString()
+				);
+
+			NewValue = Enum->GetMaxEnumValue();
+		}
+
+		Property->SetPropertyValue_InContainer(Obj, NewValue, Tag.ArrayIndex);
+	}
+};
+
+bool UByteProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty)
+{
+	bOutAdvanceProperty = true;
+
+	if (Tag.Type == NAME_ByteProperty  && ((Tag.EnumName == NAME_None) != (Enum == nullptr)))
+	{
+		// a byte property gained or lost an enum
+		// attempt to convert it
+		uint8 PreviousValue;
+		if (Tag.EnumName == NAME_None)
+		{
+			// simply pretend the property still doesn't have an enum and serialize the single byte
+			Ar << PreviousValue;
+		}
+		else
+		{
+			// attempt to find the old enum and get the byte value from the serialized enum name
+			PreviousValue = ReadEnumAsUint8(Ar, DefaultsStruct, Tag);
+		}
+
+		// now copy the value into the object's address space
+		SetPropertyValue_InContainer(Data, PreviousValue, Tag.ArrayIndex);
+	}
+	else if (Tag.Type == NAME_Int8Property)
+	{
+		if (Enum)
+		{
+			TConvertIntToEnumProperty<int8>::Convert(Ar, this, Enum, Data, Tag);
+		}
+		else
+		{
+			ConvertFromInt<int8>(Ar, Data, Tag);
+		}
+	}
+	else if (Tag.Type == NAME_Int16Property)
+	{
+		if (Enum)
+		{
+			TConvertIntToEnumProperty<int16>::Convert(Ar, this, Enum, Data, Tag);
+		}
+		else
+		{
+			ConvertFromInt<int16>(Ar, Data, Tag);
+		}
+	}
+	else if (Tag.Type == NAME_IntProperty)
+	{
+		if (Enum)
+		{
+			TConvertIntToEnumProperty<int32>::Convert(Ar, this, Enum, Data, Tag);
+		}
+		else
+		{
+			ConvertFromInt<int32>(Ar, Data, Tag);
+		}
+	}
+	else if (Tag.Type == NAME_Int64Property)
+	{
+		if (Enum)
+		{
+			TConvertIntToEnumProperty<int64>::Convert(Ar, this, Enum, Data, Tag);
+		}
+		else
+		{
+			ConvertFromInt<int64>(Ar, Data, Tag);
+		}
+	}
+	else if (Tag.Type == NAME_UInt16Property)
+	{
+		if (Enum)
+		{
+			TConvertIntToEnumProperty<uint16>::Convert(Ar, this, Enum, Data, Tag);
+		}
+		else
+		{
+			ConvertFromInt<uint16>(Ar, Data, Tag);
+		}
+	}
+	else if (Tag.Type == NAME_UInt32Property)
+	{
+		if (Enum)
+		{
+			TConvertIntToEnumProperty<uint32>::Convert(Ar, this, Enum, Data, Tag);
+		}
+		else
+		{
+			ConvertFromInt<uint32>(Ar, Data, Tag);
+		}
+	}
+	else if (Tag.Type == NAME_UInt64Property)
+	{
+		if (Enum)
+		{
+			TConvertIntToEnumProperty<uint64>::Convert(Ar, this, Enum, Data, Tag);
+		}
+		else
+		{
+			ConvertFromInt<uint64>(Ar, Data, Tag);
+		}
+	}
+	else
+	{
+		bOutAdvanceProperty = false;
+	}
+
+	return bOutAdvanceProperty;
 }
 
 void UByteProperty::ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const

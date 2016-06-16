@@ -359,6 +359,14 @@ private:
 						FSimpleObjectReferenceCollectorArchive CollectorArchive(CurrentObject, ReferenceCollector);
 						MapProperty->SerializeItem(CollectorArchive, Map, nullptr);
 					}
+					else if (ReferenceInfo.Type == GCRT_AddTSetReferencedObjects)
+					{
+						void*         Set = StackEntryData + ReferenceInfo.Offset;
+						USetProperty* SetProperty = (USetProperty*)TokenStream->ReadPointer(TokenStreamIndex);
+						TokenReturnCount = ReferenceInfo.ReturnCount;
+						FSimpleObjectReferenceCollectorArchive CollectorArchive(CurrentObject, ReferenceCollector);
+						SetProperty->SerializeItem(CollectorArchive, Set, nullptr);
+					}
 					else if (ReferenceInfo.Type == GCRT_EndOfPointer)
 					{
 						TokenReturnCount = ReferenceInfo.ReturnCount;

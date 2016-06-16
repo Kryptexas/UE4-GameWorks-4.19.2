@@ -4,6 +4,8 @@
 
 #include "SmartName.generated.h"
 
+struct FSmartName;
+
 USTRUCT()
 struct ENGINE_API FSmartNameMapping
 {
@@ -23,14 +25,14 @@ struct ENGINE_API FSmartNameMapping
 	// @param Name - The name to add/get
 	// @param OUT OutUid - The UID of the newly created or retrieved name
 	// @return bool - true if the name was added, false if it existed (OutUid will be correctly set still in this case)
-	bool AddOrFindName(FName Name, UID& OutUid);
+	bool AddOrFindName(FName Name, UID& OutUid, FGuid& OutGuid);
 
 	// Get a name from the mapping
 	// @param Uid - UID of the name to retrieve
 	// @param OUT OutName - Retrieved name
 	// @return bool - true if name existed and OutName is valid
 	bool GetName(const UID& Uid, FName& OutName) const;
-
+	bool GetNameByGuid(const FGuid& Guid, FName& OutName) const;
 	// Fill an array with all used UIDs
 	// @param Array - Array to fill
 	void FillUidArray(TArray<UID>& Array) const;
@@ -68,16 +70,20 @@ struct ENGINE_API FSmartNameMapping
 	// Get the number of names currently stored in this container
 	int32 GetNumNames() const;
 
+	// Find Or Add Smart Names
+	bool FindOrAddSmartName(FName Name, FSmartName& OutName);
+	bool FindSmartName(FName Name, FSmartName& OutName) const;
+	bool FindSmartNameByUID(FSmartNameMapping::UID UID, FSmartName& OutName) const;
+
 	// Serialize this to the provided archive; required for TMap serialization
 	void Serialize(FArchive& Ar);
 
 	friend FArchive& operator<<(FArchive& Ar, FSmartNameMapping& Elem);
 
 private:
-
 	UID NextUid;				// The next UID to use 
-	TMap<UID, FName> UidMap;	// Mapping of UIDs and names
-	TArray<UID> FreeList;		// Freelist of UIDs from removing/moving names around. Populated on load
+	TMap<UID, FName> UidMap;	// Mapping of UIDs and names. This is transient and built upon serialize - this is run-time data, and searching from UID to FName is important
+	TMap<FName, FGuid> GuidMap;	// Mapping of GUIDs and names. This is the one serializing
 };
 
 USTRUCT()
@@ -99,8 +105,74 @@ struct ENGINE_API FSmartNameContainer
 	/** Only restricted classes can access the protected interface */
 	friend class USkeleton;
 protected:
-	FSmartNameMapping* GetContainerInternal(FName ContainerName);
+	FSmartNameMapping* GetContainerInternal(const FName& ContainerName);
 
 private:
 	TMap<FName, FSmartNameMapping> NameMappings;	// List of smartname mappings
+};
+
+USTRUCT()
+struct ENGINE_API FSmartName
+{
+
+	GENERATED_USTRUCT_BODY();
+
+	// name 
+	UPROPERTY()
+	FName DisplayName;
+
+	// UID - for faster access
+	FSmartNameMapping::UID	UID;
+
+	UPROPERTY()
+	FGuid	Guid;
+
+	FSmartName()
+		: DisplayName(NAME_None)
+		, UID(FSmartNameMapping::MaxUID)
+	{}
+
+	FSmartName(const FName& InDisplayName, FSmartNameMapping::UID InUID, const FGuid& InGuid)
+		: DisplayName(InDisplayName)
+		, UID(InUID)
+		, Guid(InGuid)
+	{}
+
+	bool operator==(FSmartName const& Other) const
+	{
+		return (DisplayName == Other.DisplayName && UID == Other.UID && Guid == Other.Guid);
+	}
+	bool operator!=(const FSmartName& Other) const
+	{
+		return !(*this == Other);
+	}
+	/**
+	* Serialize the SmartName
+	*
+	* @param Ar	Archive to serialize to
+	*
+	* @return True if the container was serialized
+	*/
+	bool Serialize(FArchive& Ar);
+
+	friend FArchive& operator<<(FArchive& Ar, FSmartName& P)
+	{
+		P.Serialize(Ar);
+		return Ar;
+	}
+
+	bool IsValid() const
+	{
+		return UID != FSmartNameMapping::MaxUID && Guid.IsValid(); 
+	}
+};
+
+template<>
+struct TStructOpsTypeTraits<FSmartName> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithSerializer = true,
+		WithIdenticalViaEquality = true
+	};
 };

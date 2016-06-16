@@ -8,7 +8,9 @@
 #include "SlateCore.h"
 #include "Reply.h"
 #include "Player.h"
+#include "Engine/GameViewportClient.h"
 #include "LocalPlayer.generated.h"
+
 
 #define INVALID_CONTROLLERID 255
 

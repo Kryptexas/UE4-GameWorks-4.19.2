@@ -15,6 +15,7 @@
 #include "DrawDebugHelpers.h"
 #include "LevelSequenceActor.h"
 #include "Runtime/Core/Public/Features/IModularFeatures.h"
+#include "Animation/AnimSequence.h"
 
 #define LOCTEXT_NAMESPACE "SequenceRecorder"
 

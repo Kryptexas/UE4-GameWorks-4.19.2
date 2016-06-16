@@ -240,6 +240,15 @@ void UAnimBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProper
 			ensure(bValidRootIndex);
 		}
 	}
+
+	if(RootClass != this)
+	{
+		if(OrderedSavedPoseIndices.Num() != RootClass->OrderedSavedPoseIndices.Num() || OrderedSavedPoseIndices != RootClass->OrderedSavedPoseIndices)
+		{
+			// Derived and our parent has a new ordered pose order, copy over.
+			OrderedSavedPoseIndices = RootClass->OrderedSavedPoseIndices;
+		}
+	}
 }
 
 void UAnimBlueprintGeneratedClass::PurgeClass(bool bRecompilingOnLoad)

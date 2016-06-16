@@ -95,6 +95,7 @@
 #include "Animation/BlendSpace.h"
 #include "Animation/AimOffsetBlendSpace.h"
 #include "Animation/AimOffsetBlendSpace1D.h"
+#include "Animation/AnimInstance.h"
 #include "Engine/UserDefinedEnum.h"
 #include "Engine/UserDefinedStruct.h"
 #include "GameFramework/ForceFeedbackEffect.h"
@@ -6031,7 +6032,7 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 	ReimportUI->bCreatePhysicsAsset = false;
 	ReimportUI->PhysicsAsset = SkeletalMesh->PhysicsAsset;
 	ReimportUI->bImportAnimations = false;
-	ReimportUI->AnimationName = TEXT("");
+	ReimportUI->OverrideAnimationName = TEXT("");
 	ReimportUI->bImportRigidMesh = false;
 
 	bool bSuccess = false;

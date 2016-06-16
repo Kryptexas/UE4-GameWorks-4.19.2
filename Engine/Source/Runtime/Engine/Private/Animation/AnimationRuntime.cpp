@@ -27,38 +27,6 @@ DECLARE_CYCLE_STAT(TEXT("AccumulateMeshSpaceRotAdditiveToLocalPose"), STAT_Accum
 DECLARE_CYCLE_STAT(TEXT("BlendPosesPerBoneFilter"), STAT_BlendPosesPerBoneFilter, STATGROUP_Anim);
 
 
-/////////////////////////////////////////////////////////
-// Templated Transform Blend Functionality
-
-namespace ETransformBlendMode
-{
-	enum Type
-	{
-		Overwrite,
-		Accumulate
-	};
-}
-
-template<int32>
-void BlendTransform(const FTransform& Source, FTransform& Dest, const float BlendWeight)
-{
-	check(false); /// should never call this
-}
-
-template<>
-void BlendTransform<ETransformBlendMode::Overwrite>(const FTransform& Source, FTransform& Dest, const float BlendWeight)
-{
-	const ScalarRegister VBlendWeight(BlendWeight);
-	Dest = Source * VBlendWeight;
-}
-
-template<>
-void BlendTransform<ETransformBlendMode::Accumulate>(const FTransform& Source, FTransform& Dest, const float BlendWeight)
-{
-	const ScalarRegister VBlendWeight(BlendWeight);
-	Dest.AccumulateWithShortestRotation(Source, VBlendWeight);
-}
-
 //////////////////////////////////////////////////////////////////////////
 
 void FAnimationRuntime::NormalizeRotations(const FBoneContainer& RequiredBones, /*inout*/ FTransformArrayA2& Atoms)
@@ -107,19 +75,6 @@ FORCEINLINE void BlendPose(const FCompactPose& SourcePose, FCompactPose& ResultP
 	for (FCompactPoseBoneIndex BoneIndex : SourcePose.ForEachBoneIndex())
 	{
 		BlendTransform<TRANSFORM_BLEND_MODE>(SourcePose[BoneIndex], ResultPose[BoneIndex], BlendWeight);
-	}
-}
-
-FORCEINLINE void BlendCurves(const TFixedSizeArrayView<FBlendedCurve>& SourceCurves, const TFixedSizeArrayView<float>& SourceWeights, FBlendedCurve& OutCurve)
-{
-	if (SourceCurves.Num() > 0)
-	{
-		OutCurve.Override(SourceCurves[0], SourceWeights[0]);
-
-		for (int32 CurveIndex = 1; CurveIndex<SourceCurves.Num(); ++CurveIndex)
-		{
-			OutCurve.Accumulate(SourceCurves[CurveIndex], SourceWeights[CurveIndex]);
-		}
 	}
 }
 
@@ -487,6 +442,14 @@ void FAnimationRuntime::CombineWithAdditiveAnimations(int32 NumAdditivePoses, co
 	}
 }
 
+void FAnimationRuntime::ConvertTransformToAdditive(FTransform& TargetTransform, const FTransform& BaseTransform)
+{
+	TargetTransform.SetRotation(TargetTransform.GetRotation() * BaseTransform.GetRotation().Inverse());
+	TargetTransform.SetTranslation(TargetTransform.GetTranslation() - BaseTransform.GetTranslation());
+	TargetTransform.SetScale3D(TargetTransform.GetScale3D() * BaseTransform.GetSafeScaleReciprocal(BaseTransform.GetScale3D()));
+	TargetTransform.NormalizeRotation();
+}
+
 void FAnimationRuntime::ConvertPoseToAdditive(FCompactPose& TargetPose, const FCompactPose& BasePose)
 {
 	for (FCompactPoseBoneIndex BoneIndex : BasePose.ForEachBoneIndex())
@@ -494,10 +457,7 @@ void FAnimationRuntime::ConvertPoseToAdditive(FCompactPose& TargetPose, const FC
 		FTransform& TargetTransform = TargetPose[BoneIndex];
 		const FTransform& BaseTransform = BasePose[BoneIndex];
 
-		TargetTransform.SetRotation(TargetTransform.GetRotation() * BaseTransform.GetRotation().Inverse());
-		TargetTransform.SetTranslation(TargetTransform.GetTranslation() - BaseTransform.GetTranslation());
-		TargetTransform.SetScale3D(TargetTransform.GetScale3D() * BaseTransform.GetSafeScaleReciprocal(BaseTransform.GetScale3D()));
-		TargetTransform.NormalizeRotation();
+		ConvertTransformToAdditive(TargetTransform, BaseTransform);
 	}
 }
 
@@ -530,6 +490,7 @@ void FAnimationRuntime::ConvertMeshRotationPoseToLocalSpace(FCompactPose& Pose)
 		Pose[BoneIndex].SetRotation(LocalSpaceRotation);
 	}
 }
+
 void FAnimationRuntime::AccumulateAdditivePose(FCompactPose& BasePose, const FCompactPose& AdditivePose, FBlendedCurve& BaseCurve, const FBlendedCurve& AdditiveCurve, float Weight, enum EAdditiveAnimationType AdditiveType)
 {
 	if (AdditiveType == AAT_RotationOffsetMeshSpace)
@@ -1314,59 +1275,50 @@ bool FAnimationRuntime::ContainsNaN(TArray<FBoneIndexType>& RequiredBoneIndices,
 #endif
 
 #if WITH_EDITOR
-void FAnimationRuntime::FillUpSpaceBasesRefPose(const USkeleton* Skeleton, TArray<FTransform> &SpaceBaseRefPose)
+void FAnimationRuntime::FillUpSpaceBases(const FReferenceSkeleton& RefSkeleton, const TArray<FTransform> &LocalAtoms, TArray<FTransform> &SpaceBases)
 {
-	check(Skeleton);
-
-	const TArray<FTransform>& ReferencePose = Skeleton->GetReferenceSkeleton().GetRefBonePose();
-	SpaceBaseRefPose.Empty(ReferencePose.Num());
-	SpaceBaseRefPose.AddUninitialized(ReferencePose.Num());
+	SpaceBases.Empty(RefSkeleton.GetNum());
+	SpaceBases.AddUninitialized(RefSkeleton.GetNum());
 
 	// initialize to identity since some of them don't have tracks
-	for(int Index=0; Index <SpaceBaseRefPose.Num(); ++Index)
+	for (int Index = 0; Index < SpaceBases.Num(); ++Index)
 	{
-		int32 ParentIndex = Skeleton->GetReferenceSkeleton().GetParentIndex(Index);
-		if(ParentIndex != INDEX_NONE)
+		int32 ParentIndex = RefSkeleton.GetParentIndex(Index);
+		if (ParentIndex != INDEX_NONE)
 		{
-			SpaceBaseRefPose[Index] = ReferencePose[Index] * SpaceBaseRefPose[ParentIndex];
+			SpaceBases[Index] = LocalAtoms[Index] * SpaceBases[ParentIndex];
 		}
 		else
 		{
-			SpaceBaseRefPose[Index] = ReferencePose[Index];
+			SpaceBases[Index] = LocalAtoms[Index];
 		}
 	}
 }
 
-void FAnimationRuntime::FillUpSpaceBasesRetargetBasePose(const USkeleton* Skeleton, TArray<FTransform> &SpaceBaseRefPose)
+void FAnimationRuntime::FillUpSpaceBasesRefPose(const USkeleton* Skeleton, TArray<FTransform> &SpaceBaseRefPose)
+{
+	check(Skeleton);
+
+	const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
+	const TArray<FTransform>& ReferencePose = RefSkeleton.GetRefBonePose();
+	FillUpSpaceBases(RefSkeleton, ReferencePose, SpaceBaseRefPose);
+}
+
+void FAnimationRuntime::FillUpSpaceBasesRetargetBasePose(const USkeleton* Skeleton, TArray<FTransform> &SpaceBases)
 {
 	check(Skeleton);
 
 	// @Todo fixme: this has to get preview mesh instead of skeleton
-	
 	const USkeletalMesh* PreviewMesh = Skeleton->GetPreviewMesh();
 	if (PreviewMesh)
 	{
 		const TArray<FTransform>& ReferencePose = PreviewMesh->RetargetBasePose;
-		SpaceBaseRefPose.Empty(ReferencePose.Num());
-		SpaceBaseRefPose.AddUninitialized(ReferencePose.Num());
-
-		// initialize to identity since some of them don't have tracks
-		for(int Index=0; Index <SpaceBaseRefPose.Num(); ++Index)
-		{
-			int32 ParentIndex = PreviewMesh->RefSkeleton.GetParentIndex(Index);
-			if(ParentIndex != INDEX_NONE)
-			{
-				SpaceBaseRefPose[Index] = ReferencePose[Index] * SpaceBaseRefPose[ParentIndex];
-			}
-			else
-			{
-				SpaceBaseRefPose[Index] = ReferencePose[Index];
-			}
-		}
+		const FReferenceSkeleton& RefSkeleton = PreviewMesh->RefSkeleton;
+		FillUpSpaceBases(RefSkeleton, ReferencePose, SpaceBases);
 	}
 	else
 	{
-		FAnimationRuntime::FillUpSpaceBasesRefPose(Skeleton, SpaceBaseRefPose);
+		FAnimationRuntime::FillUpSpaceBasesRefPose(Skeleton, SpaceBases);
 	}
 }
 #endif // WITH_EDITOR
@@ -1419,6 +1371,62 @@ void FAnimationRuntime::AppendActiveMorphTargets(const USkeletalMesh* InSkeletal
 			}
 		}
 	}
+}
+
+int32 FAnimationRuntime::GetStringDistance(const FString& First, const FString& Second) 
+{
+	// Finds the distance between strings, where the distance is the number of operations we would need
+	// to perform on First to match Second.
+	// Operations are: Adding a character, Removing a character, changing a character.
+
+	const int32 FirstLength = First.Len();
+	const int32 SecondLength = Second.Len();
+
+	// Already matching
+	if (First == Second)
+	{
+		return 0;
+	}
+
+	// No first string, so we need to add SecondLength characters to match
+	if (FirstLength == 0)
+	{
+		return SecondLength;
+	}
+
+	// No Second string, so we need to add FirstLength characters to match
+	if (SecondLength == 0)
+	{
+		return FirstLength;
+	}
+
+	TArray<int32> PrevRow;
+	TArray<int32> NextRow;
+	PrevRow.AddZeroed(SecondLength + 1);
+	NextRow.AddZeroed(SecondLength + 1);
+
+	// Initialise prev row to num characters we need to remove from Second
+	for (int32 I = 0; I < PrevRow.Num(); ++I)
+	{
+		PrevRow[I] = I;
+	}
+
+	for (int32 I = 0; I < FirstLength; ++I)
+	{
+		// Calculate current row
+		NextRow[0] = I + 1;
+
+		for (int32 J = 0; J < SecondLength; ++J)
+		{
+			int32 Indicator = (First[I] == Second[J]) ? 0 : 1;
+			NextRow[J + 1] = FMath::Min3(NextRow[J] + 1, PrevRow[J + 1] + 1, PrevRow[J] + Indicator);
+		}
+
+		// Copy back
+		PrevRow = NextRow;
+	}
+
+	return NextRow[SecondLength];
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////

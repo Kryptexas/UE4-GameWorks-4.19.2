@@ -3645,24 +3645,6 @@ FVector UNavigationSystem::ProjectPointToNavigation(UObject* WorldContextObject,
 	return ProjectedPoint.Location;
 }
 
-FVector UNavigationSystem::GetRandomPoint(UObject* WorldContextObject, ANavigationData* NavData, TSubclassOf<UNavigationQueryFilter> FilterClass)
-{
-	FNavLocation RandomPoint;
-
-	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
-	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
-	if (NavSys)
-	{
-		ANavigationData* UseNavData = NavData ? NavData : NavSys->GetMainNavData(FNavigationSystem::DontCreate);
-		if (UseNavData)
-		{
-			NavSys->GetRandomPoint(RandomPoint, UseNavData, UNavigationQueryFilter::GetQueryFilter(*UseNavData, WorldContextObject, FilterClass));
-		}
-	}
-
-	return RandomPoint.Location;
-}
-
 FVector UNavigationSystem::GetRandomReachablePointInRadius(UObject* WorldContext, const FVector& Origin, float Radius, ANavigationData* NavData, TSubclassOf<UNavigationQueryFilter> FilterClass)
 {
 	FNavLocation RandomPoint;
@@ -4043,32 +4025,6 @@ void UNavigationSystem::UnregisterNavigationInvoker(AActor* Invoker)
 //----------------------------------------------------------------------//
 // DEPRECATED
 //----------------------------------------------------------------------//
-void UNavigationSystem::RegisterCustomLink(INavLinkCustomInterface* CustomLink)
-{
-	if (CustomLink)
-	{
-		RegisterCustomLink(*CustomLink);
-	}
-}
-
-void UNavigationSystem::UnregisterCustomLink(INavLinkCustomInterface* CustomLink)
-{
-	if (CustomLink)
-	{
-		UnregisterCustomLink(*CustomLink);
-	}
-}
-
-FVector UNavigationSystem::GetRandomPointInRadius(UObject* WorldContextObject, const FVector& Origin, float Radius, ANavigationData* NavData, TSubclassOf<UNavigationQueryFilter> FilterClass)
-{
-	return UNavigationSystem::GetRandomReachablePointInRadius(WorldContextObject, Origin, Radius, NavData, FilterClass);
-}
-
-bool UNavigationSystem::GetRandomPointInRadius(const FVector& Origin, float Radius, FNavLocation& ResultLocation, ANavigationData* NavData, FSharedConstNavQueryFilter QueryFilter) const
-{
-	return GetRandomReachablePointInRadius(Origin, Radius, ResultLocation, NavData, QueryFilter);
-}
-
 void UNavigationSystem::UpdateNavOctree(AActor* Actor)
 {
 	if (Actor)

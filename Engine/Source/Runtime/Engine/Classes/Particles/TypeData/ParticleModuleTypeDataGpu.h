@@ -403,11 +403,11 @@ class UParticleModuleTypeDataGpu : public UParticleModuleTypeDataBase
 	GENERATED_UCLASS_BODY()
 
 	/** Information for runtime simulation. */
-	UPROPERTY(transient)
+	UPROPERTY()
 	struct FGPUSpriteEmitterInfo EmitterInfo;
 
 	/** Data used to initialize runtime resources. */
-	UPROPERTY(transient)
+	UPROPERTY()
 	struct FGPUSpriteResourceData ResourceData;
 
 	/** TEMP: How much to stretch sprites based on camera motion blur. */

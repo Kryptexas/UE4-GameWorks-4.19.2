@@ -286,7 +286,7 @@ bool UMovementComponent::ShouldSkipUpdate(float DeltaTime) const
 
 	if (bUpdateOnlyIfRendered)
 	{
-		if (GetNetMode() == NM_DedicatedServer)
+		if (IsNetMode(NM_DedicatedServer))
 		{
 			// Dedicated servers never render
 			return true;

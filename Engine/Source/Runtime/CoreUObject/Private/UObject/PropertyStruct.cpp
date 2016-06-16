@@ -429,6 +429,48 @@ bool UStructProperty::SameType(const UProperty* Other) const
 	return Super::SameType(Other) && (Struct == ((UStructProperty*)Other)->Struct);
 }
 
+bool UStructProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty)
+{
+	bOutAdvanceProperty = false;
+
+	auto CanSerializeFromStructWithDifferentName = [](const FArchive& InAr, const FPropertyTag& PropertyTag, const UStructProperty* StructProperty)
+	{
+		if (InAr.UE4Ver() < VER_UE4_STRUCT_GUID_IN_PROPERTY_TAG)
+		{
+			// Old Implementation
+			return StructProperty && !StructProperty->UseBinaryOrNativeSerialization(InAr);
+		}
+		return PropertyTag.StructGuid.IsValid() && StructProperty && StructProperty->Struct && (PropertyTag.StructGuid == StructProperty->Struct->GetCustomGuid());
+	};
+
+	if (Struct)
+	{
+		if ((Struct->StructFlags & STRUCT_SerializeFromMismatchedTag) && (Tag.Type != NAME_StructProperty || (Tag.StructName != Struct->GetFName())) && Struct->StructFlags & STRUCT_SerializeFromMismatchedTag)
+		{
+			UScriptStruct::ICppStructOps* CppStructOps = Struct->GetCppStructOps();
+			check(CppStructOps && CppStructOps->HasSerializeFromMismatchedTag()); // else should not have STRUCT_SerializeFromMismatchedTag
+			void* DestAddress = ContainerPtrToValuePtr<void>(Data, Tag.ArrayIndex);
+			if (CppStructOps->SerializeFromMismatchedTag(Tag, Ar, DestAddress))
+			{
+				bOutAdvanceProperty = true;
+			}
+			else
+			{
+				UE_LOG(LogClass, Warning, TEXT("SerializeFromMismatchedTag failed: Type mismatch in %s of %s - Previous (%s) Current(StructProperty) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.Type.ToString(), *Ar.GetArchiveName());
+			}
+			return true;
+		}
+		else if (Tag.Type == NAME_StructProperty && Tag.StructName != Struct->GetFName() && !CanSerializeFromStructWithDifferentName(Ar, Tag, this))
+		{
+			UE_LOG(LogClass, Warning, TEXT("Property %s of %s has a struct type mismatch (tag %s != prop %s) in package:  %s. If that struct got renamed, add an entry to ActiveStructRedirects."),
+				*Tag.Name.ToString(), *GetName(), *Tag.StructName.ToString(), *Struct->GetName(), *Ar.GetArchiveName());
+
+			return true;
+		}
+	}
+	return false;
+}
+
 IMPLEMENT_CORE_INTRINSIC_CLASS(UStructProperty, UProperty,
 	{
 		Class->EmitObjectReference(STRUCT_OFFSET(UStructProperty, Struct), TEXT("Struct"));

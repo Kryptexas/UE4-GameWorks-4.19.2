@@ -28,6 +28,19 @@ void SAnimEditorBase::Construct(const FArguments& InArgs)
 
 	SetInputViewRange(0, GetSequenceLength());
 
+	UAnimSequenceBase* SeqBase = Cast<UAnimSequenceBase>(GetEditorObject());
+
+	TSharedPtr<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox);
+	if (SeqBase)
+	{
+		HorizontalBox->AddSlot()
+			.FillWidth(1)
+			[
+				ConstructAnimScrubPanel()
+			];
+	}
+
+
 	this->ChildSlot
 	[
 		SNew(SVerticalBox)
@@ -167,21 +180,19 @@ void SAnimEditorBase::Construct(const FArguments& InArgs)
 		.AutoHeight() 
 		.VAlign(VAlign_Bottom)
 		[
-			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot() 
-			.FillWidth(1)
-			[
-				ConstructAnimScrubPanel()
-			]
+			HorizontalBox.ToSharedRef()
 		]
 	];
 }
 
 TSharedRef<class SAnimationScrubPanel> SAnimEditorBase::ConstructAnimScrubPanel()
 {
-	return SAssignNew( AnimScrubPanel, SAnimationScrubPanel )
+	UAnimSequenceBase* AnimSeqBase = Cast<UAnimSequenceBase>(GetEditorObject());
+	check(AnimSeqBase);
+
+	return SAssignNew(AnimScrubPanel, SAnimationScrubPanel)
 		.Persona(PersonaPtr)
-		.LockedSequence(GetEditorObject())
+		.LockedSequence(AnimSeqBase)
 		.ViewInputMin(this, &SAnimEditorBase::GetViewMinInput)
 		.ViewInputMax(this, &SAnimEditorBase::GetViewMaxInput)
 		.OnSetInputViewRange(this, &SAnimEditorBase::SetInputViewRange)
@@ -305,7 +316,7 @@ float SAnimEditorBase::GetScrubValue() const
 
 void SAnimEditorBase::SetInputViewRange(float InViewMinInput, float InViewMaxInput)
 {
-	ViewMaxInput = FMath::Min<float>(InViewMaxInput, GetEditorObject()->SequenceLength);
+	ViewMaxInput = FMath::Min<float>(InViewMaxInput, GetSequenceLength());
 	ViewMinInput = FMath::Max<float>(InViewMinInput, 0.f);
 }
 
@@ -313,7 +324,7 @@ FText SAnimEditorBase::GetCurrentSequenceTime() const
 {
 	UAnimSingleNodeInstance * PreviewInstance = GetPreviewInstance();
 	float CurTime = 0.f;
-	float TotalTime = GetEditorObject()->SequenceLength;
+	float TotalTime = GetSequenceLength();
 
 	if (PreviewInstance)
 	{
@@ -332,7 +343,7 @@ float SAnimEditorBase::GetPercentageInternal() const
 	float Percentage = 0.f;
 	if (PreviewInstance)
 	{
-		float SequenceLength = GetEditorObject()->SequenceLength;
+		float SequenceLength = GetSequenceLength();
 		if (SequenceLength > 0.f)
 		{
 			Percentage = PreviewInstance->GetCurrentTime() / SequenceLength;
@@ -359,7 +370,12 @@ FText SAnimEditorBase::GetCurrentPercentage() const
 FText SAnimEditorBase::GetCurrentFrame() const
 {
 	float Percentage = GetPercentageInternal();
-	float NumFrames = GetEditorObject()->GetNumberOfFrames();
+	float NumFrames = 0;
+	
+	if (UAnimSequenceBase* AnimSeqBase = Cast<UAnimSequenceBase>(GetEditorObject()))
+	{
+		NumFrames = AnimSeqBase->GetNumberOfFrames();
+	}
 
 	static const FNumberFormattingOptions FractionNumberFormat = FNumberFormattingOptions()
 		.SetMinimumFractionalDigits(2)
@@ -367,4 +383,15 @@ FText SAnimEditorBase::GetCurrentFrame() const
 	return FText::Format(LOCTEXT("FractionKeysFmt", "{0} / {1} (key(s))"), FText::AsNumber(NumFrames * Percentage, &FractionNumberFormat), FText::AsNumber((int32)NumFrames));
 }
 
+float SAnimEditorBase::GetSequenceLength() const
+{
+	UAnimSequenceBase* AnimSeqBase = Cast<UAnimSequenceBase>(GetEditorObject());
+	
+	if (AnimSeqBase)
+	{
+		return AnimSeqBase->SequenceLength;
+	}
+	
+	return 0.f;
+}
 #undef LOCTEXT_NAMESPACE

@@ -8,6 +8,7 @@
 #include "ClassViewerFilter.h"
 #include "Engine/Selection.h"
 #include "Animation/AnimBlueprintGeneratedClass.h"
+#include "Animation/AnimInstance.h"
 
 #define LOCTEXT_NAMESPACE "SkeletalMeshComponentDetails"
 

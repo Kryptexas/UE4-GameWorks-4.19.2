@@ -373,7 +373,7 @@ class ENGINE_API UAnimSequence : public UAnimSequenceBase
 	 * The compression scheme that was most recently used to compress this animation.
 	 * May be NULL.
 	 */
-	UPROPERTY(Instanced, Category=Compression, EditAnywhere)
+	UPROPERTY(Category=Compression, VisibleAnywhere)
 	class UAnimCompress* CompressionScheme;
 #endif // WITH_EDITORONLY_DATA
 
@@ -668,6 +668,8 @@ public:
 	*/
 	void ExtractBoneTransform(const struct FRawAnimSequenceTrack& InRawAnimationTrack, FTransform& OutAtom, float Time) const;
 
+	void ExtractBoneTransform(const struct FRawAnimSequenceTrack& RawTrack, FTransform& OutAtom, int32 KeyIndex) const;
+
 	// End Transform related functions 
 
 	// Begin Memory related functions
@@ -907,7 +909,7 @@ private:
 	/**
 	 * Remap Tracks to New Skeleton
 	 */
-	void RemapTracksToNewSkeleton( USkeleton* NewSkeleton, bool bConvertSpaces );
+	virtual void RemapTracksToNewSkeleton( USkeleton* NewSkeleton, bool bConvertSpaces ) override;
 	/**
 	 * Remap NaN tracks from the RawAnimation data and recompress
 	 */	

@@ -3,6 +3,7 @@
 
 #include "EnginePrivate.h"
 #include "AI/Navigation/NavAreas/NavArea_Obstacle.h"
+#include "AI/NavigationOctree.h"
 
 #if WITH_PHYSX
 	#include "PhysicsEngine/PhysXSupport.h"

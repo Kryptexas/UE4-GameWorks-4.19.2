@@ -91,6 +91,11 @@ void UAnimSingleNodeInstance::SetAnimationAsset(class UAnimationAsset* NewAsset,
 	}
 }
 
+void UAnimSingleNodeInstance::SetPreviewPoseOverride(const FName& PoseName, float Value)
+{
+	GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>().SetPreviewPoseOverride(PoseName, Value);
+}
+
 void UAnimSingleNodeInstance::SetMontageLoop(UAnimMontage* Montage, bool bIsLooping, FName StartingSection)
 {
 	check (Montage);

@@ -162,6 +162,7 @@ void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromChildTextPrope
 	const UTextProperty* const TextProperty = Cast<const UTextProperty>(Property);
 	const UArrayProperty* const ArrayProperty = Cast<const UArrayProperty>(Property);
 	const UMapProperty* const MapProperty = Cast<const UMapProperty>(Property);
+	const USetProperty* const SetProperty = Cast<const USetProperty>(Property);
 	const UStructProperty* const StructProperty = Cast<const UStructProperty>(Property);
 	const UObjectPropertyBase* const ObjectProperty = Cast<const UObjectPropertyBase>(Property);
 
@@ -208,6 +209,23 @@ void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromChildTextPrope
 					const uint8* MapPairPtr = ScriptMapHelper.GetPairPtr(j);
 					GatherLocalizationDataFromChildTextProperties(PathToElement + FString::Printf(TEXT("(%d - Key)"), j), MapProperty->KeyProp, MapPairPtr + MapProperty->MapLayout.KeyOffset, ChildPropertyGatherTextFlags);
 					GatherLocalizationDataFromChildTextProperties(PathToElement + FString::Printf(TEXT("(%d - Value)"), j), MapProperty->ValueProp, MapPairPtr + MapProperty->MapLayout.ValueOffset, ChildPropertyGatherTextFlags);
+				}
+			}
+			// Property is a set property.
+			else if (SetProperty)
+			{
+				// Iterate over all elements of the Set.
+				FScriptSetHelper ScriptSetHelper(SetProperty, ElementValueAddress);
+				const int32 ElementCount = ScriptSetHelper.Num();
+				for(int32 j = 0; j < ElementCount; ++j)
+				{
+					if (!ScriptSetHelper.IsValidIndex(j))
+					{
+						continue;
+					}
+
+					const uint8* ElementPtr = ScriptSetHelper.GetElementPtr(j);
+					GatherLocalizationDataFromChildTextProperties(PathToElement + FString::Printf(TEXT("(%d)"), j), SetProperty->ElementProp, ElementPtr + SetProperty->SetLayout.ElementOffset, ChildPropertyGatherTextFlags);
 				}
 			}
 			// Property is a struct property.

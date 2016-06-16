@@ -2396,10 +2396,11 @@ void FPropertyNode::PropagatePropertyChange( UObject* ModifiedObject, const TCHA
 	UArrayProperty* ParentArrayProp = Cast<UArrayProperty>(ParentProp);
 	UProperty*      Prop            = GetProperty();
 	UMapProperty*   MapProp         = Cast<UMapProperty>(Prop);
+	USetProperty*	SetProp			= Cast<USetProperty>(Prop);
 
-	if (ParentArrayProp != NULL && ParentArrayProp->Inner != Prop)
+	if (ParentArrayProp != nullptr && ParentArrayProp->Inner != Prop)
 	{
-		ParentArrayProp = NULL;
+		ParentArrayProp = nullptr;
 	}
 
 	ObjectsToChange.Push(Object);
@@ -2429,9 +2430,9 @@ void FPropertyNode::PropagatePropertyChange( UObject* ModifiedObject, const TCHA
 			FString OrgValue;
 
 			uint8* Addr = GetValueBaseAddress( (uint8*)ActualObjToChange );
-			if (Addr != NULL)
+			if (Addr != nullptr)
 			{
-				if (MapProp != NULL)
+				if (MapProp != nullptr)
 				{
 					// Read previous value back into object
 					uint8* PreviousMap = (uint8*)FMemory::Malloc(MapProp->GetSize(), MapProp->GetMinAlignment());
@@ -2465,16 +2466,50 @@ void FPropertyNode::PropagatePropertyChange( UObject* ModifiedObject, const TCHA
 						MapProp->SerializeItem(Ar, Addr, ModifiedObjectAddr);
 					}
 				}
+				else if (SetProp != nullptr)
+				{
+					// Read previous value back into object
+					uint8* PreviousSet = (uint8*)FMemory::Malloc(SetProp->GetSize(), SetProp->GetMinAlignment());
+					ON_SCOPE_EXIT
+					{
+						FMemory::Free(PreviousSet);
+					};
+
+					SetProp->InitializeValue(PreviousSet);
+					ON_SCOPE_EXIT
+					{
+						SetProp->DestroyValue(PreviousSet);
+					};
+
+					SetProp->ImportText(*PreviousValue, PreviousSet, PPF_Localized, ModifiedObject);
+
+					uint8* ModifiedObjectAddr = GetValueBaseAddress( (uint8*)ModifiedObject );
+
+					auto ModifiedObjectAddrPtr = (TMap<int32, FString>*)ModifiedObjectAddr;
+
+					// Serialize differences from the 'default' (the old object)
+					TArray<uint8> Data;
+					{
+						FMemoryWriter Ar(Data);
+						SetProp->SerializeItem(Ar, Addr, PreviousSet);
+					}
+
+					// Deserialize differences back over the new object
+					{
+						FMemoryReader Ar(Data);
+						SetProp->SerializeItem(Ar, Addr, ModifiedObjectAddr);
+					}				
+				}
 				else
 				{
-					if (ParentArrayProp != NULL)
+					if (ParentArrayProp != nullptr)
 					{
 						uint8* ArrayAddr = ParentNode->GetValueBaseAddress( (uint8*)ActualObjToChange );
-						ParentArrayProp->ExportText_Direct(OrgValue, ArrayAddr, ArrayAddr, NULL, PPF_Localized );
+						ParentArrayProp->ExportText_Direct(OrgValue, ArrayAddr, ArrayAddr, nullptr, PPF_Localized );
 					}
 					else
 					{
-						Prop->ExportText_Direct(OrgValue, Addr, Addr, NULL, PPF_Localized );
+						Prop->ExportText_Direct(OrgValue, Addr, Addr, nullptr, PPF_Localized );
 					}
 
 					// Check if the original value was the default value and change it only then

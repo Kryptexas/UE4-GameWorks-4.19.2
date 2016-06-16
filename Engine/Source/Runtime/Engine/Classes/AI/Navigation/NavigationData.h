@@ -941,8 +941,8 @@ protected:
 	uint32 bRegistered : 1;
 
 	/** was it generated for default agent (SupportedAgents[0]) */
-	uint32 bSupportsDefaultAgent:1;
-
+	uint32 bSupportsDefaultAgent : 1;
+	
 	DEPRECATED(4.12, "This flag is now deprecated, initial rebuild ignore should be handled by discarding dirty areas in UNavigationSystem::ConditionalPopulateNavOctree.")
 	uint32 bWantsUpdate:1;
 
@@ -989,7 +989,7 @@ FORCEINLINE bool FPathFindingResult::IsPartial() const
 	return (Result != ENavigationQueryResult::Error) && Path.IsValid() && Path->IsPartial();
 }
 
-FORCEINLINE void FNavigationPath::SetNavigationDataUsed(const ANavigationData* const NewData)
+FORCEINLINE void FNavigationPath::SetNavigationDataUsed(const ANavigationData* const NavData)
 {
-	NavigationDataUsed = NewData;
+	NavigationDataUsed = NavData;
 }

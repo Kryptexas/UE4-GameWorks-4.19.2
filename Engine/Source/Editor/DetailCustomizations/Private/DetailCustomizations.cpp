@@ -23,6 +23,7 @@
 #include "AnimSequenceDetails.h"
 #include "AnimStateNodeDetails.h"
 #include "AnimTransitionNodeDetails.h"
+#include "PoseAssetDetails.h"
 #include "AmbientSoundDetails.h"
 #include "ModuleManager.h"
 #include "AnimGraphDefinitions.h"
@@ -51,8 +52,6 @@
 #include "MarginCustomization.h"
 #include "SceneComponentDetails.h"
 #include "PhysicsConstraintComponentDetails.h"
-#include "Runtime/Engine/Classes/PhysicsEngine/PhysicsConstraintTemplate.h"
-#include "Runtime/Engine/Classes/PhysicsEngine/PhysicsConstraintComponent.h"
 #include "GuidStructCustomization.h"
 #include "ParticleModuleDetails.h"
 #include "CameraDetails.h"
@@ -279,6 +278,7 @@ void FDetailCustomizationsModule::RegisterObjectCustomizations()
 	RegisterCustomClassLayout("AnimStateNode", FOnGetDetailCustomizationInstance::CreateStatic(&FAnimStateNodeDetails::MakeInstance));
 	RegisterCustomClassLayout("AnimStateTransitionNode", FOnGetDetailCustomizationInstance::CreateStatic(&FAnimTransitionNodeDetails::MakeInstance));
 	RegisterCustomClassLayout("AnimGraphNode_Trail", FOnGetDetailCustomizationInstance::CreateStatic(&FAnimTrailNodeDetails::MakeInstance));
+	RegisterCustomClassLayout("PoseAsset", FOnGetDetailCustomizationInstance::CreateStatic(&FPoseAssetDetails::MakeInstance));
 
 	RegisterCustomClassLayout("SoundWave", FOnGetDetailCustomizationInstance::CreateStatic(&FSoundWaveDetails::MakeInstance));
 	RegisterCustomClassLayout("DialogueWave", FOnGetDetailCustomizationInstance::CreateStatic(&FDialogueWaveDetails::MakeInstance));

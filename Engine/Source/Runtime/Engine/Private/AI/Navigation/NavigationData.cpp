@@ -4,6 +4,7 @@
 #include "AI/NavDataGenerator.h"
 #include "AI/Navigation/NavAreas/NavAreaMeta.h"
 #include "AI/Navigation/NavigationData.h"
+#include "AI/Navigation/RecastNavMesh.h"
 
 //----------------------------------------------------------------------//
 // FPathFindingQuery

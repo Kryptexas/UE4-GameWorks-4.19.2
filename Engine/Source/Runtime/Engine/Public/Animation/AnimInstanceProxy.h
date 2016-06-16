@@ -9,6 +9,7 @@
 #include "AnimInstanceProxy.generated.h"
 
 struct FAnimNode_Base;
+struct FAnimNode_SaveCachedPose;
 
 /** Proxy object passed around during animation tree update in lieu of a UAnimInstance */
 USTRUCT(meta = (DisplayName = "Native Variables"))
@@ -174,12 +175,18 @@ public:
 	/** Get the current skeleton we are using. Note that this will return nullptr outside of pre/post update */
 	USkeleton* GetSkeleton() 
 	{ 
+		// Skeleton is only available during update/eval. If you're calling this function outside of it, it will return null. 
+		// adding ensure here so that we can catch them earlier
+		ensureAlways(Skeleton);
 		return Skeleton; 
 	}
 
 	/** Get the current skeletal mesh component we are running on. Note that this will return nullptr outside of pre/post update */
 	USkeletalMeshComponent* GetSkelMeshComponent() 
 	{ 
+		// Skeleton is only available during update/eval. If you're calling this function outside of it, it will return null. 
+		// adding ensure here so that we can catch them earlier
+		ensureAlways(SkeletalMeshComponent);
 		return SkeletalMeshComponent; 
 	}
 
@@ -192,6 +199,8 @@ public:
 	/** Helper function: make a tick record for a blend space */
 	void MakeBlendSpaceTickRecord(FAnimTickRecord& TickRecord, UBlendSpaceBase* BlendSpace, const FVector& BlendInput, TArray<FBlendSampleData>& BlendSampleDataCache, FBlendFilter& BlendFilter, bool bLooping, float PlayRate, float FinalBlendWeight, float& CurrentTime, FMarkerTickRecord& MarkerTickRecord) const;
 
+	/** Helper function: make a tick record for a pose asset*/
+	void MakePoseAssetTickRecord(FAnimTickRecord& TickRecord, class UPoseAsset* PoseAsset, float FinalBlendWeight) const;
 	/**
 	 * Get Slot Node Weight : this returns new Slot Node Weight, Source Weight, Original TotalNodeWeight
 	 *							this 3 values can't be derived from each other
@@ -379,14 +388,6 @@ protected:
 	const TArray<FMontageEvaluationState>& GetMontageEvaluationData() const { return MontageEvaluationData; }
 
 	/** Check whether we have active morph target curves */
-	bool HasMorphTargetCurves() const { return MorphTargetCurves.Num() > 0; }
-
-	/** Access the active morph target curves */
-	TMap<FName, float>& GetMorphTargetCurves() { return MorphTargetCurves; }
-
-	/** Access the active material parameter curves */
-	TMap<FName, float>& GetMaterialParameterCurves() { return MaterialParameterCurves; }
-
 	/** Gets the most relevant asset player in a specified state */
 	FAnimNode_AssetPlayerBase* GetRelevantAssetPlayerFromState(int32 MachineIndex, int32 StateIndex);
 
@@ -518,6 +519,9 @@ private:
 	/** Anim graph */
 	FAnimNode_Base* RootNode;
 
+	/** List of saved pose nodes to process after the graph has been updated */
+	TArray<FAnimNode_SaveCachedPose*> SavedPoseQueue;
+
 	/** The list of animation assets which are going to be evaluated this frame and need to be ticked (ungrouped) */
 	TArray<FAnimTickRecord> UngroupedActivePlayerArrays[2];
 
@@ -567,12 +571,6 @@ private:
 
 	/** When RequiredBones mapping has changed, AnimNodes need to update their bones caches. */
 	bool bBoneCachesInvalidated;
-
-	/** Morph Target Curves that will be used for SkeletalMeshComponent **/
-	TMap<FName, float> MorphTargetCurves;
-
-	/** Material Curves that will be used for SkeletalMeshComponent **/
-	TMap<FName, float> MaterialParameterCurves;
 
 	/** Copy of UAnimInstance::MontageInstances data used for update & evaluation */
 	TArray<FMontageEvaluationState> MontageEvaluationData;

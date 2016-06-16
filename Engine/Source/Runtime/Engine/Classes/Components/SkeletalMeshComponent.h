@@ -4,8 +4,6 @@
 
 #include "Interfaces/Interface_CollisionDataProvider.h"
 #include "Components/SkinnedMeshComponent.h"
-#include "PhysicsEngine/PhysicsConstraintComponent.h"
-#include "SkeletalMeshTypes.h"
 #include "AnimCurveTypes.h"
 #include "ClothSimData.h"
 #include "SingleAnimationPlayData.h"
@@ -18,6 +16,7 @@ struct FEngineShowFlags;
 struct FConvexVolume;
 struct FClothingAssetData;
 struct FRootMotionMovementParams;
+struct FApexClothCollisionVolumeData;
 
 DECLARE_MULTICAST_DELEGATE(FOnSkelMeshPhysicsCreatedMultiCast);
 typedef FOnSkelMeshPhysicsCreatedMultiCast::FDelegate FOnSkelMeshPhysicsCreated;
@@ -813,12 +812,15 @@ public:
 	#endif // WITH_CLOTH_COLLISION_DETECTION
 #endif // WITH_APEX_CLOTHING
 
+private:
 	/** 
 	 * Morph Target Curves. This will override AnimInstance MorphTargetCurves
 	 * if same curve is found
 	 **/
 	TMap<FName, float>	MorphTargetCurves;
 
+public:
+	const TMap<FName, float>& GetMorphTargetCurves() const { return MorphTargetCurves;  }
 	// 
 	// Animation
 	//
@@ -952,7 +954,7 @@ public:
 	virtual bool IsGravityEnabled() const override;
 	virtual void OnComponentCollisionSettingsChanged() override;
 	virtual void SetPhysMaterialOverride(UPhysicalMaterial* NewPhysMaterial) override;
-	virtual float GetDistanceToCollision(const FVector& Point, FVector& ClosestPointOnCollision) const override;
+	virtual bool GetSquaredDistanceToCollision(const FVector& Point, float& OutSquaredDistance, FVector& OutClosestPointOnCollision) const override;
 
 
 	/** 
@@ -1452,7 +1454,7 @@ public:
 	float LastPoseTickTime;
 
 	/** Checked whether we have already ticked the pose this frame */
-	bool PoseTickedThisFrame() const { return LastPoseTickTime == GetWorld()->TimeSeconds; }
+	bool PoseTickedThisFrame() const;
 
 	/** Take extracted RootMotion and convert it from local space to world space. */
 	FTransform ConvertLocalRootMotionToWorld(const FTransform& InTransform);

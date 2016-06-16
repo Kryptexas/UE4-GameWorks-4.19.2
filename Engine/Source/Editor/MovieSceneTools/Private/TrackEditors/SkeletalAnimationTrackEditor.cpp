@@ -18,6 +18,7 @@
 #include "CommonMovieSceneTools.h"
 #include "AssetRegistryModule.h"
 #include "Animation/SkeletalMeshActor.h"
+#include "Animation/AnimSequence.h"
 #include "ContentBrowserModule.h"
 #include "MatineeImportTools.h"
 #include "Matinee/InterpTrackAnimControl.h"

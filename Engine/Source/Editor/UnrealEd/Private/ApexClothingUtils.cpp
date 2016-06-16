@@ -772,18 +772,15 @@ bool AssociateClothingAssetWithSkeletalMesh(USkeletalMesh* SkelMesh, int32 LODIn
 
 	//TempChunk makes it easy to go back to previous status when error occurred
 	//to check errors about bone-mapping first
-	FSkelMeshChunk		TempChunk; 
+	FSkelMeshSection	TempSection; 
 
 	uint32 NumImportedVertices = ImportData.Positions.Num();
 
-	TempChunk.NumRigidVertices = 0;
-	TempChunk.RigidVertices.Empty();
-	TempChunk.NumSoftVertices = NumImportedVertices;
-	TempChunk.SoftVertices.Empty(NumImportedVertices);
+	TempSection.SoftVertices.Empty(NumImportedVertices);
 
 	for( uint32 VertexIndex=0;VertexIndex<NumImportedVertices;VertexIndex++ )
 	{
-		FSoftSkinVertex& OutVertex = TempChunk.SoftVertices[TempChunk.SoftVertices.AddZeroed()];
+		FSoftSkinVertex& OutVertex = TempSection.SoftVertices[TempSection.SoftVertices.AddZeroed()];
 
 		OutVertex.Position	= ImportData.Positions[VertexIndex];
 		OutVertex.TangentX	= ImportData.Tangents[VertexIndex];
@@ -803,19 +800,19 @@ bool AssociateClothingAssetWithSkeletalMesh(USkeletalMesh* SkelMesh, int32 LODIn
 
 	// Set the bone map
 	int32 NumUsedBones = UsedBones.Num();
-	TempChunk.BoneMap.Empty(NumUsedBones);
+	TempSection.BoneMap.Empty(NumUsedBones);
 
 	for( int32 UsedBoneIndex=0; UsedBoneIndex<NumUsedBones; UsedBoneIndex++ )
 	{
 		const int32 BoneIdx = SkelMesh->RefSkeleton.FindBoneIndex(UsedBones[UsedBoneIndex]);
 		if(BoneIdx != INDEX_NONE)
 		{
-			TempChunk.BoneMap.Add(BoneIdx);
+			TempSection.BoneMap.Add(BoneIdx);
 		}
 	}
 
 	//if bone count is 0, then crash will occur while drawing
-	if(TempChunk.BoneMap.Num() == 0)
+	if(TempSection.BoneMap.Num() == 0)
 	{
 		FString FailedBones = "\nMapping failed bones : \n";
 
@@ -847,13 +844,12 @@ bool AssociateClothingAssetWithSkeletalMesh(USkeletalMesh* SkelMesh, int32 LODIn
 	// Check the influences on the original chunk to make sure the influences match
 	{
 		FSkelMeshSection& CheckOriginMeshSection = LODModel.Sections[OriginSectionIndex];
-		FSkelMeshChunk& CheckOriginChunk = LODModel.Chunks[CheckOriginMeshSection.ChunkIndex];
-		if(CheckOriginChunk.MaxBoneInfluences > MAX_INFLUENCES_PER_STREAM)
+		if(CheckOriginMeshSection.MaxBoneInfluences > MAX_INFLUENCES_PER_STREAM)
 		{
-			const FText Text = FText::Format(LOCTEXT("Error_TooManyInfluences", "Chunk {0} in Skeletal Mesh {1} has up to {2} influences on it's vertices. The maximum when using cloth is 4, reduce the number of influences and reimport the mesh to allow cloth on this mesh."),
-				FText::AsNumber(CheckOriginMeshSection.ChunkIndex),
+			const FText Text = FText::Format(LOCTEXT("Error_TooManyInfluences", "Section {0} in Skeletal Mesh {1} has up to {2} influences on it's vertices. The maximum when using cloth is 4, reduce the number of influences and reimport the mesh to allow cloth on this mesh."),
+				FText::AsNumber(OriginSectionIndex),
 				FText::FromString(SkelMesh->GetName()),
-				FText::AsNumber(CheckOriginChunk.MaxBoneInfluences));
+				FText::AsNumber(CheckOriginMeshSection.MaxBoneInfluences));
 
 			FMessageDialog::Open(EAppMsgType::Ok, Text);
 
@@ -870,35 +866,38 @@ bool AssociateClothingAssetWithSkeletalMesh(USkeletalMesh* SkelMesh, int32 LODIn
 
 	SkelMesh->PreEditChange(NULL);
 
-	//add new section & chunk for clothing
-	int32 NewSectionIndex = LODModel.Sections.AddZeroed();
-	int16 NewChunkIndex = LODModel.Chunks.Add(TempChunk);
-
+	// Get original section
 	FSkelMeshSection& OriginMeshSection = LODModel.Sections[OriginSectionIndex];
-	FSkelMeshChunk& OriginChunk = LODModel.Chunks[OriginMeshSection.ChunkIndex];
 
+	// Add new section for clothing
+	int32 NewSectionIndex = LODModel.Sections.AddZeroed();
 	FSkelMeshSection& ClothSection = LODModel.Sections[NewSectionIndex];
 
-	// copy default info from original section
-	ClothSection = OriginMeshSection;
+	// Copy 'chunk' properties from TempSection
+	// int16 NewChunkIndex = LODModel.Chunks.Add(TempChunk);
+	ClothSection.SoftVertices = TempSection.SoftVertices;
+	ClothSection.BoneMap = TempSection.BoneMap;
+	ClothSection.MaxBoneInfluences = TempSection.MaxBoneInfluences;
+	ClothSection.CorrespondClothAssetIndex = TempSection.CorrespondClothAssetIndex;
+	ClothSection.ClothAssetSubmeshIndex = TempSection.ClothAssetSubmeshIndex;
 
-	FSkelMeshChunk& ClothChunk = LODModel.Chunks[NewChunkIndex];
-	
-	// copy data from original chunk
-	ClothChunk.BaseVertexIndex = OriginChunk.BaseVertexIndex;
-	ClothChunk.MaxBoneInfluences = OriginChunk.MaxBoneInfluences;
+	// copy 'material' properties from original section
+	// ClothSection = OriginMeshSection;
+	ClothSection.MaterialIndex = OriginMeshSection.MaterialIndex;
+	ClothSection.TriangleSorting = OriginMeshSection.TriangleSorting;
+	ClothSection.bSelected = OriginMeshSection.bSelected;
+	ClothSection.bRecomputeTangent = OriginMeshSection.bRecomputeTangent;
+	ClothSection.bEnableClothLOD_DEPRECATED = OriginMeshSection.bEnableClothLOD_DEPRECATED;
 
 	OriginMeshSection.bDisabled = true;
-	// assign newly added chunk
-	ClothSection.ChunkIndex = NewChunkIndex;
 	ClothSection.bDisabled = false;
 
 	ClothSection.CorrespondClothSectionIndex = OriginSectionIndex;
 	OriginMeshSection.CorrespondClothSectionIndex = NewSectionIndex;
 
-	ClothChunk.ApexClothMappingData = RenderToPhysicalMapping;
-	ClothChunk.PhysicalMeshVertices = PhysicalMeshVertices;
-	ClothChunk.PhysicalMeshNormals = PhysicalMeshNormals;
+	ClothSection.ApexClothMappingData = RenderToPhysicalMapping;
+	ClothSection.PhysicalMeshVertices = PhysicalMeshVertices;
+	ClothSection.PhysicalMeshNormals = PhysicalMeshNormals;
 
 	//adjust index buffer
 	TArray<uint32> OutIndexBuffer;
@@ -910,25 +909,26 @@ bool AssociateClothingAssetWithSkeletalMesh(USkeletalMesh* SkelMesh, int32 LODIn
 	uint32 NumVertices = 0;
 	for(int32 SectionIdx = 0; SectionIdx < NewSectionIndex; SectionIdx++)
 	{
-		uint16 ChunkIdx = LODModel.Sections[SectionIdx].ChunkIndex;
-		FSkelMeshChunk& Chunk = LODModel.Chunks[ChunkIdx]; 	
-		NumVertices += Chunk.GetNumVertices();
+		FSkelMeshSection& Section = LODModel.Sections[SectionIdx];
+		NumVertices += Section.GetNumVertices();
 	}
 
-	ClothChunk.BaseVertexIndex = NumVertices;
+	ClothSection.BaseVertexIndex = NumVertices;
 
 	// if Section Index is greater than 0, Vertex Index has to be adjusted
 	if(NewSectionIndex > 0)
 	{
-		for(int32 Index=0; Index<IndexBuffer.Num(); Index++)
-			IndexBuffer[Index] += ClothChunk.BaseVertexIndex;
+		for (int32 Index = 0; Index < IndexBuffer.Num(); Index++)
+		{
+			IndexBuffer[Index] += ClothSection.BaseVertexIndex;
+		}
 	}
 
 	OutIndexBuffer += IndexBuffer;
 
 	LODModel.MultiSizeIndexContainer.CopyIndexBuffer(OutIndexBuffer);
 
-	LODModel.NumVertices += ClothChunk.GetNumVertices();
+	LODModel.NumVertices += ClothSection.GetNumVertices();
 
 	// build adjacency information for this clothing section
 	{
@@ -946,12 +946,12 @@ bool AssociateClothingAssetWithSkeletalMesh(USkeletalMesh* SkelMesh, int32 LODIn
 
 
 	// set asset submesh info to new chunk 
-	ClothChunk.SetClothSubmeshIndex(AssetIndex, AssetSubmeshIndex);
+	ClothSection.SetClothSubmeshIndex(AssetIndex, AssetSubmeshIndex);
 
 	// It's possible that the required/active bones for the new cloth chunk differ from
 	// the original chunk - here we inspect the bone map and activate any new bones.
 	bool bRequiredBonesChanged = false;
-	for(FBoneIndexType BoneIdx : ClothChunk.BoneMap)
+	for(FBoneIndexType BoneIdx : ClothSection.BoneMap)
 	{
 		if(!LODModel.RequiredBones.Contains(BoneIdx))
 		{
@@ -1268,13 +1268,13 @@ void RemoveAssetFromSkeletalMesh(USkeletalMesh* SkelMesh, uint32 AssetIndex, boo
 
 		FStaticLODModel& LODModel = ImportedResource->LODModels[LODIdx];
 
-		int32 NumChunks = LODModel.Chunks.Num();
+		int32 NumSections = LODModel.Sections.Num();
 
 		//decrease asset index because one asset is removed
-		for(int32 ChunkIdx=0; ChunkIdx < NumChunks; ChunkIdx++)
+		for(int32 SectionIdx=0; SectionIdx < NumSections; SectionIdx++)
 		{
-			if(LODModel.Chunks[ChunkIdx].CorrespondClothAssetIndex > (int16)AssetIndex)
-				LODModel.Chunks[ChunkIdx].CorrespondClothAssetIndex--;
+			if(LODModel.Sections[SectionIdx].CorrespondClothAssetIndex > (int16)AssetIndex)
+				LODModel.Sections[SectionIdx].CorrespondClothAssetIndex--;
 		}
 	}
 
@@ -1302,13 +1302,11 @@ void RestoreOriginalClothingSection(USkeletalMesh* SkelMesh, uint32 LODIndex, ui
 
 	FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
 
-	uint16 ChunkIndex = Section.ChunkIndex;
-
 	int32 OriginSectionIndex = -1, ClothSectionIndex = -1;
 
 	// if this section is original mesh section ( without clothing data )
 	if(Section.CorrespondClothSectionIndex >= 0
-		&& !LODModel.Chunks[ChunkIndex].HasApexClothData())
+		&& !Section.HasApexClothData())
 	{
 		ClothSectionIndex = Section.CorrespondClothSectionIndex;
 		OriginSectionIndex = SectionIndex;
@@ -1316,7 +1314,7 @@ void RestoreOriginalClothingSection(USkeletalMesh* SkelMesh, uint32 LODIndex, ui
 
 	// if this section is clothing section
 	if(Section.CorrespondClothSectionIndex >= 0
-		&&LODModel.Chunks[ChunkIndex].HasApexClothData())
+		&& Section.HasApexClothData())
 	{
 		ClothSectionIndex = SectionIndex;
 		OriginSectionIndex = Section.CorrespondClothSectionIndex;
@@ -1334,17 +1332,13 @@ void RestoreOriginalClothingSection(USkeletalMesh* SkelMesh, uint32 LODIndex, ui
 		TArray<uint32> OutIndexBuffer;
 		LODModel.MultiSizeIndexContainer.GetIndexBuffer(OutIndexBuffer);
 
-		int16 RemovedChunkIndex = ClothSection.ChunkIndex;
 		uint32 RemovedBaseIndex = ClothSection.BaseIndex;
 		uint32 RemovedNumIndices = ClothSection.NumTriangles * 3;
-
-		FSkelMeshChunk& ClothChunk = LODModel.Chunks[ClothSection.ChunkIndex];
-
-		uint32 RemovedBaseVertexIndex = ClothChunk.BaseVertexIndex;
+		uint32 RemovedBaseVertexIndex = ClothSection.BaseVertexIndex;
 
 		int32 NumIndexBuffer = OutIndexBuffer.Num();
 
-		int32 NumRemovedVertices = ClothChunk.GetNumVertices();
+		int32 NumRemovedVertices = ClothSection.GetNumVertices();
 
 		// Remove old indices and update any indices for other sections
 		OutIndexBuffer.RemoveAt(RemovedBaseIndex, RemovedNumIndices);
@@ -1353,13 +1347,12 @@ void RestoreOriginalClothingSection(USkeletalMesh* SkelMesh, uint32 LODIndex, ui
 
 		for(int32 i=0; i < NumIndexBuffer; i++)
 		{
-			if(OutIndexBuffer[i] >= ClothChunk.BaseVertexIndex)
+			if(OutIndexBuffer[i] >= ClothSection.BaseVertexIndex)
 				OutIndexBuffer[i] -= NumRemovedVertices;
 		}
 
 		LODModel.MultiSizeIndexContainer.CopyIndexBuffer(OutIndexBuffer);
 
-		LODModel.Chunks.RemoveAt(ClothSection.ChunkIndex);
 		LODModel.Sections.RemoveAt(OriginSection.CorrespondClothSectionIndex);
 
 		LODModel.NumVertices -= NumRemovedVertices;
@@ -1371,17 +1364,11 @@ void RestoreOriginalClothingSection(USkeletalMesh* SkelMesh, uint32 LODIndex, ui
 			if(LODModel.Sections[i].CorrespondClothSectionIndex > OriginSection.CorrespondClothSectionIndex)
 				LODModel.Sections[i].CorrespondClothSectionIndex -= 1;
 
-			if(LODModel.Sections[i].ChunkIndex > RemovedChunkIndex)
-				LODModel.Sections[i].ChunkIndex -= 1;
-
 			if(LODModel.Sections[i].BaseIndex > RemovedBaseIndex)
 				LODModel.Sections[i].BaseIndex -= RemovedNumIndices;
 
-			int16 NewChunkIndex = LODModel.Sections[i].ChunkIndex;
-
-			if(LODModel.Chunks[NewChunkIndex].BaseVertexIndex > RemovedBaseVertexIndex)
-				LODModel.Chunks[NewChunkIndex].BaseVertexIndex -= NumRemovedVertices;
-
+			if(LODModel.Sections[i].BaseVertexIndex > RemovedBaseVertexIndex)
+				LODModel.Sections[i].BaseVertexIndex -= NumRemovedVertices;
 		}
 
 		OriginSection.bDisabled = false;
@@ -1532,9 +1519,8 @@ void ReImportClothingSectionFromClothingAsset(USkeletalMesh* SkelMesh, int32 LOD
 		return;
 	}
 
-	int16 ClothChunkIdx = Model.Sections[ClothSecIdx].ChunkIndex;
-	int16 AssetIndex = Model.Chunks[ClothChunkIdx].CorrespondClothAssetIndex;
-	int16 SubmeshIdx = Model.Chunks[ClothChunkIdx].ClothAssetSubmeshIndex;
+	int16 AssetIndex = Model.Sections[ClothSecIdx].CorrespondClothAssetIndex;
+	int16 SubmeshIdx = Model.Sections[ClothSecIdx].ClothAssetSubmeshIndex;
 
 	ImportClothingSectionFromClothingAsset(SkelMesh, LODIndex, SectionIndex, AssetIndex, SubmeshIdx);
 }
@@ -1629,8 +1615,7 @@ EClothUtilRetType ImportApexAssetFromApexFile(FString& ApexFile, USkeletalMesh* 
 				FSkelMeshSection& Section = LODModel.Sections[SectionIndices[i]];
 
 				int16 ClothSecIdx = Section.CorrespondClothSectionIndex;
-				int16 ClothChunkIdx = LODModel.Sections[ClothSecIdx].ChunkIndex;
-				int16 SubmeshIdx = LODModel.Chunks[ClothChunkIdx].ClothAssetSubmeshIndex;
+				int16 SubmeshIdx = LODModel.Sections[ClothSecIdx].ClothAssetSubmeshIndex;
 
 				int32 SecIdx = SectionIndices[i];
 
@@ -1820,7 +1805,6 @@ void BackupClothingDataFromSkeletalMesh(USkeletalMesh* SkelMesh, FClothingBackup
 	FStaticLODModel& LODModel = ImportedResource->LODModels[0];
 
 	int32 NumSections = LODModel.Sections.Num();
-	int32 NumChunks = LODModel.Chunks.Num();
 
 	int32 NumClothingSections = 0;
 	int32 NumIndexBuffer = 0;
@@ -1833,14 +1817,13 @@ void BackupClothingDataFromSkeletalMesh(USkeletalMesh* SkelMesh, FClothingBackup
 			FSkelMeshSection& Section = LODModel.Sections[i];
 			NumClothingSections++;
 			NumIndexBuffer += (Section.NumTriangles * 3);
-			NumBoneIndices += LODModel.Chunks[Section.ChunkIndex].BoneMap.Num();
+			NumBoneIndices += Section.BoneMap.Num();
 		}
 	}
 
 	if(NumClothingSections > 0)
 	{
 		ClothingBackup.Sections.Empty(NumClothingSections);
-		ClothingBackup.Chunks.Empty(NumClothingSections);
 		ClothingBackup.IndexBuffer.Empty(NumIndexBuffer);
 
 		TArray<uint32> OutIndexBuffer;
@@ -1852,19 +1835,15 @@ void BackupClothingDataFromSkeletalMesh(USkeletalMesh* SkelMesh, FClothingBackup
 			{
 				FSkelMeshSection& Section = LODModel.Sections[SecIdx];
 				int32 BackupSectionIndex = ClothingBackup.Sections.Add(Section);
-				FSkelMeshChunk& Chunk = LODModel.Chunks[Section.ChunkIndex];
-				int32 BackupChunkIndex = ClothingBackup.Chunks.Add(Chunk);
 				// back up index buffer
 				FSkelMeshSection& NewSection = ClothingBackup.Sections[BackupSectionIndex];
-				FSkelMeshChunk& NewChunk = ClothingBackup.Chunks[BackupChunkIndex];
 
-				NewSection.ChunkIndex = BackupChunkIndex;
 				int32 BaseIndex = NewSection.BaseIndex;
 				NewSection.BaseIndex = ClothingBackup.IndexBuffer.Num();
 				int32 NumIndices = NewSection.NumTriangles * 3;
 				int32 EndIndex = BaseIndex + NumIndices;
 
-				int32 BaseVertexIndex = NewChunk.BaseVertexIndex;
+				int32 BaseVertexIndex = NewSection.BaseVertexIndex;
 
 				for(int32 Idx=BaseIndex; Idx < EndIndex; Idx++)
 				{
@@ -1908,16 +1887,12 @@ void ReapplyClothingDataToSkeletalMesh( USkeletalMesh* SkelMesh, FClothingBackup
 			continue;
 		}
 
-		int16 ChunkIndex = Section.ChunkIndex;
-
-		FSkelMeshChunk& Chunk = ClothingBackup.Chunks[ChunkIndex];
-
 		ImportClothingSectionFromClothingAsset(
 			SkelMesh, 
 			0,
 			Section.CorrespondClothSectionIndex,
-			Chunk.CorrespondClothAssetIndex,
-			Chunk.ClothAssetSubmeshIndex
+			Section.CorrespondClothAssetIndex,
+			Section.ClothAssetSubmeshIndex
 		);
 
 	}

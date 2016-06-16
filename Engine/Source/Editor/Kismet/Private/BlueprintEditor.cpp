@@ -1158,6 +1158,14 @@ TSharedRef<SGraphEditor> FBlueprintEditor::CreateGraphEditorWidget(TSharedRef<FT
 				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnConvertToBlendSpacePlayer )
 				);
 
+			GraphEditorCommands->MapAction(FGraphEditorCommands::Get().ConvertToPoseBlender,
+				FExecuteAction::CreateSP(this, &FBlueprintEditor::OnConvertToPoseBlender)
+				);
+
+			GraphEditorCommands->MapAction(FGraphEditorCommands::Get().ConvertToPoseByName,
+				FExecuteAction::CreateSP(this, &FBlueprintEditor::OnConvertToPoseByName)
+				);
+
 			GraphEditorCommands->MapAction( FGraphEditorCommands::Get().OpenRelatedAsset,
 				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnOpenRelatedAsset )
 				);

@@ -173,6 +173,7 @@ public:
 #endif	// WITH_EDITOR
 	virtual bool NeedsLoadForClient() const override;
 	virtual bool NeedsLoadForServer() const override;
+	virtual bool NeedsLoadForEditorGame() const override;
 	virtual void Serialize(FArchive& Ar) override;
 	/** End UObject interface */
 };

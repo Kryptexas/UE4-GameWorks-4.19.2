@@ -146,10 +146,10 @@ public:
 	virtual SIZE_T GetResourceSize() = 0;
 
 	/**
-	 * List of chunks to be rendered based on instance weight usage. Full swap of weights will render with its own chunks.
-	 * @return Chunks to iterate over for rendering
+	 * List of sections to be rendered based on instance weight usage. Full swap of weights will render with its own sections.
+	 * @return Sections to iterate over for rendering
 	 */
-	const TArray<FSkelMeshChunk>& GetRenderChunks(int32 InLODIndex) const;
+	const TArray<FSkelMeshSection>& GetRenderSections(int32 InLODIndex) const;
 
 	/**
 	 * Update the hidden material section flags for an LOD entry
@@ -213,9 +213,6 @@ public:
 	bool bHasBeenUpdatedAtLeastOnce;
 
 #if WITH_EDITORONLY_DATA
-	/** Index of the chunk to preview... If set to -1, all chunks will be rendered */
-	int32 ChunkIndexPreview;
-	
 	/** Index of the section to preview... If set to -1, all section will be rendered */
 	int32 SectionIndexPreview;
 #endif

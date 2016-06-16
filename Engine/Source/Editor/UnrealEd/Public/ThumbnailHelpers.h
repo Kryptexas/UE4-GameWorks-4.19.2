@@ -181,7 +181,7 @@ protected:
 
 private:
 	/** The skeletal mesh actor used to display all animation thumbnails */
-	class ASkeletalMeshActor* PreviewActor;
+	class AAnimationThumbnailSkeletalMeshActor* PreviewActor;
 
 	/** Animation we are generating the thumbnail for */
 	class UBlendSpaceBase* PreviewAnimation;

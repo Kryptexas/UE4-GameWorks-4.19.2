@@ -5,6 +5,7 @@
 #include "Animation/AnimComposite.h"
 #include "Animation/AnimMontage.h"
 #include "Animation/BlendSpace.h"
+#include "Animation/PoseAsset.h"
 #include "Animation/AnimSingleNodeInstance.h"
 
 void FAnimSingleNodeInstanceProxy::Initialize(UAnimInstance* InAnimInstance)
@@ -45,7 +46,7 @@ bool FAnimSingleNodeInstanceProxy::Evaluate(FPoseContext& Output)
 
 				if (bCanProcessAdditiveAnimationsLocal)
 				{
-				Sequence->GetAdditiveBasePose(Output.Pose, Output.Curve, ExtractionContext);
+					Sequence->GetAdditiveBasePose(Output.Pose, Output.Curve, ExtractionContext);
 				}
 				else
 				{
@@ -136,6 +137,44 @@ bool FAnimSingleNodeInstanceProxy::Evaluate(FPoseContext& Output)
 				SlotEvaluatePose(Montage->SlotAnimTracks[0].SlotName, SourcePose, SourceCurve, WeightInfo.SourceWeight, Output.Pose, Output.Curve, WeightInfo.SlotNodeWeight, WeightInfo.TotalNodeWeight);
 			}
 		}
+		else if (UPoseAsset* PoseAsset = Cast<UPoseAsset>(CurrentAsset))
+		{
+#if WITH_EDITORONLY_DATA
+			USkeleton* MySkeleton = PoseAsset->GetSkeleton();
+ 			for (auto Iter=PreviewPoseOverride.CreateConstIterator(); Iter; ++Iter)
+ 			{
+ 				const FName& Name = Iter.Key();
+				const float Value = Iter.Value();
+				
+ 				FSmartNameMapping::UID CurveUID = MySkeleton->GetUIDByName(USkeleton::AnimCurveMappingName, Name);
+ 
+ 				if (CurveUID != FSmartNameMapping::MaxUID)
+ 				{
+					Output.Curve.Set(CurveUID, Value, ACF_DrivesPose);
+ 				}
+ 			}
+#endif 
+			if (PoseAsset->IsValidAdditive())
+			{
+				FAnimExtractContext ExtractContext;
+
+				PoseAsset->GetBaseAnimationPose(Output.Pose, Output.Curve, ExtractContext);
+				PoseAsset->GetAnimationPose(Output.Pose, Output.Curve, ExtractContext);
+			}
+			else
+			{
+				// @todo : what do we do for ingame? I think in game, we should just allow to load anim sequence with curves
+				PoseAsset->GetAnimationPose(Output.Pose, Output.Curve, FAnimExtractContext());
+			}
+		}
+
+#if WITH_EDITORONLY_DATA
+		// if it has preview pose asset, we have to handle that after we do all animation
+		if (const UPoseAsset* PoseAsset = CurrentAsset->PreviewPoseAsset)
+		{
+			PoseAsset->GetAnimationPose(Output.Pose, Output.Curve, FAnimExtractContext());
+		}
+#endif // WITH_EDITORONLY_DATA
 	}
 
 	return true;
@@ -216,6 +255,11 @@ void FAnimSingleNodeInstanceProxy::UpdateAnimationNode(float DeltaSeconds)
 			PreviewBasePose = Montage->PreviewBasePose;
 #endif
 		}
+		else if (UPoseAsset* PoseAsset = Cast<UPoseAsset>(CurrentAsset))
+		{
+			FAnimTickRecord& TickRecord = CreateUninitializedTickRecord(INDEX_NONE, /*out*/ SyncGroup);
+			MakePoseAssetTickRecord(TickRecord, PoseAsset, 1.f);
+		}
 	}
 
 #if WITH_EDITORONLY_DATA
@@ -248,6 +292,22 @@ void FAnimSingleNodeInstanceProxy::PostUpdate(UAnimInstance* InAnimInstance) con
 	}
 }
 
+void FAnimSingleNodeInstanceProxy::PreUpdate(UAnimInstance* InAnimInstance, float DeltaSeconds) 
+{
+	FAnimInstanceProxy::PreUpdate(InAnimInstance, DeltaSeconds);
+#if WITH_EDITOR
+	// @fixme only do this in pose asset
+	// copy data to PreviewPoseOverride
+	TMap<FName, float> PoseCurveList;
+
+	InAnimInstance->GetAnimationCurveList(ACF_DrivesPose, PoseCurveList);
+
+	if (PoseCurveList.Num() > 0)
+	{
+		PreviewPoseOverride.Append(PoseCurveList);
+	}
+#endif // WITH_EDITOR
+}
 void FAnimSingleNodeInstanceProxy::InitializeObjects(UAnimInstance* InAnimInstance)
 {
 	FAnimInstanceProxy::InitializeObjects(InAnimInstance);
@@ -261,6 +321,32 @@ void FAnimSingleNodeInstanceProxy::ClearObjects()
 	FAnimInstanceProxy::ClearObjects();
 
 	CurrentAsset = nullptr;
+}
+
+void FAnimSingleNodeInstanceProxy::SetPreviewPoseOverride(const FName& PoseName, float Value)
+{
+	float *CurveValPtr = PreviewPoseOverride.Find(PoseName);
+	bool bShouldAddToList = FPlatformMath::Abs(Value) > ZERO_ANIMWEIGHT_THRESH;
+	if (bShouldAddToList)
+	{
+		if (CurveValPtr)
+		{
+			// sum up, in the future we might normalize, but for now this just sums up
+			// this won't work well if all of them have full weight - i.e. additive 
+			*CurveValPtr = Value;
+		}
+		else
+		{
+			PreviewPoseOverride.Add(PoseName, Value);
+		}
+	}
+	// if less than ZERO_ANIMWEIGHT_THRESH
+	// no reason to keep them on the list
+	else
+	{
+		// remove if found
+		PreviewPoseOverride.Remove(PoseName);
+	}
 }
 
 void FAnimSingleNodeInstanceProxy::InternalBlendSpaceEvaluatePose(class UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, FPoseContext& OutContext)
@@ -310,10 +396,11 @@ void FAnimSingleNodeInstanceProxy::SetAnimationAsset(class UAnimationAsset* NewA
 
 #if WITH_EDITORONLY_DATA
 	PreviewPoseCurrentTime = 0.0f;
+	PreviewPoseOverride.Reset();
 #endif
 
-	UBlendSpaceBase * BlendSpace = Cast<UBlendSpaceBase>(NewAsset);
-	if (BlendSpace)
+	
+	if (UBlendSpaceBase* BlendSpace = Cast<UBlendSpaceBase>(NewAsset))
 	{
 		BlendSpace->InitializeFilter(&BlendFilter);
 	}

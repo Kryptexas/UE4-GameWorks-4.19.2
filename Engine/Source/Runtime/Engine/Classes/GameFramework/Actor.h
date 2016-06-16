@@ -2144,9 +2144,17 @@ public:
 	virtual bool DestroyNetworkActorHandled();
 
 	/**
-	 * Gets the net mode for this actor, indicating whether it is a client or server (including standalone/not networked).
+	 * Get the network mode (dedicated server, client, standalone, etc) for this actor.
+	 * @see IsNetMode()
 	 */
 	ENetMode GetNetMode() const;
+
+	/**
+	* Test whether net mode is the given mode.
+	* In optimized non-editor builds this can be more efficient than GetNetMode()
+	* because it can check the static build flags without considering PIE.
+	*/
+	bool IsNetMode(ENetMode Mode) const;
 
 	class UNetDriver * GetNetDriver() const;
 
@@ -2854,6 +2862,9 @@ private:
 	// Helper that already assumes the Hit info is reversed, and avoids creating a temp FHitResult if possible.
 	void InternalDispatchBlockingHit(UPrimitiveComponent* MyComp, UPrimitiveComponent* OtherComp, bool bSelfMoved, FHitResult const& Hit);
 
+	/** Private version without inlining that does *not* check Dedicated server build flags (which should already have been done). */
+	ENetMode InternalGetNetMode() const;
+
 	friend struct FMarkActorIsBeingDestroyed;
 	friend struct FActorParentComponentSetter;
 };
@@ -2966,6 +2977,36 @@ FORCEINLINE_DEBUGGABLE ENetRole AActor::GetRemoteRole() const
 {
 	return RemoteRole;
 }
+
+FORCEINLINE_DEBUGGABLE ENetMode AActor::GetNetMode() const
+{
+	// IsRunningDedicatedServer() is a compile-time check in optimized non-editor builds.
+	if (IsRunningDedicatedServer())
+	{
+		return NM_DedicatedServer;
+	}
+
+	return InternalGetNetMode();
+}
+
+FORCEINLINE_DEBUGGABLE bool AActor::IsNetMode(ENetMode Mode) const
+{
+#if UE_EDITOR
+	// Editor builds are special because of PIE, which can run a dedicated server without the app running with -server.
+	return GetNetMode() == Mode;
+#else
+	// IsRunningDedicatedServer() is a compile-time check in optimized non-editor builds.
+	if (Mode == NM_DedicatedServer)
+	{
+		return IsRunningDedicatedServer();
+	}
+	else
+	{
+		return !IsRunningDedicatedServer() && (InternalGetNetMode() == Mode);
+	}
+#endif
+}
+
 
 FORCEINLINE_DEBUGGABLE void AActor::SetNetUpdateTime(float NewUpdateTime)
 {

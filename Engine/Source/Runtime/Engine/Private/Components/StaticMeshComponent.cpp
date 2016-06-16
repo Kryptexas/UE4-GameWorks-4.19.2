@@ -22,6 +22,7 @@
 #include "AI/Navigation/NavCollision.h"
 #include "Engine/StaticMeshSocket.h"
 #include "NavigationSystemHelpers.h"
+#include "AI/NavigationOctree.h"
 
 #define LOCTEXT_NAMESPACE "StaticMeshComponent"
 

@@ -78,16 +78,17 @@ void FMorphVertexBuffer::InitDynamicRHI()
 	FRHIResourceCreateInfo CreateInfo;
 	void* BufferData = nullptr;
 
-	const bool bMayUseGPUSkinCache = GEnableGPUSkinCacheShaders != 0;
+	bool bSupportsComputeShaders = RHISupportsComputeShaders(GMaxRHIShaderPlatform);
+	bUsesComputeShader = GUseGPUMorphTargets != 0 && bSupportsComputeShaders;
 
-	EBufferUsageFlags Flags = bMayUseGPUSkinCache ? BUF_Dynamic : (EBufferUsageFlags)(BUF_Static | BUF_UnorderedAccess);
+	EBufferUsageFlags Flags = bUsesComputeShader ? (EBufferUsageFlags)(BUF_Static | BUF_UnorderedAccess) : BUF_Dynamic;
 
 	// BUF_ShaderResource is needed for Morph support of the SkinCache
 	Flags = (EBufferUsageFlags)(Flags | BUF_ShaderResource);
 
 	VertexBufferRHI = RHICreateAndLockVertexBuffer(Size, Flags, CreateInfo, BufferData);
-
-	if (bMayUseGPUSkinCache)
+	bool bUsesSkinCache = bSupportsComputeShaders && GEnableGPUSkinCacheShaders && GEnableGPUSkinCache;
+	if (bUsesSkinCache)
 	{
 		SRVValue = RHICreateShaderResourceView(VertexBufferRHI, 4, PF_R32_FLOAT);
 	}
@@ -98,7 +99,7 @@ void FMorphVertexBuffer::InitDynamicRHI()
 	// Unlock the buffer.
 	RHIUnlockVertexBuffer(VertexBufferRHI);
 	
-	if (!bMayUseGPUSkinCache && RHISupportsComputeShaders(GMaxRHIShaderPlatform))
+	if (bUsesComputeShader)
 	{
 		UAVValue = RHICreateUnorderedAccessView(VertexBufferRHI, PF_R32_UINT);
 	}
@@ -370,17 +371,19 @@ void FSkeletalMeshObjectGPUSkin::ProcessUpdatedDynamicData(FRHICommandListImmedi
 	bool bMorph = DynamicData->NumWeightedActiveMorphTargets > 0;
 
 	const FStaticLODModel& LODModel = SkeletalMeshResource->LODModels[DynamicData->LODIndex];
-	const TArray<FSkelMeshChunk>& Chunks = GetRenderChunks(DynamicData->LODIndex);
+	const TArray<FSkelMeshSection>& Sections = GetRenderSections(DynamicData->LODIndex);
 
 	// use correct vertex factories based on alternate weights usage
 	FVertexFactoryData& VertexFactoryData = LOD.GPUSkinVertexFactories;
 
-	bool DataPresent = false;
+	bool bDataPresent = false;
+
+	bool bGPUSkinCacheEnabled = GEnableGPUSkinCache && (FeatureLevel >= ERHIFeatureLevel::SM5);
 
 	if(bMorph) 
 	{
-		DataPresent = true;
-		checkSlow((VertexFactoryData.MorphVertexFactories.Num() == Chunks.Num()));
+		bDataPresent = true;
+		checkSlow((VertexFactoryData.MorphVertexFactories.Num() == Sections.Num()));
 		
 		// only update if the morph data changed and there are weighted morph targets
 		if(bMorphNeedsUpdate)
@@ -401,33 +404,32 @@ void FSkeletalMeshObjectGPUSkin::ProcessUpdatedDynamicData(FRHICommandListImmedi
 	else
 	{
 //		checkSlow(VertexFactoryData.MorphVertexFactories.Num() == 0);
-		DataPresent = VertexFactoryData.VertexFactories.Num() > 0;
+		bDataPresent = VertexFactoryData.VertexFactories.Num() > 0;
 	}
 
-	if (DataPresent)
+	if (bDataPresent)
 	{
-		bool bGPUSkinCacheEnabled = GEnableGPUSkinCache && (FeatureLevel >= ERHIFeatureLevel::SM5);
-		for (int32 ChunkIdx = 0; ChunkIdx < Chunks.Num(); ChunkIdx++)
+		for (int32 SectionIdx = 0; SectionIdx < Sections.Num(); SectionIdx++)
 		{
-			const FSkelMeshChunk& Chunk = Chunks[ChunkIdx];
+			const FSkelMeshSection& Section = Sections[SectionIdx];
 
-			bool bClothFactory = (FeatureLevel >= ERHIFeatureLevel::SM4) && (DynamicData->ClothSimulUpdateData.Num() > 0) && Chunk.HasApexClothData();
+			bool bClothFactory = (FeatureLevel >= ERHIFeatureLevel::SM4) && (DynamicData->ClothSimulUpdateData.Num() > 0) && Section.HasApexClothData();
 
 			FGPUBaseSkinVertexFactory* VertexFactory;
 			{
 				if(bClothFactory)
 				{
-					VertexFactory = VertexFactoryData.ClothVertexFactories[ChunkIdx]->GetVertexFactory();
+					VertexFactory = VertexFactoryData.ClothVertexFactories[SectionIdx]->GetVertexFactory();
 				}
 				else
 				{
 					if(DynamicData->NumWeightedActiveMorphTargets > 0)
 					{
-						VertexFactory = VertexFactoryData.MorphVertexFactories[ChunkIdx].Get();
+						VertexFactory = VertexFactoryData.MorphVertexFactories[SectionIdx].Get();
 					}
 					else
 					{
-						VertexFactory = VertexFactoryData.VertexFactories[ChunkIdx].Get();
+						VertexFactory = VertexFactoryData.VertexFactories[SectionIdx].Get();
 					}
 				}
 			}
@@ -437,7 +439,7 @@ void FSkeletalMeshObjectGPUSkin::ProcessUpdatedDynamicData(FRHICommandListImmedi
 			bool bUseSkinCache = bGPUSkinCacheEnabled;
 			if (bUseSkinCache)
 			{
-				if (ChunkIdx >= MAX_GPUSKINCACHE_CHUNKS_PER_LOD)
+				if (SectionIdx >= MAX_GPUSKINCACHE_CHUNKS_PER_LOD)
 				{
 					INC_DWORD_STAT(STAT_GPUSkinCache_SkippedForMaxChunksPerLOD);
 					bUseSkinCache = false;
@@ -447,7 +449,7 @@ void FSkeletalMeshObjectGPUSkin::ProcessUpdatedDynamicData(FRHICommandListImmedi
 					INC_DWORD_STAT(STAT_GPUSkinCache_SkippedForCloth);
 					bUseSkinCache = false;
 				}
-				else if (Chunk.MaxBoneInfluences == 0)
+				else if (Section.MaxBoneInfluences == 0)
 				{
 					INC_DWORD_STAT(STAT_GPUSkinCache_SkippedForZeroInfluences);
 					bUseSkinCache = false;
@@ -457,9 +459,7 @@ void FSkeletalMeshObjectGPUSkin::ProcessUpdatedDynamicData(FRHICommandListImmedi
 					extern TAutoConsoleVariable<int32> CVarGPUSkinCacheRecomputeTangents;
 					if(CVarGPUSkinCacheRecomputeTangents.GetValueOnRenderThread() == 2)
 					{
-						const FSkelMeshSection* Section = LODModel.FindSectionForChunk(ChunkIdx);
-
-						if(!Section->bRecomputeTangent)
+						if(!Section.bRecomputeTangent)
 						{
 							// In this mode the SkinCache should only be used for RecomputeTangent meshes
 							bUseSkinCache = false;
@@ -470,13 +470,17 @@ void FSkeletalMeshObjectGPUSkin::ProcessUpdatedDynamicData(FRHICommandListImmedi
 
 			// Create a uniform buffer from the bone transforms.
 			TArray<FMatrix>& ReferenceToLocalMatrices = DynamicData->ReferenceToLocal;
-			bool bNeedFence = ShaderData.UpdateBoneData(RHICmdList, ReferenceToLocalMatrices, Chunk.BoneMap, FrameNumberToPrepare, FeatureLevel, bUseSkinCache);
+			bool bNeedFence = ShaderData.UpdateBoneData(RHICmdList, ReferenceToLocalMatrices, Section.BoneMap, FrameNumberToPrepare, FeatureLevel, bUseSkinCache);
 
 			// Try to use the GPU skinning cache if possible
 			if (bUseSkinCache)
 			{
-				int32 Key = GGPUSkinCache.StartCacheMesh(RHICmdList, FrameNumberToPrepare, GPUSkinCacheKeys[ChunkIdx], VertexFactory,
-					VertexFactoryData.PassthroughVertexFactories[ChunkIdx].Get(), Chunk, this, bMorph ? &LOD.MorphVertexBuffer : 0);
+				if (GUseGPUMorphTargets)
+				{
+					// When rewriting the skin cache, first do all morph compute jobs, then all skin cache compute jobs, and then all recompute tangent jobs instead of sequentially
+				}
+				int32 Key = GGPUSkinCache.StartCacheMesh(RHICmdList, FrameNumberToPrepare, GPUSkinCacheKeys[SectionIdx], VertexFactory,
+					VertexFactoryData.PassthroughVertexFactories[SectionIdx].Get(), Section, this, bMorph ? &LOD.MorphVertexBuffer : 0);
 
 				// TODO: If failed we could remove the key (on the other hand it might a bu in cache for longer)
 
@@ -484,7 +488,7 @@ void FSkeletalMeshObjectGPUSkin::ProcessUpdatedDynamicData(FRHICommandListImmedi
 				if(Key >= 0)
 				{
 					ensure(Key <= 0xffff);
-					GPUSkinCacheKeys[ChunkIdx] = (int16)Key;
+					GPUSkinCacheKeys[SectionIdx] = (int16)Key;
 				}
 			}
 
@@ -492,9 +496,9 @@ void FSkeletalMeshObjectGPUSkin::ProcessUpdatedDynamicData(FRHICommandListImmedi
 			// Update uniform buffer for APEX cloth simulation mesh positions and normals
 			if( bClothFactory )
 			{				
-				FGPUBaseSkinAPEXClothVertexFactory::ClothShaderType& ClothShaderData = VertexFactoryData.ClothVertexFactories[ChunkIdx]->GetClothShaderData();
+				FGPUBaseSkinAPEXClothVertexFactory::ClothShaderType& ClothShaderData = VertexFactoryData.ClothVertexFactories[SectionIdx]->GetClothShaderData();
 				ClothShaderData.ClothBlendWeight = DynamicData->ClothBlendWeight;
-				int16 ActorIdx = Chunk.CorrespondClothAssetIndex;
+				int16 ActorIdx = Section.CorrespondClothAssetIndex;
 				if( FClothSimulData* SimData = DynamicData->ClothSimulUpdateData.Find(ActorIdx) )
 				{
 					bNeedFence = ClothShaderData.UpdateClothSimulData(RHICmdList, SimData->ClothSimulPositions, SimData->ClothSimulNormals, FrameNumberToPrepare, FeatureLevel) || bNeedFence;
@@ -576,25 +580,28 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer
 		// LOD of the skel mesh is used to find number of vertices in buffer
 		FStaticLODModel& LodModel = SkelMeshResource->LODModels[LODIndex];
 
+		MorphVertexBuffer.RecreateResourcesIfRequired(GUseGPUMorphTargets != 0);
+
 		if (GUseGPUMorphTargets)
 		{
-			if (GEnableGPUSkinCacheShaders == 0)
+			SCOPED_DRAW_EVENTF(RHICmdList, MorphUpdate,
+				TEXT("MorphUpdate LodVertices=%d InflVerts=%d"),
+				LodModel.NumVertices,
+				NumInfluencedVerticesByMorph);
+			RHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, EResourceTransitionPipeline::EGfxToCompute, MorphVertexBuffer.GetUAV());
+
+			RHICmdList.ClearUAV(MorphVertexBuffer.GetUAV(), {0, 0, 0, 0});
+
 			{
-				RHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, EResourceTransitionPipeline::EGfxToCompute, MorphVertexBuffer.GetUAV());
-
-				RHICmdList.ClearUAV(MorphVertexBuffer.GetUAV(), {0, 0, 0, 0});
-
-				{
-					SCOPE_CYCLE_COUNTER(STAT_MorphVertexBuffer_ApplyDelta);
-					TShaderMapRef<FGPUMorphUpdateCS> GPUMorphUpdateCS(GetGlobalShaderMap(ERHIFeatureLevel::SM5));
-					GPUMorphUpdateCS->Dispatch(RHICmdList, LodModel.NumVertices, NumInfluencedVerticesByMorph, MorphWeightsSRV, MorphPerVertexInfoSRV, MorphFlattenedSRV, MorphVertexBuffer.GetUAV());
-				}
-
-				RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, MorphVertexBuffer.GetUAV());
-
-				// set update flag
-				MorphVertexBuffer.bHasBeenUpdated = true;
+				SCOPE_CYCLE_COUNTER(STAT_MorphVertexBuffer_ApplyDelta);
+				TShaderMapRef<FGPUMorphUpdateCS> GPUMorphUpdateCS(GetGlobalShaderMap(ERHIFeatureLevel::SM5));
+				GPUMorphUpdateCS->Dispatch(RHICmdList, LodModel.NumVertices, NumInfluencedVerticesByMorph, MorphWeightsSRV, MorphPerVertexInfoSRV, MorphFlattenedSRV, MorphVertexBuffer.GetUAV());
 			}
+
+			RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, MorphVertexBuffer.GetUAV());
+
+			// set update flag
+			MorphVertexBuffer.bHasBeenUpdated = true;
 		}
 		else
 		{
@@ -1036,15 +1043,15 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::GetVertexBuffers(
  */
 void FSkeletalMeshObjectGPUSkin::FVertexFactoryData::InitVertexFactories(
 	const FVertexFactoryBuffers& VertexBuffers, 
-	const TArray<FSkelMeshChunk>& Chunks, 
+	const TArray<FSkelMeshSection>& Sections, 
 	ERHIFeatureLevel::Type InFeatureLevel)
 {
 	// first clear existing factories (resources assumed to have been released already)
 	// then [re]create the factories
 
-	VertexFactories.Empty(Chunks.Num());
+	VertexFactories.Empty(Sections.Num());
 	{
-		for(int32 FactoryIdx = 0; FactoryIdx < Chunks.Num(); ++FactoryIdx)
+		for(int32 FactoryIdx = 0; FactoryIdx < Sections.Num(); ++FactoryIdx)
 		{
 			if (VertexBuffers.VertexBufferGPUSkin->HasExtraBoneInfluences())
 			{
@@ -1079,13 +1086,13 @@ void FSkeletalMeshObjectGPUSkin::FVertexFactoryData::ReleaseVertexFactories()
 
 void FSkeletalMeshObjectGPUSkin::FVertexFactoryData::InitMorphVertexFactories(
 	const FVertexFactoryBuffers& VertexBuffers, 
-	const TArray<FSkelMeshChunk>& Chunks,
+	const TArray<FSkelMeshSection>& Sections,
 	bool bInUsePerBoneMotionBlur,
 	ERHIFeatureLevel::Type InFeatureLevel)
 {
 	// clear existing factories (resources assumed to have been released already)
-	MorphVertexFactories.Empty(Chunks.Num());
-	for( int32 FactoryIdx=0; FactoryIdx < Chunks.Num(); FactoryIdx++ )
+	MorphVertexFactories.Empty(Sections.Num());
+	for( int32 FactoryIdx=0; FactoryIdx < Sections.Num(); FactoryIdx++ )
 	{
 		if (VertexBuffers.VertexBufferGPUSkin->HasExtraBoneInfluences())
 		{
@@ -1112,14 +1119,14 @@ void FSkeletalMeshObjectGPUSkin::FVertexFactoryData::ReleaseMorphVertexFactories
 
 void FSkeletalMeshObjectGPUSkin::FVertexFactoryData::InitAPEXClothVertexFactories(
 	const FVertexFactoryBuffers& VertexBuffers, 
-	const TArray<FSkelMeshChunk>& Chunks,
+	const TArray<FSkelMeshSection>& Sections,
 	ERHIFeatureLevel::Type InFeatureLevel)
 {
 	// clear existing factories (resources assumed to have been released already)
-	ClothVertexFactories.Empty(Chunks.Num());
-	for( int32 FactoryIdx=0; FactoryIdx < Chunks.Num(); FactoryIdx++ )
+	ClothVertexFactories.Empty(Sections.Num());
+	for( int32 FactoryIdx=0; FactoryIdx < Sections.Num(); FactoryIdx++ )
 	{
-		if (Chunks[FactoryIdx].HasApexClothData() && InFeatureLevel >= ERHIFeatureLevel::SM4)
+		if (Sections[FactoryIdx].HasApexClothData() && InFeatureLevel >= ERHIFeatureLevel::SM4)
 		{
 			if (VertexBuffers.VertexBufferGPUSkin->HasExtraBoneInfluences())
 			{
@@ -1170,10 +1177,10 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::InitResources(const FSk
 	GetVertexBuffers(VertexBuffers,LODModel,MeshLODInfo);
 
 	// init gpu skin factories
-	GPUSkinVertexFactories.InitVertexFactories(VertexBuffers,LODModel.Chunks, InFeatureLevel);
+	GPUSkinVertexFactories.InitVertexFactories(VertexBuffers,LODModel.Sections, InFeatureLevel);
 	if ( LODModel.HasApexClothData() )
 	{
-		GPUSkinVertexFactories.InitAPEXClothVertexFactories(VertexBuffers,LODModel.Chunks, InFeatureLevel);
+		GPUSkinVertexFactories.InitAPEXClothVertexFactories(VertexBuffers,LODModel.Sections, InFeatureLevel);
 	}
 }
 
@@ -1204,7 +1211,7 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::InitMorphResources(cons
 	FVertexFactoryBuffers VertexBuffers;
 	GetVertexBuffers(VertexBuffers,LODModel,MeshLODInfo);
 	// init morph skin factories
-	GPUSkinVertexFactories.InitMorphVertexFactories(VertexBuffers, LODModel.Chunks, bInUsePerBoneMotionBlur, InFeatureLevel);
+	GPUSkinVertexFactories.InitMorphVertexFactories(VertexBuffers, LODModel.Sections, bInUsePerBoneMotionBlur, InFeatureLevel);
 }
 
 /** 

@@ -489,23 +489,9 @@ void UAnimSequence::PostLoad()
 	if (CurrentSkeleton)
 	{
 		// Get the name mapping object for curves
-		const FSmartNameMapping* NameMapping = CurrentSkeleton->GetSmartNameContainer(USkeleton::AnimTrackCurveMappingName);
-
-		TArray<FTransformCurve*> UnlinkedCurves;
 		for(FTransformCurve& Curve : RawCurveData.TransformCurves)
 		{
-			if(!NameMapping->Exists(Curve.LastObservedName))
-			{
-				// The skeleton doesn't know our name. Use the last observed name that was saved with the
-				// curve to create a new name. This can happen if a user saves an animation but not a skeleton
-				// either when updating the assets or editing the curves within.
-				UnlinkedCurves.Add(&Curve);
-			}
-		}
-
-		for(FTransformCurve* Curve : UnlinkedCurves)
-		{
-			CurrentSkeleton->AddSmartNameAndModify(USkeleton::AnimTrackCurveMappingName, Curve->LastObservedName, Curve->CurveUid);
+			CurrentSkeleton->VerifySmartName(USkeleton::AnimTrackCurveMappingName, Curve.Name);
 		}
 	}
 
@@ -513,7 +499,7 @@ void UAnimSequence::PostLoad()
 	// actual anim flags 
 	for (FFloatCurve& Curve : RawCurveData.FloatCurves)
 	{
-		if (FAnimCurveBase* CompressedCurve = CompressedCurveData.GetCurveData(Curve.CurveUid))
+		if (FAnimCurveBase* CompressedCurve = CompressedCurveData.GetCurveData(Curve.Name.UID))
 		{
 			CompressedCurve->SetCurveTypeFlags(Curve.GetCurveTypeFlags());
 		}
@@ -727,6 +713,33 @@ void UAnimSequence::ExtractBoneTransform(const TArray<struct FRawAnimSequenceTra
 	}
 
 	ExtractBoneTransform(InRawAnimationData[TrackIndex], OutAtom, Time);
+}
+
+void UAnimSequence::ExtractBoneTransform(const struct FRawAnimSequenceTrack& RawTrack, FTransform& OutAtom, int32 KeyIndex) const
+{
+	// Bail out (with rather wacky data) if data is empty for some reason.
+	if (RawTrack.PosKeys.Num() == 0 || RawTrack.RotKeys.Num() == 0)
+	{
+		UE_LOG(LogAnimation, Log, TEXT("UAnimSequence::GetBoneTransform : No anim data in AnimSequence!"));
+		OutAtom.SetIdentity();
+		return;
+	}
+
+	const int32 PosKeyIndex = FMath::Min(KeyIndex, RawTrack.PosKeys.Num() - 1);
+	const int32 RotKeyIndex = FMath::Min(KeyIndex, RawTrack.RotKeys.Num() - 1);
+	static const FVector DefaultScale3D = FVector(1.f);
+
+	OutAtom.SetTranslation(RawTrack.PosKeys[PosKeyIndex]);
+	OutAtom.SetRotation(RawTrack.RotKeys[RotKeyIndex]);
+	if (RawTrack.ScaleKeys.Num() > 0)
+	{
+		const int32 ScaleKeyIndex = FMath::Min(KeyIndex, RawTrack.ScaleKeys.Num() - 1);
+		OutAtom.SetScale3D(RawTrack.ScaleKeys[ScaleKeyIndex]);
+	}
+	else
+	{
+		OutAtom.SetScale3D(DefaultScale3D);
+	}
 }
 
 void UAnimSequence::ExtractBoneTransform(const struct FRawAnimSequenceTrack& RawTrack, FTransform& OutAtom, float Time) const
@@ -2123,7 +2136,7 @@ void UAnimSequence::UpdateSHAWithCurves(FSHA1& Sha, const FRawCurveTracks& InRaw
 {
 	for (const FFloatCurve& Curve : InRawCurveData.FloatCurves)
 	{
-		UpdateWithData(Sha, Curve.CurveUid);
+		UpdateWithData(Sha, Curve.Name.UID);
 		UpdateWithData(Sha, Curve.FloatCurve.DefaultValue);
 		UpdateSHAWithArray(Sha, Curve.FloatCurve.Keys);
 		UpdateWithData(Sha, Curve.FloatCurve.PreInfinityExtrap);
@@ -2220,12 +2233,14 @@ void UAnimSequence::BakeOutAdditiveIntoRawData()
 	FCompactPose Pose;
 	Pose.SetBoneContainer(&RequiredBones);
 	FAnimExtractContext ExtractContext;
+	USkeleton* MySkeleton = GetSkeleton();
+	check(MySkeleton);
 
 	for (int Frame = 0; Frame < NumFrames; ++Frame)
 	{
 		// Initialise curve data from Skeleton
 		FBlendedCurve Curve;
-		Curve.InitFrom(&(GetSkeleton()->GetCachedAnimCurveMappingNameUids()));
+		Curve.InitFrom(&(MySkeleton->GetCachedAnimCurveMappingNameUids()));
 
 		//Grab pose for this frame
 		const float CurrentFrameTime = Frame * IntervalTime;
@@ -2245,7 +2260,6 @@ void UAnimSequence::BakeOutAdditiveIntoRawData()
 		}
 
 		//Write out curve data for this frame
-		
 		const TArray<FSmartNameMapping::UID>& UIDList = *Curve.UIDList;
 		for (int32 CurveIndex = 0; CurveIndex < UIDList.Num(); ++CurveIndex)
 		{
@@ -2254,7 +2268,10 @@ void UAnimSequence::BakeOutAdditiveIntoRawData()
 			FFloatCurve* RawCurve = GetFloatCurve(NewCurveTracks, CurveUID);
 			if (!RawCurve && CurveEL.Value > 0.f) //Only make a new curve if we are going to give it data
 			{
-				NewCurveTracks.AddCurveData(CurveUID, CurveEL.Flags, FRawCurveTracks::FloatType);
+				FSmartName NewCurveName;
+				// if we don't have name, there is something wrong here. 
+				ensureAlways(MySkeleton->GetSmartNameByUID(USkeleton::AnimCurveMappingName, CurveUID, NewCurveName));
+				NewCurveTracks.AddCurveData(NewCurveName, CurveEL.Flags, FRawCurveTracks::FloatType);
 				RawCurve = GetFloatCurve(NewCurveTracks, CurveUID);
 			}
 
@@ -2287,7 +2304,7 @@ void UAnimSequence::BakeOutAdditiveIntoRawData()
 
 	const FSmartNameMapping* Mapping = GetSkeleton()->GetSmartNameContainer(USkeleton::AnimCurveMappingName);
 	check(Mapping); // Should always exist
-	RawCurveData.UpdateLastObservedNames(Mapping);
+	RawCurveData.RefreshName(Mapping);
 
 #if 0 //Validate baked data
 	for (FRawAnimSequenceTrack& RawTrack : RawAnimationData)
@@ -3201,8 +3218,11 @@ void UAnimSequence::RemoveNaNTracks()
 		}
 	}
 
-	MarkRawDataAsModified();
-	OnRawDataChanged();
+	if(bRecompress)
+	{
+		MarkRawDataAsModified();
+		OnRawDataChanged();
+	}
 }
 
 
@@ -3896,7 +3916,7 @@ void UAnimSequence::BakeTrackCurvesToRawAnimation()
 		if(!NameMapping)
 		{
 			// if no name mapping is found but curve exists, we should verify curve namex
-			VerifyCurveNames(CurSkeleton, USkeleton::AnimTrackCurveMappingName, RawCurveData.TransformCurves);
+			VerifyCurveNames<FTransformCurve>(CurSkeleton, USkeleton::AnimTrackCurveMappingName, RawCurveData.TransformCurves);
 			NameMapping = CurSkeleton->GetSmartNameContainer(USkeleton::AnimTrackCurveMappingName);
 		}
 		
@@ -3918,7 +3938,7 @@ void UAnimSequence::BakeTrackCurvesToRawAnimation()
 			FName BoneName;
 
 			if(Curve.GetCurveTypeFlag(ACF_Disabled)== false &&
-				ensure(NameMapping->GetName(Curve.CurveUid, BoneName)))
+				ensureAlways(NameMapping->GetName(Curve.Name.UID, BoneName)))
 			{
 				int32 TrackIndex = AnimationTrackNames.Find(BoneName);
 
@@ -3980,7 +4000,7 @@ void UAnimSequence::BakeTrackCurvesToRawAnimation()
 				for(int32 KeyIndex=0; KeyIndex < NumFrames; ++KeyIndex)
 				{
 					// now evaluate
-					FTransformCurve* TransformCurve = static_cast<FTransformCurve*>(RawCurveData.GetCurveData(Curve.CurveUid, FRawCurveTracks::TransformType));
+					FTransformCurve* TransformCurve = static_cast<FTransformCurve*>(RawCurveData.GetCurveData(Curve.Name.UID, FRawCurveTracks::TransformType));
 
 					if(ensure(TransformCurve))
 					{
@@ -4035,16 +4055,14 @@ void UAnimSequence::AddKeyToSequence(float Time, const FName& BoneName, const FT
 	USkeleton * CurrentSkeleton = GetSkeleton();
 	check (CurrentSkeleton);
 
-	const FSmartNameMapping* NameMapping = CurrentSkeleton->GetOrAddSmartNameContainer(USkeleton::AnimTrackCurveMappingName);
-	
-	FSmartNameMapping::UID NewUID;
-	CurrentSkeleton->AddSmartNameAndModify(USkeleton::AnimTrackCurveMappingName, CurveName, NewUID);
+	FSmartName NewCurveName;
+	CurrentSkeleton->AddSmartNameAndModify(USkeleton::AnimTrackCurveMappingName, CurveName, NewCurveName);
 
 	// add curve - this won't add duplicate curve
-	RawCurveData.AddCurveData(NewUID, ACF_DriveTrack | ACF_Editable, FRawCurveTracks::TransformType);
+	RawCurveData.AddCurveData(NewCurveName, ACF_DriveTrack | ACF_Editable, FRawCurveTracks::TransformType);
 
 	//Add this curve
-	FTransformCurve* TransformCurve = static_cast<FTransformCurve*>(RawCurveData.GetCurveData(NewUID, FRawCurveTracks::TransformType));
+	FTransformCurve* TransformCurve = static_cast<FTransformCurve*>(RawCurveData.GetCurveData(NewCurveName.UID, FRawCurveTracks::TransformType));
 	check(TransformCurve);
 
 	TransformCurve->UpdateOrAddKey(AdditiveTransform, Time);

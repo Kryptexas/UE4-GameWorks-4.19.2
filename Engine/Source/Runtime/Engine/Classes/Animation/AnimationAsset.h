@@ -785,11 +785,21 @@ public:
 	UPROPERTY(VisibleAnywhere, Instanced, Category = Thumbnail)
 	class UThumbnailInfo* ThumbnailInfo;
 
+	/** The default skeletal mesh to use when previewing this asset - this only applies when you open Persona using this asset*/
+	// @todo: note that this doesn't retarget right now
+	UPROPERTY(duplicatetransient, EditAnywhere, Category = Animation)
+	class UPoseAsset* PreviewPoseAsset;
+
 private:
 	/** The default skeletal mesh to use when previewing this asset - this only applies when you open Persona using this asset*/
 	UPROPERTY(duplicatetransient, AssetRegistrySearchable)
 	TAssetPtr<class USkeletalMesh> PreviewSkeletalMesh;
 #endif //WITH_EDITORONLY_DATA
+
+protected:
+#if WITH_EDITOR
+	virtual void RemapTracksToNewSkeleton(USkeleton* NewSkeleton, bool bConvertSpaces);
+#endif // WITH_EDITOR
 
 public:
 	class USkeleton* GetSkeleton() const { return Skeleton; }

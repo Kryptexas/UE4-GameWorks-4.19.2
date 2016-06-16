@@ -13,6 +13,7 @@
 #include "SInlineEditableTextBlock.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Animation/AnimSequence.h"
 
 #define LOCTEXT_NAMESPACE "SRetargetSourceWindow"
 

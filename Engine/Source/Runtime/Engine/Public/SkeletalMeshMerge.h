@@ -170,15 +170,12 @@ private:
 		const USkeletalMesh* SkelMesh;
 		/** ptr to source section for merging */
 		const FSkelMeshSection* Section;
-		/** ptr to source chunk for this section */
-		const FSkelMeshChunk* Chunk;
 		/** mapping from the original BoneMap for this sections chunk to the new MergedBoneMap */
 		TArray<FBoneIndexType> BoneMapToMergedBoneMap;
 
-		FMergeSectionInfo( const USkeletalMesh* InSkelMesh,const FSkelMeshSection* InSection, const FSkelMeshChunk* InChunk )
+		FMergeSectionInfo( const USkeletalMesh* InSkelMesh,const FSkelMeshSection* InSection )
 			:	SkelMesh(InSkelMesh)
 			,	Section(InSection)
-			,	Chunk(InChunk)
 		{}
 	};
 

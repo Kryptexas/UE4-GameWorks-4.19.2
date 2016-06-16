@@ -217,8 +217,8 @@ void SkinCacheUpdateBatchCS(uint3 GroupID : SV_GroupID,
 	
 	float3 SPos = SkinPosition(Intermediates) * SkinCacheDebug;
 		
-	float3 TangentX = mul((float3x3)Intermediates.BlendMatrix, LocalTangentX);
-	float3 TangentZ = mul((float3x3)Intermediates.BlendMatrix, LocalTangentZ);
+	float3 TangentX = normalize(mul((float3x3)Intermediates.BlendMatrix, LocalTangentX));
+	float3 TangentZ = normalize(mul((float3x3)Intermediates.BlendMatrix, LocalTangentZ));
 
 	SkinCacheBufferUAV[OutputOffset + GPUSKIN_RWBUFFER_OFFSET_POSITION + 0] = SPos.x;
 	SkinCacheBufferUAV[OutputOffset + GPUSKIN_RWBUFFER_OFFSET_POSITION + 1] = SPos.y;

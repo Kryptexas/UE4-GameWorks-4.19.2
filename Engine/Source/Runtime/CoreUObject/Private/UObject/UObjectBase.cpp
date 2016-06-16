@@ -105,15 +105,42 @@ void UObjectBase::CreateStatID() const
 	SCOPE_CYCLE_COUNTER(STAT_CreateStatID);
 
 	FString LongName;
+	LongName.Reserve(255);
+	TArray<UObjectBase const*, TInlineAllocator<24>> ClassChain;
+	
+	// Build class hierarchy
 	UObjectBase const* Target = this;
-	do 
+	do
 	{
-		LongName = Target->GetFName().GetPlainNameString() + (LongName.IsEmpty() ? TEXT("") : TEXT(".")) + LongName;
+		ClassChain.Add(Target);
 		Target = Target->GetOuter();
 	} while(Target);
+
+	// Start with class name
 	if (GetClass())
 	{
-		LongName = GetClass()->GetFName().GetPlainNameString() / LongName;
+		GetClass()->GetFName().GetDisplayNameEntry()->AppendNameToString(LongName);
+	}
+
+	// Now process from parent -> child so we can append strings more efficiently.
+	bool bFirstEntry = true;
+	for (int32 i = ClassChain.Num()-1; i >= 0; i--)
+	{
+		Target = ClassChain[i];
+		const FNameEntry* NameEntry = Target->GetFName().GetDisplayNameEntry();
+		if (bFirstEntry)
+		{
+			NameEntry->AppendNameToPathString(LongName);
+		}
+		else
+		{
+			if (!LongName.IsEmpty())
+			{
+				LongName += TEXT(".");
+			}
+			NameEntry->AppendNameToString(LongName);
+		}			
+		bFirstEntry = false;
 	}
 
 	StatID = FDynamicStats::CreateStatId<FStatGroup_STATGROUP_UObjects>( LongName );

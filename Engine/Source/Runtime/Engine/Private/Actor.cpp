@@ -1742,7 +1742,7 @@ void AActor::ForceNetUpdate()
 
 void AActor::SetNetDormancy(ENetDormancy NewDormancy)
 {
-	if (GetNetMode() == NM_Client)
+	if (IsNetMode(NM_Client))
 	{
 		return;
 	}
@@ -1767,7 +1767,7 @@ void AActor::SetNetDormancy(ENetDormancy NewDormancy)
 /** Removes the actor from the NetDriver's dormancy list: forcing at least one more update. */
 void AActor::FlushNetDormancy()
 {
-	if (GetNetMode() == NM_Client || NetDormancy <= DORM_Awake)
+	if (IsNetMode(NM_Client) || NetDormancy <= DORM_Awake)
 	{
 		return;
 	}
@@ -2765,7 +2765,7 @@ void AActor::PostActorConstruction()
 	}
 
 	// If this is dynamically spawned replicted actor, defer calls to BeginPlay and UpdateOverlaps until replicated properties are deserialized
-	bool deferBeginPlayAndUpdateOverlaps = (bExchangedRoles && RemoteRole == ROLE_Authority);
+	const bool bDeferBeginPlayAndUpdateOverlaps = (bExchangedRoles && RemoteRole == ROLE_Authority);
 
 	if (bActorsInitialized)
 	{
@@ -2830,7 +2830,14 @@ void AActor::PostActorConstruction()
 					UE_LOG(LogActor, Fatal, TEXT("%s failed to route PostInitializeComponents.  Please call Super::PostInitializeComponents() in your <className>::PostInitializeComponents() function. "), *GetFullName());
 				}
 
-				if (World->HasBegunPlay() && !deferBeginPlayAndUpdateOverlaps)
+				bool bRunBeginPlay = !bDeferBeginPlayAndUpdateOverlaps && World->HasBegunPlay();
+				if (bRunBeginPlay && IsChildActor())
+				{
+					// Child Actors cannot run begin play until their parent has run
+					bRunBeginPlay = GetParentComponent()->GetOwner()->HasActorBegunPlay();
+				}
+
+				if (bRunBeginPlay)
 				{
 					SCOPE_CYCLE_COUNTER(STAT_ActorBeginPlay);
 					BeginPlay();
@@ -2851,7 +2858,7 @@ void AActor::PostActorConstruction()
 	if (!IsPendingKill())
 	{
 		// Components are all there and we've begun play, init overlapping state
-		if (!deferBeginPlayAndUpdateOverlaps)
+		if (!bDeferBeginPlayAndUpdateOverlaps)
 		{
 			UpdateOverlaps();
 		}
@@ -3500,21 +3507,23 @@ UNetDriver* GetNetDriver_Internal(UWorld* World, FName NetDriverName)
 	return GEngine->FindNamedNetDriver(World, NetDriverName);
 }
 
-ENetMode AActor::GetNetMode() const
+ENetMode AActor::InternalGetNetMode() const
 {
+	const bool bIsClientOnly = IsRunningClientOnly();
+
 	UWorld* World = GetWorld();
 	UNetDriver* NetDriver = GetNetDriver_Internal(World, NetDriverName);
 	if (NetDriver != nullptr)
 	{
-		return NetDriver->GetNetMode();
+		return bIsClientOnly ? NM_Client : NetDriver->GetNetMode();
 	}
 
 	if (World != nullptr && World->DemoNetDriver != nullptr)
 	{
-		return World->DemoNetDriver->GetNetMode();
+		return bIsClientOnly ? NM_Client : World->DemoNetDriver->GetNetMode();
 	}
 
-	return (IsRunningDedicatedServer() ? NM_DedicatedServer : NM_Standalone);
+	return NM_Standalone;
 }
 
 UNetDriver* AActor::GetNetDriver() const
@@ -4156,7 +4165,7 @@ bool AActor::ActorLineTraceSingle(struct FHitResult& OutHit, const FVector& Star
 float AActor::ActorGetDistanceToCollision(const FVector& Point, ECollisionChannel TraceChannel, FVector& ClosestPointOnCollision, UPrimitiveComponent** OutPrimitiveComponent) const
 {
 	ClosestPointOnCollision = Point;
-	float ClosestPointDistance = -1.f;
+	float ClosestPointDistanceSqr = -1.f;
 
 	TInlineComponentArray<UPrimitiveComponent*> Components;
 	GetComponents(Components);
@@ -4168,17 +4177,17 @@ float AActor::ActorGetDistanceToCollision(const FVector& Point, ECollisionChanne
 			&& (Primitive->GetCollisionResponseToChannel(TraceChannel) == ECollisionResponse::ECR_Block) )
 		{
 			FVector ClosestPoint;
-			const float Distance = Primitive->GetDistanceToCollision(Point, ClosestPoint);
+			float DistanceSqr = -1.f;
 
-			if (Distance < 0.f)
+			if (!Primitive->GetSquaredDistanceToCollision(Point, DistanceSqr, ClosestPoint))
 			{
 				// Invalid result, impossible to be better than ClosestPointDistance
 				continue;
 			}
 
-			if( (ClosestPointDistance < 0.f) || (Distance < ClosestPointDistance) )
+			if( (ClosestPointDistanceSqr < 0.f) || (DistanceSqr < ClosestPointDistanceSqr) )
 			{
-				ClosestPointDistance = Distance;
+				ClosestPointDistanceSqr = DistanceSqr;
 				ClosestPointOnCollision = ClosestPoint;
 				if( OutPrimitiveComponent )
 				{
@@ -4186,7 +4195,7 @@ float AActor::ActorGetDistanceToCollision(const FVector& Point, ECollisionChanne
 				}
 
 				// If we're inside collision, we're not going to find anything better, so abort search we've got our best find.
-				if( Distance <= KINDA_SMALL_NUMBER )
+				if( DistanceSqr <= KINDA_SMALL_NUMBER )
 				{
 					break;
 				}
@@ -4194,7 +4203,7 @@ float AActor::ActorGetDistanceToCollision(const FVector& Point, ECollisionChanne
 		}
 	}
 
-	return ClosestPointDistance;
+	return (ClosestPointDistanceSqr > 0.f ? FMath::Sqrt(ClosestPointDistanceSqr) : ClosestPointDistanceSqr);
 }
 
 

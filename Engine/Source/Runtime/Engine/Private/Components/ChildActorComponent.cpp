@@ -9,6 +9,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogChildActorComponent, Warning, All);
 UChildActorComponent::UChildActorComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	bWantsBeginPlay = true;
 }
 
 void UChildActorComponent::OnRegister()
@@ -431,5 +432,15 @@ void UChildActorComponent::DestroyChildActor()
 		}
 
 		ChildActor = nullptr;
+	}
+}
+
+void UChildActorComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (ChildActor && !ChildActor->HasActorBegunPlay())
+	{
+		ChildActor->BeginPlay();
 	}
 }

@@ -358,28 +358,11 @@ FNodeDebugData& FNodeDebugData::BranchFlow(float BranchWeight, FString InNodeDes
 	return NodeChain.Last().ChildNodeChain.Last();
 }
 
-FNodeDebugData* FNodeDebugData::GetCachePoseDebugData(FName InCachePoseName)
+FNodeDebugData* FNodeDebugData::GetCachePoseDebugData(float GlobalWeight)
 {
 	check(RootNodePtr);
 
-	for (int32 NodeIndex = 0; NodeIndex < RootNodePtr->SaveCachePoseNodes.Num(); NodeIndex++)
-	{
-		FNodeDebugData& CachePoseDebugData = RootNodePtr->SaveCachePoseNodes[NodeIndex];
- 		if (CachePoseDebugData.CachePoseName == InCachePoseName)
-		{
-			if (CachePoseDebugData.AbsoluteWeight >= AbsoluteWeight)
-			{
-				return nullptr;
-			}	
-
-			CachePoseDebugData.AbsoluteWeight = AbsoluteWeight;
-			CachePoseDebugData.NodeChain.Empty(ANIM_NODE_DEBUG_MAX_CHAIN);
-			return &CachePoseDebugData;
-		}
-	}
-
-	RootNodePtr->SaveCachePoseNodes.Add( FNodeDebugData(AnimInstance, AbsoluteWeight, FString(), RootNodePtr) );
-	RootNodePtr->SaveCachePoseNodes.Last().CachePoseName = InCachePoseName;
+	RootNodePtr->SaveCachePoseNodes.Add( FNodeDebugData(AnimInstance, GlobalWeight, FString(), RootNodePtr) );
 	RootNodePtr->SaveCachePoseNodes.Last().NodeChain.Reserve(ANIM_NODE_DEBUG_MAX_CHAIN);
 	return &RootNodePtr->SaveCachePoseNodes.Last();
 }

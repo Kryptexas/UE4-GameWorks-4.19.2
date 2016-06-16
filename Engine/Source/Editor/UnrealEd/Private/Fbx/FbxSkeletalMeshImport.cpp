@@ -2721,13 +2721,13 @@ bool UnFbx::FFbxImporter::ImportSkeletalMeshLOD(USkeletalMesh* InSkeletalMesh, U
 
 	// Enforce LODs having only single-influence vertices.
 	bool bCheckSingleInfluence;
-	GConfig->GetBool(TEXT("AnimSetViewer"), TEXT("CheckSingleInfluenceLOD"), bCheckSingleInfluence, GEditorIni);
+	GConfig->GetBool(TEXT("ImportSetting"), TEXT("CheckSingleInfluenceLOD"), bCheckSingleInfluence, GEditorIni);
 	if (bCheckSingleInfluence &&
 		DesiredLOD > 0)
 	{
-		for (int32 ChunkIndex = 0; ChunkIndex < NewLODModel.Chunks.Num(); ChunkIndex++)
+		for (int32 SectionIndex = 0; SectionIndex < NewLODModel.Sections.Num(); SectionIndex++)
 		{
-			if (NewLODModel.Chunks[ChunkIndex].SoftVertices.Num() > 0)
+			if (NewLODModel.Sections[SectionIndex].SoftVertices.Num() > 0)
 			{
 				AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText(LOCTEXT("LODHasSoftVertices", "Warning: The mesh LOD you are importing has some vertices with more than one influence."))), FFbxErrors::SkeletalMesh_LOD_HasSoftVerts);
 			}
@@ -2767,15 +2767,15 @@ bool UnFbx::FFbxImporter::ImportSkeletalMeshLOD(USkeletalMesh* InSkeletalMesh, U
 	}
 
 	// Fix up the chunk BoneMaps.
-	for (int32 ChunkIndex = 0; ChunkIndex < NewLODModel.Chunks.Num(); ChunkIndex++)
+	for (int32 SectionIndex = 0; SectionIndex < NewLODModel.Sections.Num(); SectionIndex++)
 	{
-		FSkelMeshChunk& Chunk = NewLODModel.Chunks[ChunkIndex];
-		for (int32 i = 0; i < Chunk.BoneMap.Num(); i++)
+		FSkelMeshSection& Section = NewLODModel.Sections[SectionIndex];
+		for (int32 i = 0; i < Section.BoneMap.Num(); i++)
 		{
-			int32 LODBoneIndex = Chunk.BoneMap[i];
+			int32 LODBoneIndex = Section.BoneMap[i];
 			FName LODBoneName = InSkeletalMesh->RefSkeleton.GetBoneName(LODBoneIndex);
 			int32 BaseBoneIndex = BaseSkeletalMesh->RefSkeleton.FindBoneIndex(LODBoneName);
-			Chunk.BoneMap[i] = BaseBoneIndex;
+			Section.BoneMap[i] = BaseBoneIndex;
 		}
 	}
 
@@ -2801,25 +2801,17 @@ bool UnFbx::FFbxImporter::ImportSkeletalMeshLOD(USkeletalMesh* InSkeletalMesh, U
 	// To be extra-nice, we apply the difference between the root transform of the meshes to the verts.
 	FMatrix LODToBaseTransform = InSkeletalMesh->GetRefPoseMatrix(0).InverseFast() * BaseSkeletalMesh->GetRefPoseMatrix(0);
 
-	for (int32 ChunkIndex = 0; ChunkIndex < NewLODModel.Chunks.Num(); ChunkIndex++)
+	for (int32 SectionIndex = 0; SectionIndex < NewLODModel.Sections.Num(); SectionIndex++)
 	{
-		FSkelMeshChunk& Chunk = NewLODModel.Chunks[ChunkIndex];
-		// Fix up rigid verts.
-		for (int32 i = 0; i < Chunk.RigidVertices.Num(); i++)
-		{
-			Chunk.RigidVertices[i].Position = LODToBaseTransform.TransformPosition(Chunk.RigidVertices[i].Position);
-			Chunk.RigidVertices[i].TangentX = LODToBaseTransform.TransformVector(Chunk.RigidVertices[i].TangentX);
-			Chunk.RigidVertices[i].TangentY = LODToBaseTransform.TransformVector(Chunk.RigidVertices[i].TangentY);
-			Chunk.RigidVertices[i].TangentZ = LODToBaseTransform.TransformVector(Chunk.RigidVertices[i].TangentZ);
-		}
+		FSkelMeshSection& Section = NewLODModel.Sections[SectionIndex];
 
 		// Fix up soft verts.
-		for (int32 i = 0; i < Chunk.SoftVertices.Num(); i++)
+		for (int32 i = 0; i < Section.SoftVertices.Num(); i++)
 		{
-			Chunk.SoftVertices[i].Position = LODToBaseTransform.TransformPosition(Chunk.SoftVertices[i].Position);
-			Chunk.SoftVertices[i].TangentX = LODToBaseTransform.TransformVector(Chunk.SoftVertices[i].TangentX);
-			Chunk.SoftVertices[i].TangentY = LODToBaseTransform.TransformVector(Chunk.SoftVertices[i].TangentY);
-			Chunk.SoftVertices[i].TangentZ = LODToBaseTransform.TransformVector(Chunk.SoftVertices[i].TangentZ);
+			Section.SoftVertices[i].Position = LODToBaseTransform.TransformPosition(Section.SoftVertices[i].Position);
+			Section.SoftVertices[i].TangentX = LODToBaseTransform.TransformVector(Section.SoftVertices[i].TangentX);
+			Section.SoftVertices[i].TangentY = LODToBaseTransform.TransformVector(Section.SoftVertices[i].TangentY);
+			Section.SoftVertices[i].TangentZ = LODToBaseTransform.TransformVector(Section.SoftVertices[i].TangentZ);
 		}
 	}
 

@@ -254,6 +254,8 @@ protected:
 	virtual void OnConvertToSequencePlayer() override;
 	virtual void OnConvertToBlendSpaceEvaluator() override;
 	virtual void OnConvertToBlendSpacePlayer() override;
+	virtual void OnConvertToPoseBlender() override;
+	virtual void OnConvertToPoseByName() override;
 	virtual bool IsInAScriptingMode() const override;
 	virtual void OnOpenRelatedAsset() override;
 	virtual void GetCustomDebugObjects(TArray<FCustomDebugObject>& DebugList) const override;

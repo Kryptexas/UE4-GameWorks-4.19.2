@@ -3,6 +3,39 @@
 #include "CoreUObjectPrivate.h"
 #include "UObject/UTextProperty.h"
 #include "PropertyHelper.h"
+#include "PropertyTag.h"
+
+bool UTextProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty)
+{
+	// Convert serialized string to text.
+	if (Tag.Type==NAME_StrProperty) 
+	{ 
+		FString str;
+		Ar << str;
+		FText Text = FText::FromString(str);
+		Text.TextData->PersistText();
+		Text.Flags |= ETextFlag::ConvertedProperty;
+		SetPropertyValue_InContainer(Data, Text, Tag.ArrayIndex);
+		bOutAdvanceProperty = true;
+	}
+
+	// Convert serialized name to text.
+	else if (Tag.Type==NAME_NameProperty) 
+	{ 
+		FName Name;  
+		Ar << Name;
+		FText Text = FText::FromName(Name);
+		Text.Flags |= ETextFlag::ConvertedProperty;
+		SetPropertyValue_InContainer(Data, Text, Tag.ArrayIndex);
+		bOutAdvanceProperty = true;
+	}
+	else
+	{
+		bOutAdvanceProperty = false;
+	}
+
+	return bOutAdvanceProperty;
+}
 
 bool UTextProperty::Identical( const void* A, const void* B, uint32 PortFlags ) const
 {

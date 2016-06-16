@@ -1140,7 +1140,7 @@ TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomMaterialWidgetsForMater
 				SNew(STextBlock)
 				.Font(FEditorStyle::GetFontStyle("StaticMeshEditor.NormalFont"))
 				.Text(LOCTEXT("RecomputeTangent_Title", "Recompute Tangent"))
-				.ToolTipText(LOCTEXT("RecomputeTangent_Tooltip", "This feature only works if you enable skin cache (r.SkinCaching) and recompute tangent console variable(r.SkinCache.RecomputeTangents). Please note that skin cache is an experimental feature and only works if you have compute shaders."))
+				.ToolTipText(LOCTEXT("RecomputeTangent_Tooltip", "This feature only works if you enable skin cache (r.SkinCache.Mode) and recompute tangent console variable(r.SkinCache.RecomputeTangents). Please note that skin cache is an experimental feature and only works if you have compute shaders."))
 			]
 		]
 
@@ -2113,8 +2113,8 @@ void FPersonaMeshDetails::UpdateComboBoxStrings()
 			int32 ClothSection = LODModel.Sections[SecIdx].CorrespondClothSectionIndex;
 			if (ClothSection >= 0)
 			{
-				FSkelMeshChunk& Chunk = LODModel.Chunks[LODModel.Sections[ClothSection].ChunkIndex];
-				SectionAssetSubmeshIndices[SecIdx] = FClothAssetSubmeshIndex(Chunk.CorrespondClothAssetIndex, Chunk.ClothAssetSubmeshIndex);
+				FSkelMeshSection& Section = LODModel.Sections[ClothSection];
+				SectionAssetSubmeshIndices[SecIdx] = FClothAssetSubmeshIndex(Section.CorrespondClothAssetIndex, Section.ClothAssetSubmeshIndex);
 			}
 		}
 
@@ -2200,8 +2200,8 @@ void FPersonaMeshDetails::UpdateComboBoxStrings()
 				// Material index is Slot index
 				int32 SlotIdx = LODModel.Sections[SectionIdx].MaterialIndex;
 				check(SlotIdx < SectionAssetSubmeshIndices.Num());
-				FSkelMeshChunk& Chunk = LODModel.Chunks[LODModel.Sections[ClothSection].ChunkIndex];
-				SectionAssetSubmeshIndices[SlotIdx] = FClothAssetSubmeshIndex(Chunk.CorrespondClothAssetIndex, Chunk.ClothAssetSubmeshIndex);
+				FSkelMeshSection& Section = LODModel.Sections[ClothSection];
+				SectionAssetSubmeshIndices[SlotIdx] = FClothAssetSubmeshIndex(Section.CorrespondClothAssetIndex, Section.ClothAssetSubmeshIndex);
 			}
 		}
 

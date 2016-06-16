@@ -456,7 +456,7 @@ void USceneComponent::OnRegister()
 	if (bVisualizeComponent && SpriteComponent == nullptr && GetOwner() && !GetWorld()->IsGameWorld() )
 	{
 		// Create a new billboard component to serve as a visualization of the actor until there is another primitive component
-		SpriteComponent = NewObject<UBillboardComponent>(GetOwner(), NAME_None, RF_Transactional | RF_TextExportTransient);
+		SpriteComponent = NewObject<UBillboardComponent>(GetOwner(), NAME_None, RF_Transactional | RF_Transient);
 
 		SpriteComponent->Sprite = LoadObject<UTexture2D>(nullptr, TEXT("/Engine/EditorResources/EmptyActor.EmptyActor"));
 		SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
@@ -3125,7 +3125,7 @@ void USceneComponent::UpdateNavigationData()
 	if (UNavigationSystem::ShouldUpdateNavOctreeOnComponentChange() && IsRegistered())
 	{
 		UWorld* MyWorld = GetWorld();
-		if ((MyWorld == nullptr) || !MyWorld->IsGameWorld() || MyWorld->GetNetMode() < ENetMode::NM_Client)
+		if ((MyWorld == nullptr) || !MyWorld->IsGameWorld() || !MyWorld->IsNetMode(ENetMode::NM_Client))
 		{
 			// use propagated component's transform update in editor OR server game with additional navsys check
 			UNavigationSystem::UpdateComponentInNavOctree(*this);
@@ -3140,7 +3140,7 @@ void USceneComponent::PostUpdateNavigationData()
 	if (UNavigationSystem::ShouldUpdateNavOctreeOnComponentChange() && IsRegistered())
 	{
 		UWorld* MyWorld = GetWorld();
-		if ((MyWorld == nullptr) || !MyWorld->IsGameWorld() || MyWorld->GetNetMode() < ENetMode::NM_Client)
+		if ((MyWorld == nullptr) || !MyWorld->IsGameWorld() || !MyWorld->IsNetMode(ENetMode::NM_Client))
 		{
 			// use propagated component's transform update in editor OR server game with additional navsys check
 			UNavigationSystem::UpdateNavOctreeAfterMove(this);

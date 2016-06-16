@@ -1763,7 +1763,7 @@ const FAssetData* SAnimationRemapAssets::FindBestGuessMatch(const FAssetData& As
 
 		if(Data.AssetClass == AssetData.AssetClass)
 		{
-			int32 Distance = GetStringDistance(AssetData.AssetName.ToString(), Data.AssetName.ToString());
+			int32 Distance = FAnimationRuntime::GetStringDistance(AssetData.AssetName.ToString(), Data.AssetName.ToString());
 
 			if(Distance < LowestScore)
 			{
@@ -1779,62 +1779,6 @@ const FAssetData* SAnimationRemapAssets::FindBestGuessMatch(const FAssetData& As
 	}
 
 	return nullptr;
-}
-
-int32 SAnimationRemapAssets::GetStringDistance(const FString& First, const FString& Second) const
-{
-	// Finds the distance between strings, where the distance is the number of operations we would need
-	// to perform on First to match Second.
-	// Operations are: Adding a character, Removing a character, changing a character.
-
-	const int32 FirstLength = First.Len();
-	const int32 SecondLength = Second.Len();
-
-	// Already matching
-	if(First == Second)
-	{
-		return 0;
-	}
-
-	// No first string, so we need to add SecondLength characters to match
-	if(FirstLength == 0)
-	{
-		return SecondLength;
-	}
-
-	// No Second string, so we need to add FirstLength characters to match
-	if(SecondLength == 0)
-	{
-		return FirstLength;
-	}
-
-	TArray<int32> PrevRow;
-	TArray<int32> NextRow;
-	PrevRow.AddZeroed(SecondLength + 1);
-	NextRow.AddZeroed(SecondLength + 1);
-
-	// Initialise prev row to num characters we need to remove from Second
-	for(int32 I = 0 ; I < PrevRow.Num() ; ++I)
-	{
-		PrevRow[I] = I;
-	}
-
-	for(int32 I = 0 ; I < FirstLength ; ++I)
-	{
-		// Calculate current row
-		NextRow[0] = I + 1;
-
-		for(int32 J = 0 ; J < SecondLength ; ++J)
-		{
-			int32 Indicator = (First[I] == Second[J]) ? 0 : 1;
-			NextRow[J + 1] = FMath::Min3(NextRow[J] + 1, PrevRow[J + 1] + 1, PrevRow[J] + Indicator);
-		}
-
-		// Copy back
-		PrevRow = NextRow;
-	}
-
-	return NextRow[SecondLength];
 }
 
 void SAssetEntryRow::Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView)

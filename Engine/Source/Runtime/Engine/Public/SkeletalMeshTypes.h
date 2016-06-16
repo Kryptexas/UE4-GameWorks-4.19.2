@@ -14,9 +14,6 @@
 #include "GPUSkinPublicDefs.h"
 #include "PrimitiveSceneProxy.h"
 #include "Materials/MaterialInterface.h"
-
-typedef uint16 FBoneIndexType;
-
 #include "ReferenceSkeleton.h"
 
 class FRawStaticIndexBuffer16or32Interface;
@@ -56,6 +53,29 @@ enum ECustomSortAlternateIndexMode
 	CSAIM_Right = 2,
 };
 
+
+// Custom serialization version for RecomputeTangent
+struct FSkeletalMeshCustomVersion
+{
+	enum Type
+	{
+		// Before any version changes were made
+		BeforeCustomVersionWasAdded = 0,
+		// Remove Chunks array in FStaticLODModel and combine with Sections array
+		CombineSectionWithChunk = 1,
+		// Remove FRigidSkinVertex and combine with FSoftSkinVertex array
+		CombineSoftAndRigidVerts = 2,
+		// -----<new versions can be added above this line>-------------------------------------------------
+		VersionPlusOne,
+		LatestVersion = VersionPlusOne - 1
+	};
+
+	// The GUID for this custom version number
+	const static FGuid GUID;
+
+private:
+	FSkeletalMeshCustomVersion() {}
+};
 
 class USkeletalMesh;
 
@@ -191,6 +211,9 @@ struct FSoftSkinVertex
 	uint8			InfluenceBones[MAX_TOTAL_INFLUENCES];
 	uint8			InfluenceWeights[MAX_TOTAL_INFLUENCES];
 
+	/** If this vert is rigidly weighted to a bone, return true and the bone index. Otherwise return false. */
+	ENGINE_API bool GetRigidWeightBone(uint8& OutBoneIndex) const;
+
 	/**
 	* Serializer
 	*
@@ -201,29 +224,7 @@ struct FSoftSkinVertex
 	friend FArchive& operator<<(FArchive& Ar,FSoftSkinVertex& V);
 };
 
-//
-//	FRigidSkinVertex
-//
 
-struct FRigidSkinVertex
-{
-	FVector			Position;
-	FPackedNormal	TangentX,	// Tangent, U-direction
-					TangentY,	// Binormal, V-direction
-					TangentZ;	// Normal
-	FVector2D		UVs[MAX_TEXCOORDS]; // UVs
-	FColor			Color;		// Vertex color.
-	uint8			Bone;
-
-	/**
-	* Serializer
-	*
-	* @param Ar - archive to serialize with
-	* @param V - vertex to serialize
-	* @return archive that was used
-	*/
-	friend FArchive& operator<<(FArchive& Ar,FRigidSkinVertex& V);
-};
 
 /**
  * A structure for holding the APEX cloth physical-to-render mapping data
@@ -315,145 +316,6 @@ struct FApexClothBoneSphereData
 	FVector LocalPos;
 };
 
-/**
- * A set of the skeletal mesh vertices which use the same set of <MAX_GPUSKIN_BONES bones.
- * In practice, there is a 1:1 mapping between chunks and sections, but for meshes which
- * were imported before chunking was implemented, there will be a single chunk for all
- * sections.
- */
-struct FSkelMeshChunk
-{
-	/** The offset into the LOD's vertex buffer of this chunk's vertices. */
-	uint32 BaseVertexIndex;
-
-	/** The rigid vertices of this chunk. */
-	TArray<FRigidSkinVertex> RigidVertices;
-
-	/** The soft vertices of this chunk. */
-	TArray<FSoftSkinVertex> SoftVertices;
-
-	/** The extra vertex data for mapping to an APEX clothing simulation mesh. */
-	TArray<FApexClothPhysToRenderVertData> ApexClothMappingData;
-
-	/** The physical mesh vertices imported from the APEX file. */
-	TArray<FVector> PhysicalMeshVertices;
-
-	/** The physical mesh normals imported from the APEX file. */
-	TArray<FVector> PhysicalMeshNormals;
-
-	/** The bones which are used by the vertices of this chunk. Indices of bones in the USkeletalMesh::RefSkeleton array */
-	TArray<FBoneIndexType> BoneMap;
-
-	/** The number of rigid vertices in this chunk */
-	int32 NumRigidVertices;
-	/** The number of soft vertices in this chunk */
-	int32 NumSoftVertices;
-
-	/** max # of bones used to skin the vertices in this chunk */
-	int32 MaxBoneInfluences;
-
-	// INDEX_NONE if not set
-	int16 CorrespondClothAssetIndex;
-	// INDEX_NONE if not set
-	int16 ClothAssetSubmeshIndex;
-
-	FSkelMeshChunk()
-		: BaseVertexIndex(0)
-		, NumRigidVertices(0)
-		, NumSoftVertices(0)
-		, MaxBoneInfluences(4)
-		, CorrespondClothAssetIndex(INDEX_NONE)
-		, ClothAssetSubmeshIndex(INDEX_NONE)
-	{}
-
-	FSkelMeshChunk(const FSkelMeshChunk& Other)
-	{
-		BaseVertexIndex = Other.BaseVertexIndex;
-		RigidVertices = Other.RigidVertices;
-		SoftVertices = Other.SoftVertices;
-		ApexClothMappingData = Other.ApexClothMappingData;
-		PhysicalMeshVertices = Other.PhysicalMeshVertices;
-		PhysicalMeshNormals = Other.PhysicalMeshNormals;
-		BoneMap = Other.BoneMap;
-		NumRigidVertices = Other.NumRigidVertices;
-		NumSoftVertices = Other.NumSoftVertices;
-		MaxBoneInfluences = Other.MaxBoneInfluences;
-		CorrespondClothAssetIndex = Other.CorrespondClothAssetIndex;
-		ClothAssetSubmeshIndex = Other.ClothAssetSubmeshIndex;
-	}
-
-	/**
-	* @return total num rigid verts for this chunk
-	*/
-	FORCEINLINE int32 GetNumRigidVertices() const
-	{
-		return NumRigidVertices;
-	}
-
-	/**
-	* @return total num soft verts for this chunk
-	*/
-	FORCEINLINE int32 GetNumSoftVertices() const
-	{
-		return NumSoftVertices;
-	}
-
-	/**
-	* @return total number of soft and rigid verts for this chunk
-	*/
-	FORCEINLINE int32 GetNumVertices() const
-	{
-		return GetNumRigidVertices() + GetNumSoftVertices();
-	}
-
-	/**
-	* @return starting index for rigid verts for this chunk in the LOD vertex buffer
-	*/
-	FORCEINLINE int32 GetRigidVertexBufferIndex() const
-	{
-		return BaseVertexIndex;
-	}
-
-	/**
-	* @return starting index for soft verts for this chunk in the LOD vertex buffer
-	*/
-	FORCEINLINE int32 GetSoftVertexBufferIndex() const
-	{
-		return BaseVertexIndex + NumRigidVertices;
-	}
-
-	/**
-	* @return TRUE if we have cloth data for this chunk
-	*/
-	FORCEINLINE bool HasApexClothData() const
-	{
-		return (ApexClothMappingData.Num() > 0);
-	}
-
-	FORCEINLINE void SetClothSubmeshIndex(int16 AssetIndex, int16 AssetSubmeshIndex)
-	{
-		CorrespondClothAssetIndex = AssetIndex;
-		ClothAssetSubmeshIndex = AssetSubmeshIndex;
-	}
-
-	/**
-	* Calculate max # of bone influences used by this skel mesh chunk
-	*/
-	ENGINE_API void CalcMaxBoneInfluences();
-
-	FORCEINLINE bool HasExtraBoneInfluences() const
-	{
-		return MaxBoneInfluences > MAX_INFLUENCES_PER_STREAM;
-	}
-
-	/**
-	* Serialize this class
-	* @param Ar - archive to serialize to
-	* @param C - skel mesh chunk to serialize
-	*/
-	friend FArchive& operator<<(FArchive& Ar,FSkelMeshChunk& C);
-};
-
 
 /** Helper to convert the above enum to string */
 static const TCHAR* TriangleSortOptionToString(ETriangleSortOption Option)
@@ -476,15 +338,12 @@ static const TCHAR* TriangleSortOptionToString(ETriangleSortOption Option)
 }
 
 /**
- * A set of skeletal mesh triangles which use the same material and chunk.
+ * A set of skeletal mesh triangles which use the same material
  */
 struct FSkelMeshSection
 {
 	/** Material (texture) used for this section. */
 	uint16 MaterialIndex;
-
-	/** The chunk that vertices for this section are from. */
-	uint16 ChunkIndex;
 
 	/** The offset of this section's indices in the LOD's index buffer. */
 	uint32 BaseIndex;
@@ -514,9 +373,35 @@ struct FSkelMeshSection
 	/** no need anymore because each clothing LOD will be assigned to each mesh LOD  */
 	uint8 bEnableClothLOD_DEPRECATED;
 
+	/** The offset into the LOD's vertex buffer of this section's vertices. */
+	uint32 BaseVertexIndex;
+
+	/** The soft vertices of this section. */
+	TArray<FSoftSkinVertex> SoftVertices;
+
+	/** The extra vertex data for mapping to an APEX clothing simulation mesh. */
+	TArray<FApexClothPhysToRenderVertData> ApexClothMappingData;
+
+	/** The physical mesh vertices imported from the APEX file. */
+	TArray<FVector> PhysicalMeshVertices;
+
+	/** The physical mesh normals imported from the APEX file. */
+	TArray<FVector> PhysicalMeshNormals;
+
+	/** The bones which are used by the vertices of this section. Indices of bones in the USkeletalMesh::RefSkeleton array */
+	TArray<FBoneIndexType> BoneMap;
+
+	/** max # of bones used to skin the vertices in this section */
+	int32 MaxBoneInfluences;
+
+	// INDEX_NONE if not set
+	int16 CorrespondClothAssetIndex;
+	// INDEX_NONE if not set
+	int16 ClothAssetSubmeshIndex;
+
+
 	FSkelMeshSection()
 		: MaterialIndex(0)
-		, ChunkIndex(0)
 		, BaseIndex(0)
 		, NumTriangles(0)
 		, TriangleSorting(0)
@@ -524,12 +409,56 @@ struct FSkelMeshSection
 		, bRecomputeTangent(false)
 		, bDisabled(false)
 		, CorrespondClothSectionIndex(-1)
+		, BaseVertexIndex(0)
+		, MaxBoneInfluences(4)
+		, CorrespondClothAssetIndex(INDEX_NONE)
+		, ClothAssetSubmeshIndex(INDEX_NONE)
 	{}
+
+
+	/**
+	* @return total num rigid verts for this section
+	*/
+	FORCEINLINE int32 GetNumVertices() const
+	{
+		return SoftVertices.Num();
+	}
+
+	/**
+	* @return starting index for rigid verts for this section in the LOD vertex buffer
+	*/
+	FORCEINLINE int32 GetVertexBufferIndex() const
+	{
+		return BaseVertexIndex;
+	}
+
+	/**
+	* @return TRUE if we have cloth data for this section
+	*/
+	FORCEINLINE bool HasApexClothData() const
+	{
+		return (ApexClothMappingData.Num() > 0);
+	}
+
+	FORCEINLINE void SetClothSubmeshIndex(int16 AssetIndex, int16 AssetSubmeshIndex)
+	{
+		CorrespondClothAssetIndex = AssetIndex;
+		ClothAssetSubmeshIndex = AssetSubmeshIndex;
+	}
+
+	/**
+	* Calculate max # of bone influences used by this skel mesh section
+	*/
+	ENGINE_API void CalcMaxBoneInfluences();
+
+	FORCEINLINE bool HasExtraBoneInfluences() const
+	{
+		return MaxBoneInfluences > MAX_INFLUENCES_PER_STREAM;
+	}
 
 	// Serialization.
 	friend FArchive& operator<<(FArchive& Ar, FSkelMeshSection& S);
 };
-template <> struct TIsPODType<FSkelMeshSection> { enum { Value = true }; };
 
 /**
 * Base vertex data for GPU skinned skeletal meshes
@@ -1535,9 +1464,6 @@ public:
 	/** Sections. */
 	TArray<FSkelMeshSection> Sections;
 
-	/** The vertex chunks which make up this LOD. */
-	TArray<FSkelMeshChunk> Chunks;
-
 	/** 
 	* Bone hierarchy subset active for this chunk.
 	* This is a map between the bones index of this LOD (as used by the vertex structs) and the bone index in the reference skeleton of this SkeletalMesh.
@@ -1655,8 +1581,15 @@ public:
 	/** Utility function for returning total number of faces in this LOD. */
 	ENGINE_API int32 GetTotalFaces() const;
 
-	/** Utility for finding the chunk that a particular vertex is in. */
-	ENGINE_API void GetChunkAndSkinType(int32 InVertIndex, int32& OutChunkIndex, int32& OutVertIndex, bool& bOutSoftVert, bool& bOutHasExtraBoneInfluences) const;
+	DEPRECATED(4.13, "Please use GetSectionFromVertIndex.")
+	ENGINE_API void GetChunkAndSkinType(int32 InVertIndex, int32& OutChunkIndex, int32& OutVertIndex, bool& bOutSoftVert, bool& bOutHasExtraBoneInfluences) const
+	{
+		GetSectionFromVertexIndex(InVertIndex, OutChunkIndex, OutVertIndex, bOutHasExtraBoneInfluences);
+		bOutSoftVert = true;
+	}
+
+	/** Utility for finding the section that a particular vertex is in. */
+	ENGINE_API void GetSectionFromVertexIndex(int32 InVertIndex, int32& OutSectionIndex, int32& OutVertIndex, bool& bOutHasExtraBoneInfluences) const;
 
 	/**
 	 * Sort the triangles with the specified sorting method
@@ -1669,9 +1602,9 @@ public:
 	*/
 	bool HasApexClothData() const
 	{
-		for( int32 ChunkIdx=0;ChunkIdx<Chunks.Num();ChunkIdx++ )
+		for( int32 SectionIdx=0; SectionIdx<Sections.Num(); SectionIdx++ )
 		{
-			if( Chunks[ChunkIdx].HasApexClothData() )
+			if(Sections[SectionIdx].HasApexClothData() )
 			{
 				return true;
 			}
@@ -1679,16 +1612,16 @@ public:
 		return false;
 	}
 
-	int32 GetApexClothCunkIndex(TArray<int32>& ChunkIndices) const
+	int32 GetApexClothSectionIndex(TArray<int32>& SectionIndices) const
 	{
-		ChunkIndices.Empty();
+		SectionIndices.Empty();
 
 		uint32 Count = 0;
-		for( int32 ChunkIdx=0;ChunkIdx<Chunks.Num();ChunkIdx++ )
+		for( int32 SectionIdx =0; SectionIdx<Sections.Num(); SectionIdx++ )
 		{
-			if( Chunks[ChunkIdx].HasApexClothData() )
+			if(Sections[SectionIdx].HasApexClothData() )
 			{
-				ChunkIndices.Add(ChunkIdx);
+				SectionIndices.Add(SectionIdx);
 				Count++;
 			}
 		}
@@ -1697,7 +1630,7 @@ public:
 
 	bool HasApexClothData(int32 SectionIndex) const
 	{
-		return Chunks[Sections[SectionIndex].ChunkIndex].HasApexClothData();
+		return Sections[SectionIndex].HasApexClothData();
 	}
 
 	int32 NumNonClothingSections() const
@@ -1722,11 +1655,11 @@ public:
 		return VertexBufferGPUSkin.HasExtraBoneInfluences();
 	}
 
-	bool DoChunksNeedExtraBoneInfluences() const
+	bool DoSectionsNeedExtraBoneInfluences() const
 	{
-		for (int32 ChunkIdx = 0; ChunkIdx < Chunks.Num(); ++ChunkIdx)
+		for (int32 SectionIdx = 0; SectionIdx < Sections.Num(); ++SectionIdx)
 		{
-			if (Chunks[ChunkIdx].HasExtraBoneInfluences())
+			if (Sections[SectionIdx].HasExtraBoneInfluences())
 			{
 				return true;
 			}
@@ -1737,39 +1670,23 @@ public:
 
 	// O(1)
 	// @return -1 if not found
-	uint32 FindChunkIndex(const FSkelMeshChunk& Chunk) const
+	uint32 FindSectionIndex(const FSkelMeshSection& Section) const
 	{
-		const FSkelMeshChunk* Start = Chunks.GetData();
+		const FSkelMeshSection* Start = Sections.GetData();
 
 		if(Start == nullptr)
 		{
 			return -1;
 		}
 
-		uint32 Ret = &Chunk - Start;
+		uint32 Ret = &Section - Start;
 
-		if(Ret >= (uint32)Chunks.Num())
-			{
+		if(Ret >= (uint32)Sections.Num())
+		{
 			Ret = -1;
 		}
 
 		return Ret;
-	}
-
-	// @return 0 if not found
-	const FSkelMeshSection* FindSectionForChunk(int16 ChunkIndex) const
-	{
-		for(auto& ref : Sections)
-		{
-			// should we check ranges instead?
-			if(ref.ChunkIndex == ChunkIndex)
-			{
-				return &ref;
-			}
-		}
-		// should never happen
-		ensure(0);
-		return 0;
 	}
 
 	/**
@@ -1806,9 +1723,9 @@ public:
 	void Serialize(FArchive& Ar, USkeletalMesh* Owner);
 
 	/**
-	 * Computes the maximum number of bones per chunk used to render this mesh.
+	 * Computes the maximum number of bones per section used to render this mesh.
 	 */
-	int32 GetMaxBonesPerChunk() const;
+	int32 GetMaxBonesPerSection() const;
 
 	/** Returns true if this resource must be skinned on the CPU for the given feature level. */
 	bool RequiresCPUSkinning(ERHIFeatureLevel::Type FeatureLevel) const;
@@ -1982,7 +1899,7 @@ protected:
 #endif
 
 	void GetDynamicElementsSection(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, 
-		const FStaticLODModel& LODModel, const int32 LODIndex, const FSkelMeshSection& Section, const FSkelMeshChunk& Chunk, 
+		const FStaticLODModel& LODModel, const int32 LODIndex, const int32 SectionIndex, 
 		const FSectionElementInfo& SectionElementInfo, const FTwoVectors& CustomLeftRightVectors, bool bInSelectable, FMeshElementCollector& Collector ) const;
 
 	void GetMeshElementsConditionallySelectable(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, bool bInSelectable, uint32 VisibilityMap, FMeshElementCollector& Collector) const;

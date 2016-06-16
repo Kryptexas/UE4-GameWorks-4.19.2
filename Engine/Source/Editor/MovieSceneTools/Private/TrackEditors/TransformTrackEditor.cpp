@@ -17,7 +17,7 @@
 #include "Matinee/InterpTrackMove.h"
 #include "FloatCurveKeyArea.h"
 #include "ContentBrowserModule.h"
-
+#include "Animation/AnimSequence.h"
 
 #define LOCTEXT_NAMESPACE "MovieScene_TransformTrack"
 

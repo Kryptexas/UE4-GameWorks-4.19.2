@@ -3,10 +3,11 @@
 #pragma once
 
 #include "MovieSceneSection.h"
+#include "Animation/AnimSequence.h"
 #include "MovieSceneSkeletalAnimationSection.generated.h"
 
 /**
- * Audio section, for use in the master audio, or by attached audio objects
+ * Movie scene section that control skeletal animation
  */
 UCLASS( MinimalAPI )
 class UMovieSceneSkeletalAnimationSection : public UMovieSceneSection

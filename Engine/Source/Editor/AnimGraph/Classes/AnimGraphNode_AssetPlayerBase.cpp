@@ -8,6 +8,7 @@
 #include "AnimGraphNode_SequencePlayer.h"
 #include "AnimGraphNode_RotationOffsetBlendSpace.h"
 #include "AnimGraphNode_BlendSpacePlayer.h"
+#include "AnimGraphNode_PoseBlendNode.h"
 
 bool IsAimOffsetBlendSpace(const UClass* BlendSpaceClass)
 {
@@ -35,6 +36,10 @@ UClass* GetNodeClassForAsset(const UClass* AssetClass)
 	else if (AssetClass->IsChildOf(UAnimComposite::StaticClass()))
 	{
 		return UAnimGraphNode_SequencePlayer::StaticClass();
+	}
+	else if (AssetClass->IsChildOf(UPoseAsset::StaticClass()))
+	{
+		return UAnimGraphNode_PoseBlendNode::StaticClass();
 	}
 	return nullptr;
 }

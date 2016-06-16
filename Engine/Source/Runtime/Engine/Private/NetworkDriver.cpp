@@ -976,7 +976,7 @@ ENetMode UNetDriver::GetNetMode() const
 {
 	// Special case for PIE - forcing dedicated server behavior
 #if WITH_EDITOR
-	if (IsServer() && World && World->WorldType == EWorldType::PIE)
+	if (World && World->WorldType == EWorldType::PIE && IsServer())
 	{
 		if ( GEngine->GetWorldContextFromWorldChecked(World).RunAsDedicated )
 		{

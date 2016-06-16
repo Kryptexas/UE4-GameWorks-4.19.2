@@ -41,6 +41,7 @@ public:
 	virtual bool Evaluate(FPoseContext& Output) override;
 	virtual void UpdateAnimationNode(float DeltaSeconds) override;
 	virtual void PostUpdate(UAnimInstance* InAnimInstance) const override;
+	virtual void PreUpdate(UAnimInstance* InAnimInstance, float DeltaSeconds) override;
 	virtual void InitializeObjects(UAnimInstance* InAnimInstance) override;
 	virtual void ClearObjects() override;
 
@@ -113,6 +114,7 @@ public:
 		return bCanProcessAdditiveAnimations;
 	}
 #endif
+	void SetPreviewPoseOverride(const FName& PoseName, float Value);
 
 private:
 	void InternalBlendSpaceEvaluatePose(class UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, FPoseContext& OutContext);
@@ -123,6 +125,9 @@ protected:
 	additives. But we need to be able to override this for editor preview windows */
 	bool bCanProcessAdditiveAnimations;
 #endif
+
+	/** Pose Weight value that can override curve data. In the future, we'd like to have UCurveSet that can play by default**/
+	TMap<FName, float> PreviewPoseOverride;
 
 	/** Current Asset being played. Note that this will be nullptr outside of pre/post update **/
 	UAnimationAsset* CurrentAsset;

@@ -30,6 +30,7 @@
 #include "AnimGraphNode_TransitionResult.h"
 #include "K2Node_TransitionRuleGetter.h"
 #include "K2Node_AnimGetter.h"
+#include "AnimGraphNode_StateMachine.h"
 
 #define LOCTEXT_NAMESPACE "AnimBlueprintCompiler"
 
@@ -537,6 +538,187 @@ void FAnimBlueprintCompiler::ProcessAnimationNodesGivenRoot(TArray<UAnimGraphNod
 	}
 }
 
+TAutoConsoleVariable<int32> CVarAnimDebugCachePoseNodeUpdateOrder(TEXT("a.Compiler.CachePoseNodeUpdateOrderDebug.Enable"), 0, TEXT("Toggle debugging for CacheNodeUpdateOrder debug during AnimBP compilation"));
+
+void FAnimBlueprintCompiler::BuildCachedPoseNodeUpdateOrder()
+{
+	TArray<UAnimGraphNode_Root*> RootNodes;
+	ConsolidatedEventGraph->GetNodesOfClass<UAnimGraphNode_Root>(RootNodes);
+
+	TArray<UAnimGraphNode_SaveCachedPose*> OrderedSavePoseNodes;
+
+	// State results are also "root" nodes, need to find the true root
+	UAnimGraphNode_Root* ActualRootNode = nullptr;
+	for(UAnimGraphNode_Root* PossibleRootNode : RootNodes)
+	{
+		if(PossibleRootNode->GetClass() == UAnimGraphNode_Root::StaticClass())
+		{
+			ActualRootNode = PossibleRootNode;
+			break;
+		}
+	}
+
+	const bool bEnableDebug = (CVarAnimDebugCachePoseNodeUpdateOrder.GetValueOnAnyThread() == 1);
+
+	// Should only have one root node
+	if(ActualRootNode)
+	{
+		TArray<UAnimGraphNode_Base*> VisitedRootNodes;
+	
+		UE_CLOG(bEnableDebug, LogAnimation, Display, TEXT("CachePoseNodeOrdering BEGIN")); 
+
+		CachePoseNodeOrdering_StartNewTraversal(ActualRootNode, OrderedSavePoseNodes, VisitedRootNodes);
+
+		UE_CLOG(bEnableDebug, LogAnimation, Display, TEXT("CachePoseNodeOrdering END"));
+	}
+
+	if (bEnableDebug)
+	{
+		UE_LOG(LogAnimation, Display, TEXT("Ordered Save Pose Node List:"));
+		for (UAnimGraphNode_SaveCachedPose* SavedPoseNode : OrderedSavePoseNodes)
+		{
+			UE_LOG(LogAnimation, Display, TEXT("\t%s"), *SavedPoseNode->Node.CachePoseName.ToString())
+		}
+		UE_LOG(LogAnimation, Display, TEXT("End List"));
+	}
+
+	for(UAnimGraphNode_SaveCachedPose* PoseNode : OrderedSavePoseNodes)
+	{
+		if(int32* NodeIndex = AllocatedAnimNodeIndices.Find(PoseNode))
+		{
+			NewAnimBlueprintClass->OrderedSavedPoseIndices.Add(*NodeIndex);
+		}
+		else
+		{
+			MessageLog.Error(TEXT("Failed to find index for a saved pose node while building ordered pose list."));
+		}
+	}
+}
+
+void FAnimBlueprintCompiler::CachePoseNodeOrdering_StartNewTraversal(UAnimGraphNode_Base* InRootNode, TArray<UAnimGraphNode_SaveCachedPose*> &OrderedSavePoseNodes, TArray<UAnimGraphNode_Base*> VisitedRootNodes)
+{
+	check(InRootNode);
+	UAnimGraphNode_SaveCachedPose* RootCacheNode = Cast<UAnimGraphNode_SaveCachedPose>(InRootNode);
+	FString RootName = RootCacheNode ? RootCacheNode->CacheName : InRootNode->GetName();
+
+	const bool bEnableDebug = (CVarAnimDebugCachePoseNodeUpdateOrder.GetValueOnAnyThread() == 1);
+
+	UE_CLOG(bEnableDebug, LogAnimation, Display, TEXT("StartNewTraversal %s"), *RootName);
+
+	// Track which root nodes we've visited to prevent infinite recursion.
+	VisitedRootNodes.Add(InRootNode);
+
+	// Need a list of only what we find here to recurse, we can't do that with the total list
+	TArray<UAnimGraphNode_SaveCachedPose*> InternalOrderedNodes;
+
+	// Traverse whole graph from root collecting SaveCachePose nodes we've touched.
+	CachePoseNodeOrdering_TraverseInternal(InRootNode, InternalOrderedNodes);
+
+	// Process nodes that we've touched 
+	UE_CLOG(bEnableDebug, LogAnimation, Display, TEXT("Process Queue for %s"), *RootName);
+	for (UAnimGraphNode_SaveCachedPose* QueuedCacheNode : InternalOrderedNodes)
+	{
+		if (VisitedRootNodes.Contains(QueuedCacheNode))
+		{
+			UE_CLOG(bEnableDebug, LogAnimation, Display, TEXT("Process Queue SaveCachePose %s. ALREADY VISITED, INFINITE RECURSION DETECTED! SKIPPING"), *QueuedCacheNode->CacheName);
+			MessageLog.Error(*FString::Printf(TEXT("Infinite recursion detected with SaveCachePose %s and %s"), *RootName, *QueuedCacheNode->CacheName));
+			continue;
+		}
+		else
+		{
+			OrderedSavePoseNodes.Remove(QueuedCacheNode);
+			OrderedSavePoseNodes.Add(QueuedCacheNode);
+
+			CachePoseNodeOrdering_StartNewTraversal(QueuedCacheNode, OrderedSavePoseNodes, VisitedRootNodes);
+		}
+	}
+
+	UE_CLOG(bEnableDebug, LogAnimation, Display, TEXT("EndNewTraversal %s"), *RootName);
+}
+
+void FAnimBlueprintCompiler::CachePoseNodeOrdering_TraverseInternal(UAnimGraphNode_Base* InAnimGraphNode, TArray<UAnimGraphNode_SaveCachedPose*> &OrderedSavePoseNodes)
+{
+	TArray<UAnimGraphNode_Base*> LinkedAnimNodes;
+	GetLinkedAnimNodes(InAnimGraphNode, LinkedAnimNodes);
+
+	const bool bEnableDebug = (CVarAnimDebugCachePoseNodeUpdateOrder.GetValueOnAnyThread() == 1);
+
+	for (UAnimGraphNode_Base* LinkedNode : LinkedAnimNodes)
+	{
+		UE_CLOG(bEnableDebug, LogAnimation, Display, TEXT("\t Processing %s"), *LinkedNode->GetName());
+		if (UAnimGraphNode_UseCachedPose* UsePoseNode = Cast<UAnimGraphNode_UseCachedPose>(LinkedNode))
+		{
+			if (UAnimGraphNode_SaveCachedPose* SaveNode = UsePoseNode->SaveCachedPoseNode.Get())
+			{
+				UE_CLOG(bEnableDebug, LogAnimation, Display, TEXT("\t Queueing SaveCachePose %s"), *SaveNode->CacheName);
+
+				// Requeue the node we found
+				OrderedSavePoseNodes.Remove(SaveNode);
+				OrderedSavePoseNodes.Add(SaveNode);
+			}
+		}
+		else if (UAnimGraphNode_StateMachine* StateMachineNode = Cast<UAnimGraphNode_StateMachine>(LinkedNode))
+		{
+			for (UEdGraph* StateGraph : StateMachineNode->EditorStateMachineGraph->SubGraphs)
+			{
+				TArray<UAnimGraphNode_StateResult*> ResultNodes;
+				StateGraph->GetNodesOfClass(ResultNodes);
+
+				// We should only get one here but doesn't hurt to loop here in case that changes
+				for (UAnimGraphNode_StateResult* ResultNode : ResultNodes)
+				{
+					CachePoseNodeOrdering_TraverseInternal(ResultNode, OrderedSavePoseNodes);
+				}
+			}
+		}
+		else
+		{
+			CachePoseNodeOrdering_TraverseInternal(LinkedNode, OrderedSavePoseNodes);
+		}
+	}
+}
+
+void FAnimBlueprintCompiler::GetLinkedAnimNodes(UAnimGraphNode_Base* InGraphNode, TArray<UAnimGraphNode_Base*> &LinkedAnimNodes)
+{
+	for(UEdGraphPin* Pin : InGraphNode->Pins)
+	{
+		if(Pin->Direction == EEdGraphPinDirection::EGPD_Input &&
+		   Pin->PinType.PinCategory == TEXT("struct"))
+		{
+			if(UScriptStruct* Struct = Cast<UScriptStruct>(Pin->PinType.PinSubCategoryObject.Get()))
+			{
+				if(Struct->IsChildOf(FPoseLinkBase::StaticStruct()))
+				{
+					for(UEdGraphPin* LinkedPin : Pin->LinkedTo)
+					{
+						if(UAnimGraphNode_Base* AnimNode = Cast<UAnimGraphNode_Base>(LinkedPin->GetOwningNode()))
+						{
+							if(!AllocatedAnimNodes.Contains(AnimNode))
+							{
+								UAnimGraphNode_Base* TrueSourceNode = MessageLog.FindSourceObjectTypeChecked<UAnimGraphNode_Base>(AnimNode);
+
+								if(UAnimGraphNode_Base** AllocatedNode = SourceNodeToProcessedNodeMap.Find(TrueSourceNode))
+								{
+									LinkedAnimNodes.Add(*AllocatedNode);
+								}
+								else
+								{
+									FString ErrorString = FString::Printf(*LOCTEXT("MissingLink", "Missing allocated node for %s while searching for node links - likely due to the node having outstanding errors.").ToString(), *AnimNode->GetName());
+									MessageLog.Error(*ErrorString);
+								}
+							}
+							else
+							{
+								LinkedAnimNodes.Add(AnimNode);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
 void FAnimBlueprintCompiler::ProcessAllAnimationNodes()
 {
 	// Validate the graph
@@ -625,6 +807,12 @@ void FAnimBlueprintCompiler::ProcessAllAnimationNodes()
 	else
 	{
 		MessageLog.Error(*FString::Printf(*LOCTEXT("ExpectedAFunctionEntry_Error", "Expected an animation root, but did not find one").ToString()));
+	}
+
+	if(CompileOptions.CompileType != EKismetCompileType::SkeletonOnly)
+	{
+		// Build cached pose map
+		BuildCachedPoseNodeUpdateOrder();
 	}
 }
 
@@ -1291,6 +1479,7 @@ void FAnimBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 
 	NewAnimBlueprintClass->RootAnimNodeIndex = INDEX_NONE;
 	NewAnimBlueprintClass->RootAnimNodeProperty = NULL;
+	NewAnimBlueprintClass->OrderedSavedPoseIndices.Empty();
 	NewAnimBlueprintClass->AnimNodeProperties.Empty();
 
 	// Copy over runtime data from the blueprint to the class
@@ -1307,6 +1496,7 @@ void FAnimBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 		NewAnimBlueprintClass->BakedStateMachines.Append(RootAnimClass->BakedStateMachines);
 		NewAnimBlueprintClass->AnimNotifies.Append(RootAnimClass->AnimNotifies);
 		NewAnimBlueprintClass->RootAnimNodeIndex = RootAnimClass->RootAnimNodeIndex;
+		NewAnimBlueprintClass->OrderedSavedPoseIndices = RootAnimClass->OrderedSavedPoseIndices;
 	}
 }
 
@@ -2130,6 +2320,16 @@ void FAnimBlueprintCompiler::FEvaluationHandlerRecord::RegisterPin(UEdGraphPin* 
 		}
 
 		CheckForMemberOnlyAccess(Handler, SourcePin);
+
+		// we cant copy non-POD structs, so zero-out the name here if we are trying to
+		if (AssociatedProperty && AssociatedProperty->IsA<UStructProperty>())
+		{
+			UStructProperty* SourceStructProperty = CastChecked<UStructProperty>(AssociatedProperty);
+			if (SourceStructProperty->Struct->GetCppStructOps() && !SourceStructProperty->Struct->GetCppStructOps()->IsPlainOldData())
+			{
+				Handler.SimpleCopyPropertyName = NAME_None;
+			}
+		}
 	}
 }
 

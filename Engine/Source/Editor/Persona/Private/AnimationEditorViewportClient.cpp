@@ -822,8 +822,8 @@ void FAnimationViewportClient::ShowBoneNames( FCanvas* Canvas, FSceneView* View 
 	{
 		const int32 BoneIndex = LODModel.RequiredBones[i];
 
-		// If previewing a specific chunk, only show the bone names that belong to it
-		if ((PreviewSkelMeshComp->ChunkIndexPreview >= 0) && !LODModel.Chunks[PreviewSkelMeshComp->ChunkIndexPreview].BoneMap.Contains(BoneIndex))
+		// If previewing a specific section, only show the bone names that belong to it
+		if ((PreviewSkelMeshComp->SectionIndexPreview >= 0) && !LODModel.Sections[PreviewSkelMeshComp->SectionIndexPreview].BoneMap.Contains(BoneIndex))
 		{
 			continue;
 		}
@@ -1000,7 +1000,6 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 
 			int32 NumBonesInUse;
 			int32 NumBonesMappedToVerts;
-			int32 NumChunksInUse;
 			int32 NumSectionsInUse;
 			FString WeightUsage;
 
@@ -1009,7 +1008,6 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 
 			NumBonesInUse = LODModel.RequiredBones.Num();
 			NumBonesMappedToVerts = LODModel.ActiveBoneIndices.Num();
-			NumChunksInUse = LODModel.Chunks.Num();
 			NumSectionsInUse = LODModel.Sections.Num();
 
 			// Calculate polys based on non clothing sections so we don't duplicate the counts.
@@ -1034,32 +1032,22 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 
 			CurYOffset += 1; // --
 
-			uint32 TotalRigidVertices = 0;
-			uint32 TotalSoftVertices = 0;
-			for (int32 ChunkIndex = 0; ChunkIndex < LODModel.Chunks.Num(); ChunkIndex++)
+			for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
 			{
-				int32 ChunkRigidVerts = LODModel.Chunks[ChunkIndex].GetNumRigidVertices();
-				int32 ChunkSoftVerts = LODModel.Chunks[ChunkIndex].GetNumSoftVertices();
+				int32 SectionVerts = LODModel.Sections[SectionIndex].GetNumVertices();
 
-				InfoString = FString::Printf(TEXT(" [Chunk %d] Verts:%d (Rigid:%d Soft:%d), Bones:%d"),
-					ChunkIndex,
-					ChunkRigidVerts + ChunkSoftVerts,
-					ChunkRigidVerts,
-					ChunkSoftVerts,
-					LODModel.Chunks[ChunkIndex].BoneMap.Num()
+				InfoString = FString::Printf(TEXT(" [Section %d] Verts:%d, Bones:%d"),
+					SectionIndex,
+					SectionVerts,
+					LODModel.Sections[SectionIndex].BoneMap.Num()
 					);
 
 				CurYOffset += YL + 2;
 				Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor*0.8f);
-
-				TotalRigidVertices += ChunkRigidVerts;
-				TotalSoftVertices += ChunkSoftVerts;
 			}
 
-			InfoString = FString::Printf(TEXT("TOTAL Verts:%d (Rigid:%d Soft:%d)"),
-				LODModel.NumVertices,
-				TotalRigidVertices,
-				TotalSoftVertices);
+			InfoString = FString::Printf(TEXT("TOTAL Verts:%d"),
+				LODModel.NumVertices);
 
 			CurYOffset += 1; // --
 
@@ -1067,8 +1055,7 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 			CurYOffset += YL + 2;
 			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
 
-			InfoString = FString::Printf(TEXT("Chunks:%d, Sections:%d %s"),
-				NumChunksInUse,
+			InfoString = FString::Printf(TEXT("Sections:%d %s"),
 				NumSectionsInUse,
 				*WeightUsage
 				);

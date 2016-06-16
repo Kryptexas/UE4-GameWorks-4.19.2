@@ -34,6 +34,7 @@
 #include "EngineLogs.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "PersonaModule.h"
+#include "Animation/AnimSequence.h"
 
 const FName PhATAppIdentifier = FName(TEXT("PhATApp"));
 

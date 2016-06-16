@@ -114,6 +114,18 @@ void FNameEntry::AppendNameToString( FString& String ) const
 	}
 }
 
+void FNameEntry::AppendNameToPathString(FString& String) const
+{
+	if (IsWide())
+	{
+		String /= WideName;
+	}
+	else
+	{
+		String /= AnsiName;
+	}
+}
+
 /**
  * @return length of name
  */

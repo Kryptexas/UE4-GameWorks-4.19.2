@@ -29,6 +29,12 @@ struct CORE_API FFrameworkObjectVersion
 		// which causes issues with undo. Restore the flag at this version
 		FixNonTransactionalPins,
 
+		// Create new struct for SmartName, and use that for CurveName
+		SmartNameRefactor,
+		
+		// Add Reference Skeleton to Rig
+		AddSourceReferenceSkeletonToRig, 
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

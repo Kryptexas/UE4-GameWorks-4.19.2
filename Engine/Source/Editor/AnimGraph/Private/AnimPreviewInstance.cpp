@@ -129,8 +129,7 @@ bool FAnimPreviewInstanceProxy::Evaluate(FPoseContext& Output)
 	if (bEnableControllers)
 	{
 		UDebugSkelMeshComponent* Component = Cast<UDebugSkelMeshComponent>(GetSkelMeshComponent());
-
-		if(Component && GetSkeleton())
+		if(Component)
 		{
 			// update curve controllers
 			UpdateCurveController();
@@ -208,10 +207,7 @@ void FAnimPreviewInstanceProxy::RefreshCurveBoneControllers(UAnimationAsset* Ass
 		GetRequiredBones().SetUseSourceData(true);
 
 		TArray<FTransformCurve>& Curves = CurrentSequence->RawCurveData.TransformCurves;
-		USkeleton* LocalSkeleton = CurrentSequence->GetSkeleton();
-
-		const FSmartNameMapping* NameMapping = LocalSkeleton->GetSmartNameContainer(USkeleton::AnimTrackCurveMappingName);
-
+		USkeleton* MySkeleton = CurrentSequence->GetSkeleton();
 		for (auto& Curve : Curves)
 		{
 			// skip if disabled
@@ -221,21 +217,8 @@ void FAnimPreviewInstanceProxy::RefreshCurveBoneControllers(UAnimationAsset* Ass
 			}
 
 			// add bone modifier
-			FName CurveName;
-			NameMapping->GetName(Curve.CurveUid, CurveName);
-
-			// @TODO: this is going to be issue. If they don't save skeleton with it, we don't have name at all?
- 			if (CurveName == NAME_None)
- 			{
-				FSmartNameMapping::UID NewUID;
-				LocalSkeleton->AddSmartNameAndModify(USkeleton::AnimTrackCurveMappingName, Curve.LastObservedName, NewUID);
-				Curve.CurveUid = NewUID;
-
-				CurveName = Curve.LastObservedName;
- 			}
-
-			FName BoneName = CurveName;
-			if (BoneName != NAME_None && LocalSkeleton->GetReferenceSkeleton().FindBoneIndex(BoneName) != INDEX_NONE)
+			FName BoneName = Curve.Name.DisplayName;
+			if (BoneName != NAME_None && MySkeleton->GetReferenceSkeleton().FindBoneIndex(BoneName) != INDEX_NONE)
 			{
 				ModifyBone(BoneName, true);
 			}
@@ -247,11 +230,11 @@ void FAnimPreviewInstanceProxy::UpdateCurveController()
 {
 	// evaluate the curve data first
 	UAnimSequenceBase* CurrentSequence = Cast<UAnimSequenceBase>(CurrentAsset);
-
-	if (CurrentSequence && GetSkeleton())
+	USkeleton* PreviewSkeleton = (CurrentSequence) ? CurrentSequence->GetSkeleton() : nullptr;
+	if (CurrentSequence && PreviewSkeleton)
 	{
 		TMap<FName, FTransform> ActiveCurves;
-		CurrentSequence->RawCurveData.EvaluateTransformCurveData(GetSkeleton(), ActiveCurves, GetCurrentTime(), 1.f);
+		CurrentSequence->RawCurveData.EvaluateTransformCurveData(PreviewSkeleton, ActiveCurves, GetCurrentTime(), 1.f);
 
 		// make sure those curves exists in the bone controller, otherwise problem
 		if ( ActiveCurves.Num() > 0 )
@@ -314,7 +297,8 @@ void FAnimPreviewInstanceProxy::SetKeyImplementation(const FCompactPose& PreCont
 	UAnimSequence* CurrentSequence = Cast<UAnimSequence>(CurrentAsset);
 	UDebugSkelMeshComponent* Component = Cast<UDebugSkelMeshComponent> (GetSkelMeshComponent());
 
-	if(CurrentSequence && GetSkeleton() && Component && Component->SkeletalMesh)
+	USkeleton* PreviewSkeleton = (CurrentSequence) ? CurrentSequence->GetSkeleton() : nullptr;
+	if(CurrentSequence && PreviewSkeleton && Component && Component->SkeletalMesh)
 	{
 		FScopedTransaction ScopedTransaction(LOCTEXT("SetKey", "Set Key"));
 		CurrentSequence->Modify(true);

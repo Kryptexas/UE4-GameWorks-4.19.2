@@ -6,6 +6,7 @@
 #include "AnimationGraphSchema.h"
 #include "BlueprintNodeSpawner.h"
 #include "BlueprintActionDatabaseRegistrar.h"
+#include "Animation/AnimInstance.h"
 
 /////////////////////////////////////////////////////
 // FA3NodeOptionalPinManager

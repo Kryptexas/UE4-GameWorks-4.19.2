@@ -976,7 +976,7 @@ FString FNativeClassHeaderGenerator::PropertyNew(FString& Meta, UProperty* Prop,
 	}
 	else if (UBoolProperty* BoolProperty = Cast<UBoolProperty>(Prop))
 	{
-		if (Cast<UArrayProperty>(BoolProperty->GetOuter()) || Cast<UMapProperty>(BoolProperty->GetOuter()))
+		if (Cast<UArrayProperty>(BoolProperty->GetOuter()) || Cast<UMapProperty>(BoolProperty->GetOuter()) || Cast<USetProperty>(BoolProperty->GetOuter()))
 		{
 			ExtraArgs = FString(TEXT(", 0"));  // this is an array of C++ bools so the mask is irrelevant.
 		}
@@ -1151,12 +1151,19 @@ void FNativeClassHeaderGenerator::OutputProperty(FString& Meta, FOutputDevice& O
 		OutputDevice.Log(*PropertyNew(Meta, ArrayProperty->Inner, InnerOuterString, PropMacroOuterArray, TEXT("_Inner"), Spaces));
 	}
 
-	if (UMapProperty* MapProperty = Cast<UMapProperty>(Prop))
+	else if (UMapProperty* MapProperty = Cast<UMapProperty>(Prop))
 	{
 		FString InnerOuterString = FString::Printf(TEXT("NewProp_%s"), *PropName);
 		FString PropMacroOuterMap = TEXT("FObjectInitializer(), EC_CppProperty, ");
 		OutputDevice.Log(*PropertyNew(Meta, MapProperty->KeyProp,   InnerOuterString, PropMacroOuterMap + TEXT("0"), TEXT("_KeyProp"),   Spaces));
 		OutputDevice.Log(*PropertyNew(Meta, MapProperty->ValueProp, InnerOuterString, PropMacroOuterMap + TEXT("1"), TEXT("_ValueProp"), Spaces));
+	}
+
+	else if (USetProperty* SetProperty = Cast<USetProperty>(Prop))
+	{
+		FString InnerOuterString = FString::Printf(TEXT("NewProp_%s"), *Prop->GetName());
+		FString PropMacroOuterArray = TEXT("FObjectInitializer(), EC_CppProperty, 0");
+		OutputDevice.Log(*PropertyNew(Meta, SetProperty->ElementProp, InnerOuterString, PropMacroOuterArray, TEXT("_ElementProp"), Spaces));
 	}
 }
 
@@ -1221,6 +1228,13 @@ static void FindNoExportStructs(TArray<UScriptStruct*>& Structs, UStruct* Start)
 				if (UStructProperty* ValueStructProp = Cast<UStructProperty>(MapProp->ValueProp))
 				{
 					FindNoExportStructs(Structs, ValueStructProp->Struct);
+				}
+			}
+			else if (USetProperty* SetProp = Cast<USetProperty>(Prop))
+			{
+				if (UStructProperty* ElementStructProp = Cast<UStructProperty>(SetProp->ElementProp))
+				{
+					FindNoExportStructs(Structs, ElementStructProp->Struct);
 				}
 			}
 		}
@@ -3399,9 +3413,13 @@ void ExportProtoDeclaration(FOutputDevice& Out, const FString& MessageName, TFie
 					FError::Throwf(TEXT("ExportProtoDeclaration - Unhandled property type '%s': %s"), *PropClass->GetName(), *Property->GetPathName());
 				}
 			}
-			else if (UMapProperty* MapProperty = Cast<UMapProperty>(Property))
+			else if (Property->IsA<UMapProperty>())
 			{
 				FError::Throwf(TEXT("ExportProtoDeclaration - Map properties not yet supported '%s': %s"), *PropClass->GetName(), *Property->GetPathName());
+			}
+			else if (Property->IsA<USetProperty>())
+			{
+				FError::Throwf(TEXT("ExportProtoDeclaration - Set properties not yet supported '%s': %s"), *PropClass->GetName(), *Property->GetPathName());
 			}
 			else if(Property->ArrayDim != 1)
 			{
@@ -3583,6 +3601,12 @@ void ExportMCPDeclaration(FOutputDevice& Out, const FString& MessageName, TField
 			// TODO Implement maps
 			UMapProperty* MapProperty = Cast<UMapProperty>(Property);
 			if (MapProperty != NULL)
+			{
+				continue;
+			}
+			// TODO Implement sets
+			USetProperty* SetProperty = Cast<USetProperty>(Property);
+			if (SetProperty != NULL)
 			{
 				continue;
 			}
@@ -3816,6 +3840,7 @@ void FNativeClassHeaderGenerator::ExportEventParm(UFunction* Function, FUHTStrin
 			Cast<UTextProperty>(Prop) ||
 			Cast<UArrayProperty>(Prop) ||
 			Cast<UMapProperty>(Prop) ||
+			Cast<USetProperty>(Prop) ||
 			Cast<UInterfaceProperty>(Prop)
 			)
 		{
@@ -3891,6 +3916,7 @@ FString FNativeClassHeaderGenerator::GetNullParameterValue( UProperty* Prop, boo
 	}
 	else if ( PropClass == UArrayProperty::StaticClass()
 		||    PropClass == UMapProperty::StaticClass()
+		||    PropClass == USetProperty::StaticClass()
 		||    PropClass == UDelegateProperty::StaticClass()
 		||    PropClass == UMulticastDelegateProperty::StaticClass() )
 	{

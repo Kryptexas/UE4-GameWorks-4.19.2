@@ -92,9 +92,21 @@ bool APhysicsVolume::IsOverlapInVolume(const class USceneComponent& TestComponen
 	if (!bPhysicsOnContact)
 	{
 		FVector ClosestPoint(0.f);
+		// If there is no primitive component as root we consider you inside the volume. This is odd, but the behavior 
+		// has existed for a long time, so keeping it this way
 		UPrimitiveComponent* RootPrimitive = Cast<UPrimitiveComponent>(GetRootComponent());
-		const float DistToCollision = RootPrimitive ? RootPrimitive->GetDistanceToCollision(TestComponent.GetComponentLocation(), ClosestPoint) : 0.f;
-		bInsideVolume = (DistToCollision == 0.f);
+		if (RootPrimitive)
+		{
+			float DistToCollisionSqr = -1.f;
+			if (RootPrimitive->GetSquaredDistanceToCollision(TestComponent.GetComponentLocation(), DistToCollisionSqr, ClosestPoint))
+			{
+				bInsideVolume = (DistToCollisionSqr == 0.f);
+			}
+			else
+			{
+				bInsideVolume = false;
+			}
+		}
 	}
 
 	return bInsideVolume;

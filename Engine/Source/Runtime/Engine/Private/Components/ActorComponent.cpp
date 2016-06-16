@@ -319,7 +319,7 @@ bool UActorComponent::ComponentHasTag(FName Tag) const
 }
 
 
-ENetMode UActorComponent::GetNetMode() const
+ENetMode UActorComponent::InternalGetNetMode() const
 {
 	AActor* MyOwner = GetOwner();
 	return MyOwner ? MyOwner->GetNetMode() : NM_Standalone;
@@ -1514,11 +1514,6 @@ ENetRole UActorComponent::GetOwnerRole() const
 {
 	AActor* MyOwner = GetOwner();
 	return (MyOwner ? MyOwner->Role.GetValue() : ROLE_None);
-}
-
-bool UActorComponent::IsNetSimulating() const
-{
-	return GetIsReplicated() && GetOwnerRole() != ROLE_Authority;
 }
 
 void UActorComponent::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const

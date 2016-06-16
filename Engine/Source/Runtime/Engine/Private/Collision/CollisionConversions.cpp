@@ -41,10 +41,10 @@ extern TAutoConsoleVariable<int32> CVarShowInitialOverlaps;
 // Sentinel for invalid query results.
 static const PxQueryHit InvalidQueryHit;
 
-static bool IsInvalidFaceIndex(PxU32 faceIndex)
+FORCEINLINE_DEBUGGABLE bool IsInvalidFaceIndex(PxU32 faceIndex)
 {
-	checkf(InvalidQueryHit.faceIndex == 0xFFFFffff, TEXT("Engine code needs fixing: PhysX invalid face index sentinel has changed or is not part of default PxQueryHit!"));
-	return (faceIndex == InvalidQueryHit.faceIndex);
+	checkfSlow(InvalidQueryHit.faceIndex == 0xFFFFffff, TEXT("Engine code needs fixing: PhysX invalid face index sentinel has changed or is not part of default PxQueryHit!"));
+	return (faceIndex == 0xFFFFffff);
 }
 
 // Forward declare, I don't want to move the entire function right now or we lose change history.

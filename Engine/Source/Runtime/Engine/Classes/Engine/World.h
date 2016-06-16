@@ -2573,13 +2573,30 @@ public:
 	 * @param NetDriverName the name of the net driver being asked for
 	 * @return a pointer to the net driver or NULL if the named driver is not found
 	 */
-	UNetDriver* GetNetDriver() const
+	FORCEINLINE_DEBUGGABLE UNetDriver* GetNetDriver() const
 	{
 		return NetDriver;
 	}
 
-	/** Returns the net mode this world is running under */
+	/**
+	 * Returns the net mode this world is running under.
+	 * @see IsNetMode()
+	 */
 	ENetMode GetNetMode() const;
+
+	/**
+	* Test whether net mode is the given mode.
+	* In optimized non-editor builds this can be more efficient than GetNetMode()
+	* because it can check the static build flags without considering PIE.
+	*/
+	bool IsNetMode(ENetMode Mode) const;
+
+private:
+
+	/** Private version without inlining that does *not* check Dedicated server build flags (which should already have been done). */
+	ENetMode InternalGetNetMode() const;
+
+public:
 
 #if WITH_EDITOR
 	/** Attempts to derive the net mode from PlayInSettings for PIE*/
@@ -2999,4 +3016,32 @@ FORCEINLINE_DEBUGGABLE bool UWorld::ComponentSweepMulti(TArray<struct FHitResult
 	return ComponentSweepMulti(OutHits, PrimComp, Start, End, Rot.Quaternion(), Params);
 }
 
+FORCEINLINE_DEBUGGABLE ENetMode UWorld::GetNetMode() const
+{
+	// IsRunningDedicatedServer() is a compile-time check in optimized non-editor builds.
+	if (IsRunningDedicatedServer())
+	{
+		return NM_DedicatedServer;
+	}
+
+	return InternalGetNetMode();
+}
+
+FORCEINLINE_DEBUGGABLE bool UWorld::IsNetMode(ENetMode Mode) const
+{
+#if UE_EDITOR
+	// Editor builds are special because of PIE, which can run a dedicated server without the app running with -server.
+	return GetNetMode() == Mode;
+#else
+	// IsRunningDedicatedServer() is a compile-time check in optimized non-editor builds.
+	if (Mode == NM_DedicatedServer)
+	{
+		return IsRunningDedicatedServer();
+	}
+	else
+	{
+		return !IsRunningDedicatedServer() && (InternalGetNetMode() == Mode);
+	}
+#endif
+}
 

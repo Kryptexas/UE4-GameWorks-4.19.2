@@ -12,6 +12,7 @@
 #include "PImplRecastNavMesh.h"
 #include "SurfaceIterators.h"
 #include "AI/Navigation/NavMeshBoundsVolume.h"
+#include "AI/NavigationOctree.h"
 
 // recast includes
 #include "Recast.h"

@@ -2958,7 +2958,11 @@ UAudioComponent* FAudioDevice::CreateComponent(USoundBase* Sound, UWorld* World,
 		{
 			AudioDevice = GEngine->GetMainAudioDevice();
 		}
-		check(AudioDevice != nullptr);
+		
+		if (AudioDevice == nullptr)
+		{
+			return nullptr;
+		}
 
 		// Avoid creating component if we're trying to play a sound on an already destroyed actor.
 		if (Actor && Actor->IsPendingKill())

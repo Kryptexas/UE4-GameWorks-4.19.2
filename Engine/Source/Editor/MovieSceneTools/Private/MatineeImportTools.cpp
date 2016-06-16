@@ -42,6 +42,8 @@
 
 #include "MovieSceneSequence.h"
 
+#include "Animation/AnimSequence.h"
+
 ERichCurveInterpMode FMatineeImportTools::MatineeInterpolationToRichCurveInterpolation( EInterpCurveMode CurveMode )
 {
 	switch ( CurveMode )

@@ -892,31 +892,56 @@ struct FXAudioDeviceProperties
 		PendingAsyncTasksToCleanUp.Add(PendingTaskInfo);
 	}
 
-	void ProcessPendingTasksToCleanup()
+	void ProcessPendingTasksToCleanup(bool bForceWait = false)
 	{
 		for (int32 i = PendingAsyncTasksToCleanUp.Num() - 1; i >= 0; --i)
 		{
 			FPendingAsyncTaskInfo& TaskInfo = PendingAsyncTasksToCleanUp[i];
 
-			// Clean up the tasks if they're finished
-			if (TaskInfo.RealtimeAsyncTask && TaskInfo.RealtimeAsyncTask->IsDone())
+			if (bForceWait)
 			{
-				delete TaskInfo.RealtimeAsyncTask;
-				TaskInfo.RealtimeAsyncTask = nullptr;
-			}
+				if (TaskInfo.RealtimeAsyncTask)
+				{
+					TaskInfo.RealtimeAsyncTask->EnsureCompletion(true);
 
-			if (TaskInfo.RealtimeAsyncHeaderParseTask && TaskInfo.RealtimeAsyncHeaderParseTask->IsDone())
-			{
-				delete TaskInfo.RealtimeAsyncHeaderParseTask;
-				TaskInfo.RealtimeAsyncHeaderParseTask = nullptr;
-			}
+					delete TaskInfo.RealtimeAsyncTask;
+					TaskInfo.RealtimeAsyncTask = nullptr;
+				}
 
-			// If both tasks are finished, clean up the buffer and remove it in the pending list
-			if (!TaskInfo.RealtimeAsyncHeaderParseTask && !TaskInfo.RealtimeAsyncTask)
-			{
-				check(TaskInfo.Buffer);
-				delete TaskInfo.Buffer;
+				if (TaskInfo.RealtimeAsyncHeaderParseTask)
+				{
+					TaskInfo.RealtimeAsyncHeaderParseTask->EnsureCompletion(true);
+					delete TaskInfo.RealtimeAsyncHeaderParseTask;
+					TaskInfo.RealtimeAsyncHeaderParseTask = nullptr;
+				}
+
+				check(TaskInfo.RealtimeAsyncTask == nullptr);
+				check(TaskInfo.RealtimeAsyncHeaderParseTask == nullptr);
+
 				PendingAsyncTasksToCleanUp.RemoveAtSwap(i, 1, false);
+			}
+			else
+			{
+				// Clean up the tasks if they're finished
+				if (TaskInfo.RealtimeAsyncTask && TaskInfo.RealtimeAsyncTask->IsDone())
+				{
+					delete TaskInfo.RealtimeAsyncTask;
+					TaskInfo.RealtimeAsyncTask = nullptr;
+				}
+
+				if (TaskInfo.RealtimeAsyncHeaderParseTask && TaskInfo.RealtimeAsyncHeaderParseTask->IsDone())
+				{
+					delete TaskInfo.RealtimeAsyncHeaderParseTask;
+					TaskInfo.RealtimeAsyncHeaderParseTask = nullptr;
+				}
+
+				// If both tasks are finished, clean up the buffer and remove it in the pending list
+				if (!TaskInfo.RealtimeAsyncHeaderParseTask && !TaskInfo.RealtimeAsyncTask)
+				{
+					check(TaskInfo.Buffer);
+					delete TaskInfo.Buffer;
+					PendingAsyncTasksToCleanUp.RemoveAtSwap(i, 1, false);
+				}
 			}
 		}
 	}

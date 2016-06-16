@@ -5,6 +5,7 @@
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "PhysicsEngine/PhysicsConstraintTemplate.h"
+#include "PhysicsEngine/PhysicsConstraintComponent.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 
 #define LOCTEXT_NAMESPACE "ConstraintComponent"

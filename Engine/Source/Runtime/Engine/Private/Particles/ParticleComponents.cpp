@@ -1546,9 +1546,9 @@ void UParticleEmitter::Build()
 			if(HighLODLevel->TypeDataModule->RequiresBuild())
 		{
 			FParticleEmitterBuildInfo EmitterBuildInfo;
-//#if WITH_EDITOR
+#if WITH_EDITOR
 				HighLODLevel->CompileModules( EmitterBuildInfo );
-//#endif
+#endif
 				HighLODLevel->TypeDataModule->Build( EmitterBuildInfo );
 			}
 
@@ -4354,7 +4354,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	DeltaTimeTick = DeltaTime;
 
 	// Bail out if we are running on a dedicated server and we don't want to update on those
-	if ((bUpdateOnDedicatedServer == false) && (GetNetMode() == NM_DedicatedServer))
+	if ((bUpdateOnDedicatedServer == false) && (IsNetMode(NM_DedicatedServer)))
 	{
 		if (bAutoDestroy)
 		{
@@ -7115,7 +7115,7 @@ void AEmitterCameraLensEffectBase::ActivateLensEffect()
 	// only play the camera effect on clients
 	UWorld const* const World = GetWorld();
 	check(World);
-	if( GetNetMode() != NM_DedicatedServer )
+	if( !IsNetMode(NM_DedicatedServer) )
 	{
 		UParticleSystem* PSToActuallySpawn;
 		if( World->GameState && World->GameState->ShouldShowGore() )

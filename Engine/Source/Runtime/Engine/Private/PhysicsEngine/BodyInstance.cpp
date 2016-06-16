@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 #include "PhysicsPublic.h"
 #include "Collision.h"
+#include "PhysicsEngine/ConstraintInstance.h"
 
 #include "MessageLog.h"
 
@@ -4235,7 +4236,7 @@ bool FBodyInstance::InternalSweepPhysX(struct FHitResult& OutHit, const FVector&
 }
 #endif //WITH_PHYSX
 
-float FBodyInstance::GetDistanceToBody(const FVector& Point, FVector& OutPointOnBody) const
+bool FBodyInstance::GetSquaredDistanceToBody(const FVector& Point, float& OutDistanceSquared, FVector& OutPointOnBody) const
 {
 	OutPointOnBody = Point;
 	float ReturnDistance = -1.f;
@@ -4297,9 +4298,19 @@ float FBodyInstance::GetDistanceToBody(const FVector& Point, FVector& OutPointOn
 		UE_LOG(LogPhysics, Warning, TEXT("GetDistanceToBody: Component (%s) has no simple collision and cannot be queried for closest point."), OwnerComponent.Get() ? *OwnerComponent->GetPathName() : TEXT("NONE"));
 	}
 
-	return (bFoundValidBody ? FMath::Sqrt(MinDistanceSqr) : -1.f);
+	if (bFoundValidBody)
+	{
+		OutDistanceSquared = MinDistanceSqr;
+	}
+	return bFoundValidBody;
 
 	//@TODO: BOX2D: Implement DistanceToBody
+}
+
+float FBodyInstance::GetDistanceToBody(const FVector& Point, FVector& OutPointOnBody) const
+{
+	float DistanceSqr = -1.f;
+	return (GetSquaredDistanceToBody(Point, DistanceSqr, OutPointOnBody) ? FMath::Sqrt(DistanceSqr) : -1.f);
 }
 
 template <typename AllocatorType>
