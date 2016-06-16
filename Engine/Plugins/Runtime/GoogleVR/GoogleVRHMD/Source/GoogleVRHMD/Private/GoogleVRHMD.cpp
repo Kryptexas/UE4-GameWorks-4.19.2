@@ -596,10 +596,10 @@ bool FGoogleVRHMD::SetDefaultViewerProfile(const FString& ViewerProfileURL)
 
 void FGoogleVRHMD::SetNumOfDistortionPoints(int32 XPoints, int32 YPoints)
 {
-	// Force non supported platform distortion mesh be 40 x 40
+	// Force non supported platform distortion mesh be 2 x 2
 #if !GOOGLEVRHMD_SUPPORTED_PLATFORMS
-	XPoints = 40;
-	YPoints = 40;
+	XPoints = 2;
+	YPoints = 2;
 #endif
 	
 	// clamp values
