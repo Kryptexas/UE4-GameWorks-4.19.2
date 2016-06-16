@@ -12,6 +12,7 @@ class ALandscapeProxy;
 class AInstancedFoliageActor;
 
 #include "AI/Navigation/NavigationTypes.h"
+#include "Components/PrimitiveComponent.h"
 #include "LandscapeHeightfieldCollisionComponent.generated.h"
 
 #if WITH_PHYSX

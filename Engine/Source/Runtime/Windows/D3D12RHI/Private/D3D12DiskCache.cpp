@@ -16,7 +16,7 @@ static FAutoConsoleVariableRef CVarEnablePSOCache(
 	ECVF_RenderThreadSafe | ECVF_ReadOnly
 	);
 
-inline bool FDiskCacheInterface::IsInErrorState() const
+bool FDiskCacheInterface::IsInErrorState() const
 {
 	return !GEnablePSOCache || mInErrorState;
 }
