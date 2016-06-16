@@ -732,15 +732,32 @@ void ULandscapeComponent::InvalidateLightingCacheDetailed(bool bInvalidateBuildE
 
 		Super::InvalidateLightingCacheDetailed(bInvalidateBuildEnqueuedLighting, bTranslationOnly);
 
+#if WITH_EDITOR
+		// invalidate grass that has bUseLandscapeLightmap so the new lightmap is applied to the grass
+		for (auto Iter = GetLandscapeProxy()->FoliageCache.CachedGrassComps.CreateIterator(); Iter; ++Iter)
+		{
+			const auto& GrassKey = Iter->Key;
+			const ULandscapeGrassType* GrassType = GrassKey.GrassType.Get();
+			const ULandscapeComponent* BasedOn = GrassKey.BasedOn.Get();
+			UHierarchicalInstancedStaticMeshComponent* GrassComponent = Iter->Foliage.Get();
+
+			if (BasedOn == this && GrassType && GrassComponent &&
+				GrassType->GrassVarieties.IsValidIndex(GrassKey.VarietyIndex) &&
+				GrassType->GrassVarieties[GrassKey.VarietyIndex].bUseLandscapeLightmap)
+			{
+				// Remove this grass component from the cache, which will cause it to be replaced
+				Iter.RemoveCurrent();
+			}
+		}
+#endif
+
 		// Discard all cached lighting.
 		IrrelevantLights.Empty();
-		LightMap = NULL;
-		ShadowMap = NULL;
+		LightMap = nullptr;
+		ShadowMap = nullptr;
 	}
-
-	// invalidate grass in case bUseLandscapeLightmap is being used
-	// we don't need to invalidate the textures used to place grass, only the instances
-	TSet<ULandscapeComponent*> Components;
-	Components.Add(this);
-	GetLandscapeProxy()->FlushGrassComponents(&Components, false);
+	else
+	{
+		Super::InvalidateLightingCacheDetailed(bInvalidateBuildEnqueuedLighting, bTranslationOnly);
+	}
 }
