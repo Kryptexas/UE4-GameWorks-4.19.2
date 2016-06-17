@@ -1,0 +1,155 @@
+﻿INTSourceChangelist:0
+Title: Android Vulkan Mobile Render
+Description:Setting up your UE4 Android project to work with the Vulkan mobile render
+Crumbs:
+Availability:Public
+version:4.12
+Parent:Platforms/Android
+tags:Mobile
+tags:Android
+type:reference
+
+![](Vulkan_500px_Mar15.png)
+
+[TOC(start:2)]
+
+Unreal Engine 4 (UE4) now offers support for the **Vulkan API**. Vulkan is a low-overhead, cross-platform 3D graphics library that allows developers more control over the GPU and lower level CPU usage for their Android base mobile projects. In the following document we will go over how you can enable and use Vulkan in your UE4 Android projects.
+
+[region:warning]
+Vulkan is currently under heavy development and should be considered an **experimental feature** at this point in time. If you wish to build and deploy a mobile project using Vulkan you will need to download and compile UE 4.12 from Github. 
+[/region]
+
+## Enabling Vulkan Preview Rendering in Editor
+You can enable the ability to use the Vulkan render while inside of the UE4 Editor, you will need to do the following in your project.
+
+1. From the **Main Toolbar** go to the **Edit** option and then select the **Editor Preferences** option from the menu.
+
+	![](VMP_00.png)
+
+1. In the **General** section under the **Experimental** category, expand the **Rendering** section and click on the checkmark box next to the **Enable Metal/Vulkan/High-end mobile Preview Rendering Level in editor**.
+
+	[REGION:lightbox]
+	[![](VMP_03.png)(w:447 h:308)](VMP_03.png)
+	[/REGION]
+
+	[region:note]
+	After doing this, the Editor will need to recompile the entire shader cache to include the required Vulkan options. Depending on the size of your project and power of your development computer, this process could take anywhere from a few minutes to an hour or more to complete.
+	[/region]
+
+1. If you see the following two items listed in the lower right-hand corner of the Level preview **Feature Level: ES3_1** and **Level: Vulkin_Rendering(Persistent)** then everything is setup correctly and you are now seeing what your project will look like when viewed on a device that supports the Vulkan API.
+
+	[REGION:lightbox]
+	[![](VMP_04.png)(w:447 h:308)](VMP_04.png)
+	[/REGION]
+
+## Enabling the Vulkan Mobile Preview Render
+To enable the ability to use the Vulkan render with the mobile preview render, you will need to do the following in your project.
+
+1. From the **Main Toolbar** go to the **Edit** option and then select the **Editor Preferences** option from the menu.
+
+	![](VMP_00.png)
+
+1. In the **General** section under the **Experimental** category, expand the **PIE** section then click on the checkmark box next to the **Allow Vulkan Mobile Preview** option.
+
+	[REGION:lightbox]
+	[![](VMP_01.png)(w:447 h:308)](VMP_01.png)
+	[/REGION]
+
+
+1. Back in the Main Toolbar, change the **Play Mode** from **Play this level in the selected viewport** to the **Vulkan Mobile Preview (PIE)** option by clicking on the small white triangle next to the play button and selecting the Vulkan Mobile Preview (PIE) from the dropdown list.
+
+	![](VMP_02.png)
+
+1. Click on the **Play** button that is on the Main Toolbar to launch your UE4 project in a new preview window with the Vulkan render enabled. If everything has been setup successfully, you should see something similar to the image below.
+
+	[REGION:lightbox]
+	[![](VMP_05.png)(w:447 h:308)](VMP_05.png)
+	[/REGION]
+
+	[region:note]
+	If you do not see **(SF_VULKAN_ES31)** at the top of the preview window next to the project name then that means the project is not using the Vulkan API.
+	[/region]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
