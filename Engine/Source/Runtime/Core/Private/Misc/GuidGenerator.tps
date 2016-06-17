@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TpsData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>UUIDs and GUIDs Memo</Name>
-  <Location>/Engine/Source/Runtime/Core/Private/Misc/GuidGenerator</Location>
-  <Date>2016-04-04T18:01:03.2456634-04:00</Date>
+  <Location>/Engine/Source/Runtime/Core/Private/Misc/GuidGenerator.cpp</Location>
+  <Date>2016-06-16T14:01:34.3252258-04:00</Date>
   <Function>GUID generator</Function>
   <Justification />
   <Platforms>
@@ -14,7 +14,7 @@
     <Product>UE4</Product>
   </Products>
   <TpsType>Source Code</TpsType>
-  <Eula />
+  <Eula>https://tools.ietf.org/html/draft-leach-uuids-guids-00</Eula>
   <RedistributeTo>
     <EndUserGroup>Licensees</EndUserGroup>
     <EndUserGroup>Git</EndUserGroup>
@@ -24,5 +24,5 @@
   <IsSourceAvailable>false</IsSourceAvailable>
   <NoticeType>None</NoticeType>
   <Notification />
-  <LicenseFolder />
+  <LicenseFolder>None</LicenseFolder>
 </TpsData>

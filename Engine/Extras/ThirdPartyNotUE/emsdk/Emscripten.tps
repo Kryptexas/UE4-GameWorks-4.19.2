@@ -117,5 +117,5 @@ in accordance with the terms of the MIT license. Node's license follows:
         FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
         IN THE SOFTWARE.
     """</Notification>
-  <LicenseFolder />
+  <LicenseFolder>/Engine/Extras/ThirdPartyNotUE/emsdk/Emscripten_License.txt</LicenseFolder>
 </TpsData>

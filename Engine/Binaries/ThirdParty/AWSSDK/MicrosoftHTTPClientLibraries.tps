@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TpsData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>Microsoft HTTP Client Libraries</Name>
-  <Location>/Engine/Source/ThirdParty/AWSSDK</Location>
-  <Date>2016-04-07T14:52:36.5052923-04:00</Date>
+  <Location>/Engine/Source/ThirdParty/AWSSDK/</Location>
+  <Date>2016-06-10T17:32:49.6515902-04:00</Date>
   <Function />
   <Justification>Used within AWS SDK for .NET, which Crashreporter client uses to upload reports</Justification>
   <Platforms>
@@ -24,5 +24,5 @@
   <IsSourceAvailable>false</IsSourceAvailable>
   <NoticeType>None</NoticeType>
   <Notification />
-  <LicenseFolder />
+  <LicenseFolder>None</LicenseFolder>
 </TpsData>

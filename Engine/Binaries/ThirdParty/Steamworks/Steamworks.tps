@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TpsData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>Steamworks/ Steam API</Name>
-  <Location>//depot/UE4/Engine/Binaries/ThirdParty/Steamworks/</Location>
-  <Date>2014-12-23T17:32:46.0059402-05:00</Date>
+  <Location>/Engine/Binaries/ThirdParty/Steamworks/</Location>
+  <Date>2016-06-16T11:58:08.2626936-04:00</Date>
   <Function>Online service</Function>
   <Justification>Online service</Justification>
   <Platforms>
@@ -15,11 +15,15 @@
     <Product>UE4</Product>
   </Products>
   <TpsType>Source Code</TpsType>
-  <Eula />
-  <RedistributeTo />
+  <Eula>Custom agreement</Eula>
+  <RedistributeTo>
+    <EndUserGroup>Licensees</EndUserGroup>
+    <EndUserGroup>Git</EndUserGroup>
+    <EndUserGroup>P4</EndUserGroup>
+  </RedistributeTo>
   <Redistribute>false</Redistribute>
   <IsSourceAvailable>false</IsSourceAvailable>
   <NoticeType>None</NoticeType>
   <Notification />
-  <LicenseFolder />
+  <LicenseFolder>None</LicenseFolder>
 </TpsData>

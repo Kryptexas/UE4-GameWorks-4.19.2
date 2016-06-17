@@ -2,7 +2,7 @@
 <TpsData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>BZip2</Name>
   <Location>/Engine/Source/ThirdParty/DotNetZip/</Location>
-  <Date>2016-04-07T19:19:06.6308552-04:00</Date>
+  <Date>2016-06-07T18:04:08.7251179-04:00</Date>
   <Function>Included as part of DotNetZip</Function>
   <Justification />
   <Platforms>
@@ -53,5 +53,5 @@ The following license applies to the Apache code:
  * under the License.
  */
 </Notification>
-  <LicenseFolder />
+  <LicenseFolder>/Engine/Source/ThirdParty/Licenses/BZip2_License.txt</LicenseFolder>
 </TpsData>

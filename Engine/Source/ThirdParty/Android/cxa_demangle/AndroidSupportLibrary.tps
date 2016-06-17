@@ -2,14 +2,14 @@
 <TpsData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>Android Support Library</Name>
   <Location>/Engine/Build/Android/Java/libs/android-support-v4.jar</Location>
-  <Date>2015-09-04T18:03:54.8770174-04:00</Date>
+  <Date>2016-06-07T15:41:23.5526863-04:00</Date>
   <Function>Backwards compatibility library for apps targeting older versions of Android OS as minimum spec The Google Play Games library requires some features in this support library</Function>
   <Justification>Causes errors in Google Play-enabled games when not included.</Justification>
   <Platforms>
     <Platform>PC</Platform>
+    <Platform>Mac</Platform>
     <Platform>Android</Platform>
     <Platform>Linux</Platform>
-    <Platform>Mac</Platform>
   </Platforms>
   <Products>
     <Product>UDK4</Product>
@@ -226,5 +226,5 @@ http://www.apache.org/licenses/
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.</Notification>
-  <LicenseFolder />
+  <LicenseFolder>/Engine/Source/ThirdParty/Licenses/AndroidSupportLibraries_License.txt</LicenseFolder>
 </TpsData>

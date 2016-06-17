@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TpsData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>LitJSON</Name>
-  <Location />
-  <Date>2016-04-07T11:55:40.3614042-04:00</Date>
+  <Location>/Engine/Binaries/ThirdParty/AWSSDK/</Location>
+  <Date>2016-06-10T17:02:47.4433874-04:00</Date>
   <Function>JSON library for .NET framework. </Function>
   <Justification>Used within AWS SDK for .NET</Justification>
   <Platforms>
@@ -13,7 +13,7 @@
     <Product>UDK4</Product>
     <Product>UE4</Product>
   </Products>
-  <TpsType />
+  <TpsType>Source Code</TpsType>
   <Eula>https://github.com/lbv/litjson/blob/master/COPYING</Eula>
   <RedistributeTo>
     <EndUserGroup>Licensees</EndUserGroup>
@@ -24,5 +24,5 @@
   <IsSourceAvailable>false</IsSourceAvailable>
   <NoticeType>None</NoticeType>
   <Notification />
-  <LicenseFolder />
+  <LicenseFolder>None</LicenseFolder>
 </TpsData>

@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TpsData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>Code from vbAccelerator.com</Name>
-  <Location>/Engine/Source/ThirdParty/AWSSDK</Location>
-  <Date>2016-04-07T18:51:18.9251013-04:00</Date>
+  <Location>/Engine/Binaries/ThirdParty/AWSSDK</Location>
+  <Date>2016-06-07T18:34:03.686967-04:00</Date>
   <Function>perform CRC32 checks w/i AWS SDK for .NET</Function>
   <Justification>Used in our crashreporter client to upload reports.</Justification>
   <Platforms>
@@ -51,5 +51,5 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 This software consists of voluntary contributions made by many individuals on behalf of the vbAccelerator. For more information, please see http://vbaccelerator.com/.
 
 The vbAccelerator licence is based on the Apache Software Foundation Software Licence, Copyright (c) 2000 The Apache Software Foundation. All rights reserved.</Notification>
-  <LicenseFolder />
+  <LicenseFolder>/Engine/Source/ThirdParty/Licenses/vbAccelerator_License.txt</LicenseFolder>
 </TpsData>

@@ -1,8 +1,8 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <TpsData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>Oculus AudioSDK</Name>
-  <Location>//depot/UE4/Engine/Source/ThirdParty/Oculus/LibOVRAudio</Location>
-  <Date>2016-03-27T19:53:52.1116749-04:00</Date>
+  <Location>/Engine/Source/ThirdParty/Oculus/LibOVRAudio/</Location>
+  <Date>2016-06-10T17:55:41.5197633-04:00</Date>
   <Function>Audio spatialization support</Function>
   <Justification>We use AudioSDK to implement Oculus Audio Spatialization Plugin</Justification>
   <Platforms>
@@ -14,7 +14,11 @@
   </Products>
   <TpsType>lib</TpsType>
   <Eula>https://developer.oculus.com/licenses/audio-3.2.2/</Eula>
-  <RedistributeTo />
+  <RedistributeTo>
+    <EndUserGroup>Licensees</EndUserGroup>
+    <EndUserGroup>Git</EndUserGroup>
+    <EndUserGroup>P4</EndUserGroup>
+  </RedistributeTo>
   <Redistribute>false</Redistribute>
   <IsSourceAvailable>false</IsSourceAvailable>
   <NoticeType>Full EULA Text</NoticeType>
@@ -98,5 +102,5 @@ If you believe that your license has been wrongfully terminated under this Secti
 
 16.   This License shall be governed by the laws of the State of California, without giving effect to choice of law principles.  Oculus reserves all rights not expressly granted in this License.  All disputes relating to this License shall be resolved by binding non-appearance-based arbitration before a neutral arbitrator in San Mateo County, California.  If your License has been terminated hereunder by Oculus, you may appeal your termination through this arbitration process on an expedited basis with an arbitration within thirty days of your giving Oculus notice of the appeal.  The arbitration shall be conducted in accordance with the rules and procedures of JAMS then in effect, and the judgment of the arbitrator shall be final and capable of entry in any court of competent jurisdiction.  You agree to submit to the personal jurisdiction of the courts located within San Mateo County, California in connection with any entrance of an arbitrator’s judgment or decision or any dispute with respect to the arbitration process or procedure or Oculus’s exercise of its equitable rights or remedies.
 </Notification>
-  <LicenseFolder />
+  <LicenseFolder>/Engine/Source/ThirdParty/Licenses/OCULUS_AudioSDK_LICENSE.txt</LicenseFolder>
 </TpsData>

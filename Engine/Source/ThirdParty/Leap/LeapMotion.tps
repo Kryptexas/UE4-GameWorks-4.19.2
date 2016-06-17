@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TpsData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>Leap Motion</Name>
-  <Location>Engine/Binaries/ThirdParty/LeapMotion/, Engine/Source/ThirdParty/Leap/, Engine/Plugins/Runtime/LeapMotion/</Location>
-  <Date>2016-03-24T18:03:28.0415081-04:00</Date>
+  <Location>/Engine/Source/ThirdParty/Leap/</Location>
+  <Date>2016-06-10T14:21:12.5029903-04:00</Date>
   <Function>Integration with the Leap Motion controller hardware for UE4</Function>
   <Justification>To support the Leap Motion platform</Justification>
   <Platforms>
@@ -24,5 +24,5 @@
   <IsSourceAvailable>false</IsSourceAvailable>
   <NoticeType>None</NoticeType>
   <Notification />
-  <LicenseFolder />
+  <LicenseFolder>None</LicenseFolder>
 </TpsData>

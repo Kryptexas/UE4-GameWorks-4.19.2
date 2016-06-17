@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TpsData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>Oculus Mobile SDK</Name>
-  <Location>/Engine/Source/ThirdParty/Oculus/OculusMobile</Location>
-  <Date>2016-04-29T11:28:56.395421-04:00</Date>
+  <Location>/Engine/Source/ThirdParty/Oculus/OculusMobile/</Location>
+  <Date>2016-06-10T17:57:06.0742179-04:00</Date>
   <Function>Reads sensor data from Gear VR</Function>
   <Justification>We use Oculus Mobile SDK to read sensor data from the Gear VR</Justification>
   <Platforms>

@@ -2,7 +2,7 @@
 <TpsData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>JZlib</Name>
   <Location>/Engine/Source/ThirdParty/DotNetZip/</Location>
-  <Date>2016-04-07T19:15:12.025397-04:00</Date>
+  <Date>2016-06-10T14:13:16.2143662-04:00</Date>
   <Function>Included as part of DotNetZip</Function>
   <Justification />
   <Platforms>
@@ -93,5 +93,5 @@ Copyright (C) 1995-2004 Jean-loup Gailly and Mark Adler
 
 -----------------------------------------------------------------------
 </Notification>
-  <LicenseFolder />
+  <LicenseFolder>/Engine/Source/ThirdParty/Licenses/JZlib_License.txt</LicenseFolder>
 </TpsData>

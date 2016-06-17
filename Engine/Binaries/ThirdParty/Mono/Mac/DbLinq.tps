@@ -2,7 +2,7 @@
 <TpsData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>DbLinq</Name>
   <Location>/Engine/Binaries/ThirdParty/Mono/</Location>
-  <Date>2016-04-26T10:49:25.0635556-04:00</Date>
+  <Date>2016-06-09T11:58:29.1971241-04:00</Date>
   <Function>Used within Mono</Function>
   <Justification />
   <Platforms>
@@ -13,7 +13,7 @@
     <Product>UE4</Product>
   </Products>
   <TpsType>dll</TpsType>
-  <Eula />
+  <Eula>https://github.com/DbLinq/dblinq2007/blob/master/LICENSE</Eula>
   <RedistributeTo>
     <EndUserGroup>Licensees</EndUserGroup>
     <EndUserGroup>Git</EndUserGroup>

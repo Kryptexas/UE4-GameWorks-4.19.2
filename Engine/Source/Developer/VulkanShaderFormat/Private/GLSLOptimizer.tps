@@ -12,7 +12,7 @@
   <Redistribute>false</Redistribute>
   <IsSourceAvailable>false</IsSourceAvailable>
   <Notification>
-Redirect: ../../../ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/GLSL Optimizer.tps
+Redirect: ../../../ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/GLSLOptimizer.tps
 Notes:
 </Notification>
   <LicenseFolder />

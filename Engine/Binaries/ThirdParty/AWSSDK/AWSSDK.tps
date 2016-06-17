@@ -1,19 +1,27 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TpsData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>Amazon Web Services SDK for .NET</Name>
-  <Location>//depot/UE4/Engine/Binaries/ThirdParty/NotForLicensees/AWSSDK/AWSSDK.dll</Location>
-  <Date>2015-03-06T19:49:15.9465295+00:00</Date>
+  <Location>/Engine/Binaries/ThirdParty/AWSSDK/</Location>
+  <Date>2016-06-07T18:24:52.832967-04:00</Date>
   <Function>Provides a client API for communicating with Amazon Web Services using the .NET Framework.</Function>
   <Justification>In order to connect the build system to S3, so that chunked data can be copied to S3 as part of the promotion process.</Justification>
   <Platforms>
     <Platform>PC</Platform>
+    <Platform>Mac</Platform>
+    <Platform>Linux</Platform>
   </Platforms>
   <Products>
+    <Product>UDK4</Product>
+    <Product>UE4</Product>
     <Product>Unreal MCP</Product>
   </Products>
   <TpsType>dll</TpsType>
-  <Eula>http://aws.amazon.com/sdk-for-net/</Eula>
-  <RedistributeTo />
+  <Eula>https://github.com/aws/aws-sdk-net/blob/master/License.txt</Eula>
+  <RedistributeTo>
+    <EndUserGroup>Licensees</EndUserGroup>
+    <EndUserGroup>Git</EndUserGroup>
+    <EndUserGroup>P4</EndUserGroup>
+  </RedistributeTo>
   <Redistribute>false</Redistribute>
   <IsSourceAvailable>true</IsSourceAvailable>
   <NoticeType>Full EULA Text</NoticeType>
@@ -71,5 +79,5 @@ You may add Your own copyright statement to Your modifications and may provide a
 9. Accepting Warranty or Additional Liability. While redistributing the Work or Derivative Works thereof, You may choose to offer, and charge a fee for, acceptance of support, warranty, indemnity, or other liability obligations and/or rights consistent with this License. However, in accepting such obligations, You may act only on Your own behalf and on Your sole responsibility, not on behalf of any other Contributor, and only if You agree to indemnify, defend, and hold each Contributor harmless for any liability incurred by, or claims asserted against, such Contributor by reason of your accepting any such warranty or additional liability.
 
 END OF TERMS AND CONDITIONS</Notification>
-  <LicenseFolder>https://github.com/aws/aws-sdk-net/blob/master/License.txt</LicenseFolder>
+  <LicenseFolder>/Engine/Source/ThirdParty/Licenses/AWSSDK.NET_License.txt</LicenseFolder>
 </TpsData>

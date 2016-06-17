@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TpsData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>Google Play Games Services for C++</Name>
-  <Location>//UE4/Main/Engine/Source/ThirdParty/GooglePlay/gpg-cpp-sdk.v1.1/</Location>
-  <Date>2016-03-25T13:30:05.8614363-04:00</Date>
+  <Location>/Engine/Source/ThirdParty/GooglePlay/gpg-cpp-sdk.v1.1/</Location>
+  <Date>2016-06-09T18:23:33.215497-04:00</Date>
   <Function>Provides a C++ interface to Google Play online features</Function>
   <Justification>To simplify the implementation of the Google Play online subsystem module for Android</Justification>
   <Platforms>
@@ -212,9 +212,6 @@
       incurred by, or claims asserted against, such Contributor by reason
       of your accepting any such warranty or additional liability.
 
-   END OF TERMS AND CONDITIONS
-
-
-</Notification>
-  <LicenseFolder />
+   END OF TERMS AND CONDITIONS</Notification>
+  <LicenseFolder>/Engine/Source/ThirdParty/Licenses/GooglePlayServices_License.txt</LicenseFolder>
 </TpsData>
