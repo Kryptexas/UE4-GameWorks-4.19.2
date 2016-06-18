@@ -1315,7 +1315,7 @@ void FSceneViewport::EnqueueBeginRenderFrame()
 	// If we dont have the ViewportRHI then we need to get it before rendering
 	// Note, we need ViewportRHI even if UseSeparateRenderTarget() is true when stereo rendering
 	// is enabled.
-	if (!IsValidRef(ViewportRHI) && (!UseSeparateRenderTarget() || (GEngine->StereoRenderingDevice.IsValid() && GEngine->StereoRenderingDevice->IsStereoEnabled())))
+	if (!IsValidRef(ViewportRHI) && (!UseSeparateRenderTarget() || (GEngine->StereoRenderingDevice.IsValid() && GEngine->StereoRenderingDevice->IsStereoEnabled())) )
 	{
 		// Get the viewport for this window from the renderer so we can render directly to the backbuffer
 		TSharedPtr<FSlateRenderer> Renderer = FSlateApplication::Get().GetRenderer();

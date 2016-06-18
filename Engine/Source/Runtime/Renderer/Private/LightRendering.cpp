@@ -844,6 +844,12 @@ void FDeferredShadingSceneRenderer::RenderLight(FRHICommandList& RHICmdList, con
 	{
 		FViewInfo& View = Views[ViewIndex];
 
+		// Ensure the light is valid for this view
+		if (!LightSceneInfo->ShouldRenderLight(View))
+		{
+			continue;
+		}
+
 		bool bUseIESTexture = false;
 
 		if(View.Family->EngineShowFlags.TexturedLightProfiles)

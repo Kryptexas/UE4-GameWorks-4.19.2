@@ -73,6 +73,9 @@ public:
 	virtual void SetAutoShow(bool bInAuto) { bAutoShow = bInAuto; }
 	virtual bool IsAutoShow() const { return bAutoShow; }
 
+	virtual void SetLoadingIconMode(bool bInLoadingIconMode) { LoadingIconMode = bInLoadingIconMode; }
+	virtual bool IsLoadingIconMode() const { return LoadingIconMode; }
+
 	enum EShowType
 	{
 		None,
@@ -103,6 +106,7 @@ protected:
 
 	FThreadSafeBool		LoadingCompleted;
 	FThreadSafeBool		LoadingStarted;
-	bool				bAutoShow;			// whether or not show splash screen automatically (when LoadMap is called)
-	bool				bInitialized;
+	FThreadSafeBool		LoadingIconMode;		// this splash screen is a simple loading icon (if supported)
+	bool				bAutoShow : 1;			// whether or not show splash screen automatically (when LoadMap is called)
+	bool				bInitialized : 1;
 };

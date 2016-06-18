@@ -241,6 +241,7 @@ void UOculusFunctionLibrary::AddLoadingSplashScreen(class UTexture2D* Texture, F
 			{
 				Splash->ClearSplashes();
 			}
+			Splash->SetLoadingIconMode(false);
 
 			FAsyncLoadingSplash::FSplashDesc Desc;
 			Desc.LoadingTexture = Texture;
@@ -263,6 +264,7 @@ void UOculusFunctionLibrary::ClearLoadingSplashScreens()
 		if (Splash)
 		{
 			Splash->ClearSplashes();
+			Splash->SetLoadingIconMode(false);
 		}
 	}
 #endif // OCULUS_SUPPORTED_PLATFORMS
@@ -277,6 +279,7 @@ void UOculusFunctionLibrary::ShowLoadingSplashScreen()
 		FAsyncLoadingSplash* Splash = OculusHMD->GetAsyncLoadingSplash();
 		if (Splash)
 		{
+			Splash->SetLoadingIconMode(false);
 			Splash->Show(FAsyncLoadingSplash::ShowManually);
 		}
 	}
@@ -333,6 +336,60 @@ bool UOculusFunctionLibrary::IsAutoLoadingSplashScreenEnabled()
 	return false;
 }
 
+void UOculusFunctionLibrary::ShowLoadingIcon(class UTexture2D* Texture)
+{
+#if OCULUS_SUPPORTED_PLATFORMS
+	FHeadMountedDisplay* OculusHMD = GetOculusHMD();
+	if (OculusHMD != nullptr)
+	{
+		FAsyncLoadingSplash* Splash = OculusHMD->GetAsyncLoadingSplash();
+		if (Splash)
+		{
+			Splash->ClearSplashes();
+			FAsyncLoadingSplash::FSplashDesc Desc;
+			Desc.LoadingTexture = Texture;
+			Splash->AddSplash(Desc);
+			Splash->SetLoadingIconMode(true);
+			Splash->Show(FAsyncLoadingSplash::ShowManually);
+		}
+	}
+#endif // OCULUS_SUPPORTED_PLATFORMS
+}
+
+void UOculusFunctionLibrary::HideLoadingIcon()
+{
+#if OCULUS_SUPPORTED_PLATFORMS
+	FHeadMountedDisplay* OculusHMD = GetOculusHMD();
+	if (OculusHMD != nullptr)
+	{
+		FAsyncLoadingSplash* Splash = OculusHMD->GetAsyncLoadingSplash();
+		if (Splash)
+		{
+			Splash->Hide(FAsyncLoadingSplash::ShowManually);
+			Splash->ClearSplashes();
+			Splash->SetLoadingIconMode(false);
+		}
+	}
+#endif // OCULUS_SUPPORTED_PLATFORMS
+}
+
+bool UOculusFunctionLibrary::IsLoadingIconEnabled()
+{
+#if OCULUS_SUPPORTED_PLATFORMS
+	FHeadMountedDisplay* OculusHMD = GetOculusHMD();
+	if (OculusHMD != nullptr)
+	{
+		FAsyncLoadingSplash* Splash = OculusHMD->GetAsyncLoadingSplash();
+		if (Splash)
+		{
+			return Splash->IsLoadingIconMode();
+		}
+	}
+#endif // OCULUS_SUPPORTED_PLATFORMS
+	return false;
+}
+
+
 void UOculusFunctionLibrary::SetLoadingSplashParams(FString TexturePath, FVector DistanceInMeters, FVector2D SizeInMeters, FVector RotationAxis, float RotationDeltaInDeg)
 {
 #if OCULUS_SUPPORTED_PLATFORMS
@@ -343,6 +400,7 @@ void UOculusFunctionLibrary::SetLoadingSplashParams(FString TexturePath, FVector
 		if (Splash)
 		{
 			Splash->ClearSplashes();
+			Splash->SetLoadingIconMode(false);
 			FAsyncLoadingSplash::FSplashDesc Desc;
 			Desc.TexturePath = TexturePath;
 			Desc.QuadSizeInMeters = SizeInMeters;

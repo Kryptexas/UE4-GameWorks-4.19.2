@@ -37,6 +37,7 @@ void Main(
 	FVertexFactoryIntermediates VFIntermediates = GetVertexFactoryIntermediates(Input);
 	float4 WorldPositionExcludingWPO = VertexFactoryGetWorldPosition(Input, VFIntermediates);
 	float4 WorldPosition = WorldPositionExcludingWPO;
+	float4 ClipSpacePosition;
 
 	float3x3 TangentToLocal = VertexFactoryGetTangentToLocal(Input, VFIntermediates);	
 	FMaterialVertexParameters VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, WorldPosition.xyz, TangentToLocal);
@@ -60,28 +61,28 @@ void Main(
 	ISOLATE
 	{
 		float4 RasterizedWorldPosition = VertexFactoryGetRasterizedWorldPosition(Input, VFIntermediates, WorldPosition);
-		Output.Position = mul(RasterizedWorldPosition, ResolvedView.TranslatedWorldToClip);
-
-		#if INSTANCED_STEREO
-		BRANCH
-		if (bIsInstancedStereo)
-		{
-			// Clip at the center of the screen
-			OutCullDistance.x = OutClipDistance.x = dot(Output.Position, EyeClipEdge[EyeIndex]);
-
-			// Scale to the width of a single eye viewport
-			Output.Position.x *= 0.5 * Frame.HMDEyePaddingOffset;
-
-			// Shift to the eye viewport
-			Output.Position.x += (EyeOffsetScale[EyeIndex] * Output.Position.w) * (1.0f - 0.5 * Frame.HMDEyePaddingOffset);
-		}
-		#endif
+		ClipSpacePosition = mul(RasterizedWorldPosition, ResolvedView.TranslatedWorldToClip);
+		Output.Position = ClipSpacePosition;
 	}
 
+	#if INSTANCED_STEREO
+	BRANCH
+	if (bIsInstancedStereo)
+	{
+		// Clip at the center of the screen
+		OutCullDistance = OutClipDistance = dot(Output.Position, EyeClipEdge[EyeIndex]);
+
+		// Scale to the width of a single eye viewport
+		Output.Position.x *= 0.5 * ResolvedView.HMDEyePaddingOffset;
+
+		// Shift to the eye viewport
+		Output.Position.x += (EyeOffsetScale[EyeIndex] * Output.Position.w) * (1.0f - 0.5 * ResolvedView.HMDEyePaddingOffset);
+	}
+	#endif
+	
 #if USE_GLOBAL_CLIP_PLANE
 	OutGlobalClipPlaneDistance = dot(ResolvedView.GlobalClippingPlane, float4(WorldPosition.xyz - ResolvedView.PreViewTranslation.xyz, 1));
 #endif
-
 	#if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
 		Output.BasePassInterpolants.PixelPositionExcludingWPO = WorldPositionExcludingWPO;
 	#endif
@@ -152,7 +153,7 @@ void Main(
 			// Store the mask in .z when as we don't need the clip space Z
 			Output.BasePassInterpolants.VelocityPrevScreenPosition.z = 1 - SkipOutputVelocity;
 			#if WRITES_VELOCITY_TO_GBUFFER_USE_POS_INTERPOLATOR
-			Output.BasePassInterpolants.VelocityScreenPosition = Output.Position;
+			Output.BasePassInterpolants.VelocityScreenPosition = ClipSpacePosition;
 			#endif
 		#endif	// USING_TESSELLATION
 	}

@@ -7,7 +7,7 @@
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 
 #if IS_MATERIAL_SHADER
-#define MaxGlobalDistance				Frame.MaxGlobalDistance_UB
+#define MaxGlobalDistance				View.MaxGlobalDistance_UB
 #else
 float MaxGlobalDistance;
 #endif
@@ -19,21 +19,21 @@ float MaxGlobalDistance;
 #define MAX_GLOBAL_DF_CLIPMAPS 4
 
 #if IS_MATERIAL_SHADER
-    // for materials, these are in the frame UB
-	#define GlobalDistanceFieldTexture0		Frame.GlobalDistanceFieldTexture0_UB
-	#define GlobalDistanceFieldTexture1		Frame.GlobalDistanceFieldTexture1_UB
-	#define GlobalDistanceFieldTexture2		Frame.GlobalDistanceFieldTexture2_UB
-	#define GlobalDistanceFieldTexture3		Frame.GlobalDistanceFieldTexture3_UB
-	#define GlobalDistanceFieldSampler0		Frame.GlobalDistanceFieldSampler0_UB
-	#define GlobalDistanceFieldSampler1		Frame.GlobalDistanceFieldSampler1_UB
-	#define GlobalDistanceFieldSampler2		Frame.GlobalDistanceFieldSampler2_UB
-	#define GlobalDistanceFieldSampler3		Frame.GlobalDistanceFieldSampler3_UB
-	#define GlobalVolumeCenterAndExtent		Frame.GlobalVolumeCenterAndExtent_UB
-	#define GlobalVolumeWorldToUVAddAndMul	Frame.GlobalVolumeWorldToUVAddAndMul_UB
-	#define GlobalVolumeDimension			Frame.GlobalVolumeDimension_UB
-	#define GlobalVolumeTexelSize			Frame.GlobalVolumeTexelSize_UB
+    // for materials, these are in the view UB
+	#define GlobalDistanceFieldTexture0		View.GlobalDistanceFieldTexture0_UB
+	#define GlobalDistanceFieldTexture1		View.GlobalDistanceFieldTexture1_UB
+	#define GlobalDistanceFieldTexture2		View.GlobalDistanceFieldTexture2_UB
+	#define GlobalDistanceFieldTexture3		View.GlobalDistanceFieldTexture3_UB
+	#define GlobalDistanceFieldSampler0		View.GlobalDistanceFieldSampler0_UB
+	#define GlobalDistanceFieldSampler1		View.GlobalDistanceFieldSampler1_UB
+	#define GlobalDistanceFieldSampler2		View.GlobalDistanceFieldSampler2_UB
+	#define GlobalDistanceFieldSampler3		View.GlobalDistanceFieldSampler3_UB
+	#define GlobalVolumeCenterAndExtent		View.GlobalVolumeCenterAndExtent_UB
+	#define GlobalVolumeWorldToUVAddAndMul	View.GlobalVolumeWorldToUVAddAndMul_UB
+	#define GlobalVolumeDimension			View.GlobalVolumeDimension_UB
+	#define GlobalVolumeTexelSize			View.GlobalVolumeTexelSize_UB
 #else
-	// these are only used for the precomputation shaders; which don't have a frame UB
+	// these are only used for the precomputation shaders; which don't have a view UB
 	Texture3D GlobalDistanceFieldTexture0;
 	Texture3D GlobalDistanceFieldTexture1;
 	Texture3D GlobalDistanceFieldTexture2;

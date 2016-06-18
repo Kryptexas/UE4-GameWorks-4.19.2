@@ -37,7 +37,7 @@ float3 LightingForOneLight(FMaterialPixelParameters Parameters, uint LightIndex,
 	// The only type of shadowing supported for lights using tiled is static shadowing, so the light should only compute shadowing if it has static shadowing
 	LightData.ShadowedBits = 0;
 	
-	float2 ScreenUV = Parameters.SvPosition.xy * Frame.BufferSizeAndInvSize.zw;
+	float2 ScreenUV = Parameters.SvPosition.xy * View.BufferSizeAndInvSize.zw;
 
 	return GetDynamicLighting(Parameters.AbsoluteWorldPosition, CameraVector, ScreenUV, ScreenSpaceData, ScreenSpaceData.GBuffer.ShadingModelID, LightData, float4(1, 1, 1, 1), uint2(0,0)).rgb;
 }
@@ -51,7 +51,7 @@ float3 AccumulateForwardLights(FMaterialPixelParameters Parameters, FPixelMateri
 #if !COMPILER_GLSL && !COMPILER_GLSL_ES2
 
 	// Which tile we are?
-	int2 Tile = int2((Parameters.SvPosition.xy - Frame.ViewRectMin.xy) * ForwardLightData.InvTileSize);
+	int2 Tile = int2((Parameters.SvPosition.xy - View.ViewRectMin.xy) * ForwardLightData.InvTileSize);
 
 	// Get bitmask from CPU for this tile
 	uint culling = LightGrid[Tile.x + Tile.y * ForwardLightData.TileCountX];

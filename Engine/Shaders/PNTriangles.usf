@@ -283,13 +283,13 @@ float4 ComputeControlPoint(float4 PositionA, float4 PositionB, float4 NormalA)
 			const uint EyeIndex = GetEyeIndex(I[0].PassSpecificData.FactoryInterpolants.InterpolantsVSToPS.PackedEyeIndex);
 
 			// Clip at the center of the screen
-			OutCullDistance.x = OutClipDistance.x = dot(Result.Position, EyeClipEdge[EyeIndex]);
+			OutCullDistance = OutClipDistance = dot(Result.Position, EyeClipEdge[EyeIndex]);
 			
 			// Scale to the width of a single eye viewport
-			Result.Position.x *= 0.5 * Frame.HMDEyePaddingOffset;
+			Result.Position.x *= 0.5 * ResolvedView.HMDEyePaddingOffset;
 
 			// Shift to the eye viewport
-			Result.Position.x += (EyeOffsetScale[EyeIndex] * Result.Position.w) * (1.0f - 0.5 * Frame.HMDEyePaddingOffset);
+			Result.Position.x += (EyeOffsetScale[EyeIndex] * Result.Position.w) * (1.0f - 0.5 * ResolvedView.HMDEyePaddingOffset);
 		}
 		#endif
 

@@ -36,11 +36,11 @@ void GetDistanceFieldAOSpecularOcclusion(float2 ScreenUV, float3 ReflectionVecto
 		float BentNormalLength = length(BentNormalAO);
 
 		BRANCH
-		if (Frame.DistanceFieldAOSpecularOcclusionMode == 0)
+		if (View.DistanceFieldAOSpecularOcclusionMode == 0)
 		{
 			IndirectSpecularOcclusion = IndirectDiffuseOcclusion;
 		}
-		else if (Frame.DistanceFieldAOSpecularOcclusionMode == 1)
+		else if (View.DistanceFieldAOSpecularOcclusionMode == 1)
 		{
 			BRANCH
 			if (bTwoSidedFoliage)
@@ -58,7 +58,7 @@ void GetDistanceFieldAOSpecularOcclusion(float2 ScreenUV, float3 ReflectionVecto
 				IndirectSpecularOcclusion = lerp(0, IndirectSpecularOcclusion, saturate((UnoccludedAngle - .1f) / .2f));
 			}
 		}
-		else if (Frame.DistanceFieldAOSpecularOcclusionMode == 2)
+		else if (View.DistanceFieldAOSpecularOcclusionMode == 2)
 		{
 			// Cone traced specular occlusion in w
 			IndirectSpecularOcclusion = TextureValue.w;
@@ -73,6 +73,6 @@ float GetDynamicSkyIndirectIrradiance(float2 ScreenUV, float3 WorldNormal)
 {
 	float3 BentNormal = Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, ScreenUV, 0).xyz;
 	float SkyVisibility = length(BentNormal);
-	float3 DiffuseLookup = GetSkySHDiffuse(WorldNormal) * Frame.SkyLightColor.rgb;
+	float3 DiffuseLookup = GetSkySHDiffuse(WorldNormal) * View.SkyLightColor.rgb;
 	return Luminance(DiffuseLookup) * SkyVisibility;
 }

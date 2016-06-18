@@ -361,9 +361,10 @@ bool FHeadMountedDisplay::OnEndGameFrame(FWorldContext& WorldContext)
 void FHeadMountedDisplay::CreateAndInitNewGameFrame(const AWorldSettings* WorldSettings)
 {
 	TSharedPtr<FHMDGameFrame, ESPMode::ThreadSafe> CurrentFrame = CreateNewGameFrame();
+	CurrentFrame->Settings = GetSettings()->Clone();
 	Frame = CurrentFrame;
 
-	CurrentFrame->FrameNumber = GFrameCounter;
+	CurrentFrame->FrameNumber = CurrentFrameNumber.GetValue();
 	CurrentFrame->Flags.bOutOfFrame = false;
 
 	if (Settings->Flags.bWorldToMetersOverride)
@@ -1361,9 +1362,13 @@ uint32 FHeadMountedDisplay::CreateLayer(const IStereoLayers::FLayerDesc& InLayer
 	{
 		if (InLayerDesc.Texture)
 		{
-			uint32 id;
-			TSharedPtr<FHMDLayerDesc> layer = pLayerMgr->AddLayer(FHMDLayerDesc::Quad, InLayerDesc.Priority, ConvertLayerType(InLayerDesc.Type), id);
-			SetLayerDesc(id, InLayerDesc);
+			FScopeLock ScopeLock(&pLayerMgr->LayersLock);
+			uint32 id = 0;
+			pLayerMgr->AddLayer(FHMDLayerDesc::Quad, InLayerDesc.Priority, ConvertLayerType(InLayerDesc.Type), id);
+			if (id != 0)
+			{
+				SetLayerDesc(id, InLayerDesc);
+			}
 			return id;
 		}
 		else
@@ -1681,10 +1686,19 @@ void FHMDLayerManager::Shutdown()
 	}
 }
 
+uint32 FHMDLayerManager::GetTotalNumberOfLayers() const
+{
+	return EyeLayers.Num() + QuadLayers.Num() + DebugLayers.Num();
+}
+
 TSharedPtr<FHMDLayerDesc> 
 FHMDLayerManager::AddLayer(FHMDLayerDesc::ELayerTypeMask InType, uint32 InPriority, LayerOriginType InLayerOriginType, uint32& OutLayerId)
 {
-	TSharedPtr<FHMDLayerDesc> NewLayerDesc = MakeShareable(new FHMDLayerDesc(*this, InType, InPriority, CurrentId++));
+	if (GetTotalNumberOfLayers() >= GetTotalNumberOfLayersSupported())
+	{
+		return nullptr;
+	}
+	TSharedPtr<FHMDLayerDesc> NewLayerDesc = MakeShareable(new FHMDLayerDesc(*this, InType, InPriority, ++CurrentId));
 
 	switch (InLayerOriginType)
 	{
@@ -1712,14 +1726,17 @@ FHMDLayerManager::AddLayer(FHMDLayerDesc::ELayerTypeMask InType, uint32 InPriori
 
 void FHMDLayerManager::RemoveLayer(uint32 LayerId)
 {
-	FScopeLock ScopeLock(&LayersLock);
-	TArray<TSharedPtr<FHMDLayerDesc> >& Layers = GetLayersArrayById(LayerId);
-	uint32 idx = FindLayerIndex(Layers, LayerId);
-	if (idx != ~0u)
+	if (LayerId != 0)
 	{
-		Layers.RemoveAt(idx);
+		FScopeLock ScopeLock(&LayersLock);
+		TArray<TSharedPtr<FHMDLayerDesc> >& Layers = GetLayersArrayById(LayerId);
+		uint32 idx = FindLayerIndex(Layers, LayerId);
+		if (idx != ~0u)
+		{
+			Layers.RemoveAt(idx);
+		}
+		bLayersChanged = true;
 	}
-	bLayersChanged = true;
 }
 
 void FHMDLayerManager::RemoveAllLayers()
@@ -1751,7 +1768,7 @@ const TArray<TSharedPtr<FHMDLayerDesc> >& FHMDLayerManager::GetLayersArrayById(u
 		return DebugLayers;
 		break;
 	default:
-		check(0);
+		checkf(0, TEXT("Invalid layer type %d (id = 0x%X)"), int(LayerId & FHMDLayerDesc::TypeMask), LayerId);
 	}
 	return EyeLayers;
 }
@@ -1770,7 +1787,7 @@ TArray<TSharedPtr<FHMDLayerDesc> >& FHMDLayerManager::GetLayersArrayById(uint32 
 		return DebugLayers;
 		break;
 	default:
-		check(0);
+		checkf(0, TEXT("Invalid layer type %d (id = 0x%X)"), int(LayerId & FHMDLayerDesc::TypeMask), LayerId);
 	}
 	return EyeLayers;
 }
@@ -1790,11 +1807,14 @@ uint32 FHMDLayerManager::FindLayerIndex(const TArray<TSharedPtr<FHMDLayerDesc> >
 
 TSharedPtr<FHMDLayerDesc> FHMDLayerManager::FindLayer_NoLock(uint32 LayerId) const
 {
-	const TArray<TSharedPtr<FHMDLayerDesc> >& Layers = GetLayersArrayById(LayerId);
-		uint32 idx = FindLayerIndex(Layers, LayerId);
-	if (idx != ~0u)
+	if (LayerId != 0)
 	{
-		return Layers[idx];
+		const TArray<TSharedPtr<FHMDLayerDesc> >& Layers = GetLayersArrayById(LayerId);
+		uint32 idx = FindLayerIndex(Layers, LayerId);
+		if (idx != ~0u)
+		{
+			return Layers[idx];
+		}
 	}
 	return nullptr;
 }
@@ -1802,12 +1822,15 @@ TSharedPtr<FHMDLayerDesc> FHMDLayerManager::FindLayer_NoLock(uint32 LayerId) con
 void FHMDLayerManager::UpdateLayer(const FHMDLayerDesc& InLayerDesc)
 {
 	FScopeLock ScopeLock(&LayersLock);
-	TArray<TSharedPtr<FHMDLayerDesc> >& Layers = GetLayersArrayById(InLayerDesc.GetId());
-	uint32 idx = FindLayerIndex(Layers, InLayerDesc.GetId());
-	if (idx != ~0u)
+	if (InLayerDesc.Id != 0)
 	{
-		*Layers[idx].Get() = InLayerDesc;
-		SetDirty();
+		TArray<TSharedPtr<FHMDLayerDesc> >& Layers = GetLayersArrayById(InLayerDesc.GetId());
+		uint32 idx = FindLayerIndex(Layers, InLayerDesc.GetId());
+		if (idx != ~0u)
+		{
+			*Layers[idx].Get() = InLayerDesc;
+			SetDirty();
+		}
 	}
 }
 

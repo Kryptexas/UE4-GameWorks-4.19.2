@@ -46,7 +46,7 @@ float3 GetSkyLightReflection(float3 ReflectionVector, float Roughness, bool bNor
 		Reflection /= max(LowFrequencyBrightness, .00001f);
 	}
 
-	return Reflection * Frame.SkyLightColor.rgb;
+	return Reflection * View.SkyLightColor.rgb;
 }
 
 TextureCube SkyLightBlendDestinationCubemap;
@@ -72,7 +72,7 @@ float3 GetSkyLightReflectionSupportingBlend(float3 ReflectionVector, float Rough
 			BlendDestinationReflection /= max(LowFrequencyBrightness, .00001f);
 		}
 
-		Reflection = lerp(Reflection, BlendDestinationReflection * Frame.SkyLightColor.rgb, SkyLightParameters.w);
+		Reflection = lerp(Reflection, BlendDestinationReflection * View.SkyLightColor.rgb, SkyLightParameters.w);
 	}
 
 	return Reflection;
@@ -87,17 +87,17 @@ float3 GetSkySHDiffuse(float3 Normal)
 	float4 NormalVector = float4(Normal, 1);
 
 	float3 Intermediate0, Intermediate1, Intermediate2;
-	Intermediate0.x = dot(Frame.SkyIrradianceEnvironmentMap[0], NormalVector);
-	Intermediate0.y = dot(Frame.SkyIrradianceEnvironmentMap[1], NormalVector);
-	Intermediate0.z = dot(Frame.SkyIrradianceEnvironmentMap[2], NormalVector);
+	Intermediate0.x = dot(View.SkyIrradianceEnvironmentMap[0], NormalVector);
+	Intermediate0.y = dot(View.SkyIrradianceEnvironmentMap[1], NormalVector);
+	Intermediate0.z = dot(View.SkyIrradianceEnvironmentMap[2], NormalVector);
 
 	float4 vB = NormalVector.xyzz * NormalVector.yzzx;
-	Intermediate1.x = dot(Frame.SkyIrradianceEnvironmentMap[3], vB);
-	Intermediate1.y = dot(Frame.SkyIrradianceEnvironmentMap[4], vB);
-	Intermediate1.z = dot(Frame.SkyIrradianceEnvironmentMap[5], vB);
+	Intermediate1.x = dot(View.SkyIrradianceEnvironmentMap[3], vB);
+	Intermediate1.y = dot(View.SkyIrradianceEnvironmentMap[4], vB);
+	Intermediate1.z = dot(View.SkyIrradianceEnvironmentMap[5], vB);
 
 	float vC = NormalVector.x * NormalVector.x - NormalVector.y * NormalVector.y;
-	Intermediate2 = Frame.SkyIrradianceEnvironmentMap[6].xyz * vC;
+	Intermediate2 = View.SkyIrradianceEnvironmentMap[6].xyz * vC;
 
 	// max to not get negative colors
 	return max(0, Intermediate0 + Intermediate1 + Intermediate2);
@@ -113,9 +113,9 @@ float3 GetSkySHDiffuseSimple(float3 Normal)
 	float4 NormalVector = float4(Normal, 1);
 
 	float3 Intermediate0;
-	Intermediate0.x = dot(Frame.SkyIrradianceEnvironmentMap[0], NormalVector);
-	Intermediate0.y = dot(Frame.SkyIrradianceEnvironmentMap[1], NormalVector);
-	Intermediate0.z = dot(Frame.SkyIrradianceEnvironmentMap[2], NormalVector);		
+	Intermediate0.x = dot(View.SkyIrradianceEnvironmentMap[0], NormalVector);
+	Intermediate0.y = dot(View.SkyIrradianceEnvironmentMap[1], NormalVector);
+	Intermediate0.z = dot(View.SkyIrradianceEnvironmentMap[2], NormalVector);		
 
 	// max to not get negative colors
 	return max(0, Intermediate0);

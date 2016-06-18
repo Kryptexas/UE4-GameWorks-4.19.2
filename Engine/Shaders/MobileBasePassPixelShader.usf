@@ -180,7 +180,7 @@ half3 BlendReflectionCapture(FMaterialPixelParameters MaterialParameters, half R
 half3 BlendReflectionCaptures(FMaterialPixelParameters MaterialParameters, half Roughness)
 {
 	// Compute fractional mip from roughness
-	half AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness, Frame.ReflectionCubemapMaxMip);
+	half AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness, View.ReflectionCubemapMaxMip);
 
 	half3 SpecularIBL = half3(0, 0, 0);
 	half BlendFactor = 1;
@@ -207,7 +207,7 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 	half3 ProjectedCaptureVector = MaterialParameters.ReflectionVector;	
 
 	// Compute fractional mip from roughness
-	half AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness, Frame.ReflectionCubemapMaxMip);
+	half AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness, View.ReflectionCubemapMaxMip);
 	// Fetch from cubemap and convert to linear HDR
 	half3 SpecularIBL = RGBMDecode(ReflectionCubemap.SampleLevel(ReflectionCubemapSampler, ProjectedCaptureVector, AbsoluteSpecularMip), 16.0f);
 #endif
@@ -242,7 +242,7 @@ float ClipForEditorPrimitives(FMaterialPixelParameters MaterialParameters)
 			bool bIsPerspective = (View.ViewToClip._m33 < 1.0f);
 
 			// dejitter the sample position and make a filtered lookup - for planes this allows to reconstruct a much less jittery depth comparison function, it however doesn't fix silhuetes
-			float DeviceZ = Texture2DSampleLevel(FilteredSceneDepthTexture, FilteredSceneDepthTextureSampler, (MaterialParameters.SvPosition.xy - Frame.TemporalAAParams.zw) * Frame.BufferSizeAndInvSize.zw, 0).r;
+			float DeviceZ = Texture2DSampleLevel(FilteredSceneDepthTexture, FilteredSceneDepthTextureSampler, (MaterialParameters.SvPosition.xy - View.TemporalAAParams.zw) * View.BufferSizeAndInvSize.zw, 0).r;
 
 			float PixelDeviceZ = MaterialParameters.SvPosition.z;
 
@@ -298,7 +298,7 @@ void Main(
 
 #if ES2_PROFILE && OUTPUT_GAMMA_SPACE && !MOBILE_EMULATION
 	// LDR ES2 needs screen vertical flipped
-	SvPosition.y = Frame.BufferSizeAndInvSize.y - SvPosition.y - 1;
+	SvPosition.y = View.BufferSizeAndInvSize.y - SvPosition.y - 1;
 #endif
 
 	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants, SvPosition);
@@ -355,8 +355,8 @@ void Main(
 #if MOBILE_EMULATION
 	{
 		// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
-		DiffuseColor = DiffuseColor * Frame.DiffuseOverrideParameter.w + Frame.DiffuseOverrideParameter.xyz;
-		SpecularColor = SpecularColor * Frame.SpecularOverrideParameter.w + Frame.SpecularOverrideParameter.xyz;
+		DiffuseColor = DiffuseColor * View.DiffuseOverrideParameter.w + View.DiffuseOverrideParameter.xyz;
+		SpecularColor = SpecularColor * View.SpecularOverrideParameter.w + View.SpecularOverrideParameter.xyz;
 	}
 #endif
 	
@@ -417,10 +417,10 @@ void Main(
 		// Cascaded Shadow Map
 		{
 			FPCFSamplerSettings Settings;
-			Settings.ShadowDepthTexture = Frame.DirectionalLightShadowTexture;
-			Settings.ShadowDepthTextureSampler = Frame.DirectionalLightShadowSampler;
-			Settings.TransitionScale = Frame.DirectionalLightShadowTransition;
-			Settings.ShadowBufferSize = Frame.DirectionalLightShadowSize;
+			Settings.ShadowDepthTexture = View.DirectionalLightShadowTexture;
+			Settings.ShadowDepthTextureSampler = View.DirectionalLightShadowSampler;
+			Settings.TransitionScale = View.DirectionalLightShadowTransition;
+			Settings.ShadowBufferSize = View.DirectionalLightShadowSize;
 			Settings.bSubsurface = false;
 			Settings.DensityMulConstant = 0;
 			Settings.ProjectionDepthBiasParameters = 0;
@@ -429,9 +429,9 @@ void Main(
 			for (int i = 0; i < MAX_MOBILE_SHADOWCASCADES; i++)
 			{
 				if (i == (MAX_MOBILE_SHADOWCASCADES - 1) // ignore test for last shadow map.
-					|| MaterialParameters.ScreenPosition.w < Frame.DirectionalLightShadowDistances[i])
+					|| MaterialParameters.ScreenPosition.w < View.DirectionalLightShadowDistances[i])
 				{
-					ShadowPosition = mul(float4(MaterialParameters.ScreenPosition.xyw, 1), Frame.DirectionalLightScreenToShadow[i]);
+					ShadowPosition = mul(float4(MaterialParameters.ScreenPosition.xyw, 1), View.DirectionalLightScreenToShadow[i]);
 					break; // position found.
 				}
 			}
@@ -455,13 +455,13 @@ void Main(
 		}
 		#endif /* DIRECTIONAL_LIGHT_CSM */
 
-		float NoL = max(0, dot(MaterialParameters.WorldNormal, Frame.DirectionalLightDirection));
-		float RoL = max(0, dot(MaterialParameters.ReflectionVector, Frame.DirectionalLightDirection));
+		float NoL = max(0, dot(MaterialParameters.WorldNormal, View.DirectionalLightDirection));
+		float RoL = max(0, dot(MaterialParameters.ReflectionVector, View.DirectionalLightDirection));
 
 		#if FULLY_ROUGH
-			Color += (Shadow * NoL) * Frame.DirectionalLightColor.rgb * DiffuseColor;
+			Color += (Shadow * NoL) * View.DirectionalLightColor.rgb * DiffuseColor;
 		#else
-			Color += (Shadow * NoL) * Frame.DirectionalLightColor.rgb * (DiffuseColor + SpecularColor * PhongApprox(Roughness, RoL));
+			Color += (Shadow * NoL) * View.DirectionalLightColor.rgb * (DiffuseColor + SpecularColor * PhongApprox(Roughness, RoL));
 			// Environment map has been prenormalized, scale by lightmap luminance
 			half3 SpecularIBL = GetImageBasedReflectionLighting(MaterialParameters, Roughness) * IndirectIrradiance;
 			#if MATERIAL_PLANAR_FORWARD_REFLECTIONS
@@ -479,7 +479,7 @@ void Main(
 		#if ENABLE_SKY_LIGHT
 			//@mw todo
 			// TODO: Also need to do specular.
-			Color += GetSkySHDiffuseSimple(MaterialParameters.WorldNormal) * Frame.SkyLightColor.rgb * DiffuseColor;    
+			Color += GetSkySHDiffuseSimple(MaterialParameters.WorldNormal) * View.SkyLightColor.rgb * DiffuseColor;    
 		#endif
 
 		#if MAX_DYNAMIC_POINT_LIGHTS > 0
@@ -548,7 +548,7 @@ void Main(
 #endif
 
 #if !MATERIAL_SHADINGMODEL_UNLIT && MOBILE_EMULATION
-	Color = lerp(Color, DiffuseColor + SpecularColor, Frame.UnlitViewmodeMask);
+	Color = lerp(Color, DiffuseColor + SpecularColor, View.UnlitViewmodeMask);
 #endif
 
 	#if MATERIALBLENDING_TRANSLUCENT
@@ -576,7 +576,7 @@ void Main(
 	#if !MATERIALBLENDING_MODULATE
 		// The exposure scale is just a scalar but needs to be a float4 to workaround a driver bug on IOS.
 		// After 4.2 we can put the workaround in the cross compiler.
-		OutColor.rgba *= Frame.ExposureScale.xyzw;
+		OutColor.rgba *= View.ExposureScale.xyzw;
 	#endif
 
 	#if OUTPUT_GAMMA_SPACE

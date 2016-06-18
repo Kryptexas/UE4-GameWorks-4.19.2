@@ -90,18 +90,20 @@ IMPLEMENT_MODULE( FHeadMountedDisplayModule, HeadMountedDisplay );
 
 IHeadMountedDisplay::IHeadMountedDisplay()
 {
+	LateUpdateGameWriteIndex = LateUpdateRenderReadIndex = 0;
 }
 
 void IHeadMountedDisplay::SetupLateUpdate(const FTransform& ParentToWorld, USceneComponent* Component)
 {
 	LateUpdateParentToWorld = ParentToWorld;
-	LateUpdatePrimitives.Reset();
-	GatherLateUpdatePrimitives(Component, LateUpdatePrimitives);
+	LateUpdatePrimitives[LateUpdateGameWriteIndex].Reset();
+	GatherLateUpdatePrimitives(Component, LateUpdatePrimitives[LateUpdateGameWriteIndex]);
+	LateUpdateGameWriteIndex = (LateUpdateGameWriteIndex + 1) % 2;
 }
 
 void IHeadMountedDisplay::ApplyLateUpdate(FSceneInterface* Scene, const FTransform& OldRelativeTransform, const FTransform& NewRelativeTransform)
 {
-	if (!LateUpdatePrimitives.Num())
+	if (!LateUpdatePrimitives[LateUpdateRenderReadIndex].Num())
 	{
 		return;
 	}
@@ -111,7 +113,7 @@ void IHeadMountedDisplay::ApplyLateUpdate(FSceneInterface* Scene, const FTransfo
 	const FMatrix LateUpdateTransform = (OldCameraTransform.Inverse() * NewCameraTransform).ToMatrixWithScale();
 
 	// Apply delta to the affected scene proxies
-	for (auto PrimitiveInfo : LateUpdatePrimitives)
+	for (auto PrimitiveInfo : LateUpdatePrimitives[LateUpdateRenderReadIndex])
 	{
 		FPrimitiveSceneInfo* RetrievedSceneInfo = Scene->GetPrimitiveSceneInfo(*PrimitiveInfo.IndexAddress);
 		FPrimitiveSceneInfo* CachedSceneInfo = PrimitiveInfo.SceneInfo;
@@ -121,7 +123,8 @@ void IHeadMountedDisplay::ApplyLateUpdate(FSceneInterface* Scene, const FTransfo
 			CachedSceneInfo->Proxy->ApplyLateUpdateTransform(LateUpdateTransform);
 		}
 	}
-	LateUpdatePrimitives.Reset();
+	LateUpdatePrimitives[LateUpdateRenderReadIndex].Reset();
+	LateUpdateRenderReadIndex = (LateUpdateRenderReadIndex + 1) % 2;
 }
 
 bool IHeadMountedDisplay::DoesAppUseVRFocus() const

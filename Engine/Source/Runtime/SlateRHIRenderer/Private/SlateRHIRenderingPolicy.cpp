@@ -15,7 +15,7 @@
 #include "SlateElementIndexBuffer.h"
 #include "SlateElementVertexBuffer.h"
 
-extern void UpdateNoiseTextureParameters(FFrameUniformShaderParameters& FrameUniformShaderParameters);
+extern void UpdateNoiseTextureParameters(FViewUniformShaderParameters& ViewUniformShaderParameters);
 
 DECLARE_CYCLE_STAT(TEXT("Update Buffers RT"), STAT_SlateUpdateBufferRTTime, STATGROUP_Slate);
 DECLARE_CYCLE_STAT(TEXT("PreFill Buffers RT"), STAT_SlatePreFullBufferRTTime, STATGROUP_Slate);
@@ -208,9 +208,6 @@ static FSceneView& CreateSceneView( FSceneViewFamilyContext& ViewFamilyContext, 
 
 	// Create the view's uniform buffer.
 	FViewUniformShaderParameters ViewUniformShaderParameters;
-	FFrameUniformShaderParameters FrameUniformShaderParameters;
-
-	FMemory::Memzero(ViewUniformShaderParameters);
 
 	ViewUniformShaderParameters.TranslatedWorldToClip = View->ViewMatrices.TranslatedViewProjectionMatrix;
 	ViewUniformShaderParameters.WorldToClip = ViewProjectionMatrix;
@@ -228,24 +225,24 @@ static FSceneView& CreateSceneView( FSceneViewFamilyContext& ViewFamilyContext, 
 	ViewUniformShaderParameters.PreViewTranslation = View->ViewMatrices.PreViewTranslation;
 	ViewUniformShaderParameters.ScreenPositionScaleBias = ScreenPositionScaleBias;
 	
-	FrameUniformShaderParameters.ViewRectMin = FVector4(ViewRect.Min.X, ViewRect.Min.Y, 0.0f, 0.0f);
-	FrameUniformShaderParameters.ViewSizeAndInvSize = FVector4(ViewRect.Width(), ViewRect.Height(), 1.0f / ViewRect.Width(), 1.0f / ViewRect.Height());
-	FrameUniformShaderParameters.BufferSizeAndInvSize = FrameUniformShaderParameters.ViewSizeAndInvSize;
-	FrameUniformShaderParameters.DiffuseOverrideParameter = View->DiffuseOverrideParameter;
-	FrameUniformShaderParameters.SpecularOverrideParameter = View->SpecularOverrideParameter;
-	FrameUniformShaderParameters.NormalOverrideParameter = View->NormalOverrideParameter;
-	FrameUniformShaderParameters.RoughnessOverrideParameter = View->RoughnessOverrideParameter;
-	FrameUniformShaderParameters.PrevFrameGameTime = View->Family->CurrentWorldTime - View->Family->DeltaWorldTime;
-	FrameUniformShaderParameters.PrevFrameRealTime = View->Family->CurrentRealTime - View->Family->DeltaWorldTime;
-	FrameUniformShaderParameters.CullingSign = View->bReverseCulling ? -1.0f : 1.0f;
-	FrameUniformShaderParameters.NearPlane = GNearClippingPlane;
-	FrameUniformShaderParameters.GameTime = View->Family->CurrentWorldTime;
-	FrameUniformShaderParameters.RealTime = View->Family->CurrentRealTime;
-	FrameUniformShaderParameters.Random = FMath::Rand();
-	FrameUniformShaderParameters.FrameNumber = View->Family->FrameNumber;
+	ViewUniformShaderParameters.ViewRectMin = FVector4(ViewRect.Min.X, ViewRect.Min.Y, 0.0f, 0.0f);
+	ViewUniformShaderParameters.ViewSizeAndInvSize = FVector4(ViewRect.Width(), ViewRect.Height(), 1.0f / ViewRect.Width(), 1.0f / ViewRect.Height());
+	ViewUniformShaderParameters.BufferSizeAndInvSize = ViewUniformShaderParameters.ViewSizeAndInvSize;
+	ViewUniformShaderParameters.DiffuseOverrideParameter = View->DiffuseOverrideParameter;
+	ViewUniformShaderParameters.SpecularOverrideParameter = View->SpecularOverrideParameter;
+	ViewUniformShaderParameters.NormalOverrideParameter = View->NormalOverrideParameter;
+	ViewUniformShaderParameters.RoughnessOverrideParameter = View->RoughnessOverrideParameter;
+	ViewUniformShaderParameters.PrevFrameGameTime = View->Family->CurrentWorldTime - View->Family->DeltaWorldTime;
+	ViewUniformShaderParameters.PrevFrameRealTime = View->Family->CurrentRealTime - View->Family->DeltaWorldTime;
+	ViewUniformShaderParameters.CullingSign = View->bReverseCulling ? -1.0f : 1.0f;
+	ViewUniformShaderParameters.NearPlane = GNearClippingPlane;
+	ViewUniformShaderParameters.GameTime = View->Family->CurrentWorldTime;
+	ViewUniformShaderParameters.RealTime = View->Family->CurrentRealTime;
+	ViewUniformShaderParameters.Random = FMath::Rand();
+	ViewUniformShaderParameters.FrameNumber = View->Family->FrameNumber;
 
 	// Update noise buffers
-	UpdateNoiseTextureParameters(FrameUniformShaderParameters);
+	UpdateNoiseTextureParameters(ViewUniformShaderParameters);
 
 	{
 		// setup a matrix to transform float4(SvPosition.xyz,1) directly to TranslatedWorld (quality, performance as we don't need to convert or use interpolator)
@@ -254,10 +251,10 @@ static FSceneView& CreateSceneView( FSceneViewFamilyContext& ViewFamilyContext, 
 
 		//  transformed into one MAD:  new_xy = xy * ViewSizeAndInvSize.zw * float2(2,-2)      +       (-ViewRectMin.xy) * ViewSizeAndInvSize.zw * float2(2,-2) + float2(-1, 1);
 
-		float Mx = 2.0f * FrameUniformShaderParameters.ViewSizeAndInvSize.Z;
-		float My = -2.0f * FrameUniformShaderParameters.ViewSizeAndInvSize.W;
-		float Ax = -1.0f - 2.0f * ViewRect.Min.X * FrameUniformShaderParameters.ViewSizeAndInvSize.Z;
-		float Ay = 1.0f + 2.0f * ViewRect.Min.Y * FrameUniformShaderParameters.ViewSizeAndInvSize.W;
+		float Mx = 2.0f * ViewUniformShaderParameters.ViewSizeAndInvSize.Z;
+		float My = -2.0f * ViewUniformShaderParameters.ViewSizeAndInvSize.W;
+		float Ax = -1.0f - 2.0f * ViewRect.Min.X * ViewUniformShaderParameters.ViewSizeAndInvSize.Z;
+		float Ay = 1.0f + 2.0f * ViewRect.Min.Y * ViewUniformShaderParameters.ViewSizeAndInvSize.W;
 
 		// http://stackoverflow.com/questions/9010546/java-transformation-matrix-operations
 
@@ -283,7 +280,7 @@ static FSceneView& CreateSceneView( FSceneViewFamilyContext& ViewFamilyContext, 
 		* View->ViewMatrices.InvTranslatedViewProjectionMatrix;
 
 	View->ViewUniformBuffer = TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(ViewUniformShaderParameters, UniformBuffer_SingleFrame);
-	View->FrameUniformBuffer = TUniformBufferRef<FFrameUniformShaderParameters>::CreateUniformBufferImmediate(FrameUniformShaderParameters, UniformBuffer_SingleFrame);
+
 	return *View;
 }
 

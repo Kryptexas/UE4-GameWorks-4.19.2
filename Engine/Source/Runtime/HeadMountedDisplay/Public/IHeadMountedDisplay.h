@@ -383,7 +383,10 @@ private:
 	void GatherLateUpdatePrimitives(USceneComponent* Component, TArray<LateUpdatePrimitiveInfo>& Primitives);
 
 	/** Primitives that need late update before rendering */
-	TArray<LateUpdatePrimitiveInfo> LateUpdatePrimitives;
+	TArray<LateUpdatePrimitiveInfo> LateUpdatePrimitives[2];
+
+	int32 LateUpdateGameWriteIndex;
+	int32 LateUpdateRenderReadIndex;
 
 	/** Parent world transform used to reconstruct new world transforms for late update scene proxies */
 	FTransform LateUpdateParentToWorld;

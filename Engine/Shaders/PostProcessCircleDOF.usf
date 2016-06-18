@@ -16,13 +16,13 @@
 // 0:old, 1:new(fixed high res screenshots), does not make a difference
 #define DILATION_RESOLUTION_INDEPENDENT 0
 
-// Note: Frame.CircleDOFParams.w = Frame.ViewSizeAndInvSize.x / 1920
+// Note: View.CircleDOFParams.w = View.ViewSizeAndInvSize.x / 1920
 
 // is wrapping the DepthToCoc() function in this file for faster iteration
 // @return half res pixel radius
 float DepthToCoc2(float SceneDepth)
 {
-//	return ((SceneDepth > 8000) ? 5.0f : 2.6f) * 0.5f * Frame.CircleDOFParams.w;
+//	return ((SceneDepth > 8000) ? 5.0f : 2.6f) * 0.5f * View.CircleDOFParams.w;
 	return DepthToCoc(SceneDepth);
 }
 
@@ -209,7 +209,7 @@ void CircleDilatePS(float4 UVAndScreenPos : TEXCOORD0, out float OutColor : SV_T
 		Sm.w = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV.xy, 0, int2(1,1)).a;
 	#else
 		#if DILATION_RESOLUTION_INDEPENDENT
-			float factor = Frame.ViewSizeAndInvSize.x / 1980.0f;
+			float factor = View.ViewSizeAndInvSize.x / 1980.0f;
 
 			float2 A = 1 + float2(-2,-2);
 			float2 B = 1 + float2(0,-2);
@@ -249,7 +249,7 @@ void Circle4Samples(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor0 : SV
 
 	// Fixed maximum search size (in terms of Circle of Confusion radius).
 	// Higher than 8 is too noizy for 4 samples. (actual radius is scaled by width/1920)
-	float Coc = 8.0 * Frame.CircleDOFParams.w;
+	float Coc = 8.0 * View.CircleDOFParams.w;
 
 	float LocalRand = RandomOffset.x + InRand;
 
@@ -260,7 +260,7 @@ void Circle4Samples(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor0 : SV
 	float RadiusBase = NoizNorm(UVAndScreenPos.xy, 0.013 * LocalRand);
 
 #if DEBUG_SAMPLE_PATTERN
-	Coc = 100 * Frame.CircleDOFParams.w;
+	Coc = 100 * View.CircleDOFParams.w;
 #endif
 
 	// Radius 

@@ -9,6 +9,8 @@
 
 #include "SceneViewExtension.h"
 
+#include "GearVRSplash.h"
+
 #if PLATFORM_SUPPORTS_PRAGMA_PACK
 #pragma pack (push,8)
 #endif
@@ -142,6 +144,8 @@ public:
 	
 	pid_t					GameThreadId;
 
+	ovrFrameParms			FrameParms;
+
 	FGameFrame();
 	virtual ~FGameFrame() {}
 
@@ -173,10 +177,7 @@ public:
 	FSettings* GetFrameSetting() const { return static_cast<FSettings*>(RenderFrame->GetSettings()); }
 	FGearVR* GetGearVR() const;
 public:
-	class FGearVRCustomPresent* pPresentBridge;
-	ovrPosef			NewEyeRenderPose[2];// most recent eye render poses
-	ovrRigidBodyPosef	CurHeadPose;		// current position of head
-	ovrTracking			NewTracking;		// current tracking
+	class FCustomPresent* pPresentBridge;
 
 	FEngineShowFlags	ShowFlags;			// a copy of showflags
 	bool				bFrameBegun : 1;
@@ -184,7 +185,7 @@ public:
 
 class FOvrMobileSynced
 {
-	friend class FGearVRCustomPresent;
+	friend class FCustomPresent;
 protected:
 	FOvrMobileSynced(ovrMobile* InMobile, FCriticalSection* InLock) :Mobile(InMobile), pLock(InLock) 
 	{
@@ -252,6 +253,7 @@ public:
 
 	void ReleaseResources() 
 	{ 	
+		UE_LOG(LogHMD, Log, TEXT("Freeing textureSet %p"), ColorTextureSet);
 		vrapi_DestroyTextureSwapChain(ColorTextureSet);
 		Resource = 0;
 	}
@@ -261,10 +263,11 @@ public:
 	static FOpenGLTexture2DSet* CreateTexture2DSet(
 		FOpenGLDynamicRHI* InGLRHI,
 		uint32 SizeX, uint32 SizeY,
-		uint32 InNumAllocated,
 		uint32 InNumSamples,
+		uint32 InNumMips,
 		EPixelFormat InFormat,
-		uint32 InFlags);
+		uint32 InFlags,
+		bool bBuffered);
 
 	ovrTextureSwapChain	*	GetColorTextureSet() const { return ColorTextureSet; }
 	uint32					GetCurrentIndex() const { return CurrentIndex; }
@@ -287,7 +290,7 @@ public:
 
 	~FTexture2DSetProxy() { }
 
-	FOpenGLTexture2DSetRef getTextureSet() { return TextureSet; }
+	FOpenGLTexture2DSetRef GetTextureSet() { return TextureSet; }
 	
 	virtual FTextureRHIRef GetRHITexture() const override 
 	{ 
@@ -310,8 +313,15 @@ public:
 	}
 
 	virtual void SwitchToNextElement() override { TextureSet->SwitchToNextElement(); }
-	virtual bool Commit(FRHICommandListImmediate& RHICmdList) override { return true; }
-
+	virtual bool Commit(FRHICommandListImmediate& RHICmdList) override
+	{
+		FTextureRHIRef RHITexture = GetRHITexture();
+		if (RHITexture.IsValid() && RHITexture->GetNumMips() > 1)
+		{
+			RHICmdList.GenerateMips(RHITexture);
+		}
+		return true;
+	}
 protected:
 	FOpenGLTexture2DSetRef  TextureSet;
 };
@@ -331,7 +341,7 @@ public:
 	{
 		if (TextureSet.IsValid())
 		{
-			return static_cast<FTexture2DSetProxy*>(TextureSet.Get())->getTextureSet()->GetColorTextureSet();
+			return static_cast<FTexture2DSetProxy*>(TextureSet.Get())->GetTextureSet()->GetColorTextureSet();
 		}
 		return nullptr; 
 	}
@@ -340,7 +350,7 @@ public:
 	{
 		if (TextureSet.IsValid())
 		{
-			return static_cast<FTexture2DSetProxy*>(TextureSet.Get())->getTextureSet()->GetCurrentIndex();
+			return static_cast<FTexture2DSetProxy*>(TextureSet.Get())->GetTextureSet()->GetCurrentIndex();
 		}
 		return 1;
 	}
@@ -354,30 +364,45 @@ protected:
 class FLayerManager : public FHMDLayerManager 
 {
 public:
-	FLayerManager(class FGearVRCustomPresent*);
+	FLayerManager(class FCustomPresent*);
 	~FLayerManager();
+
+	virtual void Startup() override;
+	virtual void Shutdown() override;
+
+	// Releases all textureSets used by all layers
+	virtual void ReleaseTextureSets_RenderThread_NoLock() override;
 
 	virtual void PreSubmitUpdate_RenderThread(FRHICommandListImmediate& RHICmdList, const FHMDGameFrame* CurrentFrame, bool ShowFlagsRendering) override;
 
+	void ReleaseTextureSets(); // can be called on any thread
+
 	void SubmitFrame_RenderThread(ovrMobile* mobilePtr, ovrFrameParms* currentParams);
+
+	bool HasEyeLayer() const { FScopeLock ScopeLock(&LayersLock); return EyeLayers.Num() != 0; }
+
+	const FHMDLayerDesc* GetEyeLayerDesc() const { return GetLayerDesc(EyeLayerId); }
 
 protected:
 	virtual TSharedPtr<FHMDRenderLayer> CreateRenderLayer_RenderThread(FHMDLayerDesc& InDesc) override;
 
+	virtual uint32 GetTotalNumberOfLayersSupported() const override { return VRAPI_FRAME_LAYER_TYPE_MAX; }
+
 private:
-	FGearVRCustomPresent *pPresentBridge;
+	FCustomPresent *pPresentBridge;
+	uint32			EyeLayerId;
+	bool			bInitialized : 1;
 };
 
-class FGearVRCustomPresent : public FRHICustomPresent
+class FCustomPresent : public FRHICustomPresent
 {
 	friend class FViewExtension;
 	friend class ::FGearVR;
 public:
-	FGearVRCustomPresent(jobject InActivityObject, int32 InMinimumVsyncs);
+	FCustomPresent(jobject InActivityObject, int32 InMinimumVsyncs);
 
 	// Returns true if it is initialized and used.
 	bool IsInitialized() const { return bInitialized; }
-	bool IsTextureSetCreated() const { return TextureSet;  }
 
 	void UpdateViewport(const FViewport& Viewport, FRHIViewport* ViewportRHI, FGameFrame* InRenderFrame);
 	FGameFrame* GetRenderFrame() const { check(IsInRenderingThread()); return static_cast<FGameFrame*>(RenderContext->RenderFrame.Get()); }
@@ -410,7 +435,7 @@ public:
 	// If returns false then a default RT texture will be used.
 	bool AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 Flags, uint32 TargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples);
 
-	FTexture2DSetProxyPtr CreateTextureSet(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips);
+	FTexture2DSetProxyPtr CreateTextureSet(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, bool bBuffered);
 
 	void CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef DstTexture, FTextureRHIParamRef SrcTexture, int SrcSizeX, int SrcSizeY, FIntRect DstRect = FIntRect(), FIntRect SrcRect = FIntRect(), bool bAlphaPremultiply = false) const;
 		
@@ -433,11 +458,16 @@ public:
 	// Forcedly renders the loading icon.
 	void RenderLoadingIcon_RenderThread(uint32 FrameIndex);
 	
+	int32 LockSubmitFrame();
+	int32 UnlockSubmitFrame();
+	bool IsSubmitFrameLocked() const { return SubmitFrameLocker.GetValue() != 0; }
+
+	void PushFrame(FLayerManager* pInLayerMgr, const FGameFrame* CurrentFrame);
 protected:
 	void SetRenderContext(FHMDViewExtension* InRenderContext);
 	void DoRenderLoadingIcon_RenderThread(int CpuLevel, int GpuLevel, pid_t GameTid);
 	void SystemActivities_Update_RenderThread();
-	void PushBlackFinal(const FGameFrame& frame);
+	void PushBlackFinal(const FGameFrame* frame);
 
 protected: // data
 	TSharedPtr<FViewExtension, ESPMode::ThreadSafe> RenderContext;
@@ -446,12 +476,10 @@ protected: // data
 	IRendererModule*	RendererModule;
 
 	// should be accessed only on a RenderThread!
-	ovrFrameParms							FrameParms;
-	ovrFrameParms							LoadingIconParms;
+	ovrFrameParms							DefaultFrameParms;
+ 	ovrFrameParms							LoadingIconParms;
 	ovrPerformanceParms						DefaultPerfParms;
-	TRefCountPtr<class FOpenGLTexture2DSet>	TextureSet;
-	ovrTextureSwapChain*					LoadingIconTextureSet;
-	FTextureRHIRef							SrcLoadingIconTexture;
+	FTexture2DSetProxyPtr					LoadingIconTextureSet;
 	bool									bLoadingIconIsActive;
 	bool									bExtraLatencyMode;
 	bool									bHMTWasMounted;
@@ -464,6 +492,7 @@ protected: // data
 	FCriticalSection						OvrMobileLock;	// used to access OvrMobile_RT/HmdInfo_RT on a game thread
 	ovrJava									JavaRT;			// Rendering thread Java obj
 	jobject									ActivityObject;
+	FThreadSafeCounter						SubmitFrameLocker;
 };
 }  // namespace GearVR
 
@@ -475,7 +504,8 @@ using namespace GearVR;
 class FGearVR : public FHeadMountedDisplay
 {
 	friend class FViewExtension;
-	friend class FGearVRCustomPresent;
+	friend class FCustomPresent;
+	friend class FGearVRSplash;
 public:
 	/** IHeadMountedDisplay interface */
 	virtual bool OnStartGameFrame( FWorldContext& WorldContext ) override;
@@ -544,6 +574,8 @@ public:
 
 	virtual bool HandleInputKey(class UPlayerInput*, const FKey& Key, EInputEvent EventType, float AmountDepressed, bool bGamepad) override;
 
+	virtual void OnBeginPlay(FWorldContext& InWorldContext) override;
+
 	virtual FHMDLayerManager* GetLayerManager() override { return pGearVRBridge->GetLayerMgr(); }
 
 	/** Constructor */
@@ -552,7 +584,7 @@ public:
 	/** Destructor */
 	virtual ~FGearVR();
 
-	TRefCountPtr<FGearVRCustomPresent> pGearVRBridge;
+	TRefCountPtr<FCustomPresent> pGearVRBridge;
 
 	void StartOVRGlobalMenu();
 	void StartOVRQuitMenu();
@@ -568,6 +600,8 @@ public:
 	void SetLoadingIconMode(bool bActiveLoadingIcon);
 	void RenderLoadingIcon_RenderThread();
 	bool IsInLoadingIconMode() const;
+
+	FCustomPresent* GetCustomPresent_Internal() const { return pGearVRBridge; }
 private:
 	FGearVR* getThis() { return this; }
 
@@ -633,6 +667,8 @@ protected:
 	void StartSystemActivity_RenderThread(const char * commandString);
 	void PushBlackFinal();
 
+	virtual FAsyncLoadingSplash* GetAsyncLoadingSplash() const override { return Splash.Get(); }
+
 private: // data
 
 	FRotator			DeltaControlRotation;    // same as DeltaControlOrientation but as rotator
@@ -651,6 +687,8 @@ private: // data
 	ovrBackButtonState	BackButtonState;
 	bool				BackButtonDown;
 	double				BackButtonDownStartTime;
+
+	TSharedPtr<FGearVRSplash> Splash;
 
 	union
 	{

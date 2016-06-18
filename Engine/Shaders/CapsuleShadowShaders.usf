@@ -196,8 +196,8 @@ void SetupTileCullingData(
 		float2 TanViewFOV = GetTanHalfFieldOfView();
 		// tan(FOV) = HalfUnitPlaneWidth / 1, so TanViewFOV * 2 is the size of the whole unit view plane
 		// We are operating on a subset of that defined by ScissorRectMinAndSize
-		float2 TileSize = TanViewFOV * 2 * ScissorRectMinAndSize.zw / ((float2)Frame.ViewSizeAndInvSize.xy * NumGroups);
-		float2 UnitPlaneMin = -TanViewFOV + TanViewFOV * 2 * (ScissorRectMinAndSize.xy - Frame.ViewRectMin.xy) * Frame.ViewSizeAndInvSize.zw;
+		float2 TileSize = TanViewFOV * 2 * ScissorRectMinAndSize.zw / ((float2)ResolvedView.ViewSizeAndInvSize.xy * NumGroups);
+		float2 UnitPlaneMin = -TanViewFOV + TanViewFOV * 2 * (ScissorRectMinAndSize.xy - ResolvedView.ViewRectMin.xy) * ResolvedView.ViewSizeAndInvSize.zw;
 
 		float2 UnitPlaneTileMin = (GroupId.xy * TileSize + UnitPlaneMin) * float2(1, -1);
 		float2 UnitPlaneTileMax = ((GroupId.xy + 1) * TileSize + UnitPlaneMin) * float2(1, -1);
@@ -213,8 +213,8 @@ void SetupTileCullingData(
 	}
 	else
 	{
-		float2 TileSize = 2 * ScissorRectMinAndSize.zw / ((float2)Frame.ViewSizeAndInvSize.xy * NumGroups);
-		float2 UnitPlaneMin = -1 + 2 * (ScissorRectMinAndSize.xy - Frame.ViewRectMin.xy) * Frame.ViewSizeAndInvSize.zw;
+		float2 TileSize = 2 * ScissorRectMinAndSize.zw / ((float2)ResolvedView.ViewSizeAndInvSize.xy * NumGroups);
+		float2 UnitPlaneMin = -1 + 2 * (ScissorRectMinAndSize.xy - ResolvedView.ViewRectMin.xy) * ResolvedView.ViewSizeAndInvSize.zw;
 
 		float2 UnitPlaneTileMin = (GroupId.xy * TileSize + UnitPlaneMin) * float2(1, -1);
 		float2 UnitPlaneTileMax = ((GroupId.xy + 1) * TileSize + UnitPlaneMin) * float2(1, -1);
@@ -502,7 +502,7 @@ void CapsuleShadowingCS(
 {
 	uint ThreadIndex = GroupThreadId.y * THREADGROUP_SIZEX + GroupThreadId.x;
 
-	float2 ScreenUV = float2((DispatchThreadId.xy * DownsampleFactor + ScissorRectMinAndSize.xy + .5f) * Frame.BufferSizeAndInvSize.zw);
+	float2 ScreenUV = float2((DispatchThreadId.xy * DownsampleFactor + ScissorRectMinAndSize.xy + .5f) * View.BufferSizeAndInvSize.zw);
 	float2 ScreenPosition = (ScreenUV.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy;
 
 #if LIGHT_SOURCE_MODE == LIGHT_SOURCE_FROM_RECEIVER
@@ -651,7 +651,7 @@ void CapsuleShadowingUpsampleVS(
 	uint NumCapsulesAffectingTile = TileIntersectionCounts[EffectiveInstanceId];
 	uint TileY = InstanceId / TileDimensions.x;
 	uint2 TileCoordinate = uint2(EffectiveInstanceId - TileY * TileDimensions.x, TileY);
-	float2 ScreenUV = ((TileCoordinate + TexCoord) * TileSize + ScissorRectMinAndSize.xy) * Frame.BufferSizeAndInvSize.zw;
+	float2 ScreenUV = ((TileCoordinate + TexCoord) * TileSize + ScissorRectMinAndSize.xy) * View.BufferSizeAndInvSize.zw;
 	float2 ScreenPosition = (ScreenUV.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy;
 	OutPosition = float4(ScreenPosition, 0, 1);
 
@@ -676,12 +676,12 @@ void CapsuleShadowingUpsamplePS(
 	)
 {
 	// Distance field shadowing was computed at 0,0 regardless of viewrect min
-	float2 DistanceFieldUVs = SvPositionToBufferUV(SVPos) - ScissorRectMinAndSize.xy * Frame.BufferSizeAndInvSize.zw;
+	float2 DistanceFieldUVs = SvPositionToBufferUV(SVPos) - ScissorRectMinAndSize.xy * View.BufferSizeAndInvSize.zw;
 	float SceneDepth = CalcSceneDepth(SvPositionToBufferUV(SVPos));
 
 #define BILATERAL_UPSAMPLE 1
 #if BILATERAL_UPSAMPLE && UPSAMPLE_REQUIRED
-	float2 LowResBufferSize = floor(Frame.RenderTargetSize / DOWNSAMPLE_FACTOR);
+	float2 LowResBufferSize = floor(View.RenderTargetSize / DOWNSAMPLE_FACTOR);
 	float2 LowResTexelSize = 1.0f / LowResBufferSize;
 	float2 Corner00UV = floor(DistanceFieldUVs * LowResBufferSize - .5f) / LowResBufferSize + .5f * LowResTexelSize;
 	float2 BilinearWeights = (DistanceFieldUVs - Corner00UV) * LowResBufferSize;

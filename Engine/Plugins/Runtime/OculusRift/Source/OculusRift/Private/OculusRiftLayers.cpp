@@ -42,6 +42,7 @@ FLayerManager::FLayerManager(FCustomPresent* InBridge) :
 	pPresentBridge(InBridge)
 	, LayersList(nullptr)
 	, LayersListLen(0)
+	, EyeLayerId(0)
 	, bTextureSetsAreInvalid(true)
 	, bInitialized(false)
 {
@@ -58,8 +59,7 @@ void FLayerManager::Startup()
 	{
 		FHMDLayerManager::Startup();
 
-		uint32 ID;
-		auto EyeLayer = AddLayer(FHMDLayerDesc::Eye, INT_MIN, Layer_UnknownOrigin, ID);
+		auto EyeLayer = AddLayer(FHMDLayerDesc::Eye, INT_MIN, Layer_UnknownOrigin, EyeLayerId);
 		check(EyeLayer.IsValid());
 		bInitialized = true;
 		bTextureSetsAreInvalid = true;
@@ -277,12 +277,16 @@ void FLayerManager::PreSubmitUpdate_RenderThread(FRHICommandListImmediate& RHICm
 				}
 			}
 
+			bTextureChanged |= (Texture && LayerDesc.HasPendingTextureCopy()) ? true : false;
+			bTextureChanged |= (LayerDesc.GetFlags() & IStereoLayers::LAYER_FLAG_TEX_CONTINUOUS_UPDATE) ? true : false;
+
 			uint32 NumMips = (LayerDesc.IsHighQuality() ? 0 : 1);
 			if (RenderLayer->TextureSet.IsValid() && (bTextureSetsAreInvalid ||
 				RenderLayer->TextureSet->GetSourceSizeX() != SizeX ||
 				RenderLayer->TextureSet->GetSourceSizeY() != SizeY ||
 				RenderLayer->TextureSet->GetSourceFormat() != Format ||
-				RenderLayer->TextureSet->GetSourceNumMips() != NumMips))
+				RenderLayer->TextureSet->GetSourceNumMips() != NumMips ||
+				(bTextureChanged && RenderLayer->TextureSet->IsStaticImage())))
 			{
 				RenderLayer->TextureSet->ReleaseResources();
 				RenderLayer->TextureSet.Reset();
@@ -313,9 +317,6 @@ void FLayerManager::PreSubmitUpdate_RenderThread(FRHICommandListImmediate& RHICm
 				check(schDesc.Type == ovrTexture_2D);
 			}
 #endif
-
-			bTextureChanged |= (Texture && LayerDesc.HasPendingTextureCopy()) ? true : false;
-			bTextureChanged |= (LayerDesc.GetFlags() & IStereoLayers::LAYER_FLAG_TEX_CONTINUOUS_UPDATE) ? true : false;
 
 			// Copy texture if it was changed
 			if (RenderLayer->TextureSet.IsValid() && bTextureChanged)

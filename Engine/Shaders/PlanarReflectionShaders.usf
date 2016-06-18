@@ -26,13 +26,13 @@ float InvPrefilterRoughnessDistance;
 
 void VerticalSample(float2 InUV, float y, float KernelRadiusY, float CenterDistanceToPlane, float CenterReflectionDistance, bool bSearchUp, inout float4 AccumulatedColor, inout float AccumulatedWeight)
 {
-	float2 SampleUV = float2(InUV.x, InUV.y + y * Frame.BufferSizeAndInvSize.w);
+	float2 SampleUV = float2(InUV.x, InUV.y + y * View.BufferSizeAndInvSize.w);
 	float SampleDepth = CalcSceneDepth(SampleUV);
 	float SampleReflectionDistance = max(SampleDepth - CenterDistanceToPlane, 0);
 	float ScatterKernelSize = max(KernelRadiusY * saturate(SampleReflectionDistance * InvPrefilterRoughnessDistance), 1);
 	float SampleWeight = GaussianWeight1d(y, ScatterKernelSize);
-	float ColorHalfTexelOffset = .5f * Frame.BufferSizeAndInvSize.w;
-	float YPosition = InUV.y * Frame.BufferSizeAndInvSize.y + y;
+	float ColorHalfTexelOffset = .5f * View.BufferSizeAndInvSize.w;
+	float YPosition = InUV.y * View.BufferSizeAndInvSize.y + y;
 
 	if (bSearchUp)
 	{
@@ -43,12 +43,12 @@ void VerticalSample(float2 InUV, float y, float KernelRadiusY, float CenterDista
 		// Can't use bilinear filtering when we are depth masking
 		ColorHalfTexelOffset = 0;
 
-		float ViewportMask = YPosition > Frame.ViewRectMin.y;
+		float ViewportMask = YPosition > View.ViewRectMin.y;
 		SampleWeight *= ViewportMask;
 	}
 	else
 	{
-		float ViewportMask = YPosition < Frame.ViewRectMin.y + Frame.ViewSizeAndInvSize.y;
+		float ViewportMask = YPosition < View.ViewRectMin.y + View.ViewSizeAndInvSize.y;
 		SampleWeight *= ViewportMask;
 	}
 

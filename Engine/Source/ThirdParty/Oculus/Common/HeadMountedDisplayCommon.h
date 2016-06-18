@@ -218,6 +218,7 @@ public:
 	TSharedPtr<FHMDSettings, ESPMode::ThreadSafe>	Settings;
 
 	/** World units (UU) to Meters scale.  Read from the level, and used to transform positional tracking data */
+	float					WorldToMetersScale;
 	FVector					CameraScale3D;
 
 	FRotator				CachedViewRotation[2]; // cached view rotations
@@ -326,6 +327,7 @@ public:
 	virtual void SwitchToNextElement() = 0;
 
 	virtual bool Commit(FRHICommandListImmediate& RHICmdList) = 0;
+	virtual bool IsStaticImage() const { return false; }
 
 	uint32 GetSourceSizeX() const { return SourceSizeX; }
 	uint32 GetSourceSizeY() const { return SourceSizeY; }
@@ -347,10 +349,10 @@ class FHMDLayerDesc : public TSharedFromThis<FHMDLayerDesc>
 public:
 	enum ELayerTypeMask : uint32
 	{
-		Unknown,
-		Eye   = 0x00000000,
-		Quad  = 0x40000000,
-		Debug = 0x80000000,
+		Unknown = 0,
+		Eye   = 0x40000000,
+		Quad  = 0x80000000,
+		Debug = 0xC0000000,
 
 		TypeMask = (Eye | Quad | Debug),
 		IdMask =  ~TypeMask,
@@ -474,6 +476,7 @@ protected:
  */
 class FHMDLayerManager : public TSharedFromThis<FHMDLayerManager>
 {
+	friend class FHeadMountedDisplay;
 public:
 	FHMDLayerManager();
 	virtual ~FHMDLayerManager();
@@ -519,6 +522,8 @@ public:
 		return const_cast<FHMDLayerManager*>(this)->GetRenderLayer_RenderThread_NoLock(LayerId);
 	}
 
+	uint32 GetTotalNumberOfLayers() const;
+
 protected:
 	// Creates a layer. Could be overridden by inherited class to create custom layers. Called on a RenderThread
 	virtual TSharedPtr<FHMDRenderLayer> CreateRenderLayer_RenderThread(FHMDLayerDesc&);
@@ -528,6 +533,8 @@ protected:
 	// Should be called before SubmitFrame is called.
 	// Updates sizes, distances, orientations, textures of each layer, as needed.
 	virtual void PreSubmitUpdate_RenderThread(FRHICommandListImmediate& RHICmdList, const FHMDGameFrame* CurrentFrame, bool ShowFlagsRendering);
+
+	virtual uint32 GetTotalNumberOfLayersSupported() const = 0;
 
 	static uint32 FindLayerIndex(const TArray<TSharedPtr<FHMDLayerDesc> >& Layers, uint32 LayerId);
 	const TArray<TSharedPtr<FHMDLayerDesc> >& GetLayersArrayById(uint32 LayerId) const;

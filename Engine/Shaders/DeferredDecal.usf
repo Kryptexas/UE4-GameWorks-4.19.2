@@ -149,8 +149,8 @@ float4 SvPositionToScreenPosition2(float4 SvPosition)
 
 	float4 Ret;
 
-	Ret.x = ((SvPosition.x - Frame.ViewRectMin.x) * Frame.ViewSizeAndInvSize.z) * 2 - 1;
-	Ret.y = ((SvPosition.y - Frame.ViewRectMin.y) * Frame.ViewSizeAndInvSize.w) * -2 + 1;
+	Ret.x = ((SvPosition.x - View.ViewRectMin.x) * View.ViewSizeAndInvSize.z) * 2 - 1;
+	Ret.y = ((SvPosition.y - View.ViewRectMin.y) * View.ViewSizeAndInvSize.w) * -2 + 1;
 	Ret.z = ConvertFromDeviceZ(SvPosition.z);
 	Ret.w = 1;
 

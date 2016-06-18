@@ -18,7 +18,6 @@
 class FSceneViewStateInterface;
 class FViewUniformShaderParameters;
 class FInstancedViewUniformShaderParameters;
-class FFrameUniformShaderParameters;
 class FViewElementDrawer;
 class FSceneViewFamily;
 
@@ -359,175 +358,141 @@ enum ETranslucencyVolumeCascade
 	TVC_MAX,
 };
 
-/** The view dependent uniform shader parameters associated with a view. */
+// View uniform buffer member declarations
+#define VIEW_UNIFORM_BUFFER_MEMBER_TABLE \
+	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, TranslatedWorldToClip) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, WorldToClip) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, TranslatedWorldToView) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, ViewToTranslatedWorld) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, TranslatedWorldToCameraView) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, CameraViewToTranslatedWorld) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, ViewToClip) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, ClipToView) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, ClipToTranslatedWorld) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, SVPositionToTranslatedWorld) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, ScreenToWorld) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, ScreenToTranslatedWorld) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector, ViewForward, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector, ViewUp, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector, ViewRight, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FVector4, InvDeviceZToWorldZTransform) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector4, ScreenPositionScaleBias, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FVector, WorldCameraOrigin) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FVector, TranslatedWorldCameraOrigin) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FVector, WorldViewOrigin) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FVector, PreViewTranslation) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, PrevProjection) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, PrevViewProj) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, PrevViewRotationProj) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, PrevViewToClip) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, PrevClipToView) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, PrevTranslatedWorldToClip) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, PrevTranslatedWorldToView) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, PrevViewToTranslatedWorld) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, PrevTranslatedWorldToCameraView) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, PrevCameraViewToTranslatedWorld) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FVector, PrevWorldCameraOrigin) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FVector, PrevWorldViewOrigin) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FVector, PrevPreViewTranslation) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, PrevInvViewProj) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, PrevScreenToTranslatedWorld) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, ClipToPrevClip) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FVector4, GlobalClippingPlane) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FVector2D, FieldOfViewWideAngles) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FVector2D, PrevFieldOfViewWideAngles) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector4, ViewRectMin, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FVector4, ViewSizeAndInvSize) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FVector4, BufferSizeAndInvSize) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector4, ExposureScale, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector4, DiffuseOverrideParameter, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector4, SpecularOverrideParameter, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector4, NormalOverrideParameter, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector2D, RoughnessOverrideParameter, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER(float, PrevFrameGameTime) \
+	VIEW_UNIFORM_BUFFER_MEMBER(float, PrevFrameRealTime) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(float, OutOfBoundsMask, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FVector, WorldCameraMovementSinceLastFrame) \
+	VIEW_UNIFORM_BUFFER_MEMBER(float, CullingSign) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(float, NearPlane, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER(float, AdaptiveTessellationFactor) \
+	VIEW_UNIFORM_BUFFER_MEMBER(float, GameTime) \
+	VIEW_UNIFORM_BUFFER_MEMBER(float, RealTime) \
+	VIEW_UNIFORM_BUFFER_MEMBER(uint32, Random) \
+	VIEW_UNIFORM_BUFFER_MEMBER(uint32, FrameNumber) \
+	VIEW_UNIFORM_BUFFER_MEMBER(uint32, StateFrameIndexMod8) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(float, CameraCut, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(float, UseLightmaps, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(float, UnlitViewmodeMask, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(FLinearColor, DirectionalLightColor, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector, DirectionalLightDirection, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(float, DirectionalLightShadowTransition, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector4, DirectionalLightShadowSize, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER_ARRAY(FMatrix, DirectionalLightScreenToShadow, [MAX_MOBILE_SHADOWCASCADES]) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector4, DirectionalLightShadowDistances, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER_ARRAY(FVector4, TranslucencyLightingVolumeMin, [TVC_MAX]) \
+	VIEW_UNIFORM_BUFFER_MEMBER_ARRAY(FVector4, TranslucencyLightingVolumeInvSize, [TVC_MAX]) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FVector4, TemporalAAParams) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FVector4, CircleDOFParams) \
+	VIEW_UNIFORM_BUFFER_MEMBER(float, DepthOfFieldSensorWidth) \
+	VIEW_UNIFORM_BUFFER_MEMBER(float, DepthOfFieldFocalDistance) \
+	VIEW_UNIFORM_BUFFER_MEMBER(float, DepthOfFieldScale) \
+	VIEW_UNIFORM_BUFFER_MEMBER(float, DepthOfFieldFocalLength) \
+	VIEW_UNIFORM_BUFFER_MEMBER(float, DepthOfFieldFocalRegion) \
+	VIEW_UNIFORM_BUFFER_MEMBER(float, DepthOfFieldNearTransitionRegion) \
+	VIEW_UNIFORM_BUFFER_MEMBER(float, DepthOfFieldFarTransitionRegion) \
+	VIEW_UNIFORM_BUFFER_MEMBER(float, MotionBlurNormalizedToPixel) \
+	VIEW_UNIFORM_BUFFER_MEMBER(float, GeneralPurposeTweak) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(float, DemosaicVposOffset, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FVector, IndirectLightingColorScale) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(float, HDR32bppEncodingMode, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FVector, AtmosphericFogSunDirection) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(float, AtmosphericFogSunPower, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(float, AtmosphericFogPower, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(float, AtmosphericFogDensityScale, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(float, AtmosphericFogDensityOffset, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(float, AtmosphericFogGroundOffset, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(float, AtmosphericFogDistanceScale, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(float, AtmosphericFogAltitudeScale, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(float, AtmosphericFogHeightScaleRayleigh, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(float, AtmosphericFogStartDistance, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(float, AtmosphericFogDistanceOffset, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(float, AtmosphericFogSunDiscScale, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER(uint32, AtmosphericFogRenderMask) \
+	VIEW_UNIFORM_BUFFER_MEMBER(uint32, AtmosphericFogInscatterAltitudeSampleNum) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FLinearColor, AtmosphericFogSunColor) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FLinearColor, AmbientCubemapTint) \
+	VIEW_UNIFORM_BUFFER_MEMBER(float, AmbientCubemapIntensity) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FVector2D, RenderTargetSize) \
+	VIEW_UNIFORM_BUFFER_MEMBER(float, SkyLightParameters) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FVector4, SceneTextureMinMax) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FLinearColor, SkyLightColor) \
+	VIEW_UNIFORM_BUFFER_MEMBER_ARRAY(FVector4, SkyIrradianceEnvironmentMap, [7]) \
+	VIEW_UNIFORM_BUFFER_MEMBER(float, MobilePreviewMode) \
+	VIEW_UNIFORM_BUFFER_MEMBER(float, HMDEyePaddingOffset) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(float, ReflectionCubemapMaxMip, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER(float, ShowDecalsMask) \
+	VIEW_UNIFORM_BUFFER_MEMBER(uint32, DistanceFieldAOSpecularOcclusionMode) \
+	VIEW_UNIFORM_BUFFER_MEMBER(uint32, StereoPassIndex) \
+	VIEW_UNIFORM_BUFFER_MEMBER_ARRAY(FVector4, GlobalVolumeCenterAndExtent_UB, [GMaxGlobalDistanceFieldClipmaps]) \
+	VIEW_UNIFORM_BUFFER_MEMBER_ARRAY(FVector4, GlobalVolumeWorldToUVAddAndMul_UB, [GMaxGlobalDistanceFieldClipmaps]) \
+	VIEW_UNIFORM_BUFFER_MEMBER(float, GlobalVolumeDimension_UB) \
+	VIEW_UNIFORM_BUFFER_MEMBER(float, GlobalVolumeTexelSize_UB) \
+	VIEW_UNIFORM_BUFFER_MEMBER(float, MaxGlobalDistance_UB)
+
+#define VIEW_UNIFORM_BUFFER_MEMBER(type, identifier) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(type, identifier)
+
+#define VIEW_UNIFORM_BUFFER_MEMBER_EX(type, identifier, precision) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(type, identifier, precision)
+
+#define VIEW_UNIFORM_BUFFER_MEMBER_ARRAY(type, identifier, dimension) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(type, identifier, dimension)
+
+/** The uniform shader parameters associated with a view. */
 BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FViewUniformShaderParameters, ENGINE_API)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, TranslatedWorldToClip)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, WorldToClip)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, TranslatedWorldToView)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, ViewToTranslatedWorld)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, TranslatedWorldToCameraView)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, CameraViewToTranslatedWorld)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, ViewToClip)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, ClipToView)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, ClipToTranslatedWorld)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, SVPositionToTranslatedWorld)	// assumes input float4(SvPosition.xyz,1)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, ScreenToWorld)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, ScreenToTranslatedWorld)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector, ViewForward, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector, ViewUp, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector, ViewRight, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, InvDeviceZToWorldZTransform)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4, ScreenPositionScaleBias, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, WorldCameraOrigin)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, TranslatedWorldCameraOrigin)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, WorldViewOrigin)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, PreViewTranslation)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, PrevProjection)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, PrevViewProj)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, PrevViewRotationProj)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, PrevViewToClip)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, PrevClipToView)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, PrevTranslatedWorldToClip)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, PrevTranslatedWorldToView)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, PrevViewToTranslatedWorld)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, PrevTranslatedWorldToCameraView)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, PrevCameraViewToTranslatedWorld)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, PrevWorldCameraOrigin)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, PrevWorldViewOrigin)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, PrevPreViewTranslation)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, PrevInvViewProj)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, PrevScreenToTranslatedWorld)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, ClipToPrevClip)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, GlobalClippingPlane)
-END_UNIFORM_BUFFER_STRUCT(FViewUniformShaderParameters)
 
-/** Copy of the view dependent uniform shader parameters associated with a view for instanced stereo. */
-BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FInstancedViewUniformShaderParameters, ENGINE_API)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, TranslatedWorldToClip)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, WorldToClip)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, TranslatedWorldToView)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, ViewToTranslatedWorld)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, TranslatedWorldToCameraView)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, CameraViewToTranslatedWorld)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, ViewToClip)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, ClipToView)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, ClipToTranslatedWorld)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, SVPositionToTranslatedWorld)	// assumes input float4(SvPosition.xyz,1)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, ScreenToWorld)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, ScreenToTranslatedWorld)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector, ViewForward, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector, ViewUp, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector, ViewRight, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, InvDeviceZToWorldZTransform)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4, ScreenPositionScaleBias, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, WorldCameraOrigin)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, TranslatedWorldCameraOrigin)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, WorldViewOrigin)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, PreViewTranslation)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, PrevProjection)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, PrevViewProj)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, PrevViewRotationProj)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, PrevViewToClip)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, PrevClipToView)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, PrevTranslatedWorldToClip)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, PrevTranslatedWorldToView)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, PrevViewToTranslatedWorld)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, PrevTranslatedWorldToCameraView)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, PrevCameraViewToTranslatedWorld)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, PrevWorldCameraOrigin)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, PrevWorldViewOrigin)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, PrevPreViewTranslation)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, PrevInvViewProj)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, PrevScreenToTranslatedWorld)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, ClipToPrevClip)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, GlobalClippingPlane)
-END_UNIFORM_BUFFER_STRUCT(FInstancedViewUniformShaderParameters)
+	VIEW_UNIFORM_BUFFER_MEMBER_TABLE
 
-/** The view independent uniform shader parameters associated with a view. */
-BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FFrameUniformShaderParameters, ENGINE_API)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector2D, FieldOfViewWideAngles)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector2D, PrevFieldOfViewWideAngles)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4, ViewRectMin, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, ViewSizeAndInvSize)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, BufferSizeAndInvSize)
-
-	// The exposure scale is just a scalar but needs to be a float4 to workaround a driver bug on IOS.
-	// After 4.2 we can put the workaround in the cross compiler.
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4, ExposureScale, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4, DiffuseOverrideParameter, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4, SpecularOverrideParameter, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4, NormalOverrideParameter, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector2D, RoughnessOverrideParameter, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, PrevFrameGameTime)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, PrevFrameRealTime)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float, OutOfBoundsMask, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, WorldCameraMovementSinceLastFrame)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, CullingSign)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float, NearPlane, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, AdaptiveTessellationFactor)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, GameTime)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, RealTime)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, Random)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, FrameNumber)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, StateFrameIndexMod8)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float, CameraCut, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float, UseLightmaps, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float, UnlitViewmodeMask, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FLinearColor, DirectionalLightColor, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector, DirectionalLightDirection, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float, DirectionalLightShadowTransition, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4, DirectionalLightShadowSize, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FMatrix, DirectionalLightScreenToShadow, [MAX_MOBILE_SHADOWCASCADES])
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4, DirectionalLightShadowDistances, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4, TranslucencyLightingVolumeMin, [TVC_MAX])
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4, TranslucencyLightingVolumeInvSize, [TVC_MAX])
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, TemporalAAParams)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, CircleDOFParams)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, DepthOfFieldSensorWidth)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, DepthOfFieldFocalDistance)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, DepthOfFieldScale)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, DepthOfFieldFocalLength)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, DepthOfFieldFocalRegion)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, DepthOfFieldNearTransitionRegion)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, DepthOfFieldFarTransitionRegion)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, MotionBlurNormalizedToPixel)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, GeneralPurposeTweak)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float, DemosaicVposOffset, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, IndirectLightingColorScale)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float, HDR32bppEncodingMode, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, AtmosphericFogSunDirection)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float, AtmosphericFogSunPower, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float, AtmosphericFogPower, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float, AtmosphericFogDensityScale, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float, AtmosphericFogDensityOffset, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float, AtmosphericFogGroundOffset, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float, AtmosphericFogDistanceScale, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float, AtmosphericFogAltitudeScale, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float, AtmosphericFogHeightScaleRayleigh, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float, AtmosphericFogStartDistance, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float, AtmosphericFogDistanceOffset, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float, AtmosphericFogSunDiscScale, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, AtmosphericFogRenderMask)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, AtmosphericFogInscatterAltitudeSampleNum)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FLinearColor, AtmosphericFogSunColor)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FLinearColor, AmbientCubemapTint)//Used via a custom material node. DO NOT REMOVE.
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, AmbientCubemapIntensity)//Used via a custom material node. DO NOT REMOVE.
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector2D, RenderTargetSize)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, SkyLightParameters)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, SceneTextureMinMax)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FLinearColor, SkyLightColor)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4, SkyIrradianceEnvironmentMap, [7])
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, MobilePreviewMode)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, HMDEyePaddingOffset)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float, ReflectionCubemapMaxMip, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, ShowDecalsMask)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, DistanceFieldAOSpecularOcclusionMode)
-
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4, GlobalVolumeCenterAndExtent_UB, [GMaxGlobalDistanceFieldClipmaps])
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4, GlobalVolumeWorldToUVAddAndMul_UB, [GMaxGlobalDistanceFieldClipmaps])
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, GlobalVolumeDimension_UB)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, GlobalVolumeTexelSize_UB)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, MaxGlobalDistance_UB)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture3D, GlobalDistanceFieldTexture0_UB)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, GlobalDistanceFieldSampler0_UB)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture3D, GlobalDistanceFieldTexture1_UB)
@@ -550,15 +515,25 @@ BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FFrameUniformShaderParameters, ENGI
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture3D, PerlinNoise3DTexture)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, PerlinNoise3DTextureSampler)
 
-END_UNIFORM_BUFFER_STRUCT(FFrameUniformShaderParameters)
+END_UNIFORM_BUFFER_STRUCT(FViewUniformShaderParameters)
+
+/** Copy of the view uniform shader parameters associated with a view for instanced stereo. */
+BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FInstancedViewUniformShaderParameters, ENGINE_API)
+	VIEW_UNIFORM_BUFFER_MEMBER_TABLE
+END_UNIFORM_BUFFER_STRUCT(FInstancedViewUniformShaderParameters)
+
+#undef VIEW_UNIFORM_BUFFER_MEMBER_TABLE
+#undef VIEW_UNIFORM_BUFFER_MEMBER
+#undef VIEW_UNIFORM_BUFFER_MEMBER_EX
+#undef VIEW_UNIFORM_BUFFER_MEMBER_ARRAY
 
 BEGIN_UNIFORM_BUFFER_STRUCT(FBuiltinSamplersParameters, ENGINE_API)
-DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, Bilinear)
-DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, BilinearClamped)
-DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, Point)
-DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, PointClamped)
-DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, Trilinear)
-DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, TrilinearClamped)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, Bilinear)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, BilinearClamped)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, Point)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, PointClamped)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, Trilinear)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, TrilinearClamped)
 END_UNIFORM_BUFFER_STRUCT(FBuiltinSamplersParameters)
 
 class ENGINE_API FBuiltinSamplersUniformBuffer : public TUniformBuffer<FBuiltinSamplersParameters>
@@ -592,11 +567,8 @@ public:
 	/** can be 0 (thumbnail rendering) */
 	FSceneViewStateInterface* State;
 
-	/** The uniform buffer for the view's view dependent parameters.  This is only initialized in the rendering thread's copies of the FSceneView. */
+	/** The uniform buffer for the view's parameters. This is only initialized in the rendering thread's copies of the FSceneView. */
 	TUniformBufferRef<FViewUniformShaderParameters> ViewUniformBuffer;
-
-	/** The uniform buffer for the view's view independent parameters.  This is only initialized in the rendering thread's copies of the FSceneView. */
-	TUniformBufferRef<FFrameUniformShaderParameters> FrameUniformBuffer;
 
 	/** uniform buffer with the lights for forward lighting/shading */
 	TUniformBufferRef<FForwardLightData> ForwardLightData;

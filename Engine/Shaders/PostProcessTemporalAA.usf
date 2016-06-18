@@ -375,7 +375,7 @@ void MainTemporalAAPS(
 
 		// InExposureScale will always be 1.0 for < SM5 so the exposure of the below will always be wrong, so only use it when EyeAdaptation is supported.
 		#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
-			uint2 PixelPos = SvPosition.xy + uint2( Frame.FrameNumber & 3, (Frame.FrameNumber / 4) & 3 );
+			uint2 PixelPos = SvPosition.xy + uint2( View.FrameNumber & 3, (View.FrameNumber / 4) & 3 );
 			float Random = RandFast( PixelPos );
 			OutColor += DitherScale * (Random - 0.5) * (1.0 / 1024.0) / InExposureScale;
 		#endif
@@ -412,7 +412,7 @@ void MainFastTemporalAAPS(
 
 	// InExposureScale will always be 1.0 for < SM5 so the exposure of the below will always be wrong, so only use it when EyeAdaptation is supported.
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
-	uint2 PixelPos = SvPosition.xy + uint2( Frame.FrameNumber & 3, (Frame.FrameNumber / 4) & 3 );
+	uint2 PixelPos = SvPosition.xy + uint2( View.FrameNumber & 3, (View.FrameNumber / 4) & 3 );
 	float Random = RandFast( PixelPos );
 	OutColor += DitherScale * (Random - 0.5) * (1.0 / 1024.0) / InExposureScale;
 #endif

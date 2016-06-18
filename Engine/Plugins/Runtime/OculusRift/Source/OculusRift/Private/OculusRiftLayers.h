@@ -46,7 +46,7 @@ public:
 
 	virtual void SwitchToNextElement() = 0;
 
-	virtual bool Commit(FRHICommandListImmediate& RHICmdList)
+	virtual bool Commit(FRHICommandListImmediate& RHICmdList) override
 	{
 		if (RHITexture.IsValid() && RHITexture->GetNumMips() > 1)
 		{
@@ -63,6 +63,23 @@ public:
 				return false;
 			}
 			return true;
+		}
+		return false;
+	}
+	virtual bool IsStaticImage() const override
+	{
+		ovrTextureSwapChain TextureSwapSet = GetSwapTextureSet();
+		if (TextureSwapSet)
+		{
+			FOvrSessionShared::AutoSession OvrSession(Session);
+			int len;
+			ovrResult res = ovr_GetTextureSwapChainLength(OvrSession, TextureSwapSet, &len);
+			if (!OVR_SUCCESS(res))
+			{
+				UE_LOG(LogHMD, Warning, TEXT("Error at ovr_GetTextureSwapChainLength, err = %d"), int(res));
+				return false;
+			}
+			return len <= 1;
 		}
 		return false;
 	}
@@ -117,6 +134,8 @@ public:
 
 	FRenderLayer& GetEyeLayer_RenderThread() const;
 
+	const FHMDLayerDesc* GetEyeLayerDesc() const { return GetLayerDesc(EyeLayerId); }
+
 	// Releases all textureSets used by all layers
 	virtual void ReleaseTextureSets_RenderThread_NoLock() override;
 
@@ -138,11 +157,14 @@ public:
 protected:
 	virtual TSharedPtr<FHMDRenderLayer> CreateRenderLayer_RenderThread(FHMDLayerDesc& InDesc) override;
 
+	virtual uint32 GetTotalNumberOfLayersSupported() const override { return ovrMaxLayerCount; }
+
 protected:
 	class FCustomPresent*	pPresentBridge;
 	// Complete layer list. Some entries may be null.
 	ovrLayerHeader**		LayersList;
 	uint32					LayersListLen;
+	uint32					EyeLayerId;
 	FThreadSafeCounter		LastSubmitFrameResult;
 	FThreadSafeBool			LastVisibilityState;
 	FThreadSafeBool			bTextureSetsAreInvalid;

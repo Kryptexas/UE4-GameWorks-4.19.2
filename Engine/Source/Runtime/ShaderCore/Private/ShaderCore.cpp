@@ -426,9 +426,10 @@ void GetShaderIncludes(const TCHAR* Filename, TArray<FString>& IncludeFilenames,
 						ExtractedIncludeFilename = TEXT("MaterialTemplate.usf");
 					}
 
-					// Ignore uniform buffer and vertex factory includes
+					// Ignore uniform buffer, vertex factory and instanced stereo includes
 					bool bIgnoreInclude = ExtractedIncludeFilename == TEXT("VertexFactory.usf")
 						|| ExtractedIncludeFilename == TEXT("GeneratedUniformBuffers.usf")
+						|| ExtractedIncludeFilename == TEXT("GeneratedInstancedStereo.usf")
 						|| ExtractedIncludeFilename.StartsWith(TEXT("UniformBuffers/"));
 			
 					// Some headers aren't required to be found (platforms that the user doesn't have access to)

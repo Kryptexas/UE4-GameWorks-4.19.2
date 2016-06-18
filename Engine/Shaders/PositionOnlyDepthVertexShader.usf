@@ -9,7 +9,7 @@
 #include "VertexFactory.usf"
 
 #if INSTANCED_STEREO
-bool bNeedsInstancedStereoBias;
+bool bIsInstancedStereoEmulated;
 #endif
 
 void Main(
@@ -27,7 +27,18 @@ void Main(
 {
 #if INSTANCED_STEREO
 	OutCullDistance = OutClipDistance = 0.0;
-	const uint EyeIndex = VertexFactoryGetEyeIndex(InstanceId);
+
+	uint EyeIndex;
+	BRANCH
+	if (bIsInstancedStereoEmulated)
+	{
+		EyeIndex = View.StereoPassIndex;
+	}
+	else
+	{
+		EyeIndex = VertexFactoryGetEyeIndex(InstanceId);
+	}
+
 	ResolvedView = ResolveView(EyeIndex);
 #else
 	ResolvedView = ResolveView();
@@ -37,26 +48,22 @@ void Main(
 	ISOLATE
 	{
 		OutPosition = mul(WorldPos, ResolvedView.TranslatedWorldToClip);
-
-		#if INSTANCED_STEREO
-		BRANCH 
-		if (bIsInstancedStereo)  
-		{
-			// Clip at the center of the screen
-			OutCullDistance.x = OutClipDistance.x = dot(OutPosition, EyeClipEdge[EyeIndex]);
-
-			// Scale to the width of a single eye viewport
-			OutPosition.x *= 0.5 * Frame.HMDEyePaddingOffset;
-
-			// Shift to the eye viewport
-			OutPosition.x += (EyeOffsetScale[EyeIndex] * OutPosition.w) * (1.0f - 0.5 * Frame.HMDEyePaddingOffset);
-		}
-		
-		// Bias the depth	
-		OutPosition.z += InstancedStereoDepthBias * OutPosition.w * (float)bNeedsInstancedStereoBias;
-		#endif
 	}
 
+	#if INSTANCED_STEREO
+	BRANCH 
+	if (bIsInstancedStereo || bIsInstancedStereoEmulated)  
+	{
+		// Clip at the center of the screen
+		OutCullDistance = OutClipDistance = dot(OutPosition, EyeClipEdge[EyeIndex]);
+
+		// Scale to the width of a single eye viewport
+		OutPosition.x *= 0.5 * ResolvedView.HMDEyePaddingOffset;
+
+		// Shift to the eye viewport
+		OutPosition.x += (EyeOffsetScale[EyeIndex] * OutPosition.w) * (1.0f - 0.5 * ResolvedView.HMDEyePaddingOffset);
+	}
+	#endif
 #if USE_GLOBAL_CLIP_PLANE
 	OutGlobalClipPlaneDistance = dot(ResolvedView.GlobalClippingPlane, float4(WorldPos.xyz - ResolvedView.PreViewTranslation.xyz, 1));
 #endif

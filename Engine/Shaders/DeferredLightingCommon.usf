@@ -457,7 +457,7 @@ float4 GetDynamicLighting(float3 WorldPosition, float3 CameraVector, float2 InUV
 			BRANCH
 			if( LightData.ShadowedBits > 1 && LightData.ContactShadowLength > 0 )
 			{
-				uint FrameRandom = (Frame.FrameNumber & 15) * 1551;
+				uint FrameRandom = (View.FrameNumber & 15) * 1551;
 
 				float StepOffset = float( Random.x & 0xffff ) / (1<<16);
 				StepOffset -= 0.5;
@@ -478,7 +478,7 @@ float4 GetDynamicLighting(float3 WorldPosition, float3 CameraVector, float2 InUV
 		BRANCH
 		if( LightData.ShadowedBits < 2 && ScreenSpaceData.GBuffer.ShadingModelID == SHADINGMODELID_HAIR )
 		{
-			uint FrameRandom = (Frame.FrameNumber & 15) * 1551;
+			uint FrameRandom = (View.FrameNumber & 15) * 1551;
 
 			float StepOffset = float( Random.x & 0xffff ) / (1<<16);
 			StepOffset -= 0.5;

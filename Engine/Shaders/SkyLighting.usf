@@ -79,7 +79,7 @@ void SkyLightDiffusePS(
 		BRANCH 
 		if (ShadingModelId == SHADINGMODELID_TWOSIDED_FOLIAGE)
 		{
-			float3 SubsurfaceLookup = GetSkySHDiffuse(-GBuffer.WorldNormal) * Frame.SkyLightColor.rgb;
+			float3 SubsurfaceLookup = GetSkySHDiffuse(-GBuffer.WorldNormal) * View.SkyLightColor.rgb;
 			float3 SubsurfaceColor = ExtractSubsurfaceColor(GBuffer);
 			Lighting += ScalarFactors * SubsurfaceLookup * SubsurfaceColor;
 		}
@@ -107,7 +107,7 @@ void SkyLightDiffusePS(
 		}
 
 		// Compute the preconvolved incoming lighting with the bent normal direction
-		float3 DiffuseLookup = GetSkySHDiffuse(SkyLightingNormal) * Frame.SkyLightColor.rgb;
+		float3 DiffuseLookup = GetSkySHDiffuse(SkyLightingNormal) * View.SkyLightColor.rgb;
 
 		// darken by DirectionalOcclusion feature from LightPropagationVolume (could be optimized if the feature is not used)
 		float DirectionalOcclusion = ScreenSpaceData.DirectionalOcclusion.r;

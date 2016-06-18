@@ -306,8 +306,8 @@ FLightMapInteraction FLightMapInteraction::Texture(
 
 float ComputeBoundsScreenSize( const FVector4& Origin, const float SphereRadius, const FSceneView& View )
 {
-	// Only need one component from a view transformation; just calculate the one we're interested in.
-	const float Divisor =  Dot3(Origin - View.ViewMatrices.ViewOrigin, View.ViewMatrices.ViewMatrix.GetColumn(2));
+	// Only need one component from a view transformation; just calculate the one we're interested in. Ignore view direction when rendering in stereo
+	const float Divisor = (View.StereoPass == eSSP_FULL) ? Dot3(Origin - View.ViewMatrices.ViewOrigin, View.ViewMatrices.ViewMatrix.GetColumn(2)) : FVector::Dist(Origin, View.ViewMatrices.ViewOrigin);
 
 	// Get projection multiple accounting for view scaling.
 	const float ScreenMultiple = FMath::Max(View.ViewRect.Width() / 2.0f * View.ViewMatrices.ProjMatrix.M[0][0],
@@ -452,9 +452,11 @@ FLODMask ComputeLODForMeshes( const TIndirectArray<class FStaticMesh>& StaticMes
 	return LODToRender;
 }
 
-FFrameUniformShaderParameters::FFrameUniformShaderParameters()
+
+FViewUniformShaderParameters::FViewUniformShaderParameters()
 {
 	FMemory::Memzero(*this);
+
 	FTextureRHIParamRef BlackVolume = (GBlackVolumeTexture &&  GBlackVolumeTexture->TextureRHI) ? GBlackVolumeTexture->TextureRHI : GBlackTexture->TextureRHI; // for es2, this might need to be 2d
 	check(GBlackVolumeTexture);
 	DirectionalLightShadowTexture = GWhiteTexture->TextureRHI;
@@ -483,16 +485,10 @@ FFrameUniformShaderParameters::FFrameUniformShaderParameters()
 	GlobalDistanceFieldSampler3_UB = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
 }
 
-FViewUniformShaderParameters::FViewUniformShaderParameters()
-{
-	FMemory::Memzero(*this);
-}
-
 FInstancedViewUniformShaderParameters::FInstancedViewUniformShaderParameters()
 {
 	FMemory::Memzero(*this);
 }
-
 
 void FSharedSamplerState::InitRHI()
 {

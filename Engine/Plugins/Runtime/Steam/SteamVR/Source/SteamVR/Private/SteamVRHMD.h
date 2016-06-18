@@ -379,21 +379,20 @@ private:
 	vr::IVRCompositor* VRCompositor;
 	vr::IVRChaperone* VRChaperone;
 
-	void* OpenVRDLLHandle;
-
-	//@todo steamvr: Remove GetProcAddress() workaround once we have updated to Steamworks 1.33 or higher
-	pVRInit VRInitFn;
-	pVRShutdown VRShutdownFn;
-	pVRIsHmdPresent VRIsHmdPresentFn;
-	pVRGetStringForHmdError VRGetStringForHmdErrorFn;
-	pVRGetGenericInterface VRGetGenericInterfaceFn;
-	pVRExtendedDisplay VRExtendedDisplayFn;
-	
 	FString DisplayId;
 
 #if PLATFORM_WINDOWS
 	TRefCountPtr<D3D11Bridge>	pD3D11Bridge;
 #endif
+
+//@todo steamvr: Remove GetProcAddress() workaround once we have updated to Steamworks 1.33 or higher
+public:
+	static pVRInit VRInitFn;
+	static pVRShutdown VRShutdownFn;
+	static pVRIsHmdPresent VRIsHmdPresentFn;
+	static pVRGetStringForHmdError VRGetStringForHmdErrorFn;
+	static pVRGetGenericInterface VRGetGenericInterfaceFn;
+	static pVRExtendedDisplay VRExtendedDisplayFn;
 };
 
 

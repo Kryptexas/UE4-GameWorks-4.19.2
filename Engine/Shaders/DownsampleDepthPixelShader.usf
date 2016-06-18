@@ -43,7 +43,7 @@ void CopyStencilToLightingChannelsPS(
 	out uint4 OutValue : SV_Target0
 	)
 {
-	uint2 IntUV = (uint2)(InUV * (float2)Frame.BufferSizeAndInvSize.xy);
+	uint2 IntUV = (uint2)(InUV * (float2)View.BufferSizeAndInvSize.xy);
 	uint Stencil = SceneStencilTexture.Load(uint3(IntUV, 0)) STENCIL_COMPONENT_SWIZZLE;
 	uint ShiftedStencil = Stencil >> STENCIL_LIGHTING_CHANNELS_SHIFT;
 	// Flip the lowest channel bit, it was stored inverted so we can clear stencil to 0 as a default

@@ -518,7 +518,6 @@ void FProjectedShadowInfo::RenderTranslucencyDepths(FRHICommandList& RHICmdList,
 	check(FoundView); 
 
 	TUniformBufferRef<FViewUniformShaderParameters> OriginalViewUniformBuffer;
-	TUniformBufferRef<FFrameUniformShaderParameters> OriginalFrameUniformBuffer;
 
 	FMatrix OriginalViewMatrix;
 
@@ -527,7 +526,6 @@ void FProjectedShadowInfo::RenderTranslucencyDepths(FRHICommandList& RHICmdList,
 		check(!FRHICommandListImmediate::AnyRenderThreadTasksOutstanding()); // we should add tasks that use the hacked view if it wasn't cloned.
 		// Backup properties of the view that we will override
 		OriginalViewUniformBuffer = FoundView->ViewUniformBuffer;
-		OriginalFrameUniformBuffer = FoundView->FrameUniformBuffer;
 		OriginalViewMatrix = FoundView->ViewMatrices.ViewMatrix;
 	}
 
@@ -537,7 +535,6 @@ void FProjectedShadowInfo::RenderTranslucencyDepths(FRHICommandList& RHICmdList,
 	FBox VolumeBounds[TVC_MAX];
 	FoundView->CreateUniformBuffer(
 		FoundView->ViewUniformBuffer, 
-		FoundView->FrameUniformBuffer, 
 		RHICmdList,
 		nullptr,
 		ShadowViewMatrix, 
@@ -637,7 +634,6 @@ void FProjectedShadowInfo::RenderTranslucencyDepths(FRHICommandList& RHICmdList,
 	{
 		check(!FRHICommandListImmediate::AnyRenderThreadTasksOutstanding()); // we should add tasks that use the hacked view if it wasn't cloned.
 		FoundView->ViewUniformBuffer = OriginalViewUniformBuffer;
-		FoundView->FrameUniformBuffer = OriginalFrameUniformBuffer;
 		FoundView->ViewMatrices.ViewMatrix = OriginalViewMatrix;
 	}
 }

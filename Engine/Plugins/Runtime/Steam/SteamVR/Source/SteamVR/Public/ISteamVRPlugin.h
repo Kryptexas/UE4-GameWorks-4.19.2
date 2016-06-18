@@ -53,12 +53,6 @@ public:
 	virtual vr::IVRSystem* GetVRSystem() const=0;
 
 	/**
-	 * Set the cached IVRSystem pointer so that the controller can retrieve it.
-	 * The HMD passes this to the controller.
-	 */
-	virtual void SetVRSystem(vr::IVRSystem* VRSystem)=0;
-
-	/**
 	 * Update the Controller to Device mapping.
 	 * The controller passes this to the HMD.
 	 */

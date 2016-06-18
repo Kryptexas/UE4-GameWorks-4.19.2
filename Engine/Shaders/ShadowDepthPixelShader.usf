@@ -58,7 +58,7 @@ void Main(
 	FPixelMaterialInputs PixelMaterialInputs;
 	#if INTERPOLATE_POSITION
 	    {
-			float4 ScreenPosition  = SvPositionToScreenPosition(SvPosition);  
+			float4 ScreenPosition  = SvPositionToResolvedScreenPosition(SvPosition);  
 			
 			float3 TranslatedWorld = Inputs.PixelPosition.xyz;
 

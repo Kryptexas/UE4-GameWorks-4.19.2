@@ -29,7 +29,7 @@ inline void TBasePassVertexShaderPolicyParamType<VertexParametersType>::SetMesh(
 			if (bHasPreviousLocalToWorldParameter)
 			{
 				const FMatrix& Transform = bHasPreviousLocalToWorldMatrix ? PreviousLocalToWorldMatrix : Proxy->GetLocalToWorld();
-				SetShaderValue(RHICmdList, VertexShaderRHI, PreviousLocalToWorldParameter, Transform.ConcatTranslation(ViewInfo.PrevViewMatrices.PreViewTranslation));
+				SetShaderValue(RHICmdList, VertexShaderRHI, PreviousLocalToWorldParameter, Transform);
 			}
 
 			SkipOutputVelocityValue = 0.0f;

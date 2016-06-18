@@ -423,7 +423,7 @@ void GatherRadiance(inout float4 Color, float3 WorldPosition, float3 RayDirectio
 	IndirectIrradiance *= IndirectDiffuseOcclusion;	
 #endif
 
-	float Mip = ComputeReflectionCaptureMipFromRoughness(Roughness, Frame.ReflectionCubemapMaxMip);
+	float Mip = ComputeReflectionCaptureMipFromRoughness(Roughness, View.ReflectionCubemapMaxMip);
 
 	uint NumCapturesAffectingTile = TileNumReflectionCaptures;
 

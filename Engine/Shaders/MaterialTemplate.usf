@@ -620,7 +620,7 @@ float GetPerInstanceFadeAmount(FMaterialVertexParameters Parameters)
  
 MaterialFloat GetDistanceCullFade()
 {
-	return saturate( Frame.RealTime * PrimitiveFade.FadeTimeScaleBias.x + PrimitiveFade.FadeTimeScaleBias.y );
+	return saturate( View.RealTime * PrimitiveFade.FadeTimeScaleBias.x + PrimitiveFade.FadeTimeScaleBias.y );
 }
 
 /** Rotates Position about the given axis by the given angle, in radians, and returns the offset to Position. */
@@ -756,7 +756,7 @@ MaterialFloat4 ProcessMaterialColorTextureLookup(MaterialFloat4 TextureValue)
 {
 #if (ES2_PROFILE || ES3_1_PROFILE)
 	#if MOBILE_EMULATION
-	if( Frame.MobilePreviewMode > 0.5f)
+	if( View.MobilePreviewMode > 0.5f)
 	{
 		// undo HW srgb->lin
 		TextureValue.rgb = pow(TextureValue.rgb, 1.0f / 2.2f); // TODO: replace with a more accurate lin -> sRGB conversion.
@@ -778,7 +778,7 @@ MaterialFloat ProcessMaterialGreyscaleTextureLookup(MaterialFloat TextureValue)
 {
 #if (ES2_PROFILE || ES3_1_PROFILE)
 	#if MOBILE_EMULATION
-	if( Frame.MobilePreviewMode > 0.5f )
+	if( View.MobilePreviewMode > 0.5f )
 	{
 		// undo HW srgb->lin
 		TextureValue = pow(TextureValue, 1.0f/2.2f); // TODO: replace with a more accurate lin -> sRGB conversion.
@@ -878,7 +878,7 @@ float GetSphericalParticleOpacity(FMaterialPixelParameters Parameters, float Den
 
 #if !SPHERICAL_OPACITY_FOR_SHADOW_DEPTHS
 		// Fade out as the particle approaches the near plane
-		Opacity = lerp(0, Opacity, saturate((Parameters.ScreenPosition.w - ParticleRadius - Frame.NearPlane) / ParticleRadius));
+		Opacity = lerp(0, Opacity, saturate((Parameters.ScreenPosition.w - ParticleRadius - View.NearPlane) / ParticleRadius));
 #endif
 	}
 
@@ -917,11 +917,11 @@ float3 GetSpeedTreeVertexOffsetInner(FMaterialVertexParameters Parameters, int G
 #if !USE_INSTANCING || !USE_DITHERED_LOD_TRANSITION
 	if (LODType == SPEEDTREE_LOD_TYPE_SMOOTH) 
 	{
-		const float ScreenMultiple = 0.5 * max(Frame.ViewSizeAndInvSize.x * ResolvedView.ViewToClip[0][0],
-												Frame.ViewSizeAndInvSize.y * ResolvedView.ViewToClip[1][1]);
+		const float ScreenMultiple = 0.5 * max(View.ViewSizeAndInvSize.x * ResolvedView.ViewToClip[0][0],
+												View.ViewSizeAndInvSize.y * ResolvedView.ViewToClip[1][1]);
 		const float ScreenRadius = ScreenMultiple * Primitive.ObjectWorldPositionAndRadius.w / 
 									max(1.0, dot(TreePos - ResolvedView.WorldCameraOrigin, ResolvedView.ViewForward.xyz));
-		const float ScreenArea = PI * ScreenRadius * ScreenRadius * Frame.ViewSizeAndInvSize.z * Frame.ViewSizeAndInvSize.w;
+		const float ScreenArea = PI * ScreenRadius * ScreenRadius * View.ViewSizeAndInvSize.z * View.ViewSizeAndInvSize.w;
 		LodInterp = saturate((ScreenArea - SpeedTreeLODInfo.x) / SpeedTreeLODInfo.z);
 	}
 #endif
@@ -1245,13 +1245,13 @@ half3 GetMaterialNormal(FMaterialPixelParameters Parameters, FPixelMaterialInput
 	#if (USE_EDITOR_SHADERS && !(ES2_PROFILE || ES3_1_PROFILE || ES31_AEP_PROFILE)) || MOBILE_EMULATION
 	{
 		// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
-		half3 OverrideNormal = Frame.NormalOverrideParameter.xyz;
+		half3 OverrideNormal = View.NormalOverrideParameter.xyz;
 
 		#if !MATERIAL_TANGENTSPACENORMAL
-			OverrideNormal = Parameters.TangentToWorld[2] * (1 - Frame.NormalOverrideParameter.w);
+			OverrideNormal = Parameters.TangentToWorld[2] * (1 - View.NormalOverrideParameter.w);
 		#endif
 
-		RetNormal = RetNormal * Frame.NormalOverrideParameter.w + OverrideNormal;
+		RetNormal = RetNormal * View.NormalOverrideParameter.w + OverrideNormal;
 	}
 	#endif
 
@@ -1331,7 +1331,7 @@ half GetMaterialRoughness(FPixelMaterialInputs PixelMaterialInputs)
 	#if MOBILE_EMULATION
 	{
 		// this is only needed for mobile preview on PC
-		Roughness = Roughness * Frame.RoughnessOverrideParameter.y + Frame.RoughnessOverrideParameter.x;
+		Roughness = Roughness * View.RoughnessOverrideParameter.y + View.RoughnessOverrideParameter.x;
 	}
 	#endif
 
@@ -1343,7 +1343,7 @@ half GetMaterialRoughness(FPixelMaterialInputs PixelMaterialInputs)
 	#if (USE_EDITOR_SHADERS && !ES31_AEP_PROFILE)
 	{
 		// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
-		Roughness = Roughness * Frame.RoughnessOverrideParameter.y + Frame.RoughnessOverrideParameter.x;
+		Roughness = Roughness * View.RoughnessOverrideParameter.y + View.RoughnessOverrideParameter.x;
 	}
 	#endif
 	
@@ -1635,8 +1635,8 @@ void GetMaterialCoverageAndClipping(FMaterialPixelParameters Parameters, FPixelM
 		234
 		401
 		*/
-		//float Dither5 = ( ( (uint)Parameters.SvPosition.x + (uint)Parameters.SvPosition.y * 2 + (uint)Frame.TemporalAAParams.x ) % 5 ) / 5.0;
-		float Dither5 = frac( ( Parameters.SvPosition.x + Parameters.SvPosition.y * 2 - 1.5 + Frame.TemporalAAParams.x ) / 5 );
+		//float Dither5 = ( ( (uint)Parameters.SvPosition.x + (uint)Parameters.SvPosition.y * 2 + (uint)View.TemporalAAParams.x ) % 5 ) / 5.0;
+		float Dither5 = frac( ( Parameters.SvPosition.x + Parameters.SvPosition.y * 2 - 1.5 + View.TemporalAAParams.x ) / 5 );
 		float Noise = frac( dot( float2( 171.0, 231.0 ) / 71, Parameters.SvPosition.xy ) );
 		float Dither = ( Dither5 * 5 + Noise ) * (1.0 / 6.0) - 0.5;
 		clip( GetMaterialMask(PixelMaterialInputs) + Dither );
@@ -1698,7 +1698,7 @@ void CalcMaterialParametersEx(
 	Parameters.TwoSidedSign = 1.0f;
 
 #if MATERIAL_TWOSIDED && HAS_PRIMITIVE_UNIFORM_BUFFER
-	Parameters.TwoSidedSign *= Frame.CullingSign * Primitive.LocalToWorldDeterminantSign;
+	Parameters.TwoSidedSign *= View.CullingSign * Primitive.LocalToWorldDeterminantSign;
 
 	#if !MATERIAL_TWOSIDED_SEPARATE_PASS
 		Parameters.TwoSidedSign *= GetFloatFacingSign(bIsFrontFace);
@@ -1717,7 +1717,7 @@ void CalcMaterialParameters(
 	float4 SvPosition,
 	FIsFrontFace bIsFrontFace)
 {
-	float4 ScreenPosition = SvPositionToScreenPosition(SvPosition);
+	float4 ScreenPosition = SvPositionToResolvedScreenPosition(SvPosition);
 	float3 TranslatedWorldPosition = SvPositionToResolvedTranslatedWorld(SvPosition);
 
 	CalcMaterialParametersEx(Parameters, PixelMaterialInputs, SvPosition, ScreenPosition, bIsFrontFace, TranslatedWorldPosition, TranslatedWorldPosition);

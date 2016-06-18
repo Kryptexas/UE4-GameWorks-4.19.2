@@ -32,11 +32,8 @@ DECLARE_CYCLE_STAT(TEXT("OverridePostProcessSettings"), STAT_OverridePostProcess
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FPrimitiveUniformShaderParameters,TEXT("Primitive"));
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FViewUniformShaderParameters,TEXT("View"));
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FInstancedViewUniformShaderParameters, TEXT("InstancedView"));
-IMPLEMENT_UNIFORM_BUFFER_STRUCT(FFrameUniformShaderParameters, TEXT("Frame"));
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FForwardLightData,TEXT("ForwardLightData"));
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FBuiltinSamplersParameters, TEXT("BuiltinSamplers"));
-
-static_assert(sizeof(FViewUniformShaderParameters) == sizeof(FInstancedViewUniformShaderParameters), "Instanced view and view must match.");
 
 FBuiltinSamplersUniformBuffer::FBuiltinSamplersUniformBuffer()
 {

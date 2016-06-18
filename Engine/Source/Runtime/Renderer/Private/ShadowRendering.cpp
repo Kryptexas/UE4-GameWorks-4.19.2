@@ -1929,7 +1929,6 @@ void FProjectedShadowInfo::ModifyViewForShadow(FRHICommandList& RHICmdList, FVie
 	FBox VolumeBounds[TVC_MAX];
 	FoundView->CreateUniformBuffer(
 		FoundView->ViewUniformBuffer, 
-		FoundView->FrameUniformBuffer,
 		RHICmdList,
 		nullptr,
 		ShadowViewMatrix, 
@@ -2027,7 +2026,6 @@ void FProjectedShadowInfo::RenderDepth(FRHICommandList& RHICmdList, FSceneRender
 	}
 
 	TUniformBufferRef<FViewUniformShaderParameters> OriginalViewUniformBuffer;
-	TUniformBufferRef<FFrameUniformShaderParameters> OriginalFrameUniformBuffer;
 	FMatrix OriginalViewMatrix;
 	float JitterX = 0.0f;
 	float JitterY = 0.0f;
@@ -2036,7 +2034,6 @@ void FProjectedShadowInfo::RenderDepth(FRHICommandList& RHICmdList, FSceneRender
 	{
 		// Backup properties of the view that we will override
 		OriginalViewUniformBuffer = FoundView->ViewUniformBuffer;
-		OriginalFrameUniformBuffer = FoundView->FrameUniformBuffer;
 		OriginalViewMatrix = FoundView->ViewMatrices.ViewMatrix;
 
 		JitterX = FoundView->ViewMatrices.ProjMatrix.M[2][0];
@@ -2055,7 +2052,6 @@ void FProjectedShadowInfo::RenderDepth(FRHICommandList& RHICmdList, FSceneRender
 		FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::WaitForOutstandingTasksOnly);
 
 	    FoundView->ViewUniformBuffer = OriginalViewUniformBuffer;
-		FoundView->FrameUniformBuffer = OriginalFrameUniformBuffer;
 	    FoundView->ViewMatrices.ViewMatrix = OriginalViewMatrix;
     
 	    FoundView->ViewMatrices.ProjMatrix.M[2][0] = JitterX;
@@ -2297,17 +2293,24 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 	{
 		SCOPED_DRAW_EVENTF(RHICmdList, EventMaskSubjects, TEXT("Stencil Mask Subjects"));
 
+		// If instanced stereo is enabled, we need to render each view of the stereo pair using the instanced stereo transform to avoid bias issues.
+		const bool bIsInstancedStereoEmulated = View->bIsInstancedStereoEnabled && View->StereoPass != eSSP_FULL;
+		if (bIsInstancedStereoEmulated)
+		{
+			RHICmdList.SetViewport(0, 0, 0, View->Family->FamilySizeX, View->ViewRect.Max.Y, 1);
+		}
+
 		// Set stencil to one.
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
-			false,CF_DepthNearOrEqual,
-			true,CF_Always,SO_Keep,SO_Keep,SO_Replace,
-			false,CF_Always,SO_Keep,SO_Keep,SO_Keep,
-			0xff,0xff
-			>::GetRHI(), 1);
+			false, CF_DepthNearOrEqual,
+			true, CF_Always, SO_Keep, SO_Keep, SO_Replace,
+			false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
+			0xff, 0xff
+		>::GetRHI(), 1);
 
 		// Pre-shadows mask by receiver elements, self-shadow mask by subject elements.
 		// Note that self-shadow pre-shadows still mask by receiver elements.
-		const TArray<FMeshBatchAndRelevance,SceneRenderingAllocator>& DynamicMeshElements = bPreShadow ? DynamicReceiverMeshElements : DynamicSubjectMeshElements;
+		const TArray<FMeshBatchAndRelevance, SceneRenderingAllocator>& DynamicMeshElements = bPreShadow ? DynamicReceiverMeshElements : DynamicSubjectMeshElements;
 
 		FDepthDrawingPolicyFactory::ContextType Context(DDM_AllOccluders, false);
 
@@ -2315,7 +2318,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 		{
 			const FMeshBatchAndRelevance& MeshBatchAndRelevance = DynamicMeshElements[MeshBatchIndex];
 			const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
-			FDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, *View, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId, false, true);
+			FDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, *View, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId, false, bIsInstancedStereoEmulated);
 		}
 
 		// Pre-shadows mask by receiver elements, self-shadow mask by subject elements.
@@ -2340,7 +2343,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 						{
 							const FMeshDrawingRenderState DrawRenderState(View->GetDitheredLODTransitionState(StaticMesh));
 							FDepthDrawingPolicyFactory::DrawStaticMesh(
-								RHICmdList, 
+								RHICmdList,
 								*View,
 								FDepthDrawingPolicyFactory::ContextType(DDM_AllOccluders, false),
 								StaticMesh,
@@ -2349,7 +2352,8 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 								DrawRenderState,
 								ReceiverPrimitiveSceneInfo->Proxy,
 								StaticMesh.BatchHitProxyId, 
-								true
+								false, 
+								bIsInstancedStereoEmulated
 								);
 						}
 					}
@@ -2364,7 +2368,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 				const FStaticMesh& StaticMesh = *StaticSubjectMeshElements[ElementIndex].Mesh;
 				const FMeshDrawingRenderState DrawRenderState(View->GetDitheredLODTransitionState(StaticMesh));
 				FDepthDrawingPolicyFactory::DrawStaticMesh(
-					RHICmdList, 
+					RHICmdList,
 					*View,
 					FDepthDrawingPolicyFactory::ContextType(DDM_AllOccluders, false),
 					StaticMesh,
@@ -2372,10 +2376,19 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 					true,
 					DrawRenderState,
 					StaticMesh.PrimitiveSceneInfo->Proxy,
-					StaticMesh.BatchHitProxyId
+					StaticMesh.BatchHitProxyId, 
+					false, 
+					bIsInstancedStereoEmulated
 					);
 			}
 		}
+
+		// Restore viewport
+		if (bIsInstancedStereoEmulated)
+		{
+			RHICmdList.SetViewport(View->ViewRect.Min.X, View->ViewRect.Min.Y, 0.0f, View->ViewRect.Max.X, View->ViewRect.Max.Y, 1.0f);
+		}
+		
 	}
 	else if (IsWholeSceneDirectionalShadow())
 	{

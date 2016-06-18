@@ -461,7 +461,7 @@ bool CheckerFromPixelPos(uint2 PixelPos)
 {
 	// todo: Index is float and by staying float we can optimize this 
 	// We alternate the pattern to get 2x supersampling on the lower res data to get more near to full res
-	uint TemporalAASampleIndex = Frame.TemporalAAParams.x;
+	uint TemporalAASampleIndex = View.TemporalAAParams.x;
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 	return (PixelPos.x + PixelPos.y + TemporalAASampleIndex) % 2;
@@ -476,7 +476,7 @@ bool CheckerFromPixelPos(uint2 PixelPos)
 bool CheckerFromSceneColorUV(float2 UVSceneColor)
 {
 	// relative to left top of the rendertarget (not viewport)
-	uint2 PixelPos = uint2(UVSceneColor * Frame.BufferSizeAndInvSize.xy);
+	uint2 PixelPos = uint2(UVSceneColor * View.BufferSizeAndInvSize.xy);
 
 	return CheckerFromPixelPos(PixelPos);
 }
@@ -548,8 +548,8 @@ FGBufferData DecodeGBufferData(
 		#if USE_DEVELOPMENT_SHADERS
 		{
 			// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
-			GBuffer.DiffuseColor = GBuffer.DiffuseColor * Frame.DiffuseOverrideParameter.www + Frame.DiffuseOverrideParameter.xyz;
-			GBuffer.SpecularColor = GBuffer.SpecularColor * Frame.SpecularOverrideParameter.w + Frame.SpecularOverrideParameter.xyz;
+			GBuffer.DiffuseColor = GBuffer.DiffuseColor * View.DiffuseOverrideParameter.www + View.DiffuseOverrideParameter.xyz;
+			GBuffer.SpecularColor = GBuffer.SpecularColor * View.SpecularOverrideParameter.w + View.SpecularOverrideParameter.xyz;
 		}
 		#endif //USE_DEVELOPMENT_SHADERS
 	}
@@ -720,10 +720,10 @@ SamplerState	DirectionalOcclusionSampler;
 		// this is what we want but because WhiteDummy (in case AO is disabled) doesn't support this lookup we do the code below
 //		Out.AmbientOcclusion = ScreenSpaceAOTextureNonMS.Load(int3(PixelPos, 0)).r;
 
-		float4 ScreenSpaceAO = Texture2DSampleLevel(ScreenSpaceAOTexture, ScreenSpaceAOTextureSampler, (PixelPos + 0.5f) * Frame.BufferSizeAndInvSize.zw, 0);
+		float4 ScreenSpaceAO = Texture2DSampleLevel(ScreenSpaceAOTexture, ScreenSpaceAOTextureSampler, (PixelPos + 0.5f) * View.BufferSizeAndInvSize.zw, 0);
 		Out.AmbientOcclusion = ScreenSpaceAO.r;
 
-		Out.DirectionalOcclusion = Texture2DSampleLevel( DirectionalOcclusionTexture, DirectionalOcclusionSampler, (PixelPos + 0.5f) * Frame.BufferSizeAndInvSize.zw, 0 ).rg;
+		Out.DirectionalOcclusion = Texture2DSampleLevel( DirectionalOcclusionTexture, DirectionalOcclusionSampler, (PixelPos + 0.5f) * View.BufferSizeAndInvSize.zw, 0 ).rg;
 
 		return Out;
 	}
@@ -754,7 +754,7 @@ FGBufferData GetGBufferData(float2 UV, bool bGetNormalizedNormal = true)
 	float CustomNativeDepth = Texture2DSampleLevel(CustomDepthTexture, CustomDepthTextureSampler, UV, 0).r;
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
-	int2 IntUV = (int2)trunc(UV * Frame.BufferSizeAndInvSize.xy);
+	int2 IntUV = (int2)trunc(UV * View.BufferSizeAndInvSize.xy);
 	uint CustomStencil = CustomStencilTexture.Load(int3(IntUV, 0)) STENCIL_COMPONENT_SWIZZLE;
 #else
 	uint CustomStencil = 0;
@@ -847,7 +847,7 @@ FScreenSpaceData GetScreenSpaceData(float2 UV, bool bGetNormalizedNormal = true)
 
 	FGBufferData GetGBufferDataMS(float2 UV, uint SampleIndex, bool bGetNormalizedNormal = true)
 	{
-		int2 IntUV = (int2)trunc(UV * Frame.BufferSizeAndInvSize.xy);
+		int2 IntUV = (int2)trunc(UV * View.BufferSizeAndInvSize.xy);
 
 		return GetGBufferDataMS(IntUV, SampleIndex, bGetNormalizedNormal);
 	}

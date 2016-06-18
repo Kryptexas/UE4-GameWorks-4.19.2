@@ -6587,12 +6587,23 @@ void UMaterialExpressionCustom::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
-	// Fix up uniform references that were moved from View to Frame as part of the instanced stereo implementation
+	// Make a copy of the current code before we change it
+	const FString PreFixUp = Code;
+
+	bool bDidUpdate = false;
+
 	if (Ar.UE4Ver() < VER_UE4_INSTANCED_STEREO_UNIFORM_UPDATE)
 	{
-		// Make a copy of the current code before we change it
-		const FString PreFixUp = Code;
+		// Look for WorldPosition rename
+		if (Code.ReplaceInline(TEXT("Parameters.WorldPosition"), TEXT("Parameters.AbsoluteWorldPosition"), ESearchCase::CaseSensitive) > 0)
+		{
+			bDidUpdate = true;
+		}
+	}
 
+	// Fix up uniform references that were moved from View to Frame as part of the instanced stereo implementation
+	else if (Ar.UE4Ver() < VER_UE4_INSTANCED_STEREO_UNIFORM_REFACTOR)
+	{
 		// Uniform members that were moved from View to Frame
 		static const FString UniformMembers[] = {
 			FString(TEXT("FieldOfViewWideAngles")),
@@ -6670,33 +6681,25 @@ void UMaterialExpressionCustom::Serialize(FArchive& Ar)
 			FString(TEXT("SamplerState")),
 		};
 
-		// Update the uniform members
-		bool bDidUpdate = false;
 		const FString ViewUniformName(TEXT("View."));
 		const FString FrameUniformName(TEXT("Frame."));
 		for (const FString& Member : UniformMembers)
 		{
-			const FString SearchString = ViewUniformName + Member;
-			const FString ReplaceString = FrameUniformName + Member;
+			const FString SearchString = FrameUniformName + Member;
+			const FString ReplaceString = ViewUniformName + Member;
 			if (Code.ReplaceInline(*SearchString, *ReplaceString, ESearchCase::CaseSensitive) > 0)
 			{
 				bDidUpdate = true;
 			}
 		}
+	}
 
-		// Look for WorldPosition rename
-		if (Code.ReplaceInline(TEXT("Parameters.WorldPosition"), TEXT("Parameters.AbsoluteWorldPosition"), ESearchCase::CaseSensitive) > 0)
-		{
-			bDidUpdate = true;
-		}
-
-		// If we made changes, copy the original into the description just in case
-		if (bDidUpdate)
-		{
-			Desc += TEXT("\n*** Original source before expression upgrade ***\n");
-			Desc += PreFixUp;
-			UE_LOG(LogMaterial, Log, TEXT("Uniform references updated for custom material expression %s."), *Description);
-		}
+	// If we made changes, copy the original into the description just in case
+	if (bDidUpdate)
+	{
+		Desc += TEXT("\n*** Original source before expression upgrade ***\n");
+		Desc += PreFixUp;
+		UE_LOG(LogMaterial, Log, TEXT("Uniform references updated for custom material expression %s."), *Description);
 	}
 }
 

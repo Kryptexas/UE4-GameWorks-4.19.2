@@ -647,7 +647,6 @@ public:
 	/** Creates the view's uniform buffers given a set of view transforms. */
 	void CreateUniformBuffer(
 		TUniformBufferRef<FViewUniformShaderParameters>& OutViewUniformBuffer, 
-		TUniformBufferRef<FFrameUniformShaderParameters>& OutFrameUniformBuffer, 
 		FRHICommandList& RHICmdList,
 		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>* DirectionalLightShadowInfo,
 		const FMatrix& EffectiveTranslatedViewMatrix, 
@@ -1045,4 +1044,4 @@ private:
 };
 
 // The noise textures need to be set in Slate too.
-RENDERER_API void UpdateNoiseTextureParameters(FFrameUniformShaderParameters& FrameUniformShaderParameters);
+RENDERER_API void UpdateNoiseTextureParameters(FViewUniformShaderParameters& ViewUniformShaderParameters);

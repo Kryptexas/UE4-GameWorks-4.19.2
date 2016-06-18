@@ -136,7 +136,7 @@ void ScreenSpaceReflectionsPS(in noperspective float4 UVAndScreenPos : TEXCOORD0
 		const float3 R = 2 * dot( V, H ) * H - V;
 
 		const float ReflectPDF = HNAndPDF.w / (4 * saturate(dot(V, H)));
-		const float TotalSamples = Frame.TemporalAAParams.g;
+		const float TotalSamples = View.TemporalAAParams.g;
 		const float SolidAngleSample = 1.0 / ( TotalSamples * ReflectPDF );
 		const float ConeAngleWorld = acos( 1 - SolidAngleSample / (2*PI) );
 

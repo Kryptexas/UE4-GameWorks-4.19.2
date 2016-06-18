@@ -112,7 +112,7 @@ void FViewExtension::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmd
 	FViewExtension& RenderContext = *this;
 	FGameFrame* CurrentFrame = static_cast<FGameFrame*>(RenderContext.RenderFrame.Get());
 
-	if (!CurrentFrame || !CurrentFrame->Settings->IsStereoEnabled())
+	if (!bFrameBegun || !ShowFlags.Rendering || !CurrentFrame || !CurrentFrame->Settings->IsStereoEnabled() || (pPresentBridge && pPresentBridge->IsSubmitFrameLocked()))
 	{
 		return;
 	}
@@ -380,7 +380,7 @@ void FOculusRiftHMD::RenderTexture_RenderThread(class FRHICommandListImmediate& 
 			// leftover pixels from a previous frame
 			const bool bClearRenderTargetToBlackFirst = ( DstViewRect != BackBufferRect );
 
-			pCustomPresent->CopyTexture_RenderThread(RHICmdList, BackBuffer, SrcTexture, SrcTexture->GetTexture2D()->GetSizeX(), SrcTexture->GetTexture2D()->GetSizeY(), FIntRect(), SrcViewRect, false, bClearRenderTargetToBlackFirst);
+			pCustomPresent->CopyTexture_RenderThread(RHICmdList, BackBuffer, SrcTexture, SrcTexture->GetTexture2D()->GetSizeX(), SrcTexture->GetTexture2D()->GetSizeY(), DstViewRect, SrcViewRect, false, bClearRenderTargetToBlackFirst);
 		}
 	}
 }
@@ -929,7 +929,7 @@ bool FCustomPresent::AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uin
 	}
 
 	// it is possible that eye layer is not added to RenderLayers yet, or previously allocated textureSet is not transferred there yet.
-	const FHMDLayerDesc* pEyeLayerDesc = LayerMgr->GetLayerDesc(0);
+	const FHMDLayerDesc* pEyeLayerDesc = LayerMgr->GetEyeLayerDesc();
 	check(pEyeLayerDesc);
 	auto TextureSet = pEyeLayerDesc->GetTextureSet();
 	bool bEyeLayerIsHQ = false;
@@ -983,9 +983,9 @@ bool FCustomPresent::AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uin
 		if (ColorTextureSet.IsValid())
 		{
 			// update the eye layer textureset. at the moment only one eye layer is supported
-			const FHMDLayerDesc* EyeLayerDescPtr = LayerMgr->GetLayerDesc(0);
-			check(EyeLayerDescPtr);
-			FHMDLayerDesc EyeLayerDesc = *EyeLayerDescPtr;
+			const FHMDLayerDesc* pEyeLayerDescUpdate = LayerMgr->GetEyeLayerDesc();
+			check(pEyeLayerDescUpdate);
+			FHMDLayerDesc EyeLayerDesc = *pEyeLayerDescUpdate;
 			EyeLayerDesc.SetHighQuality(bEyeLayerShouldBeHQ);
 			EyeLayerDesc.SetTextureSet(ColorTextureSet);
 			LayerMgr->UpdateLayer(EyeLayerDesc);

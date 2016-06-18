@@ -379,7 +379,7 @@ void StandardDeferredReflectionPS(
 		BRANCH
 		if (DistanceAlpha > 0)
 		{
-			float AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(InGBufferData.Roughness, Frame.ReflectionCubemapMaxMip);
+			float AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(InGBufferData.Roughness, View.ReflectionCubemapMaxMip);
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 			float4 Reflection = ReflectionEnvironmentColorTextureArray.SampleLevel(ReflectionEnvironmentColorSampler, float4(ProjectedCaptureVector, CaptureArrayIndex), AbsoluteSpecularMip);
@@ -449,7 +449,7 @@ void ReflectionApplyPS(
 
 #if ALLOW_STATIC_LIGHTING
 		FLATTEN
-		if( Frame.UseLightmaps > 0 )
+		if( View.UseLightmaps > 0 )
 		{
 			// We have high frequency directional data but low frequency spatial data in the envmap.
 			// We have high frequency spatial data but low frequency directional data in the lightmap.
@@ -480,7 +480,7 @@ void ReflectionApplyPS(
 			float3 SkyLighting = float3(1,1,1);
 
 			// Normalize for static skylight types which mix with lightmaps
-			bool bNormalize = SkyLightParameters.z < 1 && Frame.UseLightmaps > 0 && !ALLOW_STATIC_LIGHTING;
+			bool bNormalize = SkyLightParameters.z < 1 && View.UseLightmaps > 0 && !ALLOW_STATIC_LIGHTING;
 			BRANCH
 			if( GBuffer.ShadingModelID == SHADINGMODELID_CLEAR_COAT )
 			{

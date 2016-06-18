@@ -142,7 +142,7 @@ void UMotionControllerComponent::FViewExtension::PreRenderViewFamily_RenderThrea
 	{
 		// Calculate the late update transform that will rebase all children proxies within the frame of reference
 		const FTransform OldLocalToWorldTransform = MotionControllerComponent->CalcNewComponentToWorld(MotionControllerComponent->GetRelativeTransform());
-		const FTransform NewLocalToWorldTransform = MotionControllerComponent->CalcNewComponentToWorld(FTransform(Orientation, Position));
+		const FTransform NewLocalToWorldTransform = MotionControllerComponent->CalcNewComponentToWorld(FTransform(Orientation, Position, MotionControllerComponent->GetComponentScale()));
 		const FMatrix LateUpdateTransform = (OldLocalToWorldTransform.Inverse() * NewLocalToWorldTransform).ToMatrixWithScale();
 
 		// Apply delta to the affected scene proxies

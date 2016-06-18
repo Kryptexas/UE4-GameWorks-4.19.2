@@ -1151,12 +1151,13 @@ FShaderCompilingManager::FShaderCompilingManager() :
 	bCompilingDuringGame(false),
 	NumOutstandingJobs(0),
 #if PLATFORM_MAC
-	ShaderCompileWorkerName(TEXT("../../../Engine/Binaries/Mac/ShaderCompileWorker"))
+	ShaderCompileWorkerName(TEXT("../../../Engine/Binaries/Mac/ShaderCompileWorker")),
 #elif PLATFORM_LINUX
-	ShaderCompileWorkerName(TEXT("../../../Engine/Binaries/Linux/ShaderCompileWorker"))
+	ShaderCompileWorkerName(TEXT("../../../Engine/Binaries/Linux/ShaderCompileWorker")),
 #else
-	ShaderCompileWorkerName(TEXT("../../../Engine/Binaries/Win64/ShaderCompileWorker.exe"))
+	ShaderCompileWorkerName(TEXT("../../../Engine/Binaries/Win64/ShaderCompileWorker.exe")),
 #endif
+	SuppressedShaderPlatforms(0)
 {
 	WorkersBusyTime = 0;
 	bFallBackToDirectCompiles = false;
@@ -2176,6 +2177,108 @@ bool FShaderCompilingManager::IsShaderCompilerWorkerRunning(FProcHandle & Worker
 	return FPlatformProcess::IsProcRunning(WorkerHandle);
 }
 
+/* Generates a uniform buffer struct member hlsl declaration using the member's metadata. */
+static void GenerateUniformBufferStructMember(FString& Result, const FUniformBufferStruct::FMember& Member)
+{
+	// Generate the base type name.
+	FString BaseTypeName;
+	switch (Member.GetBaseType())
+	{
+		case UBMT_BOOL:    BaseTypeName = TEXT("bool"); break;
+		case UBMT_INT32:   BaseTypeName = TEXT("int"); break;
+		case UBMT_UINT32:  BaseTypeName = TEXT("uint"); break;
+		case UBMT_FLOAT32:
+			if (Member.GetPrecision() == EShaderPrecisionModifier::Float)
+			{
+				BaseTypeName = TEXT("float");
+			}
+			else if (Member.GetPrecision() == EShaderPrecisionModifier::Half)
+			{
+				BaseTypeName = TEXT("half");
+			}
+			else if (Member.GetPrecision() == EShaderPrecisionModifier::Fixed)
+			{
+				BaseTypeName = TEXT("fixed");
+			}
+			break;
+		default:
+			UE_LOG(LogShaders, Fatal, TEXT("Unrecognized uniform buffer struct member base type."));
+	};
+
+	// Generate the type dimensions for vectors and matrices.
+	FString TypeDim;
+	if (Member.GetNumRows() > 1)
+	{
+		TypeDim = FString::Printf(TEXT("%ux%u"), Member.GetNumRows(), Member.GetNumColumns());
+	}
+	else if (Member.GetNumColumns() > 1)
+	{
+		TypeDim = FString::Printf(TEXT("%u"), Member.GetNumColumns());
+	}
+
+	// Generate array dimension post fix
+	FString ArrayDim;
+	if (Member.GetNumElements() > 0)
+	{
+		ArrayDim = FString::Printf(TEXT("[%u]"), Member.GetNumElements());
+	}
+
+	Result = FString::Printf(TEXT("%s%s %s%s"), *BaseTypeName, *TypeDim, Member.GetName(), *ArrayDim);
+}
+
+/* Generates the instanced stereo hlsl code that's dependent on view uniform declarations. */
+static void GenerateInstancedStereoCode(FString& Result)
+{
+	// Find the InstancedView uniform buffer struct
+	const FUniformBufferStruct* InstancedView = nullptr;
+	for (TLinkedList<FUniformBufferStruct*>::TIterator StructIt(FUniformBufferStruct::GetStructList()); StructIt; StructIt.Next())
+	{
+		if (StructIt->GetShaderVariableName() == FString(TEXT("InstancedView")))
+		{
+			InstancedView = *StructIt;
+			break;
+		}
+	}
+	checkSlow(InstancedView != nullptr);
+	const TArray<FUniformBufferStruct::FMember>& StructMembers = InstancedView->GetMembers();
+
+	// ViewState definition
+	Result =  "struct ViewState\r\n";
+	Result += "{\r\n";
+	for (int32 MemberIndex = 0; MemberIndex < StructMembers.Num(); ++MemberIndex)
+	{
+		const FUniformBufferStruct::FMember& Member = StructMembers[MemberIndex];
+		FString MemberDecl;
+		GenerateUniformBufferStructMember(MemberDecl, StructMembers[MemberIndex]);
+		Result += FString::Printf(TEXT("\t%s;\r\n"), *MemberDecl);
+	}
+	Result += "};\r\n";
+
+	// GetPrimaryView definition
+	Result += "ViewState GetPrimaryView()\r\n";
+	Result += "{\r\n";
+	Result += "\tViewState Result;\r\n";
+	for (int32 MemberIndex = 0; MemberIndex < StructMembers.Num(); ++MemberIndex)
+	{
+		const FUniformBufferStruct::FMember& Member = StructMembers[MemberIndex];
+		Result += FString::Printf(TEXT("\tResult.%s = View.%s;\r\n"), Member.GetName(), Member.GetName());
+	}
+	Result += "\treturn Result;\r\n";
+	Result += "}\r\n";
+
+	// GetInstancedView definition
+	Result += "ViewState GetInstancedView()\r\n";
+	Result += "{\r\n";
+	Result += "\tViewState Result;\r\n";
+	for (int32 MemberIndex = 0; MemberIndex < StructMembers.Num(); ++MemberIndex)
+	{
+		const FUniformBufferStruct::FMember& Member = StructMembers[MemberIndex];
+		Result += FString::Printf(TEXT("\tResult.%s = InstancedView.%s;\r\n"), Member.GetName(), Member.GetName());
+	}
+	Result += "\treturn Result;\r\n";
+	Result += "}\r\n";
+}
+
 /** Enqueues a shader compile job with GShaderCompilingManager. */
 void GlobalBeginCompileShader(
 	const FString& DebugGroupName,
@@ -2319,9 +2422,10 @@ void GlobalBeginCompileShader(
 		Input.Environment.SetDefine(TEXT("INSTANCED_STEREO"), bIsInstancedStereo);
 
 		// Throw a warning if we are silently disabling ISR due to missing platform support.
-		if (bIsInstancedStereoCVar && !bIsInstancedStereo)
+		if (bIsInstancedStereoCVar && !bIsInstancedStereo && !GShaderCompilingManager->AreWarningsSuppressed(ShaderPlatform))
 		{
-			UE_LOG(LogShaderCompilers, Warning, TEXT("Instanced stereo rendering is not supported on this platform."));
+			UE_LOG(LogShaderCompilers, Warning, TEXT("Instanced stereo rendering is not supported for the %s shader platform."), *LegacyShaderPlatformToShaderFormat(ShaderPlatform).ToString());
+			GShaderCompilingManager->SuppressWarnings(ShaderPlatform);
 		}
 	}
 
@@ -2331,6 +2435,12 @@ void GlobalBeginCompileShader(
 	{
 		VFType->AddReferencedUniformBufferIncludes(Input.Environment, Input.SourceFilePrefix, (EShaderPlatform)Target.Platform);
 	}
+
+	// Add generated instanced stereo code
+	FString GeneratedInstancedStereoCode;
+	GenerateInstancedStereoCode(GeneratedInstancedStereoCode);
+	Input.Environment.IncludeFileNameToContentsMap.Add(TEXT("GeneratedInstancedStereo.usf"), StringToArray<ANSICHAR>(*GeneratedInstancedStereoCode, GeneratedInstancedStereoCode.Len() + 1));
+
 
 	{
 		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.Optimize"));

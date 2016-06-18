@@ -115,7 +115,7 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 			ProjectedCaptureVector = GetLookupVectorForSphereCapture(RV, MaterialParameters.AbsoluteWorldPosition, ReflectionPositionAndRadius, NormalizedDistanceToCapture, CaptureOffset, DistanceAlpha);
 		}
 			
-		half AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness, Frame.ReflectionCubemapMaxMip);	
+		half AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness, View.ReflectionCubemapMaxMip);	
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 		float4 Sample = TextureCubeArraySampleLevel(ReflectionCubemap, ReflectionCubemapSampler, ProjectedCaptureVector, CubemapArrayIndex, AbsoluteSpecularMip);
@@ -132,7 +132,7 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 
 #if ALLOW_STATIC_LIGHTING
 	FLATTEN
-	if (Frame.UseLightmaps > 0)
+	if (View.UseLightmaps > 0)
 	{
 		// Note: make sure this matches the lightmap mixing done on opaque (ReflectionEnvironmentTiledDeferredMain)
 		SpecularIBL.rgb *= IndirectIrradiance;
@@ -144,7 +144,7 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 	if (SkyLightParameters.y > 0 && SpecularIBL.a < .999f)
 	{
 		// Normalize for static skylight types which mix with lightmaps
-		bool bNormalize = SkyLightParameters.z < 1 && Frame.UseLightmaps;
+		bool bNormalize = SkyLightParameters.z < 1 && View.UseLightmaps;
 		float3 SkyLighting = GetSkyLightReflection(RV, Roughness, bNormalize);
 
 		FLATTEN
@@ -159,17 +159,17 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 #endif
 
 #if MATERIAL_SSR
-	if( Frame.CameraCut == 0 )
+	if( View.CameraCut == 0 )
 	{
-		//uint FrameRandom = (uint)(Frame.TemporalAAParams.r * 1551);
-		uint FrameRandom = (Frame.FrameNumber & 15) * 1551;
+		//uint ViewRandom = (uint)(View.TemporalAAParams.r * 1551);
+		uint ViewRandom = (View.FrameNumber & 15) * 1551;
 
 		uint Morton = MortonCode( (uint)MaterialParameters.SvPosition.x & 3 ) | ( MortonCode( (uint)MaterialParameters.SvPosition.y & 3 ) * 2 );
 		uint PixelIndex = ReverseBits32( Morton ) >> 28;
 		//uint PixelIndex = ( (uint)MaterialParameters.SvPosition.x & 3 ) | ( ( (uint)MaterialParameters.SvPosition.y & 3 ) * 2 );
 		//PixelIndex = ( PixelIndex * 1551 ) & 15;
 
-		uint Offset = ( PixelIndex + FrameRandom ) & 15;
+		uint Offset = ( PixelIndex + ViewRandom ) & 15;
 		float StepOffset = Offset / 15.0;
 		StepOffset -= 0.5;
 		
@@ -381,7 +381,7 @@ void GetSkyLighting(float3 WorldNormal, float2 LightmapUV, out float3 OutDiffuse
 	
 	#if HQ_TEXTURE_LIGHTMAP || CACHED_POINT_INDIRECT_LIGHTING || CACHED_VOLUME_INDIRECT_LIGHTING
 		BRANCH
-		if (Frame.SkyLightParameters.x > 0)
+		if (View.SkyLightParameters.x > 0)
 		{
 			#if HQ_TEXTURE_LIGHTMAP
 
@@ -421,13 +421,13 @@ void GetSkyLighting(float3 WorldNormal, float2 LightmapUV, out float3 OutDiffuse
 	#endif
 			
 	// Compute the preconvolved incoming lighting with the bent normal direction
-	float3 DiffuseLookup = GetEffectiveSkySHDiffuse(SkyLightingNormal) * Frame.SkyLightColor.rgb;
+	float3 DiffuseLookup = GetEffectiveSkySHDiffuse(SkyLightingNormal) * ResolvedView.SkyLightColor.rgb;
 
 	// Apply AO to the sky diffuse
 	OutDiffuseLighting += DiffuseLookup * (SkyVisibility * GeometryTerm);
 
 	#if MATERIAL_SHADINGMODEL_TWOSIDED_FOLIAGE
-		float3 BackfaceDiffuseLookup = GetEffectiveSkySHDiffuse(-WorldNormal) * Frame.SkyLightColor.rgb;
+		float3 BackfaceDiffuseLookup = GetEffectiveSkySHDiffuse(-WorldNormal) * ResolvedView.SkyLightColor.rgb;
 		OutSubsurfaceLighting += BackfaceDiffuseLookup * SkyVisibility;
 	#endif
 
@@ -548,7 +548,7 @@ void GetPrecomputedIndirectLightingAndSkyLight(
 	#endif
 
 	// Apply indirect lighting scale while we have only accumulated lightmaps
-	OutDiffuseLighting *= Frame.IndirectLightingColorScale;
+	OutDiffuseLighting *= View.IndirectLightingColorScale;
 
 	float3 SkyDiffuseLighting;
 	float3 SkySubsurfaceLighting;
@@ -557,7 +557,7 @@ void GetPrecomputedIndirectLightingAndSkyLight(
 	OutSubsurfaceLighting += SkySubsurfaceLighting;
 
 	BRANCH
-	if( Frame.UseLightmaps > 0 || !ALLOW_STATIC_LIGHTING)
+	if( View.UseLightmaps > 0 || !ALLOW_STATIC_LIGHTING)
 	{
 		// Sky lighting must contribute to IndirectIrradiance for ReflectionEnvironment lightmap mixing
 		OutDiffuseLighting += SkyDiffuseLighting;
@@ -565,7 +565,7 @@ void GetPrecomputedIndirectLightingAndSkyLight(
 	else
 	{
 	#if (TRANSLUCENCY_LIGHTING_SURFACE || TRANSLUCENCY_LIGHTING_SURFACE_PERPIXEL) && FEATURE_LEVEL >= FEATURE_LEVEL_SM5
-		float DiffuseMip = ComputeReflectionCaptureMipFromRoughness(1, Frame.ReflectionCubemapMaxMip);
+		float DiffuseMip = ComputeReflectionCaptureMipFromRoughness(1, View.ReflectionCubemapMaxMip);
 		float4 DiffuseIBL = TextureCubeArraySampleLevel(ReflectionCubemap, ReflectionCubemapSampler, DiffuseDir, CubemapArrayIndex, DiffuseMip);
 		
 		OutDiffuseLighting += DiffuseIBL.rgb + (1 - DiffuseIBL.a) * SkyDiffuseLighting;
@@ -583,10 +583,11 @@ float3 GetSimpleForwardLightingDirectionalLight(FGBufferData GBuffer, float3 Dif
 {
 	float3 V = CameraVector;
 	float3 N = WorldNormal;
-	float3 L = Frame.DirectionalLightDirection;
+	float3 L = ResolvedView.DirectionalLightDirection;
 	float NoL = saturate( dot( N, L ) );
 
-	float3 LightColor = Frame.DirectionalLightColor.rgb * PI;
+	float3 LightColor = ResolvedView.DirectionalLightColor.rgb * PI;
+	
 	// Not computing specular, material was forced fully rough
 	float3 DiffuseLighting = StandardShading(DiffuseColor, SpecularColor, Roughness.xxx, 1.0f, L, V, N, float2(1, 0));
 	float3 SubsurfaceLighting = SubsurfaceShading(GBuffer, L, V, N, 1.0f, uint2(0, 0));
@@ -621,7 +622,7 @@ float ClipForEditorPrimitives(FMaterialPixelParameters MaterialParameters)
 #endif	// HAS_INVERTED_Z_BUFFER
  		
 		// dejitter the sample position and make a filtered lookup - for planes this allows to reconstruct a much less jittery depth comparison function, it however doesn't fix silhuetes
-		float DeviceZ = Texture2DSampleLevel(FilteredSceneDepthTexture, FilteredSceneDepthTextureSampler, (MaterialParameters.SvPosition.xy - Frame.TemporalAAParams.zw) * Frame.BufferSizeAndInvSize.zw, 0).r;
+		float DeviceZ = Texture2DSampleLevel(FilteredSceneDepthTexture, FilteredSceneDepthTextureSampler, (MaterialParameters.SvPosition.xy - View.TemporalAAParams.zw) * View.BufferSizeAndInvSize.zw, 0).r;
 
 		float PixelDeviceZ = MaterialParameters.SvPosition.z;
 
@@ -736,7 +737,7 @@ void FPixelShaderInOut_MainPS(
 
 	#if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
 		{
-			float4 ScreenPosition = SvPositionToScreenPosition(SVPositionForComputingPositions);
+			float4 ScreenPosition = SvPositionToResolvedScreenPosition(SVPositionForComputingPositions);
 			float3 TranslatedWorldPosition = SvPositionToResolvedTranslatedWorld(SVPositionForComputingPositions);
 			CalcMaterialParametersEx(MaterialParameters, PixelMaterialInputs, In.SvPosition, ScreenPosition, In.bIsFrontFace, TranslatedWorldPosition, BasePassInterpolants.PixelPositionExcludingWPO);
 		}
@@ -763,7 +764,6 @@ void FPixelShaderInOut_MainPS(
 	{
 		GetMaterialCoverageAndClipping(MaterialParameters, PixelMaterialInputs);
 	}
-
 	// Store the results in local variables and reuse instead of calling the functions multiple times.
 	half3 BaseColor = GetMaterialBaseColor(PixelMaterialInputs);
 	half  Metallic = GetMaterialMetallic(PixelMaterialInputs);
@@ -782,7 +782,7 @@ void FPixelShaderInOut_MainPS(
 		float4 SubsurfaceData = GetMaterialSubsurfaceData(MaterialParameters);
 
 #if MATERIAL_SHADINGMODEL_SUBSURFACE || MATERIAL_SHADINGMODEL_PREINTEGRATED_SKIN || MATERIAL_SHADINGMODEL_TWOSIDED_FOLIAGE
-		SubsurfaceColor = SubsurfaceData.rgb * Frame.DiffuseOverrideParameter.w + Frame.DiffuseOverrideParameter.xyz;
+		SubsurfaceColor = SubsurfaceData.rgb * View.DiffuseOverrideParameter.w + View.DiffuseOverrideParameter.xyz;
 #elif MATERIAL_SHADINGMODEL_CLOTH
 		SubsurfaceColor = SubsurfaceData.rgb;
 #endif
@@ -792,12 +792,10 @@ void FPixelShaderInOut_MainPS(
 
 #if USE_DBUFFER && MATERIALDECALRESPONSEMASK && !MATERIALBLENDING_ANY_TRANSLUCENT
 	// apply decals from the DBuffer
-	BRANCH if(Primitive.DecalReceiverMask > 0 && Frame.ShowDecalsMask > 0)
+	BRANCH if(Primitive.DecalReceiverMask > 0 && View.ShowDecalsMask > 0)
 	{
 		float2 NDC = MaterialParameters.ScreenPosition.xy / MaterialParameters.ScreenPosition.w;
-		
-		// Note: We are using View and not ResolvedView here.
-		// It has the correct ScreenPositionScaleBias values for screen space compositing.
+
 		float2 ScreenUV = NDC * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
 		
 		FDBufferData DBufferData = GetDBufferData(ScreenUV);
@@ -950,8 +948,8 @@ void FPixelShaderInOut_MainPS(
 #if USE_DEVELOPMENT_SHADERS
 	{
 		// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
-		GBuffer.DiffuseColor = GBuffer.DiffuseColor * Frame.DiffuseOverrideParameter.w + Frame.DiffuseOverrideParameter.xyz;
-		GBuffer.SpecularColor = GBuffer.SpecularColor * Frame.SpecularOverrideParameter.w + Frame.SpecularOverrideParameter.xyz;
+		GBuffer.DiffuseColor = GBuffer.DiffuseColor * View.DiffuseOverrideParameter.w + View.DiffuseOverrideParameter.xyz;
+		GBuffer.SpecularColor = GBuffer.SpecularColor * View.SpecularOverrideParameter.w + View.SpecularOverrideParameter.xyz;
 	}
 #endif
 
@@ -1031,7 +1029,7 @@ void FPixelShaderInOut_MainPS(
 	#endif
 
 	#if !MATERIAL_SHADINGMODEL_UNLIT && USE_DEVELOPMENT_SHADERS
-		Color = lerp(Color, GBuffer.DiffuseColor + GBuffer.SpecularColor * 0.45, Frame.UnlitViewmodeMask);
+		Color = lerp(Color, GBuffer.DiffuseColor + GBuffer.SpecularColor * 0.45, View.UnlitViewmodeMask);
 	#endif
 
 	half3 Emissive = GetMaterialEmissive(PixelMaterialInputs);
@@ -1040,7 +1038,7 @@ void FPixelShaderInOut_MainPS(
 	// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
 	#if METAL_SM5_PROFILE || SM5_PROFILE || SM4_PROFILE || METAL_SM4_PROFILE
 		BRANCH
-		if (Frame.OutOfBoundsMask > 0)
+		if (View.OutOfBoundsMask > 0)
 		{
 			if (any(abs(MaterialParameters.AbsoluteWorldPosition - Primitive.ObjectWorldPositionAndRadius.xyz) > Primitive.ObjectBounds + 1))
 			{

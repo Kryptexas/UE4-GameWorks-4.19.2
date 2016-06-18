@@ -542,30 +542,29 @@ static void SetBlack3DIfNull(FTextureRHIParamRef& Tex)
 	}
 }
 
-void UpdateNoiseTextureParameters(FFrameUniformShaderParameters& FrameUniformShaderParameters)
+void UpdateNoiseTextureParameters(FViewUniformShaderParameters& ViewUniformShaderParameters)
 {
 	if (GSystemTextures.PerlinNoiseGradient.GetReference())
 	{
-		FrameUniformShaderParameters.PerlinNoiseGradientTexture = (FTexture2DRHIRef&)GSystemTextures.PerlinNoiseGradient->GetRenderTargetItem().ShaderResourceTexture;
-		SetBlack2DIfNull(FrameUniformShaderParameters.PerlinNoiseGradientTexture);
+		ViewUniformShaderParameters.PerlinNoiseGradientTexture = (FTexture2DRHIRef&)GSystemTextures.PerlinNoiseGradient->GetRenderTargetItem().ShaderResourceTexture;
+		SetBlack2DIfNull(ViewUniformShaderParameters.PerlinNoiseGradientTexture);
 	}
-	check(FrameUniformShaderParameters.PerlinNoiseGradientTexture);
-	FrameUniformShaderParameters.PerlinNoiseGradientTextureSampler = TStaticSamplerState<SF_Point, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+	check(ViewUniformShaderParameters.PerlinNoiseGradientTexture);
+	ViewUniformShaderParameters.PerlinNoiseGradientTextureSampler = TStaticSamplerState<SF_Point, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
 
 	if (GSystemTextures.PerlinNoise3D.GetReference())
 	{
-		FrameUniformShaderParameters.PerlinNoise3DTexture = (FTexture3DRHIRef&)GSystemTextures.PerlinNoise3D->GetRenderTargetItem().ShaderResourceTexture;
-		SetBlack3DIfNull(FrameUniformShaderParameters.PerlinNoise3DTexture);
+		ViewUniformShaderParameters.PerlinNoise3DTexture = (FTexture3DRHIRef&)GSystemTextures.PerlinNoise3D->GetRenderTargetItem().ShaderResourceTexture;
+		SetBlack3DIfNull(ViewUniformShaderParameters.PerlinNoise3DTexture);
 	}
-	check(FrameUniformShaderParameters.PerlinNoise3DTexture);
-	FrameUniformShaderParameters.PerlinNoise3DTextureSampler = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+	check(ViewUniformShaderParameters.PerlinNoise3DTexture);
+	ViewUniformShaderParameters.PerlinNoise3DTextureSampler = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
 }
 
 
 /** Creates the view's uniform buffers given a set of view transforms. */
 void FViewInfo::CreateUniformBuffer(
 	TUniformBufferRef<FViewUniformShaderParameters>& OutViewUniformBuffer,
-	TUniformBufferRef<FFrameUniformShaderParameters>& OutFrameUniformBuffer,
 	FRHICommandList& RHICmdList,
 	const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>* DirectionalLightShadowInfo,	
 	const FMatrix& EffectiveTranslatedViewMatrix, 
@@ -624,7 +623,6 @@ void FViewInfo::CreateUniformBuffer(
 	// Create the view's uniform buffer.
 	// TODO: We should use a view and previous view uniform buffer to avoid code duplication and keep consistency
 	FViewUniformShaderParameters ViewUniformShaderParameters;
-	FFrameUniformShaderParameters FrameUniformShaderParameters;
 
 	ViewUniformShaderParameters.TranslatedWorldToClip = ViewMatrices.TranslatedViewProjectionMatrix;
 	ViewUniformShaderParameters.WorldToClip = ViewProjectionMatrix;
@@ -665,35 +663,22 @@ void FViewInfo::CreateUniformBuffer(
 	// can be optimized
 	ViewUniformShaderParameters.PrevInvViewProj = PrevViewProjMatrix.Inverse();
 	ViewUniformShaderParameters.ScreenPositionScaleBias = ScreenPositionScaleBias;
-	ViewUniformShaderParameters.GlobalClippingPlane = FVector4(GlobalClippingPlane.X, GlobalClippingPlane.Y, GlobalClippingPlane.Z, -GlobalClippingPlane.W);
 
-	FrameUniformShaderParameters.FieldOfViewWideAngles = 2.f * ViewMatrices.GetHalfFieldOfViewPerAxis();
-	FrameUniformShaderParameters.PrevFieldOfViewWideAngles = 2.f * PrevViewMatrices.GetHalfFieldOfViewPerAxis();
-	FrameUniformShaderParameters.ViewRectMin = FVector4(ViewRect.Min.X, ViewRect.Min.Y, 0.0f, 0.0f);
-	FrameUniformShaderParameters.ViewSizeAndInvSize = FVector4(ViewRect.Width(), ViewRect.Height(), 1.0f / float(ViewRect.Width()), 1.0f / float(ViewRect.Height()));
-	FrameUniformShaderParameters.BufferSizeAndInvSize = FVector4(BufferSize.X, BufferSize.Y, InvBufferSizeX, InvBufferSizeY);
-	FrameUniformShaderParameters.DiffuseOverrideParameter = LocalDiffuseOverrideParameter;
-	FrameUniformShaderParameters.SpecularOverrideParameter = SpecularOverrideParameter;
-	FrameUniformShaderParameters.NormalOverrideParameter = NormalOverrideParameter;
-	FrameUniformShaderParameters.RoughnessOverrideParameter = LocalRoughnessOverrideParameter;
-	FrameUniformShaderParameters.PrevFrameGameTime = Family->CurrentWorldTime - Family->DeltaWorldTime;
-	FrameUniformShaderParameters.PrevFrameRealTime = Family->CurrentRealTime - Family->DeltaWorldTime;
-	FrameUniformShaderParameters.WorldCameraMovementSinceLastFrame = ViewMatrices.ViewOrigin - PrevViewMatrices.ViewOrigin;
-	FrameUniformShaderParameters.CullingSign = bReverseCulling ? -1.0f : 1.0f;
-	FrameUniformShaderParameters.NearPlane = GNearClippingPlane;
+	ViewUniformShaderParameters.FieldOfViewWideAngles = 2.f * ViewMatrices.GetHalfFieldOfViewPerAxis();
+	ViewUniformShaderParameters.PrevFieldOfViewWideAngles = 2.f * PrevViewMatrices.GetHalfFieldOfViewPerAxis();
+	ViewUniformShaderParameters.ViewRectMin = FVector4(ViewRect.Min.X, ViewRect.Min.Y, 0.0f, 0.0f);
+	ViewUniformShaderParameters.ViewSizeAndInvSize = FVector4(ViewRect.Width(), ViewRect.Height(), 1.0f / float(ViewRect.Width()), 1.0f / float(ViewRect.Height()));
+	ViewUniformShaderParameters.BufferSizeAndInvSize = FVector4(BufferSize.X, BufferSize.Y, InvBufferSizeX, InvBufferSizeY);
+	ViewUniformShaderParameters.DiffuseOverrideParameter = LocalDiffuseOverrideParameter;
+	ViewUniformShaderParameters.SpecularOverrideParameter = SpecularOverrideParameter;
+	ViewUniformShaderParameters.NormalOverrideParameter = NormalOverrideParameter;
+	ViewUniformShaderParameters.RoughnessOverrideParameter = LocalRoughnessOverrideParameter;
+	ViewUniformShaderParameters.PrevFrameGameTime = Family->CurrentWorldTime - Family->DeltaWorldTime;
+	ViewUniformShaderParameters.PrevFrameRealTime = Family->CurrentRealTime - Family->DeltaWorldTime;
+	ViewUniformShaderParameters.WorldCameraMovementSinceLastFrame = ViewMatrices.ViewOrigin - PrevViewMatrices.ViewOrigin;
+	ViewUniformShaderParameters.CullingSign = bReverseCulling ? -1.0f : 1.0f;
+	ViewUniformShaderParameters.NearPlane = GNearClippingPlane;
 
-#if WITH_EDITOR
-	if (Family->bNullifyWorldSpacePosition)
-	{
-		// Forces world space position to 0 and view vector to up.
-		ViewUniformShaderParameters.SVPositionToTranslatedWorld = 
-			FMatrix(FPlane( 0,   0,  0,   0),
-					FPlane( 0,   0,  0,   0),
-					FPlane( 0,   0,  0,   0),
-					FPlane( 0,   0,  1,   1));
-	}
-	else
-#endif
 	{
 		// setup a matrix to transform float4(SvPosition.xyz,1) directly to TranslatedWorld (quality, performance as we don't need to convert or use interpolator)
 
@@ -701,10 +686,10 @@ void FViewInfo::CreateUniformBuffer(
 
 		//  transformed into one MAD:  new_xy = xy * ViewSizeAndInvSize.zw * float2(2,-2)      +       (-ViewRectMin.xy) * ViewSizeAndInvSize.zw * float2(2,-2) + float2(-1, 1);
 
-		float Mx = 2.0f * FrameUniformShaderParameters.ViewSizeAndInvSize.Z;
-		float My = -2.0f * FrameUniformShaderParameters.ViewSizeAndInvSize.W;
-		float Ax = -1.0f - 2.0f * ViewRect.Min.X * FrameUniformShaderParameters.ViewSizeAndInvSize.Z;
-		float Ay = 1.0f + 2.0f * ViewRect.Min.Y * FrameUniformShaderParameters.ViewSizeAndInvSize.W;
+		float Mx = 2.0f * ViewUniformShaderParameters.ViewSizeAndInvSize.Z;
+		float My = -2.0f * ViewUniformShaderParameters.ViewSizeAndInvSize.W;
+		float Ax = -1.0f - 2.0f * ViewRect.Min.X * ViewUniformShaderParameters.ViewSizeAndInvSize.Z;
+		float Ay = 1.0f + 2.0f * ViewRect.Min.Y * ViewUniformShaderParameters.ViewSizeAndInvSize.W;
 
 		// http://stackoverflow.com/questions/9010546/java-transformation-matrix-operations
 
@@ -743,27 +728,27 @@ void FViewInfo::CreateUniformBuffer(
 	ViewUniformShaderParameters.ClipToPrevClip = InvViewProj * PrevViewProj;
 
 	// is getting clamped in the shader to a value larger than 0 (we don't want the triangles to disappear)
-	FrameUniformShaderParameters.AdaptiveTessellationFactor = 0.0f;
+	ViewUniformShaderParameters.AdaptiveTessellationFactor = 0.0f;
 
 	if(Family->EngineShowFlags.Tessellation)
 	{
 		// CVar setting is pixels/tri which is nice and intuitive.  But we want pixels/tessellated edge.  So use a heuristic.
 		float TessellationAdaptivePixelsPerEdge = FMath::Sqrt(2.f * CVarTessellationAdaptivePixelsPerTriangle.GetValueOnRenderThread());
 
-		FrameUniformShaderParameters.AdaptiveTessellationFactor = 0.5f * ViewMatrices.ProjMatrix.M[1][1] * float(ViewRect.Height()) / TessellationAdaptivePixelsPerEdge;
+		ViewUniformShaderParameters.AdaptiveTessellationFactor = 0.5f * ViewMatrices.ProjMatrix.M[1][1] * float(ViewRect.Height()) / TessellationAdaptivePixelsPerEdge;
 	}
 
 	//white texture should act like a shadowmap cleared to the farplane.
-	FrameUniformShaderParameters.DirectionalLightShadowTexture = GWhiteTexture->TextureRHI;
-	FrameUniformShaderParameters.DirectionalLightShadowSampler = TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
+	ViewUniformShaderParameters.DirectionalLightShadowTexture = GWhiteTexture->TextureRHI;
+	ViewUniformShaderParameters.DirectionalLightShadowSampler = TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
 	if (Family->Scene)
 	{
 		FScene* Scene = (FScene*)Family->Scene;
 
 		if (Scene->SimpleDirectionalLight)
 		{			
-			FrameUniformShaderParameters.DirectionalLightColor = Scene->SimpleDirectionalLight->Proxy->GetColor() / PI;
-			FrameUniformShaderParameters.DirectionalLightDirection = -Scene->SimpleDirectionalLight->Proxy->GetDirection();
+			ViewUniformShaderParameters.DirectionalLightColor = Scene->SimpleDirectionalLight->Proxy->GetColor() / PI;
+			ViewUniformShaderParameters.DirectionalLightDirection = -Scene->SimpleDirectionalLight->Proxy->GetDirection();
 
 			static_assert(MAX_MOBILE_SHADOWCASCADES <= 4, "more than 4 cascades not supported by the shader and uniform buffer");
 			if (DirectionalLightShadowInfo)
@@ -773,154 +758,154 @@ void FViewInfo::CreateUniformBuffer(
 					FIntPoint ShadowBufferResolution = ShadowInfo.GetShadowBufferResolution();
 					FVector4 ShadowBufferSizeValue((float)ShadowBufferResolution.X, (float)ShadowBufferResolution.Y, 1.0f / (float)ShadowBufferResolution.X, 1.0f / (float)ShadowBufferResolution.Y);
 
-					FrameUniformShaderParameters.DirectionalLightShadowTexture = SceneContext.GetShadowDepthZTexture();
-					FrameUniformShaderParameters.DirectionalLightShadowTransition = 1.0f / ShadowInfo.ComputeTransitionSize();
-					FrameUniformShaderParameters.DirectionalLightShadowSize = ShadowBufferSizeValue;
+					ViewUniformShaderParameters.DirectionalLightShadowTexture = SceneContext.GetShadowDepthZTexture();
+					ViewUniformShaderParameters.DirectionalLightShadowTransition = 1.0f / ShadowInfo.ComputeTransitionSize();
+					ViewUniformShaderParameters.DirectionalLightShadowSize = ShadowBufferSizeValue;
 				}
 
 				int32 NumShadowsToCopy = FMath::Min(DirectionalLightShadowInfo->Num(), MAX_MOBILE_SHADOWCASCADES);				
 				for (int32 i = 0; i < NumShadowsToCopy; ++i)
 				{
 					const FProjectedShadowInfo& ShadowInfo = *(*DirectionalLightShadowInfo)[i];
-					FrameUniformShaderParameters.DirectionalLightScreenToShadow[i] = ShadowInfo.GetScreenToShadowMatrix(*this);
-					FrameUniformShaderParameters.DirectionalLightShadowDistances[i] = ShadowInfo.CascadeSettings.SplitFar;
+					ViewUniformShaderParameters.DirectionalLightScreenToShadow[i] = ShadowInfo.GetScreenToShadowMatrix(*this);
+					ViewUniformShaderParameters.DirectionalLightShadowDistances[i] = ShadowInfo.CascadeSettings.SplitFar;
 				}
 
 				for (int32 i = NumShadowsToCopy; i < MAX_MOBILE_SHADOWCASCADES; ++i)
 				{
-					FrameUniformShaderParameters.DirectionalLightScreenToShadow[i].SetIdentity();
-					FrameUniformShaderParameters.DirectionalLightShadowDistances[i] = 0.0f;
+					ViewUniformShaderParameters.DirectionalLightScreenToShadow[i].SetIdentity();
+					ViewUniformShaderParameters.DirectionalLightShadowDistances[i] = 0.0f;
 				}
 			}
 			else
 			{
-				FrameUniformShaderParameters.DirectionalLightShadowTransition = 0.0f;
-				FrameUniformShaderParameters.DirectionalLightShadowSize = FVector::ZeroVector;
+				ViewUniformShaderParameters.DirectionalLightShadowTransition = 0.0f;
+				ViewUniformShaderParameters.DirectionalLightShadowSize = FVector::ZeroVector;
 				for (int32 i = 0; i < MAX_MOBILE_SHADOWCASCADES; ++i)
 				{
-					FrameUniformShaderParameters.DirectionalLightScreenToShadow[i].SetIdentity();
-					FrameUniformShaderParameters.DirectionalLightShadowDistances[i] = 0.0f;
+					ViewUniformShaderParameters.DirectionalLightScreenToShadow[i].SetIdentity();
+					ViewUniformShaderParameters.DirectionalLightShadowDistances[i] = 0.0f;
 				}			
 			}			 
 		}
 		else
 		{
-			FrameUniformShaderParameters.DirectionalLightColor = FLinearColor::Black;
-			FrameUniformShaderParameters.DirectionalLightDirection = FVector::ZeroVector;
+			ViewUniformShaderParameters.DirectionalLightColor = FLinearColor::Black;
+			ViewUniformShaderParameters.DirectionalLightDirection = FVector::ZeroVector;
 		}
 
 		// Atmospheric fog parameters
 		if (ShouldRenderAtmosphere(*Family) && Scene->AtmosphericFog)
 		{
-			FrameUniformShaderParameters.AtmosphericFogSunPower = Scene->AtmosphericFog->SunMultiplier;
-			FrameUniformShaderParameters.AtmosphericFogPower = Scene->AtmosphericFog->FogMultiplier;
-			FrameUniformShaderParameters.AtmosphericFogDensityScale = Scene->AtmosphericFog->InvDensityMultiplier;
-			FrameUniformShaderParameters.AtmosphericFogDensityOffset = Scene->AtmosphericFog->DensityOffset;
-			FrameUniformShaderParameters.AtmosphericFogGroundOffset = Scene->AtmosphericFog->GroundOffset;
-			FrameUniformShaderParameters.AtmosphericFogDistanceScale = Scene->AtmosphericFog->DistanceScale;
-			FrameUniformShaderParameters.AtmosphericFogAltitudeScale = Scene->AtmosphericFog->AltitudeScale;
-			FrameUniformShaderParameters.AtmosphericFogHeightScaleRayleigh = Scene->AtmosphericFog->RHeight;
-			FrameUniformShaderParameters.AtmosphericFogStartDistance = Scene->AtmosphericFog->StartDistance;
-			FrameUniformShaderParameters.AtmosphericFogDistanceOffset = Scene->AtmosphericFog->DistanceOffset;
-			FrameUniformShaderParameters.AtmosphericFogSunDiscScale = Scene->AtmosphericFog->SunDiscScale;
-			FrameUniformShaderParameters.AtmosphericFogSunColor = Scene->SunLight ? Scene->SunLight->Proxy->GetColor() : Scene->AtmosphericFog->DefaultSunColor;
-			FrameUniformShaderParameters.AtmosphericFogSunDirection = Scene->SunLight ? -Scene->SunLight->Proxy->GetDirection() : -Scene->AtmosphericFog->DefaultSunDirection;
-			FrameUniformShaderParameters.AtmosphericFogRenderMask = Scene->AtmosphericFog->RenderFlag & (EAtmosphereRenderFlag::E_DisableGroundScattering | EAtmosphereRenderFlag::E_DisableSunDisk);
-			FrameUniformShaderParameters.AtmosphericFogInscatterAltitudeSampleNum = Scene->AtmosphericFog->InscatterAltitudeSampleNum;
+			ViewUniformShaderParameters.AtmosphericFogSunPower = Scene->AtmosphericFog->SunMultiplier;
+			ViewUniformShaderParameters.AtmosphericFogPower = Scene->AtmosphericFog->FogMultiplier;
+			ViewUniformShaderParameters.AtmosphericFogDensityScale = Scene->AtmosphericFog->InvDensityMultiplier;
+			ViewUniformShaderParameters.AtmosphericFogDensityOffset = Scene->AtmosphericFog->DensityOffset;
+			ViewUniformShaderParameters.AtmosphericFogGroundOffset = Scene->AtmosphericFog->GroundOffset;
+			ViewUniformShaderParameters.AtmosphericFogDistanceScale = Scene->AtmosphericFog->DistanceScale;
+			ViewUniformShaderParameters.AtmosphericFogAltitudeScale = Scene->AtmosphericFog->AltitudeScale;
+			ViewUniformShaderParameters.AtmosphericFogHeightScaleRayleigh = Scene->AtmosphericFog->RHeight;
+			ViewUniformShaderParameters.AtmosphericFogStartDistance = Scene->AtmosphericFog->StartDistance;
+			ViewUniformShaderParameters.AtmosphericFogDistanceOffset = Scene->AtmosphericFog->DistanceOffset;
+			ViewUniformShaderParameters.AtmosphericFogSunDiscScale = Scene->AtmosphericFog->SunDiscScale;
+			ViewUniformShaderParameters.AtmosphericFogSunColor = Scene->SunLight ? Scene->SunLight->Proxy->GetColor() : Scene->AtmosphericFog->DefaultSunColor;
+			ViewUniformShaderParameters.AtmosphericFogSunDirection = Scene->SunLight ? -Scene->SunLight->Proxy->GetDirection() : -Scene->AtmosphericFog->DefaultSunDirection;
+			ViewUniformShaderParameters.AtmosphericFogRenderMask = Scene->AtmosphericFog->RenderFlag & (EAtmosphereRenderFlag::E_DisableGroundScattering | EAtmosphereRenderFlag::E_DisableSunDisk);
+			ViewUniformShaderParameters.AtmosphericFogInscatterAltitudeSampleNum = Scene->AtmosphericFog->InscatterAltitudeSampleNum;
 		}
 		else
 		{
-			FrameUniformShaderParameters.AtmosphericFogSunPower = 0.f;
-			FrameUniformShaderParameters.AtmosphericFogPower = 0.f;
-			FrameUniformShaderParameters.AtmosphericFogDensityScale = 0.f;
-			FrameUniformShaderParameters.AtmosphericFogDensityOffset = 0.f;
-			FrameUniformShaderParameters.AtmosphericFogGroundOffset = 0.f;
-			FrameUniformShaderParameters.AtmosphericFogDistanceScale = 0.f;
-			FrameUniformShaderParameters.AtmosphericFogAltitudeScale = 0.f;
-			FrameUniformShaderParameters.AtmosphericFogHeightScaleRayleigh = 0.f;
-			FrameUniformShaderParameters.AtmosphericFogStartDistance = 0.f;
-			FrameUniformShaderParameters.AtmosphericFogDistanceOffset = 0.f;
-			FrameUniformShaderParameters.AtmosphericFogSunDiscScale = 1.f;
-			FrameUniformShaderParameters.AtmosphericFogSunColor = FLinearColor::Black;
-			FrameUniformShaderParameters.AtmosphericFogSunDirection = FVector::ZeroVector;
-			FrameUniformShaderParameters.AtmosphericFogRenderMask = EAtmosphereRenderFlag::E_EnableAll;
-			FrameUniformShaderParameters.AtmosphericFogInscatterAltitudeSampleNum = 0;
+			ViewUniformShaderParameters.AtmosphericFogSunPower = 0.f;
+			ViewUniformShaderParameters.AtmosphericFogPower = 0.f;
+			ViewUniformShaderParameters.AtmosphericFogDensityScale = 0.f;
+			ViewUniformShaderParameters.AtmosphericFogDensityOffset = 0.f;
+			ViewUniformShaderParameters.AtmosphericFogGroundOffset = 0.f;
+			ViewUniformShaderParameters.AtmosphericFogDistanceScale = 0.f;
+			ViewUniformShaderParameters.AtmosphericFogAltitudeScale = 0.f;
+			ViewUniformShaderParameters.AtmosphericFogHeightScaleRayleigh = 0.f;
+			ViewUniformShaderParameters.AtmosphericFogStartDistance = 0.f;
+			ViewUniformShaderParameters.AtmosphericFogDistanceOffset = 0.f;
+			ViewUniformShaderParameters.AtmosphericFogSunDiscScale = 1.f;
+			ViewUniformShaderParameters.AtmosphericFogSunColor = FLinearColor::Black;
+			ViewUniformShaderParameters.AtmosphericFogSunDirection = FVector::ZeroVector;
+			ViewUniformShaderParameters.AtmosphericFogRenderMask = EAtmosphereRenderFlag::E_EnableAll;
+			ViewUniformShaderParameters.AtmosphericFogInscatterAltitudeSampleNum = 0;
 		}
 	}
 	else
 	{
-		FrameUniformShaderParameters.DirectionalLightDirection = FVector::ZeroVector;
-		FrameUniformShaderParameters.DirectionalLightColor = FLinearColor::Black;
+		ViewUniformShaderParameters.DirectionalLightDirection = FVector::ZeroVector;
+		ViewUniformShaderParameters.DirectionalLightColor = FLinearColor::Black;
 
 		// Atmospheric fog parameters
-		FrameUniformShaderParameters.AtmosphericFogSunPower = 0.f;
-		FrameUniformShaderParameters.AtmosphericFogPower = 0.f;
-		FrameUniformShaderParameters.AtmosphericFogDensityScale = 0.f;
-		FrameUniformShaderParameters.AtmosphericFogDensityOffset = 0.f;
-		FrameUniformShaderParameters.AtmosphericFogGroundOffset = 0.f;
-		FrameUniformShaderParameters.AtmosphericFogDistanceScale = 0.f;
-		FrameUniformShaderParameters.AtmosphericFogAltitudeScale = 0.f;
-		FrameUniformShaderParameters.AtmosphericFogHeightScaleRayleigh =  0.f;
-		FrameUniformShaderParameters.AtmosphericFogStartDistance = 0.f;
-		FrameUniformShaderParameters.AtmosphericFogDistanceOffset = 0.f;
-		FrameUniformShaderParameters.AtmosphericFogSunDiscScale = 1.f;
-		FrameUniformShaderParameters.AtmosphericFogSunColor = FLinearColor::Black;
-		FrameUniformShaderParameters.AtmosphericFogSunDirection = FVector::ZeroVector;
-		FrameUniformShaderParameters.AtmosphericFogRenderMask = EAtmosphereRenderFlag::E_EnableAll;
-		FrameUniformShaderParameters.AtmosphericFogInscatterAltitudeSampleNum = 0;
+		ViewUniformShaderParameters.AtmosphericFogSunPower = 0.f;
+		ViewUniformShaderParameters.AtmosphericFogPower = 0.f;
+		ViewUniformShaderParameters.AtmosphericFogDensityScale = 0.f;
+		ViewUniformShaderParameters.AtmosphericFogDensityOffset = 0.f;
+		ViewUniformShaderParameters.AtmosphericFogGroundOffset = 0.f;
+		ViewUniformShaderParameters.AtmosphericFogDistanceScale = 0.f;
+		ViewUniformShaderParameters.AtmosphericFogAltitudeScale = 0.f;
+		ViewUniformShaderParameters.AtmosphericFogHeightScaleRayleigh = 0.f;
+		ViewUniformShaderParameters.AtmosphericFogStartDistance = 0.f;
+		ViewUniformShaderParameters.AtmosphericFogDistanceOffset = 0.f;
+		ViewUniformShaderParameters.AtmosphericFogSunDiscScale = 1.f;
+		ViewUniformShaderParameters.AtmosphericFogSunColor = FLinearColor::Black;
+		ViewUniformShaderParameters.AtmosphericFogSunDirection = FVector::ZeroVector;
+		ViewUniformShaderParameters.AtmosphericFogRenderMask = EAtmosphereRenderFlag::E_EnableAll;
+		ViewUniformShaderParameters.AtmosphericFogInscatterAltitudeSampleNum = 0;
 	}
 
-	SetBlack2DIfNull(FrameUniformShaderParameters.AtmosphereTransmittanceTexture_UB);
-	SetBlack2DIfNull(FrameUniformShaderParameters.AtmosphereIrradianceTexture_UB);
-	SetBlack3DIfNull(FrameUniformShaderParameters.AtmosphereInscatterTexture_UB);
+	SetBlack2DIfNull(ViewUniformShaderParameters.AtmosphereTransmittanceTexture_UB);
+	SetBlack2DIfNull(ViewUniformShaderParameters.AtmosphereIrradianceTexture_UB);
+	SetBlack3DIfNull(ViewUniformShaderParameters.AtmosphereInscatterTexture_UB);
 
-	FrameUniformShaderParameters.AtmosphereTransmittanceTextureSampler_UB = TStaticSamplerState<SF_Bilinear>::GetRHI();
-	FrameUniformShaderParameters.AtmosphereIrradianceTextureSampler_UB = TStaticSamplerState<SF_Bilinear>::GetRHI();
-	FrameUniformShaderParameters.AtmosphereInscatterTextureSampler_UB = TStaticSamplerState<SF_Bilinear>::GetRHI();
+	ViewUniformShaderParameters.AtmosphereTransmittanceTextureSampler_UB = TStaticSamplerState<SF_Bilinear>::GetRHI();
+	ViewUniformShaderParameters.AtmosphereIrradianceTextureSampler_UB = TStaticSamplerState<SF_Bilinear>::GetRHI();
+	ViewUniformShaderParameters.AtmosphereInscatterTextureSampler_UB = TStaticSamplerState<SF_Bilinear>::GetRHI();
 
 	// Update the Texture Parameters used for noise
-	UpdateNoiseTextureParameters(FrameUniformShaderParameters);
+	UpdateNoiseTextureParameters(ViewUniformShaderParameters);
 
 	for (int32 Index = 0; Index < GMaxGlobalDistanceFieldClipmaps; Index++)
 	{
-		FrameUniformShaderParameters.GlobalVolumeCenterAndExtent_UB[Index] = GlobalDistanceFieldInfo.ParameterData.CenterAndExtent[Index];
-		FrameUniformShaderParameters.GlobalVolumeWorldToUVAddAndMul_UB[Index] = GlobalDistanceFieldInfo.ParameterData.WorldToUVAddAndMul[Index];
+		ViewUniformShaderParameters.GlobalVolumeCenterAndExtent_UB[Index] = GlobalDistanceFieldInfo.ParameterData.CenterAndExtent[Index];
+		ViewUniformShaderParameters.GlobalVolumeWorldToUVAddAndMul_UB[Index] = GlobalDistanceFieldInfo.ParameterData.WorldToUVAddAndMul[Index];
 	}
-	FrameUniformShaderParameters.GlobalVolumeDimension_UB = GlobalDistanceFieldInfo.ParameterData.GlobalDFResolution;
-	FrameUniformShaderParameters.GlobalVolumeTexelSize_UB = 1.0f / GlobalDistanceFieldInfo.ParameterData.GlobalDFResolution;
-	FrameUniformShaderParameters.MaxGlobalDistance_UB = GlobalDistanceFieldInfo.ParameterData.MaxDistance;
+	ViewUniformShaderParameters.GlobalVolumeDimension_UB = GlobalDistanceFieldInfo.ParameterData.GlobalDFResolution;
+	ViewUniformShaderParameters.GlobalVolumeTexelSize_UB = 1.0f / GlobalDistanceFieldInfo.ParameterData.GlobalDFResolution;
+	ViewUniformShaderParameters.MaxGlobalDistance_UB = GlobalDistanceFieldInfo.ParameterData.MaxDistance;
 
-	FrameUniformShaderParameters.GlobalDistanceFieldTexture0_UB = OrBlack3DIfNull(GlobalDistanceFieldInfo.ParameterData.Textures[0]);
-	FrameUniformShaderParameters.GlobalDistanceFieldSampler0_UB = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
-	FrameUniformShaderParameters.GlobalDistanceFieldTexture1_UB = OrBlack3DIfNull(GlobalDistanceFieldInfo.ParameterData.Textures[1]);
-	FrameUniformShaderParameters.GlobalDistanceFieldSampler1_UB = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
-	FrameUniformShaderParameters.GlobalDistanceFieldTexture2_UB = OrBlack3DIfNull(GlobalDistanceFieldInfo.ParameterData.Textures[2]);
-	FrameUniformShaderParameters.GlobalDistanceFieldSampler2_UB = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
-	FrameUniformShaderParameters.GlobalDistanceFieldTexture3_UB = OrBlack3DIfNull(GlobalDistanceFieldInfo.ParameterData.Textures[3]);
-	FrameUniformShaderParameters.GlobalDistanceFieldSampler3_UB = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+	ViewUniformShaderParameters.GlobalDistanceFieldTexture0_UB = OrBlack3DIfNull(GlobalDistanceFieldInfo.ParameterData.Textures[0]);
+	ViewUniformShaderParameters.GlobalDistanceFieldSampler0_UB = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+	ViewUniformShaderParameters.GlobalDistanceFieldTexture1_UB = OrBlack3DIfNull(GlobalDistanceFieldInfo.ParameterData.Textures[1]);
+	ViewUniformShaderParameters.GlobalDistanceFieldSampler1_UB = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+	ViewUniformShaderParameters.GlobalDistanceFieldTexture2_UB = OrBlack3DIfNull(GlobalDistanceFieldInfo.ParameterData.Textures[2]);
+	ViewUniformShaderParameters.GlobalDistanceFieldSampler2_UB = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+	ViewUniformShaderParameters.GlobalDistanceFieldTexture3_UB = OrBlack3DIfNull(GlobalDistanceFieldInfo.ParameterData.Textures[3]);
+	ViewUniformShaderParameters.GlobalDistanceFieldSampler3_UB = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
 
 
-	FrameUniformShaderParameters.UnlitViewmodeMask = bIsUnlitView ? 1 : 0;
-	FrameUniformShaderParameters.OutOfBoundsMask = Family->EngineShowFlags.VisualizeOutOfBoundsPixels ? 1 : 0;
+	ViewUniformShaderParameters.UnlitViewmodeMask = bIsUnlitView ? 1 : 0;
+	ViewUniformShaderParameters.OutOfBoundsMask = Family->EngineShowFlags.VisualizeOutOfBoundsPixels ? 1 : 0;
 
-	FrameUniformShaderParameters.GameTime = Family->CurrentWorldTime;
-	FrameUniformShaderParameters.RealTime = Family->CurrentRealTime;
-	FrameUniformShaderParameters.Random = FMath::Rand();
-	FrameUniformShaderParameters.FrameNumber = Family->FrameNumber;
+	ViewUniformShaderParameters.GameTime = Family->CurrentWorldTime;
+	ViewUniformShaderParameters.RealTime = Family->CurrentRealTime;
+	ViewUniformShaderParameters.Random = FMath::Rand();
+	ViewUniformShaderParameters.FrameNumber = Family->FrameNumber;
 
 	// Lets not use Lightmaps if we don't allow static lighting, shall we?
 	static const auto AllowStaticLightingVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.AllowStaticLighting"));
 	static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DiffuseFromCaptures"));
 	const bool bUseLightmaps = (AllowStaticLightingVar->GetInt() == 1) && (CVar->GetInt() == 0);
 
-	FrameUniformShaderParameters.CameraCut = bCameraCut ? 1 : 0;
-	FrameUniformShaderParameters.UseLightmaps = bUseLightmaps ? 1 : 0;
+	ViewUniformShaderParameters.CameraCut = bCameraCut ? 1 : 0;
+	ViewUniformShaderParameters.UseLightmaps = bUseLightmaps ? 1 : 0;
 
 	uint32 StateFrameIndexMod8 = 0;
 
 	if(State)
 	{
-		FrameUniformShaderParameters.TemporalAAParams = FVector4(
+		ViewUniformShaderParameters.TemporalAAParams = FVector4(
 			ViewState->GetCurrentTemporalAASampleIndex(), 
 			ViewState->GetCurrentTemporalAASampleCount(),
 			TemporalJitterPixelsX,
@@ -930,10 +915,10 @@ void FViewInfo::CreateUniformBuffer(
 	}
 	else
 	{
-		FrameUniformShaderParameters.TemporalAAParams = FVector4(0, 1, 0, 0);
+		ViewUniformShaderParameters.TemporalAAParams = FVector4(0, 1, 0, 0);
 	}
 
-	FrameUniformShaderParameters.StateFrameIndexMod8 = StateFrameIndexMod8;
+	ViewUniformShaderParameters.StateFrameIndexMod8 = StateFrameIndexMod8;
 
 	{
 		// If rendering in stereo, the right eye uses the left eye's translucency lighting volume.
@@ -957,25 +942,25 @@ void FViewInfo::CreateUniformBuffer(
 	{
 		const float VolumeVoxelSize = (OutTranslucentCascadeBoundsArray[CascadeIndex].Max.X - OutTranslucentCascadeBoundsArray[CascadeIndex].Min.X) / GTranslucencyLightingVolumeDim;
 		const FVector VolumeSize = OutTranslucentCascadeBoundsArray[CascadeIndex].Max - OutTranslucentCascadeBoundsArray[CascadeIndex].Min;
-		FrameUniformShaderParameters.TranslucencyLightingVolumeMin[CascadeIndex] = FVector4(OutTranslucentCascadeBoundsArray[CascadeIndex].Min, 1.0f / GTranslucencyLightingVolumeDim);
-		FrameUniformShaderParameters.TranslucencyLightingVolumeInvSize[CascadeIndex] = FVector4(FVector(1.0f) / VolumeSize, VolumeVoxelSize);
+		ViewUniformShaderParameters.TranslucencyLightingVolumeMin[CascadeIndex] = FVector4(OutTranslucentCascadeBoundsArray[CascadeIndex].Min, 1.0f / GTranslucencyLightingVolumeDim);
+		ViewUniformShaderParameters.TranslucencyLightingVolumeInvSize[CascadeIndex] = FVector4(FVector(1.0f) / VolumeSize, VolumeVoxelSize);
 	}
 	
-	FrameUniformShaderParameters.RenderTargetSize = BufferSize;
+	ViewUniformShaderParameters.RenderTargetSize = BufferSize;
 	// The exposure scale is just a scalar but needs to be a float4 to workaround a driver bug on IOS.
 	// After 4.2 we can put the workaround in the cross compiler.
 	float ExposureScale = FRCPassPostProcessEyeAdaptation::ComputeExposureScaleValue( *this );
-	FrameUniformShaderParameters.ExposureScale = FVector4(ExposureScale, ExposureScale, ExposureScale, 1.0f);
-	FrameUniformShaderParameters.DepthOfFieldFocalDistance = FinalPostProcessSettings.DepthOfFieldFocalDistance;
-	FrameUniformShaderParameters.DepthOfFieldSensorWidth = FinalPostProcessSettings.DepthOfFieldSensorWidth;
-	FrameUniformShaderParameters.DepthOfFieldFocalRegion = FinalPostProcessSettings.DepthOfFieldFocalRegion;
+	ViewUniformShaderParameters.ExposureScale = FVector4(ExposureScale, ExposureScale, ExposureScale, 1.0f);
+	ViewUniformShaderParameters.DepthOfFieldFocalDistance = FinalPostProcessSettings.DepthOfFieldFocalDistance;
+	ViewUniformShaderParameters.DepthOfFieldSensorWidth = FinalPostProcessSettings.DepthOfFieldSensorWidth;
+	ViewUniformShaderParameters.DepthOfFieldFocalRegion = FinalPostProcessSettings.DepthOfFieldFocalRegion;
 	// clamped to avoid div by 0 in shader
-	FrameUniformShaderParameters.DepthOfFieldNearTransitionRegion = FMath::Max(0.01f, FinalPostProcessSettings.DepthOfFieldNearTransitionRegion);
+	ViewUniformShaderParameters.DepthOfFieldNearTransitionRegion = FMath::Max(0.01f, FinalPostProcessSettings.DepthOfFieldNearTransitionRegion);
 	// clamped to avoid div by 0 in shader
-	FrameUniformShaderParameters.DepthOfFieldFarTransitionRegion = FMath::Max(0.01f, FinalPostProcessSettings.DepthOfFieldFarTransitionRegion);
-	FrameUniformShaderParameters.DepthOfFieldScale = FinalPostProcessSettings.DepthOfFieldScale;
-	FrameUniformShaderParameters.DepthOfFieldFocalLength = 50.0f;
-	FrameUniformShaderParameters.MotionBlurNormalizedToPixel = FinalPostProcessSettings.MotionBlurMax * ViewRect.Width() / 100.0f;
+	ViewUniformShaderParameters.DepthOfFieldFarTransitionRegion = FMath::Max(0.01f, FinalPostProcessSettings.DepthOfFieldFarTransitionRegion);
+	ViewUniformShaderParameters.DepthOfFieldScale = FinalPostProcessSettings.DepthOfFieldScale;
+	ViewUniformShaderParameters.DepthOfFieldFocalLength = 50.0f;
+	ViewUniformShaderParameters.MotionBlurNormalizedToPixel = FinalPostProcessSettings.MotionBlurMax * ViewRect.Width() / 100.0f;
 
 	{
 		// This is the CVar default
@@ -986,27 +971,27 @@ void FViewInfo::CreateUniformBuffer(
 		Value = CVarGeneralPurposeTweak.GetValueOnRenderThread();
 #endif
 
-		FrameUniformShaderParameters.GeneralPurposeTweak = Value;
+		ViewUniformShaderParameters.GeneralPurposeTweak = Value;
 	}
 
-	FrameUniformShaderParameters.DemosaicVposOffset = 0.0f;
+	ViewUniformShaderParameters.DemosaicVposOffset = 0.0f;
 	{
-		FrameUniformShaderParameters.DemosaicVposOffset = CVarDemosaicVposOffset.GetValueOnRenderThread();
+		ViewUniformShaderParameters.DemosaicVposOffset = CVarDemosaicVposOffset.GetValueOnRenderThread();
 	}
 
-	FrameUniformShaderParameters.IndirectLightingColorScale = FVector(FinalPostProcessSettings.IndirectLightingColor.R * FinalPostProcessSettings.IndirectLightingIntensity,
+	ViewUniformShaderParameters.IndirectLightingColorScale = FVector(FinalPostProcessSettings.IndirectLightingColor.R * FinalPostProcessSettings.IndirectLightingIntensity,
 		FinalPostProcessSettings.IndirectLightingColor.G * FinalPostProcessSettings.IndirectLightingIntensity,
 		FinalPostProcessSettings.IndirectLightingColor.B * FinalPostProcessSettings.IndirectLightingIntensity);
 
-	FrameUniformShaderParameters.AmbientCubemapTint = FinalPostProcessSettings.AmbientCubemapTint;
-	FrameUniformShaderParameters.AmbientCubemapIntensity = FinalPostProcessSettings.AmbientCubemapIntensity;
+	ViewUniformShaderParameters.AmbientCubemapTint = FinalPostProcessSettings.AmbientCubemapTint;
+	ViewUniformShaderParameters.AmbientCubemapIntensity = FinalPostProcessSettings.AmbientCubemapIntensity;
 
 	{
 		// Enables HDR encoding mode selection without recompile of all PC shaders during ES2 emulation.
-		FrameUniformShaderParameters.HDR32bppEncodingMode = 0;
+		ViewUniformShaderParameters.HDR32bppEncodingMode = 0;
 		if (IsMobileHDR32bpp())
 		{
-			FrameUniformShaderParameters.HDR32bppEncodingMode = IsMobileHDRMosaic() ? 1.0f : 2.0f;
+			ViewUniformShaderParameters.HDR32bppEncodingMode = IsMobileHDRMosaic() ? 1.0f : 2.0f;
 		}
 	}
 	
@@ -1015,8 +1000,8 @@ void FViewInfo::CreateUniformBuffer(
 								((float)ViewRect.Min.Y / BufferSize.Y), 
 								(((float)ViewRect.Max.X / BufferSize.X) - OneScenePixelUVSize.X) , 
 								(((float)ViewRect.Max.Y / BufferSize.Y) - OneScenePixelUVSize.Y) );
-	FrameUniformShaderParameters.SceneTextureMinMax = SceneTexMinMax;
-	FrameUniformShaderParameters.CircleDOFParams = CircleDofHalfCoc(*this);
+	ViewUniformShaderParameters.SceneTextureMinMax = SceneTexMinMax;
+	ViewUniformShaderParameters.CircleDOFParams = CircleDofHalfCoc(*this);
 
 	FScene* Scene = (FScene*)Family->Scene;
 	ERHIFeatureLevel::Type RHIFeatureLevel = Scene == nullptr ? GMaxRHIFeatureLevel : Scene->GetFeatureLevel();
@@ -1025,52 +1010,53 @@ void FViewInfo::CreateUniformBuffer(
 	{
 		FSkyLightSceneProxy* SkyLight = Scene->SkyLight;
 
-		FrameUniformShaderParameters.SkyLightColor = SkyLight->LightColor;
+		ViewUniformShaderParameters.SkyLightColor = SkyLight->LightColor;
 
 		bool bApplyPrecomputedBentNormalShadowing = 
 			SkyLight->bCastShadows 
 			&& SkyLight->bWantsStaticShadowing
 			&& SkyLight->bPrecomputedLightingIsValid;
 
-		FrameUniformShaderParameters.SkyLightParameters = bApplyPrecomputedBentNormalShadowing ? 1 : 0;
+		ViewUniformShaderParameters.SkyLightParameters = bApplyPrecomputedBentNormalShadowing ? 1 : 0;
 	}
 	else
 	{
-		FrameUniformShaderParameters.SkyLightColor = FLinearColor::Black;
-		FrameUniformShaderParameters.SkyLightParameters = 0;
+		ViewUniformShaderParameters.SkyLightColor = FLinearColor::Black;
+		ViewUniformShaderParameters.SkyLightParameters = 0;
 	}
 
 	// Make sure there's no padding since we're going to cast to FVector4*
-	checkSlow(sizeof(FrameUniformShaderParameters.SkyIrradianceEnvironmentMap) == sizeof(FVector4)* 7);
-	SetupSkyIrradianceEnvironmentMapConstants((FVector4*)&FrameUniformShaderParameters.SkyIrradianceEnvironmentMap);
+	checkSlow(sizeof(ViewUniformShaderParameters.SkyIrradianceEnvironmentMap) == sizeof(FVector4)* 7);
+	SetupSkyIrradianceEnvironmentMapConstants((FVector4*)&ViewUniformShaderParameters.SkyIrradianceEnvironmentMap);
 
-	FrameUniformShaderParameters.MobilePreviewMode =
+	ViewUniformShaderParameters.MobilePreviewMode =
 		(GIsEditor &&
 		(RHIFeatureLevel == ERHIFeatureLevel::ES2 || RHIFeatureLevel == ERHIFeatureLevel::ES3_1) &&
 		GMaxRHIFeatureLevel > ERHIFeatureLevel::ES3_1) ? 1.0f : 0.0f;
 
 	// Padding between the left and right eye may be introduced by an HMD, which instanced stereo needs to account for.
-	if ((Family != nullptr) && (StereoPass == eSSP_LEFT_EYE) && (Family->Views.Num() > 1))
+	if ((Family != nullptr) && (StereoPass != eSSP_FULL) && (Family->Views.Num() > 1))
 	{
 		check(Family->Views.Num() == 2);
 		const float FamilySizeX = static_cast<float>(Family->FamilySizeX);
-		const float EyePaddingSize = static_cast<float>(Family->Views[1]->ViewRect.Min.X - ViewRect.Max.X);
-		FrameUniformShaderParameters.HMDEyePaddingOffset = (FamilySizeX - EyePaddingSize) / FamilySizeX;
+		const float EyePaddingSize = static_cast<float>(Family->Views[1]->ViewRect.Min.X - Family->Views[0]->ViewRect.Max.X);
+		ViewUniformShaderParameters.HMDEyePaddingOffset = (FamilySizeX - EyePaddingSize) / FamilySizeX;
 	}
 	else
 	{
-		FrameUniformShaderParameters.HMDEyePaddingOffset = 1.0f;
+		ViewUniformShaderParameters.HMDEyePaddingOffset = 1.0f;
 	}
 
-	FrameUniformShaderParameters.ReflectionCubemapMaxMip = FMath::FloorLog2(UReflectionCaptureComponent::GetReflectionCaptureSize_RenderThread()) - 1;
+	ViewUniformShaderParameters.ReflectionCubemapMaxMip = FMath::FloorLog2(UReflectionCaptureComponent::GetReflectionCaptureSize_RenderThread()) - 1;
 
-	FrameUniformShaderParameters.ShowDecalsMask = Family->EngineShowFlags.Decals ? 1.0f : 0.0f;
+	ViewUniformShaderParameters.ShowDecalsMask = Family->EngineShowFlags.Decals ? 1.0f : 0.0f;
 
 	extern int32 GDistanceFieldAOSpecularOcclusionMode;
-	FrameUniformShaderParameters.DistanceFieldAOSpecularOcclusionMode = GDistanceFieldAOSpecularOcclusionMode;
+	ViewUniformShaderParameters.DistanceFieldAOSpecularOcclusionMode = GDistanceFieldAOSpecularOcclusionMode;
+
+	ViewUniformShaderParameters.StereoPassIndex = (StereoPass != eSSP_RIGHT_EYE) ? 0 : 1;
 
 	OutViewUniformBuffer = TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(ViewUniformShaderParameters, UniformBuffer_SingleFrame);
-	OutFrameUniformBuffer = TUniformBufferRef<FFrameUniformShaderParameters>::CreateUniformBufferImmediate(FrameUniformShaderParameters, UniformBuffer_SingleFrame);
 }
 
 void FViewInfo::CreateForwardLightDataUniformBuffer(FForwardLightData &OutForwardLightData) const
@@ -1231,7 +1217,6 @@ void FViewInfo::InitRHIResources(const TArray<FProjectedShadowInfo*, SceneRender
 	check(IsInRenderingThread());
 	CreateUniformBuffer(
 		ViewUniformBuffer, 
-		FrameUniformBuffer, 
 		FRHICommandListExecutor::GetImmediateCommandList(),
 		DirectionalLightShadowInfo,
 		TranslatedViewMatrix,
@@ -1287,9 +1272,7 @@ FViewInfo* FViewInfo::CreateSnapshot() const
 
 	// we want these to start null without a reference count, since we clear a ref later
 	TUniformBufferRef<FViewUniformShaderParameters> NullViewUniformBuffer;
-	TUniformBufferRef<FFrameUniformShaderParameters> NullFrameUniformBuffer;
 	FMemory::Memcpy(Result->ViewUniformBuffer, NullViewUniformBuffer); 
-	FMemory::Memcpy(Result->FrameUniformBuffer, NullFrameUniformBuffer);
 	Result->bIsSnapshot = true;
 	ViewInfoSnapshots.Add(Result);
 	return Result;
@@ -1313,7 +1296,6 @@ void FViewInfo::DestroyAllSnapshots()
 	for (FViewInfo* Snapshot : ViewInfoSnapshots)
 	{
 		Snapshot->ViewUniformBuffer.SafeRelease();
-		Snapshot->FrameUniformBuffer.SafeRelease();
 		FreeViewInfoSnapshots.Add(Snapshot);
 	}
 	ViewInfoSnapshots.Reset();

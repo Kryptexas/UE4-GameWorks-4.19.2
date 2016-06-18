@@ -1858,10 +1858,10 @@ protected:
 		};
 
 		static const EMaterialExposedViewPropertyMeta ViewPropertyMetaArray[] = {
-			{MEVP_BufferSize, MCT_Float2, TEXT("Frame.BufferSizeAndInvSize.xy"), TEXT("Frame.BufferSizeAndInvSize.zw")},
-			{MEVP_FieldOfView, MCT_Float2, TEXT("Frame.<PREV>FieldOfViewWideAngles"), nullptr},
+			{MEVP_BufferSize, MCT_Float2, TEXT("View.BufferSizeAndInvSize.xy"), TEXT("View.BufferSizeAndInvSize.zw")},
+			{MEVP_FieldOfView, MCT_Float2, TEXT("View.<PREV>FieldOfViewWideAngles"), nullptr},
 			{MEVP_TanHalfFieldOfView, MCT_Float2, TEXT("Get<PREV>TanHalfFieldOfView()"), TEXT("Get<PREV>CotanHalfFieldOfView()")},
-			{MEVP_ViewSize, MCT_Float2, TEXT("Frame.ViewSizeAndInvSize.xy"), TEXT("Frame.ViewSizeAndInvSize.zw")},
+			{MEVP_ViewSize, MCT_Float2, TEXT("View.ViewSizeAndInvSize.xy"), TEXT("View.ViewSizeAndInvSize.zw")},
 			{MEVP_WorldSpaceViewPosition, MCT_Float3, TEXT("ResolvedView.<PREV>WorldViewOrigin"), nullptr},
 			{MEVP_WorldSpaceCameraPosition, MCT_Float3, TEXT("ResolvedView.<PREV>WorldCameraOrigin"), nullptr},
 		};
@@ -1895,10 +1895,10 @@ protected:
 		{
 			if (bCompilingPreviousFrame)
 			{
-				return AddInlinedCodeChunk(MCT_Float, TEXT("Frame.PrevFrameGameTime"));
+				return AddInlinedCodeChunk(MCT_Float, TEXT("View.PrevFrameGameTime"));
 			}
 
-			return AddInlinedCodeChunk(MCT_Float, TEXT("Frame.GameTime"));
+			return AddInlinedCodeChunk(MCT_Float, TEXT("View.GameTime"));
 		}
 		else if (Period == 0.0f)
 		{
@@ -1920,10 +1920,10 @@ protected:
 		{
 			if (bCompilingPreviousFrame)
 			{
-				return AddInlinedCodeChunk(MCT_Float, TEXT("Frame.PrevFrameRealTime"));
+				return AddInlinedCodeChunk(MCT_Float, TEXT("View.PrevFrameRealTime"));
 			}
 
-			return AddInlinedCodeChunk(MCT_Float, TEXT("Frame.RealTime"));
+			return AddInlinedCodeChunk(MCT_Float, TEXT("View.RealTime"));
 		}
 		else if (Period == 0.0f)
 		{
@@ -2895,11 +2895,11 @@ protected:
 			// BufferSize
 			if(bInvert)
 			{
-				return Div(Constant(1.0f), AddCodeChunk(MCT_Float2, TEXT("Frame.RenderTargetSize")));
+				return Div(Constant(1.0f), AddCodeChunk(MCT_Float2, TEXT("View.RenderTargetSize")));
 			}
 			else
 			{
-				return AddCodeChunk(MCT_Float2, TEXT("Frame.RenderTargetSize"));
+				return AddCodeChunk(MCT_Float2, TEXT("View.RenderTargetSize"));
 			}
 		}
 	}
@@ -2925,7 +2925,7 @@ protected:
 		}
 		else
 		{			
-			return AddCodeChunk(MCT_Float2,TEXT("Frame.SceneTextureMinMax.xy"));
+			return AddCodeChunk(MCT_Float2,TEXT("View.SceneTextureMinMax.xy"));
 		}
 	}
 
@@ -2949,7 +2949,7 @@ protected:
 		}
 		else
 		{			
-			return AddCodeChunk(MCT_Float2,TEXT("Frame.SceneTextureMinMax.zw"));
+			return AddCodeChunk(MCT_Float2,TEXT("View.SceneTextureMinMax.zw"));
 		}
 	}
 
