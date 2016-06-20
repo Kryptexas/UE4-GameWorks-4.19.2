@@ -64,7 +64,10 @@ class FSteamVRPlugin : public ISteamVRPlugin
 
 public:
 	FSteamVRPlugin::FSteamVRPlugin()
-#if STEAMVR_SUPPORTED_PLATFORMS
+#if !STEAMVR_SUPPORTED_PLATFORMS
+	{
+	}
+#else //STEAMVR_SUPPORTED_PLATFORMS
 		: VRSystem(nullptr)
 	{
         LoadOpenVRModule();
