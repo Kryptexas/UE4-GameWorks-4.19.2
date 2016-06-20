@@ -8684,7 +8684,7 @@ bool UEngine::HandleOpenCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld *In
 		}
 	}
 
-	SetClientTravel( InWorld, *TestURL.Map, TRAVEL_Absolute );
+	SetClientTravel( InWorld, Cmd, TRAVEL_Absolute );
 	return true;
 }
 
