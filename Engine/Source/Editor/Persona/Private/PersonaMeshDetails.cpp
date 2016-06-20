@@ -2004,12 +2004,15 @@ FReply FPersonaMeshDetails::OnOpenClothingFileClicked(IDetailLayoutBuilder* Deta
 					// shows warning 
 					if(NumSubmeshesOverMaxSimulVerts > 0)
 					{
-						const FText Text = FText::Format(LOCTEXT("Warning_OverMaxClothSimulVerts", "{0} submeshes have over {1} cloth simulation vertices. Please reduce simulation vertices under {1}. It has possibility not to work correctly.\n\n Proceed?"), FText::AsNumber(NumSubmeshesOverMaxSimulVerts), FText::AsNumber(MaxClothVertices));
-						if (EAppReturnType::Ok != FMessageDialog::Open(EAppMsgType::OkCancel, Text))
-						{
-							ApexClothingUtils::RemoveAssetFromSkeletalMesh(SkelMesh, AssetIndex, true);
-							return FReply::Handled();
-						}
+						// Notify failure
+						const FText Text = FText::Format(LOCTEXT("Warning_OverMaxClothSimulVerts", "One or more submeshes have over {0} cloth simulation vertices. Reduce simulation mesh complexity to import clothing asset."), FText::AsNumber(MaxClothVertices));
+						FMessageDialog::Open(EAppMsgType::Ok, Text);
+
+						// Remove the clothing from the skeletal mesh
+						ApexClothingUtils::RemoveAssetFromSkeletalMesh(SkelMesh, AssetIndex, true);
+
+						// Early out
+						return FReply::Handled();
 					}
 
 					// show import option dialog if this asset has multiple LODs 
