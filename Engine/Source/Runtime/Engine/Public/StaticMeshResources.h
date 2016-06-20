@@ -13,6 +13,7 @@
 #include "PrimitiveSceneProxy.h"
 #include "SceneManagement.h"
 #include "PhysicsEngine/BodySetupEnums.h"
+#include "Materials/MaterialInterface.h"
 
 /**
  * The LOD settings to use for a group of static meshes.
