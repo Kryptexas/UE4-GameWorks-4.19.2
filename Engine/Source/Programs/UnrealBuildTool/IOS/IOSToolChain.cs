@@ -198,6 +198,11 @@ namespace UnrealBuildTool
 				Result += " -Wno-unused-local-typedef"; // PhysX has some, hard to remove
 			}
 
+			if (PlatformContext.IsBitcodeCompilingEnabled(CompileEnvironment.Config.Target.Configuration))
+			{
+				Result += " -fembed-bitcode";
+			}
+
 			Result += " -c";
 
 			// What architecture(s) to build for
@@ -374,10 +379,23 @@ namespace UnrealBuildTool
 			bool bIsDevice = (LinkEnvironment.Config.Target.Architecture != "-simulator");
 			Result += String.Format(" -isysroot {0}Platforms/{1}.platform/Developer/SDKs/{1}{2}.sdk",
 				XcodeDeveloperDir, PlatformContext.GetXcodePlatformName(bIsDevice), IOSSDKVersion);
-			
+
+			if(PlatformContext.IsBitcodeCompilingEnabled(LinkEnvironment.Config.Target.Configuration))
+			{
+				FileItem OutputFile = FileItem.GetItemByFileReference(LinkEnvironment.Config.OutputFilePath);
+				FileItem RemoteOutputFile = LocalToRemoteFileItem(OutputFile, false);
+
+				Result += " -fembed-bitcode -Xlinker -bitcode_verify -Xlinker -bitcode_hide_symbols -Xlinker -bitcode_symbol_map ";
+				Result += " -Xlinker " + Path.GetDirectoryName(RemoteOutputFile.AbsolutePath);
+			}
+
 			Result += " -dead_strip";
 			Result += " -m" + PlatformContext.GetXcodeMinVersionParam() + "=" + PlatformContext.GetRunTimeVersion();
-			Result += " -Wl,-no_pie";
+			Result += " -Wl";
+			if(!PlatformContext.IsBitcodeCompilingEnabled(LinkEnvironment.Config.Target.Configuration))
+			{
+				Result += "-no_pie";
+			}
 			Result += " -stdlib=libc++";
 			//			Result += " -v";
 
@@ -599,17 +617,16 @@ namespace UnrealBuildTool
 
 			// RPC utility parameters are in terms of the Mac side
 			LinkAction.WorkingDirectory = GetMacDevSrcRoot();
-			LinkAction.CommandPath = LinkerPath;
 
 			// build this up over the rest of the function
-			LinkAction.CommandArguments = LinkEnvironment.Config.bIsBuildingLibrary ? GetArchiveArguments_Global(LinkEnvironment) : GetLinkArguments_Global(LinkEnvironment);
+			string LinkCommandArguments = LinkEnvironment.Config.bIsBuildingLibrary ? GetArchiveArguments_Global(LinkEnvironment) : GetLinkArguments_Global(LinkEnvironment);
 
 			if (!LinkEnvironment.Config.bIsBuildingLibrary)
 			{
 				// Add the library paths to the argument list.
 				foreach (string LibraryPath in LinkEnvironment.Config.LibraryPaths)
 				{
-					LinkAction.CommandArguments += string.Format(" -L\"{0}\"", LibraryPath);
+					LinkCommandArguments += string.Format(" -L\"{0}\"", LibraryPath);
 				}
 
 				// Add the additional libraries to the argument list.
@@ -624,11 +641,11 @@ namespace UnrealBuildTool
 						LinkAction.PrerequisiteItems.Add(RemoteLibFile);
 
 						// and add to the commandline
-						LinkAction.CommandArguments += string.Format(" \"{0}\"", ConvertPath(Path.GetFullPath(AdditionalLibrary)));
+						LinkCommandArguments += string.Format(" \"{0}\"", ConvertPath(Path.GetFullPath(AdditionalLibrary)));
 					}
 					else
 					{
-						LinkAction.CommandArguments += string.Format(" -l\"{0}\"", AdditionalLibrary);
+						LinkCommandArguments += string.Format(" -l\"{0}\"", AdditionalLibrary);
 					}
 				}
 			}
@@ -703,12 +720,12 @@ namespace UnrealBuildTool
 			{
 				foreach (string Filename in InputFileNames)
 				{
-					LinkAction.CommandArguments += " " + Filename;
+					LinkCommandArguments += " " + Filename;
 				}
 				// @todo rocket lib: the -filelist command should take a response file (see else condition), except that it just says it can't
 				// find the file that's in there. Rocket.lib may overflow the commandline by putting all files on the commandline, so this 
 				// may be needed:
-				// LinkAction.CommandArguments += string.Format(" -filelist \"{0}\"", ConvertPath(ResponsePath));
+				// LinkCommandArguments += string.Format(" -filelist \"{0}\"", ConvertPath(ResponsePath));
 			}
 			else
 			{
@@ -723,14 +740,14 @@ namespace UnrealBuildTool
 				{
 					ResponseFile.Create(new FileReference(ConvertPath(ResponsePath.FullName)), InputFileNames);
 				}
-				LinkAction.CommandArguments += string.Format(" @\"{0}\"", ConvertPath(ResponsePath.FullName));
+				LinkCommandArguments += string.Format(" @\"{0}\"", ConvertPath(ResponsePath.FullName));
 			}
 
 			// Add the output file to the command-line.
-			LinkAction.CommandArguments += string.Format(" -o \"{0}\"", RemoteOutputFile.AbsolutePath);
+			LinkCommandArguments += string.Format(" -o \"{0}\"", RemoteOutputFile.AbsolutePath);
 
 			// Add the additional arguments specified by the environment.
-			LinkAction.CommandArguments += LinkEnvironment.Config.AdditionalArguments;
+			LinkCommandArguments += LinkEnvironment.Config.AdditionalArguments;
 
 			// Only execute linking on the local PC.
 			LinkAction.bCanExecuteRemotely = false;
@@ -743,6 +760,29 @@ namespace UnrealBuildTool
 				Log.TraceInformation("Generating the dSYM file - this will add some time to your build...");
 				RemoteOutputFile = GenerateDebugInfo(RemoteOutputFile);
 			}*/
+
+			LinkAction.CommandPath = "sh";
+			if(LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping && Path.GetExtension(RemoteOutputFile.AbsolutePath) != ".a")
+			{
+				// When building a shipping package, symbols are stripped from the exe as the last build step. This is a problem
+				// when re-packaging and no source files change because the linker skips symbol generation and dsymutil will 
+				// recreate a new .dsym file from a symboless exe file. It's just sad. To make things happy we need to delete 
+				// the output file to force the linker to recreate it with symbols again.
+				string	linkCommandArguments = "-c '";
+
+				linkCommandArguments += string.Format("rm -f \"{0}\";", RemoteOutputFile.AbsolutePath);
+				linkCommandArguments += string.Format("rm -f \"{0}\\*.bcsymbolmap\";", Path.GetDirectoryName(RemoteOutputFile.AbsolutePath));
+				linkCommandArguments += LinkerPath + " " + LinkCommandArguments + ";";
+
+				linkCommandArguments += "'";
+
+				LinkAction.CommandArguments = linkCommandArguments;
+			}
+			else
+			{
+				// This is not a shipping build so no need to delete the output file since symbols will not have been stripped from it.
+				LinkAction.CommandArguments = string.Format("-c '{0} {1}'", LinkerPath, LinkCommandArguments);
+			}
 
 			return RemoteOutputFile;
 		}

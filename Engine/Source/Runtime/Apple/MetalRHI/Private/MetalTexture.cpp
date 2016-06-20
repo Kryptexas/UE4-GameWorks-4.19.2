@@ -169,6 +169,7 @@ FMetalSurface::FMetalSurface(FMetalSurface& Source, NSRange MipRange)
 , SizeY(Source.SizeY)
 , SizeZ(Source.SizeZ)
 , bIsCubemap(Source.bIsCubemap)
+, bWritten(Source.bWritten)
 , Flags(Source.Flags)
 , WriteLock(0)
 , TotalTextureSize(0)
@@ -232,6 +233,7 @@ FMetalSurface::FMetalSurface(FMetalSurface& Source, NSRange const MipRange, EPix
 , SizeY(Source.SizeY)
 , SizeZ(Source.SizeZ)
 , bIsCubemap(Source.bIsCubemap)
+, bWritten(Source.bWritten)
 , Flags(Source.Flags)
 , WriteLock(0)
 , TotalTextureSize(0)
@@ -319,6 +321,8 @@ FMetalSurface::FMetalSurface(FMetalSurface& Source, NSRange const MipRange, EPix
 					
 					[BlitEncoder copyFromBuffer:Buf.Buffer sourceOffset:0 sourceBytesPerRow:Source.Texture.width sourceBytesPerImage:SizePerImage sourceSize:MTLSizeMake(Source.Texture.width, Source.Texture.height, 1) toTexture:Source.StencilTexture destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0, 0, 0)];
 					
+					bWritten = true;
+					
 					DEC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buf.Buffer.length - SizePerImage);
 					SafeReleasePooledBuffer(Buf.Buffer);
 				}
@@ -374,6 +378,7 @@ FMetalSurface::FMetalSurface(ERHIResourceType ResourceType, EPixelFormat Format,
 	, SizeY(InSizeY)
 	, SizeZ(InSizeZ)
 	, bIsCubemap(false)
+	, bWritten(false)
 	, Flags(InFlags)
     , WriteLock(0)
 	, TotalTextureSize(0)
@@ -1011,6 +1016,8 @@ void FMetalSurface::Unlock(uint32 MipIndex, uint32 ArrayIndex)
 			[LockedMemory[MipIndex] release];
 		}
 		LockedMemory[MipIndex] = nullptr;
+		
+		bWritten = true;
     }
 }
 
@@ -1119,6 +1126,8 @@ void FMetalSurface::UpdateSRV(FTextureRHIRef SourceTex)
 		
 		[BlitEncoder copyFromBuffer:Buf.Buffer sourceOffset:0 sourceBytesPerRow:Texture.width sourceBytesPerImage:SizePerImage sourceSize:MTLSizeMake(Texture.width, Texture.height, 1) toTexture:Texture destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0,0,0)];
 		
+		bWritten = true;
+		
 		DEC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buf.Buffer.length - SizePerImage);
 		SafeReleasePooledBuffer(Buf.Buffer);
 	}
@@ -1140,6 +1149,8 @@ void FMetalSurface::UpdateSRV(FTextureRHIRef SourceTex)
 			}
 			SafeReleaseMetalResource(Texture);
 			Texture = [Surf->Texture retain];
+			
+			bWritten = true;
 		}
 	}
 #endif
@@ -1455,6 +1466,8 @@ void FMetalDynamicRHI::RHIUpdateTexture2D(FTexture2DRHIParamRef TextureRHI, uint
 	{
 		[Tex replaceRegion:Region mipmapLevel:MipIndex slice:0 withBytes:SourceData bytesPerRow:SourcePitch bytesPerImage:0];
 	}
+	
+	Texture->Surface.bWritten = true;
 }
 
 void FMetalDynamicRHI::RHIUpdateTexture3D(FTexture3DRHIParamRef TextureRHI,uint32 MipIndex,const FUpdateTextureRegion3D& UpdateRegion,uint32 SourceRowPitch,uint32 SourceDepthPitch,const uint8* SourceData)
@@ -1500,6 +1513,8 @@ void FMetalDynamicRHI::RHIUpdateTexture3D(FTexture3DRHIParamRef TextureRHI,uint3
 	{
 		[Tex replaceRegion:Region mipmapLevel:MipIndex slice:0 withBytes:SourceData bytesPerRow:SourceRowPitch bytesPerImage:SourceDepthPitch];
 	}
+	
+	Texture->Surface.bWritten = true;
 	
 	if (GIsRHIInitialized)
 	{

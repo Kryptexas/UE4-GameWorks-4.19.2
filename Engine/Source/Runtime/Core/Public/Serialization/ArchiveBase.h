@@ -463,8 +463,9 @@ public:
 	 * @param	Length	Length of source data if we're saving, unused otherwise
 	 * @param	Flags	Flags to control what method to use for [de]compression and optionally control memory vs speed when compressing
 	 * @param	bTreatBufferAsFileReader true if V is actually an FArchive, which is used when saving to read data - helps to avoid single huge allocations of source data
+	 * @param	bUsePlatformBitWindow use a platform specific bitwindow setting
 	 */
-	void SerializeCompressed(void* V, int64 Length, ECompressionFlags Flags, bool bTreatBufferAsFileReader = false);
+	void SerializeCompressed(void* V, int64 Length, ECompressionFlags Flags, bool bTreatBufferAsFileReader = false, bool bUsePlatformBitWindow = false);
 
 
 	FORCEINLINE bool IsByteSwapping()

@@ -130,7 +130,7 @@ static void HandleIntelMetalCommandBufferError(id <MTLCommandBuffer> CompletedBu
 	HandleMetalCommandBufferError(CompletedBuffer);
 }
 
-static void HandleMetalCommandBufferFailure(id <MTLCommandBuffer> CompletedBuffer)
+void FMetalCommandList::HandleMetalCommandBufferFailure(id <MTLCommandBuffer> CompletedBuffer)
 {
 	if (CompletedBuffer.error.domain == MTLCommandBufferErrorDomain || [CompletedBuffer.error.domain isEqualToString:MTLCommandBufferErrorDomain])
 	{

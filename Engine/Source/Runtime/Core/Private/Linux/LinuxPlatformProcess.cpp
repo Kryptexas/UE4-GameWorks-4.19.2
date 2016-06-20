@@ -38,7 +38,7 @@ void* FLinuxPlatformProcess::GetDllHandle( const TCHAR* Filename )
 	void *Handle = dlopen( TCHAR_TO_UTF8(*AbsolutePath), DlOpenMode );
 	if (!Handle)
 	{
-		UE_LOG(LogLinux, Warning, TEXT("dlopen failed: %s"), ANSI_TO_TCHAR(dlerror()) );
+		UE_LOG(LogLinux, Warning, TEXT("dlopen failed: %s"), UTF8_TO_TCHAR(dlerror()) );
 	}
 	return Handle;
 }
@@ -101,7 +101,7 @@ const TCHAR* FLinuxPlatformProcess::ComputerName()
 			SysName = "Linux Computer";
 		}
 
-		FCString::Strcpy(CachedResult, ARRAY_COUNT(CachedResult) - 1, ANSI_TO_TCHAR(SysName));
+		FCString::Strcpy(CachedResult, ARRAY_COUNT(CachedResult) - 1, UTF8_TO_TCHAR(SysName));
 		CachedResult[ARRAY_COUNT(CachedResult) - 1] = 0;
 		bHaveResult = true;
 	}
@@ -147,7 +147,7 @@ const TCHAR* FLinuxPlatformProcess::BaseDir()
 		}
 		SelfPath[ARRAY_COUNT(SelfPath) - 1] = 0;
 
-		FCString::Strcpy(CachedResult, ARRAY_COUNT(CachedResult) - 1, ANSI_TO_TCHAR(dirname(SelfPath)));
+		FCString::Strcpy(CachedResult, ARRAY_COUNT(CachedResult) - 1, UTF8_TO_TCHAR(dirname(SelfPath)));
 		CachedResult[ARRAY_COUNT(CachedResult) - 1] = 0;
 		FCString::Strcat(CachedResult, ARRAY_COUNT(CachedResult) - 1, TEXT("/"));
 		bHaveResult = true;
@@ -214,7 +214,7 @@ const TCHAR* FLinuxPlatformProcess::UserDir()
 				if (DocLen > 0)
 				{
 					DocPath[DocLen] = '\0';
-					FCString::Strncpy(Result, ANSI_TO_TCHAR(DocPath), ARRAY_COUNT(Result));
+					FCString::Strncpy(Result, UTF8_TO_TCHAR(DocPath), ARRAY_COUNT(Result));
 					FCString::Strncat(Result, TEXT("/"), ARRAY_COUNT(Result));
 				}
 			}
@@ -242,7 +242,7 @@ const TCHAR* FLinuxPlatformProcess::UserHomeDir()
 		const char * VarValue = secure_getenv("HOME");
 		if (VarValue)
 		{
-			FCString::Strcpy(CachedResult, ARRAY_COUNT(CachedResult) - 1, ANSI_TO_TCHAR(VarValue));
+			FCString::Strcpy(CachedResult, ARRAY_COUNT(CachedResult) - 1, UTF8_TO_TCHAR(VarValue));
 			bHaveHome = true;
 		}
 		else
@@ -250,7 +250,7 @@ const TCHAR* FLinuxPlatformProcess::UserHomeDir()
 			struct passwd * UserInfo = getpwuid(geteuid());
 			if (NULL != UserInfo && NULL != UserInfo->pw_dir)
 			{
-				FCString::Strcpy(CachedResult, ARRAY_COUNT(CachedResult) - 1, ANSI_TO_TCHAR(UserInfo->pw_dir));
+				FCString::Strcpy(CachedResult, ARRAY_COUNT(CachedResult) - 1, UTF8_TO_TCHAR(UserInfo->pw_dir));
 				bHaveHome = true;
 			}
 			else
@@ -305,7 +305,7 @@ bool FLinuxPlatformProcess::SetProcessLimits(EProcessResource::Type Resource, ui
 
 	if (setrlimit(NativeResource, &NativeLimit) != 0)
 	{
-		UE_LOG(LogHAL, Warning, TEXT("setrlimit() failed with error %d (%s)\n"), errno, ANSI_TO_TCHAR(strerror(errno)));
+		UE_LOG(LogHAL, Warning, TEXT("setrlimit() failed with error %d (%s)\n"), errno, UTF8_TO_TCHAR(strerror(errno)));
 		return false;
 	}
 
@@ -328,7 +328,7 @@ const TCHAR* FLinuxPlatformProcess::ExecutableName(bool bRemoveExtension)
 		}
 		SelfPath[ARRAY_COUNT(SelfPath) - 1] = 0;
 
-		FCString::Strcpy(CachedResult, ARRAY_COUNT(CachedResult) - 1, ANSI_TO_TCHAR(basename(SelfPath)));
+		FCString::Strcpy(CachedResult, ARRAY_COUNT(CachedResult) - 1, UTF8_TO_TCHAR(basename(SelfPath)));
 		CachedResult[ARRAY_COUNT(CachedResult) - 1] = 0;
 		bHaveResult = true;
 	}
@@ -361,7 +361,7 @@ FString FLinuxPlatformProcess::GetApplicationName( uint32 ProcessId )
 	int32 Ret = readlink(ReadLinkCmd, ProcessPath, ARRAY_COUNT(ProcessPath) - 1);
 	if (Ret != -1)
 	{
-		Output = ANSI_TO_TCHAR(ProcessPath);
+		Output = UTF8_TO_TCHAR(ProcessPath);
 	}
 	return Output;
 }
@@ -570,7 +570,7 @@ struct FChildWaiterThread : public FRunnable
 				{
 					int ErrNo = errno;
 					UE_LOG(LogHAL, Fatal, TEXT("FChildWaiterThread::Run(): waitid for pid %d failed (errno=%d, %s)"), 
-						   static_cast< int32 >(ChildPid), ErrNo, ANSI_TO_TCHAR(strerror(ErrNo)));
+						   static_cast< int32 >(ChildPid), ErrNo, UTF8_TO_TCHAR(strerror(ErrNo)));
 					break;	// exit the loop if for some reason Fatal log (above) returns
 				}
 			}
@@ -621,7 +621,7 @@ namespace LinuxPlatformProcess
 			UE_LOG(LogHAL, Warning, TEXT("LinuxPlatformProcess::AttemptToMakeExecIfNotAlready: could not stat '%s', errno=%d (%s)"),
 				*AbsoluteFilename,
 				ErrNo,
-				ANSI_TO_TCHAR(strerror(ErrNo))
+				UTF8_TO_TCHAR(strerror(ErrNo))
 				);
 		}
 		else
@@ -637,7 +637,7 @@ namespace LinuxPlatformProcess
 					UE_LOG(LogHAL, Warning, TEXT("LinuxPlatformProcess::AttemptToMakeExecIfNotAlready: could not chmod +x '%s', errno=%d (%s)"),
 						*AbsoluteFilename,
 						ErrNo,
-						ANSI_TO_TCHAR(strerror(ErrNo))
+						UTF8_TO_TCHAR(strerror(ErrNo))
 						);
 
 					// at this point, assume that execution will fail
@@ -746,6 +746,11 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 					{
 						NewArgvArray.Add(MultiPartArg.TrimQuotes(NULL));
 					}
+					else if (MultiPartArg.Contains(TEXT("=\"")))
+					{
+						FString SingleArg = MultiPartArg.Replace(TEXT("=\""), TEXT("="));
+						NewArgvArray.Add(SingleArg.TrimQuotes(nullptr));
+					}
 					else
 					{
 						NewArgvArray.Add(MultiPartArg);
@@ -849,7 +854,7 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 
 	if (PosixSpawnErrNo != 0)
 	{
-		UE_LOG(LogHAL, Fatal, TEXT("FLinuxPlatformProcess::CreateProc: posix_spawn() failed (%d, %s)"), PosixSpawnErrNo, ANSI_TO_TCHAR(strerror(PosixSpawnErrNo)));
+		UE_LOG(LogHAL, Fatal, TEXT("FLinuxPlatformProcess::CreateProc: posix_spawn() failed (%d, %s)"), PosixSpawnErrNo, UTF8_TO_TCHAR(strerror(PosixSpawnErrNo)));
 		return FProcHandle();	// produce knowingly invalid handle if for some reason Fatal log (above) returns
 	}
 
@@ -866,7 +871,7 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 			int ErrNo = errno;
 			UE_LOG(LogHAL, Warning, TEXT("FLinuxPlatformProcess::CreateProc: could not get child's priority, errno=%d (%s)"),
 				ErrNo,
-				ANSI_TO_TCHAR(strerror(ErrNo))
+				UTF8_TO_TCHAR(strerror(ErrNo))
 			);
 			
 			// proceed anyway...
@@ -880,7 +885,7 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 			int ErrNo = errno;
 			UE_LOG(LogHAL, Warning, TEXT("FLinuxPlatformProcess::CreateProc: could not get priority limits (RLIMIT_NICE), errno=%d (%s)"),
 				ErrNo,
-				ANSI_TO_TCHAR(strerror(ErrNo))
+				UTF8_TO_TCHAR(strerror(ErrNo))
 			);
 
 			// proceed anyway...
@@ -911,7 +916,7 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 			UE_LOG(LogHAL, Warning, TEXT("FLinuxPlatformProcess::CreateProc: could not change child's priority (nice value) from %d to %d, errno=%d (%s)"),
 				TheirCurrentPrio, NewPrio,
 				ErrNo,
-				ANSI_TO_TCHAR(strerror(ErrNo))
+				UTF8_TO_TCHAR(strerror(ErrNo))
 			);
 		}
 		else
@@ -1006,7 +1011,7 @@ bool FProcState::IsRunning()
 					{
 						int ErrNo = errno;
 						UE_LOG(LogHAL, Fatal, TEXT("FLinuxPlatformProcess::WaitForProc: waitid for pid %d failed (errno=%d, %s)"), 
-							static_cast< int32 >(GetProcessId()), ErrNo, ANSI_TO_TCHAR(strerror(ErrNo)));
+							static_cast< int32 >(GetProcessId()), ErrNo, UTF8_TO_TCHAR(strerror(ErrNo)));
 						break;	// exit the loop if for some reason Fatal log (above) returns
 					}
 				}
@@ -1067,7 +1072,7 @@ void FProcState::Wait()
 			{
 				int ErrNo = errno;
 				UE_LOG(LogHAL, Fatal, TEXT("FLinuxPlatformProcess::WaitForProc: waitid for pid %d failed (errno=%d, %s)"), 
-					static_cast< int32 >(GetProcessId()), ErrNo, ANSI_TO_TCHAR(strerror(ErrNo)));
+					static_cast< int32 >(GetProcessId()), ErrNo, UTF8_TO_TCHAR(strerror(ErrNo)));
 				break;	// exit the loop if for some reason Fatal log (above) returns
 			}
 		}

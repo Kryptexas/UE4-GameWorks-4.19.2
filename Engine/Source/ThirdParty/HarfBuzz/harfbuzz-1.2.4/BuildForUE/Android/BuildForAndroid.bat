@@ -40,7 +40,7 @@ if exist %ANDROID_BUILD_PATH% (rmdir %ANDROID_BUILD_PATH% /s/q)
 mkdir %ANDROID_BUILD_PATH%
 cd %ANDROID_BUILD_PATH%
 echo Building HarfBuzz makefile for Android x86 (Debug)...
-cmake -DCMAKE_TOOLCHAIN_FILE=%PATH_TO_CMAKE_FILE%\Android\android.toolchain.cmake -G"MinGW Makefiles" -DANDROID_NDK=%NDK_ROOT% -DCMAKE_MAKE_PROGRAM="%NDK_ROOT%/prebuilt/windows-x86_64/bin/make.exe" -DANDROID_ABI="x86" -DCMAKE_BUILD_TYPE=Debug -DUSE_INTEL_ATOMIC_PRIMITIVES=TRUE %PATH_TO_CMAKE_FILE%
+cmake -DCMAKE_TOOLCHAIN_FILE=%PATH_TO_CMAKE_FILE%\Android\android.toolchain.cmake -G"MinGW Makefiles" -DANDROID_NDK=%NDK_ROOT% -DCMAKE_MAKE_PROGRAM="%NDK_ROOT%/prebuilt/windows-x86_64/bin/make.exe" -DANDROID_ABI="x86" -DANDROID_NATIVE_API_LEVEL="android-19" -DCMAKE_BUILD_TYPE=Debug -DUSE_INTEL_ATOMIC_PRIMITIVES=TRUE %PATH_TO_CMAKE_FILE%
 cmake --build .
 mkdir "%ANDROID_BUILD_PATH%\..\x86\Debug"
 move /y "%ANDROID_BUILD_PATH%\..\libharfbuzz.a" "%ANDROID_BUILD_PATH%\..\x86\Debug\libharfbuzz.a"
@@ -93,7 +93,7 @@ if exist %ANDROID_BUILD_PATH% (rmdir %ANDROID_BUILD_PATH% /s/q)
 mkdir %ANDROID_BUILD_PATH%
 cd %ANDROID_BUILD_PATH%
 echo Building HarfBuzz makefile for Android x86 (Release)...
-cmake -DCMAKE_TOOLCHAIN_FILE=%PATH_TO_CMAKE_FILE%\Android\android.toolchain.cmake -G"MinGW Makefiles" -DANDROID_NDK=%NDK_ROOT% -DCMAKE_MAKE_PROGRAM="%NDK_ROOT%/prebuilt/windows-x86_64/bin/make.exe" -DANDROID_ABI="x86" -DCMAKE_BUILD_TYPE=Release -DUSE_INTEL_ATOMIC_PRIMITIVES=TRUE %PATH_TO_CMAKE_FILE%
+cmake -DCMAKE_TOOLCHAIN_FILE=%PATH_TO_CMAKE_FILE%\Android\android.toolchain.cmake -G"MinGW Makefiles" -DANDROID_NDK=%NDK_ROOT% -DCMAKE_MAKE_PROGRAM="%NDK_ROOT%/prebuilt/windows-x86_64/bin/make.exe" -DANDROID_ABI="x86" -DANDROID_NATIVE_API_LEVEL="android-19" -DCMAKE_BUILD_TYPE=Release -DUSE_INTEL_ATOMIC_PRIMITIVES=TRUE %PATH_TO_CMAKE_FILE%
 cmake --build .
 mkdir "%ANDROID_BUILD_PATH%\..\x86\Release"
 move /y "%ANDROID_BUILD_PATH%\..\libharfbuzz.a" "%ANDROID_BUILD_PATH%\..\x86\Release\libharfbuzz.a"

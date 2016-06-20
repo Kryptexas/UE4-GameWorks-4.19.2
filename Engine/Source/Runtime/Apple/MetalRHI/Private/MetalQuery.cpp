@@ -46,12 +46,11 @@ bool FMetalQueryBuffer::Wait(uint64 Millis)
 				[CommandBuffer waitUntilCompleted];
 				check(CommandBuffer.status >= MTLCommandBufferStatusCommitted && CommandBuffer.status <= MTLCommandBufferStatusError);
 			}
-#if !UE_BUILD_SHIPPING
 			if(CommandBuffer.status == MTLCommandBufferStatusError)
 			{
-				UE_LOG(LogMetal, Error, TEXT("Command buffer %p failed!"), CommandBuffer);
+				FMetalCommandList::HandleMetalCommandBufferFailure(CommandBuffer);
 			}
-#endif
+
 			bCompleted = CommandBuffer.status >= MTLCommandBufferStatusCompleted;
 			[CommandBuffer release];
 			CommandBuffer = nil;

@@ -56,7 +56,7 @@ FLinuxApplication* FLinuxApplication::CreateLinuxApplication()
 			auto Controller = SDL_GameControllerOpen(i);
 			if (Controller == nullptr)
 			{
-				UE_LOG(LogLoad, Warning, TEXT("Could not open gamecontroller %i: %s\n"), i, ANSI_TO_TCHAR(SDL_GetError()) );
+				UE_LOG(LogLoad, Warning, TEXT("Could not open gamecontroller %i: %s\n"), i, UTF8_TO_TCHAR(SDL_GetError()) );
 			}
 			else
 			{
@@ -336,11 +336,11 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 			if(bUsingHighPrecisionMouseInput)
 			{
 				// hack to work around jumps
-				const int kTooFarAway = 100;
+				const int kTooFarAway = 250;
 				const int kTooFarAwaySquare = kTooFarAway * kTooFarAway;
 				if (motionEvent.xrel * motionEvent.xrel + motionEvent.yrel * motionEvent.yrel > kTooFarAwaySquare)
 				{
-					UE_LOG(LogLinuxWindowEvent, Warning, TEXT("Suppressing too large relative mouse movement due to an apparent bug (%d, %d is larger than treshold %d)"),
+					UE_LOG(LogLinuxWindowEvent, Warning, TEXT("Suppressing too large relative mouse movement due to an apparent bug (%d, %d is larger than threshold %d)"),
 						motionEvent.xrel, motionEvent.yrel,
 						kTooFarAway
 						);

@@ -51,6 +51,8 @@ FString DescribeSignal(int32 Signal, siginfo_t* Info)
 #undef HANDLE_CASE
 }
 
+__thread siginfo_t FLinuxCrashContext::FakeSiginfoForEnsures;
+
 FLinuxCrashContext::~FLinuxCrashContext()
 {
 	if (BacktraceSymbols)
@@ -68,6 +70,31 @@ void FLinuxCrashContext::InitFromSignal(int32 InSignal, siginfo_t* InInfo, void*
 	Context = reinterpret_cast< ucontext_t* >( InContext );
 
 	FCString::Strcat(SignalDescription, ARRAY_COUNT( SignalDescription ) - 1, *DescribeSignal(Signal, Info));
+}
+
+void FLinuxCrashContext::InitFromEnsureHandler(const TCHAR* EnsureMessage, const void* CrashAddress)
+{
+	Signal = SIGTRAP;
+
+	FakeSiginfoForEnsures.si_signo = SIGTRAP;
+	FakeSiginfoForEnsures.si_code = TRAP_TRACE;
+	FakeSiginfoForEnsures.si_addr = const_cast<void *>(CrashAddress);
+	Info = &FakeSiginfoForEnsures;
+
+	Context = nullptr;
+
+	// set signal description to a more human-readable one for ensures
+	FCString::Strcpy(SignalDescription, ARRAY_COUNT(SignalDescription) - 1, EnsureMessage);
+
+	// only need the first string
+	for (int Idx = 0; Idx < ARRAY_COUNT(SignalDescription); ++Idx)
+	{
+		if (SignalDescription[Idx] == TEXT('\n'))
+		{
+			SignalDescription[Idx] = 0;
+			break;
+		}
+	}
 }
 
 /**
@@ -165,14 +192,14 @@ void FLinuxCrashContext::GenerateReport(const FString & DiagnosticsPath) const
 		utsname UnixName;
 		if (uname(&UnixName) == 0)
 		{
-			Line = FString::Printf(TEXT( "OS version %s %s (network name: %s)" ), ANSI_TO_TCHAR(UnixName.sysname), ANSI_TO_TCHAR(UnixName.release), ANSI_TO_TCHAR(UnixName.nodename));
+			Line = FString::Printf(TEXT( "OS version %s %s (network name: %s)" ), UTF8_TO_TCHAR(UnixName.sysname), UTF8_TO_TCHAR(UnixName.release), UTF8_TO_TCHAR(UnixName.nodename));
 			WriteLine(ReportFile, TCHAR_TO_UTF8(*Line));	
-			Line = FString::Printf( TEXT( "Running %d %s processors (%d logical cores)" ), FPlatformMisc::NumberOfCores(), ANSI_TO_TCHAR(UnixName.machine), FPlatformMisc::NumberOfCoresIncludingHyperthreads());
+			Line = FString::Printf( TEXT( "Running %d %s processors (%d logical cores)" ), FPlatformMisc::NumberOfCores(), UTF8_TO_TCHAR(UnixName.machine), FPlatformMisc::NumberOfCoresIncludingHyperthreads());
 			WriteLine(ReportFile, TCHAR_TO_UTF8(*Line));
 		}
 		else
 		{
-			Line = FString::Printf(TEXT("OS version could not be determined (%d, %s)"), errno, ANSI_TO_TCHAR(strerror(errno)));
+			Line = FString::Printf(TEXT("OS version could not be determined (%d, %s)"), errno, UTF8_TO_TCHAR(strerror(errno)));
 			WriteLine(ReportFile, TCHAR_TO_UTF8(*Line));	
 			Line = FString::Printf( TEXT( "Running %d unknown processors" ), FPlatformMisc::NumberOfCores());
 			WriteLine(ReportFile, TCHAR_TO_UTF8(*Line));
@@ -297,10 +324,10 @@ void FLinuxCrashContext::CaptureStackTrace()
 		const SIZE_T StackTraceSize = 65535;
 		ANSICHAR* StackTrace = (ANSICHAR*) FMemory::Malloc( StackTraceSize );
 		StackTrace[0] = 0;
-		// Walk the stack and dump it to the allocated memory (ignore first 2 callstack lines as those are in stack walking code)
-		FPlatformStackWalk::StackWalkAndDump( StackTrace, StackTraceSize, 2, this);
+		// Walk the stack and dump it to the allocated memory (do not ignore any stack frames to be consistent with check()/ensure() handling)
+		FPlatformStackWalk::StackWalkAndDump( StackTrace, StackTraceSize, 0, this);
 
-		FCString::Strncat( GErrorHist, ANSI_TO_TCHAR(StackTrace), ARRAY_COUNT(GErrorHist) - 1 );
+		FCString::Strncat( GErrorHist, UTF8_TO_TCHAR(StackTrace), ARRAY_COUNT(GErrorHist) - 1 );
 		CreateExceptionInfoString(Signal, Info);
 
 		FMemory::Free( StackTrace );

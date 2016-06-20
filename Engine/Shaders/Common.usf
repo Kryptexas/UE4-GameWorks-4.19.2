@@ -216,7 +216,7 @@
 
 // Whether the platform supports a global clip plane through SV_ClipDistance
 // Ideally this would just be enabled for all SM4 and above feature level platforms, but not tested everywhere yet
-#define PLATFORM_SUPPORTS_GLOBAL_CLIP_PLANE (PS4_PROFILE || SM5_PROFILE || SM4_PROFILE)
+#define PLATFORM_SUPPORTS_GLOBAL_CLIP_PLANE (PS4_PROFILE || SM5_PROFILE || SM4_PROFILE || METAL_PROFILE || METAL_MRT_PROFILE || METAL_SM4_PROFILE || METAL_SM5_PROFILE)
 
 // Using SV_ClipDistance has overhead (15% slower base pass in triangle bound test scene on PS4) so projects have to opt-in
 #define USE_GLOBAL_CLIP_PLANE (PLATFORM_SUPPORTS_GLOBAL_CLIP_PLANE && PROJECT_ALLOW_GLOBAL_CLIP_PLANE)

@@ -173,6 +173,10 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Rendering)
 	bool bSupportsOpenGLES2;
 
+	// Enable generation of dSYM file
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Generate dSYM file for code debugging and profiling"))
+	bool bGeneratedSYMFile;
+
 	// Enable ArmV7 support? (this will be used if all type are unchecked)
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support armv7 in Development"))
 	bool bDevForArmV7;
@@ -196,6 +200,10 @@ public:
 	// Enable ArmV7s support?
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support armv7s in Shipping"))
 	bool bShipForArmV7S;
+
+	// Enable bitcode compiling?
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support bitcode compiling"))
+	bool bShipForBitcode;
 	
 	// Any additional linker flags to pass to the linker in non-shipping builds
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DispalyName = "Additional Non-Shipping Linker Flags", ConfigHierarchyEditable))

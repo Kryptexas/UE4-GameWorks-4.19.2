@@ -185,7 +185,13 @@ var UE_JavaScriptLibary = {
   // ================================================================================
   // ================================================================================
 
+  // persistant OBJECT accessible within JS code
   $UE_JSlib: {
+
+    // --------------------------------------------------------------------------------
+    // onBeforeUnload
+    // --------------------------------------------------------------------------------
+  	
     onBeforeUnload_callbacks:[], // ARRAY of {callback:c++function, ctx:[c++objects]}
     // ........................................
     onBeforeUnload_debug_helper: function(dummyfile) {
@@ -235,8 +241,21 @@ var UE_JavaScriptLibary = {
     onBeforeUnload_setup: function() {
       window.addEventListener("beforeunload", UE_JSlib.onBeforeUnload);
     },
+
+    // --------------------------------------------------------------------------------
+    // GSystemResolution - helpers to obtain game's resolution for JS
+    // --------------------------------------------------------------------------------
+
+	// defaults -- see HTMLOpenGL.cpp::FPlatformOpenGLDevice()
+	UE_GSystemResolution_ResX: function() { return 800; },
+	UE_GSystemResolution_ResY: function() { return 600; },
   },
 
+  // ================================================================================
+  // ================================================================================
+
+  // --------------------------------------------------------------------------------
+  // onBeforeUnload
   // --------------------------------------------------------------------------------
 
   UE_Reset_OnBeforeUnload: function () {
@@ -280,6 +299,19 @@ var UE_JavaScriptLibary = {
     }
   },
 
+  // --------------------------------------------------------------------------------
+  // GSystemResolution - helpers to obtain game's resolution for JS
+  // --------------------------------------------------------------------------------
+
+  UE_GSystemResolution: function( resX, resY ) {
+    UE_JSlib.UE_GSystemResolution_ResX = function() {
+      return Runtime.dynCall('i', resX, []);
+    };
+    UE_JSlib.UE_GSystemResolution_ResY = function() {
+      return Runtime.dynCall('i', resY, []);
+    };
+  },
+ 
 };
 
 autoAddDeps(UE_JavaScriptLibary,'$UE_JSlib');

@@ -200,6 +200,11 @@ bool FMetalCommandEncoder::IsBlitCommandEncoderActive(void) const
 	return BlitCommandEncoder != nil;
 }
 
+bool FMetalCommandEncoder::IsImmediate(void) const
+{
+	return CommandList.IsImmediate();
+}
+
 bool FMetalCommandEncoder::IsRenderPassDescriptorValid(void) const
 {
 	return (RenderPassDesc != nil);

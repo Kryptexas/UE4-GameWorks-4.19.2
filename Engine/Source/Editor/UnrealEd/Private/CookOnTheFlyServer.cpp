@@ -3599,8 +3599,10 @@ void UCookOnTheFlyServer::AddFileToCook( TArray<FName>& InOutFilesToCook, const 
 
 void UCookOnTheFlyServer::CollectFilesToCook(TArray<FName>& FilesInPath, const TArray<FString>& CookMaps, const TArray<FString>& InCookDirectories, const TArray<FString> &CookCultures, const TArray<FString> &IniMapSections, ECookByTheBookOptions FilesToCookFlags)
 {
-	bool bCookAll = !!(FilesToCookFlags & ECookByTheBookOptions::CookAll);
-	bool bMapsOnly = !!(FilesToCookFlags & ECookByTheBookOptions::MapsOnly);
+	UProjectPackagingSettings* PackagingSettings = Cast<UProjectPackagingSettings>(UProjectPackagingSettings::StaticClass()->GetDefaultObject());
+
+	bool bCookAll = (!!(FilesToCookFlags & ECookByTheBookOptions::CookAll)) || PackagingSettings->bCookAll;
+	bool bMapsOnly = (!!(FilesToCookFlags & ECookByTheBookOptions::MapsOnly)) || PackagingSettings->bCookMapsOnly;
 	bool bNoDev = !!(FilesToCookFlags & ECookByTheBookOptions::NoDevContent);
 
 	if (IsChildCooker())
@@ -3621,16 +3623,6 @@ void UCookOnTheFlyServer::CollectFilesToCook(TArray<FName>& FilesInPath, const T
 		return;
 	}
 
-	if (!(FilesToCookFlags & ECookByTheBookOptions::NoGameAlwaysCookPackages))
-	{
-		// allow the game to fill out the asset registry, as well as get a list of objects to always cook
-		TArray<FString> FilesInPathStrings;
-		FGameDelegates::Get().GetCookModificationDelegate().ExecuteIfBound(FilesInPathStrings);
-		for (const auto& FileString : FilesInPathStrings)
-		{
-			FilesInPath.Add(FName(*FileString));
-		}
-	}
 	
 	TArray<FString> CookDirectories = InCookDirectories;
 	
@@ -3655,15 +3647,30 @@ void UCookOnTheFlyServer::CollectFilesToCook(TArray<FName>& FilesInPath, const T
 		// Also append any cookdirs from the project ini files; these dirs are relative to the game content directory
 		{
 			const FString AbsoluteGameContentDir = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir());
-			const UProjectPackagingSettings* const PackagingSettings = GetDefault<UProjectPackagingSettings>();
 			for (const auto& DirToCook : PackagingSettings->DirectoriesToAlwaysCook)
 			{
 				CookDirectories.Add(AbsoluteGameContentDir / DirToCook.Path);
 			}
 		}
+
+
+		// If we didn't find any maps look in the project settings for maps
+		for (const auto& MapToCook : PackagingSettings->MapsToCook)
+		{
+			FilesInPath.Add(FName(*MapToCook.FilePath));
+		}
 	}
 
-	
+	if (!(FilesToCookFlags & ECookByTheBookOptions::NoGameAlwaysCookPackages))
+	{
+		// allow the game to fill out the asset registry, as well as get a list of objects to always cook
+		TArray<FString> FilesInPathStrings;
+		FGameDelegates::Get().GetCookModificationDelegate().ExecuteIfBound(FilesInPathStrings);
+		for (const auto& FileString : FilesInPathStrings)
+		{
+			FilesInPath.Add(FName(*FileString));
+		}
+	}
 
 	for ( const auto &CurrEntry : CookMaps )
 	{

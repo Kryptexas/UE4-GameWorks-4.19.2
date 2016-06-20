@@ -111,6 +111,17 @@ public class IOSPlatform : Platform
 		return ProjectIPA;
 	}
 
+	protected string MakeExeFileName( UnrealTargetConfiguration TargetConfiguration, ProjectParams Params )
+	{
+		string ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath.FullName), "Binaries", PlatformName, Params.ShortProjectName);
+		if (TargetConfiguration != UnrealTargetConfiguration.Development)
+		{
+			ProjectIPA += "-" + PlatformType.ToString() + "-" + TargetConfiguration.ToString();
+		}
+		ProjectIPA += ".ipa";
+		return ProjectIPA;
+	}
+
 	// Determine if we should code sign
 	protected bool GetCodeSignDesirability(ProjectParams Params)
 	{
@@ -727,8 +738,8 @@ public class IOSPlatform : Platform
 		}
 		DeleteDirectoryContents(ArchiveName);
 
-		// create the archive folders
-		CreateDirectory(new string[] { Path.Combine(ArchiveName, "dSYMS"), Path.Combine(ArchiveName, "Products", "Applications") });
+		// create the Products archive folder
+		CreateDirectory(Path.Combine(ArchiveName, "Products", "Applications"));
 
 		// copy in the application
 		string AppName = Path.GetFileNameWithoutExtension(ProjectIPA) + ".app";
@@ -742,9 +753,30 @@ public class IOSPlatform : Platform
 		}
 
 		// copy in the dSYM if found
-		if (File.Exists(Path.Combine(SC.ProjectBinariesFolder, (SC.IsCodeBasedProject ? Path.GetFileNameWithoutExtension(ProjectIPA) : "UE4Game") + ".dSYM")))
+		var ProjectExe = MakeExeFileName( TargetConfiguration, Params );
+		string dSYMName = (SC.IsCodeBasedProject ? Path.GetFileNameWithoutExtension(ProjectExe) : "UE4Game") + ".dSYM";
+		string dSYMSrcPath = Path.Combine(SC.ProjectBinariesFolder, dSYMName);
+
+		if (File.Exists(dSYMSrcPath))
 		{
-			CopyFile_NoExceptions(Path.Combine(SC.ProjectBinariesFolder, (SC.IsCodeBasedProject ? Path.GetFileNameWithoutExtension(ProjectIPA) : "UE4Game") + ".dSYM"), Path.Combine(ArchiveName, "dSYMS", (SC.IsCodeBasedProject ? Path.GetFileNameWithoutExtension(ProjectIPA) : "UE4Game") + ".dSYM"));
+			// Create the dsyms archive folder
+			CreateDirectory(Path.Combine(ArchiveName, "dSYMs"));
+			string dSYMDstPath = Path.Combine(ArchiveName, "dSYMs", dSYMName);
+			CopyFile_NoExceptions(dSYMSrcPath, dSYMDstPath);
+		}
+
+		// copy in the bitcode symbol maps if found
+		string[] bcmapfiles = Directory.GetFiles(SC.ProjectBinariesFolder, "*.bcsymbolmap");
+		if(bcmapfiles.Length > 0)
+		{
+			// Create the dsyms archive folder
+			CreateDirectory(Path.Combine(ArchiveName, "BCSymbolMaps"));
+			foreach (string symbolSrcFilePath in bcmapfiles)
+			{
+				string symbolLeafFileName = Path.GetFileName(symbolSrcFilePath);
+				string bcDstFilePath = Path.Combine(ArchiveName, "BCSymbolMaps", symbolLeafFileName);
+				CopyFile_NoExceptions(symbolSrcFilePath, bcDstFilePath);
+			}
 		}
 
 		// get the settings from the app plist file
@@ -773,9 +805,6 @@ public class IOSPlatform : Platform
 		const string Iso8601DateTimeFormat = "yyyy-MM-ddTHH:mm:ssZ";
 		string TimeStamp = DateTime.UtcNow.ToString(Iso8601DateTimeFormat);
 
-		// TODO: signing identity used
-		string SigningIdentity = "iPhone Developer: Josh2 Adams (NR2G5M9GN3)";
-
 		// create the archive plist
 		StringBuilder Text = new StringBuilder();
 		Text.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
@@ -793,7 +822,7 @@ public class IOSPlatform : Platform
 		Text.AppendLine("\t\t<key>CFBundleVersion</key>");
 		Text.AppendLine(string.Format("\t\t<string>{0}</string>", BundleVersion));
 		Text.AppendLine("\t\t<key>SigningIdentity</key>");
-		Text.AppendLine(string.Format("\t\t<string>iPhone Developer: Josh2 Adams (NR2G5M9GN3)</string>", SigningIdentity));
+		Text.AppendLine(string.Format("\t\t<string>{0}</string>", Params.Certificate));
 		Text.AppendLine("\t</dict>");
 		Text.AppendLine("\t<key>ArchiveVersion</key>");
 		Text.AppendLine("\t<integer>2</integer>");

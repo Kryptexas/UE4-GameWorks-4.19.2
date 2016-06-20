@@ -192,15 +192,17 @@ namespace MetalUtils
 		{"SV_InstanceID", glsl_type::uint_type, "IN_InstanceID", ir_var_in, "[[ instance_id ]]"},
 		{"SV_Position", glsl_type::vec4_type, "Position", ir_var_out, "[[ position ]]"},
 		{"SV_RenderTargetArrayIndex", glsl_type::uint_type, "OUT_Layer", ir_var_out, "[[ render_target_array_index ]]"},
-		{"SV_ClipDistance0", glsl_type::float_type, "ClipDistance0", ir_var_out, "[[ clip_distance ]]"},
+        {"SV_ClipDistance", glsl_type::float_type, "ClipDistance0", ir_var_out, "[[ clip_distance ]]"},
+        {"SV_ClipDistance0", glsl_type::float_type, "ClipDistance0", ir_var_out, "[[ clip_distance ]]"},
 		//#todo-rco: Values 1..7 are not really defined well in the Metal Language Doc...
-		//{"SV_ClipDistance1", glsl_type::float_type, "ClipDistance1", ir_var_out, "[[ clip_distance ]]"},
-		//{"SV_ClipDistance2", glsl_type::float_type, "ClipDistance2", ir_var_out, "[[ clip_distance ]]"},
-		//{"SV_ClipDistance3", glsl_type::float_type, "ClipDistance3", ir_var_out, "[[ clip_distance ]]"},
-		//{"SV_ClipDistance4", glsl_type::float_type, "ClipDistance4", ir_var_out, "[[ clip_distance ]]"},
-		//{"SV_ClipDistance5", glsl_type::float_type, "ClipDistance5", ir_var_out, "[[ clip_distance ]]"},
-		//{"SV_ClipDistance6", glsl_type::float_type, "ClipDistance6", ir_var_out, "[[ clip_distance ]]"},
-		//{"SV_ClipDistance7", glsl_type::float_type, "ClipDistance7", ir_var_out, "[[ clip_distance ]]"},
+		//#todo-marksatt: Perhaps not, but this is a semantic marker not a 'slot' so I think we can just use 0-8.
+        {"SV_ClipDistance1", glsl_type::float_type, "ClipDistance1", ir_var_out, "[[ clip_distance ]]"},
+		{"SV_ClipDistance2", glsl_type::float_type, "ClipDistance2", ir_var_out, "[[ clip_distance ]]"},
+		{"SV_ClipDistance3", glsl_type::float_type, "ClipDistance3", ir_var_out, "[[ clip_distance ]]"},
+		{"SV_ClipDistance4", glsl_type::float_type, "ClipDistance4", ir_var_out, "[[ clip_distance ]]"},
+		{"SV_ClipDistance5", glsl_type::float_type, "ClipDistance5", ir_var_out, "[[ clip_distance ]]"},
+		{"SV_ClipDistance6", glsl_type::float_type, "ClipDistance6", ir_var_out, "[[ clip_distance ]]"},
+		{"SV_ClipDistance7", glsl_type::float_type, "ClipDistance7", ir_var_out, "[[ clip_distance ]]"},
 		{NULL, NULL, NULL, ir_var_auto, nullptr}
 	};
 

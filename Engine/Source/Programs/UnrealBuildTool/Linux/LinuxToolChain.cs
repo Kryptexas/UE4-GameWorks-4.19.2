@@ -21,7 +21,7 @@ namespace UnrealBuildTool
 			if (!CrossCompiling())
 			{
 				// use native linux toolchain
-				string[] ClangNames = { "clang++", "clang++-3.7", "clang++-3.6", "clang++-3.5" };
+				string[] ClangNames = { "clang++", "clang++-3.8", "clang++-3.7", "clang++-3.6", "clang++-3.5" };
 				foreach (var ClangName in ClangNames)
 				{
 					ClangPath = Which(ClangName);
@@ -80,7 +80,7 @@ namespace UnrealBuildTool
 			else if ((CompilerVersionMajor * 10 + CompilerVersionMinor) > 38 || (CompilerVersionMajor * 10 + CompilerVersionMinor) < 35)
 			{
 				throw new BuildException(
-					string.Format("This version of the Unreal Engine can only be compiled with clang 3.7, 3.6 and 3.5. clang {0} may not build it - please use a different version.",
+					string.Format("This version of the Unreal Engine can only be compiled with clang 3.8, 3.7, 3.6 and 3.5. clang {0} may not build it - please use a different version.",
 						CompilerVersionString)
 					);
 			}
@@ -542,6 +542,10 @@ namespace UnrealBuildTool
 			// FIXME: really ugly temp solution. Modules need to be able to specify this
 			Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/ICU/icu4c-53_1/Linux/x86_64-unknown-linux-gnu";
 			Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/LinuxNativeDialogs/Linux/x86_64-unknown-linux-gnu";
+
+			// Some OS ship ld with new ELF dynamic tags, which use DT_RUNPATH vs DT_RPATH. Since DT_RUNPATH do not propagate to dlopen()ed DSOs,
+			// this breaks the editor on such systems. See https://kenai.com/projects/maxine/lists/users/archive/2011-01/message/12 for details
+			Result += " -Wl,--disable-new-dtags";
 
 			if (CrossCompiling())
 			{
@@ -1073,7 +1077,10 @@ namespace UnrealBuildTool
 				Writer.WriteLine("         _ZdaPvRKSt9nothrow_t;");
 				Writer.WriteLine("         _ZdlPv;");
 				Writer.WriteLine("         _ZdlPvRKSt9nothrow_t;");
-				
+				// Hide ALL std:: symbols as they can collide
+				// with any c++ library out there (like LLVM)
+				// and this may lead to operator new/delete mismatches
+				Writer.WriteLine("         _ZNSt8*;");
 				// Hide OpenSSL symbols as they can collide with Steam runtime.
 				// @todo: hide all Steam runtime symbols
 				Writer.WriteLine("         DH_OpenSSL;");

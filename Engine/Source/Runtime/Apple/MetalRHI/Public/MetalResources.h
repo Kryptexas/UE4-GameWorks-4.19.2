@@ -224,6 +224,7 @@ public:
 	id<MTLTexture> StencilTexture;
 	uint32 SizeX, SizeY, SizeZ;
 	bool bIsCubemap;
+	bool bWritten;
 	
 	uint32 Flags;
 	// one per mip

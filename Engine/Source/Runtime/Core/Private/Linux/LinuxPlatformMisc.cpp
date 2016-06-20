@@ -178,7 +178,7 @@ bool FLinuxPlatformMisc::PlatformInitMultimedia()
 			const char * SDLError = SDL_GetError();
 
 			// do not fail at this point, allow caller handle failure
-			UE_LOG(LogInit, Warning, TEXT("Could not initialize SDL: %s"), ANSI_TO_TCHAR(SDLError));
+			UE_LOG(LogInit, Warning, TEXT("Could not initialize SDL: %s"), UTF8_TO_TCHAR(SDLError));
 			return false;
 		}
 
@@ -234,7 +234,7 @@ void FLinuxPlatformMisc::GetEnvironmentVariable(const TCHAR* InVariableName, TCH
 	ANSICHAR *AnsiResult = secure_getenv(TCHAR_TO_ANSI(*VariableName));
 	if (AnsiResult)
 	{
-		wcsncpy(Result, ANSI_TO_TCHAR(AnsiResult), ResultLength);
+		wcsncpy(Result, UTF8_TO_TCHAR(AnsiResult), ResultLength);
 	}
 	else
 	{
@@ -417,7 +417,7 @@ void FLinuxPlatformMisc::ClipboardCopy(const TCHAR* Str)
 	{
 		if (SDL_SetClipboardText(TCHAR_TO_UTF8(Str)))
 		{
-			UE_LOG(LogInit, Fatal, TEXT("Error copying clipboard contents: %s\n"), ANSI_TO_TCHAR(SDL_GetError()));
+			UE_LOG(LogInit, Fatal, TEXT("Error copying clipboard contents: %s\n"), UTF8_TO_TCHAR(SDL_GetError()));
 		}
 	}
 }
@@ -428,7 +428,7 @@ void FLinuxPlatformMisc::ClipboardPaste(class FString& Result)
 
 	if (!ClipContent)
 	{
-		UE_LOG(LogInit, Fatal, TEXT("Error pasting clipboard contents: %s\n"), ANSI_TO_TCHAR(SDL_GetError()));
+		UE_LOG(LogInit, Fatal, TEXT("Error pasting clipboard contents: %s\n"), UTF8_TO_TCHAR(SDL_GetError()));
 		// unreachable
 		Result = TEXT("");
 	}
@@ -586,7 +586,7 @@ EAppReturnType::Type FLinuxPlatformMisc::MessageBoxExt(EAppMsgType::Type MsgType
 	FSlowHeartBeatScope SuspendHeartBeat;
 	if (SDL_ShowMessageBox(&MessageBoxData, &ButtonPressed) == -1) 
 	{
-		UE_LOG(LogInit, Fatal, TEXT("Error Presenting MessageBox: %s\n"), ANSI_TO_TCHAR(SDL_GetError()));
+		UE_LOG(LogInit, Fatal, TEXT("Error Presenting MessageBox: %s\n"), UTF8_TO_TCHAR(SDL_GetError()));
 		// unreachable
 		return EAppReturnType::Cancel;
 	}
@@ -771,7 +771,7 @@ FString FLinuxPlatformMisc::GetCPUVendor()
 
 		VendorResult.Buffer[12] = 0;
 
-		FCString::Strncpy(Result, ANSI_TO_TCHAR(VendorResult.Buffer), ARRAY_COUNT(Result));
+		FCString::Strncpy(Result, UTF8_TO_TCHAR(VendorResult.Buffer), ARRAY_COUNT(Result));
 #else
 		// use /proc?
 #endif // PLATFORM_HAS_CPUID
@@ -827,7 +827,7 @@ FString FLinuxPlatformMisc::GetCPUBrand()
 			}
 		}
 
-		FCString::Strncpy(Result, ANSI_TO_TCHAR(BrandString), ARRAY_COUNT(Result));
+		FCString::Strncpy(Result, UTF8_TO_TCHAR(BrandString), ARRAY_COUNT(Result));
 #else
 		// use /proc?
 #endif // PLATFORM_HAS_CPUID
@@ -925,7 +925,7 @@ FString FLinuxPlatformMisc::GetOperatingSystemId()
 
 			if (ReadBytes > 0)
 			{
-				CachedResult = ANSI_TO_TCHAR(Buffer);
+				CachedResult = UTF8_TO_TCHAR(Buffer);
 			}
 
 			close(OsGuidFile);
@@ -954,7 +954,7 @@ bool FLinuxPlatformMisc::GetDiskTotalAndFreeSpace(const FString& InPath, uint64&
 	else
 	{
 		int ErrNo = errno;
-		UE_LOG(LogLinux, Warning, TEXT("Unable to statfs('%s'): errno=%d (%s)"), *InPath, ErrNo, ANSI_TO_TCHAR(strerror(ErrNo)));
+		UE_LOG(LogLinux, Warning, TEXT("Unable to statfs('%s'): errno=%d (%s)"), *InPath, ErrNo, UTF8_TO_TCHAR(strerror(ErrNo)));
 	}
 	return (Err == 0);
 }

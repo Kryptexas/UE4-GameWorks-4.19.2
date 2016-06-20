@@ -2459,6 +2459,24 @@ void GlobalBeginCompileShader(
 			Input.Environment.CompilerFlags.Add(CFLAG_KeepDebugInfo);
 		}
 	}
+	
+	{
+		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.ZeroInitialise"));
+		
+		if (CVar->GetInt() != 0)
+		{
+			Input.Environment.CompilerFlags.Add(CFLAG_ZeroInitialise);
+		}
+	}
+	
+	{
+		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.BoundsChecking"));
+		
+		if (CVar->GetInt() != 0)
+		{
+			Input.Environment.CompilerFlags.Add(CFLAG_BoundsChecking);
+		}
+	}
 
 	Input.Environment.SetDefine(TEXT("HAS_INVERTED_Z_BUFFER"), (bool)ERHIZBuffer::IsInverted);
 

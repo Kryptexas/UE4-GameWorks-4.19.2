@@ -850,23 +850,32 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 								LODToRender = ComputeLODForMeshes(PrimitiveSceneInfo->StaticMeshes, CurrentView, PrimitiveBounds.Origin, PrimitiveBounds.SphereRadius, ForcedLODLevel);
 							}
 
-							for (int32 MeshIndex = 0; MeshIndex < PrimitiveSceneInfo->StaticMeshes.Num(); MeshIndex++)
+							if (bWholeSceneDirectionalShadow)
 							{
-								const FStaticMesh& StaticMesh = PrimitiveSceneInfo->StaticMeshes[MeshIndex];
-								if (StaticMesh.CastShadow && LODToRender.ContainsLOD(StaticMesh.LODIndex))
+								for (int32 MeshIndex = 0; MeshIndex < PrimitiveSceneInfo->StaticMeshes.Num(); MeshIndex++)
 								{
-									if (bWholeSceneDirectionalShadow)
+									const FStaticMesh& StaticMesh = PrimitiveSceneInfo->StaticMeshes[MeshIndex];
+									if (StaticMesh.CastShadow && LODToRender.ContainsLOD(StaticMesh.LODIndex))
 									{
 										StaticMeshWholeSceneShadowDepthMap[StaticMesh.Id] = true;
 										StaticMeshWholeSceneShadowBatchVisibility[StaticMesh.Id] = StaticMesh.Elements.Num() == 1 ? 1 : StaticMesh.VertexFactory->GetStaticBatchElementVisibility(*DependentView, &StaticMesh);
+
+										bDrawingStaticMeshes = true;
 									}
-									else
+								}
+							}
+							else
+							{
+								for (int32 MeshIndex = 0; MeshIndex < PrimitiveSceneInfo->StaticMeshes.Num(); MeshIndex++)
+								{
+									const FStaticMesh& StaticMesh = PrimitiveSceneInfo->StaticMeshes[MeshIndex];
+									if (StaticMesh.CastShadow && LODToRender.ContainsLOD(StaticMesh.LODIndex))
 									{
 										CurrentView.StaticMeshShadowDepthMap[StaticMesh.Id] = true;
 										CurrentView.StaticMeshBatchVisibility[StaticMesh.Id] = StaticMesh.Elements.Num() == 1 ? 1 : StaticMesh.VertexFactory->GetStaticBatchElementVisibility(CurrentView, &StaticMesh);
-									}
 
-									bDrawingStaticMeshes = true;
+										bDrawingStaticMeshes = true;
+									}
 								}
 							}
 						}

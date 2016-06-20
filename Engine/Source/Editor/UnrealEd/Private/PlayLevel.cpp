@@ -1760,7 +1760,7 @@ void UEditorEngine::PlayUsingLauncher()
 		if (LaunchPlatform != nullptr)
 		{
 			ITargetDevicePtr PlayDevice = LaunchPlatform->GetDefaultDevice();
-			if (!PlayDevice.IsValid() || !PlayDevice->IsAuthorized())
+			if (PlayDevice.IsValid() && !PlayDevice->IsAuthorized())
 			{
 				CancelRequestPlaySession();
 

@@ -53,6 +53,11 @@ public:
 	/** @returns True if and only if there is an active blit command encoder, otherwise false. */
 	bool IsBlitCommandEncoderActive(void) const;
 	
+	/**
+	 * True iff the command-encoder submits immediately to the command-queue, false if it performs any buffering.
+	 * @returns True iff the command-list submits immediately to the command-queue, false if it performs any buffering.
+	 */
+	bool IsImmediate(void) const;
 
 	/** @returns True if and only if there is valid render pass descriptor set on the encoder, otherwise false. */
 	bool IsRenderPassDescriptorValid(void) const;

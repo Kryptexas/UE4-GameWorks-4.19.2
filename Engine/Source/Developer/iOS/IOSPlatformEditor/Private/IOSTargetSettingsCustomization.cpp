@@ -720,12 +720,14 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 
 	SETUP_PLIST_PROP(AdditionalPlistData, ExtraCategory);
 
+	SETUP_SOURCEONLY_PROP(bGeneratedSYMFile, BuildCategory);
 	SETUP_SOURCEONLY_PROP(bDevForArmV7, BuildCategory);
 	SETUP_SOURCEONLY_PROP(bDevForArm64, BuildCategory);
 	SETUP_SOURCEONLY_PROP(bDevForArmV7S, BuildCategory);
 	SETUP_SOURCEONLY_PROP(bShipForArmV7, BuildCategory);
 	SETUP_SOURCEONLY_PROP(bShipForArm64, BuildCategory);
 	SETUP_SOURCEONLY_PROP(bShipForArmV7S, BuildCategory);
+	SETUP_SOURCEONLY_PROP(bShipForBitcode, BuildCategory);
 
 	SETUP_SOURCEONLY_PROP(bSupportsMetalMRT, RenderCategory);
 

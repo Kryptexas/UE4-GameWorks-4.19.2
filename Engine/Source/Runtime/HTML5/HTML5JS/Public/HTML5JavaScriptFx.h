@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#pragma  once 
+#pragma  once
 
-	extern "C" { 
+	extern "C" {
 		bool UE_SendAndRecievePayLoad( char *URL, char* indata, int insize, char** outdata, int* outsize );
 
 		// SaveGame
@@ -31,5 +31,8 @@
 		void UE_Reset_OnBeforeUnload();
 		void UE_Register_OnBeforeUnload(void *ctx, void(*callback)(void*));
 		void UE_UnRegister_OnBeforeUnload(void *ctx, void(*callback)(void*));
+
+		// GSystemResolution
+		void UE_GSystemResolution( int(*resX)(), int(*rexY)() );
 	}
 

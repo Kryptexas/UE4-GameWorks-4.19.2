@@ -1412,11 +1412,11 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	TArray<FString> AlwaysCookMapList;
 
 	// Add the default map section
-	GEditor->LoadMapListFromIni(TEXT("AlwaysCookMaps"), AlwaysCookMapList);
+	//GEditor->LoadMapListFromIni(TEXT("AlwaysCookMaps"), AlwaysCookMapList);
 
 	TArray<FString> MapList;
 	// Add any map sections specified on command line
-	GEditor->ParseMapSectionIni(*Params, MapList);
+	/*GEditor->ParseMapSectionIni(*Params, MapList);
 
 	if (MapList.Num() == 0 && !bCookSinglePackage)
 	{
@@ -1428,7 +1428,7 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 		{
 			MapList.Add(MapToCook.FilePath);
 		}
-	}
+	}*/
 
 	// Add any map specified on the command line.
 	for (const auto& MapName : CmdLineMapEntries)
@@ -1569,7 +1569,7 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 				bShouldGC = false;
 				NonMapPackageCountSinceLastGC = 0;
 
-				UE_LOG( LogCookCommandlet, Display, TEXT( "GC..." ) );
+				UE_LOG( LogCookCommandlet, Display, TEXT( "GarbageCollection..." ) );
 
 				COOK_STAT(FScopedDurationTimer GCTimer(DetailedCookStats::TickLoopGCTimeSec));
 				CollectGarbage(RF_NoFlags);

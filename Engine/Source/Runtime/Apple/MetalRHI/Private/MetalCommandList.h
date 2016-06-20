@@ -27,6 +27,12 @@ public:
 	/** Destructor */
 	~FMetalCommandList(void);
 	
+	/**
+	 * Command buffer failure reporting function.
+	 * @param CompletedBuffer The buffer to check for failure.
+	 */
+	static void HandleMetalCommandBufferFailure(id <MTLCommandBuffer> CompletedBuffer);
+	
 #pragma mark - Public Command List Mutators -
 	
 	/** 

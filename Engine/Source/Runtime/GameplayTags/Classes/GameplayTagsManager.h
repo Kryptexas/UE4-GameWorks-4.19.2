@@ -398,8 +398,37 @@ private:
 	/** Roots of gameplay tag nodes */
 	TSharedPtr<FGameplayTagNode> GameplayRootTag;
 
+	class GamePlayTagMapWithInverse
+	{
+	public:
+		void Add(FGameplayTag Tag, TSharedPtr<FGameplayTagNode> GameplayTagNode)
+		{
+			ForwardMap.Add(Tag, GameplayTagNode);
+			InverseMap.Add(GameplayTagNode, Tag);
+		}
+
+		const TSharedPtr<FGameplayTagNode>* Find(const FGameplayTag& Tag) const
+		{
+			return ForwardMap.Find(Tag);
+		}
+
+		const FGameplayTag* FindKey(const TSharedPtr<FGameplayTagNode>& TagNode) const
+		{
+			return InverseMap.Find(TagNode);
+		}
+
+		void GenerateValueArray(TArray<TSharedPtr<FGameplayTagNode>>& ValueArray) const
+		{
+			ForwardMap.GenerateValueArray(ValueArray);
+		}
+
+	private:
+		TMap<FGameplayTag, TSharedPtr<FGameplayTagNode>> ForwardMap;
+		TMap<TSharedPtr<FGameplayTagNode>, FGameplayTag> InverseMap;
+	};
+
 	/** Map of Tags to Nodes - Internal use only */
-	TMap<FGameplayTag, TSharedPtr<FGameplayTagNode>> GameplayTagNodeMap;
+	GamePlayTagMapWithInverse GameplayTagNodeMap;
 
 	/** Map of Names to tags - Internal use only */
 	TMap<FName, FGameplayTag> GameplayTagMap;

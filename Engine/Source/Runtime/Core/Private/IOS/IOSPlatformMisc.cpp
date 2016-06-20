@@ -318,6 +318,27 @@ EAppReturnType::Type FIOSPlatformMisc::MessageBoxExt( EAppMsgType::Type MsgType,
 #endif
 }
 
+uint32 FIOSPlatformMisc::GetCharKeyMap(uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings)
+{
+	return FGenericPlatformMisc::GetStandardPrintableKeyMap(KeyCodes, KeyNames, MaxMappings, true, true);
+}
+
+uint32 FIOSPlatformMisc::GetKeyMap( uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings )
+{
+#define ADDKEYMAP(KeyCode, KeyName)		if (NumMappings<MaxMappings) { KeyCodes[NumMappings]=KeyCode; KeyNames[NumMappings]=KeyName; ++NumMappings; };
+	
+	uint32 NumMappings = 0;
+	
+	// we only handle a few "fake" keys from the IOS keyboard delegate stuff in IOSView.cpp
+	if (KeyCodes && KeyNames && (MaxMappings > 0))
+	{
+		ADDKEYMAP(KEYCODE_ENTER, TEXT("Enter"));
+		ADDKEYMAP(KEYCODE_BACKSPACE, TEXT("BackSpace"));
+		ADDKEYMAP(KEYCODE_ESCAPE, TEXT("Escape"));
+	}
+	return NumMappings;
+}
+
 bool FIOSPlatformMisc::ControlScreensaver(EScreenSaverAction Action)
 {
 	IOSAppDelegate* AppDelegate = [IOSAppDelegate GetDelegate];

@@ -990,7 +990,8 @@ public partial class Project : CommandUtils
 				CmdLine += " -customint=\"PakReadOrdering=0\"";
 				CmdLine += " -stdout";
 
-				RunAndLog(CmdEnv, BPTExe, CmdLine, Options: ERunOptions.Default | ERunOptions.UTF8Output);
+				string UnrealPakLogFileName = "UnrealPak_" + PakName;
+				RunAndLog(CmdEnv, BPTExe, CmdLine, UnrealPakLogFileName, Options: ERunOptions.Default | ERunOptions.UTF8Output);
 
 				InternalUtils.SafeCopyFile(SourceManifestPath, BackupManifestPath);
 				InternalUtils.SafeCopyFile(SourceManifestPath, DestManifestPath);

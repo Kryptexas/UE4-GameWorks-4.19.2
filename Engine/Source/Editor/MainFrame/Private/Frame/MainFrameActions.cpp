@@ -298,7 +298,7 @@ const TCHAR* GetUATCompilationFlags()
 FString GetCookingOptionalParams()
 {
 	FString OptionalParams;
-	const UProjectPackagingSettings* const PackagingSettings = GetDefault<UProjectPackagingSettings>();
+	/*const UProjectPackagingSettings* const PackagingSettings = GetDefault<UProjectPackagingSettings>();
 	if (PackagingSettings->bCookAll)
 	{
 		OptionalParams += TEXT(" -CookAll");
@@ -312,7 +312,7 @@ FString GetCookingOptionalParams()
 	if (PackagingSettings->bSkipEditorContent)
 	{
 		OptionalParams += TEXT(" -SKIPEDITORCONTENT");
-	}
+	}*/
 	return OptionalParams;
 }
 

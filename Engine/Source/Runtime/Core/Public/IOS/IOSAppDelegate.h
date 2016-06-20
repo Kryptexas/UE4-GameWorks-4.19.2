@@ -51,6 +51,8 @@ UITextFieldDelegate>
 /** Main GL View */
 @property (retain) FIOSView* IOSView;
 
+@property class FIOSApplication* IOSApplication;
+
 /** The controller to handle rotation of the view */
 @property (retain) IOSViewController* IOSController;
 

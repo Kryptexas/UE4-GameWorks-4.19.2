@@ -4,6 +4,24 @@
 #include "MetalStateCache.h"
 #include "MetalProfiler.h"
 
+static TAutoConsoleVariable<int32> CVarMetalVertexParameterSize(
+	TEXT("r.MetalVertexParameterSize"),
+	1024,
+	TEXT("Amount of entries to use for VertexParameter space (multiples of 1024), defaults to 1024"),
+	ECVF_Default);
+
+static TAutoConsoleVariable<int32> CVarMetalPixelParameterSize(
+	TEXT("r.MetalPixelParameterSize"),
+	1024,
+	TEXT("Amount of entries to use for PixelParameter space (multiples of 1024), defaults to 1024"),
+	ECVF_Default);
+
+static TAutoConsoleVariable<int32> CVarMetalComputeParameterSize(
+	TEXT("r.MetalComputeParameterSize"),
+	1024,
+	TEXT("Amount of entries to use for ComputeParameter space (multiples of 1024), defaults to 1024"),
+	ECVF_Default);
+
 static MTLTriangleFillMode TranslateFillMode(ERasterizerFillMode FillMode)
 {
 	switch (FillMode)
@@ -43,17 +61,24 @@ FMetalStateCache::FMetalStateCache(FMetalCommandEncoder& InCommandEncoder)
 	Scissor.x = Scissor.y = Scissor.width = Scissor.height;
 	
 	FMemory::Memzero(VertexBuffers, sizeof(VertexBuffers));
-	FMemory::Memzero(VertexStrides, sizeof(VertexStrides));
-	
-	FMemory::Memzero(RenderTargetsInfo);
-	
+	FMemory::Memzero(VertexStrides, sizeof(VertexStrides));	
+	FMemory::Memzero(RenderTargetsInfo);	
 	FMemory::Memzero(DirtyUniformBuffers);
 	
 	//@todo-rco: What Size???
 	// make a buffer for each shader type
-	ShaderParameters[CrossCompiler::SHADER_STAGE_VERTEX].InitializeResources(1024*1024);
-	ShaderParameters[CrossCompiler::SHADER_STAGE_PIXEL].InitializeResources(1024*1024);
-	ShaderParameters[CrossCompiler::SHADER_STAGE_COMPUTE].InitializeResources(1024*1024);
+	IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MetalVertexParameterSize"));
+	int SizeMult = CVar->GetInt();
+	ShaderParameters[CrossCompiler::SHADER_STAGE_VERTEX].InitializeResources(SizeMult * 1024);
+	CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MetalPixelParameterSize"));
+	SizeMult = CVar->GetInt();
+	ShaderParameters[CrossCompiler::SHADER_STAGE_PIXEL].InitializeResources(SizeMult * 1024);
+	if (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4 )
+	{
+		CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MetalComputeParameterSize"));
+		SizeMult = CVar->GetInt();
+		ShaderParameters[CrossCompiler::SHADER_STAGE_COMPUTE].InitializeResources(SizeMult * 1024);
+	}
 }
 
 FMetalStateCache::~FMetalStateCache()
@@ -372,7 +397,8 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 					ColorAttachment.slice = ArraySliceIndex;
 				}
 				
-				ColorAttachment.loadAction = GetMetalRTLoadAction(RenderTargetView.LoadAction);
+				ColorAttachment.loadAction = (Surface.bWritten || !CommandEncoder.IsImmediate()) ? GetMetalRTLoadAction(RenderTargetView.LoadAction) : MTLLoadActionClear;
+				Surface.bWritten = true;
 				
 				bNeedsClear |= (ColorAttachment.loadAction == MTLLoadActionClear);
 				

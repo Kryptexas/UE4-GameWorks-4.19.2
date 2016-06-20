@@ -69,7 +69,15 @@ void FOutputDevice::Log( const FText& T )
 
 
 /** Number of top function calls to hide when dumping the callstack as text. */
-#define CALLSTACK_IGNOREDEPTH 2
+#if PLATFORM_LINUX
+
+	// Rationale: check() and ensure() handlers have different depth - worse, ensure() can optionally end up calling the same path as check().
+	// It is better to show the full callstack as is than accidentaly ignore a part of the problem
+	#define CALLSTACK_IGNOREDEPTH 0
+
+#else
+	#define CALLSTACK_IGNOREDEPTH 2
+#endif // PLATFORM_LINUX
 
 VARARG_BODY( void, FOutputDevice::CategorizedLogf, const TCHAR*, VARARG_EXTRA(const class FName& Category) VARARG_EXTRA(ELogVerbosity::Type Verbosity)  )
 {
