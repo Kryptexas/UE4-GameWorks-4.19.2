@@ -409,6 +409,24 @@ public:
 		return false;
 	}
 
+	virtual bool IsGamepadAttached() const override
+	{
+		FSteamVRHMD* SteamVRSystem = GetSteamVRHMD();
+
+		if (SteamVRSystem != nullptr)
+		{
+			// Check if at least one motion controller is tracked
+			// Only need to check for at least one player (player index 0)
+			int32 PlayerIndex = 0;
+			ETrackingStatus LeftHandTrackingStatus = GetControllerTrackingStatus(PlayerIndex, EControllerHand::Left);
+			ETrackingStatus RightHandTrackingStatus = GetControllerTrackingStatus(PlayerIndex, EControllerHand::Left);
+
+			return LeftHandTrackingStatus == ETrackingStatus::Tracked || RightHandTrackingStatus == ETrackingStatus::Tracked;
+		}
+
+		return false;
+	}
+
 private:
 
 	inline vr::IVRSystem* GetVRSystem()
