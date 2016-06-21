@@ -37,6 +37,8 @@ void MainPS(
 	Parameters.VertexColor = 1;
 	
 	SvPosition.z = LookupDeviceZ(ScreenUV);
+	// clamp catches the case that SvPosition.z is zero
+	SvPosition.z = max(SvPosition.z, 1e-18);
 
 	// fill out other related material parameters
 	CalcMaterialParametersPost(Parameters, PixelMaterialInputs, SvPosition, true);
