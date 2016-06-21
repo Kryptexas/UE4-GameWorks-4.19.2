@@ -46,7 +46,7 @@ namespace AutomationTool.Tasks
 		/// <summary>
 		/// Tag to be applied to build products of this task
 		/// </summary>
-		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.Tag)]
+		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.TagList)]
 		public string Tag;
 	}
 
@@ -84,9 +84,9 @@ namespace AutomationTool.Tasks
 			List<FileReference> VersionFiles = FileNames.Select(x => new FileReference(x)).ToList();
 
 			// Apply the optional tag to them
-			if(!String.IsNullOrEmpty(Parameters.Tag))
+			foreach(string TagName in FindTagNamesFromList(Parameters.Tag))
 			{
-				FindOrAddTagSet(TagNameToFileSet, Parameters.Tag).UnionWith(VersionFiles);
+				FindOrAddTagSet(TagNameToFileSet, TagName).UnionWith(VersionFiles);
 			}
 
 			// Add them to the list of build products
@@ -100,6 +100,24 @@ namespace AutomationTool.Tasks
 		public override void Write(XmlWriter Writer)
 		{
 			Write(Writer, Parameters);
+		}
+
+		/// <summary>
+		/// Find all the tags which are used as inputs to this task
+		/// </summary>
+		/// <returns>The tag names which are read by this task</returns>
+		public override IEnumerable<string> FindConsumedTagNames()
+		{
+			yield break;
+		}
+
+		/// <summary>
+		/// Find all the tags which are modified by this task
+		/// </summary>
+		/// <returns>The tag names which are modified by this task</returns>
+		public override IEnumerable<string> FindProducedTagNames()
+		{
+			return FindTagNamesFromList(Parameters.Tag);
 		}
 	}
 }

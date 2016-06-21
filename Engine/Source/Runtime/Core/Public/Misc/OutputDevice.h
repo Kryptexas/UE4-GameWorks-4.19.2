@@ -280,7 +280,7 @@ public:
 	 * Dumps the contents of this output device's buffer to an archive (supported by output device that have a memory buffer) 
 	 * @param Ar Archive to dump the buffer to
 	 */
-	virtual void Dump(FArchive& Ar)
+	virtual void Dump(class FArchive& Ar)
 	{
 	}
 

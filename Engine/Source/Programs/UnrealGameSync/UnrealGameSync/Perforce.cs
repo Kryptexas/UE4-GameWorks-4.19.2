@@ -98,7 +98,10 @@ namespace UnrealGameSync
 			Tags.TryGetValue("depotFile", out DepotPath);
 			Tags.TryGetValue("clientFile", out ClientPath);
 			Tags.TryGetValue("path", out Path);
-			Tags.TryGetValue("action", out Action);
+			if(!Tags.TryGetValue("action", out Action))
+			{
+				Tags.TryGetValue("headAction", out Action);
+			}
 			IsMapped = Tags.ContainsKey("isMapped");
 			Unmap = Tags.ContainsKey("unmap");
 

@@ -94,7 +94,12 @@ namespace AutomationTool
 		/// <summary>
 		/// Mapping of names to their corresponding node output.
 		/// </summary>
-		public Dictionary<string, NodeOutput> NameToNodeOutput = new Dictionary<string,NodeOutput>(StringComparer.InvariantCultureIgnoreCase);
+		public HashSet<string> LocalTagNames = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+
+		/// <summary>
+		/// Mapping of names to their corresponding node output.
+		/// </summary>
+		public Dictionary<string, NodeOutput> TagNameToNodeOutput = new Dictionary<string,NodeOutput>(StringComparer.InvariantCultureIgnoreCase);
 
 		/// <summary>
 		/// Mapping of aggregate names to their respective nodes
@@ -119,17 +124,13 @@ namespace AutomationTool
 		}
 
 		/// <summary>
-		/// Checks whether a given name (or tag name) already exists
+		/// Checks whether a given name already exists
 		/// </summary>
-		/// <param name="Name">The name to check. May begin with a '#' character.</param>
+		/// <param name="Name">The name to check.</param>
 		/// <returns>True if the name exists, false otherwise.</returns>
 		public bool ContainsName(string Name)
 		{
-			// Strip off the tag character, if present
-			string TrimName = Name.StartsWith("#")? Name.Substring(1) : Name;
-
-			// Check it doesn't match anything in the graph
-			return NameToNode.ContainsKey(TrimName) || NameToNodeOutput.ContainsKey(TrimName) || NameToReport.ContainsKey(TrimName) || AggregateNameToNodes.ContainsKey(TrimName);
+			return NameToNode.ContainsKey(Name) || NameToReport.ContainsKey(Name) || AggregateNameToNodes.ContainsKey(Name);
 		}
 
 		/// <summary>
@@ -145,7 +146,7 @@ namespace AutomationTool
 			{
 				// Check if it's a regular node or output name
 				NodeOutput Output;
-				if(NameToNodeOutput.TryGetValue(Name.Substring(1), out Output))
+				if(TagNameToNodeOutput.TryGetValue(Name, out Output))
 				{
 					OutNodes = new Node[]{ Output.ProducingNode };
 					return true;
@@ -188,7 +189,7 @@ namespace AutomationTool
 			{
 				// Check if it's a regular node or output name
 				NodeOutput Output;
-				if(NameToNodeOutput.TryGetValue(Name.Substring(1), out Output))
+				if(TagNameToNodeOutput.TryGetValue(Name, out Output))
 				{
 					OutOutputs = new NodeOutput[]{ Output };
 					return true;

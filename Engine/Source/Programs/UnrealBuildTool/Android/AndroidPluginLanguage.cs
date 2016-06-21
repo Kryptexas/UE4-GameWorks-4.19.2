@@ -2910,13 +2910,24 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				PersonalFolder = new DirectoryReference(Environment.GetFolderPath(Environment.SpecialFolder.Personal));
+				// Not all user accounts have a local application data directory (eg. SYSTEM, used by Jenkins for builds).
+				string PersonalFolderSetting = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
+				if(!String.IsNullOrEmpty(PersonalFolderSetting))
+				{
+					PersonalFolder = new DirectoryReference(PersonalFolderSetting);
+				}
 			}
 
-			// <AppData>/UE4/EngineConfig/User* ini
-			yield return FileReference.Combine(UserSettingsFolder, "Unreal Engine", "Engine", "Config", "User" + BaseIniName + ".ini");
-			// <Documents>/UE4/EngineConfig/User* ini
-			yield return FileReference.Combine(PersonalFolder, "Unreal Engine", "Engine", "Config", "User" + BaseIniName + ".ini");
+			if(UserSettingsFolder != null)
+			{
+				// <AppData>/UE4/EngineConfig/User* ini
+				yield return FileReference.Combine(UserSettingsFolder, "Unreal Engine", "Engine", "Config", "User" + BaseIniName + ".ini");
+			}
+			if(PersonalFolder != null)
+			{
+				// <Documents>/UE4/EngineConfig/User* ini
+				yield return FileReference.Combine(PersonalFolder, "Unreal Engine", "Engine", "Config", "User" + BaseIniName + ".ini");
+			}
 
 			// Game/Config/User* ini
 			if (ProjectDirectory != null)

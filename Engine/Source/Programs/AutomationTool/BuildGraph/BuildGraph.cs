@@ -382,7 +382,7 @@ namespace AutomationTool
 			HashSet<Node> CleanedNodes = new HashSet<Node>();
 			foreach(Node NodeToExecute in NodesToExecute)
 			{
-				if(NodeToExecute.InputDependencies.Any(x => CleanedNodes.Contains(x)) || !Storage.CheckLocalIntegrity(NodeToExecute.Name, NodeToExecute.Outputs.Select(x => x.Name)))
+				if(NodeToExecute.InputDependencies.Any(x => CleanedNodes.Contains(x)) || !Storage.CheckLocalIntegrity(NodeToExecute.Name, NodeToExecute.Outputs.Select(x => x.TagName)))
 				{
 					Storage.CleanLocalNode(NodeToExecute.Name);
 					CleanedNodes.Add(NodeToExecute);
@@ -416,25 +416,40 @@ namespace AutomationTool
 		/// <returns>True if the node built successfully, false otherwise.</returns>
 		bool BuildNode(JobContext Job, Graph Graph, Node Node, TempStorage Storage, bool bWithBanner)
 		{
-			// Create a mapping from tag name to the files it contains, and seed it with invalid entries for everything in the graph
-			Dictionary<string, HashSet<FileReference>> TagNameToFileSet = new Dictionary<string,HashSet<FileReference>>();
-			foreach(NodeOutput Output in Graph.Agents.SelectMany(x => x.Nodes).SelectMany(x => x.Outputs))
-			{
-				TagNameToFileSet[Output.Name] = null;
-			}
-
-			// Fetch all the input dependencies for this node, and fill in the tag names with those files
 			DirectoryReference RootDir = new DirectoryReference(CommandUtils.CmdEnv.LocalRoot);
+
+			// Create the mapping of tag names to file sets
+			Dictionary<string, HashSet<FileReference>> TagNameToFileSet = new Dictionary<string,HashSet<FileReference>>();
+
+			// Read all the input tags for this node, and build a list of referenced input storage blocks
+			HashSet<TempStorageBlock> InputStorageBlocks = new HashSet<TempStorageBlock>();
 			foreach(NodeOutput Input in Node.Inputs)
 			{
-				TempStorageManifest Manifest = Storage.Retreive(Input.ProducingNode.Name, Input.Name);
-				TagNameToFileSet[Input.Name] = new HashSet<FileReference>(Manifest.Files.Select(x => x.ToFileReference(RootDir)));
+				TempStorageFileList FileList = Storage.ReadFileList(Input.ProducingNode.Name, Input.TagName);
+				TagNameToFileSet[Input.TagName] = FileList.ToFileSet(RootDir);
+				InputStorageBlocks.UnionWith(FileList.Blocks);
+			}
+
+			// Read all the input storage blocks, keeping track of which block each file came from
+			Dictionary<FileReference, TempStorageBlock> FileToStorageBlock = new Dictionary<FileReference, TempStorageBlock>();
+			foreach(TempStorageBlock InputStorageBlock in InputStorageBlocks)
+			{
+				TempStorageManifest Manifest = Storage.Retreive(InputStorageBlock.NodeName, InputStorageBlock.OutputName);
+				foreach(FileReference File in Manifest.Files.Select(x => x.ToFileReference(RootDir)))
+				{
+					TempStorageBlock CurrentStorageBlock;
+					if(FileToStorageBlock.TryGetValue(File, out CurrentStorageBlock))
+					{
+						LogError("File '{0}' was produced by {1} and {2}", InputStorageBlock, CurrentStorageBlock);
+					}
+					FileToStorageBlock[File] = InputStorageBlock;
+				}
 			}
 
 			// Add placeholder outputs for the current node
 			foreach(NodeOutput Output in Node.Outputs)
 			{
-				TagNameToFileSet[Output.Name] = new HashSet<FileReference>();
+				TagNameToFileSet.Add(Output.TagName, new HashSet<FileReference>());
 			}
 
 			// Execute the node
@@ -453,8 +468,8 @@ namespace AutomationTool
 				Console.WriteLine();
 			}
 
-			// Determine all the outputs which are required to be copied to temp storage (because they're referenced by nodes in another agent)
-			HashSet<NodeOutput> ReferencedOutputs = new HashSet<NodeOutput>();
+			// Determine all the output files which are required to be copied to temp storage (because they're referenced by nodes in another agent)
+			HashSet<FileReference> ReferencedOutputFiles = new HashSet<FileReference>();
 			foreach(Agent Agent in Graph.Agents)
 			{
 				bool bSameAgent = Agent.Nodes.Contains(Node);
@@ -462,15 +477,86 @@ namespace AutomationTool
 				{
 					if(!bSameAgent || Node.ControllingTrigger != OtherNode.ControllingTrigger)
 					{
-						ReferencedOutputs.UnionWith(OtherNode.Inputs);
+						foreach(NodeOutput Input in OtherNode.Inputs.Where(x => x.ProducingNode == Node))
+						{
+							ReferencedOutputFiles.UnionWith(TagNameToFileSet[Input.TagName]);
+						}
 					}
 				}
 			}
 
-			// Publish all the outputs
+			// Find a block name for all new outputs
+			Dictionary<FileReference, string> FileToOutputName = new Dictionary<FileReference, string>();
 			foreach(NodeOutput Output in Node.Outputs)
 			{
-				Storage.Archive(Node.Name, Output.Name, TagNameToFileSet[Output.Name].ToArray(), ReferencedOutputs.Contains(Output));
+				HashSet<FileReference> Files = TagNameToFileSet[Output.TagName]; 
+				foreach(FileReference File in Files)
+				{
+					if(!FileToStorageBlock.ContainsKey(File) && File.IsUnderDirectory(RootDir))
+					{
+						if(Output == Node.DefaultOutput)
+						{
+							if(!FileToOutputName.ContainsKey(File))
+							{
+								FileToOutputName[File] = "";
+							}
+						}
+						else
+						{
+							string OutputName;
+							if(FileToOutputName.TryGetValue(File, out OutputName) && OutputName.Length > 0)
+							{
+								FileToOutputName[File] = String.Format("{0}+{1}", OutputName, Output.TagName.Substring(1));
+							}
+							else
+							{
+								FileToOutputName[File] = Output.TagName.Substring(1);
+							}
+						}
+					}
+				}
+			}
+
+			// Invert the dictionary to make a mapping of storage block to the files each contains
+			Dictionary<string, HashSet<FileReference>> OutputStorageBlockToFiles = new Dictionary<string, HashSet<FileReference>>();
+			foreach(KeyValuePair<FileReference, string> Pair in FileToOutputName)
+			{
+				HashSet<FileReference> Files;
+				if(!OutputStorageBlockToFiles.TryGetValue(Pair.Value, out Files))
+				{
+					Files = new HashSet<FileReference>();
+					OutputStorageBlockToFiles.Add(Pair.Value, Files);
+				}
+				Files.Add(Pair.Key);
+			}
+
+			// Write all the storage blocks, and update the mapping from file to storage block
+			foreach(KeyValuePair<string, HashSet<FileReference>> Pair in OutputStorageBlockToFiles)
+			{
+				TempStorageBlock OutputBlock = new TempStorageBlock(Node.Name, Pair.Key);
+				foreach(FileReference File in Pair.Value)
+				{
+					FileToStorageBlock.Add(File, OutputBlock);
+				}
+				Storage.Archive(Node.Name, Pair.Key, Pair.Value.ToArray(), Pair.Value.Any(x => ReferencedOutputFiles.Contains(x)));
+			}
+
+			// Publish all the output tags
+			foreach(NodeOutput Output in Node.Outputs)
+			{
+				HashSet<FileReference> Files = TagNameToFileSet[Output.TagName];
+
+				HashSet<TempStorageBlock> StorageBlocks = new HashSet<TempStorageBlock>();
+				foreach(FileReference File in Files)
+				{
+					TempStorageBlock StorageBlock;
+					if(FileToStorageBlock.TryGetValue(File, out StorageBlock))
+					{
+						StorageBlocks.Add(StorageBlock);
+					}
+				}
+
+				Storage.WriteFileList(Node.Name, Output.TagName, Files, StorageBlocks.ToArray());
 			}
 
 			// Mark the node as succeeded

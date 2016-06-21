@@ -102,7 +102,7 @@ namespace UnrealGameSync
 
 		NotificationWindow NotificationWindow;
 
-		public MainWindow(UpdateMonitor InUpdateMonitor, string InSqlConnectionString, string InDataFolder, EventWaitHandle ActivateEvent, bool bInRestoreStateOnLoad, string InOriginalExecutableFileName)
+		public MainWindow(UpdateMonitor InUpdateMonitor, string InSqlConnectionString, string InDataFolder, EventWaitHandle ActivateEvent, bool bInRestoreStateOnLoad, string InOriginalExecutableFileName, string InProjectFileName)
 		{
 			InitializeComponent();
 
@@ -126,6 +126,10 @@ namespace UnrealGameSync
 			Log.WriteLine("Started at {0}", DateTime.Now.ToString());
 
 			Settings = new UserSettings(Path.Combine(DataFolder, "UnrealGameSync.ini"));
+			if(!String.IsNullOrEmpty(InProjectFileName))
+			{
+				Settings.LastProjectFileName = InProjectFileName;
+			}
 
 			System.Reflection.PropertyInfo DoubleBufferedProperty = typeof(Control).GetProperty("DoubleBuffered", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
 			DoubleBufferedProperty.SetValue(BuildList, true, null); 

@@ -494,6 +494,16 @@ private:
 #endif
 };
 
+void EmptyLinkFunctionForStaticInitializationUdpMessagingTests()
+{
+	// Force references to the object files containing the functions below, to prevent them being excluded by the linker when the plugin is compiled into a static library for monolithic builds.
+	extern void EmptyLinkFunctionForStaticInitializationUdpMessageSegmenterTest();
+	EmptyLinkFunctionForStaticInitializationUdpMessageSegmenterTest();
+	extern void EmptyLinkFunctionForStaticInitializationUdpMessageTransportTest();
+	EmptyLinkFunctionForStaticInitializationUdpMessageTransportTest();
+	extern void EmptyLinkFunctionForStaticInitializationUdpSerializeMessageTaskTest();
+	EmptyLinkFunctionForStaticInitializationUdpSerializeMessageTaskTest();
+}
 
 IMPLEMENT_MODULE(FUdpMessagingModule, UdpMessaging);
 

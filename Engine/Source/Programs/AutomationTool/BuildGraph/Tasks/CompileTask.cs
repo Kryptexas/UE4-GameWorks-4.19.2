@@ -41,7 +41,7 @@ namespace AutomationTool
 		/// <summary>
 		/// Tag to be applied to build products of this task
 		/// </summary>
-		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.Tag)]
+		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.TagList)]
 		public string Tag;
 	}
 
@@ -131,9 +131,12 @@ namespace AutomationTool
 					throw new AutomationException("Missing manifest for target {0} {1} {2}", TargetTagName.Key.TargetName, TargetTagName.Key.Platform, TargetTagName.Key.Config);
 				}
 
-				HashSet<FileReference> FileSet = FindOrAddTagSet(TagNameToFileSet, TargetTagName.Value);
-				FileSet.UnionWith(Manifest.BuildProducts.Select(x => new FileReference(x)));
-				FileSet.UnionWith(Manifest.LibraryBuildProducts.Select(x => new FileReference(x)));
+				foreach(string TagName in SplitDelimitedList(TargetTagName.Value))
+				{
+					HashSet<FileReference> FileSet = FindOrAddTagSet(TagNameToFileSet, TagName);
+					FileSet.UnionWith(Manifest.BuildProducts.Select(x => new FileReference(x)));
+					FileSet.UnionWith(Manifest.LibraryBuildProducts.Select(x => new FileReference(x)));
+				}
 			}
 
 			// Add everything to the list of build products
@@ -163,6 +166,24 @@ namespace AutomationTool
 
 				Write(Writer, Parameters);
 			}
+		}
+
+		/// <summary>
+		/// Find all the tags which are used as inputs to this task
+		/// </summary>
+		/// <returns>The tag names which are read by this task</returns>
+		public override IEnumerable<string> FindConsumedTagNames()
+		{
+			yield break;
+		}
+
+		/// <summary>
+		/// Find all the tags which are modified by this task
+		/// </summary>
+		/// <returns>The tag names which are modified by this task</returns>
+		public override IEnumerable<string> FindProducedTagNames()
+		{
+			return TargetToTagName.Values.SelectMany(x => SplitDelimitedList(x));
 		}
 	}
 }

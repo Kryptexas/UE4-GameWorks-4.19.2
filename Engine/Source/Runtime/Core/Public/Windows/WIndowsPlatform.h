@@ -84,16 +84,19 @@ typedef FWindowsPlatformTypes FPlatformTypes;
 #define FUNCTION_NO_RETURN_START __declspec(noreturn)				/* Indicate that the function never returns. */
 
 // Hints compiler that expression is true; generally restricted to comparisons against constants
-#if !defined(__clang__)		// Clang doesn't support __assume (Microsoft specific)
+#if !defined(__clang__) || defined(_MSC_VER)	// Clang only supports __assume when using -fms-extensions
 	#define ASSUME(expr) __assume(expr)
 #endif
 
 #define DECLARE_UINT64(x)	x
 
 // Optimization macros (uses __pragma to enable inside a #define).
-#if !defined(__clang__)		// @todo clang: Clang doesn't appear to support optimization pragmas yet
+#if !defined(__clang__)
 	#define PRAGMA_DISABLE_OPTIMIZATION_ACTUAL __pragma(optimize("",off))
 	#define PRAGMA_ENABLE_OPTIMIZATION_ACTUAL  __pragma(optimize("",on))
+#elif defined(_MSC_VER)		// Clang only supports __pragma with -fms-extensions
+	#define PRAGMA_DISABLE_OPTIMIZATION_ACTUAL __pragma(clang optimize off)
+	#define PRAGMA_ENABLE_OPTIMIZATION_ACTUAL  __pragma(clang optimize on)
 #endif
 
 // Backwater of the spec. All compilers support this except microsoft, and they will soon
@@ -103,7 +106,7 @@ typedef FWindowsPlatformTypes FPlatformTypes;
 
 #pragma warning(disable : 4481) // nonstandard extension used: override specifier 'override'
 
-#if defined(__clang__)
+#if defined(__clang__) || _MSC_VER >= 1900
 	#define CONSTEXPR constexpr
 #else
 	#define CONSTEXPR
@@ -118,6 +121,9 @@ typedef FWindowsPlatformTypes FPlatformTypes;
 #if defined(__clang__)
 	#define GCC_PACK(n) __attribute__((packed,aligned(n)))
 	#define GCC_ALIGN(n) __attribute__((aligned(n)))
+	#if defined(_MSC_VER)
+		#define MS_ALIGN(n) __declspec(align(n)) // With -fms-extensions, Clang will accept either alignment attribute
+	#endif
 #else
 	#define MS_ALIGN(n) __declspec(align(n))
 #endif

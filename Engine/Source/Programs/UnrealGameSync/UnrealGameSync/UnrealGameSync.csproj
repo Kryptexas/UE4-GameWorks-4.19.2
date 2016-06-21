@@ -112,7 +112,9 @@
     <Compile Include="ArchiveManifest.cs" />
     <Compile Include="BuildStep.cs" />
     <Compile Include="ChildProcess.cs" />
-    <Compile Include="Controls\StatusPanel.cs" />
+    <Compile Include="Controls\StatusPanel.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Controls\BuildListControl.cs">
       <SubType>Component</SubType>
     </Compile>

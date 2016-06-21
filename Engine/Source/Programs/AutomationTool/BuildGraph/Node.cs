@@ -10,7 +10,7 @@ using System.Xml;
 namespace AutomationTool
 {
 	/// <summary>
-	/// Reference to a node's output
+	/// Reference to an output tag from a particular node
 	/// </summary>
 	class NodeOutput
 	{
@@ -20,19 +20,19 @@ namespace AutomationTool
 		public Node ProducingNode;
 
 		/// <summary>
-		/// Name of the output
+		/// Name of the tag
 		/// </summary>
-		public string Name;
+		public string TagName;
 
 		/// <summary>
 		/// Constructor
 		/// </summary>
 		/// <param name="InProducingNode">Node which produces the given output</param>
-		/// <param name="InName">Name of the output</param>
-		public NodeOutput(Node InProducingNode, string InName)
+		/// <param name="InTagName">Name of the tag</param>
+		public NodeOutput(Node InProducingNode, string InTagName)
 		{
 			ProducingNode = InProducingNode;
-			Name = InName;
+			TagName = InTagName;
 		}
 
 		/// <summary>
@@ -41,7 +41,7 @@ namespace AutomationTool
 		/// <returns>The name of this output</returns>
 		public override string ToString()
 		{
-			return (ProducingNode.Name == Name)? Name : String.Format("{0}: {1}", ProducingNode.Name, Name);
+			return String.Format("{0}: {1}", ProducingNode.Name, TagName);
 		}
 	}
 
@@ -61,7 +61,7 @@ namespace AutomationTool
 		public NodeOutput[] Inputs;
 
 		/// <summary>
-		/// Array of output names produced by this node
+		/// Array of outputs produced by this node
 		/// </summary>
 		public NodeOutput[] Outputs;
 
@@ -113,10 +113,23 @@ namespace AutomationTool
 		{
 			Name = InName;
 			Inputs = InInputs;
-			Outputs = InOutputNames.Select(x => new NodeOutput(this, x)).ToArray();
+
+			List<NodeOutput> AllOutputs = new List<NodeOutput>();
+			AllOutputs.Add(new NodeOutput(this, "#" + Name));
+			AllOutputs.AddRange(InOutputNames.Where(x => String.Compare(x, Name, StringComparison.InvariantCultureIgnoreCase) != 0).Select(x => new NodeOutput(this, x)));
+			Outputs = AllOutputs.ToArray();
+
 			InputDependencies = InInputDependencies;
 			OrderDependencies = InOrderDependencies;
 			ControllingTrigger = InControllingTrigger;
+		}
+
+		/// <summary>
+		/// Returns the default output for this node, which includes all build products
+		/// </summary>
+		public NodeOutput DefaultOutput
+		{
+			get { return Outputs[0]; }
 		}
 
 		/// <summary>
@@ -128,13 +141,11 @@ namespace AutomationTool
 		/// <returns>Whether the task succeeded or not. Exiting with an exception will be caught and treated as a failure.</returns>
 		public bool Build(JobContext Job, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
-			bool bResult = true;
-
 			// Allow tasks to merge together
 			MergeTasks();
 
 			// Build everything
-			HashSet<FileReference> BuildProducts = new HashSet<FileReference>();
+			HashSet<FileReference> BuildProducts = TagNameToFileSet[DefaultOutput.TagName];
 			foreach(CustomTask Task in Tasks)
 			{
 				if(!Task.Execute(Job, BuildProducts, TagNameToFileSet))
@@ -144,36 +155,9 @@ namespace AutomationTool
 				}
 			}
 
-			// Build a mapping of build product to the outputs it belongs to, using the filesets created by the tasks.
-			Dictionary<FileReference, NodeOutput> FileToOutput = new Dictionary<FileReference,NodeOutput>();
-			foreach(NodeOutput Output in Outputs)
-			{
-				HashSet<FileReference> FileSet = TagNameToFileSet[Output.Name];
-				foreach(FileReference File in FileSet)
-				{
-					NodeOutput ExistingOutput;
-					if(FileToOutput.TryGetValue(File, out ExistingOutput))
-					{
-						CommandUtils.LogError("Build product is added to multiple outputs; {0} added to {1} and {2}", File.MakeRelativeTo(new DirectoryReference(CommandUtils.CmdEnv.LocalRoot)), ExistingOutput.Name, Output.Name);
-						bResult = false;
-						continue;
-					}
-					FileToOutput.Add(File, Output);
-				}
-			}
-
-			// Add any remaining valid build products into the output channel for this node. Since it's a catch-all output whose build products were not explicitly specified by the user, we can remove 
-			// those which are outside the root directory or which no longer exist (they may have been removed by downstream tasks).
-			HashSet<FileReference> DefaultOutputs = TagNameToFileSet[Name];
-			foreach(FileReference BuildProduct in BuildProducts)
-			{
-				if(!FileToOutput.ContainsKey(BuildProduct) && BuildProduct.IsUnderDirectory(CommandUtils.RootDirectory) && BuildProduct.Exists())
-				{
-					DefaultOutputs.Add(BuildProduct);
-				}
-			}
-
-			return bResult;
+			// Remove anything that doesn't exist, since these files weren't explicitly tagged
+			BuildProducts.RemoveWhere(x => !x.Exists());
+			return true;
 		}
 
 		/// <summary>
@@ -239,14 +223,13 @@ namespace AutomationTool
 			Writer.WriteStartElement("Node");
 			Writer.WriteAttributeString("Name", Name);
 
-			Node[] RequireNodes = Inputs.Where(x => x.Name == x.ProducingNode.Name).Select(x => x.ProducingNode).ToArray();
-			string[] RequireNames = RequireNodes.Select(x => x.Name).Union(Inputs.Where(x => !RequireNodes.Contains(x.ProducingNode)).Select(x => "#" + x.Name)).ToArray();
+			string[] RequireNames = Inputs.Select(x => x.TagName).ToArray();
 			if (RequireNames.Length > 0)
 			{
 				Writer.WriteAttributeString("Requires", String.Join(";", RequireNames));
 			}
 
-			string[] ProducesNames = Outputs.Where(x => x.Name != Name).Select(x => "#" + x.Name).ToArray();
+			string[] ProducesNames = Outputs.Where(x => x != DefaultOutput).Select(x => x.TagName).ToArray();
 			if (ProducesNames.Length > 0)
 			{
 				Writer.WriteAttributeString("Produces", String.Join(";", ProducesNames));

@@ -165,6 +165,55 @@ namespace AutomationTool
 		}
 
 		/// <summary>
+		/// Find all the tags which are used as inputs to this task
+		/// </summary>
+		/// <returns>The tag names which are read by this task</returns>
+		public abstract IEnumerable<string> FindConsumedTagNames();
+
+		/// <summary>
+		/// Find all the tags which are modified by this task
+		/// </summary>
+		/// <returns>The tag names which are modified by this task</returns>
+		public abstract IEnumerable<string> FindProducedTagNames();
+
+		/// <summary>
+		/// Adds tag names from a filespec
+		/// </summary>
+		/// <param name="Filespec">A filespec, as can be passed to ResolveFilespec</param>
+		/// <returns>Tag names from this filespec</returns>
+		protected IEnumerable<string> FindTagNamesFromFilespec(string Filespec)
+		{
+			if(!String.IsNullOrEmpty(Filespec))
+			{
+				string[] Patterns = SplitDelimitedList(Filespec);
+				foreach(string Pattern in Patterns)
+				{
+					if(Pattern.StartsWith("#"))
+					{
+						yield return Pattern;
+					}
+				}
+			}
+		}
+
+		/// <summary>
+		/// Enumerates tag names from a list
+		/// </summary>
+		/// <param name="Filespec">A filespec, as can be passed to ResolveFilespec</param>
+		/// <returns>Tag names from this filespec</returns>
+		protected IEnumerable<string> FindTagNamesFromList(string TagList)
+		{
+			if(!String.IsNullOrEmpty(TagList))
+			{
+				string[] TagNames = SplitDelimitedList(TagList);
+				foreach(string TagName in TagNames)
+				{
+					yield return TagName;
+				}
+			}
+		}
+
+		/// <summary>
 		/// Resolves a single name to a file reference, resolving relative paths to the root of the current path.
 		/// </summary>
 		/// <param name="Name">Name of the file</param>
@@ -207,10 +256,13 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="Name">The tag name to return a set for. An leading '#' character is optional.</param>
 		/// <returns>Set of files</returns>
-		public static HashSet<FileReference> FindOrAddTagSet(Dictionary<string, HashSet<FileReference>> TagNameToFileSet, string Name)
+		public static HashSet<FileReference> FindOrAddTagSet(Dictionary<string, HashSet<FileReference>> TagNameToFileSet, string TagName)
 		{
-			// Get the clean tag name, without the leading '#' character
-			string TagName = Name.StartsWith("#")? Name.Substring(1) : Name;
+			// Make sure the tag name contains a leading hash
+			if(!TagName.StartsWith("#"))
+			{
+				throw new AutomationException("Tag name does not start with a '#' character");
+			}
 
 			// Find the files which match this tag
 			HashSet<FileReference> Files;
@@ -223,7 +275,7 @@ namespace AutomationTool
 			// If we got a null reference, it's because the tag is not listed as an input for this node (see RunGraph.BuildSingleNode). Fill it in, but only with an error.
 			if(Files == null)
 			{
-				CommandUtils.LogError("Attempt to reference tag '{0}', which is not listed as a dependency of this node.", Name);
+				CommandUtils.LogError("Attempt to reference tag '{0}', which is not listed as a dependency of this node.", TagName);
 				Files = new HashSet<FileReference>();
 				TagNameToFileSet.Add(TagName, Files);
 			}
@@ -268,7 +320,7 @@ namespace AutomationTool
 				// Check if it's a tag name
 				if(Pattern.StartsWith("#"))
 				{
-					Files.UnionWith(FindOrAddTagSet(TagNameToFileSet, Pattern.Substring(1)));
+					Files.UnionWith(FindOrAddTagSet(TagNameToFileSet, Pattern));
 					continue;
 				}
 

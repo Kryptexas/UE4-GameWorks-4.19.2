@@ -75,9 +75,9 @@
     <Compile Include="Script.cs" />
     <Compile Include="Tasks\ChunkTask.cs" />
     <Compile Include="Tasks\CommandletTask.cs" />
+    <Compile Include="Tasks\CsCompileTask.cs" />
     <Compile Include="Tasks\LabelBuildTask.cs" />
     <Compile Include="Tasks\MergeTask.cs" />
-    <Compile Include="Tasks\MsBuildTask.cs" />
     <Compile Include="Tasks\PakFileTask.cs" />
     <Compile Include="Tasks\PostBuildTask.cs" />
     <Compile Include="Tasks\RenameTask.cs" />

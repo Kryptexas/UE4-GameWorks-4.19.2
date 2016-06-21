@@ -166,6 +166,14 @@ FText::FText( EInitToEmptyString )
 {
 }
 
+#if PLATFORM_WINDOWS && defined(__clang__)
+CORE_API const FText& FText::GetEmpty() // @todo clang: Workaround for missing symbol export
+{
+	static const FText StaticEmptyText = FText(FText::EInitToEmptyString::Value);
+	return StaticEmptyText;
+}
+#endif
+
 #if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 	FText::FText(const FText& Other) = default;
 	FText::FText(FText&& Other) = default;

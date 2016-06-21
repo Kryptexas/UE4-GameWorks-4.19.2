@@ -344,7 +344,7 @@ typedef TCString<WIDECHAR> FCStringWide;
 	generic TCString implementations
 -----------------------------------------------------------------------------*/
 
-template <typename CharType>
+template <typename CharType = TCHAR>
 struct TCStringSpcHelper
 {
 	/** Number of characters to be stored in string. */

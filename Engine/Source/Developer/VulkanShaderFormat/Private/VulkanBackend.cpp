@@ -2949,6 +2949,7 @@ public:
 		, ShaderTarget(InShaderTarget)
 		, bGenerateLayoutLocations(bInGenerateLayoutLocations)
 		, bDefaultPrecisionIsHalf(bInDefaultPrecisionIsHalf)
+		, BindingTable(InBindingTable)
 		, buffer(0)
 		, indentation(0)
 		, scope_depth(0)
@@ -2959,7 +2960,6 @@ public:
 		, loop_count(0)
 		, bUsesES2TextureLODExtension(false)
 		, bUsesDXDY(false)
-		, BindingTable(InBindingTable)
 	{
 		printable_names = hash_table_ctor(32, hash_table_pointer_hash, hash_table_pointer_compare);
 		used_structures = hash_table_ctor(32, hash_table_pointer_hash, hash_table_pointer_compare);

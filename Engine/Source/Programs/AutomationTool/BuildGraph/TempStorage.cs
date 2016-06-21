@@ -15,6 +15,71 @@ using AutomationTool;
 namespace AutomationTool
 {
 	/// <summary>
+	/// Stores the name of a temp storage block
+	/// </summary>
+	public class TempStorageBlock
+	{
+		/// <summary>
+		/// Name of the node
+		/// </summary>
+		[XmlAttribute]
+		public string NodeName;
+
+		/// <summary>
+		/// Name of the output from this node
+		/// </summary>
+		[XmlAttribute]
+		public string OutputName;
+
+		/// <summary>
+		/// Default constructor, for XML serialization.
+		/// </summary>
+		private TempStorageBlock()
+		{
+		}
+
+		/// <summary>
+		/// Construct a temp storage block
+		/// </summary>
+		/// <param name="InNodeName">Name of the node</param>
+		/// <param name="InOutputName">Name of the node's output</param>
+		public TempStorageBlock(string InNodeName, string InOutputName)
+		{
+			NodeName = InNodeName;
+			OutputName = InOutputName;
+		}
+
+		/// <summary>
+		/// Tests whether two temp storage blocks are equal
+		/// </summary>
+		/// <param name="Other">The object to compare against</param>
+		/// <returns>True if the blocks are equivalent</returns>
+		public override bool Equals(object Other)
+		{
+			TempStorageBlock OtherBlock = Other as TempStorageBlock;
+			return OtherBlock != null && NodeName == OtherBlock.NodeName && OutputName == OtherBlock.OutputName;
+		}
+
+		/// <summary>
+		/// Returns a hash code for this block name
+		/// </summary>
+		/// <returns>Hash code for the block</returns>
+		public override int GetHashCode()
+		{
+			return ToString().GetHashCode();
+		}
+
+		/// <summary>
+		/// Returns the name of this block for debugging purposes
+		/// </summary>
+		/// <returns>Name of this block as a string</returns>
+		public override string ToString()
+		{
+			return String.Format("{0}/{1}", NodeName, OutputName);
+		}
+	}
+
+	/// <summary>
 	/// Information about a single file in temp storage
 	/// </summary>
 	[DebuggerDisplay("{RelativePath}")]
@@ -245,6 +310,109 @@ namespace AutomationTool
 	}
 
 	/// <summary>
+	/// Stores the contents of a tagged file set
+	/// </summary>
+	public class TempStorageFileList
+	{
+		/// <summary>
+		/// List of files that are in this tag set, relative to the root directory
+		/// </summary>
+		[XmlArray]
+		[XmlArrayItem("LocalFile")]
+		public string[] LocalFiles;
+
+		/// <summary>
+		/// List of files that are in this tag set, but not relative to the root directory
+		/// </summary>
+		[XmlArray]
+		[XmlArrayItem("LocalFile")]
+		public string[] ExternalFiles;
+
+		/// <summary>
+		/// List of referenced storage blocks
+		/// </summary>
+		[XmlArray]
+		[XmlArrayItem("Block")]
+		public TempStorageBlock[] Blocks;
+
+		/// <summary>
+		/// Construct a static Xml serializer to avoid throwing an exception searching for the reflection info at runtime
+		/// </summary>
+		static XmlSerializer Serializer = XmlSerializer.FromTypes(new Type[]{ typeof(TempStorageFileList) })[0];
+
+		/// <summary>
+		/// Construct an empty file list for deserialization
+		/// </summary>
+		private TempStorageFileList()
+		{
+		}
+
+		/// <summary>
+		/// Creates a manifest from a flat list of files (in many folders) and a BaseFolder from which they are rooted.
+		/// </summary>
+		/// <param name="InFiles">List of full file paths</param>
+		/// <param name="RootDir">Root folder for all the files. All files must be relative to this RootDir.</param>
+		/// <param name="InStorageBlocks">Referenced storage blocks required for these files</param>
+		public TempStorageFileList(IEnumerable<FileReference> InFiles, DirectoryReference RootDir, IEnumerable<TempStorageBlock> InBlocks)
+		{
+			List<string> NewLocalFiles = new List<string>();
+			List<string> NewExternalFiles = new List<string>();
+			foreach(FileReference File in InFiles)
+			{
+				if(File.IsUnderDirectory(RootDir))
+				{
+					NewLocalFiles.Add(File.MakeRelativeTo(RootDir));
+				}
+				else
+				{
+					NewExternalFiles.Add(File.FullName);
+				}
+			}
+			LocalFiles = NewLocalFiles.ToArray();
+			ExternalFiles = NewExternalFiles.ToArray();
+
+			Blocks = InBlocks.ToArray();
+		}
+
+		/// <summary>
+		/// Load this list of files from disk
+		/// </summary>
+		/// <param name="File">File to load</param>
+		static public TempStorageFileList Load(FileReference File)
+		{
+			using(StreamReader Reader = new StreamReader(File.FullName))
+			{
+				return (TempStorageFileList)Serializer.Deserialize(Reader);
+			}
+		}
+
+		/// <summary>
+		/// Saves this list of files to disk
+		/// </summary>
+		/// <param name="File">File to save</param>
+		public void Save(FileReference File)
+		{
+			using(StreamWriter Writer = new StreamWriter(File.FullName))
+			{
+				Serializer.Serialize(Writer, this);
+			}
+		}
+
+		/// <summary>
+		/// Converts this file list into a set of FileReference objects
+		/// </summary>
+		/// <param name="RootDir">The root directory to rebase local files</param>
+		/// <returns>Set of files</returns>
+		public HashSet<FileReference> ToFileSet(DirectoryReference RootDir)
+		{
+			HashSet<FileReference> Files = new HashSet<FileReference>();
+			Files.UnionWith(LocalFiles.Select(x => FileReference.Combine(RootDir, x)));
+			Files.UnionWith(ExternalFiles.Select(x => new FileReference(x)));
+			return Files;
+		}
+	}
+
+	/// <summary>
 	/// Tracks the state of the current build job using the filesystem, allowing jobs to be restarted after a failure or expanded to include larger targets, and 
 	/// providing a proxy for different machines executing parts of the build in parallel to transfer build products and share state as part of a build system.
 	/// 
@@ -364,9 +532,9 @@ namespace AutomationTool
 		/// Checks the integrity of the give node's local build products.
 		/// </summary>
 		/// <param name="NodeName">The node to retrieve build products for</param>
-		/// <param name="OutputNames">List of output names from this node.</param>
+		/// <param name="TagNames">List of tag names from this node.</param>
 		/// <returns>True if the node is complete and valid, false if not (and typically followed by a call to CleanNode()).</returns>
-		public bool CheckLocalIntegrity(string NodeName, IEnumerable<string> OutputNames)
+		public bool CheckLocalIntegrity(string NodeName, IEnumerable<string> TagNames)
 		{
 			// If the node is not locally complete, fail immediately.
 			FileReference CompleteMarkerFile = GetCompleteMarkerFile(LocalDir, NodeName);
@@ -375,11 +543,46 @@ namespace AutomationTool
 				return false;
 			}
 
-			// Check that each of the outputs match
-			foreach(string OutputName in OutputNames)
+			// Check that each of the tags exist
+			HashSet<TempStorageBlock> Blocks = new HashSet<TempStorageBlock>();
+			foreach(string TagName in TagNames)
 			{
 				// Check the local manifest exists
-				FileReference LocalManifestFile = GetManifestFile(LocalDir, NodeName, OutputName);
+				FileReference LocalFileListLocation = GetTaggedFileListLocation(LocalDir, NodeName, TagName);
+				if(!LocalFileListLocation.Exists())
+				{
+					return false;
+				}
+
+				// Check the local manifest matches the shared manifest
+				if(SharedDir != null)
+				{
+					// Check the shared manifest exists
+					FileReference SharedFileListLocation = GetManifestLocation(SharedDir, NodeName, TagName);
+					if(!SharedFileListLocation.Exists())
+					{
+						return false;
+					}
+
+					// Check the manifests are identical, byte by byte
+					byte[] LocalManifestBytes = File.ReadAllBytes(LocalFileListLocation.FullName);
+					byte[] SharedManifestBytes = File.ReadAllBytes(SharedFileListLocation.FullName);
+					if(!LocalManifestBytes.SequenceEqual(SharedManifestBytes))
+					{
+						return false;
+					}
+				}
+
+				// Read the manifest and add the referenced blocks to be checked
+				TempStorageFileList LocalFileList = TempStorageFileList.Load(LocalFileListLocation);
+				Blocks.UnionWith(LocalFileList.Blocks);
+			}
+
+			// Check that each of the outputs match
+			foreach(TempStorageBlock Block in Blocks)
+			{
+				// Check the local manifest exists
+				FileReference LocalManifestFile = GetManifestLocation(LocalDir, Block.NodeName, Block.OutputName);
 				if(!LocalManifestFile.Exists())
 				{
 					return false;
@@ -389,7 +592,7 @@ namespace AutomationTool
 				if(SharedDir != null)
 				{
 					// Check the shared manifest exists
-					FileReference SharedManifestFile = GetManifestFile(SharedDir, NodeName, OutputName);
+					FileReference SharedManifestFile = GetManifestLocation(SharedDir, Block.NodeName, Block.OutputName);
 					if(!SharedManifestFile.Exists())
 					{
 						return false;
@@ -415,14 +618,88 @@ namespace AutomationTool
 		}
 
 		/// <summary>
+		/// Reads a set of tagged files from disk
+		/// </summary>
+		/// <param name="NodeName">Name of the node which produced the tag set</param>
+		/// <param name="TagName">Name of the tag, with a '#' prefix</param>
+		/// <returns>The set of files</returns>
+		public TempStorageFileList ReadFileList(string NodeName, string TagName)
+		{
+			TempStorageFileList FileList;
+
+			// Try to read the tag set from the local directory
+			FileReference LocalFileListLocation = GetTaggedFileListLocation(LocalDir, NodeName, TagName);
+			if(LocalFileListLocation.Exists())
+			{
+				CommandUtils.Log("Reading local file list from {0}", LocalFileListLocation.FullName);
+				FileList = TempStorageFileList.Load(LocalFileListLocation);
+			}
+			else
+			{
+				// Check we have shared storage
+				if(SharedDir == null)
+				{
+					throw new AutomationException("Missing local file list - {0}", LocalFileListLocation.FullName);
+				}
+
+				// Make sure the manifest exists
+				FileReference SharedFileListLocation = GetTaggedFileListLocation(SharedDir, NodeName, TagName);
+				if(!SharedFileListLocation.Exists())
+				{
+					throw new AutomationException("Missing local or shared file list - {0}", SharedFileListLocation.FullName);
+				}
+
+				// Read the shared manifest
+				CommandUtils.Log("Copying shared tag set from {0} to {1}", SharedFileListLocation.FullName, LocalFileListLocation.FullName);
+				FileList = TempStorageFileList.Load(SharedFileListLocation);
+
+				// Save the manifest locally
+				LocalFileListLocation.Directory.CreateDirectory();
+				FileList.Save(LocalFileListLocation);
+			}
+			return FileList;
+		}
+
+		/// <summary>
+		/// Writes a list of tagged files to disk
+		/// </summary>
+		/// <param name="NodeName">Name of the node which produced the tag set</param>
+		/// <param name="TagName">Name of the tag, with a '#' prefix</param>
+		/// <returns>The set of files</returns>
+		public void WriteFileList(string NodeName, string TagName, IEnumerable<FileReference> Files, IEnumerable<TempStorageBlock> Blocks)
+		{
+			// Create the file list
+			TempStorageFileList FileList = new TempStorageFileList(Files, RootDir, Blocks);
+
+			// Save the set of files to the local and shared locations
+			FileReference LocalFileListLocation = GetTaggedFileListLocation(LocalDir, NodeName, TagName);
+			if(SharedDir != null && bWriteToSharedStorage)
+			{
+				FileReference SharedFileListLocation = GetTaggedFileListLocation(SharedDir, NodeName, TagName);
+				CommandUtils.Log("Saving file list to {0} and {1}", LocalFileListLocation.FullName, SharedFileListLocation.FullName);
+
+				SharedFileListLocation.Directory.CreateDirectory();
+				FileList.Save(SharedFileListLocation);
+			}
+			else
+			{
+				CommandUtils.Log("Saving file list to {0}", LocalFileListLocation.FullName);
+			}
+
+			// Save the local file list
+			LocalFileListLocation.Directory.CreateDirectory();
+			FileList.Save(LocalFileListLocation);
+		}
+
+		/// <summary>
 		/// Saves the given files (that should be rooted at the branch root) to a shared temp storage manifest with the given temp storage node and game.
 		/// </summary>
-		/// <param name="NodeName">The node which these build products belong to</param>
-		/// <param name="OutputName">The output name of the node.</param>
+		/// <param name="NodeName">The node which created the storage block</param>
+		/// <param name="BlockName">Name of the block to retrieve. May be null or empty.</param>
 		/// <param name="BuildProducts">Array of build products to be archived</param>
 		/// <param name="bPushToRemote">Allow skipping the copying of this manifest to shared storage, because it's not required by any other agent</param>
 		/// <returns>The created manifest instance (which has already been saved to disk).</returns>
-		public TempStorageManifest Archive(string NodeName, string OutputName, FileReference[] BuildProducts, bool bPushToRemote = true)
+		public TempStorageManifest Archive(string NodeName, string BlockName, FileReference[] BuildProducts, bool bPushToRemote = true)
 		{
 			using(TelemetryStopwatch TelemetryStopwatch = new TelemetryStopwatch("StoreToTempStorage"))
 			{
@@ -439,27 +716,26 @@ namespace AutomationTool
 				if(bRemote)
 				{
 					// Create the shared directory for this node
-					DirectoryReference SharedNodeDir = GetDirectoryForNode(SharedDir, NodeName);
-					SharedNodeDir.CreateDirectory();
+					FileReference SharedManifestFile = GetManifestLocation(SharedDir, NodeName, BlockName);
+					SharedManifestFile.Directory.CreateDirectory();
 
 					// Zip all the build products
-					FileInfo[] ZipFiles = ParallelZipFiles(Files, RootDir, SharedNodeDir, LocalNodeDir, OutputName);
+					FileInfo[] ZipFiles = ParallelZipFiles(Files, RootDir, SharedManifestFile.Directory, LocalNodeDir, SharedManifestFile.GetFileNameWithoutExtension());
 					Manifest.ZipFiles = ZipFiles.Select(x => new TempStorageZipFile(x)).ToArray();
 
 					// Save the shared manifest
-					FileReference SharedManifestFile = GetManifestFile(SharedDir, NodeName, OutputName);
 					CommandUtils.Log("Saving shared manifest to {0}", SharedManifestFile.FullName);
 					Manifest.Save(SharedManifestFile);
 				}
 
 				// Save the local manifest
-				FileReference LocalManifestFile = GetManifestFile(LocalDir, NodeName, OutputName);
+				FileReference LocalManifestFile = GetManifestLocation(LocalDir, NodeName, BlockName);
 				CommandUtils.Log("Saving local manifest to {0}", LocalManifestFile.FullName);
 				Manifest.Save(LocalManifestFile);
 
 				// Update the stats
 				long ZipFilesTotalSize = (Manifest.ZipFiles == null)? 0 : Manifest.ZipFiles.Sum(x => x.Length);
-				TelemetryStopwatch.Finish(string.Format("StoreToTempStorage.{0}.{1}.{2}.{3}.{4}.{5}.{6}", Files.Length, Manifest.GetTotalSize(), ZipFilesTotalSize, bRemote? "Remote" : "Local", 0, 0, OutputName));
+				TelemetryStopwatch.Finish(string.Format("StoreToTempStorage.{0}.{1}.{2}.{3}.{4}.{5}.{6}", Files.Length, Manifest.GetTotalSize(), ZipFilesTotalSize, bRemote? "Remote" : "Local", 0, 0, BlockName));
 				return Manifest;
 			}
 		}
@@ -467,15 +743,15 @@ namespace AutomationTool
 		/// <summary>
 		/// Retrieve an output of the given node. Fetches and decompresses the files from shared storage if necessary, or validates the local files.
 		/// </summary>
-		/// <param name="NodeName">The node to retrieve build products for</param>
-		/// <param name="OutputName">The name of the node's output. May be null.</param>
+		/// <param name="NodeName">The node which created the storage block</param>
+		/// <param name="BlockName">Name of the block to retrieve. May be null or empty.</param>
 		/// <returns>Manifest of the files retrieved</returns>
 		public TempStorageManifest Retreive(string NodeName, string OutputName)
 		{
 			using(var TelemetryStopwatch = new TelemetryStopwatch("RetrieveFromTempStorage"))
 			{
 				// Get the path to the local manifest
-				FileReference LocalManifestFile = GetManifestFile(LocalDir, NodeName, OutputName);
+				FileReference LocalManifestFile = GetManifestLocation(LocalDir, NodeName, OutputName);
 				bool bLocal = LocalManifestFile.Exists();
 
 				// Read the manifest, either from local storage or shared storage
@@ -494,7 +770,7 @@ namespace AutomationTool
 					}
 
 					// Get the shared directory for this node
-					FileReference SharedManifestFile = GetManifestFile(SharedDir, NodeName, OutputName);
+					FileReference SharedManifestFile = GetManifestLocation(SharedDir, NodeName, OutputName);
 
 					// Make sure the manifest exists
 					if(!SharedManifestFile.Exists())
@@ -746,9 +1022,21 @@ namespace AutomationTool
 		/// <param name="BaseDir">A local or shared temp storage root directory.</param>
 		/// <param name="NodeName">Name of the node to get the file for</param>
 		/// <param name="OutputName">Name of the output to get the manifest for</param>
-		static FileReference GetManifestFile(DirectoryReference BaseDir, string NodeName, string OutputName)
+		static FileReference GetManifestLocation(DirectoryReference BaseDir, string NodeName, string BlockName)
 		{
-			return FileReference.Combine(BaseDir, NodeName, String.Format("Output-{0}.xml", OutputName));
+			return FileReference.Combine(BaseDir, NodeName, String.IsNullOrEmpty(BlockName)? "Manifest.xml" : String.Format("Manifest-{0}.xml", BlockName));
+		}
+
+		/// <summary>
+		/// Gets the path to the file created to store a tag manifest for a node
+		/// </summary>
+		/// <param name="BaseDir">A local or shared temp storage root directory.</param>
+		/// <param name="NodeName">Name of the node to get the file for</param>
+		/// <param name="OutputName">Name of the output to get the manifest for</param>
+		static FileReference GetTaggedFileListLocation(DirectoryReference BaseDir, string NodeName, string TagName)
+		{
+			Debug.Assert(TagName.StartsWith("#"));
+			return FileReference.Combine(BaseDir, NodeName, String.Format("Tag-{0}.xml", TagName.Substring(1)));
 		}
 
 		/// <summary>

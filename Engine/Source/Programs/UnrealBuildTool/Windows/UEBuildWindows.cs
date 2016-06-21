@@ -530,7 +530,7 @@ namespace UnrealBuildTool
 		public static readonly bool bCompileWithClang = false;
 
 		/// When using Clang, enabling enables the MSVC-like "clang-cl" wrapper, otherwise we pass arguments to Clang directly
-		public static readonly bool bUseVCCompilerArgs = !bCompileWithClang || false;
+		public static readonly bool bUseVCCompilerArgs = true;
 
 		/// True if we should use the Clang linker (LLD) when bCompileWithClang is enabled, otherwise we use the MSVC linker
 		public static readonly bool bAllowClangLinker = bCompileWithClang && false;

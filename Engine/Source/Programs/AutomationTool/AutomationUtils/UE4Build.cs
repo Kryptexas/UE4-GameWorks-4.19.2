@@ -141,7 +141,7 @@ namespace AutomationTool
 
 				MsBuild(CmdEnv,
 						CmdEnv.LocalRoot + @"/Engine/Source/Programs/UnrealBuildTool/" + HostPlatform.Current.UBTProjectName + @".csproj",
-						"/verbosity:minimal /target:Rebuild /property:Configuration=Development /property:Platform=AnyCPU",
+						"/verbosity:minimal /nologo /target:Rebuild /property:Configuration=Development /property:Platform=AnyCPU",
 						"BuildUBT");
 
 				bIsUBTReady = true;
@@ -1288,7 +1288,7 @@ namespace AutomationTool
 				string SwarmSolution = Path.Combine(CmdEnv.LocalRoot, Agenda.SwarmProject);
 				PrepareBuildProductsForCSharpProj(SwarmSolution);
 
-				BuildSolution(CmdEnv, SwarmSolution);
+				BuildSolution(CmdEnv, SwarmSolution, "Development", "Mixed Platforms");
 				AddSwarmBuildProducts();
 			}
 
@@ -1298,7 +1298,7 @@ namespace AutomationTool
 
 				PrepareBuildProductsForCSharpProj(Solution);
 
-				BuildSolution(CmdEnv, Solution);
+				BuildSolution(CmdEnv, Solution, "Development", "Any CPU");
 
 				AddBuildProductsForCSharpProj(Solution);
 			}

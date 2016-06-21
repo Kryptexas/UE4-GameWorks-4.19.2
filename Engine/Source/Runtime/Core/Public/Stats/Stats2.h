@@ -1167,7 +1167,7 @@ private:
 
 public:
 	/** Default constructor. */
-	FThreadStatsPool();
+	CORE_API FThreadStatsPool();
 
 	/** Singleton accessor. */
 	CORE_API static FThreadStatsPool& Get()

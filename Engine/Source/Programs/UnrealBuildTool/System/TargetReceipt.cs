@@ -286,6 +286,16 @@ namespace UnrealBuildTool
 		public RuntimeDependencyList RuntimeDependencies = new RuntimeDependencyList();
 
 		/// <summary>
+		/// All the files which are required to use precompiled binaries with this target
+		/// </summary>
+		public HashSet<string> PrecompiledBuildDependencies = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+
+		/// <summary>
+		/// All the files which are required runtime dependencies for precompiled binaries that are part of this target
+		/// </summary>
+		public HashSet<string> PrecompiledRuntimeDependencies = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+
+		/// <summary>
 		/// Additional build properties passed through from the module rules
 		/// </summary>
 		public List<ReceiptProperty> AdditionalProperties = new List<ReceiptProperty>();
@@ -327,6 +337,8 @@ namespace UnrealBuildTool
 				RuntimeDependencies.Add(new RuntimeDependency(OtherRuntimeDependency));
 			}
 			AdditionalProperties.AddRange(Other.AdditionalProperties);
+			PrecompiledBuildDependencies.UnionWith(Other.PrecompiledBuildDependencies);
+			PrecompiledRuntimeDependencies.UnionWith(Other.PrecompiledRuntimeDependencies);
 		}
 
 		/// <summary>
@@ -359,6 +371,8 @@ namespace UnrealBuildTool
 					RuntimeDependencies.Add(OtherRuntimeDependency);
 				}
 			}
+			PrecompiledBuildDependencies.UnionWith(Other.PrecompiledBuildDependencies);
+			PrecompiledRuntimeDependencies.UnionWith(Other.PrecompiledRuntimeDependencies);
 		}
 
 		/// <summary>
@@ -392,6 +406,10 @@ namespace UnrealBuildTool
 			{
 				RuntimeDependency.Path = Utils.ExpandVariables(RuntimeDependency.Path, Variables);
 			}
+
+			// Replace the variables in the precompiled dependencies
+			PrecompiledBuildDependencies = new HashSet<string>(PrecompiledBuildDependencies.Select(x => Utils.ExpandVariables(x, Variables)), StringComparer.InvariantCultureIgnoreCase);
+			PrecompiledRuntimeDependencies = new HashSet<string>(PrecompiledRuntimeDependencies.Select(x => Utils.ExpandVariables(x, Variables)), StringComparer.InvariantCultureIgnoreCase);
 		}
 
 		/// <summary>
@@ -553,6 +571,20 @@ namespace UnrealBuildTool
 				}
 			}
 
+			// Read the precompiled dependencies
+			string[] PrecompiledBuildDependencies;
+			if(RawObject.TryGetStringArrayField("PrecompiledBuildDependencies", out PrecompiledBuildDependencies))
+			{
+				Receipt.PrecompiledBuildDependencies.UnionWith(PrecompiledBuildDependencies);
+			}
+
+			// Read the precompiled dependencies
+			string[] PrecompiledRuntimeDependencies;
+			if(RawObject.TryGetStringArrayField("PrecompiledRuntimeDependencies", out PrecompiledRuntimeDependencies))
+			{
+				Receipt.PrecompiledRuntimeDependencies.UnionWith(PrecompiledRuntimeDependencies);
+			}
+
 			return Receipt;
 		}
 
@@ -631,6 +663,26 @@ namespace UnrealBuildTool
 						Writer.WriteValue("Name", AdditionalProperty.Name);
 						Writer.WriteValue("Value", AdditionalProperty.Value);
 						Writer.WriteObjectEnd();
+					}
+					Writer.WriteArrayEnd();
+				}
+
+				if(PrecompiledBuildDependencies.Count > 0)
+				{
+					Writer.WriteArrayStart("PrecompiledBuildDependencies");
+					foreach(string PrecompiledBuildDependency in PrecompiledBuildDependencies.OrderBy(x => x))
+					{
+						Writer.WriteValue(PrecompiledBuildDependency);
+					}
+					Writer.WriteArrayEnd();
+				}
+
+				if(PrecompiledRuntimeDependencies.Count > 0)
+				{
+					Writer.WriteArrayStart("PrecompiledRuntimeDependencies");
+					foreach(string PrecompiledRuntimeDependency in PrecompiledRuntimeDependencies.OrderBy(x => x))
+					{
+						Writer.WriteValue(PrecompiledRuntimeDependency);
 					}
 					Writer.WriteArrayEnd();
 				}

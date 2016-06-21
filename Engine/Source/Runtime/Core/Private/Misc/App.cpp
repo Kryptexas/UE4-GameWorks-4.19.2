@@ -179,6 +179,13 @@ bool FApp::IsEngineInstalled()
 	return EngineInstalledState == 1;
 }
 
+#if PLATFORM_WINDOWS && defined(__clang__)
+bool FApp::IsUnattended() // @todo clang: Workaround for missing symbol export
+{
+	static bool bIsUnattended = FParse::Param(FCommandLine::Get(), TEXT("UNATTENDED"));
+	return bIsUnattended || GIsAutomationTesting;
+}
+#endif
 
 #if HAVE_RUNTIME_THREADING_SWITCHES
 bool FApp::ShouldUseThreadingForPerformance()

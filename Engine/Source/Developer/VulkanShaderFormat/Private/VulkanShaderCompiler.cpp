@@ -198,22 +198,22 @@ static inline FString GetExtension(EHlslShaderFrequency Frequency, bool bAddDot 
 		// fallthrough...
 
 	case HSF_PixelShader:
-		return TEXT(".frag") + (bAddDot ? 0 : 1);
+		return bAddDot ? TEXT(".frag") : TEXT("frag");
 
 	case HSF_VertexShader:
-		return TEXT(".vert") + (bAddDot ? 0 : 1);
+		return bAddDot ? TEXT(".vert") : TEXT("vert");
 
 	case HSF_ComputeShader:
-		return TEXT(".comp") + (bAddDot ? 0 : 1);
+		return bAddDot ? TEXT(".comp") : TEXT("comp");
 
 	case HSF_GeometryShader:
-		return TEXT(".geom") + (bAddDot ? 0 : 1);
+		return bAddDot ? TEXT(".geom") : TEXT("geom");
 
 	case HSF_HullShader:
-		return TEXT(".tesc") + (bAddDot ? 0 : 1);
+		return bAddDot ? TEXT(".tesc") : TEXT("tesc");
 
 	case HSF_DomainShader:
-		return TEXT(".tese") + (bAddDot ? 0 : 1);
+		return bAddDot ? TEXT(".tese") : TEXT("tese");
 	}
 }
 

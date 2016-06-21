@@ -345,14 +345,20 @@ namespace UnrealBuildTool
 		{
 			WriteCommaNewline();
 
-			Writer.Write("{0}\"{1}\"", Indent, Value);
+			Writer.Write(Indent);
+			WriteEscapedString(Value);
 
 			bRequiresComma = true;
 		}
 
 		public void WriteValue(string Name, string Value)
 		{
-			WriteValueInternal(Name, '"' + (Value ?? "").Replace("\\", "\\\\") + '"');
+			WriteCommaNewline();
+
+			Writer.Write("{0}\"{1}\" : ", Indent, Name);
+			WriteEscapedString(Value);
+
+			bRequiresComma = true;
 		}
 
 		public void WriteValue(string Name, int Value)
@@ -389,6 +395,53 @@ namespace UnrealBuildTool
 			Writer.Write("{0}\"{1}\" : {2}", Indent, Name, Value);
 
 			bRequiresComma = true;
+		}
+
+		void WriteEscapedString(string Value)
+		{
+			// Escape any characters which may not appear in a JSON string (see http://www.json.org).
+			Writer.Write("\"");
+			if(Value != null)
+			{
+				for(int Idx = 0; Idx < Value.Length; Idx++)
+				{
+					switch(Value[Idx])
+					{
+						case '\"':
+							Writer.Write("\\\"");
+							break;
+						case '\\':
+							Writer.Write("\\\\");
+							break;
+						case '\b':
+							Writer.Write("\\b");
+							break;
+						case '\f':
+							Writer.Write("\\f");
+							break;
+						case '\n':
+							Writer.Write("\\n");
+							break;
+						case '\r':
+							Writer.Write("\\r");
+							break;
+						case '\t':
+							Writer.Write("\\t");
+							break;
+						default:
+							if(Char.IsControl(Value[Idx]))
+							{
+								Writer.Write("\\u{0:X4}", (int)Value[Idx]);
+							}
+							else
+							{
+								Writer.Write(Value[Idx]);
+							}
+							break;
+					}
+				}
+			}
+			Writer.Write("\"");
 		}
 	}
 }

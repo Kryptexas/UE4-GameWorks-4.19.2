@@ -1683,6 +1683,40 @@ namespace UnrealBuildTool
 		{
 			string FileListPath = "../Intermediate/Build/ExternalFiles.xml";
 
+			// Create a set of filenames
+			HashSet<FileReference> Files = new HashSet<FileReference>();
+			GetExternalFileList(Files);
+
+			// Normalize all the filenames
+			HashSet<string> NormalizedFileNames = new HashSet<string>(StringComparer.CurrentCultureIgnoreCase);
+			foreach (string FileName in Files.Select(x => x.FullName))
+			{
+				string NormalizedFileName = FileName.Replace('\\', '/');
+				NormalizedFileNames.Add(NormalizedFileName);
+			}
+
+			// Add the existing filenames
+			if (UEBuildConfiguration.bMergeExternalFileList)
+			{
+				foreach (string FileName in Utils.ReadClass<ExternalFileList>(FileListPath).FileNames)
+				{
+					NormalizedFileNames.Add(FileName);
+				}
+			}
+
+			// Write the output list
+			ExternalFileList FileList = new ExternalFileList();
+			FileList.FileNames.AddRange(NormalizedFileNames);
+			FileList.FileNames.Sort();
+			Utils.WriteClass<ExternalFileList>(FileList, FileListPath, "");
+		}
+
+		/// <summary>
+		/// Create a list of all the externally referenced files
+		/// </summary>
+		/// <param name="Files">Set of referenced files</param>
+		void GetExternalFileList(HashSet<FileReference> Files)
+		{
 			// Find all the modules we depend on
 			HashSet<UEBuildModule> Modules = new HashSet<UEBuildModule>();
 			foreach (UEBuildBinary Binary in AppBinaries)
@@ -1692,9 +1726,6 @@ namespace UnrealBuildTool
 					Modules.Add(Module);
 				}
 			}
-
-			// Create a set of filenames
-			HashSet<string> FileNames = new HashSet<string>(StringComparer.CurrentCultureIgnoreCase);
 
 			// Get the platform we're building for
 			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
@@ -1708,7 +1739,7 @@ namespace UnrealBuildTool
 				// Add Additional Bundle Resources for all modules
 				foreach (UEBuildBundleResource Resource in Rules.AdditionalBundleResources)
 				{
-					FileNames.Add(Resource.ResourcePath);
+					Files.Add(new FileReference(Resource.ResourcePath));
 				}
 
 				// Add all the include paths etc. for external modules
@@ -1716,7 +1747,7 @@ namespace UnrealBuildTool
 				if (ExternalModule != null)
 				{
 					// Add the rules file itself
-					FileNames.Add(ModuleRulesFileName.FullName);
+					Files.Add(ModuleRulesFileName);
 
 					// Get a list of all the library paths
 					List<string> LibraryPaths = new List<string>();
@@ -1738,13 +1769,13 @@ namespace UnrealBuildTool
 								string LibraryFileName = Path.Combine(LibraryPath, LibraryName);
 								if (File.Exists(LibraryFileName))
 								{
-									FileNames.Add(LibraryFileName);
+									Files.Add(new FileReference(LibraryFileName));
 								}
 
 								string UnixLibraryFileName = Path.Combine(LibraryPath, "lib" + LibraryName + LibraryExtension);
 								if (File.Exists(UnixLibraryFileName))
 								{
-									FileNames.Add(UnixLibraryFileName);
+									Files.Add(new FileReference(UnixLibraryFileName));
 								}
 							}
 						}
@@ -1756,7 +1787,7 @@ namespace UnrealBuildTool
 						string ShadowFileName = Path.GetFullPath(AdditionalShadowFile);
 						if (File.Exists(ShadowFileName))
 						{
-							FileNames.Add(ShadowFileName);
+							Files.Add(new FileReference(ShadowFileName));
 						}
 					}
 
@@ -1775,36 +1806,13 @@ namespace UnrealBuildTool
 								string Extension = Path.GetExtension(IncludeFileName).ToLower();
 								if (Extension == ".h" || Extension == ".inl")
 								{
-									FileNames.Add(IncludeFileName);
+									Files.Add(new FileReference(IncludeFileName));
 								}
 							}
 						}
 					}
 				}
 			}
-
-			// Normalize all the filenames
-			HashSet<string> NormalizedFileNames = new HashSet<string>(StringComparer.CurrentCultureIgnoreCase);
-			foreach (string FileName in FileNames)
-			{
-				string NormalizedFileName = Path.GetFullPath(FileName).Replace('\\', '/');
-				NormalizedFileNames.Add(NormalizedFileName);
-			}
-
-			// Add the existing filenames
-			if (UEBuildConfiguration.bMergeExternalFileList)
-			{
-				foreach (string FileName in Utils.ReadClass<ExternalFileList>(FileListPath).FileNames)
-				{
-					NormalizedFileNames.Add(FileName);
-				}
-			}
-
-			// Write the output list
-			ExternalFileList FileList = new ExternalFileList();
-			FileList.FileNames.AddRange(NormalizedFileNames);
-			FileList.FileNames.Sort();
-			Utils.WriteClass<ExternalFileList>(FileList, FileListPath, "");
 		}
 
 		/// <summary>
@@ -2004,6 +2012,43 @@ namespace UnrealBuildTool
 							}
 							Receipt.AdditionalProperties.AddRange(Module.Rules.AdditionalPropertiesForReceipt);
 						}
+					}
+				}
+			}
+
+			// Add any dependencies of precompiled modules into the receipt
+			if(bPrecompile)
+			{
+				// Add the runtime dependencies of precompiled modules that are not directly part of this target
+				foreach (UEBuildBinaryCPP Binary in AppBinaries.OfType<UEBuildBinaryCPP>())
+				{
+					if(PrecompiledBinaries.Contains(Binary))
+					{
+						foreach (UEBuildModule Module in Binary.Modules)
+						{
+							if (UniqueLinkedModules.Add(Module))
+							{
+								foreach (RuntimeDependency RuntimeDependency in Module.RuntimeDependencies)
+								{
+									string SourcePath = TargetReceipt.InsertPathVariables(RuntimeDependency.Path, UnrealBuildTool.EngineDirectory, ProjectDirectory);
+									Receipt.PrecompiledRuntimeDependencies.Add(SourcePath);
+								}
+							}
+						}
+					}
+				}
+
+				// Add all the files which are required to use the precompiled modules
+				HashSet<FileReference> ExternalFiles = new HashSet<FileReference>();
+				GetExternalFileList(ExternalFiles);
+
+				// Convert them into relative to the target receipt
+				foreach(FileReference ExternalFile in ExternalFiles)
+				{
+					if(ExternalFile.IsUnderDirectory(UnrealBuildTool.EngineDirectory) || ExternalFile.IsUnderDirectory(ProjectDirectory))
+					{
+						string VariablePath = TargetReceipt.InsertPathVariables(ExternalFile, UnrealBuildTool.EngineDirectory, ProjectDirectory);
+						Receipt.PrecompiledBuildDependencies.Add(VariablePath);
 					}
 				}
 			}

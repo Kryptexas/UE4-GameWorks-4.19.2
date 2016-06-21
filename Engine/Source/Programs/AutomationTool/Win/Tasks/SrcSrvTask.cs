@@ -125,6 +125,31 @@ namespace Win.Automation
         }
 
 		/// <summary>
+		/// Find all the tags which are used as inputs to this task
+		/// </summary>
+		/// <returns>The tag names which are read by this task</returns>
+		public override IEnumerable<string> FindConsumedTagNames()
+		{
+			foreach(string TagName in FindTagNamesFromFilespec(Parameters.BinaryFiles))
+			{
+				yield return TagName;
+			}
+			foreach(string TagName in FindTagNamesFromFilespec(Parameters.SourceFiles))
+			{
+				yield return TagName;
+			}
+		}
+
+		/// <summary>
+		/// Find all the tags which are modified by this task
+		/// </summary>
+		/// <returns>The tag names which are modified by this task</returns>
+		public override IEnumerable<string> FindProducedTagNames()
+		{
+			yield break;
+		}
+
+		/// <summary>
 		/// Try to get the PDBSTR.EXE path from the given Windows SDK version
 		/// </summary>
 		/// <param name="SdkVersion">The SDK version string</param>
