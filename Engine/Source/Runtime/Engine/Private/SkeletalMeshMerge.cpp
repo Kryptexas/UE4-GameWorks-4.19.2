@@ -495,6 +495,10 @@ void FSkeletalMeshMerge::GenerateLODModel( int32 LODIdx )
 
 			int32 MaxColorIdx = SrcLODModel.ColorVertexBuffer.GetNumVertices();
 
+
+			TArray<FSoftSkinVertex> VertexArray;
+			SrcLODModel.GetVertices(VertexArray);
+
 			// keep track of the current base vertex index before adding any new vertices
 			// this will be needed to remap the index buffer values to the new range
 			int32 CurrentBaseVertexIndex = MergedVertexBuffer.Num();
@@ -504,12 +508,11 @@ void FSkeletalMeshMerge::GenerateLODModel( int32 LODIdx )
 				VertexDataType& DestVert = MergedVertexBuffer[MergedVertexBuffer.AddUninitialized()];
 
 				// copy from source vertex
-				const TGPUSkinVertexBase<bExtraBoneInfluencesT>* SrcBaseVert = SrcLODModel.VertexBufferGPUSkin.GetVertexPtr<bExtraBoneInfluencesT>(VertIdx);
-				DestVert.Position = SrcLODModel.VertexBufferGPUSkin.GetVertexPositionFast<bExtraBoneInfluencesT>(SrcBaseVert);
-				DestVert.TangentX = SrcBaseVert->TangentX;
-				DestVert.TangentZ = SrcBaseVert->TangentZ;
-				FMemory::Memcpy(DestVert.InfluenceBones,SrcBaseVert->InfluenceBones,sizeof(SrcBaseVert->InfluenceBones));
-				FMemory::Memcpy(DestVert.InfluenceWeights,SrcBaseVert->InfluenceWeights,sizeof(SrcBaseVert->InfluenceWeights));
+				DestVert.Position = VertexArray[VertIdx].Position;
+				DestVert.TangentX = VertexArray[VertIdx].TangentX;
+				DestVert.TangentZ = VertexArray[VertIdx].TangentZ;
+				FMemory::Memcpy(DestVert.InfluenceBones, VertexArray[VertIdx].InfluenceBones, sizeof(DestVert.InfluenceBones));
+				FMemory::Memcpy(DestVert.InfluenceWeights, VertexArray[VertIdx].InfluenceWeights, sizeof(DestVert.InfluenceWeights));
 
 				// if the mesh uses vertex colors, copy the source color if possible or default to white
 				if( MergeMesh->bHasVertexColors )

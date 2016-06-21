@@ -933,6 +933,11 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 		check( ConInst );
 		ConInst->ConstraintIndex = i; // Set the ConstraintIndex property in the ConstraintInstance.
 		ConInst->CopyConstraintParamsFrom(&ConstraintSetup->DefaultInstance);
+		if(UPhysicsConstraintProfile* DefaultProfile = ConstraintSetup->GetDefaultProfile())
+		{
+			ConInst->CopyProfilePropertiesFrom(DefaultProfile->ProfileProperties);
+		}
+		
 
 		// Get bodies we want to joint
 		FBodyInstance* Body1 = GetBodyInstance(ConInst->ConstraintBone1);
@@ -1063,26 +1068,12 @@ void USkeletalMeshComponent::TermBodiesBelow(FName ParentBoneName)
 
 float USkeletalMeshComponent::GetTotalMassBelowBone(FName InBoneName)
 {
-	UPhysicsAsset* const PhysicsAsset = GetPhysicsAsset();
-	if(!PhysicsAsset || !SkeletalMesh)
-	{
-		return 0.f;
-	}
-
-	// if physics state is invalid - i.e. collision is disabled - or it does not have a valid bodies, this will crash right away
-	if (!IsPhysicsStateCreated()  || !bHasValidBodies)
-	{
-		return 0.f;
-	}
-
-	TArray<int32> BodyIndices;
-	PhysicsAsset->GetBodyIndicesBelow(BodyIndices, InBoneName, SkeletalMesh);
-
 	float TotalMass = 0.f;
-	for(int32 i=0; i<BodyIndices.Num(); i++)
+
+	ForEachBodyBelow(InBoneName, /*bIncludeSelf=*/true, /*bSkipCustomPhysics=*/false, [&TotalMass](FBodyInstance* BI)
 	{
-		TotalMass += Bodies[BodyIndices[i]]->GetBodyMass();
-	}
+		TotalMass += BI->GetBodyMass();
+	});
 
 	return TotalMass;
 }
@@ -1118,37 +1109,23 @@ void USkeletalMeshComponent::SetAllBodiesNotifyRigidBodyCollision(bool bNewNotif
 }
 
 
-void USkeletalMeshComponent::SetAllBodiesBelowSimulatePhysics( const FName& InBoneName, bool bNewSimulate  )
+void USkeletalMeshComponent::SetAllBodiesBelowSimulatePhysics( const FName& InBoneName, bool bNewSimulate, bool bIncludeSelf )
 {
-	UPhysicsAsset* const PhysicsAsset = GetPhysicsAsset();
-	if( !PhysicsAsset || !SkeletalMesh )
+	int32 NumBodiesFound = ForEachBodyBelow(InBoneName, bIncludeSelf, /*bSkipCustomPhysicsType=*/ false, [bNewSimulate](FBodyInstance* BI)
 	{
-		return;
-	}
+		BI->SetInstanceSimulatePhysics(bNewSimulate);
+	});
 
-	// if physics state is invalid - i.e. collision is disabled - or it does not have a valid bodies, this will crash right away
-	if (!IsPhysicsStateCreated()  || !bHasValidBodies)
+	if (NumBodiesFound)
 	{
-		FMessageLog("PIE").Warning(LOCTEXT("InvalidBodies", "Invalid Bodies : Make sure collision is enabled or root bone has body in PhysicsAsset."));
-		return;
+		if (IsSimulatingPhysics())
+		{
+			SetRootBodyIndex(RootBodyData.BodyIndex);	//Update the root body data cache in case animation has moved root body relative to root joint
+		}
+
+		UpdatePostPhysicsTickRegisteredState();
+		UpdateClothTickRegisteredState();
 	}
-
-	TArray<int32> BodyIndices;
-	PhysicsAsset->GetBodyIndicesBelow(BodyIndices, InBoneName, SkeletalMesh);
-
-	for(int32 i=0; i<BodyIndices.Num(); i++)
-	{
-		//UE_LOG(LogSkeletalMesh, Warning, TEXT( "ForceAllBodiesBelowUnfixed %s" ), *InAsset->BodySetup(BodyIndices(i))->BoneName.ToString() );
-		Bodies[BodyIndices[i]]->SetInstanceSimulatePhysics(bNewSimulate);
-	}
-
-	if (IsSimulatingPhysics())
-	{
-		SetRootBodyIndex(RootBodyData.BodyIndex);	//Update the root body data cache in case animation has moved root body relative to root joint
-	}
-
-	UpdatePostPhysicsTickRegisteredState();
-	UpdateClothTickRegisteredState();
 }
 
 
@@ -1242,6 +1219,26 @@ void USkeletalMeshComponent::SetAllMotorsAngularVelocityDrive(bool bEnableSwingD
 	}
 }
 
+void USkeletalMeshComponent::SetConstraintProfile(FName JointName, FName ProfileName)
+{
+	UPhysicsAsset* const PhysicsAsset = GetPhysicsAsset();
+	if (!PhysicsAsset)
+	{
+		return;
+	}
+
+	for (int32 i = 0; i < Constraints.Num(); i++)
+	{
+		FConstraintInstance* ConstraintInstance = Constraints[i];
+		if(ConstraintInstance->JointName == JointName)
+		{
+			if(UPhysicsConstraintProfile* Profile = PhysicsAsset->ConstraintSetup[i]->GetProfile(ProfileName))
+			{
+				ConstraintInstance->CopyProfilePropertiesFrom(Profile->ProfileProperties);
+			}
+		}
+	}
+}
 
 void USkeletalMeshComponent::SetAllMotorsAngularDriveParams(float InSpring, float InDamping, float InForceLimit, bool bSkipCustomPhysicsType)
 {
@@ -1343,52 +1340,36 @@ void USkeletalMeshComponent::SetAllBodiesPhysicsBlendWeight(float PhysicsBlendWe
 }
 
 
-void USkeletalMeshComponent::SetAllBodiesBelowPhysicsBlendWeight( const FName& InBoneName, float PhysicsBlendWeight, bool bSkipCustomPhysicsType )
+void USkeletalMeshComponent::SetAllBodiesBelowPhysicsBlendWeight( const FName& InBoneName, float PhysicsBlendWeight, bool bSkipCustomPhysicsType, bool bIncludeSelf )
 {
-	UPhysicsAsset* const PhysicsAsset = GetPhysicsAsset();
-	if( !PhysicsAsset || !SkeletalMesh )
+	int32 NumBodiesFound = ForEachBodyBelow(InBoneName, bIncludeSelf, bSkipCustomPhysicsType, [PhysicsBlendWeight](FBodyInstance* BI)
 	{
-		return;
-	}
+		BI->PhysicsBlendWeight = PhysicsBlendWeight;
+	});
 
-	// if physics state is invalid - i.e. collision is disabled - or it does not have a valid bodies, this will crash right away
-	if (!IsPhysicsStateCreated()  || !bHasValidBodies)
+	if (NumBodiesFound)
 	{
-		FMessageLog("PIE").Warning(LOCTEXT("InvalidBodies", "Invalid Bodies : Make sure collision is enabled or root bone has body in PhysicsAsset."));
-		return;
-	}
+		bBlendPhysics = false;
 
-	TArray<int32> BodyIndices;
-	PhysicsAsset->GetBodyIndicesBelow(BodyIndices, InBoneName, SkeletalMesh);
-
-	for(int32 i=0; i<BodyIndices.Num(); i++)
-	{
-		Bodies[BodyIndices[i]]->PhysicsBlendWeight = PhysicsBlendWeight;
+		UpdatePostPhysicsTickRegisteredState();
+		UpdateClothTickRegisteredState();
 	}
 }
 
 
 void USkeletalMeshComponent::AccumulateAllBodiesBelowPhysicsBlendWeight( const FName& InBoneName, float PhysicsBlendWeight, bool bSkipCustomPhysicsType )
 {
-	UPhysicsAsset* const PhysicsAsset = GetPhysicsAsset();
-	if( !PhysicsAsset || !SkeletalMesh )
+	int32 NumBodiesFound = ForEachBodyBelow(InBoneName, /*bIncludeSelf=*/ true, /*bSkipCustomPhysicsType=*/ bSkipCustomPhysicsType, [PhysicsBlendWeight](FBodyInstance* BI)
 	{
-		return;
-	}
+		BI->PhysicsBlendWeight = FMath::Min(BI->PhysicsBlendWeight + PhysicsBlendWeight, 1.f);
+	});
 
-	// if physics state is invalid - i.e. collision is disabled - or it does not have a valid bodies, this will crash right away
-	if (!IsPhysicsStateCreated()  || !bHasValidBodies)
+	if (NumBodiesFound)
 	{
-		FMessageLog("PIE").Warning(LOCTEXT("InvalidBodies", "Invalid Bodies : Make sure collision is enabled or root bone has body in PhysicsAsset."));
-		return;
-	}
+		bBlendPhysics = false;
 
-	TArray<int32> BodyIndices;
-	PhysicsAsset->GetBodyIndicesBelow(BodyIndices, InBoneName, SkeletalMesh);
-
-	for(int32 i=0; i<BodyIndices.Num(); i++)
-	{
-		Bodies[BodyIndices[i]]->PhysicsBlendWeight = FMath::Min(Bodies[BodyIndices[i]]->PhysicsBlendWeight + PhysicsBlendWeight, 1.f);
+		UpdatePostPhysicsTickRegisteredState();
+		UpdateClothTickRegisteredState();
 	}
 }
 
@@ -1405,6 +1386,24 @@ FConstraintInstance* USkeletalMeshComponent::FindConstraintInstance(FName ConNam
 	}
 
 	return NULL;
+}
+
+void USkeletalMeshComponent::AddForceToAllBodiesBelow(FVector Force, FName BoneName, bool bAccelChange, bool bIncludeSelf)
+{
+	ForEachBodyBelow(BoneName, bIncludeSelf, /*bSkipCustomPhysics=*/false, [Force, bAccelChange](FBodyInstance* BI)
+	{
+		BI->AddForce(Force, /*bAllowSubstepping=*/ true, bAccelChange);
+	}
+	);
+}
+
+void USkeletalMeshComponent::AddImpulseToAllBodiesBelow(FVector Impulse, FName BoneName, bool bVelChange, bool bIncludeSelf)
+{
+	ForEachBodyBelow(BoneName, bIncludeSelf,/*bSkipCustomPhysics=*/false, [Impulse, bVelChange](FBodyInstance* BI)
+	{
+		BI->AddImpulse(Impulse, bVelChange);
+	}
+	);
 }
 
 #ifndef OLD_FORCE_UPDATE_BEHAVIOR
@@ -1544,22 +1543,22 @@ void USkeletalMeshComponent::UpdateMeshForBrokenConstraints()
 					FConstraintInstance* ChildConstraintInst = FindConstraintInstance(PhysicsAssetBodySetup->BoneName);
 					if( ChildConstraintInst )
 					{
-						if( ChildConstraintInst->bLinearPositionDrive )
+						if( ChildConstraintInst->IsLinearPositionDriveEnabled() )
 						{
 							DEBUGBROKENCONSTRAINTUPDATE(UE_LOG(LogSkeletalMesh, Log, TEXT("      Turning off LinearPositionDrive."));)
 							ChildConstraintInst->SetLinearPositionDrive(false, false, false);
 						}
-						if( ChildConstraintInst->bLinearVelocityDrive )
+						if( ChildConstraintInst->IsLinearVelocityDriveEnabled() )
 						{
 							DEBUGBROKENCONSTRAINTUPDATE(UE_LOG(LogSkeletalMesh, Log, TEXT("      Turning off LinearVelocityDrive."));)
 							ChildConstraintInst->SetLinearVelocityDrive(false, false, false);
 						}
-						if( ChildConstraintInst->bAngularOrientationDrive )
+						if( ChildConstraintInst->IsAngularOrientationDriveEnabled() )
 						{
 							DEBUGBROKENCONSTRAINTUPDATE(UE_LOG(LogSkeletalMesh, Log, TEXT("      Turning off AngularPositionDrive."));)
 							ChildConstraintInst->SetAngularPositionDrive(false, false);
 						}
-						if( ChildConstraintInst->bAngularVelocityDrive )
+						if( ChildConstraintInst->IsAngularVelocityDriveEnabled() )
 						{
 							DEBUGBROKENCONSTRAINTUPDATE(UE_LOG(LogSkeletalMesh, Log, TEXT("      Turning off AngularVelocityDrive."));)
 							ChildConstraintInst->SetAngularVelocityDrive(false, false);
@@ -1653,6 +1652,60 @@ void USkeletalMeshComponent::GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedB
 	}
 }
 
+int32 USkeletalMeshComponent::ForEachBodyBelow(FName BoneName, bool bIncludeSelf, bool bSkipCustomType, TFunctionRef<void(FBodyInstance*)> Func)
+{
+	if (BoneName == NAME_None && bIncludeSelf && !bSkipCustomType)
+	{
+		for (FBodyInstance* BI : Bodies)	//we want all bodies so just iterate the regular array
+		{
+			Func(BI);
+		}
+
+		return Bodies.Num();
+	}
+	else
+	{
+		UPhysicsAsset* const PhysicsAsset = GetPhysicsAsset();
+		if (!PhysicsAsset || !SkeletalMesh)
+		{
+			return 0;
+		}
+
+		// if physics state is invalid - i.e. collision is disabled - or it does not have a valid bodies, this will crash right away
+		if (!IsPhysicsStateCreated() || !bHasValidBodies)
+		{
+			FMessageLog("PIE").Warning(LOCTEXT("InvalidBodies", "Invalid Bodies : Make sure collision is enabled or root bone has body in PhysicsAsset."));
+			return 0;
+		}
+
+		TArray<int32> BodyIndices;
+		BodyIndices.Reserve(Bodies.Num());
+		PhysicsAsset->GetBodyIndicesBelow(BodyIndices, BoneName, SkeletalMesh, bIncludeSelf);
+
+		int32 NumBodiesFound = 0;
+		for (int32 BodyIdx = 0; BodyIdx < BodyIndices.Num(); BodyIdx++)
+		{
+			FBodyInstance* BI = Bodies[BodyIndices[BodyIdx]];
+			if (bSkipCustomType)
+			{
+				if (UBodySetup* PhysAssetBodySetup = PhysicsAsset->BodySetup[BodyIdx])
+				{
+					if (PhysAssetBodySetup->PhysicsType != EPhysicsType::PhysType_Default)
+					{
+						continue;
+					}
+				}
+			}
+
+			++NumBodiesFound;
+			Func(BI);
+		}
+
+		return NumBodiesFound;
+	}
+
+	return 0;
+}
 
 void USkeletalMeshComponent::BreakConstraint(FVector Impulse, FVector HitLocation, FName InBoneName)
 {

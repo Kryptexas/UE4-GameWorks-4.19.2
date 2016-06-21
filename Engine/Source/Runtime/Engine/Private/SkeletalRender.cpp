@@ -34,7 +34,9 @@ FSkeletalMeshObject::FSkeletalMeshObject(USkinnedMeshComponent* InMeshComponent,
 ,	SkeletalMeshResource(InSkeletalMeshResource)
 ,	SkeletalMeshLODInfo(InMeshComponent->SkeletalMesh->LODInfo)
 ,	LastFrameNumber(0)
+#if WITH_EDITORONLY_DATA
 ,	ProgressiveDrawingFraction(InMeshComponent->ProgressiveDrawingFraction)
+#endif
 ,	CustomSortAlternateIndexMode((ECustomSortAlternateIndexMode)InMeshComponent->CustomSortAlternateIndexMode)
 ,	bUsePerBoneMotionBlur(InMeshComponent->bPerBoneMotionBlur)
 ,	StatId(InMeshComponent->SkeletalMesh->GetStatID(true))

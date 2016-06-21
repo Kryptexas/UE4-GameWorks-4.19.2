@@ -310,38 +310,6 @@ struct FSkeletalMeshLODInfo
 
 };
 
-USTRUCT()
-struct FMorphTargetMap
-{
-	GENERATED_USTRUCT_BODY()
-
-	/** The bone to mirror. */
-	UPROPERTY(EditAnywhere, Category=MorphTargetMap)
-	FName Name;
-
-	/** Axis the bone is mirrored across. */
-	UPROPERTY(EditAnywhere, Category=MorphTargetMap)
-	UMorphTarget* MorphTarget;
-
-
-	FMorphTargetMap()
-		: Name(NAME_None)
-		, MorphTarget(NULL)
-	{
-	}
-
-	FMorphTargetMap( FName InName, UMorphTarget * InMorphTarget )
-		: Name(InName)
-		, MorphTarget(InMorphTarget)
-	{
-	}
-
-	bool operator== (const FMorphTargetMap& Other) const
-	{
-		return (Name==Other.Name && MorphTarget == Other.MorphTarget);
-	}
-};
-
 /** 
  * constrain Coefficients - max distance, collisionSphere radius, collision sphere distance 
  */

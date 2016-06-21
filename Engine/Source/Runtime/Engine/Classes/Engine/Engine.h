@@ -891,17 +891,20 @@ public:
 	class UMaterialInstanceDynamic* ConstraintLimitMaterialX;
 
 	UPROPERTY()
+	class UMaterialInstanceDynamic* ConstraintLimitMaterialXAxis;
+
+	UPROPERTY()
 	class UMaterialInstanceDynamic* ConstraintLimitMaterialY;
+	UPROPERTY()
+	class UMaterialInstanceDynamic* ConstraintLimitMaterialYAxis;
 
 	UPROPERTY()
 	class UMaterialInstanceDynamic* ConstraintLimitMaterialZ;
+	UPROPERTY()
+	class UMaterialInstanceDynamic* ConstraintLimitMaterialZAxis;
 
 	UPROPERTY()
 	class UMaterialInstanceDynamic* ConstraintLimitMaterialPrismatic;
-
-	/** @todo document */
-	UPROPERTY(globalconfig)
-	FStringAssetReference ConstraintLimitMaterialName;
 
 	/** Material that renders a message about lightmap settings being invalid. */
 	UPROPERTY()

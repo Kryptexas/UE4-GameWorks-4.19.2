@@ -6,6 +6,7 @@
 #include "UObjectToken.h"
 #include "PhysicsEngine/PhysicsConstraintTemplate.h"
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
+#include "PhysicsEngine/ConstraintUtils.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 
 #define LOCTEXT_NAMESPACE "ConstraintComponent"
@@ -316,12 +317,15 @@ void UPhysicsConstraintComponent::PostLoad()
 		{
 			float AverageMass = TotalMass / NumDynamic;
 
-			ConstraintInstance.LinearLimitStiffness /= AverageMass;
-			ConstraintInstance.SwingLimitStiffness /= AverageMass;
-			ConstraintInstance.TwistLimitStiffness /= AverageMass;
-			ConstraintInstance.LinearLimitDamping /= AverageMass;
-			ConstraintInstance.SwingLimitDamping /= AverageMass;
-			ConstraintInstance.TwistLimitDamping /= AverageMass;
+#if WITH_EDITORONLY_DATA
+			ConstraintInstance.ProfileInstance.LinearLimit.Stiffness /= AverageMass;
+			ConstraintInstance.SwingLimitStiffness_DEPRECATED /= AverageMass;
+			ConstraintInstance.TwistLimitStiffness_DEPRECATED /= AverageMass;
+			ConstraintInstance.LinearLimitDamping_DEPRECATED /= AverageMass;
+			ConstraintInstance.SwingLimitDamping_DEPRECATED /= AverageMass;
+			ConstraintInstance.TwistLimitDamping_DEPRECATED /= AverageMass;
+			
+#endif
 		}
 
 	}
@@ -464,11 +468,11 @@ void UPhysicsConstraintComponent::UpdateSpriteTexture()
 {
 	if (SpriteComponent)
 	{
-		if (ConstraintInstance.IsHinge())
+		if (ConstraintUtils::IsHinge(ConstraintInstance))
 		{
 			SpriteComponent->SetSprite(LoadObject<UTexture2D>(NULL, TEXT("/Engine/EditorResources/S_KHinge.S_KHinge")));
 		}
-		else if (ConstraintInstance.IsPrismatic())
+		else if (ConstraintUtils::IsPrismatic(ConstraintInstance))
 		{
 			SpriteComponent->SetSprite(LoadObject<UTexture2D>(NULL, TEXT("/Engine/EditorResources/S_KPrismatic.S_KPrismatic")));
 		}

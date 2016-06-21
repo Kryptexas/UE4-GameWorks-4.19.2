@@ -334,11 +334,13 @@ public:
 	UPROPERTY(transient)
 	uint32 bRecentlyRendered:1;
 
+#if WITH_EDITORONLY_DATA
 	/** Editor only. Used for visualizing drawing order in Animset Viewer. If < 1.0,
 	  * only the specified fraction of triangles will be rendered
 	  */
 	UPROPERTY(transient)
 	float ProgressiveDrawingFraction;
+#endif
 
 	/** Editor only. Used for manually selecting the alternate indices for
 	  * TRISORT_CustomLeftRight sections.

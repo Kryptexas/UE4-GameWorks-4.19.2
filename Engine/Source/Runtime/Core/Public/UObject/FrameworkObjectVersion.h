@@ -35,6 +35,9 @@ struct CORE_API FFrameworkObjectVersion
 		// Add Reference Skeleton to Rig
 		AddSourceReferenceSkeletonToRig, 
 
+		// Refactor ConstraintInstance so that we have an easy way to swap behavior paramters
+		ConstraintInstanceBehaviorParameters,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

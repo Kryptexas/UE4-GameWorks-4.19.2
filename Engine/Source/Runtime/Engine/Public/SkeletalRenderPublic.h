@@ -236,10 +236,12 @@ protected:
 	/** Used to keep track of the first call to UpdateMinDesiredLODLevel each frame. from ViewFamily.FrameNumber */
 	uint32 LastFrameNumber;
 
+#if WITH_EDITORONLY_DATA
 	/** Editor only. Used for visualizing drawing order in Animset Viewer. If < 1.0,
 	 * only the specified fraction of triangles will be rendered
 	 */
 	float ProgressiveDrawingFraction;
+#endif
 
 	/** Use the 2nd copy of indices for separate left/right sort order (when TRISORT_CustomLeftRight) 
 	 * Set manually by the AnimSetViewer when editing sort order, or based on viewing angle otherwise.

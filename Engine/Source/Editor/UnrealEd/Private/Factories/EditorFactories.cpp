@@ -5449,11 +5449,13 @@ void FCustomizableTextObjectFactory::ProcessBuffer(UObject* InParent, EObjectFla
 					ObjArchetype = LoadObject<UObject>(nullptr, *ObjArchetypeName, nullptr, LOAD_None, nullptr);
 				}
 
+				UObject* ObjectParent = InParent ? InParent : GetParentForNewObject(ObjClass);
+
 				// Make sure this name is not used by anything else. Will rename other stuff if necessary
-				ClearObjectNameUsage(InParent, ObjName);
+				ClearObjectNameUsage(ObjectParent, ObjName);
 
 				// Spawn the object and reset it's archetype
-				UObject* CreatedObject = NewObject<UObject>(InParent, ObjClass, ObjName, Flags, ObjArchetype, !!InParent, &InstanceGraph);
+				UObject* CreatedObject = NewObject<UObject>(ObjectParent, ObjClass, ObjName, Flags, ObjArchetype, !!ObjectParent, &InstanceGraph);
 
 				// Get property text for the new object.
 				FString PropText, PropLine;
@@ -5497,6 +5499,10 @@ void FCustomizableTextObjectFactory::ProcessBuffer(UObject* InParent, EObjectFla
 		else if (GetEND(&Str, TEXT("OBJECT")))
 		{
 			--NestedDepth;
+		}
+		else
+		{
+			ProcessUnidentifiedLine(StrLine);
 		}
 	}
 

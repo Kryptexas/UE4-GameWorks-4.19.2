@@ -78,8 +78,11 @@
 #include "Animation/PoseAsset.h"
 
 #include "MessageLog.h"
+#include "SAdvancedPreviewDetailsTab.h"
 
 #define LOCTEXT_NAMESPACE "FPersona"
+
+const FName FPersona::PreviewSceneSettingsTabId(TEXT("Persona_PreviewScene"));
 
 /////////////////////////////////////////////////////
 // FLocalCharEditorCallbacks

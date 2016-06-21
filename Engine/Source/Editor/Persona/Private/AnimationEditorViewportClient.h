@@ -5,7 +5,7 @@
 #include "EditorViewportClient.h"
 #include "Engine/WindDirectionalSource.h"
 
-class FAnimationEditorPreviewScene;
+class FAdvancedPreviewScene;
 
 //////////////////////////////////////////////////////////////////////////
 // ELocalAxesMode
@@ -70,7 +70,7 @@ protected:
 	void DrawNodeDebugLines(TArray<FText>& Lines, FCanvas* Canvas, FSceneView* View);
 
 public:
-	FAnimationViewportClient(FAnimationEditorPreviewScene& InPreviewScene, TWeakPtr<FPersona> InPersonaPtr, const TSharedRef<SAnimationEditorViewport>& InAnimationEditorViewport);
+	FAnimationViewportClient(FAdvancedPreviewScene& InPreviewScene, TWeakPtr<FPersona> InPersonaPtr, const TSharedRef<SAnimationEditorViewport>& InAnimationEditorViewport);
 	virtual ~FAnimationViewportClient();
 
 	// FEditorViewportClient interface
@@ -78,8 +78,8 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void Draw(const FSceneView* View,FPrimitiveDrawInterface* PDI) override;
 	virtual void DrawCanvas( FViewport& InViewport, FSceneView& View, FCanvas& Canvas ) override;
-	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily, const EStereoscopicPass StereoPass) override;
 	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed = 1.f, bool bGamepad=false) override;
+	virtual bool InputAxis(FViewport* InViewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime, int32 NumSamples = 1, bool bGamepad = false) override;
 	virtual void ProcessClick(class FSceneView& View, class HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY) override;
 	virtual bool InputWidgetDelta( FViewport* Viewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale ) override;
 	virtual void TrackingStarted( const struct FInputEventState& InInputState, bool bIsDragging, bool bNudge ) override;
@@ -115,24 +115,6 @@ public:
 
 	/** Function to check whether grid is displayed or not */
 	bool IsShowingGrid() const;
-
-	/** Function to show/hide floor in the viewport */
-	void OnToggleShowFloor();
-
-	/** Function to check whether grid is displayed or not */
-	bool IsShowingFloor() const;
-
-	/** Function to enable/disable floor auto align */
-	void OnToggleAutoAlignFloor();
-
-	/** Function to check whether floor is auto align or not */
-	bool IsAutoAlignFloor() const;
-
-	/** Function to show/hide Sky in the viewport */
-	void OnToggleShowSky();
-
-	/** Function to check whether grid is displayed or not */
-	bool IsShowingSky() const;
 
 	/** Function to mute/unmute audio in the viewport */
 	void OnToggleMuteAudio();
@@ -365,5 +347,5 @@ private:
 	// to check whether we should update literal values in selected AnimGraphNode
 	bool bShouldUpdateDefaultValues;
 
-	FAnimationEditorPreviewScene* GetAnimPreviewScene() const;
+	FAdvancedPreviewScene* GetAdvancedPreviewScene() const;
 };

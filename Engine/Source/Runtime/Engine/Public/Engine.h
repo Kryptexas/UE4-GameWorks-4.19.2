@@ -52,7 +52,6 @@
 #include "Engine/SubDSurface.h"
 #include "Engine/DebugCameraController.h"
 #include "Engine/DecalActor.h"
-#include "PhysicsEngine/DestructibleActor.h"
 #include "Engine/Canvas.h"
 #include "GameFramework/HUD.h"
 #include "Atmosphere/AtmosphericFog.h"

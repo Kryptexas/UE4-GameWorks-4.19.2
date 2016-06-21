@@ -41,6 +41,9 @@ struct FPersonaTabs
 	static const FName CurveNameManagerID;
 	static const FName BlendProfileManagerID;
 
+	// Advanced Preview Scene
+	static const FName AdvancedPreviewSceneSettingsID;
+
 	// Blueprint Document
 
 	// Inherited from blueprint editor
@@ -282,6 +285,17 @@ public:
 
 private:
 
+};
+
+/////////////////////////////////////////////////////
+// FAdvancedPreviewSceneTabSummoner
+
+struct FAdvancedPreviewSceneTabSummoner : public FWorkflowTabFactory
+{
+public:
+ 	FAdvancedPreviewSceneTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp);
+	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override;
+	virtual FText GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const override;
 };
 
 #undef LOCTEXT_NAMESPACE

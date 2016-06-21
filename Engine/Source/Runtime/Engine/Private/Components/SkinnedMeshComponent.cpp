@@ -1207,24 +1207,25 @@ FTransform USkinnedMeshComponent::GetSocketTransform(FName InSocketName, ERelati
 
 	if (InSocketName != NAME_None)
 	{
-		int32 BoneIndex = GetBoneIndex(InSocketName);
-		if( BoneIndex != INDEX_NONE )
+		USkeletalMeshSocket const* const Socket = GetSocketByName(InSocketName);
+		// apply the socket transform first if we find a matching socket
+		if (Socket)
 		{
-			OutSocketTransform = GetBoneTransform(BoneIndex);
+			FTransform SocketLocalTransform = Socket->GetSocketLocalTransform();
+
+			int32 BoneIndex = GetBoneIndex(Socket->BoneName);
+			if (BoneIndex != INDEX_NONE)
+			{
+				FTransform BoneTransform = GetBoneTransform(BoneIndex);
+				OutSocketTransform = SocketLocalTransform * BoneTransform;
+			}
 		}
 		else
 		{
-			USkeletalMeshSocket const* const Socket = GetSocketByName(InSocketName);
-			if (Socket)
+			int32 BoneIndex = GetBoneIndex(InSocketName);
+			if (BoneIndex != INDEX_NONE)
 			{
-				FTransform SocketLocalTransform = Socket->GetSocketLocalTransform();
-
-				BoneIndex = GetBoneIndex(Socket->BoneName);
-				if( BoneIndex != INDEX_NONE )
-				{
-					FTransform BoneTransform = GetBoneTransform(BoneIndex);
-					OutSocketTransform = SocketLocalTransform * BoneTransform; 
-				}
+				OutSocketTransform = GetBoneTransform(BoneIndex);
 			}
 		}
 	}

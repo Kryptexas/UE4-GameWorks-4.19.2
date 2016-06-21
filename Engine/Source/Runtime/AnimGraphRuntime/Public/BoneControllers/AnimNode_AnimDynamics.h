@@ -27,7 +27,7 @@ enum class AnimPhysLinearConstraintType : uint8
 	Limited,
 };
 
-UENUM()
+UENUM(BlueprintType)
 enum class AnimPhysSimSpaceType : uint8
 {
 	Component UMETA(ToolTip = "Sim origin is the location/orientation of the skeletal mesh component."),
@@ -204,7 +204,7 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_AnimDynamics : public FAnimNode_SkeletalCo
 	FAnimNode_AnimDynamics();
 	
 	/** The space used to run the simulation */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Setup)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Setup, meta = (PinHiddenByDefault))
 	AnimPhysSimSpaceType SimulationSpace;
 
 	/** When in BoneRelative sim space, the simulation will use this bone as the origin */
@@ -232,7 +232,7 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_AnimDynamics : public FAnimNode_SkeletalCo
 	FVector LocalJointOffset;
 
 	/** Scale for gravity, higher values increase forces due to gravity */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Setup)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Setup, meta = (PinHiddenByDefault))
 	float GravityScale;
 
 	/** If true the body will attempt to spring back to its initial position */
@@ -244,11 +244,11 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_AnimDynamics : public FAnimNode_SkeletalCo
 	bool bAngularSpring;
 
 	/** Spring constant to use when calculating linear springs, higher values mean a stronger spring.*/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Setup)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Setup, meta = (PinHiddenByDefault))
 	float LinearSpringConstant;
 
 	/** Spring constant to use when calculating angular springs, higher values mean a stronger spring */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Setup)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Setup, meta = (PinHiddenByDefault))
 	float AngularSpringConstant;
 
 	/** Whether or not wind is enabled for the bodies in this simulation */
@@ -264,7 +264,7 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_AnimDynamics : public FAnimNode_SkeletalCo
 	bool bOverrideLinearDamping;
 
 	/** Overridden linear damping value */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Setup)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Setup, meta = (PinHiddenByDefault))
 	float LinearDampingOverride;
 
 	/** If true, the override value will be used for angular damping */
@@ -272,7 +272,7 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_AnimDynamics : public FAnimNode_SkeletalCo
 	bool bOverrideAngularDamping;
 
 	/** Overridden angular damping value */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Setup)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Setup, meta = (PinHiddenByDefault))
 	float AngularDampingOverride;
 
 	/** If true we will perform physics update, otherwise skip - allows visualisation of the initial state of the bodies */
@@ -367,10 +367,14 @@ private:
 	FTransform GetBoneTransformInSimSpace(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, const FCompactPoseBoneIndex& BoneIndex);
 
 	// Given a transform in simulation space, convert it back to component space
-	FTransform GetComponentSpaceTransformFromSimSpace(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, const FCompactPoseBoneIndex& BoneIndex, const FTransform& InSimTransform);
+	FTransform GetComponentSpaceTransformFromSimSpace(AnimPhysSimSpaceType SimSpace, USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, const FTransform& InSimTransform);
+	// Given a transform in component space, convert it to the current sim space
+	FTransform GetSimSpaceTransformFromComponentSpace(AnimPhysSimSpaceType SimSpace, USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, const FTransform& InComponentTransform);
 
 	// Given a world-space vector, convert it into the current simulation space
 	FVector TransformWorldVectorToSimSpace(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, const FVector& InVec);
+
+	void ConvertSimulationSpace(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, AnimPhysSimSpaceType From, AnimPhysSimSpaceType To);
 
 	// We can't get clean bone positions unless we are in the evaluate step.
 	// Requesting an init or reinit sets this flag for us to pick up during evaluate
@@ -393,6 +397,9 @@ private:
 	float MaxSubstepDeltaTime;
 	int32 MaxSubsteps;
 	//////////////////////////////////////////////////////////////////////////
+
+	// Cached sim space that we last used
+	AnimPhysSimSpaceType LastSimSpace;
 
 	// Active body list
 	TArray<FAnimPhysLinkedBody> Bodies;

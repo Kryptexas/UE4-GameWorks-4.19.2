@@ -9,6 +9,8 @@
 #include "SSkeletonSlotNames.h"
 #include "SSkeletonSmartNameManager.h"
 #include "SSkeletonBlendProfiles.h"
+#include "SDocktab.h"
+#include "SAdvancedPreviewDetailsTab.h"
 
 #define LOCTEXT_NAMESPACE "PersonaModes"
 
@@ -44,6 +46,8 @@ const FName FPersonaTabs::SkeletonSlotGroupNamesID("SkeletonSlotGroupNames");
 const FName FPersonaTabs::CurveNameManagerID("CurveNameManager");
 const FName FPersonaTabs::BlendProfileManagerID("BlendProfileManager");
 
+const FName FPersonaTabs::AdvancedPreviewSceneSettingsID("AdvancedPreviewTab");
+
 /////////////////////////////////////////////////////
 // FPersonaMode
 
@@ -72,16 +76,17 @@ FPersonaAppMode::FPersonaAppMode(TSharedPtr<class FPersona> InPersona, FName InM
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FSkeletonSlotNamesSummoner(InPersona)));
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FSkeletonCurveNameManagerSummoner(InPersona)));
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FSkeletonBlendProfilesSummoner(InPersona)));
+	PersonaTabFactories.RegisterFactory(MakeShareable(new FAdvancedPreviewSceneTabSummoner(InPersona)));
 }
 
 void FPersonaAppMode::RegisterTabFactories(TSharedPtr<FTabManager> InTabManager)
 {
-	TSharedPtr<FBlueprintEditor> BP = MyPersona.Pin();
+	TSharedPtr<FPersona> Persona = MyPersona.Pin();
 	
-	BP->RegisterToolbarTab(InTabManager.ToSharedRef());
-
 	// Mode-specific setup
-	BP->PushTabFactories(PersonaTabFactories);
+	Persona->PushTabFactories(PersonaTabFactories);
+
+	Persona->RegisterToolbarTab(InTabManager.ToSharedRef());
 }
 
 void FPersonaAppMode::PostActivateMode()
@@ -432,4 +437,30 @@ FText FAnimBlueprintParentPlayerEditorSummoner::GetTabToolTipText(const FWorkflo
 	return LOCTEXT("AnimSubClassTabToolTip", "Editor for overriding the animation assets referenced by the parent animation graph.");
 }
 
+/////////////////////////////////////////////////////
+// FAdvancedPreviewSceneTabSummoner
+
+FAdvancedPreviewSceneTabSummoner::FAdvancedPreviewSceneTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp)
+	: FWorkflowTabFactory(FPersonaTabs::AdvancedPreviewSceneSettingsID, InHostingApp)
+{
+	TabLabel = LOCTEXT("PreviewSceneSettingsTab", "Preview Scene Settings");
+	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Details");	
+	bIsSingleton = true;
+	
+	ViewMenuDescription = LOCTEXT("AdvancedPreviewScene", "Preview Scene Settings");
+	ViewMenuTooltip = LOCTEXT("AdvancedPreviewScene_ToolTip", "Shows the advanced preview scene settings");
+}
+
+TSharedRef<SWidget> FAdvancedPreviewSceneTabSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const
+{
+	TSharedPtr<FPersona> PersonaPtr = StaticCastSharedPtr<FPersona>(HostingApp.Pin());	
+	return SNew(SAdvancedPreviewDetailsTab).PreviewScenePtr(&(PersonaPtr->GetPreviewScene()));
+}
+
+FText FAdvancedPreviewSceneTabSummoner::GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const
+{
+	return LOCTEXT("AdvancedPreviewSettingsToolTip", "The Advanced Preview Settings tab will let you alter the preview scene's settings.");
+}
+
 #undef LOCTEXT_NAMESPACE
+

@@ -3140,7 +3140,8 @@ void USceneComponent::PostUpdateNavigationData()
 	if (UNavigationSystem::ShouldUpdateNavOctreeOnComponentChange() && IsRegistered())
 	{
 		UWorld* MyWorld = GetWorld();
-		if ((MyWorld == nullptr) || !MyWorld->IsGameWorld() || !MyWorld->IsNetMode(ENetMode::NM_Client))
+		if (MyWorld != nullptr && MyWorld->GetNavigationSystem() != nullptr 
+			&& (MyWorld->GetNavigationSystem()->ShouldAllowClientSideNavigation() || !MyWorld->IsNetMode(ENetMode::NM_Client)))
 		{
 			// use propagated component's transform update in editor OR server game with additional navsys check
 			UNavigationSystem::UpdateNavOctreeAfterMove(this);

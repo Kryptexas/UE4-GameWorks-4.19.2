@@ -6,7 +6,7 @@
 
 #include "MouseDeltaTracker.h"
 #include "SStaticMeshEditorViewport.h"
-#include "PreviewScene.h"
+#include "AdvancedPreviewScene.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
 #include "StaticMeshResources.h"
 
@@ -92,6 +92,10 @@ public:
 
 void SStaticMeshEditorViewport::Construct(const FArguments& InArgs)
 {
+	//PreviewScene = new FAdvancedPreviewScene(FPreviewScene::ConstructionValues(), 
+
+	PreviewScene.SetFloorOffset(-InArgs._ObjectToEdit->ExtendedBounds.Origin.Z + InArgs._ObjectToEdit->ExtendedBounds.BoxExtent.Z);
+
 	StaticMeshEditorPtr = InArgs._StaticMeshEditor;
 
 	StaticMesh = InArgs._ObjectToEdit;
@@ -113,6 +117,11 @@ void SStaticMeshEditorViewport::Construct(const FArguments& InArgs)
 		];
 
 	FCoreUObjectDelegates::OnObjectPropertyChanged.AddRaw(this, &SStaticMeshEditorViewport::OnObjectPropertyChanged);
+}
+
+SStaticMeshEditorViewport::SStaticMeshEditorViewport()
+	: PreviewScene(FPreviewScene::ConstructionValues())
+{
 
 }
 
@@ -394,7 +403,7 @@ TSharedRef<FEditorViewportClient> SStaticMeshEditorViewport::MakeEditorViewportC
 
 	EditorViewportClient->bSetListenerPosition = false;
 
-	EditorViewportClient->SetRealtime( false );
+	EditorViewportClient->SetRealtime( true );
 	EditorViewportClient->VisibilityDelegate.BindSP( this, &SStaticMeshEditorViewport::IsVisible );
 
 	return EditorViewportClient.ToSharedRef();

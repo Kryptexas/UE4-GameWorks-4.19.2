@@ -82,7 +82,7 @@ namespace AutomationTool
 				foreach (string Line in Descriptions.Split('\n'))
 				{
 					string TrimLine = Line.TrimStart();
-					if(!TrimLine.StartsWith("#codereview") && !TrimLine.StartsWith("#rb"))
+					if(!TrimLine.StartsWith("#codereview") && !TrimLine.StartsWith("#rb") && !TrimLine.StartsWith("#lockdown"))
 					{
 						Writer.WriteLine(Line);
 					}

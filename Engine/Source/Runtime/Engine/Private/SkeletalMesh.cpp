@@ -3306,8 +3306,9 @@ void USkeletalMesh::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) con
 		NumTriangles = LODModel.GetTotalFaces();
 	}
 
-	OutTags.Add( FAssetRegistryTag("Triangles", FString::FromInt(NumTriangles), FAssetRegistryTag::TT_Numerical) );
-	OutTags.Add( FAssetRegistryTag("Bones", FString::FromInt(RefSkeleton.GetNum()), FAssetRegistryTag::TT_Numerical) );
+	OutTags.Add(FAssetRegistryTag("Triangles", FString::FromInt(NumTriangles), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add(FAssetRegistryTag("Bones", FString::FromInt(RefSkeleton.GetNum()), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add(FAssetRegistryTag("MorphTargets", FString::FromInt(MorphTargets.Num()), FAssetRegistryTag::TT_Numerical));
 
 #if WITH_EDITORONLY_DATA
 	if (AssetImportData)
@@ -5160,6 +5161,8 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 			}
 
 			BatchElement.NumPrimitives = Section.NumTriangles;
+
+#if WITH_EDITORONLY_DATA
 			if( GIsEditor && MeshObject->ProgressiveDrawingFraction != 1.f )
 			{
 				if (Mesh.MaterialRenderProxy && Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->GetBlendMode() == BLEND_Translucent)
@@ -5171,6 +5174,8 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 					}
 				}
 			}
+#endif // WITH_EDITORONLY_DATA
+
 			BatchElement.MinVertexIndex = Section.BaseVertexIndex;
 			Mesh.ReverseCulling = IsLocalToWorldDeterminantNegative();
 			Mesh.CastShadow = SectionElementInfo.bEnableShadowCasting;
@@ -5258,6 +5263,10 @@ FPrimitiveViewRelevance FSkeletalMeshSceneProxy::GetViewRelevance(const FSceneVi
 	Result.bRenderInMainPass = ShouldRenderInMainPass();
 	Result.bUsesLightingChannels = GetLightingChannelMask() != GetDefaultLightingChannelMask();
 	MaterialRelevance.SetPrimitiveViewRelevance(Result);
+
+#if !UE_BUILD_SHIPPING
+	Result.bSeparateTranslucencyRelevance |= View->Family->EngineShowFlags.Constraints;
+#endif
 	return Result;
 }
 
@@ -5302,15 +5311,15 @@ void FSkeletalMeshSceneProxy::DebugDrawPhysicsAsset(int32 ViewIndex, FMeshElemen
 		TArray<FTransform>* BoneSpaceBases = MeshObject->GetSpaceBases();
 		if(BoneSpaceBases)
 		{
+			//TODO: These data structures are not double buffered. This is not thread safe!
 			check(PhysicsAssetForDebug);
-			if( EngineShowFlags.Collision && IsCollisionEnabled() )
+			if (EngineShowFlags.Collision && IsCollisionEnabled())
 			{
 				PhysicsAssetForDebug->GetCollisionMesh(ViewIndex, Collector, SkeletalMeshForDebug, *BoneSpaceBases, LocalToWorldTransform, TotalScale);
 			}
-			if( EngineShowFlags.Constraints )
+			if (EngineShowFlags.Constraints)
 			{
-				// TODO: Currently doesn't work because the PDI returned here (FSimpleElementCollector) can't draw meshes
-				//PhysicsAssetForDebug->DrawConstraints(Collector.GetPDI(ViewIndex), SkeletalMeshForDebug, *BoneSpaceBases, LocalToWorldTransform, TotalScale.X);
+				PhysicsAssetForDebug->DrawConstraints(ViewIndex, Collector, SkeletalMeshForDebug, *BoneSpaceBases, LocalToWorldTransform, TotalScale.X);
 			}
 		}
 	}
@@ -5405,10 +5414,10 @@ USkinnedMeshComponent::USkinnedMeshComponent(const FObjectInitializer& ObjectIni
 	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 
 	StreamingDistanceMultiplier = 1.0f;
-	ProgressiveDrawingFraction = 1.0f;
 	bCanHighlightSelectedSections = false;
 	CanCharacterStepUpOn = ECB_Owner;
 #if WITH_EDITORONLY_DATA
+	ProgressiveDrawingFraction = 1.0f;
 	ChunkIndexPreview = -1;
 	SectionIndexPreview = -1;
 #endif // WITH_EDITORONLY_DATA

@@ -71,7 +71,6 @@ EnginePrivate.h: Unreal engine private header file.
 #include "Engine/LocalPlayer.h"
 #include "Engine/NetConnection.h"
 #include "Engine/Selection.h"
-#include "Engine/SkeletalMesh.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/TextureDefines.h"
 #include "Engine/Texture.h"

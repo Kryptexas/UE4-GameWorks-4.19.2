@@ -29,6 +29,7 @@
 #include "SDockTab.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "PhysicsEngine/PhysicsConstraintTemplate.h"
+#include "PhysicsEngine/ConstraintUtils.h"
 #include "Engine/Selection.h"
 #include "Engine/StaticMesh.h"
 #include "EngineLogs.h"
@@ -1287,18 +1288,6 @@ void FPhAT::BindCommands()
 		FExecuteAction::CreateSP(this, &FPhAT::OnDeleteAllBodiesBelow));
 
 	ToolkitCommands->MapAction(
-		Commands.ToggleMotor,
-		FExecuteAction::CreateSP(this, &FPhAT::OnToggleMotor));
-
-	ToolkitCommands->MapAction(
-		Commands.EnableMotorsBelow,
-		FExecuteAction::CreateSP(this, &FPhAT::OnEnableMotorsBelow));
-
-	ToolkitCommands->MapAction(
-		Commands.DisableMotorsBelow,
-		FExecuteAction::CreateSP(this, &FPhAT::OnDisableMotorsBelow));
-
-	ToolkitCommands->MapAction(
 		Commands.SelectionLock,
 		FExecuteAction::CreateSP(this, &FPhAT::OnLockSelection),
 		FCanExecuteAction::CreateSP(this, &FPhAT::IsNotSimulation));
@@ -1823,62 +1812,25 @@ void FPhAT::CreateOrConvertConstraint(EPhATConstraintType ConstraintType)
 
 		if(ConstraintType == EPCT_BSJoint)
 		{
-			ConstraintSetup->DefaultInstance.ConfigureAsBS();
+			ConstraintUtils::ConfigureAsBallAndSocket(ConstraintSetup->DefaultInstance);
 		}
 		else if(ConstraintType == EPCT_Hinge)
 		{
-			ConstraintSetup->DefaultInstance.ConfigureAsHinge();
+			ConstraintUtils::ConfigureAsHinge(ConstraintSetup->DefaultInstance);
 		}
 		else if(ConstraintType == EPCT_Prismatic)
 		{
-			ConstraintSetup->DefaultInstance.ConfigureAsPrismatic();
+			ConstraintUtils::ConfigureAsPrismatic(ConstraintSetup->DefaultInstance);
 		}
 		else if(ConstraintType == EPCT_SkelJoint)
 		{
-			ConstraintSetup->DefaultInstance.ConfigureAsSkelJoint();
-		}	
+			ConstraintUtils::ConfigureAsSkelJoint(ConstraintSetup->DefaultInstance);
+		}
 	}
 
 	RefreshHierachyTree();
 	RefreshPreviewViewport();
 	
-}
-
-void FPhAT::SetConstraintsBelowSelectedMotorised(bool bMotorised)
-{
-	SharedData->PhysicsAsset->Modify();
-
-	for(int32 i=0; i<SharedData->SelectedConstraints.Num(); ++i)
-	{
-		// Get the index of this constraint
-		UPhysicsConstraintTemplate* BaseSetup = SharedData->PhysicsAsset->ConstraintSetup[SharedData->SelectedConstraints[i].Index];
-
-		TArray<int32> BelowConstraints;
-		int32 BaseIndex = SharedData->EditorSkelMesh->RefSkeleton.FindBoneIndex(BaseSetup->DefaultInstance.JointName);
-
-		// Iterate over all other joints, looking for 'children' of this one
-		for (int32 j = 0; j < SharedData->PhysicsAsset->ConstraintSetup.Num(); ++j)
-		{
-			UPhysicsConstraintTemplate* ConstraintSetup = SharedData->PhysicsAsset->ConstraintSetup[j];
-			FName TestName = ConstraintSetup->DefaultInstance.JointName;
-			int32 TestIndex = SharedData->EditorSkelMesh->RefSkeleton.FindBoneIndex(TestName);
-
-			// We want to return this constraint as well.
-			if (TestIndex == BaseIndex || SharedData->EditorSkelMesh->RefSkeleton.BoneIsChildOf(TestIndex, BaseIndex))
-			{
-				BelowConstraints.Add(j);
-			}
-		}
-
-		for (int32 j = 0; j < BelowConstraints.Num(); ++j)
-		{
-			int32 ConIndex = BelowConstraints[j];
-			FConstraintInstance* ConstraintInstance = &SharedData->PhysicsAsset->ConstraintSetup[ConIndex]->DefaultInstance;
-
-			ConstraintInstance->bAngularOrientationDrive = bMotorised;
-		}
-
-	}
 }
 
 void FPhAT::AddNewPrimitive(EKCollisionPrimitiveType InPrimitiveType, bool bCopySelected)
@@ -2883,27 +2835,6 @@ void FPhAT::OnDeleteAllBodiesBelow()
 		SharedData->RefreshPhysicsAssetChange(SharedData->PhysicsAsset);
 	}
 	
-}
-
-void FPhAT::OnToggleMotor()
-{
-	for(int32 i=0; i<SharedData->SelectedConstraints.Num(); ++i)
-	{
-		UPhysicsConstraintTemplate* ConSetup = SharedData->PhysicsAsset->ConstraintSetup[SharedData->SelectedConstraints[i].Index];
-		FConstraintInstance* CI = &ConSetup->DefaultInstance;
-
-		CI->bAngularOrientationDrive = !CI->bAngularOrientationDrive;
-	}
-}
-
-void FPhAT::OnEnableMotorsBelow()
-{
-	SetConstraintsBelowSelectedMotorised(true);
-}
-
-void FPhAT::OnDisableMotorsBelow()
-{
-	SetConstraintsBelowSelectedMotorised(false);
 }
 
 void FPhAT::OnLockSelection()

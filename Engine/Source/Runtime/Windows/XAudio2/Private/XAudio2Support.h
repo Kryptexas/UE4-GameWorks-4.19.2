@@ -18,13 +18,6 @@
 #ifndef X3DAUDIO_VECTOR_IS_A_D3DVECTOR
 	#define X3DAUDIO_VECTOR_IS_A_D3DVECTOR		1
 #endif	//X3DAUDIO_VECTOR_IS_A_D3DVECTOR
-#ifndef XAUDIO2_SUPPORTS_SENDLIST
-	#define XAUDIO2_SUPPORTS_SENDLIST			1
-#endif	//XAUDIO2_SUPPORTS_SENDLIST
-#ifndef XAUDIO2_SUPPORTS_VOICE_POOL
-	#define XAUDIO2_SUPPORTS_VOICE_POOL			0
-#endif	//XAUDIO2_SUPPORTS_VOICE_POOL
-
 
 
 /*------------------------------------------------------------------------------------
@@ -772,47 +765,13 @@ struct FXAudioDeviceProperties
 	}
 
 	/** Returns either a new IXAudio2SourceVoice or a recycled IXAudio2SourceVoice according to the sound format and max channel count in the voice's effect chain*/
-	void GetFreeSourceVoice(IXAudio2SourceVoice** Voice, const FPCMBufferInfo& BufferInfo, const XAUDIO2_EFFECT_CHAIN* EffectChain = nullptr, int32 MaxEffectChainChannels = 0)
+	void GetFreeSourceVoice(IXAudio2SourceVoice** Voice, const FPCMBufferInfo& BufferInfo, const XAUDIO2_EFFECT_CHAIN* EffectChain = nullptr, const XAUDIO2_VOICE_SENDS* SendList = nullptr, int32 MaxEffectChainChannels = 0)
 	{
 		bool bSuccess = false;
 
-#if XAUDIO2_SUPPORTS_VOICE_POOL
-		// First find the pool for the given format
-		FSourceVoicePoolEntry* VoicePoolEntry = nullptr;
-		for (int32 i = 0; i < VoicePool.Num(); ++i)
-		{
-			if (VoicePool[i]->Format == BufferInfo.PCMFormat && VoicePool[i]->MaxEffectChainChannels == MaxEffectChainChannels)
-			{
-				VoicePoolEntry = VoicePool[i];
-				check(VoicePoolEntry);
-				bSuccess = true;
-				break;
-			}
-		}
-
-		// If we found a voice pool entry for this format and we have free voices
-		// then use the voice
-		if (VoicePoolEntry && VoicePoolEntry->FreeVoices.Num() > 0)
-		{
-			*Voice = VoicePoolEntry->FreeVoices.Pop(false);
-			check(*Voice);
-
-			bSuccess = Validate(TEXT("GetFreeSourceVoice, XAudio2->CreateSourceVoice"),
-								(*Voice)->SetEffectChain(EffectChain));
-		}
-		else
-		{
-			// Create a brand new source voice with this format.
-			check(XAudio2 != nullptr);
-			bSuccess = Validate(TEXT("GetFreeSourceVoice, XAudio2->CreateSourceVoice"),
-								XAudio2->CreateSourceVoice(Voice, &BufferInfo.PCMFormat, XAUDIO2_VOICE_USEFILTER, MAX_PITCH, &SourceCallback, nullptr, EffectChain));
-		}
-#else // XAUDIO2_SUPPORTS_VOICE_POOL
 		check(XAudio2 != nullptr);
 		bSuccess = Validate(TEXT("GetFreeSourceVoice, XAudio2->CreateSourceVoice"),
-							XAudio2->CreateSourceVoice(Voice, &BufferInfo.PCMFormat, XAUDIO2_VOICE_USEFILTER, MAX_PITCH, &SourceCallback, nullptr, EffectChain));
-#endif // XAUDIO2_SUPPORTS_VOICE_POOL
-
+							XAudio2->CreateSourceVoice(Voice, &BufferInfo.PCMFormat, XAUDIO2_VOICE_USEFILTER, MAX_PITCH, &SourceCallback, SendList, EffectChain));
 		if (bSuccess)
 		{
 			// Track the number of source voices out in the world
@@ -828,61 +787,7 @@ struct FXAudioDeviceProperties
 	/** Releases the voice into a pool of free voices according to the voice format and the max effect chain channels */
 	void ReleaseSourceVoice(IXAudio2SourceVoice* Voice, const FPCMBufferInfo& BufferInfo, const int32 MaxEffectChainChannels)
 	{
-#if XAUDIO2_SUPPORTS_VOICE_POOL
-
-		check(Voice != nullptr);
-
-		// Make sure the voice is stopped
-		Validate(TEXT("ReleaseSourceVoice, Voice->Stop()"), Voice->Stop());
-
-		// And make sure there's no audio remaining the voice so when it's re-used it's fresh.
-		Validate(TEXT("ReleaseSourceVoice, Voice->FlushSourceBuffers()"), Voice->FlushSourceBuffers());
-
-#if XAUDIO2_SUPPORTS_SENDLIST
-		// Clear out the send effects (OutputVoices). When the voice gets reused, the old internal state might be invalid 
-		// when the new send effects are applied to the voice.
-		Validate(TEXT("ReleaseSourceVoice, Voice->SetOutputVoices(nullptr)"), Voice->SetOutputVoices(nullptr));
-#endif
-
-		// Release the effect chain
-		Validate(TEXT("ReleaseSourceVoice, Voice->SetEffectChain(nullptr);"), Voice->SetEffectChain(nullptr));
-
-		// See if there is an existing pool for this source voice
-		FSourceVoicePoolEntry* VoicePoolEntry = nullptr;
-		for (int32 i = 0; i < VoicePool.Num(); ++i)
-		{
-			if (VoicePool[i]->Format == BufferInfo.PCMFormat && VoicePool[i]->MaxEffectChainChannels == MaxEffectChainChannels)
-			{
-				VoicePoolEntry = VoicePool[i];
-				break;
-			}
-		}
-
-		// If we found a voice pool entry for this voice, add the voice to the list of free voices
-		if (VoicePoolEntry)
-		{
-			VoicePoolEntry->FreeVoices.Add(Voice);
-		}
-		else
-		{
-			// Otherwise We need to make a new voice pool entry with this format and max effect chain channels
-			VoicePoolEntry = new FSourceVoicePoolEntry();
-			if (VoicePoolEntry)
-			{
-				VoicePoolEntry->Format = BufferInfo.PCMFormat;
-				VoicePoolEntry->FreeVoices.Add(Voice);
-				VoicePoolEntry->MaxEffectChainChannels = MaxEffectChainChannels;
-				VoicePool.Add(VoicePoolEntry);
-			}
-			else
-			{
-				// If we failed to create a new voice pool entry, then destroy the voice
-				Voice->DestroyVoice();
-			}
-		}
-#else // XAUDIO2_SUPPORTS_VOICE_POOL
 		Voice->DestroyVoice();
-#endif // XAUDIO2_SUPPORTS_VOICE_POOL
 
 		--NumActiveVoices;
 	}

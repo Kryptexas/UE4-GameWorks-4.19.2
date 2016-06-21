@@ -8,6 +8,7 @@
 
 FGameplayDebuggerExtension_HUD::FGameplayDebuggerExtension_HUD()
 {
+	bWantsHUDEnabled = false;
 	bIsGameHUDEnabled = false;
 	bAreDebugMessagesEnabled = false;
 	bPrevDebugMessagesEnabled = GEngine && GEngine->bEnableOnScreenDebugMessages;
@@ -33,7 +34,7 @@ TSharedRef<FGameplayDebuggerExtension> FGameplayDebuggerExtension_HUD::MakeInsta
 
 void FGameplayDebuggerExtension_HUD::OnActivated()
 {
-	SetGameHUDEnabled(false);
+	SetGameHUDEnabled(bWantsHUDEnabled);
 	SetDebugMessagesEnabled(false);
 }
 
@@ -103,7 +104,8 @@ void FGameplayDebuggerExtension_HUD::SetDebugMessagesEnabled(bool bEnable)
 
 void FGameplayDebuggerExtension_HUD::ToggleGameHUD()
 {
-	SetGameHUDEnabled(!bIsGameHUDEnabled);
+	const bool bEnable = bWantsHUDEnabled = !bIsGameHUDEnabled;
+	SetGameHUDEnabled(bEnable);
 }
 
 void FGameplayDebuggerExtension_HUD::ToggleDebugMessages()

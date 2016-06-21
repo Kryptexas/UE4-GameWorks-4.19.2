@@ -186,7 +186,7 @@ void UDestructibleMesh::Serialize(FArchive& Ar)
 		{
 			Name = ApexDestructibleAsset->getName();
 		}
-		if( Name == NULL )
+		if( Name == NULL  || Ar.IsCooking())
 		{
 			Name = "";
 		}

@@ -94,6 +94,13 @@ void FAnimNode_AnimDynamics::EvaluateBoneTransforms(USkeletalMeshComponent* Skel
 
 	if (CVarEnableDynamics.GetValueOnAnyThread() == 1 && bEnabledForLod)
 	{
+		if(LastSimSpace != SimulationSpace)
+		{
+			// Our sim space has been changed since our last update, we need to convert all of our
+			// body transforms into the new space.
+			ConvertSimulationSpace(SkelComp, MeshBases, LastSimSpace, SimulationSpace);
+		}
+
 		// Pretty nasty - but there isn't really a good way to get clean bone transforms (without the modification from
 		// previous runs) so we have to initialize here, checking often so we can restart a simulation in the editor.
 		if (bRequiresInit)
@@ -211,11 +218,14 @@ void FAnimNode_AnimDynamics::EvaluateBoneTransforms(USkeletalMeshComponent* Skel
 
 				FTransform NewBoneTransform(CurrentBody.Pose.Orientation, CurrentBody.Pose.Position + CurrentBody.Pose.Orientation.RotateVector(JointOffsets[Idx]));
 
-				NewBoneTransform = GetComponentSpaceTransformFromSimSpace(SkelComp, MeshBases, BoneIndex, NewBoneTransform);
+				NewBoneTransform = GetComponentSpaceTransformFromSimSpace(SimulationSpace, SkelComp, MeshBases, NewBoneTransform);
 
 				OutBoneTransforms.Add(FBoneTransform(BoneIndex, NewBoneTransform));
 			}
 		}
+
+		// Store our sim space incase it changes
+		LastSimSpace = SimulationSpace;
 	}
 }
 
@@ -644,72 +654,14 @@ FTransform FAnimNode_AnimDynamics::GetBoneTransformInSimSpace(USkeletalMeshCompo
 {
 	FTransform Transform = MeshBases.GetComponentSpaceTransform(BoneIndex);
 
-	switch(SimulationSpace)
-	{
-	// Change nothing, already in component space
-	case AnimPhysSimSpaceType::Component:
-	{
-		break;
-	}
-
-	case AnimPhysSimSpaceType::Actor:
-	{
-		UObject* OuterObject = SkelComp->GetOuter();
-		if(OuterObject && OuterObject->IsA<AActor>())
-		{
-			AActor* OwningActor = Cast<AActor>(OuterObject);
-			check(OwningActor);
-
-			FTransform WorldTransform = Transform * SkelComp->ComponentToWorld;
-			WorldTransform.SetToRelativeTransform(OwningActor->GetActorTransform());
-			Transform = WorldTransform;
-		}
-		
-		break;
-	}
-
-	case AnimPhysSimSpaceType::RootRelative:
-	{
-		const FBoneContainer& RequiredBones = MeshBases.GetPose().GetBoneContainer();
-
-		FCompactPoseBoneIndex RootBoneCompactIndex(0);
-
-		FTransform RelativeBoneTransform = MeshBases.GetComponentSpaceTransform(RootBoneCompactIndex);
-		Transform = Transform.GetRelativeTransform(RelativeBoneTransform);
-
-		break;
-	}
-
-	case AnimPhysSimSpaceType::BoneRelative:
-	{
-		const FBoneContainer& RequiredBones = MeshBases.GetPose().GetBoneContainer();
-		if(RelativeSpaceBone.IsValid(RequiredBones))
-		{
-			FTransform RelativeBoneTransform = MeshBases.GetComponentSpaceTransform(RelativeSpaceBone.GetCompactPoseIndex(RequiredBones));
-			Transform = Transform.GetRelativeTransform(RelativeBoneTransform);
-		}
-
-		break;
-	}
-
-	case AnimPhysSimSpaceType::World:
-	{
-		// Out to world space
-		FAnimationRuntime::ConvertCSTransformToBoneSpace(SkelComp, MeshBases, Transform, BoneIndex, BCS_WorldSpace);
-	}
-
-	default:
-		break;
-	}
-
-	return Transform;
+	return GetSimSpaceTransformFromComponentSpace(SimulationSpace, SkelComp, MeshBases, Transform);
 }
 
-FTransform FAnimNode_AnimDynamics::GetComponentSpaceTransformFromSimSpace(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, const FCompactPoseBoneIndex& BoneIndex, const FTransform& InSimTransform)
+FTransform FAnimNode_AnimDynamics::GetComponentSpaceTransformFromSimSpace(AnimPhysSimSpaceType SimSpace, USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, const FTransform& InSimTransform)
 {
 	FTransform OutTransform = InSimTransform;
 
-	switch(SimulationSpace)
+	switch(SimSpace)
 	{
 		// Change nothing, already in component space
 	case AnimPhysSimSpaceType::Component:
@@ -767,6 +719,71 @@ FTransform FAnimNode_AnimDynamics::GetComponentSpaceTransformFromSimSpace(USkele
 	return OutTransform;
 }
 
+
+FTransform FAnimNode_AnimDynamics::GetSimSpaceTransformFromComponentSpace(AnimPhysSimSpaceType SimSpace, USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, const FTransform& InComponentTransform)
+{
+	FTransform ResultTransform = InComponentTransform;
+
+	switch(SimSpace)
+	{
+		// Change nothing, already in component space
+	case AnimPhysSimSpaceType::Component:
+	{
+		break;
+	}
+
+	case AnimPhysSimSpaceType::Actor:
+	{
+		UObject* OuterObject = SkelComp->GetOuter();
+		if(OuterObject && OuterObject->IsA<AActor>())
+		{
+			AActor* OwningActor = Cast<AActor>(OuterObject);
+			check(OwningActor);
+
+			FTransform WorldTransform = ResultTransform * SkelComp->ComponentToWorld;
+			WorldTransform.SetToRelativeTransform(OwningActor->GetActorTransform());
+			ResultTransform = WorldTransform;
+		}
+
+		break;
+	}
+
+	case AnimPhysSimSpaceType::RootRelative:
+	{
+		const FBoneContainer& RequiredBones = MeshBases.GetPose().GetBoneContainer();
+
+		FCompactPoseBoneIndex RootBoneCompactIndex(0);
+
+		FTransform RelativeBoneTransform = MeshBases.GetComponentSpaceTransform(RootBoneCompactIndex);
+		ResultTransform = ResultTransform.GetRelativeTransform(RelativeBoneTransform);
+
+		break;
+	}
+
+	case AnimPhysSimSpaceType::BoneRelative:
+	{
+		const FBoneContainer& RequiredBones = MeshBases.GetPose().GetBoneContainer();
+		if(RelativeSpaceBone.IsValid(RequiredBones))
+		{
+			FTransform RelativeBoneTransform = MeshBases.GetComponentSpaceTransform(RelativeSpaceBone.GetCompactPoseIndex(RequiredBones));
+			ResultTransform = ResultTransform.GetRelativeTransform(RelativeBoneTransform);
+		}
+
+		break;
+	}
+
+	case AnimPhysSimSpaceType::World:
+	{
+		// Out to world space
+		ResultTransform *= SkelComp->ComponentToWorld;
+	}
+
+	default:
+		break;
+	}
+
+	return ResultTransform;
+}
 
 FVector FAnimNode_AnimDynamics::TransformWorldVectorToSimSpace(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, const FVector& InVec)
 {
@@ -830,5 +847,27 @@ FVector FAnimNode_AnimDynamics::TransformWorldVectorToSimSpace(USkeletalMeshComp
 	}
 
 	return OutVec;
+}
+
+void FAnimNode_AnimDynamics::ConvertSimulationSpace(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, AnimPhysSimSpaceType From, AnimPhysSimSpaceType To)
+{
+	for(FAnimPhysRigidBody* Body : BaseBodyPtrs)
+	{
+		if(!Body)
+		{
+			return;
+		}
+
+		// Get transform
+		FTransform BodyTransform(Body->Pose.Orientation, Body->Pose.Position);
+		// Out to component space
+		BodyTransform = GetComponentSpaceTransformFromSimSpace(LastSimSpace, SkelComp, MeshBases, BodyTransform);
+		// In to new space
+		BodyTransform = GetSimSpaceTransformFromComponentSpace(SimulationSpace, SkelComp, MeshBases, BodyTransform);
+
+		// Push back to body
+		Body->Pose.Orientation = BodyTransform.GetRotation();
+		Body->Pose.Position = BodyTransform.GetTranslation();
+	}
 }
 

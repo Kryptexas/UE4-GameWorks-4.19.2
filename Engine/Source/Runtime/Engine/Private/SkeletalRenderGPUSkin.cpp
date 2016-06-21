@@ -273,7 +273,9 @@ void FSkeletalMeshObjectGPUSkin::Update(int32 LODIndex,USkinnedMeshComponent* In
 	if( GIsEditor )
 	{
 		// this does not need thread-safe update
+#if WITH_EDITORONLY_DATA
 		ProgressiveDrawingFraction = InMeshComponent->ProgressiveDrawingFraction;
+#endif // #if WITH_EDITORONLY_DATA
 		CustomSortAlternateIndexMode = (ECustomSortAlternateIndexMode)InMeshComponent->CustomSortAlternateIndexMode;
 	}
 }

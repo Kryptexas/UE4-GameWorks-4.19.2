@@ -49,6 +49,12 @@ protected:
 
 	/** Util to ensure that InName is a valid name for a new object within InParent. Will rename any existing object within InParent if it is called InName. */
 	static void ClearObjectNameUsage(UObject* InParent, FName InName);
+
+	/** If we cant do anything with the line ourselves hand off to child class */
+	virtual void ProcessUnidentifiedLine(const FString& StrLine) {}
+
+	/** Allow child class to override new object parent (only called when parent supplied to ProcessBuffer is NULL */
+	virtual UObject* GetParentForNewObject(const UClass* ObjClass) {return NULL;}
 };
 
 

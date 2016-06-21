@@ -183,9 +183,9 @@ bool CreateFromSkeletalMeshInternal(UPhysicsAsset* PhysicsAsset, USkeletalMesh* 
 				FMatrix RelTM = SkelMesh->GetRefPoseMatrix(i);
 
 				// set angular constraint mode
-				CS->DefaultInstance.AngularSwing1Motion = Params.AngularConstraintMode;
-				CS->DefaultInstance.AngularSwing2Motion = Params.AngularConstraintMode;
-				CS->DefaultInstance.AngularTwistMotion = Params.AngularConstraintMode;
+				CS->DefaultInstance.SetAngularSwing1Motion(Params.AngularConstraintMode);
+				CS->DefaultInstance.SetAngularSwing2Motion(Params.AngularConstraintMode);
+				CS->DefaultInstance.SetAngularTwistMotion(Params.AngularConstraintMode);
 
 				// Place joint at origin of child
 				CS->DefaultInstance.ConstraintBone1 = BoneName;

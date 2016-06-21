@@ -377,6 +377,9 @@ public:
 	 */
 	FORCEINLINE FVector GetRotationAxis() const;
 
+	/** Find the angular distance between two rotation quaternions (in radians) */
+	FORCEINLINE float AngularDistance(const FQuat& Q) const;
+
 	/**
 	 * Serializes the vector compressed for e.g. network transmission.
 	 * @param Ar Archive to serialize to/ from.
@@ -945,6 +948,12 @@ FORCEINLINE FVector FQuat::GetRotationAxis() const
 	} 
 
 	return FVector(1.f, 0.f, 0.f);
+}
+
+float FQuat::AngularDistance(const FQuat& Q) const
+{
+	float InnerProd = X*Q.X + Y*Q.Y + Z*Q.Z + W*Q.W;
+	return FMath::Acos((2 * InnerProd * InnerProd) - 1.f);
 }
 
 

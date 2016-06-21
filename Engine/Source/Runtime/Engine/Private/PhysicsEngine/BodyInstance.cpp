@@ -665,9 +665,9 @@ void FBodyInstance::CreateDOFLock()
 
 	DOFConstraint = FConstraintInstance::Alloc();
 	{
-		DOFConstraint->bSwingLimitSoft = false;
-		DOFConstraint->bTwistLimitSoft = false;
-		DOFConstraint->bLinearLimitSoft = false;
+		DOFConstraint->ProfileInstance.ConeLimit.bSoftConstraint = false;
+		DOFConstraint->ProfileInstance.TwistLimit.bSoftConstraint  = false;
+		DOFConstraint->ProfileInstance.LinearLimit.bSoftConstraint  = false;
 
 		const FTransform TM = GetUnrealWorldTransform(false);
 		FVector Normal = FVector(1, 0, 0);
@@ -676,26 +676,26 @@ void FBodyInstance::CreateDOFLock()
 
 		if(DOF != EDOFMode::SixDOF)
 		{
-			DOFConstraint->AngularSwing1Motion = (bLockRotation || DOFMode != EDOFMode::CustomPlane) ? EAngularConstraintMotion::ACM_Locked : EAngularConstraintMotion::ACM_Free;
-			DOFConstraint->AngularSwing2Motion = (bLockRotation || DOFMode != EDOFMode::CustomPlane) ? EAngularConstraintMotion::ACM_Locked : EAngularConstraintMotion::ACM_Free;
-			DOFConstraint->AngularTwistMotion = EAngularConstraintMotion::ACM_Free;
-
-			DOFConstraint->LinearXMotion = (bLockTranslation || DOFMode != EDOFMode::CustomPlane) ? ELinearConstraintMotion::LCM_Locked : ELinearConstraintMotion::LCM_Free;
-			DOFConstraint->LinearYMotion = ELinearConstraintMotion::LCM_Free;
-			DOFConstraint->LinearZMotion = ELinearConstraintMotion::LCM_Free;
+			DOFConstraint->SetAngularSwing1Motion((bLockRotation || DOFMode != EDOFMode::CustomPlane) ? EAngularConstraintMotion::ACM_Locked : EAngularConstraintMotion::ACM_Free);
+			DOFConstraint->SetAngularSwing2Motion((bLockRotation || DOFMode != EDOFMode::CustomPlane) ? EAngularConstraintMotion::ACM_Locked : EAngularConstraintMotion::ACM_Free);
+			DOFConstraint->SetAngularTwistMotion(EAngularConstraintMotion::ACM_Free);
+			
+			DOFConstraint->SetLinearXMotion((bLockTranslation || DOFMode != EDOFMode::CustomPlane) ? ELinearConstraintMotion::LCM_Locked : ELinearConstraintMotion::LCM_Free);
+			DOFConstraint->SetLinearYMotion(ELinearConstraintMotion::LCM_Free);
+			DOFConstraint->SetLinearZMotion(ELinearConstraintMotion::LCM_Free);
 
 			Normal = LockedAxis.GetSafeNormal();
 			FVector Garbage;
 			Normal.FindBestAxisVectors(Garbage, Sec);
 		}else
 		{
-			DOFConstraint->AngularTwistMotion = bLockXRotation ? EAngularConstraintMotion::ACM_Locked : EAngularConstraintMotion::ACM_Free;
-			DOFConstraint->AngularSwing2Motion = bLockYRotation ? EAngularConstraintMotion::ACM_Locked : EAngularConstraintMotion::ACM_Free;
-			DOFConstraint->AngularSwing1Motion = bLockZRotation ? EAngularConstraintMotion::ACM_Locked : EAngularConstraintMotion::ACM_Free;
+			DOFConstraint->SetAngularTwistMotion(bLockXRotation ? EAngularConstraintMotion::ACM_Locked : EAngularConstraintMotion::ACM_Free);
+			DOFConstraint->SetAngularSwing2Motion(bLockYRotation ? EAngularConstraintMotion::ACM_Locked : EAngularConstraintMotion::ACM_Free);
+			DOFConstraint->SetAngularSwing1Motion(bLockZRotation ? EAngularConstraintMotion::ACM_Locked : EAngularConstraintMotion::ACM_Free);
 
-			DOFConstraint->LinearXMotion = bLockXTranslation ? ELinearConstraintMotion::LCM_Locked : ELinearConstraintMotion::LCM_Free;
-			DOFConstraint->LinearYMotion = bLockYTranslation ? ELinearConstraintMotion::LCM_Locked : ELinearConstraintMotion::LCM_Free;
-			DOFConstraint->LinearZMotion = bLockZTranslation ? ELinearConstraintMotion::LCM_Locked : ELinearConstraintMotion::LCM_Free;
+			DOFConstraint->SetLinearXMotion(bLockXTranslation ? ELinearConstraintMotion::LCM_Locked : ELinearConstraintMotion::LCM_Free);
+			DOFConstraint->SetLinearYMotion(bLockYTranslation ? ELinearConstraintMotion::LCM_Locked : ELinearConstraintMotion::LCM_Free);
+			DOFConstraint->SetLinearZMotion(bLockZTranslation ? ELinearConstraintMotion::LCM_Locked : ELinearConstraintMotion::LCM_Free);
 		}
 
 		DOFConstraint->PriAxis1 = TM.InverseTransformVectorNoScale(Normal);

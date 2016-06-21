@@ -4,7 +4,7 @@
 
 #include "Editor/Kismet/Public/BlueprintEditor.h"
 
-#include "AnimationEditorPreviewScene.h"
+#include "AdvancedPreviewScene.h"
 
 #include "PersonaModule.h"
 #include "PersonaCommands.h"
@@ -162,7 +162,7 @@ public:
 	void CleanupComponent(USceneComponent* Component);
 
 	/** Returns the editors preview scene */
-	FAnimationEditorPreviewScene& GetPreviewScene() { return PreviewScene; }
+	FAdvancedPreviewScene& GetPreviewScene() { return PreviewScene; }
 
 	/** Gets called when it's clicked via mode tab - Reinitialize the mode **/
 	void ReinitMode();
@@ -193,7 +193,7 @@ public:
 	virtual FText GetToolkitName() const override;
 	virtual FText GetToolkitToolTipText() const override;
 	virtual FString GetWorldCentricTabPrefix() const override;
-	virtual FLinearColor GetWorldCentricTabColorScale() const override;
+	virtual FLinearColor GetWorldCentricTabColorScale() const override;	
 	//~ End IToolkit Interface
 
 	/** Saves all animation assets related to a skeleton */
@@ -346,7 +346,6 @@ private:
 	// Called when the preview viewport is created
 	DECLARE_MULTICAST_DELEGATE_OneParam( FOnCreateViewport, TWeakPtr<SAnimationEditorViewportTabBody> )
 public:
-
 	// Called when Persona refreshes
 	typedef FSimpleMulticastDelegate::FDelegate FOnPersonaRefresh;
 
@@ -719,7 +718,7 @@ private:
 	TSharedPtr<FExtender> ToolbarExtender;
 
 	/** Preview scene for the editor */
-	FAnimationEditorPreviewScene PreviewScene;
+	FAdvancedPreviewScene PreviewScene;
 
 	/** Brush to use as a dirty marker for assets */
 	const FSlateBrush* AssetDirtyBrush;
@@ -739,4 +738,6 @@ private:
 	/** Handle additive anim scale validation */
 	bool bDoesAdditiveRefPoseHaveZeroScale;
 	FGuid RefPoseGuid;
+
+	static const FName PreviewSceneSettingsTabId;
 };
