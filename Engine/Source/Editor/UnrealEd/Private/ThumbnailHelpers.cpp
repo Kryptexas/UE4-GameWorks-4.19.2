@@ -970,7 +970,7 @@ FClassActorThumbnailScene::FClassActorThumbnailScene()
 
 void FClassActorThumbnailScene::SpawnPreviewActor(UClass* InClass)
 {
-	if (PreviewActor)
+	if (PreviewActor.IsValid())
 	{
 		if (PreviewActor->GetClass() == InClass)
 		{
@@ -989,7 +989,7 @@ void FClassActorThumbnailScene::SpawnPreviewActor(UClass* InClass)
 		SpawnInfo.ObjectFlags = RF_Transient;
 		PreviewActor = GetWorld()->SpawnActor<AActor>(InClass, SpawnInfo);
 
-		if (PreviewActor)
+		if (PreviewActor.IsValid())
 		{
 			const FBoxSphereBounds Bounds = GetPreviewActorBounds();
 			const float BoundsZOffset = GetBoundsZOffset(Bounds);
@@ -1024,7 +1024,7 @@ bool FClassActorThumbnailScene::IsValidComponentForVisualization(UActorComponent
 FBoxSphereBounds FClassActorThumbnailScene::GetPreviewActorBounds() const
 {
 	FBoxSphereBounds Bounds(ForceInitToZero);
-	if (PreviewActor && PreviewActor->GetRootComponent())
+	if (PreviewActor.IsValid() && PreviewActor->GetRootComponent())
 	{
 		TArray<USceneComponent*> PreviewComponents;
 		PreviewActor->GetRootComponent()->GetChildrenComponents(true, PreviewComponents);
