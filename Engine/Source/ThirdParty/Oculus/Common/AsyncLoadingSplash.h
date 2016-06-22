@@ -87,7 +87,7 @@ public:
 	virtual void Hide(enum EShowType) = 0;
 
 	// delegate method, called when loading begins
-	void OnPreLoadMap() { OnLoadingBegins(); }
+	void OnPreLoadMap(const FString&) { OnLoadingBegins(); }
 
 	// delegate method, called when loading ends
 	void OnPostLoadMap() { OnLoadingEnds(); }
