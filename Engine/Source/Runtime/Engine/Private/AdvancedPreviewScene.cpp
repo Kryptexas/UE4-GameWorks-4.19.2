@@ -12,7 +12,7 @@
 #include "UnrealClient.h"
 #include "Editor/EditorPerProjectUserSettings.h"
 
-#include "Components/Directionallightcomponent.h"
+#include "Components/DirectionalLightComponent.h"
 #include "Components/SphereReflectionCaptureComponent.h"
 #include "Components/SkyLightComponent.h"
 

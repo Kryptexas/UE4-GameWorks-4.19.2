@@ -9,7 +9,7 @@
 #include "SSkeletonSlotNames.h"
 #include "SSkeletonSmartNameManager.h"
 #include "SSkeletonBlendProfiles.h"
-#include "SDocktab.h"
+#include "SDockTab.h"
 #include "SAdvancedPreviewDetailsTab.h"
 
 #define LOCTEXT_NAMESPACE "PersonaModes"

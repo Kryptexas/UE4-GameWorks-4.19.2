@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Classes/Engine/Texturecube.h"
+#include "Classes/Engine/TextureCube.h"
 
 #include "AssetViewerSettings.generated.h"
 
