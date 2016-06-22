@@ -2448,6 +2448,11 @@ FObjectInitializer::~FObjectInitializer()
 				// make sure we haven't already deferred this once, if we have
 				// then something is destroying this one prematurely 
 				check(bIsDeferredInitializer == false);
+
+				for (const FSubobjectsToInit::FSubobjectInit& SubObjInfo : ComponentInits.SubobjectInits)
+				{
+					check(!SubObjInfo.Subobject->HasAnyFlags(RF_NeedLoad));
+				}
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 
 				// makes a copy of this and saves it off, to be ran later
@@ -2679,7 +2684,11 @@ bool FObjectInitializer::IsInstancingAllowed() const
 
 bool FObjectInitializer::InitSubobjectProperties(bool bAllowInstancing) const
 {
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	bool bNeedSubobjectInstancing = bAllowInstancing && bIsDeferredInitializer;
+#else 
 	bool bNeedSubobjectInstancing = false;
+#endif
 	// initialize any subobjects, now that the constructors have run
 	for (int32 Index = 0; Index < ComponentInits.SubobjectInits.Num(); Index++)
 	{
@@ -2721,7 +2730,12 @@ void FObjectInitializer::InstanceSubobjects(UClass* Class, bool bNeedInstancing,
 		{
 			UObject* Subobject = ComponentInits.SubobjectInits[Index].Subobject;
 			UObject* Template = ComponentInits.SubobjectInits[Index].Template;
-			if (!Subobject->HasAnyFlags(RF_NeedLoad))
+
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+			if ( !Subobject->HasAnyFlags(RF_NeedLoad) || bIsDeferredInitializer )
+#else 
+			if ( !Subobject->HasAnyFlags(RF_NeedLoad) )
+#endif
 			{
 				Subobject->GetClass()->InstanceSubobjectTemplates(Subobject, Template, Template->GetClass(), Subobject, UseInstancingGraph);
 			}
