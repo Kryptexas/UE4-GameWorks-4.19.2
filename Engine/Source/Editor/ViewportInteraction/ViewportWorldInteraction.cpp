@@ -471,9 +471,8 @@ void UViewportWorldInteraction::Paste()
 
 void UViewportWorldInteraction::Duplicate()
 {
-	ABrush::SetSuppressBSPRegeneration( true );
-	GEditor->edactDuplicateSelected( GetViewportWorld()->GetCurrentLevel(), false );
-	ABrush::SetSuppressBSPRegeneration( false );
+	// @todo vreditor: Needs CanExecute()  (see LevelEditorActions.cpp)
+	GUnrealEd->Exec( GetViewportWorld(), TEXT( "DUPLICATE" ) );
 }
 
 void UViewportWorldInteraction::Deselect()
