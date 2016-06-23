@@ -1257,7 +1257,8 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 		UpdateRunningAverageDeltaTime(DeltaTime);
 
 		// Get max tick rate based on network settings and current delta time.
-		const float MaxTickRate = FABTest::StaticIsActive() ? 0.0f : GetMaxTickRate(DeltaTime);
+		const float GivenMaxTickRate = GetMaxTickRate(DeltaTime);
+		const float MaxTickRate = FABTest::StaticIsActive() ? 0.0f : bUseFixedFrameRate ? FMath::Min(GivenMaxTickRate, FixedFrameRate) : GivenMaxTickRate;
 		float WaitTime		= 0;
 		// Convert from max FPS to wait time.
 		if( MaxTickRate > 0 )
@@ -1297,7 +1298,7 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 			}
 			FApp::SetCurrentTime(FPlatformTime::Seconds());
 		}
-		else if(bUseFixedFrameRate)
+		else if(bUseFixedFrameRate && MaxTickRate == FixedFrameRate)
 		{
 			//We are doing fixed framerate and the real delta time is bigger than our desired delta time. In this case we start falling behind real time (and that's ok)
 			const float FrameRate = 1.f / FixedFrameRate;
@@ -6575,11 +6576,6 @@ float UEngine::GetMaxTickRate(float DeltaTime, bool bAllowFrameRateSmoothing) co
 		{
 			MaxTickRate = FMath::Min( MaxTickRate, SmoothedFrameRateRange.GetUpperBoundValue() );
 		}
-	}
-
-	if(bUseFixedFrameRate)
-	{
-		MaxTickRate = FixedFrameRate;
 	}
 
 	if (CVarCauseHitches.GetValueOnGameThread())
