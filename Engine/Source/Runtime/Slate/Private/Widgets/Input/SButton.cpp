@@ -430,3 +430,10 @@ void SButton::SetButtonStyle(const FButtonStyle* ButtonStyle)
 	HoveredSound = Style->HoveredSlateSound;
 	PressedSound = Style->PressedSlateSound;
 }
+
+// @HSL_BEGIN - ngreen@hardsuitlabs.com - 5/25/2016 - Need to release the button when we invalidate this button from being a cursor captor, otherwise we won't be able to press it again until we release it
+void SButton::OnMouseCaptureLost()
+{
+	bIsPressed = false;
+}
+// @HSL_END - ngreen@hardsuitlabs.com - 5/25/2016
