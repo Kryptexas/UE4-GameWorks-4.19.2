@@ -124,7 +124,7 @@ protected:
 
 	/** Called when the user presses a button on their motion controller device */
 	void OnVRAction( class FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor,
-		const struct FViewportActionKeyInput& Action, const EInputEvent Event, bool& bOutIsInCaptured, bool& bWasHandled );
+		const struct FViewportActionKeyInput& Action, const EInputEvent Event, bool& bOutIsInputCaptured, bool& bWasHandled );
 
 	/** Called every frame to update hover state */
 	void OnVRHoverUpdate( class FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, FVector& HoverImpactPoint, bool& bWasHandled );

@@ -308,6 +308,7 @@ bool UViewportInteractor::HandleInputKey( const FKey Key, const EInputEvent Even
 						!bIsDraggingWorldWithTwoHands )
 					{
 						WorldInteraction->StopDragging( this );
+						Action->bIsInputCaptured = false;
 					}
 
 					bHandled = true;
@@ -359,6 +360,8 @@ bool UViewportInteractor::HandleInputKey( const FKey Key, const EInputEvent Even
 				else if ( Event == IE_Released )
 				{
 					WorldInteraction->StopDragging( this );
+
+					Action->bIsInputCaptured = false;
 				}
 			}
 			else if ( Action->ActionType == ViewportWorldActionTypes::Delete )

@@ -279,9 +279,9 @@ void UVREditorWorldInteraction::OnAssetDragStartedFromContentBrowser( const TArr
 
 				// Attempt to create actors from the dropped object
 				const bool bSelectNewActors = true;
-				const EObjectFlags ObjectFlags = bIsPreview ? RF_Transient : RF_Transactional;
+				const EObjectFlags NewObjectFlags = bIsPreview ? RF_Transient : RF_Transactional;
 
-				TArray<AActor*> NewActors = FLevelEditorViewportClient::TryPlacingActorFromObject( GetViewportWorld()->GetCurrentLevel(), AssetObj, bSelectNewActors, ObjectFlags, FactoryToUse );
+				TArray<AActor*> NewActors = FLevelEditorViewportClient::TryPlacingActorFromObject( GetViewportWorld()->GetCurrentLevel(), AssetObj, bSelectNewActors, NewObjectFlags, FactoryToUse );
 
 				if( NewActors.Num() > 0 )
 				{

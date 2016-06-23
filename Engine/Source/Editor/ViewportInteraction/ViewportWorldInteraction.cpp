@@ -2217,12 +2217,6 @@ void UViewportWorldInteraction::StopDragging( UViewportInteractor* Interactor )
 		}
 		
 		InteractorData.DraggingMode = EViewportInteractionDraggingMode::Nothing;
-		
-		FViewportActionKeyInput* OptionalAction = Interactor->GetActionWithName( ViewportWorldActionTypes::SelectAndMove );
-		if ( OptionalAction )
-		{
-			OptionalAction->bIsInputCaptured = false;
-		}
 	}
 
 	// NOTE: Even though we're done dragging, we keep our list of transformables so that inertial drag can still push them around!
@@ -2524,22 +2518,22 @@ void UViewportWorldInteraction::RefreshTransformGizmo( const bool bNewObjectsSel
 
 			{
 				// Update snap grid material state
-				UMaterialInstanceDynamic* SnapGridMID = GetSnapGridMID();
+				UMaterialInstanceDynamic* LocalSnapGridMID = GetSnapGridMID();
 
 				static FName GridColorParameterName( "GridColor" );
-				SnapGridMID->SetVectorParameterValue( GridColorParameterName, GridColor );
+				LocalSnapGridMID->SetVectorParameterValue( GridColorParameterName, GridColor );
 
 				static FName GridCenterParameterName( "GridCenter" );
-				SnapGridMID->SetVectorParameterValue( GridCenterParameterName, SnapGridCenter );
+				LocalSnapGridMID->SetVectorParameterValue( GridCenterParameterName, SnapGridCenter );
 
 				static FName GridIntervalParameterName( "GridInterval" );
-				SnapGridMID->SetScalarParameterValue( GridIntervalParameterName, GridInterval );
+				LocalSnapGridMID->SetScalarParameterValue( GridIntervalParameterName, GridInterval );
 
 				static FName GridRadiusParameterName( "GridRadius" );
-				SnapGridMID->SetScalarParameterValue( GridRadiusParameterName, SnapGridSize * 0.5f );
+				LocalSnapGridMID->SetScalarParameterValue( GridRadiusParameterName, SnapGridSize * 0.5f );
 
 				static FName LineWidthParameterName( "LineWidth" );
-				SnapGridMID->SetScalarParameterValue( LineWidthParameterName, LineWidth );
+				LocalSnapGridMID->SetScalarParameterValue( LineWidthParameterName, LineWidth );
 
 				FMatrix GridRotationMatrix = GizmoToWorld.ToMatrixNoScale().Inverse();
 				GridRotationMatrix.SetOrigin( FVector::ZeroVector );
@@ -2547,9 +2541,9 @@ void UViewportWorldInteraction::RefreshTransformGizmo( const bool bNewObjectsSel
 				static FName GridRotationMatrixXParameterName( "GridRotationMatrixX" );
 				static FName GridRotationMatrixYParameterName( "GridRotationMatrixY" );
 				static FName GridRotationMatrixZParameterName( "GridRotationMatrixZ" );
-				SnapGridMID->SetVectorParameterValue( GridRotationMatrixXParameterName, GridRotationMatrix.GetScaledAxis( EAxis::X ) );
-				SnapGridMID->SetVectorParameterValue( GridRotationMatrixYParameterName, GridRotationMatrix.GetScaledAxis( EAxis::Y ) );
-				SnapGridMID->SetVectorParameterValue( GridRotationMatrixZParameterName, GridRotationMatrix.GetScaledAxis( EAxis::Z ) );
+				LocalSnapGridMID->SetVectorParameterValue( GridRotationMatrixXParameterName, GridRotationMatrix.GetScaledAxis( EAxis::X ) );
+				LocalSnapGridMID->SetVectorParameterValue( GridRotationMatrixYParameterName, GridRotationMatrix.GetScaledAxis( EAxis::Y ) );
+				LocalSnapGridMID->SetVectorParameterValue( GridRotationMatrixZParameterName, GridRotationMatrix.GetScaledAxis( EAxis::Z ) );
 			}
 		}
 		else

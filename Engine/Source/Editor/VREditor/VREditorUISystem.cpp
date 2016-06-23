@@ -168,7 +168,7 @@ void UVREditorUISystem::Shutdown()
 }
 
 void UVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor,
-	const FViewportActionKeyInput& Action, const EInputEvent Event, bool& bOutIsInCaptured, bool& bWasHandled )
+	const FViewportActionKeyInput& Action, const EInputEvent Event, bool& bOutIsInputCaptured, bool& bWasHandled )
 {
 	UVREditorInteractor* VREditorInteractor = Cast<UVREditorInteractor>( Interactor );
 	if ( VREditorInteractor )
@@ -270,7 +270,7 @@ void UVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, UView
 										VREditorInteractor->SetIsClickingOnUI( true );
 										VREditorInteractor->SetIsRightClickingOnUI( bIsRightClicking );
 										VREditorInteractor->SetLastClickReleaseTime( CurrentTime );
-										bOutIsInCaptured = true;
+										bOutIsInputCaptured = true;
 
 										// Play a haptic effect on press
 										VREditorInteractor->PlayHapticEffect( VREd::UIPressHapticFeedbackStrength->GetFloat() );
@@ -296,7 +296,7 @@ void UVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, UView
 						}
 						VREditorInteractor->SetIsClickingOnUI( false );
 						VREditorInteractor->SetIsRightClickingOnUI( false );
-						bOutIsInCaptured = false;
+						bOutIsInputCaptured = false;
 					}
 
 					if ( !bWasHandled )

@@ -5060,7 +5060,7 @@ TWeakObjectPtr<AActor> FEdModeMeshPaint::GetEditingActor() const
 
 
 void FEdModeMeshPaint::OnVRAction( class FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, 
-	const FViewportActionKeyInput& Action, const EInputEvent Event, bool& bOutIsInCaptured, bool& bWasHandled )
+	const FViewportActionKeyInput& Action, const EInputEvent Event, bool& bOutIsInputCaptured, bool& bWasHandled )
 {
 	IVREditorMode* VREditorMode = static_cast<IVREditorMode*>( GetModeManager()->GetActiveMode( IVREditorModule::Get().GetVREditorModeID() ) );
 	UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>( Interactor );
@@ -5074,7 +5074,7 @@ void FEdModeMeshPaint::OnVRAction( class FEditorViewportClient& ViewportClient, 
 			!VRInteractor->IsHoveringOverUI() )
 		{
 			bWasHandled = true;
-			bOutIsInCaptured = true;
+			bOutIsInputCaptured = true;
 		}
 
 		if( Action.ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed )
@@ -5086,7 +5086,7 @@ void FEdModeMeshPaint::OnVRAction( class FEditorViewportClient& ViewportClient, 
 				// SetAllowTriggerLightPressLocking() function in the next tick (after VR Editor will have disabled locking.)
 				// @todo vreditor: We shouldn't have to use this trick.  This input system needs more flexibility in its public interface!
 				//bWasHandled = true;
-				//bOutIsInCaptured = true;
+				//bOutIsInputCaptured = true;
 
 				StartPainting();
 				PaintingWithInteractorInVR = Interactor;
@@ -5115,7 +5115,7 @@ void FEdModeMeshPaint::OnVRAction( class FEditorViewportClient& ViewportClient, 
 
 				// @todo vreditor: We shouldn't have to use this trick.  This input system needs more flexibility in its public interface!
 				//bWasHandled = true;
-				//bOutIsInCaptured = false;
+				//bOutIsInputCaptured = false;
 			}
 		}
 	}

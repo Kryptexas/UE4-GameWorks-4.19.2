@@ -89,7 +89,7 @@ void UVREditorTeleporter::StartTeleport( UViewportInteractor* Interactor )
 	}
 }
 
-void UVREditorTeleporter::OnInteractorAction( class FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, const struct FViewportActionKeyInput& Action, const EInputEvent Event, bool& bOutIsInCaptured, bool& bWasHandled )
+void UVREditorTeleporter::OnInteractorAction( class FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, const struct FViewportActionKeyInput& Action, const EInputEvent Event, bool& bOutIsInputCaptured, bool& bWasHandled )
 {
 	if ( ( Action.ActionType == ViewportWorldActionTypes::SelectAndMove ||
 		Action.ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed ) )

@@ -135,6 +135,7 @@ public:
 	virtual bool GetIsLaserBlocked() { return false; }
 
 	/** Gets a certain action by iterating through the map looking for the same ActionType */
+	// @todo ViewportInteractor: This should be changed to return a const pointer, but we need to fix up some dragging code in WorldInteraction first
 	FViewportActionKeyInput* GetActionWithName( const FName InActionName );
 
 	/** Gets the drag haptic feedback strength console variable */

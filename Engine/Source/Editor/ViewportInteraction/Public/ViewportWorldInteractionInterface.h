@@ -36,6 +36,6 @@ public:
 
 	/** Gets the event for input actions update which is broadcasted for each interactor */
 	DECLARE_EVENT_SixParams( IViewportWorldInteractionInterface, FOnVIActionHandle, class FEditorViewportClient& /* ViewportClient */, class UViewportInteractor* /* Interactor */, 
-	const struct FViewportActionKeyInput& /* Action */, const EInputEvent /* Event */, bool& /* bOutIsInCaptured */, bool& /* bWasHandled */ );
+	const struct FViewportActionKeyInput& /* Action */, const EInputEvent /* Event */, bool& /* bOutIsInputCaptured */, bool& /* bWasHandled */ );
 	virtual FOnVIActionHandle& OnViewportInteractionInputAction() = 0;
 };

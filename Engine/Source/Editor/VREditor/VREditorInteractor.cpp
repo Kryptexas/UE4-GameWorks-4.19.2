@@ -1095,7 +1095,6 @@ void UVREditorInteractor::SetLaserVisuals( const FLinearColor& NewColor, const f
 void UVREditorInteractor::UpdateRadialMenuInput( const float DeltaTime )
 {
 	UVREditorUISystem& UISystem = GetVRMode().GetUISystem();
-	UVREditorInteractor* OtherInteractor = Cast<UVREditorInteractor>( GetOtherInteractor() );
 
 	//Update the radial menu
 	EViewportInteractionDraggingMode DraggingMode = GetDraggingMode();
@@ -1106,7 +1105,7 @@ void UVREditorInteractor::UpdateRadialMenuInput( const float DeltaTime )
 		DraggingMode != EViewportInteractionDraggingMode::ActorsAtLaserImpact &&
 		DraggingMode != EViewportInteractionDraggingMode::AssistingDrag && 
 		!UISystem.IsInteractorDraggingDockUI( this ) &&
-		!UISystem.IsShowingRadialMenu( OtherInteractor ) )
+		!UISystem.IsShowingRadialMenu( Cast<UVREditorInteractor>( OtherInteractor ) ) )
 	{
 		const EHMDDeviceType::Type HMDDevice = GetHMDDeviceType();
 
