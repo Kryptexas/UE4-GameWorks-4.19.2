@@ -213,6 +213,7 @@ namespace EditorAnimUtils
 				AssetToRetarget->ReplaceReferredAnimations(DuplicatedAnimAssets);
 			}
 			AssetToRetarget->ReplaceSkeleton(NewSkeleton, bConvertAnimationDataInComponentSpaces);
+			AssetToRetarget->MarkPackageDirty();
 		}
 
 		// Put duplicated and remapped assets in one list
