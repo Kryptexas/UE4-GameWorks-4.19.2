@@ -194,6 +194,7 @@ void UK2Node_ConstructObjectFromClass::OnClassPinChanged()
 		UEdGraphPin* OldPin = OldPins[i];
 		if (IsSpawnVarPin(OldPin))
 		{
+			OldPin->MarkPendingKill();
 			Pins.Remove(OldPin);
 			OldClassPins.Add(OldPin);
 		}

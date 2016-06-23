@@ -75,11 +75,6 @@ bool FText::FSortPredicate::operator()(const FText& A, const FText& B) const
 	return A.ToString() < B.ToString();
 }
 
-bool FText::IsLetter( const TCHAR Char )
-{
-	return (Char>='A' && Char<='Z') || (Char>='a' && Char<='z');
-}
-
 bool FUnicodeChar::CodepointToString(const uint32 InCodepoint, FString& OutString)
 {
 	return false;

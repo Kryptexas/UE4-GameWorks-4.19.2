@@ -2,19 +2,7 @@
 
 #pragma once
 
-#include "BlueprintProfilerModule.h"
-
-/** Blueprint performance view type */
-namespace EBlueprintPerfViewType
-{
-	enum Type
-	{
-		None = 0,
-		Overview,
-		ExecutionGraph,
-		LeastPerformant
-	};
-}
+#include "SBlueprintProfilerToolbar.h"
 
 //////////////////////////////////////////////////////////////////////////
 // SBlueprintProfilerView
@@ -42,56 +30,25 @@ protected:
 	/** Called when the profiler state is toggled */
 	void OnToggleProfiler(bool bEnabled);
 
+	/** Called to update the display when the stat layouts change or the blueprint is compiled. */
+	void OnGraphLayoutChanged(TWeakObjectPtr<UBlueprint> Blueprint);
+
 	/** Returns the profiler current status message */
 	FText GetProfilerStatusText() const { return StatusText; }
 
 	/** Called to create the child profiler widgets */
 	void UpdateActiveProfilerWidget();
 
-	/** Returns the current view label */
-	FText GetCurrentViewText() const;
-
-	/** Constructs and returns the view button widget */
-	TSharedRef<SWidget> CreateViewButton() const;
-
-	/** Returns the active view button foreground color */
-	FSlateColor GetViewButtonForegroundColor() const;
-
 	/** Called when the profiler view type is changed */
-	void OnViewSelectionChanged(const EBlueprintPerfViewType::Type NewViewType);
-
-	/** Returns the current heat map display mode label */
-	FText GetCurrentHeatMapDisplayModeText() const;
-
-	/** Constructs and returns the heat map display mode button widget */
-	TSharedRef<SWidget> CreateHeatMapDisplayModeButton() const;
-
-	/** Returns the active heat map display mode button foreground color */
-	FSlateColor GetHeatMapDisplayModeButtonForegroundColor() const;
-
-	/** Returns whether or not the given heat map display mode is selected */
-	bool IsHeatMapDisplayModeSelected(const EBlueprintProfilerHeatMapDisplayMode::Type InHeatMapDisplayMode) const;
-
-	/** Called when the heat map display mode is changed */
-	void OnHeatMapDisplayModeChanged(const EBlueprintProfilerHeatMapDisplayMode::Type NewHeatMapDisplayMode);
-
-	/** Returns the current wire heat map display mode label */
-	FText GetCurrentWireHeatMapDisplayModeText() const;
-
-	/** Constructs and returns the wire heat map display mode button widget */
-	TSharedRef<SWidget> CreateWireHeatMapDisplayModeButton() const;
-
-	/** Returns the active wire heat map display mode button foreground color */
-	FSlateColor GetWireHeatMapDisplayModeButtonForegroundColor() const;
-
-	/** Returns whether or not the given wire heat map display mode is selected */
-	bool IsWireHeatMapDisplayModeSelected(const EBlueprintProfilerHeatMapDisplayMode::Type InHeatMapDisplayMode) const;
-
-	/** Called when the wire heat map display mode is changed */
-	void OnWireHeatMapDisplayModeChanged(const EBlueprintProfilerHeatMapDisplayMode::Type NewHeatMapDisplayMode);
+	void OnViewChanged();
 
 	/** Create active statistic display widget */
 	TSharedRef<SWidget> CreateActiveStatisticWidget();
+
+private:
+
+	/** Update status message */
+	void UpdateStatusMessage();
 
 protected:
 
@@ -101,15 +58,9 @@ protected:
 	/** Blueprint editor */
 	TWeakPtr<class FBlueprintEditor> BlueprintEditor;
 
-	/** Current profiler view type */
-	EBlueprintPerfViewType::Type CurrentViewType;
+	/** Display options */
+	TSharedPtr<FBlueprintProfilerStatOptions> DisplayOptions;
 
-	/** View combo button widget */
-	TSharedPtr<SComboButton> ViewComboButton;
-
-	/** Heat map display mode combo button widget */
-	TSharedPtr<SComboButton> HeatMapDisplayModeComboButton;
-
-	/** Heat map display mode combo button widget */
-	TSharedPtr<SComboButton> WireHeatMapDisplayModeComboButton;
+	/** Profiler Toolbar */
+	TSharedPtr<class SBlueprintProfilerToolbar> ProfilerToolbar;
 };

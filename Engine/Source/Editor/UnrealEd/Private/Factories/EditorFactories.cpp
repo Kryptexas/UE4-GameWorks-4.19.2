@@ -5411,7 +5411,7 @@ void FCustomizableTextObjectFactory::ProcessBuffer(UObject* InParent, EObjectFla
 	while( FParse::Line(&Buffer,StrLine) )
 	{
 		const TCHAR* Str = *StrLine;
-		if( GetBEGIN(&Str,TEXT("OBJECT")) )
+		if( GetBEGIN(&Str, TEXT("OBJECT")) || (NestedDepth == 0 && GetBEGIN(&Str, TEXT("ACTOR"))) )
 		{
 			++NestedDepth;
 			if (OmittedOuterObj > 0)
@@ -5471,7 +5471,7 @@ void FCustomizableTextObjectFactory::ProcessBuffer(UObject* InParent, EObjectFla
 					{
 						ObjDepth++;
 					}
-					else if( GetEND(&PropStr, TEXT("OBJECT")) )
+					else if( GetEND(&PropStr, TEXT("OBJECT")) || (ObjDepth == 1 && GetEND(&PropStr, TEXT("ACTOR"))) )
 					{
 						bEndLine = true;
 
@@ -5496,7 +5496,7 @@ void FCustomizableTextObjectFactory::ProcessBuffer(UObject* InParent, EObjectFla
 				NewObjects.Add(CreatedObject);
 			}
 		}
-		else if (GetEND(&Str, TEXT("OBJECT")))
+		else if (GetEND(&Str, TEXT("OBJECT")) || (NestedDepth == 1 && GetEND(&Str, TEXT("ACTOR"))))
 		{
 			--NestedDepth;
 		}
@@ -5536,7 +5536,7 @@ bool FCustomizableTextObjectFactory::CanCreateObjectsFromText( const FString& Te
 	while( FParse::Line(&Buffer,StrLine) )
 	{
 		const TCHAR* Str = *StrLine;
-		if( GetBEGIN(&Str,TEXT("OBJECT")) )
+		if( GetBEGIN(&Str,TEXT("OBJECT")) || (NestedDepth == 0 && GetBEGIN(&Str, TEXT("ACTOR"))) )
 		{
 			++NestedDepth;
 			if (OmittedOuterObj > 0)
@@ -5565,7 +5565,7 @@ bool FCustomizableTextObjectFactory::CanCreateObjectsFromText( const FString& Te
 				}
 			}
 		}
-		else if ( GetEND(&Str, TEXT("OBJECT")) )
+		else if ( GetEND(&Str, TEXT("OBJECT")) || (NestedDepth == 1 && GetEND(&Str, TEXT("ACTOR"))) )
 		{
 			--NestedDepth;
 		}

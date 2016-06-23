@@ -41,13 +41,6 @@ struct FUndoSessionContext
  * warning: The undo buffer cannot be made persistent because of its dependence on offsets
  * of arrays from their owning UObjects.
  *
- * warning: Transactions which rely on Preload calls cannot be garbage collected
- * since references to objects point to the most recent version of the object, not
- * the ordinally correct version which was referred to at the time of serialization.
- * Therefore, Preload-sensitive transactions may only be performed using
- * a temporary UTransactor::CreateInternalTransaction transaction, not a
- * garbage-collectable UTransactor::Begin transaction.
- *
  * warning: UObject::Serialize implicitly assumes that class properties do not change
  * in between transaction resets.
  */
@@ -149,6 +142,18 @@ protected:
 		/** True if record should serialize data as binary blob (more compact). False to use tagged serialization (more robust) */
 		bool				bWantsBinarySerialization;
 
+		/** Copy of data that will be used when the transaction is flipped */
+		TArray<uint8> FlipData;
+
+		/** Copy of ReferencedObjects that will be used when the transaction is flipped */
+		TArray<FPersistentObjectRef> FlipReferencedObjects;
+
+		/** Copy of ReferencedNames that will be used when the transaction is flipped */
+		TArray<FName> FlipReferencedNames;
+
+		/** Copy of ObjectAnnotation that will be used when the transaction is flipped */
+		TSharedPtr<ITransactionObjectAnnotation> FlipObjectAnnotation;
+
 		// Constructors.
 		FObjectRecord()
 		{}
@@ -157,6 +162,8 @@ protected:
 		// Functions.
 		void SerializeContents( FArchive& Ar, int32 InOper );
 		void Restore( FTransaction* Owner );
+		void Save( FTransaction* Owner );
+		void Load( FTransaction* Owner );
 
 		/** Used by GC to collect referenced objects. */
 		void AddReferencedObjects( FReferenceCollector& Collector );
@@ -332,7 +339,7 @@ protected:
 	/** Used to prevent objects from being serialized to a transaction more than once. */
 	ObjectMapType			ObjectMap;
 
-	/** If true, on apply flip the direction of iteration over object records. */
+	/** If true, on apply flip the direction of iteration over object records. The only client for which this is false is FMatineeTransaction */
 	bool					bFlip;
 	/** Used to track direction to iterate over transaction's object records. Typically -1 for Undo, 1 for Redo */
 	int32					Inc;
@@ -594,7 +601,4 @@ class UTransactor : public UObject
 
 	/** @return True if this record contains a reference to a pie object */
 	virtual bool ContainsPieObject() const { return false; }
-
-	// @todo document
-	virtual ITransaction* CreateInternalTransaction() PURE_VIRTUAL(UTransactor::CreateInternalTransaction,return NULL;);
 };

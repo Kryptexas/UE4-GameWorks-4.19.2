@@ -310,6 +310,10 @@ FSlateColor SGraphNodeK2Base::GetNodeIndicatorOverlayColor() const
 			case EBlueprintProfilerHeatMapDisplayMode::MaxTiming:
 				IntensityValue = NodePerfData.GetMaxTimeHeatLevel();
 				break;
+
+			case EBlueprintProfilerHeatMapDisplayMode::Total:
+				IntensityValue = NodePerfData.GetTotalHeatLevel();
+				break;
 			}
 		}
 	}

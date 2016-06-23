@@ -317,29 +317,31 @@ void FEnumEditorUtils::BroadcastChanges(const UUserDefinedEnum* Enum, const TArr
 		}
 	}
 
-	for (TObjectIterator<UEdGraphPin> It(RF_Transient); It; ++It)
+	for (TObjectIterator<UEdGraphNode> It(RF_Transient); It; ++It)
 	{
-		UEdGraphPin* Pin = *It;
-		if (Pin && (Pin->PinType.PinSubCategory != UEdGraphSchema_K2::PSC_Bitmask) && (Enum == Pin->PinType.PinSubCategoryObject.Get()) && (EEdGraphPinDirection::EGPD_Input == Pin->Direction))
+		for (UEdGraphPin* Pin : It->Pins)
 		{
-			UK2Node* Node = Cast<UK2Node>(Pin->GetOuter());
-			if (FNodeValidatorHelper::IsValid(Node))
+			if (Pin && (Pin->PinType.PinSubCategory != UEdGraphSchema_K2::PSC_Bitmask) && (Enum == Pin->PinType.PinSubCategoryObject.Get()) && (EEdGraphPinDirection::EGPD_Input == Pin->Direction))
 			{
-				if (UBlueprint* Blueprint = Node->GetBlueprint())
+				UK2Node* Node = Cast<UK2Node>(Pin->GetOuter());
+				if (FNodeValidatorHelper::IsValid(Node))
 				{
-					if (INDEX_NONE == Enum->FindEnumIndex(*Pin->DefaultValue))
+					if (UBlueprint* Blueprint = Node->GetBlueprint())
 					{
-						Pin->Modify();
-						if (Blueprint->BlueprintType == BPTYPE_Interface)
+						if (INDEX_NONE == Enum->FindEnumIndex(*Pin->DefaultValue))
 						{
-							Pin->DefaultValue = Enum->GetEnumName(0);
+							Pin->Modify();
+							if (Blueprint->BlueprintType == BPTYPE_Interface)
+							{
+								Pin->DefaultValue = Enum->GetEnumName(0);
+							}
+							else
+							{
+								Pin->DefaultValue = FEnumEditorUtilsHelper::InvalidName();
+							}
+							Node->PinDefaultValueChanged(Pin);
+							BlueprintsToRefresh.Add(Blueprint);
 						}
-						else
-						{
-							Pin->DefaultValue = FEnumEditorUtilsHelper::InvalidName();
-						}
-						Node->PinDefaultValueChanged(Pin);
-						BlueprintsToRefresh.Add(Blueprint);
 					}
 				}
 			}

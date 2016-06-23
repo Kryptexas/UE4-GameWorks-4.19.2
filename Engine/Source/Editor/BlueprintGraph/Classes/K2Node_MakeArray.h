@@ -61,4 +61,6 @@ protected:
 
 	/** Returns the function to be used to add a function to the array */
 	BLUEPRINTGRAPH_API UFunction* GetArrayAddFunction() const;
+
+	void SyncPinNames();
 };

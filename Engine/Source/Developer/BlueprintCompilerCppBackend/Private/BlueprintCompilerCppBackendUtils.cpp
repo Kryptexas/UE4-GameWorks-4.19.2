@@ -142,13 +142,30 @@ FString FEmitterLocalContext::FindGloballyMappedObject(const UObject* Object, co
 		return FString::Printf(TEXT("%s::StaticStruct()"), *FEmitHelper::GetCppName(UDS));
 	}
 
+	if (const UUserDefinedEnum* UDE = Cast<UUserDefinedEnum>(Object))
+	{
+		const int32 EnumIndex = EnumsInCurrentClass.IndexOfByKey(UDE);
+		if (INDEX_NONE != EnumIndex)
+		{
+			return FString::Printf(TEXT("CastChecked<%s>(CastChecked<UDynamicClass>(%s::StaticClass())->ReferencedConvertedFields[%d])")
+				, *ClassString()
+				, *FEmitHelper::GetCppName(ActualClass)
+				, EnumIndex);
+		}
+	}
+
 	// TODO: handle subobjects
 	ensure(!bLoadIfNotFound || Object);
 	if (Object && (bLoadIfNotFound || bTryUsedAssetsList))
 	{
 		if (bTryUsedAssetsList)
 		{
-			const int32 AssetIndex = Dependencies.Assets.IndexOfByKey(Object);
+			int32 AssetIndex = UsedObjectInCurrentClass.IndexOfByKey(Object);
+			if (INDEX_NONE == AssetIndex && Dependencies.Assets.Contains(Object))
+			{
+				AssetIndex = UsedObjectInCurrentClass.Add(Object);
+			}
+
 			if (INDEX_NONE != AssetIndex)
 			{
 				return FString::Printf(TEXT("CastChecked<%s>(CastChecked<UDynamicClass>(%s::StaticClass())->UsedAssets[%d], ECastCheckedType::NullAllowed)")
@@ -171,20 +188,24 @@ FString FEmitterLocalContext::FindGloballyMappedObject(const UObject* Object, co
 
 FString FEmitterLocalContext::ExportTextItem(const UProperty* Property, const void* PropertyValue) const
 {
+	const uint32 LocalExportCPPFlags = EPropertyExportCPPFlags::CPPF_CustomTypeName
+		| EPropertyExportCPPFlags::CPPF_NoConst
+		| EPropertyExportCPPFlags::CPPF_NoRef
+		| EPropertyExportCPPFlags::CPPF_NoStaticArray
+		| EPropertyExportCPPFlags::CPPF_BlueprintCppBackend;
 	if (auto ArrayProperty = Cast<const UArrayProperty>(Property))
 	{
-		const uint32 LocalExportCPPFlags = EPropertyExportCPPFlags::CPPF_CustomTypeName
-			| EPropertyExportCPPFlags::CPPF_NoConst
-			| EPropertyExportCPPFlags::CPPF_NoRef
-			| EPropertyExportCPPFlags::CPPF_NoStaticArray
-			| EPropertyExportCPPFlags::CPPF_BlueprintCppBackend;
 		const FString ConstPrefix = Property->HasMetaData(TEXT("NativeConstTemplateArg")) ? TEXT("const ") : TEXT("");
 		const FString TypeText = ExportCppDeclaration(ArrayProperty, EExportedDeclaration::Parameter, LocalExportCPPFlags, true, FString(), ConstPrefix);
 		return FString::Printf(TEXT("%s()"), *TypeText);
 	}
-
 	FString ValueStr;
 	Property->ExportTextItem(ValueStr, PropertyValue, PropertyValue, nullptr, EPropertyPortFlags::PPF_ExportCpp);
+	if (Property->IsA<UAssetObjectProperty>())
+	{
+		const FString TypeText = ExportCppDeclaration(Property, EExportedDeclaration::Parameter, LocalExportCPPFlags, true);
+		return FString::Printf(TEXT("%s(%s)"), *TypeText, *ValueStr);
+	}
 	return ValueStr;
 }
 
@@ -1244,8 +1265,8 @@ bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, co
 		{
 			ensure(!RTypeEnum->IsA<UUserDefinedEnum>() || RTypeEnum->CppType.IsEmpty());
 			const FString EnumCppType = !RTypeEnum->CppType.IsEmpty() ? RTypeEnum->CppType : FEmitHelper::GetCppName(RTypeEnum);
-			OutCastBegin = FString::Printf(TEXT("EnumToByte<%s>("), *EnumCppType); 
-			OutCastEnd = TEXT(")");
+			OutCastBegin = FString::Printf(TEXT("EnumToByte<%s>(TEnumAsByte<%s>("), *EnumCppType, *EnumCppType);
+			OutCastEnd = TEXT("))");
 			return true;
 		}
 	}
@@ -1451,7 +1472,11 @@ FString FEmitHelper::AccessInaccessiblePropertyUsingOffset(FEmitterLocalContext&
 {
 	check(Property);
 
-	UE_LOG(LogK2Compiler, Warning, TEXT("AccessInaccessiblePropertyUsingOffset - NOEXPORT structure should be handled in a custom way: %s"), *GetPathNameSafe(Property->GetOwnerStruct()));
+	if (!FEmitDefaultValueHelper::SpecialStructureConstructor(Property->GetOwnerStruct(), nullptr, nullptr))
+	{
+		// no need to log warning for known structures
+		UE_LOG(LogK2Compiler, Warning, TEXT("AccessInaccessiblePropertyUsingOffset - NOEXPORT structure should be handled in a custom way: %s"), *GetPathNameSafe(Property->GetOwnerStruct()));
+	}
 
 	const int32 PropertyOffsetWithoutEditorOnlyMembers = HelperWithoutEditorOnlyMembers::OffsetWithoutEditorOnlyMembers(Property);
 	const int32 PropertySizeWithoutEditorOnlyMembers = HelperWithoutEditorOnlyMembers::SizeWithoutEditorOnlyMembers(Property);
@@ -1476,4 +1501,77 @@ FString FEmitHelper::AccessInaccessiblePropertyUsingOffset(FEmitterLocalContext&
 		, PropertyOffsetWithoutEditorOnlyMembers
 		, ElementSizeWithoutEditorOnlyMembers
 		, StaticArrayIdx);
+}
+
+bool FBackendHelperStaticSearchableValues::HasSearchableValues(UClass* Class)
+{
+	TArray<FStringClassReference> ClassesWithSearchableValues;
+	//TODO: export to .ini
+	ClassesWithSearchableValues.Add(FStringClassReference(TEXT("/Script/GameplayAbilities.GameplayCueNotify_Actor")));
+	ClassesWithSearchableValues.Add(FStringClassReference(TEXT("/Script/GameplayAbilities.GameplayCueNotify_Static")));
+
+	for (FStringClassReference& IterClassRef : ClassesWithSearchableValues)
+	{
+		UClass* IterClass = IterClassRef.ResolveClass();
+		if (IterClass && Class && Class->IsChildOf(IterClass))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+FString FBackendHelperStaticSearchableValues::GetFunctionName()
+{
+	return TEXT("__InitializeStaticSearchableValues");
+}
+
+FString FBackendHelperStaticSearchableValues::GenerateClassMetaData(UClass* Class)
+{
+	const FString MetaDataName = TEXT("InitializeStaticSearchableValues");
+	const FString FunctionName = GetFunctionName();
+	return FString::Printf(TEXT("%s=\"%s\""), *MetaDataName, *FunctionName);
+}
+
+void FBackendHelperStaticSearchableValues::EmitFunctionDeclaration(FEmitterLocalContext& Context)
+{
+	const FString FunctionName = GetFunctionName();
+	Context.Header.AddLine(FString::Printf(TEXT("static void %s(TMap<FName, FName>& SearchableValues);"), *FunctionName));
+}
+
+void FBackendHelperStaticSearchableValues::EmitFunctionDefinition(FEmitterLocalContext& Context)
+{
+	auto BPGC = CastChecked<UBlueprintGeneratedClass>(Context.GetCurrentlyGeneratedClass());
+	const FString CppClassName = FEmitHelper::GetCppName(BPGC);
+	const FString FunctionName = GetFunctionName();
+
+	Context.Body.AddLine(FString::Printf(TEXT("void %s::%s(TMap<FName, FName>& SearchableValues)"), *CppClassName, *FunctionName));
+	Context.Body.AddLine(TEXT("{"));
+	Context.IncreaseIndent();
+
+	UClass* OriginalSourceClass = Context.Dependencies.FindOriginalClass(BPGC);
+	if(ensure(OriginalSourceClass))
+	{
+		FAssetData ClassAsset(OriginalSourceClass);
+
+		TArray<FName> TagPropertyNames;
+		//TODO: export to ini
+		TagPropertyNames.Add(FName(TEXT("GameplayCueName")));
+
+		for (const FName TagPropertyName : TagPropertyNames)
+		{
+			const FName FoundValue = ClassAsset.GetTagValueRef<FName>(TagPropertyName);
+			if (!FoundValue.IsNone())
+			{
+				Context.Body.AddLine(FString::Printf(TEXT("SearchableValues.Add(FName(TEXT(\"%s\")), FName(TEXT(\"%s\")));"), *TagPropertyName.ToString(), *FoundValue.ToString()));
+			}
+			else
+			{
+				UE_LOG(LogK2Compiler, Warning, TEXT("FBackendHelperStaticSearchableValues - None value. Tag: %s Asset: %s"), *TagPropertyName.ToString(), *GetPathNameSafe(OriginalSourceClass));
+			}
+		}
+	}
+
+	Context.Body.DecreaseIndent();
+	Context.Body.AddLine(TEXT("}"));
 }

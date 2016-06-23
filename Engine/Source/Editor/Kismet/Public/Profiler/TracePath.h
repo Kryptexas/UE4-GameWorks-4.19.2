@@ -63,7 +63,7 @@ public:
 		CachedCrc = FCrc::MemCrc32(&ExitPinScriptOffset, 1, CachedCrc);
 	}
 
-	/** Reset */
+	/** Reset Path and Tunnel */
 	void Reset()
 	{
 #if TRACEPATH_DEBUG
@@ -71,6 +71,15 @@ public:
 #endif
 		CachedCrc = 0;
 		Tunnel.Reset();
+	}
+
+	/** Reset Path Only */
+	void ResetPath()
+	{
+#if TRACEPATH_DEBUG
+		TraceStack.SetNum(0);
+#endif
+		CachedCrc = 0;
 	}
 
 	/** Returns the current tunnel */

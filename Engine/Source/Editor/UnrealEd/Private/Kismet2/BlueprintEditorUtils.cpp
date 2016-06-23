@@ -29,7 +29,7 @@
 #include "ClassViewerModule.h"
 #include "ClassViewerFilter.h"
 #include "Editor/Kismet/Public/FindInBlueprintManager.h"
-
+#include "InstancedReferenceSubobjectHelper.h"
 #include "BlueprintEditor.h"
 #include "BlueprintEditorSettings.h"
 #include "Editor/UnrealEd/Public/Kismet2/Kismet2NameValidators.h"
@@ -569,8 +569,16 @@ void FBlueprintEditorUtils::RefreshExternalBlueprintDependencyNodes(UBlueprint* 
 					if (!bShouldRefresh)
 					{
 						UClass* OwnerClass = Struct->GetOwnerClass();
-						bShouldRefresh |= OwnerClass && 
-							(OwnerClass->IsChildOf(RefreshOnlyChild) || OwnerClass->GetAuthoritativeClass()->IsChildOf(RefreshOnlyChild));
+						if (ensureMsgf(!OwnerClass || !OwnerClass->GetClass()->IsChildOf<UBlueprintGeneratedClass>() || OwnerClass->ClassGeneratedBy
+							, TEXT("Malformed Blueprint class (%s) - bad node dependency, unable to determine if the %s node (%s) should be refreshed or not. Currently compiling: %s")
+							, *OwnerClass->GetName()
+							, *Node->GetClass()->GetName()
+							, *Node->GetPathName()
+							, *Blueprint->GetName()) )
+						{
+							bShouldRefresh |= OwnerClass &&
+								(OwnerClass->IsChildOf(RefreshOnlyChild) || OwnerClass->GetAuthoritativeClass()->IsChildOf(RefreshOnlyChild));
+						}						
 					}
 					if (bShouldRefresh)
 					{
@@ -686,6 +694,8 @@ void FBlueprintEditorUtils::PatchNewCDOIntoLinker(UObject* CDO, FLinkerLoad* Lin
 		// Patch the new CDO in, and update the Export.Object
 		CDO->SetLinker(Linker, ExportIndex);
 		Linker->ExportMap[ExportIndex].Object = CDO;
+
+		PatchCDOSubobjectsIntoExport(OldCDO, CDO);
 	}
 }
 
@@ -1853,32 +1863,56 @@ void FBlueprintEditorUtils::PatchCDOSubobjectsIntoExport(UObject* PreviousCDO, U
 {
 	if (PreviousCDO && NewCDO)
 	{
-		// Collect the instanced components in both the old and new CDOs
-		TArray<UObject*> OldComponents, NewComponents;
-		PreviousCDO->CollectDefaultSubobjects(OldComponents, true);
-		NewCDO->CollectDefaultSubobjects(NewComponents, true);
-
-		TMap<FName, UObject*> NewComponentsMap;
-		for (auto NewCompIt = NewComponents.CreateIterator(); NewCompIt; ++NewCompIt)
+		struct PatchCDOSubobjectsIntoExport_Impl
 		{
-			UObject* NewComponent = *NewCompIt;
-			if (NewComponent)
+			static void PatchSubObjects(UObject* OldObj, UObject* NewObj)
 			{
-				NewComponentsMap.Add(NewComponent->GetFName(), NewComponent);
-			}
-		}
+				TArray<UObject*> NewSubObjects;
+				GetObjectsWithOuter(NewObj, NewSubObjects, /*bIncludeNestedSubObjects =*/false);
 
-		// For all components common to both, patch the linker table with the new version of the component, so things that reference the default (e.g. InternalArchetypes) will have the updated version
-		for (auto OldCompIt = OldComponents.CreateIterator(); OldCompIt; ++OldCompIt)
-		{
-			UObject* OldComponent = (*OldCompIt);
-			const FName OldComponentName = OldComponent->GetFName();
-			UObject** NewComponentPtr = NewComponentsMap.Find(OldComponentName);
-			if (NewComponentPtr && *NewComponentPtr)
-			{
-				FLinkerLoad::PRIVATE_PatchNewObjectIntoExport(OldComponent, *NewComponentPtr);
+				TMap<FName, UObject*> SubObjLookupTable;
+				for (UObject* NewSubObj : NewSubObjects)
+				{
+					if (NewSubObj != nullptr)
+					{
+						SubObjLookupTable.Add(NewSubObj->GetFName(), NewSubObj);
+					}
+				}
+
+				TArray<UObject*> OldSubObjects;
+				GetObjectsWithOuter(OldObj, OldSubObjects, /*bIncludeNestedSubObjects =*/false);
+
+				for (UObject* OldSubObj : OldSubObjects)
+				{
+					if (UObject** NewSubObjPtr = SubObjLookupTable.Find(OldSubObj->GetFName()))
+					{
+						UObject* NewSubObj = *NewSubObjPtr;
+						if (NewSubObj->IsDefaultSubobject() && OldSubObj->IsDefaultSubobject())
+						{
+							FLinkerLoad::PRIVATE_PatchNewObjectIntoExport(OldSubObj, NewSubObj);
+
+							UClass* SubObjClass = OldSubObj->GetClass();
+							if (SubObjClass && SubObjClass->HasAnyClassFlags(CLASS_HasInstancedReference))
+							{
+								TSet<FInstancedSubObjRef> OldInstancedValues;
+								FFindInstancedReferenceSubobjectHelper::GetInstancedSubObjects(OldSubObj, OldInstancedValues);
+
+								for (const FInstancedSubObjRef& OldInstancedObj : OldInstancedValues)
+								{
+									if (UObject* NewInstancedObj = OldInstancedObj.PropertyPath.Resolve(NewSubObj))
+									{
+										FLinkerLoad::PRIVATE_PatchNewObjectIntoExport(OldInstancedObj, NewInstancedObj);
+									}
+								}
+							}
+						}
+
+						PatchSubObjects(OldSubObj, NewSubObj);
+					}
+				}
 			}
-		}
+		};
+		PatchCDOSubobjectsIntoExport_Impl::PatchSubObjects(PreviousCDO, NewCDO);
 		NewCDO->CheckDefaultSubobjects();
 	}
 }
@@ -2048,7 +2082,10 @@ void FBlueprintEditorUtils::PostDuplicateBlueprint(UBlueprint* Blueprint, bool b
 			GetAllNodesOfClass(Blueprint, AllGraphNodes);
 			for(auto& Node : AllGraphNodes)
 			{
-				Node->CreateNewGuid();
+				if (!FBlueprintDuplicationScopeFlags::HasAnyFlag(FBlueprintDuplicationScopeFlags::TheSameNodeGuid))
+				{
+					Node->CreateNewGuid();
+				}
 
 				// Some variable nodes must be fixed up on duplicate, this cannot wait for individual 
 				// node calls to PostDuplicate because it happens after compilation and will still result in errors
@@ -2245,7 +2282,7 @@ void FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(UBlueprint* Blue
 }
 
 // Blueprint has changed in some manner that invalidates the compiled data (link made/broken, default value changed, etc...)
-void FBlueprintEditorUtils::MarkBlueprintAsModified(UBlueprint* Blueprint)
+void FBlueprintEditorUtils::MarkBlueprintAsModified(UBlueprint* Blueprint, FPropertyChangedEvent PropertyChangedEvent)
 {
 	Blueprint->bCachedDependenciesUpToDate = false;
 	if (Blueprint->Status != BS_BeingCreated)
@@ -2264,7 +2301,10 @@ void FBlueprintEditorUtils::MarkBlueprintAsModified(UBlueprint* Blueprint)
 
 		Blueprint->Status = BS_Dirty;
 		Blueprint->MarkPackageDirty();
-		Blueprint->PostEditChange();
+		// Previously, PostEditChange() was called on the Blueprint which creates an empty FPropertyChangedEvent. In
+		// certain cases, we needed to be able to pass along specific FPropertyChangedEvent that initially triggered
+		// this call so that we could keep the Blueprint from refreshing under certain conditions.
+		Blueprint->PostEditChangeProperty(PropertyChangedEvent);
 	}
 }
 
@@ -5246,8 +5286,8 @@ bool FBlueprintEditorUtils::ValidateAllFunctionGraphs(UBlueprint* InBlueprint, U
 
 void FBlueprintEditorUtils::ValidateBlueprintVariableMetadata(FBPVariableDescription& VarDesc)
 {
-	// Remove bitflag enum type metadata if the enum type is no longer a bitflags type.
-	if (VarDesc.HasMetaData(FBlueprintMetadata::MD_Bitmask))
+	// Remove bitflag enum type metadata if the enum type name is missing or if the enum type is no longer a bitflags type.
+	if (VarDesc.HasMetaData(FBlueprintMetadata::MD_BitmaskEnum))
 	{
 		FString BitmaskEnumTypeName = VarDesc.GetMetaData(FBlueprintMetadata::MD_BitmaskEnum);
 		if (!BitmaskEnumTypeName.IsEmpty())
@@ -5257,6 +5297,10 @@ void FBlueprintEditorUtils::ValidateBlueprintVariableMetadata(FBPVariableDescrip
 			{
 				VarDesc.RemoveMetaData(FBlueprintMetadata::MD_BitmaskEnum);
 			}
+		}
+		else
+		{
+			VarDesc.RemoveMetaData(FBlueprintMetadata::MD_BitmaskEnum);
 		}
 	}
 }
@@ -6275,6 +6319,17 @@ void FBlueprintEditorUtils::UpdateComponentTemplates(UBlueprint* Blueprint)
 		{
 			ensure(Blueprint->ComponentTemplates.Contains(ActorComp));
 
+			// fix up AddComponent nodes that don't have their own unique template objects
+			if (ReferencedTemplates.Contains(ActorComp))
+			{
+				UE_LOG(LogBlueprint, Warning,
+					TEXT("Blueprint '%s' has an AddComponent node '%s' with a non-unique component template name (%s). Moving it to a new template object with a unique name. Re-save the Blueprint to remove this warning on the next load."),
+					*Blueprint->GetPathName(), *ComponentNode->GetPathName(), *ActorComp->GetName());
+
+				ComponentNode->MakeNewComponentTemplate();
+				ActorComp = ComponentNode->GetTemplateFromNode();
+			}
+
 			// fix up existing content to be sure these are flagged as archetypes and are transactional
 			ActorComp->SetFlags(RF_ArchetypeObject|RF_Transactional);	
 			ReferencedTemplates.Add(ActorComp);
@@ -6448,15 +6503,15 @@ void FBlueprintEditorUtils::UpdateStalePinWatches( UBlueprint* Blueprint )
 	TSet<UEdGraphPin*> AllPins;
 
 	// Find all unique pins being watched
-	for (auto PinIt = Blueprint->PinWatches.CreateIterator(); PinIt; ++PinIt)
+	for (auto PinIt = Blueprint->WatchedPins.CreateIterator(); PinIt; ++PinIt)
 	{
-		UEdGraphPin* Pin (*PinIt);
+		UEdGraphPin* Pin (PinIt->Get());
 		if (Pin == NULL)
 		{
 			continue;
 		}
 
-		UEdGraphNode* OwningNode = Cast<UEdGraphNode>(Pin->GetOuter());
+		UEdGraphNode* OwningNode = Pin->GetOwningNode();
 		// during node reconstruction, dead pins get moved to the transient 
 		// package (so just in case this blueprint got saved with dead pin watches)
 		if (OwningNode == NULL)
@@ -6473,13 +6528,14 @@ void FBlueprintEditorUtils::UpdateStalePinWatches( UBlueprint* Blueprint )
 	}
 
 	// Refresh watched pins with unique pins (throw away null or duplicate watches)
-	if (Blueprint->PinWatches.Num() != AllPins.Num())
+	if (Blueprint->WatchedPins.Num() != AllPins.Num())
 	{
-		Blueprint->PinWatches.Empty();
+		Blueprint->WatchedPins.Empty();
 		for (auto PinIt = AllPins.CreateIterator(); PinIt; ++PinIt)
 		{
-			Blueprint->PinWatches.Add(*PinIt);
+			Blueprint->WatchedPins.Add(*PinIt);
 		}
+
 		Blueprint->Status = BS_Dirty;
 	}
 }

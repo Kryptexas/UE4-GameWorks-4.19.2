@@ -2,8 +2,9 @@
 
 
 #include "BlueprintGraphPrivatePCH.h"
-#include "Engine/Breakpoint.h"
 
+#include "EdGraph/EdGraphPin.h"
+#include "Engine/Breakpoint.h"
 #include "K2Node.h"
 #include "KismetDebugUtilities.h" // for HasDebuggingData(), GetWatchText()
 #include "KismetCompiler.h"
@@ -644,9 +645,9 @@ void UK2Node::ReconstructSinglePin(UEdGraphPin* NewPin, UEdGraphPin* OldPin, ERe
 	}
 
 	// Update the blueprints watched pins as the old pin will be going the way of the dodo
-	for (int32 WatchIndex = 0; WatchIndex < Blueprint->PinWatches.Num(); ++WatchIndex)
+	for (int32 WatchIndex = 0; WatchIndex < Blueprint->WatchedPins.Num(); ++WatchIndex)
 	{
-		UEdGraphPin*& WatchedPin = Blueprint->PinWatches[WatchIndex];
+		UEdGraphPin* WatchedPin = Blueprint->WatchedPins[WatchIndex].Get();
 		if( WatchedPin == OldPin )
 		{
 			WatchedPin = NewPin;
@@ -654,7 +655,7 @@ void UK2Node::ReconstructSinglePin(UEdGraphPin* NewPin, UEdGraphPin* OldPin, ERe
 		}
 	}
 
-	OldPin->Rename(NULL, GetTransientPackage(), (REN_DontCreateRedirectors|(Blueprint->bIsRegeneratingOnLoad ? REN_ForceNoResetLoaders : REN_None)));
+	OldPin->InvalidateAndTrash();;
 }
 
 void UK2Node::RewireOldPinsToNewPins(TArray<UEdGraphPin*>& InOldPins, TArray<UEdGraphPin*>& InNewPins)
@@ -702,15 +703,7 @@ void UK2Node::DestroyPinList(TArray<UEdGraphPin*>& InPins)
 		Pin->Modify();
 		Pin->BreakAllPinLinks();
 
-		// just in case this pin was set to watch (don't want to save PinWatches with dead pins)
-		Blueprint->PinWatches.Remove(Pin);
-#if 0
-		UEdGraphNode::ReturnPinToPool(Pin);
-#else
-		Pin->Rename(NULL, GetTransientPackage(), (Blueprint->bIsRegeneratingOnLoad ? REN_ForceNoResetLoaders : REN_None));
-		Pin->RemoveFromRoot();
-		Pin->MarkPendingKill();
-#endif
+		UEdGraphNode::DestroyPin(Pin);
 	}
 }
 
@@ -735,6 +728,12 @@ void UK2Node::ExpandSplitPin(FKismetCompilerContext* CompilerContext, UEdGraph* 
 		{
 			if (ExpandedPin->Direction == Pin->Direction)
 			{
+				if (Pin->SubPins.Num() == SubPinIndex)
+				{
+					CompilerContext->MessageLog.Error(*LOCTEXT("PinExpansionError", "Failed to expand pin @@, likely due to bad logic in node @@").ToString(), Pin, Pin->GetOwningNode());
+					break;
+				}
+
 				UEdGraphPin* SubPin = Pin->SubPins[SubPinIndex++];
 				if (CompilerContext)
 				{
@@ -745,6 +744,8 @@ void UK2Node::ExpandSplitPin(FKismetCompilerContext* CompilerContext, UEdGraph* 
 					Schema->MovePinLinks(*SubPin, *ExpandedPin);
 				}
 				Pins.Remove(SubPin);
+				SubPin->ParentPin = nullptr;
+				SubPin->MarkPendingKill();
 			}
 			else
 			{

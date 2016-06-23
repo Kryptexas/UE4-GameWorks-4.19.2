@@ -130,7 +130,7 @@ void FBlueprintCoreDelegates::ThrowScriptException(const UObject* ActiveObject, 
 	if (IsInGameThread())
 	{
 		// If nothing is bound, show warnings so something is left in the log.
-		if (OnScriptException.IsBound() == false)
+		if (bShouldLogWarning && (OnScriptException.IsBound() == false))
 		{
 			UE_LOG(LogScript, Warning, TEXT("%s"), *StackFrame.GetStackTrace());
 		}
@@ -1141,11 +1141,18 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 #endif
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	bool bInstrumentScriptEvent = false;
 	if (GetClass()->HasInstrumentation())
 	{
-		const EScriptInstrumentation::Type EventType = Function->HasAnyFunctionFlags(FUNC_Event|FUNC_BlueprintEvent) ? EScriptInstrumentation::Event : EScriptInstrumentation::ResumeEvent;
-		EScriptInstrumentationEvent EventInstrumentationInfo(EventType, this, Function->GetFName());
-		FBlueprintCoreDelegates::InstrumentScriptEvent(EventInstrumentationInfo);
+		// Don't instrument native events that have not been implemented/overridden in script (BP). These events will not have had any profiler data generated for them at compile time.
+		if (!Function->HasAnyFunctionFlags(FUNC_Native) || Function->GetOuter()->GetClass()->HasAnyClassFlags(CLASS_CompiledFromBlueprint))
+		{
+			const EScriptInstrumentation::Type EventType = Function->HasAnyFunctionFlags(FUNC_Event | FUNC_BlueprintEvent) ? EScriptInstrumentation::Event : EScriptInstrumentation::ResumeEvent;
+			EScriptInstrumentationEvent EventInstrumentationInfo(EventType, this, Function->GetFName());
+			FBlueprintCoreDelegates::InstrumentScriptEvent(EventInstrumentationInfo);
+
+			bInstrumentScriptEvent = true;
+		}
 	}
 #endif
 
@@ -1276,7 +1283,7 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (GetClass()->HasInstrumentation())
+	if (bInstrumentScriptEvent)
 	{
 		EScriptInstrumentationEvent EventInstrumentationInfo(EScriptInstrumentation::Stop, this, NAME_None);
 		FBlueprintCoreDelegates::InstrumentScriptEvent(EventInstrumentationInfo);

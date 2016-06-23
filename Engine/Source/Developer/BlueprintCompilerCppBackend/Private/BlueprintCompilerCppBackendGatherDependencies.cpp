@@ -337,8 +337,12 @@ void FGatherConvertedClassDependencies::DependenciesForHeader()
 
 	for (auto Obj : ObjectsToCheck)
 	{
-		auto Property = Cast<const UProperty>(Obj);
-		auto OwnerProperty = IsValid(Property) ? Property->GetOwnerProperty() : nullptr;
+		const UProperty* Property = Cast<const UProperty>(Obj);
+		if (const UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Property))
+		{
+			Property = ArrayProperty->Inner;
+		}
+		const UProperty* OwnerProperty = IsValid(Property) ? Property->GetOwnerProperty() : nullptr;
 		const bool bIsParam = OwnerProperty && (0 != (OwnerProperty->PropertyFlags & CPF_Parm)) && OwnerProperty->IsIn(OriginalStruct);
 		const bool bIsMemberVariable = OwnerProperty && (OwnerProperty->GetOuter() == OriginalStruct);
 		if (bIsParam || bIsMemberVariable)
@@ -366,16 +370,21 @@ void FGatherConvertedClassDependencies::DependenciesForHeader()
 			{
 				IncludeInHeader.Add(InterfaceProperty->InterfaceClass);
 			}
-			/* Delegate signatures are recreated in local scope anyway.
 			else if (auto DelegateProperty = Cast<const UDelegateProperty>(Property))
 			{
-				IncludeInHeader.Add(DelegateProperty->SignatureFunction ? DelegateProperty->SignatureFunction->GetOwnerClass() : nullptr);
+				IncludeInHeader.Add(DelegateProperty->SignatureFunction ? DelegateProperty->SignatureFunction->GetOwnerStruct() : nullptr);
 			}
+			/* MC Delegate signatures are recreated in local scope anyway.
 			else if (auto MulticastDelegateProperty = Cast<const UMulticastDelegateProperty>(Property))
 			{
 				IncludeInHeader.Add(MulticastDelegateProperty->SignatureFunction ? MulticastDelegateProperty->SignatureFunction->GetOwnerClass() : nullptr);
 			}
 			*/
+			else if (const UByteProperty* ByteProperty = Cast<const UByteProperty>(Property))
+			{ 
+				// HeaderReferenceFinder.FindReferences(Obj); cannot find this enum..
+				IncludeInHeader.Add(ByteProperty->Enum);
+			}
 			else
 			{
 				HeaderReferenceFinder.FindReferences(Obj);

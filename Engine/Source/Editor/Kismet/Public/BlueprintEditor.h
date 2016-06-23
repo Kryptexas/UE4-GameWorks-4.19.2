@@ -157,6 +157,7 @@ public:
 	//~ Begin IBlueprintEditor Interface
 	virtual void RefreshEditors(ERefreshBlueprintEditorReason::Type Reason = ERefreshBlueprintEditorReason::UnknownReason) override;
 	virtual void JumpToHyperlink(const UObject* ObjectReference, bool bRequestRename = false) override;
+	virtual void JumpToPin(const class UEdGraphPin* Pin) override;
 	virtual void SummonSearchUI(bool bSetFindWithinBlueprint, FString NewSearchTerms = FString(), bool bSelectFirstResult = false) override;
 	virtual void SummonFindAndReplaceUI() override;
 	virtual TArray<TSharedPtr<class FSCSEditorTreeNode> > GetSelectedSCSEditorTreeNodes() const override;
@@ -182,9 +183,6 @@ public:
 
 	/** Pan the view to center on a particular node */
 	void JumpToNode(const class UEdGraphNode* Node, bool bRequestRename=false);
-
-	/** Pan the view to center on a particular pin */
-	void JumpToPin(const class UEdGraphPin* Pin);
 
 	/** Returns a pointer to the Blueprint object we are currently editing, as long as we are editing exactly one */
 	virtual UBlueprint* GetBlueprintObj() const;

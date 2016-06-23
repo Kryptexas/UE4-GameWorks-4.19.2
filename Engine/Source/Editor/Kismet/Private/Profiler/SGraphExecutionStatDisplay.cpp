@@ -2,6 +2,7 @@
 
 #include "BlueprintEditorPrivatePCH.h"
 #include "BPProfilerStatisticWidgets.h"
+#include "SBlueprintProfilerToolbar.h"
 #include "SGraphExecutionStatDisplay.h"
 #include "BlueprintEditor.h"
 #include "Public/Profiler/EventExecution.h"
@@ -27,13 +28,10 @@ SGraphExecutionStatDisplay::~SGraphExecutionStatDisplay()
 void SGraphExecutionStatDisplay::Construct(const FArguments& InArgs)
 {	
 	BlueprintEditor = InArgs._AssetEditor;
-	if (!DisplayOptions.IsValid())
-	{
-		DisplayOptions = MakeShareable(new FBPProfilerStatDiplayOptions);
-	}
+	DisplayOptions = InArgs._DisplayOptions;
 	// Register for profiling toggle events
 	FBlueprintCoreDelegates::OnToggleScriptProfiler.AddSP(this, &SGraphExecutionStatDisplay::OnToggleProfiler);
-	// Remove delegate for graph structural changes
+	// Register delegate for graph structural changes
 	if (IBlueprintProfilerInterface* Profiler = FModuleManager::GetModulePtr<IBlueprintProfilerInterface>("BlueprintProfiler"))
 	{
 		Profiler->GetGraphLayoutChangedDelegate().AddSP(this, &SGraphExecutionStatDisplay::OnGraphLayoutChanged);
@@ -42,19 +40,6 @@ void SGraphExecutionStatDisplay::Construct(const FArguments& InArgs)
 	ChildSlot
 	[
 		SNew(SVerticalBox)
-		+SVerticalBox::Slot()
-		.Padding(FMargin(0, 0, 0, 2))
-		.AutoHeight()
-		.HAlign(HAlign_Fill)
-		.VAlign(VAlign_Top)
-		[
-			SNew(SBorder)
-			.Padding(4)
-			.BorderImage(FEditorStyle::GetBrush("BlueprintProfiler.ViewToolBar"))
-			[
-				DisplayOptions->CreateToolbar()
-			]
-		]
 		+SVerticalBox::Slot()
 		[
 			SNew(SBorder)
@@ -74,9 +59,9 @@ void SGraphExecutionStatDisplay::Construct(const FArguments& InArgs)
 					+SHeaderRow::Column(SProfilerStatRow::GetStatName(EBlueprintProfilerStat::Name))
 					.DefaultLabel(SProfilerStatRow::GetStatText(EBlueprintProfilerStat::Name))
 					.ManualWidth(450)
-					+SHeaderRow::Column(SProfilerStatRow::GetStatName(EBlueprintProfilerStat::Time))
-					.DefaultLabel(SProfilerStatRow::GetStatText(EBlueprintProfilerStat::Time))
-					.ManualWidth(70)
+					+SHeaderRow::Column(SProfilerStatRow::GetStatName(EBlueprintProfilerStat::AverageTime))
+					.DefaultLabel(SProfilerStatRow::GetStatText(EBlueprintProfilerStat::AverageTime))
+					.ManualWidth(90)
 					+SHeaderRow::Column(SProfilerStatRow::GetStatName(EBlueprintProfilerStat::InclusiveTime))
 					.DefaultLabel(SProfilerStatRow::GetStatText(EBlueprintProfilerStat::InclusiveTime))
 					.ManualWidth(120)
@@ -136,7 +121,7 @@ void SGraphExecutionStatDisplay::OnDoubleClickStatistic(FBPStatWidgetPtr Item)
 
 void SGraphExecutionStatDisplay::OnStatisticExpansionChanged(FBPStatWidgetPtr Item, bool bExpanded)
 {
-	if (Item.IsValid() && !DisplayOptions->HasFlags(FBPProfilerStatDiplayOptions::AutoExpand))
+	if (Item.IsValid() && !DisplayOptions->HasFlags(FBlueprintProfilerStatOptions::AutoExpand))
 	{
 		Item->SetExpansionState(bExpanded);
 	}
@@ -187,13 +172,13 @@ void SGraphExecutionStatDisplay::Tick(const FGeometry& AllottedGeometry, const d
 							if (BlueprintExecNode.IsValid())
 							{
 								// Build Instance widget execution trees
-								DisplayOptions->ClearFlags(FBPProfilerStatDiplayOptions::Modified);
+								DisplayOptions->ClearFlags(FBlueprintProfilerStatOptions::Modified);
 								// Cache Active blueprint and Instance
 								const FName CurrentInstancePath = DisplayOptions->GetActiveInstance();
 
-								if (DisplayOptions->HasFlags(FBPProfilerStatDiplayOptions::DisplayByInstance))
+								if (DisplayOptions->HasFlags(FBlueprintProfilerStatOptions::DisplayByInstance))
 								{
-									if (DisplayOptions->HasFlags(FBPProfilerStatDiplayOptions::ScopeToDebugInstance))
+									if (DisplayOptions->HasFlags(FBlueprintProfilerStatOptions::ScopeToDebugInstance))
 									{
 										if (CurrentInstancePath != NAME_None)
 										{
@@ -233,7 +218,7 @@ void SGraphExecutionStatDisplay::Tick(const FGeometry& AllottedGeometry, const d
 							if (ExecutionStatTree.IsValid())
 							{
 								ExecutionStatTree->RequestTreeRefresh();
-								if (DisplayOptions->HasFlags(FBPProfilerStatDiplayOptions::AutoExpand))
+								if (DisplayOptions->HasFlags(FBlueprintProfilerStatOptions::AutoExpand))
 								{
 									for (auto Iter : RootTreeItems)
 									{

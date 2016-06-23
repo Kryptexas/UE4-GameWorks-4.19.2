@@ -866,6 +866,8 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 	{
 		BlueprintPackage->SetDirtyFlag(bStartedWithUnsavedChanges);
 	}	
+
+	UEdGraphPin::Purge();
 }
 
 /** Generates a blueprint skeleton only.  Minimal compile, no notifications will be sent, no GC, etc.  Only successful if there isn't already a skeleton generated */
@@ -919,6 +921,11 @@ void FKismetEditorUtilities::RecompileBlueprintBytecode(UBlueprint* BlueprintObj
 
 	FKismetCompilerOptions CompileOptions;
 	CompileOptions.CompileType = EKismetCompileType::BytecodeOnly;
+
+	// Determine if we want profiling data
+	IBlueprintProfilerInterface* ProfilerInterface = FModuleManager::GetModulePtr<IBlueprintProfilerInterface>("BlueprintProfiler");
+	CompileOptions.bAddInstrumentation = ProfilerInterface && ProfilerInterface->IsProfilerEnabled() && GetDefault<UEditorExperimentalSettings>()->bBlueprintPerformanceAnalysisTools;
+
 	{
 		FRecreateUberGraphFrameScope RecreateUberGraphFrameScope(BlueprintObj->GeneratedClass, true);
 		Compiler.CompileBlueprint(BlueprintObj, CompileOptions, Results, NULL, ObjLoaded);
@@ -1409,9 +1416,15 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprintFromActor(const FName Bluepri
 				const auto CopyOptions = (EditorUtilities::ECopyOptions::Type)(EditorUtilities::ECopyOptions::OnlyCopyEditOrInterpProperties | EditorUtilities::ECopyOptions::PropagateChangesToArchetypeInstances);
 				EditorUtilities::CopyActorProperties(Actor, CDO, CopyOptions);
 
-				if (USceneComponent* Scene = CDO->GetRootComponent())
+				if (USceneComponent* DstSceneRoot = CDO->GetRootComponent())
 				{
-					FResetSceneComponentAfterCopy::Reset(Scene);
+					FResetSceneComponentAfterCopy::Reset(DstSceneRoot);
+
+					// Copy relative scale from source to target.
+					if (USceneComponent* SrcSceneRoot = Actor->GetRootComponent())
+					{
+						DstSceneRoot->RelativeScale3D = SrcSceneRoot->RelativeScale3D;
+					}
 				}
 			}
 
@@ -1816,6 +1829,16 @@ void FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(const UObject* 
 	{
 		BlueprintEditor->FocusWindow();
 		BlueprintEditor->JumpToHyperlink(ObjectToFocusOn, bRequestRename);
+	}
+}
+
+void FKismetEditorUtilities::BringKismetToFocusAttentionOnPin(const UEdGraphPin* PinToFocusOn )
+{
+	TSharedPtr<IBlueprintEditor> BlueprintEditor = GetIBlueprintEditorForObject(PinToFocusOn->GetOwningNode(), true);
+	if (BlueprintEditor.IsValid())
+	{
+		BlueprintEditor->FocusWindow();
+		BlueprintEditor->JumpToPin(PinToFocusOn);
 	}
 }
 

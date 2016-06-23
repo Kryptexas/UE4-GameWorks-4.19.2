@@ -1236,7 +1236,7 @@ FText UK2Node_CallFunction::GetTooltipText() const
 
 void UK2Node_CallFunction::GeneratePinTooltipFromFunction(UEdGraphPin& Pin, const UFunction* Function)
 {
-	if (Pin.HasAnyFlags(RF_Transient))
+	if (Pin.bWasTrashed)
 	{
 		return;
 	}
@@ -1971,7 +1971,7 @@ void UK2Node_CallFunction::ExpandNode(class FKismetCompilerContext& CompilerCont
 							AssignNode->AllocateDefaultPins();
 
 							// Move connections from fake 'enum exec' pint to this assignment node
-								CompilerContext.MovePinLinksToIntermediate(*Pin, *AssignNode->GetExecPin());
+							CompilerContext.MovePinLinksToIntermediate(*Pin, *AssignNode->GetExecPin());
 
 							// Connect this to out temp enum var
 							Schema->TryCreateConnection(AssignNode->GetVariablePin(), TempEnumVarOutput);
@@ -1983,6 +1983,7 @@ void UK2Node_CallFunction::ExpandNode(class FKismetCompilerContext& CompilerCont
 							AssignNode->GetValuePin()->DefaultValue = Pin->PinName;
 
 							// Finally remove this 'cosmetic' exec pin
+							Pins[PinIdx]->MarkPendingKill();
 							Pins.RemoveAt(PinIdx);
 						}
 					}
@@ -2013,10 +2014,11 @@ void UK2Node_CallFunction::ExpandNode(class FKismetCompilerContext& CompilerCont
 							Pin->Direction == EGPD_Output &&
 							Pin->PinType.PinCategory == Schema->PC_Exec )
 						{
-							// Move connections from fake 'enum exec' pint to this switch node
+							// Move connections from fake 'enum exec' pin to this switch node
 							CompilerContext.MovePinLinksToIntermediate(*Pin, *SwitchEnumNode->FindPinChecked(Pin->PinName));
 								
 							// Finally remove this 'cosmetic' exec pin
+							Pins[PinIdx]->MarkPendingKill();
 							Pins.RemoveAt(PinIdx);
 						}
 					}
@@ -2392,7 +2394,17 @@ UEdGraph* UK2Node_CallFunction::GetFunctionGraph(const UEdGraphNode*& OutGraphNo
 			UBlueprint* Blueprint = Cast<UBlueprint>(ParentClass->ClassGeneratedBy);
 			while(Blueprint != NULL)
 			{
-				UEdGraph* TargetGraph = FindObject<UEdGraph>(Blueprint, *(FunctionReference.GetMemberName().ToString()));
+				UEdGraph* TargetGraph = NULL;
+				FName FunctionName = FunctionReference.GetMemberName();
+				for (UEdGraph* Graph : Blueprint->FunctionGraphs) 
+				{
+					if (Graph->GetFName() == FunctionName)
+					{
+						TargetGraph = Graph;
+						break;
+					}
+				}
+
 				if((TargetGraph != NULL) && !TargetGraph->HasAnyFlags(RF_Transient))
 				{
 					// Found the function graph in a Blueprint, return that graph

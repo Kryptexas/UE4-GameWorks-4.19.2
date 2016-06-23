@@ -26,7 +26,8 @@ class FBlueprintExecutionContext : public TSharedFromThis<FBlueprintExecutionCon
 public:
 
 	FBlueprintExecutionContext()
-		: ExecutionTraceHistory(256)
+		: bIsBlueprintMapped(false)
+		, ExecutionTraceHistory(256)
 	{
 	}
 
@@ -35,6 +36,12 @@ public:
 
 	/** Returns if the blueprint context is fully formed */
 	BLUEPRINTPROFILER_API bool IsContextValid() const { return Blueprint.IsValid() && BlueprintClass.IsValid(); }
+
+	/** Returns if the blueprint is mapped */
+	bool IsBlueprintMapped() const { return bIsBlueprintMapped; }
+
+	/** Removes the blueprint mapping */
+	void RemoveMapping();
 
 	/** Returns the blueprint this context represents */
 	TWeakObjectPtr<UBlueprint> GetBlueprint() const { return Blueprint; }
@@ -51,20 +58,29 @@ public:
 	/** Returns a new trace history event */
 	FBlueprintExecutionTrace& AddNewTraceHistoryEvent() { return ExecutionTraceHistory.WriteNewElementInitialized(); }
 
+	/** Returns if an event is mapped. */
+	bool IsEventMapped(const FName EventName) const;
+
 	/** Add event execution node */
-	void AddEventNode(TSharedPtr<FScriptExecutionNode> EventExecNode);
+	void AddEventNode(TSharedPtr<class FBlueprintFunctionContext> FunctionContext, TSharedPtr<FScriptExecutionNode> EventExecNode);
+
+	/** Register a function context for an event */
+	void RegisterEventContext(const FName EventName, TSharedPtr<FBlueprintFunctionContext> FunctionContext);
 
 	/** Returns true if an execution node exists for the instance */
 	BLUEPRINTPROFILER_API bool HasProfilerDataForInstance(const FName InstanceName) const;
 
-	/** Corrects the instance name if it is a PIE instance and returns the editor actor */
-	TWeakObjectPtr<const UObject> GetInstance(FName& InstanceNameInOut);
+	/** Maps the instance returning the system name for instance */
+	BLUEPRINTPROFILER_API FName MapBlueprintInstance(const FString& InstancePath);
 
 	/** Remaps PIE actor instance paths to editor actor instances */
 	BLUEPRINTPROFILER_API FName RemapInstancePath(const FName InstanceName) const ;
 
 	/** Returns the function name containing the event */
 	FName GetEventFunctionName(const FName EventName) const;
+
+	/** Returns the function context containing the event */
+	TSharedPtr<class FBlueprintFunctionContext> GetFunctionContextForEvent(const FName EventName) const;
 
 	/** Returns the function context matching the supplied name providing it exists */
 	TSharedPtr<class FBlueprintFunctionContext> GetFunctionContext(const FName FunctionNameIn) const;
@@ -74,6 +90,12 @@ public:
 	{
 		FunctionContexts.Add(FunctionName) = FunctionContext; 
 	}
+
+	/** Returns if this context has an execution node for the specified graph pin */
+	BLUEPRINTPROFILER_API bool HasProfilerDataForPin(const UEdGraphPin* GraphPin) const;
+
+	/** Returns if this context has an execution node for the specified graph pin, otherwise it falls back to a owning node lookup */
+	BLUEPRINTPROFILER_API TSharedPtr<FScriptExecutionNode> GetProfilerDataForPin(const UEdGraphPin* GraphPin);
 
 	/** Returns if this context has an execution node for the specified graph node */
 	BLUEPRINTPROFILER_API bool HasProfilerDataForNode(const UEdGraphNode* GraphNode) const;
@@ -87,13 +109,18 @@ public:
 private:
 
 	/** Creates and returns a new function context, returns existing if present  */
-	TSharedPtr<FBlueprintFunctionContext> CreateFunctionContext(UEdGraph* Graph);
+	TSharedPtr<FBlueprintFunctionContext> CreateFunctionContext(const FName FunctionName, UEdGraph* Graph);
 
 	/** Walks the blueprint and maps events and functions ready for profiling data */
 	bool MapBlueprintExecution();
 
+	/** Corrects the instance name if it is a PIE instance and sets the object weakptr to the editor actor, returns true if this is a new instance */
+	bool ResolveInstance(FName& InstanceNameInOut, TWeakObjectPtr<const UObject>& ObjectInOut);
+
 private:
 
+	/** Indicates the blueprint has been mapped */
+	bool bIsBlueprintMapped;
 	/** Blueprint the context represents */
 	TWeakObjectPtr<UBlueprint> Blueprint;
 	/** Blueprint Generated class for the context */
@@ -104,10 +131,14 @@ private:
 	TSharedPtr<FScriptExecutionBlueprint> BlueprintNode;
 	/** UFunction contexts for this blueprint */
 	TMap<FName, TSharedPtr<FBlueprintFunctionContext>> FunctionContexts;
+	/** UFunction context lookup by event name */
+	TMap<FName, TSharedPtr<FBlueprintFunctionContext>> EventFunctionContexts;
 	/** PIE instance remap container */
 	TMap<FName, FName> PIEInstanceNameMap;
 	/** Editor instances */
-	TMap<FName, TWeakObjectPtr<const UObject>> ActorInstances;
+	TMap<FName, TWeakObjectPtr<const UObject>> EditorActorInstances;
+	/** PIE instances */
+	TMap<FName, TWeakObjectPtr<const UObject>> PIEActorInstances;
 	/** Event Trace History */
 	TSimpleRingBuffer<FBlueprintExecutionTrace> ExecutionTraceHistory;
 };
@@ -120,7 +151,7 @@ class FBlueprintFunctionContext : public TSharedFromThis<FBlueprintFunctionConte
 public:
 
 	/** Initialise the function context from the graph */
-	void InitialiseContextFromGraph(TSharedPtr<FBlueprintExecutionContext> BlueprintContext, UEdGraph* Graph);
+	void InitialiseContextFromGraph(TSharedPtr<FBlueprintExecutionContext> BlueprintContext, const FName FunctionNameIn, UEdGraph* Graph);
 
 	/** Map Function */
 	void MapFunction();
@@ -186,6 +217,9 @@ private:
 	/** Locates and generates event contexts for any input events passed in */
 	void CreateInputEvents(TSharedPtr<FBlueprintExecutionContext> BlueprintContextIn, const TArray<UK2Node*>& InputEventNodes);
 
+	/** Locates and generates event contexts for any async task events passed in */
+	void CreateAsyncTaskEvents(TSharedPtr<FBlueprintExecutionContext> BlueprintContextIn, const TArray<UK2Node_BaseAsyncTask*>& AsyncTaskNodes);
+
 	/** Processes and detects any cyclic links making the linkage safe for traversal */
 	bool DetectCyclicLinks(TSharedPtr<FScriptExecutionNode> ExecNode, TSet<TSharedPtr<FScriptExecutionNode>>& Filter);
 
@@ -199,6 +233,12 @@ private:
 
 	/** Maps pin execution */
 	void MapExecPins(TSharedPtr<FScriptExecutionNode> ExecNode, const TArray<UEdGraphPin*>& Pins);
+
+	/** Returns a valid pin name, creating one based on pin characteristics if not available */
+	FName GetPinName(const UEdGraphPin* Pin) const;
+
+	/** Returns a full qualified pin name including owning node id */
+	FName GetUniquePinName(const UEdGraphPin* Pin) const;
 
 	/** Maps execution pin tunnel entry */
 	TSharedPtr<FScriptExecutionNode> MapTunnelEntry(const FName TunnelName, const UEdGraphPin* ExecPin, const UEdGraphPin* TunnelPin, const int32 PinScriptOffset);
@@ -225,18 +265,22 @@ private:
 
 private:
 
+	/** The graph name */
+	FName GraphName;
 	/** The function name */
 	FName FunctionName;
 	/** The Owning Blueprint context */
 	TWeakPtr<FBlueprintExecutionContext> BlueprintContext;
 	/** The UFunction this context represents */
 	TWeakObjectPtr<UFunction> Function;
+	/** The blueprint that owns this function graph */
+	TWeakObjectPtr<UBlueprint> OwningBlueprint;
 	/** The blueprint generated class for the owning blueprint */
 	TWeakObjectPtr<UBlueprintGeneratedClass> BlueprintClass;
 	/** ScriptCode offset to node cache */
 	TMap<int32, TWeakObjectPtr<const UEdGraphNode>> ScriptOffsetToNodes;
 	/** ScriptCode offset to pin cache */
-	TMap<int32, TWeakObjectPtr<const UEdGraphPin>> ScriptOffsetToPins;
+	TMap<int32, FEdGraphPinReference> ScriptOffsetToPins;
 	/** Execution nodes containing profiling data */
 	TMap<FName, TSharedPtr<FScriptExecutionNode>> ExecutionNodes;
 	/** Graph entry points */
@@ -275,6 +319,18 @@ class FScriptEventPlayback : public TSharedFromThis<FScriptEventPlayback>
 {
 public:
 
+	struct NodeSignalHelper
+	{
+		TSharedPtr<FScriptExecutionNode> ImpureNode;
+		TSharedPtr<FBlueprintExecutionContext> BlueprintContext;
+		TSharedPtr<FBlueprintFunctionContext> FunctionContext;
+		TArray<class FScriptInstrumentedEvent> ExclusiveEvents;
+		TArray<class FScriptInstrumentedEvent> InclusiveEvents;
+		TArray<FTracePath> ExclusiveTracePaths;
+		TArray<FTracePath> InputTracePaths;
+		TArray<FTracePath> InclusiveTracePaths;
+	};
+
 	struct TunnelEventHelper
 	{
 		double TunnelEntryTime;
@@ -282,8 +338,21 @@ public:
 		TSharedPtr<FScriptExecutionTunnelEntry> TunnelEntryPoint;
 	};
 
+	struct PushState
+	{
+		PushState(const UEdGraphNode* NodeIn, const FTracePath& TracePathIn)
+			: InstigatingNode(NodeIn)
+			, TracePath(TracePathIn)
+		{
+		}
+
+		const UEdGraphNode* InstigatingNode;
+		FTracePath TracePath;
+	};
+
 	FScriptEventPlayback(TSharedPtr<FBlueprintExecutionContext> BlueprintContextIn, const FName InstanceNameIn)
 		: InstanceName(InstanceNameIn)
+		, CurrentFunctionName(NAME_None)
 		, ProcessingState(EEventProcessingResult::None)
 		, BlueprintContext(BlueprintContextIn)
 	{
@@ -303,13 +372,21 @@ public:
 
 private:
 
+	/** Process execution sequence */
+	void ProcessExecutionSequence(NodeSignalHelper& CurrentNodeData, const FScriptInstrumentedEvent& CurrSignal);
+
 	/** Process tunnel entry points */
 	void ProcessTunnelEntryPoints(TSharedPtr<FBlueprintFunctionContext> FunctionContext, const FScriptInstrumentedEvent& CurrSignal);
+
+	/** Add to trace history */
+	void AddToTraceHistory(const FName NodeName, const FScriptInstrumentedEvent& TraceSignal);
 
 private:
 
 	/** Instance name */
 	FName InstanceName;
+	/** Function name */
+	FName CurrentFunctionName;
 	/** Event name */
 	FName EventName;
 	/** Processing state */

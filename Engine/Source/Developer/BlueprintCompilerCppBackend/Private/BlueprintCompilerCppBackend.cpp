@@ -154,35 +154,44 @@ void FBlueprintCompilerCppBackend::EmitCastBetweenInterfacesStatement(FEmitterLo
 	EmitterContext.AddLine(FString::Printf(TEXT("}")));
 }
 
-void FBlueprintCompilerCppBackend::EmitCastInterfaceToObjStatement(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
+static void EmitGenericCast(FEmitterLocalContext& EmitterContext, UClass* ClassPtr, const FString& ObjectValue, const FString& ResultObject)
 {
-	FString ClassToCastTo = TermToText(EmitterContext, Statement.RHS[0]);
-	FString InputInterface = TermToText(EmitterContext, Statement.RHS[1]);
-	FString ResultObject = TermToText(EmitterContext, Statement.LHS, true, false);
-	FString InputObject = FString::Printf(TEXT("%s.GetObjectRef()"), *InputInterface);
-	EmitterContext.AddLine(FString::Printf(TEXT("%s = Cast<%s>(%s);"),*ResultObject, *ClassToCastTo, *InputObject));
-}
-
-void FBlueprintCompilerCppBackend::EmitDynamicCastStatement(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
-{
-	UClass* ClassPtr = CastChecked<UClass>(Statement.RHS[0]->ObjectLiteral);
 	check(ClassPtr != nullptr);
-	
-	const FString ObjectValue = TermToText(EmitterContext, Statement.RHS[1]);
-	const FString CastedValue = TermToText(EmitterContext, Statement.LHS, true, false);
 
 	auto BPGC = Cast<UBlueprintGeneratedClass>(ClassPtr);
 	if (BPGC && !EmitterContext.Dependencies.WillClassBeConverted(BPGC))
 	{
 		const FString NativeClass = FEmitHelper::GetCppName(EmitterContext.GetFirstNativeOrConvertedClass(ClassPtr));
 		const FString TargetClass = EmitterContext.FindGloballyMappedObject(ClassPtr, UClass::StaticClass(), true);
-		EmitterContext.AddLine(FString::Printf(TEXT("%s = NoNativeCast<%s>(%s, %s);"), *CastedValue, *NativeClass, *TargetClass, *ObjectValue));
+		EmitterContext.AddLine(FString::Printf(TEXT("%s = NoNativeCast<%s>(%s, %s);"), *ResultObject, *NativeClass, *TargetClass, *ObjectValue));
 	}
 	else
 	{
 		const FString TargetClass = FEmitHelper::GetCppName(ClassPtr);
-		EmitterContext.AddLine(FString::Printf(TEXT("%s = Cast<%s>(%s);"), *CastedValue, *TargetClass, *ObjectValue));
+		EmitterContext.AddLine(FString::Printf(TEXT("%s = Cast<%s>(%s);"), *ResultObject, *TargetClass, *ObjectValue));
 	}
+}
+
+void FBlueprintCompilerCppBackend::EmitCastInterfaceToObjStatement(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
+{
+	const FString InputInterface = TermToText(EmitterContext, Statement.RHS[1]);
+	const FString ResultObject = TermToText(EmitterContext, Statement.LHS, true, false);
+
+	EmitGenericCast(EmitterContext
+		, CastChecked<UClass>(Statement.RHS[0]->ObjectLiteral)
+		, FString::Printf(TEXT("%s.GetObjectRef()"), *InputInterface)
+		, ResultObject);
+}
+
+void FBlueprintCompilerCppBackend::EmitDynamicCastStatement(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
+{
+	const FString ObjectValue = TermToText(EmitterContext, Statement.RHS[1]);
+	const FString ResultObject = TermToText(EmitterContext, Statement.LHS, true, false);
+
+	EmitGenericCast(EmitterContext
+		, CastChecked<UClass>(Statement.RHS[0]->ObjectLiteral)
+		, ObjectValue
+		, ResultObject);
 }
 
 void FBlueprintCompilerCppBackend::EmitMetaCastStatement(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
@@ -404,11 +413,24 @@ FString FBlueprintCompilerCppBackend::EmitSwitchValueStatmentInner(FEmitterLocal
 
 	for (int32 TermIndex = TermsBeforeCases; TermIndex < (NumCases * TermsPerCase); TermIndex += TermsPerCase)
 	{
+		auto TermToRef = [&](const FBPTerminal* Term) -> FString
+		{
+			const FString TermEvaluation = TermToText(EmitterContext, Term); //should bGetter be false ?
+			if (Term->bIsLiteral) //TODO it should be done for every term, that cannot be handled as reference.
+			{
+				const FString LocalVarName = EmitterContext.GenerateUniqueLocalName();
+				EmitterContext.AddLine(FString::Printf(TEXT("%s %s = %s;"), *ValueDeclaration, *LocalVarName, *TermEvaluation));
+				return LocalVarName;
+			}
+			return TermEvaluation;
+		};
+		const FString Term0_Index = TermToText(EmitterContext, Statement.RHS[TermIndex]);
+		const FString Term1_Ref = TermToRef(Statement.RHS[TermIndex + 1]);
 		Result += FString::Printf(TEXT(", TSwitchPair<%s, %s>(%s, %s)")
 			, *IndexDeclaration
 			, *ValueDeclaration
-			, *TermToText(EmitterContext, Statement.RHS[TermIndex])
-			, *TermToText(EmitterContext, Statement.RHS[TermIndex + 1]));
+			, *Term0_Index
+			, *Term1_Ref);
 	}
 
 	Result += TEXT(")");
@@ -482,6 +504,54 @@ FString FBlueprintCompilerCppBackend::EmitMethodInputParameterList(FEmitterLocal
 	return Result;
 }
 
+static FString CustomThunkFunctionPostfix(FBlueprintCompiledStatement& Statement)
+{
+	/* Some native structures have no operator==. There are special versions of array functions for them (see GeneratedCodeHelpers.h). */
+
+	check(Statement.FunctionToCall);
+
+	int32 NumParams = 0;
+	FBPTerminal* ArrayTerm = nullptr;
+	for (TFieldIterator<UProperty> PropIt(Statement.FunctionToCall); PropIt && (PropIt->PropertyFlags & CPF_Parm); ++PropIt)
+	{
+		UProperty* FuncParamProperty = *PropIt;
+		if (!FuncParamProperty->HasAnyPropertyFlags(CPF_ReturnParm))
+		{
+			if (UArrayProperty* ArrayProperty = Cast<UArrayProperty>(*PropIt))
+			{
+				ArrayTerm = Statement.RHS[NumParams];
+				ensure(ArrayTerm && ArrayTerm->Type.bIsArray);
+				break;
+			}
+			NumParams++;
+		}
+	}
+
+	FString FunctionName = Statement.FunctionToCall->GetName();
+	if (ArrayTerm 
+		&& (FunctionName == TEXT("Array_Find") 
+			|| FunctionName == TEXT("Array_Contains") 
+			|| FunctionName == TEXT("Array_RemoveItem")
+			|| FunctionName == TEXT("Array_AddUnique")
+			))
+	{
+		if (UEdGraphSchema_K2::PC_Text == ArrayTerm->Type.PinCategory)
+		{
+			return FString(TEXT("_FText"));
+		}
+
+		if (UEdGraphSchema_K2::PC_Struct == ArrayTerm->Type.PinCategory)
+		{
+			UScriptStruct* Struct = Cast<UScriptStruct>(ArrayTerm->Type.PinSubCategoryObject.Get());
+			if (Struct && Struct->IsNative() && (0 == (Struct->StructFlags & STRUCT_NoExport)))
+			{
+				return FString(TEXT("_Struct"));
+			}
+		}
+	}
+	return FString();
+}
+
 FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext& EmitterContext, FBlueprintCompiledStatement& Statement, bool bInline, FString PostFix)
 {
 	const bool bCallOnDifferentObject = Statement.FunctionContext && (Statement.FunctionContext->Name != TEXT("self"));
@@ -489,12 +559,14 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 	const bool bUseSafeContext = bCallOnDifferentObject && !bStaticCall;
 	const bool bAnyInterfaceCall = bCallOnDifferentObject && Statement.FunctionContext && (UEdGraphSchema_K2::PC_Interface == Statement.FunctionContext->Type.PinCategory);
 	const bool bInterfaceCallExecute = bAnyInterfaceCall && Statement.FunctionToCall && Statement.FunctionToCall->HasAnyFunctionFlags(FUNC_Event | FUNC_BlueprintEvent);
+	const bool bNativeEvent = FEmitHelper::ShouldHandleAsNativeEvent(Statement.FunctionToCall, false);
 
 	const UClass* CurrentClass = EmitterContext.GetCurrentlyGeneratedClass();
 	const UClass* SuperClass = CurrentClass ? CurrentClass->GetSuperClass() : nullptr;
 	const UClass* OriginalSuperClass = SuperClass ? EmitterContext.Dependencies.FindOriginalClass(SuperClass) : nullptr;
 	const UFunction* ActualParentFunction = (Statement.bIsParentContext && OriginalSuperClass) ? OriginalSuperClass->FindFunctionByName(Statement.FunctionToCall->GetFName(), EIncludeSuperFlag::IncludeSuper) : nullptr;
-	const FString FunctionToCallOriginalName = FEmitHelper::GetCppName(ActualParentFunction ? ActualParentFunction : FEmitHelper::GetOriginalFunction(Statement.FunctionToCall)) + PostFix;
+	// if(Statement.bIsParentContext && bNativeEvent) then name is constructed from original function with "_Implementation postfix
+	const FString FunctionToCallOriginalName = FEmitHelper::GetCppName((ActualParentFunction && !bNativeEvent) ? ActualParentFunction : FEmitHelper::GetOriginalFunction(Statement.FunctionToCall)) + PostFix;
 	const bool bIsFunctionValidToCallFromBP = !ActualParentFunction || ActualParentFunction->HasAnyFunctionFlags(FUNC_Native) || (ActualParentFunction->Script.Num() > 0);
 
 	if (!bIsFunctionValidToCallFromBP)
@@ -535,7 +607,7 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 			{
 				const FString Value = TermToText(EmitterContext, ValueTerminal);
 				const FString EnumName = FEmitHelper::GetCppName(Enum);
-				Result += FString::Printf(TEXT("%s__GetUserFriendlyName(EnumToByte<%s>(%s))"), *EnumName, *EnumName, *Value);
+				Result += FString::Printf(TEXT("%s__GetUserFriendlyName(EnumToByte<%s>(TEnumAsByte<%s>(%s)))"), *EnumName, *EnumName, *EnumName, *Value);
 				return true;
 			}
 		}
@@ -560,6 +632,9 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 			auto FunctionOwner = Statement.FunctionToCall->GetOwnerClass();
 			auto OwnerBPGC = Cast<UBlueprintGeneratedClass>(FunctionOwner);
 			const bool bUnconvertedClass = OwnerBPGC && !EmitterContext.Dependencies.WillClassBeConverted(OwnerBPGC);
+			const bool bIsCustomThunk = bStaticCall && Statement.FunctionToCall->GetBoolMetaData(TEXT("CustomThunk"))
+				|| Statement.FunctionToCall->HasMetaData(TEXT("CustomStructureParam"))
+				|| Statement.FunctionToCall->HasMetaData(TEXT("ArrayParm"));
 			if (bUnconvertedClass)
 			{
 				ensure(!Statement.bIsParentContext); //unsupported yet
@@ -571,9 +646,6 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 			}
 			else if (bStaticCall)
 			{
-				const bool bIsCustomThunk = Statement.FunctionToCall->GetBoolMetaData(TEXT("CustomThunk"))
-					|| Statement.FunctionToCall->HasMetaData(TEXT("CustomStructureParam"))
-					|| Statement.FunctionToCall->HasMetaData(TEXT("ArrayParm"));
 				auto OwnerClass = Statement.FunctionToCall->GetOuterUClass();
 				Result += bIsCustomThunk ? TEXT("FCustomThunkTemplates::") : FString::Printf(TEXT("%s::"), *FEmitHelper::GetCppName(OwnerClass));
 			}
@@ -588,7 +660,12 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 			}
 			Result += FunctionToCallOriginalName;
 
-			if (Statement.bIsParentContext && FEmitHelper::ShouldHandleAsNativeEvent(Statement.FunctionToCall, false))
+			if (bIsCustomThunk)
+			{
+				Result += CustomThunkFunctionPostfix(Statement);
+			}
+
+			if (Statement.bIsParentContext && bNativeEvent)
 			{
 				ensure(!bCallOnDifferentObject);
 				Result += TEXT("_Implementation");
@@ -735,7 +812,16 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 				{
 					ResultPath = ContextStr + TEXT("->");
 				}
+
 				ResultPath += FEmitHelper::GetCppName(Term->AssociatedVarProperty);
+
+				// convert bitfield to bool...
+				UBoolProperty* BoolProperty = Cast<UBoolProperty>(Term->AssociatedVarProperty);
+				if (bGetter && BoolProperty && !BoolProperty->IsNativeBool())
+				{
+					//TODO: the result still cannot be used as reference
+					ResultPath = FString::Printf(TEXT("(%s != 0)"), *ResultPath);
+				}
 			}
 		}
 		else
@@ -781,7 +867,7 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 			EmitterContext.AddLine(*FString::Printf(TEXT("%s %s = %s;"), *CppType, *DefaultValueVariable, *DefaultValueConstructor));
 			return FString::Printf(TEXT("((%s) ? (%s) : (%s))"), *Conditions, *ResultPath, *DefaultValueVariable);
 		}
-		return ResultPath;
+		return ResultPath; 
 	}
 }
 

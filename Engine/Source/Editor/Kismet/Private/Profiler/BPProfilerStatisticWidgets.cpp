@@ -3,7 +3,6 @@
 #include "BlueprintEditorPrivatePCH.h"
 #include "SBlueprintProfilerView.h"
 #include "BPProfilerStatisticWidgets.h"
-#include "SHyperlink.h"
 #include "EventExecution.h"
 #include "Developer/BlueprintProfiler/Public/BlueprintProfilerModule.h"
 
@@ -15,16 +14,16 @@
 namespace BlueprintProfilerStatText
 {
 	const FName ColumnId_Name("Name");
+	const FName ColumnId_AverageTime("AverageTime");
 	const FName ColumnId_InclusiveTime("InclusiveTime");
-	const FName ColumnId_Time("Time");
 	const FName ColumnId_MaxTime("MaxTime");
 	const FName ColumnId_MinTime("MinTime");
 	const FName ColumnId_Samples("Samples");
 	const FName ColumnId_TotalTime("TotalTime");
 
 	const FText ColumnText_Name(LOCTEXT("Name", "Name") );
+	const FText ColumnText_AverageTime(LOCTEXT("AverageTime", "Avg Time (ms)"));
 	const FText ColumnText_InclusiveTime(LOCTEXT("InclusiveTime", "Inclusive Time (ms)"));
-	const FText ColumnText_Time(LOCTEXT("Time", "Time (ms)"));
 	const FText ColumnText_MaxTime(LOCTEXT("MaxTime", "Max Time (ms)"));
 	const FText ColumnText_MinTime(LOCTEXT("MinTime", "Min Time (ms)"));
 	const FText ColumnText_Samples(LOCTEXT("Samples", "Samples"));
@@ -74,8 +73,8 @@ const FName SProfilerStatRow::GetStatName(const EBlueprintProfilerStat::Type Sta
 	{
 		case EBlueprintProfilerStat::Name:			return BlueprintProfilerStatText::ColumnId_Name;
 		case EBlueprintProfilerStat::TotalTime:		return BlueprintProfilerStatText::ColumnId_TotalTime;
+		case EBlueprintProfilerStat::AverageTime:	return BlueprintProfilerStatText::ColumnId_AverageTime;
 		case EBlueprintProfilerStat::InclusiveTime:	return BlueprintProfilerStatText::ColumnId_InclusiveTime;
-		case EBlueprintProfilerStat::Time:			return BlueprintProfilerStatText::ColumnId_Time;
 		case EBlueprintProfilerStat::MaxTime:		return BlueprintProfilerStatText::ColumnId_MaxTime;
 		case EBlueprintProfilerStat::MinTime:		return BlueprintProfilerStatText::ColumnId_MinTime;
 		case EBlueprintProfilerStat::Samples:		return BlueprintProfilerStatText::ColumnId_Samples;
@@ -89,162 +88,13 @@ const FText SProfilerStatRow::GetStatText(const EBlueprintProfilerStat::Type Sta
 	{
 		case EBlueprintProfilerStat::Name:			return BlueprintProfilerStatText::ColumnText_Name;
 		case EBlueprintProfilerStat::TotalTime:		return BlueprintProfilerStatText::ColumnText_TotalTime;
+		case EBlueprintProfilerStat::AverageTime:	return BlueprintProfilerStatText::ColumnText_AverageTime;
 		case EBlueprintProfilerStat::InclusiveTime:	return BlueprintProfilerStatText::ColumnText_InclusiveTime;
-		case EBlueprintProfilerStat::Time:			return BlueprintProfilerStatText::ColumnText_Time;
 		case EBlueprintProfilerStat::MaxTime:		return BlueprintProfilerStatText::ColumnText_MaxTime;
 		case EBlueprintProfilerStat::MinTime:		return BlueprintProfilerStatText::ColumnText_MinTime;
 		case EBlueprintProfilerStat::Samples:		return BlueprintProfilerStatText::ColumnText_Samples;
 		default:									return FText::GetEmpty();
 	}
-}
-
-//////////////////////////////////////////////////////////////////////////
-// FBPProfilerStatOptions
-
-void FBPProfilerStatDiplayOptions::SetActiveInstance(const FName InstanceName)
-{
-	if (ActiveInstance != InstanceName && HasFlags(ScopeToDebugInstance))
-	{
-		Flags |= Modified;
-	}
-	ActiveInstance = InstanceName;
-}
-
-void FBPProfilerStatDiplayOptions::SetActiveGraph(const FName GraphName)
-{
-	if (ActiveGraph != GraphName && HasFlags(GraphFilter))
-	{
-		Flags |= Modified;
-	}
-	ActiveGraph = GraphName;
-}
-
-TSharedRef<SWidget> FBPProfilerStatDiplayOptions::CreateToolbar()
-{
-	return	
-		SNew(SVerticalBox)
-		+SVerticalBox::Slot()
-		.HAlign(HAlign_Right)
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			.Padding(FMargin(5,0))
-			[
-				SNew(SCheckBox)
-				.Content()
-				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("FilterToGraph", "Filter to Graph"))
-				]
-				.IsChecked<FBPProfilerStatDiplayOptions, uint32>(this, &FBPProfilerStatDiplayOptions::GetChecked, GraphFilter)
-				.OnCheckStateChanged<FBPProfilerStatDiplayOptions, uint32>(this, &FBPProfilerStatDiplayOptions::OnChecked, GraphFilter)
-			]
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			.Padding(FMargin(5,0))
-			[
-				SNew(SCheckBox)
-				.Content()
-				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("DisplayPureStats", "Pure Timings"))
-				]
-				.IsChecked<FBPProfilerStatDiplayOptions, uint32>(this, &FBPProfilerStatDiplayOptions::GetChecked, DisplayPure)
-				.OnCheckStateChanged<FBPProfilerStatDiplayOptions, uint32>(this, &FBPProfilerStatDiplayOptions::OnChecked, DisplayPure)
-			]
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			.Padding(FMargin(5,0))
-			[
-				SNew(SCheckBox)
-				.Content()
-				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("ShowInstancesCheck", "Show Instances"))
-				]
-				.IsChecked<FBPProfilerStatDiplayOptions, uint32>(this, &FBPProfilerStatDiplayOptions::GetChecked, DisplayByInstance)
-				.OnCheckStateChanged<FBPProfilerStatDiplayOptions, uint32>(this, &FBPProfilerStatDiplayOptions::OnChecked, DisplayByInstance)
-			]
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			.Padding(FMargin(5,0))
-			[
-				SNew(SCheckBox)
-				.Content()
-				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("InstanceFilterCheck", "Debug Filter Scope"))
-				]
-				.IsChecked<FBPProfilerStatDiplayOptions, uint32>(this, &FBPProfilerStatDiplayOptions::GetChecked, ScopeToDebugInstance)
-				.OnCheckStateChanged<FBPProfilerStatDiplayOptions, uint32>(this, &FBPProfilerStatDiplayOptions::OnChecked, ScopeToDebugInstance)
-			]
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			.Padding(FMargin(5,0))
-			[
-				SNew(SCheckBox)
-				.Content()
-				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("AutoItemExpansion", "Auto Expand Statistics"))
-				]
-				.IsChecked<FBPProfilerStatDiplayOptions, uint32>(this, &FBPProfilerStatDiplayOptions::GetChecked, AutoExpand)
-				.OnCheckStateChanged<FBPProfilerStatDiplayOptions, uint32>(this, &FBPProfilerStatDiplayOptions::OnChecked, AutoExpand)
-			]
-		];
-}
-
-ECheckBoxState FBPProfilerStatDiplayOptions::GetChecked(const uint32 FlagsIn) const
-{
-	ECheckBoxState CheckedState;
-	if (FlagsIn & ScopeToDebugInstance)
-	{
-		if (HasFlags(DisplayByInstance))
-		{
-			CheckedState = HasFlags(ScopeToDebugInstance) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-		}
-		else
-		{
-			CheckedState = ECheckBoxState::Undetermined;
-		}
-	}
-	else
-	{
-		CheckedState = HasAllFlags(FlagsIn) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-	}
-	return CheckedState;
-}
-
-void FBPProfilerStatDiplayOptions::OnChecked(ECheckBoxState NewState, const uint32 FlagsIn)
-{
-	if (NewState == ECheckBoxState::Checked)
-	{
-		Flags |= FlagsIn;
-	}
-	else
-	{
-		Flags &= ~FlagsIn;
-	}
-	Flags |= Modified;
-}
-
-bool FBPProfilerStatDiplayOptions::IsFiltered(TSharedPtr<FScriptExecutionNode> Node) const
-{
-	bool bFilteredOut = !HasFlags(EDisplayFlags::DisplayPure) && Node->HasFlags(EScriptExecutionNodeFlags::PureStats);
-	if (Node->IsEvent() && HasFlags(EDisplayFlags::GraphFilter))
-	{
-		if (Node->GetGraphName() == UEdGraphSchema_K2::FN_UserConstructionScript)
-		{
-			bFilteredOut = ActiveGraph != UEdGraphSchema_K2::FN_UserConstructionScript;
-		}
-		else
-		{
-			bFilteredOut = ActiveGraph == UEdGraphSchema_K2::FN_UserConstructionScript;
-		}
-	}
-	return bFilteredOut;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -270,23 +120,13 @@ TSharedRef<SWidget> FBPProfilerStatWidget::GenerateColumnWidget(FName ColumnName
 				+SHorizontalBox::Slot()
 				.AutoWidth()
 				[
-					SNew(SImage)
-					.Image(ExecNode->GetIcon())
-					.ColorAndOpacity(ExecNode->GetIconColor())
+					ExecNode->GetIconWidget()
 				]
 				+SHorizontalBox::Slot()
 				.AutoWidth()
 				.Padding(FMargin(5,0))
 				[
-					SNew(SHyperlink)
-		#if TRACEPATH_DEBUG
-					.Text(FText::FromName(ExecNode->GetName()))
-		#else
-					.Text(ExecNode->GetDisplayName())
-		#endif
-					.Style(FEditorStyle::Get(), "HoverOnlyHyperlink")
-					.ToolTipText(ExecNode->GetToolTipText())
-					.OnNavigate(this, &FBPProfilerStatWidget::NavigateTo)
+					ExecNode->GetHyperlinkWidget()
 		#if TRACEPATH_DEBUG
 				]
 				+SHorizontalBox::Slot()
@@ -306,43 +146,28 @@ TSharedRef<SWidget> FBPProfilerStatWidget::GenerateColumnWidget(FName ColumnName
 
 			if (ColumnName == BlueprintProfilerStatText::ColumnId_TotalTime)
 			{
-				if (!ExecNode->HasFlags(EScriptExecutionNodeFlags::ExecPin))
-				{
-					TextAttr = TAttribute<FText>(PerformanceStats.Get(), &FScriptPerfData::GetTotalTimingText);
-					ColorAttr = TAttribute<FSlateColor>(FLinearColor::White);
-				}
+				TextAttr = TAttribute<FText>(PerformanceStats.Get(), &FScriptPerfData::GetTotalTimingText);
+				ColorAttr = TAttribute<FSlateColor>(FLinearColor::White);
 			}
 			else if (ColumnName == BlueprintProfilerStatText::ColumnId_InclusiveTime)
 			{
-				if (ExecNode->HasFlags(NonNodeStats))
-				{
-					TextAttr = TAttribute<FText>(PerformanceStats.Get(), &FScriptPerfData::GetInclusiveTimingText);
-					ColorAttr = TAttribute<FSlateColor>(this, &FBPProfilerStatWidget::GetInclusiveHeatColor);
-				}
+				TextAttr = TAttribute<FText>(PerformanceStats.Get(), &FScriptPerfData::GetInclusiveTimingText);
+				ColorAttr = TAttribute<FSlateColor>(this, &FBPProfilerStatWidget::GetInclusiveHeatColor);
 			}
-			else if (ColumnName == BlueprintProfilerStatText::ColumnId_Time)
+			else if (ColumnName == BlueprintProfilerStatText::ColumnId_AverageTime)
 			{
-				if (!ExecNode->HasFlags(EScriptExecutionNodeFlags::ExecPin))
-				{
-					TextAttr = TAttribute<FText>(PerformanceStats.Get(), &FScriptPerfData::GetNodeTimingText);
-					ColorAttr = TAttribute<FSlateColor>(this, &FBPProfilerStatWidget::GetNodeHeatColor);
-				}
+				TextAttr = TAttribute<FText>(PerformanceStats.Get(), &FScriptPerfData::GetExclusiveTimingText);
+				ColorAttr = TAttribute<FSlateColor>(this, &FBPProfilerStatWidget::GetNodeHeatColor);
 			}
 			else if (ColumnName == BlueprintProfilerStatText::ColumnId_MaxTime)
 			{
-				if (!ExecNode->HasFlags(EScriptExecutionNodeFlags::ExecPin))
-				{
-					TextAttr = TAttribute<FText>(PerformanceStats.Get(), &FScriptPerfData::GetMaxTimingText);
-					ColorAttr = TAttribute<FSlateColor>(this, &FBPProfilerStatWidget::GetMaxTimeHeatColor);
-				}
+				TextAttr = TAttribute<FText>(PerformanceStats.Get(), &FScriptPerfData::GetMaxTimingText);
+				ColorAttr = TAttribute<FSlateColor>(this, &FBPProfilerStatWidget::GetMaxTimeHeatColor);
 			}
 			else if (ColumnName == BlueprintProfilerStatText::ColumnId_MinTime)
 			{
-				if (!ExecNode->HasFlags(EScriptExecutionNodeFlags::ExecPin))
-				{
-					TextAttr = TAttribute<FText>(PerformanceStats.Get(), &FScriptPerfData::GetMinTimingText);
-					ColorAttr = TAttribute<FSlateColor>(FLinearColor::White);
-				}
+				TextAttr = TAttribute<FText>(PerformanceStats.Get(), &FScriptPerfData::GetMinTimingText);
+				ColorAttr = TAttribute<FSlateColor>(FLinearColor::White);
 			}
 			else if (ColumnName == BlueprintProfilerStatText::ColumnId_Samples)
 			{
@@ -384,12 +209,12 @@ FSlateColor FBPProfilerStatWidget::GetMaxTimeHeatColor() const
 	return FLinearColor(1.f, Value, Value);
 }
 
-void FBPProfilerStatWidget::GenerateExecNodeWidgets(const TSharedPtr<FBPProfilerStatDiplayOptions> DisplayOptions)
+void FBPProfilerStatWidget::GenerateExecNodeWidgets(const TSharedPtr<FBlueprintProfilerStatOptions> DisplayOptions)
 {
 	if (ExecNode.IsValid())
 	{
 		// Grab Performance Stats
-		PerformanceStats = ExecNode->GetPerfDataByInstanceAndTracePath(DisplayOptions->GetActiveInstance(), WidgetTracePath);
+		PerformanceStats = ExecNode->GetOrAddPerfDataByInstanceAndTracePath(DisplayOptions->GetActiveInstance(), WidgetTracePath);
 		CachedChildren.Reset(0);
 
 		if (ExecNode->HasFlags(EScriptExecutionNodeFlags::PureStats))
@@ -458,6 +283,10 @@ void FBPProfilerStatWidget::GenerateExecNodeWidgets(const TSharedPtr<FBPProfiler
 					{
 						TArray<FScriptNodeExecLinkage::FLinearExecPath> LinearExecNodes;
 						FTracePath LinkPath(WidgetTracePath);
+						if (LinkIter.Value->HasFlags(EScriptExecutionNodeFlags::AsyncTaskDelegate))
+						{
+							LinkPath.ResetPath();
+						}
 						if (!LinkIter.Value->HasFlags(EScriptExecutionNodeFlags::InvalidTrace))
 						{
 							LinkPath.AddExitPin(LinkIter.Key);

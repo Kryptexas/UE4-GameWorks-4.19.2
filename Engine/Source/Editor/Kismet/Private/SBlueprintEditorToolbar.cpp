@@ -671,7 +671,14 @@ FSlateIcon FBlueprintEditorToolbar::GetStatusImage() const
 	case BS_Error:
 		return FSlateIcon(FEditorStyle::GetStyleSetName(), "Kismet.Status.Error");
 	case BS_UpToDate:
-		return FSlateIcon(FEditorStyle::GetStyleSetName(), "Kismet.Status.Good");
+	{
+		const bool bInstrumented = BlueprintObj->GeneratedClass->HasInstrumentation();
+		if (BlueprintEditor.Pin()->IsProfilerActive())
+		{
+			return bInstrumented ? FSlateIcon(FEditorStyle::GetStyleSetName(), "Kismet.Status.Instrumented") : FSlateIcon(FEditorStyle::GetStyleSetName(), "Kismet.Status.NotInstrumented");
+		}
+		return bInstrumented ? FSlateIcon(FEditorStyle::GetStyleSetName(), "Kismet.Status.Instrumented") : FSlateIcon(FEditorStyle::GetStyleSetName(), "Kismet.Status.Good");
+	}
 	case BS_UpToDateWithWarnings:
 		return FSlateIcon(FEditorStyle::GetStyleSetName(), "Kismet.Status.Warning");
 	}
@@ -698,7 +705,14 @@ FText FBlueprintEditorToolbar::GetStatusTooltip() const
 	case BS_Error:
 		return LOCTEXT("CompileError_Status", "There was an error during compilation, see the log for details");
 	case BS_UpToDate:
-		return LOCTEXT("GoodToGo_Status", "Good to go");
+	{
+		const bool bInstrumented = BlueprintObj->GeneratedClass->HasInstrumentation();
+		if (BlueprintEditor.Pin()->IsProfilerActive())
+		{
+			return bInstrumented ? LOCTEXT("GoodToGoInstrumented_Status", "Instrumentation is active") : LOCTEXT("GoodToGoNotInstrumented_Status", "Compile to add instrumentation");
+		}
+		return bInstrumented ? LOCTEXT("GoodToGoInstrumented_Status", "Instrumentation is active") : LOCTEXT("GoodToGo_Status", "Good to go");
+	}
 	case BS_UpToDateWithWarnings:
 		return LOCTEXT("GoodToGoWarning_Status", "There was a warning during compilation, see the log for details");
 	}
@@ -706,7 +720,7 @@ FText FBlueprintEditorToolbar::GetStatusTooltip() const
 
 FText FBlueprintEditorToolbar::GetProfilerStatusTooltip() const
 {
-	return BlueprintEditor.Pin()->IsProfilerActive() ? LOCTEXT("Profiling_Enabled", "Profiling Active") :
+	return BlueprintEditor.Pin()->IsProfilerActive() ?	LOCTEXT("Profiling_Enabled", "Profiling Active") :
 														LOCTEXT("Profiling_Disabled", "Profiling Inactive");
 }
 

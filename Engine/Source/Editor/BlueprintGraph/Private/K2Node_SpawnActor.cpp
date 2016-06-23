@@ -145,7 +145,7 @@ void UK2Node_SpawnActor::PinDefaultValueChanged(UEdGraphPin* ChangedPin)
 			UEdGraphPin* OldPin = OldPins[i];
 			if (IsSpawnVarPin(OldPin))
 			{
-				OldPin->BreakAllPinLinks();
+				OldPin->MarkPendingKill();
 				Pins.Remove(OldPin);
 			}
 		}

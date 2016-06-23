@@ -234,8 +234,11 @@ public:
 	 * Blueprint has changed in some manner that invalidates the compiled data (link made/broken, default value changed, etc...)
 	 *  - Marks the blueprint as status unknown
 	 *  - Marks the package as dirty
+	 *
+	 * @param	Blueprint				The Blueprint to mark as modified
+	 * @param	PropertyChangedEvent	Used when marking the blueprint as modified due to a changed property (optional)
 	 */
-	static void MarkBlueprintAsModified(UBlueprint* Blueprint);
+	static void MarkBlueprintAsModified(UBlueprint* Blueprint, FPropertyChangedEvent PropertyChangedEvent = FPropertyChangedEvent(nullptr));
 
 	/** See whether or not the specified graph name / entry point name is unique */
 	static bool IsGraphNameUnique(UBlueprint* Blueprint, const FName& InName);
@@ -1411,6 +1414,7 @@ struct UNREALED_API FBlueprintDuplicationScopeFlags
 		TheSameTimelineGuid = 1 << 1,
 		// This flag is needed for C++ backend (while compiler validates graphs). The actual BPGC type is compatible with the original BPGC.
 		ValidatePinsUsingSourceClass = 1 << 2,
+		TheSameNodeGuid = 1 << 3,
 	};
 
 	static uint32 bStaticFlags;

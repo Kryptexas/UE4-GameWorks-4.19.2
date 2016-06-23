@@ -23,6 +23,8 @@ namespace EScriptExecutionNodeFlags
 		Node						= 0x00000800,	// Node timing
 		ExecPin						= 0x00001000,	// Exec pin dummy node
 		PureNode					= 0x00002000,	// Pure node (no exec pins)
+		AsyncTask					= 0x00004000,	// Async task node
+		AsyncTaskDelegate			= 0x00008000,	// Async task delegate pin/event
 		FunctionTunnel				= 0x00010000,	// Tunnel function
 		TunnelEntryPin				= 0x00020000,	// Tunnel entry pin
 		TunnelExitPin				= 0x00040000,	// Tunnel exit pin
@@ -123,11 +125,17 @@ public:
 	/** Test whether or not perf data is available for the given instance/trace path */
 	bool HasPerfDataForInstanceAndTracePath(FName InstanceName, const FTracePath& TracePath) const;
 
-	/** Get/add perf data for instance and tracepath */
+	/** Get or add perf data for instance and tracepath */
+	TSharedPtr<class FScriptPerfData> GetOrAddPerfDataByInstanceAndTracePath(FName InstanceName, const FTracePath& TracePath);
+
+	/** Get perf data for instance and tracepath */
 	TSharedPtr<class FScriptPerfData> GetPerfDataByInstanceAndTracePath(FName InstanceName, const FTracePath& TracePath);
 
 	/** Get all instance perf data for the trace path, excluding the global blueprint data */
 	void GetInstancePerfDataByTracePath(const FTracePath& TracePath, TArray<TSharedPtr<FScriptPerfData>>& ResultsOut);
+
+	/** Get or add global blueprint perf data for the trace path */
+	TSharedPtr<FScriptPerfData> GetOrAddBlueprintPerfDataByTracePath(const FTracePath& TracePath);
 
 	/** Get global blueprint perf data for the trace path */
 	TSharedPtr<FScriptPerfData> GetBlueprintPerfDataByTracePath(const FTracePath& TracePath);
@@ -160,6 +168,8 @@ struct KISMET_API FScriptExecNodeParams
 	uint32 NodeFlags;
 	/** Oberved object */
 	TWeakObjectPtr<const UObject> ObservedObject;
+	/** Observed pin */
+	FEdGraphPinReference ObservedPin;
 	/** Display name for widget UI */
 	FText DisplayName;
 	/** Tooltip for widget UI */
@@ -168,6 +178,28 @@ struct KISMET_API FScriptExecNodeParams
 	FLinearColor IconColor;
 	/** Icon for widget UI */
 	FSlateBrush* Icon;
+};
+
+//////////////////////////////////////////////////////////////////////////
+// FScriptExecutionHottestPathParams
+
+struct FScriptExecutionHottestPathParams
+{
+	FScriptExecutionHottestPathParams(const FName InstanceNameIn, const float EventTimingIn)
+		: InstanceName(InstanceNameIn)
+		, EventTiming(EventTimingIn)
+		, TimeSoFar(0.0)
+	{
+	}
+
+	/** Instance name */
+	const FName InstanceName;
+	/** Event total timing */
+	const double EventTiming;
+	/** Event time so far */
+	double TimeSoFar;
+	/** Current tracepath */
+	FTracePath TracePath;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -197,6 +229,9 @@ public:
 
 	/** Does the node contain these flags */
 	bool HasFlags(const uint32 Flags) const { return (NodeFlags & Flags) != 0U; }
+
+	/** Returns if this exec node can be safely cyclicly linked */
+	bool IsCyclicNode() const { return (NodeFlags & EScriptExecutionNodeFlags::CallSite) == 0U; }
 
 	/** Returns if this exec event represents a change in class/blueprint */
 	bool IsClass() const { return (NodeFlags & EScriptExecutionNodeFlags::Class) != 0U; }
@@ -230,6 +265,9 @@ public:
 
 	/** Gets the observed object context */
 	const UObject* GetObservedObject() { return ObservedObject.Get(); }
+
+	/** Gets the observed object context */
+	const UEdGraphPin* GetObservedPin() const { return ObservedPin.Get(); }
 
 	/** Navigate to object */
 	virtual void NavigateToObject() const;
@@ -276,13 +314,25 @@ public:
 	/** Refresh Stats */
 	virtual void RefreshStats(const FTracePath& TracePath);
 
+	/** Calculate Hottest Path Stats */
+	virtual float CalculateHottestPathStats(FScriptExecutionHottestPathParams HotPathParams);
+
 	/** Get all exec nodes */
 	virtual void GetAllExecNodes(TMap<FName, TSharedPtr<FScriptExecutionNode>>& ExecNodesOut);
 
 	/** Get all pure nodes associated with the given trace path */
 	virtual void GetAllPureNodes(TMap<int32, TSharedPtr<FScriptExecutionNode>>& PureNodesOut);
 
+	/** Creates and returns the slate icon widget */
+	virtual TSharedRef<SWidget> GetIconWidget();
+
+	/** Creates and returns the slate hyperlink widget */
+	virtual TSharedRef<SWidget> GetHyperlinkWidget();
+
 protected:
+
+	/** Returns if the observed object is valid */
+	virtual bool IsObservedObjectValid() const;
 
 	/** Returns Tunnel Linear Execution Trace */
 	void MapTunnelLinearExecution(FTracePath& TraceInOut) const;
@@ -302,8 +352,10 @@ protected:
 	FName OwningGraphName;
 	/** Node flags to describe the source graph node type */
 	uint32 NodeFlags;
-	/** Oberved object */
+	/** Observed object */
 	TWeakObjectPtr<const UObject> ObservedObject;
+	/** Observed pin */
+	FEdGraphPinReference ObservedPin;
 	/** Display name for widget UI */
 	FText DisplayName;
 	/** Tooltip for widget UI */
@@ -426,6 +478,7 @@ public:
 
 	// FScriptExecutionNode
 	virtual void GetLinearExecutionPath(TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath, const bool bIncludeChildren = false) override;
+	virtual void RefreshStats(const FTracePath& TracePath) override;
 	virtual void NavigateToObject() const;
 	// ~FScriptExecutionNode
 
@@ -464,7 +517,27 @@ public:
 
 	// FScriptExecutionNode
 	virtual void NavigateToObject() const override;
+	virtual TSharedRef<SWidget> GetIconWidget() override;
+	virtual TSharedRef<SWidget> GetHyperlinkWidget() override;
+	virtual bool IsObservedObjectValid() const override;
 	// ~FScriptExecutionNode
+
+	/** Sets the current PIE Instance */
+	void SetPIEInstance(const UObject* PIEInstanceIn) { PIEInstance = PIEInstanceIn; }
+
+private:
+
+	/** Return the current instance icon color */
+	FSlateColor GetInstanceIconColor() const;
+
+	/** Return the current instance icon color */
+	FText GetInstanceTooltip() const;
+
+private:
+
+	/** PIE instance */
+	TWeakObjectPtr<const UObject> PIEInstance;
+
 };
 
 //////////////////////////////////////////////////////////////////////////

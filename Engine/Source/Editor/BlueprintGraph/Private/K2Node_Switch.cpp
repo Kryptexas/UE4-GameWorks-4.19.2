@@ -98,7 +98,7 @@ public:
 					FBPTerminal* CaseValueTerm = new (Context.Literals) FBPTerminal();
 					CaseValueTerm->Name = Pin->PinName;
 					CaseValueTerm->Type = SelectionPin->PinType;
-					CaseValueTerm->Source = Pin;
+					CaseValueTerm->SourcePin = Pin;
 					CaseValueTerm->bIsLiteral = true;
 
 					// Call the comparison function associated with this switch node
@@ -256,10 +256,8 @@ void UK2Node_Switch::RemovePinFromSwitchNode(UEdGraphPin* TargetPin)
 	}
 	else
 	{
-		TargetPin->BreakAllPinLinks();
+		TargetPin->MarkPendingKill();
 		Pins.Remove(TargetPin);
-
-		RemovePin(TargetPin);
 	}
 }
 

@@ -371,12 +371,6 @@ void UK2Node_MakeStruct::Serialize(FArchive& Ar)
 			{
 				FOptionalPinManager PinManager;
 
-				// Preload all pins so we can examine their values
-				for (UEdGraphPin* Pin : Pins)
-				{
-					Ar.Preload(Pin);
-				}
-
 				// Have to check if this node is even in danger.
 				for (FOptionalPinFromProperty& PropertyEntry : ShowPinForProperties)
 				{

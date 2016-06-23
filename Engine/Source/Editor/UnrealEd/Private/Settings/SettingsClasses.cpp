@@ -70,6 +70,7 @@ UEditorExperimentalSettings::UEditorExperimentalSettings( const FObjectInitializ
 	, bUnifiedBlueprintEditor(true)
 	, bBlueprintableComponents(true)
 	, bBlueprintPerformanceAnalysisTools(false)
+	, bEnableBlueprintProfilerRecentSampleBias(false)
 	, BlueprintProfilerRecentSampleBias(0.2f)
 	, BlueprintProfilerEventThreshold(1.f)
 	, BlueprintProfilerExclNodeThreshold(0.2f)
@@ -111,6 +112,10 @@ void UEditorExperimentalSettings::PostEditChangeProperty( struct FPropertyChange
 			}
 		}
 	}
+	else if (Name == FName(TEXT("bEnableBlueprintProfilerRecentSampleBias")))
+	{
+		FScriptPerfData::EnableRecentSampleBias(bEnableBlueprintProfilerRecentSampleBias);
+	}
 	else if (Name == FName(TEXT("BlueprintProfilerRecentSampleBias")))
 	{
 		FScriptPerfData::SetRecentSampleBias(BlueprintProfilerRecentSampleBias);
@@ -121,7 +126,7 @@ void UEditorExperimentalSettings::PostEditChangeProperty( struct FPropertyChange
 	}
 	else if (Name == FName(TEXT("BlueprintProfilerExclNodeThreshold")))
 	{
-		FScriptPerfData::SetNodePerformanceThreshold(BlueprintProfilerExclNodeThreshold);
+		FScriptPerfData::SetExclusivePerformanceThreshold(BlueprintProfilerExclNodeThreshold);
 	}
 	else if (Name == FName(TEXT("BlueprintProfilerInclNodeThreshold")))
 	{
@@ -161,7 +166,6 @@ UEditorLoadingSavingSettings::UEditorLoadingSavingSettings( const FObjectInitial
 
 	bPromptBeforeAutoImporting = true;
 }
-
 
 // @todo thomass: proper settings support for source control module
 void UEditorLoadingSavingSettings::SccHackInitialize()

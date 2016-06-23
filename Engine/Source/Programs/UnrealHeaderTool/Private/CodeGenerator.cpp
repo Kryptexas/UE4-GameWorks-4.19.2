@@ -898,7 +898,7 @@ FString FNativeClassHeaderGenerator::GetOverriddenName(const UField* Item)
 	FString OverriddenName = Item->GetMetaData(TEXT("OverrideNativeName"));
 	if (!OverriddenName.IsEmpty())
 	{
-		return OverriddenName;
+		return OverriddenName.ReplaceCharWithEscapedChar();
 	}
 	return Item->GetName();
 }
@@ -1438,12 +1438,9 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class, F
 		TMap<FName, FString>* MetaDataMap = UMetaData::GetMapForObject(Class);
 		{
 			FClassMetaData* ClassMetaData = GScriptHelper.FindClassData(Class);
-			if (MetaDataMap && ClassMetaData && Class)
+			if (MetaDataMap && ClassMetaData && ClassMetaData->bObjectInitializerConstructorDeclared)
 			{
-				if (!ClassMetaData->bObjectInitializerConstructorDeclared && ClassMetaData->bDefaultConstructorDeclared)
-				{
-					MetaDataMap->Add(FName(TEXT("OnlyDefaultConstructorDeclared")), FString());
-				}
+				MetaDataMap->Add(FName(TEXT("ObjectInitializerConstructorDeclared")), FString());
 			}
 		}
 
@@ -1551,11 +1548,19 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class, F
 		FString OverriddenClassName = *FNativeClassHeaderGenerator::GetOverriddenName(Class);
 		const TCHAR* ClassNameCPP = NameLookupCPP.GetNameCPP(Class);
 
-		GeneratedFunctionText.Logf(TEXT("\tstatic FCompiledInDefer Z_CompiledInDefer_UClass_%s(%s, &%s::StaticClass, TEXT(\"%s\"), %s, %s, %s);\r\n"),
-			ClassNameCPP, *SingletonName, ClassNameCPP, bIsDynamic ? *OverriddenClassName : ClassNameCPP,
+		const FString InitSearchableValuesFunctionName = bIsDynamic ? Class->GetMetaData(TEXT("InitializeStaticSearchableValues")) : FString();
+		const FString InitSearchableValuesFunctionParam = InitSearchableValuesFunctionName.IsEmpty() ? FString(TEXT("nullptr")) :
+			FString::Printf(TEXT("&%s::%s"), ClassNameCPP, *InitSearchableValuesFunctionName);
+
+		GeneratedFunctionText.Logf(TEXT("\tstatic FCompiledInDefer Z_CompiledInDefer_UClass_%s(%s, &%s::StaticClass, TEXT(\"%s\"), %s, %s, %s, %s);\r\n"),
+			ClassNameCPP, 
+			*SingletonName, 
+			ClassNameCPP, 
+			bIsDynamic ? *OverriddenClassName : ClassNameCPP,
 			bIsDynamic ? TEXT("true") : TEXT("false"),
 			bIsDynamic ? *AsTEXT(FClass::GetTypePackageName(Class)) : TEXT("nullptr"),
-			bIsDynamic ? *AsTEXT(FNativeClassHeaderGenerator::GetOverriddenPathName(Class)) : TEXT("nullptr"));
+			bIsDynamic ? *AsTEXT(FNativeClassHeaderGenerator::GetOverriddenPathName(Class)) : TEXT("nullptr"),
+			*InitSearchableValuesFunctionParam);
 		
 		// Append base class' CRC at the end of the generated code, this will force update derived classes
 		// when base class changes during hot-reload.
@@ -3134,7 +3139,9 @@ void FNativeClassHeaderGenerator::ExportGeneratedEnumsInitCode(const TArray<UEnu
 			GeneratedEnumRegisterFunctionText.Logf(TEXT("\t\t\tTArray<TPair<FName, uint8>> EnumNames;\r\n"));
 			for (int32 Index = 0; Index < Enum->NumEnums(); Index++)
 			{
-				GeneratedEnumRegisterFunctionText.Logf(TEXT("\t\t\tEnumNames.Add(TPairInitializer<FName, uint8>(FName(TEXT(\"%s\")), %d));\r\n"), *Enum->GetNameByIndex(Index).ToString(), Enum->GetValueByIndex(Index));
+				const TCHAR* OverridenNameMetaDatakey = TEXT("OverrideName");
+				const FString KeyName = Enum->HasMetaData(OverridenNameMetaDatakey, Index) ? Enum->GetMetaData(OverridenNameMetaDatakey, Index) : Enum->GetNameByIndex(Index).ToString();
+				GeneratedEnumRegisterFunctionText.Logf(TEXT("\t\t\tEnumNames.Add(TPairInitializer<FName, uint8>(FName(TEXT(\"%s\")), %d));\r\n"), *KeyName, Enum->GetValueByIndex(Index));
 			}
 
 			FString EnumTypeStr;
@@ -3144,7 +3151,8 @@ void FNativeClassHeaderGenerator::ExportGeneratedEnumsInitCode(const TArray<UEnu
 			case UEnum::ECppForm::Namespaced: EnumTypeStr = TEXT("UEnum::ECppForm::Namespaced"); break;
 			case UEnum::ECppForm::EnumClass:  EnumTypeStr = TEXT("UEnum::ECppForm::EnumClass");  break;
 			}
-			GeneratedEnumRegisterFunctionText.Logf(TEXT("\t\t\tReturnEnum->SetEnums(EnumNames, %s);\r\n"), *EnumTypeStr);
+			const FString ParamAddMaxKeyIfMissing = FClass::IsDynamic(Enum) ? TEXT(", false") : TEXT("");
+			GeneratedEnumRegisterFunctionText.Logf(TEXT("\t\t\tReturnEnum->SetEnums(EnumNames, %s%s);\r\n"), *EnumTypeStr, *ParamAddMaxKeyIfMissing);
 			GeneratedEnumRegisterFunctionText.Logf(TEXT("\t\t\tReturnEnum->CppType = TEXT(\"%s\");\r\n"), *Enum->CppType);
 
 			FString Meta = GetMetaDataCodeForObject(Enum, TEXT("ReturnEnum"), TEXT("\t\t\t"));
@@ -4289,7 +4297,7 @@ void FNativeClassHeaderGenerator::ExportFunctionThunk(FUHTStringBuilder& RPCWrap
 
 		FUHTStringBuilder ReplacementText;
 		ReplacementText += TypeText;
-		
+
 		ApplyAlternatePropertyExportText(Param, ReplacementText);
 		TypeText = ReplacementText;
 
@@ -4760,6 +4768,19 @@ TArray<UFunction*> FNativeClassHeaderGenerator::ExportCallbackFunctions(FUnrealS
  */
 void FNativeClassHeaderGenerator::ApplyAlternatePropertyExportText(UProperty* Prop, FUHTStringBuilder& PropertyText)
 {
+	UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Prop);
+	UByteProperty* InnerByteProperty = ArrayProperty ? Cast<UByteProperty>(ArrayProperty->Inner) : nullptr;
+	if (InnerByteProperty && InnerByteProperty->Enum && FClass::IsDynamic(InnerByteProperty->Enum))
+	{
+		const FString Original = InnerByteProperty->GetCPPType();
+		const FString RawByte = InnerByteProperty->GetCPPType(nullptr, EPropertyExportCPPFlags::CPPF_BlueprintCppBackend);
+		if (Original != RawByte)
+		{
+			PropertyText.ReplaceInline(*Original, *RawByte, ESearchCase::CaseSensitive);
+		}
+		return;
+	}
+
 	if (!bIsExportingForOffsetDeterminationOnly)
 	{
 		return;
@@ -5392,6 +5413,10 @@ void FNativeClassHeaderGenerator::ExportGeneratedCPP()
 	FString EnableDeprecationWarnings = FString(TEXT("PRAGMA_ENABLE_DEPRECATION_WARNINGS") LINE_TERMINATOR);
 	FString DisableDeprecationWarnings = FString(TEXT("PRAGMA_DISABLE_DEPRECATION_WARNINGS") LINE_TERMINATOR);
 	
+	const bool bNativizaedAssetsModule = (ModuleInfo->Name == TEXT("NativizedAssets"));
+	const FString DisableWarning4883(TEXT("#ifdef _MSC_VER") LINE_TERMINATOR TEXT("#pragma warning (push)") LINE_TERMINATOR TEXT("#pragma warning (disable : 4883)") LINE_TERMINATOR TEXT("#endif") LINE_TERMINATOR);
+	const FString EnableWarning4883(TEXT("#ifdef _MSC_VER") LINE_TERMINATOR TEXT("#pragma warning (pop)") LINE_TERMINATOR TEXT("#endif") LINE_TERMINATOR);
+
 	FString PkgName = FPackageName::GetShortName(Package);
 	FString PkgDir;
 	if (GeneratedFunctionDeclarations.Len() || CrossModuleGeneratedFunctionDeclarations.Len())
@@ -5427,7 +5452,17 @@ void FNativeClassHeaderGenerator::ExportGeneratedCPP()
 
 		FString CppPath = ModuleInfo->GeneratedCPPFilenameBase + (GeneratedFunctionBodyTextSplit.Num() > 1 ? *FString::Printf(TEXT(".%d.cpp"), FileIdx + 1) : TEXT(".cpp"));
 		const FString GeneratedLinkerFixupFunction = FString::Printf(TEXT("void EmptyLinkFunctionForGeneratedCode%d%s() {}") LINE_TERMINATOR, FileIdx + 1, *ModuleInfo->Name);
-		SaveHeaderIfChanged(*CppPath, *(GeneratedCPPPreamble + ModulePCHInclude + GeneratedCPPClassesIncludes + DisableDeprecationWarnings + GeneratedLinkerFixupFunction + FileText + GeneratedCPPEpilogue + EnableDeprecationWarnings));
+		SaveHeaderIfChanged(*CppPath, *(GeneratedCPPPreamble
+			+ ModulePCHInclude
+			+ GeneratedCPPClassesIncludes
+			+ (bNativizaedAssetsModule ? DisableWarning4883 : FString())
+			+ DisableDeprecationWarnings
+			+ GeneratedLinkerFixupFunction
+			+ FileText 
+			+ GeneratedCPPEpilogue 
+			+ EnableDeprecationWarnings
+			+ (bNativizaedAssetsModule ? EnableWarning4883 : FString())
+			));
 
 		if (GeneratedFunctionBodyTextSplit.Num() > 1)
 		{

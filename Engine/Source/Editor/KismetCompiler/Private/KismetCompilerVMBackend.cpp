@@ -383,18 +383,146 @@ public:
 		}
 	}
 
+	struct FLiteralTypeHelper
+	{
+		static bool IsBoolean(const FEdGraphPinType* Type, const UProperty* Property)
+		{
+			if (Property)
+			{
+				return Property->IsA<UBoolProperty>();
+			}
+			return Type && (Type->PinCategory == UEdGraphSchema_K2::PC_Boolean);
+		}
+
+		static bool IsString(const FEdGraphPinType* Type, const UProperty* Property)
+		{
+			if (Property)
+			{
+				return Property->IsA<UStrProperty>();
+			}
+			return Type && (Type->PinCategory == UEdGraphSchema_K2::PC_String);
+		}
+
+		static bool IsText(const FEdGraphPinType* Type, const UProperty* Property)
+		{
+			if (Property)
+			{
+				return Property->IsA<UTextProperty>();
+			}
+			return Type && (Type->PinCategory == UEdGraphSchema_K2::PC_Text);
+		}
+
+		static bool IsFloat(const FEdGraphPinType* Type, const UProperty* Property)
+		{
+			if (Property)
+			{
+				return Property->IsA<UFloatProperty>();
+			}
+			return Type && (Type->PinCategory == UEdGraphSchema_K2::PC_Float);
+		}
+
+		static bool IsInt(const FEdGraphPinType* Type, const UProperty* Property)
+		{
+			if (Property)
+			{
+				return Property->IsA<UIntProperty>();
+			}
+			return Type && (Type->PinCategory == UEdGraphSchema_K2::PC_Int);
+		}
+
+		static bool IsInt64(const FEdGraphPinType* Type, const UProperty* Property)
+		{
+			if (Property)
+			{
+				return Property->IsA<UInt64Property>();
+			}
+			return false;
+		}
+
+		static bool IsUInt64(const FEdGraphPinType* Type, const UProperty* Property)
+		{
+			if (Property)
+			{
+				return Property->IsA<UUInt64Property>();
+			}
+			return false;
+		}
+
+		static bool IsByte(const FEdGraphPinType* Type, const UProperty* Property)
+		{
+			if (Property)
+			{
+				return Property->IsA<UByteProperty>();
+			}
+			return Type && ((Type->PinCategory == UEdGraphSchema_K2::PC_Byte) || (Type->PinCategory == UEdGraphSchema_K2::PC_Enum));
+		}
+
+		static bool IsName(const FEdGraphPinType* Type, const UProperty* Property)
+		{
+			if (Property)
+			{
+				return Property->IsA<UNameProperty>();
+			}
+			return Type && (Type->PinCategory == UEdGraphSchema_K2::PC_Name);
+		}
+
+		static bool IsStruct(const FEdGraphPinType* Type, const UProperty* Property)
+		{
+			if (Property)
+			{
+				return Property->IsA<UStructProperty>();
+			}
+			return Type && (Type->PinCategory == UEdGraphSchema_K2::PC_Struct);
+		}
+
+		static bool IsDelegate(const FEdGraphPinType* Type, const UProperty* Property)
+		{
+			if (Property)
+			{
+				return Property->IsA<UDelegateProperty>();
+			}
+			return Type && (Type->PinCategory == UEdGraphSchema_K2::PC_Delegate);
+		}
+
+		static bool IsAsset(const FEdGraphPinType* Type, const UProperty* Property)
+		{
+			if (Property)
+			{
+				return Property->IsA<UAssetObjectProperty>();
+			}
+			return Type && (Type->PinCategory == UEdGraphSchema_K2::PC_Asset);
+		}
+
+		static bool IsObject(const FEdGraphPinType* Type, const UProperty* Property)
+		{
+			if (Property)
+			{
+				return Property->IsA<UObjectPropertyBase>();
+			}
+			return Type && (Type->PinCategory == UEdGraphSchema_K2::PC_Object);
+		}
+
+		static bool IsInterface(const FEdGraphPinType* Type, const UProperty* Property)
+		{
+			if (Property)
+			{
+				return Property->IsA<UInterfaceProperty>();
+			}
+			return Type && (Type->PinCategory == UEdGraphSchema_K2::PC_Interface);
+		}
+	};
+
 	virtual void EmitTermExpr(FBPTerminal* Term, UProperty* CoerceProperty = NULL, bool bAllowStaticArray = false)
 	{
-		//@TODO: Must have a coercion type if it's a literal, because the symbol table isn't plumbed in here and the literals don't carry type information either, yay!
-		check((!Term->bIsLiteral) || (CoerceProperty != NULL));
-
 		if (Term->bIsLiteral)
 		{
-			if (CoerceProperty->IsA(UStrProperty::StaticClass()))
+			check(!Term->Type.bIsArray || CoerceProperty);
+
+			if (FLiteralTypeHelper::IsString(&Term->Type, CoerceProperty))
 			{
 				EmitStringLiteral(Term->Name);
 			}
-			else if (CoerceProperty->IsA(UTextProperty::StaticClass()))
+			else if (FLiteralTypeHelper::IsText(&Term->Type, CoerceProperty))
 			{
 				Writer << EX_TextConst;
 				
@@ -436,13 +564,13 @@ public:
 					}
 				}
 			}
-			else if (CoerceProperty->IsA(UFloatProperty::StaticClass()))
+			else if (FLiteralTypeHelper::IsFloat(&Term->Type, CoerceProperty))
 			{
 				float Value = FCString::Atof(*(Term->Name));
 				Writer << EX_FloatConst;
 				Writer << Value;
 			}
-			else if (CoerceProperty->IsA(UIntProperty::StaticClass()))
+			else if (FLiteralTypeHelper::IsInt(&Term->Type, CoerceProperty))
 			{
 				// In certain cases (like UKismetArrayLibrary functions), we have
 				// polymorphic functions that provide their own "custom thunk" 
@@ -457,7 +585,7 @@ public:
 				// circumvented with AutoCreateRefTerm, but when it is a self 
 				// (literal) node we still end up here. So, we try to detect and 
 				// handle that case here.
-				if ((Term->Type.PinSubCategory == Schema->PN_Self) && CoerceProperty->HasAnyPropertyFlags(CPF_ReferenceParm))
+				if ((Term->Type.PinSubCategory == Schema->PN_Self) && CoerceProperty && CoerceProperty->HasAnyPropertyFlags(CPF_ReferenceParm))
 				{
 					Writer << EX_Self;
 				}
@@ -469,35 +597,32 @@ public:
 					Writer << Value;
 				}
 			}
-			else if (CoerceProperty->IsA(UInt64Property::StaticClass()))
+			else if (FLiteralTypeHelper::IsInt64(&Term->Type, CoerceProperty))
 			{
 				int64 Value = 0;
 				LexicalConversion::FromString(Value, *(Term->Name));
 				Writer << EX_Int64Const;
 				Writer << Value;
 			}
-			else if (CoerceProperty->IsA(UUInt64Property::StaticClass()))
+			else if (FLiteralTypeHelper::IsUInt64(&Term->Type, CoerceProperty))
 			{
 				uint64 Value = 0;
 				LexicalConversion::FromString(Value, *(Term->Name));
 				Writer << EX_UInt64Const;
 				Writer << Value;
 			}
-			else if (CoerceProperty->IsA(UByteProperty::StaticClass()))
+			else if (FLiteralTypeHelper::IsByte(&Term->Type, CoerceProperty))
 			{
-				UByteProperty* ByteProp = CastChecked< UByteProperty >( CoerceProperty );
 				uint8 Value = 0;
 
+				UByteProperty* ByteProp = Cast< UByteProperty >(CoerceProperty);
+				//Parameter property can represent a generic byte. we need the actual type to parse the value.
+				UEnum* EnumPtr = (ByteProp && ByteProp->Enum) ? ByteProp->Enum : Cast<UEnum>(Term->Type.PinSubCategoryObject.Get()); 
 				//Check for valid enum object reference
-				if (ByteProp->Enum)
+				if (EnumPtr)
 				{
 					//Get value from enum string
-					Value = ByteProp->Enum->GetValueByName(*(Term->Name));
-				}
-				// Allow enum literals to communicate with byte properties as literals
-				else if (UEnum* EnumPtr = Cast<UEnum>(Term->Type.PinSubCategoryObject.Get()))
-				{
-					Value = EnumPtr->GetValueByName( *(Term->Name) );
+					Value = EnumPtr->GetValueByName(*(Term->Name));
 				}
 				else
 				{
@@ -507,12 +632,12 @@ public:
 				Writer << EX_ByteConst;
 				Writer << Value;
 			}
-			else if (UBoolProperty* BoolProperty = Cast<UBoolProperty>(CoerceProperty))
+			else if (FLiteralTypeHelper::IsBoolean(&Term->Type, CoerceProperty))
 			{
 				bool bValue = Term->Name.ToBool();
 				Writer << (bValue ? EX_True : EX_False);
 			}
-			else if (UNameProperty* NameProperty = Cast<UNameProperty>(CoerceProperty))
+			else if (FLiteralTypeHelper::IsName(&Term->Type, CoerceProperty))
 			{
 				FName LiteralName(*(Term->Name));
 				Writer << EX_NameConst;
@@ -522,58 +647,62 @@ public:
 			//{
 			//	ensureMsgf(false, TEXT("Class property literals are not supported yet!"));
 			//}
-			else if (UStructProperty* StructProperty = Cast<UStructProperty>(CoerceProperty))
+			else if (FLiteralTypeHelper::IsStruct(&Term->Type, CoerceProperty))
 			{
-				if (StructProperty->Struct == VectorStruct)
+				UStructProperty* StructProperty = Cast<UStructProperty>(CoerceProperty);
+				UScriptStruct* Struct = StructProperty ? StructProperty->Struct : Cast<UScriptStruct>(Term->Type.PinSubCategoryObject.Get());
+				check(Struct);
+
+				if (Struct == VectorStruct)
 				{
 					FVector V = FVector::ZeroVector;
 					const bool bParsedUsingCustomFormat = FDefaultValueHelper::ParseVector(Term->Name, /*out*/ V);
 					if (!bParsedUsingCustomFormat)
 					{
-						StructProperty->ImportText(*Term->Name, &V, PPF_None, nullptr);
+						UStructProperty::ImportText_Static(Struct, GetPathNameSafe(StructProperty), *Term->Name, &V, PPF_None, nullptr, (FOutputDevice*)GWarn);
 					}
 					Writer << EX_VectorConst;
 					Writer << V;
 				}
-				else if (StructProperty->Struct == RotatorStruct)
+				else if (Struct == RotatorStruct)
 				{
 					FRotator R = FRotator::ZeroRotator;
 					const bool bParsedUsingCustomFormat = FDefaultValueHelper::ParseRotator(Term->Name, /*out*/ R);
 					if (!bParsedUsingCustomFormat)
 					{
-						StructProperty->ImportText(*Term->Name, &R, PPF_None, nullptr);
+						UStructProperty::ImportText_Static(Struct, GetPathNameSafe(StructProperty), *Term->Name, &R, PPF_None, nullptr, (FOutputDevice*)GWarn);
 					}
 					Writer << EX_RotationConst;
 					Writer << R;
 				}
-				else if (StructProperty->Struct == TransformStruct)
+				else if (Struct == TransformStruct)
 				{
 					FTransform T = FTransform::Identity;
 					const bool bParsedUsingCustomFormat = T.InitFromString(Term->Name);
 					if (!bParsedUsingCustomFormat)
 					{
-						StructProperty->ImportText(*Term->Name, &T, PPF_None, nullptr);
+						UStructProperty::ImportText_Static(Struct, GetPathNameSafe(StructProperty), *Term->Name, &T, PPF_None, nullptr, (FOutputDevice*)GWarn);
 					}
 					Writer << EX_TransformConst;
 					Writer << T;
 				}
 				else
 				{
-					UScriptStruct* Struct = StructProperty->Struct;
-					int32 StructSize = Struct->GetStructureSize() * StructProperty->ArrayDim;
+					const int32 ArrayDim = StructProperty ? StructProperty->ArrayDim : 1; //@TODO: is it safe when StructProperty == nullptr?
+					int32 StructSize = Struct->GetStructureSize() * ArrayDim;
 					uint8* StructData = (uint8*)FMemory_Alloca(StructSize);
-					StructProperty->InitializeValue(StructData);
-					if (!ensure(bAllowStaticArray || 1 == StructProperty->ArrayDim))
+					Struct->InitializeStruct(StructData, ArrayDim);
+					if (!ensure(bAllowStaticArray || 1 == ArrayDim))
 					{
-						UE_LOG(LogK2Compiler, Error, TEXT("Unsupported static array. Property: %s, Struct: %s"), *StructProperty->GetName(), *Struct->GetName());
+						UE_LOG(LogK2Compiler, Error, TEXT("Unsupported static array. Property: %s, Struct: %s"), *GetPathNameSafe(StructProperty), *Struct->GetName());
 					}
 					if(!FStructureEditorUtils::Fill_MakeStructureDefaultValue(Cast<UUserDefinedStruct>(Struct), StructData))
 					{
-						UE_LOG(LogK2Compiler, Warning, TEXT("MakeStructureDefaultValue parsing error. Property: %s, Struct: %s"), *StructProperty->GetName(), *Struct->GetName());
+						UE_LOG(LogK2Compiler, Warning, TEXT("MakeStructureDefaultValue parsing error. Property: %s, Struct: %s"), *GetPathNameSafe(StructProperty), *Struct->GetName());
 					}
 
 					// Assume that any errors on the import of the name string have been caught in the function call generation
-					StructProperty->ImportText(Term->Name.IsEmpty() ? TEXT("()") : *Term->Name, StructData, 0, NULL, GLog);
+					UStructProperty::ImportText_Static(Struct, GetPathNameSafe(StructProperty), Term->Name.IsEmpty() ? TEXT("()") : *Term->Name, StructData, 0, nullptr, GLog);
 
  					Writer << EX_StructConst;
 					Writer << Struct;
@@ -601,7 +730,7 @@ public:
 							EmitTermExpr(&NewTerm, Prop, true);
 						}
 					}
-
+					Struct->DestroyStruct(StructData, ArrayDim);
 					Writer << EX_EndStructConst;
 				}
 			}
@@ -638,7 +767,7 @@ public:
 				}
 				Writer << EX_EndArrayConst;
 			}
-			else if (CoerceProperty->IsA(UDelegateProperty::StaticClass()))
+			else if (FLiteralTypeHelper::IsDelegate(&Term->Type, CoerceProperty))
 			{
 				if (Term->Name == TEXT(""))
 				{
@@ -652,13 +781,13 @@ public:
 					Writer << FunctionName;
 				}
 			}
-			else if (CoerceProperty->IsA(UAssetObjectProperty::StaticClass()))
+			else if (FLiteralTypeHelper::IsAsset(&Term->Type, CoerceProperty))
 			{
 				Writer << EX_AssetConst;
 				FAssetPtr AssetPtr(Term->ObjectLiteral);
 				EmitStringLiteral(AssetPtr.GetUniqueID().ToString());
 			}
-			else if (CoerceProperty->IsA(UObjectPropertyBase::StaticClass()))
+			else if (FLiteralTypeHelper::IsObject(&Term->Type, CoerceProperty))
 			{
 				// Note: This case handles both UObjectProperty and UClassProperty
 				if (Term->Type.PinSubCategory == Schema->PN_Self)
@@ -675,7 +804,7 @@ public:
 					Writer << Term->ObjectLiteral;
 				}
 			}
-			else if (CoerceProperty->IsA(UInterfaceProperty::StaticClass()))
+			else if (FLiteralTypeHelper::IsInterface(&Term->Type, CoerceProperty))
 			{
 				if (Term->Type.PinSubCategory == Schema->PN_Self)
 				{
@@ -697,9 +826,9 @@ public:
 				if (ensure(CurrentCompilerContext))
 				{
 					FFormatNamedArguments Args;
-					Args.Add(TEXT("PropertyType"), CoerceProperty->GetClass()->GetDisplayNameText());
-					Args.Add(TEXT("PropertyName"), CoerceProperty->GetDisplayNameText());
-					CurrentCompilerContext->MessageLog.Error(*FText::Format(LOCTEXT("InvalidProperty", "It is not possible to express this type ({PropertyType}) as a literal value for the property {PropertyName} on pin @@! If it is inside a struct, you can add a Make struct node to resolve this issue!"), Args).ToString(), Term->Source);
+					Args.Add(TEXT("PropertyType"), CoerceProperty ? CoerceProperty->GetClass()->GetDisplayNameText() : FText());
+					Args.Add(TEXT("PropertyName"), CoerceProperty ? CoerceProperty->GetDisplayNameText() : FText());
+					CurrentCompilerContext->MessageLog.Error(*FText::Format(LOCTEXT("InvalidProperty", "It is not possible to express this type ({PropertyType}) as a literal value for the property {PropertyName} on pin @@! If it is inside a struct, you can add a Make struct node to resolve this issue!"), Args).ToString(), Term->SourcePin);
 				}
 			}
 		}
@@ -957,7 +1086,7 @@ public:
 		{
 			ensure(!Term->InlineGeneratedParameter->bIsJumpTarget);
 			auto TermSourceAsNode = Cast<UEdGraphNode>(Term->Source);
-			auto TermSourceAsPin = Cast<UEdGraphPin>(Term->Source);
+			auto TermSourceAsPin = Term->SourcePin;
 			UEdGraphNode* SourceNode = TermSourceAsNode ? TermSourceAsNode
 				: (TermSourceAsPin ? TermSourceAsPin->GetOwningNodeUnchecked() : nullptr);
 			if (ensure(CurrentCompilerContext && CurrentFunctionContext))
@@ -1429,8 +1558,10 @@ public:
 
 			for (auto PinContext : PinContextArray)
 			{
-				UEdGraphPin const* TrueSourcePin = Cast<UEdGraphPin const>(FunctionContext.MessageLog.FindSourceObject(PinContext));
-				if (TrueSourcePin)
+				UEdGraphPin const* TrueSourcePin = FunctionContext.MessageLog.FindSourcePin(PinContext);
+				// Source pin can be marked as pending kill if it was a generated pin that node logic decided to disown, e.g.
+				// logic in UK2Node_CallFunction to handle bWantsEnumToExecExpansion:
+				if (TrueSourcePin && !TrueSourcePin->IsPendingKill())
 				{
 					ClassBeingBuilt->GetDebugData().RegisterPinToCodeAssociation(TrueSourcePin, FunctionContext.Function, Offset);
 				}

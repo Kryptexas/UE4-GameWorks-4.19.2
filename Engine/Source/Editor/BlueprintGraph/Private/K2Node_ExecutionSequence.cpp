@@ -219,8 +219,8 @@ void UK2Node_ExecutionSequence::RemovePinFromExecutionNode(UEdGraphPin* TargetPi
 	UK2Node_ExecutionSequence* OwningSeq = Cast<UK2Node_ExecutionSequence>( TargetPin->GetOwningNode() );
 	if (OwningSeq)
 	{
-		TargetPin->BreakAllPinLinks();
 		OwningSeq->Pins.Remove(TargetPin);
+		TargetPin->MarkPendingKill();
 
 		// Renumber the pins so the numbering is compact
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();

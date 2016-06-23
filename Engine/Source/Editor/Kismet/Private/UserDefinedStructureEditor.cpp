@@ -119,16 +119,25 @@ public:
 
 	virtual void PreChange(const class UUserDefinedStruct* Struct, FStructureEditorUtils::EStructureEditorChangeInfo Info) override
 	{
-		StructData->Destroy();
-		DetailsView->SetObject(nullptr);
-		DetailsView->OnFinishedChangingProperties().Clear();
+		// No need to destroy the struct data if only the default values are changing
+		if (Info != FStructureEditorUtils::DefaultValueChanged)
+		{
+			StructData->Destroy();
+			DetailsView->SetObject(nullptr);
+			DetailsView->OnFinishedChangingProperties().Clear();
+		}
 	}
 
 	virtual void PostChange(const class UUserDefinedStruct* Struct, FStructureEditorUtils::EStructureEditorChangeInfo Info) override
 	{
-		StructData->Initialize(UserDefinedStruct.Get());
+		// If change is due to default value, then struct data was not destroyed (see PreChange) and therefore does not need to be re-initialized
+		if (Info != FStructureEditorUtils::DefaultValueChanged)
+		{
+			StructData->Initialize(UserDefinedStruct.Get());
+			DetailsView->SetObject(UserDefinedStruct.Get());
+		}
+
 		FStructureEditorUtils::Fill_MakeStructureDefaultValue(UserDefinedStruct.Get(), StructData->GetStructMemory());
-		DetailsView->SetObject(UserDefinedStruct.Get());
 	}
 
 	// FNotifyHook interface
@@ -171,29 +180,31 @@ void FDefaultValueDetails::OnFinishedChangingProperties(const FPropertyChangedEv
 
 		check(PropertyChangedEvent.MemberProperty && OwnerStruct);
 
-		ensure(OwnerStruct == UserDefinedStruct.Get());
-		const UProperty* DirectProperty = PropertyChangedEvent.MemberProperty;
-		while (DirectProperty && !Cast<const UUserDefinedStruct>(DirectProperty->GetOuter()))
+		if ( ensure(OwnerStruct == UserDefinedStruct.Get()) )
 		{
-			DirectProperty = Cast<const UProperty>(DirectProperty->GetOuter());
-		}
-		ensure(nullptr != DirectProperty);
-
-		if (DirectProperty)
-		{
-			FString DefaultValueString;
-			bool bDefaultValueSet = false;
+			const UProperty* DirectProperty = PropertyChangedEvent.MemberProperty;
+			while (DirectProperty && !Cast<const UUserDefinedStruct>(DirectProperty->GetOuter()))
 			{
-				if (StructData.IsValid() && StructData->IsValid())
-				{
-					bDefaultValueSet = FBlueprintEditorUtils::PropertyValueToString(DirectProperty, StructData->GetStructMemory(), DefaultValueString);
-				}
+				DirectProperty = Cast<const UProperty>(DirectProperty->GetOuter());
 			}
+			ensure(nullptr != DirectProperty);
 
-			const FGuid VarGuid = FStructureEditorUtils::GetGuidForProperty(DirectProperty);
-			if (bDefaultValueSet && VarGuid.IsValid())
+			if (DirectProperty)
 			{
-				FStructureEditorUtils::ChangeVariableDefaultValue(UserDefinedStruct.Get(), VarGuid, DefaultValueString);
+				FString DefaultValueString;
+				bool bDefaultValueSet = false;
+				{
+					if (StructData.IsValid() && StructData->IsValid())
+					{
+						bDefaultValueSet = FBlueprintEditorUtils::PropertyValueToString(DirectProperty, StructData->GetStructMemory(), DefaultValueString);
+					}
+				}
+
+				const FGuid VarGuid = FStructureEditorUtils::GetGuidForProperty(DirectProperty);
+				if (bDefaultValueSet && VarGuid.IsValid())
+				{
+					FStructureEditorUtils::ChangeVariableDefaultValue(UserDefinedStruct.Get(), VarGuid, DefaultValueString);
+				}
 			}
 		}
 	}

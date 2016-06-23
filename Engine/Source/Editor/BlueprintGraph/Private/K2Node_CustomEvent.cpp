@@ -132,8 +132,6 @@ void UK2Node_CustomEvent::Serialize(FArchive& Ar)
 		{
 			if (Pin)
 			{
-				Ar.Preload(Pin);
-
 				if (Pin->Direction == EGPD_Output
 					&& !Pin->PinType.bIsConst
 					&& !K2Schema->IsExecPin(*Pin)

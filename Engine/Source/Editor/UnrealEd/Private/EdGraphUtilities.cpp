@@ -208,12 +208,22 @@ UEdGraph* FEdGraphUtilities::CloneGraph(UEdGraph* InSource, UObject* NewOuter, F
 
 			MessageLog->NotifyIntermediateObjectCreation(Dest, Source);
 
-			// During compilation, set cloned nodes to a non-conditional enabled state.
-			if (bCloningForCompile)
+			UEdGraphNode* SrcNode = Cast<UEdGraphNode>(Source);
+			UEdGraphNode* DstNode = Cast<UEdGraphNode>(Dest);
+			if (SrcNode && DstNode)
 			{
-				const UEdGraphNode* SrcNode = Cast<UEdGraphNode>(Source);
-				UEdGraphNode* DstNode = Cast<UEdGraphNode>(Dest);
-				if(SrcNode && DstNode)
+				// associate pins, no known case of StaticDuplicateObjectEx resulting in a different number of pins, but
+				// if that does happen we just associate as many pins as we can:
+				ensure(SrcNode->Pins.Num() == DstNode->Pins.Num());
+				for (int32 I = 0; I < SrcNode->Pins.Num() && I < DstNode->Pins.Num(); ++I)
+				{
+					if (ensure(DstNode->Pins[I] && SrcNode->Pins[I]))
+					{
+						MessageLog->NotifyIntermediatePinCreation(DstNode->Pins[I], SrcNode->Pins[I]);
+					}
+				}
+
+				if (bCloningForCompile)
 				{
 					DstNode->EnabledState = SrcNode->IsNodeEnabled() ? ENodeEnabledState::Enabled : ENodeEnabledState::Disabled;
 				}
@@ -453,8 +463,8 @@ void FEdGraphUtilities::FNodeVisitor::TraverseNodes(UEdGraphNode* Node)
 
 void FWeakGraphPinPtr::operator=(const class UEdGraphPin* Pin)
 {
-	PinObjectPtr = Pin;
-	if(PinObjectPtr.IsValid())
+	PinReference = Pin;
+	if(Pin && !Pin->IsPendingKill())
 	{
 		PinName = Pin->PinName;
 		NodeObjectPtr = Pin->GetOwningNode();
@@ -471,7 +481,7 @@ UEdGraphPin* FWeakGraphPinPtr::Get()
 	if(Node != NULL)
 	{
 		// If pin is no longer valid or has a different owner, attempt to fix up the reference
-		UEdGraphPin* Pin = PinObjectPtr.Get();
+		UEdGraphPin* Pin = PinReference.Get();
 		if(Pin == NULL || Pin->GetOuter() != Node)
 		{
 			for(auto PinIter = Node->Pins.CreateConstIterator(); PinIter; ++PinIter)
@@ -480,7 +490,7 @@ UEdGraphPin* FWeakGraphPinPtr::Get()
 				if(TestPin->PinName.Equals(PinName))
 				{
 					Pin = TestPin;
-					PinObjectPtr = Pin;
+					PinReference = Pin;
 					break;
 				}
 			}

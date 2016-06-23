@@ -37,36 +37,40 @@ bool UTextProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8
 	return bOutAdvanceProperty;
 }
 
+bool UTextProperty::Identical_Implementation(const FText& ValueA, const FText& ValueB, uint32 PortFlags)
+{
+	if (ValueA.IsCultureInvariant() != ValueB.IsCultureInvariant() || ValueA.IsTransient() != ValueB.IsTransient())
+	{
+		//A culture variant text is never equal to a culture invariant text
+		//A transient text is never equal to a non-transient text
+		return false;
+	}
+
+	if (ValueA.IsCultureInvariant() == ValueB.IsCultureInvariant() || ValueA.IsTransient() == ValueB.IsTransient())
+	{
+		//Culture invariant text don't have a namespace/key so we compare the source string
+		//Transient text don't have a namespace/key or source so we compare the display string
+		return FTextInspector::GetDisplayString(ValueA) == FTextInspector::GetDisplayString(ValueB);
+	}
+
+	if (GIsEditor)
+	{
+		return FTextInspector::GetSourceString(ValueA)->Compare(*FTextInspector::GetSourceString(ValueB), ESearchCase::CaseSensitive) == 0;
+	}
+	else
+	{
+		return	FTextInspector::GetNamespace(ValueA) == FTextInspector::GetNamespace(ValueB) &&
+			FTextInspector::GetKey(ValueA) == FTextInspector::GetKey(ValueB);
+	}
+}
+
 bool UTextProperty::Identical( const void* A, const void* B, uint32 PortFlags ) const
 {
 	const TCppType ValueA = GetPropertyValue(A);
 	if ( B )
 	{
 		const TCppType ValueB = GetPropertyValue(B);
-
-		if ( ValueA.IsCultureInvariant() != ValueB.IsCultureInvariant() || ValueA.IsTransient() != ValueB.IsTransient() )
-		{
-			//A culture variant text is never equal to a culture invariant text
-			//A transient text is never equal to a non-transient text
-			return false;
-		}
-		
-		if ( ValueA.IsCultureInvariant() == ValueB.IsCultureInvariant() || ValueA.IsTransient() == ValueB.IsTransient() )
-		{
-			//Culture invariant text don't have a namespace/key so we compare the source string
-			//Transient text don't have a namespace/key or source so we compare the display string
-			return FTextInspector::GetDisplayString(ValueA) == FTextInspector::GetDisplayString(ValueB);
-		}
-
-		if (GIsEditor)
-		{
-			return FTextInspector::GetSourceString(ValueA)->Compare(*FTextInspector::GetSourceString(ValueB), ESearchCase::CaseSensitive) == 0;
-		}
-		else
-		{
-			return	FTextInspector::GetNamespace(ValueA)	==	FTextInspector::GetNamespace(ValueB) &&
-					FTextInspector::GetKey(ValueA)			==	FTextInspector::GetKey(ValueB);
-		}
+		return Identical_Implementation(ValueA, ValueB, PortFlags);
 	}
 
 	return FTextInspector::GetDisplayString(ValueA).IsEmpty();

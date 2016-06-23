@@ -1477,9 +1477,16 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 					{
 						auto OldFlags = OldObject->GetFlags();
 
+						// If the old object was spawned from an archetype (i.e. not the CDO), we must use the new version of that archetype as the template object when constructing the new instance.
+						UObject* OldArchetype = OldObject->GetArchetype();
+						UObject* NewArchetype = OldToNewInstanceMap.FindRef(OldArchetype);
+
+						// Check that either this was an instance of the class directly, or we found a new archetype for it
+						check(OldArchetype == OldClass->GetDefaultObject() || NewArchetype);
+
 						FName OldName(OldObject->GetFName());
 						OldObject->Rename(NULL, OldObject->GetOuter(), REN_DoNotDirty | REN_DontCreateRedirectors);
-						NewUObject = NewObject<UObject>(OldObject->GetOuter(), NewClass, OldName);
+						NewUObject = NewObject<UObject>(OldObject->GetOuter(), NewClass, OldName, RF_NoFlags, NewArchetype);
 						check(NewUObject != nullptr);
 
 						auto FlagMask = RF_Public | RF_ArchetypeObject | RF_Transactional | RF_Transient | RF_TextExportTransient | RF_InheritableComponentTemplate; //TODO: what about RF_RootSet and RF_Standalone ?

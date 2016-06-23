@@ -444,6 +444,51 @@ void UGameplayCueManager::InitObjectLibraries(TArray<FString> Paths, UObjectLibr
 	BuildCuesToAddToGlobalSet(ActorAssetDatas, GET_MEMBER_NAME_CHECKED(AGameplayCueNotify_Actor, GameplayCueName), CuesToAdd, AssetsToLoad, ShouldLoadDelegate);
 	BuildCuesToAddToGlobalSet(StaticAssetDatas, GET_MEMBER_NAME_CHECKED(UGameplayCueNotify_Static, GameplayCueName), CuesToAdd, AssetsToLoad, ShouldLoadDelegate);
 
+	{
+		// Iterate over all Dynamic Classes (nativized Blueprints). Search for ones with GameplayCueName tag.
+
+		IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
+		const FName PropertyName = GET_MEMBER_NAME_CHECKED(AGameplayCueNotify_Actor, GameplayCueName);
+		check(PropertyName == GET_MEMBER_NAME_CHECKED(UGameplayCueNotify_Static, GameplayCueName));
+		TMap<FName, FDynamicClassStaticData>& DynamicClassMap = GetDynamicClassMap();
+		for (auto PairIter : DynamicClassMap)
+		{
+			const FName* FoundGameplayTag = PairIter.Value.SelectedSearchableValues.Find(PropertyName);
+			if (!FoundGameplayTag)
+			{
+				continue;
+			}
+
+			const FString ClassPath = PairIter.Key.ToString();
+			for (FString& Path : Paths)
+			{
+				const bool PathContainsClass = ClassPath.StartsWith(Path); // TODO: is it enough?
+				if (!PathContainsClass)
+				{
+					continue;
+				}
+
+				ABILITY_LOG(Log, TEXT("GameplayCueManager Found a Dynamic Class: %s / %s"), *FoundGameplayTag->ToString(), *ClassPath);
+
+				FGameplayTag  GameplayCueTag = GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTag(*FoundGameplayTag, false);
+				if (GameplayCueTag.IsValid())
+				{
+					FStringAssetReference StringRef(ClassPath); // TODO: is there any translation needed?
+					ensure(StringRef.IsValid());
+
+					CuesToAdd.Add(FGameplayCueReferencePair(GameplayCueTag, StringRef));
+					AssetsToLoad.Add(StringRef);
+				}
+				else
+				{
+					ABILITY_LOG(Warning, TEXT("Found GameplayCue tag %s in Dynamic Class %s but there is no corresponding tag in the GameplayTagManager."), *FoundGameplayTag->ToString(), *ClassPath);
+				}
+
+				break;
+			}
+		}
+	}
+
 	// Add these cues to the global set
 	check(GlobalCueSet);
 	GlobalCueSet->AddCues(CuesToAdd);

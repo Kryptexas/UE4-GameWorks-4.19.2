@@ -67,6 +67,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Blueprint Performance Analysis Tools"))
 	bool bBlueprintPerformanceAnalysisTools;
 
+	/** Recent sample bias state. */
+	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Enable Blueprint Profiler Sample Bias"))
+	bool bEnableBlueprintProfilerRecentSampleBias;
+
 	/** Bias to weight prominance of newer samples against hositorical samples. */
 	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Blueprint Profiler Sample Bias", ClampMin=0.01, ClampMax=1.0))
 	float BlueprintProfilerRecentSampleBias;

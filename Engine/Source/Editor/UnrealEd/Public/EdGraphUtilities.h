@@ -161,7 +161,7 @@ struct FWeakGraphPinPtr
 	FORCEINLINE void Reset()
 	{
 		PinName = TEXT("");
-		PinObjectPtr.Reset();
+		PinReference = FEdGraphPinReference();
 		NodeObjectPtr.Reset();
 	}
 
@@ -169,7 +169,7 @@ struct FWeakGraphPinPtr
 	FORCEINLINE void operator=(const FWeakGraphPinPtr &OtherPinPtr)
 	{
 		PinName = OtherPinPtr.PinName;
-		PinObjectPtr = OtherPinPtr.PinObjectPtr;
+		PinReference = OtherPinPtr.PinReference;
 		NodeObjectPtr = OtherPinPtr.NodeObjectPtr;
 	}
 
@@ -180,7 +180,7 @@ struct FWeakGraphPinPtr
 	FORCEINLINE bool operator==(const FWeakGraphPinPtr &OtherPinPtr) const
 	{
 		return PinName.Equals(OtherPinPtr.PinName)
-			&& PinObjectPtr == OtherPinPtr.PinObjectPtr
+			&& PinReference == OtherPinPtr.PinReference
 			&& NodeObjectPtr == OtherPinPtr.NodeObjectPtr;
 	}
 
@@ -188,7 +188,7 @@ struct FWeakGraphPinPtr
 	FORCEINLINE bool operator!=(const FWeakGraphPinPtr &OtherPinPtr) const
 	{
 		return !PinName.Equals(OtherPinPtr.PinName)
-			|| PinObjectPtr != OtherPinPtr.PinObjectPtr
+			|| PinReference.Get() != OtherPinPtr.PinReference.Get()
 			|| NodeObjectPtr != OtherPinPtr.NodeObjectPtr;
 	}
 
@@ -218,7 +218,7 @@ private:
 	FString PinName;
 
 	/** Weak reference to the UEdGraphPin object */
-	TWeakObjectPtr<class UEdGraphPin> PinObjectPtr;
+	FEdGraphPinReference PinReference;
 
 	/** Weak reference to the UEdGraphNode object that owns the pin object */
 	TWeakObjectPtr<class UEdGraphNode> NodeObjectPtr;

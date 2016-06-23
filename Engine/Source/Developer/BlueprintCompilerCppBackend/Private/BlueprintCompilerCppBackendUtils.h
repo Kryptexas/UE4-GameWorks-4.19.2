@@ -43,6 +43,8 @@ struct FEmitterLocalContext
 
 	EGeneratedCodeType CurrentCodeType;
 
+	TArray<const UObject*> UsedObjectInCurrentClass;
+	TArray<const UUserDefinedEnum*> EnumsInCurrentClass;
 private:
 	int32 LocalNameIndexMax;
 
@@ -274,7 +276,9 @@ struct FEmitDefaultValueHelper
 
 	static void GenerateConstructor(FEmitterLocalContext& Context);
 
-	static void GenerateCustomDynamicClassInitialization(FEmitterLocalContext& Context);
+	static void GenerateCustomDynamicClassInitialization(FEmitterLocalContext& Context, TSharedPtr<FGatherConvertedClassDependencies> ParentDependencies);
+
+	static void GenerateCustomDynamicClassInitializationUsedAssets(FEmitterLocalContext& Context);
 
 	enum class EPropertyAccessOperator
 	{
@@ -295,7 +299,7 @@ struct FEmitDefaultValueHelper
 	static FString HandleClassSubobject(FEmitterLocalContext& Context, UObject* Object, FEmitterLocalContext::EClassSubobjectList ListOfSubobjectsTyp, bool bCreate, bool bInitilize);
 
 	// returns true, and fill OutResult, when the structure is handled in a custom way.
-	static bool SpecialStructureConstructor(const UScriptStruct* Struct, const uint8* ValuePtr, FString* OutResult);
+	static bool SpecialStructureConstructor(const UStruct* Struct, const uint8* ValuePtr, FString* OutResult);
 
 private:
 	// Returns native term, 
@@ -325,4 +329,14 @@ struct FBackendHelperAnim
 	static void AddHeaders(FEmitterLocalContext& EmitterContext);
 
 	static void CreateAnimClassData(FEmitterLocalContext& Context);
+};
+
+/** this struct helps generate a static function that initializes Static Searchable Values. */
+struct FBackendHelperStaticSearchableValues
+{
+	static bool HasSearchableValues(UClass* Class);
+	static FString GetFunctionName();
+	static FString GenerateClassMetaData(UClass* Class);
+	static void EmitFunctionDeclaration(FEmitterLocalContext& Context);
+	static void EmitFunctionDefinition(FEmitterLocalContext& Context);
 };

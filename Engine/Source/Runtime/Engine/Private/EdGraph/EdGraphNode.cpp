@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "EdGraph/EdGraph.h"
+#include "BlueprintsObjectVersion.h"
 #include "BlueprintUtilities.h"
 #if WITH_EDITOR
 #include "Editor/UnrealEd/Public/CookerSettings.h"
@@ -56,22 +57,23 @@ UEdGraphNode::UEdGraphNode(const FObjectInitializer& ObjectInitializer)
 #endif // WITH_EDITORONLY_DATA
 }
 
+UEdGraphNode::~UEdGraphNode()
+{
+	for (UEdGraphPin* Pin : Pins)
+	{
+		Pin->MarkPendingKill();
+	}
+}
+
 #if WITH_EDITOR
 
 UEdGraphPin* UEdGraphNode::CreatePin(EEdGraphPinDirection Dir, const FEdGraphPinType& InPinType, const FString& PinName, int32 Index /*= INDEX_NONE*/)
 {
-	UEdGraphPin* NewPin = NewObject<UEdGraphPin>(this);
+	UEdGraphPin* NewPin = UEdGraphPin::CreatePin(this);
 	NewPin->PinName = PinName;
 	NewPin->Direction = Dir;
 
 	NewPin->PinType = InPinType;
-
-	NewPin->SetFlags(RF_Transactional);
-
-	if (HasAnyFlags(RF_Transient))
-	{
-		NewPin->SetFlags(RF_Transient);
-	}
 
 	Modify(false);
 	if (Pins.IsValidIndex(Index))
@@ -118,8 +120,8 @@ bool UEdGraphNode::RemovePin(UEdGraphPin* Pin)
 	check( Pin );
 	
 	Modify();
-	UEdGraphPin* RootPin = (Pin->ParentPin != nullptr)? Pin->ParentPin : Pin;
-	RootPin->BreakAllPinLinks();
+	UEdGraphPin* RootPin = (Pin->ParentPin != nullptr) ? Pin->ParentPin : Pin;
+	RootPin->MarkPendingKill();
 
 	if (Pins.Remove( RootPin ))
 	{
@@ -127,11 +129,11 @@ bool UEdGraphNode::RemovePin(UEdGraphPin* Pin)
 		for (UEdGraphPin* ChildPin : RootPin->SubPins)
 		{
 			Pins.Remove(ChildPin);
-			ChildPin->Modify();
-			ChildPin->BreakAllPinLinks();
+			ChildPin->MarkPendingKill();
 		}
 		return true;
 	}
+
 	return false;
 }
 
@@ -251,29 +253,24 @@ FString UEdGraphNode::GetDeprecationMessage() const
 	return NSLOCTEXT("EdGraphCompiler", "NodeDeprecated_Warning", "@@ is deprecated; please replace or remove it.").ToString();
 }
 
-// Array of pooled pins
-TArray<UEdGraphPin*> UEdGraphNode::PooledPins;
-
 void UEdGraphNode::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
-	UEdGraphNode* This = CastChecked<UEdGraphNode>(InThis);	
+	Super::AddReferencedObjects(InThis, Collector);
 
-	// Only register the pool once per GC pass
-	if (This->HasAnyFlags(RF_ClassDefaultObject))
+	UEdGraphNode* This = CastChecked<UEdGraphNode>(InThis);
+	for (UEdGraphPin* Pin : This->Pins)
 	{
-		if (This->GetClass() == UEdGraphNode::StaticClass())
+		if (Pin)
 		{
-			for (int32 Index = 0; Index < PooledPins.Num(); ++Index)
-			{
-				Collector.AddReferencedObject(PooledPins[Index], This);
-			}
+			Pin->AddStructReferencedObjects(Collector);
 		}
 	}
-	Super::AddReferencedObjects(This, Collector);
 }
 
 void UEdGraphNode::Serialize(FArchive& Ar)
 {
+	Ar.UsingCustomVersion(FBlueprintsObjectVersion::GUID);
+
 	Super::Serialize(Ar);
 
 	if (Ar.IsLoading())
@@ -284,6 +281,26 @@ void UEdGraphNode::Serialize(FArchive& Ar)
 		{
 			EnabledState = ENodeEnabledState::Disabled;
 		}
+
+		if (Ar.IsPersistent() && !Ar.HasAnyPortFlags(PPF_Duplicate | PPF_DuplicateForPIE))
+		{
+			if (Ar.CustomVer(FBlueprintsObjectVersion::GUID) < FBlueprintsObjectVersion::EdGraphPinOptimized)
+			{
+				for (UEdGraphPin_Deprecated* LegacyPin : DeprecatedPins)
+				{
+					Ar.Preload(LegacyPin);
+					if (UEdGraphPin::FindPinCreatedFromDeprecatedPin(LegacyPin) == nullptr)
+					{
+						UEdGraphPin::CreatePinFromDeprecatedPin(LegacyPin);
+					}
+				}
+			}
+		}
+	}
+
+	if (Ar.CustomVer(FBlueprintsObjectVersion::GUID) >= FBlueprintsObjectVersion::EdGraphPinOptimized)
+	{
+		UEdGraphPin::SerializeAsOwningNode(Ar, Pins);
 	}
 }
 
@@ -338,6 +355,45 @@ void UEdGraphNode::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 	}
 }
 
+void UEdGraphNode::PostEditUndo()
+{
+	UEdGraphPin::ResolveAllPinReferences();
+	
+	return UObject::PostEditUndo();
+}
+
+void UEdGraphNode::ExportCustomProperties(FOutputDevice& Out, uint32 Indent)
+{
+	Super::ExportCustomProperties(Out, Indent);
+
+	for (const UEdGraphPin* Pin : Pins)
+	{
+		FString PinString;
+		Pin->ExportTextItem(PinString, PPF_Delimited);
+		Out.Logf(TEXT("%sCustomProperties Pin %s\r\n"), FCString::Spc(Indent), *PinString);
+	}
+}
+
+void UEdGraphNode::ImportCustomProperties(const TCHAR* SourceText, FFeedbackContext* Warn)
+{
+	Super::ImportCustomProperties(SourceText, Warn);
+
+	if (FParse::Command(&SourceText, TEXT("Pin")))
+	{
+		UEdGraphPin* NewPin = UEdGraphPin::CreatePin(this);
+		const bool bParseSuccess = NewPin->ImportTextItem(SourceText, PPF_Delimited, nullptr, GWarn);
+		if (bParseSuccess)
+		{
+			Pins.Add(NewPin);
+		}
+		else
+		{
+			// Still adding a nullptr to preserve indices
+			Pins.Add(nullptr);
+		}
+	}
+}
+
 void UEdGraphNode::CreateNewGuid()
 {
 	NodeGuid = FGuid::NewGuid();
@@ -347,31 +403,9 @@ void UEdGraphNode::FindDiffs( class UEdGraphNode* OtherNode, struct FDiffResults
 {
 }
 
-UEdGraphPin* UEdGraphNode::AllocatePinFromPool(UEdGraphNode* OuterNode)
+void UEdGraphNode::DestroyPin(UEdGraphPin* Pin)
 {
-	if (PooledPins.Num() > 0)
-	{
-		UEdGraphPin* Result = PooledPins.Pop();
-		Result->Rename(NULL, OuterNode);
-		return Result;
-	}
-	else
-	{
-		UEdGraphPin* Result = NewObject<UEdGraphPin>(OuterNode);
-		return Result;
-	}
-}
-
-void UEdGraphNode::ReturnPinToPool(UEdGraphPin* OldPin)
-{
-	check(OldPin);
-
-	check(!OldPin->HasAnyFlags(RF_NeedLoad));
-	OldPin->ClearFlags(RF_NeedPostLoadSubobjects|RF_NeedPostLoad);
-
-	OldPin->ResetToDefaults();
-
-	PooledPins.Add(OldPin);
+	Pin->MarkPendingKill();
 }
 
 bool UEdGraphNode::CanDuplicateNode() const

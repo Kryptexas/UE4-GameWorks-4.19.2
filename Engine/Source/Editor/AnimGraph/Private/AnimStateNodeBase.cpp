@@ -109,7 +109,7 @@ void UAnimStateNodeBase::PostLoad()
 	if(CustomVersion < FFrameworkObjectVersion::FixNonTransactionalPins)
 	{
 		int32 BrokenPinCount = 0;
-		for(UEdGraphPin* Pin : Pins)
+		for(UEdGraphPin_Deprecated* Pin : DeprecatedPins)
 		{
 			if(!Pin->HasAnyFlags(RF_Transactional))
 			{

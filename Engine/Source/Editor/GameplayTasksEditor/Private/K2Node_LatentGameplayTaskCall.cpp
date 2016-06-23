@@ -207,7 +207,7 @@ void UK2Node_LatentGameplayTaskCall::CreatePinsForClass(UClass* InClass)
 
 			UEdGraphPin* Pin = CreatePin(EGPD_Input, TEXT(""), TEXT(""), NULL, false, false, Property->GetName());
 			const bool bPinGood = (Pin != NULL) && K2Schema->ConvertPropertyToPinType(Property, /*out*/ Pin->PinType);
-			SpawnParmPins.Add(Pin);
+			SpawnParmPins.Add(Pin->PinName);
 
 			if (ClassDefaultObject && Pin && K2Schema->PinDefaultValueIsEditable(*Pin))
 			{
@@ -237,10 +237,14 @@ void UK2Node_LatentGameplayTaskCall::PinDefaultValueChanged(UEdGraphPin* Changed
 		//ResultPin->BreakAllPinLinks();
 
 		// Remove all pins related to archetype variables
-		for (auto OldPin : SpawnParmPins)
+		for (const FString& OldPinReference : SpawnParmPins)
 		{
-			OldPin->BreakAllPinLinks();
-			Pins.Remove(OldPin);
+			UEdGraphPin* OldPin = FindPin(OldPinReference);
+			if(OldPin)
+			{
+				OldPin->MarkPendingKill();
+				Pins.Remove(OldPin);
+			}
 		}
 		SpawnParmPins.Empty();
 
@@ -404,9 +408,10 @@ bool UK2Node_LatentGameplayTaskCall::ValidateActorArraySpawning(class FKismetCom
 bool UK2Node_LatentGameplayTaskCall::ConnectSpawnProperties(UClass* ClassToSpawn, const UEdGraphSchema_K2* Schema, class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph, UEdGraphPin*& LastThenPin, UEdGraphPin* SpawnedActorReturnPin)
 {
 	bool bIsErrorFree = true;
-	for (auto SpawnVarPin : SpawnParmPins)
+	for (const FString& OldPinReference : SpawnParmPins)
 	{
-		const bool bHasDefaultValue = !SpawnVarPin->DefaultValue.IsEmpty() || !SpawnVarPin->DefaultTextValue.IsEmpty() || SpawnVarPin->DefaultObject;
+		UEdGraphPin* SpawnVarPin = FindPin(OldPinReference);
+		const bool bHasDefaultValue = SpawnVarPin && (!SpawnVarPin->DefaultValue.IsEmpty() || !SpawnVarPin->DefaultTextValue.IsEmpty() || SpawnVarPin->DefaultObject);
 		if (SpawnVarPin->LinkedTo.Num() > 0 || bHasDefaultValue)
 		{
 			if (SpawnVarPin->LinkedTo.Num() == 0)

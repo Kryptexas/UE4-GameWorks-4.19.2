@@ -1588,9 +1588,10 @@ public:
 	 *
 	 * @param InNames List of enum names.
 	 * @param InCppForm The form of enum.
+	 * @param bAddMaxKeyIfMissing Should a default Max item be added.
 	 * @return	true unless the MAX enum already exists and isn't the last enum.
 	 */
-	virtual bool SetEnums(TArray<TPair<FName, uint8>>& InNames, ECppForm InCppForm);
+	virtual bool SetEnums(TArray<TPair<FName, uint8>>& InNames, ECppForm InCppForm, bool bAddMaxKeyIfMissing = true);
 
 	/**
 	 * @return	The enum name at the specified Index.
@@ -1678,7 +1679,9 @@ public:
 	 * @return The tooltip for this object.
 	 */
 	FText GetToolTipText(int32 NameIndex=INDEX_NONE) const;
+#endif
 
+#if WITH_EDITOR || HACK_HEADER_GENERATOR
 	/**
 	 * Wrapper method for easily determining whether this enum has metadata associated with it.
 	 * 

@@ -2,6 +2,7 @@
 
 #include "BlueprintProfilerPCH.h"
 #include "EditorStyleSet.h"
+#include "ActorEditorUtils.h"
 #include "Editor/UnrealEd/Classes/Settings/EditorExperimentalSettings.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintProfiler"
@@ -25,9 +26,10 @@ FBlueprintProfiler::FBlueprintProfiler()
 	// Update stat watermarks from editor settings, the callbacks should keep them in sync after this.
 	if (const UEditorExperimentalSettings* EditorSettings = GetDefault<UEditorExperimentalSettings>())
 	{
+		FScriptPerfData::EnableRecentSampleBias(EditorSettings->bEnableBlueprintProfilerRecentSampleBias);
 		FScriptPerfData::SetRecentSampleBias(EditorSettings->BlueprintProfilerRecentSampleBias);
 		FScriptPerfData::SetEventPerformanceThreshold(EditorSettings->BlueprintProfilerEventThreshold);
-		FScriptPerfData::SetNodePerformanceThreshold(EditorSettings->BlueprintProfilerExclNodeThreshold);
+		FScriptPerfData::SetExclusivePerformanceThreshold(EditorSettings->BlueprintProfilerExclNodeThreshold);
 		FScriptPerfData::SetInclusivePerformanceThreshold(EditorSettings->BlueprintProfilerInclNodeThreshold);
 		FScriptPerfData::SetMaxPerformanceThreshold(EditorSettings->BlueprintProfilerMaxNodeThreshold);
 	}
@@ -70,7 +72,7 @@ void FBlueprintProfiler::InstrumentEvent(const EScriptInstrumentationEvent& Even
 	SCOPE_CYCLE_COUNTER(STAT_ProfilerInstrumentationCost);
 
 	const UObject* ContextObject = Event.GetContextObject();
-	if (ContextObject && !ContextObject->HasAnyFlags(RF_Transient))
+	if (ContextObject && !ContextObject->HasAnyFlags(RF_Transient) && !FActorEditorUtils::IsAPreviewOrInactiveActor(Cast<const AActor>(ContextObject)))
 	#endif
 	{
 		// Handle context switching events
@@ -105,8 +107,12 @@ TSharedPtr<FBlueprintExecutionContext> FBlueprintProfiler::GetBlueprintContext(c
 		// Map the blueprint and initialise the context.
 		if (Result->InitialiseContext(BlueprintClassPath))
 		{
-			// Register delegate to handle updates
-			Result->GetBlueprint().Get()->OnCompiled().AddRaw(this, &FBlueprintProfiler::RemoveAllBlueprintReferences);
+			if (UBlueprint* Blueprint = Result->GetBlueprint().Get())
+			{
+				// Register delegate to handle updates
+				Blueprint->OnCompiled().AddRaw(this, &FBlueprintProfiler::RemoveAllBlueprintReferences);
+				GraphLayoutChangedDelegate.Broadcast(Blueprint);
+			}
 		}
 		else
 		{
@@ -199,13 +205,15 @@ void FBlueprintProfiler::ProcessEventProfilingData()
 						NewEventRange.BlueprintContext = GetBlueprintContext(CurrEvent.GetObjectPath());
 						if (NewEventRange.BlueprintContext.IsValid())
 						{
-							NewEventRange.InstanceName = MapBlueprintInstance(NewEventRange.BlueprintContext, InstanceEvent.GetObjectPath());
+							NewEventRange.InstanceName = NewEventRange.BlueprintContext->MapBlueprintInstance(InstanceEvent.GetObjectPath());
 							NewEventRange.StartIdx = EventIdx;
 							ScriptEventRanges.Push(NewEventRange);
 						}
+
+						// Only remove the class/instance pair for new events.
+						InstrumentationEventQueue.RemoveAt(EventIdx, 2, false);
 					}
 				}
-				InstrumentationEventQueue.RemoveAt(EventIdx, 2, false);
 				break;
 			}
 			case EScriptInstrumentation::Event:
@@ -351,36 +359,6 @@ void FBlueprintProfiler::EndPIE(bool bIsSimulating)
 	bPIEActive = false;
 	bProfilingCaptureActive = bProfilerActive && bPIEActive;
 #endif // WITH_EDITOR
-}
-
-FName FBlueprintProfiler::MapBlueprintInstance(TSharedPtr<FBlueprintExecutionContext> BlueprintContext, const FString& InstancePath)
-{
-	FName InstanceName(*InstancePath);
-	TWeakObjectPtr<const UObject> Instance = BlueprintContext->GetInstance(InstanceName);
-
-	if (Instance.IsValid() && !BlueprintContext->HasProfilerDataForInstance(InstanceName))
-	{
-		// Create new instance node
-		FScriptExecNodeParams InstanceNodeParams;
-		InstanceNodeParams.NodeName = InstanceName;
-		InstanceNodeParams.ObservedObject = Instance.Get();
-		InstanceNodeParams.NodeFlags = EScriptExecutionNodeFlags::Instance;
-		const AActor* Actor = Cast<AActor>(Instance.Get());
-		InstanceNodeParams.DisplayName = Actor ? FText::FromString(Actor->GetActorLabel()) : FText::FromString(Instance.Get()->GetName());
-		InstanceNodeParams.Tooltip = LOCTEXT("NavigateToInstanceHyperlink_ToolTip", "Navigate to the Instance");
-		InstanceNodeParams.IconColor = FLinearColor(1.f, 1.f, 1.f, 0.8f);
-		InstanceNodeParams.Icon = const_cast<FSlateBrush*>(FEditorStyle::GetBrush(TEXT("BlueprintProfiler.Actor")));
-		TSharedPtr<FScriptExecutionInstance> InstanceNode = MakeShareable<FScriptExecutionInstance>(new FScriptExecutionInstance(InstanceNodeParams));
-		// Link to parent blueprint entry
-		TSharedPtr<FScriptExecutionBlueprint> BlueprintNode = BlueprintContext->GetBlueprintExecNode();
-		BlueprintNode->AddInstance(InstanceNode);
-		// Fill out events from the blueprint root node
-		for (int32 NodeIdx = 0; NodeIdx < BlueprintNode->GetNumChildren(); ++NodeIdx)
-		{
-			InstanceNode->AddChildNode(BlueprintNode->GetChildByIndex(NodeIdx));
-		}
-	}
-	return InstanceName;
 }
 
 #undef LOCTEXT_NAMESPACE

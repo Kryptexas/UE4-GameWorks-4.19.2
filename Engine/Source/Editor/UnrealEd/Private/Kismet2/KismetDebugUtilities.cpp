@@ -968,20 +968,20 @@ bool FKismetDebugUtilities::CanWatchPin(const UBlueprint* Blueprint, const UEdGr
 
 bool FKismetDebugUtilities::IsPinBeingWatched(const UBlueprint* Blueprint, const UEdGraphPin* Pin)
 {
-	return Blueprint->PinWatches.Contains(const_cast<UEdGraphPin*>(Pin));
+	return Blueprint->WatchedPins.Contains(const_cast<UEdGraphPin*>(Pin));
 }
 
 void FKismetDebugUtilities::RemovePinWatch(UBlueprint* Blueprint, const UEdGraphPin* Pin)
 {
 	UEdGraphPin* NonConstPin = const_cast<UEdGraphPin*>(Pin);
-	Blueprint->PinWatches.Remove(NonConstPin);
+	Blueprint->WatchedPins.Remove(NonConstPin);
 	Blueprint->MarkPackageDirty();
 	Blueprint->PostEditChange();
 }
 
 void FKismetDebugUtilities::TogglePinWatch(UBlueprint* Blueprint, const UEdGraphPin* Pin)
 {
-	int32 ExistingWatchIndex = Blueprint->PinWatches.Find(const_cast<UEdGraphPin*>(Pin));
+	int32 ExistingWatchIndex = Blueprint->WatchedPins.Find(const_cast<UEdGraphPin*>(Pin));
 
 	if (ExistingWatchIndex != INDEX_NONE)
 	{
@@ -989,7 +989,7 @@ void FKismetDebugUtilities::TogglePinWatch(UBlueprint* Blueprint, const UEdGraph
 	}
 	else
 	{
-		Blueprint->PinWatches.Add(const_cast<UEdGraphPin*>(Pin));
+		Blueprint->WatchedPins.Add(const_cast<UEdGraphPin*>(Pin));
 		Blueprint->MarkPackageDirty();
 		Blueprint->PostEditChange();
 	}
@@ -997,7 +997,7 @@ void FKismetDebugUtilities::TogglePinWatch(UBlueprint* Blueprint, const UEdGraph
 
 void FKismetDebugUtilities::ClearPinWatches(UBlueprint* Blueprint)
 {
-	Blueprint->PinWatches.Empty();
+	Blueprint->WatchedPins.Empty();
 	Blueprint->MarkPackageDirty();
 	Blueprint->PostEditChange();
 }

@@ -2297,12 +2297,26 @@ void FBlueprintEditor::CreateSCSEditors()
 
 void FBlueprintEditor::OnLogTokenClicked(const TSharedRef<IMessageToken>& Token)
 {
-	if( Token->GetType() == EMessageToken::Object )
+	if( Token->GetType() == EMessageToken::Object)
 	{
 		const TSharedRef<FUObjectToken> UObjectToken = StaticCastSharedRef<FUObjectToken>(Token);
 		if(UObjectToken->GetObject().IsValid())
 		{
 			JumpToHyperlink(UObjectToken->GetObject().Get());
+		}
+	}
+	else if (Token->GetType() == EMessageToken::EdGraph)
+	{
+		const TSharedRef<FEdGraphToken> EdGraphToken = StaticCastSharedRef<FEdGraphToken>(Token);
+		const UEdGraphPin* PinBeingReferenced = EdGraphToken->GetPin();
+		const UObject* ObjectBeingReferenced = EdGraphToken->GetGraphObject();
+		if (PinBeingReferenced)
+		{
+			JumpToPin(PinBeingReferenced);
+		}
+		else if(ObjectBeingReferenced)
+		{
+			JumpToHyperlink(ObjectBeingReferenced);
 		}
 	}
 }
@@ -3348,7 +3362,7 @@ bool FBlueprintEditor::HasAnyDisabledBreakpoints() const
 
 bool FBlueprintEditor::HasAnyWatches() const
 {
-	return GetBlueprintObj() && GetBlueprintObj()->PinWatches.Num() > 0;
+	return GetBlueprintObj() && GetBlueprintObj()->WatchedPins.Num() > 0;
 }
 
 // Jumps to a hyperlinked node, pin, or graph, if it belongs to this blueprint
@@ -3366,10 +3380,6 @@ void FBlueprintEditor::JumpToHyperlink(const UObject* ObjectReference, bool bReq
 		{
 			JumpToNode(Node, false);
 		}
-	}
-	else if (const UEdGraphPin* Pin = Cast<const UEdGraphPin>(ObjectReference))
-	{
-		JumpToPin(Pin);
 	}
 	else if (const UEdGraph* Graph = Cast<const UEdGraph>(ObjectReference))
 	{
@@ -3448,6 +3458,19 @@ void FBlueprintEditor::JumpToHyperlink(const UObject* ObjectReference, bool bReq
 	}
 }
 
+void FBlueprintEditor::JumpToPin(const UEdGraphPin* Pin)
+{
+	if (!Pin->IsPendingKill())
+	{
+		// Open a graph editor and jump to the pin
+		TSharedPtr<SGraphEditor> GraphEditor = OpenGraphAndBringToFront(Pin->GetOwningNode()->GetGraph());
+		if (GraphEditor.IsValid())
+		{
+			GraphEditor->JumpToPin(Pin);
+		}
+	}
+}
+
 void FBlueprintEditor::AddReferencedObjects( FReferenceCollector& Collector )
 {
 	for (int32 i = 0; i < GetEditingObjects().Num(); ++i)
@@ -3520,19 +3543,6 @@ void FBlueprintEditor::JumpToNode(const UEdGraphNode* Node, bool bRequestRename)
 	if (GraphEditor.IsValid())
 	{
 		GraphEditor->JumpToNode(Node, bRequestRename);
-	}
-}
-
-void FBlueprintEditor::JumpToPin(const UEdGraphPin* Pin)
-{
-	if( !Pin->IsPendingKill() )
-	{
-		// Open a graph editor and jump to the pin
-		TSharedPtr<SGraphEditor> GraphEditor = OpenGraphAndBringToFront(Pin->GetOwningNode()->GetGraph());
-		if (GraphEditor.IsValid())
-		{
-			GraphEditor->JumpToPin(Pin);
-		}
 	}
 }
 
@@ -7316,7 +7326,7 @@ void FBlueprintEditor::NotifyPostChange(const FPropertyChangedEvent& PropertyCha
 	if( IsEditingSingleBlueprint() && PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive )
 	{
 		UBlueprint* Blueprint = GetBlueprintObj();
-		FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+		FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint, PropertyChangedEvent);
 
 		// Call PostEditChange() on any Actors that might be based on this Blueprint
 		FBlueprintEditorUtils::PostEditChangeBlueprintActors(Blueprint);

@@ -45,6 +45,46 @@ void UUserDefinedStructEditorData::PostEditUndo()
 	FStructureEditorUtils::OnStructureChanged(GetOwnerStruct());
 }
 
+class FStructureTransactionAnnotation : public ITransactionObjectAnnotation
+{
+public:
+	FStructureTransactionAnnotation(FStructureEditorUtils::EStructureEditorChangeInfo ChangeInfo)
+		: ActiveChange(ChangeInfo)
+	{
+	}
+
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override { /** Don't need this functionality for now */ }
+
+	FStructureEditorUtils::EStructureEditorChangeInfo GetActiveChange()
+	{
+		return ActiveChange;
+	}
+
+protected:
+	FStructureEditorUtils::EStructureEditorChangeInfo ActiveChange;
+};
+
+TSharedPtr<ITransactionObjectAnnotation> UUserDefinedStructEditorData::GetTransactionAnnotation() const
+{
+	return MakeShareable(new FStructureTransactionAnnotation(FStructureEditorUtils::FStructEditorManager::ActiveChange));
+}
+
+void UUserDefinedStructEditorData::PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionAnnotation)
+{
+	Super::PostEditUndo();
+	FStructureEditorUtils::EStructureEditorChangeInfo ActiveChange = FStructureEditorUtils::Unknown;
+
+	if (TransactionAnnotation.IsValid())
+	{
+		TSharedPtr<FStructureTransactionAnnotation> StructAnnotation = StaticCastSharedPtr<FStructureTransactionAnnotation>(TransactionAnnotation);
+		if (StructAnnotation.IsValid())
+		{
+			ActiveChange = StructAnnotation->GetActiveChange();
+		}
+	}
+	FStructureEditorUtils::OnStructureChanged(GetOwnerStruct(), ActiveChange);
+}
+
 void UUserDefinedStructEditorData::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
 {
 	Super::PostLoadSubobjects(OuterInstanceGraph);

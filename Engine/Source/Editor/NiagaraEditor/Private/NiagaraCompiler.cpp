@@ -453,7 +453,7 @@ bool FNiagaraCompiler::MergeFunctionIntoMainGraph(UNiagaraNodeFunctionCall* Func
 			{
 				Callstack.Append(StackScript->GetPathName()); Callstack.Append(TEXT("\n"));
 			}
-			MessageLog.Error(TEXT("Reentrant function call!\n%s"), *Callstack);
+			MessageLog.Error(*FString::Printf(TEXT("Reentrant function call!\n%s"), *Callstack));
 			return false;
 		}
 		FunctionStack.Add(FuncScript);

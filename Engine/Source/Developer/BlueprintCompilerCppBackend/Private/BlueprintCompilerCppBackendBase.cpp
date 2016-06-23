@@ -222,6 +222,8 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceCl
 	UClass* OriginalSourceClass = Dependencies.FindOriginalClass(SourceClass);
 	ensure(OriginalSourceClass != SourceClass);
 
+	const bool bHasStaticSearchableValues = FBackendHelperStaticSearchableValues::HasSearchableValues(SourceClass);
+
 	// Class declaration
 	const bool bIsInterface = SourceClass->IsChildOf<UInterface>();
 	if (bIsInterface)
@@ -244,9 +246,15 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceCl
 			AdditionalMD.Add(ReplaceConvertedMD);
 		}
 
-		// AdditionalMD.Add(FString::Printf(TEXT("CustomDynamicClassInitialization=\"%s::__CustomDynamicClassInitialization\""), *CppClassName));
+		if (bHasStaticSearchableValues)
+		{
+			AdditionalMD.Add(FBackendHelperStaticSearchableValues::GenerateClassMetaData(SourceClass));
+		}
 
-		EmitterContext.Header.AddLine(FString::Printf(TEXT("UCLASS(%s%s)")
+		// AdditionalMD.Add(FString::Printf(TEXT("CustomDynamicClassInitialization=\"%s::__CustomDynamicClassInitialization\""), *CppClassName));
+		const FString DefinedConfigName = (OriginalSourceClass->ClassConfigName == NAME_None) ? FString() : FString::Printf(TEXT("config=%s, "), *OriginalSourceClass->ClassConfigName.ToString());
+		EmitterContext.Header.AddLine(FString::Printf(TEXT("UCLASS(%s%s%s)")
+			, *DefinedConfigName
 			, (!SourceClass->IsChildOf<UBlueprintFunctionLibrary>()) ? TEXT("Blueprintable, BlueprintType, ") : TEXT("")
 			, *FEmitHelper::HandleMetaData(nullptr, false, &AdditionalMD)));
 
@@ -280,7 +288,12 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceCl
 		EmitterContext.Header.AddLine(TEXT("virtual void PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph) override;"));
 		EmitterContext.Header.AddLine(TEXT("static void __StaticDependenciesAssets(TArray<FBlueprintDependencyData>& AssetsToLoad);"));
 		EmitterContext.Header.AddLine(TEXT("static void __CustomDynamicClassInitialization(UDynamicClass* InDynamicClass);"));
-
+		EmitterContext.Header.AddLine(TEXT("static void __CustomDynamicClassInitializationUsedAssets(UDynamicClass* InDynamicClass);"));
+		if (bHasStaticSearchableValues)
+		{
+			FBackendHelperStaticSearchableValues::EmitFunctionDeclaration(EmitterContext);
+			FBackendHelperStaticSearchableValues::EmitFunctionDefinition(EmitterContext);
+		}
 		FEmitDefaultValueHelper::GenerateConstructor(EmitterContext);
 	}
 
@@ -307,6 +320,13 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceCl
 
 	EmitterContext.Header.DecreaseIndent();
 	EmitterContext.Header.AddLine(TEXT("};"));
+
+	if (!bIsInterface)
+	{
+		// must be called after GenerateConstructor
+		// now we knows which assets are directly used in source code
+		FEmitDefaultValueHelper::GenerateCustomDynamicClassInitializationUsedAssets(EmitterContext);
+	}
 
 	FEmitHelper::EmitLifetimeReplicatedPropsImpl(EmitterContext);
 
@@ -697,12 +717,13 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromEnum(UUserDefinedEnum*
 
 	for (int32 Index = 0; Index < SourceEnum->NumEnums(); ++Index)
 	{
-		const FString ElemName = EnumItemName(Index);
+		const FString ElemCppName = EnumItemName(Index);
 		const int32 ElemValue = SourceEnum->GetValueByIndex(Index);
 
 		const FString& DisplayNameMD = SourceEnum->GetMetaData(TEXT("DisplayName"), ElemValue);// TODO: value or index?
-		const FString Meta = DisplayNameMD.IsEmpty() ? FString() : FString::Printf(TEXT("UMETA(DisplayName = \"%s\")"), *DisplayNameMD.ReplaceCharWithEscapedChar());
-		Header.AddLine(FString::Printf(TEXT("%s = %d %s,"), *ElemName, ElemValue, *Meta));
+		const FString MetaDisplayName = DisplayNameMD.IsEmpty() ? FString() : FString::Printf(TEXT("DisplayName = \"%s\","), *DisplayNameMD.ReplaceCharWithEscapedChar());
+		const FString MetaOverrideName = FString::Printf(TEXT("OverrideName = \"%s\""), *SourceEnum->GetNameByIndex(Index).ToString());
+		Header.AddLine(FString::Printf(TEXT("%s = %d UMETA(%s%s),"), *ElemCppName, ElemValue, *MetaDisplayName, *MetaOverrideName));
 	}
 
 	Header.DecreaseIndent();
@@ -744,8 +765,9 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromStruct(UUserDefinedStr
 	// use GetBaseFilename() so that we can coordinate #includes and filenames
 	EmitFileBeginning(FEmitHelper::GetBaseFilename(SourceStruct), EmitterContext, true, true);
 
+	const FString CppStructName = FEmitHelper::GetCppName(SourceStruct);
 	EmitterContext.Header.AddLine(FString::Printf(TEXT("USTRUCT(BlueprintType, %s)"), *FEmitHelper::ReplaceConvertedMetaData(SourceStruct)));
-	EmitterContext.Header.AddLine(FString::Printf(TEXT("struct %s"), *FEmitHelper::GetCppName(SourceStruct)));
+	EmitterContext.Header.AddLine(FString::Printf(TEXT("struct %s"), *CppStructName));
 	EmitterContext.Header.AddLine(TEXT("{"));
 	EmitterContext.Header.AddLine(TEXT("public:"));
 	EmitterContext.Header.IncreaseIndent();
@@ -753,6 +775,14 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromStruct(UUserDefinedStr
 	EmitStructProperties(EmitterContext, SourceStruct);
 
 	FEmitDefaultValueHelper::GenerateGetDefaultValue(SourceStruct, EmitterContext);
+
+	EmitterContext.Header.AddLine(FString::Printf(TEXT("bool operator== (const %s& __Other) const"), *CppStructName));
+	EmitterContext.Header.AddLine(TEXT("{"));
+	EmitterContext.Header.IncreaseIndent();
+	EmitterContext.Header.AddLine(FString::Printf(TEXT("return %s::StaticStruct()->CompareScriptStruct(this, &__Other, 0);"), *CppStructName));
+	EmitterContext.Header.DecreaseIndent();
+	EmitterContext.Header.AddLine(TEXT("};"));
+
 	EmitterContext.Header.DecreaseIndent();
 	EmitterContext.Header.AddLine(TEXT("};"));
 

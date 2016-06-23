@@ -40,14 +40,6 @@
 class UAnimStateNodeBase;
 
 //////////////////////////////////////////////////////////////////////////
-
-template<>
-FString FNetNameMapping::MakeBaseName<UAnimGraphNode_Base>(const UAnimGraphNode_Base* Net)
-{
-	return FString::Printf(TEXT("%s_%s"), *Net->GetDescriptiveCompiledName(), *Net->NodeGuid.ToString());
-}
-
-//////////////////////////////////////////////////////////////////////////
 // FAnimBlueprintCompiler::FEffectiveConstantRecord
 
 bool FAnimBlueprintCompiler::FEffectiveConstantRecord::Apply(UObject* Object)
@@ -219,7 +211,7 @@ void FAnimBlueprintCompiler::CreateEvaluationHandler(UAnimGraphNode_Base* Visual
 						// Wire up the data input
 						UEdGraphPin* TargetItemPin = ArrayNode->FindPinChecked(TEXT("Item"));
 						TargetItemPin->CopyPersistentDataFromOldPin(*SourcePin);
-						MessageLog.NotifyIntermediateObjectCreation(TargetItemPin, SourcePin);
+						MessageLog.NotifyIntermediatePinCreation(TargetItemPin, SourcePin);
 						SourcePin->BreakAllPinLinks();
 					}
 				}
@@ -233,7 +225,7 @@ void FAnimBlueprintCompiler::CreateEvaluationHandler(UAnimGraphNode_Base* Visual
 
 					PropertiesBeingSet.Add(FName(*SourcePin->PinName));
 					TargetPin->CopyPersistentDataFromOldPin(*SourcePin);
-					MessageLog.NotifyIntermediateObjectCreation(TargetPin, SourcePin);
+					MessageLog.NotifyIntermediatePinCreation(TargetPin, SourcePin);
 					SourcePin->BreakAllPinLinks();
 				}
 			}
@@ -367,7 +359,7 @@ void FAnimBlueprintCompiler::ProcessAnimationNode(UAnimGraphNode_Base* VisualAni
 					bConsumed = true;
 				}
 
-				UEdGraphPin* TrueSourcePin = MessageLog.FindSourceObjectTypeChecked<UEdGraphPin>(SourcePin);
+				UEdGraphPin* TrueSourcePin = MessageLog.FindSourcePin(SourcePin);
 				if (TrueSourcePin)
 				{
 					NewAnimBlueprintClass->GetDebugData().RegisterClassPropertyAssociation(TrueSourcePin, SourcePinProperty);
@@ -414,7 +406,7 @@ void FAnimBlueprintCompiler::ProcessAnimationNode(UAnimGraphNode_Base* VisualAni
 		}
 		else
 		{
-			MessageLog.Error(*FString::Printf(TEXT("A property on @@ references a non-existent %s property named %s"), VisualAnimNode), *(AnimGraphDefaultSchema->NAME_OnEvaluate.ToString()), *(EvaluationHandlerName.ToString()));
+			MessageLog.Error(*FString::Printf(TEXT("A property on @@ references a non-existent %s property named %s"), *(AnimGraphDefaultSchema->NAME_OnEvaluate.ToString()), *(EvaluationHandlerName.ToString())), VisualAnimNode);
 		}
 	}
 }
@@ -1851,7 +1843,7 @@ void FAnimBlueprintCompiler::ProcessTransitionGetter(UK2Node_TransitionRuleGette
 		check(GetterHelper->IsNodePure());
 
 		UEdGraphPin* NewReturnPin = GetterHelper->FindPinChecked(TEXT("ReturnValue"));
-		MessageLog.NotifyIntermediateObjectCreation(NewReturnPin, OutputPin);
+		MessageLog.NotifyIntermediatePinCreation(NewReturnPin, OutputPin);
 
 		NewReturnPin->CopyPersistentDataFromOldPin(*OutputPin);
 	}

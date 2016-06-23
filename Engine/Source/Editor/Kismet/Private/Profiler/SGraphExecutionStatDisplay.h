@@ -17,6 +17,7 @@ public:
 		{}
 
 		SLATE_ARGUMENT(TWeakPtr<FBlueprintEditor>, AssetEditor)
+		SLATE_ARGUMENT(TSharedPtr<struct FBlueprintProfilerStatOptions>, DisplayOptions)
 	SLATE_END_ARGS()
 
 
@@ -74,5 +75,5 @@ protected:
 	TWeakObjectPtr<UBlueprint> CurrentBlueprint;
 
 	/** Current display options */
-	TSharedPtr<struct FBPProfilerStatDiplayOptions> DisplayOptions;
+	TSharedPtr<struct FBlueprintProfilerStatOptions> DisplayOptions;
 };

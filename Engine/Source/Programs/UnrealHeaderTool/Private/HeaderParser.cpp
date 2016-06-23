@@ -1363,7 +1363,7 @@ UEnum* FHeaderParser::CompileEnum()
 	}
 
 	// Register the list of enum names.
-	if (!Enum->SetEnums(EnumNames, CppForm))
+	if (!Enum->SetEnums(EnumNames, CppForm, !FClass::IsDynamic(Enum)))
 	{
 		const FName MaxEnumItem      = *(Enum->GenerateEnumPrefix() + TEXT("_MAX"));
 		const int32 MaxEnumItemIndex = Enum->FindEnumIndex(MaxEnumItem);
@@ -6349,6 +6349,7 @@ struct FExposeOnSpawnValidator
 		case CPT_Name:
 		case CPT_Vector:
 		case CPT_Rotation:
+		case CPT_Interface:
 			ProperNativeType = true;
 		}
 

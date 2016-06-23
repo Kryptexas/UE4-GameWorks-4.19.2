@@ -139,29 +139,47 @@ void FTransaction::FObjectRecord::SerializeContents( FArchive& Ar, int32 InOper 
 
 void FTransaction::FObjectRecord::Restore( FTransaction* Owner )
 {
+	// only used by FMatineeTransaction:
 	if( !bRestored )
 	{
 		bRestored = true;
-		TArray<uint8> FlipData;
-		TArray<FPersistentObjectRef> FlipReferencedObjects;
-		TArray<FName> FlipReferencedNames;
-		TSharedPtr<ITransactionObjectAnnotation> FlipObjectAnnotation;
-		if( Owner->bFlip )
-		{
-			FlipObjectAnnotation = Object->GetTransactionAnnotation();
-			FWriter Writer( FlipData, FlipReferencedObjects, FlipReferencedNames, bWantsBinarySerialization );
-			SerializeContents( Writer, -Oper );
-		}
+		check(!Owner->bFlip);
 		FTransaction::FObjectRecord::FReader Reader( Owner, Data, ReferencedObjects, ReferencedNames, bWantsBinarySerialization );
 		SerializeContents( Reader, Oper );
-		if( Owner->bFlip )
-		{
-			Exchange( ObjectAnnotation, FlipObjectAnnotation );
-			Exchange( Data, FlipData );
-			Exchange( ReferencedObjects, FlipReferencedObjects );
-			Exchange( ReferencedNames, FlipReferencedNames );
-			Oper *= -1;
-		}
+	}
+}
+
+void FTransaction::FObjectRecord::Save(FTransaction* Owner)
+{
+	// common undo/redo path, before applying undo/redo buffer we save current state:
+	check(Owner->bFlip);
+	if (!bRestored)
+	{
+		FlipData.Empty();
+		FlipReferencedObjects.Empty();
+		FlipReferencedNames.Empty();
+		FlipObjectAnnotation = TSharedPtr<ITransactionObjectAnnotation>();
+
+		FlipObjectAnnotation = Object->GetTransactionAnnotation();
+		FWriter Writer(FlipData, FlipReferencedObjects, FlipReferencedNames, bWantsBinarySerialization);
+		SerializeContents(Writer, -Oper);
+	}
+}
+
+void FTransaction::FObjectRecord::Load(FTransaction* Owner)
+{
+	// common undo/redo path, we apply the saved state and then swap it for the state we cached in ::Save above
+	check(Owner->bFlip);
+	if (!bRestored)
+	{
+		bRestored = true;
+		FTransaction::FObjectRecord::FReader Reader(Owner, Data, ReferencedObjects, ReferencedNames, bWantsBinarySerialization);
+		SerializeContents(Reader, Oper);
+		Exchange(ObjectAnnotation, FlipObjectAnnotation);
+		Exchange(Data, FlipData);
+		Exchange(ReferencedObjects, FlipReferencedObjects);
+		Exchange(ReferencedNames, FlipReferencedNames);
+		Oper *= -1;
 	}
 }
 
@@ -408,9 +426,24 @@ void FTransaction::Apply()
 			ChangedObjects.Add(Object, Record.ObjectAnnotation);
 		}
 	}
-	for( int32 i=Start; i!=End; i+=Inc )
+
+	if (bFlip)
 	{
-		Records[i].Restore( this );
+		for (int32 i = Start; i != End; i += Inc)
+		{
+			Records[i].Save(this);
+		}
+		for (int32 i = Start; i != End; i += Inc)
+		{
+			Records[i].Load(this);
+		}
+	}
+	else
+	{
+		for (int32 i = Start; i != End; i += Inc)
+		{
+			Records[i].Restore(this);
+		}
 	}
 
 	// An Actor's components must always get its PostEditUndo before the owning Actor so do a quick sort
@@ -859,11 +892,6 @@ bool UTransBuffer::EnableObjectSerialization()
 bool UTransBuffer::DisableObjectSerialization()
 {
 	return ++DisallowObjectSerialization == 0;
-}
-
-ITransaction* UTransBuffer::CreateInternalTransaction()
-{
-	return new FTransaction( TEXT("Internal") );
 }
 
 

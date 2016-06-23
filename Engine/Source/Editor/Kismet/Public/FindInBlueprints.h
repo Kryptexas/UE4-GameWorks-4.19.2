@@ -201,6 +201,7 @@ public:
 	virtual ~FFindInBlueprintsProperty() {}
 
 	/** FFindInBlueprintsResult Interface */
+	virtual FReply OnClick() override;
 	virtual TSharedRef<SWidget>	CreateIcon() const override;
 	virtual void ParseSearchInfo(FText InKey, FText InValue) override;
 	virtual FText GetCategory() const override;

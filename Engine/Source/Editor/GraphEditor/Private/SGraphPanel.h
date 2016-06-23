@@ -202,7 +202,7 @@ protected:
 	SGraphEditor::EPinVisibility PinVisibility;
 
 	/** List of pins currently being hovered over */
-	TSet< TWeakObjectPtr<UEdGraphPin> > CurrentHoveredPins;
+	TSet< FEdGraphPinReference > CurrentHoveredPins;
 
 	/** Time since the last mouse enter/exit on a pin */
 	double TimeWhenMouseEnteredPin;

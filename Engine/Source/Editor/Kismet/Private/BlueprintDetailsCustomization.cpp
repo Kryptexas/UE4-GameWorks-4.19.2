@@ -1900,29 +1900,33 @@ TSharedPtr<FString> FBlueprintVarActionDetails::GetVariableReplicationType() con
 	uint64 PropFlags = 0;
 	UProperty* VariableProperty = CachedVariableProperty.Get();
 
-	if (VariableProperty && IsVariableInBlueprint())
+	if (VariableProperty && (IsVariableInBlueprint() || IsVariableInheritedByBlueprint()))
 	{
-		uint64 *PropFlagPtr = FBlueprintEditorUtils::GetBlueprintVariablePropertyFlags(GetPropertyOwnerBlueprint(), VariableProperty->GetFName());
-		
-		if (PropFlagPtr != NULL)
+		UBlueprint* BlueprintObj = GetPropertyOwnerBlueprint();
+		if (BlueprintObj != nullptr)
 		{
-			PropFlags = *PropFlagPtr;
-			bool IsReplicated = (PropFlags & CPF_Net) > 0;
-			bool bHasRepNotify = FBlueprintEditorUtils::GetBlueprintVariableRepNotifyFunc(GetPropertyOwnerBlueprint(), VariableProperty->GetFName()) != NAME_None;
-			if (bHasRepNotify)
-			{
-				// Verify they actually have a valid rep notify function still
-				UClass* GenClass = GetPropertyOwnerBlueprint()->SkeletonGeneratedClass;
-				UFunction* OnRepFunc = GenClass->FindFunctionByName(FBlueprintEditorUtils::GetBlueprintVariableRepNotifyFunc(GetPropertyOwnerBlueprint(), VariableProperty->GetFName()));
-				if( OnRepFunc == NULL || OnRepFunc->NumParms != 0 || OnRepFunc->GetReturnProperty() != NULL )
-				{
-					bHasRepNotify = false;
-					ReplicationOnRepFuncChanged(FName(NAME_None).ToString());	
-				}
-			}
+			uint64 *PropFlagPtr = FBlueprintEditorUtils::GetBlueprintVariablePropertyFlags(BlueprintObj, VariableProperty->GetFName());
 
-			VariableReplication = !IsReplicated ? EVariableReplication::None : 
-				bHasRepNotify ? EVariableReplication::RepNotify : EVariableReplication::Replicated;
+			if (PropFlagPtr != NULL)
+			{
+				PropFlags = *PropFlagPtr;
+				bool IsReplicated = (PropFlags & CPF_Net) > 0;
+				bool bHasRepNotify = FBlueprintEditorUtils::GetBlueprintVariableRepNotifyFunc(BlueprintObj, VariableProperty->GetFName()) != NAME_None;
+				if (bHasRepNotify)
+				{
+					// Verify they actually have a valid rep notify function still
+					UClass* GenClass = GetPropertyOwnerBlueprint()->SkeletonGeneratedClass;
+					UFunction* OnRepFunc = GenClass->FindFunctionByName(FBlueprintEditorUtils::GetBlueprintVariableRepNotifyFunc(BlueprintObj, VariableProperty->GetFName()));
+					if (OnRepFunc == NULL || OnRepFunc->NumParms != 0 || OnRepFunc->GetReturnProperty() != NULL)
+					{
+						bHasRepNotify = false;
+						ReplicationOnRepFuncChanged(FName(NAME_None).ToString());
+					}
+				}
+
+				VariableReplication = !IsReplicated ? EVariableReplication::None :
+					bHasRepNotify ? EVariableReplication::RepNotify : EVariableReplication::Replicated;
+			}
 		}
 	}
 

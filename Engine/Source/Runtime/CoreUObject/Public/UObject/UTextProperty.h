@@ -39,4 +39,6 @@ public:
 
 	/** Generate the correct C++ code for the given text value */
 	static FString GenerateCppCodeForTextValue(const FText& InValue, const FString& Indent);
+
+	static bool Identical_Implementation(const FText& A, const FText& B, uint32 PortFlags);
 };

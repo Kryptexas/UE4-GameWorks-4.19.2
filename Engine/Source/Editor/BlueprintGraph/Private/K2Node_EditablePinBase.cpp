@@ -46,7 +46,6 @@ void UK2Node_EditablePinBase::RemoveUserDefinedPin(TSharedPtr<FUserPinInfo> PinT
 		UEdGraphPin* Pin = Pins[i];
 		if( Pin->PinName == PinName )
 		{
-			Pin->BreakAllPinLinks();
 			Pins.Remove(Pin);
 			Pin->MarkPendingKill();
 
@@ -70,7 +69,6 @@ void UK2Node_EditablePinBase::RemoveUserDefinedPinByName(const FString& PinName)
 		{
 			Pin->Modify();
 
-			Pin->BreakAllPinLinks();
 			Pins.Remove(Pin);
 			Pin->MarkPendingKill();
 
@@ -92,6 +90,8 @@ void UK2Node_EditablePinBase::RemoveUserDefinedPinByName(const FString& PinName)
 
 void UK2Node_EditablePinBase::ExportCustomProperties(FOutputDevice& Out, uint32 Indent)
 {
+	Super::ExportCustomProperties(Out, Indent);
+
 	for (int32 PinIndex = 0; PinIndex < UserDefinedPins.Num(); ++PinIndex)
 	{
 		const FUserPinInfo& PinInfo = *UserDefinedPins[PinIndex].Get();
@@ -165,6 +165,10 @@ void UK2Node_EditablePinBase::ImportCustomProperties(const TCHAR* SourceText, FF
 		FParse::Value(SourceText, TEXT("DefaultValue="), PinInfo->PinDefaultValue);
 
 		UserDefinedPins.Add(PinInfo);
+	}
+	else
+	{
+		Super::ImportCustomProperties(SourceText, Warn);
 	}
 }
 

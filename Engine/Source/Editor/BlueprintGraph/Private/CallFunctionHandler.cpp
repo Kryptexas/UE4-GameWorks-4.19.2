@@ -334,7 +334,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 					bool bIsSelfTerm = true;
 					if(Target != nullptr)
 					{
-						const UEdGraphPin* SourcePin = Cast<UEdGraphPin>(Target->Source);
+						const UEdGraphPin* SourcePin = Target->SourcePin;
 						bIsSelfTerm = (SourcePin == nullptr || CompilerContext.GetSchema()->IsSelfPin(*SourcePin));
 					}
 
@@ -687,7 +687,7 @@ void FKCHandler_CallFunction::Transform(FKismetFunctionContext& Context, UEdGrap
 
 			if ((NewInPin != NULL) && (NewOutPin != NULL))
 			{
-				CompilerContext.MessageLog.NotifyIntermediateObjectCreation(NewOutPin, OldOutPin);
+				CompilerContext.MessageLog.NotifyIntermediatePinCreation(NewOutPin, OldOutPin);
 
 				while (OldOutPin->LinkedTo.Num() > 0)
 				{

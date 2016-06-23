@@ -577,7 +577,7 @@ void SGraphPin::OnMouseLeave( const FPointerEvent& MouseEvent )
 {	
 	TSharedPtr<SGraphPanel> Panel = OwnerNodePtr.Pin()->GetOwnerPanel();
 
-	for (TWeakObjectPtr<UEdGraphPin> WeakPin : HoverPinSet)
+	for (const FEdGraphPinReference& WeakPin : HoverPinSet)
 	{
 		if (UEdGraphPin* PinInNet = WeakPin.Get())
 		{

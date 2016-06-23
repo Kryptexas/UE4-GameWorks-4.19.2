@@ -930,18 +930,25 @@ bool UEdGraphSchema_K2::FunctionHasParamOfType(const UFunction* InFunction, UEdG
 		{
 			// See if this is the direction we want (input or output)
 			const bool bIsFunctionInput = !FuncParam->HasAnyPropertyFlags(CPF_OutParm) || FuncParam->HasAnyPropertyFlags(CPF_ReferenceParm);
-			if ((!bIsFunctionInput && bWantOutput) || (bIsFunctionInput && !bWantOutput))
+			if (bIsFunctionInput != bWantOutput)
 			{
 				// See if this pin has compatible types
 				FEdGraphPinType ParamPinType;
 				bool bConverted = ConvertPropertyToPinType(FuncParam, ParamPinType);
 				if (bConverted)
 				{
-					if (bIsFunctionInput && ArePinTypesCompatible(DesiredPinType, ParamPinType))
+					UClass* Context = nullptr;
+					UBlueprint* Blueprint = Cast<UBlueprint>(InGraph->GetOuter());
+					if (Blueprint)
+					{
+						Context = Blueprint->GeneratedClass;
+					}
+
+					if (bIsFunctionInput && ArePinTypesCompatible(DesiredPinType, ParamPinType, Context))
 					{
 						return true;
 					}
-					else if (!bIsFunctionInput && ArePinTypesCompatible(ParamPinType, DesiredPinType))
+					else if (!bIsFunctionInput && ArePinTypesCompatible(ParamPinType, DesiredPinType, Context))
 					{
 						return true;
 					}
@@ -1892,7 +1899,7 @@ void UEdGraphSchema_K2::GetJumpToConnectionSubMenuActions( class FMenuBuilder& M
 	TMap< FString, uint32 > LinkTitleCount;
 
 	// Add all the links we could break from
-	for(auto PinLink : InGraphPin->LinkedTo )
+	for(const UEdGraphPin* PinLink : InGraphPin->LinkedTo )
 	{
 		FText Title = PinLink->GetOwningNode()->GetNodeTitle(ENodeTitleType::ListView);
 		FString TitleString = Title.ToString();
@@ -1925,7 +1932,7 @@ void UEdGraphSchema_K2::GetJumpToConnectionSubMenuActions( class FMenuBuilder& M
 		++Count;
 
 		MenuBuilder.AddMenuEntry( Description, Description, FSlateIcon(), FUIAction(
-		FExecuteAction::CreateStatic(&FKismetEditorUtilities::BringKismetToFocusAttentionOnObject, Cast<const UObject>(PinLink), false)));
+		FExecuteAction::CreateStatic(&FKismetEditorUtilities::BringKismetToFocusAttentionOnPin, PinLink)));
 	}
 }
 
@@ -2192,7 +2199,7 @@ bool UEdGraphSchema_K2::TryCreateConnection(UEdGraphPin* PinA, UEdGraphPin* PinB
 
 	bool bModified = UEdGraphSchema::TryCreateConnection(PinA, PinB);
 
-	if (bModified && !PinA->HasAnyFlags(RF_Transient))
+	if (bModified && !PinA->IsPendingKill())
 	{
 		FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
 	}
@@ -2579,7 +2586,18 @@ void UEdGraphSchema_K2::AutowireConversionNode(UEdGraphPin* InputPin, UEdGraphPi
 	{
 		UEdGraphPin* TestPin = ConversionNode->Pins[PinIndex];
 
-		if ((TestPin->Direction == EGPD_Input) && (ArePinTypesCompatible(OutputPin->PinType, TestPin->PinType)))
+		UClass* Context = nullptr;
+		UK2Node* K2Node = Cast<UK2Node>(OutputPin->GetOwningNode());
+		if (K2Node != nullptr)
+		{
+			UBlueprint* Blueprint = K2Node->GetBlueprint();
+			if (Blueprint)
+			{
+				Context = Blueprint->GeneratedClass;
+			}
+		}
+
+		if ((TestPin->Direction == EGPD_Input) && (ArePinTypesCompatible(OutputPin->PinType, TestPin->PinType, Context)))
 		{
 			if(bAllowOutputConnections && TryCreateConnection(TestPin, OutputPin))
 			{
@@ -2587,7 +2605,7 @@ void UEdGraphSchema_K2::AutowireConversionNode(UEdGraphPin* InputPin, UEdGraphPi
 				bAllowOutputConnections = false;
 			}
 		}
-		else if ((TestPin->Direction == EGPD_Output) && (ArePinTypesCompatible(TestPin->PinType, InputPin->PinType)))
+		else if ((TestPin->Direction == EGPD_Output) && (ArePinTypesCompatible(TestPin->PinType, InputPin->PinType, Context)))
 		{
 			if(bAllowInputConnections && TryCreateConnection(TestPin, InputPin))
 			{
@@ -2834,7 +2852,7 @@ FText UEdGraphSchema_K2::GetPinDisplayName(const UEdGraphPin* Pin) const
 
 void UEdGraphSchema_K2::ConstructBasicPinTooltip(const UEdGraphPin& Pin, const FText& PinDescription, FString& TooltipOut) const
 {
-	if (Pin.HasAnyFlags(RF_Transient))
+	if (Pin.bWasTrashed)
 	{
 		return;
 	}
@@ -4080,24 +4098,6 @@ void UEdGraphSchema_K2::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* 
 
 void UEdGraphSchema_K2::ReconstructNode(UEdGraphNode& TargetNode, bool bIsBatchRequest/*=false*/) const
 {
-	{
-		TArray<UObject *> NodeChildren;
-		GetObjectsWithOuter(&TargetNode, NodeChildren, false);
-		for (int32 Iter = 0; Iter < NodeChildren.Num(); ++Iter)
-		{
-			UEdGraphPin* Pin = Cast<UEdGraphPin>(NodeChildren[Iter]);
-			const bool bIsValidPin = !Pin 
-				|| (Pin->IsPendingKill() && !Pin->LinkedTo.Num()) 
-				|| TargetNode.Pins.Contains(Pin);
-			if (!bIsValidPin)
-			{
-				UE_LOG(LogBlueprint, Warning,
-					TEXT("Invalid pin: '%s' thinks it belongs to a node ('%s' - '%s') which doesn't have record of it. Try refreshing the node, then compile and resave the Blueprint to hopefully aleviate the problem."),
-					*Pin->PinName, *TargetNode.GetNodeTitle(ENodeTitleType::MenuTitle).ToString(), *TargetNode.GetFullName());
-			}
-		}
-	}
-
 	Super::ReconstructNode(TargetNode, bIsBatchRequest);
 
 	// If the reconstruction is being handled by something doing a batch (i.e. the blueprint autoregenerating itself), defer marking the blueprint as modified to prevent multiple recompiles
@@ -5622,7 +5622,7 @@ UEdGraphNode* UEdGraphSchema_K2::CreateSubstituteNode(UEdGraphNode* Node, const 
 				check(Pin);
 
 				// Reparent the pin to the new custom event node
-				Pin->Rename(*Pin->GetName(), CustomEventNode, RenameFlags | (Pin->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects) ? REN_ForceNoResetLoaders : RF_NoFlags));
+				Pin->SetOwningNode(CustomEventNode);
 
 				// Don't include execution or delegate output pins as user-defined pins
 				if(!bOriginalWasCustomEvent && !IsExecPin(*Pin) && !IsDelegateCategory(Pin->PinType.PinCategory))
@@ -6181,7 +6181,7 @@ void UEdGraphSchema_K2::RecombinePin(UEdGraphPin* Pin) const
 		}
 
 		GraphNode->Pins.Remove(SubPin);
-		Blueprint->PinWatches.Remove(SubPin);
+		Blueprint->WatchedPins.Remove(SubPin);
 	}
 
 	if (Pin->Direction == EGPD_Input)
@@ -6216,7 +6216,18 @@ void UEdGraphSchema_K2::RecombinePin(UEdGraphPin* Pin) const
 		}
 	}
 
-	ParentPin->SubPins.Empty();	
+	// Clear out subpins:
+	TArray<UEdGraphPin*>& ParentSubPins = ParentPin->SubPins;
+	while (ParentSubPins.Num())
+	{
+		// To ensure that MarkPendingKill does not mutate ParentSubPins, we null out the ParentPin
+		// if we assume that MarkPendingKill *will* mutate ParentSubPins we could introduce an infinite
+		// loop. No known case of this being possible, but it would be trivial to write bad node logic
+		// that introduces this problem:
+		ParentSubPins.Last()->ParentPin = nullptr; 
+		ParentSubPins.Last()->MarkPendingKill();
+		ParentSubPins.RemoveAt(ParentSubPins.Num()-1);
+	}
 
 	Graph->NotifyGraphChanged();
 	FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);

@@ -143,6 +143,8 @@ void UBehaviorTreeGraph::UpdateAsset(int32 UpdateFlags)
 		}
 	}
 
+	// we can't look at pins until pin references have been fixed up post undo:
+	UEdGraphPin::ResolveAllPinReferences();
 	if (RootNode && RootNode->Pins.Num() > 0 && RootNode->Pins[0]->LinkedTo.Num() > 0)
 	{
 		UBehaviorTreeGraphNode* Node = Cast<UBehaviorTreeGraphNode>(RootNode->Pins[0]->LinkedTo[0]->GetOwningNode());

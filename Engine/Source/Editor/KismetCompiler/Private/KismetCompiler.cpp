@@ -2179,7 +2179,7 @@ FPinConnectionResponse FKismetCompilerContext::MovePinLinksToIntermediate(UEdGra
 	 FPinConnectionResponse ConnectionResult = K2Schema->MovePinLinks(SourcePin, IntermediatePin, true);
 
 	 CheckConnectionResponse(ConnectionResult, SourcePin.GetOwningNode());
-	 MessageLog.NotifyIntermediateObjectCreation(&IntermediatePin, &SourcePin);
+	 MessageLog.NotifyIntermediatePinCreation(&IntermediatePin, &SourcePin);
 
 	 return ConnectionResult;
 }
@@ -2190,7 +2190,7 @@ FPinConnectionResponse FKismetCompilerContext::CopyPinLinksToIntermediate(UEdGra
 	FPinConnectionResponse ConnectionResult = K2Schema->CopyPinLinks(SourcePin, IntermediatePin, true);
 
 	CheckConnectionResponse(ConnectionResult, SourcePin.GetOwningNode());
-	MessageLog.NotifyIntermediateObjectCreation(&IntermediatePin, &SourcePin);
+	MessageLog.NotifyIntermediatePinCreation(&IntermediatePin, &SourcePin);
 
 	return ConnectionResult;
 }
@@ -2200,11 +2200,7 @@ UK2Node_TemporaryVariable* FKismetCompilerContext::SpawnInternalVariable(UEdGrap
 	UK2Node_TemporaryVariable* Result = SpawnIntermediateNode<UK2Node_TemporaryVariable>(SourceNode);
 
 	Result->VariableType = FEdGraphPinType(Category, SubCategory, SubcategoryObject, bIsArray, false);
-
 	Result->AllocateDefaultPins();
-
-	// Assign the variable source information to the source object as well
-	MessageLog.NotifyIntermediateObjectCreation(Result->GetVariablePin(), SourceNode);
 
 	return Result;
 }
@@ -2344,7 +2340,7 @@ void FKismetCompilerContext::CreateFunctionStubForEvent(UK2Node_Event* SrcEventN
 			const FString MemberVariableName = ClassScopeNetNameMap.MakeValidName(UGSourcePin);
 
 			UEdGraphPin* DestPin = AssignmentNode->CreatePin(EGPD_Input, SourcePin->PinType, MemberVariableName);
-			MessageLog.NotifyIntermediateObjectCreation(DestPin, SourcePin);
+			MessageLog.NotifyIntermediatePinCreation(DestPin, SourcePin);
 			DestPin->MakeLinkTo(SourcePin);
 		}
 	}
@@ -2947,7 +2943,7 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 
 				for (UEdGraphPin* TunnelLinkedPin : TunnelPin->LinkedTo)
 				{
-					MessageLog.NotifyIntermediateObjectCreation(TunnelLinkedPin, SinkPin);
+					MessageLog.NotifyIntermediatePinCreation(TunnelLinkedPin, SinkPin);
 				}
 			}
 

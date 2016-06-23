@@ -61,7 +61,7 @@ void FBlueprintProfilerConnectionDrawingPolicy::BuildExecutionRoadmap()
 	FBlueprintDebugData& DebugData = TargetClass->GetDebugData();
 	IBlueprintProfilerInterface& ProfilerModule = FModuleManager::LoadModuleChecked<IBlueprintProfilerInterface>("BlueprintProfiler");
 	TSharedPtr<FBlueprintExecutionContext> BlueprintContext = ProfilerModule.GetBlueprintContext(TargetClass->GetPathName());
-	const FName InstanceName = ProfilerModule.MapBlueprintInstance(BlueprintContext, ActiveObject->GetPathName());
+	const FName InstanceName = BlueprintContext->MapBlueprintInstance(ActiveObject->GetPathName());
 	const FName GraphName = GraphObj->GetFName();
 	TSharedPtr<FBlueprintFunctionContext> FunctionContext = BlueprintContext->GetFunctionContext(GraphName);
 	const FName FunctionName = FunctionContext->GetFunctionName();
@@ -78,10 +78,10 @@ void FBlueprintProfilerConnectionDrawingPolicy::BuildExecutionRoadmap()
 	TArray<UEdGraphPin*> SequentialExecPinsInGraph;
 	TArray<FTracePath> SequentialTracePathsInGraph;
 
-	const TSimpleRingBuffer<FBlueprintExecutionTrace>& TraceStack = BlueprintContext->GetTraceHistory();
-	for (int32 i = 0; i < TraceStack.Num(); ++i)
+	const TSimpleRingBuffer<FBlueprintExecutionTrace>& TraceHistory = BlueprintContext->GetTraceHistory();
+	for (int32 i = 0; i < TraceHistory.Num(); ++i)
 	{
-		const FBlueprintExecutionTrace& Sample = TraceStack(i);
+		const FBlueprintExecutionTrace& Sample = TraceHistory(i);
 		if (InstanceName == Sample.InstanceName && FunctionName == Sample.FunctionName)
 		{
 			TSharedPtr<FScriptExecutionNode> ProfilerNode = FunctionContext->GetProfilerDataForNode(Sample.NodeName);
@@ -140,46 +140,72 @@ void FBlueprintProfilerConnectionDrawingPolicy::BuildExecutionRoadmap()
 				UEdGraphNode* NextNode = InputPin->GetOwningNode();
 				if (CurNode != NextNode)
 				{
-					TSharedPtr<FScriptExecutionNode> CurExecNode = BlueprintContext->GetProfilerDataForNode(CurNode);
+					TSharedPtr<FScriptExecutionNode> CurExecNode = BlueprintContext->GetProfilerDataForPin(OutputPin);
 					TSharedPtr<FScriptExecutionNode> NextExecNode = BlueprintContext->GetProfilerDataForNode(NextNode);
-					double NextNodeTime = SequentialNodeTimes[i];
 
-					FExecPairingMap& ExecPaths			= PredecessorPins.FindOrAdd(NextNode);
-					FTimePair& ExecTiming				= ExecPaths.FindOrAdd(OutputPin);
-					FProfilerPairingMap& ProfilerPaths	= ProfilerPins.FindOrAdd(NextNode);
-					FProfilerPair& ProfilerData			= ProfilerPaths.FindOrAdd(OutputPin);
-					// make sure that if we've already visited this exec-pin (like 
-					// in a for-loop or something), that we're replacing it with a 
-					// more recent execution time
-					//
-					// @TODO I don't see when this wouldn't be the case
-					if (ExecTiming.ThisExecTime < NextNodeTime)
+					if (CurExecNode.IsValid() && NextExecNode.IsValid())
 					{
-						double CurNodeTime = SequentialNodeTimes[OutputPinIndex];
-						ExecTiming.ThisExecTime = NextNodeTime;
-						ExecTiming.PredExecTime = CurNodeTime;
-						TSharedPtr<FScriptPerfData> CurPerfData = CurExecNode->GetPerfDataByInstanceAndTracePath(InstanceName, SequentialTracePathsInGraph[OutputPinIndex]);
-						TSharedPtr<FScriptPerfData> NextPerfData = NextExecNode->GetPerfDataByInstanceAndTracePath(InstanceName, SequentialTracePathsInGraph[i]);
-						ProfilerData.bPureNode = NextExecNode->IsPureNode();
-						switch(WireHeatMode)
+						double NextNodeTime = SequentialNodeTimes[i];
+
+						FExecPairingMap& ExecPaths			= PredecessorPins.FindOrAdd(NextNode);
+						FTimePair& ExecTiming				= ExecPaths.FindOrAdd(OutputPin);
+						FProfilerPairingMap& ProfilerPaths	= ProfilerPins.FindOrAdd(NextNode);
+						FProfilerPair& ProfilerData			= ProfilerPaths.FindOrAdd(OutputPin);
+						// make sure that if we've already visited this exec-pin (like 
+						// in a for-loop or something), that we're replacing it with a 
+						// more recent execution time
+						//
+						// @TODO I don't see when this wouldn't be the case
+						if (ExecTiming.ThisExecTime < NextNodeTime)
 						{
-							case EBlueprintProfilerHeatMapDisplayMode::Exclusive:
+							double CurNodeTime = SequentialNodeTimes[OutputPinIndex];
+							ExecTiming.ThisExecTime = NextNodeTime;
+							ExecTiming.PredExecTime = CurNodeTime;
+							const bool bExecPin = CurExecNode->HasFlags(EScriptExecutionNodeFlags::ExecPin);
+							const FTracePath& CurTracePath = bExecPin ? SequentialTracePathsInGraph[i] : SequentialTracePathsInGraph[OutputPinIndex];
+							const FTracePath& NextTracePath = SequentialTracePathsInGraph[i];
+							TSharedPtr<FScriptPerfData> CurPerfData = CurExecNode->GetPerfDataByInstanceAndTracePath(InstanceName, CurTracePath);
+							TSharedPtr<FScriptPerfData> NextPerfData = NextExecNode->GetPerfDataByInstanceAndTracePath(InstanceName, NextTracePath);
+							ProfilerData.bPureNode = CurExecNode->IsPureNode();
+							switch(WireHeatMode)
 							{
-								ProfilerData.PredPerfData = CurPerfData->GetNodeHeatLevel();
-								ProfilerData.ThisPerfData = NextPerfData->GetNodeHeatLevel();
-								break;
-							}
-							case EBlueprintProfilerHeatMapDisplayMode::Inclusive:
-							{
-								ProfilerData.PredPerfData = CurPerfData->GetInclusiveHeatLevel();
-								ProfilerData.ThisPerfData = NextPerfData->GetInclusiveHeatLevel();
-								break;
-							}
-							case EBlueprintProfilerHeatMapDisplayMode::MaxTiming:
-							{
-								ProfilerData.PredPerfData = CurPerfData->GetMaxTimeHeatLevel();
-								ProfilerData.ThisPerfData = NextPerfData->GetMaxTimeHeatLevel();
-								break;
+								case EBlueprintProfilerHeatMapDisplayMode::Exclusive:
+								{
+									ProfilerData.PredPerfData = CurPerfData->GetNodeHeatLevel();
+									ProfilerData.ThisPerfData = NextPerfData->GetNodeHeatLevel();
+									break;
+								}
+								case EBlueprintProfilerHeatMapDisplayMode::Inclusive:
+								case EBlueprintProfilerHeatMapDisplayMode::PinToPin:
+								{
+									ProfilerData.PredPerfData = CurPerfData->GetInclusiveHeatLevel();
+									ProfilerData.ThisPerfData = NextPerfData->GetInclusiveHeatLevel();
+									break;
+								}
+								case EBlueprintProfilerHeatMapDisplayMode::MaxTiming:
+								{
+									ProfilerData.PredPerfData = CurPerfData->GetMaxTimeHeatLevel();
+									ProfilerData.ThisPerfData = NextPerfData->GetMaxTimeHeatLevel();
+									break;
+								}
+								case EBlueprintProfilerHeatMapDisplayMode::Total:
+								{
+									ProfilerData.PredPerfData = CurPerfData->GetTotalHeatLevel();
+									ProfilerData.ThisPerfData = NextPerfData->GetTotalHeatLevel();
+									break;
+								}
+								case EBlueprintProfilerHeatMapDisplayMode::HottestPath:
+								{
+									ProfilerData.PredPerfData = CurPerfData->GetHottestPathHeatLevel();
+									ProfilerData.ThisPerfData = NextPerfData->GetHottestPathHeatLevel();
+									break;
+								}
+								case EBlueprintProfilerHeatMapDisplayMode::HottestEndpoint:
+								{
+									ProfilerData.PredPerfData = CurPerfData->GetHottestEndpointHeatLevel();
+									ProfilerData.ThisPerfData = NextPerfData->GetHottestEndpointHeatLevel();
+									break;
+								}
 							}
 						}
 					}
@@ -197,12 +223,12 @@ void FBlueprintProfilerConnectionDrawingPolicy::DeterminePerfWiringStyle(UEdGrap
 	// Initiate using kismet connection drawing policy
 	FKismetConnectionDrawingPolicy::DetermineWiringStyle(OutputPin, InputPin, Params);
 	// Override the colors using the profiler Data
-	Params.WireColor = Params.WireColor2 = FLinearColor::White;
+	static const FLinearColor BaseColor(1.f, 1.f, 1.f, 0.2f);
+	Params.WireColor = Params.WireColor2 = BaseColor;
 	if (FProfilerPairingMap* ExecMap = ProfilerPins.Find(InputPin->GetOwningNode()))
 	{
 		if (FProfilerPair* PerfData = ExecMap->Find(OutputPin))
 		{
-			static const FLinearColor BaseColor(0.f, 0.f, 0.f, 1.f);
 			static const FLinearColor ImpureHeatColor(1.f, 0.f, 0.f, 1.f);
 			static const FLinearColor PureHeatColor(0.f, 1.f, 0.f, 1.f);
 			Params.PerformanceData1 = FMath::Clamp(PerfData->PredPerfData, 0.f, 1.f);
@@ -399,7 +425,6 @@ void FBlueprintProfilerConnectionDrawingPolicy::DrawPerfConnection(int32 LayerId
 				if (Distance < SplineLength)
 				{
 					const float Alpha = SplineReparamTable.Eval(Distance, 0.f);
-					const float AlphaSq = Alpha*Alpha;
 					FVector2D BubblePos = FMath::CubicInterp(P0, P0Tangent, P1, P1Tangent, Alpha);
 					const FVector2D BubbleSize = BubbleImage->ImageSize * FMath::Lerp(SizeA, SizeB, Alpha);
 					const FLinearColor ElementColor = FLinearColor::LerpUsingHSV(Params.WireColor, Params.WireColor2, Alpha);

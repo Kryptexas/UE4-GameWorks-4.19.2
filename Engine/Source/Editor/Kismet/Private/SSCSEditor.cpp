@@ -2662,6 +2662,10 @@ void SSCS_RowWidget::OnMakeNewRootDropAction(FSCSEditorTreeNodePtrType DroppedNo
 					SCS_Node->AttachToName = NAME_None;
 				}
 
+				// Cache the current relative location and rotation values (for propagation)
+				const FVector OldRelativeLocation = SceneComponentTemplate->RelativeLocation;
+				const FRotator OldRelativeRotation = SceneComponentTemplate->RelativeRotation;
+
 				// Reset the relative transform (location and rotation only; scale is preserved)
 				SceneComponentTemplate->SetRelativeLocation(FVector::ZeroVector);
 				SceneComponentTemplate->SetRelativeRotation(FRotator::ZeroRotator);
@@ -2677,6 +2681,10 @@ void SSCS_RowWidget::OnMakeNewRootDropAction(FSCSEditorTreeNodePtrType DroppedNo
 					{
 						// Detach from root (keeping world transform, except for scale)
 						SceneComponentInstance->DetachFromComponent(DetachmentTransformRules);
+
+						// Propagate the default relative location & rotation reset from the template to the instance
+						FComponentEditorUtils::ApplyDefaultValueChange(SceneComponentInstance, SceneComponentInstance->RelativeLocation, OldRelativeLocation, SceneComponentTemplate->RelativeLocation);
+						FComponentEditorUtils::ApplyDefaultValueChange(SceneComponentInstance, SceneComponentInstance->RelativeRotation, OldRelativeRotation, SceneComponentTemplate->RelativeRotation);
 
 						// Must also reset the root component here, so that RerunConstructionScripts() will cache the correct root component instance data
 						AActor* Owner = SceneComponentInstance->GetOwner();
@@ -4316,12 +4324,14 @@ void SSCSEditor::UpdateTree(bool bRegenerateTreeNodes)
 					AddTreeNodeFromComponent(RootComponent);
 				}
 				
-				// Now add the rest of the instanced scene component hierarchy
+				// Now add the rest of the instanced scene component hierarchy (excluding editor-only instances and nested DSOs attached to BP-constructed instances, which are not mutable)
 				for(auto CompIter = Components.CreateIterator(); CompIter; ++CompIter)
 				{
 					USceneComponent* SceneComp = Cast<USceneComponent>(*CompIter);
+					USceneComponent* ParentSceneComp = SceneComp != nullptr ? SceneComp->GetAttachParent() : nullptr;
 					if(SceneComp != nullptr && !SceneComp->IsEditorOnly()
-						&& (SceneComp->CreationMethod != EComponentCreationMethod::UserConstructionScript || !GetDefault<UBlueprintEditorSettings>()->bHideConstructionScriptComponentsInDetailsView))
+						&& (SceneComp->CreationMethod != EComponentCreationMethod::UserConstructionScript || !GetDefault<UBlueprintEditorSettings>()->bHideConstructionScriptComponentsInDetailsView)
+						&& (ParentSceneComp == nullptr || !ParentSceneComp->IsCreatedByConstructionScript() || !SceneComp->HasAnyFlags(RF_DefaultSubObject)))
 					{
 						AddTreeNodeFromComponent(SceneComp);
 					}

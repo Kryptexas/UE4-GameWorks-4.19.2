@@ -13,6 +13,8 @@
 #include "GenericCommands.h"
 #include "ImaginaryBlueprintData.h"
 #include "FiBSearchInstance.h"
+#include "BlueprintEditorTabs.h"
+#include "ToolkitManager.h"
 
 #define LOCTEXT_NAMESPACE "FindInBlueprints"
 
@@ -390,6 +392,50 @@ FFindInBlueprintsProperty::FFindInBlueprintsProperty(const FText& InValue, TShar
 	: FFindInBlueprintsResult(InValue, InParent)
 	, bIsSCSComponent(false)
 {
+}
+
+FReply FFindInBlueprintsProperty::OnClick()
+{
+	if (bIsSCSComponent)
+	{
+		UBlueprint* Blueprint = GetParentBlueprint();
+		if (Blueprint)
+		{
+			TSharedPtr<IBlueprintEditor> BlueprintEditor = FKismetEditorUtilities::GetIBlueprintEditorForObject(Blueprint, false);
+
+			if (BlueprintEditor.IsValid())
+			{
+				// Open Viewport Tab
+				BlueprintEditor->FocusWindow();
+				BlueprintEditor->GetTabManager()->InvokeTab(FBlueprintEditorTabs::SCSViewportID);
+
+				// Find and Select the Component in the Viewport tab view
+				const TArray<USCS_Node*>& Nodes = Blueprint->SimpleConstructionScript->GetAllNodes();
+				for (USCS_Node* Node : Nodes)
+				{
+					if (Node->VariableName.ToString() == DisplayText.ToString())
+					{
+						UBlueprintGeneratedClass* GeneratedClass = Cast<UBlueprintGeneratedClass>(Blueprint->GeneratedClass);
+						if (GeneratedClass)
+						{
+							UActorComponent* Component = Node->GetActualComponentTemplate(GeneratedClass);
+							if (Component)
+							{
+								BlueprintEditor->FindAndSelectSCSEditorTreeNode(Component, false);
+							}
+						}
+						break;
+					}
+				}
+			}
+		}
+	}
+	else
+	{
+		return FFindInBlueprintsResult::OnClick();
+	}
+
+	return FReply::Handled();
 }
 
 TSharedRef<SWidget> FFindInBlueprintsProperty::CreateIcon() const

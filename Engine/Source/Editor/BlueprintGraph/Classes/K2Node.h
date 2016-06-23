@@ -159,9 +159,6 @@ class UK2Node : public UEdGraphNode
 
 	// K2Node interface
 
-	UPROPERTY()
-	TMap<UEdGraphPin*, UEdGraphPin*> ByRefMatchupPins;
-
 	/**
 	 * Reallocate pins during reconstruction; by default ignores the old pins and calls AllocateDefaultPins()
 	 * If you override this to create additional pins you likely need to call RestoreSplitPins to restore any

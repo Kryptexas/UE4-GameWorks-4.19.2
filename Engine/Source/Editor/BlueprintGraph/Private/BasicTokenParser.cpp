@@ -232,6 +232,30 @@ void FBasicTokenParser::ClearCachedComment()
 	PrevComment.Empty( PrevComment.Len() );
 }
 
+// enumerated from logic in K2Node_MathExpression.cpp
+bool IsSymbolStart(TCHAR c)
+{
+	return
+		c == '|' ||
+		c == '&' ||
+		c == '~' ||
+		c == '^' ||
+		c == '!' ||
+		c == '<' ||
+		c == '>' ||
+		c == '=' ||
+		c == '+' ||
+		c == '-' ||
+		c == '*' ||
+		c == '/' ||
+		c == '%' ||
+		c == ':' ||
+		c == '(' ||
+		c == ')' ||
+		c == ',' ||
+		(c >= '0' && c <= '9'); // for the 'no consts' case numeric literals fall into the symbol branch
+}
+
 //------------------------------------------------------------------------------
 bool FBasicTokenParser::GetToken(FBasicToken& Token, bool bNoConsts/* = false*/)
 {
@@ -275,53 +299,6 @@ bool FBasicTokenParser::GetToken(FBasicToken& Token, bool bNoConsts/* = false*/)
 
 		Token.Identifier[Length]=0;
 		Token.SetGuid(Token.Identifier);
-		return IsValid();
-	}
-	else if( FText::IsLetter(c)|| (c=='_') )
-	{
-		// Alphanumeric token.
-		int32 Length=0;
-		do
-		{
-			Token.Identifier[Length++] = c;
-			if( Length >= NAME_SIZE )
-			{
-				Length = ((int32)NAME_SIZE) - 1;
-				Token.Identifier[Length]=0; // need this for the error description
-
-				FText ErrorDesc = FText::Format(LOCTEXT("IdTooLong", "Identifer ({0}...) exceeds maximum length of {1}"), FText::FromString(Token.Identifier), FText::AsNumber((int32)NAME_SIZE));
-				SetError(FErrorState::ParseError, ErrorDesc);
-
-				break;
-			}
-			c = GetChar();
-		} while( FText::IsLetter(c) || ((c>='0')&&(c<='9')) || (c=='_') );
-		UngetChar();
-		Token.Identifier[Length]=0;
-
-		// Assume this is an identifier unless we find otherwise.
-		Token.TokenType = FBasicToken::TOKEN_Identifier;
-
-		// Lookup the token's global name.
-		Token.TokenName = FName(Token.Identifier, FNAME_Find);
-
-		// If const values are allowed, determine whether the identifier represents a constant
-		if ( !bNoConsts )
-		{
-			// See if the identifier is part of a vector, rotation or other struct constant.
-			// boolean true/false
-			if( Token.Matches(TEXT("true")) )
-			{
-				Token.SetConstBool(true);
-				return true;
-			}
-			else if( Token.Matches(TEXT("false")) )
-			{
-				Token.SetConstBool(false);
-				return true;
-			}
-		}
-
 		return IsValid();
 	}
 	// if const values are allowed, determine whether the non-identifier token represents a const
@@ -425,7 +402,7 @@ bool FBasicTokenParser::GetToken(FBasicToken& Token, bool bNoConsts/* = false*/)
 		Token.SetConstString(Temp);
 		return IsValid();
 	}
-	else
+	else if (IsSymbolStart(c))
 	{
 		// Symbol.
 		int32 Length=0;
@@ -474,6 +451,53 @@ bool FBasicTokenParser::GetToken(FBasicToken& Token, bool bNoConsts/* = false*/)
 		Token.TokenName = FName(Token.Identifier, FNAME_Find);
 
 		return true;
+	}
+	else
+	{
+		// Alphanumeric token.
+		int32 Length = 0;
+		do
+		{
+			Token.Identifier[Length++] = c;
+			if (Length >= NAME_SIZE)
+			{
+				Length = ((int32)NAME_SIZE) - 1;
+				Token.Identifier[Length] = 0; // need this for the error description
+
+				FText ErrorDesc = FText::Format(LOCTEXT("IdTooLong", "Identifer ({0}...) exceeds maximum length of {1}"), FText::FromString(Token.Identifier), FText::AsNumber((int32)NAME_SIZE));
+				SetError(FErrorState::ParseError, ErrorDesc);
+
+				break;
+			}
+			c = GetChar();
+		} while (!IsSymbolStart(c) && c != '{' && c != '}' && c != '"' && !FText::IsWhitespace(c));
+		UngetChar();
+		Token.Identifier[Length] = 0;
+
+		// Assume this is an identifier unless we find otherwise.
+		Token.TokenType = FBasicToken::TOKEN_Identifier;
+
+		// Lookup the token's global name.
+		Token.TokenName = FName(Token.Identifier, FNAME_Find);
+
+		// If const values are allowed, determine whether the identifier represents a constant
+		if (!bNoConsts)
+		{
+			// See if the identifier is part of a vector, rotation or other struct constant.
+			// boolean true/false
+			if (Token.Matches(TEXT("true")))
+			{
+				Token.SetConstBool(true);
+				return true;
+			}
+			else if (Token.Matches(TEXT("false")))
+			{
+				Token.SetConstBool(false);
+				return true;
+			}
+		}
+
+		return IsValid();
 	}
 }
 
@@ -751,7 +775,7 @@ TCHAR FBasicTokenParser::GetLeadingChar()
 			{
 				MultipleNewlines = true;
 			}
-		} while (IsWhitespace(c));
+		} while (FText::IsWhitespace(c));
 
 		if (c != TEXT('/') || PeekChar() != TEXT('/'))
 		{
@@ -804,12 +828,6 @@ void FBasicTokenParser::UngetChar()
 bool FBasicTokenParser::IsEOL(TCHAR c)
 {
 	return c==TEXT('\n') || c==TEXT('\r') || c==0;
-}
-
-//------------------------------------------------------------------------------
-bool FBasicTokenParser::IsWhitespace(TCHAR c)
-{
-	return c==TEXT(' ') || c==TEXT('\t') || c==TEXT('\r') || c==TEXT('\n');
 }
 
 //------------------------------------------------------------------------------
