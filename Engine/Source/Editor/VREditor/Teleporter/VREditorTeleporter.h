@@ -36,7 +36,7 @@ private:
 
 	/** Called when the user presses a button on their motion controller device */
 	void OnInteractorAction( class FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor,
-		const struct FViewportActionKeyInput& Action, const EInputEvent Event, bool& bOutIsInputCaptured, bool& bWasHandled );
+		const struct FViewportActionKeyInput& Action, bool& bOutIsInputCaptured, bool& bWasHandled );
 
 	/** Actually teleport to a position */
 	void Teleport( const float DeltaTime );

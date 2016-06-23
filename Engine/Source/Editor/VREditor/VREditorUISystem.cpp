@@ -168,7 +168,7 @@ void UVREditorUISystem::Shutdown()
 }
 
 void UVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor,
-	const FViewportActionKeyInput& Action, const EInputEvent Event, bool& bOutIsInputCaptured, bool& bWasHandled )
+	const FViewportActionKeyInput& Action, bool& bOutIsInputCaptured, bool& bWasHandled )
 {
 	UVREditorInteractor* VREditorInteractor = Cast<UVREditorInteractor>( Interactor );
 	if ( VREditorInteractor )
@@ -177,7 +177,7 @@ void UVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, UView
 		{
 			if ( Action.ActionType == VRActionTypes::ConfirmRadialSelection )
 			{
-				if ( Event == IE_Pressed )
+				if ( Action.Event == IE_Pressed )
 				{
 					UVREditorRadialMenu* RadialMenu = QuickRadialMenu->GetUserWidget<UVREditorRadialMenu>();
 					if ( IsShowingRadialMenu( VREditorInteractor ) )
@@ -205,12 +205,12 @@ void UVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, UView
 							// Always mark the event as handled so that the editor doesn't try to select the widget component
 							bWasHandled = true;
 
-							if ( Event != IE_Repeat )
+							if ( Action.Event != IE_Repeat )
 							{
 								// If the Modifier button is held down, treat this like a right click instead of a left click
 								const bool bIsRightClicking =
-									( Event == IE_Pressed && VREditorInteractor->IsModifierPressed() ) ||
-									( Event == IE_Released && VREditorInteractor->IsRightClickingOnUI() );
+									( Action.Event == IE_Pressed && VREditorInteractor->IsModifierPressed() ) ||
+									( Action.Event == IE_Released && VREditorInteractor->IsRightClickingOnUI() );
 
 								FVector2D LastLocalHitLocation = WidgetComponent->GetLastLocalHitLocation();
 
@@ -232,7 +232,7 @@ void UVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, UView
 								if ( WidgetPathUnderFinger.IsValid() )
 								{
 									TSet<FKey> PressedButtons;
-									if ( Event == IE_Pressed )
+									if ( Action.Event == IE_Pressed )
 									{
 										PressedButtons.Add( bIsRightClicking ? EKeys::RightMouseButton : EKeys::LeftMouseButton );
 									}
@@ -254,7 +254,7 @@ void UVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, UView
 									}
 
 									FReply Reply = FReply::Unhandled();
-									if ( Event == IE_Pressed )
+									if ( Action.Event == IE_Pressed )
 									{
 										const double CurrentTime = FPlatformTime::Seconds();
 										if (CurrentTime - VREditorInteractor->GetLastClickReleaseTime() <= VREd::DoubleClickTime->GetFloat())
@@ -275,7 +275,7 @@ void UVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, UView
 										// Play a haptic effect on press
 										VREditorInteractor->PlayHapticEffect( VREd::UIPressHapticFeedbackStrength->GetFloat() );
 									}
-									else if ( Event == IE_Released )
+									else if ( Action.Event == IE_Released )
 									{
 										Reply = FSlateApplication::Get().RoutePointerUpEvent( WidgetPathUnderFinger, PointerEvent );
 									}
@@ -285,7 +285,7 @@ void UVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, UView
 					}
 				}
 
-				if ( Event == IE_Released )
+				if ( Action.Event == IE_Released )
 				{
 					bool bWasRightClicking = false;
 					if ( VREditorInteractor->IsClickingOnUI() )

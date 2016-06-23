@@ -34,9 +34,6 @@ public:
 	/** Called when an interactor leave hovering over this object */
 	virtual void OnHoverLeave( UViewportInteractor* Interactor, const UActorComponent* NewComponent ) PURE_VIRTUAL( IViewportInteractableInterface::OnHoverLeave, );
 	
-	/** Called when an interactor is dragging this object */
-	virtual void OnDrag( UViewportInteractor* Interactor ) PURE_VIRTUAL( IViewportInteractableInterface::OnDrag, );
-
 	/** Called when an interactor stops dragging this object */
 	virtual void OnDragRelease( UViewportInteractor* Interactor ) PURE_VIRTUAL( IViewportInteractableInterface::OnDragRelease, );
 

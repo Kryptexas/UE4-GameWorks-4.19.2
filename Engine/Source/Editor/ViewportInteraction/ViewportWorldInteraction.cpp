@@ -210,10 +210,13 @@ static void SegmentDistToSegmentDouble( DVector A1, DVector B1, DVector A2, DVec
 
 UViewportWorldInteraction::UViewportWorldInteraction( const FObjectInitializer& Initializer ) :
 	Super( Initializer ),
+	bDraggedSinceLastSelection( false ),
+	LastDragGizmoStartTransform( FTransform::Identity ),
+	TrackingTransaction( FTrackingTransaction() ),
 	AppTimeEntered( FTimespan::Zero() ),
+	EditorViewportClient( nullptr ),
 	LastFrameNumberInputWasPolled( 0 ),
 	MotionControllerID( 0 ),	// @todo ViewportInteraction: We only support a single controller, and we assume the first controller are the motion controls
-	EditorViewportClient( nullptr ),
 	LastWorldToMetersScale( 100.0f ),
 	bIsInterpolatingTransformablesFromSnapshotTransform( false ),
 	TransformablesInterpolationStartTime( FTimespan::Zero() ),
@@ -221,8 +224,6 @@ UViewportWorldInteraction::UViewportWorldInteraction( const FObjectInitializer& 
 	TransformGizmoActor( nullptr ),
 	TransformGizmoClass( APivotTransformGizmo::StaticClass() ),
 	GizmoLocalBounds( FBox( 0 ) ),
-	bDraggedSinceLastSelection( false ),
-	LastDragGizmoStartTransform( FTransform::Identity ),
 	StartDragAngleOnRotation( ),
 	StartDragHandleDirection( ),
 	CurrentGizmoType( EGizmoHandleTypes::All ),

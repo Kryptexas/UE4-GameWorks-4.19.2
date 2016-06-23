@@ -46,7 +46,6 @@ public:
 	
 	/** Leaving hover with laser changes the color of SelectionMesh and CloseButtonMesh */
 	virtual void OnHoverLeave( UViewportInteractor* Interactor, const UActorComponent* NewComponent ) override;
-	virtual void OnDrag( UViewportInteractor* Interactor ) override;
 	virtual void OnDragRelease( UViewportInteractor* Interactor ) override;
 	virtual class UViewportDragOperationComponent* GetDragOperationComponent() override;
 

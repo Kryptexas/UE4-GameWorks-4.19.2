@@ -89,12 +89,12 @@ void UVREditorTeleporter::StartTeleport( UViewportInteractor* Interactor )
 	}
 }
 
-void UVREditorTeleporter::OnInteractorAction( class FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, const struct FViewportActionKeyInput& Action, const EInputEvent Event, bool& bOutIsInputCaptured, bool& bWasHandled )
+void UVREditorTeleporter::OnInteractorAction( class FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, const struct FViewportActionKeyInput& Action, bool& bOutIsInputCaptured, bool& bWasHandled )
 {
 	if ( ( Action.ActionType == ViewportWorldActionTypes::SelectAndMove ||
 		Action.ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed ) )
 	{
-		if ( Event == IE_Pressed )
+		if ( Action.Event == IE_Pressed )
 		{
 			if ( Action.ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed )
 			{

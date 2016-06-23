@@ -88,7 +88,7 @@ bool UViewportInteractor::HandleInputKey( const FKey Key, const EInputEvent Even
 		Action->Event = Event;
 		
 		// Give subsystems a chance to handle actions for this interactor
-		WorldInteraction->OnViewportInteractionInputAction().Broadcast( *WorldInteraction->GetViewportClient(), this, *Action, Event, Action->bIsInputCaptured, bHandled );
+		WorldInteraction->OnViewportInteractionInputAction().Broadcast( *WorldInteraction->GetViewportClient(), this, *Action, Action->bIsInputCaptured, bHandled );
 
 		if ( !bHandled )
 		{

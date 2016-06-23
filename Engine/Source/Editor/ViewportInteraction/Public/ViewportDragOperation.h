@@ -41,7 +41,7 @@ public:
 	UViewportDragOperation* GetDragOperation();
 
 	/** Sets the drag operation class that will be used next time starting dragging */
-	void SetDragOperactionClass( const TSubclassOf<UViewportDragOperation> InDragOperation );
+	void SetDragOperationClass( const TSubclassOf<UViewportDragOperation> InDragOperation );
 
 	/** Starts new dragging operation */
 	void StartDragOperation();

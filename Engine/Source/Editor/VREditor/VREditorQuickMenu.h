@@ -142,6 +142,9 @@ public:
 	void OnScreenshotButtonClicked();
 
 	UFUNCTION( BlueprintCallable, Category = "Default" )
+	void OnPlayButtonClicked();
+
+	UFUNCTION( BlueprintCallable, Category = "Default" )
 	bool OnAssetEditorButtonClicked( const bool bIsChecked );
 
 	UFUNCTION( BlueprintPure, Category = "Default" )

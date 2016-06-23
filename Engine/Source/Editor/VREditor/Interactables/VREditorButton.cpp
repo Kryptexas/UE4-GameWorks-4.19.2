@@ -37,30 +37,25 @@ AVREditorButton::AVREditorButton()
 
 void AVREditorButton::OnPressed( UViewportInteractor* Interactor, const FHitResult& InHitResult, bool& bOutResultedInDrag  )
 {
-	GLog->Logf( TEXT( "OnPressed" ) );
+	OnPressedEvent.Broadcast( this, Interactor );
 }
 
 void AVREditorButton::OnHover( UViewportInteractor* Interactor )
 {
-	GLog->Logf( TEXT( "OnHover" ) );
+	OnHoverEvent.Broadcast( this, Interactor );
 }
 
 void AVREditorButton::OnHoverEnter( UViewportInteractor* Interactor, const FHitResult& InHitResult  )
 {
-	GLog->Logf( TEXT("OnHoverEnter") );
+	OnHoverEnterEvent.Broadcast( this, Interactor );
 }
 
 void AVREditorButton::OnHoverLeave( UViewportInteractor* Interactor, const UActorComponent* NewComponent )
 {
-	GLog->Logf( TEXT("OnHoverLeave") );
-}
-
-void AVREditorButton::OnDrag( UViewportInteractor* Interactor )
-{
-	GLog->Logf( TEXT( "OnDrag" ) );
+	OnHoverLeaveEvent.Broadcast( this, Interactor );
 }
 
 void AVREditorButton::OnDragRelease( UViewportInteractor* Interactor )
 {
-	GLog->Logf( TEXT( "OnDragRelease" ) );
+	OnReleaseEvent.Broadcast( this, Interactor );
 }

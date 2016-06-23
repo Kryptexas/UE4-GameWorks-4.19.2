@@ -20,7 +20,7 @@ UViewportDragOperation* UViewportDragOperationComponent::GetDragOperation()
 	return DragOperation;
 }
 
-void UViewportDragOperationComponent::SetDragOperactionClass( const TSubclassOf<UViewportDragOperation> InDragOperation )
+void UViewportDragOperationComponent::SetDragOperationClass( const TSubclassOf<UViewportDragOperation> InDragOperation )
 {
 	DragOperationSubclass = InDragOperation;
 }

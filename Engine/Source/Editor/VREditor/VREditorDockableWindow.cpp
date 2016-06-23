@@ -147,7 +147,7 @@ AVREditorDockableWindow::AVREditorDockableWindow()
 
 	// Create the drag operation
 	DragOperationComponent = CreateDefaultSubobject<UViewportDragOperationComponent>( TEXT( "DragOperation" ) );
-	DragOperationComponent->SetDragOperactionClass( UDockableWindowDragOperation::StaticClass() );
+	DragOperationComponent->SetDragOperationClass( UDockableWindowDragOperation::StaticClass() );
 }
 
 
@@ -377,11 +377,6 @@ void AVREditorDockableWindow::OnHoverLeave( UViewportInteractor* Interactor, con
 	{
 		bIsHoveringOverCloseButton = false;
 	}
-}
-
-void AVREditorDockableWindow::OnDrag( UViewportInteractor* Interactor )
-{
-
 }
 
 void AVREditorDockableWindow::OnDragRelease( UViewportInteractor* Interactor )

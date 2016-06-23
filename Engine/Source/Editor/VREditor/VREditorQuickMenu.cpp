@@ -379,6 +379,11 @@ void UVREditorQuickMenu::OnScreenshotButtonClicked()
 	FScreenshotRequest::RequestScreenshot(FString(), bShowUI, bUseCustomFilename);
 }
 
+void UVREditorQuickMenu::OnPlayButtonClicked()
+{
+	GetOwner()->GetOwner().GetOwner().StartExitingVRMode( EVREditorExitType::PIE_VR );
+}
+
 bool UVREditorQuickMenu::OnAssetEditorButtonClicked( const bool bIsChecked )
 {
 	GetOwner()->GetOwner().TogglePanelVisibility( UVREditorUISystem::EEditorUIPanel::AssetEditor );

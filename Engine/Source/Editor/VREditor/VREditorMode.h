@@ -10,6 +10,13 @@
 // Forward declare the GizmoHandleTypes that is defined in VREditorTransformGizmo
 enum class EGizmoHandleTypes : uint8;
 
+/** Reason for exiting the VR editor */
+enum EVREditorExitType
+{
+	Normal = 0,
+	PIE_VR = 1
+};
+
 /**
  * VR Editor Mode.  Extends editor viewports with functionality for VR controls and object manipulation
  */
@@ -48,9 +55,12 @@ public:
 	}
 
 	/** Call this to start exiting VR mode */
-	void StartExitingVRMode()
+	void StartExitingVRMode( const EVREditorExitType InExitType = EVREditorExitType::Normal );
+
+	/** Gets the reason for exiting the mode */
+	EVREditorExitType GetExitType() const
 	{
-		bWantsToExitMode = true;
+		return ExitType;
 	}
 
 	// FEdMode interface
@@ -383,5 +393,9 @@ private:
 
 	/** If the coordinate system was in world space before entering (local) scale mode */
 	bool bWasInWorldSpaceBeforeScaleMode;
+
+	/** The reason for exiting the mode, so the module can close the mode and take further actions on what should happen next */
+	EVREditorExitType ExitType;
+
 };
 

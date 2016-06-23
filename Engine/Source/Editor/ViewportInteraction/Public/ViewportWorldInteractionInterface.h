@@ -35,7 +35,7 @@ public:
 	virtual FOnVIHoverUpdate& OnViewportInteractionHoverUpdate() = 0;
 
 	/** Gets the event for input actions update which is broadcasted for each interactor */
-	DECLARE_EVENT_SixParams( IViewportWorldInteractionInterface, FOnVIActionHandle, class FEditorViewportClient& /* ViewportClient */, class UViewportInteractor* /* Interactor */, 
-	const struct FViewportActionKeyInput& /* Action */, const EInputEvent /* Event */, bool& /* bOutIsInputCaptured */, bool& /* bWasHandled */ );
+	DECLARE_EVENT_FiveParams( IViewportWorldInteractionInterface, FOnVIActionHandle, class FEditorViewportClient& /* ViewportClient */, class UViewportInteractor* /* Interactor */, 
+	const struct FViewportActionKeyInput& /* Action */, bool& /* bOutIsInputCaptured */, bool& /* bWasHandled */ );
 	virtual FOnVIActionHandle& OnViewportInteractionInputAction() = 0;
 };

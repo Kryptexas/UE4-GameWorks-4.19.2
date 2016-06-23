@@ -5060,7 +5060,7 @@ TWeakObjectPtr<AActor> FEdModeMeshPaint::GetEditingActor() const
 
 
 void FEdModeMeshPaint::OnVRAction( class FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, 
-	const FViewportActionKeyInput& Action, const EInputEvent Event, bool& bOutIsInputCaptured, bool& bWasHandled )
+	const FViewportActionKeyInput& Action, bool& bOutIsInputCaptured, bool& bWasHandled )
 {
 	IVREditorMode* VREditorMode = static_cast<IVREditorMode*>( GetModeManager()->GetActiveMode( IVREditorModule::Get().GetVREditorModeID() ) );
 	UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>( Interactor );
@@ -5079,7 +5079,7 @@ void FEdModeMeshPaint::OnVRAction( class FEditorViewportClient& ViewportClient, 
 
 		if( Action.ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed )
 		{
-			if( !bIsPainting && Event == IE_Pressed && !VRInteractor->IsHoveringOverUI() )
+			if( !bIsPainting && Action.Event == IE_Pressed && !VRInteractor->IsHoveringOverUI() )
 			{
 				// NOTE: We intentionally don't capture input for "LightlyPressed" because we want to allow objects to still
 				// become selected when clicked on.  We avoid allowing the objects to be moved by calling the 
@@ -5109,7 +5109,7 @@ void FEdModeMeshPaint::OnVRAction( class FEditorViewportClient& ViewportClient, 
 			}
 
 			// Stop current tracking if the user is no longer painting
-			else if( bIsPainting && Event == IE_Released && PaintingWithInteractorInVR && PaintingWithInteractorInVR == Interactor )
+			else if( bIsPainting && Action.Event == IE_Released && PaintingWithInteractorInVR && PaintingWithInteractorInVR == Interactor )
 			{
 				EndPainting();
 

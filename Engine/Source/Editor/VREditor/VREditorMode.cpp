@@ -96,7 +96,6 @@ FVREditorMode::~FVREditorMode()
 	FEditorDelegates::OnSwitchBeginPIEAndSIE.RemoveAll( this );
 }
 
-
 void FVREditorMode::Enter()
 {
 	// @todo vreditor urgent: Turn on global editor hacks for VR Editor mode
@@ -243,7 +242,7 @@ void FVREditorMode::Enter()
 			// @todo vreditor: Should save and restore camera position and any other settings we change (viewport type, pitch locking, etc.)
 			SavedEditorState.ViewLocation = VRViewportClient.GetViewLocation();
 			SavedEditorState.ViewRotation = VRViewportClient.GetViewRotation();
-
+			
 			// Don't allow the tracking space to pitch up or down.  People hate that in VR.
 			// @todo vreditor: This doesn't seem to prevent people from pitching the camera with RMB drag
 			SavedEditorState.bLockedPitch = VRViewportClient.GetCameraController()->GetConfig().bLockedPitch;
@@ -359,11 +358,6 @@ void FVREditorMode::Enter()
 	//	UISystem->ShowEditorUIPanel(FVREditorUISystem::EEditorUIPanel::ContentBrowser, HandIndex, bShouldShow);
 	//}
 
-	if ( bActuallyUsingVR )
-	{
-		 WorldInteraction->SetWorldToMetersScale( 100.0f );
-	}
-
 	// Call parent implementation
 	FEdMode::Enter();
 
@@ -427,7 +421,7 @@ void FVREditorMode::Exit()
 				VRViewportClient.bAlwaysShowModeWidgetAfterSelectionChanges = SavedEditorState.bAlwaysShowModeWidgetAfterSelectionChanges;
 				VRViewportClient.EngineShowFlags = SavedEditorState.ShowFlags;
 				VRViewportClient.SetGameView( SavedEditorState.bGameView );
-				VRViewportClient.SetViewLocation( GetHeadTransform().GetLocation() ); // Use SavedEditorState.ViewLocation to go back to start location when entering VR Editor Mode
+				VRViewportClient.SetViewLocation( GetHeadTransform().GetLocation() );
 				
 				FRotator HeadRotationNoRoll = GetHeadTransform().GetRotation().Rotator();
 				HeadRotationNoRoll.Roll = 0.0f;
@@ -464,9 +458,6 @@ void FVREditorMode::Exit()
 		}
 	}
 
-	// Make sure we are no longer overriding WorldToMetersScale every frame
-	WorldInteraction->SetWorldToMetersScale( 0.0f );
-
 	// Call parent implementation
 	FEdMode::Exit();
 
@@ -496,6 +487,11 @@ void FVREditorMode::Exit()
 	GEnableVREditorHacks = false;
 }
 
+void FVREditorMode::StartExitingVRMode( const EVREditorExitType InExitType /*= EVREditorExitType::To_Editor */ )
+{
+	ExitType = InExitType;
+	bWantsToExitMode = true;
+}
 
 void FVREditorMode::SpawnAvatarMeshActor()
 {
@@ -695,7 +691,28 @@ void FVREditorMode::Tick( FEditorViewportClient* ViewportClient, float DeltaTime
 	{
 		return;
 	}
-	
+
+	//Setting the initial position and rotation based on the editor viewport when going into VR mode
+	if ( bFirstTick )
+	{
+		const FTransform RoomToWorld = GetRoomTransform();
+		const FTransform WorldToRoom = RoomToWorld.Inverse();
+		FTransform ViewportToWorld = FTransform( SavedEditorState.ViewRotation, SavedEditorState.ViewLocation );
+		FTransform ViewportToRoom = ( ViewportToWorld * WorldToRoom );
+
+		FTransform ViewportToRoomYaw = ViewportToRoom;
+		ViewportToRoomYaw.SetRotation( FQuat( FRotator( 0.0f, ViewportToRoomYaw.GetRotation().Rotator().Yaw, 0.0f ) ) );
+
+		FTransform HeadToRoomYaw = GetRoomSpaceHeadTransform();
+		HeadToRoomYaw.SetRotation( FQuat( FRotator( 0.0f, HeadToRoomYaw.GetRotation().Rotator().Yaw, 0.0f ) ) );
+
+		FTransform RoomToWorldYaw = RoomToWorld;
+		RoomToWorldYaw.SetRotation( FQuat( FRotator( 0.0f, RoomToWorldYaw.GetRotation().Rotator().Yaw, 0.0f ) ) );
+
+		FTransform ResultToWorld = ( HeadToRoomYaw.Inverse() * ViewportToRoomYaw ) * RoomToWorldYaw;
+		SetRoomTransform( ResultToWorld );
+	}
+
 	if ( AvatarMeshActor == nullptr )
 	{
 		SpawnAvatarMeshActor();
@@ -926,27 +943,6 @@ void FVREditorMode::Tick( FEditorViewportClient* ViewportClient, float DeltaTime
 			static FName OpacityParameterName( "Opacity" );
 			WorldMovementPostProcessMaterial->SetScalarParameterValue( OpacityParameterName, FMath::Clamp( WorldMovementGridOpacity, 0.0f, 1.0f ) );
 		}
-	}
-
-	// Setting the initial position and rotation based on the editor viewport when going into VR mode
-	if ( bActuallyUsingVR && bFirstTick )
-	{
-		const FTransform RoomToWorld = GetRoomTransform();
-		const FTransform WorldToRoom = RoomToWorld.Inverse();
-		const FTransform ViewportToWorld = FTransform( SavedEditorState.ViewRotation, SavedEditorState.ViewLocation );
-		const FTransform ViewportToRoom = ViewportToWorld * WorldToRoom;
-
-		FTransform ViewportToRoomYaw = ViewportToRoom;
-		ViewportToRoomYaw.SetRotation( FQuat( FRotator( 0.0f, ViewportToRoomYaw.GetRotation().Rotator().Yaw, 0.0f ) ) );
-
-		FTransform HeadToRoomYaw = GetRoomSpaceHeadTransform();
-		HeadToRoomYaw.SetRotation( FQuat( FRotator( 0.0f, HeadToRoomYaw.GetRotation().Rotator().Yaw, 0.0f ) ) );
-
-		FTransform RoomToWorldYaw = RoomToWorld;
-		RoomToWorldYaw.SetRotation( FQuat( FRotator( 0.0f, RoomToWorldYaw.GetRotation().Rotator().Yaw, 0.0f ) ) );
-
-		FTransform ResultToWorld = ( HeadToRoomYaw.Inverse() * ViewportToRoomYaw ) * RoomToWorldYaw;
-		SetRoomTransform( ResultToWorld );
 	}
 
 	StopOldHapticEffects();
