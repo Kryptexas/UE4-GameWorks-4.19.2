@@ -323,7 +323,7 @@ This overhead is incurred only once for the Static Mesh regardless of how many i
 
 The engine will automatically issue multiple draw calls should the ConsolePreallocateInstanceCount be insufficient for the number of instances we wish to render in a cluster (the Instances Per Cluster setting above).
 
-On consoles, draw calls are relatively inexpensive provided the total number of triangles rendered in the draw call is sufficiently large. So using memory to preallocate more instances in a single drawcall will not provide any significant performance gains.
+On consoles, draw calls are relatively inexpensive provided the total number of triangles rendered in the draw call is sufficiently large. So using memory to preallocate more instances in a single draw call will not provide any significant performance gains.
 
 So you should set the ConsolePreallocateInstanceCount number for Static Meshes used for foliage to a number that, taking into account the number of triangles in an instance, will keep the console's GPU busy. Setting the number too small could cause the console's GPU to be idle waiting for the individual draw calls, and a number too large will waste memory without any significant performance increase.
 [/PUBLISH:Licensee]
@@ -431,10 +431,6 @@ In the image comparison below you can see what happens to the density of the Fol
 [/OBJECT]
 [/EXCERPT:FS]
 -->
-
-
-
-
 
 
 
