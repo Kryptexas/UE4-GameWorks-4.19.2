@@ -727,7 +727,7 @@ void UEdGraphSchema::GetContextMenuActions(const UEdGraph* CurrentGraph, const U
 			}
 
 			// Called by the EditableText widget when the user types a new comment for the selected node
-			static void OnNodeCommentTextCommitted(const FText& NewText, ETextCommit::Type /*CommitInfo*/, TWeakObjectPtr<UEdGraphNode> NodeWeakPtr)
+			static void OnNodeCommentTextCommitted(const FText& NewText, ETextCommit::Type CommitInfo, TWeakObjectPtr<UEdGraphNode> NodeWeakPtr)
 			{
 				// Apply the change to the selected actor
 				UEdGraphNode* SelectedNode = NodeWeakPtr.Get();
@@ -749,7 +749,12 @@ void UEdGraphSchema::GetContextMenuActions(const UEdGraph* CurrentGraph, const U
 					}
 				}
 
-				FSlateApplication::Get().DismissAllMenus();
+				// Only dismiss all menus if the text was committed via some user action.
+				// ETextCommit::Default implies that focus was switched by some other means. If this is because a submenu was opened, we don't want to close all the menus as a consequence.
+				if (CommitInfo != ETextCommit::Default)
+				{
+					FSlateApplication::Get().DismissAllMenus();
+				}
 			}
 		};
 
