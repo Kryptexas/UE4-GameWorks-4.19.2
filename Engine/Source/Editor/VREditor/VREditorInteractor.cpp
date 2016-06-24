@@ -409,7 +409,8 @@ void UVREditorInteractor::Tick( const float DeltaTime )
 FHitResult UVREditorInteractor::GetHitResultFromLaserPointer( TArray<AActor*>* OptionalListOfIgnoredActors /*= nullptr*/, const bool bIgnoreGizmos /*= false*/,
 	TArray<UClass*>* ObjectsInFrontOfGizmo /*= nullptr */, const bool bEvenIfBlocked /*= false */, const float LaserLengthOverride /*= 0.0f */ )
 {
-	TArray<AActor*> IgnoredActors;
+	static TArray<AActor*> IgnoredActors;
+	IgnoredActors.Reset();
 	if ( OptionalListOfIgnoredActors == nullptr )
 	{
 		OptionalListOfIgnoredActors = &IgnoredActors;
@@ -426,7 +427,8 @@ FHitResult UVREditorInteractor::GetHitResultFromLaserPointer( TArray<AActor*>* O
 		}
 	}
 
-	TArray<UClass*> PriorityOverGizmoObjects;
+	static TArray<UClass*> PriorityOverGizmoObjects;
+	PriorityOverGizmoObjects.Reset();
 	if ( ObjectsInFrontOfGizmo == nullptr )
 	{
 		ObjectsInFrontOfGizmo = &PriorityOverGizmoObjects;

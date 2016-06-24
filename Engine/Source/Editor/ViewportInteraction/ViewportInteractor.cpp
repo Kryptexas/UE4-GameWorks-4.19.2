@@ -528,7 +528,9 @@ FHitResult UViewportInteractor::GetHitResultFromLaserPointer( TArray<AActor*>* O
 					for ( UClass* CurrentClass : *ObjectsInFrontOfGizmo )
 					{
 						bool bClassHasPriority = false;
-						bClassHasPriority = HitResult.GetActor()->IsA( CurrentClass );
+						bClassHasPriority =
+							( HitResult.GetComponent() != nullptr && HitResult.GetComponent()->IsA( CurrentClass ) ) ||
+							( HitResult.GetActor() != nullptr && HitResult.GetActor()->IsA( CurrentClass ) );
 
 						if ( bClassHasPriority )
 						{
