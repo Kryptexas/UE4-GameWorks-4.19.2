@@ -869,6 +869,11 @@ bool FCoreAudioSoundSource::AttachToAUGraph()
 
 	if( ErrorStatus == noErr )
 	{
+		if (AudioDevice->SourcesDetached.Contains(this))
+		{
+			AudioDevice->UpdateAUGraph();
+		}
+		AudioDevice->SourcesAttached.Add(this);
 		AudioDevice->bNeedsUpdate = true;
 		AudioDevice->AudioChannels[AudioChannel] = this;
 	}
@@ -954,7 +959,12 @@ bool FCoreAudioSoundSource::DetachFromAUGraph()
 		SAFE_CA_CALL( AUGraphRemoveNode( AudioDevice->GetAudioUnitGraph(), SourceNode ) );
 	}
 
-	AudioDevice->CovertersToDispose.Add(CoreAudioConverter);
+	if (AudioDevice->SourcesAttached.Contains(this))
+	{
+		AudioDevice->UpdateAUGraph();
+	}
+	AudioDevice->SourcesDetached.Add(this);
+	AudioDevice->ConvertersToDispose.Add(CoreAudioConverter);
 	AudioDevice->bNeedsUpdate = true;
 	
 	CoreAudioConverter = NULL;

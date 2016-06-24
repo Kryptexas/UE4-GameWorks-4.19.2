@@ -2206,6 +2206,12 @@ UObject* FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const
 
 	if ( Object == NULL && !CacheObjectPtr->bNoLoad )
 	{
+		if (IsNetGUIDAuthority())
+		{
+			// Log when the server needs to re-load an object, it's probably due to a GC after initially loading as default guid
+			UE_LOG(LogNetPackageMap, Log, TEXT("GetObjectFromNetGUID: Server re-loading object (might have been GC'd). FullNetGUIDPath: %s"), *FullNetGUIDPath(NetGUID));
+		}
+
 		if ( bIsPackage )
 		{
 			// Async load the package if:

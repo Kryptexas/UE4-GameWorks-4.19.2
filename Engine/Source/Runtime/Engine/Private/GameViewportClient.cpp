@@ -2771,8 +2771,6 @@ bool UGameViewportClient::HandleScreenshotCommand( const TCHAR* Cmd, FOutputDevi
 		const bool bAddFilenameSuffix = true;
 		FScreenshotRequest::RequestScreenshot( FString(), bShowUI, bAddFilenameSuffix );
 
-		GScreenMessagesRestoreState = GAreScreenMessagesEnabled;
-		GAreScreenMessagesEnabled = false;
 		GScreenshotResolutionX = Viewport->GetSizeXY().X;
 		GScreenshotResolutionY = Viewport->GetSizeXY().Y;
 	}

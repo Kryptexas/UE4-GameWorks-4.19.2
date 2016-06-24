@@ -1330,10 +1330,13 @@ void dtCrowd::updateStepNextMovePoint(const float dt, dtCrowdAgentDebugInfo* deb
 		if (ag->targetState == DT_CROWDAGENT_TARGET_NONE || ag->targetState == DT_CROWDAGENT_TARGET_VELOCITY)
 			continue;
 
+		// UE4: corridor.earlyReach support
+		const bool bAllowCuttingCorners = (ag->boundary.getSegmentCount() == 0);
+
 		// Find corners for steering
 		m_navquery->updateLinkFilter(ag->params.linkFilter.Get());
 		ag->ncorners = ag->corridor.findCorners(ag->cornerVerts, ag->cornerFlags, ag->cornerPolys,
-			DT_CROWDAGENT_MAX_CORNERS, m_navquery, &m_filters[ag->params.filter], ag->params.radius);
+			DT_CROWDAGENT_MAX_CORNERS, m_navquery, &m_filters[ag->params.filter], ag->params.radius, bAllowCuttingCorners);
 
 		const int agIndex = getAgentIndex(ag);
 		if (debugIdx == agIndex)

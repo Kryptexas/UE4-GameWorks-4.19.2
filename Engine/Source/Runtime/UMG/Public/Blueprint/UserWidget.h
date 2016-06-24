@@ -737,6 +737,15 @@ public:
 	float PauseAnimation(const UWidgetAnimation* InAnimation);
 
 	/**
+	 * Gets the current time of the animation in this widget
+	 * 
+	 * @param The name of the animation to get the current time for
+	 * @return the current time of the animation.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "User Interface|Animation")
+	float GetAnimationCurrentTime(const UWidgetAnimation* InAnimation) const;
+
+	/**
 	 * Gets whether an animation is currently playing on this widget.
 	 * 
 	 * @param InAnimation The animation to check the playback status of

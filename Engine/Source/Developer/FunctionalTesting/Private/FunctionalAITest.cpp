@@ -12,6 +12,7 @@ AFunctionalAITest::AFunctionalAITest( const FObjectInitializer& ObjectInitialize
 	, bSingleSetRun(false)
 {
 	SpawnLocationRandomizationRange = 0.f;
+	bWaitForNavMesh = true;
 }
 
 bool AFunctionalAITest::IsOneOfSpawnedPawns(AActor* Actor)
@@ -67,67 +68,95 @@ bool AFunctionalAITest::StartTest(const TArray<FString>& Params)
 		++CurrentSpawnSetIndex;
 	}
 
-	if (CurrentSpawnSetIndex < SpawnSets.Num())
+	if (!SpawnSets.IsValidIndex(CurrentSpawnSetIndex))
 	{
-		UWorld* World = GetWorld();
-		check(World);
-		const FAITestSpawnSet& SpawnSet = SpawnSets[CurrentSpawnSetIndex];
+		return false;
+	}
+	
+	StartSpawning();
 
-		bool bSuccessfullySpawnedAll = true;
+	return Super::StartTest(Params);
+}
 
-		// NOTE: even if some pawns fail to spawn we don't stop spawning to find all spawns that will fails.
-		// all spawned pawns get filled off in case of failure.
-		CurrentSpawnSetName = SpawnSet.Name.ToString();
+void AFunctionalAITest::StartSpawning()
+{
+	if (bWaitForNavMesh && !IsNavMeshReady())
+	{
+		GetWorldTimerManager().SetTimer(NavmeshDelayTimer, this, &AFunctionalAITest::StartSpawning, 0.5f, false);
+		return;
+	}
 
-		for (int32 SpawnIndex = 0; SpawnIndex < SpawnSet.SpawnInfoContainer.Num(); ++SpawnIndex)
+	UWorld* World = GetWorld();
+	check(World);
+	const FAITestSpawnSet& SpawnSet = SpawnSets[CurrentSpawnSetIndex];
+
+	bool bSuccessfullySpawnedAll = true;
+
+	// NOTE: even if some pawns fail to spawn we don't stop spawning to find all spawns that will fails.
+	// all spawned pawns get filled off in case of failure.
+	CurrentSpawnSetName = SpawnSet.Name.ToString();
+
+	for (int32 SpawnIndex = 0; SpawnIndex < SpawnSet.SpawnInfoContainer.Num(); ++SpawnIndex)
+	{
+		const FAITestSpawnInfo& SpawnInfo = SpawnSet.SpawnInfoContainer[SpawnIndex];
+		if (SpawnInfo.IsValid())
 		{
-			const FAITestSpawnInfo& SpawnInfo = SpawnSet.SpawnInfoContainer[SpawnIndex];
-			if (SpawnInfo.IsValid())
+			if (SpawnInfo.PreSpawnDelay > 0)
 			{
-				if (SpawnInfo.SpawnDelay == 0.0)
-				{
-					for (int32 SpawnedCount = 0; SpawnedCount < SpawnInfo.NumberToSpawn; ++SpawnedCount)
-					{
-						bSuccessfullySpawnedAll &= SpawnInfo.Spawn(this);
-					}
-				}
-				else
+				FPendingDelayedSpawn PendingSpawnInfo(SpawnInfo);
+				PendingSpawnInfo.TimeToNextSpawn = SpawnInfo.PreSpawnDelay;
+				PendingSpawnInfo.NumberToSpawnLeft = SpawnInfo.NumberToSpawn;
+
+				PendingDelayedSpawns.Add(PendingSpawnInfo);
+			}
+			else if (SpawnInfo.SpawnDelay == 0.0)
+			{
+				for (int32 SpawnedCount = 0; SpawnedCount < SpawnInfo.NumberToSpawn; ++SpawnedCount)
 				{
 					bSuccessfullySpawnedAll &= SpawnInfo.Spawn(this);
-					if (SpawnInfo.NumberToSpawn > 1)
-					{
-						PendingDelayedSpawns.Add(SpawnInfo);
-					}
 				}
 			}
 			else
 			{
-				const FString SpawnFailureMessage = FString::Printf(TEXT("Spawn set \'%s\' contains invalid entry at index %d")
-					, *SpawnSet.Name.ToString()
-					, SpawnIndex);
-
-				UE_LOG(LogFunctionalTest, Warning, TEXT("%s"), *SpawnFailureMessage);
-
-				bSuccessfullySpawnedAll = false;
+				bSuccessfullySpawnedAll &= SpawnInfo.Spawn(this);
+				if (SpawnInfo.NumberToSpawn > 1)
+				{
+					PendingDelayedSpawns.Add(SpawnInfo);
+				}
 			}
 		}
-
-		if (bSuccessfullySpawnedAll == false)
-		{
-			KillOffSpawnedPawns();
-		}		
 		else
 		{
-			if (PendingDelayedSpawns.Num() > 0)
-			{
-				SetActorTickEnabled(true);
-			}
+			const FString SpawnFailureMessage = FString::Printf(TEXT("Spawn set \'%s\' contains invalid entry at index %d")
+				, *SpawnSet.Name.ToString()
+				, SpawnIndex);
 
-			return Super::StartTest();
+			UE_LOG(LogFunctionalTest, Warning, TEXT("%s"), *SpawnFailureMessage);
+
+			bSuccessfullySpawnedAll = false;
 		}
 	}
 
-	return false;
+	if (bSuccessfullySpawnedAll == false)
+	{
+		KillOffSpawnedPawns();
+		
+		// wait a bit if it's in the middle of StartTest call
+		FTimerHandle DummyHandle;
+		World->GetTimerManager().SetTimer(DummyHandle, this, &AFunctionalAITest::OnSpawningFailure, 0.1f, false);
+	}		
+	else
+	{
+		if (PendingDelayedSpawns.Num() > 0)
+		{
+			SetActorTickEnabled(true);
+		}
+	}
+}
+
+void AFunctionalAITest::OnSpawningFailure()
+{
+	FinishTest(EFunctionalTestResult::Failed, TEXT("Unable to spawn AI"));
 }
 
 bool AFunctionalAITest::WantsToRunAgain() const
@@ -243,6 +272,17 @@ void AFunctionalAITest::AddSpawnedPawn(APawn& SpawnedPawn)
 FVector AFunctionalAITest::GetRandomizedLocation(const FVector& Location) const
 {
 	return Location + FVector(RandomNumbersStream.FRandRange(-SpawnLocationRandomizationRange, SpawnLocationRandomizationRange), RandomNumbersStream.FRandRange(-SpawnLocationRandomizationRange, SpawnLocationRandomizationRange), 0);
+}
+
+bool AFunctionalAITest::IsNavMeshReady() const
+{
+	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
+	if (NavSys && NavSys->NavDataSet.Num() > 0 && !NavSys->IsNavigationBuildInProgress())
+	{
+		return true;
+	}
+
+	return false;
 }
 
 //----------------------------------------------------------------------//

@@ -47,7 +47,7 @@ namespace AutomationTool
 
 			// Build everything
 			UE4Build Builder = new UE4Build(this);
-			Builder.Build(Agenda, InDeleteBuildProducts: true, InUpdateVersionFiles: true, InForceNoXGE: true);
+			Builder.Build(Agenda, InDeleteBuildProducts: false, InUpdateVersionFiles: false, InForceNoXGE: true, InForceNonUnity: true);
 
 			// Include the build products for UAT and UBT if required
 			if(ParseParam("WithUAT"))

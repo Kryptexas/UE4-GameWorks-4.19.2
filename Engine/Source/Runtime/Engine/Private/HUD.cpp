@@ -429,7 +429,11 @@ void AHUD::ShowDebugInfo(float& YL, float& YPos)
 
 		if (ShouldDisplayDebug(NAME_Game))
 		{
-			GetWorld()->GetAuthGameMode()->DisplayDebug(DebugCanvas, DisplayInfo, YL, YPos);
+			AGameMode* AuthGameMode = GetWorld()->GetAuthGameMode();
+			if (AuthGameMode)
+			{
+				AuthGameMode->DisplayDebug(DebugCanvas, DisplayInfo, YL, YPos);
+			}
 		}
 
 		if (bShowDebugInfo)

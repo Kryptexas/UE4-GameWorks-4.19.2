@@ -545,7 +545,6 @@ bool NUTNet::CreateFakePlayer(UWorld* InWorld, UNetDriver*& InNetDriver, FString
 			{
 				// Then send NMT_Login
 #if TARGET_UE4_CL < CL_CONSTUNIQUEID
-				TSharedPtr<FUniqueNetId> DudPtr = MakeShareable(new FUniqueNetIdString(TEXT("Dud")));
 #else
 				TSharedPtr<const FUniqueNetId> DudPtr = MakeShareable(new FUniqueNetIdString(TEXT("Dud")));
 #endif

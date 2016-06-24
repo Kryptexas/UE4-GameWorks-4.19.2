@@ -1553,6 +1553,39 @@ bool UActorChannel::CleanUp( const bool bForDestroy )
 
 	UE_LOG( LogNetTraffic, Log, TEXT( "UActorChannel::CleanUp: %s" ), *Describe() );
 
+	if (!bIsServer && QueuedBunches.Num() > 0 && ChIndex >= 0 && !bForDestroy)
+	{
+		checkf(ActorNetGUID.IsValid(), TEXT("UActorChannel::Cleanup: ActorNetGUID is invalid! Channel: %i"), ChIndex);
+		
+		TArray<UActorChannel*>& ChannelsStillProcessing = Connection->KeepProcessingActorChannelBunchesMap.FindOrAdd(ActorNetGUID);
+		
+#if DO_CHECK
+		if (ensureMsgf(!ChannelsStillProcessing.Contains(this), TEXT("UActorChannel::CleanUp encountered a channel already within the KeepProcessingActorChannelBunchMap. Channel: %i"), ChIndex))
+#endif // #if DO_CHECK
+		{
+			UE_LOG(LogNet, VeryVerbose, TEXT("UActorChannel::CleanUp: Adding to KeepProcessingActorChannelBunchesMap. Channel: %i, Num: %i"), ChIndex, Connection->KeepProcessingActorChannelBunchesMap.Num());
+
+			// Remember the connection, since CleanUp below will NULL it
+			UNetConnection* OldConnection = Connection;
+
+			// This will unregister the channel, and make it free for opening again
+			// We need to do this, since the server will assume this channel is free once we ack this packet
+			Super::CleanUp(bForDestroy);
+
+			// Restore connection property since we'll need it for processing bunches (the Super::CleanUp call above NULL'd it)
+			Connection = OldConnection;
+
+			// Add this channel to the KeepProcessingActorChannelBunchesMap list
+			ChannelsStillProcessing.Add(this);
+
+			// We set ChIndex to -1 to signify that we've already been "closed" but we aren't done processing bunches
+			ChIndex = -1;
+
+			// Return false so we won't do pending kill yet
+			return false;
+		}
+	}
+
 	// If we're the client, destroy this actor.
 	if (!bIsServer)
 	{
@@ -1590,59 +1623,6 @@ bool UActorChannel::CleanUp( const bool bForDestroy )
 	{
 		// Resend temporary actors if nak'd.
 		Connection->SentTemporaries.Remove(Actor);
-	}
-
-	if ( !bIsServer && Dormant && QueuedBunches.Num() > 0 && ChIndex >= 0 && !bForDestroy )
-	{
-		if ( !ActorNetGUID.IsValid() )
-		{
-			UE_LOG( LogNet, Error, TEXT( "UActorChannel::CleanUp: Can't add to KeepProcessingActorChannelBunchesMap (ActorNetGUID invalid). Channel: %i" ), ChIndex );
-		}
-		else if ( Connection->KeepProcessingActorChannelBunchesMap.Contains( ActorNetGUID ) )
-		{
-			// FIXME: Handle this case!
-			// We should merge the channel info here
-			UE_LOG( LogNet, Error, TEXT( "UActorChannel::CleanUp: Can't add to KeepProcessingActorChannelBunchesMap (ActorNetGUID already in list). Channel: %i" ), ChIndex );
-		}
-		else
-		{
-			UE_LOG( LogNet, VeryVerbose, TEXT( "UActorChannel::CleanUp: Adding to KeepProcessingActorChannelBunchesMap. Channel: %i, Num: %i" ), ChIndex, Connection->KeepProcessingActorChannelBunchesMap.Num() );
-
-			// Remember the connection, since CleanUp below will NULL it
-			UNetConnection* OldConnection = Connection;
-
-			// This will unregister the channel, and make it free for opening again
-			// We need to do this, since the server will assume this channel is free once we ack this packet
-			Super::CleanUp( bForDestroy );
-
-			// Restore connection property since we'll need it for processing bunches (the Super::CleanUp call above NULL'd it)
-			Connection = OldConnection;
-
-			// Add this channel to the KeepProcessingActorChannelBunchesMap list
-			check( !Connection->KeepProcessingActorChannelBunchesMap.Contains( ActorNetGUID ) );
-			Connection->KeepProcessingActorChannelBunchesMap.Add( ActorNetGUID, this );
-
-			// We set ChIndex to -1 to signify that we've already been "closed" but we aren't done processing bunches
-			ChIndex = -1;
-
-			// Return false so we won't do pending kill yet
-			return false;
-		}
-	}
-
-	// If there is another channel that was processing queued bunched for this guid, make sure to clean those up as well
-	if ( Connection->KeepProcessingActorChannelBunchesMap.Contains( ActorNetGUID ) )
-	{
-		UActorChannel * OtherChannel = Connection->KeepProcessingActorChannelBunchesMap.FindChecked( ActorNetGUID );
-		// We can ignore if this channel is already being destroyed, or if it's this actual channel (which is already being taken care of)
-		if ( OtherChannel != NULL && !OtherChannel->IsPendingKill() && OtherChannel != this )
-		{
-			// Reset a few things so that the ConditionalCleanUp doesn't do work we will do here
-			OtherChannel->Actor		= NULL;
-			OtherChannel->Dormant	= 0;
-
-			OtherChannel->ConditionalCleanUp( true );
-		}
 	}
 
 	// Remove from hash and stuff.

@@ -106,6 +106,8 @@ public:
 
 	bool FindAllTasksOwnedBy(const IGameplayTaskOwnerInterface& TaskOwner, TArray<UGameplayTask*>& FoundTasks) const;
 
+	bool HasActiveTasks(UClass* TaskClass) const;
+
 	FORCEINLINE FGameplayResourceSet GetCurrentlyUsedResources() const { return CurrentlyClaimedResources; }
 
 	// BEGIN IGameplayTaskOwnerInterface

@@ -145,18 +145,16 @@ EBTNodeResult::Type UBTTask_MoveTo::PerformMoveTask(UBehaviorTreeComponent& Owne
 			}
 			else
 			{
-				EPathFollowingRequestResult::Type RequestResult = MyController->MoveTo(MoveReq);
-				if (RequestResult == EPathFollowingRequestResult::RequestSuccessful)
+				FPathFollowingRequestResult RequestResult = MyController->MoveTo(MoveReq);
+				if (RequestResult.Code == EPathFollowingRequestResult::RequestSuccessful)
 				{
-					const FAIRequestID RequestID = MyController->GetCurrentMoveRequestID();
-
-					MyMemory->MoveRequestID = RequestID;
-					WaitForMessage(OwnerComp, UBrainComponent::AIMessage_MoveFinished, RequestID);
+					MyMemory->MoveRequestID = RequestResult.MoveId;
+					WaitForMessage(OwnerComp, UBrainComponent::AIMessage_MoveFinished, RequestResult.MoveId);
 					WaitForMessage(OwnerComp, UBrainComponent::AIMessage_RepathFailed);
 
 					NodeResult = EBTNodeResult::InProgress;
 				}
-				else if (RequestResult == EPathFollowingRequestResult::AlreadyAtGoal)
+				else if (RequestResult.Code == EPathFollowingRequestResult::AlreadyAtGoal)
 				{
 					NodeResult = EBTNodeResult::Succeeded;
 				}

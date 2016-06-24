@@ -893,15 +893,19 @@ void UPartyGameState::SetAcceptingMembers(bool bIsAcceptingMembers, EJoinPartyDe
 	if (IsLocalPartyLeader())
 	{
 		ensure(OssParty.IsValid());
-		if (CurrentConfig.bIsAcceptingMembers != bIsAcceptingMembers)
-		{
-			int32 NumPartyMembers = GetPartySize();
-			int32 MaxPartyMembers = CurrentConfig.MaxMembers;
-			bool bIsRoomInParty = (NumPartyMembers < MaxPartyMembers);
 
-			bDebugAcceptingMembers = bIsAcceptingMembers && bIsRoomInParty;
+		int32 NumPartyMembers = GetPartySize();
+		int32 MaxPartyMembers = CurrentConfig.MaxMembers;
+		bool bIsRoomInParty = (NumPartyMembers < MaxPartyMembers);
+
+		bool bCanAcceptMembers = bIsAcceptingMembers && bIsRoomInParty;
+
+		int32 NewDenialReason = (int32)(bCanAcceptMembers ? EJoinPartyDenialReason::NoReason : DenialReason);
+		if (CurrentConfig.bIsAcceptingMembers != bCanAcceptMembers || CurrentConfig.NotAcceptingMembersReason != NewDenialReason)
+		{
+			bDebugAcceptingMembers = bCanAcceptMembers;
 			CurrentConfig.bIsAcceptingMembers = bDebugAcceptingMembers;
-			CurrentConfig.NotAcceptingMembersReason = (int32)(bDebugAcceptingMembers ? EJoinPartyDenialReason::NoReason : DenialReason);
+			CurrentConfig.NotAcceptingMembersReason = NewDenialReason;
 			UpdatePartyConfig();
 		}
 	}

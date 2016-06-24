@@ -90,8 +90,8 @@ FVorbisAudioInfo::FVorbisAudioInfo( void )
 
 FVorbisAudioInfo::~FVorbisAudioInfo( void ) 
 { 
-	// Make sure we're not deleting ourselves while performing an opreation
-	check(!bPerformingOperation);
+	// Make sure we're not deleting ourselves while performing an operation
+	ensure(!bPerformingOperation);
 
 	FScopeLock ScopeLock(&VorbisCriticalSection);
 	check(VFWrapper != nullptr);
@@ -184,6 +184,7 @@ bool FVorbisAudioInfo::ReadCompressedInfo( const uint8* InSrcBufferData, uint32 
 
 	if (!VFWrapper)
 	{
+		bPerformingOperation = false;
 		return false;
 	}
 
@@ -203,6 +204,7 @@ bool FVorbisAudioInfo::ReadCompressedInfo( const uint8* InSrcBufferData, uint32 
 	if (Result < 0)
 	{
 		UE_LOG(LogAudio, Error, TEXT("FVorbisAudioInfo::ReadCompressedInfo, ov_open_callbacks error code: %d"), Result);
+		bPerformingOperation = false;
 		return false;
 	}
 
@@ -260,6 +262,7 @@ void FVorbisAudioInfo::ExpandFile( uint8* DstBuffer, FSoundQualityInfo* QualityI
 		{
 			// indicates an error - fill remainder of buffer with zero
 			FMemory::Memzero(Destination, BytesToRead - TotalBytesRead);
+			bPerformingOperation = false;
 			return;
 		}
 
@@ -314,6 +317,7 @@ bool FVorbisAudioInfo::ReadCompressedData( uint8* InDestination, bool bLooping, 
 				{
 					// indicates an error - fill remainder of buffer with zero
 					FMemory::Memzero(Destination, BufferSize - TotalBytesRead);
+					bPerformingOperation = false;
 					return true;
 				}
 			}
@@ -329,6 +333,7 @@ bool FVorbisAudioInfo::ReadCompressedData( uint8* InDestination, bool bLooping, 
 		{
 			// indicates an error - fill remainder of buffer with zero
 			FMemory::Memzero(Destination, BufferSize - TotalBytesRead);
+			bPerformingOperation = false;
 			return false;
 		}
 

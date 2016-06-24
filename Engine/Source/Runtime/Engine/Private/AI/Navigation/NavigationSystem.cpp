@@ -3045,7 +3045,7 @@ void UNavigationSystem::PerformNavigationBoundsUpdate(const TArray<FNavigationBo
 				}
 				else
 				{
-					ExistingElementId = RegisteredNavBounds.Add(Request.NavBounds);
+					AddNavigationBounds(Request.NavBounds);
 				}
 
 				UpdatedAreas.Add(Request.NavBounds.AreaBox);
@@ -3073,6 +3073,11 @@ void UNavigationSystem::PerformNavigationBoundsUpdate(const TArray<FNavigationBo
 	}
 }
 
+void UNavigationSystem::AddNavigationBounds(const FNavigationBounds& NewBounds)
+{
+	RegisteredNavBounds.Add(NewBounds);
+}
+
 void UNavigationSystem::GatherNavigationBounds()
 {
 	// Gather all available navigation bounds
@@ -3087,7 +3092,8 @@ void UNavigationSystem::GatherNavigationBounds()
 			NavBounds.AreaBox = V->GetComponentsBoundingBox(true);
 			NavBounds.Level = V->GetLevel();
 			NavBounds.SupportedAgents = V->SupportedAgents;
-			RegisteredNavBounds.Add(NavBounds);
+
+			AddNavigationBounds(NavBounds);
 		}
 	}
 }
@@ -3723,6 +3729,19 @@ bool UNavigationSystem::IsNavigationBeingBuilt(UObject* WorldContextObject)
 	if (NavSys && !NavSys->IsNavigationBuildingPermanentlyLocked())
 	{
 		return NavSys->HasDirtyAreasQueued() || NavSys->IsNavigationBuildInProgress();
+	}
+
+	return false;
+}
+
+bool UNavigationSystem::IsNavigationBeingBuiltOrLocked(UObject* WorldContextObject)
+{
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
+
+	if (NavSys)
+	{
+		return NavSys->IsNavigationBuildingLocked() || NavSys->HasDirtyAreasQueued() || NavSys->IsNavigationBuildInProgress();
 	}
 
 	return false;

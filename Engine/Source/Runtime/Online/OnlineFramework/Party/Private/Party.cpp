@@ -1156,7 +1156,7 @@ bool UParty::IsInParty(TSharedPtr<const FOnlinePartyId>& PartyId) const
 	return bFoundParty;
 }
 
-void UParty::KickFromPersistentParty()
+void UParty::KickFromPersistentParty(const UPartyDelegates::FOnLeaveUPartyComplete& InCompletionDelegate)
 {
 	TSharedPtr<const FOnlinePartyId> LocalPersistentPartyId = GetPersistentPartyId();
 	UPartyGameState* PersistentParty = GetPersistentParty();
@@ -1171,7 +1171,7 @@ void UParty::KickFromPersistentParty()
 			if (ensure(LocalUserId.IsValid() && LocalUserId->IsValid()))
 			{
 				// Leave the party (restored in frontend)
-				LeavePersistentParty(*LocalUserId);
+				LeavePersistentParty(*LocalUserId, InCompletionDelegate);
 			}
 		}
 		else

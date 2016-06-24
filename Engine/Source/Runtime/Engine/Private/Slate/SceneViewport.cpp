@@ -442,6 +442,32 @@ FReply FSceneViewport::OnMouseButtonDown( const FGeometry& InGeometry, const FPo
 	return CurrentReplyState;
 }
 
+bool FSceneViewport::RestoreCaptureState(uint32 UserIndex)
+{
+	if (IsCurrentlyGameViewport())
+	{
+		FSlateApplication& SlateApp = FSlateApplication::Get();
+
+		const bool bPermanentCapture =
+			(ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CapturePermanently) ||
+			(ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CapturePermanently_IncludingInitialMouseDown);
+
+		if (SlateApp.IsActive() && !ViewportClient->IgnoreInput() && bPermanentCapture)
+		{
+			TSharedRef<SViewport> ViewportWidgetRef = ViewportWidget.Pin().ToSharedRef();
+
+			FWidgetPath PathToWidget;
+			SlateApp.GeneratePathToWidgetUnchecked(ViewportWidgetRef, PathToWidget);
+
+			FReply Reply = AcquireFocusAndCapture(GetSizeXY() / 2);
+			SlateApp.ProcessReply(PathToWidget, Reply, nullptr, nullptr, UserIndex);
+
+			return true;
+		}
+	}
+	return false;
+}
+
 FReply FSceneViewport::AcquireFocusAndCapture(FIntPoint MousePosition)
 {
 	bShouldCaptureMouseOnActivate = false;
@@ -456,13 +482,6 @@ FReply FSceneViewport::AcquireFocusAndCapture(FIntPoint MousePosition)
 	UWorld* World = ViewportClient->GetWorld();
 	if (World && World->IsGameWorld() && World->GetGameInstance() && (World->GetGameInstance()->GetFirstLocalPlayerController() || World->IsPlayInEditor()))
 	{
-		ReplyState.CaptureMouse(ViewportWidgetRef);
-
-		if (ViewportClient->LockDuringCapture())
-		{
-			ReplyState.LockMouseToWidget(ViewportWidgetRef);
-		}
-
 		APlayerController* PC = World->GetGameInstance()->GetFirstLocalPlayerController();
 		bool bShouldShowMouseCursor = PC && PC->ShouldShowMouseCursor();
 		if (ViewportClient->HideCursorDuringCapture() && bShouldShowMouseCursor)
@@ -472,6 +491,11 @@ FReply FSceneViewport::AcquireFocusAndCapture(FIntPoint MousePosition)
 		}
 		if (bCursorHiddenDueToCapture || !bShouldShowMouseCursor)
 		{
+			ReplyState.CaptureMouse(ViewportWidgetRef);
+			if (ViewportClient->LockDuringCapture())
+			{
+				ReplyState.LockMouseToWidget(ViewportWidgetRef);
+			}
 			ReplyState.UseHighPrecisionMouseMovement(ViewportWidgetRef);
 		}
 	}

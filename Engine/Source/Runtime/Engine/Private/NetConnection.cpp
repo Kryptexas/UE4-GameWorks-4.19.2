@@ -442,7 +442,11 @@ void UNetConnection::AddReferencedObjects(UObject* InThis, FReferenceCollector& 
 	// Let GC know that we're referencing some UActorChannel objects
 	for ( auto It = This->KeepProcessingActorChannelBunchesMap.CreateIterator(); It; ++It )
 	{
-		Collector.AddReferencedObject( It.Value(), This );
+		const TArray<UActorChannel*>& ChannelArray = It.Value();
+		for ( UActorChannel* CurChannel : ChannelArray )
+		{
+			Collector.AddReferencedObject( CurChannel, This );
+		}
 	}
 
 	Super::AddReferencedObjects(This, Collector);
@@ -1491,11 +1495,16 @@ UVoiceChannel* UNetConnection::GetVoiceChannel()
 
 float UNetConnection::GetTimeoutValue()
 {
+#if !UE_BUILD_SHIPPING
+	// Check for -notimeouts, if using it then set the timeout value to a huge number
+	float Timeout = !Driver->bNoTimeouts ? Driver->InitialConnectTimeout : MAX_FLT;
+#else
 	float Timeout = Driver->InitialConnectTimeout;
+#endif
+
 	if ( ( State != USOCK_Pending ) && ( bPendingDestroy || ( OwningActor && OwningActor->UseShortConnectTimeout() ) ) )
 	{
 #if !UE_BUILD_SHIPPING
-		// Check for -notimeouts, if using it then set the timeout value to a huge number
 		const float ConnectionTimeout = !Driver->bNoTimeouts ? Driver->ConnectionTimeout : MAX_FLT;
 #else
 		const float ConnectionTimeout = Driver->ConnectionTimeout;
@@ -1658,25 +1667,44 @@ void UNetConnection::Tick()
 			}
 		}
 
-		for ( auto It = KeepProcessingActorChannelBunchesMap.CreateIterator(); It; ++It )
+		for ( auto ProcessingActorMapIter = KeepProcessingActorChannelBunchesMap.CreateIterator(); ProcessingActorMapIter; ++ProcessingActorMapIter )
 		{
-			if ( It.Value() == NULL || It.Value()->IsPendingKill() )
+			TArray<UActorChannel*>& ActorChannelArray = ProcessingActorMapIter.Value();
+			for ( int32 ActorChannelIdx = 0; ActorChannelIdx < ActorChannelArray.Num(); ++ActorChannelIdx )
 			{
-				It.RemoveCurrent();
-				UE_LOG( LogNet, Verbose, TEXT( "UNetConnection::Tick: Removing from KeepProcessingActorChannelBunchesMap before done processing bunches. Num: %i" ), KeepProcessingActorChannelBunchesMap.Num() );
-				continue;
+				UActorChannel* CurChannel = ActorChannelArray[ActorChannelIdx];
+				
+				bool bRemoveChannel = false;
+				if ( CurChannel && !CurChannel->IsPendingKill() )
+				{
+					check( CurChannel->ChIndex == -1 );
+					if ( CurChannel->ProcessQueuedBunches() )
+					{
+						// Since we are done processing bunches, we can now actually clean this channel up
+						CurChannel->ConditionalCleanUp();
+
+						bRemoveChannel = true;
+						UE_LOG( LogNet, VeryVerbose, TEXT("UNetConnection::Tick: Removing from KeepProcessingActorChannelBunchesMap. Num: %i"), KeepProcessingActorChannelBunchesMap.Num() );
+					}
+
+				}
+				else
+				{
+					bRemoveChannel = true;
+					UE_LOG( LogNet, Verbose, TEXT("UNetConnection::Tick: Removing from KeepProcessingActorChannelBunchesMap before done processing bunches. Num: %i"), KeepProcessingActorChannelBunchesMap.Num() );
+				}
+
+				// Remove the actor channel from the array
+				if ( bRemoveChannel )
+				{
+					ActorChannelArray.RemoveAt( ActorChannelIdx, 1, false );
+					--ActorChannelIdx;
+				}
 			}
 
-			check( It.Value()->ChIndex == -1 );
-
-			if ( It.Value()->ProcessQueuedBunches() )
+			if ( ActorChannelArray.Num() == 0 )
 			{
-				// Since we are done processing bunches, we can now actually clean this channel up
-				It.Value()->ConditionalCleanUp();
-
-				// Remove the channel from the map
-				It.RemoveCurrent();
-				UE_LOG( LogNet, VeryVerbose, TEXT( "UNetConnection::Tick: Removing from KeepProcessingActorChannelBunchesMap. Num: %i" ), KeepProcessingActorChannelBunchesMap.Num() );
+				ProcessingActorMapIter.RemoveCurrent();
 			}
 		}
 

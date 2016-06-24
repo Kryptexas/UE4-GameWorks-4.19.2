@@ -98,6 +98,16 @@ void UGameInstance::Shutdown()
 		}
 	}
 
+	for (int32 PlayerIdx = LocalPlayers.Num() - 1; PlayerIdx >= 0; --PlayerIdx)
+	{
+		ULocalPlayer* Player = LocalPlayers[PlayerIdx];
+
+		if (Player)
+		{
+			RemoveLocalPlayer(Player);
+		}
+	}
+
 	// Clear the world context pointer to prevent further access.
 	WorldContext = nullptr;
 }

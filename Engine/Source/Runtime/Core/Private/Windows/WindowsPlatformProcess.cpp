@@ -80,7 +80,7 @@ void FWindowsPlatformProcess::FreeDllHandle( void* DllHandle )
 FString FWindowsPlatformProcess::GenerateApplicationPath( const FString& AppName, EBuildConfigurations::Type BuildConfiguration)
 {
 	FString PlatformName = GetBinariesSubdirectory();
-	FString ExecutablePath = FString::Printf(TEXT("..\\%s\\%s"), *PlatformName, *AppName);
+	FString ExecutablePath = FString::Printf(TEXT("..\\..\\..\\Engine\\Binaries\\%s\\%s"), *PlatformName, *AppName);
 
 	if (BuildConfiguration != EBuildConfigurations::Development && BuildConfiguration != EBuildConfigurations::DebugGame)
 	{
@@ -1018,7 +1018,14 @@ void FWindowsPlatformProcess::Sleep( float Seconds )
 
 void FWindowsPlatformProcess::SleepNoStats(float Seconds)
 {
-	::Sleep((uint32)(Seconds * 1000.0));
+	if (Seconds == 0)
+	{
+		::SwitchToThread();
+	}
+	else
+	{
+		::Sleep((uint32)(Seconds * 1000.0));
+	}
 }
 
 void FWindowsPlatformProcess::SleepInfinite()

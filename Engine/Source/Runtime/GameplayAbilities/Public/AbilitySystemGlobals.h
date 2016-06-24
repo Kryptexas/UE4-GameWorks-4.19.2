@@ -195,17 +195,21 @@ protected:
 	bool bIgnoreAbilitySystemCosts;
 #endif // #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
-	/** Holds all of the valid gameplay-related tags that can be applied to assets */
+	/** Name of global curve table to use as the default for scalable floats, etc. */
 	UPROPERTY(config)
-	FString GlobalCurveTableName;
+	FStringAssetReference GlobalCurveTableName;
 
 	/** Holds information about the valid attributes' min and max values and stacking rules */
 	UPROPERTY(config)
-	FString GlobalAttributeMetaDataTableName;
+	FStringAssetReference GlobalAttributeMetaDataTableName;
 
-	/** Holds default values for attribute sets, keyed off of Name/Levels. */
+	/** Holds default values for attribute sets, keyed off of Name/Levels. NOTE: Preserved for backwards compatibility, should use the array version below now */
 	UPROPERTY(config)
-	FString GlobalAttributeSetDefaultsTableName;
+	FStringAssetReference GlobalAttributeSetDefaultsTableName;
+
+	/** Array of curve table names to use for default values for attribute sets, keyed off of Name/Levels */
+	UPROPERTY(config)
+	TArray<FStringAssetReference> GlobalAttributeSetDefaultsTableNames;
 
 	/** Class reference to gameplay cue manager. Use this if you want to just instantiate a class for your gameplay cue manager without having to create an asset. */
 	UPROPERTY(config)
@@ -233,8 +237,9 @@ protected:
 	UPROPERTY()
 	UCurveTable* GlobalCurveTable;
 
+	/** Curve tables containing default values for attribute sets, keyed off of Name/Levels */
 	UPROPERTY()
-	UCurveTable* GlobalAttributeDefaultsTable;
+	TArray<UCurveTable*> GlobalAttributeDefaultsTables;
 
 	UPROPERTY()
 	UDataTable* GlobalAttributeMetaDataTable;
@@ -251,7 +256,7 @@ protected:
 	void OnTableReimported(UObject* InObject);
 #endif
 
-	void HandlePostWorldCreate(UWorld* NewWorld);
+	void HandlePreLoadMap(const FString& MapName);
 
 #if WITH_EDITORONLY_DATA
 	bool RegisteredReimportCallback;

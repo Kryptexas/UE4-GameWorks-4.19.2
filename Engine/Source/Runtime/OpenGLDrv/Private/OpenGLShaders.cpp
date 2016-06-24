@@ -694,6 +694,11 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 			ReplaceCString(GlslCodeOriginal, "#version 100", "");
 		}
 	}
+	else if (Capabilities.TargetPlatform == EOpenGLShaderTargetPlatform::OGLSTP_Desktop && PLATFORM_MAC)
+	{
+		AppendCString(GlslCode, "#version 330\n");
+		ReplaceCString(GlslCodeOriginal, "#version 150", "");
+	}
 
 		// Only desktop with separable shader platform can use GL_ARB_separate_shader_objects for reduced shader compile/link hitches
 		// however ES3.1 relies on layout(location=) support

@@ -203,7 +203,7 @@ protected:
 	
 	/** the slot to store a per-thread context ref */
 	static uint32 CurrentContextTLSSlot;
-	
+
 	/** The side table for runtiem validation of buffer access */
 	uint32 BufferSideTable[SF_NumFrequencies][MaxMetalStreams];
 	
@@ -269,10 +269,12 @@ private:
 	
 	/** Free lists for releasing objects only once it is safe to do so */
 	TSet<id> FreeList;
+	NSMutableSet<id<MTLBuffer>>* FreeBuffers;
 	struct FMetalDelayedFreeList
 	{
 		dispatch_semaphore_t Signal;
 		TSet<id> FreeList;
+		NSMutableSet<id<MTLBuffer>>* FreeBuffers;
         int FrameCount;
 	};
 	TArray<FMetalDelayedFreeList*> DelayedFreeLists;

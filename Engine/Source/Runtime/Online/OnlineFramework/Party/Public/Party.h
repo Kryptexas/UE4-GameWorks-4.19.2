@@ -226,8 +226,10 @@ public:
 
 	/**
 	 * Kick local players from persistent party
+	 *
+	 * @param InCompletionDelegate delegate called upon completion
 	 */
-	void KickFromPersistentParty();
+	void KickFromPersistentParty(const UPartyDelegates::FOnLeaveUPartyComplete& InCompletionDelegate = UPartyDelegates::FOnLeaveUPartyComplete());
 
 	/**
 	 * Try to process any pending invites received while in the rest of the game

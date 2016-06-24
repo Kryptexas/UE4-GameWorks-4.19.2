@@ -1518,6 +1518,7 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	//		a. we have accumulated 50 (configurable) of these since the last GC.
 	//		b. we have been idle for 20 (configurable) seconds.
 	bool bShouldGC = false;
+	FString GCReason;
 
 	// megamoth
 	uint32 NonMapPackageCountSinceLastGC = 0;
@@ -1550,17 +1551,34 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 				GShaderCompilingManager->ProcessAsyncResults(true, false);
 			}
 
-			if (NonMapPackageCountSinceLastGC > 0)
+			if (NonMapPackageCountSinceLastGC > 0 && !bShouldGC)
 			{
 				// We should GC if we have packages to collect and we've been idle for some time.
 				const bool bExceededPackagesPerGC = (PackagesPerGC > 0) && (NonMapPackageCountSinceLastGC > PackagesPerGC);
 				const bool bExceededIdleTimeToGC = (IdleTimeToGC > 0) && ((FPlatformTime::Seconds() - LastCookActionTime) >= IdleTimeToGC);
-				bShouldGC |= bExceededPackagesPerGC || bExceededIdleTimeToGC;
+				if (bExceededPackagesPerGC)
+				{
+					GCReason = TEXT("ExceededPackagesPerGC");
+					bShouldGC = true;
+				}
+				else if (bExceededIdleTimeToGC)
+				{
+					GCReason = TEXT("ExceededIdleTimeToGC");
+					bShouldGC = true;
+				}
 			}
 
-			bShouldGC |= (TickResults & UCookOnTheFlyServer::COSR_RequiresGC) != 0;
+			if (!bShouldGC && (TickResults & UCookOnTheFlyServer::COSR_RequiresGC) != 0)
+			{
+				GCReason = TEXT("COSR_RequiresGC");
+				bShouldGC = true;
+			}
 
-			bShouldGC |= HasExceededMaxMemory( MaxMemoryAllowance );
+			if (!bShouldGC && HasExceededMaxMemory(MaxMemoryAllowance))
+			{
+				GCReason = TEXT("ExceededMaxMemory");
+				bShouldGC = true;
+			}
 
 
 			// don't clean up if we are waiting on cache of cooked data
@@ -1569,7 +1587,8 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 				bShouldGC = false;
 				NonMapPackageCountSinceLastGC = 0;
 
-				UE_LOG( LogCookCommandlet, Display, TEXT( "GarbageCollection..." ) );
+				UE_LOG( LogCookCommandlet, Display, TEXT( "GarbageCollection... (%s)" ), *GCReason);
+				GCReason = FString();
 
 				COOK_STAT(FScopedDurationTimer GCTimer(DetailedCookStats::TickLoopGCTimeSec));
 				CollectGarbage(RF_NoFlags);

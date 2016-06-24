@@ -1544,13 +1544,14 @@ void AGameMode::PostCommitMapChange() {}
 void AGameMode::AddInactivePlayer(APlayerState* PlayerState, APlayerController* PC)
 {
 	check(PlayerState)
-	// don't store if it's an old PlayerState from the previous level or if it's a spectator
-	if (!PlayerState->bFromPreviousLevel && !PlayerState->bOnlySpectator)
+	UWorld* LocalWorld = GetWorld();
+	// don't store if it's an old PlayerState from the previous level or if it's a spectator... or if we are shutting down
+	if (!PlayerState->bFromPreviousLevel && !PlayerState->bOnlySpectator && !LocalWorld->bIsTearingDown)
 	{
 		APlayerState* const NewPlayerState = PlayerState->Duplicate();
 		if (NewPlayerState)
 		{
-			GetWorld()->GameState->RemovePlayerState(NewPlayerState);
+			LocalWorld->GameState->RemovePlayerState(NewPlayerState);
 
 			// make PlayerState inactive
 			NewPlayerState->SetReplicates(false);

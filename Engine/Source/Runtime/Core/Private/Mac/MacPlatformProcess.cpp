@@ -81,7 +81,7 @@ FString FMacPlatformProcess::GenerateApplicationPath( const FString& AppName, EB
 	}
 	else
 	{
-		FString ExecutablePath = FString::Printf(TEXT("../%s/%s.app/Contents/MacOS/%s"), *PlatformName, *ExecutableName, *ExecutableName);
+		FString ExecutablePath = FString::Printf(TEXT("../../../Engine/Binaries/%s/%s.app/Contents/MacOS/%s"), *PlatformName, *ExecutableName, *ExecutableName);
 			
 		NSString* LaunchPath = ExecutablePath.GetNSString();
 		

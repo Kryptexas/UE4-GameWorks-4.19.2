@@ -352,6 +352,20 @@ float UUserWidget::PauseAnimation(const UWidgetAnimation* InAnimation)
 	return 0;
 }
 
+float UUserWidget::GetAnimationCurrentTime(const UWidgetAnimation* InAnimation) const
+{
+	if (InAnimation)
+	{
+		const UUMGSequencePlayer*const* FoundPlayer = ActiveSequencePlayers.FindByPredicate([&](const UUMGSequencePlayer* Player) { return Player->GetAnimation() == InAnimation; });
+		if (FoundPlayer)
+		{
+			return (float)(*FoundPlayer)->GetTimeCursorPosition();
+		}
+	}
+
+	return 0;
+}
+
 bool UUserWidget::IsAnimationPlaying(const UWidgetAnimation* InAnimation) const
 {
 	if (InAnimation)

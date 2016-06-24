@@ -67,7 +67,6 @@ DEFINE_STAT(STAT_NumActors);
 DEFINE_STAT(STAT_NumNetActors);
 DEFINE_STAT(STAT_NumDormantActors);
 DEFINE_STAT(STAT_NumInitiallyDormantActors);
-DEFINE_STAT(STAT_NumActorChannelsReadyDormant);
 DEFINE_STAT(STAT_NumNetGUIDsAckd);
 DEFINE_STAT(STAT_NumNetGUIDsPending);
 DEFINE_STAT(STAT_NumNetGUIDsUnAckd);
@@ -383,7 +382,6 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 		int32 NumOpenChannels = 0;
 		int32 NumActorChannels = 0;
 		int32 NumDormantActors = 0;
-		int32 NumActorChannelsReadyDormant = 0;
 		int32 NumActors = 0;
 		int32 AckCount = 0;
 		int32 UnAckCount = 0;
@@ -446,15 +444,6 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 				NumActorChannels = Connection->ActorChannels.Num();
 				NumDormantActors = Connection->DormantActors.Num();
 
-				for (auto It = Connection->ActorChannels.CreateIterator(); It; ++It)
-				{
-					UActorChannel* Chan = It.Value();
-					if (Chan && Chan->ReadyForDormancy(true))
-					{
-						NumActorChannelsReadyDormant++;
-					}
-				}
-
 				if (World)
 				{
 					NumActors = World->GetActorCount();
@@ -510,7 +499,6 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 		SET_DWORD_STAT(STAT_NumDormantActors, NumDormantActors);
 		SET_DWORD_STAT(STAT_NumActors, NumActors);
 		SET_DWORD_STAT(STAT_NumNetActors, GetNetworkObjectList().GetObjects().Num());
-		SET_DWORD_STAT(STAT_NumActorChannelsReadyDormant, NumActorChannelsReadyDormant);
 		SET_DWORD_STAT(STAT_NumNetGUIDsAckd, AckCount);
 		SET_DWORD_STAT(STAT_NumNetGUIDsPending, UnAckCount);
 		SET_DWORD_STAT(STAT_NumNetGUIDsUnAckd, PendingCount);
@@ -3141,8 +3129,14 @@ void UNetDriver::DrawNetDriverDebug()
 		return;
 	}
 
+	UWorld* LocalWorld = GetWorld();
+	if (!LocalWorld)
+	{
+		return;
+	}
+
 	ULocalPlayer*	LocalPlayer = NULL;
-	for(FLocalPlayerIterator It(GEngine, GetWorld());It;++It)
+	for(FLocalPlayerIterator It(GEngine, LocalWorld);It;++It)
 	{
 		LocalPlayer = *It;
 		break;
@@ -3154,7 +3148,7 @@ void UNetDriver::DrawNetDriverDebug()
 
 	const float CullDistSqr = FMath::Square(CVarNetDormancyDrawCullDistance.GetValueOnGameThread());
 
-	for (FActorIterator It(GetWorld()); It; ++It)
+	for (FActorIterator It(LocalWorld); It; ++It)
 	{
 		if ((It->GetActorLocation() - LocalPlayer->LastViewLocation).SizeSquared() > CullDistSqr)
 		{
@@ -3176,7 +3170,7 @@ void UNetDriver::DrawNetDriverDebug()
 		}
 
 		FBox Box = 	It->GetComponentsBoundingBox();
-		DrawDebugBox( GetWorld(), Box.GetCenter(), Box.GetExtent(), FQuat::Identity, DrawColor, false );
+		DrawDebugBox( LocalWorld, Box.GetCenter(), Box.GetExtent(), FQuat::Identity, DrawColor, false );
 	}
 }
 

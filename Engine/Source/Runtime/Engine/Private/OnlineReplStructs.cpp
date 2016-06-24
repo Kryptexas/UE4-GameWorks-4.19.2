@@ -71,24 +71,27 @@ bool FUniqueNetIdRepl::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UOb
 {
 	SetUniqueNetId(nullptr);
 
-	if (IsRunningCommandlet())
-	{
-#if !NO_LOGGING
-		ErrorText->Log(LogNet.GetCategoryName(), ELogVerbosity::Warning, TEXT("Invalid attempt to serialize FUniqueNetIdRepl during cooking"));
-#endif
-		return true;
-	}
-
+	bool bShouldWarn = true;
 	if (Buffer)
 	{
-		FString Contents(Buffer);
-		UniqueIdFromString(Contents);
+		static FString InvalidString(TEXT("INVALID"));
+		if (Buffer[0] == TEXT('\0') || Buffer == InvalidString)
+		{
+			// An empty string or the word invalid are just considered expected invalid FUniqueNetIdRepls. No need to warn about those.
+			bShouldWarn = false;
+		}
+		else
+		{
+			checkf(IOnlineSubsystem::IsLoaded(), TEXT("Attempted to ImportText to FUniqueNetIdRepl while OSS is not loaded. Parent:%s"), *GetPathNameSafe(Parent));
+			FString Contents(Buffer);
+			UniqueIdFromString(Contents);
+		}
 	}
 
-	if (!IsValid())
+	if (bShouldWarn && !IsValid())
 	{
 #if !NO_LOGGING
-		ErrorText->Log(LogNet.GetCategoryName(), ELogVerbosity::Warning, TEXT("Failed to import text to FUniqueNetIdRepl"));
+		ErrorText->CategorizedLogf(LogNet.GetCategoryName(), ELogVerbosity::Warning, TEXT("Failed to import text to FUniqueNetIdRepl Parent:%s"), *GetPathNameSafe(Parent));
 #endif
 	}
 

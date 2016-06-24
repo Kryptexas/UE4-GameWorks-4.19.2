@@ -1,10 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "AITypes.h"
 #include "AI/NavDataGenerator.h"
 #include "AI/Navigation/NavAreas/NavAreaMeta.h"
 #include "AI/Navigation/NavigationData.h"
 #include "AI/Navigation/RecastNavMesh.h"
+#include "VisualLogger.h"
 
 //----------------------------------------------------------------------//
 // FPathFindingQuery
@@ -45,12 +47,20 @@ FPathFindingQuery::FPathFindingQuery(FNavPathSharedRef PathToRecalculate, const 
 {
 	if (PathToRecalculate->ShouldUpdateStartPointOnRepath())
 	{
-		StartLocation = PathToRecalculate->GetPathFindingStartLocation();
+		const FVector NewStartLocation = PathToRecalculate->GetPathFindingStartLocation();
+		if (FAISystem::IsValidLocation(NewStartLocation))
+		{
+			StartLocation = NewStartLocation;
+		}
 	}
 
 	if (PathToRecalculate->ShouldUpdateEndPointOnRepath())
 	{
-		EndLocation = PathToRecalculate->GetGoalLocation();
+		const FVector NewEndLocation = PathToRecalculate->GetGoalLocation();
+		if (FAISystem::IsValidLocation(NewEndLocation))
+		{
+			EndLocation = NewEndLocation;
+		}
 	}
 
 	if (!QueryFilter.IsValid() && NavData.IsValid())
@@ -173,6 +183,7 @@ void ANavigationData::PostInitializeComponents()
 	Super::PostInitializeComponents();
 	
 	UWorld* MyWorld = GetWorld();
+	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(MyWorld);
 
 	if (MyWorld == nullptr ||
 		(MyWorld->GetNetMode() != NM_Client && MyWorld->GetNavigationSystem() == nullptr) ||
@@ -260,8 +271,19 @@ void ANavigationData::TickActor(float DeltaTime, enum ELevelTick TickType, FActo
 		const UWorld* World = GetWorld();
 
 		// @todo batch-process it!
-		for (auto RecalcRequest : RepathRequests)
+		
+		const int32 MaxProcessedRequests = 10000;
+		for (int32 Idx = 0; Idx < RepathRequests.Num(); Idx++)
 		{
+			// check in the middle of loop, since observers can spawn new requests
+			if (Idx > MaxProcessedRequests)
+			{
+				UE_VLOG(this, LogNavigation, Error, TEXT("Too many repath requests!"));
+				break;
+			}
+
+			FNavPathRecalculationRequest& RecalcRequest = RepathRequests[Idx];
+
 			// check if it can be updated right now
 			FNavPathSharedPtr PinnedPath = RecalcRequest.Path.Pin();
 			if (PinnedPath.IsValid() == false)

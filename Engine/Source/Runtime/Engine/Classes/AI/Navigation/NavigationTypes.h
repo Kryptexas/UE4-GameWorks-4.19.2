@@ -573,7 +573,6 @@ struct ENGINE_API FPathFindingQueryData
 	FVector StartLocation;
 	FVector EndLocation;
 	FSharedConstNavQueryFilter QueryFilter;
-	FNavAgentProperties NavAgentProperties;
 
 	/** additional flags passed to navigation data handling request */
 	int32 NavDataFlags;
@@ -594,7 +593,6 @@ struct ENGINE_API FPathFindingQuery : public FPathFindingQueryData
 
 	FPathFindingQuery() {}
 	FPathFindingQuery(const FPathFindingQuery& Source);
-
 	FPathFindingQuery(const UObject* InOwner, const ANavigationData& InNavData, const FVector& Start, const FVector& End, FSharedConstNavQueryFilter SourceQueryFilter = NULL, FNavPathSharedPtr InPathInstanceToFill = NULL);
 	FPathFindingQuery(const INavAgentInterface& InNavAgent, const ANavigationData& InNavData, const FVector& Start, const FVector& End, FSharedConstNavQueryFilter SourceQueryFilter = NULL, FNavPathSharedPtr InPathInstanceToFill = NULL);
 

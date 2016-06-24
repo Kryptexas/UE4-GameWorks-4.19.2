@@ -77,7 +77,7 @@ public:
 	 *
 	 * @return true if the boxes are equal, false otherwise.
 	 */
-	bool operator==( const FBox& Other ) const
+	FORCEINLINE bool operator==( const FBox& Other ) const
 	{
 		return (Min == Other.Min) && (Max == Other.Max);
 	}
@@ -96,7 +96,7 @@ public:
 	 * @param Other The other point to add to this.
 	 * @return A new bounding volume.
 	 */
-	FBox operator+( const FVector& Other ) const
+	FORCEINLINE FBox operator+( const FVector& Other ) const
 	{
 		return FBox(*this) += Other;
 	}
@@ -115,7 +115,7 @@ public:
 	 * @param Other The other volume to add to this.
 	 * @return A new bounding volume.
 	 */
-	FBox operator+( const FBox& Other ) const
+	FORCEINLINE FBox operator+( const FBox& Other ) const
 	{
 		return FBox(*this) += Other;
 	}
@@ -126,7 +126,7 @@ public:
 	 * @param Index the index into points of the bounding volume.
 	 * @return a reference to a point of the bounding volume.
 	 */
-    FVector& operator[]( int32 Index )
+    FORCEINLINE FVector& operator[]( int32 Index )
 	{
 		check((Index >= 0) && (Index < 2));
 
@@ -157,7 +157,7 @@ public:
 	 * @param W The size to increase the volume by.
 	 * @return A new bounding box.
 	 */
-	FBox ExpandBy(float W) const
+	FORCEINLINE FBox ExpandBy(float W) const
 	{
 		return FBox(Min - FVector(W, W, W), Max + FVector(W, W, W));
 	}
@@ -168,7 +168,7 @@ public:
 	* @param V The size to increase the volume by.
 	* @return A new bounding box.
 	*/
-	FBox ExpandBy(const FVector& V) const
+	FORCEINLINE FBox ExpandBy(const FVector& V) const
 	{
 		return FBox(Min - V, Max + V);
 	}
@@ -191,7 +191,7 @@ public:
 	 * @param Offset The vector to shift the box by.
 	 * @return A new bounding box.
 	 */
-	FBox ShiftBy( const FVector& Offset ) const
+	FORCEINLINE FBox ShiftBy( const FVector& Offset ) const
 	{
 		return FBox(Min + Offset, Max + Offset);
 	}
@@ -202,7 +202,7 @@ public:
 	 * @param The destination point to move center of box to.
 	 * @return A new bounding box.
 	 */
-	FBox MoveTo( const FVector& Destination ) const
+	FORCEINLINE FBox MoveTo( const FVector& Destination ) const
 	{
 		const FVector Offset = Destination - GetCenter();
 		return FBox(Min + Offset, Max + Offset);
@@ -214,7 +214,7 @@ public:
 	 * @return The center point.
 	 * @see GetCenterAndExtents, GetExtent, GetSize, GetVolume
 	 */
-	FVector GetCenter() const
+	FORCEINLINE FVector GetCenter() const
 	{
 		return FVector((Min + Max) * 0.5f);
 	}
@@ -226,7 +226,7 @@ public:
 	 * @param Extents[out] Will contain the extent around the center.
 	 * @see GetCenter, GetExtent, GetSize, GetVolume
 	 */
-	void GetCenterAndExtents( FVector& center, FVector& Extents ) const
+	FORCEINLINE void GetCenterAndExtents( FVector& center, FVector& Extents ) const
 	{
 		Extents = GetExtent();
 		center = Min + Extents;
@@ -246,7 +246,7 @@ public:
 	 * @return The box extents.
 	 * @see GetCenter, GetCenterAndExtents, GetSize, GetVolume
 	 */
-	FVector GetExtent() const
+	FORCEINLINE FVector GetExtent() const
 	{
 		return 0.5f * (Max - Min);
 	}
@@ -257,7 +257,7 @@ public:
 	 * @param PointIndex The index of the extrema point to return.
 	 * @return A reference to the point.
 	 */
-	FVector& GetExtrema( int PointIndex )
+	FORCEINLINE FVector& GetExtrema( int PointIndex )
 	{
 		return (&Min)[PointIndex];
 	}
@@ -268,7 +268,7 @@ public:
 	 * @param PointIndex The index of extrema point to return.
 	 * @return A read-only reference to the point.
 	 */
-	const FVector& GetExtrema( int PointIndex ) const
+	FORCEINLINE const FVector& GetExtrema( int PointIndex ) const
 	{
 		return (&Min)[PointIndex];
 	}
@@ -279,7 +279,7 @@ public:
 	 * @return The box size.
 	 * @see GetCenter, GetCenterAndExtents, GetExtent, GetVolume
 	 */
-	FVector GetSize() const
+	FORCEINLINE FVector GetSize() const
 	{
 		return (Max - Min);
 	}
@@ -290,7 +290,7 @@ public:
 	 * @return The box volume.
 	 * @see GetCenter, GetCenterAndExtents, GetExtent, GetSize
 	 */
-	float GetVolume() const
+	FORCEINLINE float GetVolume() const
 	{
 		return ((Max.X - Min.X) * (Max.Y - Min.Y) * (Max.Z - Min.Z));
 	}
@@ -298,7 +298,7 @@ public:
 	/**
 	 * Set the initial values of the bounding box to Zero.
 	 */
-	void Init()
+	FORCEINLINE void Init()
 	{
 		Min = Max = FVector::ZeroVector;
 		IsValid = 0;
@@ -343,7 +343,7 @@ public:
 	 * @return true if location is inside this volume.
 	 * @see IsInsideXY
 	 */
-	bool IsInside( const FVector& In ) const
+	FORCEINLINE bool IsInside( const FVector& In ) const
 	{
 		return ((In.X > Min.X) && (In.X < Max.X) && (In.Y > Min.Y) && (In.Y < Max.Y) && (In.Z > Min.Z) && (In.Z < Max.Z));
 	}
@@ -355,7 +355,7 @@ public:
 	 * @return true if location is inside this volume.
 	 * @see IsInsideXY
 	 */
-	bool IsInsideOrOn( const FVector& In ) const
+	FORCEINLINE bool IsInsideOrOn( const FVector& In ) const
 	{
 		return ((In.X >= Min.X) && (In.X <= Max.X) && (In.Y >= Min.Y) && (In.Y <= Max.Y) && (In.Z >= Min.Z) && (In.Z <= Max.Z));
 	}
@@ -366,7 +366,7 @@ public:
 	 * @param Other The box to test for encapsulation within the bounding volume.
 	 * @return true if box is inside this volume.
 	 */
-	bool IsInside( const FBox& Other ) const
+	FORCEINLINE bool IsInside( const FBox& Other ) const
 	{
 		return (IsInside(Other.Min) && IsInside(Other.Max));
 	}
@@ -378,7 +378,7 @@ public:
 	 * @return true if location is inside this box in the XY plane.
 	 * @see IsInside
 	 */
-	bool IsInsideXY( const FVector& In ) const
+	FORCEINLINE bool IsInsideXY( const FVector& In ) const
 	{
 		return ((In.X > Min.X) && (In.X < Max.X) && (In.Y > Min.Y) && (In.Y < Max.Y));
 	}
@@ -389,7 +389,7 @@ public:
 	 * @param Other The box to test for encapsulation within the bounding box.
 	 * @return true if box is inside this box in the XY plane.
 	 */
-	bool IsInsideXY( const FBox& Other ) const
+	FORCEINLINE bool IsInsideXY( const FBox& Other ) const
 	{
 		return (IsInsideXY(Other.Min) && IsInsideXY(Other.Max));
 	}

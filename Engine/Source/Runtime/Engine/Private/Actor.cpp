@@ -1548,6 +1548,9 @@ void AActor::DetachRootComponentFromParent(bool bMaintainWorldPosition)
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		RootComponent->DetachFromParent(bMaintainWorldPosition);
 PRAGMA_ENABLE_DEPRECATION_WARNINGS
+
+		// Clear AttachmentReplication struct
+		AttachmentReplication = FRepAttachment();
 	}
 }
 

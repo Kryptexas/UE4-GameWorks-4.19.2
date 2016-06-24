@@ -125,7 +125,7 @@ public:
 	// Changes all scalability settings at once based on a single overall quality level
 	// @param Value 0:low, 1:medium, 2:high, 3:epic
 	UFUNCTION(BlueprintCallable, Category=Settings)
-	void SetOverallScalabilityLevel(int32 Value);
+	virtual void SetOverallScalabilityLevel(int32 Value);
 
 	// Returns the overall scalability level (can return -1 if the settings are custom)
 	UFUNCTION(BlueprintCallable, Category=Settings)
@@ -338,6 +338,10 @@ protected:
 	/** Desired screen width used to calculate the resolution scale when user changes display mode */
 	UPROPERTY(config)
 	int32 DesiredScreenWidth;
+
+	/** If true, the desired screen height will be used to scale the render resolution automatically. */
+	UPROPERTY(globalconfig)
+	bool bUseDesiredScreenHeight;
 
 	/** Desired screen height used to calculate the resolution scale when user changes display mode */
 	UPROPERTY(config)

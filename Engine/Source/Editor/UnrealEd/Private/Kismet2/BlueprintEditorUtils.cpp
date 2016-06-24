@@ -696,6 +696,9 @@ void FBlueprintEditorUtils::PatchNewCDOIntoLinker(UObject* CDO, FLinkerLoad* Lin
 		Linker->ExportMap[ExportIndex].Object = CDO;
 
 		PatchCDOSubobjectsIntoExport(OldCDO, CDO);
+
+		// This was set to true when the trash class was invalidated, but now we have a valid object
+		Linker->ExportMap[ExportIndex].bExportLoadFailed = false;
 	}
 }
 

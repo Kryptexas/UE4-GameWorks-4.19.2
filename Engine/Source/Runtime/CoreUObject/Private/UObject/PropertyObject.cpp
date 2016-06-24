@@ -36,7 +36,7 @@ bool UObjectProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uin
 		Ar << PreviousValue;
 
 		// now copy the value into the object's address space
-		UObject* PreviousValueObj = PreviousValue.Get();
+		UObject* PreviousValueObj = PreviousValue.LoadSynchronous();
 		SetPropertyValue_InContainer(Data, PreviousValueObj, Tag.ArrayIndex);
 
 		return true;

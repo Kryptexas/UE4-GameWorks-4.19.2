@@ -327,7 +327,7 @@ public:
 	TMap<TWeakObjectPtr<AActor>, UActorChannel*, FDefaultSetAllocator, TWeakObjectPtrMapKeyFuncs<TWeakObjectPtr<AActor>, UActorChannel*>> ActorChannels;
 
 	/** This holds a list of actor channels that want to fully shutdown, but need to continue processing bunches before doing so */
-	TMap<FNetworkGUID,class UActorChannel*> KeepProcessingActorChannelBunchesMap;
+	TMap<FNetworkGUID, TArray<class UActorChannel*>> KeepProcessingActorChannelBunchesMap;
 
 	/** Actors that have gone dormant on this connection	
 	 *  The only way to get on this list is when the actor channel closes. UActorChannel::Close.

@@ -1818,8 +1818,6 @@ static dtStatus removeVertex(dtTileCacheLogContext* ctx, dtTileCachePolyMesh& me
 	if (ntris < 0)
 	{
 		ntris = -ntris;
-		if (ctx)
-			ctx->dtLog("removeVertex: triangulate() returned bad results.");
 	}
 
 	unsigned short polysStatic[MAX_REM_EDGES*MAX_VERTS_PER_POLY];

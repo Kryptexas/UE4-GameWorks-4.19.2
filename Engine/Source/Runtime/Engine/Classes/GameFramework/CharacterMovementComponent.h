@@ -1354,6 +1354,9 @@ protected:
 	 */
 	virtual FVector ProjectLocationFromNavMesh(float DeltaSeconds, const FVector& CurrentFeetLocation, const FVector& TargetNavLocation, float UpOffset, float DownOffset);
 
+	/** Performs trace for ProjectLocationFromNavMesh */
+	virtual void FindBestNavMeshLocation(const FVector& TraceStart, const FVector& TraceEnd, const FVector& CurrentFeetLocation, const FVector& TargetNavLocation, FHitResult& OutHitResult) const;
+
 public:
 
 	/** Called by owning Character upon successful teleport from AActor::TeleportTo(). */

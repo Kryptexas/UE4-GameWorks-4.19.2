@@ -831,7 +831,7 @@ bool FMetalStateCache::NeedsToSetRenderTarget(const FRHISetRenderTargetsInfo& In
 			//    If we switch to Load, no need to switch as we can re-use what we already have
 			//    If we switch to Clear, we have to always switch to a new RT to force the clear
 			//    If we switch to DontCare, there's definitely no need to switch
-			if (RenderTargetView.LoadAction == ERenderTargetLoadAction::EClear)
+			if (RenderTargetView.LoadAction == ERenderTargetLoadAction::EClear || PreviousRenderTargetView.LoadAction == ERenderTargetLoadAction::EClear)
 			{
 				bAllChecksPassed = false;
 				break;

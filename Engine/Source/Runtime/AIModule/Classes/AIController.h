@@ -187,21 +187,31 @@ public:
 		bool bUsePathfinding = true, bool bProjectDestinationToNavigation = false, bool bCanStrafe = true,
 		TSubclassOf<UNavigationQueryFilter> FilterClass = NULL, bool bAllowPartialPath = true);
 
-	/** Makes AI go toward specified destination */
-	EPathFollowingRequestResult::Type MoveTo(const FAIMoveRequest& MoveRequest);
+	/** Makes AI go toward specified destination
+	 *  @param MoveRequest - details about move
+	 *  @param OutPath - optional output param, filled in with assigned path
+	 *  @return struct holding MoveId and enum code
+	 */
+	FPathFollowingRequestResult MoveTo(const FAIMoveRequest& MoveRequest, FNavPathSharedPtr* OutPath = nullptr);
 
-	/** Fills pathfinding query for navigation system from given move request */
+	/** Passes move request and path object to path following */
+	virtual FAIRequestID RequestMove(const FAIMoveRequest& MoveRequest, FNavPathSharedPtr Path);
+
+	/** Finds path for given move request
+ 	 *  @param MoveRequest - details about move
+	 *  @param Query - pathfinding query for navigation system
+	 *  @param OutPath - generated path
+	 */
+	virtual void FindPathForMoveRequest(const FAIMoveRequest& MoveRequest, FPathFindingQuery& Query, FNavPathSharedPtr& OutPath) const;
+
+	/** Helper function for creating pathfinding query for this agent from move request data */
+	bool BuildPathfindingQuery(const FAIMoveRequest& MoveRequest, FPathFindingQuery& Query) const;
+
+	DEPRECATED_FORGAME(4.13, "This function is now deprecated, please use FindPathForMoveRequest() for adjusting Query or BuildPathfindingQuery() for getting one.")
 	virtual bool PreparePathfinding(const FAIMoveRequest& MoveRequest, FPathFindingQuery& Query);
 
-	/** Executes pathfinding query and starts move request
-	 *  @return RequestID, or 0 when failed
-	 */
+	DEPRECATED_FORGAME(4.13, "This function is now deprecated, please use FindPathForMoveRequest() for adjusting pathfinding or path postprocess.")
 	virtual FAIRequestID RequestPathAndMove(const FAIMoveRequest& MoveRequest, FPathFindingQuery& Query);
-
-	/** Handle move requests
-	 *  @return RequestID, or 0 when failed
-	 */
-	virtual FAIRequestID RequestMove(const FAIMoveRequest& MoveRequest, FNavPathSharedPtr Path);
 
 	/** if AI is currently moving due to request given by RequestToPause, then the move will be paused */
 	bool PauseMove(FAIRequestID RequestToPause);
@@ -383,6 +393,7 @@ public:
 	virtual AActor* GetGameplayTaskOwner(const UGameplayTask* Task) const override { return const_cast<AAIController*>(this); }
 	virtual AActor* GetGameplayTaskAvatar(const UGameplayTask* Task) const override { return GetPawn(); }
 	virtual uint8 GetGameplayTaskDefaultPriority() const { return FGameplayTasks::DefaultPriority - 1; }
+
 	FORCEINLINE UGameplayTasksComponent* GetGameplayTasksComponent() const { return CachedGameplayTasksComponent; }
 
 	// add empty overrides to fix linker errors if project implements a child class without adding GameplayTasks module dependency

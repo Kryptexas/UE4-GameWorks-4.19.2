@@ -7,7 +7,7 @@
 class FProceduralFoliageBroadphase
 {
 public:
-	FProceduralFoliageBroadphase(float TileSize = 0.f);
+	FProceduralFoliageBroadphase(float TileSize = 0.f, float MinimumQuadTreeSize = 100.f);
 	FProceduralFoliageBroadphase(const FProceduralFoliageBroadphase& OtherBroadphase);
 
 	void Insert(FProceduralFoliageInstance* Instance);

@@ -62,7 +62,16 @@ public class CrashReportClientTarget : TargetRules
 		return true;
 	}
 
-	public override void SetupGlobalEnvironment(
+    public override bool ConfigureToolchain(TargetInfo Target)
+    {
+        if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64)
+        {
+            WindowsPlatform.Compiler = WindowsCompiler.VisualStudio2013;
+        }
+        return true;
+    }
+
+    public override void SetupGlobalEnvironment(
 		TargetInfo Target,
 		ref LinkEnvironmentConfiguration OutLinkEnvironmentConfiguration,
 		ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration

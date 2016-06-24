@@ -1617,7 +1617,7 @@ static TMap<FName,UScriptStruct::ICppStructOps*>& GetDeferredCppStructOps()
 	{
 		~TMapWithAutoCleanup()
 		{
-			for (PairSetType::TConstIterator It(Pairs); It; ++It)
+			for (ElementSetType::TConstIterator It(Pairs); It; ++It)
 			{
 				delete It->Value;
 			}

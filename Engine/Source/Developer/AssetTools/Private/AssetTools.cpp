@@ -50,6 +50,7 @@ FAssetTools::FAssetTools()
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_BlendSpace1D) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Blueprint) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_CameraAnim) );
+	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_CanvasRenderTarget2D) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Curve) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_CurveFloat) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_CurveTable) );

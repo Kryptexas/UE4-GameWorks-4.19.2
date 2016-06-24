@@ -891,11 +891,8 @@ USkeletalMeshComponent* UGameplayAbility::GetOwningComponentFromActorInfo() cons
 	{
 		return nullptr;
 	}
-	if (CurrentActorInfo->AnimInstance.IsValid())
-	{
-		return CurrentActorInfo->AnimInstance.Get()->GetOwningComponent();
-	}
-	return NULL;
+
+	return CurrentActorInfo->SkeletalMeshComponent.Get();
 }
 
 FGameplayEffectSpecHandle UGameplayAbility::MakeOutgoingGameplayEffectSpec(TSubclassOf<UGameplayEffect> GameplayEffectClass, float Level) const
@@ -1066,7 +1063,7 @@ FGameplayAbilityTargetingLocationInfo UGameplayAbility::MakeTargetLocationInfoFr
 {
 	FGameplayAbilityTargetingLocationInfo ReturnLocation;
 	ReturnLocation.LocationType = EGameplayAbilityTargetingLocationType::SocketTransform;
-	ReturnLocation.SourceComponent = GetActorInfo().AnimInstance.IsValid() ? GetActorInfo().AnimInstance.Get()->GetOwningComponent() : NULL;
+	ReturnLocation.SourceComponent = GetActorInfo().SkeletalMeshComponent.Get();
 	ReturnLocation.SourceAbility = this;
 	ReturnLocation.SourceSocketName = SocketName;
 	return ReturnLocation;

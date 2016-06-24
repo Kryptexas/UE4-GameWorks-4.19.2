@@ -992,6 +992,13 @@ bool FNavMeshPath::DoesPathIntersectBoxImplementation(const FBox& Box, const FVe
 	FVector Start = StartLocation;
 	if (CorridorEdges.IsValidIndex(StartingIndex))
 	{
+		// make sure that Start is initialized correctly when testing from the middle of path (StartingIndex > 0)
+		if (CorridorEdges.IsValidIndex(StartingIndex - 1))
+		{
+			const FNavigationPortalEdge& Edge = CorridorEdges[StartingIndex - 1];
+			Start = Edge.Right + (Edge.Left - Edge.Right) / 2 + (AgentExtent ? FVector(0.f, 0.f, AgentExtent->Z) : FVector::ZeroVector);
+		}
+
 		for (uint32 PortalIndex = StartingIndex; PortalIndex < NumCorridorEdges; ++PortalIndex)
 		{
 			const FNavigationPortalEdge& Edge = CorridorEdges[PortalIndex];

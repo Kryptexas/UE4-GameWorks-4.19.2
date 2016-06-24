@@ -1876,6 +1876,16 @@ bool UHierarchicalInstancedStaticMeshComponent::RemoveInstances(const TArray<int
 		RemoveInstanceInternal(Index);
 	}
 
+	if (IsAsyncBuilding())
+	{
+		// invalidate the results of the current async build as it's too slow to fix up deletes
+		bConcurrentRemoval = true;
+	}
+	else
+	{
+		BuildTreeAsync();
+	}
+
 	ReleasePerInstanceRenderData();
 	MarkRenderStateDirty();
 

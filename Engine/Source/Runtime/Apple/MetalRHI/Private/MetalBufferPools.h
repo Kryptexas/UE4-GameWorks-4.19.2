@@ -48,7 +48,7 @@ public:
 	typedef FMetalPooledBufferArgs CreationArguments;
 	enum
 	{
-		NumSafeFrames = 2, /** Number of frames to leave buffers before reclaiming/reusing */
+		NumSafeFrames = 1, /** Number of frames to leave buffers before reclaiming/reusing */
 		NumPoolBucketSizes = 22, /** Number of pool bucket sizes */
 		NumPoolBuckets = NumPoolBucketSizes * 3, /** Number of pool bucket sizes * 2 for Shared/Managed/Private storage */
 		NumToDrainPerFrame = 65536, /** Max. number of resources to cull in a single frame */

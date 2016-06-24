@@ -585,6 +585,9 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 	FWorldDelegates::LevelAddedToWorld.AddUObject(this, &UEditorEngine::OnLevelAddedToWorld);
 	FWorldDelegates::LevelRemovedFromWorld.AddUObject(this, &UEditorEngine::OnLevelRemovedFromWorld);
 	FLevelStreamingGCHelper::OnGCStreamedOutLevels.AddUObject(this, &UEditorEngine::OnGCStreamedOutLevels);
+
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+	AssetRegistryModule.Get().OnInMemoryAssetCreated().AddUObject(this, &UEditorEngine::OnAssetCreated);
 	
 	// Init editor.
 	SlowTask.EnterProgressFrame(40);
@@ -876,6 +879,9 @@ void UEditorEngine::FinishDestroy()
 		FLevelStreamingGCHelper::OnGCStreamedOutLevels.RemoveAll(this);
 		GetMutableDefault<UEditorStyleSettings>()->OnSettingChanged().RemoveAll(this);
 
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+		AssetRegistryModule.Get().OnInMemoryAssetCreated().RemoveAll(this);
+		
 		UWorld* World = GWorld;
 		if( World != NULL )
 		{
@@ -3855,8 +3861,8 @@ ESavePackageResult UEditorEngine::Save( UPackage* InOuter, UObject* InBase, EObj
 			}
 			else
 			{
-				// If we aren't already initialized, initialize now and create a physics scene
-				World->InitWorld(UWorld::InitializationValues().RequiresHitProxies(false).ShouldSimulatePhysics(false).EnableTraceCollision(false).CreateNavigation(false).CreateAISystem(false).AllowAudioPlayback(false).CreatePhysicsScene(true));
+				// If we aren't already initialized, initialize now and create a physics scene. Don't create an FX system because it uses too much video memory for bulk operations
+				World->InitWorld(GetEditorWorldInitializationValues().CreateFXSystem(false).CreatePhysicsScene(true));
 			}
 
 			// Update components now that a physics scene exists.
@@ -6436,22 +6442,38 @@ bool UEditorEngine::IsUsingWorldAssets()
 
 void UEditorEngine::OnAssetLoaded(UObject* Asset)
 {
-	UWorld* WorldAsset = Cast<UWorld>(Asset);
-	if (WorldAsset != NULL)
+	UWorld* World = Cast<UWorld>(Asset);
+	if (World)
 	{
 		// Init inactive worlds here instead of UWorld::PostLoad because it is illegal to call UpdateWorldComponents while IsRoutingPostLoad
-		if (WorldAsset->WorldType == EWorldType::Inactive)
-		{
-			// Create the world without a physics scene because creating too many physics scenes causes deadlock issues in PhysX. The scene will be created when it is opened in the level editor.
-			// Also, don't create an FXSystem because it consumes too much video memory. This is also created when the level editor opens this world.
-			WorldAsset->InitWorld(GetEditorWorldInitializationValues()
-				.CreatePhysicsScene(false)
-				.CreateFXSystem(false)
-				);
+		InitializeNewlyCreatedInactiveWorld(World);
+	}
+}
 
-			// Update components so the scene is populated
-			WorldAsset->UpdateWorldComponents(true, true);
-		}
+void UEditorEngine::OnAssetCreated(UObject* Asset)
+{
+	UWorld* World = Cast<UWorld>(Asset);
+	if (World)
+	{
+		// Init inactive worlds here instead of UWorld::PostLoad because it is illegal to call UpdateWorldComponents while IsRoutingPostLoad
+		InitializeNewlyCreatedInactiveWorld(World);
+	}
+}
+
+void UEditorEngine::InitializeNewlyCreatedInactiveWorld(UWorld* World)
+{
+	check(World);
+	if (!World->bIsWorldInitialized && World->WorldType == EWorldType::Inactive)
+	{
+		// Create the world without a physics scene because creating too many physics scenes causes deadlock issues in PhysX. The scene will be created when it is opened in the level editor.
+		// Also, don't create an FXSystem because it consumes too much video memory. This is also created when the level editor opens this world.
+		World->InitWorld(GetEditorWorldInitializationValues()
+			.CreatePhysicsScene(false)
+			.CreateFXSystem(false)
+			);
+
+		// Update components so the scene is populated
+		World->UpdateWorldComponents(true, true);
 	}
 }
 

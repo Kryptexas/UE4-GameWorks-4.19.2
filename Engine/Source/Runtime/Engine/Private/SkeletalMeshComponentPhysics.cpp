@@ -977,7 +977,7 @@ void USkeletalMeshComponent::TermArticulated()
 
 	// Get the scene type from the SkeletalMeshComponent's BodyInstance
 	const uint32 SceneType = BodyInstance.UseAsyncScene(PhysScene) ? PST_Async : PST_Sync;
-	PxScene* PScene = PhysScene->GetPhysXScene(SceneType);
+	PxScene* PScene = PhysScene ? PhysScene->GetPhysXScene(SceneType) : nullptr;
 	SCOPED_SCENE_WRITE_LOCK(PScene);
 
 #endif	//#if WITH_PHYSX

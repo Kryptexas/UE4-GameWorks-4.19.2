@@ -85,13 +85,19 @@ EOnlineServerConnectionStatus::Type FOnlineError::GetConnectionStatusFromHttpRes
 		// Auth failure
 		return EOnlineServerConnectionStatus::NotAuthorized;
 	case 503:
+	case 504:
 		// service is not avail
 		return EOnlineServerConnectionStatus::ServersTooBusy;
 	case 505:
 		// update to supported version
 		return EOnlineServerConnectionStatus::UpdateRequired;
-	default:
+	case 408:
+	case 501:
+	case 502:
 		// other bad responses (ELB, etc)
 		return EOnlineServerConnectionStatus::ServiceUnavailable;
+	default:
+		// this is a domain specific error like a 400 or 404, this will be handled by application code
+		return EOnlineServerConnectionStatus::Connected;
 	}
 }

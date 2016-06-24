@@ -28,6 +28,7 @@
 #include "Runtime/AssetRegistry/Public/AssetData.h"
 
 #include "PackageTools.h"
+#include "ObjectTools.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "Engine/LevelStreaming.h"
@@ -508,16 +509,36 @@ static bool SaveWorld(UWorld* World,
 		SlowTask.EnterProgressFrame(25);
 
 		// Rename the package and the object, as necessary
+		UWorld* DuplicatedWorld = nullptr;
 		if ( bRenamePackageToFile )
 		{
-			if ( bPackageNeedsRename )
+			if (bPackageNeedsRename)
 			{
-				Package->Rename(*NewPackageName, NULL, REN_NonTransactional | REN_DontCreateRedirectors);
-			}
+				// If we are doing a SaveAs on a world that already exists, we need to duplicate it.
+				if (bPackageExists)
+				{
+					ObjectTools::FPackageGroupName NewPGN;
+					NewPGN.PackageName = NewPackageName;
+					NewPGN.ObjectName = NewWorldAssetName;
 
-			if ( bWorldNeedsRename )
-			{
-				World->Rename(*NewWorldAssetName, NULL, REN_NonTransactional | REN_DontCreateRedirectors);
+					TSet<UPackage*> PackagesUserRefusedToFullyLoad;
+					DuplicatedWorld = Cast<UWorld>(ObjectTools::DuplicateSingleObject(World, NewPGN, PackagesUserRefusedToFullyLoad));
+					if (DuplicatedWorld)
+					{
+						Package = DuplicatedWorld->GetOutermost();
+					}
+				}
+
+				if (!DuplicatedWorld)
+				{
+					// Duplicate failed or not needed. Just do a rename.
+					Package->Rename(*NewPackageName, NULL, REN_NonTransactional | REN_DontCreateRedirectors);
+					
+					if (bWorldNeedsRename)
+					{
+						World->Rename(*NewWorldAssetName, NULL, REN_NonTransactional | REN_DontCreateRedirectors);
+					}
+				}
 			}
 		}
 
@@ -535,17 +556,27 @@ static bool SaveWorld(UWorld* World,
 
 		SlowTask.EnterProgressFrame(25);
 
-		// If the package save was not successful. Rename anything we changed back to the original name.
+		// If the package save was not successful. Trash the duplicated world or rename back if the duplicate failed.
 		if( bRenamePackageToFile && !bSuccess )
 		{
-			if ( bPackageNeedsRename )
+			if (bPackageNeedsRename)
 			{
-				Package->Rename(*OriginalPackageName, NULL, REN_NonTransactional);
-			}
+				if (DuplicatedWorld)
+				{
+					DuplicatedWorld->Rename(nullptr, GetTransientPackage(), REN_NonTransactional | REN_DontCreateRedirectors);
+					DuplicatedWorld->MarkPendingKill();
+					DuplicatedWorld->SetFlags(RF_Transient);
+					DuplicatedWorld = nullptr;
+				}
+				else
+				{
+					Package->Rename(*OriginalPackageName, NULL, REN_NonTransactional);
 
-			if ( bWorldNeedsRename )
-			{
-				World->Rename(*OriginalWorldName, NULL, REN_NonTransactional);
+					if (bWorldNeedsRename)
+					{
+						World->Rename(*OriginalWorldName, NULL, REN_NonTransactional);
+					}
+				}
 			}
 		}
 	}
@@ -637,7 +668,7 @@ static bool OpenSaveAsDialog(UClass* SavedClass, const FString& InDefaultPath, c
 /**
  * Prompts the user with a dialog for selecting a filename.
  */
-static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilename, const bool bAllowStreamingLevelRename )
+static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilename, const bool bAllowStreamingLevelRename, FString* OutSavedFilename )
 {
 	UEditorLoadingSavingSettings* LoadingSavingSettings = GetMutableDefault<UEditorLoadingSavingSettings>();
 
@@ -670,9 +701,10 @@ static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilenam
 	// Loop through until a valid filename is given or the user presses cancel
 	bool bFilenameIsValid = false;
 
+	FString SaveFilename;
 	while( !bFilenameIsValid )
 	{
-		FString SaveFilename;
+		SaveFilename = FString();
 		bool bSaveFileLocationSelected = false;
 		if (UEditorEngine::IsUsingWorldAssets())
 		{
@@ -877,6 +909,11 @@ static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilenam
 	// Update SCC state
 	ISourceControlModule::Get().QueueStatusUpdate(InWorld->GetOutermost());
 
+	if (bStatus && OutSavedFilename)
+	{
+		*OutSavedFilename = SaveFilename;
+	}
+
 	return bStatus;
 
 }
@@ -969,7 +1006,7 @@ void FEditorFileUtils::SaveAssetsAs(const TArray<UObject*>& Assets, TArray<UObje
  * @param	InLevel		The level to be SaveAs'd.
  * @return				true if the world was saved.
  */
-bool FEditorFileUtils::SaveLevelAs(ULevel* InLevel)
+bool FEditorFileUtils::SaveLevelAs(ULevel* InLevel, FString* OutSavedFilename)
 {
 	FString DefaultFilename;
 
@@ -985,7 +1022,7 @@ bool FEditorFileUtils::SaveLevelAs(ULevel* InLevel)
 	// We'll allow the map to be renamed when saving a level as a new file name this way
 	const bool bAllowStreamingLevelRename = InLevel->IsPersistentLevel();
 
-	return SaveAsImplementation( CastChecked<UWorld>(InLevel->GetOuter()), DefaultFilename, bAllowStreamingLevelRename );
+	return SaveAsImplementation( CastChecked<UWorld>(InLevel->GetOuter()), DefaultFilename, bAllowStreamingLevelRename, OutSavedFilename);
 }
 
 /**
@@ -1062,7 +1099,7 @@ void FEditorFileUtils::Import(const FString& InFilename)
  *
  * @return				true if the level was saved.
  */
-bool FEditorFileUtils::SaveLevel(ULevel* Level, const FString& DefaultFilename )
+bool FEditorFileUtils::SaveLevel(ULevel* Level, const FString& DefaultFilename, FString* OutSavedFilename )
 {
 	bool bLevelWasSaved = false;
 
@@ -1087,7 +1124,7 @@ bool FEditorFileUtils::SaveLevel(ULevel* Level, const FString& DefaultFilename )
 			{
 				// Present the user with a SaveAs dialog.
 				const bool bAllowStreamingLevelRename = false;
-				bLevelWasSaved = SaveAsImplementation( Level->OwningWorld, Filename, bAllowStreamingLevelRename );
+				bLevelWasSaved = SaveAsImplementation( Level->OwningWorld, Filename, bAllowStreamingLevelRename, OutSavedFilename );
 				return bLevelWasSaved;
 			}
 		}
@@ -1106,6 +1143,10 @@ bool FEditorFileUtils::SaveLevel(ULevel* Level, const FString& DefaultFilename )
 										true, false,
 										FinalFilename,
 										false, false );
+			if (bLevelWasSaved && OutSavedFilename)
+			{
+				*OutSavedFilename = FinalFilename;
+			}
 		}
 	}
 

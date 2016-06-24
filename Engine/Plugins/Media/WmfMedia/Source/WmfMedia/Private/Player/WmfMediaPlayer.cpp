@@ -2,7 +2,6 @@
 
 #include "WmfMediaPrivatePCH.h"
 #include "AllowWindowsPlatformTypes.h"
-#include "Async/Async.h"
 
 
 /* FWmfVideoPlayer structors
@@ -505,8 +504,9 @@ void FWmfMediaPlayer::HandleSessionError(HRESULT Error)
 
 void FWmfMediaPlayer::HandleSessionEvent(MediaEventType EventType)
 {
-	EMediaEvent Event = EMediaEvent::Unknown;
+	TOptional<EMediaEvent> Event;
 
+	// process event
 	switch (EventType)
 	{
 	case MEEndOfPresentation:
@@ -522,11 +522,11 @@ void FWmfMediaPlayer::HandleSessionEvent(MediaEventType EventType)
 		break;
 	}
 
-	if (Event != EMediaEvent::Unknown)
+	// forward event to game thread
+	if (Event.IsSet())
 	{
-		// forward event to game thread
-		AsyncTask(ENamedThreads::GameThread, [=]() {
-			MediaEvent.Broadcast(Event);
+		Tasks.Enqueue([=]() {
+			MediaEvent.Broadcast(Event.GetValue());
 		});
 	}
 }

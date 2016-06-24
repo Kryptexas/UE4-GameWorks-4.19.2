@@ -403,7 +403,7 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 		}
 	}
 
-	EPackageFlags PackageFlags = PKG_None;
+	EPackageFlags PackageFlags = PKG_ContainsMap;
 	int32 PIEInstanceID = INDEX_NONE;
 
 	// copy streaming level on demand if we are in PIE
@@ -553,6 +553,9 @@ void ULevelStreaming::AsyncLevelLoadComplete(const FName& InPackageName, UPackag
 		}
 		else
 		{
+			// No world in this package
+			LevelPackage->ClearPackageFlags(PKG_ContainsMap);
+
 			// There could have been a redirector in the package. Attempt to follow it.
 			UObjectRedirector* WorldRedirector = nullptr;
 			UWorld* DestinationWorld = UWorld::FollowWorldRedirectorInPackage(LevelPackage, &WorldRedirector);

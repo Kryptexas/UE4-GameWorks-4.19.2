@@ -23,9 +23,9 @@ const uint32 BufferOffsetAlignment = 256;
 #endif
 
 #if PLATFORM_MAC
-#define BUFFER_MANAGED_MEM MTLResourceStorageModeManaged
-#define BUFFER_STORAGE_MODE MTLStorageModeManaged
-#define BUFFER_RESOURCE_STORAGE_MANAGED MTLResourceStorageModeManaged
+#define BUFFER_MANAGED_MEM MTLResourceStorageModeShared
+#define BUFFER_STORAGE_MODE MTLStorageModeShared
+#define BUFFER_RESOURCE_STORAGE_MANAGED MTLResourceStorageModeShared
 #define BUFFER_DYNAMIC_REALLOC BUF_AnyDynamic
 // How many possible vertex streams are allowed
 const uint32 MaxMetalStreams = 31;

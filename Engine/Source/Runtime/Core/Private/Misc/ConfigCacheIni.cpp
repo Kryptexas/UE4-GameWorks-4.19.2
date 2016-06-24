@@ -607,9 +607,9 @@ namespace CommandlineOverrideSpecifiers
 	// -ini:IniName:[Section1]:Key1=Value1,[Section2]:Key2=Value2
 	FString	IniSwitchIdentifier		= TEXT("-ini:");
 	FString	IniNameEndIdentifier	= TEXT(":[");
-	TCHAR	SectionStartIdentifier	= TCHAR('[');
+	FString	SectionStartIdentifier	= TEXT("[");
 	FString PropertyStartIdentifier	= TEXT("]:");
-	TCHAR	PropertySeperator		= TCHAR(',');
+	FString	PropertySeperator		= TEXT(",");
 }
 
 /**
@@ -630,7 +630,7 @@ static void OverrideFromCommandline(FConfigFile* File, const FString& Filename)
 	{
 		// break apart on the commas
 		TArray<FString> SettingPairs;
-		Settings.ParseIntoArray(SettingPairs, &CommandlineOverrideSpecifiers::PropertySeperator, true);
+		Settings.ParseIntoArray(SettingPairs, *CommandlineOverrideSpecifiers::PropertySeperator, true);
 		for (int32 Index = 0; Index < SettingPairs.Num(); Index++)
 		{
 			// set each one, by splitting on the =
@@ -653,7 +653,7 @@ static void OverrideFromCommandline(FConfigFile* File, const FString& Filename)
 				// Remove commandline syntax from the section name.
 				CommandlineOption.Section = CommandlineOption.Section.Replace(*CommandlineOverrideSpecifiers::IniNameEndIdentifier, TEXT(""));
 				CommandlineOption.Section = CommandlineOption.Section.Replace(*CommandlineOverrideSpecifiers::PropertyStartIdentifier, TEXT(""));
-				CommandlineOption.Section = CommandlineOption.Section.Replace(&CommandlineOverrideSpecifiers::SectionStartIdentifier, TEXT(""));
+				CommandlineOption.Section = CommandlineOption.Section.Replace(*CommandlineOverrideSpecifiers::SectionStartIdentifier, TEXT(""));
 
 				CommandlineOption.PropertyKey = SectionAndKey.Mid(SectionNameEndIndex + CommandlineOverrideSpecifiers::PropertyStartIdentifier.Len());
 				CommandlineOption.PropertyValue = Value;

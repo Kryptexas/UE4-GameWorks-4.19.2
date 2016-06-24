@@ -137,11 +137,16 @@ namespace AutomationTool
 			// Also, if we're running from VS then since UAT references UBT, we already have the most up-to-date version of UBT.exe
 			if (!bIsUBTReady && GlobalCommandLine.Compile && !System.Diagnostics.Debugger.IsAttached)
 			{
-				DeleteFile(UBTExecutable);
+                string RebuildString = "";
+                if (!GlobalCommandLine.IncrementalBuildUBT)
+                {
+                    DeleteFile(UBTExecutable);
+                    RebuildString = " /target:Rebuild";
+                }
 
 				MsBuild(CmdEnv,
 						CmdEnv.LocalRoot + @"/Engine/Source/Programs/UnrealBuildTool/" + HostPlatform.Current.UBTProjectName + @".csproj",
-						"/verbosity:minimal /nologo /target:Rebuild /property:Configuration=Development /property:Platform=AnyCPU",
+						"/verbosity:minimal /nologo" + RebuildString + " /property:Configuration=Development /property:Platform=AnyCPU",
 						"BuildUBT");
 
 				bIsUBTReady = true;

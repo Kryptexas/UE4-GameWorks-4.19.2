@@ -184,7 +184,7 @@ FORCEINLINE TIndexedContainerIterator<ContainerType, ElementType, IndexType> ope
 		const int32& CurrentNum;
 		int32        InitialNum;
 
-		friend bool operator!=(const TCheckedPointerIterator& Lhs, const TCheckedPointerIterator& Rhs)
+		FORCEINLINE friend bool operator!=(const TCheckedPointerIterator& Lhs, const TCheckedPointerIterator& Rhs)
 		{
 			// We only need to do the check in this operator, because no other operator will be
 			// called until after this one returns.

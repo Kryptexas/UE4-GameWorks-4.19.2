@@ -423,7 +423,11 @@ void FLinuxCrashContext::GenerateCrashInfoAndLaunchReporter(bool bReportingNonCr
 
 		// copy log
 		FString LogSrcAbsolute = FPlatformOutputDevices::GetAbsoluteLogFilename();
-		FString LogDstAbsolute = FPaths::Combine(*CrashInfoAbsolute, *FPaths::GetCleanFilename(LogSrcAbsolute));
+		FString LogFolder = FPaths::GetPath(LogSrcAbsolute);
+		FString LogFilename = FPaths::GetCleanFilename(LogSrcAbsolute);
+		FString LogBaseFilename = FPaths::GetBaseFilename(LogSrcAbsolute);
+		FString LogExtension = FPaths::GetExtension(LogSrcAbsolute, true);
+		FString LogDstAbsolute = FPaths::Combine(*CrashInfoAbsolute, *LogFilename);
 		FPaths::NormalizeDirectoryName(LogDstAbsolute);
 		static_cast<void>(IFileManager::Get().Copy(*LogDstAbsolute, *LogSrcAbsolute));	// best effort, so don't care about result: couldn't copy -> tough, no log
 
@@ -435,6 +439,11 @@ void FLinuxCrashContext::GenerateCrashInfoAndLaunchReporter(bool bReportingNonCr
 		}
 
 		FString CrashReportClientArguments;
+
+		FString CrashReportLogFilename = LogBaseFilename + TEXT("-CRC") + LogExtension;
+		FString CrashReportLogFilepath = FPaths::Combine(*LogFolder, *CrashReportLogFilename);
+		CrashReportClientArguments += TEXT("-Abslog=");
+		CrashReportClientArguments += *CrashReportLogFilepath;
 
 		// Suppress the user input dialog if we're running in unattended mode
 		bool bNoDialog = FApp::IsUnattended() || IsRunningDedicatedServer();

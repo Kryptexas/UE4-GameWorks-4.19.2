@@ -611,6 +611,11 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 		ActiveGameplayEffects.SetBaseAttributeValueFromReplication(Attribute, NewValue);
 	}
 
+	void SetBaseAttributeValueFromReplication(FGameplayAttributeData NewValue, FGameplayAttribute Attribute)
+	{
+		ActiveGameplayEffects.SetBaseAttributeValueFromReplication(Attribute, NewValue.GetBaseValue());
+	}
+
 	/** Tests if all modifiers in this GameplayEffect will leave the attribute > 0.f */
 	bool CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, const FGameplayEffectContextHandle& EffectContext)
 	{

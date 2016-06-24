@@ -11,7 +11,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogAnalytics, Display, All);
 class IAnalyticsProviderET;
 
 /**
- * The public interface to this module
+ *  Public implementation of EpicGames.MCP.AnalyticsProvider
  */
 class FAnalyticsET : public IAnalyticsProviderModule
 {

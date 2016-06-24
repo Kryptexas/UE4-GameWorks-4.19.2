@@ -2901,24 +2901,35 @@ bool UParticleModuleLight::CanTickInAnyThread()
 	return !bHighQualityLights && BrightnessOverLife.OkForParallel() && ColorScaleOverLife.OkForParallel() && RadiusScale.OkForParallel() && LightExponent.OkForParallel();
 }
 
+static TAutoConsoleVariable<int32> CVarParticleLightQuality(
+	TEXT("r.ParticleLightQuality"),
+	2,
+	TEXT("0: No lights. 1:Only simple lights. 2:Simple+HQ lights"),
+	ECVF_Scalability
+	);
+
 void UParticleModuleLight::SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, struct FRandomStream* InRandomStream, FBaseParticle* ParticleBase)
 {
-	SPAWN_INIT;
-	PARTICLE_ELEMENT(FLightParticlePayload, LightData);
-	const float Brightness = BrightnessOverLife.GetValue(Particle.RelativeTime, Owner->Component, InRandomStream);
-	LightData.ColorScale = ColorScaleOverLife.GetValue(Particle.RelativeTime, Owner->Component, 0, InRandomStream) * Brightness;
-	LightData.RadiusScale = RadiusScale.GetValue(Owner->EmitterTime, Owner->Component, InRandomStream);
-	// Exponent of 0 is interpreted by renderer as inverse squared falloff
-	LightData.LightExponent = bUseInverseSquaredFalloff ? 0 : LightExponent.GetValue(Owner->EmitterTime, Owner->Component, InRandomStream);
-	const float RandomNumber = InRandomStream ? InRandomStream->GetFraction() : FMath::SRand();
-	LightData.bValid = RandomNumber < SpawnFraction;
-	LightData.bAffectsTranslucency = bAffectsTranslucency;
-	LightData.bHighQuality = bHighQualityLights;
-	LightData.LightId = 0;
+	int32 ParticleLightQuality = CVarParticleLightQuality.GetValueOnAnyThread();
+	if (ParticleLightQuality > 0)
+	{
+		SPAWN_INIT;
+		PARTICLE_ELEMENT(FLightParticlePayload, LightData);
+		const float Brightness = BrightnessOverLife.GetValue(Particle.RelativeTime, Owner->Component, InRandomStream);
+		LightData.ColorScale = ColorScaleOverLife.GetValue(Particle.RelativeTime, Owner->Component, 0, InRandomStream) * Brightness;
+		LightData.RadiusScale = RadiusScale.GetValue(Owner->EmitterTime, Owner->Component, InRandomStream);
+		// Exponent of 0 is interpreted by renderer as inverse squared falloff
+		LightData.LightExponent = bUseInverseSquaredFalloff ? 0 : LightExponent.GetValue(Owner->EmitterTime, Owner->Component, InRandomStream);
+		const float RandomNumber = InRandomStream ? InRandomStream->GetFraction() : FMath::SRand();
+		LightData.bValid = RandomNumber < SpawnFraction;
+		LightData.bAffectsTranslucency = bAffectsTranslucency;
+		LightData.bHighQuality = bHighQualityLights;
+		LightData.LightId = 0;
 
-	if (bHighQualityLights)
-	{		
-		LightData.LightId = SpawnHQLight(LightData, Particle, Owner);
+		if (bHighQualityLights && ParticleLightQuality > 1)
+		{		
+			LightData.LightId = SpawnHQLight(LightData, Particle, Owner);
+		}
 	}
 }
 

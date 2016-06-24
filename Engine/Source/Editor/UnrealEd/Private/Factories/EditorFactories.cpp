@@ -111,6 +111,7 @@
 #include "Particles/SubUVAnimation.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Sound/SoundNodeDialoguePlayer.h"
+#include "Factories/CanvasRenderTarget2DFactoryNew.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorFactories, Log, All);
 
@@ -2571,6 +2572,34 @@ UObject* UTextureRenderTargetFactoryNew::FactoryCreateNew(UClass* Class,UObject*
 {
 	// create the new object
 	UTextureRenderTarget2D* Result = NewObject<UTextureRenderTarget2D>(InParent, Class, Name, Flags);
+	// initialize the resource
+	Result->InitAutoFormat( Width, Height );
+	return( Result );
+}
+
+/*-----------------------------------------------------------------------------
+	UCanvasRenderTargetFactoryNew
+-----------------------------------------------------------------------------*/
+
+UCanvasRenderTarget2DFactoryNew::UCanvasRenderTarget2DFactoryNew(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	SupportedClass = UCanvasRenderTarget2D::StaticClass();
+	bCreateNew = true;
+	bEditAfterNew = true;
+	bEditorImport = false;
+
+	Width = 256;
+	Height = 256;
+	Format = 0;
+}
+
+
+UObject* UCanvasRenderTarget2DFactoryNew::FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn)
+{
+	// create the new object
+	UCanvasRenderTarget2D* Result = NewObject<UCanvasRenderTarget2D>(InParent, Class, Name, Flags);
+	check(Result);
 	// initialize the resource
 	Result->InitAutoFormat( Width, Height );
 	return( Result );

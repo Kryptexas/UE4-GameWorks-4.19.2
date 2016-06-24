@@ -168,7 +168,7 @@ public:
 	//~ Begin INavAgentInterface Interface
 	virtual const FNavAgentProperties& GetNavAgentPropertiesRef() const override { return NavAgentProps; }
 	virtual FVector GetNavAgentLocation() const override;
-	virtual void GetMoveGoalReachTest(class AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const override {}
+	virtual void GetMoveGoalReachTest(const AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const override {}
 	//~ End INavAgentInterface Interface
 
 	//~ Begin INavPathObserverInterface Interface

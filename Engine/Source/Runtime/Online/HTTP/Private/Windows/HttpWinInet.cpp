@@ -437,7 +437,10 @@ void FHttpRequestWinInet::SetContentAsString(const FString& ContentString)
 
 void FHttpRequestWinInet::SetHeader(const FString& HeaderName, const FString& HeaderValue)
 {
-	RequestHeaders.Add(HeaderName, HeaderValue);
+	if (HeaderValue.Len() > 0)
+	{
+		RequestHeaders.Add(HeaderName, HeaderValue);
+	}
 }
 
 void FHttpRequestWinInet::AppendToHeader(const FString& HeaderName, const FString& AdditionalHeaderValue)
@@ -1073,6 +1076,8 @@ void FHttpResponseWinInet::ProcessResponseHeaders()
 			FString HeaderKey,HeaderValue;
 			if (HeaderLine.Split(TEXT(":"), &HeaderKey, &HeaderValue, ESearchCase::CaseSensitive))
 			{
+				HeaderKey = HeaderKey.Trim().TrimTrailing();
+				HeaderValue = HeaderValue.Trim().TrimTrailing();
 				if (!HeaderKey.IsEmpty() && !HeaderValue.IsEmpty())
 				{
 					FString* PreviousValue = ResponseHeaders.Find(HeaderKey);

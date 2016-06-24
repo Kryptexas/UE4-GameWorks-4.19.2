@@ -186,6 +186,7 @@ FMetalDeviceContext::FMetalDeviceContext(id<MTLDevice> MetalDevice, uint32 InDev
 : FMetalContext(*Queue, true)
 , Device(MetalDevice)
 , DeviceIndex(InDeviceIndex)
+, FreeBuffers([NSMutableSet new])
 , SceneFrameCounter(0)
 , FrameCounter(0)
 , Features(0)
@@ -257,6 +258,16 @@ void FMetalDeviceContext::ClearFreeList()
 					CommandEncoder.UnbindObject(Entry);
 					[Entry release];
 				}
+
+				{
+					FScopeLock Lock(&PoolMutex);
+					for ( id<MTLBuffer> Buffer in Pair->FreeBuffers )
+					{
+						BufferPool.ReleasePooledResource(Buffer);
+					}
+					[Pair->FreeBuffers release];
+				}
+
 				delete Pair;
 				DelayedFreeLists.RemoveAt(Index, 1, false);
 			}
@@ -321,6 +332,12 @@ void FMetalDeviceContext::EndDrawingViewport(FMetalViewport* Viewport, bool bPre
 		FreeListMutex.Lock();
 	}
 	NewList->FreeList = FreeList;
+	
+	PoolMutex.Lock();
+	NewList->FreeBuffers = FreeBuffers;
+	FreeBuffers = [NSMutableSet new];
+	PoolMutex.Unlock();
+	
 #if STATS
 	for (id Obj : FreeList)
 	{
@@ -507,8 +524,8 @@ void FMetalDeviceContext::ReleasePooledBuffer(FMetalPooledBuffer Buf)
 		INC_MEMORY_STAT_BY(STAT_MetalFreePooledBufferMem, Buf.Buffer.length);
 		
 		FScopeLock Lock(&PoolMutex);
+		[FreeBuffers addObject:Buf.Buffer];
 		//[Buf.Buffer setPurgeableState:MTLPurgeableStateVolatile];
-		return BufferPool.ReleasePooledResource(Buf);
 	}
 }
 
@@ -850,6 +867,65 @@ void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 	
 	if(!FShaderCache::IsPredrawCall())
 	{
+		// Force a command-encoder break on Nvidia to see if this helps with intermittent command-buffer failures.
+		if (GMetalCommandBufferCommitThreshold > 0 && OutstandingOpCount >= GMetalCommandBufferCommitThreshold && IsRHIDeviceNVIDIA())
+		{
+			FRHISetRenderTargetsInfo CurrentRenderTargets = StateCache.GetRenderTargetsInfo();
+			bool bCanChangeRT = true;
+				
+			if (CommandEncoder.IsRenderCommandEncoderActive())
+			{
+				const bool bIsMSAAActive = StateCache.GetHasValidRenderTarget() && StateCache.GetRenderPipelineDesc().SampleCount != 1;
+				bCanChangeRT = !bIsMSAAActive;
+
+				for (int32 RenderTargetIndex = 0; bCanChangeRT && RenderTargetIndex < CurrentRenderTargets.NumColorRenderTargets; RenderTargetIndex++)
+				{
+					FRHIRenderTargetView& RenderTargetView = CurrentRenderTargets.ColorRenderTarget[RenderTargetIndex];
+					
+					if (RenderTargetView.StoreAction != ERenderTargetStoreAction::EMultisampleResolve)
+					{
+						RenderTargetView.LoadAction = ERenderTargetLoadAction::ELoad;
+						RenderTargetView.StoreAction = ERenderTargetStoreAction::EStore;
+					}
+					else
+					{
+						bCanChangeRT = false;
+					}
+				}
+				
+				if (bCanChangeRT && CurrentRenderTargets.DepthStencilRenderTarget.Texture)
+				{
+					if (CurrentRenderTargets.DepthStencilRenderTarget.DepthStoreAction != ERenderTargetStoreAction::EMultisampleResolve && CurrentRenderTargets.DepthStencilRenderTarget.GetStencilStoreAction() != ERenderTargetStoreAction::EMultisampleResolve)
+					{
+						CurrentRenderTargets.DepthStencilRenderTarget = FRHIDepthRenderTargetView(CurrentRenderTargets.DepthStencilRenderTarget.Texture, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::EStore);
+					}
+					else
+					{
+						bCanChangeRT = false;
+					}
+				}
+			}
+			
+			if (bCanChangeRT)
+			{
+				SubmitCommandsHint();
+				
+				// Force submit if there's enough outstanding commands to prevent the GPU going idle.
+				ConditionalSwitchToGraphics(StateCache.NeedsToSetRenderTarget(CurrentRenderTargets));
+				
+				if (IsFeatureLevelSupported( GMaxRHIShaderPlatform, ERHIFeatureLevel::SM4 ))
+				{
+					StateCache.SetRenderTargetsInfo(CurrentRenderTargets, StateCache.GetVisibilityResultsBuffer(), false);
+				}
+				else
+				{
+					StateCache.SetRenderTargetsInfo(CurrentRenderTargets, NULL, false);
+				}
+				
+				CommandEncoder.RestoreRenderCommandEncodingState();
+			}
+		}
+		
 		CommitGraphicsResourceTables();
 		CommitNonComputeShaderConstants();
 		
@@ -902,6 +978,12 @@ void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 
 void FMetalContext::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderTargetsInfo)
 {
+	// Force a submit between command-encoders on Nvidia to test NV feedback.
+	if (StateCache.NeedsToSetRenderTarget(RenderTargetsInfo) && IsRHIDeviceNVIDIA())
+	{
+		SubmitCommandsHint();
+	}
+	
 	// Force submit if there's enough outstanding commands to prevent the GPU going idle.
 	ConditionalSwitchToGraphics(StateCache.NeedsToSetRenderTarget(RenderTargetsInfo), !(PLATFORM_MAC));
 	

@@ -3833,7 +3833,12 @@ namespace UnrealBuildTool
 				}
 			}
 
-            if (UEBuildConfiguration.bForceCompileDevelopmentAutomationTests)
+			if(BuildConfiguration.PCHOutputDirectory != null)
+			{
+				GlobalCompileEnvironment.Config.PCHOutputDirectory = DirectoryReference.Combine(new DirectoryReference(BuildConfiguration.PCHOutputDirectory), BuildConfiguration.PlatformIntermediateFolder, OutputAppName, Configuration.ToString());
+			}
+
+			if (UEBuildConfiguration.bForceCompileDevelopmentAutomationTests)
             {
                 GlobalCompileEnvironment.Config.Definitions.Add("WITH_DEV_AUTOMATION_TESTS=1");
             }

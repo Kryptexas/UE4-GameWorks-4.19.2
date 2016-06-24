@@ -2180,6 +2180,22 @@ void UMaterialInstance::SetParentInternal(UMaterialInterface* NewParent, bool Re
 	}
 }
 
+bool UMaterialInstance::SetVectorParameterByIndexInternal(int32 ParameterIndex, FLinearColor Value)
+{
+	FVectorParameterValue* ParameterValue = GameThread_FindParameterByIndex(VectorParameterValues, ParameterIndex);
+	if (ParameterValue == nullptr)
+	{
+		return false;
+	}
+
+	ParameterValue->ParameterValue = Value;
+	// Update the material instance data in the rendering thread.
+	GameThread_UpdateMIParameter(this, *ParameterValue);
+	CacheMaterialInstanceUniformExpressions(this);
+
+	return true;
+}
+
 void UMaterialInstance::SetVectorParameterValueInternal(FName ParameterName, FLinearColor Value)
 {
 	FVectorParameterValue* ParameterValue = GameThread_FindParameterByName(
@@ -2205,6 +2221,22 @@ void UMaterialInstance::SetVectorParameterValueInternal(FName ParameterName, FLi
 		GameThread_UpdateMIParameter(this, *ParameterValue);
 		CacheMaterialInstanceUniformExpressions(this);
 	}
+}
+
+bool UMaterialInstance::SetScalarParameterByIndexInternal(int32 ParameterIndex, float Value)
+{
+	FScalarParameterValue* ParameterValue = GameThread_FindParameterByIndex(ScalarParameterValues, ParameterIndex);
+	if (ParameterValue == nullptr)
+	{
+		return false;
+	}
+
+	ParameterValue->ParameterValue = Value;
+	// Update the material instance data in the rendering thread.
+	GameThread_UpdateMIParameter(this, *ParameterValue);
+	CacheMaterialInstanceUniformExpressions(this);
+
+	return true;
 }
 
 void UMaterialInstance::SetScalarParameterValueInternal(FName ParameterName, float Value)

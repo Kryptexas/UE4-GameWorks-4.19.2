@@ -18,7 +18,7 @@ class FUniqueNetId;
  * Makes sure that the opaque aspects of FUniqueNetId are properly handled/serialized 
  * over network RPC and actor replication
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FUniqueNetIdRepl
 {
 	GENERATED_USTRUCT_BODY()

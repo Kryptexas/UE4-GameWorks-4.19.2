@@ -14,6 +14,20 @@ class ENGINE_API UMaterialInstanceDynamic : public UMaterialInstance
 	UFUNCTION(BlueprintCallable, meta=(Keywords = "SetFloatParameterValue"), Category="Rendering|Material")
 	void SetScalarParameterValue(FName ParameterName, float Value);
 
+	// NOTE: These Index-related functions should be used VERY carefully, and only in cases where optimization is
+	// critical.  Generally that's only if you're using an unusually high number of parameters in a material AND
+	// setting a huge number of parameters in the same frame.
+
+	// Use this function to set an initial value and fetch the index for use in the following function.
+	bool InitializeScalarParameterAndGetIndex(const FName& ParameterName, float Value, int32& OutParameterIndex);
+	// Use the cached value of OutParameterIndex above to set the scalar parameter ONLY on the exact same MID
+	bool SetScalarParameterByIndex(int32 ParameterIndex, float Value);
+
+	// Use this function to set an initial value and fetch the index for use in the following function.
+	bool InitializeVectorParameterAndGetIndex(const FName& ParameterName, const FLinearColor& Value, int32& OutParameterIndex);
+	// Use the cached value of OutParameterIndex above to set the vector parameter ONLY on the exact same MID
+	bool SetVectorParameterByIndex(int32 ParameterIndex, const FLinearColor& Value);
+
 	/** Get the current scalar (float) parameter value from an MID */
 	UFUNCTION(BlueprintCallable, meta=(DisplayName = "GetScalarParameterValue", Keywords = "GetFloatParameterValue"), Category="Rendering|Material")
 	float K2_GetScalarParameterValue(FName ParameterName);

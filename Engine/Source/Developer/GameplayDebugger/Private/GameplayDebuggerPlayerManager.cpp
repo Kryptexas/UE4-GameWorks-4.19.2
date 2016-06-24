@@ -7,6 +7,7 @@
 #include "GameplayDebuggerLocalController.h"
 #include "Engine/DebugCameraController.h"
 #include "Components/InputComponent.h"
+#include "Engine/DebugCameraController.h"
 
 AGameplayDebuggerPlayerManager::AGameplayDebuggerPlayerManager(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {

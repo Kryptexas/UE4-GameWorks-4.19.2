@@ -72,7 +72,7 @@ namespace CCT
 		FGlslLanguageSpec GlslLanguage(RunInfo.Target == HCT_FeatureLevelES2);
 		FGlslCodeBackend GlslBackend(Flags, RunInfo.Target);
 		FMetalLanguageSpec MetalLanguage;
-		FMetalCodeBackend MetalBackend(Flags, CompileTarget, (RunInfo.Target == HCT_FeatureLevelES2 || RunInfo.Target == HCT_FeatureLevelES3_1));
+		FMetalCodeBackend MetalBackend(Flags, CompileTarget, (RunInfo.Target >= HCT_FeatureLevelSM4), true, (RunInfo.Target >= HCT_FeatureLevelSM4));
 #if PLATFORM_SUPPORTS_VULKAN
 		FVulkanBindingTable VulkanBindingTable(RunInfo.Frequency);
 		FVulkanLanguageSpec VulkanLanguage(false);

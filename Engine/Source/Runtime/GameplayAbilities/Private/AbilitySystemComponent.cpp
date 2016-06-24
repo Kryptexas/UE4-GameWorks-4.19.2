@@ -187,6 +187,11 @@ void UAbilitySystemComponent::SetNumericAttributeBase(const FGameplayAttribute &
 
 float UAbilitySystemComponent::GetNumericAttributeBase(const FGameplayAttribute &Attribute) const
 {
+	if (Attribute.IsSystemAttribute())
+	{
+		return 0.f;
+	}
+
 	return ActiveGameplayEffects.GetAttributeBaseValue(Attribute);
 }
 

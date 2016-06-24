@@ -3,13 +3,13 @@
 #pragma once
 #include "AITypes.h"
 #include "AI/Navigation/NavigationTypes.h"
+#include "GameFramework/NavMovementComponent.h"
 #include "Components/ActorComponent.h"
 #include "AIResourceInterface.h"
 #include "PathFollowingComponent.generated.h"
 
 AIMODULE_API DECLARE_LOG_CATEGORY_EXTERN(LogPathFollowing, Warning, All);
 
-class UNavMovementComponent;
 class UCanvas;
 class AActor;
 class APawn;
@@ -94,8 +94,11 @@ namespace FPathFollowingResultFlags
 	/** External cancel: blueprint MoveTo function was called */
 	const Type ForcedScript = (1 << 8);
 
+	/** Finish details: never started, agent was already at goal */
+	const Type AlreadyAtGoal = (1 << 9);
+
 	/** Can be used to create project specific reasons */
-	const Type FirstGameplayFlagShift = 9;
+	const Type FirstGameplayFlagShift = 10;
 
 	const Type ExternalCancelFlagMask = ~(Success | Blocked | OffPath);
 
@@ -144,6 +147,15 @@ namespace EPathFollowingRequestResult
 		RequestSuccessful
 	};
 }
+
+struct AIMODULE_API FPathFollowingRequestResult
+{
+	FAIRequestID MoveId;
+	TEnumAsByte<EPathFollowingRequestResult::Type> Code;
+
+	FPathFollowingRequestResult() : MoveId(FAIRequestID::InvalidRequest), Code(EPathFollowingRequestResult::Failed) {}
+	operator EPathFollowingRequestResult::Type() const { return Code; }
+};
 
 namespace EPathFollowingDebugTokens
 {
@@ -201,14 +213,18 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 	/** updates cached pointers to relevant owner's components */
 	virtual void UpdateCachedComponents();
 
-	/** start movement along path */
+	/** start movement along path
+	  * @return MoveId of requested move
+	  */
 	virtual FAIRequestID RequestMove(const FAIMoveRequest& RequestData, FNavPathSharedPtr InPath);
 
 	/** aborts following path */
 	virtual void AbortMove(const UObject& Instigator, FPathFollowingResultFlags::Type AbortFlags, FAIRequestID RequestID = FAIRequestID::CurrentRequest, EPathFollowingVelocityMode VelocityMode = EPathFollowingVelocityMode::Reset);
 
-	/** create new request and finish it immediately (e.g. already at goal) */
-	void RequestMoveWithImmediateFinish(EPathFollowingResult::Type Result, EPathFollowingVelocityMode VelocityMode = EPathFollowingVelocityMode::Reset);
+	/** create new request and finish it immediately (e.g. already at goal)
+	 *  @return MoveId of requested (and already finished) move
+	 */
+	FAIRequestID RequestMoveWithImmediateFinish(EPathFollowingResult::Type Result, EPathFollowingVelocityMode VelocityMode = EPathFollowingVelocityMode::Reset);
 
 	/** pause path following
 	*  @param RequestID - request to pause, FAIRequestID::CurrentRequest means pause current request, regardless of its ID */
@@ -293,6 +309,9 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 	FORCEINLINE FVector GetCurrentTargetLocation() const { return *CurrentDestination; }
 	FORCEINLINE FBasedPosition GetCurrentTargetLocationBased() const { return CurrentDestination; }
 	FVector GetCurrentDirection() const;
+
+	/** check if path following has authority over movement (e.g. not falling) and can update own state */
+	FORCEINLINE bool HasMovementAuthority() const { return (MovementComp == nullptr) || MovementComp->CanStopPathFollowing(); }
 
 	FORCEINLINE const FNavPathSharedPtr GetPath() const { return Path; }
 	FORCEINLINE bool HasValidPath() const { return Path.IsValid() && Path->IsValid(); }

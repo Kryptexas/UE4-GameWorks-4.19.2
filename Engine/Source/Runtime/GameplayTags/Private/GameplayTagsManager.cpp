@@ -449,12 +449,13 @@ void UGameplayTagsManager::RedirectSingleGameplayTag(FGameplayTag& Tag, UPropert
 void UGameplayTagsManager::PopulateTreeFromDataTable(class UDataTable* InTable)
 {
 	checkf(GameplayRootTag.IsValid(), TEXT("ConstructGameplayTagTree() must be called before PopulateTreeFromDataTable()"));
-	static const FString ContextString(TEXT("UNKNOWN"));
+	static const FString ContextString(TEXT("UGameplayTagsManager::PopulateTreeFromDataTable"));
 	
-	const int32 NumRows = InTable->RowMap.Num();
-	for (int32 RowIdx = 0; RowIdx < NumRows; ++RowIdx)
+	TArray<FGameplayTagTableRow*> TagTableRows;
+	InTable->GetAllRows<FGameplayTagTableRow>(ContextString, TagTableRows);
+
+	for (const FGameplayTagTableRow* TagRow : TagTableRows)
 	{
-		FGameplayTagTableRow* TagRow = InTable->FindRow<FGameplayTagTableRow>(*FString::Printf(TEXT("%d"), RowIdx), ContextString);
 		if (TagRow)
 		{
 			AddTagTableRow(*TagRow);
@@ -837,7 +838,12 @@ FGameplayTag UGameplayTagsManager::RequestGameplayTag(FName TagName, bool ErrorI
 	{ 
 		if (ErrorIfNotFound)
 		{
-			ensureMsgf(false, TEXT("Requested Tag %s was not found. Check tag data table."), *TagName.ToString());
+			static TSet<FName> MissingTagName;
+			if (!MissingTagName.Contains(TagName))
+			{
+				ensureAlwaysMsgf(false, TEXT("Requested Tag %s was not found. Check tag data table."), *TagName.ToString());
+				MissingTagName.Add(TagName);
+			}
 		}
 		return FGameplayTag();
 	}

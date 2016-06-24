@@ -344,6 +344,10 @@ UCameraAnimInst* APlayerCameraManager::PlayCameraAnim(UCameraAnim* Anim, float R
 		UCameraAnimInst* const Inst = AllocCameraAnimInst();
 		if (Inst)
 		{
+			if (!Anim->bRelativeToInitialFOV)
+			{
+				Inst->InitialFOV = ViewTarget.POV.FOV;
+			}
 			Inst->LastCameraLoc = FVector::ZeroVector;		// clear LastCameraLoc
 			Inst->Play(Anim, AnimCameraActor, Rate, Scale, BlendInTime, BlendOutTime, bLoop, bRandomStartTime, Duration);
 			Inst->SetPlaySpace(PlaySpace, UserPlaySpaceRot);

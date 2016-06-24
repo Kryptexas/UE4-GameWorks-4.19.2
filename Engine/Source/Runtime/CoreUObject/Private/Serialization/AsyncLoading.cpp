@@ -1494,7 +1494,7 @@ EAsyncPackageState::Type FAsyncPackage::CreateLinker()
 				(!GetConvertedDynamicPackageNameToTypeName().Contains(Desc.Name) &&
 				!DoesPackageExist))
 			{
-				UE_LOG(LogStreaming, Error, TEXT("Couldn't find file for package %s requested by async loading code."), *Desc.Name.ToString());
+				UE_LOG(LogStreaming, Error, TEXT("Couldn't find file for package %s requested by async loading code. NameToLoad: %s"), *Desc.Name.ToString(), *Desc.NameToLoad.ToString());
 				bLoadHasFailed = true;
 				return EAsyncPackageState::TimeOut;
 			}

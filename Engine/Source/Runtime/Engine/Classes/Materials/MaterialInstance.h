@@ -421,6 +421,8 @@ protected:
 	 * Internal interface for setting / updating values for material instances.
 	 */
 	void SetVectorParameterValueInternal(FName ParameterName, FLinearColor Value);
+	bool SetVectorParameterByIndexInternal(int32 ParameterIndex, FLinearColor Value);
+	bool SetScalarParameterByIndexInternal(int32 ParameterIndex, float Value);
 	void SetScalarParameterValueInternal(FName ParameterName, float Value);
 	void SetTextureParameterValueInternal(FName ParameterName, class UTexture* Value);
 	void SetFontParameterValueInternal(FName ParameterName, class UFont* FontValue, int32 FontPage);

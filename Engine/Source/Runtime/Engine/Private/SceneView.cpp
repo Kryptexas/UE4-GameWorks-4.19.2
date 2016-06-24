@@ -460,6 +460,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	check(UnscaledViewRect.Min.Y >= 0);
 	check(UnscaledViewRect.Width() > 0);
 	check(UnscaledViewRect.Height() > 0);
+	//check(InitOptions.ViewRotationMatrix.GetOrigin().IsNearlyZero());
 
 	FVector ViewOrigin = InitOptions.ViewOrigin;
 	FMatrix ViewRotationMatrix = InitOptions.ViewRotationMatrix;

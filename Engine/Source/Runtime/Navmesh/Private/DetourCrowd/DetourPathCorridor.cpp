@@ -256,7 +256,7 @@ If the target is within range, it will be the last corner and have a polygon ref
 int dtPathCorridor::findCorners(float* cornerVerts, unsigned char* cornerFlags,
 							  dtPolyRef* cornerPolys, const int maxCorners,
 							  dtNavMeshQuery* navquery, const dtQueryFilter* filter,
-							  float radius)
+							  float radius, bool bAllowEarlyReach)
 {
 	dtAssert(m_path);
 	dtAssert(m_npath);
@@ -296,6 +296,7 @@ int dtPathCorridor::findCorners(float* cornerVerts, unsigned char* cornerFlags,
 		}
 	}
 
+	// UE4 BEGIN
 	// [UE4] fixed corner for early reach detection
 	if (m_hasNextExpectedCorner)
 	{
@@ -428,7 +429,7 @@ int dtPathCorridor::findCorners(float* cornerVerts, unsigned char* cornerFlags,
 			}
 		}
 
-		if (m_moveSegAngle > segAngleThr)
+		if (m_moveSegAngle > segAngleThr && bAllowEarlyReach)
 		{
 			float seg[3];
 			dtVsub(seg, &cornerVerts[0], m_pos);
@@ -443,6 +444,7 @@ int dtPathCorridor::findCorners(float* cornerVerts, unsigned char* cornerFlags,
 			}
 		}
 	}
+	// UE4 END
 
 	return ncorners;
 }

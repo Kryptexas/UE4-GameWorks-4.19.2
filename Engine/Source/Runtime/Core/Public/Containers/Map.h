@@ -41,12 +41,14 @@ public:
 };
 
 /** A key-value pair in the map. */
-template<typename KeyType,typename ValueType>
+template<typename InKeyType,typename InValueType>
 class TPair
 {
 public:
-	typedef typename TTypeTraits<KeyType  >::ConstInitType KeyInitType;
-	typedef typename TTypeTraits<ValueType>::ConstInitType ValueInitType;
+	typedef typename TTypeTraits<InKeyType  >::ConstInitType KeyInitType;
+	typedef typename TTypeTraits<InValueType>::ConstInitType ValueInitType;
+	typedef InKeyType   KeyType;
+	typedef InValueType ValueType;
 
 	KeyType   Key;
 	ValueType Value;
@@ -176,9 +178,9 @@ public:
 	typedef typename TTypeTraits<KeyType  >::ConstPointerType KeyConstPointerType;
 	typedef typename TTypeTraits<KeyType  >::ConstInitType    KeyInitType;
 	typedef typename TTypeTraits<ValueType>::ConstInitType    ValueInitType;
+	typedef TPair<KeyType, ValueType> ElementType;
 
 protected:
-	typedef TPair<KeyType, ValueType> PairType;
 
 #if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 
@@ -256,7 +258,7 @@ public:
 		}
 
 		// since we know the counts are the same, we can just iterate one map and check for existence in the other
-		for (typename PairSetType::TConstIterator It(Pairs); It; ++It)
+		for (typename ElementSetType::TConstIterator It(Pairs); It; ++It)
 		{
 			const ValueType* BVal = Other.Find(It->Key);
 			if (BVal == nullptr)
@@ -326,7 +328,7 @@ public:
 	template<typename Allocator> int32 GetKeys(TArray<KeyType, Allocator>& OutKeys) const
 	{
 		TSet<KeyType> VisitedKeys;
-		for(typename PairSetType::TConstIterator It(Pairs);It;++It)
+		for(typename ElementSetType::TConstIterator It(Pairs);It;++It)
 		{
 			if ( !VisitedKeys.Contains(It->Key) )
 			{
@@ -421,7 +423,7 @@ public:
 	 */
 	const KeyType* FindKey(ValueInitType Value) const
 	{
-		for(typename PairSetType::TConstIterator PairIt(Pairs);PairIt;++PairIt)
+		for(typename ElementSetType::TConstIterator PairIt(Pairs);PairIt;++PairIt)
 		{
 			if(PairIt->Value == Value)
 			{
@@ -552,7 +554,7 @@ public:
 	template<typename Allocator> void GenerateKeyArray(TArray<KeyType, Allocator>& OutArray) const
 	{
 		OutArray.Empty(Pairs.Num());
-		for(typename PairSetType::TConstIterator PairIt(Pairs);PairIt;++PairIt)
+		for(typename ElementSetType::TConstIterator PairIt(Pairs);PairIt;++PairIt)
 		{
 			new(OutArray) KeyType(PairIt->Key);
 		}
@@ -564,7 +566,7 @@ public:
 	template<typename Allocator> void GenerateValueArray(TArray<ValueType, Allocator>& OutArray) const
 	{
 		OutArray.Empty(Pairs.Num());
-		for(typename PairSetType::TConstIterator PairIt(Pairs);PairIt;++PairIt)
+		for(typename ElementSetType::TConstIterator PairIt(Pairs);PairIt;++PairIt)
 		{
 			new(OutArray) ValueType(PairIt->Value);
 		}
@@ -586,20 +588,19 @@ public:
 	}
 
 protected:
-
-	typedef TSet<PairType,KeyFuncs,SetAllocator> PairSetType;
+	typedef TSet<ElementType, KeyFuncs, SetAllocator> ElementSetType;
 
 	/** The base of TMapBase iterators. */
 	template<bool bConst>
 	class TBaseIterator
 	{
 	public:
-		typedef typename TChooseClass<bConst,typename PairSetType::TConstIterator,typename PairSetType::TIterator>::Result PairItType;
+		typedef typename TChooseClass<bConst,typename ElementSetType::TConstIterator,typename ElementSetType::TIterator>::Result PairItType;
 	private:
 		typedef typename TChooseClass<bConst,const TMapBase,TMapBase>::Result MapType;
 		typedef typename TChooseClass<bConst,const KeyType,KeyType>::Result ItKeyType;
 		typedef typename TChooseClass<bConst,const ValueType,ValueType>::Result ItValueType;
-		typedef typename TChooseClass<bConst,const typename PairSetType::ElementType, typename PairSetType::ElementType>::Result PairType;
+		typedef typename TChooseClass<bConst,const typename ElementSetType::ElementType, typename ElementSetType::ElementType>::Result PairType;
 
 	protected:
 		FORCEINLINE TBaseIterator(const PairItType& InElementIt)
@@ -643,7 +644,7 @@ protected:
 	class TBaseKeyIterator
 	{
 	private:
-		typedef typename TChooseClass<bConst,typename PairSetType::TConstKeyIterator,typename PairSetType::TKeyIterator>::Result SetItType;
+		typedef typename TChooseClass<bConst,typename ElementSetType::TConstKeyIterator,typename ElementSetType::TKeyIterator>::Result SetItType;
 		typedef typename TChooseClass<bConst,const KeyType,KeyType>::Result ItKeyType;
 		typedef typename TChooseClass<bConst,const ValueType,ValueType>::Result ItValueType;
 
@@ -681,7 +682,7 @@ protected:
 	};
 
 	/** A set of the key-value pairs in the map. */
-	PairSetType Pairs;
+	ElementSetType Pairs;
 
 public:
 
@@ -750,7 +751,7 @@ public:
 	{
 	public:
 		FORCEINLINE TConstKeyIterator(const TMapBase& InMap,KeyInitType InKey)
-		:	TBaseKeyIterator<true>(typename PairSetType::TConstKeyIterator(InMap.Pairs,InKey))
+		:	TBaseKeyIterator<true>(typename ElementSetType::TConstKeyIterator(InMap.Pairs,InKey))
 		{}
 	};
 
@@ -759,7 +760,7 @@ public:
 	{
 	public:
 		FORCEINLINE TKeyIterator(TMapBase& InMap,KeyInitType InKey)
-		:	TBaseKeyIterator<false>(typename PairSetType::TKeyIterator(InMap.Pairs,InKey))
+		:	TBaseKeyIterator<false>(typename ElementSetType::TKeyIterator(InMap.Pairs,InKey))
 		{}
 
 		/** Removes the current key-value pair from the map. */
@@ -896,7 +897,7 @@ private:
 			: Predicate( InPredicate )
 		{}
 
-		FORCEINLINE bool operator()( const typename Super::PairType& A, const typename Super::PairType& B ) const
+		FORCEINLINE bool operator()( const typename Super::ElementType& A, const typename Super::ElementType& B ) const
 		{
 			return Predicate( A.Key, B.Key );
 		}
@@ -914,7 +915,7 @@ private:
 			: Predicate( InPredicate )
 		{}
 
-		FORCEINLINE bool operator()( const typename Super::PairType& A, const typename Super::PairType& B ) const
+		FORCEINLINE bool operator()( const typename Super::ElementType& A, const typename Super::ElementType& B ) const
 		{
 			return Predicate( A.Value, B.Value );
 		}
@@ -1121,7 +1122,7 @@ public:
 	 */
 	template<typename Allocator> void MultiFind(KeyInitType Key,TArray<ValueType, Allocator>& OutValues,bool bMaintainOrder = false) const
 	{
-		for(typename Super::PairSetType::TConstKeyIterator It(Super::Pairs,Key);It;++It)
+		for(typename Super::ElementSetType::TConstKeyIterator It(Super::Pairs,Key);It;++It)
 		{
 			new(OutValues) ValueType(It->Value);
 		}
@@ -1141,7 +1142,7 @@ public:
 	 */
 	template<typename Allocator> void MultiFindPointer(KeyInitType Key,TArray<const ValueType*, Allocator>& OutValues,bool bMaintainOrder = false) const
 	{
-		for(typename Super::PairSetType::TConstKeyIterator It(Super::Pairs,Key);It;++It)
+		for(typename Super::ElementSetType::TConstKeyIterator It(Super::Pairs,Key);It;++It)
 		{
 			new(OutValues) const ValueType*(&It->Value);
 		}
@@ -1205,7 +1206,7 @@ public:
 	{
 		// Iterate over pairs with a matching key.
 		int32 NumRemovedPairs = 0;
-		for(typename Super::PairSetType::TKeyIterator It(Super::Pairs,InKey);It;++It)
+		for(typename Super::ElementSetType::TKeyIterator It(Super::Pairs,InKey);It;++It)
 		{
 			// If this pair has a matching value as well, remove it.
 			if(It->Value == InValue)
@@ -1227,7 +1228,7 @@ public:
 	{
 		// Iterate over pairs with a matching key.
 		int32 NumRemovedPairs = 0;
-		for(typename Super::PairSetType::TKeyIterator It(Super::Pairs,InKey);It;++It)
+		for(typename Super::ElementSetType::TKeyIterator It(Super::Pairs,InKey);It;++It)
 		{
 			// If this pair has a matching value as well, remove it.
 			if(It->Value == InValue)
@@ -1264,7 +1265,7 @@ public:
 	ValueType* FindPair(KeyInitType Key,ValueInitType Value)
 	{
 		// Iterate over pairs with a matching key.
-		for(typename Super::PairSetType::TKeyIterator It(Super::Pairs,Key);It;++It)
+		for(typename Super::ElementSetType::TKeyIterator It(Super::Pairs,Key);It;++It)
 		{
 			// If the pair's value matches, return a pointer to it.
 			if(It->Value == Value)
@@ -1281,7 +1282,7 @@ public:
 	{
 		// Iterate over pairs with a matching key.
 		int32 NumMatchingPairs = 0;
-		for(typename Super::PairSetType::TConstKeyIterator It(Super::Pairs,Key);It;++It)
+		for(typename Super::ElementSetType::TConstKeyIterator It(Super::Pairs,Key);It;++It)
 		{
 			++NumMatchingPairs;
 		}
@@ -1413,11 +1414,11 @@ struct TIsZeroConstructType<FScriptMap>
 template <typename KeyType, typename ValueType, typename SetAllocator,typename KeyFuncs>
 struct TContainerTraits<TMap<KeyType, ValueType, SetAllocator, KeyFuncs>> : public TContainerTraitsBase<TMap<KeyType, ValueType, SetAllocator, KeyFuncs>>
 {
-	enum { MoveWillEmptyContainer = TContainerTraits<typename TMap<KeyType, ValueType, SetAllocator, KeyFuncs>::PairSetType>::MoveWillEmptyContainer };
+	enum { MoveWillEmptyContainer = TContainerTraits<typename TMap<KeyType, ValueType, SetAllocator, KeyFuncs>::ElementSetType>::MoveWillEmptyContainer };
 };
 
 template <typename KeyType, typename ValueType, typename SetAllocator,typename KeyFuncs>
 struct TContainerTraits<TMultiMap<KeyType, ValueType, SetAllocator, KeyFuncs>> : public TContainerTraitsBase<TMultiMap<KeyType, ValueType, SetAllocator, KeyFuncs>>
 {
-	enum { MoveWillEmptyContainer = TContainerTraits<typename TMultiMap<KeyType, ValueType, SetAllocator, KeyFuncs>::PairSetType>::MoveWillEmptyContainer };
+	enum { MoveWillEmptyContainer = TContainerTraits<typename TMultiMap<KeyType, ValueType, SetAllocator, KeyFuncs>::ElementSetType>::MoveWillEmptyContainer };
 };

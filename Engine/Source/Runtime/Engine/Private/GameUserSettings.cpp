@@ -210,7 +210,14 @@ void UGameUserSettings::UpdateResolutionQuality()
 		DesiredScreenHeight = ScreenHeight;
 	}
 
-	ScalabilityQuality.ResolutionQuality = UGameUserSettings::GetDefaultResolutionScale();
+	if (bUseDesiredScreenHeight)
+	{
+		ScalabilityQuality.ResolutionQuality = UGameUserSettings::GetDefaultResolutionScale();
+	}
+	else
+	{
+		ScalabilityQuality.ResolutionQuality = FMath::Max(ScalabilityQuality.ResolutionQuality, MinResolutionScale);
+	}
 
 	OnGameUserSettingsUINeedsUpdate.Broadcast();
 }

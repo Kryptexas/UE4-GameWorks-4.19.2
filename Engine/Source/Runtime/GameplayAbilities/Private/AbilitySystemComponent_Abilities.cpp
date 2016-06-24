@@ -34,7 +34,6 @@ void UAbilitySystemComponent::InitializeComponent()
 		UAttributeSet* Set = Cast<UAttributeSet>(Obj);
 		if (Set)  
 		{
-			UObject* AT = Set->GetArchetype();	
 			SpawnedAttributes.AddUnique(Set);
 		}
 	}
@@ -2114,7 +2113,7 @@ float UAbilitySystemComponent::PlayMontage(UGameplayAbility* InAnimatingAbility,
 {
 	float Duration = -1.f;
 
-	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->AnimInstance.Get() : nullptr;
+	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->GetAnimInstance() : nullptr;
 	if (AnimInstance && NewAnimMontage)
 	{
 		Duration = AnimInstance->Montage_Play(NewAnimMontage, InPlayRate);
@@ -2178,7 +2177,7 @@ float UAbilitySystemComponent::PlayMontage(UGameplayAbility* InAnimatingAbility,
 float UAbilitySystemComponent::PlayMontageSimulated(UAnimMontage* NewAnimMontage, float InPlayRate, FName StartSectionName)
 {
 	float Duration = -1.f;
-	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->AnimInstance.Get() : nullptr;
+	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->GetAnimInstance() : nullptr;
 	if (AnimInstance && NewAnimMontage)
 	{
 		Duration = AnimInstance->Montage_Play(NewAnimMontage, InPlayRate);
@@ -2195,7 +2194,7 @@ void UAbilitySystemComponent::AnimMontage_UpdateReplicatedData()
 {
 	check(IsOwnerActorAuthoritative());
 
-	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->AnimInstance.Get() : nullptr;
+	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->GetAnimInstance() : nullptr;
 	if (AnimInstance && LocalAnimMontageInfo.AnimMontage)
 	{
 		RepAnimMontageInfo.AnimMontage = LocalAnimMontageInfo.AnimMontage;
@@ -2239,7 +2238,7 @@ void UAbilitySystemComponent::OnPredictiveMontageRejected(UAnimMontage* Predicti
 {
 	static const float MONTAGE_PREDICTION_REJECT_FADETIME = 0.25f;
 
-	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->AnimInstance.Get() : nullptr;
+	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->GetAnimInstance() : nullptr;
 	if (AnimInstance && PredictiveMontage)
 	{
 		// If this montage is still playing: kill it
@@ -2261,7 +2260,7 @@ void UAbilitySystemComponent::OnRep_ReplicatedAnimMontage()
 {
 	static const float MONTAGE_REP_POS_ERR_THRESH = 0.1f;
 
-	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->AnimInstance.Get() : nullptr;
+	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->GetAnimInstance() : nullptr;
 	if (AnimInstance == nullptr || !IsReadyForReplicatedMontage())
 	{
 		// We can't handle this yet
@@ -2357,7 +2356,7 @@ void UAbilitySystemComponent::OnRep_ReplicatedAnimMontage()
 
 void UAbilitySystemComponent::CurrentMontageStop(float OverrideBlendOutTime)
 {
-	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->AnimInstance.Get() : nullptr;
+	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->GetAnimInstance() : nullptr;
 	UAnimMontage* MontageToStop = LocalAnimMontageInfo.AnimMontage;
 	bool bShouldStopMontage = AnimInstance && MontageToStop && !AnimInstance->Montage_GetIsStopped(MontageToStop);
 
@@ -2385,7 +2384,7 @@ void UAbilitySystemComponent::ClearAnimatingAbility(UGameplayAbility* Ability)
 
 void UAbilitySystemComponent::CurrentMontageJumpToSection(FName SectionName)
 {
-	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->AnimInstance.Get() : nullptr;
+	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->GetAnimInstance() : nullptr;
 	if ((SectionName != NAME_None) && AnimInstance && LocalAnimMontageInfo.AnimMontage)
 	{
 		AnimInstance->Montage_JumpToSection(SectionName, LocalAnimMontageInfo.AnimMontage);
@@ -2402,7 +2401,7 @@ void UAbilitySystemComponent::CurrentMontageJumpToSection(FName SectionName)
 
 void UAbilitySystemComponent::CurrentMontageSetNextSectionName(FName FromSectionName, FName ToSectionName)
 {
-	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->AnimInstance.Get() : nullptr;
+	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->GetAnimInstance() : nullptr;
 	if( LocalAnimMontageInfo.AnimMontage && AnimInstance )
 	{
 		// Set Next Section Name. 
@@ -2423,7 +2422,7 @@ void UAbilitySystemComponent::CurrentMontageSetNextSectionName(FName FromSection
 
 void UAbilitySystemComponent::CurrentMontageSetPlayRate(float InPlayRate)
 {
-	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->AnimInstance.Get() : nullptr;
+	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->GetAnimInstance() : nullptr;
 	if (LocalAnimMontageInfo.AnimMontage && AnimInstance)
 	{
 		// Set Play Rate
@@ -2448,7 +2447,7 @@ bool UAbilitySystemComponent::ServerCurrentMontageSetNextSectionName_Validate(UA
 
 void UAbilitySystemComponent::ServerCurrentMontageSetNextSectionName_Implementation(UAnimMontage* ClientAnimMontage, float ClientPosition, FName SectionName, FName NextSectionName)
 {
-	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->AnimInstance.Get() : nullptr;
+	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->GetAnimInstance() : nullptr;
 	if (AnimInstance)
 	{
 		UAnimMontage* CurrentAnimMontage = LocalAnimMontageInfo.AnimMontage;
@@ -2486,7 +2485,7 @@ bool UAbilitySystemComponent::ServerCurrentMontageJumpToSectionName_Validate(UAn
 
 void UAbilitySystemComponent::ServerCurrentMontageJumpToSectionName_Implementation(UAnimMontage* ClientAnimMontage, FName SectionName)
 {
-	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->AnimInstance.Get() : nullptr;
+	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->GetAnimInstance() : nullptr;
 	if (AnimInstance)
 	{
 		UAnimMontage* CurrentAnimMontage = LocalAnimMontageInfo.AnimMontage;
@@ -2511,7 +2510,7 @@ bool UAbilitySystemComponent::ServerCurrentMontageSetPlayRate_Validate(UAnimMont
 
 void UAbilitySystemComponent::ServerCurrentMontageSetPlayRate_Implementation(UAnimMontage* ClientAnimMontage, float InPlayRate)
 {
-	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->AnimInstance.Get() : nullptr;
+	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->GetAnimInstance() : nullptr;
 	if (AnimInstance)
 	{
 		UAnimMontage* CurrentAnimMontage = LocalAnimMontageInfo.AnimMontage;
@@ -2531,7 +2530,7 @@ void UAbilitySystemComponent::ServerCurrentMontageSetPlayRate_Implementation(UAn
 
 UAnimMontage* UAbilitySystemComponent::GetCurrentMontage() const
 {
-	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->AnimInstance.Get() : nullptr;
+	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->GetAnimInstance() : nullptr;
 	if (LocalAnimMontageInfo.AnimMontage && AnimInstance && AnimInstance->Montage_IsActive(LocalAnimMontageInfo.AnimMontage))
 	{
 		return LocalAnimMontageInfo.AnimMontage;
@@ -2542,7 +2541,7 @@ UAnimMontage* UAbilitySystemComponent::GetCurrentMontage() const
 
 int32 UAbilitySystemComponent::GetCurrentMontageSectionID() const
 {
-	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->AnimInstance.Get() : nullptr;
+	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->GetAnimInstance() : nullptr;
 	UAnimMontage* CurrentAnimMontage = GetCurrentMontage();
 
 	if (CurrentAnimMontage && AnimInstance)
@@ -2556,7 +2555,7 @@ int32 UAbilitySystemComponent::GetCurrentMontageSectionID() const
 
 FName UAbilitySystemComponent::GetCurrentMontageSectionName() const
 {
-	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->AnimInstance.Get() : nullptr;
+	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->GetAnimInstance() : nullptr;
 	UAnimMontage* CurrentAnimMontage = GetCurrentMontage();
 
 	if (CurrentAnimMontage && AnimInstance)
@@ -2572,7 +2571,7 @@ FName UAbilitySystemComponent::GetCurrentMontageSectionName() const
 
 float UAbilitySystemComponent::GetCurrentMontageSectionLength() const
 {
-	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->AnimInstance.Get() : nullptr;
+	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->GetAnimInstance() : nullptr;
 	UAnimMontage* CurrentAnimMontage = GetCurrentMontage();
 	if (CurrentAnimMontage && AnimInstance)
 	{
@@ -2602,7 +2601,7 @@ float UAbilitySystemComponent::GetCurrentMontageSectionLength() const
 
 float UAbilitySystemComponent::GetCurrentMontageSectionTimeLeft() const
 {
-	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->AnimInstance.Get() : nullptr;
+	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->GetAnimInstance() : nullptr;
 	UAnimMontage* CurrentAnimMontage = GetCurrentMontage();
 	if (CurrentAnimMontage && AnimInstance && AnimInstance->Montage_IsActive(CurrentAnimMontage))
 	{

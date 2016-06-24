@@ -274,21 +274,21 @@ void FCompilerResultsLog::InternalLogMessage(const TSharedRef<FTokenizedMessage>
 		{
 			if (IsRunningCommandlet())
 			{
-				UE_LOG(LogBlueprint, Error, TEXT("Compiler %s from Source: %s"), *Message->ToText().ToString(), *SourcePath);
+				UE_LOG(LogBlueprint, Error, TEXT("[Compiler %s] %s from Source: %s"), *FPackageName::ObjectPathToObjectName(SourcePath), *Message->ToText().ToString(), *SourcePath);
 			}
 			else
 			{
-				// in editor the compiler log is 'rich' and we don't need to annotate with the blueprint name:
-				UE_LOG(LogBlueprint, Error, TEXT("Compiler %s"), *Message->ToText().ToString());
+				// in editor the compiler log is 'rich' and we don't need to annotate with the full blueprint path, just the name:
+				UE_LOG(LogBlueprint, Error, TEXT("[Compiler %s] %s"), *FPackageName::ObjectPathToObjectName(SourcePath), *Message->ToText().ToString());
 			}
 		}
 		else if (Severity == EMessageSeverity::Warning || Severity == EMessageSeverity::PerformanceWarning)
 		{
-			UE_LOG(LogBlueprint, Warning, TEXT("Compiler %s"), *Message->ToText().ToString());
+			UE_LOG(LogBlueprint, Warning, TEXT("[Compiler %s] %s"), *FPackageName::ObjectPathToObjectName(SourcePath), *Message->ToText().ToString());
 		}
 		else
 		{
-			UE_LOG(LogBlueprint, Log, TEXT("Compiler %s"), *Message->ToText().ToString());
+			UE_LOG(LogBlueprint, Log, TEXT("[Compiler %s] %s"), *FPackageName::ObjectPathToObjectName(SourcePath), *Message->ToText().ToString());
 		}
 	}
 }
