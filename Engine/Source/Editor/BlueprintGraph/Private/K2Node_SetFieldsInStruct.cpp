@@ -181,9 +181,9 @@ FText UK2Node_SetFieldsInStruct::GetTooltipText() const
 	return CachedTooltip;
 }
 
-FName UK2Node_SetFieldsInStruct::GetPaletteIcon(FLinearColor& OutColor) const
-{ 
-	return UK2Node_Variable::GetPaletteIcon(OutColor);
+FSlateIcon UK2Node_SetFieldsInStruct::GetIconAndTint(FLinearColor& OutColor) const
+{
+	return UK2Node_Variable::GetIconAndTint(OutColor);
 }
 
 void UK2Node_SetFieldsInStruct::ValidateNodeDuringCompilation(FCompilerResultsLog& MessageLog) const

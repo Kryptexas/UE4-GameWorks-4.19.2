@@ -239,11 +239,15 @@ private:
  */
 struct FAsyncThreadIndex
 {
-	CORE_API static int32 GetNext()
+#if ( !PLATFORM_WINDOWS ) || ( !defined(__clang__) )
+	static CORE_API int32 GetNext()
 	{
 		static FThreadSafeCounter ThreadIndex;
 		return ThreadIndex.Add(1);
 	}
+#else
+	static CORE_API int32 GetNext(); // @todo clang: Workaround for missing symbol export
+#endif
 };
 
 

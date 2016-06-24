@@ -133,21 +133,66 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 		}
 
 		const int32 GCInterval = 100;
-		int32 NumProcessedSinceLastGC = GCInterval;
-		bool bLastPackageWasMap = true; // 'true' is to prime the ProcessedPackages list
+		int32 NumProcessedSinceLastGC = 0;
+		bool bLastPackageWasMap = false;
 		TSet<FString> ProcessedPackages;
 
 		UE_LOG(LogDerivedDataCacheCommandlet, Display, TEXT("%d packages to load..."), FilesInPath.Num());
 
 		for( int32 FileIndex = FilesInPath.Num() - 1; ; FileIndex-- )
 		{
+			if (FileIndex < 0)
+			{
+				break;
+			}
+			{
+				const FString& Filename = FilesInPath[FileIndex];
+				if (ProcessedPackages.Contains(Filename))
+				{
+					continue;
+				}
+				if (bDoSubset)
+				{
+					const FString& PackageName = FPackageName::PackageFromPath(*Filename);
+					if (FCrc::StrCrc_DEPRECATED(*PackageName.ToUpper()) % SubsetMod != SubsetTarget)
+					{
+						continue;
+					}
+				}
+
+				UE_LOG(LogDerivedDataCacheCommandlet, Display, TEXT("Loading (%d) %s"), FilesInPath.Num() - FileIndex, *Filename);
+
+				UPackage* Package = LoadPackage(NULL, *Filename, LOAD_None);
+				if (Package == NULL)
+				{
+					UE_LOG(LogDerivedDataCacheCommandlet, Error, TEXT("Error loading %s!"), *Filename);
+				}
+				else
+				{
+					// cache all the resources for this platform
+					for (TObjectIterator<UObject> It; It; ++It)
+					{
+						if (ProcessedPackages.Contains(It->GetOutermost()->GetName()))
+						{
+							for (auto Platform : Platforms)
+							{
+								It->BeginCacheForCookedPlatformData(Platform);
+							}
+						}
+					}
+
+					bLastPackageWasMap = Package->ContainsMap();
+					NumProcessedSinceLastGC++;
+				}
+			}
+
+
 			// Keep track of which packages have already been processed along with the map.
-			if (NumProcessedSinceLastGC >= GCInterval || bLastPackageWasMap || FileIndex == FilesInPath.Num() - 1)
 			{
 				const double FindProcessedPackagesStartTime = FPlatformTime::Seconds();
 				TArray<UObject *> ObjectsInOuter;
 				GetObjectsWithOuter(NULL, ObjectsInOuter, false);
-				for( int32 Index = 0; Index < ObjectsInOuter.Num(); Index++ )
+				for (int32 Index = 0; Index < ObjectsInOuter.Num(); Index++)
 				{
 					UPackage* Pkg = Cast<UPackage>(ObjectsInOuter[Index]);
 					if (!Pkg)
@@ -166,7 +211,7 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 							{
 								TArray<UObject *> ObjectsInPackage;
 								GetObjectsWithOuter(Pkg, ObjectsInPackage, true);
-								for( int32 IndexPackage = 0; IndexPackage < ObjectsInPackage.Num(); IndexPackage++ )
+								for (int32 IndexPackage = 0; IndexPackage < ObjectsInPackage.Num(); IndexPackage++)
 								{
 									ObjectsInPackage[IndexPackage]->WillNeverCacheCookedPlatformDataAgain();
 									ObjectsInPackage[IndexPackage]->ClearAllCachedCookedPlatformData();
@@ -191,52 +236,10 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 				{
 					UE_LOG(LogDerivedDataCacheCommandlet, Display, TEXT("GC..."));
 					CollectGarbage(RF_Standalone);
-				}				
+				}
 				GCTime += FPlatformTime::Seconds() - StartGCTime;
 
 				bLastPackageWasMap = false;
-			}
-			if (FileIndex < 0)
-			{
-				break;
-			}
-			const FString& Filename = FilesInPath[FileIndex];
-			if (ProcessedPackages.Contains(Filename))
-			{
-				continue;
-			}
-			if (bDoSubset)
-			{
-				const FString& PackageName = FPackageName::PackageFromPath(*Filename);
-				if (FCrc::StrCrc_DEPRECATED(*PackageName.ToUpper()) % SubsetMod != SubsetTarget)
-				{
-					continue;
-				}
-			}
-
-			UE_LOG(LogDerivedDataCacheCommandlet, Display, TEXT("Loading (%d) %s"), FilesInPath.Num() - FileIndex, *Filename );
-
-			UPackage* Package = LoadPackage( NULL, *Filename, LOAD_None );
-			if( Package == NULL )
-			{
-				UE_LOG(LogDerivedDataCacheCommandlet, Error, TEXT("Error loading %s!"), *Filename );
-			}
-			else
-			{
-				// cache all the resources for this platform
-				for ( TObjectIterator<UObject> It; It; ++It )
-				{
-					if (ProcessedPackages.Contains(It->GetOutermost()->GetName()))
-					{
-						for (auto Platform : Platforms)
-						{
-							It->BeginCacheForCookedPlatformData(Platform);
-						}
-					}
-				}
-
-				bLastPackageWasMap = Package->ContainsMap();
-				NumProcessedSinceLastGC++;
 			}
 		}
 	}

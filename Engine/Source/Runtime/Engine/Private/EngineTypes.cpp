@@ -51,6 +51,8 @@ void FMeshProxySettings::PostLoadDeprecated()
 		MaterialSettings.MetallicConstant = Material_DEPRECATED.MetallicConstant;
 		MaterialSettings.SpecularConstant = Material_DEPRECATED.SpecularConstant;
 	}
+
+	MaterialSettings.MaterialMergeType = EMaterialMergeType::MaterialMergeType_Simplygon;
 }
 
 

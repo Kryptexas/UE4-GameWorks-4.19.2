@@ -26,8 +26,11 @@ DECLARE_LOG_CATEGORY_EXTERN(LogVulkanRHI, Log, All);
 	#define VK_USE_PLATFORM_ANDROID_KHR 1
 #endif
 
-
+#if PLATFORM_ANDROID
+#include "VulkanLoader.h"
+#else
 #include <vulkan/vulkan.h>
+#endif
 
 #include "VulkanRHI.h"
 #include "VulkanGlobalUniformBuffer.h"
@@ -185,11 +188,35 @@ public:
 	TArray<VkImageView> Attachments;
 	TArray<VkImageSubresourceRange> SubresourceRanges;
 
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-	void InsertWriteBarrier(FVulkanCmdBuffer* CmdBuffer);
-#else
-	void InsertWriteBarrier(VkCommandBuffer cmd);
-#endif
+	void InsertWriteBarriers(FVulkanCmdBuffer* CmdBuffer);
+
+	// Returns the backbuffer render target if used by this framebuffer
+	FVulkanBackBuffer* GetBackBuffer()
+	{
+		return BackBuffer;
+	}
+
+	inline bool ContainsRenderTarget(const FVulkanTextureBase* Texture) const
+	{
+		for (int32 Index = 0; Index < RTInfo.NumColorRenderTargets; ++Index)
+		{
+			FRHITexture* RHITexture = RTInfo.ColorRenderTarget[Index].Texture;
+			if (RHITexture->GetTexture2D() && Texture == (FVulkanTextureBase*)(FVulkanTexture2D*)RHITexture)
+			{
+				return true;
+			}
+			else if (RHITexture->GetTextureCube() && Texture == (FVulkanTextureBase*)(FVulkanTextureCube*)RHITexture)
+			{
+				return true;
+			}
+			else if (RHITexture->GetTexture3D() && Texture == (FVulkanTextureBase*)(FVulkanTexture3D*)RHITexture)
+			{
+				return true;
+			}
+		}
+
+		return Texture == (FVulkanTexture2D*)RTInfo.DepthStencilRenderTarget.Texture;
+	}
 
 private:
 	VkFramebuffer Framebuffer;
@@ -198,6 +225,8 @@ private:
 	// it's up to VulkanRHI to handle this correctly.
 	FRHISetRenderTargetsInfo RTInfo;
 	uint32 NumColorAttachments;
+
+	FVulkanBackBuffer* BackBuffer;
 
 	// Predefined set of barriers, when executes ensuring all writes are finished
 	TArray<VkImageMemoryBarrier> WriteBarriers;
@@ -218,15 +247,6 @@ private:
 
 	FVulkanRenderPass(FVulkanDevice& Device, const FVulkanRenderTargetLayout& RTLayout);
 	~FVulkanRenderPass();
-
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-#else
-	void Begin(FVulkanCmdBuffer& CmdBuf, const VkFramebuffer& Framebuffer, const VkClearValue* AttachmentClearValues);
-	void End(FVulkanCmdBuffer& CmdBuf)
-	{
-		vkCmdEndRenderPass(CmdBuf.GetHandle());
-	}
-#endif
 
 private:
 	FVulkanRenderTargetLayout Layout;
@@ -328,6 +348,9 @@ private:
 	FVulkanDescriptorPool* Pool;
 	const FVulkanDescriptorSetsLayout& Layout;
 	TArray<VkDescriptorSet> Sets;
+
+	friend class FVulkanBoundShaderState;
+	friend class FVulkanCommandListContext;
 };
 
 void VulkanSetImageLayout(VkCommandBuffer CmdBuffer, VkImage Image, VkImageLayout OldLayout, VkImageLayout NewLayout, const VkImageSubresourceRange& SubresourceRange);

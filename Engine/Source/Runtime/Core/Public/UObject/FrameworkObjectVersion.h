@@ -25,6 +25,19 @@ struct CORE_API FFrameworkObjectVersion
 		// Moved compressed anim data from uasset to the DDC
 		MoveCompressedAnimDataToTheDDC,
 
+		// Some graph pins created using legacy code seem to have lost the RF_Transactional flag,
+		// which causes issues with undo. Restore the flag at this version
+		FixNonTransactionalPins,
+
+		// Create new struct for SmartName, and use that for CurveName
+		SmartNameRefactor,
+		
+		// Add Reference Skeleton to Rig
+		AddSourceReferenceSkeletonToRig, 
+
+		// Refactor ConstraintInstance so that we have an easy way to swap behavior paramters
+		ConstraintInstanceBehaviorParameters,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

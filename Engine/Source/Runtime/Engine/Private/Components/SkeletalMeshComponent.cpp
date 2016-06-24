@@ -16,7 +16,6 @@
 #include "PhysXASync.h"
 #include "Animation/AnimStats.h"
 #include "Animation/AnimNodeBase.h"
-#include "Animation/VertexAnim/VertexAnimation.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Animation/AnimSingleNodeInstance.h"
 #include "Engine/SkeletalMeshSocket.h"
@@ -258,7 +257,7 @@ void USkeletalMeshComponent::RegisterClothTick(bool bRegister)
 
 bool USkeletalMeshComponent::ShouldRunPostPhysicsTick() const
 {
-	return	(bEnablePhysicsOnDedicatedServer || GetNetMode() != NM_DedicatedServer) && // Early out with we are on a dedicated server and not running physics
+	return	(bEnablePhysicsOnDedicatedServer || !IsNetMode(NM_DedicatedServer)) && // Early out if we are on a dedicated server and not running physics.
 			(IsSimulatingPhysics() || ShouldBlendPhysicsBones());
 }
 
@@ -270,8 +269,8 @@ void USkeletalMeshComponent::UpdatePostPhysicsTickRegisteredState()
 bool USkeletalMeshComponent::ShouldRunClothTick() const
 {
 #if WITH_APEX_CLOTHING
-	bool bShouldRunCloth = GetNetMode() != NM_DedicatedServer && // Cloth never needs to run on dedicated server
-		SkeletalMesh && SkeletalMesh->ClothingAssets.Num() > 0;
+	bool bShouldRunCloth = ClothingActors.Num() > 0 && SkeletalMesh && SkeletalMesh->ClothingAssets.Num() > 0
+								&& !IsNetMode(NM_DedicatedServer); // Cloth never needs to run on dedicated server
 
 	//If we are eligible to run cloth we should check if any of the clothing actors will actually simulate at this LOD
 	if(bShouldRunCloth)
@@ -332,6 +331,10 @@ void USkeletalMeshComponent::OnRegister()
 
 void USkeletalMeshComponent::OnUnregister()
 {
+	const bool bBlockOnTask = true; // wait on evaluation task so we complete any work before this component goes away
+	const bool bPerformPostAnimEvaluation = false; // Skip post evaluation, it would be wasted work
+	HandleExistingParallelEvaluationTask(bBlockOnTask, bPerformPostAnimEvaluation);
+
 #if WITH_APEX_CLOTHING
 	//clothing actors will be re-created in TickClothing
 	ReleaseAllClothingResources();
@@ -351,6 +354,11 @@ void USkeletalMeshComponent::InitAnim(bool bForceReinit)
 	// I'm moving the check here
 	if ( SkeletalMesh != NULL && IsRegistered() )
 	{
+		if (SkeletalMesh->MorphTargets.Num() > 0 && MorphTargetWeights.Num() == 0)
+		{
+			MorphTargetWeights.AddZeroed(SkeletalMesh->MorphTargets.Num());
+		}
+
 		// We may be doing parallel evaluation on the current anim instance
 		// Calling this here with true will block this init till that thread completes
 		// and it is safe to continue
@@ -447,8 +455,8 @@ bool USkeletalMeshComponent::InitializeAnimScriptInstance(bool bForceReinit)
 			bCalledInitialize = true;
 		}		
 
-		// refresh vertex animation - this can happen when re-registration happens
-		RefreshActiveVertexAnims();
+		// refresh morph targets - this can happen when re-registration happens
+		RefreshActiveMorphTargets();
 	}
 	return bCalledInitialize;
 }
@@ -698,10 +706,19 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime, enum ELevelTick Tick
 	UpdateClothTickRegisteredState();
 
 	// clear and add morphtarget curves that are added via SetMorphTarget
-	ActiveVertexAnims.Reset();
-	if (SkeletalMesh && MorphTargetCurves.Num() > 0)
+	ActiveMorphTargets.Reset();
+	if (SkeletalMesh)
 	{
-		FAnimationRuntime::AppendActiveVertexAnims(SkeletalMesh, MorphTargetCurves, ActiveVertexAnims);
+		if (SkeletalMesh->MorphTargets.Num() > 0)
+		{
+			check(MorphTargetWeights.Num() == SkeletalMesh->MorphTargets.Num());
+			FMemory::Memzero(MorphTargetWeights.GetData(), MorphTargetWeights.GetAllocatedSize());
+		}
+
+		if (MorphTargetCurves.Num() > 0)
+		{
+			FAnimationRuntime::AppendActiveMorphTargets(SkeletalMesh, MorphTargetCurves, ActiveMorphTargets, MorphTargetWeights);
+		}
 	}
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
@@ -885,6 +902,18 @@ void USkeletalMeshComponent::RecalcRequiredBones(int32 LODIndex)
 	FSkeletalMeshResource* SkelMeshResource = GetSkeletalMeshResource();
 	check(SkelMeshResource);
 
+	// Make sure we access a valid LOD
+	// @fixme jira UE-30028 Avoid crash when called with partially loaded asset
+	if (SkelMeshResource->LODModels.Num() == 0)
+	{
+		//No LODS?
+		RequiredBones.Reset();
+		FillSpaceBasesRequiredBones.Reset();
+		UE_LOG(LogAnimation, Warning, TEXT("Skeletal Mesh asset '%s' has no LODs"), *SkeletalMesh->GetName());
+		return;
+	}
+	LODIndex = FMath::Clamp(LODIndex, 0, SkelMeshResource->LODModels.Num()-1);
+
 	// The list of bones we want is taken from the predicted LOD level.
 	FStaticLODModel& LODModel = SkelMeshResource->LODModels[LODIndex];
 	RequiredBones = LODModel.RequiredBones;
@@ -1004,21 +1033,14 @@ void USkeletalMeshComponent::RecalcRequiredBones(int32 LODIndex)
 	// Ensure that we have a complete hierarchy down to those bones.
 	FAnimationRuntime::EnsureParentsPresent(RequiredBones, SkeletalMesh);
 
-	FillSpaceBasesRequiredBones.Empty(RequiredBones.Num() + NeededBonesForFillSpaceBases.Num());
+	FillSpaceBasesRequiredBones.Reset(RequiredBones.Num() + NeededBonesForFillSpaceBases.Num());
 	FillSpaceBasesRequiredBones = RequiredBones;
 	
 	NeededBonesForFillSpaceBases.Sort();
 	MergeInBoneIndexArrays(FillSpaceBasesRequiredBones, NeededBonesForFillSpaceBases);
 	FAnimationRuntime::EnsureParentsPresent(FillSpaceBasesRequiredBones, SkeletalMesh);
 
-	// Sanitise bones that we aren't going to be updating
-	for (int32 BoneIndex = 0; BoneIndex < LocalAtoms.Num(); ++BoneIndex)
-	{
-		if (!RequiredBones.Contains(BoneIndex))
-		{
-			LocalAtoms[BoneIndex] = SkeletalMesh->RefSkeleton.GetRefBonePose()[BoneIndex];
-		}
-	}
+	LocalAtoms = SkeletalMesh->RefSkeleton.GetRefBonePose();
 
 	// make sure animation requiredBone to mark as dirty
 	if (AnimScriptInstance)
@@ -1068,15 +1090,16 @@ void USkeletalMeshComponent::UpdateSlaveComponent()
 		// propagate BP-driven curves from the master SMC...
 		if (SkeletalMesh)
 		{
+			check(MorphTargetWeights.Num() == SkeletalMesh->MorphTargets.Num());
 			if (MasterSMC->MorphTargetCurves.Num() > 0)
 			{
-				FAnimationRuntime::AppendActiveVertexAnims(SkeletalMesh, MasterSMC->MorphTargetCurves, ActiveVertexAnims);
+				FAnimationRuntime::AppendActiveMorphTargets(SkeletalMesh, MasterSMC->MorphTargetCurves, ActiveMorphTargets, MorphTargetWeights);
 			}
 
 			// if slave also has it, add it here. 
 			if (MorphTargetCurves.Num() > 0)
 			{
-				FAnimationRuntime::AppendActiveVertexAnims(SkeletalMesh, MorphTargetCurves, ActiveVertexAnims);
+				FAnimationRuntime::AppendActiveMorphTargets(SkeletalMesh, MorphTargetCurves, ActiveMorphTargets, MorphTargetWeights);
 			}
 		}
 
@@ -1239,6 +1262,11 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 		CachedCurve.Empty();
 	}
 
+	if(AnimScriptInstance)
+	{
+		AnimScriptInstance->PreEvaluateAnimation();
+	}
+
 	if (bDoParallelEvaluation)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_USkeletalMeshComponent_RefreshBoneTransforms_SetupParallel); 
@@ -1398,7 +1426,7 @@ void USkeletalMeshComponent::ApplyAnimationCurvesToComponent(const TMap<FName, f
 	if (SkeletalMesh && InAnimationMorphCurves && InAnimationMorphCurves->Num() > 0)
 	{
 		// we want to append to existing curves - i.e. BP driven curves 
-		FAnimationRuntime::AppendActiveVertexAnims(SkeletalMesh, *InAnimationMorphCurves, ActiveVertexAnims);
+		FAnimationRuntime::AppendActiveMorphTargets(SkeletalMesh, *InAnimationMorphCurves, ActiveMorphTargets, MorphTargetWeights);
 	}
 }
 
@@ -1818,21 +1846,6 @@ void USkeletalMeshComponent::SetAnimation(UAnimationAsset* NewAnimToPlay)
 	}
 }
 
-void USkeletalMeshComponent::SetVertexAnimation(UVertexAnimation* NewVertexAnimation)
-{
-	UAnimSingleNodeInstance* SingleNodeInstance = GetSingleNodeInstance();
-	if (SingleNodeInstance)
-	{
-		SingleNodeInstance->SetVertexAnimation(NewVertexAnimation, false);
-		// when set the asset, we shouldn't automatically play. 
-		SingleNodeInstance->SetPlaying(false);
-	}
-	else if( AnimScriptInstance != NULL )
-	{
-		UE_LOG(LogAnimation, Warning, TEXT("Currently in Animation Blueprint mode. Please change AnimationMode to Use Animation Asset"));
-	}
-}
-
 void USkeletalMeshComponent::Play(bool bLooping)
 {
 	UAnimSingleNodeInstance* SingleNodeInstance = GetSingleNodeInstance();
@@ -1936,6 +1949,12 @@ class UAnimSingleNodeInstance* USkeletalMeshComponent::GetSingleNodeInstance() c
 	return Cast<class UAnimSingleNodeInstance>(AnimScriptInstance);
 }
 
+bool USkeletalMeshComponent::PoseTickedThisFrame() const 
+{ 
+	return LastPoseTickTime == GetWorld()->TimeSeconds; 
+}
+
+
 FTransform USkeletalMeshComponent::ConvertLocalRootMotionToWorld(const FTransform& InTransform)
 {
 	// Make sure component to world is up to date
@@ -2023,31 +2042,11 @@ bool USkeletalMeshComponent::ComponentIsTouchingSelectionBox(const FBox& InSelBB
 		check(SkelMeshResource);
 		check(SkelMeshResource->LODModels.Num() > 0);
 
-		// Transform hard and soft verts into world space. Note that this assumes skeletal mesh is in reference pose...
+		// Transform verts into world space. Note that this assumes skeletal mesh is in reference pose...
 		const FStaticLODModel& LODModel = SkelMeshResource->LODModels[0];
-		for (const auto& Chunk : LODModel.Chunks)
+		for (const auto& Section : LODModel.Sections)
 		{
-			for (const auto& Vertex : Chunk.RigidVertices)
-			{
-				const FVector Location = ComponentToWorld.TransformPosition(Vertex.Position);
-				const bool bLocationIntersected = FMath::PointBoxIntersection(Location, InSelBBox);
-
-				// If the selection box doesn't have to encompass the entire component and a skeletal mesh vertex has intersected with
-				// the selection box, this component is being touched by the selection box
-				if (!bMustEncompassEntireComponent && bLocationIntersected)
-				{
-					return true;
-				}
-
-				// If the selection box has to encompass the entire component and a skeletal mesh vertex didn't intersect with the selection
-				// box, this component does not qualify
-				else if (bMustEncompassEntireComponent && !bLocationIntersected)
-				{
-					return false;
-				}
-			}
-
-			for (const auto& Vertex : Chunk.SoftVertices)
+			for (const auto& Vertex : Section.SoftVertices)
 			{
 				const FVector Location = ComponentToWorld.TransformPosition(Vertex.Position);
 				const bool bLocationIntersected = FMath::PointBoxIntersection(Location, InSelBBox);
@@ -2072,8 +2071,8 @@ bool USkeletalMeshComponent::ComponentIsTouchingSelectionBox(const FBox& InSelBB
 		// is consider touching
 		if (bMustEncompassEntireComponent)
 		{
-		return true;
-	}
+			return true;
+		}
 	}
 
 	return false;
@@ -2087,31 +2086,11 @@ bool USkeletalMeshComponent::ComponentIsTouchingSelectionFrustum(const FConvexVo
 		check(SkelMeshResource);
 		check(SkelMeshResource->LODModels.Num() > 0);
 
-		// Transform hard and soft verts into world space. Note that this assumes skeletal mesh is in reference pose...
+		// Transform verts into world space. Note that this assumes skeletal mesh is in reference pose...
 		const FStaticLODModel& LODModel = SkelMeshResource->LODModels[0];
-		for (const auto& Chunk : LODModel.Chunks)
+		for (const auto& Section : LODModel.Sections)
 		{
-			for (const auto& Vertex : Chunk.RigidVertices)
-			{
-				const FVector Location = ComponentToWorld.TransformPosition(Vertex.Position);
-				const bool bLocationIntersected = InFrustum.IntersectSphere(Location, 0.0f);
-
-				// If the selection box doesn't have to encompass the entire component and a skeletal mesh vertex has intersected with
-				// the selection box, this component is being touched by the selection box
-				if (!bMustEncompassEntireComponent && bLocationIntersected)
-				{
-					return true;
-				}
-
-				// If the selection box has to encompass the entire component and a skeletal mesh vertex didn't intersect with the selection
-				// box, this component does not qualify
-				else if (bMustEncompassEntireComponent && !bLocationIntersected)
-				{
-					return false;
-				}
-			}
-
-			for (const auto& Vertex : Chunk.SoftVertices)
+			for (const auto& Vertex : Section.SoftVertices)
 			{
 				const FVector Location = ComponentToWorld.TransformPosition(Vertex.Position);
 				const bool bLocationIntersected = InFrustum.IntersectSphere(Location, 0.0f);
@@ -2272,7 +2251,7 @@ void USkeletalMeshComponent::SetRootBodyIndex(int32 InBodyIndex)
 	}
 }
 
-void USkeletalMeshComponent::RefreshActiveVertexAnims()
+void USkeletalMeshComponent::RefreshActiveMorphTargets()
 {
 	if (SkeletalMesh && AnimScriptInstance)
 	{
@@ -2289,7 +2268,7 @@ void USkeletalMeshComponent::RefreshActiveVertexAnims()
 	}
 	else
 	{
-		ActiveVertexAnims.Empty();
+		ActiveMorphTargets.Empty();
 	}
 }
 
@@ -2477,4 +2456,11 @@ FDelegateHandle USkeletalMeshComponent::RegisterOnPhysicsCreatedDelegate(const F
 void USkeletalMeshComponent::UnregisterOnPhysicsCreatedDelegate(const FDelegateHandle& DelegateHandle)
 {
 	OnSkelMeshPhysicsCreated.Remove(DelegateHandle);
+}
+
+bool USkeletalMeshComponent::MoveComponentImpl(const FVector& Delta, const FQuat& NewRotation, bool bSweep, FHitResult* OutHit /*= NULL*/, EMoveComponentFlags MoveFlags /*= MOVECOMP_NoFlags*/, ETeleportType Teleport /*= ETeleportType::None*/)
+{
+	// If we're simulating physics ignore teleport type, we just want to teleport.
+	ETeleportType NewTeleportType = BodyInstance.bSimulatePhysics ? ETeleportType::TeleportPhysics : Teleport;
+	return Super::MoveComponentImpl(Delta, NewRotation, bSweep, OutHit, MoveFlags, NewTeleportType);
 }

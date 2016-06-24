@@ -13,7 +13,7 @@ UActorFactoryLandscape::UActorFactoryLandscape(const FObjectInitializer& ObjectI
 	NewActorClass = ALandscapeProxy::StaticClass();
 }
 
-AActor* UActorFactoryLandscape::SpawnActor(UObject* Asset, ULevel* InLevel, const FTransform& Transform, EObjectFlags ObjectFlags, const FName Name)
+AActor* UActorFactoryLandscape::SpawnActor(UObject* Asset, ULevel* InLevel, const FTransform& Transform, EObjectFlags InObjectFlags, const FName Name)
 {
 	GLevelEditorModeTools().ActivateMode(FBuiltinEditorModes::EM_Landscape);
 
@@ -26,7 +26,7 @@ AActor* UActorFactoryLandscape::SpawnActor(UObject* Asset, ULevel* InLevel, cons
 
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.OverrideLevel = InLevel;
-	SpawnInfo.ObjectFlags = ObjectFlags;
+	SpawnInfo.ObjectFlags = InObjectFlags;
 	SpawnInfo.Name = Name;
 	return InLevel->OwningWorld->SpawnActor(ALandscapePlaceholder::StaticClass(), &Transform, SpawnInfo);
 }

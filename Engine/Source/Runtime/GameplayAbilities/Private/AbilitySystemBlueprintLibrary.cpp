@@ -417,6 +417,11 @@ bool UAbilitySystemBlueprintLibrary::EffectContextHasHitResult(FGameplayEffectCo
 	return EffectContext.GetHitResult() != NULL;
 }
 
+void UAbilitySystemBlueprintLibrary::EffectContextAddHitResult(FGameplayEffectContextHandle EffectContext, FHitResult HitResult, bool bReset)
+{
+	EffectContext.AddHitResult(HitResult, bReset);
+}
+
 AActor*	UAbilitySystemBlueprintLibrary::EffectContextGetInstigatorActor(FGameplayEffectContextHandle EffectContext)
 {
 	return EffectContext.GetInstigator();

@@ -1,19 +1,43 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #include "CorePrivatePCH.h"
 #include "ThreadHeartBeat.h"
+#include "ExceptionHandling.h"
+
+#ifndef UE_ASSERT_ON_HANG
+#define UE_ASSERT_ON_HANG 0
+#endif
 
 FThreadHeartBeat::FThreadHeartBeat()
 : Thread(nullptr)
 , bReadyToCheckHeartbeat(false)
 , HangDuration(25.0)
 {
+	if (GConfig)
+	{
+		GConfig->GetDouble(TEXT("Core.System"), TEXT("HangDuration"), HangDuration, GEngineIni);
+		const double MinHangDuration = 5.0;
+		if (HangDuration > 0.0 && HangDuration < 5.0)
+		{
+			UE_LOG(LogCore, Warning, TEXT("HangDuration is set to %.4llfs which is a very short time for hang detection. Changing to %.2llfs."), HangDuration, MinHangDuration);
+			HangDuration = MinHangDuration;
+		}
+	}
+
+	const bool bAllowThreadHeartBeat = FPlatformMisc::AllowThreadHeartBeat() && HangDuration > 0.0;
+
 	// We don't care about programs for now so no point in spawning the extra thread
 #if !IS_PROGRAM
-	if (FPlatformProcess::SupportsMultithreading())
+	if (bAllowThreadHeartBeat && FPlatformProcess::SupportsMultithreading())
 	{
 		Thread = FRunnableThread::Create(this, TEXT("FHeartBeatThread"), 0, TPri_BelowNormal);
 	}
 #endif
+
+	if (!bAllowThreadHeartBeat)
+	{
+		// Disable the check
+		HangDuration = 0.0;
+	}
 }
 
 FThreadHeartBeat::~FThreadHeartBeat()
@@ -38,12 +62,6 @@ uint32 FThreadHeartBeat::Run()
 {
 	while (StopTaskCounter.GetValue() == 0)
 	{
-		// Grab this everytime to handle hotfixes
-		if (GConfig)
-		{
-			GConfig->GetDouble(TEXT("Core.System"), TEXT("HangDuration"), HangDuration, GEngineIni);
-		}
-
 		uint32 ThreadThatHung = CheckHeartBeat();
 		if (ThreadThatHung != FThreadHeartBeat::InvalidThreadId)
 		{
@@ -62,20 +80,35 @@ uint32 FThreadHeartBeat::Run()
 			{
 				ThreadName = FString::Printf(TEXT("unknown thread (%u)"), ThreadThatHung);
 			}
-			UE_LOG(LogCore, Error, TEXT("Infinite stall detected on %s:"), *ThreadName);
+			UE_LOG(LogCore, Error, TEXT("Hang detected on %s (thread hasn't sent a heartbeat for %.2llf seconds):"), *ThreadName, HangDuration);
 			for (FString& StackLine : StackLines)
 			{
-				UE_LOG(LogCore, Error, TEXT("%s"), *StackLine);
+				UE_LOG(LogCore, Error, TEXT("  %s"), *StackLine);
 			}
 			
 			// Assert (on the current thread unfortunately) with a trimmed stack.
 			FString StackTrimmed;
 			for (int32 LineIndex = 0; LineIndex < StackLines.Num() && StackTrimmed.Len() < 512; ++LineIndex)
 			{
+				StackTrimmed += TEXT("  ");
 				StackTrimmed += StackLines[LineIndex];
-				StackTrimmed += TEXT("\n");
+				StackTrimmed += LINE_TERMINATOR;
 			}
-			UE_LOG(LogCore, Fatal, TEXT("Hang detected on %s:\n%s"), *ThreadName, *StackTrimmed);
+
+			const FString ErrorMessage = FString::Printf(TEXT("Hang detected on %s:%s%s%sCheck log for full callstack."), *ThreadName, LINE_TERMINATOR, *StackTrimmed, LINE_TERMINATOR);
+#if UE_ASSERT_ON_HANG
+			UE_LOG(LogCore, Fatal, TEXT("%s"), *ErrorMessage);
+#else
+			UE_LOG(LogCore, Error, TEXT("%s"), *ErrorMessage);
+#if PLATFORM_DESKTOP
+			GLog->PanicFlushThreadedLogs();
+			// GErrorMessage here is very unfortunate but it's used internally by the crash context code.
+			FCString::Strcpy(GErrorMessage, ARRAY_COUNT(GErrorMessage), *ErrorMessage);
+			// Skip macros and FDebug, we always want this to fire
+			NewReportEnsure(*ErrorMessage);
+			GErrorMessage[0] = '\0';
+#endif
+#endif
 		}
 		FPlatformProcess::SleepNoStats(0.5f);
 	}
@@ -85,6 +118,7 @@ uint32 FThreadHeartBeat::Run()
 
 void FThreadHeartBeat::Stop()
 {
+	bReadyToCheckHeartbeat = false;
 	StopTaskCounter.Increment();
 }
 
@@ -131,21 +165,27 @@ void FThreadHeartBeat::KillHeartBeat()
 	ThreadHeartBeat.Remove(ThreadId);
 }
 
-uint32 FThreadHeartBeat::SuspendHeartBeat()
+void FThreadHeartBeat::SuspendHeartBeat()
 {
 	uint32 ThreadId = FPlatformTLS::GetCurrentThreadId();
 	FScopeLock HeartBeatLock(&HeartBeatCritical);
-	FHeartBeatInfo& HeartBeatInfo = ThreadHeartBeat.FindOrAdd(ThreadId);
-	HeartBeatInfo.SuspendedCount++;
-	return ThreadId;
-}
-void FThreadHeartBeat::ResumeHeartBeat(uint32 ThreadId)
-{
-	FScopeLock HeartBeatLock(&HeartBeatCritical);
-	FHeartBeatInfo& HeartBeatInfo = ThreadHeartBeat.FindOrAdd(ThreadId);	
-	if (--HeartBeatInfo.SuspendedCount == 0)
+	FHeartBeatInfo* HeartBeatInfo = ThreadHeartBeat.Find(ThreadId);
+	if (HeartBeatInfo)
 	{
-		HeartBeatInfo.LastHeartBeatTime = FPlatformTime::Seconds();
+		HeartBeatInfo->SuspendedCount++;
 	}
-	check(HeartBeatInfo.SuspendedCount >= 0);
+}
+void FThreadHeartBeat::ResumeHeartBeat()
+{
+	uint32 ThreadId = FPlatformTLS::GetCurrentThreadId();
+	FScopeLock HeartBeatLock(&HeartBeatCritical);
+	FHeartBeatInfo* HeartBeatInfo = ThreadHeartBeat.Find(ThreadId);
+	if (HeartBeatInfo)
+	{
+		check(HeartBeatInfo->SuspendedCount > 0);
+		if (--HeartBeatInfo->SuspendedCount == 0)
+		{
+			HeartBeatInfo->LastHeartBeatTime = FPlatformTime::Seconds();
+		}
+	}
 }

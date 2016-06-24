@@ -64,9 +64,10 @@ void SVirtualWindow::OnArrangeChildren(const FGeometry& AllottedGeometry, FArran
 	}
 }
 
-FWidgetRenderer::FWidgetRenderer(bool bUseGammaCorrection)
+FWidgetRenderer::FWidgetRenderer(bool bUseGammaCorrection, bool bInClearTarget)
 	: bPrepassNeeded(true)
 	, bUseGammaSpace(bUseGammaCorrection)
+	, bClearTarget(bInClearTarget)
 {
 #if !UE_SERVER
 	if (!IsRunningDedicatedServer())
@@ -205,19 +206,21 @@ void FWidgetRenderer::DrawWindow(
 			FSlateDrawBuffer* DrawBuffer;
 			FTextureRenderTarget2DResource* RenderTargetResource;
 			TSharedPtr<ISlate3DRenderer, ESPMode::ThreadSafe> Renderer;
-		};
-		FRenderThreadContext Context =
+			bool bClearTarget;
+		}
+		Context =		
 		{
 			&DrawBuffer,
 			static_cast<FTextureRenderTarget2DResource*>(RenderTarget->GameThread_GetRenderTargetResource()),
-			Renderer
+			Renderer,
+			bClearTarget
 		};
 
 		// Enqueue a command to unlock the draw buffer after all windows have been drawn
 		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(FWidgetRenderer_DrawWindow,
 			FRenderThreadContext, InContext, Context,
 			{
-				InContext.Renderer->DrawWindowToTarget_RenderThread(RHICmdList, InContext.RenderTargetResource, *InContext.DrawBuffer);
+				InContext.Renderer->DrawWindowToTarget_RenderThread(RHICmdList, InContext.RenderTargetResource, *InContext.DrawBuffer, InContext.bClearTarget);
 			});
 	}
 #endif // !UE_SERVER

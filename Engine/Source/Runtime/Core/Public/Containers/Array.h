@@ -806,7 +806,7 @@ public:
 	}
 
 	/**
-	 * Tests if index is valid, i.e. than or equal to zero, and less than the number of elements in the array.
+	 * Tests if index is valid, i.e. greater than or equal to zero, and less than the number of elements in the array.
 	 *
 	 * @param Index Index to test.
 	 * @returns True if index is valid. False otherwise.
@@ -1806,79 +1806,31 @@ public:
 	}
 
 	/**
-	 * Adds a new item to the end of the array, possibly reallocating the whole array to fit.
+	 * Constructs a new item at the end of the array, possibly reallocating the whole array to fit.
 	 *
-	 * @param Item	The item to add
+	 * @param Args	The arguments to forward to the constructor of the new item.
 	 * @return		Index to the new item
 	 */
-	#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
+	template <typename... ArgsType>
+	FORCEINLINE int32 Emplace(ArgsType&&... Args)
+	{
+		const int32 Index = AddUninitialized(1);
+		new(GetData() + Index) ElementType(Forward<ArgsType>(Args)...);
+		return Index;
+	}
 
-		template <typename... ArgsType>
-		FORCEINLINE int32 Emplace(ArgsType&&... Args)
-		{
-			const int32 Index = AddUninitialized(1);
-			new(GetData() + Index) ElementType(Forward<ArgsType>(Args)...);
-			return Index;
-		}
-
-	#else
-
-		FORCEINLINE int32 Emplace()
-		{
-			const int32 Index = AddUninitialized(1);
-			new(GetData() + Index) ElementType();
-			return Index;
-		}
-
-		template <typename Arg0Type>
-		FORCEINLINE int32 Emplace(Arg0Type&& Arg0)
-		{
-			const int32 Index = AddUninitialized(1);
-			new(GetData() + Index) ElementType(Forward<Arg0Type>(Arg0));
-			return Index;
-		}
-
-		template <typename Arg0Type, typename Arg1Type>
-		FORCEINLINE int32 Emplace(Arg0Type&& Arg0, Arg1Type&& Arg1)
-		{
-			const int32 Index = AddUninitialized(1);
-			new(GetData() + Index) ElementType(Forward<Arg0Type>(Arg0), Forward<Arg1Type>(Arg1));
-			return Index;
-		}
-
-		template <typename Arg0Type, typename Arg1Type, typename Arg2Type>
-		FORCEINLINE int32 Emplace(Arg0Type&& Arg0, Arg1Type&& Arg1, Arg2Type&& Arg2)
-		{
-			const int32 Index = AddUninitialized(1);
-			new(GetData() + Index) ElementType(Forward<Arg0Type>(Arg0), Forward<Arg1Type>(Arg1), Forward<Arg2Type>(Arg2));
-			return Index;
-		}
-
-		template <typename Arg0Type, typename Arg1Type, typename Arg2Type, typename Arg3Type>
-		FORCEINLINE int32 Emplace(Arg0Type&& Arg0, Arg1Type&& Arg1, Arg2Type&& Arg2, Arg3Type&& Arg3)
-		{
-			const int32 Index = AddUninitialized(1);
-			new(GetData() + Index) ElementType(Forward<Arg0Type>(Arg0), Forward<Arg1Type>(Arg1), Forward<Arg2Type>(Arg2), Forward<Arg3Type>(Arg3));
-			return Index;
-		}
-
-		template <typename Arg0Type, typename Arg1Type, typename Arg2Type, typename Arg3Type, typename Arg4Type>
-		FORCEINLINE int32 Emplace(Arg0Type&& Arg0, Arg1Type&& Arg1, Arg2Type&& Arg2, Arg3Type&& Arg3, Arg4Type&& Arg4)
-		{
-			const int32 Index = AddUninitialized(1);
-			new(GetData() + Index) ElementType(Forward<Arg0Type>(Arg0), Forward<Arg1Type>(Arg1), Forward<Arg2Type>(Arg2), Forward<Arg3Type>(Arg3), Forward<Arg4Type>(Arg4));
-			return Index;
-		}
-
-		template <typename Arg0Type, typename Arg1Type, typename Arg2Type, typename Arg3Type, typename Arg4Type, typename Arg5Type>
-		FORCEINLINE int32 Emplace(Arg0Type&& Arg0, Arg1Type&& Arg1, Arg2Type&& Arg2, Arg3Type&& Arg3, Arg4Type&& Arg4, Arg5Type&& Arg5)
-		{
-			const int32 Index = AddUninitialized(1);
-			new(GetData() + Index) ElementType(Forward<Arg0Type>(Arg0), Forward<Arg1Type>(Arg1), Forward<Arg2Type>(Arg2), Forward<Arg3Type>(Arg3), Forward<Arg4Type>(Arg4), Forward<Arg5Type>(Arg5));
-			return Index;
-		}
-
-#endif
+	/**
+	 * Constructs a new item at a specified index, possibly reallocating the whole array to fit.
+	 *
+	 * @param Index	The index to add the item at.
+	 * @param Args	The arguments to forward to the constructor of the new item.
+	 */
+	template <typename... ArgsType>
+	FORCEINLINE void EmplaceAt(int32 Index, ArgsType&&... Args)
+	{
+		InsertUninitialized(Index, 1);
+		new(GetData() + Index) ElementType(Forward<ArgsType>(Args)...);
+	}
 
 	/**
 	 * Adds a new item to the end of the array, possibly reallocating the whole array to fit.
@@ -2471,6 +2423,28 @@ public:
 	 * @return The index of the new element.
 	 */
 	template <class PREDICATE_CLASS>
+	int32 HeapPush(ElementType&& InItem, const PREDICATE_CLASS& Predicate)
+	{
+		// Add at the end, then sift up
+		Add(MoveTemp(InItem));
+		TDereferenceWrapper<ElementType, PREDICATE_CLASS> PredicateWrapper(Predicate);
+		int32 Result = SiftUp(0, Num() - 1, PredicateWrapper);
+
+#if DEBUG_HEAP
+		VerifyHeap(PredicateWrapper);
+#endif
+
+		return Result;
+	}
+
+	/** 
+	 * Adds a new element to the heap.
+	 *
+	 * @param InItem Item to be added.
+	 * @param Predicate Predicate class instance.
+	 * @return The index of the new element.
+	 */
+	template <class PREDICATE_CLASS>
 	int32 HeapPush(const ElementType& InItem, const PREDICATE_CLASS& Predicate)
 	{
 		// Add at the end, then sift up
@@ -2483,6 +2457,18 @@ public:
 #endif
 
 		return Result;
+	}
+
+	/** 
+	 * Adds a new element to the heap. Assumes < operator is defined for the
+	 * template type.
+	 *
+	 * @param InItem Item to be added.
+	 * @return The index of the new element.
+	 */
+	int32 HeapPush(ElementType&& InItem)
+	{
+		return HeapPush(MoveTemp(InItem), TLess<ElementType>());
 	}
 
 	/** 

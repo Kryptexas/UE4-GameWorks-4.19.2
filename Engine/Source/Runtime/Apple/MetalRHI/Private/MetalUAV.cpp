@@ -27,35 +27,6 @@ FMetalShaderResourceView::~FMetalShaderResourceView()
 	SourceTexture = NULL;
 }
 
-void FMetalUnorderedAccessView::Set(FMetalContext* Context, uint32 ResourceIndex)
-{
-	// figure out which one of the resources we need to set
-	FMetalStructuredBuffer* StructuredBuffer = SourceStructuredBuffer.GetReference();
-	FMetalVertexBuffer* VertexBuffer = SourceVertexBuffer.GetReference();
-	FRHITexture* Texture = SourceTexture.GetReference();
-	if (StructuredBuffer)
-	{
-		Context->GetCommandEncoder().SetShaderBuffer(SF_Compute, StructuredBuffer->Buffer, 0, ResourceIndex);
-	}
-	else if (VertexBuffer)
-	{
-		Context->GetCommandEncoder().SetShaderBuffer(SF_Compute, VertexBuffer->Buffer, 0, ResourceIndex);
-	}
-	else if (Texture)
-	{
-		FMetalSurface* Surface = GetMetalSurfaceFromRHITexture(Texture);
-		if (Surface != nullptr)
-		{
-			Context->GetCommandEncoder().SetShaderTexture(SF_Compute, Surface->Texture, ResourceIndex);
-		}
-		else
-		{
-			Context->GetCommandEncoder().SetShaderTexture(SF_Compute, nil, ResourceIndex);
-		}
-	}
-
-}
-
 FUnorderedAccessViewRHIRef FMetalDynamicRHI::RHICreateUnorderedAccessView_RenderThread(class FRHICommandListImmediate& RHICmdList, FStructuredBufferRHIParamRef StructuredBuffer, bool bUseUAVCounter, bool bAppendBuffer)
 {
 	return GDynamicRHI->RHICreateUnorderedAccessView(StructuredBuffer, bUseUAVCounter, bAppendBuffer);
@@ -340,9 +311,11 @@ void FMetalRHICommandContext::RHIClearUAV(FUnorderedAccessViewRHIParamRef Unorde
 	FMetalUnorderedAccessView* UnorderedAccessView = ResourceCast(UnorderedAccessViewRHI);
 	if (UnorderedAccessView->SourceStructuredBuffer)
 	{
+		UE_LOG(LogRHI, Fatal,TEXT("Metal RHI doesn't support RHIClearUAV with FStructuredBufferRHIParamRef yet!"));
 	}
 	else if (UnorderedAccessView->SourceTexture)
 	{
+		UE_LOG(LogRHI, Fatal,TEXT("Metal RHI doesn't support RHIClearUAV with FRHITexture yet!"));
 	}
 	else
 	{

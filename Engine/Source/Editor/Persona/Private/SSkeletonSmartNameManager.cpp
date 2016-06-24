@@ -10,6 +10,7 @@
 #include "SSearchBox.h"
 #include "SInlineEditableTextBlock.h"
 #include "STextEntryPopup.h"
+#include "Animation/AnimSequence.h"
 
 #define LOCTEXT_NAMESPACE "SkeletonSmartNameManager"
 
@@ -206,16 +207,16 @@ TSharedPtr<SWidget> SSkeletonSmartNameManager::OnGetContextMenu() const
 			Action.ExecuteAction = FExecuteAction::CreateSP(this, &SSkeletonSmartNameManager::OnRenameClicked);
 			Action.CanExecuteAction = FCanExecuteAction::CreateSP(this, &SSkeletonSmartNameManager::CanRename);
 			const FText Label = LOCTEXT("RenameSmartNameLabel", "Rename");
-			const FText ToolTip = LOCTEXT("RenameSmartNameToolTip", "Rename the selected item");
-			MenuBuilder.AddMenuEntry(Label, ToolTip, FSlateIcon(), Action);
+			const FText ToolTipText = LOCTEXT("RenameSmartNameToolTip", "Rename the selected item");
+			MenuBuilder.AddMenuEntry(Label, ToolTipText, FSlateIcon(), Action);
 		}
 		// Delete a name
 		{
 			Action.ExecuteAction = FExecuteAction::CreateSP(this, &SSkeletonSmartNameManager::OnDeleteNameClicked);
 			Action.CanExecuteAction = FCanExecuteAction::CreateSP(this, &SSkeletonSmartNameManager::CanDelete);
 			const FText Label = LOCTEXT("DeleteSmartNameLabel", "Delete");
-			const FText ToolTip = LOCTEXT("DeleteSmartNameToolTip", "Delete the selected item");
-			MenuBuilder.AddMenuEntry(Label, ToolTip, FSlateIcon(), Action);
+			const FText ToolTipText = LOCTEXT("DeleteSmartNameToolTip", "Delete the selected item");
+			MenuBuilder.AddMenuEntry(Label, ToolTipText, FSlateIcon(), Action);
 		}
 		// Add a name
 		MenuBuilder.AddMenuSeparator();
@@ -223,8 +224,8 @@ TSharedPtr<SWidget> SSkeletonSmartNameManager::OnGetContextMenu() const
 			Action.ExecuteAction = FExecuteAction::CreateSP(this, &SSkeletonSmartNameManager::OnAddClicked);
 			Action.CanExecuteAction = nullptr;
 			const FText Label = LOCTEXT("AddSmartNameLabel", "Add...");
-			const FText ToolTip = LOCTEXT("AddSmartNameToolTip", "Add an entry to the skeleton");
-			MenuBuilder.AddMenuEntry(Label, ToolTip, FSlateIcon(), Action);
+			const FText ToolTipText = LOCTEXT("AddSmartNameToolTip", "Add an entry to the skeleton");
+			MenuBuilder.AddMenuEntry(Label, ToolTipText, FSlateIcon(), Action);
 		}
 	}
 	MenuBuilder.EndSection();
@@ -352,8 +353,8 @@ void SSkeletonSmartNameManager::CreateNewNameEntry(const FText& CommittedText, E
 		if (const FSmartNameMapping* NameMapping = CurrentSkeleton->GetSmartNameContainer(ContainerName))
 		{
 			FName NewName = FName(*CommittedText.ToString());
-			FSmartNameMapping::UID NewUid;
-			if(CurrentSkeleton->AddSmartNameAndModify(ContainerName, NewName, NewUid))
+			FSmartName NewCurveName;
+			if(CurrentSkeleton->AddSmartNameAndModify(ContainerName, NewName, NewCurveName))
 			{
 				// Successfully added
 				GenerateDisplayedList(CurrentFilterText);
@@ -388,13 +389,11 @@ void SCurveNameManager::OnDeleteNameClicked()
 		FAssetData& Data = AnimationAssets[Idx];
 		bool bRemove = true;
 
-		const FString* SkeletonDataTag = Data.TagsAndValues.Find("Skeleton");
-		if(SkeletonDataTag && *SkeletonDataTag == CurrentSkeletonName)
+		const FString SkeletonDataTag = Data.GetTagValueRef<FString>("Skeleton");
+		if(!SkeletonDataTag.IsEmpty() && SkeletonDataTag == CurrentSkeletonName)
 		{
-			const FString* CurveData = Data.TagsAndValues.Find(USkeleton::CurveTag);
-			FString CurveDataCopy;
-
-			if(!CurveData)
+			FString CurveData;
+			if(!Data.GetTagValue(USkeleton::CurveTag, CurveData))
 			{
 				// This asset is old; it hasn't been loaded since before smartnames were added for curves.
 				// unfortunately the only way to delete curves safely is to load old assets to see if they're
@@ -404,19 +403,15 @@ void SCurveNameManager::OnDeleteNameClicked()
 				TArray<UObject::FAssetRegistryTag> Tags;
 				Asset->GetAssetRegistryTags(Tags);
 				
-				UObject::FAssetRegistryTag* CurveTag = Tags.FindByPredicate([](const UObject::FAssetRegistryTag& Tag)
+				UObject::FAssetRegistryTag* CurveTag = Tags.FindByPredicate([](const UObject::FAssetRegistryTag& InTag)
 				{
-					return Tag.Name == USkeleton::CurveTag;
+					return InTag.Name == USkeleton::CurveTag;
 				});
-				CurveDataCopy = CurveTag->Value;
-			}
-			else
-			{
-				CurveDataCopy = *CurveData;
+				CurveData = CurveTag->Value;
 			}
 
 			TArray<FString> ParsedStringUids;
-			CurveDataCopy.ParseIntoArray(ParsedStringUids, *USkeleton::CurveTagDelimiter, true);
+			CurveData.ParseIntoArray(ParsedStringUids, *USkeleton::CurveTagDelimiter, true);
 
 			for(const FString& UidString : ParsedStringUids)
 			{
@@ -459,11 +454,16 @@ void SCurveNameManager::OnDeleteNameClicked()
 			for(FAssetData& Data : AnimationAssets)
 			{
 				UAnimSequenceBase* Sequence = Cast<UAnimSequenceBase>(Data.GetAsset());	
+				USkeleton* MySkeleton = Sequence->GetSkeleton();
 				Sequence->Modify(true);
 				for(FSmartNameMapping::UID Uid : SelectedUids)
 				{
-					Sequence->RawCurveData.DeleteCurveData(Uid);
-					Sequence->MarkRawDataAsModified();
+					FSmartName CurveToDelete;
+					if (MySkeleton->GetSmartNameByUID(USkeleton::AnimCurveMappingName, Uid, CurveToDelete))
+					{
+						Sequence->RawCurveData.DeleteCurveData(CurveToDelete);
+						Sequence->MarkRawDataAsModified();
+					}
 				}
 			}
 			GWarn->EndSlowTask();

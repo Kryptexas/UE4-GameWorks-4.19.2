@@ -79,10 +79,10 @@ protected:
 	virtual void InitDetailsViewEditorObject(class UEditorAnimBaseObj* EdObj) {};
 
 	/** Get the length of the current sequence */
-	float GetSequenceLength() const {return GetEditorObject()->SequenceLength;}
+	float GetSequenceLength() const;
 
 	/** Get the sequence that is currently being edited */
-	virtual UAnimSequenceBase* GetEditorObject() const PURE_VIRTUAL(SAnimEditorBase::GetEditorObject, return NULL;);
+	virtual UAnimationAsset* GetEditorObject() const PURE_VIRTUAL(SAnimEditorBase::GetEditorObject, return NULL;);
 
 	/** Get Name of Object being edited **/
 	FText GetEditorObjectName() const;

@@ -110,6 +110,13 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 
 	Settings = InSequencer->GetSettings();
 	Settings->GetOnShowCurveEditorChanged().AddSP(this, &SSequencer::OnCurveEditorVisibilityChanged);
+	Settings->GetOnTimeSnapIntervalChanged().AddSP(this, &SSequencer::OnTimeSnapIntervalChanged);
+	if ( InSequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->GetFixedFrameInterval() > 0 )
+	{
+		Settings->SetTimeSnapInterval( InSequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->GetFixedFrameInterval() );
+	}
+
+	InSequencer->OnActivateSequence().AddSP(this, &SSequencer::OnSequenceInstanceActivated);
 
 	ISequencerWidgetsModule& SequencerWidgets = FModuleManager::Get().LoadModuleChecked<ISequencerWidgetsModule>( "SequencerWidgets" );
 
@@ -582,7 +589,7 @@ void SSequencer::HandleLabelBrowserSelectionChanged(FString NewLabel, ESelectInf
 	}
 	else
 	{
-		SearchBox->SetText(FText::FromString(FString(TEXT("label:")) + NewLabel));
+		SearchBox->SetText(FText::FromString(NewLabel));
 	}
 }
 
@@ -848,7 +855,7 @@ TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 	MenuBuilder.EndSection();
 
 	// playback range options
-	MenuBuilder.BeginSection("PlaybackRange", LOCTEXT("PlaybackRangeHeader", "Playback Range"));
+	MenuBuilder.BeginSection("PlaybackThisSequence", LOCTEXT("PlaybackThisSequenceHeader", "Playback - This Sequence"));
 	{
 		// Menu entry for the start position
 		auto OnStartChanged = [=](float NewValue){
@@ -918,6 +925,12 @@ TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 				],
 			LOCTEXT("PlaybackStartEnd", "End"));
 
+		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleForceFixedFrameIntervalPlayback );
+	}
+	MenuBuilder.EndSection();
+
+	MenuBuilder.BeginSection( "PlaybackAllSequences", LOCTEXT( "PlaybackRangeAllSequencesHeader", "Playback Range - All Sequences" ) );
+	{
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleKeepCursorInPlaybackRange );
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleKeepPlaybackRangeInSectionBounds );
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleLinkCurveEditorTimeRange );
@@ -961,11 +974,12 @@ TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 	MenuBuilder.EndSection();
 
 	// other options
+	MenuBuilder.AddMenuSeparator();
 	if (SequencerPtr.Pin()->IsLevelEditorSequencer())
 	{
-		MenuBuilder.AddMenuSeparator();
 		MenuBuilder.AddMenuEntry(FSequencerCommands::Get().FixActorReferences);
 	}
+	MenuBuilder.AddMenuEntry(FSequencerCommands::Get().FixFrameTiming);
 
 	return MenuBuilder.MakeWidget();
 }
@@ -1002,7 +1016,6 @@ TSharedRef<SWidget> SSequencer::MakeSnapMenu()
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleSnapPlayTimeToInterval );
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleSnapPlayTimeToKeys );
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleSnapPlayTimeToDraggedKey );
-		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleFixedTimeStepPlayback );
 	}
 	MenuBuilder.EndSection();
 
@@ -1049,7 +1062,7 @@ TSharedRef<SWidget> SSequencer::MakeTimeRange(const TSharedRef<SWidget>& InnerCo
 	FTimeRangeArgs Args(
 		ShowRange,
 		TimeSliderController.ToSharedRef(),
-		TAttribute<EVisibility>(this, &SSequencer::GetTimeRangeVisibility),
+		EVisibility::Visible,
 		TAttribute<bool>(this, &SSequencer::ShowFrameNumbers),
 		GetZeroPadNumericTypeInterface()
 		);
@@ -1060,6 +1073,7 @@ SSequencer::~SSequencer()
 {
 	USelection::SelectionChangedEvent.RemoveAll(this);
 	Settings->GetOnShowCurveEditorChanged().RemoveAll(this);
+	Settings->GetOnTimeSnapIntervalChanged().RemoveAll(this);
 }
 
 
@@ -1180,7 +1194,7 @@ void SSequencer::OnOutlinerSearchChanged( const FText& Filter )
 
 		if ( FilterString.StartsWith( TEXT( "label:" ) ) )
 		{
-			LabelBrowser->SetSelectedLabel( FilterString.RightChop( 6 ) );
+			LabelBrowser->SetSelectedLabel(FilterString);
 		}
 		else
 		{
@@ -1740,6 +1754,23 @@ void SSequencer::OnCurveEditorVisibilityChanged()
 	}
 }
 
+
+void SSequencer::OnTimeSnapIntervalChanged()
+{
+	TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
+	if ( Sequencer.IsValid() )
+	{
+		UMovieScene* MovieScene = Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene();
+		if (!FMath::IsNearlyEqual(MovieScene->GetFixedFrameInterval(), Settings->GetTimeSnapInterval()))
+		{
+			FScopedTransaction SetFixedFrameIntervalTransaction( NSLOCTEXT( "Sequencer", "SetFixedFrameInterval", "Set scene fixed frame interval" ) );
+			MovieScene->Modify();
+			MovieScene->SetFixedFrameInterval( Settings->GetTimeSnapInterval() );
+		}
+	}
+}
+
+
 FPaintPlaybackRangeArgs SSequencer::GetSectionPlaybackRangeArgs() const
 {
 	if (GetBottomTimeSliderVisibility() == EVisibility::Visible)
@@ -1866,6 +1897,19 @@ void SSequencer::PasteFromHistory()
 			FSlateApplication::Get().GetCursorPos(),
 			FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu)
 			);
+	}
+}
+
+void SSequencer::OnSequenceInstanceActivated( FMovieSceneSequenceInstance& ActiveInstance )
+{
+	TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
+	if ( Sequencer.IsValid() )
+	{
+		UMovieScene* MovieScene = Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene();
+		if ( MovieScene->GetFixedFrameInterval() > 0 )
+		{
+			Settings->SetTimeSnapInterval( MovieScene->GetFixedFrameInterval() );
+		}
 	}
 }
 

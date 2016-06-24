@@ -6,15 +6,23 @@
 
 UMovieSceneBoolSection::UMovieSceneBoolSection( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
-	, DefaultValue(false)
+	, DefaultValue_DEPRECATED(false)
 {
 	SetIsInfinite(true);
 }
 
+void UMovieSceneBoolSection::PostLoad()
+{
+	if (GetCurve().GetDefaultValue() == MAX_int32 && DefaultValue_DEPRECATED)
+	{
+		GetCurve().SetDefaultValue(DefaultValue_DEPRECATED);
+	}
+	Super::PostLoad();
+}
 
 bool UMovieSceneBoolSection::Eval( float Position ) const
 {
-	return !!BoolCurve.Evaluate(Position, DefaultValue ? 1 : 0);
+	return !!BoolCurve.Evaluate(Position);
 }
 
 
@@ -28,9 +36,6 @@ void UMovieSceneBoolSection::MoveSection( float DeltaPosition, TSet<FKeyHandle>&
 
 void UMovieSceneBoolSection::DilateSection( float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles )
 {
-	float StartTime = GetStartTime();
-	float EndTime = GetEndTime();
-
 	Super::DilateSection(DilationFactor, Origin, KeyHandles);
 	
 	BoolCurve.ScaleCurve(Origin, DilationFactor, KeyHandles);
@@ -51,6 +56,25 @@ void UMovieSceneBoolSection::GetKeyHandles(TSet<FKeyHandle>& OutKeyHandles, TRan
 		{
 			OutKeyHandles.Add(It.Key());
 		}
+	}
+}
+
+
+TOptional<float> UMovieSceneBoolSection::GetKeyTime( FKeyHandle KeyHandle ) const
+{
+	if ( BoolCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		return TOptional<float>( BoolCurve.GetKeyTime( KeyHandle ) );
+	}
+	return TOptional<float>();
+}
+
+
+void UMovieSceneBoolSection::SetKeyTime( FKeyHandle KeyHandle, float Time )
+{
+	if ( BoolCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		BoolCurve.SetKeyTime( KeyHandle, Time );
 	}
 }
 

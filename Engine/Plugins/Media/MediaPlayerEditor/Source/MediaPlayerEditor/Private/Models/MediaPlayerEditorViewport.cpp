@@ -24,14 +24,44 @@ FMediaPlayerEditorViewport::~FMediaPlayerEditorViewport()
 
 void FMediaPlayerEditorViewport::Initialize(const IMediaVideoTrackPtr& VideoTrack)
 {
-	ReleaseResources();
+	// delete old editor texture
+	if (EditorTexture != nullptr)
+	{
+		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+			DestroyMediaPlayerEditorTexture,
+			FMediaPlayerEditorTexture*, EditorTextureParam, EditorTexture,
+			{
+				EditorTextureParam->Unregister();
+				delete EditorTextureParam;
+			}
+		);
 
+		EditorTexture = nullptr;
+	}
+
+	// create or resize slate texture
+	if (SlateTexture != nullptr)
+	{
+		const FIntPoint VideoDimensions = VideoTrack.IsValid() ? VideoTrack->GetDimensions() : FIntPoint::ZeroValue;
+
+		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+			ResizeMediaPlayerEditorTexture,
+			FSlateTexture2DRHIRef*, SlateTextureParam, SlateTexture,
+			FIntPoint, DimensionsParam, VideoDimensions,
+			{
+				SlateTextureParam->Resize(DimensionsParam.X, DimensionsParam.Y);
+			}
+		);
+	}
+	else if (VideoTrack.IsValid())
+	{
+		const FIntPoint VideoDimensions = VideoTrack->GetDimensions();
+		SlateTexture = new FSlateTexture2DRHIRef(VideoDimensions.X, VideoDimensions.Y, PF_B8G8R8A8, nullptr, TexCreate_Dynamic | TexCreate_RenderTargetable, true /*bCreateEmptyTexture*/);
+	}
+
+	// create new editor texture
 	if (VideoTrack.IsValid())
 	{
-		const bool bCreateEmptyTexture = true;
-		const FIntPoint VideoDimensions = VideoTrack->GetDimensions();
-
-		SlateTexture = new FSlateTexture2DRHIRef(VideoDimensions.X, VideoDimensions.Y, PF_B8G8R8A8, nullptr, TexCreate_Dynamic | TexCreate_RenderTargetable, bCreateEmptyTexture);
 		EditorTexture = new FMediaPlayerEditorTexture(SlateTexture, VideoTrack.ToSharedRef());
 
 		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
@@ -73,22 +103,25 @@ bool FMediaPlayerEditorViewport::RequiresVsync() const
 
 void FMediaPlayerEditorViewport::ReleaseResources()
 {
-	if (SlateTexture != nullptr)
-	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			ReleaseMediaPlayerEditorResources,
-			FMediaPlayerEditorTexture*, EditorTextureParam, EditorTexture,
-			FSlateTexture2DRHIRef*, SlateTextureParam, SlateTexture,
+	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+		ReleaseMediaPlayerEditorResources,
+		FMediaPlayerEditorTexture*, EditorTextureParam, EditorTexture,
+		FSlateTexture2DRHIRef*, SlateTextureParam, SlateTexture,
+		{
+			if (EditorTextureParam != nullptr)
 			{
 				EditorTextureParam->Unregister();
 				delete EditorTextureParam;
+			}
 
+			if (SlateTextureParam != nullptr)
+			{
 				SlateTextureParam->ReleaseResource();
 				delete SlateTextureParam;
 			}
-		);
+		}
+	);
 
-		EditorTexture = nullptr;
-		SlateTexture = nullptr;
-	}
+	EditorTexture = nullptr;
+	SlateTexture = nullptr;
 }

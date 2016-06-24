@@ -12,7 +12,17 @@ void FMovieSceneColorKeyStruct::PropagateChanges(const FPropertyChangedEvent& Ch
 {
 	for (int32 Index = 0; Index <= 3; ++Index)
 	{
-		Keys[Index]->Value = Color.Component(Index);
+		if (Keys[Index] == nullptr)
+		{
+			if (Curves[Index] != nullptr)
+			{
+				Curves[Index]->SetDefaultValue(Color.Component(Index));
+			}
+		}
+		else
+		{
+			Keys[Index]->Value = Color.Component(Index);
+		}
 	}
 }
 
@@ -114,19 +124,82 @@ TSharedPtr<FStructOnScope> UMovieSceneColorSection::GetKeyStruct(const TArray<FK
 	TSharedRef<FStructOnScope> KeyStruct = MakeShareable(new FStructOnScope(FMovieSceneColorKeyStruct::StaticStruct()));
 	auto Struct = (FMovieSceneColorKeyStruct*)KeyStruct->GetStructMemory();
 	{
+		Struct->Curves[0] = &RedCurve;
+		Struct->Curves[1] = &GreenCurve;
+		Struct->Curves[2] = &BlueCurve;
+		Struct->Curves[3] = &AlphaCurve;
+
 		Struct->Keys[0] = RedCurve.GetFirstMatchingKey(KeyHandles);
 		Struct->Keys[1] = GreenCurve.GetFirstMatchingKey(KeyHandles);
 		Struct->Keys[2] = BlueCurve.GetFirstMatchingKey(KeyHandles);
 		Struct->Keys[3] = AlphaCurve.GetFirstMatchingKey(KeyHandles);
 
+		float FirstValidKeyTime = 0.f;
 		for (int32 Index = 0; Index <= 3; ++Index)
 		{
-			check(Struct->Keys[Index] != nullptr);
-			Struct->Color.Component(Index) = Struct->Keys[Index]->Value;
+			if (Struct->Keys[Index] != nullptr)
+			{
+				FirstValidKeyTime = Struct->Keys[Index]->Time;
+			}
+		}
+
+		for (int32 Index = 0; Index <= 3; ++Index)
+		{
+			if (Struct->Keys[Index] == nullptr && Struct->Curves[Index] != nullptr)
+			{
+				Struct->Color.Component(Index) = Struct->Curves[Index]->Eval(FirstValidKeyTime);
+			}
+			else
+			{
+				Struct->Color.Component(Index) = Struct->Keys[Index]->Value;
+			}
 		}
 	}
 
 	return KeyStruct;
+}
+
+
+TOptional<float> UMovieSceneColorSection::GetKeyTime( FKeyHandle KeyHandle ) const
+{
+	if ( RedCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		return TOptional<float>( RedCurve.GetKeyTime( KeyHandle ) );
+	}
+	if ( GreenCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		return TOptional<float>( GreenCurve.GetKeyTime( KeyHandle ) );
+	}
+	if ( BlueCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		return TOptional<float>( BlueCurve.GetKeyTime( KeyHandle ) );
+	}
+	if ( AlphaCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		return TOptional<float>( AlphaCurve.GetKeyTime( KeyHandle ) );
+	}
+	return TOptional<float>();
+}
+
+
+void UMovieSceneColorSection::SetKeyTime( FKeyHandle KeyHandle, float Time )
+{
+	if ( RedCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		RedCurve.SetKeyTime( KeyHandle, Time );
+	}
+	else if ( GreenCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		GreenCurve.SetKeyTime( KeyHandle, Time );
+	}
+	else if ( BlueCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		BlueCurve.SetKeyTime( KeyHandle, Time );
+	}
+	else if ( AlphaCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		AlphaCurve.SetKeyTime( KeyHandle, Time );
+	}
 }
 
 

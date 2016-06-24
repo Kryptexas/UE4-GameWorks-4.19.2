@@ -1333,6 +1333,14 @@ bool ULocalPlayer::Exec(UWorld* InWorld, const TCHAR* Cmd,FOutputDevice& Ar)
 		}
 		return true;
 	}
+	else if (FParse::Command(&Cmd, TEXT("r.ResetViewState")))
+	{
+		// Reset some state (e.g. TemporalAA index) to make rendering more deterministic (for automated screenshot verification)
+		FSceneViewStateInterface* Ref = ViewState.GetReference();
+
+		Ref->ResetViewState();
+		return true;
+	}
 #if WITH_PHYSX
 	// This will list all awake rigid bodies
 	else if( FParse::Command(&Cmd,TEXT("LISTAWAKEBODIES")) )

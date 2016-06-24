@@ -858,7 +858,15 @@ bool FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 
 			FString ConnectedContentFolder = ContentFolder;
 			ConnectedContentFolder.ReplaceInline(*LocalEngineDir, *ConnectedEngineDir);
-			ConnectedContentFolder.ReplaceInline(*LocalGameDir, *ConnectedGameDir);
+			int32 ReplaceCount = ConnectedContentFolder.ReplaceInline(*LocalGameDir, *ConnectedGameDir);
+			if (ReplaceCount == 0)
+			{
+				int32 GameDirOffset = ConnectedContentFolder.Find(ConnectedGameDir, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+				if (GameDirOffset != INDEX_NONE)
+				{
+					ConnectedContentFolder = ConnectedContentFolder.RightChop(GameDirOffset);
+				}
+			}
 
 			ContentFolders.Add(ConnectedContentFolder);
 		}

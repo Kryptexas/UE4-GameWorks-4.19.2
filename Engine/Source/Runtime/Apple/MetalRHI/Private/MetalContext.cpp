@@ -50,8 +50,8 @@ static void LocalReleaseAutoreleasePool(void *Pool)
 {
 	if (Pool)
 	{
-	[(NSAutoreleasePool*)Pool release];
-}
+		[(NSAutoreleasePool*)Pool release];
+	}
 }
 
 #if PLATFORM_MAC
@@ -67,11 +67,6 @@ static id<MTLDevice> GetMTLDevice(uint32& DeviceIndex)
 	
 	DeviceIndex = 0;
 	
-	if(FParse::Param(FCommandLine::Get(),TEXT("metaldebug")))
-	{
-		FPlatformMisc::SetEnvironmentVar(TEXT("METAL_DEVICE_WRAPPER_TYPE"), TEXT("1"));
-	}
-	
 	NSArray* DeviceList = MTLCopyAllDevices();
 	[DeviceList autorelease];
 	
@@ -80,17 +75,39 @@ static id<MTLDevice> GetMTLDevice(uint32& DeviceIndex)
 	TArray<FMacPlatformMisc::FGPUDescriptor> const& GPUs = FPlatformMisc::GetGPUDescriptors();
 	check(GPUs.Num() > 0);
 	
-	id<MTLDevice> SelectedDevice = nil;
-	
 	int32 ExplicitRendererId = FPlatformMisc::GetExplicitRendererIndex();
+	if(ExplicitRendererId < 0 && GPUs.Num() > 1 && FMacPlatformMisc::MacOSXVersionCompare(10, 11, 5) == 0)
+	{
+		int32 OverrideRendererId = -1;
+		bool bForceExplicitRendererId = false;
+		for(uint32 i = 0; i < GPUs.Num(); i++)
+		{
+			FMacPlatformMisc::FGPUDescriptor const& GPU = GPUs[i];
+			if((GPU.GPUVendorId == 0x10DE))
+			{
+				OverrideRendererId = i;
+				bForceExplicitRendererId = (GPU.GPUMetalBundle && ![GPU.GPUMetalBundle isEqualToString:@"GeForceMTLDriverWeb"]);
+			}
+			else if(!GPU.GPUHeadless && GPU.GPUVendorId != 0x8086)
+			{
+				OverrideRendererId = i;
+			}
+		}
+		if (bForceExplicitRendererId)
+		{
+			ExplicitRendererId = OverrideRendererId;
+		}
+	}
+	
+	id<MTLDevice> SelectedDevice = nil;
 	if (ExplicitRendererId >= 0 && ExplicitRendererId < GPUs.Num())
 	{
 		FMacPlatformMisc::FGPUDescriptor const& GPU = GPUs[ExplicitRendererId];
 		for (id<MTLDevice> Device in DeviceList)
 		{
 			if(([Device.name rangeOfString:@"Nvidia" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x10DE)
-			|| ([Device.name rangeOfString:@"AMD" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x1002)
-			|| ([Device.name rangeOfString:@"Intel" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x8086))
+			   || ([Device.name rangeOfString:@"AMD" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x1002)
+			   || ([Device.name rangeOfString:@"Intel" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x8086))
 			{
 				if((Device.headless == GPU.GPUHeadless && GPU.GPUVendorId == 0x1002) || FString(Device.name).Contains(FString(GPU.GPUName).Trim()))
 				{
@@ -211,7 +228,7 @@ FMetalDeviceContext::~FMetalDeviceContext()
 {
 	if (CurrentCommandBuffer)
 	{
-		SubmitCommandsHint(false, true);
+		SubmitCommandsHint(EMetalSubmitFlagsWaitOnCommandBuffer);
 	}
 	delete &(GetCommandQueue());
 }
@@ -225,35 +242,28 @@ void FMetalDeviceContext::BeginFrame()
 
 void FMetalDeviceContext::ClearFreeList()
 {
- 	while(DelayedFreeLists.Num())
+	uint32 Index = 0;
+	while(Index < DelayedFreeLists.Num())
 	{
-		FMetalDelayedFreeList* Pair = DelayedFreeLists[0];
-		if(dispatch_semaphore_wait(Pair->Signal, DISPATCH_TIME_NOW))
+		FMetalDelayedFreeList* Pair = DelayedFreeLists[Index];
+		Pair->FrameCount--;
+		if (Pair->FrameCount == 0)
 		{
-#if PLATFORM_IOS
-            Pair->FrameCount--;
-            if (Pair->FrameCount == 0)
-            {
-#endif
-                dispatch_release(Pair->Signal);
-                for( id Entry : Pair->FreeList )
-                {
-                    CommandEncoder.UnbindObject(Entry);
-                    [Entry release];
-                }
-                delete Pair;
-                DelayedFreeLists.RemoveAt(0, 1, false);
-#if PLATFORM_IOS
-            }
-            else
-            {
-                break;
-            }
-#endif
+			if(dispatch_semaphore_wait(Pair->Signal, DISPATCH_TIME_NOW) == 0)
+			{
+				dispatch_release(Pair->Signal);
+				for( id Entry : Pair->FreeList )
+				{
+					CommandEncoder.UnbindObject(Entry);
+					[Entry release];
+				}
+				delete Pair;
+				DelayedFreeLists.RemoveAt(Index, 1, false);
+			}
 		}
 		else
 		{
-			break;
+			Index++;
 		}
 	}
 }
@@ -304,9 +314,7 @@ void FMetalDeviceContext::EndDrawingViewport(FMetalViewport* Viewport, bool bPre
 	
 	// kick the whole buffer
 	FMetalDelayedFreeList* NewList = new FMetalDelayedFreeList;
-#if PLATFORM_IOS
     NewList->FrameCount = 3;
-#endif
 	NewList->Signal = dispatch_semaphore_create(0);
 	if(GUseRHIThread)
 	{
@@ -387,10 +395,23 @@ void FMetalDeviceContext::EndDrawingViewport(FMetalViewport* Viewport, bool bPre
 	// enqueue a present if desired
 	if (bPresent)
 	{
-		id<MTLDrawable> Drawable = Viewport->GetDrawable();
-		[CurrentCommandBuffer addScheduledHandler:^(id<MTLCommandBuffer>) {
-			[Drawable present];
-		 }];
+		id<CAMetalDrawable> Drawable = (id<CAMetalDrawable>)Viewport->GetDrawable();
+		if (Drawable.texture)
+		{
+#if PLATFORM_MAC
+			id<MTLBlitCommandEncoder> Blitter = GetBlitContext();
+			
+			id<MTLTexture> Src = Viewport->GetBackBuffer()->Surface.Texture;
+			id<MTLTexture> Dst = Drawable.texture;
+			
+			[Blitter copyFromTexture:Src sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0, 0, 0) sourceSize:MTLSizeMake(Src.width, Src.height, 1) toTexture:Dst destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0, 0, 0)];
+			
+			CommandEncoder.EndEncoding();
+#endif
+			[CurrentCommandBuffer addScheduledHandler:^(id<MTLCommandBuffer>) {
+				[Drawable present];
+			}];
+		}
 	}
 	
 	// We may be limiting our framerate to the display link
@@ -399,7 +420,7 @@ void FMetalDeviceContext::EndDrawingViewport(FMetalViewport* Viewport, bool bPre
 		FrameReadyEvent->Wait();
 	}
 	
-	SubmitCommandsHint(false);
+	SubmitCommandsHint(EMetalSubmitFlagsNone);
 	
 #if SHOULD_TRACK_OBJECTS
 	// print out outstanding objects
@@ -461,7 +482,14 @@ FMetalPooledBuffer FMetalDeviceContext::CreatePooledBuffer(FMetalPooledBufferArg
 						 ];
 		TRACK_OBJECT(STAT_MetalBufferCount, Buffer.Buffer);
 		INC_DWORD_STAT(STAT_MetalPooledBufferCount);
+		INC_MEMORY_STAT_BY(STAT_MetalPooledBufferMem, BufferSize);
+		INC_MEMORY_STAT_BY(STAT_MetalFreePooledBufferMem, BufferSize);
 	}
+	INC_MEMORY_STAT_BY(STAT_MetalUsedPooledBufferMem, Buffer.Buffer.length);
+	INC_DWORD_STAT(STAT_MetalBufferAlloctations);
+	INC_DWORD_STAT_BY(STAT_MetalBufferMemAlloc, Buffer.Buffer.length);
+	DEC_MEMORY_STAT_BY(STAT_MetalFreePooledBufferMem, Buffer.Buffer.length);
+	
 	return Buffer;
 }
 
@@ -473,6 +501,10 @@ void FMetalDeviceContext::ReleasePooledBuffer(FMetalPooledBuffer Buf)
 		{
 			CommandEncoder.UnbindObject(Buf.Buffer);
 		}
+		DEC_MEMORY_STAT_BY(STAT_MetalUsedPooledBufferMem, Buf.Buffer.length);
+		INC_DWORD_STAT(STAT_MetalBufferFreed);
+		INC_DWORD_STAT_BY(STAT_MetalBufferMemFreed, Buf.Buffer.length);
+		INC_MEMORY_STAT_BY(STAT_MetalFreePooledBufferMem, Buf.Buffer.length);
 		
 		FScopeLock Lock(&PoolMutex);
 		//[Buf.Buffer setPurgeableState:MTLPurgeableStateVolatile];
@@ -534,16 +566,16 @@ FMetalContext::FMetalContext(FMetalCommandQueue& Queue, bool const bIsImmediate)
 	// create a semaphore for multi-buffering the command buffer
 	CommandBufferSemaphore = dispatch_semaphore_create(FParse::Param(FCommandLine::Get(),TEXT("gpulockstep")) ? 1 : 3);
 	
-	TCHAR Value[2] = {0, 0};
-	FPlatformMisc::GetEnvironmentVariable(TEXT("METAL_DEVICE_WRAPPER_TYPE"), Value, 1);
-	bValidationEnabled = (Value[0] != 0 && Value[0] != TEXT('0'));
+	FMemory::Memzero(BufferSideTable);
+	
+	bValidationEnabled = false;
 }
 
 FMetalContext::~FMetalContext()
 {
 	if (CurrentCommandBuffer)
 	{
-		SubmitCommandsHint(false, true);
+		SubmitCommandsHint(EMetalSubmitFlagsWaitOnCommandBuffer);
 	}
 }
 
@@ -624,12 +656,15 @@ void FMetalContext::InitFrame(bool const bImmediateContext)
 	
 	// start an auto release pool (EndFrame will drain and remake)
 	CreateAutoreleasePool();
-
+	
 	// create the command buffer for this frame
 	CreateCurrentCommandBuffer(bImmediateContext);
-
+	
 	// make sure first SetRenderTarget goes through
 	StateCache.SetHasValidRenderTarget(false);
+	
+	// Zero the side table
+	FMemory::Memzero(BufferSideTable);
 }
 
 void FMetalContext::FinishFrame()
@@ -637,12 +672,12 @@ void FMetalContext::FinishFrame()
 	// Issue any outstanding commands.
 	if (CurrentCommandBuffer)
 	{
-	SubmitCommandsHint(false);
+		SubmitCommandsHint(EMetalSubmitFlagsNone);
 	}
 	
 	// make sure first SetRenderTarget goes through
 	StateCache.SetHasValidRenderTarget(false);
-
+	
 	// Drain the auto-release pool for this context
 	DrainAutoreleasePool();
 	
@@ -662,35 +697,37 @@ void FMetalContext::CreateCurrentCommandBuffer(bool bWait)
 	CommandEncoder.StartCommandBuffer(CurrentCommandBuffer);
 }
 
-void FMetalContext::SubmitCommandsHint(bool const bCreateNew, bool const bWait)
+void FMetalContext::SubmitCommandsHint(uint32 const bFlags)
 {
+	bool const bCreateNew = (bFlags & EMetalSubmitFlagsCreateCommandBuffer);
+	bool const bWait = (bFlags & EMetalSubmitFlagsWaitOnCommandBuffer);
 	uint32 RingBufferOffset = RingBuffer->GetOffset();
 	id<MTLBuffer> CurrentRingBuffer = RingBuffer->Buffer;
 	TWeakPtr<FRingBuffer, ESPMode::ThreadSafe>* WeakRingBufferRef = new TWeakPtr<FRingBuffer, ESPMode::ThreadSafe>(RingBuffer.ToSharedRef());
-    [CurrentCommandBuffer addCompletedHandler : ^ (id <MTLCommandBuffer> Buffer)
-    {
+	[CurrentCommandBuffer addCompletedHandler : ^ (id <MTLCommandBuffer> Buffer)
+	{
 		TSharedPtr<FRingBuffer, ESPMode::ThreadSafe> CmdBufferRingBuffer = WeakRingBufferRef->Pin();
 		if(CmdBufferRingBuffer.IsValid() && CmdBufferRingBuffer->Buffer == CurrentRingBuffer)
 		{
 			CmdBufferRingBuffer->SetLastRead(RingBufferOffset);
 		}
 		delete WeakRingBufferRef;
-    }];
-    
-    // commit the render context to the commandBuffer
+	}];
+	
+	// commit the render context to the commandBuffer
 	if (CommandEncoder.IsRenderCommandEncoderActive() || CommandEncoder.IsComputeCommandEncoderActive() || CommandEncoder.IsBlitCommandEncoderActive())
 	{
 		CommandEncoder.EndEncoding();
 	}
-    
-    // kick the whole buffer
-    // Commit to hand the commandbuffer off to the gpu
-    CommandEncoder.CommitCommandBuffer(bWait);
-    
-    //once a commandbuffer is commited it can't be added to again.
+	
+	// kick the whole buffer
+	// Commit to hand the commandbuffer off to the gpu
+	CommandEncoder.CommitCommandBuffer(bWait);
+	
+	//once a commandbuffer is commited it can't be added to again.
 	[CurrentCommandBuffer release];
 	
-    // create a new command buffer.
+	// create a new command buffer.
 	if (bCreateNew)
 	{
 		CreateCurrentCommandBuffer(false);
@@ -705,14 +742,10 @@ void FMetalContext::SubmitCommandsHint(bool const bCreateNew, bool const bWait)
 
 void FMetalContext::SubmitCommandBufferAndWait()
 {
-    // kick the whole buffer
-    // Commit to hand the commandbuffer off to the gpu
+	// kick the whole buffer
+	// Commit to hand the commandbuffer off to the gpu
 	// Wait for completion as requested.
-    SubmitCommandsHint(true, true);
-}
-
-void FMetalContext::SubmitComputeCommandBufferAndWait()
-{
+	SubmitCommandsHint((EMetalSubmitFlagsCreateCommandBuffer | EMetalSubmitFlagsWaitOnCommandBuffer));
 }
 
 void FMetalContext::ResetRenderCommandEncoder()
@@ -734,37 +767,43 @@ void FMetalContext::ResetRenderCommandEncoder()
 void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 {
 	SCOPE_CYCLE_COUNTER(STAT_MetalPrepareDrawTime);
-
 	TRefCountPtr<FMetalBoundShaderState> CurrentBoundShaderState = StateCache.GetBoundShaderState();
+	
+	// Enforce calls to SetRenderTarget prior to issuing draw calls.
+	check(StateCache.GetHasValidRenderTarget());
+	
+	
+	// Enforce calls to SetRenderTarget prior to issuing draw calls.
+	check(StateCache.GetHasValidRenderTarget());
 	
 	// Validate the vertex layout in debug mode, or when the validation layer is enabled for development builds.
 	// Other builds will just crash & burn if it is incorrect.
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	if(UE_BUILD_DEBUG || bValidationEnabled)
 	{
-	MTLVertexDescriptor* Layout = CurrentBoundShaderState->VertexDeclaration->Layout;
-	if(Layout && Layout.layouts)
-	{
-		for (uint32 i = 0; i < MaxMetalStreams; i++)
+		MTLVertexDescriptor* Layout = CurrentBoundShaderState->VertexDeclaration->Layout;
+		if(Layout && Layout.layouts)
 		{
-			auto Attribute = [Layout.attributes objectAtIndexedSubscript:i];
-			if(Attribute)
+			for (uint32 i = 0; i < MaxMetalStreams; i++)
 			{
-				auto BufferLayout = [Layout.layouts objectAtIndexedSubscript:Attribute.bufferIndex];
-				uint32 BufferLayoutStride = BufferLayout ? BufferLayout.stride : 0;
-				uint64 MetalSize = StateCache.GetVertexBuffer(Attribute.bufferIndex) ? (uint64)StateCache.GetVertexBuffer(Attribute.bufferIndex).length : 0llu;
-
-				if(!(BufferLayoutStride == StateCache.GetVertexStride(Attribute.bufferIndex) || (MetalSize > 0 && StateCache.GetVertexStride(Attribute.bufferIndex) == 0 && StateCache.GetVertexBuffer(Attribute.bufferIndex) && MetalSize == BufferLayoutStride)))
+				auto Attribute = [Layout.attributes objectAtIndexedSubscript:i];
+				if(Attribute)
 				{
-					FString Report = FString::Printf(TEXT("Vertex Layout Mismatch: Index: %d, Buffer: %p, Len: %lld, Decl. Stride: %d, Stream Stride: %d"), Attribute.bufferIndex, StateCache.GetVertexBuffer(Attribute.bufferIndex), MetalSize, BufferLayoutStride, StateCache.GetVertexStride(Attribute.bufferIndex));
+					auto BufferLayout = [Layout.layouts objectAtIndexedSubscript:Attribute.bufferIndex];
+					uint32 BufferLayoutStride = BufferLayout ? BufferLayout.stride : 0;
+					uint64 MetalSize = StateCache.GetVertexBuffer(Attribute.bufferIndex) ? (uint64)StateCache.GetVertexBuffer(Attribute.bufferIndex).length : 0llu;
+					
+					if(!(BufferLayoutStride == StateCache.GetVertexStride(Attribute.bufferIndex) || (MetalSize > 0 && StateCache.GetVertexStride(Attribute.bufferIndex) == 0 && StateCache.GetVertexBuffer(Attribute.bufferIndex) && MetalSize == BufferLayoutStride)))
+					{
+						FString Report = FString::Printf(TEXT("Vertex Layout Mismatch: Index: %d, Buffer: %p, Len: %lld, Decl. Stride: %d, Stream Stride: %d"), Attribute.bufferIndex, StateCache.GetVertexBuffer(Attribute.bufferIndex), MetalSize, BufferLayoutStride, StateCache.GetVertexStride(Attribute.bufferIndex));
 						
 						UE_LOG(LogMetal, Warning, TEXT("%s"), *Report);
 						
 						if (GEmitDrawEvents)
-					{
+						{
 							CommandEncoder.PushDebugGroup(Report.GetNSString());
 							CommandEncoder.PopDebugGroup();
-					}
+						}
 					}
 				}
 			}
@@ -778,7 +817,7 @@ void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 	
 	// @todo Handle the editor not setting a depth-stencil target for the material editor's tiles which render to depth even when they shouldn't.
 	bool bRestoreState = false;
-	if (IsValidRef(CurrentBoundShaderState->PixelShader) && (CurrentBoundShaderState->PixelShader->Bindings.InOutMask & 0x8000) && StateCache.GetRenderPipelineDesc().PipelineDescriptor.depthAttachmentPixelFormat == MTLPixelFormatInvalid && !FShaderCache::IsPredrawCall())
+	if (IsValidRef(CurrentBoundShaderState->PixelShader) && (CurrentBoundShaderState->PixelShader->Bindings.InOutMask & 0x8000) && !StateCache.HasValidDepthStencilSurface() && StateCache.GetRenderPipelineDesc().PipelineDescriptor.depthAttachmentPixelFormat == MTLPixelFormatInvalid && !FShaderCache::IsPredrawCall())
 	{
 #if UE_BUILD_DEBUG
 		UE_LOG(LogMetal, Warning, TEXT("Binding a temporary depth-stencil surface as the bound shader pipeline that writes to depth/stencil but no depth/stencil surface was bound!"));
@@ -788,13 +827,22 @@ void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 		
 		FRHISetRenderTargetsInfo Info = StateCache.GetRenderTargetsInfo();
 		
-		FRHIResourceCreateInfo TexInfo;
-		FTexture2DRHIRef DepthStencil = RHICreateTexture2D(FBSize.width, FBSize.height, PF_DepthStencil, 1, 1, TexCreate_DepthStencilTargetable, TexInfo);
-		Info.DepthStencilRenderTarget.Texture = DepthStencil;
+		// Cache the fallback depth-stencil surface to reduce memory bloat - only need to recreate if size changes.
+		if (!IsValidRef(FallbackDepthStencilSurface) || FallbackDepthStencilSurface->GetSizeX() != FBSize.width || FallbackDepthStencilSurface->GetSizeY() != FBSize.height)
+		{
+			FRHIResourceCreateInfo TexInfo;
+			FallbackDepthStencilSurface = RHICreateTexture2D(FBSize.width, FBSize.height, PF_DepthStencil, 1, 1, TexCreate_DepthStencilTargetable, TexInfo);
+		}
+		check(IsValidRef(FallbackDepthStencilSurface));
+		Info.DepthStencilRenderTarget.Texture = FallbackDepthStencilSurface;
 		
 		StateCache.SetRenderTargetsInfo(Info, StateCache.GetVisibilityResultsBuffer(), false);
 		
 		bRestoreState = true;
+		
+		// Enforce calls to SetRenderTarget prior to issuing draw calls.
+		check(StateCache.GetHasValidRenderTarget());
+		check(CommandEncoder.IsRenderPassDescriptorValid());
 	}
 	
 	// make sure the BSS has a valid pipeline state object
@@ -812,11 +860,40 @@ void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 		
 		if(!CommandEncoder.IsRenderCommandEncoderActive())
 		{
+			if (!CommandEncoder.IsRenderPassDescriptorValid())
+			{
+				UE_LOG(LogMetal, Warning, TEXT("Re-binding the render-target because no RenderPassDescriptor was bound!"));
+				FRHISetRenderTargetsInfo Info = StateCache.GetRenderTargetsInfo();
+				StateCache.SetHasValidRenderTarget(false);
+				StateCache.SetRenderTargetsInfo(Info, StateCache.GetVisibilityResultsBuffer(), false);
+			}
+			
 			CommandEncoder.RestoreRenderCommandEncoding();
 		}
 		else if (bRestoreState)
 		{
 			CommandEncoder.RestoreRenderCommandEncodingState();
+		}
+		
+		check(CommandEncoder.IsRenderCommandEncoderActive());
+		if (CurrentBoundShaderState->VertexShader->SideTableBinding >= 0)
+		{
+			uint32 Offset = AllocateFromRingBuffer((sizeof(BufferSideTable) / SF_NumFrequencies));
+			id<MTLBuffer> Buffer = GetRingBuffer();
+			
+			FMemory::Memcpy(((uint8*)[Buffer contents]) + Offset, BufferSideTable[SF_Vertex], (sizeof(BufferSideTable) / SF_NumFrequencies));
+			
+			CommandEncoder.SetShaderBuffer(SF_Vertex, Buffer, Offset, CurrentBoundShaderState->VertexShader->SideTableBinding);
+		}
+		
+		if (IsValidRef(CurrentBoundShaderState->PixelShader) && CurrentBoundShaderState->PixelShader->SideTableBinding >= 0)
+		{
+			uint32 Offset = AllocateFromRingBuffer((sizeof(BufferSideTable) / SF_NumFrequencies));
+			id<MTLBuffer> Buffer = GetRingBuffer();
+			
+			FMemory::Memcpy(((uint8*)[Buffer contents]) + Offset, BufferSideTable[SF_Pixel], (sizeof(BufferSideTable) / SF_NumFrequencies));
+			
+			CommandEncoder.SetShaderBuffer(SF_Pixel, Buffer, Offset, CurrentBoundShaderState->PixelShader->SideTableBinding);
 		}
 		
 		OutstandingOpCount++;
@@ -826,7 +903,7 @@ void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 void FMetalContext::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderTargetsInfo)
 {
 	// Force submit if there's enough outstanding commands to prevent the GPU going idle.
-	ConditionalSwitchToGraphics();
+	ConditionalSwitchToGraphics(StateCache.NeedsToSetRenderTarget(RenderTargetsInfo), !(PLATFORM_MAC));
 	
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	if (!CommandList.IsImmediate())
@@ -864,14 +941,14 @@ void FMetalContext::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderT
 	}
 #endif
 	
-    if (IsFeatureLevelSupported( GMaxRHIShaderPlatform, ERHIFeatureLevel::SM4 ))
-    {
-        StateCache.SetRenderTargetsInfo(RenderTargetsInfo, QueryBuffer->GetCurrentQueryBuffer()->Buffer, true);
-    }
-    else
-    {
-        StateCache.SetRenderTargetsInfo(RenderTargetsInfo, NULL, true);
-    }
+	if (IsFeatureLevelSupported( GMaxRHIShaderPlatform, ERHIFeatureLevel::SM4 ))
+	{
+		StateCache.SetRenderTargetsInfo(RenderTargetsInfo, QueryBuffer->GetCurrentQueryBuffer()->Buffer, true);
+	}
+	else
+	{
+		StateCache.SetRenderTargetsInfo(RenderTargetsInfo, NULL, true);
+	}
 }
 
 uint32 FMetalContext::AllocateFromRingBuffer(uint32 Size, uint32 Alignment)
@@ -957,11 +1034,13 @@ void FMetalContext::SetShaderResourceView(EShaderFrequency ShaderStage, uint32 B
 			}
 		}
 		else if (VB)
-			{
-				GetCommandEncoder().SetShaderBuffer(ShaderStage, VB->Buffer, 0, BindIndex);
-			}
+		{
+			BufferSideTable[ShaderStage][BindIndex] = VB->GetSize();
+			GetCommandEncoder().SetShaderBuffer(ShaderStage, VB->Buffer, 0, BindIndex);
+		}
 		else if (IB)
 		{
+			BufferSideTable[ShaderStage][BindIndex] = IB->GetSize();
 			GetCommandEncoder().SetShaderBuffer(ShaderStage, IB->Buffer, 0, BindIndex);
 		}
 	}
@@ -970,6 +1049,39 @@ void FMetalContext::SetShaderResourceView(EShaderFrequency ShaderStage, uint32 B
 		GetCommandEncoder().SetShaderTexture(ShaderStage, nil, BindIndex);
 	}
 	FShaderCache::SetSRV(ShaderStage, BindIndex, SRV);
+}
+
+void FMetalContext::SetShaderUnorderedAccessView(EShaderFrequency ShaderStage, uint32 BindIndex, FMetalUnorderedAccessView* RESTRICT UAV)
+{
+	if (UAV)
+	{
+		// figure out which one of the resources we need to set
+		FMetalStructuredBuffer* StructuredBuffer = UAV->SourceStructuredBuffer.GetReference();
+		FMetalVertexBuffer* VertexBuffer = UAV->SourceVertexBuffer.GetReference();
+		FRHITexture* Texture = UAV->SourceTexture.GetReference();
+		if (StructuredBuffer)
+		{
+			BufferSideTable[ShaderStage][BindIndex] = StructuredBuffer->GetSize();
+			GetCommandEncoder().SetShaderBuffer(ShaderStage, StructuredBuffer->Buffer, 0, BindIndex);
+		}
+		else if (VertexBuffer)
+		{
+			BufferSideTable[ShaderStage][BindIndex] = VertexBuffer->GetSize();
+			GetCommandEncoder().SetShaderBuffer(ShaderStage, VertexBuffer->Buffer, 0, BindIndex);
+		}
+		else if (Texture)
+		{
+			FMetalSurface* Surface = GetMetalSurfaceFromRHITexture(Texture);
+			if (Surface != nullptr)
+			{
+				GetCommandEncoder().SetShaderTexture(ShaderStage, Surface->Texture, BindIndex);
+			}
+			else
+			{
+				GetCommandEncoder().SetShaderTexture(ShaderStage, nil, BindIndex);
+			}
+		}
+	}
 }
 
 void FMetalContext::SetResource(uint32 ShaderStage, uint32 BindIndex, FMetalShaderResourceView* RESTRICT SRV, float CurrentTime)
@@ -1054,7 +1166,7 @@ template <class ShaderType>
 void FMetalContext::SetResourcesFromTables(ShaderType Shader, uint32 ShaderStage)
 {
 	checkSlow(Shader);
-
+	
 	EShaderFrequency Frequency;
 	switch(Shader->Function.functionType)
 	{
@@ -1092,7 +1204,7 @@ void FMetalContext::SetResourcesFromTables(ShaderType Shader, uint32 ShaderStage
 		check(Buffer);
 		check(BufferIndex < Shader->Bindings.ShaderResourceTable.ResourceTableLayoutHashes.Num());
 		check(Buffer->GetLayout().GetHash() == Shader->Bindings.ShaderResourceTable.ResourceTableLayoutHashes[BufferIndex]);
-
+		
 		// todo: could make this two pass: gather then set
 		SetShaderResourcesFromBuffer<FRHITexture>(ShaderStage, Buffer, Shader->Bindings.ShaderResourceTable.TextureMap.GetData(), BufferIndex);
 		SetShaderResourcesFromBuffer<FMetalShaderResourceView>(ShaderStage, Buffer, Shader->Bindings.ShaderResourceTable.ShaderResourceViewMap.GetData(), BufferIndex);
@@ -1104,17 +1216,17 @@ void FMetalContext::SetResourcesFromTables(ShaderType Shader, uint32 ShaderStage
 void FMetalContext::CommitGraphicsResourceTables()
 {
 	uint32 Start = FPlatformTime::Cycles();
-
+	
 	TRefCountPtr<FMetalBoundShaderState> CurrentBoundShaderState = StateCache.GetBoundShaderState();
 	check(CurrentBoundShaderState);
-
+	
 	SetResourcesFromTables(CurrentBoundShaderState->VertexShader, CrossCompiler::SHADER_STAGE_VERTEX);
 	if (IsValidRef(CurrentBoundShaderState->PixelShader))
 	{
 		SetResourcesFromTables(CurrentBoundShaderState->PixelShader, CrossCompiler::SHADER_STAGE_PIXEL);
 	}
-
-//	CommitResourceTableCycles += (FPlatformTime::Cycles() - Start);
+	
+	//	CommitResourceTableCycles += (FPlatformTime::Cycles() - Start);
 }
 
 void FMetalContext::CommitNonComputeShaderConstants()
@@ -1130,9 +1242,9 @@ void FMetalContext::CommitNonComputeShaderConstants()
 	}
 }
 
-void FMetalContext::ConditionalSwitchToGraphics()
+void FMetalContext::ConditionalSwitchToGraphics(bool bRTChangePending, bool bRTChangeForce)
 {
-	ConditionalSubmit();
+	ConditionalSubmit(bRTChangePending, bRTChangeForce);
 	
 	StateCache.ConditionalSwitchToRender();
 }
@@ -1155,11 +1267,38 @@ void FMetalContext::ConditionalSwitchToCompute()
 	}
 }
 
-void FMetalContext::ConditionalSubmit()
+void FMetalContext::ConditionalSubmit(bool bRTChangePending, bool bRTChangeForce)
 {
-	if (GMetalCommandBufferCommitThreshold > 0 && OutstandingOpCount >= GMetalCommandBufferCommitThreshold)
+	if ((GMetalCommandBufferCommitThreshold > 0 && OutstandingOpCount >= GMetalCommandBufferCommitThreshold) || (bRTChangePending && bRTChangeForce))
 	{
-		SubmitCommandsHint();
+		// AJB: This triggers a 'unset' of the RT. Causing a Load/Store at potentially awkward times.
+		// check that the load/store behaviour of the current RT setup will allows resumption without affecting RT content.
+		// i.e. - dont want to clear 1/2 way through a pass either.
+		bool bCanChangeRT = false;
+		if( bRTChangePending == false)
+		{
+			const FRHISetRenderTargetsInfo& CurrentRenderTargets = StateCache.GetRenderTargetsInfo();
+			const bool bIsMSAAActive = StateCache.GetHasValidRenderTarget() && StateCache.GetRenderPipelineDesc().SampleCount != 1;
+			bCanChangeRT = !bIsMSAAActive;
+			for (int32 RenderTargetIndex = 0; RenderTargetIndex < CurrentRenderTargets.NumColorRenderTargets && bCanChangeRT; RenderTargetIndex++)
+			{
+				const FRHIRenderTargetView& RenderTargetView = CurrentRenderTargets.ColorRenderTarget[RenderTargetIndex];
+				bCanChangeRT = bCanChangeRT
+				&& RenderTargetView.LoadAction == ERenderTargetLoadAction::ELoad
+				&& RenderTargetView.StoreAction == ERenderTargetStoreAction::EStore;
+			}
+			bCanChangeRT = bCanChangeRT
+			&& (!CurrentRenderTargets.DepthStencilRenderTarget.Texture
+				|| (CurrentRenderTargets.DepthStencilRenderTarget.DepthLoadAction == ERenderTargetLoadAction::ELoad
+					&& CurrentRenderTargets.DepthStencilRenderTarget.DepthStoreAction == ERenderTargetStoreAction::EStore
+					&& CurrentRenderTargets.DepthStencilRenderTarget.StencilLoadAction == ERenderTargetLoadAction::ELoad
+					&& CurrentRenderTargets.DepthStencilRenderTarget.GetStencilStoreAction() == ERenderTargetStoreAction::EStore));
+		}
+
+		if(bRTChangePending || bCanChangeRT)
+		{
+			SubmitCommandsHint();
+		}
 	}
 }
 
@@ -1170,15 +1309,25 @@ void FMetalContext::Dispatch(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY,
 	
 	TRefCountPtr<FMetalComputeShader> CurrentComputeShader = StateCache.GetComputeShader();
 	check(CurrentComputeShader);
-
+	
 	auto* ComputeShader = (FMetalComputeShader*)CurrentComputeShader;
-
+	
 	SetResourcesFromTables(ComputeShader, CrossCompiler::SHADER_STAGE_COMPUTE);
-
+	
 	TRefCountPtr<FMetalBoundShaderState> CurrentBoundShaderState = StateCache.GetBoundShaderState();
 	
 	StateCache.GetShaderParameters(CrossCompiler::SHADER_STAGE_COMPUTE).CommitPackedUniformBuffers(CurrentBoundShaderState, ComputeShader, CrossCompiler::SHADER_STAGE_COMPUTE, StateCache.GetBoundUniformBuffers(SF_Compute), ComputeShader->UniformBuffersCopyInfo);
 	StateCache.GetShaderParameters(CrossCompiler::SHADER_STAGE_COMPUTE).CommitPackedGlobals(this, CrossCompiler::SHADER_STAGE_COMPUTE, ComputeShader->Bindings);
+	
+	if (ComputeShader->SideTableBinding >= 0)
+	{
+		uint32 Offset = AllocateFromRingBuffer((sizeof(BufferSideTable) / SF_NumFrequencies));
+		id<MTLBuffer> Buffer = GetRingBuffer();
+		
+		FMemory::Memcpy(((uint8*)[Buffer contents]) + Offset, BufferSideTable[SF_Compute], (sizeof(BufferSideTable) / SF_NumFrequencies));
+		
+		CommandEncoder.SetShaderBuffer(SF_Compute, Buffer, Offset, ComputeShader->SideTableBinding);
+	}
 	
 	MTLSize ThreadgroupCounts = MTLSizeMake(ComputeShader->NumThreadsX, ComputeShader->NumThreadsY, ComputeShader->NumThreadsZ);
 	check(ComputeShader->NumThreadsX > 0 && ComputeShader->NumThreadsY > 0 && ComputeShader->NumThreadsZ > 0);
@@ -1223,12 +1372,12 @@ void FMetalContext::StartTiming(class FMetalEventNode* EventNode)
 		CommandEncoder.EndEncoding();
 	}
 	
-    if(EventNode && CurrentCommandBuffer)
-    {
-        EventNode->Start(CurrentCommandBuffer);
-    }
-    
-    // kick the whole buffer
+	if(EventNode && CurrentCommandBuffer)
+	{
+		EventNode->Start(CurrentCommandBuffer);
+	}
+	
+	// kick the whole buffer
 	// Commit to hand the commandbuffer off to the gpu
 	CommandEncoder.CommitCommandBuffer(false);
 	
@@ -1244,18 +1393,18 @@ void FMetalContext::EndTiming(class FMetalEventNode* EventNode)
 	{
 		CommandEncoder.EndEncoding();
 	}
-    
+	
 	bool const bWait = EventNode->Wait();
 	EventNode->Stop(CurrentCommandBuffer);
 	
 	// kick the whole buffer
 	// Commit to hand the commandbuffer off to the gpu
 	CommandEncoder.CommitCommandBuffer(bWait);
-    
-    //once a commandbuffer is commited it can't be added to again.
+	
+	//once a commandbuffer is commited it can't be added to again.
 	[CurrentCommandBuffer release];
-
-    CreateCurrentCommandBuffer(false);
+	
+	CreateCurrentCommandBuffer(false);
 }
 
 #if METAL_SUPPORTS_PARALLEL_RHI_EXECUTE
@@ -1294,6 +1443,7 @@ public:
 	{
 		if (CmdContext)
 		{
+			check(CmdContext->GetInternalContext().GetCurrentCommandBuffer() == nil);
 			CmdContext->GetInternalContext().GetCommandList().Submit(Index, Num);
 			
 			GetMetalDeviceContext().ReleaseContext(CmdContext);

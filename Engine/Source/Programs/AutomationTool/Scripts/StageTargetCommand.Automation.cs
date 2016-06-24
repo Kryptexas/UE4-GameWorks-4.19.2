@@ -397,10 +397,6 @@ class StageTargetCommand : BuildCommand
             // Engine ufs (content)
             SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Config"), "*", true, null, null, false, !Params.UsePak(SC.StageTargetPlatform)); // TODO: Exclude localization data generation config files.
 
-            // Stat prefix/suffix files (used for FPSChart, etc...)
-            //@TODO: Avoid packaging stat files in shipping builds (only 6 KB, but still more than zero)
-            SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Stats"), "*", true, null, null, false, !Params.UsePak(SC.StageTargetPlatform));
-
             if (Params.bUsesSlate)
             {
                 if (Params.bUsesSlateEditorStyle)
@@ -1066,7 +1062,7 @@ class StageTargetCommand : BuildCommand
         }
         else // DontCare
         {
-            return (Params.Pak || Params.SignedPak || !String.IsNullOrEmpty(Params.SignPak));
+            return (Params.Pak);
         }
 	}
 
@@ -1088,7 +1084,7 @@ class StageTargetCommand : BuildCommand
         }
         else // DontCare
         {
-            return (Params.Pak || Params.SignedPak || !String.IsNullOrEmpty(Params.SignPak));
+            return (Params.Pak);
         }
 	}
 

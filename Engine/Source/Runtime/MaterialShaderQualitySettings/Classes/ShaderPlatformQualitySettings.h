@@ -16,19 +16,19 @@ struct FMaterialQualityOverrides
 public:
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(Config, Meta = (DisplayName = "Enable Quality Override"))
+	UPROPERTY(EditAnywhere, Config, Meta = (DisplayName = "Enable Quality Override"), Category = "Quality")
 	bool bEnableOverride;
 
-	UPROPERTY(Config, Meta = (DisplayName = "Force Fully Rough"))
+	UPROPERTY(EditAnywhere, Config, Meta = (DisplayName = "Force Fully Rough"), Category = "Quality")
 	bool bForceFullyRough;
 
-	UPROPERTY(Config, Meta = (DisplayName = "Force Non-metal"))
+	UPROPERTY(EditAnywhere, Config, Meta = (DisplayName = "Force Non-metal"), Category = "Quality")
 	bool bForceNonMetal;
 
-	UPROPERTY(Config, Meta = (DisplayName = "Disable Lightmap directionality"))
+	UPROPERTY(EditAnywhere, Config, Meta = (DisplayName = "Disable Lightmap directionality"), Category = "Quality")
 	bool bForceDisableLMDirectionality;
 
-	UPROPERTY(Config, Meta = (DisplayName = "Force low quality reflections"))
+	UPROPERTY(EditAnywhere, Config, Meta = (DisplayName = "Force low quality reflections"), Category = "Quality")
 	bool bForceLQReflections;
 };
 
@@ -39,7 +39,7 @@ class MATERIALSHADERQUALITYSETTINGS_API UShaderPlatformQualitySettings : public 
 public:
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(Config)
+	UPROPERTY(EditAnywhere, Config, Category="Quality")
 	FMaterialQualityOverrides QualityOverrides[EMaterialQualityLevel::Num];
 
 	FMaterialQualityOverrides& GetQualityOverrides(EMaterialQualityLevel::Type QualityLevel)

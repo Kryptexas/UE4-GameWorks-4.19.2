@@ -230,11 +230,11 @@ class ENGINE_API APlayerController : public AController
 	int32 ClientCap;
 	
 	/** Object that manages "cheat" commands.  Not instantiated in shipping builds. */
-	UPROPERTY(transient)
+	UPROPERTY(transient, BlueprintReadOnly, Category=PlayerController)
 	class UCheatManager* CheatManager;
 	
 	/** class of my CheatManager. */
-	UPROPERTY()
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=PlayerController)
 	TSubclassOf<class UCheatManager> CheatClass;
 
 	/** Object that manages player input. */

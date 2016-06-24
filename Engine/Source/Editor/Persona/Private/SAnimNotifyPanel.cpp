@@ -16,6 +16,7 @@
 #include "BlueprintActionDatabase.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
+#include "Animation/AnimSequence.h"
 #include "SAnimTimingPanel.h"
 
 // Track Panel drawing
@@ -2377,6 +2378,11 @@ void SAnimNotifyTrack::FillNewNotifyMenu(FMenuBuilder& MenuBuilder, bool bIsRepl
 	{
 		for(UClass* Class : NativeNotifyClasses)
 		{
+			if (Class->HasAllClassFlags(CLASS_Abstract))
+			{
+				continue; // skip abstract classes
+			}
+
 			const FText LabelText = Class->GetDisplayNameText();
 			const FString Label = LabelText.ToString();
 
@@ -4731,11 +4737,11 @@ void SAnimNotifyPanel::OnGetNotifyBlueprintData(TArray<FAssetData>& OutNotifyDat
 		for(int32 AssetIndex = 0; AssetIndex < AssetDataList.Num(); ++AssetIndex)
 		{
 			FAssetData& AssetData = AssetDataList[AssetIndex];
-			FString TagValue = AssetData.TagsAndValues.FindRef(BPParentClassName);
+			FString TagValue = AssetData.GetTagValueRef<FString>(BPParentClassName);
 
 			if(InOutAllowedClassNames->Contains(TagValue))
 			{
-				FString GenClass = AssetData.TagsAndValues.FindRef(BPGenClassName);
+				FString GenClass = AssetData.GetTagValueRef<FString>(BPGenClassName);
 
 				if(!OutNotifyData.Contains(AssetData))
 				{
@@ -4785,7 +4791,7 @@ void SAnimNotifyPanel::OnGetNativeNotifyData(TArray<UClass*>& OutClasses, UClass
 	{
 		UClass* Class = *It;
 
-		if(Class->IsChildOf(NotifyOutermost) && Class->HasAllClassFlags(CLASS_Native) && !Class->HasAllClassFlags(CLASS_Abstract) && !Class->IsInBlueprint())
+		if(Class->IsChildOf(NotifyOutermost) && Class->HasAllClassFlags(CLASS_Native) && !Class->IsInBlueprint())
 		{
 			OutClasses.Add(Class);
 			// Form class name to search later

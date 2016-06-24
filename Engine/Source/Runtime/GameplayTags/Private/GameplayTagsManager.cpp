@@ -1119,15 +1119,16 @@ bool UGameplayTagsManager::ValidateTagCreation(FName TagName) const
 TSharedPtr<FGameplayTagNode> UGameplayTagsManager::FindTagNode(TSharedPtr<FGameplayTagNode> Node, FName TagName) const
 {
 	TSharedPtr<FGameplayTagNode> FoundTag = NULL;
-	TArray< TSharedPtr<FGameplayTagNode> > CurrentChildrenTags = Node->GetChildTagNodes();
+	const TArray< TSharedPtr<FGameplayTagNode> >& CurrentChildrenTags = Node->GetChildTagNodes();
 	for (int32 TagIdx = 0; TagIdx < CurrentChildrenTags.Num(); TagIdx++)
 	{
-		if (CurrentChildrenTags[TagIdx].Get()->GetCompleteTag() == TagName || CurrentChildrenTags[TagIdx].Get()->GetSimpleTag() == TagName)
+		const TSharedPtr<FGameplayTagNode>& TagNode = CurrentChildrenTags[TagIdx];
+		if (TagNode->GetCompleteTag() == TagName || TagNode->GetSimpleTag() == TagName)
 		{
 			FoundTag = CurrentChildrenTags[TagIdx];
 			break;
 		}
-		FoundTag = FindTagNode(CurrentChildrenTags[TagIdx], TagName);
+		FoundTag = FindTagNode(TagNode, TagName);
 		if (FoundTag.IsValid())
 		{
 			break;

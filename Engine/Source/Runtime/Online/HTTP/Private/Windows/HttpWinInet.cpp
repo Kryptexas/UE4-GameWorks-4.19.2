@@ -3,6 +3,7 @@
 #include "HttpPrivatePCH.h"
 #include "HttpWinInet.h"
 #include "EngineVersion.h"
+#include "NetworkVersion.h"
 
 bool FWinInetConnection::bStaticConnectionInitialized = false;
 
@@ -292,7 +293,7 @@ bool FWinInetConnection::InitConnection()
 
 	// setup net connection
 	InternetHandle = InternetOpen(
-		*FString::Printf(TEXT("game=%s, engine=UE4, version=%d"), FApp::GetGameName(), GEngineNetVersion), 
+		*FString::Printf(TEXT("game=%s, engine=UE4, version=%u"), FApp::GetGameName(), FNetworkVersion::GetNetworkCompatibleChangelist()), 
 		INTERNET_OPEN_TYPE_PRECONFIG, 
 		NULL, 
 		NULL, 

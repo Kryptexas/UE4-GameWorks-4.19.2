@@ -192,6 +192,10 @@
 #define INSTANCED_STEREO								0
 #endif	
 
+#ifndef CLEAR_COAT_BOTTOM_NORMAL
+#define CLEAR_COAT_BOTTOM_NORMAL						0
+#endif
+
 #ifndef TEX_COORD_SCALE_ANALYSIS
 #define TEX_COORD_SCALE_ANALYSIS						0		
 #endif
@@ -280,4 +284,9 @@
 #if !COMPILER_HLSLCC
 #error "Missing COMPILER_HLSLCC define!"
 #endif
+#endif
+
+// Hlslcc platforms ignore the uniform keyword as it can't properly optimize flow
+#if COMPILER_HLSLCC
+#define uniform
 #endif

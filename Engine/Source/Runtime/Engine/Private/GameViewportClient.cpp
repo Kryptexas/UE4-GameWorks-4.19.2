@@ -35,6 +35,7 @@
 #include "IMovieSceneCapture.h"
 #include "MovieSceneCaptureSettings.h"
 #include "ActorEditorUtils.h"
+#include "ComponentRecreateRenderStateContext.h"
 
 #define LOCTEXT_NAMESPACE "GameViewport"
 
@@ -56,9 +57,6 @@ FSimpleMulticastDelegate UGameViewportClient::CreatedDelegate;
 
 /** A list of all the stat names which are enabled for this viewport (static so they persist between runs) */
 TArray<FString> UGameViewportClient::EnabledStats;
-
-/** The number of GameViewportClients which have enabled 'show collision' */
-int32 UGameViewportClient::NumViewportsShowingCollision = 0;
 
 /** Those sound stat flags which are enabled on this viewport */
 FViewportClient::ESoundShowFlags::Type UGameViewportClient::SoundShowFlags = FViewportClient::ESoundShowFlags::Disabled;
@@ -340,7 +338,13 @@ bool UGameViewportClient::InputKey(FViewport* InViewport, int32 ControllerId, FK
 		return true;
 	}
 
-	if (InViewport->IsPlayInEditorViewport() && Key.IsGamepadKey())
+	const int32 NumLocalPlayers = World->GetGameInstance()->GetNumLocalPlayers();
+
+	if (NumLocalPlayers > 1 && Key.IsGamepadKey() && GetDefault<UGameMapsSettings>()->bOffsetPlayerGamepadIds)
+	{
+		++ControllerId;
+	}
+	else if (InViewport->IsPlayInEditorViewport() && Key.IsGamepadKey())
 	{
 		GEngine->RemapGamepadControllerIdForPIE(this, ControllerId);
 	}
@@ -362,14 +366,14 @@ bool UGameViewportClient::InputKey(FViewport* InViewport, int32 ControllerId, FK
 		}
 	}
 
-	// For PIE, let the next PIE window handle the input if we didn't
+	// For PIE, let the next PIE window handle the input if none of our players did
 	// (this allows people to use multiple controllers to control each window)
-	if (!bResult && ControllerId > 0 && InViewport->IsPlayInEditorViewport())
+	if (!bResult && ControllerId > NumLocalPlayers - 1 && InViewport->IsPlayInEditorViewport())
 	{
 		UGameViewportClient *NextViewport = GEngine->GetNextPIEViewport(this);
 		if (NextViewport)
 		{
-			bResult = NextViewport->InputKey(InViewport, ControllerId-1, Key, EventType, AmountDepressed, bGamepad);
+			bResult = NextViewport->InputKey(InViewport, ControllerId - NumLocalPlayers, Key, EventType, AmountDepressed, bGamepad);
 		}
 	}
 
@@ -384,12 +388,18 @@ bool UGameViewportClient::InputAxis(FViewport* InViewport, int32 ControllerId, F
 		return false;
 	}
 
-	bool bResult = false;
+	const int32 NumLocalPlayers = World->GetGameInstance()->GetNumLocalPlayers();
 
-	if (InViewport->IsPlayInEditorViewport() && Key.IsGamepadKey())
+	if (NumLocalPlayers > 1 && Key.IsGamepadKey() && GetDefault<UGameMapsSettings>()->bOffsetPlayerGamepadIds)
+	{
+		++ControllerId;
+	}
+	else if (InViewport->IsPlayInEditorViewport() && Key.IsGamepadKey())
 	{
 		GEngine->RemapGamepadControllerIdForPIE(this, ControllerId);
 	}
+
+	bool bResult = false;
 
 	// Don't allow mouse/joystick input axes while in PIE and the console has forced the cursor to be visible.  It's
 	// just distracting when moving the mouse causes mouse look while you are trying to move the cursor over a button
@@ -410,14 +420,14 @@ bool UGameViewportClient::InputAxis(FViewport* InViewport, int32 ControllerId, F
 			}
 		}
 
-		// For PIE, let the next PIE window handle the input if we didn't
+		// For PIE, let the next PIE window handle the input if none of our players did
 		// (this allows people to use multiple controllers to control each window)
-		if (!bResult && ControllerId > 0 && InViewport->IsPlayInEditorViewport())
+		if (!bResult && ControllerId > NumLocalPlayers - 1 && InViewport->IsPlayInEditorViewport())
 		{
 			UGameViewportClient *NextViewport = GEngine->GetNextPIEViewport(this);
 			if (NextViewport)
 			{
-				bResult = NextViewport->InputAxis(InViewport, ControllerId-1, Key, Delta, DeltaTime, NumSamples, bGamepad);
+				bResult = NextViewport->InputAxis(InViewport, ControllerId - NumLocalPlayers, Key, Delta, DeltaTime, NumSamples, bGamepad);
 			}
 		}
 
@@ -1289,6 +1299,7 @@ void UGameViewportClient::ProcessScreenShots(FViewport* InViewport)
 		{
 			if (ScreenshotCapturedDelegate.IsBound() && CVarScreenshotDelegate.GetValueOnGameThread())
 			{
+				// If delegate subscribed, fire it instead of writing out a file to disk
 				ScreenshotCapturedDelegate.Broadcast(Size.X, Size.Y, Bitmap);
 			}
 			else
@@ -1375,7 +1386,7 @@ void UGameViewportClient::LostFocus(FViewport* InViewport)
 	// We need to reset some key inputs, since keyup events will sometimes not be processed (such as going into immersive/maximized mode).  
 	// Resetting them will prevent them from "sticking"
 	UWorld* const ViewportWorld = GetWorld();
-	if (ViewportWorld)
+	if (ViewportWorld && !ViewportWorld->bIsTearingDown)
 	{
 		for (FConstPlayerControllerIterator Iterator = ViewportWorld->GetPlayerControllerIterator(); Iterator; ++Iterator)
 		{
@@ -1522,7 +1533,7 @@ ULocalPlayer* UGameViewportClient::SetupInitialLocalPlayer(FString& OutError)
 
 	ActiveSplitscreenType = ESplitScreenType::None;
 
-#if !UE_BUILD_SHIPPING
+#if ALLOW_CONSOLE
 	// Create the viewport's console.
 	ViewportConsole = NewObject<UConsole>(this, GetOuterUEngine()->ConsoleClass);
 	// register console to get all log messages
@@ -2172,26 +2183,6 @@ bool UGameViewportClient::HandleForceFullscreenCommand( const TCHAR* Cmd, FOutpu
 	return true;
 }
 
-/** Contains the previous state of a primitive before turning on collision visibility */
-struct CollVisibilityState
-{
-	bool bHiddenInGame;
-	bool bVisible;
-
-	CollVisibilityState(bool InHidden, bool InVisible) :
-		bHiddenInGame(InHidden),
-		bVisible(InVisible)
-	{
-	}
-};
-
-typedef TMap<TWeakObjectPtr<UPrimitiveComponent>, CollVisibilityState> CollisionComponentVisibilityMap;
-CollisionComponentVisibilityMap& GetCollisionComponentVisibilityMap()
-{
-	static CollisionComponentVisibilityMap Mapping;
-	return Mapping;
-}
-
 bool UGameViewportClient::HandleShowCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
 {
 #if UE_BUILD_SHIPPING
@@ -2383,62 +2374,19 @@ void UGameViewportClient::ToggleShowCollision()
 			EngineShowFlags.SetVolumes(false);
 			ToggleShowVolumes();
 		}
-
-		NumViewportsShowingCollision++;
-		if (World != nullptr)
-		{
-			ShowCollisionOnSpawnedActorsDelegateHandle = World->AddOnActorSpawnedHandler(FOnActorSpawned::FDelegate::CreateUObject(this, &UGameViewportClient::ShowCollisionOnSpawnedActors));
-		}
 	}
-	else
+
+#if !UE_BUILD_SHIPPING
+	if (World != nullptr)
 	{
-		NumViewportsShowingCollision--;
-		check(NumViewportsShowingCollision >= 0);
-		if (World != nullptr)
-		{
-			World->RemoveOnActorSpawnedHandler(ShowCollisionOnSpawnedActorsDelegateHandle);
-		}
+		// Tell engine to create proxies for hidden components, so we can still draw collision
+		World->bCreateRenderStateForHiddenComponents = bIsShowingCollision;
+
+		// Need to recreate scene proxies when this flag changes.
+		FGlobalComponentRecreateRenderStateContext Recreate;
 	}
+#endif // !UE_BUILD_SHIPPING
 
-	CollisionComponentVisibilityMap& Mapping = GetCollisionComponentVisibilityMap();
-
-	// Restore state to any object in the map above
-	for (CollisionComponentVisibilityMap::TIterator It(Mapping); It; ++It)
-	{
-		TWeakObjectPtr<UPrimitiveComponent>& PrimitiveComponent = It.Key();
-		if (PrimitiveComponent.IsValid())
-		{
-			const CollVisibilityState& VisState = It.Value();
-			PrimitiveComponent->SetHiddenInGame(VisState.bHiddenInGame);
-			PrimitiveComponent->SetVisibility(VisState.bVisible);
-		}
-	}
-	Mapping.Empty();
-
-	if (World == nullptr)
-	{
-		return;
-	}
-
-	if (NumViewportsShowingCollision > 0)
-	{
-		for (TObjectIterator<UPrimitiveComponent> It; It; ++It)
-		{
-			UPrimitiveComponent* PrimitiveComponent = *It;
-			if (!PrimitiveComponent->IsVisible() && PrimitiveComponent->IsCollisionEnabled() && PrimitiveComponent->GetScene() == World->Scene)
-			{
-				AActor* Owner = PrimitiveComponent->GetOwner();
-
-				if (Owner && Owner->GetWorld() && Owner->GetWorld()->IsGameWorld() && !FActorEditorUtils::IsABuilderBrush(Owner))
-				{
-					// Save state before modifying the collision visibility
-					Mapping.Add(PrimitiveComponent, CollVisibilityState(PrimitiveComponent->bHiddenInGame, PrimitiveComponent->bVisible));
-					PrimitiveComponent->SetHiddenInGame(false);
-					PrimitiveComponent->SetVisibility(true);
-				}
-			}
-		}
-	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (EngineShowFlags.Collision)
@@ -2464,28 +2412,6 @@ void UGameViewportClient::ToggleShowCollision()
 		}
 	}
 #endif
-}
-
-void UGameViewportClient::ShowCollisionOnSpawnedActors(AActor* Actor)
-{
-	CollisionComponentVisibilityMap& Mapping = GetCollisionComponentVisibilityMap();
-
-	TInlineComponentArray<UPrimitiveComponent*> Components;
-	check(Actor != nullptr);
-	Actor->GetComponents(Components);
-
-	for (auto Component : Components)
-	{
-		if (!Mapping.Contains(Component) && !Component->IsVisible() && Component->IsCollisionEnabled() && Component->GetScene() == GetWorld()->Scene)
-		{
-			check(Component->GetOwner() && Component->GetOwner()->GetWorld() && Component->GetOwner()->GetWorld()->IsGameWorld());
-
-			// Save state before modifying the collision visibility
-			Mapping.Add(Component, CollVisibilityState(Component->bHiddenInGame, Component->bVisible));
-			Component->SetHiddenInGame(false);
-			Component->SetVisibility(true);
-		}
-	}
 }
 
 bool UGameViewportClient::HandleShowLayerCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
@@ -2751,14 +2677,7 @@ bool UGameViewportClient::HandleToggleFullscreenCommand()
 	FullScreenMode = Viewport->IsFullscreen() ? EWindowMode::Windowed : FullScreenMode;
 	if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDEnabled())
 	{
-		if (!GEngine->HMDDevice->IsFullscreenAllowed())
-		{
-			FullScreenMode = Viewport->IsFullscreen() ? EWindowMode::Windowed : EWindowMode::WindowedMirror;
-		}
-		else
-		{
-			FullScreenMode = Viewport->IsFullscreen() ? EWindowMode::Windowed : EWindowMode::Fullscreen;
-		}
+		FullScreenMode = Viewport->IsFullscreen() ? EWindowMode::Windowed : EWindowMode::Fullscreen;
 	}
 
 	if (PLATFORM_WINDOWS && FullScreenMode == EWindowMode::Fullscreen)
@@ -2797,24 +2716,13 @@ bool UGameViewportClient::HandleSetResCommand( const TCHAR* Cmd, FOutputDevice& 
 		const TCHAR* CmdTemp = FCString::Strchr(Cmd,'x') ? FCString::Strchr(Cmd,'x')+1 : FCString::Strchr(Cmd,'X') ? FCString::Strchr(Cmd,'X')+1 : TEXT("");
 		int32 Y=FCString::Atoi(CmdTemp);
 		Cmd = CmdTemp;
-		EWindowMode::Type WindowMode;
-		if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDEnabled() && !GEngine->HMDDevice->IsFullscreenAllowed())
-		{
-			WindowMode = Viewport->IsFullscreen() ? EWindowMode::WindowedMirror : EWindowMode::Windowed;
-		}
-		else
-		{
-			WindowMode = Viewport->IsFullscreen() ? EWindowMode::Fullscreen : EWindowMode::Windowed;
-		}
+		EWindowMode::Type WindowMode = Viewport->GetWindowMode();
+
 		if(FCString::Strchr(Cmd,'w') || FCString::Strchr(Cmd,'W'))
 		{
 			if(FCString::Strchr(Cmd, 'f') || FCString::Strchr(Cmd, 'F'))
 			{
 				WindowMode = EWindowMode::WindowedFullscreen;
-			}
-			else if (FCString::Strchr(Cmd, 'm') || FCString::Strchr(Cmd, 'M'))
-			{
-				WindowMode = EWindowMode::WindowedMirror;
 			}
 			else
 			{

@@ -511,6 +511,7 @@ namespace
 				UByteProperty* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UByteProperty(FObjectInitializer());
 				Result->Enum = VarProperty.Enum;
 				UHTMakefile.AddByteProperty(UnrealSourceFile, Result);
+				check(VarProperty.IntType == EIntType::Sized);
 				return Result;
 			}
 
@@ -518,6 +519,7 @@ namespace
 			{
 				UInt8Property* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UInt8Property(FObjectInitializer());
 				UHTMakefile.AddInt8Property(UnrealSourceFile, Result);
+				check(VarProperty.IntType == EIntType::Sized);
 				return Result;
 			}
 
@@ -525,6 +527,7 @@ namespace
 			{
 				UInt16Property* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UInt16Property(FObjectInitializer());
 				UHTMakefile.AddInt16Property(UnrealSourceFile, Result);
+				check(VarProperty.IntType == EIntType::Sized);
 				return Result;
 			}
 
@@ -532,6 +535,10 @@ namespace
 			{
 				UIntProperty* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UIntProperty(FObjectInitializer());
 				UHTMakefile.AddIntProperty(UnrealSourceFile, Result);
+				if (VarProperty.IntType == EIntType::Unsized)
+				{
+					GUnsizedProperties.Add(Result);
+				}
 				return Result;
 			}
 
@@ -539,6 +546,7 @@ namespace
 			{
 				UInt64Property* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UInt64Property(FObjectInitializer());
 				UHTMakefile.AddInt64Property(UnrealSourceFile, Result);
+				check(VarProperty.IntType == EIntType::Sized);
 				return Result;
 			}
 
@@ -546,6 +554,7 @@ namespace
 			{
 				UUInt16Property* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UUInt16Property(FObjectInitializer());
 				UHTMakefile.AddUInt16Property(UnrealSourceFile, Result);
+				check(VarProperty.IntType == EIntType::Sized);
 				return Result;
 			}
 
@@ -553,6 +562,10 @@ namespace
 			{
 				UUInt32Property* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UUInt32Property(FObjectInitializer());
 				UHTMakefile.AddUInt32Property(UnrealSourceFile, Result);
+				if (VarProperty.IntType == EIntType::Unsized)
+				{
+					GUnsizedProperties.Add(Result);
+				}
 				return Result;
 			}
 
@@ -560,6 +573,7 @@ namespace
 			{
 				UUInt64Property* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UUInt64Property(FObjectInitializer());
 				UHTMakefile.AddUInt64Property(UnrealSourceFile, Result);
+				check(VarProperty.IntType == EIntType::Sized);
 				return Result;
 			}
 
@@ -891,32 +905,6 @@ namespace
 
 		return bSupportedType || (bIsSupportedMemberVariable && bMemberVariable);
 	}
-
-	/**
-	 * Gets property based on compiler/architecture specific int.
-	 * @param bIsSigned Whether the result should be signed or unsigned version of int.
-	 * @return Property corresponding to 'int' type, based on its sign.
-	 */
-	FPropertyBase HandleNativeIntType(bool bIsSigned)
-	{
-		switch (sizeof(int))
-		{
-		case 2:
-			return bIsSigned ? FPropertyBase(CPT_Int16) : FPropertyBase(CPT_UInt16);
-
-		case 4:
-			return bIsSigned ? FPropertyBase(CPT_Int) : FPropertyBase(CPT_UInt32);
-
-		case 8:
-			return bIsSigned ? FPropertyBase(CPT_Int64) : FPropertyBase(CPT_UInt64);
-
-		default:
-			FError::Throwf(TEXT("Found int property of size %d bytes, which is not 2, 4 or 8. Aborting."), sizeof(int));
-		}
-
-		// Should never get here, as we throw in default, but compiler doesn't know it's a throw, so return dummy value.
-		return FPropertyBase(CPT_Int);
-}
 }
 	
 /////////////////////////////////////////////////////
@@ -3247,17 +3235,17 @@ FIndexRange*                    ParsedVarIndexRange
 	}
 	else if ( VarType.Matches(TEXT("int")) )
 	{
-		VarProperty = HandleNativeIntType(true);
+		VarProperty = FPropertyBase(CPT_Int, EIntType::Unsized);
 	}
 	else if ( VarType.Matches(TEXT("signed")) )
 	{
 		MatchIdentifier(TEXT("int"));
-		VarProperty = HandleNativeIntType(true);
+		VarProperty = FPropertyBase(CPT_Int, EIntType::Unsized);
 	}
 	else if (VarType.Matches(TEXT("unsigned")))
 	{
 		MatchIdentifier(TEXT("int"));
-		VarProperty = HandleNativeIntType(false);
+		VarProperty = FPropertyBase(CPT_UInt32, EIntType::Unsized);
 	}
 	else if ( VarType.Matches(TEXT("bool")) )
 	{
@@ -3310,7 +3298,7 @@ FIndexRange*                    ParsedVarIndexRange
 		VarType.PropertyFlags |= Flags;
 
 		GetVarType(AllClasses, Scope, VarProperty, Disallow, &VarType, EPropertyDeclarationStyle::None, VariableCategory);
-		if (VarProperty.ArrayType != EArrayType::None || VarProperty.MapKeyProp.IsValid())
+		if (VarProperty.IsContainer())
 		{
 			FError::Throwf(TEXT("Nested containers are not supported.") );
 		}
@@ -3359,7 +3347,7 @@ FIndexRange*                    ParsedVarIndexRange
 
 		FToken MapKeyType;
 		GetVarType(AllClasses, Scope, MapKeyType, Disallow, &VarType, EPropertyDeclarationStyle::None, VariableCategory);
-		if (VarProperty.ArrayType != EArrayType::None || VarProperty.MapKeyProp.IsValid())
+		if (MapKeyType.IsContainer())
 		{
 			FError::Throwf(TEXT("Nested containers are not supported.") );
 		}
@@ -3376,13 +3364,13 @@ FIndexRange*                    ParsedVarIndexRange
 		}
 
 		GetVarType(AllClasses, Scope, VarProperty, Disallow, &VarType, EPropertyDeclarationStyle::None, VariableCategory);
-		if (VarProperty.ArrayType != EArrayType::None || VarProperty.MapKeyProp.IsValid())
+		if (VarProperty.IsContainer())
 		{
 			FError::Throwf(TEXT("Nested containers are not supported.") );
 		}
 
-		OriginalVarTypeFlags |= VarProperty.PropertyFlags & (CPF_ContainsInstancedReference | CPF_InstancedReference); // propagate these to the array, we will fix them later
-		OriginalVarTypeFlags |= MapKeyType .PropertyFlags & (CPF_ContainsInstancedReference | CPF_InstancedReference); // propagate these to the array, we will fix them later
+		OriginalVarTypeFlags |= VarProperty.PropertyFlags & (CPF_ContainsInstancedReference | CPF_InstancedReference); // propagate these to the map value, we will fix them later
+		OriginalVarTypeFlags |= MapKeyType .PropertyFlags & (CPF_ContainsInstancedReference | CPF_InstancedReference); // propagate these to the map key, we will fix them later
 		VarType.PropertyFlags = OriginalVarTypeFlags;
 		FToken* MapKeyProp = new FToken(MapKeyType);
 		VarProperty.MapKeyProp = MakeShareable<FToken>(MapKeyProp);
@@ -3411,6 +3399,54 @@ FIndexRange*                    ParsedVarIndexRange
 			}
 
 			FError::Throwf(TEXT("Found '%s' - explicit allocators are not supported in TMap properties."), AllocatorToken.Identifier);
+		}
+	}
+	else if ( VarType.Matches(TEXT("TSet")) )
+	{
+		RequireSymbol( TEXT("<"), TEXT("'tset'") );
+
+		// GetVarType() clears the property flags of the array var, so use dummy 
+		// flags when getting the inner property
+		uint64 OriginalVarTypeFlags = VarType.PropertyFlags;
+		VarType.PropertyFlags |= Flags;
+
+		GetVarType(AllClasses, Scope, VarProperty, Disallow, &VarType, EPropertyDeclarationStyle::None, VariableCategory);
+		if (VarProperty.IsContainer())
+		{
+			FError::Throwf(TEXT("Nested containers are not supported.") );
+		}
+
+		if (VarProperty.Type == CPT_Struct)
+		{
+			FError::Throwf(TEXT("USTRUCTs are not currently supported as element types."));
+		}
+
+		OriginalVarTypeFlags |= VarProperty.PropertyFlags & (CPF_ContainsInstancedReference | CPF_InstancedReference); // propagate these to the set, we will fix them later
+		VarType.PropertyFlags = OriginalVarTypeFlags;
+		VarProperty.ArrayType = EArrayType::Set;
+
+		FToken CloseTemplateToken;
+		if (!GetToken(CloseTemplateToken, /*bNoConsts=*/ true, ESymbolParseOption::CloseTemplateBracket))
+		{
+			FError::Throwf(TEXT("Missing token while parsing TArray."));
+		}
+
+		if (CloseTemplateToken.TokenType != TOKEN_Symbol || FCString::Stricmp(CloseTemplateToken.Identifier, TEXT(">")))
+		{
+			// If we didn't find a comma, report it
+			if (FCString::Stricmp(CloseTemplateToken.Identifier, TEXT(",")))
+			{
+				FError::Throwf(TEXT("Expected '>' but found '%s'"), CloseTemplateToken.Identifier);
+			}
+
+			// If we found a comma, read the next thing, assume it's an allocator, and report that
+			FToken AllocatorToken;
+			if (!GetToken(AllocatorToken, /*bNoConsts=*/ true, ESymbolParseOption::CloseTemplateBracket))
+			{
+				FError::Throwf(TEXT("Expected '>' but found '%s'"), CloseTemplateToken.Identifier);
+			}
+
+			FError::Throwf(TEXT("Found '%s' - explicit allocators are not supported in TSet properties."), AllocatorToken.Identifier);
 		}
 	}
 	else if ( VarType.Matches(TEXT("FString")) )
@@ -4073,7 +4109,7 @@ UProperty* FHeaderParser::GetVarNameAndDim
 	int32 OuterContextCount = 0;
 	UField* Existing = FindField(Scope, VarProperty.Identifier, true, UField::StaticClass(), NULL);
 
-	if (Existing != NULL)
+	if (Existing != nullptr)
 	{
 		bool bErrorDueToShadowing = true;
 
@@ -4120,7 +4156,7 @@ UProperty* FHeaderParser::GetVarNameAndDim
 			}
 		}
 
-		if (VarProperty.ArrayType == EArrayType::Dynamic || VarProperty.MapKeyProp.IsValid())
+		if (VarProperty.IsContainer())
 		{
 			FError::Throwf(TEXT("Static arrays of containers are not allowed"));
 		}
@@ -4139,7 +4175,7 @@ UProperty* FHeaderParser::GetVarNameAndDim
 		// Only static arrays are declared with [].  Dynamic arrays use TArray<> instead.
 		VarProperty.ArrayType = EArrayType::Static;
 
-		UEnum* Enum = NULL;
+		UEnum* Enum = nullptr;
 
 		if (*Dimensions.String)
 		{
@@ -4230,10 +4266,10 @@ UProperty* FHeaderParser::GetVarNameAndDim
 	FName PropertyName(VarProperty.Identifier, FindFlag);
 
 	// Add property.
-	UProperty* NewProperty = NULL;
+	UProperty* NewProperty = nullptr;
 
 	{
-		UProperty* Prev = NULL;
+		UProperty* Prev = nullptr;
 	    for (TFieldIterator<UProperty> It(Scope, EFieldIteratorFlags::ExcludeSuper); It; ++It)
 		{
 			Prev = *It;
@@ -4241,6 +4277,7 @@ UProperty* FHeaderParser::GetVarNameAndDim
 
 		UArrayProperty* Array             = nullptr;
 		UMapProperty*   Map               = nullptr;
+		USetProperty*   Set               = nullptr; // TODO: Set Property
 		UProperty*      NewMapKeyProperty = nullptr;
 		UObject*        NewScope          = Scope;
 		int32           ArrayDim          = 1; // 1 = not a static array, 2 = static array
@@ -4254,6 +4291,13 @@ UProperty* FHeaderParser::GetVarNameAndDim
 		else if (VarProperty.ArrayType == EArrayType::Static)
 		{
 			ArrayDim = 2;
+		}
+		else if (VarProperty.ArrayType == EArrayType::Set)
+		{
+			Set               = new (EC_InternalUseOnlyConstructor, Scope, PropertyName, ObjectFlags) USetProperty(FObjectInitializer());
+			UHTMakefile.AddSetProperty(CurrentSrcFile, Set);
+			NewScope          = Set;
+			ObjectFlags       = RF_Public;
 		}
 		else if (VarProperty.MapKeyProp.IsValid())
 		{
@@ -4305,13 +4349,22 @@ UProperty* FHeaderParser::GetVarNameAndDim
 			NewProperty = Map;
 		}
 
+		if (Set)
+		{
+			Set->ElementProp = NewProperty;
+
+			PropagateFlags(CPF_PropagateToSetElement, VarProperty, NewProperty);
+
+			NewProperty = Set;
+		}
+
 		NewProperty->ArrayDim = ArrayDim;
 		if (ArrayDim == 2)
 		{
 			GArrayDimensions.Add(NewProperty, Dimensions.String);
 		}
 		NewProperty->PropertyFlags = VarProperty.PropertyFlags;
-		if (Prev != NULL)
+		if (Prev != nullptr)
 		{
 			NewProperty->Next = Prev->Next;
 			Prev->Next = NewProperty;
@@ -4782,6 +4835,7 @@ FClass* FHeaderParser::ParseClassNameDeclaration(FClasses& AllClasses, FString& 
 	{
 		// Set the base class.
 		UClass* TempClass = GetQualifiedClass(AllClasses, TEXT("'extends'"));
+		check(TempClass);
 		// a class cannot 'extends' an interface, use 'implements'
 		if (TempClass->ClassFlags & CLASS_Interface)
 		{
@@ -5027,7 +5081,8 @@ void FHeaderParser::CompileClassDeclaration(FClasses& AllClasses)
 		// if this base class corresponds to an interface class, assign the vtable UProperty in the class's Interfaces map now...
 		if (UClass* InheritedInterface = InheritanceParents[ParentIndex]->InterfaceClass)
 		{
-			if (FImplementedInterface* Found = Class->Interfaces.FindByPredicate([=](const FImplementedInterface& Impl) { return Impl.Class == InheritedInterface; }))
+			FImplementedInterface* Found = Class->Interfaces.FindByPredicate([=](const FImplementedInterface& Impl) { return Impl.Class == InheritedInterface; });
+			if (Found)
 			{
 				Found->PointerOffset = 1;
 			}
@@ -5061,6 +5116,7 @@ FClass* FHeaderParser::ParseInterfaceNameDeclaration(FClasses& AllClasses, FStri
 	// verify if our super class is an interface class
 	// the super class should have been marked as CLASS_Interface at the importing stage, if it were an interface
 	UClass* TempClass = GetQualifiedClass(AllClasses, TEXT("'extends'"));
+	check(TempClass);
 	if( !(TempClass->ClassFlags & CLASS_Interface) )
 	{
 		// UInterface is special and actually extends from UObject, which isn't an interface
@@ -7543,57 +7599,71 @@ void FHeaderParser::SimplifiedClassParse(const TCHAR* InBuffer, TArray<FSimplifi
 				}
 			}
 
-			// Stub out the comments, ignoring anything inside literal strings.
-			Pos = StrLine.Find(TEXT("//"));
-
-			// Check if first slash is end of multiline comment and adjust position if necessary.
-			if (Pos > 0 && StrLine[Pos - 1] == TEXT('*'))
+			// Find the first '/' and check for '//' or '/*' or '*/'
+			if (StrLine.FindChar('/', Pos))
 			{
-				++Pos;
-			}
-			if (Pos >= 0)
-			{
-				if (StrBegin == INDEX_NONE || Pos < StrBegin || Pos > StrEnd)
-					StrLine = StrLine.Left( Pos );
-
-				if (StrLine == TEXT(""))
-					continue;
-			}
-
-			// look for a / * ... * / block, ignoring anything inside literal strings
-			Pos = StrLine.Find(TEXT("/*"));
-			EndPos = StrLine.Find(TEXT("*/"));
-			if (Pos >= 0)
-			{
-				if (StrBegin == INDEX_NONE || Pos < StrBegin || Pos > StrEnd)
+				if (Pos >= 0)
 				{
-					if (EndPos != INDEX_NONE && (EndPos < StrBegin || EndPos > StrEnd))
+					// Stub out the comments, ignoring anything inside literal strings.
+					Pos = StrLine.Find(TEXT("//"), ESearchCase::CaseSensitive, ESearchDir::FromStart, Pos);
+
+					// Check if first slash is end of multiline comment and adjust position if necessary.
+					if (Pos > 0 && StrLine[Pos - 1] == TEXT('*'))
 					{
-						StrLine = StrLine.Left(Pos) + StrLine.Mid(EndPos + 2);
-						EndPos = INDEX_NONE;
+						++Pos;
 					}
-					else 
+
+					if (Pos >= 0)
 					{
-						StrLine = StrLine.Left( Pos );
-						CommentDim++;
+						if (StrBegin == INDEX_NONE || Pos < StrBegin || Pos > StrEnd)
+						{
+							StrLine = StrLine.Left(Pos);
+						}
+
+						if (StrLine == TEXT(""))
+						{
+							continue;
+						}
+					}
+
+					// look for a / * ... * / block, ignoring anything inside literal strings
+					Pos = StrLine.Find(TEXT("/*"), ESearchCase::CaseSensitive, ESearchDir::FromStart, Pos);
+					EndPos = StrLine.Find(TEXT("*/"), ESearchCase::CaseSensitive, ESearchDir::FromStart, FMath::Max(0, Pos - 1));
+					if (Pos >= 0)
+					{
+						if (StrBegin == INDEX_NONE || Pos < StrBegin || Pos > StrEnd)
+						{
+							if (EndPos != INDEX_NONE && (EndPos < StrBegin || EndPos > StrEnd))
+							{
+								StrLine = StrLine.Left(Pos) + StrLine.Mid(EndPos + 2);
+								EndPos = INDEX_NONE;
+							}
+							else
+							{
+								StrLine = StrLine.Left(Pos);
+								CommentDim++;
+							}
+						}
+						bProcess = CommentDim <= 1;
+					}
+
+					if (EndPos >= 0)
+					{
+						if (StrBegin == INDEX_NONE || EndPos < StrBegin || EndPos > StrEnd)
+						{
+							StrLine = StrLine.Mid(EndPos + 2);
+							CommentDim--;
+						}
+
+						bProcess = CommentDim <= 0;
 					}
 				}
-				bProcess = CommentDim <= 1;
-			}
-
-			if (EndPos >= 0)
-			{
-				if (StrBegin == INDEX_NONE || EndPos < StrBegin || EndPos > StrEnd)
-				{
-					StrLine = StrLine.Mid( EndPos+2 );
-					CommentDim--;
-				}
-
-				bProcess = CommentDim <= 0;
 			}
 
 			if (!bProcess || StrLine == TEXT(""))
+			{
 				continue;
+			}
 
 			Str = *StrLine;
 

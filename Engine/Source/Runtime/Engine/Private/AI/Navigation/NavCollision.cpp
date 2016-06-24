@@ -9,6 +9,18 @@
 #include "DerivedDataCacheInterface.h"
 #include "TargetPlatform.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "CookStats.h"
+
+#if ENABLE_COOK_STATS
+namespace NavCollisionCookStats
+{
+	static FCookStats::FDDCResourceUsageStats UsageStats;
+	static FCookStatsManager::FAutoRegisterCallback RegisterCookStats([](FCookStatsManager::AddStatFuncRef AddStat)
+	{
+		UsageStats.LogStats(AddStat, TEXT("NavCollision.Usage"), TEXT(""));
+	});
+}
+#endif
 
 static const FName NAVCOLLISION_FORMAT = TEXT("NavCollision_X");
 
@@ -449,14 +461,19 @@ FByteBulkData* UNavCollision::GetCookedData(FName Format)
 		
 		TArray<uint8> OutData;
 		FDerivedDataNavCollisionCooker* DerivedNavCollisionData = new FDerivedDataNavCollisionCooker(Format, this);
-		if (DerivedNavCollisionData->CanBuild() 
-			&& GetDerivedDataCacheRef().GetSynchronous(DerivedNavCollisionData, OutData))
+		if (DerivedNavCollisionData->CanBuild())
 		{
-			if (OutData.Num())
+			bool bDataWasBuilt = false;
+			COOK_STAT(auto Timer = NavCollisionCookStats::UsageStats.TimeSyncWork());
+			if (GetDerivedDataCacheRef().GetSynchronous(DerivedNavCollisionData, OutData, &bDataWasBuilt))
 			{
-				Result->Lock(LOCK_READ_WRITE);
-				FMemory::Memcpy(Result->Realloc(OutData.Num()), OutData.GetData(), OutData.Num());
-				Result->Unlock();
+				COOK_STAT(Timer.AddHitOrMiss(bDataWasBuilt ? FCookStats::CallStats::EHitOrMiss::Miss : FCookStats::CallStats::EHitOrMiss::Hit, OutData.Num()));
+				if (OutData.Num())
+				{
+					Result->Lock(LOCK_READ_WRITE);
+					FMemory::Memcpy(Result->Realloc(OutData.Num()), OutData.GetData(), OutData.Num());
+					Result->Unlock();
+				}
 			}
 		}
 	}

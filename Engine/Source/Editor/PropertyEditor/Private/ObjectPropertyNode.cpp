@@ -125,19 +125,19 @@ bool FObjectPropertyNode::GetReadAddressUncached(FPropertyNode& InNode,
 
 	if( Cast<UArrayProperty>(InItemProperty->GetOuter()) )
 	{
-		FPropertyNode* ParentNode = InNode.GetParentNode();
-		check(ParentNode);
+		FPropertyNode* ParentPropertyNode = InNode.GetParentNode();
+		check(ParentPropertyNode);
 		const UObject* TempObject = GetUObject(0);
 		if( TempObject )
 		{
-			uint8* BaseAddr = ParentNode->GetValueBaseAddress( (uint8*)TempObject );
+			uint8* BaseAddr = ParentPropertyNode->GetValueBaseAddress( (uint8*)TempObject );
 			if( BaseAddr )
 			{
 				const int32 Num = FScriptArrayHelper::Num(BaseAddr);
 				for( int32 ObjIndex = 1 ; ObjIndex < GetNumObjects(); ObjIndex++ )
 				{
 					TempObject = GetUObject(ObjIndex);
-					BaseAddr = ParentNode->GetValueBaseAddress( (uint8*)TempObject );
+					BaseAddr = ParentPropertyNode->GetValueBaseAddress( (uint8*)TempObject );
 
 					if( BaseAddr && Num != FScriptArrayHelper::Num( BaseAddr ) )
 					{

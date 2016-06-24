@@ -132,7 +132,7 @@ public:
 	/** 
 	 *	unregisters given actor from the list of active stimuli sources
 	 */
-	void UnregisterSource(AActor& SourceActor, TSubclassOf<UAISense> Sense = nullptr);
+	void UnregisterSource(AActor& SourceActor, const TSubclassOf<UAISense> Sense = nullptr);
 
 	void OnListenerForgetsActor(const UAIPerceptionComponent& Listener, AActor& ActorToForget);
 	void OnListenerForgetsAll(const UAIPerceptionComponent& Listener);

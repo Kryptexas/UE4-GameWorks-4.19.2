@@ -139,6 +139,7 @@ class CORE_API FText
 {
 public:
 
+#if ( !PLATFORM_WINDOWS ) || ( !defined(__clang__) )
 	static const FText& GetEmpty()
 	{
 		// This is initialized inside this function as we need to be able to control the initialization order of the empty FText instance
@@ -146,6 +147,9 @@ public:
 		static const FText StaticEmptyText = FText(FText::EInitToEmptyString::Value);
 		return StaticEmptyText;
 	}
+#else
+	static const FText& GetEmpty(); // @todo clang: Workaround for missing symbol export
+#endif
 
 public:
 
@@ -318,7 +322,6 @@ public:
 	static FText Format(FText Fmt, FText v1, FText v2, FText v3);
 	static FText Format(FText Fmt, FText v1, FText v2, FText v3, FText v4);
 
-#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 	/**
 	 * FormatNamed allows you to pass name <-> value pairs to the function to format automatically
 	 *
@@ -340,7 +343,6 @@ public:
 	 */
 	template < typename... TArguments >
 	static FText FormatOrdered( FText Fmt, TArguments&&... Args );
-#endif // PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 
 	static void SetEnableErrorCheckingResults(bool bEnable){bEnableErrorCheckingResults=bEnable;}
 	static bool GetEnableErrorCheckingResults(){return bEnableErrorCheckingResults;}
@@ -430,7 +432,7 @@ public:
 	friend class FTextFormatHelper;
 	friend class FTextSnapshot;
 	friend class FTextInspector;
-	friend class UStruct;
+	friend class UTextProperty;
 	friend class UGatherTextFromAssetsCommandlet;
 	friend class FTextHistory_NamedFormat;
 	friend class FTextHistory_ArgumentDataFormat;
@@ -549,41 +551,57 @@ struct FFormatArgumentData
 
 	friend inline FArchive& operator<<( FArchive& Ar, FFormatArgumentData& Value )
 	{
-		Ar << Value.ArgumentName;
+		if (Ar.IsLoading())
+		{
+			// ArgumentName was changed to be FString rather than FText, so we need to convert older data to ensure serialization stays happy outside of UStruct::SerializeTaggedProperties.
+			if (Ar.UE4Ver() >= VER_UE4_K2NODE_VAR_REFERENCEGUIDS) // There was no version bump for this change, but VER_UE4_K2NODE_VAR_REFERENCEGUIDS was made at almost the same time.
+			{
+				Ar << Value.ArgumentName;
+			}
+			else
+			{
+				FText TempValue;
+				Ar << TempValue;
+				Value.ArgumentName = TempValue.ToString();
+			}
+		}
+		if (Ar.IsSaving())
+		{
+			Ar << Value.ArgumentName;
+		}
 		Ar << Value.ArgumentValue;
 		return Ar;
 	}
 };
 
-#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 namespace TextFormatUtil
 {
 
-template < typename TName, typename TValue >
-void FormatNamed( OUT FFormatNamedArguments& Result, TName&& Name, TValue&& Value )
-{
-	Result.Emplace( Forward< TName >( Name ), Forward< TValue >( Value ) );
-}
-
-template < typename TName, typename TValue, typename... TArguments >
-void FormatNamed( OUT FFormatNamedArguments& Result, TName&& Name, TValue&& Value, TArguments&&... Args )
-{
-	FormatNamed( Result, Forward< TName >( Name ), Forward< TValue >( Value ) );
-	FormatNamed( Result, Forward< TArguments >( Args )... );
-}
-
-template < typename TValue >
-void FormatOrdered( OUT FFormatOrderedArguments& Result, TValue&& Value )
-{
-	Result.Emplace( Forward< TValue >( Value ) );
-}
-
-template < typename TValue, typename... TArguments >
-void FormatOrdered( OUT FFormatOrderedArguments& Result, TValue&& Value, TArguments&&... Args )
-{
-	FormatOrdered( Result, Forward< TValue >( Value ) );
-	FormatOrdered( Result, Forward< TArguments >( Args )... );
-}
+	template < typename TName, typename TValue >
+	void FormatNamed( OUT FFormatNamedArguments& Result, TName&& Name, TValue&& Value )
+	{
+		Result.Emplace( Forward< TName >( Name ), Forward< TValue >( Value ) );
+	}
+	
+	template < typename TName, typename TValue, typename... TArguments >
+	void FormatNamed( OUT FFormatNamedArguments& Result, TName&& Name, TValue&& Value, TArguments&&... Args )
+	{
+		FormatNamed( Result, Forward< TName >( Name ), Forward< TValue >( Value ) );
+		FormatNamed( Result, Forward< TArguments >( Args )... );
+	}
+	
+	template < typename TValue >
+	void FormatOrdered( OUT FFormatOrderedArguments& Result, TValue&& Value )
+	{
+		Result.Emplace( Forward< TValue >( Value ) );
+	}
+	
+	template < typename TValue, typename... TArguments >
+	void FormatOrdered( OUT FFormatOrderedArguments& Result, TValue&& Value, TArguments&&... Args )
+	{
+		FormatOrdered( Result, Forward< TValue >( Value ) );
+		FormatOrdered( Result, Forward< TArguments >( Args )... );
+	}
 
 } // namespace TextFormatUtil
 
@@ -604,7 +622,6 @@ FText FText::FormatOrdered( FText Fmt, TArguments&&... Args )
 	TextFormatUtil::FormatOrdered( FormatArguments, Forward< TArguments >( Args )... );
 	return FormatInternal( MoveTemp( Fmt ), MoveTemp( FormatArguments ), false, false );
 }
-#endif // PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 
 /** A snapshot of an FText at a point in time that can be used to detect changes in the FText, including live-culture changes */
 class CORE_API FTextSnapshot
@@ -670,12 +687,25 @@ public:
 	 * @param Value				The text value to write into the buffer.
 	 * @param bRequiresQuotes	True if the written text literal must be surrounded by quotes (eg, when saving as a delimited list)
 	 *
-	 * @return True if we read a valid FText instance into OutValue, false otherwise
+	 * @return True if we wrote a valid FText instance into Buffer, false otherwise
 	 */
 	static bool WriteToString(FString& Buffer, const FText& Value, const bool bRequiresQuotes = false);
 
+	/**
+	 * Test to see whether a given buffer contains complex text.
+	 *
+	 * @return True if it does, false otherwise
+	 */
+	static bool IsComplexText(const TCHAR* Buffer);
+
 private:
 	static bool ReadFromString_ComplexText(const TCHAR* Buffer, FText& OutValue, const TCHAR* Namespace, int32* OutNumCharsRead);
+
+#define LOC_DEFINE_REGION
+	static const FString InvTextMarker;
+	static const FString NsLocTextMarker;
+	static const FString LocTextMarker;
+#undef LOC_DEFINE_REGION
 };
 
 class CORE_API FTextBuilder

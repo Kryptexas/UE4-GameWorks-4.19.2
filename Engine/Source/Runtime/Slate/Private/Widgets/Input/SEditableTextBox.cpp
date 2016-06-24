@@ -198,6 +198,11 @@ FText SEditableTextBox::GetSelectedText() const
 	return EditableText->GetSelectedText();
 }
 
+bool SEditableTextBox::HasError() const
+{
+	return ErrorReporting.IsValid() && ErrorReporting->HasError();
+}
+
 const FSlateBrush* SEditableTextBox::GetBorderImage() const
 {
 	if ( EditableText->IsTextReadOnly() )

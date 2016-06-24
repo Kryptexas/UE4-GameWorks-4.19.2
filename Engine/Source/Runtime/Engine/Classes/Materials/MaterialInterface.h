@@ -14,7 +14,6 @@ class FMaterialCompiler;
 struct FPrimitiveViewRelevance;
 class UTexture;
 
-UENUM()
 enum EMaterialUsage
 {
 	MATUSAGE_SkeletalMesh,
@@ -24,7 +23,6 @@ enum EMaterialUsage
 	MATUSAGE_StaticLighting,
 	MATUSAGE_MorphTargets,
 	MATUSAGE_SplineMesh,
-	MATUSAGE_Landscape,
 	MATUSAGE_InstancedStaticMeshes,
 	MATUSAGE_Clothing,
 	MATUSAGE_MAX,
@@ -635,4 +633,6 @@ private:
 };
 
 /** Helper function to serialize inline shader maps for the given material resources. */
-extern void SerializeInlineShaderMaps(const TMap<const class ITargetPlatform*, TArray<FMaterialResource*>>* PlatformMaterialResourcesToSave, FArchive& Ar, FMaterialResource* (&OutMaterialResourcesLoaded)[EMaterialQualityLevel::Num][ERHIFeatureLevel::Num]);
+extern void SerializeInlineShaderMaps(const TMap<const class ITargetPlatform*, TArray<FMaterialResource*>>* PlatformMaterialResourcesToSave, FArchive& Ar, TArray<FMaterialResource>& OutLoadedResources);
+/** Helper function to process (register) serialized inline shader maps for the given material resources. */
+extern void ProcessSerializedInlineShaderMaps(UMaterialInterface* Owner, TArray<FMaterialResource>& LoadedResources, FMaterialResource* (&OutMaterialResourcesLoaded)[EMaterialQualityLevel::Num][ERHIFeatureLevel::Num]);

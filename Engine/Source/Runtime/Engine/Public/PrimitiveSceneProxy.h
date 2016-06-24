@@ -411,7 +411,7 @@ public:
 	inline bool CastsFarShadow() const { return bCastFarShadow; }
 	inline bool LightAsIfStatic() const { return bLightAsIfStatic; }
 	inline bool LightAttachmentsAsGroup() const { return bLightAttachmentsAsGroup; }
-	inline bool UseSingleSampleShadowFromStationaryLights() const { return bSingleSampleShadowFromStationaryLights; }
+	ENGINE_API bool UseSingleSampleShadowFromStationaryLights() const;
 	inline bool StaticElementsAlwaysUseProxyPrimitiveUniformBuffer() const { return bStaticElementsAlwaysUseProxyPrimitiveUniformBuffer; }
 	inline bool ShouldUseAsOccluder() const { return bUseAsOccluder; }
 	inline bool AllowApproximateOcclusion() const { return bAllowApproximateOcclusion; }
@@ -433,7 +433,7 @@ public:
 	inline bool NeedsLevelAddedToWorldNotification() const { return bNeedsLevelAddedToWorldNotification; }
 	inline bool IsComponentLevelVisible() const { return bIsComponentLevelVisible; }
 	inline bool IsStaticPathAvailable() const { return !bDisableStaticPath; }
-	inline bool ShouldRenderCSMForDynamicObjects() const { return bReceiveCSMFromDynamicObjects; }
+	inline bool ShouldReceiveCombinedCSMAndStaticShadowsFromStationaryLights() const { return bReceiveCombinedCSMAndStaticShadowsFromStationaryLights; }
 
 #if WITH_EDITOR
 	inline int32 GetNumUncachedStaticLightingInteractions() { return NumUncachedStaticLightingInteractions; }
@@ -521,12 +521,18 @@ public:
 
 	/**
 	 * Get the temp data used in the texture streaming build. Used to debug accuracy.
-	 * @param OutDistanceMultiplier	The component streaming distance multiplier.
+	 * @param OutComponentExtraScale The component streaming resolution extra scale.
+	 * @param OutMeshExtraScale	The mesh streaming resolution extra scale.
 	 * @param LODIndex			LOD index of the query. INDEX_NONE for a value for all LODs.
 	 * @param ElementIndex		Element index of the query. INDEX_NONE for a value for all elements.
 	 * @return					The section data built in the texture streaming build.
 	 */
-	virtual const FStreamingSectionBuildInfo* GetStreamingSectionData(float& OutDistanceMultiplier, int32 LODIndex, int32 ElementIndex) const { return nullptr; }
+	virtual const FStreamingSectionBuildInfo* GetStreamingSectionData(float& OutComponentExtraScale, float& OutMeshExtraScale, int32 LODIndex, int32 ElementIndex) const { return nullptr; }
+
+	/**
+	* Get the lightmap resolution for this primitive. Used in VMI_LightmapDensity.
+	*/
+	virtual int32 GetLightMapResolution() const { return 0; }
 
 protected:
 
@@ -710,7 +716,7 @@ private:
 	uint32 bUseEditorCompositing : 1;
 
 	/** Should this primitive receive dynamic-only CSM shadows */
-	uint32 bReceiveCSMFromDynamicObjects : 1;
+	uint32 bReceiveCombinedCSMAndStaticShadowsFromStationaryLights : 1;
 		
 	/** This primitive has bRenderCustomDepth enabled */
 	uint32 bRenderCustomDepth : 1;

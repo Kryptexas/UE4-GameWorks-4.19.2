@@ -339,18 +339,32 @@ FString FFrame::GetScriptCallstack()
 // Error or warning handler.
 //
 //@TODO: This function should take more information in, or be able to gather it from the callstack!
-void FFrame::KismetExecutionMessage(const TCHAR* Message, ELogVerbosity::Type Verbosity)
+void FFrame::KismetExecutionMessage(const TCHAR* Message, ELogVerbosity::Type Verbosity, FName WarningId)
 {
-
 #if !UE_BUILD_SHIPPING
 	// Optionally always treat errors/warnings as bad
 	if (Verbosity <= ELogVerbosity::Warning && FParse::Param(FCommandLine::Get(), TEXT("FATALSCRIPTWARNINGS")))
 	{
 		Verbosity = ELogVerbosity::Fatal;
 	}
+	else if(Verbosity == ELogVerbosity::Warning && WarningId != FName())
+	{
+		// check to see if this specific warning has been elevated to an error:
+		if( FBlueprintSupport::ShouldTreatWarningAsError(WarningId) )
+		{
+			Verbosity = ELogVerbosity::Error;
+		}
+		else if(FBlueprintSupport::ShouldSuppressWarning(WarningId))
+		{
+			return;
+		}
+	}
 #endif
 
 	FString ScriptStack;
+
+	// Tracking down some places that display warnings but no message..
+	ensure(Verbosity > ELogVerbosity::Warning || FCString::Strlen(Message) > 0);
 
 	// Show the stackfor fatal/error, and on warning if that option is enabled
 	if (Verbosity <= ELogVerbosity::Error || (ShowKismetScriptStackOnWarnings() && Verbosity == ELogVerbosity::Warning))
@@ -361,13 +375,14 @@ void FFrame::KismetExecutionMessage(const TCHAR* Message, ELogVerbosity::Type Ve
 
 	if (Verbosity == ELogVerbosity::Fatal)
 	{
-		UE_LOG(LogScriptCore, Fatal, TEXT("%s\n%s"), Message, *ScriptStack);
+		UE_LOG(LogScriptCore, Fatal, TEXT("Script Msg: %s\n%s"), Message, *ScriptStack);
 	}
 #if !NO_LOGGING
 	else if (!LogScriptCore.IsSuppressed(Verbosity))
 	{
 		// Call directly so we can pass verbosity through
-		FMsg::Logf_Internal(__FILE__, __LINE__, LogScriptCore.GetCategoryName(), Verbosity, TEXT("%s\n%s"), Message, *ScriptStack);
+		FMsg::Logf_Internal(__FILE__, __LINE__, LogScriptCore.GetCategoryName(), Verbosity, TEXT("Script Msg: %s"), Message);
+		FMsg::Logf_Internal(__FILE__, __LINE__, LogScriptCore.GetCategoryName(), Verbosity, TEXT("%s"), *ScriptStack);
 	}	
 #endif
 }
@@ -1534,7 +1549,7 @@ IMPLEMENT_VM_FUNCTION( EX_WireTracepoint, execWireTracepoint );
 void UObject::execInstrumentation( FFrame& Stack, RESULT_DECL )
 {
 #if !UE_BUILD_SHIPPING
-	const EScriptInstrumentation::Type EventType = static_cast<EScriptInstrumentation::Type>(Stack.ReadInt<int32>());
+	const EScriptInstrumentation::Type EventType = static_cast<EScriptInstrumentation::Type>(Stack.PeekCode());
 #if WITH_EDITORONLY_DATA
 	if (GIsEditor)
 	{
@@ -1548,10 +1563,16 @@ void UObject::execInstrumentation( FFrame& Stack, RESULT_DECL )
 			FBlueprintExceptionInfo WiretraceExceptionInfo(EBlueprintExceptionType::WireTracepoint);
 			FBlueprintCoreDelegates::ThrowScriptException(this, Stack, WiretraceExceptionInfo);
 		}
+		else if (EventType == EScriptInstrumentation::NodeDebugSite)
+		{
+			FBlueprintExceptionInfo TracepointExceptionInfo(EBlueprintExceptionType::Breakpoint);
+			FBlueprintCoreDelegates::ThrowScriptException(this, Stack, TracepointExceptionInfo);
+		}
 	}
 #endif
 	EScriptInstrumentationEvent InstrumentationEventInfo(EventType, this, Stack);
 	FBlueprintCoreDelegates::InstrumentScriptEvent(InstrumentationEventInfo);
+	Stack.SkipCode(1);
 #endif
 }
 IMPLEMENT_VM_FUNCTION( EX_InstrumentationEvent, execInstrumentation );
@@ -1811,10 +1832,10 @@ void UObject::execArrayGetByRef(FFrame& Stack, RESULT_DECL)
 		FBlueprintExceptionInfo ExceptionInfo(
 			EBlueprintExceptionType::AccessViolation,
 			FText::Format(
-				LOCTEXT("ArrayGetOutofBounds", "Attempted to get an item from array {0} out of bounds [{1}/{2}]!"),
-				FText::FromString(*ArrayProperty->GetName()), 
-				FText::AsNumber(ArrayIndex), 
-				FText::AsNumber(ArrayHelper.Num() ? ArrayHelper.Num() - 1 : 0)
+			LOCTEXT("ArrayGetOutofBounds", "Attempted to access index {0} from array {1} of length {2}!"),
+			FText::AsNumber(ArrayIndex),
+			FText::FromString(*ArrayProperty->GetName()),
+			FText::AsNumber(ArrayHelper.Num())
 			)
 		);
 		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);

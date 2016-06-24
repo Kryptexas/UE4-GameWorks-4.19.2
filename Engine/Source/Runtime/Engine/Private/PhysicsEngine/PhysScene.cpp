@@ -977,6 +977,8 @@ void FPhysScene::SceneCompletionTask(ENamedThreads::Type CurrentThread, const FG
 
 void FPhysScene::ProcessPhysScene(uint32 SceneType)
 {
+	checkSlow(SceneType < PST_MAX);
+
 	SCOPE_CYCLE_COUNTER(STAT_TotalPhysicsTime);
 	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_PhysicsFetchDynamicsTime, SceneType == PST_Sync);
 	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_PhysicsFetchDynamicsTime_Cloth, SceneType == PST_Cloth);
@@ -1043,6 +1045,8 @@ void FPhysScene::ProcessPhysScene(uint32 SceneType)
 #if WITH_PHYSX
 void FPhysScene::UpdateActiveTransforms(uint32 SceneType)
 {
+	checkSlow(SceneType < PST_MAX);
+
 	if (SceneType == PST_Cloth)	//cloth doesn't bother with updating components to bodies so we don't need to store any transforms
 	{
 		return;
@@ -1080,6 +1084,8 @@ void FPhysScene::UpdateActiveTransforms(uint32 SceneType)
 
 void FPhysScene::SyncComponentsToBodies_AssumesLocked(uint32 SceneType)
 {
+	checkSlow(SceneType < PST_MAX);
+
 	SCOPE_CYCLE_COUNTER(STAT_TotalPhysicsTime);
 	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_SyncComponentsToBodies, SceneType == PST_Sync);
 	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_SyncComponentsToBodies_Cloth, SceneType == PST_Cloth);

@@ -48,7 +48,10 @@ struct FDynamicMeshVertex
 
 	FVector GetTangentY()
 	{
-		return (FVector(TangentZ) ^ FVector(TangentX)) * ((float)TangentZ.Vector.W / 127.5f - 1.0f);
+		FVector TanX = TangentX;
+		FVector TanZ = TangentZ;
+
+		return (TanZ ^ TanX) * ((float)TangentZ.Vector.W / 127.5f - 1.0f);
 	};
 
 	FVector Position;

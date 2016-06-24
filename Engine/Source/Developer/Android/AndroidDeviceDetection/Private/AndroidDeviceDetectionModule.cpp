@@ -149,19 +149,22 @@ private:
 			NewDeviceInfo.SerialNumber = DeviceString.Left(TabIndex);
 			const FString DeviceState = DeviceString.Mid(TabIndex + 1).Trim();
 
-			NewDeviceInfo.bUnauthorizedDevice = DeviceState == TEXT("unauthorized");
+			NewDeviceInfo.bAuthorizedDevice = DeviceState != TEXT("unauthorized");
 
 			// add it to our list of currently connected devices
 			CurrentlyConnectedDevices.Add(NewDeviceInfo.SerialNumber);
 
-			// move on to next device if this one is already a known device
-			if (DeviceMap.Contains(NewDeviceInfo.SerialNumber))
-			{
+			// move on to next device if this one is already a known device that has either already been authorized or the authorization
+			// status has not changed
+			if (DeviceMap.Contains(NewDeviceInfo.SerialNumber) && 
+				(DeviceMap[NewDeviceInfo.SerialNumber].bAuthorizedDevice || !NewDeviceInfo.bAuthorizedDevice))
+			{					
 				continue;
 			}
 
-			if (NewDeviceInfo.bUnauthorizedDevice)
+			if (!NewDeviceInfo.bAuthorizedDevice)
 			{
+				//note: AndroidTargetDevice::GetName() does not fetch this value, do not rely on this
 				NewDeviceInfo.DeviceName = TEXT("Unauthorized - enable USB debugging");
 			}
 			else

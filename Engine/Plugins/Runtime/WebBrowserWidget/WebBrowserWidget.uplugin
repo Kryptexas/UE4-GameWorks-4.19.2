@@ -25,7 +25,9 @@
 				"Win64",
 				"Win32",
 				"Mac",
-				"Android"
+				"Android",
+				"IOS",
+				"PS4"
 			]
 		}
 	]

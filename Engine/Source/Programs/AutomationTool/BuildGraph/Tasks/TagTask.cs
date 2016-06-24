@@ -27,7 +27,7 @@ namespace AutomationTool.Tasks
 		public string Files;
 
 		/// <summary>
-		/// Patterns to filter the list of files by, including tag names or wildcards. Absolute May include patterns that apply to the base directory if set, . Defaults to all files if not specified.
+		/// Patterns to filter the list of files by, including tag names or wildcards. May include patterns that apply to the base directory if set. Defaults to all files if not specified.
 		/// </summary>
 		[TaskParameter(Optional = true)]
 		public string Filter;
@@ -41,7 +41,7 @@ namespace AutomationTool.Tasks
 		/// <summary>
 		/// Name of the tag to apply
 		/// </summary>
-		[TaskParameter(ValidationType = TaskParameterValidationType.Tag)]
+		[TaskParameter(ValidationType = TaskParameterValidationType.TagList)]
 		public string With;
 	}
 
@@ -96,7 +96,10 @@ namespace AutomationTool.Tasks
 			}
 
 			// Apply the tag to all the matching files
-			FindOrAddTagSet(TagNameToFileSet, Parameters.With).UnionWith(Files);
+			foreach(string TagName in FindTagNamesFromList(Parameters.With))
+			{
+				FindOrAddTagSet(TagNameToFileSet, TagName).UnionWith(Files);
+			}
 			return true;
 		}
 
@@ -119,7 +122,7 @@ namespace AutomationTool.Tasks
 				if(Pattern.StartsWith("#"))
 				{
 					// Add the files in a specific set to the filter
-					HashSet<FileReference> Files = FindOrAddTagSet(TagNameToFileSet, Pattern.Substring(1));
+					HashSet<FileReference> Files = FindOrAddTagSet(TagNameToFileSet, Pattern);
 					foreach(FileReference File in Files)
 					{
 						Rules.Add(File.FullName);
@@ -155,6 +158,43 @@ namespace AutomationTool.Tasks
 		public override void Write(XmlWriter Writer)
 		{
 			Write(Writer, Parameters);
+		}
+
+		/// <summary>
+		/// Find all the tags which are modified by this task
+		/// </summary>
+		/// <returns>The tag names which are read by this task</returns>
+		public override IEnumerable<string> FindConsumedTagNames()
+		{
+			foreach(string TagName in FindTagNamesFromFilespec(Parameters.Files))
+			{
+				yield return TagName;
+			}
+
+			if(!String.IsNullOrEmpty(Parameters.Filter))
+			{
+				foreach(string TagName in FindTagNamesFromFilespec(Parameters.Filter))
+				{
+					yield return TagName;
+				}
+			}
+
+			if(!String.IsNullOrEmpty(Parameters.Except))
+			{
+				foreach(string TagName in FindTagNamesFromFilespec(Parameters.Except))
+				{
+					yield return TagName;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Find all the referenced tags from tasks in this task
+		/// </summary>
+		/// <returns>The tag names which are modified by this task</returns>
+		public override IEnumerable<string> FindProducedTagNames()
+		{
+			return FindTagNamesFromList(Parameters.With);
 		}
 	}
 }

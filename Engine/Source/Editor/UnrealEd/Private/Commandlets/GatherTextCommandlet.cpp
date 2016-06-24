@@ -73,15 +73,15 @@ int32 UGatherTextCommandlet::Main( const FString& Params )
 
 	UE_LOG(LogGatherTextCommandlet, Log,TEXT("Beginning GatherText Commandlet."));
 
-	TSharedRef< FManifestInfo > ManifestInfo = MakeShareable( new FManifestInfo() );
-	TSharedPtr< FGatherTextSCC > SourceControlInfo = NULL;
+	TSharedRef< FManifestInfo > CommandletManifestInfo = MakeShareable( new FManifestInfo() );
+	TSharedPtr< FGatherTextSCC > CommandletSourceControlInfo = nullptr;
 
 	if( bEnableSourceControl )
 	{
-		SourceControlInfo = MakeShareable( new FGatherTextSCC() );
+		CommandletSourceControlInfo = MakeShareable( new FGatherTextSCC() );
 
 		FText SCCErrorStr;
-		if( !SourceControlInfo->IsReady( SCCErrorStr ) )
+		if( !CommandletSourceControlInfo->IsReady( SCCErrorStr ) )
 		{
 			UE_LOG( LogGatherTextCommandlet, Error, TEXT("Source Control error: %s"), *SCCErrorStr.ToString() );
 			return -1;
@@ -113,7 +113,7 @@ int32 UGatherTextCommandlet::Main( const FString& Params )
 		UGatherTextCommandletBase* Commandlet = NewObject<UGatherTextCommandletBase>(GetTransientPackage(), CommandletClass);
 		check(Commandlet);
 		Commandlet->AddToRoot();
-		Commandlet->Initialize( ManifestInfo, SourceControlInfo );
+		Commandlet->Initialize( CommandletManifestInfo, CommandletSourceControlInfo );
 
 		// Execute the commandlet.
 		double CommandletExecutionStartTime = FPlatformTime::Seconds();
@@ -144,10 +144,10 @@ int32 UGatherTextCommandlet::Main( const FString& Params )
 		if( 0 != Commandlet->Main( GeneratedCmdLine ) )
 		{
 			UE_LOG(LogGatherTextCommandlet, Error,TEXT("%s-%s reported an error."),*SectionName, *CommandletClassName);
-			if( SourceControlInfo.IsValid() )
+			if( CommandletSourceControlInfo.IsValid() )
 			{
 				FText SCCErrorStr;
-				if( !SourceControlInfo->CleanUp( SCCErrorStr ) )
+				if( !CommandletSourceControlInfo->CleanUp( SCCErrorStr ) )
 				{
 					UE_LOG(LogGatherTextCommandlet, Error, TEXT("%s"), *SCCErrorStr.ToString());
 				}
@@ -158,17 +158,17 @@ int32 UGatherTextCommandlet::Main( const FString& Params )
 		UE_LOG(LogGatherTextCommandlet, Log,TEXT("Completed %s: %s"), *SectionName, *CommandletClassName);
 	}
 
-	if( SourceControlInfo.IsValid() && !bDisableSubmit )
+	if( CommandletSourceControlInfo.IsValid() && !bDisableSubmit )
 	{
 		FText SCCErrorStr;
-		if( SourceControlInfo->CheckinFiles( GetChangelistDescription(GatherTextConfigPath), SCCErrorStr ) )
+		if( CommandletSourceControlInfo->CheckinFiles( GetChangelistDescription(GatherTextConfigPath), SCCErrorStr ) )
 		{
 			UE_LOG(LogGatherTextCommandlet, Log,TEXT("Submitted Localization files."));
 		}
 		else
 		{
 			UE_LOG(LogGatherTextCommandlet, Error, TEXT("%s"), *SCCErrorStr.ToString());
-			if( !SourceControlInfo->CleanUp( SCCErrorStr ) )
+			if( !CommandletSourceControlInfo->CleanUp( SCCErrorStr ) )
 			{
 				UE_LOG(LogGatherTextCommandlet, Error, TEXT("%s"), *SCCErrorStr.ToString());
 			}

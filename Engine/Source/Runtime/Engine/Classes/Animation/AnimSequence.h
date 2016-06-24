@@ -7,6 +7,7 @@
  *
  */
 
+#include "AnimTypes.h"
 #include "AnimSequenceBase.h"
 #include "AnimSequence.generated.h"
 
@@ -372,7 +373,7 @@ class ENGINE_API UAnimSequence : public UAnimSequenceBase
 	 * The compression scheme that was most recently used to compress this animation.
 	 * May be NULL.
 	 */
-	UPROPERTY(Instanced, Category=Compression, EditAnywhere)
+	UPROPERTY(Category=Compression, VisibleAnywhere)
 	class UAnimCompress* CompressionScheme;
 #endif // WITH_EDITORONLY_DATA
 
@@ -460,6 +461,10 @@ class ENGINE_API UAnimSequence : public UAnimSequenceBase
 	UPROPERTY(EditAnywhere, AssetRegistrySearchable, Category=Animation)
 	FName RetargetSource;
 
+	/** This defines how values between keys are calculated **/
+	UPROPERTY(EditAnywhere, AssetRegistrySearchable, Category = Animation)
+	EAnimInterpolationType Interpolation;
+	
 	/** If this is on, it will allow extracting of root motion **/
 	UPROPERTY(EditAnywhere, AssetRegistrySearchable, Category = RootMotion, meta = (DisplayName = "EnableRootMotion"))
 	bool bEnableRootMotion;
@@ -526,7 +531,7 @@ public:
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostInitProperties() override;
 	virtual void PostLoad() override;
-	virtual void PreSave() override;
+	virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
@@ -662,6 +667,8 @@ public:
 	* @param	Time				Time on track to interpolate to.
 	*/
 	void ExtractBoneTransform(const struct FRawAnimSequenceTrack& InRawAnimationTrack, FTransform& OutAtom, float Time) const;
+
+	void ExtractBoneTransform(const struct FRawAnimSequenceTrack& RawTrack, FTransform& OutAtom, int32 KeyIndex) const;
 
 	// End Transform related functions 
 
@@ -873,6 +880,9 @@ public:
 	// Bakes out the additive version of this animation into the raw data.
 	void BakeOutAdditiveIntoRawData();
 
+	// Test whether at any point we will scale a bone to 0 (needed for validating additive anims)
+	bool DoesSequenceContainZeroScale();
+
 	// Helper function to allow us to notify animations that depend on us that they need to update
 	void FlagDependentAnimationsAsRawDataOnly() const;
 
@@ -899,7 +909,7 @@ private:
 	/**
 	 * Remap Tracks to New Skeleton
 	 */
-	void RemapTracksToNewSkeleton( USkeleton* NewSkeleton, bool bConvertSpaces );
+	virtual void RemapTracksToNewSkeleton( USkeleton* NewSkeleton, bool bConvertSpaces ) override;
 	/**
 	 * Remap NaN tracks from the RawAnimation data and recompress
 	 */	

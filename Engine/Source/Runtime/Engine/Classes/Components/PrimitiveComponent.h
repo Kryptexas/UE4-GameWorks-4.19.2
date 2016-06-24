@@ -335,9 +335,13 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting)
 	TEnumAsByte<EIndirectLightingCacheQuality> IndirectLightingCacheQuality;
 
-	/** Should this primitive receive dynamic-only CSM shadows */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Lighting, meta=(Display="Receive CSM Shadows From Dynamic Objects"))
-	uint32 bReceiveCSMFromDynamicObjects : 1;
+	/** 
+	 * Mobile only:
+	 * If enabled this component can receive combined static and CSM shadows from a stationary light. (Enabling will increase shading cost.) 
+	 * If disabled this component will only receive static shadows from stationary lights.
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Mobile, meta=(DisplayName ="Receive Combined Static and CSM Shadows from Stationary Lights"))
+	uint32 bReceiveCombinedCSMAndStaticShadowsFromStationaryLights : 1;
 
 	/** 
 	 * Whether the whole component should be shadowed as one from stationary lights, which makes shadow receiving much cheaper.
@@ -468,6 +472,8 @@ public:
 	UPROPERTY(transient)
 	float LastRenderTime;
 
+	UPROPERTY(transient)
+	float LastRenderTimeOnScreen;
 private:
 	UPROPERTY()
 	TEnumAsByte<enum ECanBeCharacterBase> CanBeCharacterBase_DEPRECATED;
@@ -1247,15 +1253,30 @@ public:
 	virtual FBodyInstance* GetBodyInstance(FName BoneName = NAME_None, bool bGetWelded = true) const;
 
 	/** 
-	 * returns Distance to closest Body Instance surface. 
+	 * returns The square of the distance to closest Body Instance surface. 
 	 *
 	 * @param Point				World 3D vector
+	 * @param OutSquaredDistance The squared distance to closest Body Instance surface. 0 if inside of the body
 	 * @param OutPointOnBody	Point on the surface of collision closest to Point
 	 * 
-	 * @return		Success if returns > 0.f, if returns 0.f, it is either not convex or inside of the point
-	 *				If returns < 0.f, this primitive does not have collsion
+	 * @return		true if a distance to the body was found and OutDistanceSquared has been populated
 	 */
-	virtual float GetDistanceToCollision(const FVector& Point, FVector& ClosestPointOnCollision) const;
+	virtual bool GetSquaredDistanceToCollision(const FVector& Point, float& OutSquaredDistance, FVector& OutClosestPointOnCollision) const;
+
+	/** 
+	* returns Distance to closest Body Instance surface. 
+	*
+	* @param Point				World 3D vector
+	* @param OutPointOnBody	Point on the surface of collision closest to Point
+	* 
+	* @return		Success if returns > 0.f, if returns 0.f, point is inside the geometry
+	*				If returns < 0.f, this primitive does not have collsion or if geometry is not supported
+	*/	
+	float GetDistanceToCollision(const FVector& Point, FVector& ClosestPointOnCollision) const 
+	{
+		float DistanceSqr = -1.f;
+		return (GetSquaredDistanceToCollision(Point, DistanceSqr, ClosestPointOnCollision) ? FMath::Sqrt(DistanceSqr) : -1.f);
+	}
 
 	/**
 	* Returns the distance and closest point to the collision surface.

@@ -27,9 +27,17 @@ class USceneCaptureComponent : public USceneComponent
  	UPROPERTY()
  	TArray<TWeakObjectPtr<UPrimitiveComponent> > HiddenComponents;
 
-	/** The only components to be rendered by this scene capture, if non-empty.*/
+	/** The actors to hide in the scene capture. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SceneCapture)
+	TArray<AActor*> HiddenActors;
+
+	/** The only components to be rendered by this scene capture, if present.*/
  	UPROPERTY()
  	TArray<TWeakObjectPtr<UPrimitiveComponent> > ShowOnlyComponents;
+
+	/** The only actors to be rendered by this scene capture, if present.*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SceneCapture)
+	TArray<AActor*> ShowOnlyActors;
 
 	/** Whether to update the capture's contents every frame.  If disabled, the component will render once on load and then only when moved. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SceneCapture)
@@ -87,7 +95,7 @@ public:
 
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
-private:
+protected:
 	/** Update the show flags from our show flags settings (ideally, you'd be able to set this more directly, but currently unable to make FEngineShowFlags a UStruct to use it as a UProperty...) */
 	void UpdateShowFlags();
 

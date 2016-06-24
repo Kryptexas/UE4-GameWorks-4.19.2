@@ -125,13 +125,17 @@ void FBlueprintCompilerCppBackendBase::DeclareDelegates(FEmitterLocalContext& Em
 		for (int32 I = 0; I < Delegates.Num(); ++I)
 		{
 			UFunction* TargetFn = Delegates[I]->SignatureFunction;
-			for (int32 J = I + 1; J < Delegates.Num(); ++J)
+			for (int32 J = I + 1; J < Delegates.Num();)
 			{
 				if (TargetFn == Delegates[J]->SignatureFunction)
 				{
 					// swap erase:
 					Delegates[J] = Delegates[Delegates.Num() - 1];
 					Delegates.RemoveAt(Delegates.Num() - 1);
+				}
+				else
+				{
+					J++;
 				}
 			}
 		}
@@ -182,6 +186,13 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceCl
 	FEmitterLocalContext EmitterContext(Dependencies);
 
 	EmitFileBeginning(CleanCppClassName, EmitterContext);
+
+	// C4883 is a strange error (for big functions), introduced in VS2015 update 2
+	EmitterContext.Body.AddLine(TEXT("#ifdef _MSC_VER"));
+	EmitterContext.Body.AddLine(TEXT("#pragma warning (push)"));
+	EmitterContext.Body.AddLine(TEXT("#pragma warning (disable : 4883)"));
+	EmitterContext.Body.AddLine(TEXT("#endif"));
+
 	{
 		IBlueprintCompilerCppBackendModule& BackEndModule = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
 
@@ -298,6 +309,10 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceCl
 	EmitterContext.Header.AddLine(TEXT("};"));
 
 	FEmitHelper::EmitLifetimeReplicatedPropsImpl(EmitterContext);
+
+	EmitterContext.Body.AddLine(TEXT("#ifdef _MSC_VER"));
+	EmitterContext.Body.AddLine(TEXT("#pragma warning (pop)"));
+	EmitterContext.Body.AddLine(TEXT("#endif"));
 
 	CleanBackend();
 
@@ -669,38 +684,55 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromEnum(UUserDefinedEnum*
 	Header.AddLine(FString::Printf(TEXT("enum class %s  : uint8"), *EnumCppName));
 	Header.AddLine(TEXT("{"));
 	Header.IncreaseIndent();
+
+	auto EnumItemName = [&](int32 InIndex)
+	{
+		const int32 ElemValue = SourceEnum->GetValueByIndex(InIndex);
+		if (ElemValue == SourceEnum->GetMaxEnumValue())
+		{
+			return FString::Printf(TEXT("%s_MAX"), *EnumCppName);
+		}
+		return SourceEnum->GetEnumName(InIndex);
+	};
+
 	for (int32 Index = 0; Index < SourceEnum->NumEnums(); ++Index)
 	{
-		const FString ElemName = SourceEnum->GetEnumName(Index);
-		const int32 ElemValue = Index;
+		const FString ElemName = EnumItemName(Index);
+		const int32 ElemValue = SourceEnum->GetValueByIndex(Index);
 
 		const FString& DisplayNameMD = SourceEnum->GetMetaData(TEXT("DisplayName"), ElemValue);// TODO: value or index?
 		const FString Meta = DisplayNameMD.IsEmpty() ? FString() : FString::Printf(TEXT("UMETA(DisplayName = \"%s\")"), *DisplayNameMD.ReplaceCharWithEscapedChar());
 		Header.AddLine(FString::Printf(TEXT("%s = %d %s,"), *ElemName, ElemValue, *Meta));
 	}
+
 	Header.DecreaseIndent();
 	Header.AddLine(TEXT("};"));
-	/*
-	Header.AddLine(FString::Printf(TEXT("FString %s__GetUserFriendlyName(int32 InValue)"), *EnumCppName));
+
+	Header.AddLine(FString::Printf(TEXT("inline FString %s__GetUserFriendlyName(int32 InValue)"), *EnumCppName));
 	Header.AddLine(TEXT("{"));
 	Header.IncreaseIndent();
 
-	Header.AddLine(TEXT("switch(InValue)"));
+	Header.AddLine(TEXT("FText Text;"));
+	Header.AddLine(FString::Printf(TEXT("const auto EnumValue = static_cast<%s>(InValue);"), *EnumCppName));
+	Header.AddLine(TEXT("switch(EnumValue)"));
 	Header.AddLine(TEXT("{"));
 	Header.IncreaseIndent();
 	for (int32 Index = 0; Index < SourceEnum->NumEnums(); ++Index)
 	{
-		const FString DisplayNameStr = SourceEnum->GetEnumText(Index).ToString().ReplaceCharWithEscapedChar();
-		Header.AddLine(FString::Printf(TEXT("case %s::%s: return FString(TEXT(\"%s\"));"), *EnumCppName, *SourceEnum->GetEnumName(Index), *DisplayNameStr));
+		const FString ElemName = EnumItemName(Index);
+		FString DisplayNameStr;
+		FTextStringHelper::WriteToString(DisplayNameStr, SourceEnum->GetEnumText(Index));
+		Header.AddLine(FString::Printf(TEXT("case %s::%s: FTextStringHelper::ReadFromString(TEXT(\"%s\"), Text); break;"), *EnumCppName, *ElemName, *DisplayNameStr.ReplaceCharWithEscapedChar()));
 	}
+
+	Header.AddLine(TEXT("default: ensure(false);"));
 	Header.DecreaseIndent();
 	Header.AddLine(TEXT("};"));
 
-	Header.AddLine(TEXT("ensure(false);"));
-	Header.AddLine(TEXT("return FString();"));
+	Header.AddLine(TEXT("return Text.ToString();"));
 	Header.DecreaseIndent();
 	Header.AddLine(TEXT("};"));
-	*/
+
 	return Header.Result;
 }
 

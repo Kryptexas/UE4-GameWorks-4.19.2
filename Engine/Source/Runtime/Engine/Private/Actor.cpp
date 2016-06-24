@@ -263,6 +263,13 @@ void AActor::PostInitProperties()
 	}
 }
 
+void AActor::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
+{
+	AActor* This = CastChecked<AActor>(InThis);
+	Collector.AddReferencedObjects(This->OwnedComponents);
+	Super::AddReferencedObjects(InThis, Collector);
+}
+
 UWorld* AActor::GetWorld() const
 {
 	// CDO objects do not belong to a world
@@ -496,6 +503,26 @@ void AActor::Serialize(FArchive& Ar)
 			}
 		}
 	}
+
+	// When duplicating for PIE all components need to be gathered up and duplicated even if there are no other property references to them
+	// otherwise we can end up with Attach Parents that do not get redirected to the correct component. However, if there is a transient component
+	// we'll let that drop
+	if (Ar.GetPortFlags() & PPF_DuplicateForPIE)
+	{
+		TArray<UActorComponent*> DuplicatingComponents;
+		if (Ar.IsSaving())
+		{
+			DuplicatingComponents.Reserve(OwnedComponents.Num());
+			for (UActorComponent* OwnedComponent : OwnedComponents)
+			{
+				if (!OwnedComponent->HasAnyFlags(RF_Transient))
+				{
+					DuplicatingComponents.Add(OwnedComponent);
+				}
+			}
+		}
+		Ar << DuplicatingComponents;
+	}
 #endif
 
 	Super::Serialize(Ar);
@@ -723,6 +750,16 @@ void AActor::SetActorTickEnabled(bool bEnabled)
 bool AActor::IsActorTickEnabled() const
 {
 	return PrimaryActorTick.IsTickFunctionEnabled();
+}
+
+void AActor::SetActorTickInterval(float TickInterval)
+{
+	PrimaryActorTick.TickInterval = TickInterval;
+}
+
+float AActor::GetActorTickInterval() const
+{
+	return PrimaryActorTick.TickInterval;
 }
 
 bool AActor::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags )
@@ -1445,7 +1482,7 @@ void AActor::OnRep_AttachmentReplication()
 	}
 	else
 	{
-		DetachFromActor(FDetachmentTransformRules::KeepRelativeTransform);
+		DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 
 		// Handle the case where an object was both detached and moved on the server in the same frame.
 		// Calling this extraneously does not hurt but will properly fire events if the movement state changed while attached.
@@ -1631,11 +1668,6 @@ bool AActor::IsInLevel(const ULevel *TestLevel) const
 	return (GetOuter() == TestLevel);
 }
 
-ULevel* AActor::GetLevel() const
-{
-	return Cast<ULevel>(GetOuter());
-}
-
 bool AActor::IsInPersistentLevel(bool bIncludeLevelStreamingPersistent) const
 {
 	ULevel* MyLevel = GetLevel();
@@ -1710,7 +1742,7 @@ void AActor::ForceNetUpdate()
 
 void AActor::SetNetDormancy(ENetDormancy NewDormancy)
 {
-	if (GetNetMode() == NM_Client)
+	if (IsNetMode(NM_Client))
 	{
 		return;
 	}
@@ -1735,7 +1767,7 @@ void AActor::SetNetDormancy(ENetDormancy NewDormancy)
 /** Removes the actor from the NetDriver's dormancy list: forcing at least one more update. */
 void AActor::FlushNetDormancy()
 {
-	if (GetNetMode() == NM_Client || NetDormancy <= DORM_Awake)
+	if (IsNetMode(NM_Client) || NetDormancy <= DORM_Awake)
 	{
 		return;
 	}
@@ -1802,9 +1834,9 @@ void AActor::RouteEndPlay(const EEndPlayReason::Type EndPlayReason)
 		{
 			EndPlay(EndPlayReason);
 		}
-
-		UninitializeComponents();
 	}
+
+	UninitializeComponents();
 }
 
 void AActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -2733,7 +2765,7 @@ void AActor::PostActorConstruction()
 	}
 
 	// If this is dynamically spawned replicted actor, defer calls to BeginPlay and UpdateOverlaps until replicated properties are deserialized
-	bool deferBeginPlayAndUpdateOverlaps = (bExchangedRoles && RemoteRole == ROLE_Authority);
+	const bool bDeferBeginPlayAndUpdateOverlaps = (bExchangedRoles && RemoteRole == ROLE_Authority);
 
 	if (bActorsInitialized)
 	{
@@ -2791,15 +2823,25 @@ void AActor::PostActorConstruction()
 		if (!IsPendingKill())
 		{
 			PostInitializeComponents();
-			if (!bActorInitialized && !IsPendingKill())
+			if (!IsPendingKill())
 			{
-				UE_LOG(LogActor, Fatal, TEXT("%s failed to route PostInitializeComponents.  Please call Super::PostInitializeComponents() in your <className>::PostInitializeComponents() function. "), *GetFullName());
-			}
+				if (!bActorInitialized)
+				{
+					UE_LOG(LogActor, Fatal, TEXT("%s failed to route PostInitializeComponents.  Please call Super::PostInitializeComponents() in your <className>::PostInitializeComponents() function. "), *GetFullName());
+				}
 
-			if (World->HasBegunPlay() && !deferBeginPlayAndUpdateOverlaps)
-			{
-				SCOPE_CYCLE_COUNTER(STAT_ActorBeginPlay);
-				BeginPlay();
+				bool bRunBeginPlay = !bDeferBeginPlayAndUpdateOverlaps && World->HasBegunPlay();
+				if (bRunBeginPlay && IsChildActor())
+				{
+					// Child Actors cannot run begin play until their parent has run
+					bRunBeginPlay = GetParentComponent()->GetOwner()->HasActorBegunPlay();
+				}
+
+				if (bRunBeginPlay)
+				{
+					SCOPE_CYCLE_COUNTER(STAT_ActorBeginPlay);
+					BeginPlay();
+				}
 			}
 		}
 	}
@@ -2816,7 +2858,7 @@ void AActor::PostActorConstruction()
 	if (!IsPendingKill())
 	{
 		// Components are all there and we've begun play, init overlapping state
-		if (!deferBeginPlayAndUpdateOverlaps)
+		if (!bDeferBeginPlayAndUpdateOverlaps)
 		{
 			UpdateOverlaps();
 		}
@@ -2828,7 +2870,7 @@ void AActor::PostActorConstruction()
 
 void AActor::SetReplicates(bool bInReplicates)
 { 
-	if (Role == ROLE_Authority || bInReplicates == false)
+	if (Role == ROLE_Authority)
 	{
 		if (bReplicates == false && bInReplicates == true)
 		{
@@ -3455,32 +3497,38 @@ AWorldSettings * AActor::GetWorldSettings() const
 	return (World ? World->GetWorldSettings() : nullptr);
 }
 
-ENetMode AActor::GetNetMode() const
+UNetDriver* GetNetDriver_Internal(UWorld* World, FName NetDriverName)
 {
-	UNetDriver *NetDriver = GetNetDriver();
-	if (NetDriver != nullptr)
-	{
-		return NetDriver->GetNetMode();
-	}
-
-	UWorld* World = GetWorld();
-	if (World != nullptr && World->DemoNetDriver != nullptr)
-	{
-		return World->DemoNetDriver->GetNetMode();
-	}
-
-	return (IsRunningDedicatedServer() ? NM_DedicatedServer : NM_Standalone);
-}
-
-UNetDriver* AActor::GetNetDriver() const
-{
-	UWorld *World = GetWorld();
 	if (NetDriverName == NAME_GameNetDriver)
 	{
 		return (World ? World->GetNetDriver() : nullptr);
 	}
 
 	return GEngine->FindNamedNetDriver(World, NetDriverName);
+}
+
+ENetMode AActor::InternalGetNetMode() const
+{
+	const bool bIsClientOnly = IsRunningClientOnly();
+
+	UWorld* World = GetWorld();
+	UNetDriver* NetDriver = GetNetDriver_Internal(World, NetDriverName);
+	if (NetDriver != nullptr)
+	{
+		return bIsClientOnly ? NM_Client : NetDriver->GetNetMode();
+	}
+
+	if (World != nullptr && World->DemoNetDriver != nullptr)
+	{
+		return bIsClientOnly ? NM_Client : World->DemoNetDriver->GetNetMode();
+	}
+
+	return NM_Standalone;
+}
+
+UNetDriver* AActor::GetNetDriver() const
+{
+	return GetNetDriver_Internal(GetWorld(), NetDriverName);
 }
 
 void AActor::SetNetDriverName(FName NewNetDriverName)
@@ -4117,7 +4165,7 @@ bool AActor::ActorLineTraceSingle(struct FHitResult& OutHit, const FVector& Star
 float AActor::ActorGetDistanceToCollision(const FVector& Point, ECollisionChannel TraceChannel, FVector& ClosestPointOnCollision, UPrimitiveComponent** OutPrimitiveComponent) const
 {
 	ClosestPointOnCollision = Point;
-	float ClosestPointDistance = -1.f;
+	float ClosestPointDistanceSqr = -1.f;
 
 	TInlineComponentArray<UPrimitiveComponent*> Components;
 	GetComponents(Components);
@@ -4129,17 +4177,17 @@ float AActor::ActorGetDistanceToCollision(const FVector& Point, ECollisionChanne
 			&& (Primitive->GetCollisionResponseToChannel(TraceChannel) == ECollisionResponse::ECR_Block) )
 		{
 			FVector ClosestPoint;
-			const float Distance = Primitive->GetDistanceToCollision(Point, ClosestPoint);
+			float DistanceSqr = -1.f;
 
-			if (Distance < 0.f)
+			if (!Primitive->GetSquaredDistanceToCollision(Point, DistanceSqr, ClosestPoint))
 			{
 				// Invalid result, impossible to be better than ClosestPointDistance
 				continue;
 			}
 
-			if( (ClosestPointDistance < 0.f) || (Distance < ClosestPointDistance) )
+			if( (ClosestPointDistanceSqr < 0.f) || (DistanceSqr < ClosestPointDistanceSqr) )
 			{
-				ClosestPointDistance = Distance;
+				ClosestPointDistanceSqr = DistanceSqr;
 				ClosestPointOnCollision = ClosestPoint;
 				if( OutPrimitiveComponent )
 				{
@@ -4147,7 +4195,7 @@ float AActor::ActorGetDistanceToCollision(const FVector& Point, ECollisionChanne
 				}
 
 				// If we're inside collision, we're not going to find anything better, so abort search we've got our best find.
-				if( Distance <= KINDA_SMALL_NUMBER )
+				if( DistanceSqr <= KINDA_SMALL_NUMBER )
 				{
 					break;
 				}
@@ -4155,7 +4203,7 @@ float AActor::ActorGetDistanceToCollision(const FVector& Point, ECollisionChanne
 		}
 	}
 
-	return ClosestPointDistance;
+	return (ClosestPointDistanceSqr > 0.f ? FMath::Sqrt(ClosestPointDistanceSqr) : ClosestPointDistanceSqr);
 }
 
 

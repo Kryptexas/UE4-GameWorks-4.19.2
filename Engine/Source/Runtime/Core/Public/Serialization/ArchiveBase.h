@@ -463,8 +463,9 @@ public:
 	 * @param	Length	Length of source data if we're saving, unused otherwise
 	 * @param	Flags	Flags to control what method to use for [de]compression and optionally control memory vs speed when compressing
 	 * @param	bTreatBufferAsFileReader true if V is actually an FArchive, which is used when saving to read data - helps to avoid single huge allocations of source data
+	 * @param	bUsePlatformBitWindow use a platform specific bitwindow setting
 	 */
-	void SerializeCompressed(void* V, int64 Length, ECompressionFlags Flags, bool bTreatBufferAsFileReader = false);
+	void SerializeCompressed(void* V, int64 Length, ECompressionFlags Flags, bool bTreatBufferAsFileReader = false, bool bUsePlatformBitWindow = false);
 
 
 	FORCEINLINE bool IsByteSwapping()
@@ -536,12 +537,6 @@ public:
 	// Logf implementation for convenience.
 	VARARG_DECL(void, void, {}, Logf, VARARG_NONE, const TCHAR*, VARARG_NONE, VARARG_NONE);
 
-	// Status accessors.
-	FORCEINLINE int32 NetVer() const
-	{
-		return ArNetVer & 0x7fffffff;
-	}
-
 	FORCEINLINE int32 UE4Ver() const
 	{
 		return ArUE4Ver;
@@ -555,6 +550,16 @@ public:
 	FORCEINLINE FEngineVersionBase EngineVer() const
 	{
 		return ArEngineVer;
+	}
+
+	FORCEINLINE uint32 EngineNetVer() const
+	{
+		return ArEngineNetVer;
+	}
+
+	FORCEINLINE uint32 GameNetVer() const
+	{
+		return ArGameNetVer;
 	}
 
 	/**
@@ -603,11 +608,6 @@ public:
 	FORCEINLINE bool IsForcingUnicode() const
 	{
 		return ArForceUnicode;
-	}
-
-	FORCEINLINE bool IsNet() const
-	{
-		return ((ArNetVer & 0x80000000) != 0);
 	}
 
 	FORCEINLINE bool IsPersistent() const
@@ -760,6 +760,22 @@ public:
 	void SetEngineVer(const FEngineVersionBase& InVer)
 	{
 		ArEngineVer = InVer;
+	}
+
+	/**
+	* Sets the archive engine network version.
+	*/
+	void SetEngineNetVer(const uint32 InEngineNetVer)
+	{
+		ArEngineNetVer = InEngineNetVer;
+	}
+
+	/**
+	* Sets the archive game network version.
+	*/
+	void SetGameNetVer(const uint32 InGameNetVer)
+	{
+		ArGameNetVer = InGameNetVer;
 	}
 
 	/**
@@ -976,9 +992,6 @@ private:
 
 protected:
 
-	/** Holds the archive's network version. */
-	int32 ArNetVer;
-	
 	/** Holds the archive version. */
 	int32 ArUE4Ver;
 	
@@ -987,6 +1000,12 @@ protected:
 
 	/** Holds the engine version. */
 	FEngineVersionBase ArEngineVer;
+
+	/** Holds the engine network protocol version. */
+	uint32 ArEngineNetVer;
+
+	/** Holds the game network protocol version. */
+	uint32 ArGameNetVer;
 
 private:
 

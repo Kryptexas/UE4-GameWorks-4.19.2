@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import android.media.MediaPlayer;
 import java.util.Random;
+import android.util.Log;
 
 /*
 	Custom media player that renders video to a frame buffer. This
@@ -22,6 +23,8 @@ import java.util.Random;
 public class MediaPlayer14
 	extends android.media.MediaPlayer
 {
+//	public static Logger Log = new Logger("UE4");
+
 	private boolean SwizzlePixels = true;
 	private volatile boolean WaitOnBitmapRender = false;
 
@@ -207,6 +210,8 @@ public class MediaPlayer14
 		private int mFBO = -1;
 		private int mBlitVertexShaderID = -1;
 		private int mBlitFragmentShaderID = -1;
+		private float[] mTransformMatrix = new float[16];
+		private boolean mTriangleVerticesDirty = true;
 
 		private int GL_TEXTURE_EXTERNAL_OES = 0x8D65;
 		
@@ -276,11 +281,6 @@ public class MediaPlayer14
             mTexCoordsAttrib = GLES20.glGetAttribLocation(mProgram, "TexCoords");
 			mTextureUniform = GLES20.glGetUniformLocation(mProgram, "VideoTexture");
 
-			// Create blit mesh.
-            mTriangleVertices = java.nio.ByteBuffer.allocateDirect(
-                mTriangleVerticesData.length * FLOAT_SIZE_BYTES)
-                    .order(java.nio.ByteOrder.nativeOrder()).asFloatBuffer();
-            mTriangleVertices.put(mTriangleVerticesData).position(0);
 			GLES20.glGenBuffers(1,glInt,0);
 			mBlitBuffer = glInt[0];
 			if (mBlitBuffer <= 0)
@@ -289,7 +289,26 @@ public class MediaPlayer14
 				return;
 			}
 
+			// Create blit mesh.
+            mTriangleVertices = java.nio.ByteBuffer.allocateDirect(
+                mTriangleVerticesData.length * FLOAT_SIZE_BYTES)
+                    .order(java.nio.ByteOrder.nativeOrder()).asFloatBuffer();
+			mTriangleVerticesDirty = true;
+		}
+		
+		private void UpdateVertexData()
+		{
+			if (!mTriangleVerticesDirty || mBlitBuffer <= 0)
+			{
+				return;
+			}
+
+			// fill it in
+			mTriangleVertices.position(0);
+            mTriangleVertices.put(mTriangleVerticesData).position(0);
+
 			// save VBO state
+			int[] glInt = new int[1];
 			GLES20.glGetIntegerv(GLES20.GL_ARRAY_BUFFER_BINDING, glInt, 0);
 			int previousVBO = glInt[0];
 			
@@ -303,6 +322,8 @@ public class MediaPlayer14
 			{
 				GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, previousVBO);
 			}
+			
+			mTriangleVerticesDirty = false;
 		}
 
 		public boolean isValid()
@@ -368,7 +389,7 @@ public class MediaPlayer14
 		private static final int TRIANGLE_VERTICES_DATA_STRIDE_BYTES = 4 * FLOAT_SIZE_BYTES;
 		private static final int TRIANGLE_VERTICES_DATA_POS_OFFSET = 0;
 		private static final int TRIANGLE_VERTICES_DATA_UV_OFFSET = 2;
-		private final float[] mTriangleVerticesData = {
+		private float[] mTriangleVerticesData = {
 			// X, Y, U, V
 			-1.0f, -1.0f, 0.f, 0.f,
 			1.0f, -1.0f, 1.f, 0.f,
@@ -471,6 +492,33 @@ public class MediaPlayer14
 			GLES20.glGetError();
 			// Get the latest video texture frame.
 			mSurfaceTexture.updateTexImage();
+
+			mSurfaceTexture.getTransformMatrix(mTransformMatrix);
+				
+			float UMin = mTransformMatrix[12];
+			float UMax = UMin + mTransformMatrix[0];
+			float VMin = mTransformMatrix[13];
+			float VMax = VMin + mTransformMatrix[5];
+				
+			if (mTriangleVerticesData[2] != UMin ||
+				mTriangleVerticesData[6] != UMax ||
+				mTriangleVerticesData[11] != VMin ||
+				mTriangleVerticesData[3] != VMax)
+			{
+				//Log.debug("Matrix:");
+				//Log.debug(mTransformMatrix[0] + " " + mTransformMatrix[1] + " " + mTransformMatrix[2] + " " + mTransformMatrix[3]);
+				//Log.debug(mTransformMatrix[4] + " " + mTransformMatrix[5] + " " + mTransformMatrix[6] + " " + mTransformMatrix[7]);
+				//Log.debug(mTransformMatrix[8] + " " + mTransformMatrix[9] + " " + mTransformMatrix[10] + " " + mTransformMatrix[11]);
+				//Log.debug(mTransformMatrix[12] + " " + mTransformMatrix[13] + " " + mTransformMatrix[14] + " " + mTransformMatrix[15]);
+				mTriangleVerticesData[ 2] = mTriangleVerticesData[10] = UMin;
+				mTriangleVerticesData[ 6] = mTriangleVerticesData[14] = UMax;
+				mTriangleVerticesData[11] = mTriangleVerticesData[15] = VMin;
+				mTriangleVerticesData[ 3] = mTriangleVerticesData[ 7] = VMax;
+				mTriangleVerticesDirty = true;
+				//Log.debug("U = " + mTriangleVerticesData[2] + ", " + mTriangleVerticesData[6]);
+				//Log.debug("V = " + mTriangleVerticesData[11] + ", " + mTriangleVerticesData[3]);
+			}
+
 			return true;
 		}
 
@@ -570,6 +618,7 @@ public class MediaPlayer14
 			GLES20.glUseProgram(mProgram);
 
 			// Set the mesh that renders the video texture.
+			UpdateVertexData();
 			GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mBlitBuffer);
 			GLES20.glEnableVertexAttribArray(mPositionAttrib);
 			GLES20.glVertexAttribPointer(mPositionAttrib, 2, GLES20.GL_FLOAT, false,

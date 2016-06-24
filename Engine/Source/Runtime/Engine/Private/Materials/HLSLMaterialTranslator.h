@@ -203,6 +203,9 @@ protected:
 	uint32 bUsesVertexColor : 1;
 	/** true if the material reads particle color in the pixel shader. */
 	uint32 bUsesParticleColor : 1;
+	/** true if the material reads mesh particle transform in the pixel shader. */
+	uint32 bUsesParticleTransform : 1;
+
 	uint32 bUsesTransformVector : 1;
 	// True if the current property requires last frame's information
 	uint32 bCompilingPreviousFrame : 1;
@@ -252,6 +255,7 @@ public:
 	,	bUsesAtmosphericFog(false)
 	,	bUsesVertexColor(false)
 	,	bUsesParticleColor(false)
+	,	bUsesParticleTransform(false)
 	,	bUsesTransformVector(false)
 	,	bCompilingPreviousFrame(false)
 	,	bOutputsBasePassVelocities(true)
@@ -419,6 +423,7 @@ public:
 
 			const bool bUsesWorldPositionOffset = IsMaterialPropertyUsed(MP_WorldPositionOffset, Chunk[MP_WorldPositionOffset], FLinearColor(0, 0, 0, 0), 3);
 			MaterialCompilationOutput.bModifiesMeshPosition = bUsesPixelDepthOffset || bUsesWorldPositionOffset;
+			MaterialCompilationOutput.bUsesPixelDepthOffset = bUsesPixelDepthOffset;
 			
 			if (Material->GetBlendMode() == BLEND_Modulate && MaterialShadingModel != MSM_Unlit && !Material->IsUsedWithDeferredDecal())
 			{
@@ -464,6 +469,21 @@ public:
 			if (Domain == MD_PostProcess && MaterialShadingModel != MSM_Unlit)
 			{
 				Errorf(TEXT("Post process materials must use unlit."));
+			}
+
+			if (Material->AllowNegativeEmissiveColor() && MaterialShadingModel != MSM_Unlit)
+			{
+				Errorf(TEXT("Only unlit materials can output negative emissive color."));
+			}
+
+			static IConsoleVariable* CDBufferVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DBuffer"));
+			bool bDBufferAllowed = CDBufferVar ? CDBufferVar->GetInt() != 0 : false;
+			bool bDBufferBlendMode = IsDBufferDecalBlendMode((EDecalBlendMode)Material->GetDecalBlendMode());
+
+			if (bDBufferBlendMode && !bDBufferAllowed)
+			{
+				// Error feedback for when the decal would not be displayed due to project settings
+				Errorf(TEXT("DBuffer decal blend modes are only supported when the 'DBuffer Decals' Rendering Project setting is enabled."));
 			}
 
 			if (MaterialCompilationOutput.bNeedsSceneTextures)
@@ -725,15 +745,16 @@ public:
 		{
 			OutEnvironment.SetDefine(TEXT("USES_EYE_ADAPTATION"), TEXT("1"));
 		}
-		OutEnvironment.SetDefine(TEXT("MATERIAL_ATMOSPHERIC_FOG"), bUsesAtmosphericFog ? TEXT("1") : TEXT("0"));
-		OutEnvironment.SetDefine(TEXT("INTERPOLATE_VERTEX_COLOR"), bUsesVertexColor ? TEXT("1") : TEXT("0")); 
-		OutEnvironment.SetDefine(TEXT("NEEDS_PARTICLE_COLOR"), bUsesParticleColor ? TEXT("1") : TEXT("0")); 
-		OutEnvironment.SetDefine(TEXT("USES_TRANSFORM_VECTOR"), bUsesTransformVector ? TEXT("1") : TEXT("0")); 
-		OutEnvironment.SetDefine(TEXT("WANT_PIXEL_DEPTH_OFFSET"), bUsesPixelDepthOffset ? TEXT("1") : TEXT("0")); 
+		OutEnvironment.SetDefine(TEXT("MATERIAL_ATMOSPHERIC_FOG"), bUsesAtmosphericFog);
+		OutEnvironment.SetDefine(TEXT("INTERPOLATE_VERTEX_COLOR"), bUsesVertexColor); 
+		OutEnvironment.SetDefine(TEXT("NEEDS_PARTICLE_COLOR"), bUsesParticleColor); 
+		OutEnvironment.SetDefine(TEXT("NEEDS_PARTICLE_TRANSFORM"), bUsesParticleTransform);
+		OutEnvironment.SetDefine(TEXT("USES_TRANSFORM_VECTOR"), bUsesTransformVector);
+		OutEnvironment.SetDefine(TEXT("WANT_PIXEL_DEPTH_OFFSET"), bUsesPixelDepthOffset); 
 		// Distortion uses tangent space transform 
-		OutEnvironment.SetDefine(TEXT("USES_DISTORTION"), Material->IsDistorted() ? TEXT("1") : TEXT("0")); 
+		OutEnvironment.SetDefine(TEXT("USES_DISTORTION"), Material->IsDistorted()); 
 
-		OutEnvironment.SetDefine(TEXT("ENABLE_TRANSLUCENCY_VERTEX_FOG"), Material->UseTranslucencyVertexFog() ? TEXT("1") : TEXT("0"));
+		OutEnvironment.SetDefine(TEXT("ENABLE_TRANSLUCENCY_VERTEX_FOG"), Material->UseTranslucencyVertexFog());
 
 		for (int32 CollectionIndex = 0; CollectionIndex < ParameterCollections.Num(); CollectionIndex++)
 		{
@@ -1607,17 +1628,16 @@ protected:
 			return INDEX_NONE;
 		}
 
-		if(GetParameterUniformExpression(Code) && !GetParameterUniformExpression(Code)->IsConstant())
-		{
-			return ValidCast(AccessUniformExpression(Code),DestType);
-		}
-
 		EMaterialValueType SourceType = GetParameterType(Code);
-
 		int32 CompiledResult = INDEX_NONE;
+
 		if (SourceType & DestType)
 		{
 			CompiledResult = Code;
+		}
+		else if(GetParameterUniformExpression(Code) && !GetParameterUniformExpression(Code)->IsConstant())
+		{
+			return ValidCast(AccessUniformExpression(Code), DestType);
 		}
 		else if((SourceType & MCT_Float) && (DestType & MCT_Float))
 		{
@@ -1838,10 +1858,10 @@ protected:
 		};
 
 		static const EMaterialExposedViewPropertyMeta ViewPropertyMetaArray[] = {
-			{MEVP_BufferSize, MCT_Float2, TEXT("Frame.BufferSizeAndInvSize.xy"), TEXT("Frame.BufferSizeAndInvSize.zw")},
-			{MEVP_FieldOfView, MCT_Float2, TEXT("Frame.<PREV>FieldOfViewWideAngles"), nullptr},
+			{MEVP_BufferSize, MCT_Float2, TEXT("View.BufferSizeAndInvSize.xy"), TEXT("View.BufferSizeAndInvSize.zw")},
+			{MEVP_FieldOfView, MCT_Float2, TEXT("View.<PREV>FieldOfViewWideAngles"), nullptr},
 			{MEVP_TanHalfFieldOfView, MCT_Float2, TEXT("Get<PREV>TanHalfFieldOfView()"), TEXT("Get<PREV>CotanHalfFieldOfView()")},
-			{MEVP_ViewSize, MCT_Float2, TEXT("Frame.ViewSizeAndInvSize.xy"), TEXT("Frame.ViewSizeAndInvSize.zw")},
+			{MEVP_ViewSize, MCT_Float2, TEXT("View.ViewSizeAndInvSize.xy"), TEXT("View.ViewSizeAndInvSize.zw")},
 			{MEVP_WorldSpaceViewPosition, MCT_Float3, TEXT("ResolvedView.<PREV>WorldViewOrigin"), nullptr},
 			{MEVP_WorldSpaceCameraPosition, MCT_Float3, TEXT("ResolvedView.<PREV>WorldCameraOrigin"), nullptr},
 		};
@@ -1875,10 +1895,10 @@ protected:
 		{
 			if (bCompilingPreviousFrame)
 			{
-				return AddInlinedCodeChunk(MCT_Float, TEXT("Frame.PrevFrameGameTime"));
+				return AddInlinedCodeChunk(MCT_Float, TEXT("View.PrevFrameGameTime"));
 			}
 
-			return AddInlinedCodeChunk(MCT_Float, TEXT("Frame.GameTime"));
+			return AddInlinedCodeChunk(MCT_Float, TEXT("View.GameTime"));
 		}
 		else if (Period == 0.0f)
 		{
@@ -1900,10 +1920,10 @@ protected:
 		{
 			if (bCompilingPreviousFrame)
 			{
-				return AddInlinedCodeChunk(MCT_Float, TEXT("Frame.PrevFrameRealTime"));
+				return AddInlinedCodeChunk(MCT_Float, TEXT("View.PrevFrameRealTime"));
 			}
 
-			return AddInlinedCodeChunk(MCT_Float, TEXT("Frame.RealTime"));
+			return AddInlinedCodeChunk(MCT_Float, TEXT("View.RealTime"));
 		}
 		else if (Period == 0.0f)
 		{
@@ -2681,7 +2701,7 @@ protected:
 
 		FString UVs = CoerceParameter(CoordinateIndex, UVsType);
 
-		const bool bStoreTexCoordScales = (TextureReferenceIndex != INDEX_NONE && Material && Material->GetShaderMapUsage() == EMaterialShaderMapUsage::DebugViewModeTexCoordScale);
+		const bool bStoreTexCoordScales = (ShaderFrequency == SF_Pixel && TextureReferenceIndex != INDEX_NONE && Material && Material->GetShaderMapUsage() == EMaterialShaderMapUsage::DebugViewModeTexCoordScale);
 		if (bStoreTexCoordScales)
 		{
 			AddCodeChunk(MCT_Float, TEXT("StoreTexCoordScale(Parameters.TexCoordScalesParams, %s, %d)"), *UVs, (int)TextureReferenceIndex);
@@ -2875,11 +2895,11 @@ protected:
 			// BufferSize
 			if(bInvert)
 			{
-				return Div(Constant(1.0f), AddCodeChunk(MCT_Float2, TEXT("Frame.RenderTargetSize")));
+				return Div(Constant(1.0f), AddCodeChunk(MCT_Float2, TEXT("View.RenderTargetSize")));
 			}
 			else
 			{
-				return AddCodeChunk(MCT_Float2, TEXT("Frame.RenderTargetSize"));
+				return AddCodeChunk(MCT_Float2, TEXT("View.RenderTargetSize"));
 			}
 		}
 	}
@@ -2905,7 +2925,7 @@ protected:
 		}
 		else
 		{			
-			return AddCodeChunk(MCT_Float2,TEXT("Frame.SceneTextureMinMax.xy"));
+			return AddCodeChunk(MCT_Float2,TEXT("View.SceneTextureMinMax.xy"));
 		}
 	}
 
@@ -2929,7 +2949,7 @@ protected:
 		}
 		else
 		{			
-			return AddCodeChunk(MCT_Float2,TEXT("Frame.SceneTextureMinMax.zw"));
+			return AddCodeChunk(MCT_Float2,TEXT("View.SceneTextureMinMax.zw"));
 		}
 	}
 
@@ -3411,8 +3431,57 @@ protected:
 			return INDEX_NONE;
 		}
 
+		FMaterialUniformExpression* ExpressionX = GetParameterUniformExpression(X);
+		FMaterialUniformExpression* ExpressionY = GetParameterUniformExpression(Y);
+		FMaterialUniformExpression* ExpressionA = GetParameterUniformExpression(A);
+		bool bExpressionsAreEqual = false;
+
+		// Skip over interpolations where inputs are equal
+		if (X == Y)
+		{
+			bExpressionsAreEqual = true;
+		}
+		else if (ExpressionX && ExpressionY)
+		{
+			if (ExpressionX->IsConstant() && ExpressionY->IsConstant() && (*CurrentScopeChunks)[X].Type == (*CurrentScopeChunks)[Y].Type)
+			{
+				FLinearColor ValueX, ValueY;
+				FMaterialRenderContext DummyContext(nullptr, *Material, nullptr);
+				ExpressionX->GetNumberValue(DummyContext, ValueX);
+				ExpressionY->GetNumberValue(DummyContext, ValueY);
+
+				if (ValueX == ValueY)
+				{
+					bExpressionsAreEqual = true;
+				}
+			}
+		}
+
+		if (bExpressionsAreEqual)
+		{
+			return X;
+		}
+
 		EMaterialValueType ResultType = GetArithmeticResultType(X,Y);
 		EMaterialValueType AlphaType = ResultType == (*CurrentScopeChunks)[A].Type ? ResultType : MCT_Float1;
+
+		if (AlphaType == MCT_Float1 && ExpressionA && ExpressionA->IsConstant())
+		{
+			// Skip over interpolations that explicitly select an input
+			FLinearColor Value;
+			FMaterialRenderContext DummyContext(nullptr, *Material, nullptr);
+			ExpressionA->GetNumberValue(DummyContext, Value);
+
+			if (Value.R == 0.0f)
+			{
+				return X;
+			}
+			else if (Value.R == 1.f)
+			{
+				return Y;
+			}
+		}
+
 		return AddCodeChunk(ResultType,TEXT("lerp(%s,%s,%s)"),*CoerceParameter(X,ResultType),*CoerceParameter(Y,ResultType),*CoerceParameter(A,AlphaType));
 	}
 
@@ -3699,6 +3768,12 @@ protected:
 						CodeStr = TEXT("<A>");
 					}
 				}
+				else if (DestCoordBasis == MCB_MeshParticle)
+				{
+					CodeStr = TEXT("mul(<A>, <MATRIX>(Parameters.Particle.LocalToWorld))");
+					bUsesParticleTransform = true;
+				}
+
 				// else use MCB_TranslatedWorld as intermediary basis
 				IntermediaryBasis = MCB_TranslatedWorld;
 				break;
@@ -3721,6 +3796,19 @@ protected:
 				}
 				// else use MCB_TranslatedWorld as intermediary basis
 				IntermediaryBasis = MCB_TranslatedWorld;
+				break;
+			}
+			case MCB_MeshParticle:
+			{
+				if (DestCoordBasis == MCB_World)
+				{
+					CodeStr = TEXT("mul(<MATRIX>(Parameters.Particle.LocalToWorld), <A>)");
+					bUsesParticleTransform = true;
+				}
+				else
+				{
+					return Errorf(TEXT("Can transform only to world space from particle space"));
+				}
 				break;
 			}
 			default:
@@ -4194,7 +4282,10 @@ protected:
 			Code = FString(TEXT("return "))+Code+TEXT(";");
 		}
 		Code.ReplaceInline(TEXT("\n"),TEXT("\r\n"), ESearchCase::CaseSensitive);
-		FString ImplementationCode = FString::Printf(TEXT("%s CustomExpression%d(FMaterial%sParameters Parameters%s)\r\n{\r\n%s\r\n}\r\n"), *OutputTypeString, CustomExpressionIndex, ShaderFrequency==SF_Vertex?TEXT("Vertex"):TEXT("Pixel"), *InputParamDecl, *Code);
+
+		FString ParametersType = ShaderFrequency == SF_Vertex ? TEXT("Vertex") : (ShaderFrequency == SF_Domain ? TEXT("Tessellation") : TEXT("Pixel"));
+
+		FString ImplementationCode = FString::Printf(TEXT("%s CustomExpression%d(FMaterial%sParameters Parameters%s)\r\n{\r\n%s\r\n}\r\n"), *OutputTypeString, CustomExpressionIndex, *ParametersType, *InputParamDecl, *Code);
 		CustomExpressionImplementations.Add( ImplementationCode );
 
 		// Add call to implementation function

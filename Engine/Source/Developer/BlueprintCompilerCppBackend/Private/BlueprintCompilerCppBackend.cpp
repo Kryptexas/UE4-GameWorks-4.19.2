@@ -4,6 +4,7 @@
 #include "BlueprintCompilerCppBackend.h"
 #include "BlueprintCompilerCppBackendUtils.h"
 #include "EdGraphSchema_K2.h"
+#include "Kismet/KismetNodeHelperLibrary.h"
 
 // Generates single "if" scope. Its condition checks context of given term.
 struct FSafeContextScopedEmmitter
@@ -521,65 +522,90 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 		}
 	}
 
-	// Emit object to call the method on
-	if (bInterfaceCallExecute)
+	auto HandleSpeciallyNativizedFunction = [&]() -> bool
 	{
-		auto ContextInterfaceClass = CastChecked<UClass>(Statement.FunctionContext->Type.PinSubCategoryObject.Get());
-		ensure(ContextInterfaceClass->IsChildOf<UInterface>());
-		Result += FString::Printf(TEXT("%s::Execute_%s(%s.GetObject() ")
-			, *FEmitHelper::GetCppName(ContextInterfaceClass)
-			, *FunctionToCallOriginalName
-			, *TermToText(EmitterContext, Statement.FunctionContext, false));
-	}
-	else
+		const UFunction* const EnumeratorUserFriendlyName = UKismetNodeHelperLibrary::StaticClass()->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UKismetNodeHelperLibrary, GetEnumeratorUserFriendlyName));
+		if (EnumeratorUserFriendlyName == Statement.FunctionToCall)
+		{
+			const FBPTerminal* const EnumTerminal = Statement.RHS.IsValidIndex(0) ? Statement.RHS[0] : nullptr;
+			// We need the special path only for converted enums. All UUserDefinedEnum are converted.
+			const UUserDefinedEnum* const Enum = EnumTerminal ? Cast<UUserDefinedEnum>(EnumTerminal->ObjectLiteral) : nullptr;
+			const FBPTerminal* const ValueTerminal = Statement.RHS.IsValidIndex(1) ? Statement.RHS[1] : nullptr;
+			if (Enum && ValueTerminal)
+			{
+				const FString Value = TermToText(EmitterContext, ValueTerminal);
+				const FString EnumName = FEmitHelper::GetCppName(Enum);
+				Result += FString::Printf(TEXT("%s__GetUserFriendlyName(EnumToByte<%s>(%s))"), *EnumName, *EnumName, *Value);
+				return true;
+			}
+		}
+		return false;
+	};
+
+	const bool bIsSpecialCase = HandleSpeciallyNativizedFunction();
+	if (!bIsSpecialCase)
 	{
-		auto FunctionOwner = Statement.FunctionToCall->GetOwnerClass();
-		auto OwnerBPGC = Cast<UBlueprintGeneratedClass>(FunctionOwner);
-		const bool bUnconvertedClass = OwnerBPGC && !EmitterContext.Dependencies.WillClassBeConverted(OwnerBPGC);
-		if (bUnconvertedClass)
+		// Emit object to call the method on
+		if (bInterfaceCallExecute)
 		{
-			ensure(!Statement.bIsParentContext); //unsupported yet
-			ensure(!bStaticCall); //unsupported yet
-			ensure(bCallOnDifferentObject); //unexpected
-			const FString WrapperName = FString::Printf(TEXT("FUnconvertedWrapper__%s"), *FEmitHelper::GetCppName(OwnerBPGC));
-			const FString CalledObject = bCallOnDifferentObject ? TermToText(EmitterContext, Statement.FunctionContext, false) : TEXT("this");
-			Result += FString::Printf(TEXT("%s(%s)."), *WrapperName, *CalledObject);
+			auto ContextInterfaceClass = CastChecked<UClass>(Statement.FunctionContext->Type.PinSubCategoryObject.Get());
+			ensure(ContextInterfaceClass->IsChildOf<UInterface>());
+			Result += FString::Printf(TEXT("%s::Execute_%s(%s.GetObject() ")
+				, *FEmitHelper::GetCppName(ContextInterfaceClass)
+				, *FunctionToCallOriginalName
+				, *TermToText(EmitterContext, Statement.FunctionContext, false));
 		}
-		else if (bStaticCall)
+		else
 		{
-			const bool bIsCustomThunk = Statement.FunctionToCall->GetBoolMetaData(TEXT("CustomThunk")) 
-				|| Statement.FunctionToCall->HasMetaData(TEXT("CustomStructureParam")) 
-				|| Statement.FunctionToCall->HasMetaData(TEXT("ArrayParm"));
-			auto OwnerClass = Statement.FunctionToCall->GetOuterUClass();
-			Result += bIsCustomThunk ? TEXT("FCustomThunkTemplates::") : FString::Printf(TEXT("%s::"), *FEmitHelper::GetCppName(OwnerClass));
-		}
-		else if (bCallOnDifferentObject) //@TODO: Badness, could be a self reference wired to another instance!
-		{
-			Result += FString::Printf(TEXT("%s->"), *TermToText(EmitterContext, Statement.FunctionContext, false));
-		}
+			auto FunctionOwner = Statement.FunctionToCall->GetOwnerClass();
+			auto OwnerBPGC = Cast<UBlueprintGeneratedClass>(FunctionOwner);
+			const bool bUnconvertedClass = OwnerBPGC && !EmitterContext.Dependencies.WillClassBeConverted(OwnerBPGC);
+			if (bUnconvertedClass)
+			{
+				ensure(!Statement.bIsParentContext); //unsupported yet
+				ensure(!bStaticCall); //unsupported yet
+				ensure(bCallOnDifferentObject); //unexpected
+				const FString WrapperName = FString::Printf(TEXT("FUnconvertedWrapper__%s"), *FEmitHelper::GetCppName(OwnerBPGC));
+				const FString CalledObject = bCallOnDifferentObject ? TermToText(EmitterContext, Statement.FunctionContext, false) : TEXT("this");
+				Result += FString::Printf(TEXT("%s(%s)."), *WrapperName, *CalledObject);
+			}
+			else if (bStaticCall)
+			{
+				const bool bIsCustomThunk = Statement.FunctionToCall->GetBoolMetaData(TEXT("CustomThunk"))
+					|| Statement.FunctionToCall->HasMetaData(TEXT("CustomStructureParam"))
+					|| Statement.FunctionToCall->HasMetaData(TEXT("ArrayParm"));
+				auto OwnerClass = Statement.FunctionToCall->GetOuterUClass();
+				Result += bIsCustomThunk ? TEXT("FCustomThunkTemplates::") : FString::Printf(TEXT("%s::"), *FEmitHelper::GetCppName(OwnerClass));
+			}
+			else if (bCallOnDifferentObject) //@TODO: Badness, could be a self reference wired to another instance!
+			{
+				Result += FString::Printf(TEXT("%s->"), *TermToText(EmitterContext, Statement.FunctionContext, false));
+			}
 
-		if (Statement.bIsParentContext)
-		{
-			Result += TEXT("Super::");
-		}
-		Result += FunctionToCallOriginalName;
+			if (Statement.bIsParentContext)
+			{
+				Result += TEXT("Super::");
+			}
+			Result += FunctionToCallOriginalName;
 
-		if (Statement.bIsParentContext && FEmitHelper::ShouldHandleAsNativeEvent(Statement.FunctionToCall, false))
-		{
-			ensure(!bCallOnDifferentObject);
-			Result += TEXT("_Implementation");
-		}
+			if (Statement.bIsParentContext && FEmitHelper::ShouldHandleAsNativeEvent(Statement.FunctionToCall, false))
+			{
+				ensure(!bCallOnDifferentObject);
+				Result += TEXT("_Implementation");
+			}
 
-		// Emit method parameter list
-		Result += TEXT("(");
+			// Emit method parameter list
+			Result += TEXT("(");
+		}
+		const FString ParameterList = EmitMethodInputParameterList(EmitterContext, Statement);
+		if (bInterfaceCallExecute && !ParameterList.IsEmpty())
+		{
+			Result += TEXT(", ");
+		}
+		Result += ParameterList;
+		Result += TEXT(")");
 	}
-	const FString ParameterList = EmitMethodInputParameterList(EmitterContext, Statement);
-	if (bInterfaceCallExecute && !ParameterList.IsEmpty())
-	{
-		Result += TEXT(", ");
-	}
-	Result += ParameterList;
-	Result += TEXT(")");
+
 	Result += CloseCast;
 	if (!bInline)
 	{

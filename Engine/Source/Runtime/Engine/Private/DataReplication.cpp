@@ -11,6 +11,7 @@
 #include "Net/DataReplication.h"
 #include "Engine/ActorChannel.h"
 #include "Engine/PackageMapClient.h"
+#include "Engine/DemoNetDriver.h"
 
 static TAutoConsoleVariable<int32> CVarMaxRPCPerNetUpdate( TEXT( "net.MaxRPCPerNetUpdate" ), 2, TEXT( "Maximum number of RPCs allowed per net update" ) );
 
@@ -42,7 +43,25 @@ public:
 		else
 		{
 			TSharedPtr<FRepLayout> RepLayout = Driver->GetStructRepLayout(Struct);
-			RepLayout->SerializePropertiesForStruct(Struct, Ar, Map, Data, bHasUnmapped);
+
+			UPackageMapClient* PackageMapClient = ( ( UPackageMapClient* )Map );
+
+			if ( PackageMapClient && PackageMapClient->GetConnection()->InternalAck )
+			{
+				if ( Ar.IsSaving() )
+				{
+					TArray< uint16 > Changed;
+					RepLayout->SendProperties_BackwardsCompatible( nullptr, (uint8*)Data, PackageMapClient->GetConnection(), static_cast< FNetBitWriter& >( Ar ), Changed );
+				}
+				else
+				{
+					RepLayout->ReceiveProperties_BackwardsCompatible( PackageMapClient->GetConnection(), nullptr, Data, static_cast< FNetBitReader& >( Ar ), bHasUnmapped, false );
+				}
+			}
+			else
+			{
+				RepLayout->SerializePropertiesForStruct( Struct, Ar, Map, Data, bHasUnmapped );
+			}
 		}
 	}
 
@@ -280,16 +299,19 @@ void FObjectReplicator::StartReplicating( class UActorChannel * InActorChannel )
 	}
 }
 
-static FORCEINLINE void ValidateRetirementHistory( FPropertyRetirement & Retire )
+static FORCEINLINE void ValidateRetirementHistory( const FPropertyRetirement & Retire, const UObject* Object )
 {
+	checkf( Retire.SanityTag == FPropertyRetirement::ExpectedSanityTag, TEXT( "Invalid Retire.SanityTag. Object: %s" ), Object ? *Object->GetFullName() : TEXT( "NULL" ) );
+
 	FPropertyRetirement * Rec = Retire.Next;	// Note the first element is 'head' that we dont actually use
 
 	FPacketIdRange LastRange;
 
 	while ( Rec != NULL )
 	{
-		check( Rec->OutPacketIdRange.Last >= Rec->OutPacketIdRange.First );
-		check( Rec->OutPacketIdRange.First >= LastRange.Last );		// Bunch merging and queuing can cause this overlap
+		checkf( Rec->SanityTag == FPropertyRetirement::ExpectedSanityTag, TEXT( "Invalid Rec->SanityTag. Object: %s" ), Object ? *Object->GetFullName() : TEXT( "NULL" ) );
+		checkf( Rec->OutPacketIdRange.Last >= Rec->OutPacketIdRange.First, TEXT( "Invalid packet id range (Last < First). Object: %s" ), Object ? *Object->GetFullName() : TEXT( "NULL" ) );
+		checkf( Rec->OutPacketIdRange.First >= LastRange.Last, TEXT( "Invalid packet id range (First < LastRange.Last). Object: %s" ), Object ? *Object->GetFullName() : TEXT( "NULL" ) );		// Bunch merging and queuing can cause this overlap
 
 		LastRange = Rec->OutPacketIdRange;
 
@@ -304,10 +326,12 @@ void FObjectReplicator::StopReplicating( class UActorChannel * InActorChannel )
 
 	OwningChannel = NULL;
 
+	const UObject* Object = GetObject();
+
 	// Cleanup retirement records
 	for ( int32 i = Retirement.Num() - 1; i >= 0; i-- )
 	{
-		ValidateRetirementHistory( Retirement[i] );
+		ValidateRetirementHistory( Retirement[i], Object );
 
 		FPropertyRetirement * Rec = Retirement[i].Next;
 		Retirement[i].Next = NULL;
@@ -332,7 +356,7 @@ void FObjectReplicator::StopReplicating( class UActorChannel * InActorChannel )
 
 void FObjectReplicator::ReceivedNak( int32 NakPacketId )
 {
-	UObject* Object = GetObject();
+	const UObject* Object = GetObject();
 
 	if ( Object == NULL )
 	{
@@ -346,7 +370,7 @@ void FObjectReplicator::ReceivedNak( int32 NakPacketId )
 
 		for ( int32 i = Retirement.Num() - 1; i >= 0; i-- )
 		{
-			ValidateRetirementHistory( Retirement[i] );
+			ValidateRetirementHistory( Retirement[i], Object );
 
 			// If this is a dynamic array property, we have to look through the list of retirement records to see if we need to reset the base state
 			FPropertyRetirement * Rec = Retirement[i].Next; // Retirement[i] is head and not actually used in this case
@@ -390,10 +414,18 @@ void FObjectReplicator::ReceivedNak( int32 NakPacketId )
 				Rec = Rec->Next;
 			}
 				
-			ValidateRetirementHistory( Retirement[i] );
+			ValidateRetirementHistory( Retirement[i], Object );
 		}
 	}
 }
+
+#define HANDLE_INCOMPATIBLE_PROP		\
+	if ( bIsServer )					\
+	{									\
+		return false;					\
+	}									\
+	FieldCache->bIncompatible = true;	\
+	continue;							\
 
 bool FObjectReplicator::ReceivedBunch( FNetBitReader& Bunch, const FReplicationFlags& RepFlags, const bool bHasRepLayout, bool& bOutHasUnmapped )
 {
@@ -469,10 +501,15 @@ bool FObjectReplicator::ReceivedBunch( FNetBitReader& Bunch, const FReplicationF
 			continue;
 		}
 
-		UProperty* ReplicatedProp = NULL;
+		if ( FieldCache->bIncompatible )
+		{
+			// We've already warned about this property once, so no need to continue to do so
+			UE_LOG( LogNet, Verbose, TEXT( "ReceivedBunch: FieldCache->bIncompatible == true. Object: %s, Field: %s" ), *Object->GetFullName(), *FieldCache->Field->GetFName().ToString() );
+			continue;
+		}
 
 		// Handle property
-		if ( ( ReplicatedProp = Cast< UProperty >( FieldCache->Field ) ) != NULL )
+		if ( UProperty* ReplicatedProp = Cast< UProperty >( FieldCache->Field ) )
 		{
 			// Server shouldn't receive properties.
 			if ( bIsServer )
@@ -564,8 +601,14 @@ bool FObjectReplicator::ReceivedBunch( FNetBitReader& Bunch, const FReplicationF
 
 			if ( Reader.IsError() )
 			{
-				UE_LOG(LogNet, Error, TEXT("ReceivedBunch: NetDeltaSerialize - Reader.IsError() == true: %s"), *Object->GetFullName());
-				return false;
+				UE_LOG(LogNet, Error, TEXT("ReceivedBunch: NetDeltaSerialize - Reader.IsError() == true. Property: %s, Object: %s"), *StructProperty->GetName(), *Object->GetFullName());
+				HANDLE_INCOMPATIBLE_PROP
+			}
+
+			if ( Reader.GetBitsLeft() != 0 )
+			{
+				UE_LOG( LogNet, Error, TEXT( "ReceivedBunch: NetDeltaSerialize - Mismatch read. Property: %s, Object: %s" ), *StructProperty->GetName(), *Object->GetFullName() );
+				HANDLE_INCOMPATIBLE_PROP
 			}
 
 			if ( Parms.bOutHasMoreUnmapped )
@@ -589,19 +632,19 @@ bool FObjectReplicator::ReceivedBunch( FNetBitReader& Bunch, const FReplicationF
 			if ( Function == NULL )
 			{
 				UE_LOG( LogNet, Error, TEXT( "ReceivedBunch: Function not found. Object: %s, Function: %s" ), *Object->GetFullName(), *FunctionName.ToString() );
-				return false;
+				HANDLE_INCOMPATIBLE_PROP
 			}
 
 			if ( ( Function->FunctionFlags & FUNC_Net ) == 0 )
 			{
 				UE_LOG( LogRep, Error, TEXT( "Rejected non RPC function. Object: %s, Function: %s" ), *Object->GetFullName(), *FunctionName.ToString() );
-				return false;
+				HANDLE_INCOMPATIBLE_PROP
 			}
 
 			if ( ( Function->FunctionFlags & ( bIsServer ? FUNC_NetServer : ( FUNC_NetClient | FUNC_NetMulticast ) ) ) == 0 )
 			{
 				UE_LOG( LogRep, Error, TEXT( "Rejected RPC function due to access rights. Object: %s, Function: %s" ), *Object->GetFullName(), *FunctionName.ToString() );
-				return false;
+				HANDLE_INCOMPATIBLE_PROP
 			}
 
 			UE_LOG( LogRepTraffic, Log, TEXT( "      Received RPC: %s" ), *FunctionName.ToString() );
@@ -623,7 +666,22 @@ bool FObjectReplicator::ReceivedBunch( FNetBitReader& Bunch, const FReplicationF
 				if ( Reader.IsError() )
 				{
 					UE_LOG( LogRep, Error, TEXT( "ReceivedBunch: ReceivePropertiesForRPC - Reader.IsError() == true: Function: %s, Object: %s" ), *FunctionName.ToString(), *Object->GetFullName() );
-					return false;
+					HANDLE_INCOMPATIBLE_PROP
+				}
+
+				if ( Reader.GetBitsLeft() != 0 )
+				{
+					UE_LOG( LogNet, Error, TEXT( "ReceivedBunch: ReceivePropertiesForRPC - Mismatch read. Function: %s, Object: %s" ), *FunctionName.ToString(), *Object->GetFullName() );
+					HANDLE_INCOMPATIBLE_PROP
+				}
+
+				// Forward the RPC to a client recorded replay, if needed.
+				const UWorld* const OwningDriverWorld = OwningChannel->Connection->Driver->World;
+				if (OwningDriverWorld && OwningDriverWorld->IsRecordingClientReplay())
+				{
+					// If Object is not the channel actor, assume the target of the RPC is a subobject.
+					UObject* const SubObject = Object != OwningChannel->Actor ? Object : nullptr;
+					OwningDriverWorld->DemoNetDriver->ProcessRemoteFunction(OwningChannel->Actor, Function, Parms, nullptr, nullptr, SubObject);
 				}
 
 				// Call the function.
@@ -699,9 +757,9 @@ void FObjectReplicator::PostReceivedBunch()
 	}
 }
 
-static FORCEINLINE FPropertyRetirement ** UpdateAckedRetirements( FPropertyRetirement &	Retire, int32 OutAckPacketId )
+static FORCEINLINE FPropertyRetirement ** UpdateAckedRetirements( FPropertyRetirement &	Retire, const int32 OutAckPacketId, const UObject* Object )
 {
-	ValidateRetirementHistory( Retire );
+	ValidateRetirementHistory( Retire, Object );
 
 	FPropertyRetirement ** Rec = &Retire.Next;	// Note the first element is 'head' that we dont actually use
 
@@ -797,12 +855,12 @@ void FObjectReplicator::ReplicateCustomDeltaProperties( FNetBitWriter & Bunch, F
 
 		// Update Retirement records with this new state so we can handle packet drops.
 		// LastNext will be pointer to the last "Next" pointer in the list (so pointer to a pointer)
-		FPropertyRetirement ** LastNext = UpdateAckedRetirements( Retire, OwningChannelConnection->OutAckPacketId );
+		FPropertyRetirement ** LastNext = UpdateAckedRetirements( Retire, OwningChannelConnection->OutAckPacketId, Object );
 
 		check( LastNext != NULL );
 		check( *LastNext == NULL );
 
-		ValidateRetirementHistory( Retire );
+		ValidateRetirementHistory( Retire, Object );
 
 		FNetBitWriter TempBitWriter( OwningChannel->Connection->PackageMap, 0 );
 
@@ -912,7 +970,9 @@ void FObjectReplicator::ForceRefreshUnreliableProperties()
 
 void FObjectReplicator::PostSendBunch( FPacketIdRange & PacketRange, uint8 bReliable )
 {
-	if ( GetObject() == NULL )
+	const UObject* Object = GetObject();
+
+	if ( Object == nullptr )
 	{
 		UE_LOG(LogNet, Verbose, TEXT("PostSendBunch: Object == NULL"));
 		return;
@@ -943,7 +1003,7 @@ void FObjectReplicator::PostSendBunch( FPacketIdRange & PacketRange, uint8 bReli
 			Next = Next->Next;
 		}
 
-		ValidateRetirementHistory( Retire );
+		ValidateRetirementHistory( Retire, Object );
 	}
 }
 

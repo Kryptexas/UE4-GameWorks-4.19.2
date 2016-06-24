@@ -16,8 +16,7 @@
 #include "BonePose.h"
 #include "Animation/BlendProfile.h"
 #include "SkeletalRender.h"
-#include "Animation/VertexAnim/VertexAnimBase.h"
-#include "Animation/VertexAnim/MorphTarget.h"
+#include "Animation/MorphTarget.h"
 
 DEFINE_LOG_CATEGORY(LogAnimation);
 DEFINE_LOG_CATEGORY(LogRootMotion);
@@ -27,38 +26,6 @@ DECLARE_CYCLE_STAT(TEXT("ConvertMeshRotPoseToLocalSpace"), STAT_ConvertMeshRotPo
 DECLARE_CYCLE_STAT(TEXT("AccumulateMeshSpaceRotAdditiveToLocalPose"), STAT_AccumulateMeshSpaceRotAdditiveToLocalPose, STATGROUP_Anim);
 DECLARE_CYCLE_STAT(TEXT("BlendPosesPerBoneFilter"), STAT_BlendPosesPerBoneFilter, STATGROUP_Anim);
 
-
-/////////////////////////////////////////////////////////
-// Templated Transform Blend Functionality
-
-namespace ETransformBlendMode
-{
-	enum Type
-	{
-		Overwrite,
-		Accumulate
-	};
-}
-
-template<int32>
-void BlendTransform(const FTransform& Source, FTransform& Dest, const float BlendWeight)
-{
-	check(false); /// should never call this
-}
-
-template<>
-void BlendTransform<ETransformBlendMode::Overwrite>(const FTransform& Source, FTransform& Dest, const float BlendWeight)
-{
-	const ScalarRegister VBlendWeight(BlendWeight);
-	Dest = Source * VBlendWeight;
-}
-
-template<>
-void BlendTransform<ETransformBlendMode::Accumulate>(const FTransform& Source, FTransform& Dest, const float BlendWeight)
-{
-	const ScalarRegister VBlendWeight(BlendWeight);
-	Dest.AccumulateWithShortestRotation(Source, VBlendWeight);
-}
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -108,19 +75,6 @@ FORCEINLINE void BlendPose(const FCompactPose& SourcePose, FCompactPose& ResultP
 	for (FCompactPoseBoneIndex BoneIndex : SourcePose.ForEachBoneIndex())
 	{
 		BlendTransform<TRANSFORM_BLEND_MODE>(SourcePose[BoneIndex], ResultPose[BoneIndex], BlendWeight);
-	}
-}
-
-FORCEINLINE void BlendCurves(const TFixedSizeArrayView<FBlendedCurve>& SourceCurves, const TFixedSizeArrayView<float>& SourceWeights, FBlendedCurve& OutCurve)
-{
-	if (SourceCurves.Num() > 0)
-	{
-		OutCurve.Override(SourceCurves[0], SourceWeights[0]);
-
-		for (int32 CurveIndex = 1; CurveIndex<SourceCurves.Num(); ++CurveIndex)
-		{
-			OutCurve.Accumulate(SourceCurves[CurveIndex], SourceWeights[CurveIndex]);
-		}
 	}
 }
 
@@ -488,6 +442,14 @@ void FAnimationRuntime::CombineWithAdditiveAnimations(int32 NumAdditivePoses, co
 	}
 }
 
+void FAnimationRuntime::ConvertTransformToAdditive(FTransform& TargetTransform, const FTransform& BaseTransform)
+{
+	TargetTransform.SetRotation(TargetTransform.GetRotation() * BaseTransform.GetRotation().Inverse());
+	TargetTransform.SetTranslation(TargetTransform.GetTranslation() - BaseTransform.GetTranslation());
+	TargetTransform.SetScale3D(TargetTransform.GetScale3D() * BaseTransform.GetSafeScaleReciprocal(BaseTransform.GetScale3D()));
+	TargetTransform.NormalizeRotation();
+}
+
 void FAnimationRuntime::ConvertPoseToAdditive(FCompactPose& TargetPose, const FCompactPose& BasePose)
 {
 	for (FCompactPoseBoneIndex BoneIndex : BasePose.ForEachBoneIndex())
@@ -495,10 +457,7 @@ void FAnimationRuntime::ConvertPoseToAdditive(FCompactPose& TargetPose, const FC
 		FTransform& TargetTransform = TargetPose[BoneIndex];
 		const FTransform& BaseTransform = BasePose[BoneIndex];
 
-		TargetTransform.SetRotation(TargetTransform.GetRotation() * BaseTransform.GetRotation().Inverse());
-		TargetTransform.SetTranslation(TargetTransform.GetTranslation() - BaseTransform.GetTranslation());
-		TargetTransform.SetScale3D(TargetTransform.GetScale3D() * BaseTransform.GetSafeScaleReciprocal(BaseTransform.GetScale3D()));
-		TargetTransform.NormalizeRotation();
+		ConvertTransformToAdditive(TargetTransform, BaseTransform);
 	}
 }
 
@@ -531,6 +490,7 @@ void FAnimationRuntime::ConvertMeshRotationPoseToLocalSpace(FCompactPose& Pose)
 		Pose[BoneIndex].SetRotation(LocalSpaceRotation);
 	}
 }
+
 void FAnimationRuntime::AccumulateAdditivePose(FCompactPose& BasePose, const FCompactPose& AdditivePose, FBlendedCurve& BaseCurve, const FBlendedCurve& AdditiveCurve, float Weight, enum EAdditiveAnimationType AdditiveType)
 {
 	if (AdditiveType == AAT_RotationOffsetMeshSpace)
@@ -783,6 +743,11 @@ void FAnimationRuntime::ConvertPoseToMeshSpace(const TArray<FTransform>& LocalTr
 	}
 }
 
+struct FEnsureParentsPresentScratchArea : public TThreadSingleton<FEnsureParentsPresentScratchArea>
+{
+	TArray<bool> BoneExists;
+};
+
 /** 
  *	Utility for taking an array of bone indices and ensuring that all parents are present 
  *	(ie. all bones between those in the array and the root are present). 
@@ -793,6 +758,11 @@ void FAnimationRuntime::EnsureParentsPresent(TArray<FBoneIndexType>& BoneIndices
 	const int32 NumBones = SkelMesh->RefSkeleton.GetNum();
 	// Iterate through existing array.
 	int32 i=0;
+
+	TArray<bool>& BoneExists = FEnsureParentsPresentScratchArea::Get().BoneExists;
+	BoneExists.Reset();
+	BoneExists.SetNumZeroed(NumBones);
+
 	while( i<BoneIndices.Num() )
 	{
 		const int32 BoneIndex = BoneIndices[i];
@@ -811,15 +781,18 @@ void FAnimationRuntime::EnsureParentsPresent(TArray<FBoneIndexType>& BoneIndices
 				continue;
 			}
 #endif
+			BoneExists[BoneIndex] = true;
+
 			const int32 ParentIndex = SkelMesh->RefSkeleton.GetParentIndex(BoneIndex);
 
 			// If we do not have this parent in the array, we add it in this location, and leave 'i' where it is.
 			// This can happen if somebody removes bones in the physics asset, then it will try add back in, and in the process, 
 			// parent can be missing
-			if( !BoneIndices.Contains(ParentIndex) )
+			if (!BoneExists[ParentIndex])
 			{
 				BoneIndices.InsertUninitialized(i);
 				BoneIndices[i] = ParentIndex;
+				BoneExists[ParentIndex] = true;
 			}
 			// If parent was in array, just move on.
 			else
@@ -829,6 +802,7 @@ void FAnimationRuntime::EnsureParentsPresent(TArray<FBoneIndexType>& BoneIndices
 		}
 		else
 		{
+			BoneExists[0] = true;
 			i++;
 		}
 	}
@@ -1301,69 +1275,60 @@ bool FAnimationRuntime::ContainsNaN(TArray<FBoneIndexType>& RequiredBoneIndices,
 #endif
 
 #if WITH_EDITOR
+void FAnimationRuntime::FillUpSpaceBases(const FReferenceSkeleton& RefSkeleton, const TArray<FTransform> &LocalAtoms, TArray<FTransform> &SpaceBases)
+{
+	SpaceBases.Empty(RefSkeleton.GetNum());
+	SpaceBases.AddUninitialized(RefSkeleton.GetNum());
+
+	// initialize to identity since some of them don't have tracks
+	for (int Index = 0; Index < SpaceBases.Num(); ++Index)
+	{
+		int32 ParentIndex = RefSkeleton.GetParentIndex(Index);
+		if (ParentIndex != INDEX_NONE)
+		{
+			SpaceBases[Index] = LocalAtoms[Index] * SpaceBases[ParentIndex];
+		}
+		else
+		{
+			SpaceBases[Index] = LocalAtoms[Index];
+		}
+	}
+}
+
 void FAnimationRuntime::FillUpSpaceBasesRefPose(const USkeleton* Skeleton, TArray<FTransform> &SpaceBaseRefPose)
 {
 	check(Skeleton);
 
-	const TArray<FTransform>& ReferencePose = Skeleton->GetReferenceSkeleton().GetRefBonePose();
-	SpaceBaseRefPose.Empty(ReferencePose.Num());
-	SpaceBaseRefPose.AddUninitialized(ReferencePose.Num());
-
-	// initialize to identity since some of them don't have tracks
-	for(int Index=0; Index <SpaceBaseRefPose.Num(); ++Index)
-	{
-		int32 ParentIndex = Skeleton->GetReferenceSkeleton().GetParentIndex(Index);
-		if(ParentIndex != INDEX_NONE)
-		{
-			SpaceBaseRefPose[Index] = ReferencePose[Index] * SpaceBaseRefPose[ParentIndex];
-		}
-		else
-		{
-			SpaceBaseRefPose[Index] = ReferencePose[Index];
-		}
-	}
+	const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
+	const TArray<FTransform>& ReferencePose = RefSkeleton.GetRefBonePose();
+	FillUpSpaceBases(RefSkeleton, ReferencePose, SpaceBaseRefPose);
 }
 
-void FAnimationRuntime::FillUpSpaceBasesRetargetBasePose(const USkeleton* Skeleton, TArray<FTransform> &SpaceBaseRefPose)
+void FAnimationRuntime::FillUpSpaceBasesRetargetBasePose(const USkeleton* Skeleton, TArray<FTransform> &SpaceBases)
 {
 	check(Skeleton);
 
 	// @Todo fixme: this has to get preview mesh instead of skeleton
-	
 	const USkeletalMesh* PreviewMesh = Skeleton->GetPreviewMesh();
 	if (PreviewMesh)
 	{
 		const TArray<FTransform>& ReferencePose = PreviewMesh->RetargetBasePose;
-		SpaceBaseRefPose.Empty(ReferencePose.Num());
-		SpaceBaseRefPose.AddUninitialized(ReferencePose.Num());
-
-		// initialize to identity since some of them don't have tracks
-		for(int Index=0; Index <SpaceBaseRefPose.Num(); ++Index)
-		{
-			int32 ParentIndex = PreviewMesh->RefSkeleton.GetParentIndex(Index);
-			if(ParentIndex != INDEX_NONE)
-			{
-				SpaceBaseRefPose[Index] = ReferencePose[Index] * SpaceBaseRefPose[ParentIndex];
-			}
-			else
-			{
-				SpaceBaseRefPose[Index] = ReferencePose[Index];
-			}
-		}
+		const FReferenceSkeleton& RefSkeleton = PreviewMesh->RefSkeleton;
+		FillUpSpaceBases(RefSkeleton, ReferencePose, SpaceBases);
 	}
 	else
 	{
-		FAnimationRuntime::FillUpSpaceBasesRefPose(Skeleton, SpaceBaseRefPose);
+		FAnimationRuntime::FillUpSpaceBasesRefPose(Skeleton, SpaceBases);
 	}
 }
 #endif // WITH_EDITOR
 
-/** See if an array of ActiveVertexAnims already contains the supplied anim */
-static int32 FindVertexAnim(const TArray<FActiveVertexAnim>& ActiveAnims, UVertexAnimBase* Anim)
+/** See if an array of ActiveMorphTargets already contains the supplied anim */
+static int32 FindMorphTarget(const TArray<FActiveMorphTarget>& ActiveMorphTargets, UMorphTarget* InMorphTarget)
 {
-	for(int32 i=0; i<ActiveAnims.Num(); i++)
+	for(int32 i=0; i<ActiveMorphTargets.Num(); i++)
 	{
-		if(ActiveAnims[i].VertAnim == Anim)
+		if(ActiveMorphTargets[i].MorphTarget == InMorphTarget)
 		{
 			return i;
 		}
@@ -1372,38 +1337,96 @@ static int32 FindVertexAnim(const TArray<FActiveVertexAnim>& ActiveAnims, UVerte
 	return INDEX_NONE;
 }
 
-void FAnimationRuntime::AppendActiveVertexAnims(const USkeletalMesh* InSkeletalMesh, const TMap<FName, float>& MorphCurveAnims, TArray<FActiveVertexAnim>& InOutActiveAnims)
+void FAnimationRuntime::AppendActiveMorphTargets(const USkeletalMesh* InSkeletalMesh, const TMap<FName, float>& MorphCurveAnims, TArray<FActiveMorphTarget>& InOutActiveMorphTargets, TArray<float>& InOutMorphTargetWeights)
 {
-
 	// Then go over the CurveKeys finding morph targets by name
 	for(auto CurveIter=MorphCurveAnims.CreateConstIterator(); CurveIter; ++CurveIter)
 	{
 		const FName& CurveName	= (CurveIter).Key();
-		const float& Weight	= (CurveIter).Value();
+		const float Weight	= (CurveIter).Value();
 
 		// If it has a valid weight
-		if(FMath::Abs(Weight) > MinVertexAnimBlendWeight)
+		if(FMath::Abs(Weight) > MinMorphTargetBlendWeight)
 		{
 			// Find morph reference
-			UMorphTarget* Target = InSkeletalMesh ? InSkeletalMesh->FindMorphTarget(CurveName) : NULL;
-			if(Target != NULL)				
+			int32 SkeletalMorphIndex = INDEX_NONE;
+			UMorphTarget* Target = InSkeletalMesh ? InSkeletalMesh->FindMorphTargetAndIndex(CurveName, SkeletalMorphIndex) : nullptr;
+			if (Target != nullptr)
 			{
 				// See if this morph target already has an entry
-				int32 AnimIndex = FindVertexAnim(InOutActiveAnims, Target);
+				int32 MorphIndex = FindMorphTarget(InOutActiveMorphTargets, Target);
 				// If not, add it
-				if(AnimIndex == INDEX_NONE)
+				if(MorphIndex == INDEX_NONE)
 				{
-					InOutActiveAnims.Add(FActiveVertexAnim(Target, Weight));
+					InOutActiveMorphTargets.Add(FActiveMorphTarget(Target, SkeletalMorphIndex));
+					InOutMorphTargetWeights[SkeletalMorphIndex] = Weight;
 				}
-				// If it does, use the max weight
 				else
 				{
-					const float CurrentWeight = InOutActiveAnims[AnimIndex].Weight;
-					InOutActiveAnims[AnimIndex].Weight = FMath::Max<float>(CurrentWeight, Weight);
+					// If it does, use the max weight
+					check(SkeletalMorphIndex == InOutActiveMorphTargets[MorphIndex].WeightIndex);
+					float& CurrentWeight = InOutMorphTargetWeights[SkeletalMorphIndex];
+					CurrentWeight = FMath::Max<float>(CurrentWeight, Weight);
 				}
 			}
 		}
 	}
+}
+
+int32 FAnimationRuntime::GetStringDistance(const FString& First, const FString& Second) 
+{
+	// Finds the distance between strings, where the distance is the number of operations we would need
+	// to perform on First to match Second.
+	// Operations are: Adding a character, Removing a character, changing a character.
+
+	const int32 FirstLength = First.Len();
+	const int32 SecondLength = Second.Len();
+
+	// Already matching
+	if (First == Second)
+	{
+		return 0;
+	}
+
+	// No first string, so we need to add SecondLength characters to match
+	if (FirstLength == 0)
+	{
+		return SecondLength;
+	}
+
+	// No Second string, so we need to add FirstLength characters to match
+	if (SecondLength == 0)
+	{
+		return FirstLength;
+	}
+
+	TArray<int32> PrevRow;
+	TArray<int32> NextRow;
+	PrevRow.AddZeroed(SecondLength + 1);
+	NextRow.AddZeroed(SecondLength + 1);
+
+	// Initialise prev row to num characters we need to remove from Second
+	for (int32 I = 0; I < PrevRow.Num(); ++I)
+	{
+		PrevRow[I] = I;
+	}
+
+	for (int32 I = 0; I < FirstLength; ++I)
+	{
+		// Calculate current row
+		NextRow[0] = I + 1;
+
+		for (int32 J = 0; J < SecondLength; ++J)
+		{
+			int32 Indicator = (First[I] == Second[J]) ? 0 : 1;
+			NextRow[J + 1] = FMath::Min3(NextRow[J] + 1, PrevRow[J + 1] + 1, PrevRow[J] + Indicator);
+		}
+
+		// Copy back
+		PrevRow = NextRow;
+	}
+
+	return NextRow[SecondLength];
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////

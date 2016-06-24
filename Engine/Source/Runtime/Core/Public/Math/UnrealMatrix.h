@@ -472,14 +472,14 @@ FORCEINLINE FMatrix FMatrix::ConcatTranslation(const FVector& Translation) const
 	return Result;
 }
 
-/** Returns true if any element of this matrix is NaN */
+/** Returns true if any element of this matrix is not finite */
 inline bool FMatrix::ContainsNaN() const
 {
 	for(int32 i=0; i<4; i++)
 	{
 		for(int32 j=0; j<4; j++)
 		{
-			if(FMath::IsNaN(M[i][j]) || !FMath::IsFinite(M[i][j]))
+			if(!FMath::IsFinite(M[i][j]))
 			{
 				return true;
 			}

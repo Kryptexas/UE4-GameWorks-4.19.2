@@ -69,7 +69,7 @@ class FPostProcessHMDVS : public FGlobalShader
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-		OutEnvironment.SetDefine(TEXT("USE_TIMEWARP"), uint32(bTimeWarp ? 1 : 0));
+		OutEnvironment.SetDefine(TEXT("USE_TIMEWARP"), bTimeWarp);
 	}
 
 	/** Default constructor. */
@@ -176,7 +176,7 @@ public:
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-		OutEnvironment.SetDefine(TEXT("USE_TIMEWARP"), uint32(bTimeWarp ? 1 : 0));
+		OutEnvironment.SetDefine(TEXT("USE_TIMEWARP"), bTimeWarp);
 	}
 };
 

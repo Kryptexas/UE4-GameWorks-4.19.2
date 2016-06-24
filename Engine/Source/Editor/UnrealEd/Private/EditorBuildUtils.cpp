@@ -922,6 +922,9 @@ void FBuildAllHandler::ResumeBuild()
 	// Resuming from async operation, may be about to do slow stuff again so show the progress window again.
 	TWeakPtr<SBuildProgressWidget> BuildProgressWidget = GWarn->ShowBuildProgressWindow();
 
+	// We have to increment the build step, resuming from an async build step
+	CurrentStep++;
+
 	ProcessBuild(BuildProgressWidget);
 
 	// Synchronous part completed, hide the build progress dialog.

@@ -31,6 +31,8 @@ namespace
 		case EBreakIteratorType::Title:
 			FactoryFunction = icu::BreakIterator::createTitleInstance;
 			break;
+		default:
+			checkf(false, TEXT("Unhandled break iterator type"));
 		}
 		TSharedPtr<const icu::BreakIterator> Ptr = MakeShareable( FactoryFunction(ICULocale, ICUStatus) );
 		checkf(Ptr.IsValid(), TEXT("Creating a break iterator object failed using locale %s. Perhaps this locale has no data."), StringCast<TCHAR>(ICULocale.getName()).Get());

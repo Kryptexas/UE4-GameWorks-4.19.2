@@ -8,19 +8,19 @@
 #include "RawIndexBuffer.h"
 #include "MeshBuild.h"
 #include "PhysicsEngine/PhysXSupport.h"
-#include "Animation/VertexAnim/MorphTarget.h"
+#include "Animation/MorphTarget.h"
 
 
 /** compare based on base mesh source vertex indices */
-struct FCompareVertexAnimDeltas
+struct FCompareMorphTargetDeltas
 {
-	FORCEINLINE bool operator()( const FVertexAnimDelta& A, const FVertexAnimDelta& B ) const
+	FORCEINLINE bool operator()( const FMorphTargetDelta& A, const FMorphTargetDelta& B ) const
 	{
 		return ((int32)A.SourceIdx - (int32)B.SourceIdx) < 0 ? true : false;
 	}
 };
 
-FVertexAnimDelta* UMorphTarget::GetDeltasAtTime(float Time, int32 LODIndex, FVertexAnimEvalStateBase* State, int32& OutNumDeltas)
+FMorphTargetDelta* UMorphTarget::GetMorphTargetDelta(int32 LODIndex, int32& OutNumDeltas)
 {
 	if(LODIndex < MorphLODModels.Num())
 	{
@@ -55,9 +55,9 @@ void UMorphTarget::CreateMorphMeshStreams( const FMorphMeshRawSource& BaseSource
 	check(BaseSource.IsValidTarget(TargetSource));
 
 	// create the LOD entry if it doesn't already exist
-	if( LODIndex == MorphLODModels.Num() )
+	if( LODIndex >= MorphLODModels.Num() )
 	{
-		new(MorphLODModels) FMorphTargetLODModel();
+		MorphLODModels.AddDefaulted(LODIndex - MorphLODModels.Num() + 1);
 	}
 
 	// morph mesh data to modify
@@ -126,7 +126,7 @@ void UMorphTarget::CreateMorphMeshStreams( const FMorphMeshRawSource& BaseSource
 						( bCompareNormal && NormalDeltaZ.SizeSquared() > 0.01f) )
 					{
 						// create a new entry
-						FVertexAnimDelta NewVertex;
+						FMorphTargetDelta NewVertex;
 						// position delta
 						NewVertex.PositionDelta = PositionDelta;
 						// normal delta
@@ -145,7 +145,7 @@ void UMorphTarget::CreateMorphMeshStreams( const FMorphMeshRawSource& BaseSource
 	// sort the array of vertices for this morph target based on the base mesh indices 
 	// that each vertex is associated with. This allows us to sequentially traverse the list
 	// when applying the morph blends to each vertex.
-	MorphModel.Vertices.Sort(FCompareVertexAnimDeltas());
+	MorphModel.Vertices.Sort(FCompareMorphTargetDeltas());
 
 	// remove array slack
 	MorphModel.Vertices.Shrink();
@@ -225,7 +225,7 @@ void UMorphTarget::RemapVertexIndices( USkeletalMesh* InBaseMesh, const TArray< 
 				}
 			}
 
-			MorphLODModel.Vertices.Sort(FCompareVertexAnimDeltas());
+			MorphLODModel.Vertices.Sort(FCompareMorphTargetDeltas());
 		}
 	}
 }
@@ -246,71 +246,7 @@ FMorphMeshRawSource::FMorphMeshRawSource( USkeletalMesh* SrcMesh, int32 LODIndex
 	// get the mesh data for the given lod
 	FStaticLODModel& LODModel = ImportedResource->LODModels[LODIndex];
 
-
-	// vertices are packed in this order iot stay consistent
-	// with the indexing used by the FStaticLODModel vertex buffer
-	//
-	//	Chunk0
-	//		Rigid0
-	//		Rigid1
-	//		Soft0
-	//		Soft1
-	//	Chunk1
-	//		Rigid0
-	//		Rigid1
-	//		Soft0
-	//		Soft1
-
-	// iterate over the chunks for the skeletal mesh
-	for( int32 ChunkIdx=0; ChunkIdx < LODModel.Chunks.Num(); ChunkIdx++ )
-	{
-		// each chunk has both rigid and smooth vertices
-		const FSkelMeshChunk& Chunk = LODModel.Chunks[ChunkIdx];
-		// rigid vertices should always be added first so that we are
-		// consistent with the way vertices are packed in the FStaticLODModel vertex buffer
-		for( int32 VertexIdx=0; VertexIdx < Chunk.RigidVertices.Num(); VertexIdx++ )
-		{
-			const FRigidSkinVertex& SourceVertex = Chunk.RigidVertices[VertexIdx];
-			FMorphMeshVertexRaw RawVertex = 
-			{
-				SourceVertex.Position,
-				SourceVertex.TangentX,
-				SourceVertex.TangentY,
-				SourceVertex.TangentZ
-			};
-			Vertices.Add( RawVertex );			
-		}
-		// smooth vertices are added next. The resulting Vertices[] array should
-		// match the FStaticLODModel vertex buffer when indexing vertices
-		for( int32 VertexIdx=0; VertexIdx < Chunk.SoftVertices.Num(); VertexIdx++ )
-		{
-			const FSoftSkinVertex& SourceVertex = Chunk.SoftVertices[VertexIdx];
-			FMorphMeshVertexRaw RawVertex = 
-			{
-				SourceVertex.Position,
-				SourceVertex.TangentX,
-				SourceVertex.TangentY,
-				SourceVertex.TangentZ
-			};
-			Vertices.Add( RawVertex );			
-		}		
-	}
-
-	// Copy the indices manually, since the LODModel's index buffer may have a different alignment.
-	Indices.Empty(LODModel.MultiSizeIndexContainer.GetIndexBuffer()->Num());
-	for(int32 Index = 0;Index < LODModel.MultiSizeIndexContainer.GetIndexBuffer()->Num();Index++)
-	{
-		Indices.Add(LODModel.MultiSizeIndexContainer.GetIndexBuffer()->Get(Index));
-	}
-
-	// copy the wedge point indices
-	if( LODModel.RawPointIndices.GetBulkDataSize() )
-	{
-		WedgePointIndices.Empty( LODModel.RawPointIndices.GetElementCount() );
-		WedgePointIndices.AddUninitialized( LODModel.RawPointIndices.GetElementCount() );
-		FMemory::Memcpy( WedgePointIndices.GetData(), LODModel.RawPointIndices.Lock(LOCK_READ_ONLY), LODModel.RawPointIndices.GetBulkDataSize() );
-		LODModel.RawPointIndices.Unlock();
-	}
+	Initialize(LODModel);
 }
 
 FMorphMeshRawSource::FMorphMeshRawSource(FStaticLODModel& LODModel)
@@ -320,44 +256,22 @@ FMorphMeshRawSource::FMorphMeshRawSource(FStaticLODModel& LODModel)
 
 void FMorphMeshRawSource::Initialize(FStaticLODModel& LODModel)
 {
-	// vertices are packed in this order iot stay consistent
-	// with the indexing used by the FStaticLODModel vertex buffer
+	// vertices are packed to stay consistent with the indexing used by the FStaticLODModel vertex buffer
 	//
 	//	Chunk0
-	//		Rigid0
-	//		Rigid1
 	//		Soft0
 	//		Soft1
 	//	Chunk1
-	//		Rigid0
-	//		Rigid1
 	//		Soft0
 	//		Soft1
 
 	// iterate over the chunks for the skeletal mesh
-	for (int32 ChunkIdx = 0; ChunkIdx < LODModel.Chunks.Num(); ChunkIdx++)
+	for (int32 SectionIdx = 0; SectionIdx < LODModel.Sections.Num(); SectionIdx++)
 	{
-		// each chunk has both rigid and smooth vertices
-		const FSkelMeshChunk& Chunk = LODModel.Chunks[ChunkIdx];
-		// rigid vertices should always be added first so that we are
-		// consistent with the way vertices are packed in the FStaticLODModel vertex buffer
-		for (int32 VertexIdx = 0; VertexIdx < Chunk.RigidVertices.Num(); VertexIdx++)
+		const FSkelMeshSection& Section = LODModel.Sections[SectionIdx];
+		for (int32 VertexIdx = 0; VertexIdx < Section.SoftVertices.Num(); VertexIdx++)
 		{
-			const FRigidSkinVertex& SourceVertex = Chunk.RigidVertices[VertexIdx];
-			FMorphMeshVertexRaw RawVertex =
-			{
-				SourceVertex.Position,
-				SourceVertex.TangentX,
-				SourceVertex.TangentY,
-				SourceVertex.TangentZ
-			};
-			Vertices.Add(RawVertex);
-		}
-		// smooth vertices are added next. The resulting Vertices[] array should
-		// match the FStaticLODModel vertex buffer when indexing vertices
-		for (int32 VertexIdx = 0; VertexIdx < Chunk.SoftVertices.Num(); VertexIdx++)
-		{
-			const FSoftSkinVertex& SourceVertex = Chunk.SoftVertices[VertexIdx];
+			const FSoftSkinVertex& SourceVertex = Section.SoftVertices[VertexIdx];
 			FMorphMeshVertexRaw RawVertex =
 			{
 				SourceVertex.Position,

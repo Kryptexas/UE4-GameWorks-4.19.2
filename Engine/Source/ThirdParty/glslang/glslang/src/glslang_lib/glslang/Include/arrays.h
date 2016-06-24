@@ -160,13 +160,13 @@ struct TSmallArrayVector {
 
     unsigned int getDimSize(int i) const
     {
-        assert(sizes != nullptr  && (int)sizes->size() > i);
+        assert(sizes != nullptr && (int)sizes->size() > i);
         return (*sizes)[i].size;
     }
 
     void setDimSize(int i, unsigned int size) const
     {
-        assert(sizes != nullptr  && (int)sizes->size() > i);
+        assert(sizes != nullptr && (int)sizes->size() > i);
         assert((*sizes)[i].node == nullptr);
         (*sizes)[i].size = size;
     }

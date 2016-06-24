@@ -15,6 +15,8 @@ void FQosModule::StartupModule()
 
 void FQosModule::ShutdownModule()
 {
+	ensure(QosInterface.IsUnique());
+	QosInterface = nullptr;
 }
 
 TSharedRef<FQosInterface> FQosModule::GetQosInterface()
@@ -22,6 +24,7 @@ TSharedRef<FQosInterface> FQosModule::GetQosInterface()
 	if (!QosInterface.IsValid())
 	{
 		QosInterface = MakeShareable(new FQosInterface());
+		QosInterface->Init();
 	}
 	return QosInterface.ToSharedRef();
 }
@@ -31,7 +34,11 @@ bool FQosModule::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 	// Ignore any execs that don't start with Qos
 	if (FParse::Command(&Cmd, TEXT("Qos")))
 	{
-		return false;
+		if (FParse::Command(&Cmd, TEXT("DumpRegions")))
+		{
+			GetQosInterface()->DumpRegionStats();
+		}
+		return true;
 	}
 
 	return false;

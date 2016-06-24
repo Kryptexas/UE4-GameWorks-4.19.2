@@ -4,6 +4,24 @@
 #include "MetalStateCache.h"
 #include "MetalProfiler.h"
 
+static TAutoConsoleVariable<int32> CVarMetalVertexParameterSize(
+	TEXT("r.MetalVertexParameterSize"),
+	1024,
+	TEXT("Amount of entries to use for VertexParameter space (multiples of 1024), defaults to 1024"),
+	ECVF_Default);
+
+static TAutoConsoleVariable<int32> CVarMetalPixelParameterSize(
+	TEXT("r.MetalPixelParameterSize"),
+	1024,
+	TEXT("Amount of entries to use for PixelParameter space (multiples of 1024), defaults to 1024"),
+	ECVF_Default);
+
+static TAutoConsoleVariable<int32> CVarMetalComputeParameterSize(
+	TEXT("r.MetalComputeParameterSize"),
+	1024,
+	TEXT("Amount of entries to use for ComputeParameter space (multiples of 1024), defaults to 1024"),
+	ECVF_Default);
+
 static MTLTriangleFillMode TranslateFillMode(ERasterizerFillMode FillMode)
 {
 	switch (FillMode)
@@ -36,23 +54,31 @@ FMetalStateCache::FMetalStateCache(FMetalCommandEncoder& InCommandEncoder)
 , FrameBufferSize(CGSizeMake(0.0, 0.0))
 , RenderTargetArraySize(1)
 , bHasValidRenderTarget(false)
+, bHasValidColorTarget(false)
 , bScissorRectEnabled(false)
 {
 	Viewport.originX = Viewport.originY = Viewport.width = Viewport.height = Viewport.znear = Viewport.zfar = 0.0;
 	Scissor.x = Scissor.y = Scissor.width = Scissor.height;
 	
 	FMemory::Memzero(VertexBuffers, sizeof(VertexBuffers));
-	FMemory::Memzero(VertexStrides, sizeof(VertexStrides));
-	
-	FMemory::Memzero(RenderTargetsInfo);
-	
+	FMemory::Memzero(VertexStrides, sizeof(VertexStrides));	
+	FMemory::Memzero(RenderTargetsInfo);	
 	FMemory::Memzero(DirtyUniformBuffers);
 	
 	//@todo-rco: What Size???
 	// make a buffer for each shader type
-	ShaderParameters[CrossCompiler::SHADER_STAGE_VERTEX].InitializeResources(1024*1024);
-	ShaderParameters[CrossCompiler::SHADER_STAGE_PIXEL].InitializeResources(1024*1024);
-	ShaderParameters[CrossCompiler::SHADER_STAGE_COMPUTE].InitializeResources(1024*1024);
+	IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MetalVertexParameterSize"));
+	int SizeMult = CVar->GetInt();
+	ShaderParameters[CrossCompiler::SHADER_STAGE_VERTEX].InitializeResources(SizeMult * 1024);
+	CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MetalPixelParameterSize"));
+	SizeMult = CVar->GetInt();
+	ShaderParameters[CrossCompiler::SHADER_STAGE_PIXEL].InitializeResources(SizeMult * 1024);
+	if (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4 )
+	{
+		CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MetalComputeParameterSize"));
+		SizeMult = CVar->GetInt();
+		ShaderParameters[CrossCompiler::SHADER_STAGE_COMPUTE].InitializeResources(SizeMult * 1024);
+	}
 }
 
 FMetalStateCache::~FMetalStateCache()
@@ -74,11 +100,16 @@ void FMetalStateCache::Reset(void)
 	}
 	
 	PipelineDesc.Hash = 0;
+	if (PipelineDesc.PipelineDescriptor)
+	{
+		PipelineDesc.PipelineDescriptor.depthAttachmentPixelFormat = MTLPixelFormatInvalid;
+	}
 	
 	Viewport.originX = Viewport.originY = Viewport.width = Viewport.height = Viewport.znear = Viewport.zfar = 0.0;
 	
 	FMemory::Memzero(RenderTargetsInfo);
 	bHasValidRenderTarget = false;
+	bHasValidColorTarget = false;
 	
 	FMemory::Memzero(DirtyUniformBuffers);
 	
@@ -92,6 +123,7 @@ void FMetalStateCache::Reset(void)
 	RasterizerState.SafeRelease();
 	BoundShaderState.SafeRelease();
 	ComputeShader.SafeRelease();
+	DepthStencilSurface.SafeRelease();
 	StencilRef = 0;
 	
 	BlendFactor = FLinearColor::Transparent;
@@ -264,6 +296,7 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 		PipelineDesc.SampleCount = 0;
 	
 		bHasValidRenderTarget = false;
+		bHasValidColorTarget = false;
 		
 		uint8 ArrayTargets = 0;
 		uint8 BoundTargets = 0;
@@ -302,11 +335,8 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 	
 				BoundTargets |= 1 << RenderTargetIndex;
 				
-	            if (Surface.Texture == nil)
-	            {
-	                PipelineDesc.SampleCount = OldCount;
-	                return;
-	            }
+				// The surface cannot be nil - we have to have a valid render-target array after this call.
+				check (Surface.Texture != nil);
 	
 				// user code generally passes -1 as a default, but we need 0
 				uint32 ArraySliceIndex = RenderTargetView.ArraySliceIndex == 0xFFFFFFFF ? 0 : RenderTargetView.ArraySliceIndex;
@@ -367,7 +397,8 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 					ColorAttachment.slice = ArraySliceIndex;
 				}
 				
-				ColorAttachment.loadAction = GetMetalRTLoadAction(RenderTargetView.LoadAction);
+				ColorAttachment.loadAction = (Surface.bWritten || !CommandEncoder.IsImmediate()) ? GetMetalRTLoadAction(RenderTargetView.LoadAction) : MTLLoadActionClear;
+				Surface.bWritten = true;
 				
 				bNeedsClear |= (ColorAttachment.loadAction == MTLLoadActionClear);
 				
@@ -386,6 +417,7 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 				[ColorAttachment release];
 	
 				bHasValidRenderTarget = true;
+				bHasValidColorTarget = true;
 			}
 			else
 			{
@@ -552,7 +584,11 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 				{
 					PipelineDesc.SampleCount = DepthAttachment.texture.sampleCount;
 				}
+				
+				bHasValidRenderTarget = true;
 	
+				bHasValidRenderTarget = true;
+				
 				// and assign it
 				RenderPass.depthAttachment = DepthAttachment;
 				
@@ -592,7 +628,9 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 				{
 					PipelineDesc.SampleCount = StencilAttachment.texture.sampleCount;
 				}
-	
+				
+				bHasValidRenderTarget = true;
+				
 				// and assign it
 				RenderPass.stencilAttachment = StencilAttachment;
 				
@@ -600,6 +638,12 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 				[StencilAttachment release];
 			}
 		}
+		
+		// Retain and/or release the depth-stencil surface in case it is a temporary surface for a draw call that writes to depth without a depth/stencil buffer bound.
+		DepthStencilSurface = RenderTargetsInfo.DepthStencilRenderTarget.Texture;
+		
+		// Assert that the render target state is valid because there appears to be a bug where it isn't.
+		check(bHasValidRenderTarget);
 	
 		// update hash for the depth/stencil buffer & sample count
 		PipelineDesc.SetHashValue(Offset_DepthFormat, NumBits_DepthFormat, DepthFormatKey);
@@ -629,11 +673,15 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 			BoundShaderState.SafeRelease();
 		}
 	}
+	
+	// Ensure that the RenderPassDesc is valid in the CommandEncoder.
+	check(CommandEncoder.IsRenderPassDescriptorValid());
 }
 
 void FMetalStateCache::SetHasValidRenderTarget(bool InHasValidRenderTarget)
 {
 	bHasValidRenderTarget = InHasValidRenderTarget;
+	bHasValidColorTarget = InHasValidRenderTarget;
 }
 
 void FMetalStateCache::SetViewport(const MTLViewport& InViewport)
@@ -748,6 +796,7 @@ void FMetalStateCache::ConditionalUpdateBackBuffer(FMetalSurface& Surface)
 			// set the texture into the backbuffer
 			Surface.GetDrawableTexture();
 		}
+		check (Surface.Texture);
 	}
 }
 
@@ -756,7 +805,7 @@ bool FMetalStateCache::NeedsToSetRenderTarget(const FRHISetRenderTargetsInfo& In
 	// see if our new Info matches our previous Info
 	
 	// basic checks
-	bool bAllChecksPassed = GetHasValidRenderTarget() && CommandEncoder.IsRenderCommandEncoderActive() && InRenderTargetsInfo.NumColorRenderTargets == RenderTargetsInfo.NumColorRenderTargets &&
+	bool bAllChecksPassed = GetHasValidRenderTarget() && CommandEncoder.IsRenderPassDescriptorValid() && CommandEncoder.IsRenderCommandEncoderActive() && InRenderTargetsInfo.NumColorRenderTargets == RenderTargetsInfo.NumColorRenderTargets &&
 		// handle the case where going from backbuffer + depth -> backbuffer + null, no need to reset RT and do a store/load
 		(InRenderTargetsInfo.DepthStencilRenderTarget.Texture == RenderTargetsInfo.DepthStencilRenderTarget.Texture || InRenderTargetsInfo.DepthStencilRenderTarget.Texture == nullptr);
 

@@ -105,15 +105,42 @@ void UObjectBase::CreateStatID() const
 	SCOPE_CYCLE_COUNTER(STAT_CreateStatID);
 
 	FString LongName;
+	LongName.Reserve(255);
+	TArray<UObjectBase const*, TInlineAllocator<24>> ClassChain;
+	
+	// Build class hierarchy
 	UObjectBase const* Target = this;
-	do 
+	do
 	{
-		LongName = Target->GetFName().GetPlainNameString() + (LongName.IsEmpty() ? TEXT("") : TEXT(".")) + LongName;
+		ClassChain.Add(Target);
 		Target = Target->GetOuter();
 	} while(Target);
+
+	// Start with class name
 	if (GetClass())
 	{
-		LongName = GetClass()->GetFName().GetPlainNameString() / LongName;
+		GetClass()->GetFName().GetDisplayNameEntry()->AppendNameToString(LongName);
+	}
+
+	// Now process from parent -> child so we can append strings more efficiently.
+	bool bFirstEntry = true;
+	for (int32 i = ClassChain.Num()-1; i >= 0; i--)
+	{
+		Target = ClassChain[i];
+		const FNameEntry* NameEntry = Target->GetFName().GetDisplayNameEntry();
+		if (bFirstEntry)
+		{
+			NameEntry->AppendNameToPathString(LongName);
+		}
+		else
+		{
+			if (!LongName.IsEmpty())
+			{
+				LongName += TEXT(".");
+			}
+			NameEntry->AppendNameToString(LongName);
+		}			
+		bFirstEntry = false;
 	}
 
 	StatID = FDynamicStats::CreateStatId<FStatGroup_STATGROUP_UObjects>( LongName );
@@ -203,11 +230,12 @@ void UObjectBase::SetClass(UClass* NewClass)
 
 	UnhashObject(this);
 #if USE_UBER_GRAPH_PERSISTENT_FRAME
+	UClass* OldClass = ClassPrivate;
 	ClassPrivate->DestroyPersistentUberGraphFrame((UObject*)this);
 #endif
 	ClassPrivate = NewClass;
 #if USE_UBER_GRAPH_PERSISTENT_FRAME
-	ClassPrivate->CreatePersistentUberGraphFrame((UObject*)this);
+	ClassPrivate->CreatePersistentUberGraphFrame((UObject*)this, /*bCreateOnlyIfEmpty =*/false, /*bSkipSuperClass =*/false, OldClass);
 #endif
 	HashObject(this);
 }
@@ -560,7 +588,7 @@ void UClassCompiledInDefer(FFieldCompiledInInfo* ClassInfo, const TCHAR* Name, S
 	if (ExistingClassInfo)
 	{
 		// Class exists, this can only happen during hot-reload
-		check(GIsHotReload);
+		checkf(GIsHotReload, TEXT("Trying to recreate class '%s' outside of hot reload!"), *CPPClassName.ToString());
 
 		// Get the native name
 		FString NameWithoutPrefix(RemoveClassPrefix(Name));
@@ -727,21 +755,17 @@ static void UObjectLoadAllCompiledInDefaultProperties()
 			Class->GetDefaultObject();
 		}
 		FFeedbackContext& ErrorsFC = UClass::GetDefaultPropertiesFeedbackContext();
-		if (ErrorsFC.Errors.Num() || ErrorsFC.Warnings.Num())
+		if (ErrorsFC.GetNumErrors() || ErrorsFC.GetNumWarnings())
 		{
-			TArray<FString> All;
-			All = ErrorsFC.Errors;
-			All += ErrorsFC.Warnings;
-
-			ErrorsFC.Errors.Empty();
-			ErrorsFC.Warnings.Empty();
+			TArray<FString> AllErrorsAndWarnings;
+			ErrorsFC.GetErrorsAndWarningsAndEmpty(AllErrorsAndWarnings);
 
 			FString AllInOne;
 			UE_LOG(LogUObjectBase, Warning, TEXT("-------------- Default Property warnings and errors:"));
-			for (int32 Index = 0; Index < All.Num(); Index++)
+			for (const FString& ErrorOrWarning : AllErrorsAndWarnings)
 			{
-				UE_LOG(LogUObjectBase, Warning, TEXT("%s"), *All[Index]);
-				AllInOne += All[Index];
+				UE_LOG(LogUObjectBase, Warning, TEXT("%s"), *ErrorOrWarning);
+				AllInOne += ErrorOrWarning;
 				AllInOne += TEXT("\n");
 			}
 			FMessageDialog::Open(EAppMsgType::Ok, FText::Format( NSLOCTEXT("Core", "DefaultPropertyWarningAndErrors", "Default Property warnings and errors:\n{0}"), FText::FromString( AllInOne ) ) );
@@ -810,8 +834,10 @@ void ProcessNewlyLoadedUObjects()
 #endif
 	UClassRegisterAllCompiledInClasses();
 
+	bool bNewUObjects = false;
 	while( AnyNewlyLoadedUObjects() )
 	{
+		bNewUObjects = true;
 		UObjectProcessRegistrants();
 		UObjectLoadAllCompiledInStructs();
 		UObjectLoadAllCompiledInDefaultProperties();		
@@ -819,6 +845,11 @@ void ProcessNewlyLoadedUObjects()
 #if WITH_HOT_RELOAD
 	UClassReplaceHotReloadClasses();
 #endif
+
+	if (bNewUObjects && !GIsInitialLoad)
+	{
+		UClass::AssembleReferenceTokenStreams();
+	}
 }
 
 static int32 GVarMaxObjectsNotConsideredByGC;
@@ -1153,7 +1184,10 @@ UObject* ConstructDynamicType(FName TypePathName)
 	UObject* Result = nullptr;
 	if (FClassConstructFunctions* ClassConstructFn = GetDynamicClassMap().Find(TypePathName))
 	{
-		Result = ClassConstructFn->StaticClassFn();
+		UClass* DynamicClass = ClassConstructFn->StaticClassFn();
+		check(DynamicClass);
+		DynamicClass->AssembleReferenceTokenStream();
+		Result = DynamicClass;
 	}
 	else if (UScriptStruct *(**StaticStructFNPtr)() = GetDynamicStructMap().Find(TypePathName))
 	{

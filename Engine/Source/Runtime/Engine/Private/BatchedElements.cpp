@@ -191,6 +191,11 @@ void FBatchedElements::AddReserveVertices(int32 NumMeshVerts)
 	MeshVertices.Reserve( MeshVertices.Num() + NumMeshVerts );
 }
 
+void FBatchedElements::ReserveVertices(int32 NumMeshVerts)
+{
+	MeshVertices.Reserve( NumMeshVerts );
+}
+
 /** 
  * Reserves space in line vertex array
  * 
@@ -239,6 +244,22 @@ void FBatchedElements::AddReserveTriangles(int32 NumMeshTriangles,const FTexture
 			break;
 		}
 	}	
+}
+
+void FBatchedElements::ReserveTriangles(int32 NumMeshTriangles, const FTexture* Texture, ESimpleElementBlendMode BlendMode)
+{
+	for (int32 MeshIndex = 0; MeshIndex < MeshElements.Num(); MeshIndex++)
+	{
+		FBatchedMeshElement& CurMeshElement = MeshElements[MeshIndex];
+		if (CurMeshElement.Texture == Texture &&
+		   CurMeshElement.BatchedElementParameters.GetReference() == NULL &&
+		   CurMeshElement.BlendMode == BlendMode &&
+		   (CurMeshElement.Indices.Num()+3) < MaxMeshIndicesAllowed)
+		{
+			CurMeshElement.Indices.Reserve( NumMeshTriangles );
+			break;
+		}
+	}
 }
 
 void FBatchedElements::AddSprite(

@@ -18,7 +18,7 @@ struct FStreamingTexturePrimitiveInfo
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
-	UTexture* Texture;
+	UTexture2D* Texture;
 
 	UPROPERTY()
 	FBoxSphereBounds Bounds;
@@ -38,11 +38,12 @@ struct FStreamingTexturePrimitiveInfo
 	 *	Set this struct to match the packed params.
 	 *
 	 *	@param	InTexture			The texture as refered by the packed info.
+	 * 	@param	ExtraScale			Extra scale to be applied to the texcoord world size.
 	 *	@param	RefBounds			The reference bounds used to unpack the relative box.
 	 *	@param	Info				The packed params.
 	 *	@param	bUseRelativeBox		true if the relative box is relevant. Could be irrelevant if a level transform was applied after the texture streaming build.
 	 */
-	ENGINE_API void UnPackFrom(UTexture2D* InTexture, const FBoxSphereBounds& RefBounds, const FStreamingTextureBuildInfo& Info, bool bUseRelativeBox);
+	ENGINE_API void UnPackFrom(UTexture2D* InTexture, float ExtraScale, const FBoxSphereBounds& RefBounds, const FStreamingTextureBuildInfo& Info, bool bUseRelativeBox);
 };
 
 /** 
@@ -184,10 +185,10 @@ class FStreamingTextureLevelContext
 	const TArray<FStreamingTextureBuildInfo>* ComponentBuildData;
 	/** The last bound component bounds. */
 	FBoxSphereBounds ComponentBounds;
-	/** The last bound component mesh scale. */
-	float ComponentMeshScale;
-	/** The last bound component streaming scale. */
-	float ComponentStreamingScale;
+	/** The last bound component precomputed data scale. */
+	float ComponentPrecomputedDataScale;
+	/** The last bound component streaming fallback scale. */
+	float ComponentFallbackScale;
 
 	struct FTextureBoundState
 	{
@@ -210,7 +211,7 @@ public:
 	FStreamingTextureLevelContext(const ULevel* InLevel = nullptr);
 	~FStreamingTextureLevelContext();
 
-	void BindComponent(const TArray<FStreamingTextureBuildInfo>* BuildData, const FBoxSphereBounds& Bounds, float MeshScale, float StreamingScale);
+	void BindComponent(const TArray<FStreamingTextureBuildInfo>* BuildData, const FBoxSphereBounds& Bounds, float PrecomputedDataScale, float FallbackScale);
 	void Process(const TArray<UTexture*>& InTextures, TArray<FStreamingTexturePrimitiveInfo>& OutInfos);
 };
 

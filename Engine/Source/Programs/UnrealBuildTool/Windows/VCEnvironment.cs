@@ -126,24 +126,6 @@ namespace UnrealBuildTool
             Environment.SetEnvironmentVariable("LIB", String.Join(";", LibraryPaths));
 		}
 
-		/// <summary>
-		/// Check that an environment variable is the same as one derived from keys in the registry, and send a telemetry event if it's not
-		/// </summary>
-		private void CompareEnvironmentVariable(string VariableName, string RegistryValue, bool bSupportWindowsXP)
-		{
-			string EnvironmentValue = Environment.GetEnvironmentVariable(VariableName);
-			Telemetry.SendEvent("CompareEnvironmentVariable",
-				"Name", VariableName,
-				"Match", (EnvironmentValue == RegistryValue).ToString(),
-				"EnvironmentValue", EnvironmentValue,
-				"RegistryValue", RegistryValue,
-				"Platform", Platform.ToString(),
-				"UWPBuildForStore", UWPPlatform.bBuildForStore.ToString(),
-				"WinXP", bSupportWindowsXP.ToString(),
-				"Compiler", WindowsPlatform.Compiler.ToString(),
-				"UseWindowsSDK10", WindowsPlatform.bUseWindowsSDK10.ToString());
-		}
-
 		/// <returns>The path to Windows SDK directory for the specified version.</returns>
 		private static string FindWindowsSDKInstallationFolder(CPPTargetPlatform InPlatform, bool bSupportWindowsXP)
 		{
@@ -350,25 +332,25 @@ namespace UnrealBuildTool
 			// If we were asked to use Clang, then we'll redirect the path to the compiler to the LLVM installation directory
 			if (WindowsPlatform.bCompileWithClang)
 			{
+				string CompilerDriverName;
 				string Result;
 				if (WindowsPlatform.bUseVCCompilerArgs)
 				{
-					// Use regular Clang compiler on Windows
-					Result = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "LLVM", "msbuild-bin", "cl.exe");
-					if (!File.Exists(Result))
-					{
-						Result = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "LLVM", "msbuild-bin", "cl.exe");
-					}
+					// Use 'clang-cl', a wrapper around Clang that supports Visual C++ compiler command-line arguments
+					CompilerDriverName = "clang-cl.exe";
 				}
 				else
 				{
-					// Use 'clang-cl', a wrapper around Clang that supports Visual C++ compiler command-line arguments
-					Result = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "LLVM", "bin", "clang.exe");
-					if (!File.Exists(Result))
-					{
-						Result = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "LLVM", "bin", "clang.exe");
-					}
+					// Use regular Clang compiler on Windows
+					CompilerDriverName = "clang.exe";
 				}
+
+				Result = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "LLVM", "bin", CompilerDriverName);
+				if (!File.Exists(Result))
+				{
+					Result = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "LLVM", "bin", CompilerDriverName);
+				}
+
 				if (!File.Exists(Result))
 				{
 					throw new BuildException("Clang was selected as the Windows compiler, but LLVM/Clang does not appear to be installed.  Could not find: " + Result);

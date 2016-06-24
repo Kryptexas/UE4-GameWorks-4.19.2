@@ -44,7 +44,7 @@ float2 PaniniProjectionScreenPos(float2 InScreenPos)
 	const float s = PaniniParams.y;
 	const float OutScreenPosScale = PaniniParams.z;
 #if 0
-	const float2 ScreenSpaceToPaniniFactor = tan(0.5 * Frame.FieldOfViewWideAngles);
+	const float2 ScreenSpaceToPaniniFactor = tan(0.5 * View.FieldOfViewWideAngles);
 	const float2 PaniniToScreenSpaceFactor = 1 / ScreenSpaceToPaniniFactor;
 #else
 	const float2 ScreenSpaceToPaniniFactor = GetTanHalfFieldOfView();

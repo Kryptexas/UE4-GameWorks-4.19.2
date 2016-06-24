@@ -3,7 +3,6 @@
 #pragma once
 #include "AI/Navigation/NavigationAvoidanceTypes.h"
 #include "AI/RVOAvoidanceInterface.h"
-#include "Animation/AnimationAsset.h"
 #include "Engine/EngineBaseTypes.h"
 #include "Engine/EngineTypes.h"
 #include "GameFramework/PawnMovementComponent.h"
@@ -134,7 +133,7 @@ public:
 protected:
 
 	/** Character movement component belongs to */
-	UPROPERTY()
+	UPROPERTY(Transient, DuplicateTransient)
 	ACharacter* CharacterOwner;
 
 public:
@@ -555,6 +554,12 @@ protected:
 	/** Computes the analog input modifier based on current input vector and/or acceleration. */
 	virtual float ComputeAnalogInputModifier() const;
 
+	/** Used for throttling "stuck in geometry" logging. */
+	float LastStuckWarningTime;
+
+	/** Used when throttling "stuck in geometry" logging, to output the number of events we skipped if throttling. */
+	uint32 StuckWarningCountSinceNotify;
+
 public:
 
 	/** Get the value of ServerLastTransformUpdateTimeStamp. */
@@ -594,6 +599,37 @@ public:
 	int32 MaxSimulationIterations;
 
 	/**
+	* Max distance we allow simulated proxies to depenetrate when moving out of anything but Pawns.
+	* This is generally more tolerant than with Pawns, because other geometry is either not moving, or is moving predictably with a bit of delay compared to on the server.
+	* @see MaxDepenetrationWithGeometryAsProxy, MaxDepenetrationWithPawn, MaxDepenetrationWithPawnAsProxy
+	*/
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, AdvancedDisplay, meta=(ClampMin="0", UIMin="0"))
+	float MaxDepenetrationWithGeometry;
+
+	/**
+	* Max distance we allow simulated proxies to depenetrate when moving out of anything but Pawns.
+	* This is generally more tolerant than with Pawns, because other geometry is either not moving, or is moving predictably with a bit of delay compared to on the server.
+	* @see MaxDepenetrationWithGeometry, MaxDepenetrationWithPawn, MaxDepenetrationWithPawnAsProxy
+	*/
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, AdvancedDisplay, meta=(ClampMin="0", UIMin="0"))
+	float MaxDepenetrationWithGeometryAsProxy;
+
+	/**
+	* Max distance we are allowed to depenetrate when moving out of other Pawns.
+	* @see MaxDepenetrationWithGeometry, MaxDepenetrationWithGeometryAsProxy, MaxDepenetrationWithPawnAsProxy
+	*/
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, AdvancedDisplay, meta=(ClampMin="0", UIMin="0"))
+	float MaxDepenetrationWithPawn;
+
+	/**
+	 * Max distance we allow simulated proxies to depenetrate when moving out of other Pawns.
+	 * Typically we don't want a large value, because we receive a server authoritative position that we should not then ignore by pushing them out of the local player.
+	 * @see MaxDepenetrationWithGeometry, MaxDepenetrationWithGeometryAsProxy, MaxDepenetrationWithPawn
+	 */
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, AdvancedDisplay, meta=(ClampMin="0", UIMin="0"))
+	float MaxDepenetrationWithPawnAsProxy;
+
+	/**
 	 * How long to take to smoothly interpolate from the old pawn position on the client to the corrected one sent by the server. Not used by Linear smoothing.
 	 */
 	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, AdvancedDisplay, meta=(ClampMin="0.0", ClampMax="1.0", UIMin="0.0", UIMax="1.0"))
@@ -604,6 +640,18 @@ public:
 	 */
 	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, AdvancedDisplay, meta=(ClampMin="0.0", ClampMax="1.0", UIMin="0.0", UIMax="1.0"))
 	float NetworkSimulatedSmoothRotationTime;
+
+	/**
+	* Similar setting as NetworkSimulatedSmoothLocationTime but only used on Listen servers.
+	*/
+	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, AdvancedDisplay, meta=(ClampMin="0.0", ClampMax="1.0", UIMin="0.0", UIMax="1.0"))
+	float ListenServerNetworkSimulatedSmoothLocationTime;
+
+	/**
+	* Similar setting as NetworkSimulatedSmoothRotationTime but only used on Listen servers.
+	*/
+	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, AdvancedDisplay, meta=(ClampMin="0.0", ClampMax="1.0", UIMin="0.0", UIMax="1.0"))
+	float ListenServerNetworkSimulatedSmoothRotationTime;
 
 	/** Maximum distance character is allowed to lag behind server location when interpolating between updates. */
 	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, meta=(ClampMin="0.0", UIMin="0.0"))
@@ -1507,6 +1555,9 @@ protected:
 	 */
 	virtual void MaintainHorizontalGroundVelocity();
 
+	/** Overridden to enforce max distances based on hit geometry. */
+	virtual FVector GetPenetrationAdjustment(const FHitResult& Hit) const override;
+
 	/** Overridden to set bJustTeleported to true, so we don't make incorrect velocity calculations based on adjusted movement. */
 	virtual bool ResolvePenetrationImpl(const FVector& Adjustment, const FHitResult& Hit, const FQuat& NewRotation) override;
 
@@ -1980,6 +2031,9 @@ public:
 	 *  @return LocalID for this Root Motion Source */
 	uint16 ApplyRootMotionSource(FRootMotionSource* SourcePtr);
 
+	/** Called during ApplyRootMotionSource call, useful for project-specific alerts for "something is about to be altering our movement" */
+	virtual void OnRootMotionSourceBeingApplied(const FRootMotionSource* Source);
+
 	/** Get a RootMotionSource from current root motion by name */
 	TSharedPtr<FRootMotionSource> GetRootMotionSource(FName InstanceName);
 
@@ -2259,7 +2313,7 @@ public:
 	{
 	}
 
-	friend FArchive& operator<<( FArchive& Ar, FCharacterReplaySample& V );
+	friend ENGINE_API FArchive& operator<<( FArchive& Ar, FCharacterReplaySample& V );
 
 	FVector			Location;
 	FRotator		Rotation;

@@ -6,6 +6,7 @@
 #include "OnlineBeaconHostObject.h"
 #include "Net/DataChannel.h"
 #include "Net/UnrealNetwork.h"
+#include "NetworkVersion.h"
 
 #define BEACON_RPC_TIMEOUT 15.0f
 
@@ -60,7 +61,7 @@ EBeaconConnectionState AOnlineBeaconClient::GetConnectionState() const
 	return ConnectionState;
 }
 
-void  AOnlineBeaconClient::SetConnectionState(EBeaconConnectionState NewConnectionState)
+void AOnlineBeaconClient::SetConnectionState(EBeaconConnectionState NewConnectionState)
 {
 	ConnectionState = NewConnectionState;
 }

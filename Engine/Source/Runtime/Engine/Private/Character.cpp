@@ -154,9 +154,9 @@ UPawnMovementComponent* ACharacter::GetMovementComponent() const
 }
 
 
-void ACharacter::SetupPlayerInputComponent(UInputComponent* InputComponent)
+void ACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
-	check(InputComponent);
+	check(PlayerInputComponent);
 }
 
 
@@ -511,9 +511,12 @@ namespace MovementBaseUtility
 			}
 
 			// Fall back to physics velocity.
-			if (BaseVelocity.IsZero() && MovementBase->GetBodyInstance())
+			if (BaseVelocity.IsZero())
 			{
-				BaseVelocity = MovementBase->GetBodyInstance()->GetUnrealWorldVelocity();
+				if (FBodyInstance* BaseBodyInstance = MovementBase->GetBodyInstance())
+				{
+					BaseVelocity = BaseBodyInstance->GetUnrealWorldVelocity();
+				}
 			}
 		}
 		
@@ -1284,7 +1287,7 @@ void ACharacter::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTra
 
 	const FAnimMontageInstance* RootMotionMontageInstance = GetRootMotionAnimMontageInstance();
 
-	if ( (CharacterMovement && CharacterMovement->CurrentRootMotion.HasActiveRootMotionSources()) || RootMotionMontageInstance )
+	if ( CharacterMovement->CurrentRootMotion.HasActiveRootMotionSources() || RootMotionMontageInstance )
 	{
 		RepRootMotion.bIsActive = true;
 		// Is position stored in local space?
@@ -1303,18 +1306,10 @@ void ACharacter::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTra
 		{
 			RepRootMotion.AnimMontage = nullptr;
 		}
-		if (CharacterMovement)
-		{
-			RepRootMotion.AuthoritativeRootMotion = CharacterMovement->CurrentRootMotion;
-			RepRootMotion.Acceleration = CharacterMovement->GetCurrentAcceleration();
-			RepRootMotion.LinearVelocity = CharacterMovement->Velocity;
-		}
-		else
-		{
-			RepRootMotion.AuthoritativeRootMotion.Clear();
-			RepRootMotion.Acceleration = FVector::ZeroVector;
-			RepRootMotion.LinearVelocity = FVector::ZeroVector;
-		}
+
+		RepRootMotion.AuthoritativeRootMotion = CharacterMovement->CurrentRootMotion;
+		RepRootMotion.Acceleration = CharacterMovement->GetCurrentAcceleration();
+		RepRootMotion.LinearVelocity = CharacterMovement->Velocity;
 
 		DOREPLIFETIME_ACTIVE_OVERRIDE( ACharacter, RepRootMotion, true );
 	}
@@ -1348,8 +1343,25 @@ void ACharacter::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTra
 		// We'll be able to look ahead in the replay to have these ahead of time for smoother playback
 		FCharacterReplaySample ReplaySample;
 
-		ReplaySample.Location			= GetActorLocation();
-		ReplaySample.Rotation			= GetActorRotation();
+		// If this is a client-recorded replay, use the mesh location and rotation, since these will always
+		// be smoothed - unlike the actor position and rotation.
+		const USkeletalMeshComponent* const MeshComponent = GetMesh();
+		if (MeshComponent && GetWorld()->IsRecordingClientReplay())
+		{
+			// Remove the base transform from the mesh's transform, since on playback the base transform
+			// will be stored in the mesh's RelativeLocation and RelativeRotation.
+			const FTransform BaseTransform(GetBaseRotationOffset(), GetBaseTranslationOffset());
+			const FTransform MeshRootTransform = BaseTransform.Inverse() * MeshComponent->GetComponentTransform();
+
+			ReplaySample.Location		= MeshRootTransform.GetLocation();
+			ReplaySample.Rotation		= MeshRootTransform.GetRotation().Rotator();
+		}
+		else
+		{
+			ReplaySample.Location		= GetActorLocation();
+			ReplaySample.Rotation		= GetActorRotation();
+		}
+
 		ReplaySample.Velocity			= GetVelocity();
 		ReplaySample.Acceleration		= CharacterMovement->GetCurrentAcceleration();
 		ReplaySample.RemoteViewPitch	= RemoteViewPitch;
@@ -1359,6 +1371,8 @@ void ACharacter::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTra
 
 		ChangedPropertyTracker.SetExternalData( Writer.GetData(), Writer.GetNumBits() );
 	}
+
+	bReplayHasRootMotionSources = CharacterMovement ? CharacterMovement->HasRootMotionSources() : false;
 }
 
 void ACharacter::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
@@ -1371,6 +1385,7 @@ void ACharacter::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLi
 	DOREPLIFETIME_CONDITION( ACharacter, ReplicatedMovementMode,			COND_SimulatedOnly );
 	DOREPLIFETIME_CONDITION( ACharacter, bIsCrouched,						COND_SimulatedOnly );
 	DOREPLIFETIME_CONDITION( ACharacter, AnimRootMotionTranslationScale,	COND_SimulatedOnly );
+	DOREPLIFETIME_CONDITION( ACharacter, bReplayHasRootMotionSources,		COND_ReplayOnly );
 
 	// Change the condition of the replicated movement property to not replicate in replays since we handle this specifically via saving this out in external replay data
 	DOREPLIFETIME_CHANGE_CONDITION( AActor, ReplicatedMovement,				COND_SimulatedOrPhysicsNoReplay );

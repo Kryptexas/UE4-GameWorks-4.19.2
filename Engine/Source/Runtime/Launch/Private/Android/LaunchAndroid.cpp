@@ -495,6 +495,8 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 			float gas = GetAxes(event, AMOTION_EVENT_AXIS_GAS, 0);
 			FAndroidInputInterface::JoystickAxisEvent(device, AMOTION_EVENT_AXIS_LTRIGGER, ltrigger > brake ? ltrigger : brake);
 			FAndroidInputInterface::JoystickAxisEvent(device, AMOTION_EVENT_AXIS_RTRIGGER, rtrigger > gas ? rtrigger : gas);
+
+			return 1;
 		}
 		else
 		{
@@ -617,7 +619,7 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 #endif
 		}
 
-		return 1;
+		return 0;
 	}
 
 	if (EventType == AINPUT_EVENT_TYPE_KEY)

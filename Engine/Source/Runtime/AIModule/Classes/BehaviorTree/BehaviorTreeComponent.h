@@ -198,6 +198,9 @@ public:
 	bool IsAuxNodeActive(const UBTAuxiliaryNode* AuxNode) const;
 	bool IsAuxNodeActive(const UBTAuxiliaryNode* AuxNodeTemplate, int32 InstanceIdx) const;
 
+	/** Returns true if InstanceStack contains any BT runtime instances */
+	bool IsInstanceStackEmpty() const { return (InstanceStack.Num() == 0); }
+
 	/** @return status of speficied task */
 	EBTTaskStatus::Type GetTaskStatus(const UBTTaskNode* TaskNode) const;
 

@@ -15,6 +15,7 @@
 #include "DrawDebugHelpers.h"
 #include "LevelSequenceActor.h"
 #include "Runtime/Core/Public/Features/IModularFeatures.h"
+#include "Animation/AnimSequence.h"
 
 #define LOCTEXT_NAMESPACE "SequenceRecorder"
 
@@ -340,7 +341,7 @@ void FSequenceRecorder::DrawDebug(UCanvas* InCanvas, APlayerController* InPlayer
 		}
 		else
 		{
-			Text = LOCTEXT("RecordingIndicator", "Sequence Recording Pending");
+			Text = LOCTEXT("RecordingIndicatorPending", "Sequence Recording Pending");
 		}
 
 		const FVector2D IconSize(32.0f, 32.0f);

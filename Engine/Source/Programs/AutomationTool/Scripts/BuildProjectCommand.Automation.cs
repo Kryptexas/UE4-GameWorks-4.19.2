@@ -87,7 +87,7 @@ public partial class Project : CommandUtils
             // Add every plugin:
             foreach( var CodePlugin in  Params.BlueprintPluginPaths)
             {
-                ScriptPluginArgs = "-PLUGIN \"" + CodePlugin + "\""; 
+                ScriptPluginArgs += "-PLUGIN \"" + CodePlugin + "\" "; 
             }
         }
 

@@ -45,6 +45,20 @@ namespace physx
 	struct PxFilterData;
 }
 
+
+/**
+ * Default number of inlined elements used in TInlinePxShapeArray.
+ * Increase if for instance character meshes use more than this number of physics bodies and are involved in many queries.
+ */
+enum { NumInlinedPxShapeElements = 32 };
+
+/** Array that is intended for use when fetching shapes from a rigid body. */
+typedef TArray<physx::PxShape*, TInlineAllocator<NumInlinedPxShapeElements>> FInlinePxShapeArray;
+
+/** Helper to fill FInlinePxShapeArray from a PxRigidActor. Returns number of shapes added. */
+ENGINE_API int32 FillInlinePxShapeArray(FInlinePxShapeArray& Array, const physx::PxRigidActor& RigidActor);
+
+
 #endif // WITH_PHYSX
 
 UENUM(BlueprintType)
@@ -1001,11 +1015,24 @@ public:
 	/**
 	 * Get distance to the body surface if available
 	 * It is only valid if BodyShape is convex
-	 * If point is inside or shape is not convex, it will return 0.f
+	 * If point is inside distance it will be 0
+	 * Returns false if geometry is not supported
 	 *
 	 * @param Point				Point in world space
+	 * @param OutDistanceSquared How far from the instance the point is. 0 if inside the shape
 	 * @param OutPointOnBody	Point on the surface of body closest to Point
+	 * @return true if a distance to the body was found and OutDistanceSquared has been populated
 	 */
+	bool GetSquaredDistanceToBody(const FVector& Point, float& OutDistanceSquared, FVector& OutPointOnBody) const;
+
+	/**
+	* Get the square of the distance to the body surface if available
+	* It is only valid if BodyShape is convex
+	* If point is inside or shape is not convex, it will return 0.f
+	*
+	* @param Point				Point in world space
+	* @param OutPointOnBody	Point on the surface of body closest to Point
+	*/
 	float GetDistanceToBody(const FVector& Point, FVector& OutPointOnBody) const;
 
 	/** 
@@ -1077,6 +1104,7 @@ private:
 	friend struct FInitBodiesHelper<false>;
 	friend class FDerivedDataPhysXBinarySerializer;
 	friend class FBodyInstanceCustomizationHelper;
+	friend class FFoliageTypeCustomizationHelpers;
 
 #if WITH_BOX2D
 
@@ -1120,10 +1148,10 @@ private:
 	/**
 	 * Type of collision enabled.
 	 * 
-	 *	No Collision      : No collision is performed against this body.
-	 *	Query Only        : This body is used only for collision queries (raycasts, sweeps, and overlaps).
-	 *	Physics Only      : This body is used only for physics collision.
-	 *	Collision Enabled : This body interacts with all collision (Query and Physics).
+	 *	No Collision      : Will not create any representation in the physics engine. Cannot be used for spatial queries (raycasts, sweeps, overlaps) or simulation (rigid body, constraints). Best performance possible (especially for moving objects)
+	 *	Query Only        : Only used for spatial queries (raycasts, sweeps, and overlaps). Cannot be used for simulation (rigid body, constraints). Useful for character movement and things that do not need physical simulation. Performance gains by keeping data out of simulation tree.
+	 *	Physics Only      : Only used only for physics simulation (rigid body, constraints). Cannot be used for spatial queries (raycasts, sweeps, overlaps). Useful for jiggly bits on characters that do not need per bone detection. Performance gains by keeping data out of query tree
+	 *	Collision Enabled : Can be used for both spatial queries (raycasts, sweeps, overlaps) and simulation (rigid body, constraints).
 	 */
 	UPROPERTY(EditAnywhere, Category=Custom)
 	TEnumAsByte<ECollisionEnabled::Type> CollisionEnabled;

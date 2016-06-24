@@ -322,11 +322,6 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 {
 	SCOPED_DRAW_EVENT(RHICmdList, Lights);
 
-	if(IsSimpleDynamicLightingEnabled())
-	{
-		return;
-	}
-
 	bool bStencilBufferDirty = false;	// The stencil buffer should've been cleared to 0 already
 
 	SCOPE_CYCLE_COUNTER(STAT_LightingDrawTime);
@@ -338,7 +333,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 	TArray<FSortedLightSceneInfo, SceneRenderingAllocator> SortedLights;
 	SortedLights.Empty(Scene->Lights.Num());
 
-	bool bDynamicShadows = ViewFamily.EngineShowFlags.DynamicShadows && GetShadowQuality() > 0;
+	bool bDynamicShadows = ViewFamily.EngineShowFlags.DynamicShadows;
 	
 	// Build a list of visible lights.
 	for (TSparseArray<FLightSceneInfoCompact>::TConstIterator LightIt(Scene->Lights); LightIt; ++LightIt)
@@ -544,10 +539,13 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 								if (LightSceneInfo->ShouldRenderLight(View))
 								{
 									FSceneViewState* ViewState = (FSceneViewState*)View.State;
-									FLightPropagationVolume* Lpv = ViewState->GetLightPropagationVolume(View.GetFeatureLevel());
-									if ( Lpv && LightSceneInfo->Proxy )
+									if (ViewState)
 									{
-										Lpv->InjectLightDirect( RHICmdList, *LightSceneInfo->Proxy, View );
+										FLightPropagationVolume* Lpv = ViewState->GetLightPropagationVolume(View.GetFeatureLevel());
+										if (Lpv && LightSceneInfo->Proxy)
+										{
+											Lpv->InjectLightDirect(RHICmdList, *LightSceneInfo->Proxy, View);
+										}
 									}
 								}
 							}					
@@ -845,6 +843,12 @@ void FDeferredShadingSceneRenderer::RenderLight(FRHICommandList& RHICmdList, con
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
 		FViewInfo& View = Views[ViewIndex];
+
+		// Ensure the light is valid for this view
+		if (!LightSceneInfo->ShouldRenderLight(View))
+		{
+			continue;
+		}
 
 		bool bUseIESTexture = false;
 

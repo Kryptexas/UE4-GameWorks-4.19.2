@@ -21,6 +21,7 @@
 #include "SAnimationBlendSpace1D.h"
 #include "SKismetInspector.h"
 #include "SSkeletonWidget.h"
+#include "SPoseEditor.h"
 
 #include "Editor/Kismet/Public/BlueprintEditorTabs.h"
 #include "Editor/Kismet/Public/BlueprintEditorModes.h"
@@ -46,6 +47,8 @@
 #include "AnimGraphNode_LayeredBoneBlend.h"
 #include "AnimGraphNode_SequencePlayer.h"
 #include "AnimGraphNode_SequenceEvaluator.h"
+#include "AnimGraphNode_PoseByName.h"
+#include "AnimGraphNode_PoseBlendNode.h"
 #include "AnimGraphNode_Slot.h"
 #include "Customization/AnimGraphNodeSlotDetails.h"
 
@@ -72,8 +75,14 @@
 #include "Animation/AimOffsetBlendSpace.h"
 #include "Animation/AimOffsetBlendSpace1D.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
+#include "Animation/PoseAsset.h"
+
+#include "MessageLog.h"
+#include "SAdvancedPreviewDetailsTab.h"
 
 #define LOCTEXT_NAMESPACE "FPersona"
+
+const FName FPersona::PreviewSceneSettingsTabId(TEXT("Persona_PreviewScene"));
 
 /////////////////////////////////////////////////////
 // FLocalCharEditorCallbacks
@@ -321,6 +330,14 @@ TSharedPtr<SWidget> FPersona::CreateEditorWidgetForAnimDocument(UObject* InAnimA
 
 			DocumentLink = TEXT("Engine/Animation/AnimMontage");
 		}
+		else if (UPoseAsset* PoseAsset = Cast<UPoseAsset>(InAnimAsset))
+		{
+			Result = SNew(SPoseEditor)
+				.Persona(SharedThis(this))
+				.PoseAsset(PoseAsset);
+
+			DocumentLink = TEXT("Engine/Animation/Sequences");
+		}
 		else if (UBlendSpace* BlendSpace = Cast<UBlendSpace>(InAnimAsset))
 		{
 			Result = SNew(SBlendSpaceEditor)
@@ -552,7 +569,8 @@ void FPersona::ExtendMenu()
 			{
 				MenuBuilder.AddMenuEntry(FPersonaCommands::Get().ChangeSkeletonPreviewMesh);
 				MenuBuilder.AddMenuEntry(FPersonaCommands::Get().RemoveUnusedBones);
-				MenuBuilder.AddMenuEntry( FPersonaCommands::Get().UpdateSkeletonRefPose);
+				MenuBuilder.AddMenuEntry(FPersonaCommands::Get().UpdateSkeletonRefPose);
+				MenuBuilder.AddMenuEntry(FPersonaCommands::Get().TestSkeletonCurveNamesForUse);
 			}
 			MenuBuilder.EndSection();
 
@@ -769,7 +787,7 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	// We always want a preview instance unless we are using blueprints so that bone manipulation works
 	if (AnimBlueprint == NULL)
 	{
-		PreviewComponent->EnablePreview(true, NULL, NULL);
+		PreviewComponent->EnablePreview(true, nullptr);
 	}
 	else
 	{
@@ -1020,12 +1038,12 @@ void FPersona::ExtendDefaultPersonaToolbar()
 
 UBlueprint* FPersona::GetBlueprintObj() const
 {
-	auto EditingObjects = GetEditingObjects();
-	for (int32 i = 0; i < EditingObjects.Num(); ++i)
+	const TArray<UObject*>& EditingObjs = GetEditingObjects();
+	for (int32 i = 0; i < EditingObjs.Num(); ++i)
 	{
-		if (EditingObjects[i]->IsA<UAnimBlueprint>()) {return (UBlueprint*)EditingObjects[i];}
+		if (EditingObjs[i]->IsA<UAnimBlueprint>()) {return (UBlueprint*)EditingObjs[i];}
 	}
-	return NULL;
+	return nullptr;
 }
 
 UObject* FPersona::GetPreviewAnimationAsset() const
@@ -1078,29 +1096,10 @@ void FPersona::SetPreviewAnimationAsset(UAnimationAsset* AnimAsset, bool bEnable
 				}
 			}
 
-			PreviewComponent->EnablePreview(bEnablePreview, AnimAsset, NULL);
+			PreviewComponent->EnablePreview(bEnablePreview, AnimAsset);
 		}
 
 		OnAnimChanged.Broadcast(AnimAsset);
-	}
-}
-
-void FPersona::SetPreviewVertexAnim(UVertexAnimation* VertexAnim)
-{
-	if (Viewport.IsValid() && !Viewport.Pin()->bPreviewLockModeOn)
-	{
-		if (PreviewComponent)
-		{
-			// if same, do not overwrite. It will reset time and everything
-			if( VertexAnim && 
-				PreviewComponent->PreviewInstance && 
-				VertexAnim == PreviewComponent->PreviewInstance->GetCurrentVertexAnimation() )
-			{
-				return;
-			}
-
-			PreviewComponent->EnablePreview(true, NULL, VertexAnim);
-		}
 	}
 }
 
@@ -1266,6 +1265,10 @@ void FPersona::CreateDefaultCommands()
 	ToolkitCommands->MapAction( FPersonaCommands::Get().RemoveUnusedBones,
 		FExecuteAction::CreateSP( this, &FPersona::RemoveUnusedBones ),
 		FCanExecuteAction::CreateSP( this, &FPersona::CanRemoveBones )
+		);
+	ToolkitCommands->MapAction(FPersonaCommands::Get().TestSkeletonCurveNamesForUse,
+		FExecuteAction::CreateSP(this, &FPersona::TestSkeletonCurveNamesForUse),
+		FCanExecuteAction()
 		);
 	ToolkitCommands->MapAction(FPersonaCommands::Get().UpdateSkeletonRefPose,
 		FExecuteAction::CreateSP(this, &FPersona::UpdateSkeletonRefPose)
@@ -1666,6 +1669,113 @@ void FPersona::OnConvertToBlendSpacePlayer()
 		// because of SetAndCenterObject kicks in after new node is added
 		// will need to disable that first
 		TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+		// Update the graph so that the node will be refreshed
+		FocusedGraphEd->NotifyGraphChanged();
+		// It's possible to leave invalid objects in the selection set if they get GC'd, so clear it out
+		FocusedGraphEd->ClearSelectionSet();
+
+		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetAnimBlueprint());
+	}
+}
+
+void FPersona::OnConvertToPoseBlender()
+{
+	FGraphPanelSelectionSet SelectedNodes = GetSelectedNodes();
+	if (SelectedNodes.Num() > 0)
+	{
+		for (auto NodeIter = SelectedNodes.CreateIterator(); NodeIter; ++NodeIter)
+		{
+			UAnimGraphNode_PoseByName* OldNode = Cast<UAnimGraphNode_PoseByName>(*NodeIter);
+
+			// see if sequence player
+			if (OldNode && OldNode->Node.PoseAsset)
+			{
+				// convert to sequence player
+				UEdGraph* TargetGraph = OldNode->GetGraph();
+				// create new player
+				FGraphNodeCreator<UAnimGraphNode_PoseBlendNode> NodeCreator(*TargetGraph);
+				UAnimGraphNode_PoseBlendNode* NewNode = NodeCreator.CreateNode();
+				NewNode->Node.PoseAsset = OldNode->Node.PoseAsset;
+				NodeCreator.Finalize();
+
+				// get default data from old node to new node
+				FEdGraphUtilities::CopyCommonState(OldNode, NewNode);
+
+				UEdGraphPin* OldPosePin = OldNode->FindPin(TEXT("Pose"));
+				UEdGraphPin* NewPosePin = NewNode->FindPin(TEXT("Pose"));
+
+				if (ensure(OldPosePin && NewPosePin))
+				{
+					NewPosePin->CopyPersistentDataFromOldPin(*OldPosePin);
+				}
+
+				// remove from selection and from graph
+				NodeIter.RemoveCurrent();
+				TargetGraph->RemoveNode(OldNode);
+
+				NewNode->Modify();
+			}
+		}
+
+		// @todo fixme: below code doesn't work
+		// because of SetAndCenterObject kicks in after new node is added
+		// will need to disable that first
+		TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+
+		// Update the graph so that the node will be refreshed
+		FocusedGraphEd->NotifyGraphChanged();
+		// It's possible to leave invalid objects in the selection set if they get GC'd, so clear it out
+		FocusedGraphEd->ClearSelectionSet();
+
+		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetAnimBlueprint());
+	}
+}
+
+void FPersona::OnConvertToPoseByName()
+{
+	FGraphPanelSelectionSet SelectedNodes = GetSelectedNodes();
+	if (SelectedNodes.Num() > 0)
+	{
+		for (auto NodeIter = SelectedNodes.CreateIterator(); NodeIter; ++NodeIter)
+		{
+			UAnimGraphNode_PoseBlendNode* OldNode = Cast<UAnimGraphNode_PoseBlendNode>(*NodeIter);
+
+			// see if sequence player
+			if (OldNode && OldNode->Node.PoseAsset)
+			{
+				//const FScopedTransaction Transaction( LOCTEXT("ConvertToSequenceEvaluator", "Convert to Single Frame Animation") );
+				// convert to sequence player
+				UEdGraph* TargetGraph = OldNode->GetGraph();
+				// create new player
+				FGraphNodeCreator<UAnimGraphNode_PoseByName> NodeCreator(*TargetGraph);
+				UAnimGraphNode_PoseByName* NewNode = NodeCreator.CreateNode();
+				NewNode->Node.PoseAsset = OldNode->Node.PoseAsset;
+				NodeCreator.Finalize();
+
+				// get default data from old node to new node
+				FEdGraphUtilities::CopyCommonState(OldNode, NewNode);
+
+				UEdGraphPin* OldPosePin = OldNode->FindPin(TEXT("Pose"));
+				UEdGraphPin* NewPosePin = NewNode->FindPin(TEXT("Pose"));
+
+				if (ensure(OldPosePin && NewPosePin))
+				{
+					NewPosePin->CopyPersistentDataFromOldPin(*OldPosePin);
+				}
+
+				// remove from selection and from graph
+				NodeIter.RemoveCurrent();
+				TargetGraph->RemoveNode(OldNode);
+
+				NewNode->Modify();
+			}
+		}
+
+		// @todo fixme: below code doesn't work
+		// because of SetAndCenterObject kicks in after new node is added
+		// will need to disable that first
+		TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+
 		// Update the graph so that the node will be refreshed
 		FocusedGraphEd->NotifyGraphChanged();
 		// It's possible to leave invalid objects in the selection set if they get GC'd, so clear it out
@@ -3264,7 +3374,7 @@ void FPersona::ShowReferencePose(bool bReferencePose)
 		{
 			if(IsInPersonaMode(FPersonaModes::AnimBlueprintEditMode))
 			{
-				PreviewComponent->EnablePreview(false, NULL, NULL);
+				PreviewComponent->EnablePreview(false, nullptr);
 
 				UAnimBlueprint* AnimBP = GetAnimBlueprint();
 				if(AnimBP)
@@ -3275,7 +3385,7 @@ void FPersona::ShowReferencePose(bool bReferencePose)
 			else
 			{
 				UObject* PreviewAsset = CachedPreviewAsset.IsValid()? CachedPreviewAsset.Get() : (GetAnimationAssetBeingEdited());
-				PreviewComponent->EnablePreview(true, Cast<UAnimationAsset>(PreviewAsset), NULL);
+				PreviewComponent->EnablePreview(true, Cast<UAnimationAsset>(PreviewAsset));
 			}
 		}
 		else
@@ -3285,7 +3395,158 @@ void FPersona::ShowReferencePose(bool bReferencePose)
 				CachedPreviewAsset = PreviewComponent->PreviewInstance->GetCurrentAsset();
 			}
 			
-			PreviewComponent->EnablePreview(true, NULL, NULL);
+			PreviewComponent->EnablePreview(true, nullptr);
+		}
+	}
+}
+
+bool FPersona::ShouldDisplayAdditiveScaleErrorMessage()
+{
+	UAnimSequence* AnimSequence = Cast<UAnimSequence>(GetAnimationAssetBeingEdited());
+	if (AnimSequence)
+	{
+		if (AnimSequence->IsValidAdditive() && AnimSequence->RefPoseSeq)
+		{
+			if (RefPoseGuid != AnimSequence->RefPoseSeq->RawDataGuid)
+			{
+				RefPoseGuid = AnimSequence->RefPoseSeq->RawDataGuid;
+				bDoesAdditiveRefPoseHaveZeroScale = AnimSequence->DoesSequenceContainZeroScale();
+			}
+			return bDoesAdditiveRefPoseHaveZeroScale;
+		}
+	}
+
+	RefPoseGuid.Invalidate();
+	return false;
+}
+
+void PopulateWithAssets(FName ClassName, FName SkeletonMemberName, const FString& SkeletonString, TArray<FAssetData>& OutAssets)
+{
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+
+	FARFilter Filter;
+	Filter.ClassNames.Add(ClassName);
+	Filter.TagsAndValues.Add(SkeletonMemberName, SkeletonString);
+
+	AssetRegistryModule.Get().GetAssets(Filter, OutAssets);
+}
+
+void FPersona::TestSkeletonCurveNamesForUse() const
+{
+	if (TargetSkeleton)
+	{
+		if (const FSmartNameMapping* Mapping = TargetSkeleton->GetSmartNameContainer(USkeleton::AnimCurveMappingName))
+		{
+			const FString SkeletonString = FAssetData(TargetSkeleton).GetExportTextName();
+			
+			TArray<FAssetData> SkeletalMeshes;
+			PopulateWithAssets(USkeletalMesh::StaticClass()->GetFName(), GET_MEMBER_NAME_CHECKED(USkeletalMesh, Skeleton), SkeletonString, SkeletalMeshes);
+			TArray<FAssetData> Animations;
+			PopulateWithAssets(UAnimSequence::StaticClass()->GetFName(), FName("Skeleton"), SkeletonString, Animations);
+
+			FText TimeTakenMessage = FText::Format(LOCTEXT("TimeTakenWarning", "In order to verify curve usage all Skeletal Meshes and Animations that use this skeleton will be loaded, this may take some time.\n\nProceed?\n\nNumber of Meshes: {0}\nNumber of Animations: {1}"), FText::AsNumber(SkeletalMeshes.Num()), FText::AsNumber(Animations.Num()));
+
+			if (FMessageDialog::Open(EAppMsgType::YesNo, TimeTakenMessage) == EAppReturnType::Yes)
+			{
+				const FText LoadingStatusUpdate = FText::Format(LOCTEXT("VerifyCurves_LoadingAllAnimations", "Loading all animations for skeleton '{0}'"), FText::FromString(TargetSkeleton->GetName()));
+				{
+					FScopedSlowTask LoadingAnimSlowTask(Animations.Num(), LoadingStatusUpdate);
+					LoadingAnimSlowTask.MakeDialog();
+
+					// Loop through all animations to load then, this makes sure smart names are all up to date
+					for (const FAssetData& Anim : Animations)
+					{
+						LoadingAnimSlowTask.EnterProgressFrame();
+						UAnimSequence* Seq = Cast<UAnimSequence>(Anim.GetAsset());
+					}
+				}
+
+				// Grab all curve names for this skeleton
+				TArray<FName> UnusedNames;
+				Mapping->FillNameArray(UnusedNames);
+
+				const FText ProcessingStatusUpdate = FText::Format(LOCTEXT("VerifyCurves_ProcessingSkeletalMeshes", "Looking at curve useage for each skeletal mesh of skeleton '{0}'"), FText::FromString(TargetSkeleton->GetName()));
+				{
+					FScopedSlowTask LoadingSkelMeshSlowTask(SkeletalMeshes.Num(), ProcessingStatusUpdate);
+					LoadingSkelMeshSlowTask.MakeDialog();
+
+					for (int32 MeshIdx = 0; MeshIdx < SkeletalMeshes.Num(); ++MeshIdx)
+					{
+						LoadingSkelMeshSlowTask.EnterProgressFrame();
+
+						const USkeletalMesh* Mesh = Cast<USkeletalMesh>(SkeletalMeshes[MeshIdx].GetAsset());
+
+						// Filter morph targets from curves
+						const TArray<UMorphTarget*>& MorphTargets = Mesh->MorphTargets;
+						for (int32 I = 0; I < MorphTargets.Num(); ++I)
+						{
+							const int32 CurveIndex = UnusedNames.RemoveSingleSwap(MorphTargets[I]->GetFName(), false);
+						}
+
+						// Filter material params from curves
+						for (const FSkeletalMaterial& Mat : Mesh->Materials)
+						{
+							if (UnusedNames.Num() == 0)
+							{
+								break; // Done
+							}
+
+							UMaterial* Material = (Mat.MaterialInterface != nullptr) ? Mat.MaterialInterface->GetMaterial() : nullptr;
+							if (Material)
+							{
+								TArray<FName> OutParameterNames;
+								TArray<FGuid> OutParameterIds;
+
+								// Retrieve all scalar parameter names from the material
+								Material->GetAllScalarParameterNames(OutParameterNames, OutParameterIds);
+
+								for (FName SPName : OutParameterNames)
+								{
+									UnusedNames.RemoveSingleSwap(SPName);
+								}
+							}
+						}
+					}
+				}
+
+				FMessageLog CurveOutput("Persona");
+				CurveOutput.NewPage(LOCTEXT("PersonaMessageLogName", "Persona"));
+
+				bool bFoundIssue = false;
+
+				const FText ProcessingAnimStatusUpdate = FText::Format(LOCTEXT("VerifyCurves_ProcessingSkeletalMeshes", "Finding animations that reference unused curves on skeleton '{0}'"), FText::FromString(TargetSkeleton->GetName()));
+				{
+					FScopedSlowTask ProcessingAnimationsSlowTask(Animations.Num(), ProcessingAnimStatusUpdate);
+					ProcessingAnimationsSlowTask.MakeDialog();
+
+					for (const FAssetData& Anim : Animations)
+					{
+						ProcessingAnimationsSlowTask.EnterProgressFrame();
+						UAnimSequence* Seq = Cast<UAnimSequence>(Anim.GetAsset());
+
+						TSharedPtr<FTokenizedMessage> Message;
+						for (FFloatCurve& Curve : Seq->RawCurveData.FloatCurves)
+						{
+							if (UnusedNames.Contains(Curve.Name.DisplayName))
+							{
+								bFoundIssue = true;
+								if (!Message.IsValid())
+								{
+									Message = CurveOutput.Warning();
+									Message->AddToken(FAssetNameToken::Create(Anim.ObjectPath.ToString(), FText::FromName(Anim.AssetName)));
+									Message->AddToken(FTextToken::Create(LOCTEXT("VerifyCurves_FoundAnimationsWithUnusedReferences", "References the following curves that are not used for either morph targets or material parameters and so may be unneeded")));
+								}
+								CurveOutput.Info(FText::FromName(Curve.Name.DisplayName));
+							}
+						}
+					}
+				}
+
+				if (bFoundIssue)
+				{
+					CurveOutput.Notify();
+				}
+			}
 		}
 	}
 }

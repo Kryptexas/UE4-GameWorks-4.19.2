@@ -36,12 +36,17 @@ public:
 	bool IgnoreInheritedScale;
 
 public:
+	UFUNCTION(BlueprintCallable, Category = "Appearance")
+	void SetStretch(EStretch::Type InStretch);
 
-	//TODO UMG Add Set Stretch
-	//TODO UMG Add Set Stretch DIrection
-	//TODO UMG Add Set UserSpecifiedScale
-	//TODO UMG Add Set IgnoreInheritedScale
-	
+	UFUNCTION(BlueprintCallable, Category = "Appearance")
+	void SetStretchDirection(EStretchDirection::Type InStretchDirection);
+
+	UFUNCTION(BlueprintCallable, Category = "Appearance")
+	void SetUserSpecifiedScale(float InUserSpecifiedScale);
+
+	UFUNCTION(BlueprintCallable, Category = "Appearance")
+	void SetIgnoreInheritedScale(bool bInIgnoreInheritedScale);
 public:
 
 	// UWidget interface

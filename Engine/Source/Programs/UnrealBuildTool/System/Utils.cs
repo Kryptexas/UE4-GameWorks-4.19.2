@@ -887,7 +887,9 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Returns the User Settings Directory path. This matches FPlatformProcess::UserSettingsDir()
+		/// Returns the User Settings Directory path. This matches FPlatformProcess::UserSettingsDir().
+		/// NOTE: This function may return null. Some accounts (eg. the SYSTEM account on Windows) do not have a personal folder, and Jenkins
+		/// runs using this account by default.
 		/// </summary>
 		public static DirectoryReference GetUserSettingDirectory()
 		{
@@ -901,7 +903,16 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				return new DirectoryReference(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
+				// Not all user accounts have a local application data directory (eg. SYSTEM, used by Jenkins for builds).
+				string DirectoryName = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+				if(String.IsNullOrEmpty(DirectoryName))
+				{
+					return null;
+				}
+				else
+				{
+					return new DirectoryReference(DirectoryName);
+				}
 			}
 		}
 

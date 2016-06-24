@@ -18,7 +18,8 @@ FWmfMediaTrack::FWmfMediaTrack(IMFPresentationDescriptor* InPresentationDescript
 {
 	PWSTR LanguageString = NULL;
 
-	if (SUCCEEDED(StreamDescriptor->GetAllocatedString(MF_SD_LANGUAGE, &LanguageString, NULL)))
+	UINT32 TempLength;
+	if (SUCCEEDED(StreamDescriptor->GetAllocatedString(MF_SD_LANGUAGE, &LanguageString, &TempLength)))
 	{
 		Language = LanguageString;
 		CoTaskMemFree(LanguageString);
@@ -26,7 +27,7 @@ FWmfMediaTrack::FWmfMediaTrack(IMFPresentationDescriptor* InPresentationDescript
 
 	PWSTR NameString = NULL;
 
-	if (SUCCEEDED(StreamDescriptor->GetAllocatedString(MF_SD_STREAM_NAME, &NameString, NULL)))
+	if (SUCCEEDED(StreamDescriptor->GetAllocatedString(MF_SD_STREAM_NAME, &NameString, &TempLength)))
 	{
 		Name = NameString;
 		CoTaskMemFree(NameString);
@@ -93,8 +94,15 @@ FString FWmfMediaTrack::GetName() const
 
 bool FWmfMediaTrack::IsEnabled() const
 {
+	IMFStreamDescriptor* TempStreamDescriptor;
+
 	BOOL Selected = FALSE;
-	PresentationDescriptor->GetStreamDescriptorByIndex(StreamIndex, &Selected, NULL);
+	PresentationDescriptor->GetStreamDescriptorByIndex(StreamIndex, &Selected, &TempStreamDescriptor);
+
+	if (TempStreamDescriptor)
+	{
+		TempStreamDescriptor->Release();
+	}
 
 	return (Selected == TRUE);
 }

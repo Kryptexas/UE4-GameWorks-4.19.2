@@ -98,7 +98,7 @@ public:
 	bool HasAllFlags(const uint32 FlagsIn) const { return (Flags & FlagsIn) == FlagsIn; }
 
 	/** Set active instance name */
-	FName GetActiveInstance() const { return ActiveInstance; }
+	FName GetActiveInstance() const { return HasFlags(DisplayByInstance) ? ActiveInstance : NAME_None; }
 
 	/** Set active instance name */
 	void SetActiveInstance(const FName InstanceName);
@@ -135,11 +135,7 @@ class FBPProfilerStatWidget : public TSharedFromThis<FBPProfilerStatWidget>
 {
 public:
 
-	FBPProfilerStatWidget(TSharedPtr<class FScriptExecutionNode> InExecNode, const FTracePath& WidgetTracePathIn)
-		: WidgetTracePath(WidgetTracePathIn)
-		, ExecNode(InExecNode)
-	{
-	}
+	FBPProfilerStatWidget(TSharedPtr<class FScriptExecutionNode> InExecNode, const FTracePath& WidgetTracePathIn);
 
 	virtual ~FBPProfilerStatWidget() {}
 
@@ -177,6 +173,15 @@ protected:
 
 	/** Navigate to referenced node */
 	void NavigateTo() const;
+
+	/** Calculate and return the heat color to use for exclusive timing stats. */
+	FSlateColor GetNodeHeatColor() const;
+
+	/** Calculate and return the heat color to use for inclusive timing stats. */
+	FSlateColor GetInclusiveHeatColor() const;
+
+	/** Calculate and return the heat color to use for max time stats. */
+	FSlateColor GetMaxTimeHeatColor() const;
 
 protected:
 

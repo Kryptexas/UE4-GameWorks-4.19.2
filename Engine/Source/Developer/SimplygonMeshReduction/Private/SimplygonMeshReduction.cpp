@@ -10,6 +10,7 @@
 #include "StaticMeshResources.h"
 #include "Components/SplineMeshComponent.h"
 #include "SimplygonSDK.h"
+#include "ScopedTimers.h"
 
 #include "MeshMergeData.h"
 
@@ -345,9 +346,9 @@ public:
 			//todo: check - memory leak here - SrcModel is not released?
 
 			// fix up chunks to remove the bones that set to be removed
-			for (int32 ChunkIndex = 0; ChunkIndex < NewSrcModel->Chunks.Num(); ++ChunkIndex)
+			for (int32 SectionIndex = 0; SectionIndex < NewSrcModel->Sections.Num(); ++SectionIndex)
 			{
-				MeshBoneReductionInterface->FixUpChunkBoneMaps(NewSrcModel->Chunks[ChunkIndex], BonesToRemove);
+				MeshBoneReductionInterface->FixUpSectionBoneMaps(NewSrcModel->Sections[SectionIndex], BonesToRemove);
 			}
 		}
 
@@ -569,24 +570,68 @@ public:
 			return NULL;
 		}
 
-		const char* LicenseData = NULL;
-		TArray<uint8> LicenseFileContents;
-		if (FFileHelper::LoadFileToArray(LicenseFileContents, *FPaths::Combine(*DllPath, TEXT("Simplygon_5_license.dat")), FILEREAD_Silent) && LicenseFileContents.Num() > 0)
+		// Workaround for the fact Simplygon stomps memory
+		class FSimplygonLicenseData
 		{
-			LicenseData = (const char*)LicenseFileContents.GetData();
+			uint8* LicenseDataMem;
+			int32 RealDataOffset;
+		public:
+			FSimplygonLicenseData(const TCHAR* InDllPath)
+				: LicenseDataMem(nullptr)
+				, RealDataOffset(0)
+			{
+				TArray<uint8> LicenseFileContents;
+				if (FFileHelper::LoadFileToArray(LicenseFileContents, *FPaths::Combine(InDllPath, TEXT("Simplygon_5_license.dat")), FILEREAD_Silent))
+				{
+					if (LicenseFileContents.Num() > 0)
+					{
+						// Allocate with a big slack at the beginning and end to workaround the fact Simplygon stomps memory					
+						const int32 LicenseDataSizeWithSlack = LicenseFileContents.Num() * 3 * sizeof(uint8);
+						LicenseDataMem = (uint8*)FMemory::Malloc(LicenseDataSizeWithSlack);
+						FMemory::Memzero(LicenseDataMem, LicenseDataSizeWithSlack);
+						// Copy data to somewhere in the middle of allocated memory
+						RealDataOffset = LicenseFileContents.Num();
+						FMemory::Memcpy(LicenseDataMem + RealDataOffset, LicenseFileContents.GetData(), LicenseFileContents.Num() * sizeof(uint8));
+					}
+				}
+			}
+			~FSimplygonLicenseData()
+			{
+				FMemory::Free(LicenseDataMem);
+			}
+			const char* GetLicenseData() const
+			{
+				return (const char*)(LicenseDataMem + RealDataOffset);
+			}
+			bool IsValid() const
+			{
+				return !!LicenseDataMem;
+			}
+		} LicenseDataContainer(*DllPath);
+
+		FSimplygonMeshReduction* Result = nullptr;
+		if (LicenseDataContainer.IsValid())
+		{
+			SimplygonSDK::ISimplygonSDK* SDK = NULL;
+			int32 InitResult = InitializeSimplygonSDK(LicenseDataContainer.GetLicenseData(), &SDK);
+
+			if (InitResult != SimplygonSDK::SG_ERROR_NOERROR && InitResult != SimplygonSDK::SG_ERROR_ALREADYINITIALIZED)
+			{
+				UE_LOG(LogSimplygon, Warning, TEXT("Failed to initialize Simplygon. Error: %d."), Result);
+				FPlatformProcess::FreeDllHandle(GSimplygonSDKDLLHandle);
+				GSimplygonSDKDLLHandle = nullptr;
+			}
+			else
+			{
+				Result = new FSimplygonMeshReduction(SDK);
+			}
+		}
+		else
+		{
+			UE_LOG(LogSimplygon, Warning, TEXT("Failed to load Simplygon license file."));
 		}
 
-		SimplygonSDK::ISimplygonSDK* SDK = NULL;
-		int32 Result = InitializeSimplygonSDK(LicenseData, &SDK);
-		if (Result != SimplygonSDK::SG_ERROR_NOERROR && Result != SimplygonSDK::SG_ERROR_ALREADYINITIALIZED)
-		{
-			UE_LOG(LogSimplygon,Warning,TEXT("Failed to initialize Simplygon. Error: %d."),Result);
-			FPlatformProcess::FreeDllHandle(GSimplygonSDKDLLHandle);
-			GSimplygonSDKDLLHandle = NULL;
-			return NULL;
-		}
-
-		return new FSimplygonMeshReduction(SDK);
+		return Result;
 	}
 
 	struct FMaterialCastingProperties
@@ -637,8 +682,12 @@ public:
 		
 		// Perform LOD processing
 		UE_LOG(LogSimplygon, Log, TEXT("Processing with %s."), *FString(Processor->GetClass()));
-		Processor->RunProcessing();
-		UE_LOG(LogSimplygon, Log, TEXT("Processing done."));
+		double ProcessingTime = 0.0;
+		{
+			FScopedDurationTimer ProcessingTimer(ProcessingTime);
+			Processor->RunProcessing();
+		}
+		UE_LOG(LogSimplygon, Log, TEXT("Processing done in %.2f s."), ProcessingTime);
 
 		// Cast input materials to output materials and convert to FFlattenMaterial
 		UE_LOG(LogSimplygon, Log, TEXT("Casting materials."));
@@ -1480,17 +1529,12 @@ private:
 		GeometryData->AddMaterialIds();
 		SimplygonSDK::spRidArray MaterialIndices = GeometryData->GetMaterialIds();
 
-		// Add per-vertex data. This data needs to be added per-chunk so that we can properly map bones.
-#if WITH_APEX_CLOTHING
-		const int32 ChunkCount = LODModel.NumNonClothingSections();
-#else
-		const int32 ChunkCount = LODModel.Chunks.Num();
-#endif // #if WITH_APEX_CLOTHING
+		// Add per-vertex data. This data needs to be added per-section so that we can properly map bones.
 		uint32 FirstVertex = 0;
-		for ( int32 ChunkIndex = 0; ChunkIndex < ChunkCount; ++ChunkIndex )
+		for ( uint32 SectionIndex = 0; SectionIndex < SectionCount; ++SectionIndex )
 		{
-			const FSkelMeshChunk& Chunk = LODModel.Chunks[ ChunkIndex ];
-			const uint32 LastVertex = FirstVertex + (uint32)Chunk.RigidVertices.Num() + (uint32)Chunk.SoftVertices.Num();
+			const FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
+			const uint32 LastVertex = FirstVertex + (uint32)Section.SoftVertices.Num();
 			for ( uint32 VertexIndex = FirstVertex; VertexIndex < LastVertex; ++VertexIndex )
 			{
 				FSoftSkinVertex& Vertex = Vertices[ VertexIndex ];
@@ -1506,8 +1550,8 @@ private:
 
 					if ( BoneInfluence > 0 )
 					{
-						check( BoneIndex < Chunk.BoneMap.Num() );
-						uint32 BoneID = BoneIDs[ Chunk.BoneMap[ BoneIndex ] ];
+						check( BoneIndex < Section.BoneMap.Num() );
+						uint32 BoneID = BoneIDs[Section.BoneMap[ BoneIndex ] ];
 						VertexBoneIds[InfluenceIndex] = BoneID;
 						VertexBoneWeights[InfluenceIndex] = BoneInfluence / 255.0f;
 					}

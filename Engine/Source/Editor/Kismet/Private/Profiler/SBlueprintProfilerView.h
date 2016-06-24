@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "BlueprintProfilerModule.h"
 
 /** Blueprint performance view type */
 namespace EBlueprintPerfViewType
@@ -59,6 +60,36 @@ protected:
 	/** Called when the profiler view type is changed */
 	void OnViewSelectionChanged(const EBlueprintPerfViewType::Type NewViewType);
 
+	/** Returns the current heat map display mode label */
+	FText GetCurrentHeatMapDisplayModeText() const;
+
+	/** Constructs and returns the heat map display mode button widget */
+	TSharedRef<SWidget> CreateHeatMapDisplayModeButton() const;
+
+	/** Returns the active heat map display mode button foreground color */
+	FSlateColor GetHeatMapDisplayModeButtonForegroundColor() const;
+
+	/** Returns whether or not the given heat map display mode is selected */
+	bool IsHeatMapDisplayModeSelected(const EBlueprintProfilerHeatMapDisplayMode::Type InHeatMapDisplayMode) const;
+
+	/** Called when the heat map display mode is changed */
+	void OnHeatMapDisplayModeChanged(const EBlueprintProfilerHeatMapDisplayMode::Type NewHeatMapDisplayMode);
+
+	/** Returns the current wire heat map display mode label */
+	FText GetCurrentWireHeatMapDisplayModeText() const;
+
+	/** Constructs and returns the wire heat map display mode button widget */
+	TSharedRef<SWidget> CreateWireHeatMapDisplayModeButton() const;
+
+	/** Returns the active wire heat map display mode button foreground color */
+	FSlateColor GetWireHeatMapDisplayModeButtonForegroundColor() const;
+
+	/** Returns whether or not the given wire heat map display mode is selected */
+	bool IsWireHeatMapDisplayModeSelected(const EBlueprintProfilerHeatMapDisplayMode::Type InHeatMapDisplayMode) const;
+
+	/** Called when the wire heat map display mode is changed */
+	void OnWireHeatMapDisplayModeChanged(const EBlueprintProfilerHeatMapDisplayMode::Type NewHeatMapDisplayMode);
+
 	/** Create active statistic display widget */
 	TSharedRef<SWidget> CreateActiveStatisticWidget();
 
@@ -76,4 +107,9 @@ protected:
 	/** View combo button widget */
 	TSharedPtr<SComboButton> ViewComboButton;
 
+	/** Heat map display mode combo button widget */
+	TSharedPtr<SComboButton> HeatMapDisplayModeComboButton;
+
+	/** Heat map display mode combo button widget */
+	TSharedPtr<SComboButton> WireHeatMapDisplayModeComboButton;
 };

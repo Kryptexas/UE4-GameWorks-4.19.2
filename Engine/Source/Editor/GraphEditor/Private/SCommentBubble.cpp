@@ -101,9 +101,9 @@ void SCommentBubble::Tick( const FGeometry& AllottedGeometry, const double InCur
 	{
 		if( bTitleBarBubbleVisible )
 		{
-			const bool bIsHovered = IsHovered() || IsGraphNodeHovered.Execute();
+			const bool bIsCommentHovered = IsHovered() || IsGraphNodeHovered.Execute();
 
-			if( bIsHovered )
+			if( bIsCommentHovered )
 			{
 				if( OpacityValue < 1.f )
 				{
@@ -399,13 +399,13 @@ void SCommentBubble::OnCommentTextCommitted( const FText& NewText, ETextCommit::
 
 EVisibility SCommentBubble::GetToggleButtonVisibility() const
 {
-	EVisibility Visibility = EVisibility::Hidden;
+	EVisibility ButtonVisibility = EVisibility::Hidden;
 
 	if( OpacityValue > 0.f && !GraphNode->bCommentBubbleVisible )
 	{
-		Visibility = EVisibility::Visible;
+		ButtonVisibility = EVisibility::Visible;
 	}
-	return Visibility;
+	return ButtonVisibility;
 }
 
 EVisibility SCommentBubble::GetBubbleVisibility() const

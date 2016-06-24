@@ -48,8 +48,11 @@ enum class ETargetPlatformFeatures
 	/** User credentials are required to use the device. */
 	UserCredentials,
 
-	/** Vertex Shader Texture Sampling. */
-	VertexShaderTextureSampling,
+	/** The platform uses the mobile forward pipeline */
+	MobileRendering,
+
+	/** The platform uses the deferred pipeline, typically PC/Console platforms */
+	DeferredRendering,
 
 	/** Should use compressed cooked packages */
 	ShouldUseCompressedCookedPackages, 
@@ -159,13 +162,11 @@ public:
 	virtual ECompressionFlags GetBaseCompressionMethod() const = 0;
 
 	/**
-	 * Compresses memory using platform specific custom method.
+	 * Gets the bit window for compressor for this platform.
 	 *
-	 * @return true if data was successfully compressed
+	 * @return Compression bit window.
 	 */
-	virtual bool CompressMemory( ECompressionFlags Flags, void* CompressedBuffer, int32& CompressedSize, const void* UncompressedBuffer, int32 UncompressedSize ) const = 0;
-
-	virtual int32 CompressMemoryBounds( ECompressionFlags Flags, int32 UncompressedSize ) const = 0;
+	virtual int32 GetCompressionBitWindow() const = 0;
 
 	/**
 	 * Generates a platform specific asset manifest given an array of FAssetData.

@@ -239,6 +239,8 @@ FName DataTableUtils::MakeValidName(const FString& InString)
 bool DataTableUtils::IsSupportedTableProperty(const UProperty* InProp)
 {
 	return(	InProp->IsA(UIntProperty::StaticClass()) || 
+			InProp->IsA(UNumericProperty::StaticClass()) ||
+			InProp->IsA(UDoubleProperty::StaticClass()) ||
 			InProp->IsA(UFloatProperty::StaticClass()) ||
 			InProp->IsA(UNameProperty::StaticClass()) ||
 			InProp->IsA(UStrProperty::StaticClass()) ||

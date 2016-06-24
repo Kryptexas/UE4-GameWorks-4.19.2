@@ -1456,7 +1456,9 @@ uint32 FPooledRenderTarget::ComputeMemorySize() const
 
 bool FPooledRenderTarget::IsFree() const
 {
-	check(GetRefCount() >= 1);
+	uint32 RefCount = GetRefCount();
+	check(RefCount >= 1);
+
 	// If the only reference to the pooled render target is from the pool, then it's unused.
-	return !bSnapshot && GetRefCount() == 1;
+	return !bSnapshot && RefCount == 1;
 }

@@ -340,6 +340,7 @@ void* TPoolAllocator::allocate(size_t numBytes)
 //
 void TAllocation::checkAllocList() const
 {
+	//#Epic - Had to rename check() to Check()
     for (const TAllocation* alloc = this; alloc != 0; alloc = alloc->prevAlloc)
         alloc->Check();
 }

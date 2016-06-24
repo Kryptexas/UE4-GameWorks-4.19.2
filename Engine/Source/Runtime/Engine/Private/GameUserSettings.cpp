@@ -86,9 +86,6 @@ void UGameUserSettings::SetFullscreenMode( EWindowMode::Type InFullscreenMode )
 		case EWindowMode::WindowedFullscreen:
 			FullscreenMode = 1;
 			break;
-		case EWindowMode::WindowedMirror:
-			FullscreenMode = 3;
-			break;
 		case EWindowMode::Windowed:
 		default:
 			FullscreenMode = 2;
@@ -178,7 +175,7 @@ void UGameUserSettings::SetToDefaults()
 
 	ScalabilityQuality.SetDefaults();
 
-	if (!IsRunningDedicatedServer())
+	if (!FApp::ShouldUseNullRHI())
 	{
 		UpdateResolutionQuality();
 	}

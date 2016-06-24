@@ -181,6 +181,10 @@ class ENGINE_API UAnimBlueprintGeneratedClass : public UBlueprintGeneratedClass,
 	UPROPERTY()
 	int32 RootAnimNodeIndex;
 
+	// Indices for each of the saved pose nodes that require updating, in the order they need to get updates.
+	UPROPERTY()
+	TArray<int32> OrderedSavedPoseIndices;
+
 	// The array of anim nodes; this is transient generated data (created during Link)
 	UStructProperty* RootAnimNodeProperty;
 	TArray<UStructProperty*> AnimNodeProperties;
@@ -204,6 +208,8 @@ public:
 	virtual const TArray<UStructProperty*>& GetAnimNodeProperties() const override { return AnimNodeProperties; }
 
 	virtual const TArray<FName>& GetSyncGroupNames() const override { return SyncGroupNames; }
+
+	virtual const TArray<int32>& GetOrderedSavedPoseNodeIndices() const override { return OrderedSavedPoseIndices; }
 
 	virtual int32 GetSyncGroupIndex(FName SyncGroupName) const override { return SyncGroupNames.IndexOfByKey(SyncGroupName); }
 

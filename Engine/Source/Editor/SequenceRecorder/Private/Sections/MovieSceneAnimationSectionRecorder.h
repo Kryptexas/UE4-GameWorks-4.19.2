@@ -37,6 +37,8 @@ public:
 
 	USkeletalMesh* GetSkeletalMesh() const { return SkeletalMesh.Get(); }
 
+	USkeletalMeshComponent* GetSkeletalMeshComponent() const { return SkeletalMeshComponent.Get(); }
+
 	const FTransform& GetComponentTransform() const { return ComponentTransform; }
 
 private:
@@ -56,10 +58,4 @@ private:
 	FTransform ComponentTransform;
 
 	FAnimationRecordingSettings AnimationSettings;
-
-	/** Used to store/restore update flag when recording */
-	EMeshComponentUpdateFlag::Type MeshComponentUpdateFlag;
-
-	/** Used to store/restore URO when recording */
-	bool bEnableUpdateRateOptimizations;
 };

@@ -9,7 +9,7 @@
 #include "ObjectEditorUtils.h"
 #include "AssetEditorManager.h"
 #include "SequencerUtilities.h"
-#include "ClassIconFinder.h"
+#include "SlateIconFinder.h"
 #include "SequencerCommands.h"
 
 #define LOCTEXT_NAMESPACE "FObjectBindingNode"
@@ -118,6 +118,16 @@ void FSequencerObjectBindingNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 
 			MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ConvertToSpawnable );
 		}
+
+		/*
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("Import FBX", "Import FBX..."),
+			LOCTEXT("ImportFBXTooltip", "Import FBX animation to this object"),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateLambda([=]{ GetSequencer().ImportFBX(ObjectBinding); })
+			));
+			*/
 
 		MenuBuilder.BeginSection("Organize", LOCTEXT("OrganizeContextMenuSectionName", "Organize"));
 		{
@@ -273,7 +283,7 @@ FText FSequencerObjectBindingNode::GetDisplayNameToolTipText() const
 
 const FSlateBrush* FSequencerObjectBindingNode::GetIconBrush() const
 {
-	return FClassIconFinder::FindIconForClass(GetClassForObjectBinding());
+	return FSlateIconFinder::FindIconBrushForClass(GetClassForObjectBinding());
 }
 
 const FSlateBrush* FSequencerObjectBindingNode::GetIconOverlayBrush() const
@@ -330,8 +340,8 @@ void FSequencerObjectBindingNode::SetDisplayName(const FText& NewDisplayName)
 
 bool FSequencerObjectBindingNode::CanDrag() const
 {
-	TSharedPtr<FSequencerDisplayNode> ParentNode = GetParent();
-	return ParentNode.IsValid() == false || ParentNode->GetType() != ESequencerNode::Object;
+	TSharedPtr<FSequencerDisplayNode> ParentSeqNode = GetParent();
+	return ParentSeqNode.IsValid() == false || ParentSeqNode->GetType() != ESequencerNode::Object;
 }
 
 

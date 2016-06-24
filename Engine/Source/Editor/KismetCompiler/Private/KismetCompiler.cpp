@@ -1189,12 +1189,9 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 
 			for (int32 ChildIndex = 0; ChildIndex < Context.SourceGraph->Nodes.Num(); ++ChildIndex)
 			{
-				const UEdGraphNode* Node = Context.SourceGraph->Nodes[ChildIndex];
-				const int32 SavedErrorCount = MessageLog.NumErrors;
-				UK2Node_Event* SrcEventNode = Cast<UK2Node_Event>(Context.SourceGraph->Nodes[ChildIndex]);
-				if (bIsFullCompile || SrcEventNode)
+				if (const UK2Node* K2Node = Cast<const UK2Node>(Context.SourceGraph->Nodes[ChildIndex]))
 				{
-					ValidateNode(Node);
+					K2Node->ValidateNodeAfterPrune(Context.MessageLog);
 				}
 			}
 
@@ -1824,6 +1821,13 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 
 		// If the flag is inherited, this will keep the bool up-to-date
 		Blueprint->bDeprecate = (Class->ClassFlags & CLASS_Deprecated) == CLASS_Deprecated;
+
+		// Add the description to the tooltip
+		if (!Blueprint->BlueprintDescription.IsEmpty())
+		{
+			static const FName NAME_Tooltip(TEXT("Tooltip"));
+			Class->SetMetaData(NAME_Tooltip, *Blueprint->BlueprintDescription);
+		}
 
 		// Copy the category info from the parent class
 #if WITH_EDITORONLY_DATA
@@ -2641,8 +2645,16 @@ void FKismetCompilerContext::CreateAndProcessUbergraph()
 			// Validate all the nodes in the graph
 			for (int32 ChildIndex = 0; ChildIndex < ConsolidatedEventGraph->Nodes.Num(); ++ChildIndex)
 			{
-				UK2Node_Event* SrcEventNode = Cast<UK2Node_Event>(ConsolidatedEventGraph->Nodes[ChildIndex]);	
-				if (SrcEventNode)
+				const UEdGraphNode* Node = ConsolidatedEventGraph->Nodes[ChildIndex];
+				const int32 SavedErrorCount = MessageLog.NumErrors;
+				UK2Node_Event* SrcEventNode = Cast<UK2Node_Event>(ConsolidatedEventGraph->Nodes[ChildIndex]);
+				if (bIsFullCompile || SrcEventNode)
+				{
+					ValidateNode(Node);
+				}
+
+				// If the node didn't generate any errors then generate function stubs for event entry nodes etc.
+				if ((SavedErrorCount == MessageLog.NumErrors) && SrcEventNode)
 				{
 					CreateFunctionStubForEvent(SrcEventNode, Blueprint);
 				}

@@ -35,6 +35,19 @@ enum EMetalFeatures
 	EMetalFeaturesDepthStencilBlitOptions = 1 << 4
 };
 
+/**
+ * Enumeration for submission hints to avoid unclear bool values.
+ */
+enum EMetalSubmitFlags
+{
+	/** No submission flags. */
+	EMetalSubmitFlagsNone = 0,
+	/** Create the next command buffer. */
+	EMetalSubmitFlagsCreateCommandBuffer = 1 << 0,
+	/** Wait on the submitted command buffer. */
+	EMetalSubmitFlagsWaitOnCommandBuffer = 1 << 1
+};
+
 class FMetalRHICommandContext;
 
 class FMetalContext
@@ -91,13 +104,16 @@ public:
 	{
 		return QueryBuffer.ToSharedRef();
 	}
+	
+	/** @returns True if the Metal validation layer is enabled else false. */
+	bool IsValidationLayerEnabled() const { return bValidationEnabled; }
 
-    void SubmitCommandsHint(bool const bCreateNew = true, bool const bWait = false);
+    void SubmitCommandsHint(uint32 const bFlags = EMetalSubmitFlagsCreateCommandBuffer);
 	void SubmitCommandBufferAndWait();
-	void SubmitComputeCommandBufferAndWait();
 	void ResetRenderCommandEncoder();
 	
 	void SetShaderResourceView(EShaderFrequency ShaderStage, uint32 BindIndex, FMetalShaderResourceView* RESTRICT SRV);
+	void SetShaderUnorderedAccessView(EShaderFrequency ShaderStage, uint32 BindIndex, FMetalUnorderedAccessView* RESTRICT UAV);
 
 	void Dispatch(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ);
 #if PLATFORM_MAC
@@ -118,7 +134,7 @@ protected:
 	/**
 	 * Possibly switch from blit or compute to graphics
 	 */
-	void ConditionalSwitchToGraphics();
+	void ConditionalSwitchToGraphics(bool bRTChangePending = false, bool bRTChangeForce = false);
 	
 	/**
 	 * Switch to blitting
@@ -131,7 +147,7 @@ protected:
 	void ConditionalSwitchToCompute();
 	
 	/** Conditionally submit based on the number of outstanding draw/dispatch ops. */
-	void ConditionalSubmit();
+	void ConditionalSubmit(bool bRTChangePending = false, bool bRTChangeForce = false);
 	
 	/** Apply the SRT before drawing */
 	void CommitGraphicsResourceTables();
@@ -179,11 +195,17 @@ protected:
 	/** A pool of buffers for writing visibility query results. */
 	TSharedPtr<FMetalQueryBufferPool, ESPMode::ThreadSafe> QueryBuffer;
 	
+	/** A fallback depth-stencil surface for draw calls that write to depth without a depth-stencil surface bound. */
+	FTexture2DRHIRef FallbackDepthStencilSurface;
+	
 	/** the slot to store a per-thread autorelease pool */
 	static uint32 AutoReleasePoolTLSSlot;
 	
 	/** the slot to store a per-thread context ref */
 	static uint32 CurrentContextTLSSlot;
+	
+	/** The side table for runtiem validation of buffer access */
+	uint32 BufferSideTable[SF_NumFrequencies][MaxMetalStreams];
 	
 	/** The number of outstanding draw & dispatch commands in the current command buffer, used to commit command buffers at encoder boundaries when sufficiently large. */
 	uint32 OutstandingOpCount;
@@ -251,9 +273,7 @@ private:
 	{
 		dispatch_semaphore_t Signal;
 		TSet<id> FreeList;
-#if PLATFORM_IOS
         int FrameCount;
-#endif
 	};
 	TArray<FMetalDelayedFreeList*> DelayedFreeLists;
 	

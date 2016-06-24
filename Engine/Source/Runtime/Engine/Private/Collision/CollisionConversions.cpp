@@ -25,7 +25,7 @@ struct FOverlapKey
 
 	friend bool operator==(const FOverlapKey& X, const FOverlapKey& Y)
 	{
-		return (X.Component == Y.Component) && (X.ComponentIndex == Y.ComponentIndex);
+		return (X.ComponentIndex == Y.ComponentIndex) && (X.Component == Y.Component);
 	}
 };
 
@@ -41,10 +41,10 @@ extern TAutoConsoleVariable<int32> CVarShowInitialOverlaps;
 // Sentinel for invalid query results.
 static const PxQueryHit InvalidQueryHit;
 
-static bool IsInvalidFaceIndex(PxU32 faceIndex)
+FORCEINLINE_DEBUGGABLE bool IsInvalidFaceIndex(PxU32 faceIndex)
 {
-	checkf(InvalidQueryHit.faceIndex == 0xFFFFffff, TEXT("Engine code needs fixing: PhysX invalid face index sentinel has changed or is not part of default PxQueryHit!"));
-	return (faceIndex == InvalidQueryHit.faceIndex);
+	checkfSlow(InvalidQueryHit.faceIndex == 0xFFFFffff, TEXT("Engine code needs fixing: PhysX invalid face index sentinel has changed or is not part of default PxQueryHit!"));
+	return (faceIndex == 0xFFFFffff);
 }
 
 // Forward declare, I don't want to move the entire function right now or we lose change history.
@@ -53,6 +53,7 @@ static bool ConvertOverlappedShapeToImpactHit(const UWorld* World, const PxLocat
 DECLARE_CYCLE_STAT(TEXT("ConvertQueryHit"), STAT_ConvertQueryImpactHit, STATGROUP_Collision);
 DECLARE_CYCLE_STAT(TEXT("ConvertOverlapToHit"), STAT_CollisionConvertOverlapToHit, STATGROUP_Collision);
 DECLARE_CYCLE_STAT(TEXT("ConvertOverlap"), STAT_CollisionConvertOverlap, STATGROUP_Collision);
+DECLARE_CYCLE_STAT(TEXT("SetHitResultFromShapeAndFaceIndex"), STAT_CollisionSetHitResultFromShapeAndFaceIndex, STATGROUP_Collision);
 
 #define ENABLE_CHECK_HIT_NORMAL  (!(UE_BUILD_SHIPPING || UE_BUILD_TEST))
 
@@ -348,6 +349,7 @@ static FVector FindGeomOpposingNormal(PxGeometryType::Enum QueryGeomType, const 
 /** Set info in the HitResult (Actor, Component, PhysMaterial, BoneName, Item) based on the supplied shape and face index */
 static void SetHitResultFromShapeAndFaceIndex(const PxShape* PShape,  const PxRigidActor* PActor, const uint32 FaceIndex, FHitResult& OutResult, bool bReturnPhysMat)
 {
+	SCOPE_CYCLE_COUNTER(STAT_CollisionSetHitResultFromShapeAndFaceIndex);
 	const FBodyInstance* BodyInst = FPhysxUserData::Get<FBodyInstance>(PActor->userData);
 	FDestructibleChunkInfo* ChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(PShape->userData);
 	UPrimitiveComponent* PrimComp = FPhysxUserData::Get<UPrimitiveComponent>(PShape->userData);
@@ -647,7 +649,7 @@ FVector FindBestOverlappingNormal(const UWorld* World, const PxGeometry& Geom, c
 		}
 
 #if DRAW_OVERLAPPING_TRIS
-		if (bCanDrawOverlaps && (World->PersistentLineBatcher->BatchedLines.Num() < 2048))
+		if (bCanDrawOverlaps && World && World->PersistentLineBatcher && World->PersistentLineBatcher->BatchedLines.Num() < 2048)
 		{
 			static const float LineThickness = 0.9f;
 			static const float NormalThickness = 0.75f;
@@ -992,15 +994,17 @@ void ConvertQueryOverlap(const PxShape* PShape, const PxRigidActor* PActor, FOve
 {
 	const bool bBlock = IsBlocking(PShape, QueryFilter);
 
-	FBodyInstance* BodyInst = FPhysxUserData::Get<FBodyInstance>(PActor->userData);
-	FDestructibleChunkInfo* ChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(PActor->userData);
+	const FBodyInstance* BodyInst = FPhysxUserData::Get<FBodyInstance>(PActor->userData);
+	const FDestructibleChunkInfo* ChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(PActor->userData);
 
 	// Grab actor/component
-	UPrimitiveComponent* OwnerComponent = nullptr;
+	const UPrimitiveComponent* OwnerComponent = nullptr;
 
 	// Try body instance
 	if (BodyInst)
 	{
+        BodyInst = BodyInst->GetOriginalBodyInstance(PShape);
+
 		OwnerComponent = BodyInst->OwnerComponent.Get(); // cache weak pointer object, avoid multiple derefs below.
 		if (OwnerComponent)
 		{
@@ -1037,10 +1041,10 @@ static void AddUniqueOverlap(TArray<FOverlapResult>& OutOverlaps, const FOverlap
 	{
 		FOverlapResult& Overlap = OutOverlaps[TestIdx];
 
-		if(Overlap.Component == NewOverlap.Component && Overlap.ItemIndex == NewOverlap.ItemIndex)
+		if (Overlap.ItemIndex == NewOverlap.ItemIndex && Overlap.Component == NewOverlap.Component)
 		{
 			// These should be the same if the component matches!
-			check(Overlap.Actor == NewOverlap.Actor);
+			checkSlow(Overlap.Actor == NewOverlap.Actor);
 
 			// If we had a non-blocking overlap with this component, but now we have a blocking one, use that one instead!
 			if(!Overlap.bBlockingHit && NewOverlap.bBlockingHit)
@@ -1065,8 +1069,8 @@ bool IsBlocking(const PxShape* PShape, const PxFilterData& QueryFilter)
 	return bBlock;
 }
 
-/** Min number of overlaps required before using a TMap for deduplication */
-int32 GNumOverlapsRequiredForTMap = 2;
+/** Min number of overlaps required to start using a TMap for deduplication */
+int32 GNumOverlapsRequiredForTMap = 3;
 
 static FAutoConsoleVariableRef GTestOverlapSpeed(
 	TEXT("Engine.MinNumOverlapsToUseTMap"),
@@ -1078,14 +1082,15 @@ bool ConvertOverlapResults(int32 NumOverlaps, PxOverlapHit* POverlapResults, con
 {
 	SCOPE_CYCLE_COUNTER(STAT_CollisionConvertOverlap);
 
-	OutOverlaps.Reserve(OutOverlaps.Num() + NumOverlaps);
+	const int32 ExpectedSize = OutOverlaps.Num() + NumOverlaps;
+	OutOverlaps.Reserve(ExpectedSize);
 	bool bBlockingFound = false;
 
-	if (OutOverlaps.Max() >= GNumOverlapsRequiredForTMap)
+	if (ExpectedSize >= GNumOverlapsRequiredForTMap)
 	{
 		// Map from an overlap to the position in the result array (the index has one added to it so 0 can be a sentinel)
-		TMap<FOverlapKey, int32> OverlapMap;
-		OverlapMap.Reserve(OutOverlaps.Max());
+		TMap<FOverlapKey, int32, TInlineSetAllocator<64>> OverlapMap;
+		OverlapMap.Reserve(ExpectedSize);
 
 		// Fill in the map with existing hits
 		for (int32 ExistingIndex = 0; ExistingIndex < OutOverlaps.Num(); ++ExistingIndex)

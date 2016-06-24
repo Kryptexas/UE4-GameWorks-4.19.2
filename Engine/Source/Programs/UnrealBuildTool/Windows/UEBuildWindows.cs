@@ -95,17 +95,8 @@ namespace UnrealBuildTool
 					}
 					Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatOpenGL");
 
-					string VulkanSDKPath = Environment.GetEnvironmentVariable("VULKAN_SDK");
-					if (String.IsNullOrEmpty(VulkanSDKPath))
-					{
-						VulkanSDKPath = Environment.GetEnvironmentVariable("VK_SDK_PATH");
-					}
-
-                    if ((!String.IsNullOrEmpty(VulkanSDKPath)))
-					{
-            			Rules.DynamicallyLoadedModuleNames.Remove("VulkanRHI");
-						Rules.DynamicallyLoadedModuleNames.Add("VulkanShaderFormat");
-					}
+					Rules.DynamicallyLoadedModuleNames.Remove("VulkanRHI");
+					Rules.DynamicallyLoadedModuleNames.Add("VulkanShaderFormat");
 				}
 			}
 
@@ -121,7 +112,7 @@ namespace UnrealBuildTool
 				Rules.PrivateIncludePaths.Add("Runtime/Windows/D3D12RHI/Private/Windows");
 			}
 
-			if(SupportWindowsXP)
+			if (SupportWindowsXP)
 			{
 				Rules.DynamicallyLoadedModuleNames.Remove("D3D12RHI");
 				Rules.DynamicallyLoadedModuleNames.Remove("D3D11RHI");
@@ -132,9 +123,10 @@ namespace UnrealBuildTool
 				Rules.DynamicallyLoadedModuleNames.Remove("OculusAudio");
 				Rules.DynamicallyLoadedModuleNames.Remove("VulkanRHI");
 				Rules.PrivateDependencyModuleNames.Remove("DX11");
-				Rules.PrivateDependencyModuleNames.Remove("D3D11RHI");
 				Rules.PrivateDependencyModuleNames.Remove("DX12");
 				Rules.PrivateDependencyModuleNames.Remove("D3D12RHI");
+				Rules.PrivateDependencyModuleNames.Remove("D3D11RHI");
+				Rules.PrivateDependencyModuleNames.Remove("OpenVR");
 
 				// If we're targeting Windows XP, then always delay-load D3D11 as it won't exist on that architecture
 				if (ModuleName == "DX11")
@@ -143,6 +135,9 @@ namespace UnrealBuildTool
 					Rules.PublicDelayLoadDLLs.Add("dxgi.dll");
 				}
 			}
+
+			// For now let's always delay load the vulkan dll as not everyone has it installed
+			Rules.PublicDelayLoadDLLs.Add("vulkan-1.dll");
 		}
 
 		public override void ResetBuildConfiguration(UnrealTargetConfiguration Configuration)
@@ -242,8 +237,7 @@ namespace UnrealBuildTool
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_WINDOWS=1");
 
 			String MorpheusShaderPath = Path.Combine(BuildConfiguration.RelativeEnginePath, "Shaders/PS4/PostProcessHMDMorpheus.usf");
-			//@todo: VS2015 currently does not have support for Morpheus
-			if (File.Exists(MorpheusShaderPath) && WindowsPlatform.Compiler != WindowsCompiler.VisualStudio2015)
+			if (File.Exists(MorpheusShaderPath))
 			{
 				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("HAS_MORPHEUS=1");
 
@@ -536,7 +530,7 @@ namespace UnrealBuildTool
 		public static readonly bool bCompileWithClang = false;
 
 		/// When using Clang, enabling enables the MSVC-like "clang-cl" wrapper, otherwise we pass arguments to Clang directly
-		public static readonly bool bUseVCCompilerArgs = !bCompileWithClang || false;
+		public static readonly bool bUseVCCompilerArgs = true;
 
 		/// True if we should use the Clang linker (LLD) when bCompileWithClang is enabled, otherwise we use the MSVC linker
 		public static readonly bool bAllowClangLinker = bCompileWithClang && false;

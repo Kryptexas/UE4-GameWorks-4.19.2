@@ -59,6 +59,7 @@
 #include "Engine/Selection.h"
 #include "Sound/SoundBase.h"
 #include "Camera/CameraAnim.h"
+#include "Animation/AnimSequence.h"
 
 #include "IMenu.h"
 

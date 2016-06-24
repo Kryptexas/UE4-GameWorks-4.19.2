@@ -7,6 +7,8 @@
 #include "NotificationManager.h"
 #include "SNotificationList.h"
 #include "GenericCommands.h"
+#include "IAnalyticsProvider.h"
+#include "EngineAnalytics.h"
 
 DEFINE_LOG_CATEGORY(LogMainFrame);
 #define LOCTEXT_NAMESPACE "FMainFrameModule"

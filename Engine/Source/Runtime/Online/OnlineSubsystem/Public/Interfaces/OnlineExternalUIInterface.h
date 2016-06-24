@@ -56,6 +56,8 @@ struct FShowWebUrlParams
 	bool bShowCloseButton;
 	/** Show the built in background */
 	bool bShowBackground;
+	/** Hide the mouse cursor */
+	bool bHideCursor;
 	/** x offset in pixels from top left */
 	int32 OffsetX;
 	/** y offset in pixels from top left */
@@ -76,6 +78,7 @@ struct FShowWebUrlParams
 		: bEmbedded(InbEmbedded)
 		, bShowCloseButton(false)
 		, bShowBackground(false)
+		, bHideCursor(false)
 		, OffsetX(InOffsetX)
 		, OffsetY(InOffsetY)
 		, SizeX(InSizeX)
@@ -89,6 +92,7 @@ struct FShowWebUrlParams
 		: bEmbedded(false)
 		, bShowCloseButton(false)
 		, bShowBackground(false)
+		, bHideCursor(false)
 		, OffsetX(0)
 		, OffsetY(0)
 		, SizeX(0)

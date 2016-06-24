@@ -35,6 +35,7 @@ public:
 	
 	TSharedPtr< FUICommandInfo > BrowseDocumentation;
 	TSharedPtr< FUICommandInfo > BrowseAPIReference;
+	TSharedPtr< FUICommandInfo > BrowseCVars;
 	TSharedPtr< FUICommandInfo > BrowseViewportControls;
 
 	/** Level file commands */
@@ -49,9 +50,6 @@ public:
 
 	TSharedPtr< FUICommandInfo > ToggleFavorite;
 
-	/** Import */
-	TSharedPtr< FUICommandInfo > Import;
-	
 	/** Import Scene */
 	TSharedPtr< FUICommandInfo > ImportScene;
 
@@ -618,6 +616,9 @@ public:
 	/** Opens the API documentation CHM */
 	static void BrowseAPIReference();
 
+	/** Creates an HTML file to browse the console variables and commands */
+	static void BrowseCVars();
+
 	/** Opens the viewport controls page*/
 	static void BrowseViewportControls();
 
@@ -678,13 +679,8 @@ public:
 
 
 	/**
-	 * Called when import is selected
+	 * Called when import scene is selected
 	 */
-	static void Import_Clicked();
-
-	/**
-	* Called when import scene is selected
-	*/
 	static void ImportScene_Clicked();
 
 

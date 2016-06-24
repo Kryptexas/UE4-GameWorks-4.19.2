@@ -147,9 +147,6 @@ public:
 	 */
 	virtual void UpdateLightColorAndBrightness(ULightComponent* Light) = 0;
 
-	/** Updates the scene's dynamic skylight. */
-	virtual void UpdateDynamicSkyLight(const FLinearColor& UpperColor, const FLinearColor& LowerColor) {}
-
 	/** Sets the precomputed visibility handler for the scene, or NULL to clear the current one. */
 	virtual void SetPrecomputedVisibility(const class FPrecomputedVisibilityHandler* PrecomputedVisibilityHandler) {}
 
@@ -353,7 +350,7 @@ public:
 	 * Initialize the pixel inspector buffers.
 	 * @return True if implemented false otherwise.
 	 */
-	virtual bool InitializePixelInspector(FRenderTarget* BufferFinalColor, FRenderTarget* BufferDepth, FRenderTarget* BufferHDR, FRenderTarget* BufferA, FRenderTarget* BufferBCDE, int32 BufferIndex)
+	virtual bool InitializePixelInspector(FRenderTarget* BufferFinalColor, FRenderTarget* BufferSceneColor, FRenderTarget* BufferDepth, FRenderTarget* BufferHDR, FRenderTarget* BufferA, FRenderTarget* BufferBCDE, int32 BufferIndex)
 	{
 		return false;
 	}

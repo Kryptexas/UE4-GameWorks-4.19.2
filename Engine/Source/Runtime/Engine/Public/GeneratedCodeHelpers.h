@@ -39,8 +39,7 @@ inline FBox2D CreateFBox2D(FVector2D InMin, FVector2D InMax, bool InIsValid)
 template<class NativeType>
 inline NativeType* NoNativeCast(UClass* NoNativeClass, UObject* Object)
 {
-	check(NoNativeClass);
-	check(!Object || (nullptr != Cast<NativeType>(Object)));
+	check(NoNativeClass && NoNativeClass->IsChildOf<NativeType>());
 	return (Object && Object->IsA(NoNativeClass)) ? ((NativeType*)Object) : nullptr;
 }
 
@@ -205,7 +204,8 @@ public:
 		}
 		else
 		{
-			ExecutionMessage(*FString::Printf(TEXT("Attempted to get an item from array out of bounds [%d/%d]!"), Index, LastIndexForLog(TargetArray)), ELogVerbosity::Warning);
+			ExecutionMessage(*FString::Printf(TEXT("Attempted to access index %d from array of length %d!"), 
+				Index, TargetArray.Num()), ELogVerbosity::Error);
 			Item = U{};
 		}
 	}
@@ -238,6 +238,12 @@ public:
 	static void SetArrayPropertyByName(UObject* Object, FName PropertyName, TArray<T>& Value)
 	{
 		UKismetArrayLibrary::GenericArray_SetArrayPropertyByName(Object, PropertyName, &Value);
+	}
+
+	template<typename T>
+	static bool Array_IsValidIndex(const TArray<T>& TargetArray, int32 Index)
+	{
+		return TargetArray.IsValidIndex(Index);
 	}
 
 	//Replacements for CustomThunk functions from UDataTableFunctionLibrary
@@ -328,7 +334,6 @@ struct TSwitchPair<IndexType, ValueType*>
 	}
 };
 
-#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 template<typename IndexType, typename ValueType>
 ValueType& TSwitchValue(const IndexType& CurrentIndex, ValueType& DefaultValue, int OptionsNum)
 {
@@ -344,30 +349,6 @@ ValueType& TSwitchValue(const IndexType& CurrentIndex, ValueType& DefaultValue, 
 	}
 	return TSwitchValue<IndexType, ValueType, Tail...>(CurrentIndex, DefaultValue, OptionsNum, TailOptions...);
 }
-#else //PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
-template<typename IndexType, typename ValueType>
-ValueType& TSwitchValue(const IndexType& CurrentIndex, ValueType& DefaultValue, int OptionsNum, ...)
-{
-	typedef TSwitchPair < IndexType, ValueType > OptionType;
-
-	ValueType* SelectedValuePtr = nullptr;
-
-	va_list Options;
-	va_start(Options, OptionsNum);
-	for (int OptionIt = 0; OptionIt < OptionsNum; ++OptionIt)
-	{
-		OptionType Option = va_arg(Options, OptionType);
-		if (Option.IndexRef == CurrentIndex)
-		{
-			SelectedValuePtr = &Option.ValueRef;
-			break;
-		}
-	}
-	va_end(Options);
-
-	return SelectedValuePtr ? *SelectedValuePtr : DefaultValue;
-}
-#endif //PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 
 // Base class for wrappers for unconverted BlueprintGeneratedClasses
 template<class NativeType>

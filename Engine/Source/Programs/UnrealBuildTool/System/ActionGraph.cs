@@ -328,10 +328,10 @@ namespace UnrealBuildTool
 				AllActions.RemoveAll(x => x.ActionType != ActionType.Compile);
 
 				// Check all of the leftover compilation actions for the one we want... that one is always outdated.
+				FileItem SingleFileToCompile = FileItem.GetExistingItemByPath(BuildConfiguration.SingleFileToCompile);
 				foreach (Action Action in AllActions)
 				{
-					// Slightly hacky.  We know a compiling X:/Blah/Actor.cpp ends up with StatusDescription == "Actor.cpp".
-					bool bIsSingleFileAction = BuildConfiguration.SingleFileToCompile.EndsWith(Action.StatusDescription.ToLowerInvariant());
+					bool bIsSingleFileAction = Action.PrerequisiteItems.Contains(SingleFileToCompile);
 					OutdatedActionDictionary[Action] = bIsSingleFileAction;
 				}
 

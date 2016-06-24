@@ -39,7 +39,7 @@ void FOnlinePartyData::ToJsonDirty(FString& JsonString) const
 	for (auto& PropertyName : DirtyKeys)
 	{
 		const FVariantData* PropertyValue = KeyValAttrs.Find(PropertyName);
-		ensure(PropertyValue);
+		check(PropertyValue);
 
 		TSharedRef<FJsonObject> PropertyJson = PropertyValue->ToJson();
 		PropertyJson->SetStringField(TEXT("Name"), *PropertyName);

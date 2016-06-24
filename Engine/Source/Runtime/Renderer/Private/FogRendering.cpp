@@ -28,11 +28,19 @@ static TAutoConsoleVariable<float> CVarFogDensity(
 	ECVF_Cheat | ECVF_RenderThreadSafe);
 #endif
 
+static TAutoConsoleVariable<int32> CVarFog(
+	TEXT("r.Fog"),
+	1,
+	TEXT(" 0: disabled\n")
+	TEXT(" 1: enabled (default)"),
+	ECVF_RenderThreadSafe | ECVF_Scalability);
+
 /** Binds the parameters. */
 void FExponentialHeightFogShaderParameters::Bind(const FShaderParameterMap& ParameterMap)
 {
-	ExponentialFogParameters.Bind(ParameterMap,TEXT("SharedFogParameter0"));
-	ExponentialFogColorParameter.Bind(ParameterMap,TEXT("SharedFogParameter1"));
+	ExponentialFogParameters.Bind(ParameterMap,TEXT("ExponentialFogParameters"));
+	ExponentialFogColorParameter.Bind(ParameterMap,TEXT("ExponentialFogColorParameter"));
+	ExponentialFogParameters3.Bind(ParameterMap,TEXT("ExponentialFogParameters3"));
 	InscatteringLightDirection.Bind(ParameterMap,TEXT("InscatteringLightDirection"));
 	DirectionalInscatteringColor.Bind(ParameterMap,TEXT("DirectionalInscatteringColor"));
 	DirectionalInscatteringStartDistance.Bind(ParameterMap,TEXT("DirectionalInscatteringStartDistance"));
@@ -43,6 +51,7 @@ FArchive& operator<<(FArchive& Ar,FExponentialHeightFogShaderParameters& Paramet
 {
 	Ar << Parameters.ExponentialFogParameters;
 	Ar << Parameters.ExponentialFogColorParameter;
+	Ar << Parameters.ExponentialFogParameters3;
 	Ar << Parameters.InscatteringLightDirection;
 	Ar << Parameters.DirectionalInscatteringColor;
 	Ar << Parameters.DirectionalInscatteringStartDistance;
@@ -225,6 +234,7 @@ void FSceneRenderer::InitFogConstants()
 	for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 	{
 		FViewInfo& View = Views[ViewIndex];
+		InitAtmosphereConstantsInView(View);
 		// set fog consts based on height fog components
 		if(ShouldRenderFog(*View.Family))
 		{
@@ -241,6 +251,7 @@ void FSceneRenderer::InitFogConstants()
 				View.ExponentialFogParameters = FVector4(CollapsedFogParameter, FogInfo.FogHeightFalloff, CosTerminatorAngle, FogInfo.StartDistance);
 				View.ExponentialFogColor = FVector(FogInfo.FogColor.R, FogInfo.FogColor.G, FogInfo.FogColor.B);
 				View.FogMaxOpacity = FogInfo.FogMaxOpacity;
+				View.ExponentialFogParameters3 = FVector2D(FogInfo.FogDensity, FogInfo.FogHeight);
 
 				View.DirectionalInscatteringExponent = FogInfo.DirectionalInscatteringExponent;
 				View.DirectionalInscatteringStartDistance = FogInfo.DirectionalInscatteringStartDistance;
@@ -357,6 +368,7 @@ bool ShouldRenderFog(const FSceneViewFamily& Family)
 	return EngineShowFlags.Fog
 		&& EngineShowFlags.Materials 
 		&& !Family.UseDebugViewPS()
+		&& CVarFog.GetValueOnRenderThread() == 1
 		&& !EngineShowFlags.StationaryLightOverlap 
 		&& !EngineShowFlags.VertexDensities
 		&& !EngineShowFlags.LightMapDensity;

@@ -68,7 +68,7 @@ void UK2Node_ConstructObjectFromClass::AllocateDefaultPins()
 
 UEdGraphPin* UK2Node_ConstructObjectFromClass::GetOuterPin() const
 {
-	UEdGraphPin* Pin = FindPinChecked(FK2Node_ConstructObjectFromClassHelper::OuterPinName);
+	UEdGraphPin* Pin = FindPin(FK2Node_ConstructObjectFromClassHelper::OuterPinName);
 	ensure(nullptr == Pin || Pin->Direction == EGPD_Input);
 	return Pin;
 }
@@ -232,11 +232,20 @@ void UK2Node_ConstructObjectFromClass::PinConnectionListChanged(UEdGraphPin* Pin
 
 void UK2Node_ConstructObjectFromClass::GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const
 {
-	SetPinToolTip(*GetClassPin(), LOCTEXT("ClassPinDescription", "The object class you want to construct"));
-	SetPinToolTip(*GetResultPin(), LOCTEXT("ResultPinDescription", "The constructed object"));
-	if (UseOuter())
+	UEdGraphPin* ClassPin = GetClassPin();
+	if (ClassPin)
 	{
-		SetPinToolTip(*GetOuterPin(), LOCTEXT("OuterPinDescription", "Owner of the constructed object"));
+		SetPinToolTip(*ClassPin, LOCTEXT("ClassPinDescription", "The object class you want to construct"));
+	}
+	UEdGraphPin* ResultPin = GetResultPin();
+	if (ResultPin)
+	{
+		SetPinToolTip(*ResultPin, LOCTEXT("ResultPinDescription", "The constructed object"));
+	}
+	UEdGraphPin* OuterPin = UseOuter() ? GetOuterPin() : nullptr;
+	if (OuterPin)
+	{
+		SetPinToolTip(*OuterPin, LOCTEXT("OuterPinDescription", "Owner of the constructed object"));
 	}
 
 	return Super::GetPinHoverText(Pin, HoverTextOut);

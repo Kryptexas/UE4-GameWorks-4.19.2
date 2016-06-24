@@ -28,10 +28,5 @@ public class MovieSceneTracks : ModuleRules
 				"SlateCore",
 			}
 		);
-
-		if (UEBuildConfiguration.bBuildEditor == true)
-		{
-			PrivateDependencyModuleNames.Add("UnrealEd");
-		}
 	}
 }

@@ -32,8 +32,8 @@ typedef khronos_uint64_t GLuint64;
 
 #define GL_BGRA			GL_BGRA_EXT 
 #define GL_UNSIGNED_INT_8_8_8_8_REV	GL_UNSIGNED_BYTE
-#define glMapBuffer		glMapBufferOES
-#define glUnmapBuffer	glUnmapBufferOES
+#define glMapBuffer		glMapBufferOESa
+#define glUnmapBuffer	glUnmapBufferOESa
 
 #ifndef GL_HALF_FLOAT
 #define GL_HALF_FLOAT	GL_HALF_FLOAT_OES
@@ -91,8 +91,8 @@ extern PFNGLGETQUERYIVEXTPROC 			glGetQueryivEXT;
 extern PFNGLGETQUERYOBJECTIVEXTPROC 	glGetQueryObjectivEXT;
 extern PFNGLGETQUERYOBJECTUIVEXTPROC 	glGetQueryObjectuivEXT;
 extern PFNGLGETQUERYOBJECTUI64VEXTPROC	glGetQueryObjectui64vEXT;
-extern PFNGLMAPBUFFEROESPROC			glMapBufferOES;
-extern PFNGLUNMAPBUFFEROESPROC			glUnmapBufferOES;
+extern PFNGLMAPBUFFEROESPROC			glMapBufferOESa;
+extern PFNGLUNMAPBUFFEROESPROC			glUnmapBufferOESa;
 extern PFNGLDISCARDFRAMEBUFFEREXTPROC 	glDiscardFramebufferEXT ;
 extern PFNGLFRAMEBUFFERTEXTURE2DMULTISAMPLEEXTPROC	glFramebufferTexture2DMultisampleEXT;
 extern PFNGLRENDERBUFFERSTORAGEMULTISAMPLEEXTPROC	glRenderbufferStorageMultisampleEXT;
@@ -129,6 +129,9 @@ extern PFNGLCOMPRESSEDTEXIMAGE3DPROC    glCompressedTexImage3D;
 extern PFNGLCOMPRESSEDTEXSUBIMAGE3DPROC	glCompressedTexSubImage3D;
 extern PFNGLCOPYTEXSUBIMAGE3DPROC		glCopyTexSubImage3D;
 
+extern PFNGLGETPROGRAMBINARYOESPROC     glGetProgramBinary;
+extern PFNGLPROGRAMBINARYOESPROC        glProgramBinary;
+
 #include "OpenGLES2.h"
 
 
@@ -146,6 +149,8 @@ struct FAndroidOpenGL : public FOpenGLES2
 	{
 		return SP_OPENGL_ES2_ANDROID;
 	}
+
+	static FORCEINLINE bool HasHardwareHiddenSurfaceRemoval() { return bHasHardwareHiddenSurfaceRemoval; };
 
 	// Optional:
 	static FORCEINLINE void QueryTimestampCounter(GLuint QueryID)
@@ -348,6 +353,18 @@ struct FAndroidOpenGL : public FOpenGLES2
 		glUniform4uiv(Location, Count, Value);
 	}
 
+	static FORCEINLINE bool SupportsProgramBinary() { return bSupportsProgramBinary; }
+
+	static FORCEINLINE void GetProgramBinary(GLuint Program, GLsizei BufSize, GLsizei *Length, GLenum *BinaryFormat, void *Binary)
+	{
+		glGetProgramBinary(Program, BufSize, Length, BinaryFormat, Binary);
+	}
+
+	static FORCEINLINE void ProgramBinary(GLuint Program, GLenum BinaryFormat, void *Binary, GLsizei Length)
+	{
+		glProgramBinary(Program, BinaryFormat, Binary, Length);
+	}
+
 	// Adreno doesn't support HALF_FLOAT
 	static FORCEINLINE int32 GetReadHalfFloatPixelsEnum()				{ return GL_FLOAT; }
 
@@ -386,6 +403,9 @@ struct FAndroidOpenGL : public FOpenGLES2
 
 	// whether device supports hardware instancing
 	static bool bSupportsInstancing;
+
+	/** Whether device supports Hidden Surface Removal */
+	static bool bHasHardwareHiddenSurfaceRemoval;
 };
 
 typedef FAndroidOpenGL FOpenGL;

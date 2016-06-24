@@ -26,9 +26,34 @@ TSharedRef<SWidget> FPixelInspectorModule::CreatePixelInspectorWidget()
 	return HPixelInspectorWindow->AsShared();
 }
 
+void FPixelInspectorModule::ActivateCoordinateMode()
+{
+	if (!HPixelInspectorWindow.IsValid())
+		return;
+	HPixelInspectorWindow->HandleTogglePixelInspectorEnableButton();
+}
+
 bool FPixelInspectorModule::IsPixelInspectorEnable()
 {
-	return HPixelInspectorWindow.IsValid() ? HPixelInspectorWindow->IsPixelInspectorEnable() == ECheckBoxState::Checked : false;
+	if (!HPixelInspectorWindow.IsValid())
+		return false;
+	return HPixelInspectorWindow->IsPixelInspectorEnable();
+}
+
+void FPixelInspectorModule::GetCoordinatePosition(FIntPoint &InspectViewportCoordinate, uint32 &InspectViewportId)
+{
+	InspectViewportCoordinate = FIntPoint(-1, -1);
+	if (!HPixelInspectorWindow.IsValid())
+		return;
+	InspectViewportId = HPixelInspectorWindow->GetCurrentViewportId().GetValue();
+	InspectViewportCoordinate = HPixelInspectorWindow->GetCurrentCoordinate();
+}
+
+void FPixelInspectorModule::SetCoordinatePosition(FIntPoint &InspectViewportCoordinate, bool ReleaseAllRequest)
+{
+	if (!HPixelInspectorWindow.IsValid())
+		return;
+	HPixelInspectorWindow->SetCurrentCoordinate(InspectViewportCoordinate, ReleaseAllRequest);
 }
 
 bool FPixelInspectorModule::GetViewportRealtime(int32 ViewportUid, bool IsCurrentlyRealtime, bool IsMouseInsideViewport)
@@ -57,13 +82,22 @@ bool FPixelInspectorModule::GetViewportRealtime(int32 ViewportUid, bool IsCurren
 	return IsCurrentlyRealtime;
 }
 
-void FPixelInspectorModule::CreatePixelInspectorRequest(FIntPoint ScreenPosition, int32 viewportUniqueId, FSceneInterface *SceneInterface)
+void FPixelInspectorModule::CreatePixelInspectorRequest(FIntPoint ScreenPosition, int32 ViewportUniqueId, FSceneInterface *SceneInterface)
 {
 	if (HPixelInspectorWindow.IsValid() == false)
 	{
 		return;
 	}
-	HPixelInspectorWindow->CreatePixelInspectorRequest(ScreenPosition, viewportUniqueId, SceneInterface);
+	HPixelInspectorWindow->CreatePixelInspectorRequest(ScreenPosition, ViewportUniqueId, SceneInterface);
+}
+
+void FPixelInspectorModule::SetViewportInformation(int32 ViewportUniqueId, FIntPoint ViewportSize)
+{
+	if (HPixelInspectorWindow.IsValid() == false)
+	{
+		return;
+	}
+	HPixelInspectorWindow->SetViewportInformation(ViewportUniqueId, ViewportSize);
 }
 
 void FPixelInspectorModule::ReadBackSync()

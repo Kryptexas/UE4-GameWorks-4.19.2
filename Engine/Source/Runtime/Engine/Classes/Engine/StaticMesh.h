@@ -481,7 +481,6 @@ public:
 	ENGINE_API virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 	ENGINE_API virtual FString GetDesc() override;
 	ENGINE_API virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
-	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	//~ End UObject Interface.
 
 	/**
@@ -529,6 +528,7 @@ public:
 	/**
 	 * Returns the number of LODs used by the mesh.
 	 */
+	UFUNCTION(BlueprintCallable, Category = "StaticMesh")
 	ENGINE_API int32 GetNumLODs() const;
 
 	/**
@@ -547,6 +547,10 @@ public:
 	/** Returns the bounding box, in local space including bounds extension(s), of the StaticMesh asset */
 	UFUNCTION(BlueprintCallable, Category="StaticMesh")
 	ENGINE_API FBox GetBoundingBox() const;
+
+	/** Returns number of Sections that this StaticMesh has, in the supplied LOD (LOD 0 is the highest) */
+	UFUNCTION(BlueprintCallable, Category = "StaticMesh")
+	ENGINE_API int32 GetNumSections(int32 InLOD) const;
 
 	/**
 	 * Gets a Material given a Material Index and an LOD number

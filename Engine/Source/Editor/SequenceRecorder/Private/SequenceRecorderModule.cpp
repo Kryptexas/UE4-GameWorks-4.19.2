@@ -143,7 +143,11 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 			if (FModuleManager::Get().IsModuleLoaded(TEXT("PropertyEditor")))
 			{
 				FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-				PropertyModule.UnregisterCustomClassLayout(UActorRecording::StaticClass()->GetFName());
+
+				if (UObjectInitialized())
+				{
+					PropertyModule.UnregisterCustomClassLayout(UActorRecording::StaticClass()->GetFName());
+				}
 			}
 		}
 

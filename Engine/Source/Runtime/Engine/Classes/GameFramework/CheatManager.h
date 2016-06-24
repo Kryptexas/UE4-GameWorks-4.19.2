@@ -54,7 +54,7 @@ struct FDebugTraceInfo
 
 };
 
-UCLASS(Within=PlayerController)
+UCLASS(Within=PlayerController, Blueprintable)
 class ENGINE_API UCheatManager : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -63,8 +63,11 @@ class ENGINE_API UCheatManager : public UObject
 	UPROPERTY()
 	class ADebugCameraController* DebugCameraControllerRef;
 
-	/** Debug camera - used to have independent camera without stopping gameplay */
-	UPROPERTY()
+	/** 
+	* Debug camera - used to have independent camera without stopping gameplay. 
+	* If the Outer PlayerController::DebugCameraClass is valid then it is used instead of default DebugCameraController class. 
+	*/
+	UPROPERTY(Category="Debug Camera", EditDefaultsOnly, BlueprintReadOnly)
 	TSubclassOf<class ADebugCameraController>  DebugCameraControllerClass;
 
 	// Trace/Sweep debug start
@@ -358,6 +361,10 @@ class ENGINE_API UCheatManager : public UObject
 
 	/** streaming level debugging */
 	virtual void SetLevelStreamingStatus(FName PackageName, bool bShouldBeLoaded, bool bShouldBeVisible);
+
+	/** Called when the Cheat Manager is first initialized. */
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "Init Cheat Manager", Keywords="Begin Play"))
+	void ReceiveInitCheatManager();
 
 	/** 
 	 * Called when CheatManager is created to allow any needed initialization.  

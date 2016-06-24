@@ -23,6 +23,32 @@ static TAutoConsoleVariable<float> CVarTonemapperSharpen(
 	TEXT("   1: full strength"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CVarTonemapperGamut(
+	TEXT("r.TonemapperOutputGamut"),
+	0,
+	TEXT("0: use Rec.709/sRGB, D65\n")
+	TEXT("1: use P3, D65\n")
+	TEXT("2: use Rec.2020, D65\n")
+	TEXT("3: use ACES, D60\n")
+	TEXT("4: use ACEScg, D60"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarTonemapper2084(
+	TEXT("r.Tonemapper2084"),
+	0,
+	TEXT("0: use sRGB on PC monitor output\n")
+	TEXT("1: use ACES 2000 nit ST-2084 (Dolby PQ) for HDR monitor/projectors\n")
+	TEXT("2: use SMPTE ST-2084 (Dolby PQ) for HDR monitor/projectors\n")
+	TEXT("3: use Unreal Filmic Tonemapping with for ST-2084 (Dolby PQ) for HDR displays"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarTonemapperACESInversion(
+	TEXT("r.TonemapperACESInversion"),
+	0,
+	TEXT("0: use an approximation of the invese ACES sRGB D65 Output Transform\n")
+	TEXT("1: use an exact implementation of the invese ACES sRGB D65 Output Transform"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
 //
 // TONEMAPPER PERMUTATION CONTROL
 //
@@ -880,6 +906,11 @@ public:
 	//@HACK
 	FShaderParameter OverlayColor;
 
+	FShaderParameter OutputDevice;
+	FShaderParameter OutputGamut;
+	FShaderParameter InvertTonemapping;
+	FShaderParameter ACESInversion;
+
 	/** Initialization constructor. */
 	FPostProcessTonemapPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
 		: FGlobalShader(Initializer)
@@ -906,6 +937,11 @@ public:
 		ColorShadow_Tint2.Bind(Initializer.ParameterMap, TEXT("ColorShadow_Tint2"));
 		
 		OverlayColor.Bind(Initializer.ParameterMap, TEXT("OverlayColor"));
+
+		OutputDevice.Bind(Initializer.ParameterMap, TEXT("OutputDevice"));
+		OutputGamut.Bind(Initializer.ParameterMap, TEXT("OutputGamut"));
+		InvertTonemapping.Bind(Initializer.ParameterMap, TEXT("InvertTonemapping"));
+		ACESInversion.Bind(Initializer.ParameterMap, TEXT("ACESInversion"));
 	}
 	
 	// FShader interface.
@@ -916,8 +952,9 @@ public:
 			<< TexScale << TonemapperParams << GrainScaleBiasJitter
 			<< ColorGradingLUT << ColorGradingLUTSampler
 			<< ColorMatrixR_ColorCurveCd1 << ColorMatrixG_ColorCurveCd3Cm3 << ColorMatrixB_ColorCurveCm2 << ColorCurve_Cm0Cd0_Cd2_Ch0Cm1_Ch3 << ColorCurve_Ch1_Ch2 << ColorShadow_Luma << ColorShadow_Tint1 << ColorShadow_Tint2
-			<< OverlayColor;
-		
+			<< OverlayColor
+			<< OutputDevice << OutputGamut << InvertTonemapping << ACESInversion;
+
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -943,6 +980,21 @@ public:
 			PostprocessParameter.SetPS(ShaderRHI, Context, 0, eFC_0000, Filters);
 		}
 			
+		// Invert tonemapping to produce linear output-referred imagery
+		static TConsoleVariableData<int32>* CVarDumpFramesAsHDR = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BufferVisualizationDumpFramesAsHDR"));
+		int32 DumpFramesAsHDRValue = CVarDumpFramesAsHDR->GetValueOnRenderThread();
+		SetShaderValue(Context.RHICmdList, ShaderRHI, InvertTonemapping, DumpFramesAsHDRValue);
+
+		// The approach to use when applying the inverse ACES Output Transform
+		static TConsoleVariableData<int32>* CVarACESInversion = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TonemapperACESInversion"));
+		int32 ACESInversionValue = CVarACESInversion->GetValueOnRenderThread();
+		SetShaderValue(Context.RHICmdList, ShaderRHI, ACESInversion, ACESInversionValue);
+
+		// The gamut for output
+		static TConsoleVariableData<int32>* CVarOutputGamut = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TonemapperOutputGamut"));
+		int32 OutputGamutValue = CVarOutputGamut->GetValueOnRenderThread();
+		SetShaderValue(Context.RHICmdList, ShaderRHI, OutputGamut, OutputGamutValue);
+
 		SetShaderValue(Context.RHICmdList, ShaderRHI, OverlayColor, Context.View.OverlayColor);
 
 		{
@@ -975,9 +1027,31 @@ public:
 		{
 			float Sharpen = FMath::Clamp(CVarTonemapperSharpen.GetValueOnRenderThread(), 0.0f, 10.0f);
 
-			FVector2D Value(Settings.VignetteIntensity, Sharpen);
+			// /6.0 is to save one shader instruction
+			FVector2D Value(Settings.VignetteIntensity, Sharpen / 6.0f);
 
 			SetShaderValue(Context.RHICmdList, ShaderRHI, TonemapperParams, Value);
+		}
+
+		{
+			static TConsoleVariableData<int32>* CVar709 = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Tonemapper709"));
+			static TConsoleVariableData<float>* CVarTonemapperGamma = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.TonemapperGamma"));
+			static TConsoleVariableData<int32>* CVar2084 = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Tonemapper2084"));
+
+			int32 Rec709 = CVar709->GetValueOnRenderThread();
+			int32 ST2084 = CVar2084->GetValueOnRenderThread();
+			float Gamma = CVarTonemapperGamma->GetValueOnRenderThread();
+
+			if (PLATFORM_APPLE && Gamma == 0.0f)
+			{
+				Gamma = 2.2f;
+			}
+
+			int32 Value = 0;						// sRGB
+			Value = Rec709 ? 1 : Value;	// Rec709
+			Value = Gamma != 0.0f ? 2 : Value;	// Explicit gamma
+			Value = ST2084 ? 3 : Value;	// ST-2084 (Dolby PQ)
+			SetShaderValue(Context.RHICmdList, ShaderRHI, OutputDevice, Value);
 		}
 
 		FVector GrainValue;
@@ -1082,11 +1156,12 @@ IMPLEMENT_SHADER_TYPE(template<>, TPostProcessTonemapVS<true>, TEXT("PostProcess
 IMPLEMENT_SHADER_TYPE(template<>, TPostProcessTonemapVS<false>, TEXT("PostProcessTonemap"), TEXT("MainVS"), SF_Vertex);
 
 
-FRCPassPostProcessTonemap::FRCPassPostProcessTonemap(const FViewInfo& InView, bool bInDoGammaOnly, bool bInDoEyeAdaptation)
+FRCPassPostProcessTonemap::FRCPassPostProcessTonemap(const FViewInfo& InView, bool bInDoGammaOnly, bool bInDoEyeAdaptation, bool bInHDROutput)
 	: bDoGammaOnly(bInDoGammaOnly)
 	, bDoScreenPercentageInTonemapper(false)
 	, bDoEyeAdaptation(bInDoEyeAdaptation)
-	, View(InView)	
+	, bHDROutput(bInHDROutput)
+	, View(InView)
 {
 	uint32 ConfigBitmask = TonemapperGenerateBitmaskPC(&InView, bDoGammaOnly);
 	ConfigIndexPC = TonemapperFindLeastExpensive(TonemapperConfBitmaskPC, sizeof(TonemapperConfBitmaskPC)/4, TonemapperCostTab, ConfigBitmask);;
@@ -1141,7 +1216,7 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 	FIntRect DestRect = bDoScreenPercentageInTonemapper ? View.UnscaledViewRect : View.ViewRect;
 	FIntPoint SrcSize = InputDesc->Extent;
 	
-	SCOPED_DRAW_EVENTF(Context.RHICmdList, PostProcessTonemap, TEXT("Tonemapper#%d GammaOnly=%d ScreenPercentage=%d  %dx%d"),
+	SCOPED_DRAW_EVENTF(Context.RHICmdList, PostProcessTonemap, TEXT("Tonemapper#%d GammaOnly=%d HandleScreenPercentage=%d  %dx%d"),
 		ConfigIndexPC, bDoGammaOnly, bDoScreenPercentageInTonemapper, DestRect.Width(), DestRect.Height());
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
@@ -1255,7 +1330,7 @@ FPooledRenderTargetDesc FRCPassPostProcessTonemap::ComputeOutputDesc(EPassOutput
 
 	Ret.Reset();
 	// RGB is the color in LDR, A is the luminance for PostprocessAA
-	Ret.Format = PF_B8G8R8A8;
+	Ret.Format = bHDROutput ? PF_FloatRGBA : PF_B8G8R8A8;
 	Ret.DebugName = TEXT("Tonemap");
 	Ret.ClearValue = FClearValueBinding(FLinearColor(0, 0, 0, 0));
 

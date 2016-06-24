@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TpsData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>Subversion 1.7.10</Name>
-  <Location>//depot/UE4/Engine/Plugins/Developer/SubversionSourceControl/</Location>
-  <Date>2015-09-04T20:34:40.2768049-04:00</Date>
+  <Location>/Engine/Plugins/Developer/SubversionSourceControl/</Location>
+  <Date>2016-06-16T12:01:00.8219478-04:00</Date>
   <Function>Adds support for version control systems other than Perforce</Function>
   <Justification>Subversion provides all the features we need and can be used as a close analogue to Perforce (as opposed to say, GIT).</Justification>
   <Platforms>
@@ -15,7 +15,11 @@
   </Products>
   <TpsType>Source Code</TpsType>
   <Eula>http://www.apache.org/licenses/LICENSE-2.0</Eula>
-  <RedistributeTo />
+  <RedistributeTo>
+    <EndUserGroup>Licensees</EndUserGroup>
+    <EndUserGroup>Git</EndUserGroup>
+    <EndUserGroup>P4</EndUserGroup>
+  </RedistributeTo>
   <Redistribute>false</Redistribute>
   <IsSourceAvailable>false</IsSourceAvailable>
   <NoticeType>Full EULA Text</NoticeType>
@@ -282,5 +286,5 @@ subversion/bindings/swig/python/tests/trac/:
      OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
      IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 </Notification>
-  <LicenseFolder />
+  <LicenseFolder>/Engine/Source/ThirdParty/Licenses/SUBVERSION_1.7.10_LICENSE.txt</LicenseFolder>
 </TpsData>

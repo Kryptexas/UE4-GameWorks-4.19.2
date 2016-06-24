@@ -432,6 +432,12 @@ struct ENGINE_API FRootMotionSource_RadialForce : public FRootMotionSource
 	UPROPERTY()
 	UCurveFloat* StrengthOverTime;
 
+	UPROPERTY()
+	bool bUseFixedWorldDirection;
+
+	UPROPERTY()
+	FRotator FixedWorldDirection;
+
 	virtual FRootMotionSource* Clone() const override;
 
 	virtual bool Matches(const FRootMotionSource* Other) const override;

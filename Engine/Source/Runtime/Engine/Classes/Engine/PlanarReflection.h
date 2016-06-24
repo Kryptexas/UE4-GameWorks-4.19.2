@@ -18,13 +18,22 @@ private_subobject:
 	UPROPERTY(Category = SceneCapture, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class UPlanarReflectionComponent* PlanarReflectionComponent;
 
+#if WITH_EDITORONLY_DATA
+	UPROPERTY()
+	UBillboardComponent* SpriteComponent;
+#endif
+
 public:
+
+	UPROPERTY(EditAnywhere, Category = PlanarReflection)
+	bool bShowPreviewPlane;
 
 	//~ Begin AActor Interface
 	ENGINE_API virtual void PostActorCreated() override;
 
 #if WITH_EDITOR
 	virtual void EditorApplyScale(const FVector& DeltaScale, const FVector* PivotLocation, bool bAltDown, bool bShiftDown, bool bCtrlDown) override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 	//~ End AActor Interface.
 
@@ -36,6 +45,11 @@ public:
 	{
 		return PlanarReflectionComponent;
 	}
+
+#if WITH_EDITORONLY_DATA
+	/** Returns SpriteComponent subobject **/
+	ENGINE_API UBillboardComponent* GetSpriteComponent() const { return SpriteComponent; }
+#endif
 };
 
 

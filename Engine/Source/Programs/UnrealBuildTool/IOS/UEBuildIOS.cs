@@ -52,6 +52,11 @@ namespace UnrealBuildTool
 		/// </summary>
 		public string SigningCertificate = "";
 
+		/// <summary>
+		/// true if bit code should be embedded
+		/// </summary>
+		private bool bShipForBitcode = false;
+
 		public IOSPlatformContext(FileReference InProjectFile) 
 			: this(UnrealTargetPlatform.IOS, InProjectFile)
 		{
@@ -76,6 +81,11 @@ namespace UnrealBuildTool
 		public virtual string GetRunTimeDevices()
 		{
 			return RunTimeIOSDevices;
+		}
+
+		public bool IsBitcodeCompilingEnabled(CPPTargetConfiguration Configuration)
+		{
+			return Configuration == CPPTargetConfiguration.Shipping && bShipForBitcode;
 		}
 
 		// The name that Xcode uses for the platform
@@ -234,6 +244,7 @@ namespace UnrealBuildTool
 
 				// determine if we need to generate the dsym
 				Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bGeneratedSYMFile", out BuildConfiguration.bGeneratedSYMFile);
+				Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForBitcode", out bShipForBitcode);
 
 				// @todo tvos: We probably want to handle TVOS versions here
 				Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "AdditionalLinkerFlags", out AdditionalLinkerFlags);

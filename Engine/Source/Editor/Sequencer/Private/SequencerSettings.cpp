@@ -10,6 +10,7 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bKeyInterpPropertiesOnly = false;
 	KeyInterpolation = EMovieSceneKeyInterpolation::Auto;
 	SpawnPosition = SSP_Origin;
+	bCreateSpawnableCameras = true;
 	bShowFrameNumbers = true;
 	bShowRangeSlider = false;
 	bIsSnapEnabled = true;
@@ -21,11 +22,10 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bSnapPlayTimeToKeys = false;
 	bSnapPlayTimeToInterval = true;
 	bSnapPlayTimeToDraggedKey = false;
-	bFixedTimeStepPlayback = true;
 	CurveValueSnapInterval = 10.0f;
 	bSnapCurveValueToInterval = true;
-	bDetailsViewVisible = false;
 	bLabelBrowserVisible = false;
+	ZoomPosition = ESequencerZoomPosition::SZP_CurrentTime;
 	bAutoScrollEnabled = false;
 	bShowCurveEditor = false;
 	bShowCurveEditorCurveToolTips = true;
@@ -110,6 +110,20 @@ void USequencerSettings::SetSpawnPosition(ESequencerSpawnPosition InSpawnPositio
 	}
 }
 
+bool USequencerSettings::GetCreateSpawnableCameras() const
+{
+	return bCreateSpawnableCameras;
+}
+
+void USequencerSettings::SetCreateSpawnableCameras(bool bInCreateSpawnableCameras)
+{
+	if ( bCreateSpawnableCameras != bInCreateSpawnableCameras)
+	{
+		bCreateSpawnableCameras = bInCreateSpawnableCameras;
+		SaveConfig();
+	}
+}
+
 bool USequencerSettings::GetShowFrameNumbers() const
 {
 	return bShowFrameNumbers;
@@ -162,6 +176,7 @@ void USequencerSettings::SetTimeSnapInterval(float InTimeSnapInterval)
 	if ( TimeSnapInterval != InTimeSnapInterval )
 	{
 		TimeSnapInterval = InTimeSnapInterval;
+		OnTimeSnapIntervalChanged.Broadcast();
 		SaveConfig();
 	}
 }
@@ -264,20 +279,6 @@ void USequencerSettings::SetSnapPlayTimeToDraggedKey(bool InbSnapPlayTimeToDragg
 	}
 }
 
-bool USequencerSettings::GetFixedTimeStepPlayback() const
-{
-	return bFixedTimeStepPlayback;
-}
-
-void USequencerSettings::SetFixedTimeStepPlayback(bool InbFixedTimeStepPlayback)
-{
-	if ( bFixedTimeStepPlayback != InbFixedTimeStepPlayback )
-	{
-		bFixedTimeStepPlayback = InbFixedTimeStepPlayback;
-		SaveConfig();
-	}
-}
-
 float USequencerSettings::GetCurveValueSnapInterval() const
 {
 	return CurveValueSnapInterval;
@@ -306,20 +307,6 @@ void USequencerSettings::SetSnapCurveValueToInterval( bool InbSnapCurveValueToIn
 	}
 }
 
-bool USequencerSettings::GetDetailsViewVisible() const
-{
-	return bDetailsViewVisible;
-}
-
-void USequencerSettings::SetDetailsViewVisible(bool Visible)
-{
-	if (bDetailsViewVisible != Visible)
-	{
-		bDetailsViewVisible = Visible;
-		SaveConfig();
-	}
-}
-
 bool USequencerSettings::GetLabelBrowserVisible() const
 {
 	return bLabelBrowserVisible;
@@ -330,6 +317,20 @@ void USequencerSettings::SetLabelBrowserVisible(bool Visible)
 	if (bLabelBrowserVisible != Visible)
 	{
 		bLabelBrowserVisible = Visible;
+		SaveConfig();
+	}
+}
+
+ESequencerZoomPosition USequencerSettings::GetZoomPosition() const
+{
+	return ZoomPosition;
+}
+
+void USequencerSettings::SetZoomPosition(ESequencerZoomPosition InZoomPosition)
+{
+	if ( ZoomPosition != InZoomPosition)
+	{
+		ZoomPosition = InZoomPosition;
 		SaveConfig();
 	}
 }
@@ -518,4 +519,9 @@ float USequencerSettings::SnapTimeToInterval( float InTimeValue ) const
 USequencerSettings::FOnShowCurveEditorChanged& USequencerSettings::GetOnShowCurveEditorChanged()
 {
 	return OnShowCurveEditorChanged;
+}
+
+USequencerSettings::FOnTimeSnapIntervalChanged& USequencerSettings::GetOnTimeSnapIntervalChanged()
+{
+	return OnTimeSnapIntervalChanged;
 }

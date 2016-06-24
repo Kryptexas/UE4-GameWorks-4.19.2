@@ -166,6 +166,14 @@ FText::FText( EInitToEmptyString )
 {
 }
 
+#if PLATFORM_WINDOWS && defined(__clang__)
+CORE_API const FText& FText::GetEmpty() // @todo clang: Workaround for missing symbol export
+{
+	static const FText StaticEmptyText = FText(FText::EInitToEmptyString::Value);
+	return StaticEmptyText;
+}
+#endif
+
 #if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 	FText::FText(const FText& Other) = default;
 	FText::FText(FText&& Other) = default;
@@ -1458,17 +1466,19 @@ bool TextBiDi::IsControlCharacter(const TCHAR InChar)
 		|| InChar == TEXT('\u2066')  // LEFT-TO-RIGHT ISOLATE
 		|| InChar == TEXT('\u2067')  // RIGHT-TO-LEFT ISOLATE
 		|| InChar == TEXT('\u2068')  // FIRST STRONG ISOLATE
-		|| InChar == TEXT('\u2068'); // POP DIRECTIONAL ISOLATE
+		|| InChar == TEXT('\u2069'); // POP DIRECTIONAL ISOLATE
 }
+
+#define LOC_DEFINE_REGION
+const FString FTextStringHelper::InvTextMarker = TEXT("INVTEXT");
+const FString FTextStringHelper::NsLocTextMarker = TEXT("NSLOCTEXT");
+const FString FTextStringHelper::LocTextMarker = TEXT("LOCTEXT");
+#undef LOC_DEFINE_REGION
 
 bool FTextStringHelper::ReadFromString_ComplexText(const TCHAR* Buffer, FText& OutValue, const TCHAR* Namespace, int32* OutNumCharsRead)
 {
 #define LOC_DEFINE_REGION
 	const TCHAR* const Start = Buffer;
-
-	static const FString InvTextMarker = TEXT("INVTEXT");
-	static const FString NsLocTextMarker = TEXT("NSLOCTEXT");
-	static const FString LocTextMarker = TEXT("LOCTEXT");
 
 	auto ExtractQuotedString = [&](FString& OutStr) -> const TCHAR*
 	{
@@ -1741,6 +1751,13 @@ bool FTextStringHelper::WriteToString(FString& Buffer, const FText& Value, const
 #undef LOC_DEFINE_REGION
 
 	return true;
+}
+
+bool FTextStringHelper::IsComplexText(const TCHAR* Buffer)
+{
+#define LOC_DEFINE_REGION
+	return FCString::Strstr(Buffer, *InvTextMarker) || FCString::Strstr(Buffer, *NsLocTextMarker) || FCString::Strstr(Buffer, *LocTextMarker);
+#undef LOC_DEFINE_REGION
 }
 
 #undef LOCTEXT_NAMESPACE

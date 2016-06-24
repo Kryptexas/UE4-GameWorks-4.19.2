@@ -40,7 +40,7 @@ public:
 			{
 				Prefix = Context->GetContext() + TEXT(" : ");
 			}
-			FString Format = Prefix + FOutputDevice::FormatLogLine(Verbosity, Category, V);
+			FString Format = Prefix + FOutputDeviceHelper::FormatLogLine(Verbosity, Category, V);
 
 			if(Verbosity == ELogVerbosity::Error)
 			{
@@ -48,7 +48,7 @@ public:
 				// Only store off the message if running a commandlet.
 				if ( IsRunningCommandlet() )
 				{
-					Errors.Add(Format);
+					AddError(Format);
 				}
 			}
 			else
@@ -57,7 +57,7 @@ public:
 				// Only store off the message if running a commandlet.
 				if ( IsRunningCommandlet() )
 				{
-					Warnings.Add(Format);
+					AddWarning(Format);
 				}
 			}
 		}

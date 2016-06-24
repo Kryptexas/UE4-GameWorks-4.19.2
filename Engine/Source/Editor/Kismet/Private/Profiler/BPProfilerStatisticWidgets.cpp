@@ -250,6 +250,16 @@ bool FBPProfilerStatDiplayOptions::IsFiltered(TSharedPtr<FScriptExecutionNode> N
 //////////////////////////////////////////////////////////////////////////
 // FBPProfilerStatWidget
 
+FBPProfilerStatWidget::FBPProfilerStatWidget(TSharedPtr<class FScriptExecutionNode> InExecNode, const FTracePath& WidgetTracePathIn)
+	: WidgetTracePath(WidgetTracePathIn)
+	, ExecNode(InExecNode)
+{
+	if (ExecNode->HasFlags(EScriptExecutionNodeFlags::FunctionTunnel))
+	{
+		WidgetTracePath = FTracePath(WidgetTracePathIn, StaticCastSharedPtr<FScriptExecutionTunnelEntry>(InExecNode));
+	}
+}
+
 TSharedRef<SWidget> FBPProfilerStatWidget::GenerateColumnWidget(FName ColumnName)
 {
 	if (ExecNode.IsValid())
@@ -307,7 +317,7 @@ TSharedRef<SWidget> FBPProfilerStatWidget::GenerateColumnWidget(FName ColumnName
 				if (ExecNode->HasFlags(NonNodeStats))
 				{
 					TextAttr = TAttribute<FText>(PerformanceStats.Get(), &FScriptPerfData::GetInclusiveTimingText);
-					ColorAttr = TAttribute<FSlateColor>(PerformanceStats.Get(), &FScriptPerfData::GetInclusiveHeatColor);
+					ColorAttr = TAttribute<FSlateColor>(this, &FBPProfilerStatWidget::GetInclusiveHeatColor);
 				}
 			}
 			else if (ColumnName == BlueprintProfilerStatText::ColumnId_Time)
@@ -315,7 +325,7 @@ TSharedRef<SWidget> FBPProfilerStatWidget::GenerateColumnWidget(FName ColumnName
 				if (!ExecNode->HasFlags(EScriptExecutionNodeFlags::ExecPin))
 				{
 					TextAttr = TAttribute<FText>(PerformanceStats.Get(), &FScriptPerfData::GetNodeTimingText);
-					ColorAttr = TAttribute<FSlateColor>(PerformanceStats.Get(), &FScriptPerfData::GetNodeHeatColor);
+					ColorAttr = TAttribute<FSlateColor>(this, &FBPProfilerStatWidget::GetNodeHeatColor);
 				}
 			}
 			else if (ColumnName == BlueprintProfilerStatText::ColumnId_MaxTime)
@@ -323,7 +333,7 @@ TSharedRef<SWidget> FBPProfilerStatWidget::GenerateColumnWidget(FName ColumnName
 				if (!ExecNode->HasFlags(EScriptExecutionNodeFlags::ExecPin))
 				{
 					TextAttr = TAttribute<FText>(PerformanceStats.Get(), &FScriptPerfData::GetMaxTimingText);
-					ColorAttr = TAttribute<FSlateColor>(PerformanceStats.Get(), &FScriptPerfData::GetMaxTimeHeatColor);
+					ColorAttr = TAttribute<FSlateColor>(this, &FBPProfilerStatWidget::GetMaxTimeHeatColor);
 				}
 			}
 			else if (ColumnName == BlueprintProfilerStatText::ColumnId_MinTime)
@@ -354,6 +364,24 @@ void FBPProfilerStatWidget::NavigateTo() const
 	{
 		ExecNode->NavigateToObject();
 	}
+}
+
+FSlateColor FBPProfilerStatWidget::GetNodeHeatColor() const
+{
+	const float Value = 1.f - PerformanceStats->GetNodeHeatLevel();
+	return FLinearColor(1.f, Value, Value);
+}
+
+FSlateColor FBPProfilerStatWidget::GetInclusiveHeatColor() const
+{
+	const float Value = 1.f - PerformanceStats->GetInclusiveHeatLevel();
+	return FLinearColor(1.f, Value, Value);
+}
+
+FSlateColor FBPProfilerStatWidget::GetMaxTimeHeatColor() const
+{
+	const float Value = 1.f - PerformanceStats->GetMaxTimeHeatLevel();
+	return FLinearColor(1.f, Value, Value);
 }
 
 void FBPProfilerStatWidget::GenerateExecNodeWidgets(const TSharedPtr<FBPProfilerStatDiplayOptions> DisplayOptions)
@@ -387,14 +415,16 @@ void FBPProfilerStatWidget::GenerateExecNodeWidgets(const TSharedPtr<FBPProfiler
 		}
 		else
 		{
-			for (auto Iter : ExecNode->GetChildNodes())
+			TArray<FScriptNodeExecLinkage::FLinearExecPath> Children;
+			ExecNode->GetFilteredChildNodes(Children, WidgetTracePath);
+			for (auto Iter : Children)
 			{
 				// Filter out events based on graph
-				if (!DisplayOptions->IsFiltered(Iter))
+				if (!DisplayOptions->IsFiltered(Iter.LinkedNode))
 				{
 					TArray<FScriptNodeExecLinkage::FLinearExecPath> LinearExecNodes;
-					FTracePath ChildTracePath(WidgetTracePath);
-					Iter->GetLinearExecutionPath(LinearExecNodes, ChildTracePath);
+					FTracePath ChildTracePath(Iter.TracePath);
+					Iter.LinkedNode->GetLinearExecutionPath(LinearExecNodes, ChildTracePath, Iter.bIncludeChildren);
 					if (LinearExecNodes.Num() > 1)
 					{
 						TSharedPtr<FBPProfilerStatWidget> ChildContainer = AsShared();
@@ -414,7 +444,7 @@ void FBPProfilerStatWidget::GenerateExecNodeWidgets(const TSharedPtr<FBPProfiler
 					}
 					else
 					{
-						TSharedPtr<FBPProfilerStatWidget> NewChildNode = MakeShareable<FBPProfilerStatWidget>(new FBPProfilerStatWidget(Iter, ChildTracePath));
+						TSharedPtr<FBPProfilerStatWidget> NewChildNode = MakeShareable<FBPProfilerStatWidget>(new FBPProfilerStatWidget(Iter.LinkedNode, ChildTracePath));
 						NewChildNode->GenerateExecNodeWidgets(DisplayOptions);
 						CachedChildren.Add(NewChildNode);
 					}

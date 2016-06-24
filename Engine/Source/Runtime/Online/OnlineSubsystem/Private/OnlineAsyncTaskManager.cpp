@@ -191,7 +191,7 @@ void FOnlineAsyncTaskManager::GameTick()
 	// assert if not game thread
 	check(IsInGameThread());
 
-	FOnlineAsyncItem* Item = NULL;
+	FOnlineAsyncItem* Item = nullptr;
 	int32 CurrentQueueSize = 0;
 
 #if !UE_BUILD_SHIPPING
@@ -200,7 +200,7 @@ void FOnlineAsyncTaskManager::GameTick()
 
 	do 
 	{
-		Item = NULL;
+		Item = nullptr;
 		// Grab a completed task from the queue
 		{
 			FScopeLock LockOutQueue(&OutQueueLock);
@@ -239,6 +239,7 @@ void FOnlineAsyncTaskManager::GameTick()
 			Item->Finalize();
 			Item->TriggerDelegates();
 			delete Item;
+			Item = nullptr;
 		}
 	}
 	while (Item != NULL);

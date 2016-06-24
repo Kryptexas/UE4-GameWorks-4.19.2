@@ -12,6 +12,10 @@
 #include "Sound/SoundWave.h"
 #include "IAudioExtensionPlugin.h"
 
+#if WITH_EDITOR
+#include "Editor/UnrealEd/Classes/Editor/EditorEngine.h"
+#endif
+
 /*-----------------------------------------------------------------------------
 FDynamicParameter implementation.
 -----------------------------------------------------------------------------*/
@@ -122,11 +126,11 @@ bool FAudioDevice::Init(int32 InMaxChannels)
 	GConfig->GetBool(TEXT("Audio"), TEXT("DeferStartupPrecache"), bDeferStartupPrecache, GEngineIni);
 
 	// Get an optional engine ini setting for platform headroom. 
-	float Headroom = 1.0f;
+	float Headroom = 0.0f; // in dB
 	if (GConfig->GetFloat(TEXT("Audio"), TEXT("PlatformHeadroomDB"), Headroom, GEngineIni))
 	{
 		// Convert dB to linear volume
-		PlatformAudioHeadroom = FMath::Pow(10.0f, Headroom / 10.0f);
+		PlatformAudioHeadroom = FMath::Pow(10.0f, Headroom / 20.0f);
 	}
 
 	const FStringAssetReference DefaultBaseSoundMixName = GetDefault<UAudioSettings>()->DefaultBaseSoundMix;
@@ -1361,7 +1365,7 @@ void FAudioDevice::RecursiveApplyAdjuster(const FSoundClassAdjuster& InAdjuster,
 	}
 	else
 	{
-		UE_LOG(LogAudio, Warning, TEXT("Sound class '%s' does not exist"), *InSoundClass->GetName());
+		UE_LOG(LogAudio, Warning, TEXT("Sound class '%s' does not exist"), InSoundClass ? *InSoundClass->GetName() : TEXT("<null>"));
 	}
 }
 
@@ -1751,7 +1755,21 @@ void FAudioDevice::ApplyClassAdjusters(USoundMix* SoundMix, float InterpValue, f
 		{
 			if (Entry.bApplyToChildren)
 			{
-				RecursiveApplyAdjuster(Entry, Entry.SoundClassObject);
+				// If we're using the override, Entry will already have interpolated values
+				if (bUsingOverride)
+				{
+					RecursiveApplyAdjuster(Entry, Entry.SoundClassObject);
+				}
+				else
+				{
+					// Copy the entry with the interpolated values before applying it recursively
+					FSoundClassAdjuster EntryCopy = Entry;
+					EntryCopy.VolumeAdjuster = InterpolateAdjuster(Entry.VolumeAdjuster, InterpValue);
+					EntryCopy.PitchAdjuster = InterpolateAdjuster(Entry.PitchAdjuster, InterpValue);
+					EntryCopy.VoiceCenterChannelVolumeAdjuster = InterpolateAdjuster(Entry.VoiceCenterChannelVolumeAdjuster, InterpValue);
+
+					RecursiveApplyAdjuster(EntryCopy, Entry.SoundClassObject);
+				}
 			}
 			else
 			{
@@ -2412,7 +2430,7 @@ void FAudioDevice::StartSources(TArray<FWaveInstance*>& WaveInstances, int32 Fir
 		FWaveInstance* WaveInstance = WaveInstances[InstanceIndex];
 
 		// Editor uses bIsUISound for sounds played in the browser.
-		if (bGameTicking || WaveInstance->bIsUISound)
+		if (!WaveInstance->ShouldStopDueToMaxConcurrency() && (bGameTicking || WaveInstance->bIsUISound))
 		{
 			FSoundSource* Source = WaveInstanceSourceMap.FindRef(WaveInstance);
 			if (!Source &&
@@ -2665,15 +2683,16 @@ void FAudioDevice::AddNewActiveSound(const FActiveSound& NewActiveSound)
 
 }
 
-void FAudioDevice::ProcessingPendingActiveSoundStops()
+void FAudioDevice::ProcessingPendingActiveSoundStops(bool bForceDelete)
 {
 	// Process the PendingSoundsToDelete. These may have 
 	// had their deletion deferred due to an async operation
 	for (int32 i = PendingSoundsToDelete.Num() - 1; i >= 0; --i)
 	{
 		FActiveSound* ActiveSound = PendingSoundsToDelete[i];
-		if (ActiveSound->CanDelete())
+		if (bForceDelete || ActiveSound->CanDelete())
 		{
+			ActiveSound->bAsyncOcclusionPending = false;
 			PendingSoundsToDelete.RemoveAtSwap(i, 1, false);
 			delete ActiveSound;
 		}
@@ -2686,8 +2705,9 @@ void FAudioDevice::ProcessingPendingActiveSoundStops()
 		ActiveSound->Stop();
 
 		// If we can delete the active sound now, then delete it
-		if (ActiveSound->CanDelete())
+		if (bForceDelete || ActiveSound->CanDelete())
 		{
+			ActiveSound->bAsyncOcclusionPending = false;
 			delete ActiveSound;
 		}
 		else
@@ -2901,9 +2921,9 @@ float FAudioDevice::GetFocusFactor(FAttenuationListenerData& OutListenerData, co
 
 		const FVector& ListenerForwardDir = OutListenerData.Listener->Transform.GetUnitAxis(EAxis::X);
 
-		const float FocusDotProduct = FMath::Clamp(FVector::DotProduct(ListenerForwardDir, OutListenerData.ListenerToSoundDir), 0.0f, 1.0f);
+		const float FocusDotProduct = FVector::DotProduct(ListenerForwardDir, OutListenerData.ListenerToSoundDir);
 		const float FocusAngleRadians = FMath::Acos(FocusDotProduct);
-		const float FocusAngle = FMath::RadiansToDegrees(FMath::Acos(FocusDotProduct));
+		const float FocusAngle = FMath::RadiansToDegrees(FocusAngleRadians);
 
 		const float FocusAzimuth = FMath::Clamp(GlobalFocusSettings.FocusAzimuthScale * AttenuationSettings.FocusAzimuth, 0.0f, 180.0f);
 		const float NonFocusAzimuth = FMath::Clamp(GlobalFocusSettings.NonFocusAzimuthScale * AttenuationSettings.NonFocusAzimuth, 0.0f, 180.0f);
@@ -2938,7 +2958,11 @@ UAudioComponent* FAudioDevice::CreateComponent(USoundBase* Sound, UWorld* World,
 		{
 			AudioDevice = GEngine->GetMainAudioDevice();
 		}
-		check(AudioDevice != nullptr);
+		
+		if (AudioDevice == nullptr)
+		{
+			return nullptr;
+		}
 
 		// Avoid creating component if we're trying to play a sound on an already destroyed actor.
 		if (Actor && Actor->IsPendingKill())
@@ -3105,7 +3129,7 @@ void FAudioDevice::Flush(UWorld* WorldToFlush, bool bClearActivatedReverb)
 	}
 
 	// Immediately stop all pending active sounds
-	ProcessingPendingActiveSoundStops();
+	ProcessingPendingActiveSoundStops(WorldToFlush == nullptr || WorldToFlush->bIsTearingDown);
 
 	// Anytime we flush, make sure to clear all the listeners.  We'll get the right ones soon enough.
 	Listeners.Reset();
@@ -3464,3 +3488,15 @@ void FAudioDevice::OnEndPIE(const bool bIsSimulating)
 	}
 }
 #endif
+
+bool FAudioDevice::CanUseVRAudioDevice()
+{
+#if WITH_EDITOR
+	if (GIsEditor)
+	{
+		UEditorEngine* EdEngine = Cast<UEditorEngine>(GEngine);
+		return EdEngine->bUseVRPreviewForPlayWorld;
+	}
+#endif
+	return true;
+}

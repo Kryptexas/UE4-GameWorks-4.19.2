@@ -1698,36 +1698,6 @@ namespace AutomationTool
 			}
 		}
 
-		/// <summary>
-		/// Gets environment variables set by a batch file.
-		/// </summary>
-		/// <param name="BatchFileName">Filename that sets the environment variables</param>
-		/// <param name="AlsoSet">True if found variables should be automatically set withing this process.</param>
-		/// <returns>Dictionary of environment variables set by the batch file.</returns>
-		public static CaselessDictionary<string> GetEnvironmentVariablesFromBatchFile(string BatchFileName, bool AlsoSet = false)
-		{
-			CaselessDictionary<string> Result;
-			try
-			{
-				Result = HarvestEnvVars.HarvestEnvVarsFromBatchFile(BatchFileName, "", HarvestEnvVars.EPathOverride.User);
-			}
-			catch (Exception Ex)
-			{
-				throw new AutomationException(Ex, "Failed to harvest environment variables");
-			}
-
-			if (AlsoSet)
-			{
-				// Set the environment variables
-				foreach (var Envvar in Result)
-				{
-					Environment.SetEnvironmentVariable(Envvar.Key, Envvar.Value);
-				}
-			}
-
-			return Result;
-		}
-
 		#endregion
 
 		#region CommandLine
@@ -1945,6 +1915,11 @@ namespace AutomationTool
 		{
 			get { return UnrealBuildTool.UnrealBuildTool.RootDirectory; }
 		}
+
+		/// <summary>
+		/// Telemetry data for the current run. Add -WriteTelemetry=<Path> to the command line to export to disk.
+		/// </summary>
+		public static TelemetryData Telemetry = new TelemetryData();
 
 		#endregion
 
@@ -2224,10 +2199,145 @@ namespace AutomationTool
 		}
 	}
 
-    /// <summary>
-    /// Timer class used for telemetry reporting.
-    /// </summary>
-    public class TelemetryStopwatch : IDisposable
+	/// <summary>
+	/// Valid units for telemetry data
+	/// </summary>
+	public enum TelemetryUnits
+	{
+		Minutes,
+	}
+
+	/// <summary>
+	/// Sample for telemetry data
+	/// </summary>
+	public class TelemetrySample
+	{
+		/// <summary>
+		/// Name of this sample
+		/// </summary>
+		public string Name;
+
+		/// <summary>
+		/// The value for this sample
+		/// </summary>
+		public double Value;
+
+		/// <summary>
+		/// Units for this sample
+		/// </summary>
+		public TelemetryUnits Units;
+	}
+
+	/// <summary>
+	/// Stores a set of key/value telemetry samples which can be read and written to a JSON file
+	/// </summary>
+	public class TelemetryData
+	{
+		/// <summary>
+		/// The current file version
+		/// </summary>
+		const int CurrentVersion = 1;
+
+		/// <summary>
+		/// Maps from a sample name to its value
+		/// </summary>
+		public List<TelemetrySample> Samples = new List<TelemetrySample>();
+
+		/// <summary>
+		/// Adds a telemetry sample
+		/// </summary>
+		/// <param name="Name">Name of the sample</param>
+		/// <param name="Value">Value of the sample</param>
+		/// <param name="Units">Units for the sample value</param>
+		public void Add(string Name, double Value, TelemetryUnits Units)
+		{
+			Samples.RemoveAll(x => x.Name == Name);
+			Samples.Add(new TelemetrySample() { Name = Name, Value = Value, Units = Units });
+		}
+
+		/// <summary>
+		/// Add samples from another telemetry block into this one
+		/// </summary>
+		/// <param name="Prefix">Prefix for the telemetry data</param>
+		/// <param name="Other">The other telemetry data</param>
+		public void Merge(string Prefix, TelemetryData Other)
+		{
+			foreach(TelemetrySample Sample in Other.Samples)
+			{
+				Add(Sample.Name, Sample.Value, Sample.Units);
+			}
+		}
+
+		/// <summary>
+		/// Tries to read the telemetry data from the given file
+		/// </summary>
+		/// <param name="FileName">The file to read from</param>
+		/// <param name="Telemetry">On success, the read telemetry data</param>
+		/// <returns>True if a telemetry object was read</returns>
+		public static bool TryRead(string FileName, out TelemetryData Telemetry)
+		{
+			// Try to read the raw json object
+			JsonObject RawObject;
+			if (!JsonObject.TryRead(FileName, out RawObject))
+			{
+				Telemetry = null;
+				return false;
+			}
+
+			// Check the version is valid
+			int Version;
+			if(!RawObject.TryGetIntegerField("Version", out Version) || Version != CurrentVersion)
+			{
+				Telemetry = null;
+				return false;
+			}
+
+			// Read all the samples
+			JsonObject[] RawSamples;
+			if (!RawObject.TryGetObjectArrayField("Samples", out RawSamples))
+			{
+				Telemetry = null;
+				return false;
+			}
+
+			// Parse out all the samples
+			Telemetry = new TelemetryData();
+			foreach (JsonObject RawSample in RawSamples)
+			{
+				Telemetry.Add(RawSample.GetStringField("Name"), RawSample.GetDoubleField("Value"), RawSample.GetEnumField<TelemetryUnits>("Units"));
+			}
+			return true;
+		}
+
+		/// <summary>
+		/// Writes out the telemetry data to a file
+		/// </summary>
+		/// <param name="FileName"></param>
+		public void Write(string FileName)
+		{
+			using (JsonWriter Writer = new JsonWriter(FileName))
+			{
+				Writer.WriteObjectStart();
+				Writer.WriteValue("Version", CurrentVersion);
+				Writer.WriteArrayStart("Samples");
+				foreach(TelemetrySample Sample in Samples)
+				{
+					Writer.WriteObjectStart();
+					Writer.WriteValue("Name", Sample.Name);
+					Writer.WriteValue("Value", Sample.Value);
+					Writer.WriteValue("Units", Sample.Units.ToString());
+					Writer.WriteObjectEnd();
+				}
+				Writer.WriteArrayEnd();
+				Writer.WriteObjectEnd();
+			}
+		}
+	}
+
+	/// <summary>
+	/// Timer class used for telemetry reporting.
+	/// </summary>
+	public class TelemetryStopwatch : IDisposable
     {
         string Name;
         DateTime StartTime;

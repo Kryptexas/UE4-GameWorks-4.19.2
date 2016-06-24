@@ -198,7 +198,7 @@ public:
 
 	enum class EShadingPath
 	{
-		Forward,
+		Mobile,
 		Deferred,
 
 		Num,
@@ -211,9 +211,9 @@ public:
 	void Allocate(FRHICommandList& RHICmdList, const FSceneViewFamily& ViewFamily);
 
 	/**
-	 * Forward shading can't know how big the optimal atlased shadow buffer will be, so provide a set it up per frame.
+	 * Mobile can't know how big the optimal atlased shadow buffer will be, so provide a set it up per frame.
 	 */
-	void AllocateForwardShadingShadowDepthTarget(FRHICommandListImmediate& RHICmdList, const FIntPoint& ShadowBufferResolution);
+	void AllocateMobileShadowDepthTarget(FRHICommandListImmediate& RHICmdList, const FIntPoint& ShadowBufferResolution);
 
 	/**
 	 *
@@ -308,11 +308,6 @@ public:
 		if (!SeparateTranslucencyRT || SeparateTranslucencyRT->GetDesc().Extent != Size)
 		{
 			uint32 Flags = TexCreate_RenderTargetable;
-
-#if PLATFORM_XBOXONE
-			// Evil place to put this I know, but it's almost 4.11 deadline!
-			Flags |= TexCreate_NoFastClear;
-#endif
 
 			// Create the SeparateTranslucency render target (alpha is needed to lerping)
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(Size, PF_FloatRGBA, FClearValueBinding::Black, TexCreate_None, Flags, false));
@@ -705,8 +700,8 @@ private:
 	 */
 	void InitEditorPrimitivesDepth(FRHICommandList& RHICmdList);
 
-	/** Allocates render targets for use with the forward shading path. */
-	void AllocateForwardShadingPathRenderTargets(FRHICommandList& RHICmdList);
+	/** Allocates render targets for use with the mobile path. */
+	void AllocateMobileRenderTargets(FRHICommandList& RHICmdList);
 
 	/** Allocates render targets for use with the deferred shading path. */
 	void AllocateDeferredShadingPathRenderTargets(FRHICommandList& RHICmdList);
@@ -714,7 +709,7 @@ private:
 	/** Allocates render targets for use with the current shading path. */
 	void AllocateRenderTargets(FRHICommandList& RHICmdList);
 
-	/** Allocates common depth render targets that are used by both forward and deferred rendering paths */
+	/** Allocates common depth render targets that are used by both mobile and deferred rendering paths */
 	void AllocateCommonDepthTargets(FRHICommandList& RHICmdList);
 
 	/** Determine the appropriate render target dimensions. */
@@ -736,7 +731,7 @@ private:
 	bool AreShadingPathRenderTargetsAllocated(EShadingPath InShadingPath) const;
 
 	/** Determine whether the render targets for any shading path have been allocated */
-	bool AreAnyShadingPathRenderTargetsAllocated() const { return AreShadingPathRenderTargetsAllocated(EShadingPath::Deferred) || AreShadingPathRenderTargetsAllocated(EShadingPath::Forward); }
+	bool AreAnyShadingPathRenderTargetsAllocated() const { return AreShadingPathRenderTargetsAllocated(EShadingPath::Deferred) || AreShadingPathRenderTargetsAllocated(EShadingPath::Mobile); }
 
 	/** Gets all GBuffers to use.  Returns the number actually used. */
 	int32 GetGBufferRenderTargets(ERenderTargetLoadAction ColorLoadAction, FRHIRenderTargetView OutRenderTargets[MaxSimultaneousRenderTargets], int32& OutVelocityRTIndex);

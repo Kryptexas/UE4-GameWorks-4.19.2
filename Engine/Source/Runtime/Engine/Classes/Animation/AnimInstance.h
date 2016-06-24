@@ -28,10 +28,20 @@ struct FAnimNode_AssetPlayerBase;
 struct FAnimNode_Base;
 struct FAnimInstanceProxy;
 
+UENUM()
+enum class EAnimCurveType : uint8 
+{
+	EventCurve,
+	MaterialCurve, 
+	MorphTargetCurve, 
+	PoseCurve, 
+	// make sure to update MaxCurve 
+	MaxAnimCurveType
+};
+
 DECLARE_DELEGATE_OneParam(FOnMontageStarted, UAnimMontage*)
 DECLARE_DELEGATE_TwoParams(FOnMontageEnded, UAnimMontage*, bool /*bInterrupted*/)
 DECLARE_DELEGATE_TwoParams(FOnMontageBlendingOutStarted, UAnimMontage*, bool /*bInterrupted*/)
-
 /**
 * Delegate for when Montage is started
 */
@@ -59,32 +69,10 @@ DECLARE_DELEGATE_RetVal(bool, FCanTakeTransition);
 /** Delegate that native code can hook into to handle state entry/exit */
 DECLARE_DELEGATE_ThreeParams(FOnGraphStateChanged, const struct FAnimNode_StateMachine& /*Machine*/, int32 /*PrevStateIndex*/, int32 /*NextStateIndex*/);
 
-/** Enum for controlling which reference frame a controller is applied in. */
-UENUM()
-enum EBoneControlSpace
-{
-	/** Set absolute position of bone in world space. */
-	BCS_WorldSpace UMETA( DisplayName = "World Space" ),
-	/** Set position of bone in SkeletalMeshComponent's reference frame. */
-	BCS_ComponentSpace UMETA( DisplayName = "Component Space" ),
-	/** Set position of bone relative to parent bone. */
-	BCS_ParentBoneSpace UMETA( DisplayName = "Parent Bone Space" ),
-	/** Set position of bone in its own reference frame. */
-	BCS_BoneSpace UMETA( DisplayName = "Bone Space" ),
-	BCS_MAX,
-};
+/** Delegate that allows users to insert custom animation curve values - for now, it's only single, not sure how to make this to multi delegate and retrieve value sequentially, so */
+DECLARE_DELEGATE_OneParam(FOnAddCustomAnimationCurves, UAnimInstance*)
 
-/** Enum for specifying the source of a bone's rotation. */
-UENUM()
-enum EBoneRotationSource
-{
-	/** Don't change rotation at all. */
-	BRS_KeepComponentSpaceRotation UMETA(DisplayName = "No Change (Preserve Existing Component Space Rotation)"),
-	/** Keep forward direction vector relative to the parent bone. */
-	BRS_KeepLocalSpaceRotation UMETA(DisplayName = "Maintain Local Rotation Relative to Parent"),
-	/** Copy rotation of target to bone. */
-	BRS_CopyFromTarget UMETA(DisplayName = "Copy Target Rotation"),
-};
+
 
 USTRUCT()
 struct FA2Pose
@@ -155,37 +143,8 @@ private:
 	friend class FAnimationRuntime;
 };
 
-USTRUCT(BlueprintType)
-struct FPerBoneBlendWeight
-{
-	GENERATED_USTRUCT_BODY()
-
-	/** Source index of the buffer. */
-	UPROPERTY()
-	int32 SourceIndex;
-
-	UPROPERTY()
-	float BlendWeight;
-
-	FPerBoneBlendWeight()
-		: SourceIndex(0)
-		, BlendWeight(0.0f)
-	{
-	}
-};
-
-USTRUCT(BlueprintType)
-struct FPerBoneBlendWeights
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY()
-	TArray<FPerBoneBlendWeight> BoneBlendWeights;
 
 
-	FPerBoneBlendWeights() {}
-
-};
 /** Helper struct for Slot node pose evaluation. */
 USTRUCT()
 struct FSlotEvaluationPose
@@ -317,16 +276,24 @@ struct FNativeStateBinding
 /** Tracks state of active slot nodes in the graph */
 struct FMontageActiveSlotTracker
 {
-	//Weighting of root motion from this montage
-	float RootMotionWeight;
+	/** Local weight of Montages being played (local to the slot node) */
+	float MontageLocalWeight;
+
+	/** Global weight of this slot node */
+	float NodeGlobalWeight;
 
 	//Is the montage slot part of the active graph this tick
 	bool  bIsRelevantThisTick;
 
-	//Was the motnage slot part of the active graph last tick
+	//Was the montage slot part of the active graph last tick
 	bool  bWasRelevantOnPreviousTick;
 
-	FMontageActiveSlotTracker() : RootMotionWeight(0.f), bIsRelevantThisTick(false), bWasRelevantOnPreviousTick(false) {}
+	FMontageActiveSlotTracker()
+		: MontageLocalWeight(0.f)
+		, NodeGlobalWeight(0.f)
+		, bIsRelevantThisTick(false)
+		, bWasRelevantOnPreviousTick(false) 
+	{}
 };
 
 struct FMontageEvaluationState
@@ -359,63 +326,6 @@ struct FMontageEvaluationState
 	bool bIsActive;
 };
 
-struct FGraphTraversalCounter
-{
-private:
-	int16 InternalCounter;
-
-public:
-	FGraphTraversalCounter()
-		: InternalCounter(INDEX_NONE)
-	{}
-
-	int16 Get() const
-	{
-		return InternalCounter;
-	}
-
-	void Increment()
-	{
-		InternalCounter++;
-
-		// Avoid wrapping over back to INDEX_NONE, as this means 'never been traversed'
-		if (InternalCounter == INDEX_NONE)
-		{
-			InternalCounter++;
-		}
-	}
-
-	void Reset()
-	{
-		InternalCounter = INDEX_NONE;
-	}
-
-	void SynchronizeWith(const FGraphTraversalCounter& InMasterCounter)
-	{
-		InternalCounter = InMasterCounter.Get();
-	}
-
-	bool IsSynchronizedWith(const FGraphTraversalCounter& InMasterCounter) const
-	{
-		return ((InternalCounter != INDEX_NONE) && (InternalCounter == InMasterCounter.Get()));
-	}
-
-	bool WasSynchronizedInTheLastFrame(const FGraphTraversalCounter& InMasterCounter) const
-	{
-		// Test if we're currently in sync with our master counter
-		if (IsSynchronizedWith(InMasterCounter))
-		{
-			return true;
-		}
-
-		// If not, test if the Master Counter is a frame ahead of us
-		FGraphTraversalCounter TestCounter(*this);
-		TestCounter.Increment();
-
-		return TestCounter.IsSynchronizedWith(InMasterCounter);
-	}
-};
-
 UCLASS(transient, Blueprintable, hideCategories=AnimInstance, BlueprintType)
 class ENGINE_API UAnimInstance : public UObject
 {
@@ -443,10 +353,6 @@ class ENGINE_API UAnimInstance : public UObject
 	// The set of tick groups for this anim instance
 	DEPRECATED(4.11, "This cannot be accessed directly as it is potentially in use on worker threads")
 	TArray<FAnimGroupInstance> SyncGroupArrays[2];
-
-	/** Array indicating active vertex anims (by reference) generated by anim instance. */
-	DEPRECATED(4.11, "This cannot be accessed directly as it is potentially in use on worker threads")
-	TArray<struct FActiveVertexAnim> VertexAnims;
 
 	// Sets where this blueprint pulls Root Motion from
 	UPROPERTY(Category = RootMotion, EditDefaultsOnly)
@@ -519,19 +425,22 @@ public:
 	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
 	void RegisterSlotNodeWithAnimInstance(FName SlotNodeName);
 	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
-	void UpdateSlotNodeWeight(FName SlotNodeName, float Weight);
+	void UpdateSlotNodeWeight(FName SlotNodeName, float InLocalMontageWeight, float InGlobalWeight);
 	// if it doesn't tick, it will keep old weight, so we'll have to clear it in the beginning of tick
 	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
 	void ClearSlotNodeWeights();
 	bool IsSlotNodeRelevantForNotifies(FName SlotNodeName) const;
 
-	// Allow slot nodes to store off their root motion weight during ticking
-	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
-	void UpdateSlotRootMotionWeight(FName SlotNodeName, float Weight);
-	// Get the root motion weight for the montage slot
-	float GetSlotRootMotionWeight(FName SlotNodeName) const;
+	/** Get global weight in AnimGraph for this slot node.
+	* Note: this is the weight of the node, not the weight of any potential montage it is playing. */
+	float GetSlotNodeGlobalWeight(FName SlotNodeName) const;
+
 	// Should Extract Root Motion or not. Return true if we do. 
 	bool ShouldExtractRootMotion() const { return RootMotionMode == ERootMotionMode::RootMotionFromEverything || RootMotionMode == ERootMotionMode::IgnoreRootMotion; }
+
+	/** Get Global weight of any montages this slot node is playing.
+	* If this slot is not currently playing a montage, it will return 0. */
+	float GetSlotMontageGlobalWeight(FName SlotNodeName) const;
 
 	// kismet event functions
 
@@ -773,6 +682,16 @@ private:
 	/** Trigger a Montage Ended event */
 	void TriggerMontageEndedEvent(const FQueuedMontageEndedEvent& MontageEndedEvent);
 
+	/** Used to guard against recursive calls to UpdateAnimation */
+	bool bUpdatingAnimation;
+#if WITH_EDITOR
+	/** Delegate for custom animation curve addition */
+	TArray<FOnAddCustomAnimationCurves> OnAddAnimationCurves;
+public:
+	/** Add custom curve delegates */
+	void AddDelegate_AddCustomAnimationCurve(FOnAddCustomAnimationCurves& InOnAddCustomAnimationCurves);
+	void RemoveDelegate_AddCustomAnimationCurve(FOnAddCustomAnimationCurves& InOnAddCustomAnimationCurves);
+#endif // editor only for now
 public:
 
 	/** 
@@ -816,6 +735,10 @@ public:
 	/** Get the time as a fraction of the asset length of an animation in an asset player node */
 	UFUNCTION(BlueprintPure, Category="Asset Player", meta=(DisplayName="Time Remaining (ratio)", BlueprintInternalUseOnly="true", AnimGetter="true"))
 	float GetInstanceAssetPlayerTimeFromEndFraction(int32 AssetPlayerIndex);
+
+	/** Get the blend weight of a specified state machine */
+	UFUNCTION(BlueprintPure, Category = "States", meta = (DisplayName = "Machine Weight", BlueprintInternalUseOnly = "true", AnimGetter = "true"))
+	float GetInstanceMachineWeight(int32 MachineIndex);
 
 	/** Get the blend weight of a specified state */
 	UFUNCTION(BlueprintPure, Category="States", meta = (DisplayName="State Weight", BlueprintInternalUseOnly = "true", AnimGetter="true"))
@@ -888,6 +811,8 @@ public:
 
 	/** Get the machine description for the specified instance. Does not rely on PRIVATE_MachineDescription being initialized */
 	const FBakedAnimationStateMachine* GetMachineDescription(IAnimClassInterface* AnimBlueprintClass, FAnimNode_StateMachine* MachineInstance);
+
+	void GetStateMachineIndexAndDescription(FName InMachineName, int32& OutMachineIndex, const FBakedAnimationStateMachine** OutMachineDescription);
 
 	/** Returns the baked sync group index from the compile step */
 	int32 GetSyncGroupIndexFromName(FName SyncGroupName) const;
@@ -1022,6 +947,9 @@ public:
 	/** Called after updates are completed, dispatches notifies etc. */
 	void PostUpdateAnimation();
 
+	/** Called on the game thread pre-evaluation. */
+	void PreEvaluateAnimation();
+
 	DEPRECATED(4.11, "This function should no longer be used. Use ParallelEvaluateAnimation")
 	void EvaluateAnimation(struct FPoseContext& Output);
 
@@ -1110,8 +1038,12 @@ protected:
 	void TickSyncGroupWriteIndex();
 
 private:
-	/** Curve Values that are added to trigger in event**/
-	TMap<FName, float>	EventCurves;
+	/** This is if you want to separate to another array**/
+	TMap<FName, float>	AnimationCurves[(uint8)EAnimCurveType::MaxAnimCurveType];
+
+	/** Reset Animation Curves */
+	void ResetAnimationCurves();
+
 	/** Material parameters that we had been changing and now need to clear */
 	TArray<FName> MaterialParamatersToClear;
 
@@ -1128,16 +1060,11 @@ public:
 	/** Check whether we have active morph target curves */
 	bool HasMorphTargetCurves() const;
 
-	/** Access active morph target curves */
-	TMap<FName, float>& GetMorphTargetCurves();
-
-	/** Morph Target Curves that will be used for SkeletalMeshComponent **/
-	DEPRECATED(4.11, "This cannot be accessed directly, use UAnimInstance::GetMorphTargetCurves")
-	TMap<FName, float>	MorphTargetCurves;
-
-	/** Material Curves that will be used for SkeletalMeshComponent **/
-	DEPRECATED(4.11, "This cannot be accessed directly, use FAnimInstanceProxy::GetMaterialParameterCurves")
-	TMap<FName, float>	MaterialParameterCurves;
+	/** 
+	 * Retrieve animation curve list by Curve Flags, it will return list of {UID, value} 
+	 * It will clear the OutCurveList before adding
+	 */
+	void GetAnimationCurveList(int32 CurveFlags, TMap<FName, float>& OutCurveList) const;
 
 #if WITH_EDITORONLY_DATA
 	// Maximum playback position ever reached (only used when debugging in Persona)
@@ -1202,16 +1129,18 @@ public:
 	/** Add curve float data using a curve Uid, the name of the curve will be resolved from the skeleton **/
 	void AddCurveValue(const USkeleton::AnimCurveUID Uid, float Value, int32 CurveTypeFlags);
 
-	/** Given a machine and state index, record a state weight for this frame */
-	void RecordStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex, const float& InStateWeight);
-
-protected:
+	/** Given a machine index, record a state machine weight for this frame */
+	void RecordMachineWeight(const int32& InMachineClassIndex, const float& InMachineWeight);
 	/** 
 	 * Add curve float data, using a curve name. External values should all be added using
 	 * The curve UID to the public version of this method
 	 */
 	void AddCurveValue(const FName& CurveName, float Value, int32 CurveTypeFlags);
 
+	/** Given a machine and state index, record a state weight for this frame */
+	void RecordStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex, const float& InStateWeight);
+
+protected:
 #if WITH_EDITORONLY_DATA
 	// Returns true if a snapshot is being played back and the remainder of Update should be skipped.
 	bool UpdateSnapshotAndSkipRemainingUpdate();
@@ -1272,6 +1201,9 @@ protected:
 
 	/** Actually does the update work, can be called from a worker thread  */
 	void UpdateAnimationInternal_Concurrent(float DeltaSeconds, FAnimInstanceProxy& Proxy);
+
+	/** update animation curves to component */
+	void UpdateCurvesToComponents(USkeletalMeshComponent* Component);
 
 	/** Override point for derived classes to create their own proxy objects (allows custom allocation) */
 	virtual FAnimInstanceProxy* CreateAnimInstanceProxy();

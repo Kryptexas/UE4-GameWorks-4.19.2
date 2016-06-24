@@ -11,7 +11,7 @@ void FBackendHelperUMG::WidgetFunctionsInHeader(FEmitterLocalContext& Context)
 	if (Cast<UWidgetBlueprintGeneratedClass>(Context.GetCurrentlyGeneratedClass()))
 	{
 		Context.Header.AddLine(TEXT("virtual void GetSlotNames(TArray<FName>& SlotNames) const override;"));
-		Context.Header.AddLine(TEXT("virtual void PreSave() override;"));
+		Context.Header.AddLine(TEXT("virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;"));
 		Context.Header.AddLine(TEXT("virtual void CustomNativeInitilize() override;"));
 	}
 }
@@ -96,10 +96,10 @@ void FBackendHelperUMG::EmitWidgetInitializationFunctions(FEmitterLocalContext& 
 		}
 
 		// PreSave
-		Context.AddLine(FString::Printf(TEXT("void %s::PreSave()"), *CppClassName));
+		Context.AddLine(FString::Printf(TEXT("void %s::PreSave(const class ITargetPlatform* TargetPlatform)"), *CppClassName));
 		Context.AddLine(TEXT("{"));
 		Context.IncreaseIndent();
-		Context.AddLine(TEXT("Super::PreSave();"));
+		Context.AddLine(TEXT("Super::PreSave(TargetPlatform);"));
 		Context.AddLine(TEXT("TArray<FName> LocalNamedSlots;"));
 		Context.AddLine(TEXT("GetSlotNames(LocalNamedSlots);"));
 		Context.AddLine(TEXT("RemoveObsoleteBindings(LocalNamedSlots);"));

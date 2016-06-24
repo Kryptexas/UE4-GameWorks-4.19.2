@@ -4,7 +4,6 @@
 #include "Matinee/MatineeActor.h"
 #include "InteractiveFoliageActor.h"
 #include "Animation/SkeletalMeshActor.h"
-#include "Animation/VertexAnim/VertexAnimation.h"
 #include "Engine/WorldComposition.h"
 #include "EditorSupportDelegates.h"
 #include "Factories.h"
@@ -810,11 +809,11 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 	ActorFactories.Sort( FCompareUActorFactoryByMenuPriority() );
 
 	// Load game user settings and apply
-	auto GameUserSettings = GetGameUserSettings();
-	if (GameUserSettings)
+	UGameUserSettings* MyGameUserSettings = GetGameUserSettings();
+	if (MyGameUserSettings)
 	{
-		GameUserSettings->LoadSettings();
-		GameUserSettings->ApplySettings(true);
+		MyGameUserSettings->LoadSettings();
+		MyGameUserSettings->ApplySettings(true);
 	}
 
 	UEditorStyleSettings* Settings = GetMutableDefault<UEditorStyleSettings>();
@@ -860,8 +859,11 @@ void UEditorEngine::FinishDestroy()
 {
 	if ( !HasAnyFlags(RF_ClassDefaultObject) )
 	{
-		// this needs to be already cleaned up
-		check(PlayWorld == NULL);
+		if (PlayWorld)
+		{
+			// this needs to be already cleaned up
+			UE_LOG(LogEditor, Warning, TEXT("Warning: Play world is active"));
+		}
 
 		// Unregister events
 		FEditorDelegates::MapChange.RemoveAll(this);
@@ -1535,7 +1537,6 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	IStreamingManager::Get().Tick(DeltaSeconds);
 
 	// Update Audio. This needs to occur after rendering as the rendering code updates the listener position.
-	FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
 	if (AudioDeviceManager)
 	{
 		UWorld* OldGWorld = NULL;
@@ -3027,7 +3028,6 @@ struct FConvertStaticMeshActorInfo
 	// for skeletalmeshcomponent animation conversion
 	// this is temporary until we have SkeletalMeshComponent.Animations
 	UAnimationAsset*					AnimAsset;
-	UVertexAnimation*					VertexAnimation;
 	bool								bLooping;
 	bool								bPlaying;
 	float								Rate;
@@ -3249,7 +3249,6 @@ private:
 	void InternalGetAnimationData(USkeletalMeshComponent * SkeletalComp)
 	{
 		AnimAsset = SkeletalComp->AnimationData.AnimToPlay;
-		VertexAnimation = SkeletalComp->AnimationData.VertexAnimToPlay;
 		bLooping = SkeletalComp->AnimationData.bSavedLooping;
 		bPlaying = SkeletalComp->AnimationData.bSavedPlaying;
 		Rate = SkeletalComp->AnimationData.SavedPlayRate;
@@ -3258,17 +3257,15 @@ private:
 
 	void InternalSetAnimationData(USkeletalMeshComponent * SkeletalComp)
 	{
-		if (!AnimAsset && !VertexAnimation)
+		if (!AnimAsset)
 		{
 			return;
 		}
 
-		UE_LOG(LogAnimation, Log, TEXT("Converting animation data for (%s) : %s(%s), bLooping(%d), bPlaying(%d), Rate(%0.2f), CurrentPos(%0.2f)"), 
-			AnimAsset? TEXT("AnimAsset") : TEXT("VertexAnim"),
-			AnimAsset? *AnimAsset->GetName() : *VertexAnimation->GetName(), bLooping, bPlaying, Rate, CurrentPos);
+		UE_LOG(LogAnimation, Log, TEXT("Converting animation data for AnimAsset : (%s), bLooping(%d), bPlaying(%d), Rate(%0.2f), CurrentPos(%0.2f)"), 
+			*AnimAsset->GetName(), bLooping, bPlaying, Rate, CurrentPos);
 
 		SkeletalComp->AnimationData.AnimToPlay = AnimAsset;
-		SkeletalComp->AnimationData.VertexAnimToPlay = VertexAnimation;
 		SkeletalComp->AnimationData.bSavedLooping = bLooping;
 		SkeletalComp->AnimationData.bSavedPlaying = bPlaying;
 		SkeletalComp->AnimationData.SavedPlayRate = Rate;
@@ -3453,7 +3450,7 @@ bool UEditorEngine::ShouldOpenMatinee(AMatineeActor* MatineeActor) const
 void UEditorEngine::OpenMatinee(AMatineeActor* MatineeActor, bool bWarnUser)
 {
 	// Drop out if the user doesn't want to proceed to matinee atm
-	if( bWarnUser && !ShouldOpenMatinee( MatineeActor ) )
+	if( bWarnUser && ( (ShouldOpenMatineeCallback.IsBound() && !ShouldOpenMatineeCallback.Execute(MatineeActor)) || !ShouldOpenMatinee( MatineeActor ) ) )
 	{
 		return;
 	}
@@ -4069,7 +4066,7 @@ void UEditorEngine::OnPostSaveWorld(uint32 SaveFlags, UWorld* World, uint32 Orig
 
 					if ( MainFrameModule.GetMRUFavoritesList() )
 					{
-						MainFrameModule.GetMRUFavoritesList()->AddMRUItem( Filename );
+						MainFrameModule.GetMRUFavoritesList()->AddMRUItem(WorldPackage->GetName());
 					}
 
 					FEditorDirectories::Get().SetLastDirectory(ELastDirectory::UNR, FPaths::GetPath(Filename)); // Save path as default for next time.
@@ -4222,14 +4219,14 @@ FString UEditorEngine::GetFriendlyName( const UProperty* Property, UStruct* Owne
 	return FoundText.ToString();
 }
 
-AActor* UEditorEngine::UseActorFactoryOnCurrentSelection( UActorFactory* Factory, const FTransform* InActorTransform, EObjectFlags ObjectFlags )
+AActor* UEditorEngine::UseActorFactoryOnCurrentSelection( UActorFactory* Factory, const FTransform* InActorTransform, EObjectFlags InObjectFlags )
 {
 	// ensure that all selected assets are loaded
 	FEditorDelegates::LoadSelectedAssetsIfNeeded.Broadcast();
-	return UseActorFactory(Factory, FAssetData( GetSelectedObjects()->GetTop<UObject>() ), InActorTransform, ObjectFlags );
+	return UseActorFactory(Factory, FAssetData( GetSelectedObjects()->GetTop<UObject>() ), InActorTransform, InObjectFlags );
 }
 
-AActor* UEditorEngine::UseActorFactory( UActorFactory* Factory, const FAssetData& AssetData, const FTransform* InActorTransform, EObjectFlags ObjectFlags )
+AActor* UEditorEngine::UseActorFactory( UActorFactory* Factory, const FAssetData& AssetData, const FTransform* InActorTransform, EObjectFlags InObjectFlags )
 {
 	check( Factory );
 
@@ -4279,7 +4276,7 @@ AActor* UEditorEngine::UseActorFactory( UActorFactory* Factory, const FAssetData
 				const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "CreateActor", "Create Actor") );
 
 				// Create the actor.
-				Actor = Factory->CreateActor( Asset, DesiredLevel, ActorTransform, ObjectFlags );
+				Actor = Factory->CreateActor( Asset, DesiredLevel, ActorTransform, InObjectFlags );
 				if(Actor != NULL)
 				{
 					SelectNone( false, true );
@@ -5624,7 +5621,7 @@ bool UEditorEngine::AreAllWindowsHidden() const
 	return bAllHidden;
 }
 
-AActor* UEditorEngine::AddActor(ULevel* InLevel, UClass* Class, const FTransform& Transform, bool bSilent, EObjectFlags ObjectFlags)
+AActor* UEditorEngine::AddActor(ULevel* InLevel, UClass* Class, const FTransform& Transform, bool bSilent, EObjectFlags InObjectFlags)
 {
 	check( Class );
 
@@ -5672,7 +5669,7 @@ AActor* UEditorEngine::AddActor(ULevel* InLevel, UClass* Class, const FTransform
 	AActor* Actor = NULL;
 	{
 		FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "AddActor", "Add Actor") );
-		if ( !(ObjectFlags & RF_Transactional) )
+		if ( !(InObjectFlags & RF_Transactional) )
 		{
 			// Don't attempt a transaction if the actor we are spawning isn't transactional
 			Transaction.Cancel();
@@ -5684,7 +5681,7 @@ AActor* UEditorEngine::AddActor(ULevel* InLevel, UClass* Class, const FTransform
 		FActorSpawnParameters SpawnInfo;
 		SpawnInfo.OverrideLevel = DesiredLevel;
 		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-		SpawnInfo.ObjectFlags = ObjectFlags;
+		SpawnInfo.ObjectFlags = InObjectFlags;
 		const auto Location = Transform.GetLocation();
 		const auto Rotation = Transform.GetRotation().Rotator();
 		Actor = World->SpawnActor( Class, &Location, &Rotation, SpawnInfo );
@@ -5716,7 +5713,7 @@ AActor* UEditorEngine::AddActor(ULevel* InLevel, UClass* Class, const FTransform
 	return Actor;
 }
 
-TArray<AActor*> UEditorEngine::AddExportTextActors(const FString& ExportText, bool bSilent, EObjectFlags ObjectFlags)
+TArray<AActor*> UEditorEngine::AddExportTextActors(const FString& ExportText, bool bSilent, EObjectFlags InObjectFlags)
 {
 	TArray<AActor*> NewActors;
 
@@ -5733,7 +5730,7 @@ TArray<AActor*> UEditorEngine::AddExportTextActors(const FString& ExportText, bo
 	FVector Location;
 	{
 		FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "AddActor", "Add Actor") );
-		if ( !(ObjectFlags & RF_Transactional) )
+		if ( !(InObjectFlags & RF_Transactional) )
 		{
 			// Don't attempt a transaction if the actor we are spawning isn't transactional
 			Transaction.Cancel();
@@ -5741,7 +5738,7 @@ TArray<AActor*> UEditorEngine::AddExportTextActors(const FString& ExportText, bo
 		// Remove the selection to detect the actors that were created during FactoryCreateText. They will be selected when the operation in complete
 		GEditor->SelectNone( false, true );
 		const TCHAR* Text = *ExportText;
-		if ( Factory->FactoryCreateText( ULevel::StaticClass(), CurrentLevel, CurrentLevel->GetFName(), ObjectFlags, NULL, TEXT("paste"), Text, Text + FCString::Strlen(Text), GWarn ) != NULL )
+		if ( Factory->FactoryCreateText( ULevel::StaticClass(), CurrentLevel, CurrentLevel->GetFName(), InObjectFlags, nullptr, TEXT("paste"), Text, Text + FCString::Strlen(Text), GWarn ) != nullptr )
 		{
 			// Now get the selected actors and calculate a center point between all their locations.
 			USelection* ActorSelection = GEditor->GetSelectedActors();
@@ -6383,6 +6380,12 @@ void UEditorEngine::VerifyLoadMapWorldCleanup()
 			}
 		}
 	}
+}
+
+void UEditorEngine::HandleBrowseToDefaultMapFailure(FWorldContext& Context, const FString& TextURL, const FString& Error)
+{
+	Super::HandleBrowseToDefaultMapFailure(Context, TextURL, Error);
+	RequestEndPlayMap();
 }
 
 void UEditorEngine::TriggerStreamingDataRebuild()

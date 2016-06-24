@@ -1022,7 +1022,7 @@ FText SKismetDebuggingView::GetTopText() const
 {
 	const bool bIsDebugging = GEditor->PlayWorld != nullptr;
 	UBlueprint* BlueprintObj = BlueprintToWatchPtr.Get();
-	UObject* DebuggedObject = BlueprintObj->GetObjectBeingDebugged();
+	UObject* DebuggedObject = (BlueprintObj != nullptr) ? BlueprintObj->GetObjectBeingDebugged() : nullptr;
 
 	TSet<UObject*> NewRootSet;
 	if (bIsDebugging && (BlueprintObj != nullptr) && (DebuggedObject != nullptr))
@@ -1109,7 +1109,7 @@ void SKismetDebuggingView::Tick( const FGeometry& AllottedGeometry, const double
 	// Gather what we'd like to be the new root set
 	const bool bIsDebugging = GEditor->PlayWorld != nullptr;
 	UBlueprint* BlueprintObj = BlueprintToWatchPtr.Get();
-	UObject* DebuggedObject = BlueprintObj->GetObjectBeingDebugged();
+	UObject* DebuggedObject = (BlueprintObj != nullptr) ? BlueprintObj->GetObjectBeingDebugged() : nullptr;
 
 	TSet<UObject*> NewRootSet;
 	if (bIsDebugging && (BlueprintObj != nullptr) && (DebuggedObject != nullptr))

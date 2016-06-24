@@ -28,6 +28,7 @@
 #include "GameFramework/CheatManager.h"
 #include "GameFramework/DamageType.h"
 #include "Components/ChildActorComponent.h"
+#include "Streaming/TextureStreamingHelpers.h"
 
 #define LOCTEXT_NAMESPACE "PrimitiveComponent"
 
@@ -152,6 +153,7 @@ UPrimitiveComponent::UPrimitiveComponent(const FObjectInitializer& ObjectInitial
 	PostPhysicsComponentTick.TickGroup = TG_PostPhysics;
 
 	LastRenderTime = -1000.0f;
+	LastRenderTimeOnScreen = -1000.0f;
 	BoundsScale = 1.0f;
 	MinDrawDistance = 0.0f;
 	DepthPriorityGroup = SDPG_World;
@@ -246,9 +248,19 @@ void UPrimitiveComponent::GetStreamingTextureInfoWithNULLRemoval(FStreamingTextu
 	GetStreamingTextureInfo(LevelContext, OutStreamingTextures);
 	for (int32 Index = 0; Index < OutStreamingTextures.Num(); Index++)
 	{
-		if (!OutStreamingTextures[Index].Texture || !Cast<UTexture2D>(OutStreamingTextures[Index].Texture))
+		const FStreamingTexturePrimitiveInfo& Info = OutStreamingTextures[Index];
+		if (!IsStreamingTexture(Info.Texture))
 		{
 			OutStreamingTextures.RemoveAt(Index--);
+		}
+		else
+		{
+			// Other wise check that everything is setup right.
+			const bool bCanBeStreamedByDistance = Info.TexelFactor > SMALL_NUMBER && Info.Bounds.SphereRadius > SMALL_NUMBER && ensure(FMath::IsFinite(Info.TexelFactor));
+			if (!bForceMipStreaming && !bCanBeStreamedByDistance && !(Info.TexelFactor < 0 && Info.Texture->LODGroup == TEXTUREGROUP_Terrain_Heightmap))
+			{
+				OutStreamingTextures.RemoveAt(Index--);
+			}
 		}
 	}
 }
@@ -1608,7 +1620,7 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 
 			// If we had a valid blocking hit, store it.
 			// If we are looking for overlaps, store those as well.
-			uint32 FirstNonInitialOverlapIdx = INDEX_NONE;
+			int32 FirstNonInitialOverlapIdx = INDEX_NONE;
 			if (bHadBlockingHit || bGenerateOverlapEvents)
 			{
 				int32 BlockingHitIndex = INDEX_NONE;
@@ -1695,7 +1707,8 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 					// Remove any pending overlaps after this point, we are not going as far as we swept.
 					if (FirstNonInitialOverlapIdx != INDEX_NONE)
 					{
-						PendingOverlaps.SetNum(FirstNonInitialOverlapIdx);
+						const bool bAllowShrinking = false;
+						PendingOverlaps.SetNum(FirstNonInitialOverlapIdx, bAllowShrinking);
 					}
 				}
 			}
@@ -2536,8 +2549,9 @@ void UPrimitiveComponent::UpdateOverlaps(const TArray<FOverlapInfo>* NewPendingO
 					}
 					else
 					{
-						// Remove stale item
-						OverlappingComponents.RemoveSingleSwap(OtherOverlap);
+						// Remove stale item. Reclaim memory only if it's getting large, to try to avoid churn but avoid bloating component's memory usage.
+						const bool bAllowShrinking = (OverlappingComponents.Max() >= 24);
+						OverlappingComponents.RemoveSingleSwap(OtherOverlap, bAllowShrinking);
 					}
 				}
 			}

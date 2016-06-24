@@ -20,6 +20,7 @@ struct EMovieSceneUpdateData
 	float LastPosition;
 	bool bPreroll;
 	bool bJumpCut;
+	bool bLooped;
 	/** Indicates that this update was caused by the owning movie scene stopping playback due
 	    to the active sub-scene being deactivated. */
 	bool bSubSceneDeactivate;
@@ -32,6 +33,7 @@ struct EMovieSceneUpdateData
 		LastPosition = 0.0f;
 		bPreroll = false;
 		bJumpCut = false;
+		bLooped = false;
 		bSubSceneDeactivate = false;
 		UpdatePass = MSUP_PreUpdate;
 	}
@@ -41,6 +43,7 @@ struct EMovieSceneUpdateData
 		LastPosition = InLastPosition;
 		bPreroll = false;
 		bJumpCut = false;
+		bLooped = false;
 		bSubSceneDeactivate = false;
 		UpdatePass = MSUP_PreUpdate;
 	}

@@ -149,6 +149,7 @@ static bool ShaderPlatformCanPrebindBoundShaderState(EShaderPlatform Platform)
 		case SP_METAL_MRT:
 		case SP_METAL_SM5:
 		case SP_METAL_MACES3_1:
+		case SP_METAL_MACES2:
 		{
 			return true;
 		}
@@ -2176,12 +2177,12 @@ uint32 FShaderCache::FSamplerStateInitializerRHIKeyFuncs::GetKeyHash(KeyInitType
 
 int32 FShaderCache::GetPredrawBatchTime() const
 {
-	return OverridePrecompileTime == 0 ? PredrawBatchTime : OverridePrecompileTime;
+	return OverridePredrawBatchTime == 0 ? PredrawBatchTime : OverridePredrawBatchTime;
 }
 
 int32 FShaderCache::GetTargetPrecompileFrameTime() const
 {
-	return OverridePredrawBatchTime == 0 ? TargetPrecompileFrameTime : OverridePredrawBatchTime;
+	return OverridePrecompileTime == 0 ? TargetPrecompileFrameTime : OverridePrecompileTime;
 }
 
 void FShaderCache::MergePlatformCaches(FShaderPlatformCache& Target, FShaderPlatformCache const& Source)

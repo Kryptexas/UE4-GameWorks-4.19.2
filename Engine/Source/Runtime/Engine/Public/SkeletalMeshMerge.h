@@ -100,12 +100,14 @@ public:
 	* @param InSrcMeshList - array of source meshes to merge
 	* @param InForceSectionMapping - optional array to map sections from the source meshes to merged section entries
 	* @param StripTopLODs - number of high LODs to remove from input meshes
+    * @param bMeshNeedsCPUAccess - (optional) if the resulting mesh needs to be accessed by the CPU for any reason (e.g. for spawning particle effects).
 	*/
 	FSkeletalMeshMerge( 
 		USkeletalMesh* InMergeMesh, 
 		const TArray<USkeletalMesh*>& InSrcMeshList, 
 		const TArray<FSkelMeshMergeSectionMapping>& InForceSectionMapping,
-		int32 StripTopLODs
+		int32 StripTopLODs,
+        EMeshBufferAccess MeshBufferAccess=EMeshBufferAccess::Default
 		);
 
 	/**
@@ -139,6 +141,9 @@ private:
 	/** Number of high LODs to remove from input meshes. */
 	int32 StripTopLODs;
 
+    /** Whether or not the resulting mesh needs to be accessed by the CPU (e.g. for particle spawning).*/
+    EMeshBufferAccess MeshBufferAccess;
+
 	/** Info about source mesh used in merge. */
 	struct FMergeMeshInfo
 	{
@@ -165,15 +170,12 @@ private:
 		const USkeletalMesh* SkelMesh;
 		/** ptr to source section for merging */
 		const FSkelMeshSection* Section;
-		/** ptr to source chunk for this section */
-		const FSkelMeshChunk* Chunk;
 		/** mapping from the original BoneMap for this sections chunk to the new MergedBoneMap */
 		TArray<FBoneIndexType> BoneMapToMergedBoneMap;
 
-		FMergeSectionInfo( const USkeletalMesh* InSkelMesh,const FSkelMeshSection* InSection, const FSkelMeshChunk* InChunk )
+		FMergeSectionInfo( const USkeletalMesh* InSkelMesh,const FSkelMeshSection* InSection )
 			:	SkelMesh(InSkelMesh)
 			,	Section(InSection)
-			,	Chunk(InChunk)
 		{}
 	};
 

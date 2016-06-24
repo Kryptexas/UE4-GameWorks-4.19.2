@@ -307,7 +307,7 @@ namespace PropertyCustomizationHelpers
 			if (Class->IsChildOf(UFactory::StaticClass()) && !Class->HasAnyClassFlags(CLASS_Abstract))
 			{
 				UFactory* Factory = Class->GetDefaultObject<UFactory>();
-				if (Factory->CanCreateNew() && ensure(!Factory->GetDisplayName().IsEmpty()))
+				if (Factory->ShouldShowInNewMenu() && ensure(!Factory->GetDisplayName().IsEmpty()))
 				{
 					UClass* SupportedClass = Factory->GetSupportedClass();
 					if (SupportedClass != nullptr && Classes.ContainsByPredicate([=](const UClass* InClass) { return SupportedClass->IsChildOf(InClass); }))
@@ -317,6 +317,11 @@ namespace PropertyCustomizationHelpers
 				}
 			}
 		}
+
+		Factories.Sort([](UFactory& A, UFactory& B) -> bool
+		{
+			return A.GetDisplayName().CompareToCaseIgnored(B.GetDisplayName()) < 0;
+		});
 
 		return Factories;
 	}

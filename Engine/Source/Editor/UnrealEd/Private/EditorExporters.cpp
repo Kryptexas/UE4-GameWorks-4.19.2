@@ -35,6 +35,7 @@
 #include "EngineUtils.h"
 #include "DeviceProfiles/DeviceProfileManager.h"
 #include "Engine/TextureLODSettings.h"
+#include "Animation/AnimSequence.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorExporters, Log, All);
 

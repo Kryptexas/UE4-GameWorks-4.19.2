@@ -6,6 +6,7 @@
 #include "AnimationGraphSchema.h"
 #include "BlueprintNodeSpawner.h"
 #include "BlueprintActionDatabaseRegistrar.h"
+#include "Animation/AnimInstance.h"
 
 /////////////////////////////////////////////////////
 // FA3NodeOptionalPinManager
@@ -367,8 +368,6 @@ void UAnimGraphNode_Base::HandleAnimReferenceCollection(UAnimationAsset* AnimAss
 {
 	if(AnimAsset)
 	{
-		AnimationAssets.AddUnique(AnimAsset);
-		// anim sequence still should call this
-		AnimAsset->GetAllAnimationSequencesReferred(AnimationAssets);
+		AnimAsset->HandleAnimReferenceCollection(AnimationAssets);
 	}
 }

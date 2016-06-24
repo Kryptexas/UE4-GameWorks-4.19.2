@@ -207,14 +207,6 @@ public:
 public:
 
 	/**
-	 * Attempts to add a new spawnable to the MovieScene for the specified object (asset, class or actor instance)
-	 *
-	 * @param	Object	The asset, class, or actor to add a spawnable for
-	 * @return	The spawnable guid for the spawnable, or an invalid Guid if we were not able to create a spawnable
-	 */
-	FGuid MakeNewSpawnable(UObject& SourceObject);
-
-	/**
 	 * Converts the specified possessable GUID to a spawnable
 	 *
 	 * @param	PossessableGuid		The guid of the possessable to convert
@@ -375,6 +367,9 @@ public:
 	void AssignActor(FMenuBuilder& MenuBuilder, FGuid ObjectBinding);
 	void DoAssignActor(AActor*const* InActors, int32 NumActors, FGuid ObjectBinding);
 
+	/** Called when a user executes the import fbx to track menu item */
+	void ImportFBX(FGuid ObjectBinding);	
+
 	/** Called when a user executes the delete node menu item */
 	void DeleteNode(TSharedRef<FSequencerDisplayNode> NodeToBeDeleted);
 	void DeleteSelectedNodes();
@@ -427,10 +422,13 @@ public:
 	void CreateCamera();
 
 	/** Called when a new camera is added */
-	void NewCameraAdded(ACineCameraActor* NewCamera, FGuid PossessableGuid, bool bLockToCamera);
+	void NewCameraAdded(ACineCameraActor* NewCamera, FGuid CameraGuid, bool bLockToCamera);
 
 	/** Attempts to automatically fix up broken actor references in the current scene. */
 	void FixActorReferences();
+
+	/** Moves all time data for the current scene onto a valid frame. */
+	void FixFrameTiming();
 
 public:
 	
@@ -500,10 +498,11 @@ public:
 	virtual bool IsRecordingLive() const override;
 	virtual float GetCurrentLocalTime(UMovieSceneSequence& InMovieSceneSequence) override;
 	virtual float GetGlobalTime() const override;
-	virtual void SetGlobalTime(float Time, ESnapTimeMode SnapTimeMode = ESnapTimeMode::STM_None) override;
-	virtual void SetGlobalTimeDirectly(float Time, ESnapTimeMode SnapTimeMode = ESnapTimeMode::STM_None) override;
+	virtual void SetGlobalTime(float Time, ESnapTimeMode SnapTimeMode = ESnapTimeMode::STM_None, bool bLooped = false) override;
+	virtual void SetGlobalTimeDirectly(float Time, ESnapTimeMode SnapTimeMode = ESnapTimeMode::STM_None, bool bLooped = false) override;
 	virtual void SetPerspectiveViewportPossessionEnabled(bool bEnabled) override;
 	virtual void SetPerspectiveViewportCameraCutEnabled(bool bEnabled) override;
+	virtual void RenderMovie(UMovieSceneSection* InSection) const override;
 	virtual void EnterSilentMode() override { ++SilentModeCount; }
 	virtual void ExitSilentMode() override { --SilentModeCount; ensure(SilentModeCount >= 0); }
 	virtual bool IsInSilentMode() const override { return SilentModeCount != 0; }
@@ -533,6 +532,7 @@ public:
 	virtual TSharedRef<SWidget> MakeTimeRange(const TSharedRef<SWidget>& InnerContent, bool bShowWorkingRange, bool bShowViewRange, bool bShowPlaybackRange) override;
 	virtual void SetViewportTransportControlsVisibility(bool bVisible) override;
 	virtual UObject* FindSpawnedObjectOrTemplate(const FGuid& BindingId) const override;
+	virtual FGuid MakeNewSpawnable(UObject& SourceObject) override;
 	
 public:
 
@@ -759,6 +759,9 @@ protected:
 	/** Internal conversion function that doesn't perform expensive reset/update tasks */
 	FMovieSceneSpawnable* ConvertToSpawnableInternal(FGuid PossessableGuid);
 
+	/** Internal function to render movie for a given start/end time */
+	void RenderMovieInternal(float InStartTime, float InEndTime) const;
+
 	/** Handles adding a new folder to the outliner tree. */
 	void OnAddFolder();
 
@@ -869,6 +872,9 @@ private:
 	    do this simply to avoid refreshing the UI more than once per frame. (e.g. during live recording where
 		the MovieScene data can change many times per frame.) */
 	bool bNeedTreeRefresh;
+
+	/** When true, the runtime instances need to be updated next frame. */
+	bool bNeedInstanceRefresh;
 
 	/** Stores the playback status to be restored on refresh. */
 	EMovieScenePlayerStatus::Type StoredPlaybackState;

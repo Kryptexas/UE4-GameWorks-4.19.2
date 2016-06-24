@@ -4,6 +4,7 @@
 // 
 // Extensions allows creating additional key bindings for gameplay debugger for custom functionality.
 // For example, you can use them to add another way of selecting actor to Debug.
+// Keep in mind, that unlike categories, extensions are created only for local player and can't use replication.
 //
 // It should be compiled and used only when module is included, so every extension class
 // needs be placed in #if WITH_GAMEPLAY_DEBUGGER block.

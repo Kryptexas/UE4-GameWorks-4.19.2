@@ -19,8 +19,10 @@ public:
 
 
 private:
+	FReply HandleColorCellMouseButtonDown(const FGeometry &, const FPointerEvent &, int32 RowIndex, int32 ColumnIndex);
+
 	TSharedRef<SHorizontalBox> GetGridColorContext();
-	TSharedRef<SColorBlock> CreateColorCell(const FLinearColor &CellColor);
+	TSharedRef<SColorBlock> CreateColorCell(int32 RowIndex, int32 ColumnIndex, const FLinearColor &CellColor);
 
 	/** Use MakeInstance to create an instance of this class */
 	FPixelInspectorDetailsCustomization();

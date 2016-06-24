@@ -32,6 +32,7 @@ void SRichTextBlock::Construct( const FArguments& InArgs )
 	Margin = InArgs._Margin;
 	LineHeightPercentage = InArgs._LineHeightPercentage;
 	Justification = InArgs._Justification;
+	MinDesiredWidth = InArgs._MinDesiredWidth;
 
 	{
 		TSharedPtr<IRichTextMarkupParser> Parser = InArgs._Parser;
@@ -72,7 +73,7 @@ FVector2D SRichTextBlock::ComputeDesiredSize(float LayoutScaleMultiplier) const
 		LayoutScaleMultiplier, TextStyle
 		);
 
-	return TextSize;
+	return FVector2D(FMath::Max(TextSize.X, MinDesiredWidth.Get()), TextSize.Y);
 }
 
 FChildren* SRichTextBlock::GetChildren()
@@ -148,6 +149,12 @@ void SRichTextBlock::SetJustification(const TAttribute<ETextJustify::Type>& InJu
 void SRichTextBlock::SetTextStyle(const FTextBlockStyle& InTextStyle)
 {
 	TextStyle = InTextStyle;
+	Invalidate(EInvalidateWidget::Layout);
+}
+
+void SRichTextBlock::SetMinDesiredWidth(const TAttribute<float>& InMinDesiredWidth)
+{
+	MinDesiredWidth = InMinDesiredWidth;
 	Invalidate(EInvalidateWidget::Layout);
 }
 

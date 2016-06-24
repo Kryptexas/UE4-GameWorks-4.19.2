@@ -57,8 +57,6 @@ PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 #define _strdup strdup
 #endif
 
-static bool GDefaultPrecisionIsHalf = true;
-
 static inline std::string FixHlslName(const glsl_type* Type)
 {
 	check(Type->is_image() || Type->is_vector() || Type->is_numeric() || Type->is_void() || Type->is_sampler() || Type->is_scalar());
@@ -359,7 +357,7 @@ static void InsertRange(TCBDMARangeMap& CBAllRanges, unsigned SourceCB, unsigned
 	SDMARange Range = { SourceCB, SourceOffset, Size, DestCBIndex, DestCBPrecision, DestOffset };
 
 	TDMARangeList& CBRanges = CBAllRanges[SourceDestCBKey];
-	//printf("* InsertRange: %08x\t%d:%d - %d:%c:%d:%d\n", SourceDestCBKey, SourceCB, SourceOffset, DestCBIndex, DestCBPrecision, DestOffset, Size);
+//printf("* InsertRange: %08x\t%u:%u - %u:%c:%u:%u\n", SourceDestCBKey, SourceCB, SourceOffset, DestCBIndex, DestCBPrecision, DestOffset, Size);
 	if (CBRanges.empty())
 	{
 		CBRanges.push_back(Range);
@@ -450,7 +448,7 @@ static void DumpSortedRanges(TDMARangeList& SortedRanges)
 	printf("**********************************\n");
 	for (auto& o : SortedRanges)
 	{
-		printf("\t%d:%d - %d:%c:%d:%d\n", o.SourceCB, o.SourceOffset, o.DestCBIndex, o.DestCBPrecision, o.DestOffset, o.Size);
+		printf("\t%u:%u - %u:%c:%u:%u\n", o.SourceCB, o.SourceOffset, o.DestCBIndex, o.DestCBPrecision, o.DestOffset, o.Size);
 	}
 }
 
@@ -556,6 +554,7 @@ class vulkan_ir_gen_glsl_visitor : public ir_visitor
 	_mesa_glsl_parser_targets ShaderTarget;
 
 	bool bGenerateLayoutLocations;
+	bool bDefaultPrecisionIsHalf;
 
 	FVulkanBindingTable& BindingTable;
 
@@ -682,7 +681,7 @@ class vulkan_ir_gen_glsl_visitor : public ir_visitor
 			ralloc_asprintf_append(buffer, "_mdarr_");
 			do
 			{
-				ralloc_asprintf_append(buffer, "%d_", t->length);
+				ralloc_asprintf_append(buffer, "%u_", t->length);
 				t = t->fields.array;
 			} while (t->base_type == GLSL_TYPE_ARRAY);
 			print_base_type(t);
@@ -792,11 +791,11 @@ class vulkan_ir_gen_glsl_visitor : public ir_visitor
 	{
 		if (type->is_sampler() || type->is_image())
 		{
-			if (GDefaultPrecisionIsHalf && type->inner_type->base_type == GLSL_TYPE_FLOAT)
+			if (bDefaultPrecisionIsHalf && type->inner_type->base_type == GLSL_TYPE_FLOAT)
 			{
 				return GLSL_PRECISION_HIGHP;
 			}
-			else if (!GDefaultPrecisionIsHalf && type->inner_type->base_type == GLSL_TYPE_HALF)
+			else if (!bDefaultPrecisionIsHalf && type->inner_type->base_type == GLSL_TYPE_HALF)
 			{
 				return GLSL_PRECISION_MEDIUMP;
 			}
@@ -805,11 +804,11 @@ class vulkan_ir_gen_glsl_visitor : public ir_visitor
 				return GLSL_PRECISION_HIGHP;
 			}
 		}
-		else if (GDefaultPrecisionIsHalf && (type->base_type == GLSL_TYPE_FLOAT || (type->is_array() && type->element_type()->base_type == GLSL_TYPE_FLOAT)))
+		else if (bDefaultPrecisionIsHalf && (type->base_type == GLSL_TYPE_FLOAT || (type->is_array() && type->element_type()->base_type == GLSL_TYPE_FLOAT)))
 		{
 			return GLSL_PRECISION_HIGHP;
 		}
-		else if (!GDefaultPrecisionIsHalf && (type->base_type == GLSL_TYPE_HALF || (type->is_array() && type->element_type()->base_type == GLSL_TYPE_HALF)))
+		else if (!bDefaultPrecisionIsHalf && (type->base_type == GLSL_TYPE_HALF || (type->is_array() && type->element_type()->base_type == GLSL_TYPE_HALF)))
 		{
 			return GLSL_PRECISION_MEDIUMP;
 		}
@@ -2629,12 +2628,12 @@ class vulkan_ir_gen_glsl_visitor : public ir_visitor
 
 				if (bGroupFlattenedUBs)
 				{
-					ralloc_asprintf_append(buffer, "%d:%d-%d:%c:%d:%d", IterList->SourceCB, IterList->SourceOffset, IterList->DestCBIndex, IterList->DestCBPrecision, IterList->DestOffset, IterList->Size);
+					ralloc_asprintf_append(buffer, "%u:%u-%u:%c:%u:%u", IterList->SourceCB, IterList->SourceOffset, IterList->DestCBIndex, IterList->DestCBPrecision, IterList->DestOffset, IterList->Size);
 				}
 				else
 				{
 					check(IterList->DestCBIndex == 0);
-					ralloc_asprintf_append(buffer, "%d:%d-%c:%d:%d", IterList->SourceCB, IterList->SourceOffset, IterList->DestCBPrecision, IterList->DestOffset, IterList->Size);
+					ralloc_asprintf_append(buffer, "%u:%u-%c:%u:%u", IterList->SourceCB, IterList->SourceOffset, IterList->DestCBPrecision, IterList->DestOffset, IterList->Size);
 				}
 			}
 		}
@@ -2690,6 +2689,7 @@ class vulkan_ir_gen_glsl_visitor : public ir_visitor
 					type = type->fields.structure->type;
 				}
 			}
+			check(type);
 			bool is_array = type->is_array();
 			int array_size = is_array ? type->length : 0;
 			if (is_array)
@@ -2885,9 +2885,9 @@ class vulkan_ir_gen_glsl_visitor : public ir_visitor
 	{
 		if (bUsesES2TextureLODExtension)
 		{
-			ralloc_asprintf_append(buffer, "#ifndef DONTEMITEXTENSIONSHADERTEXTURELODENABLE\n");
-			ralloc_asprintf_append(buffer, "#extension GL_EXT_shader_texture_lod : enable\n");
-			ralloc_asprintf_append(buffer, "#endif\n");
+			//ralloc_asprintf_append(buffer, "#ifndef DONTEMITEXTENSIONSHADERTEXTURELODENABLE\n");
+			//ralloc_asprintf_append(buffer, "#extension GL_EXT_shader_texture_lod : enable\n");
+			//ralloc_asprintf_append(buffer, "#endif\n");
 		}
 
 		if (state->bSeparateShaderObjects && !state->bGenerateES &&
@@ -2942,11 +2942,14 @@ public:
 	vulkan_ir_gen_glsl_visitor(EHlslCompileTarget InTarget,
 							FVulkanBindingTable& InBindingTable,
 							_mesa_glsl_parser_targets InShaderTarget,
-							bool bInGenerateLayoutLocations)
+							bool bInGenerateLayoutLocations,
+							bool bInDefaultPrecisionIsHalf)
 		: early_depth_stencil(false)
 		, Target(InTarget)
 		, ShaderTarget(InShaderTarget)
 		, bGenerateLayoutLocations(bInGenerateLayoutLocations)
+		, bDefaultPrecisionIsHalf(bInDefaultPrecisionIsHalf)
+		, BindingTable(InBindingTable)
 		, buffer(0)
 		, indentation(0)
 		, scope_depth(0)
@@ -2957,7 +2960,6 @@ public:
 		, loop_count(0)
 		, bUsesES2TextureLODExtension(false)
 		, bUsesDXDY(false)
-		, BindingTable(InBindingTable)
 	{
 		printable_names = hash_table_ctor(32, hash_table_pointer_hash, hash_table_pointer_compare);
 		used_structures = hash_table_ctor(32, hash_table_pointer_hash, hash_table_pointer_compare);
@@ -2991,29 +2993,17 @@ public:
 		{
 			// TODO: Improve this...
 
-			const char* DefaultPrecision = GDefaultPrecisionIsHalf ? "mediump" : "highp";
+			const char* DefaultPrecision = bDefaultPrecisionIsHalf ? "mediump" : "highp";
 			ralloc_asprintf_append(buffer, "precision %s float;\n", DefaultPrecision);
 			ralloc_asprintf_append(buffer, "precision %s int;\n", DefaultPrecision);
-			ralloc_asprintf_append(buffer, "\n#ifndef DONTEMITSAMPLERDEFAULTPRECISION\n");
+			//ralloc_asprintf_append(buffer, "\n#ifndef DONTEMITSAMPLERDEFAULTPRECISION\n");
 			ralloc_asprintf_append(buffer, "precision %s sampler2D;\n", DefaultPrecision);
-			ralloc_asprintf_append(buffer, "precision %s samplerCube;\n\n", DefaultPrecision);
-			ralloc_asprintf_append(buffer, "#endif\n");
-
-			// SGX540 compiler can get upset with some operations that mix highp and mediump.
-			// this results in a shader compile fail with output "compile failed."
-			// Although the actual cause of the failure hasnt been determined this code appears to prevent
-			// compile failure for cases so far seen.
-			ralloc_asprintf_append(buffer, "\n#ifdef TEXCOORDPRECISIONWORKAROUND\n");
-			ralloc_asprintf_append(buffer, "vec4 texture2DTexCoordPrecisionWorkaround(sampler2D p, vec2 tcoord)\n");
-			ralloc_asprintf_append(buffer, "{\n");
-			ralloc_asprintf_append(buffer, "	return texture2D(p, tcoord);\n");
-			ralloc_asprintf_append(buffer, "}\n");
-			ralloc_asprintf_append(buffer, "#define texture2D texture2DTexCoordPrecisionWorkaround\n");
-			ralloc_asprintf_append(buffer, "#endif\n");
+			ralloc_asprintf_append(buffer, "precision %s samplerCube;\n", DefaultPrecision);
+			//ralloc_asprintf_append(buffer, "#endif\n");
 		}
-
 		// FramebufferFetchES2 'intrinsic'
-		bool bUsesFramebufferFetchES2 = UsesUEIntrinsic(ir, FRAMEBUFFER_FETCH_ES2);
+		bool bUsesFramebufferFetchES2 = false;//UsesUEIntrinsic(ir, FRAMEBUFFER_FETCH_ES2);
+		/*
 		if (bUsesFramebufferFetchES2)
 		{
 			ralloc_asprintf_append(buffer, "\n#ifdef GL_EXT_shader_framebuffer_fetch\n");
@@ -3026,8 +3016,9 @@ public:
 			ralloc_asprintf_append(buffer, "	#endif\n");
 			ralloc_asprintf_append(buffer, "#endif\n\n");
 		}
-
-		bool bUsesDepthbufferFetchES2 = UsesUEIntrinsic(ir, DEPTHBUFFER_FETCH_ES2);
+		*/
+		bool bUsesDepthbufferFetchES2 = false;//UsesUEIntrinsic(ir, DEPTHBUFFER_FETCH_ES2);
+		/*
 		if (bUsesDepthbufferFetchES2)
 		{
 			ralloc_asprintf_append(buffer, "\n#ifdef GL_ARM_shader_framebuffer_fetch_depth_stencil\n");
@@ -3036,7 +3027,7 @@ public:
 			ralloc_asprintf_append(buffer, "float DepthbufferFetchES2(float OptionalDepth, float C1, float C2) { return OptionalDepth; }\n");
 			ralloc_asprintf_append(buffer, "#endif\n\n");
 		}
-		
+		*/
 		foreach_iter(exec_list_iterator, iter, *ir)
 		{
 			ir_instruction *inst = (ir_instruction *)iter.get();
@@ -3061,7 +3052,7 @@ public:
 			check(state->outputstream_type>0);
 			geometry_layouts = ralloc_asprintf(
 				mem_ctx,
-				"\nlayout(%s) in;\nlayout(%s, max_vertices = %d) out;\n\n",
+				"\nlayout(%s) in;\nlayout(%s, max_vertices = %u) out;\n\n",
 				GeometryInputStrings[state->geometryinput],
 				OutputStreamTypeStrings[state->outputstream_type],
 				state->maxvertexcount);
@@ -3170,7 +3161,12 @@ public:
 struct FBreakPrecisionChangesVisitor : public ir_rvalue_visitor
 {
 	_mesa_glsl_parse_state* State;
-	FBreakPrecisionChangesVisitor(_mesa_glsl_parse_state* InState) : State(InState) {}
+	const bool bDefaultPrecisionIsHalf;
+
+	FBreakPrecisionChangesVisitor(_mesa_glsl_parse_state* InState, bool bInDefaultPrecisionIsHalf) 
+		: State(InState)
+		, bDefaultPrecisionIsHalf(bInDefaultPrecisionIsHalf)
+	{}
 
 	virtual void handle_rvalue(ir_rvalue** RValuePtr) override
 	{
@@ -3184,20 +3180,20 @@ struct FBreakPrecisionChangesVisitor : public ir_rvalue_visitor
 		auto* Constant = RValue->as_constant();
 		if (Expression)
 		{
-			if (GDefaultPrecisionIsHalf)
+			if (bDefaultPrecisionIsHalf)
 			{
 				switch (Expression->operation)
 				{
 				case ir_unop_i2f:
 				case ir_unop_b2f:
 				case ir_unop_u2f:
-					bGenerateNewVar = GDefaultPrecisionIsHalf;
+					bGenerateNewVar = bDefaultPrecisionIsHalf;
 					break;
 
 				case ir_unop_i2h:
 				case ir_unop_b2h:
 				case ir_unop_u2h:
-					bGenerateNewVar = !GDefaultPrecisionIsHalf;
+					bGenerateNewVar = !bDefaultPrecisionIsHalf;
 					break;
 
 				case ir_unop_h2f:
@@ -3213,8 +3209,8 @@ struct FBreakPrecisionChangesVisitor : public ir_rvalue_visitor
 		else if (Constant)
 		{
 			/*
-			if ((GDefaultPrecisionIsHalf && Constant->type->base_type == GLSL_TYPE_HALF) ||
-			(!GDefaultPrecisionIsHalf && Constant->type->base_type == GLSL_TYPE_FLOAT))
+			if ((bDefaultPrecisionIsHalf && Constant->type->base_type == GLSL_TYPE_HALF) ||
+			(!bDefaultPrecisionIsHalf && Constant->type->base_type == GLSL_TYPE_FLOAT))
 			{
 			bGenerateNewVar = true;
 			}
@@ -3265,7 +3261,9 @@ char* FVulkanCodeBackend::GenerateCode(exec_list* ir, _mesa_glsl_parse_state* st
 
 	FixIntrinsics(state, ir);
 
-	FBreakPrecisionChangesVisitor BreakPrecisionChangesVisitor(state);
+	const bool bDefaultPrecisionIsHalf = ((HlslCompileFlags & HLSLCC_UseFullPrecisionInPS) == 0);
+
+	FBreakPrecisionChangesVisitor BreakPrecisionChangesVisitor(state, bDefaultPrecisionIsHalf);
 	BreakPrecisionChangesVisitor.run(ir);
 
 	const bool bGroupFlattenedUBs = ((HlslCompileFlags & HLSLCC_GroupFlattenedUniformBuffers) == HLSLCC_GroupFlattenedUniformBuffers);
@@ -3273,7 +3271,7 @@ char* FVulkanCodeBackend::GenerateCode(exec_list* ir, _mesa_glsl_parse_state* st
 	const bool bCanHaveUBs = true;//(HlslCompileFlags & HLSLCC_FlattenUniformBuffers) != HLSLCC_FlattenUniformBuffers;
 
 	// Setup root visitor
-	vulkan_ir_gen_glsl_visitor visitor(Target, BindingTable, state->target, bGenerateLayoutLocations);
+	vulkan_ir_gen_glsl_visitor visitor(Target, BindingTable, state->target, bGenerateLayoutLocations, bDefaultPrecisionIsHalf);
 
 	const char* code = visitor.run(ir, state, bGroupFlattenedUBs, bCanHaveUBs);
 
@@ -3310,7 +3308,7 @@ struct SPromoteSampleLevelES2 : public ir_hierarchical_visitor
 				// http://www.khronos.org/registry/gles/extensions/EXT/EXT_shader_texture_lod.txt
 				// Compat work will be required for devices which do not support it.
 				/*
-				_mesa_glsl_warning(ParseState, "%s(%d, %d) Converting SampleLevel() to Sample()\n", IR->SourceLocation.SourceFile.c_str(), IR->SourceLocation.Line, IR->SourceLocation.Column);
+				_mesa_glsl_warning(ParseState, "%s(%u, %u) Converting SampleLevel() to Sample()\n", IR->SourceLocation.SourceFile.c_str(), IR->SourceLocation.Line, IR->SourceLocation.Column);
 				IR->op = ir_tex;
 				*/
 			}
@@ -3900,10 +3898,12 @@ static ir_rvalue* GenShaderOutputSemantic(
 	bool& ApplyClampPowerOfTwo
 	)
 {
+	check(Semantic);
+
 	FSystemValue* SystemValues = SystemValueTable[Frequency];
 	ir_variable* Variable = NULL;
 
-	if (Semantic && FCStringAnsi::Strnicmp(Semantic, "SV_", 3) == 0)
+	if (FCStringAnsi::Strnicmp(Semantic, "SV_", 3) == 0)
 	{
 		for (int i = 0; SystemValues[i].Semantic != NULL; ++i)
 		{
@@ -4108,7 +4108,7 @@ static void GenShaderInputForVariable(
 
 			if (InputSemantic && !FieldSemantic)
 			{
-				Semantic = ralloc_asprintf(ParseState, "%s%d", InputSemantic, i);
+				Semantic = ralloc_asprintf(ParseState, "%s%u", InputSemantic, i);
 				_mesa_glsl_warning(ParseState, "  creating semantic '%s' for struct field '%s'", Semantic, InputType->fields.structure[i].name);
 			}
 			else if (!InputSemantic && FieldSemantic)
@@ -4181,7 +4181,7 @@ static void GenShaderInputForVariable(
 			GenShaderInputForVariable(
 				Frequency,
 				ParseState,
-				ralloc_asprintf(ParseState, "%s%d", Semantic, BaseIndex + i),
+				ralloc_asprintf(ParseState, "%s%u", Semantic, BaseIndex + i),
 				InputQualifier,
 				ArrayDeref,
 				DeclInstructions,
@@ -4403,7 +4403,7 @@ static void GenShaderOutputForVariable(
 
 			if (OutputSemantic && !FieldSemantic)
 			{
-				Semantic = ralloc_asprintf(ParseState, "%s%d", OutputSemantic, i);
+				Semantic = ralloc_asprintf(ParseState, "%s%u", OutputSemantic, i);
 				_mesa_glsl_warning(ParseState, "  creating semantic '%s' for struct field '%s'", Semantic, OutputType->fields.structure[i].name);
 			}
 			else if (!OutputSemantic && FieldSemantic)
@@ -4475,7 +4475,7 @@ static void GenShaderOutputForVariable(
 				GenShaderOutputForVariable(
 					Frequency,
 					ParseState,
-					ralloc_asprintf(ParseState, "%s%d", Semantic, BaseIndex + i),
+					ralloc_asprintf(ParseState, "%s%u", Semantic, BaseIndex + i),
 					OutputQualifier,
 					ArrayDeref,
 					DeclInstructions,

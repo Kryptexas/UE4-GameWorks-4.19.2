@@ -169,6 +169,7 @@ FMetalSurface::FMetalSurface(FMetalSurface& Source, NSRange MipRange)
 , SizeY(Source.SizeY)
 , SizeZ(Source.SizeZ)
 , bIsCubemap(Source.bIsCubemap)
+, bWritten(Source.bWritten)
 , Flags(Source.Flags)
 , WriteLock(0)
 , TotalTextureSize(0)
@@ -202,14 +203,14 @@ FMetalSurface::FMetalSurface(FMetalSurface& Source, NSRange MipRange)
     }
 	if(Source.MSAATexture)
 	{
-		MSAATexture = Texture;
+		MSAATexture = [Texture retain];
 	}
 	if(Source.StencilTexture)
 	{
 #if PLATFORM_IOS
 		check(false); // @todo Zebra Must handle separate stencil texture SRV!
 #endif
-		StencilTexture = Texture;
+		StencilTexture = [Texture retain];
 	}
 	
 	const uint32 BlockSizeX = GPixelFormats[PixelFormat].BlockSizeX;
@@ -232,6 +233,7 @@ FMetalSurface::FMetalSurface(FMetalSurface& Source, NSRange const MipRange, EPix
 , SizeY(Source.SizeY)
 , SizeZ(Source.SizeZ)
 , bIsCubemap(Source.bIsCubemap)
+, bWritten(Source.bWritten)
 , Flags(Source.Flags)
 , WriteLock(0)
 , TotalTextureSize(0)
@@ -253,15 +255,6 @@ FMetalSurface::FMetalSurface(FMetalSurface& Source, NSRange const MipRange, EPix
 		Source.PrepareTextureView();
 	}
 #endif
-	
-	if(Source.MSAATexture)
-	{
-		MSAATexture = Texture;
-	}
-	if(Source.StencilTexture)
-	{
-		StencilTexture = Texture;
-	}
 	
 	NSRange Slices = NSMakeRange(0, Source.Texture.arrayLength * (bIsCubemap ? 6 : 1));
     // @todo Zebra Temporary workaround for absence of X24_G8 or equivalent to GL_STENCIL_INDEX so that the stencil part of a texture may be sampled
@@ -324,9 +317,13 @@ FMetalSurface::FMetalSurface(FMetalSurface& Source, NSRange const MipRange, EPix
 					uint32 SizePerImage = Source.Texture.width * Source.Texture.height;
 					FMetalPooledBuffer Buf = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), SizePerImage, MTLStorageModeShared));
 					[Buf.Buffer retain];
+					INC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buf.Buffer.length - SizePerImage);
 					
 					[BlitEncoder copyFromBuffer:Buf.Buffer sourceOffset:0 sourceBytesPerRow:Source.Texture.width sourceBytesPerImage:SizePerImage sourceSize:MTLSizeMake(Source.Texture.width, Source.Texture.height, 1) toTexture:Source.StencilTexture destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0, 0, 0)];
 					
+					bWritten = true;
+					
+					DEC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buf.Buffer.length - SizePerImage);
 					SafeReleasePooledBuffer(Buf.Buffer);
 				}
 				//fallthrough to assign the stencil texture
@@ -349,7 +346,16 @@ FMetalSurface::FMetalSurface(FMetalSurface& Source, NSRange const MipRange, EPix
 	else
     {
         Texture = [Source.Texture retain];
-    }
+	}
+	
+	if(Source.MSAATexture)
+	{
+		MSAATexture = [Texture retain];
+	}
+	if(Source.StencilTexture && !StencilTexture)
+	{
+		StencilTexture = [Texture retain];
+	}
 	
 	const uint32 BlockSizeX = GPixelFormats[PixelFormat].BlockSizeX;
 	const uint32 BlockSizeY = GPixelFormats[PixelFormat].BlockSizeY;
@@ -372,6 +378,7 @@ FMetalSurface::FMetalSurface(ERHIResourceType ResourceType, EPixelFormat Format,
 	, SizeY(InSizeY)
 	, SizeZ(InSizeZ)
 	, bIsCubemap(false)
+	, bWritten(false)
 	, Flags(InFlags)
     , WriteLock(0)
 	, TotalTextureSize(0)
@@ -619,7 +626,7 @@ FMetalSurface::FMetalSurface(ERHIResourceType ResourceType, EPixelFormat Format,
 			if (Format == PF_DepthStencil)
 			{
 				[Texture release];
-				Texture = MSAATexture;
+				Texture = [MSAATexture retain];
 
 				// we don't have the resolve texture, so we just update the memory size with the MSAA size
 				TotalTextureSize = TotalTextureSize * NumSamples;
@@ -649,7 +656,7 @@ FMetalSurface::FMetalSurface(ERHIResourceType ResourceType, EPixelFormat Format,
 		// 1 byte per texel
 		TotalTextureSize += SizeX * SizeY;
 #else
-		StencilTexture = Texture;
+		StencilTexture = [Texture retain];
 		
 		// 1 byte per texel
 		TotalTextureSize += SizeX * SizeY;
@@ -753,20 +760,34 @@ FMetalSurface::~FMetalSurface()
 	{
 		GCurrentTextureMemorySize -= Align(TotalTextureSize, 1024) / 1024;
 	}
+	
+	if (!(Flags & TexCreate_Presentable) && Texture != nil)
+	{
+		SafeReleaseMetalResource(Texture);
+	}
 
 	if (MSAATexture != nil)
     {
-		SafeReleaseMetalResource(MSAATexture);
+		if (Texture != MSAATexture)
+		{
+			SafeReleaseMetalResource(MSAATexture);
+		}
+		else
+		{
+			[MSAATexture release];
+		}
 	}
 	
-	if (StencilTexture != nil && StencilTexture != Texture)
+	if (StencilTexture != nil)
 	{
-		SafeReleaseMetalResource(StencilTexture);
-	}
-	
-	if (!(Flags & TexCreate_Presentable) && MSAATexture != Texture)
-	{
-		SafeReleaseMetalResource(Texture);
+		if (StencilTexture != Texture)
+		{
+			SafeReleaseMetalResource(StencilTexture);
+		}
+		else
+		{
+			[StencilTexture release];
+		}
 	}
 	
 	if(IB)
@@ -838,7 +859,7 @@ void* FMetalSurface::Lock(uint32 MipIndex, uint32 ArrayIndex, EResourceLockMode 
 #if METAL_API_1_1
 			id<MTLBlitCommandEncoder> Blitter = GetMetalDeviceContext().GetBlitContext();
 			
-			if (Texture.storageMode == MTLStorageModePrivate)
+			if (bSupportsResourceOptions && Texture.storageMode == MTLStorageModePrivate)
 			{
 				[Blitter copyFromTexture:Texture sourceSlice:ArrayIndex sourceLevel:MipIndex sourceOrigin:Region.origin sourceSize:Region.size toBuffer:LockedMemory[MipIndex] destinationOffset:0 destinationBytesPerRow:DestStride destinationBytesPerImage:MipBytes];
 				
@@ -854,7 +875,7 @@ void* FMetalSurface::Lock(uint32 MipIndex, uint32 ArrayIndex, EResourceLockMode 
 				//kick the current command buffer.
 				GetMetalDeviceContext().SubmitCommandBufferAndWait();
 #endif
-				[Texture getBytes:LockedMemory[MipIndex] bytesPerRow:DestStride bytesPerImage:MipBytes fromRegion:Region mipmapLevel:MipIndex slice:ArrayIndex];
+				[Texture getBytes:[LockedMemory[MipIndex] contents] bytesPerRow:DestStride bytesPerImage:MipBytes fromRegion:Region mipmapLevel:MipIndex slice:ArrayIndex];
 			}
 			
 #if PLATFORM_MAC
@@ -951,7 +972,7 @@ void FMetalSurface::Unlock(uint32 MipIndex, uint32 ArrayIndex)
 #endif
 
 #if METAL_API_1_1
-		if(Texture.storageMode == MTLStorageModePrivate)
+		if(bSupportsResourceOptions && Texture.storageMode == MTLStorageModePrivate)
 		{
 			SCOPED_AUTORELEASE_POOL;
 			
@@ -995,6 +1016,8 @@ void FMetalSurface::Unlock(uint32 MipIndex, uint32 ArrayIndex)
 			[LockedMemory[MipIndex] release];
 		}
 		LockedMemory[MipIndex] = nullptr;
+		
+		bWritten = true;
     }
 }
 
@@ -1097,11 +1120,15 @@ void FMetalSurface::UpdateSRV(FTextureRHIRef SourceTex)
 		uint32 SizePerImage = Texture.width * Texture.height;
 		FMetalPooledBuffer Buf = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), SizePerImage, MTLStorageModeShared));
 		[Buf.Buffer retain];
+		INC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buf.Buffer.length - SizePerImage);
 		
 		[BlitEncoder copyFromTexture:StencilTexture sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0,0,0) sourceSize:MTLSizeMake(Texture.width, Texture.height, 1) toBuffer:Buf.Buffer destinationOffset:0 destinationBytesPerRow:Texture.width destinationBytesPerImage:SizePerImage options:MTLBlitOptionStencilFromDepthStencil];
 		
 		[BlitEncoder copyFromBuffer:Buf.Buffer sourceOffset:0 sourceBytesPerRow:Texture.width sourceBytesPerImage:SizePerImage sourceSize:MTLSizeMake(Texture.width, Texture.height, 1) toTexture:Texture destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0,0,0)];
 		
+		bWritten = true;
+		
+		DEC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buf.Buffer.length - SizePerImage);
 		SafeReleasePooledBuffer(Buf.Buffer);
 	}
 	// Handle the case where a texture or render-target is created without PixelFormatView & then recreated with it enabled in order to create appropriate SRVs.
@@ -1114,14 +1141,16 @@ void FMetalSurface::UpdateSRV(FTextureRHIRef SourceTex)
 		{
 			if (MSAATexture == Texture)
 			{
-				Texture = Surf->Texture;
+				MSAATexture = [Surf->Texture retain];
 			}
 			if (StencilTexture == Texture)
 			{
-				Texture = Surf->Texture;
+				StencilTexture = [Surf->Texture retain];
 			}
 			SafeReleaseMetalResource(Texture);
 			Texture = [Surf->Texture retain];
+			
+			bWritten = true;
 		}
 	}
 #endif
@@ -1414,16 +1443,14 @@ void FMetalDynamicRHI::RHIUpdateTexture2D(FTexture2DRHIParamRef TextureRHI, uint
 		
 		uint32 BytesPerImage = SourcePitch * UpdateRegion.Height;
 		
-#if METAL_API_1_1
-		NSUInteger ResMode = MTLResourceStorageModeShared | (GetMetalDeviceContext().SupportsFeature(EMetalFeaturesResourceOptions) ? MTLResourceCPUCacheModeWriteCombined : 0);
-#else
-		NSUInteger ResMode = MTLStorageModeShared;
-#endif
+		MTLStorageMode ResMode = MTLStorageModeShared;
 		
 		const uint32 BufferSize = UpdateRegion.Height*SourcePitch;
 		
-		id<MTLBuffer> LockedMemory = [GetMetalDeviceContext().GetDevice() newBufferWithLength:BufferSize options:ResMode];
-		TRACK_OBJECT(STAT_MetalBufferCount, LockedMemory);
+		FMetalPooledBuffer Buf = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), BufferSize, ResMode));
+		INC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buf.Buffer.length - BufferSize);
+		id<MTLBuffer> LockedMemory = [Buf.Buffer retain];
+		
 		FMemory::Memcpy([LockedMemory contents], SourceData, BufferSize);
 		
 		[Blitter copyFromBuffer:LockedMemory sourceOffset:0 sourceBytesPerRow:SourcePitch sourceBytesPerImage:BytesPerImage sourceSize:Region.size toTexture:Tex destinationSlice:0 destinationLevel:MipIndex destinationOrigin:Region.origin];
@@ -1431,13 +1458,16 @@ void FMetalDynamicRHI::RHIUpdateTexture2D(FTexture2DRHIParamRef TextureRHI, uint
 		[Blitter endEncoding];
 		GetMetalDeviceContext().GetCommandList().Commit(CommandBuffer, false);
 		
-		GetMetalDeviceContext().ReleaseObject(LockedMemory);
+		DEC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buf.Buffer.length - BufferSize);
+		GetMetalDeviceContext().ReleasePooledBuffer(LockedMemory);
 	}
 	else
 #endif
 	{
 		[Tex replaceRegion:Region mipmapLevel:MipIndex slice:0 withBytes:SourceData bytesPerRow:SourcePitch bytesPerImage:0];
 	}
+	
+	Texture->Surface.bWritten = true;
 }
 
 void FMetalDynamicRHI::RHIUpdateTexture3D(FTexture3DRHIParamRef TextureRHI,uint32 MipIndex,const FUpdateTextureRegion3D& UpdateRegion,uint32 SourceRowPitch,uint32 SourceDepthPitch,const uint8* SourceData)
@@ -1461,16 +1491,13 @@ void FMetalDynamicRHI::RHIUpdateTexture3D(FTexture3DRHIParamRef TextureRHI,uint3
 		
 		uint32 BytesPerImage = SourceRowPitch * UpdateRegion.Height;
 		
-#if METAL_API_1_1
-		NSUInteger ResMode = MTLResourceStorageModeShared | (GetMetalDeviceContext().SupportsFeature(EMetalFeaturesResourceOptions) ? MTLResourceCPUCacheModeWriteCombined : 0);
-#else
-		NSUInteger ResMode = MTLStorageModeShared;
-#endif
-		
+		MTLStorageMode ResMode = MTLStorageModeShared;
 		const uint32 BufferSize = UpdateRegion.Height*UpdateRegion.Depth*SourceRowPitch;
 		
-		id<MTLBuffer> LockedMemory = [GetMetalDeviceContext().GetDevice() newBufferWithLength:BufferSize options:ResMode];
-		TRACK_OBJECT(STAT_MetalBufferCount, LockedMemory);
+		FMetalPooledBuffer Buf = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), BufferSize, ResMode));
+		INC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buf.Buffer.length - BufferSize);
+		id<MTLBuffer> LockedMemory = [Buf.Buffer retain];
+
 		FMemory::Memcpy([LockedMemory contents], SourceData, BufferSize);
 		
 		[Blitter copyFromBuffer:LockedMemory sourceOffset:0 sourceBytesPerRow:SourceRowPitch sourceBytesPerImage:BytesPerImage sourceSize:Region.size toTexture:Tex destinationSlice:0 destinationLevel:MipIndex destinationOrigin:Region.origin];
@@ -1478,13 +1505,16 @@ void FMetalDynamicRHI::RHIUpdateTexture3D(FTexture3DRHIParamRef TextureRHI,uint3
 		[Blitter endEncoding];
 		GetMetalDeviceContext().GetCommandList().Commit(CommandBuffer, false);
 		
-		GetMetalDeviceContext().ReleaseObject(LockedMemory);
+		DEC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buf.Buffer.length - BufferSize);
+		GetMetalDeviceContext().ReleasePooledBuffer(LockedMemory);
 	}
 	else
 #endif
 	{
 		[Tex replaceRegion:Region mipmapLevel:MipIndex slice:0 withBytes:SourceData bytesPerRow:SourceRowPitch bytesPerImage:SourceDepthPitch];
 	}
+	
+	Texture->Surface.bWritten = true;
 	
 	if (GIsRHIInitialized)
 	{

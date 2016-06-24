@@ -1148,6 +1148,7 @@ namespace UnrealBuildTool
 							if (IsForeignProject)
 							{
 								DebugOptions += UProjectPath;
+								DebugOptions += " -skipcompile";
 							}
 							else if (TargetRulesObject.Type == TargetRules.TargetType.Editor && ProjectName != "UE4")
 							{

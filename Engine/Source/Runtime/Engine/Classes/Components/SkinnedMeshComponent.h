@@ -9,7 +9,7 @@
 // Forward declarations
 //
 class FSkeletalMeshResource;
-struct FSkelMeshChunk;
+struct FSkelMeshSection;
 class FSkeletalMeshVertexBuffer;
 
 DECLARE_DELEGATE_OneParam(FOnAnimUpdateRateParamsCreated, FAnimUpdateRateParameters*)
@@ -74,53 +74,33 @@ namespace EBoneSpaces
 	};
 }
 
-//
-// Vertex Anim
-//
-
-/** Struct used to indicate one active vertex animation that should be applied to this USkeletalMesh when rendered. */
-USTRUCT()
-struct FActiveVertexAnim
+/** Struct used to indicate one active morph target that should be applied to this USkeletalMesh when rendered. */
+struct FActiveMorphTarget
 {
-	GENERATED_USTRUCT_BODY()
+	/** The Morph Target that we want to apply. */
+	class UMorphTarget* MorphTarget;
 
-	/** The animation that we want to apply. */
-	UPROPERTY()
-	class UVertexAnimBase* VertAnim;
+	/** Index into the array of weights for the Morph target, between 0.0 and 1.0. */
+	int32 WeightIndex;
 
-	/** Strength of the vertex animation, between 0.0 and 1.0. */
-	UPROPERTY()
-	float Weight;
-
-	/** Time to evaluate the animation at. */
-	UPROPERTY()
-	float Time;
-
-	FActiveVertexAnim()
-		: VertAnim(NULL)
-		, Weight(0)
-		, Time(0.f)
+	FActiveMorphTarget()
+		: MorphTarget(nullptr)
+		, WeightIndex(-1)
 	{
 	}
 
-	FActiveVertexAnim(class UVertexAnimBase* InTarget, float InWeight)
-	:	VertAnim(InTarget)
-	,	Weight(InWeight)
-	,	Time(0.f)
-	{}
+	FActiveMorphTarget(class UMorphTarget* InTarget, int32 InWeightIndex)
+	:	MorphTarget(InTarget)
+	,	WeightIndex(InWeightIndex)
+	{
+	}
 
-	FActiveVertexAnim(class UVertexAnimBase* InTarget, float InWeight, float InTime)
-		:	VertAnim(InTarget)
-		,	Weight(InWeight)
-		,	Time(InTime)
-	{}
-
-	bool operator==(const FActiveVertexAnim& Other) const
+	bool operator==(const FActiveMorphTarget& Other) const
 	{
 		// if target is same, we consider same 
 		// any equal operator to check if it's same, 
 		// we just check if this is same anim
-		return VertAnim == Other.VertAnim;
+		return MorphTarget == Other.MorphTarget;
 	}
 };
 
@@ -214,9 +194,11 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = SkeletalMesh)
 	uint32 bUseBoundsFromMasterPoseComponent:1;
 
-	/** Array indicating all active vertex animations. This array is updated inside RefreshBoneTransforms based on the Anim Blueprint. */
-	UPROPERTY(transient)
-	TArray<struct FActiveVertexAnim> ActiveVertexAnims;
+	/** Array indicating all active morph targets. This array is updated inside RefreshBoneTransforms based on the Anim Blueprint. */
+	TArray<FActiveMorphTarget> ActiveMorphTargets;
+
+	/** Array of weights for all morph targets. This array is updated inside RefreshBoneTransforms based on the Anim Blueprint. */
+	TArray<float> MorphTargetWeights;
 
 #if WITH_EDITORONLY_DATA
 	/** Index of the chunk to preview... If set to -1, all chunks will be rendered */
@@ -257,15 +239,12 @@ public:
 	 *	Best LOD that was 'predicted' by UpdateSkelPose. 
 	 *	This is what bones were updated based on, so we do not allow rendering at a better LOD than this. 
 	 */
-	UPROPERTY()
 	int32 PredictedLODLevel;
 
 	/** LOD level from previous frame, so we can detect changes in LOD to recalc required bones. */
-	UPROPERTY()
 	int32 OldPredictedLODLevel;
 
 	/**	High (best) DistanceFactor that was desired for rendering this USkeletalMesh last frame. Represents how big this mesh was in screen space   */
-	UPROPERTY()
 	float MaxDistanceFactor;
 
 	/** LOD array info. Each index will correspond to the LOD index **/
@@ -355,11 +334,13 @@ public:
 	UPROPERTY(transient)
 	uint32 bRecentlyRendered:1;
 
+#if WITH_EDITORONLY_DATA
 	/** Editor only. Used for visualizing drawing order in Animset Viewer. If < 1.0,
 	  * only the specified fraction of triangles will be rendered
 	  */
 	UPROPERTY(transient)
 	float ProgressiveDrawingFraction;
+#endif
 
 	/** Editor only. Used for manually selecting the alternate indices for
 	  * TRISORT_CustomLeftRight sections.
@@ -464,7 +445,7 @@ public:
 	FName GetParentBone(FName BoneName) const;
 
 public:
-	/** Object responsible for sending bone transforms, vertex anim state etc. to render thread. */
+	/** Object responsible for sending bone transforms, morph target state etc. to render thread. */
 	class FSkeletalMeshObject*	MeshObject;
 
 	/** Gets the skeletal mesh resource used for rendering the component. */
@@ -613,8 +594,6 @@ public:
 	 * Rebuild BoneVisibilityStates array. Mostly refresh information of bones for BVS_HiddenByParent 
 	 */
 	void RebuildVisibilityArray();
-
-	/** Vertex anim */
 
 	/**
 	 * Checks/updates material usage on proxy based on current morph target usage
@@ -950,12 +929,12 @@ private:
 	 * Simple, CPU evaluation of a vertex's skinned position helper function
 	 */
 	template <bool bExtraBoneInfluencesT, bool bCachedMatrices>
-	FVector GetTypedSkinnedVertexPosition(const FSkelMeshChunk& Chunk, const FSkeletalMeshVertexBuffer& VertexBufferGPUSkin, int32 VertIndex, bool bSoftVertex, const TArray<FMatrix> & RefToLocals = TArray<FMatrix>()) const;
+	FVector GetTypedSkinnedVertexPosition(const FSkelMeshSection& Section, const FSkeletalMeshVertexBuffer& VertexBufferGPUSkin, int32 VertIndex, const TArray<FMatrix> & RefToLocals = TArray<FMatrix>()) const;
 
 	/**
-	 * Gets called when register, verifies all ActiveVertexAnimation is still valid 
+	 * Gets called when register, verifies all ActiveMorphTargets is still valid 
 	 */
-	virtual void RefreshActiveVertexAnims() {};
+	virtual void RefreshActiveMorphTargets() {};
 
 	// Animation update rate control.
 public:

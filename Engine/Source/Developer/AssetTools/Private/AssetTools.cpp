@@ -46,6 +46,7 @@ FAssetTools::FAssetTools()
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_AimOffset) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_AimOffset1D) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_BlendSpace) );
+	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_PoseAsset));
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_BlendSpace1D) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Blueprint) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_CameraAnim) );
@@ -107,7 +108,6 @@ FAssetTools::FAssetTools()
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_VectorField) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_VectorFieldAnimated) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_VectorFieldStatic) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_VertexAnimation) );
 
 	// Note: Please don't add any more actions here!  They belong in an editor-only module that is more tightly
 	// coupled to your new system, and you should not create a dependency on your new system from AssetTools.
@@ -912,10 +912,19 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 							TArray< UObject* > ObjectsToDelete;
 							ObjectsToDelete.Add(ExistingObject);
 
+							// If the user forcefully deletes the package, all sorts of things could become invalidated,
+							// the Pkg pointer might be killed even though it was added to the root.
+							TWeakObjectPtr<UPackage> WeakPkg(Pkg);
+							
 							// Dont let the package get garbage collected (just in case we are deleting the last asset in the package)
 							Pkg->AddToRoot();
 							NumObjectsDeleted = ObjectTools::DeleteObjects(ObjectsToDelete, /*bShowConfirmation=*/false);
-							Pkg->RemoveFromRoot();
+							
+							// If the weak package ptr is still valid, it should then be safe to remove it from the root.
+							if ( WeakPkg.IsValid() )
+							{
+								Pkg->RemoveFromRoot();
+							}
 
 							const FString QualifiedName = PackageName + TEXT(".") + Name;
 							FText Reason;
@@ -970,7 +979,7 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 				}
 				else
 				{
-					const FText Message = FText::Format( LOCTEXT("ImportFailed_Generic", "Failed to import '{0}'. Failed to create asset '{1}'"), FText::FromString( Filename ), FText::FromString( PackageName ) );
+					const FText Message = FText::Format( LOCTEXT("ImportFailed_Generic", "Failed to import '{0}'. Failed to create asset '{1}'.\nPlease see Output Log for details."), FText::FromString( Filename ), FText::FromString( PackageName ) );
 					FMessageDialog::Open( EAppMsgType::Ok, Message );
 					UE_LOG(LogAssetTools, Warning, TEXT("%s"), *Message.ToString());
 				}
@@ -1741,7 +1750,7 @@ void FAssetTools::MigratePackages_ReportConfirmed(TArray<FString> ConfirmedPacka
 		}
 	}
 
-	FMessageLog MigrateLog("AssetRegistry");
+	FMessageLog MigrateLog("AssetTools");
 	FText LogMessage = FText::FromString(TEXT("Content migration completed successfully!"));
 	EMessageSeverity::Type Severity = EMessageSeverity::Info;
 	if ( CopyErrors.Len() > 0 || SourceControlErrors.Len() > 0 )

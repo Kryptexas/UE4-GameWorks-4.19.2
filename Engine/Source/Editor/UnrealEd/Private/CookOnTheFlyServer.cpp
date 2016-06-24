@@ -43,12 +43,14 @@
 #include "Engine/TextureLODSettings.h"
 #include "CookStats.h"
 
+#include "NetworkVersion.h"
+
 #define LOCTEXT_NAMESPACE "Cooker"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCook, Log, All);
 
 #define DEBUG_COOKONTHEFLY 0
-#define OUTPUT_TIMING 0
+#define OUTPUT_TIMING 1
 
 #define USEASSETREGISTRYFORDEPENDENTPACKAGES 1
 #define VERIFY_GETDEPENDENTPACKAGES 0 // verify has false hits because old serialization method for generating dependencies had errors (included transient objects which shouldn't be in asset registry), but you can still use verify to build a list then cross check against transient objects.  
@@ -126,13 +128,13 @@ public:
 		Children.Empty();
 	}
 
-	FHierarchicalTimerInfo* FindChild(const FString& Name)
+	FHierarchicalTimerInfo* FindChild(const FString& InName)
 	{
-		FHierarchicalTimerInfo* Child = (FHierarchicalTimerInfo*)(Children.FindRef(Name));
+		FHierarchicalTimerInfo* Child = (FHierarchicalTimerInfo*)(Children.FindRef(InName));
 		if ( !Child )
 		{
-			FString Temp = Name;
-			Child = Children.Add(Name, new FHierarchicalTimerInfo(MoveTemp(Temp)));
+			FString Temp = InName;
+			Child = Children.Add(InName, new FHierarchicalTimerInfo(MoveTemp(Temp)));
 			Child->Parent = this;
 		}
 
@@ -760,12 +762,15 @@ bool UCookOnTheFlyServer::StartNetworkFileServer( const bool BindAnyPort )
 		NetworkFileServers.Add(TcpFileServer);
 	}
 
+	//only needed for html5 and constantly crashes cookonthefly servers
+#if 0
 	INetworkFileServer *HttpFileServer = FModuleManager::LoadModuleChecked<INetworkFileSystemModule>("NetworkFileSystem")
 		.CreateNetworkFileServer(true, BindAnyPort ? 0 : -1, &FileRequestDelegate, &RecompileShadersDelegate, ENetworkFileServerProtocol::NFSP_Http);
 	if ( HttpFileServer )
 	{
 		NetworkFileServers.Add( HttpFileServer );
 	}
+#endif
 
 	// loop while waiting for requests
 	GIsRequestingExit = false;
@@ -1236,6 +1241,29 @@ FString UCookOnTheFlyServer::GetDLCContentPath()
 COREUOBJECT_API extern bool GOutputCookingWarnings;
 
 
+/**
+ * Callback for handling string asset references being loaded
+ */
+void UCookOnTheFlyServer::OnStringAssetReferenceLoadedPackage(const FName& PackageFName)
+{
+	if (IsCookByTheBookMode())
+	{
+		FName StandardPackageName = GetCachedStandardPackageFileFName(PackageFName);
+		if (StandardPackageName != NAME_None)
+		{
+			RequestPackage(StandardPackageName, true); // force to front of queue because we know this package is now loaded
+		}
+		else
+		{
+			if (!FPackageName::IsScriptPackage(PackageFName.ToString()))
+			{
+				UE_LOG(LogCook, Warning, TEXT("Unable to find cached package name for package %s"), *PackageFName.ToString());
+			}
+		}
+	}
+}
+
+
 bool UCookOnTheFlyServer::RequestPackage(const FName& StandardPackageFName, const TArray<FName>& TargetPlatforms, const bool bForceFrontOfQueue)
 {
 	FFilePlatformRequest FileRequest(StandardPackageFName, TargetPlatforms);
@@ -1643,12 +1671,12 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 		
 		// if we are doing cook by the book we need to resolve string asset references
 		// this will load more packages :)
-		if ( IsCookByTheBookMode() )
+		/*if ( IsCookByTheBookMode() )
 		{
 			SCOPE_TIMER(ResolveRedirectors);
 			COOK_STAT(FScopedDurationTimer ResolveRedirectorsTimer(DetailedCookStats::TickCookOnTheSideResolveRedirectorsTimeSec));
 			GRedirectCollector.ResolveStringAssetReference();
-		}
+		}*/
 
 
 		bool bIsAllDataCached = true;
@@ -1763,65 +1791,11 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 		if ( !IsCookByTheBookMode() || (CookByTheBookOptions->bDisableUnsolicitedPackages == false))
 		{
 			SCOPE_TIMER(UnsolicitedMarkup);
-
-			TArray<UObject *> ObjectsInOuter;
+			bool ContainsFullAssetGCClasses = false;
+			GetUnsolicitedPackages(PackagesToSave, ContainsFullAssetGCClasses, AllTargetPlatformNames);
+			if (ContainsFullAssetGCClasses)
 			{
-				SCOPE_TIMER(GetObjectsWithOuter);
-				GetObjectsWithOuter(NULL, ObjectsInOuter, false);
-			}
-
-			TArray<FName> PackageNames;
-			PackageNames.Empty(ObjectsInOuter.Num());
-			{
-				SCOPE_TIMER(GeneratePackageNames);
-				ACCUMULATE_TIMER(UnsolicitedPackageAlreadyCooked);
-				ACCUMULATE_TIMER(PackageCast);
-				ACCUMULATE_TIMER(AddUnassignedPackageToManifest);
-				ACCUMULATE_TIMER(GetCachedName);
-				for( int32 Index = 0; Index < ObjectsInOuter.Num(); Index++ )
-				{
-					ACCUMULATE_TIMER_START(PackageCast);
-					UPackage* Package = Cast<UPackage>(ObjectsInOuter[Index]);
-					ACCUMULATE_TIMER_STOP(PackageCast);
-
-					UObject* Object = ObjectsInOuter[Index];
-					if ( FullGCAssetClasses.Contains(Object->GetClass()) )
-					{
-						Result |= COSR_RequiresGC;
-					}
-					
-					if (Package)
-					{
-						ACCUMULATE_TIMER_START(GetCachedName);
-						FName StandardPackageFName = GetCachedStandardPackageFileFName(Package);
-						ACCUMULATE_TIMER_STOP(GetCachedName);
-						if ( StandardPackageFName == NAME_None )
-							continue;
-
-						ACCUMULATE_TIMER_START(UnsolicitedPackageAlreadyCooked);
-						// package is already cooked don't care about processing it again here
-						if ( CookRequests.Exists( StandardPackageFName, AllTargetPlatformNames) )
-							continue;
-						if ( CookedPackages.Exists(StandardPackageFName,AllTargetPlatformNames) )
-							continue;
-						ACCUMULATE_TIMER_STOP(UnsolicitedPackageAlreadyCooked);
-
-						if ( StandardPackageFName != NAME_None ) // if we have name none that means we are in core packages or something...
-						{
-							if (IsChildCooker())
-							{
-								// notify the main cooker that it should make sure this package gets cooked
-								CookByTheBookOptions->ChildUnsolicitedPackages.Add(StandardPackageFName);
-							}
-							else
-							{
-								// check if the package has already been saved
-								PackagesToSave.AddUnique(Package);
-								continue;
-							}
-						}
-					}
-				}
+				Result |= COSR_RequiresGC;
 			}
 		}
 
@@ -1856,18 +1830,27 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 				// if we are processing unsolicited packages we can optionally not save these right now
 				// the unsolicited packages which we missed now will be picked up on next run
 				// we want to do this in cook on the fly also, if there is a new network package request instead of saving unsolicited packages we can process the requested package
+
+
+				bool bShouldFinishTick = false;
+
+				if (Timer.IsTimeUp())
+				{
+					bShouldFinishTick = true;
+					// our timeslice is up
+				}
+
 				if ( (IsRealtimeMode() || IsCookOnTheFlyMode()) && (I >= FirstUnsolicitedPackage) )
 				{
 					SCOPE_TIMER(WaitingForCachedCookedPlatformData);
 
-					bool bShouldFinishTick = false;
 
 					if ( CookRequests.HasItems() )
 					{
 						bShouldFinishTick = true;
 					}
-
-					if ( Timer.IsTimeUp() )
+					
+					if (Timer.IsTimeUp())
 					{
 						bShouldFinishTick = true;
 						// our timeslice is up
@@ -1891,24 +1874,26 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 
 					bShouldFinishTick |= !bFinishedCachingCookedPlatformData;
 
-					if ( bShouldFinishTick )
-					{
-						SCOPE_TIMER(EnqueueUnsavedPackages);
-						// don't save these packages because we have a real request
-						// enqueue all the packages which we were about to save
-						if (CurrentCookMode==ECookMode::CookByTheBookFromTheEditor)
-						{
-							for ( int32 RemainingIndex = I; RemainingIndex < PackagesToSave.Num(); ++RemainingIndex )
-							{
-								FName StandardFilename = GetCachedStandardPackageFileFName(PackagesToSave[RemainingIndex]);
-								CookRequests.EnqueueUnique(FFilePlatformRequest(StandardFilename, AllTargetPlatformNames));
-							}
-						}
+					
+				}
 
-						// break out of the loop
-						bFinishedSave = false;
-						break;
+				if (bShouldFinishTick)
+				{
+					SCOPE_TIMER(EnqueueUnsavedPackages);
+					// don't save these packages because we have a real request
+					// enqueue all the packages which we were about to save
+					if (IsCookByTheBookMode())
+					{
+						for (int32 RemainingIndex = I; RemainingIndex < PackagesToSave.Num(); ++RemainingIndex)
+						{
+							FName StandardFilename = GetCachedStandardPackageFileFName(PackagesToSave[RemainingIndex]);
+							CookRequests.EnqueueUnique(FFilePlatformRequest(StandardFilename, AllTargetPlatformNames));
+						}
 					}
+
+					// break out of the loop
+					bFinishedSave = false;
+					break;
 				}
 
 				FName PackageFName = GetCachedStandardPackageFileFName(Package);
@@ -1983,7 +1968,8 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 					bool KeepEditorOnlyPackages = false;
 					// removing editor only packages only works when cooking in commandlet and non iterative cooking
 					// also doesn't work in multiprocess cooking
-					KeepEditorOnlyPackages = !(IsCookByTheBookMode() && !IsCookingInEditor()) || IsCookFlagSet(ECookInitializationFlags::Iterative);
+					KeepEditorOnlyPackages = !(IsCookByTheBookMode() && !IsCookingInEditor());
+					KeepEditorOnlyPackages |= IsCookFlagSet(ECookInitializationFlags::Iterative);
 					KeepEditorOnlyPackages |= IsChildCooker() || (CookByTheBookOptions && CookByTheBookOptions->ChildCookers.Num() > 0);
 					SaveFlags |= KeepEditorOnlyPackages ? SAVE_KeepEditorOnlyCookedPackages : SAVE_None;
 
@@ -2086,12 +2072,25 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 			}
 		}
 
+		
+
 		if ( Timer.IsTimeUp() )
 		{
 			break;
 		}
 	}
 	
+
+	if ((CookRequests.HasItems() == false) && IsCookByTheBookRunning() && !(Result&COSR_WaitingOnChildCookers))
+	{
+		// make sure we resolve all string asset references and nothing is loaded
+		if (GRedirectCollector.HasAnyStringAssetReferencesToResolve())
+		{
+			// resolve redirectors first
+			GRedirectCollector.ResolveStringAssetReference();
+		}
+	}
+
 
 	OUTPUT_TIMERS();
 
@@ -2222,6 +2221,90 @@ void UCookOnTheFlyServer::EditorTick( const float TimeSlice, const TArray<const 
 	TickPrecacheObjectsForPlatforms(TimeSlice, TargetPlatforms);
 }
 
+void UCookOnTheFlyServer::GetUnsolicitedPackages(TArray<UPackage*>& PackagesToSave, bool &ContainsFullGCAssetClasses, const TArray<FName>& TargetPlatformNames) const
+{
+	TSet<UPackage*> PackagesToSaveSet;
+	for (UPackage* Package : PackagesToSave)
+	{
+		PackagesToSaveSet.Add(Package);
+	}
+	PackagesToSave.Empty();
+			
+	TArray<UObject *> ObjectsInOuter;
+	{
+		SCOPE_TIMER(GetObjectsWithOuter);
+		GetObjectsWithOuter(NULL, ObjectsInOuter, false);
+	}
+
+	TArray<FName> PackageNames;
+	PackageNames.Empty(ObjectsInOuter.Num());
+	{
+		SCOPE_TIMER(GeneratePackageNames);
+		ACCUMULATE_TIMER(UnsolicitedPackageAlreadyCooked);
+		ACCUMULATE_TIMER(PackageCast);
+		ACCUMULATE_TIMER(FullGCAssetsContains);
+		ACCUMULATE_TIMER(AddUnassignedPackageToManifest);
+		ACCUMULATE_TIMER(GetCachedName);
+		ACCUMULATE_TIMER(AddToPackageList);
+		for (int32 Index = 0; Index < ObjectsInOuter.Num(); Index++)
+		{
+			ACCUMULATE_TIMER_START(PackageCast);
+			UPackage* Package = Cast<UPackage>(ObjectsInOuter[Index]);
+			ACCUMULATE_TIMER_STOP(PackageCast);
+
+			ACCUMULATE_TIMER_START(FullGCAssetsContains);
+			UObject* Object = ObjectsInOuter[Index];
+			if (FullGCAssetClasses.Contains(Object->GetClass()))
+			{
+				ContainsFullGCAssetClasses = true;
+			}
+			
+			ACCUMULATE_TIMER_STOP(FullGCAssetsContains);
+
+			if (Package)
+			{
+				ACCUMULATE_TIMER_START(GetCachedName);
+				FName StandardPackageFName = GetCachedStandardPackageFileFName(Package);
+				ACCUMULATE_TIMER_STOP(GetCachedName);
+				if (StandardPackageFName == NAME_None)
+					continue;
+
+				ACCUMULATE_TIMER_START(UnsolicitedPackageAlreadyCooked);
+				// package is already cooked don't care about processing it again here
+				/*if ( CookRequests.Exists( StandardPackageFName, AllTargetPlatformNames) )
+					continue;*/
+
+				if (CookedPackages.Exists(StandardPackageFName, TargetPlatformNames))
+					continue;
+				ACCUMULATE_TIMER_STOP(UnsolicitedPackageAlreadyCooked);
+				
+				ACCUMULATE_TIMER_START(AddToPackageList);
+
+				if (StandardPackageFName != NAME_None) // if we have name none that means we are in core packages or something...
+				{
+					if (IsChildCooker())
+					{
+						// notify the main cooker that it should make sure this package gets cooked
+						CookByTheBookOptions->ChildUnsolicitedPackages.Add(StandardPackageFName);
+					}
+					else
+					{
+						// check if the package has already been saved
+						PackagesToSaveSet.Add(Package);
+						continue;
+					}
+				}
+				ACCUMULATE_TIMER_STOP(AddToPackageList);
+			}
+		}
+	}
+	
+	for (UPackage* Package : PackagesToSaveSet )
+	{
+		PackagesToSave.Add(Package);
+	}
+}
+
 void UCookOnTheFlyServer::OnObjectModified( UObject *ObjectMoving )
 {
 	if (IsGarbageCollecting())
@@ -2263,8 +2346,6 @@ void UCookOnTheFlyServer::MarkPackageDirtyForCooker( UPackage *Package )
 
 		// force that package to be recooked
 		const FString Name = Package->GetPathName();
-		/*FString PackageFilename(GetPackageFilename(Package));
-		FPaths::MakeStandardFilename(PackageFilename);*/
 
 		FName PackageFFileName = GetCachedStandardPackageFileFName(Package);
 
@@ -2274,7 +2355,7 @@ void UCookOnTheFlyServer::MarkPackageDirtyForCooker( UPackage *Package )
 		}
 
 #if DEBUG_COOKONTHEFLY
-		UE_LOG(LogCook, Display, TEXT("Modification detected to package %s"), *PackageFilename);
+		UE_LOG(LogCook, Display, TEXT("Modification detected to package %s"), *PackageFFileName.ToString());
 #endif
 
 		if ( CurrentCookMode == ECookMode::CookByTheBookFromTheEditor )
@@ -2401,6 +2482,15 @@ ESavePackageResult UCookOnTheFlyServer::SaveCookedPackage(UPackage* Package, uin
 	check( bIsSavingPackage == false );
 	bIsSavingPackage = true;
 	FString Filename(GetCachedPackageFilename(Package));
+
+	if (IsCookByTheBookMode())
+	{
+		SCOPE_TIMER(ResolveRedirectors);
+		COOK_STAT(FScopedDurationTimer ResolveRedirectorsTimer(DetailedCookStats::TickCookOnTheSideResolveRedirectorsTimeSec));
+		FString RelativeFilename = Filename;
+		FPaths::MakeStandardFilename(RelativeFilename);
+		GRedirectCollector.ResolveStringAssetReference(RelativeFilename);
+	}
 
 	if (Filename.Len())
 	{
@@ -2575,6 +2665,11 @@ void UCookOnTheFlyServer::Initialize( ECookMode::Type DesiredCookMode, ECookInit
 	if (IsCookByTheBookMode() && !IsCookingInEditor())
 	{
 		FCoreUObjectDelegates::PackageCreatedForLoad.AddUObject(this, &UCookOnTheFlyServer::MaybeMarkPackageAsAlreadyLoaded);
+	}
+
+	if (IsCookByTheBookMode())
+	{
+		FCoreUObjectDelegates::PackageLoadedFromStringAssetReference.AddUObject(this, &UCookOnTheFlyServer::OnStringAssetReferenceLoadedPackage);
 	}
 
 	if (IsCookingInEditor())
@@ -2933,7 +3028,7 @@ bool UCookOnTheFlyServer::GetCurrentIniVersionStrings( const ITargetPlatform* Ta
 
 	FString UE4Ver = FString::Printf(TEXT("PackageFileVersions:%d:%d"), GPackageFileUE4Version, GPackageFileLicenseeUE4Version);
 	IniVersionStrings.Emplace(MoveTemp(UE4Ver));
-	FString UE4NetVer = FString::Printf(TEXT("NetFileVersions:%d:%d"), GEngineNetVersion, GEngineNegotiationVersion);
+	FString UE4NetVer = FString::Printf(TEXT("NetworkCompatibleCL:%u"), FNetworkVersion::GetNetworkCompatibleChangelist());
 	IniVersionStrings.Emplace(MoveTemp(UE4NetVer));
 
 	FString MaterialShaderMapDDCVersion = FString::Printf(TEXT("MaterialShaderMapDDCVersion:%s"), *GetMaterialShaderMapDDCKey());
@@ -3238,6 +3333,11 @@ void UCookOnTheFlyServer::CleanSandbox( const bool bIterative )
 			// Daniel: optimization
 			// should I loop through the cooked packages which we think we have instead of going through what's on disk?
 
+
+			FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+			IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
+
+
 			// See what files are out of date in the sandbox folder
 			for (int32 Index = 0; Index < Platforms.Num(); Index++)
 			{
@@ -3285,7 +3385,53 @@ void UCookOnTheFlyServer::CleanSandbox( const bool bIterative )
 					
 					FDateTime DependentTimestamp;
 					FName StandardUnCookedFileFName = FName(*UncookedFilename);
+#if 1 // asset registry dependency checking instead of using DependencyInfo module
+					//////////////////////////////////////////////////////////////////////////
 
+					// asset registry actually has better dependency list then the dpinfomodule
+					TArray<FName> UnfilteredDependencies;
+					FString LongPackageName = FPackageName::FilenameToLongPackageName(StandardUnCookedFileFName.ToString());
+
+				
+					FName LongPackageFName = FName(*LongPackageName);
+					// if the cooked package exists make sure it's dependencies are cooked
+					if (AssetRegistry.GetDependencies(LongPackageFName, UnfilteredDependencies) == true)
+					{
+						TArray<FName> Dependencys;
+						for (const auto& Dependency : UnfilteredDependencies)
+						{
+							if (FPackageName::IsScriptPackage(Dependency.ToString()) == false)
+							{
+								Dependencys.AddUnique(Dependency);
+							}
+						}
+
+						for (const auto& Dependency : Dependencys)
+						{
+							FName StandardDependencyName = GetCachedStandardPackageFileFName(Dependency);
+
+							FDateTime DependencyDateTime = IFileManager::Get().GetTimeStamp(*StandardDependencyName.ToString());
+							if (DependencyDateTime > DependentTimestamp)
+							{
+								DependentTimestamp = DependencyDateTime;
+							}
+						}
+					}
+
+					double Diff = (CookedTimestamp - DependentTimestamp).GetTotalSeconds();
+
+					if (Diff < 0.0)
+					{
+#if DEBUG_COOKONTHEFLY
+						UE_LOG(LogCook, Display, TEXT("Deleting out of date cooked file: %s"), *CookedFilename);
+#endif
+						IFileManager::Get().Delete(*CookedFilename); // do I need to delete this? the cooked packages list is what the cooker uses to recook this file should be deleted later
+
+						CookedPackages.RemoveFileForPlatform(StandardUnCookedFileFName, PlatformFName);
+					}
+
+					//////////////////////////////////////////////////////////////////////////
+#else
 					if (PDInfoModule.DeterminePackageDependentTimeStamp(*UncookedFilename, DependentTimestamp) == true)
 					{
 						double Diff = (CookedTimestamp - DependentTimestamp).GetTotalSeconds();
@@ -3300,6 +3446,7 @@ void UCookOnTheFlyServer::CleanSandbox( const bool bIterative )
 							CookedPackages.RemoveFileForPlatform(StandardUnCookedFileFName, PlatformFName);
 						}
 					}
+#endif
 				}
 			}
 
@@ -3452,8 +3599,10 @@ void UCookOnTheFlyServer::AddFileToCook( TArray<FName>& InOutFilesToCook, const 
 
 void UCookOnTheFlyServer::CollectFilesToCook(TArray<FName>& FilesInPath, const TArray<FString>& CookMaps, const TArray<FString>& InCookDirectories, const TArray<FString> &CookCultures, const TArray<FString> &IniMapSections, ECookByTheBookOptions FilesToCookFlags)
 {
-	bool bCookAll = !!(FilesToCookFlags & ECookByTheBookOptions::CookAll);
-	bool bMapsOnly = !!(FilesToCookFlags & ECookByTheBookOptions::MapsOnly);
+	UProjectPackagingSettings* PackagingSettings = Cast<UProjectPackagingSettings>(UProjectPackagingSettings::StaticClass()->GetDefaultObject());
+
+	bool bCookAll = (!!(FilesToCookFlags & ECookByTheBookOptions::CookAll)) || PackagingSettings->bCookAll;
+	bool bMapsOnly = (!!(FilesToCookFlags & ECookByTheBookOptions::MapsOnly)) || PackagingSettings->bCookMapsOnly;
 	bool bNoDev = !!(FilesToCookFlags & ECookByTheBookOptions::NoDevContent);
 
 	if (IsChildCooker())
@@ -3474,16 +3623,6 @@ void UCookOnTheFlyServer::CollectFilesToCook(TArray<FName>& FilesInPath, const T
 		return;
 	}
 
-	if (!(FilesToCookFlags & ECookByTheBookOptions::NoGameAlwaysCookPackages))
-	{
-		// allow the game to fill out the asset registry, as well as get a list of objects to always cook
-		TArray<FString> FilesInPathStrings;
-		FGameDelegates::Get().GetCookModificationDelegate().ExecuteIfBound(FilesInPathStrings);
-		for (const auto& FileString : FilesInPathStrings)
-		{
-			FilesInPath.Add(FName(*FileString));
-		}
-	}
 	
 	TArray<FString> CookDirectories = InCookDirectories;
 	
@@ -3508,15 +3647,30 @@ void UCookOnTheFlyServer::CollectFilesToCook(TArray<FName>& FilesInPath, const T
 		// Also append any cookdirs from the project ini files; these dirs are relative to the game content directory
 		{
 			const FString AbsoluteGameContentDir = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir());
-			const UProjectPackagingSettings* const PackagingSettings = GetDefault<UProjectPackagingSettings>();
 			for (const auto& DirToCook : PackagingSettings->DirectoriesToAlwaysCook)
 			{
 				CookDirectories.Add(AbsoluteGameContentDir / DirToCook.Path);
 			}
 		}
+
+
+		// If we didn't find any maps look in the project settings for maps
+		for (const auto& MapToCook : PackagingSettings->MapsToCook)
+		{
+			FilesInPath.Add(FName(*MapToCook.FilePath));
+		}
 	}
 
-	
+	if (!(FilesToCookFlags & ECookByTheBookOptions::NoGameAlwaysCookPackages))
+	{
+		// allow the game to fill out the asset registry, as well as get a list of objects to always cook
+		TArray<FString> FilesInPathStrings;
+		FGameDelegates::Get().GetCookModificationDelegate().ExecuteIfBound(FilesInPathStrings);
+		for (const auto& FileString : FilesInPathStrings)
+		{
+			FilesInPath.Add(FName(*FileString));
+		}
+	}
 
 	for ( const auto &CurrEntry : CookMaps )
 	{
@@ -3849,10 +4003,13 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 	check( IsCookByTheBookMode() );
 	check( CookByTheBookOptions->bRunning == true );
 
+	check(GRedirectCollector.HasAnyStringAssetReferencesToResolve() == false);
+
 	UPackage::WaitForAsyncFileWrites();
 
 	GetDerivedDataCacheRef().WaitForQuiescence(true);
 	
+	GRedirectCollector.LogTimers();
 
 	if (IsChildCooker())
 	{

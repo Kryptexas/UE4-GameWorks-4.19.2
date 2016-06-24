@@ -98,7 +98,7 @@ void SStructureDetailsView::Construct(const FArguments& InArgs)
 			FSlateIcon(),
 			FUIAction(FExecuteAction::CreateSP(this, &SStructureDetailsView::SetRootExpansionStates, /*bExpanded=*/true, /*bRecurse=*/false)));
 
-	TSharedRef<SHorizontalBox> FilterRow = SNew( SHorizontalBox )
+	TSharedRef<SHorizontalBox> FilterBoxRow = SNew( SHorizontalBox )
 		.Visibility(this, &SStructureDetailsView::GetFilterBoxVisibility)
 		+SHorizontalBox::Slot()
 		.FillWidth( 1 )
@@ -111,7 +111,7 @@ void SStructureDetailsView::Construct(const FArguments& InArgs)
 
 	if (DetailsViewArgs.bShowOptions)
 	{
-		FilterRow->AddSlot()
+		FilterBoxRow->AddSlot()
 			.HAlign(HAlign_Right)
 			.AutoWidth()
 			[
@@ -151,7 +151,7 @@ void SStructureDetailsView::Construct(const FArguments& InArgs)
 			.AutoHeight()
 			.Padding( 0.0f, 0.0f, 0.0f, 2.0f )
 			[
-				FilterRow
+				FilterBoxRow
 			]
 			+ SVerticalBox::Slot()
 			.FillHeight(1)

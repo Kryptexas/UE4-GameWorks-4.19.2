@@ -500,9 +500,10 @@ void SWidgetDetailsView::NotifyPostChange(const FPropertyChangedEvent& PropertyC
 
 	// If the property that changed is marked as "DesignerRebuild" we invalidate
 	// the preview.
-	if ( PropertyChangedEvent.Property->GetBoolMetaData(DesignerRebuildName) )
+	if ( PropertyChangedEvent.Property->HasMetaData(DesignerRebuildName) || PropertyThatChanged->GetActiveMemberNode()->GetValue()->HasMetaData(DesignerRebuildName) )
 	{
-		BlueprintEditor.Pin()->InvalidatePreview();
+		const bool bViewOnly = true;
+		BlueprintEditor.Pin()->InvalidatePreview(bViewOnly);
 	}
 }
 

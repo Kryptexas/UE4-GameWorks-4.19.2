@@ -1,13 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "HMDPrivatePCH.h"
+#include "OculusRiftPrivatePCH.h"
 #include "OculusRiftHMD.h"
 #include "OculusRiftMeshAssets.h"
 
 #if !PLATFORM_MAC // Mac uses 0.5/OculusRiftHMD_05.cpp
 
 #include "EngineAnalytics.h"
-#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+#include "IAnalyticsProvider.h"
+#include "AnalyticsEventAttribute.h"
 #include "SceneViewport.h"
 #include "PostProcess/SceneRenderTargets.h"
 #include "HardwareInfo.h"
@@ -349,7 +350,7 @@ TSharedPtr<FHMDSettings, ESPMode::ThreadSafe> FOculusRiftHMD::CreateNewSettings(
 	return Result;
 }
 
-bool FOculusRiftHMD::OnStartGameFrame( FWorldContext& WorldContext )
+bool FOculusRiftHMD::OnStartGameFrame( FWorldContext& InWorldContext )
 {
 	if (GIsRequestingExit)
 	{
@@ -360,8 +361,9 @@ bool FOculusRiftHMD::OnStartGameFrame( FWorldContext& WorldContext )
 	if (pCustomPresent && pCustomPresent->NeedsToKillHmd())
 	{
 		Settings->Flags.bStereoEnforced = false;
-		DoEnableStereo(false, true);
+		DoEnableStereo(false);
 		ReleaseDevice();
+		Flags.bNeedEnableStereo = true;
 	}
 
 	check(Settings.IsValid());
@@ -393,7 +395,7 @@ bool FOculusRiftHMD::OnStartGameFrame( FWorldContext& WorldContext )
 		}
 	}
 
-	if (!FHeadMountedDisplay::OnStartGameFrame( WorldContext ))
+	if (!FHeadMountedDisplay::OnStartGameFrame( InWorldContext ))
 	{
 		return false;
 	}
@@ -455,7 +457,7 @@ bool FOculusRiftHMD::OnStartGameFrame( FWorldContext& WorldContext )
 
 			if (bPrevPause != Settings->Flags.bPauseRendering)
 			{
-				APlayerController* const PC = GEngine->GetFirstLocalPlayerController(WorldContext.World());
+				APlayerController* const PC = GEngine->GetFirstLocalPlayerController(InWorldContext.World());
 				if (Settings->Flags.bPauseRendering)
 				{
 					// focus is lost
@@ -531,11 +533,7 @@ bool FOculusRiftHMD::OnStartGameFrame( FWorldContext& WorldContext )
 				FCoreDelegates::VRHeadsetRecenter.Broadcast();
 
 				// we must call ovr_ClearShouldRecenterFlag, otherwise ShouldRecenter flag won't reset
-				FOvrSessionShared::AutoSession OvrSession(Session);
-				if (OvrSession)
-				{
-					ovr_ClearShouldRecenterFlag(OvrSession);
-				}
+				ovr_ClearShouldRecenterFlag(OvrSession);
 			}
 			else
 			{
@@ -636,15 +634,8 @@ bool FOculusRiftHMD::GetHMDMonitorInfo(MonitorInfo& MonitorDesc)
 	{
 		MonitorDesc.ResolutionX = Desc.Resolution.w;
 		MonitorDesc.ResolutionY = Desc.Resolution.h;
-		MonitorDesc.WindowSizeX = Settings->MirrorWindowSize.X;
-		MonitorDesc.WindowSizeY = Settings->MirrorWindowSize.Y;
 		return true;
 	}
-	return false;
-}
-
-bool FOculusRiftHMD::IsFullscreenAllowed()
-{
 	return false;
 }
 
@@ -723,6 +714,7 @@ void FOculusRiftHMD::EnableLowPersistenceMode(bool Enable)
 ovrTrackingState FGameFrame::GetTrackingState(ovrSession InOvrSession) const
 {
 	const FSettings* CurrentSettings = GetSettings();
+	check(CurrentSettings);
 	const double DisplayTime = ovr_GetPredictedDisplayTime(InOvrSession, FrameNumber);
 	const bool LatencyMarker = (IsInRenderingThread() || !CurrentSettings->Flags.bUpdateOnRT);
 	return ovr_GetTrackingState(InOvrSession, DisplayTime, LatencyMarker);
@@ -921,16 +913,6 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 				else if (!FCString::Stricmp(*CmdName, TEXT("RESET")))
 				{
 					Settings->Flags.bMirrorToWindow = true;
-					Settings->MirrorWindowSize.X = Settings->MirrorWindowSize.Y = 0;
-				}
-				else
-				{
-					int32 X = FCString::Atoi(*CmdName);
-					const TCHAR* CmdTemp = FCString::Strchr(*CmdName, 'x') ? FCString::Strchr(*CmdName, 'x') + 1 : FCString::Strchr(*CmdName, 'X') ? FCString::Strchr(*CmdName, 'X') + 1 : TEXT("");
-					int32 Y = FCString::Atoi(CmdTemp);
-
-					Settings->MirrorWindowSize.X = X;
-					Settings->MirrorWindowSize.Y = Y;
 				}
 			}
 			else
@@ -939,10 +921,6 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 			}
 			Flags.bNeedUpdateHmdCaps = true;
 			Ar.Logf(TEXT("Mirroring is currently %s"), (Settings->Flags.bMirrorToWindow) ? TEXT("ON") : TEXT("OFF"));
-			if (Settings->Flags.bMirrorToWindow && (Settings->MirrorWindowSize.X != 0 || Settings->MirrorWindowSize.Y != 0))
-			{
-				Ar.Logf(TEXT("Mirror window size is %d x %d"), Settings->MirrorWindowSize.X, Settings->MirrorWindowSize.Y);
-			}
 			return true;
 		}
 #if !UE_BUILD_SHIPPING
@@ -1073,87 +1051,118 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 	}
 	else if (FParse::Command(&Cmd, TEXT("TESTL")))
 	{
-		static uint32 LID1 = 0, LID2 = 0;
+		static uint32 LID1 = ~0u, LID2 = ~0u, LID3 = ~0u;
 		IStereoLayers* StereoL = this;
-		check(StereoL);
-		if (FParse::Command(&Cmd, TEXT("OFF")))
+
+		FString ValueStr = FParse::Token(Cmd, 0);
+		int t = FCString::Atoi(*ValueStr);
+		int maxt = 0;
+
+		if (!FCString::Stricmp(*ValueStr, TEXT("OFF")))
 		{
-			if (FParse::Command(&Cmd, TEXT("1")))
-			{
-				StereoL->DestroyLayer(LID1);
-				LID1 = 0;
-			}
-			else if (FParse::Command(&Cmd, TEXT("2")))
-			{
-				StereoL->DestroyLayer(LID2);
-				LID2 = 0;
-			}
-			else
-			{
-				StereoL->DestroyLayer(LID1);
-				StereoL->DestroyLayer(LID2);
-				LID1 = LID2 = 0;
-			}
-			return true;
+			t = -1;
 		}
-		else if (FParse::Command(&Cmd, TEXT("MOD")))
+		if (!FCString::Stricmp(*ValueStr, TEXT("ALL")))
 		{
-			if (LID2)
+			t = 0;
+			maxt = 3;
+		}
+
+		do
+		{
+			switch (t)
 			{
-				FTransform tr(FRotator(0, -30, 0), FVector(100, 0, 0));
-				
+			case 0:
+			{
+				if (LID1 != ~0u) break;
+				const TCHAR* iconPath = TEXT("/Game/Tuscany_LoadScreen.Tuscany_LoadScreen");
+				UE_LOG(LogHMD, Log, TEXT("LID1: Loading texture for loading icon %s..."), iconPath);
+				TAssetPtr<UTexture2D> LoadingTexture = LoadObject<UTexture2D>(NULL, iconPath, NULL, LOAD_None, NULL);
+				UE_LOG(LogHMD, Log, TEXT("...EEE"));
+
+				if (LoadingTexture != nullptr)
+				{
+					UE_LOG(LogHMD, Log, TEXT("...Success. "));
+					LoadingTexture->UpdateResource();
+					//BeginUpdateResourceRHI(LoadingTexture->Resource);
+					FlushRenderingCommands();
+
+					IStereoLayers::FLayerDesc LayerDesc;
+					LayerDesc.Texture = LoadingTexture->Resource->TextureRHI;
+					LayerDesc.Priority = 10;
+					LayerDesc.Transform = FTransform(FVector(400, 30, 130));
+					LayerDesc.QuadSize = FVector2D(200, 200);
+					LayerDesc.Type = IStereoLayers::ELayerType::WorldLocked;
+					LID1 = StereoL->CreateLayer(LayerDesc);
+				}
+			}
+			break;
+			case 1:
+			{
+				if (LID2 != ~0u) break;
+				//const TCHAR* iconPath = TEXT("/Game/alpha.alpha");
+				const TCHAR* iconPath = TEXT("/Game/Tuscany_OculusCube.Tuscany_OculusCube");
+				UE_LOG(LogHMD, Log, TEXT("LID2: Loading texture for loading icon %s..."), iconPath);
+				TAssetPtr<UTexture2D> LoadingTexture = LoadObject<UTexture2D>(NULL, iconPath, NULL, LOAD_None, NULL);
+				if (LoadingTexture != nullptr)
+				{
+					UE_LOG(LogHMD, Log, TEXT("...Success. "));
+					LoadingTexture->UpdateResource();
+					FlushRenderingCommands();
+
+					IStereoLayers::FLayerDesc LayerDesc;
+					LayerDesc.Texture = LoadingTexture->Resource->TextureRHI;
+					LayerDesc.Priority = 10;
+					LayerDesc.Transform = FTransform(FRotator(0, 30, 0), FVector(300, 0, 0));
+					LayerDesc.QuadSize = FVector2D(200, 200);
+					LayerDesc.Type = IStereoLayers::ELayerType::FaceLocked;
+					LID2 = StereoL->CreateLayer(LayerDesc);
+				}
+			}
+			break;
+			case 2:
+			{
+				if (LID3 != ~0u) break;
+				//const TCHAR* iconPath = TEXT("/Game/alpha.alpha");
+				const TCHAR* iconPath = TEXT("/Game/Tuscany_OculusCube.Tuscany_OculusCube");
+				UE_LOG(LogHMD, Log, TEXT("LID3: Loading texture for loading icon %s..."), iconPath);
+				TAssetPtr<UTexture2D> LoadingTexture = LoadObject<UTexture2D>(NULL, iconPath, NULL, LOAD_None, NULL);
+				if (LoadingTexture != nullptr)
+				{
+					UE_LOG(LogHMD, Log, TEXT("...Success. "));
+					LoadingTexture->UpdateResource();
+					FlushRenderingCommands();
+
+					IStereoLayers::FLayerDesc LayerDesc;
+					LayerDesc.Texture = LoadingTexture->Resource->TextureRHI;
+					LayerDesc.Priority = 10;
+					LayerDesc.Transform = FTransform(FRotator(0, 30, 0), FVector(300, 100, 0));
+					LayerDesc.QuadSize = FVector2D(200, 200);
+					LayerDesc.Type = IStereoLayers::ELayerType::TorsoLocked;
+					LID3 = StereoL->CreateLayer(LayerDesc);
+				}
+			}
+			break;
+			case 3:
+			{
 				IStereoLayers::FLayerDesc LayerDesc;
 				StereoL->GetLayerDesc(LID2, LayerDesc);
+				FTransform tr(FRotator(0, -30, 0), FVector(100, 0, 0));
 
 				LayerDesc.Transform = tr;
-				LayerDesc.QuadSize = FVector2D(25, 25);
+				LayerDesc.QuadSize = FVector2D(200, 200);
 				StereoL->SetLayerDesc(LID2, LayerDesc);
 			}
-			return true;
-		}
-		else if (FParse::Command(&Cmd, TEXT("VP")))
-		{
-			if (LID1)
+			break;
+			case -1:
 			{
-				IStereoLayers::FLayerDesc LayerDesc;
-				StereoL->GetLayerDesc(LID1, LayerDesc);
-
-				LayerDesc.UVRect = FBox2D(FVector2D(0.25, 0.25), FVector2D(0.75, 0.75));
-				StereoL->SetLayerDesc(LID1, LayerDesc);
-			}
-			return true;
-		}
-		const TCHAR* iconPath = TEXT("/Game/Tuscany_OculusCube.Tuscany_OculusCube");
-		UE_LOG(LogHMD, Log, TEXT("Loading texture for loading icon %s..."), iconPath);
-		UTexture2D* LoadingTexture = LoadObject<UTexture2D>(NULL, iconPath, NULL, LOAD_None, NULL);
-		UE_LOG(LogHMD, Log, TEXT("...EEE"));
-		if (LoadingTexture != nullptr)
-		{
-			LoadingTexture->AddToRoot();
-			UE_LOG(LogHMD, Log, TEXT("...Success. "));
-
-			if (LID1 == 0)
-			{
-				IStereoLayers::FLayerDesc LayerDesc;
-				LayerDesc.Texture = LoadingTexture;
-				LayerDesc.Priority = 10;
-				LayerDesc.Transform = FTransform(FVector(400, 30, 130));
-				LayerDesc.QuadSize = FVector2D(200, 200);
-				LayerDesc.Type = IStereoLayers::ELayerType::WorldLocked;
-				LID1 = StereoL->CreateLayer(LayerDesc);
-			}
-
-			if (LID2 == 0)
-			{
-				IStereoLayers::FLayerDesc LayerDesc;
-				LayerDesc.Texture = LoadingTexture;
-				LayerDesc.Priority = 11;
-				LayerDesc.Transform = FTransform(FRotator(0, 30, 0), FVector(300, 0, 0));
-				LayerDesc.QuadSize = FVector2D(100, 100);
-				LayerDesc.Type = IStereoLayers::FaceLocked;
-				LID2 = StereoL->CreateLayer(LayerDesc);
+				UE_LOG(LogHMD, Log, TEXT("Destroy layers %d %d %d"), LID1, LID2, LID3);
+				StereoL->DestroyLayer(LID1);
+				StereoL->DestroyLayer(LID2);
+				StereoL->DestroyLayer(LID3);
 			}
 		}
+		} while (++t < maxt);
 		return true;
 	}
 #endif // !UE_BUILD_SHIPPING
@@ -1206,26 +1215,26 @@ void FOculusRiftHMD::RecordAnalytics()
 		FString MonResolution(FString::Printf(TEXT("(%d, %d)"), MonitorInfo.ResolutionX, MonitorInfo.ResolutionY));
 		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("Resolution"), MonResolution));
 
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("ChromaAbCorrectionEnabled"), Settings->Flags.bChromaAbCorrectionEnabled));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("MagEnabled"), Settings->Flags.bYawDriftCorrectionEnabled));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("DevSettingsEnabled"), Settings->Flags.bDevSettingsEnabled));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideInterpupillaryDistance"), Settings->Flags.bOverrideIPD));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("ChromaAbCorrectionEnabled"), (uint64)Settings->Flags.bChromaAbCorrectionEnabled));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("MagEnabled"), (uint64)Settings->Flags.bYawDriftCorrectionEnabled));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("DevSettingsEnabled"), (uint64)Settings->Flags.bDevSettingsEnabled));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideInterpupillaryDistance"), (uint64)Settings->Flags.bOverrideIPD));
 		if (Settings->Flags.bOverrideIPD)
 		{
 			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("InterpupillaryDistance"), GetInterpupillaryDistance()));
 		}
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideStereo"), Settings->Flags.bOverrideStereo));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideStereo"), (uint64)Settings->Flags.bOverrideStereo));
 		if (Settings->Flags.bOverrideStereo)
 		{
 			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("HFOV"), Settings->HFOVInRadians));
 			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("VFOV"), Settings->VFOVInRadians));
 		}
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideVSync"), Settings->Flags.bOverrideVSync));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideVSync"), (uint64)Settings->Flags.bOverrideVSync));
 		if (Settings->Flags.bOverrideVSync)
 		{
-			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("VSync"), Settings->Flags.bVSync));
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("VSync"), (uint64)Settings->Flags.bVSync));
 		}
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideScreenPercentage"), Settings->Flags.bOverrideScreenPercentage));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideScreenPercentage"), (uint64)Settings->Flags.bOverrideScreenPercentage));
 		if (Settings->Flags.bOverrideScreenPercentage)
 		{
 			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("ScreenPercentage"), Settings->ScreenPercentage));
@@ -1235,11 +1244,11 @@ void FOculusRiftHMD::RecordAnalytics()
 			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("WorldToMetersScale"), Settings->WorldToMetersScale));
 		}
 		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("InterpupillaryDistance"), Settings->InterpupillaryDistance));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("TimeWarp"), Settings->Flags.bTimeWarp));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("HmdPosTracking"), Settings->Flags.bHmdPosTracking));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("HQDistortion"), Settings->Flags.bHQDistortion));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("UpdateOnRT"), Settings->Flags.bUpdateOnRT));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("MirrorToWindow"), Settings->Flags.bMirrorToWindow));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("TimeWarp"), (uint64)Settings->Flags.bTimeWarp));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("HmdPosTracking"), (uint64)Settings->Flags.bHmdPosTracking));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("HQDistortion"), (uint64)Settings->Flags.bHQDistortion));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("UpdateOnRT"), (uint64)Settings->Flags.bUpdateOnRT));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("MirrorToWindow"), (uint64)Settings->Flags.bMirrorToWindow));
 
 		FString OutStr(TEXT("Editor.VR.DeviceInitialised"));
 		FEngineAnalytics::GetProvider().RecordEvent(OutStr, EventAttributes);
@@ -1281,125 +1290,81 @@ class FSceneViewport* FOculusRiftHMD::FindSceneViewport()
 //---------------------------------------------------
 // Oculus Rift IStereoRendering Implementation
 //---------------------------------------------------
-bool FOculusRiftHMD::DoEnableStereo(bool bStereo, bool bApplyToHmd)
+bool FOculusRiftHMD::DoEnableStereo(bool bStereo)
 {
 	check(IsInGameThread());
 
 	FSceneViewport* SceneVP = FindSceneViewport();
-	if (bStereo && (!SceneVP || !SceneVP->IsStereoRenderingAllowed()))
+
+	if (!Settings->Flags.bHMDEnabled || SceneVP && !SceneVP->IsStereoRenderingAllowed())
 	{
-		return false;
+		bStereo = false;
 	}
 
-	bool stereoToBeEnabled = (Settings->Flags.bHMDEnabled) ? bStereo : false;
-
-	if ((Settings->Flags.bStereoEnabled && stereoToBeEnabled) || (!Settings->Flags.bStereoEnabled && !stereoToBeEnabled))
+	if (Settings->Flags.bStereoEnabled && bStereo || !Settings->Flags.bStereoEnabled && !bStereo)
 	{
 		// already in the desired mode
 		return Settings->Flags.bStereoEnabled;
 	}
 
 	TSharedPtr<SWindow> Window;
+
 	if (SceneVP)
 	{
 		Window = SceneVP->FindWindow();
 	}
 
-	if (stereoToBeEnabled)
+	if (!Window.IsValid() || (SceneVP && !SceneVP->GetViewportWidget().IsValid()))
 	{
-		// check if we already have a window; if not, queue enable stereo to the next frames and exit
-		if (!Window.IsValid())
+		// try again next frame
+		if(bStereo)
 		{
 			Flags.bNeedEnableStereo = true;
-			Flags.bEnableStereoToHmd = bApplyToHmd || !IsFullscreenAllowed();
-			return Settings->Flags.bStereoEnabled;
-		}
-	}
 
-	// Uncap fps to enable FPS higher than 62
-	GEngine->bForceDisableFrameRateSmoothing = bStereo;
-
-	bool wasFullscreenAllowed = IsFullscreenAllowed();
-	if (OnOculusStateChange(stereoToBeEnabled))
-	{
-		Settings->Flags.bStereoEnabled = stereoToBeEnabled;
-
-		if (SceneVP && SceneVP->GetViewportWidget().IsValid())
-		{
-			if (!IsFullscreenAllowed() && stereoToBeEnabled)
+			// a special case when stereo is enabled while window is not available yet:
+			// most likely this is happening from BeginPlay. In this case, if frame exists (created in OnBeginPlay)
+			// then we need init device and populate the initial tracking for head/hand poses.
+			auto CurrentFrame = GetGameFrame();
+			if (CurrentFrame)
 			{
+				InitDevice();
 				FOvrSessionShared::AutoSession OvrSession(Session);
-				if (OvrSession)
-				{
-					// keep window size, but set viewport size to Rift resolution
-					SceneVP->SetViewportSize(HmdDesc.Resolution.w, HmdDesc.Resolution.h);
-				}
-			}
-			else if (!wasFullscreenAllowed && !stereoToBeEnabled)
-			{
-				// restoring original viewport size (to be equal to window size).
-				if (Window.IsValid())
-				{
-					FVector2D size = Window->GetSizeInScreen();
-					SceneVP->SetViewportSize(size.X, size.Y);
-					Window->SetViewportSizeDrivenByWindow(true);
-				}
-			}
-
-			if (SceneVP)
-			{
-				if (Window.IsValid())
-				{
-					if (bApplyToHmd && IsFullscreenAllowed())
-					{
-						{
-							FVector2D size = Window->GetSizeInScreen();
-							SceneVP->SetViewportSize(size.X, size.Y);
-							Window->SetViewportSizeDrivenByWindow(true);
-						}
-
-						if (stereoToBeEnabled)
-						{
-							EWindowMode::Type wm = (!GIsEditor) ? EWindowMode::Fullscreen : EWindowMode::WindowedFullscreen;
-							FVector2D size = Window->GetSizeInScreen();
-							SceneVP->ResizeFrame(size.X, size.Y, wm, 0, 0);
-						}
-						else
-						{
-							// In Editor we cannot use ResizeFrame trick since it is called too late and App::IsGame
-							// returns false.
-							if (GIsEditor)
-							{
-								FSlateRect LocalPreFullScreenRect;
-								PopPreFullScreenRect(LocalPreFullScreenRect);
-								if (LocalPreFullScreenRect.GetSize().X > 0 && LocalPreFullScreenRect.GetSize().Y > 0 && IsFullscreenAllowed())
-								{
-									Window->MoveWindowTo(FVector2D(LocalPreFullScreenRect.Left, LocalPreFullScreenRect.Top));
-								}
-							}
-							else
-							{
-								FVector2D size = Window->GetSizeInScreen();
-								SceneVP->ResizeFrame(size.X, size.Y, EWindowMode::Windowed, 0, 0);
-							}
-						}
-					}
-					else if (!IsFullscreenAllowed())
-					{
-						// a special case when 'stereo on' or 'stereo hmd' is used in Direct mode. We must set proper window mode, otherwise
-						// it will be lost once window loses and regains the focus.
-						FVector2D size = Window->GetSizeInScreen();
-						if (stereoToBeEnabled)
-						{
-							size.X = Settings->MirrorWindowSize.X;
-							size.Y = Settings->MirrorWindowSize.Y;
-						}
-						FSystemResolution::RequestResolutionChange(size.X, size.Y, (stereoToBeEnabled) ? EWindowMode::WindowedMirror : EWindowMode::Windowed);
-					}
-				}
+				CurrentFrame->InitialTrackingState = CurrentFrame->GetTrackingState(OvrSession);
+				CurrentFrame->GetHeadAndEyePoses(CurrentFrame->InitialTrackingState, CurrentFrame->CurHeadPose, CurrentFrame->CurEyeRenderPose);
 			}
 		}
+		else
+		{
+			Flags.bNeedDisableStereo = true;
+		}
+
+		return Settings->Flags.bStereoEnabled;
 	}
+
+	if (SceneVP && OnOculusStateChange(bStereo))
+	{
+		Settings->Flags.bStereoEnabled = bStereo;
+
+		// Uncap fps to enable FPS higher than 62
+		GEngine->bForceDisableFrameRateSmoothing = bStereo;
+
+		// Set MirrorWindow state on the Window
+		Window->SetMirrorWindow(bStereo);
+
+		if (bStereo)
+		{
+			// Set viewport size to Rift resolution
+			SceneVP->SetViewportSize(HmdDesc.Resolution.w, HmdDesc.Resolution.h);
+		}
+		else
+		{
+			// Restore viewport size to window size
+			FVector2D size = Window->GetSizeInScreen();
+			SceneVP->SetViewportSize(size.X, size.Y);
+			Window->SetViewportSizeDrivenByWindow(true);
+		}
+	}
+
 	return Settings->Flags.bStereoEnabled;
 }
 
@@ -1961,7 +1926,7 @@ void FOculusRiftHMD::SetupOcclusionMeshes()
 		VisibleAreaMeshes[0].BuildMesh(CB_LeftEyeVisibleAreaPositions, VisibleAreaVertexCount, FHMDViewMesh::MT_VisibleArea);
 		VisibleAreaMeshes[1].BuildMesh(CB_RightEyeVisibleAreaPositions, VisibleAreaVertexCount, FHMDViewMesh::MT_VisibleArea);
 	}
-	else if (HmdDesc.Type == ovrHmdType::ovrHmd_E3_2015 || HmdDesc.Type == ovrHmdType::ovrHmd_ES06)
+	else if (HmdDesc.Type > ovrHmdType::ovrHmd_CB)
 	{
 		HiddenAreaMeshes[0].BuildMesh(EVT_LeftEyeHiddenAreaPositions, HiddenAreaVertexCount, FHMDViewMesh::MT_HiddenArea);
 		HiddenAreaMeshes[1].BuildMesh(EVT_RightEyeHiddenAreaPositions, HiddenAreaVertexCount, FHMDViewMesh::MT_HiddenArea);
@@ -2223,10 +2188,6 @@ void FOculusRiftHMD::LoadFromIni()
 		}
 		Settings->NearClippingPlane = f;
 	}
-	if (GConfig->GetVector(OculusSettings, TEXT("MirrorWindowSize"), vec, GEngineIni))
-	{
-		Settings->MirrorWindowSize = FIntPoint(FMath::Clamp(int(vec.X), 0, 5000), FMath::Clamp(int(vec.Y), 0, 5000));
-	}
 	if (GConfig->GetInt(OculusSettings, TEXT("MirrorWindowMode"), i, GEngineIni))
 	{
 		if (i < 0)
@@ -2321,7 +2282,6 @@ void FOculusRiftHMD::SaveToIni()
 	{
 		GConfig->SetInt(OculusSettings, TEXT("MirrorWindowMode"), -GetSettings()->MirrorWindowMode, GEngineIni);
 	}
-	GConfig->SetVector(OculusSettings, TEXT("MirrorWindowSize"), FVector(Settings->MirrorWindowSize.X, Settings->MirrorWindowSize.Y, 0), GEngineIni);
 #endif // #if !UE_BUILD_SHIPPING
 }
 
@@ -2331,11 +2291,32 @@ bool FOculusRiftHMD::HandleInputKey(UPlayerInput* pPlayerInput,
 	return false;
 }
 
-void FOculusRiftHMD::OnBeginPlay()
+void FOculusRiftHMD::MakeSureValidFrameExists(AWorldSettings* InWorldSettings)
+{
+	CreateAndInitNewGameFrame(InWorldSettings);
+	check(Frame.IsValid());
+	Frame->Flags.bOutOfFrame = true;
+	Frame->Settings->Flags.bHeadTrackingEnforced = true; // to make sure HMD data is available
+
+	// if we need to enable stereo then populate the frame with initial tracking data.
+	// once this is done GetOrientationAndPosition will be able to return actual HMD / MC data (when requested
+	// from BeginPlay event, for example).
+	if (Flags.bNeedEnableStereo)
+	{
+		auto CurrentFrame = GetGameFrame();
+		InitDevice();
+		FOvrSessionShared::AutoSession OvrSession(Session);
+		CurrentFrame->InitialTrackingState = CurrentFrame->GetTrackingState(OvrSession);
+		CurrentFrame->GetHeadAndEyePoses(CurrentFrame->InitialTrackingState, CurrentFrame->CurHeadPose, CurrentFrame->CurEyeRenderPose);
+	}
+}
+
+void FOculusRiftHMD::OnBeginPlay(FWorldContext& InWorldContext)
 {
 	CachedViewportWidget.Reset();
 	CachedWindow.Reset();
 
+#if WITH_EDITOR
 	// @TODO: add more values here.
 	// This call make sense when 'Play' is used from the Editor;
 	if (GIsEditor)
@@ -2349,16 +2330,22 @@ void FOculusRiftHMD::OnBeginPlay()
 		Settings->PositionOffset = FVector::ZeroVector;
 		Settings->BaseOrientation = FQuat::Identity;
 		Settings->BaseOffset = FVector::ZeroVector;
-		Settings->WorldToMetersScale = 100.f;
+		Settings->WorldToMetersScale = InWorldContext.World()->GetWorldSettings()->WorldToMeters;
 		Settings->Flags.bWorldToMetersOverride = false;
 		InitDevice();
 
 		FApp::SetUseVRFocus(true);
 		FApp::SetHasVRFocus(true);
+		OnStartGameFrame(InWorldContext);
+	}
+	else
+#endif
+	{
+		MakeSureValidFrameExists(InWorldContext.World()->GetWorldSettings());
 	}
 }
 
-void FOculusRiftHMD::OnEndPlay()
+void FOculusRiftHMD::OnEndPlay(FWorldContext& InWorldContext)
 {
 	if (GIsEditor)
 	{

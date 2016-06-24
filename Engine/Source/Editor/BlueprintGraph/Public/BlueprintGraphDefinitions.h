@@ -34,6 +34,7 @@
 #include "K2Node_FormatText.h"
 #include "K2Node_FunctionEntry.h"
 #include "K2Node_FunctionResult.h"
+#include "K2Node_GetClassDefaults.h"
 #include "K2Node_GetDataTableRow.h"
 #include "K2Node_GetArrayItem.h"
 #include "K2Node_IfThenElse.h"

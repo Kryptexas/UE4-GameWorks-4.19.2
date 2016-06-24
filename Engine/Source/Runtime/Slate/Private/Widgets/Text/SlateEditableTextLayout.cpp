@@ -42,6 +42,20 @@ FORCEINLINE FReply BoolToReply(const bool bHandled)
 	return (bHandled) ? FReply::Handled() : FReply::Unhandled();
 }
 
+bool IsCharAllowed(const TCHAR InChar)
+{
+	// Certain characters are not allowed
+	if (InChar == TEXT('\t'))
+	{
+		return true;
+	}
+	else if (InChar <= 0x1F)
+	{
+		return false;
+	}
+	return true;
+}
+
 }
 
 FSlateEditableTextLayout::FSlateEditableTextLayout(ISlateEditableTextWidget& InOwnerWidget, const TAttribute<FText>& InInitialText, FTextBlockStyle InTextStyle, const TOptional<ETextShapingMethod> InTextShapingMethod, const TOptional<ETextFlowDirection> InTextFlowDirection, TSharedRef<ITextLayoutMarshaller> InTextMarshaller, TSharedRef<ITextLayoutMarshaller> InHintTextMarshaller)
@@ -193,16 +207,21 @@ FSlateEditableTextLayout::~FSlateEditableTextLayout()
 
 void FSlateEditableTextLayout::SetText(const TAttribute<FText>& InText)
 {
+	const FText PreviousText = BoundText.Get(FText::GetEmpty());
 	BoundText = InText;
-
-	const FText& TextToSet = BoundText.Get(FText::GetEmpty());
+	const FText NewText = BoundText.Get(FText::GetEmpty());
 
 	// We need to force an update if the text doesn't match the editable text, as the editable 
 	// text may not match the current bound text since it may have been changed by the user
 	const FText EditableText = GetEditableText();
-	const bool bForceRefresh = !EditableText.ToString().Equals(TextToSet.ToString(), ESearchCase::CaseSensitive);
+	const bool bForceRefresh = !EditableText.ToString().Equals(NewText.ToString(), ESearchCase::CaseSensitive);
 
-	if (RefreshImpl(&TextToSet, bForceRefresh))
+	// Only emit the "text changed" event if the text has actually been changed
+	const bool bHasTextChanged = OwnerWidget->GetSlateWidget()->HasKeyboardFocus() 
+		? !NewText.ToString().Equals(EditableText.ToString(), ESearchCase::CaseSensitive)
+		: !NewText.ToString().Equals(PreviousText.ToString(), ESearchCase::CaseSensitive);
+
+	if (RefreshImpl(&NewText, bForceRefresh))
 	{
 		// Make sure we move the cursor to the end of the new text if we had keyboard focus
 		if (OwnerWidget->GetSlateWidget()->HasKeyboardFocus())
@@ -211,7 +230,10 @@ void FSlateEditableTextLayout::SetText(const TAttribute<FText>& InText)
 		}
 
 		// Let outsiders know that the text content has been changed
-		OwnerWidget->OnTextChanged(TextToSet);
+		if (bHasTextChanged)
+		{
+			OwnerWidget->OnTextChanged(NewText);
+		}
 	}
 }
 
@@ -463,6 +485,11 @@ bool FSlateEditableTextLayout::RefreshImpl(const FText* InTextToSet, const bool 
 
 	bWasPasswordLastTick = bIsPassword;
 
+	if (bHasSetText)
+	{
+		TextLayout->UpdateIfNeeded();
+	}
+
 	return bHasSetText;
 }
 
@@ -540,6 +567,12 @@ bool FSlateEditableTextLayout::HandleFocusReceived(const FFocusEvent& InFocusEve
 	// Store undo state to use for escape key reverts
 	MakeUndoState(OriginalText);
 
+	// Jump to the end of the document?
+	if (InFocusEvent.GetCause() != EFocusCause::Mouse && InFocusEvent.GetCause() != EFocusCause::OtherWidgetLostFocus && OwnerWidget->ShouldJumpCursorToEndWhenFocused())
+	{
+		GoTo(ETextLocation::EndOfDocument);
+	}
+
 	// Select All Text
 	if (OwnerWidget->ShouldSelectAllTextWhenFocused())
 	{
@@ -554,7 +587,7 @@ bool FSlateEditableTextLayout::HandleFocusReceived(const FFocusEvent& InFocusEve
 	// of making sure that gets scrolled into view
 	PositionToScrollIntoView.Reset();
 
-	return false;
+	return true;
 }
 
 bool FSlateEditableTextLayout::HandleFocusLost(const FFocusEvent& InFocusEvent)
@@ -608,6 +641,10 @@ bool FSlateEditableTextLayout::HandleFocusLost(const FFocusEvent& InFocusEvent)
 	const FText EditedText = GetEditableText();
 
 	OwnerWidget->OnTextCommitted(EditedText, TextAction);
+
+	// Reload underlying value now it is committed  (commit may alter the value) 
+	// so it can be re-displayed in the edit box
+	LoadText();
 
 	UpdateCursorHighlight();
 
@@ -1182,18 +1219,7 @@ bool FSlateEditableTextLayout::HandleTypeChar(const TCHAR InChar)
 	}
 
 	// Certain characters are not allowed
-	bool bIsCharAllowed = true;
-	{
-		if (InChar == TEXT('\t'))
-		{
-			bIsCharAllowed = true;
-		}
-		else if (InChar <= 0x1F)
-		{
-			bIsCharAllowed = false;
-		}
-	}
-
+	const bool bIsCharAllowed = IsCharAllowed(InChar);
 	if (bIsCharAllowed)
 	{
 		const FTextLocation CursorInteractionPosition = CursorInfo.GetCursorInteractionLocation();
@@ -1603,7 +1629,11 @@ void FSlateEditableTextLayout::PasteTextFromClipboard()
 	FString PastedText;
 	FPlatformMisc::ClipboardPaste(PastedText);
 
-	InsertTextAtCursorImpl(PastedText);
+	if (PastedText.Len() > 0)
+	{
+		InsertTextAtCursorImpl(PastedText);
+		TextLayout->UpdateIfNeeded();
+	}
 }
 
 void FSlateEditableTextLayout::InsertTextAtCursor(const FString& InString)
@@ -1616,27 +1646,74 @@ void FSlateEditableTextLayout::InsertTextAtCursor(const FString& InString)
 	FScopedEditableTextTransaction TextTransaction(*this);
 
 	DeleteSelectedText();
-	InsertTextAtCursorImpl(InString);
+
+	if (InString.Len() > 0)
+	{
+		InsertTextAtCursorImpl(InString);
+		TextLayout->UpdateIfNeeded();
+	}
 }
 
 void FSlateEditableTextLayout::InsertTextAtCursorImpl(const FString& InString)
 {
-	if (InString.Len())
+	if (OwnerWidget->IsTextReadOnly() || InString.Len() == 0)
 	{
-		for (const TCHAR* Character = InString.GetCharArray().GetData(); *Character; ++Character)
+		return;
+	}
+
+	// Sanitize out any invalid characters
+	FString SanitizedString = InString;
+	{
+		const bool bIsMultiLine = OwnerWidget->IsMultiLineTextEdit();
+		SanitizedString.GetCharArray().RemoveAll([&](const TCHAR InChar) -> bool
 		{
-			if (*Character == '\n')
+			const bool bIsCharAllowed = IsCharAllowed(InChar) || (bIsMultiLine || !FChar::IsLinebreak(InChar));
+			return !bIsCharAllowed;
+		});
+	}
+
+	// Split into lines
+	TArray<FTextRange> LineRanges;
+	FTextRange::CalculateLineRangesFromString(SanitizedString, LineRanges);
+
+	if (AnyTextSelected())
+	{
+		// Delete selected text
+		DeleteSelectedText();
+	}
+
+	// Insert each line
+	{
+		bool bIsFirstLine = true;
+		for (const FTextRange& LineRange : LineRanges)
+		{
+			if (!bIsFirstLine)
 			{
-				if (OwnerWidget->IsMultiLineTextEdit())
+				const FTextLocation CursorInteractionPosition = CursorInfo.GetCursorInteractionLocation();
+				if (TextLayout->SplitLineAt(CursorInteractionPosition))
 				{
-					InsertNewLineAtCursorImpl();
+					// Adjust the cursor position to be at the beginning of the new line
+					const FTextLocation NewCursorPosition = FTextLocation(CursorInteractionPosition.GetLineIndex() + 1, 0);
+					CursorInfo.SetCursorLocationAndCalculateAlignment(*TextLayout, NewCursorPosition);
 				}
 			}
-			else
-			{
-				HandleTypeChar(*Character);
-			}
+			bIsFirstLine = false;
+
+			const FString NewLineText = FString(SanitizedString.Mid(LineRange.BeginIndex, LineRange.Len()));
+
+			const FTextLocation CursorInteractionPosition = CursorInfo.GetCursorInteractionLocation();
+			const TArray< FTextLayout::FLineModel >& Lines = TextLayout->GetLineModels();
+			const FTextLayout::FLineModel& Line = Lines[CursorInteractionPosition.GetLineIndex()];
+
+			// Insert character at caret position
+			TextLayout->InsertAt(CursorInteractionPosition, NewLineText);
+
+			// Advance caret position
+			const FTextLocation NewCursorPosition = FTextLocation(CursorInteractionPosition.GetLineIndex(), FMath::Min(CursorInteractionPosition.GetOffset() + NewLineText.Len(), Line.Text->Len()));
+			CursorInfo.SetCursorLocationAndCalculateAlignment(*TextLayout, NewCursorPosition);
 		}
+
+		UpdateCursorHighlight();
 	}
 }
 
@@ -2599,9 +2676,13 @@ void FSlateEditableTextLayout::BeginEditTransation()
 	// Never change text on read only controls! 
 	check(!OwnerWidget->IsTextReadOnly());
 
-	// We're starting to (potentially) change text
-	check(!StateBeforeChangingText.IsSet());
+	if (StateBeforeChangingText.IsSet())
+	{
+		// Already within a translation - don't open another
+		return;
+	}
 
+	// We're starting to (potentially) change text
 	// Save off an undo state in case we actually change the text
 	StateBeforeChangingText = SlateEditableTextTypes::FUndoState();
 	MakeUndoState(StateBeforeChangingText.GetValue());
@@ -2609,9 +2690,13 @@ void FSlateEditableTextLayout::BeginEditTransation()
 
 void FSlateEditableTextLayout::EndEditTransaction()
 {
-	// We're no longer changing text
-	check(StateBeforeChangingText.IsSet());
+	if (!StateBeforeChangingText.IsSet())
+	{
+		// No transaction to close
+		return;
+	}
 
+	// We're no longer changing text
 	const FText EditedText = GetEditableText();
 
 	// Has the text changed?

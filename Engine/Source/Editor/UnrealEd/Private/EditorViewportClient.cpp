@@ -760,7 +760,7 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, c
     
 			    if (bConstrainAspectRatio)
 			    {
-				    if ((int32)ERHIZBuffer::IsInverted != 0)
+				    if ((bool)ERHIZBuffer::IsInverted)
 				    {
 					    ViewInitOptions.ProjectionMatrix = FReversedZPerspectiveMatrix(
 						    MatrixFOV,
@@ -801,7 +801,7 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, c
 					    YAxisMultiplier = 1.0f;
 				    }
     
-				    if ((int32)ERHIZBuffer::IsInverted != 0)
+				    if ((bool)ERHIZBuffer::IsInverted)
 				    {
 					    ViewInitOptions.ProjectionMatrix = FReversedZPerspectiveMatrix(
 						    MatrixFOV,
@@ -828,7 +828,7 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, c
 		}
 		else
 		{
-			static_assert((int32)ERHIZBuffer::IsInverted != 0, "Check all the Rotation Matrix transformations!");
+			static_assert((bool)ERHIZBuffer::IsInverted, "Check all the Rotation Matrix transformations!");
 			float ZScale = 0.5f / HALF_WORLD_MAX;
 			float ZOffset = HALF_WORLD_MAX;
 
@@ -3143,15 +3143,37 @@ void FEditorViewportClient::SetupViewForRendering( FSceneViewFamily& ViewFamily,
 	FPixelInspectorModule* PixelInspectorModule = &FModuleManager::LoadModuleChecked<FPixelInspectorModule>(TEXT("PixelInspectorModule"));
 	if (PixelInspectorModule != nullptr)
 	{
-		View.bUsePixelInspector = PixelInspectorModule->IsPixelInspectorEnable();
-		bool IsMouseInsideViewport = CurrentMousePos != FIntPoint(-1, -1);
-		if (View.bUsePixelInspector && IsMouseInsideViewport)
+		bool IsInspectorActive = PixelInspectorModule->IsPixelInspectorEnable();
+		View.bUsePixelInspector = IsInspectorActive;
+		FIntPoint InspectViewportPos = FIntPoint(-1, -1);
+		if (IsInspectorActive)
+		{
+			if (CurrentMousePos == FIntPoint(-1, -1))
+			{
+				uint32 CoordinateViewportId = 0;
+				PixelInspectorModule->GetCoordinatePosition(InspectViewportPos, CoordinateViewportId);
+				bool IsCoordinateInViewport = InspectViewportPos.X <= Viewport->GetSizeXY().X && InspectViewportPos.Y <= Viewport->GetSizeXY().Y;
+				IsInspectorActive = IsCoordinateInViewport && (CoordinateViewportId == View.State->GetViewKey());
+				if (IsInspectorActive)
+				{
+					PixelInspectorModule->SetViewportInformation(View.State->GetViewKey(), Viewport->GetSizeXY());
+				}
+			}
+			else
+			{
+				InspectViewportPos = CurrentMousePos;
+				PixelInspectorModule->SetViewportInformation(View.State->GetViewKey(), Viewport->GetSizeXY());
+				PixelInspectorModule->SetCoordinatePosition(CurrentMousePos, false);
+			}
+		}
+
+		if (IsInspectorActive)
 		{
 			// Ready to send a request
 			FSceneInterface *SceneInterface = GetScene();
-			PixelInspectorModule->CreatePixelInspectorRequest(CurrentMousePos, View.State->GetViewKey(), SceneInterface);
+			PixelInspectorModule->CreatePixelInspectorRequest(InspectViewportPos, View.State->GetViewKey(), SceneInterface);
 		}
-		else if (!View.bUsePixelInspector && IsMouseInsideViewport)
+		else if (!View.bUsePixelInspector && CurrentMousePos != FIntPoint(-1, -1))
 		{
 			//Track in case the user hit esc key to stop inspecting pixel
 			PixelInspectorRealtimeManagement(this, true);
@@ -3170,7 +3192,8 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 	float DeltaTimeSeconds;
 
 	UWorld* World = GetWorld();
-	if (( GetScene() != World->Scene) || (IsRealtime() == true))
+	// During Simulation blueprints are directly using the World time, causing a mismatch with Material's Frame time
+	if (( GetScene() != World->Scene) || (IsRealtime() && !IsSimulateInEditorViewport()))
 	{
 		// Use time relative to start time to avoid issues with float vs double
 		TimeSeconds = FApp::GetCurrentTime() - GStartTime;
@@ -4837,7 +4860,7 @@ void FEditorViewportClient::ProcessScreenShots(FViewport* InViewport)
 
 		// If capture region isn't valid, we need to determine which rectangle to capture from.
 		// We need to calculate a proper view rectangle so that we can take into account camera
-		// properties, such as it being aspect ratio constrainted
+		// properties, such as it being aspect ratio constrained
 		if (GIsHighResScreenshot && !bCaptureAreaValid)
 		{
 			FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(

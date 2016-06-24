@@ -967,6 +967,7 @@ namespace SceneOutliner
 
 		PendingOperations.Empty();
 		TreeItemMap.Reset();
+		PendingTreeItemMap.Empty();
 
 		RootTreeItems.Empty();
 	}
@@ -1107,6 +1108,8 @@ namespace SceneOutliner
 	bool SSceneOutliner::AddItemToTree(FTreeItemRef Item)
 	{
 		const auto ItemID = Item->GetID();
+
+		PendingTreeItemMap.Remove(ItemID);
 
 		// If a tree item already exists that represents the same data, bail
 		if (TreeItemMap.Find(ItemID))
@@ -1978,7 +1981,7 @@ namespace SceneOutliner
 		{
 			if( InActor && SharedData->RepresentingWorld == InActor->GetWorld() && IsActorDisplayable(InActor) )
 			{
-				if (!TreeItemMap.Find(InActor))
+				if (!TreeItemMap.Find(InActor) && !PendingTreeItemMap.Find(InActor))
 				{
 					// Update the total actor count that match the filters
 					if (Filters->PassesAllFilters(FActorTreeItem(InActor)))
@@ -1999,8 +2002,13 @@ namespace SceneOutliner
 			if( InActor && SharedData->RepresentingWorld == InActor->GetWorld() )
 			{
 				ApplicableActors.Remove(InActor);
+				auto* ItemPtr = TreeItemMap.Find(InActor);
+				if (!ItemPtr)
+				{
+					ItemPtr = PendingTreeItemMap.Find(InActor);
+				}
 
-				if (auto* ItemPtr = TreeItemMap.Find(InActor))
+				if (ItemPtr)
 				{
 					PendingOperations.Emplace(FPendingTreeOperation::Removed, ItemPtr->ToSharedRef());
 					Refresh();
@@ -2386,6 +2394,8 @@ namespace SceneOutliner
 						const EEditAction::Type CanProcess = ActiveModes[ModeIndex]->GetActionEditDelete();
 						if (CanProcess == EEditAction::Process)
 						{
+							// We don't consider the return value here, as false is assumed to mean there was an internal error processing delete, not that it should defer to other modes/default behaviour
+							ActiveModes[ModeIndex]->ProcessEditDelete();
 							return FReply::Handled();
 						}
 						else if (CanProcess == EEditAction::Halt)

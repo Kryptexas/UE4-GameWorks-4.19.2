@@ -89,13 +89,15 @@ public:
 	* Updates the ReferenceToLocal matrices using the new dynamic data.
 	* @param	InSkelMeshComponent - parent skel mesh component
 	* @param	InLODIndex - each lod has its own bone map 
-	* @param	ActiveVertexAnims - vertex anims to blend with during skinning
+	* @param	InActiveMorphTargets - Active Morph Targets to blend with during skinning
+	* @param	InMorphTargetWeights - All Morph Target weights to blend with during skinning
 	*/
 	FDynamicSkelMeshObjectDataCPUSkin(
 		USkinnedMeshComponent* InMeshComponent,
 		FSkeletalMeshResource* InSkeletalMeshResource,
 		int32 InLODIndex,
-		const TArray<FActiveVertexAnim>& InActiveVertexAnims
+		const TArray<FActiveMorphTarget>& InActiveMorphTargets,
+		const TArray<float>& InMorphTargetWeights
 		);
 
 	virtual ~FDynamicSkelMeshObjectDataCPUSkin()
@@ -114,8 +116,10 @@ public:
 #endif
 	/** currently LOD for bones being updated */
 	int32 LODIndex;
-	/** vertex anims to blend when skinning verts */
-	TArray<FActiveVertexAnim> ActiveVertexAnims;
+	/** Morphs to blend when skinning verts */
+	TArray<FActiveMorphTarget> ActiveMorphTargets;
+	/** Morph Weights to blend when skinning verts */
+	TArray<float> MorphTargetWeights;
 
 	/**
 	* Returns the size of memory allocated by render data
@@ -125,7 +129,7 @@ public:
 		SIZE_T ResourceSize = sizeof(*this);
  		
  		ResourceSize += ReferenceToLocal.GetAllocatedSize();
- 		ResourceSize += ActiveVertexAnims.GetAllocatedSize();
+ 		ResourceSize += ActiveMorphTargets.GetAllocatedSize();
  		
 		return ResourceSize;
  	}
@@ -145,7 +149,7 @@ public:
 	//~ Begin FSkeletalMeshObject Interface
 	virtual void InitResources() override;
 	virtual void ReleaseResources() override;
-	virtual void Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveVertexAnim>& ActiveVertexAnims) override;
+	virtual void Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveMorphTarget>& ActiveMorphTargets, const TArray<float>& MorphTargetsWeights) override;
 	void UpdateDynamicData_RenderThread(FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectDataCPUSkin* InDynamicData, uint32 FrameNumberToPrepare);
 	virtual void UpdateRecomputeTangent(int32 MaterialIndex, bool bRecomputeTangent) override;
 	virtual void EnableBlendWeightRendering(bool bEnabled, const TArray<int32>& InBonesOfInterest) override;

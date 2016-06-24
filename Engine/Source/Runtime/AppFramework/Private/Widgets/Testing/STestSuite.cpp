@@ -5839,7 +5839,11 @@ void RestoreSlateTestSuite()
 	->AddArea
 	(
 		FTabManager::NewArea(720,600)
+#if PLATFORM_MAC
+		->SetWindow( FVector2D(420,32), false )
+#else
 		->SetWindow( FVector2D(420,10), false )
+#endif
 		->Split
 		(
 			FTabManager::NewStack()
@@ -5854,7 +5858,11 @@ void RestoreSlateTestSuite()
 	(
 		// This area will get a 400x600 window at 10,10
 		FTabManager::NewArea(400,600)
+#if PLATFORM_MAC
+		->SetWindow( FVector2D(10,32), false )
+#else
 		->SetWindow( FVector2D(10,10), false )
+#endif
 		->Split
 		(
 			// The area contains a single tab with the widget reflector.

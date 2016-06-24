@@ -1683,6 +1683,40 @@ namespace UnrealBuildTool
 		{
 			string FileListPath = "../Intermediate/Build/ExternalFiles.xml";
 
+			// Create a set of filenames
+			HashSet<FileReference> Files = new HashSet<FileReference>();
+			GetExternalFileList(Files);
+
+			// Normalize all the filenames
+			HashSet<string> NormalizedFileNames = new HashSet<string>(StringComparer.CurrentCultureIgnoreCase);
+			foreach (string FileName in Files.Select(x => x.FullName))
+			{
+				string NormalizedFileName = FileName.Replace('\\', '/');
+				NormalizedFileNames.Add(NormalizedFileName);
+			}
+
+			// Add the existing filenames
+			if (UEBuildConfiguration.bMergeExternalFileList)
+			{
+				foreach (string FileName in Utils.ReadClass<ExternalFileList>(FileListPath).FileNames)
+				{
+					NormalizedFileNames.Add(FileName);
+				}
+			}
+
+			// Write the output list
+			ExternalFileList FileList = new ExternalFileList();
+			FileList.FileNames.AddRange(NormalizedFileNames);
+			FileList.FileNames.Sort();
+			Utils.WriteClass<ExternalFileList>(FileList, FileListPath, "");
+		}
+
+		/// <summary>
+		/// Create a list of all the externally referenced files
+		/// </summary>
+		/// <param name="Files">Set of referenced files</param>
+		void GetExternalFileList(HashSet<FileReference> Files)
+		{
 			// Find all the modules we depend on
 			HashSet<UEBuildModule> Modules = new HashSet<UEBuildModule>();
 			foreach (UEBuildBinary Binary in AppBinaries)
@@ -1692,9 +1726,6 @@ namespace UnrealBuildTool
 					Modules.Add(Module);
 				}
 			}
-
-			// Create a set of filenames
-			HashSet<string> FileNames = new HashSet<string>(StringComparer.CurrentCultureIgnoreCase);
 
 			// Get the platform we're building for
 			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
@@ -1708,7 +1739,7 @@ namespace UnrealBuildTool
 				// Add Additional Bundle Resources for all modules
 				foreach (UEBuildBundleResource Resource in Rules.AdditionalBundleResources)
 				{
-					FileNames.Add(Resource.ResourcePath);
+					Files.Add(new FileReference(Resource.ResourcePath));
 				}
 
 				// Add all the include paths etc. for external modules
@@ -1716,7 +1747,7 @@ namespace UnrealBuildTool
 				if (ExternalModule != null)
 				{
 					// Add the rules file itself
-					FileNames.Add(ModuleRulesFileName.FullName);
+					Files.Add(ModuleRulesFileName);
 
 					// Get a list of all the library paths
 					List<string> LibraryPaths = new List<string>();
@@ -1738,13 +1769,13 @@ namespace UnrealBuildTool
 								string LibraryFileName = Path.Combine(LibraryPath, LibraryName);
 								if (File.Exists(LibraryFileName))
 								{
-									FileNames.Add(LibraryFileName);
+									Files.Add(new FileReference(LibraryFileName));
 								}
 
 								string UnixLibraryFileName = Path.Combine(LibraryPath, "lib" + LibraryName + LibraryExtension);
 								if (File.Exists(UnixLibraryFileName))
 								{
-									FileNames.Add(UnixLibraryFileName);
+									Files.Add(new FileReference(UnixLibraryFileName));
 								}
 							}
 						}
@@ -1756,7 +1787,7 @@ namespace UnrealBuildTool
 						string ShadowFileName = Path.GetFullPath(AdditionalShadowFile);
 						if (File.Exists(ShadowFileName))
 						{
-							FileNames.Add(ShadowFileName);
+							Files.Add(new FileReference(ShadowFileName));
 						}
 					}
 
@@ -1775,36 +1806,13 @@ namespace UnrealBuildTool
 								string Extension = Path.GetExtension(IncludeFileName).ToLower();
 								if (Extension == ".h" || Extension == ".inl")
 								{
-									FileNames.Add(IncludeFileName);
+									Files.Add(new FileReference(IncludeFileName));
 								}
 							}
 						}
 					}
 				}
 			}
-
-			// Normalize all the filenames
-			HashSet<string> NormalizedFileNames = new HashSet<string>(StringComparer.CurrentCultureIgnoreCase);
-			foreach (string FileName in FileNames)
-			{
-				string NormalizedFileName = Path.GetFullPath(FileName).Replace('\\', '/');
-				NormalizedFileNames.Add(NormalizedFileName);
-			}
-
-			// Add the existing filenames
-			if (UEBuildConfiguration.bMergeExternalFileList)
-			{
-				foreach (string FileName in Utils.ReadClass<ExternalFileList>(FileListPath).FileNames)
-				{
-					NormalizedFileNames.Add(FileName);
-				}
-			}
-
-			// Write the output list
-			ExternalFileList FileList = new ExternalFileList();
-			FileList.FileNames.AddRange(NormalizedFileNames);
-			FileList.FileNames.Sort();
-			Utils.WriteClass<ExternalFileList>(FileList, FileListPath, "");
 		}
 
 		/// <summary>
@@ -1883,33 +1891,36 @@ namespace UnrealBuildTool
 				Manifest = Utils.ReadClass<BuildManifest>(ManifestPath.FullName);
 			}
 
-			// Expand all the paths in the receipt; they'll currently use variables for the engine and project directories
-			TargetReceipt ReceiptWithFullPaths = new TargetReceipt(Receipt);
-			ReceiptWithFullPaths.ExpandPathVariables(UnrealBuildTool.EngineDirectory, ProjectDirectory);
-
-			foreach (BuildProduct BuildProduct in ReceiptWithFullPaths.BuildProducts)
+			if(!BuildConfiguration.bEnableCodeAnalysis)
 			{
-				// If we're cleaning, don't add any precompiled binaries to the manifest. We don't want to delete them.
-				if (UEBuildConfiguration.bCleanProject && bUsePrecompiled && BuildProduct.IsPrecompiled)
+				// Expand all the paths in the receipt; they'll currently use variables for the engine and project directories
+				TargetReceipt ReceiptWithFullPaths = new TargetReceipt(Receipt);
+				ReceiptWithFullPaths.ExpandPathVariables(UnrealBuildTool.EngineDirectory, ProjectDirectory);
+
+				foreach (BuildProduct BuildProduct in ReceiptWithFullPaths.BuildProducts)
 				{
-					continue;
+					// If we're cleaning, don't add any precompiled binaries to the manifest. We don't want to delete them.
+					if (UEBuildConfiguration.bCleanProject && bUsePrecompiled && BuildProduct.IsPrecompiled)
+					{
+						continue;
+					}
+
+					// Don't add static libraries into the manifest unless we're explicitly building them; we don't submit them to Perforce.
+					if (!UEBuildConfiguration.bCleanProject && !bPrecompile && (BuildProduct.Type == BuildProductType.StaticLibrary || BuildProduct.Type == BuildProductType.ImportLibrary))
+					{
+						Manifest.LibraryBuildProducts.Add(BuildProduct.Path);
+					}
+					else
+					{
+						Manifest.AddBuildProduct(BuildProduct.Path);
+					}
 				}
 
-				// Don't add static libraries into the manifest unless we're explicitly building them; we don't submit them to Perforce.
-				if (!UEBuildConfiguration.bCleanProject && !bPrecompile && (BuildProduct.Type == BuildProductType.StaticLibrary || BuildProduct.Type == BuildProductType.ImportLibrary))
+				UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
+				if (OnlyModules.Count == 0)
 				{
-					Manifest.LibraryBuildProducts.Add(BuildProduct.Path);
+					Manifest.AddBuildProduct(ReceiptFileName);
 				}
-				else
-				{
-					Manifest.AddBuildProduct(BuildProduct.Path);
-				}
-			}
-
-			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
-			if (OnlyModules.Count == 0)
-			{
-				Manifest.AddBuildProduct(ReceiptFileName);
 			}
 
 			if (UEBuildConfiguration.bCleanProject)
@@ -2001,6 +2012,43 @@ namespace UnrealBuildTool
 							}
 							Receipt.AdditionalProperties.AddRange(Module.Rules.AdditionalPropertiesForReceipt);
 						}
+					}
+				}
+			}
+
+			// Add any dependencies of precompiled modules into the receipt
+			if(bPrecompile)
+			{
+				// Add the runtime dependencies of precompiled modules that are not directly part of this target
+				foreach (UEBuildBinaryCPP Binary in AppBinaries.OfType<UEBuildBinaryCPP>())
+				{
+					if(PrecompiledBinaries.Contains(Binary))
+					{
+						foreach (UEBuildModule Module in Binary.Modules)
+						{
+							if (UniqueLinkedModules.Add(Module))
+							{
+								foreach (RuntimeDependency RuntimeDependency in Module.RuntimeDependencies)
+								{
+									string SourcePath = TargetReceipt.InsertPathVariables(RuntimeDependency.Path, UnrealBuildTool.EngineDirectory, ProjectDirectory);
+									Receipt.PrecompiledRuntimeDependencies.Add(SourcePath);
+								}
+							}
+						}
+					}
+				}
+
+				// Add all the files which are required to use the precompiled modules
+				HashSet<FileReference> ExternalFiles = new HashSet<FileReference>();
+				GetExternalFileList(ExternalFiles);
+
+				// Convert them into relative to the target receipt
+				foreach(FileReference ExternalFile in ExternalFiles)
+				{
+					if(ExternalFile.IsUnderDirectory(UnrealBuildTool.EngineDirectory) || ExternalFile.IsUnderDirectory(ProjectDirectory))
+					{
+						string VariablePath = TargetReceipt.InsertPathVariables(ExternalFile, UnrealBuildTool.EngineDirectory, ProjectDirectory);
+						Receipt.PrecompiledBuildDependencies.Add(VariablePath);
 					}
 				}
 			}
@@ -2773,17 +2821,21 @@ namespace UnrealBuildTool
 		{
 			List<UEBuildBinary> Result = new List<UEBuildBinary>();
 
-			foreach (UEBuildBinary DLLBinary in Binaries)
+			foreach (UEBuildBinary Binary in Binaries)
 			{
-				OnlyModule FoundOnlyModule = DLLBinary.FindOnlyModule(OnlyModules);
-				if (FoundOnlyModule != null)
+				// If we're doing an OnlyModule compile, we never want the executable that static libraries are linked into for monolithic builds
+				if(Binary.Config.Type != UEBuildBinaryType.Executable)
 				{
-					Result.Add(DLLBinary);
-
-					if (!String.IsNullOrEmpty(FoundOnlyModule.OnlyModuleSuffix))
+					OnlyModule FoundOnlyModule = Binary.FindOnlyModule(OnlyModules);
+					if (FoundOnlyModule != null)
 					{
-						DLLBinary.Config.OriginalOutputFilePaths = DLLBinary.Config.OutputFilePaths;
-						DLLBinary.Config.OutputFilePaths = DLLBinary.Config.OutputFilePaths.Select(Path => AddModuleFilenameSuffix(FoundOnlyModule.OnlyModuleName, Path, FoundOnlyModule.OnlyModuleSuffix)).ToList();
+						Result.Add(Binary);
+
+						if (!String.IsNullOrEmpty(FoundOnlyModule.OnlyModuleSuffix))
+						{
+							Binary.Config.OriginalOutputFilePaths = Binary.Config.OutputFilePaths;
+							Binary.Config.OutputFilePaths = Binary.Config.OutputFilePaths.Select(Path => AddModuleFilenameSuffix(FoundOnlyModule.OnlyModuleName, Path, FoundOnlyModule.OnlyModuleSuffix)).ToList();
+						}
 					}
 				}
 			}
@@ -3561,6 +3613,10 @@ namespace UnrealBuildTool
 				}
 			}
 
+			// Remove any enabled plugins that are unused on the current platform. This prevents having to stage the .uplugin files, but requires that the project descriptor
+			// doesn't have a platform-neutral reference to it.
+			EnabledPlugins.RemoveAll(Plugin => !UProjectInfo.IsPluginDescriptorRequiredForProject(Plugin, ProjectDescriptor, Platform, TargetType, UEBuildConfiguration.bBuildDeveloperTools, UEBuildConfiguration.bBuildEditor));
+
 			// Set the list of plugins that should be built
 			if (Rules.bBuildAllPlugins)
 			{
@@ -3730,7 +3786,7 @@ namespace UnrealBuildTool
 				}
 				else
 				{
-					Log.TraceWarning("Signing key file is missing! Executable will not include signing keys");
+					Log.TraceVerbose("Signing key file is missing! Executable will not include signing keys");
 				}
 			}
 

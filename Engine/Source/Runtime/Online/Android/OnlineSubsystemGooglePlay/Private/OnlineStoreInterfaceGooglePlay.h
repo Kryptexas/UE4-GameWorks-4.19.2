@@ -62,11 +62,11 @@ public:
 	virtual bool QueryForAvailablePurchases(const TArray<FString>& ProductIDs, FOnlineProductInformationReadRef& InReadObject) override;
 	virtual bool BeginPurchase(const FInAppPurchaseProductRequest& ProductRequest, FOnlineInAppPurchaseTransactionRef& InReadObject) override;
 	virtual bool IsAllowedToMakePurchases() override;
-	virtual bool RestorePurchases(FOnlineInAppPurchaseRestoreReadRef& InReadObject) override;
+	virtual bool RestorePurchases(const TArray<FInAppPurchaseProductRequest>& ConsumableProductFlags, FOnlineInAppPurchaseRestoreReadRef& InReadObject) override;
 	// End IOnlineStore 
 
 	void ProcessQueryAvailablePurchasesResults(bool bInSuccessful, const TArray<FInAppPurchaseProductInfo>& AvailablePurchases);
-	void ProcessPurchaseResult(bool bInSuccessful, const FString& InProductId, const FString& InReceiptData);
+	void ProcessPurchaseResult(bool bInSuccessful, const FString& InProductId, const FString& InReceiptData, const FString& Signature);
 
 	/** Cached in-app purchase restore transaction object, used to provide details to the developer about what products should be restored */
 	FOnlineInAppPurchaseRestoreReadPtr CachedPurchaseRestoreObject;

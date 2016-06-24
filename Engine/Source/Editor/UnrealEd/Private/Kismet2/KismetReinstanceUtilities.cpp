@@ -12,6 +12,7 @@
 #include "Engine/BlueprintGeneratedClass.h"
 #include "Engine/Selection.h"
 #include "BlueprintEditorSettings.h"
+#include "Animation/AnimInstance.h"
 
 DECLARE_CYCLE_STAT(TEXT("Replace Instances"), EKismetReinstancerStats_ReplaceInstancesOfClass, STATGROUP_KismetReinstancer );
 DECLARE_CYCLE_STAT(TEXT("Find Referencers"), EKismetReinstancerStats_FindReferencers, STATGROUP_KismetReinstancer );
@@ -402,6 +403,16 @@ public:
 			for (auto Obj : ObjectsToFinalize)
 			{
 				auto Actor = CastChecked<AActor>(Obj);
+
+				UWorld* World = Actor->GetWorld();
+				if (World)
+				{
+					// Remove any pending latent actions, as the compiled script code may have changed, and thus the
+					// cached LinkInfo data may now be invalid. This could happen in the fast path, since the original
+					// Actor instance will not be replaced in that case, and thus might still have latent actions pending.
+					World->GetLatentActionManager().RemoveActionsForObject(Actor);
+				}
+
 				Actor->ReregisterAllComponents();
 				Actor->RerunConstructionScripts();
 
@@ -662,19 +673,56 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance
 				}
 			}
 
+			TArray<UBlueprint*> OrderedBytecodeRecompile;
+
 			while (DependentBlueprintsToByteRecompile.Num())
 			{
 				auto Iter = DependentBlueprintsToByteRecompile.CreateIterator();
-				TWeakObjectPtr<UBlueprint> BPPtr = *Iter;
-				Iter.RemoveCurrent();
-				if (auto BP = BPPtr.Get())
+				if (UBlueprint* BP = Iter->Get())
 				{
-					FKismetEditorUtilities::RecompileBlueprintBytecode(BP, nullptr, true);
-					CompiledBlueprints.Add(BP);
+					OrderedBytecodeRecompile.Add(BP);
 				}
+				Iter.RemoveCurrent();
 			}
 
-			ensure(0 == DependentBlueprintsToRecompile.Num());
+			// Make sure we compile classes that are deeper in the class hierarchy later
+			// than ones that are higher:
+			OrderedBytecodeRecompile.Sort(
+				[](const UBlueprint& LHS, const UBlueprint& RHS)
+				{
+					int32 LHS_Depth = 0;
+					int32 RHS_Depth = 0;
+
+					UStruct* Iter = LHS.ParentClass;
+					while (Iter)
+					{
+						LHS_Depth += 1;
+						Iter = Iter->GetSuperStruct();
+					}
+
+					Iter = RHS.ParentClass;
+					while (Iter)
+					{
+						RHS_Depth += 1;
+						Iter = Iter->GetSuperStruct();
+					}
+
+					// use name as tie breaker, just so we're stable
+					// across editor sessions:
+					return LHS_Depth != RHS_Depth ? (LHS_Depth < RHS_Depth) : LHS.GetName() < RHS.GetName();
+				}
+			);
+
+			DependentBlueprintsToByteRecompile.Empty();
+
+			for (int I = 0; I != OrderedBytecodeRecompile.Num(); ++I)
+			{
+				UBlueprint* BP = OrderedBytecodeRecompile[I];
+				FKismetEditorUtilities::RecompileBlueprintBytecode(BP, nullptr, true);
+				ensure(0 == DependentBlueprintsToRecompile.Num());
+				CompiledBlueprints.Add(BP);
+			}
+
 
 			if (!bIsReinstancingSkeleton)
 			{
@@ -906,7 +954,12 @@ void FActorReplacementHelper::Finalize(const TMap<UObject*, UObject*>& OldToNewI
 	else if (CachedActorData.IsValid())
 	{
 		CachedActorData->ComponentInstanceData.FindAndReplaceInstances(OldToNewInstanceMap);
-		NewActor->ExecuteConstruction(TargetWorldTransform, &CachedActorData->ComponentInstanceData);
+		const bool bErrorFree = NewActor->ExecuteConstruction(TargetWorldTransform, &CachedActorData->ComponentInstanceData);
+		if (!bErrorFree)
+		{
+			// Save off the cached actor data for once the blueprint has been fixed so we can reapply it
+			NewActor->CurrentTransactionAnnotation = CachedActorData;
+		}
 	}
 	else
 	{

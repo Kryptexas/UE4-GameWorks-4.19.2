@@ -79,17 +79,7 @@ static FAutoConsoleCommand GDumpDrawListStatsCmd(
 
 EWindowMode::Type GetWindowModeType(EWindowMode::Type WindowMode)
 {
-	if (FPlatformProperties::SupportsWindowedMode())
-	{
-		if ((WindowMode != EWindowMode::Windowed && WindowMode != EWindowMode::WindowedMirror) && GEngine && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsFullscreenAllowed())
-		{
-			return EWindowMode::Fullscreen;
-		}
-
-		return WindowMode;
-	}
-
-	return EWindowMode::Fullscreen;
+	return FPlatformProperties::SupportsWindowedMode() ? WindowMode : EWindowMode::Fullscreen;
 }
 
 UGameEngine::UGameEngine(const FObjectInitializer& ObjectInitializer)
@@ -205,7 +195,7 @@ void UGameEngine::ConditionallyOverrideSettings(int32& ResolutionX, int32& Resol
 	}
 
 	//fullscreen is always supported, but don't allow windowed mode on platforms that dont' support it.
-	WindowMode = (!FPlatformProperties::SupportsWindowedMode() && (WindowMode == EWindowMode::Windowed || WindowMode == EWindowMode::WindowedMirror || WindowMode == EWindowMode::WindowedFullscreen)) ? EWindowMode::Fullscreen : WindowMode;
+	WindowMode = (!FPlatformProperties::SupportsWindowedMode() && (WindowMode == EWindowMode::Windowed || WindowMode == EWindowMode::WindowedFullscreen)) ? EWindowMode::Fullscreen : WindowMode;
 
 	FParse::Value(FCommandLine::Get(), TEXT("ResX="), ResolutionX);
 	FParse::Value(FCommandLine::Get(), TEXT("ResY="), ResolutionY);
@@ -339,11 +329,35 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 		AutoCenterType = EAutoCenter::None;
 	}
 
+	// Give the window the max width/height of either the requested resolution, or your available desktop resolution
+	// We need to do this as we request some 4K windows when rendering sequences, and the OS may try and clamp that
+	// window to your available desktop resolution
+	TOptional<float> MaxWindowWidth;
+	TOptional<float> MaxWindowHeight;
+	if (WindowMode == EWindowMode::Windowed)
+	{
+		// Get available desktop area
+		FDisplayMetrics DisplayMetrics;
+		if (FSlateApplication::IsInitialized())
+		{
+			FSlateApplication::Get().GetInitialDisplayMetrics(DisplayMetrics);
+		}
+		else
+		{
+			FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
+		}
+
+		MaxWindowWidth = FMath::Max(DisplayMetrics.VirtualDisplayRect.Right - DisplayMetrics.VirtualDisplayRect.Left, ResX);
+		MaxWindowHeight = FMath::Max(DisplayMetrics.VirtualDisplayRect.Bottom - DisplayMetrics.VirtualDisplayRect.Top, ResY);
+	}
+
 	TSharedRef<SWindow> Window = SNew(SWindow)
 	.ClientSize(FVector2D( ResX, ResY ))
 	.Title(WindowTitle)
 	.AutoCenter(AutoCenterType)
 	.ScreenPosition(FVector2D(WinX, WinY))
+	.MaxWidth(MaxWindowWidth)
+	.MaxHeight(MaxWindowHeight)
 	.FocusWhenFirstShown(true)
 	.SaneWindowPlacement(AutoCenterType == EAutoCenter::None)
 	.UseOSWindowBorder(true);
@@ -557,14 +571,18 @@ void UGameEngine::Init(IEngineLoop* InEngineLoop)
 		UGameViewportClient::OnViewportCreated().Broadcast();
 	}
 
-	GameInstance->StartGameInstance();
-
 	UE_LOG(LogInit, Display, TEXT("Game Engine Initialized.") );
 
 	// for IsInitialized()
 	bIsInitialized = true;
 }
 
+void UGameEngine::Start()
+{
+	UE_LOG(LogInit, Display, TEXT("Starting Game."));
+
+	GameInstance->StartGameInstance();
+}
 
 void UGameEngine::PreExit()
 {
@@ -1120,10 +1138,10 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	}
 
 	// Update Audio. This needs to occur after rendering as the rendering code updates the listener position.
-	FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
-	if (AudioDeviceManager)
+	FAudioDeviceManager* GameAudioDeviceManager = GEngine->GetAudioDeviceManager();
+	if (GameAudioDeviceManager)
 	{
-		AudioDeviceManager->UpdateActiveAudioDevices(bIsAnyNonPreviewWorldUnpaused);
+		GameAudioDeviceManager->UpdateActiveAudioDevices(bIsAnyNonPreviewWorldUnpaused);
 	}
 
 	// rendering thread commands
@@ -1206,4 +1224,10 @@ void UGameEngine::HandleTravelFailure_NotifyGameInstance(UWorld* World, ETravelF
 	{
 		GameInstance->HandleTravelError(FailureType);
 	}
+}
+
+void UGameEngine::HandleBrowseToDefaultMapFailure(FWorldContext& Context, const FString& TextURL, const FString& Error)
+{
+	Super::HandleBrowseToDefaultMapFailure(Context, TextURL, Error);
+	FPlatformMisc::RequestExit(false);
 }

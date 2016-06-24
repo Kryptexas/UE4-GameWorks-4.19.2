@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TpsData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>DotNetZip 1.9.1.8</Name>
-  <Location>//depot/UE4/Engine/Binaries/ThirdParty/Ionic/</Location>
-  <Date>2015-09-04T18:39:52.3867468-04:00</Date>
+  <Location>/Engine/Source/ThirdParty/DotNetZip/</Location>
+  <Date>2016-06-09T16:07:12.2801054-04:00</Date>
   <Function>In the UDK installer and the iPhonePackager</Function>
   <Justification>In the UDK installer and the iPhonePackager</Justification>
   <Platforms>
@@ -16,8 +16,12 @@
     <Product>UE4</Product>
   </Products>
   <TpsType>dll</TpsType>
-  <Eula />
-  <RedistributeTo />
+  <Eula>http://dotnetzip.codeplex.com/SourceControl/latest#License.txt</Eula>
+  <RedistributeTo>
+    <EndUserGroup>Licensees</EndUserGroup>
+    <EndUserGroup>Git</EndUserGroup>
+    <EndUserGroup>P4</EndUserGroup>
+  </RedistributeTo>
   <Redistribute>false</Redistribute>
   <IsSourceAvailable>false</IsSourceAvailable>
   <NoticeType>Full EULA Text</NoticeType>
@@ -39,5 +43,5 @@ M. If you bring a patent claim against any contributor over patents that you cla
 7. If you distribute any portion of the software in source code form, you may do so only under this license by including a complete copy of this license with your distribution.  If you distribute any portion of the software in compiled or object code form, you may only do so under a license that complies with this license.
 8. 8.The software is licensed “as-is.” You bear the risk of using it.  The contributors give no express warranties, guarantees or conditions.  You may have additional consumer rights under your local laws which this license cannot change.  To the extent permitted under your local laws, the contributors exclude the implied warranties of merchantability, fitness for a particular purpose and non-infringement.
 </Notification>
-  <LicenseFolder />
+  <LicenseFolder>/Engine/Source/ThirdParty/Licenses/DotNetZip1.9_License.txt</LicenseFolder>
 </TpsData>

@@ -20,6 +20,7 @@
 #include "Components/DecalComponent.h"
 #include "LandscapeProxy.h"
 #include "MessageLog.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
 #define LOCTEXT_NAMESPACE "GameplayStatics"
 
@@ -118,6 +119,30 @@ void UGameplayStatics::RemovePlayer(APlayerController* PlayerController, bool bD
 					PlayerPawn->Destroy();
 				}
 			}
+		}
+	}
+}
+
+int32 UGameplayStatics::GetPlayerControllerID(APlayerController* PlayerController)
+{
+	if (PlayerController)
+	{
+		if (ULocalPlayer* LocalPlayer = PlayerController->GetLocalPlayer())
+		{
+			return LocalPlayer->GetControllerId();
+		}
+	}
+
+	return INDEX_NONE;
+}
+
+void UGameplayStatics::SetPlayerControllerID(APlayerController* PlayerController, int32 ControllerId)
+{
+	if (PlayerController)
+	{
+		if (ULocalPlayer* LocalPlayer = PlayerController->GetLocalPlayer())
+		{
+			LocalPlayer->SetControllerId(ControllerId);
 		}
 	}
 }
@@ -636,6 +661,25 @@ void UGameplayStatics::GetAllActorsWithInterface(UObject* WorldContextObject, TS
 	}
 }
 
+void UGameplayStatics::GetAllActorsWithTag(UObject* WorldContextObject, FName Tag, TArray<AActor*>& OutActors)
+{
+	OutActors.Empty();
+
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+
+	// We do nothing if no tag is provided, rather than giving ALL actors!
+	if (!Tag.IsNone() && World)
+	{
+		for (FActorIterator It(World); It; ++It)
+		{
+			AActor* Actor = *It;
+			if (Actor && !Actor->IsPendingKill() && Actor->ActorHasTag(Tag))
+			{
+				OutActors.Add(Actor);
+			}
+		}
+	}
+}
 
 void UGameplayStatics::PlayWorldCameraShake(UObject* WorldContextObject, TSubclassOf<class UCameraShake> Shake, FVector Epicenter, float InnerRadius, float OuterRadius, float Falloff, bool bOrientShakeTowardsEpicenter)
 {

@@ -51,6 +51,14 @@ void FMovieSceneVisibilitySectionRecorder::CreateSection(UObject* InObjectToReco
 			bWasVisible = !Actor->bHidden;
 		}
 
+		// if time is not at the very start of the movie scene, make sure 
+		// we are hidden by default as the track will extrapolate backwards and show 
+		// objects that shouldnt be visible.
+		if (Time != MovieScene->GetPlaybackRange().GetLowerBoundValue())
+		{
+			MovieSceneSection->AddKey(MovieScene->GetPlaybackRange().GetLowerBoundValue(), false, EMovieSceneKeyInterpolation::Break);
+		}
+
 		MovieSceneSection->AddKey(Time, bWasVisible, EMovieSceneKeyInterpolation::Break);
 
 		MovieSceneSection->SetStartTime(Time);

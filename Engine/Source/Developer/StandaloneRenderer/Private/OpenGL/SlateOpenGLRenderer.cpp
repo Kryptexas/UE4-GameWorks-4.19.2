@@ -70,7 +70,7 @@ FSlateDrawBuffer& FSlateOpenGLRenderer::GetDrawBuffer()
 	return DrawBuffer;
 }
 
-void FSlateOpenGLRenderer::Initialize()
+bool FSlateOpenGLRenderer::Initialize()
 {
 	SharedContext.Initialize( NULL, NULL );
 
@@ -90,6 +90,8 @@ void FSlateOpenGLRenderer::Initialize()
 
 	// Create rendering resources if needed
 	RenderingPolicy->ConditionalInitializeResources();
+
+	return true;
 }
 
 /** 

@@ -3,12 +3,21 @@
 
 #if UE_ENABLE_ICU
 #include "Internationalization/Text.h"
-#include <unicode/locid.h>
-#include <unicode/brkiter.h>
-#include <unicode/coll.h>
-#include <unicode/numfmt.h>
-#include <unicode/decimfmt.h>
-#include <unicode/datefmt.h>
+#if defined(_MSC_VER) && USING_CODE_ANALYSIS
+	#pragma warning(push)
+	#pragma warning(disable:28251)
+	#pragma warning(disable:28252)
+	#pragma warning(disable:28253)
+#endif
+	#include <unicode/locid.h>
+	#include <unicode/brkiter.h>
+	#include <unicode/coll.h>
+	#include <unicode/numfmt.h>
+	#include <unicode/decimfmt.h>
+	#include <unicode/datefmt.h>
+#if defined(_MSC_VER) && USING_CODE_ANALYSIS
+	#pragma warning(pop)
+#endif
 
 struct FDecimalNumberFormattingRules;
 

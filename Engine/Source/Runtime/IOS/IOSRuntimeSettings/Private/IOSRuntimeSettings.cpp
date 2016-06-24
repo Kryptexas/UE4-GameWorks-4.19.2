@@ -18,12 +18,14 @@ UIOSRuntimeSettings::UIOSRuntimeSettings(const FObjectInitializer& ObjectInitial
 	bSupportsIPad = true;
 	bSupportsIPhone = true;
 	MinimumiOSVersion = EIOSVersion::IOS_7;
+	bGeneratedSYMFile = false;
 	bDevForArmV7 = true;
 	bDevForArm64 = false;
 	bDevForArmV7S = false;
 	bShipForArmV7 = true;
 	bShipForArm64 = true;
 	bShipForArmV7S = false;
+	bShipForBitcode = false;
 	bUseRSync = true;
 	AdditionalPlistData = TEXT("");
 	AdditionalLinkerFlags = TEXT("");

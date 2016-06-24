@@ -30,20 +30,10 @@ public:
 
 	void CreateDevice();
 
+	void PrepareForDestroy();
 	void Destroy();
 
 	void WaitUntilIdle();
-
-	inline FVulkanPendingState& GetPendingState()
-	{
-		check(PendingState);
-		return *PendingState;
-	}
-
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-#else
-	void EndCommandBufferBlock(FVulkanCmdBuffer* CmdBuffer);
-#endif
 
 	inline FVulkanQueue* GetQueue()
 	{
@@ -103,8 +93,6 @@ public:
 		return FormatProperties;
 	}
 
-	void BindSRV(FVulkanShaderResourceView* SRV, uint32 TextureIndex, EShaderFrequency Stage);
-
 	VulkanRHI::FDeviceMemoryManager& GetMemoryManager()
 	{
 		return MemoryManager;
@@ -115,12 +103,10 @@ public:
 		return ResourceHeapManager;
 	}
 
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 	VulkanRHI::FDeferredDeletionQueue& GetDeferredDeletionQueue()
 	{
 		return DeferredDeletionQueue;
 	}
-#endif
 
 	VulkanRHI::FStagingManager& GetStagingManager()
 	{
@@ -141,6 +127,8 @@ public:
 	{
 		return *ImmediateContext;
 	}
+
+	void NotifyDeletedRenderTarget(const FVulkanTextureBase* Texture);
 
 #if VULKAN_ENABLE_DRAW_MARKERS
 
@@ -170,10 +158,11 @@ private:
 	VkDevice Device;
 
 	VulkanRHI::FDeviceMemoryManager MemoryManager;
+
 	VulkanRHI::FResourceHeapManager ResourceHeapManager;
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
+
 	VulkanRHI::FDeferredDeletionQueue DeferredDeletionQueue;
-#endif
+
 	VulkanRHI::FStagingManager StagingManager;
 
 	VulkanRHI::FFenceManager FenceManager;
@@ -184,20 +173,21 @@ private:
 
 	TArray<VkQueueFamilyProperties> QueueFamilyProps;
 	VkFormatProperties FormatProperties[VK_FORMAT_RANGE_SIZE];
+	// Info for formats that are not in the core Vulkan spec (i.e. extensions)
+	mutable TMap<VkFormat, VkFormatProperties> ExtensionFormatProperties;
 
 	// Nullptr if not supported
 	FVulkanTimestampQueryPool* TimestampQueryPool[NumTimestampPools];
 
 	FVulkanQueue* Queue;
 
-	FVulkanPendingState* PendingState;
 	VkComponentMapping PixelFormatComponentMapping[PF_MAX];
 
 	FVulkanCommandListContext* ImmediateContext;
 
 	FVulkanRingBuffer* UBRingBuffer;
 
-	void GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtensions, TArray<const ANSICHAR*>& OutDeviceLayers);
+	void GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtensions, TArray<const ANSICHAR*>& OutDeviceLayers, bool& bOutDebugMarkers);
 	void SetupFormats();
 
 #if VULKAN_ENABLE_DRAW_MARKERS

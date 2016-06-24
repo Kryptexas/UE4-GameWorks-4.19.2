@@ -111,7 +111,6 @@ public:
 	typedef InElementType ElementType;
 	typedef InAllocator   Allocator;
 
-#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 	template <typename... ArgsType>
 	int32 EmplaceThreadsafe(ArgsType&&... Args)
 	{
@@ -119,16 +118,6 @@ public:
 		new(this->GetData() + Index) ElementType(Forward<ArgsType>(Args)...);
 		return Index;
 	}
-
-#else
-	template <typename Arg0Type>
-	int32 EmplaceThreadsafe(Arg0Type&& Arg0)
-	{
-		const int32 Index = AddUninitializedThreadsafe(1);
-		new(this->GetData() + Index) ElementType(Forward<Arg0Type>(Arg0));
-		return Index;
-	}
-#endif
 
 
 	/**
@@ -524,6 +513,7 @@ public:
 			SCOPE_CYCLE_COUNTER(STAT_ReleaseTickGroup_Block);
 			for (ETickingGroup Block = WaitForTickGroup; Block <= WorldTickGroup; Block = ETickingGroup(Block + 1))
 			{
+				CA_SUPPRESS(6385);
 				if (TickCompletionEvents[Block].Num())
 				{
 					FTaskGraphInterface::Get().WaitUntilTasksComplete(TickCompletionEvents[Block], ENamedThreads::GameThread);
@@ -815,7 +805,7 @@ public:
 		{
 			SCOPE_CYCLE_COUNTER(STAT_ScheduleCooldowns);
 
-				TickFunctionsToReschedule.Sort([](const FTickScheduleDetails& A, const FTickScheduleDetails& B)
+			TickFunctionsToReschedule.Sort([](const FTickScheduleDetails& A, const FTickScheduleDetails& B)
 			{
 				return A.Cooldown < B.Cooldown;
 			});
@@ -830,13 +820,54 @@ public:
 				if ((CumulativeCooldown + ComparisonTickFunction->RelativeTickCooldown) > CooldownTime)
 				{
 					FTickFunction* TickFunction = TickFunctionsToReschedule[RescheduleIndex].TickFunction;
+					if (TickFunction->TickState != FTickFunction::ETickState::Disabled)
+					{
+						if (TickFunctionsToReschedule[RescheduleIndex].bDeferredRemove)
+						{
+							verify(AllEnabledTickFunctions.Remove(TickFunction) == 1);
+						}
+						TickFunction->TickState = FTickFunction::ETickState::CoolingDown;
+						TickFunction->RelativeTickCooldown = CooldownTime - CumulativeCooldown;
+
+						if (PrevComparisonTickFunction)
+						{
+							PrevComparisonTickFunction->Next = TickFunction;
+						}
+						else
+						{
+							check(ComparisonTickFunction == AllCoolingDownTickFunctions.Head);
+							AllCoolingDownTickFunctions.Head = TickFunction;
+						}
+						TickFunction->Next = ComparisonTickFunction;
+						PrevComparisonTickFunction = TickFunction;
+						ComparisonTickFunction->RelativeTickCooldown -= TickFunction->RelativeTickCooldown;
+						CumulativeCooldown += TickFunction->RelativeTickCooldown;
+					}
+					++RescheduleIndex;
+				}
+				else
+				{
+					CumulativeCooldown += ComparisonTickFunction->RelativeTickCooldown;
+					PrevComparisonTickFunction = ComparisonTickFunction;
+					ComparisonTickFunction = ComparisonTickFunction->Next;
+				}
+			}
+			for ( ; RescheduleIndex < TickFunctionsToReschedule.Num(); ++RescheduleIndex)
+			{
+				FTickFunction* TickFunction = TickFunctionsToReschedule[RescheduleIndex].TickFunction;
+				checkSlow(TickFunction);
+				if (TickFunction->TickState != FTickFunction::ETickState::Disabled)
+				{
 					if (TickFunctionsToReschedule[RescheduleIndex].bDeferredRemove)
 					{
 						verify(AllEnabledTickFunctions.Remove(TickFunction) == 1);
 					}
+					const float CooldownTime = TickFunctionsToReschedule[RescheduleIndex].Cooldown;
+
 					TickFunction->TickState = FTickFunction::ETickState::CoolingDown;
 					TickFunction->RelativeTickCooldown = CooldownTime - CumulativeCooldown;
 
+					TickFunction->Next = nullptr;
 					if (PrevComparisonTickFunction)
 					{
 						PrevComparisonTickFunction->Next = TickFunction;
@@ -846,47 +877,13 @@ public:
 						check(ComparisonTickFunction == AllCoolingDownTickFunctions.Head);
 						AllCoolingDownTickFunctions.Head = TickFunction;
 					}
-					TickFunction->Next = ComparisonTickFunction;
 					PrevComparisonTickFunction = TickFunction;
-					ComparisonTickFunction->RelativeTickCooldown -= TickFunction->RelativeTickCooldown;
+
 					CumulativeCooldown += TickFunction->RelativeTickCooldown;
-					++RescheduleIndex;
 				}
-				else
-				{
-					CumulativeCooldown += ComparisonTickFunction->RelativeTickCooldown;
-					PrevComparisonTickFunction = ComparisonTickFunction;
-					ComparisonTickFunction = ComparisonTickFunction->Next;
-				}
-	}
-			for ( ; RescheduleIndex < TickFunctionsToReschedule.Num(); ++RescheduleIndex)
-			{
-				FTickFunction* TickFunction = TickFunctionsToReschedule[RescheduleIndex].TickFunction;
-				if (TickFunctionsToReschedule[RescheduleIndex].bDeferredRemove)
-				{
-					verify(AllEnabledTickFunctions.Remove(TickFunction) == 1);
-				}
-				const float CooldownTime = TickFunctionsToReschedule[RescheduleIndex].Cooldown;
-
-				TickFunction->TickState = FTickFunction::ETickState::CoolingDown;
-				TickFunction->RelativeTickCooldown = CooldownTime - CumulativeCooldown;
-
-				TickFunction->Next = nullptr;
-				if (PrevComparisonTickFunction)
-				{
-					PrevComparisonTickFunction->Next = TickFunction;
-				}
-				else
-				{
-					check(ComparisonTickFunction == AllCoolingDownTickFunctions.Head);
-					AllCoolingDownTickFunctions.Head = TickFunction;
-				}
-				PrevComparisonTickFunction = TickFunction;
-
-				CumulativeCooldown += TickFunction->RelativeTickCooldown;
 			}
 			TickFunctionsToReschedule.Reset();
-	}
+		}
 	}
 
 	/* Queue all tick functions for execution */

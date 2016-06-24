@@ -76,6 +76,12 @@ FText UK2Node_InputAction::GetTooltipText() const
 	return CachedTooltip;
 }
 
+FSlateIcon UK2Node_InputAction::GetIconAndTint(FLinearColor& OutColor) const
+{
+	static FSlateIcon Icon("EditorStyle", "GraphEditor.Event_16x");
+	return Icon;
+}
+
 bool UK2Node_InputAction::IsCompatibleWithGraph(UEdGraph const* Graph) const
 {
 	// This node expands into event nodes and must be placed in a Ubergraph

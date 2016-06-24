@@ -60,8 +60,11 @@ struct FKConvexElem : public FKShapeElem
 	/** Calculate a bounding box for this convex element with the specified transform and scale */
 	ENGINE_API FBox	CalcAABB(const FTransform& BoneTM, const FVector& Scale3D) const;
 
+	/** Get set of planes that define this convex hull */
+	ENGINE_API void GetPlanes(TArray<FPlane>& Planes) const;
+
 	/** Utility for creating a convex hull from a set of planes. Will reset current state of this elem. */
-	bool	HullFromPlanes(const TArray<FPlane>& InPlanes, const TArray<FVector>& SnapVerts);
+	ENGINE_API bool HullFromPlanes(const TArray<FPlane>& InPlanes, const TArray<FVector>& SnapVerts);
 
 	/** Returns the volume of this element */
 	float GetVolume(const FVector& Scale) const;

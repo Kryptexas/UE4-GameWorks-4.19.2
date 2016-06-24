@@ -1371,43 +1371,55 @@ static bool IsValidObjectPath(const FString& Path)
 	return false;
 }
 
+static bool ContainsT3D(const FString& ClipboardText)
+{
+	return (ClipboardText.StartsWith(TEXT("Begin Object")) && ClipboardText.EndsWith(TEXT("End Object")))
+		|| (ClipboardText.StartsWith(TEXT("Begin Map")) && ClipboardText.EndsWith(TEXT("End Map")));
+}
+
 FReply SAssetView::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
+	if (InKeyEvent.IsControlDown() && InKeyEvent.GetCharacter() == 'V' && IsAssetPathSelected())
 	{
-		const bool bTestOnly = true;
-		if ( InKeyEvent.IsControlDown() && InKeyEvent.GetCharacter() == 'V' && IsAssetPathSelected() )
-		{
-			FString DestPaths;
-			TArray<FString> DestPathsSplit;
+		FString AssetPaths;
+		TArray<FString> AssetPathsSplit;
 
-			// Get the copied asset paths
-			FPlatformMisc::ClipboardPaste( DestPaths );
-			DestPaths.ParseIntoArrayLines( DestPathsSplit );
+		// Get the copied asset paths
+		FPlatformMisc::ClipboardPaste(AssetPaths);
+
+		// Make sure the clipboard does not contain T3D
+		if (!ContainsT3D(AssetPaths.TrimTrailing()))
+		{
+			AssetPaths.ParseIntoArrayLines(AssetPathsSplit);
 
 			// Get assets and copy them
-			TArray<UObject*> ObjectsToCopy;
-			for (FString DestPath : DestPathsSplit)
+			TArray<UObject*> AssetsToCopy;
+			for (const FString& AssetPath : AssetPathsSplit)
 			{
 				// Validate string
-				if ( IsValidObjectPath(DestPath) )
+				if (IsValidObjectPath(AssetPath))
 				{
-					ObjectsToCopy.Add( LoadObject<UObject>( NULL, *DestPath ));
+					UObject* ObjectToCopy = LoadObject<UObject>(nullptr, *AssetPath);
+					if (ObjectToCopy && !ObjectToCopy->IsA(UClass::StaticClass()))
+					{
+						AssetsToCopy.Add(ObjectToCopy);
+					}
 				}
 			}
 
-			if (ObjectsToCopy.Num())
+			if (AssetsToCopy.Num())
 			{
-				ContentBrowserUtils::CopyAssets(ObjectsToCopy, SourcesData.PackagePaths[0].ToString());
+				ContentBrowserUtils::CopyAssets(AssetsToCopy, SourcesData.PackagePaths[0].ToString());
 			}
+		}
 
-			return FReply::Handled();
-		}
-		// Swallow the key-presses used by the quick-jump in OnKeyChar to avoid other things (such as the viewport commands) getting them instead
-		// eg) Pressing "W" without this would set the viewport to "translate" mode
-		else if( HandleQuickJumpKeyDown(InKeyEvent.GetCharacter(), InKeyEvent.IsControlDown(), InKeyEvent.IsAltDown(), bTestOnly).IsEventHandled() )
-		{
-			return FReply::Handled();
-		}
+		return FReply::Handled();
+	}
+	// Swallow the key-presses used by the quick-jump in OnKeyChar to avoid other things (such as the viewport commands) getting them instead
+	// eg) Pressing "W" without this would set the viewport to "translate" mode
+	else if(HandleQuickJumpKeyDown(InKeyEvent.GetCharacter(), InKeyEvent.IsControlDown(), InKeyEvent.IsAltDown(), /*bTestOnly*/true).IsEventHandled())
+	{
+		return FReply::Handled();
 	}
 
 	return FReply::Unhandled();
@@ -2032,14 +2044,14 @@ void SAssetView::SetMajorityAssetType(FName NewMajorityAssetType)
 					{
 						if ( TagIt->Type != UObject::FAssetRegistryTag::TT_Hidden )
 						{
-							const FName& Tag = TagIt->Name;
+							const FName TagName = TagIt->Name;
 
-							if ( !OnAssetTagWantsToBeDisplayed.IsBound() || OnAssetTagWantsToBeDisplayed.Execute(NewMajorityAssetType, Tag) )
+							if ( !OnAssetTagWantsToBeDisplayed.IsBound() || OnAssetTagWantsToBeDisplayed.Execute(NewMajorityAssetType, TagName) )
 							{
 								// Get tag metadata
 								TMap<FName, UObject::FAssetRegistryTagMetadata> MetadataMap;
 								CDO->GetAssetRegistryTagMetadata(MetadataMap);
-								const UObject::FAssetRegistryTagMetadata* Metadata = MetadataMap.Find(Tag);
+								const UObject::FAssetRegistryTagMetadata* Metadata = MetadataMap.Find(TagName);
 
 								FText DisplayName;
 								if (Metadata != nullptr && !Metadata->DisplayName.IsEmpty())
@@ -2048,7 +2060,7 @@ void SAssetView::SetMajorityAssetType(FName NewMajorityAssetType)
 								}
 								else
 								{
-									DisplayName = FText::FromName(Tag);
+									DisplayName = FText::FromName(TagName);
 								}
 
 								FText TooltipText;
@@ -2059,14 +2071,14 @@ void SAssetView::SetMajorityAssetType(FName NewMajorityAssetType)
 								else
 								{
 									// If the tag name corresponds to a property name, use the property tooltip
-									UProperty* Property = FindField<UProperty>(TypeClass, Tag);
-									TooltipText = (Property != nullptr) ? Property->GetToolTipText() : FText::FromString(FName::NameToDisplayString(Tag.ToString(), false));
+									UProperty* Property = FindField<UProperty>(TypeClass, TagName);
+									TooltipText = (Property != nullptr) ? Property->GetToolTipText() : FText::FromString(FName::NameToDisplayString(TagName.ToString(), false));
 								}
 
 								ColumnView->GetHeaderRow()->AddColumn(
-										SHeaderRow::Column(Tag)
-										.SortMode( TAttribute< EColumnSortMode::Type >::Create( TAttribute< EColumnSortMode::Type >::FGetter::CreateSP( this, &SAssetView::GetColumnSortMode, Tag ) ) )
-										.SortPriority(TAttribute< EColumnSortPriority::Type >::Create(TAttribute< EColumnSortPriority::Type >::FGetter::CreateSP(this, &SAssetView::GetColumnSortPriority, Tag)))
+										SHeaderRow::Column(TagName)
+										.SortMode( TAttribute< EColumnSortMode::Type >::Create( TAttribute< EColumnSortMode::Type >::FGetter::CreateSP( this, &SAssetView::GetColumnSortMode, TagName ) ) )
+										.SortPriority(TAttribute< EColumnSortPriority::Type >::Create(TAttribute< EColumnSortPriority::Type >::FGetter::CreateSP(this, &SAssetView::GetColumnSortPriority, TagName)))
 										.OnSort( FOnSortModeChanged::CreateSP( this, &SAssetView::OnSortColumnHeader ) )
 										.DefaultLabel( DisplayName )
 										.DefaultTooltip( TooltipText )
@@ -2077,7 +2089,7 @@ void SAssetView::SetMajorityAssetType(FName NewMajorityAssetType)
 								// If we found a tag the matches the column we are currently sorting on, there will be no need to change the column
 								for (int32 SortIdx = 0; SortIdx < CurrentSortOrder.Num(); SortIdx++)
 								{
-									if (Tag == CurrentSortOrder[SortIdx].SortColumn)
+									if (TagName == CurrentSortOrder[SortIdx].SortColumn)
 									{
 										CurrentSortOrder[SortIdx].bSortRelevant = true;
 									}
@@ -2158,7 +2170,6 @@ void SAssetView::ProcessRecentlyAddedAssets()
 
 	if (FilteredRecentlyAddedAssets.Num() > 0)
 	{
-		const static float MaxSecondsPerFrame = 0.015;
 		double TickStartTime = FPlatformTime::Seconds();
 		bool bNeedsRefresh = false;
 
@@ -2804,7 +2815,6 @@ bool SAssetView::IsShowingDevelopersFolder() const
 
 void SAssetView::ToggleShowL10NFolder()
 {
-	check(IsToggleShowFoldersAllowed());
 	GetMutableDefault<UContentBrowserSettings>()->SetDisplayL10NFolder(!GetDefault<UContentBrowserSettings>()->GetDisplayL10NFolder());
 	GetMutableDefault<UContentBrowserSettings>()->PostEditChange();
 }

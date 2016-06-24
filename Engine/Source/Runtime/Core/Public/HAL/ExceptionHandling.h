@@ -36,6 +36,12 @@ extern CORE_API void NewReportEnsure( const TCHAR* ErrorMessage );
 extern CORE_API void CheckImageIntegrity();
 extern CORE_API void CheckImageIntegrityAtRuntime();
 
+enum class ECrashType
+{
+	Debug = -1,
+	Normal = 0
+};
+
 /** In debug builds we can crash on demand so we want to let the crash reporting system know about it */
-extern CORE_API void SetImageIntegrtiryStatus(int32 Status);
-extern CORE_API int32 GetImageIntegrityStatus();
+extern CORE_API void SetCrashType(ECrashType InCrashType);
+extern CORE_API int32 GetCrashType();

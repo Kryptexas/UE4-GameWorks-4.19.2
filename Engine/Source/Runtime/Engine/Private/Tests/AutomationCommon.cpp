@@ -4,6 +4,7 @@
 #include "SlateBasics.h"
 #include "AutomationCommon.h"
 #include "ImageUtils.h"
+#include "ShaderCompiler.h"		// GShaderCompilingManager
 
 #if WITH_EDITOR
 #include "FileHelpers.h"
@@ -194,6 +195,26 @@ bool FEngineWaitLatentCommand::Update()
 	return false;
 }
 
+ENGINE_API uint32 GStreamAllResourcesStillInFlight = -1;
+bool FStreamAllResourcesLatentCommand::Update()
+{
+	float LocalStartTime = FPlatformTime::Seconds();
+
+	GStreamAllResourcesStillInFlight = IStreamingManager::Get().StreamAllResources(Duration);
+
+	float Time = FPlatformTime::Seconds();
+
+	if(GStreamAllResourcesStillInFlight)
+	{
+		UE_LOG(LogEngineAutomationLatentCommand, Warning, TEXT("StreamAllResources() waited for %.2fs but %d resources are still in flight."), Time - LocalStartTime, GStreamAllResourcesStillInFlight);
+	}
+	else
+	{
+		UE_LOG(LogEngineAutomationLatentCommand, Log, TEXT("StreamAllResources() waited for %.2fs (max duration: %.2f)."), Time - LocalStartTime, Duration);
+	}
+
+	return true;
+}
 
 bool FEnqueuePerformanceCaptureCommands::Update()
 {
@@ -259,4 +280,15 @@ bool FExecWorldStringLatentCommand::Update()
 	return true;
 }
 
+
+/**
+* This will cause the test to wait for the shaders to finish compiling before moving on.
+*/
+bool FWaitForShadersToFinishCompilingInGame::Update()
+{
+	UE_LOG(LogEditorAutomationTests, Log, TEXT("Waiting for %i shaders to finish."), GShaderCompilingManager->GetNumRemainingJobs());
+	GShaderCompilingManager->FinishAllCompilation();
+	UE_LOG(LogEditorAutomationTests, Log, TEXT("Done waiting for shaders to finish."));
+	return true;
+}
 #endif //WITH_DEV_AUTOMATION_TESTS

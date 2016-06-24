@@ -227,7 +227,7 @@ struct FSortTeamSizeSmallestToLargest
 	{
 		if (A.TeamSize == B.TeamSize)
 		{
-			return FMath::Rand() % 2 ? true : false;
+			return (FMath::Rand() % 2) ? true : false;
 		}
 		else
 		{

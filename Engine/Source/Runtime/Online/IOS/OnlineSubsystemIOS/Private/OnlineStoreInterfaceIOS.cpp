@@ -58,6 +58,10 @@
 			StoreInterface->CachedPurchaseRestoreObject->ReadState = EOnlineAsyncTaskState::Done;
 		}
 		StoreInterface->TriggerOnInAppPurchaseRestoreCompleteDelegates(EInAppPurchaseState::Restored);
+		// Ensure these flags are false to allow a subsequent transaction attempt to proceed
+		StoreInterface->bIsProductRequestInFlight = false;
+		StoreInterface->bIsPurchasing = false;
+		StoreInterface->bIsRestoringPurchases = false;
 
 		return true;
 	}];
@@ -65,7 +69,7 @@
 
 -(void)paymentQueue: (SKPaymentQueue *)queue restoreCompletedTransactionsFailedWithError : (NSError *)error
 {
-	UE_LOG(LogOnline, Log, TEXT("FStoreKitHelper::failedRestore - %s"), *FString([error localizedDescription]));
+	UE_LOG(LogOnline, Log, TEXT("FStoreKitHelper::restoreCompletedTransactionsFailedWithError - %s"), *FString([error localizedDescription]));
 
 	EInAppPurchaseState::Type CompletionState = EInAppPurchaseState::Unknown;
 	switch (error.code)
@@ -93,6 +97,29 @@
 		}
 
 		StoreInterface->TriggerOnInAppPurchaseRestoreCompleteDelegates(CompletionState);
+		// Ensure these flags are false to allow a subsequent transaction attempt to proceed
+		StoreInterface->bIsProductRequestInFlight = false;
+		StoreInterface->bIsPurchasing = false;
+		StoreInterface->bIsRestoringPurchases = false;
+
+		return true;
+	}];
+}
+
+-(void)paymentQueue: (SKPaymentQueue *)queue requestProductDataFailedWithError : (NSError *)error
+{
+	UE_LOG(LogOnline, Log, TEXT("FStoreKitHelper::requestProductDataFailedWithError - %s"), *FString([error localizedDescription]));
+
+	[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
+	{
+		IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(IOS_SUBSYSTEM);
+		FOnlineStoreInterfaceIOS* StoreInterface = (FOnlineStoreInterfaceIOS*)OnlineSub->GetStoreInterface().Get();
+		
+		StoreInterface->TriggerOnQueryForAvailablePurchasesCompleteDelegates( false );
+		// Ensure these flags are false to allow a subsequent transaction attempt to proceed
+		StoreInterface->bIsProductRequestInFlight = false;
+		StoreInterface->bIsPurchasing = false;
+		StoreInterface->bIsRestoringPurchases = false;
 
 		return true;
 	}];
@@ -137,7 +164,11 @@
 		}
      
 		StoreInterface->TriggerOnInAppPurchaseCompleteDelegates(EInAppPurchaseState::Success);
-     
+		// Ensure these flags are false to allow a subsequent transaction attempt to proceed
+ 		StoreInterface->bIsProductRequestInFlight = false;
+		StoreInterface->bIsPurchasing = false;
+		StoreInterface->bIsRestoringPurchases = false;
+	 
 		return true;
 	}];
  
@@ -221,7 +252,11 @@
         }
 
         StoreInterface->TriggerOnInAppPurchaseCompleteDelegates(CompletionState);
-     
+ 		// Ensure these flags are false to allow a subsequent transaction attempt to proceed
+		StoreInterface->bIsProductRequestInFlight = false;
+		StoreInterface->bIsPurchasing = false;
+		StoreInterface->bIsRestoringPurchases = false;
+	 
         return true;
      }];
 
@@ -274,17 +309,38 @@
 	{
 		[[SKPaymentQueue defaultQueue] restoreCompletedTransactions];
 	}
+	
+	else if ([Request isKindOfClass : [SKProductsRequest class]])
+	{
+		// This is a placeholder to check if this case needs to be handled in the future
+	}
+	
 #endif
 }
 
 -(void)request:(SKRequest*)request didFailWithError: (NSError *)error
 {
 #ifdef __IPHONE_7_0
+	// Check if we were refreshing a receipt
 	if ([Request isKindOfClass : [SKReceiptRefreshRequest class]])
 	{
-		[self paymentQueue:[SKPaymentQueue defaultQueue]  restoreCompletedTransactionsFailedWithError: error];
+		UE_LOG(LogOnline, Warning, TEXT( "FStoreKitHelper: SKReceiptRefreshRequest failed" ));
+		[self paymentQueue:[SKPaymentQueue defaultQueue] restoreCompletedTransactionsFailedWithError: error];
 		[Request release];
 	}
+
+	// Check if we are doing a product info request
+	else if ([Request isKindOfClass : [SKProductsRequest class]])
+	{
+		UE_LOG(LogOnline, Warning, TEXT( "FStoreKitHelper: SKProductsRequest failed" ));
+		[self paymentQueue:[SKPaymentQueue defaultQueue] requestProductDataFailedWithError: error];
+		[Request release];
+	}
+	else
+	{
+		UE_LOG(LogOnline, Warning, TEXT( "FStoreKitHelper: didFailWithError went unhandled" ));
+	}
+	
 #endif
 }
 
@@ -322,6 +378,7 @@ FOnlineStoreInterfaceIOS::FOnlineStoreInterfaceIOS()
 
 	bIsPurchasing = false;
 	bIsProductRequestInFlight = false;
+	bIsRestoringPurchases = false;
 }
 
 
@@ -339,7 +396,7 @@ bool FOnlineStoreInterfaceIOS::QueryForAvailablePurchases(const TArray<FString>&
 
 	CachedReadObject = InReadObject;
 	
-	if( bIsPurchasing || bIsProductRequestInFlight )
+	if( bIsPurchasing || bIsProductRequestInFlight || bIsRestoringPurchases )
 	{
 		UE_LOG(LogOnline, Verbose, TEXT( "FOnlineStoreInterfaceIOS::BeginPurchase - cannot make a purchase whilst one is in transaction." ));
 	}
@@ -387,7 +444,7 @@ bool FOnlineStoreInterfaceIOS::BeginPurchase(const FInAppPurchaseProductRequest&
 	
 	const FString& ProductId = ProductRequest.ProductIdentifier;
 
-	if( bIsPurchasing || bIsProductRequestInFlight )
+	if( bIsPurchasing || bIsProductRequestInFlight || bIsRestoringPurchases)
 	{
 		UE_LOG(LogOnline, Verbose, TEXT( "FOnlineStoreInterfaceIOS::BeginPurchase - cannot make a purchase whilst one is in transaction." ));
         
@@ -430,18 +487,19 @@ bool FOnlineStoreInterfaceIOS::BeginPurchase(const FInAppPurchaseProductRequest&
 }
 
 
-bool FOnlineStoreInterfaceIOS::RestorePurchases(FOnlineInAppPurchaseRestoreReadRef& InReadObject)
+bool FOnlineStoreInterfaceIOS::RestorePurchases(const TArray<FInAppPurchaseProductRequest>& ConsumableProductFlags, FOnlineInAppPurchaseRestoreReadRef& InReadObject)
 {
 	bool bSentAQueryRequest = false;
 	CachedPurchaseRestoreObject = InReadObject;
 
-	if (bIsPurchasing || bIsProductRequestInFlight)
+	if (bIsPurchasing || bIsProductRequestInFlight || bIsRestoringPurchases)
 	{
 		UE_LOG(LogOnline, Verbose, TEXT("FOnlineStoreInterfaceIOS::BeginPurchase - cannot make a purchase whilst one is in transaction."));
 		TriggerOnInAppPurchaseRestoreCompleteDelegates(EInAppPurchaseState::Failed);
 	}
 	else
 	{
+		bIsRestoringPurchases = true;
 		[StoreHelper restorePurchases];
 		bSentAQueryRequest = true;
 	}

@@ -1,5 +1,5 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-// 
+// ..
 
 #include "ShaderFormatOpenGL.h"
 #include "Core.h"
@@ -1266,6 +1266,12 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 		AdditionalDefines.SetDefine(TEXT("COMPILER_SUPPORTS_ATTRIBUTES"), (uint32)0);
 	}
 
+	const bool bUseFullPrecisionInPS = Input.Environment.CompilerFlags.Contains(CFLAG_UseFullPrecisionInPS);
+	if (bUseFullPrecisionInPS)
+	{
+		AdditionalDefines.SetDefine(TEXT("FORCE_FLOATS"), (uint32)1);
+	}
+
 	auto DoPreprocess = [&]() -> bool
 	{
 		if (Input.bSkipPreprocessedCache)
@@ -1327,6 +1333,11 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 				FileWriter->Close();
 				delete FileWriter;
 			}
+
+			if (Input.bGenerateDirectCompileFile)
+			{
+				FFileHelper::SaveStringToFile(CreateShaderCompilerWorkerDirectCommandLine(Input), *(Input.DumpDebugInfoPath / TEXT("DirectCompile.txt")));
+			}
 		}
 
 		uint32 CCFlags = HLSLCC_NoPreprocess | HLSLCC_PackUniforms | HLSLCC_DX11ClipSpace;
@@ -1336,7 +1347,12 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 			// Currently only enabled for ES2, as there are still features to implement for SM4+ (atomics, global store, UAVs, etc)
 			CCFlags |= HLSLCC_ApplyCommonSubexpressionElimination;
 		}
-		
+
+		if (bUseFullPrecisionInPS)
+		{
+			CCFlags |= HLSLCC_UseFullPrecisionInPS;
+		}
+	
 		if (bCompileES2With310)
 		{
 			CCFlags |= HLSLCC_FlattenUniformBuffers | HLSLCC_FlattenUniformBufferStructures;

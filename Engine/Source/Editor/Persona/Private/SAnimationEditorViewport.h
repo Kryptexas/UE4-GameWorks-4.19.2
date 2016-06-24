@@ -143,16 +143,7 @@ public:
 
 	/** Can we use gizmos? */
 	bool CanUseGizmos() const;
-
-	/** Function to check whether sky is displayed or not */
-	bool IsShowingSky() const;
-
-	/** Function to check whether floor is displayed or not */
-	bool IsShowingFloor() const;
-
-	/** Function to check whether floor is auto aligned or not */
-	bool IsAutoAlignFloor() const;
-
+	
 	/** Clears our reference to Persona, also cleaning up anything that depends on Persona first */
 	void CleanupPersonaReferences();
 
@@ -265,15 +256,6 @@ private:
 
 	/** Function to show/hide grid in the viewport */
 	void OnShowGrid();
-
-	/** Function to show/hide floor in the viewport */
-	void OnShowFloor();
-
-	/** Function to enable/disable floor auto align */
-	void OnToggleAutoAlignFloor();
-
-	/** Function to show/hide floor in the viewport */
-	void OnShowSky();
 
 	/** update reference pose with current preview mesh */
 	void UpdateReferencePose();

@@ -498,7 +498,7 @@ const FSlateBrush* FBlueprintEditor::GetGlyphForGraph(const UEdGraph* Graph, boo
 FSlateBrush const* FBlueprintEditor::GetVarIconAndColor(const UStruct* VarScope, FName VarName, FSlateColor& IconColorOut)
 {
 	FLinearColor ColorOut;
-	const FSlateBrush* IconBrush = FEditorStyle::GetBrush(UK2Node_Variable::GetVariableIconAndColor(VarScope, VarName, ColorOut));
+	const FSlateBrush* IconBrush = UK2Node_Variable::GetVariableIconAndColor(VarScope, VarName, ColorOut).GetOptionalIcon();
 	IconColorOut = ColorOut;
 	return IconBrush;
 }
@@ -1158,6 +1158,14 @@ TSharedRef<SGraphEditor> FBlueprintEditor::CreateGraphEditorWidget(TSharedRef<FT
 				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnConvertToBlendSpacePlayer )
 				);
 
+			GraphEditorCommands->MapAction(FGraphEditorCommands::Get().ConvertToPoseBlender,
+				FExecuteAction::CreateSP(this, &FBlueprintEditor::OnConvertToPoseBlender)
+				);
+
+			GraphEditorCommands->MapAction(FGraphEditorCommands::Get().ConvertToPoseByName,
+				FExecuteAction::CreateSP(this, &FBlueprintEditor::OnConvertToPoseByName)
+				);
+
 			GraphEditorCommands->MapAction( FGraphEditorCommands::Get().OpenRelatedAsset,
 				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnOpenRelatedAsset )
 				);
@@ -1565,7 +1573,7 @@ void FBlueprintEditor::LoadLibrariesFromAssetRegistry()
 
 			for (int32 AssetIndex = 0; AssetIndex < AssetData.Num(); ++AssetIndex)
 			{
-				FString TagValue = AssetData[ AssetIndex ].TagsAndValues.FindRef(BPTypeName);
+				FString TagValue = AssetData[ AssetIndex ].GetTagValueRef<FString>(BPTypeName);
 
 				//Only check for Blueprint Macros & Functions in the asset data for loading
 				if ( TagValue == BPMacroTypeStr || TagValue == BPFunctionTypeStr )
@@ -1599,12 +1607,12 @@ void FBlueprintEditor::LoadLibrariesFromAssetRegistry()
 	}
 }
 
-void FBlueprintEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
+void FBlueprintEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& InTabManager)
 {
 	//@TODO: Can't we do this sooner?
-	DocumentManager->SetTabManager(TabManager);
+	DocumentManager->SetTabManager(InTabManager);
 
-	FWorkflowCentricApplication::RegisterTabSpawners(TabManager);
+	FWorkflowCentricApplication::RegisterTabSpawners(InTabManager);
 }
 
 void FBlueprintEditor::SetCurrentMode(FName NewMode)
@@ -2900,6 +2908,8 @@ void FBlueprintEditor::PostUndo(bool bSuccess)
 		{
 			SetUISelectionState(NAME_None);
 
+			RefreshEditors();
+
 			FSlateApplication::Get().DismissAllMenus();
 		}
 	}
@@ -2929,6 +2939,8 @@ void FBlueprintEditor::PostRedo(bool bSuccess)
 		// Transaction affects the Blueprint this editor handles, so react as necessary
 		if (bAffectsBlueprint)
 		{
+			RefreshEditors();
+
 			FSlateApplication::Get().DismissAllMenus();
 		}
 	}
@@ -3568,9 +3580,9 @@ bool FBlueprintEditor::CanAccessComponentsMode() const
 	return bCanAccess;
 }
 
-void FBlueprintEditor::RegisterToolbarTab(const TSharedRef<class FTabManager>& TabManager)
+void FBlueprintEditor::RegisterToolbarTab(const TSharedRef<class FTabManager>& InTabManager)
 {
-	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
+	FAssetEditorToolkit::RegisterTabSpawners(InTabManager);
 }
 
 void FBlueprintEditor::LogSimpleMessage(const FText& MessageText)
@@ -7367,7 +7379,7 @@ FText FBlueprintEditor::GetBaseToolkitName() const
 
 FText FBlueprintEditor::GetToolkitName() const
 {
-	const auto EditingObjects = GetEditingObjects();
+	const TArray<UObject*>& EditingObjs = GetEditingObjects();
 
 	if( IsEditingSingleBlueprint() )
 	{
@@ -7392,7 +7404,7 @@ FText FBlueprintEditor::GetToolkitName() const
 
 	TSubclassOf< UObject > SharedParentClass = NULL;
 
-	for( auto ObjectIter = EditingObjects.CreateConstIterator(); ObjectIter; ++ObjectIter )
+	for( auto ObjectIter = EditingObjs.CreateConstIterator(); ObjectIter; ++ObjectIter )
 	{
 		UBlueprint* Blueprint = Cast<UBlueprint>( *ObjectIter );;
 		check( Blueprint );
@@ -7412,14 +7424,14 @@ FText FBlueprintEditor::GetToolkitName() const
 	}
 
 	FFormatNamedArguments Args;
-	Args.Add( TEXT("NumberOfObjects"), EditingObjects.Num() );
+	Args.Add( TEXT("NumberOfObjects"), EditingObjs.Num() );
 	Args.Add( TEXT("ObjectName"), FText::FromString( SharedParentClass->GetName() ) );
 	return FText::Format( NSLOCTEXT("KismetEditor", "ToolkitTitle_UniqueLayerName", "{NumberOfObjects} {ClassName} - Class Defaults"), Args );
 }
 
 FText FBlueprintEditor::GetToolkitToolTipText() const
 {
-	const auto EditingObjects = GetEditingObjects();
+	const TArray<UObject*>& EditingObjs = GetEditingObjects();
 
 	if( IsEditingSingleBlueprint() )
 	{
@@ -7439,7 +7451,7 @@ FText FBlueprintEditor::GetToolkitToolTipText() const
 
 	TSubclassOf< UObject > SharedParentClass = NULL;
 
-	for( auto ObjectIter = EditingObjects.CreateConstIterator(); ObjectIter; ++ObjectIter )
+	for( auto ObjectIter = EditingObjs.CreateConstIterator(); ObjectIter; ++ObjectIter )
 	{
 		UBlueprint* Blueprint = Cast<UBlueprint>( *ObjectIter );;
 		check( Blueprint );
@@ -7449,7 +7461,7 @@ FText FBlueprintEditor::GetToolkitToolTipText() const
 		{
 			SharedParentClass = Blueprint->ParentClass;
 		}
-
+		 
 		// If we've encountered an object that's not a subclass of the current best baseclass,
 		// climb up a step in the class hierarchy.
 		while( !Blueprint->ParentClass->IsChildOf( SharedParentClass ) )
@@ -7459,7 +7471,7 @@ FText FBlueprintEditor::GetToolkitToolTipText() const
 	}
 
 	FFormatNamedArguments Args;
-	Args.Add( TEXT("NumberOfObjects"), EditingObjects.Num() );
+	Args.Add( TEXT("NumberOfObjects"), EditingObjs.Num() );
 	Args.Add( TEXT("ObjectName"), FText::FromString( SharedParentClass->GetName() ) );
 	return FText::Format( NSLOCTEXT("KismetEditor", "ToolkitTitle_UniqueLayerName", "{NumberOfObjects} {ClassName} - Class Defaults"), Args );
 }

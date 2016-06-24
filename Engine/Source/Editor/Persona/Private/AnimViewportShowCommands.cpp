@@ -3,7 +3,7 @@
 #include "PersonaPrivatePCH.h"
 #include "AnimViewportShowCommands.h"
 
-#define LOCTEXT_NAMESPACE ""
+#define LOCTEXT_NAMESPACE "AnimViewportShowCommands"
 
 void FAnimViewportShowCommands::RegisterCommands()
 {

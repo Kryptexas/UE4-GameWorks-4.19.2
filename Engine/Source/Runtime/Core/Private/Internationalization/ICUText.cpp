@@ -6,14 +6,23 @@
 #include "Text.h"
 #include "ICUText.h"
 
-PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
-#include <unicode/coll.h>
-#include <unicode/sortkey.h>
-#include <unicode/numfmt.h>
-#include <unicode/msgfmt.h>
-PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
-#include <unicode/uniset.h>
-#include <unicode/ubidi.h>
+#if defined(_MSC_VER) && USING_CODE_ANALYSIS
+	#pragma warning(push)
+	#pragma warning(disable:28251)
+	#pragma warning(disable:28252)
+	#pragma warning(disable:28253)
+#endif
+	PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
+	#include <unicode/coll.h>
+	#include <unicode/sortkey.h>
+	#include <unicode/numfmt.h>
+	#include <unicode/msgfmt.h>
+	PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
+	#include <unicode/uniset.h>
+	#include <unicode/ubidi.h>
+#if defined(_MSC_VER) && USING_CODE_ANALYSIS
+	#pragma warning(pop)
+#endif
 
 #include "ICUTextCharacterIterator.h"
 

@@ -269,6 +269,25 @@ enum ETranslucencyLightingMode
 	TLM_MAX,
 };
 
+/** Determines how the refraction offset should be computed for the material. */
+UENUM()
+enum ERefractionMode
+{
+	/** 
+	 * Refraction is computed based on the camera vector entering a medium whose index of refraction is defined by the Refraction material input.  
+	 * The new medium's surface is defined by the material's normal.  With this mode, a flat plane seen from the side will have a constant refraction offset.
+	 * This is a physical model of refraction but causes reading outside the scene color texture so is a poor fit for large refractive surfaces like water.
+	 */
+	RM_IndexOfRefraction UMETA(DisplayName="Index Of Refraction"),
+
+	/** 
+	 * The refraction offset into Scene Color is computed based on the difference between the per-pixel normal and the per-vertex normal.  
+	 * With this mode, a material whose normal is the default (0, 0, 1) will never cause any refraction.  This mode is only valid with tangent space normals.
+	 * The refraction material input scales the offset, although a value of 1.0 maps to no refraction, and a value of 2 maps to a scale of 1.0 on the offset.
+	 * This is a non-physical model of refraction but is useful on large refractive surfaces like water, since offsets have to stay small to avoid reading outside scene color.
+	 */
+	RM_PixelNormalOffset UMETA(DisplayName="Pixel Normal Offset")
+};
 
 /**
  * Enumerates available options for the translucency sort policy.
@@ -288,6 +307,17 @@ namespace ETranslucentSortPolicy
 		SortAlongAxis = 2,
 	};
 }
+
+UENUM()
+enum ESceneCaptureSource 
+{ 
+	SCS_SceneColorHDR UMETA(DisplayName="SceneColor (HDR) in RGB, Opacity in A"),
+	SCS_FinalColorLDR UMETA(DisplayName="Final Color (LDR) in RGB"),
+	SCS_SceneColorSceneDepth UMETA(DisplayName="SceneColor (HDR) in RGB, SceneDepth in A"),
+	SCS_SceneDepth UMETA(DisplayName="SceneDepth in R"),
+	SCS_Normal UMETA(DisplayName="Normal in RGB"),
+	SCS_BaseColor UMETA(DisplayName="BaseColor in RGB")
+};
 
 USTRUCT()
 struct FLightingChannels
@@ -1031,13 +1061,13 @@ namespace ECollisionEnabled
 { 
 	enum Type 
 	{ 
-		/** No collision is enabled for this body. */
+		/** Will not create any representation in the physics engine. Cannot be used for spatial queries (raycasts, sweeps, overlaps) or simulation (rigid body, constraints). Best performance possible (especially for moving objects) */
 		NoCollision UMETA(DisplayName="No Collision"), 
-		/** This body is used only for collision queries (raycasts, sweeps, and overlaps). */
+		/** Only used for spatial queries (raycasts, sweeps, and overlaps). Cannot be used for simulation (rigid body, constraints). Useful for character movement and things that do not need physical simulation. Performance gains by keeping data out of simulation tree. */
 		QueryOnly UMETA(DisplayName="Query Only (No Physics Collision)"),
-		/** This body is used only for physics collision. */
+		/** Only used only for physics simulation (rigid body, constraints). Cannot be used for spatial queries (raycasts, sweeps, overlaps). Useful for jiggly bits on characters that do not need per bone detection. Performance gains by keeping data out of query tree */
 		PhysicsOnly UMETA(DisplayName="Physics Only (No Query Collision)"),
-		/** This body interacts with all collision (Query and Physics). */
+		/** Can be used for both spatial queries (raycasts, sweeps, overlaps) and simulation (rigid body, constraints). */
 		QueryAndPhysics UMETA(DisplayName="Collision Enabled (Query and Physics)") 
 	}; 
 } 
@@ -1754,7 +1784,7 @@ struct ENGINE_API FHitResult
 	 * Whether the trace started in penetration, i.e. with an initial blocking overlap.
 	 * In the case of penetration, if PenetrationDepth > 0.f, then it will represent the distance along the Normal vector that will result in
 	 * minimal contact between the swept shape and the object that was hit. In this case, ImpactNormal will be the normal opposed to movement at that location
-	 * (ie, Normal may not equal ImpactNormal).
+	 * (ie, Normal may not equal ImpactNormal). ImpactPoint will be the same as Location, since there is no single impact point to report.
 	 */
 	UPROPERTY()
 	uint32 bStartPenetrating:1;
@@ -1781,6 +1811,7 @@ struct ENGINE_API FHitResult
 	/**
 	 * Location in world space of the actual contact of the trace shape (box, sphere, ray, etc) with the impacted object.
 	 * Example: for a sphere trace test, this is the point where the surface of the sphere touches the other object.
+	 * @note: In the case of initial overlap (bStartPenetrating=true), ImpactPoint will be the same as Location because there is no meaningful single impact point to report.
 	 */
 	UPROPERTY()
 	FVector_NetQuantize ImpactPoint;
@@ -1972,6 +2003,8 @@ struct ENGINE_API FHitResult
 	FString ToString() const;
 };
 
+// All members of FHitResult are PODs.
+template<> struct TIsPODType<FHitResult> { enum { Value = true }; };
 
 template<>
 struct TStructOpsTypeTraits<FHitResult> : public TStructOpsTypeTraitsBase
@@ -1981,6 +2014,18 @@ struct TStructOpsTypeTraits<FHitResult> : public TStructOpsTypeTraitsBase
 		WithNetSerializer = true,
 	};
 };
+
+
+/** Whether to teleport physics body or not */
+enum class ETeleportType
+{
+	/** Do not teleport physics body. This means velocity will reflect the movement between initial and final position, and collisions along the way will occur */
+	None,
+	/** Teleport physics body so that velocity remains the same and no collision occurs */
+	TeleportPhysics
+};
+
+FORCEINLINE ETeleportType TeleportFlagToEnum(bool bTeleport) { return bTeleport ? ETeleportType::TeleportPhysics : ETeleportType::None; }
 
 
 /** Structure containing information about one hit of an overlap test */
@@ -2018,6 +2063,8 @@ struct ENGINE_API FOverlapResult
 	}
 };
 
+// All members of FOverlapResult are PODs.
+template<> struct TIsPODType<FOverlapResult> { enum { Value = true }; };
 
 /** Structure containing information about minimum translation direction (MTD) */
 USTRUCT()
@@ -2336,6 +2383,10 @@ struct FMeshBuildSettings
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
 	bool bBuildReversedIndexBuffer;
 
+	/** If true, Tangents will be stored at 16 bit vs 8 bit precision. */
+	UPROPERTY(EditAnywhere, Category = BuildSettings)
+	bool bUseHighPrecisionTangentBasis;
+
 	/** If true, UVs will be stored at full floating point precision. */
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
 	bool bUseFullPrecisionUVs;
@@ -2384,6 +2435,7 @@ struct FMeshBuildSettings
 		, bRemoveDegenerates(true)
 		, bBuildAdjacencyBuffer(true)
 		, bBuildReversedIndexBuffer(true)
+		, bUseHighPrecisionTangentBasis(false)
 		, bUseFullPrecisionUVs(false)
 		, bGenerateLightmapUVs(true)
 		, MinLightmapResolution(64)
@@ -2405,6 +2457,7 @@ struct FMeshBuildSettings
 			&& bRemoveDegenerates == Other.bRemoveDegenerates
 			&& bBuildAdjacencyBuffer == Other.bBuildAdjacencyBuffer
 			&& bBuildReversedIndexBuffer == Other.bBuildReversedIndexBuffer
+			&& bUseHighPrecisionTangentBasis == Other.bUseHighPrecisionTangentBasis
 			&& bUseFullPrecisionUVs == Other.bUseFullPrecisionUVs
 			&& bGenerateLightmapUVs == Other.bGenerateLightmapUVs
 			&& MinLightmapResolution == Other.MinLightmapResolution
@@ -2717,7 +2770,7 @@ enum class ERotatorQuantization : uint8
   * and velocity.Z is commonly zero (most position replications are for walking pawns). 
   */
 USTRUCT()
-struct FRepMovement
+struct ENGINE_API FRepMovement
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -3257,6 +3310,8 @@ struct FComponentSocketDescription
 	}
 };
 
+/** Dynamic delegate to use by components that want to route the broken-event into blueprints */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FConstraintBrokenSignature, int32, ConstraintIndex);
 
 // ANGULAR DOF
 UENUM()
@@ -3271,6 +3326,17 @@ enum EAngularConstraintMotion
 
 	ACM_MAX,
 };
+
+/** Enum to indicate which frame we want. */
+UENUM()
+namespace EConstraintFrame
+{
+	enum Type
+	{
+		Frame1,
+		Frame2
+	};
+}
 
 
 /**
@@ -3652,4 +3718,15 @@ struct FUserActivity
 	FUserActivity(const FString& InActionName)
 		: ActionName(InActionName)
 	{ }
+};
+
+/** Which processors will have access to Mesh Vertex Buffers. */
+UENUM()
+enum class EMeshBufferAccess: uint8
+{
+    /** Access will be determined based on the assets used in the mesh and hardware / software capability. */
+    Default,
+
+    /** Force access on both CPU and GPU. */
+    ForceCPUAndGPU
 };

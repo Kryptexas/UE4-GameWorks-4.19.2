@@ -248,6 +248,9 @@ public:
 	/** @return true if this category only contains advanced properties */
 	bool ContainsOnlyAdvanced() const;
 
+	/** @return true if this category only contains advanced properties */
+	void GetCategoryInformation(int32 &SimpleChildNum, int32 &AdvanceChildNum) const;
+
 	/**
 	 * Called when the advanced dropdown button is clicked 
 	 */

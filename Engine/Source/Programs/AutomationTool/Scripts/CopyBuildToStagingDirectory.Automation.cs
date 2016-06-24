@@ -265,7 +265,7 @@ public partial class Project : CommandUtils
             string[] ExcludeWildCards = {"AssetRegistry.bin"};
 
             // Stage any loose files in the root folder
-            SC.StageFiles(StagedFileType.UFS, PlatformCookDir, "*", false, ExcludeWildCards, "", true, !Params.UsePak(SC.StageTargetPlatform));
+            SC.StageFiles(StagedFileType.UFS, PlatformCookDir, "*", false, ExcludeWildCards, SC.RelativeProjectRootForStage, true, !Params.UsePak(SC.StageTargetPlatform));
 
             // Stage each sub directory separately so that we can skip Engine if need be
             string[] SubDirs = CommandUtils.FindDirectories(true, "*", false, new string[] { PlatformCookDir });
@@ -276,7 +276,7 @@ public partial class Project : CommandUtils
                 {
                     continue;
                 }
-                SC.StageFiles(StagedFileType.UFS, SubDir, "*", true, ExcludeWildCards, "", true, !Params.UsePak(SC.StageTargetPlatform));
+                SC.StageFiles(StagedFileType.UFS, SubDir, "*", true, ExcludeWildCards, SC.RelativeProjectRootForStage, true, !Params.UsePak(SC.StageTargetPlatform));
             }
 
             return;
@@ -990,7 +990,8 @@ public partial class Project : CommandUtils
 				CmdLine += " -customint=\"PakReadOrdering=0\"";
 				CmdLine += " -stdout";
 
-				RunAndLog(CmdEnv, BPTExe, CmdLine, Options: ERunOptions.Default | ERunOptions.UTF8Output);
+				string UnrealPakLogFileName = "UnrealPak_" + PakName;
+				RunAndLog(CmdEnv, BPTExe, CmdLine, UnrealPakLogFileName, Options: ERunOptions.Default | ERunOptions.UTF8Output);
 
 				InternalUtils.SafeCopyFile(SourceManifestPath, BackupManifestPath);
 				InternalUtils.SafeCopyFile(SourceManifestPath, DestManifestPath);
@@ -1132,7 +1133,7 @@ public partial class Project : CommandUtils
         }
         else // DontCare
         {
-            return (Params.Pak || Params.SignedPak || !String.IsNullOrEmpty(Params.SignPak));
+            return (Params.Pak);
         }
 	}
 
@@ -1154,7 +1155,7 @@ public partial class Project : CommandUtils
         }
         else // DontCare
         {
-            return (Params.Pak || Params.SignedPak || !String.IsNullOrEmpty(Params.SignPak));
+            return (Params.Pak);
         }
 	}
 
@@ -1404,7 +1405,7 @@ public partial class Project : CommandUtils
 			}
 			File.WriteAllText(IntermediateCmdLineFile, CommandLine);
 		}
-		else if (!Params.IsCodeBasedProject)
+		else
 		{
 			String ProjectFile = String.Format("{0} ", SC.ProjectArgForCommandLines);
 			if (SC.StageTargetPlatform.PlatformType == UnrealTargetPlatform.Mac || SC.StageTargetPlatform.PlatformType == UnrealTargetPlatform.Win64 || SC.StageTargetPlatform.PlatformType == UnrealTargetPlatform.Win32 || SC.StageTargetPlatform.PlatformType == UnrealTargetPlatform.Linux)

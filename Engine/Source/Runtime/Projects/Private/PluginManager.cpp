@@ -67,6 +67,7 @@ FPlugin::FPlugin(const FString& InFileName, const FPluginDescriptor& InDescripto
 	, LoadedFrom(InLoadedFrom)
 	, bEnabled(false)
 {
+
 }
 
 FPlugin::~FPlugin()
@@ -217,9 +218,14 @@ void FPluginManager::ReadPluginsInDirectory(const FString& PluginsDirectory, con
 		{
 			FPluginDescriptor Descriptor;
 			FText FailureReason;
-			if(Descriptor.Load(FileName, FailureReason))
+			if ( Descriptor.Load(FileName, FailureReason) )
 			{
-				Plugins.Add(MakeShareable(new FPlugin(FileName, Descriptor, LoadedFrom)));
+				TSharedRef<FPlugin> Plugin = MakeShareable(new FPlugin(FileName, Descriptor, LoadedFrom));
+				
+				FString FullPath = FPaths::ConvertRelativePathToFull(FileName);
+				UE_LOG(LogPluginManager, Log, TEXT("Loaded Plugin %s, From %s"), *Plugin->GetName(), *FullPath);
+
+				Plugins.Add(Plugin);
 			}
 			else
 			{
@@ -362,11 +368,15 @@ bool FPluginManager::ConfigureEnabledPlugins()
 		{
 			if (AllEnabledPlugins.Contains(Plugin->Name))
 			{
-				Plugin->bEnabled = (!IS_PROGRAM || !bHasProjectFile) || IsPluginSupportedByCurrentTarget(Plugin);
+#if IS_PROGRAM
+				Plugin->bEnabled = !bHasProjectFile || IsPluginSupportedByCurrentTarget(Plugin);
 				if (!Plugin->bEnabled)
 				{
 					AllEnabledPlugins.Remove(Plugin->Name);
 				}
+#else
+				Plugin->bEnabled = true;
+#endif
 			}
 		}
 
@@ -377,8 +387,11 @@ bool FPluginManager::ConfigureEnabledPlugins()
 			for(const FPluginReferenceDescriptor& Plugin: PluginsCopy)
 			{
 				bool bShouldBeEnabled = Plugin.bEnabled && Plugin.IsEnabledForPlatform(FPlatformMisc::GetUBTPlatform()) && Plugin.IsEnabledForTarget(FPlatformMisc::GetUBTTarget());
-				if ((bShouldBeEnabled && !FindPluginInstance(Plugin.Name).IsValid() && !Plugin.bOptional) &&
-					 (!IS_PROGRAM || AllEnabledPlugins.Contains(Plugin.Name))) // skip if this is a program and the plugin is not enabled
+				if (bShouldBeEnabled && !FindPluginInstance(Plugin.Name).IsValid() && !Plugin.bOptional
+#if IS_PROGRAM
+					 && AllEnabledPlugins.Contains(Plugin.Name) // skip if this is a program and the plugin is not enabled
+#endif
+					)
 				{
 					FText Caption(LOCTEXT("PluginMissingCaption", "Plugin missing"));
 					if(Plugin.MarketplaceURL.Len() > 0)

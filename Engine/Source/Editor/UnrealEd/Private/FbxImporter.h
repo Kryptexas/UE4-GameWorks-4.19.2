@@ -9,6 +9,7 @@ class UInterpGroupInst;
 class AMatineeActor;
 class AActor;
 class UInterpTrackMove;
+class USubDSurface;
 
 // Temporarily disable a few warnings due to virtual function abuse in FBX source files
 #pragma warning( push )
@@ -127,6 +128,9 @@ struct FBXImportOptions
 	bool	bDeleteExistingMorphTargetCurves;
 	bool	bImportCustomAttribute;
 	bool	bSetMaterialDriveParameterOnCustomAttribute;
+	bool	bRemoveRedundantKeys;
+	TArray<FString> MaterialCurveSuffixes;
+	TArray<FString>	PoseCurveSuffixes;
 
 	/** This allow to add a prefix to the material name when unreal material get created.	
 	*   This prefix can just modify the name of the asset for materials (i.e. TEXT("Mat"))
@@ -386,6 +390,14 @@ public:
 	* @returns UObject*	the UStaticMesh object.
 	*/
 	UNREALED_API UStaticMesh* ImportStaticMeshAsSingle(UObject* InParent, TArray<FbxNode*>& MeshNodeArray, const FName InName, EObjectFlags Flags, UFbxStaticMeshImportData* TemplateImportData, UStaticMesh* InStaticMesh, int LODIndex = 0);
+
+	/**
+	* Creates a SubDSurface mesh from all the meshes in FBX scene with the given name and flags.
+	*
+	* @param MeshNodeArray	Fbx Nodes to import
+	* @param InName	the Unreal Mesh name after import
+	*/
+	UNREALED_API bool ImportSubDSurface(USubDSurface* Out, UObject* InParent, TArray<FbxNode*>& MeshNodeArray, const FName InName, EObjectFlags Flags, UFbxStaticMeshImportData* TemplateImportData);
 
 	void ImportStaticMeshSockets( UStaticMesh* StaticMesh );
 
@@ -763,7 +775,6 @@ protected:
 	/**
 	 * Set up the static mesh data from Fbx Mesh.
 	 *
-	 * @param FbxMesh  Fbx Mesh object
 	 * @param StaticMesh Unreal static mesh object to fill data into
 	 * @param LODIndex	LOD level to set up for StaticMesh
 	 * @return bool true if set up successfully
@@ -1174,6 +1185,9 @@ class FFbxLogger
 	/** Error messages **/
 	TArray<TSharedRef<FTokenizedMessage>> TokenizedErrorMessages;
 
+	/* The logger will show the LogMessage only if at least one TokenizedErrorMessage have a severity of Error or CriticalError*/
+	bool ShowLogMessageOnlyIfError;
+
 	friend class FFbxImporter;
 	friend class FFbxLoggerSetter;
 };
@@ -1189,12 +1203,13 @@ class FFbxLoggerSetter
 	FFbxImporter * Importer;
 
 public:
-	FFbxLoggerSetter(FFbxImporter * InImpoter)
+	FFbxLoggerSetter(FFbxImporter * InImpoter, bool ShowLogMessageOnlyIfError = false)
 		: Importer(InImpoter)
 	{
 		// if impoter doesn't have logger, sets it
 		if(Importer->Logger == NULL)
 		{
+			Logger.ShowLogMessageOnlyIfError = ShowLogMessageOnlyIfError;
 			Importer->SetLogger(&Logger);
 		}
 		else

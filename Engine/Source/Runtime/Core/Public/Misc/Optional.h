@@ -113,7 +113,6 @@ public:
 		}
 	}
 
-#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 	template <typename... ArgsType>
 	void Emplace(ArgsType&&... Args)
 	{
@@ -121,46 +120,6 @@ public:
 		new(&Value) OptionalType(Forward<ArgsType>(Args)...);
 		bIsSet = true;
 	}
-#else
-	void Emplace()
-	{
-		Reset();
-		new(&Value) OptionalType();
-		bIsSet = true;
-	}
-
-	template <typename Arg0Type>
-	void Emplace(Arg0Type&& Arg0)
-	{
-		Reset();
-		new(&Value) OptionalType(Forward<Arg0Type>(Arg0));
-		bIsSet = true;
-	}
-
-	template <typename Arg0Type, typename Arg1Type>
-	void Emplace(Arg0Type&& Arg0, Arg1Type&& Arg1)
-	{
-		Reset();
-		new(&Value) OptionalType(Forward<Arg0Type>(Arg0), Forward<Arg1Type>(Arg1));
-		bIsSet = true;
-	}
-
-	template <typename Arg0Type, typename Arg1Type, typename Arg2Type>
-	void Emplace(Arg0Type&& Arg0, Arg1Type&& Arg1, Arg2Type&& Arg2)
-	{
-		Reset();
-		new(&Value) OptionalType(Forward<Arg0Type>(Arg0), Forward<Arg1Type>(Arg1), Forward<Arg2Type>(Arg2));
-		bIsSet = true;
-	}
-
-	template <typename Arg0Type, typename Arg1Type, typename Arg2Type, typename Arg3Type>
-	void Emplace(Arg0Type&& Arg0, Arg1Type&& Arg1, Arg2Type&& Arg2, Arg3Type&& Arg3)
-	{
-		Reset();
-		new(&Value) OptionalType(Forward<Arg0Type>(Arg0), Forward<Arg1Type>(Arg1), Forward<Arg2Type>(Arg2), Forward<Arg3Type>(Arg3));
-		bIsSet = true;
-	}
-#endif
 
 	friend bool operator==(const TOptional& lhs, const TOptional& rhs)
 	{

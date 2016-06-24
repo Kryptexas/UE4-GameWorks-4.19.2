@@ -9,6 +9,7 @@
 #include "InputCoreTypes.h"
 #include "RenderCommandFence.h"
 #include "TimerManager.h"
+#include "Engine/Level.h"
 
 struct FHitResult;
 class AActor;
@@ -248,7 +249,7 @@ public:
 	 * @param bInReplicates Whether this Actor replicates to network clients.
 	 * @see https://docs.unrealengine.com/latest/INT/Gameplay/Networking/Replication/
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Replication")
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Replication")
 	void SetReplicates(bool bInReplicates);
 
 	/**
@@ -1482,6 +1483,7 @@ public:
 	virtual void BeginDestroy() override;
 	virtual bool IsReadyForFinishDestroy() override;
 	virtual bool Rename( const TCHAR* NewName=NULL, UObject* NewOuter=NULL, ERenameFlags Flags=REN_None ) override;
+	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 #if WITH_EDITOR
 	virtual void PreEditChange(UProperty* PropertyThatWillChange) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
@@ -1514,7 +1516,7 @@ public:
 	class FActorTransactionAnnotation : public ITransactionObjectAnnotation
 	{
 	public:
-		FActorTransactionAnnotation(const AActor* Actor);
+		FActorTransactionAnnotation(const AActor* Actor, const bool bCacheRootComponentData = true);
 
 		virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 
@@ -1849,6 +1851,18 @@ public:
 	DEPRECATED(4.8, "GetNetPriority now takes a ViewTarget, please override that version.")
 	virtual float GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, class APlayerController* Viewer, UActorChannel* InChannel, float Time, bool bLowBandwidth);
 
+	/**
+	 * Similar to GetNetPriority, but will only be used for prioritizing actors while recording a replay.
+	 *
+	 * @param ViewPos		Position of the viewer
+	 * @param ViewDir		Vector direction of viewer
+	 * @param Viewer		"net object" owned by the client for whom net priority is being determined (typically player controller)
+	 * @param ViewTarget	The actor that is currently being viewed/controlled by Viewer, usually a pawn
+	 * @param InChannel		Channel on which this actor is being replicated.
+	 * @param Time			Time since actor was last replicated
+	 */
+	virtual float GetReplayPriority(const FVector& ViewPos, const FVector& ViewDir, class AActor* Viewer, AActor* ViewTarget, UActorChannel* const InChannel, float Time);
+
 	/** Returns true if the actor should be dormant for a specific net connection. Only checked for DORM_DormantPartial */
 	virtual bool GetNetDormancy(const FVector& ViewPos, const FVector& ViewDir, class AActor* Viewer, AActor* ViewTarget, UActorChannel* InChannel, float Time, bool bLowBandwidth);
 
@@ -1898,7 +1912,7 @@ public:
 	/** 
 	 * Set this actor's tick functions to be enabled or disabled. Only has an effect if the function is registered
 	 * This only modifies the tick function on actor itself
-	 * @param	bEnabled - Rather it should be enabled or not
+	 * @param	bEnabled	Whether it should be enabled or not
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities")
 	void SetActorTickEnabled(bool bEnabled);
@@ -1906,6 +1920,17 @@ public:
 	/**  Returns whether this actor has tick enabled or not	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities")
 	bool IsActorTickEnabled() const;
+
+	/** 
+	* Sets the tick interval of this actor's primary tick function. Will not enable a disabled tick function. Takes effect on next tick. 
+	* @param TickInterval	The rate at which this actor should be ticking
+	*/
+	UFUNCTION(BlueprintCallable, Category="Utilities")
+	void SetActorTickInterval(float TickInterval);
+
+	/**  Returns the tick interval of this actor's primary tick function */
+	UFUNCTION(BlueprintCallable, Category="Utilities")
+	float GetActorTickInterval() const;
 
 	/**
 	 *	ticks the actor
@@ -2119,9 +2144,17 @@ public:
 	virtual bool DestroyNetworkActorHandled();
 
 	/**
-	 * Gets the net mode for this actor, indicating whether it is a client or server (including standalone/not networked).
+	 * Get the network mode (dedicated server, client, standalone, etc) for this actor.
+	 * @see IsNetMode()
 	 */
 	ENetMode GetNetMode() const;
+
+	/**
+	* Test whether net mode is the given mode.
+	* In optimized non-editor builds this can be more efficient than GetNetMode()
+	* because it can check the static build flags without considering PIE.
+	*/
+	bool IsNetMode(ENetMode Mode) const;
 
 	class UNetDriver * GetNetDriver() const;
 
@@ -2262,7 +2295,7 @@ public:
 	bool IsInLevel(const class ULevel *TestLevel) const;
 
 	/** Return the ULevel that this Actor is part of. */
-	ULevel* GetLevel() const;
+	ULevel* GetLevel() const { return Cast<ULevel>(GetOuter()); }
 
 	/**	Do anything needed to clear out cross level references; Called from ULevel::PreSave	 */
 	virtual void ClearCrossLevelReferences();
@@ -2319,11 +2352,10 @@ public:
 	 * @param	Transform			The transform to construct the actor at.
 	 * @param	InstanceDataCache	Optional cache of state to apply to newly created components (e.g. precomputed lighting)
 	 * @param	bIsDefaultTransform	Whether or not the given transform is a "default" transform, in which case it can be overridden by template defaults
+	 *
+	 * @return Returns false if the hierarchy was not error free and we've put the Actor is disaster recovery mode
 	 */
-	void ExecuteConstruction(const FTransform& Transform, const class FComponentInstanceDataCache* InstanceDataCache, bool bIsDefaultTransform = false);
-
-	// Forces PostLoad call on natively created components, that were originally in SCS
-	virtual void FixComponentsFromDynamicClass();
+	bool ExecuteConstruction(const FTransform& Transform, const class FComponentInstanceDataCache* InstanceDataCache, bool bIsDefaultTransform = false);
 
 	/**
 	 * Called when an instance of this class is placed (in editor) or spawned.
@@ -2718,6 +2750,12 @@ public:
 	 */
 	void UpdateAllReplicatedComponents();
 
+	/** Returns whether replication is enabled or not. */
+	FORCEINLINE bool GetIsReplicated() const
+	{
+		return bReplicates;
+	}
+
 	/** Returns a constant reference to the replicated components set
 	 */
 	const TSet<UActorComponent*>& GetReplicatedComponents() const 
@@ -2823,6 +2861,9 @@ private:
 
 	// Helper that already assumes the Hit info is reversed, and avoids creating a temp FHitResult if possible.
 	void InternalDispatchBlockingHit(UPrimitiveComponent* MyComp, UPrimitiveComponent* OtherComp, bool bSelfMoved, FHitResult const& Hit);
+
+	/** Private version without inlining that does *not* check Dedicated server build flags (which should already have been done). */
+	ENetMode InternalGetNetMode() const;
 
 	friend struct FMarkActorIsBeingDestroyed;
 	friend struct FActorParentComponentSetter;
@@ -2936,6 +2977,36 @@ FORCEINLINE_DEBUGGABLE ENetRole AActor::GetRemoteRole() const
 {
 	return RemoteRole;
 }
+
+FORCEINLINE_DEBUGGABLE ENetMode AActor::GetNetMode() const
+{
+	// IsRunningDedicatedServer() is a compile-time check in optimized non-editor builds.
+	if (IsRunningDedicatedServer())
+	{
+		return NM_DedicatedServer;
+	}
+
+	return InternalGetNetMode();
+}
+
+FORCEINLINE_DEBUGGABLE bool AActor::IsNetMode(ENetMode Mode) const
+{
+#if UE_EDITOR
+	// Editor builds are special because of PIE, which can run a dedicated server without the app running with -server.
+	return GetNetMode() == Mode;
+#else
+	// IsRunningDedicatedServer() is a compile-time check in optimized non-editor builds.
+	if (Mode == NM_DedicatedServer)
+	{
+		return IsRunningDedicatedServer();
+	}
+	else
+	{
+		return !IsRunningDedicatedServer() && (InternalGetNetMode() == Mode);
+	}
+#endif
+}
+
 
 FORCEINLINE_DEBUGGABLE void AActor::SetNetUpdateTime(float NewUpdateTime)
 {

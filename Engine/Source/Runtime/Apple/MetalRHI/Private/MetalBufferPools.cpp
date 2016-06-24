@@ -50,7 +50,7 @@ uint32 FMetalBufferPoolPolicyData::GetPoolBucketIndex(CreationArguments Args)
 	// Only BUFFER_CACHE_MODE cached memory is acceptable
 	// Auto & Private memory is also forbidden in this pool
 #if PLATFORM_MAC
-	check(Args.Storage == MTLStorageModeShared || Args.Storage == MTLStorageModeManaged);
+	check(Args.Storage == MTLStorageModeShared || Args.Storage == MTLStorageModeManaged || Args.Storage == MTLStorageModePrivate);
 #endif
 	
 	uint32 Size = Args.Size;
@@ -115,6 +115,10 @@ FMetalPooledBuffer FMetalBufferPoolPolicyData::CreateResource(CreationArguments 
 					 ];
 	TRACK_OBJECT(STAT_MetalBufferCount, NewBuf.Buffer);
 	INC_DWORD_STAT(STAT_MetalPooledBufferCount);
+	INC_MEMORY_STAT_BY(STAT_MetalPooledBufferMem, BufferSize);
+	INC_MEMORY_STAT_BY(STAT_MetalFreePooledBufferMem, BufferSize);
+	INC_DWORD_STAT(STAT_MetalBufferNativeAlloctations);
+	INC_DWORD_STAT_BY(STAT_MetalBufferNativeMemAlloc, BufferSize);
 	return NewBuf;
 }
 
@@ -134,7 +138,11 @@ FMetalBufferPoolPolicyData::CreationArguments FMetalBufferPoolPolicyData::GetCre
 void FMetalBufferPoolPolicyData::FreeResource(FMetalPooledBuffer Resource)
 {
 	UNTRACK_OBJECT(STAT_MetalBufferCount, Resource.Buffer);
+	DEC_MEMORY_STAT_BY(STAT_MetalPooledBufferMem, Resource.Buffer.length);
 	DEC_DWORD_STAT(STAT_MetalPooledBufferCount);
+	DEC_MEMORY_STAT_BY(STAT_MetalFreePooledBufferMem, Resource.Buffer.length);
+	INC_DWORD_STAT(STAT_MetalBufferNativeFreed);
+	INC_DWORD_STAT_BY(STAT_MetalBufferNativeMemFreed, Resource.Buffer.length);
 }
 
 /** The bucket sizes */

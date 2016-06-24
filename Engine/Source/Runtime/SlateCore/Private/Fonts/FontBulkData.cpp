@@ -9,7 +9,7 @@ DECLARE_MEMORY_STAT(TEXT("Font BulkData Memory"), STAT_SlateBulkFontDataMemory, 
 
 UFontBulkData::UFontBulkData()
 {
-	BulkData.SetBulkDataFlags(BULKDATA_SerializeCompressed);
+	BulkData.SetBulkDataFlags(BULKDATA_SerializeCompressed|BULKDATA_SerializeCompressedBitWindow);
 }
 
 void UFontBulkData::Initialize(const FString& InFontFilename)

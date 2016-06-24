@@ -378,7 +378,7 @@ public:
 		CulledObjectBoxBounds.UnsetUAV(RHICmdList, ShaderRHI);
 
 		int32 NumOutUAVs = 0;
-		FUnorderedAccessViewRHIParamRef OutUAVs[3];
+		FUnorderedAccessViewRHIParamRef OutUAVs[4];
 		OutUAVs[NumOutUAVs++] = ObjectBuffers.ObjectIndirectArguments.UAV;
 		OutUAVs[NumOutUAVs++] = ObjectBuffers.Bounds.UAV;
 		OutUAVs[NumOutUAVs++] = ObjectBuffers.Data.UAV;

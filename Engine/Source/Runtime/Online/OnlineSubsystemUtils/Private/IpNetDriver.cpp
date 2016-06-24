@@ -361,6 +361,15 @@ void UIpNetDriver::TickDispatch( float DeltaTime )
 							}
 						}
 					}
+#if !UE_BUILD_SHIPPING
+					else if (FParse::Param(FCommandLine::Get(), TEXT("NoPacketHandler")))
+					{
+						UE_LOG(LogNet, Log, TEXT("Accepting connection without handshake, due to '-NoPacketHandler'."))
+
+						bIgnorePacket = false;
+						bPassedChallenge = true;
+					}
+#endif
 					else
 					{
 						UE_LOG(LogNet, Log,

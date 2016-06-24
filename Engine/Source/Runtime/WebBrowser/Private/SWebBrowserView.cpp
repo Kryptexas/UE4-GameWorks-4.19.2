@@ -13,6 +13,8 @@
 #include "Android/AndroidPlatformWebBrowser.h"
 #elif PLATFORM_IOS
 #include "IOS/IOSPlatformWebBrowser.h"
+#elif PLATFORM_PS4
+#include "PS4/PS4PlatformWebBrowser.h"
 #endif
 
 #define LOCTEXT_NAMESPACE "WebBrowser"
@@ -107,7 +109,7 @@ void SWebBrowserView::Construct(const FArguments& InArgs, const TSharedPtr<IWebB
 
 	if (BrowserWindow.IsValid())
 	{
-#if PLATFORM_ANDROID || PLATFORM_IOS
+#if PLATFORM_ANDROID || PLATFORM_IOS || PLATFORM_PS4
 		// The inner widget creation is handled by the WebBrowserWindow implementation on mobile.
 		const auto& BrowserWidgetRef = static_cast<FWebBrowserWindow*>(BrowserWindow.Get())->CreateWidget();
 		ChildSlot

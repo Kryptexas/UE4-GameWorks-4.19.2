@@ -28,11 +28,12 @@ protected:
 
 	/** creates new key binding handler */
 	template<class UserClass>
-	bool BindKeyPress(FName KeyName, UserClass* KeyHandlerObject, typename FGameplayDebuggerInputHandler::FHandler::TRawMethodDelegate< UserClass >::FMethodPtr KeyHandlerFunc)
+	bool BindKeyPress(FName KeyName, UserClass* KeyHandlerObject, typename FGameplayDebuggerInputHandler::FHandler::TRawMethodDelegate< UserClass >::FMethodPtr KeyHandlerFunc, EGameplayDebuggerInputMode InputMode = EGameplayDebuggerInputMode::Local)
 	{
 		FGameplayDebuggerInputHandler NewHandler;
 		NewHandler.KeyName = KeyName;
 		NewHandler.Delegate.BindRaw(KeyHandlerObject, KeyHandlerFunc);
+		NewHandler.Mode = InputMode;
 
 		if (NewHandler.IsValid())
 		{
@@ -45,12 +46,13 @@ protected:
 
 	/** creates new key binding handler */
 	template<class UserClass>
-	bool BindKeyPress(FName KeyName, FGameplayDebuggerInputModifier KeyModifer, UserClass* KeyHandlerObject, typename FGameplayDebuggerInputHandler::FHandler::TRawMethodDelegate< UserClass >::FMethodPtr KeyHandlerFunc)
+	bool BindKeyPress(FName KeyName, FGameplayDebuggerInputModifier KeyModifer, UserClass* KeyHandlerObject, typename FGameplayDebuggerInputHandler::FHandler::TRawMethodDelegate< UserClass >::FMethodPtr KeyHandlerFunc, EGameplayDebuggerInputMode InputMode = EGameplayDebuggerInputMode::Local)
 	{
 		FGameplayDebuggerInputHandler NewHandler;
 		NewHandler.KeyName = KeyName;
 		NewHandler.Modifier = KeyModifer;
 		NewHandler.Delegate.BindRaw(KeyHandlerObject, KeyHandlerFunc);
+		NewHandler.Mode = InputMode;
 
 		if (NewHandler.IsValid())
 		{

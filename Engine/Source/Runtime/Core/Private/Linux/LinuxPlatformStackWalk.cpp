@@ -217,7 +217,7 @@ namespace LinuxStackWalkHelpers
 			if (dwarf_srclines(Die, &LineBuf, &NumLines, &ErrorInfo) != DW_DLV_OK)
 			{
 				// could not get line info for some reason
-				break;
+				continue;
 			}
 
 			if (NumLines >= kMaxBufferLinesAllowed)
@@ -315,6 +315,7 @@ namespace LinuxStackWalkHelpers
 		if (dwarf_attrlist(Die, &AttrList, &AttrCount, NULL) != DW_DLV_OK)
 			return true;
 
+		Dwarf_Addr LowAddr = 0;
 		for (int i = 0; i < AttrCount; i++)
 		{
 			Dwarf_Half Attr;
@@ -324,27 +325,47 @@ namespace LinuxStackWalkHelpers
 			{
 				case DW_AT_low_pc:
 					{
-						Dwarf_Unsigned LowOffset;
-						if (dwarf_formudata(AttrList[i], &LowOffset, NULL) != DW_DLV_OK)
-							continue;
-						if (LowOffset > Addr)
-							return false;
+						if (dwarf_formaddr(AttrList[i], &LowAddr, nullptr) == DW_DLV_OK)
+						{
+							if (LowAddr > Addr)
+							{
+								return false;
+							}
+						}
 					}
 					break;
 				case DW_AT_high_pc:
 					{
+						Dwarf_Addr HighAddr;
+						if (dwarf_formaddr(AttrList[i], &HighAddr, nullptr) == DW_DLV_OK)
+						{
+							if (HighAddr <= Addr)
+							{
+								return false;
+							}
+						}
+
 						Dwarf_Unsigned HighOffset;
-						if (dwarf_formudata(AttrList[i], &HighOffset, NULL) != DW_DLV_OK)
-							continue;
-						if (HighOffset <= Addr)
-							return false;
+						if (LowAddr != 0)
+						{
+							// Offset
+							if (dwarf_formudata(AttrList[i], &HighOffset, NULL) == DW_DLV_OK)
+							{
+								if (HighOffset + LowAddr <= Addr)
+								{
+									return false;
+								}
+							}
+						}
 					}
 					break;
 				case DW_AT_ranges:
 					{
 						Dwarf_Unsigned Offset;
 						if (dwarf_formudata(AttrList[i], &Offset, NULL) != DW_DLV_OK)
+						{
 							continue;
+						}
 
 						Dwarf_Ranges *Ranges;
 						Dwarf_Signed Count;
@@ -729,11 +750,11 @@ void FLinuxPlatformStackWalk::StackWalkAndDump( ANSICHAR* HumanReadableString, S
 	{
 		FLinuxCrashContext CrashContext;
 		CrashContext.InitFromSignal(0, nullptr, nullptr);
-		FGenericPlatformStackWalk::StackWalkAndDump(HumanReadableString, HumanReadableStringSize, IgnoreCount + 1, &CrashContext);
+		FGenericPlatformStackWalk::StackWalkAndDump(HumanReadableString, HumanReadableStringSize, IgnoreCount, &CrashContext);
 	}
 	else
 	{
-		FGenericPlatformStackWalk::StackWalkAndDump(HumanReadableString, HumanReadableStringSize, IgnoreCount + 1, Context);
+		FGenericPlatformStackWalk::StackWalkAndDump(HumanReadableString, HumanReadableStringSize, IgnoreCount, Context);
 	}
 }
 
@@ -744,7 +765,7 @@ void FLinuxPlatformStackWalk::StackWalkAndDumpEx(ANSICHAR* HumanReadableString, 
 	{
 		FLinuxCrashContext CrashContext(bHandlingEnsure);
 		CrashContext.InitFromSignal(0, nullptr, nullptr);
-		FPlatformStackWalk::StackWalkAndDump(HumanReadableString, HumanReadableStringSize, IgnoreCount + 1, &CrashContext);
+		FPlatformStackWalk::StackWalkAndDump(HumanReadableString, HumanReadableStringSize, IgnoreCount, &CrashContext);
 	}
 	else
 	{
@@ -767,7 +788,7 @@ void FLinuxPlatformStackWalk::StackWalkAndDumpEx(ANSICHAR* HumanReadableString, 
 		};
 
 		FLocalGuardHelper Guard(reinterpret_cast<FLinuxCrashContext*>(Context), bHandlingEnsure);
-		FPlatformStackWalk::StackWalkAndDump(HumanReadableString, HumanReadableStringSize, IgnoreCount + 1, Context);
+		FPlatformStackWalk::StackWalkAndDump(HumanReadableString, HumanReadableStringSize, IgnoreCount, Context);
 	}
 }
 
@@ -810,14 +831,10 @@ void NewReportEnsure(const TCHAR* ErrorMessage)
 
 	bReentranceGuard = true;
 
-	siginfo_t Signal;
-	Signal.si_signo = SIGTRAP;
-	Signal.si_code = TRAP_TRACE;
-	Signal.si_addr = __builtin_return_address(0);
-
 	const bool bIsEnsure = true;
 	FLinuxCrashContext EnsureContext(bIsEnsure);
-	EnsureContext.InitFromSignal(SIGTRAP, &Signal, nullptr);
+	EnsureContext.InitFromEnsureHandler(ErrorMessage, __builtin_return_address(0));
+
 	EnsureContext.CaptureStackTrace();
 	EnsureContext.GenerateCrashInfoAndLaunchReporter(true);
 

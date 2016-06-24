@@ -31,12 +31,12 @@ struct FAndroidDeviceInfo
 	int32 GLESVersion;
 
 	// Is the device authorized for USB communication?  If not, then none of the other properties besides the serial number will be valid
-	bool bUnauthorizedDevice;
+	bool bAuthorizedDevice;
 
 	FAndroidDeviceInfo()
 		: SDKVersion(INDEX_NONE)
 		, GLESVersion(INDEX_NONE)
-		, bUnauthorizedDevice(false)
+		, bAuthorizedDevice(true)
 	{
 	}
 };

@@ -73,10 +73,10 @@ TSharedRef<SWidget>	SGraphPinInteger::GetDefaultValueWidget()
 				}
 			}
 
-			const auto& GetComboButtonText = [=]() -> FText
+			const auto& GetComboButtonText = [this, BitmaskFlags]() -> FText
 			{
 				int32 BitmaskValue = FCString::Atoi(*GraphPinObj->GetDefaultAsString());
-				if(BitmaskValue > 0)
+				if(BitmaskValue != 0)
 				{
 					if(BitmaskValue & (BitmaskValue - 1))
 					{
@@ -112,7 +112,7 @@ TSharedRef<SWidget>	SGraphPinInteger::GetDefaultValueWidget()
 						.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 					]
 				]
-				.OnGetMenuContent_Lambda([=]()
+				.OnGetMenuContent_Lambda([this, BitmaskFlags]()
 				{
 					FMenuBuilder MenuBuilder(false, nullptr);
 

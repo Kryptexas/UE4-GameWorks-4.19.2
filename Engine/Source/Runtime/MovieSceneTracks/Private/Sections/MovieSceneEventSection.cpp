@@ -86,6 +86,25 @@ void UMovieSceneEventSection::MoveSection(float DeltaPosition, TSet<FKeyHandle>&
 }
 
 
+TOptional<float> UMovieSceneEventSection::GetKeyTime( FKeyHandle KeyHandle ) const
+{
+	if ( Events.IsKeyHandleValid( KeyHandle ) )
+	{
+		return TOptional<float>( Events.GetKeyTime( KeyHandle ) );
+	}
+	return TOptional<float>();
+}
+
+
+void UMovieSceneEventSection::SetKeyTime( FKeyHandle KeyHandle, float Time )
+{
+	if ( Events.IsKeyHandleValid( KeyHandle ) )
+	{
+		Events.SetKeyTime( KeyHandle, Time );
+	}
+}
+
+
 /* UMovieSceneSection overrides
  *****************************************************************************/
 

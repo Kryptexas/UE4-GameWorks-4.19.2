@@ -14,9 +14,9 @@ Globals
 -----------------------------------------------------------------------------*/
 
 // smallest blend weight for vertex anims
-const float MinVertexAnimBlendWeight = SMALL_NUMBER;
+const float MinMorphTargetBlendWeight = SMALL_NUMBER;
 // largest blend weight for vertex anims
-const float MaxVertexAnimBlendWeight = 5.0f;
+const float MaxMorphTargetBlendWeight = 5.0f;
 
 /*-----------------------------------------------------------------------------
 FSkeletalMeshObject
@@ -29,13 +29,14 @@ FSkeletalMeshObject::FSkeletalMeshObject(USkinnedMeshComponent* InMeshComponent,
 ,	WorkingMaxDistanceFactor(0.f)
 ,   bHasBeenUpdatedAtLeastOnce(false)
 #if WITH_EDITORONLY_DATA
-,   ChunkIndexPreview(InMeshComponent->ChunkIndexPreview)
 ,   SectionIndexPreview(InMeshComponent->SectionIndexPreview)
 #endif	
 ,	SkeletalMeshResource(InSkeletalMeshResource)
 ,	SkeletalMeshLODInfo(InMeshComponent->SkeletalMesh->LODInfo)
 ,	LastFrameNumber(0)
+#if WITH_EDITORONLY_DATA
 ,	ProgressiveDrawingFraction(InMeshComponent->ProgressiveDrawingFraction)
+#endif
 ,	CustomSortAlternateIndexMode((ECustomSortAlternateIndexMode)InMeshComponent->CustomSortAlternateIndexMode)
 ,	bUsePerBoneMotionBlur(InMeshComponent->bPerBoneMotionBlur)
 ,	StatId(InMeshComponent->SkeletalMesh->GetStatID(true))
@@ -46,7 +47,6 @@ FSkeletalMeshObject::FSkeletalMeshObject(USkinnedMeshComponent* InMeshComponent,
 #if WITH_EDITORONLY_DATA
 	if ( !GIsEditor )
 	{
-		ChunkIndexPreview = -1;
 		SectionIndexPreview = -1;
 	}
 #endif // #if WITH_EDITORONLY_DATA
@@ -64,11 +64,6 @@ FSkeletalMeshObject::FSkeletalMeshObject(USkinnedMeshComponent* InMeshComponent,
 	InitLODInfos(InMeshComponent);
 }
 
-/** 
-*	Given a set of views, update the MinDesiredLODLevel member to indicate the minimum (ie best) LOD we would like to use to render this mesh. 
-*	This is called from the rendering thread (PreRender) so be very careful what you read/write to.
-*	If this is the first render for the frame, will just set MinDesiredLODLevel - otherwise will set it to min of current MinDesiredLODLevel and calculated value.
-*/
 void FSkeletalMeshObject::UpdateMinDesiredLODLevel(const FSceneView* View, const FBoxSphereBounds& Bounds, int32 FrameNumber)
 {
 	static const auto* SkeletalMeshLODRadiusScale = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.SkeletalMeshLODRadiusScale"));
@@ -134,10 +129,10 @@ void FSkeletalMeshObject::UpdateMinDesiredLODLevel(const FSceneView* View, const
  * List of chunks to be rendered based on instance weight usage. Full swap of weights will render with its own chunks.
  * @return Chunks to iterate over for rendering
  */
-const TArray<FSkelMeshChunk>& FSkeletalMeshObject::GetRenderChunks(int32 InLODIndex) const
+const TArray<FSkelMeshSection>& FSkeletalMeshObject::GetRenderSections(int32 InLODIndex) const
 {
 	const FStaticLODModel& LOD = SkeletalMeshResource->LODModels[InLODIndex];
-	return LOD.Chunks;
+	return LOD.Sections;
 }
 
 /**

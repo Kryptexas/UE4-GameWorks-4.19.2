@@ -5,6 +5,22 @@
 #include "AndroidRuntimeSettings.generated.h"
 
 UENUM()
+namespace EAndroidAntVerbosity
+{
+	enum Type
+	{
+		/** Extra quiet logging (-quiet), errors will be logged by second run at normal verbosity. */
+		Quiet,
+
+		/** Normal logging (no options) */
+		Normal,
+
+		/** Extra verbose logging (-verbose) */
+		Verbose,
+	};
+}
+
+UENUM()
 namespace EAndroidScreenOrientation
 {
 	// IF THIS CHANGES, MAKE SURE TO UPDATE UEDeployAndroid.cs, ConvertOrientationIniValue()!
@@ -49,6 +65,21 @@ namespace EAndroidDepthBufferPreference
 		Bits16 = 16 UMETA(DisplayName = "16-bit"),
 		Bits24 = 24 UMETA(DisplayName = "24-bit"),
 		Bits32 = 32 UMETA(DisplayName = "32-bit"),
+	};
+}
+
+/** The default install location for the application */
+UENUM()
+namespace EAndroidInstallLocation
+{
+	enum Type
+	{
+		/** Install your app only on internal device storage */
+		InternalOnly,
+		/** Install your app on external storage when available */
+		PreferExternal,
+		/** Internal storage is preferred over external, unless the interal storage is low on space */
+		Auto
 	};
 }
 
@@ -130,6 +161,10 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Target SDK Version (9=Gingerbread, 14=Ice Cream Sandwich, 21=Lollipop)"))
 	int32 TargetSDKVersion;
 
+	// Preferred install location for the application
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging)
+	TEnumAsByte<EAndroidInstallLocation::Type> InstallLocation;
+
 	// Should the data be placed into the .apk file instead of a separate .obb file. Amazon requires this to be enabled, but Google Play Store will not allow .apk files larger than 50MB, so only small games will work with this enabled.
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Package game data inside .apk?"))
 	bool bPackageDataInsideApk;
@@ -137,10 +172,14 @@ public:
 	// Disable the verification of an OBB file when it is downloaded or on first start when in a distribution build. 
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Disable verify OBB on first start/update."))
 	bool bDisableVerifyOBBOnStartUp;
-	
+
 	// The permitted orientation of the application on the device
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging)
 	TEnumAsByte<EAndroidScreenOrientation::Type> Orientation;
+
+	// Level of verbosity to use during packaging with Ant
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging)
+	TEnumAsByte<EAndroidAntVerbosity::Type> AntVerbosity;
 
 	// Should the software navigation buttons be hidden or not
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Enable FullScreen Immersive on KitKat and above devices."))
@@ -183,6 +222,14 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = AdvancedAPKPackaging, Meta = (DisplayName = "Remove Oculus Signature Files from Distribution APK"))
 	bool bRemoveOSIG;
 
+	// Configure the Android to run in sustained performance with lower max speeds, but no FPS fluctuations due to temperature
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = AdvancedAPKPackaging, Meta = (DisplayName = "Configure GoogleVR for sustained-performance mode"))
+	bool bGoogleVRSustainedPerformance;
+
+	// Configure the Android to run in low-latency mode, not available on all hardware
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = AdvancedAPKPackaging, Meta = (DisplayName = "Configure GoogleVR for low-latency rendering mode (scanline racing)"))
+	bool bGoogleVRScanlineRacing;
+
 	// This is the file that keytool outputs, specified with the -keystore parameter (file should be in <Project>/Build/Android)
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = DistributionSigning, Meta = (DisplayName = "Key Store (output of keytool, placed in <Project>/Build/Android)"))
 	FString KeyStore;
@@ -224,7 +271,7 @@ public:
 	bool bBuildForES31;
 
 	// Enable Vulkan support? [CURRENTLY FOR FULL SOURCE GAMES ONLY]
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support Vulkan"))
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support Vulkan [Experimental]"))
 	bool bSupportsVulkan;
 
 	// If selected, the checked architectures will be split into separate .apk files [CURRENTLY FOR FULL SOURCE GAMES ONLY]

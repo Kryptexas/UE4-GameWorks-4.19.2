@@ -795,6 +795,8 @@ protected:
 	virtual void OnConvertToSequencePlayer() {};
 	virtual void OnConvertToBlendSpaceEvaluator() {};
 	virtual void OnConvertToBlendSpacePlayer() {};
+	virtual void OnConvertToPoseBlender() {};
+	virtual void OnConvertToPoseByName() {};
 
 	// Opens the associated asset of the selected nodes
 	virtual void OnOpenRelatedAsset() {};

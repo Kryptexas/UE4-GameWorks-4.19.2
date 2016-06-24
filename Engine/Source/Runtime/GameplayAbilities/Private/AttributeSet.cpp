@@ -14,7 +14,7 @@
 namespace
 {
 	int32 bDoAttributeGraphVLogging = 1;
-	FAutoConsoleVariableRef PickUp_Debug_CVar(TEXT("g.debug.vlog.AttributeGraph")
+	FAutoConsoleVariableRef CVarDoAttributeGraphVLogging(TEXT("g.debug.vlog.AttributeGraph")
 		, bDoAttributeGraphVLogging, TEXT("Controlls whether Attribute changes are being recorded by VisLog"), ECVF_Cheat);
 }
 #endif

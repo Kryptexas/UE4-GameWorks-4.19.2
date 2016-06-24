@@ -12,7 +12,7 @@
 class SEyeDropperButton : public SButton
 {
 public:
-	DECLARE_DELEGATE(FOnDropperComplete)
+	DECLARE_DELEGATE_OneParam(FOnDropperComplete, bool)
 
 	SLATE_BEGIN_ARGS( SEyeDropperButton )
 		: _OnValueChanged()
@@ -22,7 +22,7 @@ public:
 		{}
 
 		/** Invoked when a new value is selected by the dropper */
-	SLATE_EVENT(FOnLinearColorValueChanged, OnValueChanged)
+		SLATE_EVENT(FOnLinearColorValueChanged, OnValueChanged)
 
 		/** Invoked when the dropper goes from inactive to active */
 		SLATE_EVENT(FSimpleDelegate, OnBegin)

@@ -471,7 +471,7 @@ FReply STableViewBase::OnMouseWheel( const FGeometry& MyGeometry, const FPointer
 		// Make sure scroll velocity is cleared so it doesn't fight with the mouse wheel input
 		this->InertialScrollManager.ClearScrollVelocity();
 
-		const float AmountScrolledInItems = this->ScrollBy( MyGeometry, -MouseEvent.GetWheelDelta()*WheelScrollAmount, EAllowOverscroll::No );
+		const float AmountScrolledInItems = this->ScrollBy( MyGeometry, -MouseEvent.GetWheelDelta() * WheelScrollMultiplier, EAllowOverscroll::No );
 
 		switch ( ConsumeMouseWheel )
 		{
@@ -685,6 +685,19 @@ void STableViewBase::SetScrollOffset( const float InScrollOffset )
 		ScrollOffset = InScrollOffset;
 		OnTableViewScrolled.ExecuteIfBound( ScrollOffset );
 		RequestListRefresh();
+	}
+}
+
+void STableViewBase::AddScrollOffset(const float InScrollOffsetDelta, bool RefreshList)
+{
+	if (FMath::IsNearlyEqual(InScrollOffsetDelta, 0.0f) == false)
+	{
+		ScrollOffset += InScrollOffsetDelta;
+		if (RefreshList)
+		{
+			OnTableViewScrolled.ExecuteIfBound(ScrollOffset);
+			RequestListRefresh();
+		}
 	}
 }
 

@@ -498,7 +498,7 @@ FReply FSequencerTimeSliderController::OnMouseButtonDown( SWidget& WidgetOwner, 
 	DistanceDragged = 0;
 
 	FScrubRangeToScreen RangeToScreen( TimeSliderArgs.ViewRange.Get(), MyGeometry.Size );
-	MouseDownRange[0] = RangeToScreen.LocalXToInput(MyGeometry.AbsoluteToLocal(MouseEvent.GetLastScreenSpacePosition()).X);
+	MouseDownRange[0] = RangeToScreen.LocalXToInput(MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition()).X);
 	MouseDownRange[1] = MouseDownRange[0];
 
 	if ( bHandleLeftMouseButton )
@@ -696,13 +696,14 @@ FReply FSequencerTimeSliderController::OnMouseMove( SWidget& WidgetOwner, const 
 				TRange<float> PlaybackRange = TimeSliderArgs.PlaybackRange.Get();
 				float LocalMouseDownPos = RangeToScreen.InputToLocalX(MouseDownRange[0]);
 
-				if (HitTestScrubberEnd(RangeToScreen, SelectionRange, LocalMouseDownPos, ScrubPosition))
+				// Disable selection range test if it's empty so that the playback range scrubbing gets priority
+				if (!SelectionRange.IsEmpty() && HitTestScrubberEnd(RangeToScreen, SelectionRange, LocalMouseDownPos, ScrubPosition))
 				{
 					// selection range end scrubber
 					MouseDragType = DRAG_SELECTION_END;
 					TimeSliderArgs.OnSelectionRangeBeginDrag.ExecuteIfBound();
 				}
-				else if (HitTestScrubberStart(RangeToScreen, SelectionRange, LocalMouseDownPos, ScrubPosition))
+				else if (!SelectionRange.IsEmpty() && HitTestScrubberStart(RangeToScreen, SelectionRange, LocalMouseDownPos, ScrubPosition))
 				{
 					// selection range start scrubber
 					MouseDragType = DRAG_SELECTION_START;
@@ -823,9 +824,22 @@ FReply FSequencerTimeSliderController::OnMouseWheel( SWidget& WidgetOwner, const
 {
 	TOptional<TRange<float>> NewTargetRange;
 
-	float MouseFractionX = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition()).X / MyGeometry.GetLocalSize().X;
 	if ( TimeSliderArgs.AllowZoom && MouseEvent.IsControlDown() )
 	{
+		float MouseFractionX = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition()).X / MyGeometry.GetLocalSize().X;
+
+		// If zooming on the current time, adjust mouse fractionX
+		if (TimeSliderArgs.Settings->GetZoomPosition() == ESequencerZoomPosition::SZP_CurrentTime)
+		{
+			const float ScrubPosition = TimeSliderArgs.ScrubPosition.Get();
+			if (TimeSliderArgs.ViewRange.Get().Contains(ScrubPosition))
+			{
+				FScrubRangeToScreen RangeToScreen(TimeSliderArgs.ViewRange.Get(), MyGeometry.Size);
+				float TimePosition = RangeToScreen.InputToLocalX(ScrubPosition);
+				MouseFractionX = TimePosition / MyGeometry.GetLocalSize().X;
+			}
+		}
+
 		const float ZoomDelta = -0.2f * MouseEvent.GetWheelDelta();
 		if (ZoomByDelta(ZoomDelta, MouseFractionX))
 		{
@@ -856,8 +870,8 @@ FCursorReply FSequencerTimeSliderController::OnCursorQuery( TSharedRef<const SWi
 		(MouseDragType == DRAG_SELECTION_END) ||
 		HitTestScrubberStart(RangeToScreen, PlaybackRange, HitTestPosition, ScrubPosition) ||
 		HitTestScrubberEnd(RangeToScreen, PlaybackRange, HitTestPosition, ScrubPosition) ||
-		HitTestScrubberStart(RangeToScreen, SelectionRange, HitTestPosition, ScrubPosition) ||
-		HitTestScrubberEnd(RangeToScreen, SelectionRange, HitTestPosition, ScrubPosition))
+		(!SelectionRange.IsEmpty() && HitTestScrubberStart(RangeToScreen, SelectionRange, HitTestPosition, ScrubPosition)) ||
+		(!SelectionRange.IsEmpty() && HitTestScrubberEnd(RangeToScreen, SelectionRange, HitTestPosition, ScrubPosition)))
 	{
 		return FCursorReply::Cursor(EMouseCursor::ResizeLeftRight);
 	}
@@ -1091,7 +1105,7 @@ void FSequencerTimeSliderController::PanByDelta( float InDelta )
 
 bool FSequencerTimeSliderController::HitTestScrubberStart(const FScrubRangeToScreen& RangeToScreen, const TRange<float>& PlaybackRange, float LocalHitPositionX, float ScrubPosition) const
 {
-	static float BrushSizeInStateUnits = 6.f, DragToleranceSlateUnits = 2.f;
+	static float BrushSizeInStateUnits = 6.f, DragToleranceSlateUnits = 2.f, MouseTolerance = 2.f;
 	float LocalPlaybackStartPos = RangeToScreen.InputToLocalX(PlaybackRange.GetLowerBoundValue());
 
 	// We favor hit testing the scrub bar over hit testing the playback range bounds
@@ -1101,13 +1115,13 @@ bool FSequencerTimeSliderController::HitTestScrubberStart(const FScrubRangeToScr
 	}
 
 	// Hit test against the brush region to the right of the playback start position, +/- DragToleranceSlateUnits
-	return LocalHitPositionX >= LocalPlaybackStartPos - DragToleranceSlateUnits &&
-		LocalHitPositionX <= LocalPlaybackStartPos + BrushSizeInStateUnits + DragToleranceSlateUnits;
+	return LocalHitPositionX >= LocalPlaybackStartPos - MouseTolerance - DragToleranceSlateUnits &&
+		LocalHitPositionX <= LocalPlaybackStartPos + MouseTolerance + BrushSizeInStateUnits + DragToleranceSlateUnits;
 }
 
 bool FSequencerTimeSliderController::HitTestScrubberEnd(const FScrubRangeToScreen& RangeToScreen, const TRange<float>& PlaybackRange, float LocalHitPositionX, float ScrubPosition) const
 {
-	static float BrushSizeInStateUnits = 6.f, DragToleranceSlateUnits = 2.f;
+	static float BrushSizeInStateUnits = 6.f, DragToleranceSlateUnits = 2.f, MouseTolerance = 2.f;
 	float LocalPlaybackEndPos = RangeToScreen.InputToLocalX(PlaybackRange.GetUpperBoundValue());
 	
 	// We favor hit testing the scrub bar over hit testing the playback range bounds
@@ -1117,8 +1131,8 @@ bool FSequencerTimeSliderController::HitTestScrubberEnd(const FScrubRangeToScree
 	}
 	
 	// Hit test against the brush region to the left of the playback end position, +/- DragToleranceSlateUnits
-	return LocalHitPositionX >= LocalPlaybackEndPos - BrushSizeInStateUnits - DragToleranceSlateUnits &&
-		LocalHitPositionX <= LocalPlaybackEndPos + DragToleranceSlateUnits;
+	return LocalHitPositionX >= LocalPlaybackEndPos - MouseTolerance - BrushSizeInStateUnits - DragToleranceSlateUnits &&
+		LocalHitPositionX <= LocalPlaybackEndPos + MouseTolerance + DragToleranceSlateUnits;
 }
 
 void FSequencerTimeSliderController::SetPlaybackRangeStart(float NewStart)

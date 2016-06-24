@@ -29,7 +29,7 @@ inline void TBasePassVertexShaderPolicyParamType<VertexParametersType>::SetMesh(
 			if (bHasPreviousLocalToWorldParameter)
 			{
 				const FMatrix& Transform = bHasPreviousLocalToWorldMatrix ? PreviousLocalToWorldMatrix : Proxy->GetLocalToWorld();
-				SetShaderValue(RHICmdList, VertexShaderRHI, PreviousLocalToWorldParameter, Transform.ConcatTranslation(ViewInfo.PrevViewMatrices.PreViewTranslation));
+				SetShaderValue(RHICmdList, VertexShaderRHI, PreviousLocalToWorldParameter, Transform);
 			}
 
 			SkipOutputVelocityValue = 0.0f;
@@ -47,8 +47,9 @@ inline void TBasePassVertexShaderPolicyParamType<VertexParametersType>::SetMesh(
 }
 
 template<typename VertexParametersType>
-void TBasePassVertexShaderPolicyParamType<VertexParametersType>::SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) {
-	if (InstancedEyeIndexParameter.IsBound())
+void TBasePassVertexShaderPolicyParamType<VertexParametersType>::SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex)
+{
+	if (EyeIndex > 0 && InstancedEyeIndexParameter.IsBound())
 	{
 		SetShaderValue(RHICmdList, GetVertexShader(), InstancedEyeIndexParameter, EyeIndex);
 	}

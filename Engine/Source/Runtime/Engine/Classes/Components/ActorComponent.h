@@ -8,6 +8,7 @@
 #include "ActorComponent.generated.h"
 
 struct FReplicationFlags;
+class UWorld;
 
 UENUM()
 enum class EComponentCreationMethod : uint8
@@ -22,17 +23,6 @@ enum class EComponentCreationMethod : uint8
 	Instance,
 };
 
-
-/** Whether to teleport physics body or not */
-enum class ETeleportType
-{
-	/** Do not teleport physics body. This means velocity will reflect the movement between initial and final position, and collisions along the way will occur */
-	None,
-	/** Teleport physics body so that velocity remains the same and no collision occurs */
-	TeleportPhysics
-};
-
-FORCEINLINE ETeleportType TeleportFlagToEnum(bool bTeleport) { return bTeleport ? ETeleportType::TeleportPhysics : ETeleportType::None; }
 
 /** Information about how to update transform*/
 enum class EUpdateTransformFlags : int32
@@ -254,7 +244,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Components", meta=(Keywords = "Actor Owning Parent"))
 	class AActor* GetOwner() const;
 
-	virtual class UWorld* GetWorld() const override;
+	virtual UWorld* GetWorld() const override final { return (WorldPrivate ? WorldPrivate : GetWorld_Uncached()); }
 
 	/** See if this component contains the supplied tag */
 	UFUNCTION(BlueprintCallable, Category="Components")
@@ -335,9 +325,21 @@ public:
 	/** Returns true if we are replicating and not authorative */
 	bool	IsNetSimulating() const;
 
+	/** Get the network role of the Owner, or ROLE_None if there is no owner. */
 	ENetRole GetOwnerRole() const;
 
+	/**
+	 * Get the network mode (dedicated server, client, standalone, etc) for this component.
+	 * @see IsNetMode()
+	 */
 	ENetMode GetNetMode() const;
+
+	/**
+	* Test whether net mode is the given mode.
+	* In optimized non-editor builds this can be more efficient than GetNetMode()
+	* because it can check the static build flags without considering PIE.
+	*/
+	bool IsNetMode(ENetMode Mode) const;
 
 private:
 
@@ -346,6 +348,12 @@ private:
 	 * This is only non-NULL when the component is registered.
 	 */
 	UWorld* WorldPrivate;
+
+	// If WorldPrivate isn't set this will determine the world from outers
+	UWorld* GetWorld_Uncached() const;
+
+	/** Private version without inlining that does *not* check Dedicated server build flags (which should already have been done). */
+	ENetMode InternalGetNetMode() const;
 
 protected:
 
@@ -484,6 +492,7 @@ public:
 	 * @return  true if this component met the criteria for actually being ticked.
 	 */
 	bool SetupActorComponentTickFunction(struct FTickFunction* TickFunction);
+
 	/** 
 	 * Set this component's tick functions to be enabled or disabled. Only has an effect if the function is registered
 	 * 
@@ -502,6 +511,19 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities")
 	bool IsComponentTickEnabled() const;
+
+	/** 
+	* Sets the tick interval for this component's primary tick function. Does not enable the tick interval. Takes effect on next tick.
+	* @param TickInterval	The duration between ticks for this component's primary tick function
+	*/
+	UFUNCTION(BlueprintCallable, Category="Utilities")
+	void SetComponentTickInterval(float TickInterval);
+
+	/** 
+	* Returns whether this component has tick enabled or not
+	*/
+	UFUNCTION(BlueprintCallable, Category="Utilities")
+	float GetComponentTickInterval() const;
 
 	/**
 	 * @param InWorld - The world to register the component with.
@@ -778,4 +800,38 @@ FORCEINLINE_DEBUGGABLE class AActor* UActorComponent::GetOwner() const
 FORCEINLINE bool UActorComponent::CanEverAffectNavigation() const
 {
 	return bCanEverAffectNavigation;
+}
+
+FORCEINLINE_DEBUGGABLE bool UActorComponent::IsNetSimulating() const
+{
+	return GetIsReplicated() && GetOwnerRole() != ROLE_Authority;
+}
+
+FORCEINLINE_DEBUGGABLE ENetMode UActorComponent::GetNetMode() const
+{
+	// IsRunningDedicatedServer() is a compile-time check in optimized non-editor builds.
+	if (IsRunningDedicatedServer())
+	{
+		return NM_DedicatedServer;
+	}
+
+	return InternalGetNetMode();
+}
+
+FORCEINLINE_DEBUGGABLE bool UActorComponent::IsNetMode(ENetMode Mode) const
+{
+#if UE_EDITOR
+	// Editor builds are special because of PIE, which can run a dedicated server without the app running with -server.
+	return GetNetMode() == Mode;
+#else
+	// IsRunningDedicatedServer() is a compile-time check in optimized non-editor builds.
+	if (Mode == NM_DedicatedServer)
+	{
+		return IsRunningDedicatedServer();
+	}
+	else
+	{
+		return !IsRunningDedicatedServer() && (InternalGetNetMode() == Mode);
+	}
+#endif // UE_EDITOR
 }

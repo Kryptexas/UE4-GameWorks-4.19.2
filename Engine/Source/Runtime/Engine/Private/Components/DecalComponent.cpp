@@ -15,7 +15,9 @@ static TAutoConsoleVariable<float> CVarDecalFadeDurationScale(
 	);
 
 FDeferredDecalProxy::FDeferredDecalProxy(const UDecalComponent* InComponent)
-	: InvFadeDuration(0.0f)
+	: DrawInGame( InComponent->bVisible && !InComponent->bHiddenInGame )
+	, DrawInEditor( InComponent->bVisible )
+	, InvFadeDuration(0.0f)
 	, FadeStartDelayNormalized(1.0f)
 {
 	UMaterialInterface* EffectiveMaterial = UMaterial::GetDefaultMaterial(MD_DeferredDecal);
@@ -33,11 +35,17 @@ FDeferredDecalProxy::FDeferredDecalProxy(const UDecalComponent* InComponent)
 	Component = InComponent;
 	DecalMaterial = EffectiveMaterial;
 	SetTransformIncludingDecalSize(InComponent->GetTransformIncludingDecalSize());
-	DrawInGame = InComponent->ShouldRender();
 	bOwnerSelected = InComponent->IsOwnerSelected();
 	SortOrder = InComponent->SortOrder;
 	InitializeFadingParameters(InComponent->GetWorld()->GetTimeSeconds(), InComponent->GetFadeDuration(), InComponent->GetFadeStartDelay());
 	
+	if ( InComponent->GetOwner() )
+	{
+		DrawInGame &= !( InComponent->GetOwner()->bHidden );
+#if WITH_EDITOR
+		DrawInEditor &= !InComponent->GetOwner()->IsHiddenEd();
+#endif
+	}
 }
 
 void FDeferredDecalProxy::SetTransformIncludingDecalSize(const FTransform& InComponentToWorldIncludingDecalSize)
@@ -52,6 +60,32 @@ void FDeferredDecalProxy::InitializeFadingParameters(float AbsSpawnTime, float F
 		InvFadeDuration = 1.0f / FadeDuration;
 		FadeStartDelayNormalized = (AbsSpawnTime + FadeStartDelay + FadeDuration) * InvFadeDuration;
 	}
+}
+
+bool FDeferredDecalProxy::IsShown( const FSceneView* View ) const
+{
+	// Logic here should match FPrimitiveSceneProxy::IsShown for consistent behavior in editor and at runtime.
+#if WITH_EDITOR
+	if ( View->Family->EngineShowFlags.Editor )
+	{
+		if ( !DrawInEditor )
+		{
+			return false;
+		}
+	}
+	else
+#endif
+	{
+		if ( !DrawInGame
+#if WITH_EDITOR
+			|| ( !View->bIsGameView && View->Family->EngineShowFlags.Game && !DrawInEditor )
+#endif
+			)
+		{
+			return false;
+		}
+	}
+	return true;
 }
 
 UDecalComponent::UDecalComponent(const FObjectInitializer& ObjectInitializer)

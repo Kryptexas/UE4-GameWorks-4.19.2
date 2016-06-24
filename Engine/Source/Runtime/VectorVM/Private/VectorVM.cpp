@@ -1568,13 +1568,15 @@ void VectorVM::Exec(
 			case EVectorVMOp::select: FVectorKernelSelect::Exec(Context); break;
 			case EVectorVMOp::output:
 			{
-				if ((ENABLE_VM_DEBUGGING && Context.IsDebugging()) == false)
-				{
-					FVectorKernelOutput::Exec(Context);
-				}
-				else
+#if ENABLE_VM_DEBUGGING
+				if (Context.IsDebugging())
 				{
 					FVectorKernelOutputStreamed::Exec(Context);
+				}
+				else
+#endif
+				{
+					FVectorKernelOutput::Exec(Context);
 				}
 			}
 				break;

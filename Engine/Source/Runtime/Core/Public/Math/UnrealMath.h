@@ -14,6 +14,7 @@
 #include "Edge.h"
 #include "Plane.h"
 #include "Sphere.h"
+#include "CapsuleShape.h"
 #include "Rotator.h"
 #include "RangeBound.h"
 #include "Range.h"

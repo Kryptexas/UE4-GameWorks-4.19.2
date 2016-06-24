@@ -394,7 +394,7 @@ bool FAssetEditorManager::OpenEditorForAssets( const TArray< UObject* >& Assets,
 
 			if (AssetTypeActions.IsValid())
 			{
-				GWarn->BeginSlowTask(LOCTEXT("OpenEditor", "Opening Editor(s)..."), true);
+				GWarn->BeginSlowTask(LOCTEXT("OpenEditors", "Opening Editor(s)..."), true);
 
 				// Determine the appropriate toolkit mode for the asset type
 				auto ActualToolkitMode = ToolkitMode;
@@ -703,6 +703,14 @@ void FAssetEditorManager::OpenEditorsForAssets(const TArray<FString>& AssetsToOp
 	for (const FString& AssetName : AssetsToOpen)
 	{
 		OpenEditorForAsset(AssetName);
+	}
+}
+
+void FAssetEditorManager::OpenEditorsForAssets(const TArray<FName>& AssetsToOpen)
+{
+	for (const FName AssetName : AssetsToOpen)
+	{
+		OpenEditorForAsset(AssetName.ToString());
 	}
 }
 

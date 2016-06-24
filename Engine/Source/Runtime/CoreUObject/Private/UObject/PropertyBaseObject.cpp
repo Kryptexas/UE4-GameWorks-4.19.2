@@ -134,7 +134,7 @@ FString UObjectPropertyBase::GetExportPath(const UObject* Object, const UObject*
 	if (PortFlags & PPF_ExportsNotFullyQualified)
 	{
 		StopOuter = (ExportRootScope || (Parent == nullptr)) ? ExportRootScope : Parent->GetOutermost();
-		bExportFullyQualified = !Object->IsIn(StopOuter);
+		bExportFullyQualified = StopOuter && !Object->IsIn(StopOuter);
 
 		// Also don't fully qualify the name if it's a sibling of the root scope, since it may be included in the exported set of objects
 		if (bExportFullyQualified)

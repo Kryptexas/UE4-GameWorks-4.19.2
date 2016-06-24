@@ -336,6 +336,8 @@ TAutoConsoleVariable<int32> CVarAnimStateMachineRelevancyReset(TEXT("a.AnimNode.
 
 void FAnimNode_StateMachine::Update(const FAnimationUpdateContext& Context)
 {
+	Context.AnimInstanceProxy->RecordMachineWeight(StateMachineIndexInClass, Context.GetFinalBlendWeight());
+
 	// If we just became relevant and haven't been initialized yet, then reinitialize state machine.
 	if (!bFirstUpdate && (UpdateCounter.Get() != INDEX_NONE) && !UpdateCounter.WasSynchronizedInTheLastFrame(Context.AnimInstanceProxy->GetUpdateCounter()) && (CVarAnimStateMachineRelevancyReset.GetValueOnAnyThread() == 1))
 	{
@@ -840,6 +842,9 @@ void FAnimNode_StateMachine::EvaluateTransitionCustomBlend(FPoseContext& Output,
 		{
 			Output.Pose[BoneIndex] = StatePoseResult.Pose[BoneIndex];
 		}
+
+		// Copy curve over also, replacing current.
+		Output.Curve.CopyFrom(StatePoseResult.Curve);
 	}
 }
 

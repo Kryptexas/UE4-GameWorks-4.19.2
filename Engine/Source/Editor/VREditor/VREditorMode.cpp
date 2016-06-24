@@ -19,6 +19,8 @@
 #include "MotionControllerComponent.h"
 #include "EngineAnalytics.h"
 #include "IHeadMountedDisplay.h"
+#include "EngineAnalytics.h"
+#include "IAnalyticsProvider.h"
 
 #include "Editor/LevelEditor/Public/LevelEditorActions.h"
 #include "Editor/ViewportInteraction/Public/ViewportInteraction.h"

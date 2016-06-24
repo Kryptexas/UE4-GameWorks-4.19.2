@@ -8,7 +8,6 @@
 #include "SceneTypes.h"
 #include "StaticLighting.h"
 #include "Components/PrimitiveComponent.h"
-#include "LandscapeGrassType.h"
 
 #include "LandscapeComponent.generated.h"
 
@@ -19,6 +18,7 @@ class ALandscapeProxy;
 class ALandscape;
 class ULandscapeHeightfieldCollisionComponent;
 class ULandscapeComponent;
+class ULandscapeGrassType;
 
 struct FEngineShowFlags;
 struct FConvexVolume;
@@ -26,6 +26,7 @@ struct FLandscapeEditDataInterface;
 struct FLandscapeEditToolRenderData;
 struct FLandscapeWeightmapUsage;
 struct FLandscapeTextureDataInfo;
+struct FLandscapeComponentGrassData;
 
 class FLandscapeComponentDerivedData
 {
@@ -38,6 +39,12 @@ public:
 	bool HasValidPlatformData() const
 	{
 		return CompressedLandscapeData.Num() != 0;
+	}
+
+	/** Returns the size of the platform data if there is any. */
+	int32 GetPlatformDataSize() const
+	{
+		return CompressedLandscapeData.Num();
 	}
 
 	/** Initializes the compressed data from an uncompressed source. */
@@ -94,14 +101,9 @@ struct FWeightmapLayerAllocationInfo
 	UPROPERTY()
 	uint8 WeightmapTextureChannel;
 
-	/** Only relevant in non-editor builds, this indicates which channel in the data array is this layer...must be > 1 to be valid, the first two are height **/
-	UPROPERTY()
-	uint8 GrassMapChannelIndex;
-
 	FWeightmapLayerAllocationInfo()
 		: WeightmapTextureIndex(0)
 		, WeightmapTextureChannel(0)
-		, GrassMapChannelIndex(0)
 	{
 	}
 
@@ -110,7 +112,6 @@ struct FWeightmapLayerAllocationInfo
 		:	LayerInfo(InLayerInfo)
 		,	WeightmapTextureIndex(255)	// Indicates an invalid allocation
 		,	WeightmapTextureChannel(255)
-		,	GrassMapChannelIndex(0) // Indicates an invalid allocation
 	{
 	}
 	
@@ -119,8 +120,16 @@ struct FWeightmapLayerAllocationInfo
 
 struct FLandscapeComponentGrassData
 {
-	FGuid MaterialStateId;
+#if WITH_EDITORONLY_DATA
+	// Variables used to detect when grass data needs to be regenerated:
+
+	// Guid per material instance in the hierarchy between the assigned landscape material (instance) and the root UMaterial
+	// used to detect changes to material instance parameters or the root material that could affect the grass maps
+	TArray<FGuid, TInlineAllocator<2>> MaterialStateIds;
+	// cached component rotation when material world-position-offset is used,
+	// as this will affect the direction of world-position-offset deformation (included in the HeightData below)
 	FQuat RotationForWPO;
+#endif
 
 	TArray<uint16> HeightData;
 #if WITH_EDITORONLY_DATA
@@ -131,7 +140,9 @@ struct FLandscapeComponentGrassData
 
 	FLandscapeComponentGrassData() {}
 
+#if WITH_EDITOR
 	FLandscapeComponentGrassData(ULandscapeComponent* Component);
+#endif
 
 	bool HasData()
 	{
@@ -272,7 +283,7 @@ public:
 	FGuid BakedTextureMaterialGuid;
 
 	/** Pre-baked Base Color texture for use by distance field GI */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BakedTextures)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = BakedTextures)
 	UTexture2D* GIBakedBaseColorTexture;
 
 #if WITH_EDITORONLY_DATA
@@ -316,8 +327,6 @@ public:
 	/** Grass data for generation **/
 	TSharedRef<FLandscapeComponentGrassData, ESPMode::ThreadSafe> GrassData;
 
-	virtual ~ULandscapeComponent();
-
 	//~ Begin UObject Interface.	
 	virtual void PostInitProperties() override;	
 	virtual void Serialize(FArchive& Ar) override;
@@ -342,6 +351,7 @@ public:
 	
 	//~ Begin UPrimitiveComponent Interface.
 	virtual bool GetLightMapResolution( int32& Width, int32& Height ) const override;
+	virtual int32 GetStaticLightMapResolution() const override;
 	virtual void GetLightAndShadowMapMemoryUsage( int32& LightMapMemoryUsage, int32& ShadowMapMemoryUsage ) const override;
 	virtual void GetStaticLightingInfo(FStaticLightingPrimitiveInfo& OutPrimitiveInfo,const TArray<ULightComponent*>& InRelevantLights,const FLightingBuildOptions& Options) override;
 #endif
@@ -376,10 +386,10 @@ public:
 	LANDSCAPE_API ULandscapeInfo* GetLandscapeInfo(bool bSpawnNewActor = true) const;
 
 	/** @todo document */
-	LANDSCAPE_API void DeleteLayer(ULandscapeLayerInfoObject* LayerInfo, FLandscapeEditDataInterface* LandscapeEdit);
+	LANDSCAPE_API void DeleteLayer(ULandscapeLayerInfoObject* LayerInfo, FLandscapeEditDataInterface& LandscapeEdit);
+	LANDSCAPE_API void FillLayer(ULandscapeLayerInfoObject* LayerInfo, FLandscapeEditDataInterface& LandscapeEdit);
+	LANDSCAPE_API void ReplaceLayer(ULandscapeLayerInfoObject* FromLayerInfo, ULandscapeLayerInfoObject* ToLayerInfo, FLandscapeEditDataInterface& LandscapeEdit);
 
-	LANDSCAPE_API void ReplaceLayer(ULandscapeLayerInfoObject* FromLayerInfo, ULandscapeLayerInfoObject* ToLayerInfo, FLandscapeEditDataInterface* LandscapeEdit);
-	
 	void GeneratePlatformVertexData();
 	void GeneratePlatformPixelData();
 

@@ -50,21 +50,22 @@ typedef FWinRTTypes FPlatformTypes;
 #define PLATFORM_SUPPORTS_MULTITHREADED_GC					0
 #define PLATFORM_HAS_BSD_SOCKET_FEATURE_WINSOCKETS			1
 #define PLATFORM_USES_MICROSOFT_LIBC_FUNCTIONS				1
-#define PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS			0
-#define PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES			0
-#define PLATFORM_COMPILER_HAS_EXPLICIT_OPERATORS			0
-#define PLATFORM_COMPILER_HAS_DEFAULT_FUNCTION_TEMPLATE_ARGUMENTS	0
+#if _MSC_VER < 1900
+	#define PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS		0
+#endif
+#define PLATFORM_COMPILER_HAS_EXPLICIT_OPERATORS			1
 
 //@todo.WinRT: Fixup once sockets are supported
 #define PLATFORM_SUPPORTS_MESSAGEBUS						0
 
 // Function type macros.
-#define VARARGS						__cdecl										/* Functions with variable arguments */
-#define CDECL						__cdecl										/* Standard C function */
-#define STDCALL						__stdcall									/* Standard calling convention */
-#define FORCEINLINE					__forceinline								/* Force code to be inline */
-#define FORCENOINLINE				__declspec(noinline)						/* Force code to NOT be inline */
-#define FUNCTION_CHECK_RETURN(...)	__declspec("SAL_checkReturn") __VA_ARGS__	/* Wrap a function signature in this to warn that callers should not ignore the return value. */
+#define VARARGS						__cdecl							/* Functions with variable arguments */
+#define CDECL						__cdecl							/* Standard C function */
+#define STDCALL						__stdcall						/* Standard calling convention */
+#define FORCEINLINE					__forceinline					/* Force code to be inline */
+#define FORCENOINLINE				__declspec(noinline)			/* Force code to NOT be inline */
+#define FUNCTION_CHECK_RETURN_START	__declspec("SAL_checkReturn")	/* Warn that callers should not ignore the return value. */
+#define FUNCTION_NO_RETURN_START	__declspec(noreturn)			/* Indicate that the function never returns. */
 
 // Hints compiler that expression is true; generally restricted to comparisons against constants
 #define ASSUME(expr)	__assume(expr)

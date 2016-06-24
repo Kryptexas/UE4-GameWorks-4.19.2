@@ -36,6 +36,7 @@ void FFoliageTypePaintingCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 	ShowFoliagePropertiesForCategory(DetailLayoutBuilder, "Painting", PropertyRowsByName);
 	ShowFoliagePropertiesForCategory(DetailLayoutBuilder, "Placement", PropertyRowsByName);
 	ShowFoliagePropertiesForCategory(DetailLayoutBuilder, "InstanceSettings", PropertyRowsByName);
+	FFoliageTypeCustomizationHelpers::AddBodyInstanceProperties(DetailLayoutBuilder);
 
 	// Density adjustment factor should only be visible when reapplying
 	FFoliageTypeCustomizationHelpers::ModifyFoliagePropertyRow(*PropertyRowsByName.Find(GET_MEMBER_NAME_CHECKED(UFoliageType, DensityAdjustmentFactor)),

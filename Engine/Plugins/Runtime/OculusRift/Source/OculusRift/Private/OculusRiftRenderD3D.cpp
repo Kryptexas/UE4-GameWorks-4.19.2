@@ -1,6 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 //
-#include "HMDPrivatePCH.h"
+#include "OculusRiftPrivatePCH.h"
 #include "OculusRiftHMD.h"
 
 #if OCULUS_RIFT_SUPPORTED_PLATFORMS
@@ -482,16 +482,16 @@ void FOculusRiftHMD::D3D11Bridge::BeginRendering(FHMDViewExtension& InRenderCont
 
 	SetRenderContext(&InRenderContext);
 
-	FGameFrame* CurrentFrame = GetRenderFrame();
-	check(CurrentFrame);
-	FSettings* FrameSettings = CurrentFrame->GetSettings();
+	FGameFrame* CurrentRenderFrame = GetRenderFrame();
+	check(CurrentRenderFrame);
+	FSettings* FrameSettings = CurrentRenderFrame->GetSettings();
 	check(FrameSettings);
 
 	const uint32 RTSizeX = RT->GetSizeX();
 	const uint32 RTSizeY = RT->GetSizeY();
 
 	FOvrSessionShared::AutoSession OvrSession(Session);
-	const FVector2D ActualMirrorWindowSize = CurrentFrame->WindowSize;
+	const FVector2D ActualMirrorWindowSize = CurrentRenderFrame->WindowSize;
 	// detect if mirror texture needs to be re-allocated or freed
 	if (Session->IsActive() && MirrorTextureRHI && (bNeedReAllocateMirrorTexture || 
 		(FrameSettings->Flags.bMirrorToWindow && (
@@ -575,7 +575,7 @@ FTexture2DSetProxyRef FOculusRiftHMD::D3D11Bridge::CreateTextureSet(const uint32
 	desc.Height = InSizeY;
 	// Override the format to be sRGB so that the compositor always treats eye buffers
 	// as if they're sRGB even if we are sending in linear formatted textures
-	desc.Format = OVR_FORMAT_B8G8R8A8_UNORM_SRGB;
+	desc.Format = (InCreateTexFlags & LinearSpace) ? OVR_FORMAT_B8G8R8A8_UNORM : OVR_FORMAT_B8G8R8A8_UNORM_SRGB;
 	desc.MiscFlags = ovrTextureMisc_DX_Typeless;
 
 	// just make sure the proper format is used; if format is different then we might

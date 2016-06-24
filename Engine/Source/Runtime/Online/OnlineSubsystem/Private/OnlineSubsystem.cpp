@@ -7,6 +7,7 @@
 #include "NboSerializer.h"
 #include "Online.h"
 #include "IConsoleManager.h"
+#include "NetworkVersion.h"
 
 DEFINE_LOG_CATEGORY(LogOnline);
 DEFINE_LOG_CATEGORY(LogOnlineGame);
@@ -48,13 +49,15 @@ int32 GetBuildUniqueId()
 		bStaticCheck = true;
 	}
 
+	const uint32 NetworkVersion = FNetworkVersion::GetLocalNetworkVersion();
+
 	int32 BuildId = 0;
 	if (bUseBuildIdOverride == false)
 	{
 		/** Engine package CRC doesn't change, can't be used as the version - BZ */
 		FNboSerializeToBuffer Buffer(64);
 		// Serialize to a NBO buffer for consistent CRCs across platforms
-		Buffer << GEngineNetVersion;
+		Buffer << NetworkVersion;
 		// Now calculate the CRC
 		uint32 Crc = FCrc::MemCrc32((uint8*)Buffer, Buffer.GetByteCount());
 
@@ -66,8 +69,9 @@ int32 GetBuildUniqueId()
 		BuildId = BuildIdOverride;
 	}
 
-	UE_LOG_ONLINE(VeryVerbose, TEXT("GetBuildUniqueId: GEngineNetVersion %d bUseBuildIdOverride %d BuildIdOverride %d BuildId %d"),
-		GEngineNetVersion,
+	UE_LOG_ONLINE(VeryVerbose, TEXT("GetBuildUniqueId: Network CL %u LocalNetworkVersion %u bUseBuildIdOverride %d BuildIdOverride %d BuildId %d"),
+		FNetworkVersion::GetNetworkCompatibleChangelist(),
+		NetworkVersion,
 		bUseBuildIdOverride,
 		BuildIdOverride,
 		BuildId);

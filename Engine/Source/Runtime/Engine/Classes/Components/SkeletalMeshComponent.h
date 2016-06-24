@@ -4,9 +4,6 @@
 
 #include "Interfaces/Interface_CollisionDataProvider.h"
 #include "Components/SkinnedMeshComponent.h"
-#include "PhysicsEngine/PhysicsConstraintComponent.h"
-#include "SkeletalMeshTypes.h"
-#include "Animation/AnimationAsset.h"
 #include "AnimCurveTypes.h"
 #include "ClothSimData.h"
 #include "SingleAnimationPlayData.h"
@@ -17,6 +14,9 @@
 class UAnimInstance;
 struct FEngineShowFlags;
 struct FConvexVolume;
+struct FClothingAssetData;
+struct FRootMotionMovementParams;
+struct FApexClothCollisionVolumeData;
 
 DECLARE_MULTICAST_DELEGATE(FOnSkelMeshPhysicsCreatedMultiCast);
 typedef FOnSkelMeshPhysicsCreatedMultiCast::FDelegate FOnSkelMeshPhysicsCreated;
@@ -501,9 +501,6 @@ public:
 	uint32 bPrevDisableClothSimulation:1;
 
 	uint32 bDisplayClothFixedVertices:1;
-	/**
-	 * Vertex Animation
-	 */
 	
 	/** Offset of the root bone from the reference pose. Used to offset bounding box. */
 	UPROPERTY(transient)
@@ -606,10 +603,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Components|Animation", meta = (Keywords = "Animation"))
 	void SetAnimation(class UAnimationAsset* NewAnimToPlay);
-
-	// @todo block this until we support vertex animation 
-//	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
-	void SetVertexAnimation(class UVertexAnimation* NewVertexAnimToPlay);
 
 	UFUNCTION(BlueprintCallable, Category = "Components|Animation", meta = (Keywords = "Animation"))
 	void Play(bool bLooping);
@@ -819,12 +812,15 @@ public:
 	#endif // WITH_CLOTH_COLLISION_DETECTION
 #endif // WITH_APEX_CLOTHING
 
+private:
 	/** 
 	 * Morph Target Curves. This will override AnimInstance MorphTargetCurves
 	 * if same curve is found
 	 **/
 	TMap<FName, float>	MorphTargetCurves;
 
+public:
+	const TMap<FName, float>& GetMorphTargetCurves() const { return MorphTargetCurves;  }
 	// 
 	// Animation
 	//
@@ -837,7 +833,7 @@ public:
 	void TickClothing(float DeltaTime, FTickFunction& ThisTickFunction);
 
 	/** Store cloth simulation data into OutClothSimData */
-	void GetUpdateClothSimulationData(TArray<FClothSimulData>& OutClothSimData, USkeletalMeshComponent* OverrideLocalRootComponent = nullptr);
+	void GetUpdateClothSimulationData(TMap<int32, FClothSimulData>& OutClothSimData, USkeletalMeshComponent* OverrideLocalRootComponent = nullptr);
 	void RemoveAllClothingActors();
 	void ReleaseAllClothingResources();
 
@@ -940,6 +936,8 @@ protected:
 	
 	virtual bool ComponentOverlapComponentImpl(class UPrimitiveComponent* PrimComp, const FVector Pos, const FQuat& Quat, const FCollisionQueryParams& Params) override;
 
+	virtual bool MoveComponentImpl(const FVector& Delta, const FQuat& NewRotation, bool bSweep, FHitResult* OutHit = NULL, EMoveComponentFlags MoveFlags = MOVECOMP_NoFlags, ETeleportType Teleport = ETeleportType::None) override;
+
 public:
 
 	virtual class UBodySetup* GetBodySetup() override;
@@ -956,7 +954,7 @@ public:
 	virtual bool IsGravityEnabled() const override;
 	virtual void OnComponentCollisionSettingsChanged() override;
 	virtual void SetPhysMaterialOverride(UPhysicalMaterial* NewPhysMaterial) override;
-	virtual float GetDistanceToCollision(const FVector& Point, FVector& ClosestPointOnCollision) const override;
+	virtual bool GetSquaredDistanceToCollision(const FVector& Point, float& OutSquaredDistance, FVector& OutClosestPointOnCollision) const override;
 
 
 	/** 
@@ -988,6 +986,30 @@ public:
 	virtual float GetMass() const override;
 	virtual float CalculateMass(FName BoneName = NAME_None) override;
 	virtual bool DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const override;
+
+	/**
+	*	Add a force to all rigid bodies below.
+	*   This is like a 'thruster'. Good for adding a burst over some (non zero) time. Should be called every frame for the duration of the force.
+	*
+	*	@param	Force		 Force vector to apply. Magnitude indicates strength of force.
+	*	@param	BoneName	 If a SkeletalMeshComponent, name of body to apply force to. 'None' indicates root body.
+	*   @param  bAccelChange If true, Force is taken as a change in acceleration instead of a physical force (i.e. mass will have no affect).
+	*   @param  bIncludeSelf If false, Force is only applied to bodies below but not given bone name.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics")
+	virtual void AddForceToAllBodiesBelow(FVector Force, FName BoneName = NAME_None, bool bAccelChange = false, bool bIncludeSelf = true);
+
+	/**
+	*	Add impulse to all single rigid bodies below. Good for one time instant burst.
+	*
+	*	@param	Impulse		Magnitude and direction of impulse to apply.
+	*	@param	BoneName	If a SkeletalMeshComponent, name of body to apply impulse to. 'None' indicates root body.
+	*	@param	bVelChange	If true, the Strength is taken as a change in velocity instead of an impulse (ie. mass will have no affect).
+	*	@param bIncludeSelf If false, Force is only applied to bodies below but not given bone name.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics")
+	virtual void AddImpulseToAllBodiesBelow(FVector Impulse, FName BoneName = NAME_None, bool bVelChange = false, bool bIncludeSelf = true);
+
 #if WITH_EDITOR
 	virtual bool ComponentIsTouchingSelectionBox(const FBox& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
 	virtual bool ComponentIsTouchingSelectionFrustum(const FConvexVolume& InFrustum, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
@@ -1031,8 +1053,8 @@ public:
 	* @param	InAnimInstance			The anim instance we are evaluating
 	* @param	OutSpaceBases			Component space bone transforms
 	* @param	OutLocalAtoms			Local space bone transforms
-	* @param	OutVertexAnims			Active vertex animations
 	* @param	OutRootBoneTranslation	Calculated root bone translation
+	* @param	OutCurves				Blended Curve
 	*/
 	void PerformAnimationEvaluation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, TArray<FTransform>& OutSpaceBases, TArray<FTransform>& OutLocalAtoms, FVector& OutRootBoneTranslation, FBlendedHeapCurve& OutCurve) const;
 	void PostAnimEvaluation( FAnimationEvaluationContext& EvaluationContext );
@@ -1096,7 +1118,7 @@ public:
 
 	/** Set all of the bones below passed in bone to be simulated */
 	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
-	void SetAllBodiesBelowSimulatePhysics(const FName& InBoneName, bool bNewSimulate );
+	void SetAllBodiesBelowSimulatePhysics(const FName& InBoneName, bool bNewSimulate, bool bIncludeSelf = true );
 
 	/** Allows you to reset bodies Simulate state based on where bUsePhysics is set to true in the BodySetup. */
 	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
@@ -1107,7 +1129,7 @@ public:
 
 	/** Set all of the bones below passed in bone to be simulated */
 	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
-	void SetAllBodiesBelowPhysicsBlendWeight(const FName& InBoneName, float PhysicsBlendWeight, bool bSkipCustomPhysicsType = false );
+	void SetAllBodiesBelowPhysicsBlendWeight(const FName& InBoneName, float PhysicsBlendWeight, bool bSkipCustomPhysicsType = false, bool bIncludeSelf = true );
 
 	/** Accumulate AddPhysicsBlendWeight to physics blendweight for all of the bones below passed in bone to be simulated */
 	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
@@ -1125,6 +1147,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Components|SkeletalMesh")
 	void SetAllMotorsAngularDriveParams(float InSpring, float InDamping, float InForceLimit, bool bSkipCustomPhysicsType = false);
 
+	/** Sets the constraint profile properties (limits, motors, etc...) to match the constraint profile as defined in the physics asset. If profile name is not found the joint is remains untouched*/
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
+	void SetConstraintProfile(FName JointName, FName ProfileName);
+
 	/** Enable or Disable AngularPositionDrive based on a list of bone names */
 	void SetNamedMotorsAngularPositionDrive(bool bEnableSwingDrive, bool bEnableTwistDrive, const TArray<FName>& BoneNames, bool bSetOtherBodiesToComplement = false);
 
@@ -1132,6 +1158,9 @@ public:
 	void SetNamedMotorsAngularVelocityDrive(bool bEnableSwingDrive, bool bEnableTwistDrive, const TArray<FName>& BoneNames, bool bSetOtherBodiesToComplement = false);
 
 	void GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodies, TArray<FName> & OutChildrenLabels) override;
+
+	/** Iterates over all bodies below and executes Func. Returns number of bodies found */
+	int32 ForEachBodyBelow(FName BoneName, bool bIncludeSelf, bool bSkipCustomType, TFunctionRef<void(FBodyInstance*)> Func);
 
 	/** 
 	 * Change whether to force mesh into ref pose (and use cheaper vertex shader) 
@@ -1342,7 +1371,7 @@ private:
 	bool DoAnyPhysicsBodiesHaveWeight() const;
 
 	void ClearAnimScriptInstance();
-	virtual void RefreshActiveVertexAnims() override;
+	virtual void RefreshActiveMorphTargets() override;
 
 #if WITH_APEX_CLOTHING
 	void GetWindForCloth_GameThread(FVector& WindVector, float& WindAdaption) const;
@@ -1456,7 +1485,7 @@ public:
 	float LastPoseTickTime;
 
 	/** Checked whether we have already ticked the pose this frame */
-	bool PoseTickedThisFrame() const { return LastPoseTickTime == GetWorld()->TimeSeconds; }
+	bool PoseTickedThisFrame() const;
 
 	/** Take extracted RootMotion and convert it from local space to world space. */
 	FTransform ConvertLocalRootMotionToWorld(const FTransform& InTransform);

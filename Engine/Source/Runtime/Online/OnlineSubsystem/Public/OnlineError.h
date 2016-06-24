@@ -23,6 +23,9 @@ public:
 	/** Code useful when all you have is raw error info from old APIs */
 	static const FString GenericErrorCode;
 
+	/** Call this if you want to log this out (will pick the best string representation) */
+	const TCHAR* ToLogString() const;
+
 public:
 	/** Did the request succeed fully. If this is true the rest of the struct probably doesn't matter */
 	bool bSucceeded;

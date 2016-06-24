@@ -8,7 +8,7 @@
 #include "Editor/UnrealEd/Public/SEditorViewportViewMenu.h"
 #include "PhATActions.h"
 #include "SPhATPreviewToolbar.h"
-#include "Editor/UnrealEd//Public/SEditorViewport.h"
+#include "Editor/UnrealEd/Public/SEditorViewport.h"
 #include "SPhATPreviewViewport.h"
 #include "PhATPreviewViewportClient.h"
 

@@ -88,7 +88,7 @@ public:
 				if (Value.IsSet())
 				{
 					NumericType BitmaskValue = Value.GetValue();
-					if (BitmaskValue > 0)
+					if (BitmaskValue != 0)
 					{
 						if (TBitmaskValueHelpers<NumericType>::BitwiseAND(BitmaskValue, BitmaskValue - static_cast<NumericType>(1)))
 						{

@@ -252,15 +252,18 @@ FActiveSound* FSoundConcurrencyManager::ResolveConcurrency(const FActiveSound& N
 					}
 				}
 
-				// Only stop any sounds if the *lowest* priority is lower than the incoming NewActiveSound
-				if (SoundToStop->GetPriority() > NewActiveSound.GetPriority())
+				if (SoundToStop)
 				{
-					SoundToStop = nullptr;
-				}
-				// If all sounds are the same priority, then stop the oldest sound
-				else if (SoundToStop->GetPriority() == NewActiveSound.GetPriority())
-				{
-					SoundToStop = Oldest;
+					// Only stop any sounds if the *lowest* priority is lower than the incoming NewActiveSound
+					if (SoundToStop->GetPriority() > NewActiveSound.GetPriority())
+					{
+						SoundToStop = nullptr;
+					}
+					// If all sounds are the same priority, then stop the oldest sound
+					else if (SoundToStop->GetPriority() == NewActiveSound.GetPriority())
+					{
+						SoundToStop = Oldest;
+					}
 				}
 			}
 			break;

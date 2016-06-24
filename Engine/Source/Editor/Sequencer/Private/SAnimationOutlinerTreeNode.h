@@ -22,6 +22,7 @@ public:
 	SLATE_BEGIN_ARGS(SAnimationOutlinerTreeNode){}
 		SLATE_ATTRIBUTE(const FSlateBrush*, IconBrush)
 		SLATE_ATTRIBUTE(const FSlateBrush*, IconOverlayBrush)
+		SLATE_ATTRIBUTE(FSlateColor, IconColor)
 		SLATE_ATTRIBUTE(FText, IconToolTipText)
 		SLATE_NAMED_SLOT(FArguments, CustomContent)
 	SLATE_END_ARGS()

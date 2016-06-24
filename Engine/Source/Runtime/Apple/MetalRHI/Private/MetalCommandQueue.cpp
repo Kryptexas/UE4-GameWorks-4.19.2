@@ -71,13 +71,14 @@ id<MTLCommandBuffer> FMetalCommandQueue::CreateRetainedCommandBuffer(void)
 
 id<MTLCommandBuffer> FMetalCommandQueue::CreateUnretainedCommandBuffer(void)
 {
+	static bool bUnretainedRefs = !FParse::Param(FCommandLine::Get(),TEXT("metalretainrefs"));
+	id<MTLCommandBuffer> CmdBuffer = nil;
 	@autoreleasepool
 	{
-		static bool bUnretainedRefs = !FParse::Param(FCommandLine::Get(),TEXT("metalretainrefs"));
-		id<MTLCommandBuffer> CmdBuffer = bUnretainedRefs ? [[CommandQueue commandBufferWithUnretainedReferences] retain] : [[CommandQueue commandBuffer] retain];
-		TRACK_OBJECT(STAT_MetalCommandBufferCount, CmdBuffer);
-		return CmdBuffer;
+		CmdBuffer = bUnretainedRefs ? [[CommandQueue commandBufferWithUnretainedReferences] retain] : [[CommandQueue commandBuffer] retain];
 	}
+	TRACK_OBJECT(STAT_MetalCommandBufferCount, CmdBuffer);
+	return CmdBuffer;
 }
 
 void FMetalCommandQueue::CommitCommandBuffer(id<MTLCommandBuffer> const CommandBuffer)
@@ -89,7 +90,7 @@ void FMetalCommandQueue::CommitCommandBuffer(id<MTLCommandBuffer> const CommandB
 	[CommandBuffer release];
 }
 
-void FMetalCommandQueue::SubmitCommandBuffers(FMetalCommandList* BufferList, uint32 Index, uint32 Count)
+void FMetalCommandQueue::SubmitCommandBuffers(NSArray<id<MTLCommandBuffer>>* BufferList, uint32 Index, uint32 Count)
 {
 	check(BufferList);
 	CommandBuffers.SetNumZeroed(Count);
@@ -101,16 +102,18 @@ void FMetalCommandQueue::SubmitCommandBuffers(FMetalCommandList* BufferList, uin
 	}
 	if (bComplete)
 	{
-		GetMetalDeviceContext().SubmitCommandsHint(true);
+		GetMetalDeviceContext().SubmitCommandsHint();
 		
 		for (uint32 i = 0; i < Count; i++)
 		{
-			FMetalCommandList* List = CommandBuffers[i];
-			for (id<MTLCommandBuffer> Buffer in List->GetCommandBuffers())
+			NSArray<id<MTLCommandBuffer>>* CmdBuffers = CommandBuffers[i];
+			check(CmdBuffers);
+			for (id<MTLCommandBuffer> Buffer in CmdBuffers)
 			{
+				check(Buffer);
 				CommitCommandBuffer(Buffer);
 			}
-			List->OnScheduled();
+			[CommandBuffers[i] release];
 			CommandBuffers[i] = nullptr;
 		}
 	}

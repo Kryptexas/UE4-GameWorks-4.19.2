@@ -641,7 +641,7 @@ namespace UnrealBuildTool
 
 			// Switch for fast semantics D3D contexts
 			// Try disabling this if you see rendering issues or crashes in the Xbox One RHI
-			bUseFastSemanticsRenderContexts = true;
+			bUseFastSemanticsRenderContexts = false;
 
 			// By default we use the Release C++ Runtime (CRT), even when compiling Debug builds.  This is because the Debug C++
 			// Runtime isn't very useful when debugging Unreal Engine projects, and linking against the Debug CRT libraries forces
@@ -663,7 +663,7 @@ namespace UnrealBuildTool
 
 			// By default check for EULA violation and warn
 			bCheckLicenseViolations = true;
-			bBreakBuildOnLicenseViolation = false;
+			bBreakBuildOnLicenseViolation = true;
 
 			// Enables support for fast include dependency scanning, as well as gathering data for 'UBT Makefiles', then quickly
 			// assembling builds in subsequent runs using data in those cached makefiles

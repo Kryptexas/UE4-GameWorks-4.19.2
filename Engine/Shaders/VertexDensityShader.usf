@@ -40,7 +40,7 @@ float2 TriangleSize;
 void MainGS(triangle FVertexDensityVSToPS Input[3], inout TriangleStream<FVertexDensityVSToPS> TriStream )
 {
 	// Size in pixels
-	float2 SizeInClip = TriangleSize * Frame.ViewSizeAndInvSize.zw;
+	float2 SizeInClip = TriangleSize * View.ViewSizeAndInvSize.zw;
 
 	int i;
 

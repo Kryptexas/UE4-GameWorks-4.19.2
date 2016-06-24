@@ -108,11 +108,6 @@ namespace VulkanRHI
 		void* Map(VkDeviceSize Size, VkDeviceSize Offset);
 		void Unmap();
 
-		inline void* GetMappedPointer()
-		{
-			return MappedPointer;
-		}
-
 		inline bool CanBeMapped() const
 		{
 			return bCanBeMapped != 0;
@@ -121,6 +116,12 @@ namespace VulkanRHI
 		inline bool IsMapped() const
 		{
 			return !!MappedPointer;
+		}
+
+		inline void* GetMappedPointer()
+		{
+			check(IsMapped());
+			return MappedPointer;
 		}
 
 		inline bool IsCoherent() const
@@ -409,6 +410,11 @@ namespace VulkanRHI
 			return AlignedOffset;
 		}
 
+		inline uint32 GetSize() const
+		{
+			return RequestedSize;
+		}
+
 	protected:
 		uint32 RequestedSize;
 		uint32 AlignedOffset;
@@ -434,6 +440,13 @@ namespace VulkanRHI
 		{
 			return Handle;
 		}
+
+		FBufferAllocation* GetBufferAllocation()
+		{
+			return Owner;
+		}
+
+		void* GetMappedPointer();
 
 	protected:
 		friend class FBufferAllocation;
@@ -467,12 +480,22 @@ namespace VulkanRHI
 		virtual FResourceSuballocation* CreateSubAllocation(uint32 Size, uint32 AlignedOffset, uint32 AllocatedSize, uint32 AllocatedOffset) = 0;
 		virtual void Destroy(FVulkanDevice* Device) = 0;
 
-		FResourceSuballocation* TryAllocateNoLocking(uint32 Size, const char* File, uint32 Line);
+		FResourceSuballocation* TryAllocateNoLocking(uint32 InSize, uint32 InAlignment, const char* File, uint32 Line);
 
-		inline FResourceSuballocation* TryAllocateLocking(uint32 Size, const char* File, uint32 Line)
+		inline FResourceSuballocation* TryAllocateLocking(uint32 InSize, uint32 InAlignment, const char* File, uint32 Line)
 		{
 			FScopeLock ScopeLock(&CS);
-			return TryAllocateNoLocking(Size, File, Line);
+			return TryAllocateNoLocking(InSize, InAlignment, File, Line);
+		}
+
+		uint32 GetAlignment() const
+		{
+			return Alignment;
+		}
+
+		void* GetMappedPointer()
+		{
+			return MemoryAllocation->GetMappedPointer();
 		}
 
 	protected:
@@ -670,6 +693,10 @@ namespace VulkanRHI
 			uint32 TypeIndex = 0;
 			VERIFYVULKANRESULT(DeviceMemoryManager->GetMemoryTypeFromProperties(MemoryReqs.memoryTypeBits, MemoryPropertyFlags, &TypeIndex));
 			bool bMapped = (MemoryPropertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) == VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+			if (!ResourceHeaps[TypeIndex])
+			{
+				UE_LOG(LogVulkanRHI, Fatal, TEXT("Missing memory type index %d, MemSize %d, MemPropTypeBits %u, MemPropertyFlags %u, %s(%d)"), TypeIndex, (uint32)MemoryReqs.size, (uint32)MemoryReqs.memoryTypeBits, (uint32)MemoryPropertyFlags, ANSI_TO_TCHAR(File), Line);
+			}
 			return ResourceHeaps[TypeIndex]->AllocateResource(MemoryReqs.size, MemoryReqs.alignment, false, bMapped, File, Line);
 		}
 
@@ -724,6 +751,8 @@ namespace VulkanRHI
 		virtual ~FStagingResource();
 
 		virtual void Destroy(VkDevice DeviceHandle) = 0;
+
+		friend class FStagingManager;
 	};
 
 	class FStagingBuffer : public FStagingResource
@@ -765,15 +794,14 @@ namespace VulkanRHI
 
 		FStagingBuffer* AcquireBuffer(uint32 Size, VkBufferUsageFlags InUsageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 		// Sets pointer to nullptr
 		void ReleaseBuffer(FVulkanCmdBuffer* CmdBuffer, FStagingBuffer*& StagingBuffer);
-#else
-		// Sets pointer to nullptr
-		void ReleaseBuffer(FStagingBuffer*& StagingBuffer);
-#endif
 
 		void ProcessPendingFree(bool bImmediately = false);
+
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+		void DumpMemory();
+#endif
 
 	protected:
 		struct FPendingItem
@@ -784,10 +812,8 @@ namespace VulkanRHI
 		};
 
 		TArray<FStagingBuffer*> UsedStagingBuffers;
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 		TArray<FPendingItem> PendingFreeStagingBuffers;
-#endif
-		TArray<FStagingBuffer*> FreeStagingBuffers;
+		TArray<FPendingItem> FreeStagingBuffers;
 
 		FVulkanDevice* Device;
 		FVulkanQueue* Queue;
@@ -876,6 +902,8 @@ namespace VulkanRHI
 
 		// Returns true if signaled
 		bool CheckFenceState(FFence* Fence);
+
+		void DestroyFence(FFence* Fence);
 	};
 
 	class FDeferredDeletionQueue : public FDeviceChild
@@ -929,27 +957,40 @@ namespace VulkanRHI
 		struct FTempAllocInfo
 		{
 			void* Data;
-			uint32 Offset;
-			VkBuffer Buffer;
+
+			// Offset into the locked area
+			uint32 CurrentOffset;
+
+			FBufferSuballocation* BufferSuballocation;
+
+			inline uint32 GetBindOffset() const
+			{
+				return BufferSuballocation->GetOffset() + CurrentOffset;
+			}
+
+			inline VkBuffer GetHandle() const
+			{
+				return BufferSuballocation->GetHandle();
+			}
 		};
 
 		bool Alloc(uint32 InSize, uint32 InAlignment, FTempAllocInfo& OutInfo);
-
-		inline VkBuffer GetHandle() const
-		{
-			return Buffer[BufferIndex]->GetHandle();
-		}
 
 		void Reset();
 
 	protected:
 		uint8* MappedData[NUM_RENDER_BUFFERS];
 		uint8* CurrentData[NUM_RENDER_BUFFERS];
-		FStagingBuffer* Buffer[NUM_RENDER_BUFFERS];
+		TRefCountPtr<FBufferSuballocation> BufferSuballocations[NUM_RENDER_BUFFERS];
 		uint32 BufferIndex;
 		uint32 Size;
 		uint32 PeakUsed;
 
 		friend class FVulkanCommandListContext;
 	};
+
+	inline void* FBufferSuballocation::GetMappedPointer()
+	{
+		return Owner->GetMappedPointer();
+	}
 }

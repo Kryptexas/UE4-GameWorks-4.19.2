@@ -18,6 +18,8 @@ void FGameplayAbilityActorInfo::InitFromActor(AActor *InOwnerActor, AActor *InAv
 	AvatarActor = InAvatarActor;
 	AbilitySystemComponent = InAbilitySystemComponent;
 
+	APlayerController* OldPC = PlayerController.Get();
+
 	// Look for a player controller or pawn in the owner chain.
 	AActor *TestActor = InOwnerActor;
 	while (TestActor)
@@ -35,6 +37,12 @@ void FGameplayAbilityActorInfo::InitFromActor(AActor *InOwnerActor, AActor *InAv
 		}
 
 		TestActor = TestActor->GetOwner();
+	}
+
+	// Notify ASC if PlayerController was found for first time
+	if (OldPC == nullptr && PlayerController.IsValid())
+	{
+		InAbilitySystemComponent->OnPlayerControllerSet();
 	}
 
 	if (AvatarActor.Get())

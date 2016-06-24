@@ -54,7 +54,7 @@
 #include "EditorCategoryUtils.h"
 #include "EngineUtils.h"
 #include "Engine/LevelScriptActor.h"
-#include "ClassIconFinder.h"
+#include "SlateIconFinder.h"
 #define LOCTEXT_NAMESPACE "Blueprint"
 
 DEFINE_LOG_CATEGORY(LogBlueprintDebug);
@@ -2262,10 +2262,7 @@ void FBlueprintEditorUtils::MarkBlueprintAsModified(UBlueprint* Blueprint)
 			}
 		}
 
-		if (Blueprint->BlueprintType != BPTYPE_MacroLibrary)
-		{
-			Blueprint->Status = BS_Dirty;
-		}
+		Blueprint->Status = BS_Dirty;
 		Blueprint->MarkPackageDirty();
 		Blueprint->PostEditChange();
 	}
@@ -2401,10 +2398,14 @@ UFunction* FBlueprintEditorUtils::FindFunctionInImplementedInterfaces(const UBlu
 			UClass* SearchClass = (*It);
 			if( SearchClass )
 			{
-				if (UFunction* OverriddenFunction = SearchClass->FindFunctionByName(FunctionName, EIncludeSuperFlag::ExcludeSuper))
+				do
 				{
-					return OverriddenFunction;
-				}
+					if( UFunction* OverriddenFunction = SearchClass->FindFunctionByName(FunctionName, EIncludeSuperFlag::ExcludeSuper) )
+					{
+						return OverriddenFunction;
+					}
+					SearchClass = SearchClass->GetSuperClass();
+				} while (SearchClass);
 			}
 			else if( bOutInvalidInterface )
 			{
@@ -4615,15 +4616,7 @@ void FBlueprintEditorUtils::ChangeMemberVariableType(UBlueprint* Blueprint, cons
 							BlueprintEditor->SummonSearchUI(bSetFindWithinBlueprint, AllVariableNodes[0]->GetFindReferenceSearchString(), bSelectFirstResult);
 						}
 					}
-					else
-					{
-						// And recompile
-						FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
-					}
 				}
-
-				// And recompile
-				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
 			}
 		}
 	}
@@ -4900,7 +4893,7 @@ void FBlueprintEditorUtils::RenameLocalVariable(UBlueprint* InBlueprint, const U
 
 		if (LocalVariable && !bHasExistingProperty)
 		{
-			const FScopedTransaction Transaction( LOCTEXT("RenameVariable", "Rename Local Variable") );
+			const FScopedTransaction Transaction( LOCTEXT("RenameLocalVariable", "Rename Local Variable") );
 			InBlueprint->Modify();
 			FunctionEntry->Modify();
 
@@ -5083,9 +5076,6 @@ void FBlueprintEditorUtils::ChangeLocalVariableType(UBlueprint* InBlueprint, con
 					K2Schema->ReconstructNode(*VariableNode, true);
 				}
 
-				// And recompile
-				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(InBlueprint);
-
 				TSharedPtr<IToolkit> FoundAssetEditor = FToolkitManager::Get().FindEditorForAsset(InBlueprint);
 
 				// No need to submit a search query if there are no nodes.
@@ -5149,12 +5139,26 @@ bool FBlueprintEditorUtils::IsVariableUsed(const UBlueprint* Blueprint, const FN
 			TArray<UK2Node_Variable*> GraphNodes;
 			CurrentGraph->GetNodesOfClass(GraphNodes);
 
-			for( TArray<UK2Node_Variable*>::TConstIterator NodeIt(GraphNodes); NodeIt; ++NodeIt )
+			for (const UK2Node_Variable* CurrentNode : GraphNodes )
 			{
-				UK2Node_Variable* CurrentNode = *NodeIt;
 				if(Name == CurrentNode->GetVarName())
 				{
 					return true;
+				}
+			}
+
+			// Also consider "used" if there's a GetClassDefaults node that exposes the variable as an output pin that's connected to something.
+			TArray<UK2Node_GetClassDefaults*> ClassDefaultsNodes;
+			CurrentGraph->GetNodesOfClass(ClassDefaultsNodes);
+			for (const UK2Node_GetClassDefaults* ClassDefaultsNode : ClassDefaultsNodes)
+			{
+				if (ClassDefaultsNode->GetInputClass() == Blueprint->SkeletonGeneratedClass)
+				{
+					const UEdGraphPin* VarPin = ClassDefaultsNode->FindPin(Name.ToString());
+					if (VarPin && VarPin->Direction == EGPD_Output && VarPin->LinkedTo.Num() > 0)
+					{
+						return true;
+					}
 				}
 			}
 		}
@@ -5238,6 +5242,23 @@ bool FBlueprintEditorUtils::ValidateAllFunctionGraphs(UBlueprint* InBlueprint, U
 		}
 	}
 	return false;
+}
+
+void FBlueprintEditorUtils::ValidateBlueprintVariableMetadata(FBPVariableDescription& VarDesc)
+{
+	// Remove bitflag enum type metadata if the enum type is no longer a bitflags type.
+	if (VarDesc.HasMetaData(FBlueprintMetadata::MD_Bitmask))
+	{
+		FString BitmaskEnumTypeName = VarDesc.GetMetaData(FBlueprintMetadata::MD_BitmaskEnum);
+		if (!BitmaskEnumTypeName.IsEmpty())
+		{
+			UEnum* BitflagsEnum = FindObject<UEnum>(ANY_PACKAGE, *BitmaskEnumTypeName);
+			if (BitflagsEnum == nullptr || !BitflagsEnum->HasMetaData(*FBlueprintMetadata::MD_Bitflags.ToString()))
+			{
+				VarDesc.RemoveMetaData(FBlueprintMetadata::MD_BitmaskEnum);
+			}
+		}
+	}
 }
 
 void FBlueprintEditorUtils::ValidateBlueprintChildVariables(UBlueprint* InBlueprint, const FName InVariableName)
@@ -5875,7 +5896,23 @@ void FBlueprintEditorUtils::ConformImplementedEvents(UBlueprint* Blueprint)
 				// If the event is loaded and is not a custom event
 				if(!EventNode->HasAnyFlags(RF_NeedLoad|RF_NeedPostLoad) && EventNode->bOverrideFunction)
 				{
-					const bool bEventNodeUsedByInterface = ImplementedInterfaceClasses.Contains(EventNode->EventReference.GetMemberParentClass(EventNode->GetBlueprintClassFromNode()));
+					UClass* EventClass = EventNode->EventReference.GetMemberParentClass(EventNode->GetBlueprintClassFromNode());
+					bool bEventNodeUsedByInterface = false;
+					int32 Idx = 0;
+					while (Idx != ImplementedInterfaceClasses.Num() && bEventNodeUsedByInterface == false)
+					{
+						const UClass* CurrentInterface = ImplementedInterfaceClasses[Idx];
+						while (CurrentInterface)
+						{
+							if (EventClass == CurrentInterface )
+							{
+								bEventNodeUsedByInterface = true;
+								break;
+							}
+							CurrentInterface = CurrentInterface->GetSuperClass();
+						}
+						++Idx;
+					}
 					if (Blueprint->GeneratedClass && !bEventNodeUsedByInterface)
 					{
 						FixOverriddenEventSignature(EventNode, Blueprint, CurrentGraph);
@@ -8289,7 +8326,7 @@ const FSlateBrush* FBlueprintEditorUtils::GetIconFromPin( const FEdGraphPinType&
 		UClass* VarClass = FindObject<UClass>(ANY_PACKAGE, *PinSubObject->GetName());
 		if( VarClass )
 		{
-			IconBrush = FClassIconFinder::FindIconForClass( VarClass );
+			IconBrush = FSlateIconFinder::FindIconBrushForClass( VarClass );
 		}
 	}
 	return IconBrush;
@@ -8470,8 +8507,8 @@ void FBlueprintEditorUtils::BuildComponentInstancingData(UActorComponent* Compon
 							}
 						}
 
-						// Prepend the array property as changed only if we also wrote out any of the inner value as changed.
-						if (NumChangedProperties < OutData.ChangedPropertyList.Num())
+						// Prepend the array property as changed only if the sizes differ and/or if we also wrote out any of the inner value as changed.
+						if (ArrayValueHelper.Num() != DefaultArrayValueHelper.Num() || NumChangedProperties < OutData.ChangedPropertyList.Num())
 						{
 							OutData.ChangedPropertyList.Insert(ChangedPropertyInfo, NumChangedProperties);
 						}

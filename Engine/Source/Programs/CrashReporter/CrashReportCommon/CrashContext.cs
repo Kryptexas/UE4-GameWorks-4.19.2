@@ -455,6 +455,8 @@ namespace Tools.CrashReporter.CrashReportCommon
 		/// <summary> Callstack as string[] unescaped. </summary>
 		public string[] GetCallstack()
 		{
+			if (string.IsNullOrWhiteSpace(CallStack)) return new string[0];
+
 			string UnescapedValue = FGenericCrashContext.UnescapeXMLString( CallStack );
 			return UnescapedValue.Split( new char[] { '\n' }, StringSplitOptions.RemoveEmptyEntries );
 		}
@@ -470,6 +472,8 @@ namespace Tools.CrashReporter.CrashReportCommon
 		/// <summary> SourceContext as string[] unescaped. </summary>
 		public string[] GetSourceContext()
 		{
+			if (string.IsNullOrWhiteSpace(SourceContext)) return new string[0];
+
 			string UnescapedValue = FGenericCrashContext.UnescapeXMLString( SourceContext );
 			return UnescapedValue.Split( new char[] { '\n' }, StringSplitOptions.RemoveEmptyEntries );
 		}
@@ -485,6 +489,8 @@ namespace Tools.CrashReporter.CrashReportCommon
 		/// <summary> UserDescription as string[] unescaped. </summary>
 		public string[] GetUserDescription()
 		{
+			if (string.IsNullOrWhiteSpace(UserDescription)) return new string[0];
+
 			string UnescapedValue = FGenericCrashContext.UnescapeXMLString( UserDescription );
 			return UnescapedValue.Split( new char[] { '\n' }, StringSplitOptions.RemoveEmptyEntries );
 		}
@@ -496,6 +502,8 @@ namespace Tools.CrashReporter.CrashReportCommon
 		/// <summary> ErrorMessage as string[] unescaped. </summary>
 		public string[] GetErrorMessage()
 		{
+			if (string.IsNullOrWhiteSpace(ErrorMessage)) return new string[0];
+
 			string UnescapedValue = FGenericCrashContext.UnescapeXMLString( ErrorMessage );
 			UnescapedValue = UnescapedValue.Substring( 0, Math.Min( 511, UnescapedValue.Length ) ); // Database limitation.
 			return UnescapedValue.Split( new char[] { '\n' }, StringSplitOptions.RemoveEmptyEntries );
@@ -508,6 +516,8 @@ namespace Tools.CrashReporter.CrashReportCommon
 		/// <summary> Fullname of the full crash dump.</summary>
 		public string GetFullCrashDumpLocation()
 		{
+			if (string.IsNullOrWhiteSpace(FullCrashDumpLocation)) return string.Empty;
+
 			string Fullname = Path.Combine( FullCrashDumpLocation, CrashReporterConstants.UE4MinidumpName );
 			return Fullname;
 		}

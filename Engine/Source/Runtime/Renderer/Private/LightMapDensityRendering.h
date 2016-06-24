@@ -363,12 +363,26 @@ public:
 			BuiltLightingAndSelectedFlags.X = 1.0f;
 			BuiltLightingAndSelectedFlags.Y = 0.0f;
 		}
-		else
- 		if (PrimitiveSceneProxy)
+		else if (PrimitiveSceneProxy)
  		{
- 			LMResolutionScale = FVector2D(0, 0);
-			BuiltLightingAndSelectedFlags.X = 0.0f;
-			BuiltLightingAndSelectedFlags.Y = 1.0f;
+			int32 LightMapResolution = PrimitiveSceneProxy->GetLightMapResolution();
+			if (PrimitiveSceneProxy->IsStatic() && LightMapResolution > 0)
+			{
+				bTextureMapped = true;
+				LMResolutionScale = FVector2D(LightMapResolution, LightMapResolution);
+				if (bHighQualityLightMaps)
+				{	// Compensates the math in GetLightMapCoordinates (used to pack more coefficients per texture)
+					LMResolutionScale.Y *= 2.f;
+				}
+				BuiltLightingAndSelectedFlags.X = 1.0f;
+				BuiltLightingAndSelectedFlags.Y = 0.0f;
+			}
+			else
+			{
+				LMResolutionScale = FVector2D(0, 0);
+				BuiltLightingAndSelectedFlags.X = 0.0f;
+				BuiltLightingAndSelectedFlags.Y = 1.0f;
+			}
 		}
 
 		if (Mesh.MaterialRenderProxy && (Mesh.MaterialRenderProxy->IsSelected() == true))

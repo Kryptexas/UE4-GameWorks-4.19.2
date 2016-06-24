@@ -546,7 +546,7 @@ void UObject::GetArchetypeInstances( TArray<UObject*>& Instances )
 				UObject* Obj = It;
 				
 				// if this object is the correct type and its archetype is this object, add it to the list
-				if ( Obj != this && Obj && Obj->IsBasedOnArchetype(this) )
+				if ( Obj && Obj != this && Obj->IsBasedOnArchetype(this) )
 				{
 					Instances.Add(Obj);
 				}
@@ -842,7 +842,7 @@ void UObject::ConditionalPostLoadSubobjects( FObjectInstancingGraph* OuterInstan
 	CheckDefaultSubobjects();
 }
 
-void UObject::PreSave()
+void UObject::PreSave(const class ITargetPlatform* TargetPlatform)
 {
 #if WITH_EDITOR
 	FCoreUObjectDelegates::OnObjectSaved.Broadcast(this);
@@ -1638,16 +1638,16 @@ void UObject::LoadConfig( UClass* ConfigClass/*=NULL*/, const TCHAR* InFilename/
 					Key = FString::Printf(TEXT("%s[%i]"), *Property->GetName(), i);
 				}
 
-					FString Value;
+				FString Value;
 				const bool bFoundValue = GConfig->GetString( *ClassSection, *Key, Value, *PropFileName );
-					if (bFoundValue)
+				if (bFoundValue)
+				{
+					if (Property->ImportText(*Value, Property->ContainerPtrToValuePtr<uint8>(this, i), PortFlags, this) == NULL)
 					{
-						if (Property->ImportText(*Value, Property->ContainerPtrToValuePtr<uint8>(this, i), PortFlags, this) == NULL)
-						{
-							// this should be an error as the properties from the .ini / .int file are not correctly being read in and probably are affecting things in subtle ways
-							UE_LOG(LogObj, Error, TEXT("LoadConfig (%s): import failed for %s in: %s"), *GetPathName(), *Property->GetName(), *Value);
-						}
+						// this should be an error as the properties from the .ini / .int file are not correctly being read in and probably are affecting things in subtle ways
+						UE_LOG(LogObj, Error, TEXT("LoadConfig (%s): import failed for %s in: %s"), *GetPathName(), *Property->GetName(), *Value);
 					}
+				}
 
 #if !UE_BUILD_SHIPPING
 				if (!bFoundValue && !FPlatformProperties::RequiresCookedData())
@@ -1836,13 +1836,13 @@ void UObject::SaveConfig( uint64 Flags, const TCHAR* InFilename, FConfigCacheIni
 					FString CompleteKey = FString::Printf(TEXT("%s%s"), bIsADefaultIniWrite ? TEXT("+") : TEXT(""), *Key);
 
 					FScriptArrayHelper_InContainer ArrayHelper(Array, this);
-						for( int32 i=0; i<ArrayHelper.Num(); i++ )
-						{
-							FString	Buffer;
-							Array->Inner->ExportTextItem( Buffer, ArrayHelper.GetRawPtr(i), ArrayHelper.GetRawPtr(i), this, PortFlags );
-							Sec->Add(*CompleteKey, *Buffer);
-						}
+					for( int32 i=0; i<ArrayHelper.Num(); i++ )
+					{
+						FString	Buffer;
+						Array->Inner->ExportTextItem( Buffer, ArrayHelper.GetRawPtr(i), ArrayHelper.GetRawPtr(i), this, PortFlags );
+						Sec->Add(*CompleteKey, *Buffer);
 					}
+				}
 				else if( Property->Identical_InContainer(this, SuperClassDefaultObject) )
 				{
 					// If we are not writing it to config above, we should make sure that this property isn't stagnant in the cache.
@@ -1867,10 +1867,10 @@ void UObject::SaveConfig( uint64 Flags, const TCHAR* InFilename, FConfigCacheIni
 							Key = TempKey;
 						}
 
-							FString	Value;
-							Property->ExportText_InContainer( Index, Value, this, this, this, PortFlags );
-							Config->SetString( *Section, *Key, *Value, *PropFileName );
-						}
+						FString	Value;
+						Property->ExportText_InContainer( Index, Value, this, this, this, PortFlags );
+						Config->SetString( *Section, *Key, *Value, *PropFileName );
+					}
 					else if( Property->Identical_InContainer(this, SuperClassDefaultObject, Index) )
 					{
 						// If we are not writing it to config above, we should make sure that this property isn't stagnant in the cache.
@@ -2016,8 +2016,7 @@ void UObject::ReinitializeProperties( UObject* SourceObject/*=NULL*/, FObjectIns
 		SourceObject = GetArchetype();
 	}
 
-	check( SourceObject||GetClass()==UObject::StaticClass() );
-	checkSlow(GetClass()==UObject::StaticClass()||IsA(SourceObject->GetClass()));
+	check(GetClass() == UObject::StaticClass() || (SourceObject && IsA(SourceObject->GetClass())));
 
 	// Recreate this object based on the new archetype - using StaticConstructObject rather than manually tearing down and re-initializing
 	// the properties for this object ensures that any cleanup required when an object is reinitialized from defaults occurs properly

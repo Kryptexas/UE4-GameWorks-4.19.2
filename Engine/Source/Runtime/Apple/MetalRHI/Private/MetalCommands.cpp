@@ -155,11 +155,7 @@ void FMetalRHICommandContext::RHISetBoundShaderState( FBoundShaderStateRHIParamR
 void FMetalRHICommandContext::RHISetUAVParameter(FComputeShaderRHIParamRef ComputeShaderRHI, uint32 UAVIndex, FUnorderedAccessViewRHIParamRef UAVRHI)
 {
 	FMetalUnorderedAccessView* UAV = ResourceCast(UAVRHI);
-
-	if (UAV)
-	{
-		UAV->Set(Context, UAVIndex);
-	}
+	Context->SetShaderUnorderedAccessView(SF_Compute, UAVIndex, UAV);
 }
 
 void FMetalRHICommandContext::RHISetUAVParameter(FComputeShaderRHIParamRef ComputeShaderRHI,uint32 UAVIndex,FUnorderedAccessViewRHIParamRef UAVRHI, uint32 InitialCount)
@@ -886,13 +882,13 @@ void FMetalRHICommandContext::RHIClearMRT(bool bClearColor,int32 NumClearColors,
 	
 	if (Context->GetCurrentState().GetNumRenderTargets() <= 1)
 	{
-		BlendStateRHI = (bClearColor && Context->GetCurrentState().GetHasValidRenderTarget())
+		BlendStateRHI = (bClearColor && Context->GetCurrentState().GetHasValidColorTarget())
 		? TStaticBlendState<>::GetRHI()
 		: TStaticBlendState<CW_NONE>::GetRHI();
 	}
 	else
 	{
-		BlendStateRHI = (bClearColor && Context->GetCurrentState().GetHasValidRenderTarget())
+		BlendStateRHI = (bClearColor && Context->GetCurrentState().GetHasValidColorTarget())
 			? TStaticBlendState<>::GetRHI()
 			: TStaticBlendStateWriteMask<CW_NONE,CW_NONE,CW_NONE,CW_NONE,CW_NONE,CW_NONE,CW_NONE,CW_NONE>::GetRHI();
 	}

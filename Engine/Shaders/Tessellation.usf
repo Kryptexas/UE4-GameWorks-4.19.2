@@ -114,7 +114,7 @@ float4 CalculateCompositeTessellationFactors(float3 Control0, float3 Control1, f
 	CompositeFactors.w = 0.333 * ( CompositeFactors.x + CompositeFactors.y + CompositeFactors.z );
 
 	// The adaptive tessellation factor is 0.5 * ResolvedView.ViewToClip[1][1] * ViewSizeY / PixelsPerEdge and CompositeFactors is 2 * PercentageOfScreen.  
-	return Frame.AdaptiveTessellationFactor * CompositeFactors;
+	return View.AdaptiveTessellationFactor * CompositeFactors;
 #else
 	return float4( 1.0,1.0,1.0,1.0 );
 #endif

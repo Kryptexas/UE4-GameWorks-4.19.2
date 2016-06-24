@@ -5,23 +5,11 @@
 =============================================================================*/
 
 #include "D3D11RHIPrivate.h"
-#if WITH_D3DX_LIBS
-#include "AllowWindowsPlatformTypes.h"
-	#if defined(__clang__)
-		#define XM_NO_OPERATOR_OVERLOADS 1		// @todo clang: These xnamath operators don't compile correctly under clang
-		#define _XM_NO_INTRINSICS_ 1	// @todo clang: Clang has issues with __m128 intrinsics in xnamathvector.inl
-	#endif
-	#if _MSC_VER == 1900
-		#pragma warning(push)
-		#pragma warning(disable:4838)
-	#endif // _MSC_VER == 1900
-	#include <xnamath.h>
-	#if _MSC_VER == 1900
-		#pragma warning(pop)
-	#endif // _MSC_VER == 1900
-#include "HideWindowsPlatformTypes.h"
+#if PLATFORM_WINRT
+#include "WinRT/D3D11RHIPrivateUtil.h"
+#else
+#include "Windows/D3D11RHIPrivateUtil.h"
 #endif
-#include "D3D11RHIPrivateUtil.h"
 #include "StaticBoundShaderState.h"
 #include "GlobalShader.h"
 #include "OneColorShader.h"
@@ -68,6 +56,14 @@ static FAutoConsoleVariableRef CVarDX11TransitionChecks(
 	TEXT("r.TransitionChecksEnableDX11"),
 	GEnableDX11TransitionChecks,
 	TEXT("Enables transition checks in the DX11 RHI."),
+	ECVF_Default
+	);
+
+int32 GUnbindResourcesBetweenDrawsInDX11 = 0;
+static FAutoConsoleVariableRef CVarUnbindResourcesBetweenDrawsInDX11(
+	TEXT("r.UnbindResourcesBetweenDrawsInDX11"),
+	GUnbindResourcesBetweenDrawsInDX11,
+	TEXT("Unbind resources between material changes in DX11."),
 	ECVF_Default
 	);
 
@@ -244,6 +240,11 @@ void FD3D11DynamicRHI::RHISetBoundShaderState( FBoundShaderStateRHIParamRef Boun
 		{
 			BoundUniformBuffers[Frequency][BindIndex].SafeRelease();
 		}
+	}
+
+	if (GUnbindResourcesBetweenDrawsInDX11)
+	{
+		ClearAllShaderResources();
 	}
 }
 
@@ -1394,7 +1395,7 @@ void FD3D11DynamicRHI::SetResourcesFromTables(const ShaderType* RESTRICT Shader)
 				auto& BufferLayout = Buffer->GetLayout();
 				FString DebugName = BufferLayout.GetDebugName().GetPlainNameString();
 				const FString& ShaderName = Shader->ShaderName;
-				
+#if UE_BUILD_DEBUG
 				FString ShaderUB;
 				if (BufferIndex < Shader->UniformBuffers.Num())
 				{
@@ -1407,7 +1408,9 @@ void FD3D11DynamicRHI::SetResourcesFromTables(const ShaderType* RESTRICT Shader)
 					ResourcesString += FString::Printf(TEXT("%d "), BufferLayout.Resources[Index]);
 				}
 				UE_LOG(LogD3D11RHI, Error, TEXT("Layout CB Size %d Res Offs %d; %d Resources: %s"), BufferLayout.ConstantBufferSize, BufferLayout.ResourceOffset, BufferLayout.Resources.Num(), *ResourcesString);
-
+#else
+				UE_LOG(LogD3D11RHI, Error, TEXT("Bound Layout='%s' Shader='%s', Layout CB Size %d Res Offs %d; %d"), *DebugName, *ShaderName, BufferLayout.ConstantBufferSize, BufferLayout.ResourceOffset, BufferLayout.Resources.Num());
+#endif
 				// this might mean you are accessing a data you haven't bound e.g. GBuffer
 				check(BufferLayout.GetHash() == Shader->ShaderResourceTable.ResourceTableLayoutHashes[BufferIndex]);
 			}
@@ -2269,9 +2272,9 @@ void FD3D11DynamicRHI::RHITransitionResources(EResourceTransitionAccess Transiti
 	}
 }
 
-void FD3D11DynamicRHI::RHITransitionResources(EResourceTransitionAccess TransitionType, EResourceTransitionPipeline TransitionPipeline, FUnorderedAccessViewRHIParamRef* InUAVs, int32 NumUAVs, FComputeFenceRHIParamRef WriteFence)
+void FD3D11DynamicRHI::RHITransitionResources(EResourceTransitionAccess TransitionType, EResourceTransitionPipeline TransitionPipeline, FUnorderedAccessViewRHIParamRef* InUAVs, int32 InNumUAVs, FComputeFenceRHIParamRef WriteFence)
 {
-	for (int32 i = 0; i < NumUAVs; ++i)
+	for (int32 i = 0; i < InNumUAVs; ++i)
 	{
 		if (InUAVs[i])
 		{

@@ -716,8 +716,12 @@ void UK2Node_CallFunction::CreateExecPinsForFunctionCall(const UFunction* Functi
 				int32 NumExecs = (EnumProp->Enum->NumEnums() - 1);
 				for(int32 ExecIdx=0; ExecIdx<NumExecs; ExecIdx++)
 				{
-					FString ExecName = EnumProp->Enum->GetEnumName(ExecIdx);
-					CreatePin(Direction, K2Schema->PC_Exec, TEXT(""), NULL, false, false, ExecName);
+					bool const bShouldBeHidden = EnumProp->Enum->HasMetaData(TEXT("Hidden"), ExecIdx) || EnumProp->Enum->HasMetaData(TEXT("Spacer"), ExecIdx);
+					if (!bShouldBeHidden)
+					{
+						FString ExecName = EnumProp->Enum->GetEnumName(ExecIdx);
+						CreatePin(Direction, K2Schema->PC_Exec, TEXT(""), NULL, false, false, ExecName);
+					}
 				}
 				
 				if (bIsFunctionInput)
@@ -1153,28 +1157,33 @@ static FLinearColor GetPalletteIconColor(UFunction const* Function)
 	return GetDefault<UGraphEditorSettings>()->FunctionCallNodeTitleColor;
 }
 
-FName UK2Node_CallFunction::GetPaletteIconForFunction(UFunction const* Function, FLinearColor& OutColor)
+FSlateIcon UK2Node_CallFunction::GetPaletteIconForFunction(UFunction const* Function, FLinearColor& OutColor)
 {
 	static const FName NativeMakeFunc(TEXT("NativeMakeFunc"));
 	static const FName NativeBrakeFunc(TEXT("NativeBreakFunc"));
 
 	if (Function && Function->HasMetaData(NativeMakeFunc))
 	{
-		return TEXT("GraphEditor.MakeStruct_16x");
+		static FSlateIcon Icon("EditorStyle", "GraphEditor.MakeStruct_16x");
+		return Icon;
 	}
 	else if (Function && Function->HasMetaData(NativeBrakeFunc))
 	{
-		return TEXT("GraphEditor.BreakStruct_16x");
+		static FSlateIcon Icon("EditorStyle", "GraphEditor.BreakStruct_16x");
+		return Icon;
 	}
 	// Check to see if the function is calling an function that could be an event, display the event icon instead.
 	else if (Function && UEdGraphSchema_K2::FunctionCanBePlacedAsEvent(Function))
 	{
-		return TEXT("GraphEditor.Event_16x");
+		static FSlateIcon Icon("EditorStyle", "GraphEditor.Event_16x");
+		return Icon;
 	}
 	else
 	{
 		OutColor = GetPalletteIconColor(Function);
-		return TEXT("Kismet.AllClasses.FunctionIcon");
+
+		static FSlateIcon Icon("EditorStyle", "Kismet.AllClasses.FunctionIcon");
+		return Icon;
 	}
 }
 
@@ -1718,9 +1727,9 @@ void UK2Node_CallFunction::PostDuplicate(bool bDuplicateForPIE)
 	}
 }
 
-void UK2Node_CallFunction::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const
+void UK2Node_CallFunction::ValidateNodeAfterPrune(class FCompilerResultsLog& MessageLog) const
 {
-	Super::ValidateNodeDuringCompilation(MessageLog);
+	Super::ValidateNodeAfterPrune(MessageLog);
 
 	const UBlueprint* Blueprint = GetBlueprint();
 	UFunction *Function = GetTargetFunction();
@@ -2213,7 +2222,7 @@ FName UK2Node_CallFunction::GetCornerIcon() const
 	return Super::GetCornerIcon();
 }
 
-FName UK2Node_CallFunction::GetPaletteIcon(FLinearColor& OutColor) const
+FSlateIcon UK2Node_CallFunction::GetIconAndTint(FLinearColor& OutColor) const
 {
 	return GetPaletteIconForFunction(GetTargetFunction(), OutColor);
 }

@@ -359,7 +359,7 @@ public:
 			: State(NoError) 
 		{}
 
-		/** Will take the current error and throw it using FError::Throwf() */
+		/** Will take the current error and logs it, optionally fatally */
 		void Throw(bool bLogFatal) const;
 
 		/** Should match up with EErrorType, but is extensible by subclasses 

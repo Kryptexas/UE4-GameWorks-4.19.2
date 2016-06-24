@@ -11,8 +11,13 @@
 #include "OnlineSubsystemFacebook.h"
 #include "OnlineSubsystemFacebookModule.h"
 
-#include "OnlineIdentityFacebook.h"
-#include "OnlineFriendsFacebook.h"
+#if PLATFORM_WINDOWS
+#include "Windows/OnlineIdentityFacebook.h"
+#include "Windows/OnlineFriendsFacebook.h"
+#elif PLATFORM_IOS
+#include "IOS/OnlineIdentityFacebook.h"
+#include "IOS/OnlineFriendsFacebook.h"
+#endif
 
 /** pre-pended to all Facebook logging */
 #undef ONLINE_LOG_PREFIX

@@ -454,7 +454,7 @@ FReply FSceneViewport::AcquireFocusAndCapture(FIntPoint MousePosition)
 	ReplyState.SetUserFocus(ViewportWidgetRef, EFocusCause::SetDirectly, true);
 
 	UWorld* World = ViewportClient->GetWorld();
-	if (World && World->IsGameWorld() && World->GetGameInstance() && World->GetGameInstance()->GetFirstLocalPlayerController())
+	if (World && World->IsGameWorld() && World->GetGameInstance() && (World->GetGameInstance()->GetFirstLocalPlayerController() || World->IsPlayInEditor()))
 	{
 		ReplyState.CaptureMouse(ViewportWidgetRef);
 
@@ -463,7 +463,8 @@ FReply FSceneViewport::AcquireFocusAndCapture(FIntPoint MousePosition)
 			ReplyState.LockMouseToWidget(ViewportWidgetRef);
 		}
 
-		bool bShouldShowMouseCursor = World->GetGameInstance()->GetFirstLocalPlayerController()->ShouldShowMouseCursor();
+		APlayerController* PC = World->GetGameInstance()->GetFirstLocalPlayerController();
+		bool bShouldShowMouseCursor = PC && PC->ShouldShowMouseCursor();
 		if (ViewportClient->HideCursorDuringCapture() && bShouldShowMouseCursor)
 		{
 			bCursorHiddenDueToCapture = true;
@@ -924,6 +925,26 @@ FReply FSceneViewport::OnFocusReceived(const FFocusEvent& InFocusEvent)
 	KeyStateMap.Add( EKeys::LeftCommand, KeysState.IsLeftCommandDown());
 	KeyStateMap.Add( EKeys::RightCommand, KeysState.IsRightCommandDown());
 
+
+	if (IsCurrentlyGameViewport())
+	{
+		FSlateApplication& SlateApp = FSlateApplication::Get();
+
+		const bool bPermanentCapture =
+			(ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CapturePermanently) ||
+			(ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CapturePermanently_IncludingInitialMouseDown);
+
+		if (SlateApp.IsActive() && !ViewportClient->IgnoreInput() && bPermanentCapture)
+		{
+			TSharedRef<SViewport> ViewportWidgetRef = ViewportWidget.Pin().ToSharedRef();
+
+			FWidgetPath PathToWidget;
+			SlateApp.GeneratePathToWidgetUnchecked(ViewportWidgetRef, PathToWidget);
+
+			return AcquireFocusAndCapture(GetSizeXY() / 2);
+		}
+	}
+
 	return CurrentReplyState;
 }
 
@@ -1015,124 +1036,80 @@ FSlateShaderResource* FSceneViewport::GetViewportRenderTargetTexture() const
 	return (BufferedSlateHandles.Num() != 0) ? BufferedSlateHandles[CurrentBufferedTargetIndex] : nullptr;
 }
 
-void FSceneViewport::ResizeFrame(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::Type NewWindowMode, int32 InPosX, int32 InPosY)
+void FSceneViewport::ResizeFrame(uint32 NewWindowSizeX, uint32 NewWindowSizeY, EWindowMode::Type NewWindowMode, int32 InPosX, int32 InPosY)
 {
 	// Resizing the window directly is only supported in the game
-	if( FApp::IsGame() && NewSizeX > 0 && NewSizeY > 0 )
+	if( FApp::IsGame() && NewWindowSizeX > 0 && NewWindowSizeY > 0 )
 	{		
 		FWidgetPath WidgetPath;
 		TSharedPtr<SWindow> WindowToResize = FSlateApplication::Get().FindWidgetWindow( ViewportWidget.Pin().ToSharedRef(), WidgetPath );
 
 		if( WindowToResize.IsValid() )
 		{
-			EWindowMode::Type DesiredWindowMode = GetWindowModeType(NewWindowMode);
+			NewWindowMode = GetWindowModeType(NewWindowMode);
 
 			// If we're going into windowed fullscreen mode, we always want the window to fill the entire screen.
 			// When we calculate the scene view, we'll check the fullscreen mode and configure the screen percentage
 			// scaling so we actual render to the resolution we've been asked for.
-			if (DesiredWindowMode == EWindowMode::WindowedFullscreen)
+			if (NewWindowMode == EWindowMode::WindowedFullscreen)
 			{
 				FDisplayMetrics DisplayMetrics;
 				FSlateApplication::Get().GetInitialDisplayMetrics(DisplayMetrics);
-				NewSizeX = DisplayMetrics.PrimaryDisplayWidth;;
-				NewSizeY = DisplayMetrics.PrimaryDisplayHeight;;
+				NewWindowSizeX = DisplayMetrics.PrimaryDisplayWidth;
+				NewWindowSizeY = DisplayMetrics.PrimaryDisplayHeight;
 			}
 
-			uint32 ViewportSizeX = NewSizeX;
-			uint32 ViewportSizeY = NewSizeY;
+			// Resize window
+			FVector2D WindowPos = WindowToResize->GetPositionInScreen();
+			FVector2D WindowSize = WindowToResize->GetClientSizeInScreen();
+			FVector2D NewWindowSize(NewWindowSizeX, NewWindowSizeY);
+			TOptional<FVector2D> NewWindowPos;
 
-			bool bIsHMDConnected = GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected();
-
-			if (bIsHMDConnected)
+			IHeadMountedDisplay::MonitorInfo MonitorInfo;
+			if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->GetHMDMonitorInfo(MonitorInfo))
 			{
-				WindowToResize->SetViewportSizeDrivenByWindow(true);
-				// Resize & move only if moving to a fullscreen mode
-				if (NewWindowMode != EWindowMode::Windowed)
+				if (MonitorInfo.DesktopX > 0 || MonitorInfo.DesktopY > 0)
 				{
-					IHeadMountedDisplay::MonitorInfo MonitorInfo;
-					if (GEngine->HMDDevice->GetHMDMonitorInfo(MonitorInfo))
-					{
-						ViewportSizeX = MonitorInfo.ResolutionX;
-						ViewportSizeY = MonitorInfo.ResolutionY;
-						if (GEngine->HMDDevice->IsFullscreenAllowed())
-						{
-							NewSizeX = MonitorInfo.ResolutionX;
-							NewSizeY = MonitorInfo.ResolutionY;
-						}
-						else
-						{
-							if (MonitorInfo.WindowSizeX != 0 && MonitorInfo.WindowSizeY != 0)
-							{
-								NewSizeX = MonitorInfo.WindowSizeX;
-								NewSizeY = MonitorInfo.WindowSizeY;
-							}
-							NewWindowMode = DesiredWindowMode = EWindowMode::WindowedMirror;
-							WindowToResize->SetIndependentViewportSize(FVector2D(ViewportSizeX, ViewportSizeY));
-						}
-					}
+					NewWindowSize.X = MonitorInfo.ResolutionX;
+					NewWindowSize.Y = MonitorInfo.ResolutionY;
+					NewWindowPos = FVector2D(MonitorInfo.DesktopX, MonitorInfo.DesktopY);
 				}
 			}
 
-			// Avoid resizing if nothing changes.
-			bool bNeedsResize = SizeX != ViewportSizeX || SizeY != ViewportSizeY || NewWindowMode != WindowMode || DesiredWindowMode != WindowToResize->GetWindowMode();
-
-			if (bNeedsResize)
+			if (NewWindowSize != WindowSize || (NewWindowPos.IsSet() && NewWindowPos != WindowPos) || NewWindowMode != WindowMode)
 			{
-				if (bIsHMDConnected)
-				{
-					// Resize & move only if moving to a fullscreen mode
-					if (NewWindowMode != EWindowMode::Windowed)
-					{
-						FSlateRect PreFullScreenRect = WindowToResize->GetRectInScreen();
-
-						IHeadMountedDisplay::MonitorInfo MonitorInfo;
-						if (GEngine->HMDDevice->GetHMDMonitorInfo(MonitorInfo))
-						{
-							if (GEngine->HMDDevice->IsFullscreenAllowed())
-							{
-								WindowToResize->ReshapeWindow(FVector2D(MonitorInfo.DesktopX, MonitorInfo.DesktopY), FVector2D(MonitorInfo.ResolutionX, MonitorInfo.ResolutionY));
-							}
-						}
-
-						GEngine->HMDDevice->PushPreFullScreenRect(PreFullScreenRect);
-					}
-				}
-
-				// Toggle fullscreen and resize
-				WindowToResize->SetWindowMode(DesiredWindowMode);
-
-				if (bIsHMDConnected)
-				{
-					if (NewWindowMode == EWindowMode::Windowed)
-					{
-						FSlateRect PreFullScreenRect;
-						GEngine->HMDDevice->PopPreFullScreenRect(PreFullScreenRect);
-						if (PreFullScreenRect.GetSize().X > 0 && PreFullScreenRect.GetSize().Y > 0 && GEngine->HMDDevice->IsFullscreenAllowed())
-						{
-							NewSizeX = PreFullScreenRect.GetSize().X;
-							NewSizeY = PreFullScreenRect.GetSize().Y;
-							WindowToResize->MoveWindowTo(FVector2D(PreFullScreenRect.Left, PreFullScreenRect.Top));
-						}
-						ViewportSizeX = NewSizeX;
-						ViewportSizeY = NewSizeY;
-						WindowToResize->SetViewportSizeDrivenByWindow(true);
-					}
-
-					if (NewWindowMode != WindowMode)
-					{
-						// Only notify the HMD if we've actually changed modes
-						GEngine->HMDDevice->OnScreenModeChange(NewWindowMode);
-					}
-				}
-
+				WindowToResize->SetWindowMode(NewWindowMode);
 				LockMouseToViewport(!CurrentReplyState.ShouldReleaseMouseLock());
-
-				WindowToResize->Resize(FVector2D(NewSizeX, NewSizeY));
-
-				ResizeViewport(ViewportSizeX, ViewportSizeY, NewWindowMode, InPosX, InPosY);
+				if (NewWindowPos.IsSet())
+				{
+					WindowToResize->ReshapeWindow(NewWindowPos.GetValue(), NewWindowSize);
+				}
+				else
+				{
+					WindowToResize->Resize(NewWindowSize);
+				}
 			}
+
+			// Resize viewport
+			FVector2D ViewportSize(SizeX, SizeY);
+			FVector2D NewViewportSize = WindowToResize->GetViewportSize();
+
+			if (NewViewportSize != ViewportSize || NewWindowMode != WindowMode)
+			{
+				ResizeViewport(NewViewportSize.X, NewViewportSize.Y, NewWindowMode, 0, 0);
+			}
+
+			// Resize backbuffer
+			FVector2D BackBufferSize = WindowToResize->IsMirrorWindow() ? WindowSize : ViewportSize;
+			FVector2D NewBackbufferSize = WindowToResize->IsMirrorWindow() ? NewWindowSize : NewViewportSize;
+			
+			if (NewBackbufferSize != BackBufferSize)
+			{
+				FSlateApplicationBase::Get().GetRenderer()->UpdateFullscreenState(WindowToResize.ToSharedRef(), NewBackbufferSize.X, NewBackbufferSize.Y);
+			}
+
 			UCanvas::UpdateAllCanvasSafeZoneData();
-		}		
+		}
 	}
 }
 
@@ -1142,7 +1119,7 @@ void FSceneViewport::SetViewportSize(uint32 NewViewportSizeX, uint32 NewViewport
 	if (Window.IsValid())
 	{
 		Window->SetIndependentViewportSize(FVector2D(NewViewportSizeX, NewViewportSizeY));
-		const FVector2D vp = (Window->GetWindowMode() == EWindowMode::WindowedMirror) ? Window->GetSizeInScreen() : Window->GetViewportSize();
+		const FVector2D vp = Window->IsMirrorWindow() ? Window->GetSizeInScreen() : Window->GetViewportSize();
 		FSlateApplicationBase::Get().GetRenderer()->UpdateFullscreenState(Window.ToSharedRef(), vp.X, vp.Y);
 		ResizeViewport(NewViewportSizeX, NewViewportSizeY, Window->GetWindowMode(), 0, 0);
 	}
@@ -1338,18 +1315,21 @@ void FSceneViewport::EnqueueBeginRenderFrame()
 	// If we dont have the ViewportRHI then we need to get it before rendering
 	// Note, we need ViewportRHI even if UseSeparateRenderTarget() is true when stereo rendering
 	// is enabled.
-	if( !IsValidRef(ViewportRHI) && (!UseSeparateRenderTarget() || (GEngine->StereoRenderingDevice.IsValid())) )
+	if (!IsValidRef(ViewportRHI) && (!UseSeparateRenderTarget() || (GEngine->StereoRenderingDevice.IsValid() && GEngine->StereoRenderingDevice->IsStereoEnabled())) )
 	{
 		// Get the viewport for this window from the renderer so we can render directly to the backbuffer
 		TSharedPtr<FSlateRenderer> Renderer = FSlateApplication::Get().GetRenderer();
 		FWidgetPath WidgetPath;
-		auto WidgetWindow = FSlateApplication::Get().FindWidgetWindow(ViewportWidget.Pin().ToSharedRef(), WidgetPath);
-		if (WidgetWindow.IsValid())
+		if (ViewportWidget.IsValid())
 		{
-			void* ViewportResource = Renderer->GetViewportResource(*WidgetWindow);
-			if (ViewportResource)
+			auto WidgetWindow = FSlateApplication::Get().FindWidgetWindow(ViewportWidget.Pin().ToSharedRef(), WidgetPath);
+			if (WidgetWindow.IsValid())
 			{
-				ViewportRHI = *((FViewportRHIRef*)ViewportResource);
+				void* ViewportResource = Renderer->GetViewportResource(*WidgetWindow);
+				if (ViewportResource)
+				{
+					ViewportRHI = *((FViewportRHIRef*)ViewportResource);
+				}
 			}
 		}
 	}

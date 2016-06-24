@@ -31,10 +31,8 @@ public class Engine : ModuleRules
 				"NetworkReplayStreaming",
 				"MovieSceneCapture",
 				"AutomationWorker",
-                "Analytics",
 				"MovieSceneCapture",
 				"DesktopPlatform",
-				"Analytics"
 			}
 		);
 
@@ -76,10 +74,10 @@ public class Engine : ModuleRules
 				"SynthBenchmark",
                 "AIModule",
 				"DatabaseSupport",
-                		"PacketHandler",
+                "PacketHandler",
 				"HardwareSurvey",
-			}
-		);
+            }
+        );
 
 		if (Target.Type == TargetRules.TargetType.Editor)
 		{
@@ -103,10 +101,20 @@ public class Engine : ModuleRules
 				"Niagara",
                 "Internationalization",
                 "MaterialShaderQualitySettings",
-			}
-        );
+                "CinematicCamera",
+				"Analytics",
+				"AnalyticsET",
+            }
+		);
 
-		bool bVariadicTemplatesSupported = true;
+        // to prevent "causes WARNING: Non-editor build cannot depend on non-redistributable modules."
+        if (Target.Type == TargetRules.TargetType.Editor)
+        {
+            // for now we depend on this 
+            PrivateDependencyModuleNames.Add("RawMesh");
+        }
+
+        bool bVariadicTemplatesSupported = true;
 		if (Target.Platform == UnrealTargetPlatform.XboxOne)
 		{
 			// Use reflection to allow type not to exist if console code is not present
@@ -149,10 +157,11 @@ public class Engine : ModuleRules
         CircularlyReferencedDependentModules.Add("UMG");
         CircularlyReferencedDependentModules.Add("Niagara");
         CircularlyReferencedDependentModules.Add("MaterialShaderQualitySettings");
+        CircularlyReferencedDependentModules.Add("CinematicCamera");
 
-		// The AnimGraphRuntime module is not needed by Engine proper, but it is loaded in LaunchEngineLoop.cpp,
-		// and needs to be listed in an always-included module in order to be compiled into standalone games
-		DynamicallyLoadedModuleNames.Add("AnimGraphRuntime");
+        // The AnimGraphRuntime module is not needed by Engine proper, but it is loaded in LaunchEngineLoop.cpp,
+        // and needs to be listed in an always-included module in order to be compiled into standalone games
+        DynamicallyLoadedModuleNames.Add("AnimGraphRuntime");
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[]
@@ -255,8 +264,6 @@ public class Engine : ModuleRules
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
-				"Analytics",
-				"AnalyticsET",
 				"NetworkReplayStreaming",
 				"NullNetworkReplayStreaming",
 				"HttpNetworkReplayStreaming",
@@ -306,7 +313,10 @@ public class Engine : ModuleRules
 
 			PrivateIncludePathModuleNames.Add("TextureCompressor");
 			PrivateIncludePaths.Add("Developer/TextureCompressor/Public");
-		}
+
+            PrivateIncludePathModuleNames.Add("HierarchicalLODUtilities");
+            DynamicallyLoadedModuleNames.Add("HierarchicalLODUtilities");
+        }
 
 		SetupModulePhysXAPEXSupport(Target);
         if(UEBuildConfiguration.bCompilePhysX && UEBuildConfiguration.bRuntimePhysicsCooking)
@@ -325,7 +335,8 @@ public class Engine : ModuleRules
 				"UEOgg",
 				"Vorbis",
 				"VorbisFile",
-				"libOpus"
+				"libOpus",
+			    "OpenSubdiv"
 				);
 
 			if (UEBuildConfiguration.bCompileLeanAndMeanUE == false)

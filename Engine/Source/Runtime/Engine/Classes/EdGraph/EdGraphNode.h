@@ -11,6 +11,8 @@ class UEdGraphSchema;
 class UEdGraphPin;
 class SGraphNode;
 struct FEdGraphPinType;
+struct FSlateIcon;
+
 
 /** Enum used to define which way data flows into or out of this pin. */
 UENUM()
@@ -214,7 +216,7 @@ public:
 	// UObject interface
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	virtual void Serialize(FArchive& Ar) override;
-	virtual void PreSave() override;
+	virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
 	virtual void PostLoad() override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End of UObject interface
@@ -381,8 +383,12 @@ public:
 	 */
 	virtual FString GetDocumentationExcerptName() const;
 
-	/** @return name or brush to use in menu or on node */
-	virtual FName GetPaletteIcon(FLinearColor& OutColor) const { return TEXT("GraphEditor.Default_16x"); }
+	/** @return Icon to use in menu or on node */
+	DEPRECATED(4.13, "Please override 'virtual FSlateIcon GetIconAndTint(FLinearColor& OutColor) const;' instead.")
+	virtual FName GetPaletteIcon(FLinearColor& OutColor) const { return NAME_None; }
+
+	/** @return Icon to use in menu or on node */
+	virtual FSlateIcon GetIconAndTint(FLinearColor& OutColor) const;
 
 	/** Should we show the Palette Icon for this node on the node title */
 	virtual bool ShowPaletteIconOnNode() const { return false; }

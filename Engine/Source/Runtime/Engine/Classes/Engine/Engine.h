@@ -10,13 +10,10 @@ class UDeviceProfileManager;
 class FViewport;
 class FCommonViewportClient;
 class FCanvas;
-
-#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 class FTypeContainer;
 class IMessageRpcClient;
 class IPortalRpcLocator;
 class IPortalServiceLocator;
-#endif
 
 /**
  * Enumerates types of fully loaded packages.
@@ -546,6 +543,9 @@ class ENGINE_API UEngine
 {
 	GENERATED_UCLASS_BODY()
 
+	// Called after GEngine->Init has been called
+	static FSimpleMulticastDelegate OnPostEngineInit;
+
 private:
 	// Fonts.
 	UPROPERTY()
@@ -706,14 +706,6 @@ public:
 	/** Path to the default tire type */
 	UPROPERTY(globalconfig, EditAnywhere, Category=DefaultClasses, meta=(AllowedClasses="TireType", DisplayName="Default Tire Type"), AdvancedDisplay)
 	FStringAssetReference DefaultTireTypeName;
-
-	/** The class to use previewing camera animations. */
-	UPROPERTY()
-	TSubclassOf<class APawn>  DefaultPreviewPawnClass;
-
-	/** The name of the class to use when previewing camera animations. */
-	UPROPERTY(globalconfig, noclear, EditAnywhere, Category=DefaultClasses, meta=(MetaClass="Pawn", DisplayName="Default Preview Pawn Class"), AdvancedDisplay)
-	FStringClassReference DefaultPreviewPawnClassName;
 
 	/** Path that levels for play on console will be saved to (relative to FPaths::GameSavedDir()) */
 	UPROPERTY(config)
@@ -899,17 +891,20 @@ public:
 	class UMaterialInstanceDynamic* ConstraintLimitMaterialX;
 
 	UPROPERTY()
+	class UMaterialInstanceDynamic* ConstraintLimitMaterialXAxis;
+
+	UPROPERTY()
 	class UMaterialInstanceDynamic* ConstraintLimitMaterialY;
+	UPROPERTY()
+	class UMaterialInstanceDynamic* ConstraintLimitMaterialYAxis;
 
 	UPROPERTY()
 	class UMaterialInstanceDynamic* ConstraintLimitMaterialZ;
+	UPROPERTY()
+	class UMaterialInstanceDynamic* ConstraintLimitMaterialZAxis;
 
 	UPROPERTY()
 	class UMaterialInstanceDynamic* ConstraintLimitMaterialPrismatic;
-
-	/** @todo document */
-	UPROPERTY(globalconfig)
-	FStringAssetReference ConstraintLimitMaterialName;
 
 	/** Material that renders a message about lightmap settings being invalid. */
 	UPROPERTY()
@@ -1635,6 +1630,9 @@ public:
 	/** Initialize the game engine. */
 	virtual void Init(IEngineLoop* InEngineLoop);
 
+	/** Start the game, separate from the initialize call to allow for post initialize configuration before the game starts. */
+	virtual void Start();
+
 	/** Called at shutdown, just before the exit purge.	 */
 	virtual void PreExit();
 	virtual void ShutdownAudioDeviceManager();
@@ -1978,11 +1976,17 @@ public:
 	void ClearOnScreenDebugMessages();
 
 #if !UE_BUILD_SHIPPING
-	/** Capture screenshots and performance metrics */
-	void PerformanceCapture(UWorld* World, const FString& CaptureName);
+	/** 
+	 * Capture screenshots and performance metrics
+	 * @param EventTime time of the Matinee event
+	 */
+	void PerformanceCapture(UWorld* World, const FString& MapName, const FString& MatineeName, float EventTime);
 
-	/** Logs performance capture for use in automation analytics */
-	void LogPerformanceCapture(UWorld* World, const FString& CaptureName);
+	/**
+	 * Logs performance capture for use in automation analytics
+	 * @param EventTime time of the Matinee event
+	 */
+	void LogPerformanceCapture(UWorld* World, const FString& MapName, const FString& MatineeName, float EventTime);
 #endif	// UE_BUILD_SHIPPING
 
 	/**
@@ -2177,7 +2181,6 @@ public:
 
 	virtual void RemapGamepadControllerIdForPIE(class UGameViewportClient* InGameViewport, int32 &ControllerId) { }
 
-#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 	/**
 	 * Get a locator for Portal services.
 	 *
@@ -2201,7 +2204,6 @@ protected:
 
 	/** Holds registered service instances. */
 	TSharedPtr<IPortalServiceLocator> ServiceLocator;
-#endif
 
 
 public:
@@ -2294,16 +2296,16 @@ protected:
 	 */
 	virtual bool InitializeHMDDevice();
 
+	virtual void InitializeViewExtentions();
+
 	/**	Record EngineAnalytics information for attached HMD devices. */
 	virtual void RecordHMDAnalytics();
 
 	/** Loads all Engine object references from their corresponding config entries. */
 	virtual void InitializeObjectReferences();
 
-#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 	/** Initialize Portal services. */
 	virtual void InitializePortalServices();
-#endif
 
 	/** Initializes the running average delta to some good initial framerate. */
 	virtual void InitializeRunningAverageDeltaTime();
@@ -2661,6 +2663,13 @@ protected:
 
 	bool WorldHasValidContext(UWorld *InWorld);
 
+	/**
+	 * Attempts to gracefully handle a failure to travel to the default map.
+	 *
+	 * @param Error the error string result from the LoadMap call that attempted to load the default map.
+	 */
+	virtual void HandleBrowseToDefaultMapFailure(FWorldContext& Context, const FString& TextURL, const FString& Error);
+
 protected:
 
 	// Async map change/ persistent level transition code.
@@ -2880,6 +2889,23 @@ private:
 
 	/** A list of all the simple stats functions that have been registered */
 	TArray<FEngineStatFuncs> EngineStats;
+
+	// Helper struct that registers itself with the output redirector and copies off warnings
+	// and errors that we'll overlay on the client viewport
+	struct FErrorsAndWarningsCollector : public FBufferedOutputDevice
+	{
+		FErrorsAndWarningsCollector();
+		~FErrorsAndWarningsCollector();
+
+		void Initialize();
+		bool Tick(float Seconds);
+
+		TMap<uint32, uint32>	MessagesToCountMap;
+		FDelegateHandle			TickerHandle;
+		float					DisplayTime;
+	};
+
+	FErrorsAndWarningsCollector	ErrorsAndWarningsCollector;
 
 private:
 

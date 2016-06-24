@@ -102,6 +102,7 @@ ENGINE_API void BuildTextureStreamingData(UWorld* InWorld, const FTexCoordScaleM
 
 		Level->bTextureStreamingRotationChanged = false;
 		Level->StreamingTextureGuids.Empty(LevelTextures.Num());
+		Level->Modify();
 
 		// Reset LevelIndex to default for next use and build the level Guid array.
 		for (int32 TextureIndex = 0; TextureIndex < LevelTextures.Num(); ++TextureIndex)
@@ -126,7 +127,7 @@ ENGINE_API void BuildTextureStreamingData(UWorld* InWorld, const FTexCoordScaleM
 	{
 		ULevel* Level = InWorld->GetLevel(LevelIndex);
 		if (!Level) continue;
-		
+
 		for (AActor* Actor : Level->Actors)
 		{
 			if (!Actor) continue;
@@ -185,7 +186,7 @@ static void UnpackRelativeBox(const FVector& InRefOrigin, const FVector& InRefEx
 	OutExtent = .5 * (Max - Min);
 }
 
-void FStreamingTexturePrimitiveInfo::UnPackFrom(UTexture2D* InTexture, const FBoxSphereBounds& RefBounds, const FStreamingTextureBuildInfo& Info, bool bUseRelativeBox)
+void FStreamingTexturePrimitiveInfo::UnPackFrom(UTexture2D* InTexture, float ExtraScale, const FBoxSphereBounds& RefBounds, const FStreamingTextureBuildInfo& Info, bool bUseRelativeBox)
 {
 	check(InTexture->LevelIndex == Info.TextureLevelIndex);
 	Texture = InTexture;
@@ -200,7 +201,7 @@ void FStreamingTexturePrimitiveInfo::UnPackFrom(UTexture2D* InTexture, const FBo
 		Bounds = RefBounds;
 	}
 
-	TexelFactor = Info.TexelFactor;
+	TexelFactor = Info.TexelFactor * ExtraScale;
 }
 
 void FStreamingTextureBuildInfo::PackFrom(TArray<UTexture2D*>& LevelTextures, const FBoxSphereBounds& RefBounds, const FStreamingTexturePrimitiveInfo& Info)
@@ -223,8 +224,8 @@ FStreamingTextureLevelContext::FStreamingTextureLevelContext(const ULevel* InLev
 	bUseRelativeBoxes(InLevel ? !InLevel->bTextureStreamingRotationChanged : false),
 	ComponentTimestamp(0),
 	ComponentBounds(ForceInitToZero),
-	ComponentMeshScale(1.f),
-	ComponentStreamingScale(1.f)
+	ComponentPrecomputedDataScale(1.f),
+	ComponentFallbackScale(1.f)
 {
 	if (InLevel)
 	{
@@ -245,14 +246,14 @@ FStreamingTextureLevelContext::~FStreamingTextureLevelContext()
 	}
 }
 
-void FStreamingTextureLevelContext::BindComponent(const TArray<FStreamingTextureBuildInfo>* BuildData, const FBoxSphereBounds& Bounds, float MeshScale, float StreamingScale)
+void FStreamingTextureLevelContext::BindComponent(const TArray<FStreamingTextureBuildInfo>* BuildData, const FBoxSphereBounds& Bounds, float PrecomputedDataScale, float FallbackScale)
 {
 	// First processed component must use a timestamp > 0  so that default value of 0 is invalid.
 	++ComponentTimestamp;
 
 	ComponentBounds = Bounds;
-	ComponentMeshScale = MeshScale;
-	ComponentStreamingScale = StreamingScale;
+	ComponentPrecomputedDataScale = PrecomputedDataScale;
+	ComponentFallbackScale = FallbackScale;
 	ComponentBuildData = BuildData;
 
 	if (BuildData)
@@ -301,17 +302,15 @@ void FStreamingTextureLevelContext::Process(const TArray<UTexture*>& InTextures,
 			// Check if there is any precomputed data
 			if (BoundState.BuildDataTimestamp == ComponentTimestamp && ComponentBuildData)
 			{
-				StreamingTexture.UnPackFrom(Texture2D, ComponentBounds, (*ComponentBuildData)[BoundState.BuildDataIndex], bUseRelativeBoxes);
+				// The ExtraScale is only applied to the precomputed data as we assume it was already 
+				StreamingTexture.UnPackFrom(Texture2D, ComponentPrecomputedDataScale, ComponentBounds, (*ComponentBuildData)[BoundState.BuildDataIndex], bUseRelativeBoxes);
 			}
 			else // Otherwise add default entry.
 			{
 				StreamingTexture.Texture = Texture2D;
 				StreamingTexture.Bounds = ComponentBounds;
-				StreamingTexture.TexelFactor = ComponentMeshScale;
+				StreamingTexture.TexelFactor = ComponentFallbackScale;
 			}
-
-			// Component scale is not included in the build data, so that changing it does not invalidate the data.
-			StreamingTexture.TexelFactor *= ComponentStreamingScale;
 
 			// Mark this texture as processed for this component.
 			BoundState.Timestamp = ComponentTimestamp;

@@ -105,7 +105,16 @@ void FBehaviorTreeInstance::Cleanup(UBehaviorTreeComponent& OwnerComp, EBTMemory
 	}
 
 	CleanupNodes(OwnerComp, *RootNode, CleanupType);
-	Info.InstanceMemory = InstanceMemory;
+
+	// remove memory when instance is destroyed - it will need full initialize anyway
+	if (CleanupType == EBTMemoryClear::Destroy)
+	{
+		Info.InstanceMemory.Empty();
+	}
+	else
+	{
+		Info.InstanceMemory = InstanceMemory;
+	}
 }
 
 void FBehaviorTreeInstance::CleanupNodes(UBehaviorTreeComponent& OwnerComp, UBTCompositeNode& Node, EBTMemoryClear::Type CleanupType)
@@ -169,6 +178,38 @@ bool FBehaviorTreeInstance::HasActiveNode(uint16 TestExecutionIndex) const
 	return false;
 }
 
+void FBehaviorTreeInstance::DeactivateNodes(FBehaviorTreeSearchData& SearchData, uint16 InstanceIndex)
+{
+	for (int32 Idx = SearchData.PendingUpdates.Num() - 1; Idx >= 0; Idx--)
+	{
+		FBehaviorTreeSearchUpdate& UpdateInfo = SearchData.PendingUpdates[Idx];
+		if (UpdateInfo.InstanceIndex == InstanceIndex && UpdateInfo.Mode == EBTNodeUpdateMode::Add)
+		{
+			UE_VLOG(SearchData.OwnerComp.GetOwner(), LogBehaviorTree, Verbose, TEXT("Search node update[%s]: %s"),
+				*UBehaviorTreeTypes::DescribeNodeUpdateMode(EBTNodeUpdateMode::Remove),
+				*UBehaviorTreeTypes::DescribeNodeHelper(UpdateInfo.AuxNode ? (UBTNode*)UpdateInfo.AuxNode : (UBTNode*)UpdateInfo.TaskNode));
+
+			SearchData.PendingUpdates.RemoveAt(Idx, 1, false);
+		}
+	}
+
+	for (int32 Idx = 0; Idx < ParallelTasks.Num(); Idx++)
+	{
+		const FBehaviorTreeParallelTask& ParallelTask = ParallelTasks[Idx];
+		if (ParallelTask.TaskNode && ParallelTask.Status == EBTTaskStatus::Active)
+		{
+			SearchData.AddUniqueUpdate(FBehaviorTreeSearchUpdate(ParallelTask.TaskNode, InstanceIndex, EBTNodeUpdateMode::Remove));
+		}
+	}
+
+	for (int32 Idx = 0; Idx < ActiveAuxNodes.Num(); Idx++)
+	{
+		if (ActiveAuxNodes[Idx])
+		{
+			SearchData.AddUniqueUpdate(FBehaviorTreeSearchUpdate(ActiveAuxNodes[Idx], InstanceIndex, EBTNodeUpdateMode::Remove));
+		}
+	}
+}
 
 
 //----------------------------------------------------------------------//
@@ -351,7 +392,8 @@ void FBlackboardKeySelector::AddNameFilter(UObject* Owner)
 
 void FBlackboardKeySelector::AddObjectFilter(UObject* Owner, FName PropertyName, TSubclassOf<UObject> AllowedClass)
 {
-	const FString FilterName = PropertyName.ToString() + TEXT("_Object");
+	static int32 FilterCounter = 0;
+	const FString FilterName = FString::Printf(TEXT("%s_Object_%d"), *PropertyName.ToString(), ++FilterCounter);
 	UBlackboardKeyType_Object* FilterOb = NewObject<UBlackboardKeyType_Object>(Owner, *FilterName);
 	FilterOb->BaseClass = AllowedClass;
 	AllowedTypes.Add(FilterOb);

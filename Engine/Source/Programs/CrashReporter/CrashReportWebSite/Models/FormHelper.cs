@@ -26,6 +26,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary>Jira as query for crash filtering.</summary>
 		public string JiraQuery = "";
 
+        /// <summary> Jira Id for crash/bugg filtering </summary>
+	    public string JiraId = "";
+
 		/// <summary>Message/Summary or Description as query for filtering.</summary>
 		public string MessageQuery = "";
 
@@ -179,6 +182,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			GetFormParameter( Request, Form, "UsernameQuery", UsernameQuery, out UsernameQuery );
 			GetFormParameter( Request, Form, "EpicIdOrMachineQuery", EpicIdOrMachineQuery, out EpicIdOrMachineQuery );
 			GetFormParameter( Request, Form, "JiraQuery", JiraQuery, out JiraQuery );
+            GetFormParameter( Request, Form, "JiraId", JiraId, out JiraId);
 			GetFormParameter( Request, Form, "MessageQuery", MessageQuery, out MessageQuery );
 			GetFormParameter( Request, Form, "BuggId", BuggId, out BuggId );
 			GetFormParameter( Request, Form, "BuiltFromCL", BuiltFromCL, out BuiltFromCL );

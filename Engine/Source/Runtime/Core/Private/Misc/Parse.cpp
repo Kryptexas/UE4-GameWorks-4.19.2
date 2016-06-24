@@ -75,7 +75,7 @@ void ConsoleCommandLibrary_DumpLibrary(UWorld* InWorld, FExec& SubSystem, const 
 	bool bExecuted = SubSystem.Exec( InWorld, *Pattern, Null);
 
 	{
-		IConsoleManager::Get().ForEachConsoleObject(
+		IConsoleManager::Get().ForEachConsoleObjectThatStartsWith(
 			FConsoleObjectVisitor::CreateStatic< TSet<FString>& >(
 			&FConsoleVariableDumpVisitor::OnConsoleVariable,
 			LocalConsoleCommandLibrary.KnownNames ) );
@@ -109,7 +109,7 @@ void ConsoleCommandLibrary_DumpLibraryHTML(UWorld* InWorld, FExec& SubSystem, co
 	bool bExecuted = SubSystem.Exec( InWorld, *LocalConsoleCommandLibrary.Pattern, Null);
 
 	{
-		IConsoleManager::Get().ForEachConsoleObject(
+		IConsoleManager::Get().ForEachConsoleObjectThatStartsWith(
 			FConsoleObjectVisitor::CreateStatic< TSet<FString>& >(
 			&FConsoleVariableDumpVisitor::OnConsoleVariable,
 			LocalConsoleCommandLibrary.KnownNames ) );
@@ -1098,11 +1098,6 @@ bool FParse::Resolution(const TCHAR* InResolution, uint32& OutX, uint32& OutY, i
 				if (WindowFullScreenChars == TEXT("wf"))
 				{
 					WindowMode = EWindowMode::WindowedFullscreen;
-					StringTripLen = 2;
-				}
-				else if (WindowFullScreenChars == TEXT("wm"))
-				{
-					WindowMode = EWindowMode::WindowedMirror;
 					StringTripLen = 2;
 				}
 				else if (FullScreenChar == TEXT("f"))

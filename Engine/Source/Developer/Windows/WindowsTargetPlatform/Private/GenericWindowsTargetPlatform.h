@@ -72,16 +72,6 @@ public:
 		return COMPRESS_ZLIB;
 	}
 
-	bool CompressMemory(ECompressionFlags Flags, void* CompressedBuffer, int32& CompressedSize, const void* UncompressedBuffer, int32 UncompressedSize) const
-	{
-		return false;
-	}
-
-	int32 CompressMemoryBounds(ECompressionFlags Flags, int32 UncompressedSize) const
-	{
-		return 0;
-	}
-
 	virtual bool GenerateStreamingInstallManifest(const TMultiMap<FString, int32>& ChunkMap, const TSet<int32>& ChunkIDsInUse) const override
 	{
 		return true;
@@ -135,11 +125,13 @@ public:
 			static FName NAME_PCD3D_SM4(TEXT("PCD3D_SM4"));
 			static FName NAME_GLSL_150(TEXT("GLSL_150"));
 			static FName NAME_GLSL_430(TEXT("GLSL_430"));
+			static FName NAME_VULKAN_ES31(TEXT("SF_VULKAN_ES31"));
 
 			OutFormats.AddUnique(NAME_PCD3D_SM5);
 			OutFormats.AddUnique(NAME_PCD3D_SM4);
 			OutFormats.AddUnique(NAME_GLSL_150);
 			OutFormats.AddUnique(NAME_GLSL_430);
+			OutFormats.AddUnique(NAME_VULKAN_ES31);
 		}
 	}
 

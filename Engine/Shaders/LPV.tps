@@ -2,7 +2,7 @@
 <TpsData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>LPV code from Microsoft</Name>
   <Location>/Engine/Shaders/</Location>
-  <Date>2016-04-07T17:27:23.2751928-04:00</Date>
+  <Date>2016-06-10T17:06:31.4977906-04:00</Date>
   <Function>UE contribution from MS</Function>
   <Justification />
   <Platforms>
@@ -24,5 +24,5 @@
   <IsSourceAvailable>false</IsSourceAvailable>
   <NoticeType>None</NoticeType>
   <Notification />
-  <LicenseFolder />
+  <LicenseFolder>None</LicenseFolder>
 </TpsData>

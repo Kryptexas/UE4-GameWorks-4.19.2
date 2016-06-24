@@ -112,6 +112,14 @@ void UAnimGraphNode_BlendSpaceEvaluator::GetContextMenuActions(const FGraphNodeC
 	}
 }
 
+void UAnimGraphNode_BlendSpaceEvaluator::SetAnimationAsset(UAnimationAsset* Asset)
+{
+	if (UBlendSpaceBase* BlendSpace = Cast<UBlendSpaceBase>(Asset))
+	{
+		Node.BlendSpace = BlendSpace;
+	}
+}
+
 bool UAnimGraphNode_BlendSpaceEvaluator::DoesSupportTimeForTransitionGetter() const
 {
 	return true;

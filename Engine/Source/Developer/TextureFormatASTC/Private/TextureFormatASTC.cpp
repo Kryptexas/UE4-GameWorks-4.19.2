@@ -13,7 +13,7 @@
 
 
 // increment this if you change anything that will affect compression in this file, including FORCED_NORMAL_MAP_COMPRESSION_SIZE_VALUE
-#define BASE_FORMAT_VERSION 34
+#define BASE_FORMAT_VERSION 35
 
 #define MAX_QUALITY_BY_SIZE 4
 #define MAX_QUALITY_BY_SPEED 3

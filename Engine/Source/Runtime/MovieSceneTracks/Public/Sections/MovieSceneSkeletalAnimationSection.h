@@ -3,10 +3,11 @@
 #pragma once
 
 #include "MovieSceneSection.h"
+#include "Animation/AnimSequence.h"
 #include "MovieSceneSkeletalAnimationSection.generated.h"
 
 /**
- * Audio section, for use in the master audio, or by attached audio objects
+ * Movie scene section that control skeletal animation
  */
 UCLASS( MinimalAPI )
 class UMovieSceneSkeletalAnimationSection : public UMovieSceneSection
@@ -61,6 +62,8 @@ public:
 	virtual UMovieSceneSection* SplitSection(float SplitTime) override;
 	virtual void GetKeyHandles(TSet<FKeyHandle>& OutKeyHandles, TRange<float> TimeRange) const override;
 	virtual void GetSnapTimes(TArray<float>& OutSnapTimes, bool bGetSectionBorders) const override;
+	virtual TOptional<float> GetKeyTime( FKeyHandle KeyHandle ) const override { return TOptional<float>(); }
+	virtual void SetKeyTime( FKeyHandle KeyHandle, float Time ) override { }
 
 private:
 

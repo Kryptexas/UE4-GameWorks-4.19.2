@@ -65,7 +65,7 @@ FVulkanUniformBuffer::FVulkanUniformBuffer(FVulkanDevice& Device, const FRHIUnif
 
 	if (InLayout.ConstantBufferSize)
 	{
-		static auto* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Vulkan.UseRealUBs"));
+		static TConsoleVariableData<int32>* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Vulkan.UseRealUBs"));
 		if (CVar && CVar->GetValueOnAnyThread() != 0)
 		{
 			check(0);
@@ -116,7 +116,6 @@ FVulkanUniformBuffer::~FVulkanUniformBuffer()
 FUniformBufferRHIRef FVulkanDynamicRHI::RHICreateUniformBuffer(const void* Contents, const FRHIUniformBufferLayout& Layout, EUniformBufferUsage Usage)
 {
 	SCOPE_CYCLE_COUNTER(STAT_VulkanCreateUniformBufferTime);
-	check(IsInRenderingThread());
 
 	// Emulation: Creates and returns a CPU-Only buffer.
 	// Parts of the buffer are later on copied for each shader stage into the packed uniform buffer

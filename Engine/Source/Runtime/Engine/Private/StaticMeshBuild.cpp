@@ -136,56 +136,6 @@ void UStaticMesh::Build(bool bSilent, TArray<FText>* OutErrors)
 		{
 			if ( It->StaticMesh == this )
 			{
-				// Initialize override vertex colors on any new LODs which have just been created
-				It->SetLODDataCount(NumLODs, It->LODData.Num());
-
-				FStaticMeshComponentLODInfo& LOD0Info = It->LODData[0];
-				if (LOD0Info.OverrideVertexColors)
-				{
-					for (uint32 LODIndex = 1; LODIndex < NumLODs; ++LODIndex)
-					{
-						FStaticMeshComponentLODInfo& LODInfo = It->LODData[LODIndex];
-
-						if (LODInfo.OverrideVertexColors == nullptr && LODInfo.PaintedVertices.Num() == 0)
-						{
-							LODInfo.OverrideVertexColors = new FColorVertexBuffer;
-
-							FStaticMeshLODResources& CurRenderData = RenderData->LODResources[LODIndex];
-
-							TArray<FColor> NewOverrideColors;
-
-							if (LOD0Info.PaintedVertices.Num() > 0)
-							{
-								// Build override colors for LOD, based on LOD0
-								RemapPaintedVertexColors(
-									LOD0Info.PaintedVertices,
-									*LOD0Info.OverrideVertexColors,
-									CurRenderData.PositionVertexBuffer,
-									&CurRenderData.VertexBuffer,
-									NewOverrideColors
-									);
-							}
-							if (NewOverrideColors.Num())
-							{
-								LODInfo.OverrideVertexColors->InitFromColorArray(NewOverrideColors);
-
-								// Update the PaintedVertices array
-								const int32 NumVerts = CurRenderData.GetNumVertices();
-								check(NumVerts == NewOverrideColors.Num());
-
-								LODInfo.PaintedVertices.Reserve(NumVerts);
-								for (int32 VertIndex = 0; VertIndex < NumVerts; ++VertIndex)
-								{
-									FPaintedVertex* Vertex = new(LODInfo.PaintedVertices) FPaintedVertex;
-									Vertex->Position = CurRenderData.PositionVertexBuffer.VertexPosition(VertIndex);
-									Vertex->Normal = CurRenderData.VertexBuffer.VertexTangentZ(VertIndex);
-									Vertex->Color = LODInfo.OverrideVertexColors->VertexColor(VertIndex);
-								}
-							}
-						}
-					}
-				}
-
 				It->FixupOverrideColorsIfNecessary(true);
 				It->InvalidateLightingCache();
 			}
@@ -353,7 +303,7 @@ void RemapPaintedVertexColors(
 				{
 					FOREACH_OCTREE_CHILD_NODE( OctreeChildRef )
 					{
-						if( CurNode.HasChild( OctreeChildRef ) && CurNode.GetChild( OctreeChildRef )->GetInclusiveElementCount() > 0 )
+						if( CurNode.HasChild( OctreeChildRef ) )
 						{
 							OctreeIter.PushChild( OctreeChildRef );
 						}
@@ -370,14 +320,18 @@ void RemapPaintedVertexColors(
 		if ( PointsToConsider.Num() > 0 )
 		{
 			FPaintedVertex BestVertex = PointsToConsider[0];
+			FVector BestVertexNormal = BestVertex.Normal;
+
 			float BestDistanceSquared = ( BestVertex.Position - CurPosition ).SizeSquared();
-			float BestNormalDot = FVector( BestVertex.Normal ) | CurNormal;
+			float BestNormalDot = BestVertexNormal | CurNormal;
 
 			for ( int32 ConsiderationIndex = 1; ConsiderationIndex < PointsToConsider.Num(); ++ConsiderationIndex )
 			{
 				FPaintedVertex& Vertex = PointsToConsider[ ConsiderationIndex ];
+				FVector VertexNormal = Vertex.Normal;
+
 				const float DistSqrd = ( Vertex.Position - CurPosition ).SizeSquared();
-				const float NormalDot = FVector( Vertex.Normal ) | CurNormal;
+				const float NormalDot = VertexNormal | CurNormal;
 				if ( DistSqrd < BestDistanceSquared - DistanceOverNormalThreshold )
 				{
 					BestVertex = Vertex;

@@ -51,6 +51,25 @@ void UMovieSceneActorReferenceSection::GetKeyHandles(TSet<FKeyHandle>& OutKeyHan
 }
 
 
+TOptional<float> UMovieSceneActorReferenceSection::GetKeyTime( FKeyHandle KeyHandle ) const
+{
+	if ( ActorGuidIndexCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		return TOptional<float>( ActorGuidIndexCurve.GetKeyTime( KeyHandle ) );
+	}
+	return TOptional<float>();
+}
+
+
+void UMovieSceneActorReferenceSection::SetKeyTime( FKeyHandle KeyHandle, float Time )
+{
+	if ( ActorGuidIndexCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		ActorGuidIndexCurve.SetKeyTime( KeyHandle, Time );
+	}
+}
+
+
 void UMovieSceneActorReferenceSection::AddKey( float Time, const FGuid& Value, EMovieSceneKeyInterpolation KeyInterpolation )
 {
 	int32 NewActorGuidIndex = ActorGuids.Add(Value);
@@ -77,14 +96,14 @@ void UMovieSceneActorReferenceSection::SetDefault( const FGuid& Value )
 }
 
 
-void UMovieSceneActorReferenceSection::PreSave()
+void UMovieSceneActorReferenceSection::PreSave(const class ITargetPlatform* TargetPlatform)
 {
 	ActorGuidStrings.Empty();
 	for ( const FGuid& ActorGuid : ActorGuids )
 	{
 		ActorGuidStrings.Add( ActorGuid.ToString() );
 	}
-	Super::PreSave();
+	Super::PreSave(TargetPlatform);
 }
 
 

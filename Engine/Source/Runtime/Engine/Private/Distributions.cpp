@@ -31,7 +31,7 @@ ENGINE_API uint32 GDistributionType = 1;
 #define LOOKUP_TABLE_MAX_SAMPLES (128)
 
 // UDistribution will bake out (if CanBeBaked returns true)
-#define DISTRIBUTIONS_BAKES_OUT 0
+#define DISTRIBUTIONS_BAKES_OUT 1
 
 // The maximum number of samples must be a power of two.
 static_assert((LOOKUP_TABLE_MAX_SAMPLES & (LOOKUP_TABLE_MAX_SAMPLES - 1)) == 0, "Lookup table max samples is not a power of two.");
@@ -98,11 +98,13 @@ template <typename DistributionType>
 void BuildLookupTable( FDistributionLookupTable* OutTable, const DistributionType* Distribution )
 {
 	check(IsInGameThread() || IsInAsyncLoadingThread());
+	check(Distribution);
+
 	// Always clear the table.
 	OutTable->Empty();
 
 	// Nothing to do if we don't have a distribution.
-	if ( Distribution == NULL || !Distribution->CanBeBaked() )
+	if ( !Distribution->CanBeBaked() )
 	{
 		BuildZeroLookupTable( OutTable, Distribution->GetValueCount() );
 		return;
@@ -1080,6 +1082,11 @@ bool UDistributionFloat::NeedsLoadForServer() const
 	return true;
 }
 
+bool UDistributionFloat::NeedsLoadForEditorGame() const
+{
+	return true;
+}
+
 #if	WITH_EDITOR
 void UDistributionFloat::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
@@ -1278,6 +1285,11 @@ bool UDistributionVector::NeedsLoadForServer() const
 	}
 #endif
 
+	return true;
+}
+
+bool UDistributionVector::NeedsLoadForEditorGame() const
+{
 	return true;
 }
 

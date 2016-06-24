@@ -269,7 +269,7 @@ private:
 	void HandleColorSpinBoxValueChanged( float NewValue, EColorPickerChannels Channel );
 
 	// Callback for completed eye dropper interactions.
-	void HandleEyeDropperButtonComplete();
+	void HandleEyeDropperButtonComplete(bool bCancelled);
 
 	// Callback for getting the text in the hex linear box.
 	FText HandleHexLinearBoxText() const;

@@ -76,7 +76,7 @@ bool FRenderTarget::ReadPixels(TArray< FColor >& OutImageData, FReadSurfaceDataF
 	});
 	FlushRenderingCommands();
 
-	return true;
+	return OutImageData.Num() > 0;
 }
 
 
@@ -266,7 +266,13 @@ const FTexture2DRHIRef& FRenderTarget::GetRenderTargetTexture() const
 }
 
 
-void FScreenshotRequest::RequestScreenshot( const FString& InFilename, bool bInShowUI, bool bAddUniqueSuffix )
+void FScreenshotRequest::RequestScreenshot(bool bInShowUI)
+{
+	bShowUI = bInShowUI;
+	bIsScreenshotRequested = true;
+}
+
+void FScreenshotRequest::RequestScreenshot(const FString& InFilename, bool bInShowUI, bool bAddUniqueSuffix)
 {
 	FString GeneratedFilename = InFilename;
 	CreateViewportScreenShotFilename(GeneratedFilename);
@@ -282,17 +288,23 @@ void FScreenshotRequest::RequestScreenshot( const FString& InFilename, bool bInS
 		Filename = GeneratedFilename;
 	}
 
-	bShowUI = bInShowUI;
+	// Register the screenshot
+	if (!Filename.IsEmpty())
+	{
+		bShowUI = bInShowUI;
+		bIsScreenshotRequested = true;
+	}
 }
 
 
 void FScreenshotRequest::Reset()
 {
+	bIsScreenshotRequested = false;
 	Filename.Empty();
 	bShowUI = false;
 }
 
-void FScreenshotRequest::CreateViewportScreenShotFilename( FString& InOutFilename )
+void FScreenshotRequest::CreateViewportScreenShotFilename(FString& InOutFilename)
 {
 	FString TypeName;
 
@@ -330,6 +342,7 @@ TArray<FColor>* FScreenshotRequest::GetHighresScreenshotMaskColorArray()
 }
 
 
+bool FScreenshotRequest::bIsScreenshotRequested = false;
 FString FScreenshotRequest::Filename;
 FString FScreenshotRequest::NextScreenshotName;
 bool FScreenshotRequest::bShowUI = false;
@@ -424,7 +437,7 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 #endif // #if !UE_BUILD_SHIPPING
 
 	// Render CPU thread and GPU frame times.
-	const bool bStereoRendering = (GEngine && GEngine->IsStereoscopic3D(InViewport));
+	const bool bStereoRendering = GEngine->IsStereoscopic3D(InViewport);
 	UFont* Font = (!FPlatformProperties::SupportsWindowedMode() && GEngine->GetMediumFont()) ? GEngine->GetMediumFont() : GEngine->GetSmallFont();
 
 	// Note InX should already be within the safe zone
@@ -777,6 +790,7 @@ FViewport::FViewport(FViewportClient* InViewportClient):
 	bHitProxiesCached(false),
 	bHasRequestedToggleFreeze(false),
 	bIsSlateViewport(false),
+	FlushOnDrawCount(0),
 	bTakeHighResScreenShot(false)
 {
 	//initialize the hit proxy kernel
@@ -796,7 +810,7 @@ FViewport::FViewport(FViewportClient* InViewportClient):
 	}
 #endif
 
-	AppVersionString = FString::Printf( TEXT( "Version: %s" ), *FEngineVersion::Current().ToString() );
+	AppVersionString = FString::Printf( TEXT( "Build: %s" ), FApp::GetBuildVersion() );
 
 	bIsPlayInEditorViewport = false;
 }
@@ -1189,6 +1203,11 @@ void FViewport::Draw( bool bShouldPresent /*= true */)
 				// Enable game rendering again if it isn't already.
 				bIsGameRenderingEnabled = true;
 			}
+		}
+
+		if (FlushOnDrawCount != 0)
+		{
+			FlushRenderingCommands();
 		}
 
 		if(GCaptureCompositionNextFrame)

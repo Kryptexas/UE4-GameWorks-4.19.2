@@ -33,11 +33,12 @@ private:
 class UMG_API FWidgetRenderer
 {
 public:
-	FWidgetRenderer(bool bUseGammaCorrection = false);
+	FWidgetRenderer(bool bUseGammaCorrection = false, bool bInClearTarget = true);
 	~FWidgetRenderer();
 
 	bool GetIsPrepassNeeded() const { return bPrepassNeeded; }
 	void SetIsPrepassNeeded(bool bInPrepassNeeded) { bPrepassNeeded = bInPrepassNeeded; }
+	void SetShouldClearTarget(bool bShouldClear) { bClearTarget = bShouldClear; }
 
 	ISlate3DRenderer* GetSlateRenderer();
 
@@ -86,4 +87,6 @@ private:
 	bool bPrepassNeeded;
 	/** Is gamma space needed? */
 	bool bUseGammaSpace;
+	/** Should we clear the render target before rendering. */
+	bool bClearTarget;
 };

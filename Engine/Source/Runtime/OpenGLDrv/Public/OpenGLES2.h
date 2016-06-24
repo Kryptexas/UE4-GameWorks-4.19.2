@@ -117,6 +117,7 @@ struct FOpenGLES2 : public FOpenGLBase
 	static FORCEINLINE bool SupportsMultisampledRenderToTexture()		{ return bSupportsMultisampledRenderToTexture; }
 	static FORCEINLINE bool SupportsVertexArrayBGRA()					{ return false; }
 	static FORCEINLINE bool SupportsBGRA8888()							{ return bSupportsBGRA8888; }
+	static FORCEINLINE bool SupportsBGRA8888RenderTarget()				{ return bSupportsBGRA8888RenderTarget; }
 	static FORCEINLINE bool SupportsSRGB()								{ return bSupportsSGRB; }
 	static FORCEINLINE bool SupportsRGBA8()								{ return bSupportsRGBA8; }
 	static FORCEINLINE bool SupportsDXT()								{ return bSupportsDXT; }
@@ -230,14 +231,22 @@ struct FOpenGLES2 : public FOpenGLBase
 #endif
 		check(Type == GL_ARRAY_BUFFER || Type == GL_ELEMENT_ARRAY_BUFFER);
 
+#if PLATFORM_ANDROID
+		uint8* Data = (uint8*)glMapBufferOESa(Type, GL_WRITE_ONLY_OES);
+#else
 		uint8* Data = (uint8*) glMapBufferOES(Type, GL_WRITE_ONLY_OES);
+#endif
 		return Data ? Data + InOffset : NULL;
 	}
 
 	static FORCEINLINE void UnmapBuffer(GLenum Type)
 	{
 		check(Type == GL_ARRAY_BUFFER || Type == GL_ELEMENT_ARRAY_BUFFER);
+#if PLATFORM_ANDROID
+		glUnmapBufferOESa(Type);
+#else
 		glUnmapBufferOES(Type);
+#endif
 	}
 
 	static FORCEINLINE void UnmapBufferRange(GLenum Type, uint32 InOffset, uint32 InSize)
@@ -409,6 +418,9 @@ protected:
 	/** GL_APPLE_texture_format_BGRA8888 */
 	static bool bSupportsBGRA8888;
 
+	/** Whether BGRA supported as color attachment */
+	static bool bSupportsBGRA8888RenderTarget;
+
 	/** GL_OES_vertex_half_float */
 	static bool bSupportsVertexHalfFloat;
 
@@ -516,6 +528,9 @@ public:
 
 	/** GL_OES_vertex_type_10_10_10_2 */
 	static bool bSupportsRGB10A2;
+	
+	/** GL_OES_get_program_binary */
+	static bool bSupportsProgramBinary;
 
     /* Indicates shader compiler should be limited */
     static bool bIsLimitingShaderCompileCount;
@@ -757,6 +772,9 @@ public:
 #endif
 #ifndef GL_UNSIGNED_INT_2_10_10_10_REV
 #define GL_UNSIGNED_INT_2_10_10_10_REV 0x8368
+#endif
+#ifndef GL_PROGRAM_BINARY_LENGTH
+#define GL_PROGRAM_BINARY_LENGTH 0x8741
 #endif
 
 // Normalize debug macros due to naming differences across GL versions

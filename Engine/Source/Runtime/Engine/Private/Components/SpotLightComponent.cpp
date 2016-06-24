@@ -217,9 +217,9 @@ FSphere USpotLightComponent::GetBoundingSphere() const
 	return FSphere(ComponentToWorld.GetLocation() + .5f * GetDirection() * AttenuationRadius, BoundsRadius);
 }
 
-bool USpotLightComponent::AffectsBounds(const FBoxSphereBounds& Bounds) const
+bool USpotLightComponent::AffectsBounds(const FBoxSphereBounds& InBounds) const
 {
-	if(!Super::AffectsBounds(Bounds))
+	if(!Super::AffectsBounds(InBounds))
 	{
 		return false;
 	}
@@ -230,17 +230,17 @@ bool USpotLightComponent::AffectsBounds(const FBoxSphereBounds& Bounds) const
 	float	Sin = FMath::Sin(ClampedOuterConeAngle),
 			Cos = FMath::Cos(ClampedOuterConeAngle);
 
-	FVector	U = GetComponentLocation() - (Bounds.SphereRadius / Sin) * GetDirection(),
-			D = Bounds.Origin - U;
+	FVector	U = GetComponentLocation() - (InBounds.SphereRadius / Sin) * GetDirection(),
+			D = InBounds.Origin - U;
 	float	dsqr = D | D,
 			E = GetDirection() | D;
 	if(E > 0.0f && E * E >= dsqr * FMath::Square(Cos))
 	{
-		D = Bounds.Origin - GetComponentLocation();
+		D = InBounds.Origin - GetComponentLocation();
 		dsqr = D | D;
 		E = -(GetDirection() | D);
 		if(E > 0.0f && E * E >= dsqr * FMath::Square(Sin))
-			return dsqr <= FMath::Square(Bounds.SphereRadius);
+			return dsqr <= FMath::Square(InBounds.SphereRadius);
 		else
 			return true;
 	}

@@ -83,6 +83,14 @@ extern CORE_API bool			GIntraFrameDebuggingGameThread;
 /** True if this is the first time through the UI message pumping loop. */
 extern CORE_API bool			GFirstFrameIntraFrameDebugging;
 
+#elif USING_CODE_ANALYSIS
+
+// Defined as variables during code analysis to prevent lots of '<constant> && <expr>' warnings
+extern CORE_API bool GIsEditor;
+extern CORE_API bool GIsUCCMakeStandaloneHeaderGenerator;
+extern CORE_API bool GIntraFrameDebuggingGameThread;
+extern CORE_API bool GFirstFrameIntraFrameDebugging;
+
 #else
 
 #define GIsEditor								false
@@ -312,9 +320,6 @@ extern CORE_API float GAsyncIOBandwidthLimit;
 
 /** Whether or not messages are being pumped outside of main loop */
 extern CORE_API bool GPumpingMessagesOutsideOfMainLoop;
-
-/** Total blueprint compile time. */
-extern CORE_API double GBlueprintCompileTime;
 
 /** Enables various editor and HMD hacks that allow the experimental VR editor feature to work, perhaps at the expense of other systems */
 extern CORE_API bool GEnableVREditorHacks;

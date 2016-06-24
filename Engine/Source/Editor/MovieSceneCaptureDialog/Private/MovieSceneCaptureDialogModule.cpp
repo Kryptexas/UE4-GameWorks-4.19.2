@@ -8,6 +8,7 @@
 #include "SlateBasics.h"
 #include "SlateExtras.h"
 #include "SceneViewport.h"
+#include "AudioDevice.h"
 
 #include "SDockTab.h"
 #include "JsonObjectConverter.h"
@@ -302,6 +303,25 @@ struct FInEditorCapture
 
 		bScreenMessagesWereEnabled = GAreScreenMessagesEnabled;
 		GAreScreenMessagesEnabled = false;
+
+		if (!InCaptureObject->Settings.bEnableTextureStreaming)
+		{
+			const int32 UndefinedTexturePoolSize = -1;
+			IConsoleVariable* CVarStreamingPoolSize = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Streaming.PoolSize"));
+			if (CVarStreamingPoolSize)
+			{
+				BackedUpStreamingPoolSize = CVarStreamingPoolSize->GetInt();
+				CVarStreamingPoolSize->Set(UndefinedTexturePoolSize, ECVF_SetByConsole);
+			}
+
+			IConsoleVariable* CVarUseFixedPoolSize = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Streaming.UseFixedPoolSize"));
+			if (CVarUseFixedPoolSize)
+			{
+				BackedUpUseFixedPoolSize = CVarUseFixedPoolSize->GetInt(); 
+				CVarUseFixedPoolSize->Set(0, ECVF_SetByConsole);
+			}
+		}
+
 		OnStarted = InOnStarted;
 		FObjectWriter(PlayInEditorSettings, BackedUpPlaySettings);
 		OverridePlaySettings(PlayInEditorSettings);
@@ -312,6 +332,13 @@ struct FInEditorCapture
 		UGameViewportClient::OnViewportCreated().AddRaw(this, &FInEditorCapture::OnStart);
 		FEditorDelegates::EndPIE.AddRaw(this, &FInEditorCapture::OnEndPIE);
 		
+		FAudioDevice* AudioDevice = GWorld->GetAudioDevice();
+		if (AudioDevice != nullptr)
+		{
+			TransientMasterVolume = AudioDevice->TransientMasterVolume;
+			AudioDevice->TransientMasterVolume = 0.0f;
+		}
+
 		GEditor->RequestPlaySession(true, nullptr, false);
 	}
 
@@ -333,6 +360,8 @@ struct FInEditorCapture
 			.HasCloseButton(true)
 			.SupportsMaximize(false)
 			.SupportsMinimize(true)
+			.MaxWidth( Settings.Resolution.ResX )
+			.MaxHeight( Settings.Resolution.ResY )
 			.SizingRule(ESizingRule::FixedSize);
 
 		FSlateApplication::Get().AddWindow(CustomWindow);
@@ -405,7 +434,28 @@ struct FInEditorCapture
 
 		GAreScreenMessagesEnabled = bScreenMessagesWereEnabled;
 
+		if (!CaptureObject->Settings.bEnableTextureStreaming)
+		{
+			IConsoleVariable* CVarStreamingPoolSize = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Streaming.PoolSize"));
+			if (CVarStreamingPoolSize)
+			{
+				CVarStreamingPoolSize->Set(BackedUpStreamingPoolSize, ECVF_SetByConsole);
+			}
+
+			IConsoleVariable* CVarUseFixedPoolSize = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Streaming.UseFixedPoolSize"));
+			if (CVarUseFixedPoolSize)
+			{
+				CVarUseFixedPoolSize->Set(BackedUpUseFixedPoolSize, ECVF_SetByConsole);
+			}
+		}
+
 		FObjectReader(GetMutableDefault<ULevelEditorPlaySettings>(), BackedUpPlaySettings);
+
+		FAudioDevice* AudioDevice = GWorld->GetAudioDevice();
+		if (AudioDevice != nullptr)
+		{
+			AudioDevice->TransientMasterVolume = TransientMasterVolume;
+		}
 
 		CaptureObject->Close();
 		CaptureObject->RemoveFromRoot();
@@ -427,6 +477,9 @@ struct FInEditorCapture
 
 	TFunction<void()> OnStarted;
 	bool bScreenMessagesWereEnabled;
+	float TransientMasterVolume;
+	int32 BackedUpStreamingPoolSize;
+	int32 BackedUpUseFixedPoolSize;
 	TArray<uint8> BackedUpPlaySettings;
 	UMovieSceneCapture* CaptureObject;
 };
@@ -531,11 +584,7 @@ class FMovieSceneCaptureDialogModule : public IMovieSceneCaptureDialogModule
 			return LOCTEXT("AlreadyCapturing", "There is already a movie scene capture process open. Please close it and try again.");
 		}
 
-		CaptureObject->SaveConfig();
-		if (CaptureObject->ProtocolSettings)
-		{
-			CaptureObject->ProtocolSettings->SaveConfig();
-		}
+		CaptureObject->SaveToConfig();
 
 		return CaptureObject->bUseSeparateProcess ? CaptureInNewProcess(CaptureObject, MapNameToLoad) : CaptureInEditor(CaptureObject, MapNameToLoad);
 	}
@@ -589,15 +638,9 @@ class FMovieSceneCaptureDialogModule : public IMovieSceneCaptureDialogModule
 			RootObject->SetField(TEXT("Type"), MakeShareable(new FJsonValueString(CaptureObject->GetClass()->GetPathName())));
 			RootObject->SetField(TEXT("Data"), MakeShareable(new FJsonValueObject(Object)));
 
-			if (CaptureObject->ProtocolSettings)
-			{
-				RootObject->SetField(TEXT("ProtocolType"), MakeShareable(new FJsonValueString(CaptureObject->ProtocolSettings->GetClass()->GetPathName())));
-				TSharedRef<FJsonObject> ProtocolDataObject = MakeShareable(new FJsonObject);
-				if (FJsonObjectConverter::UStructToJsonObject(CaptureObject->ProtocolSettings->GetClass(), CaptureObject->ProtocolSettings, ProtocolDataObject, 0, 0))
-				{
-					RootObject->SetField(TEXT("ProtocolData"), MakeShareable(new FJsonValueObject(ProtocolDataObject)));
-				}
-			}
+			TSharedRef<FJsonObject> AdditionalJson = MakeShareable(new FJsonObject);
+			CaptureObject->SerializeJson(*AdditionalJson);
+			RootObject->SetField(TEXT("AdditionalData"), MakeShareable(new FJsonValueObject(AdditionalJson)));
 
 			FString Json;
 			TSharedRef<TJsonWriter<> > JsonWriter = TJsonWriterFactory<>::Create(&Json, 0);
@@ -642,8 +685,8 @@ class FMovieSceneCaptureDialogModule : public IMovieSceneCaptureDialogModule
 			EditorCommandLine.Append(TEXT(" -NoTextureStreaming"));
 		}
 		
-		// Set the game resolution
-		EditorCommandLine += FString::Printf(TEXT(" -ResX=%d -ResY=%d"), CaptureObject->Settings.Resolution.ResX, CaptureObject->Settings.Resolution.ResY);
+		// Set the game resolution - we always want it windowed
+		EditorCommandLine += FString::Printf(TEXT(" -ResX=%d -ResY=%d -Windowed"), CaptureObject->Settings.Resolution.ResX, CaptureObject->Settings.Resolution.ResY);
 
 		// Ensure game session is correctly set up 
 		EditorCommandLine += FString::Printf(TEXT(" -messaging -SessionName=\"%s\""), MovieCaptureSessionName);

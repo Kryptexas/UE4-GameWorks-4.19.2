@@ -472,7 +472,7 @@ void UCrowdFollowingComponent::BeginDestroy()
 	Cleanup();
 }
 
-void UCrowdFollowingComponent::AbortMove(const FString& Reason, FAIRequestID RequestID, bool bResetVelocity, bool bSilent, uint8 MessageFlags)
+void UCrowdFollowingComponent::AbortMove(const UObject& Instigator, FPathFollowingResultFlags::Type AbortFlags, FAIRequestID RequestID, EPathFollowingVelocityMode VelocityMode)
 {
 	if (IsCrowdSimulationEnabled() && (Status != EPathFollowingStatus::Idle) && RequestID.IsEquivalent(GetCurrentRequestId()))
 	{
@@ -483,10 +483,10 @@ void UCrowdFollowingComponent::AbortMove(const FString& Reason, FAIRequestID Req
 		}
 	}
 
-	Super::AbortMove(Reason, RequestID, bResetVelocity, bSilent, MessageFlags);
+	Super::AbortMove(Instigator, AbortFlags, RequestID, VelocityMode);
 }
 
-void UCrowdFollowingComponent::PauseMove(FAIRequestID RequestID, bool bResetVelocity)
+void UCrowdFollowingComponent::PauseMove(FAIRequestID RequestID, EPathFollowingVelocityMode VelocityMode)
 {
 	if (IsCrowdSimulationEnabled() && (Status != EPathFollowingStatus::Paused) && RequestID.IsEquivalent(GetCurrentRequestId()))
 	{
@@ -497,7 +497,7 @@ void UCrowdFollowingComponent::PauseMove(FAIRequestID RequestID, bool bResetVelo
 		}
 	}
 
-	Super::PauseMove(RequestID, bResetVelocity);
+	Super::PauseMove(RequestID, VelocityMode);
 }
 
 void UCrowdFollowingComponent::ResumeMove(FAIRequestID RequestID)
@@ -565,7 +565,7 @@ void UCrowdFollowingComponent::FinishUsingCustomLink(INavLinkCustomInterface* Cu
 	}
 }
 
-void UCrowdFollowingComponent::OnPathFinished(EPathFollowingResult::Type Result)
+void UCrowdFollowingComponent::OnPathFinished(const FPathFollowingResult& Result)
 {
 	UCrowdManager* CrowdManager = UCrowdManager::GetCurrent(GetWorld());
 	if (IsCrowdSimulationEnabled() && CrowdManager)
@@ -838,7 +838,7 @@ void UCrowdFollowingComponent::UpdatePathSegment()
 
 	if (!Path.IsValid() || MovementComp == NULL)
 	{
-		AbortMove(TEXT("no path"), FAIRequestID::CurrentRequest, true, false, EPathFollowingMessage::NoPath);
+		OnPathFinished(FPathFollowingResult(EPathFollowingResult::Aborted, FPathFollowingResultFlags::InvalidPath));
 		return;
 	}
 
@@ -846,7 +846,7 @@ void UCrowdFollowingComponent::UpdatePathSegment()
 	{
 		if (!Path->IsWaitingForRepath())
 		{
-			AbortMove(TEXT("no path"), FAIRequestID::CurrentRequest, true, false, EPathFollowingMessage::NoPath);
+			OnPathFinished(FPathFollowingResult(EPathFollowingResult::Aborted, FPathFollowingResultFlags::InvalidPath));
 		}
 		return;
 	}
@@ -862,7 +862,7 @@ void UCrowdFollowingComponent::UpdatePathSegment()
 		{
 			// check if collided with goal actor
 			OnSegmentFinished();
-			OnPathFinished(EPathFollowingResult::Success);
+			OnPathFinished(FPathFollowingResult(EPathFollowingResult::Success, FPathFollowingResultFlags::None));
 		}
 		else if (bFinalPathPart)
 		{
@@ -876,7 +876,7 @@ void UCrowdFollowingComponent::UpdatePathSegment()
 			if (bMovedTooFar || HasReachedInternal(GoalLocation, 0.0f, 0.0f, CurrentLocation, AcceptanceRadius, bStopOnOverlap ? MinAgentRadiusPct : 0.0f))
 			{
 				UE_VLOG(GetOwner(), LogCrowdFollowing, Log, TEXT("Last path segment finished due to \'%s\'"), bMovedTooFar ? TEXT("Missing Last Point") : TEXT("Reaching Destination"));
-				OnPathFinished(EPathFollowingResult::Success);
+				OnPathFinished(FPathFollowingResult(EPathFollowingResult::Success, FPathFollowingResultFlags::None));
 			}
 		}
 		else
@@ -905,7 +905,7 @@ void UCrowdFollowingComponent::UpdatePathSegment()
 		const bool bHasNewSample = UpdateBlockDetection();
 		if (bHasNewSample && IsBlocked())
 		{
-			OnPathFinished(EPathFollowingResult::Blocked);
+			OnPathFinished(FPathFollowingResult(EPathFollowingResult::Blocked, FPathFollowingResultFlags::None));
 		}
 	}
 }

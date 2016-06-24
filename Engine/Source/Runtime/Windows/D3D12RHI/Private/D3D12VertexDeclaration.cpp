@@ -31,7 +31,7 @@ struct FD3D12VertexDeclarationKey
 			case VET_Float2:		D3DElement.Format = DXGI_FORMAT_R32G32_FLOAT; break;
 			case VET_Float3:		D3DElement.Format = DXGI_FORMAT_R32G32B32_FLOAT; break;
 			case VET_Float4:		D3DElement.Format = DXGI_FORMAT_R32G32B32A32_FLOAT; break;
-			case VET_PackedNormal:	D3DElement.Format = DXGI_FORMAT_R8G8B8A8_UNORM; break; //TODO: uint32 doesn't work because D3D11 squishes it to 0 in the IA-VS conversion
+			case VET_PackedNormal:	D3DElement.Format = DXGI_FORMAT_R8G8B8A8_UNORM; break; //TODO: uint32 doesn't work because D3D12  squishes it to 0 in the IA-VS conversion
 			case VET_UByte4:		D3DElement.Format = DXGI_FORMAT_R8G8B8A8_UINT; break; //TODO: SINT, blendindices
 			case VET_UByte4N:		D3DElement.Format = DXGI_FORMAT_R8G8B8A8_UNORM; break;
 			case VET_Color:			D3DElement.Format = DXGI_FORMAT_B8G8R8A8_UNORM; break;
@@ -73,7 +73,7 @@ struct FD3D12VertexDeclarationKey
 	}
 };
 
-/** Hashes the array of D3D11 vertex element descriptions. */
+/** Hashes the array of D3D12 vertex element descriptions. */
 uint32 GetTypeHash(const FD3D12VertexDeclarationKey& Key)
 {
 	return Key.Hash;
@@ -104,8 +104,8 @@ FVertexDeclarationRHIRef FD3D12DynamicRHI::RHICreateVertexDeclaration(const FVer
 	// The cached declaration must match the input declaration!
 	check(VertexDeclarationRefPtr);
 	check(IsValidRef(*VertexDeclarationRefPtr));
-	FD3D12VertexDeclaration* D3D11VertexDeclaration = (FD3D12VertexDeclaration*)VertexDeclarationRefPtr->GetReference();
-	checkSlow(D3D11VertexDeclaration->VertexElements == Key.VertexElements);
+	FD3D12VertexDeclaration* D3D12VertexDeclaration = (FD3D12VertexDeclaration*)VertexDeclarationRefPtr->GetReference();
+	checkSlow(D3D12VertexDeclaration->VertexElements == Key.VertexElements);
 
 	return *VertexDeclarationRefPtr;
 }

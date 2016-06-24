@@ -534,13 +534,16 @@ void FPlatformOpenGLContext::VerifyCurrentContext()
 			
 			for(uint32 i = 0; i < GPUs.Num(); i++)
 			{
-				if(PlatformContext->VendorID == GPUs[i].GPUVendorId && GPUs[i].GPUMemoryMB == VRAM && (GPUs[i].GPUVendorId != 0x1002 || !GPUs[i].GPUHeadless == bOnline))
+				if(PlatformContext->VendorID == GPUs[i].GPUVendorId && GPUs[i].GPUMemoryMB == VRAM && (GPUs[i].GPUVendorId != 0x1002 || (PlatformContext->RendererID & 0x000fff00) != kCGLRendererATIRadeonX4000ID || ![GPUs[i].GPUName containsString:@"FirePro"] || GPUs[i].GPUHeadless != bOnline))
 				{
 					PlatformContext->RendererIndex = i;
 					break;
 				}
 			}
-			check(PlatformContext->RendererIndex >= 0);
+			if (PlatformContext->RendererIndex < 0)
+			{
+				UE_LOG(LogRHI, Warning, TEXT("Failed to find Mac GL Renderer %d (Vendor: %u, VRAM: %d, Online: %d) - Driver Monitor statistics will not be updated."), PlatformContext->RendererID, PlatformContext->VendorID, VRAM, bOnline);
+			}
 			
 			// Renderer IDs matchup to driver kexts, so switching based on them will allow us to target workarouds to many GPUs
 			// which exhibit the same unfortunate driver bugs without having to parse their individual ID strings.

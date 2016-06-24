@@ -340,7 +340,7 @@ bool UPackageMapClient::SerializeNewActor(FArchive& Ar, class UActorChannel *Cha
 				Velocity = FVector::ZeroVector;
 			}
 
-			if ( Channel && Ar.IsSaving() )
+			if ( Ar.IsSaving() )
 			{
 				FObjectReplicator * RepData = &Channel->GetActorReplicationData();
 				uint8* Recent = RepData && RepData->RepState != NULL && RepData->RepState->StaticBuffer.Num() ? RepData->RepState->StaticBuffer.GetData() : NULL;
@@ -832,6 +832,7 @@ bool UPackageMapClient::ExportNetGUID( FNetworkGUID NetGUID, const UObject* Obje
 
 			CurrentExportBunch = new FOutBunch(this, Connection->GetMaxSingleBunchSizeBits());
 			CurrentExportBunch->SetAllowResize(false);
+			CurrentExportBunch->SetAllowOverflow(true);
 			CurrentExportBunch->bHasPackageMapExports = true;
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			CurrentExportBunch->DebugString = TEXT("NetGUIDs");
@@ -1127,6 +1128,7 @@ void UPackageMapClient::AppendCompatibleRepLayoutExports( TArray<FOutBunch *>& O
 			{
 				ExportBunch = new FOutBunch( this, Connection->GetMaxSingleBunchSizeBits() );
 				ExportBunch->SetAllowResize( false );
+				ExportBunch->SetAllowOverflow(true);
 				ExportBunch->bHasPackageMapExports = true;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -1723,14 +1725,13 @@ void FNetGUIDCache::CleanReferences()
 		checkf( !It.Value().Object.IsValid() || NetGUIDLookup.FindRef( It.Value().Object ) == It.Key() || It.Value().ReadOnlyTimestamp != 0, TEXT( "Failed to validate ObjectLookup map in UPackageMap. Object '%s' was not in the NetGUIDLookup map with with value '%s'." ), *It.Value().Object.Get()->GetPathName(), *It.Key().ToString() );
 	}
 
-	if (!UE_BUILD_SHIPPING || !UE_BUILD_TEST)
+#if !UE_BUILD_SHIPPING || !UE_BUILD_TEST
+	for ( auto It = NetGUIDLookup.CreateIterator(); It; ++It )
 	{
-		for ( auto It = NetGUIDLookup.CreateIterator(); It; ++It )
-		{
-			check( It.Key().IsValid() );
-			checkf( ObjectLookup.FindRef( It.Value() ).Object == It.Key(), TEXT("Failed to validate NetGUIDLookup map in UPackageMap. GUID '%s' was not in the ObjectLookup map with with object '%s'."), *It.Value().ToString(), *It.Key().Get()->GetPathName());
-		}
+		check( It.Key().IsValid() );
+		checkf( ObjectLookup.FindRef( It.Value() ).Object == It.Key(), TEXT("Failed to validate NetGUIDLookup map in UPackageMap. GUID '%s' was not in the ObjectLookup map with with object '%s'."), *It.Value().ToString(), *It.Key().Get()->GetPathName());
 	}
+#endif
 
 	FArchiveCountMemGUID CountBytesAr;
 
@@ -1921,7 +1922,7 @@ void FNetGUIDCache::RegisterNetGUID_Server( const FNetworkGUID& NetGUID, const U
 void FNetGUIDCache::RegisterNetGUID_Client( const FNetworkGUID& NetGUID, const UObject* Object )
 {
 	check( !IsNetGUIDAuthority() );			// Only clients should be here
-	check( !Object->IsPendingKill() );
+	check( !Object || !Object->IsPendingKill() );
 	check( !NetGUID.IsDefault() );
 	check( NetGUID.IsDynamic() );	// Clients should only assign dynamic guids through here (static guids go through RegisterNetGUIDFromPath_Client)
 
@@ -2137,17 +2138,17 @@ UObject* FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const
 		return NULL;
 	}
 
-	if ( IsNetGUIDAuthority() )
-	{
-		// Warn when the server needs to re-load an object, it's probably due to a GC after initially loading as default guid
-		UE_LOG( LogNetPackageMap, Warning, TEXT( "GetObjectFromNetGUID: Server re-loading object (might have been GC'd). FullNetGUIDPath: %s" ), *FullNetGUIDPath( NetGUID ) );
-	}
-
 	if ( CacheObjectPtr->PathName == NAME_None )
 	{
 		// If we don't have a path, assume this is a non stably named guid
 		check( NetGUID.IsDynamic() );
 		return NULL;
+	}
+
+	if (IsNetGUIDAuthority())
+	{
+		// Warn when the server needs to re-load an object, it's probably due to a GC after initially loading as default guid
+		UE_LOG(LogNetPackageMap, Warning, TEXT("GetObjectFromNetGUID: Server re-loading object (might have been GC'd). FullNetGUIDPath: %s"), *FullNetGUIDPath(NetGUID));
 	}
 
 	// First, resolve the outer
@@ -2320,7 +2321,7 @@ UObject* FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const
 
 	if ( Object && !ObjectLevelHasFinishedLoading( Object, Driver ) )
 	{
-		UE_LOG( LogNetPackageMap, Log, TEXT( "GetObjectFromNetGUID: Forcing object to NULL since level is not loaded yet." ), *Object->GetFullName() );
+		UE_LOG( LogNetPackageMap, Verbose, TEXT( "GetObjectFromNetGUID: Forcing object to NULL since level is not loaded yet. Object: %s" ), *Object->GetFullName() );
 		return NULL;
 	}
 

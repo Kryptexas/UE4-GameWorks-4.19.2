@@ -363,6 +363,7 @@ namespace ENavPathEvent
 		UpdatedDueToNavigationChanged,
 		Invalidated,
 		RePathFailed,
+		MetaPathUpdate,
 		Custom,
 	};
 }
@@ -373,6 +374,7 @@ namespace ENavPathUpdateType
 	{
 		GoalMoved,
 		NavigationChanged,
+		MetaPathUpdate,
 		Custom,
 	};
 }

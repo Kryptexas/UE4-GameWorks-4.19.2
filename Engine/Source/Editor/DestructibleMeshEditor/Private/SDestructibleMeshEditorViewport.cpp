@@ -109,7 +109,6 @@ void FDestructibleMeshEditorViewportClient::UpdateLighting()
 	const UDestructableMeshEditorSettings* Options = GetDefault<UDestructableMeshEditorSettings>();
 
 	PreviewScene->SetLightDirection(Options->AnimPreviewLightingDirection);
-	PreviewScene->GetScene()->UpdateDynamicSkyLight(Options->AnimPreviewSkyBrightness * FLinearColor(Options->AnimPreviewSkyColor), Options->AnimPreviewSkyBrightness * FLinearColor(Options->AnimPreviewFloorColor));
 	PreviewScene->SetLightColor(Options->AnimPreviewDirectionalColor);
 	PreviewScene->SetLightBrightness(Options->AnimPreviewLightBrightness);
 }

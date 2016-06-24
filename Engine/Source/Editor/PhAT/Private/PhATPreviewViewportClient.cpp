@@ -276,12 +276,12 @@ void FPhATEdPreviewViewportClient::Draw(const FSceneView* View, FPrimitiveDrawIn
 	}
 }
 
-bool FPhATEdPreviewViewportClient::InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool Gamepad)
+bool FPhATEdPreviewViewportClient::InputKey(FViewport* InViewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool Gamepad)
 {
-	int32 HitX = Viewport->GetMouseX();
-	int32 HitY = Viewport->GetMouseY();
-	bool bCtrlDown = Viewport->KeyState(EKeys::LeftControl) || Viewport->KeyState(EKeys::RightControl);
-	bool bShiftDown = Viewport->KeyState(EKeys::LeftShift) || Viewport->KeyState(EKeys::RightShift);
+	int32 HitX = InViewport->GetMouseX();
+	int32 HitY = InViewport->GetMouseY();
+	bool bCtrlDown = InViewport->KeyState(EKeys::LeftControl) || InViewport->KeyState(EKeys::RightControl);
+	bool bShiftDown = InViewport->KeyState(EKeys::LeftShift) || InViewport->KeyState(EKeys::RightShift);
 
 	bool bHandled = false;
 	if (SharedData->bRunningSimulation)
@@ -293,13 +293,13 @@ bool FPhATEdPreviewViewportClient::InputKey(FViewport* Viewport, int32 Controlle
 				if (bShiftDown)
 				{
 					bHandled = true;
-					SimMousePress(Viewport, false, Key);
+					SimMousePress(InViewport, false, Key);
 					bAllowedToMoveCamera = false;
 				}
 				else if (bCtrlDown)
 				{
 					bHandled = true;
-					SimMousePress(Viewport, true, Key);
+					SimMousePress(InViewport, true, Key);
 					bAllowedToMoveCamera = false;
 				}
 			}
@@ -331,7 +331,7 @@ bool FPhATEdPreviewViewportClient::InputKey(FViewport* Viewport, int32 Controlle
 
 	if( !bHandled )
 	{
-		bHandled = FEditorViewportClient::InputKey( Viewport, ControllerId, Key, Event, AmountDepressed, Gamepad );
+		bHandled = FEditorViewportClient::InputKey( InViewport, ControllerId, Key, Event, AmountDepressed, Gamepad );
 	}
 
 	if( bHandled )
@@ -342,13 +342,13 @@ bool FPhATEdPreviewViewportClient::InputKey(FViewport* Viewport, int32 Controlle
 	return bHandled;
 }
 
-bool FPhATEdPreviewViewportClient::InputAxis(FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime, int32 NumSamples, bool bGamepad)
+bool FPhATEdPreviewViewportClient::InputAxis(FViewport* InViewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime, int32 NumSamples, bool bGamepad)
 {
 	bool bHandled = false;
 	// If we are 'manipulating' don't move the camera but do something else with mouse input.
 	if (SharedData->bManipulating)
 	{
-		bool bCtrlDown = Viewport->KeyState(EKeys::LeftControl) || Viewport->KeyState(EKeys::RightControl);
+		bool bCtrlDown = InViewport->KeyState(EKeys::LeftControl) || InViewport->KeyState(EKeys::RightControl);
 
 		if (SharedData->bRunningSimulation)
 		{
@@ -366,10 +366,10 @@ bool FPhATEdPreviewViewportClient::InputAxis(FViewport* Viewport, int32 Controll
 
 	if( !bHandled )
 	{
-		bHandled = FEditorViewportClient::InputAxis(Viewport,ControllerId,Key,Delta,DeltaTime,NumSamples,bGamepad);
+		bHandled = FEditorViewportClient::InputAxis(InViewport,ControllerId,Key,Delta,DeltaTime,NumSamples,bGamepad);
 	}
 
-	Viewport->Invalidate();
+	InViewport->Invalidate();
 
 	return bHandled;
 }
@@ -460,7 +460,7 @@ void FPhATEdPreviewViewportClient::ProcessClick(class FSceneView& View, class HH
 	}
 }
 
-bool FPhATEdPreviewViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale )
+bool FPhATEdPreviewViewportClient::InputWidgetDelta( FViewport* InViewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale )
 {
 	bool bHandled = false;
 	TArray<FPhATSharedData::FSelection> & SelectedObjects = SharedData->EditingMode == FPhATSharedData::PEM_BodyEdit ? SharedData->SelectedBodies : SharedData->SelectedConstraints;
@@ -813,15 +813,15 @@ void FPhATEdPreviewViewportClient::EndManipulating()
 	}
 }
 
-void FPhATEdPreviewViewportClient::SimMousePress(FViewport* Viewport, bool bConstrainRotation, FKey Key)
+void FPhATEdPreviewViewportClient::SimMousePress(FViewport* InViewport, bool bConstrainRotation, FKey Key)
 {
-	bool bCtrlDown = Viewport->KeyState(EKeys::LeftControl) || Viewport->KeyState(EKeys::RightControl);
-	bool bShiftDown = Viewport->KeyState(EKeys::LeftShift) || Viewport->KeyState(EKeys::RightShift);
+	bool bCtrlDown = InViewport->KeyState(EKeys::LeftControl) || InViewport->KeyState(EKeys::RightControl);
+	bool bShiftDown = InViewport->KeyState(EKeys::LeftShift) || InViewport->KeyState(EKeys::RightShift);
 
-	FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues( Viewport, GetScene(), EngineShowFlags ));
+	FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues( InViewport, GetScene(), EngineShowFlags ));
 	FSceneView* View = CalcSceneView(&ViewFamily);
 
-	const FViewportClick Click(View, this, EKeys::Invalid, IE_Released, Viewport->GetMouseX(), Viewport->GetMouseY());
+	const FViewportClick Click(View, this, EKeys::Invalid, IE_Released, InViewport->GetMouseX(), InViewport->GetMouseY());
 #if DEBUG_CLICK_VIEWPORT	
 	SharedData->LastClickOrigin = Click.GetOrigin();
 	SharedData->LastClickDirection = Click.GetDirection();

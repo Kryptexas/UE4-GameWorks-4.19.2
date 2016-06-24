@@ -2,7 +2,7 @@
 <TpsData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>Skin caching code from MS</Name>
   <Location>/Engine/Source/Runtime/Engine/Private/</Location>
-  <Date>2016-04-07T17:34:52.3400948-04:00</Date>
+  <Date>2016-06-15T18:44:32.7154725-04:00</Date>
   <Function>UE contribution from Microsoft</Function>
   <Justification />
   <Platforms>
@@ -24,5 +24,5 @@
   <IsSourceAvailable>false</IsSourceAvailable>
   <NoticeType>None</NoticeType>
   <Notification />
-  <LicenseFolder />
+  <LicenseFolder>None</LicenseFolder>
 </TpsData>

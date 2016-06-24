@@ -36,5 +36,11 @@ public class MatineeToLevelSequence : ModuleRules
                 "Settings",
 			}
 		);
-	}
+
+        PrivateIncludePaths.AddRange(
+            new string[] {
+                "LevelSequenceEditor/Private",
+            }
+        );
+    }
 }

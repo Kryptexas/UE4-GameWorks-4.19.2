@@ -2,7 +2,6 @@
 
 #pragma once
 #include "GameFramework/Pawn.h"
-#include "Animation/AnimationAsset.h"
 #include "GameFramework/RootMotionSource.h"
 #include "Character.generated.h"
 
@@ -312,7 +311,7 @@ protected:
 public:	
 
 	/** Accessor for ReplicatedServerLastTransformUpdateTimeStamp. */
-	FORCEINLINE float GetServerLastTransformUpdateTimeStamp() const { return ReplicatedServerLastTransformUpdateTimeStamp; }
+	FORCEINLINE float GetReplicatedServerLastTransformUpdateTimeStamp() const { return ReplicatedServerLastTransformUpdateTimeStamp; }
 
 	/** Accessor for BasedMovement */
 	FORCEINLINE const FBasedMovementInfo& GetBasedMovement() const { return BasedMovement; }
@@ -343,6 +342,9 @@ public:
 	/** Set by character movement to specify that this Character is currently crouched. */
 	UPROPERTY(BlueprintReadOnly, replicatedUsing=OnRep_IsCrouched, Category=Character)
 	uint32 bIsCrouched:1;
+
+	UPROPERTY( replicated )
+	uint32 bReplayHasRootMotionSources:1;
 
 	/** Handle Crouching replicated from server */
 	UFUNCTION()
@@ -423,7 +425,7 @@ public:
 	virtual void PawnClientRestart() override;
 	virtual void PossessedBy(AController* NewController) override;
 	virtual void UnPossessed() override;
-	virtual void SetupPlayerInputComponent(class UInputComponent* InInputComponent) override;
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;
 	virtual void RecalculateBaseEyeHeight() override;
 	virtual void UpdateNavigationRelevance() override;

@@ -5,6 +5,7 @@
 #include "MovieSceneSubTrackInstance.h"
 #include "MovieSceneSequenceInstance.h"
 #include "MovieSceneSubSection.h"
+#include "MovieSceneSequence.h"
 #include "IMovieScenePlayer.h"
 
 
@@ -141,9 +142,12 @@ TArray<UMovieSceneSection*> FMovieSceneSubTrackInstance::GetAllTraversedSections
 
 bool FMovieSceneSubTrackInstance::ShouldEvaluateIfOverlapping(const TArray<UMovieSceneSection*>& TraversedSections, UMovieSceneSection* Section) const
 {
+	// Check with this shot's exclusive upper bound for when shots are adjacent to each other but on different rows.
+	TRange<float> ThisSectionWithExclusiveUpper = TRange<float>(Section->GetRange().GetLowerBoundValue(), Section->GetRange().GetUpperBoundValue());
+
 	const bool bShouldRemove = TraversedSections.ContainsByPredicate([=](UMovieSceneSection* OtherSection){
 		if (Section->GetRowIndex() == OtherSection->GetRowIndex() &&
-			Section->GetRange().Overlaps(OtherSection->GetRange()) &&
+			ThisSectionWithExclusiveUpper.Overlaps(OtherSection->GetRange()) &&
 			Section->GetOverlapPriority() < OtherSection->GetOverlapPriority())
 		{
 			return true;
@@ -192,9 +196,12 @@ void FMovieSceneSubTrackInstance::Update(EMovieSceneUpdateData& UpdateData, cons
 
 	for ( TWeakObjectPtr<UMovieSceneSubSection> LastSubSection : LastTraversedSections )
 	{
-		if ( TraversedSections.Contains( LastSubSection.Get() ) == false )
+		if (LastSubSection.IsValid())
 		{
-			UpdateSection( UpdateData, Player, LastSubSection.Get(), true );
+			if ( TraversedSections.Contains( LastSubSection.Get() ) == false )
+			{
+				UpdateSection( UpdateData, Player, LastSubSection.Get(), true );
+			}
 		}
 	}
 	LastTraversedSections.Empty();
@@ -224,8 +231,20 @@ void FMovieSceneSubTrackInstance::UpdateSection( EMovieSceneUpdateData& UpdateDa
 
 	// calculate section's local time
 	const float InstanceOffset = SubSection->StartOffset + Instance->GetTimeRange().GetLowerBoundValue() - SubSection->PrerollTime;
-	const float InstanceLastPosition = InstanceOffset + (UpdateData.LastPosition - (SubSection->GetStartTime()- SubSection->PrerollTime)) / SubSection->TimeScale;
-	const float InstancePosition = InstanceOffset + (UpdateData.Position - (SubSection->GetStartTime()- SubSection->PrerollTime)) / SubSection->TimeScale;
+	float InstanceLastPosition = InstanceOffset + (UpdateData.LastPosition - (SubSection->GetStartTime()- SubSection->PrerollTime)) / SubSection->TimeScale;
+	float InstancePosition = InstanceOffset + (UpdateData.Position - (SubSection->GetStartTime()- SubSection->PrerollTime)) / SubSection->TimeScale;
+
+	UMovieSceneSequence* SubSequence = SubSection->GetSequence();
+	if (SubSequence)
+	{
+		UMovieScene* SubMovieScene = SubSequence->GetMovieScene();
+		if (SubMovieScene && SubMovieScene->GetForceFixedFrameIntervalPlayback() && SubMovieScene->GetFixedFrameInterval() > 0 )
+		{
+			float FixedFrameInterval = ( SubMovieScene->GetFixedFrameInterval() / SubSection->TimeScale );
+			InstancePosition = UMovieScene::CalculateFixedFrameTime( InstancePosition, FixedFrameInterval );
+			InstanceLastPosition = UMovieScene::CalculateFixedFrameTime( InstanceLastPosition, FixedFrameInterval );
+		}
+	}
 
 	EMovieSceneUpdateData SubUpdateData(InstancePosition, InstanceLastPosition);
 	SubUpdateData.bJumpCut = UpdateData.LastPosition < SubSection->GetStartTime() || UpdateData.LastPosition > SubSection->GetEndTime();

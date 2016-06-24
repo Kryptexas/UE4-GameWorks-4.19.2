@@ -186,15 +186,11 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	UPROPERTY(transient)
 	uint32 bForceNavigationObstacle : 1;
 
-	/** Use the collision profile specified in the StaticMesh asset.*/
-	UPROPERTY()
-	uint32 bUseDefaultCollision : 1;
-
 	/** If true, mesh painting is disallowed on this instance. Set if vertex colors are overridden in a construction script. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Rendering)
 	uint32 bDisallowMeshPaintPerInstance : 1;
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !(UE_BUILD_SHIPPING)
 	/** Option to draw mesh collision in wireframe */
 	uint32 bDrawMeshCollisionWireframe : 1;
 #endif
@@ -243,6 +239,11 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	UPROPERTY(duplicatetransient, NonTransactional)
 	TArray<FStreamingTextureBuildInfo> StreamingTextureData;
 
+
+	/** Use the collision profile specified in the StaticMesh asset.*/
+	UPROPERTY(EditAnywhere, Category = Collision)
+	bool bUseDefaultCollision;
+
 #if WITH_EDITORONLY_DATA
 	/** 
 	 * Temporary section data used in the texture streaming build. 
@@ -289,7 +290,7 @@ public:
 	virtual void PreEditUndo() override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	virtual void PreSave() override;
+	virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
 	virtual void PostLoad() override;
 	virtual bool AreNativePropertiesIdenticalTo( UObject* Other ) const override;
 	virtual FString GetDetailedInfoInternal() const override;
@@ -440,11 +441,9 @@ public:
 	/**
 	 * Determines whether any of the component's LODs require override vertex color fixups
 	 *
-	 * @param	OutLODIndices	Indices of the LODs requiring fixup, if any
-	 *
 	 * @return	true if any LODs require override vertex color fixups
 	 */
-	bool RequiresOverrideVertexColorsFixup( TArray<int32>& OutLODIndices );
+	bool RequiresOverrideVertexColorsFixup();
 
 	/**
 	 * Update the vertex override colors if necessary (i.e. vertices from source mesh have changed from override colors)
@@ -492,7 +491,7 @@ private:
 	void InitResources();
 
 	/** Update the vertex override colors */
-	void PrivateFixupOverrideColors( const TArray<int32>& LODsToUpdate );
+	void PrivateFixupOverrideColors();
 
 protected:
 

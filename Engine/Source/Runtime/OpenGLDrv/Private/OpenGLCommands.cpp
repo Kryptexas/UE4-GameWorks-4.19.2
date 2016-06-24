@@ -2414,19 +2414,14 @@ void FOpenGLDynamicRHI::CommitComputeShaderConstants(FComputeShaderRHIParamRef C
 }
 
 template <EShaderFrequency Frequency>
-FORCEINLINE uint32 GetFirstTextureUnit()
-{
-	switch (Frequency)
-	{
-	case SF_Vertex: return FOpenGL::GetFirstVertexTextureUnit();
-	case SF_Hull: return FOpenGL::GetFirstHullTextureUnit();
-	case SF_Domain: return FOpenGL::GetFirstDomainTextureUnit();
-	case SF_Pixel: return FOpenGL::GetFirstPixelTextureUnit();
-	case SF_Geometry: return FOpenGL::GetFirstGeometryTextureUnit();
-	case SF_Compute: return FOpenGL::GetFirstComputeTextureUnit();
-	}
-	return INDEX_NONE;
-}
+uint32 GetFirstTextureUnit();
+
+template <> FORCEINLINE uint32 GetFirstTextureUnit<SF_Vertex>() { return FOpenGL::GetFirstVertexTextureUnit(); }
+template <> FORCEINLINE uint32 GetFirstTextureUnit<SF_Hull>() { return FOpenGL::GetFirstHullTextureUnit(); }
+template <> FORCEINLINE uint32 GetFirstTextureUnit<SF_Domain>() { return FOpenGL::GetFirstDomainTextureUnit(); }
+template <> FORCEINLINE uint32 GetFirstTextureUnit<SF_Pixel>() { return FOpenGL::GetFirstPixelTextureUnit(); }
+template <> FORCEINLINE uint32 GetFirstTextureUnit<SF_Geometry>() { return FOpenGL::GetFirstGeometryTextureUnit(); }
+template <> FORCEINLINE uint32 GetFirstTextureUnit<SF_Compute>() { return FOpenGL::GetFirstComputeTextureUnit(); }
 
 template <EShaderFrequency Frequency>
 FORCEINLINE void SetResource(FOpenGLDynamicRHI* RESTRICT OpenGLRHI, uint32 BindIndex, FRHITexture* RESTRICT TextureRHI, float CurrentTime)
@@ -2806,7 +2801,7 @@ void FOpenGLDynamicRHI::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuf
 	VerifyProgramPipeline();
 #endif
 	
-	// @todo Workaround for radr://15076670 "Incorrect gl_VertexID in GLSL for glDrawElementsInstanced without vertex streams on Nvidia” Alternative fix that avoids exposing the messy details to the Renderer, keeping it here in the RHI.
+	// @todo Workaround for radr://15076670 "Incorrect gl_VertexID in GLSL for glDrawElementsInstanced without vertex streams on Nvidia" Alternative fix that avoids exposing the messy details to the Renderer, keeping it here in the RHI.
 	// This workaround has performance and correctness implications - it is only needed on Mac + OpenGL + Nvidia and will
 	// break AMD drivers entirely as it is technically an abuse of the OpenGL specification. Consequently it is deliberately
 	// compiled out for other platforms. Apple have closed the bug claiming the NV behaviour is permitted by the GL spec.
@@ -2855,7 +2850,7 @@ void FOpenGLDynamicRHI::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuf
 		REPORT_GL_DRAW_RANGE_ELEMENTS_EVENT_FOR_FRAME_DUMP(DrawMode, MinIndex, MinIndex + NumVertices, NumElements, IndexType, (void *)StartIndex);
 	}
 	
-	// @todo Workaround for radr://15076670 "Incorrect gl_VertexID in GLSL for glDrawElementsInstanced without vertex streams on Nvidia”
+	// @todo Workaround for radr://15076670 "Incorrect gl_VertexID in GLSL for glDrawElementsInstanced without vertex streams on Nvidia"
 #if PLATFORM_MAC
 	if(bAttributeLessDraw)
 	{

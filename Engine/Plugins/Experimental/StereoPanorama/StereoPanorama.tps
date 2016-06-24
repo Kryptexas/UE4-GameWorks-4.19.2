@@ -1,10 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TpsData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>Stereo 360 Movie Exporter Plugin</Name>
-  <Location />
-  <Date>2016-03-29T19:29:53.6845526-04:00</Date>
-  <Function>Exports VR scene to a video</Function>
-  <Justification />
+  <Location>/Engine/Plugins/Experimental/StereoPanorama/</Location>
+  <Date>2016-06-16T11:59:20.1598826-04:00</Date>
+  <Function>Exports VR scene to a video. Is a pull request from Github</Function>
+  <Justification>/Engine/Plugins/Experimental/StereoPanorama/</Justification>
   <Platforms>
     <Platform>PC</Platform>
     <Platform>Mac</Platform>
@@ -14,7 +14,7 @@
     <Product>UE4</Product>
   </Products>
   <TpsType>Source Code</TpsType>
-  <Eula>https://www.unrealengine.com/eula, https://github.com/EpicGames/UnrealEngine/pull/1472</Eula>
+  <Eula>https://www.unrealengine.com/eula</Eula>
   <RedistributeTo>
     <EndUserGroup>Licensees</EndUserGroup>
     <EndUserGroup>Git</EndUserGroup>
@@ -24,5 +24,5 @@
   <IsSourceAvailable>false</IsSourceAvailable>
   <NoticeType>None</NoticeType>
   <Notification />
-  <LicenseFolder />
+  <LicenseFolder>None</LicenseFolder>
 </TpsData>

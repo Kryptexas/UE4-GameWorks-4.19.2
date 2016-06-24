@@ -2,7 +2,6 @@
 
 #include "PersonaPrivatePCH.h"
 
-#include "AnimationEditorPreviewScene.h"
 #include "SAnimationEditorViewport.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
 #include "SAnimViewportToolBar.h"
@@ -29,6 +28,8 @@
 #include "Components/WindDirectionalSourceComponent.h"
 #include "Engine/StaticMesh.h"
 #include "SAnimationEditorViewport.h"
+
+#include "AssetViewerSettings.h"
 
 namespace {
 	// Value from UE3
@@ -79,7 +80,7 @@ IMPLEMENT_HIT_PROXY( HPersonaBoneProxy, HHitProxy );
 /////////////////////////////////////////////////////////////////////////
 // FAnimationViewportClient
 
-FAnimationViewportClient::FAnimationViewportClient(FAnimationEditorPreviewScene& InPreviewScene, TWeakPtr<FPersona> InPersonaPtr, const TSharedRef<SAnimationEditorViewport>& InAnimationEditorViewport)
+FAnimationViewportClient::FAnimationViewportClient(FAdvancedPreviewScene& InPreviewScene, TWeakPtr<FPersona> InPersonaPtr, const TSharedRef<SAnimationEditorViewport>& InAnimationEditorViewport)
 	: FEditorViewportClient(nullptr, &InPreviewScene, StaticCastSharedRef<SEditorViewport>(InAnimationEditorViewport))
 	, PersonaPtr( InPersonaPtr )
 	, bManipulating(false)
@@ -117,15 +118,9 @@ FAnimationViewportClient::FAnimationViewportClient(FAnimationEditorPreviewScene&
 	{
 		SetRealtime(false,true); // We are PIE, don't start in realtime mode
 	}
-
-	// set visibility
-	GetAnimPreviewScene()->EditorSkyComp->SetVisibility(ConfigOption->bShowSky);
-	GetAnimPreviewScene()->EditorHeightFogComponent->SetVisibility(ConfigOption->bShowSky);
-	GetAnimPreviewScene()->EditorFloorComp->SetVisibility(ConfigOption->bShowFloor);
-
+	
 	ViewFOV = FMath::Clamp<float>(ConfigOption->ViewFOV, FOVMin, FOVMax);
 
-	EngineShowFlags.DisableAdvancedFeatures();
 	EngineShowFlags.SetSeparateTranslucency(true);
 	EngineShowFlags.SetCompositeEditorPrimitives(true);
 
@@ -171,17 +166,6 @@ FAnimationViewportClient::~FAnimationViewportClient()
 FLinearColor FAnimationViewportClient::GetBackgroundColor() const
 {
 	return SelectedHSVColor.HSVToLinearRGB();
-}
-
-FSceneView* FAnimationViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, const EStereoscopicPass StereoPass)
-{
-	float AmbientCubemapIntensity = 0.4f;
-
-	FSceneView* SceneView = FEditorViewportClient::CalcSceneView(ViewFamily, StereoPass);
-	FFinalPostProcessSettings::FCubemapEntry& CubemapEntry = *new(SceneView->FinalPostProcessSettings.ContributingCubemaps) FFinalPostProcessSettings::FCubemapEntry;
-	CubemapEntry.AmbientCubemap = GUnrealEd->GetThumbnailManager()->AmbientCubemap;
-	CubemapEntry.AmbientCubemapTintMulScaleValue = FLinearColor::White * AmbientCubemapIntensity;
-	return SceneView;
 }
 
 void FAnimationViewportClient::SetSelectedBackgroundColor(const FLinearColor& RGBColor, bool bSave/*=true*/)
@@ -239,53 +223,6 @@ void FAnimationViewportClient::OnToggleShowGrid()
 bool FAnimationViewportClient::IsShowingGrid() const
 {
 	return FEditorViewportClient::IsSetShowGridChecked();
-}
-
-void FAnimationViewportClient::OnToggleShowFloor()
-{
-	if (GetAnimPreviewScene()->EditorFloorComp)
-	{
-		GetAnimPreviewScene()->EditorFloorComp->SetVisibility(!GetAnimPreviewScene()->EditorFloorComp->bVisible);
-		Invalidate();
-	}
-
-	ConfigOption->SetShowFloor(GetAnimPreviewScene()->EditorFloorComp->bVisible);
-}
-
-bool FAnimationViewportClient::IsShowingFloor() const
-{
-	return (GetAnimPreviewScene()->EditorFloorComp) ? GetAnimPreviewScene()->EditorFloorComp->bVisible : false;
-}
-
-void FAnimationViewportClient::OnToggleAutoAlignFloor()
-{
-	bAutoAlignFloor = !bAutoAlignFloor;
-	UpdateCameraSetup();
-
-	ConfigOption->SetAutoAlignFloorToMesh(bAutoAlignFloor);
-}
-
-bool FAnimationViewportClient::IsAutoAlignFloor() const
-{
-	return bAutoAlignFloor;
-}
-
-void FAnimationViewportClient::OnToggleShowSky()
-{
-	if (GetAnimPreviewScene()->EditorSkyComp)
-	{
-		bool bNewVisibility = !GetAnimPreviewScene()->EditorSkyComp->bVisible;
-		GetAnimPreviewScene()->EditorSkyComp->SetVisibility(bNewVisibility);
-		GetAnimPreviewScene()->EditorHeightFogComponent->SetVisibility(bNewVisibility);
-		Invalidate();
-	}
-
-	ConfigOption->SetShowSky(GetAnimPreviewScene()->EditorSkyComp->bVisible);
-}
-
-bool FAnimationViewportClient::IsShowingSky() const
-{
-	return (GetAnimPreviewScene()->EditorSkyComp) ? GetAnimPreviewScene()->EditorSkyComp->bVisible : false;
 }
 
 void FAnimationViewportClient::OnToggleMuteAudio()
@@ -593,29 +530,9 @@ FAnimNode_SkeletalControlBase* FAnimationViewportClient::FindSkeletalControlAnim
 {
 	FAnimNode_SkeletalControlBase* AnimNode = NULL;
 
-	if (!PreviewSkelMeshComp.IsValid() || !PreviewSkelMeshComp->GetAnimInstance())
+	if (PreviewSkelMeshComp.IsValid() && PreviewSkelMeshComp->GetAnimInstance() && AnimGraphNode.IsValid())
 	{
-		return NULL;
-	}
-
-	if (AnimGraphNode.IsValid())
-	{
-		// find an anim node index from debug data
-		UAnimBlueprintGeneratedClass* AnimBlueprintClass = Cast<UAnimBlueprintGeneratedClass>(PreviewSkelMeshComp->GetAnimInstance()->GetClass());
-		if (AnimBlueprintClass)
-		{
-			FAnimBlueprintDebugData& DebugData = AnimBlueprintClass->GetAnimBlueprintDebugData();
-			int32* IndexPtr = DebugData.NodePropertyToIndexMap.Find(AnimGraphNode);
-
-			if (IndexPtr)
-			{
-				int32 AnimNodeIndex = *IndexPtr;
-				// reverse node index temporarily because of a bug in NodeGuidToIndexMap
-				AnimNodeIndex = AnimBlueprintClass->AnimNodeProperties.Num() - AnimNodeIndex - 1;
-
-				AnimNode = AnimBlueprintClass->AnimNodeProperties[AnimNodeIndex]->ContainerPtrToValuePtr<FAnimNode_SkeletalControlBase>(PreviewSkelMeshComp->GetAnimInstance());
-			}
-		}
+		AnimNode = AnimGraphNode.Get()->FindDebugAnimNode(PreviewSkelMeshComp.Get());
 	}
 
 	return AnimNode;
@@ -777,8 +694,9 @@ void FAnimationViewportClient::Tick(float DeltaSeconds)
 	UDebugSkelMeshComponent* PreviewComp = PreviewSkelMeshComp.Get();
 	if (PreviewComp)
 	{
-		// Handle updating the preview component to represent the effects of root motion	
-		FBoxSphereBounds Bounds = GetAnimPreviewScene()->EditorFloorComp->CalcBounds(GetAnimPreviewScene()->EditorFloorComp->GetRelativeTransform());
+		// Handle updating the preview component to represent the effects of root motion
+		const UStaticMeshComponent* FloorMeshComponent = GetAdvancedPreviewScene()->GetFloorMeshComponent();
+		FBoxSphereBounds Bounds = FloorMeshComponent->CalcBounds(FloorMeshComponent->GetRelativeTransform());
 		PreviewComp->ConsumeRootMotion(Bounds.GetBox().Min, Bounds.GetBox().Max);
 	}	
 
@@ -822,8 +740,8 @@ void FAnimationViewportClient::ShowBoneNames( FCanvas* Canvas, FSceneView* View 
 	{
 		const int32 BoneIndex = LODModel.RequiredBones[i];
 
-		// If previewing a specific chunk, only show the bone names that belong to it
-		if ((PreviewSkelMeshComp->ChunkIndexPreview >= 0) && !LODModel.Chunks[PreviewSkelMeshComp->ChunkIndexPreview].BoneMap.Contains(BoneIndex))
+		// If previewing a specific section, only show the bone names that belong to it
+		if ((PreviewSkelMeshComp->SectionIndexPreview >= 0) && !LODModel.Sections[PreviewSkelMeshComp->SectionIndexPreview].BoneMap.Contains(BoneIndex))
 		{
 			continue;
 		}
@@ -858,8 +776,12 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 	StringSize( GEngine->GetSmallFont(),  XL, YL, TEXT("L") );
 	FString InfoString;
 
+	const UAssetViewerSettings* Settings = UAssetViewerSettings::Get();	
+	const UEditorPerProjectUserSettings* PerProjectUserSettings = GetDefault<UEditorPerProjectUserSettings>();
+	const int32 ProfileIndex = Settings->Profiles.IsValidIndex(PerProjectUserSettings->AssetViewerProfileIndex) ? PerProjectUserSettings->AssetViewerProfileIndex : 0;
+
 	// it is weird, but unless it's completely black, it's too bright, so just making it white if only black
-	const FLinearColor TextColor = (SelectedHSVColor.B < 0.3f) ? FLinearColor::White : FLinearColor::Black;
+	const FLinearColor TextColor = ((SelectedHSVColor.B < 0.3f) || (Settings->Profiles[ProfileIndex].bShowEnvironment)) ? FLinearColor::White : FLinearColor::Black;
 	const FColor HeadlineColour(255, 83, 0);
 	const FColor SubHeadlineColour(202, 66, 0);
 
@@ -867,6 +789,15 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 	if (!PreviewSkelMeshComp.IsValid() || !PreviewSkelMeshComp->SkeletalMesh)
 	{
 		return;
+	}
+
+	TSharedPtr<FPersona> SharedPersona = PersonaPtr.Pin();
+
+	if (SharedPersona.IsValid() && SharedPersona->ShouldDisplayAdditiveScaleErrorMessage())
+	{
+		InfoString = TEXT("Additve ref pose contains scales of 0.0, this can cause additive animations to not give the desired results");
+		Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), SubHeadlineColour);
+		CurYOffset += YL + 2;
 	}
 
 	if (PreviewSkelMeshComp->SkeletalMesh->MorphTargets.Num() > 0)
@@ -991,7 +922,6 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 
 			int32 NumBonesInUse;
 			int32 NumBonesMappedToVerts;
-			int32 NumChunksInUse;
 			int32 NumSectionsInUse;
 			FString WeightUsage;
 
@@ -1000,7 +930,6 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 
 			NumBonesInUse = LODModel.RequiredBones.Num();
 			NumBonesMappedToVerts = LODModel.ActiveBoneIndices.Num();
-			NumChunksInUse = LODModel.Chunks.Num();
 			NumSectionsInUse = LODModel.Sections.Num();
 
 			// Calculate polys based on non clothing sections so we don't duplicate the counts.
@@ -1025,32 +954,22 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 
 			CurYOffset += 1; // --
 
-			uint32 TotalRigidVertices = 0;
-			uint32 TotalSoftVertices = 0;
-			for (int32 ChunkIndex = 0; ChunkIndex < LODModel.Chunks.Num(); ChunkIndex++)
+			for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
 			{
-				int32 ChunkRigidVerts = LODModel.Chunks[ChunkIndex].GetNumRigidVertices();
-				int32 ChunkSoftVerts = LODModel.Chunks[ChunkIndex].GetNumSoftVertices();
+				int32 SectionVerts = LODModel.Sections[SectionIndex].GetNumVertices();
 
-				InfoString = FString::Printf(TEXT(" [Chunk %d] Verts:%d (Rigid:%d Soft:%d), Bones:%d"),
-					ChunkIndex,
-					ChunkRigidVerts + ChunkSoftVerts,
-					ChunkRigidVerts,
-					ChunkSoftVerts,
-					LODModel.Chunks[ChunkIndex].BoneMap.Num()
+				InfoString = FString::Printf(TEXT(" [Section %d] Verts:%d, Bones:%d"),
+					SectionIndex,
+					SectionVerts,
+					LODModel.Sections[SectionIndex].BoneMap.Num()
 					);
 
 				CurYOffset += YL + 2;
 				Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor*0.8f);
-
-				TotalRigidVertices += ChunkRigidVerts;
-				TotalSoftVertices += ChunkSoftVerts;
 			}
 
-			InfoString = FString::Printf(TEXT("TOTAL Verts:%d (Rigid:%d Soft:%d)"),
-				LODModel.NumVertices,
-				TotalRigidVertices,
-				TotalSoftVertices);
+			InfoString = FString::Printf(TEXT("TOTAL Verts:%d"),
+				LODModel.NumVertices);
 
 			CurYOffset += 1; // --
 
@@ -1058,8 +977,7 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 			CurYOffset += YL + 2;
 			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
 
-			InfoString = FString::Printf(TEXT("Chunks:%d, Sections:%d %s"),
-				NumChunksInUse,
+			InfoString = FString::Printf(TEXT("Sections:%d %s"),
 				NumSectionsInUse,
 				*WeightUsage
 				);
@@ -1293,12 +1211,12 @@ void FAnimationViewportClient::ProcessClick(class FSceneView& View, class HHitPr
 }
 }
 
-bool FAnimationViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale )
+bool FAnimationViewportClient::InputWidgetDelta( FViewport* InViewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale )
 {
 	// Get some useful info about buttons being held down
-	const bool bCtrlDown = Viewport->KeyState(EKeys::LeftControl) || Viewport->KeyState(EKeys::RightControl);
-	const bool bShiftDown = Viewport->KeyState(EKeys::LeftShift) || Viewport->KeyState(EKeys::RightShift);
-	const bool bMouseButtonDown = Viewport->KeyState( EKeys::LeftMouseButton ) || Viewport->KeyState( EKeys::MiddleMouseButton ) || Viewport->KeyState( EKeys::RightMouseButton );
+	const bool bCtrlDown = InViewport->KeyState(EKeys::LeftControl) || InViewport->KeyState(EKeys::RightControl);
+	const bool bShiftDown = InViewport->KeyState(EKeys::LeftShift) || InViewport->KeyState(EKeys::RightShift);
+	const bool bMouseButtonDown = InViewport->KeyState( EKeys::LeftMouseButton ) || InViewport->KeyState( EKeys::MiddleMouseButton ) || InViewport->KeyState( EKeys::RightMouseButton );
 
 	bool bHandled = false;
 
@@ -1449,7 +1367,7 @@ bool FAnimationViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 			}
 		}
 
-		Viewport->Invalidate();
+		InViewport->Invalidate();
 	}
 
 	return bHandled;
@@ -1668,10 +1586,10 @@ void FAnimationViewportClient::SetViewportType(ELevelViewportType InViewportType
 	FocusViewportOnPreviewMesh();
 }
 
-bool FAnimationViewportClient::InputKey( FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool bGamepad )
+bool FAnimationViewportClient::InputKey( FViewport* InViewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool bGamepad )
 {
-	const int32 HitX = Viewport->GetMouseX();
-	const int32 HitY = Viewport->GetMouseY();
+	const int32 HitX = InViewport->GetMouseX();
+	const int32 HitY = InViewport->GetMouseY();
 
 	bool bHandled = false;
 
@@ -1726,7 +1644,28 @@ bool FAnimationViewportClient::InputKey( FViewport* Viewport, int32 ControllerId
 	// Pass keys to standard controls, if we didn't consume input
 	return (bHandled)
 		? true
-		: FEditorViewportClient::InputKey(Viewport,  ControllerId,  Key,  Event,  AmountDepressed,  bGamepad);
+		: FEditorViewportClient::InputKey(InViewport,  ControllerId,  Key,  Event,  AmountDepressed,  bGamepad);
+}
+
+bool FAnimationViewportClient::InputAxis(FViewport* InViewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime, int32 NumSamples /*= 1*/, bool bGamepad /*= false*/)
+{
+	bool bResult = true;
+
+	if (!bDisableInput)
+	{
+		FAdvancedPreviewScene* AdvancedScene = (FAdvancedPreviewScene*)PreviewScene;
+		bResult = AdvancedScene->HandleViewportInput(InViewport, ControllerId, Key, Delta, DeltaTime, NumSamples, bGamepad);
+		if (bResult)
+		{
+			Invalidate();
+		}
+		else
+		{
+			bResult = FEditorViewportClient::InputAxis(InViewport, ControllerId, Key, Delta, DeltaTime, NumSamples, bGamepad);
+		}
+	}
+
+	return bResult;
 }
 
 void FAnimationViewportClient::SetWidgetMode(FWidget::EWidgetMode InMode)
@@ -2154,19 +2093,6 @@ void FAnimationViewportClient::UpdateCameraSetup()
 		FVector CustomOrbitLookAt = BoundSphere.Center;
 
 		SetCameraSetup(CustomOrbitLookAt, CustomOrbitRotation, CustomOrbitZoom, CustomOrbitLookAt, GetViewLocation(), GetViewRotation() );
-
-		// Move the floor to the bottom of the bounding box of the mesh, rather than on the origin
-		FVector Bottom = PreviewSkelMeshComp->Bounds.GetBoxExtrema(0);
-
-		if (GetAnimPreviewScene()->EditorFloorComp)
-		{
-			FVector FloorPos(0.f, 0.f, 0.f);
-			if (bAutoAlignFloor)
-			{
-				FloorPos.Z = GetFloorOffset() + Bottom.Z;
-			}
-			GetAnimPreviewScene()->EditorFloorComp->SetWorldTransform(FTransform(FQuat::Identity, FloorPos, FVector(3.0f, 3.0f, 1.0f)));
-		}
 	}
 }
 
@@ -2440,9 +2366,9 @@ int32 FAnimationViewportClient::GetShowMeshStats() const
 	return ConfigOption->ShowMeshStats;
 }
 
-FAnimationEditorPreviewScene* FAnimationViewportClient::GetAnimPreviewScene() const
+FAdvancedPreviewScene* FAnimationViewportClient::GetAdvancedPreviewScene() const
 {
-	return static_cast<FAnimationEditorPreviewScene*>(PreviewScene);
+	return static_cast<FAdvancedPreviewScene*>(PreviewScene);
 }
 
 #undef LOCTEXT_NAMESPACE

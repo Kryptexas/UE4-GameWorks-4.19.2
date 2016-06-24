@@ -39,5 +39,6 @@ void FAnimNode_UseCachedPose::GatherDebugData(FNodeDebugData& DebugData)
 
 	DebugData.AddDebugItem(DebugLine, true);
 
-	LinkToCachingNode.GatherDebugData(DebugData);
+	// we explicitly do not forward this call to the SaveCachePose node here.
+	// It is handled in FAnimInstanceProxy::GatherDebugData
 }

@@ -4,12 +4,12 @@
 
 #include "AnimBlueprint.h"
 #include "AnimBlueprintGeneratedClass.h"
-#include "AnimInstance.h"
 #include "AnimationRuntime.h"
 #include "BonePose.h"
 #include "AnimNodeBase.generated.h"
 
 struct FAnimInstanceProxy;
+class UAnimInstance;
 
 /** Base class for update/evaluate contexts */
 struct FAnimationBaseContext
@@ -267,9 +267,6 @@ private:
 	/** SaveCachePose Nodes */
 	TArray<FNodeDebugData> SaveCachePoseNodes;
 
-	/** Name of CachedPose if this is a CachePose node */
-	FName CachePoseName;
-
 public:
 	struct FFlattenedDebugData
 	{
@@ -298,7 +295,7 @@ public:
 
 	void AddDebugItem(FString DebugData, bool bPoseSource = false);
 	FNodeDebugData& BranchFlow(float BranchWeight, FString InNodeDescription = FString());
-	FNodeDebugData* GetCachePoseDebugData(FName InCachePoseName);
+	FNodeDebugData* GetCachePoseDebugData(float GlobalWeight);
 
 	template<class Type>
 	FString GetNodeName(Type* Node)

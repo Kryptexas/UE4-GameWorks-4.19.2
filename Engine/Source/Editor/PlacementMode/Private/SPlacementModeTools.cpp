@@ -133,11 +133,11 @@ void SPlacementAssetEntry::Construct(const FArguments& InArgs, const TSharedPtr<
 	}
 	
 	UClass* DocClass = nullptr;
-	TSharedPtr<IToolTip> ToolTip;
+	TSharedPtr<IToolTip> AssetEntryToolTip;
 	if(DefaultActor != nullptr)
 	{
 		DocClass = DefaultActor->GetClass();
-		ToolTip = FEditorClassUtils::GetTooltip(DefaultActor->GetClass());
+		AssetEntryToolTip = FEditorClassUtils::GetTooltip(DefaultActor->GetClass());
 	}
 
 	if (IsClass && !IsVolume && !ActorTypeDisplayName.IsEmpty())
@@ -145,9 +145,9 @@ void SPlacementAssetEntry::Construct(const FArguments& InArgs, const TSharedPtr<
 		Item->DisplayName = ActorTypeDisplayName;
 	}
 
-	if (!ToolTip.IsValid())
+	if (!AssetEntryToolTip.IsValid())
 	{
-		ToolTip = FSlateApplicationBase::Get().MakeToolTip(Item->DisplayName);
+		AssetEntryToolTip = FSlateApplicationBase::Get().MakeToolTip(Item->DisplayName);
 	}
 	
 	const FButtonStyle& ButtonStyle = FEditorStyle::GetWidgetStyle<FButtonStyle>( "PlacementBrowser.Asset" );
@@ -169,7 +169,7 @@ void SPlacementAssetEntry::Construct(const FArguments& InArgs, const TSharedPtr<
 		SNew( SBorder )
 		.BorderImage( this, &SPlacementAssetEntry::GetBorder )
 		.Cursor( EMouseCursor::GrabHand )
-		.ToolTip( ToolTip )
+		.ToolTip( AssetEntryToolTip )
 		[
 			SNew( SHorizontalBox )
 

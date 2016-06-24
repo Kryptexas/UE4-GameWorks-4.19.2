@@ -1317,7 +1317,7 @@ TSharedRef<SWidget> SSCS_RowWidget::GenerateWidgetForColumn( const FName& Column
 		const FSlateBrush* ComponentIcon = FEditorStyle::GetBrush("SCS.NativeComponent");
 		if(NodePtr->GetComponentTemplate() != NULL)
 		{
-			ComponentIcon = FClassIconFinder::FindIconForClass( NodePtr->GetComponentTemplate()->GetClass(), TEXT("SCS.Component") );
+			ComponentIcon = FSlateIconFinder::FindIconBrushForClass( NodePtr->GetComponentTemplate()->GetClass(), TEXT("SCS.Component") );
 		}
 
 		InlineWidget =
@@ -2646,9 +2646,6 @@ void SSCS_RowWidget::OnMakeNewRootDropAction(FSCSEditorTreeNodePtrType DroppedNo
 		if(DroppedNodePtr->GetParent().IsValid()
 			&& DroppedNodePtr->GetBlueprint() == Blueprint)
 		{
-			// Remove the dropped node from its existing parent
-			DroppedNodePtr->GetParent()->RemoveChild(DroppedNodePtr);
-
 			// If the associated component template is a scene component, reset its transform since it will now become the root
 			USceneComponent* SceneComponentTemplate = Cast<USceneComponent>(DroppedNodePtr->GetComponentTemplate());
 			if(SceneComponentTemplate)
@@ -2665,11 +2662,35 @@ void SSCS_RowWidget::OnMakeNewRootDropAction(FSCSEditorTreeNodePtrType DroppedNo
 					SCS_Node->AttachToName = NAME_None;
 				}
 
-				// Reset the relative transform
+				// Reset the relative transform (location and rotation only; scale is preserved)
 				SceneComponentTemplate->SetRelativeLocation(FVector::ZeroVector);
 				SceneComponentTemplate->SetRelativeRotation(FRotator::ZeroRotator);
-				SceneComponentTemplate->SetRelativeScale3D(FVector(1.f));
+
+				// Propagate the root change & detachment to any instances of the template (done within the context of the current transaction)
+				TArray<UObject*> ArchetypeInstances;
+				SceneComponentTemplate->GetArchetypeInstances(ArchetypeInstances);
+				FDetachmentTransformRules DetachmentTransformRules(EDetachmentRule::KeepWorld, EDetachmentRule::KeepWorld, EDetachmentRule::KeepRelative, true);
+				for (int32 InstanceIndex = 0; InstanceIndex < ArchetypeInstances.Num(); ++InstanceIndex)
+				{
+					USceneComponent* SceneComponentInstance = Cast<USceneComponent>(ArchetypeInstances[InstanceIndex]);
+					if (SceneComponentInstance != nullptr)
+					{
+						// Detach from root (keeping world transform, except for scale)
+						SceneComponentInstance->DetachFromComponent(DetachmentTransformRules);
+
+						// Must also reset the root component here, so that RerunConstructionScripts() will cache the correct root component instance data
+						AActor* Owner = SceneComponentInstance->GetOwner();
+						if (Owner)
+						{
+							Owner->Modify();
+							Owner->SetRootComponent(SceneComponentInstance);
+						}
+					}
+				}
 			}
+
+			// Remove the dropped node from its existing parent
+			DroppedNodePtr->GetParent()->RemoveChild(DroppedNodePtr);
 		}
 
 		check(bWasDefaultSceneRoot || SceneRootNodePtr->CanReparent());
@@ -2951,7 +2972,7 @@ TSharedRef<SWidget> SSCS_RowWidget_ActorRoot::GenerateWidgetForColumn(const FNam
 	ensure(ColumnName == SCS_ColumnName_ComponentClass);
 
 	// Create the name field
-	TSharedPtr<SInlineEditableTextBlock> InlineWidget =
+	TSharedPtr<SInlineEditableTextBlock> InlineEditableWidget =
 		SNew(SInlineEditableTextBlock)
 		.Text(this, &SSCS_RowWidget_ActorRoot::GetActorDisplayText)
 		.OnVerifyTextChanged(this, &SSCS_RowWidget_ActorRoot::OnVerifyActorLabelChanged)
@@ -2959,7 +2980,7 @@ TSharedRef<SWidget> SSCS_RowWidget_ActorRoot::GenerateWidgetForColumn(const FNam
 		.IsSelected(this, &SSCS_RowWidget_ActorRoot::IsSelectedExclusively)
 		.IsReadOnly(!NodePtr->CanRename() || (SCSEditor.IsValid() && !SCSEditor.Pin()->IsEditingAllowed()));
 
-	NodePtr->SetRenameRequestedDelegate(FSCSEditorTreeNode::FOnRenameRequested::CreateSP(InlineWidget.Get(), &SInlineEditableTextBlock::EnterEditingMode));
+	NodePtr->SetRenameRequestedDelegate(FSCSEditorTreeNode::FOnRenameRequested::CreateSP(InlineEditableWidget.Get(), &SInlineEditableTextBlock::EnterEditingMode));
 
 	return SNew(SHorizontalBox)
 		.ToolTip(CreateToolTipWidget())
@@ -2979,7 +3000,7 @@ TSharedRef<SWidget> SSCS_RowWidget_ActorRoot::GenerateWidgetForColumn(const FNam
 		.VAlign(VAlign_Center)
 		.Padding(0.0f, 0.0f)
 		[
-			InlineWidget.ToSharedRef()
+			InlineEditableWidget.ToSharedRef()
 		]
 
 	+SHorizontalBox::Slot()
@@ -4544,6 +4565,18 @@ bool SSCSEditor::IsEditingAllowed() const
 
 UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject* Asset  )
 {
+	if (NewComponentClass->ClassWithin && NewComponentClass->ClassWithin != UObject::StaticClass())
+	{
+		FNotificationInfo Info(LOCTEXT("AddComponentFailed", "Cannot add components that have \"Within\" markup"));
+		Info.Image = FEditorStyle::GetBrush(TEXT("Icons.Error"));
+		Info.bFireAndForget = true;
+		Info.bUseSuccessFailIcons = false;
+		Info.ExpireDuration = 5.0f;
+
+		FSlateNotificationManager::Get().AddNotification(Info);
+		return nullptr;
+	}
+
 	const FScopedTransaction Transaction( LOCTEXT("AddComponent", "Add Component") );
 
 	UActorComponent* NewComponent = nullptr;
@@ -5492,30 +5525,30 @@ void SSCSEditor::GetCollapsedNodes(const FSCSEditorTreeNodePtrType& InNodePtr, T
 
 EVisibility SSCSEditor::GetPromoteToBlueprintButtonVisibility() const
 {
-	EVisibility Visibility = EVisibility::Collapsed;
+	EVisibility ButtonVisibility = EVisibility::Collapsed;
 	if (EditorMode == EComponentEditorMode::ActorInstance)
 	{
 		if (GetBlueprint() == nullptr)
 		{
-			Visibility = EVisibility::Visible;
+			ButtonVisibility = EVisibility::Visible;
 		}
 	}
 
-	return Visibility;
+	return ButtonVisibility;
 }
 
 EVisibility SSCSEditor::GetEditBlueprintButtonVisibility() const
 {
-	EVisibility Visibility = EVisibility::Collapsed;
+	EVisibility ButtonVisibility = EVisibility::Collapsed;
 	if (EditorMode == EComponentEditorMode::ActorInstance)
 	{
 		if (GetBlueprint() != nullptr)
 		{
-			Visibility = EVisibility::Visible;
+			ButtonVisibility = EVisibility::Visible;
 		}
 	}
 
-	return Visibility;
+	return ButtonVisibility;
 }
 
 FText SSCSEditor::OnGetApplyChangesToBlueprintTooltip() const

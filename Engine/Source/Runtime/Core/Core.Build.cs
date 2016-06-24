@@ -44,6 +44,7 @@ public class Core : ModuleRules
                 "Runtime/Core/Private/Internationalization",
 				"Runtime/Core/Private/Internationalization/Cultures",
                 "Runtime/Analytics/Public",
+				"Runtime/Engine/Public",
 			}
 			);
 

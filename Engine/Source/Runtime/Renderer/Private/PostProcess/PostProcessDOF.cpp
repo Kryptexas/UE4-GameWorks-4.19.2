@@ -240,6 +240,9 @@ void FRCPassPostProcessDOFSetup::Process(FRenderingCompositePassContext& Context
 		Context.HasHmdMesh(),
 		EDRF_UseTriangleOptimization);
 
+	// #todo-rco: needed to avoid multiple resolves clearing the RT with VK.
+	SetRenderTarget(Context.RHICmdList, nullptr, nullptr);
+
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget0.TargetableTexture, DestRenderTarget0.ShaderResourceTexture, false, FResolveParams());
 	if (DestRenderTarget1.TargetableTexture)
 	{

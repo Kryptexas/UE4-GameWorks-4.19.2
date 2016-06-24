@@ -392,7 +392,6 @@ bool FXAudio2SoundSource::CreateSource( void )
 
 	uint32 NumSends = 0;
 
-#if XAUDIO2_SUPPORTS_SENDLIST
 	// Create a source that goes to the spatialisation code and reverb effect
 	Destinations[NumSends].pOutputVoice = Effects->DryPremasterVoice;
 	if( IsEQFilterApplied() )
@@ -417,7 +416,6 @@ bool FXAudio2SoundSource::CreateSource( void )
 	{
 		NumSends, Destinations
 	};
-#endif	//XAUDIO2_SUPPORTS_SENDLIST
 
 	// Mark the source as music if it is a member of the music group and allow low, band and high pass filters
 
@@ -448,16 +446,12 @@ bool FXAudio2SoundSource::CreateSource( void )
 			EffectDescriptor[0].InitialState = true;
 
 			const XAUDIO2_EFFECT_CHAIN EffectChain = { 1, EffectDescriptor };
-			AudioDevice->DeviceProperties->GetFreeSourceVoice(&Source, XAudio2Buffer->PCM, &EffectChain, MaxEffectChainChannels);
+			AudioDevice->DeviceProperties->GetFreeSourceVoice(&Source, XAudio2Buffer->PCM, &EffectChain, &SourceSendList, MaxEffectChainChannels);
 
 			if (!Source)
 			{
 				return false;
 			}
-
-#if XAUDIO2_SUPPORTS_SENDLIST
-			Source->SetOutputVoices(&SourceSendList);
-#endif
 
 			// We succeeded, then return
 			bCreatedWithSpatializationEffect = true;
@@ -469,16 +463,12 @@ bool FXAudio2SoundSource::CreateSource( void )
 		check(AudioDevice->DeviceProperties != nullptr);
 		check(AudioDevice->DeviceProperties->XAudio2 != nullptr);
 
-		AudioDevice->DeviceProperties->GetFreeSourceVoice(&Source, XAudio2Buffer->PCM, nullptr);
+		AudioDevice->DeviceProperties->GetFreeSourceVoice(&Source, XAudio2Buffer->PCM, nullptr, &SourceSendList);
 
 		if (!Source)
 		{
 			return false;
 		}
-
-#if XAUDIO2_SUPPORTS_SENDLIST
-		Source->SetOutputVoices(&SourceSendList);
-#endif
 	}
 
 	return true;

@@ -213,8 +213,8 @@ void FAutomationWorkerModule::ReportTestComplete()
 			Message->Errors = ExecutionInfo.Errors;
 			Message->Warnings = ExecutionInfo.Warnings;
 			Message->Logs = ExecutionInfo.LogItems;
-			MessageEndpoint->Send(Message, TestRequesterAddress);
 
+			// sending though the endpoint will free Message memory, so analytics need to be sent first
 			if (bSendAnalytics)
 			{
 				if (!FAutomationAnalytics::IsInitialized())
@@ -224,6 +224,8 @@ void FAutomationWorkerModule::ReportTestComplete()
 				FAutomationAnalytics::FireEvent_AutomationTestResults(Message, BeautifiedTestName);
 				SendAnalyticsEvents(ExecutionInfo.AnalyticsItems);
 			}
+
+			MessageEndpoint->Send(Message, TestRequesterAddress);
 		}
 
 

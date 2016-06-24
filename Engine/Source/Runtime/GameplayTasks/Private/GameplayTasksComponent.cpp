@@ -432,7 +432,8 @@ void UGameplayTasksComponent::UpdateTaskActivations()
 
 		for (int32 Idx = 0; Idx < ActivationList.Num(); Idx++)
 		{
-			if (ActivationList[Idx])
+			// check if task wasn't already finished as a result of activating previous elements of this list
+			if (ActivationList[Idx] && !ActivationList[Idx]->IsFinished())
 			{
 				ActivationList[Idx]->ActivateInTaskQueue();
 			}

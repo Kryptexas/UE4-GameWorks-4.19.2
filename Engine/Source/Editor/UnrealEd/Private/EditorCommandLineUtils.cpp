@@ -463,7 +463,7 @@ static void EditorCommandLineUtilsImpl::RunAssetDiffCommand(TSharedPtr<SWindow> 
 
 	if (Switches.Contains("echo"))
 	{
-		RaiseEditorMessageBox(LOCTEXT("DiffCommandHelp", "Passed Command Arguments"), 
+		RaiseEditorMessageBox(LOCTEXT("PassedCommandArgs", "Passed Command Arguments"), 
 			FText::FromString(CommandArgs), /*bExitOnClose =*/true);
 		return;
 	}

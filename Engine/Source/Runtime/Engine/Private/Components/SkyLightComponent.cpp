@@ -149,6 +149,7 @@ USkyLightComponent::USkyLightComponent(const FObjectInitializer& ObjectInitializ
 	MinOcclusion = 0;
 	OcclusionTint = FColor::Black;
 	CubemapResolution = 128;
+	LowerHemisphereColor = FLinearColor::Black;
 }
 
 FSkyLightSceneProxy* USkyLightComponent::CreateSceneProxy() const
@@ -174,8 +175,9 @@ void USkyLightComponent::SetCaptureIsDirty()
 
 void USkyLightComponent::SanatizeCubemapSize()
 {
-	static const int32 MaxCubemapResolution = 4096;
-	CubemapResolution = FMath::Min(int32(FMath::RoundUpToPowerOfTwo(CubemapResolution)), MaxCubemapResolution);
+	static const int32 MaxCubemapResolution = 1024;
+	static const int32 MinCubemapResolution = 64;
+	CubemapResolution = FMath::Clamp(int32(FMath::RoundUpToPowerOfTwo(CubemapResolution)), MinCubemapResolution, MaxCubemapResolution);
 }
 
 void USkyLightComponent::SetBlendDestinationCaptureIsDirty()
@@ -328,6 +330,11 @@ bool USkyLightComponent::CanEditChange(const UProperty* InProperty) const
 			|| FCString::Strcmp(*PropertyName, TEXT("SourceCubemapAngle")) == 0)
 		{
 			return SourceType == SLS_SpecifiedCubemap;
+		}
+
+		if (FCString::Strcmp(*PropertyName, TEXT("LowerHemisphereColor")) == 0)
+		{
+			return bLowerHemisphereIsBlack;
 		}
 
 		if (FCString::Strcmp(*PropertyName, TEXT("Contrast")) == 0

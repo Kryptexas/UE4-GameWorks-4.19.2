@@ -89,7 +89,6 @@ void FInMemoryNetworkReplayStreamer::StopStreaming()
 
 	HeaderAr.Reset();
 	FileAr.Reset();
-	MetadataFileAr.Reset();
 
 	CurrentStreamName.Empty();
 	StreamerState = EStreamerState::Idle;
@@ -103,34 +102,6 @@ FArchive* FInMemoryNetworkReplayStreamer::GetHeaderArchive()
 FArchive* FInMemoryNetworkReplayStreamer::GetStreamingArchive()
 {
 	return FileAr.Get();
-}
-
-FArchive* FInMemoryNetworkReplayStreamer::GetMetadataArchive()
-{
-	check( StreamerState != EStreamerState::Idle );
-
-	// Create the metadata archive on-demand
-	if (!MetadataFileAr)
-	{
-		FInMemoryReplay* FoundReplay = GetCurrentReplayChecked();
-
-		switch (StreamerState)
-		{
-			case EStreamerState::Recording:
-			{
-				MetadataFileAr.Reset(new FMemoryWriter(FoundReplay->Metadata));
-				break;
-			}
-			case EStreamerState::Playback:
-				MetadataFileAr.Reset(new FMemoryReader(FoundReplay->Metadata));
-				break;
-
-			default:
-				break;
-		}
-	}
-
-	return MetadataFileAr.Get();
 }
 
 void FInMemoryNetworkReplayStreamer::UpdateTotalDemoTime(uint32 TimeInMS)

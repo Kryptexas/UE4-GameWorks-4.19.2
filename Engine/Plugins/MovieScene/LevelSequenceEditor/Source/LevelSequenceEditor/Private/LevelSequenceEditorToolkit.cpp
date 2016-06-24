@@ -6,18 +6,26 @@
 #include "Editor/LevelEditor/Public/ILevelViewport.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructure.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
-#include "ClassIconFinder.h"
+#include "CineCameraActor.h"
+#include "SlateIconFinder.h"
 #include "ISequencer.h"
 #include "ISequencerModule.h"
+#include "LevelSequenceActor.h"
 #include "MovieScene.h"
 #include "MovieSceneBinding.h"
+#include "MovieSceneCameraCutSection.h"
+#include "MovieSceneCameraCutTrack.h"
+#include "MovieSceneCinematicShotTrack.h"
 #include "MovieSceneMaterialTrack.h"
 #include "MovieScenePropertyTrack.h"
+#include "MovieSceneToolsProjectSettings.h"
 #include "MovieSceneSequenceInstance.h"
+#include "MovieSceneToolHelpers.h"
 #include "ScopedTransaction.h"
 #include "SceneOutlinerModule.h"
 #include "SceneOutlinerPublicTypes.h"
 #include "SDockTab.h"
+#include "SequencerSettings.h"
 #include "SequencerSpawnRegister.h"
 
 // @todo sequencer: hack: setting defaults for transform tracks
@@ -83,6 +91,12 @@ FLevelSequenceEditorToolkit::~FLevelSequenceEditorToolkit()
 	{
 		auto& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
 		LevelEditorModule.OnMapChanged().RemoveAll(this);
+	}
+
+	if (FModuleManager::Get().IsModuleLoaded(TEXT("LevelSequenceEditor")))
+	{
+		auto& LevelSequenceEditorModule = FModuleManager::LoadModuleChecked<ILevelSequenceEditorModule>(TEXT("LevelSequenceEditor"));
+		LevelSequenceEditorModule.OnMasterSequenceCreated().RemoveAll(this);
 	}
 
 	// unregister sequencer menu extenders
@@ -162,6 +176,9 @@ void FLevelSequenceEditorToolkit::Initialize(const EToolkitMode::Type Mode, cons
 		// We need to find out when the user loads a new map, because we might need to re-create puppet actors
 		// when previewing a MovieScene
 		LevelEditorModule.OnMapChanged().AddRaw(this, &FLevelSequenceEditorToolkit::HandleMapChanged);
+
+		ILevelSequenceEditorModule& LevelSequenceEditorModule = FModuleManager::LoadModuleChecked<ILevelSequenceEditorModule>("LevelSequenceEditor");
+		LevelSequenceEditorModule.OnMasterSequenceCreated().AddRaw(this, &FLevelSequenceEditorToolkit::HandleMasterSequenceCreated);
 	}
 
 	FLevelSequenceEditorToolkit::OnOpened().Broadcast(*this);
@@ -196,27 +213,27 @@ FString FLevelSequenceEditorToolkit::GetWorldCentricTabPrefix() const
 }
 
 
-void FLevelSequenceEditorToolkit::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
+void FLevelSequenceEditorToolkit::RegisterTabSpawners(const TSharedRef<class FTabManager>& InTabManager)
 {
 	if (IsWorldCentricAssetEditor())
 	{
 		return;
 	}
 
-	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_SequencerAssetEditor", "Sequencer"));
+	WorkspaceMenuCategory = InTabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_SequencerAssetEditor", "Sequencer"));
 
-	TabManager->RegisterTabSpawner(SequencerMainTabId, FOnSpawnTab::CreateSP(this, &FLevelSequenceEditorToolkit::HandleTabManagerSpawnTab))
+	InTabManager->RegisterTabSpawner(SequencerMainTabId, FOnSpawnTab::CreateSP(this, &FLevelSequenceEditorToolkit::HandleTabManagerSpawnTab))
 		.SetDisplayName(LOCTEXT("SequencerMainTab", "Sequencer"))
 		.SetGroup(WorkspaceMenuCategory.ToSharedRef())
 		.SetIcon(FSlateIcon(Style->GetStyleSetName(), "LevelSequenceEditor.Tabs.Sequencer"));
 }
 
 
-void FLevelSequenceEditorToolkit::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
+void FLevelSequenceEditorToolkit::UnregisterTabSpawners(const TSharedRef<class FTabManager>& InTabManager)
 {
 	if (!IsWorldCentricAssetEditor())
 	{
-		TabManager->UnregisterTabSpawner(SequencerMainTabId);
+		InTabManager->UnregisterTabSpawner(SequencerMainTabId);
 	}
 
 	// @todo remove when world-centric mode is added
@@ -276,15 +293,47 @@ void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const 
 		{
 			UClass* TrackClass = DefaultTrack.ResolveClass();
 
+			// exclude any tracks explicitly marked for exclusion
+			for (const FLevelSequenceTrackSettings& ExcludeTrackSettings : GetDefault<ULevelSequenceEditorSettings>()->TrackSettings)
+			{
+				UClass* ExcludeMatchingActorClass = ExcludeTrackSettings.MatchingActorClass.ResolveClass();
+
+				if ((ExcludeMatchingActorClass == nullptr) || !Actor.IsA(ExcludeMatchingActorClass))
+				{
+					continue;
+				}
+				
+				for (const FStringClassReference& ExcludeDefaultTrack : ExcludeTrackSettings.ExcludeDefaultTracks)
+				{
+					if (ExcludeDefaultTrack == DefaultTrack)
+					{
+						TrackClass = nullptr;
+						break;
+					}
+				}				
+			}
+
 			if (TrackClass != nullptr)
 			{
-				UMovieSceneTrack* NewTrack = MovieScene->AddTrack(TrackClass, Binding);
+				UMovieSceneTrack* NewTrack = MovieScene->FindTrack(TrackClass, Binding);
+				if (!NewTrack)
+				{
+					NewTrack = MovieScene->AddTrack(TrackClass, Binding);
+				}
 
 				// Create a section for any property tracks
 				if (Cast<UMovieScenePropertyTrack>(NewTrack))
 				{
-					UMovieSceneSection* NewSection = NewTrack->CreateNewSection();
-					NewTrack->AddSection(*NewSection);
+					UMovieSceneSection* NewSection;
+					if (NewTrack->GetAllSections().Num() > 0)
+					{
+						NewSection = NewTrack->GetAllSections()[0];
+					}
+					else
+					{
+						NewSection = NewTrack->CreateNewSection();
+						NewTrack->AddSection(*NewSection);
+					}
 
 					// @todo sequencer: hack: setting defaults for transform tracks
 					if (NewTrack->IsA(UMovieScene3DTransformTrack::StaticClass()))
@@ -324,6 +373,46 @@ void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const 
 			}
 		}
 
+		// construct a map of the properties that should be excluded per component
+		TMap<UObject*, TArray<FString> > ExcludePropertyTracksMap;
+		for (const FLevelSequenceTrackSettings& ExcludeTrackSettings : GetDefault<ULevelSequenceEditorSettings>()->TrackSettings)
+		{
+			UClass* ExcludeMatchingActorClass = ExcludeTrackSettings.MatchingActorClass.ResolveClass();
+
+			if ((ExcludeMatchingActorClass == nullptr) || !Actor.IsA(ExcludeMatchingActorClass))
+			{
+				continue;
+			}
+
+			for (const FLevelSequencePropertyTrackSettings& PropertyTrackSettings : ExcludeTrackSettings.ExcludeDefaultPropertyTracks)
+			{
+				TArray<UProperty*> PropertyPath;
+				UObject* PropertyOwner = &Actor;
+
+				// determine object hierarchy
+				TArray<FString> ComponentNames;
+				PropertyTrackSettings.ComponentPath.ParseIntoArray(ComponentNames, TEXT("."));
+
+				for (const FString& ComponentName : ComponentNames)
+				{
+					PropertyOwner = FindObjectFast<UObject>(PropertyOwner, *ComponentName);
+
+					if (PropertyOwner == nullptr)
+					{
+						continue;
+					}
+				}
+
+				if (PropertyOwner)
+				{
+					TArray<FString> PropertyNames;
+					PropertyTrackSettings.PropertyPath.ParseIntoArray(PropertyNames, TEXT("."));
+
+					ExcludePropertyTracksMap.Add(PropertyOwner, PropertyNames);
+				}
+			}
+		}
+
 		// add tracks by property
 		for (const FLevelSequencePropertyTrackSettings& PropertyTrackSettings : TrackSettings.DefaultPropertyTracks)
 		{
@@ -352,6 +441,13 @@ void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const 
 
 			for (const FString& PropertyName : PropertyNames)
 			{
+				// skip past excluded properties
+				if (ExcludePropertyTracksMap.Contains(PropertyOwner) && ExcludePropertyTracksMap[PropertyOwner].Contains(PropertyName))
+				{
+					PropertyPath.Empty();
+					break;
+				}
+
 				UProperty* Property = PropertyOwnerClass->FindPropertyByName(*PropertyName);
 
 				if (Property != nullptr)
@@ -418,13 +514,11 @@ void FLevelSequenceEditorToolkit::AddPosessActorMenuExtensions(FMenuBuilder& Men
 	ActorsValidForPossession.RemoveAll([&](AActor* In){ return !IsActorValidForPossession(In); });
 
 	FText SelectedLabel;
-	FSlateIcon ActorIcon(FEditorStyle::GetStyleSetName(), FClassIconFinder::FindIconNameForClass(AActor::StaticClass()));
-
+	FSlateIcon ActorIcon = FSlateIconFinder::FindIconForClass(AActor::StaticClass());
 	if (ActorsValidForPossession.Num() == 1)
 	{
 		SelectedLabel = FText::Format(LOCTEXT("AddSpecificActor", "Add '{0}'"), FText::FromString(ActorsValidForPossession[0]->GetActorLabel()));
-		FName IconName = FClassIconFinder::FindIconNameForActor(ActorsValidForPossession[0]);
-		ActorIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), FClassIconFinder::FindIconNameForClass(ActorsValidForPossession[0]->GetClass()));
+		ActorIcon = FSlateIconFinder::FindIconForClass(ActorsValidForPossession[0]->GetClass());
 	}
 	else if (ActorsValidForPossession.Num() > 1)
 	{
@@ -463,10 +557,9 @@ void FLevelSequenceEditorToolkit::AddPosessActorMenuExtensions(FMenuBuilder& Men
 	// actor selector to allow the user to choose an actor
 	FSceneOutlinerModule& SceneOutlinerModule = FModuleManager::LoadModuleChecked<FSceneOutlinerModule>("SceneOutliner");
 	TSharedRef< SWidget > MiniSceneOutliner =
-		SNew(SVerticalBox)
-		+SVerticalBox::Slot()
-		.AutoHeight()
-		.MaxHeight(400.0f)
+		SNew(SBox)
+		.MaxDesiredHeight(400.0f)
+		.WidthOverride(300.0f)
 		[
 			SceneOutlinerModule.CreateSceneOutliner(
 				InitOptions,
@@ -521,6 +614,120 @@ void FLevelSequenceEditorToolkit::HandleActorAddedToSequencer(AActor* Actor, con
 void FLevelSequenceEditorToolkit::HandleMapChanged(class UWorld* NewWorld, EMapChangeType MapChangeType)
 {
 	Sequencer->NotifyMapChanged(NewWorld, MapChangeType);
+}
+
+void FLevelSequenceEditorToolkit::AddShot(UMovieSceneCinematicShotTrack* ShotTrack, const FString& ShotAssetName, const FString& ShotPackagePath, float ShotStartTime, float ShotEndTime, UObject* AssetToDuplicate)
+{
+	// Create a level sequence asset for the shot
+	UObject* ShotAsset = LevelSequenceEditorHelpers::CreateLevelSequenceAsset(ShotAssetName, ShotPackagePath, AssetToDuplicate);
+	UMovieSceneSequence* ShotSequence = Cast<UMovieSceneSequence>(ShotAsset);
+	UMovieSceneSubSection* ShotSubSection = ShotTrack->AddSequence(ShotSequence, ShotStartTime, ShotEndTime-ShotStartTime);
+
+	// Focus on the new shot
+	GetSequencer()->UpdateRuntimeInstances();
+	GetSequencer()->FocusSequenceInstance(*ShotSubSection);
+
+	// Create a camera cut track with a camera if it doesn't already exist
+	UMovieSceneTrack* CameraCutTrack = ShotSequence->GetMovieScene()->GetCameraCutTrack();
+	if (!CameraCutTrack)
+	{	
+		// Create a cine camera asset
+		ACineCameraActor* NewCamera = GCurrentLevelEditingViewportClient->GetWorld()->SpawnActor<ACineCameraActor>();
+		
+		const USequencerSettings* SequencerSettings = GetDefault<USequencerSettings>();
+		bool bCreateSpawnableCamera = SequencerSettings->GetCreateSpawnableCameras();
+
+		FGuid CameraGuid;
+		if (bCreateSpawnableCamera)
+		{
+			CameraGuid = GetSequencer()->MakeNewSpawnable(*NewCamera);
+			GetSequencer()->UpdateRuntimeInstances();
+			UObject* SpawnedCamera = GetSequencer()->FindSpawnedObjectOrTemplate(CameraGuid);
+			if (SpawnedCamera)
+			{
+				GWorld->EditorDestroyActor(NewCamera, true);
+				NewCamera = Cast<ACineCameraActor>(SpawnedCamera);
+			}
+		}
+		else
+		{
+			CameraGuid = GetSequencer()->CreateBinding(*NewCamera, NewCamera->GetActorLabel());
+		}
+
+		NewCamera->SetActorLocation( GCurrentLevelEditingViewportClient->GetViewLocation(), false );
+		NewCamera->SetActorRotation( GCurrentLevelEditingViewportClient->GetViewRotation() );
+		//pNewCamera->CameraComponent->FieldOfView = ViewportClient->ViewFOV; //@todo set the focal length from this field of view
+		
+		AddDefaultTracksForActor(*NewCamera, CameraGuid);
+
+		// Create a new camera cut section and add it to the camera cut track
+		CameraCutTrack = ShotSequence->GetMovieScene()->AddCameraCutTrack(UMovieSceneCameraCutTrack::StaticClass());
+		UMovieSceneCameraCutSection* CameraCutSection = NewObject<UMovieSceneCameraCutSection>(CameraCutTrack, NAME_None, RF_Transactional);
+		CameraCutSection->SetStartTime(ShotSequence->GetMovieScene()->GetPlaybackRange().GetLowerBoundValue()); 
+		CameraCutSection->SetEndTime(ShotSequence->GetMovieScene()->GetPlaybackRange().GetUpperBoundValue());
+		CameraCutSection->SetCameraGuid(CameraGuid);
+		CameraCutTrack->AddSection(*CameraCutSection);
+	}
+}
+
+void FLevelSequenceEditorToolkit::HandleMasterSequenceCreated(UObject* MasterSequenceAsset)
+{
+	const FScopedTransaction Transaction( LOCTEXT( "CreateMasterSequence", "Create Master Sequence" ) );
+	
+	const ULevelSequenceMasterSequenceSettings* MasterSequenceSettings = GetDefault<ULevelSequenceMasterSequenceSettings>();
+	uint32 NumShots = MasterSequenceSettings->MasterSequenceNumShots;
+	ULevelSequence* AssetToDuplicate = MasterSequenceSettings->MasterSequenceLevelSequenceToDuplicate.Get();
+
+	const UMovieSceneToolsProjectSettings* ProjectSettings = GetDefault<UMovieSceneToolsProjectSettings>();
+
+	UMovieSceneSequence* MasterSequence = Cast<UMovieSceneSequence>(MasterSequenceAsset);
+	UMovieSceneCinematicShotTrack* ShotTrack = MasterSequence->GetMovieScene()->AddMasterTrack<UMovieSceneCinematicShotTrack>();
+		
+	// Create shots with a camera cut and a camera for each
+	float SequenceStartTime = ProjectSettings->DefaultStartTime;
+	float ShotStartTime = SequenceStartTime;
+	float ShotEndTime = ShotStartTime;
+	for (uint32 ShotIndex = 0; ShotIndex < NumShots; ++ShotIndex)
+	{
+		ShotEndTime += ProjectSettings->DefaultDuration;
+
+		FString ShotName = MovieSceneToolHelpers::GenerateNewShotName(ShotTrack->GetAllSections(), ShotStartTime);
+		FString ShotPackagePath = MovieSceneToolHelpers::GenerateNewShotPath(MasterSequence->GetMovieScene(), ShotName);
+
+		AddShot(ShotTrack, ShotName, ShotPackagePath, ShotStartTime, ShotEndTime, AssetToDuplicate);
+		GetSequencer()->ResetToNewRootSequence(*MasterSequence);
+
+		ShotStartTime = ShotEndTime;
+	}
+
+	MasterSequence->GetMovieScene()->SetPlaybackRange(SequenceStartTime, ShotEndTime);
+
+#if WITH_EDITORONLY_DATA
+	const float OutputViewSize = ShotEndTime - SequenceStartTime;
+	const float OutputChange = OutputViewSize * 0.1f;
+	struct FMovieSceneEditorData EditorData;
+	EditorData.ViewRange = FFloatRange(SequenceStartTime - OutputChange, ShotEndTime + OutputChange);
+	EditorData.WorkingRange = FFloatRange(SequenceStartTime - OutputChange, ShotEndTime + OutputChange);
+	MasterSequence->GetMovieScene()->SetEditorData(EditorData);
+#endif
+		
+	GetSequencer()->ResetToNewRootSequence(*MasterSequence);
+
+	UActorFactory* ActorFactory = GEditor->FindActorFactoryForActorClass(ALevelSequenceActor::StaticClass());
+	if (!ensure(ActorFactory))
+	{
+		return;
+	}
+
+	ALevelSequenceActor* NewActor = CastChecked<ALevelSequenceActor>(GEditor->UseActorFactory(ActorFactory, FAssetData(MasterSequenceAsset), &FTransform::Identity));
+	if (GCurrentLevelEditingViewportClient != nullptr && GCurrentLevelEditingViewportClient->IsPerspective())
+	{
+		GEditor->MoveActorInFrontOfCamera(*NewActor, GCurrentLevelEditingViewportClient->GetViewLocation(), GCurrentLevelEditingViewportClient->GetViewRotation().Vector());
+	}
+	else
+	{
+		GEditor->MoveViewportCamerasToActor(*NewActor, false);
+	}
 }
 
 

@@ -63,6 +63,14 @@ struct FAsyncPackage
 		return Desc.Name;
 	}
 
+	/**
+	 * Returns the name to load of the package.
+	 */
+	FORCEINLINE const FName& GetPackageNameToLoad() const
+	{
+		return Desc.NameToLoad;
+	}
+
 	void AddCompletionCallback(const FLoadPackageAsyncDelegate& Callback, bool bInternal);
 
 	/** Gets the number of references to this package from other packages in the dependency tree. */
@@ -152,6 +160,8 @@ private:
 	int32							ExportIndex;
 	/** Current index into GObjLoaded array used to spread routing PreLoad over several frames			*/
 	static int32					PreLoadIndex;
+	/** Current index into GObjLoaded array used to spread routing PreLoad over several frames			*/
+	static int32					PreLoadSortIndex;
 	/** Current index into GObjLoaded array used to spread routing PostLoad over several frames			*/
 	static int32					PostLoadIndex;
 	/** Current index into DeferredPostLoadObjects array used to spread routing PostLoad over several frames			*/
@@ -249,6 +259,7 @@ private:
 	 * @return true if time limit has been exceeded (and is used), false otherwise
 	 */
 	bool IsTimeLimitExceeded();
+
 	/**
 	 * Begin async loading process. Simulates parts of BeginLoad.
 	 *
@@ -272,13 +283,13 @@ private:
 	 * @return true if linker is finished being created, false otherwise
 	 */
 	EAsyncPackageState::Type FinishLinker();
-	/** 
+	/**
 	 * Loads imported packages..
 	 *
 	 * @return true if we finished loading all imports, false otherwise
 	 */
 	EAsyncPackageState::Type LoadImports();
-	/** 
+	/**
 	 * Create imports till time limit is exceeded.
 	 *
 	 * @return true if we finished creating all imports, false otherwise
@@ -324,19 +335,19 @@ private:
 	 *
 	 * @param ImportedPackage Package imported either directly or by one of the imported packages
 	 */
-	void AddDependencyTree(int32 CurrentPackageIndex, FAsyncPackage& ImportedPackage, TSet<FAsyncPackage*>& SearchedPackages);
+	void AddDependencyTree(FAsyncPackage& ImportedPackage, TSet<FAsyncPackage*>& SearchedPackages);
 	/**
 	 * Adds a unique package to the list of packages to wait for until their linkers have been created.
 	 *
 	 * @param PendingImport Package imported either directly or by one of the imported packages
 	 */
-	bool AddUniqueLinkerDependencyPackage(int32 CurrentPackageIndex, FAsyncPackage& PendingImport);
+	bool AddUniqueLinkerDependencyPackage(FAsyncPackage& PendingImport);
 	/**
 	 * Adds a package to the list of pending import packages.
 	 *
 	 * @param PendingImport Name of the package imported either directly or by one of the imported packages
 	 */
-	void AddImportDependency(int32 CurrentPackageIndex, const FName& PendingImport);
+	void AddImportDependency(const FName& PendingImport);
 	/**
 	 * Removes references to any imported packages.
 	 */

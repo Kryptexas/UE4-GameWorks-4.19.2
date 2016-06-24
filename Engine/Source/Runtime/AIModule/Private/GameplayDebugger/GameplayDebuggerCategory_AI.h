@@ -37,7 +37,10 @@ protected:
 		FString CurrentAIAssets;
 		FString NavDataInfo;
 		FString MontageInfo;
-		FString GameplayTaskInfo;
+		FString TaskQueueInfo;
+		FString TickingTaskInfo;
+		int16 NumTasksInQueue;
+		int16 NumTickingTasks;
 		uint32 bHasController : 1;
 		uint32 bPathHasGoalActor : 1;
 		uint32 bIsUsingPathFollowing : 1;
@@ -45,7 +48,7 @@ protected:
 		uint32 bIsUsingBehaviorTree : 1;
 		uint32 bIsUsingGameplayTasks : 1;
 
-		FRepData() : NextPathPointIndex(0), bHasController(false), bPathHasGoalActor(false),
+		FRepData() : NextPathPointIndex(0), NumTasksInQueue(0), NumTickingTasks(0), bHasController(false), bPathHasGoalActor(false),
 			bIsUsingPathFollowing(false), bIsUsingCharacter(false), bIsUsingBehaviorTree(false), bIsUsingGameplayTasks(false)
 		{
 		}

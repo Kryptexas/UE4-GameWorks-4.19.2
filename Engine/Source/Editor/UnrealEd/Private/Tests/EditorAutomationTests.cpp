@@ -13,6 +13,8 @@
 #include "ModuleManager.h"
 #include "MainFrame.h"
 #include "FileManager.h"
+#include "EngineAnalytics.h"
+#include "IAnalyticsProvider.h"
 
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/BlueprintEditorUtils.h"
@@ -299,8 +301,8 @@ bool FLoadAllMapsInEditorTest::RunTest(const FString& Parameters)
 		CVar->Set(0);
 
 		//Create a screen shot filename and path
-		const FString TestName = FString::Printf(TEXT("LoadAllMaps_Editor/%s"), *FPaths::GetBaseFilename(MapName));
-		AutomationCommon::GetScreenshotPath(TestName, WindowParameters.ScreenshotName, true);
+		const FString LoadAllMapsTestName = FString::Printf(TEXT("LoadAllMaps_Editor/%s"), *FPaths::GetBaseFilename(MapName));
+		AutomationCommon::GetScreenshotPath(LoadAllMapsTestName, WindowParameters.ScreenshotName, true);
 
 		//Get the current number of seconds.  This will be used to track how long it took to load the map.
 		MapLoadStartTime = FPlatformTime::Seconds();

@@ -472,7 +472,8 @@ struct AIMODULE_API FAIMoveRequest
 	FAIMoveRequest& SetCanStrafe(bool bStrafe) { bCanStrafe = bStrafe; return *this; }
 	FAIMoveRequest& SetStopOnOverlap(bool bStop) { bStopOnOverlap = bStop; return *this; }
 	FAIMoveRequest& SetAcceptanceRadius(float Radius) { AcceptanceRadius = Radius; return *this; }
-	FAIMoveRequest& SetUserData(const FCustomMoveSharedPtr& Data) { UserData = Data; return *this; }
+	FAIMoveRequest& SetUserData(const FCustomMoveSharedPtr& InUserData) { UserData = InUserData; return *this; }
+	FAIMoveRequest& SetUserFlags(int32 InUserFlags) { UserFlags = InUserFlags; return *this; }
 
 	/** the request should be either set up to move to a location, of go to a valid actor */
 	bool IsValid() const { return bInitialized && (!bMoveToActor || GoalActor); }
@@ -490,6 +491,7 @@ struct AIMODULE_API FAIMoveRequest
 	bool CanStopOnOverlap() const { return bStopOnOverlap; }
 	float GetAcceptanceRadius() const { return AcceptanceRadius; }
 	const FCustomMoveSharedPtr& GetUserData() const { return UserData; }
+	int32 GetUserFlags() const { return UserFlags; }
 
 	void SetGoalActor(const AActor* InGoalActor);
 	void SetGoalLocation(const FVector& InGoalLocation);
@@ -533,11 +535,9 @@ protected:
 	/** pathfollowing: required distance to goal to complete move */
 	float AcceptanceRadius;
 
-	/** pathfollowing: custom user data */
+	/** custom user data: structure */
 	FCustomMoveSharedPtr UserData;
 
-public:
-	// deprecated
-	DEPRECATED(4.8, "FAIMoveRequest::HasGoalActor is deprecated, please use FAIMoveRequest::IsMoveToActorRequest instead.")
-	bool HasGoalActor() const { return bMoveToActor; }
+	/** custom user data: flags */
+	int32 UserFlags;
 };

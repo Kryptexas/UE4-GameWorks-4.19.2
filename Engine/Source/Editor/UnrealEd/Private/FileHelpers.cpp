@@ -313,14 +313,12 @@ FString FEditorFileUtils::GetFilterString(EFileInteraction Interaction)
 																					   *FPackageName::GetMapPackageExtension());
 		}
 		break;
-	case FI_Import:
-		Result = TEXT("Unreal Text (*.t3d)|*.t3d|All Files|*.*");
-		break;
+
 	case FI_ImportScene:
-		Result = TEXT("FBX (*.fbx)|*.fbx|All Files|*.*");
+		Result = TEXT("FBX (*.fbx) OBJ (.obj)|*.fbx;*.obj|FBX (*.fbx)|*.fbx|OBJ (*.obj)|*.obj|All Files|*.*");
 		break;
 
-	case FI_Export:
+	case FI_ExportScene:
 		Result = TEXT("FBX (*.fbx)|*.fbx|Object (*.obj)|*.obj|Unreal Text (*.t3d)|*.t3d|Stereo Litho (*.stl)|*.stl|LOD Export (*.lod.obj)|*.lod.obj|All Files|*.*");
 		break;
 
@@ -994,34 +992,25 @@ bool FEditorFileUtils::SaveLevelAs(ULevel* InLevel)
  * Presents the user with a file dialog for importing.
  * If the import is not a merge (bMerging is false), AskSaveChanges() is called first.
  */
-void FEditorFileUtils::Import(bool bImportScene)
+void FEditorFileUtils::Import()
 {
 	TArray<FString> OpenedFiles;
 	FString DefaultLocation(GetDefaultDirectory());
 
-	bool OpenFileSucceed = false;
-	if (bImportScene)
+	if (FileDialogHelpers::OpenFiles(NSLOCTEXT("UnrealEd", "ImportScene", "Import Scene").ToString(), GetFilterString(FI_ImportScene), DefaultLocation, EFileDialogFlags::None, OpenedFiles))
 	{
-		OpenFileSucceed = FileDialogHelpers::OpenFiles(NSLOCTEXT("UnrealEd", "ImportScene", "Import Scene").ToString(), GetFilterString(FI_ImportScene), DefaultLocation, EFileDialogFlags::None, OpenedFiles);
-	}
-	else
-	{
-		OpenFileSucceed = FileDialogHelpers::OpenFiles(NSLOCTEXT("UnrealEd", "Import", "Import").ToString(), GetFilterString(FI_Import), DefaultLocation, EFileDialogFlags::None, OpenedFiles);
-	}
-	if( OpenFileSucceed )
-	{
-		Import(OpenedFiles[0], bImportScene);
+		Import(OpenedFiles[0]);
 	}
 }
 
-void FEditorFileUtils::Import(const FString& InFilename, bool bImportScene)
+void FEditorFileUtils::Import(const FString& InFilename)
 {
 	const FScopedBusyCursor BusyCursor;
 
 	FFormatNamedArguments Args;
 	//Import scene support only fbx for now
 	//Check the extension because the import map don't support fbx file import
-	if (bImportScene || FPaths::GetExtension(InFilename).Compare(TEXT("fbx"), ESearchCase::IgnoreCase) == 0)
+	if (FPaths::GetExtension(InFilename).Compare(TEXT("fbx"), ESearchCase::IgnoreCase) == 0)
 	{
 		//Ask a root content path to the user
 		TSharedRef<SDlgPickPath> PickContentPathDlg =
@@ -1130,7 +1119,7 @@ void FEditorFileUtils::Export(bool bExportSelectedActorsOnly)
 	const FString LevelFilename = GetFilename( World );//->GetOutermost()->GetName() );
 	FString ExportFilename;
 	FString LastUsedPath = GetDefaultDirectory();
-	if( FileDialogHelpers::SaveFile( NSLOCTEXT("UnrealEd", "Export", "Export").ToString(), GetFilterString(FI_Export), LastUsedPath, FPaths::GetBaseFilename(LevelFilename), ExportFilename ) )
+	if( FileDialogHelpers::SaveFile( NSLOCTEXT("UnrealEd", "Export", "Export").ToString(), GetFilterString(FI_ExportScene), LastUsedPath, FPaths::GetBaseFilename(LevelFilename), ExportFilename ) )
 	{
 		GUnrealEd->ExportMap( World, *ExportFilename, bExportSelectedActorsOnly );
 		FEditorDirectories::Get().SetLastDirectory(ELastDirectory::UNR, FPaths::GetPath(ExportFilename)); // Save path as default for next time.
@@ -1439,7 +1428,10 @@ bool FEditorFileUtils::PromptToCheckoutPackages(bool bCheckDirty, const TArray<U
 	// If any files were just checked out, remove any pending flag to show a notification prompting for checkout.
 	if (PackagesToCheckOut.Num() > 0)
 	{
-		GUnrealEd->bNeedToPromptForCheckout = false;
+		for (UPackage* Package : PackagesToCheckOut)
+		{
+			GUnrealEd->PackageToNotifyState.Add(Package, NS_DialogPrompted);
+		}
 	}
 
 	if (OutPackagesNotNeedingCheckout)
@@ -1940,7 +1932,7 @@ bool FEditorFileUtils::AttemptUnloadInactiveWorldPackage(UPackage* PackageToUnlo
 				case EWorldType::PIE:
 				case EWorldType::Preview:
 				default:
-					OutErrorMessage = NSLOCTEXT("SaveAsImplementation", "ExistingWorldNotInactive", "The level you are attempting to unload is invalid.");
+					OutErrorMessage = NSLOCTEXT("SaveAsImplementation", "ExistingWorldInvalid", "The level you are attempting to unload is invalid.");
 					bContinueUnloadingExistingWorld = false;
 					break;
 			}
@@ -2154,6 +2146,8 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 		return;
 	}
 
+	World->IssueEditorLoadWarnings();
+
 	ResetLevelFilenames();
 
 	//only register the file if the name wasn't changed as a result of loading
@@ -2175,7 +2169,7 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 		FMainMRUFavoritesList* MRUFavoritesList = MainFrameModule.GetMRUFavoritesList();
 		if(MRUFavoritesList)
 		{
-			MRUFavoritesList->AddMRUItem( *Filename );
+			MRUFavoritesList->AddMRUItem(LongMapPackageName);
 		}
 	}
 

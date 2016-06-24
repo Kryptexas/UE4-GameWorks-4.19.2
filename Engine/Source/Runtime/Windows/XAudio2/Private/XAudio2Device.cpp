@@ -136,7 +136,7 @@ bool FXAudio2Device::InitializeHardware()
 	GConfig->GetString(TEXT("/Script/WindowsTargetPlatform.WindowsTargetSettings"), TEXT("AudioDevice"), WindowsAudioDeviceName, GEngineIni);
 
 	// Allow HMD to specify audio device, if one was not specified in settings
-	if (WindowsAudioDeviceName.IsEmpty() && IHeadMountedDisplayModule::IsAvailable())
+	if (WindowsAudioDeviceName.IsEmpty() && FAudioDevice::CanUseVRAudioDevice() && IHeadMountedDisplayModule::IsAvailable())
 	{
 		WindowsAudioDeviceName = IHeadMountedDisplayModule::Get().GetAudioOutputDevice();
 	}
@@ -152,7 +152,7 @@ bool FXAudio2Device::InitializeHardware()
 			XAUDIO2_DEVICE_DETAILS Details;
 			DeviceProperties->XAudio2->GetDeviceDetails(i, &Details);
 
-			if (FString(Details.DeviceID) == WindowsAudioDeviceName)
+			if (FString(Details.DeviceID) == WindowsAudioDeviceName || FString(Details.DisplayName) == WindowsAudioDeviceName)
 			{
 				DeviceIndex = i;
 				break;
@@ -242,6 +242,9 @@ void FXAudio2Device::TeardownHardware()
 {
 	if (DeviceProperties)
 	{
+		// Make sure we clean up any pending decoding tasks before deleting the device properties
+		DeviceProperties->ProcessPendingTasksToCleanup(true);
+
 		delete DeviceProperties;
 		DeviceProperties = nullptr;
 	}

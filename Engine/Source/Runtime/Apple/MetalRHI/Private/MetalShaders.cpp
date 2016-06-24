@@ -170,6 +170,7 @@ TMetalBaseShader<BaseResourceType, ShaderType>::TMetalBaseShader(const TArray<ui
 //		Resource = Resource;
 		Bindings = Header.Bindings;
 		UniformBuffersCopyInfo = Header.UniformBuffersCopyInfo;
+		SideTableBinding = Header.SideTable;
 
 		//@todo: Find better way...
 		if (ShaderType == SF_Compute)

@@ -12,6 +12,7 @@ class FVulkanDevice;
 class FVulkanCmdBuffer;
 struct FVulkanSemaphore;
 class FVulkanSwapChain;
+class FVulkanCommandListContext;
 
 namespace VulkanRHI
 {
@@ -30,16 +31,7 @@ public:
 		return FamilyIndex;
 	}
 
-	void Submit(FVulkanCmdBuffer* CmdBuffer);
-
-	void SubmitBlocking(FVulkanCmdBuffer* CmdBuffer);
-
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-#else
-	void Submit2(VkCommandBuffer CmdBuffer, VulkanRHI::FFence* Fence);
-	uint32 AquireImageIndex(FVulkanSwapChain* Swapchain);
-	void Present(FVulkanSwapChain* Swapchain, uint32 ImageIndex);
-#endif
+	void Submit(FVulkanCmdBuffer* CmdBuffer, FVulkanSemaphore* WaitSemaphore, VkPipelineStageFlags WaitStageFlags, FVulkanSemaphore* SignalSemaphore);
 
 	inline VkQueue GetHandle() const
 	{
@@ -47,18 +39,6 @@ public:
 	}
 
 private:
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-#else
-	PFN_vkAcquireNextImageKHR AcquireNextImageKHR;
-	PFN_vkQueuePresentKHR QueuePresentKHR;
-
-	FVulkanSemaphore* ImageAcquiredSemaphore[VULKAN_NUM_IMAGE_BUFFERS];
-	FVulkanSemaphore* RenderingCompletedSemaphore[VULKAN_NUM_IMAGE_BUFFERS];
-	VulkanRHI::FFence* Fences[VULKAN_NUM_IMAGE_BUFFERS];
-	uint32	CurrentFenceIndex;
-
-	uint32 CurrentImageIndex;	// Perhaps move this to the FVulkanSwapChain?
-#endif
 	VkQueue Queue;
 	uint32 FamilyIndex;
 	uint32 QueueIndex;

@@ -19,7 +19,6 @@ static FName ProviderName("Perforce");
 /** Init of connection with source control server */
 void FPerforceSourceControlProvider::Init(bool bForceConnection)
 {
-	LoadSSLLibraries();
 	ParseCommandLineSettings(bForceConnection);
 }
 
@@ -37,8 +36,6 @@ void FPerforceSourceControlProvider::Close()
 	StateCache.Empty();
 
 	bServerAvailable = false;
-
-	UnloadSSLLibraries();
 }
 
 TSharedRef<FPerforceSourceControlState, ESPMode::ThreadSafe> FPerforceSourceControlProvider::GetStateInternal(const FString& Filename)
@@ -548,49 +545,6 @@ ECommandResult::Type FPerforceSourceControlProvider::IssueCommand(FPerforceSourc
 
 		return Result;
 	}
-}
-
-void FPerforceSourceControlProvider::LoadSSLLibraries()
-{
-#if PLATFORM_WINDOWS
-#if PLATFORM_64BITS
-
-#if _MSC_VER >= 1900
-	const FString VSVersion = TEXT("VS2015/");
-#elif _MSC_VER >= 1800
-	const FString VSVersion = TEXT("VS2013/");
-#else
-	#error "Unsupported Visual Studio version."
-#endif
-
-	const FString PlatformString = TEXT("Win64");
-	const FString RootOpenSSLPath = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/OpenSSL/") / PlatformString / VSVersion;
-
-	FString DLLToLoad = RootOpenSSLPath + TEXT("libeay32.dll");
-	Module_libeay32 = LoadLibraryW(*DLLToLoad);
-	verifyf(Module_libeay32, TEXT("Failed to load DLL %s"), *DLLToLoad);
-	DLLToLoad = RootOpenSSLPath + TEXT("ssleay32.dll");
-	Module_ssleay32 = LoadLibraryW(*DLLToLoad);
-	verifyf(Module_ssleay32, TEXT("Failed to load DLL %s"), *DLLToLoad);
-#endif
-#endif
-}
-
-void FPerforceSourceControlProvider::UnloadSSLLibraries()
-{
-#if PLATFORM_WINDOWS
-	if(Module_libeay32)
-	{
-		FreeLibrary(Module_libeay32);
-		Module_libeay32 = NULL;
-	}
-
-	if(Module_ssleay32)
-	{
-		FreeLibrary(Module_ssleay32);
-		Module_ssleay32 = NULL;
-	}
-#endif
 }
 
 #undef LOCTEXT_NAMESPACE

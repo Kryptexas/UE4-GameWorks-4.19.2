@@ -632,7 +632,7 @@ bool FAndroidMediaPlayer::Open(const FString& Url)
 
 	if (MediaState == EMediaState::Prepared)
 	{
-		MediaEvent.Broadcast(EMediaEvent::MediaOpenFailed);
+		MediaEvent.Broadcast(EMediaEvent::MediaOpened);
 	}
 
 	return MediaState == EMediaState::Prepared;

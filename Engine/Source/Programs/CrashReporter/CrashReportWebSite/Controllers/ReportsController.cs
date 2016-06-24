@@ -15,9 +15,11 @@ using System.Web.Mvc;
 using System.Web.Routing;
 using System.Web.UI;
 using System.Xml;
+using Microsoft.Owin;
 using Tools.CrashReporter.CrashReportWebSite.Models;
 using Tools.DotNETCommon;
 using Hangfire;
+using FormCollection = System.Web.Mvc.FormCollection;
 
 namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 {
@@ -35,12 +37,14 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	/// The controller to handle graphing of crashes per user group over time.
 	/// </summary>
 	public class ReportsController : Controller
-	{
-		/// <summary>Fake id for all user groups</summary>
+    {
+        #region Public Methods
+
+        /// <summary>Fake id for all user groups</summary>
 		public static readonly int AllUserGroupId = -1;
         
 		/// <summary>
-		/// 
+		/// Get a report with the default form data and return the reports index view
 		/// </summary>
 		/// <param name="ReportsForm"></param>
 		/// <returns></returns>
@@ -61,14 +65,14 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 					}
 				}
                 
-				ReportsViewModel Results = GetResults( FormData, BuggIDToBeAddedToJira );
-				Results.GenerationTime = LogTimer.GetElapsedSeconds().ToString( "F2" );
-				return View( "Index", Results );
+				var results = GetResults( FormData, BuggIDToBeAddedToJira );
+				results.GenerationTime = LogTimer.GetElapsedSeconds().ToString( "F2" );
+				return View( "Index", results );
 			}
 		}
 
 	    /// <summary>
-	    /// 
+	    /// Return to the index view with a report for a specific branch
 	    /// </summary>
 	    /// <param name="ReportsForm"></param>
 	    /// <returns></returns>
@@ -97,21 +101,22 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
         }
 
         /// <summary>
-        /// 
+        /// Subscribe to a weekly email with a report for a specific branch over the last week.
         /// </summary>
-        /// <param name="FormData"></param>
-        /// <returns></returns>
+        /// <returns>
+        /// A partial view with a confirmation massge to be displayed in the source page.
+        /// </returns>
         public PartialViewResult SubscribeToEmail(string branchName, string emailAddress)
         {
             var jobId = string.Format("{0}:{1}", branchName, emailAddress);
 
             RecurringJob.AddOrUpdate<ReportsController>(jobId, x => x.SendReportsEmail(emailAddress, branchName), Cron.Weekly);
 
-            return PartialView("SignUpResponse", new EmailSubscriptionResponseModel (){ Email = emailAddress, Branch = branchName });
+            return PartialView("SignUpResponse", new EmailSubscriptionResponseModel () { Email = emailAddress, Branch = branchName } );
         }
         
         /// <summary>
-        /// 
+        /// Unsubscribe from a weekly e-mail report for a branch
         /// </summary>
         /// <param name="jobId"></param>
         /// <returns></returns>
@@ -124,9 +129,29 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
             return View("Unsubscribe");
         }
+        
+        /// <summary>
+        /// Private method called by hangfire to send individual report e-mails.
+        /// </summary>
+        /// <param name="emailAddress"></param>
+        /// <param name="branchName"></param>
+        public void SendReportsEmail(string emailAddress, string branchName)
+        {
+            var emailBody = string.Format("{0}" + Environment.NewLine + "{1}{2}%3A{3}",
+                GetReportsEmailContents(branchName),
+                "http://crashreporter.epicgames.net/Reports/UnsubscribeFromEmail?jobId=",
+                branchName,
+                emailAddress);
+            var sMail = new SmtpClient();
+
+            var message = new MailMessage("crashreporter@epicgames.com", emailAddress, "Weekly Crash Report : " + branchName, emailBody ) { IsBodyHtml = true };
+            sMail.Send(message);
+        }
+
+        #endregion
 
         #region Private Methods
-
+        
         private void AddBuggJiraMapping(Bugg NewBugg, ref HashSet<string> FoundJiras, ref Dictionary<string, List<Bugg>> JiraIDtoBugg)
         {
             string JiraID = NewBugg.Jira;
@@ -339,12 +364,12 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
 	            if (BuggIDToBeAddedToJira > 0)
 	            {
-	                var Bugg = Buggs.Where(X => X.Id == BuggIDToBeAddedToJira).FirstOrDefault();
-	                if (Bugg != null)
-	                {
-	                    Bugg.CopyToJira();
-	                    AddBuggJiraMapping(Bugg, ref FoundJiras, ref JiraIDtoBugg);
-	                }
+                    var Bugg = Buggs.Where(X => X.Id == BuggIDToBeAddedToJira).FirstOrDefault();
+                    if (Bugg != null)
+                    {
+                        Bugg.CopyToJira();
+                        AddBuggJiraMapping(Bugg, ref FoundJiras, ref JiraIDtoBugg);
+                    }
 	            }
 
 	            if (JC.CanBeUsed())
@@ -503,6 +528,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	            return new ReportsViewModel
 	            {
 	                Buggs = Buggs,
+                    BranchName = branchName,
 	                /*Crashes = Crashes,*/
 	                DateFrom = (long) (startDate - CrashesViewModel.Epoch).TotalMilliseconds,
 	                DateTo = (long) (endDate - CrashesViewModel.Epoch).TotalMilliseconds,
@@ -514,27 +540,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	    }
 
         /// <summary>
-        /// 
+        /// Private method to get reports page for a branch and render to an HTML string
         /// </summary>
-        /// <param name="emailAddress"></param>
-        /// <param name="branchName"></param>
-	    public void SendReportsEmail(string emailAddress, string branchName)
-	    {
-            var emailBody = string.Format("{0}" + Environment.NewLine + "{1}{2}%3A{3}",
-                GetReportsEmailContents(branchName),
-                "http://crashreporter.epicgames.net/Reports/UnsubscribeFromEmail?jobId=",
-                branchName,
-                emailAddress);
-            var sMail = new SmtpClient();
-
-            var message = new MailMessage("crashreporter@epicgames.com", emailAddress, "Weekly Crash Report : " + branchName, emailBody) { IsBodyHtml = true };
-            sMail.Send(message);
-	    }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
+        /// <returns>HTML formatted string</returns>
 	    private string GetReportsEmailContents(string branchName)
 	    {
             var reportViewModel = GetResults(branchName, DateTime.Now.AddDays(-7), DateTime.Now, 0);
@@ -542,37 +550,16 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	    }
 
         /// <summary>
-        /// This function uses a temporary controller object to return a view as a string object rather than passing it to the browser.
-        /// </summary>
-        /// <param name="controllerName">the name of the controller containing the view</param>
-        /// <param name="viewName">the name of the view</param>
-        /// <param name="viewData">Any datamodels associated with this view</param>
-        /// <returns></returns>
-        private static string RenderPartialToString(string viewName, object model, ControllerContext ControllerContext)
-        {
-            if (string.IsNullOrEmpty(viewName))
-                viewName = ControllerContext.RouteData.GetRequiredString("action");
-            var viewData = new ViewDataDictionary();
-            var tempData = new TempDataDictionary();
-            viewData.Model = model;
-
-            using (var sw = new StringWriter())
-            {
-                var viewResult = ViewEngines.Engines.FindPartialView(ControllerContext, viewName);
-                var viewContext = new ViewContext(ControllerContext, viewResult.View, viewData, tempData, sw);
-                viewResult.View.Render(viewContext, sw);
-
-                return sw.GetStringBuilder().ToString();
-            }
-        }
-        
-        /// <summary>
+        /// Uses a "fake" HTTPContext to generate html output from a view or partial view.
         /// 
+        /// Essentially this function returns view data at any time from any part of the program 
+        /// without having to call into a view from a normal controller context.
+        /// This is important to allow us to return view data asynchronously.
         /// </summary>
-        /// <param name="controllerName"></param>
-        /// <param name="viewName"></param>
-        /// <param name="viewData"></param>
-        /// <returns></returns>
+        /// <param name="controllerName">A string indicating the name of the controller that normally calls into a view</param>
+        /// <param name="viewName">the path to the view in quiestion</param>
+        /// <param name="viewData">the model to be passed to the view</param>
+        /// <returns>HTML formatted string</returns>
         private static string RenderViewToString(string controllerName, string viewName, object viewData)
         {
             using (var writer = new StringWriter())
@@ -591,10 +578,13 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
         #endregion
     }
 
+    /// <summary>
+    /// Empty Controller class used as proxy 
+    /// </summary>
     class FakeController : ControllerBase
     {
         protected override void ExecuteCore()
         {
         }
-    };
+    }
 }

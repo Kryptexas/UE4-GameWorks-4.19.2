@@ -297,7 +297,11 @@ int32 CrashTest(const TCHAR* CommandLine)
 
 	if (FParse::Param(CommandLine, TEXT("logfatal")))
 	{
-		UE_LOG(LogTestPAL, Fatal, TEXT("  Opa!"));
+		UE_LOG(LogTestPAL, Fatal, TEXT("  LogFatal!"));
+	}
+	else if (FParse::Param(CommandLine, TEXT("check")))
+	{
+		checkf(false, TEXT("  checkf!"));
 	}
 	else
 	{

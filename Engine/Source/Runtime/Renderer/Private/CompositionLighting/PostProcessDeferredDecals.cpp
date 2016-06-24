@@ -477,7 +477,7 @@ const TCHAR* GetStageName(EDecalRenderStage Stage)
 		case DRS_BeforeBasePass: return TEXT("DRS_BeforeBasePass");
 		case DRS_AfterBasePass: return TEXT("DRS_AfterBasePass");
 		case DRS_BeforeLighting: return TEXT("DRS_BeforeLighting");
-		case DRS_ForwardShading: return TEXT("DRS_ForwardShading");
+		case DRS_Mobile: return TEXT("DRS_Mobile");
 	}
 	return TEXT("<UNKNOWN>");
 }

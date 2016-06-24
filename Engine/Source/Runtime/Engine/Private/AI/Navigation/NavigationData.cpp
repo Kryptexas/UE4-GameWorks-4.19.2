@@ -4,6 +4,7 @@
 #include "AI/NavDataGenerator.h"
 #include "AI/Navigation/NavAreas/NavAreaMeta.h"
 #include "AI/Navigation/NavigationData.h"
+#include "AI/Navigation/RecastNavMesh.h"
 
 //----------------------------------------------------------------------//
 // FPathFindingQuery
@@ -178,7 +179,7 @@ void ANavigationData::PostInitializeComponents()
 		(MyWorld->GetNetMode() == NM_Client && !bNetLoadOnClient))
 	{
 		UE_LOG(LogNavigation, Log, TEXT("Marking %s as PendingKill due to %s"), *GetName()
-			, MyWorld ? TEXT("No World") : (MyWorld->GetNetMode() == NM_Client ? TEXT("not creating navigation on clients") : TEXT("missing navigation system")));
+			, !MyWorld ? TEXT("No World") : (MyWorld->GetNetMode() == NM_Client ? TEXT("not creating navigation on clients") : TEXT("missing navigation system")));
 		CleanUpAndMarkPendingKill();
 	}
 }
@@ -568,7 +569,7 @@ void ANavigationData::OnNavAreaAdded(const UClass* NavAreaClass, int32 AgentInde
 			*GetName(), *GetNameSafe(NavAreaClass),
 			DefArea ? TEXT("yes") : TEXT("NO"),
 			bIsMetaArea ? TEXT("YES") : TEXT("no"),
-			AgentIndex, DefArea->IsSupportingAgent(AgentIndex) ? TEXT("yes") : TEXT("NO"));
+			AgentIndex, (DefArea && DefArea->IsSupportingAgent(AgentIndex)) ? TEXT("yes") : TEXT("NO"));
 		return;
 	}
 

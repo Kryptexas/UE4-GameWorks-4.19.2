@@ -135,8 +135,11 @@ struct FUnloadedAssetData
 		, AssetFriendlyName(FText::FromString(FName::NameToDisplayString(InAsset.AssetName.ToString(), false)))
 		, PossibleObjectReferenceTypes(InPossibleObjectReferenceTypes)
 	{
-		const FString* TooltipPtr = InAsset.TagsAndValues.Find(TEXT("Tooltip"));
-		Tooltip = FText::FromString((TooltipPtr && !TooltipPtr->IsEmpty()) ? *TooltipPtr : InAsset.ObjectPath.ToString());
+		InAsset.GetTagValue("Tooltip", Tooltip);
+		if (Tooltip.IsEmpty())
+		{
+			Tooltip = FText::FromString(InAsset.ObjectPath.ToString());
+		}
 	}
 };
 
@@ -310,19 +313,13 @@ public:
 
 					if (Asset.IsValid() && !Asset.IsAssetLoaded())
 					{
-						const FString* BlueprintTypeStr = Asset.TagsAndValues.Find("BlueprintType");
-						const bool bNormalBP = BlueprintTypeStr && (*BlueprintTypeStr == BPNormalTypeAllowed);
-						const bool bInterfaceBP = BlueprintTypeStr && (*BlueprintTypeStr == BPInterfaceTypeAllowed);
+						const FString BlueprintTypeStr = Asset.GetTagValueRef<FString>("BlueprintType");
+						const bool bNormalBP = BlueprintTypeStr == BPNormalTypeAllowed;
+						const bool bInterfaceBP = BlueprintTypeStr == BPInterfaceTypeAllowed;
 
 						if (bNormalBP || bInterfaceBP)
 						{
-							uint32 ClassFlags = 0;
-							const FString* ClassFlagsStr = Asset.TagsAndValues.Find("ClassFlags");
-							if (ClassFlagsStr)
-							{
-								ClassFlags = FCString::Atoi(**ClassFlagsStr);
-							}
-
+							const uint32 ClassFlags = Asset.GetTagValueRef<uint32>("ClassFlags");
 							if (!(ClassFlags & CLASS_Deprecated))
 							{
 								if (bNormalBP)
@@ -3874,11 +3871,17 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 		else if (Output.PinCategory == PC_Interface)
 		{
 			UClass const* OutputClass = Cast<UClass const>(Output.PinSubCategoryObject.Get());
-			check(OutputClass && OutputClass->IsChildOf(UInterface::StaticClass()));
-
 			UClass const* InputClass = Cast<UClass const>(Input.PinSubCategoryObject.Get());
-			check(InputClass && InputClass->IsChildOf(UInterface::StaticClass()));
-			
+			if (!OutputClass || !InputClass 
+				|| !OutputClass->IsChildOf(UInterface::StaticClass())
+				|| !InputClass->IsChildOf(UInterface::StaticClass()))
+			{
+				UE_LOG(LogBlueprint, Error,
+					TEXT("UEdGraphSchema_K2::ArePinTypesCompatible invalid interface types - OutputClass: %s, InputClass: %s, CallingContext: %s"),
+					*GetPathNameSafe(OutputClass), *GetPathNameSafe(InputClass), *GetPathNameSafe(CallingContext));
+				return false;
+			}
+
 			return ExtendedIsChildOf(OutputClass, InputClass);
 		}
 		else if (((Output.PinCategory == PC_Asset) && (Input.PinCategory == PC_Asset))
@@ -5588,9 +5591,10 @@ UEdGraphNode* UEdGraphSchema_K2::CreateSubstituteNode(UEdGraphNode* Node, const 
 				{
 					PreExistingNode = FBlueprintEditorUtils::FindCustomEventNode(Blueprint, EventNode->CustomFunctionName);
 				}
-				else
+				else if (ensure(EventNode->FindEventSignatureFunction() != nullptr))
 				{
-					check(EventNode->FindEventSignatureFunction() != nullptr);
+					// EventNode::FindEventSignatureFunction will return null if it is deleted (for instance, someone declared a 
+					// BlueprintImplementableEvent, and some blueprint implements it, but then the declaration is deleted)
 					UClass* ClassOwner = EventNode->FindEventSignatureFunction()->GetOwnerClass()->GetAuthoritativeClass();
 
 					PreExistingNode = FBlueprintEditorUtils::FindOverrideForFunction(Blueprint, ClassOwner, EventNode->FindEventSignatureFunction()->GetFName());

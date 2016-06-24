@@ -6,6 +6,8 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "SHyperlink.h"
+#include "EngineAnalytics.h"
+#include "IAnalyticsProvider.h"
 
 #define LOCTEXT_NAMESPACE "GameProjectGeneration"
 

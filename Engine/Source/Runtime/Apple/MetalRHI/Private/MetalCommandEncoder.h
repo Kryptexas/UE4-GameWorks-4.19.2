@@ -52,7 +52,16 @@ public:
 	
 	/** @returns True if and only if there is an active blit command encoder, otherwise false. */
 	bool IsBlitCommandEncoderActive(void) const;
+	
+	/**
+	 * True iff the command-encoder submits immediately to the command-queue, false if it performs any buffering.
+	 * @returns True iff the command-list submits immediately to the command-queue, false if it performs any buffering.
+	 */
+	bool IsImmediate(void) const;
 
+	/** @returns True if and only if there is valid render pass descriptor set on the encoder, otherwise false. */
+	bool IsRenderPassDescriptorValid(void) const;
+	
 	/** @returns The active render command encoder or nil if there isn't one. */
 	id<MTLRenderCommandEncoder> GetRenderCommandEncoder(void) const;
 	
@@ -260,26 +269,6 @@ public:
 	 */
 	void SetShaderSamplerStates(EShaderFrequency const Frequency, const id<MTLSamplerState> Samplers[], NSRange const& Range);
 	
-	/*
-	 * Set a global sampler for all fragment shaders at the given bind point index.
-	 * @param Frequency The shader frequency to modify.
-	 * @param Sampler The sampler state to bind or nil to clear.
-	 * @param LodMinClamp The minimum lod value or 0.
-	 * @param LodMaxClamp The maximum lod value or FLT_MAX.
-	 * @param Index The index to modify.
-	 */
-	void SetShaderSamplerState(EShaderFrequency const Frequency, id<MTLSamplerState> const Sampler, float LodMinClamp, float LodMaxClamp, NSUInteger const Index);
-	
-	/*
-	 * Set an array of global samplers for all fragment shaders with the given bind point range.
-	 * @param Frequency The shader frequency to modify.
-	 * @param Samplers The sampler states to bind or nil to clear.
-	 * @param LodMinClamps The minimum lod values or 0.
-	 * @param LodMaxClamps The maximum lod values or FLT_MAX.
-	 * @param Range The start point and number of indices to modify.
-	 */
-	void SetShaderSamplerStates(EShaderFrequency const Frequency, const id<MTLSamplerState> Samplers[], const float LodMinClamps[], const float LodMaxClamps[], NSRange const& Range);
-	
 #pragma mark - Public Compute State Mutators -
 	
 	/*
@@ -351,10 +340,6 @@ private:
 	{
 		/** The bound sampler states or nil. */
 		id<MTLSamplerState> Samplers[ML_MaxSamplers];
-		/** The bound min. lods or 0. */
-		float MinLods[ML_MaxSamplers];
-		/** The bound max. lods or FLT_MAX. */
-		float MaxLods[ML_MaxSamplers];
 		/** A bitmask for which samplers were bound by the application where a bit value of 1 is bound and 0 is unbound. */
 		uint16 Bound;
 	};
@@ -389,6 +374,7 @@ private:
 	NSUInteger PipelineStatsMask;
 	
 	MTLRenderPassDescriptor* RenderPassDesc;
+	NSUInteger RenderPassDescApplied;
 	
 	id<MTLCommandBuffer> CommandBuffer;
 	id<MTLRenderCommandEncoder> RenderCommandEncoder;

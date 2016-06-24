@@ -153,7 +153,7 @@ private:
 	TMap<FString,int32> FbxNodeNameToIndexMap;
 	TMap<const AActor*, FbxNode*> FbxActors;
 	TMap<const USkeletalMeshComponent*, FbxNode*> FbxSkeletonRoots;
-	TMap<const UMaterial*, FbxSurfaceMaterial*> FbxMaterials;
+	TMap<const UMaterialInterface*, FbxSurfaceMaterial*> FbxMaterials;
 	TMap<const UStaticMesh*, FbxMesh*> FbxMeshes;
 
 	/** The frames-per-second (FPS) used when baking transforms */
@@ -304,7 +304,7 @@ private:
 	/**
 	 * Exports the profile_COMMON information for a material.
 	 */
-	FbxSurfaceMaterial* ExportMaterial(UMaterial* Material);
+	FbxSurfaceMaterial* ExportMaterial(UMaterialInterface* Material);
 	
 	FbxSurfaceMaterial* CreateDefaultMaterial();
 	

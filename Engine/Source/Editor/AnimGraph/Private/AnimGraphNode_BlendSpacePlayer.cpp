@@ -6,6 +6,8 @@
 #include "AnimGraphNode_BlendSpacePlayer.h"
 #include "BlueprintNodeSpawner.h"
 #include "BlueprintActionDatabaseRegistrar.h"
+#include "Animation/AimOffsetBlendSpace.h"
+#include "Animation/AimOffsetBlendSpace1D.h"
 
 /////////////////////////////////////////////////////
 // UAnimGraphNode_BlendSpacePlayer
@@ -166,6 +168,14 @@ FBlueprintNodeSignature UAnimGraphNode_BlendSpacePlayer::GetSignature() const
 	NodeSignature.AddSubObject(Node.BlendSpace);
 
 	return NodeSignature;
+}
+
+void UAnimGraphNode_BlendSpacePlayer::SetAnimationAsset(UAnimationAsset* Asset)
+{
+	if (UBlendSpaceBase* BlendSpace = Cast<UBlendSpaceBase>(Asset))
+	{
+		Node.BlendSpace = BlendSpace;
+	}
 }
 
 void UAnimGraphNode_BlendSpacePlayer::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets) const

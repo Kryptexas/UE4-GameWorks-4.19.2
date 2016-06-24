@@ -116,6 +116,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Rendering")
 	void AddOrUpdateBlendable(TScriptInterface<IBlendableInterface> InBlendableObject, float InWeight = 1.0f) { PostProcessSettings.AddBlendable(InBlendableObject, InWeight); }
 
+#if WITH_EDITORONLY_DATA
+	virtual void SetCameraMesh(UStaticMesh* Mesh);
+#endif
+
 protected:
 #if WITH_EDITORONLY_DATA
 	// The frustum component used to show visually where the camera field of view is
@@ -126,9 +130,7 @@ protected:
 
 	// The camera mesh to show visually where the camera is placed
 	class UStaticMeshComponent* ProxyMeshComponent;
-
-	virtual void SetCameraMesh(UStaticMesh* Mesh);
-
+	
 	virtual void ResetProxyMeshTransform();
 #endif
 

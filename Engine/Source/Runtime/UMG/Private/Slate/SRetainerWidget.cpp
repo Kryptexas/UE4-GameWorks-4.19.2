@@ -352,7 +352,9 @@ int32 SRetainerWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 
 		if ( RenderTarget->GetSurfaceWidth() >= 1 && RenderTarget->GetSurfaceHeight() >= 1 )
 		{
-			const FLinearColor FinalColorAndOpacity(InWidgetStyle.GetColorAndOpacityTint() * ColorAndOpacity.Get() * SurfaceBrush.GetTint(InWidgetStyle));
+			const FLinearColor ComputedColorAndOpacity(InWidgetStyle.GetColorAndOpacityTint() * ColorAndOpacity.Get() * SurfaceBrush.GetTint(InWidgetStyle));
+			// Retainer widget uses premultiplied alpha, so premultiply the color by the alpha to respect opactiy.
+			const FLinearColor PremultipliedColorAndOpacity(ComputedColorAndOpacity*ComputedColorAndOpacity.A);
 
 			if ( DynamicEffect )
 			{
@@ -366,7 +368,8 @@ int32 SRetainerWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 				&SurfaceBrush,
 				MyClippingRect,
 				ESlateDrawEffect::NoGamma | ESlateDrawEffect::PreMultipliedAlpha,
-				FinalColorAndOpacity);
+				FLinearColor(PremultipliedColorAndOpacity.R, PremultipliedColorAndOpacity.G, PremultipliedColorAndOpacity.B, PremultipliedColorAndOpacity.A)
+				);
 			
 			TSharedRef<SRetainerWidget> SharedMutableThis = SharedThis(MutableThis);
 			Args.InsertCustomHitTestPath(SharedMutableThis, Args.GetLastHitTestIndex());

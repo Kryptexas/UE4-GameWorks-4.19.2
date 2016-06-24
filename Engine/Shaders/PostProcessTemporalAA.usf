@@ -15,6 +15,7 @@ float SampleWeights[9];
 float LowpassWeights[9];
 float PlusWeights[5];
 float2 RandomOffset;
+float VelocityScaling;
 
 // TODO: This can be removed.
 float ClampFeebackMix;
@@ -272,12 +273,15 @@ float3 MinimalReprojectionForDebugging(float2 UV, float4 SvPosition)
 	return NewColor;
 }
 
-void SSRTemporalAAPS( noperspective float2 UV : TEXCOORD0, float3 InExposureScaleVignette : TEXCOORD1, 
-	float4 Unused1 : TEXCOORD2,
-	float4 Unused2 : TEXCOORD3,
-	float4 Unused3 : TEXCOORD4,
-	float4 SvPosition : SV_POSITION,		// after all interpolators
-	out float4 OutColor : SV_Target0 )
+void SSRTemporalAAPS( 
+	noperspective 	float2 UV 						: TEXCOORD0, 
+					float3 InExposureScaleVignette 	: TEXCOORD1, 
+					float4 Unused2 					: TEXCOORD2,
+					float4 Unused3 					: TEXCOORD3,
+					float4 Unused4 					: TEXCOORD4,
+					float4 SvPosition 				: SV_POSITION,		// after all interpolators
+	out 			float4 OutColor 				: SV_Target0 
+	)
 {
 #if ENABLE_TEMPORAL_AA
 	float InExposureScale = InExposureScaleVignette.x;
@@ -356,7 +360,7 @@ void MainTemporalAAPS(
 		OutColor = float4(MinimalReprojectionForDebugging(UV, SvPosition), 0);
 	#else
 		float InExposureScale = InExposureScaleVignette.x;
-		#define AA_FILTERED 1
+		#define AA_FILTERED 0
 		#define AA_BORDER 1
 		#define AA_ALPHA 0
 		#define AA_CROSS 2
@@ -371,7 +375,7 @@ void MainTemporalAAPS(
 
 		// InExposureScale will always be 1.0 for < SM5 so the exposure of the below will always be wrong, so only use it when EyeAdaptation is supported.
 		#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
-			uint2 PixelPos = SvPosition.xy + uint2( Frame.FrameNumber & 3, (Frame.FrameNumber / 4) & 3 );
+			uint2 PixelPos = SvPosition.xy + uint2( View.FrameNumber & 3, (View.FrameNumber / 4) & 3 );
 			float Random = RandFast( PixelPos );
 			OutColor += DitherScale * (Random - 0.5) * (1.0 / 1024.0) / InExposureScale;
 		#endif
@@ -392,7 +396,7 @@ void MainFastTemporalAAPS(
 {
 #if ENABLE_TEMPORAL_AA
 	float InExposureScale = InExposureScaleVignette.x;
-	#define AA_FILTERED 1
+	#define AA_FILTERED 0
 	#define AA_BORDER 1
 	#define AA_ALPHA 0
 	#define AA_CROSS 2
@@ -408,7 +412,7 @@ void MainFastTemporalAAPS(
 
 	// InExposureScale will always be 1.0 for < SM5 so the exposure of the below will always be wrong, so only use it when EyeAdaptation is supported.
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
-	uint2 PixelPos = SvPosition.xy + uint2( Frame.FrameNumber & 3, (Frame.FrameNumber / 4) & 3 );
+	uint2 PixelPos = SvPosition.xy + uint2( View.FrameNumber & 3, (View.FrameNumber / 4) & 3 );
 	float Random = RandFast( PixelPos );
 	OutColor += DitherScale * (Random - 0.5) * (1.0 / 1024.0) / InExposureScale;
 #endif

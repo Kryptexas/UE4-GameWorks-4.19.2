@@ -180,8 +180,8 @@ struct TStructOpsTypeTraits<FInteriorSettings> : public TStructOpsTypeTraitsBase
 	};
 };
 
-UCLASS(hidecategories=(Advanced, Attachment, Collision, Volume), MinimalAPI)
-class AAudioVolume : public AVolume
+UCLASS(hidecategories=(Advanced, Attachment, Collision, Volume))
+class ENGINE_API AAudioVolume : public AVolume
 {
 	GENERATED_UCLASS_BODY()
 

@@ -29,6 +29,7 @@ public:
 		, _TextFlowDirection()
 		, _Decorators()
 		, _Parser()
+		, _MinDesiredWidth()
 	{}
 		/** The text displayed in this text block */
 		SLATE_ATTRIBUTE( FText, Text )
@@ -76,6 +77,9 @@ public:
 
 		/** The parser used to resolve any markup used in the provided string. */
 		SLATE_ARGUMENT( TSharedPtr< class IRichTextMarkupParser >, Parser )
+
+		/** Minimum width that this text block should be */
+		SLATE_ATTRIBUTE(float, MinDesiredWidth)
 
 		/** Additional decorators can be append to the widget inline. Inline decorators get precedence over decorators not specified inline. */
 		TArray< TSharedRef< ITextDecorator > > InlineDecorators;
@@ -176,6 +180,9 @@ public:
 	/** See TextStyle argument */
 	void SetTextStyle(const FTextBlockStyle& InTextStyle);
 
+	/** See MinDesiredWidth attribute */
+	void SetMinDesiredWidth(const TAttribute<float>& InMinDesiredWidth);
+
 	/**
 	 * Causes the text to reflow it's layout
 	 */
@@ -217,6 +224,9 @@ private:
 
 	/** How the text should be aligned with the margin. */
 	TAttribute< float > LineHeightPercentage;
+
+	/** Prevents the text block from being smaller than desired in certain cases (e.g. when it is empty) */
+	TAttribute<float> MinDesiredWidth;
 };
 
 #endif //WITH_FANCY_TEXT

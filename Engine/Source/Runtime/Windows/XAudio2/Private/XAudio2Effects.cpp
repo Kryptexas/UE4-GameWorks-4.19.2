@@ -193,6 +193,7 @@ public:
 		check( IsLocked() );
 		check( InputProcessParameterCount == 1 );
 		check( OutputProcessParameterCount == 1 );
+		check( pInputProcessParameters && pOutputProcessParameters );
 		check( pInputProcessParameters[0].pBuffer == pOutputProcessParameters[0].pBuffer );
 
 		// Check the global volume multiplier because this effect 

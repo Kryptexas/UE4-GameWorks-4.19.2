@@ -559,7 +559,7 @@ bool FHotReloadModule::RecompileModule(const FName InModuleName, const bool bRel
 
 	ModuleCompilerStartedEvent.Broadcast(false); // we never perform an async compile
 
-	FModuleManager ModuleManager = FModuleManager::Get();
+	FModuleManager& ModuleManager = FModuleManager::Get();
 
 	// Update our set of known modules, in case we don't already know about this module
 	ModuleManager.AddModule( InModuleName );
@@ -625,7 +625,7 @@ bool FHotReloadModule::RecompileModule(const FName InModuleName, const bool bRel
 		// Reload the module if it was loaded before we recompiled
 		if( bWasSuccessful && (bWasModuleLoaded || bForceCodeProject) && bReloadAfterRecompile )
 		{
-			Ar.Logf( TEXT( "Reloading module after successful compile." ) );
+			Ar.Logf( TEXT( "Reloading module %s after successful compile." ), *InModuleName.ToString() );
 			bWasSuccessful = ModuleManager.LoadModuleWithCallback( InModuleName, Ar );
 		}
 	}
@@ -736,9 +736,10 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(const TArray<FRec
 
 	ModuleManager.ResetModulePathsCache();
 
+	
 	FFeedbackContext& ErrorsFC = UClass::GetDefaultPropertiesFeedbackContext();
-	ErrorsFC.Errors.Empty();
-	ErrorsFC.Warnings.Empty();
+	ErrorsFC.ClearWarningsAndErrors();
+
 	// Rebind the hot reload DLL 
 	TGuardValue<bool> GuardIsHotReload(GIsHotReload, true);
 	TGuardValue<bool> GuardIsInitialLoad(GIsInitialLoad, true);
@@ -794,19 +795,15 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(const TArray<FRec
 		}
 	}
 
-	if (ErrorsFC.Errors.Num() || ErrorsFC.Warnings.Num())
+	if (ErrorsFC.GetNumErrors() || ErrorsFC.GetNumWarnings())
 	{
-		TArray<FString> All;
-		All = ErrorsFC.Errors;
-		All += ErrorsFC.Warnings;
-
-		ErrorsFC.Errors.Empty();
-		ErrorsFC.Warnings.Empty();
+		TArray<FString> AllErrorsAndWarnings;
+		ErrorsFC.GetErrorsAndWarningsAndEmpty(AllErrorsAndWarnings);
 
 		FString AllInOne;
-		for (int32 Index = 0; Index < All.Num(); Index++)
+		for (const FString& ErrorOrWarning : AllErrorsAndWarnings)
 		{
-			AllInOne += All[Index];
+			AllInOne += ErrorOrWarning;
 			AllInOne += TEXT("\n");
 		}
 		HotReloadAr.Logf(ELogVerbosity::Warning, TEXT("Some classes could not be reloaded:\n%s"), *AllInOne);
@@ -846,7 +843,16 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(const TArray<FRec
 			Script->PrepareCppStructOps();
 			check(Script->GetCppStructOps());
 		}
-		HotReloadAr.Logf(ELogVerbosity::Warning, TEXT("HotReload successful (%d functions remapped  %d scriptstructs remapped)"), NumFunctionsRemapped, ScriptStructs.Num());
+		// Make sure new classes have the token stream assembled
+		for (FRawObjectIterator It; It; ++It)
+		{
+			UClass* Class = Cast<UClass>(static_cast<UObject*>(It->Object));
+			if (Class && !Class->HasAnyClassFlags(CLASS_TokenStreamAssembled))
+			{
+				Class->AssembleReferenceTokenStream();
+			}
+		}
+		HotReloadAr.Logf(ELogVerbosity::Display, TEXT("HotReload successful (%d functions remapped  %d scriptstructs remapped)"), NumFunctionsRemapped, ScriptStructs.Num());
 
 		HotReloadFunctionRemap.Empty();
 
@@ -858,7 +864,7 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(const TArray<FRec
 
 	HotReloadEvent.Broadcast( !bIsHotReloadingFromEditor );
 
-	HotReloadAr.Logf(ELogVerbosity::Warning, TEXT("HotReload took %4.1fs."), FPlatformTime::Seconds() - HotReloadStartTime);
+	HotReloadAr.Logf(ELogVerbosity::Display, TEXT("HotReload took %4.1fs."), FPlatformTime::Seconds() - HotReloadStartTime);
 
 	bIsHotReloadingFromEditor = false;
 	return Result;

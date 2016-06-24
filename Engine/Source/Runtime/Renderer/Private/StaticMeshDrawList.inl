@@ -494,21 +494,13 @@ public:
 };
 
  
-extern MS_ALIGN(64) uint8 CountBitsTable[64] GCC_ALIGN(64);
-
 static FORCEINLINE int32 CountBits(uint64 Bits)
 {
-	int32 Count = 0;
-	while (true)
-	{
-		Count += CountBitsTable[Bits & 63];
-		if (!(Bits & ~63))
-		{
-			break;
-		}
-		Bits >>= 6;
-	}
-	return Count;
+	// https://en.wikipedia.org/wiki/Hamming_weight
+	Bits -= (Bits >> 1) & 0x5555555555555555ull;
+	Bits = (Bits & 0x3333333333333333ull) + ((Bits >> 2) & 0x3333333333333333ull);
+	Bits = (Bits + (Bits >> 4)) & 0x0f0f0f0f0f0f0f0full;
+	return (Bits * 0x0101010101010101) >> 56;
 }
 
 template<typename DrawingPolicyType>
@@ -826,6 +818,7 @@ int32 TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleFrontToBack(
 			bDrawnShared = false;
 		}
 
+		CA_SUPPRESS(6011);
 		const FElement& Element = DrawingPolicyLink->Elements[ElementIndex];
 		STAT(StatInc +=  Element.Mesh->GetNumPrimitives();)
 		// Avoid the cache miss looking up batch visibility if there is only one element.
@@ -890,7 +883,7 @@ void TStaticMeshDrawList<DrawingPolicyType>::SortFrontToBack(FVector ViewPositio
 }
 
 template<typename DrawingPolicyType>
-void TStaticMeshDrawList<DrawingPolicyType>::GetUsedPrimitivesBasedOnMaterials(ERHIFeatureLevel::Type FeatureLevel, const TArray<const FMaterial*>& Materials, TArray<FPrimitiveSceneInfo*>& PrimitivesToUpdate)
+void TStaticMeshDrawList<DrawingPolicyType>::GetUsedPrimitivesBasedOnMaterials(ERHIFeatureLevel::Type InFeatureLevel, const TArray<const FMaterial*>& Materials, TArray<FPrimitiveSceneInfo*>& PrimitivesToUpdate)
 {
 	for (typename TDrawingPolicySet::TIterator DrawingPolicyIt(DrawingPolicySet); DrawingPolicyIt; ++DrawingPolicyIt)
 	{
@@ -907,7 +900,7 @@ void TStaticMeshDrawList<DrawingPolicyType>::GetUsedPrimitivesBasedOnMaterials(E
 			if (Proxy)
 			{
 				check(!Proxy->IsDeleted());
-				FMaterial* MaterialResource = Proxy->GetMaterialNoFallback(FeatureLevel);
+				FMaterial* MaterialResource = Proxy->GetMaterialNoFallback(InFeatureLevel);
 
 				if (Materials.Contains(MaterialResource))
 				{

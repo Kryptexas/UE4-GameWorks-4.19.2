@@ -58,8 +58,12 @@ FPrimitiveSceneProxy* UCapsuleComponent::CreateSceneProxy()
 		virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override
 		{
 			const bool bProxyVisible = !bDrawOnlyIfSelected || IsSelected();
+
+			// Should we draw this because collision drawing is enabled, and we have collision
+			const bool bShowForCollision = View->Family->EngineShowFlags.Collision && IsCollisionEnabled();
+
 			FPrimitiveViewRelevance Result;
-			Result.bDrawRelevance = IsShown(View) && bProxyVisible;
+			Result.bDrawRelevance = (IsShown(View) && bProxyVisible) || bShowForCollision;
 			Result.bDynamicRelevance = true;
 			Result.bShadowRelevance = IsShadowCast(View);
 			Result.bEditorPrimitiveRelevance = UseEditorCompositing(View);
@@ -82,7 +86,7 @@ FPrimitiveSceneProxy* UCapsuleComponent::CreateSceneProxy()
 FBoxSphereBounds UCapsuleComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	FVector BoxPoint = FVector(CapsuleRadius,CapsuleRadius,CapsuleHalfHeight);
-	return FBoxSphereBounds(FVector::ZeroVector, BoxPoint, BoxPoint.Size()).TransformBy(LocalToWorld);
+	return FBoxSphereBounds(FVector::ZeroVector, BoxPoint, CapsuleHalfHeight).TransformBy(LocalToWorld);
 }
 
 void UCapsuleComponent::CalcBoundingCylinder(float& CylinderRadius, float& CylinderHalfHeight) const 

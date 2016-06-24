@@ -160,7 +160,8 @@ FAIMoveRequest::FAIMoveRequest() :
 	GoalActor(nullptr), GoalLocation(FAISystem::InvalidLocation), FilterClass(nullptr),
 	bInitialized(false), bMoveToActor(false),
 	bUsePathfinding(true), bAllowPartialPath(true), bProjectGoalOnNavigation(true),
-	bStopOnOverlap(true), bCanStrafe(false)
+	bStopOnOverlap(true), bCanStrafe(false),
+	UserFlags(0)
 {
 	AcceptanceRadius = UPathFollowingComponent::DefaultAcceptanceRadius;
 }
@@ -169,7 +170,8 @@ FAIMoveRequest::FAIMoveRequest(const AActor* InGoalActor) :
 	GoalActor(const_cast<AActor*>(InGoalActor)), GoalLocation(FAISystem::InvalidLocation), FilterClass(nullptr),
 	bInitialized(true), bMoveToActor(true),
 	bUsePathfinding(true), bAllowPartialPath(true), bProjectGoalOnNavigation(true),
-	bStopOnOverlap(true), bCanStrafe(false)
+	bStopOnOverlap(true), bCanStrafe(false),
+	UserFlags(0)
 {
 	AcceptanceRadius = UPathFollowingComponent::DefaultAcceptanceRadius;
 }
@@ -178,7 +180,8 @@ FAIMoveRequest::FAIMoveRequest(const FVector& InGoalLocation) :
 	GoalActor(nullptr), GoalLocation(InGoalLocation), FilterClass(nullptr),
 	bInitialized(true), bMoveToActor(false),
 	bUsePathfinding(true), bAllowPartialPath(true), bProjectGoalOnNavigation(true),
-	bStopOnOverlap(true), bCanStrafe(false)
+	bStopOnOverlap(true), bCanStrafe(false),
+	UserFlags(0)
 {
 	AcceptanceRadius = UPathFollowingComponent::DefaultAcceptanceRadius;
 }

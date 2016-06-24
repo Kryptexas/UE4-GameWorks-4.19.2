@@ -32,6 +32,8 @@
 #	include <Android/AndroidPlatformWebBrowser.h>
 #elif PLATFORM_IOS
 #	include <IOS/IOSPlatformWebBrowser.h>
+#elif PLATFORM_PS4
+#	include <PS4/PS4PlatformWebBrowser.h>
 #endif
 
 // Define some platform-dependent file locations
@@ -153,7 +155,7 @@ FWebBrowserSingleton::FWebBrowserSingleton()
 	CefString(&Settings.locale) = *LocaleCode;
 
 	// Append engine version to the user agent string.
-	FString ProductVersion = FString::Printf( TEXT("%s UnrealEngine/%s"), FApp::GetGameName(), ENGINE_VERSION_STRING);
+	FString ProductVersion = FString::Printf( TEXT("%s UnrealEngine/%s"), FApp::GetGameName(), *FEngineVersion::Current().ToString());
 	CefString(&Settings.product_version) = *ProductVersion;
 
 	// Enable on disk cache
@@ -189,7 +191,8 @@ FWebBrowserSingleton::FWebBrowserSingleton()
 	// Specify path to sub process exe
 	FString SubProcessPath(FPaths::Combine(*FPaths::EngineDir(), CEF3_SUBPROCES_EXE));
 	SubProcessPath = FPaths::ConvertRelativePathToFull(SubProcessPath);
-	if (!FPaths::FileExists(SubProcessPath))
+
+	if (!IPlatformFile::GetPlatformPhysical().FileExists(*SubProcessPath))
 	{
 		UE_LOG(LogWebBrowser, Error, TEXT("UnrealCEFSubProcess.exe not found, check that this program has been built and is placed in: %s."), *SubProcessPath);
 	}
@@ -325,7 +328,7 @@ TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(
 			return NewBrowserWindow;
 		}
 	}
-#elif PLATFORM_ANDROID || PLATFORM_IOS
+#elif PLATFORM_ANDROID || PLATFORM_IOS || PLATFORM_PS4
 	// Create new window
 	TSharedPtr<FWebBrowserWindow> NewBrowserWindow = MakeShareable(new FWebBrowserWindow(InitialURL, ContentsToLoad, ShowErrorMessage, bThumbMouseButtonNavigation, bUseTransparency));
 

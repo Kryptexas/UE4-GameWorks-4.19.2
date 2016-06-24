@@ -113,6 +113,11 @@ public:
 		return (Pair.Object.IsValid() || Pair.bIsStruct) ? Pair.ReadAddress : NULL;
 	}
 
+	bool IsValidIndex( int32 Index ) const
+	{
+		return ReadAddresses.IsValidIndex(Index);
+	}
+
 	void Reset()
 	{
 		ReadAddresses.Reset();
@@ -145,6 +150,11 @@ public:
 	uint8* GetAddress( int32 Index )
 	{
 		return ReadAddressListData->GetAddress( Index );
+	}
+	
+	bool IsValidIndex( int32 Index ) const
+	{
+		return ReadAddressListData->IsValidIndex( Index );
 	}
 
 	void Reset()

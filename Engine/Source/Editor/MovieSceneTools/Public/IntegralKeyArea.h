@@ -45,6 +45,7 @@ public:
 protected:
 
 	virtual void EvaluateAndAddKey(float Time, float TimeToCopyFrom, FKeyHandle& CurrentKey) = 0;
+	virtual void SetKeyValue(float Time) = 0;
 
 protected:
 
@@ -156,6 +157,16 @@ protected:
 		}
 
 		Curve.AddKey(Time, Value, CurrentKey);
+	}
+
+	virtual void SetKeyValue(float Time) override
+	{
+		if (IntermediateValue.IsSet())
+		{
+			int32 Value = IntermediateValue.GetValue();
+
+			Curve.UpdateOrAddKey(Time, Value);
+		}
 	}
 
 protected:

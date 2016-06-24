@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotNETUtilities", "..\DotNE
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CompressionHelper", "CompressionHelper\CompressionHelper.vcxproj", "{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AWSUtil", "AWSUtil\AWSUtil.csproj", "{17A62664-AAFB-41D2-BA46-CD2D37387050}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -92,24 +94,38 @@ Global
 		{5D7D66E8-8C76-4AF9-B3EC-2EF03421D730}.Development|Mixed Platforms.ActiveCfg = Development|Any CPU
 		{5D7D66E8-8C76-4AF9-B3EC-2EF03421D730}.Development|Mixed Platforms.Build.0 = Development|Any CPU
 		{5D7D66E8-8C76-4AF9-B3EC-2EF03421D730}.Development|x64.ActiveCfg = Development|Any CPU
-		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.Debug|Any CPU.ActiveCfg = Release|x64
-		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.Debug|Any CPU.Build.0 = Release|x64
+		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.Debug|Any CPU.Build.0 = Debug|x64
 		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.Debug|Mixed Platforms.ActiveCfg = Debug|x64
 		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.Debug|Mixed Platforms.Build.0 = Debug|x64
 		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.Debug|x64.ActiveCfg = Debug|x64
 		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.Debug|x64.Build.0 = Debug|x64
-		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.DebugSlackTesting|Any CPU.ActiveCfg = Release|x64
-		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.DebugSlackTesting|Any CPU.Build.0 = Release|x64
+		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.DebugSlackTesting|Any CPU.ActiveCfg = Debug|x64
+		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.DebugSlackTesting|Any CPU.Build.0 = Debug|x64
 		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.DebugSlackTesting|Mixed Platforms.ActiveCfg = Debug|x64
 		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.DebugSlackTesting|Mixed Platforms.Build.0 = Debug|x64
 		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.DebugSlackTesting|x64.ActiveCfg = Debug|x64
 		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.DebugSlackTesting|x64.Build.0 = Debug|x64
-		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.Development|Any CPU.ActiveCfg = Debug|x64
-		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.Development|Any CPU.Build.0 = Debug|x64
-		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.Development|Mixed Platforms.ActiveCfg = Debug|x64
-		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.Development|Mixed Platforms.Build.0 = Debug|x64
+		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.Development|Any CPU.ActiveCfg = Release|x64
+		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.Development|Any CPU.Build.0 = Release|x64
+		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.Development|Mixed Platforms.ActiveCfg = Debug|Win32
+		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.Development|Mixed Platforms.Build.0 = Debug|Win32
 		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.Development|x64.ActiveCfg = Debug|x64
 		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.Development|x64.Build.0 = Debug|x64
+		{17A62664-AAFB-41D2-BA46-CD2D37387050}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{17A62664-AAFB-41D2-BA46-CD2D37387050}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{17A62664-AAFB-41D2-BA46-CD2D37387050}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{17A62664-AAFB-41D2-BA46-CD2D37387050}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{17A62664-AAFB-41D2-BA46-CD2D37387050}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{17A62664-AAFB-41D2-BA46-CD2D37387050}.DebugSlackTesting|Any CPU.ActiveCfg = Debug|Any CPU
+		{17A62664-AAFB-41D2-BA46-CD2D37387050}.DebugSlackTesting|Any CPU.Build.0 = Debug|Any CPU
+		{17A62664-AAFB-41D2-BA46-CD2D37387050}.DebugSlackTesting|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{17A62664-AAFB-41D2-BA46-CD2D37387050}.DebugSlackTesting|Mixed Platforms.Build.0 = Debug|Any CPU
+		{17A62664-AAFB-41D2-BA46-CD2D37387050}.DebugSlackTesting|x64.ActiveCfg = Debug|Any CPU
+		{17A62664-AAFB-41D2-BA46-CD2D37387050}.Development|Any CPU.ActiveCfg = Release|Any CPU
+		{17A62664-AAFB-41D2-BA46-CD2D37387050}.Development|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{17A62664-AAFB-41D2-BA46-CD2D37387050}.Development|Mixed Platforms.Build.0 = Debug|Any CPU
+		{17A62664-AAFB-41D2-BA46-CD2D37387050}.Development|x64.ActiveCfg = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

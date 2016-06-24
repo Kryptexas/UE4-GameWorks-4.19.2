@@ -128,9 +128,9 @@ public:
 	/** Context data required by the drawing policy that is not known when caching policies in static mesh draw lists. */
 	struct ContextDataType
 	{
-		ContextDataType(const bool InbIsInstancedStereo, const bool InbNeedsInstancedStereoBias) : bIsInstancedStereo(InbIsInstancedStereo), bNeedsInstancedStereoBias(InbNeedsInstancedStereoBias){};
-		ContextDataType() : bIsInstancedStereo(false), bNeedsInstancedStereoBias(false){};
-		bool bIsInstancedStereo, bNeedsInstancedStereoBias;
+		ContextDataType(const bool InbIsInstancedStereo) : bIsInstancedStereo(InbIsInstancedStereo) {};
+		ContextDataType() : bIsInstancedStereo(false) {};
+		bool bIsInstancedStereo;
 	};
 
 	FMeshDrawingPolicy(
@@ -190,10 +190,12 @@ public:
 		const ContextDataType PolicyContext
 		) const
 	{
+		const bool bRenderTwoSided = (IsTwoSided() && !NeedsBackfacePass()) || View.bRenderSceneTwoSided || Mesh.bDisableBackfaceCulling;
+
 		// Use bitwise logic ops to avoid branches
 		RHICmdList.SetRasterizerState(GetStaticRasterizerState<true>(
-			(Mesh.bWireframe || IsWireframe()) ? FM_Wireframe : FM_Solid, ((IsTwoSided() && !NeedsBackfacePass()) || Mesh.bDisableBackfaceCulling) ? CM_None :
-			(((View.bReverseCulling ^ bBackFace) ^ Mesh.ReverseCulling) ? CM_CCW : CM_CW)
+			(Mesh.bWireframe || IsWireframe()) ? FM_Wireframe : FM_Solid, 
+			bRenderTwoSided ? CM_None : (((View.bReverseCulling ^ bBackFace) ^ Mesh.ReverseCulling) ? CM_CCW : CM_CW)
 			));
 	}
 

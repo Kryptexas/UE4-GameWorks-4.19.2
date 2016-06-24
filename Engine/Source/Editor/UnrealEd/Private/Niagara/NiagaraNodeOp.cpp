@@ -158,7 +158,7 @@ void UNiagaraNodeOp::Compile(class INiagaraCompiler* Compiler, TArray<FNiagaraNo
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("OpName"), GetNodeTitle(ENodeTitleType::FullTitle));
-		FText Format = LOCTEXT("InputErrorFormat", "Error compiling {OpName} node.");
+		FText Format = LOCTEXT("NodeErrorFormat", "Error compiling {OpName} node.");
 		Compiler->Error(FText::Format(Format, Args), this, nullptr);
 	}
 }

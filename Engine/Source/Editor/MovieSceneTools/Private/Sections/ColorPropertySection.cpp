@@ -62,6 +62,11 @@ int32 FColorPropertySection::OnPaintSection( FSequencerSectionPainter& Painter )
 		{
 			float Time = ColorKeys[i].Key;
 			FLinearColor Color = ColorKeys[i].Value;
+
+			// HACK: The color is converted to SRgb and then reinterpreted as linear here because gradients are converted to FColor
+			// without the SRgb conversion before being passed to the renderer for some reason.
+			Color = Color.ToFColor( true ).ReinterpretAsLinear();
+
 			float TimeFraction = (Time - StartTime) / SectionDuration;
 
 			GradientStops.Add( FSlateGradientStop( FVector2D( TimeFraction * Painter.SectionGeometry.Size.X, 0 ),

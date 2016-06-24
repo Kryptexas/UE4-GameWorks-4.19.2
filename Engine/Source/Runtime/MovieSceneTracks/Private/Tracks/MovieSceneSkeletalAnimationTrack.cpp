@@ -5,6 +5,7 @@
 #include "MovieSceneSkeletalAnimationTrack.h"
 #include "IMovieScenePlayer.h"
 #include "MovieSceneSkeletalAnimationTrackInstance.h"
+#include "Animation/AnimSequence.h"
 
 
 #define LOCTEXT_NAMESPACE "MovieSceneSkeletalAnimationTrack"

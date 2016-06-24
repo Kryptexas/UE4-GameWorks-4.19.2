@@ -212,16 +212,16 @@ UClass* USizeBox::GetSlotClass() const
 	return USizeBoxSlot::StaticClass();
 }
 
-void USizeBox::OnSlotAdded(UPanelSlot* Slot)
+void USizeBox::OnSlotAdded(UPanelSlot* InSlot)
 {
 	// Add the child to the live slot if it already exists
 	if ( MySizeBox.IsValid() )
 	{
-		Cast<USizeBoxSlot>(Slot)->BuildSlot(MySizeBox.ToSharedRef());
+		CastChecked<USizeBoxSlot>(InSlot)->BuildSlot(MySizeBox.ToSharedRef());
 	}
 }
 
-void USizeBox::OnSlotRemoved(UPanelSlot* Slot)
+void USizeBox::OnSlotRemoved(UPanelSlot* InSlot)
 {
 	// Remove the widget from the live slot if it exists.
 	if ( MySizeBox.IsValid() )

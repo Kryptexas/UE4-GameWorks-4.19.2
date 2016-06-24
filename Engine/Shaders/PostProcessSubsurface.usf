@@ -159,13 +159,13 @@ void VisualizePS(in noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SvPo
 
 	int2 PixelPos = (int2)SvPosition.xy;
 
-	float2 ViewLocalUV = (PixelPos - Frame.ViewRectMin.xy) * Frame.ViewSizeAndInvSize.zw;
+	float2 ViewLocalUV = (PixelPos - View.ViewRectMin.xy) * View.ViewSizeAndInvSize.zw;
 
 	float2 IDAreaLocalUV = ViewLocalUV * 2 - 1.0f;
 
 	if (InUnitBox(IDAreaLocalUV))
 	{
-		float2 UV = Frame.ViewRectMin.xy * Frame.BufferSizeAndInvSize.zw + IDAreaLocalUV * (Frame.ViewSizeAndInvSize.xy * Frame.BufferSizeAndInvSize.zw);
+		float2 UV = View.ViewRectMin.xy * View.BufferSizeAndInvSize.zw + IDAreaLocalUV * (View.ViewSizeAndInvSize.xy * View.BufferSizeAndInvSize.zw);
 
 		FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UV);
 
@@ -248,31 +248,31 @@ SDiffuseAndSpecular ReconstructDiffuse(float2 UVSceneColor, uint ReconstructDiff
 	if(ReconstructDiffuseMethod == 0)
 	{
 		// cheap, crappy
-		Quant1 = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2(1, 0) * Frame.BufferSizeAndInvSize.zw).rgb;
+		Quant1 = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2(1, 0) * View.BufferSizeAndInvSize.zw).rgb;
 	}
 	else if(ReconstructDiffuseMethod == 1)
 	{
 		// acceptable but not perfect
 		Quant1 = 0.5f * (
-			Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2( 1,  0) * Frame.BufferSizeAndInvSize.zw).rgb +
-			Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2(-1,  0) * Frame.BufferSizeAndInvSize.zw).rgb);
+			Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2( 1,  0) * View.BufferSizeAndInvSize.zw).rgb +
+			Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2(-1,  0) * View.BufferSizeAndInvSize.zw).rgb);
 	}
 	else if(ReconstructDiffuseMethod == 2)
 	{
 		// almost same as 1?
 		Quant1 = 0.25f * (
-			Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2( 1,  0) * Frame.BufferSizeAndInvSize.zw).rgb +
-			Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2( 0,  1) * Frame.BufferSizeAndInvSize.zw).rgb +
-			Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2(-1,  0) * Frame.BufferSizeAndInvSize.zw).rgb +
-			Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2( 0, -1) * Frame.BufferSizeAndInvSize.zw).rgb);
+			Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2( 1,  0) * View.BufferSizeAndInvSize.zw).rgb +
+			Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2( 0,  1) * View.BufferSizeAndInvSize.zw).rgb +
+			Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2(-1,  0) * View.BufferSizeAndInvSize.zw).rgb +
+			Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2( 0, -1) * View.BufferSizeAndInvSize.zw).rgb);
 	}
 	else if(ReconstructDiffuseMethod == 3)
 	{
 		// very good 
-		float3 A = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2( 1,  0) * Frame.BufferSizeAndInvSize.zw).rgb;
-		float3 B = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2(-1,  0) * Frame.BufferSizeAndInvSize.zw).rgb;
-		float3 C = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2( 0,  1) * Frame.BufferSizeAndInvSize.zw).rgb;
-		float3 D = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2( 0, -1) * Frame.BufferSizeAndInvSize.zw).rgb;
+		float3 A = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2( 1,  0) * View.BufferSizeAndInvSize.zw).rgb;
+		float3 B = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2(-1,  0) * View.BufferSizeAndInvSize.zw).rgb;
+		float3 C = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2( 0,  1) * View.BufferSizeAndInvSize.zw).rgb;
+		float3 D = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2( 0, -1) * View.BufferSizeAndInvSize.zw).rgb;
 
 		// Luminance could be green channel only
 		float a = Luminance(A);
@@ -386,11 +386,11 @@ void MainPS(noperspective float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor
 	float2 ViewportDirectionUV = float2(1, 0) * SUBSURFACE_RADIUS_SCALE;
 #else
 	// vertical
-	float2 ViewportDirectionUV = float2(0, 1) * SUBSURFACE_RADIUS_SCALE * (Frame.ViewSizeAndInvSize.x * Frame.ViewSizeAndInvSize.w);
+	float2 ViewportDirectionUV = float2(0, 1) * SUBSURFACE_RADIUS_SCALE * (View.ViewSizeAndInvSize.x * View.ViewSizeAndInvSize.w);
 #endif
 
 	// can be optimized
-	float2 GBufferUV = (ViewportUV * Frame.ViewSizeAndInvSize.xy + Frame.ViewRectMin.xy) * Frame.BufferSizeAndInvSize.zw;
+	float2 GBufferUV = (ViewportUV * View.ViewSizeAndInvSize.xy + View.ViewRectMin.xy) * View.BufferSizeAndInvSize.zw;
 
 	OutColor = SSSSBlurPS(GBufferUV, ViewportUV, ViewportDirectionUV, false);
 
@@ -411,7 +411,7 @@ void SubsurfaceRecombinePS(noperspective float4 UVAndScreenPos : TEXCOORD0, floa
 	// recombine with the scene color
 
 	// can be optimized
-	float2 UVSceneColor = SvPosition.xy * Frame.BufferSizeAndInvSize.zw;
+	float2 UVSceneColor = SvPosition.xy * View.BufferSizeAndInvSize.zw;
 
 	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UVSceneColor);
 	

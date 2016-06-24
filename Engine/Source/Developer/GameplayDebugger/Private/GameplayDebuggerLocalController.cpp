@@ -280,7 +280,10 @@ void UGameplayDebuggerLocalController::DrawCategoryHeader(int32 CategoryId, TSha
 {
 	FString DataPackDesc;
 	
-	if (DataPackMap.IsValidIndex(CategoryId) && !Category->IsCategoryAuth() && !Category->ShouldDrawReplicationStatus())
+	if (DataPackMap.IsValidIndex(CategoryId) &&
+		!Category->IsCategoryAuth() &&
+		!Category->ShouldDrawReplicationStatus() &&
+		Category->GetNumDataPacks() > 0)
 	{
 		// collect brief data pack status, detailed info is displayed only when ShouldDrawReplicationStatus is true
 		const int32 CurrentSyncCounter = CachedReplicator->GetDebugActorCounter();
@@ -391,6 +394,12 @@ void UGameplayDebuggerLocalController::BindInput(UInputComponent& InputComponent
 			for (int32 HandlerIdx = 0; HandlerIdx < NumInputHandlers; HandlerIdx++)
 			{
 				FGameplayDebuggerInputHandler& HandlerData = Extension->GetInputHandler(HandlerIdx);
+				if (HandlerData.Mode != EGameplayDebuggerInputMode::Local)
+				{
+					UE_LOG(LogGameplayDebug, Warning, TEXT("Gameplay debugger extension [%d] tried to use replicated input handler [%s], skipping!"), Idx, *HandlerData.ToString());
+					continue;
+				}
+
 				if (HandlerData.Modifier.bPressed || HandlerData.Modifier.bReleased)
 				{
 					FInputChord InputChord(FKey(HandlerData.KeyName), HandlerData.Modifier.bShift, HandlerData.Modifier.bCtrl, HandlerData.Modifier.bAlt, HandlerData.Modifier.bCmd);
@@ -454,6 +463,8 @@ void UGameplayDebuggerLocalController::OnActivationReleased()
 
 		World->GetTimerManager().ClearTimer(StartSelectingActorHandle);
 		World->GetTimerManager().ClearTimer(SelectActorTickHandle);
+
+		CachedReplicator->MarkComponentsRenderStateDirty();
 	}
 
 	StartSelectingActorHandle.Invalidate();
@@ -541,12 +552,7 @@ void UGameplayDebuggerLocalController::OnCategoryBindingEvent(int32 CategoryId, 
 {
 	if (CachedReplicator)
 	{
-		TSharedRef<FGameplayDebuggerCategory> Category = CachedReplicator->GetCategory(CategoryId);
-		if (Category->IsCategoryEnabled())
-		{
-			FGameplayDebuggerInputHandler& InputHandler = Category->GetInputHandler(HandlerId);
-			InputHandler.Delegate.ExecuteIfBound();
-		}
+		CachedReplicator->SendInputEvent(CategoryId, HandlerId);
 	}
 }
 

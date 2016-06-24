@@ -13,6 +13,7 @@
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "MapErrors.h"
+#include "Animation/AnimMontage.h"
 #define LOCTEXT_NAMESPACE "AbilitySystemComponent"
 
 /** Enable to log out all render state create, destroy and updatetransform events */
@@ -34,7 +35,7 @@ void UAbilitySystemComponent::InitializeComponent()
 		if (Set)  
 		{
 			UObject* AT = Set->GetArchetype();	
-			SpawnedAttributes.Add(Set);
+			SpawnedAttributes.AddUnique(Set);
 		}
 	}
 }
@@ -478,11 +479,6 @@ void UAbilitySystemComponent::DecrementAbilityListLock()
 			ClearAbility(Handle);
 		}
 	}
-}
-
-const TArray<FGameplayAbilitySpec>& UAbilitySystemComponent::GetActivatableAbilities() const
-{
-	return ActivatableAbilities.Items;
 }
 
 FGameplayAbilitySpec* UAbilitySystemComponent::FindAbilitySpecFromHandle(FGameplayAbilitySpecHandle Handle)
@@ -1543,7 +1539,7 @@ void UAbilitySystemComponent::ClientActivateAbilitySucceedWithEventData_Implemen
 
 	UGameplayAbility* AbilityToActivate = Spec->Ability;
 
-	ensure(AbilityToActivate);
+	check(AbilityToActivate);
 	ensure(AbilityActorInfo.IsValid());
 
 	Spec->ActivationInfo.SetActivationConfirmed();
@@ -2254,13 +2250,19 @@ void UAbilitySystemComponent::OnPredictiveMontageRejected(UAnimMontage* Predicti
 	}
 }
 
+bool UAbilitySystemComponent::IsReadyForReplicatedMontage()
+{
+	/** Children may want to override this for additional checks (e.g, "has skin been applied") */
+	return true;
+}
+
 /**	Replicated Event for AnimMontages */
 void UAbilitySystemComponent::OnRep_ReplicatedAnimMontage()
 {
 	static const float MONTAGE_REP_POS_ERR_THRESH = 0.1f;
 
 	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->AnimInstance.Get() : nullptr;
-	if (AnimInstance == nullptr)
+	if (AnimInstance == nullptr || !IsReadyForReplicatedMontage())
 	{
 		// We can't handle this yet
 		bPendingMontagerep = true;

@@ -933,6 +933,11 @@ public:
 	bool IsCookByTheBookRunning() const;
 
 	/**
+	 * Get any packages which are in memory, these were probably required to be loaded because of the current package we are cooking, so we should probably cook them also
+	 */
+	void GetUnsolicitedPackages(TArray<UPackage*>& PackagesToSave, bool &ContainsFullGCAssetClasses, const TArray<FName>& TargetPlatformNames) const;
+
+	/**
 	 * Handles cook package requests until there are no more requests, then returns
 	 *
 	 * @param  CookFlags output of the things that might have happened in the cook on the side
@@ -1076,6 +1081,12 @@ public:
 	 * @param Package to mark as not requiring reload
 	 */
 	void MaybeMarkPackageAsAlreadyLoaded(UPackage* Package);
+
+	/**
+	 * Callbacks from UObject globals
+	 */
+
+	void OnStringAssetReferenceLoadedPackage(const FName& PackageName);
 
 
 private:

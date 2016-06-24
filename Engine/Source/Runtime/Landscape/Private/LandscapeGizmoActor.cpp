@@ -12,6 +12,7 @@
 #include "DynamicMeshBuilder.h"
 #include "Engine/CollisionProfile.h"
 #include "EngineUtils.h"
+#include "Materials/MaterialInstanceConstant.h"
 
 namespace
 {

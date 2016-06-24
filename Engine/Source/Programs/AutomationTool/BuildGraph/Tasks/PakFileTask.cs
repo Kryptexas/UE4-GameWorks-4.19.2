@@ -60,7 +60,7 @@ namespace BuildGraph.Tasks
 		/// <summary>
 		/// Tag to be applied to build products of this task
 		/// </summary>
-		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.Tag)]
+		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.TagList)]
 		public string Tag;
 	}
 
@@ -163,9 +163,9 @@ namespace BuildGraph.Tasks
 			BuildProducts.Add(OutputFile);
 
 			// Apply the optional tag to the output file
-			if(!String.IsNullOrEmpty(Parameters.Tag))
+			foreach(string TagName in FindTagNamesFromList(Parameters.Tag))
 			{
-				FindOrAddTagSet(TagNameToFileSet, Parameters.Tag).Add(OutputFile);
+				FindOrAddTagSet(TagNameToFileSet, TagName).Add(OutputFile);
 			}
 			return true;
 		}
@@ -199,6 +199,24 @@ namespace BuildGraph.Tasks
 		public override void Write(XmlWriter Writer)
 		{
 			Write(Writer, Parameters);
+		}
+
+		/// <summary>
+		/// Find all the tags which are used as inputs to this task
+		/// </summary>
+		/// <returns>The tag names which are read by this task</returns>
+		public override IEnumerable<string> FindConsumedTagNames()
+		{
+			return FindTagNamesFromFilespec(Parameters.Files);
+		}
+
+		/// <summary>
+		/// Find all the tags which are modified by this task
+		/// </summary>
+		/// <returns>The tag names which are modified by this task</returns>
+		public override IEnumerable<string> FindProducedTagNames()
+		{
+			return FindTagNamesFromList(Parameters.Tag);
 		}
 	}
 }

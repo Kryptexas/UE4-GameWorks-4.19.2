@@ -13,17 +13,40 @@
 #include "VulkanContext.h"
 #include "VulkanManager.h"
 
+#ifdef VK_API_VERSION
 // Check the SDK is least the API version we want to use
 static_assert(VK_API_VERSION >= UE_VK_API_VERSION, "Vulkan SDK is older than the version we want to support (UE_VK_API_VERSION). Please update your SDK.");
+#elif !defined(VK_HEADER_VERSION)
+	#error No VulkanSDK defines?
+#endif
 
 #if VK_HEADER_VERSION < 8 && (VK_API_VERSION < VK_MAKE_VERSION(1, 0, 3))
 	#include <vulkan/vk_ext_debug_report.h>
 #endif
 
+///////////////////////////////////////////////////////////////////////////////
+
+#if PLATFORM_ANDROID
+
+// Vulkan function pointers
+
+#define DEFINE_VK_ENTRYPOINTS(Type,Func) Type Func = NULL;
+ENUM_VK_ENTRYPOINTS_ALL(DEFINE_VK_ENTRYPOINTS)
+
+#endif
+
+///////////////////////////////////////////////////////////////////////////////
+
 static TAutoConsoleVariable<int32> GLSLCvar(
 	TEXT("r.Vulkan.UseGLSL"),
 	PLATFORM_ANDROID ? 2 : 0,
 	TEXT("2 to use ES GLSL\n1 to use GLSL\n0 to use SPIRV")
+	);
+
+static TAutoConsoleVariable<int32> GRHIThreadCvar(
+	TEXT("r.Vulkan.RHIThread"),
+	0,
+	TEXT("1 to use RHI Thread")
 	);
 
 #if VULKAN_CUSTOM_MEMORY_MANAGER_ENABLED
@@ -38,7 +61,7 @@ struct FVulkanMemManager
 		size_t                                      alignment,
 		VkSystemAllocationScope                           allocScope)
 	{
-		auto* This = (FVulkanMemManager*)pUserData;
+		FVulkanMemManager* This = (FVulkanMemManager*)pUserData;
 		This->MaxAllocSize = FMath::Max(This->MaxAllocSize, size);
 		This->UsedMemory += size;
 		void* Data = FMemory::Malloc(size, alignment);
@@ -50,8 +73,8 @@ struct FVulkanMemManager
 		void*                                       pUserData,
 		void*                                       pMem)
 	{
-		auto* This = (FVulkanMemManager*)pUserData;
-		auto Size = This->Allocs.FindAndRemoveChecked(pMem);
+		FVulkanMemManager* This = (FVulkanMemManager*)pUserData;
+		size_t Size = This->Allocs.FindAndRemoveChecked(pMem);
 		This->UsedMemory -= Size;
 		FMemory::Free(pMem);
 	}
@@ -63,8 +86,8 @@ struct FVulkanMemManager
 		size_t										alignment,
 		VkSystemAllocationScope						allocScope)
 	{
-		auto* This = (FVulkanMemManager*)pUserData;
-		auto Size = This->Allocs.FindAndRemoveChecked(pOriginal);
+		FVulkanMemManager* This = (FVulkanMemManager*)pUserData;
+		size_t Size = This->Allocs.FindAndRemoveChecked(pOriginal);
 		This->UsedMemory -= Size;
 		void* Data = FMemory::Realloc(pOriginal, size, alignment);
 		This->Allocs.Add(Data, size);
@@ -152,6 +175,102 @@ static inline int32 CountSetBits(int32 n)
 
 DEFINE_LOG_CATEGORY(LogVulkan)
 
+#if PLATFORM_ANDROID
+#include <dlfcn.h>
+
+static void *VulkanLib = nullptr;
+static bool bAttemptedLoad = false;
+
+static bool LoadVulkanLibrary()
+{
+	if (bAttemptedLoad)
+	{
+		return (VulkanLib != nullptr);
+	}
+	bAttemptedLoad = true;
+
+	// try to load libvulkan.so
+	VulkanLib = dlopen("libvulkan.so", RTLD_NOW | RTLD_LOCAL);
+	if (VulkanLib == nullptr)
+	{
+		return false;
+	}
+
+	bool bFoundAllEntryPoints = true;
+#define CHECK_VK_ENTRYPOINTS(Type,Func) if (Func == NULL) { bFoundAllEntryPoints = false; UE_LOG(LogRHI, Warning, TEXT("Failed to find entry point for %s"), TEXT(#Func)); }
+
+	// Initialize all of the entry points we have to query manually
+#define GET_VK_ENTRYPOINTS(Type,Func) Func = (Type)dlsym(VulkanLib, #Func);
+	ENUM_VK_ENTRYPOINTS_BASE(GET_VK_ENTRYPOINTS);
+	ENUM_VK_ENTRYPOINTS_BASE(CHECK_VK_ENTRYPOINTS);
+	if (!bFoundAllEntryPoints)
+	{
+		dlclose(VulkanLib);
+		VulkanLib = nullptr;
+		return false;
+	}
+
+	ENUM_VK_ENTRYPOINTS_OPTIONAL(GET_VK_ENTRYPOINTS);
+	//ENUM_VK_ENTRYPOINTS_OPTIONAL(CHECK_VK_ENTRYPOINTS);
+
+	return true;
+}
+
+static bool LoadVulkanInstanceFunctions(VkInstance inInstance)
+{
+	bool bFoundAllEntryPoints = true;
+#define CHECK_VK_ENTRYPOINTS(Type,Func) if (Func == NULL) { bFoundAllEntryPoints = false; UE_LOG(LogRHI, Warning, TEXT("Failed to find entry point for %s"), TEXT(#Func)); }
+
+#define GETINSTANCE_VK_ENTRYPOINTS(Type, Func) Func = (Type)vkGetInstanceProcAddr(inInstance, #Func);
+	ENUM_VK_ENTRYPOINTS_INSTANCE(GETINSTANCE_VK_ENTRYPOINTS);
+	ENUM_VK_ENTRYPOINTS_INSTANCE(CHECK_VK_ENTRYPOINTS);
+
+	return bFoundAllEntryPoints;
+}
+
+static void FreeVulkanLibrary()
+{
+	if (VulkanLib != nullptr)
+	{
+#define CLEAR_VK_ENTRYPOINTS(Type,Func) Func = nullptr;
+		ENUM_VK_ENTRYPOINTS_ALL(CLEAR_VK_ENTRYPOINTS);
+
+		dlclose(VulkanLib);
+		VulkanLib = nullptr;
+	}
+	bAttemptedLoad = false;
+}
+
+#elif PLATFORM_WINDOWS
+
+#include "AllowWindowsPlatformTypes.h"
+static HMODULE GVulkanDLLModule = nullptr;
+static bool LoadVulkanLibrary()
+{
+	// Try to load the vulkan dll, as not everyone has the sdk installed
+	GVulkanDLLModule = ::LoadLibraryW(TEXT("vulkan-1.dll"));
+	return GVulkanDLLModule != nullptr;
+}
+
+static bool LoadVulkanInstanceFunctions(VkInstance inInstance)
+{
+	return true;
+}
+
+static void FreeVulkanLibrary()
+{
+	if (GVulkanDLLModule != nullptr)
+	{
+		::FreeLibrary(GVulkanDLLModule);
+		GVulkanDLLModule = nullptr;
+	}
+}
+#include "HideWindowsPlatformTypes.h"
+
+#else
+#error Unsupported!
+#endif // PLATFORM_ANDROID
+
 bool FVulkanDynamicRHIModule::IsSupported()
 {
 	return true;
@@ -199,13 +318,14 @@ FVulkanCommandListContext::FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, F
 	, PendingMinVertexIndex(0)
 	, PendingIndexDataStride(0)
 	, TempFrameAllocationBuffer(InDevice, VULKAN_TEMP_FRAME_ALLOCATOR_SIZE)
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-#else
 	, CommandBufferManager(nullptr)
-#endif
+	, PendingState(nullptr)
 {
 	// Create CommandBufferManager, contain all active buffers
 	CommandBufferManager = new FVulkanCommandBufferManager(InDevice);
+
+	// Create Pending state, contains pipeline states such as current shader and etc..
+	PendingState = new FVulkanPendingState(InDevice);
 }
 
 FVulkanCommandListContext::~FVulkanCommandListContext()
@@ -213,6 +333,8 @@ FVulkanCommandListContext::~FVulkanCommandListContext()
 	check(CommandBufferManager != nullptr);
 	delete CommandBufferManager;
 	CommandBufferManager = nullptr;
+
+	delete PendingState;
 
 	TempFrameAllocationBuffer.Destroy();
 }
@@ -253,6 +375,11 @@ FVulkanDynamicRHI::FVulkanDynamicRHI()
 
 void FVulkanDynamicRHI::Init()
 {
+	if (!LoadVulkanLibrary())
+	{
+		UE_LOG(LogVulkanRHI, Fatal, TEXT("Failed to find all required Vulkan entry points; make sure your driver supports Vulkan!"));
+	}
+
 	InitInstance();
 }
 
@@ -260,6 +387,8 @@ void FVulkanDynamicRHI::Shutdown()
 {
 	check(IsInGameThread() && IsInRenderingThread());
 	check(Device);
+
+	Device->PrepareForDestroy();
 
 	EmptyCachedBoundShaderStates();
 
@@ -298,6 +427,9 @@ void FVulkanDynamicRHI::Shutdown()
 		// Flush all pending deletes before destroying the device.
 		FRHIResource::FlushPendingDeletes();
 
+		// And again since some might get on a pending queue
+		FRHIResource::FlushPendingDeletes();
+
 		//ReleasePooledTextures();
 	}
 
@@ -320,6 +452,8 @@ void FVulkanDynamicRHI::Shutdown()
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	IConsoleManager::Get().UnregisterConsoleObject(DumpMemoryCmd);
 #endif
+
+	FreeVulkanLibrary();
 }
 
 void FVulkanDynamicRHI::CreateInstance()
@@ -388,6 +522,11 @@ void FVulkanDynamicRHI::CreateInstance()
 
 	VERIFYVULKANRESULT(Result);
 
+	if (!LoadVulkanInstanceFunctions(Instance))
+	{
+		UE_LOG(LogVulkanRHI, Fatal, TEXT("Failed to find all required Vulkan entry points! Maybe using an older SDK/driver?"));
+	}
+
 #if !VULKAN_DISABLE_DEBUG_CALLBACK && VULKAN_HAS_DEBUGGING_ENABLED
 	SetupDebugLayerCallback();
 #endif
@@ -403,7 +542,12 @@ void FVulkanDynamicRHI::InitInstance()
 	if (!Device)
 	{
 		check(!GIsRHIInitialized);
-		
+
+#ifdef PLATFORM_ANDROID
+		// Want to see the actual crash report on Android so unregister signal handlers
+		FPlatformMisc::SetCrashHandler((void(*)(const FGenericCrashContext& Context)) -1);
+#endif
+
 		GRHISupportsAsyncTextureCreation = false;
 
 		bool bDeviceSupportsGeometryShaders = true;
@@ -423,7 +567,7 @@ void FVulkanDynamicRHI::InitInstance()
 			UE_LOG(LogVulkanRHI, Display, TEXT("Found %d device(s)"), GpuCount);
 			for (uint32 Index = 0; Index < GpuCount; ++Index)
 			{
-				auto* NewDevice = new FVulkanDevice(PhysicalDevices[Index]);
+				FVulkanDevice* NewDevice = new FVulkanDevice(PhysicalDevices[Index]);
 				Devices.Add(NewDevice);
 
 				bool bCouldBeMainDevice = NewDevice->QueryGPU(Index);
@@ -448,11 +592,11 @@ void FVulkanDynamicRHI::InitInstance()
 		GSupportsRenderTargetFormat_PF_G8 = false;	// #todo-rco
 		GSupportsQuads = false;	// Not supported in Vulkan
 		GRHISupportsTextureStreaming = false;	// #todo-rco
-		GRHISupportsRHIThread = false;	// #todo-rco
+		GRHISupportsRHIThread = GRHIThreadCvar->GetInt() != 0;	// #todo-rco
 
 		//#todo-rco: Leaks/issues still present!
 		// Indicate that the RHI needs to use the engine's deferred deletion queue.
-		GRHINeedsExtraDeletionLatency = false;
+		GRHINeedsExtraDeletionLatency = true;
 
 		GMaxShadowDepthBufferSizeX =  FPlatformMath::Min<int32>(Props.limits.maxImageDimension2D, GMaxShadowDepthBufferSizeX);
 		GMaxShadowDepthBufferSizeY =  FPlatformMath::Min<int32>(Props.limits.maxImageDimension2D, GMaxShadowDepthBufferSizeY);
@@ -520,7 +664,7 @@ void FVulkanDynamicRHI::InitInstance()
 
 void FVulkanCommandListContext::RHIBeginFrame()
 {
-    Device->GetPendingState().GetGlobalUniformPool().BeginFrame();
+	PendingState->GetGlobalUniformPool().BeginFrame();
 
 	VulkanRHI::GManager.GPUProfilingData.BeginFrame(this, Device->GetTimestampQueryPool(RHI->GetPresentCount() % FVulkanDevice::NumTimestampPools));
 }
@@ -532,14 +676,11 @@ void FVulkanCommandListContext::RHIBeginScene()
 
 void FVulkanCommandListContext::RHIEndScene()
 {
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-	auto* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
-	auto& PendingState = Device->GetPendingState();
-	if (PendingState.IsRenderPassActive())
+	FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+	if (PendingState->IsRenderPassActive())
 	{
-		PendingState.RenderPassEnd(CmdBuffer);
+		PendingState->RenderPassEnd(CmdBuffer);
 	}
-#endif
 }
 
 void FVulkanCommandListContext::RHIBeginDrawingViewport(FViewportRHIParamRef ViewportRHI, FTextureRHIParamRef RenderTargetRHI)
@@ -548,12 +689,7 @@ void FVulkanCommandListContext::RHIBeginDrawingViewport(FViewportRHIParamRef Vie
 	FVulkanViewport* Viewport = ResourceCast(ViewportRHI);
 	if (Viewport->GetBackBufferIndex() < 0)
 	{
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 		Viewport->AcquireBackBuffer(Device->GetImmediateContext().GetCommandBufferManager()->GetActiveCmdBuffer());
-#else
-		// SMEDIS: This is the normal method of getting a new backbuffer. However, RHIGetViewportBackBuffer() can also do it if necessary.
-		Viewport->CurrentBackBuffer = Device->GetQueue()->AquireImageIndex(Viewport->SwapChain);
-#endif
 	}
 	RHI->DrawingViewport = Viewport;
 
@@ -574,9 +710,6 @@ void FVulkanCommandListContext::RHIBeginDrawingViewport(FViewportRHIParamRef Vie
 	}
 
 	RHISetRenderTargets(1, &RTView, nullptr, 0, nullptr);
-
-	check(Device);
-	FVulkanPendingState& state = Device->GetPendingState();
 }
 
 void FVulkanCommandListContext::RHIEndDrawingViewport(FViewportRHIParamRef ViewportRHI, bool bPresent, bool bLockToVsync)
@@ -586,15 +719,12 @@ void FVulkanCommandListContext::RHIEndDrawingViewport(FViewportRHIParamRef Viewp
 
 	RHI->Present();
 
-	FVulkanPendingState& State = Device->GetPendingState();
-	State.InitFrame();
+	PendingState->InitFrame();
 }
 
 void FVulkanCommandListContext::RHIEndFrame()
 {
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 	Device->GetDeferredDeletionQueue().Clear();
-#endif
 
 	Device->GetStagingManager().ProcessPendingFree();
 	Device->GetResourceHeapManager().ReleaseFreedPages();
@@ -613,12 +743,7 @@ void FVulkanCommandListContext::RHIPushEvent(const TCHAR* Name, FColor Color)
 #if VULKAN_ENABLE_DRAW_MARKERS
 		if (auto VkCmdDbgMarkerBegin = Device->GetCmdDbgMarkerBegin())
 		{
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 			VkCmdDbgMarkerBegin(GetCommandBufferManager()->GetActiveCmdBuffer()->GetHandle(), TCHAR_TO_ANSI(Name));
-#else
-			FVulkanPendingState& State = Device->GetPendingState();
-			VkCmdDbgMarkerBegin(State.GetCommandBuffer(), TCHAR_TO_ANSI(Name));
-#endif
 		}
 #endif
 
@@ -634,12 +759,7 @@ void FVulkanCommandListContext::RHIPopEvent()
 #if VULKAN_ENABLE_DRAW_MARKERS
 		if (auto VkCmdDbgMarkerEnd = Device->GetCmdDbgMarkerEnd())
 		{
-			FVulkanPendingState& State = Device->GetPendingState();
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 			VkCmdDbgMarkerEnd(GetCommandBufferManager()->GetActiveCmdBuffer()->GetHandle());
-#else
-			VkCmdDbgMarkerEnd(State.GetCommandBuffer());
-#endif
 		}
 #endif
 
@@ -768,38 +888,6 @@ void FVulkanBuffer::Unlock()
 	BufferPtr = nullptr;
 }
 
-void FVulkanBuffer::CopyTo(FVulkanSurface& Surface, const VkBufferImageCopy& CopyDesc, FVulkanPendingState* State)
-{
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-	check(0);
-#else
-	VkCommandBuffer Cmd = VK_NULL_HANDLE;
-	FVulkanCmdBuffer* CmdObject = nullptr;
-	if(State)
-	{
-		Cmd = State->GetCommandBuffer();
-	}
-	else
-	{
-		CmdObject = Device.GetImmediateContext().GetCommandBufferManager()->Create();
-
-		check(CmdObject);
-		CmdObject->Begin();
-		Cmd = CmdObject->GetHandle();
-	}
-
-	// Do copy
-	vkCmdCopyBufferToImage(Cmd, GetBufferHandle(), Surface.Image, Surface.ImageLayout, 1, &CopyDesc);
-
-	if(!State)
-	{
-		check(CmdObject);
-		Device.GetQueue()->SubmitBlocking(CmdObject);
-		Device.GetImmediateContext().GetCommandBufferManager()->Destroy(CmdObject);
-	}
-#endif
-}
-
 
 FVulkanDescriptorSetsLayout::FVulkanDescriptorSetsLayout(FVulkanDevice* InDevice) :
 	Device(InDevice)
@@ -810,7 +898,7 @@ FVulkanDescriptorSetsLayout::FVulkanDescriptorSetsLayout(FVulkanDevice* InDevice
 FVulkanDescriptorSetsLayout::~FVulkanDescriptorSetsLayout()
 {
 	check(Device);
-	for (auto Handle : LayoutHandles)
+	for (VkDescriptorSetLayout Handle : LayoutHandles)
 	{
 		vkDestroyDescriptorSetLayout(Device->GetInstanceHandle(), Handle, nullptr);
 	}
@@ -840,7 +928,7 @@ void FVulkanDescriptorSetsLayout::AddDescriptor(int32 DescriptorSetIndex, const 
 		DescSetLayout->DescriptorSetIndex = DescriptorSetIndex;
 	}
 
-	auto* Binding = new(DescSetLayout->LayoutBindings) VkDescriptorSetLayoutBinding;
+	VkDescriptorSetLayoutBinding* Binding = new(DescSetLayout->LayoutBindings) VkDescriptorSetLayoutBinding;
 	FMemory::Memzero(*Binding);
 	*Binding = Descriptor;
 }
@@ -898,7 +986,7 @@ void FVulkanDescriptorSetsLayout::Compile()
 		DescriptorLayoutInfo.bindingCount = Layout.LayoutBindings.Num();
 		DescriptorLayoutInfo.pBindings = Layout.LayoutBindings.GetData();
 
-		auto* LayoutHandle = new(LayoutHandles) VkDescriptorSetLayout;
+		VkDescriptorSetLayout* LayoutHandle = new(LayoutHandles) VkDescriptorSetLayout;
 		VERIFYVULKANRESULT(vkCreateDescriptorSetLayout(Device->GetInstanceHandle(), &DescriptorLayoutInfo, nullptr, LayoutHandle));
 	}
 }
@@ -911,7 +999,7 @@ FVulkanDescriptorSets::FVulkanDescriptorSets(FVulkanDevice* InDevice, const FVul
 {
 	Pool->TrackAddUsage(Layout);
 
-	auto& LayoutHandles = Layout.GetHandles();
+	const TArray<VkDescriptorSetLayout>& LayoutHandles = Layout.GetHandles();
 
 	VkDescriptorSetAllocateInfo DescriptorSetAllocateInfo;
 	FMemory::Memzero(DescriptorSetAllocateInfo);
@@ -934,7 +1022,7 @@ FVulkanDescriptorSets::~FVulkanDescriptorSets()
 	}
 }
 
-void FVulkanBufferView::Create(FVulkanDevice& Device, FVulkanBuffer& Buffer, EPixelFormat Format, uint32 Offset, uint32 Size)
+void FVulkanBufferView::Create(FVulkanBuffer& Buffer, EPixelFormat Format, uint32 Offset, uint32 Size)
 {
 	VkBufferViewCreateInfo ViewInfo;
 	FMemory::Memzero(ViewInfo);
@@ -952,10 +1040,10 @@ void FVulkanBufferView::Create(FVulkanDevice& Device, FVulkanBuffer& Buffer, EPi
 	Flags = Buffer.GetFlags() & VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
 	check(Flags);
 
-	VERIFYVULKANRESULT(vkCreateBufferView(Device.GetInstanceHandle(), &ViewInfo, nullptr, &View));
+	VERIFYVULKANRESULT(vkCreateBufferView(GetParent()->GetInstanceHandle(), &ViewInfo, nullptr, &View));
 }
 
-void FVulkanBufferView::Create(FVulkanDevice& Device, FVulkanResourceMultiBuffer* Buffer, EPixelFormat Format, uint32 Offset, uint32 Size)
+void FVulkanBufferView::Create(FVulkanResourceMultiBuffer* Buffer, EPixelFormat Format, uint32 Offset, uint32 Size)
 {
 	VkBufferViewCreateInfo ViewInfo;
 	FMemory::Memzero(ViewInfo);
@@ -973,16 +1061,14 @@ void FVulkanBufferView::Create(FVulkanDevice& Device, FVulkanResourceMultiBuffer
 	Flags = Buffer->GetBufferUsageFlags() & VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
 	check(Flags);
 
-	ViewInfo.flags = Flags;
-
-	VERIFYVULKANRESULT(vkCreateBufferView(Device.GetInstanceHandle(), &ViewInfo, nullptr, &View));
+	VERIFYVULKANRESULT(vkCreateBufferView(GetParent()->GetInstanceHandle(), &ViewInfo, nullptr, &View));
 }
 
-void FVulkanBufferView::Destroy(FVulkanDevice& Device)
+void FVulkanBufferView::Destroy()
 {
 	if (View != VK_NULL_HANDLE)
 	{
-		vkDestroyBufferView(Device.GetInstanceHandle(), View, nullptr);
+		vkDestroyBufferView(GetParent()->GetInstanceHandle(), View, nullptr);
 		View = VK_NULL_HANDLE;
 	}
 }
@@ -1031,11 +1117,11 @@ FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHISetRenderTargetsI
 #if !VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS
 		    CurrDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 #endif
-		    CurrDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		    CurrDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		    CurrDesc.initialLayout = VK_IMAGE_LAYOUT_GENERAL;
+		    CurrDesc.finalLayout = VK_IMAGE_LAYOUT_GENERAL;
     
 		    ColorReferences[NumColorAttachments].attachment = NumAttachments;
-		    ColorReferences[NumColorAttachments].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		    ColorReferences[NumColorAttachments].layout = VK_IMAGE_LAYOUT_GENERAL;
 		    NumAttachments++;
     
 #if VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS
@@ -1190,25 +1276,6 @@ FVulkanRenderPass::~FVulkanRenderPass()
 	RenderPass = VK_NULL_HANDLE;
 }
 
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-#else
-void FVulkanRenderPass::Begin(FVulkanCmdBuffer& CmdBuf, const VkFramebuffer& Framebuffer, const VkClearValue* AttachmentClearValues)
-{
-	VkRenderPassBeginInfo Info;
-	FMemory::Memzero(Info);
-	Info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	Info.renderPass = GetHandle();
-	Info.framebuffer = Framebuffer;
-	Info.renderArea.offset.x = 0;
-	Info.renderArea.offset.y = 0;
-	Info.renderArea.extent = Layout.GetExtent2D();
-	Info.clearValueCount = Layout.GetNumAttachments();
-	Info.pClearValues = AttachmentClearValues;
-
-	vkCmdBeginRenderPass(CmdBuf.GetHandle(false), &Info, VK_SUBPASS_CONTENTS_INLINE);
-}
-#endif
-
 
 void VulkanSetImageLayout(
 	VkCommandBuffer CmdBuffer,
@@ -1232,15 +1299,23 @@ void VulkanSetImageLayout(
 	switch (NewLayout)
 	{
 	case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-		ImageBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+		ImageBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 		break;
 	case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+		if (OldLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+		{
+			ImageBarrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+		}
 		ImageBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 		break;
 	case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
 		ImageBarrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 		break;
 	case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+		if (OldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+		{
+			ImageBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		}
 		ImageBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
 		break;
 	case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
@@ -1265,6 +1340,17 @@ void VulkanSetImageLayout(
 
 	VkPipelineStageFlags SourceStages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 	VkPipelineStageFlags DestStages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+
+	if (OldLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+	{
+		SourceStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		DestStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	}
+	else if (NewLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+	{
+		SourceStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		DestStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+	}
 
 	vkCmdPipelineBarrier(CmdBuffer, SourceStages, DestStages, 0, 0, nullptr, 0, nullptr, 1, BarrierList);
 }
@@ -1310,17 +1396,13 @@ FVulkanRingBuffer::FVulkanRingBuffer(FVulkanDevice* InDevice, uint64 TotalSize, 
 	, MinAlignment(0)
 {
 	FRHIResourceCreateInfo CreateInfo;
-	Buffer = InDevice->GetStagingManager().AcquireBuffer(TotalSize, Usage);
-
-	VkMemoryRequirements MemReqs;
-	vkGetBufferMemoryRequirements(InDevice->GetInstanceHandle(), Buffer->GetHandle(), &MemReqs);
-
-	MinAlignment = (uint32)MemReqs.alignment;
+	BufferSuballocation = InDevice->GetResourceHeapManager().AllocateBuffer(TotalSize, Usage, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, __FILE__, __LINE__);
+	MinAlignment = BufferSuballocation->GetBufferAllocation()->GetAlignment();
 }
 
 FVulkanRingBuffer::~FVulkanRingBuffer()
 {
-	Device->GetStagingManager().ReleaseBuffer(Buffer);
+	delete BufferSuballocation;
 }
 
 uint64 FVulkanRingBuffer::AllocateMemory(uint64 Size, uint32 Alignment)
@@ -1346,13 +1428,13 @@ void FVulkanDynamicRHI::SavePipelineCache()
 {
 	FString CacheFile = FPaths::GameSavedDir() / TEXT("VulkanPSO.cache");
 
-	auto* RHI = (FVulkanDynamicRHI*)GDynamicRHI;
+	FVulkanDynamicRHI* RHI = (FVulkanDynamicRHI*)GDynamicRHI;
 	RHI->Device->PipelineStateCache->Save(CacheFile);
 }
 
 void FVulkanDynamicRHI::RebuildPipelineCache()
 {
-	auto* RHI = (FVulkanDynamicRHI*)GDynamicRHI;
+	FVulkanDynamicRHI* RHI = (FVulkanDynamicRHI*)GDynamicRHI;
 	RHI->Device->PipelineStateCache->RebuildCache();
 }
 #endif
@@ -1360,8 +1442,9 @@ void FVulkanDynamicRHI::RebuildPipelineCache()
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 void FVulkanDynamicRHI::DumpMemory()
 {
-	auto* RHI = (FVulkanDynamicRHI*)GDynamicRHI;
+	FVulkanDynamicRHI* RHI = (FVulkanDynamicRHI*)GDynamicRHI;
 	RHI->Device->GetMemoryManager().DumpMemory();
 	RHI->Device->GetResourceHeapManager().DumpMemory();
+	RHI->Device->GetStagingManager().DumpMemory();
 }
 #endif

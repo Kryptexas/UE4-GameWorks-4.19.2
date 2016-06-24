@@ -38,7 +38,7 @@ namespace UnrealBuildTool
 	 * The following variables are initialized automatically:
 	 * 
 	 *	$S(Output) = the output returned for evaluating the section (initialized to Input)
-	 *	$S(Architecture) = target architecture (armeabi-armv7, armeabi-armv8, x86, x86_64)
+	 *	$S(Architecture) = target architecture (armeabi-armv7a, arm64-v8a, x86, x86_64)
 	 *	$S(PluginDir) = directory the XML file was loaded from
 	 *	$S(EngineDir) = engine directory
 	 *	$S(BuildDir) = project's Intermediate/Android/APK directory
@@ -255,10 +255,11 @@ namespace UnrealBuildTool
 	 * The current element is referenced with tag="$".  Element variables are referenced with $varname
 	 * since using $E(varname) will be expanded to the string equivalent of the XML.
 	 * 
-	 * <uses-permission> and <uses-feature> are updated with:
+	 * <uses-permission>, <uses-feature>, and <uses-library> are updated with:
 	 * 
 	 *	<addPermission android:name="" .. />
 	 *	<addFeature android:name="" .. />
+	 *	<addLibrary android:name="" .. />
 	 *
 	 * Any attributes in the above commands are copied to the element added to the manifest so you
 	 * can do the following, for example:
@@ -745,7 +746,7 @@ namespace UnrealBuildTool
 			if (!ConfigCache.TryGetValue(baseIniName, out config))
 			{
 				// note: use our own ConfigCacheIni since EngineConfiguration.cs only parses RequiredSections!
-				config = ConfigCacheIni_APL.CreateConfigCacheIni_APL(UnrealTargetPlatform.Android, "Engine", DirectoryReference.FromFile(ProjectFile));
+				config = ConfigCacheIni_APL.CreateConfigCacheIni_APL(UnrealTargetPlatform.Android, baseIniName, DirectoryReference.FromFile(ProjectFile));
 				ConfigCache.Add(baseIniName, config);
 			}
 			return config;
@@ -1255,6 +1256,56 @@ namespace UnrealBuildTool
 							if (Name != null)
 							{
 								foreach (var Element in XMLWork.Descendants("uses-feature"))
+								{
+									XAttribute Attribute = Element.Attribute(AndroidNameSpace + "name");
+									if (Attribute != null)
+									{
+										if (Attribute.Value == Name)
+										{
+											Element.Remove();
+											break;
+										}
+									}
+								}
+							}
+						}
+						break;
+
+					case "addLibrary":
+						{
+							string Name = GetAttributeWithNamespace(CurrentContext, Node, AndroidNameSpace, "name");
+							if (Name != null)
+							{
+								// make sure it isn't already added
+								bool bFound = false;
+								foreach (var Element in XMLWork.Descendants("uses-library"))
+								{
+									XAttribute Attribute = Element.Attribute(AndroidNameSpace + "name");
+									if (Attribute != null)
+									{
+										if (Attribute.Value == Name)
+										{
+											bFound = true;
+											break;
+										}
+									}
+								}
+
+								// add it if not found
+								if (!bFound)
+								{
+									XMLWork.Element("manifest").Element("application").Add(new XElement("uses-library", Node.Attributes()));
+								}
+							}
+						}
+						break;
+
+					case "removeLibrary":
+						{
+							string Name = GetAttributeWithNamespace(CurrentContext, Node, AndroidNameSpace, "name");
+							if (Name != null)
+							{
+								foreach (var Element in XMLWork.Descendants("uses-library"))
 								{
 									XAttribute Attribute = Element.Attribute(AndroidNameSpace + "name");
 									if (Attribute != null)
@@ -2859,13 +2910,24 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				PersonalFolder = new DirectoryReference(Environment.GetFolderPath(Environment.SpecialFolder.Personal));
+				// Not all user accounts have a local application data directory (eg. SYSTEM, used by Jenkins for builds).
+				string PersonalFolderSetting = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
+				if(!String.IsNullOrEmpty(PersonalFolderSetting))
+				{
+					PersonalFolder = new DirectoryReference(PersonalFolderSetting);
+				}
 			}
 
-			// <AppData>/UE4/EngineConfig/User* ini
-			yield return FileReference.Combine(UserSettingsFolder, "Unreal Engine", "Engine", "Config", "User" + BaseIniName + ".ini");
-			// <Documents>/UE4/EngineConfig/User* ini
-			yield return FileReference.Combine(PersonalFolder, "Unreal Engine", "Engine", "Config", "User" + BaseIniName + ".ini");
+			if(UserSettingsFolder != null)
+			{
+				// <AppData>/UE4/EngineConfig/User* ini
+				yield return FileReference.Combine(UserSettingsFolder, "Unreal Engine", "Engine", "Config", "User" + BaseIniName + ".ini");
+			}
+			if(PersonalFolder != null)
+			{
+				// <Documents>/UE4/EngineConfig/User* ini
+				yield return FileReference.Combine(PersonalFolder, "Unreal Engine", "Engine", "Config", "User" + BaseIniName + ".ini");
+			}
 
 			// Game/Config/User* ini
 			if (ProjectDirectory != null)

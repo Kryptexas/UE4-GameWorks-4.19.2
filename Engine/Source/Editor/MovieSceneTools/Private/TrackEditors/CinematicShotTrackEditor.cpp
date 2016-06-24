@@ -17,10 +17,12 @@
 #include "CinematicShotSection.h"
 #include "SequencerUtilities.h"
 #include "ContentBrowserModule.h"
-#include "MovieSceneToolHelpers.h"
+#include "MovieSceneCaptureSettings.h"
+#include "MovieSceneCapture.h"
+#include "AutomatedLevelSequenceCapture.h"
+#include "MovieSceneCaptureModule.h"
 #include "LevelSequence.h"
 #include "AssetToolsModule.h"
-#include "AssetRegistryModule.h"
 
 #define LOCTEXT_NAMESPACE "FCinematicShotTrackEditor"
 
@@ -178,78 +180,31 @@ void FCinematicShotTrackEditor::Tick(float DeltaTime)
 	}
 }
 
+void FCinematicShotTrackEditor::BuildTrackContextMenu( FMenuBuilder& MenuBuilder, UMovieSceneTrack* Track )
+{
+	MenuBuilder.AddMenuEntry(
+		NSLOCTEXT( "Sequencer", "ImportEDL", "Import EDL..." ),
+		NSLOCTEXT( "Sequencer", "ImportEDLTooltip", "Import Edit Decision List (EDL) for non-linear editors." ),
+		FSlateIcon(),
+		FUIAction(
+		FExecuteAction::CreateRaw(this, &FCinematicShotTrackEditor::ImportEDL )));
+
+	MenuBuilder.AddMenuEntry(
+		NSLOCTEXT( "Sequencer", "ExportEDL", "Export EDL" ),
+		NSLOCTEXT( "Sequencer", "ExportEDLTooltip", "Export Edit Decision List (EDL) for non-linear editors." ),
+		FSlateIcon(),
+		FUIAction(
+		FExecuteAction::CreateRaw(this, &FCinematicShotTrackEditor::ExportEDL )));
+}
+
 const FSlateBrush* FCinematicShotTrackEditor::GetIconBrush() const
 {
 	return FEditorStyle::GetBrush("Sequencer.Tracks.CinematicShot");
 }
 
-bool IsPackageNameUnique(const TArray<FAssetData>& ObjectList, FString& NewPackageName)
-{
-	for (auto AssetObject : ObjectList)
-	{
-		if (AssetObject.PackageName.ToString() == NewPackageName)
-		{
-			return false;
-		}
-	}
-	return true;
-}
-
 UMovieSceneSubSection* FCinematicShotTrackEditor::CreateShotInternal(FString& NewShotName, float NewShotStartTime, UMovieSceneCinematicShotSection* ShotToDuplicate, const bool& bInsertShot)
 {
-	const UMovieSceneToolsProjectSettings* ProjectSettings = GetDefault<UMovieSceneToolsProjectSettings>();
-
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-	TArray<FAssetData> ObjectList;
-	AssetRegistryModule.Get().GetAssetsByClass(ULevelSequence::StaticClass()->GetFName(), ObjectList);
-
-	UObject* SequenceAsset = GetSequencer()->GetFocusedMovieSceneSequence()->GetMovieScene()->GetOuter();
-	UPackage* SequencePackage = SequenceAsset->GetOutermost();
-
-	FString SequencePackageName = SequencePackage->GetName(); // ie. /Game/cine/max/master
-	int LastSlashPos = SequencePackageName.Find(TEXT("/"), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
-	FString SequencePath = SequencePackageName.Left(LastSlashPos);
-
-	FString NewShotPrefix;
-	uint32 NewShotNumber = INDEX_NONE;
-	uint32 NewTakeNumber = INDEX_NONE;
-	MovieSceneToolHelpers::ParseShotName(NewShotName, NewShotPrefix, NewShotNumber, NewTakeNumber);
-
-	FString NewShotDirectory = MovieSceneToolHelpers::ComposeShotName(NewShotPrefix, NewShotNumber, INDEX_NONE);
-	FString NewShotPath = SequencePath;
-
-	FString ShotDirectory = ProjectSettings->ShotDirectory;
-	if (!ShotDirectory.IsEmpty())
-	{
-		NewShotPath /= ShotDirectory;
-	}
-	NewShotPath /= NewShotDirectory; // put this in the shot directory, ie. /Game/cine/max/shots/shot0010
-
-	// Make sure this shot path is unique
-	FString NewPackageName = NewShotPath;
-	NewPackageName /= NewShotName; // ie. /Game/cine/max/shots/shot0010/shot0010_001
-	if (!IsPackageNameUnique(ObjectList, NewPackageName))
-	{
-		while (1)
-		{
-			NewShotNumber += ProjectSettings->ShotIncrement;
-			NewShotName = MovieSceneToolHelpers::ComposeShotName(NewShotPrefix, NewShotNumber, NewTakeNumber);
-			NewShotDirectory = MovieSceneToolHelpers::ComposeShotName(NewShotPrefix, NewShotNumber, INDEX_NONE);
-			NewShotPath = SequencePath;
-			if (!ShotDirectory.IsEmpty())
-			{
-				NewShotPath /= ShotDirectory;
-			}
-			NewShotPath /= NewShotDirectory;
-
-			NewPackageName = NewShotPath;
-			NewPackageName /= NewShotName;
-			if (IsPackageNameUnique(ObjectList, NewPackageName))
-			{
-				break;
-			}
-		}
-	}
+	FString NewShotPath = MovieSceneToolHelpers::GenerateNewShotPath(GetSequencer()->GetFocusedMovieSceneSequence()->GetMovieScene(), NewShotName);
 
 	// Create a new level sequence asset with the appropriate name
 	IAssetTools& AssetTools = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools").Get();
@@ -385,6 +340,12 @@ void FCinematicShotTrackEditor::DuplicateShot(UMovieSceneCinematicShotSection* S
 	}
 
 	GetSequencer()->NotifyMovieSceneDataChanged();
+}
+
+void FCinematicShotTrackEditor::RenderShot(UMovieSceneCinematicShotSection* Section)
+{
+	GetSequencer()->RenderMovie(Section);
+
 }
 
 
@@ -685,6 +646,75 @@ bool FCinematicShotTrackEditor::HandleSequenceAdded(float KeyTime, UMovieSceneSe
 
 	GetSequencer()->NotifyMovieSceneDataChanged();
 	return true;
+}
+
+void FCinematicShotTrackEditor::ImportEDL()
+{
+	UMovieSceneSequence* FocusedSequence = GetSequencer()->GetFocusedMovieSceneSequence();
+	if (!FocusedSequence)
+	{
+		return;
+	}
+
+	UMovieScene* MovieScene = FocusedSequence->GetMovieScene();
+	if (!MovieScene)
+	{
+		return;
+	}
+
+	UAutomatedLevelSequenceCapture* MovieSceneCapture = Cast<UAutomatedLevelSequenceCapture>(IMovieSceneCaptureModule::Get().GetFirstActiveMovieSceneCapture());
+	if (!MovieSceneCapture)
+	{
+		MovieSceneCapture = NewObject<UAutomatedLevelSequenceCapture>(GetTransientPackage(), UAutomatedLevelSequenceCapture::StaticClass(), NAME_None, RF_Transient);
+		MovieSceneCapture->LoadFromConfig();
+	}
+
+	if (!MovieSceneCapture)
+	{
+		return;
+	}
+
+	const FMovieSceneCaptureSettings& Settings = MovieSceneCapture->GetSettings();
+	FString SaveDirectory = FPaths::ConvertRelativePathToFull(Settings.OutputDirectory.Path);
+	float FrameRate = Settings.FrameRate;
+
+	if (MovieSceneToolHelpers::ShowImportEDLDialog(MovieScene, FrameRate, SaveDirectory))
+	{
+		GetSequencer()->NotifyMovieSceneDataChanged();
+	}
+}
+
+void FCinematicShotTrackEditor::ExportEDL()
+{
+	UMovieSceneSequence* FocusedSequence = GetSequencer()->GetFocusedMovieSceneSequence();
+	if (!FocusedSequence)
+	{
+		return;
+	}
+
+	UMovieScene* MovieScene = FocusedSequence->GetMovieScene();
+	if (!MovieScene)
+	{
+		return;
+	}
+		
+	UAutomatedLevelSequenceCapture* MovieSceneCapture = Cast<UAutomatedLevelSequenceCapture>(IMovieSceneCaptureModule::Get().GetFirstActiveMovieSceneCapture());
+	if (!MovieSceneCapture)
+	{
+		MovieSceneCapture = NewObject<UAutomatedLevelSequenceCapture>(GetTransientPackage(), UAutomatedLevelSequenceCapture::StaticClass(), NAME_None, RF_Transient);
+		MovieSceneCapture->LoadFromConfig();
+	}
+
+	if (!MovieSceneCapture)
+	{
+		return;
+	}
+
+	const FMovieSceneCaptureSettings& Settings = MovieSceneCapture->GetSettings();
+	FString SaveDirectory = FPaths::ConvertRelativePathToFull(Settings.OutputDirectory.Path);
+	float FrameRate = Settings.FrameRate;
+
+	MovieSceneToolHelpers::ShowExportEDLDialog(MovieScene, FrameRate, SaveDirectory);
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -291,11 +291,6 @@ public:
 	void OnSetViewportConfiguration(FName ConfigurationName);
 
 	/**
-	 * Refresh the current viewport configuration
-	 */
-	void RefreshViewportConfiguration();
-
-	/**
 	 * Returns whether the named layout is currently selected on the parent tab that this viewport belongs to.
 	 *
 	 * @param ConfigurationName		The name of the layout (for the names in namespace LevelViewportConfigurationNames)

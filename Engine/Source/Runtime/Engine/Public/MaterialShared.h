@@ -98,6 +98,7 @@ enum EMaterialCommonBasis
 	MCB_World,
 	MCB_View,
 	MCB_Camera,
+	MCB_MeshParticle,
 	MCB_MAX,
 };
 
@@ -302,7 +303,8 @@ public:
 		bUsesEyeAdaptation(false),
 		bModifiesMeshPosition(false),
 		bNeedsGBuffer(false),
-		bUsesGlobalDistanceField(false)
+		bUsesGlobalDistanceField(false),
+		bUsesPixelDepthOffset(false)
 	{}
 
 	ENGINE_API void Serialize(FArchive& Ar);
@@ -328,15 +330,10 @@ public:
 
 	/** true if material uses the global distance field */
 	bool bUsesGlobalDistanceField;
+
+	/** true if the material writes a pixel depth offset */
+	bool bUsesPixelDepthOffset;
 };
-
-
-
-
-
-
-
-
 
 /** 
  * Usage options for a shader map.
@@ -671,6 +668,9 @@ public:
 	/** Saves this shader map to the derived data cache. */
 	void SaveToDerivedDataCache();
 
+	/** Registers all shaders that have been loaded in Serialize */
+	virtual void RegisterSerializedShaders() override;
+
 	/** Backs up any FShaders in this shader map to memory through serialization and clears FShader references. */
 	TArray<uint8>* BackupShadersToMemory();
 	/** Recreates FShaders from the passed in memory, handling shader key changes. */
@@ -710,6 +710,7 @@ public:
 	bool NeedsGBuffer() const { return MaterialCompilationOutput.bNeedsGBuffer; }
 	bool UsesEyeAdaptation() const { return MaterialCompilationOutput.bUsesEyeAdaptation; }
 	bool ModifiesMeshPosition() const { return MaterialCompilationOutput.bModifiesMeshPosition; }
+	bool UsesPixelDepthOffset() const { return MaterialCompilationOutput.bUsesPixelDepthOffset; }
 
 	bool IsValidForRendering() const
 	{
@@ -951,6 +952,9 @@ public:
 	/** Serializes the shader map inline in this material, including any shader dependencies. */
 	void SerializeInlineShaderMap(FArchive& Ar);
 
+	/** Serializes the shader map inline in this material, including any shader dependencies. */
+	void RegisterInlineShaderMap();
+
 	/** Releases this material's shader map.  Must only be called on materials not exposed to the rendering thread! */
 	void ReleaseShaderMap();
 
@@ -988,6 +992,7 @@ public:
 	virtual bool IsCrackFreeDisplacementEnabled() const { return false; }
 	virtual bool IsAdaptiveTessellationEnabled() const { return false; }
 	virtual bool IsFullyRough() const { return false; }
+	virtual bool IsUsingFullPrecision() const { return false; }
 	virtual bool IsUsingHQForwardReflections() const { return false; }
 	virtual bool IsUsingPlanarForwardReflections() const { return false; }
 	virtual bool OutputsVelocityOnBasePass() const { return true; }
@@ -995,7 +1000,9 @@ public:
 	virtual bool UseLmDirectionality() const { return true; }
 	virtual bool IsMasked() const = 0;
 	virtual bool IsDitherMasked() const { return false; }
+	virtual bool AllowNegativeEmissiveColor() const { return false; }
 	virtual enum EBlendMode GetBlendMode() const = 0;
+	ENGINE_API virtual enum ERefractionMode GetRefractionMode() const;
 	virtual enum EMaterialShadingModel GetShadingModel() const = 0;
 	virtual enum ETranslucencyLightingMode GetTranslucencyLightingMode() const { return TLM_VolumetricNonDirectional; };
 	virtual float GetOpacityMaskClipValue() const = 0;
@@ -1089,6 +1096,9 @@ public:
 	/** Does the material modify the mesh position. */
 	ENGINE_API bool MaterialModifiesMeshPosition_RenderThread() const;
 	ENGINE_API bool MaterialModifiesMeshPosition_GameThread() const;
+
+	/** Does the material use a pixel depth offset. */
+	ENGINE_API bool MaterialUsesPixelDepthOffset() const;
 
 	/** Note: This function is only intended for use in deciding whether or not shader permutations are required before material translation occurs. */
 	ENGINE_API bool MaterialMayModifyMeshPosition() const;
@@ -1441,7 +1451,7 @@ public:
 	bool IsReferencedInDrawList() const
 	{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		return bIsStaticDrawListReferenced == 1;
+		return bIsStaticDrawListReferenced != 0;
 #else
 		return false;
 #endif
@@ -1604,12 +1614,14 @@ public:
 	ENGINE_API virtual bool IsCrackFreeDisplacementEnabled() const override;
 	ENGINE_API virtual bool IsAdaptiveTessellationEnabled() const override;
 	ENGINE_API virtual bool IsFullyRough() const override;
+	ENGINE_API virtual bool IsUsingFullPrecision() const override;
 	ENGINE_API virtual bool IsUsingHQForwardReflections() const override;
 	ENGINE_API virtual bool IsUsingPlanarForwardReflections() const override;
 	ENGINE_API virtual bool OutputsVelocityOnBasePass() const override;
 	ENGINE_API virtual bool IsNonmetal() const override;
 	ENGINE_API virtual bool UseLmDirectionality() const override;
 	ENGINE_API virtual enum EBlendMode GetBlendMode() const override;
+	ENGINE_API virtual enum ERefractionMode GetRefractionMode() const override;
 	ENGINE_API virtual uint32 GetDecalBlendMode() const override;
 	ENGINE_API virtual uint32 GetMaterialDecalResponse() const override;
 	ENGINE_API virtual bool HasNormalConnected() const override;
@@ -1629,6 +1641,7 @@ public:
 	ENGINE_API virtual float GetTranslucentShadowStartOffset() const override;
 	ENGINE_API virtual bool IsMasked() const override;
 	ENGINE_API virtual bool IsDitherMasked() const override;
+	ENGINE_API virtual bool AllowNegativeEmissiveColor() const override;
 	ENGINE_API virtual FString GetFriendlyName() const override;
 	ENGINE_API virtual bool RequiresSynchronousCompilation() const override;
 	ENGINE_API virtual bool IsDefaultMaterial() const override;

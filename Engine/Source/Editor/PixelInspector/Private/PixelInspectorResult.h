@@ -63,6 +63,10 @@ namespace PixelInspector
 		TArray<FLinearColor> FinalColor;
 
 		//////////////////////////////////////////////////////////////////////////
+		// Scene color
+		FLinearColor SceneColor;
+
+		//////////////////////////////////////////////////////////////////////////
 		// Depth and world position
 		float Depth;
 		FVector WorldPosition;
@@ -116,6 +120,7 @@ namespace PixelInspector
 		float IrisDistance;
 
 		void DecodeFinalColor(TArray<FColor> &BufferFinalColorValue);
+		void DecodeSceneColor(TArray<FLinearColor> &BufferSceneColorValue);
 		void DecodeDepth(TArray<FLinearColor> &BufferDepthValue);
 		void DecodeHDR(TArray<FLinearColor> &BufferHDRValue);
 

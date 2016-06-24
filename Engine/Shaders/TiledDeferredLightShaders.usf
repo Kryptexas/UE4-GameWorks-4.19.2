@@ -264,7 +264,7 @@ void TiledDeferredLightingMain(
 			// Only radial lights supported with tiled deferred
 			LightData.bRadialLight = true;
 			// The only type of shadowing supported for lights using tiled is static shadowing, so the light should only compute shadowing if it has static shadowing
-			LightData.bShadowed = dot(LightData.ShadowMapChannelMask, float4(1, 1, 1, 1));
+			LightData.ShadowedBits = dot(LightData.ShadowMapChannelMask, float4(1, 1, 1, 1));
 	
 			// Lights requiring light attenuation are not supported tiled for now
 			CompositedLighting += GetDynamicLighting(WorldPosition, CameraVector, ScreenUV, ScreenSpaceData, InGBufferData.ShadingModelID, LightData, float4(1, 1, 1, 1), uint2(0,0));

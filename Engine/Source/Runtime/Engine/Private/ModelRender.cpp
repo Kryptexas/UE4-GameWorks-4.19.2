@@ -418,8 +418,6 @@ public:
 			// Determine the DPG the primitive should be drawn in.
 			uint8 PrimitiveDPG = GetStaticDepthPriorityGroup();
 
-			const FMatrix LocalToWorld = Component->GetRenderMatrix();
-
 			for(int32 ElementIndex = 0;ElementIndex < Elements.Num();ElementIndex++)
 			{
 				const FModelElement& ModelElement = Component->GetElements()[ElementIndex];

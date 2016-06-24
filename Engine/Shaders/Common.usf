@@ -145,6 +145,13 @@
 	#define ES3_1_PROFILE 1
 	#define FCOLOR_COMPONENT_SWIZZLE .bgra
 	#define STENCIL_COMPONENT_SWIZZLE .x
+#elif METAL_ES2_PROFILE
+	#define FEATURE_LEVEL  FEATURE_LEVEL_ES2
+	// @todo metal: remove this and make sure all uses handle METAL_ES2_PROFILE
+	#undef ES2_PROFILE
+	#define ES2_PROFILE 1
+	#define FCOLOR_COMPONENT_SWIZZLE .bgra
+	#define STENCIL_COMPONENT_SWIZZLE .x
 #elif METAL_MRT_PROFILE
 	#define FEATURE_LEVEL FEATURE_LEVEL_SM4
 	#define FCOLOR_COMPONENT_SWIZZLE .bgra
@@ -209,7 +216,10 @@
 
 // Whether the platform supports a global clip plane through SV_ClipDistance
 // Ideally this would just be enabled for all SM4 and above feature level platforms, but not tested everywhere yet
-#define SUPPORT_GLOBAL_CLIP_PLANE (PS4_PROFILE || SM5_PROFILE || SM4_PROFILE)
+#define PLATFORM_SUPPORTS_GLOBAL_CLIP_PLANE (PS4_PROFILE || SM5_PROFILE || SM4_PROFILE || METAL_PROFILE || METAL_MRT_PROFILE || METAL_SM4_PROFILE || METAL_SM5_PROFILE)
+
+// Using SV_ClipDistance has overhead (15% slower base pass in triangle bound test scene on PS4) so projects have to opt-in
+#define USE_GLOBAL_CLIP_PLANE (PLATFORM_SUPPORTS_GLOBAL_CLIP_PLANE && PROJECT_ALLOW_GLOBAL_CLIP_PLANE)
 
 // This would need to be a #define in GLSL to ignore the SamplerState, however, it is currently a function call in HLSL
 // for type checking of the parameters - ironically the type checking is really only needed in GLSL!
@@ -483,6 +493,7 @@ float4 DDY(float4 Input)
 #endif
 }
 
+#include "FastMath.usf"
 #include "Random.usf"	// used by MaterialExpressionNoise
   
 /** 
@@ -510,7 +521,7 @@ MaterialFloat PhongShadingPow(MaterialFloat X, MaterialFloat Y)
 	return ClampedPow(X, Y);
 }
 
-#if FEATURE_LEVEL < FEATURE_LEVEL_ES3_1
+#if FEATURE_LEVEL < FEATURE_LEVEL_ES3_1 && !COMPILER_METAL
 	// DX11 (feature levels >= 10) feature sets natively supports uints in shaders; we just use floats on other platforms.
 	#define uint4	int4
 #endif
@@ -795,7 +806,7 @@ MaterialFloat3 HdrMosaic(MaterialFloat3 LinearColor, MaterialFloat2 VPos)
 // Resolve pass to remove mosaic and restore color.
 MaterialFloat3 HdrDemosaic(MaterialFloat3 Pixel, MaterialFloat3 OtherPixel, MaterialFloat2 VPos)
 {
-	MaterialFloat A = frac(dot(VPos + Frame.DemosaicVposOffset, MaterialFloat2(0.5, 0.5)));
+	MaterialFloat A = frac(dot(VPos + View.DemosaicVposOffset, MaterialFloat2(0.5, 0.5)));
 	MaterialFloat B = 0.5 - A;
 	A = A * DEMOSAIC_MUL + DEMOSAIC_ADD;
 	B = B * DEMOSAIC_MUL + DEMOSAIC_ADD;
@@ -901,7 +912,7 @@ float GetHDR32bppEncodeMode()
 	#endif
 	#if MOBILE_EMULATION
 		// To enable editor runtime change without recompile, PC always eats the encode cost.
-		return Frame.HDR32bppEncodingMode;
+		return View.HDR32bppEncodingMode;
 	#endif
 #endif
 	return HDR_ENCODE_NONE;
@@ -958,7 +969,7 @@ float2 CalcScreenUVFromOffsetFraction(float4 ScreenPosition, float2 OffsetFracti
 float3 DecodeSceneColorForMaterialNode(float2 ScreenUV)
 {
 #if HIT_PROXY_SHADER || SCENE_TEXTURES_DISABLED
-	// Hit proxies rendering pass doesn't have access to valide render buffers
+	// Hit proxies rendering pass doesn't have access to valid render buffers
 	return float3(0.0f, 0.0f, 0.0f);
 #else
 	float4 EncodedSceneColor = Texture2DSample(LightAttenuationTexture, LightAttenuationTextureSampler, ScreenUV);
@@ -973,7 +984,8 @@ float3 DecodeSceneColorForMaterialNode(float2 ScreenUV)
 // @return SceneDepth (linear in world units, W)
 float ConvertFromDeviceZ(float DeviceZ)
 {
-	return 1.f / (DeviceZ * View.InvDeviceZToWorldZTransform[2] - View.InvDeviceZToWorldZTransform[3]);	
+	// Supports ortho and perspective, see CreateInvDeviceZToWorldZTransform()
+	return DeviceZ * View.InvDeviceZToWorldZTransform[0] + View.InvDeviceZToWorldZTransform[1] + 1.0f / (DeviceZ * View.InvDeviceZToWorldZTransform[2] - View.InvDeviceZToWorldZTransform[3]);
 }
 
 // inverse operation of ConvertFromDeviceZ()
@@ -981,12 +993,21 @@ float ConvertFromDeviceZ(float DeviceZ)
 // @return DeviceZ (Z/W)
 float ConvertToDeviceZ(float SceneDepth)
 {
-	// todo: can change the ADD+MUL into a MAD for precision and performance
-	return 1.0f / ((SceneDepth + View.InvDeviceZToWorldZTransform[3]) * View.InvDeviceZToWorldZTransform[2]);
+	FLATTEN
+	if (View.ViewToClip[3][3] < 1.0f)
+	{
+		// Perspective
+		return 1.0f / ((SceneDepth + View.InvDeviceZToWorldZTransform[3]) * View.InvDeviceZToWorldZTransform[2]);
+	}
+	else
+	{
+		// Ortho
+		return SceneDepth * View.ViewToClip[2][2] + View.ViewToClip[3][2];
+	}
 }
 
 /** Returns clip space W, which is world space distance along the View Z axis. Note if you need DeviceZ LookupDeviceZ() is the faster option */
-float CalcSceneDepth( float2 ScreenUV )
+float CalcSceneDepth(float2 ScreenUV)
 {
 #if SCENE_TEXTURES_DISABLED
 	return 0.0f;
@@ -1014,7 +1035,7 @@ float CalcSceneDepth( float2 ScreenUV )
 #endif
 }
 
-/** Returns DeviceZ which is the z value storesd in the depth buffer. Perfer this over CalcSceneDepth() on most hardware. */
+/** Returns DeviceZ which is the z value stored in the depth buffer. */
 float LookupDeviceZ( float2 ScreenUV )
 {
 #if FEATURE_LEVEL > FEATURE_LEVEL_ES3_1
@@ -1072,7 +1093,7 @@ float4 CalcSceneColorAndDepth( float2 ScreenUV )
 #endif // FEATURE_LEVEL
 	float CalcSceneDepthMSAA(float2 ScreenUV,uint SampleIndex)
 	{
-		int2 IntUV = int2(trunc(ScreenUV * Frame.BufferSizeAndInvSize.xy));
+		int2 IntUV = int2(trunc(ScreenUV * View.BufferSizeAndInvSize.xy));
 		float DeviceZ = SceneDepthSurface.Load(IntUV,SampleIndex);
 
 		return ConvertFromDeviceZ(DeviceZ);
@@ -1088,7 +1109,7 @@ float2 ScreenPositionToBufferUV(float4 ScreenPosition)
 
 float2 SvPositionToBufferUV(float4 SvPosition)
 {
-	return SvPosition.xy * Frame.BufferSizeAndInvSize.zw;
+	return SvPosition.xy * View.BufferSizeAndInvSize.zw;
 }
 
 // Used for post process shaders which don't need to resolve the view	
@@ -1119,10 +1140,22 @@ float4 SvPositionToScreenPosition(float4 SvPosition)
 	// todo: is already in .w or needs to be reconstructed like this:
 //	SvPosition.w = ConvertFromDeviceZ(SvPosition.z);
 
-	float2 PixelPos = SvPosition.xy - Frame.ViewRectMin.xy;	
+	float2 PixelPos = SvPosition.xy - View.ViewRectMin.xy;	
 
 	// NDC (NormalizedDeviceCoordinates, after the perspective divide)
-	float3 NDCPos = float3( (PixelPos * Frame.ViewSizeAndInvSize.zw - 0.5f) * float2(2, -2), SvPosition.z);
+	float3 NDCPos = float3( (PixelPos * View.ViewSizeAndInvSize.zw - 0.5f) * float2(2, -2), SvPosition.z);
+
+	// SvPosition.w: so .w has the SceneDepth, some mobile code and the DepthFade material expression wants that
+	return float4(NDCPos.xyz, 1) * SvPosition.w;
+}
+
+// Used for vertex factory shaders which need to use the resolved view
+float4 SvPositionToResolvedScreenPosition(float4 SvPosition)
+{
+	float2 PixelPos = SvPosition.xy - ResolvedView.ViewRectMin.xy;	
+
+	// NDC (NormalizedDeviceCoordinates, after the perspective divide)
+	float3 NDCPos = float3( (PixelPos * ResolvedView.ViewSizeAndInvSize.zw - 0.5f) * float2(2, -2), SvPosition.z);
 
 	// SvPosition.w: so .w has the SceneDepth, some mobile code and the DepthFade material expression wants that
 	return float4(NDCPos.xyz, 1) * SvPosition.w;
@@ -1131,15 +1164,15 @@ float4 SvPositionToScreenPosition(float4 SvPosition)
 float2 SvPositionToViewportUV(float4 SvPosition)
 {
 	// can be optimized from 2SUB+2MUL to 2MAD
-	float2 PixelPos = SvPosition.xy - Frame.ViewRectMin.xy;	
+	float2 PixelPos = SvPosition.xy - View.ViewRectMin.xy;	
 
-	return PixelPos.xy * Frame.ViewSizeAndInvSize.zw;
+	return PixelPos.xy * View.ViewSizeAndInvSize.zw;
 }
 
 float2 BufferUVToViewportUV(float2 BufferUV)
 {
-	float2 PixelPos = BufferUV.xy * Frame.BufferSizeAndInvSize.xy - Frame.ViewRectMin.xy;
-	return PixelPos.xy * Frame.ViewSizeAndInvSize.zw;
+	float2 PixelPos = BufferUV.xy * View.BufferSizeAndInvSize.xy - View.ViewRectMin.xy;
+	return PixelPos.xy * View.ViewSizeAndInvSize.zw;
 }
 // ----------------------------
 
@@ -1393,6 +1426,12 @@ MaterialFloat3 TransformWorldVectorToTangent(MaterialFloat3x3 TangentToWorld, Ma
 	return mul(TangentToWorld, InWorldVector);
 }
 
+float3 TransformWorldVectorToView(float3 InTangentVector)
+{
+	// Transform from world to view space
+	return mul(InTangentVector, (float3x3)ResolvedView.TranslatedWorldToView);
+}
+
 /** Computes the distance from the center to the edge of an AABB with the given extents in the given direction. */
 MaterialFloat GetBoxPushout(MaterialFloat3 Normal,MaterialFloat3 Extent)
 {
@@ -1617,3 +1656,28 @@ SamplerState GetTrilinearClampedSampler()
 	return BuiltinSamplers.TrilinearClamped;
 #endif
 }
+
+// see PixelShaderOutputCommon
+struct FPixelShaderIn
+{
+	// read only
+	float4 SvPosition;
+
+	// Pixel Shader InCoverage, only usable if PIXELSHADEROUTPUT_A2C is 1
+	uint Coverage;
+
+	//
+	bool bIsFrontFace;
+};
+// see PixelShaderOutputCommon
+struct FPixelShaderOut
+{
+	// [0..7], only usable if PIXELSHADEROUTPUT_MRT0, PIXELSHADEROUTPUT_MRT1, ... is 1
+	float4 MRT[8];
+
+	// Pixel Shader OutCoverage, only usable if PIXELSHADEROUTPUT_A2C is 1
+	uint Coverage;
+
+	// Pixel Shader OutDepth
+	float Depth;
+};

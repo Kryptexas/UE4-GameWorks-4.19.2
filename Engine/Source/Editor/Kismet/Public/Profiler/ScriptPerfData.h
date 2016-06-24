@@ -3,14 +3,24 @@
 #pragma once
 
 //////////////////////////////////////////////////////////////////////////
+// EScriptPerfDataType
+
+enum EScriptPerfDataType
+{
+	Event = 0,
+	Node
+};
+
+//////////////////////////////////////////////////////////////////////////
 // FScriptPerfData
 
 class KISMET_API FScriptPerfData : public TSharedFromThis<FScriptPerfData>
 {
 public:
 
-	FScriptPerfData()
-		: InclusiveTiming(0.0)
+	FScriptPerfData(const EScriptPerfDataType StatTypeIn)
+		: StatType(StatTypeIn)
+		, InclusiveTiming(0.0)
 		, NodeTiming(0.0)
 		, MaxTiming(-MAX_dbl)
 		, MinTiming(MAX_dbl)
@@ -34,6 +44,9 @@ public:
 	/** Add branch data */
 	void AddBranchData(const FScriptPerfData& DataIn);
 
+	/** Increments sample count without affecting data */
+	void TickSamples() { NumSamples++; }
+
 	/** Reset the current data buffer and all derived data stats */
 	void Reset();
 
@@ -43,6 +56,7 @@ public:
 	// Updates the various thresholds that control stats calcs and display.
 	static void SetNumberFormattingForStats(const FNumberFormattingOptions& FormatIn) { StatNumberFormat = FormatIn; }
 	static void SetRecentSampleBias(const float RecentSampleBiasIn);
+	static void SetEventPerformanceThreshold(const float EventPerformanceThresholdIn);
 	static void SetNodePerformanceThreshold(const float NodePerformanceThresholdIn);
 	static void SetInclusivePerformanceThreshold(const float InclusivePerformanceThresholdIn);
 	static void SetMaxPerformanceThreshold(const float MaxPerformanceThresholdIn);
@@ -55,10 +69,10 @@ public:
 	double GetTotalTiming() const { return TotalTiming; }
 	int32 GetSampleCount() const { return NumSamples; }
 
-	// Returns various performance colors for visual display
-	FSlateColor GetNodeHeatColor() const;
-	FSlateColor GetInclusiveHeatColor() const;
-	FSlateColor GetMaxTimeHeatColor() const;
+	// Returns various performance heat levels for visual display
+	float GetNodeHeatLevel() const;
+	float GetInclusiveHeatLevel() const;
+	float GetMaxTimeHeatLevel() const;
 
 	// Returns the various stats this container holds in FText format
 	FText GetTotalTimingText() const;
@@ -70,6 +84,8 @@ public:
 
 private:
 
+	/** The stat type for performance threshold comparisons */
+	EScriptPerfDataType StatType;
 	/** Inclusive timing, pure and node timings */
 	double InclusiveTiming;
 	/** Node timing */
@@ -88,13 +104,15 @@ private:
 
 	/** Controls the bias between new and older samples */
 	static float RecentSampleBias;
-	/** Cached Historical Sample Bias */
+	/** Historical Sample Bias */
 	static float HistoricalSampleBias;
-	/** Cached node performance threshold */
+	/** Event performance threshold */
+	static float EventPerformanceThreshold;
+	/** Node performance threshold */
 	static float NodePerformanceThreshold;
-	/** Cached inclusive performance threshold */
+	/** Node inclusive performance threshold */
 	static float InclusivePerformanceThreshold;
-	/** Cached max performance threshold */
+	/** Node max performance threshold */
 	static float MaxPerformanceThreshold;
 
 };

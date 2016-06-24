@@ -46,6 +46,26 @@ void FOnlineError::SetFromErrorMessage(const FText& ErrorMessageIn)
 	ErrorRaw = ErrorMessageIn.ToString();
 }
 
+const TCHAR* FOnlineError::ToLogString() const
+{
+	if (!ErrorMessage.IsEmpty())
+	{
+		return *ErrorMessage.ToString();
+	}
+	else if (!ErrorCode.IsEmpty())
+	{
+		return *ErrorCode;
+	}
+	else if (!ErrorRaw.IsEmpty())
+	{
+		return *ErrorRaw;
+	}
+	else
+	{
+		return TEXT("(Empty FOnlineError)");
+	}
+}
+
 EOnlineServerConnectionStatus::Type FOnlineError::GetConnectionStatusFromHttpResult() const
 {
 	if (bSucceeded)

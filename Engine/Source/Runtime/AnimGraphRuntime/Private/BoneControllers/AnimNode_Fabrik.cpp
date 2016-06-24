@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimGraphRuntimePrivatePCH.h"
+#include "Animation/AnimTypes.h"
 #include "BoneControllers/AnimNode_Fabrik.h"
 
 /////////////////////////////////////////////////////
@@ -256,4 +257,12 @@ void FAnimNode_Fabrik::InitializeBoneReferences(const FBoneContainer& RequiredBo
 	TipBone.Initialize(RequiredBones);
 	RootBone.Initialize(RequiredBones);
 	EffectorTransformBone.Initialize(RequiredBones);
+}
+
+void FAnimNode_Fabrik::GatherDebugData(FNodeDebugData& DebugData)
+{
+	FString DebugLine = DebugData.GetNodeName(this);
+
+	DebugData.AddDebugItem(DebugLine);
+	ComponentPose.GatherDebugData(DebugData);
 }

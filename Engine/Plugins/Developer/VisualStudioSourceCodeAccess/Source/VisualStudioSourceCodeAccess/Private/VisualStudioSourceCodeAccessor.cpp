@@ -81,12 +81,12 @@ int32 GetVisualStudioVersionForCompiler()
 
 int32 GetVisualStudioVersionForSolution(const FString& InSolutionFile)
 {
-	static const FString VisualStudioVersionString = TEXT("Microsoft Visual Studio Solution File, Format Version ");
+	static const FString VisualStudioVersionString = TEXT("# Visual Studio ");
 
 	FString SolutionFileContents;
 	if (FFileHelper::LoadFileToString(SolutionFileContents, *InSolutionFile))
 	{
-		// Find the format version from the file, it will look like "Microsoft Visual Studio Solution File, Format Version 12.00"
+		// Find the format version from the file, it will look like "# Visual Studio 14"
 		const int32 VersionStringStart = SolutionFileContents.Find(VisualStudioVersionString);
 		if (VersionStringStart != INDEX_NONE)
 		{

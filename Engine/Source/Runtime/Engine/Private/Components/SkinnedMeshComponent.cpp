@@ -11,7 +11,7 @@
 #include "SkeletalRenderGPUSkin.h"
 #include "AnimationUtils.h"
 #include "Animation/AnimStats.h"
-#include "Animation/VertexAnim/MorphTarget.h"
+#include "Animation/MorphTarget.h"
 #include "ComponentReregisterContext.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "PhysicsEngine/PhysicsAsset.h"
@@ -365,10 +365,11 @@ void USkinnedMeshComponent::CreateRenderState_Concurrent()
 				// Are morph targets disabled for this LOD?
 				if(SkeletalMesh->LODInfo[UseLOD].bHasBeenSimplified || bDisableMorphTarget || !bMorphTargetsAllowed)
 				{
-					ActiveVertexAnims.Empty();
+					ActiveMorphTargets.Empty();
 				}
 
-				MeshObject->Update(UseLOD, this, ActiveVertexAnims);  // send to rendering thread
+				MorphTargetWeights.SetNum(SkeletalMesh->MorphTargets.Num());
+				MeshObject->Update(UseLOD, this, ActiveMorphTargets, MorphTargetWeights);  // send to rendering thread
 			}
 		}
 
@@ -429,10 +430,11 @@ void USkinnedMeshComponent::SendRenderDynamicData_Concurrent()
 		// Are morph targets disabled for this LOD?
 		if (SkeletalMesh->LODInfo[UseLOD].bHasBeenSimplified || bDisableMorphTarget || !bMorphTargetsAllowed)
 		{
-			ActiveVertexAnims.Empty();
+			ActiveMorphTargets.Empty();
 		}
 
-		MeshObject->Update(UseLOD,this,ActiveVertexAnims);  // send to rendering thread
+		MorphTargetWeights.SetNum(SkeletalMesh->MorphTargets.Num());
+		MeshObject->Update(UseLOD,this,ActiveMorphTargets, MorphTargetWeights);  // send to rendering thread
 		MeshObject->bHasBeenUpdatedAtLeastOnce = true;
 		
 		// scene proxy update of material usage based on active morphs
@@ -604,10 +606,13 @@ void USkinnedMeshComponent::GetStreamingTextureInfo(FStreamingTextureLevelContex
 				MaterialInterface->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, World ? World->FeatureLevel : GMaxRHIFeatureLevel, false);
 				for(int32 TextureIndex = 0; TextureIndex < Textures.Num(); TextureIndex++ )
 				{
+					UTexture2D* Texture2D = Cast<UTexture2D>(Textures[TextureIndex]);
+					if (!Texture2D) continue;
+
 					FStreamingTexturePrimitiveInfo& StreamingTexture = *new(OutStreamingTextures) FStreamingTexturePrimitiveInfo;
 					StreamingTexture.Bounds = Bounds.GetSphere();
 					StreamingTexture.TexelFactor = WorldTexelFactor;
-					StreamingTexture.Texture = Textures[TextureIndex];
+					StreamingTexture.Texture = Texture2D;
 				}
 			}
 		}
@@ -984,15 +989,11 @@ void USkinnedMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkelMesh, bool bRei
 			UpdateMasterBoneMap();
 			UpdateLODStatus();
 			InvalidateCachedBounds();
+			// clear morphtarget cache
+			ActiveMorphTargets.Empty();			
 		}
 	}
 	
-	// TODO: (LH) find better way to call this 
-	// Right now SkeletalMeshComponent(child) needs to call this after animation update
-	// But some of functions of SkinnedMeshComponent has to be called before
-	// So it's hard to split both separate, but do we really need to call this when skeletalmesh is set
-	// Think about this
-	// RefreshBoneTransforms(); 
 	
 	// Notify the streaming system. Don't use Update(), because this may be the first time the mesh has been set
 	// and the component may have to be added to the streaming system for the first time.
@@ -1206,24 +1207,25 @@ FTransform USkinnedMeshComponent::GetSocketTransform(FName InSocketName, ERelati
 
 	if (InSocketName != NAME_None)
 	{
-		int32 BoneIndex = GetBoneIndex(InSocketName);
-		if( BoneIndex != INDEX_NONE )
+		USkeletalMeshSocket const* const Socket = GetSocketByName(InSocketName);
+		// apply the socket transform first if we find a matching socket
+		if (Socket)
 		{
-			OutSocketTransform = GetBoneTransform(BoneIndex);
+			FTransform SocketLocalTransform = Socket->GetSocketLocalTransform();
+
+			int32 BoneIndex = GetBoneIndex(Socket->BoneName);
+			if (BoneIndex != INDEX_NONE)
+			{
+				FTransform BoneTransform = GetBoneTransform(BoneIndex);
+				OutSocketTransform = SocketLocalTransform * BoneTransform;
+			}
 		}
 		else
 		{
-			USkeletalMeshSocket const* const Socket = GetSocketByName(InSocketName);
-			if (Socket)
+			int32 BoneIndex = GetBoneIndex(InSocketName);
+			if (BoneIndex != INDEX_NONE)
 			{
-				FTransform SocketLocalTransform = Socket->GetSocketLocalTransform();
-
-				BoneIndex = GetBoneIndex(Socket->BoneName);
-				if( BoneIndex != INDEX_NONE )
-				{
-					FTransform BoneTransform = GetBoneTransform(BoneIndex);
-					OutSocketTransform = SocketLocalTransform * BoneTransform; 
-				}
+				OutSocketTransform = GetBoneTransform(BoneIndex);
 			}
 		}
 	}
@@ -1626,7 +1628,7 @@ void USkinnedMeshComponent::GetUsedMaterials( TArray<UMaterialInterface*>& OutMa
 }
 
 template <bool bExtraBoneInfluencesT, bool bCachedMatrices>
-FORCEINLINE FVector USkinnedMeshComponent::GetTypedSkinnedVertexPosition(const FSkelMeshChunk& Chunk, const FSkeletalMeshVertexBuffer& VertexBufferGPUSkin, int32 VertIndex, bool bSoftVertex, const TArray<FMatrix> & RefToLocals) const
+FORCEINLINE FVector USkinnedMeshComponent::GetTypedSkinnedVertexPosition(const FSkelMeshSection& Section, const FSkeletalMeshVertexBuffer& VertexBufferGPUSkin, int32 VertIndex, const TArray<FMatrix> & RefToLocals) const
 {
 	FVector SkinnedPos(0,0,0);
 
@@ -1634,60 +1636,34 @@ FORCEINLINE FVector USkinnedMeshComponent::GetTypedSkinnedVertexPosition(const F
 	const USkinnedMeshComponent* BaseComponent = MasterPoseComponentInst ? MasterPoseComponentInst : this;
 
 	// Do soft skinning for this vertex.
-	if(bSoftVertex)
-	{
-		const TGPUSkinVertexBase<bExtraBoneInfluencesT>* SrcSoftVertex = VertexBufferGPUSkin.GetVertexPtr<bExtraBoneInfluencesT>(Chunk.GetSoftVertexBufferIndex()+VertIndex);
+	const TGPUSkinVertexBase<bExtraBoneInfluencesT>* SrcSoftVertex = VertexBufferGPUSkin.GetVertexPtr<bExtraBoneInfluencesT>(Section.GetVertexBufferIndex()+VertIndex);
 
 #if !PLATFORM_LITTLE_ENDIAN
-		// uint8[] elements in LOD.VertexBufferGPUSkin have been swapped for VET_UBYTE4 vertex stream use
-		for(int32 InfluenceIndex = MAX_INFLUENCES-1;InfluenceIndex >=  MAX_INFLUENCES-Chunk.MaxBoneInfluences;InfluenceIndex--)
+	// uint8[] elements in LOD.VertexBufferGPUSkin have been swapped for VET_UBYTE4 vertex stream use
+	for(int32 InfluenceIndex = MAX_INFLUENCES-1;InfluenceIndex >=  MAX_INFLUENCES- Section.MaxBoneInfluences;InfluenceIndex--)
 #else
-		for(int32 InfluenceIndex = 0;InfluenceIndex < Chunk.MaxBoneInfluences;InfluenceIndex++)
+	for(int32 InfluenceIndex = 0;InfluenceIndex < Section.MaxBoneInfluences;InfluenceIndex++)
 #endif
-		{
-			int32 BoneIndex = Chunk.BoneMap[SrcSoftVertex->InfluenceBones[InfluenceIndex]];
-			if(MasterPoseComponentInst)
-			{		
-				check(MasterBoneMap.Num() == SkeletalMesh->RefSkeleton.GetNum());
-				BoneIndex = MasterBoneMap[BoneIndex];
-			}
-
-			const float	Weight = (float)SrcSoftVertex->InfluenceWeights[InfluenceIndex] / 255.0f;
-			{
-				if (bCachedMatrices)
-				{
-					const FMatrix& RefToLocal = RefToLocals[BoneIndex];
-					SkinnedPos += RefToLocal.TransformPosition(VertexBufferGPUSkin.GetVertexPositionFast(SrcSoftVertex)) * Weight;
-				}
-				else
-				{
-					const FMatrix RefToLocal = SkeletalMesh->RefBasesInvMatrix[BoneIndex] * BaseComponent->GetSpaceBases()[BoneIndex].ToMatrixWithScale();
-					SkinnedPos += RefToLocal.TransformPosition(VertexBufferGPUSkin.GetVertexPositionFast(SrcSoftVertex)) * Weight;
-				}
-			}
-		}
-	}
-	// Do rigid (one-influence) skinning for this vertex.
-	else
 	{
-		const TGPUSkinVertexBase<bExtraBoneInfluencesT>* SrcRigidVertex = VertexBufferGPUSkin.GetVertexPtr<bExtraBoneInfluencesT>(Chunk.GetRigidVertexBufferIndex() + VertIndex);
-		const int32 RigidInfluenceIndex = SkinningTools::GetRigidInfluenceIndex();
-		int32 BoneIndex = Chunk.BoneMap[SrcRigidVertex->InfluenceBones[RigidInfluenceIndex]];
+		int32 BoneIndex = Section.BoneMap[SrcSoftVertex->InfluenceBones[InfluenceIndex]];
 		if(MasterPoseComponentInst)
-		{
+		{		
 			check(MasterBoneMap.Num() == SkeletalMesh->RefSkeleton.GetNum());
 			BoneIndex = MasterBoneMap[BoneIndex];
 		}
 
-		if (bCachedMatrices)
+		const float	Weight = (float)SrcSoftVertex->InfluenceWeights[InfluenceIndex] / 255.0f;
 		{
-			const FMatrix& RefToLocal = RefToLocals[BoneIndex];
-			SkinnedPos = RefToLocal.TransformPosition(VertexBufferGPUSkin.GetVertexPositionFast(SrcRigidVertex));
-		}
-		else
-		{
-			const FMatrix RefToLocal = SkeletalMesh->RefBasesInvMatrix[BoneIndex] * BaseComponent->GetSpaceBases()[BoneIndex].ToMatrixWithScale();
-			SkinnedPos = RefToLocal.TransformPosition(VertexBufferGPUSkin.GetVertexPositionFast(SrcRigidVertex));
+			if (bCachedMatrices)
+			{
+				const FMatrix& RefToLocal = RefToLocals[BoneIndex];
+				SkinnedPos += RefToLocal.TransformPosition(VertexBufferGPUSkin.GetVertexPositionFast(SrcSoftVertex)) * Weight;
+			}
+			else
+			{
+				const FMatrix RefToLocal = SkeletalMesh->RefBasesInvMatrix[BoneIndex] * BaseComponent->GetSpaceBases()[BoneIndex].ToMatrixWithScale();
+				SkinnedPos += RefToLocal.TransformPosition(VertexBufferGPUSkin.GetVertexPositionFast(SrcSoftVertex)) * Weight;
+			}
 		}
 	}
 
@@ -1707,21 +1683,18 @@ FVector USkinnedMeshComponent::GetSkinnedVertexPosition(int32 VertexIndex) const
 	FStaticLODModel& Model = MeshObject->GetSkeletalMeshResource().LODModels[0];
 
 	//cache RefToLocal matrices
-	int32 ChunkIndex;
+	int32 SectionIndex;
 	int32 VertIndex;
-	bool bSoftVertex;
 	bool bHasExtraBoneInfluences;
-	Model.GetChunkAndSkinType(VertexIndex, ChunkIndex, VertIndex, bSoftVertex, bHasExtraBoneInfluences);
+	Model.GetSectionFromVertexIndex(VertexIndex, SectionIndex, VertIndex, bHasExtraBoneInfluences);
 
 	//update positions
-	check(ChunkIndex < Model.Chunks.Num());
-	const FSkelMeshChunk& Chunk = Model.Chunks[ChunkIndex];
-			//rigid
+	check(SectionIndex < Model.Sections.Num());
+	const FSkelMeshSection& Section = Model.Sections[SectionIndex];
 
 	return bHasExtraBoneInfluences
-		? GetTypedSkinnedVertexPosition<true, false>(Chunk, Model.VertexBufferGPUSkin, VertIndex, bSoftVertex)
-			//soft
-		: GetTypedSkinnedVertexPosition<false, false>(Chunk, Model.VertexBufferGPUSkin, VertIndex, bSoftVertex);
+		? GetTypedSkinnedVertexPosition<true, false>(Section, Model.VertexBufferGPUSkin, VertIndex)
+		: GetTypedSkinnedVertexPosition<false, false>(Section, Model.VertexBufferGPUSkin, VertIndex);
 
 
 }
@@ -1751,30 +1724,18 @@ void USkinnedMeshComponent::ComputeSkinnedPositions(TArray<FVector> & OutPositio
 	}
 
 	//update positions
-	for (int32 ChunkIdx = 0; ChunkIdx < Model.Chunks.Num(); ++ChunkIdx)
+	for (int32 SectionIdx = 0; SectionIdx < Model.Sections.Num(); ++SectionIdx)
 	{
-		const FSkelMeshChunk& Chunk = Model.Chunks[ChunkIdx];
-		const uint32 NumChunkVerts = Chunk.GetNumVertices();
-		bool bHasExtraBoneInfluences = Chunk.HasExtraBoneInfluences();
-		{
-			//rigid
-			const uint32 RigidOffset = Chunk.GetRigidVertexBufferIndex();
-			const uint32 NumRigidVerts = Chunk.GetNumRigidVertices();
-			for (uint32 RigidIdx = 0; RigidIdx < NumRigidVerts; ++RigidIdx)
-			{
-				FVector SkinnedPosition = bHasExtraBoneInfluences ? GetTypedSkinnedVertexPosition<true, true>(Chunk, Model.VertexBufferGPUSkin, RigidIdx, false, RefToLocals) :
-																	GetTypedSkinnedVertexPosition<false, true>(Chunk, Model.VertexBufferGPUSkin, RigidIdx, false, RefToLocals);
-				OutPositions[RigidOffset + RigidIdx] = SkinnedPosition;
-			}
-		}
+		const FSkelMeshSection& Section = Model.Sections[SectionIdx];
+		bool bHasExtraBoneInfluences = Section.HasExtraBoneInfluences();
 		{
 			//soft
-			const uint32 SoftOffset = Chunk.GetSoftVertexBufferIndex();
-			const uint32 NumSoftVerts = Chunk.GetNumSoftVertices();
+			const uint32 SoftOffset = Section.GetVertexBufferIndex();
+			const uint32 NumSoftVerts = Section.GetNumVertices();
 			for (uint32 SoftIdx = 0; SoftIdx < NumSoftVerts; ++SoftIdx)
 			{
-				FVector SkinnedPosition = bHasExtraBoneInfluences ? GetTypedSkinnedVertexPosition<true, true>(Chunk, Model.VertexBufferGPUSkin, SoftIdx, true, RefToLocals) :
-																	GetTypedSkinnedVertexPosition<false,true>(Chunk, Model.VertexBufferGPUSkin, SoftIdx, true, RefToLocals);
+				FVector SkinnedPosition = bHasExtraBoneInfluences ? GetTypedSkinnedVertexPosition<true, true>(Section, Model.VertexBufferGPUSkin, SoftIdx, RefToLocals) :
+																	GetTypedSkinnedVertexPosition<false,true>(Section, Model.VertexBufferGPUSkin, SoftIdx, RefToLocals);
 				OutPositions[SoftOffset + SoftIdx] = SkinnedPosition;
 			}
 		}
@@ -1798,16 +1759,15 @@ FColor USkinnedMeshComponent::GetVertexColor(int32 VertexIndex) const
 	}
 
 	// Find the chunk and vertex within that chunk, and skinning type, for this vertex.
-	int32 ChunkIndex;
+	int32 SectionIndex;
 	int32 VertIndex;
-	bool bSoftVertex;
 	bool bHasExtraBoneInfluences;
-	Model.GetChunkAndSkinType(VertexIndex, ChunkIndex, VertIndex, bSoftVertex, bHasExtraBoneInfluences);
+	Model.GetSectionFromVertexIndex(VertexIndex, SectionIndex, VertIndex, bHasExtraBoneInfluences);
 
-	check(ChunkIndex < Model.Chunks.Num());
-	const FSkelMeshChunk& Chunk = Model.Chunks[ChunkIndex];
+	check(SectionIndex < Model.Sections.Num());
+	const FSkelMeshSection& Section = Model.Sections[SectionIndex];
 	
-	int32 VertexBase = bSoftVertex ? Chunk.GetSoftVertexBufferIndex() : Chunk.GetRigidVertexBufferIndex();
+	int32 VertexBase = Section.GetVertexBufferIndex();
 
 	return Model.ColorVertexBuffer.VertexColor(VertexBase + VertIndex);
 }

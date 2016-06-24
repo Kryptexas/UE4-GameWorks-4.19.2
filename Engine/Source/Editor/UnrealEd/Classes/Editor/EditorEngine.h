@@ -561,6 +561,9 @@ public:
 
 protected:
 
+	/** Count of how many PIE instances are waiting to log in */
+	int32 PIEInstancesToLogInCount;
+
 	/* These are parameters that we need to cache for late joining */
 	FString ServerPrefix;
 	int32 PIEInstance;
@@ -759,6 +762,7 @@ protected:
 	virtual void InitializeObjectReferences() override;
 	virtual void ProcessToggleFreezeCommand(UWorld* InWorld) override;
 	virtual void ProcessToggleFreezeStreamingCommand(UWorld* InWorld) override;
+	virtual void HandleBrowseToDefaultMapFailure(FWorldContext& Context, const FString& TextURL, const FString& Error) override;
 private:
 	virtual void RemapGamepadControllerIdForPIE(class UGameViewportClient* GameViewport, int32 &ControllerId) override;
 	virtual TSharedPtr<SViewport> GetGameViewportWidget() const override;
@@ -2202,6 +2206,16 @@ public:
 	 */
 	void ConvertActorsFromClass( UClass* FromClass, UClass* ToClass );
 
+	/**
+	 * Gets a delegate that is executed when a matinee is requested to be opened
+	 *
+	 * The first parameter is the matinee actor
+	 *
+	 * @return The event delegate.
+	 */
+	DECLARE_DELEGATE_RetVal_OneParam(bool, FShouldOpenMatineeCallback, AMatineeActor*)
+	FShouldOpenMatineeCallback& OnShouldOpenMatinee() { return ShouldOpenMatineeCallback; }
+
 	/** 
 	 * Show a (Suppressable) warning dialog to remind the user he is about to lose his undo buffer 
 	 *
@@ -2485,6 +2499,9 @@ private:
 	/** Above function but called a frame later, to stop PIE login from happening from a network callback */
 	virtual void OnLoginPIEComplete_Deferred(int32 LocalUserNum, bool bWasSuccessful, FString ErrorString, FPieLoginStruct DataStruct);
 
+	/** Called when all PIE instances have been successfully logged in */
+	virtual void OnLoginPIEAllComplete();
+
 public:
 	/**
 	 * Continue the creation of a single PIE world after a login was successful
@@ -2535,6 +2552,11 @@ private:
 	 * Called via a delegate to toggle between the editor and pie world
 	 */
 	void OnSwitchWorldsForPIE( bool bSwitchToPieWorld );
+
+	/**
+	 * Gives focus to the server or first PIE client viewport
+	 */
+	void GiveFocusToFirstClientPIEViewport();
 
 public:
 	/**
@@ -2690,6 +2712,9 @@ private:
 	/** Delegate broadcast by the engine every tick when PIE/SIE is active, to check to see whether we need to
 		be able to capture state for simulating actor (for Sequencer recording features) */
 	FGetActorRecordingState GetActorRecordingStateEvent;
+
+	/** Delegate to be called when a matinee is requested to be opened */
+	FShouldOpenMatineeCallback ShouldOpenMatineeCallback;
 
 	/** Reference to owner of the current popup */
 	TWeakPtr<class SWindow> PopupWindow;

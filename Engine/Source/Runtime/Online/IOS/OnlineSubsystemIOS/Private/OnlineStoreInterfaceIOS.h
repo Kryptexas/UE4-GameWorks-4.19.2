@@ -67,7 +67,7 @@ public:
 	virtual bool QueryForAvailablePurchases(const TArray<FString>& ProductIDs, FOnlineProductInformationReadRef& InReadObject) override;
 	virtual bool BeginPurchase(const FInAppPurchaseProductRequest& ProductRequest, FOnlineInAppPurchaseTransactionRef& InReadObject) override;
 	virtual bool IsAllowedToMakePurchases() override;
-	virtual bool RestorePurchases(FOnlineInAppPurchaseRestoreReadRef& InReadObject) override;
+	virtual bool RestorePurchases(const TArray<FInAppPurchaseProductRequest>& ConsumableProductFlags, FOnlineInAppPurchaseRestoreReadRef& InReadObject) override;
 	//~ End IOnlineStore Interface
 
 	/**
@@ -85,10 +85,10 @@ public:
 	FOnlineInAppPurchaseRestoreReadPtr CachedPurchaseRestoreObject;
 
 
-private:
 	/** Flags which determine the state of our transaction buffer, only one action at a time */
-	bool bIsPurchasing, bIsProductRequestInFlight;
+	bool bIsPurchasing, bIsProductRequestInFlight, bIsRestoringPurchases;
 
+private:
 	/** Access to the IOS Store kit interface */
 	FStoreKitHelper* StoreHelper;
 

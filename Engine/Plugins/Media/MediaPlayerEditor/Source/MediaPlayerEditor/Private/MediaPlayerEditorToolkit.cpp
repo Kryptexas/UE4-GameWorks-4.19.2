@@ -105,31 +105,31 @@ FString FMediaPlayerEditorToolkit::GetDocumentationLink() const
 }
 
 
-void FMediaPlayerEditorToolkit::RegisterTabSpawners( const TSharedRef<class FTabManager>& TabManager )
+void FMediaPlayerEditorToolkit::RegisterTabSpawners( const TSharedRef<class FTabManager>& InTabManager )
 {
-	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_MediaPlayerEditor", "Media Player Editor"));
+	WorkspaceMenuCategory = InTabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_MediaPlayerEditor", "Media Player Editor"));
 	auto WorkspaceMenuCategoryRef = WorkspaceMenuCategory.ToSharedRef();
 
-	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
+	FAssetEditorToolkit::RegisterTabSpawners(InTabManager);
 
-	TabManager->RegisterTabSpawner( ViewerTabId, FOnSpawnTab::CreateSP( this, &FMediaPlayerEditorToolkit::HandleTabManagerSpawnTab, ViewerTabId ) )
+	InTabManager->RegisterTabSpawner( ViewerTabId, FOnSpawnTab::CreateSP( this, &FMediaPlayerEditorToolkit::HandleTabManagerSpawnTab, ViewerTabId ) )
 		.SetDisplayName( LOCTEXT( "PlayerTabName", "Player" ) )
 		.SetGroup( WorkspaceMenuCategoryRef )
 		.SetIcon( FSlateIcon( FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Viewports" ) );
 
-	TabManager->RegisterTabSpawner( DetailsTabId, FOnSpawnTab::CreateSP( this, &FMediaPlayerEditorToolkit::HandleTabManagerSpawnTab, DetailsTabId ) )
+	InTabManager->RegisterTabSpawner( DetailsTabId, FOnSpawnTab::CreateSP( this, &FMediaPlayerEditorToolkit::HandleTabManagerSpawnTab, DetailsTabId ) )
 		.SetDisplayName( LOCTEXT( "DetailsTabName", "Details" ) )
 		.SetGroup( WorkspaceMenuCategoryRef )
 		.SetIcon( FSlateIcon( FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Details" ) );
 }
 
 
-void FMediaPlayerEditorToolkit::UnregisterTabSpawners( const TSharedRef<class FTabManager>& TabManager )
+void FMediaPlayerEditorToolkit::UnregisterTabSpawners( const TSharedRef<class FTabManager>& InTabManager )
 {
-	FAssetEditorToolkit::UnregisterTabSpawners(TabManager);
+	FAssetEditorToolkit::UnregisterTabSpawners(InTabManager);
 
-	TabManager->UnregisterTabSpawner(ViewerTabId);
-	TabManager->UnregisterTabSpawner(DetailsTabId);
+	InTabManager->UnregisterTabSpawner(ViewerTabId);
+	InTabManager->UnregisterTabSpawner(DetailsTabId);
 }
 
 

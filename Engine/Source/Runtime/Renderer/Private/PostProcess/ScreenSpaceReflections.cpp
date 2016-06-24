@@ -88,6 +88,35 @@ static float ComputeRoughnessMaskScale(const FRenderingCompositePassContext& Con
 	return RoughnessMaskScale * (SSRQuality < 3 ? 2.0f : 1.0f);
 }
 
+FLinearColor ComputeSSRParams(const FRenderingCompositePassContext& Context, uint32 SSRQuality, bool bEnableDiscard)
+{
+	float RoughnessMaskScale = ComputeRoughnessMaskScale(Context, SSRQuality);
+
+	float FrameRandom = 0;
+
+	if(Context.ViewState)
+	{
+		bool bTemporalAAIsOn = Context.View.FinalPostProcessSettings.AntiAliasingMethod == AAM_TemporalAA;
+
+		if(bTemporalAAIsOn)
+		{
+			// usually this number is in the 0..7 range but it depends on the TemporalAA quality
+			FrameRandom = Context.ViewState->GetCurrentTemporalAASampleIndex() * 1551;
+		}
+		else
+		{
+			// 8 aligns with the temporal smoothing, larger number will do more flickering (power of two for best performance)
+			FrameRandom = Context.ViewState->GetFrameIndexMod8() * 1551;
+		}
+	}
+
+	return FLinearColor(
+		FMath::Clamp(Context.View.FinalPostProcessSettings.ScreenSpaceReflectionIntensity * 0.01f, 0.0f, 1.0f), 
+		RoughnessMaskScale,
+		(float)bEnableDiscard,	// TODO 
+		FrameRandom);
+}
+
 /**
  * Encapsulates the post processing screen space reflections pixel shader stencil pass.
  */
@@ -135,13 +164,7 @@ public:
 		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
 
 		{
-			float RoughnessMaskScale = ComputeRoughnessMaskScale(Context, SSRQuality);
-
-			FLinearColor Value(
-				FMath::Clamp(Context.View.FinalPostProcessSettings.ScreenSpaceReflectionIntensity * 0.01f, 0.0f, 1.0f), 
-				RoughnessMaskScale,
-				float(EnableDiscard), //TODO
-				0);
+			FLinearColor Value = ComputeSSRParams(Context, SSRQuality, EnableDiscard);
 
 			SetShaderValue(Context.RHICmdList, ShaderRHI, SSRParams, Value);
 		}
@@ -211,13 +234,7 @@ public:
 		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
 
 		{
-			float RoughnessMaskScale = ComputeRoughnessMaskScale(Context, SSRQuality);
-
-			FLinearColor Value(
-				FMath::Clamp(Context.View.FinalPostProcessSettings.ScreenSpaceReflectionIntensity * 0.01f, 0.0f, 1.0f), 
-				RoughnessMaskScale,
-				0, 
-				0);
+			FLinearColor Value = ComputeSSRParams(Context, SSRQuality, false);
 
 			SetShaderValue(Context.RHICmdList, ShaderRHI, SSRParams, Value);
 		}

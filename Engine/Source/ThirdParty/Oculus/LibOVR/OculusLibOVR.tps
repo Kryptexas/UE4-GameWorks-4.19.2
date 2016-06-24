@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TpsData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>Oculus LibOVR</Name>
-  <Location>//depot/UE4/Engine/Source/ThirdParty/Oculus/LibOVR</Location>
-  <Date>2016-03-27T19:53:52.1116749-04:00</Date>
+  <Location>/Engine/Source/ThirdParty/Oculus/LibOVR/</Location>
+  <Date>2016-06-10T17:56:26.8862995-04:00</Date>
   <Function>Reads sensor data from Oculus Rifts</Function>
   <Justification>We use LibOVR to read sensor data from the Oculus Rifts</Justification>
   <Platforms>
@@ -14,7 +14,11 @@
   </Products>
   <TpsType>lib</TpsType>
   <Eula>http://www.oculus.com/licenses/LICENSE-3.3</Eula>
-  <RedistributeTo />
+  <RedistributeTo>
+    <EndUserGroup>Licensees</EndUserGroup>
+    <EndUserGroup>Git</EndUserGroup>
+    <EndUserGroup>P4</EndUserGroup>
+  </RedistributeTo>
   <Redistribute>false</Redistribute>
   <IsSourceAvailable>false</IsSourceAvailable>
   <NoticeType>Full EULA Text</NoticeType>
@@ -213,5 +217,5 @@ court of competent jurisdiction. You and Oculus agree to submit to the personal 
 with any entrance of an arbitrator’s judgment or decision or any dispute with respect to the arbitration process or procedure or Oculus’s exercise of its 
 equitable rights or remedies.
   </Notification>
-  <LicenseFolder />
+  <LicenseFolder>/Engine/Source/ThirdParty/Licenses/OCULUS_LibOVR_LICENSE.txt</LicenseFolder>
 </TpsData>

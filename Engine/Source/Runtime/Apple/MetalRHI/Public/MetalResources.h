@@ -77,6 +77,9 @@ public:
 	// List of memory copies from RHIUniformBuffer to packed uniforms
 	TArray<CrossCompiler::FUniformBufferCopyInfo> UniformBuffersCopyInfo;
 	
+	/** The binding for the buffer side-table if present */
+	int32 SideTableBinding;
+	
 	TArray<ANSICHAR> GlslCode;
 	NSString* GlslCodeNSString;
 	const ANSICHAR*  GlslCodeString; // make it easier in VS to see shader code in debug mode; points to begin of GlslCode
@@ -221,6 +224,7 @@ public:
 	id<MTLTexture> StencilTexture;
 	uint32 SizeX, SizeY, SizeZ;
 	bool bIsCubemap;
+	bool bWritten;
 	
 	uint32 Flags;
 	// one per mip
@@ -592,9 +596,6 @@ class FMetalUnorderedAccessView : public FRHIUnorderedAccessView
 {
 public:
 
-	/** Set it into the compute context */
-	void Set(FMetalContext* Context, uint32 ResourceIndex);
-	
 	// the potential resources to refer to with the UAV object
 	TRefCountPtr<FMetalStructuredBuffer> SourceStructuredBuffer;
 	TRefCountPtr<FMetalVertexBuffer> SourceVertexBuffer;

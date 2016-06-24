@@ -119,10 +119,18 @@ bool IsUniformBufferBound( GLuint Buffer )
 extern void BeginFrame_UniformBufferPoolCleanup();
 extern void BeginFrame_VertexBufferCleanup();
 
-FOpenGLContextState& FOpenGLDynamicRHI::GetContextStateForCurrentContext()
+FOpenGLContextState& FOpenGLDynamicRHI::GetContextStateForCurrentContext(bool bAssertIfInvalid)
 {
 	int32 ContextType = (int32)PlatformOpenGLCurrentContext(PlatformDevice);
-	check(ContextType >= 0);
+	if (bAssertIfInvalid)
+	{
+		check(ContextType >= 0);
+	}
+	else if (ContextType < 0)
+	{
+		return InvalidContextState;
+	}
+
 	if (ContextType == CONTEXT_Rendering)
 	{
 		return RenderingContextState;
@@ -451,10 +459,12 @@ void InitDebugContext()
 		}
 	#endif // GL_AMD_debug_output
 #endif // !ENABLE_VERIFY_GL
-	if (!bDebugOutputInitialized && !PLATFORM_MAC)
+#if !PLATFORM_MAC
+	if (!bDebugOutputInitialized)
 	{
 		UE_LOG(LogRHI,Warning,TEXT("OpenGL debug output extension not supported!"));
 	}
+#endif
 
 	// this is to suppress feeding back of the debug markers and groups to the log, since those originate in the app anyways...
 #if ENABLE_OPENGL_DEBUG_GROUPS && GL_ARB_debug_output && GL_KHR_debug && !OPENGL_ES31
@@ -480,8 +490,17 @@ void InitDebugContext()
 #endif
 }
 
-TAutoConsoleVariable<FString> CVarOpenGLStripExtensions(TEXT("r.OpenGL.StripExtensions"), TEXT(""), TEXT("List of comma separated OpenGL extensions to remove from driver reported extensions string"));
-TAutoConsoleVariable<FString> CVarOpenGLAddExtensions(TEXT("r.OpenGL.AddExtensions"), TEXT(""), TEXT("List of comma separated OpenGL extensions to driver reported extensions string"));
+TAutoConsoleVariable<FString> CVarOpenGLStripExtensions(
+	TEXT("r.OpenGL.StripExtensions"), 
+	TEXT(""), 
+	TEXT("List of comma separated OpenGL extensions to strip from a driver reported extensions string"),
+	ECVF_ReadOnly);
+
+TAutoConsoleVariable<FString> CVarOpenGLAddExtensions(
+	TEXT("r.OpenGL.AddExtensions"), 
+	TEXT(""), 
+	TEXT("List of comma separated OpenGL extensions to add to a driver reported extensions string"),
+	ECVF_ReadOnly);
 
 void ApplyExtensionsOverrides(FString& ExtensionsString)
 {
@@ -800,7 +819,8 @@ static void InitRHICapabilitiesForGL()
 	SetupTextureFormat( PF_R16G16B16A16_SINT,	FOpenGLTextureFormat( GL_RGBA16I,				GL_NONE,				GL_RGBA_INTEGER,	GL_SHORT,						false,			false));
 	SetupTextureFormat( PF_R5G6B5_UNORM,		FOpenGLTextureFormat( ));
 #if PLATFORM_DESKTOP || PLATFORM_ANDROIDGL4 || PLATFORM_ANDROIDES31
-	if (PLATFORM_DESKTOP != 0 || PLATFORM_ANDROIDGL4 != 0 || FOpenGL::GetFeatureLevel() >= ERHIFeatureLevel::SM4)
+	CA_SUPPRESS(6286);
+	if (PLATFORM_DESKTOP || PLATFORM_ANDROIDGL4 || FOpenGL::GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 	{
 		// Not supported for rendering:
 		SetupTextureFormat( PF_G16,				FOpenGLTextureFormat( GL_R16,					GL_R16,					GL_RED,			GL_UNSIGNED_SHORT,					false,	false));
@@ -1094,7 +1114,7 @@ static void CheckVaryingLimit()
 		UE_LOG(LogRHI, Display, TEXT("Testing for gl_FragCoord requiring a varying since mosaic is enabled"));
 		FOpenGL::bIsCheckingShaderCompilerHacks = true;
 
-		static const ANSICHAR* TestVertexProgram = "\n"
+		static const ANSICHAR TestVertexProgram[] = "\n"
 			"#version 100\n"
 			"attribute vec4 in_ATTRIBUTE0;\n"
 			"attribute vec4 in_ATTRIBUTE1;\n"
@@ -1118,7 +1138,7 @@ static void CheckVaryingLimit()
 			"   TexCoord7 = in_ATTRIBUTE1 * vec4(0.56,0.66,0.76,0.86);\n"
 			"	gl_Position.xyzw = in_ATTRIBUTE0;\n"
 			"}\n";
-		static const ANSICHAR* TestFragmentProgram = "\n"
+		static const ANSICHAR TestFragmentProgram[] = "\n"
 			"#version 100\n"
 			"varying highp vec4 TexCoord0;\n"
 			"varying highp vec4 TexCoord1;\n"
@@ -1308,7 +1328,8 @@ void FOpenGLDynamicRHI::Init()
 {
 	check(!GIsRHIInitialized);
 	VERIFY_GL_SCOPE();
-
+	
+	FOpenGLProgramBinaryCache::Initialize();
 #if PLATFORM_DESKTOP
 	FShaderCache::InitShaderCache(SCO_Default, FOpenGL::GetMaxTextureImageUnits());
 #endif
@@ -1396,6 +1417,7 @@ void FOpenGLDynamicRHI::Cleanup()
 #if PLATFORM_DESKTOP
 		FShaderCache::ShutdownShaderCache();
 #endif
+		FOpenGLProgramBinaryCache::Shutdown();
 
 		// Reset the RHI initialized flag.
 		GIsRHIInitialized = false;

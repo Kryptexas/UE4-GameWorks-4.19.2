@@ -122,13 +122,21 @@ public:
 struct ENGINE_API FScreenshotRequest
 {
 	/**
+	 * Requests a new screenshot.  Screenshot can be read from memory by subscribing
+	 * to the ViewPort's OnScreenshotCaptured delegate.
+	 *
+	 * @param bInShowUI				Whether or not to show Slate UI
+	 */
+	static void RequestScreenshot(bool bInShowUI);
+
+	/**
 	 * Requests a new screenshot with a specific filename
 	 *
 	 * @param InFilename			The filename to use
 	 * @param bInShowUI				Whether or not to show Slate UI
 	 * @param bAddFilenameSuffix	Whether an auto-generated unique suffix should be added to the supplied filename
 	 */
-	static void RequestScreenshot( const FString& InFilename, bool bInShowUI, bool bAddFilenameSuffix );
+	static void RequestScreenshot(const FString& InFilename, bool bInShowUI, bool bAddFilenameSuffix);
 
 	/**
 	 * Resets a screenshot request
@@ -143,7 +151,7 @@ struct ENGINE_API FScreenshotRequest
 	/**
 	 * @return True if a screenshot is requested
 	 */
-	static bool IsScreenshotRequested() { return !Filename.IsEmpty(); } 
+	static bool IsScreenshotRequested() { return bIsScreenshotRequested; } 
 
 	/**
 	 * @return True if UI should be shown in the screenshot
@@ -161,6 +169,7 @@ struct ENGINE_API FScreenshotRequest
 	static TArray<FColor>* GetHighresScreenshotMaskColorArray();
 
 private:
+	static bool bIsScreenshotRequested;
 	static FString NextScreenshotName;
 	static FString Filename;
 	static bool bShowUI;
@@ -294,7 +303,8 @@ public:
 	virtual float GetTabletPressure() { return 0.f; }
 	virtual bool IsPenActive() { return false; }
 	virtual void SetMouse(int32 x, int32 y) = 0;
-	virtual bool IsFullscreen()	const { return WindowMode == EWindowMode::Fullscreen || WindowMode == EWindowMode::WindowedFullscreen || WindowMode == EWindowMode::WindowedMirror; }
+	virtual bool IsFullscreen()	const { return WindowMode == EWindowMode::Fullscreen || WindowMode == EWindowMode::WindowedFullscreen; }
+	virtual EWindowMode::Type GetWindowMode()	const { return WindowMode; }
 	virtual void ProcessInput( float DeltaTime ) = 0;
 
 	/**
@@ -518,6 +528,12 @@ public:
 	/** Returns dimensions of RenderTarget texture. Can be called on a game thread. */
 	virtual FIntPoint GetRenderTargetTextureSizeXY() const { return GetSizeXY(); }
 
+	/** Causes this viewport to flush rendering commands once it has been drawn */
+	void IncrementFlushOnDraw() { ++FlushOnDrawCount; }
+	
+	/** Decrements a previously incremented count that caused this viewport to flush rendering commands when it was drawn */
+	void DecrementFlushOnDraw() { check(FlushOnDrawCount); --FlushOnDrawCount; }
+
 protected:
 
 	/** The viewport's client. */
@@ -618,6 +634,9 @@ protected:
 
 	/** If true this viewport is an FSlateSceneViewport */
 	uint32 bIsSlateViewport : 1;
+
+	/** The number of pending calls to IncrementFlushOnDraw. Non-zero implies this viewport will flush rendering commands when it is drawn. */
+	uint32 FlushOnDrawCount;
 
 	/** true if we should draw game viewports (has no effect on Editor viewports) */
 	ENGINE_API static bool bIsGameRenderingEnabled;

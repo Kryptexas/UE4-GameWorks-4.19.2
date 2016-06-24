@@ -1,6 +1,6 @@
 <?xml version='1.0' ?>
 <BuildGraph xmlns="http://www.epicgames.com/BuildGraph" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.epicgames.com/BuildGraph ../Schema.xsd" >
-	
+
 	<Agent Name="Agent 1" Type="CompileWin64">
 		<Node Name="Manipulate Some Files">
 			<Log Message="Here are all the files in Engine/Build/..." Files="Engine/Build/..."/>
@@ -58,6 +58,38 @@
 			<Log Message="Here are all the files in Engine/TestNumber5/..." Files="Engine/TestNumber5/..."/>
 		</Node>
 	</Agent>
+	<Agent Name="Agent 4" Type="CompileWin64">
+		<Node Name="Create Three Named Outputs" Produces="#First Named Output;#Second Named Output;#Third Named Output">
+			<!-- Start again by creating three named outputs, two containing different files and one containing files from each -->
+			<Copy FromDir="Engine/Build" Files="*" ToDir="Engine/TestNumber5" Tag="#First Named Output;#Third Named Output"/>
+			<Copy FromDir="Engine/Build" Files="*" ToDir="Engine/TestNumber6" Tag="#Second Named Output;#Third Named Output"/>
+			<Copy FromDir="Engine/Build" Files="*" ToDir="Engine/TestNumber7" Tag="#Third Named Output"/>
+			
+			<Log Message="All outputs from this node ('#Create Three Named Outputs'):" Files="#Create Three Named Outputs"/>
+			<Log Message="Created '#First Named Output' with:" Files="#First Named Output"/>
+			<Log Message="Created '#Second Named Output' with:" Files="#Second Named Output"/>
+			<Log Message="Created '#Third Named Output' with:" Files="#Third Named Output"/>
+		</Node>
+	</Agent>
+	<Agent Name="Agent 5" Type="CompileWin64">
+		<Node Name="Add Additional Files" Requires="#Second Named Output" Produces="#Fourth Named Output">
+			<!-- Add some more files to '#Second Named Output' -->
+			<Tag Files="#Second Named Output" With="#Fourth Named Output"/>
+			<Copy FromDir="Engine/Build" Files="*" ToDir="Engine/TestNumber6/More" Tag="#Fourth Named Output"/>
+		</Node>
+	</Agent>
+	<Agent Name="Agent 6" Type="CompileWin64">
+		<Node Name="List Named Outputs" Requires="Create Three Named Outputs;Add Additional Files">
+			<!-- List all the outputs. -->
+			<Log Message="'#Create Three Named Outputs' contains:" Files="#Create Three Named Outputs"/>
+			<Log Message="'#Add Additional Files' contains:" Files="#Add Additional Files"/>
+			<Log Message="'#First Named Output' contains:" Files="#First Named Output"/>
+			<Log Message="'#Second Named Output' contains:" Files="#Second Named Output"/>
+			<Log Message="'#Third Named Output' contains:" Files="#Third Named Output"/>
+			<Log Message="'#Fourth Named Output' contains:" Files="#Fourth Named Output"/>
+		</Node>
+	</Agent>
+		
 	<Trigger Name="Test Trigger">
 		<Agent Name="Trigger Group" Type="CompileWin64">
 			<Node Name="Print all Output Folders" Requires="Manipulate Some Files;Create A Named Output">
@@ -70,7 +102,7 @@
 			</Node>
 		</Agent>
 	</Trigger>
-	
+
 	<!-- Aggregates for the build process -->
-	<Aggregate Name="Tag and File Examples" Requires="Print all Output Folders;Consume a Single Named Output"/>
+	<Aggregate Name="Tag and File Examples" Requires="Print all Output Folders;Consume a Single Named Output;List Named Outputs"/>
 </BuildGraph>

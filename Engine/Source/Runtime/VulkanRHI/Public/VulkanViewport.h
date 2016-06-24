@@ -11,6 +11,7 @@
 class FVulkanDynamicRHI;
 class FVulkanSwapChain;
 class FVulkanQueue;
+struct FVulkanSemaphore;
 
 class FVulkanViewport : public FRHIViewport
 {
@@ -33,20 +34,16 @@ public:
 
 	FIntPoint GetSizeXY() const { return FIntPoint(SizeX, SizeY); }
 
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 	FVulkanSwapChain* GetSwapChain()
 	{
 		return SwapChain;
 	}
 
 	void AcquireBackBuffer(FVulkanCmdBuffer* CmdBuffer);
-	void PrepareBackBufferForPresent(FVulkanCmdBuffer* CmdBuffer);
-#else
-#endif
-
+	FVulkanBackBuffer* PrepareBackBufferForPresent(FVulkanCmdBuffer* CmdBuffer);
 
 protected:
-	TRefCountPtr<FVulkanTexture2D> BackBuffers[NUM_BUFFERS];
+	TRefCountPtr<FVulkanBackBuffer> BackBuffers[NUM_BUFFERS];
 	FVulkanDynamicRHI* RHI;
 	uint32 SizeX;
 	uint32 SizeY;

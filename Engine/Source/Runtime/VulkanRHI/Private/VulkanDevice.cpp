@@ -14,13 +14,10 @@ FVulkanDevice::FVulkanDevice(VkPhysicalDevice InGpu)
 	: Gpu(InGpu)
 	, Device(VK_NULL_HANDLE)
 	, ResourceHeapManager(this)
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 	, DeferredDeletionQueue(this)
-#endif
 	, DescriptorPool(nullptr)
 	, DefaultSampler(VK_NULL_HANDLE)
 	, Queue(nullptr)
-	, PendingState(nullptr)
 	, ImmediateContext(nullptr)
 	, UBRingBuffer(nullptr)
 #if VULKAN_ENABLE_DRAW_MARKERS
@@ -57,9 +54,10 @@ void FVulkanDevice::CreateDevice()
 	FMemory::Memzero(DeviceInfo);
 	DeviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 
+	bool bDebugMarkersFound = false;
 	TArray<const ANSICHAR*> DeviceExtensions;
 	TArray<const ANSICHAR*> ValidationLayers;
-	GetDeviceExtensions(DeviceExtensions, ValidationLayers);
+	GetDeviceExtensions(DeviceExtensions, ValidationLayers, bDebugMarkersFound);
 
 	DeviceInfo.enabledExtensionCount = DeviceExtensions.Num();
 	DeviceInfo.ppEnabledExtensionNames = DeviceExtensions.GetData();
@@ -136,11 +134,24 @@ void FVulkanDevice::CreateDevice()
 	DeviceInfo.queueCreateInfoCount = QueueFamilyProps.Num();
 	DeviceInfo.pQueueCreateInfos = QueueFamilyInfos.GetData();
 
+	DeviceInfo.pEnabledFeatures = &Features;
+
 	// Create the device
 	VERIFYVULKANRESULT(vkCreateDevice(Gpu, &DeviceInfo, nullptr, &Device));
 
 	// Create Graphics Queue, here we submit command buffers for execution
 	Queue = new FVulkanQueue(this, GfxQueueFamilyIndex, 0);
+
+#if VULKAN_ENABLE_DRAW_MARKERS
+	if (bDebugMarkersFound)
+	{
+		VkCmdDbgMarkerBegin = (PFN_vkCmdDbgMarkerBegin)(void*)vkGetDeviceProcAddr(Device, "vkCmdDbgMarkerBegin");
+		VkCmdDbgMarkerEnd = (PFN_vkCmdDbgMarkerEnd)(void*)vkGetDeviceProcAddr(Device, "vkCmdDbgMarkerEnd");
+
+		// We're running under RenderDoc or other trace tool, so enable capturing mode
+		GDynamicRHI->EnableIdealGPUCaptureOptions(true);
+	}
+#endif
 }
 
 void FVulkanDevice::SetupFormats()
@@ -262,6 +273,12 @@ void FVulkanDevice::SetupFormats()
 
 	MapFormatSupport(PF_BC5, VK_FORMAT_BC5_UNORM_BLOCK);
 	SetComponentMapping(PF_BC5, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
+
+	MapFormatSupport(PF_BC6H, VK_FORMAT_BC6H_UFLOAT_BLOCK);
+	SetComponentMapping(PF_BC6H, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
+
+	MapFormatSupport(PF_BC7, VK_FORMAT_BC7_UNORM_BLOCK);
+	SetComponentMapping(PF_BC7, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
 #elif PLATFORM_ANDROID
 	MapFormatSupport(PF_ASTC_4x4, VK_FORMAT_ASTC_4x4_UNORM_BLOCK);
 	SetComponentMapping(PF_ASTC_4x4, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
@@ -417,24 +434,22 @@ void FVulkanDevice::InitGPU(int32 DeviceIndex)
 
 	ImmediateContext = new FVulkanCommandListContext((FVulkanDynamicRHI*)GDynamicRHI, this, true);
 
-	// Create Pending state, contains pipeline states such as current shader and etc..
-	PendingState = new FVulkanPendingState(this);
-
 	// Setup default resource
 	{
 		FSamplerStateInitializerRHI Default(SF_Point);
 		DefaultSampler = new FVulkanSamplerState(Default, *this);
 	}
+}
 
-#if VULKAN_ENABLE_DRAW_MARKERS
-	VkCmdDbgMarkerBegin = (PFN_vkCmdDbgMarkerBegin)(void*)vkGetDeviceProcAddr(Device, "vkCmdDbgMarkerBegin");
-	VkCmdDbgMarkerEnd = (PFN_vkCmdDbgMarkerEnd)(void*)vkGetDeviceProcAddr(Device, "vkCmdDbgMarkerEnd");
-#endif
+void FVulkanDevice::PrepareForDestroy()
+{
+	WaitUntilIdle();
 }
 
 void FVulkanDevice::Destroy()
 {
-	WaitUntilIdle();
+	delete ImmediateContext;
+	ImmediateContext = nullptr;
 
 	if (TimestampQueryPool[0])
 	{
@@ -446,12 +461,7 @@ void FVulkanDevice::Destroy()
 		}
 	}
 
-	delete PendingState;
-
 	delete UBRingBuffer;
-
-	delete ImmediateContext;
-	ImmediateContext = nullptr;
 
 #if VULKAN_ENABLE_PIPELINE_CACHE
 	delete PipelineStateCache;
@@ -481,19 +491,33 @@ void FVulkanDevice::WaitUntilIdle()
 	VERIFYVULKANRESULT(vkDeviceWaitIdle(Device));
 }
 
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-#else
-void FVulkanDevice::EndCommandBufferBlock(FVulkanCmdBuffer* CmdBuffer)
-{
-	check(CmdBuffer);
-	GetQueue()->SubmitBlocking(CmdBuffer);
-}
-#endif
-
 bool FVulkanDevice::IsFormatSupported(VkFormat Format) const
 {
-	const VkFormatProperties& Prop = FormatProperties[Format];
-	return (Prop.bufferFeatures != 0) || (Prop.linearTilingFeatures != 0) || (Prop.optimalTilingFeatures != 0);
+	auto ArePropertiesSupported = [](const VkFormatProperties& Prop) -> bool
+	{
+		return (Prop.bufferFeatures != 0) || (Prop.linearTilingFeatures != 0) || (Prop.optimalTilingFeatures != 0);
+	};
+
+	//#todo-rco: Once we get extensions, we'll need to expand this
+	if (Format >= 0 && Format < VK_FORMAT_RANGE_SIZE)
+	{
+		const VkFormatProperties& Prop = FormatProperties[Format];
+		return ArePropertiesSupported(Prop);
+	}
+
+	// Check for extension formats
+	const VkFormatProperties* FoundProperties = ExtensionFormatProperties.Find(Format);
+	if (FoundProperties)
+	{
+		return ArePropertiesSupported(*FoundProperties);
+	}
+
+	// Add it for faster caching next time
+	VkFormatProperties& NewProperties = ExtensionFormatProperties.Add(Format);
+	FMemory::Memzero(NewProperties);
+	vkGetPhysicalDeviceFormatProperties(Gpu, Format, &NewProperties);
+
+	return ArePropertiesSupported(NewProperties);
 }
 
 const VkComponentMapping& FVulkanDevice::GetFormatComponentMapping(EPixelFormat UEFormat) const
@@ -502,23 +526,8 @@ const VkComponentMapping& FVulkanDevice::GetFormatComponentMapping(EPixelFormat 
 	return PixelFormatComponentMapping[UEFormat];
 }
 
-void FVulkanDevice::BindSRV(FVulkanShaderResourceView* SRV, uint32 TextureIndex, EShaderFrequency Stage)
+void FVulkanDevice::NotifyDeletedRenderTarget(const FVulkanTextureBase* Texture)
 {
-	FVulkanPendingState& State = GetPendingState();
-	FVulkanBoundShaderState& ShaderState = State.GetBoundShaderState();
-
-	// @todo vulkan: Is this actually important to test? Other RHIs haven't checked this, we'd have to add the shader param to handle this
-	// check(&ShaderState.GetShader(SF_Vertex) == ResourceCast(VertexShaderRHI));
-
-	if (SRV)
-	{
-		// make sure any dynamically backed SRV points to current memory
-		SRV->UpdateView(this);
-		checkf(SRV->BufferView != VK_NULL_HANDLE, TEXT("Empty SRV"));
-		ShaderState.SetBufferViewState(Stage, TextureIndex, SRV->BufferView);
-	}
-	else
-	{
-		ShaderState.SetBufferViewState(Stage, TextureIndex, nullptr);
-	}
+	//#todo-rco: Loop through all contexts!
+	GetImmediateContext().GetPendingState().NotifyDeletedRenderTarget(Texture);
 }

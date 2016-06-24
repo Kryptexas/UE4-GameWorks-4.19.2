@@ -12,17 +12,17 @@
 // todo move to central place
 float ComputeDOFNearFocalMask(float SceneDepth)
 {
-	float NearFocalPlane = Frame.DepthOfFieldFocalDistance;
+	float NearFocalPlane = View.DepthOfFieldFocalDistance;
 
-	return saturate((NearFocalPlane - SceneDepth) / Frame.DepthOfFieldNearTransitionRegion);
+	return saturate((NearFocalPlane - SceneDepth) / View.DepthOfFieldNearTransitionRegion);
 }
 
 // todo move to central place
 float ComputeDOFFarFocalMask(float SceneDepth)
 {
-	float FarFocalPlane = Frame.DepthOfFieldFocalDistance + Frame.DepthOfFieldFocalRegion;
+	float FarFocalPlane = View.DepthOfFieldFocalDistance + View.DepthOfFieldFocalRegion;
 
-	return saturate((SceneDepth - FarFocalPlane) / Frame.DepthOfFieldFarTransitionRegion);
+	return saturate((SceneDepth - FarFocalPlane) / View.DepthOfFieldFarTransitionRegion);
 }
 
 // Calculate focal masks from ES2's PP CoC.
@@ -40,7 +40,7 @@ float2 DecodeDOFFocalMask(float SceneDepth)
 		Ret.y = 1.0 - (SceneDepth * 2.0);
 		Ret.x = 0;
 	}
-	return Ret * Frame.DepthOfFieldScale;
+	return Ret * View.DepthOfFieldScale;
 }
 
 // @return .x:far, .y:near
@@ -86,7 +86,7 @@ void SetupPS(
 
 	float2 Offset = 0.5f * PostprocessInput0Size.zw;
 
-	float MaskDistance = Frame.DepthOfFieldFocalDistance + Frame.DepthOfFieldFocalRegion * 0.5f;
+	float MaskDistance = View.DepthOfFieldFocalDistance + View.DepthOfFieldFocalRegion * 0.5f;
 
 	float4 DepthQuad = GatherSceneDepth(UV, PostprocessInput1Size.zw);
 
@@ -116,7 +116,7 @@ void SetupPS(
 		float DepthOfFieldVignetteAdd = DepthOfFieldParams[0].z;
 
 		// todo: we could optimize that multiplication away
-		float InvAspectRatio = Frame.ViewSizeAndInvSize.y * Frame.ViewSizeAndInvSize.z;
+		float InvAspectRatio = View.ViewSizeAndInvSize.y * View.ViewSizeAndInvSize.z;
 
 		float CenterDist = length(ScreenSpacePos * float2(1, InvAspectRatio));
 

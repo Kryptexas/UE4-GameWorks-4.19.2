@@ -85,6 +85,20 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Math|Random")
 	static bool RandomBool();
 
+	/** 
+	 * Get a random chance with the specified weight. Range of weight is 0.0 - 1.0 E.g.,
+	 *		Weight = .6 return value = True 60% of the time
+	 */
+	UFUNCTION(BlueprintPure, Category = "Math|Random", meta=(Weight = "0.5"))
+	static bool RandomBoolWithWeight(float Weight);
+
+	/** 
+	 * Get a random chance with the specified weight. Range of weight is 0.0 - 1.0 E.g.,
+	*		Weight = .6 return value = True 60% of the time
+	*/
+	UFUNCTION(BlueprintPure, Category = "Math|Random", meta=(Weight = "0.5"))
+	static bool RandomBoolWithWeightFromStream(float Weight, const FRandomStream& RandomStream);
+
 	/* Returns the logical complement of the Boolean value (NOT A) */
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "NOT Boolean", CompactNodeTitle = "NOT", Keywords = "! not"), Category="Math|Boolean")
 	static bool Not_PreBool(bool A);
@@ -1737,7 +1751,7 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	static FVector2D Vector2DInterpTo_Constant(FVector2D Current, FVector2D Target, float DeltaTime, float InterpSpeed);
 	
 	/**
-	 * Tries to reach Target based on distance from Current position, giving a nice smooth feeling when tracking a position.
+	 * Tries to reach Target rotation based on Current rotation, giving a nice smooth feeling when rotating to Target rotation.
 	 *
 	 * @param		Current			Actual rotation
 	 * @param		Target			Target rotation
@@ -1749,7 +1763,7 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	static FRotator RInterpTo(FRotator Current, FRotator Target, float DeltaTime, float InterpSpeed);
 
 	/**
-	 * Tries to reach Target at a constant rate.
+	 * Tries to reach Target rotation at a constant rate.
 	 *
 	 * @param		Current			Actual rotation
 	 * @param		Target			Target rotation

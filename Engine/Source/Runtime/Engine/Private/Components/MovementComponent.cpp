@@ -60,7 +60,7 @@ void UMovementComponent::SetUpdatedComponent(USceneComponent* NewUpdatedComponen
 	UpdatedPrimitive = Cast<UPrimitiveComponent>(UpdatedComponent);
 
 	// Assign delegates
-	if (IsValid(UpdatedComponent))
+	if (UpdatedComponent && !UpdatedComponent->IsPendingKill())
 	{
 		UpdatedComponent->bShouldUpdatePhysicsVolume = true;
 		UpdatedComponent->PhysicsVolumeChangedDelegate.AddUniqueDynamic(this, &UMovementComponent::PhysicsVolumeChanged);
@@ -174,6 +174,19 @@ void UMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 }
 
 
+void UMovementComponent::Serialize(FArchive& Ar)
+{
+	USceneComponent* CurrentUpdatedComponent = UpdatedComponent;
+	Super::Serialize(Ar);
+
+	if (Ar.IsLoading())
+	{
+		// This was marked Transient so it won't be saved out, but we need still to reject old saved values.
+		UpdatedComponent = CurrentUpdatedComponent;
+		UpdatedPrimitive = Cast<UPrimitiveComponent>(UpdatedComponent);
+	}
+}
+
 void UMovementComponent::PostLoad()
 {
 	Super::PostLoad();
@@ -273,7 +286,7 @@ bool UMovementComponent::ShouldSkipUpdate(float DeltaTime) const
 
 	if (bUpdateOnlyIfRendered)
 	{
-		if (GetNetMode() == NM_DedicatedServer)
+		if (IsNetMode(NM_DedicatedServer))
 		{
 			// Dedicated servers never render
 			return true;

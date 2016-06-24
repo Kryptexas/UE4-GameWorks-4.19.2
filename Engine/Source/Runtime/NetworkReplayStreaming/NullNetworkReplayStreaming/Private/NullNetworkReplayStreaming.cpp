@@ -85,9 +85,9 @@ static FString GetDemoFilename(const FString& StreamName)
 	return GetStreamFullBaseFilename(StreamName) + TEXT(".demo");
 }
 
-static FString GetMetadataFilename(const FString& StreamName)
+static FString GetFinalFilename(const FString& StreamName)
 {
-	return GetStreamFullBaseFilename(StreamName) + TEXT(".metadata");
+	return GetStreamFullBaseFilename(StreamName) + TEXT(".final");
 }
 
 static FString GetCheckpointFilename( const FString& StreamName, int32 Index )
@@ -241,9 +241,10 @@ void FNullNetworkReplayStreamer::StopStreaming()
 		WriteReplayInfo(CurrentStreamName, ReplayInfo);
 	}
 
+	TUniquePtr<FArchive> FinalFile( IFileManager::Get().CreateFileWriter( *GetFinalFilename( CurrentStreamName ) ) );
+
 	HeaderAr.Reset();
 	FileAr.Reset();
-	MetadataFileAr.Reset();
 
 	CurrentStreamName.Empty();
 	StreamerState = EStreamerState::Idle;
@@ -257,31 +258,6 @@ FArchive* FNullNetworkReplayStreamer::GetHeaderArchive()
 FArchive* FNullNetworkReplayStreamer::GetStreamingArchive()
 {
 	return FileAr.Get();
-}
-
-FArchive* FNullNetworkReplayStreamer::GetMetadataArchive()
-{
-	check( StreamerState != EStreamerState::Idle );
-
-	// Create the metadata archive on-demand
-	if (!MetadataFileAr)
-	{
-		switch (StreamerState)
-		{
-			case EStreamerState::Recording:
-				MetadataFileAr.Reset( IFileManager::Get().CreateFileWriter( *GetMetadataFilename(CurrentStreamName) ) );
-				break;
-
-			case EStreamerState::Playback:
-				MetadataFileAr.Reset( IFileManager::Get().CreateFileReader( *GetMetadataFilename(CurrentStreamName) ) );
-				break;
-
-			default:
-				break;
-		}
-	}
-
-	return MetadataFileAr.Get();
 }
 
 void FNullNetworkReplayStreamer::UpdateTotalDemoTime(uint32 TimeInMS)
@@ -305,8 +281,8 @@ bool FNullNetworkReplayStreamer::IsLive() const
 
 bool FNullNetworkReplayStreamer::IsNamedStreamLive( const FString& StreamName ) const
 {
-	// If the metadata file doesn't exist, this is a live stream.
-	return !IFileManager::Get().FileExists(*GetMetadataFilename(StreamName));
+	// If the final file doesn't exist, this is a live stream.
+	return !IFileManager::Get().FileExists(*GetFinalFilename(StreamName));
 }
 
 void FNullNetworkReplayStreamer::DeleteFinishedStream( const FString& StreamName, const FOnDeleteFinishedStreamComplete& Delegate ) const

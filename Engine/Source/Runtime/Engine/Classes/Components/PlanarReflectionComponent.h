@@ -58,6 +58,14 @@ public:
 	UPROPERTY(EditAnywhere, Category = PlanarReflection, meta = (UIMin = "0", UIMax = "90.0"))
 	float AngleFromPlaneFadeEnd;
 
+	/** 
+	 * Whether to render the scene as two-sided, which can be useful to hide artifacts where normal distortion would read 'under' an object that has been clipped by the reflection plane. 
+	 * With this setting enabled, the backfaces of a mesh would be displayed in the clipped region instead of the background which is potentially a bright sky.
+	 * Be sure to add the water plane to HiddenActors if enabling this, as the water plane will now block the reflection.
+	 */
+	UPROPERTY(EditAnywhere, Category = PlanarReflection, AdvancedDisplay)
+	bool bRenderSceneTwoSided;
+
 	//~ Begin UObject Interface
 	virtual void BeginDestroy() override;
 	virtual bool IsReadyForFinishDestroy() override;
@@ -69,6 +77,10 @@ public:
 	virtual void SendRenderTransform_Concurrent() override;
 	virtual void DestroyRenderState_Concurrent() override;
 	//~ Begin UActorComponent Interface
+
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
 
 	void UpdatePreviewShape();
 

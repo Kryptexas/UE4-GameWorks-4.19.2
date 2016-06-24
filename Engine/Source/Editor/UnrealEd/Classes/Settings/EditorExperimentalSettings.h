@@ -37,14 +37,16 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = ( DisplayName = "Single Layout Blueprint Editor" ))
 	bool bUnifiedBlueprintEditor;
 
+	/** When enabled, all details panels will be able to have properties marked as favorite that show in a top most category.  
+	 * NOTE: Some customizations are not supported yet
+	 */
+	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Enable Details Panel Favorites"))
+	bool bEnableFavoriteSystem;
+
 	/** Enable being able to subclass components in blueprints */
 	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(ConfigRestartRequired=true))
 	bool bBlueprintableComponents;
-
-	/** Allows to use actor merging utilities (Simplygon Proxy LOD, Grouping by Materials)*/
-	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Actor Merging"))
-	bool bActorMerging;
-
+	
 	/** Device output log window (currently implemented for Android only)*/
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Device Output Log"))
 	bool bDeviceOutputLog;
@@ -66,8 +68,24 @@ public:
 	bool bBlueprintPerformanceAnalysisTools;
 
 	/** Bias to weight prominance of newer samples against hositorical samples. */
-	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Blueprint Performance Analysis Sample Bias", ClampMin=0.01, ClampMax=1.0))
+	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Blueprint Profiler Sample Bias", ClampMin=0.01, ClampMax=1.0))
 	float BlueprintProfilerRecentSampleBias;
+
+	/** Blueprint profiler performance threshold for events in ms. */
+	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Blueprint Profiler Event Timing Performance Threshold", ClampMin=0.0001, ClampMax=20.0))
+	float BlueprintProfilerEventThreshold;
+
+	/** Blueprint profiler performance threshold for exclusive node timings in ms. */
+	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Blueprint Profiler Exclusive Node Performance Threshold", ClampMin=0.0001, ClampMax=20.0))
+	float BlueprintProfilerExclNodeThreshold;
+
+	/** Blueprint profiler performance threshold for inclusive node timings in ms. */
+	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Blueprint Profiler Inclusive Node Performance Threshold", ClampMin=0.0001, ClampMax=20.0))
+	float BlueprintProfilerInclNodeThreshold;
+
+	/** Blueprint profiler performance threshold for max node timings in ms. */
+	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Blueprint Profiler Max Node Performance Threshold", ClampMin=0.0001, ClampMax=20.0))
+	float BlueprintProfilerMaxNodeThreshold;
 
 	/** Enables the visual diff tool for widget blueprints. WARNING: changes to the widget hierarchy will not be detected */
 	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Use the Diff Tool for Widget Blueprints"))
@@ -108,13 +126,17 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Tools)
 	bool bLiveStreamingFromEditor;
 
-	/** Enables Metal/High-end mobile rendering path previw on Desktop */
-	UPROPERTY(EditAnywhere, config, Category = Rendering, meta = (DisplayName = "Enable Metal/High-end mobile rendering preview"))
+	/** Enables Metal/High-end mobile rendering path preview on Desktop */
+	UPROPERTY(EditAnywhere, config, Category = Rendering, meta = (DisplayName = "Enable Metal/Vulkan/High-end mobile Preview Rendering Level in editor"))
 	bool bFeatureLevelES31Preview;
 
 	/** Enable late joining in PIE */
 	UPROPERTY(EditAnywhere, config, Category = PIE, meta = (DisplayName = "Allow late joining"))
 	bool bAllowLateJoinInPIE;
+
+	/** Allow Vulkan Preview */
+	UPROPERTY(EditAnywhere, config, Category = PIE, meta = (DisplayName = "Allow Vulkan Mobile Preview"))
+	bool bAllowVulkanPreview;
 
 	/** Enable multithreaded lightmap encoding (decreases time taken to encode lightmaps) */
 	UPROPERTY(EditAnywhere, config, Category = LightingBuilds, meta = (DisplayName = "Enable Multithreaded lightmap encoding"))

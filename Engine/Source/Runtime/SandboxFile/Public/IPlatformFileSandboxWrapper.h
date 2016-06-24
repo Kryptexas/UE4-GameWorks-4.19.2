@@ -599,6 +599,12 @@ public:
 
 	virtual FString ConvertToAbsolutePathForExternalAppForRead( const TCHAR* Filename ) override;
 	virtual FString ConvertToAbsolutePathForExternalAppForWrite( const TCHAR* Filename ) override;
+#if USE_NEW_ASYNC_IO
+	virtual IAsyncReadFileHandle* OpenAsyncRead(const TCHAR* Filename) override
+	{
+		return LowerLevel->OpenAsyncRead(*ConvertToSandboxPath(Filename));
+	}
+#endif // USE_NEW_ASYNC_IO
 };
 
 

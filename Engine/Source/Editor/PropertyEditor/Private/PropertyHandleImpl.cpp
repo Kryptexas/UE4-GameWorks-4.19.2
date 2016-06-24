@@ -901,7 +901,10 @@ bool FPropertyValueImpl::IsPropertyTypeOf( UClass* ClassType ) const
 	TSharedPtr<FPropertyNode> PropertyNodePin = PropertyNode.Pin();
 	if( PropertyNodePin.IsValid() )
 	{
-		return PropertyNodePin->GetProperty()->IsA( ClassType );
+		if(UProperty* Property = PropertyNodePin->GetProperty())
+		{
+			return Property->IsA( ClassType );
+		}
 	}
 	return false;
 }
@@ -1472,7 +1475,7 @@ FText FPropertyValueImpl::GetDisplayName() const
 }
 
 #define IMPLEMENT_PROPERTY_ACCESSOR( ValueType ) \
-	FPropertyAccess::Result FPropertyHandleBase::SetValue( const ValueType& InValue, EPropertyValueSetFlags::Type Flags ) \
+	FPropertyAccess::Result FPropertyHandleBase::SetValue( ValueType const& InValue, EPropertyValueSetFlags::Type Flags ) \
 	{ \
 		return FPropertyAccess::Fail; \
 	} \
@@ -1499,6 +1502,7 @@ IMPLEMENT_PROPERTY_ACCESSOR( FVector4 )
 IMPLEMENT_PROPERTY_ACCESSOR( FQuat )
 IMPLEMENT_PROPERTY_ACCESSOR( FRotator )
 IMPLEMENT_PROPERTY_ACCESSOR( UObject* )
+IMPLEMENT_PROPERTY_ACCESSOR( const UObject* )
 IMPLEMENT_PROPERTY_ACCESSOR( FAssetData )
 
 FPropertyHandleBase::FPropertyHandleBase( TSharedPtr<FPropertyNode> PropertyNode, FNotifyHook* NotifyHook, TSharedPtr<IPropertyUtilities> PropertyUtilities )
@@ -1854,6 +1858,20 @@ void FPropertyHandleBase::SetToolTipText( const FText& ToolTip )
 	}
 }
 
+int32 FPropertyHandleBase::GetNumPerObjectValues() const
+{
+	TSharedPtr<FPropertyNode> PropertyNode = Implementation->GetPropertyNode();
+	if (PropertyNode.IsValid() && PropertyNode->GetProperty())
+	{
+		FComplexPropertyNode* ComplexNode = PropertyNode->FindComplexParent();
+		if (ComplexNode)
+		{
+			return ComplexNode->GetInstancesNum();
+		}
+	}
+	return 0;
+}
+
 FPropertyAccess::Result FPropertyHandleBase::SetPerObjectValues( const TArray<FString>& InPerObjectValues, EPropertyValueSetFlags::Type Flags )
 {
 	TSharedPtr<FPropertyNode> PropertyNode = Implementation->GetPropertyNode();
@@ -1875,7 +1893,7 @@ FPropertyAccess::Result FPropertyHandleBase::SetPerObjectValues( const TArray<FS
 	return FPropertyAccess::Fail;
 }
 
-FPropertyAccess::Result FPropertyHandleBase::GetPerObjectValues( TArray<FString>& OutPerObjectValues )
+FPropertyAccess::Result FPropertyHandleBase::GetPerObjectValues( TArray<FString>& OutPerObjectValues ) const
 {
 	FPropertyAccess::Result Result = FPropertyAccess::Fail;
 	TSharedPtr<FPropertyNode> PropertyNode = Implementation->GetPropertyNode();
@@ -1889,19 +1907,18 @@ FPropertyAccess::Result FPropertyHandleBase::GetPerObjectValues( TArray<FString>
 
 		if( ReadAddresses.Num() > 0 )
 		{
-			// Create a list of object names.
-			TArray<FString> ObjectNames;
-			ObjectNames.Empty( ReadAddresses.Num() );
-
-			// Copy each object's object property name off into the name list.
+			// Copy each object's value into the value list
+			OutPerObjectValues.SetNum( ReadAddresses.Num(), /*bAllowShrinking*/false );
 			for ( int32 AddrIndex = 0 ; AddrIndex < ReadAddresses.Num() ; ++AddrIndex )
 			{
 				uint8* Address = ReadAddresses.GetAddress(AddrIndex);
-
-				new( OutPerObjectValues ) FString();
 				if( Address )
 				{
 					NodeProperty->ExportText_Direct(OutPerObjectValues[AddrIndex], Address, Address, nullptr, 0 );
+				}
+				else
+				{
+					OutPerObjectValues[AddrIndex].Reset();
 				}
 			}
 
@@ -1909,6 +1926,67 @@ FPropertyAccess::Result FPropertyHandleBase::GetPerObjectValues( TArray<FString>
 		}
 	}
 	
+	return Result;
+}
+
+FPropertyAccess::Result FPropertyHandleBase::SetPerObjectValue( const int32 ObjectIndex, const FString& ObjectValue, EPropertyValueSetFlags::Type Flags )
+{
+	FPropertyAccess::Result Result = FPropertyAccess::Fail;
+
+	TSharedPtr<FPropertyNode> PropertyNode = Implementation->GetPropertyNode();
+	if (PropertyNode.IsValid() && PropertyNode->GetProperty())
+	{
+		Implementation->EnumerateObjectsToModify(PropertyNode.Get(), [&](const FObjectBaseAddress& ObjectToModify, const int32 ObjIndex, const int32 NumObjects) -> bool
+		{
+			if (ObjIndex == ObjectIndex)
+			{
+				TArray<FObjectBaseAddress> ObjectsToModify;
+				ObjectsToModify.Add(ObjectToModify);
+
+				TArray<FString> PerObjectValues;
+				PerObjectValues.Add(ObjectValue);
+
+				Implementation->ImportText(ObjectsToModify, PerObjectValues, PropertyNode.Get(), Flags);
+
+				Result = FPropertyAccess::Success;
+				return false; // End enumeration
+			}
+			return true;
+		});
+	}
+
+	return Result;
+}
+
+FPropertyAccess::Result FPropertyHandleBase::GetPerObjectValue( const int32 ObjectIndex, FString& OutObjectValue ) const
+{
+	FPropertyAccess::Result Result = FPropertyAccess::Fail;
+
+	TSharedPtr<FPropertyNode> PropertyNode = Implementation->GetPropertyNode();
+	if (PropertyNode.IsValid() && PropertyNode->GetProperty())
+	{
+		// Get a list of addresses for objects handled by the property window.
+		FReadAddressList ReadAddresses;
+		PropertyNode->GetReadAddress(!!PropertyNode->HasNodeFlags(EPropertyNodeFlags::SingleSelectOnly), ReadAddresses, false);
+
+		UProperty* NodeProperty = PropertyNode->GetProperty();
+
+		if (ReadAddresses.IsValidIndex(ObjectIndex))
+		{
+			uint8* Address = ReadAddresses.GetAddress(ObjectIndex);
+			if (Address)
+			{
+				NodeProperty->ExportText_Direct(OutObjectValue, Address, Address, nullptr, 0);
+			}
+			else
+			{
+				OutObjectValue.Reset();
+			}
+
+			Result = FPropertyAccess::Success;
+		}
+	}
+
 	return Result;
 }
 
@@ -2526,6 +2604,11 @@ bool FPropertyHandleObject::Supports( TSharedRef<FPropertyNode> PropertyNode )
 
 FPropertyAccess::Result FPropertyHandleObject::GetValue( UObject*& OutValue ) const
 {
+	return FPropertyHandleObject::GetValue((const UObject*&)OutValue);
+}
+
+FPropertyAccess::Result FPropertyHandleObject::GetValue( const UObject*& OutValue ) const
+{
 	void* PropValue = nullptr;
 	FPropertyAccess::Result Res = Implementation->GetValueData( PropValue );
 
@@ -2537,7 +2620,12 @@ FPropertyAccess::Result FPropertyHandleObject::GetValue( UObject*& OutValue ) co
 	return Res;
 }
 
-FPropertyAccess::Result FPropertyHandleObject::SetValue( const UObject*& NewValue, EPropertyValueSetFlags::Type Flags )
+FPropertyAccess::Result FPropertyHandleObject::SetValue( UObject* const& NewValue, EPropertyValueSetFlags::Type Flags )
+{
+	return FPropertyHandleObject::SetValue((const UObject*)NewValue);
+}
+
+FPropertyAccess::Result FPropertyHandleObject::SetValue( const UObject* const& NewValue, EPropertyValueSetFlags::Type Flags )
 {
 	UProperty* Property = Implementation->GetPropertyNode()->GetProperty();
 

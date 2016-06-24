@@ -123,83 +123,85 @@ namespace AutomationTool
 					ProcessesToKill.RemoveAt(ProcessIndex);
 				}
 			}
-			CommandUtils.LogLog("Trying to kill {0} spawned processes.", ProcessesToKill.Count);
-			foreach (var Proc in ProcessesToKill)
+			if(ProcessesToKill.Count > 0)
 			{
-				CommandUtils.LogLog("  {0}", Proc.GetProcessName());
-			}
-            if (CommandUtils.IsBuildMachine)
-            {
-                for (int Cnt = 0; Cnt < 9; Cnt++)
-                {
-                    bool AllDone = true;
-                    foreach (var Proc in ProcessesToKill)
-                    {
-                        try
-                        {
-                            if (!Proc.HasExited)
-                            {
-                                AllDone = false;
-								CommandUtils.LogLog("Waiting for process: {0}", Proc.GetProcessName());
-                            }
-                        }
-                        catch (Exception)
-                        {
-							CommandUtils.LogWarning("Exception Waiting for process");
-                            AllDone = false;
-                        }
-                    }
-                    try
-                    {
-                        if (ProcessResult.HasAnyDescendants(Process.GetCurrentProcess()))
-                        {
-                            AllDone = false;
-							CommandUtils.Log("Waiting for descendants of main process...");
-                        }
-                    }
-                    catch (Exception Ex)
-                    {
-						CommandUtils.LogWarning("Exception Waiting for descendants of main process. " + Ex);
-                        AllDone = false;
-                    }
-
-                    if (AllDone)
-                    {
-                        break;
-                    }
-                    Thread.Sleep(10000);
-                }
-            }
-			foreach (var Proc in ProcessesToKill)
-			{
-				var ProcName = Proc.GetProcessName();
-				try
+				CommandUtils.LogLog("Trying to kill {0} spawned processes.", ProcessesToKill.Count);
+				foreach (var Proc in ProcessesToKill)
 				{
-					if (!Proc.HasExited)
+					CommandUtils.LogLog("  {0}", Proc.GetProcessName());
+				}
+				if (CommandUtils.IsBuildMachine)
+				{
+					for (int Cnt = 0; Cnt < 9; Cnt++)
 					{
-						CommandUtils.LogLog("Killing process: {0}", ProcName);
-						Proc.StopProcess(false);
+						bool AllDone = true;
+						foreach (var Proc in ProcessesToKill)
+						{
+							try
+							{
+								if (!Proc.HasExited)
+								{
+									AllDone = false;
+									CommandUtils.LogLog("Waiting for process: {0}", Proc.GetProcessName());
+								}
+							}
+							catch (Exception)
+							{
+								CommandUtils.LogWarning("Exception Waiting for process");
+								AllDone = false;
+							}
+						}
+						try
+						{
+							if (ProcessResult.HasAnyDescendants(Process.GetCurrentProcess()))
+							{
+								AllDone = false;
+								CommandUtils.Log("Waiting for descendants of main process...");
+							}
+						}
+						catch (Exception Ex)
+						{
+							CommandUtils.LogWarning("Exception Waiting for descendants of main process. " + Ex);
+							AllDone = false;
+						}
+
+						if (AllDone)
+						{
+							break;
+						}
+						Thread.Sleep(10000);
 					}
 				}
-				catch (Exception Ex)
+				foreach (var Proc in ProcessesToKill)
 				{
-					CommandUtils.LogWarning("Exception while trying to kill process {0}:", ProcName);
-					CommandUtils.LogWarning(LogUtils.FormatException(Ex));
+					var ProcName = Proc.GetProcessName();
+					try
+					{
+						if (!Proc.HasExited)
+						{
+							CommandUtils.LogLog("Killing process: {0}", ProcName);
+							Proc.StopProcess(false);
+						}
+					}
+					catch (Exception Ex)
+					{
+						CommandUtils.LogWarning("Exception while trying to kill process {0}:", ProcName);
+						CommandUtils.LogWarning(LogUtils.FormatException(Ex));
+					}
+				}
+				try
+				{
+					if (CommandUtils.IsBuildMachine && ProcessResult.HasAnyDescendants(Process.GetCurrentProcess()))
+					{
+						CommandUtils.LogLog("current process still has descendants, trying to kill them...");
+						ProcessResult.KillAllDescendants(Process.GetCurrentProcess());
+					}
+				}
+				catch (Exception)
+				{
+					CommandUtils.LogWarning("Exception killing descendants of main process");
 				}
 			}
-            try
-            {
-                if (CommandUtils.IsBuildMachine && ProcessResult.HasAnyDescendants(Process.GetCurrentProcess()))
-                {
-					CommandUtils.LogLog("current process still has descendants, trying to kill them...");
-                    ProcessResult.KillAllDescendants(Process.GetCurrentProcess());
-                }
-            }
-            catch (Exception)
-            {
-				CommandUtils.LogWarning("Exception killing descendants of main process");
-            }
-
 		}
 	}
 
@@ -684,6 +686,10 @@ namespace AutomationTool
 		public static ProcessResult Run(string App, string CommandLine = null, string Input = null, ERunOptions Options = ERunOptions.Default, Dictionary<string, string> Env = null)
 		{
 			App = ConvertSeparators(PathSeparator.Default, App);
+
+			// Get the log name before allowing the platform to modify the app/command-line. We want mono apps to be written to a log named after the application and appear with the application prefix rather than "mono:".
+			string LogName = Path.GetFileNameWithoutExtension(App);
+
 			HostPlatform.Current.SetupOptionsForRun(ref App, ref Options, ref CommandLine);
 			if (App == "ectool" || App == "zip" || App == "xcodebuild")
 			{
@@ -701,7 +707,7 @@ namespace AutomationTool
             {
                 LogWithVerbosity(SpewVerbosity,"Run: " + App + " " + (String.IsNullOrEmpty(CommandLine) ? "" : CommandLine));
             }
-			ProcessResult Result = ProcessManager.CreateProcess(App, Options.HasFlag(ERunOptions.AllowSpew), Path.GetFileNameWithoutExtension(App), Env, SpewVerbosity:SpewVerbosity);
+			ProcessResult Result = ProcessManager.CreateProcess(App, Options.HasFlag(ERunOptions.AllowSpew), LogName, Env, SpewVerbosity:SpewVerbosity);
 			Process Proc = Result.ProcessObject;
 
 			bool bRedirectStdOut = (Options & ERunOptions.NoStdOutRedirect) != ERunOptions.NoStdOutRedirect;			
@@ -785,15 +791,30 @@ namespace AutomationTool
 		{
             RunAndLog(App, CommandLine, GetRunAndLogOnlyName(Env, App, LogName), MaxSuccessCode, Input, Options, EnvVars);
 		}
-        /// <summary>
-        /// Runs external program and writes the output to a logfile.
-        /// </summary>
-        /// <param name="App">Executable to run</param>
-        /// <param name="CommandLine">Commandline to pass on to the executable</param>
-        /// <param name="Logfile">Full path to the logfile, where the application output should be written to.</param>
+
+		/// <summary>
+		/// Exception class for child process commands failing
+		/// </summary>
+		public class CommandFailedException : AutomationException
+		{
+			public CommandFailedException(string Message) : base(Message)
+			{
+			}
+
+			public CommandFailedException(ExitCode ExitCode, string Message) : base(ExitCode, Message)
+			{
+			}
+		}
+
+		/// <summary>
+		/// Runs external program and writes the output to a logfile.
+		/// </summary>
+		/// <param name="App">Executable to run</param>
+		/// <param name="CommandLine">Commandline to pass on to the executable</param>
+		/// <param name="Logfile">Full path to the logfile, where the application output should be written to.</param>
 		/// <param name="Input">Optional Input for the program (will be provided as stdin)</param>
 		/// <param name="Options">Defines the options how to run. See ERunOptions.</param>
-        public static string RunAndLog(string App, string CommandLine, string Logfile = null, int MaxSuccessCode = 0, string Input = null, ERunOptions Options = ERunOptions.Default, Dictionary<string, string> EnvVars = null)
+		public static string RunAndLog(string App, string CommandLine, string Logfile = null, int MaxSuccessCode = 0, string Input = null, ERunOptions Options = ERunOptions.Default, Dictionary<string, string> EnvVars = null)
         {
             ProcessResult Result = Run(App, CommandLine, Input, Options, EnvVars);
             if (Result.Output.Length > 0 && Logfile != null)
@@ -811,7 +832,7 @@ namespace AutomationTool
 
             if (Result > MaxSuccessCode || Result < 0)
             {
-                throw new AutomationException((ExitCode)Result.ExitCode, String.Format("Command failed (Result:{3}): {0} {1}. See logfile for details: '{2}' ",
+                throw new CommandFailedException((ExitCode)Result.ExitCode, String.Format("Command failed (Result:{3}): {0} {1}. See logfile for details: '{2}' ",
                                                 App, CommandLine, Path.GetFileName(Logfile), Result.ExitCode));
             }
             if (Result.Output.Length > 0)
@@ -961,7 +982,7 @@ namespace AutomationTool
 
 			if (Result != 0)
 			{
-				throw new AutomationException(String.Format("Recursive UAT Command failed (Result:{3}): {0} {1}. See logfile for details: '{2}' ",
+				throw new CommandFailedException(String.Format("Recursive UAT Command failed (Result:{3}): {0} {1}. See logfile for details: '{2}' ",
 																				App, CommandLine, Path.GetFileName(LogFile), Result.ExitCode));
 			}
 			return LogFile;

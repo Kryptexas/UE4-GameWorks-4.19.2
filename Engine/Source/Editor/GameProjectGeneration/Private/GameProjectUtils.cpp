@@ -16,7 +16,7 @@
 #include "DesktopPlatformModule.h"
 #include "TargetPlatform.h"
 
-#include "ClassIconFinder.h"
+#include "SlateIconFinder.h"
 #include "Editor/UnrealEd/Public/SourceCodeNavigation.h"
 
 #include "UProjectInfo.h"
@@ -116,7 +116,7 @@ FText FNewClassInfo::GetClassDescription(const bool bFullDescription/* = true*/)
 const FSlateBrush* FNewClassInfo::GetClassIcon() const
 {
 	// Safe to do even if BaseClass is null, since FindIconForClass will return the default icon
-	return FClassIconFinder::FindIconForClass(BaseClass);
+	return FSlateIconFinder::FindIconBrushForClass(BaseClass);
 }
 
 FString FNewClassInfo::GetClassPrefixCPP() const
@@ -2257,6 +2257,7 @@ GameProjectUtils::EProjectDuplicateResult GameProjectUtils::DuplicateProjectForU
 				TEXT("Intermediate"),
 				TEXT("Saved/Autosaves"),
 				TEXT("Saved/Backup"),
+				TEXT("Saved/Config"),
 				TEXT("Saved/Cooked"),
 				TEXT("Saved/HardwareSurvey"),
 				TEXT("Saved/Logs"),

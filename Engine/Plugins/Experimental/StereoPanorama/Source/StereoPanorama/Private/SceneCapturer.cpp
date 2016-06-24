@@ -292,9 +292,9 @@ void USceneCapturer::SetPositionAndRotation( int32 CurrentHorizontalStep, int32 
     }
 
 	LeftEyeCaptureComponents[CaptureIndex]->SetWorldLocationAndRotation( StartLocation - Offset, Rotation );
-    LeftEyeCaptureComponents[CaptureIndex]->UpdateContent();
+    LeftEyeCaptureComponents[CaptureIndex]->CaptureSceneDeferred();
 	RightEyeCaptureComponents[CaptureIndex]->SetWorldLocationAndRotation( StartLocation + Offset, Rotation );
-    RightEyeCaptureComponents[CaptureIndex]->UpdateContent();
+    RightEyeCaptureComponents[CaptureIndex]->CaptureSceneDeferred();
 }
 
 void USceneCapturer::ValidateParameters()

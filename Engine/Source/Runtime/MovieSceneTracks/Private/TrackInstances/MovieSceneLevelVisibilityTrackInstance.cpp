@@ -3,9 +3,6 @@
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieSceneLevelVisibilityTrack.h"
 #include "MovieSceneLevelVisibilityTrackInstance.h"
-#if WITH_EDITOR
-#include "EditorLevelUtils.h"
-#endif
 
 
 FMovieSceneLevelVisibilityTrackInstance::FMovieSceneLevelVisibilityTrackInstance( UMovieSceneLevelVisibilityTrack& InLevelVisibilityTrack )
@@ -89,10 +86,32 @@ bool GetLevelVisibility( ULevelStreaming* Level )
 void SetLevelVisibility( ULevelStreaming* Level, bool bVisible )
 {
 #if WITH_EDITOR
-	UE_LOG( LogMovieScene, Log, TEXT( "Setting Visibility: Level=%s Visible=%s" ), *Level->GetWorldAssetPackageName(), bVisible ? TEXT( "true" ) : TEXT( "false" ) );
 	if ( GIsEditor && Level->GetWorld()->IsPlayInEditor() == false )
 	{
-		EditorLevelUtils::SetLevelVisibility( Level->GetLoadedLevel(), bVisible, false );
+		Level->bShouldBeVisibleInEditor = bVisible;
+		Level->GetWorld()->FlushLevelStreaming();
+
+		// Iterate over the level's actors
+		TTransArray<AActor*>& Actors = Level->GetLoadedLevel()->Actors;
+		for ( int32 ActorIndex = 0; ActorIndex < Actors.Num(); ++ActorIndex )
+		{
+			AActor* Actor = Actors[ActorIndex];
+			if ( Actor )
+			{
+				if (Actor->bHiddenEdLevel == bVisible )
+				{
+					Actor->bHiddenEdLevel = !bVisible;
+					if ( bVisible )
+					{
+						Actor->ReregisterAllComponents();
+					}
+					else
+					{
+						Actor->UnregisterAllComponents();
+					}
+				}
+			}
+		}
 	}
 	else
 #endif

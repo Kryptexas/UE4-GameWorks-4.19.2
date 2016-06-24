@@ -113,6 +113,14 @@ public:
 	virtual FGuid CreateBinding(UObject& InObject, const FString& InName) = 0;
 
 	/**
+	 * Attempts to add a new spawnable to the MovieScene for the specified object (asset, class or actor instance)
+	 *
+	 * @param	Object	The asset, class, or actor to add a spawnable for
+	 * @return	The spawnable guid for the spawnable, or an invalid Guid if we were not able to create a spawnable
+	 */
+	virtual FGuid MakeNewSpawnable(UObject& SourceObject) = 0;
+
+	/**
 	 * Given a sub-movie scene section, returns the instance of the movie scene for that section.
 	 *
 	 * @param Section The sub-movie scene section containing the sequence instance to get.
@@ -192,12 +200,13 @@ public:
 	 *
 	 * @param Time The global time to set.
 	 * @param SnapTimeMode The type of time snapping allowed.
+	 * @param bLooped Whether the time has been looped
 	 * @see GetGlobalTime
 	 */
-	virtual void SetGlobalTime(float Time, ESnapTimeMode SnapTimeMode = ESnapTimeMode::STM_None) = 0;
+	virtual void SetGlobalTime(float Time, ESnapTimeMode SnapTimeMode = ESnapTimeMode::STM_None, bool bLooped = false) = 0;
 
 	/** Set the global time directly, without performing any auto-scroll */
-	virtual void SetGlobalTimeDirectly(float Time, ESnapTimeMode SnapTimeMode = ESnapTimeMode::STM_None) = 0;
+	virtual void SetGlobalTimeDirectly(float Time, ESnapTimeMode SnapTimeMode = ESnapTimeMode::STM_None, bool bLooped = false) = 0;
 
 	/** @return The current view range */
 	virtual FAnimatedRange GetViewRange() const
@@ -235,6 +244,13 @@ public:
 	 * Gets whether perspective viewport hijacking is enabled.
 	 */ 
 	virtual bool IsPerspectiveViewportCameraCutEnabled() const { return true; }
+
+	/*
+	 * Render movie for a section.
+	 * 
+	 * @param InSection The given section to render.
+	 */
+	virtual void RenderMovie(UMovieSceneSection* InSection) const = 0;
 
 	/*
 	 * Puts sequencer in a silent state (whereby it will not redraw viewports, or attempt to update external state besides the sequence itself)

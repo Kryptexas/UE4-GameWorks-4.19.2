@@ -105,7 +105,8 @@ FReply SEyeDropperButton::OnMouseButtonUp(const FGeometry& MyGeometry, const FPo
 
 		Reply.ReleaseMouseCapture();
 
-		OnComplete.ExecuteIfBound();
+		const bool bCancelled = false;
+		OnComplete.ExecuteIfBound(bCancelled);
 	}
 	else if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && bWasClicked )
 	{
@@ -167,7 +168,8 @@ FReply SEyeDropperButton::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent
 
 		FReply ReleaseReply = FReply::Handled().ReleaseMouseCapture();
 
-		OnComplete.ExecuteIfBound();
+		const bool bCancelled = true;
+		OnComplete.ExecuteIfBound(bCancelled);
 
 		return ReleaseReply;
 	}

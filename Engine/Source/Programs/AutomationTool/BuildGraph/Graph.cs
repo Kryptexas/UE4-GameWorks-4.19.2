@@ -87,14 +87,29 @@ namespace AutomationTool
 		public Dictionary<string, Node> NameToNode = new Dictionary<string,Node>(StringComparer.InvariantCultureIgnoreCase);
 
 		/// <summary>
+		/// Mapping of names to the corresponding report.
+		/// </summary>
+		public Dictionary<string, Report> NameToReport = new Dictionary<string, Report>(StringComparer.InvariantCultureIgnoreCase);
+
+		/// <summary>
 		/// Mapping of names to their corresponding node output.
 		/// </summary>
-		public Dictionary<string, NodeOutput> NameToNodeOutput = new Dictionary<string,NodeOutput>(StringComparer.InvariantCultureIgnoreCase);
+		public HashSet<string> LocalTagNames = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+
+		/// <summary>
+		/// Mapping of names to their corresponding node output.
+		/// </summary>
+		public Dictionary<string, NodeOutput> TagNameToNodeOutput = new Dictionary<string,NodeOutput>(StringComparer.InvariantCultureIgnoreCase);
 
 		/// <summary>
 		/// Mapping of aggregate names to their respective nodes
 		/// </summary>
 		public Dictionary<string, Node[]> AggregateNameToNodes = new Dictionary<string,Node[]>(StringComparer.InvariantCultureIgnoreCase);
+
+		/// <summary>
+		/// List of badges that can be displayed for this build
+		/// </summary>
+		public List<Badge> Badges = new List<Badge>();
 
 		/// <summary>
 		/// Diagnostic messages for this graph
@@ -109,17 +124,13 @@ namespace AutomationTool
 		}
 
 		/// <summary>
-		/// Checks whether a given name (or tag name) already exists
+		/// Checks whether a given name already exists
 		/// </summary>
-		/// <param name="Name">The name to check. May begin with a '#' character.</param>
+		/// <param name="Name">The name to check.</param>
 		/// <returns>True if the name exists, false otherwise.</returns>
 		public bool ContainsName(string Name)
 		{
-			// Strip off the tag character, if present
-			string TrimName = Name.StartsWith("#")? Name.Substring(1) : Name;
-
-			// Check it doesn't match anything in the graph
-			return NameToNode.ContainsKey(TrimName) || NameToNodeOutput.ContainsKey(TrimName) || AggregateNameToNodes.ContainsKey(TrimName);
+			return NameToNode.ContainsKey(Name) || NameToReport.ContainsKey(Name) || AggregateNameToNodes.ContainsKey(Name);
 		}
 
 		/// <summary>
@@ -135,7 +146,7 @@ namespace AutomationTool
 			{
 				// Check if it's a regular node or output name
 				NodeOutput Output;
-				if(NameToNodeOutput.TryGetValue(Name.Substring(1), out Output))
+				if(TagNameToNodeOutput.TryGetValue(Name, out Output))
 				{
 					OutNodes = new Node[]{ Output.ProducingNode };
 					return true;
@@ -178,7 +189,7 @@ namespace AutomationTool
 			{
 				// Check if it's a regular node or output name
 				NodeOutput Output;
-				if(NameToNodeOutput.TryGetValue(Name.Substring(1), out Output))
+				if(TagNameToNodeOutput.TryGetValue(Name, out Output))
 				{
 					OutOutputs = new NodeOutput[]{ Output };
 					return true;
@@ -230,6 +241,15 @@ namespace AutomationTool
 			// Remove all the empty agents
 			Agents.RemoveAll(x => x.Nodes.Count == 0);
 
+			// Trim down the list of nodes for each report to the ones that are being built
+			foreach (Report Report in NameToReport.Values)
+			{
+				Report.Nodes.RemoveWhere(x => !RetainNodes.Contains(x));
+			}
+
+			// Remove all the empty reports
+			NameToReport = NameToReport.Where(x => x.Value.Nodes.Count > 0).ToDictionary(Pair => Pair.Key, Pair => Pair.Value);
+
 			// Remove all the order dependencies which are no longer part of the graph. Since we don't need to build them, we don't need to wait for them
 			foreach(Node Node in RetainNodes)
 			{
@@ -241,6 +261,9 @@ namespace AutomationTool
 
 			// Create a new list of aggregates for everything that's left
 			AggregateNameToNodes = AggregateNameToNodes.Where(x => x.Value.All(y => RetainNodes.Contains(y))).ToDictionary(Pair => Pair.Key, Pair => Pair.Value);
+
+			// Remove any badges which do not have all their dependencies
+			Badges.RemoveAll(x => x.Nodes.Any(y => !RetainNodes.Contains(y)));
 
 			// Remove any diagnostics which are no longer part of the graph
 			Diagnostics.RemoveAll(x => (x.EnclosingNode != null && !RetainNodes.Contains(x.EnclosingNode)) || (x.EnclosingAgent != null && !Agents.Contains(x.EnclosingAgent)));
@@ -288,6 +311,27 @@ namespace AutomationTool
 					Writer.WriteAttributeString("Requires", String.Join(";", Aggregate.Value.Select(x => x.Name)));
 					Writer.WriteEndElement();
 				}
+
+				foreach (Report Report in NameToReport.Values)
+				{
+					Writer.WriteStartElement("Report");
+					Writer.WriteAttributeString("Name", Report.Name);
+					Writer.WriteAttributeString("Requires", String.Join(";", Report.Nodes.Select(x => x.Name)));
+					Writer.WriteEndElement();
+				}
+
+				foreach (Badge Badge in Badges)
+				{
+					Writer.WriteStartElement("Badge");
+					Writer.WriteAttributeString("Name", Badge.Name);
+					if (Badge.Project != null)
+					{
+						Writer.WriteAttributeString("Project", Badge.Project);
+					}
+					Writer.WriteAttributeString("Requires", String.Join(";", Badge.Nodes.Select(x => x.Name)));
+					Writer.WriteEndElement();
+				}
+
 				Writer.WriteEndElement();
 			}
 		}
@@ -352,8 +396,56 @@ namespace AutomationTool
 				}
 				JsonWriter.WriteArrayEnd();
 
-				// Write all the triggers
-				JsonWriter.WriteArrayStart("Triggers");
+				// Write all the badges
+				JsonWriter.WriteArrayStart("Badges");
+				foreach (Badge Badge in Badges)
+				{
+					Node[] Dependencies = Badge.Nodes.Where(x => NodesToExecute.Contains(x)).ToArray();
+					if (Dependencies.Length > 0)
+					{
+						// Reduce that list to the smallest subset of direct dependencies
+						HashSet<Node> DirectDependencies = new HashSet<Node>(Dependencies);
+						foreach (Node Dependency in Dependencies)
+						{
+							DirectDependencies.ExceptWith(Dependency.OrderDependencies);
+						}
+
+						JsonWriter.WriteObjectStart();
+						JsonWriter.WriteValue("Name", Badge.Name);
+						if (!String.IsNullOrEmpty(Badge.Project))
+						{
+							JsonWriter.WriteValue("Project", Badge.Project);
+						}
+						JsonWriter.WriteValue("AllDependencies", String.Join(";", Agents.SelectMany(x => x.Nodes).Where(x => Dependencies.Contains(x)).Select(x => x.Name)));
+						JsonWriter.WriteValue("DirectDependencies", String.Join(";", DirectDependencies.Select(x => x.Name)));
+						JsonWriter.WriteObjectEnd();
+					}
+				}
+				JsonWriter.WriteArrayEnd();
+
+				// Write all the triggers and reports. 
+				JsonWriter.WriteArrayStart("Reports");
+				foreach (Report Report in NameToReport.Values)
+				{
+					Node[] Dependencies = Report.Nodes.Where(x => NodesToExecute.Contains(x)).ToArray();
+					if (Dependencies.Length > 0)
+					{
+						// Reduce that list to the smallest subset of direct dependencies
+						HashSet<Node> DirectDependencies = new HashSet<Node>(Dependencies);
+						foreach (Node Dependency in Dependencies)
+						{
+							DirectDependencies.ExceptWith(Dependency.OrderDependencies);
+						}
+
+						JsonWriter.WriteObjectStart();
+						JsonWriter.WriteValue("Name", Report.Name);
+						JsonWriter.WriteValue("AllDependencies", String.Join(";", Agents.SelectMany(x => x.Nodes).Where(x => Dependencies.Contains(x)).Select(x => x.Name)));
+						JsonWriter.WriteValue("DirectDependencies", String.Join(";", DirectDependencies.Select(x => x.Name)));
+						JsonWriter.WriteValue("Notify", String.Join(";", Report.NotifyUsers));
+						JsonWriter.WriteValue("IsTrigger", false);
+						JsonWriter.WriteObjectEnd();
+					}
+				}
 				foreach (ManualTrigger Trigger in NameToTrigger.Values)
 				{
 					if(!ActivatedTriggers.Contains(Trigger) && NodesToExecute.Any(x => x.ControllingTrigger == Trigger.Parent))
@@ -385,10 +477,12 @@ namespace AutomationTool
 						JsonWriter.WriteValue("AllDependencies", String.Join(";", Agents.SelectMany(x => x.Nodes).Where(x => Dependencies.Contains(x)).Select(x => x.Name)));
 						JsonWriter.WriteValue("DirectDependencies", String.Join(";", Dependencies.Where(x => DirectDependencies.Contains(x)).Select(x => x.Name)));
 						JsonWriter.WriteValue("Notify", String.Join(";", Trigger.NotifyUsers));
+						JsonWriter.WriteValue("IsTrigger", true);
 						JsonWriter.WriteObjectEnd();
 					}
 				}
 				JsonWriter.WriteArrayEnd();
+
 				JsonWriter.WriteObjectEnd();
 			}
 		}

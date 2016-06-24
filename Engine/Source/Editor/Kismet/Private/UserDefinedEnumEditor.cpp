@@ -14,23 +14,23 @@
 const FName FUserDefinedEnumEditor::EnumeratorsTabId( TEXT( "UserDefinedEnum_EnumeratorEditor" ) );
 const FName FUserDefinedEnumEditor::UserDefinedEnumEditorAppIdentifier( TEXT( "UserDefinedEnumEditorApp" ) );
 
-void FUserDefinedEnumEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
+void FUserDefinedEnumEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& InTabManager)
 {
-	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_UserDefinedEnumEditor", "User-Defined Enum Editor"));
+	WorkspaceMenuCategory = InTabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_UserDefinedEnumEditor", "User-Defined Enum Editor"));
 
-	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
+	FAssetEditorToolkit::RegisterTabSpawners(InTabManager);
 
-	TabManager->RegisterTabSpawner( EnumeratorsTabId, FOnSpawnTab::CreateSP(this, &FUserDefinedEnumEditor::SpawnEnumeratorsTab) )
+	InTabManager->RegisterTabSpawner( EnumeratorsTabId, FOnSpawnTab::CreateSP(this, &FUserDefinedEnumEditor::SpawnEnumeratorsTab) )
 		.SetDisplayName( LOCTEXT("EnumeratorEditor", "Enumerators") )
 		.SetGroup(WorkspaceMenuCategory.ToSharedRef())
 		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "GraphEditor.Enum_16x"));
 }
 
-void FUserDefinedEnumEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
+void FUserDefinedEnumEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& InTabManager)
 {
-	FAssetEditorToolkit::UnregisterTabSpawners(TabManager);
+	FAssetEditorToolkit::UnregisterTabSpawners(InTabManager);
 
-	TabManager->UnregisterTabSpawner( EnumeratorsTabId );
+	InTabManager->UnregisterTabSpawner( EnumeratorsTabId );
 }
 
 void FUserDefinedEnumEditor::InitEditor(const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UUserDefinedEnum* EnumToEdit)
@@ -77,10 +77,10 @@ TSharedRef<SDockTab> FUserDefinedEnumEditor::SpawnEnumeratorsTab(const FSpawnTab
 	check( Args.GetTabId() == EnumeratorsTabId );
 
 	UUserDefinedEnum* EditedEnum = NULL;
-	const auto EditingObjects = GetEditingObjects();
-	if (EditingObjects.Num())
+	const TArray<UObject*>& EditingObjs = GetEditingObjects();
+	if (EditingObjs.Num())
 	{
-		EditedEnum = Cast<UUserDefinedEnum>(EditingObjects[ 0 ]);
+		EditedEnum = Cast<UUserDefinedEnum>(EditingObjs[ 0 ]);
 	}
 
 	// Create a property view
@@ -228,32 +228,12 @@ FReply FEnumDetails::OnAddNewEnumerator()
 
 ECheckBoxState FEnumDetails::OnGetBitmaskFlagsAttributeState() const
 {
-	ECheckBoxState Result = ECheckBoxState::Unchecked;
-	const UUserDefinedEnum* Enum = TargetEnum.Get();
-	if (Enum && Enum->HasMetaData(TEXT("Bitflags")))
-	{
-		Result = ECheckBoxState::Checked;
-	}
-
-	return Result;
+	return FEnumEditorUtils::IsEnumeratorBitflagsType(TargetEnum.Get()) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 void FEnumDetails::OnBitmaskFlagsAttributeStateChanged(ECheckBoxState InNewState)
 {
-	UUserDefinedEnum* Enum = TargetEnum.Get();
-	if (Enum)
-	{
-		Enum->Modify();
-
-		if (InNewState == ECheckBoxState::Checked)
-		{
-			Enum->SetMetaData(TEXT("Bitflags"), TEXT(""));
-		}
-		else
-		{
-			Enum->RemoveMetaData(TEXT("Bitflags"));
-		}
-	}
+	FEnumEditorUtils::SetEnumeratorBitflagsTypeState(TargetEnum.Get(), InNewState == ECheckBoxState::Checked);
 }
 
 bool FUserDefinedEnumLayout::CausedChange() const

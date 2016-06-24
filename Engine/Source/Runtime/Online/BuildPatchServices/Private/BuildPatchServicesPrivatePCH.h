@@ -26,7 +26,6 @@
 #include "Json.h"
 #include "Http.h"
 #include "DefaultValueHelper.h"
-#include "IAnalyticsProvider.h"
 
 /* Public includes
 *****************************************************************************/

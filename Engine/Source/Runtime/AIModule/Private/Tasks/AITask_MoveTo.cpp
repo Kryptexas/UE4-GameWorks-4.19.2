@@ -38,6 +38,10 @@ UAITask_MoveTo* UAITask_MoveTo::AIMoveTo(AAIController* Controller, FVector InGo
 		MoveReq.SetStopOnOverlap(FAISystem::PickAIOption(StopOnOverlap, MoveReq.CanStopOnOverlap()));
 		MoveReq.SetAllowPartialPath(FAISystem::PickAIOption(AcceptPartialPath, MoveReq.IsUsingPartialPaths()));
 		MoveReq.SetUsePathfinding(bUsePathfinding);
+		if (Controller)
+		{
+			MoveReq.SetNavigationFilter(Controller->GetDefaultNavigationFilterClass());
+		}
 
 		MyTask->SetUp(Controller, MoveReq);
 
@@ -64,7 +68,7 @@ void UAITask_MoveTo::FinishMoveTask(EPathFollowingResult::Type InResult)
 		if (PFComp && PFComp->GetStatus() != EPathFollowingStatus::Idle)
 		{
 			ResetObservers();
-			PFComp->AbortMove(TEXT("AITask_MoveTo finished"), MoveRequestID);
+			PFComp->AbortMove(*this, FPathFollowingResultFlags::OwnerFinished, MoveRequestID);
 		}
 	}
 
@@ -129,7 +133,7 @@ void UAITask_MoveTo::PerformMove()
 
 	case EPathFollowingRequestResult::RequestSuccessful:
 		MoveRequestID = PFComp->GetCurrentRequestId();
-		PathFinishDelegateHandle = PFComp->OnMoveFinished.AddUObject(this, &UAITask_MoveTo::OnRequestFinished);
+		PathFinishDelegateHandle = PFComp->OnRequestFinished.AddUObject(this, &UAITask_MoveTo::OnRequestFinished);
 		SetObservedPath(PFComp->GetPath());
 
 		if (TaskState == EGameplayTaskState::Finished)
@@ -186,12 +190,17 @@ void UAITask_MoveTo::SetObservedPath(FNavPathSharedPtr InPath)
 
 void UAITask_MoveTo::ResetObservers()
 {
+	if (Path.IsValid())
+	{
+		Path->DisableGoalActorObservation();
+	}
+
 	if (PathFinishDelegateHandle.IsValid())
 	{
 		UPathFollowingComponent* PFComp = OwnerController ? OwnerController->GetPathFollowingComponent() : nullptr;
 		if (PFComp)
 		{
-			PFComp->OnMoveFinished.Remove(PathFinishDelegateHandle);
+			PFComp->OnRequestFinished.Remove(PathFinishDelegateHandle);
 		}
 
 		PathFinishDelegateHandle.Reset();
@@ -231,9 +240,9 @@ void UAITask_MoveTo::ResetTimers()
 	}
 }
 
-void UAITask_MoveTo::OnDestroy(bool bOwnerFinished)
+void UAITask_MoveTo::OnDestroy(bool bInOwnerFinished)
 {
-	Super::OnDestroy(bOwnerFinished);
+	Super::OnDestroy(bInOwnerFinished);
 	
 	ResetObservers();
 	ResetTimers();
@@ -243,23 +252,33 @@ void UAITask_MoveTo::OnDestroy(bool bOwnerFinished)
 		UPathFollowingComponent* PFComp = OwnerController ? OwnerController->GetPathFollowingComponent() : nullptr;
 		if (PFComp && PFComp->GetStatus() != EPathFollowingStatus::Idle)
 		{
-			PFComp->AbortMove(TEXT("AITask_MoveTo finished"), MoveRequestID);
+			PFComp->AbortMove(*this, FPathFollowingResultFlags::OwnerFinished, MoveRequestID);
 		}
 	}
+
+	// clear the shared pointer now to make sure other systems
+	// don't think this path is still being used
+	Path = nullptr;
 }
 
-void UAITask_MoveTo::OnRequestFinished(FAIRequestID RequestID, EPathFollowingResult::Type Result)
+void UAITask_MoveTo::OnRequestFinished(FAIRequestID RequestID, const FPathFollowingResult& Result)
 {
 	if (RequestID == MoveRequestID)
 	{
-		// reset request Id, FinishMoveTask doesn't need to update path following's state
-		MoveRequestID = FAIRequestID::InvalidRequest;
-
-		FinishMoveTask(Result);
+		if (Result.IsSkipped() && !Result.HasFlag(FPathFollowingResultFlags::ForcedScript))
+		{
+			UE_VLOG(GetGameplayTasksComponent(), LogGameplayTasks, Log, TEXT("%s> ignoring OnRequestFinished, move was aborted by new request"), *GetName());
+		}
+		else
+		{
+			// reset request Id, FinishMoveTask doesn't need to update path following's state
+			MoveRequestID = FAIRequestID::InvalidRequest;
+			FinishMoveTask(Result.Code);
+		}
 	}
 	else if (IsActive())
 	{
-		UE_VLOG(GetGameplayTasksComponent(), LogGameplayTasks, Warning, TEXT("%s> received HandleMoveFinished with not matching RequestID!"), *GetName());
+		UE_VLOG(GetGameplayTasksComponent(), LogGameplayTasks, Warning, TEXT("%s> received OnRequestFinished with not matching RequestID!"), *GetName());
 	}
 }
 
@@ -297,6 +316,7 @@ void UAITask_MoveTo::OnPathEvent(FNavigationPath* InPath, ENavPathEvent::Type Ev
 		FinishMoveTask(EPathFollowingResult::Aborted);
 		break;
 
+	case ENavPathEvent::MetaPathUpdate:
 	default:
 		break;
 	}
@@ -304,6 +324,14 @@ void UAITask_MoveTo::OnPathEvent(FNavigationPath* InPath, ENavPathEvent::Type Ev
 
 void UAITask_MoveTo::ConditionalUpdatePath()
 {
+	// mark this path as waiting for repath so that PathFollowingComponent doesn't abort the move while we 
+	// micro manage repathing moment
+	// note that this flag fill get cleared upon repathing end
+	if (Path.IsValid())
+	{
+		Path->SetManualRepathWaiting(true);
+	}
+
 	if (MoveRequest.IsUsingPathfinding() && OwnerController && OwnerController->ShouldPostponePathUpdates())
 	{
 		UE_VLOG(GetGameplayTasksComponent(), LogGameplayTasks, Log, TEXT("%s> can't path right now, waiting..."), *GetName());

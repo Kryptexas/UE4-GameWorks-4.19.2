@@ -17,9 +17,6 @@
 static const float GTessellationDepthBias = 0.001f;
 // for non tessellation: 0.0f as the isolate code should do a good job to prevent this case (can be increased if that is not the case e.g. if the platform ignores the isolate)
 static const float GNonTessellationDepthBias = 0.0f;
-// for instanced stereo
-// TODO: We should be able to remove this bias once the velocity pass is being rendering with instanced stereo
-static const float GInstancedStereoDepthBias = 0.0001f;
 
 struct FVelocityInterpsVSToPS
 {
@@ -115,9 +112,20 @@ void MainVertexShader(
 #if USE_GLOBAL_CLIP_PLANE && !USING_TESSELLATION
 	, out float OutGlobalClipPlaneDistance : SV_ClipDistance
 #endif
+#if INSTANCED_STEREO
+	, uint InstanceId : SV_InstanceID
+	, out float OutClipDistance : SV_ClipDistance1
+	, out float OutCullDistance : SV_CullDistance1
+#endif
 	)
 {
+#if INSTANCED_STEREO
+	OutCullDistance = OutClipDistance = 0.0;
+	const uint EyeIndex = VertexFactoryGetEyeIndex(InstanceId);
+	ResolvedView = ResolveView(EyeIndex);
+#else
 	ResolvedView = ResolveView();
+#endif
 	
 	FVertexFactoryIntermediates VFIntermediates = GetVertexFactoryIntermediates(Input);
 	float4 TranslatedWorldPosition = VertexFactoryGetWorldPosition( Input, VFIntermediates );
@@ -160,6 +168,21 @@ void MainVertexShader(
 		}
 #endif
 
+	#if INSTANCED_STEREO
+	BRANCH
+	if (bIsInstancedStereo)
+	{
+		// Clip at the center of the screen
+		OutCullDistance = OutClipDistance = dot(Output.Position, EyeClipEdge[EyeIndex]);
+
+		// Scale to the width of a single eye viewport
+		Output.Position.x *= 0.5 * ResolvedView.HMDEyePaddingOffset;
+
+		// Shift to the eye viewport
+		Output.Position.x += (EyeOffsetScale[EyeIndex] * Output.Position.w) * (1.0f - 0.5 * ResolvedView.HMDEyePaddingOffset);
+	}
+	#endif
+
 #if USE_GLOBAL_CLIP_PLANE && !USING_TESSELLATION
 		OutGlobalClipPlaneDistance = dot(ResolvedView.GlobalClippingPlane, float4(TranslatedWorldPosition.xyz - ResolvedView.PreViewTranslation.xyz, 1));
 #endif
@@ -170,15 +193,19 @@ void MainVertexShader(
 
 // Move all geometry a little bit towards the camera (to not get z fighting with existing zbuffer of the same meshes rendered with slightly different float computations).
 #if !USING_TESSELLATION
-	#if INSTANCED_STEREO
-		Output.Position.z += GInstancedStereoDepthBias * Output.Position.w;
-	#else
-		Output.Position.z += GNonTessellationDepthBias * Output.Position.w;
-	#endif
+	Output.Position.z += GNonTessellationDepthBias * Output.Position.w;
 #endif
 
 #if USING_TESSELLATION
 	OutputVertexID( Output );
+#endif
+
+#if INSTANCED_STEREO
+	#if USING_TESSELLATION	
+		Output.FactoryInterpolants.InterpolantsVSToPS.PackedEyeIndex = PackEyeIndex(EyeIndex, bIsInstancedStereo);
+	#else
+		Output.Interps.FactoryInterpolants.PackedEyeIndex = PackEyeIndex(EyeIndex, bIsInstancedStereo);
+	#endif
 #endif
 }
 
@@ -197,7 +224,11 @@ void MainPixelShader(
 	out float4 OutColor : SV_Target0
 	)
 {
+#if INSTANCED_STEREO
+	ResolvedView = ResolveView(GetEyeIndex(Input.FactoryInterpolants.PackedEyeIndex));
+#else
 	ResolvedView = ResolveView();
+#endif
 
 	// Manual clipping here (alpha-test, etc)
 	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Input.FactoryInterpolants, SvPosition);

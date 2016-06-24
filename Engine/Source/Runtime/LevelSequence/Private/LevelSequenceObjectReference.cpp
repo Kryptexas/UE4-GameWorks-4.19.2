@@ -30,7 +30,7 @@ FLevelSequenceObjectReference::FLevelSequenceObjectReference(const FUniqueObject
 
 UObject* FLevelSequenceObjectReference::Resolve(UObject* InContext) const
 {
-	if (ObjectId.IsValid())
+	if (ObjectId.IsValid() && InContext != nullptr)
 	{
 	#if WITH_EDITOR
 		int32 PIEInstanceID = InContext->GetOutermost()->PIEInstanceID;

@@ -15,8 +15,8 @@ enum EDecalRenderStage
 	DRS_AfterBasePass = 1,
 	// for normal decals not modifying the depth buffer
 	DRS_BeforeLighting = 2,
-	// for rendering decals in forward shading
-	DRS_ForwardShading = 3,
+	// for rendering decals on mobile
+	DRS_Mobile = 3,
 
 	// later we could add "after lighting" and multiply
 };

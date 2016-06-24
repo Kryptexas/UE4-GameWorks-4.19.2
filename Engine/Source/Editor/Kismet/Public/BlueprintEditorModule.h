@@ -179,4 +179,7 @@ private:
 
 	/** Handle to a registered LevelViewportContextMenuBlueprintExtender delegate */
 	FDelegateHandle LevelViewportContextMenuBlueprintExtenderDelegateHandle;
+
+	/** Reference to keep our custom configuration panel alive */
+	TSharedPtr<SWidget> ConfigurationPanel;
 };

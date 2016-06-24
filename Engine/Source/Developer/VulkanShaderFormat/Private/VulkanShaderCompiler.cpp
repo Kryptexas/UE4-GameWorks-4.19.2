@@ -1,5 +1,5 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-// 
+// ...
 
 #include "VulkanShaderFormat.h"
 #include "Core.h"
@@ -198,22 +198,22 @@ static inline FString GetExtension(EHlslShaderFrequency Frequency, bool bAddDot 
 		// fallthrough...
 
 	case HSF_PixelShader:
-		return TEXT(".frag") + (bAddDot ? 0 : 1);
+		return bAddDot ? TEXT(".frag") : TEXT("frag");
 
 	case HSF_VertexShader:
-		return TEXT(".vert") + (bAddDot ? 0 : 1);
+		return bAddDot ? TEXT(".vert") : TEXT("vert");
 
 	case HSF_ComputeShader:
-		return TEXT(".comp") + (bAddDot ? 0 : 1);
+		return bAddDot ? TEXT(".comp") : TEXT("comp");
 
 	case HSF_GeometryShader:
-		return TEXT(".geom") + (bAddDot ? 0 : 1);
+		return bAddDot ? TEXT(".geom") : TEXT("geom");
 
 	case HSF_HullShader:
-		return TEXT(".tesc") + (bAddDot ? 0 : 1);
+		return bAddDot ? TEXT(".tesc") : TEXT("tesc");
 
 	case HSF_DomainShader:
-		return TEXT(".tese") + (bAddDot ? 0 : 1);
+		return bAddDot ? TEXT(".tese") : TEXT("tese");
 	}
 }
 
@@ -742,6 +742,7 @@ static char* PatchGLSLVersionPosition(const char* InSourceGLSL)
 	}
 
 	char* GlslSource = (char*)malloc(InSrcLength+1);
+	check(GlslSource);
 	memcpy(GlslSource, InSourceGLSL, InSrcLength+1);
 
 	// Find begin of "#version" line
@@ -760,8 +761,9 @@ static char* PatchGLSLVersionPosition(const char* InSourceGLSL)
 		// Copy version line into a temporary buffer (+1 for term-char).
 		const int32 TmpStrBytes = (VersionEnd - VersionBegin) + 1;
 		char* TmpVersionLine = (char*)malloc(TmpStrBytes);
+		check(TmpVersionLine);
 		memset(TmpVersionLine, 0, TmpStrBytes);
-		memcpy(TmpVersionLine, VersionBegin, TmpStrBytes-1);
+		memcpy(TmpVersionLine, VersionBegin, VersionEnd - VersionBegin);
 
 		// Erase current version number, just replace it with spaces...
 		for(char* str=VersionBegin; str<(VersionEnd-1); str++)
@@ -771,6 +773,7 @@ static char* PatchGLSLVersionPosition(const char* InSourceGLSL)
 
 		// Allocate new source buffer to place version string on the first line.
 		char* NewSource = (char*)malloc(InSrcLength + TmpStrBytes);
+		check(NewSource);
 
 		// Copy version line
 		memcpy(NewSource, TmpVersionLine, TmpStrBytes);
@@ -828,6 +831,7 @@ static void PatchForToWhileLoop(char** InOutSourceGLSL)
 
 	// Allocate destination buffer + 1 char for terminating character
 	char* GlslSource = (char*)malloc(newLength+1);
+	check(GlslSource)
 	memset(GlslSource, 0, sizeof(char)*(newLength+1));
 	memcpy(GlslSource, srcGlsl, InSrcLength);
 
@@ -856,39 +860,6 @@ static void PatchForToWhileLoop(char** InOutSourceGLSL)
 	free(*InOutSourceGLSL);
 
 	*InOutSourceGLSL = GlslSource;
-}
-
-static char* PatchForToWhileLoop(const char* InSourceGLSL)
-{
-	const int32 InSrcLength = FCStringAnsi::Strlen(InSourceGLSL);
-	if(InSrcLength <= 0)
-	{
-		check(!"Attempting to patch an empty glsl source-string.");
-		return nullptr;
-	}
-
-	// This is what we are relacing
-	const char* srcPatchable = "for (;;)";
-	const int srcPatchableLength = FCStringAnsi::Strlen(srcPatchable);
-
-	// This is where we are replacing with
-	const char* dstPatchable = "while(true)";
-	const int dstPatchableLength = FCStringAnsi::Strlen(dstPatchable);
-
-	const int newLength = InSrcLength + (dstPatchableLength-srcPatchableLength);
-
-	// Allocate destination buffer + 1 char for terminating character
-	char* GlslSource = (char*)malloc(newLength+1);
-	memset(GlslSource, 0, sizeof(char)*(newLength+1));
-	memcpy(GlslSource, InSourceGLSL, InSrcLength);
-
-	char* replaceBegin = strstr(GlslSource, srcPatchable);
-
-	if(replaceBegin == NULL)
-	{
-		// Nothing to replace
-		return GlslSource;
-	}
 }
 
 static FString CreateShaderCompileCommandLine(FCompilerInfo& CompilerInfo, EHlslCompileTarget Target)
@@ -976,6 +947,12 @@ static void CompileUsingExternal(const struct FShaderCompilerInput& Input, struc
 
 	AdditionalDefines.SetDefine(TEXT("COMPILER_SUPPORTS_ATTRIBUTES"), (uint32)1);
 
+	const bool bUseFullPrecisionInPS = Input.Environment.CompilerFlags.Contains(CFLAG_UseFullPrecisionInPS);
+	if (bUseFullPrecisionInPS)
+	{
+		AdditionalDefines.SetDefine(TEXT("FORCE_FLOATS"), (uint32)1);
+	}
+
 	auto DoPreprocess = [&]() -> bool
 	{
 		if (Input.bSkipPreprocessedCache)
@@ -1045,6 +1022,11 @@ static void CompileUsingExternal(const struct FShaderCompilerInput& Input, struc
 			CCFlags |= HLSLCC_SeparateShaderObjects;
 		}
 		//CCFlags |= HLSLCC_DX11ClipSpace;
+
+		if (bUseFullPrecisionInPS)
+		{
+			CCFlags |= HLSLCC_UseFullPrecisionInPS;
+		}
 
 		// Required as we added the RemoveUniformBuffersFromSource() function (the cross-compiler won't be able to interpret comments w/o a preprocessor)
 		CCFlags &= ~HLSLCC_NoPreprocess;
@@ -1425,6 +1407,12 @@ void CompileShader_Windows_Vulkan(const FShaderCompilerInput& Input, FShaderComp
 
 	AdditionalDefines.SetDefine(TEXT("COMPILER_SUPPORTS_ATTRIBUTES"), (uint32)1);
 
+	const bool bUseFullPrecisionInPS = Input.Environment.CompilerFlags.Contains(CFLAG_UseFullPrecisionInPS);
+	if (bUseFullPrecisionInPS)
+	{
+		AdditionalDefines.SetDefine(TEXT("FORCE_FLOATS"), (uint32)1);
+	}
+
 	//#todo-rco: Glslang doesn't allow this yet
 	AdditionalDefines.SetDefine(TEXT("noperspective"), TEXT(""));
 
@@ -1456,6 +1444,15 @@ void CompileShader_Windows_Vulkan(const FShaderCompilerInput& Input, FShaderComp
 		return;
 	}
 
+	{
+		// Tiny helper when debugging issues on glslang
+		static bool bRemoveHashLine = false;
+		if (bRemoveHashLine)
+		{
+			PreprocessedShaderSource = PreprocessedShaderSource.Replace(TEXT("#line"), TEXT("///#line"), ESearchCase::CaseSensitive);
+		}
+	}
+
 	FCompilerInfo CompilerInfo(Input, WorkingDirectory, Frequency);
 
 	CompilerInfo.CCFlags |= HLSLCC_PackUniforms;
@@ -1464,6 +1461,11 @@ void CompileShader_Windows_Vulkan(const FShaderCompilerInput& Input, FShaderComp
 	//if (Version == EVulkanShaderVersion::ES3_1 || Version == EVulkanShaderVersion::ES3_1_ANDROID)
 	{
 		CompilerInfo.CCFlags |= HLSLCC_FlattenUniformBuffers;
+	}
+
+	if (bUseFullPrecisionInPS)
+	{
+		CompilerInfo.CCFlags |= HLSLCC_UseFullPrecisionInPS;
 	}
 
 	CompilerInfo.CCFlags |= HLSLCC_SeparateShaderObjects;
@@ -1489,6 +1491,11 @@ void CompileShader_Windows_Vulkan(const FShaderCompilerInput& Input, FShaderComp
 
 		const FString BatchFileContents = CreateShaderCompileCommandLine(CompilerInfo, HlslCompilerTarget);
 		FFileHelper::SaveStringToFile(BatchFileContents, *(CompilerInfo.Input.DumpDebugInfoPath / TEXT("CompileSPIRV.bat")));
+
+		if (Input.bGenerateDirectCompileFile)
+		{
+			FFileHelper::SaveStringToFile(CreateShaderCompilerWorkerDirectCommandLine(Input), *(Input.DumpDebugInfoPath / TEXT("DirectCompile.txt")));
+		}
 	}
 
 	TArray<ANSICHAR> GeneratedGlslSource;

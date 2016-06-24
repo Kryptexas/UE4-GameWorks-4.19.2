@@ -9,11 +9,23 @@ LightMapRendering.cpp: Light map rendering implementations.
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FPrecomputedLightingParameters, TEXT("PrecomputedLightingBuffer"));
 
+const TCHAR* GLightmapDefineName[2] =
+{
+	TEXT("LQ_TEXTURE_LIGHTMAP"),
+	TEXT("HQ_TEXTURE_LIGHTMAP")
+};
+
+int32 GNumLightmapCoefficients[2] = 
+{
+	NUM_LQ_LIGHTMAP_COEF,
+	NUM_HQ_LIGHTMAP_COEF
+};
+
 void FMovableDirectionalLightCSMLightingPolicy::ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 {
 	OutEnvironment.SetDefine(TEXT("MOVABLE_DIRECTIONAL_LIGHT"), TEXT("1"));
 	OutEnvironment.SetDefine(TEXT("DIRECTIONAL_LIGHT_CSM"), TEXT("1"));
-	OutEnvironment.SetDefine(TEXT(PREPROCESSOR_TO_STRING(MAX_FORWARD_SHADOWCASCADES)), MAX_FORWARD_SHADOWCASCADES);
+	OutEnvironment.SetDefine(TEXT(PREPROCESSOR_TO_STRING(MAX_MOBILE_SHADOWCASCADES)), MAX_MOBILE_SHADOWCASCADES);
 
 	FNoLightMapPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 }

@@ -130,6 +130,35 @@ namespace UnrealBuildTool
 			return CachedSDKLevel;
 		}
 
+		private bool IsVulkanSDKAvailable()
+		{
+			bool bHaveVulkan = false;
+
+			// First look for VulkanSDK (two possible env variables)
+			string VulkanSDKPath = Environment.GetEnvironmentVariable("VULKAN_SDK");
+			if (String.IsNullOrEmpty(VulkanSDKPath))
+			{
+				VulkanSDKPath = Environment.GetEnvironmentVariable("VK_SDK_PATH");
+			}
+
+			// Note: header is the same for all architectures so just use arch-arm
+			string NDKPath = Environment.GetEnvironmentVariable("NDKROOT");
+			string NDKVulkanIncludePath = NDKPath + "/android-24/arch-arm/usr/include/vulkan";
+
+			// Use NDK Vulkan header if discovered, or VulkanSDK if available
+			if (File.Exists(NDKVulkanIncludePath + "/vulkan.h"))
+			{
+				bHaveVulkan = true;
+			}
+			else
+			if (!String.IsNullOrEmpty(VulkanSDKPath))
+			{
+				bHaveVulkan = true;
+			}
+
+			return bHaveVulkan;
+		}
+
 		public static string GetOBBVersionNumber(int PackageVersion)
 		{
 			string VersionString = PackageVersion.ToString("0");
@@ -1164,18 +1193,27 @@ namespace UnrealBuildTool
 			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bSupportsVulkan", out bSupportsVulkan);
 			if (bSupportsVulkan)
 			{
-				string VulkanSDKPath = Environment.GetEnvironmentVariable("VULKAN_SDK");
-				if (String.IsNullOrEmpty(VulkanSDKPath))
-				{
-					VulkanSDKPath = Environment.GetEnvironmentVariable("VK_SDK_PATH");
-				}
-				string VulkanSoPath = Path.Combine(VulkanSDKPath, "Source/lib/libvulkan.so");
-				bSupportsVulkan = File.Exists(VulkanSoPath);
+				bSupportsVulkan = IsVulkanSDKAvailable();
 			}
 			bool bEnableIAP = false;
 			Ini.GetBool("OnlineSubsystemGooglePlay.Store", "bSupportsInAppPurchasing", out bEnableIAP);
 			bool bShowLaunchImage = false;
 			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bShowLaunchImage", out bShowLaunchImage);
+
+			string InstallLocation;
+			Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "InstallLocation", out InstallLocation);
+			switch(InstallLocation.ToLower())
+			{
+				case "preferexternal":
+					InstallLocation = "preferExternal";
+					break;
+				case "auto":
+					InstallLocation = "auto";
+					break;
+				default:
+					InstallLocation = "internalOnly";
+					break;
+			}
 
 			// fix up the MinSdkVersion
 			if (NDKLevelInt > 19)
@@ -1218,6 +1256,7 @@ namespace UnrealBuildTool
 					Text.AppendLine("          " + Line);
 				}
 			}
+			Text.AppendLine(string.Format("          android:installLocation=\"{0}\"", InstallLocation));
 			Text.AppendLine(string.Format("          android:versionCode=\"{0}\"", StoreVersion));
 			Text.AppendLine(string.Format("          android:versionName=\"{0}\">", VersionDisplayName));
 
@@ -1797,6 +1836,11 @@ namespace UnrealBuildTool
 			Log.TraceInformation("\n===={0}====PREPARING NATIVE CODE=================================================================", DateTime.Now.ToString());
 			bool HasNDKPath = File.Exists(NDKBuildPath);
 
+			// get Ant verbosity level
+			ConfigCacheIni Ini = GetConfigCacheIni("Engine");
+			string AntVerbosity;
+			Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "AntVerbosity", out AntVerbosity);
+
 			foreach (var build in BuildList)
 			{
 				string Arch = build.Item1;
@@ -1931,10 +1975,24 @@ namespace UnrealBuildTool
 				string ShellExecutable = Utils.IsRunningOnMono ? "/bin/sh" : "cmd.exe";
 				string ShellParametersBegin = Utils.IsRunningOnMono ? "-c '" : "/c ";
 				string ShellParametersEnd = Utils.IsRunningOnMono ? "'" : "";
-				if (RunCommandLineProgramAndReturnError(UE4BuildPath, ShellExecutable, ShellParametersBegin + "\"" + GetAntPath() + "\" -quiet " + AntBuildType + ShellParametersEnd, "Making .apk with Ant... (note: it's safe to ignore javac obsolete warnings)") != 0)
+				switch (AntVerbosity.ToLower())
 				{
-					RunCommandLineProgramAndReturnError(UE4BuildPath, ShellExecutable, ShellParametersBegin + "\"" + GetAntPath() + "\" " + AntBuildType + ShellParametersEnd, "Making .apk with Ant again to show errors");
-                }
+					default:
+					case "quiet":
+						if (RunCommandLineProgramAndReturnError(UE4BuildPath, ShellExecutable, ShellParametersBegin + "\"" + GetAntPath() + "\" -quiet " + AntBuildType + ShellParametersEnd, "Making .apk with Ant... (note: it's safe to ignore javac obsolete warnings)") != 0)
+						{
+							RunCommandLineProgramAndReturnError(UE4BuildPath, ShellExecutable, ShellParametersBegin + "\"" + GetAntPath() + "\" " + AntBuildType + ShellParametersEnd, "Making .apk with Ant again to show errors");
+						}
+						break;
+
+					case "normal":
+						RunCommandLineProgramAndReturnError(UE4BuildPath, ShellExecutable, ShellParametersBegin + "\"" + GetAntPath() + "\" " + AntBuildType + ShellParametersEnd, "Making .apk with Ant again to show errors");
+						break;
+
+					case "verbose":
+						RunCommandLineProgramAndReturnError(UE4BuildPath, ShellExecutable, ShellParametersBegin + "\"" + GetAntPath() + "\" -verbose " + AntBuildType + ShellParametersEnd, "Making .apk with Ant again to show errors");
+						break;
+				}
 
 				// make sure destination exists
 				Directory.CreateDirectory(Path.GetDirectoryName(DestApkName));

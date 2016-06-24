@@ -7,6 +7,8 @@
 #include "Collision.h"
 #include "Engine/DemoNetDriver.h"
 #include "AudioDeviceManager.h"
+#include "MessageLog.h"
+#include "MapErrors.h"
 
 #if WITH_PHYSX
 	#include "PhysicsEngine/PhysXSupport.h"
@@ -17,6 +19,8 @@
 #include "Components/BoxComponent.h"
 #include "GameFramework/MovementComponent.h"
 #include "GameFramework/GameMode.h"
+
+#define LOCTEXT_NAMESPACE "LevelActor"
 
 // CVars
 static TAutoConsoleVariable<float> CVarEncroachEpsilon(
@@ -604,11 +608,24 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 	{
 		ThisActor->SetOwner(NULL);
 	}
-	// Notify net players that this guy has been destroyed.
-	UNetDriver* ActorNetDriver = GEngine->FindNamedNetDriver(this, ThisActor->GetNetDriverName());
-	if (ActorNetDriver)
+
+	// Notify net drivers that this guy has been destroyed.
+	if (GEngine->GetWorldContextFromWorld(this))
 	{
-		ActorNetDriver->NotifyActorDestroyed(ThisActor);
+		UNetDriver* ActorNetDriver = GEngine->FindNamedNetDriver(this,ThisActor->GetNetDriverName());
+		if (ActorNetDriver)
+		{
+			ActorNetDriver->NotifyActorDestroyed(ThisActor);
+		}
+	}
+	else
+	{
+		if (!IsRunningCommandlet())
+		{
+			// Only worlds in the middle of seamless travel should have no context, and in that case, we shouldn't be destroying actors on them until
+			// they have become the current world (i.e. CopyWorldData has been called)
+			UE_LOG(LogSpawn, Warning, TEXT("UWorld::DestroyActor: World has no context! World: %s, Actor: %s"), *GetName(), *ThisActor->GetPathName());
+		}
 	}
 
 	if ( DemoNetDriver )
@@ -1215,6 +1232,40 @@ void UWorld::RefreshStreamingLevels()
 {
 	RefreshStreamingLevels( StreamingLevels );
 }
+
+void UWorld::IssueEditorLoadWarnings()
+{
+	float TotalLoadTimeFromFixups = 0;
+
+	for (int32 LevelIndex = 0; LevelIndex < Levels.Num(); LevelIndex++)
+	{
+		ULevel* Level = Levels[LevelIndex];
+
+		if (Level->FixupOverrideVertexColorsCount > 0)
+		{
+			TotalLoadTimeFromFixups += Level->FixupOverrideVertexColorsTime;
+			FFormatNamedArguments Arguments;
+			Arguments.Add(TEXT("LoadTime"), FText::FromString(FString::Printf(TEXT("%.1fs"), Level->FixupOverrideVertexColorsTime)));
+			Arguments.Add(TEXT("NumComponents"), FText::FromString(FString::Printf(TEXT("%u"), Level->FixupOverrideVertexColorsCount)));
+			Arguments.Add(TEXT("LevelName"), FText::FromString(Level->GetOutermost()->GetName()));
+			
+			FMessageLog("MapCheck").Info()
+				->AddToken(FTextToken::Create(FText::Format( LOCTEXT( "MapCheck_Message_RepairedPaintedVertexColors", "Repaired painted vertex colors in {LoadTime} for {NumComponents} components in {LevelName}.  Resave map to fix." ), Arguments ) ))
+				->AddToken(FMapErrorToken::Create(FMapErrors::RepairedPaintedVertexColors));
+		}
+	}
+
+	if (TotalLoadTimeFromFixups > 0)
+	{
+		FFormatNamedArguments Arguments;
+		Arguments.Add(TEXT("LoadTime"), FText::FromString(FString::Printf(TEXT("%.1fs"), TotalLoadTimeFromFixups)));
+			
+		FMessageLog("MapCheck").Warning()
+			->AddToken(FTextToken::Create(FText::Format( LOCTEXT( "MapCheck_Message_RepairedPaintedVertexColors", "Spent {LoadTime} repairing painted vertex colors due to static mesh re-imports!  This will happen every load until the maps are resaved." ), Arguments ) ))
+			->AddToken(FMapErrorToken::Create(FMapErrors::RepairedPaintedVertexColors));
+	}
+}
+
 #endif // WITH_EDITOR
 
 
@@ -1321,3 +1372,5 @@ void UWorld::SetMapNeedsLightingFullyRebuilt(int32 InNumLightingUnbuiltObjects)
 		}
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

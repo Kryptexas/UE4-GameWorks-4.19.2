@@ -241,7 +241,6 @@ namespace APIDocTool
 		static string[] ExcludeSourceFiles = 
 		{
 			"*/CoreUObject/Classes/Object.h",
-			"DelegateInstanceInterfaceImpl.inl",
 		};
 
 		static string[] DoxygenExpandedMacros = 

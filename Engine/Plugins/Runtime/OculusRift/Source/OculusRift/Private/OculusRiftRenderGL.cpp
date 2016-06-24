@@ -1,6 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 //
-#include "HMDPrivatePCH.h"
+#include "OculusRiftPrivatePCH.h"
 #include "OculusRiftHMD.h"
 
 #if !PLATFORM_MAC
@@ -331,7 +331,7 @@ FTexture2DSetProxyRef FOculusRiftHMD::OGLBridge::CreateTextureSet(const uint32 I
 	desc.Height = InSizeY;
 	// Override the format to be sRGB so that the compositor always treats eye buffers
 	// as if they're sRGB even if we are sending in linear formatted textures
-	desc.Format = OVR_FORMAT_R8G8B8A8_UNORM_SRGB;
+	desc.Format = (InCreateTexFlags & LinearSpace) ? OVR_FORMAT_B8G8R8A8_UNORM : OVR_FORMAT_B8G8R8A8_UNORM_SRGB;
 	desc.MiscFlags = 0;
 	desc.BindFlags = 0;
 	if (desc.MipLevels != 1)
@@ -376,15 +376,15 @@ void FOculusRiftHMD::OGLBridge::BeginRendering(FHMDViewExtension& InRenderContex
 
 	SetRenderContext(&InRenderContext);
 
-	FGameFrame* CurrentFrame = GetRenderFrame();
-	check(CurrentFrame);
-	FSettings* FrameSettings = CurrentFrame->GetSettings();
+	FGameFrame* CurrentRenderFrame = GetRenderFrame();
+	check(CurrentRenderFrame);
+	FSettings* FrameSettings = CurrentRenderFrame->GetSettings();
 	check(FrameSettings);
 
 	const uint32 RTSizeX = RT->GetSizeX();
 	const uint32 RTSizeY = RT->GetSizeY();
 
-	const FVector2D ActualMirrorWindowSize = CurrentFrame->WindowSize;
+	const FVector2D ActualMirrorWindowSize = CurrentRenderFrame->WindowSize;
 	// detect if mirror texture needs to be re-allocated or freed
 	FOvrSessionShared::AutoSession OvrSession(Session);
 	if (Session->IsActive() && MirrorTextureRHI && (bNeedReAllocateMirrorTexture || 

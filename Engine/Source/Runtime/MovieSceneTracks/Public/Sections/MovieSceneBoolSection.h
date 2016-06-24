@@ -18,9 +18,9 @@ class UMovieSceneBoolSection
 
 public:
 
-	/** The default value to use when no keys are present */
-	UPROPERTY(EditAnywhere, Category="Curve")
-	bool DefaultValue;
+	/** The default value to use when no keys are present - use GetCurve().SetDefaultValue() */
+	UPROPERTY()
+	bool DefaultValue_DEPRECATED;
 
 public:
 
@@ -43,9 +43,13 @@ public:
 	virtual void MoveSection(float DeltaPosition, TSet<FKeyHandle>& KeyHandles) override;
 	virtual void DilateSection(float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles) override;
 	virtual void GetKeyHandles(TSet<FKeyHandle>& OutKeyHandles, TRange<float> TimeRange) const override;
+	virtual TOptional<float> GetKeyTime( FKeyHandle KeyHandle ) const override;
+	virtual void SetKeyTime( FKeyHandle KeyHandle, float Time ) override;
 
 	/** Gets all the keys of this boolean section */
 	FIntegralCurve& GetCurve() { return BoolCurve; }
+
+	virtual void PostLoad() override;
 
 private:
 	/** Ordered curve data */

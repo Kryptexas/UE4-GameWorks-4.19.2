@@ -95,11 +95,13 @@
 #include "Animation/BlendSpace.h"
 #include "Animation/AimOffsetBlendSpace.h"
 #include "Animation/AimOffsetBlendSpace1D.h"
+#include "Animation/AnimInstance.h"
 #include "Engine/UserDefinedEnum.h"
 #include "Engine/UserDefinedStruct.h"
 #include "GameFramework/ForceFeedbackEffect.h"
 #include "GameFramework/HapticFeedbackEffect.h"
 #include "Engine/SubsurfaceProfile.h"
+#include "Engine/SubDSurface.h"
 #include "Camera/CameraAnim.h"
 #include "GameFramework/TouchInterface.h"
 #include "Engine/DataTable.h"
@@ -3322,13 +3324,13 @@ UTextureFactory::UTextureFactory(const FObjectInitializer& ObjectInitializer)
 	Formats.Add( TEXT( "tga;Texture" ) );
 	Formats.Add( TEXT( "float;Texture" ) );
 	Formats.Add( TEXT( "psd;Texture" ) );
-	Formats.Add( TEXT( "dds;Texture" ) );
+	Formats.Add( TEXT( "dds;Texture (Cubemap or 2D)" ) );
 	Formats.Add( TEXT( "hdr;Cubemap Texture (LongLat unwrap)" ) );
 	Formats.Add( TEXT( "ies;IES Texture (Standard light profiles)" ) );
 	Formats.Add( TEXT( "png;Texture" ) );
 	Formats.Add( TEXT( "jpg;Texture" ) );
 	Formats.Add( TEXT( "jpeg;Texture" ) );
-	Formats.Add( TEXT( "exr;Texture" ) );
+	Formats.Add( TEXT( "exr;Texture (HDR)" ) );
 
 	bCreateNew = false;
 	bEditorImport = true;
@@ -4070,11 +4072,19 @@ UTexture* UTextureFactory::ImportTexture(UClass* Class, UObject* InParent, FName
 		// DDS 2d texture
 		if(!IsImportResolutionValid(DDSLoadHelper.DDSHeader->dwWidth, DDSLoadHelper.DDSHeader->dwHeight, bAllowNonPowerOfTwo, Warn))
 		{
-			Warn->Logf(ELogVerbosity::Error, TEXT("DDS uses an unsupported format"));
+			Warn->Logf(ELogVerbosity::Error, TEXT("DDS has invalid dimensions."));
 			return nullptr;
 		}
 		
 		ETextureSourceFormat SourceFormat = DDSLoadHelper.ComputeSourceFormat();
+
+		// Invalid DDS format
+		if (SourceFormat == TSF_Invalid)
+		{
+			Warn->Logf(ELogVerbosity::Error, TEXT("DDS uses an unsupported format."));
+			return nullptr;
+		}
+
 		uint32 MipMapCount = DDSLoadHelper.ComputeMipMapCount();
 		if (SourceFormat != TSF_Invalid && MipMapCount > 0)
 		{
@@ -4601,6 +4611,21 @@ UTextureExporterPCX::UTextureExporterPCX(const FObjectInitializer& ObjectInitial
 
 }
 
+bool UTextureExporterPCX::SupportsObject(UObject* Object) const
+{
+	bool bSupportsObject = false;
+	if (Super::SupportsObject(Object))
+	{
+		UTexture2D* Texture = Cast<UTexture2D>(Object);
+
+		if (Texture)
+		{
+			bSupportsObject = Texture->Source.GetFormat() == TSF_BGRA8;
+		}
+	}
+	return bSupportsObject;
+}
+
 bool UTextureExporterPCX::ExportBinary( UObject* Object, const TCHAR* Type, FArchive& Ar, FFeedbackContext* Warn, int32 FileIndex, uint32 PortFlags )
 {
 	UTexture2D* Texture = CastChecked<UTexture2D>( Object );
@@ -4669,6 +4694,21 @@ UTextureExporterBMP::UTextureExporterBMP(const FObjectInitializer& ObjectInitial
 
 }
 
+bool UTextureExporterBMP::SupportsObject(UObject* Object) const
+{
+	bool bSupportsObject = false;
+	if (Super::SupportsObject(Object))
+	{
+		UTexture2D* Texture = Cast<UTexture2D>(Object);
+
+		if (Texture)
+		{
+			bSupportsObject = Texture->Source.GetFormat() == TSF_BGRA8 || Texture->Source.GetFormat() == TSF_RGBA16;
+		}
+	}
+	return bSupportsObject;
+}
+
 bool UTextureExporterBMP::ExportBinary( UObject* Object, const TCHAR* Type, FArchive& Ar, FFeedbackContext* Warn, int32 FileIndex, uint32 PortFlags )
 {
 	UTexture2D* Texture = CastChecked<UTexture2D>( Object );
@@ -4686,7 +4726,7 @@ bool UTextureExporterBMP::ExportBinary( UObject* Object, const TCHAR* Type, FArc
 		FMessageLog ExportWarning("EditorErrors");
 		FFormatNamedArguments Arguments;
 		Arguments.Add(TEXT("Name"), FText::FromString(Texture->GetName()));
-		ExportWarning.Warning(FText::Format(LOCTEXT("BitDepthWarning", "{Name}: Texture is RGBA16 and cannot be represented at such high bit depth in .bmp. Color will be scaled to RGBA8."), Arguments));
+		ExportWarning.Warning(FText::Format(LOCTEXT("BitDepthBMPWarning", "{Name}: Texture is RGBA16 and cannot be represented at such high bit depth in .bmp. Color will be scaled to RGBA8."), Arguments));
 		ExportWarning.Open(EMessageSeverity::Warning);
 	}
 
@@ -4959,6 +4999,42 @@ public:
 
 	/**
 	* Writes HDR format image to an FArchive
+	* @param TexRT - A 2D source render target to read from.
+	* @param Ar - Archive object to write HDR data to.
+	* @return true on successful export.
+	*/
+	bool ExportHDR(UTexture2D* Texture, FArchive& Ar)
+	{
+		check(Texture != nullptr);
+
+		Size = FIntPoint(Texture->Source.GetSizeX(), Texture->Source.GetSizeY());
+
+		TArray<uint8> RawData;
+		bool bReadSuccess = Texture->Source.GetMipData(RawData, 0);
+
+		if (Texture->Source.GetFormat() == TSF_BGRA8)
+		{
+			Format = PF_B8G8R8A8;
+		}
+		else if (Texture->Source.GetFormat() == TSF_RGBA16F)
+		{
+			Format = PF_FloatRGBA;
+		}
+		else
+		{
+			bReadSuccess = false;
+		}
+
+		if (bReadSuccess)
+		{
+			WriteHDRImage(RawData, Ar);
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	* Writes HDR format image to an FArchive
 	* This function unwraps the cube image on to a 2D surface.
 	* @param TexCube - A cube source (render target or cube texture) to read from.
 	* @param Ar - Archive object to write HDR data to.
@@ -4985,10 +5061,10 @@ public:
 };
 
 /*------------------------------------------------------------------------------
-	UTextureExporterHDR implementation.
+	URenderTargetExporterHDR implementation.
 	Exports render targets.
 ------------------------------------------------------------------------------*/
-UTextureExporterHDR::UTextureExporterHDR(const FObjectInitializer& ObjectInitializer)
+URenderTargetExporterHDR::URenderTargetExporterHDR(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	SupportedClass = UTextureRenderTarget::StaticClass();
@@ -4997,7 +5073,7 @@ UTextureExporterHDR::UTextureExporterHDR(const FObjectInitializer& ObjectInitial
 	FormatDescription.Add(TEXT("HDR"));
 }
 
-bool UTextureExporterHDR::ExportBinary(UObject* Object, const TCHAR* Type, FArchive& Ar, FFeedbackContext* Warn, int32 FileIndex, uint32 PortFlags)
+bool URenderTargetExporterHDR::ExportBinary(UObject* Object, const TCHAR* Type, FArchive& Ar, FFeedbackContext* Warn, int32 FileIndex, uint32 PortFlags)
 {
 	UTextureRenderTarget2D* TexRT2D = Cast<UTextureRenderTarget2D>(Object);
 	UTextureRenderTargetCube* TexRTCube = Cast<UTextureRenderTargetCube>(Object);
@@ -5040,6 +5116,46 @@ bool UTextureCubeExporterHDR::ExportBinary(UObject* Object, const TCHAR* Type, F
 }
 
 /*------------------------------------------------------------------------------
+	UTextureExporterHDR implementation.
+	Export UTexture2D as .HDR
+------------------------------------------------------------------------------*/
+UTextureExporterHDR::UTextureExporterHDR(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	SupportedClass = UTexture2D::StaticClass();
+	PreferredFormatIndex = 0;
+	FormatExtension.Add(TEXT("HDR"));
+	FormatDescription.Add(TEXT("HDR"));
+}
+
+bool UTextureExporterHDR::SupportsObject(UObject* Object) const
+{
+	bool bSupportsObject = false;
+	if (Super::SupportsObject(Object))
+	{
+		UTexture2D* Texture = Cast<UTexture2D>(Object);
+
+		if (Texture)
+		{
+			bSupportsObject = Texture->Source.GetFormat() == TSF_BGRA8 || Texture->Source.GetFormat() == TSF_RGBA16F;
+		}
+	}
+	return bSupportsObject;
+}
+
+bool UTextureExporterHDR::ExportBinary(UObject* Object, const TCHAR* Type, FArchive& Ar, FFeedbackContext* Warn, int32 FileIndex, uint32 PortFlags)
+{
+	UTexture2D* Texture = Cast<UTexture2D>(Object);
+
+	FHDRExportHelper Exporter;
+	if (Texture != nullptr)
+	{
+		return Exporter.ExportHDR(Texture, Ar);
+	}
+	return false;
+}
+
+/*------------------------------------------------------------------------------
 	UTextureExporterTGA implementation.
 ------------------------------------------------------------------------------*/
 UTextureExporterTGA::UTextureExporterTGA(const FObjectInitializer& ObjectInitializer)
@@ -5050,6 +5166,21 @@ UTextureExporterTGA::UTextureExporterTGA(const FObjectInitializer& ObjectInitial
 	PreferredFormatIndex = 0;
 	FormatExtension.Add(TEXT("TGA"));
 	FormatDescription.Add(TEXT("Targa"));
+}
+
+bool UTextureExporterTGA::SupportsObject(UObject* Object) const
+{
+	bool bSupportsObject = false;
+	if (Super::SupportsObject(Object))
+	{
+		UTexture2D* Texture = Cast<UTexture2D>(Object);
+
+		if (Texture)
+		{
+			bSupportsObject = Texture->Source.GetFormat() == TSF_BGRA8 || Texture->Source.GetFormat() == TSF_RGBA16;
+		}
+	}
+	return bSupportsObject;
 }
 
 bool UTextureExporterTGA::ExportBinary( UObject* Object, const TCHAR* Type, FArchive& Ar, FFeedbackContext* Warn, int32 FileIndex, uint32 PortFlags )
@@ -5068,7 +5199,7 @@ bool UTextureExporterTGA::ExportBinary( UObject* Object, const TCHAR* Type, FArc
 		FMessageLog ExportWarning("EditorErrors");
 		FFormatNamedArguments Arguments;
 		Arguments.Add(TEXT("Name"), FText::FromString(Texture->GetName()));
-		ExportWarning.Warning(FText::Format(LOCTEXT("BitDepthWarning", "{Name}: Texture is RGBA16 and cannot be represented at such high bit depth in .tga. Color will be scaled to RGBA8."), Arguments));
+		ExportWarning.Warning(FText::Format(LOCTEXT("BitDepthTGAWarning", "{Name}: Texture is RGBA16 and cannot be represented at such high bit depth in .tga. Color will be scaled to RGBA8."), Arguments));
 		ExportWarning.Open(EMessageSeverity::Warning);
 	}
 
@@ -5273,17 +5404,37 @@ void FCustomizableTextObjectFactory::ProcessBuffer(UObject* InParent, EObjectFla
 
 	FParse::Next( &Buffer );
 
+	int32 NestedDepth     = 0;
+	int32 OmittedOuterObj = 0; // zero signifies "nothing omitted"
+
 	FString StrLine;
 	while( FParse::Line(&Buffer,StrLine) )
 	{
 		const TCHAR* Str = *StrLine;
 		if( GetBEGIN(&Str,TEXT("OBJECT")) )
 		{
+			++NestedDepth;
+			if (OmittedOuterObj > 0)
+			{
+				if (NestedDepth > OmittedOuterObj)
+				{
+					continue;
+				}
+				ensure(OmittedOuterObj == NestedDepth);
+				// clear the omitted outer, we've parsed passed it
+				OmittedOuterObj = 0;
+			}
+
 			UClass* ObjClass;
 			if( ParseObject<UClass>( Str, TEXT("CLASS="), ObjClass, ANY_PACKAGE ) )
 			{
-				if (!CanCreateClass(ObjClass))
+				bool bOmitSubObjects = false;
+				if (!CanCreateClass(ObjClass, bOmitSubObjects))
 				{
+					if (bOmitSubObjects)
+					{
+						OmittedOuterObj = NestedDepth;
+					}
 					continue;
 				}
 
@@ -5298,11 +5449,13 @@ void FCustomizableTextObjectFactory::ProcessBuffer(UObject* InParent, EObjectFla
 					ObjArchetype = LoadObject<UObject>(nullptr, *ObjArchetypeName, nullptr, LOAD_None, nullptr);
 				}
 
+				UObject* ObjectParent = InParent ? InParent : GetParentForNewObject(ObjClass);
+
 				// Make sure this name is not used by anything else. Will rename other stuff if necessary
-				ClearObjectNameUsage(InParent, ObjName);
+				ClearObjectNameUsage(ObjectParent, ObjName);
 
 				// Spawn the object and reset it's archetype
-				UObject* CreatedObject = NewObject<UObject>(InParent, ObjClass, ObjName, Flags, ObjArchetype, !!InParent, &InstanceGraph);
+				UObject* CreatedObject = NewObject<UObject>(ObjectParent, ObjClass, ObjName, Flags, ObjArchetype, !!ObjectParent, &InstanceGraph);
 
 				// Get property text for the new object.
 				FString PropText, PropLine;
@@ -5343,6 +5496,14 @@ void FCustomizableTextObjectFactory::ProcessBuffer(UObject* InParent, EObjectFla
 				NewObjects.Add(CreatedObject);
 			}
 		}
+		else if (GetEND(&Str, TEXT("OBJECT")))
+		{
+			--NestedDepth;
+		}
+		else
+		{
+			ProcessUnidentifiedLine(StrLine);
+		}
 	}
 
 	// Apply the property text to each of the created objects
@@ -5368,28 +5529,52 @@ bool FCustomizableTextObjectFactory::CanCreateObjectsFromText( const FString& Te
 
 	FParse::Next( &Buffer );
 
+	int32 NestedDepth     = 0;
+	int32 OmittedOuterObj = 0; // zero signifies "nothing omitted"
+
 	FString StrLine;
 	while( FParse::Line(&Buffer,StrLine) )
 	{
 		const TCHAR* Str = *StrLine;
 		if( GetBEGIN(&Str,TEXT("OBJECT")) )
 		{
-			UClass* ObjClass;
-			if( ParseObject<UClass>( Str, TEXT("CLASS="), ObjClass, ANY_PACKAGE ) )
+			++NestedDepth;
+			if (OmittedOuterObj > 0)
 			{
-				if(CanCreateClass(ObjClass))
+				if (NestedDepth > OmittedOuterObj)
+				{
+					continue;
+				}
+				ensure(OmittedOuterObj == NestedDepth);
+				// clear the omitted outer, we've parsed passed it
+				OmittedOuterObj = 0;
+			}
+
+			UClass* ObjClass;
+			if (ParseObject<UClass>(Str, TEXT("CLASS="), ObjClass, ANY_PACKAGE))
+			{
+				bool bOmitSubObjects = false;;
+				if (CanCreateClass(ObjClass, bOmitSubObjects))
 				{
 					bCanCreate = true;
 					break;
 				}
+				else if (bOmitSubObjects)
+				{
+					OmittedOuterObj = NestedDepth;
+				}
 			}
+		}
+		else if ( GetEND(&Str, TEXT("OBJECT")) )
+		{
+			--NestedDepth;
 		}
 	}
 	return bCanCreate;
 }
 
 /** Return true if the an object of type ObjectClass is allowed to be created; If false is returned, the object and subobjects will be ignored. */
-bool FCustomizableTextObjectFactory::CanCreateClass(UClass* ObjectClass) const
+bool FCustomizableTextObjectFactory::CanCreateClass(UClass* ObjectClass, bool& bOmitSubObjs) const
 {
 	return false;
 }
@@ -5646,11 +5831,12 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 		Mesh->AssetImportData = ImportData;
 		ReimportUI->StaticMeshImportData = ImportData;
 		
-		bool bOperationCanceled = false;
-		bool bShowOption = true;
+		bool bImportOperationCanceled = false;
 		bool bForceImportType = true;
-
-		GetImportOptions( FFbxImporter, ReimportUI, bShowOption, Obj->GetPathName(), bOperationCanceled, bForceImportType, FBXIT_StaticMesh );
+		bool bShowOptionDialog = true;
+		bool bOutImportAll = false;
+		bool bIsObjFormat = false;
+		GetImportOptions( FFbxImporter, ReimportUI, bShowOptionDialog, Obj->GetPathName(), bOperationCanceled, bOutImportAll, bIsObjFormat, bForceImportType, FBXIT_StaticMesh );
 	}
 
 	if( !bOperationCanceled && ensure(ImportData) )
@@ -5835,6 +6021,10 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 
 	UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
 	UnFbx::FBXImportOptions* ImportOptions = FFbxImporter->GetImportOptions();
+
+	//Pop the message log in case of error
+	UnFbx::FFbxLoggerSetter Logger(FFbxImporter, true);
+
 	//Clean up the options
 	UnFbx::FBXImportOptions::ResetOptions(ImportOptions);
 
@@ -5848,7 +6038,7 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 	ReimportUI->bCreatePhysicsAsset = false;
 	ReimportUI->PhysicsAsset = SkeletalMesh->PhysicsAsset;
 	ReimportUI->bImportAnimations = false;
-	ReimportUI->AnimationName = TEXT("");
+	ReimportUI->OverrideAnimationName = TEXT("");
 	ReimportUI->bImportRigidMesh = false;
 
 	bool bSuccess = false;
@@ -5870,9 +6060,11 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 		SkeletalMesh->AssetImportData = ImportData;
 		ReimportUI->SkeletalMeshImportData = ImportData;
 
-		bool bOperationCanceled = false;
-		bool bShowOption = true;
+		bool bImportOperationCanceled = false;
+		bool bShowOptionDialog = true;
 		bool bForceImportType = true;
+		bool bOutImportAll = false;
+		bool bIsObjFormat = false;
 
 		// arggg... hate this different option class to confuse everybody
 		// @hack to make sure skeleton is set before opening the dialog
@@ -5880,7 +6072,7 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 		ImportOptions->bCreatePhysicsAsset = false;
 		ImportOptions->PhysicsAsset = SkeletalMesh->PhysicsAsset;
 
-		ImportOptions = GetImportOptions( FFbxImporter, ReimportUI, bShowOption, Obj->GetPathName(), bOperationCanceled, bForceImportType, FBXIT_SkeletalMesh );
+		ImportOptions = GetImportOptions( FFbxImporter, ReimportUI, bShowOptionDialog, Obj->GetPathName(), bOperationCanceled, bOutImportAll, bIsObjFormat, bForceImportType, FBXIT_SkeletalMesh );
 	}
 
 	if( !bOperationCanceled && ensure(ImportData) )
@@ -6061,7 +6253,6 @@ EReimportResult::Type UReimportFbxAnimSequenceFactory::Reimport( UObject* Obj )
 	}
 
 	UnFbx::FFbxImporter* Importer = UnFbx::FFbxImporter::GetInstance();
-	UnFbx::FBXImportOptions::ResetOptions(Importer->ImportOptions);
 
 	CurrentFilename = Filename;
 
@@ -7220,6 +7411,25 @@ USubsurfaceProfileFactory::USubsurfaceProfileFactory(const FObjectInitializer& O
 UObject* USubsurfaceProfileFactory::FactoryCreateNew(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
 {
 	return NewObject<USubsurfaceProfile>(InParent, InName, Flags);
+}
+
+
+/*-----------------------------------------------------------------------------
+USubDSurfaceFactory implementation.
+-----------------------------------------------------------------------------*/
+USubDSurfaceFactory::USubDSurfaceFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+
+	SupportedClass = USubDSurface::StaticClass();
+	bCreateNew = true;
+	bEditorImport = false;
+	bEditAfterNew = true;
+}
+
+UObject* USubDSurfaceFactory::FactoryCreateNew(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
+{
+	return NewObject<USubDSurface>(InParent, USubDSurface::StaticClass(), InName, Flags);
 }
 
 /*-----------------------------------------------------------------------------

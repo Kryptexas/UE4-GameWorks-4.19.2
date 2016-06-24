@@ -1230,6 +1230,29 @@ namespace Rocket
 
 			foreach (UnrealTargetPlatform CodeTargetPlatform in CodeTargetPlatforms)
 			{
+				// Build a list of precompiled architecture combinations for this platform if any
+				string[] Arches;
+				string[] GPUArches;
+				List<string> AllArchNames;
+				bool bFoundArches = GUBP.GamePlatformMonolithicsNode.PrecompiledArchitectures.TryGetValue(CodeTargetPlatform, out Arches);
+				bool bFoundGPUArches = GUBP.GamePlatformMonolithicsNode.PrecompiledGPUArchitectures.TryGetValue(CodeTargetPlatform, out GPUArches);
+
+				if (bFoundArches && Arches.Length > 0
+				 && bFoundGPUArches && GPUArches.Length > 0)
+				{
+					AllArchNames = (from Arch in Arches
+									from GPUArch in GPUArches
+									select "-" + Arch + "-" + GPUArch).ToList();
+				}
+				else if (bFoundArches && Arches.Length > 0)
+				{
+					AllArchNames = new List<string>(Arches);
+				}
+				else
+				{
+					AllArchNames = new List<string>();
+				}
+
 				// Bit of a hack to mark these platforms as available in any type of project
 				EProjectType ProjectType = EProjectType.Content;
 				if (HostPlatform == UnrealTargetPlatform.Mac)
@@ -1269,18 +1292,24 @@ namespace Rocket
 					}
 					string ReceiptFileName = TargetReceipt.GetDefaultPath(OutputEnginePath, "UE4Game", CodeTargetPlatform, EngineConfiguration, Architecture);
 
-					// Hack to write Android architecture until we retrieve it from build process -
-					// has to be after getting receipt path as one is shared for all architectures
-					if (string.IsNullOrEmpty(Architecture) && CodeTargetPlatform == UnrealTargetPlatform.Android)
-					{
-						Architecture = "-armv7-es2";
-					}
-
 					if (File.Exists(ReceiptFileName))
 					{
 						// Strip the output folder so that this can be used on any machine
 						ReceiptFileName = new FileReference(ReceiptFileName).MakeRelativeTo(new DirectoryReference(OutputDir));
-						InstalledConfigs.Add(new InstalledPlatformInfo.InstalledPlatformConfiguration(CodeTargetConfiguration, CodeTargetPlatform, TargetRules.TargetType.Game, Architecture, ReceiptFileName, ProjectType, bCanBeDisplayed));
+
+						// If we have precompiled architectures for this platform then add an entry for each of these -
+						// there isn't a receipt for each architecture like some other platforms
+						if (AllArchNames.Count > 0)
+						{
+							foreach (string Arch in AllArchNames)
+							{
+								InstalledConfigs.Add(new InstalledPlatformInfo.InstalledPlatformConfiguration(CodeTargetConfiguration, CodeTargetPlatform, TargetRules.TargetType.Game, Arch, ReceiptFileName, ProjectType, bCanBeDisplayed));
+							}
+						}
+						else
+						{
+							InstalledConfigs.Add(new InstalledPlatformInfo.InstalledPlatformConfiguration(CodeTargetConfiguration, CodeTargetPlatform, TargetRules.TargetType.Game, Architecture, ReceiptFileName, ProjectType, bCanBeDisplayed));
+						}
 					}
 				}
 			}

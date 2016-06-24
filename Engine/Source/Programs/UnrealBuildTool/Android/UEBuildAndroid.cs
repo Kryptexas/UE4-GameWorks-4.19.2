@@ -23,42 +23,60 @@ namespace UnrealBuildTool
 			return base.GetActiveArchitecture();
 		}
 
-		public override void AddExtraModules(TargetInfo Target, List<string> PlatformExtraModules)
+		private bool IsVulkanSDKAvailable()
 		{
-            string VulkanSDKPath = Environment.GetEnvironmentVariable("VULKAN_SDK");
+			bool bHaveVulkan = false;
+
+			// First look for VulkanSDK (two possible env variables)
+			string VulkanSDKPath = Environment.GetEnvironmentVariable("VULKAN_SDK");
 			if (String.IsNullOrEmpty(VulkanSDKPath))
 			{
 				VulkanSDKPath = Environment.GetEnvironmentVariable("VK_SDK_PATH");
 			}
-            if (!String.IsNullOrEmpty(VulkanSDKPath))
-            {
-                ConfigCacheIni Ini = new ConfigCacheIni(UnrealTargetPlatform.Android, "Engine", DirectoryReference.FromFile(ProjectFile));
-                bool bSupportsVulkan = false;
-                Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bSupportsVulkan", out bSupportsVulkan);
 
-                // Make sure we have the .so to compile in the RHI. 
-                // Currently using static linking. This check will go away when we support dynamic linking.
-                string VulkanSoPath = System.IO.Path.Combine(VulkanSDKPath, "Source/lib/libvulkan.so");
-                bool bSoExists = System.IO.File.Exists(VulkanSoPath);
+			// Note: header is the same for all architectures so just use arch-arm
+			string NDKPath = Environment.GetEnvironmentVariable("NDKROOT");
+			string NDKVulkanIncludePath = NDKPath + "/android-24/arch-arm/usr/include/vulkan";
 
-                if (bSupportsVulkan && bSoExists)
-                {
-                    PlatformExtraModules.Add("VulkanRHI");
-                }
-                else
-                {
-                    if (bSupportsVulkan == false)
-                    {
-                        Log.TraceInformationOnce("Vulkan SDK is installed, but the project disabled Vulkan (bSupportsVulkan setting in Engine). Disabling Vulkan RHI for Android");
-                    }
-                    else if (bSoExists == false)
-                    {
-                        Log.TraceInformationOnce("Vulkan SDK is installed, but [SDK]/Source/lib/libvulkan.so was not found. Disabling Vulkan RHI for Android");
-                    }
-                }
-            }
+			// Use NDK Vulkan header if discovered, or VulkanSDK if available
+			if (File.Exists(NDKVulkanIncludePath + "/vulkan.h"))
+			{
+				bHaveVulkan = true;
+			}
+			else
+			if (!String.IsNullOrEmpty(VulkanSDKPath))
+			{
+				bHaveVulkan = true;
+			}
 
+			return bHaveVulkan;
+		}
 
+		private bool IsVulkanSupportEnabled()
+		{
+			ConfigCacheIni Ini = new ConfigCacheIni(UnrealTargetPlatform.Android, "Engine", DirectoryReference.FromFile(ProjectFile));
+			bool bSupportsVulkan = false;
+			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bSupportsVulkan", out bSupportsVulkan);
+
+			return bSupportsVulkan;
+		}
+
+		public override void AddExtraModules(TargetInfo Target, List<string> PlatformExtraModules)
+		{
+			bool bVulkanExists = IsVulkanSDKAvailable();
+			if (bVulkanExists)
+			{
+				bool bSupportsVulkan = IsVulkanSupportEnabled();
+				
+				if (bSupportsVulkan)
+				{
+					PlatformExtraModules.Add("VulkanRHI");
+				}
+				else
+				{
+					Log.TraceInformationOnce("Vulkan SDK is installed, but the project disabled Vulkan (bSupportsVulkan setting in Engine). Disabling Vulkan RHI for Android");
+				}
+			}
 		}
 
 		/// <summary>
@@ -178,23 +196,11 @@ namespace UnrealBuildTool
 			UEBuildConfiguration.bCompileSimplygonSSF = false;
 			BuildConfiguration.bDeployAfterCompile = true;
 
-			//!! RONIN need to fix this
-			bool bBuildWithVulkan = false;
-			string VulkanSDKPath = Environment.GetEnvironmentVariable("VULKAN_SDK");
-			if (String.IsNullOrEmpty(VulkanSDKPath))
-			{
-				VulkanSDKPath = Environment.GetEnvironmentVariable("VK_SDK_PATH");
-			}
-			if (!string.IsNullOrEmpty(VulkanSDKPath))
-			{
-				string VulkanSoPath = Path.Combine(VulkanSDKPath, "Source/lib/libvulkan.so");
-				bBuildWithVulkan = System.IO.File.Exists(VulkanSoPath);
-			}
-
+			bool bBuildWithVulkan = IsVulkanSDKAvailable() && IsVulkanSupportEnabled();
 			if (bBuildWithVulkan)
 			{
 				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_ANDROID_VULKAN=1");
-                Log.TraceInformationOnce("building with Vulkan");
+                Log.TraceInformationOnce("building with VULKAN define");
 			}
 			else
 			{
@@ -433,7 +439,7 @@ namespace UnrealBuildTool
 
 		protected override string GetRequiredSDKString()
 		{
-			return "-19";
+			return "-21";
 		}
 
 		protected override String GetRequiredScriptVersionString()

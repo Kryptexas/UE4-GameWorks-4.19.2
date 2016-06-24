@@ -176,3 +176,10 @@ protected:
 	uint32 bForceUpdate : 1;
 	FTimerHandle TimerHandle;
 };
+
+namespace FNavMeshRenderingHelpers
+{
+	ENGINE_API void AddVertex(FNavMeshSceneProxyData::FDebugMeshData& MeshData, const FVector& Pos, const FColor Color = FColor::White);
+
+	ENGINE_API void AddTriangle(FNavMeshSceneProxyData::FDebugMeshData& MeshData, int32 V0, int32 V1, int32 V2);
+}

@@ -1,0 +1,30 @@
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	SceneCapturePixelShader.usf: 
+=============================================================================*/
+
+#include "Common.usf"
+#include "DeferredShadingCommon.usf"
+
+void Main(
+	FScreenVertexOutput Input,
+	out float4 OutColor : SV_Target0
+	)
+{
+#if SOURCE_MODE_SCENE_COLOR_AND_OPACITY
+	float4 SceneColorValue = CalcFullSceneColor(Input.UV);
+	// Convert scene color alpha to opacity that that a translucent blend mode expects (0: no foreground content, 1: full foreground content)
+	OutColor = float4(SceneColorValue.rgb, saturate(1.0f - SceneColorValue.a));
+#elif SOURCE_MODE_SCENE_COLOR_SCENE_DEPTH
+	OutColor = float4(CalcSceneColor(Input.UV), CalcSceneDepth(Input.UV));
+#elif SOURCE_MODE_SCENE_DEPTH 
+	OutColor = float4(CalcSceneDepth(Input.UV), 0, 0, 0);
+#elif SOURCE_MODE_NORMAL
+	FGBufferData GBufferData = GetGBufferData(Input.UV);
+	OutColor = float4(GBufferData.WorldNormal, 0);
+#elif SOURCE_MODE_BASE_COLOR
+	FGBufferData GBufferData = GetGBufferData(Input.UV);
+	OutColor = float4(GBufferData.BaseColor, 0);
+#endif
+}

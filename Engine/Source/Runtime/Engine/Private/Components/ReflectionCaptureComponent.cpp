@@ -22,6 +22,18 @@
 #include "Components/ReflectionCaptureComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/SkyLightComponent.h"
+#include "CookStats.h"
+
+#if ENABLE_COOK_STATS
+namespace ReflectionCaptureCookStats
+{
+	static FCookStats::FDDCResourceUsageStats UsageStats;
+	static FCookStatsManager::FAutoRegisterCallback RegisterCookStats([](FCookStatsManager::AddStatFuncRef AddStat)
+	{
+		UsageStats.LogStats(AddStat, TEXT("ReflectionCapture.Usage"), TEXT(""));
+	});
+}
+#endif
 
 /** 
  * Size of all reflection captures.
@@ -32,6 +44,24 @@ ENGINE_API TAutoConsoleVariable<int32> CVarReflectionCaptureSize(
 	128,
 	TEXT("Set the resolution for all reflection capture cubemaps. Should be set via project's Render Settings. Must be power of 2. Defaults to 128.\n")
 	);
+
+static int32 SanatizeReflectionCaptureSize(int32 ReflectionCaptureSize)
+{
+	static const int32 MaxReflectionCaptureSize = 1024;
+	static const int32 MinReflectionCaptureSize = 1;
+
+	return FMath::Clamp(ReflectionCaptureSize, MinReflectionCaptureSize, MaxReflectionCaptureSize);
+}
+
+int32 UReflectionCaptureComponent::GetReflectionCaptureSize_GameThread()
+{
+	return SanatizeReflectionCaptureSize(CVarReflectionCaptureSize.GetValueOnGameThread());
+}
+
+int32 UReflectionCaptureComponent::GetReflectionCaptureSize_RenderThread()
+{
+	return SanatizeReflectionCaptureSize(CVarReflectionCaptureSize.GetValueOnRenderThread());
+}
 
 void UWorld::UpdateAllReflectionCaptures()
 {
@@ -490,8 +520,7 @@ static void EdgeWalkSetup( bool ReverseDirection, int32 Edge, int32 MipSize, int
 
 void FReflectionCaptureEncodedHDRDerivedData::GenerateFromDerivedDataSource(const FReflectionCaptureFullHDR& FullHDRData, float Brightness)
 {
-	const int32 EffectiveTopMipSize = FullHDRData.CubemapSize;
-	const int32 NumMips = FMath::CeilLogTwo(EffectiveTopMipSize) + 1;
+	const int32 NumMips = FMath::CeilLogTwo(FullHDRData.CubemapSize) + 1;
 
 	TArray<uint8> CubemapData;
 	FullHDRData.GetUncompressedData(CubemapData);
@@ -617,11 +646,15 @@ void FReflectionCaptureEncodedHDRDerivedData::GenerateFromDerivedDataSource(cons
 }
 
 // Generate a new guid to force a recache of all encoded HDR derived data
-#define REFLECTIONCAPTURE_ENCODED_DERIVEDDATA_VER TEXT("96DFC022836B48889143E9DF484C3296")
+#define REFLECTIONCAPTURE_ENCODED_DERIVEDDATA_VER TEXT("6B6DFE9DF44888914934C082283C3296")
 
-FString FReflectionCaptureEncodedHDRDerivedData::GetDDCKeyString(const FGuid& StateId)
+FString FReflectionCaptureEncodedHDRDerivedData::GetDDCKeyString(const FGuid& StateId, int32 CubemapDimension)
 {
-	return FDerivedDataCacheInterface::BuildCacheKey(TEXT("REFL_ENC"), REFLECTIONCAPTURE_ENCODED_DERIVEDDATA_VER, *StateId.ToString());
+	return FDerivedDataCacheInterface::BuildCacheKey(
+		TEXT("REFL_ENC"), 
+		REFLECTIONCAPTURE_ENCODED_DERIVEDDATA_VER, 
+		*StateId.ToString().Append("_").Append(FString::FromInt(CubemapDimension))
+		);
 }
 
 FReflectionCaptureEncodedHDRDerivedData::~FReflectionCaptureEncodedHDRDerivedData()
@@ -632,9 +665,11 @@ FReflectionCaptureEncodedHDRDerivedData::~FReflectionCaptureEncodedHDRDerivedDat
 TRefCountPtr<FReflectionCaptureEncodedHDRDerivedData> FReflectionCaptureEncodedHDRDerivedData::GenerateEncodedHDRData(const FReflectionCaptureFullHDR& FullHDRData, const FGuid& StateId, float Brightness)
 {
 	TRefCountPtr<FReflectionCaptureEncodedHDRDerivedData> EncodedHDRData = new FReflectionCaptureEncodedHDRDerivedData();
-	const FString KeyString = GetDDCKeyString(StateId);
+	const FString KeyString = GetDDCKeyString(StateId, FullHDRData.CubemapSize);
 
-	if (!GetDerivedDataCacheRef().GetSynchronous(*KeyString, EncodedHDRData->CapturedData))
+	COOK_STAT(auto Timer = ReflectionCaptureCookStats::UsageStats.TimeSyncWork());
+	bool DDCHit = GetDerivedDataCacheRef().GetSynchronous(*KeyString, EncodedHDRData->CapturedData);
+	if (!DDCHit)
 	{
 		EncodedHDRData->GenerateFromDerivedDataSource(FullHDRData, Brightness);
 
@@ -643,6 +678,7 @@ TRefCountPtr<FReflectionCaptureEncodedHDRDerivedData> FReflectionCaptureEncodedH
 			GetDerivedDataCacheRef().Put(*KeyString, EncodedHDRData->CapturedData);
 		}
 	}
+	COOK_STAT(Timer.AddHitOrMiss(DDCHit ? FCookStats::CallStats::EHitOrMiss::Hit : FCookStats::CallStats::EHitOrMiss::Miss, EncodedHDRData->CapturedData.Num()));
 
 	check(EncodedHDRData->CapturedData.Num() > 0);
 	INC_MEMORY_STAT_BY(STAT_ReflectionCaptureMemory,EncodedHDRData->CapturedData.GetAllocatedSize());
@@ -842,7 +878,7 @@ void UReflectionCaptureComponent::SerializeSourceData(FArchive& Ar)
 			bool bValid = FullHDRData != NULL;
 			Ar << bValid;
 
-			if (bValid)
+			if (FullHDRData)
 			{
 				Ar << FullHDRData->CubemapSize;
 				Ar << FullHDRData->CompressedCapturedData;
@@ -944,7 +980,7 @@ void UReflectionCaptureComponent::Serialize(FArchive& Ar)
 
 					Ar << bValid;
 
-					if (bValid)
+					if (FullHDRData)
 					{
 						Ar << FullHDRData->CubemapSize;
 						Ar << FullHDRData->CompressedCapturedData;
@@ -1039,15 +1075,20 @@ void UReflectionCaptureComponent::PostLoad()
 	bool bRetainAllFeatureLevelData = GIsEditor && GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4;
 	bool bEncodedDataRequired = bRetainAllFeatureLevelData || (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2 || GMaxRHIFeatureLevel == ERHIFeatureLevel::ES3_1);
 	bool bFullDataRequired = GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4;
+	const int32 ReflectionCaptureSize = UReflectionCaptureComponent::GetReflectionCaptureSize_GameThread();
 
 	// If we're loading on a platform that doesn't require cooked data, attempt to load missing data from the DDC
 	if (!FPlatformProperties::RequiresCookedData())
 	{
-		if (!FullHDRData || FullHDRData->CubemapSize != CVarReflectionCaptureSize.GetValueOnGameThread())
+		// if we don't have the FullHDRData then recapture it since we are on a platform that can capture it.
+		if (!FullHDRData || 
+			FullHDRData->CubemapSize != ReflectionCaptureSize || 
+			(EncodedHDRDerivedData && FullHDRData->CubemapSize != EncodedHDRDerivedData->CalculateCubemapDimension()))
 		{
 			bDerivedDataDirty = true;
 			delete FullHDRData;
 			FullHDRData = nullptr;
+			EncodedHDRDerivedData = nullptr;
 		}
 
 		// If we have full HDR data but not encoded HDR data, generate the encoded data now
@@ -1074,7 +1115,7 @@ void UReflectionCaptureComponent::PostLoad()
 
 		if (!bEncodedDataRequired)
 		{
-			EncodedHDRDerivedData = NULL;
+			EncodedHDRDerivedData = nullptr;
 		}
 	}
 
@@ -1085,16 +1126,26 @@ void UReflectionCaptureComponent::PostLoad()
 			INC_MEMORY_STAT_BY(STAT_ReflectionCaptureMemory, EncodedHDRDerivedData->CapturedData.GetAllocatedSize());
 		}
 
-		int32 CubemapSize = CVarReflectionCaptureSize.GetValueOnGameThread();
-		if (FullHDRData)
-		{
-			CubemapSize = FullHDRData->CubemapSize;
-		}
+		int32 EncodedCubemapSize = EncodedHDRDerivedData->CalculateCubemapDimension();
 
-		// Create a cubemap texture out of the encoded HDR data
-		EncodedHDRCubemapTexture = new FReflectionTextureCubeResource();
-		EncodedHDRCubemapTexture->SetupParameters(CubemapSize, FMath::CeilLogTwo(CubemapSize) + 1, PF_B8G8R8A8, &EncodedHDRDerivedData->CapturedData);
-		BeginInitResource(EncodedHDRCubemapTexture);
+		if (EncodedCubemapSize == ReflectionCaptureSize)
+		{
+			// Create a cubemap texture out of the encoded HDR data
+			EncodedHDRCubemapTexture = new FReflectionTextureCubeResource();
+			EncodedHDRCubemapTexture->SetupParameters(EncodedCubemapSize, FMath::CeilLogTwo(EncodedCubemapSize) + 1, PF_B8G8R8A8, &EncodedHDRDerivedData->CapturedData);
+			BeginInitResource(EncodedHDRCubemapTexture);
+		}
+		else
+		{
+			UE_LOG(
+				LogMaterial,
+				Error,
+				TEXT("Encoded reflection caputure resolution and project setting mismatch.\n(Project Setting: %d, Encoded Reflection Capture: %d.\nReflection cubemaps will be unavailable and cooking will fail."), 
+				CVarReflectionCaptureSize.GetValueOnGameThread(), 
+				EncodedCubemapSize
+				);
+		}
+		
 
 		// free up the full hdr data if we no longer need it.
 		if (FullHDRData && !bFullDataRequired)
@@ -1105,9 +1156,9 @@ void UReflectionCaptureComponent::PostLoad()
 	}
 }
 
-void UReflectionCaptureComponent::PreSave() 
+void UReflectionCaptureComponent::PreSave(const class ITargetPlatform* TargetPlatform)
 {
-	Super::PreSave();
+	Super::PreSave(TargetPlatform);
 
 	// This is done on save of the package, because this capture data can only be generated by the renderer
 	// So we must make efforts to ensure that it is generated in the editor, because it can't be generated during cooking when missing
@@ -1131,6 +1182,9 @@ void UReflectionCaptureComponent::PostDuplicate(bool bDuplicateForPIE)
 
 void UReflectionCaptureComponent::UpdateDerivedData(FReflectionCaptureFullHDR* NewDerivedData)
 {
+#if UE_SERVER
+	delete FullHDRData;
+#else
 	if (FullHDRData)
 	{
 		// Delete the derived data on the rendering thread, since the rendering thread may be reading from its contents in FScene::UpdateReflectionCaptureContents
@@ -1141,6 +1195,7 @@ void UReflectionCaptureComponent::UpdateDerivedData(FReflectionCaptureFullHDR* N
 			delete FullHDRData;
 		});
 	}
+#endif
 
 	FullHDRData = NewDerivedData;
 }
@@ -1400,9 +1455,11 @@ void UReflectionCaptureComponent::UpdateReflectionCaptureContents(UWorld* WorldT
 
 				if (!ReflectionComponent->SM4FullHDRCubemapTexture)
 				{
+					const int32 ReflectionCaptureSize = UReflectionCaptureComponent::GetReflectionCaptureSize_GameThread();
+
 					// Create the cubemap if it wasn't already - this happens when updating a reflection capture that doesn't have valid DDC
 					ReflectionComponent->SM4FullHDRCubemapTexture = new FReflectionTextureCubeResource();
-					ReflectionComponent->SM4FullHDRCubemapTexture->SetupParameters(CVarReflectionCaptureSize.GetValueOnGameThread(), FMath::CeilLogTwo(CVarReflectionCaptureSize.GetValueOnGameThread()) + 1, PF_FloatRGBA, nullptr);
+					ReflectionComponent->SM4FullHDRCubemapTexture->SetupParameters(ReflectionCaptureSize, FMath::CeilLogTwo(ReflectionCaptureSize) + 1, PF_FloatRGBA, nullptr);
 					BeginInitResource(ReflectionComponent->SM4FullHDRCubemapTexture);
 					ReflectionComponent->MarkRenderStateDirty();
 				}
@@ -1448,7 +1505,10 @@ void UReflectionCaptureComponent::PreFeatureLevelChange(ERHIFeatureLevel::Type P
 			{
 				EncodedHDRCubemapTexture = new FReflectionTextureCubeResource();
 			}
-			EncodedHDRCubemapTexture->SetupParameters(FullHDRData->CubemapSize, FMath::CeilLogTwo(FullHDRData->CubemapSize) + 1, PF_B8G8R8A8, &EncodedHDRDerivedData->CapturedData);
+
+			int32 EncodedCubemapSize = EncodedHDRDerivedData->CalculateCubemapDimension();
+
+			EncodedHDRCubemapTexture->SetupParameters(EncodedCubemapSize, FMath::CeilLogTwo(EncodedCubemapSize) + 1, PF_B8G8R8A8, &EncodedHDRDerivedData->CapturedData);
 			BeginInitResource(EncodedHDRCubemapTexture);
 		}
 	}
@@ -1477,8 +1537,10 @@ void UReflectionCaptureComponent::PreFeatureLevelChange(ERHIFeatureLevel::Type P
 	{
 		if (SM4FullHDRCubemapTexture == nullptr)
 		{
+			const int32 ReflectionCaptureSize = UReflectionCaptureComponent::GetReflectionCaptureSize_GameThread();
+
 			SM4FullHDRCubemapTexture = new FReflectionTextureCubeResource();
-			SM4FullHDRCubemapTexture->SetupParameters(CVarReflectionCaptureSize.GetValueOnGameThread(), FMath::CeilLogTwo(CVarReflectionCaptureSize.GetValueOnGameThread()) + 1, PF_FloatRGBA, nullptr);
+			SM4FullHDRCubemapTexture->SetupParameters(ReflectionCaptureSize, FMath::CeilLogTwo(ReflectionCaptureSize) + 1, PF_FloatRGBA, nullptr);
 			BeginInitResource(SM4FullHDRCubemapTexture);
 		}
 	}

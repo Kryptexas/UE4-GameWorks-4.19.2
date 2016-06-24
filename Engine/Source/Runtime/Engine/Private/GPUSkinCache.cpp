@@ -30,7 +30,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogSkinCache, Log, All);
 
 int32 GEnableGPUSkinCacheShaders = 0;
 static FAutoConsoleVariableRef CVarEnableGPUSkinCacheShaders(
-	TEXT("r.SkinCacheShaders"),
+	TEXT("r.SkinCache.CompileShaders"),
 	GEnableGPUSkinCacheShaders,
 	TEXT("Whether or not to compile the GPU compute skinning cache shaders.\n")
 	TEXT("This will compile the shaders for skinning on a compute job and not skin on the vertex shader.\n")
@@ -52,11 +52,11 @@ static FAutoConsoleVariableRef CVarGSkinCacheSafety(
 // 0/1
 int32 GEnableGPUSkinCache = 0;
 static TAutoConsoleVariable<int32> CVarEnableGPUSkinCache(
-	TEXT("r.SkinCaching"),
+	TEXT("r.SkinCache.Mode"),
 	0,
 	TEXT("Whether or not to use the GPU compute skinning cache.\n")
 	TEXT("This will perform skinning on a compute job and not skin on the vertex shader.\n")
-	TEXT("Requires r.SkinCacheShaders=1.\n")
+	TEXT("Requires r.SkinCache.CompileShaders=1\n")
 	TEXT(" 0: off(default)\n")
 	TEXT(" 1: on"),
 	ECVF_RenderThreadSafe
@@ -65,8 +65,8 @@ static TAutoConsoleVariable<int32> CVarEnableGPUSkinCache(
 TAutoConsoleVariable<int32> CVarGPUSkinCacheRecomputeTangents(
 	TEXT("r.SkinCache.RecomputeTangents"),
 	2,
-	TEXT("If r.SkinCaching is enabled this option recomputes the vertex tangents on the GPU\n")
-	TEXT("Can be changed at runtime, Requires r.SkinCacheShaders=1 and r.SkinCache=1\n")
+	TEXT("If r.SkinCache.Mode is enabled this option recomputes the vertex tangents on the GPU\n")
+	TEXT("Can be changed at runtime, Requires r.SkinCache.CompileShaders=1 and r.SkinCache.Mode=1\n")
 	TEXT(" 0: off\n")
 	TEXT(" 1: on\n")
 	TEXT(" 2: on, SkinCache only objects that would require the RecomputTangents feature (default)"),
@@ -75,19 +75,19 @@ TAutoConsoleVariable<int32> CVarGPUSkinCacheRecomputeTangents(
 
 static int32 GMaxGPUSkinCacheElementsPerFrame = 1000;
 static FAutoConsoleVariableRef CVarMaxGPUSkinCacheElementsPerFrame(
-	TEXT("r.MaxGPUSkinCacheElementsPerFrame"),
+	TEXT("r.SkinCache.MaxGPUElementsPerFrame"),
 	GMaxGPUSkinCacheElementsPerFrame,
-	TEXT("The maximum compute processed skin cache elements per frame. Only used with r.SkinCaching=1\n")
+	TEXT("The maximum compute processed skin cache elements per frame. Only used with r.SkinCache.Mode=1\n")
 	TEXT(" (default is 1000)")
 	);
 
 static int32 GGPUSkinCacheBufferSize = 99 * 1024 * 1024;
 static FAutoConsoleVariableRef CVarMaxGPUSkinCacheBufferSize(
 	TEXT("r.SkinCache.BufferSize"),
-	GMaxGPUSkinCacheElementsPerFrame,
+	GGPUSkinCacheBufferSize,
 	TEXT("The maximum memory used for writing out the vertices in bytes\n")
 	TEXT("Split into GPUSKINCACHE_FRAMES chunks (eg 300 MB means 100 MB for 3 frames)\n")
-	TEXT("Default is 99MB.  Only used with r.SkinCaching=1\n"),
+	TEXT("Default is 99MB.  Only used with r.SkinCache.Mode=1\n"),
 	ECVF_ReadOnly | ECVF_RenderThreadSafe
 	);
 
@@ -145,7 +145,7 @@ public:
 		SkinCacheDebug.Bind(Initializer.ParameterMap, TEXT("SkinCacheDebug"));
 	}
 
-		void SetParameters(const FVertexBufferAndSRV& BoneBuffer, FUniformBufferRHIRef UniformBuffer,
+	void SetParameters(const FVertexBufferAndSRV& BoneBuffer, FUniformBufferRHIRef UniformBuffer,
 		const FVector& MeshOrigin, const FVector& MeshExtension,
 		const FGPUSkinCache::FDispatchData& DispatchData)
 	{
@@ -230,7 +230,7 @@ private:
 };
 
 /** Compute shader that skins a batch of vertices. */
-// @param SkinType 0:normal, 1:with morph target, 2:with APEX cloth (not yet implemented)
+// @param SkinType 0:normal, 1:with morph targets calculated outside the cache, 2:with morph target calculated insde the cache (not yet implemented), 3:with APEX cloth (not yet implemented)
 template <bool bUseExtraBoneInfluencesT, uint32 SkinType>
 class TGPUSkinCacheCS : public FBaseGPUSkinCacheCS
 {
@@ -247,7 +247,7 @@ public:
 		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
 		const uint32 UseExtraBoneInfluences = bUseExtraBoneInfluencesT;
 		OutEnvironment.SetDefine(TEXT("GPUSKIN_USE_EXTRA_INFLUENCES"), UseExtraBoneInfluences);
-		OutEnvironment.SetDefine(TEXT("GPUSKIN_MORPH_BLEND"), SkinType == 1);
+		OutEnvironment.SetDefine(TEXT("GPUSKIN_MORPH_BLEND"), SkinType);
 		OutEnvironment.SetDefine(TEXT("GPUSKIN_RWBUFFER_OFFSET_POSITION"), FGPUSkinCache::RWPositionOffsetInFloats);
 		OutEnvironment.SetDefine(TEXT("GPUSKIN_RWBUFFER_OFFSET_TANGENT_X"), FGPUSkinCache::RWTangentXOffsetInFloats);
 		OutEnvironment.SetDefine(TEXT("GPUSKIN_RWBUFFER_OFFSET_TANGENT_Z"), FGPUSkinCache::RWTangentZOffsetInFloats);
@@ -310,7 +310,7 @@ void FGPUSkinCache::Initialize(FRHICommandListImmediate& RHICmdList)
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BasePassOutputsVelocity"));
 	checkf(!CVar || CVar->GetValueOnRenderThread() == 0, TEXT("GPU Skin caching is not allowed with outputting velocity on base pass (r.BasePassOutputsVelocity=1)"));
 
-	checkf(GEnableGPUSkinCacheShaders, TEXT("GPU Skin caching requires the shaders enabled (r.SkinCacheShaders=1)"));
+	checkf(GEnableGPUSkinCacheShaders, TEXT("GPU Skin caching requires the shaders enabled (r.SkinCache.CompileShaders=1)"));
 
 	int32 NumFloatsPerBuffer = GGPUSkinCacheBufferSize / GPUSKINCACHE_FRAMES / sizeof(float);
 	for (int32 Index = 0; Index < GPUSKINCACHE_FRAMES; ++Index)
@@ -363,7 +363,7 @@ void FGPUSkinCache::Cleanup()
 
 // Kick off compute shader skinning for incoming chunk, return key for fast lookup in draw passes
 int32 FGPUSkinCache::StartCacheMesh(FRHICommandListImmediate& RHICmdList, uint32 FrameNumber, int32 Key, FGPUBaseSkinVertexFactory* VertexFactory,
-	FGPUSkinPassthroughVertexFactory* TargetVertexFactory, const FSkelMeshChunk& BatchElement, FSkeletalMeshObjectGPUSkin* Skin,
+	FGPUSkinPassthroughVertexFactory* TargetVertexFactory, const FSkelMeshSection& BatchElement, FSkeletalMeshObjectGPUSkin* Skin,
 	const FMorphVertexBuffer* MorphVertexBuffer)
 {
 	if (CachedChunksThisFrameCount >= GMaxGPUSkinCacheElementsPerFrame && FrameNumber <= SkinCacheFrameNumber)
@@ -525,7 +525,7 @@ int32 FGPUSkinCache::StartCacheMesh(FRHICommandListImmediate& RHICmdList, uint32
 		FSkeletalMeshResource& SkeletalMeshResource = Skin->GetSkeletalMeshResource();
 		int32 LODIndex = Skin->GetLOD();
 		FStaticLODModel& LodModel = SkeletalMeshResource.LODModels[LODIndex];
-		DispatchData.ChunkIdx = LodModel.FindChunkIndex(BatchElement);
+		DispatchData.SectionIdx = LodModel.FindSectionIndex(BatchElement);
 	}
 
 	DispatchData.NumVertices = NumVertices;
@@ -571,20 +571,15 @@ int32 FGPUSkinCache::StartCacheMesh(FRHICommandListImmediate& RHICmdList, uint32
 
 	if(bRecomputeTangents)
 	{
-		FStaticLODModel* StaticLODModel = MorphVertexBuffer->GetStaticLODModel();
-	
-		// todo: this can be optimized, worse: with multiple chunks per section this is likely not to work
-		const FSkelMeshSection* Section = StaticLODModel->FindSectionForChunk(StaticLODModel->FindChunkIndex(BatchElement));
-		
-		check(Section);
-		if(Section->bRecomputeTangent)
+		if(BatchElement.bRecomputeTangent)
 		{
+			FStaticLODModel* StaticLODModel = MorphVertexBuffer->GetStaticLODModel();
 			FRawStaticIndexBuffer16or32Interface* IndexBuffer = StaticLODModel->MultiSizeIndexContainer.GetIndexBuffer();
 
 			DispatchData.IndexBuffer = IndexBuffer->GetSRV();
 			check(!GSkinCacheSafety || DispatchData.IndexBuffer);
-			DispatchData.NumTriangles = Section->NumTriangles;
-			DispatchData.IndexBufferOffsetValue = Section->BaseIndex;
+			DispatchData.NumTriangles = BatchElement.NumTriangles;
+			DispatchData.IndexBufferOffsetValue = BatchElement.BaseIndex;
 			DispatchUpdateSkinTangents(DispatchData);
 		}
 	}
@@ -745,8 +740,9 @@ void FGPUSkinCache::DispatchSkinCacheProcess(
 	check(DispatchData.FeatureLevel >= ERHIFeatureLevel::SM5);
 
 	SCOPED_DRAW_EVENTF(DispatchData.RHICmdList, SkinCacheDispatch,
-		TEXT("SkinCacheDispatch Chunk=%d InputStreamStart=%d SkinCacheStart=%d Vert=%d Morph=%d/%d StrideInFloats(In/Out):%d/%d"),
-		DispatchData.ChunkIdx, DispatchData.InputStreamStart, DispatchData.SkinCacheStart, DispatchData.NumVertices, DispatchData.MorphBuffer != 0, DispatchData.MorphBufferOffset,
+		TEXT("SkinCacheDispatch<%d,%d> Chunk=%d InputStreamStart=%d SkinCacheStart=%d Vert=%d Morph=%d/%d StrideInFloats(In/Out):%d/%d"),
+		(int32)DispatchData.bExtraBoneInfluences, DispatchData.SkinType,
+		DispatchData.SectionIdx, DispatchData.InputStreamStart, DispatchData.SkinCacheStart, DispatchData.NumVertices, DispatchData.MorphBuffer != 0, DispatchData.MorphBufferOffset,
 		DispatchData.InputStreamStride / sizeof(float), FGPUSkinCache::RWStrideInFloats);
 
 	TShaderMapRef<TGPUSkinCacheCS<true,0> > SkinCacheCS10(GetGlobalShaderMap(DispatchData.FeatureLevel));
@@ -758,8 +754,10 @@ void FGPUSkinCache::DispatchSkinCacheProcess(
 	
 	switch(DispatchData.SkinType)
 	{
-		case 0: Shader = DispatchData.bExtraBoneInfluences ? (FBaseGPUSkinCacheCS*)*SkinCacheCS10 : (FBaseGPUSkinCacheCS*)*SkinCacheCS00; break;
-		case 1: Shader = DispatchData.bExtraBoneInfluences ? (FBaseGPUSkinCacheCS*)*SkinCacheCS11 : (FBaseGPUSkinCacheCS*)*SkinCacheCS01; break;
+		case 0: Shader = DispatchData.bExtraBoneInfluences ? (FBaseGPUSkinCacheCS*)*SkinCacheCS10 : (FBaseGPUSkinCacheCS*)*SkinCacheCS00;
+			break;
+		case 1: Shader = DispatchData.bExtraBoneInfluences ? (FBaseGPUSkinCacheCS*)*SkinCacheCS11 : (FBaseGPUSkinCacheCS*)*SkinCacheCS01;
+			break;
 		default:
 			check(0);
 	}

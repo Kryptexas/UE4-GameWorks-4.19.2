@@ -311,6 +311,16 @@ namespace UnrealBuildTool
 		public static string PreferredSubPlatform = "";
 
 		/// <summary>
+		/// Lists Architectures that you want to build
+		/// </summary>
+		public static string[] Architectures = new string[0];
+
+		/// <summary>
+		/// Lists GPU Architectures that you want to build (mostly used for mobile etc.)
+		/// </summary>
+		public static string[] GPUArchitectures = new string[0];
+
+		/// <summary>
 		/// Whether to include a dependency on ShaderCompileWorker when generating project files for the editor.
 		/// </summary>
 		[XmlConfig]
@@ -372,6 +382,8 @@ namespace UnrealBuildTool
 			bSkipLinkingWhenNothingToCompile = false;
 			bCompileCEF3 = true;
 			PreferredSubPlatform = "";
+			Architectures = new string[0];
+			GPUArchitectures = new string[0];
 			bEditorDependsOnShaderCompileWorker = true;
             bForceCompileDevelopmentAutomationTests = false;
             bForceCompilePerformanceAutomationTests = false;

@@ -50,6 +50,8 @@ struct CORE_API FFbxErrors
 
 	static FName Generic_Mesh_LOD_MultipleFilesSelected;
 
+	static FName Generic_Mesh_SkinxxNameError;
+
 	/** Static Mesh **/
 	static FName StaticMesh_TooManyMaterials;
 
@@ -73,6 +75,8 @@ struct CORE_API FFbxErrors
 	static FName SkeletalMesh_RestoreSortingForSectionNumber;
 
 	static FName SkeletalMesh_NoMeshFoundOnRoot;
+	
+	static FName SkeletalMesh_ImportSubDSurface;
 
 	static FName SkeletalMesh_InvalidRoot;
 

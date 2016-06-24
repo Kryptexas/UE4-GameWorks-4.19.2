@@ -255,6 +255,12 @@ bool ALODActor::GetReferencedContentObjects( TArray<UObject*>& Objects ) const
 {
 	Super::GetReferencedContentObjects(Objects);
 	Objects.Append(SubObjects);
+	
+	// Retrieve referenced objects for sub actors as well
+	for (AActor* SubActor : SubActors)
+	{
+		SubActor->GetReferencedContentObjects(Objects);
+	}
 	return true;
 }
 
@@ -423,10 +429,10 @@ void ALODActor::SetIsDirty(const bool bNewState)
 	if (IsDirty())
 	{
 		// If this LODActor is a SubActor at a higher LOD level mark parent dirty as well
-		UPrimitiveComponent* ParentComponent = StaticMeshComponent->GetLODParentPrimitive();
-		if (ParentComponent)
+		UPrimitiveComponent* LODParentComponent = StaticMeshComponent->GetLODParentPrimitive();
+		if (LODParentComponent)
 		{
-			ALODActor* LODParentActor = Cast<ALODActor>(ParentComponent->GetOwner());
+			ALODActor* LODParentActor = Cast<ALODActor>(LODParentComponent->GetOwner());
 			if (LODParentActor)
 			{
 				LODParentActor->Modify();
@@ -456,9 +462,29 @@ void ALODActor::SetIsDirty(const bool bNewState)
 	}
 }
 
-const bool ALODActor::HasValidSubActors()
+const bool ALODActor::HasValidSubActors() const
 {
-	return (SubActors.Num() != 0);	
+	int32 NumMeshes = 0;
+
+	// Make sure there are at least two meshes in the subactors
+	TInlineComponentArray<UStaticMeshComponent*> Components;
+	for (AActor* SubActor : SubActors)
+	{
+		SubActor->GetComponents(/*out*/ Components);
+		NumMeshes += Components.Num();
+
+		if (NumMeshes > 1)
+		{
+			break;
+		}
+	}
+
+	return NumMeshes > 1;
+}
+
+const bool ALODActor::HasAnySubActors() const
+{
+	return (SubActors.Num() != 0);
 }
 
 void ALODActor::ToggleForceView()

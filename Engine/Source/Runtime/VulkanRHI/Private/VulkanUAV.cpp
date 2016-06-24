@@ -20,8 +20,8 @@ void FVulkanShaderResourceView::UpdateView(FVulkanDevice* Device)
 		{
 			SCOPE_CYCLE_COUNTER(STAT_VulkanSRVUpdateTime);
 			// thanks to ref counting, overwriting the buffer will toss the old view
-			BufferView = new FVulkanBufferView();
-			BufferView->Create(*Device, SourceVertexBuffer.GetReference(), BufferViewFormat, SourceVertexBuffer->GetOffset(), SourceVertexBuffer->GetSize());
+			BufferView = new FVulkanBufferView(Device);
+			BufferView->Create(SourceVertexBuffer.GetReference(), BufferViewFormat, SourceVertexBuffer->GetOffset(), SourceVertexBuffer->GetSize());
 		}
 	}
 }

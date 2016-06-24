@@ -56,6 +56,18 @@ public:
 	/** Causes the details view to be refreshed (new widgets generated) with the current set of objects */
 	virtual void ForceRefresh() = 0;
 
+	/** Causes the details view to move the scroll offset (by item)
+	* @param DeltaOffset	We add this value to the current scroll offset if the result is in the scrolling range
+	*/
+	virtual void MoveScrollOffset(int32 DeltaOffset) = 0;
+
+	/* Return true if the category exist in the detail view
+	* @param CategoryName			The name of the category we need informations
+	* @param SimplePropertiesNum		The Number of basic properties contain in the category
+	* @param AdvancePropertiesNum	The Number of advance properties contain in the category
+	*/
+	virtual bool GetCategoryInfo(FName CategoryName, int32 &SimplePropertiesNum, int32 &AdvancePropertiesNum) { SimplePropertiesNum = 0; AdvancePropertiesNum = 0; return false; }
+
 	/**
 	* Saves the expansion state of a tree node
 	*

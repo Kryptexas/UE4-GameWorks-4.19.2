@@ -136,7 +136,7 @@ bool FMetaNavMeshPath::UpdatePath(const FVector& AgentLocation)
 		PathPoints[1] = FNavPathPoint(PathFindingQueryData.EndLocation);
 
 		UE_VLOG(GetSourceActor(), LogNavigation, Log, TEXT("Updating meta path, waypoint:%d/%d"), TargetWaypointIdx, Waypoints.Num() - 1);
-		NavData->RequestRePath(AsShared(), ENavPathUpdateType::Custom);
+		NavData->RequestRePath(AsShared(), ENavPathUpdateType::MetaPathUpdate);
 		return true;
 	}
 

@@ -1134,21 +1134,21 @@ void FPhATSharedData::CycleCurrentConstraintActive()
 		UPhysicsConstraintTemplate* ConstraintTemplate = PhysicsAsset->ConstraintSetup[GetSelectedConstraint()->Index];
 		FConstraintInstance & DefaultInstance = ConstraintTemplate->DefaultInstance;
 
-		if(DefaultInstance.AngularSwing1Motion != ACM_Limited && DefaultInstance.AngularSwing2Motion != ACM_Limited)
+		if(DefaultInstance.GetAngularSwing1Motion() != ACM_Limited && DefaultInstance.GetAngularSwing2Motion() != ACM_Limited)
 		{
-			DefaultInstance.AngularSwing1Motion = ACM_Limited;
-			DefaultInstance.AngularSwing2Motion = ACM_Locked;
-			DefaultInstance.AngularTwistMotion = ACM_Locked;
-		}else if(DefaultInstance.AngularSwing2Motion != ACM_Limited && DefaultInstance.AngularTwistMotion != ACM_Limited)
+			DefaultInstance.SetAngularSwing1Motion(ACM_Limited);
+			DefaultInstance.SetAngularSwing2Motion(ACM_Locked);
+			DefaultInstance.SetAngularTwistMotion(ACM_Locked);
+		}else if(DefaultInstance.GetAngularSwing2Motion() != ACM_Limited && DefaultInstance.GetAngularTwistMotion() != ACM_Limited)
 		{
-			DefaultInstance.AngularSwing1Motion = ACM_Locked;
-			DefaultInstance.AngularSwing2Motion = ACM_Limited;
-			DefaultInstance.AngularTwistMotion = ACM_Locked;
+			DefaultInstance.SetAngularSwing1Motion(ACM_Locked);
+			DefaultInstance.SetAngularSwing2Motion(ACM_Limited);
+			DefaultInstance.SetAngularTwistMotion(ACM_Locked);
 		}else
 		{
-			DefaultInstance.AngularSwing1Motion = ACM_Locked;
-			DefaultInstance.AngularSwing2Motion = ACM_Locked;
-			DefaultInstance.AngularTwistMotion = ACM_Limited;
+			DefaultInstance.SetAngularSwing1Motion(ACM_Locked);
+			DefaultInstance.SetAngularSwing2Motion(ACM_Locked);
+			DefaultInstance.SetAngularTwistMotion(ACM_Limited);
 		}
 		
 	}
@@ -1163,13 +1163,13 @@ void FPhATSharedData::ToggleConstraint(EPhATConstraintType Constraint)
 
 		if(Constraint == PCT_Swing1)
 		{
-			DefaultInstance.AngularSwing1Motion = DefaultInstance.AngularSwing1Motion == ACM_Limited ? ACM_Locked : ACM_Limited;
+			DefaultInstance.SetAngularSwing1Motion(DefaultInstance.GetAngularSwing1Motion() == ACM_Limited ? ACM_Locked : ACM_Limited);
 		}else if(Constraint == PCT_Swing2)
 		{
-			DefaultInstance.AngularSwing2Motion = DefaultInstance.AngularSwing2Motion == ACM_Limited ? ACM_Locked : ACM_Limited;
+			DefaultInstance.SetAngularSwing2Motion(DefaultInstance.GetAngularSwing2Motion() == ACM_Limited ? ACM_Locked : ACM_Limited);
 		}else
 		{
-			DefaultInstance.AngularTwistMotion = DefaultInstance.AngularTwistMotion == ACM_Limited ? ACM_Locked : ACM_Limited;
+			DefaultInstance.SetAngularTwistMotion(DefaultInstance.GetAngularTwistMotion() == ACM_Limited ? ACM_Locked : ACM_Limited);
 		}
 		
 	}

@@ -195,6 +195,8 @@ struct FEmitHelper
 	// returns an unique number for a structure in structures hierarchy
 	static int32 GetInheritenceLevel(const UStruct* Struct);
 
+	static FString FloatToString(float Value);
+
 	static bool PropertyForConstCast(const UProperty* Property);
 
 	static void ArrayToString(const TArray<FString>& Array, FString& OutString, const TCHAR* Separator);

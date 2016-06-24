@@ -55,7 +55,9 @@ UObject* FLevelSequenceSpawnRegister::SpawnObject(const FGuid& BindingId, FMovie
 	{
 		SpawnInfo.Name = ActorName;
 		SpawnInfo.ObjectFlags = ObjectFlags;
-		SpawnInfo.Template = ObjectTemplate;
+		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		// @todo: Spawning with a non-CDO template is fraught with issues
+		//SpawnInfo.Template = ObjectTemplate;
 	}
 
 	FTransform SpawnTransform;
@@ -81,50 +83,15 @@ UObject* FLevelSequenceSpawnRegister::SpawnObject(const FGuid& BindingId, FMovie
 		WorldContext = GWorld;
 	}
 
-	// @todo: Remove when instanced components work correctly on spawned templates
-	TArray<UActorComponent*> TemplateInstanceComponents = ObjectTemplate->GetInstanceComponents();
-	ObjectTemplate->ClearInstanceComponents(false);
-
 	AActor* SpawnedActor = WorldContext->SpawnActorAbsolute(ObjectTemplate->GetClass(), SpawnTransform, SpawnInfo);
 	if (!SpawnedActor)
 	{
 		return nullptr;
 	}
-
-	// First, duplicate instance components
-	for (UActorComponent* TemplateComponent : TemplateInstanceComponents)
-	{
-		ObjectTemplate->AddInstanceComponent(TemplateComponent);
-
-		UActorComponent* NewComponent = DuplicateObject<UActorComponent>(TemplateComponent, SpawnedActor, TemplateComponent->GetFName());
-		SpawnedActor->AddInstanceComponent(NewComponent);
-	}
-
-	// Second, attach the components. We do this as a different pass, since instance components may be attached to each other
-	for (UActorComponent* ActorComp : SpawnedActor->GetInstanceComponents())
-	{
-		USceneComponent* SceneComp = Cast<USceneComponent>(ActorComp);
-		if (!SceneComp)
-		{
-			continue;
-		}
-		
-		USceneComponent* NewParent = SpawnedActor->GetRootComponent();
-
-		USceneComponent* OldParent = SceneComp->GetAttachParent();
-		if (OldParent)
-		{
-			FString PathName = OldParent->GetPathName(OldParent->GetOwner());
-
-			NewParent = FindObject<USceneComponent>(SpawnedActor, *PathName);
-		}
-
-		if (ensure(NewParent))
-		{
-			SceneComp->AttachToComponent(NewParent, FAttachmentTransformRules::KeepRelativeTransform, SceneComp->GetAttachSocketName());
-		}
-	}
-
+	
+	UEngine::FCopyPropertiesForUnrelatedObjectsParams CopyParams;
+	SpawnedActor->UnregisterAllComponents();
+	UEngine::CopyPropertiesForUnrelatedObjects(ObjectTemplate, SpawnedActor, CopyParams);
 	SpawnedActor->RegisterAllComponents();
 
 	// tag this actor so we know it was spawned by sequencer

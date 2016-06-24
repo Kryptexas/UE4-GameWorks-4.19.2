@@ -3,11 +3,14 @@
 #include "LevelSequencePCH.h"
 #include "LevelSequencePlayer.h"
 #include "MovieScene.h"
+#include "MovieSceneSubSection.h"
 #include "MovieSceneSequence.h"
 #include "MovieSceneSequenceInstance.h"
+#include "MovieSceneTrack.h"
 #include "LevelSequenceSpawnRegister.h"
 #include "Engine/LevelStreaming.h"
-
+#include "Tracks/MovieSceneCinematicShotTrack.h"
+#include "Sections/MovieSceneCinematicShotSection.h"
 
 struct FTickAnimationPlayers : public FTickableGameObject
 {
@@ -121,10 +124,140 @@ void ULevelSequencePlayer::Stop()
 	TimeCursorPosition = PlaybackSettings.PlayRate < 0.f ? GetLength() : 0.f;
 	CurrentNumLoops = 0;
 
+	SetTickPrerequisites(false);
+
 	// todo: Trigger an event?
 }
 
+void GetDescendantSequences(UMovieSceneSequence* InSequence, TArray<UMovieSceneSequence*> & InSequences)
+{
+	if (InSequence == nullptr)
+	{
+		return;
+	}
+
+	InSequences.Add(InSequence);
+	
+	UMovieScene* MovieScene = InSequence->GetMovieScene();
+	if (MovieScene == nullptr)
+	{
+		return;
+	}
+
+	for (auto MasterTrack : MovieScene->GetMasterTracks())
+	{
+		for (auto Section : MasterTrack->GetAllSections())
+		{
+			UMovieSceneSubSection* SubSection = Cast<UMovieSceneSubSection>(Section);
+			if (SubSection != nullptr)
+			{
+				UMovieSceneSequence* SubSequence = SubSection->GetSequence();
+				if (SubSequence != nullptr)
+				{
+					GetDescendantSequences(SubSequence, InSequences);
+				}
+			}
+		}
+	}
+}
+
+void ULevelSequencePlayer::SetTickPrerequisites(bool bAddTickPrerequisites)
+{
+	AActor* LevelSequenceActor = Cast<AActor>(GetOuter());
+	if (LevelSequenceActor == nullptr)
+	{
+		return;
+	}
+
+	TArray<UMovieSceneSequence*> AllSequences;
+	GetDescendantSequences(LevelSequence, AllSequences);
+
+	for (auto Sequence : AllSequences)
+	{
+		UMovieScene* MovieScene = Sequence->GetMovieScene();
+		if (MovieScene == nullptr)
+		{
+			continue;
+		}
+
+		TArray<AActor*> ControlledActors;
+
+		for (int32 PossessableCount = 0; PossessableCount < MovieScene->GetPossessableCount(); ++PossessableCount)
+		{
+			FMovieScenePossessable& Possessable = MovieScene->GetPossessable(PossessableCount);
+				
+			UObject* PossessableObject = Sequence->FindPossessableObject(Possessable.GetGuid(), this);
+			if (PossessableObject != nullptr)
+			{
+				AActor* PossessableActor = Cast<AActor>(PossessableObject);
+
+				if (PossessableActor != nullptr)
+				{
+					ControlledActors.Add(PossessableActor);
+				}
+			}
+		}
+
+		for (int32 SpawnableCount = 0; SpawnableCount < MovieScene->GetSpawnableCount(); ++ SpawnableCount)
+		{
+			FMovieSceneSpawnable& Spawnable = MovieScene->GetSpawnable(SpawnableCount);
+
+			UObject* SpawnableObject = Spawnable.GetObjectTemplate();
+			if (SpawnableObject != nullptr)
+			{
+				AActor* SpawnableActor = Cast<AActor>(SpawnableObject);
+
+				if (SpawnableActor != nullptr)
+				{
+					ControlledActors.Add(SpawnableActor);
+				}
+			}
+		}
+
+
+		for (AActor* ControlledActor : ControlledActors)
+		{
+			for( UActorComponent* Component : ControlledActor->GetComponents() )
+			{
+				if (bAddTickPrerequisites)
+				{
+					Component->PrimaryComponentTick.AddPrerequisite(LevelSequenceActor, LevelSequenceActor->PrimaryActorTick);
+				}
+				else
+				{
+					Component->PrimaryComponentTick.RemovePrerequisite(LevelSequenceActor, LevelSequenceActor->PrimaryActorTick);
+				}
+			}
+
+			if (bAddTickPrerequisites)
+			{
+				ControlledActor->PrimaryActorTick.AddPrerequisite(LevelSequenceActor, LevelSequenceActor->PrimaryActorTick);
+			}
+			else
+			{
+				ControlledActor->PrimaryActorTick.RemovePrerequisite(LevelSequenceActor, LevelSequenceActor->PrimaryActorTick);
+			}
+		}
+	}
+}
+
 void ULevelSequencePlayer::Play()
+{
+	// Start playing
+	StartPlayingNextTick();
+
+	// Update now
+	bPendingFirstUpdate = false;
+	UpdateMovieSceneInstance(TimeCursorPosition, TimeCursorPosition);
+}
+
+void ULevelSequencePlayer::PlayLooping(int32 NumLoops)
+{
+	PlaybackSettings.LoopCount = NumLoops;
+	Play();
+}
+
+void ULevelSequencePlayer::StartPlayingNextTick()
 {
 	if ((LevelSequence == nullptr) || !World.IsValid())
 	{
@@ -139,16 +272,11 @@ void ULevelSequencePlayer::Play()
 		RootMovieSceneInstance->RefreshInstance(*this);
 	}
 
+	SetTickPrerequisites(true);
+
+	bPendingFirstUpdate = true;
 	bIsPlaying = true;
 	bHasCleanedUpSequence = false;
-
-	UpdateMovieSceneInstance(TimeCursorPosition, TimeCursorPosition);
-}
-
-void ULevelSequencePlayer::PlayLooping(int32 NumLoops)
-{
-	PlaybackSettings.LoopCount = NumLoops;
-	Play();
 }
 
 float ULevelSequencePlayer::GetPlaybackPosition() const
@@ -188,6 +316,12 @@ void ULevelSequencePlayer::SetPlaybackRange( const float NewStartTime, const flo
 void ULevelSequencePlayer::UpdateTimeCursorPosition(float NewPosition)
 {
 	float Length = GetLength();
+
+	if (bPendingFirstUpdate)
+	{
+		NewPosition = TimeCursorPosition;
+		bPendingFirstUpdate = false;
+	}
 
 	if ((NewPosition >= Length) || (NewPosition < 0))
 	{
@@ -260,13 +394,23 @@ void ULevelSequencePlayer::UpdateCameraCut(UObject* CameraObject, UObject* Unloc
 	// skip same view target
 	AActor* ViewTarget = PC->GetViewTarget();
 
+	// save the last view target so that it can be restored when the camera object is null
+	if (!LastViewTarget.IsValid())
+	{
+		LastViewTarget = ViewTarget;
+	}
+
 	if (CameraObject == ViewTarget)
 	{
+		if ( bJumpCut && PC->PlayerCameraManager )
+		{
+			PC->PlayerCameraManager->bGameCameraCutThisFrame = true;
+		}
 		return;
 	}
 
 	// skip unlocking if the current view target differs
-	ACameraActor* UnlockIfCameraActor = Cast<ACameraActor>(UnlockIfCameraObject);
+	AActor* UnlockIfCameraActor = Cast<AActor>(UnlockIfCameraObject);
 
 	if ((CameraObject == nullptr) && (UnlockIfCameraActor != ViewTarget))
 	{
@@ -274,7 +418,13 @@ void ULevelSequencePlayer::UpdateCameraCut(UObject* CameraObject, UObject* Unloc
 	}
 
 	// override the player controller's view target
-	ACameraActor* CameraActor = Cast<ACameraActor>(CameraObject);
+	AActor* CameraActor = Cast<AActor>(CameraObject);
+
+	// if the camera object is null, use the last view target so that it is restored to the state before the sequence takes control
+	if (CameraActor == nullptr)
+	{
+		CameraActor = LastViewTarget.Get();
+	}
 
 	FViewTargetTransitionParams TransitionParams;
 	PC->SetViewTarget(CameraActor, TransitionParams);
@@ -364,11 +514,59 @@ void ULevelSequencePlayer::UpdateMovieSceneInstance(float CurrentPosition, float
 {
 	if(RootMovieSceneInstance.IsValid())
 	{
-		EMovieSceneUpdateData UpdateData(CurrentPosition + StartTime, PreviousPosition + StartTime);
+		float Position = CurrentPosition + StartTime;
+		float LastPosition = PreviousPosition + StartTime;
+		UMovieSceneSequence* MovieSceneSequence = RootMovieSceneInstance->GetSequence();
+		if (MovieSceneSequence != nullptr && 
+			MovieSceneSequence->GetMovieScene()->GetForceFixedFrameIntervalPlayback() &&
+			MovieSceneSequence->GetMovieScene()->GetFixedFrameInterval() > 0 )
+		{
+			float FixedFrameInterval = MovieSceneSequence->GetMovieScene()->GetFixedFrameInterval();
+			Position = UMovieScene::CalculateFixedFrameTime( Position, FixedFrameInterval );
+			LastPosition = UMovieScene::CalculateFixedFrameTime( LastPosition, FixedFrameInterval );
+		}
+		EMovieSceneUpdateData UpdateData(Position, LastPosition);
 		RootMovieSceneInstance->Update(UpdateData, *this);
+
 #if WITH_EDITOR
 		OnLevelSequencePlayerUpdate.Broadcast(*this, CurrentPosition, PreviousPosition);
 #endif
+	}
+}
+
+void ULevelSequencePlayer::TakeFrameSnapshot(FLevelSequencePlayerSnapshot& OutSnapshot) const
+{
+	const float CurrentTime = StartTime + TimeCursorPosition;
+
+	OutSnapshot.Settings = SnapshotSettings;
+
+	OutSnapshot.MasterTime = CurrentTime;
+	OutSnapshot.MasterName = FText::FromString(LevelSequence->GetName());
+
+	OutSnapshot.CurrentShotName = OutSnapshot.MasterName;
+	OutSnapshot.CurrentShotLocalTime = CurrentTime;
+
+	UMovieSceneCinematicShotTrack* ShotTrack = LevelSequence->GetMovieScene()->FindMasterTrack<UMovieSceneCinematicShotTrack>();
+	if (ShotTrack)
+	{
+		int32 HighestRow = TNumericLimits<int32>::Max();
+		UMovieSceneCinematicShotSection* ActiveShot = nullptr;
+		for (UMovieSceneSection* Section : ShotTrack->GetAllSections())
+		{
+			if (Section->GetRange().Contains(CurrentTime) && (!ActiveShot || Section->GetRowIndex() < ActiveShot->GetRowIndex()))
+			{
+				ActiveShot = Cast<UMovieSceneCinematicShotSection>(Section);
+			}
+		}
+
+		if (ActiveShot)
+		{
+			const float ShotOffset = ActiveShot->StartOffset + ActiveShot->GetSequence()->GetMovieScene()->GetPlaybackRange().GetLowerBoundValue() - ActiveShot->PrerollTime;
+			const float ShotPosition = ShotOffset + (CurrentTime - (ActiveShot->GetStartTime() - ActiveShot->PrerollTime)) / ActiveShot->TimeScale;
+
+			OutSnapshot.CurrentShotName = ActiveShot->GetShotDisplayName();
+			OutSnapshot.CurrentShotLocalTime = ShotPosition;
+		}
 	}
 }
 

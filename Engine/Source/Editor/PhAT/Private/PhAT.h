@@ -147,8 +147,7 @@ private:
 	/** Constraint editing helper methods */
 	void SnapConstraintToBone(int32 ConstraintIndex, const FTransform& WParentFrame);
 	void CreateOrConvertConstraint(EPhATConstraintType ConstraintType);
-	void SetConstraintsBelowSelectedMotorised(bool bMotorised);
-
+	
 	/** Collision editing helper methods */
 	void AddNewPrimitive(EKCollisionPrimitiveType PrimitiveType, bool bCopySelected = false);
 	void SetBodiesBelowSelectedPhysicsType( EPhysicsType InPhysicsType, bool bMarkAsDirty);
@@ -227,9 +226,6 @@ private:
 	bool IsBodyPhysicsType( EPhysicsType InPhysicsType );
 	void OnDeleteBody();
 	void OnDeleteAllBodiesBelow();
-	void OnToggleMotor();
-	void OnEnableMotorsBelow();
-	void OnDisableMotorsBelow();
 	void OnLockSelection();
 	void OnDeleteSelection();
 	void OnCycleConstraintOrientation();

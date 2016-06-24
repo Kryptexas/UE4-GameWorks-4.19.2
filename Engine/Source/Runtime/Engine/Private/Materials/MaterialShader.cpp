@@ -8,6 +8,7 @@
 #include "DerivedDataCacheInterface.h"
 #include "TargetPlatform.h"
 #include "../ShaderDerivedDataVersion.h"
+#include "CookStats.h"
 
 int32 GCreateShadersOnLoad = 0;
 static FAutoConsoleVariableRef CVarCreateShadersOnLoad(
@@ -15,6 +16,23 @@ static FAutoConsoleVariableRef CVarCreateShadersOnLoad(
 	GCreateShadersOnLoad,
 	TEXT("Whether to create shaders on load, which can reduce hitching, but use more memory.  Otherwise they will be created as needed.")
 	);
+
+
+#if ENABLE_COOK_STATS
+namespace MaterialShaderCookStats
+{
+	static FCookStats::FDDCResourceUsageStats UsageStats;
+	static int32 ShadersCompiled = 0;
+	static FCookStatsManager::FAutoRegisterCallback RegisterCookStats([](FCookStatsManager::AddStatFuncRef AddStat)
+	{
+		UsageStats.LogStats(AddStat, TEXT("MaterialShader.Usage"), TEXT(""));
+		AddStat(TEXT("MaterialShader.Misc"), FCookStatsManager::CreateKeyValueArray(
+			TEXT("ShadersCompiled"), ShadersCompiled
+			));
+	});
+}
+#endif
+
 
 //
 // Globals
@@ -676,6 +694,7 @@ FShaderCompileJob* FMaterialShaderType::BeginCompileShader(
 	FShaderCompilerEnvironment& ShaderEnvironment = NewJob->Input.Environment;
 
 	UE_LOG(LogShaders, Verbose, TEXT("			%s"), GetName());
+	COOK_STAT(MaterialShaderCookStats::ShadersCompiled++);
 
 	//update material shader stats
 	UpdateMaterialShaderCompilingStats(Material);
@@ -850,18 +869,21 @@ void FMaterialShaderMap::LoadFromDerivedDataCache(const FMaterial* Material, con
 		STAT(double MaterialDDCTime = 0);
 		{
 			SCOPE_SECONDS_COUNTER(MaterialDDCTime);
+			COOK_STAT(auto Timer = MaterialShaderCookStats::UsageStats.TimeSyncWork());
 
 			TArray<uint8> CachedData;
 			const FString DataKey = GetMaterialShaderMapKeyString(ShaderMapId, Platform);
 
-			// Find the shader map in the derived data cache
 			if (GetDerivedDataCacheRef().GetSynchronous(*DataKey, CachedData))
 			{
+				COOK_STAT(Timer.AddHit(CachedData.Num()));
 				InOutShaderMap = new FMaterialShaderMap();
 				FMemoryReader Ar(CachedData, true);
 
 				// Deserialize from the cached data
 				InOutShaderMap->Serialize(Ar);
+				InOutShaderMap->RegisterSerializedShaders();
+
 				checkSlow(InOutShaderMap->GetShaderMapId() == ShaderMapId);
 
 				// Register in the global map
@@ -869,6 +891,8 @@ void FMaterialShaderMap::LoadFromDerivedDataCache(const FMaterial* Material, con
 			}
 			else
 			{
+				// We should be build the data later, and we can track that the resource was built there when we push it to the DDC.
+				COOK_STAT(Timer.TrackCyclesOnly());
 				InOutShaderMap = nullptr;
 			}
 		}
@@ -878,11 +902,13 @@ void FMaterialShaderMap::LoadFromDerivedDataCache(const FMaterial* Material, con
 
 void FMaterialShaderMap::SaveToDerivedDataCache()
 {
+	COOK_STAT(auto Timer = MaterialShaderCookStats::UsageStats.TimeSyncWork());
 	TArray<uint8> SaveData;
 	FMemoryWriter Ar(SaveData, true);
 	Serialize(Ar);
 
 	GetDerivedDataCacheRef().Put(*GetMaterialShaderMapKeyString(ShaderMapId, Platform), SaveData);
+	COOK_STAT(Timer.AddMiss(SaveData.Num()));
 }
 
 TArray<uint8>* FMaterialShaderMap::BackupShadersToMemory()
@@ -895,10 +921,12 @@ TArray<uint8>* FMaterialShaderMap::BackupShadersToMemory()
 		// Serialize data needed to handle shader key changes in between the save and the load of the FShaders
 		const bool bHandleShaderKeyChanges = true;
 		MeshShaderMaps[Index].SerializeInline(Ar, true, bHandleShaderKeyChanges);
+		MeshShaderMaps[Index].RegisterSerializedShaders();
 		MeshShaderMaps[Index].Empty();
 	}
 
 	SerializeInline(Ar, true, true);
+	RegisterSerializedShaders();
 	Empty();
 
 	return SavedShaderData;
@@ -913,9 +941,11 @@ void FMaterialShaderMap::RestoreShadersFromMemory(const TArray<uint8>& ShaderDat
 		// Use the serialized shader key data to detect when the saved shader is no longer valid and skip it
 		const bool bHandleShaderKeyChanges = true;
 		MeshShaderMaps[Index].SerializeInline(Ar, true, bHandleShaderKeyChanges);
+		MeshShaderMaps[Index].RegisterSerializedShaders();
 	}
 
 	SerializeInline(Ar, true, true);
+	RegisterSerializedShaders();
 }
 
 void FMaterialShaderMap::SaveForRemoteRecompile(FArchive& Ar, const TMap<FString, TArray<TRefCountPtr<FMaterialShaderMap> > >& CompiledShaderMaps, const TArray<FShaderResourceId>& ClientResourceIds)
@@ -1999,6 +2029,7 @@ void FMaterialShaderMap::Serialize(FArchive& Ar, bool bInlineShaderResources)
 	{
 		// Material shaders
 		TShaderMap<FMaterialShaderType>::SerializeInline(Ar, bInlineShaderResources, false);
+		RegisterSerializedShaders();
 
 		// Mesh material shaders
 		int32 NumMeshShaderMaps = 0;
@@ -2039,6 +2070,7 @@ void FMaterialShaderMap::Serialize(FArchive& Ar, bool bInlineShaderResources)
 				Ar << VFType;
 
 				MeshShaderMap->SerializeInline(Ar, bInlineShaderResources, false);
+				MeshShaderMap->RegisterSerializedShaders();
 			}
 		}
 	}
@@ -2081,22 +2113,37 @@ void FMaterialShaderMap::Serialize(FArchive& Ar, bool bInlineShaderResources)
 			check(MeshShaderMap);
 			MeshShaderMap->SerializeInline(Ar, bInlineShaderResources, false);
 		}
+	}
+}
 
-		// Trim the mesh shader maps by removing empty entries
-		for (int32 VFIndex = 0; VFIndex < OrderedMeshShaderMaps.Num(); VFIndex++)
+void FMaterialShaderMap::RegisterSerializedShaders()
+{
+	check(IsInGameThread());
+
+	TShaderMap<FMaterialShaderType>::RegisterSerializedShaders();
+	
+	for (FMeshMaterialShaderMap* MeshShaderMap : OrderedMeshShaderMaps)
+	{
+		if (MeshShaderMap)
 		{
-			if (OrderedMeshShaderMaps[VFIndex]->IsEmpty())
-			{
-				OrderedMeshShaderMaps[VFIndex] = NULL;
-			}
+			MeshShaderMap->RegisterSerializedShaders();
 		}
+	}
 
-		for (int32 Index = MeshShaderMaps.Num() - 1; Index >= 0; Index--)
+	// Trim the mesh shader maps by removing empty entries
+	for (int32 VFIndex = 0; VFIndex < OrderedMeshShaderMaps.Num(); VFIndex++)
+	{
+		if (OrderedMeshShaderMaps[VFIndex] && OrderedMeshShaderMaps[VFIndex]->IsEmpty())
 		{
-			if (MeshShaderMaps[Index].IsEmpty())
-			{
-				MeshShaderMaps.RemoveAt(Index);
-			}
+			OrderedMeshShaderMaps[VFIndex] = NULL;
+		}
+	}
+
+	for (int32 Index = MeshShaderMaps.Num() - 1; Index >= 0; Index--)
+	{
+		if (MeshShaderMaps[Index].IsEmpty())
+		{
+			MeshShaderMaps.RemoveAt(Index);
 		}
 	}
 }

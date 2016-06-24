@@ -97,16 +97,6 @@ public:
 
 	virtual ECompressionFlags GetBaseCompressionMethod( ) const override;
 
-	bool CompressMemory(ECompressionFlags Flags, void* CompressedBuffer, int32& CompressedSize, const void* UncompressedBuffer, int32 UncompressedSize) const
-	{
-		return false;
-	}
-
-	int32 CompressMemoryBounds(ECompressionFlags Flags, int32 UncompressedSize) const
-	{
-		return 0;
-	}
-
 	virtual bool GenerateStreamingInstallManifest(const TMultiMap<FString, int32>& ChunkMap, const TSet<int32>& ChunkIDsInUse) const override
 	{
 		return true;

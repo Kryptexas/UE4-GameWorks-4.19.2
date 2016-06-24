@@ -326,17 +326,6 @@ void FD3D11DynamicRHI::RHIGetSupportedResolution( uint32 &Width, uint32 &Height 
 	Height = BestMode.Height;
 }
 
-// Suppress static analysis warnings in FD3D11DynamicRHI::RHIGetAvailableResolutions() about a potentially out-of-bounds read access to ModeList. This is a false positive - Index is always within range.
-#if USING_CODE_ANALYSIS
-	MSVC_PRAGMA(warning(push))
-	MSVC_PRAGMA(warning(disable:6385))
-#endif	// USING_CODE_ANALYSIS
-
-// Re-enable static code analysis warning C6385.
-#if USING_CODE_ANALYSIS
-	MSVC_PRAGMA(warning(pop))
-#endif	// USING_CODE_ANALYSIS
-
 void FD3D11DynamicRHI::GetBestSupportedMSAASetting( DXGI_FORMAT PlatformFormat, uint32 MSAACount, uint32& OutBestMSAACount, uint32& OutMSAAQualityLevels )
 {
 	//  We disable MSAA for Feature level 10
@@ -409,6 +398,19 @@ void FD3D11DynamicRHI::UpdateMSAASettings()
 	AvailableMSAAQualities[8] = 0;
 }
 
+#if !PLATFORM_SEH_EXCEPTIONS_DISABLED
+static int32 ReportDiedDuringDeviceShutdown(LPEXCEPTION_POINTERS ExceptionInfo)
+{
+	UE_LOG(LogD3D11RHI, Error, TEXT("Crashed freeing up the D3D11 device."));
+	if (GDynamicRHI)
+	{
+		GDynamicRHI->FlushPendingLogs();
+	}
+
+	return EXCEPTION_EXECUTE_HANDLER;
+}
+#endif
+
 void FD3D11DynamicRHI::CleanupD3DDevice()
 {
 	UE_LOG(LogD3D11RHI, Log, TEXT("CleanupD3DDevice"));
@@ -468,9 +470,26 @@ void FD3D11DynamicRHI::CleanupD3DDevice()
 			Direct3DDeviceIMContext->Flush();
 		}
 
-		Direct3DDeviceIMContext = NULL;
+		Direct3DDeviceIMContext = nullptr;
 
-		Direct3DDevice = NULL;
+#if !PLATFORM_SEH_EXCEPTIONS_DISABLED
+		if (IsRHIDeviceNVIDIA())
+		{
+			//UE-18906: Workaround to trap crash in NV driver
+			__try
+			{
+				Direct3DDevice = nullptr;
+			}
+			__except (ReportDiedDuringDeviceShutdown(GetExceptionInformation()))
+			{
+				FPlatformMisc::MemoryBarrier();
+			}
+		}
+		else
+#endif
+		{
+			Direct3DDevice = nullptr;
+		}
 	}
 }
 

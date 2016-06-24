@@ -799,10 +799,15 @@ const FStyleNode* FSlateApplication::GetRootStyle() const
 	return RootStyleNode;
 }
 
-void FSlateApplication::InitializeRenderer( TSharedRef<FSlateRenderer> InRenderer )
+bool FSlateApplication::InitializeRenderer( TSharedRef<FSlateRenderer> InRenderer, bool bQuietMode )
 {
 	Renderer = InRenderer;
-	Renderer->Initialize();
+	bool bResult = Renderer->Initialize();
+	if (!bResult && !bQuietMode)
+	{
+		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *NSLOCTEXT("SlateD3DRenderer", "ProblemWithGraphicsCard", "There is a problem with your graphics card. Please ensure your card meets the minimum system requirements and that you have the latest drivers installed.").ToString(), *NSLOCTEXT("SlateD3DRenderer", "UnsupportedVideoCardErrorTitle", "Unsupported Video Card").ToString());
+	}
+	return bResult;
 }
 
 void FSlateApplication::InitializeSound( const TSharedRef<ISlateSoundDevice>& InSlateSoundDevice )
@@ -1830,9 +1835,23 @@ void FSlateApplication::AddModalWindow( TSharedRef<SWindow> InSlateWindow, const
 			PlatformApplication->Cursor->Show( true );
 		}
 
+		//Throttle loop data
+		float LastLoopTime = (float)FPlatformTime::Seconds();
+		const float MinThrottlePeriod = (1.0f / 60.0f); //Throttle the loop to a maximum of 60Hz
+
 		// Tick slate from here in the event that we should not return until the modal window is closed.
 		while( InSlateWindow == GetActiveModalWindow() )
 		{
+			//Throttle the loop
+			const float CurrentLoopTime = FPlatformTime::Seconds();
+			const float SleepTime = MinThrottlePeriod - (CurrentLoopTime-LastLoopTime);
+			LastLoopTime = CurrentLoopTime;
+			if (SleepTime > 0.0f)
+			{
+				// Sleep a bit to not eat up all CPU time
+				FPlatformProcess::Sleep(SleepTime);
+			}
+
 			FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::Tick");
 
 			{
@@ -2821,6 +2840,7 @@ void FSlateApplication::ProcessReply( const FWidgetPath& CurrentEventPath, const
 	{
 		DragDetector.DetectDragForWidget = WidgetsUnderMouse->GetPathDownTo( TheReply.GetDetectDragRequest().ToSharedRef() );
 		DragDetector.DetectDragButton = TheReply.GetDetectDragRequestButton();
+		checkSlow(InMouseEvent);
 		DragDetector.DetectDragStartLocation = InMouseEvent->GetScreenSpacePosition();
 	}
 
@@ -4511,8 +4531,16 @@ FReply FSlateApplication::RoutePointerDownEvent(FWidgetPath& WidgetsUnderPointer
 	// If none of the widgets requested keyboard focus to be set (or set the keyboard focus explicitly), set it to the leaf-most widget under the mouse.
 	// On Mac we prevent the OS from activating the window on mouse down, so we have full control and can activate only if there's nothing draggable under the mouse cursor.
 	const bool bFocusChangedByEventHandler = PreviouslyFocusedWidget != GetKeyboardFocusedWidget();
-	if( ( !Reply.GetUserFocusRecepient().IsValid() || ( PLATFORM_MAC && PointerEvent.GetEffectingButton() == EKeys::LeftMouseButton && !DragDetector.DetectDragForWidget.IsValid() ) )
-		&& ( !bFocusChangedByEventHandler || bNeedToActivateWindow ) )
+	if( ( !bFocusChangedByEventHandler || bNeedToActivateWindow ) &&
+		( !Reply.GetUserFocusRecepient().IsValid()
+#if PLATFORM_MAC
+			|| (
+				PointerEvent.GetEffectingButton() == EKeys::LeftMouseButton &&
+				!DragDetector.DetectDragForWidget.IsValid()
+			)
+#endif
+		)
+	)
 	{
 		bool bFocusCandidateFound = false;
 		for( int32 WidgetIndex = WidgetsUnderPointer.Widgets.Num() - 1; !bFocusCandidateFound && WidgetIndex >= 0; --WidgetIndex )
@@ -5835,6 +5863,20 @@ EDropEffect::Type FSlateApplication::OnDragEnterText( const TSharedRef< FGeneric
 EDropEffect::Type FSlateApplication::OnDragEnterFiles( const TSharedRef< FGenericWindow >& Window, const TArray< FString >& Files )
 {
 	const TSharedPtr< FExternalDragOperation > DragDropOperation = FExternalDragOperation::NewFiles( Files );
+	const TSharedPtr< SWindow > EffectingWindow = FSlateWindowHelper::FindWindowByPlatformWindow( SlateWindows, Window );
+
+	EDropEffect::Type Result = EDropEffect::None;
+	if ( DragDropOperation.IsValid() && EffectingWindow.IsValid() )
+	{
+		Result = OnDragEnter( EffectingWindow.ToSharedRef(), DragDropOperation.ToSharedRef() );
+	}
+
+	return Result;
+}
+
+EDropEffect::Type FSlateApplication::OnDragEnterExternal( const TSharedRef< FGenericWindow >& Window, const FString& Text, const TArray< FString >& Files )
+{
+	const TSharedPtr< FExternalDragOperation > DragDropOperation = FExternalDragOperation::NewOperation( Text, Files );
 	const TSharedPtr< SWindow > EffectingWindow = FSlateWindowHelper::FindWindowByPlatformWindow( SlateWindows, Window );
 
 	EDropEffect::Type Result = EDropEffect::None;

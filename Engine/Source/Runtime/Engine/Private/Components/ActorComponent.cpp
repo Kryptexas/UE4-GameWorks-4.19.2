@@ -293,24 +293,23 @@ bool UActorComponent::IsOwnerSelected() const
 	return MyOwner && MyOwner->IsSelected();
 }
 
-UWorld* UActorComponent::GetWorld() const
+UWorld* UActorComponent::GetWorld_Uncached() const
 {
-	UWorld* ComponentWorld = WorldPrivate;
-	if (ComponentWorld == nullptr)
-	{
-		AActor* MyOwner = GetOwner();
-		// If we don't have a world yet, it may be because we haven't gotten registered yet, but we can try to look at our owner
-		if (MyOwner && !MyOwner->HasAnyFlags(RF_ClassDefaultObject))
-		{
-			ComponentWorld = MyOwner->GetWorld();
-		}
+	UWorld* ComponentWorld = nullptr;
 
-		if( ComponentWorld == nullptr )
-		{
-			// As a fallback check the outer of this component for a world. In some cases components are spawned directly in the world
-			ComponentWorld = Cast<UWorld>(GetOuter());
-		}
+	AActor* MyOwner = GetOwner();
+	// If we don't have a world yet, it may be because we haven't gotten registered yet, but we can try to look at our owner
+	if (MyOwner && !MyOwner->HasAnyFlags(RF_ClassDefaultObject))
+	{
+		ComponentWorld = MyOwner->GetWorld();
 	}
+
+	if( ComponentWorld == nullptr )
+	{
+		// As a fallback check the outer of this component for a world. In some cases components are spawned directly in the world
+		ComponentWorld = Cast<UWorld>(GetOuter());
+	}
+
 	return ComponentWorld;
 }
 
@@ -320,7 +319,7 @@ bool UActorComponent::ComponentHasTag(FName Tag) const
 }
 
 
-ENetMode UActorComponent::GetNetMode() const
+ENetMode UActorComponent::InternalGetNetMode() const
 {
 	AActor* MyOwner = GetOwner();
 	return MyOwner ? MyOwner->GetNetMode() : NM_Standalone;
@@ -549,9 +548,9 @@ void UActorComponent::PostEditUndo()
 			}
 		}
 
-		if (GetWorld())
+		if (UWorld* MyWorld = GetWorld())
 		{
-			GetWorld()->UpdateActorComponentEndOfFrameUpdateState(this);
+			MyWorld->UpdateActorComponentEndOfFrameUpdateState(this);
 		}
 	}
 	Super::PostEditUndo();
@@ -671,8 +670,8 @@ void UActorComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	check(bHasBegunPlay);
 
-	// If we're already pending kill blueprints don't get to be notified
-	if (!HasAnyFlags(RF_BeginDestroyed))
+	// If we're in the process of being garbage collected it is unsafe to call out to blueprints
+	if (!HasAnyFlags(RF_BeginDestroyed) && !IsUnreachable())
 	{
 		ReceiveEndPlay(EndPlayReason);
 	}
@@ -748,6 +747,16 @@ void UActorComponent::SetComponentTickEnabledAsync(bool bEnabled)
 bool UActorComponent::IsComponentTickEnabled() const
 {
 	return PrimaryComponentTick.IsTickFunctionEnabled();
+}
+
+void UActorComponent::SetComponentTickInterval(float TickInterval)
+{
+	PrimaryComponentTick.TickInterval = TickInterval;
+}
+
+float UActorComponent::GetComponentTickInterval() const
+{
+	return PrimaryComponentTick.TickInterval;
 }
 
 static UActorComponent* GTestRegisterComponentTickFunctions = NULL;
@@ -911,9 +920,10 @@ void UActorComponent::RegisterComponentWithWorld(UWorld* InWorld)
 void UActorComponent::RegisterComponent()
 {
 	AActor* MyOwner = GetOwner();
-	if (ensure(MyOwner && MyOwner->GetWorld()))
+	UWorld* MyOwnerWorld = (MyOwner ? MyOwner->GetWorld() : nullptr);
+	if (ensure(MyOwnerWorld))
 	{
-		RegisterComponentWithWorld(MyOwner->GetWorld());
+		RegisterComponentWithWorld(MyOwnerWorld);
 	}
 }
 
@@ -1259,7 +1269,7 @@ void UActorComponent::DoDeferredRenderUpdates_Concurrent()
 void UActorComponent::MarkRenderStateDirty()
 {
 	// If registered and has a render state to make as dirty
-	if((!bRenderStateDirty || !GetWorld()) && IsRegistered() && bRenderStateCreated)
+	if(IsRegistered() && bRenderStateCreated && (!bRenderStateDirty || !GetWorld()))
 	{
 		// Flag as dirty
 		bRenderStateDirty = true;
@@ -1504,11 +1514,6 @@ ENetRole UActorComponent::GetOwnerRole() const
 {
 	AActor* MyOwner = GetOwner();
 	return (MyOwner ? MyOwner->Role.GetValue() : ROLE_None);
-}
-
-bool UActorComponent::IsNetSimulating() const
-{
-	return GetIsReplicated() && GetOwnerRole() != ROLE_Authority;
 }
 
 void UActorComponent::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const

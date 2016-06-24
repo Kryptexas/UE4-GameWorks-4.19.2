@@ -592,13 +592,12 @@ UCameraModifier* APlayerCameraManager::FindCameraModifierByClass(TSubclassOf<UCa
 	return nullptr;
 }
 
-
 bool APlayerCameraManager::AddCameraModifierToList(UCameraModifier* NewModifier)
 {
 	if (NewModifier)
 	{
 		// Look through current modifier list and find slot for this priority
-		int32 BestIdx = 0;
+		int32 BestIdx = ModifierList.Num();
 		for (int32 ModifierIdx = 0; ModifierIdx < ModifierList.Num(); ModifierIdx++)
 		{
 			UCameraModifier* const M = ModifierList[ModifierIdx];
@@ -619,12 +618,12 @@ bool APlayerCameraManager::AddCameraModifierToList(UCameraModifier* NewModifier)
 						return false;
 					}
 
+					// Update best index
+					BestIdx = ModifierIdx;
+
 					break;
 				}
 			}
-
-			// Update best index
-			BestIdx = ModifierIdx;
 		}
 
 		// Insert self into best index
@@ -817,7 +816,7 @@ void APlayerCameraManager::UpdateCamera(float DeltaTime)
 	{
 		DoUpdateCamera(DeltaTime);
 
-		if (bShouldSendClientSideCameraUpdate && GetNetMode() == NM_Client)
+		if (bShouldSendClientSideCameraUpdate && IsNetMode(NM_Client))
 		{
 			SCOPE_CYCLE_COUNTER(STAT_ServerUpdateCamera);
 
@@ -1277,6 +1276,8 @@ bool FTViewTarget::Equal(const FTViewTarget& OtherTarget) const
 
 void FTViewTarget::CheckViewTarget(APlayerController* OwningController)
 {
+	check(OwningController);
+
 	if (Target == NULL)
 	{
 		Target = OwningController;
@@ -1340,7 +1341,6 @@ void FTViewTarget::CheckViewTarget(APlayerController* OwningController)
 
 	if ((Target == NULL) || Target->IsPendingKill())
 	{
-		check(OwningController);
 		if (OwningController->GetPawn() && !OwningController->GetPawn()->IsPendingKillPending() )
 		{
 			OwningController->PlayerCameraManager->AssignViewTarget(OwningController->GetPawn(), *this);

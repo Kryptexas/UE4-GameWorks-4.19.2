@@ -186,7 +186,7 @@ FMaterialPixelParameters GetMaterialPixelParameters(FVertexFactoryInterpolantsVS
 	#if GENERATE_SPHERICAL_PARTICLE_NORMALS && USE_PARTICLE_POSITION
 		{	
 			// can be optimized
-			float4 ScreenPosition = SvPositionToScreenPosition(SvPosition);
+			float4 ScreenPosition = SvPositionToResolvedScreenPosition(SvPosition);
 			float3 TranslatedWorldPosition = SvPositionToResolvedTranslatedWorld(SvPosition);
 			Result.TangentToWorld = GetSphericalParticleNormal(TranslatedWorldPosition + ResolvedView.WorldCameraOrigin, Interpolants.ParticlePositionAndSize.xyz, Interpolants.ParticlePositionAndSize.w);
 		}
@@ -529,7 +529,7 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 #if USE_PARTICLE_LIGHTING_OFFSET
 	// Hash function based on the particle ID to generate a uniformly distributed 3d offset
 	float3 RandomParticleOffset = frac(Square(Input.OldPosition.w + 10) * float3(1361.456345, 2333.578, 3623.983)) * 2 - 1;
-	Intermediates.LightingPositionOffset = .5f * Frame.TranslucencyLightingVolumeInvSize[0].w * RandomParticleOffset;
+	Intermediates.LightingPositionOffset = .5f * View.TranslucencyLightingVolumeInvSize[0].w * RandomParticleOffset;
 #endif
 
 #if USE_PARTICLE_SIZE

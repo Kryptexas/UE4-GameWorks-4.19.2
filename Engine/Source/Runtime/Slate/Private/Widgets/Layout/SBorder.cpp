@@ -159,6 +159,7 @@ void SBorder::SetBorderBackgroundColor(const TAttribute<FSlateColor>& InColorAnd
 void SBorder::SetDesiredSizeScale(const TAttribute<FVector2D>& InDesiredSizeScale)
 {
 	DesiredSizeScale = InDesiredSizeScale;
+	Invalidate(EInvalidateWidget::LayoutAndVolatility);
 }
 
 void SBorder::SetHAlign(EHorizontalAlignment HAlign)

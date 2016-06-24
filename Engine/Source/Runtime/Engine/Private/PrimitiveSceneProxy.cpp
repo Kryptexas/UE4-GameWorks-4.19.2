@@ -9,6 +9,13 @@
 #include "Components/BrushComponent.h"
 #include "PrimitiveSceneInfo.h"
 
+static TAutoConsoleVariable<int32> CVarForceSingleSampleShadowingFromStationary(
+	TEXT("r.Shadow.ForceSingleSampleShadowingFromStationary"),
+	0,
+	TEXT("Whether to force all components to act as if they have bSingleSampleShadowFromStationaryLights enabled.  Useful for scalability when dynamic shadows are disabled."),
+	ECVF_RenderThreadSafe | ECVF_Scalability
+	);
+
 FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponent, FName InResourceName)
 :	WireframeColor(FLinearColor::White)
 ,	LevelColor(FLinearColor::White)
@@ -66,7 +73,7 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 ,	bSelectable(InComponent->bSelectable)
 ,	bHasPerInstanceHitProxies(InComponent->bHasPerInstanceHitProxies)
 ,	bUseEditorCompositing(InComponent->bUseEditorCompositing)
-,	bReceiveCSMFromDynamicObjects(InComponent->bReceiveCSMFromDynamicObjects)
+,	bReceiveCombinedCSMAndStaticShadowsFromStationaryLights(InComponent->bReceiveCombinedCSMAndStaticShadowsFromStationaryLights)
 ,	bRenderCustomDepth(InComponent->bRenderCustomDepth)
 ,	CustomDepthStencilValue((uint8)InComponent->CustomDepthStencilValue) 
 ,	LightingChannelMask(GetLightingChannelMaskForStruct(InComponent->LightingChannels))
@@ -281,6 +288,11 @@ void FPrimitiveSceneProxy::ApplyLateUpdateTransform(const FMatrix& LateUpdateTra
 {
 	const FMatrix AdjustedLocalToWorld = LocalToWorld * LateUpdateTransform;
 	SetTransform(AdjustedLocalToWorld, Bounds, LocalBounds, ActorPosition);
+}
+
+bool FPrimitiveSceneProxy::UseSingleSampleShadowFromStationaryLights() const 
+{ 
+	return bSingleSampleShadowFromStationaryLights || CVarForceSingleSampleShadowingFromStationary.GetValueOnRenderThread() != 0; 
 }
 
 /**

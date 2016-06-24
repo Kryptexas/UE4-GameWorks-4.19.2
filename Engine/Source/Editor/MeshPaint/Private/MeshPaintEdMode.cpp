@@ -1109,7 +1109,10 @@ void FEdModeMeshPaint::DoPaint( const FVector& InCameraOrigin,
 			{
 				UMeshComponent* ComponentToPaint = CastChecked<UMeshComponent>(BestTraceResult.GetComponent());
 
-				PaintableComponents.AddUnique(ComponentToPaint);
+				if (ComponentToAdapterMap.Contains(ComponentToPaint))
+				{
+					PaintableComponents.AddUnique(ComponentToPaint);
+				}
 			}
 			else
 			{
@@ -1120,7 +1123,7 @@ void FEdModeMeshPaint::DoPaint( const FVector& InCameraOrigin,
 				{
 					const FBox ComponentBounds = TestComponent->Bounds.GetBox();
 					
-					if (ComponentBounds.Intersect(BrushBounds))
+					if (ComponentToAdapterMap.Contains(TestComponent) && ComponentBounds.Intersect(BrushBounds))
 					{
 						// OK, this mesh potentially overlaps the brush!
 						PaintableComponents.AddUnique(TestComponent);
@@ -1169,6 +1172,11 @@ void FEdModeMeshPaint::DoPaint( const FVector& InCameraOrigin,
 	for (UMeshComponent* MeshComponent : PaintableComponents)
 	{
 		IMeshPaintGeometryAdapter* MeshAdapter = ComponentToAdapterMap.FindRef(MeshComponent).Get();
+		if (!ensure(MeshAdapter))
+		{
+			continue;
+		}
+
 		MeshAdapter->SetCurrentUVChannelIndex(FMeshPaintSettings::Get().UVChannel);
 
 		// Brush properties
@@ -1364,6 +1372,12 @@ static bool PropagateColorsToRawMesh(UStaticMesh* StaticMesh, int32 LODIndex, FS
 	}
 	else
 	{
+		// If there's no raw mesh data, don't try to do any fixup here
+		if (SrcModel.RawMeshBulkData->IsEmpty())
+		{
+			return false;
+		}
+
 		// Fall back to mapping based on position.
 		FRawMesh RawMesh;
 		SrcModel.RawMeshBulkData->LoadRawMesh(RawMesh);
@@ -1591,6 +1605,10 @@ void FEdModeMeshPaint::PaintMeshVertices(
 					// Try using the mapping generated when building the mesh.
 					if(PropagateColorsToRawMesh(StaticMesh, PaintingMeshLODIndex, *InstanceMeshLODInfo))
 					{
+						for (int32 LODIndex = 1; LODIndex < StaticMesh->RenderData->LODResources.Num(); LODIndex++)
+						{
+							PropagateColorsToRawMesh(StaticMesh, LODIndex, *InstanceMeshLODInfo);
+						}
 						RemoveComponentInstanceVertexColors(StaticMeshComponent);
 						StaticMesh->Build();
 					}
@@ -3792,8 +3810,7 @@ bool FEdModeMeshPaint::RequiresInstanceVertexColorsFixup() const
 			for(const auto& StaticMeshComponent : StaticMeshComponents)
 			{
 				// If a static mesh component was found and it requires fixup, exit out and indicate as such
-				TArray<int32> LODsToFixup;
-				if( StaticMeshComponent && StaticMeshComponent->RequiresOverrideVertexColorsFixup( LODsToFixup ) )
+				if( StaticMeshComponent && StaticMeshComponent->RequiresOverrideVertexColorsFixup() )
 				{
 					bRequiresFixup = true;
 					break;
@@ -3957,14 +3974,14 @@ void FEdModeMeshPaint::PushInstanceVertexColorsToMesh()
 	const bool bMeshSelected = GetSelectedMeshInfo( NumBaseVertexColorBytes, NumInstanceVertexColorBytes, bHasInstanceMaterialAndTexture );
 	if ( bMeshSelected && NumInstanceVertexColorBytes > 0 )
 	{
-		FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("PushInstanceVertexColorsPrompt_Message", "Copying the instance vertex colors to the source mesh will replace any of the source mesh's pre-existing vertex colors and affect every instance of the source mesh." ),
+		FSuppressableWarningDialog::FSetupInfo SetupInfo( LOCTEXT("PushInstanceVertexColorsPrompt_Message", "Copying the instance vertex colors to the source mesh will replace any of the source mesh's pre-existing vertex colors and affect every instance of the source mesh." ),
 													 LOCTEXT("PushInstanceVertexColorsPrompt_Title", "Warning: Copying vertex data overwrites all instances" ), "Warning_PushInstanceVertexColorsPrompt" );
 
-		Info.ConfirmText = LOCTEXT("PushInstanceVertexColorsPrompt_ConfirmText", "Continue");
-		Info.CancelText = LOCTEXT("PushInstanceVertexColorsPrompt_CancelText", "Abort");
-		Info.CheckBoxText = LOCTEXT("PushInstanceVertexColorsPrompt_CheckBoxText","Always copy vertex colors without prompting");
+		SetupInfo.ConfirmText = LOCTEXT("PushInstanceVertexColorsPrompt_ConfirmText", "Continue");
+		SetupInfo.CancelText = LOCTEXT("PushInstanceVertexColorsPrompt_CancelText", "Abort");
+		SetupInfo.CheckBoxText = LOCTEXT("PushInstanceVertexColorsPrompt_CheckBoxText","Always copy vertex colors without prompting");
 
-		FSuppressableWarningDialog VertexColorCopyWarning( Info );
+		FSuppressableWarningDialog VertexColorCopyWarning( SetupInfo );
 
 		// Prompt the user to see if they really want to push the vert colors to the source mesh and to explain
 		// the ramifications of doing so. This uses a suppressible dialog so that the user has the choice to always ignore the warning.

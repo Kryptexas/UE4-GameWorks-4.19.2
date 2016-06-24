@@ -129,11 +129,12 @@ FText UK2Node_EaseFunction::GetTooltipText() const
 	return NodeTooltip;
 }
 
-FName UK2Node_EaseFunction::GetPaletteIcon(FLinearColor& OutColor) const
+FSlateIcon UK2Node_EaseFunction::GetIconAndTint(FLinearColor& OutColor) const
 {
 	// The function icon seams the best choice!
 	OutColor = GetNodeTitleColor();
-	return TEXT("Kismet.AllClasses.FunctionIcon");
+	static FSlateIcon Icon("EditorStyle", "Kismet.AllClasses.FunctionIcon");
+	return Icon;
 }
 
 void UK2Node_EaseFunction::SetPinToolTip(UEdGraphPin& MutatablePin, const FText& PinDescription) const

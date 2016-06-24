@@ -227,7 +227,7 @@ static void BaseRHISetGPUCaptureOptions(const TArray<FString>& Args, UWorld* Wor
 static FAutoConsoleCommandWithWorldAndArgs GBaseRHISetGPUCaptureOptions(
 	TEXT("r.RHISetGPUCaptureOptions"),
 	TEXT("Utility function to change multiple CVARs useful when profiling or debugging GPU rendering. Setting to 1 or 0 will guarantee all options are in the appropriate state.\n")
-	TEXT("ToggleRHIThread, r.rhicmdbypass 1, showmaterialdrawevents, toggledrawevents\n")
+	TEXT("r.rhithread.enable, r.rhicmdbypass, r.showmaterialdrawevents, toggledrawevents\n")
 	TEXT("Platform RHI's may implement more feature toggles."),
 	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(&BaseRHISetGPUCaptureOptions)
 	);

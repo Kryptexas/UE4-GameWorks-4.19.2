@@ -151,23 +151,6 @@ public:
 	 */
 	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) = 0;
 
-	/**
-	 * Returns true, if HMD allows fullscreen mode.
-	 */
-	virtual bool IsFullscreenAllowed() { return true; }
-
-	/**
-	 * Saves / loads pre-fullscreen rectangle. Could be used to store saved original window position
-	 * before switching to fullscreen mode.
-	 */
-	virtual void PushPreFullScreenRect(const FSlateRect& InPreFullScreenRect);
-	virtual void PopPreFullScreenRect(FSlateRect& OutPreFullScreenRect);
-
-	/**
-	 * A callback that is called when screen mode is changed (fullscreen <-> window).
-	 */
-	virtual void OnScreenModeChange(EWindowMode::Type WindowMode) = 0;
-
 	/** Returns true if positional tracking enabled and working. */
 	virtual bool IsPositionalTrackingEnabled() const = 0;
 
@@ -303,14 +286,21 @@ public:
 	virtual bool HandleInputKey(class UPlayerInput*, const struct FKey& Key, enum EInputEvent EventType, float AmountDepressed, bool bGamepad) { return false; }
 
 	/**
+	 * Passing touch events to HMD.
+	 * If returns 'false' then touch will be handled by PlayerController;
+	 * otherwise, touch won't be handled by the PlayerController.
+	 */
+	virtual bool HandleInputTouch(uint32 Handle, ETouchType::Type Type, const FVector2D& TouchLocation, FDateTime DeviceTimestamp, uint32 TouchpadIndex) { return false; }
+
+	/**
 	 * This method is called when playing begins. Useful to reset all runtime values stored in the plugin.
 	 */
-	virtual void OnBeginPlay() {}
+	virtual void OnBeginPlay(FWorldContext& InWorldContext) {}
 
 	/**
 	 * This method is called when playing ends. Useful to reset all runtime values stored in the plugin.
 	 */
-	virtual void OnEndPlay() {}
+	virtual void OnEndPlay(FWorldContext& InWorldContext) {}
 
 	/**
 	 * This method is called when new game frame begins (called on a game thread).
@@ -392,11 +382,11 @@ private:
 
 	void GatherLateUpdatePrimitives(USceneComponent* Component, TArray<LateUpdatePrimitiveInfo>& Primitives);
 
-	/** Stores the dimensions of the window before we moved into fullscreen mode, so they can be restored */
-	FSlateRect PreFullScreenRect;
-	
 	/** Primitives that need late update before rendering */
-	TArray<LateUpdatePrimitiveInfo> LateUpdatePrimitives;
+	TArray<LateUpdatePrimitiveInfo> LateUpdatePrimitives[2];
+
+	int32 LateUpdateGameWriteIndex;
+	int32 LateUpdateRenderReadIndex;
 
 	/** Parent world transform used to reconstruct new world transforms for late update scene proxies */
 	FTransform LateUpdateParentToWorld;

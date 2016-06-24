@@ -119,6 +119,8 @@ namespace AutomationTool
 		Unicode,
 		[Description("utf16")]
 		Utf16,
+		[Description("utf8")]
+		Utf8,
 	}
 
 	[Flags]

@@ -19,6 +19,7 @@
 #include "MacPlatformCrashContext.h"
 #include "PLCrashReporter.h"
 #include "GenericPlatformDriver.h"
+#include "HAL/ThreadHeartBeat.h"
 
 #include <dlfcn.h>
 #include <IOKit/IOKitLib.h>
@@ -385,12 +386,16 @@ void FMacPlatformMisc::PlatformPreInit()
 
 void FMacPlatformMisc::PlatformInit()
 {
+	UE_LOG(LogInit, Log, TEXT("OS X %s (%s)"), *GMacAppInfo.OSVersion, *GMacAppInfo.OSBuild);
+	UE_LOG(LogInit, Log, TEXT("Model: %s"), *GMacAppInfo.MachineModel);
+	UE_LOG(LogInit, Log, TEXT("CPU: %s"), UTF8_TO_TCHAR(GMacAppInfo.MachineCPUString));
+	
+	const FPlatformMemoryConstants& MemoryConstants = FPlatformMemory::GetConstants();
+	UE_LOG(LogInit, Log, TEXT("CPU Page size=%i, Cores=%i, HT=%i"), MemoryConstants.PageSize, FPlatformMisc::NumberOfCores(), FPlatformMisc::NumberOfCoresIncludingHyperthreads() );
+
 	// Identity.
 	UE_LOG(LogInit, Log, TEXT("Computer: %s"), FPlatformProcess::ComputerName() );
 	UE_LOG(LogInit, Log, TEXT("User: %s"), FPlatformProcess::UserName() );
-
-	const FPlatformMemoryConstants& MemoryConstants = FPlatformMemory::GetConstants();
-	UE_LOG(LogInit, Log, TEXT("CPU Page size=%i, Cores=%i"), MemoryConstants.PageSize, FPlatformMisc::NumberOfCores() );
 
 	// Timer resolution.
 	UE_LOG(LogInit, Log, TEXT("High frequency timer resolution =%f MHz"), 0.000001 / FPlatformTime::GetSecondsPerCycle() );
@@ -817,6 +822,8 @@ void FMacPlatformMisc::CreateGuid(FGuid& Result)
 
 EAppReturnType::Type FMacPlatformMisc::MessageBoxExt(EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption)
 {
+	FSlowHeartBeatScope SuspendHeartBeat;
+
 	SCOPED_AUTORELEASE_POOL;
 
 	EAppReturnType::Type ReturnValue = MainThreadReturn(^{
@@ -2263,7 +2270,8 @@ void FMacCrashContext::GenerateCrashInfoAndLaunchReporter() const
 		sigaction(SIGSEGV, &Action, NULL);
 		sigaction(SIGSYS, &Action, NULL);
 		sigaction(SIGABRT, &Action, NULL);
-	
+		sigaction(SIGTRAP, &Action, NULL);
+		
 		raise(Signal);
 	}
 	

@@ -11,6 +11,7 @@
 
 class FCompatibleRepLayout;
 class UPackageMapClient;
+class UNetConnection;
 
 class FRepChangedParent
 {
@@ -331,6 +332,22 @@ public:
 	// Serializes all replicated properties of a UObject in or out of an archive (depending on what type of archive it is)
 	ENGINE_API void SerializeObjectReplicatedProperties(UObject* Object, FArchive & Ar) const;
 
+	UObject* GetOwner() const { return Owner; }
+
+	void SendProperties_BackwardsCompatible(
+		FRepState* RESTRICT			RepState,
+		const uint8* RESTRICT		Data,
+		UNetConnection*				Connection,
+		FNetBitWriter&				Writer,
+		TArray< uint16 >&			Changed ) const;
+
+	bool ReceiveProperties_BackwardsCompatible(
+		UNetConnection* Connection,
+		FRepState* RESTRICT RepState,
+		void* RESTRICT Data, FNetBitReader & InBunch,
+		bool& bOutHasUnmapped,
+		const bool bEnableRepNotifies ) const;
+
 private:
 	void RebuildConditionalProperties( FRepState * RESTRICT	RepState, const FRepChangedPropertyTracker& ChangedTracker, const FReplicationFlags& RepFlags ) const;
 
@@ -415,15 +432,7 @@ private:
 		const uint8* RESTRICT		StoredData,
 		const uint8* RESTRICT		Data,
 		uint16						Handle ) const;
-		
-	void SendProperties_BackwardsCompatible(
-		FRepState *	RESTRICT		RepState,
-		const uint8* RESTRICT		Data,
-		UClass *					ObjectClass,
-		UActorChannel	*			OwningChannel,
-		FNetBitWriter&				Writer,
-		TArray< uint16 > &			Changed ) const;
-	
+
 	int32 FindCompatibleProperty( const int32 CmdStart, const int32 CmdEnd, const uint32 Checksum ) const;
 
 	bool ReceiveProperties_BackwardsCompatible_r(

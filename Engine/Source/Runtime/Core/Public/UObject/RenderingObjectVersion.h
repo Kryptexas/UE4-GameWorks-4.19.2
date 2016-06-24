@@ -15,6 +15,9 @@ struct CORE_API FRenderingObjectVersion
 		// Allows specifying resolution for reflecture capture probes
 		CustomReflectionCaptureResolutionSupport,
 
+		// Allows specifying resolution for reflecture capture probes
+		RemovedTextureStreamingLevelData,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

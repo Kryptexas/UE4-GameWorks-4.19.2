@@ -18,7 +18,7 @@ namespace UnrealBuildTool
 
 		// --------------------------------------------------
 		// --------------------------------------------------
-		static string SDKBase { get { return Path.GetFullPath(Path.Combine(BuildConfiguration.RelativeEnginePath, "Source", "ThirdParty", "HTML5", "emsdk")); } }
+		static string SDKBase { get { return Path.GetFullPath(Path.Combine(BuildConfiguration.RelativeEnginePath, "Extras", "ThirdPartyNotUE", "emsdk")); } }
 		static public string EMSCRIPTEN_ROOT { get { return Path.Combine(SDKBase, "emscripten", SDKVersion); } }
 		// --------------------------------------------------
 		// --------------------------------------------------

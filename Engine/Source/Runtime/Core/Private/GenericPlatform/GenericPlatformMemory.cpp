@@ -11,6 +11,8 @@
 DEFINE_STAT(MCR_Physical);
 DEFINE_STAT(MCR_GPU);
 DEFINE_STAT(MCR_TexturePool);
+DEFINE_STAT(MCR_StreamingPool);
+DEFINE_STAT(MCR_UsedStreamingPool);
 
 DEFINE_STAT(STAT_TotalPhysical);
 DEFINE_STAT(STAT_TotalVirtual);
@@ -88,6 +90,8 @@ void FGenericPlatformMemory::SetupMemoryPools()
 	SET_MEMORY_STAT(MCR_Physical, 0); // "unlimited" physical memory, we still need to make this call to set the short name, etc
 	SET_MEMORY_STAT(MCR_GPU, 0); // "unlimited" GPU memory, we still need to make this call to set the short name, etc
 	SET_MEMORY_STAT(MCR_TexturePool, 0); // "unlimited" Texture memory, we still need to make this call to set the short name, etc
+	SET_MEMORY_STAT(MCR_StreamingPool, 0);
+	SET_MEMORY_STAT(MCR_UsedStreamingPool, 0);
 
 	BackupOOMMemoryPool = FPlatformMemory::BinnedAllocFromOS(BackupOOMMemoryPoolSize);
 }
@@ -240,6 +244,8 @@ void FGenericPlatformMemory::MemswapGreaterThan8( void* RESTRICT Ptr1, void* RES
 
 	PtrUnion Union1 = { Ptr1 };
 	PtrUnion Union2 = { Ptr2 };
+
+	checkf(Union1.PtrVoid && Union2.PtrVoid, TEXT("Pointers must be non-null: %p, %p"), Union1.PtrVoid, Union2.PtrVoid);
 
 	// We may skip up to 7 bytes below, so better make sure that we're swapping more than that
 	// (8 is a common case that we also want to inline before we this call, so skip that too)

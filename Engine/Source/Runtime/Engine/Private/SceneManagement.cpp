@@ -154,22 +154,22 @@ void FSimpleElementCollector::RegisterDynamicResource(FDynamicPrimitiveResource*
 	DynamicResource->InitPrimitiveResource();
 }
 
-void FSimpleElementCollector::DrawBatchedElements(FRHICommandList& RHICmdList, const FSceneView& View, FTexture2DRHIRef DepthTexture, EBlendModeFilter::Type Filter) const
+void FSimpleElementCollector::DrawBatchedElements(FRHICommandList& RHICmdList, const FSceneView& InView, FTexture2DRHIRef DepthTexture, EBlendModeFilter::Type Filter) const
 {
 	// Mobile HDR does not execute post process, so does not need to render flipped
-	const bool bNeedToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(View.GetShaderPlatform()) && !bIsMobileHDR;
+	const bool bNeedToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(InView.GetShaderPlatform()) && !bIsMobileHDR;
 
 	// Draw the batched elements.
 	BatchedElements.Draw(
 		RHICmdList,
-		View.GetFeatureLevel(),
+		InView.GetFeatureLevel(),
 		bNeedToSwitchVerticalAxis,
-		View.ViewProjectionMatrix,
-		View.ViewRect.Width(),
-		View.ViewRect.Height(),
-		View.Family->EngineShowFlags.HitProxies,
+		InView.ViewProjectionMatrix,
+		InView.ViewRect.Width(),
+		InView.ViewRect.Height(),
+		InView.Family->EngineShowFlags.HitProxies,
 		1.0f,
-		&View,
+		&InView,
 		DepthTexture,
 		Filter
 		);
@@ -306,8 +306,8 @@ FLightMapInteraction FLightMapInteraction::Texture(
 
 float ComputeBoundsScreenSize( const FVector4& Origin, const float SphereRadius, const FSceneView& View )
 {
-	// Only need one component from a view transformation; just calculate the one we're interested in.
-	const float Divisor =  Dot3(Origin - View.ViewMatrices.ViewOrigin, View.ViewMatrices.ViewMatrix.GetColumn(2));
+	// Only need one component from a view transformation; just calculate the one we're interested in. Ignore view direction when rendering in stereo
+	const float Divisor = (View.StereoPass == eSSP_FULL) ? Dot3(Origin - View.ViewMatrices.ViewOrigin, View.ViewMatrices.ViewMatrix.GetColumn(2)) : FVector::Dist(Origin, View.ViewMatrices.ViewOrigin);
 
 	// Get projection multiple accounting for view scaling.
 	const float ScreenMultiple = FMath::Max(View.ViewRect.Width() / 2.0f * View.ViewMatrices.ProjMatrix.M[0][0],
@@ -352,16 +352,19 @@ int8 ComputeTemporalStaticMeshLOD( const FStaticMeshRenderData* RenderData, cons
 
 int8 ComputeStaticMeshLOD( const FStaticMeshRenderData* RenderData, const FVector4& Origin, const float SphereRadius, const FSceneView& View, int32 MinLOD, float FactorScale )
 {
-	const int32 NumLODs = MAX_STATIC_MESH_LODS;
-
-	const float ScreenSize = ComputeBoundsScreenSize(Origin, SphereRadius, View) * FactorScale;
-
-	// Walk backwards and return the first matching LOD
-	for(int32 LODIndex = NumLODs - 1 ; LODIndex >= 0 ; --LODIndex)
+	if (RenderData)
 	{
-		if(RenderData->ScreenSize[LODIndex] > ScreenSize)
+		const int32 NumLODs = MAX_STATIC_MESH_LODS;
+
+		const float ScreenSize = ComputeBoundsScreenSize(Origin, SphereRadius, View) * FactorScale;
+
+		// Walk backwards and return the first matching LOD
+		for (int32 LODIndex = NumLODs - 1; LODIndex >= 0; --LODIndex)
 		{
-			return FMath::Max(LODIndex, MinLOD);
+			if (RenderData->ScreenSize[LODIndex] > ScreenSize)
+			{
+				return FMath::Max(LODIndex, MinLOD);
+			}
 		}
 	}
 
@@ -449,9 +452,11 @@ FLODMask ComputeLODForMeshes( const TIndirectArray<class FStaticMesh>& StaticMes
 	return LODToRender;
 }
 
-FFrameUniformShaderParameters::FFrameUniformShaderParameters()
+
+FViewUniformShaderParameters::FViewUniformShaderParameters()
 {
 	FMemory::Memzero(*this);
+
 	FTextureRHIParamRef BlackVolume = (GBlackVolumeTexture &&  GBlackVolumeTexture->TextureRHI) ? GBlackVolumeTexture->TextureRHI : GBlackTexture->TextureRHI; // for es2, this might need to be 2d
 	check(GBlackVolumeTexture);
 	DirectionalLightShadowTexture = GWhiteTexture->TextureRHI;
@@ -480,16 +485,10 @@ FFrameUniformShaderParameters::FFrameUniformShaderParameters()
 	GlobalDistanceFieldSampler3_UB = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
 }
 
-FViewUniformShaderParameters::FViewUniformShaderParameters()
-{
-	FMemory::Memzero(*this);
-}
-
 FInstancedViewUniformShaderParameters::FInstancedViewUniformShaderParameters()
 {
 	FMemory::Memzero(*this);
 }
-
 
 void FSharedSamplerState::InitRHI()
 {

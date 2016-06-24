@@ -50,6 +50,25 @@ void UMovieSceneFloatSection::GetKeyHandles(TSet<FKeyHandle>& OutKeyHandles, TRa
 }
 
 
+TOptional<float> UMovieSceneFloatSection::GetKeyTime( FKeyHandle KeyHandle ) const
+{
+	if ( FloatCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		return TOptional<float>( FloatCurve.GetKeyTime( KeyHandle ) );
+	}
+	return TOptional<float>();
+}
+
+
+void UMovieSceneFloatSection::SetKeyTime( FKeyHandle KeyHandle, float Time )
+{
+	if ( FloatCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		FloatCurve.SetKeyTime( KeyHandle, Time );
+	}
+}
+
+
 void UMovieSceneFloatSection::AddKey( float Time, const float& Value, EMovieSceneKeyInterpolation KeyInterpolation )
 {
 	AddKeyToCurve( FloatCurve, Time, Value, KeyInterpolation );

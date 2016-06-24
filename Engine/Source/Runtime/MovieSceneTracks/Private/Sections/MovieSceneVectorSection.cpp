@@ -105,6 +105,32 @@ TSharedPtr<FStructOnScope> UMovieSceneVectorSection::GetKeyStruct(const TArray<F
 }
 
 
+TOptional<float> UMovieSceneVectorSection::GetKeyTime( FKeyHandle KeyHandle ) const
+{
+	for ( auto Curve : Curves )
+	{
+		if ( Curve.IsKeyHandleValid( KeyHandle ) )
+		{
+			return TOptional<float>( Curve.GetKeyTime( KeyHandle ) );
+		}
+	}
+	return TOptional<float>();
+}
+
+
+void UMovieSceneVectorSection::SetKeyTime( FKeyHandle KeyHandle, float Time )
+{
+	for ( auto Curve : Curves )
+	{
+		if ( Curve.IsKeyHandleValid( KeyHandle ) )
+		{
+			Curve.SetKeyTime( KeyHandle, Time );
+			break;
+		}
+	}
+}
+
+
 /* IKeyframeSection interface
  *****************************************************************************/
 

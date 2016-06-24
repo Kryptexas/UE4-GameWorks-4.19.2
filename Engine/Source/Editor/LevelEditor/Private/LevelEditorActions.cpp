@@ -61,9 +61,11 @@
 #include "Engine/StaticMesh.h"
 #include "Engine/Light.h"
 #include "Animation/SkeletalMeshActor.h"
+#include "Animation/AnimSequence.h"
 #include "Editor/KismetWidgets/Public/CreateBlueprintFromActorDialog.h"
 #include "EditorProjectSettings.h"
 #include "HierarchicalLODUtilities.h"
+#include "HierarchicalLODUtilitiesModule.h"
 #include "Engine/LODActor.h"
 #include "AsyncResult.h"
 #include "IPortalApplicationWindow.h"
@@ -113,6 +115,18 @@ namespace LevelEditorActionsHelpers
 
 		return Blueprint;
 	}
+
+	/** Check to see whether this world is a persistent world with a valid file on disk */
+	bool IsPersistentWorld(UWorld* InWorld)
+	{
+		UPackage* Pkg = InWorld ? InWorld->GetOutermost() : nullptr;
+		if (Pkg && FPackageName::IsValidLongPackageName(Pkg->GetName()))
+		{
+			FString FileName;
+			return FPackageName::DoesPackageExist(Pkg->GetName(), nullptr, &FileName);
+		}
+		return false;
+	}
 }
 
 bool FLevelEditorActionCallbacks::DefaultCanExecuteAction()
@@ -128,6 +142,11 @@ void FLevelEditorActionCallbacks::BrowseDocumentation()
 void FLevelEditorActionCallbacks::BrowseAPIReference()
 {
 	IDocumentation::Get()->OpenAPIHome();
+}
+
+void FLevelEditorActionCallbacks::BrowseCVars()
+{
+	GEditor->Exec(GetWorld(), TEXT("help"));
 }
 
 void FLevelEditorActionCallbacks::BrowseViewportControls()
@@ -227,15 +246,19 @@ void FLevelEditorActionCallbacks::OpenRecentFile( int32 RecentFileIndex )
 	FMainMRUFavoritesList* RecentsAndFavorites = MainFrameModule.GetMRUFavoritesList();
 
 	// Save the name of the file we are attempting to load as VerifyFile/AskSaveChanges might rearrange the MRU list on us
-	const FString NewFilename = RecentsAndFavorites->GetMRUItem( RecentFileIndex );
+	const FString NewPackageName = RecentsAndFavorites->GetMRUItem( RecentFileIndex );
 	
 	if( RecentsAndFavorites->VerifyMRUFile( RecentFileIndex ) )
 	{
 		// Prompt the user to save any outstanding changes.
 		if( FEditorFileUtils::SaveDirtyPackages(true, true, false) )
 		{
-			// Load the requested level.
-			FEditorFileUtils::LoadMap( NewFilename );
+			FString NewFilename;
+			if (FPackageName::TryConvertLongPackageNameToFilename(NewPackageName, NewFilename, FPackageName::GetMapPackageExtension()))
+			{
+				// Load the requested level.
+				FEditorFileUtils::LoadMap(NewFilename);
+			}
 		}
 		else
 		{
@@ -250,18 +273,22 @@ void FLevelEditorActionCallbacks::OpenFavoriteFile( int32 FavoriteFileIndex )
 	IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>( "MainFrame" );
 	FMainMRUFavoritesList* MRUFavoritesList = MainFrameModule.GetMRUFavoritesList();
 
-	const FString FileName = MRUFavoritesList->GetFavoritesItem( FavoriteFileIndex );
+	const FString PackageName = MRUFavoritesList->GetFavoritesItem( FavoriteFileIndex );
 
 	if( MRUFavoritesList->VerifyFavoritesFile( FavoriteFileIndex ) )
 	{
 		// Prompt the user to save any outstanding changes
 		if( FEditorFileUtils::SaveDirtyPackages(true, true, false) )
 		{
-			// Load the requested level.
-			FEditorFileUtils::LoadMap( FileName );
+			FString FileName;
+			if (FPackageName::TryConvertLongPackageNameToFilename(PackageName, FileName, FPackageName::GetMapPackageExtension()))
+			{
+				// Load the requested level.
+				FEditorFileUtils::LoadMap(FileName);
+			}
 
 			// Move the item to the head of the list
-			MRUFavoritesList->MoveFavoritesItemToHead( FileName );
+			MRUFavoritesList->MoveFavoritesItemToHead(PackageName);
 		}
 		else
 		{
@@ -277,21 +304,19 @@ void FLevelEditorActionCallbacks::ToggleFavorite()
 	FMainMRUFavoritesList* MRUFavoritesList = MainFrameModule.GetMRUFavoritesList();
 	check( MRUFavoritesList );
 
-	FString MapFileName;
-	const bool bMapFileExists = FPackageName::DoesPackageExist(GetWorld()->GetOutermost()->GetName(), NULL, &MapFileName);
-
-	// If the user clicked the toggle favorites button, the map file should exist, but double check to be safe.
-	if ( bMapFileExists )
+	if (LevelEditorActionsHelpers::IsPersistentWorld(GetWorld()))
 	{
+		const FString PackageName = GetWorld()->GetOutermost()->GetName();
+
 		// If the map was already favorited, remove it from the favorites
-		if ( MRUFavoritesList->ContainsFavoritesItem( MapFileName ) )
+		if ( MRUFavoritesList->ContainsFavoritesItem(PackageName) )
 		{
-			MRUFavoritesList->RemoveFavoritesItem( MapFileName );
+			MRUFavoritesList->RemoveFavoritesItem(PackageName);
 		}
 		// If the map was not already favorited, add it to the favorites
 		else
 		{
-			MRUFavoritesList->AddFavoritesItem( MapFileName );
+			MRUFavoritesList->AddFavoritesItem(PackageName);
 		}
 	}
 }
@@ -302,13 +327,13 @@ void FLevelEditorActionCallbacks::RemoveFavorite( int32 FavoriteFileIndex )
 	IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>( "MainFrame" );
 	FMainMRUFavoritesList* MRUFavoritesList = MainFrameModule.GetMRUFavoritesList();
 
-	const FString FileName = MRUFavoritesList->GetFavoritesItem( FavoriteFileIndex );
+	const FString PackageName = MRUFavoritesList->GetFavoritesItem( FavoriteFileIndex );
 
 	if( MRUFavoritesList->VerifyFavoritesFile( FavoriteFileIndex ) )
 	{
-		if ( MRUFavoritesList->ContainsFavoritesItem( FileName ) )
+		if ( MRUFavoritesList->ContainsFavoritesItem(PackageName) )
 		{
-			MRUFavoritesList->RemoveFavoritesItem( FileName );
+			MRUFavoritesList->RemoveFavoritesItem(PackageName);
 		}
 	}
 }
@@ -316,16 +341,8 @@ void FLevelEditorActionCallbacks::RemoveFavorite( int32 FavoriteFileIndex )
 
 bool FLevelEditorActionCallbacks::ToggleFavorite_CanExecute()
 {
-	if( GetWorld() && GetWorld()->GetOutermost() )
-	{
-		FString FileName;
-		const bool bMapFileExists = FPackageName::DoesPackageExist(GetWorld()->GetOutermost()->GetName(), NULL, &FileName);
-
-		// Disable the favorites button if the map isn't associated to a file yet (new map, never before saved, etc.)
-		return bMapFileExists;
-	}
-
-	return false;
+	// Disable the favorites button if the map isn't associated to a file yet (new map, never before saved, etc.)
+	return LevelEditorActionsHelpers::IsPersistentWorld(GetWorld());
 }
 
 
@@ -333,18 +350,12 @@ bool FLevelEditorActionCallbacks::ToggleFavorite_IsChecked()
 {
 	bool bIsChecked = false;
 
-	FString FileName;
-	const bool bMapFileExists = FPackageName::DoesPackageExist(GetWorld()->GetOutermost()->GetName(), NULL, &FileName);
-	
-	// If the map exists, determine its state based on whether the map is already favorited or not
-	if ( bMapFileExists )
+	if (LevelEditorActionsHelpers::IsPersistentWorld(GetWorld()))
 	{
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>( "MainFrame" );
+		const FString PackageName = GetWorld()->GetOutermost()->GetName();
 
-		const FString CleanedName = FPaths::ConvertRelativePathToFull(FileName);
-		const bool bCleanAlreadyFavorited = MainFrameModule.GetMRUFavoritesList()->ContainsFavoritesItem( CleanedName );
-		const bool bAlreadyFavorited = bCleanAlreadyFavorited || MainFrameModule.GetMRUFavoritesList()->ContainsFavoritesItem( FileName );
-		bIsChecked = bAlreadyFavorited;
+		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>( "MainFrame" );
+		bIsChecked = MainFrameModule.GetMRUFavoritesList()->ContainsFavoritesItem(PackageName);
 	}
 
 	return bIsChecked;
@@ -375,16 +386,9 @@ void FLevelEditorActionCallbacks::SaveAllLevels()
 }
 
 
-void FLevelEditorActionCallbacks::Import_Clicked()
-{
-	const bool bImportScene = false;
-	FEditorFileUtils::Import(bImportScene);
-}
-
 void FLevelEditorActionCallbacks::ImportScene_Clicked()
 {
-	const bool bImportScene = true;
-	FEditorFileUtils::Import(bImportScene);
+	FEditorFileUtils::Import();
 }
 
 
@@ -1625,7 +1629,11 @@ void FLevelEditorActionCallbacks::OnSelectOwningHLODCluster()
 	if (GEditor->GetSelectedActorCount() > 0)
 	{
 		AActor* Actor = Cast<AActor>(GEditor->GetSelectedActors()->GetSelectedObject(0));
-		ALODActor* ParentActor = FHierarchicalLODUtilities::GetParentLODActor(Actor);
+
+		FHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<FHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");
+		IHierarchicalLODUtilities* Utilities = Module.GetUtilities();
+
+		ALODActor* ParentActor = Utilities->GetParentLODActor(Actor);
 		if (Actor && ParentActor)
 		{
 			GEditor->SelectNone(false, true);
@@ -2867,6 +2875,7 @@ void FLevelEditorCommands::RegisterCommands()
 {
 	UI_COMMAND( BrowseDocumentation, "Documentation...", "Opens the main documentation page, and allows you to search across all UE4 support sites.", EUserInterfaceActionType::Button, FInputChord( EKeys::F1 ) );
 	UI_COMMAND( BrowseAPIReference, "API Reference...", "Opens the API reference documentation", EUserInterfaceActionType::Button, FInputChord() );
+	UI_COMMAND( BrowseCVars, "Console Variables", "Creates an HTML file to browse the console variables and commands (console command 'help')", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( BrowseViewportControls, "Viewport Controls...", "Opens the viewport controls cheat sheet", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( NewLevel, "New Level...", "Create a new level, or choose a level template to start from.", EUserInterfaceActionType::Button, FInputChord( EModifierKey::Control, EKeys::N ) );
 	UI_COMMAND( OpenLevel, "Open Level...", "Loads an existing level", EUserInterfaceActionType::Button, FInputChord( EModifierKey::Control, EKeys::O ) );
@@ -2890,8 +2899,7 @@ void FLevelEditorCommands::RegisterCommands()
 		OpenRecentFileCommands.Add( OpenRecentFile );
 	}
 
-	UI_COMMAND( Import, "Import...", "Imports objects and actors from a T3D format into the current level", EUserInterfaceActionType::Button, FInputChord() );
-	UI_COMMAND( ImportScene, "Import Scene...", "Imports an entire scene from a FBX format into the current level", EUserInterfaceActionType::Button, FInputChord());
+	UI_COMMAND( ImportScene, "Import Into Level...", "Imports a scene from a FBX or T3D format into the current level", EUserInterfaceActionType::Button, FInputChord());
 	UI_COMMAND( ExportAll, "Export All...", "Exports the entire level to a file on disk (multiple formats are supported.)", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( ExportSelected, "Export Selected...", "Exports currently-selected objects to a file on disk (multiple formats are supported.)", EUserInterfaceActionType::Button, FInputChord() );
 
@@ -3085,7 +3093,7 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( WorldProperties, "World Settings", "Displays the world settings", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( OpenContentBrowser, "Open Content Browser", "Opens the Content Browser", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Control|EModifierKey::Shift, EKeys::F) );
 	UI_COMMAND( OpenMarketplace, "Open Marketplace", "Opens the Marketplace", EUserInterfaceActionType::Button, FInputChord() );
-	UI_COMMAND( AddMatinee, "Add Matinee", "Creates a new matinee actor to edit", EUserInterfaceActionType::Button, FInputChord() );
+	UI_COMMAND( AddMatinee, "Add Matinee [Legacy]", "Creates a new matinee actor to edit", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( EditMatinee, "Edit Matinee", "Selects a Matinee to edit", EUserInterfaceActionType::Button, FInputChord() );
 
 	UI_COMMAND( ToggleVR, "Toggle VR", "Toggles VR (Virtual Reality) mode", EUserInterfaceActionType::ToggleButton, FInputChord( EModifierKey::Alt, EKeys::Tilde ) );

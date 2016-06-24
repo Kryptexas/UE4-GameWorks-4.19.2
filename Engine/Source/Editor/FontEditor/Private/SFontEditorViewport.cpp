@@ -751,11 +751,11 @@ const FColor& SFontEditorViewport::GetPreviewBackgroundColor() const
 	return FColor::Black;
 }
 
-void SFontEditorViewport::SetPreviewForegroundColor(const FColor& ForegroundColor)
+void SFontEditorViewport::SetPreviewForegroundColor(const FColor& InForegroundColor)
 {
 	if (ViewportClient.IsValid())
 	{
-		ViewportClient->SetForegroundColor(ForegroundColor);
+		ViewportClient->SetForegroundColor(InForegroundColor);
 
 		RefreshViewport();
 	}

@@ -129,7 +129,6 @@ public:
  
 	// Functions.
 	ENGINE_API FInBunch( UNetConnection* InConnection, uint8* Src=NULL, int64 CountBits=0 );
-	ENGINE_API FInBunch( UPackageMap* InPackageMap, uint8* Src=NULL, int64 CountBits=0 );
 	ENGINE_API FInBunch( FInBunch &InBunch, bool CopyBuffer );
 };
 

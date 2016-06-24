@@ -101,13 +101,13 @@ FReply SSequencerTreeViewRow::OnDragDetected( const FGeometry& InGeometry, const
 	return FReply::Unhandled();
 }
 
-TOptional<EItemDropZone> SSequencerTreeViewRow::OnCanAcceptDrop( const FDragDropEvent& DragDropEvent, EItemDropZone ItemDropZone, FDisplayNodeRef DisplayNode )
+TOptional<EItemDropZone> SSequencerTreeViewRow::OnCanAcceptDrop( const FDragDropEvent& DragDropEvent, EItemDropZone InItemDropZone, FDisplayNodeRef DisplayNode )
 {
 	TSharedPtr<FSequencerDisplayNodeDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FSequencerDisplayNodeDragDropOp>();
 	if ( DragDropOp.IsValid() )
 	{
 		DragDropOp->ResetToDefaultToolTip();
-		TOptional<EItemDropZone> AllowedDropZone = DisplayNode->CanDrop( *DragDropOp, ItemDropZone );
+		TOptional<EItemDropZone> AllowedDropZone = DisplayNode->CanDrop( *DragDropOp, InItemDropZone );
 		if ( AllowedDropZone.IsSet() == false )
 		{
 			DragDropOp->CurrentIconBrush = FEditorStyle::GetBrush( TEXT( "Graph.ConnectorFeedback.Error" ) );
@@ -117,12 +117,12 @@ TOptional<EItemDropZone> SSequencerTreeViewRow::OnCanAcceptDrop( const FDragDrop
 	return TOptional<EItemDropZone>();
 }
 
-FReply SSequencerTreeViewRow::OnAcceptDrop( const FDragDropEvent& DragDropEvent, EItemDropZone ItemDropZone, FDisplayNodeRef DisplayNode )
+FReply SSequencerTreeViewRow::OnAcceptDrop( const FDragDropEvent& DragDropEvent, EItemDropZone InItemDropZone, FDisplayNodeRef DisplayNode )
 {
 	TSharedPtr<FSequencerDisplayNodeDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FSequencerDisplayNodeDragDropOp>();
 	if ( DragDropOp.IsValid())
 	{
-		DisplayNode->Drop( DragDropOp->GetDraggedNodes(), ItemDropZone );
+		DisplayNode->Drop( DragDropOp->GetDraggedNodes(), InItemDropZone );
 		return FReply::Handled();
 	}
 	return FReply::Unhandled();

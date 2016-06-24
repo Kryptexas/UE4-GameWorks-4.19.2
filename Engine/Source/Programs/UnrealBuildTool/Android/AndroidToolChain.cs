@@ -171,19 +171,23 @@ namespace UnrealBuildTool
 			ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.Android, "Engine", DirectoryReference.FromFile(ProjectFile));
 			Arches = new List<string>();
 			bool bBuild = true;
-			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForArmV7", out bBuild) && bBuild)
+			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForArmV7", out bBuild) && bBuild
+				|| UEBuildConfiguration.Architectures.Contains("armv7", StringComparer.OrdinalIgnoreCase))
 			{
 				Arches.Add("-armv7");
 			}
-			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForArm64", out bBuild) && bBuild)
+			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForArm64", out bBuild) && bBuild
+				|| UEBuildConfiguration.Architectures.Contains("arm64", StringComparer.OrdinalIgnoreCase))
 			{
 				Arches.Add("-arm64");
 			}
-			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForx86", out bBuild) && bBuild)
+			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForx86", out bBuild) && bBuild
+				|| UEBuildConfiguration.Architectures.Contains("x86", StringComparer.OrdinalIgnoreCase))
 			{
 				Arches.Add("-x86");
 			}
-			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForx8664", out bBuild) && bBuild)
+			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForx8664", out bBuild) && bBuild
+				|| UEBuildConfiguration.Architectures.Contains("x64", StringComparer.OrdinalIgnoreCase))
 			{
 				Arches.Add("-x64");
 			}
@@ -196,15 +200,18 @@ namespace UnrealBuildTool
 
 			// Parse selected GPU architectures
 			GPUArchitectures = new List<string>();
-			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForES2", out bBuild) && bBuild)
+			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForES2", out bBuild) && bBuild
+				|| UEBuildConfiguration.GPUArchitectures.Contains("es2", StringComparer.OrdinalIgnoreCase))
 			{
 				GPUArchitectures.Add("-es2");
 			}
-			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForES31", out bBuild) && bBuild)
+			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForES31", out bBuild) && bBuild
+				|| UEBuildConfiguration.GPUArchitectures.Contains("es31", StringComparer.OrdinalIgnoreCase))
 			{
 				GPUArchitectures.Add("-es31");
 			}
-			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForGL4", out bBuild) && bBuild)
+			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForGL4", out bBuild) && bBuild
+				|| UEBuildConfiguration.GPUArchitectures.Contains("gl4", StringComparer.OrdinalIgnoreCase))
 			{
 				GPUArchitectures.Add("-gl4");
 			}
@@ -399,7 +406,7 @@ namespace UnrealBuildTool
 			// debug info
 			if (CompileEnvironment.Config.bCreateDebugInfo)
 			{
-				Result += " -g2 -gdwarf-2";
+				Result += " -g2 -gdwarf-4";
 			}
 
 			// optimization level
@@ -1103,9 +1110,34 @@ namespace UnrealBuildTool
 		{
 			List<FileItem> Outputs = new List<FileItem>();
 
+			var NDKRoot = Environment.GetEnvironmentVariable("NDKROOT").Replace("\\", "/");
+			int NDKApiLevelInt = GetNdkApiLevelInt();
+			string OptionalLinkArguments;
+
 			for (int ArchIndex = 0; ArchIndex < Arches.Count; ArchIndex++)
 			{
 				string Arch = Arches[ArchIndex];
+
+				// 32-bit ABI may need fixup for removed bsd_signal in NDK11 for android-21+
+				OptionalLinkArguments = "";
+				if (NDKApiLevelInt >= 21)
+				{
+					// this file was added in NDK11 so use existence to detect (RELEASE.TXT no longer present)
+					if (File.Exists(Path.Combine(NDKRoot, "source.properties")))
+					{
+						switch (Arch)
+						{
+							case "-armv7":
+								OptionalLinkArguments = string.Format(" \"{0}\"", Path.Combine(UnrealBuildTool.EngineDirectory.FullName, "Build/Android/Prebuilt/bsdsignal/lib/armeabi-v7a/libbsdsignal.a"));
+								break;
+
+							case "-x86":
+								OptionalLinkArguments = string.Format(" \"{0}\"", Path.Combine(UnrealBuildTool.EngineDirectory.FullName, "Build/Android/Prebuilt/bsdsignal/lib/x86/libbsdsignal.a"));
+								break;
+						}
+					}
+				}
+
 				for (int GPUArchIndex = 0; GPUArchIndex < GPUArchitectures.Count; GPUArchIndex++)
 				{
 					string GPUArchitecture = GPUArchitectures[GPUArchIndex];
@@ -1221,6 +1253,7 @@ namespace UnrealBuildTool
 								}
 							}
 						}
+						LinkAction.CommandArguments += OptionalLinkArguments;
 						LinkAction.CommandArguments += string.Format(" -Wl,--end-group");
 					}
 
@@ -1270,6 +1303,21 @@ namespace UnrealBuildTool
 			if (SourceFileName.Contains("-armv7"))
 			{
 				StartInfo.FileName = ArPathArm.Replace("-ar.exe", "-strip.exe");
+			}
+			else
+			if (SourceFileName.Contains("-arm64"))
+            {
+				StartInfo.FileName = ArPathArm64.Replace("-ar.exe", "-strip.exe");
+			}
+			else
+			if (SourceFileName.Contains("-x86"))
+            {
+				StartInfo.FileName = ArPathx86.Replace("-ar.exe", "-strip.exe");
+			}
+			else
+			if (SourceFileName.Contains("-x64"))
+            {
+				StartInfo.FileName = ArPathx64.Replace("-ar.exe", "-strip.exe");
 			}
 			else
 			{

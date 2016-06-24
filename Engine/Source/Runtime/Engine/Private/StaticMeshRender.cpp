@@ -99,10 +99,13 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 #if WITH_EDITORONLY_DATA
 	, StreamingSectionData(InComponent->StreamingSectionData)
 	, StreamingDistanceMultiplier(InComponent->StreamingDistanceMultiplier)
-	, StreamingTexelFactor(0)
+	, StreamingTexelFactor(1.f)
 	, SectionIndexPreview(InComponent->SectionIndexPreview)
 #endif
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	, LightMapResolution(InComponent->GetStaticLightMapResolution())
+#endif
+#if !(UE_BUILD_SHIPPING)
 	, LODForCollision(InComponent->StaticMesh->LODForCollision)
 	, bDrawMeshCollisionWireframe(InComponent->bDrawMeshCollisionWireframe)
 #endif
@@ -313,7 +316,8 @@ bool FStaticMeshSceneProxy::GetMeshElement(
 	const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation( Material, OutMeshBatch.VertexFactory->GetType(), GetScene().GetFeatureLevel() );
 	
 	// Two sided material use bIsFrontFace which is wrong with Reversed Indices. AdjacencyInformation use another index buffer.
-	const bool bUseReversedIndices = GUseReversedIndexBuffer && IsLocalToWorldDeterminantNegative() && LOD.bHasReversedIndices && !bWireframe && !bRequiresAdjacencyInformation && !Material->IsTwoSided();
+	CA_SUPPRESS(6239);
+	const bool bUseReversedIndices = !bWireframe && GUseReversedIndexBuffer && IsLocalToWorldDeterminantNegative() && LOD.bHasReversedIndices && !bRequiresAdjacencyInformation && !Material->IsTwoSided();
 
 	SetIndexSource(LODIndex, SectionIndex, OutMeshBatch, bWireframe, bRequiresAdjacencyInformation, bUseReversedIndices, bAllowPreCulledIndices);
 
@@ -413,14 +417,16 @@ bool FStaticMeshSceneProxy::GetWireframeMeshElement(int32 LODIndex, int32 BatchI
 }
 
 #if WITH_EDITORONLY_DATA
-const FStreamingSectionBuildInfo* FStaticMeshSceneProxy::GetStreamingSectionData(float& OutDistanceMultiplier, int32 LODIndex, int32 ElementIndex) const
+const FStreamingSectionBuildInfo* FStaticMeshSceneProxy::GetStreamingSectionData(float& OutComponentExtraScale, float& OutMeshExtraScale, int32 LODIndex, int32 ElementIndex) const
 {
 	const bool bUseNewMetrics = CVarStreamingUseNewMetrics.GetValueOnRenderThread() != 0;
 
-	OutDistanceMultiplier = StreamingDistanceMultiplier;
+	OutComponentExtraScale = StreamingDistanceMultiplier;
 
 	if (!bUseNewMetrics)
 	{
+		OutMeshExtraScale = 1.f; // No extra scale as this scale is already taken into account in StreamingTexelFactor
+
 		// In this case the element is not in the build data.
 		static FStreamingSectionBuildInfo FallbackData;
 
@@ -428,6 +434,7 @@ const FStreamingSectionBuildInfo* FStaticMeshSceneProxy::GetStreamingSectionData
 		FallbackData.BoxExtent = GetBounds().BoxExtent;
 		for (int32 I = 0; I < FMaterialTexCoordBuildInfo::MAX_NUM_TEX_COORD; ++I)
 		{
+			// This fallback factor has already the mesh extra scale in it.
 			FallbackData.TexelFactors[I] = StreamingTexelFactor;
 		}
 		return &FallbackData;
@@ -436,6 +443,8 @@ const FStreamingSectionBuildInfo* FStaticMeshSceneProxy::GetStreamingSectionData
 	{
 		if (StreamingSectionData.IsValid())
 		{
+			OutMeshExtraScale = StaticMesh ? StaticMesh->StreamingDistanceMultiplier : 1.f;
+
 			for (const FStreamingSectionBuildInfo& SectionData : *StreamingSectionData)
 			{
 				if (SectionData.LODIndex == LODIndex && SectionData.ElementIndex == ElementIndex)
@@ -974,7 +983,7 @@ void FStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView
 		}
 	}
 	
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !(UE_BUILD_SHIPPING)
 	// Collision and bounds drawing
 	FColor SimpleCollisionColor = FColor(157, 149, 223, 255);
 	FColor ComplexCollisionColor = FColor(0, 255, 255, 255);
@@ -1040,51 +1049,51 @@ void FStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView
 						}
 					}
 				}
+			}
 
-				// Draw simple collision as wireframe if 'show collision', collision is enabled, and we are not using the complex as the simple
-				const bool bDrawSimpleWireframeCollision = (EngineShowFlags.Collision && IsCollisionEnabled() && CollisionTraceFlag != ECollisionTraceFlag::CTF_UseComplexAsSimple);
+			// Draw simple collision as wireframe if 'show collision', collision is enabled, and we are not using the complex as the simple
+			const bool bDrawSimpleWireframeCollision = (EngineShowFlags.Collision && IsCollisionEnabled() && CollisionTraceFlag != ECollisionTraceFlag::CTF_UseComplexAsSimple);
 
-				if((bDrawSimpleCollision || bDrawSimpleWireframeCollision) && BodySetup)
+			if((bDrawSimpleCollision || bDrawSimpleWireframeCollision) && BodySetup)
+			{
+				if(FMath::Abs(GetLocalToWorld().Determinant()) < SMALL_NUMBER)
 				{
-					if(FMath::Abs(GetLocalToWorld().Determinant()) < SMALL_NUMBER)
+					// Catch this here or otherwise GeomTransform below will assert
+					// This spams so commented out
+					//UE_LOG(LogStaticMesh, Log, TEXT("Zero scaling not supported (%s)"), *StaticMesh->GetPathName());
+				}
+				else
+				{
+					const bool bDrawSolid = !bDrawSimpleWireframeCollision;
+
+					if(AllowDebugViewmodes() && bDrawSolid)
 					{
-						// Catch this here or otherwise GeomTransform below will assert
-						// This spams so commented out
-						//UE_LOG(LogStaticMesh, Log, TEXT("Zero scaling not supported (%s)"), *StaticMesh->GetPathName());
+						// Make a material for drawing solid collision stuff
+						auto SolidMaterialInstance = new FColoredMaterialRenderProxy(
+							GEngine->ShadedLevelColorationUnlitMaterial->GetRenderProxy(IsSelected(), IsHovered()),
+							WireframeColor
+							);
+
+						Collector.RegisterOneFrameMaterialProxy(SolidMaterialInstance);
+
+						FTransform GeomTransform(GetLocalToWorld());
+						BodySetup->AggGeom.GetAggGeom(GeomTransform, WireframeColor.ToFColor(true), SolidMaterialInstance, false, true, UseEditorDepthTest(), ViewIndex, Collector);
 					}
+					// wireframe
 					else
 					{
-						const bool bDrawSolid = !bDrawSimpleWireframeCollision;
-
-						if(bDrawSolid)
-						{
-							// Make a material for drawing solid collision stuff
-							auto SolidMaterialInstance = new FColoredMaterialRenderProxy(
-								GEngine->ShadedLevelColorationUnlitMaterial->GetRenderProxy(IsSelected(), IsHovered()),
-								WireframeColor
-								);
-
-							Collector.RegisterOneFrameMaterialProxy(SolidMaterialInstance);
-
-							FTransform GeomTransform(GetLocalToWorld());
-							BodySetup->AggGeom.GetAggGeom(GeomTransform, WireframeColor.ToFColor(true), SolidMaterialInstance, false, true, UseEditorDepthTest(), ViewIndex, Collector);
-						}
-						// wireframe
-						else
-						{
-							FTransform GeomTransform(GetLocalToWorld());
-							BodySetup->AggGeom.GetAggGeom(GeomTransform, GetSelectionColor(SimpleCollisionColor, bProxyIsSelected, IsHovered()).ToFColor(true), NULL, ( Owner == NULL ), false, UseEditorDepthTest(), ViewIndex, Collector);
-						}
+						FTransform GeomTransform(GetLocalToWorld());
+						BodySetup->AggGeom.GetAggGeom(GeomTransform, GetSelectionColor(SimpleCollisionColor, bProxyIsSelected, IsHovered()).ToFColor(true), NULL, ( Owner == NULL ), false, UseEditorDepthTest(), ViewIndex, Collector);
+					}
 
 
-						// The simple nav geometry is only used by dynamic obstacles for now
-						if (StaticMesh->NavCollision && StaticMesh->NavCollision->bIsDynamicObstacle)
-						{
-							// Draw the static mesh's body setup (simple collision)
-							FTransform GeomTransform(GetLocalToWorld());
-							FColor NavCollisionColor = FColor(118,84,255,255);
-							StaticMesh->NavCollision->DrawSimpleGeom(Collector.GetPDI(ViewIndex), GeomTransform, GetSelectionColor(NavCollisionColor, bProxyIsSelected, IsHovered()).ToFColor(true));
-						}
+					// The simple nav geometry is only used by dynamic obstacles for now
+					if (StaticMesh->NavCollision && StaticMesh->NavCollision->bIsDynamicObstacle)
+					{
+						// Draw the static mesh's body setup (simple collision)
+						FTransform GeomTransform(GetLocalToWorld());
+						FColor NavCollisionColor = FColor(118,84,255,255);
+						StaticMesh->NavCollision->DrawSimpleGeom(Collector.GetPDI(ViewIndex), GeomTransform, GetSelectionColor(NavCollisionColor, bProxyIsSelected, IsHovered()).ToFColor(true));
 					}
 				}
 			}
@@ -1095,7 +1104,7 @@ void FStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView
 			}
 		}
 	}
-#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#endif // !(UE_BUILD_SHIPPING)
 
 }
 
@@ -1135,10 +1144,12 @@ FPrimitiveViewRelevance FStaticMeshSceneProxy::GetViewRelevance(const FSceneView
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) || WITH_EDITOR
 	bool bDrawSimpleCollision = false, bDrawComplexCollision = false;
 	const bool bInCollisionView = IsCollisionView(View->Family->EngineShowFlags, bDrawSimpleCollision, bDrawComplexCollision);
+#else
+	bool bInCollisionView = false;
 #endif
 
 	if(
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) || WITH_EDITOR
+#if !(UE_BUILD_SHIPPING) || WITH_EDITOR
 		IsRichView(*View->Family) || 
 		View->Family->EngineShowFlags.Collision ||
 		bInCollisionView ||
@@ -1156,7 +1167,7 @@ FPrimitiveViewRelevance FStaticMeshSceneProxy::GetViewRelevance(const FSceneView
 	{
 		Result.bDynamicRelevance = true;
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) || WITH_EDITOR
+#if !(UE_BUILD_SHIPPING) || WITH_EDITOR
 		// If we want to draw collision, needs to make sure we are considered relevant even if hidden
 		if(View->Family->EngineShowFlags.Collision || bInCollisionView)
 		{
@@ -1423,17 +1434,20 @@ float FStaticMeshSceneProxy::GetScreenSize( int32 LODIndex ) const
  */
 int32 FStaticMeshSceneProxy::GetLOD(const FSceneView* View) const 
 {
-	int32 CVarForcedLODLevel = GetCVarForceLOD();
-
-	//If a LOD is being forced, use that one
-	if (CVarForcedLODLevel >= 0)
+	if (ensureMsgf(RenderData, TEXT("StaticMesh [%s] missing RenderData."), StaticMesh ? *StaticMesh->GetName() : TEXT("None")))
 	{
-		return FMath::Clamp<int32>(CVarForcedLODLevel, 0, RenderData->LODResources.Num() - 1);
-	}
+		int32 CVarForcedLODLevel = GetCVarForceLOD();
 
-	if (ForcedLodModel > 0)
-	{
-		return FMath::Clamp(ForcedLodModel, 1, RenderData->LODResources.Num()) - 1;
+		//If a LOD is being forced, use that one
+		if (CVarForcedLODLevel >= 0)
+		{
+			return FMath::Clamp<int32>(CVarForcedLODLevel, 0, RenderData->LODResources.Num() - 1);
+		}
+
+		if (ForcedLodModel > 0)
+		{
+			return FMath::Clamp(ForcedLodModel, 1, RenderData->LODResources.Num()) - 1;
+		}
 	}
 
 #if WITH_EDITOR
@@ -1450,58 +1464,68 @@ int32 FStaticMeshSceneProxy::GetLOD(const FSceneView* View) const
 FLODMask FStaticMeshSceneProxy::GetLODMask(const FSceneView* View) const
 {
 	FLODMask Result;
-	int32 CVarForcedLODLevel = GetCVarForceLOD();
 
-	//If a LOD is being forced, use that one
-	if (CVarForcedLODLevel >= 0)
-	{
-		Result.SetLOD(FMath::Clamp<int32>(CVarForcedLODLevel, 0, RenderData->LODResources.Num() - 1));
-	}
-	else if (View->DrawDynamicFlags & EDrawDynamicFlags::ForceLowestLOD)
-	{
-		Result.SetLOD(RenderData->LODResources.Num() - 1);
-	}
-	else if (ForcedLodModel > 0)
-	{
-		Result.SetLOD(FMath::Clamp(ForcedLodModel, 1, RenderData->LODResources.Num()) - 1);
-	}
-#if WITH_EDITOR
-	else if (View->Family && View->Family->EngineShowFlags.LOD == 0)
+	if (!ensureMsgf(RenderData, TEXT("StaticMesh [%s] missing RenderData."), StaticMesh ? *StaticMesh->GetName() : TEXT("None")))
 	{
 		Result.SetLOD(0);
 	}
-#endif
 	else
 	{
-		const FBoxSphereBounds& ProxyBounds = GetBounds();
-		bool bUseDithered = false;
-		if (LODs.Num())
-		{
-			// only dither if at least one section in LOD0 is dithered. Mixed dithering on sections won't work very well, but it makes an attempt
-			const FLODInfo& ProxyLODInfo = LODs[0];
-			const FStaticMeshLODResources& LODModel = RenderData->LODResources[0];
-			// Draw the static mesh elements.
-			for(int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
-			{
-				UMaterialInterface* Material = ProxyLODInfo.Sections[SectionIndex].Material;
-				if (Material->IsDitheredLODTransition())
-				{
-					bUseDithered = true;
-					break;
-				}
-			}
+		int32 CVarForcedLODLevel = GetCVarForceLOD();
 
-		}
-		if (bUseDithered)
+		//If a LOD is being forced, use that one
+		if (CVarForcedLODLevel >= 0)
 		{
-			for (int32 Sample = 0; Sample < 2; Sample++)
-			{
-				Result.SetLODSample(ComputeTemporalStaticMeshLOD(RenderData, ProxyBounds.Origin, ProxyBounds.SphereRadius, *View, ClampedMinLOD, 1.0f, Sample), Sample);
-			}
+			Result.SetLOD(FMath::Clamp<int32>(CVarForcedLODLevel, 0, RenderData->LODResources.Num() - 1));
 		}
+		else if (View->DrawDynamicFlags & EDrawDynamicFlags::ForceLowestLOD)
+		{
+			Result.SetLOD(RenderData->LODResources.Num() - 1);
+		}
+		else if (ForcedLodModel > 0)
+		{
+			Result.SetLOD(FMath::Clamp(ForcedLodModel, 1, RenderData->LODResources.Num()) - 1);
+		}
+#if WITH_EDITOR
+		else if (View->Family && View->Family->EngineShowFlags.LOD == 0)
+		{
+			Result.SetLOD(0);
+		}
+#endif
 		else
 		{
-			Result.SetLOD(ComputeStaticMeshLOD(RenderData, ProxyBounds.Origin, ProxyBounds.SphereRadius, *View, ClampedMinLOD));
+			const FBoxSphereBounds& ProxyBounds = GetBounds();
+			bool bUseDithered = false;
+			if (LODs.Num())
+			{
+				checkSlow(RenderData);
+
+				// only dither if at least one section in LOD0 is dithered. Mixed dithering on sections won't work very well, but it makes an attempt
+				const FLODInfo& ProxyLODInfo = LODs[0];
+				const FStaticMeshLODResources& LODModel = RenderData->LODResources[0];
+				// Draw the static mesh elements.
+				for(int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
+				{
+					UMaterialInterface* Material = ProxyLODInfo.Sections[SectionIndex].Material;
+					if (Material->IsDitheredLODTransition())
+					{
+						bUseDithered = true;
+						break;
+					}
+				}
+
+			}
+			if (bUseDithered)
+			{
+				for (int32 Sample = 0; Sample < 2; Sample++)
+				{
+					Result.SetLODSample(ComputeTemporalStaticMeshLOD(RenderData, ProxyBounds.Origin, ProxyBounds.SphereRadius, *View, ClampedMinLOD, 1.0f, Sample), Sample);
+				}
+			}
+			else
+			{
+				Result.SetLOD(ComputeStaticMeshLOD(RenderData, ProxyBounds.Origin, ProxyBounds.SphereRadius, *View, ClampedMinLOD));
+			}
 		}
 	}
 	

@@ -89,12 +89,12 @@ public:
 		if (Verbosity == ELogVerbosity::Error)
 		{
 			++ErrorCount;
-			FormattedErrorsAndWarningsList.Add(FormatLogLine(Verbosity, Category, V));
+			FormattedErrorsAndWarningsList.Add(FOutputDeviceHelper::FormatLogLine(Verbosity, Category, V));
 		}
 		else if (Verbosity == ELogVerbosity::Warning)
 		{
 			++WarningCount;
-			FormattedErrorsAndWarningsList.Add(FormatLogLine(Verbosity, Category, V));
+			FormattedErrorsAndWarningsList.Add(FOutputDeviceHelper::FormatLogLine(Verbosity, Category, V));
 		}
 		else
 		{

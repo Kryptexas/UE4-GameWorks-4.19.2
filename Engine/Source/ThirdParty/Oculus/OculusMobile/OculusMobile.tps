@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TpsData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>Oculus Mobile SDK</Name>
-  <Location>//depot/UE4/Engine/Source/ThirdParty/Oculus/OculusMobile</Location>
-  <Date>2015-12-14T19:53:52.1116749-04:00</Date>
+  <Location>/Engine/Source/ThirdParty/Oculus/OculusMobile/</Location>
+  <Date>2016-06-10T17:57:06.0742179-04:00</Date>
   <Function>Reads sensor data from Gear VR</Function>
   <Justification>We use Oculus Mobile SDK to read sensor data from the Gear VR</Justification>
   <Platforms>
@@ -14,7 +14,11 @@
   </Products>
   <TpsType>lib</TpsType>
   <Eula>https://developer.oculus.com/licenses/mobile-3.2.1/</Eula>
-  <RedistributeTo />
+  <RedistributeTo>
+    <EndUserGroup>Licensees</EndUserGroup>
+    <EndUserGroup>Git</EndUserGroup>
+    <EndUserGroup>P4</EndUserGroup>
+  </RedistributeTo>
   <Redistribute>false</Redistribute>
   <IsSourceAvailable>false</IsSourceAvailable>
   <NoticeType>Full EULA Text</NoticeType>
@@ -52,7 +56,7 @@ Full-length Legal Copy:
 
 1.3  For the sake of clarification when you use the MOBILE SDK (including MOBILE SDK Derivatives) in or with Developer Content, you retain all rights to your Developer Content, and you have no obligations to share or license Developer Content (including your source and object code) to Oculus or any third parties; provided, however, Oculus retains all rights to the MOBILE SDK and the MOBILE SDK Derivatives that may be incorporated into your Developer Content.
 
-1.4  You agree to and you will use the Flash Screen Warning and the Health and Safety Warnings (collectively the "Oculus Warnings") and the Oculus health and safety protocols found in the Oculus Best Practices Guide ("Oculus H&S Protocols"), and you will use the Oculus Warnings and the Oculus end user license agreement ("Oculus EULA") with your Developer Content as provided for in the Oculus Developer Center, all of which can be found at the following link:  https://developer.oculus.com.
+1.4  You agree to and you will use the Flash Screen Warning and the Health and Safety Warnings (collectively the "Oculus Warnings") and the Oculus health and safety protocols found in the Oculus Best Practices Guide ("Oculus H&amp;S Protocols"), and you will use the Oculus Warnings and the Oculus end user license agreement ("Oculus EULA") with your Developer Content as provided for in the Oculus Developer Center, all of which can be found at the following link:  https://developer.oculus.com.
 
 2. You, the recipient and user of the MOBILE SDK, hereby agree and accept that Oculus shall own all right, title and interest to the intellectual property rights, including, but not limited to copyright, trademark and patent rights, to any MOBILE SDK Derivatives that you may create, and you hereby assign any and all such rights to such MOBILE SDK Derivatives to Oculus.
 
@@ -86,17 +90,17 @@ Full-length Legal Copy:
 
 8.  Furthermore, Oculus also reserves the right to cancel or terminate this License for any of the following reasons upon notice to you, subject to the appeal process set forth in Section 16 for a wrongful termination: 
 
-	a) Intellectual property infringement by you with Developer Content or MOBILE SDK Derivatives created by you that is used with or by the MOBILE SDK or any part thereof, or any of the MOBILE SDK Derivatives;
+ a) Intellectual property infringement by you with Developer Content or MOBILE SDK Derivatives created by you that is used with or by the MOBILE SDK or any part thereof, or any of the MOBILE SDK Derivatives;
 
-	b) Developer Content that violates or infringes upon applicable law;
+ b) Developer Content that violates or infringes upon applicable law;
 
-	c) Health and safety issues associated with your Developer Content;
+ c) Health and safety issues associated with your Developer Content;
 
-	d) Failure to comply with or use properly the Oculus Warnings, Oculus H&S Protocols, or Oculus EULA; 
+ d) Failure to comply with or use properly the Oculus Warnings, Oculus H&amp;S Protocols, or Oculus EULA; 
 
-	e) Use of the MOBILE SDK or MOBILE SDK Derivatives with a commercial product other than an Oculus Approved Mobile Product; and
+ e) Use of the MOBILE SDK or MOBILE SDK Derivatives with a commercial product other than an Oculus Approved Mobile Product; and
 
-	f) Failure to provide required notices or deliver source code and/or binary of MOBILE SDK Derivatives as set forth above.
+ f) Failure to provide required notices or deliver source code and/or binary of MOBILE SDK Derivatives as set forth above.
 
 If you believe that your license has been wrongfully terminated under this Section 8 with respect to material breach or with respect to these above conditions, you have the right to appeal the termination of this License under Section 16. 
 
@@ -114,7 +118,6 @@ If you believe that your license has been wrongfully terminated under this Secti
 
 15.   Oculus may include in the MOBILE SDK additional content (e.g., samples) for demonstration, references or other specific purposes.  Such content will be clearly marked in the MOBILE SDK and is subject to any included terms and conditions.
 
-16.   This License shall be governed by the laws of the State of California, without giving effect to choice of law principles.  Oculus reserves all rights not expressly granted in this License.  All disputes relating to this License shall be resolved by binding non-appearance-based arbitration before a neutral arbitrator in San Mateo County, California.  If your License has been terminated hereunder by Oculus, you may appeal your termination through this arbitration process on an expedited basis with an arbitration within thirty days of your giving Oculus notice of the appeal.  The arbitration shall be conducted in accordance with the rules and procedures of JAMS then in effect, and the judgment of the arbitrator shall be final and capable of entry in any court of competent jurisdiction.  You agree to submit to the personal jurisdiction of the courts located within San Mateo County, California in connection with any entrance of an arbitrator's judgment or decision or any dispute with respect to the arbitration process or procedure or Oculus's exercise of its equitable rights or remedies.
-</Notification>
-  <LicenseFolder />
+16.   This License shall be governed by the laws of the State of California, without giving effect to choice of law principles.  Oculus reserves all rights not expressly granted in this License.  All disputes relating to this License shall be resolved by binding non-appearance-based arbitration before a neutral arbitrator in San Mateo County, California.  If your License has been terminated hereunder by Oculus, you may appeal your termination through this arbitration process on an expedited basis with an arbitration within thirty days of your giving Oculus notice of the appeal.  The arbitration shall be conducted in accordance with the rules and procedures of JAMS then in effect, and the judgment of the arbitrator shall be final and capable of entry in any court of competent jurisdiction.  You agree to submit to the personal jurisdiction of the courts located within San Mateo County, California in connection with any entrance of an arbitrator's judgment or decision or any dispute with respect to the arbitration process or procedure or Oculus's exercise of its equitable rights or remedies.</Notification>
+  <LicenseFolder>/Engine/Source/ThirdParty/Licenses/OCULUS_MobileSDK_LICENSE.txt</LicenseFolder>
 </TpsData>

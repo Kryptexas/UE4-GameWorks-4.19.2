@@ -80,7 +80,7 @@ bool FLocalNewsFeedTitleFile::EnumerateFiles(const FPagedQuery& Page)
 
 			FCloudFileHeader NewHeader;
 			NewHeader.FileName = Filename;
-			NewHeader.DLName = Filename + FileIdx;
+			NewHeader.DLName = Filename + LexicalConversion::ToString(FileIdx);
 			NewHeader.FileSize = 0;
 			NewHeader.Hash.Empty();
 

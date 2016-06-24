@@ -213,9 +213,11 @@ TSharedRef<IMenu> FMenuStack::Push(const FWidgetPath& InOwnerPath, const TShared
 		ActiveMethod = InMethod.IsSet() ? FPopupMethodReply::UseMethod(InMethod.GetValue()) : QueryPopupMethod(InOwnerPath);
 
 		// The host window is determined when a new root menu is pushed
+		// This must be set prior to PushInternal below, as it will be referenced if the menu being created is a new root menu.
 		SetHostPath(InOwnerPath);
 	}
 
+	TGuardValue<bool> Guard(bHostWindowGuard, true);
 	return PushInternal(ParentMenu, InContent, Anchor, TransitionEffect, bFocusImmediately, ActiveMethod.GetShouldThrottle(), bIsCollapsedByParent, bEnablePerPixelTransparency);
 }
 
@@ -577,14 +579,22 @@ void FMenuStack::DismissAll()
 void FMenuStack::DismissInternal(int32 FirstStackIndexToRemove)
 {
 	// Dismiss the stack in reverse order so we destroy children before parents (causes focusing issues if done the other way around)
-	for (int32 StackIndex = Stack.Num() - 1; StackIndex >= FirstStackIndexToRemove; --StackIndex)
+	for ( int32 StackIndex = Stack.Num() - 1; StackIndex >= FirstStackIndexToRemove; --StackIndex )
 	{
-		Stack[StackIndex]->Dismiss();
+		if ( Stack.IsValidIndex(StackIndex) )
+		{
+			Stack[StackIndex]->Dismiss();
+		}
 	}
 }
 
 void FMenuStack::SetHostPath(const FWidgetPath& InOwnerPath)
 {
+	if (bHostWindowGuard)
+	{
+		return;
+	}
+
 	if ( HostPopupLayer.IsValid() )
 	{
 		if ( !InOwnerPath.ContainsWidget(HostPopupLayer->GetHost()) )

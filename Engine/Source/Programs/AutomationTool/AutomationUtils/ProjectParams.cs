@@ -162,11 +162,14 @@ namespace AutomationTool
 					{
 						// Look up platform names in the command line: -Platform_1 -Platform_2 ... -Platform_k
 						TargetPlatforms = new List<UnrealTargetPlatform>();
-						foreach (var Plat in CommandUtils.KnownTargetPlatforms)
+						foreach (UnrealTargetPlatform Plat in Enum.GetValues(typeof(UnrealTargetPlatform)))
 						{
-							if (Command.ParseParam(Plat.ToString()))
+							if (Plat != UnrealTargetPlatform.Unknown)
 							{
-								TargetPlatforms.Add(Plat);
+								if (Command.ParseParam(Plat.ToString()))
+								{
+									TargetPlatforms.Add(Plat);
+								}
 							}
 						}
 					}
@@ -506,7 +509,7 @@ namespace AutomationTool
 					this.SignPak = null;
 				}
 			}
-			this.Pak = this.SignedPak || GetParamValueIfNotSpecified(Command, Pak, this.Pak, "pak");
+			this.Pak = GetParamValueIfNotSpecified(Command, Pak, this.Pak, "pak");
 			this.SkipPak = GetParamValueIfNotSpecified(Command, SkipPak, this.SkipPak, "skippak");
 			if (this.SkipPak)
 			{

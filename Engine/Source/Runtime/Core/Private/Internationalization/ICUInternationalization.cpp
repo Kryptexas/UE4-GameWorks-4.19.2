@@ -6,10 +6,19 @@
 
 #include "ICUUtilities.h"
 #include "ICUBreakIterator.h"
-#include <unicode/locid.h>
-#include <unicode/timezone.h>
-#include <unicode/uclean.h>
-#include <unicode/udata.h>
+#if defined(_MSC_VER) && USING_CODE_ANALYSIS
+	#pragma warning(push)
+	#pragma warning(disable:28251)
+	#pragma warning(disable:28252)
+	#pragma warning(disable:28253)
+#endif
+	#include <unicode/locid.h>
+	#include <unicode/timezone.h>
+	#include <unicode/uclean.h>
+	#include <unicode/udata.h>
+#if defined(_MSC_VER) && USING_CODE_ANALYSIS
+	#pragma warning(pop)
+#endif
 
 DEFINE_LOG_CATEGORY_STATIC(LogICUInternationalization, Log, All);
 

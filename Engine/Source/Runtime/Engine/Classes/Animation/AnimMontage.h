@@ -7,11 +7,12 @@
  *
  */
 
-#include "AnimCompositeBase.h"
-#include "Animation/AnimInstance.h"
+#include "Animation/AnimCompositeBase.h"
+#include "AlphaBlend.h"
 #include "AnimMontage.generated.h"
 
 class UAnimMontage;
+class UAnimInstance;
 
 /**
  * Section data for each track. Reference of data will be stored in the child class for the way they want
@@ -35,7 +36,6 @@ struct FCompositeSection : public FAnimLinkableElement
 	UPROPERTY()
 	FName NextSectionName;
 
-private:
 	/** Meta data that can be saved with the asset 
 	 * 
 	 * You can query by GetMetaData function
@@ -280,43 +280,9 @@ private:
 	void InitializeBlend(const FAlphaBlend& InAlphaBlend);
 
 public:
-	FAnimMontageInstance()
-		: Montage(NULL)
-		, bPlaying(false)
-		, DefaultBlendTimeMultiplier(1.0f)
-		, bDidUseMarkerSyncThisTick(false)
-		, AnimInstance(NULL)
-		, InstanceID(INDEX_NONE)
-		, Position(0.f)
-		, PlayRate(1.f)
-		, bInterrupted(false)
-		, PreviousWeight(0.f)
-		, DeltaMoved(0.f)
-		, PreviousPosition(0.f)
-		, SyncGroupIndex(INDEX_NONE)
-		, MontageSyncLeader(NULL)
-		, MontageSyncUpdateFrameCounter(INDEX_NONE)
-	{
-	}
+	FAnimMontageInstance();
 
-	FAnimMontageInstance(UAnimInstance * InAnimInstance)
-		: Montage(NULL)
-		, bPlaying(false)
-		, DefaultBlendTimeMultiplier(1.0f)
-		, bDidUseMarkerSyncThisTick(false)
-		, AnimInstance(InAnimInstance)
-		, InstanceID(INDEX_NONE)
-		, Position(0.f)
-		, PlayRate(1.f)
-		, bInterrupted(false)
-		, PreviousWeight(0.f)	
-		, DeltaMoved(0.f)
-		, PreviousPosition(0.f)
-		, SyncGroupIndex(INDEX_NONE)
-		, MontageSyncLeader(NULL)
-		, MontageSyncUpdateFrameCounter(INDEX_NONE)
-	{
-	}
+	FAnimMontageInstance(UAnimInstance * InAnimInstance);
 
 	//~ Begin montage instance Interfaces
 	void Play(float InPlayRate = 1.f);
@@ -352,7 +318,7 @@ public:
 	/** 
 	 * Setters
 	 */
-	void SetPosition(float const & InPosition) { Position = InPosition; }
+	void SetPosition(float const & InPosition) { Position = InPosition; MarkerTickRecord.Reset(); }
 	void SetPlayRate(float const & InPlayRate) { PlayRate = InPlayRate; }
 
 	/**

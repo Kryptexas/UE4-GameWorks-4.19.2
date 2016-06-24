@@ -33,6 +33,7 @@ void FUObjectArray::AllocateObjectPool(int32 InMaxUObjects, int32 InMaxObjectsNo
 
 	// Pre-size array.
 	check(ObjObjects.Num() == 0);
+	UE_CLOG(((InMaxUObjects - 1) & (int32)EInternalObjectFlags::AllFlags) != 0, LogUObjectArray, Fatal, TEXT("Max UObject count is incompatible with internal object flags. Try decreasing the max UObject count in ini."));
 	ObjObjects.PreAllocate(InMaxUObjects);
 
 	if (MaxObjectsNotConsideredByGC > 0)
@@ -54,23 +55,7 @@ void FUObjectArray::CloseDisregardForGC()
 	check(IsInGameThread());
 	check(OpenForDisregardForGC);
 
-	// Iterate over all class objects and force the default objects to be created. Additionally also
-	// assembles the token reference stream at this point. This is required for class objects that are
-	// not taken into account for garbage collection but have instances that are.
-
-	for (FRawObjectIterator It(false); It; ++It) // GetDefaultObject can create a new class, that need to be handled as well, so we cannot use TObjectIterator
-	{
-		if (UClass* Class = Cast<UClass>((UObject*)(It->Object)))
-		{
-			// Force the default object to be created.
-			Class->GetDefaultObject(); // Force the default object to be constructed if it isn't already
-			// Assemble reference token stream for garbage collection/ RTGC.
-			if (!Class->HasAnyClassFlags(CLASS_TokenStreamAssembled))
-			{
-				Class->AssembleReferenceTokenStream();
-			}
-		}
-	}
+	UClass::AssembleReferenceTokenStreams();
 
 	if (GIsInitialLoad)
 	{

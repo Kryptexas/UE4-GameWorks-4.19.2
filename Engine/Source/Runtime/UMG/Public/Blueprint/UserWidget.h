@@ -786,7 +786,7 @@ public:
 	UWidget* GetWidgetFromName(const FName& Name) const;
 
 	//~ Begin UObject Interface
-	virtual void PreSave() override;
+	virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
 	//~ End UObject Interface
 
 	/** Are we currently playing any animations? */

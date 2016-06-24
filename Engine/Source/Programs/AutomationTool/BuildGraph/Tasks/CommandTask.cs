@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using AutomationTool;
 using UnrealBuildTool;
 using System.Xml;
+using System.IO;
 
 namespace BuildGraph.Tasks
 {
@@ -25,6 +26,12 @@ namespace BuildGraph.Tasks
 		/// </summary>
 		[TaskParameter(Optional = true)]
 		public string Arguments;
+
+		/// <summary>
+		/// If non-null, instructs telemetry from the command to be merged into the telemetry for this UAT instance with the given prefix. May be an empty (non-null) string.
+		/// </summary>
+		[TaskParameter(Optional = true)]
+		public string MergeTelemetryWithPrefix;
 	}
 
 	/// <summary>
@@ -56,7 +63,42 @@ namespace BuildGraph.Tasks
 		/// <returns>True if the task succeeded</returns>
 		public override bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
-			CommandUtils.RunUAT(CommandUtils.CmdEnv, String.Format("{0} {1}", Parameters.Name, Parameters.Arguments ?? ""));
+			// If we're merging telemetry from the child process, get a temp filename for it
+			FileReference TelemetryFile = null;
+			if (Parameters.MergeTelemetryWithPrefix != null)
+			{
+				TelemetryFile = FileReference.Combine(CommandUtils.RootDirectory, "Engine", "Intermediate", "UAT", "Telemetry.json");
+				TelemetryFile.Directory.CreateDirectory();
+			}
+
+			// Run the command
+			string CommandLine = Parameters.Name;
+			if (!String.IsNullOrEmpty(Parameters.Arguments))
+			{
+				CommandLine += String.Format(" {0}", Parameters.Arguments);
+			}
+			if(TelemetryFile != null)
+			{
+				CommandLine += String.Format(" -Telemetry={0}", CommandUtils.MakePathSafeToUseWithCommandLine(TelemetryFile.FullName));
+			}
+			try
+			{
+				CommandUtils.RunUAT(CommandUtils.CmdEnv, CommandLine);
+			}
+			catch(CommandUtils.CommandFailedException)
+			{
+				return false;
+			}
+
+			// Merge in any new telemetry data that was produced
+			if (Parameters.MergeTelemetryWithPrefix != null)
+			{
+				TelemetryData NewTelemetry;
+				if (TelemetryData.TryRead(TelemetryFile.FullName, out NewTelemetry))
+				{
+					CommandUtils.Telemetry.Merge(Parameters.MergeTelemetryWithPrefix, NewTelemetry);
+				}
+			}
 			return true;
 		}
 
@@ -66,6 +108,24 @@ namespace BuildGraph.Tasks
 		public override void Write(XmlWriter Writer)
 		{
 			Write(Writer, Parameters);
+		}
+
+		/// <summary>
+		/// Find all the tags which are used as inputs to this task
+		/// </summary>
+		/// <returns>The tag names which are read by this task</returns>
+		public override IEnumerable<string> FindConsumedTagNames()
+		{
+			yield break;
+		}
+
+		/// <summary>
+		/// Find all the tags which are modified by this task
+		/// </summary>
+		/// <returns>The tag names which are modified by this task</returns>
+		public override IEnumerable<string> FindProducedTagNames()
+		{
+			yield break;
 		}
 	}
 }

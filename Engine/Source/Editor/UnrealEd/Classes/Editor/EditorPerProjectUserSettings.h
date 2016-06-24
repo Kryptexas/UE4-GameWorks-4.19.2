@@ -130,6 +130,9 @@ class UEditorPerProjectUserSettings : public UObject
 	class UBlueprintPaletteFavorites* BlueprintFavorites;
 
 public:
+	// Per project user settings for which asset viewer profile should be used
+	UPROPERTY(config)
+	int32 AssetViewerProfileIndex;
 
 	UPROPERTY(config)
 	int32 MaterialQualityLevel;

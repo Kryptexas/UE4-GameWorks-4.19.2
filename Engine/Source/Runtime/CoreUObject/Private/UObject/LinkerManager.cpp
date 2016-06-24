@@ -134,7 +134,6 @@ void FLinkerManager::DissociateImportsAndForcedExports()
 	if (ImportCount != 0)
 	{
 		// In cooked builds linkers don't stick around long enough to make this worthwhile
-#if WITH_EDITORONLY_DATA
 		TSet<FLinkerLoad*> LocalLoadersWithNewImports;
 		GetLoadersWithNewImportsAndEmpty(LocalLoadersWithNewImports);
 		if (LocalLoadersWithNewImports.Num())
@@ -155,7 +154,6 @@ void FLinkerManager::DissociateImportsAndForcedExports()
 				}
 			}
 		}
-#endif
 		ImportCount = 0;
 	}
 

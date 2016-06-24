@@ -24,6 +24,8 @@
 #include "LandscapeVersion.h"
 #include "Algo/Accumulate.h"
 #include "LandscapeLight.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Materials/MaterialInstanceConstant.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"
 
@@ -673,9 +675,15 @@ public:
 };
 
 FLandscapeComponentGrassData::FLandscapeComponentGrassData(ULandscapeComponent* Component)
-	: MaterialStateId(Component->MaterialInstance->GetMaterial()->StateId)
-	, RotationForWPO(Component->MaterialInstance->GetMaterial()->WorldPositionOffset.IsConnected() ? Component->ComponentToWorld.GetRotation() : FQuat(0, 0, 0, 0))
+	: RotationForWPO(Component->MaterialInstance->GetMaterial()->WorldPositionOffset.IsConnected() ? Component->ComponentToWorld.GetRotation() : FQuat(0, 0, 0, 0))
 {
+	UMaterialInterface* Material = Component->GetLandscapeMaterial();
+	for (UMaterialInstanceConstant* MIC = Cast<UMaterialInstanceConstant>(Material); MIC; MIC = Cast<UMaterialInstanceConstant>(Material))
+	{
+		MaterialStateIds.Add(MIC->ParameterStateId);
+		Material = MIC->Parent;
+	}
+	MaterialStateIds.Add(CastChecked<UMaterial>(Material)->StateId);
 }
 
 bool ULandscapeComponent::MaterialHasGrass() const
@@ -696,10 +704,26 @@ bool ULandscapeComponent::IsGrassMapOutdated() const
 {
 	if (GrassData->HasData())
 	{
-		if (GrassData->MaterialStateId != MaterialInstance->GetMaterial()->StateId)
+		// check material / instances haven't changed
+		const auto& MaterialStateIds = GrassData->MaterialStateIds;
+		UMaterialInterface* Material = GetLandscapeMaterial();
+		int32 TestIndex = 0;
+		for (UMaterialInstanceConstant* MIC = Cast<UMaterialInstanceConstant>(Material); MIC; MIC = Cast<UMaterialInstanceConstant>(Material))
+		{
+			if (!MaterialStateIds.IsValidIndex(TestIndex) || MaterialStateIds[TestIndex] != MIC->ParameterStateId)
+			{
+				return true;
+			}
+			Material = MIC->Parent;
+			++TestIndex;
+		}
+
+		// last one should be a UMaterial
+		if (TestIndex != MaterialStateIds.Num() - 1 || MaterialStateIds[TestIndex] != CastChecked<UMaterial>(Material)->StateId)
 		{
 			return true;
 		}
+
 		FQuat RotationForWPO = MaterialInstance->GetMaterial()->WorldPositionOffset.IsConnected() ? ComponentToWorld.GetRotation() : FQuat(0, 0, 0, 0);
 		if (GrassData->RotationForWPO != RotationForWPO)
 		{
@@ -1071,24 +1095,39 @@ SIZE_T FLandscapeComponentGrassData::GetAllocatedSize() const
 
 FArchive& operator<<(FArchive& Ar, FLandscapeComponentGrassData& Data)
 {
-	if (Ar.UE4Ver() >= VER_UE4_SERIALIZE_LANDSCAPE_GRASS_DATA_MATERIAL_GUID)
-	{
-		Ar << Data.MaterialStateId;
-	}
-
 	Ar.UsingCustomVersion(FLandscapeCustomVersion::GUID);
 
-	if (Ar.CustomVer(FLandscapeCustomVersion::GUID) >= FLandscapeCustomVersion::GrassMaterialWPO)
+#if WITH_EDITORONLY_DATA
+	if (!Ar.IsFilterEditorOnly())
 	{
-		Ar << Data.RotationForWPO;
+		if (Ar.CustomVer(FLandscapeCustomVersion::GUID) >= FLandscapeCustomVersion::GrassMaterialInstanceFix)
+		{
+			Ar << Data.MaterialStateIds;
+		}
+		else
+		{
+			Data.MaterialStateIds.Empty(1);
+			if (Ar.UE4Ver() >= VER_UE4_SERIALIZE_LANDSCAPE_GRASS_DATA_MATERIAL_GUID)
+			{
+				FGuid MaterialStateId;
+				Ar << MaterialStateId;
+				Data.MaterialStateIds.Add(MaterialStateId);
+			}
+		}
+
+		if (Ar.CustomVer(FLandscapeCustomVersion::GUID) >= FLandscapeCustomVersion::GrassMaterialWPO)
+		{
+			Ar << Data.RotationForWPO;
+		}
 	}
+#endif
 
 	Data.HeightData.BulkSerialize(Ar);
 
 #if WITH_EDITORONLY_DATA
-	if (Ar.CustomVer(FLandscapeCustomVersion::GUID) >= FLandscapeCustomVersion::CollisionMaterialWPO)
+	if (!Ar.IsFilterEditorOnly())
 	{
-		if (!Ar.IsFilterEditorOnly())
+		if (Ar.CustomVer(FLandscapeCustomVersion::GUID) >= FLandscapeCustomVersion::CollisionMaterialWPO)
 		{
 			if (Ar.CustomVer(FLandscapeCustomVersion::GUID) >= FLandscapeCustomVersion::LightmassMaterialWPO)
 			{
@@ -1295,6 +1334,7 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 	FFloatInterval ScaleY;
 	FFloatInterval ScaleZ;
 	bool RandomRotation;
+	bool RandomScale;
 	bool AlignToSurface;
 	float PlacementJitter;
 	FRandomStream RandomStream;
@@ -1329,6 +1369,7 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 		, ScaleY(GrassVariety.ScaleY)
 		, ScaleZ(GrassVariety.ScaleZ)
 		, RandomRotation(GrassVariety.RandomRotation)
+		, RandomScale(GrassVariety.ScaleX.Size() > 0 || GrassVariety.ScaleY.Size() > 0 || GrassVariety.ScaleZ.Size() > 0)
 		, AlignToSurface(GrassVariety.AlignToSurface)
 		, PlacementJitter(GrassVariety.PlacementJitter)
 		, RandomStream(HierarchicalInstancedStaticMeshComponent->InstancingRandomSeed)
@@ -1369,10 +1410,10 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 	{
 		const int32 SubsectionSizeQuads = Component->SubsectionSizeQuads;
 		const int32 NumSubsections = Component->NumSubsections;
-		const int32 ComponentSizeQuads = Component->ComponentSizeQuads;
+		const int32 LandscapeComponentSizeQuads = Component->ComponentSizeQuads;
 	
 		const int32 StaticLightingLOD = Component->GetLandscapeProxy()->StaticLightingLOD;
-		const int32 ComponentSizeVerts = ComponentSizeQuads + 1;
+		const int32 ComponentSizeVerts = LandscapeComponentSizeQuads + 1;
 		const float LightMapRes = Component->StaticLightingResolution > 0.0f ? Component->StaticLightingResolution : Component->GetLandscapeProxy()->StaticLightingResolution;
 		const int32 LightingLOD = Component->GetLandscapeProxy()->StaticLightingLOD;
 
@@ -1381,13 +1422,13 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 		int32 PatchExpandCountX = 0;
 		int32 PatchExpandCountY = 0;
 		int32 DesiredSize = 1;
-		const float LightMapRatio = ::GetTerrainExpandPatchCount(LightMapRes, PatchExpandCountX, PatchExpandCountY, ComponentSizeQuads, (NumSubsections * (SubsectionSizeQuads + 1)), DesiredSize, LightingLOD);
+		const float LightMapRatio = ::GetTerrainExpandPatchCount(LightMapRes, PatchExpandCountX, PatchExpandCountY, LandscapeComponentSizeQuads, (NumSubsections * (SubsectionSizeQuads + 1)), DesiredSize, LightingLOD);
 		const float LightmapLODScaleX = LightMapRatio / ((ComponentSizeVerts >> StaticLightingLOD) + 2 * PatchExpandCountX);
 		const float LightmapLODScaleY = LightMapRatio / ((ComponentSizeVerts >> StaticLightingLOD) + 2 * PatchExpandCountY);
 		const float LightmapBiasX = PatchExpandCountX * LightmapLODScaleX;
 		const float LightmapBiasY = PatchExpandCountY * LightmapLODScaleY;
-		const float LightmapScaleX = LightmapLODScaleX * (float)((ComponentSizeVerts >> StaticLightingLOD) - 1) / ComponentSizeQuads;
-		const float LightmapScaleY = LightmapLODScaleY * (float)((ComponentSizeVerts >> StaticLightingLOD) - 1) / ComponentSizeQuads;
+		const float LightmapScaleX = LightmapLODScaleX * (float)((ComponentSizeVerts >> StaticLightingLOD) - 1) / LandscapeComponentSizeQuads;
+		const float LightmapScaleY = LightmapLODScaleY * (float)((ComponentSizeVerts >> StaticLightingLOD) - 1) / LandscapeComponentSizeQuads;
 
 		LightMapComponentScale = FVector2D(LightmapScaleX, LightmapScaleY) / FVector2D(DrawScale);
 		LightMapComponentBias = FVector2D(LightmapBiasX, LightmapBiasY);
@@ -1488,7 +1529,7 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 				bool bKeep = Weight > 0.0f && Weight >= RandomStream.GetFraction();
 				if (bKeep)
 				{
-					const FVector Scale = GetRandomScale();
+					const FVector Scale = RandomScale ? GetRandomScale() : FVector(1);
 					const float Rot = RandomRotation ? RandomStream.GetFraction() * 360.0f : 0.0f;
 					const FMatrix BaseXForm = FScaleRotationTranslationMatrix(Scale, FRotator(0.0f, Rot, 0.0f), FVector::ZeroVector);
 					FMatrix OutXForm;
@@ -1587,7 +1628,7 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 							const FInstanceLocal& Instance = Instances[InstanceIndex];
 							if (Instance.bKeep)
 							{
-								const FVector Scale = GetRandomScale();
+								const FVector Scale = RandomScale ? GetRandomScale() : FVector(1);
 								const float Rot = RandomRotation ? RandomStream.GetFraction() * 360.0f : 0.0f;
 								const FMatrix BaseXForm = FScaleRotationTranslationMatrix(Scale, FRotator(0.0f, Rot, 0.0f), FVector::ZeroVector);
 								FMatrix OutXForm;
@@ -2313,6 +2354,13 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 	}
 }
 
+FAsyncGrassTask::FAsyncGrassTask(FAsyncGrassBuilder* InBuilder, const FCachedLandscapeFoliage::FGrassCompKey& InKey, UHierarchicalInstancedStaticMeshComponent* InFoliage)
+	: Builder(InBuilder)
+	, Key(InKey)
+	, Foliage(InFoliage)
+{
+}
+
 void FAsyncGrassTask::DoWork()
 {
 	Builder->Build();
@@ -2325,25 +2373,17 @@ FAsyncGrassTask::~FAsyncGrassTask()
 
 static void FlushGrass(const TArray<FString>& Args)
 {
-	for (TObjectIterator<ALandscapeProxy> It; It; ++It)
+	for (ALandscapeProxy* Landscape : TObjectRange<ALandscapeProxy>(RF_ClassDefaultObject | RF_ArchetypeObject, true, EInternalObjectFlags::PendingKill))
 	{
-		ALandscapeProxy* Landscape = *It;
-		if (Landscape && !Landscape->IsTemplate() && !Landscape->IsPendingKill())
-		{
-			Landscape->FlushGrassComponents();
-		}
+		Landscape->FlushGrassComponents();
 	}
 }
 
 static void FlushGrassPIE(const TArray<FString>& Args)
 {
-	for (TObjectIterator<ALandscapeProxy> It; It; ++It)
+	for (ALandscapeProxy* Landscape : TObjectRange<ALandscapeProxy>(RF_ClassDefaultObject | RF_ArchetypeObject, true, EInternalObjectFlags::PendingKill))
 	{
-		ALandscapeProxy* Landscape = *It;
-		if (Landscape && !Landscape->IsTemplate() && !Landscape->IsPendingKill())
-		{
-			Landscape->FlushGrassComponents(nullptr, false);
-		}
+		Landscape->FlushGrassComponents(nullptr, false);
 	}
 }
 

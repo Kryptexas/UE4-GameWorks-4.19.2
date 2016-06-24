@@ -236,8 +236,6 @@ bool FAnimTrack::HasRootMotion() const
 {
 	for (const FAnimSegment& AnimSegment : AnimSegments)
 	{
-		ensureAlways(AnimSegment.bValid == IsValidToAdd(AnimSegment.AnimReference));
-
 		if (AnimSegment.bValid && AnimSegment.AnimReference && AnimSegment.AnimReference->HasRootMotion())
 		{
 			return true;
@@ -406,7 +404,7 @@ FAnimSegment* FAnimTrack::GetSegmentAtTime(float InTime)
 	FAnimSegment* Result = nullptr;
 	for(FAnimSegment& Segment : AnimSegments)
 	{
-		if(Segment.AnimStartTime <= InTime && InTime <= Segment.StartPos + Segment.GetLength())
+		if(Segment.StartPos <= InTime && InTime <= Segment.StartPos + Segment.GetLength())
 		{
 			Result = &Segment;
 			break;
@@ -421,7 +419,7 @@ int32 FAnimTrack::GetSegmentIndexAtTime(float InTime)
 	for(int32 Idx = 0 ; Idx < AnimSegments.Num() ; ++Idx)
 	{
 		FAnimSegment& Segment = AnimSegments[Idx];
-		if(Segment.AnimStartTime <= InTime && InTime <= Segment.StartPos + Segment.GetLength())
+		if(Segment.StartPos <= InTime && InTime <= Segment.StartPos + Segment.GetLength())
 		{
 			Result = Idx;
 			break;
@@ -438,8 +436,7 @@ bool FAnimTrack::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& Anim
 		const struct FAnimSegment & Segment = AnimSegments[I];
 		if ( Segment.bValid && Segment.AnimReference  )
 		{
-			AnimationAssets.AddUnique(Segment.AnimReference);
-			Segment.AnimReference->GetAllAnimationSequencesReferred(AnimationAssets);
+			Segment.AnimReference->HandleAnimReferenceCollection(AnimationAssets);
 		}
 	}
 
@@ -630,6 +627,10 @@ void FAnimTrack::InvalidateRecursiveAsset(class UAnimCompositeBase* CheckAsset)
 				AnimSegment.bValid = IsValidToAdd(CompositeBase);
 			}
 		}
+		else
+		{
+			AnimSegment.bValid = IsValidToAdd(AnimSegment.AnimReference);
+		}
 	}
 }
 
@@ -663,6 +664,19 @@ void FAnimTrack::GetAnimNotifiesFromTrackPositions(const float& PreviousTrackPos
 			AnimSegments[SegmentIndex].GetAnimNotifiesFromTrackPositions(PreviousTrackPosition, CurrentTrackPosition, OutActiveNotifies);
 		}
 	}
+}
+
+bool FAnimTrack::IsNotifyAvailable() const
+{
+	for (int32 SegmentIndex = 0; SegmentIndex < AnimSegments.Num(); ++SegmentIndex)
+	{
+		if (AnimSegments[SegmentIndex].IsNotifyAvailable())
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 bool FAnimTrack::IsValidToAdd(const UAnimSequenceBase* SequenceBase) const

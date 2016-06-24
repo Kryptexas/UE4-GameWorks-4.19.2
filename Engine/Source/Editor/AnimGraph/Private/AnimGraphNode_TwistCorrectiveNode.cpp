@@ -16,7 +16,7 @@ UAnimGraphNode_TwistCorrectiveNode::UAnimGraphNode_TwistCorrectiveNode(const FOb
 
 FText UAnimGraphNode_TwistCorrectiveNode::GetTooltipText() const
 {
-	return LOCTEXT("UAnimGraphNode_TwistCorrectiveNode_ToolTip", "Drives the transform of a bone or morph target using the transform of another bone");
+	return LOCTEXT("UAnimGraphNode_TwistCorrectiveNode_ToolTip", "Drives curve value (of usually morph target) using the transform of delta angle between base and twist frame to the direction of twist plane. ");
 }
 
 FText UAnimGraphNode_TwistCorrectiveNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
@@ -42,7 +42,7 @@ FText UAnimGraphNode_TwistCorrectiveNode::GetNodeTitle(ENodeTitleType::Type Titl
 
 FText UAnimGraphNode_TwistCorrectiveNode::GetControllerDescription() const
 {
-	return LOCTEXT("TwistCorrectiveNode", "Twist Corrective Nodes");
+	return LOCTEXT("TwistCorrectiveNode", "Twist Corrective Node");
 }
 
 void UAnimGraphNode_TwistCorrectiveNode::ValidateAnimNodeDuringCompilation(USkeleton* ForSkeleton, FCompilerResultsLog& MessageLog)

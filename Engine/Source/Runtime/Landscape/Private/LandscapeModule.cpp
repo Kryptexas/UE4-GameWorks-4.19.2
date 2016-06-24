@@ -7,6 +7,8 @@
 #include "Engine/World.h"
 #include "Engine/Level.h"
 #include "LandscapeVersion.h"
+#include "Materials/Material.h"
+#include "Materials/MaterialInstance.h"
 
 // Register the custom version with core
 FCustomVersionRegistration GRegisterLandscapeCustomVersion(FLandscapeCustomVersion::GUID, FLandscapeCustomVersion::LatestVersion, TEXT("Landscape"));

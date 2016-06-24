@@ -654,7 +654,7 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 	}
 
 	// Record hit test geometry, but only if we're not caching.
-	const FPaintArgs UpdatedArgs = Args.RecordHittestGeometry(this, AllottedGeometry, MyClippingRect);
+	const FPaintArgs UpdatedArgs = Args.RecordHittestGeometry(this, AllottedGeometry, LayerId, MyClippingRect);
 
 	// Paint the geometry of this widget.
 	int32 NewLayerID = OnPaint(UpdatedArgs, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);

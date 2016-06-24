@@ -2,7 +2,7 @@
 <TpsData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>libsndfile</Name>
   <Location>/Engine/Binaries/ThirdParty/libsndfile/</Location>
-  <Date>2016-04-08T14:08:42.2433836-04:00</Date>
+  <Date>2016-06-10T16:47:45.5432064-04:00</Date>
   <Function>Process and decode many sound file formats including ogg, flac, aiff, au, etc</Function>
   <Justification>New audio engine work, better support of wide variety of file formats, simpler implementation</Justification>
   <Platforms>
@@ -25,5 +25,5 @@
   <IsSourceAvailable>false</IsSourceAvailable>
   <NoticeType>None</NoticeType>
   <Notification />
-  <LicenseFolder />
+  <LicenseFolder>None</LicenseFolder>
 </TpsData>

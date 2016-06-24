@@ -92,6 +92,10 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 	{
 		return bWaitingForRepath;
 	}
+	FORCEINLINE void SetManualRepathWaiting(const bool bInWaitingForRepath)
+	{
+		bWaitingForRepath = bInWaitingForRepath;
+	}
 	FORCEINLINE bool ShouldUpdateStartPointOnRepath() const
 	{
 		return bUpdateStartPointOnRepath;
@@ -181,6 +185,13 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 
 	FORCEINLINE void DoneUpdating(ENavPathUpdateType::Type UpdateType)
 	{
+		static const ENavPathEvent::Type PathUpdateTypeToPathEvent[] = {
+			ENavPathEvent::UpdatedDueToGoalMoved // GoalMoved,
+			, ENavPathEvent::UpdatedDueToNavigationChanged // NavigationChanged,
+			, ENavPathEvent::MetaPathUpdate // MetaPathUpdate,
+			, ENavPathEvent::Custom // Custom,
+		};
+
 		bUpToDate = true;
 		bWaitingForRepath = false;
 
@@ -189,8 +200,8 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 			// notify path before observers
 			OnPathUpdated(UpdateType);
 		}
-
-		ObserverDelegate.Broadcast(this, UpdateType == ENavPathUpdateType::GoalMoved ? ENavPathEvent::UpdatedDueToGoalMoved : ENavPathEvent::UpdatedDueToNavigationChanged);
+		
+		ObserverDelegate.Broadcast(this, PathUpdateTypeToPathEvent[uint8(UpdateType)]);
 	}
 
 	FORCEINLINE float GetTimeStamp() const { return LastUpdateTimeStamp; }
@@ -930,8 +941,8 @@ protected:
 	uint32 bRegistered : 1;
 
 	/** was it generated for default agent (SupportedAgents[0]) */
-	uint32 bSupportsDefaultAgent:1;
-
+	uint32 bSupportsDefaultAgent : 1;
+	
 	DEPRECATED(4.12, "This flag is now deprecated, initial rebuild ignore should be handled by discarding dirty areas in UNavigationSystem::ConditionalPopulateNavOctree.")
 	uint32 bWantsUpdate:1;
 
@@ -978,7 +989,7 @@ FORCEINLINE bool FPathFindingResult::IsPartial() const
 	return (Result != ENavigationQueryResult::Error) && Path.IsValid() && Path->IsPartial();
 }
 
-FORCEINLINE void FNavigationPath::SetNavigationDataUsed(const ANavigationData* const NewData)
+FORCEINLINE void FNavigationPath::SetNavigationDataUsed(const ANavigationData* const NavData)
 {
-	NavigationDataUsed = NewData;
+	NavigationDataUsed = NavData;
 }

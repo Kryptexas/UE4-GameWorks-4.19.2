@@ -9,6 +9,7 @@
 #include "ScopedTransaction.h"
 #include "MovieScene.h"
 #include "MovieSceneTrackEditor.h"
+#include "MovieSceneToolsProjectSettingsCustomization.h"
 
 #include "BoolPropertyTrackEditor.h"
 #include "BytePropertyTrackEditor.h"
@@ -42,6 +43,7 @@
 #include "ClipboardTypes.h"
 #include "Curves/CurveBase.h"
 #include "ISettingsModule.h"
+#include "PropertyEditorModule.h"
 
 #define LOCTEXT_NAMESPACE "FMovieSceneToolsModule"
 
@@ -98,6 +100,10 @@ public:
 		CameraShakeTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle(FOnCreateTrackEditor::CreateStatic(&FCameraShakeTrackEditor::CreateTrackEditor));
 
 		RegisterClipboardConversions();
+
+		// register details customization
+		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		PropertyModule.RegisterCustomClassLayout("MovieSceneToolsProjectSettings", FOnGetDetailCustomizationInstance::CreateStatic(&FMovieSceneToolsProjectSettingsCustomization::MakeInstance));
 	}
 
 	virtual void ShutdownModule() override
@@ -141,6 +147,12 @@ public:
 		SequencerModule.UnRegisterTrackEditor_Handle( SpawnTrackCreateEditorHandle );
 		SequencerModule.UnRegisterTrackEditor_Handle( CameraAnimTrackCreateEditorHandle );
 		SequencerModule.UnRegisterTrackEditor_Handle( CameraShakeTrackCreateEditorHandle );
+
+		if (FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
+		{	
+			FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+			PropertyModule.UnregisterCustomClassLayout("MovieSceneToolsProjectSettings");
+		}
 	}
 
 	void RegisterClipboardConversions()

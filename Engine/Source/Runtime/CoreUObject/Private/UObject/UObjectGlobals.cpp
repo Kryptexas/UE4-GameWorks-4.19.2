@@ -13,6 +13,7 @@
 #include "BlueprintSupport.h" // for FDeferredObjInitializerTracker
 #include "ExclusiveLoadPackageTimeTracker.h"
 #include "AssetRegistryInterface.h"
+#include "CookStats.h"
 
 DEFINE_LOG_CATEGORY(LogUObjectGlobals);
 
@@ -43,6 +44,21 @@ DEFINE_STAT(STAT_DestroyObject);
 DECLARE_CYCLE_STAT(TEXT("InstanceSubobjects"), STAT_InstanceSubobjects, STATGROUP_Object);
 DECLARE_CYCLE_STAT(TEXT("PostInitProperties"), STAT_PostInitProperties, STATGROUP_Object);
 
+#if ENABLE_COOK_STATS
+#include "ScopedTimers.h"
+
+namespace LoadPackageStats
+{
+	static double LoadPackageTimeSec = 0.0;
+	static int NumPackagesLoaded = 0;
+	static FCookStatsManager::FAutoRegisterCallback RegisterCookStats([](FCookStatsManager::AddStatFuncRef AddStat)
+	{
+		AddStat(TEXT("Package.Load"), FCookStatsManager::CreateKeyValueArray(
+			TEXT("NumPackagesLoaded"), NumPackagesLoaded,
+			TEXT("LoadPackageTimeSec"), LoadPackageTimeSec));
+	});
+}
+#endif
 
 /** CoreUObject delegates */
 FCoreUObjectDelegates::FRegisterClassForHotReloadReinstancingDelegate FCoreUObjectDelegates::RegisterClassForHotReloadReinstancingDelegate;
@@ -66,7 +82,8 @@ FCoreUObjectDelegates::FOnRedirectorFollowed FCoreUObjectDelegates::RedirectorFo
 
 FSimpleMulticastDelegate FCoreUObjectDelegates::PreGarbageCollect;
 FSimpleMulticastDelegate FCoreUObjectDelegates::PostGarbageCollect;
-FSimpleMulticastDelegate FCoreUObjectDelegates::PreLoadMap;
+
+FCoreUObjectDelegates::FPreLoadMapDelegate FCoreUObjectDelegates::PreLoadMap;
 FSimpleMulticastDelegate FCoreUObjectDelegates::PostLoadMap;
 FSimpleMulticastDelegate FCoreUObjectDelegates::PostDemoPlay;
 FCoreUObjectDelegates::FOnLoadObjectsOnTop FCoreUObjectDelegates::ShouldLoadOnTop;
@@ -74,8 +91,9 @@ FCoreUObjectDelegates::FOnLoadObjectsOnTop FCoreUObjectDelegates::ShouldLoadOnTo
 FCoreUObjectDelegates::FStringAssetReferenceLoaded FCoreUObjectDelegates::StringAssetReferenceLoaded;
 FCoreUObjectDelegates::FStringAssetReferenceSaving FCoreUObjectDelegates::StringAssetReferenceSaving;
 FCoreUObjectDelegates::FPackageCreatedForLoad FCoreUObjectDelegates::PackageCreatedForLoad;
+FCoreUObjectDelegates::FPackageLoadedFromStringAssetReference FCoreUObjectDelegates::PackageLoadedFromStringAssetReference;
 
-/** Check wehether we should report progress or not */
+/** Check whether we should report progress or not */
 bool ShouldReportProgress()
 {
 	return GIsEditor && IsInGameThread() && !IsRunningCommandlet() && !IsAsyncLoading();
@@ -83,7 +101,7 @@ bool ShouldReportProgress()
 
 /**
  * Returns true if code is called form the game thread while collecting garbage.
- * We only have tp guard agains StaticFindObject on the game thread as other threads will be blocked anyway
+ * We only have to guard against StaticFindObject on the game thread as other threads will be blocked anyway
  */
 static FORCEINLINE bool IsGarbageCollectingOnGameThread()
 {
@@ -783,14 +801,18 @@ UObject* StaticLoadObjectInternal(UClass* ObjectClass, UObject* InOuter, const T
 	if (InOuter)
 	{
 		// If we have a full UObject name then attempt to find the object in memory first,
-		// unless we're currently inside of async loading path because the object may not be fully loaded yet.
-		if (bAllowObjectReconciliation && ((bContainsObjectName && !IsInAsyncLoadingThread())
+		if (bAllowObjectReconciliation && (bContainsObjectName
 #if WITH_EDITOR
 			|| GIsImportingT3D
 #endif
 			))
 		{
 			Result = StaticFindObjectFast(ObjectClass, InOuter, *StrName);
+			if (Result && Result->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects))
+			{
+				// Object needs loading so load it before returning
+				Result = nullptr;
+			}
 		}
 
 		if (!Result)
@@ -977,40 +999,16 @@ public:
 
 #endif
 
-
-/**
-* Loads a package and all contained objects that match context flags.
-*
-* @param	InOuter		Package to load new package into (usually NULL or ULevel->GetOuter())
-* @param	Filename	Long package name to load.
-* @param	LoadFlags	Flags controlling loading behavior
-* @param	ImportLinker	Linker that requests this package through one of its imports
-* @return	Loaded package if successful, NULL otherwise
-*/
-UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName, uint32 LoadFlags, FLinkerLoad* ImportLinker, TSet<FName>& InDependencyTracker, IAssetRegistryInterface* InAssetRegistry)
+void ScanPackageDependenciesForLoadOrder(const TCHAR* InLongPackageName, TMap<FName, int32>& InOrderTracker, int32& Order, IAssetRegistryInterface* InAssetRegistry)
 {
-	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("LoadPackageInternal"), STAT_LoadPackageInternal, STATGROUP_ObjectVerbose);
-
-	UPackage* Result = NULL;
-
 	FString FileToLoad;
-
-#if WITH_EDITOR
-	FString DiffFileToLoad;
-	if (LoadFlags & LOAD_ForFileDiff)
-	{
-		FString TempFilenames = InLongPackageName;
-		ensure(TempFilenames.Split(TEXT(";"), &FileToLoad, &DiffFileToLoad, ESearchCase::CaseSensitive));
-	}
-	else
-#endif
-	if( InLongPackageName && FCString::Strlen(InLongPackageName) > 0 )
+	if (InLongPackageName && FCString::Strlen(InLongPackageName) > 0)
 	{
 		FileToLoad = InLongPackageName;
 	}
-	else if( InOuter )
+	else
 	{
-		FileToLoad = InOuter->GetName();
+		return;
 	}
 
 	// Make sure we're trying to load long package names only.
@@ -1026,14 +1024,85 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 		else if (!FPackageName::SearchForPackageOnDisk(FileToLoad, &FileToLoad))
 		{
 			UE_LOG(LogUObjectGlobals, Warning, TEXT("LoadPackage can't find package %s."), *FileToLoad);
-			return NULL;
+			return;
 		}
 	}
 
 	FName PackageName(InLongPackageName);
-	check(!InDependencyTracker.Contains(InLongPackageName));
-	InDependencyTracker.Add(PackageName);
+	InOrderTracker.Add(PackageName, -1); // this is just a placeholder to prevent recursion
 
+	TArray<FName> PackageDependencies;
+	InAssetRegistry->GetDependencies(PackageName, PackageDependencies, EAssetRegistryDependencyType::Hard);
+	for (auto Dependency : PackageDependencies)
+	{
+		if (!InOrderTracker.Contains(Dependency) && !FindObjectFast<UPackage>(nullptr, Dependency, false, false))
+		{
+			ScanPackageDependenciesForLoadOrder(*Dependency.ToString(), InOrderTracker, Order, InAssetRegistry);
+		}
+	}
+	InOrderTracker.Add(PackageName, Order++);
+}
+
+/**
+* Loads a package and all contained objects that match context flags.
+*
+* @param	InOuter		Package to load new package into (usually NULL or ULevel->GetOuter())
+* @param	Filename	Long package name to load.
+* @param	LoadFlags	Flags controlling loading behavior
+* @param	ImportLinker	Linker that requests this package through one of its imports
+* @return	Loaded package if successful, NULL otherwise
+*/
+static UPackage* LoadPackageInternalInner(UPackage* InOuter, const TCHAR* InLongPackageName, uint32 LoadFlags, FLinkerLoad* ImportLinker, bool bSkipNameChecks = false)
+{
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("LoadPackageInternal"), STAT_LoadPackageInternal, STATGROUP_ObjectVerbose);
+
+	UPackage* Result = NULL;
+
+	FString FileToLoad;
+#if WITH_EDITOR
+	FString DiffFileToLoad;
+#endif
+	if (bSkipNameChecks)
+	{
+		FileToLoad = InLongPackageName;
+	}
+	else
+	{
+
+#if WITH_EDITOR
+		if (LoadFlags & LOAD_ForFileDiff)
+		{
+			FString TempFilenames = InLongPackageName;
+			ensure(TempFilenames.Split(TEXT(";"), &FileToLoad, &DiffFileToLoad, ESearchCase::CaseSensitive));
+		}
+		else
+#endif
+		if (InLongPackageName && FCString::Strlen(InLongPackageName) > 0)
+		{
+			FileToLoad = InLongPackageName;
+		}
+		else if (InOuter)
+		{
+			FileToLoad = InOuter->GetName();
+		}
+
+		// Make sure we're trying to load long package names only.
+		if (FPackageName::IsShortPackageName(FileToLoad))
+		{
+			FString LongPackageName;
+			FName* ScriptPackageName = FPackageName::FindScriptPackageName(*FileToLoad);
+			if (ScriptPackageName)
+			{
+				UE_LOG(LogUObjectGlobals, Warning, TEXT("LoadPackage: %s is a short script package name."), InLongPackageName);
+				FileToLoad = ScriptPackageName->ToString();
+			}
+			else if (!FPackageName::SearchForPackageOnDisk(FileToLoad, &FileToLoad))
+			{
+				UE_LOG(LogUObjectGlobals, Warning, TEXT("LoadPackage can't find package %s."), *FileToLoad);
+				return NULL;
+			}
+		}
+	}
 #if WITH_EDITOR
 	TGuardValue<bool> IsEditorLoadingPackage(GIsEditorLoadingPackage, GIsEditor || GIsEditorLoadingPackage);
 #endif
@@ -1045,20 +1114,6 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 
 	// Try to load.
 	BeginLoad();
-
-	if (InAssetRegistry)
-	{
-		TArray<FName> PackageDependencies;
-		InAssetRegistry->GetDependencies(PackageName, PackageDependencies, EAssetRegistryDependencyType::Hard);
-
-		for (auto Dependency : PackageDependencies)
-		{
-			if (!InDependencyTracker.Contains(Dependency) && FindObjectFast<UPackage>(nullptr, Dependency, false, false) == nullptr)
-			{
-				LoadPackageInternal(InOuter, *Dependency.ToString(), LoadFlags, nullptr, InDependencyTracker, InAssetRegistry);
-			}
-		}
-	}
 
 	bool bFullyLoadSkipped = false;
 
@@ -1093,8 +1148,7 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 		}
 
 		Result = Linker->LinkerRoot;
-
-
+		checkf(Result, TEXT("LinkerRoot is null"));
 
 		auto EndLoadAndCopyLocalizationGatherFlag = [&]
 		{
@@ -1113,7 +1167,7 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 		}
 #endif
 
-		if (Result && Result->HasAnyFlags(RF_WasLoaded))
+		if (Result->HasAnyFlags(RF_WasLoaded))
 		{
 			// The linker is associated with a package that has already been loaded.
 			// Loading packages that have already been loaded is unsupported.
@@ -1131,12 +1185,10 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 		}
 
 		// Save the filename we load from
-		CA_SUPPRESS(28182)
 		Result->FileName = FName(*FileToLoad);
 
 		// is there a script SHA hash for this package?
 		uint8 SavedScriptSHA[20];
-		CA_SUPPRESS(6011)
 		bool bHasScriptSHAHash = FSHA1::GetFileSHAHash(*Linker->LinkerRoot->GetName(), SavedScriptSHA, false);
 		if (bHasScriptSHAHash)
 		{
@@ -1159,7 +1211,11 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 			// Make sure we pass the property that's currently being serialized by the linker that owns the import 
 			// that triggered this LoadPackage call
 			FSerializedPropertyScope SerializedProperty(*Linker, ImportLinker ? ImportLinker->GetSerializedProperty() : Linker->GetSerializedProperty());
+#if USE_NEW_ASYNC_IO 
+			Linker->LoadAllObjects(true);
+#else
 			Linker->LoadAllObjects();
+#endif		
 		}
 		else
 		{
@@ -1211,26 +1267,33 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 		// fail, so we only currently do this when loading on consoles.
 		// The only exception here is when we're in the middle of async loading where we can't reset loaders yet. This should only happen when
 		// doing synchronous load in the middle of streaming.
-		if (FPlatformProperties::RequiresCookedData() && !IsInAsyncLoadingThread())
+		if (FPlatformProperties::RequiresCookedData())
 		{
-			if (FUObjectThreadContext::Get().ObjBeginLoadCount == 0)
+			if (!IsInAsyncLoadingThread())
 			{
-				// Sanity check to make sure that Linker is the linker that loaded our Result package or the linker has already been detached
-				check(!Result || Result->LinkerLoad == Linker || Result->LinkerLoad == nullptr);
-				if (Result && Linker->Loader)
+				if (FUObjectThreadContext::Get().ObjBeginLoadCount == 0)
 				{
-					ResetLoaders(Result);
+					// Sanity check to make sure that Linker is the linker that loaded our Result package or the linker has already been detached
+					check(!Result || Result->LinkerLoad == Linker || Result->LinkerLoad == nullptr);
+					if (Result && Linker->Loader)
+					{
+						ResetLoaders(Result);
+					}
+					// Reset loaders could have already deleted Linker so guard against deleting stale pointers
+					if (Result && Result->LinkerLoad)
+					{
+						delete Linker->Loader;
+						Linker->Loader = nullptr;
+					}
+					// And make sure no one can use it after it's been deleted
+					Linker = nullptr;
 				}
-				// Reset loaders could have already deleted Linker so guard against deleting stale pointers
-				if (Result && Result->LinkerLoad)
+				// Async loading removes delayed linkers on the game thread after streaming has finished
+				else
 				{
-					delete Linker->Loader;
-					Linker->Loader = nullptr;
+					FUObjectThreadContext::Get().DelayedLinkerClosePackages.AddUnique(Linker);
 				}
-				// And make sure no one can use it after it's been deleted
-				Linker = nullptr;
 			}
-			// Async loading removes delayed linkers on the game thread after streaming has finished
 			else
 			{
 				FUObjectThreadContext::Get().DelayedLinkerClosePackages.AddUnique(Linker);
@@ -1238,11 +1301,6 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 		}
 	}
 
-	if( GUseSeekFreeLoading && Result && !(LoadFlags & LOAD_NoSeekFreeLinkerDetatch) )
-	{
-		// We no longer need the linker. Passing in NULL would reset all loaders so we need to check for that.
-		ResetLoaders( Result );
-	}
 	if (!bFullyLoadSkipped)
 	{
 		// Mark package as loaded.
@@ -1270,7 +1328,7 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 {
 	IAssetRegistryInterface* AssetRegistry = nullptr;
 #if !WITH_EDITOR
-	bool bAllowDependencyPreloading = ((LoadFlags & LOAD_DisableDependencyPreloading) == 0);
+	bool bAllowDependencyPreloading = !InOuter && ((LoadFlags & (LOAD_DisableDependencyPreloading | LOAD_ForFileDiff)) == 0);
 	static auto CVarPreloadDependencies = IConsoleManager::Get().FindConsoleVariable(TEXT("s.PreloadPackageDependencies"));
 	
 	if (bAllowDependencyPreloading && CVarPreloadDependencies && CVarPreloadDependencies->GetInt() != 0)
@@ -1281,13 +1339,55 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 		}
 	}
 #endif
+	if (AssetRegistry)
+	{
+		//MaybeFlushCachedAsyncArchive();
+		check(!InOuter);
+		TMap<FName, int32> OrderTracker;
+		int32 Order = 0;
+		ScanPackageDependenciesForLoadOrder(InLongPackageName, OrderTracker, Order, AssetRegistry);
 
-	TSet<FName> DependencyTracker;
-	return LoadPackageInternal(InOuter, InLongPackageName, LoadFlags, ImportLinker, DependencyTracker, AssetRegistry);
+		OrderTracker.ValueSort(TLess<int32>());
+#if USE_NEW_ASYNC_IO
+		TArray<FString> Hints;
+		for (auto& Dependency : OrderTracker)
+		{
+			FString PrestreamFilename = GetPrestreamPackageLinkerName(*Dependency.Key.ToString());
+			if (PrestreamFilename.Len() > 0)
+			{
+				HintFutureRead(*PrestreamFilename);
+				Hints.Add(PrestreamFilename);
+			}
+		}
+#endif // USE_NEW_ASYNC_IO
+		UPackage* Result = nullptr;
+		for (auto& Dependency : OrderTracker)
+		{
+			Result = FindObjectFast<UPackage>(nullptr, Dependency.Key, false, false); // might have already loaded this via a circular dependency
+			if (Result)
+			{
+				//UE_LOG(LogUObjectGlobals, Warning, TEXT("LoadPackage already loaded, skipping %s."), *Dependency.Key.ToString());
+			}
+			else
+			{
+				Result = LoadPackageInternalInner(nullptr, *Dependency.Key.ToString(), LoadFlags, ImportLinker, true);
+			}
+		}
+#if USE_NEW_ASYNC_IO
+		for (auto& Dependency : Hints)
+		{
+			HintFutureReadDone(*Dependency);
+		}
+#endif // USE_NEW_ASYNC_IO
+		return Result;
+	}
+	return LoadPackageInternalInner(InOuter, InLongPackageName, LoadFlags, ImportLinker);
 }
 
 UPackage* LoadPackage(UPackage* InOuter, const TCHAR* InLongPackageName, uint32 LoadFlags)
 {
+	COOK_STAT(LoadPackageStats::NumPackagesLoaded++);
+	COOK_STAT(FScopedDurationTimer LoadTimer(LoadPackageStats::LoadPackageTimeSec));
 	// Change to 1 if you want more detailed stats for loading packages, but at the cost of adding dynamic stats.
 #if	STATS && 0
 	static FString Package = TEXT( "Package" );
@@ -1701,6 +1801,35 @@ FName MakeObjectNameFromDisplayLabel(const FString& DisplayLabel, const FName Cu
    Duplicating Objects.
 -----------------------------------------------------------------------------*/
 
+struct FObjectDuplicationHelperMethods
+{
+	// Helper method intended to gather up all default subobjects that have already been created and prepare them for duplication.
+	static void GatherDefaultSubobjectsForDuplication(UObject* SrcObject, UObject* DstObject, FUObjectAnnotationSparse<FDuplicatedObject, false>& DuplicatedObjectAnnotation, FDuplicateDataWriter& Writer)
+	{
+		TArray<UObject*> SrcDefaultSubobjects;
+		SrcObject->GetDefaultSubobjects(SrcDefaultSubobjects);
+		
+		// Iterate over all default subobjects within the source object.
+		for (UObject* SrcDefaultSubobject : SrcDefaultSubobjects)
+		{
+			if (SrcDefaultSubobject)
+			{
+				// Attempt to find a default subobject with the same name within the destination object.
+				UObject* DupDefaultSubobject = DstObject->GetDefaultSubobjectByName(SrcDefaultSubobject->GetFName());
+				if (DupDefaultSubobject)
+				{
+					// Map the duplicated default subobject to the source and register it for serialization.
+					DuplicatedObjectAnnotation.AddAnnotation(SrcDefaultSubobject, FDuplicatedObject(DupDefaultSubobject));
+					Writer.UnserializedObjects.Add(SrcDefaultSubobject);
+
+					// Recursively gather any nested default subobjects that have already been constructed through CreateDefaultSubobject().
+					GatherDefaultSubobjectsForDuplication(SrcDefaultSubobject, DupDefaultSubobject, DuplicatedObjectAnnotation, Writer);
+				}
+			}
+		}
+	}
+};
+
 /**
  * Constructor - zero initializes all members
  */
@@ -1847,6 +1976,9 @@ UObject* StaticDuplicateObjectEx( FObjectDuplicationParameters& Parameters )
 	{
 		FBlueprintSupport::DuplicateAllFields(dynamic_cast<UStruct*>(Parameters.SourceObject), Writer);
 	}
+
+	// Add default subobjects to the DuplicatedObjects map so they don't get recreated during serialization.
+	FObjectDuplicationHelperMethods::GatherDefaultSubobjectsForDuplication(Parameters.SourceObject, DupRootObject, DuplicatedObjectAnnotation, Writer);
 
 	InstanceGraph.SetDestinationRoot( DupRootObject );
 	while(Writer.UnserializedObjects.Num())
@@ -2762,12 +2894,6 @@ void FObjectInitializer::InitProperties(UObject* Obj, UClass* DefaultsClass, UOb
 	}
 	else
 	{
-		// @TODO: temporarily disabling the PostConstructLink optimization here
-		//        since it is unknowingly causing issues in gameplay (see 
-		//        UE-28522) - we're still unclear on what specifically this is
-		//        doing wrong, but will investigate (UE-29449)
-		bCanUsePostConstructLink = false;
-
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_InitProperties_Blueprint);
 
 		UObject* ClassDefaults = bCopyTransientsFromClassDefaults ? DefaultsClass->GetDefaultObject() : NULL;		
@@ -2823,11 +2949,8 @@ void FObjectInitializer::InitPropertiesFromCustomList(const FCustomPropertyListN
 		}
 		else if (const UArrayProperty* ArrayProperty = Cast<UArrayProperty>(CustomPropertyListNode->Property))
 		{
-			// This should never be NULL; we should not be recording the ArrayProperty without at least one sub property, but we'll verify just to be sure.
-			if (ensure(CustomPropertyListNode->SubPropertyList != nullptr))
-			{
-				InitArrayPropertyFromCustomList(ArrayProperty, CustomPropertyListNode->SubPropertyList, PropertyValue, DefaultPropertyValue);
-			}
+			// Note: The sub-property list can be NULL here; in that case only the array size will differ from the default value, but the elements themselves will simply be initialized to defaults.
+			InitArrayPropertyFromCustomList(ArrayProperty, CustomPropertyListNode->SubPropertyList, PropertyValue, DefaultPropertyValue);
 		}
 		else
 		{
@@ -2841,15 +2964,16 @@ void FObjectInitializer::InitArrayPropertyFromCustomList(const UArrayProperty* A
 	FScriptArrayHelper DstArrayValueHelper(ArrayProperty, DataPtr);
 	FScriptArrayHelper SrcArrayValueHelper(ArrayProperty, DefaultDataPtr);
 
-	int32 Num = SrcArrayValueHelper.Num();
+	const int32 SrcNum = SrcArrayValueHelper.Num();
+	const int32 DstNum = DstArrayValueHelper.Num();
 
-	if (!(ArrayProperty->Inner->PropertyFlags & CPF_IsPlainOldData))
+	if (SrcNum > DstNum)
 	{
-		DstArrayValueHelper.EmptyAndAddValues(Num);
+		DstArrayValueHelper.AddValues(SrcNum - DstNum);
 	}
-	else
+	else if (SrcNum < DstNum)
 	{
-		DstArrayValueHelper.EmptyAndAddUninitializedValues(Num);
+		DstArrayValueHelper.RemoveValues(SrcNum, DstNum - SrcNum);
 	}
 
 	for (const FCustomPropertyListNode* CustomArrayPropertyListNode = InPropertyList; CustomArrayPropertyListNode; CustomArrayPropertyListNode = CustomArrayPropertyListNode->PropertyListNext)
@@ -2859,24 +2983,7 @@ void FObjectInitializer::InitArrayPropertyFromCustomList(const UArrayProperty* A
 		uint8* DstArrayItemValue = DstArrayValueHelper.GetRawPtr(ArrayIndex);
 		const uint8* SrcArrayItemValue = SrcArrayValueHelper.GetRawPtr(ArrayIndex);
 
-		// A null property value signals that we should serialize the remaining array values in full starting at this index
-		if (CustomArrayPropertyListNode->Property == nullptr)
-		{
-			int32 Size = ArrayProperty->Inner->ElementSize;
-
-			if (!(ArrayProperty->Inner->PropertyFlags & CPF_IsPlainOldData))
-			{
-				for (int32 i = 0; i < Num - ArrayIndex; i++)
-				{
-					ArrayProperty->Inner->CopyCompleteValue(DstArrayItemValue + i * Size, SrcArrayItemValue + i * Size);
-				}
-			}
-			else
-			{
-				FMemory::Memcpy(DstArrayItemValue, SrcArrayItemValue, (Num - ArrayIndex) * Size);
-			}
-		}
-		else if (const UStructProperty* InnerStructProperty = Cast<UStructProperty>(ArrayProperty->Inner))
+		if (const UStructProperty* InnerStructProperty = Cast<UStructProperty>(ArrayProperty->Inner))
 		{
 			InitPropertiesFromCustomList(CustomArrayPropertyListNode->SubPropertyList, InnerStructProperty->Struct, DstArrayItemValue, SrcArrayItemValue);
 		}
@@ -2958,7 +3065,7 @@ UObject* StaticConstructObject_Internal
 		(*InClass->ClassConstructor)( FObjectInitializer(Result, InTemplate, bCopyTransientsFromClassDefaults, true, InInstanceGraph) );
 	}
 	
-	if( GIsEditor && GUndo && (InFlags & RF_Transactional) && !(InFlags & RF_NeedLoad) && !InClass->IsChildOf(UField::StaticClass()) && !Result->HasAllFlags(RF_ArchetypeObject) )
+	if( GIsEditor && GUndo && (InFlags & RF_Transactional) && !(InFlags & RF_NeedLoad) && !InClass->IsChildOf(UField::StaticClass()) )
 	{
 		// Set RF_PendingKill and update the undo buffer so an undo operation will set RF_PendingKill on the newly constructed object.
 		Result->MarkPendingKill();

@@ -149,12 +149,12 @@ bool APlayerController::DestroyNetworkActorHandled()
 bool APlayerController::IsLocalController() const
 {
 	// Never local on dedicated server, always local on clients. IsServerOnly() and IsClientOnly() are checked at compile time and optimized out appropriately.
-	if (FGenericPlatformProperties::IsServerOnly())
+	if (FPlatformProperties::IsServerOnly())
 	{
-		check(!bIsLocalPlayerController);
+		checkSlow(!bIsLocalPlayerController);
 		return false;
 	}
-	else if (FGenericPlatformProperties::IsClientOnly())
+	else if (FPlatformProperties::IsClientOnly())
 	{
 		bIsLocalPlayerController = true;
 		return true;
@@ -170,7 +170,7 @@ bool APlayerController::IsLocalController() const
 	if (NetMode == NM_DedicatedServer)
 	{
 		// This is still checked for the PIE case, which would not be caught in the IsServerOnly() check above.
-		check(!bIsLocalPlayerController);
+		checkSlow(!bIsLocalPlayerController);
 		return false;
 	}
 
@@ -1510,7 +1510,7 @@ void APlayerController::SendClientAdjustment()
 	// Server sends updates.
 	// Note: we do this for both the pawn and spectator in case an implementation has a networked spectator.
 	APawn* RemotePawn = GetPawnOrSpectator();
-	if (RemotePawn && (GetNetMode() < NM_Client) && (RemotePawn->GetRemoteRole() == ROLE_AutonomousProxy))
+	if (RemotePawn && (RemotePawn->GetRemoteRole() == ROLE_AutonomousProxy) && !IsNetMode(NM_Client))
 	{
 		INetworkPredictionInterface* NetworkPredictionInterface = Cast<INetworkPredictionInterface>(RemotePawn->GetMovementComponent());
 		if (NetworkPredictionInterface)
@@ -2111,6 +2111,15 @@ bool APlayerController::InputTouch(uint32 Handle, ETouchType::Type Type, const F
 {
 	bool bResult = false;
 
+	if (GEngine->HMDDevice.IsValid())
+	{
+		bResult = GEngine->HMDDevice->HandleInputTouch(Handle, Type, TouchLocation, DeviceTimestamp, TouchpadIndex);
+		if (bResult)
+		{
+			return bResult;
+		}
+	}
+
 	if (PlayerInput)
 	{
 		bResult = PlayerInput->InputTouch(Handle, Type, TouchLocation, DeviceTimestamp, TouchpadIndex);
@@ -2600,12 +2609,13 @@ void APlayerController::ServerViewPrevPlayer_Implementation()
 APlayerState* APlayerController::GetNextViewablePlayer(int32 dir)
 {
 	int32 CurrentIndex = -1;
+	UWorld* MyWorld = GetWorld();
 	if (PlayerCameraManager->ViewTarget.PlayerState )
 	{
 		// Find index of current viewtarget's PlayerState
-		for ( int32 i=0; i<GetWorld()->GameState->PlayerArray.Num(); i++ )
+		for ( int32 i=0; i<MyWorld->GameState->PlayerArray.Num(); i++ )
 		{
-			if (PlayerCameraManager->ViewTarget.PlayerState == GetWorld()->GameState->PlayerArray[i])
+			if (PlayerCameraManager->ViewTarget.PlayerState == MyWorld->GameState->PlayerArray[i])
 			{
 				CurrentIndex = i;
 				break;
@@ -2615,39 +2625,39 @@ APlayerState* APlayerController::GetNextViewablePlayer(int32 dir)
 
 	// Find next valid viewtarget in appropriate direction
 	int32 NewIndex;
-	for ( NewIndex=CurrentIndex+dir; (NewIndex>=0)&&(NewIndex<GetWorld()->GameState->PlayerArray.Num()); NewIndex=NewIndex+dir )
+	for ( NewIndex=CurrentIndex+dir; (NewIndex>=0)&&(NewIndex<MyWorld->GameState->PlayerArray.Num()); NewIndex=NewIndex+dir )
 	{
-		APlayerState* const PlayerState = GetWorld()->GameState->PlayerArray[NewIndex];
-		if ( (PlayerState != NULL) && (Cast<AController>(PlayerState->GetOwner()) != NULL) && (Cast<AController>(PlayerState->GetOwner())->GetPawn() != NULL)
-			&& GetWorld()->GetAuthGameMode()->CanSpectate(this, PlayerState) )
+		APlayerState* const NextPlayerState = MyWorld->GameState->PlayerArray[NewIndex];
+		AController* NextController = (NextPlayerState ? Cast<AController>(NextPlayerState->GetOwner()) : nullptr);
+		if ( NextController && NextController->GetPawn() != nullptr && MyWorld->GetAuthGameMode()->CanSpectate(this, PlayerState) )
 		{
 			return PlayerState;
 		}
 	}
 
 	// wrap around
-	CurrentIndex = (NewIndex < 0) ? GetWorld()->GameState->PlayerArray.Num() : -1;
+	CurrentIndex = (NewIndex < 0) ? MyWorld->GameState->PlayerArray.Num() : -1;
 	for ( NewIndex=CurrentIndex+dir; (NewIndex>=0)&&(NewIndex<GetWorld()->GameState->PlayerArray.Num()); NewIndex=NewIndex+dir )
 	{
-		APlayerState* const PlayerState = GetWorld()->GameState->PlayerArray[NewIndex];
-		if ( (PlayerState != NULL) && (Cast<AController>(PlayerState->GetOwner()) != NULL) && (Cast<AController>(PlayerState->GetOwner())->GetPawn() != NULL) &&
-			GetWorld()->GetAuthGameMode()->CanSpectate(this, PlayerState) )
+		APlayerState* const NextPlayerState = MyWorld->GameState->PlayerArray[NewIndex];
+		AController* NextController = (NextPlayerState ? Cast<AController>(NextPlayerState->GetOwner()) : nullptr);
+		if ( NextController && NextController->GetPawn() != nullptr && MyWorld->GetAuthGameMode()->CanSpectate(this, PlayerState) )
 		{
 			return PlayerState;
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 
 void APlayerController::ViewAPlayer(int32 dir)
 {
-	APlayerState* const PlayerState = GetNextViewablePlayer(dir);
+	APlayerState* const NextPlayerState = GetNextViewablePlayer(dir);
 
-	if ( PlayerState != NULL )
+	if ( NextPlayerState != nullptr )
 	{
-		SetViewTarget(PlayerState);
+		SetViewTarget(NextPlayerState);
 	}
 }
 
@@ -2781,11 +2791,11 @@ void APlayerController::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayI
 
 		for(int32 i=InputStack.Num() - 1; i >= 0; --i)
 		{
-			AActor* Owner = InputStack[i]->GetOwner();
+			AActor* InputComponentOwner = InputStack[i]->GetOwner();
 			DisplayDebugManager.SetDrawColor(FColor::White);
-			if (Owner)
+			if (InputComponentOwner)
 			{
-				DisplayDebugManager.DrawString(FString::Printf(TEXT(" %s.%s"), *Owner->GetName(), *InputStack[i]->GetName()));
+				DisplayDebugManager.DrawString(FString::Printf(TEXT(" %s.%s"), *InputComponentOwner->GetName(), *InputStack[i]->GetName()));
 			}
 			else
 			{
@@ -3867,7 +3877,7 @@ void APlayerController::TickActor( float DeltaSeconds, ELevelTick TickType, FAct
 
 	//root of tick hierarchy
 
-	if ((GetNetMode() < NM_Client) && (GetRemoteRole() == ROLE_AutonomousProxy) && !IsLocalPlayerController())
+	if ((GetRemoteRole() == ROLE_AutonomousProxy) && !IsNetMode(NM_Client) && !IsLocalPlayerController())
 	{
 		// force physics update for clients that aren't sending movement updates in a timely manner 
 		// this prevents cheats associated with artificially induced ping spikes
@@ -4062,12 +4072,12 @@ void APlayerController::SetSpectatorPawn(class ASpectatorPawn* NewSpectatorPawn)
 		else
 		{
 			// clearing the spectator pawn, try to attach to the regular pawn
-			APawn* const Pawn = GetPawn();
-			AttachToPawn(Pawn);
-			AddPawnTickDependency(Pawn);
-			if (Pawn)
+			APawn* const MyPawn = GetPawn();
+			AttachToPawn(MyPawn);
+			AddPawnTickDependency(MyPawn);
+			if (MyPawn)
 			{
-				AutoManageActiveCameraTarget(Pawn);
+				AutoManageActiveCameraTarget(MyPawn);
 			}
 			else
 			{
@@ -4245,12 +4255,12 @@ void APlayerController::SetupInactiveStateInputComponent(UInputComponent* InComp
 }
 
 
-void APlayerController::PushInputComponent(UInputComponent* InputComponent)
+void APlayerController::PushInputComponent(UInputComponent* InInputComponent)
 {
-	if (InputComponent)
+	if (InInputComponent)
 	{
 		bool bPushed = false;
-		CurrentInputStack.RemoveSingle(InputComponent);
+		CurrentInputStack.RemoveSingle(InInputComponent);
 		for (int32 Index = CurrentInputStack.Num() - 1; Index >= 0; --Index)
 		{
 			UInputComponent* IC = CurrentInputStack[Index].Get();
@@ -4258,27 +4268,27 @@ void APlayerController::PushInputComponent(UInputComponent* InputComponent)
 			{
 				CurrentInputStack.RemoveAt(Index);
 			}
-			else if (IC->Priority <= InputComponent->Priority)
+			else if (IC->Priority <= InInputComponent->Priority)
 			{
-				CurrentInputStack.Insert(InputComponent, Index + 1);
+				CurrentInputStack.Insert(InInputComponent, Index + 1);
 				bPushed = true;
 				break;
 			}
 		}
 		if (!bPushed)
 		{
-			CurrentInputStack.Insert(InputComponent, 0);
+			CurrentInputStack.Insert(InInputComponent, 0);
 		}
 	}
 }
 
-bool APlayerController::PopInputComponent(UInputComponent* InputComponent)
+bool APlayerController::PopInputComponent(UInputComponent* InInputComponent)
 {
-	if (InputComponent)
+	if (InInputComponent)
 	{
-		if (CurrentInputStack.RemoveSingle(InputComponent) > 0)
+		if (CurrentInputStack.RemoveSingle(InInputComponent) > 0)
 		{
-			InputComponent->ClearBindingValues();
+			InInputComponent->ClearBindingValues();
 			return true;
 		}
 	}

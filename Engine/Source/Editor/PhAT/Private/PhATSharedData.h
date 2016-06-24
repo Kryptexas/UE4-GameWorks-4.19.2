@@ -7,7 +7,6 @@
 
 class UPhATEdSkeletalMeshComponent;
 class UPhysicsHandleComponent;
-
 #define DEBUG_CLICK_VIEWPORT 0
 
 /*-----------------------------------------------------------------------------

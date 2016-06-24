@@ -188,12 +188,19 @@ public:
 	 *
 	 * @param	String	String to append this name to
 	 */
-	void AppendNameToString( FString& String ) const;
+	CORE_API void AppendNameToString( FString& String ) const;
+
+	/**
+	* Appends this name entry to the passed in string, adding path separator between strings (with FString operator/).
+	*
+	* @param	String	String to append this name to
+	*/
+	CORE_API void AppendNameToPathString( FString& String ) const;
 
 	/**
 	 * @return length of name
 	 */
-	int32 GetNameLength() const;
+	CORE_API int32 GetNameLength() const;
 
 	/**
 	 * Compares name using the compare method provided.

@@ -10,6 +10,7 @@
 #include "GameplayModMagnitudeCalculation.h"
 #include "GameplayEffectExecutionCalculation.h"
 #include "GameplayCueManager.h"
+
 #if ENABLE_VISUAL_LOG
 #include "VisualLoggerTypes.h"
 //#include "VisualLogger/VisualLogger.h"
@@ -1527,6 +1528,8 @@ void FActiveGameplayEffect::PostReplicatedChange(const struct FActiveGameplayEff
 	{
 		StartWorldTime = InArray.GetWorldTime() - static_cast<float>(InArray.GetServerWorldTime() - StartServerWorldTime);
 		CachedStartServerWorldTime = StartServerWorldTime;
+
+		const_cast<FActiveGameplayEffectsContainer&>(InArray).OnDurationChange(*this);
 	}
 	
 	if (ClientCachedStackCount != Spec.StackCount)
@@ -1909,6 +1912,13 @@ void FActiveGameplayEffectsContainer::OnStackCountChange(FActiveGameplayEffect& 
 	ActiveEffect.OnStackChangeDelegate.Broadcast(ActiveEffect.Handle, ActiveEffect.Spec.StackCount, OldStackCount);
 }
 
+/** Called when the duration or starttime of an AGE has changed */
+void FActiveGameplayEffectsContainer::OnDurationChange(FActiveGameplayEffect& Effect)
+{
+	Effect.OnTimeChangeDelegate.Broadcast(Effect.Handle, Effect.StartWorldTime, Effect.GetDuration());
+	Owner->OnGameplayEffectDurationChange(Effect);
+}
+
 void FActiveGameplayEffectsContainer::UpdateAllAggregatorModMagnitudes(FActiveGameplayEffect& ActiveEffect)
 {
 	// We should never be doing this for periodic effects since their mods are not persistent on attribute aggregators
@@ -2013,6 +2023,11 @@ bool FActiveGameplayEffectsContainer::HandleActiveGameplayEffectStackOverflow(co
 	return bAllowOverflowApplication;
 }
 
+bool FActiveGameplayEffectsContainer::ShouldUseMinimalReplication()
+{
+	return IsNetAuthority() && (Owner->ReplicationMode == EReplicationMode::Minimal || Owner->ReplicationMode == EReplicationMode::Mixed);
+}
+
 void FActiveGameplayEffectsContainer::SetBaseAttributeValueFromReplication(FGameplayAttribute Attribute, float ServerValue)
 {
 	FAggregatorRef* RefPtr = AttributeAggregatorMap.Find(Attribute);
@@ -2034,18 +2049,25 @@ void FActiveGameplayEffectsContainer::GetAllActiveGameplayEffectSpecs(TArray<FGa
 	}
 }
 
-float FActiveGameplayEffectsContainer::GetGameplayEffectDuration(FActiveGameplayEffectHandle Handle) const
+void FActiveGameplayEffectsContainer::GetGameplayEffectStartTimeAndDuration(FActiveGameplayEffectHandle Handle, float& EffectStartTime, float& EffectDuration) const
 {
-	for (const FActiveGameplayEffect& ActiveEffect : this)
+	EffectStartTime = UGameplayEffect::INFINITE_DURATION;
+	EffectDuration = UGameplayEffect::INFINITE_DURATION;
+
+	if (Handle.IsValid())
 	{
-		if (ActiveEffect.Handle == Handle)
+		for (const FActiveGameplayEffect& ActiveEffect : this)
 		{
-			return ActiveEffect.GetDuration();
+			if (ActiveEffect.Handle == Handle)
+			{
+				EffectStartTime = ActiveEffect.StartWorldTime;
+				EffectDuration = ActiveEffect.GetDuration();
+				return;
+			}
 		}
 	}
-	
-	ABILITY_LOG(Warning, TEXT("GetGameplayEffectDuration called with invalid Handle: %s"), *Handle.ToString() );
-	return UGameplayEffect::INFINITE_DURATION;
+
+	ABILITY_LOG(Warning, TEXT("GetGameplayEffectStartTimeAndDuration called with invalid Handle: %s"), *Handle.ToString());
 }
 
 float FActiveGameplayEffectsContainer::GetGameplayEffectMagnitude(FActiveGameplayEffectHandle Handle, FGameplayAttribute Attribute) const
@@ -2640,7 +2662,7 @@ void FActiveGameplayEffectsContainer::AddActiveGameplayEffectGrantedTagsAndModif
 	// Update our owner with the tags this GameplayEffect grants them
 	Owner->UpdateTagMap(Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags, 1);
 	Owner->UpdateTagMap(Effect.Spec.DynamicGrantedTags, 1);
-	if (IsNetAuthority() && Owner->bMinimalReplication)
+	if (ShouldUseMinimalReplication())
 	{
 		Owner->AddMinimalReplicationGameplayTags(Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags);
 		Owner->AddMinimalReplicationGameplayTags(Effect.Spec.DynamicGrantedTags);
@@ -2676,7 +2698,7 @@ void FActiveGameplayEffectsContainer::AddActiveGameplayEffectGrantedTagsAndModif
 				Owner->InvokeGameplayCueEvent(Effect.Spec, EGameplayCueEvent::WhileActive);
 			}
 
-			if (IsNetAuthority() && Owner->bMinimalReplication)
+			if (ShouldUseMinimalReplication())
 			{
 				for (const FGameplayTag& CueTag : Cue.GameplayCueTags)
 				{
@@ -2873,7 +2895,7 @@ void FActiveGameplayEffectsContainer::RemoveActiveGameplayEffectGrantedTagsAndMo
 	Owner->UpdateTagMap(Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags, -1);
 	Owner->UpdateTagMap(Effect.Spec.DynamicGrantedTags, -1);
 
-	if (IsNetAuthority() && Owner->bMinimalReplication)
+	if (ShouldUseMinimalReplication())
 	{
 		Owner->RemoveMinimalReplicationGameplayTags(Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags);
 		Owner->RemoveMinimalReplicationGameplayTags(Effect.Spec.DynamicGrantedTags);
@@ -2923,7 +2945,7 @@ void FActiveGameplayEffectsContainer::RemoveActiveGameplayEffectGrantedTagsAndMo
 				Owner->InvokeGameplayCueEvent(Effect.Spec, EGameplayCueEvent::Removed);			
 			}
 
-			if (IsNetAuthority() && Owner->bMinimalReplication)
+			if (ShouldUseMinimalReplication())
 			{
 				for (const FGameplayTag& CueTag : Cue.GameplayCueTags)
 				{
@@ -2996,6 +3018,8 @@ void FActiveGameplayEffectsContainer::RestartActiveGameplayEffectDuration(FActiv
 	ActiveGameplayEffect.CachedStartServerWorldTime = ActiveGameplayEffect.StartServerWorldTime;
 	ActiveGameplayEffect.StartWorldTime = GetWorldTime();
 	MarkItemDirty(ActiveGameplayEffect);
+
+	OnDurationChange(ActiveGameplayEffect);
 }
 
 void FActiveGameplayEffectsContainer::OnOwnerTagChange(FGameplayTag TagChange, int32 NewCount)
@@ -3051,10 +3075,31 @@ bool FActiveGameplayEffectsContainer::HasApplicationImmunityToSpec(const FGamepl
 
 bool FActiveGameplayEffectsContainer::NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
 {
-	// Have to manually return here, replication conditions don't apply to delta properties
-	if (Owner && Owner->bMinimalReplication)
+	if (Owner)
 	{
-		return true;
+		EReplicationMode ReplicationMode = Owner->ReplicationMode;
+		if (ReplicationMode == EReplicationMode::Minimal)
+		{
+			return true;
+		}
+		else if (ReplicationMode == EReplicationMode::Mixed)
+		{
+			if (UPackageMapClient* Client = Cast<UPackageMapClient>(DeltaParms.Map))
+			{
+				UNetConnection* Connection = Client->GetConnection();
+
+				// Even in mixed mode, we should always replicate out to replays so it has all information.
+				if (Connection->GetDriver()->NetDriverName != NAME_DemoNetDriver)
+				{
+					// In mixed mode, we only want to replicate to the owner of this channel, minimal replication
+					// data will go to everyone else.
+					if (!Owner->GetOwner()->IsOwnedBy(Connection->OwningActor))
+					{
+						return true;
+					}
+				}
+			}
+		}
 	}
 
 	bool RetVal = FastArrayDeltaSerialize<FActiveGameplayEffect>(GameplayEffects_Internal, DeltaParms, *this);
@@ -3066,10 +3111,11 @@ bool FActiveGameplayEffectsContainer::NetDeltaSerialize(FNetDeltaSerializeInfo& 
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_ActiveGameplayEffectsContainer_NetDeltaSerialize_CheckRepGameplayCues);
 
-		for (const FActiveGameplayEffect& Effect : this)
+		if (!DeltaParms.bOutHasMoreUnmapped) // Do not invoke GCs when we have missing information (like AActor*s in EffectContext)
 		{
-			if (!DeltaParms.bOutHasMoreUnmapped) // Do not invoke GCs when we have missing information (like AActor*s in EffectContext)
+			for (const FActiveGameplayEffect& Effect : this)
 			{
+			
 				if (Effect.bIsInhibited == false)
 				{
 					if (Effect.bPendingRepOnActiveGC)
@@ -3471,17 +3517,22 @@ void FActiveGameplayEffectsContainer::ModifyActiveEffectStartTime(FActiveGamepla
 		Effect->StartWorldTime += StartTimeDiff;
 		Effect->StartServerWorldTime = FMath::RoundToInt((float)Effect->StartServerWorldTime + StartTimeDiff);
 
+		// Check if we are now expired
 		CheckDuration(Handle);
+
+		// Broadcast to anyone listening
+		OnDurationChange(*Effect);
 
 		MarkItemDirty(*Effect);
 	}
 }
 
 // #deprecated, use FGameplayEffectQuery version
-void FActiveGameplayEffectsContainer::RemoveActiveEffects(const FActiveGameplayEffectQuery Query, int32 StacksToRemove)
+int32 FActiveGameplayEffectsContainer::RemoveActiveEffects(const FActiveGameplayEffectQuery Query, int32 StacksToRemove)
 {
 	// Force a lock because the removals could cause other removals earlier in the array, so iterating backwards is not safe all by itself
 	GAMEPLAYEFFECT_SCOPE_LOCK();
+	int32 NumRemoved = 0;
 
 	// Manually iterating through in reverse because this is a removal operation
 	for (int32 idx=GetNumGameplayEffects()-1; idx >= 0; --idx)
@@ -3489,14 +3540,18 @@ void FActiveGameplayEffectsContainer::RemoveActiveEffects(const FActiveGameplayE
 		const FActiveGameplayEffect& Effect = *GetActiveGameplayEffect(idx);
 		if (Effect.IsPendingRemove==false && Query.Matches(Effect))
 		{
-			InternalRemoveActiveGameplayEffect(idx, StacksToRemove, true);			
+			InternalRemoveActiveGameplayEffect(idx, StacksToRemove, true);		
+			++NumRemoved;
 		}
 	}
+	return NumRemoved;
 }
-void FActiveGameplayEffectsContainer::RemoveActiveEffects(const FGameplayEffectQuery& Query, int32 StacksToRemove)
+
+int32 FActiveGameplayEffectsContainer::RemoveActiveEffects(const FGameplayEffectQuery& Query, int32 StacksToRemove)
 {
 	// Force a lock because the removals could cause other removals earlier in the array, so iterating backwards is not safe all by itself
 	GAMEPLAYEFFECT_SCOPE_LOCK();
+	int32 NumRemoved = 0;
 
 	// Manually iterating through in reverse because this is a removal operation
 	for (int32 idx = GetNumGameplayEffects() - 1; idx >= 0; --idx)
@@ -3505,10 +3560,11 @@ void FActiveGameplayEffectsContainer::RemoveActiveEffects(const FGameplayEffectQ
 		if (Effect.IsPendingRemove == false && Query.Matches(Effect))
 		{
 			InternalRemoveActiveGameplayEffect(idx, StacksToRemove, true);
+			++NumRemoved;
 		}
 	}
+	return NumRemoved;
 }
-
 
 int32 FActiveGameplayEffectsContainer::GetActiveEffectCount(const FActiveGameplayEffectQuery Query, bool bEnforceOnGoingCheck) const
 {

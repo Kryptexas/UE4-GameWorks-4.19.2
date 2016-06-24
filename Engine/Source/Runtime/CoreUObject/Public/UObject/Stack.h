@@ -46,6 +46,7 @@ enum EPropertyType
 	CPT_AssetObjectReference,
 	CPT_Double,
 	CPT_Map,
+	CPT_Set,
 
 	// when you add new property types, make sure you add the corresponding entry
 	// in the PropertyTypeToNameMap array in ScriptCompiler.cpp!!
@@ -134,7 +135,13 @@ public:
 
 	COREUOBJECT_API virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) override;
 	
-	COREUOBJECT_API static void KismetExecutionMessage(const TCHAR* Message, ELogVerbosity::Type Verbosity);
+	COREUOBJECT_API static void KismetExecutionMessage(const TCHAR* Message, ELogVerbosity::Type Verbosity, FName WarningId = FName());
+
+	/** Returns the current script op code */
+	const uint8 PeekCode() const { return *Code; }
+
+	/** Skips over the number of op codes specified by NumOps */
+	void SkipCode(const int32 NumOps) { Code += NumOps; }
 
 	template<typename TNumericType>
 	TNumericType ReadInt();

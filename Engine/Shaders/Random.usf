@@ -219,14 +219,14 @@ float GradientNoise3D_TEX(float3 fv)
 	float2 TexB = (iv.xy + OffsetB + 0.5f) / 128.0f;
 
 	// can be optimized to 1 or 2 texture lookups (4 or 8 channel encoded in 8, 16 or 32 bit)
-	float3 A = Texture2DSampleLevel(Frame.PerlinNoiseGradientTexture, Frame.PerlinNoiseGradientTextureSampler, TexA + float2(0, 0) / 128.0f, 0).xyz * 2 - 1;
-	float3 B = Texture2DSampleLevel(Frame.PerlinNoiseGradientTexture, Frame.PerlinNoiseGradientTextureSampler, TexA + float2(1, 0) / 128.0f, 0).xyz * 2 - 1;
-	float3 C = Texture2DSampleLevel(Frame.PerlinNoiseGradientTexture, Frame.PerlinNoiseGradientTextureSampler, TexA + float2(0, 1) / 128.0f, 0).xyz * 2 - 1;
-	float3 D = Texture2DSampleLevel(Frame.PerlinNoiseGradientTexture, Frame.PerlinNoiseGradientTextureSampler, TexA + float2(1, 1) / 128.0f, 0).xyz * 2 - 1;
-	float3 E = Texture2DSampleLevel(Frame.PerlinNoiseGradientTexture, Frame.PerlinNoiseGradientTextureSampler, TexB + float2(0, 0) / 128.0f, 0).xyz * 2 - 1;
-	float3 F = Texture2DSampleLevel(Frame.PerlinNoiseGradientTexture, Frame.PerlinNoiseGradientTextureSampler, TexB + float2(1, 0) / 128.0f, 0).xyz * 2 - 1;
-	float3 G = Texture2DSampleLevel(Frame.PerlinNoiseGradientTexture, Frame.PerlinNoiseGradientTextureSampler, TexB + float2(0, 1) / 128.0f, 0).xyz * 2 - 1;
-	float3 H = Texture2DSampleLevel(Frame.PerlinNoiseGradientTexture, Frame.PerlinNoiseGradientTextureSampler, TexB + float2(1, 1) / 128.0f, 0).xyz * 2 - 1;
+	float3 A = Texture2DSampleLevel(View.PerlinNoiseGradientTexture, View.PerlinNoiseGradientTextureSampler, TexA + float2(0, 0) / 128.0f, 0).xyz * 2 - 1;
+	float3 B = Texture2DSampleLevel(View.PerlinNoiseGradientTexture, View.PerlinNoiseGradientTextureSampler, TexA + float2(1, 0) / 128.0f, 0).xyz * 2 - 1;
+	float3 C = Texture2DSampleLevel(View.PerlinNoiseGradientTexture, View.PerlinNoiseGradientTextureSampler, TexA + float2(0, 1) / 128.0f, 0).xyz * 2 - 1;
+	float3 D = Texture2DSampleLevel(View.PerlinNoiseGradientTexture, View.PerlinNoiseGradientTextureSampler, TexA + float2(1, 1) / 128.0f, 0).xyz * 2 - 1;
+	float3 E = Texture2DSampleLevel(View.PerlinNoiseGradientTexture, View.PerlinNoiseGradientTextureSampler, TexB + float2(0, 0) / 128.0f, 0).xyz * 2 - 1;
+	float3 F = Texture2DSampleLevel(View.PerlinNoiseGradientTexture, View.PerlinNoiseGradientTextureSampler, TexB + float2(1, 0) / 128.0f, 0).xyz * 2 - 1;
+	float3 G = Texture2DSampleLevel(View.PerlinNoiseGradientTexture, View.PerlinNoiseGradientTextureSampler, TexB + float2(0, 1) / 128.0f, 0).xyz * 2 - 1;
+	float3 H = Texture2DSampleLevel(View.PerlinNoiseGradientTexture, View.PerlinNoiseGradientTextureSampler, TexB + float2(1, 1) / 128.0f, 0).xyz * 2 - 1;
 
 	float a = dot(A, Frac - float3(0, 0, 0));
 	float b = dot(B, Frac - float3(1, 0, 0));
@@ -267,7 +267,7 @@ float FastGradientPerlinNoise3D_TEX(float3 xyz)
 	// scalar: 3 add
 	float3 p = p0 + f;
 	// scalar: 3 mad
-	float4 NoiseSample = Texture3DSampleLevel(Frame.PerlinNoise3DTexture, Frame.PerlinNoise3DTextureSampler, p / Extent + 0.5f / Extent, 0);		// +0.5f to get rid of bilinear offset
+	float4 NoiseSample = Texture3DSampleLevel(View.PerlinNoise3DTexture, View.PerlinNoise3DTextureSampler, p / Extent + 0.5f / Extent, 0);		// +0.5f to get rid of bilinear offset
 
 	// reconstruct from 8bit (using mad with 2 constants and dot4 was same instruction count)
 	// scalar: 4 mad, 3 mul, 3 add 
@@ -342,7 +342,7 @@ float2 GetPerlinNoiseGradientTextureAt(float2 v)
 	float2 TexA = (v.xy + 0.5f) / 128.0f;
 
 	// todo: storing random 2d unit vectors would be better
-	float3 p = Texture2DSampleLevel(Frame.PerlinNoiseGradientTexture, Frame.PerlinNoiseGradientTextureSampler, TexA, 0).xyz * 2 - 1;
+	float3 p = Texture2DSampleLevel(View.PerlinNoiseGradientTexture, View.PerlinNoiseGradientTextureSampler, TexA, 0).xyz * 2 - 1;
 	return normalize(p.xy + p.z * 0.33f);
 }
 
@@ -353,7 +353,7 @@ float3 GetPerlinNoiseGradientTextureAt(float3 v)
 	float2 OffsetA = v.z * ZShear;
 	float2 TexA = (v.xy + OffsetA + 0.5f) / 128.0f;
 
-	return Texture2DSampleLevel(Frame.PerlinNoiseGradientTexture, Frame.PerlinNoiseGradientTextureSampler, TexA , 0).xyz * 2 - 1;
+	return Texture2DSampleLevel(View.PerlinNoiseGradientTexture, View.PerlinNoiseGradientTextureSampler, TexA , 0).xyz * 2 - 1;
 }
 
 float2 SkewSimplex(float2 In)

@@ -216,7 +216,7 @@ EPawnActionAbortState::Type UPawnAction_Move::PerformAbort(EAIForceParam::Type S
 
 	if (MyController && MyController->GetPathFollowingComponent())
 	{
-		MyController->GetPathFollowingComponent()->AbortMove(TEXT("BehaviorTree abort"), RequestID);
+		MyController->GetPathFollowingComponent()->AbortMove(*this, FPathFollowingResultFlags::OwnerFinished, RequestID);
 	}
 
 	return Super::PerformAbort(ShouldForce);
@@ -224,7 +224,7 @@ EPawnActionAbortState::Type UPawnAction_Move::PerformAbort(EAIForceParam::Type S
 
 void UPawnAction_Move::HandleAIMessage(UBrainComponent*, const FAIMessage& Message)
 {
-	if (Message.MessageName == UBrainComponent::AIMessage_MoveFinished && Message.HasFlag(EPathFollowingMessage::OtherRequest))
+	if (Message.MessageName == UBrainComponent::AIMessage_MoveFinished && Message.HasFlag(FPathFollowingResultFlags::NewRequest))
 	{
 		// move was aborted by another request from different action, don't finish yet
 		return;
@@ -366,8 +366,8 @@ bool UPawnAction_Move::CheckAlreadyAtGoal(AAIController& Controller, const FVect
 	const bool bAlreadyAtGoal = Controller.GetPathFollowingComponent()->HasReached(TestLocation, Radius);
 	if (bAlreadyAtGoal)
 	{
-		Controller.GetPathFollowingComponent()->AbortMove(TEXT("Aborting move due to new move request finishing with AlreadyAtGoal"), FAIRequestID::AnyRequest, true, false, EPathFollowingMessage::OtherRequest);
-		Controller.GetPathFollowingComponent()->SetLastMoveAtGoal(true);
+		UE_VLOG(&Controller, LogPawnAction, Log, TEXT("New move request already at goal, aborting active movement"));
+		Controller.GetPathFollowingComponent()->RequestMoveWithImmediateFinish(EPathFollowingResult::Success);
 	}
 
 	return bAlreadyAtGoal;
@@ -378,8 +378,8 @@ bool UPawnAction_Move::CheckAlreadyAtGoal(AAIController& Controller, const AActo
 	const bool bAlreadyAtGoal = Controller.GetPathFollowingComponent()->HasReached(TestGoal, Radius);
 	if (bAlreadyAtGoal)
 	{
-		Controller.GetPathFollowingComponent()->AbortMove(TEXT("Aborting move due to new move request finishing with AlreadyAtGoal"), FAIRequestID::AnyRequest, true, false, EPathFollowingMessage::OtherRequest);
-		Controller.GetPathFollowingComponent()->SetLastMoveAtGoal(true);
+		UE_VLOG(&Controller, LogPawnAction, Log, TEXT("New move request already at goal, aborting active movement"));
+		Controller.GetPathFollowingComponent()->RequestMoveWithImmediateFinish(EPathFollowingResult::Success);
 	}
 
 	return bAlreadyAtGoal;

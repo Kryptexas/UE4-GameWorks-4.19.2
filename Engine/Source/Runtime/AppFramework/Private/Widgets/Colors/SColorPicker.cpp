@@ -1291,9 +1291,15 @@ void SColorPicker::HandleColorSpinBoxValueChanged( float NewValue, EColorPickerC
 }
 
 
-void SColorPicker::HandleEyeDropperButtonComplete()
+void SColorPicker::HandleEyeDropperButtonComplete(bool bCancelled)
 {
 	bIsInteractive = false;
+
+	if (bCancelled)
+	{
+		SetNewTargetColorHSV(OldColor, true);
+		RestoreColors();
+	}
 
 	if (bOnlyRefreshOnMouseUp || bPerfIsTooSlowToUpdate)
 	{

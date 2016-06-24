@@ -337,7 +337,23 @@ void FD3D11DynamicRHI::RHICopyToResolveTarget(FTextureRHIParamRef SourceTextureR
 			}
 			else
 			{
-				Direct3DDeviceIMContext->CopySubresourceRegion(DestTextureCube->GetResource(),DestSubresource,0,0,0,SourceTextureCube->GetResource(),SourceSubresource,NULL);
+				if (ResolveParams.Rect.IsValid())
+				{
+					D3D11_BOX SrcBox;
+
+					SrcBox.left = ResolveParams.Rect.X1;
+					SrcBox.top = ResolveParams.Rect.Y1;
+					SrcBox.front = 0;
+					SrcBox.right = ResolveParams.Rect.X2;
+					SrcBox.bottom = ResolveParams.Rect.Y2;
+					SrcBox.back = 1;
+
+					Direct3DDeviceIMContext->CopySubresourceRegion(DestTextureCube->GetResource(), DestSubresource, 0, 0, 0, SourceTextureCube->GetResource(), SourceSubresource, &SrcBox);
+				}
+				else
+				{
+					Direct3DDeviceIMContext->CopySubresourceRegion(DestTextureCube->GetResource(), DestSubresource, 0, 0, 0, SourceTextureCube->GetResource(), SourceSubresource, NULL);
+				}
 			}
 		}
 	}
@@ -908,6 +924,13 @@ static void ConvertRAWSurfaceDataToFColor(DXGI_FORMAT Format, uint32 Width, uint
 
 void FD3D11DynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI,FIntRect InRect,TArray<FColor>& OutData, FReadSurfaceDataFlags InFlags)
 {
+	if (!ensure(TextureRHI))
+	{
+		OutData.Empty();
+		OutData.AddZeroed(InRect.Width() * InRect.Height());
+		return;
+	}
+
 	TArray<uint8> OutDataRaw;
 
 	FD3D11TextureBase* Texture = GetD3D11TextureFromRHITexture(TextureRHI);

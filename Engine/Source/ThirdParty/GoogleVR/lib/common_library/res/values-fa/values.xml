@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:ns1="urn:oasis:names:tc:xliff:document:1.2">
+    <!-- From: file:/tmp/tmp-deduplicated8162628151885761277/blaze-out/arm-linux-androideabi-4.8-bionic-libcxx-armv7a-opt/genfiles/vr/gvr/platform/common/android/res/values-fa/strings.xml -->
+    <eat-comment/>
+    <string msgid="7991510501576515350" name="back_button_content_description">"برگشت"</string>
+    <string msgid="5437310423659570107" name="cancel_button">"لغو"</string>
+    <string msgid="8936160057500596687" name="dialog_message_no_cardboard">"‏برای پیکربندی نظاره‌گر، برنامه Cardboard را دریافت کنید."</string>
+    <string msgid="6627029590803109915" name="dialog_message_setup">"برای اینکه بهترین تجربه را داشته باشید، نظاره‌گرتان را راه‌اندازی کنید."</string>
+    <string msgid="3248614679403583554" name="dialog_title">"پیکربندی"</string>
+    <string msgid="3656229220902996794" name="go_to_playstore_button">"‏رفتن به فروشگاه Play"</string>
+    <string msgid="607483269550346980" name="got_it">"متوجه شدم"</string>
+    <string msgid="4242663779247493666" name="no_browser_text">"مرورگری برای باز کردن وب‌سایت نیست"</string>
+    <string msgid="3033913737471886041" name="place_your_phone_into_cardboard">"‏تلفنتان را در نظاره‌گر Cardboard قرار دهید"</string>
+    <string msgid="8644661894594395876" name="place_your_viewer_into_viewer_format">"تلفنتان را در نظاره‌گر <ns1:g id="VIEWER_NAME">%s</ns1:g> بگذارید"</string>
+    <string msgid="7565578605458926311" name="settings_button_content_description">"تنظیمات"</string>
+    <string msgid="1112346456654686733" name="setup_button">"راه‌اندازی"</string>
+    <string msgid="1762411366348526647" name="switch_viewer_action">"جابه‌جایی"</string>
+    <string msgid="4518576606713444785" name="switch_viewer_prompt">"از نظاره‌گر دیگری استفاده می‌کنید؟"</string>
+    <string msgid="4804039743799852394" name="viewer_configured_dialog_title">"نظاره‌گر پیکربندی شد!"</string>
+    <string msgid="4463041247783043262" name="viewer_configured_message_format">"برنامه اکنون برای نظاره‌گر <ns1:g id="VIEWER_NAME">%s</ns1:g> پیکربندی شده است."</string>
+</resources>

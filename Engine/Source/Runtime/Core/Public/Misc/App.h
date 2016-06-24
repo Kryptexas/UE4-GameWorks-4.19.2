@@ -28,6 +28,13 @@ public:
 	 */
 	static EBuildConfigurations::Type GetBuildConfiguration();
 
+	/*
+	* Gets the unique version string for this build. This string is not assumed to have any particular format other being a unique identifier for the build.
+	*
+	* @return The build version
+	*/
+	static const TCHAR* GetBuildVersion();
+
 	/**
 	 * Gets the deployment name (also known as "EpicApp" in the launcher), e.g. DevPlaytest, PublicTest, Live etc.
 	 *
@@ -364,6 +371,7 @@ public:
 	 *
 	 * @return true if the application runs unattended, false otherwise.
 	 */
+#if ( !PLATFORM_WINDOWS ) || ( !defined(__clang__) )
 	static bool IsUnattended()
 	{
 		// FCommandLine::Get() will assert that the command line has been set.
@@ -371,6 +379,9 @@ public:
 		static bool bIsUnattended = FParse::Param(FCommandLine::Get(), TEXT("UNATTENDED"));
 		return bIsUnattended || GIsAutomationTesting;
 	}
+#else
+	static bool IsUnattended(); // @todo clang: Workaround for missing symbol export
+#endif
 
 	/**
 	 * Checks whether the application should run multi-threaded for performance critical features.
@@ -591,6 +602,9 @@ public:
 	{
 		return bHasVRFocus;
 	}
+	
+	/* If the random seed started with a constant or on time, can be affected by -FIXEDSEED or -BENCHMARK */
+	static bool bUseFixedSeed;
 
 private:
 

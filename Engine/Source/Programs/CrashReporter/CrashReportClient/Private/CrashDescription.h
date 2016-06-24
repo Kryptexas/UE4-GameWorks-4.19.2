@@ -5,9 +5,9 @@
 #include "UnrealString.h"
 #include "XmlFile.h"
 #include "EngineVersion.h"
-#include "Runtime/Analytics/Analytics/Public/Analytics.h"
 
 struct FPrimaryCrashProperties;
+struct FAnalyticsEventAttribute;
 
 /** PrimaryCrashProperties. Extracted from: FGenericCrashContext::SerializeContentToBuffer */
 /*
@@ -334,7 +334,7 @@ struct FPrimaryCrashProperties
 	/**
 	 *	Windows only. Non-zero integrity values are to be discounted as "genuine" crashes.
 	 */
-	FCrashProperty BuildIntegrity;
+	FCrashProperty PlatformCallbackResult;
 
 	/**
 	 * Whether this crash has a minidump file.

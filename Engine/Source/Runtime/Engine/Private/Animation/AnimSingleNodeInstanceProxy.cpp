@@ -4,15 +4,15 @@
 #include "AnimSingleNodeInstanceProxy.h"
 #include "Animation/AnimComposite.h"
 #include "Animation/AnimMontage.h"
-#include "Animation/VertexAnim/VertexAnimation.h"
 #include "Animation/BlendSpace.h"
+#include "Animation/PoseAsset.h"
+#include "Animation/AnimSingleNodeInstance.h"
 
 void FAnimSingleNodeInstanceProxy::Initialize(UAnimInstance* InAnimInstance)
 {
 	FAnimInstanceProxy::Initialize(InAnimInstance);
 
 	CurrentAsset = NULL;
-	CurrentVertexAnim = NULL;
 #if WITH_EDITORONLY_DATA
 	PreviewPoseCurrentTime = 0.0f;
 #endif
@@ -46,7 +46,7 @@ bool FAnimSingleNodeInstanceProxy::Evaluate(FPoseContext& Output)
 
 				if (bCanProcessAdditiveAnimationsLocal)
 				{
-				Sequence->GetAdditiveBasePose(Output.Pose, Output.Curve, ExtractionContext);
+					Sequence->GetAdditiveBasePose(Output.Pose, Output.Curve, ExtractionContext);
 				}
 				else
 				{
@@ -137,11 +137,44 @@ bool FAnimSingleNodeInstanceProxy::Evaluate(FPoseContext& Output)
 				SlotEvaluatePose(Montage->SlotAnimTracks[0].SlotName, SourcePose, SourceCurve, WeightInfo.SourceWeight, Output.Pose, Output.Curve, WeightInfo.SlotNodeWeight, WeightInfo.TotalNodeWeight);
 			}
 		}
-	}
+		else if (UPoseAsset* PoseAsset = Cast<UPoseAsset>(CurrentAsset))
+		{
+#if WITH_EDITORONLY_DATA
+			USkeleton* MySkeleton = PoseAsset->GetSkeleton();
+ 			for (auto Iter=PreviewPoseOverride.CreateConstIterator(); Iter; ++Iter)
+ 			{
+ 				const FName& Name = Iter.Key();
+				const float Value = Iter.Value();
+				
+ 				FSmartNameMapping::UID CurveUID = MySkeleton->GetUIDByName(USkeleton::AnimCurveMappingName, Name);
+ 
+ 				if (CurveUID != FSmartNameMapping::MaxUID)
+ 				{
+					Output.Curve.Set(CurveUID, Value, ACF_DrivesPose);
+ 				}
+ 			}
+#endif 
+			if (PoseAsset->IsValidAdditive())
+			{
+				FAnimExtractContext ExtractContext;
 
-	if(CurrentVertexAnim != NULL)
-	{
-		AddVertexAnim(FActiveVertexAnim(CurrentVertexAnim, 1.f, CurrentTime));
+				PoseAsset->GetBaseAnimationPose(Output.Pose, Output.Curve, ExtractContext);
+				PoseAsset->GetAnimationPose(Output.Pose, Output.Curve, ExtractContext);
+			}
+			else
+			{
+				// @todo : what do we do for ingame? I think in game, we should just allow to load anim sequence with curves
+				PoseAsset->GetAnimationPose(Output.Pose, Output.Curve, FAnimExtractContext());
+			}
+		}
+
+#if WITH_EDITORONLY_DATA
+		// if it has preview pose asset, we have to handle that after we do all animation
+		if (const UPoseAsset* PoseAsset = CurrentAsset->PreviewPoseAsset)
+		{
+			PoseAsset->GetAnimationPose(Output.Pose, Output.Curve, FAnimExtractContext());
+		}
+#endif // WITH_EDITORONLY_DATA
 	}
 
 	return true;
@@ -205,7 +238,7 @@ void FAnimSingleNodeInstanceProxy::UpdateAnimationNode(float DeltaSeconds)
 				// in the future, maybe we can support which slot
 				const FName CurrentSlotNodeName = Montage->SlotAnimTracks[0].SlotName;
 				GetSlotWeight(CurrentSlotNodeName, WeightInfo.SlotNodeWeight, WeightInfo.SourceWeight, WeightInfo.TotalNodeWeight);
-				UpdateSlotNodeWeight(CurrentSlotNodeName, WeightInfo.SlotNodeWeight);
+				UpdateSlotNodeWeight(CurrentSlotNodeName, WeightInfo.SlotNodeWeight, 1.f);
 			}
 			// get the montage position
 			// @todo anim: temporarily just choose first slot and show the location
@@ -222,11 +255,11 @@ void FAnimSingleNodeInstanceProxy::UpdateAnimationNode(float DeltaSeconds)
 			PreviewBasePose = Montage->PreviewBasePose;
 #endif
 		}
-	}
-	else if(CurrentVertexAnim != NULL)
-	{
-		float MoveDelta = DeltaSeconds * NewPlayRate;
-		FAnimationRuntime::AdvanceTime(bLooping, MoveDelta, CurrentTime, CurrentVertexAnim->GetAnimLength());
+		else if (UPoseAsset* PoseAsset = Cast<UPoseAsset>(CurrentAsset))
+		{
+			FAnimTickRecord& TickRecord = CreateUninitializedTickRecord(INDEX_NONE, /*out*/ SyncGroup);
+			MakePoseAssetTickRecord(TickRecord, PoseAsset, 1.f);
+		}
 	}
 
 #if WITH_EDITORONLY_DATA
@@ -256,6 +289,63 @@ void FAnimSingleNodeInstanceProxy::PostUpdate(UAnimInstance* InAnimInstance) con
 			MontageInstance->bPlaying = EvaluationData[EvaluationDataIndex].bIsPlaying;
 			EvaluationDataIndex++;
 		}
+	}
+}
+
+void FAnimSingleNodeInstanceProxy::PreUpdate(UAnimInstance* InAnimInstance, float DeltaSeconds) 
+{
+	FAnimInstanceProxy::PreUpdate(InAnimInstance, DeltaSeconds);
+#if WITH_EDITOR
+	// @fixme only do this in pose asset
+	// copy data to PreviewPoseOverride
+	TMap<FName, float> PoseCurveList;
+
+	InAnimInstance->GetAnimationCurveList(ACF_DrivesPose, PoseCurveList);
+
+	if (PoseCurveList.Num() > 0)
+	{
+		PreviewPoseOverride.Append(PoseCurveList);
+	}
+#endif // WITH_EDITOR
+}
+void FAnimSingleNodeInstanceProxy::InitializeObjects(UAnimInstance* InAnimInstance)
+{
+	FAnimInstanceProxy::InitializeObjects(InAnimInstance);
+
+	UAnimSingleNodeInstance* AnimSingleNodeInstance = CastChecked<UAnimSingleNodeInstance>(InAnimInstance);
+	CurrentAsset = AnimSingleNodeInstance->CurrentAsset;
+}
+
+void FAnimSingleNodeInstanceProxy::ClearObjects()
+{
+	FAnimInstanceProxy::ClearObjects();
+
+	CurrentAsset = nullptr;
+}
+
+void FAnimSingleNodeInstanceProxy::SetPreviewPoseOverride(const FName& PoseName, float Value)
+{
+	float *CurveValPtr = PreviewPoseOverride.Find(PoseName);
+	bool bShouldAddToList = FPlatformMath::Abs(Value) > ZERO_ANIMWEIGHT_THRESH;
+	if (bShouldAddToList)
+	{
+		if (CurveValPtr)
+		{
+			// sum up, in the future we might normalize, but for now this just sums up
+			// this won't work well if all of them have full weight - i.e. additive 
+			*CurveValPtr = Value;
+		}
+		else
+		{
+			PreviewPoseOverride.Add(PoseName, Value);
+		}
+	}
+	// if less than ZERO_ANIMWEIGHT_THRESH
+	// no reason to keep them on the list
+	else
+	{
+		// remove if found
+		PreviewPoseOverride.Remove(PoseName);
 	}
 }
 
@@ -296,38 +386,6 @@ void FAnimSingleNodeInstanceProxy::InternalBlendSpaceEvaluatePose(class UBlendSp
 
 void FAnimSingleNodeInstanceProxy::SetAnimationAsset(class UAnimationAsset* NewAsset, USkeletalMeshComponent* MeshComponent, bool bIsLooping, float InPlayRate)
 {
-	if (NewAsset != CurrentAsset)
-	{
-		CurrentAsset = NewAsset;
-	}
-
-	if (
-#if WITH_EDITOR
-		!bCanProcessAdditiveAnimations &&
-#endif
-		NewAsset && NewAsset->IsValidAdditive())
-	{
-		UE_LOG(LogAnimation, Warning, TEXT("Setting an additve animation (%s) on an AnimSingleNodeInstance is not allowed. This will not function correctly in cooked builds!"), *NewAsset->GetName());
-	}
-
-	if (MeshComponent)
-	{
-		if (MeshComponent->SkeletalMesh == NULL)
-		{
-			// if it does not have SkeletalMesh, we nullify it
-			CurrentAsset = NULL;
-		}
-		else if (CurrentAsset != NULL)
-		{
-			// if we have an asset, make sure their skeleton matches, otherwise, null it
-			if (GetSkeleton() != CurrentAsset->GetSkeleton())
-			{
-				// clear asset since we do not have matching skeleton
-				CurrentAsset = NULL;
-			}
-		}
-	}
-
 	bLooping = bIsLooping;
 	PlayRate = InPlayRate;
 	CurrentTime = 0.f;
@@ -338,10 +396,11 @@ void FAnimSingleNodeInstanceProxy::SetAnimationAsset(class UAnimationAsset* NewA
 
 #if WITH_EDITORONLY_DATA
 	PreviewPoseCurrentTime = 0.0f;
+	PreviewPoseOverride.Reset();
 #endif
 
-	UBlendSpaceBase * BlendSpace = Cast<UBlendSpaceBase>(NewAsset);
-	if (BlendSpace)
+	
+	if (UBlendSpaceBase* BlendSpace = Cast<UBlendSpaceBase>(NewAsset))
 	{
 		BlendSpace->InitializeFilter(&BlendFilter);
 	}
@@ -355,35 +414,6 @@ void FAnimSingleNodeInstanceProxy::UpdateBlendspaceSamples(FVector InBlendInput)
 		FMarkerTickRecord TempMarkerTickRecord;
 		BlendSpaceAdvanceImmediate(BlendSpace, InBlendInput, BlendSampleData, BlendFilter, false, 1.f, 0.f, OutCurrentTime, TempMarkerTickRecord);
 	}
-}
-
-void FAnimSingleNodeInstanceProxy::SetVertexAnimation(UVertexAnimation * NewVertexAnim, bool bIsLooping, float InPlayRate)
-{
-	if (NewVertexAnim != CurrentVertexAnim)
-	{
-		CurrentVertexAnim = NewVertexAnim;
-	}
-
-	if (USkeletalMeshComponent * MeshComponent = GetSkelMeshComponent())
-	{
-		if (MeshComponent->SkeletalMesh == NULL)
-		{
-			// if it does not have SkeletalMesh, we nullify it
-			CurrentVertexAnim = NULL;
-		}
-		else if (CurrentVertexAnim != NULL)
-		{
-			// if we have an anim, make sure their mesh matches, otherwise, null it
-			if (MeshComponent->SkeletalMesh != CurrentVertexAnim->BaseSkelMesh)
-			{
-				// clear asset since we do not have matching skeleton
-				CurrentVertexAnim = NULL;
-			}
-		}
-	}
-
-	bLooping = bIsLooping;
-	PlayRate = InPlayRate;
 }
 
 void FAnimSingleNodeInstanceProxy::SetReverse(bool bInReverse)
@@ -412,23 +442,6 @@ void FAnimSingleNodeInstanceProxy::SetReverse(bool bInReverse)
 			CurMontageInstance->PlayRate *= -1.f;
 		}
 	}*/
-}
-
-float FAnimSingleNodeInstanceProxy::GetLength()
-{
-	if ((CurrentAsset != NULL))
-	{
-		if (UBlendSpace* BlendSpace = Cast<UBlendSpace>(CurrentAsset))
-		{
-			return BlendSpace->AnimLength;
-		}
-		else if (UAnimSequenceBase* SequenceBase = Cast<UAnimSequenceBase>(CurrentAsset))
-		{
-			return SequenceBase->SequenceLength;
-		}
-	}	
-
-	return 0.f;
 }
 
 void FAnimSingleNodeInstanceProxy::SetBlendSpaceInput(const FVector& InBlendInput)

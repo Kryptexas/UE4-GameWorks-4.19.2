@@ -1063,10 +1063,10 @@ void STutorialsBrowser::HandleAssetAdded(const FAssetData& InAssetData)
 {
 	if(InAssetData.AssetClass == UBlueprint::StaticClass()->GetFName())
 	{
-		const FString* ParentClassPath = InAssetData.TagsAndValues.Find(TEXT("ParentClass"));
-		if(ParentClassPath != nullptr)
+		const FString ParentClassPath = InAssetData.GetTagValueRef<FString>("ParentClass");
+		if(!ParentClassPath.IsEmpty())
 		{
-			UClass* ParentClass = FindObject<UClass>(NULL, **ParentClassPath);
+			UClass* ParentClass = FindObject<UClass>(NULL, *ParentClassPath);
 			if(ParentClass == UEditorTutorial::StaticClass())
 			{
 				bNeedsRefresh = true;

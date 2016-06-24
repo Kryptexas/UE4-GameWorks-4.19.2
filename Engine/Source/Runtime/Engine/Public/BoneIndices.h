@@ -2,6 +2,9 @@
 
 #pragma once
 
+typedef uint16 FBoneIndexType;
+
+
 struct FBoneIndexBase
 {
 	FBoneIndexBase() : BoneIndex(INDEX_NONE) {}

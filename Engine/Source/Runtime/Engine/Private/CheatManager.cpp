@@ -6,6 +6,7 @@
 #include "NavDataGenerator.h"
 #include "OnlineSubsystemUtils.h"
 #include "VisualLogger/VisualLogger.h"
+#include "AI/Navigation/RecastNavMesh.h"
 #include "GameFramework/Character.h"
 #include "Engine/Console.h"
 
@@ -301,6 +302,7 @@ void UCheatManager::DestroyAllPawnsExceptTarget()
 		for (TActorIterator<APawn> It(GetWorld(), APawn::StaticClass()); It; ++It)
 		{
 			APawn* Pawn = *It;
+			checkSlow(Pawn);
 			if (!Pawn->IsPendingKill())
 			{
 				if ((Pawn != HitPawnTarget) && Cast<APlayerController>(Pawn->Controller) == NULL)
@@ -615,7 +617,7 @@ void UCheatManager::DisableDebugCamera()
 
 void UCheatManager::InitCheatManager() 
 {
-	// Empty
+	ReceiveInitCheatManager(); //BP Initialization event
 }
 
 void UCheatManager::BeginDestroy()
@@ -1232,14 +1234,14 @@ void UCheatManager::LogOutBugItGoToLogFile( const FString& InScreenShotDesc, con
 	const FString DescPlusExtension = FString::Printf( TEXT("%s%i.txt"), *InScreenShotDesc, GScreenshotBitmapIndex );
 	const FString TxtFileName = CreateProfileFilename( DescPlusExtension, false );
 
-	//FString::Printf( TEXT("BugIt%s-%s%05i"), *FEngineVersion::Current().ToString(), *InScreenShotDesc, GScreenshotBitmapIndex+1 ) + TEXT( ".txt" );
+	//FString::Printf( TEXT("BugIt%s-%s%05i"), FApp::GetBuildVersion(), *InScreenShotDesc, GScreenshotBitmapIndex+1 ) + TEXT( ".txt" );
 	const FString FullFileName = OutputDir + TxtFileName;
 
 	FOutputDeviceFile OutputFile(*FullFileName);
 	//FArchive* OutputFile = IFileManager::Get().CreateDebugFileWriter( *(FullFileName), FILEWRITE_Append );
 
 
-	OutputFile.Logf( TEXT("Dumping BugIt data chart at %s using build %s built from changelist %i"), *FDateTime::Now().ToString(), *FEngineVersion::Current().ToString(), GetChangeListNumberForPerfTesting() );
+	OutputFile.Logf( TEXT("Dumping BugIt data chart at %s using build %s built from changelist %i"), *FDateTime::Now().ToString(), FApp::GetBuildVersion(), GetChangeListNumberForPerfTesting() );
 
 	const FString MapNameStr = GetWorld()->GetMapName();
 

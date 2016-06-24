@@ -4,7 +4,7 @@
 
 #include "Editor/Kismet/Public/BlueprintEditor.h"
 
-#include "AnimationEditorPreviewScene.h"
+#include "AdvancedPreviewScene.h"
 
 #include "PersonaModule.h"
 #include "PersonaCommands.h"
@@ -55,9 +55,6 @@ public:
 	void SetPreviewAnimationAsset(UAnimationAsset* AnimAsset, bool bEnablePreview=true);
 	UObject* GetPreviewAnimationAsset() const;
 	UObject* GetAnimationAssetBeingEdited() const;
-
-	/** Set the vertex animation we should preview on the mesh */
-	void SetPreviewVertexAnim(UVertexAnimation* VertexAnim);
 
 	/** Update the inspector that displays information about the current selection*/
 	void UpdateSelectionDetails(UObject* Object, const FText& ForcedTitle);
@@ -165,7 +162,7 @@ public:
 	void CleanupComponent(USceneComponent* Component);
 
 	/** Returns the editors preview scene */
-	FAnimationEditorPreviewScene& GetPreviewScene() { return PreviewScene; }
+	FAdvancedPreviewScene& GetPreviewScene() { return PreviewScene; }
 
 	/** Gets called when it's clicked via mode tab - Reinitialize the mode **/
 	void ReinitMode();
@@ -196,7 +193,7 @@ public:
 	virtual FText GetToolkitName() const override;
 	virtual FText GetToolkitToolTipText() const override;
 	virtual FString GetWorldCentricTabPrefix() const override;
-	virtual FLinearColor GetWorldCentricTabColorScale() const override;
+	virtual FLinearColor GetWorldCentricTabColorScale() const override;	
 	//~ End IToolkit Interface
 
 	/** Saves all animation assets related to a skeleton */
@@ -231,6 +228,12 @@ public:
 	bool CanShowReferencePose() const;
 	void ShowReferencePose(bool bReferencePose);
 
+	/* Handle error checking for additive base pose */
+	bool ShouldDisplayAdditiveScaleErrorMessage();
+
+	/** Validates curve use */
+	void TestSkeletonCurveNamesForUse() const;
+
 protected:
 	bool IsPreviewAssetEnabled() const;
 	bool CanPreviewAsset() const;
@@ -251,6 +254,8 @@ protected:
 	virtual void OnConvertToSequencePlayer() override;
 	virtual void OnConvertToBlendSpaceEvaluator() override;
 	virtual void OnConvertToBlendSpacePlayer() override;
+	virtual void OnConvertToPoseBlender() override;
+	virtual void OnConvertToPoseByName() override;
 	virtual bool IsInAScriptingMode() const override;
 	virtual void OnOpenRelatedAsset() override;
 	virtual void GetCustomDebugObjects(TArray<FCustomDebugObject>& DebugList) const override;
@@ -341,7 +346,6 @@ private:
 	// Called when the preview viewport is created
 	DECLARE_MULTICAST_DELEGATE_OneParam( FOnCreateViewport, TWeakPtr<SAnimationEditorViewportTabBody> )
 public:
-
 	// Called when Persona refreshes
 	typedef FSimpleMulticastDelegate::FDelegate FOnPersonaRefresh;
 
@@ -714,7 +718,7 @@ private:
 	TSharedPtr<FExtender> ToolbarExtender;
 
 	/** Preview scene for the editor */
-	FAnimationEditorPreviewScene PreviewScene;
+	FAdvancedPreviewScene PreviewScene;
 
 	/** Brush to use as a dirty marker for assets */
 	const FSlateBrush* AssetDirtyBrush;
@@ -730,4 +734,10 @@ private:
 
 	/** Last Cached LOD value of Preview Mesh Component */
 	int32 LastCachedLODForPreviewComponent;
+
+	/** Handle additive anim scale validation */
+	bool bDoesAdditiveRefPoseHaveZeroScale;
+	FGuid RefPoseGuid;
+
+	static const FName PreviewSceneSettingsTabId;
 };

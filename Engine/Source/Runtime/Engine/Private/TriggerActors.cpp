@@ -28,9 +28,9 @@ ATriggerCapsule::ATriggerCapsule(const FObjectInitializer& ObjectInitializer)
 	bCollideWhenPlacing = true;
 	SpawnCollisionHandlingMethod = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
 
-	if (UBillboardComponent* SpriteComponent = GetSpriteComponent())
+	if (UBillboardComponent* TriggerSpriteComponent = GetSpriteComponent())
 	{
-		SpriteComponent->SetupAttachment(CapsuleCollisionComponent);
+		TriggerSpriteComponent->SetupAttachment(CapsuleCollisionComponent);
 	}
 }
 
@@ -93,9 +93,9 @@ ATriggerBox::ATriggerBox(const FObjectInitializer& ObjectInitializer)
 	BoxCollisionComponent->InitBoxExtent(FVector(40.0f, 40.0f, 40.0f));
 	BoxCollisionComponent->SetCollisionProfileName(TriggerCollisionProfileName);
 
-	if (UBillboardComponent* SpriteComponent = GetSpriteComponent())
+	if (UBillboardComponent* TriggerSpriteComponent = GetSpriteComponent())
 	{
-		SpriteComponent->SetupAttachment(BoxCollisionComponent);
+		TriggerSpriteComponent->SetupAttachment(BoxCollisionComponent);
 	}
 }
 
@@ -134,9 +134,9 @@ ATriggerSphere::ATriggerSphere(const FObjectInitializer& ObjectInitializer)
 	SphereCollisionComponent->InitSphereRadius(+40.0f);
 	SphereCollisionComponent->SetCollisionProfileName(TriggerCollisionProfileName);
 
-	if (UBillboardComponent* SpriteComponent = GetSpriteComponent())
+	if (UBillboardComponent* TriggerSpriteComponent = GetSpriteComponent())
 	{
-		SpriteComponent->SetupAttachment(SphereCollisionComponent);
+		TriggerSpriteComponent->SetupAttachment(SphereCollisionComponent);
 	}
 }
 

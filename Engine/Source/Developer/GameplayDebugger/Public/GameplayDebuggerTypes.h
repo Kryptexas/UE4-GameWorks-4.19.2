@@ -226,6 +226,15 @@ struct GAMEPLAYDEBUGGER_API FGameplayDebuggerDataPack
 	}
 };
 
+enum class EGameplayDebuggerInputMode : uint8
+{
+	// input handler is called on local category
+	Local,
+
+	// input handler is replicated to authority category and called there
+	Replicated,
+};
+
 struct GAMEPLAYDEBUGGER_API FGameplayDebuggerInputModifier
 {
 	uint32 bShift : 1;
@@ -257,6 +266,9 @@ struct GAMEPLAYDEBUGGER_API FGameplayDebuggerInputHandler
 	FName KeyName;
 	FGameplayDebuggerInputModifier Modifier;
 	FHandler Delegate;
+	EGameplayDebuggerInputMode Mode;
+
+	FGameplayDebuggerInputHandler() : KeyName(NAME_None), Mode(EGameplayDebuggerInputMode::Local) {}
 
 	bool IsValid() const;
 	FString ToString() const;

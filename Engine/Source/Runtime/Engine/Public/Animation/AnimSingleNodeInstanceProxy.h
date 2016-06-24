@@ -22,7 +22,6 @@ public:
 	FAnimSingleNodeInstanceProxy(UAnimInstance* InAnimInstance)
 		: FAnimInstanceProxy(InAnimInstance)
 		, CurrentAsset(nullptr)
-		, CurrentVertexAnim(nullptr)
 		, BlendSpaceInput(0.0f, 0.0f, 0.0f)
 		, CurrentTime(0.0f)
 #if WITH_EDITORONLY_DATA
@@ -42,6 +41,9 @@ public:
 	virtual bool Evaluate(FPoseContext& Output) override;
 	virtual void UpdateAnimationNode(float DeltaSeconds) override;
 	virtual void PostUpdate(UAnimInstance* InAnimInstance) const override;
+	virtual void PreUpdate(UAnimInstance* InAnimInstance, float DeltaSeconds) override;
+	virtual void InitializeObjects(UAnimInstance* InAnimInstance) override;
+	virtual void ClearObjects() override;
 
 	void SetPlaying(bool bIsPlaying)
 	{
@@ -75,10 +77,6 @@ public:
 
 	virtual void SetAnimationAsset(UAnimationAsset* NewAsset, USkeletalMeshComponent* MeshComponent, bool bIsLooping, float InPlayRate);
 
-	UAnimationAsset* GetCurrentAsset() { return CurrentAsset; }
-
-	UVertexAnimation* GetCurrentVertexAnimation() { return CurrentVertexAnim; }
-
 	void UpdateBlendspaceSamples(FVector InBlendInput);
 
 	void SetCurrentTime(float InCurrentTime)
@@ -105,13 +103,18 @@ public:
 	{
 		return BlendFilter.GetFilterLastOutput();
 	}
-	void SetVertexAnimation(UVertexAnimation * NewVertexAnim, bool bIsLooping, float InPlayRate);
 
 	void SetReverse(bool bInReverse);
 
-	float GetLength();
-
 	void SetBlendSpaceInput(const FVector& InBlendInput);
+
+#if WITH_EDITOR
+	bool CanProcessAdditiveAnimations() const
+	{
+		return bCanProcessAdditiveAnimations;
+	}
+#endif
+	void SetPreviewPoseOverride(const FName& PoseName, float Value);
 
 private:
 	void InternalBlendSpaceEvaluatePose(class UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, FPoseContext& OutContext);
@@ -123,15 +126,13 @@ protected:
 	bool bCanProcessAdditiveAnimations;
 #endif
 
-private:
-	/** Current Asset being played **/
-	UPROPERTY(transient)
+	/** Pose Weight value that can override curve data. In the future, we'd like to have UCurveSet that can play by default**/
+	TMap<FName, float> PreviewPoseOverride;
+
+	/** Current Asset being played. Note that this will be nullptr outside of pre/post update **/
 	UAnimationAsset* CurrentAsset;
 
-	/** Current vertex anim being played **/
-	UPROPERTY(transient)
-	UVertexAnimation* CurrentVertexAnim;
-
+private:
 	/** Random cached values to play each asset **/
 	FVector BlendSpaceInput;
 

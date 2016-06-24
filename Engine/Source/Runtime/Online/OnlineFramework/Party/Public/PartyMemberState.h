@@ -42,6 +42,14 @@ class PARTY_API UPartyMemberState : public UObject
 	/** @return the party this member is associated with */
 	UPartyGameState* GetParty() const;
 
+	/** @return True if this party member is the party leader */
+	UFUNCTION(BlueprintCallable, Category = PartyMemberState)
+	bool IsPartyLeader() const;
+
+	/** @return True if this party member state corresponds to the local player */
+	UFUNCTION(BlueprintCallable, Category = PartyMemberState)
+	bool IsLocalPlayer() const;
+
 protected:
 
 	/** Reflection data for child USTRUCT */

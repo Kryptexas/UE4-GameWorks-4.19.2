@@ -343,7 +343,7 @@ void USCS_Node::NameWasModified()
 	if(ComponentTemplate != nullptr)
 	{
 		// Ensure that the template name stays in sync with the variable name; otherwise, new SCS nodes for the same component type will recycle the subobject rather than create a new instance.
-		ComponentTemplate->Rename(*(VariableName.ToString() + TEXT("_GEN_VARIABLE")), nullptr, REN_DontCreateRedirectors);
+		ComponentTemplate->Rename(*(VariableName.ToString() + TEXT("_GEN_VARIABLE")), nullptr, REN_DontCreateRedirectors|REN_ForceNoResetLoaders);
 	}
 
 	OnNameChangedExternal.ExecuteIfBound(VariableName);

@@ -362,23 +362,18 @@ void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex V
 	}
 
 	{
-		static const auto ICVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GBuffer"));
-		if(ICVar->GetValueOnGameThread() == 0)
-		{
-			EngineShowFlags.AmbientOcclusion = 0;
-			EngineShowFlags.ScreenSpaceAO = 0;
-			EngineShowFlags.Decals = 0;
-			EngineShowFlags.DynamicShadows = 0;
-			EngineShowFlags.GlobalIllumination = 0;
-			EngineShowFlags.ScreenSpaceReflections = 0;
-		}
-	}
-
-	{
 		static const auto ICVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.EyeAdaptationQuality"));
 		if(ICVar->GetValueOnGameThread() <= 0)
 		{
 			EngineShowFlags.EyeAdaptation = 0;
+		}
+	}
+
+	{
+		static const auto ICVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ShadowQuality"));
+		if(ICVar->GetValueOnGameThread() <= 0)
+		{
+			EngineShowFlags.DynamicShadows = 0;
 		}
 	}
 
@@ -552,10 +547,6 @@ EViewModeIndex FindViewMode(const FEngineShowFlags& EngineShowFlags)
 	else if(EngineShowFlags.StationaryLightOverlap)
 	{
 		return VMI_StationaryLightOverlap;
-	}
-	else if(EngineShowFlags.ShaderComplexity)
-	{
-		return VMI_ShaderComplexity;
 	}
 	// Test QuadComplexity before ShaderComplexity because QuadComplexity also use ShaderComplexity
 	else if(EngineShowFlags.QuadOverdraw)

@@ -2,6 +2,7 @@
 
 #pragma once
 #include "AnimNodeBase.h"
+#include "Animation/AnimInstance.h"
 #include "AnimStateMachineTypes.h"
 #include "AnimNode_StateMachine.generated.h"
 

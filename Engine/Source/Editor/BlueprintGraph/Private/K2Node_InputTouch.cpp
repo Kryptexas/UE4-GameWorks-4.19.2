@@ -75,6 +75,12 @@ FText UK2Node_InputTouch::GetTooltipText() const
 	return NSLOCTEXT("K2Node", "InputTouch_Tooltip", "Event for when a finger presses, releases or is moved on a touch device.");
 }
 
+FSlateIcon UK2Node_InputTouch::GetIconAndTint(FLinearColor& OutColor) const
+{
+	static FSlateIcon Icon("EditorStyle", "GraphEditor.TouchEvent_16x");
+	return Icon;
+}
+
 void UK2Node_InputTouch::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
 	// actions get registered under specific object-keys; the idea is that 

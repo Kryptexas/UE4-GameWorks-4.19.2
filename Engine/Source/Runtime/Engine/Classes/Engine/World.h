@@ -25,6 +25,7 @@ class ABrush;
 class UModel;
 class APhysicsVolume;
 class UTexture2D;
+class AController;
 class APlayerController;
 class AMatineeActor;
 class AWorldSettings;
@@ -528,7 +529,7 @@ class ENGINE_API UWorld : public UObject, public FNetworkNotify
 
 	// Group actors currently "active"
 	UPROPERTY(transient)
-	TArray<class AActor*> ActiveGroupActors;
+	TArray<AActor*> ActiveGroupActors;
 
 	/** Information for thumbnail rendering */
 	UPROPERTY(VisibleAnywhere, Instanced, Category=Thumbnail)
@@ -658,6 +659,13 @@ private:
 	/** Parameter collection instances that hold parameter overrides for this world. */
 	UPROPERTY(Transient)
 	TArray<class UMaterialParameterCollectionInstance*> ParameterCollectionInstances;
+
+	/** 
+	 * Canvas object used for drawing to render targets from blueprint functions eg DrawMaterialToRenderTarget.
+	 * This is cached as UCanvas creation takes >100ms.
+	 */
+	UPROPERTY(Transient)
+	UCanvas* CanvasForRenderingToTarget;
 
 public:
 	/** Set the pointer to the Navgation system. */
@@ -898,10 +906,12 @@ public:
 	 *  You need Physics Scene if you'd like to trace. This flag changed ticking */
 	bool										bShouldSimulatePhysics;
 
-#if WITH_EDITOR
+#if !UE_BUILD_SHIPPING
 	/** If TRUE, 'hidden' components will still create render proxy, so can draw info (see USceneComponent::ShouldRender) */
 	bool										bCreateRenderStateForHiddenComponents;
+#endif // !UE_BUILD_SHIPPING
 
+#if WITH_EDITOR
 	/** this is special flag to enable collision by default for components that are not Volume
 	 * currently only used by editor level viewport world, and do not use this for in-game scene
 	 */
@@ -1994,6 +2004,9 @@ public:
 	/** Updates this world's scene with the list of instances, and optionally updates each instance's uniform buffer. */
 	void UpdateParameterCollectionInstances(bool bUpdateInstanceUniformBuffers);
 
+	/** Gets the canvas object for rendering to a render target.  Will allocate one if needed. */
+	UCanvas* GetCanvasForRenderingToTarget();
+
 	/** Struct containing a collection of optional parameters for initialization of a World. */
 	struct InitializationValues
 	{
@@ -2560,13 +2573,30 @@ public:
 	 * @param NetDriverName the name of the net driver being asked for
 	 * @return a pointer to the net driver or NULL if the named driver is not found
 	 */
-	UNetDriver* GetNetDriver() const
+	FORCEINLINE_DEBUGGABLE UNetDriver* GetNetDriver() const
 	{
 		return NetDriver;
 	}
 
-	/** Returns the net mode this world is running under */
+	/**
+	 * Returns the net mode this world is running under.
+	 * @see IsNetMode()
+	 */
 	ENetMode GetNetMode() const;
+
+	/**
+	* Test whether net mode is the given mode.
+	* In optimized non-editor builds this can be more efficient than GetNetMode()
+	* because it can check the static build flags without considering PIE.
+	*/
+	bool IsNetMode(ENetMode Mode) const;
+
+private:
+
+	/** Private version without inlining that does *not* check Dedicated server build flags (which should already have been done). */
+	ENetMode InternalGetNetMode() const;
+
+public:
 
 #if WITH_EDITOR
 	/** Attempts to derive the net mode from PlayInSettings for PIE*/
@@ -2702,6 +2732,8 @@ public:
 	 * @param LevelsToRefresh A TArray<ULevelStreaming*> containing pointers to the levels to refresh
 	 */
 	void RefreshStreamingLevels( const TArray<class ULevelStreaming*>& InLevelsToRefresh );
+
+	void IssueEditorLoadWarnings();
 
 #endif
 
@@ -2984,4 +3016,32 @@ FORCEINLINE_DEBUGGABLE bool UWorld::ComponentSweepMulti(TArray<struct FHitResult
 	return ComponentSweepMulti(OutHits, PrimComp, Start, End, Rot.Quaternion(), Params);
 }
 
+FORCEINLINE_DEBUGGABLE ENetMode UWorld::GetNetMode() const
+{
+	// IsRunningDedicatedServer() is a compile-time check in optimized non-editor builds.
+	if (IsRunningDedicatedServer())
+	{
+		return NM_DedicatedServer;
+	}
+
+	return InternalGetNetMode();
+}
+
+FORCEINLINE_DEBUGGABLE bool UWorld::IsNetMode(ENetMode Mode) const
+{
+#if UE_EDITOR
+	// Editor builds are special because of PIE, which can run a dedicated server without the app running with -server.
+	return GetNetMode() == Mode;
+#else
+	// IsRunningDedicatedServer() is a compile-time check in optimized non-editor builds.
+	if (Mode == NM_DedicatedServer)
+	{
+		return IsRunningDedicatedServer();
+	}
+	else
+	{
+		return !IsRunningDedicatedServer() && (InternalGetNetMode() == Mode);
+	}
+#endif
+}
 

@@ -21,6 +21,10 @@ public:
 
 	/** Gets the constraint id for this section */
 	virtual FGuid GetConstraintId() const;
+
+	// UMovieSceneSection interface
+	virtual TOptional<float> GetKeyTime( FKeyHandle KeyHandle ) const override { return TOptional<float>(); }
+	virtual void SetKeyTime( FKeyHandle KeyHandle, float Time ) override { }
 	
 protected:
 	/** The possessable guid that this constraint uses */

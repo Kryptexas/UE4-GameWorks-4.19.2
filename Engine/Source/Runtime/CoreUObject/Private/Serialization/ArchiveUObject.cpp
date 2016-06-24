@@ -104,11 +104,11 @@ FArchive& FObjectAndNameAsStringProxyArchive::operator<<(class UObject*& Obj)
 		FString LoadedString;
 		InnerArchive << LoadedString;
 		// look up the object by fully qualified pathname
-		Obj = FindObject<UObject>(NULL, *LoadedString, false);
+		Obj = FindObject<UObject>(nullptr, *LoadedString, false);
 		// If we couldn't find it, and we want to load it, do that
-		if((Obj == NULL) && bLoadIfFindFails)
+		if(Obj && bLoadIfFindFails)
 		{
-			Obj = LoadObject<UObject>(NULL, *LoadedString);
+			Obj = LoadObject<UObject>(nullptr, *LoadedString);
 		}
 	}
 	else
@@ -137,7 +137,7 @@ void FSerializedPropertyScope::PopEditorOnlyProperty()
 }
 #endif
 
-void FArchiveReplaceObjectRefBase::SerializeObject(UObject* ObjectToSerialzie)
+void FArchiveReplaceObjectRefBase::SerializeObject(UObject* ObjectToSerialize)
 {
 	// Simple FReferenceCollector proxy for FArchiveReplaceObjectRefBase
 	class FReplaceObjectRefCollector : public FReferenceCollector
@@ -177,23 +177,23 @@ void FArchiveReplaceObjectRefBase::SerializeObject(UObject* ObjectToSerialzie)
 	// default objects may be serialized during script compilation while the script
 	// and C++ versions of a class are not in sync), so use SerializeTaggedProperties()
 	// rather than the native Serialize() function
-	UClass* ObjectClass = ObjectToSerialzie->GetClass();
-	if (ObjectToSerialzie->HasAnyFlags(RF_ClassDefaultObject))
+	UClass* ObjectClass = ObjectToSerialize->GetClass();
+	if (ObjectToSerialize->HasAnyFlags(RF_ClassDefaultObject))
 	{		
 		StartSerializingDefaults();
 		if (!WantBinaryPropertySerialization() && (IsLoading() || IsSaving()))
 		{
-			ObjectClass->SerializeTaggedProperties(*this, (uint8*)ObjectToSerialzie, ObjectClass, NULL);
+			ObjectClass->SerializeTaggedProperties(*this, (uint8*)ObjectToSerialize, ObjectClass, nullptr);
 		}
 		else
 		{
-			ObjectClass->SerializeBin(*this, ObjectToSerialzie);
+			ObjectClass->SerializeBin(*this, ObjectToSerialize);
 		}
 		StopSerializingDefaults();
 	}
 	else
 	{
-		ObjectToSerialzie->Serialize(*this);
+		ObjectToSerialize->Serialize(*this);
 	}
-	ObjectClass->CallAddReferencedObjects(ObjectToSerialzie, ReplaceRefCollector);
+	ObjectClass->CallAddReferencedObjects(ObjectToSerialize, ReplaceRefCollector);
 }

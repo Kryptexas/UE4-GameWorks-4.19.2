@@ -3,7 +3,7 @@
 #pragma once
 #include "PixelInspectorView.generated.h"
 
-#define FinalColorContextGridSize 5
+#define FinalColorContextGridSize 7
 
 UCLASS(HideCategories = Object, MinimalAPI)
 class UPixelInspectorView : public UObject
@@ -12,17 +12,13 @@ class UPixelInspectorView : public UObject
 
 	FLinearColor FinalColorContext[FinalColorContextGridSize*FinalColorContextGridSize];
 
-	/** The viewport id from where the pixel was inspect. */
-	UPROPERTY(VisibleAnywhere, category = Identification)
-	int32 ViewportId;
-
-	/** The pixel relative to the inspected viewport. */
-	UPROPERTY(VisibleAnywhere, category = Identification)
-	FIntPoint PixelScreenPosition;
-
 	/** Final RGBA 8bits Color after tone mapping, default value is black. */
 	UPROPERTY(VisibleAnywhere, category = FinalColor)
 	FLinearColor FinalColor;
+
+	/** HDR RGB Color. */
+	UPROPERTY(VisibleAnywhere, category = SceneColor)
+	FLinearColor SceneColor;
 
 	/** HDR Luminance. */
 	UPROPERTY(VisibleAnywhere, category = HDR)
@@ -117,7 +113,6 @@ class UPixelInspectorView : public UObject
 	/** From the GBufferD A Channel. */
 	UPROPERTY(VisibleAnywhere, category = GBufferD)
 	float IrisDistance;
-
 
 	void SetFromResult(PixelInspector::PixelInspectorResult &Result);
 	/*

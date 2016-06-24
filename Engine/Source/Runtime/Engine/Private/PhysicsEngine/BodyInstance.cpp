@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 #include "PhysicsPublic.h"
 #include "Collision.h"
+#include "PhysicsEngine/ConstraintInstance.h"
 
 #include "MessageLog.h"
 
@@ -43,6 +44,16 @@ DECLARE_CYCLE_STAT(TEXT("UpdateBodyScale"), STAT_BodyInstanceUpdateBodyScale, ST
 DECLARE_CYCLE_STAT(TEXT("CreatePhysicsShapesAndActors"), STAT_CreatePhysicsShapesAndActors, STATGROUP_Physics);
 DECLARE_CYCLE_STAT(TEXT("BodyInstance SetCollisionProfileName"), STAT_BodyInst_SetCollisionProfileName, STATGROUP_Physics);
 DECLARE_CYCLE_STAT(TEXT("Phys SetBodyTransform"), STAT_SetBodyTransform, STATGROUP_Physics);
+
+#if WITH_PHYSX
+int32 FillInlinePxShapeArray(FInlinePxShapeArray& Array, const physx::PxRigidActor& RigidActor)
+{
+	const int32 NumShapes = RigidActor.getNbShapes();
+	Array.AddUninitialized(NumShapes);
+	RigidActor.getShapes(Array.GetData(), NumShapes);
+	return NumShapes;
+}
+#endif
 
 ////////////////////////////////////////////////////////////////////////////
 // FCollisionResponse
@@ -654,9 +665,9 @@ void FBodyInstance::CreateDOFLock()
 
 	DOFConstraint = FConstraintInstance::Alloc();
 	{
-		DOFConstraint->bSwingLimitSoft = false;
-		DOFConstraint->bTwistLimitSoft = false;
-		DOFConstraint->bLinearLimitSoft = false;
+		DOFConstraint->ProfileInstance.ConeLimit.bSoftConstraint = false;
+		DOFConstraint->ProfileInstance.TwistLimit.bSoftConstraint  = false;
+		DOFConstraint->ProfileInstance.LinearLimit.bSoftConstraint  = false;
 
 		const FTransform TM = GetUnrealWorldTransform(false);
 		FVector Normal = FVector(1, 0, 0);
@@ -665,26 +676,26 @@ void FBodyInstance::CreateDOFLock()
 
 		if(DOF != EDOFMode::SixDOF)
 		{
-			DOFConstraint->AngularSwing1Motion = (bLockRotation || DOFMode != EDOFMode::CustomPlane) ? EAngularConstraintMotion::ACM_Locked : EAngularConstraintMotion::ACM_Free;
-			DOFConstraint->AngularSwing2Motion = (bLockRotation || DOFMode != EDOFMode::CustomPlane) ? EAngularConstraintMotion::ACM_Locked : EAngularConstraintMotion::ACM_Free;
-			DOFConstraint->AngularTwistMotion = EAngularConstraintMotion::ACM_Free;
-
-			DOFConstraint->LinearXMotion = (bLockTranslation || DOFMode != EDOFMode::CustomPlane) ? ELinearConstraintMotion::LCM_Locked : ELinearConstraintMotion::LCM_Free;
-			DOFConstraint->LinearYMotion = ELinearConstraintMotion::LCM_Free;
-			DOFConstraint->LinearZMotion = ELinearConstraintMotion::LCM_Free;
+			DOFConstraint->SetAngularSwing1Motion((bLockRotation || DOFMode != EDOFMode::CustomPlane) ? EAngularConstraintMotion::ACM_Locked : EAngularConstraintMotion::ACM_Free);
+			DOFConstraint->SetAngularSwing2Motion((bLockRotation || DOFMode != EDOFMode::CustomPlane) ? EAngularConstraintMotion::ACM_Locked : EAngularConstraintMotion::ACM_Free);
+			DOFConstraint->SetAngularTwistMotion(EAngularConstraintMotion::ACM_Free);
+			
+			DOFConstraint->SetLinearXMotion((bLockTranslation || DOFMode != EDOFMode::CustomPlane) ? ELinearConstraintMotion::LCM_Locked : ELinearConstraintMotion::LCM_Free);
+			DOFConstraint->SetLinearYMotion(ELinearConstraintMotion::LCM_Free);
+			DOFConstraint->SetLinearZMotion(ELinearConstraintMotion::LCM_Free);
 
 			Normal = LockedAxis.GetSafeNormal();
 			FVector Garbage;
 			Normal.FindBestAxisVectors(Garbage, Sec);
 		}else
 		{
-			DOFConstraint->AngularTwistMotion = bLockXRotation ? EAngularConstraintMotion::ACM_Locked : EAngularConstraintMotion::ACM_Free;
-			DOFConstraint->AngularSwing2Motion = bLockYRotation ? EAngularConstraintMotion::ACM_Locked : EAngularConstraintMotion::ACM_Free;
-			DOFConstraint->AngularSwing1Motion = bLockZRotation ? EAngularConstraintMotion::ACM_Locked : EAngularConstraintMotion::ACM_Free;
+			DOFConstraint->SetAngularTwistMotion(bLockXRotation ? EAngularConstraintMotion::ACM_Locked : EAngularConstraintMotion::ACM_Free);
+			DOFConstraint->SetAngularSwing2Motion(bLockYRotation ? EAngularConstraintMotion::ACM_Locked : EAngularConstraintMotion::ACM_Free);
+			DOFConstraint->SetAngularSwing1Motion(bLockZRotation ? EAngularConstraintMotion::ACM_Locked : EAngularConstraintMotion::ACM_Free);
 
-			DOFConstraint->LinearXMotion = bLockXTranslation ? ELinearConstraintMotion::LCM_Locked : ELinearConstraintMotion::LCM_Free;
-			DOFConstraint->LinearYMotion = bLockYTranslation ? ELinearConstraintMotion::LCM_Locked : ELinearConstraintMotion::LCM_Free;
-			DOFConstraint->LinearZMotion = bLockZTranslation ? ELinearConstraintMotion::LCM_Locked : ELinearConstraintMotion::LCM_Free;
+			DOFConstraint->SetLinearXMotion(bLockXTranslation ? ELinearConstraintMotion::LCM_Locked : ELinearConstraintMotion::LCM_Free);
+			DOFConstraint->SetLinearYMotion(bLockYTranslation ? ELinearConstraintMotion::LCM_Locked : ELinearConstraintMotion::LCM_Free);
+			DOFConstraint->SetLinearZMotion(bLockZTranslation ? ELinearConstraintMotion::LCM_Locked : ELinearConstraintMotion::LCM_Free);
 		}
 
 		DOFConstraint->PriAxis1 = TM.InverseTransformVectorNoScale(Normal);
@@ -916,6 +927,11 @@ void FBodyInstance::UpdatePhysicsShapeFilterData(uint32 ComponentID, bool bUseCo
 
 void FBodyInstance::SetMaskFilter(FMaskFilter InMaskFilter)
 {
+	if (MaskFilter == InMaskFilter)
+	{
+		return;
+	}
+
 #if WITH_PHYSX
 
 	ExecuteOnPhysicsReadWrite([&]
@@ -1049,7 +1065,7 @@ void FBodyInstance::UpdatePhysicsFilterData()
 	const bool bUseSimpleAsComplex = (BodySetup.Get()->GetCollisionTraceFlag() == CTF_UseSimpleAsComplex);
 
 	// Get component ID
-	uint32 ComponentID = OwnerComponentInst->GetUniqueID();
+	uint32 ComponentID = OwnerComponentInst ? OwnerComponentInst->GetUniqueID() : INDEX_NONE;
 
 #if WITH_PHYSX
 	const TEnumAsByte<ECollisionEnabled::Type>* CollisionEnabledOverride = bUseCollisionEnabledOverride ? &UseCollisionEnabled : NULL;
@@ -1094,6 +1110,8 @@ void FBodyInstance::UpdatePhysicsFilterData()
 	}
 #endif
 }
+
+TAutoConsoleVariable<int32> CDisableQueryOnlyActors(TEXT("p.DisableQueryOnlyActors"), 0, TEXT("If QueryOnly is used, actors are marked as simulation disabled. This is NOT compatible with origin shifting at the moment."));
 
 #if UE_WITH_PHYSICS
 
@@ -1186,7 +1204,7 @@ struct FInitBodiesHelper
 		physx::PxRigidDynamic* PNewDynamic = nullptr;
 
 		const ECollisionEnabled::Type CollisionType = Instance->GetCollisionEnabled();
-		const bool bDisableSim = CollisionType == ECollisionEnabled::QueryOnly || CollisionType == ECollisionEnabled::NoCollision;
+		const bool bDisableSim = (CollisionType == ECollisionEnabled::QueryOnly || CollisionType == ECollisionEnabled::NoCollision) && CDisableQueryOnlyActors.GetValueOnGameThread();
 
 		if (IsStatic())
 		{
@@ -2033,6 +2051,11 @@ bool FBodyInstance::Weld(FBodyInstance* TheirBody, const FTransform& TheirTM)
 		return false;
 	}
 
+    if (TheirBody->WeldParent == this) // The body is already welded to this component. Do nothing.
+    {
+        return false;
+    }
+
 	//@TODO: BOX2D: Implement Weld
 
 #if WITH_PHYSX
@@ -2561,9 +2584,9 @@ void FBodyInstance::UpdateInstanceSimulatePhysics()
 		// If we want it fixed, and it is currently not kinematic
 		bool bNewKinematic = (bUseSimulate == false);
 		{
-			PRigidDynamic->setRigidDynamicFlag(PxRigidDynamicFlag::eKINEMATIC, bNewKinematic);
 			PRigidDynamic->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, !bNewKinematic && bUseCCD);
-
+            PRigidDynamic->setRigidDynamicFlag(PxRigidDynamicFlag::eKINEMATIC, bNewKinematic);
+			
 			//if wake when level starts is true, calling this function automatically wakes body up
 			if (bSimulatePhysics && bStartAwake)
 			{
@@ -2668,6 +2691,7 @@ void FBodyInstance::SetInstanceSimulatePhysics(bool bSimulate, bool bMaintainPhy
 				for (int32 ChildIdx = 0; ChildIdx < ChildrenBodies.Num(); ++ChildIdx)
 				{
 					FBodyInstance* ChildBI = ChildrenBodies[ChildIdx];
+					checkSlow(ChildBI);
 					if (ChildBI != this)
 					{
 						Weld(ChildBI, ChildBI->OwnerComponent->GetSocketTransform(ChildrenLabels[ChildIdx]));
@@ -3329,9 +3353,8 @@ void FBodyInstance::GetComplexPhysicalMaterials(const FBodyInstance*, TWeakObjec
 /** Util for finding the number of 'collision sim' shapes on this PxRigidActor */
 int32 GetNumSimShapes_AssumesLocked(const PxRigidBody* PRigidBody)
 {
-	TArray<PxShape*, TInlineAllocator<16>> PShapes;
-	PShapes.AddUninitialized(PRigidBody->getNbShapes());
-	int32 NumShapes = PRigidBody->getShapes(PShapes.GetData(), PShapes.Num());
+	FInlinePxShapeArray PShapes;
+	const int32 NumShapes = FillInlinePxShapeArray(PShapes, *PRigidBody);
 
 	int32 NumSimShapes = 0;
 
@@ -4041,12 +4064,11 @@ bool FBodyInstance::LineTrace(struct FHitResult& OutHit, const FVector& Start, c
 			float BestHitDistance = BIG_NUMBER;
 
 			// Get all the shapes from the actor
-			TArray<PxShape*, TInlineAllocator<16>> PShapes;
-			PShapes.AddUninitialized(RigidBody->getNbShapes());
-			int32 NumShapes = RigidBody->getShapes(PShapes.GetData(), PShapes.Num());
+			FInlinePxShapeArray PShapes;
+			const int32 NumShapes = FillInlinePxShapeArray(PShapes, *RigidBody);
 
 			// Iterate over each shape
-			for (int32 ShapeIdx = 0; ShapeIdx < PShapes.Num(); ShapeIdx++)
+			for (int32 ShapeIdx = 0; ShapeIdx < NumShapes; ShapeIdx++)
 			{
 				PxShape* PShape = PShapes[ShapeIdx];
 				check(PShape);
@@ -4170,12 +4192,11 @@ bool FBodyInstance::InternalSweepPhysX(struct FHitResult& OutHit, const FVector&
 		PxSweepHit PHit;
 
 		// Get all the shapes from the actor
-		TArray<PxShape*, TInlineAllocator<16>> PShapes;
-		PShapes.AddUninitialized(RigidBody->getNbShapes());
-		int32 NumShapes = RigidBody->getShapes(PShapes.GetData(), PShapes.Num());
+		FInlinePxShapeArray PShapes;
+		const int32 NumShapes = FillInlinePxShapeArray(PShapes, *RigidBody);
 
 		// Iterate over each shape
-		for(int32 ShapeIdx=0; ShapeIdx<PShapes.Num(); ShapeIdx++)
+		for(int32 ShapeIdx=0; ShapeIdx<NumShapes; ShapeIdx++)
 		{
 			PxShape* PShape = PShapes[ShapeIdx];
 			check(PShape);
@@ -4215,7 +4236,7 @@ bool FBodyInstance::InternalSweepPhysX(struct FHitResult& OutHit, const FVector&
 }
 #endif //WITH_PHYSX
 
-float FBodyInstance::GetDistanceToBody(const FVector& Point, FVector& OutPointOnBody) const
+bool FBodyInstance::GetSquaredDistanceToBody(const FVector& Point, float& OutDistanceSquared, FVector& OutPointOnBody) const
 {
 	OutPointOnBody = Point;
 	float ReturnDistance = -1.f;
@@ -4234,14 +4255,13 @@ float FBodyInstance::GetDistanceToBody(const FVector& Point, FVector& OutPointOn
 		bEarlyOut = false;
 
 		// Get all the shapes from the actor
-		TArray<PxShape*, TInlineAllocator<16>> PShapes;
-		PShapes.AddUninitialized(RigidActor->getNbShapes());
-		int32 NumShapes = RigidActor->getShapes(PShapes.GetData(), PShapes.Num());
+		FInlinePxShapeArray PShapes;
+		const int32 NumShapes = FillInlinePxShapeArray(PShapes, *RigidActor);
 
 		const PxVec3 PPoint = U2PVector(Point);
 
 		// Iterate over each shape
-		for (int32 ShapeIdx = 0; ShapeIdx < PShapes.Num(); ShapeIdx++)
+		for (int32 ShapeIdx = 0; ShapeIdx < NumShapes; ShapeIdx++)
 		{
 			PxShape* PShape = PShapes[ShapeIdx];
 			check(PShape);
@@ -4278,9 +4298,19 @@ float FBodyInstance::GetDistanceToBody(const FVector& Point, FVector& OutPointOn
 		UE_LOG(LogPhysics, Warning, TEXT("GetDistanceToBody: Component (%s) has no simple collision and cannot be queried for closest point."), OwnerComponent.Get() ? *OwnerComponent->GetPathName() : TEXT("NONE"));
 	}
 
-	return (bFoundValidBody ? FMath::Sqrt(MinDistanceSqr) : -1.f);
+	if (bFoundValidBody)
+	{
+		OutDistanceSquared = MinDistanceSqr;
+	}
+	return bFoundValidBody;
 
 	//@TODO: BOX2D: Implement DistanceToBody
+}
+
+float FBodyInstance::GetDistanceToBody(const FVector& Point, FVector& OutPointOnBody) const
+{
+	float DistanceSqr = -1.f;
+	return (GetSquaredDistanceToBody(Point, DistanceSqr, OutPointOnBody) ? FMath::Sqrt(DistanceSqr) : -1.f);
 }
 
 template <typename AllocatorType>
@@ -4295,11 +4325,10 @@ bool FBodyInstance::OverlapTestForBodiesImpl(const FVector& Pos, const FQuat& Ro
 		PxTransform PTestGlobalPose = U2PTransform(FTransform(Rot, Pos));
 
 		// Get all the shapes from the actor
-		TArray<PxShape*, TInlineAllocator<16>> PTargetShapes;
-		PTargetShapes.AddUninitialized(TargetRigidActor->getNbShapes());
-		int32 NumTargetShapes = TargetRigidActor->getShapes(PTargetShapes.GetData(), PTargetShapes.Num());
+		FInlinePxShapeArray PTargetShapes;
+		const int32 NumTargetShapes = FillInlinePxShapeArray(PTargetShapes, *TargetRigidActor);
 
-		for (int32 TargetShapeIdx = 0; TargetShapeIdx < PTargetShapes.Num(); ++TargetShapeIdx)
+		for (int32 TargetShapeIdx = 0; TargetShapeIdx < NumTargetShapes; ++TargetShapeIdx)
 		{
 			const PxShape * PTargetShape = PTargetShapes[TargetShapeIdx];
 
@@ -4386,7 +4415,7 @@ bool FBodyInstance::OverlapMulti(TArray<struct FOverlapResult>& InOutOverlaps, c
 	// Determine how to convert the local space of this body instance to the test space
 	const FTransform ComponentSpaceToTestSpace(Quat, Pos);
 
-	FTransform BodyInstanceSpaceToTestSpace;
+	FTransform BodyInstanceSpaceToTestSpace(NoInit);
 	if (pWorldToComponent)
 	{
 		const FTransform RootTM = WeldParent ? WeldParent->GetUnrealWorldTransform() : GetUnrealWorldTransform();
@@ -4413,14 +4442,13 @@ bool FBodyInstance::OverlapMulti(TArray<struct FOverlapResult>& InOutOverlaps, c
 
 		ExecuteOnPhysicsReadOnly([&]
 		{
-		// Get all the shapes from the actor
-			TArray<PxShape*, TInlineAllocator<16>> PShapes;
-			PShapes.AddUninitialized(PRigidActor->getNbShapes());
-			int32 NumShapes = PRigidActor->getShapes(PShapes.GetData(), PShapes.Num());
+			// Get all the shapes from the actor
+			FInlinePxShapeArray PShapes;
+			const int32 NumShapes = FillInlinePxShapeArray(PShapes, *PRigidActor);
 
 			// Iterate over each shape
 			TArray<struct FOverlapResult> TempOverlaps;
-			for (int32 ShapeIdx = 0; ShapeIdx < PShapes.Num(); ShapeIdx++)
+			for (int32 ShapeIdx = 0; ShapeIdx < NumShapes; ShapeIdx++)
 			{
 				PxShape* PShape = PShapes[ShapeIdx];
 				check(PShape);
@@ -4472,12 +4500,11 @@ bool FBodyInstance::OverlapPhysX_AssumesLocked(const PxGeometry& PGeom, const Px
 	}
 
 	// Get all the shapes from the actor
-	TArray<PxShape*, TInlineAllocator<16>> PShapes;
-	PShapes.AddUninitialized(RigidBody->getNbShapes());
-	int32 NumShapes = RigidBody->getShapes(PShapes.GetData(), PShapes.Num());
+	FInlinePxShapeArray PShapes;
+	const int32 NumShapes = FillInlinePxShapeArray(PShapes, *RigidBody);
 
 	// Iterate over each shape
-	for(int32 ShapeIdx=0; ShapeIdx<PShapes.Num(); ++ShapeIdx)
+	for(int32 ShapeIdx=0; ShapeIdx<NumShapes; ++ShapeIdx)
 	{
 		const PxShape* PShape = PShapes[ShapeIdx];
 		check(PShape);
@@ -4568,7 +4595,8 @@ void FBodyInstance::LoadProfileData(bool bVerifyProfile)
 			// if external profile copy the data over
 			if (ExternalCollisionProfileBodySetup.IsValid(true))
 			{
-				const FBodyInstance& ExternalBodyInstance = ExternalCollisionProfileBodySetup->DefaultInstance;
+				UBodySetup* BodySetupInstance = ExternalCollisionProfileBodySetup.Get(true);
+				const FBodyInstance& ExternalBodyInstance = BodySetupInstance->DefaultInstance;
 				CollisionProfileName = ExternalBodyInstance.CollisionProfileName;
 				ObjectType = ExternalBodyInstance.ObjectType;
 				CollisionEnabled = ExternalBodyInstance.CollisionEnabled;

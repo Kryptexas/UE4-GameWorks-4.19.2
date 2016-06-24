@@ -4,7 +4,9 @@
 
 #include "Containers/Array.h"
 #include "Containers/BitArray.h"
-#include "MemoryOps.h"
+#include "Templates/MemoryOps.h"
+#include "Templates/IsTriviallyCopyConstructible.h"
+#include "Templates/IsTriviallyDestructible.h"
 
 
 // Forward declarations.
@@ -173,7 +175,7 @@ public:
 	/** Removes Count elements from the array, starting from Index. */
 	void RemoveAt(int32 Index,int32 Count = 1)
 	{
-		if (TTypeTraits<ElementType>::NeedsDestructor)
+		if (!TIsTriviallyDestructible<ElementType>::Value)
 		{
 			for (int32 It = Index, ItCount = Count; ItCount; ++It, --ItCount)
 			{
@@ -214,7 +216,7 @@ public:
 	void Empty(int32 ExpectedNumElements = 0)
 	{
 		// Destruct the allocated elements.
-		if( TTypeTraits<ElementType>::NeedsDestructor )
+		if( !TIsTriviallyDestructible<ElementType>::Value )
 		{
 			for(TIterator It(*this);It;++It)
 			{
@@ -234,7 +236,7 @@ public:
 	void Reset()
 	{
 		// Destruct the allocated elements.
-		if( TTypeTraits<ElementType>::NeedsDestructor )
+		if( !TIsTriviallyDestructible<ElementType>::Value )
 		{
 			for(TIterator It(*this);It;++It)
 			{
@@ -559,7 +561,7 @@ public:
 			AllocationFlags = InCopy.AllocationFlags;
 
 			// Determine whether we need per element construction or bulk copy is fine
-			if (TTypeTraits<ElementType>::NeedsCopyConstructor)
+			if (!TIsTriviallyCopyConstructible<ElementType>::Value)
 			{
 				      FElementOrFreeListLink* SrcData  = (FElementOrFreeListLink*)Data.GetData();
 				const FElementOrFreeListLink* DestData = (FElementOrFreeListLink*)InCopy.Data.GetData();

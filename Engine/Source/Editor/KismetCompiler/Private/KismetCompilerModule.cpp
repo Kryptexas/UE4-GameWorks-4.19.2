@@ -110,9 +110,14 @@ void FKismet2CompilerModule::CompileBlueprintInner(class UBlueprint* Blueprint, 
 
 			if (bSignatureWasChanged)
 			{
-				for (auto CurrentBP : StoredDependentBlueprints)
+				for (UBlueprint* CurrentBP : StoredDependentBlueprints)
 				{
-					Reinstancer->EnlistDependentBlueprintToRecompile(CurrentBP, !(CurrentBP->IsPossiblyDirty() || CurrentBP->Status == BS_Error));
+					Reinstancer->EnlistDependentBlueprintToRecompile(CurrentBP, !(CurrentBP->IsPossiblyDirty() || CurrentBP->Status == BS_Error) && CurrentBP->IsValidForBytecodeOnlyRecompile());
+				}
+
+				if(!Blueprint->ParentClass->HasAnyClassFlags(CLASS_Native))
+				{
+					Reinstancer->EnlistDependentBlueprintToRecompile(Blueprint, true);
 				}
 			}
 		}
@@ -152,7 +157,6 @@ extern UNREALED_API FSecondsCounterData BlueprintCompileAndLoadTimerData;
 // Compiles a blueprint.
 void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TSharedPtr<FBlueprintCompileReinstancer> ParentReinstancer, TArray<UObject*>* ObjLoaded)
 {
-	SCOPE_SECONDS_COUNTER(GBlueprintCompileTime);
 	FSecondsCounterScope Timer(BlueprintCompileAndLoadTimerData);
 	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CompileTime);
 

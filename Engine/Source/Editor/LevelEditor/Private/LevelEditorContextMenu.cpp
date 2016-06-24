@@ -18,7 +18,7 @@
 #include "AssetData.h"
 #include "DebuggerCommands.h"
 #include "AssetThumbnail.h"
-#include "ClassIconFinder.h"
+#include "SlateIconFinder.h"
 #include "IPlacementModeModule.h"
 #include "AssetRegistryModule.h"
 #include "EngineUtils.h"
@@ -166,7 +166,7 @@ void FLevelEditorContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLev
 				NAME_None,
 				FText::Format(LOCTEXT("SelectComponentOwner", "Select Owner [{0}]"), FText::FromString(OwnerActor->GetHumanReadableName())),
 				TAttribute<FText>(),
-				FSlateIcon(FEditorStyle::GetStyleSetName(), FClassIconFinder::FindIconNameForClass(OwnerActor->GetClass()))
+				FSlateIconFinder::FindIconForClass(OwnerActor->GetClass())
 				);
 
 			MenuBuilder.AddMenuEntry(FEditorViewportCommands::Get().FocusViewportToSelection);
@@ -236,7 +236,7 @@ void FLevelEditorContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLev
 						NAME_None,
 						FText::Format(LOCTEXT("EditAssociatedAsset", "Edit {0}"), FText::FromString(Asset->GetName())),
 						TAttribute<FText>(),
-						FSlateIcon(FEditorStyle::GetStyleSetName(), FClassIconFinder::FindIconNameForClass(Asset->GetClass()))
+						FSlateIconFinder::FindIconForClass(Asset->GetClass())
 						);
 				}
 				else if (ReferencedAssets.Num() > 1)

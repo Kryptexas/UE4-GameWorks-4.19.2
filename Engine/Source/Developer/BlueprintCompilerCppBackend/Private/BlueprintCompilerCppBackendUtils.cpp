@@ -35,6 +35,9 @@ FString FEmitterLocalContext::FindGloballyMappedObject(const UObject* Object, co
 	auto ClassString = [&]() -> FString
 	{
 		const UClass* ObjectClassToUse = ExpectedClass ? ExpectedClass : GetFirstNativeOrConvertedClass(Object->GetClass());
+		ObjectClassToUse = (UUserDefinedEnum::StaticClass() == ObjectClassToUse) ? UEnum::StaticClass() : ObjectClassToUse;
+		ObjectClassToUse = (UUserDefinedStruct::StaticClass() == ObjectClassToUse) ? UScriptStruct::StaticClass() : ObjectClassToUse;
+		ObjectClassToUse = (!ExpectedClass && ObjectClassToUse && ObjectClassToUse->IsChildOf<UBlueprintGeneratedClass>()) ? UClass::StaticClass() : ObjectClassToUse;
 		return FEmitHelper::GetCppName(ObjectClassToUse);
 	};
 	
@@ -137,14 +140,6 @@ FString FEmitterLocalContext::FindGloballyMappedObject(const UObject* Object, co
 		// Check if  
 		// TODO: check if supported 
 		return FString::Printf(TEXT("%s::StaticStruct()"), *FEmitHelper::GetCppName(UDS));
-	}
-
-	if (auto UDE = Cast<UEnum>(Object))
-	{
-		// TODO:
-		// TODO: check if supported 
-		//return FString::Printf(TEXT("%s_StaticEnum()"), *UDE->GetName());
-		return FString::Printf(TEXT("FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT(\"%s\"))"), *FEmitHelper::GetCppName(UDE));
 	}
 
 	// TODO: handle subobjects
@@ -334,7 +329,12 @@ FString FEmitHelper::GetCppName(const UField* Field, bool bUInterface)
 		return AsProperty->GetNameCPP();
 	}
 
-	if (!Field->IsNative() && !Field->IsA<UUserDefinedEnum>())
+	if (Field->IsA<UUserDefinedEnum>())
+	{
+		return ::UnicodeToCPPIdentifier(Field->GetName(), false, TEXT("E__"));
+	}
+
+	if (!Field->IsNative())
 	{
 		return ::UnicodeToCPPIdentifier(Field->GetName(), false, TEXT("bpf__"));
 	}
@@ -418,6 +418,10 @@ bool FEmitHelper::IsMetaDataValid(const FName Name, const FString& Value)
 bool FEmitHelper::MetaDataCanBeNative(const FName MetaDataName, const UField* Field)
 {
 	if (MetaDataName == TEXT("ModuleRelativePath"))
+	{
+		return false;
+	}
+	if (MetaDataName == TEXT("MakeStructureDefaultValue")) // can be too long
 	{
 		return false;
 	}
@@ -813,6 +817,16 @@ void FEmitHelper::EmitLifetimeReplicatedPropsImpl(FEmitterLocalContext& EmitterC
 	}
 }
 
+FString FEmitHelper::FloatToString(float Value)
+{
+	if (FMath::IsNaN(Value))
+	{
+		UE_LOG(LogK2Compiler, Warning, TEXT("A NotANNumber value cannot be nativized. It is changed into 0.0f."));
+		return TEXT("/*The original value was NaN!*/ 0.0f");
+	}
+	return FString::Printf(TEXT("%f"), Value);
+}
+
 FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEdGraphPinType& Type, const FString& CustomValue, UObject* LiteralObject, const FText* OptionalTextLiteral)
 {
 	auto Schema = GetDefault<UEdGraphSchema_K2>();
@@ -833,7 +847,7 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 	else if (UEdGraphSchema_K2::PC_Float == Type.PinCategory)
 	{
 		float Value = CustomValue.IsEmpty() ? 0.0f : FCString::Atof(*CustomValue);
-		return FString::Printf(TEXT("%f"), Value);
+		return FString::Printf(TEXT("%s"), *FloatToString(Value));
 	}
 	else if (UEdGraphSchema_K2::PC_Int == Type.PinCategory)
 	{
@@ -881,13 +895,13 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 		{
 			FVector Vect = FVector::ZeroVector;
 			FDefaultValueHelper::ParseVector(CustomValue, /*out*/ Vect);
-			return FString::Printf(TEXT("FVector(%f,%f,%f)"), Vect.X, Vect.Y, Vect.Z);
+			return FString::Printf(TEXT("FVector(%s,%s,%s)"), *FloatToString(Vect.X), *FloatToString(Vect.Y), *FloatToString(Vect.Z));
 		}
 		else if (StructType == TBaseStructure<FRotator>::Get())
 		{
 			FRotator Rot = FRotator::ZeroRotator;
 			FDefaultValueHelper::ParseRotator(CustomValue, /*out*/ Rot);
-			return FString::Printf(TEXT("FRotator(%f,%f,%f)"), Rot.Pitch, Rot.Yaw, Rot.Roll);
+			return FString::Printf(TEXT("FRotator(%s,%s,%s)"), *FloatToString(Rot.Pitch), *FloatToString(Rot.Yaw), *FloatToString(Rot.Roll));
 		}
 		else if (StructType == TBaseStructure<FTransform>::Get())
 		{
@@ -896,14 +910,16 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 			const FQuat Rot = Trans.GetRotation();
 			const FVector Translation = Trans.GetTranslation();
 			const FVector Scale = Trans.GetScale3D();
-			return FString::Printf(TEXT("FTransform( FQuat(%f,%f,%f,%f), FVector(%f,%f,%f), FVector(%f,%f,%f) )"),
-				Rot.X, Rot.Y, Rot.Z, Rot.W, Translation.X, Translation.Y, Translation.Z, Scale.X, Scale.Y, Scale.Z);
+			return FString::Printf(TEXT("FTransform( FQuat(%s,%s,%s,%s), FVector(%s,%s,%s), FVector(%s,%s,%s) )"),
+				*FloatToString(Rot.X), *FloatToString(Rot.Y), *FloatToString(Rot.Z), *FloatToString(Rot.W),
+				*FloatToString(Translation.X), *FloatToString(Translation.Y), *FloatToString(Translation.Z), 
+				*FloatToString(Scale.X), *FloatToString(Scale.Y), *FloatToString(Scale.Z));
 		}
 		else if (StructType == TBaseStructure<FLinearColor>::Get())
 		{
 			FLinearColor LinearColor;
 			LinearColor.InitFromString(CustomValue);
-			return FString::Printf(TEXT("FLinearColor(%f,%f,%f,%f)"), LinearColor.R, LinearColor.G, LinearColor.B, LinearColor.A);
+			return FString::Printf(TEXT("FLinearColor(%s,%s,%s,%s)"), *FloatToString(LinearColor.R), *FloatToString(LinearColor.G), *FloatToString(LinearColor.B), *FloatToString(LinearColor.A));
 		}
 		else if (StructType == TBaseStructure<FColor>::Get())
 		{
@@ -915,7 +931,7 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 		{
 			FVector2D Vect = FVector2D::ZeroVector;
 			Vect.InitFromString(CustomValue);
-			return FString::Printf(TEXT("FVector2D(%f,%f)"), Vect.X, Vect.Y);
+			return FString::Printf(TEXT("FVector2D(%s,%s)"), *FloatToString(Vect.X), *FloatToString(Vect.Y));
 		}
 		else
 		{
@@ -979,12 +995,12 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 	{
 		if (auto FoundClass = Cast<const UClass>(LiteralObject))
 		{
-			const FString MappedObject = EmitterContext.FindGloballyMappedObject(LiteralObject);
+			const FString MappedObject = EmitterContext.FindGloballyMappedObject(LiteralObject, UClass::StaticClass());
 			if (!MappedObject.IsEmpty())
 			{
 				return MappedObject;
 			}
-			return FString::Printf(TEXT("LoadClass<UObject>(nullptr, TEXT(\"%s\"), nullptr, 0, nullptr)"), *(LiteralObject->GetPathName().ReplaceCharWithEscapedChar()));
+			return FString::Printf(TEXT("LoadClass<UClass>(nullptr, TEXT(\"%s\"), nullptr, 0, nullptr)"), *(LiteralObject->GetPathName().ReplaceCharWithEscapedChar()));
 		}
 		return FString(TEXT("nullptr"));
 	}
@@ -1061,7 +1077,8 @@ FString FEmitHelper::PinTypeToNativeType(const FEdGraphPinType& Type)
 			{
 				const bool bEnumClassForm = Enum->GetCppForm() == UEnum::ECppForm::EnumClass;
 				const bool bNonNativeEnum = Enum->GetClass() != UEnum::StaticClass();
-				FString FullyQualifiedEnumName = (!Enum->CppType.IsEmpty()) ? Enum->CppType : FEmitHelper::GetCppName(Enum);
+				ensure(!bNonNativeEnum || Enum->CppType.IsEmpty());
+				const FString FullyQualifiedEnumName = (!Enum->CppType.IsEmpty()) ? Enum->CppType : FEmitHelper::GetCppName(Enum);
 				// TODO: sometimes we need unwrapped type for enums without size specified. For example when native function has a raw ref param.
 				return (bEnumClassForm || bNonNativeEnum) ? FullyQualifiedEnumName : FString::Printf(TEXT("TEnumAsByte<%s>"), *FullyQualifiedEnumName);
 			}
@@ -1217,6 +1234,7 @@ bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, co
 		auto RTypeEnum = Cast<UEnum>(RType.PinSubCategoryObject.Get());
 		if (!RTypeEnum && LTypeEnum)
 		{
+			ensure(!LTypeEnum->IsA<UUserDefinedEnum>() || LTypeEnum->CppType.IsEmpty());
 			const FString EnumCppType = !LTypeEnum->CppType.IsEmpty() ? LTypeEnum->CppType : FEmitHelper::GetCppName(LTypeEnum);
 			OutCastBegin = FString::Printf(TEXT("static_cast<%s>("), *EnumCppType);
 			OutCastEnd = TEXT(")");
@@ -1224,6 +1242,7 @@ bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, co
 		}
 		if (!LTypeEnum && RTypeEnum)
 		{
+			ensure(!RTypeEnum->IsA<UUserDefinedEnum>() || RTypeEnum->CppType.IsEmpty());
 			const FString EnumCppType = !RTypeEnum->CppType.IsEmpty() ? RTypeEnum->CppType : FEmitHelper::GetCppName(RTypeEnum);
 			OutCastBegin = FString::Printf(TEXT("EnumToByte<%s>("), *EnumCppType); 
 			OutCastEnd = TEXT(")");
@@ -1240,7 +1259,7 @@ bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, co
 		if (!RType.bIsArray && LClass && RClass && LClass->IsChildOf(RClass) && !RClass->IsChildOf(LClass))
 		{
 			OutCastBegin = FString::Printf(TEXT("CastChecked<%s>("), *FEmitHelper::GetCppName(LClass));
-			OutCastEnd = TEXT(")");
+			OutCastEnd = TEXT(", ECastCheckedType::NullAllowed)");
 			return true;
 		}
 		else if (RType.bIsArray && LClass && RClass && (LClass->IsChildOf(RClass) || RClass->IsChildOf(LClass)) && (LClass != RClass))
@@ -1323,18 +1342,29 @@ FString FEmitHelper::AccessInaccessibleProperty(FEmitterLocalContext& EmitterCon
 {
 	check(Property);
 	const FString PropertyLocalName = GenerateGetPropertyByName(EmitterContext, Property);
+	const UBoolProperty* BoolProperty = Cast<const UBoolProperty>(Property);
+	if (bGetter && BoolProperty)
+	{
+		return  FString::Printf(TEXT("(((UBoolProperty*)%s)->GetPropertyValue_InContainer(%s(%s), %d))")
+			, *PropertyLocalName
+			, *ContextAdressOp
+			, *ContextStr
+			, StaticArrayIdx);
+	}
+	if (BoolProperty && !BoolProperty->IsNativeBool())
+	{
+		UE_LOG(LogK2Compiler, Error, TEXT("AccessInaccessiblePropertyUsingOffset - bitfield %s"), *GetPathNameSafe(Property));
+	}
 	const uint32 CppTemplateTypeFlags = EPropertyExportCPPFlags::CPPF_CustomTypeName
 		| EPropertyExportCPPFlags::CPPF_NoConst | EPropertyExportCPPFlags::CPPF_NoRef | EPropertyExportCPPFlags::CPPF_NoStaticArray
 		| EPropertyExportCPPFlags::CPPF_BlueprintCppBackend;
-	const FString TypeDeclaration = EmitterContext.ExportCppDeclaration(Property, EExportedDeclaration::Parameter, CppTemplateTypeFlags, true);
-	const FString Result = FString::Printf(TEXT("(*(%s->ContainerPtrToValuePtr<%s>(%s(%s), %d)))")
+	const FString TypeDeclaration = EmitterContext.ExportCppDeclaration(Property, EExportedDeclaration::Member, CppTemplateTypeFlags, true);
+	return FString::Printf(TEXT("(*(%s->ContainerPtrToValuePtr<%s>(%s(%s), %d)))")
 		, *PropertyLocalName
 		, *TypeDeclaration
 		, *ContextAdressOp
 		, *ContextStr
 		, StaticArrayIdx);
-	const UBoolProperty* BoolProperty = Cast<UBoolProperty>(Property);
-	return (bGetter && BoolProperty && !BoolProperty->IsNativeBool()) ? FString::Printf(TEXT("(0 != (%s))"), *Result) : Result;
 }
 
 namespace HelperWithoutEditorOnlyMembers
