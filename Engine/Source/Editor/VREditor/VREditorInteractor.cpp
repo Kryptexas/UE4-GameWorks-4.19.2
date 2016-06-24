@@ -267,9 +267,8 @@ void UVREditorInteractor::Tick( const float DeltaTime )
 	{
 		const float WorldScaleFactor = WorldInteraction->GetWorldScaleFactor();
 
-		// We don't bother drawing hand meshes if we're in "forced VR mode" (because they'll just be on top of the camera).
-		// Also, don't bother drawing hands if we're not currently tracking them.
-		if ( GetVRMode().IsActuallyUsingVR() && bHaveMotionController )
+		// Don't bother drawing hands if we're not currently tracking them.
+		if ( bHaveMotionController )
 		{
 			HandMeshComponent->SetVisibility( true );
 		}
@@ -281,9 +280,6 @@ void UVREditorInteractor::Tick( const float DeltaTime )
 		FVector LaserPointerStart, LaserPointerEnd;
 		if ( GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd ) )
 		{
-			// Only show the laser if we're actually in VR
-			LaserPointerMeshComponent->SetVisibility( GetVRMode().IsActuallyUsingVR() );
-
 			// NOTE: We don't need to set the laser pointer location and rotation, as the MotionControllerComponent will do
 			// that later in the frame.  
 

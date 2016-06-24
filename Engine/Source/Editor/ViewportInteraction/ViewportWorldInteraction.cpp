@@ -3,6 +3,7 @@
 #include "ViewportInteractionModule.h"
 #include "ViewportWorldInteraction.h"
 #include "ViewportInteractor.h"
+#include "MouseCursorInteractor.h"
 #include "ViewportInteractableInterface.h"
 #include "ViewportDragOperation.h"
 #include "VIGizmoHandle.h"
@@ -227,7 +228,6 @@ UViewportWorldInteraction::UViewportWorldInteraction( const FObjectInitializer& 
 	StartDragAngleOnRotation( ),
 	StartDragHandleDirection( ),
 	CurrentGizmoType( EGizmoHandleTypes::All ),
-	bIsUsingVR( false ),
 	SnapGridActor( nullptr ),
 	SnapGridMeshComponent( nullptr ),
 	SnapGridMID( nullptr ),
@@ -389,7 +389,7 @@ FTransform UViewportWorldInteraction::GetRoomTransform() const
 FTransform UViewportWorldInteraction::GetRoomSpaceHeadTransform() const
 {
 	FTransform HeadTransform = FTransform::Identity;
-	if ( bIsUsingVR && GEngine->HMDDevice.IsValid() )
+	if ( GEngine->HMDDevice.IsValid() )
 	{
 		FQuat RoomSpaceHeadOrientation;
 		FVector RoomSpaceHeadLocation;
@@ -433,11 +433,6 @@ UWorld* UViewportWorldInteraction::GetViewportWorld() const
 FEditorViewportClient* UViewportWorldInteraction::GetViewportClient() const
 {
 	return EditorViewportClient;
-}
-
-void UViewportWorldInteraction::SetIsUsingVR( const bool bInIsUsingVR )
-{
-	bIsUsingVR = bInIsUsingVR;
 }
 
 void UViewportWorldInteraction::Undo()
@@ -812,12 +807,13 @@ void UViewportWorldInteraction::InteractionTick( FEditorViewportClient* Viewport
 			}
 
 			{
-				// Intertia must only work in VR
+				const bool bIsMouseCursorInteractor = Cast<UMouseCursorInteractor>( Interactor ) != nullptr;
 				// @todo vreditor: We could do a world space distance test (times world scale factor) when forcing VR mode to get similar (but not quite the same) behavior
-				if( bIsUsingVR )
 				{
 					// Don't bother with inertia if we're not moving very fast.  This filters out tiny accidental movements.
-					const FVector RoomSpaceHandDelta = ( InteractorData.RoomSpaceTransform.GetLocation() - InteractorData.LastRoomSpaceTransform.GetLocation() );
+					const FVector RoomSpaceHandDelta = bIsMouseCursorInteractor ?
+						( InteractorData.Transform.GetLocation() - InteractorData.LastTransform.GetLocation() ) :
+						( InteractorData.RoomSpaceTransform.GetLocation() - InteractorData.LastRoomSpaceTransform.GetLocation() );
 					if( RoomSpaceHandDelta.Size() < VI::MinVelocityForInertia->GetFloat() * WorldScaleFactor )
 					{
 						InteractorData.DragTranslationVelocity = FVector::ZeroVector;

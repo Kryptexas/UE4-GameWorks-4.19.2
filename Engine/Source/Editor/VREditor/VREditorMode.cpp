@@ -329,7 +329,6 @@ void FVREditorMode::Enter()
 		// Setup world interaction
 		WorldInteraction = NewObject<UVREditorWorldInteraction>();
 		WorldInteraction->SetOwner( this );
-		WorldInteraction->SetIsUsingVR( bActuallyUsingVR );
 		WorldInteraction->Init( VREditorLevelViewportWeakPtr.Pin()->GetViewportClient().Get() );
 
 		// Motion controllers
@@ -363,18 +362,6 @@ void FVREditorMode::Enter()
 		TeleporterSystem->Init( this );
 
 	}
-
-	//// If we're not actually in VR mode, and instead we've forced it, we should spawn some UI at the Origin to help test
-	//if ( !bActuallyUsingVR )
-	//{
-	//	const int32 HandIndex = 1;
-	//	const bool bShouldShow = true;
-
-	//	FVirtualHand& Hand = VirtualHands[HandIndex];
-	//	Hand.Transform = FTransform(FVector(0, 0, 0));
-
-	//	UISystem->ShowEditorUIPanel(FVREditorUISystem::EEditorUIPanel::ContentBrowser, HandIndex, bShouldShow);
-	//}
 
 	// Call parent implementation
 	FEdMode::Enter();

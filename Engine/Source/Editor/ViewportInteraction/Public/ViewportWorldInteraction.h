@@ -437,12 +437,6 @@ private:
 	/** The current Gizmo type that is used for the TransformGizmo Actor */
 	EGizmoHandleTypes CurrentGizmoType;
 
-	//
-	// VR
-	//
-
-	/** If we are in VR right now */
-	bool bIsUsingVR;
 
 	//
 	// Snap grid
